@@ -342,7 +342,7 @@ writeCountResultSummary = function(html, param, result, type){
 ##' @seealso \code{\link{writeTableToHtml}}
 ##' @examples
 ##' 1
-## TODOP: argument param is defined, but not used.
+## TODOP: argument param is defined, but not used. document function after it is enabled again
 writeResultCounts = function(html, param, result, geneIds=NULL, pThresh=c(0.1, 0.05, 1/10^(2:5))){
 
 	sigTable = getSignificantCountsTable(result, pThresh=pThresh)
@@ -427,6 +427,7 @@ getSignificantFoldChangeCountsTable = function(result, pThresh=1/10^(1:5), fcThr
 ##' htmlFile = "example_html"
 ##' html =  openHtmlReport(htmlFile,param)
 ##' writeResultFile(html, param )
+## TODOP: finish example
 writeResultFile = function(html, param, result, rawData, useInOutput=TRUE,
   file=paste("result--", param$comparison, ".txt", sep="")){
 

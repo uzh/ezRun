@@ -98,18 +98,18 @@ getLog2Signal = function(rawData){
 }
 
 
-##' @title Gets rpkm
-##' @description Gets rpkm.
+##' @title Gets the rpkm measure
+##' @description Gets the rpkm measure.
 ##' @param rawData a list of raw data. Usually obtained from \code{loadCountDataset()}.
 ##' @template roxygen-template
-##' @return Returns rpkm
+##' @return Returns the rpkm measure.
 ##' @examples
 ##' param = ezParam()
 ##' param$dataRoot = system.file(package="ezRun", mustWork = TRUE)
 ##' input = EzDataset$new(file=system.file("extdata/yeast_10k_STAR_featureCounts/dataset.tsv", package="ezRun", mustWork = TRUE))
 ##' rawData = loadCountDataset(input, param)
 ##' getRpkm(rawData)
-## TODOP: get example with proper return and improve description.
+## TODOP: get example with proper return
 getRpkm = function(rawData){
   #edgeR::rpkm.default
   #edgeR::cpm.default

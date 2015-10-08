@@ -2,25 +2,36 @@
 % Please edit documentation in R/rangesTools.r
 \name{computeRangeStats}
 \alias{computeRangeStats}
-\title{1}
+\title{Computes stats of genomic ranges}
 \usage{
 computeRangeStats(cov, targetRanges, FUN = mean)
 }
 \arguments{
-\item{x}{}
+\item{cov}{an object of the class RleList.}
+
+\item{targetRanges}{an object of the class GRanges.}
+
+\item{FUN}{a function to apply to the views.}
 }
 \value{
-Returns
+Returns the computed values belonging to their genomic ranges.
 }
 \description{
-1
+Computes stats of genomic ranges.
 }
 \examples{
-1
+cov = RleList(chr1=Rle(5523:5539),chr2=Rle(6544:6557))
+targetRanges = GRanges(c("chr1", "chr1", "chr2"), IRanges(5000:5002,8000:7998), strand=c("+", "-", "+"))
+computeRangeStats(cov, targetRanges)
 }
 \author{
 Rehrauer, Hubert
 
 Schmid, Peter
+}
+\seealso{
+\code{\link[IRanges]{RleViewsList}}
+
+\code{\link[IRanges]{viewApply}}
 }
 

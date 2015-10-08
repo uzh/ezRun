@@ -2,25 +2,31 @@
 % Please edit documentation in R/rangesTools.r
 \name{expandGRanges}
 \alias{expandGRanges}
-\title{1}
+\title{Expands genomic ranges}
 \usage{
 expandGRanges(x, width = 2000)
 }
 \arguments{
-\item{x}{}
+\item{x}{an object of the class GRanges.}
+
+\item{width}{an integer specifying how much to expand the ranges.}
 }
 \value{
-Returns
+Returns an expanded GRanges object.
 }
 \description{
-1
+Expands genomic ranges of a GRanges object. All ranges will be expanded at both ends by \code{width}.
 }
 \examples{
-1
+x = GRanges(c("chr1", "chr1", "chr2"), IRanges(5000:5002,8000:8002), strand=c("+", "-", "+"))
+expandGRanges(x)
 }
 \author{
 Rehrauer, Hubert
 
 Schmid, Peter
+}
+\seealso{
+\code{\link[GenomicRanges]{GRanges}}
 }
 

@@ -10,7 +10,13 @@ ezCountOverlaps(query, subject, ignoreStrand = FALSE, ...)
 ezHasOverlaps(query, subject, ignore.strand = FALSE, ...)
 }
 \arguments{
-\item{x}{}
+\item{query}{}
+
+\item{subject}{}
+
+\item{ignoreStrand}{}
+
+\item{...}{additional arguments to be passed to \code{\code{countOverlaps()}}.}
 }
 \value{
 Returns
@@ -23,11 +29,17 @@ Returns
 \item \code{ezHasOverlaps}: 
 }}
 \examples{
-1
+query = GRanges(c("chr1", "chr1", "chr2"), IRanges(5000:5002,8000:8002), strand=c("+", "-", "+"))
+subject = GRanges(c("chr2", "chr1", "chr3"), IRanges(4900:4902,5100:5102), strand=c("+", "-", "+"))
+ezCountOverlaps(query, subject)
+ezHasOverlaps(query,subject)
 }
 \author{
 Rehrauer, Hubert
 
 Schmid, Peter
+}
+\seealso{
+\code{\link[GenomicRanges]{countOverlaps}}
 }
 

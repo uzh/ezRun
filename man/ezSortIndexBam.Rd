@@ -2,7 +2,7 @@
 % Please edit documentation in R/bamio.r
 \name{ezSortIndexBam}
 \alias{ezSortIndexBam}
-\title{Sorts the index of a bam file}
+\title{Sorts and indexes a bam file}
 \usage{
 ezSortIndexBam(inBam, bam, samtools = SAMTOOLS, maxMem = "10000000000",
   removeBam = TRUE, cores = 2)
@@ -21,10 +21,11 @@ ezSortIndexBam(inBam, bam, samtools = SAMTOOLS, maxMem = "10000000000",
 \item{cores}{an integer specifying how many cores to use for the command.}
 }
 \description{
-Sorts the index of a bam file.
+Sorts and indexes a bam file.
 }
 \examples{
 bamFile <- system.file("extdata", "ex1.bam", package="Rsamtools", mustWork=TRUE)
+file.create("test.bam")
 ezSortIndexBam("test.bam", basename(bamFile), maxMem="500M", cores = ezThreads())
 }
 \author{

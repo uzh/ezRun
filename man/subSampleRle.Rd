@@ -2,21 +2,24 @@
 % Please edit documentation in R/rangesTools.r
 \name{subSampleRle}
 \alias{subSampleRle}
-\title{1}
+\title{Subsets an Rle object}
 \usage{
 subSampleRle(x, idx)
 }
 \arguments{
-\item{x}{}
+\item{x}{an object of the class Rle.}
+
+\item{idx}{an integer vector specifying which indices to keep.}
 }
 \value{
-Returns
+Returns a subset of an Rle object as an integer or numeric vector.
 }
 \description{
-1
+Subsets an Rle object.
 }
 \examples{
-1
+rleobj = Rle(c(1,1,1,2,2,3,2,2))
+subSampleRle(rleobj, 1:8)
 }
 \author{
 Rehrauer, Hubert

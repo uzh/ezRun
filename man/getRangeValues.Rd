@@ -2,26 +2,39 @@
 % Please edit documentation in R/rangesTools.r
 \name{getRangeValues}
 \alias{getRangeValues}
-\title{1}
+\title{Gets the values of genomic ranges}
 \usage{
 getRangeValues(cov, targetRanges, doRev = as.character(strand(targetRanges))
   == "-", asMatrix = TRUE)
 }
 \arguments{
-\item{x}{}
+\item{cov}{an object of the class RleList.}
+
+\item{targetRanges}{an object of the class GRanges.}
+
+\item{doRev}{a logical vector indicating whether to reverse ranges. Usually derived from \code{targetRanges}.}
+
+\item{asMatrix}{a logical indicating whether to return the values as a matrix.}
 }
 \value{
-Returns
+Returns the values or a matrix containing them.
 }
 \description{
-1
+Gets the values of genomic ranges
 }
 \examples{
-1
+cov = RleList(chr1=Rle(5523:5539),chr2=Rle(6544:6557))
+targetRanges = GRanges(c("chr1", "chr1", "chr2"), IRanges(5000:5002,8000:7998), strand=c("+", "-", "+"))
+getRangeValues(cov, targetRanges)
 }
 \author{
 Rehrauer, Hubert
 
 Schmid, Peter
+}
+\seealso{
+\code{\link[IRanges]{RleViewsList}}
+
+\code{\link[IRanges]{viewApply}}
 }
 

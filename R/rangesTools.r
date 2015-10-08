@@ -6,20 +6,16 @@
 # www.fgcz.ch
 
 
-ezSequenceFromRanges = function(granges, chromSeqs){
-  stopifnot(unique(seqnames(granges)) %in% names(chromSeqs))
-  
-  ## TODO implement according to the example in p1432/funcs-v30.r
-}
-
-
-##' @title 1
-##' @description 1
-##' @param x
+##' @title Expands genomic ranges
+##' @description Expands genomic ranges of a GRanges object. All ranges will be expanded at both ends by \code{width}.
+##' @param x an object of the class GRanges.
+##' @param width an integer specifying how much to expand the ranges.
 ##' @template roxygen-template
-##' @return Returns
+##' @seealso \code{\link[GenomicRanges]{GRanges}}
+##' @return Returns an expanded GRanges object.
 ##' @examples
-##' 1
+##' x = GRanges(c("chr1", "chr1", "chr2"), IRanges(5000:5002,8000:8002), strand=c("+", "-", "+"))
+##' expandGRanges(x)
 expandGRanges = function(x, width=2000){
   
   sl = seqlengths(x)
@@ -32,11 +28,20 @@ expandGRanges = function(x, width=2000){
 
 ##' @title 1
 ##' @description 1
-##' @param x
+##' @param query
+##' @param subject
+##' @param ignoreStrand
+##' @template addargs-template
+##' @templateVar fun \code{countOverlaps()}
 ##' @template roxygen-template
+##' @seealso \code{\link[GenomicRanges]{countOverlaps}}
 ##' @return Returns
 ##' @examples
-##' 1
+##' query = GRanges(c("chr1", "chr1", "chr2"), IRanges(5000:5002,8000:8002), strand=c("+", "-", "+"))
+##' subject = GRanges(c("chr2", "chr1", "chr3"), IRanges(4900:4902,5100:5102), strand=c("+", "-", "+"))
+##' ezCountOverlaps(query, subject)
+##' ezHasOverlaps(query,subject)
+## TODOP: finish documenting these two functions. but perhaps ezcountoverlaps is redundant?
 ezCountOverlaps = function(query, subject, ignoreStrand=FALSE, ...){
   #qSeqs = levels(seqnames(query))
   #sSeqs = levels(seqnames(subjects))
@@ -72,26 +77,26 @@ ezCountOverlaps = function(query, subject, ignoreStrand=FALSE, ...){
   return(countOverlaps(query=query, subject=subject, ...))
 }
 
-
-##' @describeIn ezCountOverlaps
+##' @describeIn ezCountOverlaps 
 ezHasOverlaps = function(query, subject, ignore.strand=FALSE, ...){  
   return(countOverlaps(query=query, subject=subject, ignore.strand=ignore.strand, ...) > 0)
 }
 
-
-# TODOP: purpose? seems identical to as.numeric()
-ezViewValues = function(x){
-  return(as.numeric(x))
-}
-
-
-##' @title 1
-##' @description 1
-##' @param x
+##' @title Gets the values of genomic ranges
+##' @description Gets the values of genomic ranges
+##' @param cov an object of the class RleList.
+##' @param targetRanges an object of the class GRanges.
+##' @param doRev a logical vector indicating whether to reverse ranges. Usually derived from \code{targetRanges}.
+##' @param asMatrix a logical indicating whether to return the values as a matrix.
 ##' @template roxygen-template
-##' @return Returns
+##' @seealso \code{\link[IRanges]{RleViewsList}}
+##' @seealso \code{\link[IRanges]{viewApply}}
+##' @return Returns the values or a matrix containing them.
 ##' @examples
-##' 1
+##' cov = RleList(chr1=Rle(5523:5539),chr2=Rle(6544:6557))
+##' targetRanges = GRanges(c("chr1", "chr1", "chr2"), IRanges(5000:5002,8000:7998), strand=c("+", "-", "+"))
+##' getRangeValues(cov, targetRanges)
+## TODOP: example doesn't work
 getRangeValues = function(cov, targetRanges, doRev=as.character(strand(targetRanges)) == "-", asMatrix=TRUE){
   names(targetRanges) = 1:length(targetRanges)
   rgs = ranges(RangedData(targetRanges))
@@ -115,14 +120,20 @@ getRangeValues = function(cov, targetRanges, doRev=as.character(strand(targetRan
   }
 }
 
-
-##' @title 1
-##' @description 1
-##' @param x
+##' @title Computes stats of genomic ranges
+##' @description Computes stats of genomic ranges.
+##' @param cov an object of the class RleList.
+##' @param targetRanges an object of the class GRanges.
+##' @param FUN a function to apply to the views.
 ##' @template roxygen-template
-##' @return Returns
+##' @seealso \code{\link[IRanges]{RleViewsList}}
+##' @seealso \code{\link[IRanges]{viewApply}}
+##' @return Returns the computed values belonging to their genomic ranges.
 ##' @examples
-##' 1
+##' cov = RleList(chr1=Rle(5523:5539),chr2=Rle(6544:6557))
+##' targetRanges = GRanges(c("chr1", "chr1", "chr2"), IRanges(5000:5002,8000:7998), strand=c("+", "-", "+"))
+##' computeRangeStats(cov, targetRanges)
+## TODOP: example doesn't work
 computeRangeStats = function(cov, targetRanges, FUN=mean){
   rgs = ranges(RangedData(targetRanges))
   gc()
@@ -133,15 +144,30 @@ computeRangeStats = function(cov, targetRanges, FUN=mean){
   return(values)
 }
 
-
-##' @title 1
-##' @description 1
-##' @param x
+##' @title Subsets an Rle object
+##' @description Subsets an Rle object.
+##' @param x an object of the class Rle.
+##' @param idx an integer vector specifying which indices to keep.
 ##' @template roxygen-template
-##' @return Returns
+##' @return Returns a subset of an Rle object as an integer or numeric vector.
 ##' @examples
-##' 1
-getRleFromRanges = function(x, r){
+##' rleobj = Rle(c(1,1,1,2,2,3,2,2))
+##' subSampleRle(rleobj, 1:8)
+subSampleRle = function(x, idx){
+  return(as.vector(x[idx]))
+}
+
+
+
+
+
+.ezSequenceFromRanges = function(granges, chromSeqs){
+  stopifnot(unique(seqnames(granges)) %in% names(chromSeqs))
+  
+  ## TODO implement according to the example in p1432/funcs-v30.r
+}
+
+.getRleFromRanges = function(x, r){
   gc()
   message("getRleFromRanges")
   rle = mapply(function(start, end, x) window(x, start=start, end=end),
@@ -151,22 +177,6 @@ getRleFromRanges = function(x, r){
   rle[isNeg] = lapply(rle[isNeg], rev)
   return(rle)
 }
-
-
-##' @title 1
-##' @description 1
-##' @param x
-##' @template roxygen-template
-##' @return Returns
-##' @examples
-##' 1
-subSampleRle = function(x, idx){
-  return(as.vector(x[idx]))
-}
-
-
-
-
 
 .getAvgProfileByOrientation = function(readRanges, targetRanges){
   
