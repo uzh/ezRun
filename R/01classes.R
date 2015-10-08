@@ -11,6 +11,8 @@
 #   union(commonParam, appParam)
 # }
 
+
+
 ##' @title The R5 class representing a dataset
 ##' @description Use this to create an object of the class EzDataset that contains the necessary fields for the input and output datasets.
 ##' @field file a character representing the file path of the dataset's contents.
