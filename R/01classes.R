@@ -1,0 +1,369 @@
+###################################################################
+# Functional Genomics Center Zurich
+# This code is distributed under the terms of the GNU General
+# Public License Version 3, June 2007.
+# The terms are available here: http://www.gnu.org/licenses/gpl.html
+# www.fgcz.ch
+
+
+# ezSupportedParam = function(appParam=NULL){
+#   commonParam = c("resultDir", "processMode", "mail", "adminMail")
+#   union(commonParam, appParam)
+# }
+
+##' @title The R5 class representing a dataset
+##' @description Use this to create an object of the class EzDataset that contains the necessary fields for the input and output datasets.
+##' @field file a character representing the file path of the dataset's contents.
+##' @field meta a data.frame containing the information about the samples.
+##' @field colNames a character vector of the column names in \code{meta}.
+##' @field tags a list with possible tags for \code{colNames}.
+##' @field isModified whether the dataset has been modified.
+##' @section Functions:
+##' \itemize{
+##'   \item{\code{ezTagListFromNames(names): }}{Gets the tags from \code{names} that are in the format [tag].}
+##' }
+##' @template roxygen-template
+##' @examples 
+##' ds = EzDataset$new(file=system.file("extdata/yeast_10k/dataset.tsv", package="ezRun", mustWork = TRUE))
+##' param = system.file(package="ezRun", mustWork = TRUE)
+##' ds$file
+##' ds$meta
+##' ds$getColumn("Read1")
+##' ds2 = ds$copy()
+##' ds2$setColumn("Read1","replacement")
+##' ds$columnHasTag("File")
+##' ds$getNames()
+##' ds$getFullPaths(param,"Read1")
+EzDataset <-
+  setRefClass("EzDataset",
+              fields = c("file", "meta", "colNames", "tags", "isModified"),
+              methods = list(
+                initialize = function(fileNew=character(0), metaNew=list())
+                {
+                  if (length(metaNew) > 0){
+                    if (is.data.frame(metaNew)){
+                      meta <<- metaNew
+                    } else {
+                      stopifnot(length(metaNew$Name) == 1)
+                      meta <<- data.frame(metaNew, stringsAsFactors=FALSE, check.names=FALSE, row.names=metaNew$Name)
+                      meta$Name <<- NULL
+                    }
+                  } else {
+                    if (length(fileNew) == 1){
+                      if (length(metaNew) == 0){
+                        stopifnot(file.exists(fileNew))
+                        file <<- fileNew
+                        meta <<- ezRead.table(fileNew)
+                      } else {
+                        file <<- fileNew
+                      }
+                    }
+                  }
+                  colNames <<- sub(" \\[.*", "", base::names(meta))
+                  tags <<- ezTagListFromNames(base::names(meta))
+                  isModified <<- FALSE
+                },
+                getColumn = function(names)
+                {
+                  "Gets the column(s) selected with \\code{names}."
+                  idx = match(names, colNames)
+                  if (any(is.na(idx))){
+                    stop("Column not found in dataset: ", paste(names[is.na(idx)], collapse=" "),
+                         "\nAvailable columns: ", paste(colNames, collapse=" "))
+                  }
+                  x = meta[[idx]]
+                  names(x) = rownames(meta)
+                  return(x)
+                },
+                setColumn = function(name, values)
+                {
+                  "Sets the column selected with \\code{name} to \\code{values}. If \\code{values} is \\code{NULL} the column gets removed"
+                  idx = match(name, colNames)
+                  if (any(is.na(idx))){
+                    stop("Column not found in dataset: ", paste(name[is.na(idx)], collapse=" "),
+                         "\nAvailable columns: ", paste(colNames, collapse=" "))
+                  }
+                  meta[ ,idx] <<- values
+                  if (is.null(values)){
+                    ## if the values are NULL the column gets remove
+                    colNames <<- colNames[-idx]
+                    tags <<- tags[-idx]
+                  }
+                  isModified <<- TRUE
+                },
+                columnHasTag = function(tag)
+                {
+                  "Checks each column whether its \\code{tags} matches \\code{tag}."
+                  return(grepl(tag, tags))
+                },
+                subset = function(samples)
+                {
+                  "Subsets the meta field keeping \\code{samples}."
+                  meta <<- meta[samples, , drop=FALSE]
+                  isModified <<- TRUE
+                  return(.self)
+                },
+                getNames = function()
+                {
+                  "Gets the row names."
+                  return(rownames(meta))
+                },
+                getLength = function()
+                {
+                  "Gets the number of samples."
+                  return(length(rownames(meta)))
+                },
+                getFullPaths = function(param, name)
+                {
+                  "Combines a root directory specified by \\code{param$dataRoot} or \\code{param} with the file names in the column with \\code{name}."
+                  if (is.list(param)){
+                    dataRoot = param$dataRoot
+                  } else {
+                    dataRoot = param
+                  }
+                  files = .self$getColumn(name)
+                  if (all(grepl("^/", files))){
+                    return(files)
+                  }
+                  
+                  fullNames = sapply(files, function(x){fn = file.path(dataRoot, x); fn[file.access(fn) == 0][1]})
+                  isInvalid = is.na(fullNames)
+                  if (any(isInvalid)){
+                    stop("Files are not readable using root:\n", paste(dataRoot, collapse="\n"), "\nfiles:\n", paste(files[isInvalid], collapse="\n"))
+                  }
+                  return(fullNames)
+                }
+              )
+  )
+# require(ezRun)
+# options(error=recover)
+
+# @describeIn doesn't work in RC classes. It is described "manually" in EzDataset.
+ezTagListFromNames = function(names){
+  lapply(names, function(nm){
+    if (grepl("\\[", nm)){
+      unlist(strsplit(sub(".*\\[(.*)\\]", "\\1", nm), ","))
+    } else {
+      return(NULL)
+    }
+  })
+}
+
+##' @title The R5 class representing a runnable app
+##' @description This reference class is the basis of all other apps that inherit from it. It sets the framework to run different apps.
+##' @field runMethod the function that will be executed in the \code{run} method.
+##' @field name the name of the app.
+##' @field appDefaults the defaults to run the application with.
+##' @template roxygen-template
+##' @seealso \code{\link{EzDataset}}
+##' @seealso \code{\link{checkFreeDiskSpace}}
+##' @examples
+##' ds = EzDataset$new(file=system.file("extdata/yeast_10k/dataset.tsv", package="ezRun", mustWork = TRUE))
+##' NULLApp = EzApp$new(runMethod=function(input, output, param){},name="NULLApp")
+##' NULLApp$run(input=ds, output=ds, param=list(process_mode="SAMPLE"))
+EzApp <- 
+  setRefClass("EzApp",
+              fields = list(runMethod="function",
+                            name="character",
+                            appDefaults="data.frame",
+                            stackTrace="character"),
+              methods = list(
+                run = function (input, output, param) 
+                {
+                  "Runs the app with the provided \\code{input}, \\code{output} and \\code{param}."
+                  if (is.list(input)){
+                    input = EzDataset$new(meta=input)
+                  } else {
+                    if (is.character(input)){
+                      input = EzDataset$new(file=input)
+                    }
+                  }
+                  if (is.list(output)){
+                    output = EzDataset$new(meta=output)
+                  } else {
+                    if (is.character(output)){
+                      output = EzDataset$new(file=output)
+                    }
+                  }
+                  on.exit(.self$appExitAction(param, output, appName=name))
+                  withCallingHandlers({
+                    if (param$process_mode == "SAMPLE"){
+                      if (input$getLength() > 1){
+                        stop("process mode is SAMPLE but more than one sample provided as input")
+                      }
+                    }
+                    options(cores=param$cores)
+                    param$appName = name
+                    logMessage(name, param, "Starting")
+                    param = ezParam(param, appDefaults=appDefaults)
+                    checkFreeDiskSpace(param)
+                    result = runMethod(input=input$copy(), output=output$copy(), param=param)
+                    return(result)
+                  }, error=function(e){dump.frames(format(Sys.time(), format="dump_%Y%m%d%H%M%S"), to.file=TRUE);
+                    stackTrace <<- limitedLabels(sys.calls());}
+                  )
+                },
+                appExitAction = function(param, output, appName="unknown")
+                {
+                  "Executes actions on exit of an application. This includes links to the output and possibly sending an e-mail."
+                  text=.self$outputLinks(output, param)
+                  resultName = switch(param$process_mode,
+                                      SAMPLE=names(output)[1],
+                                      DATASET=param$name)
+                  subject=paste(appName, resultName, 'done.', sep=' ')
+                  .self$exitMail(text, subject, param)
+                  logMessage(appName, param, "Finished")
+                },
+                outputLinks = function(output, param)
+                {
+                  "Returns urls, that are tagged as Links, specified in the output list together with relevant metadata."
+                  use = grepl("Link", output$tags)
+                  relUrls = c(param$resultDir, unlist(output$meta[use])) ## always show the link to the resultdir and to all Links if available.
+                  return(paste(PROJECT_BASE_URL, relUrls, sep="/"))
+                },
+                exitMail = function(text, subject, param)
+                {
+                  "Sends a report e-mail to the specified e-mail address. If not valid, an e-mail will be sent to the administrator if there was an error."
+                  if (ezIsSpecified(stackTrace)){
+                    if (ezValidMail(param$mail)){
+                      recipient = param$mail
+                    } else {
+                      recipient = param$adminMail
+                    }
+                    message("error exists: ", recipient)
+                    if (ezValidMail(recipient)){
+                      ezMail(subject = paste("Error: ", subject), text=c(text, geterrmessage(), stackTrace), to=recipient)
+                      message("mail sent to: ", recipient)
+                    }
+                  } else {
+                    if (ezValidMail(param$mail)){
+                      ezMail(subject=subject, text=text, to=param$mail)      
+                    }
+                  }
+                  return()
+                }
+              )
+  )
+
+##' @title Checks if there is enough free disk space
+##' @description Checks if there is enough free disk space. If there is not enough disk space, an e-mail will be sent and the job will be put on hold for up to two hours.
+##' @param param a list of parameters:
+##' \itemize{
+##'   \item{\code{scratch}}{ the required disk space in gigabytes.}
+##'   \item{\code{mail}}{ the e-mail address of the recipient.}
+##' }
+##' @template roxygen-template
+##' @examples
+##' param = list()
+##' param[['mail']] = ''
+##' param[['scratch']] = '100'
+##' checkFreeDiskSpace(param)
+checkFreeDiskSpace = function(param){
+  if (is.null(param$scratch)){
+    return()
+  }
+  freeSpace = getGigabyteFree(".")
+  if (freeSpace < param$scratch){
+    if (ezValidMail(param$mail)){
+      recipient = param$mail
+    } else{
+      recipient = param$adminMail
+    }
+    ezMail(to=recipient,
+           subject=paste("Alert: not enough disk space ", Sys.info()["nodename"], "-", getwd()),
+           text="Please free up space! Job is on hold for 2 hours and will be terminated afterwards if the issue persists.")
+    i = 0
+    while(getGigabyteFree(".") < param$scratch & i < 60){
+      Sys.sleep( 120)
+      i = i + 1
+    }
+    if (getGigabyteFree(".") < param$scratch) stop("actual free disk space is less than required")
+  }
+  return()
+}
+
+##' @describeIn checkFreeDiskSpace Gets the number of free gigabytes.
+getGigabyteFree = function(dirPath){
+  as.numeric(strsplit(ezSystem(paste("df", dirPath), intern=TRUE, echo=FALSE), " +")[[2]][4]) / 1e6
+}
+
+## TODOP: describe slots 
+##' @title The S4 class representing a collection of references
+##' @description Objects of this class are a collection of references derived from a list of parameters.
+##' @slot refBuild
+##' @slot refBuildName
+##' @slot refBuildDir
+##' @slot refIndex
+##' @slot refFeatureFile
+##' @slot refAnnotationFile
+##' @slot refFastaFile
+##' @slot refChromDir
+##' @slot refChromSizesFile
+##' @template roxygen-template
+##' @examples
+##' EzRef(param=list(refBuild="foo"))
+EzRef = setClass("EzRef",
+                 slots = c(refBuild="character",
+                           refBuildName="character",
+                           refBuildDir="character",
+                           refIndex="character",
+                           refFeatureFile="character",
+                           refAnnotationFile="character",
+                           refFastaFile="character",
+                           refChromDir="character",
+                           refChromSizesFile="character"))
+
+##' @describeIn EzRef Initializes the slots of EzRef. It will fill also try to specify some fields and if necessary get full file paths.
+setMethod("initialize", "EzRef", function(.Object, param=list()){
+  #   if (!ezIsSpecified(param$refBuild)){
+  #     return(.Object)
+  #   }
+  .Object@refBuild = param$refBuild
+  refFields = strsplit(.Object@refBuild, "/", fixed=TRUE)[[1]]
+  if (ezIsSpecified(param$refBuildName)){
+    .Object@refBuildName = param$refBuildName
+  } else {
+    .Object@refBuildName = refFields[3]
+  }
+  if (ezIsSpecified(param$refBuildDir)){
+    .Object@refBuildDir = param$refBuildDir
+  } else {
+    .Object@refBuildDir = file.path(GENOMES_ROOT, paste(refFields[1:3], collapse="/"))
+  }  
+  if (ezIsSpecified(param$refIndex)){
+    .Object@refIndex = param$refIndex
+  } else {
+    .Object@refIndex = ""
+  }
+  if (ezIsAbsolutePath(param$refFeatureFile)){
+    .Object@refFeatureFile = param$refFeatureFile
+  } else {
+    .Object@refFeatureFile =  file.path(.Object@refBuildDir, "Annotation/Genes", param$refFeatureFile)
+  }
+  if (ezIsAbsolutePath(param$refAnnotationFile)){
+    .Object@refAnnotationFile = param$refAnnotationFile
+  } else {
+    .Object@refAnnotationFile =  sub(".gtf$", "_annotation.txt", .Object@refFeatureFile)
+  }
+  if (ezIsAbsolutePath(param$refFastaFile)){
+    .Object@refFastaFile = param$refFastaFile
+  } else {
+    .Object@refFastaFile =  file.path(.Object@refBuildDir, param$refFastaFile)
+  }
+  if (ezIsAbsolutePath(param$refChromDir)){
+    .Object@refChromDir = param$refChromDir
+  } else {
+    .Object@refChromDir =  file.path(.Object@refBuildDir, "Sequence/Chromosomes")
+  }
+  if (ezIsAbsolutePath(param$refChromSizesFile)){
+    .Object@refChromSizesFile = param$refChromSizesFile
+  } else {
+    .Object@refChromSizesFile =  file.path(.Object@refChromDir, "chromsizes.txt")
+  }
+  return(.Object)
+})
+
+##' @describeIn EzRef Allows selection with square brackets [ ].
+setMethod("[", "EzRef", function(x, i){
+  slot(x, i)
+})

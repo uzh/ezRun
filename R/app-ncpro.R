@@ -1,0 +1,93 @@
+###################################################################
+# Functional Genomics Center Zurich
+# This code is distributed under the terms of the GNU General
+# Public License Version 3, June 2007.
+# The terms are available here: http://www.gnu.org/licenses/gpl.html
+# www.fgcz.ch
+
+
+##' @template method-template
+##' @templateVar methodName Ncpro
+##' @seealso \code{\link{EzAppNcpro}}
+ezMethodNcpro = function(input=NA, output=NA, param=NA){
+  cwd = getwd()
+  on.exit(setwd(cwd), add=TRUE)
+  setwdNew(basename(output$getColumn("Report")))
+  param$readCountsBarplot = basename(output$getColumn("TrimCounts"))
+  ncpro(input=input, dataset=input$meta, param=param)
+}
+
+##' @template app-template
+##' @templateVar method ezMethodNcpro()
+##' @seealso \code{\link{ezMethodNcpro}}
+EzAppNcpro <-
+  setRefClass("EzAppNcpro",
+              contains = "EzApp",
+              methods = list(
+                initialize = function()
+                {
+                  runMethod <<- ezMethodNcpro
+                  name <<- "EzAppNcpro"
+                }
+              )
+  )
+
+## TODO: make sure there's no conflict with input and refactor trimMirna
+ncpro = function(input, dataset, param=NULL){
+  samples = rownames(dataset)
+  fqFiles = input$getFullPaths(param, "Read1")
+  names(fqFiles) = samples
+  adapter = unique(dataset$Adapter1)
+  stopifnot(length(adapter) == 1)
+  jobList = lapply(fqFiles, function(fq){list(input=fq, output=file.path(getwd(), sub(".gz$", "", basename(fq))))})
+  .myFunc = function(job, param){
+    trimMirna(input=job$input, output=job$output, adapter=adapter, param=param)
+  }
+  buildName = param$ezRef["refBuildName"]
+  trimmedFastqFiles = unlist(ezMclapply(jobList,.myFunc,param=param,mc.cores=as.numeric(param[['cores']]),mc.preschedule =FALSE, mc.set.seed=FALSE))
+  ncproConfigFile = list.files(paste(NCPRO_ANNOTATION_DIR,"/config-templates/",sep=''),pattern=paste('-', buildName,'-',sep=''),full.names=T)[1]
+  if(is.na(ncproConfigFile))
+    stop(paste("No ncpro config-template for Genome-Build ",param[['refBuild']]," available.",sep=""))
+  jobDir = getwd()
+  workDir = file.path(jobDir, "ncpro")
+  ezSystem(paste(file.path(NCPRO_DIR, "bin/ncPRO-deploy"), "-o", workDir))
+  x = readLines(ncproConfigFile)
+  x = sub("^N_CPU.*", paste("N_CPU =", param[['cores']]), x)
+  writeLines(x, file.path(workDir, "param-ncrna.txt"))
+  rawDir = file.path(workDir, "rawdata")
+  ## link the files to the raw directory
+  for (sm in samples){
+    fqFile = paste(rawDir, "/", sm, ".fastq", sep="")
+    ezSystem(paste("ln -s", trimmedFastqFiles[sm], fqFile))
+  }
+  refIndex = getBowtieReference(param)
+  Sys.setenv(BOWTIE_INDEXES=dirname(refIndex))
+  setwd(workDir)
+  ezSystem(paste(file.path(NCPRO_DIR, "bin/ncPRO-seq"), "-c", "param-ncrna.txt", ">", "ncpro.log"))
+  stopifnot(file.exists("report.html"))
+  stopifnot(!grepl("^make.*Error", readLines("ncpro.log")))
+  setwd(jobDir)
+  readCounts = data.frame(row.names=samples)
+  if (!is.null(dataset$"Read Count") && is.numeric(dataset$"Read Count") && all(dataset$"Read Count" > 0)){
+    readCounts$untrimmed = dataset[samples, "Read Count"]    
+  }
+  readCounts$remaining = countReadsInFastq(trimmedFastqFiles)
+  ezWrite.table(readCounts, "trimCounts.txt")
+  readCounts$removed = readCounts$untrimmed - readCounts$remaining
+  png(file=param$readCountsBarplot, width=400 + nrow(readCounts) * 10, height=700)
+  par(mar=c(12, 4.1, 4.1, 2.1))  
+  barplot(t(as.matrix(readCounts[ , c("remaining", "removed")])), las=2, border=NA,
+          main="Read Counts after trimming", legend.text=TRUE, col=c("gray30", "gray"))
+  dev.off()
+  
+  ezSystem(paste("pigz", paste(trimmedFastqFiles, collapse=" ")))
+  ezSystem("rm -f data/*bed")
+  ezSystem("rm -f data/*tmp")
+  ezSystem("rm -f data/*fas")
+  ezSystem("rm -f data/*gff")
+  ezSystem("rm -f manuals")
+  ezSystem("rm -f annotation")
+  ezSystem("rm -rf rawdata")
+  setwd(jobDir)
+  return("Success")
+}

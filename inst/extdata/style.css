@@ -1,0 +1,264 @@
+
+<style  TYPE="text/css">
+<!-- 
+/****************************************************
+ * general settings
+ ****************************************************/
+
+html, body {
+    margin:0px;
+    padding:0px;
+  border:0px;
+}
+
+body, th, td {
+  font-family: Verdana, Helvetica, Arial, sans-serif;
+  font-size: 12px;
+  color: #444444;
+  overflow: auto;
+}
+
+a, a:link, a:visited {
+  text-decoration:underline;
+  color:#333333;
+}
+
+a:hover, a:active, a:focus, a:active:hover, a:visited:hover {
+  text-decoration:underline;
+  color:#000000;
+}
+
+/****************************************************
+ * blocks
+ ****************************************************/
+
+#margins {
+    min-height: 100%;
+    height: 100%;
+}
+
+#screenhead {
+  border:0px;
+}
+
+.pathline {
+    line-height:10px;
+    padding:0px 0px 2px 14px;
+  font-size:10px;
+    text-decoration:none;
+  color:#000000;
+  background-color:#000000;
+  border:0px;
+  border-top: 2px solid;
+  border-color:#FFFFFF;
+  border-width: 0px 0 0;
+}
+.pathline a, .pathline a:link, .pathline a:visited, .pathline span { color:#FFFFFF; text-decoration:none; }
+.pathline a:hover, .pathline a:active, .pathline a:focus { color:#333333; text-decoration:none; }
+
+#contentblock {
+  padding-left: 20px;
+  text-align:left;
+}
+
+/****************************************************
+ * headings
+ ****************************************************/
+
+h1, h2, h3 {
+  margin-top:20px;
+  font-weight:bold;
+  color:#333333;
+    clear:none;
+}
+
+h1 {
+  font-size:14px;
+  text-transform:none;
+  clear:right;
+}
+
+h2 {
+  font-size:12px;
+  text-transform:none;
+  clear:right;
+}
+
+h3 {
+    font-size:12px;
+}
+
+p, li {
+  font-size:12px;
+  line-height:25px;
+}
+
+th {
+  font-size: 11px;
+  color: #333333;
+  font-weight: bold;
+  line-height:25px;
+}
+
+table {
+    border-collapse:collapse;
+    border-spacing: 0px;
+}
+
+td {
+    padding: 0px;
+}
+
+tr {
+    padding: 0px;
+}
+
+/****************************************************
+ * table header and fields within
+ ****************************************************/
+
+.rh, .lh, .ch {
+  font-size: 11px;
+  color: #333333;
+  font-weight: bold;
+}
+.lh a, .lh a:link, .lh a:visited { color:#333333; text-decoration:none; }
+.lh a:hover, .lh a:active, .lh a:focus { color:#333333; text-decoration:none; }
+
+.rh {
+  text-align:right;
+  padding-right:10px;
+}
+
+.lh {
+  text-align:left;
+}
+
+.ch {
+    text-align:center;
+}
+
+.tdr, .rtd, .nrtd, .required, .notRequired {
+  color: #666666;
+  text-align:right;
+  vertical-align:top;
+  padding-right:10px;
+}
+
+.rtd {
+  width:170px;
+  padding-top:5px;
+}
+
+.nrtd {
+  padding-right:0px;
+}
+
+.tdr a, .tdr a:link, .tdr a:visited { color:#0099FF; }
+.tdr a:hover, .tdr a:active, .tdr a:focus { color:#000000; }
+
+.tdl, .ltd, .ltdpre {
+  color: #0099FF;
+  text-align:left;
+  vertical-align:top;
+}
+  
+.ltd, .ltdpre, .required, .notRequired  {
+  padding-top:5px;
+}
+
+.ltd, .ltdpre  {
+  width:590px;
+}
+
+.ltd a, .ltd a:link, .ltd a:visited, .tdl a, .tdl a:link, .tdl a:visited { color:#0099FF; }
+.ltd a:hover, .ltd a:active, .ltd a:focus, .tdl a:hover, .tdl a:active, .tdl a:focus { color:#000000; }
+
+/****************************************************
+ * class for presentation of detail information, e. g. project X
+ ****************************************************/
+
+.standard {
+    width:780px;   
+}
+
+.detail, .listing {
+  border:0px;
+  margin:0px;
+  padding:0px;
+  font-size: 12px;
+  line-height: 25px;
+}
+
+.detail a, .detail a:link, .detail a:visited { color:#0099FF; }
+.detail a:hover, .detail a:active, .detail a:focus { color:#000000; }
+.detail tr:hover tr:hover { background-color: #EEEEEE; }
+.detail tr { vertical-align:top; }
+.detail td { line-height: 25px; }
+
+
+.listing { white-space:nowrap; }
+.listing a, .listing a:link, .listing a:visited { color:#0099FF; }
+.listing a:hover, .listing a:active, .listing a:focus { color:#000000; }
+.listing tr:hover { background-color: #EEEEEE; }
+.listing tr { vertical-align:top; }
+.listing th, .listing td { 
+    line-height: 25px; 
+    vertical-align:top; 
+    padding:1px;
+}
+
+/****************************************************
+ * block switcher
+ ****************************************************/
+#switcher {
+  display: block;
+  position: absolute;
+  left: 350px;
+  top: 22px;
+  height: 15px;
+  margin: 0px;
+  padding: 0px;
+}
+
+#switcher li {
+  margin: 0px;
+  padding: 0px;
+  display: block;
+  float: left;
+  list-style: none;
+  font-size: 12px;
+  line-height: 15px;
+  border-style:solid;
+  border-width:0px 1px 0px 0px;
+  border-color:#FFFFFF;
+  background-color: #0099FF;
+}
+
+#switcher a {
+  padding: 1px 9px 1px 9px;
+  text-decoration: none;
+  color: #FFFFFF;
+  height: 100%;
+}
+
+#switcher .active {
+  background-color:#6EC0FE;
+  color: #333333;
+}
+
+#switcher .active a {
+  padding: 1px 9px 1px 9px;
+  text-decoration: none;
+  color: #333333;
+}
+
+#switcher li:hover, #switcher a:hover {
+  color:#333333;
+}
+
+img {
+  border: 0px;
+}
+-->
+</style>

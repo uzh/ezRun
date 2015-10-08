@@ -1,0 +1,40 @@
+context("Tests the functions in 01classes.R")
+
+test_that("Tests EzDataset", {
+  ds = EzDataset$new(file=system.file("extdata/yeast_10k/dataset.tsv", package="ezRun", mustWork = TRUE))
+  param = system.file(package="ezRun", mustWork = TRUE)
+  path = ds$getFullPaths(param,"Read1")
+  expect_is(ds,"EzDataset")
+  expect_equal(ds$getNames(),c("wt_1","wt_2","mut_1","mut_2"))
+  expect_is(ds$file,"character")
+  expect_equal(ds$getColumn("Read1"),c(wt_1="extdata/yeast_10k/wt_1_R1.fastq.gz",wt_2="extdata/yeast_10k/wt_2_R1.fastq.gz",
+                                    mut_1="extdata/yeast_10k/mut_1_R1.fastq.gz",mut_2="extdata/yeast_10k/mut_2_R1.fastq.gz"))
+  expect_is(ds$meta,"data.frame")
+  expect_is(ds$columnHasTag("File"),"logical")
+  expect_true(ds$columnHasTag("File")[2])
+  expect_is(path,"character")
+  expect_true(all(grepl("^/",path)))
+})
+
+test_that("Tests copying an EzDataset and the method setColumn", {
+  ds = EzDataset$new(file=system.file("extdata/yeast_10k/dataset.tsv", package="ezRun", mustWork = TRUE))
+  expect_is(ds,"EzDataset")
+  ds2 = ds$copy()
+  expect_is(ds2,"EzDataset")
+  expect_equal(ds,ds2)
+  ds$setColumn("Read1",1)
+  expect_is(all.equal(ds,ds2,check.attributes=F),"character")
+  expect_is(ds$meta[1,"Read1 [File]"],"numeric")
+})
+
+test_that("Tests EzApp", {
+  ds = EzDataset$new(file=system.file("extdata/yeast_10k/dataset.tsv", package="ezRun", mustWork = TRUE))
+  app = EzApp$new(runMethod=function(input, output, param){},name="Test")
+  expect_is(app,"EzApp")
+  app2 = app$copy()
+  expect_equal(app,app2)
+  expect_is(app$runMethod,"function")
+  expect_is(app$name,"character")
+  expect_is(app$appDefaults,"data.frame")
+  expect_null(app$run(input=ds,output=ds,param=list(process_mode="DATASET")))
+})

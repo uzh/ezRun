@@ -1,0 +1,88 @@
+context("Counting apps with example data")
+
+## this tests do take long therefore we only run them if the environment variable RUN_LONG_TEST is set to TRUE
+# Sys.setenv(RUN_LONG_TEST=TRUE)
+
+cwd = getwd()
+
+skipLong = function(){
+  if (Sys.getenv("RUN_LONG_TEST") == "TRUE"){
+    return()
+  } else {
+    skip("not running lengthy tests")
+  }
+}
+
+
+
+yeastCommonCountParam = function(){
+  param = list()
+  param[['cores']] = '8'
+  param[['ram']] = '10'
+  param[['scratch']] = '10'
+  param[['node']] = ''
+  param[['process_mode']] = 'SAMPLE'
+  param[['refBuild']] = 'Saccharomyces_cerevisiae/Ensembl/EF4/Annotation/Version-2013-03-18'
+  param[['paired']] = 'true'
+  param[['strandMode']] = 'sense'
+  param[['refFeatureFile']] = 'genes.gtf'
+  param[['featureLevel']] = 'gene'
+  param[['specialOptions']] = ''
+  param[['mail']] = ''
+  param[['dataRoot']] = system.file(package="ezRun", mustWork = TRUE)
+  param[['resultDir']] = 'p1001/Count_Result'
+  return(param)
+}
+
+
+
+
+test_that("Count_RSEM", {
+  skipLong()
+  setwdNew("/scratch/test_rsem")
+  input = EzDataset$new(file=system.file("extdata/yeast_10k/dataset.tsv", package="ezRun", mustWork = TRUE))
+  output = list()
+  output[['Name']] = 'wt_1'
+  output[['Count [File]']] = 'p1001/Count_RSEM/wt_1.txt'
+  output[['Species']] = 'S. cerevisiae'
+  output[['refBuild']] = 'Saccharomyces_cerevisiae/Ensembl/EF4/Annotation/Version-2013-03-18'
+  output[['featureLevel']] = 'isoform'
+  output[['refFeatureFile']] = 'genes.gtf'
+  output[['strandMode']] = 'sense'
+  output[['paired']] = 'true'
+  output[['Read Count']] = '9794'
+  output[['Genotype [Factor]']] = 'wt'
+  param = yeastCommonCountParam()
+  param[['trimAdapter']] = 'false'
+  param[['trimLeft']] = '0'
+  param[['trimRight']] = '0'
+  param[['minTailQuality']] = '0'
+  param[['bowtie-e']] = '200'
+  param[['cmdOptions']] = ' --calc-ci '
+  param[['keepBam']] = 'false'
+  param[['minAvgQuality']] = '10'
+  param[['trinityFasta']] = ''
+  myApp = EzAppRSEM$new()
+  myApp$run(input=input$copy()$subset(1), output=EzDataset$new(metaNew=output), param=param)
+  setwd(cwd)
+})
+
+
+
+test_that("Count_FeatureCounts", {
+  skipLong()
+  setwdNew("/scratch/test_featureCounts")
+  input = EzDataset$new(file=system.file("extdata/yeast_10k_STAR/dataset.tsv", package="ezRun", mustWork = TRUE))
+  output = EzDataset$new(file=system.file("extdata/yeast_10k_STAR_featureCounts/dataset.tsv", package="ezRun", mustWork = TRUE))
+  param = yeastCommonCountParam()
+  param[['gtfFeatureType']] = 'exon'
+  param[['allowMultiOverlap']] = 'true'
+  param[['countPrimaryAlignmentsOnly']] = 'true'
+  param[['minFeatureOverlap']] = '10'
+  param[['minMapQuality']] = '10'
+  param[['keepMultiHits']] = 'true'
+  myApp = EzAppFeatureCounts$new()
+  myApp$run(input=input$copy()$subset(1), output=output$copy()$subset(1), param=param)
+  setwd(cwd)
+})
+

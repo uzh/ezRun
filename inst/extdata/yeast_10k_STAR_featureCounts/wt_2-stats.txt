@@ -1,0 +1,12 @@
+Status	Count
+Assigned	4880
+Unassigned_Ambiguity	0
+Unassigned_MultiMapping	0
+Unassigned_NoFeatures	83
+Unassigned_Unmapped	0
+Unassigned_MappingQuality	508
+Unassigned_FragementLength	0
+Unassigned_Chimera	0
+Unassigned_Secondary	3697
+Unassigned_Nonjunction	0
+Unassigned_Duplicate	0

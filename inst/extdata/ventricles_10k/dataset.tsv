@@ -1,0 +1,5 @@
+Name	Read1 [File]	Read2 [File]	Species	Adapter1	Adapter2	StrandMode	Enrichment Kit	Read Count	Genotype [Factor]
+mut1	extdata/ventricles_10k/MutantSample_1_R1.fastq.gz	extdata/ventricles_10k/MutantSample_1_R2.fastq.gz	Mus musculus	GATCGGAAGAGCACACGTCTGAACTCCAGTCAC	AGATCGGAAGAGCGTCGTGTAGGGAAAGAGTGT	both	poly-A	100000	mut
+mut2	extdata/ventricles_10k/MutantSample_3_R1.fastq.gz	extdata/ventricles_10k/MutantSample_3_R2.fastq.gz	Mus musculus	GATCGGAAGAGCACACGTCTGAACTCCAGTCAC	AGATCGGAAGAGCGTCGTGTAGGGAAAGAGTGT	both	poly-A	100000	mut
+wt1	extdata/ventricles_10k/WildSample_1_R1.fastq.gz	extdata/ventricles_10k/WildSample_1_R2.fastq.gz	Mus musculus	GATCGGAAGAGCACACGTCTGAACTCCAGTCAC	AGATCGGAAGAGCGTCGTGTAGGGAAAGAGTGT	both	poly-A	100000	wt
+wt2	extdata/ventricles_10k/WildSample_2_R1.fastq.gz	extdata/ventricles_10k/WildSample_2_R2.fastq.gz	Mus musculus	GATCGGAAGAGCACACGTCTGAACTCCAGTCAC	AGATCGGAAGAGCGTCGTGTAGGGAAAGAGTGT	both	poly-A	100000	wt

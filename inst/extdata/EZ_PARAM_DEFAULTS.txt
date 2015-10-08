@@ -1,0 +1,124 @@
+Parameter	Type	DefaultValue	Description
+# computing parameters
+cores	integer	1	number of cores to use
+ram	integer	4	gigabytes of RAM to use
+scratch	integer	10	gigaybtes of scratch disk to use
+process_mode	character		if an app should run in sample or dataset process mode
+mail	character		The address to which e-mails are sent
+adminMail	character	gxtx_data_mngt@fgcz.ethz.ch	The address to which error e-mails are sent if mail is not set
+splitByChrom	logical	TRUE	parallel processing of chromosomes if possible!
+# result, files, names and formatting
+doZip	logical	TRUE	whether text files should be zipped
+resultDir	character	.	The directory where the result files should be written
+appName	character		name of the app that is being run
+name	character		name of the analysis i.e. resulting dataset
+dataRoot	character		the root directory where files are located
+projectId	character		name of the project
+# debugging & testing
+saveImage	logical	FALSE	save an image at the end of the analysis?
+saveRawData	logical	FALSE	save an .RData file holding the rawData Object right after import
+## general
+specialOptions	character		a meta option field where other options can be specified as <key>=<value>
+cmdOptions	character		the string that is pasted on the command line of the external tool
+samples	charVector		comma-separated list of samplenames to select; specify if you want to work with a subset
+## reference definition
+refBuild	character		the compact build identifier in the form of <species>/<provider>/<build name>/Annotation/<Version Date>; all other reference components will be found in the canonical structure; reference components can be overwritten by explicit specification of any of the following
+refBuildName	character		the short name of the build
+refBuildDir	character		directory where the build is found
+refIndex	character		the location of the index that is used in alignment
+refFeatureFile	character	genes.gtf	the gtf file that defines the features to be used
+refAnnotationFile	character		the annotation file in tab separated format
+refFastaFile	character	Sequence/WholeGenomeFasta/genome.fa	the file that holds the genomic sequence
+refChromDir	character		the directory that hold the genomic sequence with one file per chromosome / contig
+refChromSizesFile	character	chromsizes.txt	the file that holds the chrome sizes
+# analysis parameters
+normMethod	character	quantile	The default method to normalize count or other expression data
+factors	character		comma separated list of factors that should be considered; (default: all factors in the dataset)
+featureLevel	character	gene	the level at which features should be analyzed
+useSigThresh	logical	TRUE	Use the sigThresh value to call features absent if below
+sigThresh	numeric	10	the thresh
+writeScatterPlots	logical	TRUE	should scatter plots be shown
+logColorRange	numeric	4	the log2 range in the heatmap; is always extended to be symmetric around zero
+topGeneSize	integer	100	number of high variance genes to consider in gene clustering
+maxGenesForClustering	integer	2000	use at most that many genes in hierarchical tree gene clustering in the QC reports.
+minGenesForClustering	integer	30	minimum number of genes needed for a clustering
+showGeneClusterLabels	logical	FALSE	should gene labels be drawn on the clustering heatmap
+highVarThreshold	numeric	0.5	for the heatmap showing the most varying genes; only genes where the standard deviation of the log2 values exceeds the thresholds are used
+pValueHighlightThresh	numeric	0.01	only probes with a p-value below are highlighted in the plots
+log2RatioHighlightThresh	numeric	0.5	only probes with an absolute log2 ratio above the threshold are highlighted
+geneColumnSet	character	gene_id	the annotation columns that can be used to map features/transcripts to genes
+expressionName	character	matchCounts	the title of the column that holds the count values
+knownExpressionNames	charVector	matchCounts,multiMatchCounts,transcriptCount,transcriptCountPosteriorEstimate,Count	the columns where by default expression values are searched
+runGfold	logical	TRUE	should gold be run
+bgExpression	numeric	5	expression baseline value that is added before heatmap plots
+allPairsMaxCondNumber	integer	10	
+paired	logical	FALSE	if data should be analysed as paired-end data
+pairedMode	character	paired	if there is paired data, should we use the "first", "second" or only the "paired" reads
+keepUnpaired	character	both	if unpaired alignments of paired-end reads should be kept
+minSignal	integer	1	numbers below that value will be given random small numbers
+# read handling
+minAvgQuality	integer	10	the min average quality for a read to be used
+minTailQuality	integer	0	the min average quality of the quality filter window below which tails are trimmed	
+qualityFilterWindow	integer	4	the width of bases across which qualities are averaged
+subsampleReads	integer	1	if set to n; take every n-th reads
+trimLeft	integer	0	fixed trimming at the left (5'-end)
+trimRight	integer	0	fixed trimming at the right (3'-end)
+trimAdapter	logical	TRUE	search for the adapters and trim them
+minReadLength	integer	20	minimum read length to keep
+nReads	integer	-1	if above zero at most that many reads will be used
+filterReads	logical	TRUE	filter reads and copy them to current directory
+strandMode	character	both	the strand orientation of the reads relative to the features; can be "sense", "antigense", "both"; illumina stranded RNA-seq is antisense
+# alignment handling
+minFeatureOverlap	integer	1	minimum overlap a reads must have with a feature to be counted for that feature
+minMapQuality	integer	0	minimum mapping quality of an alignment to be used; 255 will be used
+keepMultiHits	logical	TRUE	should multi
+readUnmapped	logical	FALSE	read unmapped alignment records?
+multiMatch	character	all	if multi-matching reads should be loaded; values: "all";; future will be implement also: "unique", "random" (take randomly one of the hits), N (use all up to a multi-matching of N)
+countColumnSet	character	multiMatchCounts,matchCounts,transcriptCountPosteriorEstimate,transcriptCount,Count	foo
+## sample handling and grouping
+comparison	character		the name of the comparison
+grouping	character		the name of the factor column that is used in differential expression analysis to group the samples
+batch	character		the name of the factor column that holds a secondary effect
+markOutliers	logical	FALSE	should outlier samples be marked and not considered in the test but displayed; requires a column "Outlier"
+removeOutliers	logical	FALSE	should outlier samples be removed from the dataset before the analysis; requires a column "Outlier"
+useFactorsAsSampleName	logical	FALSE	should sample names be replaced with the canonical names derived from the factor levels
+refGroup	character		the reference group in a comparison
+sampleGroup	character		the sample group in a comparison
+## functional analysis
+goseqMethod	character	Wallenius	method for the goseq analysis
+includeGoParentAnnotation	logical	FALSE	if the genes annotated to the parent should be also counted to the current GO category
+runGO	logical	TRUE	whether GO analysis should be run or not; will only be run if a probe to gene mapping is available
+pValThreshGO	numeric	1e-2	only probes with a differential expression p-value below will be used as input for overrepresentation analysis
+log2RatioThreshGO	numeric	0	only probes with a higher expression change will be used as input for overrepresentation analysis
+pValThreshFisher	numeric	1e-4	only GO categories with a Bonferroni-Holm correted p-value below will be shown
+minCountFisher	integer	3	only GO categories that have at least this many genes are searched for overrepresented genes
+maxNumberGroupsDisplayed	integer	40	the maximum number of GO groups to show in the HTML tables
+MSigDBPath	character	/misc/GT/databases/MSigDB	
+MSigDB	character	c2.cp	
+MSigDBhtml	character	http://www.broadinstitute.org/gsea/msigdb/cards	
+KEGGOrgId	character	KEGG_org_id.txt	
+KEGGdb	character	/misc/GT/databases/KEGG	
+KEGGgmt	character	/misc/GT/databases/KEGG/gmt/data	
+KEGGhtml	character	http://www.genome.jp/dbget-bin/www_bget?	
+gageRankTest	logical	FALSE	
+gageInput	character	log2Ratio	
+gageThreshold	numeric	0.1	
+gageGeneThreshold	numeric	0.05	
+pathview	logical	TRUE	
+KEGGxml	character	/misc/GT/databases/KEGG/xml	
+GAGEanalysis	logical	FALSE	
+genesets	character	kg.sigmet,kg.dise,msigdb	
+goSlim	logical	FALSE	should GO categories translated into GO SLIM categories
+## feature handling
+useTranscriptType	character		if analysis should be restricted to certain types of transcripts; requires the annotation column "type" in the annotation file
+addPromoters	logical	FALSE	add promoters on the fly as features to the gtf file
+seqNames	charVector		should analyse be restricted to certain chromosomes/contigs; comma-separated list of names;
+#vcfCall.minReadDepth
+#vcfFilt.minAltCount
+#callOptions # specific to mpileup
+#region #mpileup
+#filterOptions # mpileup
+#mpileupOptions # mpileup
+#flexbarOpt # trinity
+#prinseqOpt # trinity
+#trinityOpt

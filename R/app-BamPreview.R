@@ -1,0 +1,86 @@
+###################################################################
+# Functional Genomics Center Zurich
+# This code is distributed under the terms of the GNU General
+# Public License Version 3, June 2007.
+# The terms are available here: http://www.gnu.org/licenses/gpl.html
+# www.fgcz.ch
+
+
+##' @template method-template
+##' @templateVar methodName Bam Preview
+##' @seealso \code{\link{EzAppBamPreview}}
+ezMethodBamPreview = function(input=NA, output=NA, param=NA, htmlFile="00index.html"){
+
+  cwd = getwd()
+  on.exit(setwd(cwd))
+  param$writeIgvSessionLink = FALSE
+  
+  if (ezIsSpecified(param$samples)){
+    input$subset(param$samples)
+  }
+  
+  bamMeta = input$meta[ , !input$columnHasTag("File")]
+  bamMeta[["BAM [File]"]] = paste(cwd, "/", input$getNames(), "/", input$getNames(), ".bam", sep="")
+  bamMeta[["BAI [File]"]] = paste(cwd, "/", input$getNames(), "/", input$getNames(), ".bam.bai", sep="")
+  bamMeta[["Read Count"]] = round(bamMeta[["Read Count"]] / param$subsampleReads)
+  bamOutput = EzDataset(meta=bamMeta)
+  bamParam = param
+  bamParam$mail = ""
+  switch(param$mapMethod,
+         STAR={
+           mappingApp = EzAppSTAR$new()
+           bamParam$cmdOptions = ifelse(bamParam$mapOptions != "", bamParam$mapOptions,
+                                        "--outFilterType BySJout --outFilterMatchNmin 30 --outFilterMismatchNmax 10 --outFilterMismatchNoverLmax 0.05 --alignSJDBoverhangMin 1 --alignSJoverhangMin 8 --alignIntronMax 1000000 --alignMatesGapMax 1000000  --outFilterMultimapNmax 50 --chimSegmentMin 15 --chimJunctionOverhangMin 15 --chimScoreMin 15 --chimScoreSeparation 10 --outSAMstrandField intronMotif")
+         },
+         bowtie={
+           mappingApp = EzAppBowtie$new()
+           bamParam$cmdOptions = ifelse(bamParam$mapOptions != "", bamParam$mapOptions,
+                                        "")
+         },
+         bowtie2={
+           mappingApp = EzAppBowtie2$new()
+           bamParam$cmdOptions = ifelse(bamParam$mapOptions != "", bamParam$mapOptions,
+                                        "--no-unal")
+         },
+         tophat={
+           mappingApp = EzAppTophat$new()
+           bamParam$cmdOptions = ifelse(bamParam$mapOptions != "", bamParam$mapOptions,
+                                        "--mate-inner-dist 100 --mate-std-dev 150")
+         },
+         "bwa-mem"={
+           mappingApp = EzAppBWA$new()
+           bamParam$algorithm = "mem"
+           bamParam$cmdOptions = ifelse(bamParam$mapOptions != "", bamParam$mapOptions,
+                                        "")
+         },
+         stop("unsupported mapMethod: ", param$mapMethod)
+  )
+  for (i in 1:nrow(input$meta)){
+    setwdNew(input$getNames()[i])
+    mappingApp$run(input=input$copy()$subset(i), output=bamOutput$copy()$subset(i), param=bamParam) ## TODO: Read Count of the bamOutput should be set by the mapping app.
+    setwd("..")
+  }
+  param$dataRoot = ""
+  param$writeIgvSessionLink = FALSE
+  result = ezMethodRnaBamStats(bamOutput, output, param)
+  return(result)
+}
+
+##' @template app-template
+##' @templateVar method ezMethodBamPreview()
+##' @seealso \code{\link{ezMethodBamPreview}}
+EzAppBamPreview <-
+  setRefClass("EzAppBamPreview",
+              contains = "EzApp",
+              methods = list(
+                initialize = function()
+                {
+                  runMethod <<- ezMethodBamPreview
+                  name <<- "EzAppBamPreview"
+                  appDefaults <<- rbind(mapMethod=ezFrame(Type="character",	DefaultValue="STAR",	Description="the mapper to use"),
+                                        mapOptions=ezFrame(Type="character", DefaultValue="", Description="options passed to the mapper"),
+                                        fragSizeMax=ezFrame(Type="integer",  DefaultValue=500,	Description="maximum fragment size to plot in fragment size distribution")
+                  )
+                }
+              )
+  )
