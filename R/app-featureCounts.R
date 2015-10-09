@@ -16,7 +16,8 @@ ezMethodFeatureCounts = function(input=NULL, output=NULL, param=NULL){
   statFile = basename(output$getColumn("Stats"))
   
   library(Rsubread, warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
-  ## TODO: remove subread from stdout
+  
+  sink(file="messages.txt")
   countResult = featureCounts(localBamFile, annot.inbuilt=NULL,
                               annot.ext=param$ezRef@refFeatureFile, isGTFAnnotationFile=TRUE,
                               GTF.featureType=param$gtfFeatureType,
@@ -37,6 +38,8 @@ ezMethodFeatureCounts = function(input=NULL, output=NULL, param=NULL){
                               countMultiMappingReads=param$keepMultiHits,
                               countPrimaryAlignmentsOnly=param$countPrimaryAlignmentsOnly,
                               countChimericFragments=TRUE,ignoreDup=FALSE,chrAliases=NULL,reportReads=FALSE)
+  sink(file=NULL)
+  
   colnames(countResult$counts) = "matchCounts"
   ezWrite.table(countResult$counts, file=outputFile)
   colnames(countResult$stat) = c("Status", "Count")
