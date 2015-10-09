@@ -68,7 +68,7 @@ test_that("Count_RSEM", {
 })
 
 
- 
+
 test_that("Count_FeatureCounts", {
   skipLong()
   setwdNew("/scratch/test_featureCounts")
