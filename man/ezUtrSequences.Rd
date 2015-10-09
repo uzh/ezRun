@@ -15,7 +15,7 @@ ezUtrSequences(gtf, chromSeqs)
 Returns a list with two objects of the class DNAStringSet from the packages Biostrings that represent the 3 and 5 primer.
 }
 \description{
-Gets UTR sequences ...
+Gets sequences from untranslated regions.
 }
 \examples{
 param = ezParam()

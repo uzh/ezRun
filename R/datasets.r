@@ -96,3 +96,34 @@ addReplicate = function(x, sep="_", repLabels=1:length(x)){
   x[idx] = idNew
   return(x)
 }
+
+
+## NOTEP: alternative: instead of the three *From* functions,
+## use an ezCondsOrDesignFromDataset that either returns the design or the conditions using a logical argument.
+## Or use two *FromDataset, but I think ezConditionsFromDesign can be removed.
+ezConditionsOrDesignFromDataset = function(dataset, param=NULL, maxFactors=2, returnDesign=F){
+  if (!ezIsSpecified(param$factors)){
+    design = dataset[ , grepl("Factor", colnames(dataset)), drop=FALSE]
+    if (ncol(design) == 0){
+      design$Condition = rownames(design)
+    }
+  }
+  else {
+    factorNames = unlist(strsplit(param$factors, split = ","))
+    design = dataset[ , paste(factorNames, "[Factor]"), drop=FALSE]
+  }
+  factorLevelCount = apply(design, 2, function(x){length(unique(x))})
+  if (any(factorLevelCount > 1)){
+    for (nm in colnames(design)){
+      if (length(unique(design[[nm]])) == 1){
+        design[[nm]] = NULL
+      }
+    }
+  }
+  
+  if (returnDesign){
+    return(design)
+  }
+  
+  apply(design[ , 1:min(ncol(design), maxFactors), drop=FALSE], 1, function(x){paste(x, collapse="_")})
+}

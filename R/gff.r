@@ -490,7 +490,7 @@ getTranscriptSequences = function(param, useFivePrimeAsStart=TRUE){
 
 
 ##' @title Gets UTR sequences
-##' @description Gets UTR sequences ...
+##' @description Gets sequences from untranslated regions.
 ##' @param gtf the annotation data.frame to get the gene data from.
 ##' @param chromSeqs the chromosome sequences to get the Views from.
 ##' @template roxygen-template
@@ -505,8 +505,7 @@ getTranscriptSequences = function(param, useFivePrimeAsStart=TRUE){
 ##' param$ezRef@@refFastaFile = "./script/Saccharomyces_cerevisiae/Ensembl/EF4/Sequence/WholeGenomeFasta/genome.fa"
 ##' genomeSeq = getTranscriptSequences(param)
 ##' ezUtrSequences(gtf)
-## TODOP: improve help file.
-## TODOP: add an argument genomeSeq and maybe provide a default. Currently that object needs to be defined outside the function.
+## TODOP: improve help file. add an argument genomeSeq and maybe provide a default. Currently that object needs to be defined outside the function.
 ezUtrSequences = function(gtf, chromSeqs){
   
   if (is.null(gtf$transcript_id)){
