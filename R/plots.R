@@ -756,3 +756,82 @@ getBinColors = function(binNames, colorSet=c("darkorange", "gray70", "gray50", "
   return(colors)
 }
 
+
+
+
+createDendogramReport <- function(x, annot, genes = row.names(x), multipalette = F, addLegend = F, cex.legend = 1, paletteList = NULL, ...) {
+  # Description
+  # Wrapper function for plotDendroAndColors -> plot(dendro)
+  
+  require(WGCNA, quietly = T)
+  require(plyr, quietly = T)
+  require(pvclust, quietly = T)
+  require(RColorBrewer, quietly = T)
+  require(wesanderson, quietly = T)
+  
+  # Setup different default parameters for plotDendroAndColors arguments if not specified in function call
+  # if(!exists("cex.colorLabels")) cex.colorLabels = 1
+  # if(!exists("cex.dendroLabels")) cex.dendroLabels = 0.7
+  if(!exists("colorHeight")) colorHeight = 0.15
+  
+  res <- list()
+  
+  # Subset of genes
+  x <- x[genes, ]
+  #print(dim(x))
+  
+  
+  
+  # Colors for annotation of dendograms
+  if(is.null(paletteList)) {
+    if(!multipalette) paletteList <- list("grenYll" = c('#4db6ac','#aed581','#dce775','#ffd54f'))
+    if(multipalette)  paletteList <- list("Royal1" = wes_palette("Royal1"), 
+                                          "Moonrise1" = wes_palette("Moonrise1"),
+                                          'Moonrise2' = wes_palette("Moonrise2"),
+                                          "Chevalier" = wes_palette("Chevalier"),
+                                          "Zissou" = wes_palette("Zissou"),
+                                          "Cavalcanti" = wes_palette("Cavalcanti"))
+  }
+  colList = list()
+  for (j in 1:ncol(annot)) {
+    gtab <- unique(annot[, j])
+    colJ = length(paletteList) - (j %% length(paletteList))
+    cols <- colorRampPalette(paletteList[[colJ]])(length(gtab))
+    names(cols) = gtab
+    colList[[colnames(annot)[j]]] = cols
+  }
+  
+  colAnnot = annot
+  for (nm in names(colAnnot)){
+    colAnnot[[nm]] = colList[[nm]][annot[[nm]]]
+  }
+  
+  # Dendograms
+  d = as.dist(1-cor(x, use="complete.obs"));
+  hc = hclust(d, method="ward.D2")
+  hcd = as.dendrogram(hc, hang=-0.1)
+  
+  if(!addLegend) {
+    op <- par(no.readonly=TRUE)
+    plotDendroAndColors(hc, colAnnot, autoColorHeight = F, ...)
+    par(op)
+  }
+  if(addLegend) {
+    opar <- par(no.readonly=TRUE)
+    parMar0 <- par()$mar
+    layout(matrix(c(1:4), 2, 2), heights = c(1 - colorHeight, colorHeight), widths = c(1 - 0.25, 0.25))
+    plotDendroAndColors(hc, colAnnot, 
+                        autoColorHeight = F,
+                        marAll = c(1, 5, 3, 0),
+                        setLayout = FALSE, ...)
+    par(mar = c(0.1, 0.1, 0.1, 0.1))
+    plot(1, type="n", axes=FALSE, xlab="", ylab="")
+    lNames = gsub ("\\.", " ", names(unlist(colList)))
+    legend("center", legend=lNames, fill = unlist(colList), bty = "n", cex = cex.legend)
+    plot(1, type="n", axes=FALSE, xlab="", ylab="")
+    par(mar=parMar0)
+  }
+  
+  #   return(res)
+  
+}
