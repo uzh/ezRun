@@ -30,7 +30,6 @@ EzAppEdger <-
               )
   )
 
-
 # DESeq2App = function(input=NA, output=NA, param=NA){
 #   param$testMethod = "deseq2"
 #   param$normMethod = ""
@@ -40,7 +39,29 @@ EzAppEdger <-
 #   ngsTwoGroupAnalysis(input, output, param=param)
 # }
 
-## NOTEP: all functions below go only into here, except runEdger (called in edgerMultiGroupts), plus runDeseq2 (from deseq2TwoGroups). missing: runSam, runLimma
+
+## NOTEP: all functions below go only into here, plus runDeseq2 (from deseq2TwoGroups). missing: runSam, runLimma
+##' @title 1
+##' @description 1
+##' @param input an object of the class EzDataset.
+##' @param output an object of the class EzDataset.
+##' @param param a list of parameters:
+##' \itemize{
+##'   \item{sampleGroup}{}
+##'   \item{refGroup}{}
+##'   \item{useFactorsAsSampleName}{}
+##'   \item{removeOutliers}{}
+##'   \item{grouping}{}
+##'   \item{batch}{}
+##'   \item{markOutliers}{}
+##' }
+##' @param htmlFile
+##' @template roxygen-template
+##' @return Returns
+##' @seealso \code{\link{twoGroupCountComparison}}
+##' @seealso \code{\link{writeNgsTwoGroupReport}}
+##' @examples
+##' 1
 ngsTwoGroupAnalysis = function(input=NA, output=NA, param=NULL, htmlFile="00index.html"){
   
   cwd = getwd()
@@ -85,6 +106,7 @@ ngsTwoGroupAnalysis = function(input=NA, output=NA, param=NULL, htmlFile="00inde
   return(result)
 }
 
+##' @describeIn ngsTwoGroupAnalysis Checks for errors and calls \code{twoGroupCountComparison()}, then \code{writeNgsTwoGroupReport()}.
 runNgsTwoGroupAnalysis = function(dataset, htmlFile="00index.html", param=param, rawData=NULL, types=NULL){
   
 #   checkResult = checkTwoGroupAnalysisConfig(param)
@@ -98,7 +120,7 @@ runNgsTwoGroupAnalysis = function(dataset, htmlFile="00index.html", param=param,
     return("Error")
   }
   
-  x = rawData$counts
+  x = rawData$counts ## TODOP: x unused
   result = twoGroupCountComparison(rawData, param)
   if (isError(result)){
     writeErrorHtml(htmlFile, param=param, error=rawData$error)
@@ -110,6 +132,33 @@ runNgsTwoGroupAnalysis = function(dataset, htmlFile="00index.html", param=param,
   writeNgsTwoGroupReport(dataset, result, htmlFile, param=param, rawData=rawData, types=types)
 }
 
+
+##' @title 1
+##' @description 1
+##' @param dataset
+##' @param result
+##' @param htmlFile
+##' @param param a list of parameters:
+##' \itemize{
+##'   \item{logColorRange}{}
+##'   \item{minSignal}{}
+##'   \item{grouping}{}
+##'   \item{sampleGroup}{}
+##'   \item{refGroup}{}
+##'   \item{pValueHighlightThresh}{}
+##'   \item{log2RatioHighlightThresh}{}
+##'   \item{maxGenesForClustering}{}
+##'   \item{minGenesForClustering}{}
+##'   \item{doZip}{}
+##'   \item{goseqMethod}{}
+##'   \item{maxNumberGroupsDisplayed}{}
+##' }
+##' @param rawData
+##' @param types
+##' @template roxygen-template
+##' @return Returns
+##' @examples
+##' 1
 writeNgsTwoGroupReport = function(dataset, result, htmlFile, param=NA, rawData=NA, types=NULL) {
   keggOrganism = NA
   seqAnno = rawData$seqAnno
@@ -214,6 +263,24 @@ writeNgsTwoGroupReport = function(dataset, result, htmlFile, param=NA, rawData=N
   return("Success")
 }
 
+
+##' @title 1
+##' @description 1
+##' @param rawData
+##' @param param a list of parameters:
+##' \itemize{
+##'   \item{testMethod}{}
+##'   \item{batch}{}
+##'   \item{grouping}{}
+##'   \item{sampleGroup}{}
+##'   \item{refGroup}{}
+##'   \item{normMethod}{}
+##'   \item{runGfold}{}
+##' }
+##' @template roxygen-template
+##' @return Returns
+##' @examples
+##' 1
 twoGroupCountComparison = function(rawData, param){
   x = rawData$counts
   presentFlag = rawData$presentFlag
@@ -276,6 +343,7 @@ twoGroupCountComparison = function(rawData, param){
   return(result)
 }
 
+##' @describeIn twoGroupCountComparison Runs the Gfold test method.
 runGfold = function(rawData, scalingFactors, isSample, isRef){
   message("running gfold ")
   # prepare input data for gfold
@@ -308,6 +376,7 @@ runGfold = function(rawData, scalingFactors, isSample, isRef){
   return(gfold)
 }
 
+##' @describeIn twoGroupCountComparison Runs the Edger test method.
 runEdger = function(x, sampleGroup, refGroup, grouping, normMethod){
   library(edgeR, warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
   cds = DGEList(counts=x, group=grouping)
@@ -339,6 +408,7 @@ runEdger = function(x, sampleGroup, refGroup, grouping, normMethod){
   return(res)
 }
 
+##' @describeIn twoGroupCountComparison Runs the Glm test method.
 runGlm = function(x, sampleGroup, refGroup, grouping, normMethod, batch=NULL){
   library(edgeR, warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
   ## get the scaling factors for the entire data set

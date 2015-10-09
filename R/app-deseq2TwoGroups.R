@@ -36,7 +36,8 @@ EzAppDeseq2 <-
 
 
 ## NOTEP: gets called from edgerTwoGroups. the Deseq2 method calls ngsTwoGroupAnalysis() from edgerTwoGroups,
-## maybe it makes sense to combine these apps (and perhaps also edgerMulti) in one R file.
+## maybe it makes sense to combine these apps in one R file.
+##' @describeIn twoGroupCountComparison Runs the Deseq2 test method.
 runDeseq2 = function(x, sampleGroup, refGroup, grouping, batch=NULL, isPresent=NULL){
   library(DESeq2, warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
   if (ezIsSpecified(batch)){

@@ -93,7 +93,7 @@ countPairedBamHits = function(input=NULL, output=NULL, param=NULL){
     rownames(targets) = targetNames ## undo the prepending of the list names
   }
   ezWrite.table(targets[order(rownames(targets)), ,drop=FALSE], file=output)
-  return("Success")  
+  return("Success") ## NOTEP: why success here? 
 }
 
 
