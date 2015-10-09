@@ -30,5 +30,7 @@ Schmid, Peter
 \code{\link{EzAppSTAR}}
 
 \code{\link{getSTARReference}}
+
+\code{\link{ezMethodTrim}}
 }
 

@@ -29,5 +29,7 @@ Schmid, Peter
 \code{\link{EzDataset}}
 
 \code{\link{EzAppTrinity}}
+
+\code{\link{ezMethodTrim}}
 }
 

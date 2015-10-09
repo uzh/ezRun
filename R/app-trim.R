@@ -6,53 +6,29 @@
 # www.fgcz.ch
 
 
-ezMethodSubsampleReads = function(input=NA, output=NA, param=NA){
-  if (is.na(output)){
-    output = input$copy()
-    subsampleFiles = sub(".fastq.*", "-subsample.fastq", basename(input$getColumn("Read1")))
-    output$setColumn(name="Read1", values = file.path(getwd(), subsampleFiles))
-    if (param$paired){
-      subsampleFiles = sub(".fastq.*", "-subsample.fastq", basename(input$getColumn("Read2")))
-      output$setColumn(name="Read2", values = file.path(getwd(), subsampleFiles))      
-    }
-  }
-  ezSubsampleFastq(input$getFullPaths(param, "Read1"), output$getColumn("Read1"), subsampleFactor = param$subsampleReads)
-  if (param$paired){
-    ezSubsampleFastq(input$getFullPaths(param, "Read2"), output$getColumn("Read2"), subsampleFactor = param$subsampleReads)    
-  }
-  return(output)
-}
-
-ezSubsampleFastq = function(full, sub, subsampleFactor=NA, nYield=1e5){
-  stopifnot(full != sub)
-  if (any(file.exists(sub))){
-    filesToRemove = sub[file.exists(sub)]
-    warning("removing first: ", filesToRemove)
-    file.remove(filesToRemove)
-  }
-  require(ShortRead)
-  for (i in 1:length(full)){ 
-    fqs = FastqStreamer(full[i], n = nYield) 
-    idx = seq(from=1, to=nYield, by=subsampleFactor)
-    while(length(x <- yield(fqs))){
-      if (length(x) >= nYield){
-        writeFastq(x[idx], file=sub[i], mode="a", full=F, compress=F)
-      } else {
-        writeFastq(x[idx[idx<length(x)]], file=sub[i], mode="a", full=F, compress=F)
-      }
-    }
-    close(fqs)
-  }
-}
-
-
 ## order of the trimming
 ## - adapter
 ## - fixed
 ## - quality window
 ## - minlen
 ## - avg qual
-
+## TODOP: I'm either missunderstanding something or the trimming order is different than stated above.
+##' @title Trims input reads
+##' @description Trims input reads. There are several options to influence trimming with parameters.
+##' @param input an object of the class EzDataset.
+##' @param output an object of the class EzDataset or NA. If it is NA, it will be copied from the input.
+##' @param param a list of parameters:
+##' \itemize{
+##'   \item{paired}{ a logical specifying whether the samples have paired ends.}
+##'   \item{subsampleReads}{ an integer specifying how many subsamples there are. This will call \code{ezMethodSubsampleReads()} if > 1.}
+##'   \item{trimAdapter}{ a logical specifying whether to use a trim adapter.}
+##'   \item{minTailQuality}{ an integer specifying the minimal tail quality to accept. Only used if > 0.}
+##'   \item{minAvgQuality}{ an integer specifying the minimal average quality to accept. Only used if > 0.}
+##'   \item{minReadLength}{ an integer specifying the minimal read length to accept.}
+##'   \item{dataRoot}{ a character specifying the path of the data root to get the full column paths from.}
+##' }
+##' @template roxygen-template
+##' @return Returns the output after trimming as an object of the class EzDataset.
 ezMethodTrim = function(input=NA, output=NA, param=NA){
   
   if (is.na(output)){
@@ -86,7 +62,7 @@ ezMethodTrim = function(input=NA, output=NA, param=NA){
   
   if (param$subsampleReads > 1){
     input = ezMethodSubsampleReads(input=input, param=param)
-  }  
+  }
   
   if (param$trimAdapter){
     trimAdaptOpt =  paste("ILLUMINACLIP", adaptFile, param$trimSeedMismatches, param$trimPalindromClipThresh, 
@@ -175,4 +151,45 @@ ezMethodTrim = function(input=NA, output=NA, param=NA){
     ezSystem(paste("mv", r1TmpFile, basename(output$getColumn("Read1"))))
   }
   return(output)
+}
+
+##' @describeIn ezMethodTrim Gets the subsample files, calls \code{ezSubsampleFastq()} on them and returns the output, which is an object of the class EzDataset.
+ezMethodSubsampleReads = function(input=NA, output=NA, param=NA){
+  if (is.na(output)){
+    output = input$copy()
+    subsampleFiles = sub(".fastq.*", "-subsample.fastq", basename(input$getColumn("Read1")))
+    output$setColumn(name="Read1", values = file.path(getwd(), subsampleFiles))
+    if (param$paired){
+      subsampleFiles = sub(".fastq.*", "-subsample.fastq", basename(input$getColumn("Read2")))
+      output$setColumn(name="Read2", values = file.path(getwd(), subsampleFiles))      
+    }
+  }
+  ezSubsampleFastq(input$getFullPaths(param, "Read1"), output$getColumn("Read1"), subsampleFactor = param$subsampleReads)
+  if (param$paired){
+    ezSubsampleFastq(input$getFullPaths(param, "Read2"), output$getColumn("Read2"), subsampleFactor = param$subsampleReads)    
+  }
+  return(output)
+}
+
+##' @describeIn ezMethodTrim Performs the fastq for the subsamples using the package ShortRead.
+ezSubsampleFastq = function(full, sub, subsampleFactor=NA, nYield=1e5){
+  stopifnot(full != sub)
+  if (any(file.exists(sub))){
+    filesToRemove = sub[file.exists(sub)]
+    warning("removing first: ", filesToRemove)
+    file.remove(filesToRemove)
+  }
+  require(ShortRead)
+  for (i in 1:length(full)){ 
+    fqs = FastqStreamer(full[i], n = nYield) 
+    idx = seq(from=1, to=nYield, by=subsampleFactor)
+    while(length(x <- yield(fqs))){
+      if (length(x) >= nYield){
+        writeFastq(x[idx], file=sub[i], mode="a", full=F, compress=F)
+      } else {
+        writeFastq(x[idx[idx<length(x)]], file=sub[i], mode="a", full=F, compress=F)
+      }
+    }
+    close(fqs)
+  }
 }

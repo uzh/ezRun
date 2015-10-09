@@ -28,5 +28,9 @@ Schmid, Peter
 \code{\link{EzDataset}}
 
 \code{\link{EzAppRSEM}}
+
+\code{\link{getRSEMReference}}
+
+\code{\link{ezMethodTrim}}
 }
 

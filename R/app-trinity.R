@@ -9,6 +9,7 @@
 ##' @template method-template
 ##' @templateVar methodName Trinity
 ##' @seealso \code{\link{EzAppTrinity}}
+##' @seealso \code{\link{ezMethodTrim}}
 ezMethodTrinity = function(input=NA, output=NA, param=NA, htmlFile="00index.html"){
   
   cwd = getwd()
@@ -21,7 +22,7 @@ ezMethodTrinity = function(input=NA, output=NA, param=NA, htmlFile="00index.html
   #trimmedInput$setColumn("Read1", paste(input$getNames(), "/", input$getNames(), "-trimmed-R1.fastq", sep=""))
 #   for (i in 1:nrow(input$meta)){
 #     setwdNew(input$getNames()[i])
-  trimmedInput = ezMethodTrim(input=input, param=param)
+  trimmedInput = ezMethodTrim(input = input, param = param)
 #     setwd("..")
 #   }
   param$dataRoot = ""

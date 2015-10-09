@@ -9,11 +9,13 @@
 ##' @template method-template
 ##' @templateVar methodName RSEM
 ##' @seealso \code{\link{EzAppRSEM}}
+##' @seealso \code{\link{getRSEMReference}}
+##' @seealso \code{\link{ezMethodTrim}}
 ezMethodRSEM = function(input=NA, output=NA, param=NA){
   
   sampleName = input$getNames()
   Sys.setenv(PATH=paste(BOWTIE_DIR, dirname(SAMTOOLS), Sys.getenv("PATH"), sep=":"))  
-  ref = getRsemReference(param)
+  ref = getRSEMReference(param)
   
   opt = param$cmdOptions
   if (ezIsSpecified(param$"bowtie-e")){
@@ -102,10 +104,17 @@ EzAppRSEM <-
               )
   )
 
-
-
-
-getRsemReference = function(param){
+##' @template getref-template
+##' @templateVar methodName RSEM
+##' @param param a list of parameters:
+##' \itemize{
+##'   \item{trinityFasta}{}
+##'   \item{ezRef@@refIndex}{ a character specifying the location of the index that is used in the alignment.}
+##'   \item{ezRef@@refFeatureFile}{ a character specifying the file path to the annotation feature file (.gtf).}
+##'   \item{ezRef@@refFastaFile}{ a character specifying the file path to the fasta file.}
+##' }
+## TODOP: describe trinityFasta parameter.
+getRSEMReference = function(param){
   
   if (ezIsSpecified(param$trinityFasta)){
     refBase = file.path(getwd(), "RSEMIndex/transcripts") #paste(file_path_sans_ext(param$trinityFasta), "_RSEMIndex/transcripts", sep="")

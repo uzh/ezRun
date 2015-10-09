@@ -10,6 +10,7 @@
 ##' @templateVar methodName Tophat
 ##' @seealso \code{\link{EzAppTophat}}
 ##' @seealso \code{\link{getBowtie2Reference}}
+##' @seealso \code{\link{ezMethodTrim}}
 ezMethodTophat = function(input=NA, output=NA, param=NA){
   
   Sys.setenv(PATH=paste(BOWTIE2_DIR, BOWTIE_DIR, dirname(SAMTOOLS), Sys.getenv("PATH"), sep=":"))
@@ -102,6 +103,7 @@ EzAppTophat <-
 ##' @templateVar methodName Bowtie2
 ##' @seealso \code{\link{EzAppBowtie2}}
 ##' @seealso \code{\link{getBowtie2Reference}}
+##' @seealso \code{\link{ezMethodTrim}}
 ezMethodBowtie2 = function(input=NA, output=NA, param=NA){
   
   ref = getBowtie2Reference(param)
@@ -211,6 +213,7 @@ EzAppBowtie2 <-
 ##' @templateVar methodName Bowtie
 ##' @seealso \code{\link{EzAppBowtie}}
 ##' @seealso \code{\link{getBowtieReference}}
+##' @seealso \code{\link{ezMethodTrim}}
 ezMethodBowtie = function(input=NA, output=NA, param=NA){
     
   ref = getBowtieReference(param)
@@ -315,11 +318,12 @@ EzAppBowtie <-
 ##' @templateVar methodName STAR
 ##' @seealso \code{\link{EzAppSTAR}}
 ##' @seealso \code{\link{getSTARReference}}
+##' @seealso \code{\link{ezMethodTrim}}
 ezMethodSTAR = function(input=NA, output=NA, param=NA){
 
   refDir = getSTARReference(param)
   bamFile = output$getColumn("BAM")
-  trimmedInput = ezMethodTrim(input=input, param=param)
+  trimmedInput = ezMethodTrim(input = input, param = param)
   
   cmd = paste(STAR, "--genomeLoad NoSharedMemory --genomeDir", refDir,  "--sjdbOverhang 150", "--readFilesIn",
               trimmedInput$getColumn("Read1"), ifelse(param$paired, trimmedInput$getColumn("Read2"), ""),
@@ -425,6 +429,7 @@ EzAppSTAR <-
 ##' @templateVar methodName BWA
 ##' @seealso \code{\link{EzAppBWA}}
 ##' @seealso \code{\link{getBWAReference}}
+##' @seealso \code{\link{ezMethodTrim}}
 ezMethodBWA = function(input=NA, output=NA, param=NA){
   
   refIdx = getBWAReference(param)
@@ -443,7 +448,7 @@ ezMethodBWA = function(input=NA, output=NA, param=NA){
 #     reads2 = NULL
 #   }
   
-  trimmedInput = ezMethodTrim(input=input, param=param)
+  trimmedInput = ezMethodTrim(input = input, param = param)
   cmd = paste(BWA, param$algorithm, param$cmdOptions, "-t", ezThreads(),
               refIdx, trimmedInput$getColumn("Read1"), ">", "read1.sai", "2> bwa.log")
   ezSystem(cmd)

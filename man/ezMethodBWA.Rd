@@ -30,5 +30,7 @@ Schmid, Peter
 \code{\link{EzAppBWA}}
 
 \code{\link{getBWAReference}}
+
+\code{\link{ezMethodTrim}}
 }
 

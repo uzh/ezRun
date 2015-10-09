@@ -30,5 +30,7 @@ Schmid, Peter
 \code{\link{EzAppBowtie2}}
 
 \code{\link{getBowtie2Reference}}
+
+\code{\link{ezMethodTrim}}
 }
 
