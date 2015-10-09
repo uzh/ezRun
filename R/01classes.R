@@ -289,18 +289,17 @@ getGigabyteFree = function(dirPath){
   as.numeric(strsplit(ezSystem(paste("df", dirPath), intern=TRUE, echo=FALSE), " +")[[2]][4]) / 1e6
 }
 
-## TODOP: describe slots 
-##' @title The S4 class representing a collection of references
+##' @title The S4 class representing a collection of information about the reference build
 ##' @description Objects of this class are a collection of references derived from a list of parameters.
-##' @slot refBuild
-##' @slot refBuildName
-##' @slot refBuildDir
-##' @slot refIndex
-##' @slot refFeatureFile
-##' @slot refAnnotationFile
-##' @slot refFastaFile
-##' @slot refChromDir
-##' @slot refChromSizesFile
+##' @slot refBuild a character specifying the file path to the reference build.
+##' @slot refBuildName a character specifying the name of the reference build.
+##' @slot refBuildDir a character specifying the directory of the reference build.
+##' @slot refIndex a character specifying the location of the index that is used in the alignment.
+##' @slot refFeatureFile a character specifying the file path to the annotation feature file (.gtf).
+##' @slot refAnnotationFile a character specifying the file path to the annotation file (.txt).
+##' @slot refFastaFile a character specifying the file path to the fasta file.
+##' @slot refChromDir a character specifying the file path to the directory of the chromosome information.
+##' @slot refChromSizesFile a character specifying the file path to the file containing the chromosome sizes.
 ##' @template roxygen-template
 ##' @examples
 ##' EzRef(param=list(refBuild="foo"))

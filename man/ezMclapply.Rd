@@ -5,7 +5,7 @@
 \title{Parallel version of \code{lapply()}}
 \usage{
 ezMclapply(x, FUN, ..., mc.preschedule = TRUE, mc.set.seed = TRUE,
-  mc.silent = TRUE, mc.cores = min(length(x), ezThreads()),
+  mc.silent = FALSE, mc.cores = min(length(x), ezThreads()),
   errorLogFile = "")
 }
 \arguments{

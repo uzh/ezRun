@@ -28,5 +28,7 @@ Schmid, Peter
 \code{\link{EzDataset}}
 
 \code{\link{EzAppSTAR}}
+
+\code{\link{getSTARReference}}
 }
 

@@ -28,5 +28,7 @@ Schmid, Peter
 \code{\link{EzDataset}}
 
 \code{\link{EzAppBowtie}}
+
+\code{\link{getBowtieReference}}
 }
 

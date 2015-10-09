@@ -6,7 +6,7 @@
 \alias{EzRef-class}
 \alias{[,EzRef,ANY,ANY-method}
 \alias{initialize,EzRef-method}
-\title{The S4 class representing a collection of references}
+\title{The S4 class representing a collection of information about the reference build}
 \usage{
 \S4method{initialize}{EzRef}(.Object, param = list())
 
@@ -24,23 +24,23 @@ Objects of this class are a collection of references derived from a list of para
 \section{Slots}{
 
 \describe{
-\item{\code{refBuild}}{}
+\item{\code{refBuild}}{a character specifying the file path to the reference build.}
 
-\item{\code{refBuildName}}{}
+\item{\code{refBuildName}}{a character specifying the name of the reference build.}
 
-\item{\code{refBuildDir}}{}
+\item{\code{refBuildDir}}{a character specifying the directory of the reference build.}
 
-\item{\code{refIndex}}{}
+\item{\code{refIndex}}{a character specifying the location of the index that is used in the alignment.}
 
-\item{\code{refFeatureFile}}{}
+\item{\code{refFeatureFile}}{a character specifying the file path to the annotation feature file (.gtf).}
 
-\item{\code{refAnnotationFile}}{}
+\item{\code{refAnnotationFile}}{a character specifying the file path to the annotation file (.txt).}
 
-\item{\code{refFastaFile}}{}
+\item{\code{refFastaFile}}{a character specifying the file path to the fasta file.}
 
-\item{\code{refChromDir}}{}
+\item{\code{refChromDir}}{a character specifying the file path to the directory of the chromosome information.}
 
-\item{\code{refChromSizesFile}}{}
+\item{\code{refChromSizesFile}}{a character specifying the file path to the file containing the chromosome sizes.}
 }}
 \examples{
 EzRef(param=list(refBuild="foo"))

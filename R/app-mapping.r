@@ -9,6 +9,7 @@
 ##' @template method-template
 ##' @templateVar methodName Tophat
 ##' @seealso \code{\link{EzAppTophat}}
+##' @seealso \code{\link{getBowtie2Reference}}
 ezMethodTophat = function(input=NA, output=NA, param=NA){
   
   Sys.setenv(PATH=paste(BOWTIE2_DIR, BOWTIE_DIR, dirname(SAMTOOLS), Sys.getenv("PATH"), sep=":"))
@@ -100,6 +101,7 @@ EzAppTophat <-
 ##' @template method-template
 ##' @templateVar methodName Bowtie2
 ##' @seealso \code{\link{EzAppBowtie2}}
+##' @seealso \code{\link{getBowtie2Reference}}
 ezMethodBowtie2 = function(input=NA, output=NA, param=NA){
   
   ref = getBowtie2Reference(param)
@@ -139,6 +141,14 @@ ezMethodBowtie2 = function(input=NA, output=NA, param=NA){
   return("Success")
 }
 
+##' @template getref-template
+##' @templateVar methodName Bowtie2
+##' @param param a list of parameters:
+##' \itemize{
+##'   \item{ezRef@@refIndex}{ a character specifying the location of the index that is used in the alignment.}
+##'   \item{ezRef@@refBuildDir}{ a character specifying the directory of the reference build.}
+##'   \item{ezRef@@refFastaFile}{ a character specifying the file path to the fasta file.}
+##' }
 getBowtie2Reference = function(param){
   
   refBase = ifelse(param$ezRef["refIndex"] == "", 
@@ -200,6 +210,7 @@ EzAppBowtie2 <-
 ##' @template method-template
 ##' @templateVar methodName Bowtie
 ##' @seealso \code{\link{EzAppBowtie}}
+##' @seealso \code{\link{getBowtieReference}}
 ezMethodBowtie = function(input=NA, output=NA, param=NA){
     
   ref = getBowtieReference(param)
@@ -238,6 +249,9 @@ ezMethodBowtie = function(input=NA, output=NA, param=NA){
   return("Success")
 }
 
+##' @template getref-template
+##' @templateVar methodName Bowtie
+##' @inheritParams getBowtie2Reference
 getBowtieReference = function(param){
   
   refBase = ifelse(param$ezRef["refIndex"] == "", 
@@ -300,9 +314,10 @@ EzAppBowtie <-
 ##' @template method-template
 ##' @templateVar methodName STAR
 ##' @seealso \code{\link{EzAppSTAR}}
+##' @seealso \code{\link{getSTARReference}}
 ezMethodSTAR = function(input=NA, output=NA, param=NA){
 
-  refDir = getSTARReferenceDir(param)
+  refDir = getSTARReference(param)
   bamFile = output$getColumn("BAM")
   trimmedInput = ezMethodTrim(input=input, param=param)
   
@@ -328,7 +343,17 @@ ezMethodSTAR = function(input=NA, output=NA, param=NA){
   return("Success")
 }
 
-getSTARReferenceDir = function(param){
+##' @template getref-template
+##' @templateVar methodName STAR
+##' @param param a list of parameters:
+##' \itemize{
+##'   \item{ezRef@@refIndex}{ a character specifying the location of the index that is used in the alignment.}
+##'   \item{ezRef@@refFeatureFile}{ a character specifying the file path to the annotation feature file (.gtf).}
+##'   \item{ezRef@@refChromDir}{ a character specifying the file path to the directory of the chromosome information.}
+##'   \item{ram}{ an integer specifying how many gigabytes of RAM to use.}
+##'   \item{ezRef@@refFastaFile}{ a character specifying the file path to the fasta file.}
+##' }
+getSTARReference = function(param){
   
   if (ezIsSpecified(param$ezRef["refIndex"])){
     refDir = param$ezRef["refIndex"]
@@ -399,6 +424,7 @@ EzAppSTAR <-
 ##' @template method-template
 ##' @templateVar methodName BWA
 ##' @seealso \code{\link{EzAppBWA}}
+##' @seealso \code{\link{getBWAReference}}
 ezMethodBWA = function(input=NA, output=NA, param=NA){
   
   refIdx = getBWAReference(param)
@@ -456,6 +482,9 @@ ezMethodBWA = function(input=NA, output=NA, param=NA){
   return("Success")
 }
 
+##' @template getref-template
+##' @templateVar methodName BWA
+##' @inheritParams getBowtie2Reference
 getBWAReference = function(param){
   
   refPath = ifelse(param$ezRef["refIndex"] == "", 
