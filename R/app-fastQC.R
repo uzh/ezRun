@@ -139,9 +139,7 @@ EzAppFastqc <-
               )
   )
 
-
-
-
+##' @describeIn ezMethodFastQC Plots \code{colname} from \code{dataset} against read counts in millions.
 plotReadCountToLibConc = function(dataset,colname){
   if(colname %in% colnames(dataset) && nrow(dataset) > 1){
     if(!all(dataset[[colname]]==0)){
@@ -163,12 +161,11 @@ plotReadCountToLibConc = function(dataset,colname){
   }
 }
 
+##' @describeIn ezMethodFastQC Gets a quality count matrix from a fastq or gziped fastq.gz file with dimensions read quality and read length.
 getQualityMatrix = function(inputFile){
   ## files could be fastq, or gziped fastq.gz
-  library(ShortRead, warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
-  
+  library(ShortRead, warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)  
   #job = ezJobStart(paste("start to collect quality matrix from", inputFile))
-  
   
   ## get the qualCountMatrix
   qualCountMatrix = NULL
@@ -213,6 +210,7 @@ getQualityMatrix = function(inputFile){
   return(qualCountMatrix)
 }
 
+##' @describeIn ezMethodFastQC Returns a png table of quality matrices interpreted as heatmaps.
 plotQualityMatrixAsHeatmap = function(qualMatrixList, isR2=FALSE, xScale=1, yScale=1){
   pngFileNames = NULL
   colorsGray = gray((30:256)/256)
@@ -284,6 +282,7 @@ plotQualityMatrixAsHeatmap = function(qualMatrixList, isR2=FALSE, xScale=1, ySca
   return(pngTable)
 }
 
+##' @describeIn ezMethodFastQC Creates and returns the images used by \code{plotQualityMatrixAsHeatmap()}.
 plotQualityHeatmap = function(result, name=NULL, colorRange=c(0,sqrt(40)), colors=gray((1:256)/256), main=NULL, pngFileName=NULL, xScale=1, yScale=1){
   ## some ugly controls of labels
   labCol = seq(0, ncol(result), by=10)
@@ -302,6 +301,3 @@ plotQualityHeatmap = function(result, name=NULL, colorRange=c(0,sqrt(40)), color
   axis(2, at=seq(1, nrow(result),by=5), labels=labRow)
   return(pngFileName)
 }
-
-
-
