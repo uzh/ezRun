@@ -40,6 +40,7 @@ EzAppEdger <-
 #   ngsTwoGroupAnalysis(input, output, param=param)
 # }
 
+## NOTEP: all functions below go only into here, except runEdger (called in edgerMultiGroupts), plus runDeseq2 (from deseq2TwoGroups). missing: runSam, runLimma
 ngsTwoGroupAnalysis = function(input=NA, output=NA, param=NULL, htmlFile="00index.html"){
   
   cwd = getwd()
@@ -108,7 +109,6 @@ runNgsTwoGroupAnalysis = function(dataset, htmlFile="00index.html", param=param,
 
   writeNgsTwoGroupReport(dataset, result, htmlFile, param=param, rawData=rawData, types=types)
 }
-
 
 writeNgsTwoGroupReport = function(dataset, result, htmlFile, param=NA, rawData=NA, types=NULL) {
   keggOrganism = NA
@@ -214,8 +214,6 @@ writeNgsTwoGroupReport = function(dataset, result, htmlFile, param=NA, rawData=N
   return("Success")
 }
 
-
-
 twoGroupCountComparison = function(rawData, param){
   x = rawData$counts
   presentFlag = rawData$presentFlag
@@ -248,8 +246,8 @@ twoGroupCountComparison = function(rawData, param){
                deseq2 = runDeseq2(round(x), param$sampleGroup, param$refGroup, param$grouping, batch=param$batch, isPresent=useProbe),
                exactTest = runEdger(round(x), param$sampleGroup, param$refGroup, param$grouping, param$normMethod),
                glm = runGlm(round(x), param$sampleGroup, param$refGroup, param$grouping, param$normMethod, batch=param$batch),
-               sam = runSam(round(x), param$sampleGroup, param$refGroup, param$grouping, param$batch),
-               limma=runLimma(x, param$sampleGroup, param$refGroup, param$grouping, param$batch),
+               sam = runSam(round(x), param$sampleGroup, param$refGroup, param$grouping, param$batch), 
+               limma = runLimma(x, param$sampleGroup, param$refGroup, param$grouping, param$batch),
                stop("unsupported testMethod: ", param$testMethod)
   )
   result$log2Ratio = res$log2FoldChange  
@@ -309,9 +307,6 @@ runGfold = function(rawData, scalingFactors, isSample, isRef){
   ezSystem(cmd)
   return(gfold)
 }
-
-
-
 
 runEdger = function(x, sampleGroup, refGroup, grouping, normMethod){
   library(edgeR, warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
@@ -393,4 +388,3 @@ runGlm = function(x, sampleGroup, refGroup, grouping, normMethod, batch=NULL){
   #rownames(res$groupMeans) = rownames(cds$count)
   return(res)
 }
-

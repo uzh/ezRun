@@ -45,6 +45,8 @@ EzAppFastqScreen <-
               )
   )
 
+
+## NOTEP: all 6 functions below get only called once each in ezMethodFastqScreen()
 executeFastqscreenCMD = function(param,files){
   confFile = paste(FASTQSCREEN_CONF_DIR,param$confFile,sep="")
   opt = ""
