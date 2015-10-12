@@ -41,23 +41,23 @@ EzAppEdger <-
 
 
 ## NOTEP: all functions below go only into here, plus runDeseq2 (from deseq2TwoGroups). missing: runSam, runLimma
-##' @title 1
-##' @description 1
+##' @title Prepares the two group analysis
+##' @description Prepares the two group analysis by checking some parameters and setting up the options. Then \code{runNgsTwoGroupAnalysis()} gets called to obtain the result.
 ##' @param input an object of the class EzDataset.
 ##' @param output an object of the class EzDataset.
 ##' @param param a list of parameters:
 ##' \itemize{
-##'   \item{sampleGroup}{}
-##'   \item{refGroup}{}
-##'   \item{useFactorsAsSampleName}{}
+##'   \item{grouping}{ a character specifying the grouping.}
+##'   \item{sampleGroup}{ a character specifying the group to sample.}
+##'   \item{refGroup}{ a character specifying the reference group.}
+##'   \item{useFactorsAsSampleName}{ a logical indicating whether to use the factors as sample names.}
 ##'   \item{removeOutliers}{}
-##'   \item{grouping}{}
 ##'   \item{batch}{}
 ##'   \item{markOutliers}{}
 ##' }
-##' @param htmlFile
+##' @param htmlFile a character representing the path to write the report in.
 ##' @template roxygen-template
-##' @return Returns
+##' @return Returns the results of the analysis.
 ##' @seealso \code{\link{twoGroupCountComparison}}
 ##' @seealso \code{\link{writeNgsTwoGroupReport}}
 ##' @examples
@@ -137,14 +137,14 @@ runNgsTwoGroupAnalysis = function(dataset, htmlFile="00index.html", param=param,
 ##' @description 1
 ##' @param dataset
 ##' @param result
-##' @param htmlFile
+##' @param htmlFile a character representing the path to write the report in.
 ##' @param param a list of parameters:
 ##' \itemize{
 ##'   \item{logColorRange}{}
 ##'   \item{minSignal}{}
-##'   \item{grouping}{}
-##'   \item{sampleGroup}{}
-##'   \item{refGroup}{}
+##'   \item{grouping}{ a character specifying the grouping.}
+##'   \item{sampleGroup}{ a character specifying the group to sample.}
+##'   \item{refGroup}{ a character specifying the reference group.}
 ##'   \item{pValueHighlightThresh}{}
 ##'   \item{log2RatioHighlightThresh}{}
 ##'   \item{maxGenesForClustering}{}
@@ -153,7 +153,7 @@ runNgsTwoGroupAnalysis = function(dataset, htmlFile="00index.html", param=param,
 ##'   \item{goseqMethod}{}
 ##'   \item{maxNumberGroupsDisplayed}{}
 ##' }
-##' @param rawData
+##' @param rawData a list of raw data. Usually obtained from \cod{loadCountDataset()}.
 ##' @param types
 ##' @template roxygen-template
 ##' @return Returns
@@ -263,24 +263,29 @@ writeNgsTwoGroupReport = function(dataset, result, htmlFile, param=NA, rawData=N
   return("Success")
 }
 
-
-##' @title 1
-##' @description 1
-##' @param rawData
+##' @title Compares the counts of two groups
+##' @description Compares the counts of two groups with the option to choose from several methods to test them.
+##' @param rawData a list of raw data. Usually obtained from \cod{loadCountDataset()}.
 ##' @param param a list of parameters:
 ##' \itemize{
-##'   \item{testMethod}{}
+##'   \item{testMethod}{ defines the method to run: deseq2, exactTest, glm, sam or limma. Defaults to glm.}
 ##'   \item{batch}{}
-##'   \item{grouping}{}
-##'   \item{sampleGroup}{}
-##'   \item{refGroup}{}
-##'   \item{normMethod}{}
-##'   \item{runGfold}{}
+##'   \item{grouping}{ a character specifying the grouping.}
+##'   \item{sampleGroup}{ a character specifying the group to sample.}
+##'   \item{refGroup}{ a character specifying the reference group.}
+##'   \item{normMethod}{ a character specifying the normalization method for the edger and glm test methods.}
+##'   \item{runGfold}{ a logical indicating whether to run Gfold.}
 ##' }
 ##' @template roxygen-template
-##' @return Returns
+##' @return Returns a list containing the results of the comparison.
 ##' @examples
-##' 1
+##' param = ezParam()
+##' param$dataRoot = system.file(package="ezRun", mustWork = TRUE)
+##' param$normMethod = "RLE"
+##' input = EzDataset$new(file=system.file("extdata/yeast_10k_STAR_featureCounts/dataset.tsv", package="ezRun", mustWork = TRUE))
+##' rawData = loadCountDataset(input$copy()$subset(1), param)
+##' twoGroupCountComparison(rawData, param)
+## TODOP: make example work with proper grouping, sampleGroup and refGroup parameters. describe batch.
 twoGroupCountComparison = function(rawData, param){
   x = rawData$counts
   presentFlag = rawData$presentFlag
