@@ -153,7 +153,7 @@ runNgsTwoGroupAnalysis = function(dataset, htmlFile="00index.html", param=param,
 ##'   \item{goseqMethod}{}
 ##'   \item{maxNumberGroupsDisplayed}{}
 ##' }
-##' @param rawData a list of raw data. Usually obtained from \cod{loadCountDataset()}.
+##' @param rawData a list of raw data. Usually obtained from \code{loadCountDataset()}.
 ##' @param types
 ##' @template roxygen-template
 ##' @return Returns
@@ -265,7 +265,7 @@ writeNgsTwoGroupReport = function(dataset, result, htmlFile, param=NA, rawData=N
 
 ##' @title Compares the counts of two groups
 ##' @description Compares the counts of two groups with the option to choose from several methods to test them.
-##' @param rawData a list of raw data. Usually obtained from \cod{loadCountDataset()}.
+##' @param rawData a list of raw data. Usually obtained from \code{loadCountDataset()}.
 ##' @param param a list of parameters:
 ##' \itemize{
 ##'   \item{testMethod}{ defines the method to run: deseq2, exactTest, glm, sam or limma. Defaults to glm.}

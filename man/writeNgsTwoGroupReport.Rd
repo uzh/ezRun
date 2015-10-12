@@ -30,7 +30,7 @@ writeNgsTwoGroupReport(dataset, result, htmlFile, param = NA, rawData = NA,
   \item{maxNumberGroupsDisplayed}{}
 }}
 
-\item{rawData}{a list of raw data. Usually obtained from \cod{loadCountDataset()}.}
+\item{rawData}{a list of raw data. Usually obtained from \code{loadCountDataset()}.}
 
 \item{types}{}
 }

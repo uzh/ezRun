@@ -20,7 +20,7 @@ runEdger(x, sampleGroup, refGroup, grouping, normMethod)
 runGlm(x, sampleGroup, refGroup, grouping, normMethod, batch = NULL)
 }
 \arguments{
-\item{rawData}{a list of raw data. Usually obtained from \cod{loadCountDataset()}.}
+\item{rawData}{a list of raw data. Usually obtained from \code{loadCountDataset()}.}
 
 \item{param}{a list of parameters:
 \itemize{
