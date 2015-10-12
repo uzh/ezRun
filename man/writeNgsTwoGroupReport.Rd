@@ -12,15 +12,15 @@ writeNgsTwoGroupReport(dataset, result, htmlFile, param = NA, rawData = NA,
 
 \item{result}{}
 
-\item{htmlFile}{}
+\item{htmlFile}{a character representing the path to write the report in.}
 
 \item{param}{a list of parameters:
 \itemize{
   \item{logColorRange}{}
   \item{minSignal}{}
-  \item{grouping}{}
-  \item{sampleGroup}{}
-  \item{refGroup}{}
+  \item{grouping}{ a character specifying the grouping.}
+  \item{sampleGroup}{ a character specifying the group to sample.}
+  \item{refGroup}{ a character specifying the reference group.}
   \item{pValueHighlightThresh}{}
   \item{log2RatioHighlightThresh}{}
   \item{maxGenesForClustering}{}
@@ -30,7 +30,7 @@ writeNgsTwoGroupReport(dataset, result, htmlFile, param = NA, rawData = NA,
   \item{maxNumberGroupsDisplayed}{}
 }}
 
-\item{rawData}{}
+\item{rawData}{a list of raw data. Usually obtained from \cod{loadCountDataset()}.}
 
 \item{types}{}
 }

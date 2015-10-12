@@ -6,7 +6,7 @@
 \alias{runGfold}
 \alias{runGlm}
 \alias{twoGroupCountComparison}
-\title{1}
+\title{Compares the counts of two groups}
 \usage{
 runDeseq2(x, sampleGroup, refGroup, grouping, batch = NULL,
   isPresent = NULL)
@@ -20,24 +20,24 @@ runEdger(x, sampleGroup, refGroup, grouping, normMethod)
 runGlm(x, sampleGroup, refGroup, grouping, normMethod, batch = NULL)
 }
 \arguments{
-\item{rawData}{}
+\item{rawData}{a list of raw data. Usually obtained from \cod{loadCountDataset()}.}
 
 \item{param}{a list of parameters:
 \itemize{
-  \item{testMethod}{}
+  \item{testMethod}{ defines the method to run: deseq2, exactTest, glm, sam or limma. Defaults to glm.}
   \item{batch}{}
-  \item{grouping}{}
-  \item{sampleGroup}{}
-  \item{refGroup}{}
-  \item{normMethod}{}
-  \item{runGfold}{}
+  \item{grouping}{ a character specifying the grouping.}
+  \item{sampleGroup}{ a character specifying the group to sample.}
+  \item{refGroup}{ a character specifying the reference group.}
+  \item{normMethod}{ a character specifying the normalization method for the edger and glm test methods.}
+  \item{runGfold}{ a logical indicating whether to run Gfold.}
 }}
 }
 \value{
-Returns
+Returns a list containing the results of the comparison.
 }
 \description{
-1
+Compares the counts of two groups with the option to choose from several methods to test them.
 }
 \section{Functions}{
 \itemize{
@@ -50,7 +50,12 @@ Returns
 \item \code{runGlm}: Runs the Glm test method.
 }}
 \examples{
-1
+param = ezParam()
+param$dataRoot = system.file(package="ezRun", mustWork = TRUE)
+param$normMethod = "RLE"
+input = EzDataset$new(file=system.file("extdata/yeast_10k_STAR_featureCounts/dataset.tsv", package="ezRun", mustWork = TRUE))
+rawData = loadCountDataset(input$copy()$subset(1), param)
+twoGroupCountComparison(rawData, param)
 }
 \author{
 Rehrauer, Hubert

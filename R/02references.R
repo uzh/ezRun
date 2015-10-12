@@ -101,7 +101,7 @@ setGeneric("ezBuildRefdir", function(.Object, refBuild, gtf, fasta, genomesRoot 
   standardGeneric("ezBuildRefdir")
 })
 
-##' @describeIn Builds the reference directory and copies the annotation and fast file into the right folders.
+##' @describeIn EzRef Builds the reference directory and copies the annotation and fast file into the right folders.
 setMethod("ezBuildRefdir", "EzRef", function(.Object, refBuild, gtf, fasta, genomesRoot = "."){
   cd = getwd()
   setwdNew(genomesRoot)

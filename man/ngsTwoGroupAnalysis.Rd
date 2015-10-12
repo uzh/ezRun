@@ -3,7 +3,7 @@
 \name{ngsTwoGroupAnalysis}
 \alias{ngsTwoGroupAnalysis}
 \alias{runNgsTwoGroupAnalysis}
-\title{1}
+\title{Prepares the two group analysis}
 \usage{
 ngsTwoGroupAnalysis(input = NA, output = NA, param = NULL,
   htmlFile = "00index.html")
@@ -18,22 +18,22 @@ runNgsTwoGroupAnalysis(dataset, htmlFile = "00index.html", param = param,
 
 \item{param}{a list of parameters:
 \itemize{
-  \item{sampleGroup}{}
-  \item{refGroup}{}
-  \item{useFactorsAsSampleName}{}
+  \item{grouping}{ a character specifying the grouping.}
+  \item{sampleGroup}{ a character specifying the group to sample.}
+  \item{refGroup}{ a character specifying the reference group.}
+  \item{useFactorsAsSampleName}{ a logical indicating whether to use the factors as sample names.}
   \item{removeOutliers}{}
-  \item{grouping}{}
   \item{batch}{}
   \item{markOutliers}{}
 }}
 
-\item{htmlFile}{}
+\item{htmlFile}{a character representing the path to write the report in.}
 }
 \value{
-Returns
+Returns the results of the analysis.
 }
 \description{
-1
+Prepares the two group analysis by checking some parameters and setting up the options. Then \code{runNgsTwoGroupAnalysis()} gets called to obtain the result.
 }
 \section{Functions}{
 \itemize{
