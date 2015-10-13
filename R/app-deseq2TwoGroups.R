@@ -17,6 +17,7 @@ ezMethodDeseq2 = function(input=NA, output=NA, param=NA){
     stop("DESeq2 does not support marking outliers because marked outliers would still be used in dispersion estimates")
   }
   ngsTwoGroupAnalysis(input, output, param=param)
+  return("Success")
 }
 
 ##' @template app-template
@@ -59,36 +60,3 @@ runDeseq2 = function(x, sampleGroup, refGroup, grouping, batch=NULL, isPresent=N
   res$sf = 1/colData(dds)$sizeFactor
   return(res)
 }
-  
-## NOTEP: seems unused
-runDeseq = function(x, sampleGroup, refGroup, grouping){
-  
-  library(DESeq, warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
-  cds = newCountDataSet( x, grouping)
-  #sf = ezLogmeanScalingFactor(x, presentFlag=x > 0)
-  #sizeFactors(cds) = 1/sf
-  cds = estimateSizeFactors(cds)
-  sf = 1/sizeFactors(cds)
-  if (min(table(grouping)) > 1){
-    cds = estimateDispersions( cds , method="pooled",sharingMode="maximum")
-  } else {
-    cds = estimateDispersions( cds , method="blind",sharingMode="fit-only")
-  }
-  
-  res = nbinomTest(cds, refGroup, sampleGroup)
-  res = as.list(res)
-  #bmvA <- getBaseMeansAndVariances( counts(cds)[,colsA], sizeFactors(cds)[colsA] )
-  #bmvB <- getBaseMeansAndVariances( counts(cds)[,colsB], sizeFactors(cds)[colsB] )
-  
-  #res$log2Expr = log2(res$baseMean)
-  ## do not return groupMeans now!
-  #res$groupMeans = cbind(res$baseMeanB, res$baseMeanA)
-  #colnames(res$groupMeans) = c(sampleGroup, refGroup)
-  #rownames(res$groupMeans) = res$id
-  #res$resVar = cbind(res$resVarB, res$resVarA)
-  #colnames(res$resVar) = c(sampleGroup, refGroup)
-  #rownames(res$resVar) = res$id
-  res$sf = sf
-  return(res)
-}
-

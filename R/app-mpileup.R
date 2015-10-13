@@ -171,7 +171,7 @@ ezMethodMpileup = function(input=NA, output=NA, param=NA){
   }
   closeHTML(html)
   setwd("..")
-  return("SUCCESS")
+  return("Success")
 }
 
 ##' @template app-template

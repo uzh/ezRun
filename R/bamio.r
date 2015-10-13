@@ -151,7 +151,6 @@ ezBam2bigwig = function(bamFile, bigwigPrefix, param=NULL, paired=NULL){
   
   file.remove(wigFiles)
   file.remove(chromSizeFile)
-  return("Success") ## NOTEP: only "Success" outside of app methods.
 }
 
 ##' @title Reads gapped alignments from bam

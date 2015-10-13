@@ -11,6 +11,7 @@
 ##' @seealso \code{\link{EzAppEdger}}
 ezMethodEdger = function(input=NA, output=NA, param=NA){
   ngsTwoGroupAnalysis(input, output, param=param)
+  return("Success")
 }
 
 ##' @template app-template
@@ -39,7 +40,7 @@ EzAppEdger <-
 #   ngsTwoGroupAnalysis(input, output, param=param)
 # }
 
-## NOTEP: all functions below go only into here, plus runDeseq2 (from deseq2TwoGroups). missing: runSam, runLimma
+## NOTEP: all functions below go only into here, plus runDeseq2 (from deseq2TwoGroups). missing: runLimma
 ##' @title Prepares the two group analysis
 ##' @description Prepares the two group analysis by checking some parameters and setting up the options. Then \code{runNgsTwoGroupAnalysis()} gets called to obtain the result.
 ##' @param input an object of the class EzDataset.
@@ -51,7 +52,7 @@ EzAppEdger <-
 ##'   \item{refGroup}{ a character specifying the reference group.}
 ##'   \item{useFactorsAsSampleName}{ a logical indicating whether to use the factors as sample names.}
 ##'   \item{removeOutliers}{ a logical indicating whether to remove outliers.}
-##'   \item{batch}{}
+##'   \item{batch}{ a character vector specifying the batch groups.}
 ##'   \item{markOutliers}{ a logical indicating whether to mark outliers.}
 ##' }
 ##' @param htmlFile a character representing the path to write the report in.
@@ -117,7 +118,6 @@ runNgsTwoGroupAnalysis = function(dataset, htmlFile="00index.html", param=param,
     return("Error")
   }
   
-  x = rawData$counts ## TODOP: x unused
   result = twoGroupCountComparison(rawData, param)
   if (isError(result)){
     writeErrorHtml(htmlFile, param=param, error=rawData$error)
@@ -253,7 +253,6 @@ writeNgsTwoGroupReport = function(dataset, result, htmlFile, param=NA, rawData=N
   
   ezSessionInfo()
   writeTxtLinksToHtml('sessionInfo.txt',con=html)
-  return("Success")
 }
 
 ##' @title Compares the counts of two groups
@@ -262,7 +261,7 @@ writeNgsTwoGroupReport = function(dataset, result, htmlFile, param=NA, rawData=N
 ##' @param param a list of parameters:
 ##' \itemize{
 ##'   \item{testMethod}{ defines the method to run: deseq2, exactTest, glm, sam or limma. Defaults to glm.}
-##'   \item{batch}{}
+##'   \item{batch}{ a character vector specifying the batch groups.}
 ##'   \item{grouping}{ a character specifying the grouping.}
 ##'   \item{sampleGroup}{ a character specifying the group to sample.}
 ##'   \item{refGroup}{ a character specifying the reference group.}
@@ -271,14 +270,6 @@ writeNgsTwoGroupReport = function(dataset, result, htmlFile, param=NA, rawData=N
 ##' }
 ##' @template roxygen-template
 ##' @return Returns a list containing the results of the comparison.
-##' @examples
-##' param = ezParam()
-##' param$dataRoot = system.file(package="ezRun", mustWork = TRUE)
-##' param$normMethod = "RLE"
-##' input = EzDataset$new(file=system.file("extdata/yeast_10k_STAR_featureCounts/dataset.tsv", package="ezRun", mustWork = TRUE))
-##' rawData = loadCountDataset(input$copy()$subset(1), param)
-##' twoGroupCountComparison(rawData, param)
-## TODOP: make example work with proper grouping, sampleGroup and refGroup parameters. describe batch.
 twoGroupCountComparison = function(rawData, param){
   x = rawData$counts
   presentFlag = rawData$presentFlag
@@ -311,7 +302,6 @@ twoGroupCountComparison = function(rawData, param){
                deseq2 = runDeseq2(round(x), param$sampleGroup, param$refGroup, param$grouping, batch=param$batch, isPresent=useProbe),
                exactTest = runEdger(round(x), param$sampleGroup, param$refGroup, param$grouping, param$normMethod),
                glm = runGlm(round(x), param$sampleGroup, param$refGroup, param$grouping, param$normMethod, batch=param$batch),
-               sam = runSam(round(x), param$sampleGroup, param$refGroup, param$grouping, param$batch), 
                limma = runLimma(x, param$sampleGroup, param$refGroup, param$grouping, param$batch),
                stop("unsupported testMethod: ", param$testMethod)
   )

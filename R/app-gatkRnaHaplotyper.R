@@ -165,5 +165,5 @@ gatkRnaSeqHaplotyperApp = function(input=NA, output=NA, param=NA, htmlFile="00in
   writeImageColumnToHtml(pngFiles, con=html)
   closeHTML(html)
   setwd("..")
-  return("SUCCESS")
+  return("Success")
 }

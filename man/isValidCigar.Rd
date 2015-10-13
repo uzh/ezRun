@@ -2,25 +2,28 @@
 % Please edit documentation in R/ngsTools.r
 \name{isValidCigar}
 \alias{isValidCigar}
-\title{1}
+\title{Is \code{x} a valid cigar?}
 \usage{
 isValidCigar(x)
 }
 \arguments{
-\item{x}{}
+\item{x}{a character vector to check.}
 }
 \value{
-Returns
+Returns a logical vector answering which elements are valid cigars.
 }
 \description{
-1
+Tests whether \code{x} is a valid cigar by checking the format of the character.
 }
 \examples{
-1
+isValidCigar("3M5G")
 }
 \author{
 Rehrauer, Hubert
 
 Schmid, Peter
+}
+\seealso{
+\code{\link[GenomicAlignments]{cigarWidthAlongReferenceSpace}}
 }
 

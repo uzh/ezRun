@@ -15,6 +15,7 @@ ezMethodNcpro = function(input=NA, output=NA, param=NA){
   setwdNew(basename(output$getColumn("Report")))
   param$readCountsBarplot = basename(output$getColumn("TrimCounts"))
   ncpro(input=input, dataset=input$meta, param=param)
+  return("Success")
 }
 
 ##' @template app-template
@@ -89,5 +90,4 @@ ncpro = function(input, dataset, param=NULL){
   ezSystem("rm -f annotation")
   ezSystem("rm -rf rawdata")
   setwd(jobDir)
-  return("Success")
 }

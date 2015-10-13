@@ -25,63 +25,6 @@ expandGRanges = function(x, width=2000){
   return(x)
 }
 
-
-##' @title 1
-##' @description 1
-##' @param query
-##' @param subject
-##' @param ignoreStrand
-##' @template addargs-template
-##' @templateVar fun \code{countOverlaps()}
-##' @template roxygen-template
-##' @seealso \code{\link[GenomicRanges]{countOverlaps}}
-##' @return Returns
-##' @examples
-##' query = GRanges(c("chr1", "chr1", "chr2"), IRanges(5000:5002,8000:8002), strand=c("+", "-", "+"))
-##' subject = GRanges(c("chr2", "chr1", "chr3"), IRanges(4900:4902,5100:5102), strand=c("+", "-", "+"))
-##' ezCountOverlaps(query, subject)
-##' ezHasOverlaps(query,subject)
-## TODOP: finish documenting these two functions. but perhaps ezcountoverlaps is redundant?
-ezCountOverlaps = function(query, subject, ignoreStrand=FALSE, ...){
-  #qSeqs = levels(seqnames(query))
-  #sSeqs = levels(seqnames(subjects))
-  #if (length(setdiff(qSeqs, sSeqs)) > 0 & length(setdiff(sSeqs, qSeqs)) > 0){
-  #  warning("incompatible seqnames!\nqSeqs: ", paste(qSeqs, collapse=" "),
-  #       "\nsSeqs: ", paste(sSeqs, collapse=" "))
-  #}
-  if (ignoreStrand){
-    if ( class(query) == "GRanges"){
-      strand(query) = "*"  
-    } else {
-      sr = unlist(query)
-      strand(sr) = "*"
-      nms = sub("\\..*$", "", names(sr))
-      query = split(sr, nms)      
-    }
-    if ( class(subject) == "GRanges"){
-      strand(subject) = "*"  
-    } else {
-      sr = unlist(subject)
-      strand(sr) = "*"
-      nms = sub("\\..*$", "", names(sr))
-      subject = split(sr, nms)      
-      #foo = lapply(elementLengths(subject), function(x){Rle("*", x)})
-      #s = RleList(foo)
-      #strand(subject) = s
-      #for (nm in names(subject)){
-      #  message(nm)
-      #  strand(subject[[nm]]) = "*"
-      #}
-    }
-  }
-  return(countOverlaps(query=query, subject=subject, ...))
-}
-
-##' @describeIn ezCountOverlaps 
-ezHasOverlaps = function(query, subject, ignore.strand=FALSE, ...){  
-  return(countOverlaps(query=query, subject=subject, ignore.strand=ignore.strand, ...) > 0)
-}
-
 ##' @title Gets the values of genomic ranges
 ##' @description Gets the values of genomic ranges
 ##' @param cov an object of the class RleList.

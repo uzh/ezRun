@@ -23,7 +23,7 @@ runNgsTwoGroupAnalysis(dataset, htmlFile = "00index.html", param = param,
   \item{refGroup}{ a character specifying the reference group.}
   \item{useFactorsAsSampleName}{ a logical indicating whether to use the factors as sample names.}
   \item{removeOutliers}{ a logical indicating whether to remove outliers.}
-  \item{batch}{}
+  \item{batch}{ a character vector specifying the batch groups.}
   \item{markOutliers}{ a logical indicating whether to mark outliers.}
 }}
 

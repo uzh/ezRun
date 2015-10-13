@@ -8,11 +8,10 @@
 
 ## order of the trimming
 ## - adapter
-## - fixed
-## - quality window
-## - minlen
+## - quality window (SLIDING_WINDOW)
 ## - avg qual
-## TODOP: I'm either missunderstanding something or the trimming order is different than stated above.
+## - minlen
+## - fixed
 ##' @title Trims input reads
 ##' @description Trims input reads. There are several options to influence trimming with parameters.
 ##' @param input an object of the class EzDataset.

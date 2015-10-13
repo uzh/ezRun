@@ -15,7 +15,7 @@ shiftZeros(counts, minSignal)
 Returns the modified count values.
 }
 \description{
-Shifts zeros by changing values lower than \code{minSignal} to a random numeric in the range of (1/4 to 3/4) * \code{minSignal}.
+Shifts zeros by changing values lower than \code{minSignal} to a random numeric in the range of (1/4 to 3/4) * \code{minSignal}. This is done to prevent zero signals to stack at 0.
 }
 \examples{
 shiftZeros(1:10,5)

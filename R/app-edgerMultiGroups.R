@@ -23,6 +23,7 @@ edgerMultiGroupApp = function(inputDatasetFile=NA, output=NA, param=NA){
   setwdNew(basename(output$Report))
   param$name = basename(output$Report)
   ngsMultiGroupAnalysis(inputDatasetFile,  param=param)
+  return("Success")
 }
 
 
@@ -162,7 +163,6 @@ writeNgsMultiGroupReport = function(dataset, result, htmlFile, param=NA, rawData
   } 
   ezSessionInfo()
   writeTxtLinksToHtml('sessionInfo.txt',con=html)
-  return("Success")
 }
 
 

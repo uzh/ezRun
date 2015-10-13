@@ -104,7 +104,7 @@ ezMethodChipStats = function(input=NA, output=NA, param=NA, htmlFile="00index.ht
   
   closeHTML(html)
   print(warnings())
-  return('SUCCESS')
+  return("Success")
 }
 
 ##' @template app-template

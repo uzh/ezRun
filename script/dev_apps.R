@@ -21,7 +21,7 @@ ds2[, 3]
 
 demoAppMethod = function(input=NULL, output=NULL, param=NULL){
   print(input)
-  return("SUCCESS")
+  return("Success")
 }
 
 
@@ -42,7 +42,7 @@ ezRunApp(ezApp, input, output, param)
 ## now an app that fails
 failAppMethod = function(input=NULL, output=NULL, param=NULL){
   log("a")
-  return("SUCCESS")
+  return("Success")
 }
 failApp = EzApp(runMethod=failAppMethod, name="failApp")
 #options(error=NULL)

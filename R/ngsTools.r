@@ -75,29 +75,26 @@ getTuxedoLibraryType = function(strandMode){
          stop(paste("bad strandMode: ", strandMode))))
 }
 
-
-##' @title 1
-##' @description 1
-##' @param x
+##' @title Is \code{x} a valid cigar?
+##' @description Tests whether \code{x} is a valid cigar by checking the format of the character.
+##' @param x a character vector to check.
 ##' @template roxygen-template
-##' @return Returns
-##' @examples 
-##' 1
-## TODOP: find cigarToWidth()
+##' @return Returns a logical vector answering which elements are valid cigars.
+##' @seealso \code{\link[GenomicAlignments]{cigarWidthAlongReferenceSpace}}
+##' @examples
+##' isValidCigar("3M5G")
 isValidCigar = function(x){
-  sapply(x, function(y){!inherits(try(cigarToWidth(y), silent=TRUE), "try-error")})
+  sapply(x, function(y){!inherits(try(cigarWidthAlongReferenceSpace(y), silent=TRUE), "try-error")})
 }
 
-
 ##' @title Shifts zeros
-##' @description Shifts zeros by changing values lower than \code{minSignal} to a random numeric in the range of (1/4 to 3/4) * \code{minSignal}.
+##' @description Shifts zeros by changing values lower than \code{minSignal} to a random numeric in the range of (1/4 to 3/4) * \code{minSignal}. This is done to prevent zero signals to stack at 0.
 ##' @param counts a set of numeric or integer values.
 ##' @param minSignal a numeric or integer specifying the minimal signal amount.
 ##' @template roxygen-template
 ##' @return Returns the modified count values.
 ##' @examples 
 ##' shiftZeros(1:10,5)
-## TODOP: understand purpose of function and improve description.
 shiftZeros = function(counts, minSignal){
   isLow = counts < minSignal
   isLow[is.na(isLow)] = TRUE

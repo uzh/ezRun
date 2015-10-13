@@ -25,7 +25,7 @@ runGlm(x, sampleGroup, refGroup, grouping, normMethod, batch = NULL)
 \item{param}{a list of parameters:
 \itemize{
   \item{testMethod}{ defines the method to run: deseq2, exactTest, glm, sam or limma. Defaults to glm.}
-  \item{batch}{}
+  \item{batch}{ a character vector specifying the batch groups.}
   \item{grouping}{ a character specifying the grouping.}
   \item{sampleGroup}{ a character specifying the group to sample.}
   \item{refGroup}{ a character specifying the reference group.}
@@ -49,14 +49,6 @@ Compares the counts of two groups with the option to choose from several methods
 
 \item \code{runGlm}: Runs the Glm test method.
 }}
-\examples{
-param = ezParam()
-param$dataRoot = system.file(package="ezRun", mustWork = TRUE)
-param$normMethod = "RLE"
-input = EzDataset$new(file=system.file("extdata/yeast_10k_STAR_featureCounts/dataset.tsv", package="ezRun", mustWork = TRUE))
-rawData = loadCountDataset(input$copy()$subset(1), param)
-twoGroupCountComparison(rawData, param)
-}
 \author{
 Rehrauer, Hubert
 

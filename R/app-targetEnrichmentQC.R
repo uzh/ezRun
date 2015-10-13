@@ -14,6 +14,7 @@ ezMethodTeqc = function(input=NA, output=NA, param=NA){
   on.exit(setwd(cwd))
   setwdNew(basename(output$getColumn("Report")))
   teqc(dataset=input, param)
+  return("Success")
 }
 
 ##' @template app-template
@@ -89,7 +90,6 @@ runTEQC = function(file,param){
                targets=get.targets(targetsfile, 
                                    skip=grep("^track", readLines(targetsfile, n=200))),
                genome='hg19',figureFormat = c("png"))
-  return("SUCCESS")
 }
 
 #prepareEnvironment = function(inputDatasetFile=NA, output=NA, param=NA){

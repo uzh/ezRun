@@ -14,8 +14,7 @@
 
 \S4method{[}{EzRef,ANY,ANY}(x, i)
 
-\S4method{ezBuildRefdir}{EzRef}(.Object, refBuild, gtf, fasta,
-  genomesRoot = ".")
+\S4method{ezBuildRefdir}{EzRef}(.Object, gtf, fasta, genomesRoot = ".")
 }
 \description{
 Objects of this class are a collection of references derived from a list of parameters.

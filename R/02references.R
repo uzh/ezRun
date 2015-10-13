@@ -97,12 +97,12 @@ setMethod("[", "EzRef", function(x, i){
   slot(x, i)
 })
 
-setGeneric("ezBuildRefdir", function(.Object, refBuild, gtf, fasta, genomesRoot = "."){
+setGeneric("ezBuildRefdir", function(.Object, gtf, fasta, genomesRoot = "."){
   standardGeneric("ezBuildRefdir")
 })
 
 ##' @describeIn EzRef Builds the reference directory and copies the annotation and fast file into the right folders.
-setMethod("ezBuildRefdir", "EzRef", function(.Object, refBuild, gtf, fasta, genomesRoot = "."){
+setMethod("ezBuildRefdir", "EzRef", function(.Object, gtf, fasta, genomesRoot = "."){
   cd = getwd()
   setwdNew(genomesRoot)
   gtfPath = dirname(.Object@refFeatureFile)
@@ -110,8 +110,9 @@ setMethod("ezBuildRefdir", "EzRef", function(.Object, refBuild, gtf, fasta, geno
   dir.create(gtfPath, recursive=T)
   dir.create(fastaPath, recursive=T)
   dir.create(.Object@refChromDir)
-  #gtf = list.files(pattern=".gtf$")
-  #fasta = list.files(pattern=".fa$")
+  if (!is.null(.Object@refAnnotationVersion)){
+    ezSystem(paste("cd", file.path(.Object@refBuildDir, "Annotation"), "; ", "ln -s", file.path(.Object@refAnnotationVersion, "*"), "."))
+  }
   file.copy(gtf, gtfPath)
   file.copy(fasta, fastaPath)
   setwd(cd)

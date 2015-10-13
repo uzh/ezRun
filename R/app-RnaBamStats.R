@@ -409,7 +409,7 @@ getTargetTypeCounts = function(param, gff, rr, seqid=NULL, repeatsGff=NULL){
       for(type in unique(classFam)){
         use = classFam == type
         targetRanges = gffToRanges(repeatsGff[use, ])
-        hitsTarget = ezHasOverlaps(rr, targetRanges, minoverlap=10)
+        hitsTarget = overlapsAny(rr, targetRanges, minoverlap=10)
         result[type, ] = c(sum(hitsTarget), sum(width(reduce(targetRanges))))
         hasAnyHit = hasAnyHit | hitsTarget
       }
@@ -425,7 +425,7 @@ getTargetTypeCounts = function(param, gff, rr, seqid=NULL, repeatsGff=NULL){
       if (!is.null(ensemblTypes)){
         for (type in unique(ensemblTypes)){
           targetRanges = gffRanges[ensemblTypes == type]
-          hitsTarget = ezHasOverlaps(rr, targetRanges, minoverlap=10)
+          hitsTarget = overlapsAny(rr, targetRanges, minoverlap=10)
           result[type, ] = c(sum(hitsTarget), sum(width(reduce(targetRanges))))
           hasAnyHit = hasAnyHit | hitsTarget
         }
@@ -437,7 +437,7 @@ getTargetTypeCounts = function(param, gff, rr, seqid=NULL, repeatsGff=NULL){
         for (type in rootTypes){
           use = gff$type == type
           targetRanges = gffRanges[gff$type == type]
-          hitsTarget = ezHasOverlaps(rr, targetRanges, minoverlap=10)
+          hitsTarget = overlapsAny(rr, targetRanges, minoverlap=10)
           result[type, ] = c(sum(hitsTarget), sum(width(reduce(targetRanges))))
           hasAnyHit = hasAnyHit | hitsTarget
         }
@@ -446,19 +446,19 @@ getTargetTypeCounts = function(param, gff, rr, seqid=NULL, repeatsGff=NULL){
         targetExonRanges = gffRanges[isExon]
       }
       ## check additionally for intron/exon/prom
-      hitsTranscript = ezHasOverlaps(rr, msgRanges, minoverlap=10)
+      hitsTranscript = overlapsAny(rr, msgRanges, minoverlap=10)
       hasAnyHit = hasAnyHit | hitsTranscript  
       mRnaWidth = sum(width(reduce(msgRanges)))
-      hitsTargetExons = ezHasOverlaps(rr[hitsTranscript], targetExonRanges, minoverlap=10)
+      hitsTargetExons = overlapsAny(rr[hitsTranscript], targetExonRanges, minoverlap=10)
       result["mRNA Exons", ] = c(sum(hitsTargetExons), sum(width(reduce(targetExonRanges))))
       result["mRNA Introns", ] = c(sum(!hitsTargetExons), mRnaWidth - result["mRNA Exons", "width"])
         
       promRanges = flank(msgRanges, 2000)
-      hitsTargetProms = ezHasOverlaps(rr, promRanges, minoverlap=10)
+      hitsTargetProms = overlapsAny(rr, promRanges, minoverlap=10)
       result["mRNA Promoter 2kb", ] = c(sum(hitsTargetProms), sum(width(reduce(promRanges))))
       hasAnyHit = hasAnyHit | hitsTargetProms
       downRanges = flank(msgRanges, 2000, start=FALSE)
-      hitsTargetDown = ezHasOverlaps(rr, downRanges, minoverlap=10)
+      hitsTargetDown = overlapsAny(rr, downRanges, minoverlap=10)
       result["mRNA Downstream 2kb", ] = c(sum(hitsTargetDown), sum(width(reduce(promRanges))))
       hasAnyHit = hasAnyHit | hitsTargetDown
       gffRanges = c(gffRanges, promRanges, downRanges)
