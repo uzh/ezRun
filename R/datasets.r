@@ -7,7 +7,19 @@
 
 
 ## code for handling dataset data.frames
-
+##' @title Makes a minimal single end dataset
+##' @description Makes a minimal single end dataset by combining the arguments to a data.frame.
+##' @param fqDir a character specifying the path to the fastq files.
+##' @param species a character specifying the species name.
+##' @param adapter1 a character representing the adapter sequence. There is also an adapter2 argument for the paired end dataset.
+##' @param strandMode a character specifying the strand mode for the dataset.
+##' @template roxygen-template
+##' @return Returns a data.frame containing the provided information.
+##' @examples
+##' fqDir = "inst/extdata/yeast_10k"
+##' species = "Example"
+##' ds = makeMinimalSingleEndReadDataset(fqDir, species)
+##' ds2 = makeMinimalPairedEndReadDataset(fqDir, species)
 makeMinimalSingleEndReadDataset = function(fqDir, species="", adapter1="GATCGGAAGAGCACACGTCTGAACTCCAGTCAC",
                                        strandMode="both"){
   gzFiles = list.files(fqDir, ".gz$", full.names=TRUE)
@@ -21,6 +33,7 @@ makeMinimalSingleEndReadDataset = function(fqDir, species="", adapter1="GATCGGAA
   return(ds)
 }
 
+##' @describeIn makeMinimalSingleEndReadDataset Does the same for paired end reads.
 makeMinimalPairedEndReadDataset = function(fqDir, species="", adapter1="GATCGGAAGAGCACACGTCTGAACTCCAGTCAC", adapter2="AGATCGGAAGAGCGTCGTGTAGGGAAAGAGTGT",
                                        strandMode="both"){
   gzFiles = list.files(fqDir, "R1.fastq.gz$", full.names=TRUE)

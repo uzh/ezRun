@@ -18,7 +18,7 @@ writeTestScatterPlots(html, param, x, result, seqAnno, colorRange = c(-3, 3),
 
 \item{seqAnno}{the sequence annotation. This is used if types is NULL.}
 
-\item{types}{a character vector .....}
+\item{types}{a character vector specifying the different types to plot.}
 }
 \value{
 Returns

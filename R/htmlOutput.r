@@ -591,7 +591,7 @@ writeQcScatterPlots = function(html, param, design, conds,
 ##' @param x a dataset .....
 ##' @param result a list of results.
 ##' @param seqAnno the sequence annotation. This is used if types is NULL.
-##' @param types a character vector .....
+##' @param types a character vector specifying the different types to plot.
 ##' @template roxygen-template
 ##' @return Returns
 ##' @examples

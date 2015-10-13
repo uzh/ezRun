@@ -9,10 +9,10 @@ getRSEMReference(param)
 \arguments{
 \item{param}{a list of parameters:
 \itemize{
-  \item{trinityFasta}{}
+  \item{trinityFasta}{ an optional character specifying the path to a fasta file extracted from the trinity method. If specified, the reference will be prepared using it.}
   \item{ezRef@refIndex}{ a character specifying the location of the index that is used in the alignment.}
-  \item{ezRef@refFeatureFile}{ a character specifying the file path to the annotation feature file (.gtf).}
-  \item{ezRef@refFastaFile}{ a character specifying the file path to the fasta file.}
+  \item{ezRef@refFeatureFile}{ a character specifying the path to the annotation feature file (.gtf).}
+  \item{ezRef@refFastaFile}{ a character specifying the path to the fasta file.}
 }}
 }
 \value{

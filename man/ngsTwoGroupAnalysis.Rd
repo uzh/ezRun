@@ -22,9 +22,9 @@ runNgsTwoGroupAnalysis(dataset, htmlFile = "00index.html", param = param,
   \item{sampleGroup}{ a character specifying the group to sample.}
   \item{refGroup}{ a character specifying the reference group.}
   \item{useFactorsAsSampleName}{ a logical indicating whether to use the factors as sample names.}
-  \item{removeOutliers}{}
+  \item{removeOutliers}{ a logical indicating whether to remove outliers.}
   \item{batch}{}
-  \item{markOutliers}{}
+  \item{markOutliers}{ a logical indicating whether to mark outliers.}
 }}
 
 \item{htmlFile}{a character representing the path to write the report in.}
@@ -39,9 +39,6 @@ Prepares the two group analysis by checking some parameters and setting up the o
 \itemize{
 \item \code{runNgsTwoGroupAnalysis}: Checks for errors and calls \code{twoGroupCountComparison()}, then \code{writeNgsTwoGroupReport()}.
 }}
-\examples{
-1
-}
 \author{
 Rehrauer, Hubert
 

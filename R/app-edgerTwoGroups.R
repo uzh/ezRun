@@ -39,7 +39,6 @@ EzAppEdger <-
 #   ngsTwoGroupAnalysis(input, output, param=param)
 # }
 
-
 ## NOTEP: all functions below go only into here, plus runDeseq2 (from deseq2TwoGroups). missing: runSam, runLimma
 ##' @title Prepares the two group analysis
 ##' @description Prepares the two group analysis by checking some parameters and setting up the options. Then \code{runNgsTwoGroupAnalysis()} gets called to obtain the result.
@@ -51,17 +50,15 @@ EzAppEdger <-
 ##'   \item{sampleGroup}{ a character specifying the group to sample.}
 ##'   \item{refGroup}{ a character specifying the reference group.}
 ##'   \item{useFactorsAsSampleName}{ a logical indicating whether to use the factors as sample names.}
-##'   \item{removeOutliers}{}
+##'   \item{removeOutliers}{ a logical indicating whether to remove outliers.}
 ##'   \item{batch}{}
-##'   \item{markOutliers}{}
+##'   \item{markOutliers}{ a logical indicating whether to mark outliers.}
 ##' }
 ##' @param htmlFile a character representing the path to write the report in.
 ##' @template roxygen-template
 ##' @return Returns the results of the analysis.
 ##' @seealso \code{\link{twoGroupCountComparison}}
 ##' @seealso \code{\link{writeNgsTwoGroupReport}}
-##' @examples
-##' 1
 ngsTwoGroupAnalysis = function(input=NA, output=NA, param=NULL, htmlFile="00index.html"){
   
   cwd = getwd()
@@ -132,33 +129,29 @@ runNgsTwoGroupAnalysis = function(dataset, htmlFile="00index.html", param=param,
   writeNgsTwoGroupReport(dataset, result, htmlFile, param=param, rawData=rawData, types=types)
 }
 
-
-##' @title 1
-##' @description 1
-##' @param dataset
-##' @param result
+##' @title Writes the report for the two group analysis
+##' @description Writes the report for the two group analysis.
+##' @param dataset usually a data.frame from the meta field of an EzDataset.
+##' @param result a list of results.
 ##' @param htmlFile a character representing the path to write the report in.
 ##' @param param a list of parameters:
 ##' \itemize{
-##'   \item{logColorRange}{}
-##'   \item{minSignal}{}
+##'   \item{logColorRange}{ an integer or numeric specifying the log color range.}
+##'   \item{minSignal}{ a numeric or integer specifying the minimal signal amount.}
 ##'   \item{grouping}{ a character specifying the grouping.}
 ##'   \item{sampleGroup}{ a character specifying the group to sample.}
 ##'   \item{refGroup}{ a character specifying the reference group.}
-##'   \item{pValueHighlightThresh}{}
-##'   \item{log2RatioHighlightThresh}{}
-##'   \item{maxGenesForClustering}{}
-##'   \item{minGenesForClustering}{}
-##'   \item{doZip}{}
-##'   \item{goseqMethod}{}
-##'   \item{maxNumberGroupsDisplayed}{}
+##'   \item{pValueHighlightThresh}{ a numeric specifying the threshold for highlighting p-values.}
+##'   \item{log2RatioHighlightThresh}{ a numeric specifying the threshold for highlighting log2 ratios.}
+##'   \item{maxGenesForClustering}{ an integer specifying the maximum amount of genes for clustering. If the amount is higher, the least significant genes get removed first.}
+##'   \item{minGenesForClustering}{ an integer specifying the minimum amount of genes for clustering. If the amount is lower, no clustering will be done.}
+##'   \item{doZip}{ a logical indicating whether to archive the result file.}
+##'   \item{goseqMethod}{ a character specifying the method for the GO analysis. Accepted values: Wallenius, Sampling or Hypergeometric.}
+##'   \item{maxNumberGroupsDisplayed}{ an integer specifying the maximum amount of rows for each result file of the GO analysis.}
 ##' }
 ##' @param rawData a list of raw data. Usually obtained from \code{loadCountDataset()}.
-##' @param types
+##' @param types a character vector specifying the different types to plot.
 ##' @template roxygen-template
-##' @return Returns
-##' @examples
-##' 1
 writeNgsTwoGroupReport = function(dataset, result, htmlFile, param=NA, rawData=NA, types=NULL) {
   keggOrganism = NA
   seqAnno = rawData$seqAnno

@@ -2,46 +2,40 @@
 % Please edit documentation in R/app-edgerTwoGroups.R
 \name{writeNgsTwoGroupReport}
 \alias{writeNgsTwoGroupReport}
-\title{1}
+\title{Writes the report for the two group analysis}
 \usage{
 writeNgsTwoGroupReport(dataset, result, htmlFile, param = NA, rawData = NA,
   types = NULL)
 }
 \arguments{
-\item{dataset}{}
+\item{dataset}{usually a data.frame from the meta field of an EzDataset.}
 
-\item{result}{}
+\item{result}{a list of results.}
 
 \item{htmlFile}{a character representing the path to write the report in.}
 
 \item{param}{a list of parameters:
 \itemize{
-  \item{logColorRange}{}
-  \item{minSignal}{}
+  \item{logColorRange}{ an integer or numeric specifying the log color range.}
+  \item{minSignal}{ a numeric or integer specifying the minimal signal amount.}
   \item{grouping}{ a character specifying the grouping.}
   \item{sampleGroup}{ a character specifying the group to sample.}
   \item{refGroup}{ a character specifying the reference group.}
-  \item{pValueHighlightThresh}{}
-  \item{log2RatioHighlightThresh}{}
-  \item{maxGenesForClustering}{}
-  \item{minGenesForClustering}{}
-  \item{doZip}{}
-  \item{goseqMethod}{}
-  \item{maxNumberGroupsDisplayed}{}
+  \item{pValueHighlightThresh}{ a numeric specifying the threshold for highlighting p-values.}
+  \item{log2RatioHighlightThresh}{ a numeric specifying the threshold for highlighting log2 ratios.}
+  \item{maxGenesForClustering}{ an integer specifying the maximum amount of genes for clustering. If the amount is higher, the least significant genes get removed first.}
+  \item{minGenesForClustering}{ an integer specifying the minimum amount of genes for clustering. If the amount is lower, no clustering will be done.}
+  \item{doZip}{ a logical indicating whether to archive the result file.}
+  \item{goseqMethod}{ a character specifying the method for the GO analysis. Accepted values: Wallenius, Sampling or Hypergeometric.}
+  \item{maxNumberGroupsDisplayed}{ an integer specifying the maximum amount of rows for each result file of the GO analysis.}
 }}
 
 \item{rawData}{a list of raw data. Usually obtained from \code{loadCountDataset()}.}
 
-\item{types}{}
-}
-\value{
-Returns
+\item{types}{a character vector specifying the different types to plot.}
 }
 \description{
-1
-}
-\examples{
-1
+Writes the report for the two group analysis.
 }
 \author{
 Rehrauer, Hubert
