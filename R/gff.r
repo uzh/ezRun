@@ -228,7 +228,7 @@ gffToRanges = function(gff){
                  strand=gff$strand))
 }
 
-## get a getf file with the exon coordinates
+## get a gtf file with the exon coordinates
 # gtf = ezLoadFeatures(featureFile="/srv/GT/reference/Homo_sapiens/Ensembl/GRCh37/Annotation/Version-2014-03-29/Genes/genes.gtf", types="exon")
 # transcriptGtf = groupGff(gtf, grouping=gtf$transcript_id, type="transcript")
 # transcriptGtf$attributes = ezBuildAttributeField(transcriptGtf[ , c("transcript_id", "gene_id", "gene_name")],"gtf")
