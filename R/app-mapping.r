@@ -15,25 +15,9 @@ ezMethodTophat = function(input=NA, output=NA, param=NA){
   
   Sys.setenv(PATH=paste(BOWTIE2_DIR, BOWTIE_DIR, dirname(SAMTOOLS), Sys.getenv("PATH"), sep=":"))
   ref = getBowtie2Reference(param)
-  
   gtf = param$ezRef["refFeatureFile"]
   bamFile = output$getColumn("BAM")
-  
-#   reads1 = .getSingleReadFileLocally(input$getFullPaths(param, "Read1"), adapter=input$getColumn("Adapter1"), param=param)
-#   if (param$paired){
-#     reads2 = .getSingleReadFileLocally(input$getFullPaths(param, "Read2"), adapter=input$getColumn("Adapter2"), param=param)
-#     reads1Paired = sub(".fastq", "-paired.fastq", reads1)
-#     reads2Paired = sub(".fastq", "-paired.fastq", reads2)
-#     pairFastqReads(reads1, reads2, reads1Paired, reads2Paired, overwrite=TRUE)
-#     file.remove(reads1, reads2)
-#     reads1 = reads1Paired
-#     reads2 = reads2Paired
-#   } else {
-#     reads2 = NULL
-#   }
-  
   trimmedInput = ezMethodTrim(input = input, param = param)
-  
   refBase = sub(".gtf$", "_BOWTIE2Index/transcripts", gtf)
   lockFile = file.path(dirname(refBase), "lock")
   i = 0
@@ -110,19 +94,6 @@ ezMethodBowtie2 = function(input=NA, output=NA, param=NA){
   #Sys.setenv(BOWTIE2_INDEXES=dirname(ref))
   #message("bowtie Dir:", Sys.getenv("BOWTIE2_INDEXES"))
   bamFile = output$getColumn("BAM")
-  
-#   reads1 = .getSingleReadFileLocally(input$getFullPaths(param, "Read1"), adapter=input$getColumn("Adapter1"), param=param)
-#   if (param$paired){
-#     reads2 = .getSingleReadFileLocally(input$getFullPaths(param, "Read2"), adapter=input$getColumn("Adapter2"), param=param)
-#     reads1Paired = sub(".fastq", "-paired.fastq", reads1)
-#     reads2Paired = sub(".fastq", "-paired.fastq", reads2)
-#     pairFastqReads(reads1, reads2, reads1Paired, reads2Paired, overwrite=TRUE)
-#     file.remove(reads1, reads2)
-#     readsOpt = paste("-1", reads1Paired, "-2", reads2Paired)
-#   } else {
-#     readsOpt = paste("-U", reads1)
-#   }
-  
   trimmedInput = ezMethodTrim(input = input, param = param)
   defOpt = paste("-p", ezThreads())
   
@@ -217,22 +188,7 @@ EzAppBowtie2 <-
 ezMethodBowtie = function(input=NA, output=NA, param=NA){
     
   ref = getBowtieReference(param)
-  bamFile = output$getColumn("BAM")
-  
-#   reads1 = .getSingleReadFileLocally(input$getFullPaths(param, "Read1"), adapter=input$getColumn("Adapter1"), param=param)
-#   if (param$paired){
-#     reads2 = .getSingleReadFileLocally(input$getFullPaths(param, "Read2"), adapter=input$getColumn("Adapter2"), param=param)
-#     reads1Paired = sub(".fastq", "-paired.fastq", reads1)
-#     reads2Paired = sub(".fastq", "-paired.fastq", reads2)
-#     pairFastqReads(reads1, reads2, reads1Paired, reads2Paired, overwrite=TRUE)
-#     file.remove(reads1, reads2)
-#     reads1 = reads1Paired
-#     reads2 = reads2Paired    
-#     readsOpt = paste("-1", reads1, "-2", reads2)
-#   } else {
-#     readsOpt = paste(reads1)
-#   }  
-  
+  bamFile = output$getColumn("BAM")  
   trimmedInput = ezMethodTrim(input = input, param = param)
   defOpt = paste("--chunkmbs 256", "--sam", "-p", ezThreads())
     cmd = paste(file.path(BOWTIE_DIR, "bowtie"), param$cmdOptions, defOpt, 
@@ -434,20 +390,6 @@ ezMethodBWA = function(input=NA, output=NA, param=NA){
   
   refIdx = getBWAReference(param)
   bamFile = output$getColumn("BAM")
-  
-#   reads1 = .getSingleReadFileLocally(input$getFullPaths(param, "Read1"), adapter=input$getColumn("Adapter1"), param=param)
-#   if (param$paired){
-#     reads2 = .getSingleReadFileLocally(input$getFullPaths(param, "Read2"), adapter=input$getColumn("Adapter2"), param=param)
-#     reads1Paired = sub(".fastq", "-paired.fastq", reads1)
-#     reads2Paired = sub(".fastq", "-paired.fastq", reads2)
-#     pairFastqReads(reads1, reads2, reads1Paired, reads2Paired, overwrite=TRUE)
-#     file.remove(reads1, reads2)
-#     reads1 = reads1Paired
-#     reads2 = reads2Paired
-#   } else {
-#     reads2 = NULL
-#   }
-  
   trimmedInput = ezMethodTrim(input = input, param = param)
   cmd = paste(BWA, param$algorithm, param$cmdOptions, "-t", ezThreads(),
               refIdx, trimmedInput$getColumn("Read1"), ">", "read1.sai", "2> bwa.log")

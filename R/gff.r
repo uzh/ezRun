@@ -369,30 +369,20 @@ getExonNumber = function(gtf){
 ##' @param gtfFile the gtf file to read the information from.
 ##' @template roxygen-template
 ##' @return Returns 
-##' @seealso \code{\link[GenomicFeatures]{makeTranscriptDbFromGFF}}
+##' @seealso \code{\link[GenomicFeatures]{makeTxDbFromGFF}}
 ##' @examples
-##' param = ezParam()
-##' param$ezRef@@refFastaFile = "./script/Saccharomyces_cerevisiae/Ensembl/EF4/Sequence/WholeGenomeFasta/genome.fa"
-##' .transcriptDbFromGtf("./inst/extdata/genes.gtf",param)
-## TODOP: get the new function from GenomicFeatures
-.transcriptDbFromGtf <- function (gtfFile, param, dataSource="FGCZ", species="NN") {
-  library(Gviz, warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
+##' refBuild = "Saccharomyces_cerevisiae/Ensembl/EF4/Annotation/Version-2013-03-18"
+##' genomesRoot = "~/refExample"
+##' myRef = EzRef(param=ezParam(list(refBuild=refBuild)), genomesRoot=genomesRoot)
+##' myTrdb = ezTranscriptDbFromRef(myRef)
+## TODOP: .fai file necessary if chromInfo desired, uncomment code and replace chrominfo=NULL with chrominfo=chrominfo
+ezTranscriptDbFromRef = function(reference, dataSource="FGCZ"){
   library(GenomicFeatures, warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
-  gtfMod = ezReadGff(gtfFile)
-  gtfMod$transcript_id =   ezGffAttributeField(gtfMod$attributes, 
-                                                   field="transcript_id", attrsep="; *", valuesep=" ")
-  exonNumber = getExonNumber(gtfMod)
-  use = !is.na(exonNumber)
-  table(use)
-  gtfMod$attributes[use] = paste(gtfMod$attributes[use], paste("exon_number \"", exonNumber[use], "\";", sep=""))
-  gtfModFile = paste(Sys.getpid(), "-mod.gtf", sep="")
-  ezWriteGff(gtfMod, gtfModFile)
-  on.exit(file.remove(gtfModFile))
-  genomeFastaIndexFile = paste(param$ezRef["refFastaFile"], ".fai", sep="")
-  fai = ezRead.table(genomeFastaIndexFile, header=FALSE)
-  chromInfo = data.frame(chrom=I(rownames(fai)), length=I(fai$V2), is_circular=FALSE)
-  trdb = makeTxDbFromGFF(gtfModFile, format="gtf", exonRankAttributeName="exon_number", 
-                                 chromInfo, dataSource=dataSource, organism=species)
+  organism = getOrganism(reference)
+  #genomeFastaIndexFile = paste(reference@refFastaFile, ".fai", sep="")
+  #fai = ezRead.table(genomeFastaIndexFile, header=FALSE)
+  #chromInfo = data.frame(chrom=I(rownames(fai)), length=I(fai$V2), is_circular=FALSE)
+  makeTxDbFromGFF(reference@refFeatureFile, dataSource=dataSource, organism=organism, chrominfo=NULL)
 }
 
 ##' @title Gets gene names from annotation
@@ -614,6 +604,8 @@ getEnsemblTypes = function(gff){
   }
   return(NULL)
 }
+
+
 
 
 .checkGtfForExons = function(){
