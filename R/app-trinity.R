@@ -18,16 +18,10 @@ ezMethodTrinity = function(input=NA, output=NA, param=NA, htmlFile="00index.html
   if (ezIsSpecified(param$samples)){
     input$subset(param$samples)
   }
-
-  #trimmedInput$setColumn("Read1", paste(input$getNames(), "/", input$getNames(), "-trimmed-R1.fastq", sep=""))
-#   for (i in 1:nrow(input$meta)){
-#     setwdNew(input$getNames()[i])
-  trimmedInput = ezMethodTrim(input = input, param = param)
-#     setwd("..")
-#   }
-  param$dataRoot = ""
   
-      
+  trimmedInput = ezMethodTrim(input = input, param = param)
+  param$dataRoot = ""
+        
   if (param$paired){
     read1 = paste(trimmedInput$getColumn("Read1"), collapse=",")
     read2 = paste(trimmedInput$getColumn("Read2"), collapse=",")

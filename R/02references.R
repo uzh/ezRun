@@ -24,7 +24,7 @@
 ##' fasta = "genome.fa"
 ##' genomesRoot = "~/refExample"
 ##' myRef = EzRef(param=ezParam(list(refBuild=refBuild)), genomesRoot=genomesRoot)
-##' ezBuildRefdir(myRef, gtf, fasta, genomesRoot)
+##' buildRefDir(myRef, gtf, fasta, genomesRoot)
 EzRef = setClass("EzRef",
                  slots = c(refBuild="character",
                            refBuildName="character",
@@ -97,12 +97,11 @@ setMethod("[", "EzRef", function(x, i){
   slot(x, i)
 })
 
-setGeneric("ezBuildRefdir", function(.Object, gtf, fasta, genomesRoot = "."){
-  standardGeneric("ezBuildRefdir")
+setGeneric("buildRefDir", function(.Object, gtf, fasta, genomesRoot = "."){
+  standardGeneric("buildRefDir")
 })
-
 ##' @describeIn EzRef Builds the reference directory and copies the annotation and fast file into the right folders.
-setMethod("ezBuildRefdir", "EzRef", function(.Object, gtf, fasta, genomesRoot = "."){
+setMethod("buildRefDir", "EzRef", function(.Object, gtf, fasta, genomesRoot = "."){
   cd = getwd()
   setwdNew(genomesRoot)
   gtfPath = dirname(.Object@refFeatureFile)
@@ -116,4 +115,12 @@ setMethod("ezBuildRefdir", "EzRef", function(.Object, gtf, fasta, genomesRoot = 
   file.copy(gtf, gtfPath)
   file.copy(fasta, fastaPath)
   setwd(cd)
+})
+
+setGeneric("getOrganism", function(.Object){
+  standardGeneric("getOrganism")
+})
+##' @describeIn EzRef Gets the organism name from the reference build.
+setMethod("getOrganism", "EzRef", function(.Object){
+  strsplit(.Object@refBuild,"/")[[1]][1]
 })
