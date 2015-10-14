@@ -1,0 +1,69 @@
+---
+title: "Reference Genome Folders"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Reference Genome Folders}
+  %\VignetteEngine{knitr::rmarkdown}
+  \usepackage[utf8]{inputenc}
+---
+
+
+# Introduction
+
+`ezRun` makes use of reference genomes stored in a canonical directory structure. Reference genomes can be built from
+a gtf file containing the gene annotations and a fasta file holding the genome sequence. With the file-based representation
+the reference genomes are available to external tools like read aligners and others.
+
+# Structure of a reference genome folder
+
+The reference genome folder is inspired by illumina's iGenome folders but has differences with respect to handling
+different annotation versions.
+
+A reference genome build must be in a folder with the path
+
+```
+<species> / <provider> / <build name>
+```
+
+Build names should be unique within an installation. Within each build the sub-directories are:
+```
+└── <provider>
+    └── <genome_build>
+        ├── Annotation
+        │   └── Genes (is a link to the latest version)
+        |     └──  Version-<date>
+        |           └── Genes
+        |                └── genes.gtf
+        |                └── features.gtf
+        └── Sequence
+            ├── Chromosomes
+                └── <chromosome/contig names>.fa
+            └── WholeGenomeFasta
+                 └── genome.fa
+                 └── genome.fa.fai
+                 └── genome.dict
+```
+
+Indices of the various aligners will be built on demand and also placed in the folder structure.
+
+
+# Processing and checks of genome assemblies and gene annotation files
+
+* remove patch sequences from the downloaded fasta file
+
+* remove anything everything after the first space on the sequence identifier lines
+
+* verify that the gene annotation file uses the same chromosome names as the fasta file
+
+* remove chromosomes from the annotation files that are not present in the fasta file
+
+* create a fasta index file with
+```
+samtools faidx genome.fa
+```
+
+* create the genome dict file with
+```
+java -jar picard.jar CreateSequenceDictionary R=genome.fa O=genome.dict
+```

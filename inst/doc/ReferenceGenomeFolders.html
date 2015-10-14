@@ -11,7 +11,7 @@
 
 <meta name="date" content="2015-10-14" />
 
-<title>ezRun User Manual</title>
+<title>Reference Genome Folders</title>
 
 
 
@@ -25,12 +25,51 @@
 
 
 <div id="header">
-<h1 class="title">ezRun User Manual</h1>
+<h1 class="title">Reference Genome Folders</h1>
 <h4 class="date"><em>2015-10-14</em></h4>
 </div>
 
 
-
+<div id="introduction" class="section level1">
+<h1>Introduction</h1>
+<p><code>ezRun</code> makes use of reference genomes stored in a canonical directory structure. Reference genomes can be built from a gtf file containing the gene annotations and a fasta file holding the genome sequence. With the file-based representation the reference genomes are available to external tools like read aligners and others.</p>
+</div>
+<div id="structure-of-a-reference-genome-folder" class="section level1">
+<h1>Structure of a reference genome folder</h1>
+<p>The reference genome folder is inspired by illumina’s iGenome folders but has differences with respect to handling different annotation versions.</p>
+<p>A reference genome build must be in a folder with the path</p>
+<pre><code>&lt;species&gt; / &lt;provider&gt; / &lt;build name&gt;</code></pre>
+<p>Build names should be unique within an installation. Within each build the sub-directories are:</p>
+<pre><code>└── &lt;provider&gt;
+    └── &lt;genome_build&gt;
+        ├── Annotation
+        │   └── Genes (is a link to the latest version)
+        |     └──  Version-&lt;date&gt;
+        |           └── Genes
+        |                └── genes.gtf
+        |                └── features.gtf
+        └── Sequence
+            ├── Chromosomes
+                └── &lt;chromosome/contig names&gt;.fa
+            └── WholeGenomeFasta
+                 └── genome.fa
+                 └── genome.fa.fai
+                 └── genome.dict</code></pre>
+<p>Indices of the various aligners will be built on demand and also placed in the folder structure.</p>
+</div>
+<div id="processing-and-checks-of-genome-assemblies-and-gene-annotation-files" class="section level1">
+<h1>Processing and checks of genome assemblies and gene annotation files</h1>
+<ul>
+<li><p>remove patch sequences from the downloaded fasta file</p></li>
+<li><p>remove anything everything after the first space on the sequence identifier lines</p></li>
+<li><p>verify that the gene annotation file uses the same chromosome names as the fasta file</p></li>
+<li><p>remove chromosomes from the annotation files that are not present in the fasta file</p></li>
+<li><p>create a fasta index file with</p>
+<pre><code>samtools faidx genome.fa</code></pre></li>
+<li><p>create the genome dict file with</p>
+<pre><code>java -jar picard.jar CreateSequenceDictionary R=genome.fa O=genome.dict</code></pre></li>
+</ul>
+</div>
 
 
 
