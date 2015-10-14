@@ -5,7 +5,8 @@
 \alias{EzRef}
 \alias{EzRef-class}
 \alias{[,EzRef,ANY,ANY-method}
-\alias{ezBuildRefdir,EzRef-method}
+\alias{buildRefDir,EzRef-method}
+\alias{getOrganism,EzRef-method}
 \alias{initialize,EzRef-method}
 \title{The S4 class representing a collection of information about the reference build}
 \usage{
@@ -14,7 +15,10 @@
 
 \S4method{[}{EzRef,ANY,ANY}(x, i)
 
-\S4method{ezBuildRefdir}{EzRef}(.Object, gtf, fasta, genomesRoot = ".")
+\S4method{buildRefDir}{EzRef}(.Object, genomeFile, genesFile,
+  genomesRoot = ".")
+
+\S4method{getOrganism}{EzRef}(.Object)
 }
 \description{
 Objects of this class are a collection of references derived from a list of parameters.
@@ -25,7 +29,9 @@ Objects of this class are a collection of references derived from a list of para
 
 \item \code{[}: Allows selection with square brackets [ ].
 
-\item \code{ezBuildRefdir}: Builds the reference directory and copies the annotation and fast file into the right folders.
+\item \code{buildRefDir}: Builds the reference directory and copies the annotation and fast file into the right folders.
+
+\item \code{getOrganism}: Gets the organism name from the reference build.
 }}
 \section{Slots}{
 
@@ -54,11 +60,14 @@ gtf = "genes.gtf"
 fasta = "genome.fa"
 genomesRoot = "~/refExample"
 myRef = EzRef(param=ezParam(list(refBuild=refBuild)), genomesRoot=genomesRoot)
-ezBuildRefdir(myRef, gtf, fasta, genomesRoot)
+buildRefDir(myRef, fasta, gtf, genomesRoot)
 }
 \author{
 Rehrauer, Hubert
 
 Schmid, Peter
+}
+\seealso{
+\code{\link{cleanGenomeFiles}}
 }
 

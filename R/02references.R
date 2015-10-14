@@ -18,13 +18,14 @@
 ##' @slot refChromDir a character specifying the file path to the directory of the chromosome information.
 ##' @slot refChromSizesFile a character specifying the file path to the file containing the chromosome sizes.
 ##' @template roxygen-template
+##' @seealso \code{\link{cleanGenomeFiles}}
 ##' @examples
 ##' refBuild = "Saccharomyces_cerevisiae/Ensembl/EF4/Annotation/Version-2013-03-18"
 ##' gtf = "genes.gtf"
 ##' fasta = "genome.fa"
 ##' genomesRoot = "~/refExample"
 ##' myRef = EzRef(param=ezParam(list(refBuild=refBuild)), genomesRoot=genomesRoot)
-##' buildRefDir(myRef, gtf, fasta, genomesRoot)
+##' buildRefDir(myRef, fasta, gtf, genomesRoot)
 EzRef = setClass("EzRef",
                  slots = c(refBuild="character",
                            refBuildName="character",
@@ -97,23 +98,30 @@ setMethod("[", "EzRef", function(x, i){
   slot(x, i)
 })
 
-setGeneric("buildRefDir", function(.Object, gtf, fasta, genomesRoot = "."){
+setGeneric("buildRefDir", function(.Object, genomeFile, genesFile, genomesRoot = "."){
   standardGeneric("buildRefDir")
 })
 ##' @describeIn EzRef Builds the reference directory and copies the annotation and fast file into the right folders.
-setMethod("buildRefDir", "EzRef", function(.Object, gtf, fasta, genomesRoot = "."){
+setMethod("buildRefDir", "EzRef", function(.Object, genomeFile, genesFile, genomesRoot = "."){
   cd = getwd()
   setwdNew(genomesRoot)
+  
   gtfPath = dirname(.Object@refFeatureFile)
   fastaPath = dirname(.Object@refFastaFile)
   dir.create(gtfPath, recursive=T)
   dir.create(fastaPath, recursive=T)
   dir.create(.Object@refChromDir)
   if (!is.null(.Object@refAnnotationVersion)){
-    ezSystem(paste("cd", file.path(.Object@refBuildDir, "Annotation"), "; ", "ln -s", file.path(.Object@refAnnotationVersion, "*"), "."))
+    ezSystem(paste("cd", file.path(.Object@refBuildDir, "Annotation"), "; ", "ln -s",
+                   file.path(.Object@refAnnotationVersion, "*"), "."))
   }
-  file.copy(gtf, gtfPath)
-  file.copy(fasta, fastaPath)
+  
+  genomeAndGtf = cleanGenomeFiles(genomeFile, genesFile)
+  genome = genomeAndGtf[[1]]
+  gtf = genomeAndGtf[[2]]
+  writeXStringSet(genome, .Object@refFastaFile)
+  ezWriteGff(gtf, .Object@refFeatureFile)
+  
   setwd(cd)
 })
 

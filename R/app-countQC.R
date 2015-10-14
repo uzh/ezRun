@@ -35,6 +35,7 @@ ezMethodCountQC = function(input=NA, output=NA, param=NA, htmlFile="00index.html
   }
   rawData$signal = ezNorm(rawData$counts, presentFlag=rawData$presentFlag, method=param$normMethod)
   runNgsCountQC(dataset, htmlFile, param, rawData=rawData)
+  return("Success")
 }
 
 ##' @template app-template
@@ -320,5 +321,4 @@ runNgsCountQC = function(dataset, htmlFile="00index.html", param=param, rawData=
   ezSessionInfo()
   writeTxtLinksToHtml('sessionInfo.txt',con=html)
   flush(html)
-  return("Success")
 }

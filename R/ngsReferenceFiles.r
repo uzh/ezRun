@@ -52,14 +52,25 @@ getRefChromSizesFile = function(param){
   return(param$ezRef@refChromSizesFile)
 }
 
-
-
+##' @title Cleans genome files
+##' @description Cleans the fasta and gtf files before they get written into the folder structure.
+##' @param genomeFile a character specifying the path to a fasta file.
+##' @param genesFile a character specifying the path to a gtf file.
+##' @param patchPattern a character specifying the pattern of patches to remove from the genome.
+##' @template roxygen-template
+##' @return Returns a list containing a fasta and a gtf object.
+##' @examples
+##' gtf = "inst/extdata/genes.gtf"
+##' fasta = "inst/extdata/genome.fa"
+##' cleanGenomeFiles(fasta,gtf)
 cleanGenomeFiles = function(genomeFile, genesFile, patchPattern="PATCH"){
   
   genome = readDNAStringSet(genomeFile)
   names(genome) = sub(" .*", "", names(genome))
   genome = genome[!grepl(patchPattern, names(genome))]
-  # load the gtf
-  # remove the extra chromosomes
-  
+  gtf = ezReadGff(genesFile)
+  use = gtf$seqid %in% names(genome)
+  stopifnot(any(use))
+  gtf = gtf[use,]
+  return(list(genome, gtf))
 }
