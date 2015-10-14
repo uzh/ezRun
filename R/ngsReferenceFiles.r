@@ -51,3 +51,15 @@ getRefChromSizesFile = function(param){
   }
   return(param$ezRef@refChromSizesFile)
 }
+
+
+
+cleanGenomeFiles = function(genomeFile, genesFile, patchPattern="PATCH"){
+  
+  genome = readDNAStringSet(genomeFile)
+  names(genome) = sub(" .*", "", names(genome))
+  genome = genome[!grepl(patchPattern, names(genome))]
+  # load the gtf
+  # remove the extra chromosomes
+  
+}
