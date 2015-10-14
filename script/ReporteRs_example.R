@@ -1,14 +1,21 @@
 require( ggplot2 )
 doc = docx( title = 'My document' )
-
 doc = addTitle( doc , 'First 5 lines of iris', level = 1)
 doc = addFlexTable( doc , light.table(iris[1:5, ]), layout.properties= get.light.tableProperties())
-
 doc = addTitle( doc , 'ggplot2 example', level = 1)
 myggplot = qplot(Sepal.Length, Petal.Length, data = iris, color = Species, size = Petal.Width )
 doc = addPlot( doc = doc , fun = print, x = myggplot )
-
 doc = addTitle( doc , 'Text example', level = 1)
 doc = addParagraph( doc, 'My tailor is rich.', stylename = 'Normal' )
-
 writeDoc( doc, 'my_first_doc.docx' )
+
+# html example
+html = bsdoc( title = 'My document' )
+html = addTitle( html , 'First 5 lines of iris', level = 1)
+html = addFlexTable( html , light.table(iris[1:5, ]), layout.properties= get.light.tableProperties())
+html = addTitle( html , 'ggplot2 example', level = 1)
+myggplot = qplot(Sepal.Length, Petal.Length, data = iris, color = Species, size = Petal.Width )
+html = addPlot( doc = html , fun = print, x = myggplot )
+html = addTitle( html , 'Text example', level = 1)
+html = addParagraph( html, 'My tailor is rich.', stylename = 'Normal' )
+writeDoc( html, 'my_first_html.html' )
