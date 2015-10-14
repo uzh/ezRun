@@ -116,11 +116,10 @@ setMethod("buildRefDir", "EzRef", function(.Object, genomeFile, genesFile, genom
                    file.path(.Object@refAnnotationVersion, "*"), "."))
   }
   
-  genomeAndGtf = cleanGenomeFiles(genomeFile, genesFile)
-  genome = genomeAndGtf[[1]]
-  gtf = genomeAndGtf[[2]]
-  writeXStringSet(genome, .Object@refFastaFile)
-  ezWriteGff(gtf, .Object@refFeatureFile)
+  genomeInfoList = cleanGenomeFiles(genomeFile, genesFile)
+  writeXStringSet(genomeInfoList$genomeSeq, .Object@refFastaFile)
+  ezWriteGff(genomeInfoList$gtf, .Object@refFeatureFile)
+  
   
   setwd(cd)
 })

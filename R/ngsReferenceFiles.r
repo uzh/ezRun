@@ -72,5 +72,5 @@ cleanGenomeFiles = function(genomeFile, genesFile, patchPattern="PATCH"){
   use = gtf$seqid %in% names(genome)
   stopifnot(any(use))
   gtf = gtf[use,]
-  return(list(genome, gtf))
+  return(list(genomeSeq=genome, gtf=gtf))
 }
