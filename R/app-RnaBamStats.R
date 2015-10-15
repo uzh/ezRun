@@ -39,6 +39,7 @@ EzAppRnaBamStats <-
               methods = list(
                 initialize = function()
                 {
+                  "Initializes the application using its specific defaults."
                   runMethod <<- ezMethodRnaBamStats
                   name <<- "EzAppRnaBamStats"
                   appDefaults <<- rbind(posErrorRates=ezFrame(Type="logical",	DefaultValue="TRUE",	Description="compute position specific error rates?"),

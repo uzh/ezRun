@@ -54,6 +54,7 @@ EzAppMacs2 <-
               methods = list(
                 initialize = function()
                 {
+                  "Initializes the application using its specific defaults."
                   runMethod <<- ezMethodMacs2
                   name <<- "EzAppMacs2"
                   appDefaults <<- rbind(useControl=ezFrame(Type="logical",  DefaultValue="TRUE",	Description="should control samples be used"))

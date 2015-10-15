@@ -55,6 +55,7 @@ EzAppTrinity <-
               methods = list(
                 initialize = function()
                 {
+                  "Initializes the application using its specific defaults."
                   runMethod <<- ezMethodTrinity
                   name <<- "EzAppTrinity"
                   appDefaults <<- rbind(trinityOpt = ezFrame(Type="character",  DefaultValue="--min_kmer_cov 2",  Description="trinity commandline options"))

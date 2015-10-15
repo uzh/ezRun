@@ -28,16 +28,24 @@ writeHtmlReportWithReporters = function(htmlFile, param=param, title="", dataset
 ## all plots would be generated from a plotter class
 EzPlotter =
   setRefClass("EzPlotter",
-              fields=c("name", "data", "helpText", "mouseOverText"),
-              methods=list(
-                plot=function(){},
-                plotPng=function(){
+              fields = c("name", "data", "helpText", "mouseOverText"),
+              methods = list(
+                plot = function()
+                {
+                  
+                },
+                plotPng = function()
+                {
                   ## create a png file and call then plot
                 },
-                plotPdf=function(){
+                plotPdf = function()
+                {
                   ## create a pdf file call then plot
                 },
-                writeData=function(){}
+                writeData = function()
+                {
+                  
+                }
               )
   )
        
@@ -45,7 +53,15 @@ EzPlotterIris =
   setRefClass("EzPlotterIris",
               contains="EzPlotter",
               methods=list(
-                plot=function(){
+                initialize = function()
+                {
+                  name <<- "EzPlotterIris"
+                  data <<- iris
+                  helpText <<- "Iris is a flower dataset."
+                  mouseOverText <<- "Please move your mouse away from me."
+                },
+                plot=function()
+                {
                   plot(data$Sepal.length, Sepal.Width)
                 }
               )
@@ -54,7 +70,7 @@ EzPlotterIris =
 
 ## in the report generating scripts I want to write
 
-theDoc = bsdoc( title = 'My document' )
+theDoc = bsdoc(title = 'My document')
 
 irisData = iris 
 

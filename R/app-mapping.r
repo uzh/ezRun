@@ -78,7 +78,6 @@ EzAppTophat <-
                   runMethod <<- ezMethodTophat
                   name <<- "EzAppTophat"
                   appDefaults <<- rbind(writeIgvSessionLink=ezFrame(Type="logical", DefaultValue="TRUE", Description="should an IGV link be generated"))
-                  
                 }
               )
   )
@@ -172,10 +171,10 @@ EzAppBowtie2 <-
               methods = list(
                 initialize = function()
                 {
+                  "Initializes the application using its specific defaults."
                   runMethod <<- ezMethodBowtie2
                   name <<- "EzAppBowtie2"
                   appDefaults <<- rbind(writeIgvSessionLink=ezFrame(Type="logical", DefaultValue="TRUE", Description="should an IGV link be generated"))
-                  
                 }
               )
   )
@@ -262,10 +261,10 @@ EzAppBowtie <-
               methods = list(
                 initialize = function()
                 {
+                  "Initializes the application using its specific defaults."
                   runMethod <<- ezMethodBowtie2
                   name <<- "EzAppBowtie"
                   appDefaults <<- rbind(writeIgvSessionLink=ezFrame(Type="logical", DefaultValue="TRUE", Description="should an IGV link be generated"))
-                  
                 }
               )
   )
@@ -372,11 +371,11 @@ EzAppSTAR <-
               methods = list(
                 initialize = function()
                 {
+                  "Initializes the application using its specific defaults."
                   runMethod <<- ezMethodSTAR
                   name <<- "EzAppSTAR"
                   appDefaults <<- rbind(getChimericJunctions=ezFrame(Type="logical",  DefaultValue="FALSE",	Description="should chimeric reads be returned"),
-                                        writeIgvSessionLink=ezFrame(Type="logical", DefaultValue="TRUE", Description="should an IGV link be generated")
-                  )
+                                        writeIgvSessionLink=ezFrame(Type="logical", DefaultValue="TRUE", Description="should an IGV link be generated"))
                 }
               )
   )
@@ -480,6 +479,7 @@ EzAppBWA <-
               methods = list(
                 initialize = function()
                 {
+                  "Initializes the application using its specific defaults."
                   runMethod <<- ezMethodBWA
                   name <<- "EzAppBWA"
                   appDefaults <<- rbind(algorithm=ezFrame(Type="character",  DefaultValue="mem",  Description="bwa's alignment algorithm. One of aln, bwasw, mem."),

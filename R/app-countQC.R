@@ -47,6 +47,7 @@ EzAppCountQC <-
               methods = list(
                 initialize = function()
                 {
+                  "Initializes the application using its specific defaults."
                   runMethod <<- ezMethodCountQC
                   name <<- "EzAppCountQC"
                 }

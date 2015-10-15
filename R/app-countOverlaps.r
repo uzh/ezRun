@@ -52,6 +52,7 @@ EzAppCountOverlaps <-
               methods = list(
                 initialize = function()
                 {
+                  "Initializes the application using its specific defaults."
                   runMethod <<- ezMethodCountOverlaps
                   name <<- "EzAppCountOverlaps"
                   appDefaults <<- rbind(countNonredundant =ezFrame(Type="logical",  DefaultValue="TRUE",  Description="make sure that every read counts only as one"),

@@ -75,12 +75,12 @@ EzAppBamPreview <-
               methods = list(
                 initialize = function()
                 {
+                  "Initializes the application using its specific defaults."
                   runMethod <<- ezMethodBamPreview
                   name <<- "EzAppBamPreview"
                   appDefaults <<- rbind(mapMethod=ezFrame(Type="character",	DefaultValue="STAR",	Description="the mapper to use"),
                                         mapOptions=ezFrame(Type="character", DefaultValue="", Description="options passed to the mapper"),
-                                        fragSizeMax=ezFrame(Type="integer",  DefaultValue=500,	Description="maximum fragment size to plot in fragment size distribution")
-                  )
+                                        fragSizeMax=ezFrame(Type="integer",  DefaultValue=500,	Description="maximum fragment size to plot in fragment size distribution"))
                 }
               )
   )

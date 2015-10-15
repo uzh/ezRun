@@ -27,6 +27,7 @@ EzAppNcpro <-
               methods = list(
                 initialize = function()
                 {
+                  "Initializes the application using its specific defaults."
                   runMethod <<- ezMethodNcpro
                   name <<- "EzAppNcpro"
                 }

@@ -29,6 +29,7 @@ EzAppDeseq2 <-
               methods = list(
                 initialize = function()
                 {
+                  "Initializes the application using its specific defaults."
                   runMethod <<- ezMethodDeseq2
                   name <<- "EzAppDeseq2"
                 }

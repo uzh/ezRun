@@ -183,6 +183,7 @@ EzAppMpileup <-
               methods = list(
                 initialize = function()
                 {
+                  "Initializes the application using its specific defaults."
                   runMethod <<- ezMethodMpileup
                   name <<- "EzAppMpileup"
                   appDefaults <<- rbind(region=ezFrame(Type="character",  DefaultValue="",  Description="should analysis be done on a region of the genom only chr:start-end"),

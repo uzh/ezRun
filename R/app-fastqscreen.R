@@ -36,6 +36,7 @@ EzAppFastqScreen <-
               methods = list(
                 initialize = function()
                 {
+                  "Initializes the application using its specific defaults."
                   runMethod <<- ezMethodFastqScreen
                   name <<- "EzAppFastqScreen"
                   appDefaults <<- rbind(nTopSpecies=ezFrame(Type="integer",  DefaultValue=10,  Description="number of species to show in the plots"),

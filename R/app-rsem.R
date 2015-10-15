@@ -94,6 +94,7 @@ EzAppRSEM <-
               methods = list(
                 initialize = function()
                 {
+                  "Initializes the application using its specific defaults."
                   runMethod <<- ezMethodRSEM
                   name <<- "EzAppRSEM"
                   appDefaults <<- rbind("bowtie-e"=ezFrame(Type="integer",  DefaultValue="200",  Description="maximum sum of mismatch base qualities"),

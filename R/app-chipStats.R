@@ -116,6 +116,7 @@ EzAppChipStats <-
               methods = list(
                 initialize = function()
                 {
+                  "Initializes the application using its specific defaults."
                   runMethod <<- ezMethodChipStats
                   name <<- "EzAppChipStats"
                   appDefaults <<- rbind(estimatedFragmentSize=ezFrame(Type="numeric",  DefaultValue='200',  Description="estimated size of the DNA fragments"),
