@@ -17,6 +17,11 @@ This reference class is based on \code{EzApp()} and uses the function \code{ezMe
 
 \item{\code{appDefaults}}{the defaults to run the application with.}
 }}
+\section{Methods}{
+
+\describe{
+\item{\code{initialize()}}{Initializes the application using its specific defaults.}
+}}
 \author{
 Rehrauer, Hubert
 
