@@ -38,4 +38,11 @@ theDoc = addEzImage(theDoc, ezPlotIris$new(data=irisData, param=NULL,
                                            name="myIrisPlot"),
                     mouseOverText="myMouseOverText", helpText="myHelpText") ## if mouseOverText and helpText is null the default help text will be used
 
+
+addEzImage = function(theDoc, ezPlotter, mouseOverText=NULL, helpText=NULL, addPdfLink=TRUE) {
+  ## create the png plot and add it to the doc add the mouse over text
+  # put it into a 2x1 table
+  # put in the second row the pdf link and the help text
+}
+
 #plot(iris$Sepal.Length, iris$Sepal.Width)
