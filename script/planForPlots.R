@@ -1,7 +1,31 @@
 
 
-## all plots would be generated from a plotter class
+# htmlFile = "example_html"
+# param = ezParam()
+# title = "Der Titel"
+# dataset = iris
+# writeHtmlReportWithReporters(htmlFile, param, title, dataset)
+writeHtmlReportWithReporters = function(htmlFile, param=param, title="", dataset=NULL){
+  html = bsdoc(title = htmlFile)
+  html = addTitle(html, pot(paste("<center>", title, "</center>")))
+  file.copy(ezBannerFile(), ".")
+  html = addImage(html, "banner.png")
+  html = addParagraph(html, "test", par.properties = parRight())
+  html = addParagraph(html, pot("<center>Test</center>"))
+  mymenu = BootstrapMenu( title = 'Google', link = 'http://www.google.com')
+  mydd = DropDownMenu( label = 'Mon menu' )
+  mydd = addLinkItem( mydd, label = 'GitHub', 'http://github.com/')
+  mydd = addLinkItem( mydd, separator.after = TRUE)
+  mydd = addLinkItem( mydd, label = 'Wikipedia', 'http://www.wikipedia.de')
+  mymenu = addLinkItem( mymenu, label = 'ReporteRs', 'http://github.com/davidgohel/ReporteRs')
+  mymenu = addLinkItem( mymenu, dd = mydd )
+  html = addBootstrapMenu( html, mymenu )
+  writeDoc(html, "test.html")
+}
 
+
+
+## all plots would be generated from a plotter class
 EzPlotter =
   setRefClass("EzPlotter",
               fields=c("name", "data", "helpText", "mouseOverText"),
@@ -16,7 +40,7 @@ EzPlotter =
                 writeData=function(){}
               )
   )
-              
+       
 EzPlotterIris =
   setRefClass("EzPlotterIris",
               contains="EzPlotter",
