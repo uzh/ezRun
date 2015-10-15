@@ -1,18 +1,19 @@
 
+require(ReporteRs)
 
 # htmlFile = "example_html"
 # param = ezParam()
 # title = "Der Titel"
 # dataset = iris
-# writeHtmlReportWithReporters(htmlFile, param, title, dataset)
-writeHtmlReportWithReporters = function(htmlFile, param=param, title="", dataset=NULL){
+# writeHtmlReportWithReporteRs(htmlFile, param, title, dataset)
+writeHtmlReportWithReporteRs = function(htmlFile, param=param, title="", dataset=NULL){
   html = bsdoc(title = htmlFile)
-  html = addTitle(html, pot(paste("<center>", title, "</center>")))
+  html = addTitle(html, pot(paste("<center>", title, "</center>", sep = "")))
   file.copy(ezBannerFile(), ".")
-  html = addImage(html, "banner.png")
+  html = addImage(html, "banner.png", par.properties = parCenter())
   html = addParagraph(html, "test", par.properties = parRight())
   html = addParagraph(html, pot("<center>Test</center>"))
-  mymenu = BootstrapMenu( title = 'Google', link = 'http://www.google.com')
+  mymenu = BootstrapMenu( title = 'FGCZ', link = 'http://www.fgcz.ch/')
   mydd = DropDownMenu( label = 'Mon menu' )
   mydd = addLinkItem( mydd, label = 'GitHub', 'http://github.com/')
   mydd = addLinkItem( mydd, separator.after = TRUE)
@@ -23,8 +24,6 @@ writeHtmlReportWithReporters = function(htmlFile, param=param, title="", dataset
   writeDoc(html, "test.html")
 }
 
-
-
 ## all plots would be generated from a plotter class
 EzPlotter =
   setRefClass("EzPlotter",
@@ -32,15 +31,22 @@ EzPlotter =
               methods = list(
                 plot = function()
                 {
-                  
+                  "Plots \\code{data} with the default plot function from the graphics package."
+                  graphics::plot(data)
                 },
                 plotPng = function()
                 {
-                  ## create a png file and call then plot
+                  "Creates a .png file of a plot."
+                  png(file = paste(name, ".png", sep=""))
+                  .self$plot()
+                  dev.off()
                 },
                 plotPdf = function()
                 {
-                  ## create a pdf file call then plot
+                  "Creates a .pdf file of a plot."
+                  pdf(file = paste(name, ".pdf", sep=""))
+                  .self$plot()
+                  dev.off()
                 },
                 writeData = function()
                 {
@@ -48,41 +54,67 @@ EzPlotter =
                 }
               )
   )
-       
+
 EzPlotterIris =
   setRefClass("EzPlotterIris",
               contains="EzPlotter",
               methods=list(
-                initialize = function()
+                initialize = function(name=NULL)
                 {
-                  name <<- "EzPlotterIris"
+                  if (ezIsSpecified(name)){
+                    name <<- name
+                  } else {
+                    name <<- "EzPlotterIris"
+                  }
                   data <<- iris
                   helpText <<- "Iris is a flower dataset."
-                  mouseOverText <<- "Please move your mouse away from me."
+                  mouseOverText <<- "Showing mouseOver text."
                 },
                 plot=function()
                 {
-                  plot(data$Sepal.length, Sepal.Width)
+                  graphics::plot(.self$data$Sepal.Length, .self$data$Sepal.Width)
                 }
               )
   )
 
+# testplot = EzPlotterIris$new()
+# testplot$plot()
+# testplot$plotPng()
+# testplot$plotPdf()
 
-## in the report generating scripts I want to write
-
-theDoc = bsdoc(title = 'My document')
-
-irisData = iris 
-
-theDoc = addEzImage(theDoc, ezPlotIris$new(data=irisData, param=NULL,
-                                           name="myIrisPlot"),
-                    mouseOverText="myMouseOverText", helpText="myHelpText") ## if mouseOverText and helpText is null the default help text will be used
-
-
-addEzImage = function(theDoc, ezPlotter, mouseOverText=NULL, helpText=NULL, addPdfLink=TRUE) {
-  ## create the png plot and add it to the doc add the mouse over text
-  # put it into a 2x1 table
-  # put in the second row the pdf link and the help text
+addEzImage = function(theDoc, ezPlotter, mouseOverText=ezPlotter$mouseOverText, helpText=ezPlotter$helpText, addPdfLink=TRUE) {
+  ## add the mouse over text: there seems to be no way to do this without writing html code ourselves.
+  ## put it into a 2x1 table: FlexTable doesn't support images.
+  ## put in the second row the pdf link and the help text: Tried to put them on the same line, but it doesn't seem to work.
+  ezPlotter$plotPng()
+  # theDoc = addImage(theDoc, paste(ezPlotter$name, ".png", sep=""))
+  theDoc = addParagraph(theDoc, pot(paste('<img src="', paste(ezPlotter$name, ".png", sep=""),
+                                          '" title="', mouseOverText, '"/>')), par.properties=parCenter())
+  theDoc = addParagraph(theDoc, helpText, par.properties=parCenter())
+  if (addPdfLink) {
+    ezPlotter$plotPdf()
+    theDoc = addParagraph(theDoc, pot("pdf", hyperlink=paste(ezPlotter$name, ".pdf", sep="")),
+                          par.properties=parCenter())
+  }
 }
 
-#plot(iris$Sepal.Length, iris$Sepal.Width)
+## in the report generating scripts I want to write
+## if mouseOverText and helpText is null the default help text will be used
+theDoc = bsdoc(title = 'My document')
+theDoc = addTitle(theDoc, "A title")
+theDoc = addEzImage(theDoc, EzPlotterIris$new(name="myIrisPlot"))
+writeDoc(theDoc, "my.html")
+
+## alternative implementation (does the same, but looks uglier)
+# bla = pot_img("EzPlotterIris.png")
+# sopar = set_of_paragraphs(bla, pot(helpText), pot("pdf", hyperlink="EzPlotterIris.pdf"))
+# theDoc = addParagraph(theDoc, sopar, par.properties=parCenter())
+
+## doesn't work
+# ft = FlexTable(numrow=2,numcol=1)
+# ft[[1]] = addImage(theDoc, "myirisPlot.png")
+# ft[[2]] = addParagraph(theDoc, "testing")
+# theDoc = addFlexTable(theDoc, ft)
+
+
+
