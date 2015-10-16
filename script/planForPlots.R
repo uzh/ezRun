@@ -29,23 +29,25 @@ EzPlotter =
   setRefClass("EzPlotter",
               fields = c("name", "data", "helpText", "mouseOverText"),
               methods = list(
-                plot = function()
+                plot = function(...)
                 {
                   "Plots \\code{data} with the default plot function from the graphics package."
-                  graphics::plot(data)
+                  graphics::plot(data, ...)
                 },
-                plotPng = function()
+                plotPng = function(width=NULL, height=NULL, ...)
                 {
                   "Creates a .png file of a plot."
-                  png(file = paste(name, ".png", sep=""))
-                  .self$plot()
+                  png(file = paste(name, ".png", sep=""), width, height)
+                  .self$plot(...)
                   dev.off()
                 },
-                plotPdf = function()
+                plotPdf = function(width=NULL, height=NULL, ...)
                 {
                   "Creates a .pdf file of a plot."
-                  pdf(file = paste(name, ".pdf", sep=""))
-                  .self$plot()
+                  width = width/72
+                  height = height/72
+                  pdf(file = paste(name, ".pdf", sep=""), width, height)
+                  .self$plot(...)
                   dev.off()
                 },
                 writeData = function()
@@ -70,9 +72,9 @@ EzPlotterIris =
                   helpText <<- "Iris is a flower dataset."
                   mouseOverText <<- "Showing mouseOver text."
                 },
-                plot=function()
+                plot=function(...)
                 {
-                  graphics::plot(.self$data$Sepal.Length, .self$data$Sepal.Width)
+                  graphics::plot(.self$data$Sepal.Length, .self$data$Sepal.Width, ...)
                 }
               )
   )
@@ -82,17 +84,18 @@ EzPlotterIris =
 # testplot$plotPng()
 # testplot$plotPdf()
 
-addEzImage = function(theDoc, ezPlotter, mouseOverText=ezPlotter$mouseOverText, helpText=ezPlotter$helpText, addPdfLink=TRUE) {
+addEzImage = function(theDoc, ezPlotter, mouseOverText=ezPlotter$mouseOverText, helpText=ezPlotter$helpText,
+                      addPdfLink=TRUE, width=480, height=480, ...) {
   ## add the mouse over text: there seems to be no way to do this without writing html code ourselves.
   ## put it into a 2x1 table: FlexTable doesn't support images.
   ## put in the second row the pdf link and the help text: Tried to put them on the same line, but it doesn't seem to work.
-  ezPlotter$plotPng()
-  # theDoc = addImage(theDoc, paste(ezPlotter$name, ".png", sep=""))
+  ezPlotter$plotPng(width, height, ...)
+  # theDoc = addImage(theDoc, paste(ezPlotter$name, ".png", sep="")) ## directly the image, but no mouseover
   theDoc = addParagraph(theDoc, pot(paste('<img src="', paste(ezPlotter$name, ".png", sep=""),
                                           '" title="', mouseOverText, '"/>')), par.properties=parCenter())
   theDoc = addParagraph(theDoc, helpText, par.properties=parCenter())
   if (addPdfLink) {
-    ezPlotter$plotPdf()
+    ezPlotter$plotPdf(width, height, ...)
     theDoc = addParagraph(theDoc, pot("pdf", hyperlink=paste(ezPlotter$name, ".pdf", sep="")),
                           par.properties=parCenter())
   }
@@ -102,7 +105,9 @@ addEzImage = function(theDoc, ezPlotter, mouseOverText=ezPlotter$mouseOverText, 
 ## if mouseOverText and helpText is null the default help text will be used
 theDoc = bsdoc(title = 'My document')
 theDoc = addTitle(theDoc, "A title")
-theDoc = addEzImage(theDoc, EzPlotterIris$new(name="myIrisPlot"))
+theDoc = addEzImage(theDoc, EzPlotterIris$new(name="myIrisPlot"),
+                    main="Iris sepal shape", xlab="Iris sepal length", ylab="Iris sepal width",
+                    width=800,height=800)
 writeDoc(theDoc, "my.html")
 
 ## alternative implementation (does the same, but looks uglier)
