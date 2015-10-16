@@ -101,10 +101,10 @@ collectFastqscreenOutput = function(dataset,files){
     cat('Process ',files[i],':')
     data$CommonResults[[i]] = ezRead.table(resultFiles[i], skip=1, stringsAsFactors=F, blank.lines.skip=T, fill=T, row.names=NULL)
     data$Reads[i] = data$CommonResults[[i]]$"#Reads_processed"[1]
-    UnmappedReads = as.numeric(unlist(strsplit(data$CommonResults[[i]]$Library[nrow(data$CommonResults[[i]])], split = " "))[2])
+    UnmappedReads = as.numeric(unlist(strsplit(data$CommonResults[[i]]$Genome[nrow(data$CommonResults[[i]])], split = " "))[2])
     data$MappingRate[i] = round((100 - UnmappedReads), digits = 2)
     lastLine = nrow(data$CommonResults[[i]])
-    LibNames = data$CommonResults[[i]]$Library[-c(lastLine)]
+    LibNames = data$CommonResults[[i]]$Genome[-c(lastLine)]
     data$CommonResults[[i]] = data$CommonResults[[i]][c(1:(lastLine-1)),grep('%.*hit',colnames(data$CommonResults[[i]]))]
     rownames(data$CommonResults[[i]]) = LibNames 
   }
