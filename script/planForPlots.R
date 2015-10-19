@@ -183,6 +183,84 @@ EzPlotterXYScatterScatter =
               )
   )
 
+EzPlotterSmoothScatter =
+  setRefClass("EzPlotterSmoothScatter",
+              contains="EzPlotter",
+              methods=list(
+                initialize = function(name=NULL, x=NULL, y)
+                {
+                  if (ezIsSpecified(name)){
+                    name <<- name
+                  } else {
+                    name <<- "EzPlotterSmoothScatter"
+                  }
+                  data <<- list(x=x, y=y)
+                  helpText <<- "SmoothScatter."
+                  mouseOverText <<- "Showing mouseOver text."
+                },
+                plot = function(isPresent=NULL, types=NULL, cex=0.8,
+                                lim=range(x, y, na.rm=TRUE),
+                                xlab=NULL, ylab=NULL, pch=16, colors=rainbow(ncol(types)),
+                                legendPos="bottomright",
+                                nPlotsPerRow=6, plotWidth=350, plotHeight=400, cex.main=1.0, ...)
+                { #TODO: Not used: types, pch, colors, legendPos
+                  yValues = as.matrix(y)
+                  if (is.null(ylab)){
+                    ylab=colnames(y)
+                  }
+                  
+                  # treat the special case when the reference is not given but there are only two plots
+                  if (ncol(y) == 2 & is.null(x)){
+                    par(cex.main=cex.main, cex=cex)
+                    smoothScatter(log2(y[ ,1]), log2(y[ ,2]), xlim=log2(lim), ylim=log2(lim),
+                                  xlab=ylab[1], ylab=ylab[2], ...)
+                    abline(0, 1, col="blue")
+                    return()
+                  }
+                  
+                  ## all other cases
+                  nPlots = ncol(y)
+                  nImgRow <- ceiling(nPlots / nPlotsPerRow)
+                  nImgCol <- min(nPlots, nPlotsPerRow)
+                  
+                  ###### TODO: get change for plotPng of EzPlotter
+                  if (!is.null(file)){
+                    png(filename=file, height=nImgRow * plotHeight, width=nImgCol * plotWidth);
+                    on.exit(dev.off())
+                  }
+                  ###### or: implement additional function, one which calls plotPng with adjusted width and height
+                  ###### and then calls this plot
+                  
+                  par(mfrow=c(nImgRow, nImgCol))
+                  par(cex.main=cex.main, cex=cex)
+                  if (nPlots == 1){
+                    main = ""
+                  } else {
+                    main = ylab
+                    ylab[] = ""
+                  }
+                  for (i in 1:nPlots){
+                    if (is.null(x)){
+                      xVal = apply(y[ , -i, drop=FALSE], 1, ezGeomean, na.rm=TRUE)
+                      if (is.null(xlab)){
+                        xlab="Average"
+                      }
+                    } else {
+                      if (is.null(dim(x))){
+                        xVal = x
+                      } else {
+                        xVal = x[ ,i]
+                        xlab = colnames(x)[i]
+                      }
+                    }
+                    smoothScatter(log2(xVal), log2(y[ ,i]), xlim=log2(lim), ylim=log2(lim),
+                                  main=main[i], xlab=ylab[1], ylab=ylab[2], ...)
+                    abline(0, 1, col="blue")
+                  }
+                }
+              )
+  )
+
 ## add the mouse over text: there seems to be no way to do this without writing html code ourselves.
 ## put it into a 2x1 table: FlexTable doesn't support images.
 ## put in the second row the pdf link and the help text: Tried to put them on the same line, but it doesn't seem to work.
