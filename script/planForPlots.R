@@ -34,21 +34,33 @@ EzPlotter =
                   "Plots \\code{data} with the default plot function from the graphics package."
                   graphics::plot(data, ...)
                 },
-                plotPng = function(width=NULL, height=NULL, ...)
+                plotPng = function(file=NULL, width=480, height=480, ...)
                 {
                   "Creates a .png file of a plot."
-                  png(filename = paste(name, ".png", sep=""), width, height)
+                  if (ezIsSpecified(file)) {
+                    filename = file
+                  } else {
+                    filename = paste(name, ".png", sep="")
+                  }
+                  png(filename = filename, width, height)
                   .self$plot(...)
                   dev.off()
+                  return(filename)
                 },
-                plotPdf = function(width=NULL, height=NULL, ...)
+                plotPdf = function(file=NULL, width=480, height=480, ...)
                 {
                   "Creates a .pdf file of a plot."
-                  width = width/72
-                  height = height/72
-                  pdf(file = paste(name, ".pdf", sep=""), width, height)
+                  if (ezIsSpecified(file)) {
+                    filename = file
+                  } else {
+                    filename = paste(name, ".pdf", sep="")
+                  }
+                  width = round(width/72, digits=2)
+                  height = round(height/72, digits=2)
+                  pdf(file = filename, width, height)
                   .self$plot(...)
                   dev.off()
+                  return(filename)
                 },
                 writeData = function()
                 {
@@ -198,12 +210,10 @@ EzPlotterSmoothScatter =
                   helpText <<- "SmoothScatter."
                   mouseOverText <<- "Showing mouseOver text."
                 },
-                plot = function(isPresent=NULL, types=NULL, cex=0.8,
-                                lim=range(x, y, na.rm=TRUE),
-                                xlab=NULL, ylab=NULL, pch=16, colors=rainbow(ncol(types)),
-                                legendPos="bottomright",
-                                nPlotsPerRow=6, plotWidth=350, plotHeight=400, cex.main=1.0, ...)
-                { #TODO: Not used: types, pch, colors, legendPos
+                plot = function(isPresent=NULL, cex=0.8, lim=range(x, y, na.rm=TRUE),
+                                xlab=NULL, ylab=NULL, nPlotsPerRow=6, plotWidth=350,
+                                plotHeight=400, cex.main=1.0, ...)
+                {
                   yValues = as.matrix(y)
                   if (is.null(ylab)){
                     ylab=colnames(y)
@@ -230,6 +240,7 @@ EzPlotterSmoothScatter =
                   }
                   ###### or: implement additional function, one which calls plotPng with adjusted width and height
                   ###### and then calls this plot
+                  
                   
                   par(mfrow=c(nImgRow, nImgCol))
                   par(cex.main=cex.main, cex=cex)
@@ -261,33 +272,55 @@ EzPlotterSmoothScatter =
               )
   )
 
-## add the mouse over text: there seems to be no way to do this without writing html code ourselves.
-## put it into a 2x1 table: FlexTable doesn't support images.
-## put in the second row the pdf link and the help text: Tried to put them on the same line, but it doesn't seem to work.
-addEzImage = function(theDoc, ezPlotter, mouseOverText=ezPlotter$mouseOverText, helpText=ezPlotter$helpText,
+## obsolete? can be done with ezImageFileLink and addParagraph as well
+addEzImage = function(theDoc, ezPlotter, file=NULL, mouseOverText=ezPlotter$mouseOverText, helpText=ezPlotter$helpText,
                       addPdfLink=TRUE, width=480, height=480, ...) {
-  ezPlotter$plotPng(width=width, height=height, ...)
-  # theDoc = addImage(theDoc, paste(ezPlotter$name, ".png", sep="")) ## directly the image, but no mouseover
-  theDoc = addParagraph(theDoc, pot(paste('<img src="', paste(ezPlotter$name, ".png", sep=""),
-                                          '" title="', mouseOverText, '"/>')), par.properties=parCenter())
-  theDoc = addParagraph(theDoc, helpText, par.properties=parCenter())
+  pngName = ezPlotter$plotPng(file=file, width=width, height=height, ...)
   if (addPdfLink) {
-    ezPlotter$plotPdf(width=width, height=height, ...)
-    theDoc = addParagraph(theDoc, pot("pdf", hyperlink=paste(ezPlotter$name, ".pdf", sep="")),
-                          par.properties=parCenter())
+    pdfName = ezPlotter$plotPdf(file=sub(".png$", ".pdf", file), width=width, height=height, ...)
+    theDoc = addParagraph(theDoc, pot(paste('<img src="', pngName, '" title="', mouseOverText, '"/>'),
+                                            hyperlink = pdfName), par.properties=parCenter())
+  } else {
+    theDoc = addParagraph(theDoc, pot(paste('<img src="', pngName,
+                                            '" title="', mouseOverText, '"/>')), par.properties=parCenter())
   }
+  theDoc = addParagraph(theDoc, helpText, par.properties=parCenter())
+  return(theDoc)
 }
 
-## in the report generating scripts I want to write
-## if mouseOverText and helpText is null the default help text will be used
+ezImageTable = function(x, header=FALSE, ...) {
+  FlexTable(x, body.cell.props = cellProperties(border.width = 0),
+            header.cell.props = cellProperties(border.width = 0),
+            header.columns = header, ...)
+}
+
+## how to add help text? for each plot seperately or not?
+ezImageFileLink = function(ezPlotter, file=NULL, mouseOverText=ezPlotter$mouseOverText, helpText=ezPlotter$helpText,
+                       addPdfLink=TRUE, width=480, height=480, ...) {
+  pngName = ezPlotter$plotPng(file=file, width=width, height=height, ...)
+  if (addPdfLink) {
+    pdfName = ezPlotter$plotPdf(file=sub(".png$", ".pdf", file), width=width, height=height, ...)
+    imgFilePot = pot(paste('<img src="', pngName, '" title="', mouseOverText, '"/>'),
+                     hyperlink = pdfName)
+  } else {
+    imgFilePot = pot(paste('<img src="', pngName, '" title="', mouseOverText, '"/>'))
+  }
+  return(as.html(imgFilePot))
+}
+
+cd = getwd()
+setwdNew("./scratch")
+
 theDoc = bsdoc(title = 'My document')
 theDoc = addTitle(theDoc, "A title")
 theDoc = addEzImage(theDoc, EzPlotterIris$new(name="Iris"),
                     main="Iris sepal shape", xlab="Iris sepal length", ylab="Iris sepal width",
                     width=600,height=600)
+bla = ezImageFileLink(EzPlotterIris$new(name="Iris"),
+                      main="Iris sepal shape", xlab="Iris sepal length", ylab="Iris sepal width",
+                      width=600,height=600)
+theDoc = addParagraph(theDoc, bla)
 theDoc = addEzImage(theDoc, EzPlotterVolcano$new(name="Volcano", log2Ratio=1:10, pValue=10:1))
-theDoc = addParagraph(theDoc, pot('<center><table><tr><td><img src="Iris.png"></td>'))
-theDoc = addParagraph(theDoc, pot('<td><img src="Iris.png"></td></tr></table></center>'))
 types = data.frame(matrix(rep(1:10, each=10), 10))
 theDoc = addEzImage(theDoc, EzPlotterVolcano$new(name="Volcano2", log2Ratio=1:100, pValue=rep(10^(-4:5), each=10)),
                     xlim=c(0,100), ylim=c(-5,4), pch=16, isPresent=1:50, types=types,
@@ -295,20 +328,19 @@ theDoc = addEzImage(theDoc, EzPlotterVolcano$new(name="Volcano2", log2Ratio=1:10
                     main="Volcano2")
 theDoc = addEzImage(theDoc, EzPlotterXYScatterScatter$new(name="ScatterScatter", xVec=1:10, yVec=1:10),
                     main="ScatterScatter")
+
+x = ezMatrix("", rows=1, cols=c("iris", "xy", "iris2"))
+x[1, "iris"] = ezImageFileLink(EzPlotterIris$new(name="Iris2"))
+x[1, "xy"] = ezImageFileLink(EzPlotterXYScatterScatter$new(name="ScatterScatterScatter", xVec=1:10, yVec=1:10))
+x[1, "iris2"] = ezImageFileLink(EzPlotterIris$new(name="Iris3"))
+theDoc = addFlexTable(theDoc, ezImageTable(x))
+
+# x = ezMatrix("", rows=1, cols=sampleNames)
+# for (nm in sampleNames){
+#   x[1, nm] = ezImageFileLink(EzPlotterIris$new(name="Iris2", data[sm]))
+# }
+# theDoc = addFlexTable(theDoc, ezImageTable(x))
+
 writeDoc(theDoc, "my.html")
-
-
-
-
-## alternative implementation (does the same, but looks uglier)
-# bla = pot_img("EzPlotterIris.png")
-# sopar = set_of_paragraphs(bla, pot(helpText), pot("pdf", hyperlink="EzPlotterIris.pdf"))
-# theDoc = addParagraph(theDoc, sopar, par.properties=parCenter())
-
-## doesn't work
-# ft = FlexTable(numrow=2,numcol=1)
-# ft[[1]] = addImage(theDoc, "myirisPlot.png")
-# ft[[2]] = addParagraph(theDoc, "testing")
-# theDoc = addFlexTable(theDoc, ft)
-
+setwd(cd)
 
