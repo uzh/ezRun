@@ -173,6 +173,7 @@ collectBowtie2Output = function(param,dataset){
 
 generatePlots = function(dataset, data){
   resultFiles = paste(basename(dataset$"Read1 [File]"),'_screen.txt',sep='')
+  resultFiles = sub('\\.fastq.gz','',resultFiles)
   for(i in 1:length(data$CommonResults)){
     png(gsub('.txt','.png',resultFiles[i],'.png'))
     par(mar=c(10.1, 4.1, 4.1, 2.1))
