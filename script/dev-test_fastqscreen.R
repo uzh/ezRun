@@ -1,7 +1,6 @@
 
-
 library(ezRun)
-
+cd = getwd()
 setwdNew("/scratch/test_fastqscreen")
 
 param = list()
@@ -33,5 +32,4 @@ SAMTOOLS="/usr/local/ngseq/stow/samtools-1.2/bin/samtools"
 myApp = EzAppFastqScreen$new()
 myApp$run(input=input, output=output, param=param)
 
-cd = getwd()
 setwd(cd)

@@ -30,7 +30,7 @@ ezFeatureAnnotation = function(param, ids, dataFeatureType){
     if (!is.null(seqAnno$gc)){
       seqAnno$gc = signif(as.numeric(seqAnno$gc), digits=4)
     }
-    if (!is.null(seqAnno$wdith)){
+    if (!is.null(seqAnno$width)){
       seqAnno$width = as.numeric(seqAnno$width)
     }
   }

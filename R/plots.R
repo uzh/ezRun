@@ -209,7 +209,7 @@ ezArrayImage = function(mat, file=NULL, colorRange=c(-3,3), xScale=1, yScale=1, 
         xlim=c(0, ncol(mat)), ylim=c(1, nrow(mat)+1))
 }
 
-
+# Refactored to an EzPlotter version
 ezVolcano = function(log2Ratio, pValue, file=NULL,
                        xlim=NULL,
 											 ylim=NULL,
@@ -253,7 +253,7 @@ ezVolcano = function(log2Ratio, pValue, file=NULL,
   }
 }
 
-
+# Refactored to an EzPlotter version
 ezXYScatterScatter = function(xVec, yVec,
                        xlim=range(xVec, yVec, na.rm=TRUE), ylim=xlim,
                        isPresent=NULL, types=NULL, absentColor="gray",
@@ -288,7 +288,7 @@ ezXYScatterScatter = function(xVec, yVec,
   abline(-log10(2), 1, col="blue", lty=2);
 }
 
-
+# Refactored to an EzPlotter version
 ezSmoothScatter <- function(x=NULL, y, file=NULL, isPresent=NULL, types=NULL, cex=0.8,
                          lim=range(x, y, na.rm=TRUE),
                          xlab=NULL, ylab=NULL, pch=16, colors=rainbow(ncol(types)),
@@ -349,7 +349,7 @@ ezSmoothScatter <- function(x=NULL, y, file=NULL, isPresent=NULL, types=NULL, ce
   }
 }
 
-
+# Refactored to an EzPlotter version
 ezScatter <- function(x=NULL, y, file=NULL, isPresent=NULL, types=NULL, cex=0.8,
       lim=range(x, y, na.rm=TRUE), shrink=FALSE,
       xlab=NULL, ylab=NULL, pch=16, colors=rainbow(ncol(types)),

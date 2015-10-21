@@ -1,95 +1,10 @@
+###################################################################
+# Functional Genomics Center Zurich
+# This code is distributed under the terms of the GNU General
+# Public License Version 3, June 2007.
+# The terms are available here: http://www.gnu.org/licenses/gpl.html
+# www.fgcz.ch
 
-require(ReporteRs)
-
-# htmlFile = "example_html"
-# param = ezParam()
-# title = "Der Titel"
-# dataset = iris
-# writeHtmlReportWithReporteRs(htmlFile, param, title, dataset)
-writeHtmlReportWithReporteRs = function(htmlFile, param=param, title="", dataset=NULL){
-  html = bsdoc(title = htmlFile)
-  html = addTitle(html, pot(paste("<center>", title, "</center>", sep = "")))
-  file.copy(ezBannerFile(), ".")
-  html = addImage(html, "banner.png", par.properties = parCenter())
-  html = addParagraph(html, "test", par.properties = parRight())
-  html = addParagraph(html, pot("<center>Test</center>"))
-  mymenu = BootstrapMenu( title = 'FGCZ', link = 'http://www.fgcz.ch/')
-  mydd = DropDownMenu( label = 'Mon menu' )
-  mydd = addLinkItem( mydd, label = 'GitHub', 'http://github.com/')
-  mydd = addLinkItem( mydd, separator.after = TRUE)
-  mydd = addLinkItem( mydd, label = 'Wikipedia', 'http://www.wikipedia.de')
-  mymenu = addLinkItem( mymenu, label = 'ReporteRs', 'http://github.com/davidgohel/ReporteRs')
-  mymenu = addLinkItem( mymenu, dd = mydd )
-  html = addBootstrapMenu( html, mymenu )
-  writeDoc(html, "test.html")
-}
-
-## all plots would be generated from a plotter class
-EzPlotter =
-  setRefClass("EzPlotter",
-              fields = c("name", "data", "helpText", "mouseOverText"),
-              methods = list(
-                plot = function(...)
-                {
-                  "Plots \\code{data} with the default plot function from the graphics package."
-                  graphics::plot(data, ...)
-                },
-                plotPng = function(file=NULL, width=480, height=480, ...)
-                {
-                  "Creates a .png file of plots."
-                  if (ezIsSpecified(file)) {
-                    filename = file
-                  } else {
-                    filename = paste(name, ".png", sep="")
-                  }
-                  png(filename = filename, width, height)
-                  .self$plot(...)
-                  dev.off()
-                  return(filename)
-                },
-                plotPdf = function(file=NULL, width=480, height=480, ...)
-                {
-                  "Creates a .pdf file of plots."
-                  if (ezIsSpecified(file)) {
-                    filename = file
-                  } else {
-                    filename = paste(name, ".pdf", sep="")
-                  }
-                  width = round(width/72, digits=2)
-                  height = round(height/72, digits=2)
-                  pdf(file = filename, width, height)
-                  .self$plot(...)
-                  dev.off()
-                  return(filename)
-                },
-                writeData = function()
-                {
-                  
-                }
-              )
-  )
-
-EzPlotterIris =
-  setRefClass("EzPlotterIris",
-              contains="EzPlotter",
-              methods=list(
-                initialize = function(name=NULL)
-                {
-                  if (ezIsSpecified(name)){
-                    name <<- name
-                  } else {
-                    name <<- "EzPlotterIris"
-                  }
-                  data <<- iris
-                  helpText <<- "Iris is a flower dataset."
-                  mouseOverText <<- "Showing mouseOver text."
-                },
-                plot=function(...)
-                {
-                  graphics::plot(data$Sepal.Length, data$Sepal.Width, ...)
-                }
-              )
-  )
 
 EzPlotterVolcano =
   setRefClass("EzPlotterVolcano",
@@ -127,8 +42,8 @@ EzPlotterVolcano =
                   par(pty="s")
                   par(cex.main=cex.main, cex=cex)
                   graphics::plot(xValues, yValues, pch=pch, xlim=xlim, ylim=ylim,
-                       col="gray", xlab="log2 ratio", ylab=paste("-log10(", yType, ")" ,sep=""),
-                       ...)
+                                 col="gray", xlab="log2 ratio", ylab=paste("-log10(", yType, ")" ,sep=""),
+                                 ...)
                   if (!is.null(isPresent)){
                     points(xValues[isPresent], yValues[isPresent], col="black", pch=pch)
                   }
@@ -174,10 +89,10 @@ EzPlotterXYScatterScatter =
                   par(pty="s")
                   if (is.null(isPresent)){
                     graphics::plot(xValues, yValues, log="xy", pch=pch, xlim=xlim, ylim=ylim,
-                         col="black", frame=frame, axes=axes, ...)
+                                   col="black", frame=frame, axes=axes, ...)
                   } else {
                     graphics::plot(xValues, yValues, log="xy", pch=pch, xlim=xlim, ylim=ylim,
-                         col=absentColor, frame=frame, axes=axes, ...)
+                                   col=absentColor, frame=frame, axes=axes, ...)
                     points(xValues[isPresent], yValues[isPresent], col="black", pch=pch, ...)
                   }
                   if (!is.null(types) && ncol(types) > 0){
@@ -391,64 +306,3 @@ EzPlotterScatter =
                 }
               )
   )
-
-ezImageTable = function(x, header=FALSE, ...) {
-  FlexTable(x, body.cell.props = cellProperties(border.width = 0),
-            header.cell.props = cellProperties(border.width = 0),
-            header.columns = header, ...)
-}
-
-## how to add help text? for each plot seperately or not?
-ezImageFileLink = function(ezPlotter, file=NULL, mouseOverText=ezPlotter$mouseOverText, helpText=ezPlotter$helpText,
-                       addPdfLink=TRUE, width=480, height=480, ...) {
-  pngName = ezPlotter$plotPng(file=file, width=width, height=height, ...)
-  if (addPdfLink) {
-    pdfName = ezPlotter$plotPdf(file=sub(".png$", ".pdf", file), width=width, height=height, ...)
-    imgFilePot = pot(paste('<img src="', pngName, '" title="', mouseOverText, '"/>'),
-                     hyperlink = pdfName)
-  } else {
-    imgFilePot = pot(paste('<img src="', pngName, '" title="', mouseOverText, '"/>'))
-  }
-  return(as.html(imgFilePot))
-}
-
-cd = getwd()
-setwdNew("./scratch")
-
-theDoc = bsdoc(title = 'My document')
-theDoc = addTitle(theDoc, "A title")
-irislink = ezImageFileLink(EzPlotterIris$new(name="Iris"),
-                    main="Iris sepal shape", xlab="Iris sepal length", ylab="Iris sepal width",
-                    width=600,height=600)
-theDoc = addParagraph(theDoc, irislink)
-types = data.frame(matrix(rep(1:10, each=10), 10))
-volcanolink = ezImageFileLink(EzPlotterVolcano$new(name="Volcano2", log2Ratio=1:100, pValue=rep(10^(-4:5), each=10)),
-                    xlim=c(0,100), ylim=c(-5,4), pch=16, isPresent=1:50, types=types,
-                    colors=rainbow(ncol(types)), legendPos="bottomleft",
-                    main="Volcano2")
-theDoc = addParagraph(theDoc, volcanolink)
-scascalink = ezImageFileLink(EzPlotterXYScatterScatter$new(name="ScatterScatter", xVec=1:10, yVec=1:10),
-                    main="ScatterScatter")
-theDoc = addParagraph(theDoc, scascalink)
-x = ezMatrix("", rows=1, cols=c("iris", "xy", "iris2"))
-x[1, "iris"] = ezImageFileLink(EzPlotterIris$new(name="Iris2"))
-x[1, "xy"] = ezImageFileLink(EzPlotterXYScatterScatter$new(name="ScatterScatterScatter", xVec=1:10, yVec=1:10))
-x[1, "iris2"] = ezImageFileLink(EzPlotterIris$new(name="Iris3"))
-theDoc = addFlexTable(theDoc, ezImageTable(x))
-smoscafilink = ezImageFileLink(EzPlotterSmoothScatter$new(name="SmoothScatter", y=data.frame(a=1:10,b=21:30)), file="SmoothScatterplot.png", cex=2)
-theDoc = addParagraph(theDoc, smoscafilink)
-smoscafilink2 = ezImageFileLink(EzPlotterSmoothScatter$new(name="SmoothScatterMultiple", y=data.frame(a=1:10,b=21:30,c=90:81), x=51:60))
-theDoc = addParagraph(theDoc, smoscafilink2)
-scatterlink = ezImageFileLink(EzPlotterScatter$new(name="Scatter", y=data.frame(a=1:10,b=21:30)))
-theDoc = addParagraph(theDoc, scatterlink)
-scatterlink2 = ezImageFileLink(EzPlotterScatter$new(name="ScatterMultiple", y=data.frame(a=1:10,b=21:30,c=90:81), x=51:60))
-theDoc = addParagraph(theDoc, scatterlink2)
-
-# x = ezMatrix("", rows=1, cols=sampleNames)
-# for (nm in sampleNames){
-#   x[1, nm] = ezImageFileLink(EzPlotterIris$new(name="Iris2", data[sm]))
-# }
-# theDoc = addFlexTable(theDoc, ezImageTable(x))
-
-writeDoc(theDoc, "my.html")
-setwd(cd)
