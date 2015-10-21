@@ -22,8 +22,7 @@ ezMethodFastqScreen = function(input=NA, output=NA, param=NA, htmlFile="00index.
   executeBowtie2CMD(param,files)
   data = collectFastqscreenOutput(dataset,files)
   collectBowtie2Output(param,dataset)
-  generatePlots(dataset,data)
-  generateFastqscreenHtmlReport(param=param, dataset=dataset, htmlFile=htmlFile)
+  generateReport(dataset=dataset, data=data, param=param, htmlFile=htmlFile)
   return("Success")
 }
 
@@ -171,7 +170,7 @@ collectBowtie2Output = function(param,dataset){
 }
  
 
-generatePlots = function(dataset, data){
+generateReport = function(dataset, data, param, htmlFile="00index.html"){
   resultFiles = paste(basename(dataset$"Read1 [File]"),'_screen.txt',sep='')
   resultFiles = sub('\\.fastq.gz','',resultFiles)
   
@@ -179,29 +178,14 @@ generatePlots = function(dataset, data){
     plotter = EzPlotterFastqScreen$new(x=t(data$CommonResults[[i]]))
     ezImageFileLink(plotter, file=gsub('.txt','.png',resultFiles[i],'.png'), las=2, ylim=c(0,100),
                     legend.text=T, ylab='MappedReads in %', main=rownames(dataset)[i])
-#     png(gsub('.txt','.png',resultFiles[i],'.png'))
-#     par(mar=c(10.1, 4.1, 4.1, 2.1))
-#     barplot(t(data$CommonResults[[i]]), las=2, ylim=c(0,100),legend.text=T, ylab='MappedReads in %', main=rownames(dataset)[i])
-#     dev.off()
   }
   plotter = EzPlotterFastqScreen$new(x=data$MappingRate)
-  ezImageFileLink(plotter, file="MappingRate.png", width=800, height=600, las=2, ylim=c(0,100),
+  mappingRatePng = ezImageFileLink(plotter, file="MappingRate.png", width=800, height=600, las=2, ylim=c(0,100),
                   ylab='MappedReads in %', main="MappingRate", col="blue")
-#   png('MappingRate.png',width=800,height=600)
-#   par(mar=c(10.1, 4.1, 4.1, 2.1))
-#   bplt = barplot(data$MappingRate,las=2,ylim=c(0,100),ylab='MappedReads in %',main="MappingRate",col="blue")
-#   text(y= data$MappingRate+5, x= bplt, labels=paste(as.character(data$MappingRate),'%',sep=''),cex=0.7, xpd=TRUE)
-#   dev.off()
   plotter = EzPlotterFastqScreen$new(x=data$Reads)
-  ezImageFileLink(plotter, file="Reads.png", width=800, height=600, las=2,
+  readsPng = ezImageFileLink(plotter, file="Reads.png", width=800, height=600, las=2,
                   ylab="#Reads", main="ProcessedReads", col="lightblue")
-#   png('Reads.png',width=800,height=600)
-#   par(mar=c(10.1, 4.1, 4.1, 2.1))
-#   bplt = barplot(data$Reads,las=2,ylab="#Reads",main="ProcessedReads",col="lightblue")
-#   dev.off()
-}
 
-generateFastqscreenHtmlReport = function(param,dataset, htmlFile="00index.html"){
   html = openHtmlReport(htmlFile, param=param, title=paste("FastQ Screen:", param$name),
                         dataset=dataset)
   ezWrite("<h2>Settings</h2>", con=html)
@@ -217,10 +201,13 @@ generateFastqscreenHtmlReport = function(param,dataset, htmlFile="00index.html")
   ezWrite("</table>", con=html)
   ezWrite("<h2>rRNA-Check</h2>", con=html)
   ezWrite("<h3>Per Dataset</h3>", con=html)
-  pngs = list.files(".",pattern="^Reads.png|^MappingRate.png")
-  ezWrite("<br>", con=html)
-  writeImageRowToHtml(pngs, con=html)
-  ezWrite("</br>", con=html)
+  
+  html = addFlexTable(html, ezImageTable(c(mappingRatePng, readsPng)))
+#   pngs = list.files(".",pattern="^Reads.png|^MappingRate.png")
+#   ezWrite("<br>", con=html)
+#   writeImageRowToHtml(pngs, con=html)
+#   ezWrite("</br>", con=html)
+  
   ezWrite("<h3>Per Sample</h3>", con=html)
   IMAGESperROW = 4
   pngs = list.files(".",pattern="screen\\.png")
