@@ -86,7 +86,7 @@ executeBowtie2CMD = function(param,files){
     system(paste(SAMTOOLS,"sort",bamFile, sub('.bam','',sbamFile)))       
     system(paste(SAMTOOLS,"view",sbamFile,"|cut -f1,3,12 |sort|sed 's/AS:i://g' >",countFile))
     system(paste(SAMTOOLS,"view -F 256",sbamFile,"|cut -f1,12 |sort|sed 's/AS:i://g' >",bestScoreFile))
-     }
+  }
 }
 
 collectFastqscreenOutput = function(dataset,files){
@@ -174,6 +174,7 @@ collectBowtie2Output = function(param,dataset){
 generatePlots = function(dataset, data){
   resultFiles = paste(basename(dataset$"Read1 [File]"),'_screen.txt',sep='')
   resultFiles = sub('\\.fastq.gz','',resultFiles)
+  
   for(i in 1:length(data$CommonResults)){
     png(gsub('.txt','.png',resultFiles[i],'.png'))
     par(mar=c(10.1, 4.1, 4.1, 2.1))

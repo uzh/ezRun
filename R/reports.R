@@ -13,7 +13,7 @@ ezImageTable = function(x, header=FALSE, ...) {
 }
 
 ## how to add help text? for each plot seperately or not?
-ezImageFileLink = function(ezPlotter, file=NULL, mouseOverText=ezPlotter$mouseOverText, helpText=ezPlotter$helpText,
+ezImageFileLink = function(ezPlotter, file=NULL, mouseOverText=ezPlotter$mouseOverText,
                            addPdfLink=TRUE, width=480, height=480, ...) {
   pngName = ezPlotter$plotPng(file=file, width=width, height=height, ...)
   if (addPdfLink) {

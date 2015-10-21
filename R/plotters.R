@@ -306,3 +306,34 @@ EzPlotterScatter =
                 }
               )
   )
+
+EzPlotterFastqScreen =
+  setRefClass("EzPlotterFastqScreen",
+              contains="EzPlotter",
+              methods=list(
+                initialize = function(name=NULL, x)
+                {
+                  if (ezIsSpecified(name)){
+                    name <<- name
+                  } else {
+                    name <<- "EzPlotterFastqScreen"
+                  }
+                  data <<- x
+                  helpText <<- "Contains the methods for the fastqscreen plots."
+                  mouseOverText <<- "Showing mouseOver text."
+                },
+                plot = function(addText=FALSE, ...)
+                {
+                  par(mar=c(10.1, 4.1, 4.1, 2.1))
+                  bplot = barplot(data, ...)
+                  if (addText) {
+                    text(y=data+5, x=bplot, labels=paste(as.character(data), '%', sep=''), cex=0.7, xpd=TRUE)
+                  }
+                }
+              )
+  )
+
+
+
+
+
