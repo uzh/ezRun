@@ -325,7 +325,7 @@ EzPlotterFastqScreen =
                 plot = function(addText=FALSE, ...)
                 {
                   par(mar=c(10.1, 4.1, 4.1, 2.1))
-                  bplot = barplot(data, ...)
+                  bplot = barplot(height=data, width=1, ...)
                   if (addText) {
                     text(y=data+5, x=bplot, labels=paste(as.character(data), '%', sep=''), cex=0.7, xpd=TRUE)
                   }

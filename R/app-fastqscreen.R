@@ -176,21 +176,29 @@ generatePlots = function(dataset, data){
   resultFiles = sub('\\.fastq.gz','',resultFiles)
   
   for(i in 1:length(data$CommonResults)){
-    png(gsub('.txt','.png',resultFiles[i],'.png'))
-    par(mar=c(10.1, 4.1, 4.1, 2.1))
-    barplot(t(data$CommonResults[[i]]), las=2, ylim=c(0,100),legend.text=T, ylab='MappedReads in %', main=rownames(dataset)[i])
-    dev.off()
+    plotter = EzPlotterFastqScreen$new(x=t(data$CommonResults[[i]]))
+    ezImageFileLink(plotter, file=gsub('.txt','.png',resultFiles[i],'.png'), las=2, ylim=c(0,100),
+                    legend.text=T, ylab='MappedReads in %', main=rownames(dataset)[i])
+#     png(gsub('.txt','.png',resultFiles[i],'.png'))
+#     par(mar=c(10.1, 4.1, 4.1, 2.1))
+#     barplot(t(data$CommonResults[[i]]), las=2, ylim=c(0,100),legend.text=T, ylab='MappedReads in %', main=rownames(dataset)[i])
+#     dev.off()
   }
-  png('MappingRate.png',width=800,height=600)
-  par(mar=c(10.1, 4.1, 4.1, 2.1))
-  bplt = barplot(data$MappingRate,las=2,ylim=c(0,100),ylab='MappedReads in %',main="MappingRate",col="blue")
-  text(y= data$MappingRate+5, x= bplt, labels=paste(as.character(data$MappingRate),'%',sep=''),cex=0.7, xpd=TRUE)
-  dev.off()
-  
-  png('Reads.png',width=800,height=600)
-  par(mar=c(10.1, 4.1, 4.1, 2.1))
-  bplt = barplot(data$Reads,las=2,ylab="#Reads",main="ProcessedReads",col="lightblue")
-  dev.off()
+  plotter = EzPlotterFastqScreen$new(x=data$MappingRate)
+  ezImageFileLink(plotter, file="MappingRate.png", width=800, height=600, las=2, ylim=c(0,100),
+                  ylab='MappedReads in %', main="MappingRate", col="blue")
+#   png('MappingRate.png',width=800,height=600)
+#   par(mar=c(10.1, 4.1, 4.1, 2.1))
+#   bplt = barplot(data$MappingRate,las=2,ylim=c(0,100),ylab='MappedReads in %',main="MappingRate",col="blue")
+#   text(y= data$MappingRate+5, x= bplt, labels=paste(as.character(data$MappingRate),'%',sep=''),cex=0.7, xpd=TRUE)
+#   dev.off()
+  plotter = EzPlotterFastqScreen$new(x=data$Reads)
+  ezImageFileLink(plotter, file="Reads.png", width=800, height=600, las=2,
+                  ylab="#Reads", main="ProcessedReads", col="lightblue")
+#   png('Reads.png',width=800,height=600)
+#   par(mar=c(10.1, 4.1, 4.1, 2.1))
+#   bplt = barplot(data$Reads,las=2,ylab="#Reads",main="ProcessedReads",col="lightblue")
+#   dev.off()
 }
 
 generateFastqscreenHtmlReport = function(param,dataset, htmlFile="00index.html"){
