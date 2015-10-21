@@ -174,6 +174,7 @@ collectBowtie2Output = function(param,dataset){
 generatePlots = function(dataset, data){
   resultFiles = paste(basename(dataset$"Read1 [File]"),'_screen.txt',sep='')
   resultFiles = sub('\\.fastq.gz','',resultFiles)
+  require(ReporteRs)
   
   for(i in 1:length(data$CommonResults)){
     plotter = EzPlotterFastqScreen$new(x=t(data$CommonResults[[i]]))
