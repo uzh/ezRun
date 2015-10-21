@@ -30,15 +30,8 @@ ezFeatureAnnotation = function(param, ids, dataFeatureType){
     if (!is.null(seqAnno$gc)){
       seqAnno$gc = signif(as.numeric(seqAnno$gc), digits=4)
     }
-    stopifnot(!is.null(seqAnno$width))
-    seqAnno$width = as.numeric(seqAnno$width)
-    ## legacy code: check if GO annotation has correct format; if not update the annotation file
-    if (!all(c("GO BP", "GO MF", "GO CC") %in% colnames(seqAnno)) && "GO" %in% colnames(seqAnno)){
-      seqAnno = seqAnno[ , !colnames(seqAnno) %in% c("GO BP", "GO MF", "GO CC"), drop=FALSE]
-      seqAnno = cbind(seqAnno, separateGoIdsByOnto(seqAnno$"GO"))
-      tmpFile = paste(seqAnnoFile, Sys.getpid(), sep="-") ### use a unique tmp file to avoid concurrent writing of two processes to the same file
-      ezWrite.table(seqAnno, file=tmpFile)
-      ezSystem(paste("mv", tmpFile, seqAnnoFile))
+    if (!is.null(seqAnno$wdith)){
+      seqAnno$width = as.numeric(seqAnno$width)
     }
   }
   if (dataFeatureType == "gene"){
