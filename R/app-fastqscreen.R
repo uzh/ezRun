@@ -140,9 +140,9 @@ collectBowtie2Output = function(param, dataset, countFiles){
     combinedCountData$hit = strsplit2(combinedCountData$hit,'_')[,1]
     by = combinedCountData$readId
     speciesHitsPerRead = tapply(combinedCountData$hit,by,unique)
-    uniqSpeciesHitsPerRead = names(speciesHitsPerRead)[which(sapply(speciesHitsPerRead,length)==1)]
+    uniqSpeciesHitsPerRead = names(speciesHitsPerRead)[which(sapply(speciesHitsPerRead, length)==1)]
     ###Result UniqHits:
-    uniqSpeciesHits = sort(table(unlist(speciesHitsPerRead[uniqSpeciesHitsPerRead])),decreasing = T)
+    uniqSpeciesHits = sort(table(unlist(speciesHitsPerRead[uniqSpeciesHitsPerRead])), decreasing = T)
     ###Results MultipleHits:
     multipleSpeciesHitsPerRead = combinedCountData[-which(combinedCountData$readId %in% uniqSpeciesHitsPerRead),]
     by = paste(multipleSpeciesHitsPerRead$readId,multipleSpeciesHitsPerRead$hit,sep='_')
