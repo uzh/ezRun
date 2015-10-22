@@ -30,6 +30,6 @@ BOWTIE2_DIR="/usr/local/ngseq/src/bowtie2-2.2.6"
 SAMTOOLS="/usr/local/ngseq/stow/samtools-1.2/bin/samtools"
 
 myApp = EzAppFastqScreen$new()
-myApp$run(input=input, output=output, param=param)
+myApp$run(input=input$copy()$subset(1:2), output=output, param=param)
 
 setwd(cd)

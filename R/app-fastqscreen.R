@@ -169,28 +169,11 @@ collectBowtie2Output = function(param,dataset){
   system('rm *.bestScore.txt')
 }
 
+## EzPlotter$new(expr="plotMappingRate(data$MappingRate)", mouseOvertext="ädfasfd", )
 generateHtmlReport = function(dataset, data, param, htmlFile="00index.html"){
   resultFiles = paste(basename(dataset$"Read1 [File]"),'_screen.txt',sep='')
   resultFiles = sub('\\.fastq.gz','',resultFiles)
   require(ReporteRs, warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
-  screenLinks = list()
-  detectedSpeciesLinks = list()
-  for(i in 1:length(data$CommonResults)){
-    plotter = EzPlotterFastqScreen$new(x=t(data$CommonResults[[i]]))
-    link = ezImageFileLink(plotter, file=gsub('.txt', '.png', resultFiles[i], '.png'), las=2, ylim=c(0,100),
-                    legend.text=T, ylab='MappedReads in %', main=rownames(dataset)[i])
-    if (grepl("screen", resultFiles[i])){
-      screenLinks = append(screenLinks, link)
-    } else if (grepl("DetectedSpecies", resultFiles[i])){
-      detectedSpeciesLinks = append(detectedSpeciesLinks, link)
-    }
-  }
-  plotter = EzPlotterFastqScreen$new(x=data$MappingRate)
-  mappingRateLink = ezImageFileLink(plotter, file="MappingRate.png", width=800, height=600, las=2, ylim=c(0,100),
-                  ylab='MappedReads in %', main="MappingRate", col="blue")
-  plotter = EzPlotterFastqScreen$new(x=data$Reads)
-  readsLink = ezImageFileLink(plotter, file="Reads.png", width=800, height=600, las=2,
-                  ylab="#Reads", main="ProcessedReads", col="lightblue")
   html = openBsdocReport(title=paste("FastQ Screen:", param$name), dataset=dataset)
   html = addTitle(html, "Settings", level=2)
   tableVec1 = c("Configuration File:", "RefSeq mRNA Reference:", "FastqScreen Version:", "Bowtie2 Version:",
@@ -200,26 +183,48 @@ generateHtmlReport = function(dataset, data, param, htmlFile="00index.html"){
   html = addFlexTable(html, ezFlexTable(cbind(tableVec1, tableVec2)))
   html = addTitle(html, "rRNA-Check", level=2)
   html = addTitle(html, "Per Dataset", level=3)
+  plotter = EzPlotterFastqScreen$new(x=data$MappingRate)
+  mappingRateLink = ezImageFileLink(plotter, file="MappingRate.png", width=800, height=600, las=2, ylim=c(0,100),
+                                    ylab='MappedReads in %', main="MappingRate", col="blue")
+  plotter = EzPlotterFastqScreen$new(x=data$Reads)
+  readsLink = ezImageFileLink(plotter, file="Reads.png", width=800, height=600, las=2,
+                              ylab="#Reads", main="ProcessedReads", col="lightblue")
   html = addFlexTable(html, ezFlexTable(cbind(mappingRateLink, readsLink)))
   html = addTitle(html, "Per Sample", level=3)
+  screenLinks = list()
+  detectedSpeciesLinks = list()
+  for(i in 1:length(data$CommonResults)){
+    plotter = EzPlotterFastqScreen$new(x=t(data$CommonResults[[i]]))
+    link = ezImageFileLink(plotter, file=gsub('.txt', '.png', resultFiles[i], '.png'), las=2, ylim=c(0,100),
+                           legend.text=T, ylab='MappedReads in %', main=rownames(dataset)[i])
+    if (grepl("screen", resultFiles[i])){
+      screenLinks = append(screenLinks, link)
+    } else if (grepl("DetectedSpecies", resultFiles[i])){
+      detectedSpeciesLinks = append(detectedSpeciesLinks, link)
+    }
+  }
   IMAGESperROW = 4
-#   if(length(screenLinks) <= IMAGESperROW){
-#     html = addFlexTable(html, ezFlexTable(rbind(screenLinks)))
-#   } else {
-#     html = addFlexTable(html, ezFlexTable(rbind(screenLinks[1:IMAGESperROW])))
-#     for(i in 1:(ceiling(length(screenLinks)/IMAGESperROW)-1)){
-#       html = addFlexTable(html, ezFlexTable(rbind(screenLinks[(i*IMAGESperROW+1):min((i+1)*IMAGESperROW,length(screenLinks))])))
-#     }
-#   }
-#   html = addTitle(html, "Mapping to RefSeq mRNA", level=2)
-#   if(length(detectedSpeciesLinks) <= IMAGESperROW){
-#     html = addFlexTable(html, ezFlexTable(rbind(detectedSpeciesLinks)))
-#   } else {
-#     html = addFlexTable(html, ezFlexTable(rbind(detectedSpeciesLinks[1:IMAGESperROW])))
-#     for(i in 1:(ceiling(length(detectedSpeciesLinks)/IMAGESperROW)-1)){
-#       html = addFlexTable(html, ezFlexTable(rbind(detectedSpeciesLinks[(i*IMAGESperROW+1):min((i+1)*IMAGESperROW,length(detectedSpeciesLinks))])))
-#     }
-#   }
+  if (ezIsSpecified(screenLinks)){
+    if(length(screenLinks) <= IMAGESperROW){
+      html = addFlexTable(html, ezFlexTable(rbind(screenLinks)))
+    } else {
+      html = addFlexTable(html, ezFlexTable(rbind(screenLinks[1:IMAGESperROW])))
+      for(i in 1:(ceiling(length(screenLinks)/IMAGESperROW)-1)){
+        html = addFlexTable(html, ezFlexTable(rbind(screenLinks[(i*IMAGESperROW+1):min((i+1)*IMAGESperROW,length(screenLinks))])))
+      }
+    }
+  }
+  if (ezIsSpecified(detectedSpeciesLinks)){
+    html = addTitle(html, "Mapping to RefSeq mRNA", level=2)
+    if(length(detectedSpeciesLinks) <= IMAGESperROW){
+      html = addFlexTable(html, ezFlexTable(rbind(detectedSpeciesLinks)))
+    } else {
+      html = addFlexTable(html, ezFlexTable(rbind(detectedSpeciesLinks[1:IMAGESperROW])))
+      for(i in 1:(ceiling(length(detectedSpeciesLinks)/IMAGESperROW)-1)){
+        html = addFlexTable(html, ezFlexTable(rbind(detectedSpeciesLinks[(i*IMAGESperROW+1):min((i+1)*IMAGESperROW,length(detectedSpeciesLinks))])))
+      }
+    }
+  }
   html = addTitle(html, "Misc", level=2)
   txts = list.files(".",pattern="screen\\.txt")
   for (each in txts){
