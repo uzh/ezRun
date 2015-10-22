@@ -22,7 +22,7 @@ ezMethodFastqScreen = function(input=NA, output=NA, param=NA, htmlFile="00index.
   executeBowtie2CMD(param,files)
   data = collectFastqscreenOutput(dataset,files)
   collectBowtie2Output(param,dataset)
-  generateReport(dataset=dataset, data=data, param=param, htmlFile=htmlFile)
+  generateHtmlReport(dataset=dataset, data=data, param=param, htmlFile=htmlFile)
   return("Success")
 }
 
@@ -170,74 +170,116 @@ collectBowtie2Output = function(param,dataset){
 }
  
 
-generateReport = function(dataset, data, param, htmlFile="00index.html"){
+generateHtmlReport = function(dataset, data, param, htmlFile="00index.html"){
   resultFiles = paste(basename(dataset$"Read1 [File]"),'_screen.txt',sep='')
   resultFiles = sub('\\.fastq.gz','',resultFiles)
-  require(ReporteRs)
+  require(ReporteRs, warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
   
+  screenLinks = list()
+  detectedSpeciesLinks = list()
   for(i in 1:length(data$CommonResults)){
     plotter = EzPlotterFastqScreen$new(x=t(data$CommonResults[[i]]))
-    ezImageFileLink(plotter, file=gsub('.txt','.png',resultFiles[i],'.png'), las=2, ylim=c(0,100),
+    link = ezImageFileLink(plotter, file=gsub('.txt', '.png', resultFiles[i], '.png'), las=2, ylim=c(0,100),
                     legend.text=T, ylab='MappedReads in %', main=rownames(dataset)[i])
+    if (grepl("screen", resultFiles[i])){
+      screenLinks = append(screenLinks, link)
+    } else if (grepl("DetectedSpecies", resultFiles[i])){
+      detectedSpeciesLinks = append(detectedSpeciesLinks, link)
+    }
   }
+  
   plotter = EzPlotterFastqScreen$new(x=data$MappingRate)
-  mappingRatePng = ezImageFileLink(plotter, file="MappingRate.png", width=800, height=600, las=2, ylim=c(0,100),
+  mappingRateLink = ezImageFileLink(plotter, file="MappingRate.png", width=800, height=600, las=2, ylim=c(0,100),
                   ylab='MappedReads in %', main="MappingRate", col="blue")
   plotter = EzPlotterFastqScreen$new(x=data$Reads)
-  readsPng = ezImageFileLink(plotter, file="Reads.png", width=800, height=600, las=2,
+  readsLink = ezImageFileLink(plotter, file="Reads.png", width=800, height=600, las=2,
                   ylab="#Reads", main="ProcessedReads", col="lightblue")
 
-  html = openHtmlReport(htmlFile, param=param, title=paste("FastQ Screen:", param$name),
-                        dataset=dataset)
-  ezWrite("<h2>Settings</h2>", con=html)
-  ezWrite("<table border='0'>", con=html)
-  ezWrite("<tr><td>Configuration File:</td><td>",param$confFile, "</td></tr>", con=html)
-  ezWrite("<tr><td>RefSeq mRNA Reference:</td><td>",REFSEQ_mRNA_REF,"</td></tr>", con=html)
-  ezWrite("<tr><td>FastqScreen Version:</td><td>",basename(dirname(FASTQSCREEN)), "</td></tr>", con=html)
-  ezWrite("<tr><td>Bowtie2 Version:</td><td>",basename(BOWTIE2_DIR), "</td></tr>", con=html)
-  ezWrite("<tr><td>Bowtie2 Parameters:</td><td>", param$cmdOptions, "</td></tr>", con=html)
-  ezWrite("<tr><td>Minimum AlignmentScore:</td><td>",param$minAlignmentScore, "</td></tr>", con=html)
-  ezWrite("<tr><td>TopSpecies:</td><td>",param$nTopSpecies, "</td></tr>", con=html)
-  ezWrite("<tr><td>Subset:</td><td>", param$subset, "</td></tr>", con=html)
-  ezWrite("</table>", con=html)
-  ezWrite("<h2>rRNA-Check</h2>", con=html)
-  ezWrite("<h3>Per Dataset</h3>", con=html)
+#   html = openHtmlReport(htmlFile, param=param, title=paste("FastQ Screen:", param$name),
+#                         dataset=dataset)
+  html = openBsdocReport(title=paste("FastQ Screen:", param$name), dataset=dataset)
   
-  html = addFlexTable(html, ezImageTable(c(mappingRatePng, readsPng)))
+#   ezWrite("<h2>Settings</h2>", con=html)
+  html = addTitle(html, "Settings", level=2)
+  
+#   ezWrite("<table border='0'>", con=html)
+#   ezWrite("<tr><td>Configuration File:</td><td>",param$confFile, "</td></tr>", con=html)
+#   ezWrite("<tr><td>RefSeq mRNA Reference:</td><td>",REFSEQ_mRNA_REF,"</td></tr>", con=html)
+#   ezWrite("<tr><td>FastqScreen Version:</td><td>",basename(dirname(FASTQSCREEN)), "</td></tr>", con=html)
+#   ezWrite("<tr><td>Bowtie2 Version:</td><td>",basename(BOWTIE2_DIR), "</td></tr>", con=html)
+#   ezWrite("<tr><td>Bowtie2 Parameters:</td><td>", param$cmdOptions, "</td></tr>", con=html)
+#   ezWrite("<tr><td>Minimum AlignmentScore:</td><td>",param$minAlignmentScore, "</td></tr>", con=html)
+#   ezWrite("<tr><td>TopSpecies:</td><td>",param$nTopSpecies, "</td></tr>", con=html)
+#   ezWrite("<tr><td>Subset:</td><td>", param$subset, "</td></tr>", con=html)
+#   ezWrite("</table>", con=html)
+  tableVec1 = c("Configuration File:", "RefSeq mRNA Reference:", "FastqScreen Version:", "Bowtie2 Version:",
+                "Bowtie2 Parameters:", "Minimum AlignmentScore:", "TopSpecies:", "Subset:")
+  tableVec2 = c(param$confFile, REFSEQ_mRNA_REF, basename(dirname(FASTQSCREEN)), basename(BOWTIE2_DIR),
+                param$cmdOptions, param$minAlignmentScore, param$nTopSpecies, param$subset)
+  html = addFlexTable(html, ezFlexTable(cbind(tableVec1, tableVec2)))
+  
+#   ezWrite("<h2>rRNA-Check</h2>", con=html)
+#   ezWrite("<h3>Per Dataset</h3>", con=html)
+  html = addTitle(html, "rRNA-Check", level=2)
+  html = addTitle(html, "Per Dataset", level=3)
+  
 #   pngs = list.files(".",pattern="^Reads.png|^MappingRate.png")
 #   ezWrite("<br>", con=html)
 #   writeImageRowToHtml(pngs, con=html)
 #   ezWrite("</br>", con=html)
+  html = addFlexTable(html, ezFlexTable(cbind(mappingRateLink, readsLink)))
   
-  ezWrite("<h3>Per Sample</h3>", con=html)
+#   ezWrite("<h3>Per Sample</h3>", con=html)
+  html = addTitle(html, "Per Sample", level=3)
+  
   IMAGESperROW = 4
-  pngs = list.files(".",pattern="screen\\.png")
-  ezWrite("<br>", con=html)
-  if(length(pngs) <= IMAGESperROW){
-    writeImageRowToHtml(pngs, con=html)
+#   pngs = list.files(".",pattern="screen\\.png")
+#   ezWrite("<br>", con=html)
+  if(length(screenLinks) <= IMAGESperROW){
+#     writeImageRowToHtml(pngs, con=html)
+    html = addFlexTable(html, ezFlexTable(rbind(screenLinks)))
   } else {
-    writeImageRowToHtml(pngs[1:IMAGESperROW], con=html)
-    for(i in 1:(ceiling(length(pngs)/IMAGESperROW)-1)){
-      writeImageRowToHtml(pngs[(i*IMAGESperROW+1):min((i+1)*IMAGESperROW,length(pngs))], con=html)  
-    } 
-  }
-  ezWrite("<h2>Mapping to RefSeq mRNA</h2>", con=html)
-  pngs = list.files(".",pattern="DetectedSpecies.*.png")
-  ezWrite("<br>", con=html)
-  if(length(pngs) <= IMAGESperROW){
-    writeImageRowToHtml(pngs, con=html)
-  } else {
-    writeImageRowToHtml(pngs[1:IMAGESperROW], con=html)
-    for(i in 1:(ceiling(length(pngs)/IMAGESperROW)-1)){
-      writeImageRowToHtml(pngs[(i*IMAGESperROW+1):min((i+1)*IMAGESperROW,length(pngs))], con=html)  
-    } 
+#     writeImageRowToHtml(pngs[1:IMAGESperROW], con=html)
+    html = addFlexTable(html, ezFlexTable(rbind(screenLinks[1:IMAGESperROW])))
+    for(i in 1:(ceiling(length(screenLinks)/IMAGESperROW)-1)){
+#       writeImageRowToHtml(pngs[(i*IMAGESperROW+1):min((i+1)*IMAGESperROW,length(pngs))], con=html)
+      html = addFlexTable(html, ezFlexTable(rbind(screenLinks[(i*IMAGESperROW+1):min((i+1)*IMAGESperROW,length(screenLinks))])))
+    }
   }
   
-  ezWrite("<h2>Misc</h2>", con=html)
+#   ezWrite("<h2>Mapping to RefSeq mRNA</h2>", con=html)
+  html = addTitle(html, "Mapping to RefSeq mRNA", level=2)
+  
+#   pngs = list.files(".",pattern="DetectedSpecies.*.png")
+#   ezWrite("<br>", con=html)
+  if(length(detectedSpeciesLinks) <= IMAGESperROW){
+    html = addFlexTable(html, ezFlexTable(rbind(detectedSpeciesLinks)))
+  } else {
+    html = addFlexTable(html, ezFlexTable(rbind(detectedSpeciesLinks[1:IMAGESperROW])))
+    for(i in 1:(ceiling(length(detectedSpeciesLinks)/IMAGESperROW)-1)){
+      html = addFlexTable(html, ezFlexTable(rbind(detectedSpeciesLinks[(i*IMAGESperROW+1):min((i+1)*IMAGESperROW,length(detectedSpeciesLinks))])))
+    }
+  }
+  
+#   ezWrite("<h2>Misc</h2>", con=html)
+  html = addTitle(html, "Misc", level=2)
+  
   txts = list.files(".",pattern="screen\\.txt")
-  writeTxtLinksToHtml(txts, con=html)
+#   writeTxtLinksToHtml(txts, con=html)
+  for (each in txts){
+    html = addParagraph(html, pot(each, hyperlink = each))
+  }
+  
   ezSessionInfo()
-  writeTxtLinksToHtml('sessionInfo.txt',con=html)
-  flush(html)
-  closeHTML(html)
+#   writeTxtLinksToHtml('sessionInfo.txt',con=html)
+  html = addParagraph(html, pot("sessionInfo.txt", hyperlink = "sessionInfo.txt"))
+  
+#   flush(html)
+#   closeHTML(html)
+  closeBsdocReport(doc=html, file=htmlFile)
 }
+
+
+
+
+
