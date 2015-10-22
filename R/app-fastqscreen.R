@@ -184,10 +184,10 @@ generateHtmlReport = function(dataset, data, param, htmlFile="00index.html"){
   html = addTitle(html, "rRNA-Check", level=2)
   html = addTitle(html, "Per Dataset", level=3)
   plotter = EzPlotterFastqScreen$new(x=data$MappingRate)
-  mappingRateLink = ezImageFileLink(plotter, file="MappingRate.png", width=800, height=600, las=2, ylim=c(0,100),
+  mappingRateLink = ezImageFileLink(plotter, file="MappingRate.png", width=600, height=450, las=2, ylim=c(0,100),
                                     ylab='MappedReads in %', main="MappingRate", col="blue")
   plotter = EzPlotterFastqScreen$new(x=data$Reads)
-  readsLink = ezImageFileLink(plotter, file="Reads.png", width=800, height=600, las=2,
+  readsLink = ezImageFileLink(plotter, file="Reads.png", width=600, height=450, las=2,
                               ylab="#Reads", main="ProcessedReads", col="lightblue")
   html = addFlexTable(html, ezFlexTable(cbind(mappingRateLink, readsLink)))
   html = addTitle(html, "Per Sample", level=3)
