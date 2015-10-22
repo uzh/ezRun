@@ -8,7 +8,7 @@ ezFrame(..., row.names = NULL, check.rows = TRUE, check.names = FALSE,
   stringsAsFactors = FALSE)
 }
 \arguments{
-\item{...}{additional arguments to be passed to \code{\code{data.frame()}}.}
+\item{...}{additional arguments to be passed to \code{data.frame}.}
 }
 \value{
 Returns a data.frame.

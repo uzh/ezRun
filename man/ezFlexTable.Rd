@@ -11,7 +11,7 @@ ezFlexTable(x, header = FALSE, ...)
 
 \item{header}{a logical indicating whether to use a header for the table.}
 
-\item{...}{additional arguments to be passed to \code{\code{FlexTable()}}.}
+\item{...}{additional arguments to be passed to \code{FlexTable}.}
 }
 \value{
 Returns an object of the class FlexTable.

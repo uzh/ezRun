@@ -6,6 +6,15 @@
 # www.fgcz.ch
 
 
+##' @title The R5 class representing the basic plotter
+##' @description This class is usually not used, but all other plotters inherit from it.
+##' @field name a character specifying the name of the plotter instance.
+##' @field data a data.frame, matrix, table or another sensible data object to create plots from.
+##' @field helpText a character specifying the help text of the plotter.
+##' @field mouseOverText a character specifying the mouseOver text of images created with the plotter.
+##' @template roxygen-template
+##' @examples
+##' EzPlotter$new()
 EzPlotter =
   setRefClass("EzPlotter",
               fields = c("name", "data", "helpText", "mouseOverText"),

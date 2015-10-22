@@ -17,7 +17,7 @@ ezBannerFile()
 
 \item{param}{a list of parameters to extract the \code{projectId} from.}
 
-\item{title}{a character representing the title of the html report.}
+\item{title}{a character specifying the title of the html report.}
 
 \item{dataset}{usually a data.frame from the meta field of an EzDataset.}
 }

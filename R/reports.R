@@ -11,7 +11,7 @@
 ##' @param x a matrix or data.frame to turn into an object of the class FlexTable.
 ##' @param header a logical indicating whether to use a header for the table.
 ##' @template addargs-template
-##' @templateVar fun \code{FlexTable()}
+##' @templateVar fun FlexTable
 ##' @template roxygen-template
 ##' @seealso \code{\link[ReporteRs]{FlexTable}}
 ##' @return Returns an object of the class FlexTable.
@@ -23,8 +23,25 @@ ezFlexTable = function(x, header=FALSE, ...){
             header.columns = header, ...)
 }
 
-
-## how to add help text? for each plot seperately or not?
+# how to add help text? for each plot seperately or not?
+##' @title Gets an image link as html
+##' @description Gets an image link as html. Also plots and creates the image.
+##' @param ezPlotter an object of the class EzPlotter or inheriting from it.
+##' @param file a character specifying the name of the image.
+##' @param mouseOverText a character specifying the text being displayed when mousing over the image.
+##' @param addPdfLink a logical indicating whether to add a link on the image to a pdf version of itself.
+##' @param width an integer specifying the width of each plot to create an image from.
+##' @param height an integer specifying the height of each plot to create an image from.
+##' @template addargs-template
+##' @templateVar fun ezPlotter
+##' @template roxygen-template
+##' @seealso \code{\link{EzPlotter}}
+##' @return Returns a character specifying a link to an image in html.
+##' @examples
+##' imageLink = ezImageFileLink(EzPlotterIris$new())
+##' theDoc = bsdoc(title = 'My document')
+##' theDoc = addParagraph(theDoc, imageLink)
+##' writeDoc(theDoc, "example.html")
 ezImageFileLink = function(ezPlotter, file=NULL, mouseOverText=ezPlotter$mouseOverText,
                            addPdfLink=TRUE, width=480, height=480, ...){
   pngName = ezPlotter$plotPng(file=file, width=width, height=height, ...)
@@ -38,11 +55,21 @@ ezImageFileLink = function(ezPlotter, file=NULL, mouseOverText=ezPlotter$mouseOv
   return(as.html(imgFilePot))
 }
 
-
 # important: creating the report like this will not use a connection, so this causes many adjustments
 # currently not possible to use from old report opener:
 # writeLines(readLines(ezCSSFile()), con=html) ## no custom css for reporteRs
 # writeJavaScriptIgvStarter(htmlFile, param$projectId, html) ## perhaps refactorable with addJavascript(), but how to put in html head?
+##' @title Opens an html report
+##' @description Opens an html report using \code{bsdoc()} from the ReporteRs package. Also adds some introductory elements.
+##' @param title a character specifying the title of the html report.
+##' @param dataset usually a data.frame from the meta field of an EzDataset.
+##' @template roxygen-template
+##' @seealso \code{\link[ReporteRs]{bsdoc}}
+##' @seealso \code{\link[ReporteRs]{writeDoc}}
+##' @return Returns an object of the class bsdoc to add further elements.
+##' @examples
+##' theDoc = openBsdocReport(title="My html report")
+##' closeBsdocReport(doc=theDoc, file="example.html")
 openBsdocReport = function(title="", dataset=NULL){
   html = bsdoc(title = title)
   file.copy(ezBannerFile(), ".")
@@ -59,10 +86,8 @@ openBsdocReport = function(title="", dataset=NULL){
   return(html)
 }
 
+##' @describeIn openBsdocReport Adds a paragraph showing the finishing time and writes the document.
 closeBsdocReport = function(doc, file){
   doc = addParagraph(doc, paste("Finished", format(Sys.time(), "%Y-%m-%d %H:%M:%S")))
   writeDoc(doc, file=file)
 }
-
-# writeDoc(html, "bla.html")
-

@@ -10,7 +10,7 @@
 ##' @description Writes an html report and returns the connection to it.
 ##' @param htmlFile a character representing the path to write the report in.
 ##' @param param a list of parameters to extract the \code{projectId} from.
-##' @param title a character representing the title of the html report.
+##' @param title a character specifying the title of the html report.
 ##' @param dataset usually a data.frame from the meta field of an EzDataset.
 ##' @template roxygen-template
 ##' @return Returns a connection to the written html report.
