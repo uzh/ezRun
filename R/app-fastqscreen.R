@@ -18,11 +18,11 @@ ezMethodFastqScreen = function(input=NA, output=NA, param=NA, htmlFile="00index.
   samples = rownames(dataset)
   files = input$getFullPaths(param,"Read1")
   names(files) = samples
-  executeFastqscreenCMD(param,files)
-  executeBowtie2CMD(param,files)
-  data = collectFastqscreenOutput(dataset,files)
-  collectBowtie2Output(param,dataset)
-  generateHtmlReport(dataset=dataset, data=data, param=param, htmlFile=htmlFile)
+  resultFiles = executeFastqscreenCMD(param, files, dataset)
+  executeBowtie2CMD(param, files)
+  data = collectFastqscreenOutput(dataset, files, resultFiles)
+  collectBowtie2Output(param, dataset)
+  fastqscreenReport(dataset=dataset, data=data, param=param, htmlFile=htmlFile, resultFiles)
   return("Success")
 }
 
@@ -47,16 +47,18 @@ EzAppFastqScreen <-
 
 
 ## NOTEP: all 6 functions below get only called once each in ezMethodFastqScreen()
-executeFastqscreenCMD = function(param,files){
-  confFile = paste(FASTQSCREEN_CONF_DIR,param$confFile,sep="")
+executeFastqscreenCMD = function(param, files, dataset){
+  confFile = paste(FASTQSCREEN_CONF_DIR, param$confFile, sep="")
   opt = ""
   if (param$nReads > 0){
     opt = paste(opt, "--subset", ezIntString(param$nReads))
   }
-  cmd = paste(FASTQSCREEN, opt, " --threads", param$cores," --conf ",confFile,
-                paste(files, collapse=" "),"--outdir . --aligner bowtie2",
+  cmd = paste(FASTQSCREEN, opt, " --threads", param$cores, " --conf ", confFile,
+                paste(files, collapse=" "), "--outdir . --aligner bowtie2",
                 "> fastqscreen.out", "2> fastqscreen.err")
   ezSystem(cmd)
+  resultFiles = paste(sub(".fastq.gz", "", basename(dataset$"Read1 [File]")),'_screen.txt',sep='') 
+  return(resultFiles)
 }
 
 # TODO merge with 
@@ -88,8 +90,7 @@ executeBowtie2CMD = function(param,files){
   }
 }
 
-collectFastqscreenOutput = function(dataset,files){
-  resultFiles = paste(sub(".fastq.gz", "", basename(dataset$"Read1 [File]")),'_screen.txt',sep='') 
+collectFastqscreenOutput = function(dataset, files, resultFiles){
   data = list()
   data$MappingRate = vector(length=length(resultFiles),mode='double')
   names(data$MappingRate) = rownames(dataset)
@@ -163,16 +164,14 @@ collectBowtie2Output = function(param,dataset){
                  col=c('blue','lightblue'),legend.text =T)
     text(y= 3,x= bp, labels=paste(speciesPercentageTop[,1],'%',sep=''), xpd=TRUE)
     dev.off()
-    }
+  }
   system('rm *.sam')
   system('rm *.bam')
   system('rm *.bestScore.txt')
 }
 
 ## EzPlotter$new(expr="plotMappingRate(data$MappingRate)", mouseOvertext="ädfasfd", )
-generateHtmlReport = function(dataset, data, param, htmlFile="00index.html"){
-  resultFiles = paste(basename(dataset$"Read1 [File]"),'_screen.txt',sep='')
-  resultFiles = sub('\\.fastq.gz','',resultFiles)
+fastqscreenReport = function(dataset, data, param, htmlFile="00index.html", resultFiles){
   require(ReporteRs, warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
   html = openBsdocReport(title=paste("FastQ Screen:", param$name), dataset=dataset)
   html = addTitle(html, "Settings", level=2)
