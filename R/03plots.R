@@ -66,6 +66,7 @@ EzPlotterIris =
               methods=list(
                 initialize = function(name=NULL)
                 {
+                  "Initializes the fields and uses the iris dataset from R."
                   if (ezIsSpecified(name)){
                     name <<- name
                   } else {
@@ -77,6 +78,7 @@ EzPlotterIris =
                 },
                 plot=function(...)
                 {
+                  "Plots the provided iris data with optional arguments passed with ..."
                   graphics::plot(data$Sepal.Length, data$Sepal.Width, ...)
                 }
               )

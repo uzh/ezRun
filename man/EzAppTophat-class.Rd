@@ -6,7 +6,7 @@
 \alias{EzAppTophat-class}
 \title{The R5 class representing a runnable app using \code{ezMethodTophat()}}
 \description{
-This reference class is based on \code{EzApp()} and uses the function \code{ezMethodTophat()}.
+This reference class is based on \code{EzApp} and uses the function \code{ezMethodTophat()}.
 }
 \section{Fields}{
 

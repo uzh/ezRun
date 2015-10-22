@@ -6,7 +6,7 @@
 \alias{EzAppMacs2-class}
 \title{The R5 class representing a runnable app using \code{ezMethodMacs2()}}
 \description{
-This reference class is based on \code{EzApp()} and uses the function \code{ezMethodMacs2()}.
+This reference class is based on \code{EzApp} and uses the function \code{ezMethodMacs2()}.
 }
 \section{Fields}{
 

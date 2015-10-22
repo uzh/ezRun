@@ -6,7 +6,7 @@
 \alias{EzAppBamPreview-class}
 \title{The R5 class representing a runnable app using \code{ezMethodBamPreview()}}
 \description{
-This reference class is based on \code{EzApp()} and uses the function \code{ezMethodBamPreview()}.
+This reference class is based on \code{EzApp} and uses the function \code{ezMethodBamPreview()}.
 }
 \section{Fields}{
 

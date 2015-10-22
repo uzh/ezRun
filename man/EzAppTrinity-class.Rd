@@ -6,7 +6,7 @@
 \alias{EzAppTrinity-class}
 \title{The R5 class representing a runnable app using \code{ezMethodTrinity()}}
 \description{
-This reference class is based on \code{EzApp()} and uses the function \code{ezMethodTrinity()}.
+This reference class is based on \code{EzApp} and uses the function \code{ezMethodTrinity()}.
 }
 \section{Fields}{
 

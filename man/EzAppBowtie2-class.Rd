@@ -6,7 +6,7 @@
 \alias{EzAppBowtie2-class}
 \title{The R5 class representing a runnable app using \code{ezMethodBowtie2()}}
 \description{
-This reference class is based on \code{EzApp()} and uses the function \code{ezMethodBowtie2()}.
+This reference class is based on \code{EzApp} and uses the function \code{ezMethodBowtie2()}.
 }
 \section{Fields}{
 

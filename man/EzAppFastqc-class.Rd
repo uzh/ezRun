@@ -6,7 +6,7 @@
 \alias{EzAppFastqc-class}
 \title{The R5 class representing a runnable app using \code{ezMethodFastQC()}}
 \description{
-This reference class is based on \code{EzApp()} and uses the function \code{ezMethodFastQC()}.
+This reference class is based on \code{EzApp} and uses the function \code{ezMethodFastQC()}.
 }
 \section{Fields}{
 

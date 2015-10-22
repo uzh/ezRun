@@ -10,7 +10,6 @@
 ##' @templateVar methodName Fastq Screen
 ##' @seealso \code{\link{EzAppFastqScreen}}
 ezMethodFastqScreen = function(input=NA, output=NA, param=NA, htmlFile="00index.html"){
-  
   cwd = getwd()
   on.exit(setwd(cwd))
   setwdNew(basename(output$getColumn("Report")))
@@ -18,11 +17,11 @@ ezMethodFastqScreen = function(input=NA, output=NA, param=NA, htmlFile="00index.
   samples = rownames(dataset)
   files = input$getFullPaths(param,"Read1")
   names(files) = samples
-  executeFastqscreenCMD(param,files)
-  executeBowtie2CMD(param,files)
-  data = collectFastqscreenOutput(dataset,files)
-  collectBowtie2Output(param,dataset)
-  generateHtmlReport(dataset=dataset, data=data, param=param, htmlFile=htmlFile)
+  resultFiles = executeFastqscreenCMD(param, files, dataset)
+  countFiles = executeBowtie2CMD(param, files)
+  data = collectFastqscreenOutput(dataset, files, resultFiles)
+  speciesPercentageTop = collectBowtie2Output(param, dataset, countFiles)
+  fastqscreenReport(dataset, data, param, htmlFile, resultFiles, speciesPercentageTop)
   return("Success")
 }
 
@@ -47,49 +46,52 @@ EzAppFastqScreen <-
 
 
 ## NOTEP: all 6 functions below get only called once each in ezMethodFastqScreen()
-executeFastqscreenCMD = function(param,files){
-  confFile = paste(FASTQSCREEN_CONF_DIR,param$confFile,sep="")
+executeFastqscreenCMD = function(param, files, dataset){
+  confFile = paste(FASTQSCREEN_CONF_DIR, param$confFile, sep="")
   opt = ""
   if (param$nReads > 0){
     opt = paste(opt, "--subset", ezIntString(param$nReads))
   }
-  cmd = paste(FASTQSCREEN, opt, " --threads", param$cores," --conf ",confFile,
-                paste(files, collapse=" "),"--outdir . --aligner bowtie2",
-                "> fastqscreen.out", "2> fastqscreen.err")
+  cmd = paste(FASTQSCREEN, opt, " --threads", param$cores, " --conf ", confFile,
+              paste(files, collapse=" "), "--outdir . --aligner bowtie2",
+              "> fastqscreen.out", "2> fastqscreen.err")
   ezSystem(cmd)
+  resultFiles = paste(sub(".fastq.gz", "", basename(dataset$"Read1 [File]")),'_screen.txt',sep='') 
+  return(resultFiles)
 }
 
 # TODO merge with 
-executeBowtie2CMD = function(param,files){
+executeBowtie2CMD = function(param, files){
   # TODO build filenames from samplenames; return result files; use ezSortIndexBam
+  countFiles = sub('f.*q.gz$', 'counts.txt', basename(files))
   for (i in 1:length(files)){
-    countFile = basename(files[i])
-    countFile = sub('f.*q.gz$','counts.txt',countFile)
-    samFile = sub('counts.txt','sam',countFile)
-    bamFile = sub('counts.txt','bam',countFile)
-    sbamFile = sub('bam','sorted.bam',bamFile)
-    bestScoreFile = sub('counts.txt','bestScore.txt',countFile)
+    #     countFile = basename(files[i])
+    #     countFile = sub('f.*q.gz$', 'counts.txt', countFile)
+    samFile = sub('counts.txt', 'sam', countFiles[i])
+    bamFile = sub('counts.txt', 'bam', countFiles[i])
+    sbamFile = sub('bam', 'sorted.bam', bamFile)
+    bestScoreFile = sub('counts.txt', 'bestScore.txt', countFiles[i])
     bowtie2options = param$cmdOptions
     if(!param$paired){
       cmd = paste(file.path(BOWTIE2_DIR,'bowtie2'),"-x",REFSEQ_mRNA_REF, 
-                " -U ",files[i], bowtie2options ,"-p",param$cores,"-u",param$nReads,
-                "--no-unal -S",samFile,"2> ",paste(sub('.sam','',samFile),"_bowtie2.err",sep=''))
+                  " -U ",files[i], bowtie2options ,"-p",param$cores,"-u",param$nReads,
+                  "--no-unal -S",samFile,"2> ",paste(sub('.sam','',samFile),"_bowtie2.err",sep=''))
     } else {
       R2_file = sub('R1','R2',files[i])
       cmd = paste(file.path(BOWTIE2_DIR,'bowtie2'),"-x",REFSEQ_mRNA_REF, 
-                    " -1 ",files[i]," -2 ", R2_file, bowtie2options, "-p",param$cores,"-u",param$nReads,
-                    "--no-discordant --no-mixed --no-unal -S",samFile,"2> ",paste(sub('.sam','',samFile),"_bowtie2.err",sep=''))
+                  " -1 ",files[i]," -2 ", R2_file, bowtie2options, "-p",param$cores,"-u",param$nReads,
+                  "--no-discordant --no-mixed --no-unal -S",samFile,"2> ",paste(sub('.sam','',samFile),"_bowtie2.err",sep=''))
     }
     ezSystem(cmd)
     system(paste(SAMTOOLS,"view -bS ",samFile,"-o", bamFile))
     system(paste(SAMTOOLS,"sort",bamFile, sub('.bam','',sbamFile)))       
-    system(paste(SAMTOOLS,"view",sbamFile,"|cut -f1,3,12 |sort|sed 's/AS:i://g' >",countFile))
+    system(paste(SAMTOOLS,"view",sbamFile,"|cut -f1,3,12 |sort|sed 's/AS:i://g' >",countFiles[i]))
     system(paste(SAMTOOLS,"view -F 256",sbamFile,"|cut -f1,12 |sort|sed 's/AS:i://g' >",bestScoreFile))
   }
+  return(countFiles)
 }
 
-collectFastqscreenOutput = function(dataset,files){
-  resultFiles = paste(sub(".fastq.gz", "", basename(dataset$"Read1 [File]")),'_screen.txt',sep='') 
+collectFastqscreenOutput = function(dataset, files, resultFiles){
   data = list()
   data$MappingRate = vector(length=length(resultFiles),mode='double')
   names(data$MappingRate) = rownames(dataset)
@@ -111,7 +113,7 @@ collectFastqscreenOutput = function(dataset,files){
 }
 
 # TODO: merge with executBowtie2Cmd; return data; don't make plots
-collectBowtie2Output = function(param,dataset){
+collectBowtie2Output = function(param, dataset, countFiles){
   require(limma)
   tax2name = read.table('/srv/GT/reference/RefSeq/mRNA/20150301/Annotation/tax2name.txt',header=F,stringsAsFactors=F,sep='|', 
                         colClasses="character",quote='', comment.char="")
@@ -119,17 +121,19 @@ collectBowtie2Output = function(param,dataset){
   tax2name$TAX_ID = sub("\t", "", tax2name$TAX_ID)
   tax2name$Name = gsub('\t','',tax2name$Name)
   rownames(tax2name) = tax2name$TAX_ID
-  files = dataset[['Read1 [File]']]
+  #   files = dataset[['Read1 [File]']]
+  SampleNames = rownames(dataset)
+  speciesPercentageTop = list()
   for (i in 1:length(files)){
-    countFile = basename(files[i])
-    countFile = sub('f.*q.gz$','counts.txt',countFile)
-    bestScoreFile = sub('counts.txt','bestScore.txt',countFile)
-    SampleName = rownames(dataset)[i]
-    countData = read.table(countFile,header=F,sep='',stringsAsFactors=F,comment.char = '')
-    colnames(countData)=c('readId','hit','aScore')
-    bestScoreData = read.table(bestScoreFile,header=F,sep='',stringsAsFactors=F,comment.char = '')
-    colnames(bestScoreData) = c('readId','bestAScore')
-    combinedCountData = merge(countData,bestScoreData,by.x='readId',by.y='readId')
+    #     countFile = basename(files[i])
+    #     countFile = sub('f.*q.gz$','counts.txt',countFile)
+    bestScoreFile = sub('counts.txt', 'bestScore.txt', countFiles[i])
+    #     SampleName = rownames(dataset)[i]
+    countData = read.table(countFiles[i], header=F, sep='', stringsAsFactors=F, comment.char='')
+    colnames(countData) = c('readId', 'hit', 'aScore')
+    bestScoreData = read.table(bestScoreFile, header=F, sep='', stringsAsFactors=F, comment.char='')
+    colnames(bestScoreData) = c('readId', 'bestAScore')
+    combinedCountData = merge(countData, bestScoreData, by.x='readId', by.y='readId')
     combinedCountData = combinedCountData[which(combinedCountData$aScore == combinedCountData$bestAScore),]
     combinedCountData = combinedCountData[which(combinedCountData$aScore >= param$minAlignmentScore),]
     ## TODO: strsplit2 fails if no hits satsify the criteria and combinedCountData has zero rows
@@ -152,27 +156,27 @@ collectBowtie2Output = function(param,dataset){
     } else {
       totalCount = dataset[['Read Count']][i]
     }
-    speciesPercentageTop = signif(100 * cbind(topSpeciesUniq,topSpeciesMultiple)/totalCount, digits=4)
-    taxIdsTopSpecies = rownames(speciesPercentageTop)
+    speciesPercentageTop[i] = signif(100 * cbind(topSpeciesUniq,topSpeciesMultiple)/totalCount, digits=4)
+    taxIdsTopSpecies = rownames(speciesPercentageTop[i])
     namesTopSpecies = tax2name[taxIdsTopSpecies,c('Name')]
-    rownames(speciesPercentageTop)[which(!is.na(namesTopSpecies))] = namesTopSpecies[which(!is.na(namesTopSpecies))]
-    colnames(speciesPercentageTop) = c('UniqueSpeciesHits','MultipleSpeciesHits')
-    png(paste('DetectedSpecies_',SampleName,'.png',sep=''))
-    par(mar=c(18.1, 4.1, 4.1, 2.1), mgp=c(3, 1, 0), las=0)
-    bp = barplot(t(speciesPercentageTop), las=2, ylab='MappedReads in %',main=SampleName, ylim=c(0, 100),
-                 col=c('blue','lightblue'),legend.text =T)
-    text(y= 3,x= bp, labels=paste(speciesPercentageTop[,1],'%',sep=''), xpd=TRUE)
-    dev.off()
-    }
+    rownames(speciesPercentageTop[i])[which(!is.na(namesTopSpecies))] = namesTopSpecies[which(!is.na(namesTopSpecies))]
+    colnames(speciesPercentageTop[i]) = c('UniqueSpeciesHits','MultipleSpeciesHits')
+    
+#     png(paste('DetectedSpecies_', SampleNames[i], '.png', sep=''))
+#     par(mar=c(18.1, 4.1, 4.1, 2.1), mgp=c(3, 1, 0), las=0) ### mgp and las are at default, 18.1 instead of 10.1 in the plotter
+#     bp = barplot(t(speciesPercentageTop[i]), las=2, ylab='MappedReads in %', main=SampleNames[i], ylim=c(0, 100),
+#                  col=c('blue', 'lightblue'), legend.text =T)
+#     text(y= 3, x= bp, labels=paste(speciesPercentageTop[i,1], '%', sep=''), xpd=TRUE) ## TODOP: get this text also into the report
+#     dev.off()
+  }
   system('rm *.sam')
   system('rm *.bam')
   system('rm *.bestScore.txt')
+  return(speciesPercentageTop)
 }
 
 ## EzPlotter$new(expr="plotMappingRate(data$MappingRate)", mouseOvertext="ädfasfd", )
-generateHtmlReport = function(dataset, data, param, htmlFile="00index.html"){
-  resultFiles = paste(basename(dataset$"Read1 [File]"),'_screen.txt',sep='')
-  resultFiles = sub('\\.fastq.gz','',resultFiles)
+fastqscreenReport = function(dataset, data, param, htmlFile="00index.html", resultFiles, speciesPercentageTop){
   require(ReporteRs, warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
   html = openBsdocReport(title=paste("FastQ Screen:", param$name), dataset=dataset)
   html = addTitle(html, "Settings", level=2)
@@ -185,23 +189,28 @@ generateHtmlReport = function(dataset, data, param, htmlFile="00index.html"){
   html = addTitle(html, "Per Dataset", level=3)
   plotter = EzPlotterFastqScreen$new(x=data$MappingRate)
   mappingRateLink = ezImageFileLink(plotter, file="MappingRate.png", width=600, height=450, las=2, ylim=c(0,100),
-                                    ylab='MappedReads in %', main="MappingRate", col="blue")
+                                    ylab='MappedReads in %', main="MappingRate", col="blue", addText=T)
   plotter = EzPlotterFastqScreen$new(x=data$Reads)
   readsLink = ezImageFileLink(plotter, file="Reads.png", width=600, height=450, las=2,
                               ylab="#Reads", main="ProcessedReads", col="lightblue")
   html = addFlexTable(html, ezFlexTable(cbind(mappingRateLink, readsLink)))
   html = addTitle(html, "Per Sample", level=3)
   screenLinks = list()
-  detectedSpeciesLinks = list()
-  for(i in 1:length(data$CommonResults)){
+  for (i in 1:length(data$CommonResults)){
     plotter = EzPlotterFastqScreen$new(x=t(data$CommonResults[[i]]))
     link = ezImageFileLink(plotter, file=gsub('.txt', '.png', resultFiles[i], '.png'), las=2, ylim=c(0,100),
                            legend.text=T, ylab='MappedReads in %', main=rownames(dataset)[i])
     if (grepl("screen", resultFiles[i])){
       screenLinks = append(screenLinks, link)
-    } else if (grepl("DetectedSpecies", resultFiles[i])){
-      detectedSpeciesLinks = append(detectedSpeciesLinks, link)
     }
+  }
+  detectedSpeciesLinks = list()
+  for (i in 1:length(speciesPercentageTop)){
+     plotter = EzPlotterFastqScreen$new(x=t(speciesPercentageTop[i]))
+     link = ezImageFileLink(plotter, file=paste('DetectedSpecies_', rownames(dataset)[i], '.png', sep=''),
+                           col=c('blue', 'lightblue'), las=2, ylim=c(0,100), legend.text=T,
+                           ylab='MappedReads in %', main=rownames(dataset)[i])
+    detectedSpeciesLinks = append(detectedSpeciesLinks, link)
   }
   IMAGESperROW = 4
   if (ezIsSpecified(screenLinks)){
@@ -209,7 +218,7 @@ generateHtmlReport = function(dataset, data, param, htmlFile="00index.html"){
       html = addFlexTable(html, ezFlexTable(rbind(screenLinks)))
     } else {
       html = addFlexTable(html, ezFlexTable(rbind(screenLinks[1:IMAGESperROW])))
-      for(i in 1:(ceiling(length(screenLinks)/IMAGESperROW)-1)){
+      for (i in 1:(ceiling(length(screenLinks)/IMAGESperROW)-1)){
         html = addFlexTable(html, ezFlexTable(rbind(screenLinks[(i*IMAGESperROW+1):min((i+1)*IMAGESperROW,length(screenLinks))])))
       }
     }
@@ -220,7 +229,7 @@ generateHtmlReport = function(dataset, data, param, htmlFile="00index.html"){
       html = addFlexTable(html, ezFlexTable(rbind(detectedSpeciesLinks)))
     } else {
       html = addFlexTable(html, ezFlexTable(rbind(detectedSpeciesLinks[1:IMAGESperROW])))
-      for(i in 1:(ceiling(length(detectedSpeciesLinks)/IMAGESperROW)-1)){
+      for (i in 1:(ceiling(length(detectedSpeciesLinks)/IMAGESperROW)-1)){
         html = addFlexTable(html, ezFlexTable(rbind(detectedSpeciesLinks[(i*IMAGESperROW+1):min((i+1)*IMAGESperROW,length(detectedSpeciesLinks))])))
       }
     }

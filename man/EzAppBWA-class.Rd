@@ -6,7 +6,7 @@
 \alias{EzAppBWA-class}
 \title{The R5 class representing a runnable app using \code{ezMethodBWA()}}
 \description{
-This reference class is based on \code{EzApp()} and uses the function \code{ezMethodBWA()}.
+This reference class is based on \code{EzApp} and uses the function \code{ezMethodBWA()}.
 }
 \section{Fields}{
 

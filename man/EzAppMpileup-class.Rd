@@ -6,7 +6,7 @@
 \alias{EzAppMpileup-class}
 \title{The R5 class representing a runnable app using \code{ezMethodMpileup()}}
 \description{
-This reference class is based on \code{EzApp()} and uses the function \code{ezMethodMpileup()}.
+This reference class is based on \code{EzApp} and uses the function \code{ezMethodMpileup()}.
 }
 \section{Fields}{
 

@@ -6,7 +6,7 @@
 \alias{EzAppFastqScreen-class}
 \title{The R5 class representing a runnable app using \code{ezMethodFastqScreen()}}
 \description{
-This reference class is based on \code{EzApp()} and uses the function \code{ezMethodFastqScreen()}.
+This reference class is based on \code{EzApp} and uses the function \code{ezMethodFastqScreen()}.
 }
 \section{Fields}{
 

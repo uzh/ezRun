@@ -6,7 +6,7 @@
 \alias{EzAppMEME-class}
 \title{The R5 class representing a runnable app using \code{ezMethodMEME()}}
 \description{
-This reference class is based on \code{EzApp()} and uses the function \code{ezMethodMEME()}.
+This reference class is based on \code{EzApp} and uses the function \code{ezMethodMEME()}.
 }
 \section{Fields}{
 

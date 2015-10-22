@@ -6,7 +6,7 @@
 \alias{EzAppCountQC-class}
 \title{The R5 class representing a runnable app using \code{ezMethodCountQC()}}
 \description{
-This reference class is based on \code{EzApp()} and uses the function \code{ezMethodCountQC()}.
+This reference class is based on \code{EzApp} and uses the function \code{ezMethodCountQC()}.
 }
 \section{Fields}{
 

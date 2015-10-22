@@ -6,7 +6,7 @@
 \alias{EzAppFeatureCounts-class}
 \title{The R5 class representing a runnable app using \code{ezMethodFeatureCounts()}}
 \description{
-This reference class is based on \code{EzApp()} and uses the function \code{ezMethodFeatureCounts()}.
+This reference class is based on \code{EzApp} and uses the function \code{ezMethodFeatureCounts()}.
 }
 \section{Fields}{
 

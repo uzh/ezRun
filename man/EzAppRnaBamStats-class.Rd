@@ -6,7 +6,7 @@
 \alias{EzAppRnaBamStats-class}
 \title{The R5 class representing a runnable app using \code{ezMethodRnaBamStats()}}
 \description{
-This reference class is based on \code{EzApp()} and uses the function \code{ezMethodRnaBamStats()}.
+This reference class is based on \code{EzApp} and uses the function \code{ezMethodRnaBamStats()}.
 }
 \section{Fields}{
 

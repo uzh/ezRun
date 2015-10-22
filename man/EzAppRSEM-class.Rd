@@ -6,7 +6,7 @@
 \alias{EzAppRSEM-class}
 \title{The R5 class representing a runnable app using \code{ezMethodRSEM()}}
 \description{
-This reference class is based on \code{EzApp()} and uses the function \code{ezMethodRSEM()}.
+This reference class is based on \code{EzApp} and uses the function \code{ezMethodRSEM()}.
 }
 \section{Fields}{
 

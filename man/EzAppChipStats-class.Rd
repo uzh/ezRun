@@ -6,7 +6,7 @@
 \alias{EzAppChipStats-class}
 \title{The R5 class representing a runnable app using \code{ezMethodChipStats()}}
 \description{
-This reference class is based on \code{EzApp()} and uses the function \code{ezMethodChipStats()}.
+This reference class is based on \code{EzApp} and uses the function \code{ezMethodChipStats()}.
 }
 \section{Fields}{
 

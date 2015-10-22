@@ -6,7 +6,7 @@
 \alias{EzAppNcpro-class}
 \title{The R5 class representing a runnable app using \code{ezMethodNcpro()}}
 \description{
-This reference class is based on \code{EzApp()} and uses the function \code{ezMethodNcpro()}.
+This reference class is based on \code{EzApp} and uses the function \code{ezMethodNcpro()}.
 }
 \section{Fields}{
 

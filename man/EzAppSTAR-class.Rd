@@ -6,7 +6,7 @@
 \alias{EzAppSTAR-class}
 \title{The R5 class representing a runnable app using \code{ezMethodSTAR()}}
 \description{
-This reference class is based on \code{EzApp()} and uses the function \code{ezMethodSTAR()}.
+This reference class is based on \code{EzApp} and uses the function \code{ezMethodSTAR()}.
 }
 \section{Fields}{
 
