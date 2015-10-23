@@ -19,9 +19,9 @@ ezMethodFastqScreen = function(input=NA, output=NA, param=NA, htmlFile="00index.
   names(files) = samples
   resultFiles = executeFastqscreenCMD(param, files, dataset)
   countFiles = executeBowtie2CMD(param, files)
-  data = collectFastqscreenOutput(dataset, files, resultFiles)
+  fastqData = collectFastqscreenOutput(dataset, files, resultFiles)
   speciesPercentageTop = collectBowtie2Output(param, dataset, countFiles)
-  fastqscreenReport(dataset, data, param, htmlFile, resultFiles, speciesPercentageTop)
+  fastqscreenReport(dataset, fastqData, param, htmlFile, resultFiles, speciesPercentageTop)
   return("Success")
 }
 
@@ -45,7 +45,7 @@ EzAppFastqScreen <-
   )
 
 
-## NOTEP: all 6 functions below get only called once each in ezMethodFastqScreen()
+## NOTEP: all 5 functions below get only called once each in ezMethodFastqScreen()
 executeFastqscreenCMD = function(param, files, dataset){
   confFile = paste(FASTQSCREEN_CONF_DIR, param$confFile, sep="")
   opt = ""
@@ -65,8 +65,6 @@ executeBowtie2CMD = function(param, files){
   # TODO build filenames from samplenames; return result files; use ezSortIndexBam
   countFiles = sub('f.*q.gz$', 'counts.txt', basename(files))
   for (i in 1:length(files)){
-    #     countFile = basename(files[i])
-    #     countFile = sub('f.*q.gz$', 'counts.txt', countFile)
     samFile = sub('counts.txt', 'sam', countFiles[i])
     bamFile = sub('counts.txt', 'bam', countFiles[i])
     sbamFile = sub('bam', 'sorted.bam', bamFile)
@@ -92,24 +90,24 @@ executeBowtie2CMD = function(param, files){
 }
 
 collectFastqscreenOutput = function(dataset, files, resultFiles){
-  data = list()
-  data$MappingRate = vector(length=length(resultFiles),mode='double')
-  names(data$MappingRate) = rownames(dataset)
-  data$Reads = vector(length=length(resultFiles),mode='integer')
-  names(data$Reads) = rownames(dataset)
-  data$CommonResults = list()
+  fastqData = list()
+  fastqData$MappingRate = vector(length=length(resultFiles),mode='double')
+  names(fastqData$MappingRate) = rownames(dataset)
+  fastqData$Reads = vector(length=length(resultFiles),mode='integer')
+  names(fastqData$Reads) = rownames(dataset)
+  fastqData$CommonResults = list()
   for(i in 1:length(resultFiles)){
     cat('Process ',files[i],':')
-    data$CommonResults[[i]] = ezRead.table(resultFiles[i], skip=1, stringsAsFactors=F, blank.lines.skip=T, fill=T, row.names=NULL)
-    data$Reads[i] = data$CommonResults[[i]]$"#Reads_processed"[1]
-    UnmappedReads = as.numeric(unlist(strsplit(data$CommonResults[[i]]$Genome[nrow(data$CommonResults[[i]])], split = " "))[2])
-    data$MappingRate[i] = round((100 - UnmappedReads), digits = 2)
-    lastLine = nrow(data$CommonResults[[i]])
-    LibNames = data$CommonResults[[i]]$Genome[-c(lastLine)]
-    data$CommonResults[[i]] = data$CommonResults[[i]][c(1:(lastLine-1)),grep('%.*hit',colnames(data$CommonResults[[i]]))]
-    rownames(data$CommonResults[[i]]) = LibNames 
+    fastqData$CommonResults[[i]] = ezRead.table(resultFiles[i], skip=1, stringsAsFactors=F, blank.lines.skip=T, fill=T, row.names=NULL)
+    fastqData$Reads[i] = fastqData$CommonResults[[i]]$"#Reads_processed"[1]
+    UnmappedReads = as.numeric(unlist(strsplit(fastqData$CommonResults[[i]]$Genome[nrow(fastqData$CommonResults[[i]])], split = " "))[2])
+    fastqData$MappingRate[i] = round((100 - UnmappedReads), digits = 2)
+    lastLine = nrow(fastqData$CommonResults[[i]])
+    LibNames = fastqData$CommonResults[[i]]$Genome[-c(lastLine)]
+    fastqData$CommonResults[[i]] = fastqData$CommonResults[[i]][c(1:(lastLine-1)),grep('%.*hit',colnames(fastqData$CommonResults[[i]]))]
+    rownames(fastqData$CommonResults[[i]]) = LibNames 
   }
-  return(data)
+  return(fastqData)
 }
 
 # TODO: merge with executBowtie2Cmd; return data; don't make plots
@@ -121,14 +119,10 @@ collectBowtie2Output = function(param, dataset, countFiles){
   tax2name$TAX_ID = sub("\t", "", tax2name$TAX_ID)
   tax2name$Name = gsub('\t','',tax2name$Name)
   rownames(tax2name) = tax2name$TAX_ID
-  #   files = dataset[['Read1 [File]']]
   SampleNames = rownames(dataset)
   speciesPercentageTop = list()
   for (i in 1:length(files)){
-    #     countFile = basename(files[i])
-    #     countFile = sub('f.*q.gz$','counts.txt',countFile)
     bestScoreFile = sub('counts.txt', 'bestScore.txt', countFiles[i])
-    #     SampleName = rownames(dataset)[i]
     countData = read.table(countFiles[i], header=F, sep='', stringsAsFactors=F, comment.char='')
     colnames(countData) = c('readId', 'hit', 'aScore')
     bestScoreData = read.table(bestScoreFile, header=F, sep='', stringsAsFactors=F, comment.char='')
@@ -156,18 +150,11 @@ collectBowtie2Output = function(param, dataset, countFiles){
     } else {
       totalCount = dataset[['Read Count']][i]
     }
-    speciesPercentageTop[i] = signif(100 * cbind(topSpeciesUniq,topSpeciesMultiple)/totalCount, digits=4)
-    taxIdsTopSpecies = rownames(speciesPercentageTop[i])
+    speciesPercentageTop[[i]] = signif(100 * cbind(topSpeciesUniq,topSpeciesMultiple)/totalCount, digits=4)
+    taxIdsTopSpecies = rownames(speciesPercentageTop[[i]])
     namesTopSpecies = tax2name[taxIdsTopSpecies,c('Name')]
-    rownames(speciesPercentageTop[i])[which(!is.na(namesTopSpecies))] = namesTopSpecies[which(!is.na(namesTopSpecies))]
-    colnames(speciesPercentageTop[i]) = c('UniqueSpeciesHits','MultipleSpeciesHits')
-    
-#     png(paste('DetectedSpecies_', SampleNames[i], '.png', sep=''))
-#     par(mar=c(18.1, 4.1, 4.1, 2.1), mgp=c(3, 1, 0), las=0) ### mgp and las are at default, 18.1 instead of 10.1 in the plotter
-#     bp = barplot(t(speciesPercentageTop[i]), las=2, ylab='MappedReads in %', main=SampleNames[i], ylim=c(0, 100),
-#                  col=c('blue', 'lightblue'), legend.text =T)
-#     text(y= 3, x= bp, labels=paste(speciesPercentageTop[i,1], '%', sep=''), xpd=TRUE) ## TODOP: get this text also into the report
-#     dev.off()
+    rownames(speciesPercentageTop[[i]])[which(!is.na(namesTopSpecies))] = namesTopSpecies[which(!is.na(namesTopSpecies))]
+    colnames(speciesPercentageTop[[i]]) = c('UniqueSpeciesHits','MultipleSpeciesHits')
   }
   system('rm *.sam')
   system('rm *.bam')
@@ -176,28 +163,30 @@ collectBowtie2Output = function(param, dataset, countFiles){
 }
 
 ## EzPlotter$new(expr="plotMappingRate(data$MappingRate)", mouseOvertext="ädfasfd", )
-fastqscreenReport = function(dataset, data, param, htmlFile="00index.html", resultFiles, speciesPercentageTop){
+fastqscreenReport = function(dataset, fastqData=fastqData, param, htmlFile="00index.html", resultFiles, speciesPercentageTop){
   require(ReporteRs, warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
   html = openBsdocReport(title=paste("FastQ Screen:", param$name), dataset=dataset)
   html = addTitle(html, "Settings", level=2)
-  tableVec1 = c("Configuration File:", "RefSeq mRNA Reference:", "FastqScreen Version:", "Bowtie2 Version:",
+  tableCol1 = c("Configuration File:", "RefSeq mRNA Reference:", "FastqScreen Version:", "Bowtie2 Version:",
                 "Bowtie2 Parameters:", "Minimum AlignmentScore:", "TopSpecies:", "Subset:")
-  tableVec2 = c(param$confFile, REFSEQ_mRNA_REF, basename(dirname(FASTQSCREEN)), basename(BOWTIE2_DIR),
+  tableCol2 = c(param$confFile, REFSEQ_mRNA_REF, basename(dirname(FASTQSCREEN)), basename(BOWTIE2_DIR),
                 param$cmdOptions, param$minAlignmentScore, param$nTopSpecies, param$subset)
-  html = addFlexTable(html, ezFlexTable(cbind(tableVec1, tableVec2)))
+  html = addFlexTable(html, ezFlexTable(cbind(tableCol1, tableCol2)))
   html = addTitle(html, "rRNA-Check", level=2)
   html = addTitle(html, "Per Dataset", level=3)
-  plotter = EzPlotterFastqScreen$new(x=data$MappingRate)
+  plotter = EzPlotterFastqScreen$new(x=fastqData$MappingRate)
   mappingRateLink = ezImageFileLink(plotter, file="MappingRate.png", width=600, height=450, las=2, ylim=c(0,100),
-                                    ylab='MappedReads in %', main="MappingRate", col="blue", addText=T)
-  plotter = EzPlotterFastqScreen$new(x=data$Reads)
-  readsLink = ezImageFileLink(plotter, file="Reads.png", width=600, height=450, las=2,
+                                    ylab='MappedReads in %', main="MappingRate", col="blue",
+                                    addText=expression(text(y=data$x+5, x=data$bplot,
+                                                            labels=paste(as.character(data$x), '%', sep=''), cex=0.7, xpd=TRUE)))
+  plotter = EzPlotterFastqScreen$new(x=fastqData$Reads)
+  readsLink = ezImageFileLink(plotter, file="Reads.png", width=600, height=450, las=2,    #seq(0.7,0.7+1.2*(length(x)-1),by=1.2)
                               ylab="#Reads", main="ProcessedReads", col="lightblue")
   html = addFlexTable(html, ezFlexTable(cbind(mappingRateLink, readsLink)))
   html = addTitle(html, "Per Sample", level=3)
   screenLinks = list()
-  for (i in 1:length(data$CommonResults)){
-    plotter = EzPlotterFastqScreen$new(x=t(data$CommonResults[[i]]))
+  for (i in 1:length(fastqData$CommonResults)){
+    plotter = EzPlotterFastqScreen$new(x=t(fastqData$CommonResults[[i]]))
     link = ezImageFileLink(plotter, file=gsub('.txt', '.png', resultFiles[i], '.png'), las=2, ylim=c(0,100),
                            legend.text=T, ylab='MappedReads in %', main=rownames(dataset)[i])
     if (grepl("screen", resultFiles[i])){
@@ -206,10 +195,11 @@ fastqscreenReport = function(dataset, data, param, htmlFile="00index.html", resu
   }
   detectedSpeciesLinks = list()
   for (i in 1:length(speciesPercentageTop)){
-     plotter = EzPlotterFastqScreen$new(x=t(speciesPercentageTop[i]))
-     link = ezImageFileLink(plotter, file=paste('DetectedSpecies_', rownames(dataset)[i], '.png', sep=''),
-                           col=c('blue', 'lightblue'), las=2, ylim=c(0,100), legend.text=T,
-                           ylab='MappedReads in %', main=rownames(dataset)[i])
+    plotter = EzPlotterFastqScreen$new(x=t(speciesPercentageTop[[i]]))
+    link = ezImageFileLink(plotter, file=paste('DetectedSpecies_', rownames(dataset)[i], '.png', sep=''),
+                           col=c('blue', 'lightblue'), las=2, ylim=c(0,100), legend.text=T, ylab='MappedReads in %',
+                           main=rownames(dataset)[i], addText=expression(text(y=3, x=data$bplot,
+                                                                              labels=paste(data$x[1,], '%', sep=''), xpd=TRUE)))
     detectedSpeciesLinks = append(detectedSpeciesLinks, link)
   }
   IMAGESperROW = 4

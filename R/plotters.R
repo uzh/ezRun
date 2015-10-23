@@ -318,16 +318,16 @@ EzPlotterFastqScreen =
                   } else {
                     name <<- "EzPlotterFastqScreen"
                   }
-                  data <<- x
+                  data <<- list(x=x)
                   helpText <<- "Contains the methods for the fastqscreen plots."
                   mouseOverText <<- "Showing mouseOver text."
                 },
-                plot = function(addText=FALSE, ...)
+                plot = function(addText=NULL, ...)
                 {
                   par(mar=c(10.1, 4.1, 4.1, 2.1))
-                  bplot = barplot(height=data, width=1, ...)
-                  if (addText) {
-                    text(y=data+5, x=bplot, labels=paste(as.character(data), '%', sep=''), cex=0.7, xpd=TRUE)
+                  data$bplot <<- barplot(height=data$x, width=1, ...)
+                  if (!is.null(addText)) {
+                    eval(addText)
                   }
                 }
               )
