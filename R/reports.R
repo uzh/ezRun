@@ -27,7 +27,7 @@ ezFlexTable = function(x, header=FALSE, ...){
 ##' @title Gets an image link as html
 ##' @description Gets an image link as html. Also plots and creates the image.
 ##' @param ezPlotter an object of the class EzPlotter or inheriting from it.
-##' @param file a character specifying the name of the image.
+##' @param file a character specifying the name of the image with a .png suffix.
 ##' @param mouseOverText a character specifying the text being displayed when mousing over the image.
 ##' @param addPdfLink a logical indicating whether to add a link on the image to a pdf version of itself.
 ##' @param width an integer specifying the width of each plot to create an image from.
@@ -86,8 +86,263 @@ openBsdocReport = function(title="", dataset=NULL){
   return(html)
 }
 
-##' @describeIn openBsdocReport Adds a paragraph showing the finishing time and writes the document.
+##' @describeIn openBsdocReport Adds a paragraph showing the finishing time and writes the document. \code{file} must have a .html suffix.
 closeBsdocReport = function(doc, file){
   doc = addParagraph(doc, paste("Finished", format(Sys.time(), "%Y-%m-%d %H:%M:%S")))
   writeDoc(doc, file=file)
 }
+
+##' @title Writes an error report
+##' @description Writes an error report to an html file. Also creates the file and closes it.
+##' @param htmlFile a character representing the path to write the file in. Must have a .html suffix.
+##' @param param a list of parameters to extract the \code{name} from.
+##' @param dataset usually a data.frame from the meta field of an EzDataset.
+##' @param error a character vector representing the error message(s).
+##' @template roxygen-template
+##' @seealso \code{\link{openBsdocReport}}
+##' @seealso \code{\link{closeBsdocReport}}
+##' @examples
+##' param = ezParam()
+##' htmlFile = "example.html"
+##' writeErrorReport(htmlFile, param)
+writeErrorReport = function(htmlFile, param=param, dataset=NULL, error="Unknown Error"){
+  html = openBsdocReport(title=paste("Error:", param$name), dataset=dataset)
+  html = addTitle(html, "Error message", level=2)
+  for (i in 1:length(error)){
+    html = addParagraph(html, error[i])
+  }
+  closeBsdocReport(html, htmlFile)
+}
+
+##' @title Adds a table
+##' @description Adds a table to a bsdoc object.
+##' @param x a matrix or data.frame to paste a table from.
+##' @param doc an object of the class bsdoc to add the table to.
+##' @param bgcolors a matrix specifying the background colors.
+##' @param valign a character specifying where to align the table elements vertically. Use either "top", "middle" or "bottom".
+##' @param border an integer specifying the border width.
+##' @param head a character specifying the contents of the upperleft corner of the table.
+##' @template roxygen-template
+##' @seealso \code{\link[ReporteRs]{addFlexTable}}
+##' @examples
+##' x = matrix(1:25,5)
+##' rownames(x) = letters[1:5]
+##' colnames(x) = LETTERS[1:5]
+##' html = openBsdocReport()
+##' addTableToReport(x, html, head="Example", bgcolors="red")
+##' closeBsdocReport(html, "example.html")
+addTableToReport = function(x, doc, bgcolors=NULL, valign="middle", border=1, head=""){
+  if (is.null(bgcolors)){
+    bgcolors = matrix("#ffffff", nrow=nrow(x), ncol=ncol(x))
+  }
+  x = cbind(rownames(x),x)
+  bodyCells = cellProperties(border.width=border, vertical.align=valign)
+  table = FlexTable(x, header.columns = FALSE, body.cell.props=bodyCells,
+                    header.cell.props=cellProperties(border.width = border))
+  table = setFlexTableBackgroundColors(table, j=2:length(colnames(x)), colors=bgcolors)
+  table = addHeaderRow(table, c(head, colnames(x)[2:length(colnames(x))]))
+  doc = addFlexTable(doc, table)
+}
+
+##' @title Adds a summary of the count result
+##' @description Adds a summary of the count result to a bsdoc object.
+##' @param doc an object of the class bsdoc to add the table to.
+##' @param param a list of parameters to influence the output:
+##' \itemize{
+##'  \item{batch}{ a logical indicating whether the second factor was used.}
+##'  \item{comparison}{ which comparison was used.}
+##'  \item{normMethod}{ the normalization method.}
+##'  \item{sigThresh}{ the threshold...}
+##'  \item{useSigThresh}{ ...and whether it should be used.}
+##' }
+##' @param result
+##' \itemize{
+##'  \item{analysis}{ which analysis was used.}
+##'  \item{featureLevel}{ which feature level was used.}
+##'  \item{countName}{ which data column was used.}
+##'  \item{method}{ which method was used.}
+##'  \item{pValue}{ counts the number of features.}
+##'  \item{isPresentProbe}{ counts the number of features with counts above threshold.}
+##' }
+##' @template roxygen-template
+##' @seealso \code{\link[ReporteRs]{addFlexTable}}
+##' @examples
+##' 1
+## TODOP: if (useful/necessary) add example
+addCountResultSummary = function(doc, param, result){
+  doc = addTitle(doc, "Result Summary", level=2)
+  tableCol1 = c("Analysis:", "Feature level:", "Data Column Used:", "Method:")
+  tableCol2 = c(result$analysis, result$featureLevel, result$countName, result$method)
+  if (ezIsSpecified(param$batch)){
+    tableCol1 = c(tableCol1, "Statistical Model:")
+    tableCol2 = c(tableCol2, "used provided second factor")
+  }
+  tableCol1 = c(tableCol1, "Comparison:")
+  tableCol2 = c(tableCol2, param$comparison)
+  if (!is.null(param$normMethod)){
+    tableCol1 = c(tableCol1, "Normalization:")
+    tableCol2 = c(tableCol2, param$normMethod)
+  }
+  tableCol1 = c(tableCol1, "Number of features:")
+  tableCol2 = c(tableCol2, length(result$pValue))
+  if (!is.null(result$isPresentProbe)){
+    tableCol1 = c(tableCol1, "Number of features with counts above threshold:")
+    tableCol2 = c(tableCol2, sum(result$isPresentProbe))
+  }
+  if (param$useSigThresh){
+    tableCol1 = c(tableCol1, "Log2 signal threshold:", "Linear signal threshold:")
+    tableCol2 = c(tableCol2, signif(log2(param$sigThresh), digits=4), signif(param$sigThresh, digits=4))
+  }
+  doc = addFlexTable(doc, ezFlexTable(cbind(tableCol1, tableCol2)))
+}
+
+##' @title Adds a result file
+##' @description Adds a result file in text format or zipped.
+##' @param doc an object of the class bsdoc to add the results to.
+##' @param param a list of parameters that pastes the \code{comparison} into the file name and does a zip file if \code{doZip} is true.
+##' @param result a list of results.
+##' @param rawData a list of raw data. Usually obtained from \code{loadCountDataset()}.
+##' @param useInOutput a logical specifying whether to use most of the result information.
+##' @param file a character representing the name of the result file.
+##' @template roxygen-template
+##' @return Returns the name of the result file.
+##' @seealso \code{\link{writeTxtLinksToHtml}}
+##' @examples
+##' 1
+## TODOP: if (useful/necessary) add example
+addsResultFile = function(doc, param, result, rawData, useInOutput=TRUE,
+                           file=paste("result--", param$comparison, ".txt", sep="")){
+  seqAnno = rawData$seqAnno
+  probes = names(result$pValue)[useInOutput]
+  y = data.frame(row.names=probes, stringsAsFactors=FALSE, check.names=FALSE)
+  y[ , colnames(seqAnno)] = sapply(seqAnno[match(probes, rownames(seqAnno)), ], as.character)
+  y$"log2 Signal" = result$log2Expr[useInOutput]
+  y$"isPresent" = result$isPresentProbe[useInOutput]
+  y$"log2 Ratio" = result$log2Ratio[useInOutput]
+  y$"gfold (log2 Change)" = result$gfold[useInOutput]
+  y$"log2 Effect" = result$log2Effect[useInOutput]
+  y$"probesetCount" = result$nProbes[useInOutput]
+  y$"presentProbesetCount" = result$nPresentProbes[useInOutput]
+  y$ratio = result$ratio[useInOutput]
+  y$pValue = result$pValue[useInOutput]
+  y$fdr = result$fdr[useInOutput]
+  for (nm in grep("Tukey pValue", names(result), value=TRUE)){
+    y[[nm]] = result[[nm]][useInOutput]
+  }
+  if (!is.null(result$groupMeans)){
+    groupMeans = result$groupMeans[useInOutput, ]
+    colnames(groupMeans) = paste("log2 Avg of", colnames(groupMeans))
+    y = data.frame(y, groupMeans, check.names=FALSE, stringsAsFactors=FALSE)
+  }
+
+  if (!is.null(result$xNorm)){
+    yy = result$xNorm[useInOutput, ]
+    colnames(yy) = paste(colnames(yy), "[normalized count]")
+    y = cbind(y, yy)
+  }
+  yy = getRpkm(rawData)[useInOutput, ]
+  if (!is.null(yy)){
+    colnames(yy) = paste(colnames(yy), "[FPKM]")
+    y = cbind(y, yy)
+  }
+  y = y[order(y$fdr, y$pValue), ]
+  ezWrite.table(y, file=file, head="Identifier", digits=4)
+  if (param$doZip){
+    zipLink = zipFile(file)
+    if (!is.null(doc)){
+      doc = addParagraph(doc, pot(zipLink, hyperlink=zipLink))
+      # TODOP: add mime "application/zip" to hyperlink
+    }
+  } else {
+    if (!is.null(doc)){
+      doc = addParagraph(doc, pot(file, hyperlink=file))
+      # TODOP: add mime "application/text" to hyperlink
+    }
+  }
+  return(list(resultFile=file))
+}
+
+
+##' @title Adds QC scatter plots
+##' @description Adds QC scatter plots to an html file.
+##' @param doc an object of the class bsdoc to add the plots to.
+##' @param param a list of parameters. If \code{writeScatterPlots} is false, the function returns NULL.
+##' @param design a data.frame containing the factorial design.
+##' @param conds a named character vector containing the conditions of the factorial design.
+##' @param rawData a list of raw data. Usually obtained from \code{loadCountDataset()}.
+##' @param signalCond a set of values containing signals averaged by the conditions.
+##' @param isPresentCond Either NULL or a data.frame containing coloring information.
+##' @param colors a character vector containing rgb codes. The default is a scale from blue to red.
+##' @param types a character vector containing the types.
+##' @template roxygen-template
+##' @examples
+##' 1 html
+## TODOP: if (useful/necessary) add example
+addQcScatterPlots = function(doc, param, design, conds, rawData, signalCond, isPresentCond, types=NULL){
+  if (param$writeScatterPlots == FALSE){
+    return(NULL)
+  } # TODOP: instead using this in calling function makes more sense: if(param$writeScatterPlots){addQcScatterPlots()}
+  samples = rownames(design)
+  nConds = length(unique(conds))
+  signal = getSignal(rawData)
+  signal[signal <= 0] = NA
+  isPresent = ezPresentFlags(signal, presentFlag=rawData$presentFlag, param=param, isLog=rawData$isLog)
+  signalRange = range(signal, na.rm=TRUE)
+  doc = addTitle(doc, "Scatter Plots by Conditions", level=2)
+  if (!is.null(rawData$seqAnno$gc)){
+    gcTypes = data.frame("GC < 0.4"=as.numeric(rawData$seqAnno$gc) < 0.4,
+                         "GC > 0.6"=as.numeric(rawData$seqAnno$gc) > 0.6,
+                         check.names=FALSE)
+  } else {
+    gcTypes = NULL
+  }
+  if (!is.null(rawData$seqAnno$width)){
+    widthTypes = data.frame("width < 500nt"=as.numeric(rawData$seqAnno$width) < 500, 
+                            "width > 5000nt"=as.numeric(rawData$seqAnno$width) > 5000,
+                            check.names=FALSE)
+  } else {
+    widthTypes = NULL
+  }
+  if (nConds > 1 & nConds <=  param$allPairsMaxCondNumber){
+    plotter = EzPlotterAllPairScatter$new(x=signalCond)
+    defLink = ezImageFileLink(plotter, file="allPairs-scatter.png", isPresent=isPresentCond, types=types)
+    if (!is.null(gcTypes)){
+      plotter = EzPlotterAllPairScatter$new(x=signalCond)
+      gcLink = ezImageFileLink(plotter, file="allPairs-scatter-byGc.png", main="color by GC", isPresent=isPresentCond, types=gcTypes) 
+    }
+    if (!is.null(widthTypes)){
+      plotter = EzPlotterAllPairScatter$new(x=signalCond)
+      widthLink = ezImageFileLink(plotter, file="allPairs-scatter-byWidth.png", main="color by width", isPresent=isPresentCond, types=widthTypes)
+    }
+    doc = addFlexTable(doc, ezFlexTable(cbind(defLink, gcLink, widthLink)))
+  }
+  for (i in 1:min(4, ncol(design))){
+    for (cond in unique(design[,i])){
+      idx = which(cond == design[,i])
+      if (length(idx) > 1){
+        idx = idx[order(samples[idx])] ## order alphabetically
+        condName = paste(colnames(design)[i], cond)
+        doc = addTitle(doc, condName, level=3)
+        pngName = ezValidFilename(paste(condName, "-scatter.png", sep=""))
+        plotter = EzPlotterScatter(y=signal[ ,idx])
+        doc = addParagraph(doc, ezImageFileLink(plotter, file=pngName, isPresent=isPresent[ ,idx], types=types,
+                                                lim=signalRange, xlab=paste("Avg of", cond), ylab=NULL))
+        if (!is.null(gcTypes)){
+          pngName = ezValidFilename(paste(condName, "-ByGcScatter.png", sep=""))
+          plotter = EzPlotterScatter(y=signal[ ,idx])
+          doc = addParagraph(doc, ezImageFileLink(plotter, file=pngName, isPresent=isPresent[ ,idx], types=gcTypes,
+                                                  lim=signalRange, xlab=paste("Avg of", cond), ylab=NULL))
+        }
+        if (!is.null(widthTypes)){
+          pngName = ezValidFilename(paste(condName, "-ByWidthScatter.png", sep=""))
+          plotter = EzPlotterScatter(y=signal[ ,idx])
+          doc = addParagraph(doc, ezImageFileLink(plotter, file=pngName, isPresent=isPresent[ ,idx], types=widthTypes,
+                                                  lim=signalRange, xlab=paste("Avg of", cond), ylab=NULL))
+        }
+      }
+    }
+  }
+}
+
+
+

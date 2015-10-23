@@ -17,7 +17,7 @@
 ##' EzPlotter$new()
 EzPlotter =
   setRefClass("EzPlotter",
-              fields = c("name", "data", "helpText", "mouseOverText"),
+              fields = c("name", "data", "picSize", "helpText", "mouseOverText"),
               methods = list(
                 plot = function(...)
                 {
@@ -32,6 +32,10 @@ EzPlotter =
                   } else {
                     filename = paste(name, ".png", sep="")
                   }
+                  if (is.list(picSize)){
+                    width = picSize$width
+                    height = picSize$height
+                  }
                   png(filename = filename, width, height)
                   .self$plot(...)
                   dev.off()
@@ -44,6 +48,10 @@ EzPlotter =
                     filename = file
                   } else {
                     filename = paste(name, ".pdf", sep="")
+                  }
+                  if (is.list(picSize)){
+                    width = picSize$width
+                    height = picSize$height
                   }
                   width = round(width/72, digits=2)
                   height = round(height/72, digits=2)

@@ -35,6 +35,10 @@ scatterlink = ezImageFileLink(EzPlotterScatter$new(name="Scatter", y=data.frame(
 theDoc = addParagraph(theDoc, scatterlink)
 scatterlink2 = ezImageFileLink(EzPlotterScatter$new(name="ScatterMultiple", y=data.frame(a=1:10,b=21:30,c=90:81), x=51:60))
 theDoc = addParagraph(theDoc, scatterlink2)
+allscatterlink = ezImageFileLink(EzPlotterAllPairScatter$new(x=matrix(1:10,5)))
+theDoc = addParagraph(theDoc, allscatterlink)
+allscatterlink2 = ezImageFileLink(EzPlotterAllPairScatter$new(name="allshallscatter", x=matrix(1:25,5)))
+theDoc = addParagraph(theDoc, allscatterlink2)
 
 theList = list()
 for (i in 1:4){

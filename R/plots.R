@@ -421,8 +421,7 @@ ezScatter <- function(x=NULL, y, file=NULL, isPresent=NULL, types=NULL, cex=0.8,
   }
 }
 
-
-
+# Refactored to an EzPlotter version
 ezAllPairScatter = function(x, file=NULL, isPresent=NULL, types=NULL, cex=0.8,
       lim=range(x, na.rm=TRUE), main="",shrink=FALSE,
       xylab=NULL, pch=16, colors=rainbow(ncol(types)),

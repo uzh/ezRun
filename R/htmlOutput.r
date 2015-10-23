@@ -109,17 +109,18 @@ closeHTML = function(html){
 }
 
 ##' @title Writes an error message
-##' @description Writes an error message to an html file Also creates the file and closes it.
+##' @description Writes an error message to an html file. Also creates the file and closes it.
 ##' @param htmlFile a character representing the path to write the file in.
 ##' @param param a list of parameters to extract the \code{projectId} and \code{name} from.
 ##' @param dataset usually a data.frame from the meta field of an EzDataset.
-##' @param error a character representing the error message.
+##' @param error a character vector representing the error message(s).
 ##' @template roxygen-template
 ##' @seealso \code{\link{openHtmlReport}}
 ##' @seealso \code{\link{closeHTML}}
 ##' @examples
 ##' param = ezParam()
 ##' htmlFile = "example_html"
+##' writeErrorHtml(htmlFile, param)
 writeErrorHtml = function(htmlFile, param=param, dataset=NULL, error="Unknown Error"){
 	html = openHtmlReport(htmlFile, param=param,
 	       title=paste("Error:", param$name), dataset=dataset)
@@ -141,7 +142,6 @@ writeErrorHtml = function(htmlFile, param=param, dataset=NULL, error="Unknown Er
 ##' writeImageTableToHtml(as.matrix("example"),html)
 ##' writeImageRowToHtml("example",html)
 ##' writeImageColumnToHtml("example",html)
-## TODOP: perhaps merge the three functions and provide a switch argument for the user to specify matrix, row or column input.
 writeImageTableToHtml = function(pngMatrix, con=stdout()){
   ezWrite("<table>", con=con)
   if (nrow(pngMatrix) > 0 && ncol(pngMatrix) > 0){
@@ -192,7 +192,6 @@ writeTxtLinksToHtml = function(txtNames, mime="text/plain", con=stdout()){
 ##' @param border an integer or numeric specifying the border width.
 ##' @param head a character specifying the header of the table.
 ##' @template roxygen-template
-##' @seealso \code{\link{writeTableToHtml}}
 ##' @examples
 ##' x = matrix(1:25,5)
 ##' rownames(x) = letters[1:5]
@@ -245,7 +244,7 @@ writeTableToHtml = function(x, con=stdout(), bgcolors=matrix("#ffffff", nrow=nro
 ##' @template roxygen-template
 ##' @examples
 ##' 1
-## TODOP: fill out and update all items.
+## TODOP: fill out and update all items. function not used currently.
 writeResultSummary = function(html, param, result, type){
 
   ezWrite("<h2>Result Summary</h2>", con=html)
@@ -276,7 +275,6 @@ writeResultSummary = function(html, param, result, type){
   ezWrite("</table>", con=html)
 }
 
-
 ##' @title Writes a count result summary
 ##' @description Writes a count result summary to an html file.
 ##' @param html a connection to an html file.
@@ -300,7 +298,7 @@ writeResultSummary = function(html, param, result, type){
 ##' @template roxygen-template
 ##' @examples
 ##' 1
-## TODOP: fill out and update all items. type is currently an unused argument.
+## NOTEP: type is currently an unused argument.
 writeCountResultSummary = function(html, param, result, type){
 
   ezWrite("<h2>Result Summary</h2>", con=html)
@@ -489,6 +487,7 @@ writeResultFile = function(html, param, result, rawData, useInOutput=TRUE,
 }
 
 
+# NOTEP: This and functions above already converted to a ReporteRs version or not applicable.
 ##' @title Writes QC scatter plots
 ##' @description Writes QC scatter plots to an html file.
 ##' @param html a connection to an html file.
@@ -499,7 +498,7 @@ writeResultFile = function(html, param, result, rawData, useInOutput=TRUE,
 ##' @param signalCond a set of values containing signals averaged by the conditions.
 ##' @param isPresentCond Either NULL or a data.frame containing coloring information.
 ##' @param colors a character vector containing rgb codes. The default is a scale from blue to red.
-##' @param types a character vector .........
+##' @param types a character vector containing the types.
 ##' @template roxygen-template
 ##' @examples
 ##' 1

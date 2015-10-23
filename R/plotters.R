@@ -114,7 +114,7 @@ EzPlotterSmoothScatter =
   setRefClass("EzPlotterSmoothScatter",
               contains="EzPlotter",
               methods=list(
-                initialize = function(name=NULL, x=NULL, y)
+                initialize = function(name=NULL, x=NULL, y, height=480, width=480, nPlotsPerRow=6)
                 {
                   if (ezIsSpecified(name)){
                     name <<- name
@@ -122,56 +122,14 @@ EzPlotterSmoothScatter =
                     name <<- "EzPlotterSmoothScatter"
                   }
                   data <<- list(x=x, y=y)
+                  if (!(ncol(data$y) == 2 & is.null(data$x))){
+                    nPlots = ncol(data$y)
+                    nImgRow = ceiling(nPlots / nPlotsPerRow)
+                    nImgCol = min(nPlots, nPlotsPerRow)
+                    picSize <<- list(height=nImgRow * height, width=nImgCol * width)
+                  }
                   helpText <<- "SmoothScatter."
                   mouseOverText <<- "Showing mouseOver text."
-                },
-                plotPng = function(file=NULL, width=480, height=480,
-                                   nPlotsPerRow=6, ...)
-                {
-                  "Creates a .png file of plots."
-                  if (ezIsSpecified(file)) {
-                    filename = file
-                  } else {
-                    filename = paste(name, ".png", sep="")
-                  }
-                  
-                  if (ncol(data$y) == 2 & is.null(data$x)) {
-                    png(filename = filename, width, height)
-                    .self$plot(...)
-                  } else {
-                    nPlots = ncol(data$y)
-                    nImgRow <- ceiling(nPlots / nPlotsPerRow)
-                    nImgCol <- min(nPlots, nPlotsPerRow)
-                    png(filename = filename, height=nImgRow * height, width=nImgCol * width)
-                    .self$plot(...)
-                  }
-                  dev.off()
-                  return(filename)
-                },
-                plotPdf = function(file=NULL, width=480, height=480,
-                                   nPlotsPerRow=6, ...)
-                {
-                  "Creates a .pdf file of smooth scatter plots."
-                  if (ezIsSpecified(file)) {
-                    filename = file
-                  } else {
-                    filename = paste(name, ".pdf", sep="")
-                  }
-                  width = round(width/72, digits=2)
-                  height = round(height/72, digits=2)
-                  
-                  if (ncol(data$y) == 2 & is.null(data$x)) {
-                    pdf(file = filename, width, height)
-                    .self$plot(...)
-                  } else {
-                    nPlots = ncol(data$y)
-                    nImgRow <- ceiling(nPlots / nPlotsPerRow)
-                    nImgCol <- min(nPlots, nPlotsPerRow)
-                    pdf(file = filename, height=nImgRow * height, width=nImgCol * width)
-                    .self$plot(...)
-                  }
-                  dev.off()
-                  return(filename)
                 },
                 plot = function(cex=0.8, cex.main=1.0, lim=range(data$x, data$y, na.rm=TRUE),
                                 xlab=NULL, ylab=NULL, nPlotsPerRow=6, ...)
@@ -227,9 +185,9 @@ EzPlotterSmoothScatter =
 
 EzPlotterScatter =
   setRefClass("EzPlotterScatter",
-              contains="EzPlotterSmoothScatter",
+              contains="EzPlotter",
               methods=list(
-                initialize = function(name=NULL, x=NULL, y)
+                initialize = function(name=NULL, x=NULL, y, height=480, width=480, nPlotsPerRow=6)
                 {
                   if (ezIsSpecified(name)){
                     name <<- name
@@ -237,6 +195,12 @@ EzPlotterScatter =
                     name <<- "EzPlotterScatter"
                   }
                   data <<- list(x=x, y=y)
+                  if (!(ncol(data$y) == 2 & is.null(data$x))){
+                    nPlots = ncol(data$y)
+                    nImgRow = ceiling(nPlots / nPlotsPerRow)
+                    nImgCol = min(nPlots, nPlotsPerRow)
+                    picSize <<- list(height=nImgRow * height, width=nImgCol * width)
+                  }
                   helpText <<- "Scatter."
                   mouseOverText <<- "Showing mouseOver text."
                 },
@@ -307,6 +271,70 @@ EzPlotterScatter =
               )
   )
 
+EzPlotterAllPairScatter =
+  setRefClass("EzPlotterAllPairScatter",
+              contains = "EzPlotter",
+              methods = list(
+                initialize = function(name=NULL, x, height=200, width=200)
+                {
+                  if (ezIsSpecified(name)){
+                    name <<- name
+                  } else {
+                    name <<- "EzPlotterAllPairScatter"
+                  }
+                  data <<- x
+                  nItems = ncol(data)
+                  picSize <<- list(height=max(min(nItems * height, 2000), 500),
+                                   width=max(min(nItems * width, 2000), 500))
+                  helpText <<- "AllPairScatter."
+                  mouseOverText <<- "Showing mouseOver text."
+                },
+                plot = function(cex=0.8, cex.main=1.0, lim=range(data, na.rm=TRUE),
+                                xylab=NULL, isPresent=NULL, types=NULL, main="",
+                                shrink=FALSE, pch=16, colors=rainbow(ncol(types)),
+                                legendPos="bottomright", ...)
+                {
+                  nItems = ncol(data)
+                  if (is.null(xylab)){
+                    xylab = colnames(data)
+                  }
+                  if (nItems > 2){
+                    par(oma=c(2,2,2,2), mar=c(0,0,0,0), mfcol=c(nItems, nItems))
+                    par(pch=pch, cex=cex, pty="s", cex.main=cex.main)
+                    for(i in 1:nItems){
+                      for(j in 1:nItems){
+                        if (is.null(dim(isPresent))){
+                          isPres = isPresent ## this covers also the case where isPresent == NULL
+                        } else {
+                          isPres = isPresent[ ,i] | isPresent[ ,j]
+                        }
+                        XYScatterScatter = EzPlotterXYScatterScatter$new(xVec=data[,i], yVec=data[,j])
+                        XYScatterScatter$plot(xlim=lim, ylim=lim, isPresent=isPres, types=types, pch=pch,
+                                              colors=colors, legendPos=NULL, shrink=shrink, axes=FALSE, ...)
+                        if (i == 1){
+                          mtext(xylab[j], 2)
+                        }
+                        if (j == nItems){
+                          mtext(xylab[i], 1)
+                        }
+                      }
+                    }
+                  } else {
+                    par(pch=pch, cex=cex, pty="s", cex.main=cex.main)
+                    if (is.null(dim(isPresent))){
+                      isPres = isPresent   ## this covers also the case where isPresent == NULL
+                    } else {
+                      isPres = isPresent[ ,1] | isPresent[ ,2]
+                    }
+                    XYScatterScatter = EzPlotterXYScatterScatter$new(xVec=data[,1], yVec=data[,2])
+                    XYScatterScatter$plot(xlim=lim, ylim=lim, isPresent=isPres, types=types, pch=pch,
+                                          colors=colors, shrink=shrink, xlab=xylab[1], ylab=xylab[2], ...)
+                  }
+                  mtext(main, outer=TRUE, line=1)
+                }
+              )
+  )
+
 EzPlotterFastqScreen =
   setRefClass("EzPlotterFastqScreen",
               contains="EzPlotter",
@@ -335,5 +363,5 @@ EzPlotterFastqScreen =
 
 
 
-
+## global variable for plots per row?
 
