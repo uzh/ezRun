@@ -74,7 +74,8 @@ openBsdocReport = function(title="", dataset=NULL){
   html = bsdoc(title = title)
   file.copy(ezBannerFile(), ".")
   html = addImage(html, basename(ezBannerFile()))
-  html = addParagraph(html, pot("Functional Genomics Center Zurich", hyperlink = "http://www.fgcz.ethz.ch"))
+  bootStrap = BootstrapMenu("Functional Genomics Center Zurich", link = "http://www.fgcz.ethz.ch")
+  html = addBootstrapMenu(html, bootStrap)
   pot1 = pot(paste("Started on", format(Sys.time(), "%Y-%m-%d %H:%M:%S"), "--&#160;"))
   pot2 = as.html(pot("Documentation", hyperlink = "http://fgcz-sushi.uzh.ch/doc/methods-20140422.html"))
   html = addFlexTable(html, ezFlexTable(cbind(pot1, pot2)))
@@ -196,6 +197,7 @@ addCountResultSummary = function(doc, param, result){
   doc = addFlexTable(doc, ezFlexTable(cbind(tableCol1, tableCol2)))
 }
 
+
 ##' @title Adds a result file
 ##' @description Adds a result file in text format or zipped.
 ##' @param doc an object of the class bsdoc to add the results to.
@@ -210,7 +212,7 @@ addCountResultSummary = function(doc, param, result){
 ##' @examples
 ##' 1
 ## TODOP: if (useful/necessary) add example
-addsResultFile = function(doc, param, result, rawData, useInOutput=TRUE,
+addResultFile = function(doc, param, result, rawData, useInOutput=TRUE,
                            file=paste("result--", param$comparison, ".txt", sep="")){
   seqAnno = rawData$seqAnno
   probes = names(result$pValue)[useInOutput]
@@ -251,7 +253,7 @@ addsResultFile = function(doc, param, result, rawData, useInOutput=TRUE,
     zipLink = zipFile(file)
     if (!is.null(doc)){
       doc = addParagraph(doc, pot(zipLink, hyperlink=zipLink))
-      # TODOP: add mime "application/zip" to hyperlink
+      # TODOP: add mime "application/zip" to hyperlink: paste("<a href='", zipLink, "' type='application/zip'>", zipLink, "</a>")
     }
   } else {
     if (!is.null(doc)){
@@ -261,7 +263,6 @@ addsResultFile = function(doc, param, result, rawData, useInOutput=TRUE,
   }
   return(list(resultFile=file))
 }
-
 
 ##' @title Adds QC scatter plots
 ##' @description Adds QC scatter plots to an html file.
@@ -343,6 +344,151 @@ addQcScatterPlots = function(doc, param, design, conds, rawData, signalCond, isP
     }
   }
 }
+
+
+
+
+addTestScatterPlots = function(doc, param, x, result, seqAnno, types=NULL){
+  if (param$writeScatterPlots == FALSE){
+    return(NULL)
+  }# TODOP: instead using this in calling function makes more sense: if(param$writeScatterPlots){addTestScatterPlots()}
+  if (is.null(types)){
+    types = data.frame(row.names=rownames(x))
+    if ("IsControl" %in% colnames(seqAnno)){
+      types$Controls = seqAnno[ rownames(x), "IsControl"]
+    }
+  }
+  msg = "Highlighting significants with: "
+  if (!is.null(param$pValueHighlightThresh)){
+    significants = result$pValue <= param$pValueHighlightThresh & result$usedInTest
+    types$Significants = result$pValue <= param$pValueHighlightThresh & result$usedInTest
+    msg = paste(msg, "p <= ", param$pValueHighlightThresh)
+    if (!is.null(param$log2RatioHighlightThresh)){
+      msg = paste(msg, "and log ratio >= ", param$log2RatioHighlightThresh)
+      if (!is.null(result$log2Ratio)){
+        types$Significants = types$Significants & abs(result$log2Ratio) >= param$log2RatioHighlightThresh
+      } else {
+        types$Significants = types$Significants & result$log2Effect >= param$log2RatioHighlightThresh
+      }
+    }
+  }
+  doc = addTitle(doc, "Scatter Plots", level=2)
+  doc = addParagraph(doc, msg)
+  doc = addTitle(doc, "Between-group Comparison", level=3)
+#   pngNames = character()
+#   pngNames["scatter"] = paste(param$comparison, "-scatter.png", sep="")
+  if (ncol(result$groupMeans) == 2 & !is.null(param$sampleGroup) & !is.null(param$refGroup)){
+    sampleValues = 2^result$groupMeans[ , param$sampleGroup]
+    refValues = 2^result$groupMeans[ , param$refGroup]
+#     ezScatter(refValues, sampleValues, file=pngNames["scatter"],
+#               isPresent=result$usedInTest,
+#               types=types,
+#               xlab=param$refGroup, ylab=param$sampleGroup)
+    plotter = EzPlotterScatter$new(x=refValues, y=sampleValues)
+    scatterLink = ezImageFileLink(plotter, file=paste(param$comparison, "-scatter.png", sep=""),
+                                  isPresent=result$usedInTest, types=types,
+                                  xlab=param$refGroup, ylab=param$sampleGroup)
+#     pngNames["volcano"] = paste(param$comparison, "-volcano.png", sep="")
+#     ezVolcano(result$log2Ratio, result$pValue, file=pngNames["volcano"],
+#               isPresent=result$usedInTest, types=types, main=param$comparison)
+    plotter = EzPlotterVolcano$new(log2Ratio=result$log2Ratio, pValue=result$pValue)
+    volcanoLink = ezImageFileLink(plotter, file=paste(param$comparison, "-volcano.png", sep=""),
+                                  isPresent=result$usedInTest, types=types, main=param$comparison)
+#     pngNames["fdr-volcano"] = paste(param$comparison, "-FDR-volcano.png", sep="")
+#     ezVolcano(result$log2Ratio, result$fdr, file=pngNames["fdr-volcano"],
+#               isPresent=result$usedInTest, types=types, main=param$comparison, yType="FDR")
+    plotter = EzPlotterVolcano$new(log2Ratio=result$log2Ratio, pValue=result$fdr)
+    volcanoFdrLink = ezImageFileLink(plotter, file=paste(param$comparison, "-FDR-volcano.png", sep=""),
+                                  isPresent=result$usedInTest, types=types, main=param$comparison, yType="FDR")
+  } else {
+#     pngNames["allpair"] = paste(param$comparison, "-scatter.png", sep="")
+#     ezAllPairScatter(2^result$groupMeans, file=pngNames["allpair"],
+#                      isPresent=result$usedInTest, types=types)
+    plotter = EzPlotterAllPairScatter$new(x=2^result$groupMeans)
+    allPairLink = ezImageFileLink(plotter, file=paste(param$comparison, "-scatter.png", sep=""),
+                                     isPresent=result$usedInTest, types=types)
+  }
+  
+  myBreaks = seq(0, 1, by=0.002)
+  pngNames["pValueHist"] = paste(param$comparison, "-pValueHist.png", sep="")
+  png(file=pngNames["pValueHist"], height=400, width=800)
+  histUsed = hist(result$pValue[result$usedInTest], breaks=myBreaks, plot=FALSE)
+  histAbs = hist(result$pValue[!result$usedInTest], breaks=myBreaks, plot=FALSE)
+  xx = rbind(used=histUsed$counts, absent=histAbs$counts)
+  xx = shrinkToRange(xx, c(0, max(xx["used", ])))
+  #colnames(x) = histUsed$mids
+  barplot(xx, space=0, border=NA, col=c("blue", "darkorange"), 
+          xlab="p-value", ylab="counts", ylim=c(0, max(xx["used", ])),
+          main="p-value histogram")
+  abline(h=sum(result$usedInTest)/ncol(xx))
+  at = c(0.01, 0.1, 0.25, 0.5, 0.75, 1)
+  axis(1, at=at*ncol(xx), labels = at)
+  legend("top", c("used", "absent"), col=c("blue", "darkorange"), pch=20, cex=1)
+  
+  dev.off() # NOTEP: the only dev.off() call in the function, perhaps the function was never finished?
+  writeImageRowToHtml(pngNames, con=html)
+  
+  if (is.null(x)){
+    flush(html)
+    return()
+  }
+  
+  theRange = 2^(range(x, na.rm=TRUE))
+  if (!ezIsSpecified(param$batch)){ ## TODO: we no longer use pairing, we now use batch which is more general; however these plots only work if batch is a real pairing
+    for (group in unique(c(param$refGroup, colnames(result$groupMeans)))){
+      idx = which(group == param$grouping)
+      if (length(idx) > 1){
+        #ezWrite("<h3>Intra-group Comparison: ", group, "</h3>", con=html)
+        pngName = paste(group, "-scatter.png", sep="")
+        xlab = paste("Avg of", group)
+        refValue = result$groupMeans[ , group]
+        ezScatter(2^refValue, 2^x[, idx, drop=FALSE],
+                  file=pngName,
+                  isPresent=result$isPresent[, idx, drop=FALSE],
+                  types=types,
+                  lim=theRange, xlab=xlab)
+        #ezWrite("<img src='", pngName, "'>", con=html)
+        #ezWrite("<br>", con=html)
+        if (ncol(result$groupMeans) == 2){
+          otherGroup = setdiff(colnames(result$groupMeans), group)
+          pngName = paste(group, "-over-", otherGroup, "-scatter.png", sep="")
+          xlab = paste("Avg of", otherGroup)
+          refValue = result$groupMeans[ , otherGroup]
+          ezScatter(2^refValue, 2^x[, idx, drop=FALSE],
+                    file=pngName,
+                    isPresent=result$isPresent[, idx, drop=FALSE],
+                    types=types,
+                    lim=theRange, xlab=xlab)
+          #ezWrite("<img src='", pngName, "'>", con=html)
+          #ezWrite("<br>", con=html)
+        }
+      }
+    }
+  } else {
+    
+    #ezWrite("<h3>Pairs: ", param$sampleGroup, " over ", param$refGroup, "</h3>", con=html)
+    use = param$grouping %in% c(param$sampleGroup, param$refGroup)
+    if (all(table(param$batch[use], param$grouping[use]) == 1)){
+      groups = paste(param$grouping, param$batch, sep="--")
+      sampleGroups = sort(unique(groups[param$grouping == param$sampleGroup]))
+      refGroups = sort(unique(groups[param$grouping == param$refGroup]))
+      avgValues = averageColumns(x[ ,use], groups[use], mean)
+      avgPresent= averageColumns(x[ ,use], groups[use], function(x){mean(x) > 0.5})
+      sampleValues = avgValues[ , sampleGroups, drop=FALSE]
+      refValues = avgValues[ , refGroups, drop=FALSE]
+      samplePresent = avgPresent[ ,sampleGroups, drop=FALSE]
+      refPresent = avgPresent[ , refGroups, drop=FALSE]
+      pngName = paste(param$sampleGroup, "-over-", param$refGroup, "-pairs.png", sep="")
+      ezScatter(2^refValues, 2^sampleValues, file=pngName,
+                isPresent=samplePresent | refPresent,
+                types=types, lim=theRange, xlab=colnames(refValues))
+      #ezWrite("<img src='", pngName, "'>", con=html)
+      #ezWrite("<br>", con=html)
+    }
+  }
+  flush(html)
+}
+
 
 
 

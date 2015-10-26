@@ -659,7 +659,7 @@ intHist = function(x, range=c(round(min(x, na.rm=TRUE))-0.5, round(max(x, na.rm=
 	return(hist(x, breaks=seq(range[1], range[2]+step-1, by = step), ...))
 }
 
-
+## occurs
 ezHeatmap = function(x, file=NULL, lim=c(-4, 4), col=ezRedBlueScale,
 											dendrogram="none", margins=c(8,6), cexCol=1.1,
 											Rowv=TRUE, Colv=TRUE, labCol=colnames(x), labRow=rownames(x), width=1800, height=1800,
