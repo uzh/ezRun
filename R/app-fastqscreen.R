@@ -15,7 +15,7 @@ ezMethodFastqScreen = function(input=NA, output=NA, param=NA, htmlFile="00index.
   setwdNew(basename(output$getColumn("Report")))
   dataset = input$meta
   files = input$getFullPaths(param, "Read1")
-  resultFiles = executeFastqscreenCMD(param, files, dataset)
+  resultFiles = executeFastqscreenCMD(param, files)
   countFiles = executeBowtie2CMD(param, files)
   fastqData = collectFastqscreenOutput(dataset, files, resultFiles)
   speciesPercentageTop = collectBowtie2Output(param, dataset, countFiles)
@@ -44,7 +44,7 @@ EzAppFastqScreen <-
 
 
 ## NOTEP: all 5 functions below get only called once each in ezMethodFastqScreen()
-executeFastqscreenCMD = function(param, files, dataset){
+executeFastqscreenCMD = function(param, files){
   confFile = paste(FASTQSCREEN_CONF_DIR, param$confFile, sep="")
   opt = ""
   if (param$nReads > 0){
@@ -54,8 +54,8 @@ executeFastqscreenCMD = function(param, files, dataset){
               paste(files, collapse=" "), "--outdir . --aligner bowtie2",
               "> fastqscreen.out", "2> fastqscreen.err")
   ezSystem(cmd)
-  resultFiles = paste(sub(".fastq.gz", "", basename(dataset$"Read1 [File]")),'_screen.txt',sep='')
-  names(resultFiles) = rownames(dataset)
+  resultFiles = paste(sub(".fastq.gz", "", basename(files)), '_screen.txt',sep='')
+  names(resultFiles) = names(files)
   return(resultFiles)
 }
 
@@ -95,14 +95,13 @@ collectFastqscreenOutput = function(dataset, files, resultFiles){
   fastqData$CommonResults = list()
   for(i in 1:length(resultFiles)){
     cat('Process ',files[i],':')
-    fastqData$CommonResults[[i]] = ezRead.table(resultFiles[i], skip=1, stringsAsFactors=F, blank.lines.skip=T, fill=T, row.names=NULL)
-    fastqData$Reads[i] = fastqData$CommonResults[[i]]$"#Reads_processed"[1]
-    UnmappedReads = as.numeric(unlist(strsplit(fastqData$CommonResults[[i]]$Genome[nrow(fastqData$CommonResults[[i]])], split = " "))[2])
+    x = ezRead.table(resultFiles[i], skip=1, stringsAsFactors=F, blank.lines.skip=T, fill=T, row.names=NULL)
+    fastqData$Reads[i] = x$"#Reads_processed"[1]
+    UnmappedReads = as.numeric(unlist(strsplit(x$Genome[nrow(x)], split = " "))[2])
     fastqData$MappingRate[i] = round((100 - UnmappedReads), digits = 2)
-    lastLine = nrow(fastqData$CommonResults[[i]])
-    LibNames = fastqData$CommonResults[[i]]$Genome[-c(lastLine)]
-    fastqData$CommonResults[[i]] = fastqData$CommonResults[[i]][c(1:(lastLine-1)),grep('%.*hit',colnames(fastqData$CommonResults[[i]]))]
-    rownames(fastqData$CommonResults[[i]]) = LibNames 
+    x = x[-nrow(x), grep('%.*hit',colnames(x))]
+    rownames(x) = x$Genome
+    fastqData$CommonResults[[i]] = x
   }
   return(fastqData)
 }
@@ -116,10 +115,9 @@ collectBowtie2Output = function(param, dataset, countFiles){
   tax2name$TAX_ID = sub("\t", "", tax2name$TAX_ID)
   tax2name$Name = gsub('\t','',tax2name$Name)
   rownames(tax2name) = tax2name$TAX_ID
-  SampleNames = rownames(dataset)
   speciesPercentageTop = list()
-  for (i in 1:length(files)){
-    countData = read.table(countFiles[i], header=F, sep='', stringsAsFactors=F, comment.char='')
+  for (nm in names(countFiles)){
+    countData = read.table(countFiles[nm], header=F, sep='', stringsAsFactors=F, comment.char='')
     colnames(countData) = c('readId', 'hit', 'aScore')
     bestScores = tapply(countData$aScore, countData$readId, max)
     countData = countData[ countData$aScore == bestScores[countData$readId], ]
@@ -142,13 +140,16 @@ collectBowtie2Output = function(param, dataset, countFiles){
     if(param$nReads > 0){
       totalCount = param$nReads
     } else {
-      totalCount = dataset[['Read Count']][i]
+      totalCount = dataset[nm, 'Read Count']
     }
-    speciesPercentageTop[[i]] = signif(100 * cbind(topSpeciesUniq,topSpeciesMultiple)/totalCount, digits=4)
-    taxIdsTopSpecies = rownames(speciesPercentageTop[[i]])
-    namesTopSpecies = tax2name[taxIdsTopSpecies,c('Name')]
-    rownames(speciesPercentageTop[[i]])[which(!is.na(namesTopSpecies))] = namesTopSpecies[which(!is.na(namesTopSpecies))]
-    colnames(speciesPercentageTop[[i]]) = c('UniqueSpeciesHits','MultipleSpeciesHits')
+    taxIds = names(topSpeciesMultiple)
+    taxNames = tax2name[taxIds, 'Name']
+    hasNoName = is.na(taxNames)
+    taxNames[hasNoName] = taxIds[hasNoName]
+    x = ezFrame(UniqueSpeciesHits=signif(100 * topSpeciesUniq/totalCount, digits=4),
+                MultipleSpeciesHits=signif(100 * topSpeciesMultiple/totalCount, digits=4),
+                row.names = taxNames)
+    speciesPercentageTop[[nm]] = x
   }
   return(speciesPercentageTop)
 }
@@ -158,11 +159,16 @@ fastqscreenReport = function(dataset, fastqData=fastqData, param, htmlFile="00in
   require(ReporteRs, warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
   html = openBsdocReport(title=paste("FastQ Screen:", param$name), dataset=dataset)
   html = addTitle(html, "Settings", level=2)
-  tableCol1 = c("Configuration File:", "RefSeq mRNA Reference:", "FastqScreen Version:", "Bowtie2 Version:",
-                "Bowtie2 Parameters:", "Minimum AlignmentScore:", "TopSpecies:", "Subset:")
-  tableCol2 = c(param$confFile, REFSEQ_mRNA_REF, basename(dirname(FASTQSCREEN)), basename(BOWTIE2_DIR),
-                param$cmdOptions, param$minAlignmentScore, param$nTopSpecies, param$subset)
-  html = addFlexTable(html, ezFlexTable(cbind(tableCol1, tableCol2)))
+  settings = ezFrame(Value=character(0))
+  settings["Configuration File:", "Value"] = param$confFile
+  settings["RefSeq mRNA Reference:", "Value"] = REFSEQ_mRNA_REF
+  settings["FastqScreen Version:", "Value"] = basename(dirname(FASTQSCREEN))
+  settings["Bowtie2 Version:", "Value"] = basename(BOWTIE2_DIR)
+  settings["Bowtie2 Parameters:", "Value"] = param$cmdOptions
+  settings["Minimum AlignmentScore:", "Value"] = param$minAlignmentScore
+  settings["TopSpecies:", "Value"] = param$nTopSpecies
+  settings["Subset:", "Value"] = param$subset
+  html = addFlexTable(html, ezFlexTable(settings, add.rownames=TRUE))
   html = addTitle(html, "rRNA-Check", level=2)
   html = addTitle(html, "Per Dataset", level=3)
   plotter = EzPlotterFastqScreen$new(x=fastqData$MappingRate)

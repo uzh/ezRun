@@ -21,7 +21,7 @@ ezMethodCountQC = function(input=NA, output=NA, param=NA, htmlFile="00index.html
   setwdNew(basename(output$getColumn("Report")))
   if (param$useFactorsAsSampleName){
     dataset$Name = rownames(dataset)
-    rownames(dataset) = addReplicate(apply(ezDesignFromDataset(dataset), 1, paste, collapse="_")) # refactorhelp0
+    rownames(dataset) = addReplicate(apply(ezDesignFromDataset(dataset), 1, paste, collapse="_"))
   }
   if (!is.null(param$removeOutliers) && param$removeOutliers && !is.null(dataset$Outlier)){
     dataset = dataset[toupper(dataset$Outlier) %in% c("", "NO", '""', "FALSE") == TRUE, ]
@@ -67,10 +67,10 @@ runNgsCountQC = function(dataset, htmlFile="00index.html", param=param, rawData=
 		}
 	}
   
-  design = ezDesignFromDataset(dataset, param) # refactorhelp0
+  design = ezDesignFromDataset(dataset, param)
   samples = rownames(design)
   nSamples = length(samples)
-  conds = ezConditionsFromDesign(design, maxFactors = 2) # refactorhelp0
+  conds = ezConditionsFromDesign(design, maxFactors = 2)
   nConds = length(unique(conds))
   sampleColors = getSampleColors(conds)
 
