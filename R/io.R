@@ -195,6 +195,6 @@ getSuffix = function(filename){
 ##' @examples
 ##' ezIsAbsolutePath("/absolutepath")
 ezIsAbsolutePath = function(x){
-  !is.null(x) && grepl("^/", x)
+  !is.null(x) & grepl("^/", x)
 }
 
