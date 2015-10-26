@@ -595,7 +595,7 @@ writeQcScatterPlots = function(html, param, design, conds,
 ##' @return Returns
 ##' @examples
 ##' 1
-## TODOP: not used: colorRange, colors. types might be possible to refactor/remove
+## TODOP: not used: colorRange, colors.
 writeTestScatterPlots = function(html, param, x, result, seqAnno, colorRange=c(-3, 3),
    colors=ezRedBlueScale(255), types=NULL){
 

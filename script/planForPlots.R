@@ -46,6 +46,9 @@ for (i in 1:4){
 }
 theDoc = addFlexTable(theDoc, ezFlexTable(rbind(theList[1:4])))
 
+testLink = "testLink.txt"
+theDoc = addParagraph(theDoc, pot(paste("<a href='", testLink, "' type='application/text'>", testLink, "</a>")))
+
 # x = ezMatrix("", rows=1, cols=sampleNames)
 # for (nm in sampleNames){
 #   x[1, nm] = ezImageFileLink(EzPlotterIris$new(name="Iris2", data[sm]))
