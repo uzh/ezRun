@@ -10,7 +10,7 @@
 ##' @templateVar methodName Fast QC
 ##' @seealso \code{\link{EzAppFastqc}}
 ezMethodFastQC = function(input=NA, output=NA, param=NA, htmlFile="00index.html"){
-  
+  require(ReporteRs, warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
   cwd = getwd()
   on.exit(setwd(cwd))
   setwdNew(basename(output$getColumn("Report")))
@@ -25,9 +25,7 @@ ezMethodFastQC = function(input=NA, output=NA, param=NA, htmlFile="00index.html"
   }
   nFiles = length(files)
   
-  html = openHtmlReport(htmlFile, param=param, title=paste("FASTQC:", param$name),
-                        dataset=dataset)
-  
+  html = openBsdocReport(title=paste("FASTQC:", param$name), dataset=dataset)
   reportDir = sub(".fastq.gz", "_fastqc", basename(files))
   reportDir = sub(".fq.gz", ".fq_fastqc", reportDir)
   stopifnot(!duplicated(reportDir))
@@ -41,7 +39,6 @@ ezMethodFastQC = function(input=NA, output=NA, param=NA, htmlFile="00index.html"
   statusToPng = c(PASS="tick.png", WARN="warning.png", FAIL="error.png")
   
   ## collect the overview table
-  
   plots = c("Per base sequence quality"="per_base_quality.png",
             "Per sequence quality scores"="per_sequence_quality.png",
             "Per tile sequence quality"="per_tile_quality.png",
@@ -53,18 +50,16 @@ ezMethodFastQC = function(input=NA, output=NA, param=NA, htmlFile="00index.html"
             "Sequence Duplication Levels"="duplication_levels.png",
             "Adapter Content"="adapter_content.png",
             "Kmer Content"="kmer_profiles.png")
-  
   plotPages = sub(".png", ".html", plots)
   for (i in 1:length(plots)){
-    con = openHtmlReport(plotPages[i], param=param, title=paste("FASTQC:", plotPages[i]))
+    plotHtml = openBsdocReport(title=paste("FASTQC:", plotPages[i]))
     png = paste("<img src=", reportDir, "/Images/", plots[i], ">", sep="")
     tbl = ezMatrix(png, rows=names(files), cols=names(plots)[i])
-    writeTableToHtml(tbl, con=con)
-    closeHTML(con)
+    plotHtml = addTableToReport(tbl, plotHtml)
+    closeBsdocReport(plotHtml, plotPages[i])
   }
   
-  
-  ezWrite("<h2>Read Counts</h2>", con=html)
+  html = addTitle(html, "Read Counts", level=2)
   if (!is.null(dataset$"Read Count")){
     readCount = signif(dataset$"Read Count" / 1e6, digits=3)
     names(readCount) = rownames(dataset)
@@ -79,9 +74,9 @@ ezMethodFastQC = function(input=NA, output=NA, param=NA, htmlFile="00index.html"
   par(mar=c(10.1, 4.1, 4.1, 2.1))
   barplot(readCount, las=2, ylab="Counts [Mio]", main="total reads")
   dev.off()
-  writeImageRowToHtml("readCounts.png", con=html)
+  html = addImage(html, "readCounts.png")
   
-  ezWrite("<h2>Fastqc quality measures</h2>", con=html)
+  html = addTitle(html, "Fastqc quality measures", level=2)
   statusToPng = c(PASS="tick.png", WARN="warning.png", FAIL="error.png")
   for (i in 1:nFiles){
     smy = ezRead.table(file.path(reportDir[i], "summary.txt"), row.names=NULL, header=FALSE)
@@ -96,30 +91,34 @@ ezMethodFastQC = function(input=NA, output=NA, param=NA, htmlFile="00index.html"
     img = paste(reportDir[i], 	"/Icons/", statusToPng[smy[[1]]], sep="")
     tbl[i, ] = paste("<a href=", href, "><img src=", img, "></a>", sep="")
   }
-  writeTableToHtml(tbl, con=html)
+  html = addTableToReport(tbl, html)
   
-  
-  ezWrite("<h2>Per Base Read Quality</h2>", con=html)
-  flush(html)  ## this is really needed here; otherwise the subsequenct multi-threading screws up the stream
+  html = addTitle(html, "Per Base Read Quality", level=2)
   qualMatrixList = ezMclapply(files, getQualityMatrix, mc.cores=ezThreads())
   pngMatrix = plotQualityMatrixAsHeatmap(qualMatrixList, isR2=grepl("_R2", names(files)))
-  writeImageTableToHtml(pngMatrix, con=html)
+  for (i in 1:nrow(pngMatrix)){
+    for (j in 1:ncol(pngMatrix)){
+      pngMatrix[i, j] = as.html(pot(paste('<img src="', pngMatrix[i, j], '"/>')))
+    }
+  }
+  html = addFlexTable(html, ezFlexTable(pngMatrix))
   if(nrow(dataset) > 1){
     plotReadCountToLibConc(dataset,colname='LibConc_qPCR [Characteristic]')
     plotReadCountToLibConc(dataset,colname='LibConc_100_800bp [Characteristic]')
     pngLibCons = list.files(".",pattern="ReadCount_.*.png")
     if(length(pngLibCons)>0){
-      ezWrite("<h3>Correlation between Library concentration measurements and ReadCounts</h3>", con=html)
-      writeImageRowToHtml(pngLibCons, con=html)
+      html = addTitle(html, "Correlation between Library concentration measurements and ReadCounts", level=3)
+      for (i in 1:length(pngLibCons)){
+        pngLibCons[i] = as.html(pot(paste('<img src="', pngLibCons[i], '"/>')))
+      }
+      html = addFlexTable(html, ezFlexTable(pngLibCons))
     }
   }
-  ezWrite("<h3>Settings</h3>", con=html)
-  ezWrite("<table border='0'>", con=html)
-  ezWrite("<tr><td>Method/Version:</td><td>",basename(dirname(FASTQC)), "</td></tr>", con=html)
-  ezWrite("</table>", con=html)
+  html = addTitle(html, "Settings", level=3)
+  html = addParagraph(html, paste("Method/Version:", basename(dirname(FASTQC))))
   ezSessionInfo()
-  writeTxtLinksToHtml('sessionInfo.txt',con=html)
-  closeHTML(html)
+  html = addParagraph(html, pot("sessionInfo.txt", hyperlink = "sessionInfo.txt"))
+  closeBsdocReport(html, htmlFile)
   ezSystem(paste("rm -rf ", paste(reportDir, ".zip", sep="", collapse=" ")))
   return("Success")
 }
@@ -145,7 +144,7 @@ plotReadCountToLibConc = function(dataset,colname){
   if(colname %in% colnames(dataset) && nrow(dataset) > 1){
     if(!all(dataset[[colname]]==0)){
       dataset = dataset[order(dataset$'Read Count',decreasing = T),]
-      dataset$'Read Count'=dataset$'Read Count'/10^6
+      dataset$'Read Count' = dataset$'Read Count'/10^6
       corResult = cor.test(dataset$'Read Count',dataset[[colname]],method = 'spearman')
       regressionResult = lm(dataset[[colname]]~dataset$'Read Count')
       label = sub(' \\[.*','',colname)
@@ -234,8 +233,8 @@ plotQualityMatrixAsHeatmap = function(qualMatrixList, isR2=FALSE, xScale=1, ySca
     by.label = 1
     at=seq(from=minPercent, to=maxPercent, by=by.label)
     ezColorLegend(file=colorKeyFile, colorRange=c(minPercent, maxPercent), 
-                     colors=colorsGray, vertical=FALSE, height=200*xScale, 
-                     width=400*yScale, by.label=by.label, at=at, labels=as.character(at^2))
+                  colors=colorsGray, vertical=FALSE, height=200*xScale, 
+                  width=400*yScale, by.label=by.label, at=at, labels=as.character(at^2))
     pngTable["Avg Qual Colors", nm] = colorKeyFile
     
     result = ezMatrix(0, dim=dim(qualMatrixList[[idx[1]]]))
@@ -264,7 +263,8 @@ plotQualityMatrixAsHeatmap = function(qualMatrixList, isR2=FALSE, xScale=1, ySca
     ## plot the difference quality heatmap for R1_1
     colorKeyFile = paste("diffReadsQuality-Key_", nm, ".png", sep="")
     at=seq(from=minDiff, to=maxDiff, by=by.label)
-    ezColorLegend(file=colorKeyFile, colorRange=c(minDiff, maxDiff), colors=ezRedBlueScale(256), vertical=FALSE, height=200*xScale, width=400*yScale, by.label=by.label, at=at, labels=as.character(at))
+    ezColorLegend(file=colorKeyFile, colorRange=c(minDiff, maxDiff), colors=ezRedBlueScale(256),
+                  vertical=FALSE, height=200*xScale, width=400*yScale, by.label=by.label, at=at, labels=as.character(at))
     pngTable["Diff Qual Colors", nm] = colorKeyFile
     for(sampleName in names(qualMatrixList[idx])){
       qm = qualMatrixList[[sampleName]]
