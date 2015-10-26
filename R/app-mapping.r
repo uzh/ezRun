@@ -487,3 +487,53 @@ EzAppBWA <-
                 }
               )
   )
+
+##' @template method-template
+##' @templateVar methodName Bismark
+##' @seealso \code{\link{EzAppBismark}}
+
+ezMethodBismark = function(input=NA, output=NA, param=NA){
+  ##TODO: create reference if not existing
+  ref = file.path('/srv/GT/reference',dirname(dirname(param[['refBuild']])),'Sequence/WholeGenomeFasta')
+  bamFile = output$getColumn("BAM")
+  trimmedInput = ezMethodTrim(input = input, param = param)
+  defOpt = paste("-p", max(2,ezThreads()/2))
+  cmd = paste(file.path(BISMARK_DIR, "bismark"), param$cmdOptions ,defOpt, ref, '-1',
+              trimmedInput$getColumn("Read1"), ifelse(param$paired, paste('-2',trimmedInput$getColumn("Read2")), ""),  
+              "2> bismark.log")
+  
+  ezSystem(cmd)
+  bamFileNameBismark = list.files('.',pattern='bam$')
+  reportFileNameBismark = list.files('.',pattern='report.txt$')
+  ezSystem(paste('mv ', reportFileNameBismark, paste(names(bamFile),'.report.txt',sep='')))
+  cmd = paste(SAMTOOLS, "view -S -b ",bamFileNameBismark, " > bismark.bam")
+  ezSystem(cmd)
+  ezSortIndexBam("bismark.bam", basename(bamFile),
+                 maxMem=paste(floor(param$ram/ezThreads()*1000), "M", sep=""), removeBam=TRUE, cores=ezThreads())
+              
+              ## write an igv link
+              #if (param$writeIgvSessionLink){
+              #  writeIgvSession(genome = getIgvGenome(param), refBuild=param$ezRef["refBuild"], file=basename(output$getColumn("IGV Session")),
+              #                  bamUrls = paste(PROJECT_BASE_URL, bamFile, sep="/") )
+              #  writeIgvJnlp(jnlpFile=basename(output$getColumn("IGV Starter")), projectId = sub("\\/.*", "", bamFile),
+              #               sessionUrl = paste(PROJECT_BASE_URL, output$getColumn("IGV Session"), sep="/"))
+              #}
+              return("Success")
+}
+
+##' @template app-template
+##' @templateVar method ezMethodBismark()
+##' @seealso \code{\link{ezMethodBismark}}
+EzAppBismark <-
+  setRefClass("EzAppBismark",
+              contains = "EzApp",
+              methods = list(
+                initialize = function()
+                {
+                  "Initializes the application using its specific defaults."
+                  runMethod <<- ezMethodBismark
+                  name <<- "EzAppBismark"
+                  #appDefaults <<- ''
+                }
+              )
+  )
