@@ -14,9 +14,7 @@ ezMethodFastqScreen = function(input=NA, output=NA, param=NA, htmlFile="00index.
   on.exit(setwd(cwd))
   setwdNew(basename(output$getColumn("Report")))
   dataset = input$meta
-  samples = rownames(dataset)
-  files = input$getFullPaths(param,"Read1")
-  names(files) = samples
+  files = input$getFullPaths(param, "Read1")
   resultFiles = executeFastqscreenCMD(param, files, dataset)
   countFiles = executeBowtie2CMD(param, files)
   fastqData = collectFastqscreenOutput(dataset, files, resultFiles)
@@ -56,36 +54,35 @@ executeFastqscreenCMD = function(param, files, dataset){
               paste(files, collapse=" "), "--outdir . --aligner bowtie2",
               "> fastqscreen.out", "2> fastqscreen.err")
   ezSystem(cmd)
-  resultFiles = paste(sub(".fastq.gz", "", basename(dataset$"Read1 [File]")),'_screen.txt',sep='') 
+  resultFiles = paste(sub(".fastq.gz", "", basename(dataset$"Read1 [File]")),'_screen.txt',sep='')
+  names(resultFiles) = rownames(dataset)
   return(resultFiles)
 }
 
 # TODO merge with 
 executeBowtie2CMD = function(param, files){
-  # TODO build filenames from samplenames; return result files; use ezSortIndexBam
-  countFiles = sub('f.*q.gz$', 'counts.txt', basename(files))
-  for (i in 1:length(files)){
-    samFile = sub('counts.txt', 'sam', countFiles[i])
-    bamFile = sub('counts.txt', 'bam', countFiles[i])
-    sbamFile = sub('bam', 'sorted.bam', bamFile)
-    bestScoreFile = sub('counts.txt', 'bestScore.txt', countFiles[i])
+  countFiles = character()
+  for (nm in names(files)){
+    countFiles[nm] = paste(nm, "-counts.txt", sep="")
     bowtie2options = param$cmdOptions
     if(!param$paired){
       cmd = paste(file.path(BOWTIE2_DIR,'bowtie2'),"-x",REFSEQ_mRNA_REF, 
                   " -U ",files[i], bowtie2options ,"-p",param$cores,"-u",param$nReads,
-                  "--no-unal -S",samFile,"2> ",paste(sub('.sam','',samFile),"_bowtie2.err",sep=''))
+                  "--no-unal", "2> ", paste(nm, "_bowtie2.err",sep=''),
+                  "|", SAMTOOLS, "view -S -b -", ">", "bowtie.bam")
     } else {
-      R2_file = sub('R1','R2',files[i])
+      R2_file = sub('R1','R2',files[i])  ## TODO: this is a hack, R2 files should be passed to the function
       cmd = paste(file.path(BOWTIE2_DIR,'bowtie2'),"-x",REFSEQ_mRNA_REF, 
                   " -1 ",files[i]," -2 ", R2_file, bowtie2options, "-p",param$cores,"-u",param$nReads,
-                  "--no-discordant --no-mixed --no-unal -S",samFile,"2> ",paste(sub('.sam','',samFile),"_bowtie2.err",sep=''))
+                  "--no-discordant --no-mixed --no-unal",
+                  "2> ",paste(nm, "_bowtie2.err",sep=''),
+                  "|", SAMTOOLS, "view -S -b -", ">", "bowtie.bam")
     }
     ezSystem(cmd)
-    system(paste(SAMTOOLS,"view -bS ",samFile,"-o", bamFile))
-    system(paste(SAMTOOLS,"sort",bamFile, sub('.bam','',sbamFile)))       
-    system(paste(SAMTOOLS,"view",sbamFile,"|cut -f1,3,12 |sort|sed 's/AS:i://g' >",countFiles[i]))
-    system(paste(SAMTOOLS,"view -F 256",sbamFile,"|cut -f1,12 |sort|sed 's/AS:i://g' >",bestScoreFile))
+    ezSystem(paste(SAMTOOLS,"view", "bowtie.bam", "|cut -f1,3,12 |sort|sed 's/AS:i://g' >",countFiles[nm]))
+    #system(paste(SAMTOOLS,"view -F 256",sbamFile,"|cut -f1,12 |sort|sed 's/AS:i://g' >",bestScoreFile))
   }
+  system('rm bowtie.bam *.err')
   return(countFiles)
 }
 
@@ -122,25 +119,22 @@ collectBowtie2Output = function(param, dataset, countFiles){
   SampleNames = rownames(dataset)
   speciesPercentageTop = list()
   for (i in 1:length(files)){
-    bestScoreFile = sub('counts.txt', 'bestScore.txt', countFiles[i])
     countData = read.table(countFiles[i], header=F, sep='', stringsAsFactors=F, comment.char='')
     colnames(countData) = c('readId', 'hit', 'aScore')
-    bestScoreData = read.table(bestScoreFile, header=F, sep='', stringsAsFactors=F, comment.char='')
-    colnames(bestScoreData) = c('readId', 'bestAScore')
-    combinedCountData = merge(countData, bestScoreData, by.x='readId', by.y='readId')
-    combinedCountData = combinedCountData[which(combinedCountData$aScore == combinedCountData$bestAScore),]
-    combinedCountData = combinedCountData[which(combinedCountData$aScore >= param$minAlignmentScore),]
-    ## TODO: strsplit2 fails if no hits satsify the criteria and combinedCountData has zero rows
-    combinedCountData$hit = strsplit2(combinedCountData$hit,'_')[,1]
-    by = combinedCountData$readId
-    speciesHitsPerRead = tapply(combinedCountData$hit,by,unique)
+    bestScores = tapply(countData$aScore, countData$readId, max)
+    countData = countData[ countData$aScore == bestScores[countData$readId], ]
+    countData = countData[countData$aScore >= param$minAlignmentScore, ]
+    ## TODO: strsplit2 fails if no hits satsify the criteria and countData has zero rows
+    countData$species = strsplit2(countData$hit,'_')[,1]
+    speciesHitsPerRead = tapply(countData$species, by=countData$readId, unique)
     uniqSpeciesHitsPerRead = names(speciesHitsPerRead)[which(sapply(speciesHitsPerRead, length)==1)]
     ###Result UniqHits:
     uniqSpeciesHits = sort(table(unlist(speciesHitsPerRead[uniqSpeciesHitsPerRead])), decreasing = T)
     ###Results MultipleHits:
-    multipleSpeciesHitsPerRead = combinedCountData[-which(combinedCountData$readId %in% uniqSpeciesHitsPerRead),]
-    by = paste(multipleSpeciesHitsPerRead$readId,multipleSpeciesHitsPerRead$hit,sep='_')
-    multipleSpeciesHits = sort(table(tapply(multipleSpeciesHitsPerRead$hit,by,unique)),decreasing = T)
+    multipleSpeciesHitsPerRead = countData[-which(countData$readId %in% uniqSpeciesHitsPerRead),]
+    by = paste(multipleSpeciesHitsPerRead$readId, multipleSpeciesHitsPerRead$species,sep='_')
+    ##multipleSpeciesHits = sort(table(multipleSpeciesHitsPerRead$species[!duplicated(by)]), decreasing=T) # is equivalent to the row below
+    multipleSpeciesHits = sort(table(tapply(multipleSpeciesHitsPerRead$species,by,unique)),decreasing = T)
     
     topSpeciesUniq = uniqSpeciesHits[1:param$nTopSpecies]
     topSpeciesMultiple = multipleSpeciesHits[names(topSpeciesUniq)]
@@ -156,9 +150,6 @@ collectBowtie2Output = function(param, dataset, countFiles){
     rownames(speciesPercentageTop[[i]])[which(!is.na(namesTopSpecies))] = namesTopSpecies[which(!is.na(namesTopSpecies))]
     colnames(speciesPercentageTop[[i]]) = c('UniqueSpeciesHits','MultipleSpeciesHits')
   }
-  system('rm *.sam')
-  system('rm *.bam')
-  system('rm *.bestScore.txt')
   return(speciesPercentageTop)
 }
 
