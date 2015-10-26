@@ -27,7 +27,7 @@
 ##' @template roxygen-template
 ##' @examples 
 ##' ds = EzDataset$new(file=system.file("extdata/yeast_10k/dataset.tsv", package="ezRun", mustWork = TRUE))
-##' param = system.file(package="ezRun", mustWork = TRUE)
+##' dataRoot = system.file(package="ezRun", mustWork = TRUE)
 ##' ds$file
 ##' ds$meta
 ##' ds$getColumn("Read1")
@@ -35,7 +35,7 @@
 ##' ds2$setColumn("Read1","replacement")
 ##' ds$columnHasTag("File")
 ##' ds$getNames()
-##' ds$getFullPaths(param,"Read1")
+##' ds$getFullPaths(dataRoot,"Read1")
 EzDataset <-
   setRefClass("EzDataset",
               fields = c("file", "meta", "colNames", "tags", "isModified"),
@@ -53,6 +53,7 @@ EzDataset <-
                   } else {
                     if (length(fileNew) == 1){
                       if (length(metaNew) == 0){
+                        .waitUntilFileExists(fileNew, maxWaitSeconds=60, interval=1)
                         stopifnot(file.exists(fileNew))
                         file <<- fileNew
                         meta <<- ezRead.table(fileNew)
@@ -124,7 +125,7 @@ EzDataset <-
                     dataRoot = param
                   }
                   files = .self$getColumn(name)
-                  if (all(grepl("^/", files))){
+                  if (all(ezIsAbsolutePath(files))){
                     return(files)
                   }
                   
