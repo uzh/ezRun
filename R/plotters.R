@@ -122,8 +122,8 @@ EzPlotterSmoothScatter =
                     name <<- "EzPlotterSmoothScatter"
                   }
                   data <<- list(x=x, y=y)
-                  if (!(ncol(data$y) == 2 & is.null(data$x))){
-                    nPlots = ncol(data$y)
+                  if (!(ncol(data$y) == 2 && is.null(data$x))){
+                    nPlots = ifelse(is.null(ncol(data$y)), 1, ncol(data$y))
                     nImgRow = ceiling(nPlots / nPlotsPerRow)
                     nImgCol = min(nPlots, nPlotsPerRow)
                     picSize <<- list(height=nImgRow * height, width=nImgCol * width)
@@ -136,20 +136,20 @@ EzPlotterSmoothScatter =
                 {
                   yValues = as.matrix(data$y)
                   if (is.null(ylab)){
-                    ylab=colnames(data$y)
+                    ylab=colnames(yValues)
                   }
                   
                   # treat the special case when the reference is not given but there are only two plots
-                  if (ncol(data$y) == 2 & is.null(data$x)){
+                  if (ncol(yValues) == 2 && is.null(data$x)){
                     par(cex.main=cex.main, cex=cex)
-                    smoothScatter(log2(data$y[ ,1]), log2(data$y[ ,2]), xlim=log2(lim), ylim=log2(lim),
+                    smoothScatter(log2(yValues[ ,1]), log2(yValues[ ,2]), xlim=log2(lim), ylim=log2(lim),
                                   xlab=ylab[1], ylab=ylab[2], ...)
                     abline(0, 1, col="blue")
                     return()
                   }
                   
                   ## all other cases
-                  nPlots = ncol(data$y)
+                  nPlots = ncol(yValues)
                   nImgRow <- ceiling(nPlots / nPlotsPerRow)
                   nImgCol <- min(nPlots, nPlotsPerRow)
                   par(mfrow=c(nImgRow, nImgCol))
@@ -163,7 +163,7 @@ EzPlotterSmoothScatter =
                   }
                   for (i in 1:nPlots){
                     if (is.null(data$x)){
-                      xVal = apply(data$y[ , -i, drop=FALSE], 1, ezGeomean, na.rm=TRUE)
+                      xVal = apply(yValues[ , -i, drop=FALSE], 1, ezGeomean, na.rm=TRUE)
                       if (is.null(xlab)){
                         xlab="Average"
                       }
@@ -175,7 +175,7 @@ EzPlotterSmoothScatter =
                         xlab = colnames(data$x)[i]
                       }
                     }
-                    smoothScatter(log2(xVal), log2(data$y[ ,i]), xlim=log2(lim), ylim=log2(lim),
+                    smoothScatter(log2(xVal), log2(yValues[ ,i]), xlim=log2(lim), ylim=log2(lim),
                                   main=main[i], xlab=ylab[1], ylab=ylab[2], ...)
                     abline(0, 1, col="blue")
                   }
@@ -195,8 +195,8 @@ EzPlotterScatter =
                     name <<- "EzPlotterScatter"
                   }
                   data <<- list(x=x, y=y)
-                  if (!(ncol(data$y) == 2 & is.null(data$x))){
-                    nPlots = ncol(data$y)
+                  if (!(ncol(data$y) == 2 && is.null(data$x))){
+                    nPlots = ifelse(is.null(ncol(data$y)), 1, ncol(data$y))
                     nImgRow = ceiling(nPlots / nPlotsPerRow)
                     nImgCol = min(nPlots, nPlotsPerRow)
                     picSize <<- list(height=nImgRow * height, width=nImgCol * width)
@@ -211,18 +211,18 @@ EzPlotterScatter =
                 {
                   yValues = as.matrix(data$y)
                   if (is.null(ylab)){
-                    ylab=colnames(data$y)
+                    ylab=colnames(yValues)
                   }
                   
                   # treat the special case when the reference is not given but there are only two plots
-                  if (ncol(data$y) == 2 & is.null(data$x)){
+                  if (ncol(yValues) == 2 && is.null(data$x)){
                     if (is.null(dim(isPresent))){
                       isPres = isPresent
                     } else {
                       isPres = isPresent[ ,1] | isPresent[ , 2]
                     }
                     par(cex.main=cex.main, cex=cex)
-                    XYScatterScatter = EzPlotterXYScatterScatter$new(xVec=data$y[ ,1], yVec=data$y[ ,2])
+                    XYScatterScatter = EzPlotterXYScatterScatter$new(xVec=yValues[ ,1], yVec=yValues[ ,2])
                     XYScatterScatter$plot(xlim=lim, ylim=lim, isPresent=isPres, types=types, pch=pch,
                                           colors=colors, legendPos=legendPos, shrink=shrink,
                                           xlab=ylab[1], ylab=ylab[2], ...)
@@ -230,7 +230,7 @@ EzPlotterScatter =
                   }
                   
                   ## all other cases
-                  nPlots = ncol(data$y)
+                  nPlots = ncol(yValues)
                   nImgRow <- ceiling(nPlots / nPlotsPerRow)
                   nImgCol <- min(nPlots, nPlotsPerRow)
                   par(mfrow=c(nImgRow, nImgCol))
@@ -249,7 +249,7 @@ EzPlotterScatter =
                       isPres = isPresent[ ,i]
                     }
                     if (is.null(data$x)){
-                      xVal = apply(data$y[ , -i, drop=FALSE], 1, ezGeomean, na.rm=TRUE)
+                      xVal = apply(yValues[ , -i, drop=FALSE], 1, ezGeomean, na.rm=TRUE)
                       if (is.null(xlab)){
                         xlab="Average"
                       }
@@ -262,7 +262,7 @@ EzPlotterScatter =
                       }
                     }
                     par(mar=c(4.1, 3.1, 4.1, 0.1))
-                    XYScatterScatter = EzPlotterXYScatterScatter$new(xVec=xVal, yVec=data$y[ ,i])
+                    XYScatterScatter = EzPlotterXYScatterScatter$new(xVec=xVal, yVec=yValues[ ,i])
                     XYScatterScatter$plot(xlim=lim, ylim=lim, isPresent=isPres, types=types, pch=pch,
                                           colors=colors, legendPos=legendPos, shrink=shrink,
                                           main=main[i], xlab=xlab, ylab=ylab[i], ...)
@@ -283,7 +283,7 @@ EzPlotterAllPairScatter =
                     name <<- "EzPlotterAllPairScatter"
                   }
                   data <<- x
-                  nItems = ncol(data)
+                  nItems = ifelse(is.null(ncol(data)), 1, ncol(data))
                   picSize <<- list(height=max(min(nItems * height, 2000), 500),
                                    width=max(min(nItems * width, 2000), 500))
                   helpText <<- "AllPairScatter."
@@ -294,7 +294,8 @@ EzPlotterAllPairScatter =
                                 shrink=FALSE, pch=16, colors=rainbow(ncol(types)),
                                 legendPos="bottomright", ...)
                 {
-                  nItems = ncol(data)
+                  data <<- as.matrix(data)
+                  nItems = ifelse(is.null(ncol(data)), 1, ncol(data))
                   if (is.null(xylab)){
                     xylab = colnames(data)
                   }
