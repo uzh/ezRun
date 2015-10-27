@@ -487,7 +487,6 @@ writeResultFile = function(html, param, result, rawData, useInOutput=TRUE,
 }
 
 
-# NOTEP: This and functions above already converted to a ReporteRs version or not applicable.
 ##' @title Writes QC scatter plots
 ##' @description Writes QC scatter plots to an html file.
 ##' @param html a connection to an html file.
@@ -506,11 +505,6 @@ writeResultFile = function(html, param, result, rawData, useInOutput=TRUE,
 writeQcScatterPlots = function(html, param, design, conds,
 															 rawData, signalCond, isPresentCond, seqAnno,
 															 colors=ezRedBlueScale(255), types=NULL){
-
-  if (param$writeScatterPlots == FALSE){
-    return(NULL)
-  }
-
   samples = rownames(design)
 	nConds = length(unique(conds))
 	signal = getSignal(rawData)
@@ -598,11 +592,6 @@ writeQcScatterPlots = function(html, param, design, conds,
 ## TODOP: not used: colorRange, colors.
 writeTestScatterPlots = function(html, param, x, result, seqAnno, colorRange=c(-3, 3),
    colors=ezRedBlueScale(255), types=NULL){
-
-  if (param$writeScatterPlots == FALSE){
-    return(NULL)
-  }
-
   if (is.null(types)){
       types = data.frame(row.names=rownames(x))
 			if ("IsControl" %in% colnames(seqAnno)){

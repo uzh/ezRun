@@ -287,10 +287,11 @@ runNgsCountQC = function(dataset, htmlFile="00index.html", param=param, rawData=
 		
     writeImageRowToHtml(pngNames, con=html)
     flush(html)
-
-		writeQcScatterPlots(html, param, design, conds,
-		                    rawData, signalCond, isPresentCond, types=types)
-		
+    
+    if (param$writeScatterPlots){
+      writeQcScatterPlots(html, param, design, conds,
+                          rawData, signalCond, isPresentCond, types=types)
+    }
 		
 		if (!is.null(rawData$countsStart) & !is.null(rawData$countsEnd)){
 		  ezWrite("<h2>3' Bias analysis</h2>", con=html)

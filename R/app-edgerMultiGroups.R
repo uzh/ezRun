@@ -107,7 +107,10 @@ writeNgsMultiGroupReport = function(dataset, result, htmlFile, param=NA, rawData
   cr = c(-param$logColorRange, param$logColorRange)
   logSignal = log2(shiftZeros(result$xNorm, param$minSignal))
   result$groupMeans = averageColumns(logSignal, by=param$grouping)
-  writeTestScatterPlots(html, param, logSignal, result, seqAnno, types=types, colorRange=cr)
+  
+  if (param$writeScatterPlots){
+    writeTestScatterPlots(html, param, logSignal, result, seqAnno, types=types, colorRange=cr) 
+  }
   
   use = result$pValue < param$pValueHighlightThresh & abs(result$log2Ratio) > param$log2RatioHighlightThresh & result$usedInTest
   use[is.na(use)] = FALSE
