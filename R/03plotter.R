@@ -10,6 +10,8 @@
 ##' @description This class is usually not used, but all other plotters inherit from it.
 ##' @field name a character specifying the name of the plotter instance.
 ##' @field data a data.frame, matrix, table or another sensible data object to create plots from.
+##' @field plotWidth an integer specifying the width of the png and pdf to plot.
+##' @field plotHeight an integer specifying the height of the png and pdf to plot.
 ##' @field helpText a character specifying the help text of the plotter.
 ##' @field mouseOverText a character specifying the mouseOver text of images created with the plotter.
 ##' @template roxygen-template

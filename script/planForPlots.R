@@ -57,3 +57,27 @@ theDoc = addParagraph(theDoc, pot(paste("<a href='", testLink, "' type='applicat
 
 writeDoc(theDoc, "my.html")
 setwd(cd)
+
+
+
+
+myPlot = qplot(iris)
+
+ezImageFileLink_v2 = function(ggplot, file=NULL, mouseOverText=ezPlotter$mouseOverText,
+                              addPdfLink=TRUE, width=480, height=480, ...){
+  
+  ezPlotter = EzPlotter$new(ggplot)
+  
+  pngName = ezPlotter$plotPng(file=file, width=width, height=height, ...)
+  if (addPdfLink) {
+    pdfName = ezPlotter$plotPdf(file=sub(".png$", ".pdf", file), width=width, height=height, ...)
+    imgFilePot = pot(paste('<img src="', pngName, '" title="', mouseOverText, '"/>'),
+                     hyperlink = pdfName)
+  } else {
+    imgFilePot = pot(paste('<img src="', pngName, '" title="', mouseOverText, '"/>'))
+  }
+  return(as.html(imgFilePot))
+}
+
+
+

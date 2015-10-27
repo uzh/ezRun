@@ -37,7 +37,4 @@ Rehrauer, Hubert
 
 Schmid, Peter
 }
-\seealso{
-\code{\link{writeTableToHtml}}
-}
 

@@ -14,14 +14,15 @@ writeErrorHtml(htmlFile, param = param, dataset = NULL,
 
 \item{dataset}{usually a data.frame from the meta field of an EzDataset.}
 
-\item{error}{a character representing the error message.}
+\item{error}{a character vector representing the error message(s).}
 }
 \description{
-Writes an error message to an html file Also creates the file and closes it.
+Writes an error message to an html file. Also creates the file and closes it.
 }
 \examples{
 param = ezParam()
 htmlFile = "example_html"
+writeErrorHtml(htmlFile, param)
 }
 \author{
 Rehrauer, Hubert

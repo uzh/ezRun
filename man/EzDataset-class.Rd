@@ -46,7 +46,7 @@ Use this to create an object of the class EzDataset that contains the necessary 
 }
 \examples{
 ds = EzDataset$new(file=system.file("extdata/yeast_10k/dataset.tsv", package="ezRun", mustWork = TRUE))
-param = system.file(package="ezRun", mustWork = TRUE)
+dataRoot = system.file(package="ezRun", mustWork = TRUE)
 ds$file
 ds$meta
 ds$getColumn("Read1")
@@ -54,7 +54,7 @@ ds2 = ds$copy()
 ds2$setColumn("Read1","replacement")
 ds$columnHasTag("File")
 ds$getNames()
-ds$getFullPaths(param,"Read1")
+ds$getFullPaths(dataRoot,"Read1")
 }
 \author{
 Rehrauer, Hubert

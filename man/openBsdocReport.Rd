@@ -22,7 +22,7 @@ Opens an html report using \code{bsdoc()} from the ReporteRs package. Also adds 
 }
 \section{Functions}{
 \itemize{
-\item \code{closeBsdocReport}: Adds a paragraph showing the finishing time and writes the document.
+\item \code{closeBsdocReport}: Adds a paragraph showing the finishing time and writes the document. \code{file} must have a .html suffix.
 }}
 \examples{
 theDoc = openBsdocReport(title="My html report")

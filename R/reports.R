@@ -72,11 +72,13 @@ ezImageFileLink = function(ezPlotter, file=NULL, mouseOverText=ezPlotter$mouseOv
 ##' closeBsdocReport(doc=theDoc, file="example.html")
 openBsdocReport = function(title="", dataset=NULL){
   html = bsdoc(title = title)
+  
   bootStrap = BootstrapMenu("Functional Genomics Center Zurich", link = "http://www.fgcz.ethz.ch")
   ddmenu = DropDownMenu("Navigation")
-  ddmenu = addLinkItem(ddmenu, "Section 1") ## TODOP: Think of a universal way to make section links
+  ddmenu = addLinkItem(ddmenu, "Section 1") ## TODOP: create bootstrapmenu for each app instead of here
   bootStrap = addLinkItem(bootStrap, dd=ddmenu)
   html = addBootstrapMenu(html, bootStrap)
+  
   pot1 = pot(paste("Started on", format(Sys.time(), "%Y-%m-%d %H:%M:%S"), "--&#160;"))
   pot2 = as.html(pot("Documentation", hyperlink = "http://fgcz-sushi.uzh.ch/doc/methods-20140422.html"))
   html = addFlexTable(html, ezFlexTable(cbind(pot1, pot2)))

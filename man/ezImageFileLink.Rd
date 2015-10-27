@@ -11,7 +11,7 @@ ezImageFileLink(ezPlotter, file = NULL,
 \arguments{
 \item{ezPlotter}{an object of the class EzPlotter or inheriting from it.}
 
-\item{file}{a character specifying the name of the image.}
+\item{file}{a character specifying the name of the image with a .png suffix.}
 
 \item{mouseOverText}{a character specifying the text being displayed when mousing over the image.}
 
