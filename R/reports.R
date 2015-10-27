@@ -70,10 +70,12 @@ ezImageFileLink = function(ezPlotter, file=NULL, mouseOverText=ezPlotter$mouseOv
 ##' @examples
 ##' theDoc = openBsdocReport(title="My html report")
 ##' closeBsdocReport(doc=theDoc, file="example.html")
-# TODOP: dropdown menu mit section links
 openBsdocReport = function(title="", dataset=NULL){
   html = bsdoc(title = title)
   bootStrap = BootstrapMenu("Functional Genomics Center Zurich", link = "http://www.fgcz.ethz.ch")
+  ddmenu = DropDownMenu("Navigation")
+  ddmenu = addLinkItem(ddmenu, "Section 1") ## TODOP: Think of a universal way to make section links
+  bootStrap = addLinkItem(bootStrap, dd=ddmenu)
   html = addBootstrapMenu(html, bootStrap)
   pot1 = pot(paste("Started on", format(Sys.time(), "%Y-%m-%d %H:%M:%S"), "--&#160;"))
   pot2 = as.html(pot("Documentation", hyperlink = "http://fgcz-sushi.uzh.ch/doc/methods-20140422.html"))
@@ -161,6 +163,21 @@ addTableToReport = function(x, doc, bgcolors=NULL, valign="middle", border=1, he
   doc = addFlexTable(doc, table)
 }
 
+##' @describeIn addTableToReport Does the same with a white font and returning the table instead of adding it to the document.
+addTableToReportWhite = function(x, doc, bgcolors=NULL, valign="middle", border=1, head=""){
+  if (is.null(bgcolors)){
+    bgcolors = matrix("#ffffff", nrow=nrow(x), ncol=ncol(x))
+  }
+  x = cbind(rownames(x),x)
+  x = as.html(pot(paste('<font color="white">', x, '</font>')))
+  bodyCells = cellProperties(border.width=border, vertical.align=valign)
+  table = FlexTable(x, header.columns = FALSE, body.cell.props=bodyCells,
+                    header.cell.props=cellProperties(border.width = border))
+  table = setFlexTableBackgroundColors(table, j=2:length(colnames(x)), colors=bgcolors)
+  table = addHeaderRow(table, c(head, colnames(x)[2:length(colnames(x))]))
+  return(table)
+}
+
 ##' @title Adds a summary of the count result
 ##' @description Adds a summary of the count result to a bsdoc object.
 ##' @param doc an object of the class bsdoc to add the table to.
@@ -183,10 +200,7 @@ addTableToReport = function(x, doc, bgcolors=NULL, valign="middle", border=1, he
 ##' }
 ##' @template roxygen-template
 ##' @seealso \code{\link[ReporteRs]{addFlexTable}}
-##' @examples
-##' 1
-## TODOP: if (useful/necessary) add example
-addCountResultSummary = function(doc, param, result){
+addCountResultSummary = function(doc, param, result){  ### TODOP: change col1 col2 to settings approach from other function
   doc = addTitle(doc, "Result Summary", level=2)
   tableCol1 = c("Analysis:", "Feature level:", "Data Column Used:", "Method:")
   tableCol2 = c(result$analysis, result$featureLevel, result$countName, result$method)
@@ -224,9 +238,6 @@ addCountResultSummary = function(doc, param, result){
 ##' @template roxygen-template
 ##' @return Returns the name of the result file.
 ##' @seealso \code{\link{writeTxtLinksToHtml}}
-##' @examples
-##' 1
-## TODOP: if (useful/necessary) add example
 addResultFile = function(doc, param, result, rawData, useInOutput=TRUE,
                            file=paste("result--", param$comparison, ".txt", sep="")){
   seqAnno = rawData$seqAnno
@@ -289,13 +300,7 @@ addResultFile = function(doc, param, result, rawData, useInOutput=TRUE,
 ##' @param colors a character vector containing rgb codes. The default is a scale from blue to red.
 ##' @param types a character vector containing the types.
 ##' @template roxygen-template
-##' @examples
-##' 1
-## TODOP: if (useful/necessary) add example
 addQcScatterPlots = function(doc, param, design, conds, rawData, signalCond, isPresentCond, types=NULL){
-  if (param$writeScatterPlots == FALSE){
-    return(NULL)
-  } # TODOP: instead using this in calling function makes more sense: if(param$writeScatterPlots){addQcScatterPlots()}
   samples = rownames(design)
   nConds = length(unique(conds))
   signal = getSignal(rawData)
@@ -359,11 +364,7 @@ addQcScatterPlots = function(doc, param, design, conds, rawData, signalCond, isP
 }
 
 
-
 addTestScatterPlots = function(doc, param, x, result, seqAnno, types=NULL){
-  if (param$writeScatterPlots == FALSE){
-    return(NULL)
-  }# TODOP: instead using this in calling function makes more sense: if(param$writeScatterPlots){addTestScatterPlots()}
   if (is.null(types)){
     types = data.frame(row.names=rownames(x))
     if ("IsControl" %in% colnames(seqAnno)){
@@ -387,43 +388,29 @@ addTestScatterPlots = function(doc, param, x, result, seqAnno, types=NULL){
   doc = addTitle(doc, "Scatter Plots", level=2)
   doc = addParagraph(doc, msg)
   doc = addTitle(doc, "Between-group Comparison", level=3)
-#   pngNames = character()
-#   pngNames["scatter"] = paste(param$comparison, "-scatter.png", sep="")
+  links = character()
   if (ncol(result$groupMeans) == 2 & !is.null(param$sampleGroup) & !is.null(param$refGroup)){
     sampleValues = 2^result$groupMeans[ , param$sampleGroup]
     refValues = 2^result$groupMeans[ , param$refGroup]
-#     ezScatter(refValues, sampleValues, file=pngNames["scatter"],
-#               isPresent=result$usedInTest,
-#               types=types,
-#               xlab=param$refGroup, ylab=param$sampleGroup)
     plotter = EzPlotterScatter$new(x=refValues, y=sampleValues)
-    scatterLink = ezImageFileLink(plotter, file=paste(param$comparison, "-scatter.png", sep=""),
+    links["scatter"] = ezImageFileLink(plotter, file=paste(param$comparison, "-scatter.png", sep=""),
                                   isPresent=result$usedInTest, types=types,
                                   xlab=param$refGroup, ylab=param$sampleGroup)
-#     pngNames["volcano"] = paste(param$comparison, "-volcano.png", sep="")
-#     ezVolcano(result$log2Ratio, result$pValue, file=pngNames["volcano"],
-#               isPresent=result$usedInTest, types=types, main=param$comparison)
     plotter = EzPlotterVolcano$new(log2Ratio=result$log2Ratio, pValue=result$pValue)
-    volcanoLink = ezImageFileLink(plotter, file=paste(param$comparison, "-volcano.png", sep=""),
+    links["volcano"] = ezImageFileLink(plotter, file=paste(param$comparison, "-volcano.png", sep=""),
                                   isPresent=result$usedInTest, types=types, main=param$comparison)
-#     pngNames["fdr-volcano"] = paste(param$comparison, "-FDR-volcano.png", sep="")
-#     ezVolcano(result$log2Ratio, result$fdr, file=pngNames["fdr-volcano"],
-#               isPresent=result$usedInTest, types=types, main=param$comparison, yType="FDR")
     plotter = EzPlotterVolcano$new(log2Ratio=result$log2Ratio, pValue=result$fdr)
-    volcanoFdrLink = ezImageFileLink(plotter, file=paste(param$comparison, "-FDR-volcano.png", sep=""),
+    links["volcanoFdr"] = ezImageFileLink(plotter, file=paste(param$comparison, "-FDR-volcano.png", sep=""),
                                   isPresent=result$usedInTest, types=types, main=param$comparison, yType="FDR")
   } else {
-#     pngNames["allpair"] = paste(param$comparison, "-scatter.png", sep="")
-#     ezAllPairScatter(2^result$groupMeans, file=pngNames["allpair"],
-#                      isPresent=result$usedInTest, types=types)
     plotter = EzPlotterAllPairScatter$new(x=2^result$groupMeans)
-    allPairLink = ezImageFileLink(plotter, file=paste(param$comparison, "-scatter.png", sep=""),
+    links["allPair"] = ezImageFileLink(plotter, file=paste(param$comparison, "-scatter.png", sep=""),
                                      isPresent=result$usedInTest, types=types)
   }
   
   myBreaks = seq(0, 1, by=0.002)
-  pngNames["pValueHist"] = paste(param$comparison, "-pValueHist.png", sep="")
-  png(file=pngNames["pValueHist"], height=400, width=800)
+  links["pValueHist"] = paste(param$comparison, "-pValueHist.png", sep="")
+  png(file=links["pValueHist"], height=400, width=800)
   histUsed = hist(result$pValue[result$usedInTest], breaks=myBreaks, plot=FALSE)
   histAbs = hist(result$pValue[!result$usedInTest], breaks=myBreaks, plot=FALSE)
   xx = rbind(used=histUsed$counts, absent=histAbs$counts)
@@ -436,12 +423,11 @@ addTestScatterPlots = function(doc, param, x, result, seqAnno, types=NULL){
   at = c(0.01, 0.1, 0.25, 0.5, 0.75, 1)
   axis(1, at=at*ncol(xx), labels = at)
   legend("top", c("used", "absent"), col=c("blue", "darkorange"), pch=20, cex=1)
-  
-  dev.off() # NOTEP: the only dev.off() call in the function, perhaps the function was never finished?
-  writeImageRowToHtml(pngNames, con=html)
+  links["pValueHist"] = as.html(pot(paste('<img src="', links["pValueHist"], '"/>')))
+  dev.off()
+  doc = addFlexTable(doc, ezFlexTable(rbind(links)))
   
   if (is.null(x)){
-    flush(html)
     return()
   }
   
@@ -450,35 +436,25 @@ addTestScatterPlots = function(doc, param, x, result, seqAnno, types=NULL){
     for (group in unique(c(param$refGroup, colnames(result$groupMeans)))){
       idx = which(group == param$grouping)
       if (length(idx) > 1){
-        #ezWrite("<h3>Intra-group Comparison: ", group, "</h3>", con=html)
+        doc = addTitle(doc, paste("Intra-group Comparison:", group), level=3)
         pngName = paste(group, "-scatter.png", sep="")
         xlab = paste("Avg of", group)
         refValue = result$groupMeans[ , group]
-        ezScatter(2^refValue, 2^x[, idx, drop=FALSE],
-                  file=pngName,
-                  isPresent=result$isPresent[, idx, drop=FALSE],
-                  types=types,
-                  lim=theRange, xlab=xlab)
-        #ezWrite("<img src='", pngName, "'>", con=html)
-        #ezWrite("<br>", con=html)
+        plotter = EzPlotterScatter$new(x=2^refValues, y=2^x[, idx, drop=FALSE])
+        doc = addParagraph(doc, ezImageFileLink(plotter, file=pngName, isPresent=result$isPresent[, idx, drop=FALSE],
+                                                types=types, lim=theRange, xlab=xlab))
         if (ncol(result$groupMeans) == 2){
           otherGroup = setdiff(colnames(result$groupMeans), group)
           pngName = paste(group, "-over-", otherGroup, "-scatter.png", sep="")
           xlab = paste("Avg of", otherGroup)
           refValue = result$groupMeans[ , otherGroup]
-          ezScatter(2^refValue, 2^x[, idx, drop=FALSE],
-                    file=pngName,
-                    isPresent=result$isPresent[, idx, drop=FALSE],
-                    types=types,
-                    lim=theRange, xlab=xlab)
-          #ezWrite("<img src='", pngName, "'>", con=html)
-          #ezWrite("<br>", con=html)
+          doc = addParagraph(doc, ezImageFileLink(plotter, file=pngName, isPresent=result$isPresent[, idx, drop=FALSE],
+                                                  types=types, lim=theRange, xlab=xlab))
         }
       }
     }
   } else {
-    
-    #ezWrite("<h3>Pairs: ", param$sampleGroup, " over ", param$refGroup, "</h3>", con=html)
+    doc = addTitle(doc, paste("Pairs:", param$sampleGroup, "over", param$refGroup), level=3)
     use = param$grouping %in% c(param$sampleGroup, param$refGroup)
     if (all(table(param$batch[use], param$grouping[use]) == 1)){
       groups = paste(param$grouping, param$batch, sep="--")
@@ -491,14 +467,11 @@ addTestScatterPlots = function(doc, param, x, result, seqAnno, types=NULL){
       samplePresent = avgPresent[ ,sampleGroups, drop=FALSE]
       refPresent = avgPresent[ , refGroups, drop=FALSE]
       pngName = paste(param$sampleGroup, "-over-", param$refGroup, "-pairs.png", sep="")
-      ezScatter(2^refValues, 2^sampleValues, file=pngName,
-                isPresent=samplePresent | refPresent,
-                types=types, lim=theRange, xlab=colnames(refValues))
-      #ezWrite("<img src='", pngName, "'>", con=html)
-      #ezWrite("<br>", con=html)
+      plotter = EzPlotterScatter$new(x=2^refValues, y=2^sampleValues)
+      doc = addParagraph(doc, ezImageFileLink(plotter, file=pngName, isPresent=samplePresent | refPresent,
+                                              types=types, lim=theRange, xlab=colnames(refValues)))
     }
   }
-  flush(html)
 }
 
 #######################################################################################################################################
@@ -640,17 +613,18 @@ addGageTables = function(doc, param = NULL, gageResults = NULL) {
       res <- res[,!colnames(res) %in% "links", drop=F]
       
       
-      # Writing plot and table         TODOP: finish writeTableToHtmlWhite, link1 and link2
+      # Writing plot and table
 #       ezWrite("<tr valign=top><td>", con=html)
 #       writeImageRowToHtml(x[[lab.png]], con=html)
 #       ezWrite("</td><td>", con=html)
-      link1 = x[[lab.png]]
+      imgrow = x[[lab.png]]
       pathColors = unique(x[[lab.pathCol]])
 #       writeTableToHtmlWhite(res, con=html, 
 #                             bgcolors=matrix(gsub("FF$", "", unique(pathColors)), nrow=length(unique(pathColors)), ncol=1))
 #       ezWrite("</td></tr>", con=html)
-      link2 = 
-      tableRows[[signal]] = cbind(link1, link2)
+      tbl = addTableToReportWhite(res, doc,
+                               bgcolors=matrix(gsub("FF$", "", unique(pathColors)), nrow=length(unique(pathColors)), ncol=1))
+      tableRows[[signal]] = cbind(imgrow, tbl)
     }
 #     ezWrite("</table>", con=html)
     table = ezFlexTable(rbind(unlist(tableRows)), header = TRUE)
@@ -658,8 +632,6 @@ addGageTables = function(doc, param = NULL, gageResults = NULL) {
     doc = addFlexTable(doc, table)
   }
 }
-
-
 
 
 
