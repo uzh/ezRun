@@ -126,7 +126,8 @@ EzPlotterSmoothScatter =
                     nPlots = ifelse(is.null(ncol(data$y)), 1, ncol(data$y))
                     nImgRow = ceiling(nPlots / nPlotsPerRow)
                     nImgCol = min(nPlots, nPlotsPerRow)
-                    picSize <<- list(height=nImgRow * height, width=nImgCol * width)
+                    plotWidth <<- nImgCol * width
+                    plotHeight <<- nImgRow * height
                   }
                   helpText <<- "SmoothScatter."
                   mouseOverText <<- "Showing mouseOver text."
@@ -199,7 +200,8 @@ EzPlotterScatter =
                     nPlots = ifelse(is.null(ncol(data$y)), 1, ncol(data$y))
                     nImgRow = ceiling(nPlots / nPlotsPerRow)
                     nImgCol = min(nPlots, nPlotsPerRow)
-                    picSize <<- list(height=nImgRow * height, width=nImgCol * width)
+                    plotWidth <<- nImgCol * width
+                    plotHeight <<- nImgRow * height
                   }
                   helpText <<- "Scatter."
                   mouseOverText <<- "Showing mouseOver text."
@@ -284,8 +286,8 @@ EzPlotterAllPairScatter =
                   }
                   data <<- x
                   nItems = ifelse(is.null(ncol(data)), 1, ncol(data))
-                  picSize <<- list(height=max(min(nItems * height, 2000), 500),
-                                   width=max(min(nItems * width, 2000), 500))
+                  plotWidth <<- max(min(nItems * width, 2000), 500)
+                  plotHeight <<- max(min(nItems * height, 2000), 500)
                   helpText <<- "AllPairScatter."
                   mouseOverText <<- "Showing mouseOver text."
                 },
