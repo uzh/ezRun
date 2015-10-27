@@ -70,7 +70,7 @@ ngsTwoGroupAnalysis = function(input=NA, output=NA, param=NULL, htmlFile="00inde
   dataset = input$meta
   if (param$useFactorsAsSampleName){
     dataset$Name = rownames(dataset)
-    rownames(dataset) = addReplicate(apply(ezDesignFromDataset(dataset, param), 1, paste, collapse="_")) # refactorhelp0
+    rownames(dataset) = addReplicate(apply(ezDesignFromDataset(dataset, param), 1, paste, collapse="_"))
   }
   if (!is.null(param$removeOutliers) && param$removeOutliers && !is.null(dataset$Outlier)){
     dataset = dataset[toupper(dataset$Outlier) %in% c("", "NO", '""', "FALSE") == TRUE, ]
@@ -114,16 +114,17 @@ runNgsTwoGroupAnalysis = function(dataset, htmlFile="00index.html", param=param,
   #	return("Error")
   #}
   
+  require(ReporteRs, warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
   if (isError(rawData)){
-    writeErrorHtml(htmlFile, param=param, error=rawData$error)
+    writeErrorReport(htmlFile, param=param, error=rawData$error)
     return("Error")
   }
   
   result = twoGroupCountComparison(rawData, param)
   if (isError(result)){
-    writeErrorHtml(htmlFile, param=param, error=rawData$error)
+    writeErrorReport(htmlFile, param=param, error=rawData$error)
     return("Error")
-  }  
+  }
   result$featureLevel = rawData$featureLevel
   result$countName = rawData$countName
 
@@ -156,21 +157,21 @@ runNgsTwoGroupAnalysis = function(dataset, htmlFile="00index.html", param=param,
 writeNgsTwoGroupReport = function(dataset, result, htmlFile, param=NA, rawData=NA, types=NULL) {
   keggOrganism = NA
   seqAnno = rawData$seqAnno
-  html = openHtmlReport(htmlFile, param=param, title=paste("Analysis:", param$name),
-                        dataset=dataset)  
-  on.exit(closeHTML(html))
+  doc = openBsdocReport(title=paste("Analysis:", param$name), dataset=dataset)
   
-  writeCountResultSummary(html, param, result, rawData$type)
-  writeResultCounts(html, param, result)
-  resultFile = writeResultFile(html, param, result, rawData)
+  addCountResultSummary(doc, param, result)
+#   writeResultCounts(html, param, result) ## TODO: update/repair function
+  resultFile = addResultFile(doc, param, result, rawData)
   ezWrite.table(result$sf, file="scalingfactors.txt", head="Name", digits=4)
   
-  cr = c(-param$logColorRange, param$logColorRange)
   logSignal = log2(shiftZeros(result$xNorm, param$minSignal))
   result$groupMeans = cbind(rowMeans(logSignal[ , param$grouping == param$sampleGroup, drop=FALSE]),
                             rowMeans(logSignal[ , param$grouping == param$refGroup, drop=FALSE]))
   colnames(result$groupMeans) = c(param$sampleGroup, param$refGroup)
-  writeTestScatterPlots(html, param, logSignal, result, seqAnno, types=types, colorRange=cr)
+  
+  if (param$writeScatterPlots){
+    addTestScatterPlots(doc, param, logSignal, result, seqAnno, types) ## colorRange was also not used in the old function
+  }
   
   use = result$pValue < param$pValueHighlightThresh & abs(result$log2Ratio) > param$log2RatioHighlightThresh & result$usedInTest
   use[is.na(use)] = FALSE
@@ -198,31 +199,47 @@ writeNgsTwoGroupReport = function(dataset, result, htmlFile, param=NA, rawData=N
     if (param$doZip){
       zipFile(resultFile$resultFile)
     }
-    ezWrite("<h2>Clustering of Significant Features</h2>", con=html)
-    ezWrite("<p>Significance threshold: ", param$pValueHighlightThresh, "<br>", con=html)
+    doc = addTitle(doc, "Clustering of Significant Features", level=2)
+    doc = addParagraph(doc, paste("Significance threshold:", param$pValueHighlightThresh))
     if (param$log2RatioHighlightThresh > 0){
-      ezWrite("log2 Ratio threshold: ", param$log2RatioHighlightThresh, "<br>", con=html)  		
+      doc = addParagraph(doc, paste("log2 Ratio threshold:", param$log2RatioHighlightThresh))
     }
-    ezWrite("Number of significant features: ", sum(use), "</p>", con=html)
-    ezWrite("<table border=0><tr><th>Cluster Plot</th><th>GO categories of feature clusters</th></tr>", con=html)
-    ezWrite("<tr valign=top><td>", con=html)
-    writeImageRowToHtml(clusterPng, con=html)
-    ezWrite("</td><td>", con=html)
+    doc = addParagraph(doc, paste("Number of significant features:", sum(use)))
+    
+#     ezWrite("<table border=0><tr><th>Cluster Plot</th><th>GO categories of feature clusters</th></tr>", con=html)
+#     ezWrite("<tr valign=top><td>", con=html)
+#     writeImageRowToHtml(clusterPng, con=html)
+#     ezWrite("</td><td>", con=html)
+#     if (!is.null(clusterResult$GO)){
+#       ezWrite("Background color corresponds to the color of the feature cluster in the heatmap plot.<br>", con=html)
+#       writeGOClusterResult(html, param, clusterResult)
+#     } else {
+#       ezWrite("No information available", con=html)
+#     }
+##     if (!is.null(clusterResult$Kegg)){
+##       writeKeggClusterResult(html, param, clusterResult, keggOrganism)
+##     }
+#     ezWrite("</td></tr></table>", con=html)
+    clusterLink = as.html(pot(paste('<img src="', clusterPng, '"/>')))
     if (!is.null(clusterResult$GO)){
-      ezWrite("Background color corresponds to the color of the feature cluster in the heatmap plot.<br>", con=html)
-      writeGOClusterResult(html, param, clusterResult)
+      goLink = list()
+      goLink[[1]] = paste("Background color corresponds to the color of the feature cluster in the heatmap plot.")
+      goLink[[2]] = addGOClusterResult(doc, param, clusterResult)
     } else {
-      ezWrite("No information available", con=html)
+      goLink = paste("No information available")
     }
     if (!is.null(clusterResult$Kegg)){
-      writeKeggClusterResult(html, param, clusterResult, keggOrganism)
+      ########## TODO: addKeggClusterResult()
     }
-    ezWrite("</td></tr></table>", con=html)
+    tbl = ezFlexTable(cbind(clusterLink, goLink), header = TRUE)
+    tbl = addHeaderRow(tbl, cbind("Cluster Plot", "GO categories of feature clusters"))
+    doc = addFlexTable(doc, tbl)
   }
   ## only do GO if we have enough genes
   if (doGo(param, seqAnno)){
     goResult = twoGroupsGO(param, result, seqAnno, normalizedAvgSignal=rowMeans(result$groupMeans), method=param$goseqMethod)
-    writeGOTables(html, param, goResult)
+#     writeGOTables(html, param, goResult)
+    addGOTables(doc, param, goResult)
     goFiles = list.files('.',pattern='enrich.*txt')
     keepCols = c('GO.ID','Pvalue')
     revigoLinks = matrix(nrow=3,ncol=3)
@@ -239,21 +256,26 @@ writeNgsTwoGroupReport = function(dataset, result, htmlFile, param=NA, rawData=N
                              paste(goResult[,'GO.ID'],goResult[,'Pvalue'],
                                    collapse='%0D%0A'),sep='')
     }
-    ezWrite(paste("<h3>ReViGO </h3>",sep=''), con=html)
+#     ezWrite(paste("<h3>ReViGO </h3>",sep=''), con=html)
+    doc = addParagraph(doc, "ReViGO", level=3)
     revigoResult = capture.output(writeTableToHtml(revigoLinks))          
     revigoResult = gsub("<td valign='middle' bgcolor='#ffffff'>","<td valign='middle' bgcolor='#ffffff'><a target='_blank' href='",revigoResult)
     revigoResult = gsub("</td>","' type='text/plain'>Link2ReViGo</a></td>",revigoResult)
-    ezWrite(revigoResult, con=html)
+#     ezWrite(revigoResult, con=html)
+    doc = addParagraph(doc, pot(revigoResult))
   }
   
   ## Run Gage
   if(param[['GAGEanalysis']] ) {
     gageRes <- runGageAnalysis(result, param=param, output=output, rawData=rawData)
-    writeGageTables(html, param, gageRes)
+#     writeGageTables(html, param, gageRes)
+   addGageTables(doc, param, gageRes)
   }
   
   ezSessionInfo()
-  writeTxtLinksToHtml('sessionInfo.txt',con=html)
+#   writeTxtLinksToHtml('sessionInfo.txt',con=html)
+  doc = addParagraph(doc, pot("sessionInfo.txt", hyperlink = "sessionInfo.txt"))
+  closeBsdocReport(doc, htmlFile)
 }
 
 ##' @title Compares the counts of two groups

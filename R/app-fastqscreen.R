@@ -67,19 +67,19 @@ executeBowtie2CMD = function(param, files){
     bowtie2options = param$cmdOptions
     if(!param$paired){
       cmd = paste(file.path(BOWTIE2_DIR,'bowtie2'),"-x",REFSEQ_mRNA_REF, 
-                  " -U ",files[i], bowtie2options ,"-p",param$cores,"-u",param$nReads,
+                  " -U ",files[nm], bowtie2options ,"-p",param$cores,"-u",param$nReads,
                   "--no-unal", "2> ", paste(nm, "_bowtie2.err",sep=''),
                   "|", SAMTOOLS, "view -S -b -", ">", "bowtie.bam")
     } else {
-      R2_file = sub('R1','R2',files[i])  ## TODO: this is a hack, R2 files should be passed to the function
+      R2_file = sub('R1','R2',files[nm])  ## TODO: this is a hack, R2 files should be passed to the function
       cmd = paste(file.path(BOWTIE2_DIR,'bowtie2'),"-x",REFSEQ_mRNA_REF, 
-                  " -1 ",files[i]," -2 ", R2_file, bowtie2options, "-p",param$cores,"-u",param$nReads,
+                  " -1 ",files[nm]," -2 ", R2_file, bowtie2options, "-p",param$cores,"-u",param$nReads,
                   "--no-discordant --no-mixed --no-unal",
                   "2> ",paste(nm, "_bowtie2.err",sep=''),
                   "|", SAMTOOLS, "view -S -b -", ">", "bowtie.bam")
     }
     ezSystem(cmd)
-    ezSystem(paste(SAMTOOLS,"view", "bowtie.bam", "|cut -f1,3,12 |sort|sed 's/AS:i://g' >",countFiles[nm]))
+    ezSystem(paste(SAMTOOLS, "view", "bowtie.bam", '|cut -f1,3,12 |sort|sed "s/AS:i://g" >',countFiles[nm]))
     #system(paste(SAMTOOLS,"view -F 256",sbamFile,"|cut -f1,12 |sort|sed 's/AS:i://g' >",bestScoreFile))
   }
   system('rm bowtie.bam *.err')
