@@ -112,20 +112,20 @@ ds$"Read2 [File]" = ""
 ds$"Read Count" = 0
 sm = "mut_2"
 for (sm in rownames(ds)){
-  reads = readFastq(paste(sm, ".fastq", sep=""))
+  reads = readFastq(paste0(sm, ".fastq"))
   r1 = reads[grepl("/1$", id(reads))]
   r2 = reads[grepl("/2$", id(reads))]
   use = width(r1) == 36 & width(r2) == 36
   r1@id = BStringSet(sub("/1", "", id(r1)))
-  outFile = paste("yeast_10k/", sm, "_R1.fastq", sep="")
+  outFile = paste0("yeast_10k/", sm, "_R1.fastq")
   writeFastq(r1[use], file = outFile, compress=FALSE)
   my.system(paste("pigz -p 4 --best", outFile))
-  ds[sm, "Read1 [File]"] = paste("extdata", "/", outFile, ".gz", sep="")
+  ds[sm, "Read1 [File]"] = paste0("extdata", "/", outFile, ".gz")
   r2@id = BStringSet(sub("/2", "", id(r2)))
-  outFile = paste("yeast_10k/", sm, "_R2.fastq", sep="")
+  outFile = paste0("yeast_10k/", sm, "_R2.fastq")
   writeFastq(r2[use], file = outFile, compress=FALSE)
   my.system(paste("pigz -p 4 --best", outFile))
-  ds[sm, "Read2 [File]"] = paste("extdata", "/", outFile, ".gz", sep="")
+  ds[sm, "Read2 [File]"] = paste0("extdata", "/", outFile, ".gz")
   ds[sm, "Read Count"] = sum(use)
 }
 ds$"Adapter1" = "GATCGGAAGAGCACACGTCTGAACTCCAGTCAC"

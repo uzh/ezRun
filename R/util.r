@@ -181,7 +181,7 @@ ezCut = function(x, breaks, prefix=NULL, labels=NULL){
   if (is.null(labels)){
     labels = paste("<=", breaks[1])
     for (i in 2:length(breaks)){
-      labels = c(labels, paste("(", breaks[i-1], " - ", breaks[i], "]", sep=""))
+      labels = c(labels, paste0("(", breaks[i-1], " - ", breaks[i], "]"))
     }
     labels = c(labels, paste(">", breaks[length(breaks)]))
     if (!is.null(prefix)){
@@ -483,12 +483,11 @@ makeMultiMapping = function(xList){
 .ezSgelapply = function(jobList, FUN, param, queue="GT", cores=4, ram=10, scratch=50, mailto=NULL,
                         saveGlobal=TRUE, removeFiles=TRUE){
   library(Rsge, warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
-  sge.options("sge.qsub.options"=paste("-cwd -q ", queue,
+  sge.options("sge.qsub.options"=paste0("-cwd -q ", queue,
                                        " -pe smp ", cores,
                                        ##" -l C=1",
                                        " -l R=", round(ram/cores, digits=2),
-                                       " -l S=", round(scratch/cores, digits=2),
-                                       sep=""))
+                                       " -l S=", round(scratch/cores, digits=2)))
   sge.options("sge.save.global"=saveGlobal)
   sge.options("sge.remove.files"=removeFiles)
   ## TODO jobs must inspect NSLOTS in order to know how many threads to use!!

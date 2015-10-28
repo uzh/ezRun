@@ -241,7 +241,7 @@ addCountResultSummary = function(doc, param, result){  ### TODOP: change col1 co
 ##' @return Returns the name of the result file.
 ##' @seealso \code{\link{writeTxtLinksToHtml}}
 addResultFile = function(doc, param, result, rawData, useInOutput=TRUE,
-                           file=paste("result--", param$comparison, ".txt", sep="")){
+                           file=paste0("result--", param$comparison, ".txt")){
   seqAnno = rawData$seqAnno
   probes = names(result$pValue)[useInOutput]
   y = data.frame(row.names=probes, stringsAsFactors=FALSE, check.names=FALSE)
@@ -344,18 +344,18 @@ addQcScatterPlots = function(doc, param, design, conds, rawData, signalCond, isP
         idx = idx[order(samples[idx])] ## order alphabetically
         condName = paste(colnames(design)[i], cond)
         doc = addTitle(doc, condName, level=3)
-        pngName = ezValidFilename(paste(condName, "-scatter.png", sep=""))
+        pngName = ezValidFilename(paste0(condName, "-scatter.png"))
         plotter = EzPlotterScatter(y=signal[ ,idx])
         doc = addParagraph(doc, ezImageFileLink(plotter, file=pngName, isPresent=isPresent[ ,idx], types=types,
                                                 lim=signalRange, xlab=paste("Avg of", cond), ylab=NULL))
         if (!is.null(gcTypes)){
-          pngName = ezValidFilename(paste(condName, "-ByGcScatter.png", sep=""))
+          pngName = ezValidFilename(paste0(condName, "-ByGcScatter.png"))
           plotter = EzPlotterScatter(y=signal[ ,idx])
           doc = addParagraph(doc, ezImageFileLink(plotter, file=pngName, isPresent=isPresent[ ,idx], types=gcTypes,
                                                   lim=signalRange, xlab=paste("Avg of", cond), ylab=NULL))
         }
         if (!is.null(widthTypes)){
-          pngName = ezValidFilename(paste(condName, "-ByWidthScatter.png", sep=""))
+          pngName = ezValidFilename(paste0(condName, "-ByWidthScatter.png"))
           plotter = EzPlotterScatter(y=signal[ ,idx])
           doc = addParagraph(doc, ezImageFileLink(plotter, file=pngName, isPresent=isPresent[ ,idx], types=widthTypes,
                                                   lim=signalRange, xlab=paste("Avg of", cond), ylab=NULL))
@@ -395,23 +395,23 @@ addTestScatterPlots = function(doc, param, x, result, seqAnno, types=NULL){
     sampleValues = 2^result$groupMeans[ , param$sampleGroup]
     refValues = 2^result$groupMeans[ , param$refGroup]
     plotter = EzPlotterScatter$new(x=refValues, y=sampleValues)
-    links["scatter"] = ezImageFileLink(plotter, file=paste(param$comparison, "-scatter.png", sep=""),
+    links["scatter"] = ezImageFileLink(plotter, file=paste0(param$comparison, "-scatter.png"),
                                   isPresent=result$usedInTest, types=types,
                                   xlab=param$refGroup, ylab=param$sampleGroup)
     plotter = EzPlotterVolcano$new(log2Ratio=result$log2Ratio, pValue=result$pValue)
-    links["volcano"] = ezImageFileLink(plotter, file=paste(param$comparison, "-volcano.png", sep=""),
+    links["volcano"] = ezImageFileLink(plotter, file=paste0(param$comparison, "-volcano.png"),
                                   isPresent=result$usedInTest, types=types, main=param$comparison)
     plotter = EzPlotterVolcano$new(log2Ratio=result$log2Ratio, pValue=result$fdr)
-    links["volcanoFdr"] = ezImageFileLink(plotter, file=paste(param$comparison, "-FDR-volcano.png", sep=""),
+    links["volcanoFdr"] = ezImageFileLink(plotter, file=paste0(param$comparison, "-FDR-volcano.png"),
                                   isPresent=result$usedInTest, types=types, main=param$comparison, yType="FDR")
   } else {
     plotter = EzPlotterAllPairScatter$new(x=2^result$groupMeans)
-    links["allPair"] = ezImageFileLink(plotter, file=paste(param$comparison, "-scatter.png", sep=""),
+    links["allPair"] = ezImageFileLink(plotter, file=paste0(param$comparison, "-scatter.png"),
                                      isPresent=result$usedInTest, types=types)
   }
   
   myBreaks = seq(0, 1, by=0.002)
-  links["pValueHist"] = paste(param$comparison, "-pValueHist.png", sep="")
+  links["pValueHist"] = paste0(param$comparison, "-pValueHist.png")
   png(file=links["pValueHist"], height=400, width=800)
   histUsed = hist(result$pValue[result$usedInTest], breaks=myBreaks, plot=FALSE)
   histAbs = hist(result$pValue[!result$usedInTest], breaks=myBreaks, plot=FALSE)
@@ -439,7 +439,7 @@ addTestScatterPlots = function(doc, param, x, result, seqAnno, types=NULL){
       idx = which(group == param$grouping)
       if (length(idx) > 1){
         doc = addTitle(doc, paste("Intra-group Comparison:", group), level=3)
-        pngName = paste(group, "-scatter.png", sep="")
+        pngName = paste0(group, "-scatter.png")
         xlab = paste("Avg of", group)
         refValue = result$groupMeans[ , group]
         plotter = EzPlotterScatter$new(x=2^refValues, y=2^x[, idx, drop=FALSE])
@@ -447,7 +447,7 @@ addTestScatterPlots = function(doc, param, x, result, seqAnno, types=NULL){
                                                 types=types, lim=theRange, xlab=xlab))
         if (ncol(result$groupMeans) == 2){
           otherGroup = setdiff(colnames(result$groupMeans), group)
-          pngName = paste(group, "-over-", otherGroup, "-scatter.png", sep="")
+          pngName = paste0(group, "-over-", otherGroup, "-scatter.png")
           xlab = paste("Avg of", otherGroup)
           refValue = result$groupMeans[ , otherGroup]
           doc = addParagraph(doc, ezImageFileLink(plotter, file=pngName, isPresent=result$isPresent[, idx, drop=FALSE],
@@ -468,7 +468,7 @@ addTestScatterPlots = function(doc, param, x, result, seqAnno, types=NULL){
       refValues = avgValues[ , refGroups, drop=FALSE]
       samplePresent = avgPresent[ ,sampleGroups, drop=FALSE]
       refPresent = avgPresent[ , refGroups, drop=FALSE]
-      pngName = paste(param$sampleGroup, "-over-", param$refGroup, "-pairs.png", sep="")
+      pngName = paste0(param$sampleGroup, "-over-", param$refGroup, "-pairs.png")
       plotter = EzPlotterScatter$new(x=2^refValues, y=2^sampleValues)
       doc = addParagraph(doc, ezImageFileLink(plotter, file=pngName, isPresent=samplePresent | refPresent,
                                               types=types, lim=theRange, xlab=colnames(refValues)))
@@ -512,12 +512,12 @@ addGOTables = function(doc, param, goResult){
     for (sub in names(x)){ #c("enrichUp", "enrichDown", "enrichBoth")){
       xSub = x[[sub]]
       if (is.data.frame(xSub)){
-        name = paste(onto, "-", param$comparison, "-", sub, sep="")
+        name = paste0(onto, "-", param$comparison, "-", sub)
         if (!is.null(xSub$Pvalue)){
           xSub = xSub[order(xSub$Pvalue), ]
           xSub = cbind("GO ID"=rownames(xSub), xSub)
         }
-        txtFile = ezValidFilename(paste(name, ".txt", sep=""), replace="-")
+        txtFile = ezValidFilename(paste0(name, ".txt"), replace="-")
         ezWrite.table(xSub, file=txtFile, row.names=FALSE)
         if (param$doZip){
           txtFiles[name] = zipFile(txtFile)
@@ -554,16 +554,16 @@ addGageTables = function(doc, param = NULL, gageResults = NULL) {
     doc = addParagraph(doc, as.html(pot("<span style='margin-left:2em'>msigdb =
                                         <A HREF='http://www.broadinstitute.org/gsea/msigdb/index.jsp'>MSigDB</A> pathway")))
   }
-  doc = addParagraph(doc, paste("Significance threshold pathways: ", param[['gageThreshold']],
-                                ". Only pathways below this treshold are represented.", sep=""))
-  doc = addParagraph(doc, paste("Significance threshold genes selected within a pathway: ", param[['gageGeneThreshold']],
-                                ". Only genes below this treshold are represented", sep=""))
+  doc = addParagraph(doc, paste0("Significance threshold pathways: ", param[['gageThreshold']],
+                                ". Only pathways below this treshold are represented."))
+  doc = addParagraph(doc, paste0("Significance threshold genes selected within a pathway: ", param[['gageGeneThreshold']],
+                                ". Only genes below this treshold are represented"))
   doc = addParagraph(doc, "Warning : only pathways with at least one gene significant will be displayed. Only top 30 pathways are represented")
   
   gene.pValue=param[['gageGeneThreshold']]
   
   for (i in names(gageResults[['significant']])) {
-#     use = paste("<table border=0><tr><th>Heatmap Plot logRatio Signal for ",i,"</th><th>",i," significant pathways</th></tr>", sep="")
+#     use = paste0("<table border=0><tr><th>Heatmap Plot logRatio Signal for ",i,"</th><th>",i," significant pathways</th></tr>")
     checkpoint = nrow(gageResults[['significant']][[i]][['combined']]) > 0 | nrow(gageResults[['significant']][[i]][['both']]) > 0
     if(!checkpoint) next
 #     ezWrite(use, con=html)
@@ -603,15 +603,15 @@ addGageTables = function(doc, param = NULL, gageResults = NULL) {
         pathways = rownames(res)
         SpeciesName = getSpeciesName(param)
         kegg.id = getKeggId(SpeciesName, param)
-        pattern = paste(kegg.id,"[[:digit:]]+",sep="")
+        pattern = paste0(kegg.id,"[[:digit:]]+")
         kegg.pathId = unlist(regmatches(pathways, gregexpr(pattern, pathways)))
-        pngFiles = paste(kegg.pathId,".",x$gset.name,"-",signal,".png",sep="")
-        pngLinks = paste("<A  HREF='",pngFiles,"'>click here</A>", sep="")
+        pngFiles = paste0(kegg.pathId,".",x$gset.name,"-",signal,".png")
+        pngLinks = paste0("<A  HREF='",pngFiles,"'>click here</A>")
         res = cbind(res, PathView = pngLinks)
       }
       
       # Add links to pathway names
-      rownames(res) = paste("<A HREF=\"", res[,"links"],"\">",rownames(res),"</A>",sep="")
+      rownames(res) = paste0("<A HREF=\"", res[,"links"],"\">",rownames(res),"</A>")
       res <- res[,!colnames(res) %in% "links", drop=F]
       
       

@@ -22,7 +22,7 @@ ezMethodMpileup = function(input=NA, output=NA, param=NA){
   genomeSeq = param$ezRef["refFastaFile"]
   nBamsInParallel = min(4, param$cores)
   bamFilesClean = ezMclapply(names(bamFiles), function(sampleName){
-    javaCall = paste("java -Djava.io.tmpdir=. -Xmx", floor(param$ram/nBamsInParallel), "g", sep="")
+    javaCall = paste0("java -Djava.io.tmpdir=. -Xmx", floor(param$ram/nBamsInParallel), "g")
     setwdNew(paste(sampleName, "proc", sep="-"))
     bf = bamFiles[sampleName]
     obf = file.path(getwd(), basename(bf))
@@ -39,19 +39,18 @@ ezMethodMpileup = function(input=NA, output=NA, param=NA){
       ezSystem(paste(SAMTOOLS, "index", "local.bam"))
     } else {
       ezSystem(paste("cp", bf, "local.bam"))
-      ezSystem(paste("cp", paste(bf, ".bai", sep=""), "local.bam.bai"))
+      ezSystem(paste("cp", paste0(bf, ".bai"), "local.bam.bai"))
     }
-    cmd = paste(javaCall, " -jar ", file.path(PICARD_DIR, "AddOrReplaceReadGroups.jar"),
+    cmd = paste0(javaCall, " -jar ", file.path(PICARD_DIR, "AddOrReplaceReadGroups.jar"),
                 " TMP_DIR=. MAX_RECORDS_IN_RAM=2000000", " I=", "local.bam",
                 " O=withRg.bam SORT_ORDER=coordinate",
                 " RGID=RGID_", sampleName, " RGPL=illumina RGSM=", sampleName, " RGLB=RGLB_", sampleName, " RGPU=RGPU_", sampleName,
                 " VERBOSITY=WARNING",
-                " > addreplace.stdout 2> addreplace.stderr",
-                sep="")
+                " > addreplace.stdout 2> addreplace.stderr")
     ezSystem(cmd)
     file.remove("local.bam")
     
-    cmd = paste(javaCall, " -jar ", file.path(PICARD_DIR, "MarkDuplicates.jar"),
+    cmd = paste0(javaCall, " -jar ", file.path(PICARD_DIR, "MarkDuplicates.jar"),
                 " TMP_DIR=. MAX_RECORDS_IN_RAM=2000000", " I=", "withRg.bam",
                 " O=", "dedup.bam",
                 " REMOVE_DUPLICATES=false", ## do not remove, do only mark
@@ -59,8 +58,7 @@ ezMethodMpileup = function(input=NA, output=NA, param=NA){
                 " VALIDATION_STRINGENCY=SILENT",
                 " METRICS_FILE=" ,"dupmetrics.txt",
                 " VERBOSITY=WARNING",
-                " >markdup.stdout 2> markdup.stderr",
-                sep="")
+                " >markdup.stdout 2> markdup.stderr")
     ezSystem(cmd)
     file.remove("withRg.bam")
     
@@ -120,7 +118,7 @@ ezMethodMpileup = function(input=NA, output=NA, param=NA){
   ezWrite("<h2>IGV</h2>", con=html)
   writeIgvSession(genome = getIgvGenome(param), refBuild=param$ezRef["refBuild"], file="igvSession.xml", vcfUrls = paste(PROJECT_BASE_URL, vcfOutputFile, sep="/") )
   writeIgvJnlp(jnlpFile="igv.jnlp", projectId = sub("\\/.*", "", output$getColumn("Report")),
-               sessionUrl = paste(PROJECT_BASE_URL, output$getColumn("Report"), "igvSession.xml", sep=""))
+               sessionUrl = paste0(PROJECT_BASE_URL, output$getColumn("Report"), "igvSession.xml"))
   writeTxtLinksToHtml("igv.jnlp", mime = "application/x-java-jnlp-file", con=html)
   
   ezWrite("<h2>Sample Clustering based on Variants</h2>",con=html)
@@ -147,7 +145,7 @@ ezMethodMpileup = function(input=NA, output=NA, param=NA){
   pngFiles = c()
   chromUse = sort(chromSizes[isRealChrom], decreasing = TRUE)
   for (ch in names(chromUse)){
-    pngFiles[ch] = paste("variantPos-chrom-", ch, ".png", sep="")
+    pngFiles[ch] = paste0("variantPos-chrom-", ch, ".png")
     png(file=pngFiles[ch], height=200+30*ncol(gt), width=1200)
     par(mar=c(4.1, 10, 4.1, 2.1))
     plot(0, 0, type="n", main=paste("Chromsome", ch), xlab="pos", xlim=c(1, chromSizes[ch]), ylim=c(0, 3*ncol(gt)),

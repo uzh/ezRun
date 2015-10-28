@@ -148,7 +148,7 @@ writeImageTableToHtml = function(pngMatrix, con=stdout()){
     for (i in 1:nrow(pngMatrix)){
       ezWrite("<tr>", con=con)
       for (j in 1:ncol(pngMatrix)){
-        ezWrite(paste("<td><img src='", pngMatrix[i, j], "'></td>", sep=""), con=con)
+        ezWrite(paste0("<td><img src='", pngMatrix[i, j], "'></td>"), con=con)
       }
       ezWrite("</tr>", con=con)
     }
@@ -179,7 +179,7 @@ writeImageColumnToHtml = function(pngNames, con=stdout()){
 ##' writeTxtLinksToHtml("dataset.tsv", con=html)
 writeTxtLinksToHtml = function(txtNames, mime="text/plain", con=stdout()){
   ezWrite("<table>", con=con)
-  ezWrite(paste("<tr><td><a href='", txtNames, "' type='", mime, "'>", txtNames, "</a></td></tr>", sep="", collapse="\n"), con=con)
+  ezWrite(paste0("<tr><td><a href='", txtNames, "' type='", mime, "'>", txtNames, "</a></td></tr>", collapse="\n"), con=con)
   ezWrite("</table>", con=con)
 }
 
@@ -204,12 +204,12 @@ writeTableToHtml = function(x, con=stdout(), bgcolors=matrix("#ffffff", nrow=nro
    valign="middle", border=1, head=""){
 
   ezWrite("<table border='", border, "'><tr>", con=con)
-  ezWrite(paste("<th>", c(head, colnames(x)), "</th>", sep="", collapse="\n"), con=con)
+  ezWrite(paste0("<th>", c(head, colnames(x)), "</th>", collapse="\n"), con=con)
   ezWrite("</tr>", con=con)
   if (nrow(x) > 0){
     for (i in 1:nrow(x)){
       ezWrite("<tr><th>", rownames(x)[i], "</th>", con=con)
-      ezWrite(paste("<td valign='", valign, "' bgcolor='", bgcolors[i,], "'>", x[i,], "</td>", sep="", collapse="\n"), con=con)
+      ezWrite(paste0("<td valign='", valign, "' bgcolor='", bgcolors[i,], "'>", x[i,], "</td>", collapse="\n"), con=con)
       ezWrite("</tr>", con=con)
     }
   }
@@ -427,7 +427,7 @@ getSignificantFoldChangeCountsTable = function(result, pThresh=1/10^(1:5), fcThr
 ##' writeResultFile(html, param )
 ## TODOP: finish example
 writeResultFile = function(html, param, result, rawData, useInOutput=TRUE,
-  file=paste("result--", param$comparison, ".txt", sep="")){
+  file=paste0("result--", param$comparison, ".txt")){
 
   seqAnno = rawData$seqAnno
   probes = names(result$pValue)[useInOutput]
@@ -554,18 +554,18 @@ writeQcScatterPlots = function(html, param, design, conds,
         idx = idx[order(samples[idx])] ## order alphabetically
         condName = paste(colnames(design)[i], cond)
         ezWrite("<h3>", condName, "</h3>", con=html)
-        pngName = ezValidFilename(paste(condName, "-scatter.png", sep=""))
+        pngName = ezValidFilename(paste0(condName, "-scatter.png"))
         ezScatter(NULL, signal[ ,idx], file=pngName, isPresent=isPresent[ ,idx], types=types,
                      lim=signalRange, xlab=paste("Avg of", cond), ylab=NULL)
         ezWrite("<img src='", pngName, "'><br>", con=html)
         if (!is.null(gcTypes)){
-          pngName = ezValidFilename(paste(condName, "-ByGcScatter.png", sep=""))
+          pngName = ezValidFilename(paste0(condName, "-ByGcScatter.png"))
           ezScatter(NULL, signal[ ,idx], file=pngName, isPresent=isPresent[ ,idx], types=gcTypes,
                        lim=signalRange, xlab=paste("Avg of", cond), ylab=NULL)
           ezWrite("<img src='", pngName, "'><br>", con=html)          
         }
         if (!is.null(widthTypes)){
-          pngName = ezValidFilename(paste(condName, "-ByWidthScatter.png", sep=""))
+          pngName = ezValidFilename(paste0(condName, "-ByWidthScatter.png"))
           ezScatter(NULL, signal[ ,idx], file=pngName, isPresent=isPresent[ ,idx], types=widthTypes,
                        lim=signalRange, xlab=paste("Avg of", cond), ylab=NULL)
           ezWrite("<img src='", pngName, "'><br>", con=html)          
@@ -616,7 +616,7 @@ writeTestScatterPlots = function(html, param, x, result, seqAnno, colorRange=c(-
   ezWrite("<p>", msg, "</p>", con=html)
   ezWrite("<h3>Between-group Comparison</h3>", con=html)
   pngNames = character()
-  pngNames["scatter"] = paste(param$comparison, "-scatter.png", sep="")
+  pngNames["scatter"] = paste0(param$comparison, "-scatter.png")
   if (ncol(result$groupMeans) == 2 & !is.null(param$sampleGroup) & !is.null(param$refGroup)){
     sampleValues = 2^result$groupMeans[ , param$sampleGroup]
     refValues = 2^result$groupMeans[ , param$refGroup]
@@ -624,19 +624,19 @@ writeTestScatterPlots = function(html, param, x, result, seqAnno, colorRange=c(-
           isPresent=result$usedInTest,
           types=types,
           xlab=param$refGroup, ylab=param$sampleGroup)
-		pngNames["volcano"] = paste(param$comparison, "-volcano.png", sep="")
+		pngNames["volcano"] = paste0(param$comparison, "-volcano.png")
     ezVolcano(result$log2Ratio, result$pValue, file=pngNames["volcano"],
 		   isPresent=result$usedInTest, types=types, main=param$comparison)
-		pngNames["fdr-volcano"] = paste(param$comparison, "-FDR-volcano.png", sep="")
+		pngNames["fdr-volcano"] = paste0(param$comparison, "-FDR-volcano.png")
     ezVolcano(result$log2Ratio, result$fdr, file=pngNames["fdr-volcano"],
 		   isPresent=result$usedInTest, types=types, main=param$comparison, yType="FDR")
   } else {
-    pngNames["allpair"] = paste(param$comparison, "-scatter.png", sep="")
+    pngNames["allpair"] = paste0(param$comparison, "-scatter.png")
     ezAllPairScatter(2^result$groupMeans, file=pngNames["allpair"],
        isPresent=result$usedInTest, types=types)
   }
   myBreaks = seq(0, 1, by=0.002)
-  pngNames["pValueHist"] = paste(param$comparison, "-pValueHist.png", sep="")
+  pngNames["pValueHist"] = paste0(param$comparison, "-pValueHist.png")
   png(file=pngNames["pValueHist"], height=400, width=800)
   histUsed = hist(result$pValue[result$usedInTest], breaks=myBreaks, plot=FALSE)
   histAbs = hist(result$pValue[!result$usedInTest], breaks=myBreaks, plot=FALSE)
@@ -664,7 +664,7 @@ writeTestScatterPlots = function(html, param, x, result, seqAnno, colorRange=c(-
       idx = which(group == param$grouping)
       if (length(idx) > 1){
          #ezWrite("<h3>Intra-group Comparison: ", group, "</h3>", con=html)
-         pngName = paste(group, "-scatter.png", sep="")
+         pngName = paste0(group, "-scatter.png")
          xlab = paste("Avg of", group)
          refValue = result$groupMeans[ , group]
          ezScatter(2^refValue, 2^x[, idx, drop=FALSE],
@@ -676,7 +676,7 @@ writeTestScatterPlots = function(html, param, x, result, seqAnno, colorRange=c(-
          #ezWrite("<br>", con=html)
          if (ncol(result$groupMeans) == 2){
            otherGroup = setdiff(colnames(result$groupMeans), group)
-           pngName = paste(group, "-over-", otherGroup, "-scatter.png", sep="")
+           pngName = paste0(group, "-over-", otherGroup, "-scatter.png")
            xlab = paste("Avg of", otherGroup)
            refValue = result$groupMeans[ , otherGroup]
            ezScatter(2^refValue, 2^x[, idx, drop=FALSE],
@@ -703,7 +703,7 @@ writeTestScatterPlots = function(html, param, x, result, seqAnno, colorRange=c(-
       refValues = avgValues[ , refGroups, drop=FALSE]
       samplePresent = avgPresent[ ,sampleGroups, drop=FALSE]
       refPresent = avgPresent[ , refGroups, drop=FALSE]
-      pngName = paste(param$sampleGroup, "-over-", param$refGroup, "-pairs.png", sep="")
+      pngName = paste0(param$sampleGroup, "-over-", param$refGroup, "-pairs.png")
       ezScatter(2^refValues, 2^sampleValues, file=pngName,
                 isPresent=samplePresent | refPresent,
                 types=types, lim=theRange, xlab=colnames(refValues))

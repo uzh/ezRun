@@ -49,7 +49,7 @@ ncpro = function(input, dataset, param=NULL){
   trimmedFastqFiles = unlist(ezMclapply(jobList,.myFunc,param=param,mc.cores=as.numeric(param[['cores']]),mc.preschedule =FALSE, mc.set.seed=FALSE))
   ncproConfigFile = list.files(paste(NCPRO_ANNOTATION_DIR,"/config-templates/",sep=''),pattern=paste('-', buildName,'-',sep=''),full.names=T)[1]
   if(is.na(ncproConfigFile))
-    stop(paste("No ncpro config-template for Genome-Build ",param[['refBuild']]," available.",sep=""))
+    stop(paste0("No ncpro config-template for Genome-Build ", param[['refBuild']]," available."))
   jobDir = getwd()
   workDir = file.path(jobDir, "ncpro")
   ezSystem(paste(file.path(NCPRO_DIR, "bin/ncPRO-deploy"), "-o", workDir))
@@ -59,7 +59,7 @@ ncpro = function(input, dataset, param=NULL){
   rawDir = file.path(workDir, "rawdata")
   ## link the files to the raw directory
   for (sm in samples){
-    fqFile = paste(rawDir, "/", sm, ".fastq", sep="")
+    fqFile = paste0(rawDir, "/", sm, ".fastq")
     ezSystem(paste("ln -s", trimmedFastqFiles[sm], fqFile))
   }
   refIndex = getBowtieReference(param)

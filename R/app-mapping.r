@@ -53,7 +53,7 @@ ezMethodTophat = function(input=NA, output=NA, param=NA){
               ifelse(param$paired, trimmedInput$getColumn("Read2"), ""), "2> tophat.log")
   ezSystem(cmd)
   ezSortIndexBam("accepted_hits.bam", basename(bamFile),
-               maxMem=paste(floor(param$ram/ezThreads()*1000), "M", sep=""), removeBam=TRUE, cores=ezThreads())
+               maxMem=paste0(floor(param$ram/ezThreads()*1000), "M"), removeBam=TRUE, cores=ezThreads())
   
   ## write an igv link
   if (param$writeIgvSessionLink){
@@ -101,7 +101,7 @@ ezMethodBowtie2 = function(input=NA, output=NA, param=NA){
               "2> bowtie.log", "|", SAMTOOLS, "view -S -b -", " > bowtie.bam")
   ezSystem(cmd)
   ezSortIndexBam("bowtie.bam", basename(bamFile),
-               maxMem=paste(floor(param$ram/ezThreads()*1000), "M", sep=""), removeBam=TRUE, cores=ezThreads())
+               maxMem=paste0(floor(param$ram/ezThreads()*1000), "M"), removeBam=TRUE, cores=ezThreads())
   
   ## write an igv link
   if (param$writeIgvSessionLink){
@@ -195,7 +195,7 @@ ezMethodBowtie = function(input=NA, output=NA, param=NA){
               "2> bowtie.log", "|", SAMTOOLS, "view -S -b -", " > bowtie.bam")
   ezSystem(cmd)
   ezSortIndexBam("bowtie.bam", basename(bamFile),
-               maxMem=paste(floor(param$ram/ezThreads()*1000), "M", sep=""), removeBam=TRUE, cores=ezThreads())
+               maxMem=paste0(floor(param$ram/ezThreads()*1000), "M"), removeBam=TRUE, cores=ezThreads())
   
   ## write an igv link
   if (param$writeIgvSessionLink){ 
@@ -288,7 +288,7 @@ ezMethodSTAR = function(input=NA, output=NA, param=NA){
   ezSystem(cmd)
   nSortThreads = min(ezThreads(), 8)
   ezSortIndexBam("Aligned.out.bam", basename(bamFile),
-               maxMem=paste(floor(param$ram/nSortThreads*1000), "M", sep=""), removeBam=TRUE, cores=nSortThreads)
+               maxMem=paste0(floor(param$ram/nSortThreads*1000), "M"), removeBam=TRUE, cores=nSortThreads)
   if (param$getChimericJunctions){
     ezSystem(paste("mv Chimeric.out.junction", basename(output$getColumn("Chimerics"))))
   }  
@@ -416,7 +416,7 @@ ezMethodBWA = function(input=NA, output=NA, param=NA){
     ezSystem(cmd)
   }
   ezSortIndexBam("aligned.bam", basename(bamFile),
-               maxMem=paste(floor(param$ram/ezThreads()*1000), "M", sep=""), removeBam=TRUE, cores=ezThreads())
+               maxMem=paste0(floor(param$ram/ezThreads()*1000), "M"), removeBam=TRUE, cores=ezThreads())
   
   ## write an igv link
   if (param$writeIgvSessionLink){ 
@@ -464,7 +464,7 @@ getBWAReference = function(param){
   if (file.exists(lockFile)){
     stop(paste("reference building still in progress after", INDEX_BUILD_TIMEOUT, "min"))
   }
-  if (!file.exists(paste(refPath, ".sa", sep=""))){
+  if (!file.exists(paste0(refPath, ".sa"))){
     stop(paste("sa index not found for:", refPath))
   }  
   return(refPath)
@@ -509,7 +509,7 @@ ezMethodBismark = function(input=NA, output=NA, param=NA){
   cmd = paste(SAMTOOLS, "view -S -b ",bamFileNameBismark, " > bismark.bam")
   ezSystem(cmd)
   ezSortIndexBam("bismark.bam", basename(bamFile),
-                 maxMem=paste(floor(param$ram/ezThreads()*1000), "M", sep=""), removeBam=TRUE, cores=ezThreads())
+                 maxMem=paste0(floor(param$ram/ezThreads()*1000), "M"), removeBam=TRUE, cores=ezThreads())
               
               ## write an igv link
               #if (param$writeIgvSessionLink){

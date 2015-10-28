@@ -107,11 +107,11 @@ ezColorLegend = function(file=NULL, colorRange=c(-3,3), colors=ezRedBlueScale(25
     effectByTail = lapply(valueByTail, diff)
     effects = unlist(effectByTail)
     effects = shrinkToRange(effects, ylim)
-    pngNames[sampleName] = paste(sampleName, "-tailEffectPlot.png", sep="")
+    pngNames[sampleName] = paste0(sampleName, "-tailEffectPlot.png")
     png(file=pngNames[sampleName], height=400, width=400)
     for (tail in tails){
       #values = unlist(lapply(valueByTailSet[[sampleName]], function(x){x[-1]}))
-      use = grep(paste(tail, "$", sep=""), names(effects))
+      use = grep(paste0(tail, "$"), names(effects))
       if (tail == "A"){
         plot(values[use], effects[use], pch=20, main=sampleName, col=tailColors[tail], cex=0.5,
              xlim=xlim, ylim=ylim, xlab="Signal", ylab="Tail Effect")
@@ -147,14 +147,14 @@ ezColorLegend = function(file=NULL, colorRange=c(-3,3), colors=ezRedBlueScale(25
   tail = tails[1]
   pngNames = character()
   for (tail in tails){
-    pngNames[tail] = paste("tailEffectPlot-", tail, ".png", sep="")
+    pngNames[tail] = paste0("tailEffectPlot-", tail, ".png")
     png(file=pngNames[tail], height=500, width=500)
     for (sampleName in samples){
       values = unlist(lapply(valueByTailSet[[sampleName]], function(x){x[-length(x)]}))
       #values = unlist(lapply(valueByTailSet[[sampleName]], function(x){x[-1]}))
       effects = unlist(effectByTailSet[[sampleName]])
       effects = shrinkToRange(effects, ylim)
-      use = grep(paste(tail, "$", sep=""), names(effects))
+      use = grep(paste0(tail, "$"), names(effects))
       if (sampleName == colnames(logSignal)[1]){
         plot(values[use], effects[use], pch=20, main=paste("Tail", tail), col=colors[sampleName], 
              xlim=xlim, ylim=ylim, xlab="Signal", ylab="Tail Effect")
@@ -238,7 +238,7 @@ ezVolcano = function(log2Ratio, pValue, file=NULL,
   par(pty="s")
   par(cex.main=cex.main, cex=cex)
   plot(log2Ratio, yValues, pch=pch, xlim=xlim, ylim=ylim,
-      col="gray", xlab="log2 ratio", ylab=paste("-log10(", yType, ")" ,sep=""),
+      col="gray", xlab="log2 ratio", ylab=paste0("-log10(", yType, ")"),
        ...)
   if (!is.null(isPresent)){
     points(log2Ratio[isPresent], yValues[isPresent], col="black", pch=pch)
@@ -696,10 +696,10 @@ ezCdfPlot = function(x, itemName="gene", scoreName="expression", percentage=FALS
   xlim = c(1, max(x))
   xlab = paste(itemName, scoreName)
   if (percentage){
-    ylab = paste("percentage of ", itemName, "s", sep="")
+    ylab = paste0("percentage of ", itemName, "s")
 	  ylim = c(1, 100)
   } else {
-    ylab = paste("number of ", itemName, "s", sep="")  
+    ylab = paste0("number of ", itemName, "s")  
 	  ylim = c(1, nrow(x))
   }
   
@@ -736,7 +736,7 @@ colorNode = function(n, cols=NULL){
 
 goGroupBarPlot = function(xSub){
   ggr = xSub[xSub$Level %in% c("level 2", "unknown"), ]
-  pngFile = ezValidFilename(paste(name, ".png", sep=""), replace="-")
+  pngFile = ezValidFilename(paste0(name, ".png"), replace="-")
   png(file=pngFile, height=800, width=600)
   par (mar=c(4,16,4,4)) 
   bp = barplot(t(as.matrix(ggr[ ,c("Count", "Size")])), horiz=TRUE, beside=T, 

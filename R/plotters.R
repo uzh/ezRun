@@ -42,7 +42,7 @@ EzPlotterVolcano =
                   par(pty="s")
                   par(cex.main=cex.main, cex=cex)
                   graphics::plot(xValues, yValues, pch=pch, xlim=xlim, ylim=ylim,
-                                 col="gray", xlab="log2 ratio", ylab=paste("-log10(", yType, ")" ,sep=""),
+                                 col="gray", xlab="log2 ratio", ylab=paste0("-log10(", yType, ")"),
                                  ...)
                   if (!is.null(isPresent)){
                     points(xValues[isPresent], yValues[isPresent], col="black", pch=pch)

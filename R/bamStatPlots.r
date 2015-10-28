@@ -44,7 +44,7 @@ plotBamStat = function(resultList, seqLengths, dataset, param, html=NULL){
   writeImageColumnToHtml(pngFile, con=html)
   txtFile = "read-alignment-statistics.txt"
   colnames(mmCounts) = paste("#hits: ", colnames(mmCounts))
-  colnames(mmCounts)[ncol(mmCounts)] = paste(colnames(mmCounts)[ncol(mmCounts)], "+", sep="")
+  colnames(mmCounts)[ncol(mmCounts)] = paste0(colnames(mmCounts)[ncol(mmCounts)], "+")
   ezWrite.table(mmCounts, file=txtFile, head="Sample")
   writeTxtLinksToHtml(txtFile, mime="text/plain", con=html)
   
@@ -55,7 +55,7 @@ plotBamStat = function(resultList, seqLengths, dataset, param, html=NULL){
                        uniqueMatchTargetTypeCounts="Uniquely matching reads:")
       ezWrite("<h3>", readSet, ": Match Count Percentages", "</h3>", con=html)
       tct = getTypeCountTable(resultList, nm)
-      ezWrite.table(tct, file=paste(nm, ".txt", sep=""), digits=4)
+      ezWrite.table(tct, file=paste0(nm, ".txt"), digits=4)
       tpt = as.matrix(tct)
       for (cn in colnames(tpt)){
         tpt[ ,cn] = tct[ ,cn]/ tct["total", cn] * 100
@@ -67,7 +67,7 @@ plotBamStat = function(resultList, seqLengths, dataset, param, html=NULL){
       if (nrow(tptUse) >= 2 && ncol(tptUse) >= 2){
         tptUseRel = log2(tptUse)
         tptUseRel = tptUseRel - rowMeans(tptUseRel)
-        pngFile = paste("typePercentage-", nm, "-heatmap.png", sep="")
+        pngFile = paste0("typePercentage-", nm, "-heatmap.png")
         ezHeatmap(tptUseRel,  height=600, width=800, margins=c(10, 12), file=pngFile,
                    lim=c(-2, 2),
                    Rowv=FALSE, Colv=FALSE, main="Relative Prevalence [log2]")
@@ -80,13 +80,13 @@ plotBamStat = function(resultList, seqLengths, dataset, param, html=NULL){
       ezWrite("<h3>", readSet, ": Read Starts per Base", "</h3>", con=html)
       ezWrite("<p>Read Starts per Base is equivalent to Coverage divided by Read length</p>", con=html)
       tct = as.matrix(getTypeCoverageTable(resultList, nm))
-      ezWrite.table(tct, file=paste(nm, "-coverage.txt", sep=""), digits=4)
+      ezWrite.table(tct, file=paste0(nm, "-coverage.txt"), digits=4)
       ezWrite("<table><tr>", con=html)
       if (nrow(tct) >= 2 && ncol(tct) >= 2){
         tctRel = log2(sweep(tct, 2, tct["total", ], FUN="/"))
         tctRel = tctRel[rowsUse, , drop=FALSE]
         
-        pngFile = paste("typeCoverage-", nm, "-heatmap.png", sep="")
+        pngFile = paste0("typeCoverage-", nm, "-heatmap.png")
         ezHeatmap(tctRel, file=pngFile, height=600, width=800, margins=c(10, 12),
                    lim=c(-5, 5),
                    Rowv=FALSE, Colv=FALSE, main="Coverage Enrichment")
@@ -106,11 +106,11 @@ plotBamStat = function(resultList, seqLengths, dataset, param, html=NULL){
     pngFiles = character()
     for (sm in samples){
       fsh = resultList[[sm]]$fragSizeHist
-      pngFiles[sm] = paste(sm, "-fragSizeHist.png", sep="")
+      pngFiles[sm] = paste0(sm, "-fragSizeHist.png")
       plotBySamples[[sm]] = c(plotBySamples[[sm]], pngFiles[sm])
       plotByStatistics[["Length distribution of fragments for paired reads"]] = c(plotByStatistics[["Length distribution of fragments for paired reads"]], pngFiles[sm])
       ezWrite.table(cbind(Length=fsh$mids, Count=fsh$counts),
-                     file=paste(sm, "-fragSizeHist.txt", sep=""), row.names=FALSE)
+                     file=paste0(sm, "-fragSizeHist.txt"), row.names=FALSE)
       png(file=pngFiles[sm], width=600)
       try(
         plot(fsh, xlab="fragment size", main=paste(sm, "-- Length Histogram"), ylim=c(0, max(fsh$counts[-length(fsh$counts)]))) ## don't use the longest fragment size
@@ -122,11 +122,11 @@ plotBamStat = function(resultList, seqLengths, dataset, param, html=NULL){
   pngFiles = character()
   for (sm in samples){
     fsh = resultList[[sm]]$segmentCountHist
-    pngFiles[sm] = paste(sm, "-segmentCountHist.png", sep="")
+    pngFiles[sm] = paste0(sm, "-segmentCountHist.png")
     plotBySamples[[sm]] = c(plotBySamples[[sm]], pngFiles[sm])
     plotByStatistics[["Histogram of aligned segments per read"]] = c(plotByStatistics[["Histogram of aligned segments per read"]], pngFiles[sm])
     ezWrite.table(cbind(Length=fsh$mids, Count=fsh$counts),
-                   file=paste(sm, "-segmentCountHist.txt", sep=""), row.names=FALSE)
+                   file=paste0(sm, "-segmentCountHist.txt"), row.names=FALSE)
     png(file=pngFiles[sm], width=600)
     try(
       plot(fsh, xlab="# segments in alignment", main=paste(sm, "-- Histogram of Segments per Alignment"))
@@ -140,7 +140,7 @@ plotBamStat = function(resultList, seqLengths, dataset, param, html=NULL){
       for (nm in names(resultList[[sm]][["ErrorRates"]])){
         errorRate = resultList[[sm]][["ErrorRates"]][[nm]]
         if (!is.null(errorRate)){
-          pngFile = ezValidFilename(paste(sm, "_", nm, ".png", sep=""))
+          pngFile = ezValidFilename(paste0(sm, "_", nm, ".png"))
           plotPosSpecificErrorRate(errorRate, png=pngFile, main=paste(sm, nm))
           pngFiles[nm] = pngFile
         }
@@ -169,11 +169,11 @@ plotBamStat = function(resultList, seqLengths, dataset, param, html=NULL){
     writeImageColumnToHtml(pngFile, con=html)
     for(sm in samples){
       tlc = resultList[[sm]][["TranscriptsCovered"]]
-      pngFiles[sm] = paste(sm, "-transcriptsCovered.png", sep="")
+      pngFiles[sm] = paste0(sm, "-transcriptsCovered.png")
       plotBySamples[[sm]] = c(plotBySamples[[sm]], pngFiles[sm])
       plotByStatistics[["The fraction of isoform length covered"]] = c(plotByStatistics[["The fraction of isoform length covered"]], pngFiles[sm])
       ezWrite.table(cbind(Percents=tlc$mids, Count=tlc$counts),
-                     file=paste(sm, "-transcriptsCovered.txt", sep=""), row.names=FALSE)
+                     file=paste0(sm, "-transcriptsCovered.txt"), row.names=FALSE)
       png(file=pngFiles[sm], width=700)
       cts = tlc$counts
       names(cts) = tlc$mids
@@ -190,7 +190,7 @@ plotBamStat = function(resultList, seqLengths, dataset, param, html=NULL){
     pngMatrix = ezMatrix("", rows=names(gbcTemplate), cols=names(gbcTemplate[[1]]))
     for (rn in rownames(pngMatrix)){
       for (cn in colnames(pngMatrix)){
-        pngMatrix[rn, cn] = ezValidFilename(paste("genebody_coverage_", rn, "_", cn, ".png", sep=""))
+        pngMatrix[rn, cn] = ezValidFilename(paste0("genebody_coverage_", rn, "_", cn, ".png"))
         png(file=pngMatrix[rn, cn], width=600)
         plot(1, 1, xlim=c(0,100), ylim=c(minYlim, maxYlim), xlab="percentile of geneBody (5'->3')", ylab="relative coverage", 
              main=paste("Genebody coverage", rn, cn), type="n",
@@ -258,11 +258,11 @@ plotBamStat = function(resultList, seqLengths, dataset, param, html=NULL){
       pngFiles = character()
       for(nm in names(resultList[[sm]][["Junction"]])){
         junctionPlot = resultList[[sm]][["Junction"]][[nm]]
-        pngFile = ezValidFilename(paste(sm, "_", nm, ".png", sep=""))
+        pngFile = ezValidFilename(paste0(sm, "_", nm, ".png"))
         png(file=pngFile, width=600)
         #eval(parse(text=junctionPlot))
         if(nm %in% c("splice_events", "splice_junction")){
-          pie(junctionPlot, col=c(2,3,4), init.angle=30,angle=c(60,120,150),density=c(70,70,70),main=nm, labels=paste(names(junctionPlot), paste(round(junctionPlot), "%", sep="")))
+          pie(junctionPlot, col=c(2,3,4), init.angle=30,angle=c(60,120,150),density=c(70,70,70),main=nm, labels=paste(names(junctionPlot), paste0(round(junctionPlot), "%")))
         }else if(nm =="junctionSaturation"){
           x = as.numeric(names(junctionPlot[[1]])) * 100
           plot(1,1,xlab="percent of total reads", ylab='Number of splicing junctions (x1000)',type='o',
@@ -283,7 +283,7 @@ plotBamStat = function(resultList, seqLengths, dataset, param, html=NULL){
     ## do the junction saturation plot in main page for all samples
     ezWrite("<h3>Junction saturation plot for all samples</h3>", con=html)
     for(nm in names(resultList[[1]][["Junction"]][["junctionSaturation"]])){
-      pngFile = ezValidFilename(paste("junctionSaturation_", nm, ".png", sep=""))
+      pngFile = ezValidFilename(paste0("junctionSaturation_", nm, ".png"))
       png(file=pngFile, width=700)
       plot(1,1,xlab="percent of total reads", ylab='Number of splicing junctions (x1000)',type='o', ylim=c(0, junctionMaxVal["junctionSaturation"]/1000), xlim=c(0, 130), main=nm)
       for(sm in samples){
@@ -299,11 +299,11 @@ plotBamStat = function(resultList, seqLengths, dataset, param, html=NULL){
   ezWrite("<h2>The results plot by each statistics</h2>", con=html)
   tableOfPages = ezMatrix("", rows=names(plotByStatistics), cols="Plots")
   # replace the space with undersocre if available, otherwise some errors will occur in the html
-  plotByStatisticsPages = paste(gsub("[[:space:]]+", "_", names(plotByStatistics)), ".html", sep="")
+  plotByStatisticsPages = paste0(gsub("[[:space:]]+", "_", names(plotByStatistics)), ".html")
   for(i in 1:length(plotByStatistics)){
-    tableOfPages[i,] = paste("<a href=", plotByStatisticsPages[i], ">", plotByStatisticsPages[i], "</a>", sep="")
+    tableOfPages[i,] = paste0("<a href=", plotByStatisticsPages[i], ">", plotByStatisticsPages[i], "</a>")
     subHtml = openHtmlReport(plotByStatisticsPages[i], param=param, title=plotByStatisticsPages[i])
-    ezWrite(paste("<h3>", names(plotByStatistics)[i], "</h3>", sep=""), con=subHtml)
+    ezWrite(paste0("<h3>", names(plotByStatistics)[i], "</h3>"), con=subHtml)
     writeImageColumnToHtml(plotByStatistics[[i]], con=subHtml)
     closeHTML(subHtml)
   }
@@ -311,12 +311,12 @@ plotBamStat = function(resultList, seqLengths, dataset, param, html=NULL){
   
   ## write the reults by sample per page to the main pages
   ezWrite("<h2>The results plot by each sample</h2>", con=html)
-  plotBySamplesPages = paste(gsub("[[:space:]]+", "_", names(plotBySamples)), ".html", sep="")
+  plotBySamplesPages = paste0(gsub("[[:space:]]+", "_", names(plotBySamples)), ".html")
   tableOfPages = ezMatrix("", rows=names(plotBySamples), cols="Plots")
   for(i in 1:length(plotBySamples)){
-    tableOfPages[i, ] = paste("<a href=", plotBySamplesPages[i], ">", plotBySamplesPages[i], "</a>", sep="")
+    tableOfPages[i, ] = paste0("<a href=", plotBySamplesPages[i], ">", plotBySamplesPages[i], "</a>")
     subHtml = openHtmlReport(plotBySamplesPages[i], param=param, title=plotBySamplesPages[i])
-    ezWrite(paste("<h3>", names(plotBySamples)[i], "</h3>", sep=""), con=subHtml)
+    ezWrite(paste0("<h3>", names(plotBySamples)[i], "</h3>"), con=subHtml)
     writeImageColumnToHtml(plotBySamples[[i]], con=subHtml)
     closeHTML(subHtml)
   }
@@ -344,7 +344,7 @@ makeAlignmentCountBarPlot = function(file, mmCounts){
   mmCounts = mmCounts[ , rev(colnames(mmCounts))]
   barplot(t(mmCounts)/1e6, las=2, ylab="Counts [Mio]", main="total alignments", legend.text=TRUE, border=NA,
           col=multiCountColors[colnames(mmCounts)], xlim=c(0, nrow(mmCounts) +5))
-  #legend("topright", paste(colnames(mmCountShrink), "hit(s)", sep=""), col=multiCountColors[colnames(mmCountShrink)],
+  #legend("topright", paste0(colnames(mmCountShrink), "hit(s)"), col=multiCountColors[colnames(mmCountShrink)],
   #       cex=1.2, pch=20, bty="o", pt.bg="white")
   dev.off()
   return(file)
@@ -360,7 +360,7 @@ plotPosSpecificErrorRate = function(errorRate, png=NULL, main="Per base mismatch
     on.exit(dev.off())
     if (writeTxt){
       for(i in 1:length(errorRate)){
-        ezWrite.table(errorRate[[i]], sub(".png$", paste("-",names(errorRate)[i], ".txt", sep=""), png))
+        ezWrite.table(errorRate[[i]], sub(".png$", paste0("-",names(errorRate)[i], ".txt"), png))
       }
     }
   }

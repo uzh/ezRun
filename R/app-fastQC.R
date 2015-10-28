@@ -18,9 +18,9 @@ ezMethodFastQC = function(input=NA, output=NA, param=NA, htmlFile="00index.html"
   samples = rownames(dataset)
   files = c()
   for (sm in samples){
-    files[paste(sm, "_R1", sep="")] = input$getFullPaths(param,"Read1")[sm]
+    files[paste0(sm, "_R1")] = input$getFullPaths(param,"Read1")[sm]
     if (!is.null(dataset$Read2)){
-      files[paste(sm, "_R2", sep="")] = input$getFullPaths(param,"Read2")[sm]    
+      files[paste0(sm, "_R2")] = input$getFullPaths(param,"Read2")[sm]    
     }
   }
   nFiles = length(files)
@@ -53,7 +53,7 @@ ezMethodFastQC = function(input=NA, output=NA, param=NA, htmlFile="00index.html"
   plotPages = sub(".png", ".html", plots)
   for (i in 1:length(plots)){
     plotHtml = openBsdocReport(title=paste("FASTQC:", plotPages[i]))
-    png = paste("<img src=", reportDir, "/Images/", plots[i], ">", sep="")
+    png = paste0("<img src=", reportDir, "/Images/", plots[i], ">")
     tbl = ezMatrix(png, rows=names(files), cols=names(plots)[i])
     plotHtml = addTableToReport(tbl, plotHtml)
     closeBsdocReport(plotHtml, plotPages[i])
@@ -81,15 +81,15 @@ ezMethodFastQC = function(input=NA, output=NA, param=NA, htmlFile="00index.html"
   for (i in 1:nFiles){
     smy = ezRead.table(file.path(reportDir[i], "summary.txt"), row.names=NULL, header=FALSE)
     if (i == 1){
-      rowNames = paste("<a href=", reportDir, "/fastqc_report.html>", names(files), "</a>", sep="")
+      rowNames = paste0("<a href=", reportDir, "/fastqc_report.html>", names(files), "</a>")
       colNames = ifelse(smy[[2]] %in% names(plotPages),
-                        paste("<a href=", plotPages[smy[[2]]], ">", smy[[2]], "</a>", sep=""),
+                        paste0("<a href=", plotPages[smy[[2]]], ">", smy[[2]], "</a>"),
                         smy[[2]])
       tbl = ezMatrix("", rows=rowNames, cols=colNames)
     }
-    href = paste(reportDir[i], "/fastqc_report.html#M", 0:(ncol(tbl)-1), sep="")
-    img = paste(reportDir[i], 	"/Icons/", statusToPng[smy[[1]]], sep="")
-    tbl[i, ] = paste("<a href=", href, "><img src=", img, "></a>", sep="")
+    href = paste0(reportDir[i], "/fastqc_report.html#M", 0:(ncol(tbl)-1))
+    img = paste0(reportDir[i], 	"/Icons/", statusToPng[smy[[1]]])
+    tbl[i, ] = paste0("<a href=", href, "><img src=", img, "></a>")
   }
   html = addTableToReport(tbl, html)
   
@@ -119,7 +119,7 @@ ezMethodFastQC = function(input=NA, output=NA, param=NA, htmlFile="00index.html"
   ezSessionInfo()
   html = addParagraph(html, pot("sessionInfo.txt", hyperlink = "sessionInfo.txt"))
   closeBsdocReport(html, htmlFile)
-  ezSystem(paste("rm -rf ", paste(reportDir, ".zip", sep="", collapse=" ")))
+  ezSystem(paste("rm -rf ", paste0(reportDir, ".zip", collapse=" ")))
   return("Success")
 }
 
@@ -229,7 +229,7 @@ plotQualityMatrixAsHeatmap = function(qualMatrixList, isR2=FALSE, xScale=1, ySca
   for(nm in names(index)){
     idx = index[[nm]]
     ## Plot the color key for the average quality heatmap R1_1
-    colorKeyFile = paste("averageReadsQuality-Key_", nm, ".png", sep="")
+    colorKeyFile = paste0("averageReadsQuality-Key_", nm, ".png")
     by.label = 1
     at=seq(from=minPercent, to=maxPercent, by=by.label)
     ezColorLegend(file=colorKeyFile, colorRange=c(minPercent, maxPercent), 
@@ -255,13 +255,13 @@ plotQualityMatrixAsHeatmap = function(qualMatrixList, isR2=FALSE, xScale=1, ySca
     result = result / resultCount
     avgQual = signif(prop.table(result,2) * 100, digits=3)
     pngFileName = plotQualityHeatmap(sqrt(avgQual), colorRange=c(minPercent, maxPercent), 
-                                     pngFileName=paste("averageReadsQuality-heatmap_", nm, ".png", sep=""),
+                                     pngFileName=paste0("averageReadsQuality-heatmap_", nm, ".png"),
                                      colors=colorsGray, main=paste("averageReadsQuality", nm, sep="_"), 
                                      xScale=xScale, yScale=yScale)
     pngTable["Average", nm] = pngFileName
     
     ## plot the difference quality heatmap for R1_1
-    colorKeyFile = paste("diffReadsQuality-Key_", nm, ".png", sep="")
+    colorKeyFile = paste0("diffReadsQuality-Key_", nm, ".png")
     at=seq(from=minDiff, to=maxDiff, by=by.label)
     ezColorLegend(file=colorKeyFile, colorRange=c(minDiff, maxDiff), colors=ezRedBlueScale(256),
                   vertical=FALSE, height=200*xScale, width=400*yScale, by.label=by.label, at=at, labels=as.character(at))
@@ -270,7 +270,7 @@ plotQualityMatrixAsHeatmap = function(qualMatrixList, isR2=FALSE, xScale=1, ySca
       qm = qualMatrixList[[sampleName]]
       diffResult = signif(prop.table(qm,2)*100, digits=3) - avgQual[1:nrow(qm), 1:ncol(qm)]
       pngFileName = plotQualityHeatmap(diffResult, colorRange=c(minDiff, maxDiff), 
-                                       pngFileName=paste("diffReadsQuality-heatmap_", sampleName, ".png", sep=""),
+                                       pngFileName=paste0("diffReadsQuality-heatmap_", sampleName, ".png"),
                                        colors=ezRedBlueScale(256), main=paste("diffReadsQuality", sampleName, sep="_"),
                                        xScale=xScale, yScale=yScale)
       pngTable[sampleName, nm] = pngFileName

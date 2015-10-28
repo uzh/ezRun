@@ -9,9 +9,9 @@
 .dexseqFlattenGtf = function(gtf, param){
   
   gtfFileModified = sub(".gtf$", "", param$ezRef["refFeatureFile"])
-  gtfFileModified = paste(gtfFileModified, "-dexseq-", param$featureLevel, ".gtf", sep="")
+  gtfFileModified = paste0(gtfFileModified, "-dexseq-", param$featureLevel, ".gtf")
   gtfFileFlattened = sub(".gtf", "-flattened.gtf", gtfFileModified)
-  lockFile = paste(gtfFileFlattened, ".lock", sep="")
+  lockFile = paste0(gtfFileFlattened, ".lock")
   i = 0
   while(file.exists(lockFile) && i < 30){
     ### somebody else builds and we wait at most 30min
@@ -33,7 +33,7 @@
     gtf$attributes = sub("tss_id", "gene_id", gtf$attributes)
   }
   ## fix the gene ids
-  chromStrand = paste(gtf$seqid, strandName(gtf$strand), sep="")
+  chromStrand = paste0(gtf$seqid, strandName(gtf$strand))
   geneToChromStrand = tapply(chromStrand, gtf$gene_id, unique)
   ## append to the loci a the chromStrand
   isDup = sapply(geneToChromStrand, length) > 1
@@ -59,10 +59,10 @@
     stopifnot(param$pairedMode == "paired")
     ## currently only support for full paired!!!!
     maxMem = "1000000000" ## sort with 10GB RAM
-    sampleName = paste("mySample",Sys.getpid(),sep="")
+    sampleName = paste0("mySample",Sys.getpid())
     cmd = paste(SAMTOOLS, "sort", "-n", "-m", maxMem, input, sampleName)
     ezSystem(cmd)
-    bamFile = paste(sampleName, ".bam", sep="")
+    bamFile = paste0(sampleName, ".bam")
     paired = "yes"
   }
   

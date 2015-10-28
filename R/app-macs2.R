@@ -21,10 +21,10 @@ ezMethodMacs2 = function(input=NA, output=NA, param=NA){
     ezSystem(cmd)
     bedgraphFileTreat = paste(output$getNames(), '_treat_pileup.bdg',sep='')
     bedgraphFileControl = paste(output$getNames(), '_control_lambda.bdg',sep='')
-    cmd = paste(MACS2, "bdgcmp -t ", bedgraphFileTreat,
-                "-c", bedgraphFileControl, "-o", paste(output$getNames(),"_FE.bdg", sep=""), "-m FE")
+    cmd = paste0(MACS2, "bdgcmp -t ", bedgraphFileTreat,
+                "-c", bedgraphFileControl, "-o", paste(output$getNames(),"_FE.bdg"), "-m FE")
     ezSystem(cmd)
-    cmd = paste(BEDGRAPHBIGWIG, paste(output$getNames(), "_FE.bdg", sep=""), getRefChromSizesFile(param), paste(output$getNames(), ".bw", sep=""))
+    cmd = paste0(BEDGRAPHBIGWIG, paste(output$getNames(), "_FE.bdg"), getRefChromSizesFile(param), paste(output$getNames(), ".bw"))
     ezSystem(cmd)
     ezSystem("rm *.bdg")
   } else {
@@ -33,13 +33,13 @@ ezMethodMacs2 = function(input=NA, output=NA, param=NA){
     createBigWig(input,output,param)
   }
   if(grepl('broad', opt)){
-    ezSystem(paste("mv ",paste(output$getNames(),"_peaks.broadPeak",sep="")," ",paste(output$getNames(),"_peaks.bed",sep="")))
+    ezSystem(paste("mv ",paste0(output$getNames(),"_peaks.broadPeak")," ",paste0(output$getNames(),"_peaks.bed")))
   } else {
-    ezSystem(paste("mv ",paste(output$getNames(),"_peaks.narrowPeak",sep="")," ",paste(output$getNames(),"_peaks.bed",sep="")))
+    ezSystem(paste("mv ",paste0(output$getNames(),"_peaks.narrowPeak")," ",paste0(output$getNames(),"_peaks.bed")))
   }
-  peakBedFile = paste(output$getNames(),"_peaks.bed",sep="")
+  peakBedFile = paste0(output$getNames(),"_peaks.bed")
   cmd = paste(BEDTOOLS2, " getfasta -fi", file.path(GENOMES_ROOT, dirname(dirname(input$getColumn("refBuild"))), "Sequence/WholeGenomeFasta/genome.fa"),
-            " -bed ", peakBedFile, " -name -fo ", paste(output$getNames(), "_peaks.fa", sep="")) 
+            " -bed ", peakBedFile, " -name -fo ", paste0(output$getNames(), "_peaks.fa")) 
   ezSystem(cmd)
   annotatePeaks(input,output,param)  
   return("Success")

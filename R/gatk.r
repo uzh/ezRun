@@ -21,32 +21,29 @@
   vcfReport = basename(output$"VCF Report [File]")
   
   
-  cmd = paste("java -Xmx8g -jar ", file.path(PICARD_DIR, "AddOrReplaceReadGroups.jar"),
+  cmd = paste0("java -Xmx8g -jar ", file.path(PICARD_DIR, "AddOrReplaceReadGroups.jar"),
               " TMP_DIR=. MAX_RECORDS_IN_RAM=2000000", " I=", inputBam,
               " O=", "tmp.bam", ' SORT_ORDER=coordinate',
               " RGID=RGID_", input$Name, " RGPL=illumina RGSM=RGSM_", input$Name, " RGLB=RGLB_", input$Name, " RGPU=RGPU_", input$Name,
               " VERBOSITY=WARNING",
-              " > addreplace.out",
-              sep="")
+              " > addreplace.out")
   ezSystem(cmd)
   ezSystem(paste(SAMTOOLS, "index", "tmp.bam"))
-  cmd = paste("java -Xmx8g -jar ", file.path(PICARD_DIR, "ReorderSam.jar"),
+  cmd = paste0("java -Xmx8g -jar ", file.path(PICARD_DIR, "ReorderSam.jar"),
               " TMP_DIR=. MAX_RECORDS_IN_RAM=2000000", " I=", "tmp.bam",
               " O=", "ordered.bam",
               " REFERENCE=" , ref,
               " VERBOSITY=WARNING",
-              " > reorder.out",
-              sep="")
+              " > reorder.out")
   ezSystem(cmd)
-  cmd = paste("java -Xmx8g -jar ", file.path(PICARD_DIR, "MarkDuplicates.jar"),
+  cmd = paste0("java -Xmx8g -jar ", file.path(PICARD_DIR, "MarkDuplicates.jar"),
               " TMP_DIR=. MAX_RECORDS_IN_RAM=2000000", " I=", "ordered.bam",
               " O=", localBam,
               " REMOVE_DUPLICATES=true",
               " ASSUME_SORTED=true",
               " METRICS_FILE=" ,"dupmetrics.txt",
               " VERBOSITY=WARNING",
-              " >markdup.out",
-              sep="")
+              " >markdup.out")
   ezSystem(cmd)
   ezSystem(paste(SAMTOOLS, "index", localBam))
   

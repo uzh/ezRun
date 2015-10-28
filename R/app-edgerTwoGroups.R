@@ -363,7 +363,7 @@ runGfold = function(rawData, scalingFactors, isSample, isRef){
     if (is.null(gene_name)) gene_name = "NA"
     gfoldData = data.frame(gene_name=gene_name, count=rawData$counts[, sampleName], rawData$seqAnno$width, 
                            rawData$rpkm[, sampleName], row.names=rownames(rawData$seqAnno), check.names=FALSE, stringsAsFactors=FALSE)
-    gfoldFile = paste(sampleName, ".read_cnt", sep="")
+    gfoldFile = paste0(sampleName, ".read_cnt")
     ezWrite.table(gfoldData, file=gfoldFile, col.names = FALSE)
     return(gfoldFile)
   }

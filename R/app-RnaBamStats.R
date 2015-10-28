@@ -135,7 +135,7 @@ getPosErrorFromBam = function(bamFile, param){
   chromSel = names(seqLengths)[which.max(seqCounts)]
   
   result = list()
-  chromFn = file.path(param$ezRef["refChromDir"], paste(chromSel, ".fa", sep=""))
+  chromFn = file.path(param$ezRef["refChromDir"], paste0(chromSel, ".fa"))
   stopifnot(!is.null(chromFn))
   targetGenome = readDNAStringSet(chromFn)[[1]]
   ezWriteElapsed(job, "read reference genome done")
@@ -218,7 +218,7 @@ getStatsFromBamParallel = function(seqLengths, param, bamFile, sm, nReads, gff=N
   chromResults = ezMclapply(seqNames, getStatsFromBamSingleChrom, param, bamFile, sm, nReads, gff, repeatsGff,
                              mc.preschedule=FALSE, mc.cores=ezThreads())
   if (param$saveImage){
-    save(chromResults, file=paste(sm, "-chromResults.RData", sep=""))
+    save(chromResults, file=paste0(sm, "-chromResults.RData"))
   }
   gc()
   result = list()
@@ -576,7 +576,7 @@ ezPosSpecErrorRate = function(bam, ReferenceGenome, nMaxReads=100000){
   noOfS = as.integer(sub("S", "", clipCigar))
   noOfS[is.na(noOfS)] = 0
   nEndClipped = noOfH + noOfS
-  bam$seq = paste(Xbegin, bam$seq, Xend, sep="")
+  bam$seq = paste0(Xbegin, bam$seq, Xend)
   
   seqChar = strsplit(as.character(bam$seq),"")
   readLength = sapply(seqChar, length)
@@ -622,12 +622,12 @@ ezPosSpecErrorRate = function(bam, ReferenceGenome, nMaxReads=100000){
 getJunctionPlotsFromBam = function(bamFile, param){
   pngFiles = list()
   ## do the junction annotation
-  outputJunction = paste("junction-", Sys.getpid(),sep="")
+  outputJunction = paste0("junction-", Sys.getpid())
   bed = getReferenceFeaturesBed(param)
   stopifnot(!is.null(bed))
   cmd = paste(JUNCTION_ANNOTATION, "--mapq=1", "-i", bamFile, "-o", outputJunction, "-r", bed)
   res = ezSystem(cmd, stopOnFailure=FALSE)
-  junctionFile = paste(outputJunction, ".junction.xls", sep="")
+  junctionFile = paste0(outputJunction, ".junction.xls")
   if (res == 0 && length(readLines(junctionFile)) > 1){
     juncsTable = read.table(junctionFile, header=TRUE)
     junctions = table(juncsTable$annotation) / length(juncsTable$annotation) *100
@@ -664,7 +664,7 @@ getJunctionPlotsFromBam = function(bamFile, param){
   }
   
   ## do the cleaning
-  file.remove(list.files(path=".", pattern=paste(outputJunction, ".+", sep="")))
+  file.remove(list.files(path=".", pattern=paste0(outputJunction, ".+")))
   return(pngFiles)
 }
 

@@ -119,10 +119,10 @@ setMethod("buildRefDir", "EzRef", function(.Object, genomeFile, genesFile, genom
   genomeInfoList = cleanGenomeFiles(genomeFile, genesFile)
   writeXStringSet(genomeInfoList$genomeSeq, .Object@refFastaFile)
   ezWriteGff(genomeInfoList$gtf, .Object@refFeatureFile)
-  cmd = paste(paste("../../../", SAMTOOLS, sep=""), "faidx", .Object@refFastaFile)
+  cmd = paste0(paste("../../../", SAMTOOLS), "faidx", .Object@refFastaFile)
   ezSystem(cmd)
-  cmd = paste("java -jar", paste("../../../", file.path(PICARD_DIR, "picard-1.119.jar"), sep=""), "CreateSequenceDictionary",
-              paste("R=", .Object@refFastaFile, sep=""), paste("O=", sub(".fa$", ".dict", .Object@refFastaFile), sep=""))
+  cmd = paste0("java -jar", paste0("../../../", file.path(PICARD_DIR, "picard-1.119.jar")), "CreateSequenceDictionary",
+              paste0("R=", .Object@refFastaFile), paste("O=", sub(".fa$", ".dict", .Object@refFastaFile)))
   ezSystem(cmd)
   setwd(cd)
 })

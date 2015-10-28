@@ -122,9 +122,9 @@ ezBam2bigwig = function(bamFile, bigwigPrefix, param=NULL, paired=NULL){
   sh = scanBamHeader(bamFile)
   seqLengths = sh[[1]]$targets
   chromSize = data.frame(seqLengths, row.names=names(seqLengths))
-  chromSizeFile = paste("chromSize-",Sys.getpid(), ".txt", sep="")
+  chromSizeFile = paste0("chromSize-",Sys.getpid(), ".txt")
   write.table(chromSize, sep="\t", file=chromSizeFile, col.names=FALSE, quote=FALSE)
-  outputWig = paste("outputWig-", Sys.getpid(), sep="")
+  outputWig = paste0("outputWig-", Sys.getpid())
   strand_rule = NULL
   if(paired){
     strand_rule = switch(param$strandMode,
@@ -141,7 +141,7 @@ ezBam2bigwig = function(bamFile, bigwigPrefix, param=NULL, paired=NULL){
   ezSystem(cmd)
   
   ## from wig to bigwig
-  wigFiles = list.files(path=".", pattern=paste(outputWig, ".*\\.wig$", sep=""))
+  wigFiles = list.files(path=".", pattern=paste0(outputWig, ".*\\.wig$"))
   bigwigFiles = gsub(outputWig, bigwigPrefix, wigFiles)
   bigwigFiles = gsub(".wig$", ".bw", bigwigFiles)
   for(i in 1:length(wigFiles)){
@@ -393,8 +393,8 @@ ezMergeLeftRightAlignments <- function(gaLeft, gaRight, fillGap="N"){
   
   ## situation one: gap or zero distance between gaLeft and gaRight
   if (any(hasGap)){
-    gapString = sub("^0N$", "", paste(format(dist[hasGap], scientific=FALSE, trim=TRUE), fillGap, sep=""))
-    mergedCigar = paste(cigar(gaLeft)[hasGap], gapString, cigar(gaRight)[hasGap], sep="")
+    gapString = sub("^0N$", "", paste0(format(dist[hasGap], scientific=FALSE, trim=TRUE), fillGap))
+    mergedCigar = paste0(cigar(gaLeft)[hasGap], gapString, cigar(gaRight)[hasGap])
     gaGap = GAlignments(seqnames=seqnames(gaLeft)[hasGap], pos=start(gaLeft)[hasGap], cigar=mergedCigar, strand=strand(gaLeft)[hasGap],
                         names=names(gaLeft)[hasGap])
     values(gaGap) = values(gaLeft)[hasGap, ,drop=FALSE]
@@ -406,8 +406,8 @@ ezMergeLeftRightAlignments <- function(gaLeft, gaRight, fillGap="N"){
   if (any(useNarrow)){
     gaRightNarrowed = narrow(gaRight[useNarrow], -dist[useNarrow] + 1)
     distNarrowed = start(gaRightNarrowed) - end(gaLeft[useNarrow]) -1
-    gapString = sub("^0N$", "", paste(distNarrowed, "N", sep=""))
-    mergedCigar = paste(cigar(gaLeft)[useNarrow], gapString, cigar(gaRightNarrowed), sep="")
+    gapString = sub("^0N$", "", paste0(distNarrowed, "N"))
+    mergedCigar = paste0(cigar(gaLeft)[useNarrow], gapString, cigar(gaRightNarrowed))
     gaNew = GAlignments(seqnames=seqnames(gaLeft)[useNarrow], pos=start(gaLeft)[useNarrow],
                         cigar=mergedCigar, strand=strand(gaLeft)[useNarrow],
                         names=names(gaLeft)[useNarrow])
@@ -537,7 +537,7 @@ getBamMultiMatching = function(param, bamFile, nReads=NULL){
   } else {
     flagOption = "-F 4"
   }
-  countFile = paste(Sys.getpid(), "-BamMultiMatch.txt", sep="")
+  countFile = paste0(Sys.getpid(), "-BamMultiMatch.txt")
   #cmd = paste(SAMTOOLS, "view", flagOption, bamFile, "| cut -f1 | sort | uniq -c | cut -c 1-7 | sort | uniq -c >", countFile)
   ## direct usage of regular expression, slow
   #cmd = paste(SAMTOOLS, "view", flagOption, bamFile, "| cut -f1 | sort | uniq -c | grep -o "[[:blank:]]*[[:digit:]]\+[ ]" | sort | uniq -c >", countFile)
@@ -589,7 +589,7 @@ getBamMultiMatching = function(param, bamFile, nReads=NULL){
       modSam = sub(".bam$", ".sam", modBam)
       cmd = paste(SAMTOOLS, "view -H", bams[i], ">", modSam)
       ezSystem(cmd)
-      cmd = paste(SAMTOOLS, " view ", bams[i], " | awk '{print \"set_", i, "_\" $0}'", " >> ", modSam, sep="")
+      cmd = paste0(SAMTOOLS, " view ", bams[i], " | awk '{print \"set_", i, "_\" $0}'", " >> ", modSam)
       ezSystem(cmd)
       cmd = paste(SAMTOOLS, "view -S -b -h", modSam, ">", modBam)
       ezSystem(cmd)
@@ -600,7 +600,7 @@ getBamMultiMatching = function(param, bamFile, nReads=NULL){
     cmd = paste(SAMTOOLS, "merge -r", output, paste(modBams, collapse=" "))
     ezSystem(cmd)
     file.remove(modBams)
-    file.remove(paste(modBams, ".bai", sep=""))
+    file.remove(paste0(modBams, ".bai"))
   } else {
     cmd = paste(SAMTOOLS, "merge -r", output, paste(bams, collapse=" "))
     ezSystem(cmd)
@@ -621,7 +621,7 @@ getBamMultiMatching = function(param, bamFile, nReads=NULL){
     ezSystem(cmd)
   } else {
     ezSystem(paste("cp", src, target))
-    ezSystem(paste("cp ", src, ".bai ", target, ".bai", sep=""))
+    ezSystem(paste0("cp ", src, ".bai ", target, ".bai"))
   }
   return(target)
 }

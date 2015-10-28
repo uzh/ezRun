@@ -127,8 +127,8 @@ EzAppChipStats <-
 
 galp2gal = function(galp){ 
   system('echo Function galp2gal, conversion of paired-end data into single end data... \n')
-  betweenPairCigar = paste(abs(start(right(galp)) - end(left(galp)) + 1), "N", sep="")
-  galcigar = paste(cigar(left(galp)), betweenPairCigar, cigar(right(galp)), sep="")
+  betweenPairCigar = paste0(abs(start(right(galp)) - end(left(galp)) + 1), "N")
+  galcigar = paste0(cigar(left(galp)), betweenPairCigar, cigar(right(galp)))
   gal = GAlignments(
     seqnames = seqnames(galp),
     pos = start(left(galp)),
@@ -181,7 +181,7 @@ fragmentSize = function(myBam, isPaired = F){
     system('echo sample_fragmentSize calculated, plotting... \n')
     png(file=paste(names(myBam),"_fragmentSize.png",sep=''))
     d = density(sample_fragmentSize)
-    plot(d, main=names(myBam),xlab=paste("Median of FragmentSize:",medianFS,sep=""))
+    plot(d, main=names(myBam),xlab=paste0("Median of FragmentSize:",medianFS))
     polygon(d, col="red", border="black") 
     legend("topright",c(names(myBam)))
     dev.off()
@@ -357,7 +357,7 @@ binMyBam = function(cov, binLength, sampleName){
       MyBins = c(MyBins,rep(runValue(cov[[i]]),runLength(cov[[i]])))
     }
   }
-  write.table(MyBins,paste(sampleName,'_',binLength,'_BinData.txt',sep=""),col.names=F,quote=F,sep='\t')
+  write.table(MyBins,paste0(sampleName,'_',binLength,'_BinData.txt'),col.names=F,quote=F,sep='\t')
 }
 
 clusterData = function(data, distmethod='pearson', clustermethod='ward', title = title){

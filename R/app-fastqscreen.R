@@ -45,7 +45,7 @@ EzAppFastqScreen <-
 
 ## NOTEP: all 5 functions below get only called once each in ezMethodFastqScreen()
 executeFastqscreenCMD = function(param, files){
-  confFile = paste(FASTQSCREEN_CONF_DIR, param$confFile, sep="")
+  confFile = paste0(FASTQSCREEN_CONF_DIR, param$confFile)
   opt = ""
   if (param$nReads > 0){
     opt = paste(opt, "--subset", ezIntString(param$nReads))
@@ -63,7 +63,7 @@ executeFastqscreenCMD = function(param, files){
 executeBowtie2CMD = function(param, files){
   countFiles = character()
   for (nm in names(files)){
-    countFiles[nm] = paste(nm, "-counts.txt", sep="")
+    countFiles[nm] = paste0(nm, "-counts.txt")
     bowtie2options = param$cmdOptions
     if(!param$paired){
       cmd = paste(file.path(BOWTIE2_DIR,'bowtie2'),"-x",REFSEQ_mRNA_REF, 

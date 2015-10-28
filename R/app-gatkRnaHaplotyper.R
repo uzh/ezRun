@@ -20,7 +20,7 @@ gatkRnaSeqHaplotyperApp = function(input=NA, output=NA, param=NA, htmlFile="00in
   }
   reportDir = basename(output$"Report")
   htmlFile = basename(output$Html)
-  vcfOutputFile = output$"VCF [File]" #paste(param$name, "-haplo.vcf.gz", sep="")
+  vcfOutputFile = output$"VCF [File]" #paste0(param$name, "-haplo.vcf.gz")
   
   
   bamFiles = bamDataset$getFullPaths(param, "BAM")
@@ -28,7 +28,7 @@ gatkRnaSeqHaplotyperApp = function(input=NA, output=NA, param=NA, htmlFile="00in
   genomeSeq = param$ezRef["refFastaFile"]
   nBamsInParallel = min(4, param$cores)
   bamFilesClean = ezMclapply(names(bamFiles), function(sampleName){
-    javaCall = paste("java -Djava.io.tmpdir=. -Xmx", floor(param$ram/nBamsInParallel), "g", sep="")
+    javaCall = paste0("java -Djava.io.tmpdir=. -Xmx", floor(param$ram/nBamsInParallel), "g")
     setwdNew(paste(sampleName, "proc", sep="-"))
     bf = bamFiles[sampleName]
     obf = file.path(getwd(), basename(bf))
@@ -40,19 +40,18 @@ gatkRnaSeqHaplotyperApp = function(input=NA, output=NA, param=NA, htmlFile="00in
       ezSystem(paste(SAMTOOLS, "index", "local.bam"))
     } else {
       ezSystem(paste("cp", bf, "local.bam"))
-      ezSystem(paste("cp", paste(bf, ".bai", sep=""), "local.bam.bai"))
+      ezSystem(paste("cp", paste0(bf, ".bai"), "local.bam.bai"))
     }
-    cmd = paste(javaCall, " -jar ", file.path(PICARD_DIR, "AddOrReplaceReadGroups.jar"),
+    cmd = paste0(javaCall, " -jar ", file.path(PICARD_DIR, "AddOrReplaceReadGroups.jar"),
                 " TMP_DIR=. MAX_RECORDS_IN_RAM=2000000", " I=", "local.bam",
                 " O=withRg.bam SORT_ORDER=coordinate",
                 " RGID=RGID_", sampleName, " RGPL=illumina RGSM=", sampleName, " RGLB=RGLB_", sampleName, " RGPU=RGPU_", sampleName,
                 " VERBOSITY=WARNING",
-                " > addreplace.stdout 2> addreplace.stderr",
-                sep="")
+                " > addreplace.stdout 2> addreplace.stderr")
     ezSystem(cmd)
     file.remove("local.bam")
     
-    cmd = paste(javaCall, " -jar ", file.path(PICARD_DIR, "MarkDuplicates.jar"),
+    cmd = paste0(javaCall, " -jar ", file.path(PICARD_DIR, "MarkDuplicates.jar"),
                 " TMP_DIR=. MAX_RECORDS_IN_RAM=2000000", " I=", "withRg.bam",
                 " O=", "dedup.bam",
                 " REMOVE_DUPLICATES=false", ## do not remove, do only mark
@@ -60,8 +59,7 @@ gatkRnaSeqHaplotyperApp = function(input=NA, output=NA, param=NA, htmlFile="00in
                 " VALIDATION_STRINGENCY=SILENT",
                 " METRICS_FILE=" ,"dupmetrics.txt",
                 " VERBOSITY=WARNING",
-                " >markdup.stdout 2> markdup.stderr",
-                sep="")
+                " >markdup.stdout 2> markdup.stderr")
     ezSystem(cmd)
     file.remove("withRg.bam")
     
@@ -80,26 +78,26 @@ gatkRnaSeqHaplotyperApp = function(input=NA, output=NA, param=NA, htmlFile="00in
   }, mc.cores=nBamsInParallel, mc.preschedule=FALSE)
   
   ########### haplotyping
-  haplotyperCall = paste("java -Djava.io.tmpdir=. -Xmx", param$ram, "g", " -jar ", GATK_JAR, " -T HaplotypeCaller", sep="")
+  haplotyperCall = paste0("java -Djava.io.tmpdir=. -Xmx", param$ram, "g", " -jar ", GATK_JAR, " -T HaplotypeCaller")
   cmd = paste(haplotyperCall, "-R", genomeSeq,
               "-nct", param$cores,
               paste("-I", bamFilesClean, collapse=" "),
               "--dontUseSoftClippedBases", ##--recoverDanglingHeads
               "-stand_call_conf 20 -stand_emit_conf 20",
-              "--activeRegionOut", paste(param$name, "-haplo-activeRegion.bed", sep=""),
+              "--activeRegionOut", paste0(param$name, "-haplo-activeRegion.bed"),
               "--maxNumHaplotypesInPopulation", 4,
               #"--maxReadsInRegionPerSample", "10000",
               "--sample_ploidy", 2,
               "--min_mapping_quality_score 1",
               "--output_mode", "EMIT_VARIANTS_ONLY",   ## does not work: EMIT_ALL_CONFIDENT_SITES
-              "-o", paste(param$name, "-all-haplo.vcf", sep=""),
-              ">", paste(param$name, "-haplo.stdout", sep=""),
-              "2>", paste(param$name, "-haplo.stderr", sep=""))
+              "-o", paste0(param$name, "-all-haplo.vcf"),
+              ">", paste0(param$name, "-haplo.stdout"),
+              "2>", paste0(param$name, "-haplo.stderr"))
   ezSystem(cmd)
   
   ## filter the vcf file
   require(VariantAnnotation)
-  ezFilterVcf(vcfFile=paste(param$name, "-all-haplo.vcf", sep=""), basename(vcfOutputFile), discardMultiAllelic=FALSE,
+  ezFilterVcf(vcfFile=paste0(param$name, "-all-haplo.vcf"), basename(vcfOutputFile), discardMultiAllelic=FALSE,
             bamDataset=bamDataset, param=param)
   gc()
   
@@ -143,7 +141,7 @@ gatkRnaSeqHaplotyperApp = function(input=NA, output=NA, param=NA, htmlFile="00in
   snpColors = c("0/0"="blue", "0/1"="darkgrey", "1/1"="red")
   pngFiles = c()
   for (ch in names(chromSizes)[isRealChrom]){
-    pngFiles[ch] = paste("variantPos-chrom-", ch, ".png", sep="")
+    pngFiles[ch] = paste0("variantPos-chrom-", ch, ".png")
     png(file=pngFiles[ch], height=200+30*ncol(gt), width=1200)
     par(mar=c(4.1, 10, 4.1, 2.1))
     plot(0, 0, type="n", main=paste("Chromsome", ch), xlab="pos", xlim=c(1, chromSizes[ch]), ylim=c(0, 3*ncol(gt)),

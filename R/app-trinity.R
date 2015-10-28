@@ -36,7 +36,7 @@ ezMethodTrinity = function(input=NA, output=NA, param=NA, htmlFile="00index.html
   }
   
   cmd = paste(TRINITY, "-seqType fq", readOpt,
-              "--max_memory", paste(param$ram, "G", sep=""), "--bflyCalculateCPU", ## "--bflyHeapSpaceMax", paste(round(as.numeric(param$ram)/4), "G", sep=""),
+              "--max_memory", paste0(param$ram, "G"), "--bflyCalculateCPU", ## "--bflyHeapSpaceMax", paste0(round(as.numeric(param$ram)/4), "G"),
               "--CPU", ezThreads(),
               libOpt,
               param$trinityOpt,

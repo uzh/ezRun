@@ -71,9 +71,9 @@ ezWriteVcf = function(vcf, file=vcfFile){
   #vcfTemp = sub("-haplo.vcf", "-haplo-filt.vcf", vcfFiles[dsName])
   stopifnot(grepl(".gz$", file))
   nm = sub(".vcf", "", sub(".gz", "", basename(file)))
-  vcfTemp = paste(nm , "-", Sys.getpid(), ".vcf", sep="")
+  vcfTemp = paste0(nm , "-", Sys.getpid(), ".vcf")
   writeVcf(vcf, filename=vcfTemp, index=TRUE)
-  stopifnot(file.rename(paste(vcfTemp, ".bgz", sep=""), file))
-  stopifnot(file.rename(paste(vcfTemp, ".bgz.tbi", sep=""), paste(file, ".tbi", sep="")))
+  stopifnot(file.rename(paste0(vcfTemp, ".bgz"), file))
+  stopifnot(file.rename(paste0(vcfTemp, ".bgz.tbi"), paste0(file, ".tbi")))
   return(invisible(file))
 }

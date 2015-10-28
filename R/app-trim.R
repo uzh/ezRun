@@ -32,9 +32,9 @@ ezMethodTrim = function(input=NA, output=NA, param=NA){
   
   if (is.na(output)){
     output = input$copy()
-    output$setColumn("Read1", paste(input$getNames(), "-trimmed-R1.fastq", sep=""))
+    output$setColumn("Read1", paste0(input$getNames(), "-trimmed-R1.fastq"))
     if (param$paired){
-      output$setColumn("Read2", paste(input$getNames(), "-trimmed-R2.fastq", sep=""))
+      output$setColumn("Read2", paste0(input$getNames(), "-trimmed-R2.fastq"))
     } else {
       if ("Read2" %in% input$colNames){
         output$setColumn("Read2", NULL)
@@ -98,7 +98,7 @@ ezMethodTrim = function(input=NA, output=NA, param=NA){
     }
     cmd = paste(TRIMMOMATIC, method,
                 "-threads", min(ezThreads(), 8),
-                #"-trimlog", paste(input$getNames(), "-trimmomatic.log", sep=""),
+                #"-trimlog", paste0(input$getNames(), "-trimmomatic.log"),
                 readOpts, trimAdaptOpt, tailQualOpt, minAvgQualOpt,
                 #               paste("HEADCROP", param$trimLeft, sep=":"),
                 #               paste("CROP", param$trimRight, sep=":"),

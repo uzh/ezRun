@@ -44,10 +44,10 @@ loadCountDataset = function(input, param){
     columnName = intersect(param$knownExpressionNames, colnames(x))[1]
   }
   if (!columnName %in% colnames(x)){
-    return(list(error=paste("Specified column name not found in data!<br>columnName: '", columnName, "'\n",
+    return(list(error=paste0("Specified column name not found in data!<br>columnName: '", columnName, "'\n",
                             "<br>Available column names:<br>\n",
-                            paste("'", colnames(x), "'", sep="", collapse="<br>"),
-                            "<br>Set the option columnName to one of the names above!", sep="")))
+                            paste0("'", colnames(x), "'", collapse="<br>"),
+                            "<br>Set the option columnName to one of the names above!")))
   }
   dataFeatureLevel = unique(input$getColumn("featureLevel"))
   stopifnot(length(dataFeatureLevel) == 1)
@@ -127,7 +127,7 @@ loadCountDataset = function(input, param){
 ##' @return Returns the name of the output file.
 ##' @examples 
 ##' ezHead(x="DESCRIPTION")
-ezHead = function(target=paste(x, "_head", sep=""), x, n=1000){
+ezHead = function(target=paste0(x, "_head"), x, n=1000){
   ezSystem(paste("head -n", n, x, ">", target))
   return(target)
 }
@@ -224,7 +224,7 @@ removeReadsFromFastq = function(fqFiles, readIds, fqOutFiles=NULL, doGzip=TRUE){
     }
     if (doGzip){
       ezSystem(paste("gzip", fqOutFiles[i]))
-      fqOutFiles[i] = paste(fqOutFiles[i], ".gz", sep="")
+      fqOutFiles[i] = paste0(fqOutFiles[i], ".gz")
     }
   }
   return(fqOutFiles)
@@ -300,7 +300,7 @@ countReadsInFastq = function(fastqFiles){
   filePairs = data.frame(reads1=c("R1_001.fastq.gz", "R1.fastq.gz", "R1.fastq", "F3.csfasta", "F3.csfasta"),
                          reads2=c("R2_001.fastq.gz", "R2.fastq.gz", "R2.fastq", "F5-BC.csfasta", "F5-RNA.csfasta"))
   for (i in 1:nrow(filePairs)){
-    #x = paste(filePairs$reads1[i], "$", sep="")
+    #x = paste0(filePairs$reads1[i], "$")
     x = filePairs$reads1[i]
     if (ezGrepl(x, reads1)){
       reads2 = sub(x, filePairs$reads2[i], reads1)
@@ -383,7 +383,7 @@ countReadsInFastq = function(fastqFiles){
   job = ezJobStart(paste("get", src))  
   
   if (!is.na(adapter)){
-    adapter = paste(adapter, paste(rep("N", 100), collapse=""), sep="")
+    adapter = paste0(adapter, paste(rep("N", 100), collapse=""))
   }
   
   target=sub(".gz$", "", basename(src))
@@ -482,11 +482,11 @@ countReadsInFastq = function(fastqFiles){
     outputDirNow = file.path(outputDir, sub(".fastq$", "", basename(reads1)))
     dir.create(outputDirNow, recursive=TRUE)
     for(j in 1:sampleno){
-      output1 = file.path(outputDirNow, paste("S", j, "_", sub(".fastq$", "", basename(reads1)), ".fastq", sep=""))
+      output1 = file.path(outputDirNow, paste0("S", j, "_", sub(".fastq$", "", basename(reads1)), ".fastq"))
       if(is.null(reads2)){
         samplingFastq(reads1=r1, output1=output1, size=size)
       }else{
-        output2 = file.path(outputDirNow, paste("S", j, "_", sub(".fastq$", "", basename(reads2)), ".fastq", sep=""))
+        output2 = file.path(outputDirNow, paste0("S", j, "_", sub(".fastq$", "", basename(reads2)), ".fastq"))
         samplingFastq(reads1=r1, reads2=r2, output1=output1, output2=output2, size=size)
       }
     }

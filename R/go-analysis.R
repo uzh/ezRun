@@ -265,12 +265,12 @@ writeGOTables = function(html , param, goResult){
     for (sub in names(x)){ #c("enrichUp", "enrichDown", "enrichBoth")){
       xSub = x[[sub]]
       if (is.data.frame(xSub)){
-        name = paste(onto, "-", param$comparison, "-", sub, sep="")
+        name = paste0(onto, "-", param$comparison, "-", sub)
         if (!is.null(xSub$Pvalue)){
           xSub = xSub[order(xSub$Pvalue), ]
           xSub = cbind("GO ID"=rownames(xSub), xSub)
         }
-        txtFile = ezValidFilename(paste(name, ".txt", sep=""), replace="-")
+        txtFile = ezValidFilename(paste0(name, ".txt"), replace="-")
         ezWrite.table(xSub, file=txtFile, row.names=FALSE)
         if (param$doZip){
           txtFiles[name] = zipFile(txtFile)
@@ -367,14 +367,14 @@ goResultToHtmlTable = function(x, pThreshGo, minCount, onto=NA, maxNumberOfTerms
   counts = character(length(goRoots))
   for (i in 1:length(goRoots)){
     childTerms = getChildTerms(goRoots[i], goIds, goRelatives, indent="", CHILDREN)
-    terms[i] = paste("<span title='", getGOTerm(childTerms)[[1]], "'>", names(childTerms), "</span>",
-                     sep="", collapse="<br>")
+    terms[i] = paste0("<span title='", getGOTerm(childTerms)[[1]], "'>", names(childTerms), "</span>",
+                     collapse="<br>")
     pValues[i] = paste(signif(x[childTerms, "Pvalue"], 3), collapse="<br>")
     counts[i] = paste(x[childTerms, "Count"], x[childTerms, "Size"], sep="/", collapse="<br>")
   }
-  rows = paste("<td style='color:", color, "' valign='", valign, "'>", terms, "</td>",
+  rows = paste0("<td style='color:", color, "' valign='", valign, "'>", terms, "</td>",
                "<td style='color:", color, "' valign='", valign, "'>", pValues,"</td>",
-               "<td style='color:", color, "' valign='", valign, "'>", counts, "</td>", sep="")
+               "<td style='color:", color, "' valign='", valign, "'>", counts, "</td>")
   rows
 }
 
@@ -385,9 +385,9 @@ getChildTerms = function(x, subset, goRelatives, indent="", childEnvir){
   result = character()
   if (is.element(x, subset)){
     term = getGOTerm(x)[[1]]
-    displayLabel = paste(indent, substr(term, 1, 30), sep="")
+    displayLabel = paste0(indent, substr(term, 1, 30))
     result[displayLabel] = x
-    indent = paste("<font color='#FFFFFF'>", indent, "</font>", sep="")
+    indent = paste0("<font color='#FFFFFF'>", indent, "</font>")
     subset = setdiff(subset, x) ## this is the modification to make the table non-redundant!!
   }
   kids = intersect(childEnvir[[x]], goRelatives)
@@ -406,7 +406,7 @@ getChildTerms = function(x, subset, goRelatives, indent="", childEnvir){
 #  if (length(intersect(x, subset)>0)){
 #    ezWrite(indent, x, " ", getGOTerm(x)[[1]])
 #  }
-#  kids = get(x, envir=eval(paste("GO", onto, "CHILDREN", sep="")))
+#  kids = get(x, envir=eval(paste0("GO", onto, "CHILDREN")))
 #  indent = paste(indent, " ")
 #  for (kid in kids){
 #    if (is.element(kid, goRelatives)){
@@ -633,7 +633,7 @@ collectChildren = function(go2geneList, onto){
 #     probe2GoList = strsplit(goIds, "; ", fixed=TRUE)
 #     
 #     names(probe2GoList) = rownames(probeAnno)
-#     ##goList = lapply(goList, function(x){ if (length(x)== 0){NA} else {paste("GO:", x, sep="")}})
+#     ##goList = lapply(goList, function(x){ if (length(x)== 0){NA} else {paste0("GO:", x)}})
 #     l2e(probe2GoList, go)
 #     #ezWriteElapsed(job)
 #     
@@ -669,13 +669,13 @@ collectChildren = function(go2geneList, onto){
 #     l2e(goList, go2probe)
 #     
 #     l = list()
-#     l[[paste(chip, "GO", sep="")]] = go
-#     l[[paste(chip, "GO2ALLPROBES", sep="")]] = go2probe
+#     l[[paste0(chip, "GO")]] = go
+#     l[[paste0(chip, "GO2ALLPROBES")]] = go2probe
 #   } else {
 #     l = list()
 #   }
-#   l[[paste(chip, "ENTREZID", sep="")]] = entrezid
-#   pkgName = paste("package:", chip, ".db", sep="")
+#   l[[paste0(chip, "ENTREZID")]] = entrezid
+#   pkgName = paste0("package:", chip, ".db")
 #   ezWrite("attach package: ", pkgName)
 #   attach(l, name=pkgName)
 #   return(chip)
@@ -683,7 +683,7 @@ collectChildren = function(go2geneList, onto){
 # 
 
 # hasGoAnnotationInEnv = function(chip){
-#   exists(paste(chip, "GO2ALLPROBES", sep=""))
+#   exists(paste0(chip, "GO2ALLPROBES"))
 # }
 
 

@@ -46,7 +46,7 @@ runGageAnalysis = function(result, param=NULL, output=NULL, rawData=NULL, gene.p
   # Create HeatMaps Plots
   for (i in names(geneSets)) {
     for (signal in c("combined", "both")) {
-      prefix =  paste('gage-heatmap',"-", i, sep="")
+      prefix =  paste0('gage-heatmap',"-", i)
       lab.pathCol = paste(signal, "pathColors", sep=".")
       lab.png = paste(signal, "png", sep=".")
       res = gageHeatmap(gageResults[['significant']][[i]],param = param, output=output, gene.pValue=gene.pValue, signal=signal, prefix=prefix)
@@ -189,7 +189,7 @@ gageAnalysis = function(result, rawData=NULL, param=NULL, geneSets=NULL ) {
     if(grepl("^kg\\.", res$gset.name)) {
       htmlbase = paramI[['KEGGhtml']]
       keggGsetId = gsub(" .*","",names(x))
-      res$links =  matrix(paste(htmlbase,keggGsetId, sep=""), dimnames=list(names(x), "link"))
+      res$links =  matrix(paste0(htmlbase,keggGsetId), dimnames=list(names(x), "link"))
     } 
     if(grepl("^msigdb", res$gset.name)) {
       htmlbase = paramI[['MSigDBhtml']]
@@ -358,7 +358,7 @@ gageHeatmap = function(x, param=NULL, output=NULL, gene.pValue=NULL, signal=NULL
   
   # HeatMap
   if(is.null(fileName) & nrow(xCentered) >= 2 & ncol(xCentered) >= 2) {
-    fileName = paste(param[['comparison']],"-", prefix,"-", signal, ".png", sep="")
+    fileName = paste0(param[['comparison']],"-", prefix,"-", signal, ".png")
     
     png(fileName, width=max(800, 400 + 10 * ncol(xCentered)), height=1000) 
     rowDendro = FALSE
@@ -402,7 +402,7 @@ gagePathview = function(x, param=NULL, output=NULL, signal=NULL, kegg.id=NULL, g
   
   # Convert pathway ID
   pathways = names(genes)
-  pattern = paste(kegg.id,"[[:digit:]]+",sep="")
+  pattern = paste0(kegg.id,"[[:digit:]]+")
   kegg.pathId = unlist(regmatches(pathways, gregexpr(pattern, pathways)))
   names(genes) = kegg.pathId
   
@@ -425,7 +425,7 @@ gagePathview = function(x, param=NULL, output=NULL, signal=NULL, kegg.id=NULL, g
 
 writeGageTables = function(html, param = NULL, gageResults = NULL) {
   ezWrite("<h3>GAGE Enrichment Analysis</h3>", con=html)
-  use = paste("<p>Gene sets used: ", paste(names(gageResults[['all']]), collapse=", "), "<br>", sep="")
+  use = paste0("<p>Gene sets used: ", paste(names(gageResults[['all']]), collapse=", "), "<br>")
   ezWrite(use, con=html)
   if(any(grepl('kg', names(gageResults[['all']])))) {
     use = "<p><span style='margin-left:2em'>kg = <A HREF='http://www.genome.jp/kegg/pathway.html'>KEGG</A> pathways: dise (disease pathways) , sigmet (signaling or metabolism pathways)<br>"
@@ -435,9 +435,9 @@ writeGageTables = function(html, param = NULL, gageResults = NULL) {
     use = "<p><span style='margin-left:2em'>msigdb = <A HREF='http://www.broadinstitute.org/gsea/msigdb/index.jsp'>MSigDB</A> pathway<br>"
     ezWrite(use, con=html)
   }
-  use = paste("<p>Significance threshold pathways: ", param[['gageThreshold']], ". Only pathways below this treshold are represented<br>", sep="")
+  use = paste0("<p>Significance threshold pathways: ", param[['gageThreshold']], ". Only pathways below this treshold are represented<br>")
   ezWrite(use, con=html)
-  use = paste("<p>Significance threshold genes selected within a pathway: ", param[['gageGeneThreshold']], ". Only genes below this treshold are represented<br>", sep="")
+  use = paste0("<p>Significance threshold genes selected within a pathway: ", param[['gageGeneThreshold']], ". Only genes below this treshold are represented<br>")
   ezWrite(use, con=html)
   ezWrite("<p>Warning : only pathways with at least one gene significant will be displayed. Only top 30 pathways are represented<br>", con=html)  
 
@@ -445,7 +445,7 @@ writeGageTables = function(html, param = NULL, gageResults = NULL) {
   gene.pValue=param[['gageGeneThreshold']]
   
   for (i in names(gageResults[['significant']])) {
-    use = paste("<table border=0><tr><th>Heatmap Plot logRatio Signal for ",i,"</th><th>",i," significant pathways</th></tr>", sep="")
+    use = paste0("<table border=0><tr><th>Heatmap Plot logRatio Signal for ",i,"</th><th>",i," significant pathways</th></tr>")
     checkpoint = nrow(gageResults[['significant']][[i]][['combined']]) > 0 | nrow(gageResults[['significant']][[i]][['both']]) > 0
     if(!checkpoint) next
     ezWrite(use, con=html)
@@ -485,15 +485,15 @@ writeGageTables = function(html, param = NULL, gageResults = NULL) {
         pathways = rownames(res)
         SpeciesName = getSpeciesName(param)
         kegg.id = getKeggId(SpeciesName, param)
-        pattern = paste(kegg.id,"[[:digit:]]+",sep="")
+        pattern = paste0(kegg.id,"[[:digit:]]+")
         kegg.pathId = unlist(regmatches(pathways, gregexpr(pattern, pathways)))
-        pngFiles = paste(kegg.pathId,".",x$gset.name,"-",signal,".png",sep="")
-        pngLinks = paste("<A  HREF='",pngFiles,"'>click here</A>", sep="")
+        pngFiles = paste0(kegg.pathId,".",x$gset.name,"-",signal,".png")
+        pngLinks = paste0("<A  HREF='",pngFiles,"'>click here</A>")
         res = cbind(res, PathView = pngLinks)
       }
       
       # Add links to pathway names
-      rownames(res) = paste("<A HREF=\"", res[,"links"],"\">",rownames(res),"</A>",sep="")
+      rownames(res) = paste0("<A HREF=\"", res[,"links"],"\">",rownames(res),"</A>")
       res <- res[,!colnames(res) %in% "links", drop=F]
       
       
@@ -518,12 +518,12 @@ writeTableToHtmlWhite = function(x, con=stdout(), bgcolors=matrix("#ffffff", nro
          valign="middle", border=1, head=""){
   
   ezWrite("<table border='", border, "'><tr>", con=con)
-  ezWrite(paste("<th>", c(head, colnames(x)), "</th>", sep="", collapse="\n"), con=con)
+  ezWrite(paste0("<th>", c(head, colnames(x)), "</th>", collapse="\n"), con=con)
   ezWrite("</tr>", con=con)
   if (nrow(x) > 0){
     for (i in 1:nrow(x)){
       ezWrite("<tr><th>", rownames(x)[i], "</th>", con=con)
-      ezWrite(paste("<td valign='", valign, "' bgcolor='", bgcolors[i,], "'><font color='white'>", x[i,], "</font></td>", sep="", collapse="\n"), con=con)
+      ezWrite(paste0("<td valign='", valign, "' bgcolor='", bgcolors[i,], "'><font color='white'>", x[i,], "</font></td>", collapse="\n"), con=con)
       ezWrite("</tr>", con=con)
     }
   }

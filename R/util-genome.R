@@ -32,7 +32,7 @@ splitCoordinate = function(pos){
 ##' @examples
 ##' makeCoordinate("chrm",3,150,300)
 makeCoordinate = function(chrom, strand, start, stop){
-  paste(chrom, "(", strand, ")", ":", start, "-", stop, sep="")
+  paste0(chrom, "(", strand, ")", ":", start, "-", stop)
 }
 
 ##' @describeIn splitCoordinate Does the same as \code{splitCoordinate}, but returns the result as a list and is more robust.

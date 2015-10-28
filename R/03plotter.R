@@ -32,7 +32,7 @@ EzPlotter =
                   if (ezIsSpecified(file)) {
                     filename = file
                   } else {
-                    filename = paste(name, ".png", sep="")
+                    filename = paste0(name, ".png")
                   }
                   
                   if (!inherits(plotWidth, "uninitializedField")){
@@ -53,7 +53,7 @@ EzPlotter =
                   if (ezIsSpecified(file)) {
                     filename = file
                   } else {
-                    filename = paste(name, ".pdf", sep="")
+                    filename = paste0(name, ".pdf")
                   }
                   
                   if (!inherits(plotWidth, "uninitializedField")){

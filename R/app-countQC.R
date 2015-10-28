@@ -116,11 +116,11 @@ runNgsCountQC = function(dataset, htmlFile="00index.html", param=param, rawData=
     if (!is.null(seqAnno)){
       combined = cbind(seqAnno[rownames(combined), ,drop=FALSE], combined)
     }
-    countFile = paste(ezValidFilename(param$name), "-raw-count.txt", sep="")
+    countFile = paste0(ezValidFilename(param$name), "-raw-count.txt")
     ezWrite.table(rawData$counts, file=countFile, head="Feature ID", digits=4)
-    signalFile = paste(ezValidFilename(param$name), "-normalized-signal.txt", sep="")
+    signalFile = paste0(ezValidFilename(param$name), "-normalized-signal.txt")
     ezWrite.table(combined, file=signalFile, head="Feature ID", digits=4)
-    rpkmFile = paste(ezValidFilename(param$name), "-rpkm.txt", sep="")
+    rpkmFile = paste0(ezValidFilename(param$name), "-rpkm.txt")
     ezWrite.table(getRpkm(rawData), file=rpkmFile, head="Feature ID", digits=4)
     if (param$doZip){
       dataFiles =c(zipFile(countFile), zipFile(signalFile), zipFile(rpkmFile))
@@ -163,22 +163,22 @@ runNgsCountQC = function(dataset, htmlFile="00index.html", param=param, rawData=
 
   pngName = "sampleCorrelation-AllPresent.png"
   try({ezCorrelationPlot(png=pngName, cor(x, use="complete.obs"), cond=conds, condLabels=conds, 
-    main=paste("all present genes (", sum(isValid), ")", sep=""), sampleColors=sampleColors)})
+    main=paste0("all present genes (", sum(isValid), ")"), sampleColors=sampleColors)})
   pngNames[1, 1] = pngName
 
   pngName = "sampleCorrelation-AllPresentNormalized.png"
   try({ezCorrelationPlot(png=pngName, cor(xNormed, use="complete.obs"), cond=conds, condLabels=conds, 
-                         main=paste("all present genes (", sum(isValid), ") gene-wise normalized", sep=""))})
+                         main=paste0("all present genes (", sum(isValid), ") gene-wise normalized"))})
   pngNames[1,2] = pngName
 
   pngName = "sampleCorrelation-TopGenes.png"
   try({ezCorrelationPlot(png=pngName, cor(x[topGenes,], use="complete.obs"), cond=conds, condLabels=conds, 
-                         main=paste("top genes (", length(topGenes), ")", sep=""))})
+                         main=paste0("top genes (", length(topGenes), ")"))})
   pngNames[2,1] = pngName
 
   pngName = "sampleCorrelation-TopGenesNormalized.png"
   try({ezCorrelationPlot(png=pngName, cor(xNormed[topGenes,], use="complete.obs"), cond=conds, condLabels=conds, 
-                         main=paste("top genes (", length(topGenes), ") gene-wise normalized", sep=""))})
+                         main=paste0("top genes (", length(topGenes), ") gene-wise normalized"))})
   pngNames[2,2] = pngName
 
   ezWrite("<h2>Sample correlation</h2>", con=html)

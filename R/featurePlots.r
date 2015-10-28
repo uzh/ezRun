@@ -117,7 +117,7 @@ plotRangesProfiles = function(ranges, rangesProfiles, trdb, pngDir=".", makePng=
         trackList[[nm]] = dTrack      
       }
       if (makePng){
-        png(file=paste(pngDir, "/", names(ranges)[i], "-profiles.png", sep=""), height=800, width=1600)    
+        png(file=paste0(pngDir, "/", names(ranges)[i], "-profiles.png"), height=800, width=1600)    
       }
       plotTracks(trackList, from=regionStart, to=regionEnd, lwd=1)
       if (makePng){
@@ -153,7 +153,7 @@ plotTranscriptProfiles = function(transcriptProfiles, gtf, sampleColors=NULL, ma
                                   pngDir=".", pngNames=NULL){
   
   if (is.null(pngNames) && makePng){
-    pngNames=paste(pngDir, "/", names(transcriptProfiles), "-profiles.png", sep="")
+    pngNames=paste0(pngDir, "/", names(transcriptProfiles), "-profiles.png")
   }
   if (is.null(sampleColors) & length(transcriptProfiles) > 0){
     sampleColors = rainbow(length(transcriptProfiles[[1]]))

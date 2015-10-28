@@ -78,7 +78,7 @@ writeJavaScriptIgvStarter = function(htmlFile, projectId, html){
                     '</resources>',
                     '<application-desc  main-class="org.broad.igv.ui.Main">',
                     '<argument>--genomeServerURL=http://fgcz-gstore.uzh.ch/reference/igv_genomes.txt</argument>',
-                    paste('<argument>--dataServerURL=', "http://fgcz-gstore.uzh.ch/list_registries/", projectId, '</argument>', sep=""),
+                    paste0('<argument>--dataServerURL=', "http://fgcz-gstore.uzh.ch/list_registries/", projectId, '</argument>'),
                     '<argument>',
                     sep="\n")
   jnlpLines2 = paste("</argument>",
@@ -133,7 +133,7 @@ writeIgvSession = function(genome, refBuild, file="igvSession.xml", bamUrls=NULL
     track = newXMLNode("Track", attrs=c(altColor="0,0,178", autoscale="false", color="175,175,175",
                                         colorScale="ContinuousColorScale;0.0;156.0;255,255,255;175,175,175",
                                         displayMode="COLLAPSED", featureVisibilityWindow="-1" , fontSize="10",
-                                        id=paste(du, "_coverage", sep=""), name=paste(basename(du), "Coverage"),
+                                        id=paste0(du, "_coverage"), name=paste(basename(du), "Coverage"),
                                         showDataRange="true", visible="true"))
     newXMLNode("DataRange",attrs=c(baseline="0.0", drawBaseline="true", flipAxis="false", maximum="1000.0" ,
                                    minimum="0.0", type="LOG"), parent=track)
@@ -202,9 +202,9 @@ getIgvGenome = function(param){
 ##' getIgvLocusLink(17,31,465)
 getIgvLocusLink = function(chrom, start, end){
   
-  locus = paste(chrom, ":", start, "-", end, sep="")
-  link = paste("http://www.broadinstitute.org/igv/projects/current/launch.php?locus=", locus, sep="")
-  return(paste("<a href=", link, ">", locus, "</a>", sep=""))
+  locus = paste0(chrom, ":", start, "-", end)
+  link = paste0("http://www.broadinstitute.org/igv/projects/current/launch.php?locus=", locus)
+  return(paste0("<a href=", link, ">", locus, "</a>"))
 }
 
 

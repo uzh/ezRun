@@ -59,9 +59,9 @@ ezLoadFeatures = function(param=NULL, featureFile=param$ezRef["refFeatureFile"],
 
 ##' @describeIn ezLoadFeatures Gets the attribute from the specified \code{field}.
 ezGffAttributeField = function (x, field, attrsep = ";", valuesep="=") {
-  x[ !ezGrepl(paste(field, valuesep, sep=""), x)] = NA
-  x = sub(paste(".*", field, valuesep, sep=""), "", x)
-  x = sub(paste(attrsep, ".*", sep=""), "", x)
+  x[ !ezGrepl(paste0(field, valuesep), x)] = NA
+  x = sub(paste0(".*", field, valuesep), "", x)
+  x = sub(paste0(attrsep, ".*"), "", x)
   x = sub("^\"", "", sub("\"$", "", x))
   return(x)
 }
@@ -82,7 +82,7 @@ addPromotersToGff = function(gff, promWidth){
   promGff$start[!isPos] = geneGff$end[!isPos] +1
   promGff$end[!isPos] = geneGff$end[!isPos] + promWidth
   for (nm in intersect(colnames(geneGff), c("ID", "Name"))){
-    promGff[[nm]] = paste(geneGff[[nm]], "_", promWidth, "B", sep="")
+    promGff[[nm]] = paste0(geneGff[[nm]], "_", promWidth, "B")
   }
   result = rbind(gff, promGff)
   return(result)
@@ -102,13 +102,13 @@ addPromotersToGff = function(gff, promWidth){
 ezBuildAttributeField = function(x, format="gtf"){
   if (format == "gtf") {
     for (nm in colnames(x)){
-      x[[nm]] = paste(nm, " \"", x[[nm]], "\";", sep="")
+      x[[nm]] = paste0(nm, " \"", x[[nm]], "\";")
     }
     return(apply(x, 1, paste, collapse=" "))
   }
   else if (format == "gff") {
     for (nm in colnames(x)){
-      x[[nm]] = paste(nm, "=\"", x[[nm]], "\"", sep="")
+      x[[nm]] = paste0(nm, "=\"", x[[nm]], "\"")
     }
     return(apply(x, 1, paste, collapse=";"))
   }
@@ -379,7 +379,7 @@ getExonNumber = function(gtf){
 ezTranscriptDbFromRef = function(reference, dataSource="FGCZ"){
   library(GenomicFeatures, warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
   organism = getOrganism(reference)
-  #genomeFastaIndexFile = paste(reference@refFastaFile, ".fai", sep="")
+  #genomeFastaIndexFile = paste0(reference@refFastaFile, ".fai")
   #fai = ezRead.table(genomeFastaIndexFile, header=FALSE)
   #chromInfo = data.frame(chrom=I(rownames(fai)), length=I(fai$V2), is_circular=FALSE)
   makeTxDbFromGFF(reference@refFeatureFile, dataSource=dataSource, organism=organism, chrominfo=NULL)
@@ -424,7 +424,7 @@ writePresplicedGtf <- function (param, featureFile=param$ezRef["refFeatureFile"]
   gtf = gtf[gtf$type == "exon", ]
   preSplicedId = paste(gtf$gene_id, gtf$tss_id, sep="_")
   gtfTr = groupGff(gtf, grouping=preSplicedId, type="exon")
-  gtfTr$transcript_id = paste(gtfTr$preSplicedId, "_pre", sep="")
+  gtfTr$transcript_id = paste0(gtfTr$preSplicedId, "_pre")
   gtfBoth = rbind(gtf, gtfTr)
   attrNew = ezBuildAttributeField(gtfBoth[ , c("gene_id", "gene_name", "transcript_id", "tss_id")],"gtf")
   gtfBoth$attributes = attrNew
