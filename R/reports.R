@@ -69,31 +69,57 @@ ezImageFileLink = function(ezPlotter, file=NULL, mouseOverText=ezPlotter$mouseOv
 ##' @return Returns an object of the class bsdoc to add further elements.
 ##' @examples
 ##' theDoc = openBsdocReport(title="My html report")
+##' ezAddBootstrapMenu(theDoc)
 ##' closeBsdocReport(doc=theDoc, file="example.html")
 openBsdocReport = function(title="", dataset=NULL){
-  html = bsdoc(title = title)
-  
-  bootStrap = BootstrapMenu("Functional Genomics Center Zurich", link = "http://www.fgcz.ethz.ch")
-  ddmenu = DropDownMenu("Navigation")
-  ddmenu = addLinkItem(ddmenu, "Section 1") ## TODOP: create bootstrapmenu for each app instead of here
-  bootStrap = addLinkItem(bootStrap, dd=ddmenu)
-  html = addBootstrapMenu(html, bootStrap)
-  
+  doc = bsdoc(title = title)
   pot1 = pot(paste("Started on", format(Sys.time(), "%Y-%m-%d %H:%M:%S"), "--&#160;"))
   pot2 = as.html(pot("Documentation", hyperlink = "http://fgcz-sushi.uzh.ch/doc/methods-20140422.html"))
-  html = addFlexTable(html, ezFlexTable(cbind(pot1, pot2)))
-  html = addTitle(html, title)
+  doc = addFlexTable(doc, ezFlexTable(cbind(pot1, pot2)))
+  doc = addTitleWithAnchor(doc, title)
   if (!is.null(dataset)){
     ezWrite.table(dataset, file="dataset.tsv", head="Name")
-    html = addParagraph(html, pot("dataset.tsv", hyperlink = "dataset.tsv"))
+    doc = addParagraph(doc, pot("dataset.tsv", hyperlink = "dataset.tsv"))
   }
-  return(html)
+  return(doc)
 }
 
 ##' @describeIn openBsdocReport Adds a paragraph showing the finishing time and writes the document. \code{file} must have a .html suffix.
 closeBsdocReport = function(doc, file){
   doc = addParagraph(doc, paste("Finished", format(Sys.time(), "%Y-%m-%d %H:%M:%S")))
   writeDoc(doc, file=file)
+}
+
+##' @describeIn openBsdocReport Adds a bootstrapmenu with the FGCZ link and optional navigation. Section links can be added to the Navigation with \code{#Anchorname}.
+ezAddBootstrapMenu = function(doc, titles=NULL){
+  bootStrap = BootstrapMenu("Functional Genomics Center Zurich", link = "http://www.fgcz.ethz.ch")
+  if (ezIsSpecified(titles)){
+    ddMenu = DropDownMenu("Navigation")
+    for (each in titles){
+      ddMenu = addLinkItem(ddMenu, label=sub("#", "", each), link=each)
+    }
+    bootStrap = addLinkItem(bootStrap, dd=ddMenu)
+  }
+  doc = addBootstrapMenu(doc, bootStrap)
+}
+
+##' @title Adds a title with an anchor
+##' @description Adds a title with an anchor by using \code{addTitle()} and \code{addCodeBlock()} from the ReporteRs package.
+##' @param doc an object of the class bsdoc to add the anchored title to.
+##' @param title a character specifying the title.
+##' @param level an integer specifying the heading level.
+##' @template roxygen-template
+##' @seealso \code{\link[ReporteRs]{addTitle}}
+##' @seealso \code{\link[ReporteRs]{addCodeBlock}}
+##' @examples
+##' theDoc = openBsdocReport(title="My html report")
+##' title = "My title"
+##' ezAddBootstrapMenu(theDoc, paste0("#", title))
+##' addTitleWithAnchor(theDoc, title)
+##' closeBsdocReport(doc=theDoc, file="example.html")
+addTitleWithAnchor = function(doc, title, level=1){
+  doc = addTitle(doc, value=title, level=level)
+  doc = addParagraph(doc, as.html(pot(paste0("<a name='", title, "'/>"))))
 }
 
 ##' @title Writes an error report
