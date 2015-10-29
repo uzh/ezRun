@@ -118,8 +118,8 @@ ezAddBootstrapMenu = function(doc, titles=NULL){
 ##' addTitleWithAnchor(theDoc, title)
 ##' closeBsdocReport(doc=theDoc, file="example.html")
 addTitleWithAnchor = function(doc, title, level=1){
+  doc = addParagraph(doc, as.html(pot(paste0("<a name='", title, "'></a>"))))
   doc = addTitle(doc, value=title, level=level)
-  doc = addParagraph(doc, as.html(pot(paste0("<a name='", title, "'/>"))))
 }
 
 ##' @title Writes an error report

@@ -23,7 +23,7 @@ ezImageFileLink3 = function(plotCmd, file=NULL, name="imagePlot", plotType="plot
   return(as.html(imgFilePot))
 }
 
-## normal suage
+## normal usage
 x = 1:10
 plotCmd = expression({
   plot(x)
