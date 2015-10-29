@@ -33,7 +33,7 @@ ezMethodFeatureCounts = function(input=NULL, output=NULL, param=NULL){
                               strandSpecific=switch(param$strandMode, "both"=0, "sense"=1, "antisense"=2, stop("unsupported strand mode: ", param$strandMode)),
                               minMQS=param$minMapQuality,
                               readExtension5=0,readExtension3=0,read2pos=NULL,
-                              minReadOverlap=param$minFeatureOverlap,
+                              minOverlap=param$minFeatureOverlap,
                               countSplitAlignmentsOnly=FALSE,
                               countMultiMappingReads=param$keepMultiHits,
                               countPrimaryAlignmentsOnly=param$countPrimaryAlignmentsOnly,
