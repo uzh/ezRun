@@ -137,6 +137,7 @@ addTitleWithAnchor = function(doc, title, level=1){
 ##' writeErrorReport(htmlFile, param)
 writeErrorReport = function(htmlFile, param=param, dataset=NULL, error="Unknown Error"){
   html = openBsdocReport(title=paste("Error:", param$name), dataset=dataset)
+  html = ezAddBootstrapMenu(html)
   html = addTitle(html, "Error message", level=2)
   for (i in 1:length(error)){
     html = addParagraph(html, error[i])
