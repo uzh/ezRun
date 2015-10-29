@@ -228,31 +228,29 @@ addTableToReportWhite = function(x, doc, bgcolors=NULL, valign="middle", border=
 ##' }
 ##' @template roxygen-template
 ##' @seealso \code{\link[ReporteRs]{addFlexTable}}
-addCountResultSummary = function(doc, param, result){  ### TODOP: change col1 col2 to settings approach from other function
+addCountResultSummary = function(doc, param, result){
   doc = addTitle(doc, "Result Summary", level=2)
-  tableCol1 = c("Analysis:", "Feature level:", "Data Column Used:", "Method:")
-  tableCol2 = c(result$analysis, result$featureLevel, result$countName, result$method)
+  settings = ezFrame(Value=character(0))
+  settings["Analysis:", "Value"] = result$analysis
+  settings["Feature level:", "Value"] = result$featureLevel
+  settings["Data Column Used:", "Value"] = result$countName
+  settings["Method:", "Value"] = result$method
   if (ezIsSpecified(param$batch)){
-    tableCol1 = c(tableCol1, "Statistical Model:")
-    tableCol2 = c(tableCol2, "used provided second factor")
+    settings["Statistical Model:", "Value"] = "used provided second factor"
   }
-  tableCol1 = c(tableCol1, "Comparison:")
-  tableCol2 = c(tableCol2, param$comparison)
+  settings["Comparison:", "Value"] = param$comparison
   if (!is.null(param$normMethod)){
-    tableCol1 = c(tableCol1, "Normalization:")
-    tableCol2 = c(tableCol2, param$normMethod)
+    settings["Normalization:", "Value"] = param$normMethod
   }
-  tableCol1 = c(tableCol1, "Number of features:")
-  tableCol2 = c(tableCol2, length(result$pValue))
+  settings["Number of features:", "Value"] = length(result$pValue)
   if (!is.null(result$isPresentProbe)){
-    tableCol1 = c(tableCol1, "Number of features with counts above threshold:")
-    tableCol2 = c(tableCol2, sum(result$isPresentProbe))
+    settings["Number of features with counts above threshold:", "Value"] = sum(result$isPresentProbe)
   }
   if (param$useSigThresh){
-    tableCol1 = c(tableCol1, "Log2 signal threshold:", "Linear signal threshold:")
-    tableCol2 = c(tableCol2, signif(log2(param$sigThresh), digits=4), signif(param$sigThresh, digits=4))
+    settings["Log2 signal threshold:", "Value"] = signif(log2(param$sigThresh), digits=4)
+    settings["Linear signal threshold:", "Value"] = signif(param$sigThresh, digits=4)
   }
-  doc = addFlexTable(doc, ezFlexTable(cbind(tableCol1, tableCol2)))
+  doc = addFlexTable(doc, ezFlexTable(settings, add.rownames=TRUE))
 }
 
 ##' @title Adds a result file
