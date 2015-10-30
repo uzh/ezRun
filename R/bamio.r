@@ -35,16 +35,17 @@ ezBamSeqLengths = function(bamFile){
 ##' @param inBam a character representing the file path of the input bam file to sort.
 ##' @param bam a character representing the file path of the output bam file.
 ##' @param samtools a character representing the file path to the samtools directory.
-##' @param maxMem a character the maximum amount of memory to be used for the new file.
+##' @param ram max RAM to use in GB
 ##' @param removeBam a logical indicating whether to remove the file specified in \code{inBam}.
 ##' @param cores an integer specifying how many cores to use for the command.
 ##' @template roxygen-template
 ##' @examples 
 ##' bamFile <- system.file("extdata", "ex1.bam", package="Rsamtools", mustWork=TRUE)
 ##' file.create("test.bam")
-##' ezSortIndexBam("test.bam", basename(bamFile), maxMem="500M", cores = ezThreads())
-ezSortIndexBam = function(inBam, bam, samtools=SAMTOOLS, maxMem="10000000000", removeBam=TRUE, cores=2){
+##' ezSortIndexBam("test.bam", basename(bamFile), ram=0.5, cores = ezThreads())
+ezSortIndexBam = function(inBam, bam, samtools=SAMTOOLS, ram=2, removeBam=TRUE, cores=2){
   
+  maxMem = paste0(floor(ram * 0.8/cores*1000), "M") ## use only 80% --> 20% safety margin before crash
   cmd = paste(samtools, "sort", "-m", maxMem, "-@", cores, inBam, sub(".bam$", "", bam))
   ezSystem(cmd)
   if (removeBam){
@@ -567,17 +568,17 @@ getBamMultiMatching = function(param, bamFile, nReads=NULL){
 
 
 
-.samToBam = function(sam, bam, samtools =SAMTOOLS, maxMem="1000000000", removeSam=TRUE, sortIndexBam=TRUE){
-  tmpBam = sub("sam$", "tmp.bam", sam)
-  cmd = paste(samtools, "view -S", sam, "-b -o", tmpBam)
-  ezSystem(cmd)
-  if (removeSam){
-    file.remove(sam)
-  }
-  if (sortIndex){
-    ezSortIndexBam(tmpBam, bam, samtools=samtoosl, maxmem=maxMem, removeBam=TRUE)
-  }
-}
+# .samToBam = function(sam, bam, samtools =SAMTOOLS, maxMem="1000000000", removeSam=TRUE, sortIndexBam=TRUE){
+#   tmpBam = sub("sam$", "tmp.bam", sam)
+#   cmd = paste(samtools, "view -S", sam, "-b -o", tmpBam)
+#   ezSystem(cmd)
+#   if (removeSam){
+#     file.remove(sam)
+#   }
+#   if (sortIndex){
+#     ezSortIndexBam(tmpBam, bam, samtools=samtoosl, maxmem=maxMem, removeBam=TRUE)
+#   }
+# }
 
 .mergeBams =function(bams, output="merged.bam", prependSetId=FALSE){
   
