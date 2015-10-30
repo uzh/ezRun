@@ -1,6 +1,19 @@
 
 require(ReporteRs)
 
+ezImageFileLink = function(ezPlotter, file=NULL, mouseOverText=ezPlotter$mouseOverText,
+                           addPdfLink=TRUE, width=480, height=480, ...){
+  pngName = ezPlotter$plotPng(file=file, width=width, height=height, ...)
+  if (addPdfLink) {
+    pdfName = ezPlotter$plotPdf(file=sub(".png$", ".pdf", file), width=width, height=height, ...)
+    imgFilePot = pot(paste('<img src="', pngName, '" title="', mouseOverText, '"/>'),
+                     hyperlink = pdfName)
+  } else {
+    imgFilePot = pot(paste('<img src="', pngName, '" title="', mouseOverText, '"/>'))
+  }
+  return(as.html(imgFilePot))
+}
+
 cd = getwd()
 setwdNew("./scratch")
 

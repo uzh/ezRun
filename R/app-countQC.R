@@ -290,7 +290,7 @@ runNgsCountQC = function(dataset, htmlFile="00index.html", param=param, rawData=
     
     if (param$writeScatterPlots){
       writeQcScatterPlots(html, param, design, conds,
-                          rawData, signalCond, isPresentCond, types=types)
+                          rawData, signalCond, isPresentCond, types=types) ## TODOP: REPORT refactor to addQcScatterPlots
     }
 		
 		if (!is.null(rawData$countsStart) & !is.null(rawData$countsEnd)){

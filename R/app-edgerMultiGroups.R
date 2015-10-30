@@ -109,7 +109,7 @@ writeNgsMultiGroupReport = function(dataset, result, htmlFile, param=NA, rawData
   result$groupMeans = averageColumns(logSignal, by=param$grouping)
   
   if (param$writeScatterPlots){
-    writeTestScatterPlots(html, param, logSignal, result, seqAnno, types=types, colorRange=cr) 
+    writeTestScatterPlots(html, param, logSignal, result, seqAnno, types=types, colorRange=cr) ## TODOP: REPORT refactor to addTestScatterPlots
   }
   
   use = result$pValue < param$pValueHighlightThresh & abs(result$log2Ratio) > param$log2RatioHighlightThresh & result$usedInTest
