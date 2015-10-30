@@ -363,8 +363,3 @@ EzPlotterFastqScreen =
                 }
               )
   )
-
-
-
-## global variable for plots per row?
-
