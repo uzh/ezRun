@@ -156,8 +156,11 @@ collectBowtie2Output = function(param, dataset, countFiles){
 
 fastqscreenReport = function(dataset, fastqData=fastqData, param, htmlFile="00index.html", resultFiles, speciesPercentageTop){
   require(ReporteRs, warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
-  html = openBsdocReport(title=paste("FastQ Screen:", param$name), dataset=dataset)
-  html = addTitle(html, "Settings", level=2)
+  titles = list()
+  titles = append(titles, paste("FastQ Screen:", param$name))
+  html = openBsdocReport(title=titles[[length(titles)]], dataset=dataset)
+  titles = append(titles, "Settings")
+  html = addTitleWithAnchor(html, title=titles[[length(titles)]], 2)
   settings = c("Configuration File:"=param$confFile)
   settings = append(settings, c("RefSeq mRNA Reference:"=REFSEQ_mRNA_REF))
   settings = append(settings, c("FastqScreen Version:"=basename(dirname(FASTQSCREEN))))
@@ -167,8 +170,10 @@ fastqscreenReport = function(dataset, fastqData=fastqData, param, htmlFile="00in
   settings = append(settings, c("TopSpecies:"=param$nTopSpecies))
   settings = append(settings, c("Subset:"=param$subset))
   html = addFlexTable(html, ezFlexTable(as.data.frame(settings), add.rownames=TRUE))
-  html = addTitle(html, "rRNA-Check", level=2)
-  html = addTitle(html, "Per Dataset", level=3)
+  titles = append(titles, "rRNA-Check")
+  html = addTitleWithAnchor(html, titles[[length(titles)]], 2)
+  titles = append(titles, "Per Dataset")
+  html = addTitleWithAnchor(html, titles[[length(titles)]], 3)
   
   plotCmd = expression({
     par(mar=c(10.1, 4.1, 4.1, 2.1))
@@ -207,7 +212,8 @@ fastqscreenReport = function(dataset, fastqData=fastqData, param, htmlFile="00in
   }
   IMAGESperROW = 4
   if (ezIsSpecified(screenLinks)){
-    html = addTitle(html, "Per Sample", level=3)
+    titles = append(titles, "Per Sample")
+    html = addTitleWithAnchor(html, titles[[length(titles)]], 3)
     if(length(screenLinks) <= IMAGESperROW){
       html = addFlexTable(html, ezFlexTable(rbind(screenLinks)))
     } else {
@@ -218,7 +224,8 @@ fastqscreenReport = function(dataset, fastqData=fastqData, param, htmlFile="00in
     }
   }
   if (ezIsSpecified(detectedSpeciesLinks)){
-    html = addTitle(html, "Mapping to RefSeq mRNA", level=2)
+    titles = append(titles, "Mapping to RefSeq mRNA")
+    html = addTitleWithAnchor(html, titles[[length(titles)]], 2)
     if(length(detectedSpeciesLinks) <= IMAGESperROW){
       html = addFlexTable(html, ezFlexTable(rbind(detectedSpeciesLinks)))
     } else {
@@ -228,12 +235,14 @@ fastqscreenReport = function(dataset, fastqData=fastqData, param, htmlFile="00in
       }
     }
   }
-  html = addTitle(html, "Misc", level=2)
+  titles = append(titles, "Misc")
+  html = addTitleWithAnchor(html, titles[[length(titles)]], 2)
   txts = list.files(".",pattern="screen\\.txt")
   for (each in txts){
     html = addParagraph(html, pot(each, hyperlink = each))
   }
   ezSessionInfo()
   html = addParagraph(html, pot("sessionInfo.txt", hyperlink = "sessionInfo.txt"))
+  ezAddBootstrapMenu(html, lapply(titles, function(x){paste0("#", x)}))
   closeBsdocReport(doc=html, file=htmlFile)
 }
