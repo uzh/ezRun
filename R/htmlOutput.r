@@ -298,7 +298,7 @@ writeResultSummary = function(html, param, result, type){
 ##' @template roxygen-template
 ##' @examples
 ##' 1
-## NOTEP: type is currently an unused argument.
+## TODOP: type is currently an unused argument.
 writeCountResultSummary = function(html, param, result, type){
 
   ezWrite("<h2>Result Summary</h2>", con=html)
