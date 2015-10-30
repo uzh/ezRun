@@ -52,7 +52,7 @@ teqc = function(dataset, param=NULL){
   
   #Create MultiSampleReport:
   reportDirs = unlist(jobList)
-  reportDirs = paste("report_",gsub('\\.bam','',basename(reportDirs)),sep='')
+  reportDirs = paste0("report_",gsub('\\.bam', '', basename(reportDirs)))
   multiTEQCreport(singleReportDirs=reportDirs,
                     samplenames=samples,
                     projectName=param$name,
@@ -69,7 +69,7 @@ teqc = function(dataset, param=NULL){
   ezWrite("<h2>MultiSample-Report</h2>",con=html)
   writeTxtLinksToHtml('multiTEQCreport/index.html',con=html)
   ezWrite("<h2>Individual Reports</h2>",con=html)
-  writeTxtLinksToHtml(paste(reportDirs,'/index.html',sep=''),con=html)
+  writeTxtLinksToHtml(paste0(reportDirs, '/index.html'),con=html)
   ezWrite("<h2>Misc</h2>",con=html)
   writeTxtLinksToHtml('sessionInfo.txt',con=html)
   flush(html)
@@ -86,7 +86,7 @@ runTEQC = function(file,param){
                targetsName=basename(dirname(targetsfile)),
                referenceName='hg19',
                pairedend=param$paired,
-               destDir=paste("report_",gsub('\\.bam','',basename(file)),sep=''),
+               destDir=paste0("report_",gsub('\\.bam', '', basename(file))),
                reads=get.reads(readsfile,filetype="bam"),
                targets=get.targets(targetsfile, 
                                    skip=grep("^track", readLines(targetsfile, n=200))),

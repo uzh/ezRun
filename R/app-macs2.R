@@ -19,8 +19,8 @@ ezMethodMacs2 = function(input=NA, output=NA, param=NA){
                 "-c", input$getFullPaths(param, "Control"), 
                 "-B", opt,"-n", output$getNames())
     ezSystem(cmd)
-    bedgraphFileTreat = paste(output$getNames(), '_treat_pileup.bdg',sep='')
-    bedgraphFileControl = paste(output$getNames(), '_control_lambda.bdg',sep='')
+    bedgraphFileTreat = paste0(output$getNames(), '_treat_pileup.bdg')
+    bedgraphFileControl = paste0(output$getNames(), '_control_lambda.bdg')
     cmd = paste0(MACS2, "bdgcmp -t ", bedgraphFileTreat,
                 "-c", bedgraphFileControl, "-o", paste(output$getNames(),"_FE.bdg"), "-m FE")
     ezSystem(cmd)
@@ -63,7 +63,7 @@ EzAppMacs2 <-
   )
 
 annotatePeaks = function(input=NA,output=NA,param=NA) {
-  peakFile = paste(output$getNames(), '_peaks.xls',sep='')
+  peakFile = paste0(output$getNames(), '_peaks.xls')
   data = read.table(peakFile,sep='\t',check.names=F,header=T)
   if (nrow(data) == 0){
     return(NULL)
@@ -108,5 +108,5 @@ createBigWig = function(input=NA,output=NA,param=NA){
     aligns = readGAlignments(file=input$getFullPaths(param, "BAM"))
   }
   cov = coverage(aligns)
-  export(cov,paste(output$getNames(), ".bw", sep=''), format="bigWig")
+  export(cov,paste0(output$getNames(), ".bw"), format="bigWig")
 }

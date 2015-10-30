@@ -505,7 +505,7 @@ ezMethodBismark = function(input=NA, output=NA, param=NA){
   ezSystem(cmd)
   bamFileNameBismark = list.files('.',pattern='bam$')
   reportFileNameBismark = list.files('.',pattern='report.txt$')
-  ezSystem(paste('mv ', reportFileNameBismark, paste(names(bamFile),'.report.txt',sep='')))
+  ezSystem(paste('mv ', reportFileNameBismark, paste0(names(bamFile),'.report.txt')))
   cmd = paste(SAMTOOLS, "view -S -b ",bamFileNameBismark, " > bismark.bam")
   ezSystem(cmd)
   ezSortIndexBam("bismark.bam", basename(bamFile),

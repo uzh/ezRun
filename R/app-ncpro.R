@@ -47,7 +47,7 @@ ncpro = function(input, dataset, param=NULL){
   }
   buildName = param$ezRef["refBuildName"]
   trimmedFastqFiles = unlist(ezMclapply(jobList,.myFunc,param=param,mc.cores=as.numeric(param[['cores']]),mc.preschedule =FALSE, mc.set.seed=FALSE))
-  ncproConfigFile = list.files(paste(NCPRO_ANNOTATION_DIR,"/config-templates/",sep=''),pattern=paste('-', buildName,'-',sep=''),full.names=T)[1]
+  ncproConfigFile = list.files(paste0(NCPRO_ANNOTATION_DIR,"/config-templates/"), pattern=paste0('-', buildName,'-'), full.names=T)[1]
   if(is.na(ncproConfigFile))
     stop(paste0("No ncpro config-template for Genome-Build ", param[['refBuild']]," available."))
   jobDir = getwd()

@@ -179,7 +179,7 @@ fragmentSize = function(myBam, isPaired = F){
     maxQuantile=quantile(fragmentSize, 0.9)
     sample_fragmentSize = fragmentSize[which(fragmentSize>minQuantile & fragmentSize < maxQuantile)]
     system('echo sample_fragmentSize calculated, plotting... \n')
-    png(file=paste(names(myBam),"_fragmentSize.png",sep=''))
+    png(file=paste0(names(myBam),"_fragmentSize.png"))
     d = density(sample_fragmentSize)
     plot(d, main=names(myBam),xlab=paste0("Median of FragmentSize:",medianFS))
     polygon(d, col="red", border="black") 
@@ -200,7 +200,7 @@ MakeEnrichmentPlot = function(myBam, isPaired=F, estimatedFragmentSize = 200){
     seq.len = estimatedFragmentSize
     system (paste('echo SE data, defined FragmentSize:', seq.len, '\n'))
   }
-  png(file=paste(names(myBam), "_SingleEnrichmentPlot.png", sep=''))
+  png(file=paste0(names(myBam), "_SingleEnrichmentPlot.png"))
   data = enrichmentPlot(myBam, seq.len, cols = c("brown"), lwd = 4, main = names(myBam))
   dev.off()
   write.table(data[[1]], paste(names(myBam),'_EnrichedCoverage.txt', sep = ''),quote = F, row.names = F, sep = '\t')
@@ -221,7 +221,7 @@ MakeCpGDensityPlot = function(myBam, isPaired = F, build, estimatedFragmentSize 
       seq.len = estimatedFragmentSize
       system(paste('echo SE data, defined FragmentSize:', seq.len, '\n'))
     }
-    png(file=paste(names(myBam), "_cpgDensityPlot.png", sep=''))
+    png(file=paste0(names(myBam), "_cpgDensityPlot.png"))
     cpgDensityPlot(myBam, organism = get(bsgenome_table[2]), w.function = "none", seq.len,
                    cols = c("black"), xlim = c(0, 30), lwd = 2, main = names(myBam))
     dev.off()
@@ -254,7 +254,7 @@ CoverageVarFunction = function(myBam){
 StartPosTableFunction = function(myBam, maxX=20){
   system('echo Function StartPosTableFunction \n')
   startPosTable = table(table(paste(seqnames(myBam[[1]]), start(myBam[[1]]), strand(myBam[[1]]), sep='_')))
-  png(file=paste(names(myBam), "_StartPositionPlot.png", sep=''))
+  png(file=paste0(names(myBam), "_StartPositionPlot.png"))
   plot(x = as.numeric(names(startPosTable)),y = log2(startPosTable),type='l', ylab=c('Frequency (log2)'), xlab=c('Reads_per_Start_Position'), xlim=c(1,maxX), main=names(myBam), lwd=3)
   legend("topright", c(names(myBam)))
   dev.off()  
@@ -284,7 +284,7 @@ createTSSPlot = function(myBam, gff, flank, name, range=c(1,100)){
   require(GenomicRanges)
   require(Rsamtools)
   cov=coverage(myBam)
-  system(paste('echo ',names(myBam)[1],sep=''))
+  system(paste0('echo ',names(myBam)[1]))
   binMyBam(cov = cov, binLength = 500, sampleName = names(myBam))
   GffSummary = data.frame(
     Start = gff$start, 
@@ -325,7 +325,7 @@ createTSSPlot = function(myBam, gff, flank, name, range=c(1,100)){
   colnames(posDataCounts) = seq(-1*flank, flank-1, 1)
   require(gplots)
   MyCols = colorRampPalette(c('black','white'))(oldRange)
-  filename =paste(names(myBam), "_TSSPlot.png", sep='')
+  filename = paste0(names(myBam), "_TSSPlot.png")
   png(filename=filename, width=640, height=640)
   image(t(sqrt(posDataCounts[-c(1:2),]+1)), col=MyCols, axes=F)
   title(main=names(myBam), col.main="black",
@@ -334,7 +334,7 @@ createTSSPlot = function(myBam, gff, flank, name, range=c(1,100)){
         col.lab="black", cex.lab=1) 
   legend("topright",c(names(myBam)))
   axis(2, at=c(0,1)) 
-  axis(1, at=seq(0,1,0.25), labels=c(paste('-', flank, sep=''), paste('-',flank/2,sep=''), 0, flank/2,flank)) 
+  axis(1, at=seq(0,1,0.25), labels=c(paste0('-', flank), paste0('-',flank/2), 0, flank/2,flank)) 
   dev.off()
   system('echo Function createTSSPlot done \n')
 } 
@@ -349,7 +349,7 @@ binMyBam = function(cov, binLength, sampleName){
       bx = seq(0,rev(x)[1],binLength)
       result = binMeans(y,x=x,bx=bx)
       cat(i,'\n')
-      names(result) = paste(names(cov)[i],'_',bx[-length(bx)],sep='')
+      names(result) = paste0(names(cov)[i],'_',bx[-length(bx)])
       MyBins = c(MyBins,result)
     }
   } else {
@@ -375,8 +375,8 @@ createBigWig = function(aligns,name,...){
   require(IRanges)
   require(rtracklayer)
   cov = coverage(aligns)
-  export(cov,paste(name,".bw",sep=''), format="bigWig")
-  }
+  export(cov, paste0(name,".bw"), format="bigWig")
+}
 
 Create_ChIP_QCPlots_ind = function(file, param, maxX=20, gff=gff, name='', range=c(1,100)){
   isPaired = as.logical(param[['paired']])

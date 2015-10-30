@@ -11,8 +11,8 @@ edgerMultiGroupApp = function(inputDatasetFile=NA, output=NA, param=NA){
   param = fillWithDefaults(param)
   on.exit({
     if(!is.null(param$mail) && grepl('@',param$mail)){
-      text=paste('http://fgcz-gstore.uzh.ch/projects/',output[['Report [File]']],'/00index.html',sep='')
-      subject=paste("EdgeR ", sub("/.*", "", output[['Report [File]']]),' done.',sep='')
+      text=paste0('http://fgcz-gstore.uzh.ch/projects/',output[['Report [File]']],'/00index.html')
+      subject=paste0("EdgeR ", sub("/.*", "", output[['Report [File]']]),' done.')
       ezMail(text=text,subject=subject,to=param$mail)
     }
   })

@@ -158,7 +158,7 @@ plotReadCountToLibConc = function(dataset,colname){
       corResult = cor.test(dataset$'Read Count',dataset[[colname]],method = 'spearman')
       regressionResult = lm(dataset[[colname]]~dataset$'Read Count')
       label = sub(' \\[.*','',colname)
-      png(paste('ReadCount_',label,'.png',sep=''),500,500)
+      png(paste0('ReadCount_',label,'.png'),500,500)
       plot(dataset$'Read Count',dataset[[colname]],pch=c(18),cex=1.5, main=label,
            xlab='ReadCount in Mio',ylab=sub('\\[.*','',colname),xlim=c(0,max(dataset$'Read Count', na.rm=TRUE)*1.2), #min(dataset$'Read Count')*0.8
            ylim=c(min(dataset[[colname]], na.rm = TRUE) * 0.8, max(dataset[[colname]], na.rm=TRUE) * 1.2))

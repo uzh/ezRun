@@ -252,11 +252,11 @@ writeNgsTwoGroupReport = function(dataset, result, htmlFile, param=NA, rawData=N
       if(nrow(goResult) > param$maxNumberGroupsDisplayed) {
         goResult = goResult[1:param$maxNumberGroupsDisplayed,]
       }
-      revigoLinks[j] = paste('http://revigo.irb.hr/?inputGoList=',
+      revigoLinks[j] = paste0('http://revigo.irb.hr/?inputGoList=',
                              paste(goResult[,'GO.ID'],goResult[,'Pvalue'],
-                                   collapse='%0D%0A'),sep='')
+                                   collapse='%0D%0A'))
     }
-#     ezWrite(paste("<h3>ReViGO </h3>",sep=''), con=html)
+#     ezWrite(paste0("<h3>ReViGO </h3>"), con=html)
     doc = addParagraph(doc, "ReViGO", level=3)
     revigoResult = capture.output(writeTableToHtml(revigoLinks))          
     revigoResult = gsub("<td valign='middle' bgcolor='#ffffff'>","<td valign='middle' bgcolor='#ffffff'><a target='_blank' href='",revigoResult)
