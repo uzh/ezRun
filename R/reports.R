@@ -508,8 +508,8 @@ addTestScatterPlots = function(doc, param, x, result, seqAnno, types=NULL){
           ezScatter(x=2^refValues, y=2^x[, idx, drop=FALSE], isPresent=result$isPresent[, idx, drop=FALSE], types=types, lim=theRange, xlab=xlab)
         })
         doc = addParagraph(doc, ezImageFileLink(plotCmd, file=pngName,
-                                                width=min(ncol(as.matrix(refValues)), 6) * 480,
-                                                height=ceiling(ncol(as.matrix(refValues))/6) * 480))
+                                                width=min(ncol(as.matrix(x[, idx, drop=FALSE])), 6) * 480,
+                                                height=ceiling(ncol(as.matrix(x[, idx, drop=FALSE]))/6) * 480))
         if (ncol(result$groupMeans) == 2){
           otherGroup = setdiff(colnames(result$groupMeans), group)
           pngName = paste0(group, "-over-", otherGroup, "-scatter.png")
@@ -519,8 +519,8 @@ addTestScatterPlots = function(doc, param, x, result, seqAnno, types=NULL){
             ezScatter(x=2^refValues, y=2^x[, idx, drop=FALSE], isPresent=result$isPresent[, idx, drop=FALSE], types=types, lim=theRange, xlab=xlab)
           })
           doc = addParagraph(doc, ezImageFileLink(plotCmd, file=pngName,
-                                                  width=min(ncol(as.matrix(refValues)), 6) * 480,
-                                                  height=ceiling(ncol(as.matrix(refValues))/6) * 480))
+                                                  width=min(ncol(as.matrix(x[, idx, drop=FALSE])), 6) * 480,
+                                                  height=ceiling(ncol(as.matrix(x[, idx, drop=FALSE]))/6) * 480))
         }
       }
     }
