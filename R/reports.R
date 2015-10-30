@@ -26,23 +26,26 @@ ezFlexTable = function(x, header=FALSE, ...){
 # how to add help text? for each plot seperately or not?
 ##' @title Gets an image link as html
 ##' @description Gets an image link as html. Also plots and creates the image.
-##' @param ezPlotter an object of the class EzPlotter or inheriting from it.
+##' @param plotCmd an expression of plot commands.
 ##' @param file a character specifying the name of the image with a .png suffix.
+##' @param name a character specifying the name of the image together with \code{plotType}, if \code{file} is null.
+##' @param plotType a character specifying the name of the image together with \code{name}, if \code{file} is null.
 ##' @param mouseOverText a character specifying the text being displayed when mousing over the image.
 ##' @param addPdfLink a logical indicating whether to add a link on the image to a pdf version of itself.
 ##' @param width an integer specifying the width of each plot to create an image from.
 ##' @param height an integer specifying the height of each plot to create an image from.
-##' @template addargs-template
-##' @templateVar fun ezPlotter
+##' @param ppi an integer specifying points per inch.
+##' @param envir the environment to evaluate \code{plotCmd} in.
 ##' @template roxygen-template
-##' @seealso \code{\link{EzPlotter}}
 ##' @return Returns a character specifying a link to an image in html.
 ##' @examples
-##' imageLink = ezImageFileLink(EzPlotterIris$new())
-##' theDoc = bsdoc(title = 'My document')
-##' theDoc = addParagraph(theDoc, imageLink)
-##' writeDoc(theDoc, "example.html")
-ezImageFileLink3 = function(plotCmd, file=NULL, name="imagePlot", plotType="plot", mouseOverText="my mouse over",
+##' x = 1:10
+##' plotCmd = expression({
+##'   plot(x)
+##'   text(2,1, "my Text")
+##' })
+##' ezImageFileLink(plotCmd)
+ezImageFileLink = function(plotCmd, file=NULL, name="imagePlot", plotType="plot", mouseOverText="my mouse over",
                             addPdfLink=TRUE, width=480, height=480, ppi=72, envir=parent.frame()){
   if (is.null(file)){
     file = paste0(name, "-", plotType, ".png")
@@ -356,41 +359,50 @@ addQcScatterPlots = function(doc, param, design, conds, rawData, signalCond, isP
   } else {
     widthTypes = NULL
   }
-  if (nConds > 1 & nConds <=  param$allPairsMaxCondNumber){
-    plotter = EzPlotterAllPairScatter$new(x=signalCond)
-    defLink = ezImageFileLink(plotter, file="allPairs-scatter.png", isPresent=isPresentCond, types=types)
+  if (nConds > 1 & nConds <=  param$allPairsMaxCondNumber){   ## TODOP: adjust png width and height according to ezAllPairScatter
+    plotCmd = expression({
+      ezAllPairScatter(signalCond, isPresent=isPresentCond, types=types)
+    })
+    defLink = ezImageFileLink(plotCmd, file="allPairs-scatter.png")
     if (!is.null(gcTypes)){
-      plotter = EzPlotterAllPairScatter$new(x=signalCond)
-      gcLink = ezImageFileLink(plotter, file="allPairs-scatter-byGc.png", main="color by GC", isPresent=isPresentCond, types=gcTypes) 
+      plotCmd = expression({
+        ezAllPairScatter(signalCond, main="color by GC", isPresent=isPresentCond, types=gcTypes)
+      })
+      gcLink = ezImageFileLink(plotCmd, file="allPairs-scatter-byGc.png")
     }
     if (!is.null(widthTypes)){
-      plotter = EzPlotterAllPairScatter$new(x=signalCond)
-      widthLink = ezImageFileLink(plotter, file="allPairs-scatter-byWidth.png", main="color by width", isPresent=isPresentCond, types=widthTypes)
+      plotCmd = expression({
+        ezAllPairScatter(signalCond, main="color by width", isPresent=isPresentCond, types=widthTypes)
+      })
+      widthLink = ezImageFileLink(plotCmd, file="allPairs-scatter-byWidth.png")
     }
     doc = addFlexTable(doc, ezFlexTable(cbind(defLink, gcLink, widthLink)))
   }
   for (i in 1:min(4, ncol(design))){
     for (cond in unique(design[,i])){
       idx = which(cond == design[,i])
-      if (length(idx) > 1){
+      if (length(idx) > 1){               ## TODOP: adjust png width and height according to ezScatter
         idx = idx[order(samples[idx])] ## order alphabetically
         condName = paste(colnames(design)[i], cond)
         doc = addTitle(doc, condName, level=3)
         pngName = ezValidFilename(paste0(condName, "-scatter.png"))
-        plotter = EzPlotterScatter(y=signal[ ,idx])
-        doc = addParagraph(doc, ezImageFileLink(plotter, file=pngName, isPresent=isPresent[ ,idx], types=types,
-                                                lim=signalRange, xlab=paste("Avg of", cond), ylab=NULL))
+        plotCmd = expression({
+          ezScatter(y=signal[ ,idx], isPresent=isPresent[ ,idx], types=types, lim=signalRange, xlab=paste("Avg of", cond), ylab=NULL)
+        })
+        doc = addParagraph(doc, ezImageFileLink(plotCmd, file=pngName))
         if (!is.null(gcTypes)){
           pngName = ezValidFilename(paste0(condName, "-ByGcScatter.png"))
-          plotter = EzPlotterScatter(y=signal[ ,idx])
-          doc = addParagraph(doc, ezImageFileLink(plotter, file=pngName, isPresent=isPresent[ ,idx], types=gcTypes,
-                                                  lim=signalRange, xlab=paste("Avg of", cond), ylab=NULL))
+          plotCmd = expression({
+            ezScatter(y=signal[ ,idx], isPresent=isPresent[ ,idx], types=gcTypes, lim=signalRange, xlab=paste("Avg of", cond), ylab=NULL)
+          })
+          doc = addParagraph(doc, ezImageFileLink(plotCmd, file=pngName))
         }
         if (!is.null(widthTypes)){
           pngName = ezValidFilename(paste0(condName, "-ByWidthScatter.png"))
-          plotter = EzPlotterScatter(y=signal[ ,idx])
-          doc = addParagraph(doc, ezImageFileLink(plotter, file=pngName, isPresent=isPresent[ ,idx], types=widthTypes,
-                                                  lim=signalRange, xlab=paste("Avg of", cond), ylab=NULL))
+          plotCmd = expression({
+            ezScatter(y=signal[ ,idx], isPresent=isPresent[ ,idx], types=widthTypes, lim=signalRange, xlab=paste("Avg of", cond), ylab=NULL)
+          })
+          doc = addParagraph(doc, ezImageFileLink(plotCmd, file=pngName))
         }
       }
     }
@@ -422,43 +434,45 @@ addTestScatterPlots = function(doc, param, x, result, seqAnno, types=NULL){
   doc = addTitle(doc, "Scatter Plots", level=2)
   doc = addParagraph(doc, msg)
   doc = addTitle(doc, "Between-group Comparison", level=3)
+  
   links = character()
-  if (ncol(result$groupMeans) == 2 & !is.null(param$sampleGroup) & !is.null(param$refGroup)){
+  if (ncol(result$groupMeans) == 2 & !is.null(param$sampleGroup) & !is.null(param$refGroup)){  ## TODOP: adjust png width and height according to ezScatter
     sampleValues = 2^result$groupMeans[ , param$sampleGroup]
     refValues = 2^result$groupMeans[ , param$refGroup]
-    plotter = EzPlotterScatter$new(x=refValues, y=sampleValues)
-    links["scatter"] = ezImageFileLink(plotter, file=paste0(param$comparison, "-scatter.png"),
-                                  isPresent=result$usedInTest, types=types,
-                                  xlab=param$refGroup, ylab=param$sampleGroup)
-    plotter = EzPlotterVolcano$new(log2Ratio=result$log2Ratio, pValue=result$pValue)
-    links["volcano"] = ezImageFileLink(plotter, file=paste0(param$comparison, "-volcano.png"),
-                                  isPresent=result$usedInTest, types=types, main=param$comparison)
-    plotter = EzPlotterVolcano$new(log2Ratio=result$log2Ratio, pValue=result$fdr)
-    links["volcanoFdr"] = ezImageFileLink(plotter, file=paste0(param$comparison, "-FDR-volcano.png"),
-                                  isPresent=result$usedInTest, types=types, main=param$comparison, yType="FDR")
-  } else {
-    plotter = EzPlotterAllPairScatter$new(x=2^result$groupMeans)
-    links["allPair"] = ezImageFileLink(plotter, file=paste0(param$comparison, "-scatter.png"),
-                                     isPresent=result$usedInTest, types=types)
+    plotCmd = expression({
+      ezScatter(x=refValues, y=sampleValues, isPresent=result$usedInTest, types=types, xlab=param$refGroup, ylab=param$sampleGroup)
+    })
+    links["scatter"] = ezImageFileLink(plotCmd, file=paste0(param$comparison, "-scatter.png"))
+    plotCmd = expression({
+      ezVolcano(log2Ratio=result$log2Ratio, pValue=result$pValue, isPresent=result$usedInTest, types=types, main=param$comparison)
+    })
+    links["volcano"] = ezImageFileLink(plotCmd, file=paste0(param$comparison, "-volcano.png"), width=350, height=400)
+    plotCmd = expression({
+      ezVolcano(log2Ratio=result$log2Ratio, pValue=result$fdr, isPresent=result$usedInTest, types=types, main=param$comparison, yType="FDR")
+    })
+    links["volcanoFdr"] = ezImageFileLink(plotCmd, file=paste0(param$comparison, "-FDR-volcano.png"), width=350, height=400)
+  } else {          ## TODOP: adjust png width and height according to ezAllPairScatter
+    plotCmd = expression({
+      ezAllPairScatter(x=2^result$groupMeans, isPresent=result$usedInTest, types=types)
+    })
+    links["allPair"] = ezImageFileLink(plotCmd, file=paste0(param$comparison, "-scatter.png"))
   }
   
-  myBreaks = seq(0, 1, by=0.002)
-  links["pValueHist"] = paste0(param$comparison, "-pValueHist.png")
-  png(file=links["pValueHist"], height=400, width=800)
-  histUsed = hist(result$pValue[result$usedInTest], breaks=myBreaks, plot=FALSE)
-  histAbs = hist(result$pValue[!result$usedInTest], breaks=myBreaks, plot=FALSE)
-  xx = rbind(used=histUsed$counts, absent=histAbs$counts)
-  xx = shrinkToRange(xx, c(0, max(xx["used", ])))
-  #colnames(x) = histUsed$mids
-  barplot(xx, space=0, border=NA, col=c("blue", "darkorange"), 
-          xlab="p-value", ylab="counts", ylim=c(0, max(xx["used", ])),
-          main="p-value histogram")
-  abline(h=sum(result$usedInTest)/ncol(xx))
-  at = c(0.01, 0.1, 0.25, 0.5, 0.75, 1)
-  axis(1, at=at*ncol(xx), labels = at)
-  legend("top", c("used", "absent"), col=c("blue", "darkorange"), pch=20, cex=1)
-  links["pValueHist"] = as.html(pot(paste('<img src="', links["pValueHist"], '"/>')))
-  dev.off()
+  plotCmd = expression({
+    myBreaks = seq(0, 1, by=0.002)
+    histUsed = hist(result$pValue[result$usedInTest], breaks=myBreaks, plot=FALSE)
+    histAbs = hist(result$pValue[!result$usedInTest], breaks=myBreaks, plot=FALSE)
+    xx = rbind(used=histUsed$counts, absent=histAbs$counts)
+    xx = shrinkToRange(xx, c(0, max(xx["used", ])))
+    barplot(xx, space=0, border=NA, col=c("blue", "darkorange"), 
+            xlab="p-value", ylab="counts", ylim=c(0, max(xx["used", ])),
+            main="p-value histogram")
+    abline(h=sum(result$usedInTest)/ncol(xx))
+    at = c(0.01, 0.1, 0.25, 0.5, 0.75, 1)
+    axis(1, at=at*ncol(xx), labels = at)
+    legend("top", c("used", "absent"), col=c("blue", "darkorange"), pch=20, cex=1)
+  })
+  links["pValueHist"] = ezImageFileLink(plotCmd, file=paste0(param$comparison, "-pValueHist.png"), height=400, width=800)
   doc = addFlexTable(doc, ezFlexTable(rbind(links)))
   
   if (is.null(x)){
@@ -469,25 +483,28 @@ addTestScatterPlots = function(doc, param, x, result, seqAnno, types=NULL){
   if (!ezIsSpecified(param$batch)){ ## TODO: we no longer use pairing, we now use batch which is more general; however these plots only work if batch is a real pairing
     for (group in unique(c(param$refGroup, colnames(result$groupMeans)))){
       idx = which(group == param$grouping)
-      if (length(idx) > 1){
+      if (length(idx) > 1){            ## TODOP: adjust png width and height according to ezScatter
         doc = addTitle(doc, paste("Intra-group Comparison:", group), level=3)
         pngName = paste0(group, "-scatter.png")
         xlab = paste("Avg of", group)
-        refValue = result$groupMeans[ , group]
-        plotter = EzPlotterScatter$new(x=2^refValues, y=2^x[, idx, drop=FALSE])
-        doc = addParagraph(doc, ezImageFileLink(plotter, file=pngName, isPresent=result$isPresent[, idx, drop=FALSE],
-                                                types=types, lim=theRange, xlab=xlab))
+        refValues = result$groupMeans[ , group]
+        plotCmd = expression({
+          ezScatter(x=2^refValues, y=2^x[, idx, drop=FALSE], isPresent=result$isPresent[, idx, drop=FALSE], types=types, lim=theRange, xlab=xlab)
+        })
+        doc = addParagraph(doc, ezImageFileLink(plotCmd, file=pngName))
         if (ncol(result$groupMeans) == 2){
           otherGroup = setdiff(colnames(result$groupMeans), group)
           pngName = paste0(group, "-over-", otherGroup, "-scatter.png")
           xlab = paste("Avg of", otherGroup)
-          refValue = result$groupMeans[ , otherGroup]
-          doc = addParagraph(doc, ezImageFileLink(plotter, file=pngName, isPresent=result$isPresent[, idx, drop=FALSE],
-                                                  types=types, lim=theRange, xlab=xlab))
+          refValues = result$groupMeans[ , otherGroup]
+          plotCmd = expression({
+            ezScatter(x=2^refValues, y=2^x[, idx, drop=FALSE], isPresent=result$isPresent[, idx, drop=FALSE], types=types, lim=theRange, xlab=xlab)
+          })
+          doc = addParagraph(doc, ezImageFileLink(plotCmd, file=pngName))
         }
       }
     }
-  } else {
+  } else {            ## TODOP: adjust png width and height according to ezScatter
     doc = addTitle(doc, paste("Pairs:", param$sampleGroup, "over", param$refGroup), level=3)
     use = param$grouping %in% c(param$sampleGroup, param$refGroup)
     if (all(table(param$batch[use], param$grouping[use]) == 1)){
@@ -501,9 +518,10 @@ addTestScatterPlots = function(doc, param, x, result, seqAnno, types=NULL){
       samplePresent = avgPresent[ ,sampleGroups, drop=FALSE]
       refPresent = avgPresent[ , refGroups, drop=FALSE]
       pngName = paste0(param$sampleGroup, "-over-", param$refGroup, "-pairs.png")
-      plotter = EzPlotterScatter$new(x=2^refValues, y=2^sampleValues)
-      doc = addParagraph(doc, ezImageFileLink(plotter, file=pngName, isPresent=samplePresent | refPresent,
-                                              types=types, lim=theRange, xlab=colnames(refValues)))
+      plotCmd = expression({
+        ezScatter(x=2^refValues, y=2^sampleValues, isPresent=samplePresent | refPresent, types=types, lim=theRange, xlab=colnames(refValues))
+      })
+      doc = addParagraph(doc, ezImageFileLink(plotCmd, file=pngName))
     }
   }
 }
@@ -665,22 +683,4 @@ addGageTables = function(doc, param = NULL, gageResults = NULL) {
     table = addHeaderRow(table, cbind(paste("Heatmap Plot logRatio Signal for", i), paste(i, "significant pathways")))
     doc = addFlexTable(doc, table)
   }
-}
-
-
-
-
-
-
-ezImageFileLink = function(ezPlotter, file=NULL, mouseOverText=ezPlotter$mouseOverText,
-                           addPdfLink=TRUE, width=480, height=480, ...){
-  pngName = ezPlotter$plotPng(file=file, width=width, height=height, ...)
-  if (addPdfLink) {
-    pdfName = ezPlotter$plotPdf(file=sub(".png$", ".pdf", file), width=width, height=height, ...)
-    imgFilePot = pot(paste('<img src="', pngName, '" title="', mouseOverText, '"/>'),
-                     hyperlink = pdfName)
-  } else {
-    imgFilePot = pot(paste('<img src="', pngName, '" title="', mouseOverText, '"/>'))
-  }
-  return(as.html(imgFilePot))
 }

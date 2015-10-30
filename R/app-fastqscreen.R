@@ -175,12 +175,12 @@ fastqscreenReport = function(dataset, fastqData=fastqData, param, htmlFile="00in
     bplt = barplot(fastqData$MappingRate, las=2, ylim=c(0,100), ylab="MappedReads in %", main="MappingRate", col="blue")
     text(y=fastqData$MappingRate+5, x=bplt, labels=paste0(as.character(fastqData$MappingRate),"%"), cex=0.7, xpd=TRUE)
   })
-  mappingRateLink = ezImageFileLink3(plotCmd, file="MappingRate.png", width=600, height=450)
+  mappingRateLink = ezImageFileLink(plotCmd, file="MappingRate.png", width=600, height=450)
   plotCmd = expression({
     par(mar=c(10.1, 4.1, 4.1, 2.1))
     barplot(fastqData$Reads, las=2, ylab="#Reads", main="ProcessedReads", col="lightblue")
   })
-  readsLink = ezImageFileLink3(plotCmd, file="Reads.png", width=600, height=450)
+  readsLink = ezImageFileLink(plotCmd, file="Reads.png", width=600, height=450)
   html = addFlexTable(html, ezFlexTable(cbind(mappingRateLink, readsLink)))
   
   screenLinks = list()
@@ -189,7 +189,7 @@ fastqscreenReport = function(dataset, fastqData=fastqData, param, htmlFile="00in
       par(mar=c(10.1, 4.1, 4.1, 2.1))
       barplot(t(fastqData$CommonResults[[i]]), las=2, ylim=c(0,100), legend.text=T, ylab="MappedReads in %", main=rownames(dataset)[i])
     })
-    link = ezImageFileLink3(plotCmd, file=gsub('.txt', '.png', resultFiles[i], '.png'))
+    link = ezImageFileLink(plotCmd, file=gsub('.txt', '.png', resultFiles[i], '.png'))
     if (grepl("screen", resultFiles[i])){
       screenLinks = append(screenLinks, link)
     }
@@ -202,7 +202,7 @@ fastqscreenReport = function(dataset, fastqData=fastqData, param, htmlFile="00in
                       legend.text=T, ylab="MappedReads in %", main=rownames(dataset)[i])
       text(y=3, x=bplot, labels=paste0(t(speciesPercentageTop[[i]])[1,], '%'), xpd=TRUE)
     })
-    link = ezImageFileLink3(plotCmd, file=paste0("DetectedSpecies_", rownames(dataset)[i], ".png"))
+    link = ezImageFileLink(plotCmd, file=paste0("DetectedSpecies_", rownames(dataset)[i], ".png"))
     detectedSpeciesLinks = append(detectedSpeciesLinks, link)
   }
   IMAGESperROW = 4
