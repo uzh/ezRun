@@ -42,12 +42,20 @@ ezFlexTable = function(x, header=FALSE, ...){
 ##' theDoc = bsdoc(title = 'My document')
 ##' theDoc = addParagraph(theDoc, imageLink)
 ##' writeDoc(theDoc, "example.html")
-ezImageFileLink = function(ezPlotter, file=NULL, mouseOverText=ezPlotter$mouseOverText,
-                           addPdfLink=TRUE, width=480, height=480, ...){
-  pngName = ezPlotter$plotPng(file=file, width=width, height=height, ...)
+ezImageFileLink3 = function(plotCmd, file=NULL, name="imagePlot", plotType="plot", mouseOverText="my mouse over",
+                            addPdfLink=TRUE, width=480, height=480, ppi=72, envir=parent.frame()){
+  if (is.null(file)){
+    file = paste0(name, "-", plotType, ".png")
+  }
+  png(file, width=width, height=height)
+  eval(plotCmd, envir = envir)
+  dev.off()
   if (addPdfLink) {
-    pdfName = ezPlotter$plotPdf(file=sub(".png$", ".pdf", file), width=width, height=height, ...)
-    imgFilePot = pot(paste('<img src="', pngName, '" title="', mouseOverText, '"/>'),
+    pdfName = sub(".png$", ".pdf", file)
+    pdf(file=pdfName, width=width/ppi, height=height/ppi)
+    eval(plotCmd, envir=envir)
+    dev.off()
+    imgFilePot = pot(paste('<img src="', file, '" title="', mouseOverText, '"/>'),
                      hyperlink = pdfName)
   } else {
     imgFilePot = pot(paste('<img src="', pngName, '" title="', mouseOverText, '"/>'))
@@ -665,29 +673,15 @@ addGageTables = function(doc, param = NULL, gageResults = NULL) {
 
 
 
-
-
-
-
-ezImageFileLink3 = function(plotCmd, file=NULL, name="imagePlot", plotType="plot", mouseOverText="my mouse over",
-                            addPdfLink=TRUE, width=480, height=480, ppi=72, envir=parent.frame()){
-  if (is.null(file)){
-    file = paste0(name, "-", plotType, ".png")
-  }
-  png(file, width=width, height=height)
-  eval(plotCmd, envir = envir)
-  dev.off()
+ezImageFileLink = function(ezPlotter, file=NULL, mouseOverText=ezPlotter$mouseOverText,
+                           addPdfLink=TRUE, width=480, height=480, ...){
+  pngName = ezPlotter$plotPng(file=file, width=width, height=height, ...)
   if (addPdfLink) {
-    pdfName = sub(".png$", ".pdf", file)
-    pdf(file=pdfName, width=width/ppi, height=height/ppi)
-    eval(plotCmd, envir=envir)
-    dev.off()
-    imgFilePot = pot(paste('<img src="', file, '" title="', mouseOverText, '"/>'),
+    pdfName = ezPlotter$plotPdf(file=sub(".png$", ".pdf", file), width=width, height=height, ...)
+    imgFilePot = pot(paste('<img src="', pngName, '" title="', mouseOverText, '"/>'),
                      hyperlink = pdfName)
   } else {
     imgFilePot = pot(paste('<img src="', pngName, '" title="', mouseOverText, '"/>'))
   }
   return(as.html(imgFilePot))
 }
-
-
