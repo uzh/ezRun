@@ -5,9 +5,14 @@ Version: 1.0.1
 Date: 2015-10-12
 Author: Hubert Rehrauer
 Maintainer: sequencing <sequencing@fgcz.ethz.ch>
-Description: An environment that makes it easy to process data by using R packages and external tools.
+Description: An environment that makes it easy to process data by using R
+    packages and external tools.
 License: GPL-3
-Depends: parallel,Biostrings,stats,methods
-Imports: caTools,Hmisc,RCurl,XML,stringr,matrixStats,GenomicAlignments,GenomicFeatures,GenomicRanges,Rsamtools,ShortRead,Gviz,gplots
-Suggests: Rsge,GO.db,GOstats,gage,goseq,ChIPpeakAnno,DESeq2,Repitools,TEQC,VariantAnnotation,annotate,biomaRt,bitops,edgeR,htSeqTools,limma,pathview,reshape2,rtracklayer,vsn,testthat,knitr
+Depends:
+    parallel,Biostrings,stats,methods
+Imports:
+    caTools,Hmisc,RCurl,XML,stringr,matrixStats,GenomicAlignments,GenomicFeatures,GenomicRanges,Rsamtools,ShortRead,Gviz,gplots
+Suggests:
+    Rsge,GO.db,GOstats,gage,goseq,ChIPpeakAnno,DESeq2,Repitools,TEQC,VariantAnnotation,annotate,biomaRt,bitops,edgeR,htSeqTools,limma,pathview,reshape2,rtracklayer,vsn,testthat,knitr
 VignetteBuilder: knitr
+RoxygenNote: 5.0.0
