@@ -194,12 +194,12 @@ addTableToReport = function(x, doc, bgcolors=NULL, valign="middle", border=1, he
   if (is.null(bgcolors)){
     bgcolors = matrix("#ffffff", nrow=nrow(x), ncol=ncol(x))
   }
-  x = cbind(rownames(x),x)
+  ##x = cbind(rownames(x),x)
   bodyCells = cellProperties(border.width=border, vertical.align=valign)
   table = FlexTable(x, header.columns = FALSE, body.cell.props=bodyCells,
                     header.cell.props=cellProperties(border.width = border))
-  table = setFlexTableBackgroundColors(table, j=2:length(colnames(x)), colors=bgcolors)
-  table = addHeaderRow(table, c(head, colnames(x)[2:length(colnames(x))]))
+  table = setFlexTableBackgroundColors(table, j=1:ncol(x), colors=bgcolors)
+  table = addHeaderRow(table, colnames(x))
   doc = addFlexTable(doc, table)
 }
 
