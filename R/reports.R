@@ -239,27 +239,26 @@ addTableToReportWhite = function(x, doc, bgcolors=NULL, valign="middle", border=
 ##' @seealso \code{\link[ReporteRs]{addFlexTable}}
 addCountResultSummary = function(doc, param, result){
   doc = addTitle(doc, "Result Summary", level=2)
-  settings = ezFrame(Value=character(0))
-  settings["Analysis:", "Value"] = result$analysis
-  settings["Feature level:", "Value"] = result$featureLevel
-  settings["Data Column Used:", "Value"] = result$countName
-  settings["Method:", "Value"] = result$method
+  settings = c("Analysis:"=result$analysis)
+  settings = append(settings, c("Feature level:"=result$featureLevel))
+  settings = append(settings, c("Data Column Used:"=result$countName))
+  settings = append(settings, c("Method:"=result$method))
   if (ezIsSpecified(param$batch)){
-    settings["Statistical Model:", "Value"] = "used provided second factor"
+    settings = append(settings, c("Statistical Model:"="used provided second factor"))
   }
-  settings["Comparison:", "Value"] = param$comparison
+  settings = append(settings, c("Comparison:"=param$comparison))
   if (!is.null(param$normMethod)){
-    settings["Normalization:", "Value"] = param$normMethod
+    settings = append(settings, c("Normalization:"=param$normMethod))
   }
-  settings["Number of features:", "Value"] = length(result$pValue)
+  settings = append(settings, c("Number of features:"=length(result$pValue)))
   if (!is.null(result$isPresentProbe)){
-    settings["Number of features with counts above threshold:", "Value"] = sum(result$isPresentProbe)
+    settings = append(settings, c("Number of features with counts above threshold:"=sum(result$isPresentProbe)))
   }
   if (param$useSigThresh){
-    settings["Log2 signal threshold:", "Value"] = signif(log2(param$sigThresh), digits=4)
-    settings["Linear signal threshold:", "Value"] = signif(param$sigThresh, digits=4)
+    settings = append(settings, c("Log2 signal threshold:"=signif(log2(param$sigThresh), digits=4)))
+    settings = append(settings, c("Linear signal threshold:"=signif(param$sigThresh, digits=4)))
   }
-  doc = addFlexTable(doc, ezFlexTable(settings, add.rownames=TRUE))
+  doc = addFlexTable(doc, ezFlexTable(as.data.frame(settings), add.rownames=TRUE))
 }
 
 ##' @title Adds a result file
