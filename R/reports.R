@@ -565,7 +565,7 @@ addGOClusterResult = function(doc, param, clusterResult){
     }
   }
   addTableToReport(tables, doc, border=2,
-                   bgcolors=matrix(gsub("FF$", "", clusterResult$clusterColors), nrow=clusterResult$nClusters, ncol=1))
+                   bgcolors=matrix(gsub("FF$", "", clusterResult$clusterColors), nrow=clusterResult$nClusters, ncol=ncol(tables)))
 }
 
 
