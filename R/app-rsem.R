@@ -116,7 +116,7 @@ EzAppRSEM <-
 ##' }
 getRSEMReference = function(param){
   
-  if (ezIsSpecified(param$trinityFasta)){
+  if (ezIsSpecified(param$trinityFasta) || ezIsSpecified(param$transcriptFasta)){
     refBase = file.path(getwd(), "RSEMIndex/transcripts") #paste0(file_path_sans_ext(param$trinityFasta), "_RSEMIndex/transcripts")
   } else {
     refBase = ifelse(param$ezRef["refIndex"] == "", 
@@ -156,11 +156,16 @@ getRSEMReference = function(param){
     cmd = paste(prepareReference, "--bowtie", "-q", "--bowtie-path", BOWTIE_DIR, "--transcript-to-gene-map", mapFile, param$trinityFasta, "transcripts")
     ezSystem(cmd)    
   } else {
-    cmd = paste(prepareReference, "--bowtie", "--gtf", param$ezRef["refFeatureFile"], 
-                "--bowtie-path", BOWTIE_DIR, param$ezRef["refFastaFile"],
-                "transcripts")
-    ezSystem(cmd)
-    ezSystem(paste("ln -s", param$ezRef["refFeatureFile"], "."))
+    if (ezIsSpecified(param$transcriptFasta)){
+      cmd = paste(prepareReference, "--bowtie", "-q", "--bowtie-path", BOWTIE_DIR, param$transcriptFasta, "transcripts")
+      ezSystem(cmd)    
+    } else{
+      cmd = paste(prepareReference, "--bowtie", "--gtf", param$ezRef["refFeatureFile"], 
+                  "--bowtie-path", BOWTIE_DIR, param$ezRef["refFastaFile"],
+                  "transcripts")
+      ezSystem(cmd)
+      ezSystem(paste("ln -s", param$ezRef["refFeatureFile"], "."))
+    }
   }
   ezWriteElapsed(job, "done")
   return(refBase)
