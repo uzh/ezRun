@@ -20,8 +20,11 @@
 ezFlexTable = function(x, body.cell.props = cellProperties(border.width = 0),
                        header.cell.props = cellProperties(border.width = 0),
                        header.columns = FALSE,  ...){
+  if (!is.data.frame(x) & !is.matrix(x)){
+    x = ezFrame(x)
+  }
   FlexTable(x, body.cell.props = body.cell.props,
-            header.cell.props = header.columns,
+            header.cell.props = header.cell.props,
             header.columns = header.columns, ...)
 }
 
@@ -197,7 +200,6 @@ ezAddTable = function(doc, x, bgcolors=NULL, valign="middle", border=1, head="")
   table = FlexTable(x, header.columns = FALSE, body.cell.props=bodyCells,
                     header.cell.props=cellProperties(border.width = border))
   if (!is.null(bgcolors)){
-    bgcolors = matrix("#ffffff", nrow=nrow(x), ncol=ncol(x))
     table = setFlexTableBackgroundColors(table, j=1:ncol(x), colors=bgcolors)
   }
   table = addHeaderRow(table, colnames(x))
@@ -243,7 +245,10 @@ addTableToReportWhite = function(x, bgcolors=NULL, valign="middle", border=1, he
 ##' @seealso \code{\link[ReporteRs]{addFlexTable}}
 addCountResultSummary = function(doc, param, result){
   doc = addTitle(doc, "Result Summary", level=2)
-  settings = c("Analysis:"=result$analysis)
+  ## TODO: do not use append here, use
+  settings = character()
+  settings["Analysis"] = result$analysis
+  settings["Genome Build"] = param$ezRef@refBuild
   settings = append(settings, c("Feature level:"=result$featureLevel))
   settings = append(settings, c("Data Column Used:"=result$countName))
   settings = append(settings, c("Method:"=result$method))
@@ -262,7 +267,22 @@ addCountResultSummary = function(doc, param, result){
     settings = append(settings, c("Log2 signal threshold:"=signif(log2(param$sigThresh), digits=4)))
     settings = append(settings, c("Linear signal threshold:"=signif(param$sigThresh, digits=4)))
   }
-  doc = addFlexTable(doc, ezFlexTable(as.data.frame(settings), add.rownames=TRUE))
+  doc = addFlexTable(doc, ezFlexTable(settings, add.rownames=TRUE))
+}
+
+
+addSignificantCounts = function(doc, result, pThresh=c(0.1, 0.05, 1/10^(2:5))){
+
+    sigTable = ezFlexTable(getSignificantCountsTable(result, pThresh=pThresh), header.columns = TRUE, add.rownames = TRUE,
+                           body.cell.props=cellProperties(border.width=1, vertical.align="top"),
+                           header.cell.props=cellProperties(border.width = 1))
+    sigFcTable = ezFlexTable(getSignificantFoldChangeCountsTable(result, pThresh=pThresh), header.columns = TRUE, add.rownames=TRUE,
+                             body.cell.props=cellProperties(border.width=1, vertical.align="top"),
+                             header.cell.props=cellProperties(border.width = 1))
+    doc = addTitle(doc, "Significant Counts", level=3)
+    tbl = ezFlexTable(cbind(as.html(sigTable), as.html(sigFcTable)), header.columns = FALSE)
+    doc = addFlexTable(doc, tbl)
+    return(doc)
 }
 
 ##' @title Adds a result file
@@ -556,7 +576,20 @@ addTestScatterPlots = function(doc, param, x, result, seqAnno, types=NULL){
 #######################################################################################################################################
 
 
-addGOClusterResult = function(doc, param, clusterResult){
+# addGOClusterResult = function(doc, param, clusterResult){
+#   ontologies = names(clusterResult$GO)
+#   tables = ezMatrix("", rows=paste("Cluster", 1:clusterResult$nClusters), cols=ontologies)
+#   for (onto in ontologies){
+#     for (i in 1:clusterResult$nClusters){
+#       x = clusterResult$GO[[onto]][[i]]
+#       tables[i, onto] = goResultToHtmlTable(x, param$pValThreshFisher, param$minCountFisher, onto=onto);
+#     }
+#   }
+#   addTableToReport(tables, doc, border=2,
+#                    bgcolors=matrix(gsub("FF$", "", clusterResult$clusterColors), nrow=clusterResult$nClusters, ncol=ncol(tables)))
+# }
+
+goClusterTable = function(param, clusterResult){
   ontologies = names(clusterResult$GO)
   tables = ezMatrix("", rows=paste("Cluster", 1:clusterResult$nClusters), cols=ontologies)
   for (onto in ontologies){
@@ -565,8 +598,61 @@ addGOClusterResult = function(doc, param, clusterResult){
       tables[i, onto] = goResultToHtmlTable(x, param$pValThreshFisher, param$minCountFisher, onto=onto);
     }
   }
-  addTableToReport(tables, doc, border=2,
-                   bgcolors=matrix(gsub("FF$", "", clusterResult$clusterColors), nrow=clusterResult$nClusters, ncol=ncol(tables)))
+  ft = ezFlexTable(tables, body.cell.props=cellProperties(border.width=2, vertical.align="top"),
+              header.cell.props=cellProperties(border.width = 2), header.columns = TRUE)
+  bgColors = rep(gsub("FF$", "", clusterResult$clusterColors), each=ncol(tables))
+  ft = setFlexTableBackgroundColors(ft, colors=bgColors)
+  return(ft)
+}
+
+
+addGoUpDownResult = function(doc, param, goResult){
+  
+  udt = goUpDownTables(param, goResult)
+  
+  doc = addTitle(doc, "GO Enrichment Analysis", level=3)
+  doc = addParagraph(doc, "Red GO categories are overrepresented among the significantly upregulated genes")
+  doc = addParagraph(doc, "Blue GO categories are overrepresented among the significantly downregulated genes")
+  doc = addParagraph(doc, "Black GO categories are overrepresented among all signifcantly regulated genes")
+  doc = addParagraph(doc, paste("Maximum number of terms displayed:", param$maxNumberGroupsDisplayed))
+  doc = addFlexTable(doc, udt$flexTable)
+  
+  if (param$doZip){
+    addTxtLinksToReport(udt$txtFiles, mime="application/zip", doc=doc)
+  } else {
+    addTxtLinksToReport(udt$txtFiles, mime="application/txt", doc=doc)
+  }  
+  return(doc)
+}
+
+goUpDownTables = function(param, goResult){
+  tables = ezMatrix("", rows="Cats", cols=names(goResult))
+  txtFiles = character()
+  for (onto in names(goResult)){
+    x = goResult[[onto]]
+    tables[1,onto] = goResultToHtmlTable2(x, param$pValThreshFisher, 
+                                          param$minCountFisher, onto=onto, maxNumberOfTerms=param$maxNumberGroupsDisplayed)
+    for (sub in names(x)){ #c("enrichUp", "enrichDown", "enrichBoth")){
+      xSub = x[[sub]]
+      if (is.data.frame(xSub)){
+        name = paste0(onto, "-", param$comparison, "-", sub)
+        if (!is.null(xSub$Pvalue)){
+          xSub = xSub[order(xSub$Pvalue), ]
+          xSub = cbind("GO ID"=rownames(xSub), xSub)
+        }
+        txtFile = ezValidFilename(paste0(name, ".txt"), replace="-")
+        ezWrite.table(xSub, file=txtFile, row.names=FALSE)
+        if (param$doZip){
+          txtFiles[name] = zipFile(txtFile)
+        } else {
+          txtFiles[name] = txtFile
+        }
+      }
+    }
+  }
+  ft = ezFlexTable(tables, body.cell.props=cellProperties(border.width=2, vertical.align="top"),
+              header.cell.props=cellProperties(border.width = 2), header.columns = TRUE)
+  return(list(flexTable=ft, txtFiles=txtFiles))
 }
 
 

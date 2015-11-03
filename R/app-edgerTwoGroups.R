@@ -159,8 +159,8 @@ writeNgsTwoGroupReport = function(dataset, result, htmlFile, param=NA, rawData=N
   seqAnno = rawData$seqAnno
   doc = openBsdocReport(title=paste("Analysis:", param$name), dataset=dataset)
   
-  addCountResultSummary(doc, param, result)
-#   writeResultCounts(html, param, result) ## TODO: update/repair function
+  doc = addCountResultSummary(doc, param, result)
+  doc = addSignificantCounts(doc, result) ## TODO: update/repair function
   resultFile = addResultFile(doc, param, result, rawData)
   ezWrite.table(result$sf, file="scalingfactors.txt", head="Name", digits=4)
   
@@ -222,24 +222,23 @@ writeNgsTwoGroupReport = function(dataset, result, htmlFile, param=NA, rawData=N
 #     ezWrite("</td></tr></table>", con=html)
     clusterLink = as.html(pot(paste0('<img src="', clusterPng, '"/>')))
     if (!is.null(clusterResult$GO)){
-      goLink = list()
-      goLink[[1]] = paste("Background color corresponds to the color of the feature cluster in the heatmap plot.")
-      goLink[[2]] = addGOClusterResult(doc, param, clusterResult)
+      goLink = as.html(ezFlexTable(c("Background color corresponds to the row colors in the heatmap plot.",
+                 as.html(goClusterTable(param, clusterResult)))))
+      #goLink[[2]] = addGOClusterResult(doc, param, clusterResult)
     } else {
-      goLink = paste("No information available")
+      goLink = as.html(pot("No information available"))
     }
     if (!is.null(clusterResult$Kegg)){
       ########## TODO: addKeggClusterResult()
     }
-    tbl = ezFlexTable(cbind(clusterLink, goLink), header = TRUE)
-    tbl = addHeaderRow(tbl, cbind("Cluster Plot", "GO categories of feature clusters"))
+    tbl = ezFlexTable(ezFrame("Cluster Plot"=clusterLink, "GO categories of feature clusters"=goLink), header.columns = TRUE)
     doc = addFlexTable(doc, tbl)
   }
   ## only do GO if we have enough genes
   if (doGo(param, seqAnno)){
     goResult = twoGroupsGO(param, result, seqAnno, normalizedAvgSignal=rowMeans(result$groupMeans), method=param$goseqMethod)
 #     writeGOTables(html, param, goResult)
-    addGOTables(doc, param, goResult)
+    doc = addGoUpDownResult(doc, param, goResult)
     goFiles = list.files('.',pattern='enrich.*txt')
     keepCols = c('GO.ID','Pvalue')
     revigoLinks = matrix(nrow=3,ncol=3)
@@ -262,7 +261,7 @@ writeNgsTwoGroupReport = function(dataset, result, htmlFile, param=NA, rawData=N
     revigoResult = gsub("<td valign='middle' bgcolor='#ffffff'>","<td valign='middle' bgcolor='#ffffff'><a target='_blank' href='",revigoResult)
     revigoResult = gsub("</td>","' type='text/plain'>Link2ReViGo</a></td>",revigoResult)
 #     ezWrite(revigoResult, con=html)
-    doc = addParagraph(doc, pot(revigoResult))
+    doc = addParagraph(doc, pot(paste(revigoResult, collapse="\n")))
   }
   
   ## Run Gage

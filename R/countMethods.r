@@ -56,7 +56,6 @@
     bamFile = input$"BAM"
     paired = "no"
   } else {
-    stopifnot(param$pairedMode == "paired")
     ## currently only support for full paired!!!!
     maxMem = "1000000000" ## sort with 10GB RAM
     sampleName = paste0("mySample",Sys.getpid())

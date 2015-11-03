@@ -458,20 +458,10 @@ buildScanBamParam = function(param, bamFile){
   sh = scanBamHeader(bamFile)
   seqLengths = sh[[1]]$targets
   bamParam = ScanBamParam(tag=c( "NH", "IH", "AS"),
-                          what=c("rname", "pos", "flag", "qwidth", "strand", "qname"))
-  if (param$paired){
-    if (param$pairedMode == "first"){
-      bamParam = ScanBamParam(tag=c(bamTag(bamParam), "SM"), what=c(bamWhat(bamParam), "isize"),
-                              flag=scanBamFlag(isFirstMateRead = TRUE, isSecondMateRead = FALSE,
-                                               isUnmappedQuery=param$readUnmapped))
-    }
-    if (param$pairedMode == "second"){
-      bamParam = ScanBamParam(tag=c(bamTag(bamParam), "SM"), what=c(bamWhat(bamParam), "isize"),
-                              flag=scanBamFlag(isFirstMateRead = FALSE, isSecondMateRead = TRUE,
-                                               isUnmappedQuery=param$readUnmapped))	
-    }
-  }
-  if (!is.null(param$subsetGenome) && param$subsetGenome){ ## TODO fix this
+                          what=c("rname", "pos", "flag", "qwidth", "strand", "qname"),
+                          isUnmappedQuery=param$readUnmapped)
+
+    if (!is.null(param$subsetGenome) && param$subsetGenome){ ## TODO fix this
     message("using only subset of genome region!")
     useRanges = GRanges(seqnames=names(seqLengths), ranges=IRanges(start=rep(1, length(seqLengths)), end=round(seqLengths / 20)))
     bamParam = ScanBamParam(tag=bamTag(bamParam),

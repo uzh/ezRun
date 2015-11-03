@@ -53,7 +53,6 @@ runGfold	logical	TRUE	should gold be run
 bgExpression	numeric	5	expression baseline value that is added before heatmap plots
 allPairsMaxCondNumber	integer	10	
 paired	logical	FALSE	if data should be analysed as paired-end data
-pairedMode	character	paired	if there is paired data, should we use the "first", "second" or only the "paired" reads
 keepUnpaired	character	both	if unpaired alignments of paired-end reads should be kept
 minSignal	integer	1	numbers below that value will be given random small numbers
 # read handling

@@ -307,7 +307,7 @@ goResultToHtmlTable = function(x, pThreshGo, minCount, onto=NA, maxNumberOfTerms
     rows = paste(paste("<tr>", terms, "</tr>"), collapse="\n")
     table = paste("<table border='1'><tr><th>Term</th><th>p</th><th>N</th></tr>", rows, "</table>")
   } else {
-    table = ""
+    table = " "
   }
   
   return(table)

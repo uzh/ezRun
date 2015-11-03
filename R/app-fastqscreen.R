@@ -135,6 +135,7 @@ collectBowtie2Output = function(param, dataset, countFiles){
     multipleSpeciesHits = sort(table(tapply(multipleSpeciesHitsPerRead$species,by,unique)),decreasing = T)
     
     topSpeciesUniq = uniqSpeciesHits[1:param$nTopSpecies]
+    multipleSpeciesHits[setdiff(names(topSpeciesUniq), names(multipleSpeciesHits))] = 0
     topSpeciesMultiple = multipleSpeciesHits[names(topSpeciesUniq)]
     
     if(param$nReads > 0){
@@ -142,7 +143,7 @@ collectBowtie2Output = function(param, dataset, countFiles){
     } else {
       totalCount = dataset[nm, 'Read Count']
     }
-    taxIds = names(topSpeciesMultiple)
+    taxIds = names(topSpeciesUniq)
     taxNames = tax2name[taxIds, 'Name']
     hasNoName = is.na(taxNames)
     taxNames[hasNoName] = taxIds[hasNoName]

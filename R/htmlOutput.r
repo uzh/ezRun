@@ -217,64 +217,6 @@ writeTableToHtml = function(x, con=stdout(), bgcolors=matrix("#ffffff", nrow=nro
 }
 
 
-##' @title Writes a summary of statistical tests
-##' @description Writes a summary of statistical tests to an html file.
-##' @param html a connection to an html file.
-##' @param param a list of parameters to influence the output:
-##' \itemize{
-##'  \item{comparison}{ which comparison was used.}
-##'  \item{nativeCdf}{ the chip type.}
-##'  \item{cdfName}{ the name of the CDF that was used.}
-##'  \item{AffyPreprocessing}{ the preprocessing algorithm.}
-##'  \item{AgilentSignalColumn}{ which data was used.}
-##'  \item{normMethod}{ the normalization method.}
-##'  \item{runGO}{ a logical indicating whether the GO analysis ran or not.}
-##'  \item{runMetaCore}{ }
-##'  \item{sigThresh}{ the threshold...}
-##'  \item{useSigThresh}{ ...and whether it should be used.}
-##' }
-##' @param result
-##' \itemize{
-##'  \item{analysis}{ which analysis was used.}
-##'  \item{method}{ which method was used.}
-##'  \item{usedInTest}{ counts the number of probes.}
-##'  \item{isPresentProbe}{ counts the number of probes with present signals.}
-##' }
-##' @param type a character vector .........
-##' @template roxygen-template
-##' @examples
-##' 1
-## TODOP: fill out and update all items. function not used currently.
-writeResultSummary = function(html, param, result, type){
-
-  ezWrite("<h2>Result Summary</h2>", con=html)
-
-	ezWrite("<table border='0'>", con=html)
-  ezWrite("<tr><td>Analysis:</td><td>", result$analysis, "</td></tr>", con=html)
-  ezWrite("<tr><td>Method:</td><td>", result$method, "</td></tr>", con=html)
-  ezWrite("<tr><td>Comparison:</td><td>", param$comparison, "</td></tr>", con=html)
-  if (!is.na(pmatch("Affymetrix", type))){
-	  ezWrite("<tr><td>Chip-type:</td><td>", param$nativeCdf, "</td></tr>", con=html)
-    ezWrite("<tr><td>CDF used:</td><td>", param$cdfName, "</td></tr>", con=html)
-    ezWrite("<tr><td>Preprocessing algorithm:</td><td>", param$AffyPreprocessing, "</td></tr>", con=html)
-  }
-  if (!is.na(pmatch("Agilent", type))){
-	  ezWrite("<tr><td>Chip-type:</td><td>", param$nativeCdf, "</td></tr>", con=html)
-    ezWrite("<tr><td>Data used:</td><td>", param$AgilentSignalColumn, "</td></tr>", con=html)
-  }
-  ezWrite("<tr><td>Normalization:</td><td>", param$normMethod, "</td></tr>", con=html)
-  ezWrite("<tr><td>Number of probes:</td><td>", length(result$usedInTest), "</td></tr>", con=html)
-  ezWrite("<tr><td>Number of probes with present signals:</td><td>", sum(result$isPresentProbe), "</td></tr>", con=html)
-  ezWrite("<tr><td>Run GO analysis:</td><td>", param$runGO, "</td></tr>", con=html)
-  ezWrite("<tr><td>Run MetaCore upload:</td><td>", param$runMetaCore, "</td></tr>", con=html)
-
-  if (param$useSigThresh){
-     ezWrite("<tr><td>Log2 signal threshold:</td><td>", signif(log2(param$sigThresh), digits=4), "</td></tr>", con=html)
-     ezWrite("<tr><td>Linear signal threshold:</td><td>", signif(param$sigThresh, digits=4), "</td></tr>", con=html)
-  }
-  ezWrite("</table>", con=html)
-}
-
 ##' @title Writes a count result summary
 ##' @description Writes a count result summary to an html file.
 ##' @param html a connection to an html file.
@@ -328,8 +270,6 @@ writeCountResultSummary = function(html, param, result, type){
 }
 
 
-## TODO: the gene counts were not consistent with the gene level result
-## --> disabled
 ##' @title 1
 ##' @description 1
 ##' @param html a connection to an html file.
@@ -353,16 +293,6 @@ writeResultCounts = function(html, param, result, geneIds=NULL, pThresh=c(0.1, 0
   writeTableToHtml(sigFcTable, con=html)
   ezWrite("</td></tr></table>", con=html)
 
-	if (!is.null(geneIds)){
-		sigGeneTable = getSignificantCountsTable(result, pThresh=pThresh, genes=geneIds)
-		sigGeneFcTable = getSignificantFoldChangeCountsTable(result, pThresh=pThresh, genes=geneIds)
-	  ezWrite("<p>Gene counts by significance and fold-change</p>", con=html)
-	  ezWrite("<table border=0><tr><td>", con=html)
-	  writeTableToHtml(sigGeneTable, con=html)
-	  ezWrite("</td><td>", con=html)
-	  writeTableToHtml(sigGeneFcTable, con=html)
-	  ezWrite("</td></tr></table>", con=html)
-	}	
 }
 
 ##' @describeIn writeResultCounts

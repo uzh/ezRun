@@ -46,7 +46,6 @@ ezMethodFastQC = function(input=NA, output=NA, param=NA, htmlFile="00index.html"
             "Per sequence quality scores"="per_sequence_quality.png",
             "Per tile sequence quality"="per_tile_quality.png",
             "Per base sequence content"="per_base_sequence_content.png",
-            "Per base GC content"="per_base_gc_content.png",
             "Per sequence GC content"="per_sequence_gc_content.png",
             "Per base N content"="per_base_n_content.png",
             "Sequence Length Distribution"="sequence_length_distribution.png",
@@ -57,8 +56,11 @@ ezMethodFastQC = function(input=NA, output=NA, param=NA, htmlFile="00index.html"
   for (i in 1:length(plots)){
     plotHtml = openBsdocReport(title=paste("FASTQC:", plotPages[i]))
     png = paste0("<img src=", reportDir, "/Images/", plots[i], ">")
-    tbl = ezMatrix(png, rows=names(files), cols=names(plots)[i])
-    plotHtml = addFlexTable(plotHtml, ezFlexTable(tbl))
+    tbl = ezFlexTable(ezMatrix(png, rows=names(files), cols=names(plots)[i]), 
+                      header.columns = TRUE, add.rownames=TRUE, 
+                      body.cell.props=cellProperties(border.width=1, vertical.align="middle"),
+                      header.cell.props=cellProperties(border.width = 1))
+    plotHtml = addFlexTable(plotHtml, tbl)
     ezAddBootstrapMenu(plotHtml)
     closeBsdocReport(plotHtml, plotPages[i])
   }
@@ -97,7 +99,9 @@ ezMethodFastQC = function(input=NA, output=NA, param=NA, htmlFile="00index.html"
     img = paste0(reportDir[i], 	"/Icons/", statusToPng[smy[[1]]])
     tbl[i, ] = paste0("<a href=", href, "><img src=", img, "></a>")
   }
-  html = addFlexTable(html, ezFlexTable(tbl))
+  html = addFlexTable(html, ezFlexTable(tbl, header.columns = TRUE, add.rownames=TRUE, 
+                                        body.cell.props=cellProperties(border.width=1, vertical.align="middle"),
+                                        header.cell.props=cellProperties(border.width = 1)))
   
   titles = append(titles, "Per Base Read Quality")
   html = addTitleWithAnchor(html, titles[[length(titles)]], 2)
@@ -110,6 +114,7 @@ ezMethodFastQC = function(input=NA, output=NA, param=NA, htmlFile="00index.html"
   }
   html = addFlexTable(html, ezFlexTable(pngMatrix))
   if(nrow(dataset) > 1){
+    ## TODOP: refactor this plotting function too
     plotReadCountToLibConc(dataset,colname='LibConc_qPCR [Characteristic]')
     plotReadCountToLibConc(dataset,colname='LibConc_100_800bp [Characteristic]')
     pngLibCons = list.files(".",pattern="ReadCount_.*.png")
@@ -117,9 +122,9 @@ ezMethodFastQC = function(input=NA, output=NA, param=NA, htmlFile="00index.html"
       titles = append(titles, "Correlation between Library concentration measurements and ReadCounts")
       html = addTitleWithAnchor(html, titles[[length(titles)]], 3)
       for (i in 1:length(pngLibCons)){
-        pngLibCons[i] = as.html(pot(paste('<img src="', pngLibCons[i], '"/>')))
+        pngLibCons[i] = as.html(pot(paste0('<img src="', pngLibCons[i], '"/>')))
       }
-      html = addFlexTable(html, ezFlexTable(pngLibCons))
+      html = addFlexTable(html, ezFlexTable(matrix(pngLibCons, nrow=1)))
     }
   }
   titles = append(titles, "Settings")

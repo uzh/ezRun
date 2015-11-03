@@ -142,18 +142,10 @@ getPosErrorFromBam = function(bamFile, param){
   #targetGenome = referenceGenome[[match(chromSel, sub(" .*", "", names(referenceGenome)))]]
   what = c("strand", "cigar", "seq", "rname", "pos")
   if (param$paired){
-    if(param$pairedMode == "first"){
-      reads = ezScanBam(bamFile, seqname=chromSel, isFirstMateRead=TRUE, isSecondMateRead=FALSE, isUnmappedQuery=FALSE, what=what)
-      result[[paste(chromSel, "Position Stats of First Read")]] = ezPosSpecErrorRate(reads, targetGenome)
-    }else if(param$pairedMode == "second"){
-      reads = ezScanBam(bamFile, seqname=chromSel, isFirstMateRead=FALSE, isSecondMateRead=TRUE, isUnmappedQuery=FALSE, what=what)
-      result[[paste(chromSel, "Position Stats of Second Read")]] = ezPosSpecErrorRate(reads, targetGenome)
-    }else{
-      reads = ezScanBam(bamFile, seqname=chromSel, isFirstMateRead=TRUE, isSecondMateRead=FALSE, isUnmappedQuery=FALSE, what=what)
-      result[[paste(chromSel, "Position Stats of First Read")]] = ezPosSpecErrorRate(reads, targetGenome)
-      reads = ezScanBam(bamFile, seqname=chromSel, isFirstMateRead=FALSE, isSecondMateRead=TRUE, isUnmappedQuery=FALSE, what=what)
-      result[[paste(chromSel, "Position Stats of Second Read")]] = ezPosSpecErrorRate(reads, targetGenome)
-    }
+    reads = ezScanBam(bamFile, seqname=chromSel, isFirstMateRead=TRUE, isSecondMateRead=FALSE, isUnmappedQuery=FALSE, what=what)
+    result[[paste(chromSel, "Position Stats of First Read")]] = ezPosSpecErrorRate(reads, targetGenome)
+    reads = ezScanBam(bamFile, seqname=chromSel, isFirstMateRead=FALSE, isSecondMateRead=TRUE, isUnmappedQuery=FALSE, what=what)
+    result[[paste(chromSel, "Position Stats of Second Read")]] = ezPosSpecErrorRate(reads, targetGenome)
   }else{
     reads = ezScanBam(bamFile, seqname=chromSel, isUnmappedQuery=FALSE, what=what)
     result[[paste(chromSel, "Position Stats")]] = ezPosSpecErrorRate(reads, targetGenome)
@@ -303,13 +295,8 @@ getStatsFromBamSingleChrom = function(chrom, param, bamFile, sm, nReads, gff=NUL
   sh = scanBamHeader(bamFile)
   seqLengths = sh[[1]]$targets
   if (param$paired){
-    reads = switch(param$pairedMode,
-                   first=ezReadGappedAlignments(bamFile, seqname=chrom, isFirstMateRead=TRUE, isSecondMateRead=FALSE,
-                                                 minMapQuality=param$minMapQuality, keepMultiHits=param$keepMultiHits),
-                   second=ezReadGappedAlignments(bamFile, seqname=chrom, isFirstMateRead=FALSE, isSecondMateRead=TRUE,
-                                                  minMapQuality=param$minMapQuality, keepMultiHits=param$keepMultiHits),
-                   paired=ezReadPairedAlignments(bamFile, seqname=chrom, keepUnpaired=param$keepUnpaired,
-                                                  minMapQuality=param$minMapQuality, keepMultiHits=param$keepMultiHits))
+    reads = ezReadPairedAlignments(bamFile, seqname=chrom, keepUnpaired=param$keepUnpaired,
+                                                  minMapQuality=param$minMapQuality, keepMultiHits=param$keepMultiHits)
   } else {
     reads = ezReadGappedAlignments(bamFile, seqname=chrom, minMapQuality=param$minMapQuality, keepMultiHits=param$keepMultiHits)	
   }

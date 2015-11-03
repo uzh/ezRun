@@ -62,7 +62,11 @@ ezIsSpecified = function(x){
 ezFrame = function(..., row.names = NULL, check.rows=TRUE,
                    check.names=FALSE,
                    stringsAsFactors=FALSE){
-  data.frame(..., row.names=row.names, check.rows=check.rows, check.names=check.names, stringsAsFactors=stringsAsFactors)
+  x = data.frame(..., check.rows=check.rows, check.names=check.names, stringsAsFactors=stringsAsFactors)
+  if (!is.null(row.names)){
+    rownames(x) = row.names
+  }
+  return(x)
 }
 
 ##' @describeIn ezParam Used to parse additional options specified in \code{userParam$specialOptions}.
