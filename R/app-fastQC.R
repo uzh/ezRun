@@ -58,7 +58,7 @@ ezMethodFastQC = function(input=NA, output=NA, param=NA, htmlFile="00index.html"
     plotHtml = openBsdocReport(title=paste("FASTQC:", plotPages[i]))
     png = paste0("<img src=", reportDir, "/Images/", plots[i], ">")
     tbl = ezMatrix(png, rows=names(files), cols=names(plots)[i])
-    plotHtml = addTableToReport(tbl, plotHtml)
+    plotHtml = addFlexTable(plotHtml, ezFlexTable(tbl))
     ezAddBootstrapMenu(plotHtml)
     closeBsdocReport(plotHtml, plotPages[i])
   }
@@ -97,7 +97,7 @@ ezMethodFastQC = function(input=NA, output=NA, param=NA, htmlFile="00index.html"
     img = paste0(reportDir[i], 	"/Icons/", statusToPng[smy[[1]]])
     tbl[i, ] = paste0("<a href=", href, "><img src=", img, "></a>")
   }
-  html = addTableToReport(tbl, html)
+  html = addFlexTable(html, ezFlexTable(tbl))
   
   titles = append(titles, "Per Base Read Quality")
   html = addTitleWithAnchor(html, titles[[length(titles)]], 2)

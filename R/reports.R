@@ -9,18 +9,20 @@
 ##' @title Wrapper for \code{FlexTable()}
 ##' @description Wraps \code{FlexTable()} with defaults to remove the cell header and cell borders.
 ##' @param x a matrix or data.frame to turn into an object of the class FlexTable.
-##' @param header a logical indicating whether to use a header for the table.
+##' @param header.columns a logical indicating whether to use a header for the table.
 ##' @template addargs-template
 ##' @templateVar fun FlexTable
 ##' @template roxygen-template
 ##' @seealso \code{\link[ReporteRs]{FlexTable}}
 ##' @return Returns an object of the class FlexTable.
 ##' @examples
-##' ezFlexTable(cbind(a=1:5,b=11:15))
-ezFlexTable = function(x, header=FALSE, ...){
-  FlexTable(x, body.cell.props = cellProperties(border.width = 0),
-            header.cell.props = cellProperties(border.width = 0),
-            header.columns = header, ...)
+##' ezFlexTable(data.frame(a=1:5,b=11:15))
+ezFlexTable = function(x, body.cell.props = cellProperties(border.width = 0),
+                       header.cell.props = cellProperties(border.width = 0),
+                       header.columns = FALSE,  ...){
+  FlexTable(x, body.cell.props = body.cell.props,
+            header.cell.props = header.columns,
+            header.columns = header.columns, ...)
 }
 
 # how to add help text? for each plot seperately or not?
@@ -190,7 +192,7 @@ addTxtLinksToReport = function(txtNames, mime="text/plain", doc){
 ##' html = openBsdocReport()
 ##' addTableToReport(x, html, head="Example", bgcolors="red")
 ##' closeBsdocReport(html, "example.html")
-addTableToReport = function(x, doc, bgcolors=NULL, valign="middle", border=1, head=""){
+ezAddTable = function(doc, x, bgcolors=NULL, valign="middle", border=1, head=""){
   if (is.null(bgcolors)){
     bgcolors = matrix("#ffffff", nrow=nrow(x), ncol=ncol(x))
   }
@@ -200,7 +202,7 @@ addTableToReport = function(x, doc, bgcolors=NULL, valign="middle", border=1, he
                     header.cell.props=cellProperties(border.width = border))
   table = setFlexTableBackgroundColors(table, j=1:ncol(x), colors=bgcolors)
   table = addHeaderRow(table, colnames(x))
-  doc = addFlexTable(doc, table)
+  return(addFlexTable(doc, table))
 }
 
 ##' @describeIn addTableToReport Does the same with a white font and returning the table instead of adding it to the document.

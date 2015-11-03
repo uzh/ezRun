@@ -220,7 +220,7 @@ writeNgsTwoGroupReport = function(dataset, result, htmlFile, param=NA, rawData=N
 ##       writeKeggClusterResult(html, param, clusterResult, keggOrganism)
 ##     }
 #     ezWrite("</td></tr></table>", con=html)
-    clusterLink = as.html(pot(paste('<img src="', clusterPng, '"/>')))
+    clusterLink = as.html(pot(paste0('<img src="', clusterPng, '"/>')))
     if (!is.null(clusterResult$GO)){
       goLink = list()
       goLink[[1]] = paste("Background color corresponds to the color of the feature cluster in the heatmap plot.")
