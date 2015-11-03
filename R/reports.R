@@ -193,14 +193,13 @@ addTxtLinksToReport = function(txtNames, mime="text/plain", doc){
 ##' addTableToReport(x, html, head="Example", bgcolors="red")
 ##' closeBsdocReport(html, "example.html")
 ezAddTable = function(doc, x, bgcolors=NULL, valign="middle", border=1, head=""){
-  if (is.null(bgcolors)){
-    bgcolors = matrix("#ffffff", nrow=nrow(x), ncol=ncol(x))
-  }
-  ##x = cbind(rownames(x),x)
   bodyCells = cellProperties(border.width=border, vertical.align=valign)
   table = FlexTable(x, header.columns = FALSE, body.cell.props=bodyCells,
                     header.cell.props=cellProperties(border.width = border))
-  table = setFlexTableBackgroundColors(table, j=1:ncol(x), colors=bgcolors)
+  if (!is.null(bgcolors)){
+    bgcolors = matrix("#ffffff", nrow=nrow(x), ncol=ncol(x))
+    table = setFlexTableBackgroundColors(table, j=1:ncol(x), colors=bgcolors)
+  }
   table = addHeaderRow(table, colnames(x))
   return(addFlexTable(doc, table))
 }
