@@ -436,7 +436,6 @@ ezMergeLeftRightAlignments <- function(gaLeft, gaRight, fillGap="N"){
 ##' \itemize{
 ##'   \item{readUnmapped}{ whether unmapped (TRUE), mapped (FALSE) or any read (NA) should be returned.}
 ##'   \item{paired}{ a logical indicating whether the samples are paired.}
-##'   \item{pairedMode}{ a character. "first" will return first mate reads and "second" will return second mate reads.}
 ##'   \item{subsetGenome}{ a logical. If true, only a subset (1/20) of the genome region will be used.}
 ##'   \item{seqNames}{ if provided, the function will only use these chromosomes.}
 ##' }
@@ -496,7 +495,6 @@ buildScanBamParam = function(param, bamFile){
 ##' @param param a list of parameters:
 ##' \itemize{
 ##'   \item{paired}{ a logical indicating whether the samples are paired.}
-##'   \item{pairedMode}{ a character indicating the flag options. Possible inputs are: "first", "second" and "paired".}
 ##' }
 ##' @param bamFile a character representing the file path to the bam file to read.
 ##' @param nReads an integer specifying the number of reads. These additional reads will be counted in "0"
@@ -521,10 +519,11 @@ getBamMultiMatching = function(param, bamFile, nReads=NULL){
   #bamReads = scanBam(bamFile, param=param)[[1]]$qname
   #result = table(table(bamReads))
   if (param$paired){
-    flagOption = switch(param$pairedMode,
-                        paired="-f 3 -F 132",
-                        first="-F 132",
-                        second="-F 68")    
+    flagOption = "-f 3 -F 132"
+#     switch(param$pairedMode,
+#                         paired="-f 3 -F 132",
+#                         first="-F 132",
+#                         second="-F 68")    
   } else {
     flagOption = "-F 4"
   }

@@ -310,7 +310,7 @@ getStatsFromBamSingleChrom = function(chrom, param, bamFile, sm, nReads, gff=NUL
   #ezWriteElapsed(job, "segment hist done")
   gc()
   
-  if(param$paired && param$pairedMode == "paired" && length(reads) > 0){
+  if(param$paired && length(reads) > 0){
     pairedNames = ezScanBam(bamFile, seqname=chrom, 
                                  isFirstMateRead=TRUE, isSecondMateRead=FALSE, isProperPair=TRUE,
                                  isUnmappedQuery=FALSE,
