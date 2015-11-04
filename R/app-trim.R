@@ -30,6 +30,7 @@
 ##' @return Returns the output after trimming as an object of the class EzDataset.
 ezMethodTrim = function(input=NA, output=NA, param=NA){
   
+  ## if output is not defined, set it!
   if (is.na(output)){
     output = input$copy()
     output$setColumn("Read1", paste0(input$getNames(), "-trimmed-R1.fastq"))
@@ -42,6 +43,7 @@ ezMethodTrim = function(input=NA, output=NA, param=NA){
     }
   }
   
+  ## if there are multiple samples loop through them
   if (input$getLength() > 1){
     for (nm in input$getNames()){
       ezMethodTrim(input$copy()$subset(nm), output$copy()$subset(nm), param)
