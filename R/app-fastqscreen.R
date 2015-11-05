@@ -16,7 +16,9 @@ ezMethodFastqScreen = function(input=NA, output=NA, param=NA, htmlFile="00index.
   dataset = input$meta
   files = input$getFullPaths(param, "Read1")
   resultFiles = executeFastqscreenCMD(param, files)
-  countFiles = executeBowtie2CMD(param, files)
+  param$trimAdapter = TRUE ## 
+  trimmedInput = ezMethodTrim(input = input, param = param)
+  countFiles = executeBowtie2CMD(param, trimmedInput$getColumn("Read1"))
   fastqData = collectFastqscreenOutput(dataset, files, resultFiles)
   speciesPercentageTop = collectBowtie2Output(param, dataset, countFiles)
   fastqscreenReport(dataset, fastqData, param, htmlFile, resultFiles, speciesPercentageTop)
@@ -88,20 +90,18 @@ executeBowtie2CMD = function(param, files){
 
 collectFastqscreenOutput = function(dataset, files, resultFiles){
   fastqData = list()
-  fastqData$MappingRate = vector(length=length(resultFiles),mode='double')
-  names(fastqData$MappingRate) = rownames(dataset)
-  fastqData$Reads = vector(length=length(resultFiles),mode='integer')
-  names(fastqData$Reads) = rownames(dataset)
+  fastqData$MappingRate = numeric()
+  fastqData$Reads = integer()
   fastqData$CommonResults = list()
-  for(i in 1:length(resultFiles)){
-    cat('Process ',files[i],':')
-    x = ezRead.table(resultFiles[i], skip=1, stringsAsFactors=F, blank.lines.skip=T, fill=T, row.names=NULL)
-    fastqData$Reads[i] = x$"#Reads_processed"[1]
+  for(nm in rownames(dataset)){
+    cat('Process ',files[nm],':')
+    x = ezRead.table(resultFiles[nm], skip=1, stringsAsFactors=F, blank.lines.skip=T, fill=T, row.names=NULL)
+    fastqData$Reads[nm] = x$"#Reads_processed"[1]
     UnmappedReads = as.numeric(unlist(strsplit(x$Genome[nrow(x)], split = " "))[2])
-    fastqData$MappingRate[i] = round((100 - UnmappedReads), digits = 2)
+    fastqData$MappingRate[nm] = round((100 - UnmappedReads), digits = 2)
     rownames(x) = x$Genome
     x = x[-nrow(x), grep('%.*hit',colnames(x))]
-    fastqData$CommonResults[[i]] = x
+    fastqData$CommonResults[[nm]] = x
   }
   return(fastqData)
 }
@@ -120,40 +120,43 @@ collectBowtie2Output = function(param, dataset, countFiles){
     countData = read.table(countFiles[nm], header=F, sep='', stringsAsFactors=F, comment.char='')
     colnames(countData) = c('readId', 'hit', 'aScore')
     bestScores = tapply(countData$aScore, countData$readId, max)
-    countData = countData[countData$aScore == bestScores[countData$readId], ]
-    countData = countData[countData$aScore >= param$minAlignmentScore, ]
-    ## TODO: strsplit2 fails if no hits satsify the criteria and countData has zero rows
-    countData$species = strsplit2(countData$hit,'_')[,1]
-    speciesHitsPerRead = tapply(countData$species, countData$readId, unique)
-    uniqSpeciesHitsPerRead = names(speciesHitsPerRead)[which(sapply(speciesHitsPerRead, length)==1)]
-    ###Result UniqHits:
-    uniqSpeciesHits = sort(table(unlist(speciesHitsPerRead[uniqSpeciesHitsPerRead])), decreasing = T)
-    ###Results MultipleHits:
-    multipleSpeciesHitsPerRead = countData[-which(countData$readId %in% uniqSpeciesHitsPerRead),]
-    by = paste(multipleSpeciesHitsPerRead$readId, multipleSpeciesHitsPerRead$species,sep='_')
-    ##multipleSpeciesHits = sort(table(multipleSpeciesHitsPerRead$species[!duplicated(by)]), decreasing=T) # is equivalent to the row below
-    multipleSpeciesHits = sort(table(tapply(multipleSpeciesHitsPerRead$species,by,unique)),decreasing = T)
-    
-    topSpeciesUniq = uniqSpeciesHits[1:param$nTopSpecies]
-    multipleSpeciesHits[setdiff(names(topSpeciesUniq), names(multipleSpeciesHits))] = 0
-    topSpeciesMultiple = multipleSpeciesHits[names(topSpeciesUniq)]
-    
-    if(param$nReads > 0){
-      totalCount = param$nReads
+    countData = countData[countData$aScore == bestScores[countData$readId], , drop=FALSE]
+    countData = countData[countData$aScore >= param$minAlignmentScore, , drop=FALSE]
+    if (nrow(countData) > 0){
+      countData$species = strsplit2(countData$hit,'_')[,1]
+      speciesHitsPerRead = tapply(countData$species, countData$readId, unique)
+      uniqSpeciesHitsPerRead = names(speciesHitsPerRead)[which(sapply(speciesHitsPerRead, length)==1)]
+      ###Result UniqHits:
+      uniqSpeciesHits = sort(table(unlist(speciesHitsPerRead[uniqSpeciesHitsPerRead])), decreasing = T)
+      ###Results MultipleHits:
+      multipleSpeciesHitsPerRead = countData[-which(countData$readId %in% uniqSpeciesHitsPerRead),]
+      by = paste(multipleSpeciesHitsPerRead$readId, multipleSpeciesHitsPerRead$species,sep='_')
+      ##multipleSpeciesHits = sort(table(multipleSpeciesHitsPerRead$species[!duplicated(by)]), decreasing=T) # is equivalent to the row below
+      multipleSpeciesHits = sort(table(tapply(multipleSpeciesHitsPerRead$species,by,unique)),decreasing = T)
+      
+      topSpeciesUniq = uniqSpeciesHits[1:min(param$nTopSpecies, length(uniqSpeciesHits))]
+      multipleSpeciesHits[setdiff(names(topSpeciesUniq), names(multipleSpeciesHits))] = 0
+      topSpeciesMultiple = multipleSpeciesHits[names(topSpeciesUniq)]
+      
+      if(param$nReads > 0){
+        totalCount = param$nReads
+      } else {
+        totalCount = dataset[nm, 'Read Count']
+      }
+      taxIds = names(topSpeciesUniq)
+      taxNames = tax2name[taxIds, 'Name']
+      hasNoName = is.na(taxNames)
+      taxNames[hasNoName] = taxIds[hasNoName]
+      x = ezFrame(UniqueSpeciesHits=signif(100 * topSpeciesUniq/totalCount, digits=4),
+                  MultipleSpeciesHits=signif(100 * topSpeciesMultiple/totalCount, digits=4),
+                  row.names = taxNames)
+      speciesPercentageTop[[nm]] = x
     } else {
-      totalCount = dataset[nm, 'Read Count']
+      speciesPercentageTop[[nm]] = NULL
     }
-    taxIds = names(topSpeciesUniq)
-    taxNames = tax2name[taxIds, 'Name']
-    hasNoName = is.na(taxNames)
-    taxNames[hasNoName] = taxIds[hasNoName]
-    x = ezFrame(UniqueSpeciesHits=signif(100 * topSpeciesUniq/totalCount, digits=4),
-                MultipleSpeciesHits=signif(100 * topSpeciesMultiple/totalCount, digits=4),
-                row.names = taxNames)
-    speciesPercentageTop[[nm]] = x
   }
   return(speciesPercentageTop)
-}
+  }
 
 fastqscreenReport = function(dataset, fastqData=fastqData, param, htmlFile="00index.html", resultFiles, speciesPercentageTop){
   require(ReporteRs, warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
@@ -190,26 +193,24 @@ fastqscreenReport = function(dataset, fastqData=fastqData, param, htmlFile="00in
   html = addFlexTable(html, ezFlexTable(cbind(mappingRateLink, readsLink)))
   
   screenLinks = list()
-  for (i in 1:length(fastqData$CommonResults)){
+  for (nm in rownames(dataset)){
     plotCmd = expression({
       par(mar=c(10.1, 4.1, 4.1, 2.1))
-      barplot(t(fastqData$CommonResults[[i]]), las=2, ylim=c(0,100), legend.text=T, ylab="MappedReads in %", main=rownames(dataset)[i])
+      barplot(t(fastqData$CommonResults[[nm]]), las=2, ylim=c(0,100), legend.text=T, ylab="MappedReads in %", main=nm)
     })
-    link = ezImageFileLink(plotCmd, file=gsub('.txt', '.png', resultFiles[i], '.png'))
-    if (grepl("screen", resultFiles[i])){
-      screenLinks = append(screenLinks, link)
-    }
+    screenLinks[[nm]] = ezImageFileLink(plotCmd, name = nm, plotType = "-rRNA-countsBySpecies-barplot")
   }
   detectedSpeciesLinks = list()
-  for (i in 1:length(speciesPercentageTop)){
+  for (nm in rownames(dataset)){
     plotCmd = expression({
       par(mar=c(10.1, 4.1, 4.1, 2.1))
-      bplot = barplot(t(speciesPercentageTop[[i]]), col=c("blue", "lightblue"), las=2, ylim=c(0,100),
-                      legend.text=T, ylab="MappedReads in %", main=rownames(dataset)[i])
-      text(y=3, x=bplot, labels=paste0(t(speciesPercentageTop[[i]])[1,], '%'), xpd=TRUE)
+      x = speciesPercentageTop[[nm]]
+      if (is.null(x)) x = 0
+      bplot = barplot(t(x), col=c("blue", "lightblue"), las=2, ylim=c(0,100),
+                      legend.text=T, ylab="MappedReads in %", main=nm)
+      text(y=3, x=bplot, labels=paste0(t(x)[ 1, ], '%'), xpd=TRUE)
     })
-    link = ezImageFileLink(plotCmd, file=paste0("DetectedSpecies_", rownames(dataset)[i], ".png"))
-    detectedSpeciesLinks = append(detectedSpeciesLinks, link)
+    detectedSpeciesLinks[[nm]] = ezImageFileLink(plotCmd, name=nm, plotType="-mRNA-countsBySpecies-barplot")
   }
   IMAGESperROW = 4
   if (ezIsSpecified(screenLinks)){

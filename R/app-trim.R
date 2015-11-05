@@ -61,7 +61,7 @@ ezMethodTrim = function(input=NA, output=NA, param=NA){
   param$trimQualWindowWidth = 4
   adaptFile = "/usr/local/ngseq/src/Trimmomatic-0.33/adapters/TruSeq3-PE-2.fa"
   
-  if (param$subsampleReads > 1){
+  if (param$subsampleReads > 1 || param$nReads > 0){
     input = ezMethodSubsampleReads(input=input, param=param)
   }
   
@@ -165,9 +165,19 @@ ezMethodSubsampleReads = function(input=NA, output=NA, param=NA){
       output$setColumn(name="Read2", values = file.path(getwd(), subsampleFiles))      
     }
   }
-  ezSubsampleFastq(input$getFullPaths(param, "Read1"), output$getColumn("Read1"), subsampleFactor = param$subsampleReads)
+  if (param$nReads > 0){
+    totalReads = input$getColumn("Read Count")
+    subsampleFactor = shrinkToRange(totalReads / param$nReads, c(1, Inf))
+    if (param$subSampleFactor){
+      message("subsampleReads setting will be overwritten by nReads parameter")
+    }
+  } else {
+    subsampleFactor = param$subsampleReads
+  }
+  newReadCounts = ezSubsampleFastq(input$getFullPaths(param, "Read1"), output$getColumn("Read1"), subsampleFactor = param$subsampleReads)
+  output$setColumn("Read Count", newReadCounts)
   if (param$paired){
-    ezSubsampleFastq(input$getFullPaths(param, "Read2"), output$getColumn("Read2"), subsampleFactor = param$subsampleReads)    
+    ezSubsampleFastq(input$getFullPaths(param, "Read2"), output$getColumn("Read2"), subsampleFactor = param$subsampleReads)
   }
   return(output)
 }
@@ -181,16 +191,22 @@ ezSubsampleFastq = function(full, sub, subsampleFactor=NA, nYield=1e5){
     file.remove(filesToRemove)
   }
   require(ShortRead)
-  for (i in 1:length(full)){ 
-    fqs = FastqStreamer(full[i], n = nYield) 
+  nReadsVector = integer()
+  for (nm in names(full)){ 
+    nReads = 0
+    fqs = FastqStreamer(full[nm], n = nYield) 
     idx = seq(from=1, to=nYield, by=subsampleFactor)
     while(length(x <- yield(fqs))){
       if (length(x) >= nYield){
-        writeFastq(x[idx], file=sub[i], mode="a", full=F, compress=F)
+        writeFastq(x[idx], file=sub[nm], mode="a", full=F, compress=F)
+        nReads = nReads + length(idx)
       } else {
-        writeFastq(x[idx[idx<length(x)]], file=sub[i], mode="a", full=F, compress=F)
+        writeFastq(x[idx[idx<length(x)]], file=sub[nm], mode="a", full=F, compress=F)
+        nReads = nReads + sum(idx<length(x))
       }
     }
     close(fqs)
+    nReadsVector[nm] = nReads
   }
+  return(nReadsVector)
 }
