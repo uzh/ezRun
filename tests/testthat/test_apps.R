@@ -136,7 +136,7 @@ test_that("FastqScreen", {
   param[['process_mode']] = 'DATASET'
   param[['name']] = 'FastqScreen_Result'
   param[['ram']] = '40'
-  param[['nReads']] = '500000'
+  param[['nReads']] = '5000'
   param[['nTopSpecies']] = '5'
   param[['minAlignmentScore']] = '-20'
   param[['confFile']] = 'variousSpecies_rRNA_20140901_silva119.conf'

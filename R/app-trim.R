@@ -168,7 +168,7 @@ ezMethodSubsampleReads = function(input=NA, output=NA, param=NA){
   if (param$nReads > 0){
     totalReads = input$getColumn("Read Count")
     subsampleFactor = shrinkToRange(totalReads / param$nReads, c(1, Inf))
-    if (param$subSampleFactor){
+    if (param$subsampleReads > 1){
       message("subsampleReads setting will be overwritten by nReads parameter")
     }
   } else {

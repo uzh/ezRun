@@ -69,13 +69,13 @@ executeBowtie2CMD = function(param, files){
     bowtie2options = param$cmdOptions
     if(!param$paired){
       cmd = paste(file.path(BOWTIE2_DIR,'bowtie2'),"-x",REFSEQ_mRNA_REF, 
-                  " -U ",files[nm], bowtie2options ,"-p",param$cores,"-u",param$nReads,
+                  " -U ",files[nm], bowtie2options ,"-p",param$cores,
                   "--no-unal", "2> ", paste0(nm, "_bowtie2.err"),
                   "|", SAMTOOLS, "view -S -b -", ">", "bowtie.bam")
     } else {
       R2_file = sub('R1','R2',files[nm])  ## TODO: this is a hack, R2 files should be passed to the function
       cmd = paste(file.path(BOWTIE2_DIR,'bowtie2'),"-x",REFSEQ_mRNA_REF, 
-                  " -1 ",files[nm]," -2 ", R2_file, bowtie2options, "-p",param$cores,"-u",param$nReads,
+                  " -1 ",files[nm]," -2 ", R2_file, bowtie2options, "-p",param$cores,
                   "--no-discordant --no-mixed --no-unal",
                   "2> ", paste0(nm, "_bowtie2.err"),
                   "|", SAMTOOLS, "view -S -b -", ">", "bowtie.bam")
