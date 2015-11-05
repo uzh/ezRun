@@ -18,7 +18,7 @@
 getReferenceFeaturesBed = function(param){
   bedFile = sub(".gtf$", ".bed", param$ezRef["refFeatureFile"])
   if (!file.exists(bedFile)){
-    ezSystem(paste(GTF2BED, param$ezRef["refFeatureFile"], ">", bedFile))
+    ezSystem(paste(GTF2BED, "--do-not-sort", "<", param$ezRef["refFeatureFile"], ">", bedFile))
     ezSystem(paste("chmod", "g+w", bedFile))
   }
   return(bedFile)
