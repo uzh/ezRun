@@ -99,8 +99,8 @@ collectFastqscreenOutput = function(dataset, files, resultFiles){
     fastqData$Reads[i] = x$"#Reads_processed"[1]
     UnmappedReads = as.numeric(unlist(strsplit(x$Genome[nrow(x)], split = " "))[2])
     fastqData$MappingRate[i] = round((100 - UnmappedReads), digits = 2)
-    x = x[-nrow(x), grep('%.*hit',colnames(x))]
     rownames(x) = x$Genome
+    x = x[-nrow(x), grep('%.*hit',colnames(x))]
     fastqData$CommonResults[[i]] = x
   }
   return(fastqData)
