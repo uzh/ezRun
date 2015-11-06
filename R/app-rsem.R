@@ -99,7 +99,7 @@ EzAppRSEM <-
                   name <<- "EzAppRSEM"
                   appDefaults <<- rbind("bowtie-e"=ezFrame(Type="integer",  DefaultValue="200",  Description="maximum sum of mismatch base qualities"),
                                     keepBam=ezFrame(Type="logical",  DefaultValue=FALSE,  Description="if the alignment files should be kept"),
-                                    trinityFasta=ezFrame(Type="character", DefaultValue='', Description="full path to a trinity assembly file; must be in a writeable directory"))
+                                    transcriptFasta=ezFrame(Type="character", DefaultValue='', Description="full path to a transcript fasta file (e.g. trinity output); must be in a writeable directory;"))
                   
                 }
               )
@@ -109,14 +109,14 @@ EzAppRSEM <-
 ##' @templateVar methodName RSEM
 ##' @param param a list of parameters:
 ##' \itemize{
-##'   \item{trinityFasta}{ an optional character specifying the path to a fasta file extracted from the trinity method. If specified, the reference will be prepared using it.}
+##'   \item{transcriptFasta}{ an optional character specifying the path to a fasta file. If specified, the reference will be prepared using it.}
 ##'   \item{ezRef@@refIndex}{ a character specifying the location of the index that is used in the alignment.}
 ##'   \item{ezRef@@refFeatureFile}{ a character specifying the path to the annotation feature file (.gtf).}
 ##'   \item{ezRef@@refFastaFile}{ a character specifying the path to the fasta file.}
 ##' }
 getRSEMReference = function(param){
   
-  if (ezIsSpecified(param$trinityFasta) || ezIsSpecified(param$transcriptFasta)){
+  if (ezIsSpecified(param$transcriptFasta)){
     refBase = file.path(getwd(), "RSEMIndex/transcripts") #paste0(file_path_sans_ext(param$trinityFasta), "_RSEMIndex/transcripts")
   } else {
     refBase = ifelse(param$ezRef["refIndex"] == "", 
@@ -149,14 +149,16 @@ getRSEMReference = function(param){
   
   prepareReference = file.path(RSEM_DIR, "rsem-prepare-reference")
   job = ezJobStart("rsem build")
-  if (ezIsSpecified(param$trinityFasta)){
-    mapFile = paste0(refBase, "_geneMap.txt")
-    cmd = paste(file.path(RSEM_DIR, "extract-transcript-to-gene-map-from-trinity"), param$trinityFasta, mapFile)
-    ezSystem(cmd)
-    cmd = paste(prepareReference, "--bowtie", "-q", "--bowtie-path", BOWTIE_DIR, "--transcript-to-gene-map", mapFile, param$trinityFasta, "transcripts")
-    ezSystem(cmd)    
-  } else {
-    if (ezIsSpecified(param$transcriptFasta)){
+  if (ezIsSpecified(param$transcriptFasta)){
+    ## check if the file comes from trinity
+    trxNames = sub(" .*", "", names(readDNAStringSet(param$transcriptFasta, nrec=100)))
+    if (all(grepl("^comp.+_c.+_s.+", trxNames))){
+      mapFile = paste0(refBase, "_geneMap.txt")
+      cmd = paste(file.path(RSEM_DIR, "extract-transcript-to-gene-map-from-trinity"), param$trinityFasta, mapFile)
+      ezSystem(cmd)
+      cmd = paste(prepareReference, "--bowtie", "-q", "--bowtie-path", BOWTIE_DIR, "--transcript-to-gene-map", mapFile, param$trinityFasta, "transcripts")
+      ezSystem(cmd)    
+    } else {
       cmd = paste(prepareReference, "--bowtie", "-q", "--bowtie-path", BOWTIE_DIR, param$transcriptFasta, "transcripts")
       ezSystem(cmd)    
     } else{
