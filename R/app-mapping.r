@@ -493,18 +493,37 @@ ezMethodBismark = function(input=NA, output=NA, param=NA){
   bamFile = output$getColumn("BAM")
   trimmedInput = ezMethodTrim(input = input, param = param)
   defOpt = paste("-p", max(2,ezThreads()/2))
-  cmd = paste(file.path(BISMARK_DIR, "bismark"), param$cmdOptions ,defOpt, ref, '-1',
+  cmd = paste(file.path(BISMARK_DIR, "bismark"), param$cmdOptions ,"--path_to_bowtie", BOWTIE2_DIR,defOpt, ref, '-1',
               trimmedInput$getColumn("Read1"), ifelse(param$paired, paste('-2',trimmedInput$getColumn("Read2")), ""),  
               "2> bismark.log")
   
   ezSystem(cmd)
   bamFileNameBismark = list.files('.',pattern='bam$')
   reportFileNameBismark = list.files('.',pattern='report.txt$')
-  ezSystem(paste('mv ', reportFileNameBismark, paste0(names(bamFile),'.report.txt')))
+  reportFile = paste0(names(bamFile),'.report.txt')
+  ezSystem(paste('mv ', reportFileNameBismark, reportFile))
+  if(param$deduplicate){
+    cmd = paste(file.path(BISMARK_DIR, "deduplicate_bismark"), ifelse(param$paired,"-p","-s"), bamFileNameBismark)
+    ezSystem(cmd)
+    bamFileNameBismark = list.files('.',pattern='deduplicated.sam$')
+    deduplicationReportFile = list.files('.',pattern='deduplication_report.txt$')
+    ezSystem(paste("cat ",deduplicationReportFile,">>",reportFile))
+  }
+  
+  cmd = paste(file.path(BISMARK_DIR, "bismark_methylation_extractor"), ifelse(param$paired,"-p","-s"), "--comprehensive", bamFileNameBismark)
+  ezSystem(cmd)
   cmd = paste(SAMTOOLS, "view -S -b ",bamFileNameBismark, " > bismark.bam")
   ezSystem(cmd)
   ezSortIndexBam("bismark.bam", basename(bamFile), ram=param$ram, removeBam=TRUE, cores=ezThreads())
-              
+  mBiasImages = list.files('.',pattern='png$')
+  for (i in 1:length(mBiasImages)){
+    ezSystem(paste('mv ', mBiasImages[i], paste0(names(bamFile),'.M-bias_R',i,'.png')))  
+  }
+  CpGFile = list.files('.',pattern='^CpG.*txt$')
+  ezSystem(paste('mv ', CpGFile, paste0(names(bamFile),'.CpG_context.txt')))
+  
+  splittingReportFile = list.files('.',pattern='splitting_report.txt$')
+  ezSystem(paste("cat ", splittingReportFile, ">>",reportFile))
               ## write an igv link
               #if (param$writeIgvSessionLink){
               #  writeIgvSession(genome = getIgvGenome(param), refBuild=param$ezRef["refBuild"], file=basename(output$getColumn("IGV Session")),
@@ -512,7 +531,7 @@ ezMethodBismark = function(input=NA, output=NA, param=NA){
               #  writeIgvJnlp(jnlpFile=basename(output$getColumn("IGV Starter")), projectId = sub("\\/.*", "", bamFile),
               #               sessionUrl = paste(PROJECT_BASE_URL, output$getColumn("IGV Session"), sep="/"))
               #}
-              return("Success")
+  return("Success")
 }
 
 ##' @template app-template
