@@ -12,16 +12,18 @@
 ezMethodFastqScreen = function(input=NA, output=NA, param=NA, htmlFile="00index.html"){
   cwd = getwd()
   on.exit(setwd(cwd))
-  setwdNew(basename(output$getColumn("Report")))
   dataset = input$meta
+  # fastqscreen part
   files = input$getFullPaths(param, "Read1")
   resultFiles = executeFastqscreenCMD(param, files)
+  fastqData = collectFastqscreenOutput(dataset, files, resultFiles)
+  # bowtie2 reference part
   param$trimAdapter = TRUE ## 
   trimmedInput = ezMethodTrim(input = input, param = param)
   countFiles = executeBowtie2CMD(param, trimmedInput$getColumn("Read1"))
-  fastqData = collectFastqscreenOutput(dataset, files, resultFiles)
   speciesPercentageTop = collectBowtie2Output(param, dataset, countFiles)
-  fastqscreenReport(dataset, fastqData, param, htmlFile, resultFiles, speciesPercentageTop)
+  setwdNew(basename(output$getColumn("Report")))
+  fastqscreenReport(dataset, param, htmlFile, fastqData, speciesPercentageTop)
   return("Success")
 }
 
@@ -70,18 +72,18 @@ executeBowtie2CMD = function(param, files){
     if(!param$paired){
       cmd = paste(file.path(BOWTIE2_DIR,'bowtie2'),"-x",REFSEQ_mRNA_REF, 
                   " -U ",files[nm], bowtie2options ,"-p",param$cores,
-                  "--no-unal", "2> ", paste0(nm, "_bowtie2.err"),
-                  "|", SAMTOOLS, "view -S -b -", ">", "bowtie.bam")
+                  "--no-unal --no-hd", "2> ", paste0(nm, "_bowtie2.err"),
+                  "| cut -f1,3,12", " |sed s/AS:i://g", ">", countFiles[nm])
     } else {
       R2_file = sub('R1','R2',files[nm])  ## TODO: this is a hack, R2 files should be passed to the function
       cmd = paste(file.path(BOWTIE2_DIR,'bowtie2'),"-x",REFSEQ_mRNA_REF, 
                   " -1 ",files[nm]," -2 ", R2_file, bowtie2options, "-p",param$cores,
                   "--no-discordant --no-mixed --no-unal",
                   "2> ", paste0(nm, "_bowtie2.err"),
-                  "|", SAMTOOLS, "view -S -b -", ">", "bowtie.bam")
+                  "| cut -f1,3,12", " |sed s/AS:i://g", ">", countFiles[nm])
     }
     ezSystem(cmd)
-    ezSystem(paste(SAMTOOLS, "view", "bowtie.bam", '|cut -f1,3,12 |sort|sed "s/AS:i://g" >',countFiles[nm]))
+    #ezSystem(paste(SAMTOOLS, "view", "bowtie.bam", '|cut -f1,3,12 |sort|sed "s/AS:i://g" >',countFiles[nm]))
     #system(paste(SAMTOOLS,"view -F 256",sbamFile,"|cut -f1,12 |sort|sed 's/AS:i://g' >",bestScoreFile))
   }
   system('rm bowtie.bam *.err')
@@ -108,7 +110,6 @@ collectFastqscreenOutput = function(dataset, files, resultFiles){
 
 # TODO: merge with executBowtie2Cmd; return data; don't make plots
 collectBowtie2Output = function(param, dataset, countFiles){
-  require(limma)
   tax2name = read.table('/srv/GT/reference/RefSeq/mRNA/20150301/Annotation/tax2name.txt',header=F,stringsAsFactors=F,sep='|', 
                         colClasses="character",quote='', comment.char="")
   colnames(tax2name) = c('TAX_ID','Name')
@@ -123,7 +124,7 @@ collectBowtie2Output = function(param, dataset, countFiles){
     countData = countData[countData$aScore == bestScores[countData$readId], , drop=FALSE]
     countData = countData[countData$aScore >= param$minAlignmentScore, , drop=FALSE]
     if (nrow(countData) > 0){
-      countData$species = strsplit2(countData$hit,'_')[,1]
+      countData$species = sub("_.*", "", countData$hit)
       speciesHitsPerRead = tapply(countData$species, countData$readId, unique)
       uniqSpeciesHitsPerRead = names(speciesHitsPerRead)[which(sapply(speciesHitsPerRead, length)==1)]
       ###Result UniqHits:
@@ -158,7 +159,7 @@ collectBowtie2Output = function(param, dataset, countFiles){
   return(speciesPercentageTop)
   }
 
-fastqscreenReport = function(dataset, fastqData=fastqData, param, htmlFile="00index.html", resultFiles, speciesPercentageTop){
+fastqscreenReport = function(dataset, param, htmlFile="00index.html", fastqData, speciesPercentageTop){
   require(ReporteRs, warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
   titles = list()
   titles = append(titles, paste("FastQ Screen:", param$name))
@@ -239,10 +240,10 @@ fastqscreenReport = function(dataset, fastqData=fastqData, param, htmlFile="00in
   }
   titles = append(titles, "Misc")
   html = addTitleWithAnchor(html, titles[[length(titles)]], 2)
-  txts = list.files(".",pattern="screen\\.txt")
-  for (each in txts){
-    html = addParagraph(html, pot(each, hyperlink = each))
-  }
+#   txts = list.files(".",pattern="screen\\.txt")
+#   for (each in txts){
+#     html = addParagraph(html, pot(each, hyperlink = each))
+#   }
   ezSessionInfo()
   html = addParagraph(html, pot("sessionInfo.txt", hyperlink = "sessionInfo.txt"))
   ezAddBootstrapMenu(html, lapply(titles, function(x){paste0("#", x)}))

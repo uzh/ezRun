@@ -174,10 +174,10 @@ ezMethodSubsampleReads = function(input=NA, output=NA, param=NA){
   } else {
     subsampleFactor = param$subsampleReads
   }
-  newReadCounts = ezSubsampleFastq(input$getFullPaths(param, "Read1"), output$getColumn("Read1"), subsampleFactor = param$subsampleReads)
+  newReadCounts = ezSubsampleFastq(input$getFullPaths(param, "Read1"), output$getColumn("Read1"), subsampleFactor = subsampleFactor)
   output$setColumn("Read Count", newReadCounts)
   if (param$paired){
-    ezSubsampleFastq(input$getFullPaths(param, "Read2"), output$getColumn("Read2"), subsampleFactor = param$subsampleReads)
+    ezSubsampleFastq(input$getFullPaths(param, "Read2"), output$getColumn("Read2"), subsampleFactor = subsampleFactor)
   }
   return(output)
 }
