@@ -61,7 +61,7 @@ test_that("Count_RSEM", {
   param[['cmdOptions']] = ' --calc-ci '
   param[['keepBam']] = 'false'
   param[['minAvgQuality']] = '10'
-  param[['trinityFasta']] = ''
+  param[['transcriptFasta']] = ''
   myApp = EzAppRSEM$new()
   myApp$run(input=input$copy()$subset(1), output=EzDataset$new(metaNew=output), param=param)
   setwd(cwd)
