@@ -165,7 +165,7 @@ fastqscreenReport = function(dataset, param, htmlFile="00index.html", fastqData,
   titles[["FastQ Screen"]] = paste("FastQ Screen:", param$name)
   html = openBsdocReport(title=titles[[length(titles)]], dataset=dataset)
   titles[["Settings"]] = "Settings"
-  html = addTitleWithAnchor(html, title=titles[[length(titles)]], 2)
+  addTitleWithAnchor(html, titles[[length(titles)]], 2)
   settings = character()
   settings["Configuration File:"] = param$confFile
   settings["RefSeq mRNA Reference:"] = REFSEQ_mRNA_REF
@@ -177,9 +177,9 @@ fastqscreenReport = function(dataset, param, htmlFile="00index.html", fastqData,
   # settings["Subset:"] = param$subset     ## param$subset doesn't seem to exist
   html = addFlexTable(html, ezFlexTable(as.data.frame(settings), add.rownames=TRUE))
   titles[["rRNA-Check"]] = "rRNA-Check"
-  html = addTitleWithAnchor(html, titles[[length(titles)]], 2)
+  addTitleWithAnchor(html, titles[[length(titles)]], 2)
   titles[["Per Dataset"]] = "Per Dataset"
-  html = addTitleWithAnchor(html, titles[[length(titles)]], 3)
+  addTitleWithAnchor(html, titles[[length(titles)]], 3)
   
   plotCmd = expression({
     par(mar=c(10.1, 4.1, 4.1, 2.1))
@@ -217,7 +217,7 @@ fastqscreenReport = function(dataset, param, htmlFile="00index.html", fastqData,
   IMAGESperROW = 4
   if (ezIsSpecified(screenLinks)){
     titles[["Per Sample"]] = "Per Sample"
-    html = addTitleWithAnchor(html, titles[[length(titles)]], 3)
+    addTitleWithAnchor(html, titles[[length(titles)]], 3)
     if(length(screenLinks) <= IMAGESperROW){
       html = addFlexTable(html, ezGrid(rbind(screenLinks)))
     } else {
@@ -229,7 +229,7 @@ fastqscreenReport = function(dataset, param, htmlFile="00index.html", fastqData,
   }
   if (ezIsSpecified(detectedSpeciesLinks)){
     titles[["Mapping to RefSeq mRNA"]] = "Mapping to RefSeq mRNA"
-    html = addTitleWithAnchor(html, titles[[length(titles)]], 2)
+    addTitleWithAnchor(html, titles[[length(titles)]], 2)
     if(length(detectedSpeciesLinks) <= IMAGESperROW){
       html = addFlexTable(html, ezGrid(rbind(detectedSpeciesLinks)))
     } else {
@@ -240,7 +240,7 @@ fastqscreenReport = function(dataset, param, htmlFile="00index.html", fastqData,
     }
   }
   titles[["Misc"]] = "Misc"
-  html = addTitleWithAnchor(html, titles[[length(titles)]], 2)
+  addTitleWithAnchor(html, titles[[length(titles)]], 2)
 #   txts = list.files(".",pattern="screen\\.txt")
 #   for (each in txts){
 #     html = addParagraph(html, pot(each, hyperlink = each))

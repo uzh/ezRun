@@ -36,7 +36,7 @@ x = matrix(1:25,5)
 rownames(x) = letters[1:5]
 colnames(x) = LETTERS[1:5]
 html = openBsdocReport()
-ezAddTable(x, html, head="Example", bgcolors="red")
+ezAddTable(html, x, head="Example", bgcolors="red")
 closeBsdocReport(html, "example.html")
 }
 \author{

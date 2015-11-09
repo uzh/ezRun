@@ -87,7 +87,7 @@ ezImageFileLink = function(plotCmd, file=NULL, name="imagePlot", plotType="plot"
 ##' @description A simple wrapper that pastes image links as html.
 ##' @param image character(s) specifying links to image files.
 ##' @template roxygen-template
-##' @return Returns an html link.
+##' @return Returns html link(s).
 ##' @examples
 ##' imgLinks("link.png")
 imgLinks = function(image){
@@ -119,7 +119,7 @@ openBsdocReport = function(title="", dataset=NULL){
   pot1 = pot(paste("Started on", format(Sys.time(), "%Y-%m-%d %H:%M:%S"), "--&#160;"))
   pot2 = as.html(pot("Documentation", hyperlink = "http://fgcz-sushi.uzh.ch/doc/methods-20140422.html"))
   doc = addFlexTable(doc, ezGrid(cbind(pot1, pot2)))
-  doc = addTitleWithAnchor(doc, title)
+  addTitleWithAnchor(doc, title)
   if (!is.null(dataset)){
     ezWrite.table(dataset, file="dataset.tsv", head="Name")
     doc = addParagraph(doc, pot("dataset.tsv", hyperlink = "dataset.tsv"))
@@ -180,7 +180,7 @@ addTitleWithAnchor = function(doc, title, level=1){
 ##' writeErrorReport(htmlFile, param)
 writeErrorReport = function(htmlFile, param=param, dataset=NULL, error="Unknown Error"){
   html = openBsdocReport(title=paste("Error:", param$name), dataset=dataset)
-  html = ezAddBootstrapMenu(html)
+  ezAddBootstrapMenu(html)
   html = addTitle(html, "Error message", level=2)
   for (i in 1:length(error)){
     html = addParagraph(html, error[i])
@@ -230,7 +230,8 @@ ezAddTable = function(doc, x, bgcolors=NULL, valign="middle", border=1, head="")
     table = setFlexTableBackgroundColors(table, j=1:ncol(x), colors=bgcolors)
   }
   table = addHeaderRow(table, colnames(x))
-  return(addFlexTable(doc, table))
+  doc = addFlexTable(doc, table)
+  # return(addFlexTable(doc, table)) # why return?
 }
 
 ##' @describeIn ezAddTable Does the same with a white font and returning the table instead of adding it to the document.
@@ -643,7 +644,7 @@ addGoUpDownResult = function(doc, param, goResult){
   } else {
     addTxtLinksToReport(udt$txtFiles, mime="application/txt", doc=doc)
   }  
-  return(doc)
+  return(doc) #
 }
 
 goUpDownTables = function(param, goResult){

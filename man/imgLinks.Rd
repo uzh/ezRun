@@ -10,7 +10,7 @@ imgLinks(image)
 \item{image}{character(s) specifying links to image files.}
 }
 \value{
-Returns an html link.
+Returns html link(s).
 }
 \description{
 A simple wrapper that pastes image links as html.

@@ -64,7 +64,7 @@ ezMethodFastQC = function(input=NA, output=NA, param=NA, htmlFile="00index.html"
   }
   
   titles[["Read Counts"]] = "Read Counts"
-  html = addTitleWithAnchor(html, titles[[length(titles)]], 2)
+  addTitleWithAnchor(html, titles[[length(titles)]], 2)
   if (!is.null(dataset$"Read Count")){
     readCount = signif(dataset$"Read Count" / 1e6, digits=3)
     names(readCount) = rownames(dataset)
@@ -82,7 +82,7 @@ ezMethodFastQC = function(input=NA, output=NA, param=NA, htmlFile="00index.html"
   html = addImage(html, "readCounts.png")
   
   titles[["Fastqc quality measures"]] = "Fastqc quality measures"
-  html = addTitleWithAnchor(html, titles[[length(titles)]], 2)
+  addTitleWithAnchor(html, titles[[length(titles)]], 2)
   statusToPng = c(PASS="tick.png", WARN="warning.png", FAIL="error.png")
   for (i in 1:nFiles){
     smy = ezRead.table(file.path(reportDir[i], "summary.txt"), row.names=NULL, header=FALSE)
@@ -100,7 +100,7 @@ ezMethodFastQC = function(input=NA, output=NA, param=NA, htmlFile="00index.html"
   html = addFlexTable(html, ezFlexTable(tbl, header.columns=TRUE, add.rownames=TRUE, valign="middle"))
   
   titles[["Per Base Read Quality"]] = "Per Base Read Quality"
-  html = addTitleWithAnchor(html, titles[[length(titles)]], 2)
+  addTitleWithAnchor(html, titles[[length(titles)]], 2)
   qualMatrixList = ezMclapply(files, getQualityMatrix, mc.cores=ezThreads())
   pngMatrix = plotQualityMatrixAsHeatmap(qualMatrixList, isR2=grepl("_R2", names(files)))
   for (i in 1:nrow(pngMatrix)){
@@ -116,13 +116,13 @@ ezMethodFastQC = function(input=NA, output=NA, param=NA, htmlFile="00index.html"
     pngLibCons = list.files(".",pattern="ReadCount_.*.png")
     if(length(pngLibCons)>0){
       titles[["Correlation"]] = "Correlation between Library concentration measurements and ReadCounts"
-      html = addTitleWithAnchor(html, titles[[length(titles)]], 3)
+      addTitleWithAnchor(html, titles[[length(titles)]], 3)
       pngLibCons = imgLinks(pngLibCons)
       html = addFlexTable(html, ezGrid(matrix(pngLibCons, nrow=1)))
     }
   }
   titles[["Settings"]] = "Settings"
-  html = addTitleWithAnchor(html, titles[[length(titles)]], 3)
+  addTitleWithAnchor(html, titles[[length(titles)]], 3)
   html = addParagraph(html, paste("Method/Version:", basename(dirname(FASTQC))))
   ezSessionInfo()
   html = addParagraph(html, pot("sessionInfo.txt", hyperlink = "sessionInfo.txt"))

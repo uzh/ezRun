@@ -5,15 +5,14 @@
 \alias{ezGrid}
 \title{Wrapper for \code{FlexTable()}}
 \usage{
-ezFlexTable(x, borderWidth = 1, valign = "top", header.columns = FALSE,
-  ...)
+ezFlexTable(x, border = 1, valign = "top", header.columns = FALSE, ...)
 
 ezGrid(x, header.columns = FALSE, ...)
 }
 \arguments{
 \item{x}{a matrix or data.frame to turn into an object of the class FlexTable.}
 
-\item{borderWidth}{an integer specifying the width of the table borders.}
+\item{border}{an integer specifying the width of the table borders.}
 
 \item{valign}{"bottom", "middle" or "top" specifying the position of table cell contents.}
 
