@@ -11,7 +11,6 @@ buildScanBamParam(param, bamFile)
 \itemize{
   \item{readUnmapped}{ whether unmapped (TRUE), mapped (FALSE) or any read (NA) should be returned.}
   \item{paired}{ a logical indicating whether the samples are paired.}
-  \item{pairedMode}{ a character. "first" will return first mate reads and "second" will return second mate reads.}
   \item{subsetGenome}{ a logical. If true, only a subset (1/20) of the genome region will be used.}
   \item{seqNames}{ if provided, the function will only use these chromosomes.}
 }}

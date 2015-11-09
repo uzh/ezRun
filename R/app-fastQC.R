@@ -26,7 +26,7 @@ ezMethodFastQC = function(input=NA, output=NA, param=NA, htmlFile="00index.html"
   nFiles = length(files)
   
   titles = list()
-  titles = append(titles, paste("FASTQC:", param$name))
+  titles[["FastQC"]] = paste("FASTQC:", param$name)
   html = openBsdocReport(title=titles[[length(titles)]], dataset=dataset)
 
   reportDir = sub(".fastq.gz", "_fastqc", basename(files))
@@ -63,7 +63,7 @@ ezMethodFastQC = function(input=NA, output=NA, param=NA, htmlFile="00index.html"
     closeBsdocReport(plotHtml, plotPages[i])
   }
   
-  titles = append(titles, "Read Counts")
+  titles[["Read Counts"]] = "Read Counts"
   html = addTitleWithAnchor(html, titles[[length(titles)]], 2)
   if (!is.null(dataset$"Read Count")){
     readCount = signif(dataset$"Read Count" / 1e6, digits=3)
@@ -81,7 +81,7 @@ ezMethodFastQC = function(input=NA, output=NA, param=NA, htmlFile="00index.html"
   dev.off()
   html = addImage(html, "readCounts.png")
   
-  titles = append(titles, "Fastqc quality measures")
+  titles[["Fastqc quality measures"]] = "Fastqc quality measures"
   html = addTitleWithAnchor(html, titles[[length(titles)]], 2)
   statusToPng = c(PASS="tick.png", WARN="warning.png", FAIL="error.png")
   for (i in 1:nFiles){
@@ -99,7 +99,7 @@ ezMethodFastQC = function(input=NA, output=NA, param=NA, htmlFile="00index.html"
   }
   html = addFlexTable(html, ezFlexTable(tbl, header.columns=TRUE, add.rownames=TRUE, valign="middle"))
   
-  titles = append(titles, "Per Base Read Quality")
+  titles[["Per Base Read Quality"]] = "Per Base Read Quality"
   html = addTitleWithAnchor(html, titles[[length(titles)]], 2)
   qualMatrixList = ezMclapply(files, getQualityMatrix, mc.cores=ezThreads())
   pngMatrix = plotQualityMatrixAsHeatmap(qualMatrixList, isR2=grepl("_R2", names(files)))
@@ -115,13 +115,13 @@ ezMethodFastQC = function(input=NA, output=NA, param=NA, htmlFile="00index.html"
     plotReadCountToLibConc(dataset,colname='LibConc_100_800bp [Characteristic]')
     pngLibCons = list.files(".",pattern="ReadCount_.*.png")
     if(length(pngLibCons)>0){
-      titles = append(titles, "Correlation between Library concentration measurements and ReadCounts")
+      titles[["Correlation"]] = "Correlation between Library concentration measurements and ReadCounts"
       html = addTitleWithAnchor(html, titles[[length(titles)]], 3)
       pngLibCons = imgLinks(pngLibCons)
       html = addFlexTable(html, ezGrid(matrix(pngLibCons, nrow=1)))
     }
   }
-  titles = append(titles, "Settings")
+  titles[["Settings"]] = "Settings"
   html = addTitleWithAnchor(html, titles[[length(titles)]], 3)
   html = addParagraph(html, paste("Method/Version:", basename(dirname(FASTQC))))
   ezSessionInfo()

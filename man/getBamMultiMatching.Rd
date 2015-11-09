@@ -10,7 +10,6 @@ getBamMultiMatching(param, bamFile, nReads = NULL)
 \item{param}{a list of parameters:
 \itemize{
   \item{paired}{ a logical indicating whether the samples are paired.}
-  \item{pairedMode}{ a character indicating the flag options. Possible inputs are: "first", "second" and "paired".}
 }}
 
 \item{bamFile}{a character representing the file path to the bam file to read.}

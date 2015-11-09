@@ -162,9 +162,9 @@ collectBowtie2Output = function(param, dataset, countFiles){
 fastqscreenReport = function(dataset, param, htmlFile="00index.html", fastqData, speciesPercentageTop){
   require(ReporteRs, warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
   titles = list()
-  titles = append(titles, paste("FastQ Screen:", param$name))
+  titles[["FastQ Screen"]] = paste("FastQ Screen:", param$name)
   html = openBsdocReport(title=titles[[length(titles)]], dataset=dataset)
-  titles = append(titles, "Settings")
+  titles[["Settings"]] = "Settings"
   html = addTitleWithAnchor(html, title=titles[[length(titles)]], 2)
   settings = c("Configuration File:"=param$confFile)
   settings = append(settings, c("RefSeq mRNA Reference:"=REFSEQ_mRNA_REF))
@@ -175,9 +175,9 @@ fastqscreenReport = function(dataset, param, htmlFile="00index.html", fastqData,
   settings = append(settings, c("TopSpecies:"=param$nTopSpecies))
   settings = append(settings, c("Subset:"=param$subset))
   html = addFlexTable(html, ezFlexTable(as.data.frame(settings), add.rownames=TRUE))
-  titles = append(titles, "rRNA-Check")
+  titles[["rRNA-Check"]] = "rRNA-Check"
   html = addTitleWithAnchor(html, titles[[length(titles)]], 2)
-  titles = append(titles, "Per Dataset")
+  titles[["Per Dataset"]] = "Per Dataset"
   html = addTitleWithAnchor(html, titles[[length(titles)]], 3)
   
   plotCmd = expression({
@@ -215,7 +215,7 @@ fastqscreenReport = function(dataset, param, htmlFile="00index.html", fastqData,
   }
   IMAGESperROW = 4
   if (ezIsSpecified(screenLinks)){
-    titles = append(titles, "Per Sample")
+    titles[["Per Sample"]] = "Per Sample"
     html = addTitleWithAnchor(html, titles[[length(titles)]], 3)
     if(length(screenLinks) <= IMAGESperROW){
       html = addFlexTable(html, ezGrid(rbind(screenLinks)))
@@ -227,7 +227,7 @@ fastqscreenReport = function(dataset, param, htmlFile="00index.html", fastqData,
     }
   }
   if (ezIsSpecified(detectedSpeciesLinks)){
-    titles = append(titles, "Mapping to RefSeq mRNA")
+    titles[["Mapping to RefSeq mRNA"]] = "Mapping to RefSeq mRNA"
     html = addTitleWithAnchor(html, titles[[length(titles)]], 2)
     if(length(detectedSpeciesLinks) <= IMAGESperROW){
       html = addFlexTable(html, ezGrid(rbind(detectedSpeciesLinks)))
@@ -238,7 +238,7 @@ fastqscreenReport = function(dataset, param, htmlFile="00index.html", fastqData,
       }
     }
   }
-  titles = append(titles, "Misc")
+  titles[["Misc"]] = "Misc"
   html = addTitleWithAnchor(html, titles[[length(titles)]], 2)
 #   txts = list.files(".",pattern="screen\\.txt")
 #   for (each in txts){

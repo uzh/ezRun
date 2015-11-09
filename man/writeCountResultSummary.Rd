@@ -4,7 +4,7 @@
 \alias{writeCountResultSummary}
 \title{Writes a count result summary}
 \usage{
-writeCountResultSummary(html, param, result, type)
+writeCountResultSummary(html, param, result)
 }
 \arguments{
 \item{html}{a connection to an html file.}

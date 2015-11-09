@@ -2,14 +2,22 @@
 % Please edit documentation in R/reports.R
 \name{ezFlexTable}
 \alias{ezFlexTable}
+\alias{ezGrid}
 \title{Wrapper for \code{FlexTable()}}
 \usage{
-ezFlexTable(x, header = FALSE, ...)
+ezFlexTable(x, borderWidth = 1, valign = "top", header.columns = FALSE,
+  ...)
+
+ezGrid(x, header.columns = FALSE, ...)
 }
 \arguments{
 \item{x}{a matrix or data.frame to turn into an object of the class FlexTable.}
 
-\item{header}{a logical indicating whether to use a header for the table.}
+\item{borderWidth}{an integer specifying the width of the table borders.}
+
+\item{valign}{"bottom", "middle" or "top" specifying the position of table cell contents.}
+
+\item{header.columns}{a logical indicating whether to use a header for the table.}
 
 \item{...}{additional arguments to be passed to \code{FlexTable}.}
 }
@@ -19,8 +27,12 @@ Returns an object of the class FlexTable.
 \description{
 Wraps \code{FlexTable()} with defaults to remove the cell header and cell borders.
 }
+\section{Functions}{
+\itemize{
+\item \code{ezGrid}: A flex table without borders.
+}}
 \examples{
-ezFlexTable(cbind(a=1:5,b=11:15))
+ezFlexTable(data.frame(a=1:5,b=11:15))
 }
 \author{
 Rehrauer, Hubert

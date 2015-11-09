@@ -4,8 +4,8 @@
 \alias{ezSortIndexBam}
 \title{Sorts and indexes a bam file}
 \usage{
-ezSortIndexBam(inBam, bam, samtools = SAMTOOLS, maxMem = "10000000000",
-  removeBam = TRUE, cores = 2)
+ezSortIndexBam(inBam, bam, samtools = SAMTOOLS, ram = 2, removeBam = TRUE,
+  cores = 2)
 }
 \arguments{
 \item{inBam}{a character representing the file path of the input bam file to sort.}
@@ -14,7 +14,7 @@ ezSortIndexBam(inBam, bam, samtools = SAMTOOLS, maxMem = "10000000000",
 
 \item{samtools}{a character representing the file path to the samtools directory.}
 
-\item{maxMem}{a character the maximum amount of memory to be used for the new file.}
+\item{ram}{max RAM to use in GB}
 
 \item{removeBam}{a logical indicating whether to remove the file specified in \code{inBam}.}
 
@@ -26,7 +26,7 @@ Sorts and indexes a bam file.
 \examples{
 bamFile <- system.file("extdata", "ex1.bam", package="Rsamtools", mustWork=TRUE)
 file.create("test.bam")
-ezSortIndexBam("test.bam", basename(bamFile), maxMem="500M", cores = ezThreads())
+ezSortIndexBam("test.bam", basename(bamFile), ram=0.5, cores = ezThreads())
 }
 \author{
 Rehrauer, Hubert
