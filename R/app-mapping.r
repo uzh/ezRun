@@ -486,7 +486,6 @@ EzAppBWA <-
 ##' @template method-template
 ##' @templateVar methodName Bismark
 ##' @seealso \code{\link{EzAppBismark}}
-
 ezMethodBismark = function(input=NA, output=NA, param=NA){
   ##TODO: create reference if not existing
   ref = file.path('/srv/GT/reference',dirname(dirname(param[['refBuild']])),'Sequence/WholeGenomeFasta')

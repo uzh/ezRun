@@ -25,17 +25,6 @@ ezMethodRSEM = function(input=NA, output=NA, param=NA){
   ciMemory = round((as.numeric(param$ram) - 4) * 1000)
   opt = paste(opt, "-p", ezThreads(), "--bowtie-path", BOWTIE_DIR, "--samtools-sort-mem", samtoolsSortMem, "--ci-memory", ciMemory)
   
-#   reads1 = .getSingleReadFileLocally(input$getFullPaths(param, "Read1"), adapter=input$getColumn("Adapter1"), param=param)
-#   if (!param$paired){
-#     readsOpt = reads1
-#   } else {
-#     reads2 = .getSingleReadFileLocally(input$getFullPaths(param, "Read2"), adapter=input$getColumn("Adapter2"), param=param)
-#     reads1Paired = sub(".fastq", "-paired.fastq", reads1)
-#     reads2Paired = sub(".fastq", "-paired.fastq", reads2)
-#     pairFastqReads(reads1, reads2, reads1Paired, reads2Paired, overwrite=TRUE)
-#     readsOpt = paste("--paired-end", reads1Paired, reads2Paired)
-#   }
-  
   trimmedInput = ezMethodTrim(input = input, param = param)
   
   strandOpt = switch(param$strandMode,

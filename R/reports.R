@@ -220,7 +220,7 @@ addTxtLinksToReport = function(txtNames, mime="text/plain", doc){
 ##' rownames(x) = letters[1:5]
 ##' colnames(x) = LETTERS[1:5]
 ##' html = openBsdocReport()
-##' addTableToReport(x, html, head="Example", bgcolors="red")
+##' ezAddTable(x, html, head="Example", bgcolors="red")
 ##' closeBsdocReport(html, "example.html")
 ezAddTable = function(doc, x, bgcolors=NULL, valign="middle", border=1, head=""){
   bodyCells = cellProperties(border.width=border, vertical.align=valign)
@@ -233,8 +233,8 @@ ezAddTable = function(doc, x, bgcolors=NULL, valign="middle", border=1, head="")
   return(addFlexTable(doc, table))
 }
 
-##' @describeIn addTableToReport Does the same with a white font and returning the table instead of adding it to the document.
-addTableToReportWhite = function(x, bgcolors=NULL, valign="middle", border=1, head=""){
+##' @describeIn ezAddTable Does the same with a white font and returning the table instead of adding it to the document.
+ezAddTableWhite = function(x, bgcolors=NULL, valign="middle", border=1, head=""){
   if (is.null(bgcolors)){
     bgcolors = matrix("#ffffff", nrow=nrow(x), ncol=ncol(x))
   }
@@ -607,7 +607,7 @@ addTestScatterPlots = function(doc, param, x, result, seqAnno, types=NULL){
 #       tables[i, onto] = goResultToHtmlTable(x, param$pValThreshFisher, param$minCountFisher, onto=onto);
 #     }
 #   }
-#   addTableToReport(tables, doc, border=2,
+#   ezAddTable(tables, doc, border=2,
 #                    bgcolors=matrix(gsub("FF$", "", clusterResult$clusterColors), nrow=clusterResult$nClusters, ncol=ncol(tables)))
 # }
 
@@ -706,7 +706,7 @@ addGOTables = function(doc, param, goResult){
       }
     }
   }
-  addTableToReport(tables, doc, border=2, valign="top")
+  ezAddTable(tables, doc, border=2, valign="top")
   if (param$doZip){
     addTxtLinksToReport(txtFiles, mime="application/zip", doc=doc)
   } else {
@@ -803,7 +803,7 @@ addGageTables = function(doc, param = NULL, gageResults = NULL) {
 #       writeTableToHtmlWhite(res, con=html, 
 #                             bgcolors=matrix(gsub("FF$", "", unique(pathColors)), nrow=length(unique(pathColors)), ncol=1))
 #       ezWrite("</td></tr>", con=html)
-      tbl = addTableToReportWhite(res, doc,
+      tbl = ezAddTableWhite(res, doc,
                                bgcolors=matrix(gsub("FF$", "", unique(pathColors)), nrow=length(unique(pathColors)), ncol=1))
       tableRows[[signal]] = cbind(imgrow, tbl)
     }

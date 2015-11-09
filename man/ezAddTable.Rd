@@ -2,9 +2,13 @@
 % Please edit documentation in R/reports.R
 \name{ezAddTable}
 \alias{ezAddTable}
+\alias{ezAddTableWhite}
 \title{Adds a table}
 \usage{
 ezAddTable(doc, x, bgcolors = NULL, valign = "middle", border = 1,
+  head = "")
+
+ezAddTableWhite(x, bgcolors = NULL, valign = "middle", border = 1,
   head = "")
 }
 \arguments{
@@ -23,12 +27,16 @@ ezAddTable(doc, x, bgcolors = NULL, valign = "middle", border = 1,
 \description{
 Adds a table to a bsdoc object.
 }
+\section{Functions}{
+\itemize{
+\item \code{ezAddTableWhite}: Does the same with a white font and returning the table instead of adding it to the document.
+}}
 \examples{
 x = matrix(1:25,5)
 rownames(x) = letters[1:5]
 colnames(x) = LETTERS[1:5]
 html = openBsdocReport()
-addTableToReport(x, html, head="Example", bgcolors="red")
+ezAddTable(x, html, head="Example", bgcolors="red")
 closeBsdocReport(html, "example.html")
 }
 \author{

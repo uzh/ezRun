@@ -335,7 +335,6 @@ ezMedianNorm = function(x, use=NULL, target=NULL, presentFlag=NULL){
   return(ezScaleColumns(x, sf))
 }
 
-# or use @rdname as a simpler approach to add a function to the help file of another.
 ##' @describeIn ezMedianNorm Calculates the scaling factor for the main function.
 getMedianScalingFactor = function(x, use=NULL, target=NULL, presentFlag=NULL){
   
