@@ -39,7 +39,7 @@ expandGRanges = function(x, width=2000){
 ##' cov = RleList(chr1=Rle(5523:5539),chr2=Rle(6544:6557))
 ##' targetRanges = GRanges(c("chr1", "chr1", "chr2"), IRanges(5000:5002,8000:7998), strand=c("+", "-", "+"))
 ##' getRangeValues(cov, targetRanges)
-## TODOP: example doesn't work
+## TODOEXAMPLE: example doesn't work
 getRangeValues = function(cov, targetRanges, doRev=as.character(strand(targetRanges)) == "-", asMatrix=TRUE){
   names(targetRanges) = 1:length(targetRanges)
   rgs = ranges(RangedData(targetRanges))
@@ -76,7 +76,7 @@ getRangeValues = function(cov, targetRanges, doRev=as.character(strand(targetRan
 ##' cov = RleList(chr1=Rle(5523:5539),chr2=Rle(6544:6557))
 ##' targetRanges = GRanges(c("chr1", "chr1", "chr2"), IRanges(5000:5002,8000:7998), strand=c("+", "-", "+"))
 ##' computeRangeStats(cov, targetRanges)
-## TODOP: example doesn't work
+## TODOEXAMPLE: example doesn't work
 computeRangeStats = function(cov, targetRanges, FUN=mean){
   rgs = ranges(RangedData(targetRanges))
   gc()

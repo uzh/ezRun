@@ -79,7 +79,7 @@ selectSamples = function(rawData, samples){
 ##' rawData = loadCountDataset(input, param)
 ##' getSignal(rawData)
 ##' getLog2Signal(rawData)
-## TODOP: get example with proper return and improve description.
+## TODOEXAMPLE: get example with proper return and improve description.
 getSignal = function(rawData){
   if (rawData$isLog){
     return(2^rawData$signal)
@@ -109,7 +109,7 @@ getLog2Signal = function(rawData){
 ##' input = EzDataset$new(file=system.file("extdata/yeast_10k_STAR_featureCounts/dataset.tsv", package="ezRun", mustWork = TRUE))
 ##' rawData = loadCountDataset(input, param)
 ##' getRpkm(rawData)
-## TODOP: get example with proper return
+## TODOEXAMPLE: get example with proper return
 getRpkm = function(rawData){
   #edgeR::rpkm.default
   #edgeR::cpm.default

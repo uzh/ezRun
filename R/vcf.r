@@ -14,7 +14,7 @@
 ##' @examples
 ##' vcfFile <- system.file("extdata", "chr22.vcf.gz", package="VariantAnnotation")
 ##' ezChromSizesFromVcf(vcfFile)
-## TODOP: get vcf file with $contig information.
+## TODOEXAMPLE: get vcf file with $contig information.
 ezChromSizesFromVcf = function(vcfFile){
   vh = scanVcfHeader(vcfFile)
   contigs = header(vh)$contig
@@ -40,7 +40,7 @@ ezChromSizesFromVcf = function(vcfFile){
 ##' input = EzDataset(system.file("extdata/yeast_10k/dataset.tsv", package="ezRun", mustWork = TRUE))
 ##' ezFilterVcf(vcfFile, "example.gz", bamDataset=input$meta)
 ##' ezWriteVcf(vcf, "example.gz")
-## TODOP: get working .vcf file
+## TODOEXAMPLE: get working .vcf file
 ezFilterVcf = function(vcfFile, vcfFiltFile, discardMultiAllelic=TRUE, bamDataset=bamDataset, param=NULL){
   vcf = readVcf(vcfFile, genome="genomeDummy")
   genotype = geno(vcf)

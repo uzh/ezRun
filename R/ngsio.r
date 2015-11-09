@@ -139,7 +139,7 @@ ezHead = function(target=paste0(x, "_head"), x, n=1000){
 ##' @return Returns the rawdata read from the NcPro results.
 ##' @examples 
 ##' readNcProResult(ncproDir)
-## TODOP: add example. argument param is unused currently.
+## TODOEXAMPLE: add example. argument param is unused currently.
 readNcProResult = function (ncproDir, param) {
   dataFiles = list.files(ncproDir, "_subfamcov.data$", full.names=TRUE)
   
