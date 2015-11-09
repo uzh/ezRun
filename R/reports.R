@@ -257,10 +257,13 @@ addTableToReportWhite = function(x, bgcolors=NULL, valign="middle", border=1, he
 ##' @seealso \code{\link[ReporteRs]{addFlexTable}}
 addCountResultSummary = function(doc, param, result){
   doc = addTitle(doc, "Result Summary", level=2)
-  ## TODO: do not use append here, use
+  ## TODO: do not use append here, use.
+  ## the advantage in using append is, that param$bla, where param exists and param$bla is NULL, still works; but not with the other method.
   settings = character()
-  settings["Analysis"] = result$analysis
-  settings["Genome Build"] = param$ezRef@refBuild
+#   settings["Analysis"] = result$analysis
+#   settings["Genome Build"] = param$ezRef@refBuild
+  settings = append(settings, c("Analysis"=result$analysis))
+  settings = append(settings, c("Genome Build", param$ezRef@refBuild))
   settings = append(settings, c("Feature level:"=result$featureLevel))
   settings = append(settings, c("Data Column Used:"=result$countName))
   settings = append(settings, c("Method:"=result$method))
