@@ -191,7 +191,7 @@ fastqscreenReport = function(dataset, param, htmlFile="00index.html", fastqData,
     barplot(fastqData$Reads, las=2, ylab="#Reads", main="ProcessedReads", col="lightblue")
   })
   readsLink = ezImageFileLink(plotCmd, file="Reads.png", width=600, height=450)
-  html = addFlexTable(html, ezFlexTable(cbind(mappingRateLink, readsLink)))
+  html = addFlexTable(html, ezGrid(cbind(mappingRateLink, readsLink)))
   
   screenLinks = list()
   for (nm in rownames(dataset)){
@@ -218,11 +218,11 @@ fastqscreenReport = function(dataset, param, htmlFile="00index.html", fastqData,
     titles = append(titles, "Per Sample")
     html = addTitleWithAnchor(html, titles[[length(titles)]], 3)
     if(length(screenLinks) <= IMAGESperROW){
-      html = addFlexTable(html, ezFlexTable(rbind(screenLinks)))
+      html = addFlexTable(html, ezGrid(rbind(screenLinks)))
     } else {
-      html = addFlexTable(html, ezFlexTable(rbind(screenLinks[1:IMAGESperROW])))
+      html = addFlexTable(html, ezGrid(rbind(screenLinks[1:IMAGESperROW])))
       for (i in 1:(ceiling(length(screenLinks)/IMAGESperROW)-1)){
-        html = addFlexTable(html, ezFlexTable(rbind(screenLinks[(i*IMAGESperROW+1):min((i+1)*IMAGESperROW,length(screenLinks))])))
+        html = addFlexTable(html, ezGrid(rbind(screenLinks[(i*IMAGESperROW+1):min((i+1)*IMAGESperROW,length(screenLinks))])))
       }
     }
   }
@@ -230,11 +230,11 @@ fastqscreenReport = function(dataset, param, htmlFile="00index.html", fastqData,
     titles = append(titles, "Mapping to RefSeq mRNA")
     html = addTitleWithAnchor(html, titles[[length(titles)]], 2)
     if(length(detectedSpeciesLinks) <= IMAGESperROW){
-      html = addFlexTable(html, ezFlexTable(rbind(detectedSpeciesLinks)))
+      html = addFlexTable(html, ezGrid(rbind(detectedSpeciesLinks)))
     } else {
-      html = addFlexTable(html, ezFlexTable(rbind(detectedSpeciesLinks[1:IMAGESperROW])))
+      html = addFlexTable(html, ezGrid(rbind(detectedSpeciesLinks[1:IMAGESperROW])))
       for (i in 1:(ceiling(length(detectedSpeciesLinks)/IMAGESperROW)-1)){
-        html = addFlexTable(html, ezFlexTable(rbind(detectedSpeciesLinks[(i*IMAGESperROW+1):min((i+1)*IMAGESperROW,length(detectedSpeciesLinks))])))
+        html = addFlexTable(html, ezGrid(rbind(detectedSpeciesLinks[(i*IMAGESperROW+1):min((i+1)*IMAGESperROW,length(detectedSpeciesLinks))])))
       }
     }
   }

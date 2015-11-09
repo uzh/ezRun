@@ -9,6 +9,8 @@
 ##' @title Wrapper for \code{FlexTable()}
 ##' @description Wraps \code{FlexTable()} with defaults to remove the cell header and cell borders.
 ##' @param x a matrix or data.frame to turn into an object of the class FlexTable.
+##' @param borderWidth an integer specifying the width of the table borders.
+##' @param valign "bottom", "middle" or "top" specifying the position of table cell contents.
 ##' @param header.columns a logical indicating whether to use a header for the table.
 ##' @template addargs-template
 ##' @templateVar fun FlexTable
@@ -17,14 +19,24 @@
 ##' @return Returns an object of the class FlexTable.
 ##' @examples
 ##' ezFlexTable(data.frame(a=1:5,b=11:15))
-ezFlexTable = function(x, body.cell.props = cellProperties(border.width = 0),
-                       header.cell.props = cellProperties(border.width = 0),
-                       header.columns = FALSE,  ...){
+ezFlexTable = function(x, borderWidth = 1, valign = "top", header.columns = FALSE,  ...){
   if (!is.data.frame(x) & !is.matrix(x)){
     x = ezFrame(x)
   }
-  FlexTable(x, body.cell.props = body.cell.props,
-            header.cell.props = header.cell.props,
+  bodyCells = cellProperties(border.width = borderWidth, vertical.align=valign)
+  headerCells = cellProperties(border.width = borderWidth)
+  FlexTable(x, body.cell.props = bodyCells,
+            header.cell.props = headerCells,
+            header.columns = header.columns, ...)
+}
+
+##' @describeIn ezFlexTable A flex table without borders.
+ezGrid = function(x, header.columns = FALSE,  ...){
+  if (!is.data.frame(x) & !is.matrix(x)){
+    x = ezFrame(x)
+  }
+  FlexTable(x, body.cell.props = cellProperties(border.width = 0),
+            header.cell.props = cellProperties(border.width = 0),
             header.columns = header.columns, ...)
 }
 
@@ -91,7 +103,7 @@ openBsdocReport = function(title="", dataset=NULL){
   doc = bsdoc(title = title)
   pot1 = pot(paste("Started on", format(Sys.time(), "%Y-%m-%d %H:%M:%S"), "--&#160;"))
   pot2 = as.html(pot("Documentation", hyperlink = "http://fgcz-sushi.uzh.ch/doc/methods-20140422.html"))
-  doc = addFlexTable(doc, ezFlexTable(cbind(pot1, pot2)))
+  doc = addFlexTable(doc, ezGrid(cbind(pot1, pot2)))
   doc = addTitleWithAnchor(doc, title)
   if (!is.null(dataset)){
     ezWrite.table(dataset, file="dataset.tsv", head="Name")
@@ -267,20 +279,16 @@ addCountResultSummary = function(doc, param, result){
     settings = append(settings, c("Log2 signal threshold:"=signif(log2(param$sigThresh), digits=4)))
     settings = append(settings, c("Linear signal threshold:"=signif(param$sigThresh, digits=4)))
   }
-  doc = addFlexTable(doc, ezFlexTable(settings, add.rownames=TRUE))
+  doc = addFlexTable(doc, ezGrid(settings, add.rownames=TRUE))
 }
 
 
 addSignificantCounts = function(doc, result, pThresh=c(0.1, 0.05, 1/10^(2:5))){
 
-    sigTable = ezFlexTable(getSignificantCountsTable(result, pThresh=pThresh), header.columns = TRUE, add.rownames = TRUE,
-                           body.cell.props=cellProperties(border.width=1, vertical.align="top"),
-                           header.cell.props=cellProperties(border.width = 1))
-    sigFcTable = ezFlexTable(getSignificantFoldChangeCountsTable(result, pThresh=pThresh), header.columns = TRUE, add.rownames=TRUE,
-                             body.cell.props=cellProperties(border.width=1, vertical.align="top"),
-                             header.cell.props=cellProperties(border.width = 1))
+    sigTable = ezFlexTable(getSignificantCountsTable(result, pThresh=pThresh), header.columns = TRUE, add.rownames = TRUE)
+    sigFcTable = ezFlexTable(getSignificantFoldChangeCountsTable(result, pThresh=pThresh), header.columns = TRUE, add.rownames=TRUE)
     doc = addTitle(doc, "Significant Counts", level=3)
-    tbl = ezFlexTable(cbind(as.html(sigTable), as.html(sigFcTable)), header.columns = FALSE)
+    tbl = ezGrid(cbind(as.html(sigTable), as.html(sigFcTable)))
     doc = addFlexTable(doc, tbl)
     return(doc)
 }
@@ -403,7 +411,7 @@ addQcScatterPlots = function(doc, param, design, conds, rawData, signalCond, isP
                                   width=min(max(ncol(signalCond) * 200, 480), 2000),
                                   height=min(max(ncol(signalCond) * 200, 480), 2000))
     }
-    doc = addFlexTable(doc, ezFlexTable(cbind(defLink, gcLink, widthLink)))
+    doc = addFlexTable(doc, ezGrid(cbind(defLink, gcLink, widthLink)))
   }
   for (i in 1:min(4, ncol(design))){
     for (cond in unique(design[,i])){
@@ -510,7 +518,7 @@ addTestScatterPlots = function(doc, param, x, result, seqAnno, types=NULL){
     legend("top", c("used", "absent"), col=c("blue", "darkorange"), pch=20, cex=1)
   })
   links["pValueHist"] = ezImageFileLink(plotCmd, file=paste0(param$comparison, "-pValueHist.png"), height=400, width=800)
-  doc = addFlexTable(doc, ezFlexTable(rbind(links)))
+  doc = addFlexTable(doc, ezGrid(rbind(links)))
   
   if (is.null(x)){
     return()
@@ -598,8 +606,7 @@ goClusterTable = function(param, clusterResult){
       tables[i, onto] = goResultToHtmlTable(x, param$pValThreshFisher, param$minCountFisher, onto=onto);
     }
   }
-  ft = ezFlexTable(tables, body.cell.props=cellProperties(border.width=2, vertical.align="top"),
-              header.cell.props=cellProperties(border.width = 2), header.columns = TRUE)
+  ft = ezFlexTable(tables, borderWidth = 2, header.columns = TRUE)
   bgColors = rep(gsub("FF$", "", clusterResult$clusterColors), each=ncol(tables))
   ft = setFlexTableBackgroundColors(ft, colors=bgColors)
   return(ft)
@@ -650,8 +657,7 @@ goUpDownTables = function(param, goResult){
       }
     }
   }
-  ft = ezFlexTable(tables, body.cell.props=cellProperties(border.width=2, vertical.align="top"),
-              header.cell.props=cellProperties(border.width = 2), header.columns = TRUE)
+  ft = ezFlexTable(tables, borderWidth = 2, header.columns = TRUE)
   return(list(flexTable=ft, txtFiles=txtFiles))
 }
 
@@ -788,7 +794,7 @@ addGageTables = function(doc, param = NULL, gageResults = NULL) {
       tableRows[[signal]] = cbind(imgrow, tbl)
     }
 #     ezWrite("</table>", con=html)
-    table = ezFlexTable(rbind(unlist(tableRows)), header = TRUE)
+    table = ezGrid(rbind(unlist(tableRows)), header.columns=TRUE)
     table = addHeaderRow(table, cbind(paste("Heatmap Plot logRatio Signal for", i), paste(i, "significant pathways")))
     doc = addFlexTable(doc, table)
   }

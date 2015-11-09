@@ -57,9 +57,7 @@ ezMethodFastQC = function(input=NA, output=NA, param=NA, htmlFile="00index.html"
     plotHtml = openBsdocReport(title=paste("FASTQC:", plotPages[i]))
     png = paste0("<img src=", reportDir, "/Images/", plots[i], ">")
     tbl = ezFlexTable(ezMatrix(png, rows=names(files), cols=names(plots)[i]), 
-                      header.columns = TRUE, add.rownames=TRUE, 
-                      body.cell.props=cellProperties(border.width=1, vertical.align="middle"),
-                      header.cell.props=cellProperties(border.width = 1))
+                      header.columns=TRUE, add.rownames=TRUE, valign="middle")
     plotHtml = addFlexTable(plotHtml, tbl)
     ezAddBootstrapMenu(plotHtml)
     closeBsdocReport(plotHtml, plotPages[i])
@@ -99,9 +97,7 @@ ezMethodFastQC = function(input=NA, output=NA, param=NA, htmlFile="00index.html"
     img = paste0(reportDir[i], 	"/Icons/", statusToPng[smy[[1]]])
     tbl[i, ] = paste0("<a href=", href, "><img src=", img, "></a>")
   }
-  html = addFlexTable(html, ezFlexTable(tbl, header.columns = TRUE, add.rownames=TRUE, 
-                                        body.cell.props=cellProperties(border.width=1, vertical.align="middle"),
-                                        header.cell.props=cellProperties(border.width = 1)))
+  html = addFlexTable(html, ezFlexTable(tbl, header.columns=TRUE, add.rownames=TRUE, valign="middle"))
   
   titles = append(titles, "Per Base Read Quality")
   html = addTitleWithAnchor(html, titles[[length(titles)]], 2)
@@ -112,7 +108,7 @@ ezMethodFastQC = function(input=NA, output=NA, param=NA, htmlFile="00index.html"
       pngMatrix[i, j] = as.html(pot(paste('<img src="', pngMatrix[i, j], '"/>')))
     }
   }
-  html = addFlexTable(html, ezFlexTable(pngMatrix))
+  html = addFlexTable(html, ezGrid(pngMatrix))
   if(nrow(dataset) > 1){
     ## TODOP: refactor this plotting function too
     plotReadCountToLibConc(dataset,colname='LibConc_qPCR [Characteristic]')
@@ -124,7 +120,7 @@ ezMethodFastQC = function(input=NA, output=NA, param=NA, htmlFile="00index.html"
       for (i in 1:length(pngLibCons)){
         pngLibCons[i] = as.html(pot(paste0('<img src="', pngLibCons[i], '"/>')))
       }
-      html = addFlexTable(html, ezFlexTable(matrix(pngLibCons, nrow=1)))
+      html = addFlexTable(html, ezGrid(matrix(pngLibCons, nrow=1)))
     }
   }
   titles = append(titles, "Settings")

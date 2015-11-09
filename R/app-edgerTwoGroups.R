@@ -222,7 +222,7 @@ writeNgsTwoGroupReport = function(dataset, result, htmlFile, param=NA, rawData=N
 #     ezWrite("</td></tr></table>", con=html)
     clusterLink = as.html(pot(paste0('<img src="', clusterPng, '"/>')))
     if (!is.null(clusterResult$GO)){
-      goLink = as.html(ezFlexTable(c("Background color corresponds to the row colors in the heatmap plot.",
+      goLink = as.html(ezGrid(c("Background color corresponds to the row colors in the heatmap plot.",
                  as.html(goClusterTable(param, clusterResult)))))
       #goLink[[2]] = addGOClusterResult(doc, param, clusterResult)
     } else {
@@ -231,7 +231,7 @@ writeNgsTwoGroupReport = function(dataset, result, htmlFile, param=NA, rawData=N
     if (!is.null(clusterResult$Kegg)){
       ########## TODO: addKeggClusterResult()
     }
-    tbl = ezFlexTable(ezFrame("Cluster Plot"=clusterLink, "GO categories of feature clusters"=goLink), header.columns = TRUE)
+    tbl = ezGrid(ezFrame("Cluster Plot"=clusterLink, "GO categories of feature clusters"=goLink), header.columns = TRUE)
     doc = addFlexTable(doc, tbl)
   }
   ## only do GO if we have enough genes
