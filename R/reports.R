@@ -9,7 +9,7 @@
 ##' @title Wrapper for \code{FlexTable()}
 ##' @description Wraps \code{FlexTable()} with defaults to remove the cell header and cell borders.
 ##' @param x a matrix or data.frame to turn into an object of the class FlexTable.
-##' @param borderWidth an integer specifying the width of the table borders.
+##' @param border an integer specifying the width of the table borders.
 ##' @param valign "bottom", "middle" or "top" specifying the position of table cell contents.
 ##' @param header.columns a logical indicating whether to use a header for the table.
 ##' @template addargs-template
@@ -19,12 +19,12 @@
 ##' @return Returns an object of the class FlexTable.
 ##' @examples
 ##' ezFlexTable(data.frame(a=1:5,b=11:15))
-ezFlexTable = function(x, borderWidth = 1, valign = "top", header.columns = FALSE,  ...){
+ezFlexTable = function(x, border = 1, valign = "top", header.columns = FALSE,  ...){
   if (!is.data.frame(x) & !is.matrix(x)){
     x = ezFrame(x)
   }
-  bodyCells = cellProperties(border.width = borderWidth, vertical.align=valign)
-  headerCells = cellProperties(border.width = borderWidth)
+  bodyCells = cellProperties(border.width = border, vertical.align=valign)
+  headerCells = cellProperties(border.width = border)
   FlexTable(x, body.cell.props = bodyCells,
             header.cell.props = headerCells,
             header.columns = header.columns, ...)
@@ -207,8 +207,8 @@ addTxtLinksToReport = function(txtNames, mime="text/plain", doc){
 
 ##' @title Adds a table
 ##' @description Adds a table to a bsdoc object.
-##' @param x a matrix or data.frame to paste a table from.
 ##' @param doc an object of the class bsdoc to add the table to.
+##' @param x a matrix or data.frame to paste a table from.
 ##' @param bgcolors a matrix specifying the background colors.
 ##' @param valign a character specifying where to align the table elements vertically. Use either "top", "middle" or "bottom".
 ##' @param border an integer specifying the border width.
@@ -220,7 +220,7 @@ addTxtLinksToReport = function(txtNames, mime="text/plain", doc){
 ##' rownames(x) = letters[1:5]
 ##' colnames(x) = LETTERS[1:5]
 ##' html = openBsdocReport()
-##' ezAddTable(x, html, head="Example", bgcolors="red")
+##' ezAddTable(html, x, head="Example", bgcolors="red")
 ##' closeBsdocReport(html, "example.html")
 ezAddTable = function(doc, x, bgcolors=NULL, valign="middle", border=1, head=""){
   bodyCells = cellProperties(border.width=border, vertical.align=valign)
@@ -607,7 +607,7 @@ addTestScatterPlots = function(doc, param, x, result, seqAnno, types=NULL){
 #       tables[i, onto] = goResultToHtmlTable(x, param$pValThreshFisher, param$minCountFisher, onto=onto);
 #     }
 #   }
-#   ezAddTable(tables, doc, border=2,
+#   ezAddTable(doc, tables, border=2,
 #                    bgcolors=matrix(gsub("FF$", "", clusterResult$clusterColors), nrow=clusterResult$nClusters, ncol=ncol(tables)))
 # }
 
@@ -620,7 +620,7 @@ goClusterTable = function(param, clusterResult){
       tables[i, onto] = goResultToHtmlTable(x, param$pValThreshFisher, param$minCountFisher, onto=onto);
     }
   }
-  ft = ezFlexTable(tables, borderWidth = 2, header.columns = TRUE)
+  ft = ezFlexTable(tables, border = 2, header.columns = TRUE)
   bgColors = rep(gsub("FF$", "", clusterResult$clusterColors), each=ncol(tables))
   ft = setFlexTableBackgroundColors(ft, colors=bgColors)
   return(ft)
@@ -671,7 +671,7 @@ goUpDownTables = function(param, goResult){
       }
     }
   }
-  ft = ezFlexTable(tables, borderWidth = 2, header.columns = TRUE)
+  ft = ezFlexTable(tables, border = 2, header.columns = TRUE)
   return(list(flexTable=ft, txtFiles=txtFiles))
 }
 
@@ -706,7 +706,7 @@ addGOTables = function(doc, param, goResult){
       }
     }
   }
-  ezAddTable(tables, doc, border=2, valign="top")
+  ezAddTable(doc, tables, border=2, valign="top")
   if (param$doZip){
     addTxtLinksToReport(txtFiles, mime="application/zip", doc=doc)
   } else {
@@ -803,8 +803,7 @@ addGageTables = function(doc, param = NULL, gageResults = NULL) {
 #       writeTableToHtmlWhite(res, con=html, 
 #                             bgcolors=matrix(gsub("FF$", "", unique(pathColors)), nrow=length(unique(pathColors)), ncol=1))
 #       ezWrite("</td></tr>", con=html)
-      tbl = ezAddTableWhite(res, doc,
-                               bgcolors=matrix(gsub("FF$", "", unique(pathColors)), nrow=length(unique(pathColors)), ncol=1))
+      tbl = ezAddTableWhite(res, bgcolors=matrix(gsub("FF$", "", unique(pathColors)), nrow=length(unique(pathColors)), ncol=1))
       tableRows[[signal]] = cbind(imgrow, tbl)
     }
 #     ezWrite("</table>", con=html)

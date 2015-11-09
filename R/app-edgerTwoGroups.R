@@ -216,9 +216,9 @@ writeNgsTwoGroupReport = function(dataset, result, htmlFile, param=NA, rawData=N
 #     } else {
 #       ezWrite("No information available", con=html)
 #     }
-##     if (!is.null(clusterResult$Kegg)){
-##       writeKeggClusterResult(html, param, clusterResult, keggOrganism)
-##     }
+#     if (!is.null(clusterResult$Kegg)){
+#       writeKeggClusterResult(html, param, clusterResult, keggOrganism)
+#     }
 #     ezWrite("</td></tr></table>", con=html)
     clusterLink = imgLinks(clusterPng)
     if (!is.null(clusterResult$GO)){
@@ -229,7 +229,7 @@ writeNgsTwoGroupReport = function(dataset, result, htmlFile, param=NA, rawData=N
       goLink = as.html(pot("No information available"))
     }
     if (!is.null(clusterResult$Kegg)){
-      ########## TODO: addKeggClusterResult()
+      ########## TODO: addKeggClusterResult(doc, param, clusterResult, keggOrganism)
     }
     tbl = ezGrid(ezFrame("Cluster Plot"=clusterLink, "GO categories of feature clusters"=goLink), header.columns = TRUE)
     doc = addFlexTable(doc, tbl)
