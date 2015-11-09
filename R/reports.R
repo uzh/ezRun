@@ -272,30 +272,26 @@ addTableToReportWhite = function(x, bgcolors=NULL, valign="middle", border=1, he
 ##' @seealso \code{\link[ReporteRs]{addFlexTable}}
 addCountResultSummary = function(doc, param, result){
   doc = addTitle(doc, "Result Summary", level=2)
-  ## TODO: do not use append here, use.
-  ## the advantage in using append is, that param$bla, where param exists and param$bla is NULL, still works; but not with the other method.
   settings = character()
-#   settings["Analysis"] = result$analysis
-#   settings["Genome Build"] = param$ezRef@refBuild
-  settings = append(settings, c("Analysis"=result$analysis))
-  settings = append(settings, c("Genome Build", param$ezRef@refBuild))
-  settings = append(settings, c("Feature level:"=result$featureLevel))
-  settings = append(settings, c("Data Column Used:"=result$countName))
-  settings = append(settings, c("Method:"=result$method))
+  settings["Analysis:"] = result$analysis
+  settings["Genome Build:"] = param$ezRef@refBuild
+  settings["Feature level:"] = result$featureLevel
+  settings["Data Column Used:"] = result$countName
+  settings["Method:"] = result$method
   if (ezIsSpecified(param$batch)){
-    settings = append(settings, c("Statistical Model:"="used provided second factor"))
+    settings["Statistical Model:"] = "used provided second factor"
   }
-  settings = append(settings, c("Comparison:"=param$comparison))
+  settings["Comparison:"] = param$comparison
   if (!is.null(param$normMethod)){
-    settings = append(settings, c("Normalization:"=param$normMethod))
+    settings["Normalization:"] = param$normMethod
   }
-  settings = append(settings, c("Number of features:"=length(result$pValue)))
+  settings["Number of features:"] = length(result$pValue)
   if (!is.null(result$isPresentProbe)){
-    settings = append(settings, c("Number of features with counts above threshold:"=sum(result$isPresentProbe)))
+    settings["Number of features with counts above threshold:"] = sum(result$isPresentProbe)
   }
   if (param$useSigThresh){
-    settings = append(settings, c("Log2 signal threshold:"=signif(log2(param$sigThresh), digits=4)))
-    settings = append(settings, c("Linear signal threshold:"=signif(param$sigThresh, digits=4)))
+    settings["Log2 signal threshold:"] = signif(log2(param$sigThresh), digits=4)
+    settings["Linear signal threshold:"] = signif(param$sigThresh, digits=4)
   }
   doc = addFlexTable(doc, ezGrid(settings, add.rownames=TRUE))
 }

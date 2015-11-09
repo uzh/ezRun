@@ -166,14 +166,15 @@ fastqscreenReport = function(dataset, param, htmlFile="00index.html", fastqData,
   html = openBsdocReport(title=titles[[length(titles)]], dataset=dataset)
   titles[["Settings"]] = "Settings"
   html = addTitleWithAnchor(html, title=titles[[length(titles)]], 2)
-  settings = c("Configuration File:"=param$confFile)
-  settings = append(settings, c("RefSeq mRNA Reference:"=REFSEQ_mRNA_REF))
-  settings = append(settings, c("FastqScreen Version:"=basename(dirname(FASTQSCREEN))))
-  settings = append(settings, c("Bowtie2 Version:"=basename(BOWTIE2_DIR)))
-  settings = append(settings, c("Bowtie2 Parameters:"=param$cmdOptions))
-  settings = append(settings, c("Minimum AlignmentScore:"=param$minAlignmentScore))
-  settings = append(settings, c("TopSpecies:"=param$nTopSpecies))
-  settings = append(settings, c("Subset:"=param$subset))
+  settings = character()
+  settings["Configuration File:"] = param$confFile
+  settings["RefSeq mRNA Reference:"] = REFSEQ_mRNA_REF
+  settings["FastqScreen Version:"] = basename(dirname(FASTQSCREEN))
+  settings["Bowtie2 Version:"] = basename(BOWTIE2_DIR)
+  settings["Bowtie2 Parameters:"] = param$cmdOptions
+  settings["Minimum AlignmentScore:"] = param$minAlignmentScore
+  settings["TopSpecies:"] = param$nTopSpecies
+  # settings["Subset:"] = param$subset     ## param$subset doesn't seem to exist
   html = addFlexTable(html, ezFlexTable(as.data.frame(settings), add.rownames=TRUE))
   titles[["rRNA-Check"]] = "rRNA-Check"
   html = addTitleWithAnchor(html, titles[[length(titles)]], 2)
