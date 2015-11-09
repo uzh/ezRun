@@ -31,11 +31,11 @@ ezFlexTable = function(x, border = 1, valign = "top", header.columns = FALSE,  .
 }
 
 ##' @describeIn ezFlexTable A flex table without borders.
-ezGrid = function(x, header.columns = FALSE,  ...){
+ezGrid = function(x, header.columns = FALSE,  valign = "top", ...){
   if (!is.data.frame(x) & !is.matrix(x)){
     x = ezFrame(x)
   }
-  FlexTable(x, body.cell.props = cellProperties(border.width = 0),
+  FlexTable(x, body.cell.props = cellProperties(border.width = 0, vertical.align = valign),
             header.cell.props = cellProperties(border.width = 0),
             header.columns = header.columns, ...)
 }
@@ -63,7 +63,7 @@ ezGrid = function(x, header.columns = FALSE,  ...){
 ##' })
 ##' ezImageFileLink(plotCmd)
 ezImageFileLink = function(plotCmd, file=NULL, name="imagePlot", plotType="plot", mouseOverText="my mouse over",
-                            addPdfLink=TRUE, width=480, height=480, ppi=72, envir=parent.frame()){
+                           addPdfLink=TRUE, width=480, height=480, ppi=72, envir=parent.frame()){
   if (is.null(file)){
     file = paste0(name, "-", plotType, ".png")
   }
@@ -230,8 +230,7 @@ ezAddTable = function(doc, x, bgcolors=NULL, valign="middle", border=1, head="")
     table = setFlexTableBackgroundColors(table, j=1:ncol(x), colors=bgcolors)
   }
   table = addHeaderRow(table, colnames(x))
-  doc = addFlexTable(doc, table)
-  # return(addFlexTable(doc, table)) # why return?
+  addFlexTable(doc, table)
 }
 
 ##' @describeIn ezAddTable Does the same with a white font and returning the table instead of adding it to the document.
@@ -299,13 +298,13 @@ addCountResultSummary = function(doc, param, result){
 
 
 addSignificantCounts = function(doc, result, pThresh=c(0.1, 0.05, 1/10^(2:5))){
-
-    sigTable = ezFlexTable(getSignificantCountsTable(result, pThresh=pThresh), header.columns = TRUE, add.rownames = TRUE)
-    sigFcTable = ezFlexTable(getSignificantFoldChangeCountsTable(result, pThresh=pThresh), header.columns = TRUE, add.rownames=TRUE)
-    doc = addTitle(doc, "Significant Counts", level=3)
-    tbl = ezGrid(cbind(as.html(sigTable), as.html(sigFcTable)))
-    doc = addFlexTable(doc, tbl)
-    return(doc)
+  
+  sigTable = ezFlexTable(getSignificantCountsTable(result, pThresh=pThresh), header.columns = TRUE, add.rownames = TRUE)
+  sigFcTable = ezFlexTable(getSignificantFoldChangeCountsTable(result, pThresh=pThresh), header.columns = TRUE, add.rownames=TRUE)
+  doc = addTitle(doc, "Significant Counts", level=3)
+  tbl = ezGrid(cbind(as.html(sigTable), as.html(sigFcTable)))
+  doc = addFlexTable(doc, tbl)
+  return(doc)
 }
 
 ##' @title Adds a result file
@@ -320,7 +319,7 @@ addSignificantCounts = function(doc, result, pThresh=c(0.1, 0.05, 1/10^(2:5))){
 ##' @return Returns the name of the result file.
 ##' @seealso \code{\link{writeTxtLinksToHtml}}
 addResultFile = function(doc, param, result, rawData, useInOutput=TRUE,
-                           file=paste0("result--", param$comparison, ".txt")){
+                         file=paste0("result--", param$comparison, ".txt")){
   seqAnno = rawData$seqAnno
   probes = names(result$pValue)[useInOutput]
   y = data.frame(row.names=probes, stringsAsFactors=FALSE, check.names=FALSE)
@@ -343,7 +342,7 @@ addResultFile = function(doc, param, result, rawData, useInOutput=TRUE,
     colnames(groupMeans) = paste("log2 Avg of", colnames(groupMeans))
     y = data.frame(y, groupMeans, check.names=FALSE, stringsAsFactors=FALSE)
   }
-
+  
   if (!is.null(result$xNorm)){
     yy = result$xNorm[useInOutput, ]
     colnames(yy) = paste(colnames(yy), "[normalized count]")
@@ -612,13 +611,39 @@ addTestScatterPlots = function(doc, param, x, result, seqAnno, types=NULL){
 #                    bgcolors=matrix(gsub("FF$", "", clusterResult$clusterColors), nrow=clusterResult$nClusters, ncol=ncol(tables)))
 # }
 
+
+## tables within a table within a table works flawlessly with this code, I never experienced the <br></br> problem
+## perhaps tables in the functions goClusterTable() and goUpDownTables() should be done as a list with each flex table being passed as.html()
+# library(ReporteRs)
+# param = ezParam(userParam = list('refBuild' = 'Schizosaccharomyces_pombe/Ensembl/EF2/Annotation/Version-2013-03-07'))
+# clusterResult = list("GO"=list("A"=letters[1:3], "B"=letters[4:6], "C"=letters[7:9]), nClusters=3, clusterColors=rainbow(3))
+# names(clusterResult$GO) = c("CC", "BP", "MF")
+# doc = openBsdocReport("My title")
+# # goLink = as.html(ezGrid(c("Background color corresponds to the row colors in the heatmap plot.",
+# #                           as.html(goClusterTable(param, clusterResult)))))
+# #tbl = ezGrid(ezFrame("Cluster Plot"=imgLinks("Rplot001.png"), "GO categories of feature clusters"=goLink), header.columns = TRUE)
+# innerTables = list()
+# for (i in seq(2,24,2)){
+#   innerTables[[i]] = as.html(ezFlexTable(matrix(rep(i, i), ifelse(i %% 4 == 0, 4, 2)), header.columns = TRUE))
+# }
+# table1 = ezMatrix(unlist(innerTables), rows=1:3, cols=letters[1:4])
+# tableLink = as.html(ezFlexTable(table1, header.columns = TRUE))
+# file.remove("Rplot001.png")
+# png()
+# plot(10:1)
+# dev.off()
+# tbl = ezGrid(ezFrame("Cluster Plot"=imgLinks("Rplot001.png"), "tables"=tableLink), header.columns = TRUE)
+# doc = addFlexTable(doc, tbl)
+# closeBsdocReport(doc, "example.html")
+
+
 goClusterTable = function(param, clusterResult){
   ontologies = names(clusterResult$GO)
   tables = ezMatrix("", rows=paste("Cluster", 1:clusterResult$nClusters), cols=ontologies)
   for (onto in ontologies){
     for (i in 1:clusterResult$nClusters){
       x = clusterResult$GO[[onto]][[i]]
-      tables[i, onto] = goResultToHtmlTable(x, param$pValThreshFisher, param$minCountFisher, onto=onto);
+      tables[i, onto] = goResultToHtmlTable(x, param$pValThreshFisher, param$minCountFisher, onto=onto)
     }
   }
   ft = ezFlexTable(tables, border = 2, header.columns = TRUE)
@@ -735,18 +760,18 @@ addGageTables = function(doc, param = NULL, gageResults = NULL) {
                                         <A HREF='http://www.broadinstitute.org/gsea/msigdb/index.jsp'>MSigDB</A> pathway")))
   }
   doc = addParagraph(doc, paste0("Significance threshold pathways: ", param[['gageThreshold']],
-                                ". Only pathways below this treshold are represented."))
+                                 ". Only pathways below this treshold are represented."))
   doc = addParagraph(doc, paste0("Significance threshold genes selected within a pathway: ", param[['gageGeneThreshold']],
-                                ". Only genes below this treshold are represented"))
+                                 ". Only genes below this treshold are represented"))
   doc = addParagraph(doc, "Warning : only pathways with at least one gene significant will be displayed. Only top 30 pathways are represented")
   
   gene.pValue=param[['gageGeneThreshold']]
   
   for (i in names(gageResults[['significant']])) {
-#     use = paste0("<table border=0><tr><th>Heatmap Plot logRatio Signal for ",i,"</th><th>",i," significant pathways</th></tr>")
+    #     use = paste0("<table border=0><tr><th>Heatmap Plot logRatio Signal for ",i,"</th><th>",i," significant pathways</th></tr>")
     checkpoint = nrow(gageResults[['significant']][[i]][['combined']]) > 0 | nrow(gageResults[['significant']][[i]][['both']]) > 0
     if(!checkpoint) next
-#     ezWrite(use, con=html)
+    #     ezWrite(use, con=html)
     tableRows = list()
     for (signal in c("combined", "both")) {
       lab.expr = paste(signal, 'expr', sep='.')
@@ -796,18 +821,18 @@ addGageTables = function(doc, param = NULL, gageResults = NULL) {
       
       
       # Writing plot and table
-#       ezWrite("<tr valign=top><td>", con=html)
-#       writeImageRowToHtml(x[[lab.png]], con=html)
-#       ezWrite("</td><td>", con=html)
+      #       ezWrite("<tr valign=top><td>", con=html)
+      #       writeImageRowToHtml(x[[lab.png]], con=html)
+      #       ezWrite("</td><td>", con=html)
       imgrow = x[[lab.png]]
       pathColors = unique(x[[lab.pathCol]])
-#       writeTableToHtmlWhite(res, con=html, 
-#                             bgcolors=matrix(gsub("FF$", "", unique(pathColors)), nrow=length(unique(pathColors)), ncol=1))
-#       ezWrite("</td></tr>", con=html)
+      #       writeTableToHtmlWhite(res, con=html, 
+      #                             bgcolors=matrix(gsub("FF$", "", unique(pathColors)), nrow=length(unique(pathColors)), ncol=1))
+      #       ezWrite("</td></tr>", con=html)
       tbl = ezAddTableWhite(res, bgcolors=matrix(gsub("FF$", "", unique(pathColors)), nrow=length(unique(pathColors)), ncol=1))
       tableRows[[signal]] = cbind(imgrow, tbl)
     }
-#     ezWrite("</table>", con=html)
+    #     ezWrite("</table>", con=html)
     table = ezGrid(rbind(unlist(tableRows)), header.columns=TRUE)
     table = addHeaderRow(table, cbind(paste("Heatmap Plot logRatio Signal for", i), paste(i, "significant pathways")))
     doc = addFlexTable(doc, table)
