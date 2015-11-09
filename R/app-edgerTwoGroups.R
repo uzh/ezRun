@@ -220,7 +220,7 @@ writeNgsTwoGroupReport = function(dataset, result, htmlFile, param=NA, rawData=N
 ##       writeKeggClusterResult(html, param, clusterResult, keggOrganism)
 ##     }
 #     ezWrite("</td></tr></table>", con=html)
-    clusterLink = as.html(pot(paste0('<img src="', clusterPng, '"/>')))
+    clusterLink = imgLinks(clusterPng)
     if (!is.null(clusterResult$GO)){
       goLink = as.html(ezGrid(c("Background color corresponds to the row colors in the heatmap plot.",
                  as.html(goClusterTable(param, clusterResult)))))

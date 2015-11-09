@@ -75,12 +75,27 @@ ezImageFileLink = function(plotCmd, file=NULL, name="imagePlot", plotType="plot"
     pdf(file=pdfName, width=width/ppi, height=height/ppi)
     eval(plotCmd, envir=envir)
     dev.off()
-    imgFilePot = pot(paste('<img src="', file, '" title="', mouseOverText, '"/>'),
+    imgFilePot = pot(paste("<img src='", file, "' title='", mouseOverText, "'/>"),
                      hyperlink = pdfName)
   } else {
-    imgFilePot = pot(paste('<img src="', pngName, '" title="', mouseOverText, '"/>'))
+    imgFilePot = pot(paste("<img src='", pngName, "' title='", mouseOverText, "'/>"))
   }
   return(as.html(imgFilePot))
+}
+
+##' @title Pastes image links as html
+##' @description A simple wrapper that pastes image links as html.
+##' @param image character(s) specifying links to image files.
+##' @template roxygen-template
+##' @return Returns an html link.
+##' @examples
+##' imgLinks("link.png")
+imgLinks = function(image){
+  links = character()
+  for (each in image){
+    links[each] = as.html(pot(paste0("<img src='", each, "'/>")))
+  }
+  return(links)
 }
 
 # important: creating the report like this will not use a connection, so this causes many adjustments

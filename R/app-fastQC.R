@@ -105,7 +105,7 @@ ezMethodFastQC = function(input=NA, output=NA, param=NA, htmlFile="00index.html"
   pngMatrix = plotQualityMatrixAsHeatmap(qualMatrixList, isR2=grepl("_R2", names(files)))
   for (i in 1:nrow(pngMatrix)){
     for (j in 1:ncol(pngMatrix)){
-      pngMatrix[i, j] = as.html(pot(paste('<img src="', pngMatrix[i, j], '"/>')))
+      pngMatrix[i, j] = imgLinks(pngMatrix[i, j])
     }
   }
   html = addFlexTable(html, ezGrid(pngMatrix))
@@ -117,9 +117,7 @@ ezMethodFastQC = function(input=NA, output=NA, param=NA, htmlFile="00index.html"
     if(length(pngLibCons)>0){
       titles = append(titles, "Correlation between Library concentration measurements and ReadCounts")
       html = addTitleWithAnchor(html, titles[[length(titles)]], 3)
-      for (i in 1:length(pngLibCons)){
-        pngLibCons[i] = as.html(pot(paste0('<img src="', pngLibCons[i], '"/>')))
-      }
+      pngLibCons = imgLinks(pngLibCons)
       html = addFlexTable(html, ezGrid(matrix(pngLibCons, nrow=1)))
     }
   }
