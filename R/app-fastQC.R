@@ -75,11 +75,14 @@ ezMethodFastQC = function(input=NA, output=NA, param=NA, htmlFile="00index.html"
       readCount[names(files)[i]] = signif(as.integer(x["Total Sequences", 1]) / 1e6, digits=3)
     }
   }
-  png(file="readCounts.png", width=min(600 + (nFiles-10)* 30, 2000), height=600)
-  par(mar=c(10.1, 4.1, 4.1, 2.1))
-  barplot(readCount, las=2, ylab="Counts [Mio]", main="total reads")
-  dev.off()
-  html = addImage(html, "readCounts.png")
+  
+  plotCmd = expression({
+    par(mar=c(10.1, 4.1, 4.1, 2.1))
+    barplot(readCount, las=2, ylab="Counts [Mio]", main="total reads")
+  })
+  readCountsLink = ezImageFileLink(plotCmd, file="readCounts.png", height=600,
+                                   width=min(600 + (nFiles-10)* 30, 2000))
+  html = addParagraph(html, readCountsLink)
   
   titles[["Fastqc quality measures"]] = "Fastqc quality measures"
   addTitleWithAnchor(html, titles[[length(titles)]], 2)
@@ -103,21 +106,19 @@ ezMethodFastQC = function(input=NA, output=NA, param=NA, htmlFile="00index.html"
   addTitleWithAnchor(html, titles[[length(titles)]], 2)
   qualMatrixList = ezMclapply(files, getQualityMatrix, mc.cores=ezThreads())
   pngMatrix = plotQualityMatrixAsHeatmap(qualMatrixList, isR2=grepl("_R2", names(files)))
-  for (i in 1:nrow(pngMatrix)){
-    for (j in 1:ncol(pngMatrix)){
-      pngMatrix[i, j] = imgLinks(pngMatrix[i, j])
-    }
-  }
+#   for (i in 1:nrow(pngMatrix)){
+#     for (j in 1:ncol(pngMatrix)){
+#       pngMatrix[i, j] = imgLinks(pngMatrix[i, j])
+#     }
+#   }
   html = addFlexTable(html, ezGrid(pngMatrix))
   if(nrow(dataset) > 1){
-    ## TODOP: refactor this plotting function too
-    plotReadCountToLibConc(dataset,colname='LibConc_qPCR [Characteristic]')
-    plotReadCountToLibConc(dataset,colname='LibConc_100_800bp [Characteristic]')
-    pngLibCons = list.files(".",pattern="ReadCount_.*.png")
-    if(length(pngLibCons)>0){
+    pngLibCons = character()
+    pngLibCons[["qPCR"]] = plotReadCountToLibConc(dataset, colname='LibConc_qPCR [Characteristic]')
+    pngLibCons[["100_800bp"]] = plotReadCountToLibConc(dataset, colname='LibConc_100_800bp [Characteristic]')
+    if(length(pngLibCons) > 0){
       titles[["Correlation"]] = "Correlation between Library concentration measurements and ReadCounts"
       addTitleWithAnchor(html, titles[[length(titles)]], 3)
-      pngLibCons = imgLinks(pngLibCons)
       html = addFlexTable(html, ezGrid(matrix(pngLibCons, nrow=1)))
     }
   }
@@ -149,7 +150,7 @@ EzAppFastqc <-
   )
 
 ##' @describeIn ezMethodFastQC Plots \code{colname} from \code{dataset} against read counts in millions.
-plotReadCountToLibConc = function(dataset,colname){
+plotReadCountToLibConc = function(dataset, colname){
   if(colname %in% colnames(dataset) && nrow(dataset) > 1){
     if(!all(dataset[[colname]]==0)){
       dataset = dataset[order(dataset$'Read Count',decreasing = T),]
@@ -157,15 +158,17 @@ plotReadCountToLibConc = function(dataset,colname){
       corResult = cor.test(dataset$'Read Count',dataset[[colname]],method = 'spearman')
       regressionResult = lm(dataset[[colname]]~dataset$'Read Count')
       label = sub(' \\[.*','',colname)
-      png(paste0('ReadCount_',label,'.png'),500,500)
-      plot(dataset$'Read Count',dataset[[colname]],pch=c(18),cex=1.5, main=label,
-           xlab='ReadCount in Mio',ylab=sub('\\[.*','',colname),xlim=c(0,max(dataset$'Read Count', na.rm=TRUE)*1.2), #min(dataset$'Read Count')*0.8
-           ylim=c(min(dataset[[colname]], na.rm = TRUE) * 0.8, max(dataset[[colname]], na.rm=TRUE) * 1.2))
-      legend("topright", paste('r=',round(corResult$estimate,2)), bty="n") 
-      abline(regressionResult,col='red',lty=c(2))
-      text(dataset$'Read Count',dataset[[colname]],pos = 2,
-           labels=rownames(dataset),cex=0.7,col='darkcyan')
-      dev.off()
+      plotCmd = expression({
+        plot(dataset$'Read Count', dataset[[colname]], pch=c(18), cex=1.5, main=label,
+             xlab='ReadCount in Mio', ylab=sub('\\[.*','', colname), xlim=c(0, max(dataset$'Read Count', na.rm=TRUE)*1.2), #min(dataset$'Read Count')*0.8
+             ylim=c(min(dataset[[colname]], na.rm = TRUE) * 0.8, max(dataset[[colname]], na.rm=TRUE) * 1.2))
+        legend("topright", paste('r=', round(corResult$estimate, 2)), bty="n") 
+        abline(regressionResult, col='red',lty=c(2))
+        text(dataset$'Read Count', dataset[[colname]], pos=2,
+             labels=rownames(dataset), cex=0.7, col='darkcyan')
+      })
+      link = ezImageFileLink(plotCmd, file=paste0('ReadCount_', label, '.png'), width=500, height=500)
+      return(link)
     }
   }
 }
@@ -244,7 +247,7 @@ plotQualityMatrixAsHeatmap = function(qualMatrixList, isR2=FALSE, xScale=1, ySca
     ezColorLegend(file=colorKeyFile, colorRange=c(minPercent, maxPercent), 
                   colors=colorsGray, vertical=FALSE, height=200*xScale, 
                   width=400*yScale, by.label=by.label, at=at, labels=as.character(at^2))
-    pngTable["Avg Qual Colors", nm] = colorKeyFile
+    pngTable["Avg Qual Colors", nm] = imgLinks(colorKeyFile)
     
     result = ezMatrix(0, dim=dim(qualMatrixList[[idx[1]]]))
     resultCount = result
@@ -263,26 +266,26 @@ plotQualityMatrixAsHeatmap = function(qualMatrixList, isR2=FALSE, xScale=1, ySca
     }
     result = result / resultCount
     avgQual = signif(prop.table(result,2) * 100, digits=3)
-    pngFileName = plotQualityHeatmap(sqrt(avgQual), colorRange=c(minPercent, maxPercent), 
+    pngFileLink = plotQualityHeatmap(sqrt(avgQual), colorRange=c(minPercent, maxPercent), 
                                      pngFileName=paste0("averageReadsQuality-heatmap_", nm, ".png"),
                                      colors=colorsGray, main=paste("averageReadsQuality", nm, sep="_"), 
                                      xScale=xScale, yScale=yScale)
-    pngTable["Average", nm] = pngFileName
+    pngTable["Average", nm] = pngFileLink
     
     ## plot the difference quality heatmap for R1_1
     colorKeyFile = paste0("diffReadsQuality-Key_", nm, ".png")
     at=seq(from=minDiff, to=maxDiff, by=by.label)
     ezColorLegend(file=colorKeyFile, colorRange=c(minDiff, maxDiff), colors=ezRedBlueScale(256),
                   vertical=FALSE, height=200*xScale, width=400*yScale, by.label=by.label, at=at, labels=as.character(at))
-    pngTable["Diff Qual Colors", nm] = colorKeyFile
+    pngTable["Diff Qual Colors", nm] = imgLinks(colorKeyFile)
     for(sampleName in names(qualMatrixList[idx])){
       qm = qualMatrixList[[sampleName]]
       diffResult = signif(prop.table(qm,2)*100, digits=3) - avgQual[1:nrow(qm), 1:ncol(qm)]
-      pngFileName = plotQualityHeatmap(diffResult, colorRange=c(minDiff, maxDiff), 
+      pngFileLink = plotQualityHeatmap(diffResult, colorRange=c(minDiff, maxDiff), 
                                        pngFileName=paste0("diffReadsQuality-heatmap_", sampleName, ".png"),
                                        colors=ezRedBlueScale(256), main=paste("diffReadsQuality", sampleName, sep="_"),
                                        xScale=xScale, yScale=yScale)
-      pngTable[sampleName, nm] = pngFileName
+      pngTable[sampleName, nm] = pngFileLink
     }
   }
   if(any(isR2)){
@@ -302,12 +305,11 @@ plotQualityHeatmap = function(result, name=NULL, colorRange=c(0,sqrt(40)), color
   result[result > colorRange[2]] = colorRange[2]
   result[result < colorRange[1]] = colorRange[1]
   
-  if (!is.null(pngFileName)){    
-    png(file=pngFileName, height=500*yScale, width=700*xScale)    
-    on.exit(dev.off())
-  }
-  image(1:ncol(result), 1:nrow(result), t(result), zlim=colorRange, col=colors, xlab="Read Position", ylab="Read Quality", main=main, axes=FALSE)
-  axis(1, at=labCol, labels=labCol)
-  axis(2, at=seq(1, nrow(result),by=5), labels=labRow)
-  return(pngFileName)
+  plotCmd = expression({
+    image(1:ncol(result), 1:nrow(result), t(result), zlim=colorRange, col=colors, xlab="Read Position", ylab="Read Quality", main=main, axes=FALSE)
+    axis(1, at=labCol, labels=labCol)
+    axis(2, at=seq(1, nrow(result),by=5), labels=labRow)
+  })
+  pngFileLink = ezImageFileLink(plotCmd, file=pngFileName, height=500*yScale, width=700*xScale)
+  return(pngFileLink)
 }
