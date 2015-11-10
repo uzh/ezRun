@@ -44,9 +44,9 @@ EzDataset <-
                 {
                   if (length(metaNew) > 0){
                     if (is.data.frame(metaNew)){
-                      meta <<- metaNew
+                      meta <<- metaNew ## we accept a data frame for multiple samples
                     } else {
-                      stopifnot(length(metaNew$Name) == 1)
+                      stopifnot(length(metaNew$Name) == 1) ## we accept a list for single samples; a sample must always have a Name
                       meta <<- data.frame(metaNew, stringsAsFactors=FALSE, check.names=FALSE, row.names=metaNew$Name)
                       meta$Name <<- NULL
                     }
