@@ -78,7 +78,7 @@ ezImageFileLink = function(plotCmd, file=NULL, name="imagePlot", plotType="plot"
     imgFilePot = pot(paste("<img src='", file, "' title='", mouseOverText, "'/>"),
                      hyperlink = pdfName)
   } else {
-    imgFilePot = pot(paste("<img src='", pngName, "' title='", mouseOverText, "'/>"))
+    imgFilePot = pot(paste("<img src='", file, "' title='", mouseOverText, "'/>"))
   }
   return(as.html(imgFilePot))
 }
