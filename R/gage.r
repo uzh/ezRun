@@ -69,9 +69,6 @@ runGageAnalysis = function(result, param=NULL, output=NULL, rawData=NULL, gene.p
       }
     }
   }
-  
-  
-  
   return(gageResults)
 }
 
@@ -262,7 +259,6 @@ writeGageResults = function(gageResults, param=NULL, output=NULL, prefix=NULL, s
       ezWrite.table(res, file=outfile)
     }
   }
-  
 }
 
 getExpressionGage = function(gageResults, result=NULL, rawData=NULL, param = NULL, signal=NULL) {
@@ -360,7 +356,7 @@ gageHeatmap = function(x, param=NULL, output=NULL, gene.pValue=NULL, signal=NULL
   if(is.null(fileName) & nrow(xCentered) >= 2 & ncol(xCentered) >= 2) {
     fileName = paste0(param[['comparison']],"-", prefix,"-", signal, ".png")
     
-    png(fileName, width=max(800, 400 + 10 * ncol(xCentered)), height=1000) 
+    png(fileName, width=max(800, 400 + 10 * ncol(xCentered)), height=1000)  ## REFAC
     rowDendro = FALSE
     colDendro = T
     showDendro = "column"
@@ -508,10 +504,7 @@ writeGageTables = function(html, param = NULL, gageResults = NULL) {
       ezWrite("</td></tr>", con=html)
     }
     ezWrite("</table>", con=html)
-    
   }
-  
-
 }
 
 writeTableToHtmlWhite = function(x, con=stdout(), bgcolors=matrix("#ffffff", nrow=nrow(x), ncol=ncol(x)),

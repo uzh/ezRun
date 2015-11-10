@@ -88,7 +88,7 @@ ngsTwoGroupAnalysis = function(input=NA, output=NA, param=NULL, htmlFile="00inde
       stop("column not found: ", param$grouping)
     }
   }
-  if (ezIsSpecified((param$batch)) && length(param$batch) == 1){
+  if (ezIsSpecified(param$batch) && length(param$batch) == 1){
     if (is.null(dataset[[param$batch]])){
       stop("column not found: ", param$batch)
     }
@@ -159,9 +159,9 @@ writeNgsTwoGroupReport = function(dataset, result, htmlFile, param=NA, rawData=N
   seqAnno = rawData$seqAnno
   doc = openBsdocReport(title=paste("Analysis:", param$name), dataset=dataset)
   
-  doc = addCountResultSummary(doc, param, result)
-  doc = addSignificantCounts(doc, result) ## TODO: update/repair function
-  resultFile = addResultFile(doc, param, result, rawData)
+  doc = addCountResultSummary(doc, param, result) ## REFAC
+  doc = addSignificantCounts(doc, result) ## REFAC ## TODO: update/repair function
+  resultFile = addResultFile(doc, param, result, rawData) ## REFAC
   ezWrite.table(result$sf, file="scalingfactors.txt", head="Name", digits=4)
   
   logSignal = log2(shiftZeros(result$xNorm, param$minSignal))
@@ -170,7 +170,7 @@ writeNgsTwoGroupReport = function(dataset, result, htmlFile, param=NA, rawData=N
   colnames(result$groupMeans) = c(param$sampleGroup, param$refGroup)
   
   if (param$writeScatterPlots){
-    addTestScatterPlots(doc, param, logSignal, result, seqAnno, types) ## colorRange was also not used in the old function
+    addTestScatterPlots(doc, param, logSignal, result, seqAnno, types) ## REFAC ## colorRange was also not used in the old function
   }
   
   use = result$pValue < param$pValueHighlightThresh & abs(result$log2Ratio) > param$log2RatioHighlightThresh & result$usedInTest
@@ -238,15 +238,15 @@ writeNgsTwoGroupReport = function(dataset, result, htmlFile, param=NA, rawData=N
   if (doGo(param, seqAnno)){
     goResult = twoGroupsGO(param, result, seqAnno, normalizedAvgSignal=rowMeans(result$groupMeans), method=param$goseqMethod)
 #     writeGOTables(html, param, goResult)
-    doc = addGoUpDownResult(doc, param, goResult)
+    doc = addGoUpDownResult(doc, param, goResult) ## REFAC
     goFiles = list.files('.',pattern='enrich.*txt')
     keepCols = c('GO.ID','Pvalue')
-    revigoLinks = matrix(nrow=3,ncol=3)
-    colnames(revigoLinks) = c('BP','CC','MF')
-    rownames(revigoLinks) = c('Both','Down','Up')
+    revigoLinks = matrix(nrow=3, ncol=3)
+    colnames(revigoLinks) = c('BP', 'CC', 'MF')
+    rownames(revigoLinks) = c('Both', 'Down', 'Up')
     for(j in 1:length(goFiles)){
       goResult = read.table(goFiles[j], sep='\t', stringsAsFactors = F, quote='',
-                            comment.char = '', header = T)[,keepCols]
+                            comment.char = '', header = T)[, keepCols]
       goResult = goResult[which(goResult$Pvalue < param$pValThreshFisher),]
       if(nrow(goResult) > param$maxNumberGroupsDisplayed) {
         goResult = goResult[1:param$maxNumberGroupsDisplayed,]
@@ -256,7 +256,7 @@ writeNgsTwoGroupReport = function(dataset, result, htmlFile, param=NA, rawData=N
                                    collapse='%0D%0A'))
     }
 #     ezWrite(paste0("<h3>ReViGO </h3>"), con=html)
-    doc = addParagraph(doc, "ReViGO", level=3)
+    doc = addTitle(doc, "ReViGO", level=3)
     revigoResult = capture.output(writeTableToHtml(revigoLinks))          
     revigoResult = gsub("<td valign='middle' bgcolor='#ffffff'>","<td valign='middle' bgcolor='#ffffff'><a target='_blank' href='",revigoResult)
     revigoResult = gsub("</td>","' type='text/plain'>Link2ReViGo</a></td>",revigoResult)
@@ -266,13 +266,12 @@ writeNgsTwoGroupReport = function(dataset, result, htmlFile, param=NA, rawData=N
   
   ## Run Gage
   if(param[['GAGEanalysis']] ) {
-    gageRes <- runGageAnalysis(result, param=param, output=output, rawData=rawData)
+    gageRes <- runGageAnalysis(result, param=param, output=output, rawData=rawData)  ## REFAC
 #     writeGageTables(html, param, gageRes)
-   addGageTables(doc, param, gageRes)
+   addGageTables(doc, param, gageRes) ## REFAC
   }
   
   ezSessionInfo()
-#   writeTxtLinksToHtml('sessionInfo.txt',con=html)
   doc = addParagraph(doc, pot("sessionInfo.txt", hyperlink = "sessionInfo.txt"))
   closeBsdocReport(doc, htmlFile)
 }
@@ -332,9 +331,6 @@ twoGroupCountComparison = function(rawData, param){
   result$sf = res$sf
   pValue = res$pval
   pValue[is.na(pValue)] = 1
-  
-  
-  
     
   if (!is.null(param$runGfold) && param$runGfold && !is.null(rawData$seqAnno$width) && !is.null(rawData$seqAnno$gene_name)){
     result$gfold = runGfold(rawData, result$sf, isSample, isRef)

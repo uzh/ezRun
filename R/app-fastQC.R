@@ -114,8 +114,8 @@ ezMethodFastQC = function(input=NA, output=NA, param=NA, htmlFile="00index.html"
   html = addFlexTable(html, ezGrid(pngMatrix))
   if(nrow(dataset) > 1){
     pngLibCons = character()
-    pngLibCons[["qPCR"]] = plotReadCountToLibConc(dataset, colname='LibConc_qPCR [Characteristic]')
-    pngLibCons[["100_800bp"]] = plotReadCountToLibConc(dataset, colname='LibConc_100_800bp [Characteristic]')
+    pngLibCons["qPCR"] = plotReadCountToLibConc(dataset, colname='LibConc_qPCR [Characteristic]')
+    pngLibCons["100_800bp"] = plotReadCountToLibConc(dataset, colname='LibConc_100_800bp [Characteristic]')
     if(length(pngLibCons) > 0){
       titles[["Correlation"]] = "Correlation between Library concentration measurements and ReadCounts"
       addTitleWithAnchor(html, titles[[length(titles)]], 3)
