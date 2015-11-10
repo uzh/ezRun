@@ -10,7 +10,6 @@
 ##' @templateVar methodName Fast QC
 ##' @seealso \code{\link{EzAppFastqc}}
 ezMethodFastQC = function(input=NA, output=NA, param=NA, htmlFile="00index.html"){
-  require(ReporteRs, warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
   cwd = getwd()
   on.exit(setwd(cwd))
   setwdNew(basename(output$getColumn("Report")))
@@ -58,7 +57,6 @@ ezMethodFastQC = function(input=NA, output=NA, param=NA, htmlFile="00index.html"
     tbl = ezFlexTable(ezMatrix(png, rows=names(files), cols=names(plots)[i]), 
                       header.columns=TRUE, add.rownames=TRUE, valign="middle")
     plotHtml = addFlexTable(plotHtml, tbl)
-    ezAddBootstrapMenu(plotHtml)
     closeBsdocReport(plotHtml, plotPages[i])
   }
   
@@ -132,8 +130,7 @@ ezMethodFastQC = function(input=NA, output=NA, param=NA, htmlFile="00index.html"
   html = addParagraph(html, paste("Method/Version:", basename(dirname(FASTQC))))
   ezSessionInfo()
   html = addParagraph(html, pot("sessionInfo.txt", hyperlink = "sessionInfo.txt"))
-  ezAddBootstrapMenu(html, lapply(titles, function(x){paste0("#", x)}))
-  closeBsdocReport(html, htmlFile)
+  closeBsdocReport(html, htmlFile, titles)
   ezSystem(paste("rm -rf ", paste0(reportDirs, ".zip", collapse=" ")))
   return("Success")
 }

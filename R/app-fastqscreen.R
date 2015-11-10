@@ -160,7 +160,6 @@ collectBowtie2Output = function(param, dataset, countFiles){
 
 ##' @describeIn ezMethodFastqScreen Generates a report with plots and other information about the outcome of the run.
 fastqscreenReport = function(dataset, param, htmlFile="00index.html", fastqData, speciesPercentageTop){
-  require(ReporteRs, warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
   titles = list()
   titles[["FastQ Screen"]] = paste("FastQ Screen:", param$name)
   html = openBsdocReport(title=titles[[length(titles)]], dataset=dataset)
@@ -242,6 +241,5 @@ fastqscreenReport = function(dataset, param, htmlFile="00index.html", fastqData,
   addTitleWithAnchor(html, titles[[length(titles)]], 2)
   ezSessionInfo()
   html = addParagraph(html, pot("sessionInfo.txt", hyperlink = "sessionInfo.txt"))
-  ezAddBootstrapMenu(html, lapply(titles, function(x){paste0("#", x)}))
-  closeBsdocReport(doc=html, file=htmlFile)
+  closeBsdocReport(doc=html, file=htmlFile, titles)
 }

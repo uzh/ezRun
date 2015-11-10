@@ -115,6 +115,7 @@ imgLinks = function(image){
 ##' ezAddBootstrapMenu(theDoc)
 ##' closeBsdocReport(doc=theDoc, file="example.html")
 openBsdocReport = function(title="", dataset=NULL){
+  require(ReporteRs, warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
   doc = bsdoc(title = title)
   pot1 = pot(paste("Started on", format(Sys.time(), "%Y-%m-%d %H:%M:%S"), "--&#160;"))
   pot2 = as.html(pot("Documentation", hyperlink = "http://fgcz-sushi.uzh.ch/doc/methods-20140422.html"))
@@ -128,22 +129,18 @@ openBsdocReport = function(title="", dataset=NULL){
 }
 
 ##' @describeIn openBsdocReport Adds a paragraph showing the finishing time and writes the document. \code{file} must have a .html suffix.
-closeBsdocReport = function(doc, file){
+closeBsdocReport = function(doc, file, titles=NULL){
   doc = addParagraph(doc, paste("Finished", format(Sys.time(), "%Y-%m-%d %H:%M:%S")))
-  writeDoc(doc, file=file)
-}
-
-##' @describeIn openBsdocReport Adds a bootstrapmenu with the FGCZ link and optional navigation. Section links can be added to the Navigation with \code{#Anchorname}.
-ezAddBootstrapMenu = function(doc, titles=NULL){
   bootStrap = BootstrapMenu("Functional Genomics Center Zurich", link = "http://www.fgcz.ethz.ch")
   if (ezIsSpecified(titles)){
     ddMenu = DropDownMenu("Navigation")
     for (each in titles){
-      ddMenu = addLinkItem(ddMenu, label=sub("#", "", each), link=each)
+      ddMenu = addLinkItem(ddMenu, label=each, link=paste0("#", each))
     }
     bootStrap = addLinkItem(bootStrap, dd=ddMenu)
   }
   doc = addBootstrapMenu(doc, bootStrap)
+  writeDoc(doc, file=file)
 }
 
 ##' @title Adds a title with an anchor
@@ -180,7 +177,6 @@ addTitleWithAnchor = function(doc, title, level=1){
 ##' writeErrorReport(htmlFile, param)
 writeErrorReport = function(htmlFile, param=param, dataset=NULL, error="Unknown Error"){
   html = openBsdocReport(title=paste("Error:", param$name), dataset=dataset)
-  ezAddBootstrapMenu(html)
   html = addTitle(html, "Error message", level=2)
   for (i in 1:length(error)){
     html = addParagraph(html, error[i])
@@ -614,7 +610,6 @@ addTestScatterPlots = function(doc, param, x, result, seqAnno, types=NULL){
 
 ## tables within a table within a table works flawlessly with this code, I never experienced the <br></br> problem
 ## perhaps tables in the functions goClusterTable() and goUpDownTables() should be done as a list with each flex table being passed as.html()
-# library(ReporteRs)
 # param = ezParam(userParam = list('refBuild' = 'Schizosaccharomyces_pombe/Ensembl/EF2/Annotation/Version-2013-03-07'))
 # clusterResult = list("GO"=list("A"=letters[1:3], "B"=letters[4:6], "C"=letters[7:9]), nClusters=3, clusterColors=rainbow(3))
 # names(clusterResult$GO) = c("CC", "BP", "MF")

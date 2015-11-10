@@ -9,14 +9,46 @@
 ##' @template method-template
 ##' @templateVar methodName Deseq2
 ##' @seealso \code{\link{EzAppDeseq2}}
-ezMethodDeseq2 = function(input=NA, output=NA, param=NA){
+ezMethodDeseq2 = function(input=NA, output=NA, param=NA, htmlFile="00index.html"){
   param$testMethod = "deseq2"
   param$normMethod = ""
   param$runGfold = FALSE ## no need to compute moderated ratios; deseq2 does this already
   if (!is.null(param$markOutliers) && param$markOutliers){
     stop("DESeq2 does not support marking outliers because marked outliers would still be used in dispersion estimates")
   }
-  ngsTwoGroupAnalysis(input, output, param=param)
+  cwd = getwd()
+  on.exit(setwd(cwd))
+  setwdNew(basename(output$getColumn("Report")))
+  stopifnot(param$sampleGroup != param$refGroup)
+  dataset = input$meta
+  if (param$useFactorsAsSampleName){
+    dataset$Name = rownames(dataset)
+    rownames(dataset) = addReplicate(apply(ezDesignFromDataset(dataset, param), 1, paste, collapse="_"))
+  }
+  if (!is.null(param$removeOutliers) && param$removeOutliers && !is.null(dataset$Outlier)){
+    dataset = dataset[toupper(dataset$Outlier) %in% c("", "NO", '""', "FALSE") == TRUE, ]
+  }
+  input$meta = dataset
+  
+  rawData = loadCountDataset(input, param)
+  if (isError(rawData)){
+    writeErrorReport(htmlFile, param=param, error=rawData$error)
+    return("Error")
+  }
+  
+  modifiedParams = modifyParameters(dataset, param)
+  param$grouping = modifiedParams$grouping
+  param$batch = modifiedParams$batch
+  
+  result = twoGroupCountComparison(rawData, param)
+  if (isError(result)){
+    writeErrorReport(htmlFile, param=param, error=rawData$error)
+    return("Error")
+  }
+  result$featureLevel = rawData$featureLevel
+  result$countName = rawData$countName
+  
+  writeNgsTwoGroupReport(dataset, result, htmlFile, param=param, rawData=rawData)
   return("Success")
 }
 
