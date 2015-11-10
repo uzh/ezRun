@@ -88,7 +88,7 @@ ngsTwoGroupAnalysis = function(input=NA, output=NA, param=NULL, htmlFile="00inde
       stop("column not found: ", param$grouping)
     }
   }
-  if (ezIsSpecified((param$batch)) && length(param$batch) == 1){
+  if (ezIsSpecified(param$batch) && length(param$batch) == 1){
     if (is.null(dataset[[param$batch]])){
       stop("column not found: ", param$batch)
     }
@@ -332,9 +332,6 @@ twoGroupCountComparison = function(rawData, param){
   result$sf = res$sf
   pValue = res$pval
   pValue[is.na(pValue)] = 1
-  
-  
-  
     
   if (!is.null(param$runGfold) && param$runGfold && !is.null(rawData$seqAnno$width) && !is.null(rawData$seqAnno$gene_name)){
     result$gfold = runGfold(rawData, result$sf, isSample, isRef)
