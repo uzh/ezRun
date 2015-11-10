@@ -46,8 +46,7 @@ EzAppFastqScreen <-
               )
   )
 
-
-## NOTEP: all 5 functions below get only called once each in ezMethodFastqScreen()
+##' @describeIn ezMethodFastqScreen Executes the fastqscreen command with given parameters on the input files.
 executeFastqscreenCMD = function(param, files){
   confFile = paste0(FASTQSCREEN_CONF_DIR, param$confFile)
   opt = ""
@@ -63,33 +62,7 @@ executeFastqscreenCMD = function(param, files){
   return(resultFiles)
 }
 
-# TODO merge with 
-executeBowtie2CMD = function(param, files){
-  countFiles = character()
-  for (nm in names(files)){
-    countFiles[nm] = paste0(nm, "-counts.txt")
-    bowtie2options = param$cmdOptions
-    if(!param$paired){
-      cmd = paste(file.path(BOWTIE2_DIR,'bowtie2'),"-x",REFSEQ_mRNA_REF, 
-                  " -U ",files[nm], bowtie2options ,"-p",param$cores,
-                  "--no-unal --no-hd", "2> ", paste0(nm, "_bowtie2.err"),
-                  "| cut -f1,3,12", " |sed s/AS:i://g", ">", countFiles[nm])
-    } else {
-      R2_file = sub('R1','R2',files[nm])  ## TODO: this is a hack, R2 files should be passed to the function
-      cmd = paste(file.path(BOWTIE2_DIR,'bowtie2'),"-x",REFSEQ_mRNA_REF, 
-                  " -1 ",files[nm]," -2 ", R2_file, bowtie2options, "-p",param$cores,
-                  "--no-discordant --no-mixed --no-unal",
-                  "2> ", paste0(nm, "_bowtie2.err"),
-                  "| cut -f1,3,12", " |sed s/AS:i://g", ">", countFiles[nm])
-    }
-    ezSystem(cmd)
-    #ezSystem(paste(SAMTOOLS, "view", "bowtie.bam", '|cut -f1,3,12 |sort|sed "s/AS:i://g" >',countFiles[nm]))
-    #system(paste(SAMTOOLS,"view -F 256",sbamFile,"|cut -f1,12 |sort|sed 's/AS:i://g' >",bestScoreFile))
-  }
-  system('rm bowtie.bam *.err')
-  return(countFiles)
-}
-
+##' @describeIn ezMethodFastqScreen Collects the fastqscreen output after the result files have been obtained by \code{executeFastqscreenCMD()}.
 collectFastqscreenOutput = function(dataset, files, resultFiles){
   fastqData = list()
   fastqData$MappingRate = numeric()
@@ -108,7 +81,33 @@ collectFastqscreenOutput = function(dataset, files, resultFiles){
   return(fastqData)
 }
 
-# TODO: merge with executBowtie2Cmd; return data; don't make plots
+##' @describeIn ezMethodFastqScreen Executes the bowtie2 command with given parameters on the input files.
+executeBowtie2CMD = function(param, files){
+  countFiles = character()
+  for (nm in names(files)){
+    countFiles[nm] = paste0(nm, "-counts.txt")
+    bowtie2options = param$cmdOptions
+    if(!param$paired){
+      cmd = paste(file.path(BOWTIE2_DIR,'bowtie2'),"-x",REFSEQ_mRNA_REF, 
+                  " -U ",files[nm], bowtie2options ,"-p",param$cores,
+                  "--no-unal --no-hd", "2> ", paste0(nm, "_bowtie2.err"),
+                  "| cut -f1,3,12", " |sed s/AS:i://g", ">", countFiles[nm])
+    } else {
+      R2_file = sub('R1','R2',files[nm])  ## TODO: this is a hack, R2 files should be passed to the function
+      cmd = paste(file.path(BOWTIE2_DIR,'bowtie2'),"-x",REFSEQ_mRNA_REF, 
+                  " -1 ",files[nm]," -2 ", R2_file, bowtie2options, "-p",param$cores,
+                  "--no-discordant --no-mixed --no-unal --no-hd",
+                  "2> ", paste0(nm, "_bowtie2.err"),
+                  "| cut -f1,3,12", " |sed s/AS:i://g", ">", countFiles[nm])
+    }
+    ezSystem(cmd)
+    #ezSystem(paste(SAMTOOLS, "view", "bowtie.bam", '|cut -f1,3,12 |sort|sed "s/AS:i://g" >',countFiles[nm]))
+    #system(paste(SAMTOOLS,"view -F 256",sbamFile,"|cut -f1,12 |sort|sed 's/AS:i://g' >",bestScoreFile))
+  }
+  return(countFiles)
+}
+
+##' @describeIn ezMethodFastqScreen Collects the bowtie2 output after the count files have been obtained by \code{executeBowtie2CMD()}.
 collectBowtie2Output = function(param, dataset, countFiles){
   tax2name = read.table('/srv/GT/reference/RefSeq/mRNA/20150301/Annotation/tax2name.txt',header=F,stringsAsFactors=F,sep='|', 
                         colClasses="character",quote='', comment.char="")
@@ -157,8 +156,9 @@ collectBowtie2Output = function(param, dataset, countFiles){
     }
   }
   return(speciesPercentageTop)
-  }
+}
 
+##' @describeIn ezMethodFastqScreen Generates a report with plots and other information about the outcome of the run.
 fastqscreenReport = function(dataset, param, htmlFile="00index.html", fastqData, speciesPercentageTop){
   require(ReporteRs, warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
   titles = list()
@@ -195,15 +195,14 @@ fastqscreenReport = function(dataset, param, htmlFile="00index.html", fastqData,
   html = addFlexTable(html, ezGrid(cbind(mappingRateLink, readsLink)))
   
   screenLinks = list()
+  detectedSpeciesLinks = list()
   for (nm in rownames(dataset)){
     plotCmd = expression({
       par(mar=c(10.1, 4.1, 4.1, 2.1))
       barplot(t(fastqData$CommonResults[[nm]]), las=2, ylim=c(0,100), legend.text=T, ylab="MappedReads in %", main=nm)
     })
     screenLinks[[nm]] = ezImageFileLink(plotCmd, name = nm, plotType = "-rRNA-countsBySpecies-barplot")
-  }
-  detectedSpeciesLinks = list()
-  for (nm in rownames(dataset)){
+    
     plotCmd = expression({
       par(mar=c(10.1, 4.1, 4.1, 2.1))
       x = speciesPercentageTop[[nm]]
@@ -241,10 +240,6 @@ fastqscreenReport = function(dataset, param, htmlFile="00index.html", fastqData,
   }
   titles[["Misc"]] = "Misc"
   addTitleWithAnchor(html, titles[[length(titles)]], 2)
-#   txts = list.files(".",pattern="screen\\.txt")
-#   for (each in txts){
-#     html = addParagraph(html, pot(each, hyperlink = each))
-#   }
   ezSessionInfo()
   html = addParagraph(html, pot("sessionInfo.txt", hyperlink = "sessionInfo.txt"))
   ezAddBootstrapMenu(html, lapply(titles, function(x){paste0("#", x)}))

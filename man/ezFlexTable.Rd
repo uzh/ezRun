@@ -7,7 +7,7 @@
 \usage{
 ezFlexTable(x, border = 1, valign = "top", header.columns = FALSE, ...)
 
-ezGrid(x, header.columns = FALSE, ...)
+ezGrid(x, header.columns = FALSE, valign = "top", ...)
 }
 \arguments{
 \item{x}{a matrix or data.frame to turn into an object of the class FlexTable.}
