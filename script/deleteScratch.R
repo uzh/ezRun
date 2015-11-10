@@ -1,0 +1,1 @@
+ezSystem("rm -fr /scratch/*")
