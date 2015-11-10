@@ -95,14 +95,8 @@ ezConditionsFromDataset = function(dataset, param=NULL, maxFactors=2){
   ezConditionsFromDesign(ezDesignFromDataset(dataset, param), maxFactors=maxFactors)
 }
 
-##' @describeIn ezDesignFromDataset Adds the names into the input character vector.
+##' @describeIn ezDesignFromDataset add a replicate id to make values unique
 addReplicate = function(x, sep="_", repLabels=1:length(x)){
-  
-  idx = order(x)
-  xc = table(x)
-  idReps = lapply(xc, function(x){repLabels[1:x]})
-  idBase = rep(names(xc), xc)
-  idNew = paste(idBase, unlist(idReps), sep=sep)
-  x[idx] = idNew
-  return(x)
+  repId = ezReplicateNumber(x)
+  paste(x, repLabels[repId], sep=sep)
 }

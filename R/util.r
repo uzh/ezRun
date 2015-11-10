@@ -44,7 +44,7 @@ setwdNew = function(dir){
 ##' vennFromSets(aList)
 vennFromSets = function(setList){
   stopifnot(!is.null(names(setList)) && length(setList) %in% 2:3)
-  library(limma, warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
+  require(limma, warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
   x = ezMatrix(FALSE, rows=unique(unlist(setList)), cols=names(setList))
   for (i in 1:length(setList)){
     x[match(setList[[i]], rownames(x)), i] = TRUE
@@ -331,12 +331,12 @@ ezScaleColumns = function(x, scaling){
 ##' ezMedianNorm(m1,use=c(TRUE,FALSE))
 ezMedianNorm = function(x, use=NULL, target=NULL, presentFlag=NULL){
   
-  sf = getMedianScalingFactor(x, use=use, target=target, presentFlag=presentFlag)
+  sf = ezMedianScalingFactor(x, use=use, target=target, presentFlag=presentFlag)
   return(ezScaleColumns(x, sf))
 }
 
 ##' @describeIn ezMedianNorm Calculates the scaling factor for the main function.
-getMedianScalingFactor = function(x, use=NULL, target=NULL, presentFlag=NULL){
+ezMedianScalingFactor = function(x, use=NULL, target=NULL, presentFlag=NULL){
   
   if (is.null(use)){
     use = rep(TRUE, nrow(x))
@@ -601,19 +601,24 @@ ezMultiplicated = function(x, n=2, mode="keepFirst"){
              random=sample(1:length(x), length(x), replace=FALSE),
              keepLast=length(x):1)
   x = x[idx]
-  isMulti = ezGetMulti(x) >= n
+  isMulti = ezReplicateNumber(x) >= n
   isMulti[idx] = isMulti
 	return(isMulti)
 }
 
-##' @describeIn ezMultiplicated Returns values incrementing seperately for each occurance of each value in the input.
-ezGetMulti = function(x){
-  #x = c(1,1,3,3,3,3, 2,2)
+##' @title Count how often a value has been seen before
+##' @description This can be used to get replicate identifiers. For each value unique value in the input it counts incrementally how often it occurs
+##' @param x a vector with discrete values
+##' @return Returns a vector of the same length as the input. If the value at an element is n, then this means, in the original value was the nth occurrence.
+##' @examples 
+##' x = c("a", "c", "a", "b", "c")
+##' ezReplicateNumber(x)
+ezReplicateNumber = function(x){
   idx = unsplit(tapply(x, x, function(y){1:length(y)}), x)
 }
 
-##' @title Collapses a set of values
-##' @description Collapses a set of values into a character and pastes them. Useful for documentation purposes.
+##' @title Collapses a vector in a single string
+##' @description This extends the functionality from \code{paste(..., collapse=...)} by optionally removing empty strings, duplicates or NA values
 ##' @param x a vector, matrix or list.
 ##' @param sep the separator to use between values.
 ##' @param na.rm a logical specifying whether to remove \code{NA}'s.
@@ -625,7 +630,7 @@ ezGetMulti = function(x){
 ##' l1 = list(a=c(1,"",6),c=c("rsrg","yjrt",NA,6))
 ##' collapse(l1,sep="_")
 ##' collapse(l1,na.rm=T,empty.rm=T,uniqueOnly=T)
-collapse = function(x, sep="; ", na.rm=FALSE, empty.rm=FALSE, uniqueOnly=FALSE){
+ezCollapse = function(x, sep="; ", na.rm=FALSE, empty.rm=FALSE, uniqueOnly=FALSE){
   if (length(x) == 0){
     return("")
   }

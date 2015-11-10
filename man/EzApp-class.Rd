@@ -31,7 +31,7 @@ This reference class is the basis of all other apps that inherit from it. It set
 \examples{
 ds = EzDataset$new(file=system.file("extdata/yeast_10k/dataset.tsv", package="ezRun", mustWork = TRUE))
 NULLApp = EzApp$new(runMethod=function(input, output, param){},name="NULLApp")
-NULLApp$run(input=ds, output=ds, param=list(process_mode="SAMPLE"))
+NULLApp$run(input=ds, output=ds, param=list(process_mode="DATASET"))
 }
 \author{
 Rehrauer, Hubert

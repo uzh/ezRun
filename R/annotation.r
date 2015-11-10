@@ -84,7 +84,7 @@ aggregateGoAnnotation = function(seqAnno, genes, goColumns=c("GO BP", "GO CC", "
   }
   geneAnno = data.frame(row.names=na.omit(unique(genes)))
   mergeGo = function(x){
-    collapse(strsplit(x, "; "), na.rm=TRUE, empty.rm=TRUE, uniqueOnly=TRUE)
+    ezCollapse(strsplit(x, "; "), na.rm=TRUE, empty.rm=TRUE, uniqueOnly=TRUE)
   }
   for (nm in intersect(goColumns, colnames(seqAnno))){
     geneAnno[nm] = ""

@@ -2,12 +2,12 @@
 % Please edit documentation in R/util.r
 \name{ezMedianNorm}
 \alias{ezMedianNorm}
-\alias{getMedianScalingFactor}
+\alias{ezMedianScalingFactor}
 \title{Scales columns of a matrix to median}
 \usage{
 ezMedianNorm(x, use = NULL, target = NULL, presentFlag = NULL)
 
-getMedianScalingFactor(x, use = NULL, target = NULL, presentFlag = NULL)
+ezMedianScalingFactor(x, use = NULL, target = NULL, presentFlag = NULL)
 }
 \arguments{
 \item{x}{the matrix to scale.}
@@ -26,7 +26,7 @@ Columns of the matrix will be scaled to an overall median or to a defined target
 }
 \section{Functions}{
 \itemize{
-\item \code{getMedianScalingFactor}: Calculates the scaling factor for the main function.
+\item \code{ezMedianScalingFactor}: Calculates the scaling factor for the main function.
 }}
 \examples{
 m1 = matrix(1:20,5)

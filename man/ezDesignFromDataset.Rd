@@ -32,7 +32,7 @@ Gets the design from the dataset or parameters, if specified.
 
 \item \code{ezConditionsFromDataset}: A wrapper to get the conditions directly from the dataset.
 
-\item \code{addReplicate}: Adds the names into the input character vector.
+\item \code{addReplicate}: add a replicate id to make values unique
 }}
 \examples{
 ds = EzDataset$new(file=system.file("extdata/yeast_10k/dataset.tsv", package="ezRun", mustWork = TRUE))

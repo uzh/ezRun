@@ -206,7 +206,7 @@ getTargetRanges = function (gff, param, chrom=NULL) {
     intronsByTranscript = psetdiff(trRanges, exonsByTranscript[names(trRanges)])
     targetRanges = unlist(intronsByTranscript)
     ids = names(targetRanges)
-    names(targetRanges) = paste(ids, sprintf("%03d", ezGetMulti(ids)), sep= ":I")
+    names(targetRanges) = paste(ids, sprintf("%03d", ezReplicateNumber(ids)), sep= ":I")
   }
   if (param$featureLevel == "isoform"){
     targetRanges = split(gffToRanges(gff), gff$transcript_id)

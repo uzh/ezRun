@@ -25,14 +25,11 @@ ezMethodFastQC = function(input=NA, output=NA, param=NA, htmlFile="00index.html"
   }
   nFiles = length(files)
   
-  titles = list()
-  titles[["FastQC"]] = paste("FASTQC:", param$name)
-  html = openBsdocReport(title=titles[[length(titles)]], dataset=dataset)
-
-  reportDir = sub(".fastq.gz", "_fastqc", basename(files))
-  reportDir = sub(".fq.gz", ".fq_fastqc", reportDir)
-  stopifnot(!duplicated(reportDir))
-  filesUse = files[!file.exists(reportDir)]
+  ## guess the names of the report directories that will be creatd by fastqc
+  reportDirs = sub(".fastq.gz", "_fastqc", basename(files))
+  reportDirs = sub(".fq.gz", ".fq_fastqc", reportDirs)
+  stopifnot(!duplicated(reportDirs))
+  filesUse = files[!file.exists(reportDirs)]
   if (length(filesUse) > 0){
     cmd = paste(FASTQC, "--extract -o . -t", min(ezThreads(), 8), param$cmdOptions,
                 paste(filesUse, collapse=" "),
@@ -52,16 +49,24 @@ ezMethodFastQC = function(input=NA, output=NA, param=NA, htmlFile="00index.html"
             "Sequence Duplication Levels"="duplication_levels.png",
             "Adapter Content"="adapter_content.png",
             "Kmer Content"="kmer_profiles.png")
+  
+  ## make for each plot type an html report with all samples
   plotPages = sub(".png", ".html", plots)
   for (i in 1:length(plots)){
     plotHtml = openBsdocReport(title=paste("FASTQC:", plotPages[i]))
-    png = paste0("<img src=", reportDir, "/Images/", plots[i], ">")
+    png = paste0("<img src=", reportDirs, "/Images/", plots[i], ">")
     tbl = ezFlexTable(ezMatrix(png, rows=names(files), cols=names(plots)[i]), 
                       header.columns=TRUE, add.rownames=TRUE, valign="middle")
     plotHtml = addFlexTable(plotHtml, tbl)
     ezAddBootstrapMenu(plotHtml)
     closeBsdocReport(plotHtml, plotPages[i])
   }
+  
+  ## establish the main report
+  titles = list()
+  titles[["FastQC"]] = paste("FASTQC:", param$name)
+  html = openBsdocReport(title=titles[[length(titles)]], dataset=dataset)
+  
   
   titles[["Read Counts"]] = "Read Counts"
   addTitleWithAnchor(html, titles[[length(titles)]], 2)
@@ -71,7 +76,7 @@ ezMethodFastQC = function(input=NA, output=NA, param=NA, htmlFile="00index.html"
   } else {
     readCount = integer()
     for (i in 1:nFiles){
-      x = ezRead.table(file.path(reportDir[i], "fastqc_data.txt"), header=FALSE, nrows=7, fill=TRUE)
+      x = ezRead.table(file.path(reportDirs[i], "fastqc_data.txt"), header=FALSE, nrows=7, fill=TRUE)
       readCount[names(files)[i]] = signif(as.integer(x["Total Sequences", 1]) / 1e6, digits=3)
     }
   }
@@ -88,16 +93,16 @@ ezMethodFastQC = function(input=NA, output=NA, param=NA, htmlFile="00index.html"
   addTitleWithAnchor(html, titles[[length(titles)]], 2)
   statusToPng = c(PASS="tick.png", WARN="warning.png", FAIL="error.png")
   for (i in 1:nFiles){
-    smy = ezRead.table(file.path(reportDir[i], "summary.txt"), row.names=NULL, header=FALSE)
+    smy = ezRead.table(file.path(reportDirs[i], "summary.txt"), row.names=NULL, header=FALSE)
     if (i == 1){
-      rowNames = paste0("<a href=", reportDir, "/fastqc_report.html>", names(files), "</a>")
+      rowNames = paste0("<a href=", reportDirs, "/fastqc_report.html>", names(files), "</a>")
       colNames = ifelse(smy[[2]] %in% names(plotPages),
                         paste0("<a href=", plotPages[smy[[2]]], ">", smy[[2]], "</a>"),
                         smy[[2]])
       tbl = ezMatrix("", rows=rowNames, cols=colNames)
     }
-    href = paste0(reportDir[i], "/fastqc_report.html#M", 0:(ncol(tbl)-1))
-    img = paste0(reportDir[i], 	"/Icons/", statusToPng[smy[[1]]])
+    href = paste0(reportDirs[i], "/fastqc_report.html#M", 0:(ncol(tbl)-1))
+    img = paste0(reportDirs[i], 	"/Icons/", statusToPng[smy[[1]]])
     tbl[i, ] = paste0("<a href=", href, "><img src=", img, "></a>")
   }
   html = addFlexTable(html, ezFlexTable(tbl, header.columns=TRUE, add.rownames=TRUE, valign="middle"))
@@ -129,7 +134,7 @@ ezMethodFastQC = function(input=NA, output=NA, param=NA, htmlFile="00index.html"
   html = addParagraph(html, pot("sessionInfo.txt", hyperlink = "sessionInfo.txt"))
   ezAddBootstrapMenu(html, lapply(titles, function(x){paste0("#", x)}))
   closeBsdocReport(html, htmlFile)
-  ezSystem(paste("rm -rf ", paste0(reportDir, ".zip", collapse=" ")))
+  ezSystem(paste("rm -rf ", paste0(reportDirs, ".zip", collapse=" ")))
   return("Success")
 }
 

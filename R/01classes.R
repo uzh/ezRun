@@ -163,7 +163,7 @@ ezTagListFromNames = function(names){
 ##' @examples
 ##' ds = EzDataset$new(file=system.file("extdata/yeast_10k/dataset.tsv", package="ezRun", mustWork = TRUE))
 ##' NULLApp = EzApp$new(runMethod=function(input, output, param){},name="NULLApp")
-##' NULLApp$run(input=ds, output=ds, param=list(process_mode="SAMPLE"))
+##' NULLApp$run(input=ds, output=ds, param=list(process_mode="DATASET"))
 EzApp <- 
   setRefClass("EzApp",
               fields = list(runMethod="function",
