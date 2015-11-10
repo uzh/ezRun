@@ -195,7 +195,7 @@ writeErrorReport = function(htmlFile, param=param, dataset=NULL, error="Unknown 
 ##' htmlFile = "example_html"
 ##' html =  openHtmlReport(htmlFile,param)
 ##' writeTxtLinksToHtml("dataset.tsv", con=html)
-addTxtLinksToReport = function(txtNames, mime="text/plain", doc){
+addTxtLinksToReport = function(doc, txtNames, mime="text/plain"){
   for (each in txtNames){
     doc = addParagraph(doc, pot(paste("<a href='", each, "' type='", mime, "'>", each, "</a>")))
   }
@@ -648,9 +648,9 @@ addGoUpDownResult = function(doc, param, goResult){
   doc = addFlexTable(doc, udt$flexTable)
   
   if (param$doZip){
-    addTxtLinksToReport(udt$txtFiles, mime="application/zip", doc=doc)
+    addTxtLinksToReport(doc, udt$txtFiles, mime="application/zip")
   } else {
-    addTxtLinksToReport(udt$txtFiles, mime="application/txt", doc=doc)
+    addTxtLinksToReport(doc, udt$txtFiles, mime="application/txt")
   }
 }
 
