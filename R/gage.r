@@ -102,7 +102,7 @@ getKeggId = function(x, param) {
     kegg.id = kegg.org.info$KeggOrg[grep(strOrgName, kegg.org.info$FullName, ignore.case = T)]
     return(as.character(kegg.id))
   } else {
-    warning(paste("Genome build not find in the KEGG organism list. Please add genome manually to",param[['KEGGOrgId']]))
+    warning(paste("Genome build not found in the KEGG organism list. Please add genome manually to", param[['KEGGOrgId']]))
     return(NA)
   }
 }
@@ -228,10 +228,7 @@ gageAnalysis = function(result, rawData=NULL, param=NULL, geneSets=NULL ) {
     
     return(x)
   })
-  
-  
   return(list(all=fc.gsets.all, significant=fc.gsets))
-  
 }
 
 writeGageResults = function(gageResults, param=NULL, output=NULL, prefix=NULL, signal=c("greater", "less", "both") ) {
@@ -298,8 +295,6 @@ getExpressionGage = function(gageResults, result=NULL, rawData=NULL, param = NUL
       }
     }
     return(x)
-    
-    
   })
 }
 
@@ -318,7 +313,6 @@ gageSigGenes = function(x, gene.pValue=NULL, signal=NULL ){
     x[[label]] = xAnnot
   }
   return(x)
-  
 }
 
 gageHeatmap = function(x, param=NULL, output=NULL, gene.pValue=NULL, signal=NULL, fileName=NULL, prefix='gage-heatmap'){
@@ -407,15 +401,14 @@ gagePathview = function(x, param=NULL, output=NULL, signal=NULL, kegg.id=NULL, g
   for (kegg.path.id in names(genes)) {
     #message(cat(signal,kegg.path.id,"\n"))
     cat(signal,kegg.id,kegg.path.id,"\n")
-    pv.out = try(suppressMessages(pathview(gene.data = genes[[kegg.path.id]], 
-                                           pathway.id = kegg.path.id, 
-                                           species = kegg.id, 
-                                           out.suffix = suffix, 
+    pv.out = try(suppressMessages(pathview(gene.data = genes[[kegg.path.id]],
+                                           pathway.id = kegg.path.id,
+                                           species = kegg.id,
+                                           out.suffix = suffix,
                                            kegg.native = T,
                                            kegg.dir = param[['KEGGxml']],
                                            gene.idtype = "SYMBOL",
                                            limit = list(gene = 3, cpd = 3))), silent = TRUE)
-    
   }  
 }
 

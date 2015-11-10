@@ -628,7 +628,7 @@ goClusterTable = function(param, clusterResult){
   for (onto in ontologies){
     for (i in 1:clusterResult$nClusters){
       x = clusterResult$GO[[onto]][[i]]
-      tables[i, onto] = goResultToHtmlTable(x, param$pValThreshFisher, param$minCountFisher, onto=onto)
+      tables[i, onto] = goResultToHtmlTable(x, param$pValThreshFisher, param$minCountFisher, onto=onto) ## TODOP: REFAC
     }
   }
   ft = ezFlexTable(tables, border = 2, header.columns = TRUE)
@@ -654,12 +654,13 @@ addGoUpDownResult = function(doc, param, goResult){
   }
 }
 
+
 goUpDownTables = function(param, goResult){
   tables = ezMatrix("", rows="Cats", cols=names(goResult))
   txtFiles = character()
   for (onto in names(goResult)){
     x = goResult[[onto]]
-    tables[1,onto] = goResultToHtmlTable2(x, param$pValThreshFisher, 
+    tables[1,onto] = goResultToHtmlTable2(x, param$pValThreshFisher, ## TODOP: REFAC
                                           param$minCountFisher, onto=onto, maxNumberOfTerms=param$maxNumberGroupsDisplayed)
     for (sub in names(x)){ #c("enrichUp", "enrichDown", "enrichBoth")){
       xSub = x[[sub]]

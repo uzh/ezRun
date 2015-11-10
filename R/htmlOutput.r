@@ -348,12 +348,6 @@ getSignificantFoldChangeCountsTable = function(result, pThresh=1/10^(1:5), fcThr
 ##' @template roxygen-template
 ##' @return Returns the name of the result file.
 ##' @seealso \code{\link{writeTxtLinksToHtml}}
-##' @examples
-##' param = ezParam()
-##' htmlFile = "example_html"
-##' html =  openHtmlReport(htmlFile,param)
-##' writeResultFile(html, param )
-## TODOEXAMPLE: finish example
 writeResultFile = function(html, param, result, rawData, useInOutput=TRUE,
   file=paste0("result--", param$comparison, ".txt")){
 
@@ -427,9 +421,6 @@ writeResultFile = function(html, param, result, rawData, useInOutput=TRUE,
 ##' @param colors a character vector containing rgb codes. The default is a scale from blue to red.
 ##' @param types a character vector containing the types.
 ##' @template roxygen-template
-##' @examples
-##' 1
-## TODOP: seqAnno not used. it is taken from rawData$seqAnno. colors also not used.
 writeQcScatterPlots = function(html, param, design, conds,
 															 rawData, signalCond, isPresentCond, seqAnno,
 															 colors=ezRedBlueScale(255), types=NULL){
@@ -515,9 +506,6 @@ writeQcScatterPlots = function(html, param, design, conds,
 ##' @param types a character vector specifying the different types to plot.
 ##' @template roxygen-template
 ##' @return Returns
-##' @examples
-##' 1
-## TODOP: not used: colorRange, colors.
 writeTestScatterPlots = function(html, param, x, result, seqAnno, colorRange=c(-3, 3),
    colors=ezRedBlueScale(255), types=NULL){
   if (is.null(types)){

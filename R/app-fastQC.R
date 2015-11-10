@@ -246,10 +246,13 @@ plotQualityMatrixAsHeatmap = function(qualMatrixList, isR2=FALSE, xScale=1, ySca
     colorKeyFile = paste0("averageReadsQuality-Key_", nm, ".png")
     by.label = 1
     at=seq(from=minPercent, to=maxPercent, by=by.label)
-    ezColorLegend(file=colorKeyFile, colorRange=c(minPercent, maxPercent), 
-                  colors=colorsGray, vertical=FALSE, height=200*xScale, 
-                  width=400*yScale, by.label=by.label, at=at, labels=as.character(at^2))
-    pngTable["Avg Qual Colors", nm] = imgLinks(colorKeyFile)
+    plotCmd = expression({
+      ezColorLegend(colorRange=c(minPercent, maxPercent), 
+                    colors=colorsGray, vertical=FALSE, by.label=by.label,
+                    at=at, labels=as.character(at^2))
+    })
+    colorKeyLink = ezImageFileLink(plotCmd, file=colorKeyFile, addPdfLink=FALSE, width=400*yScale, height=200*xScale)
+    pngTable["Avg Qual Colors", nm] = colorKeyLink
     
     result = ezMatrix(0, dim=dim(qualMatrixList[[idx[1]]]))
     resultCount = result
@@ -277,9 +280,13 @@ plotQualityMatrixAsHeatmap = function(qualMatrixList, isR2=FALSE, xScale=1, ySca
     ## plot the difference quality heatmap for R1_1
     colorKeyFile = paste0("diffReadsQuality-Key_", nm, ".png")
     at=seq(from=minDiff, to=maxDiff, by=by.label)
-    ezColorLegend(file=colorKeyFile, colorRange=c(minDiff, maxDiff), colors=ezRedBlueScale(256),
-                  vertical=FALSE, height=200*xScale, width=400*yScale, by.label=by.label, at=at, labels=as.character(at))
-    pngTable["Diff Qual Colors", nm] = imgLinks(colorKeyFile)
+    plotCmd = expression({
+      ezColorLegend(colorRange=c(minDiff, maxDiff), colors=ezRedBlueScale(256),
+                    vertical=FALSE, by.label=by.label, at=at, labels=as.character(at))
+    })
+    colorKeyLink = ezImageFileLink(plotCmd, file=colorKeyFile, addPdfLink=FALSE, width=400*yScale, height=200*xScale)
+    pngTable["Diff Qual Colors", nm] = colorKeyLink
+    
     for(sampleName in names(qualMatrixList[idx])){
       qm = qualMatrixList[[sampleName]]
       diffResult = signif(prop.table(qm,2)*100, digits=3) - avgQual[1:nrow(qm), 1:ncol(qm)]

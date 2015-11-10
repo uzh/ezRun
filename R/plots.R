@@ -65,16 +65,9 @@ ezRedBlueScale <- function(n=256, whiteLevel=0.9){
   cs
 }
 
-ezColorLegend = function(file=NULL, colorRange=c(-3,3), colors=ezRedBlueScale(256), vertical=TRUE,
-															height = 400,	width = 200,
+ezColorLegend = function(colorRange=c(-3,3), colors=ezRedBlueScale(256), vertical=TRUE,
 															at=seq(from=colorRange[1], to=colorRange[2], by=by.label),
-															labels = as.character(at),
-															by.label=0.5){
-
-	if(!is.null(file)){
-		png(file=file, height=height, width=width)
-		on.exit(dev.off())
-	}
+															labels = as.character(at), by.label=0.5){
 	pos = (at - colorRange[1])/(colorRange[2]- colorRange[1])
 	#n = (colorRange[2] - colorRange[1])*2 + 1
 	if (vertical){
@@ -194,7 +187,7 @@ ezColorLegend = function(file=NULL, colorRange=c(-3,3), colors=ezRedBlueScale(25
 }
 
 
-
+## REFAC, but function is currently unused.
 ezArrayImage = function(mat, file=NULL, colorRange=c(-3,3), xScale=1, yScale=1, colors=ezRedBlueScale(256)){
 
   mat[mat > colorRange[2]] = colorRange[2]
@@ -210,19 +203,11 @@ ezArrayImage = function(mat, file=NULL, colorRange=c(-3,3), xScale=1, yScale=1, 
 }
 
 
-ezVolcano = function(log2Ratio, pValue, file=NULL,
-                       xlim=NULL,
-											 ylim=NULL,
-                       isPresent=NULL, types=NULL, plotWidth=350, plotHeight=400,
-                       pch=16, colors=rainbow(ncol(types)), legendPos="bottomright", cex.main=1.0, cex=0.8,
-											 yType="p-value",
-											 ...){
+ezVolcano = function(log2Ratio, pValue, xlim=NULL, ylim=NULL, isPresent=NULL, types=NULL,
+                     pch=16, colors=rainbow(ncol(types)), legendPos="bottomright",
+                     cex.main=1.0, cex=0.8, yType="p-value", ...){
   yValues = -log10(pValue)
 
-  if (!is.null(file)){
-    png(filename=file, height=plotHeight, width=plotWidth);
-    on.exit(dev.off())
-  }
   if (is.null(xlim)){
     lrMaxAbs = max(abs(log2Ratio), na.rm=TRUE)
     xm = min(lrMaxAbs, 5)
@@ -254,12 +239,10 @@ ezVolcano = function(log2Ratio, pValue, file=NULL,
 }
 
 
-ezXYScatterScatter = function(xVec, yVec,
-                       xlim=range(xVec, yVec, na.rm=TRUE), ylim=xlim,
+ezXYScatterScatter = function(xVec, yVec, xlim=range(xVec, yVec, na.rm=TRUE), ylim=xlim,
                        isPresent=NULL, types=NULL, absentColor="gray",
-											 frame=TRUE, axes=TRUE, shrink=FALSE,
-                       pch=16, colors=rainbow(ncol(types)), legendPos="bottomright", ...){
-
+											 frame=TRUE, axes=TRUE, shrink=FALSE, pch=16,
+											 colors=rainbow(ncol(types)), legendPos="bottomright", ...){
   par(pty="s")
   if (shrink){
     xVec = shrinkToRange(xVec, xlim)
@@ -288,7 +271,7 @@ ezXYScatterScatter = function(xVec, yVec,
   abline(-log10(2), 1, col="blue", lty=2);
 }
 
-
+## TODOP: REFAC, countQC depends on it
 ezSmoothScatter <- function(x=NULL, y, file=NULL, isPresent=NULL, types=NULL, cex=0.8,
                          lim=range(x, y, na.rm=TRUE),
                          xlab=NULL, ylab=NULL, pch=16, colors=rainbow(ncol(types)),
@@ -349,7 +332,7 @@ ezSmoothScatter <- function(x=NULL, y, file=NULL, isPresent=NULL, types=NULL, ce
   }
 }
 
-
+## TODOP: REFAC, countQC depends on it
 ezScatter <- function(x=NULL, y, file=NULL, isPresent=NULL, types=NULL, cex=0.8,
       lim=range(x, y, na.rm=TRUE), shrink=FALSE,
       xlab=NULL, ylab=NULL, pch=16, colors=rainbow(ncol(types)),
@@ -422,16 +405,10 @@ ezScatter <- function(x=NULL, y, file=NULL, isPresent=NULL, types=NULL, cex=0.8,
 }
 
 
-ezAllPairScatter = function(x, file=NULL, isPresent=NULL, types=NULL, cex=0.8,
-      lim=range(x, na.rm=TRUE), main="",shrink=FALSE,
-      xylab=NULL, pch=16, colors=rainbow(ncol(types)),
-      plotWidth=200, plotHeight=200, cex.main=1.0){
-
+ezAllPairScatter = function(x, isPresent=NULL, types=NULL, cex=0.8, lim=range(x, na.rm=TRUE),
+                            main="", shrink=FALSE, xylab=NULL, pch=16,
+                            colors=rainbow(ncol(types)), cex.main=1.0){
   nItems = ncol(x)
-  if (!is.null(file)){
-    png(filename=file, height=max(min(nItems * plotHeight, 2000), 500),
-                        width=max(min(nItems * plotWidth, 2000), 500));
-  }
   if (is.null(xylab)){
     xylab = colnames(x)
   }
@@ -466,13 +443,10 @@ ezAllPairScatter = function(x, file=NULL, isPresent=NULL, types=NULL, cex=0.8,
       isPresent=isPresent, types=types, pch=pch, colors=colors, legendPos="bottomright")
   }
   mtext(main, outer=TRUE, line=1)
-  if (!is.null(file)){
-    dev.off()
-  }
 }
 
 
-
+## REFAC, but function is currently unused.
 ezCorrelationPlot <- function(z, cond=NULL, condOrder=NULL, main="Correlation", 
   labels=NULL, condLabels=NULL, plotLabels=nrow(z) < 100,
   png=NULL, sampleColors=NULL){
@@ -581,7 +555,7 @@ ezCorrelationPlot <- function(z, cond=NULL, condOrder=NULL, main="Correlation",
 
 ########################################################################
 normalized.distr <- function(data, bins, dmax=1, dmin=-1, ylim= NULL, add=FALSE, col="black", 
-  xlab="value",ylab="freq", pch=1) {
+                             xlab="value",ylab="freq", pch=1) {
   if (is.null(dmax)) dmax <- max(data)
   if (is.null(dmin)) dmin <- min(data)
   
@@ -596,70 +570,68 @@ normalized.distr <- function(data, bins, dmax=1, dmin=-1, ylim= NULL, add=FALSE,
   
   for (i in 1:bins)
   {
-   if (i==1) idx <- which (data>=breaks[i] & data<=breaks[i+1])
-   if (i>1) idx <- which (data>breaks[i] & data<=breaks[i+1])
-   x[i] <- (breaks[i]+breaks[i+1])/2
-   y[i] <- length(idx)
+    if (i==1) idx <- which (data>=breaks[i] & data<=breaks[i+1])
+    if (i>1) idx <- which (data>breaks[i] & data<=breaks[i+1])
+    x[i] <- (breaks[i]+breaks[i+1])/2
+    y[i] <- length(idx)
   }
   
   y <- y/sum(y)
   
   if (!add) 
   {
-  plot(x,y,type="l",xlim=c(dmin,dmax), ylim=ylim, col=col, xlab=xlab, ylab=ylab)
-  points(x,y,col=col, cex=0.5, pch=pch)
+    plot(x,y,type="l",xlim=c(dmin,dmax), ylim=ylim, col=col, xlab=xlab, ylab=ylab)
+    points(x,y,col=col, cex=0.5, pch=pch)
   }
   else 
   {
-  lines(x,y, col=col)  
-  points(x,y,col=col, cex=0.5, pch=pch)
+    lines(x,y, col=col)  
+    points(x,y,col=col, cex=0.5, pch=pch)
   }
-
 }
 
 ezProfilePlot <- function(x, err=NULL, colors=rainbow(nrow(x)), xaxs="i", yaxs="i", xlim=c(0, ncol(x)+10), ylim=NULL, log="", type="l",
-   names=rownames(x), legendPos="topright", lty=rep(1, nrow(x)), main="", plotXLabels=TRUE, xlab="", ylab="", ...){
-
+                          names=rownames(x), legendPos="topright", lty=rep(1, nrow(x)), main="", plotXLabels=TRUE, xlab="", ylab="", ...){
+  
   if (is.null(ylim)){
     ylim = range(x, na.rm=TRUE)
     if (!is.null(err)){
       ylim = range(x+err, x-err, na.rm=TRUE)
     }
   }
-
+  
   x <- as.matrix(x)
   for(i in 1:nrow(x)){
     if (i==1){
       plot(x[i,], col=colors[i],
            xlim=xlim, ylim=ylim, xaxs=xaxs, yaxs=yaxs,
            type=type, axes=FALSE, frame=TRUE,
-            xlab=xlab, ylab=ylab, log=log, lty=lty[i], main=main, ...)
+           xlab=xlab, ylab=ylab, log=log, lty=lty[i], main=main, ...)
     } else {
       lines(x[i,], col=colors[i], lty=lty[i], type=type, ...)
     }
     if (!is.null(err)){
       points(1:ncol(x), x[i, ], pch=16, col=colors[i])
       arrows(1:ncol(x), x[i, ] - err[i, ], 1:ncol(x), x[i, ] + err[i, ], col=colors[i],
-        angle=90, code=3, length=0.1, ...)
+             angle=90, code=3, length=0.1, ...)
     }
   }
   if (!is.null(legendPos)){
     legend(legendPos, names, col=colors, bty="n", cex=0.5, pt.bg="white", lty=lty, lwd=3, seg.len=4 )
   }
-	if (plotXLabels){
-		axis(1, at=1:ncol(x), labels=colnames(x), las=2, cex.axis=0.8)
-	}
+  if (plotXLabels){
+    axis(1, at=1:ncol(x), labels=colnames(x), las=2, cex.axis=0.8)
+  }
   axis(2)
   return()
 }
 
 intHist = function(x, range=c(round(min(x, na.rm=TRUE))-0.5, round(max(x, na.rm=TRUE))+0.5), step=1, ...){
-	
-	x = shrinkToRange(x, range)
-	return(hist(x, breaks=seq(range[1], range[2]+step-1, by = step), ...))
+  x = shrinkToRange(x, range)
+  return(hist(x, breaks=seq(range[1], range[2]+step-1, by = step), ...))
 }
 
-## occurs
+## TODOP: REFAC, used by bamStatPlots
 ezHeatmap = function(x, file=NULL, lim=c(-4, 4), col=ezRedBlueScale,
 											dendrogram="none", margins=c(8,6), cexCol=1.1,
 											Rowv=TRUE, Colv=TRUE, labCol=colnames(x), labRow=rownames(x), width=1800, height=1800,
@@ -683,7 +655,7 @@ ezHeatmap = function(x, file=NULL, lim=c(-4, 4), col=ezRedBlueScale,
 }
 
 
-
+## REFAC, but function is currently unused.
 ezCdfPlot = function(x, itemName="gene", scoreName="expression", percentage=FALSE,
                         file=NULL, height=600, width=600, col=getSampleColors(colnames(x), colorNames = colnames(x))){
   if (!is.null(file)){
@@ -733,12 +705,12 @@ colorNode = function(n, cols=NULL){
 }
 
 
-
+## REFAC, but function is currently unused.
 goGroupBarPlot = function(xSub){
   ggr = xSub[xSub$Level %in% c("level 2", "unknown"), ]
   pngFile = ezValidFilename(paste0(name, ".png"), replace="-")
   png(file=pngFile, height=800, width=600)
-  par (mar=c(4,16,4,4)) 
+  par(mar=c(4,16,4,4)) 
   bp = barplot(t(as.matrix(ggr[ ,c("Count", "Size")])), horiz=TRUE, beside=T, 
                legend.text =c("Count", "Size"),
                col=c("blue", "gray"),

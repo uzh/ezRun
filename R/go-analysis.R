@@ -288,7 +288,7 @@ writeGOTables = function(html , param, goResult){
   }
 }
 
-
+## TODOP: REFAC
 goResultToHtmlTable2 = function(goResults, pThreshGo, minCount, onto=NA, maxNumberOfTerms=40) {
   
   upTerms = .getGoTermsAsTd(goResults[["enrichUp"]], pThreshGo, minCount, onto, color="red", maxNumberOfTerms=maxNumberOfTerms)
@@ -300,6 +300,7 @@ goResultToHtmlTable2 = function(goResults, pThreshGo, minCount, onto=NA, maxNumb
   return(table)
 }
 
+## TODOP: REFAC
 goResultToHtmlTable = function(x, pThreshGo, minCount, onto=NA, maxNumberOfTerms=40){
   
   terms = .getGoTermsAsTd(x, pThreshGo, minCount, onto, maxNumberOfTerms=maxNumberOfTerms)
@@ -415,6 +416,7 @@ getChildTerms = function(x, subset, goRelatives, indent="", childEnvir){
 #}
 #
 
+## REFAC: still used?
 getTopGoHtmlTable = function(goTermStat, pValueThresh=NA, catSize=NA){
   
   use = goTermStat$Pvalue < pValueThresh & goTermStat$Annotated > catSize & goTermStat$Significant > goTermStat$Expected
@@ -424,7 +426,7 @@ getTopGoHtmlTable = function(goTermStat, pValueThresh=NA, catSize=NA){
   result
 }
 
-
+## TODOP: REFAC
 clusterHeatmap = function(param, x, file="cluster-heatmap.png", nClusters=5, lim=c(-4, 4),
                           colColors=NULL, d=NULL, columnDist=NULL, doClusterColumns=FALSE,
                           clusterColors=rainbow(nClusters), doGO=TRUE, ontologies=c("BP", "MF", "CC"), 
@@ -432,10 +434,7 @@ clusterHeatmap = function(param, x, file="cluster-heatmap.png", nClusters=5, lim
                           universeGeneIds=NULL, universeProbeIds=NULL, method="ward.D2", 
                           cexRow=1.0, cexCol=1.5, labRow=rownames(x), width=max(800, 400 + 10 * ncol(x)), height=1000, margins=c(14,9),
                           colors=ezRedBlueScale(256), maxGenesWithLabel=50, keggOrganism=NA, ...){
-  
   library(gplots, warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
-  
-  
   if (is.null(d)){
     xx = x
     xx[is.na(x)] = min(x, na.rm=TRUE)
@@ -459,7 +458,6 @@ clusterHeatmap = function(param, x, file="cluster-heatmap.png", nClusters=5, lim
     showDendro = "row"
   }
   
-  
   result = list()
   result$nClusters = nClusters
   result$clusterNumbers = clusterNumbers
@@ -473,7 +471,6 @@ clusterHeatmap = function(param, x, file="cluster-heatmap.png", nClusters=5, lim
     labRow = ""
     margins[2] = 0.5 
   }
-  
   
   if (!is.null(file)){
     png(file=file, width=width, height=height)
