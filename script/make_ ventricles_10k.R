@@ -12,4 +12,3 @@ for (fq in c(ds$"Read1 [File]", ds$"Read2 [File]")){
   writeFastq(reads[1:10000], file=sub(".gz$", "", fq), compress=FALSE)
 }
 my.write.table(ds, file="inst/extdata/ventricles_10k/dataset.txt", head="Name")
-for ()

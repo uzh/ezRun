@@ -143,7 +143,7 @@ getTranscriptProfiles = function(transcriptIds, bamFile, gtf=NULL, strandMode=NA
   }
   trCounts = sapply(trByChrom, length)
   trCounts = sort(trCounts, decreasing=TRUE)
-  covByChrom = ezMclapply(names(trCounts), .getCov, mc.cores=nThreads, , mc.preschedule=FALSE)
+  covByChrom = ezMclapply(names(trCounts), .getCov, mc.cores=nThreads, mc.preschedule=FALSE)
   return(unlist(covByChrom, recursive=FALSE)[transcriptIds])
 }
 

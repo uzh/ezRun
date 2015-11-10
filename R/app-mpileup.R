@@ -126,7 +126,7 @@ ezMethodMpileup = function(input=NA, output=NA, param=NA){
     idxMat = ezMatrix(match(gt, c("0/0", "0/1", "1/1")) -2, rows=rownames(gt), cols=colnames(gt))
     d = dist(t(idxMat))
     if (all(!is.na(d))){
-      hc=hclust(d, method="ward.D2", );
+      hc=hclust(d, method="ward.D2" );
       hcd = as.dendrogram(hclust(d, method="ward.D2"), hang=-0.1)
       hcd = colorClusterLabels(hcd, sampleColors)
       pngFile = "genotype-cluster.png"
