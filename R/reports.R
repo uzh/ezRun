@@ -23,8 +23,8 @@ ezFlexTable = function(x, border = 1, valign = "top", header.columns = FALSE,  .
   if (!is.data.frame(x) & !is.matrix(x)){
     x = ezFrame(x)
   }
-  bodyCells = cellProperties(border.width = border, vertical.align=valign)
-  headerCells = cellProperties(border.width = border)
+  bodyCells = cellProperties(border.width=border, padding=2, vertical.align=valign)
+  headerCells = cellProperties(border.width=border, padding=2)
   FlexTable(x, body.cell.props = bodyCells,
             header.cell.props = headerCells,
             header.columns = header.columns, ...)
@@ -267,7 +267,6 @@ ezAddTableWhite = function(x, bgcolors=NULL, valign="middle", border=1, head="")
 ##' @template roxygen-template
 ##' @seealso \code{\link[ReporteRs]{addFlexTable}}
 addCountResultSummary = function(doc, param, result){
-  doc = addTitle(doc, "Result Summary", level=2)
   settings = character()
   settings["Analysis:"] = result$analysis
   settings["Genome Build:"] = param$ezRef@refBuild
@@ -294,10 +293,8 @@ addCountResultSummary = function(doc, param, result){
 
 
 addSignificantCounts = function(doc, result, pThresh=c(0.1, 0.05, 1/10^(2:5))){
-  
   sigTable = ezFlexTable(getSignificantCountsTable(result, pThresh=pThresh), header.columns = TRUE, add.rownames = TRUE)
   sigFcTable = ezFlexTable(getSignificantFoldChangeCountsTable(result, pThresh=pThresh), header.columns = TRUE, add.rownames=TRUE)
-  doc = addTitle(doc, "Significant Counts", level=3)
   tbl = ezGrid(cbind(as.html(sigTable), as.html(sigFcTable)))
   doc = addFlexTable(doc, tbl)
   return(doc)
@@ -482,9 +479,13 @@ addTestScatterPlots = function(doc, param, x, result, seqAnno, types=NULL){
       }
     }
   }
-  doc = addTitle(doc, "Scatter Plots", level=2)
+  
+  testScatterTitles = list()
+  testScatterTitles[["Scatter Plots"]] = "Scatter Plots"
+  addTitleWithAnchor(doc, testScatterTitles[[length(testScatterTitles)]], 2)
   doc = addParagraph(doc, msg)
-  doc = addTitle(doc, "Between-group Comparison", level=3)
+  testScatterTitles[["Between-group Comparison"]] = "Between-group Comparison"
+  addTitleWithAnchor(doc, testScatterTitles[[length(testScatterTitles)]], 3)
   
   links = character()
   if (ncol(result$groupMeans) == 2 & !is.null(param$sampleGroup) & !is.null(param$refGroup)){
@@ -539,7 +540,8 @@ addTestScatterPlots = function(doc, param, x, result, seqAnno, types=NULL){
     for (group in unique(c(param$refGroup, colnames(result$groupMeans)))){
       idx = which(group == param$grouping)
       if (length(idx) > 1){
-        doc = addTitle(doc, paste("Intra-group Comparison:", group), level=3)
+        testScatterTitles[[paste("Intra-group Comparison:", group)]] = paste("Intra-group Comparison:", group)
+        addTitleWithAnchor(doc, testScatterTitles[[length(testScatterTitles)]], 3)
         pngName = paste0(group, "-scatter.png")
         xlab = paste("Avg of", group)
         refValues = result$groupMeans[ , group]
@@ -564,7 +566,8 @@ addTestScatterPlots = function(doc, param, x, result, seqAnno, types=NULL){
       }
     }
   } else {
-    doc = addTitle(doc, paste("Pairs:", param$sampleGroup, "over", param$refGroup), level=3)
+    testScatterTitles[["Pairs ... over ..."]] = paste("Pairs:", param$sampleGroup, "over", param$refGroup)
+    addTitleWithAnchor(doc, testScatterTitles[[length(testScatterTitles)]], 3)
     use = param$grouping %in% c(param$sampleGroup, param$refGroup)
     if (all(table(param$batch[use], param$grouping[use]) == 1)){
       groups = paste(param$grouping, param$batch, sep="--")
@@ -585,6 +588,7 @@ addTestScatterPlots = function(doc, param, x, result, seqAnno, types=NULL){
                                               height=ceiling(ncol(as.matrix(sampleValues))/6) * 480))
     }
   }
+  return(testScatterTitles)
 }
 
 #######################################################################################################################################
@@ -592,20 +596,6 @@ addTestScatterPlots = function(doc, param, x, result, seqAnno, types=NULL){
 #####################################################  GO ANALYSIS STUFF  #############################################################
 #######################################################################################################################################
 #######################################################################################################################################
-
-
-# addGOClusterResult = function(doc, param, clusterResult){
-#   ontologies = names(clusterResult$GO)
-#   tables = ezMatrix("", rows=paste("Cluster", 1:clusterResult$nClusters), cols=ontologies)
-#   for (onto in ontologies){
-#     for (i in 1:clusterResult$nClusters){
-#       x = clusterResult$GO[[onto]][[i]]
-#       tables[i, onto] = goResultToHtmlTable(x, param$pValThreshFisher, param$minCountFisher, onto=onto);
-#     }
-#   }
-#   ezAddTable(doc, tables, border=2,
-#                    bgcolors=matrix(gsub("FF$", "", clusterResult$clusterColors), nrow=clusterResult$nClusters, ncol=ncol(tables)))
-# }
 
 
 ## tables within a table within a table works flawlessly with this code, I never experienced the <br></br> problem
@@ -649,10 +639,8 @@ goClusterTable = function(param, clusterResult){
 
 
 addGoUpDownResult = function(doc, param, goResult){
-  
   udt = goUpDownTables(param, goResult)
   
-  doc = addTitle(doc, "GO Enrichment Analysis", level=3)
   doc = addParagraph(doc, "Red GO categories are overrepresented among the significantly upregulated genes")
   doc = addParagraph(doc, "Blue GO categories are overrepresented among the significantly downregulated genes")
   doc = addParagraph(doc, "Black GO categories are overrepresented among all signifcantly regulated genes")
@@ -663,8 +651,7 @@ addGoUpDownResult = function(doc, param, goResult){
     addTxtLinksToReport(udt$txtFiles, mime="application/zip", doc=doc)
   } else {
     addTxtLinksToReport(udt$txtFiles, mime="application/txt", doc=doc)
-  }  
-  return(doc) #
+  }
 }
 
 goUpDownTables = function(param, goResult){
@@ -697,45 +684,6 @@ goUpDownTables = function(param, goResult){
 }
 
 
-addGOTables = function(doc, param, goResult){
-  doc = addTitle(doc, "GO Enrichment Analysis", level=3)
-  doc = addParagraph(doc, "Red GO categories are overrepresented among the significantly upregulated genes")
-  doc = addParagraph(doc, "Blue GO categories are overrepresented among the significantly downregulated genes")
-  doc = addParagraph(doc, "Black GO categories are overrepresented among all signifcantly regulated genes")
-  doc = addParagraph(doc, paste("Maximum number of terms displayed:", param$maxNumberGroupsDisplayed))
-  tables = ezMatrix("", rows="Cats", cols=names(goResult))
-  txtFiles = character()
-  for (onto in names(goResult)){
-    x = goResult[[onto]]
-    tables[1,onto] = goResultToHtmlTable2(x, param$pValThreshFisher, 
-                                          param$minCountFisher, onto=onto, maxNumberOfTerms=param$maxNumberGroupsDisplayed)
-    for (sub in names(x)){ #c("enrichUp", "enrichDown", "enrichBoth")){
-      xSub = x[[sub]]
-      if (is.data.frame(xSub)){
-        name = paste0(onto, "-", param$comparison, "-", sub)
-        if (!is.null(xSub$Pvalue)){
-          xSub = xSub[order(xSub$Pvalue), ]
-          xSub = cbind("GO ID"=rownames(xSub), xSub)
-        }
-        txtFile = ezValidFilename(paste0(name, ".txt"), replace="-")
-        ezWrite.table(xSub, file=txtFile, row.names=FALSE)
-        if (param$doZip){
-          txtFiles[name] = zipFile(txtFile)
-        } else {
-          txtFiles[name] = txtFile
-        }
-      }
-    }
-  }
-  ezAddTable(doc, tables, border=2, valign="top")
-  if (param$doZip){
-    addTxtLinksToReport(txtFiles, mime="application/zip", doc=doc)
-  } else {
-    addTxtLinksToReport(txtFiles, mime="application/txt", doc=doc)
-  }
-}
-
-
 #######################################################################################################################################
 #######################################################################################################################################
 #########################################################  GAGE STUFF  ################################################################
@@ -744,7 +692,6 @@ addGOTables = function(doc, param, goResult){
 
 
 addGageTables = function(doc, param = NULL, gageResults = NULL) {
-  doc = addTitle(doc, "GAGE Enrichment Analysis", level=3)
   doc = addParagraph(doc, paste("Gene sets used:", paste(names(gageResults[['all']]), collapse=", ")))
   if(any(grepl('kg', names(gageResults[['all']])))) {
     doc = addParagraph(doc, as.html(pot("<span style='margin-left:2em'>kg = <A HREF='http://www.genome.jp/kegg/pathway.html'>KEGG</A>

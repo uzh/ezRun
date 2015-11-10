@@ -356,7 +356,7 @@ gageHeatmap = function(x, param=NULL, output=NULL, gene.pValue=NULL, signal=NULL
   if(is.null(fileName) & nrow(xCentered) >= 2 & ncol(xCentered) >= 2) {
     fileName = paste0(param[['comparison']],"-", prefix,"-", signal, ".png")
     
-    png(fileName, width=max(800, 400 + 10 * ncol(xCentered)), height=1000)  ## REFAC
+    png(fileName, width=max(800, 400 + 10 * ncol(xCentered)), height=1000)  ## TODOP: REFAC
     rowDendro = FALSE
     colDendro = T
     showDendro = "column"

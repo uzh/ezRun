@@ -314,20 +314,30 @@ runGlm = function(x, sampleGroup, refGroup, grouping, normMethod, batch=NULL){
 writeNgsTwoGroupReport = function(dataset, result, htmlFile, param=NA, rawData=NA, types=NULL) {
   keggOrganism = NA
   seqAnno = rawData$seqAnno
-  doc = openBsdocReport(title=paste("Analysis:", param$name), dataset=dataset)
   
-  doc = addCountResultSummary(doc, param, result) ## REFAC
-  doc = addSignificantCounts(doc, result) ## REFAC ## TODO: update/repair function
-  resultFile = addResultFile(doc, param, result, rawData) ## REFAC
+  titles = list()
+  titles[["Analysis"]] = paste("Analysis:", param$name)
+  doc = openBsdocReport(title=titles[[length(titles)]], dataset=dataset)
+  
+  titles[["Result Summary"]] = "Result Summary"
+  addTitleWithAnchor(doc, titles[[length(titles)]], 2)
+  addCountResultSummary(doc, param, result)
+  
+  titles[["Significant Counts"]] = "Significant Counts"
+  addTitleWithAnchor(doc, titles[[length(titles)]], 3)
+  addSignificantCounts(doc, result)
+  
+  resultFile = addResultFile(doc, param, result, rawData)
   ezWrite.table(result$sf, file="scalingfactors.txt", head="Name", digits=4)
   
   logSignal = log2(shiftZeros(result$xNorm, param$minSignal))
   result$groupMeans = cbind(rowMeans(logSignal[ , param$grouping == param$sampleGroup, drop=FALSE]),
                             rowMeans(logSignal[ , param$grouping == param$refGroup, drop=FALSE]))
   colnames(result$groupMeans) = c(param$sampleGroup, param$refGroup)
-  
+
   if (param$writeScatterPlots){
-    addTestScatterPlots(doc, param, logSignal, result, seqAnno, types) ## REFAC ## colorRange was also not used in the old function
+    testScatterTitles = addTestScatterPlots(doc, param, logSignal, result, seqAnno, types) ## colorRange was also not used in the old function
+    titles = append(titles, testScatterTitles)
   }
   
   use = result$pValue < param$pValueHighlightThresh & abs(result$log2Ratio) > param$log2RatioHighlightThresh & result$usedInTest
@@ -356,7 +366,8 @@ writeNgsTwoGroupReport = function(dataset, result, htmlFile, param=NA, rawData=N
     if (param$doZip){
       zipFile(resultFile$resultFile)
     }
-    doc = addTitle(doc, "Clustering of Significant Features", level=2)
+    titles[["Clustering of Significant Features"]] = "Clustering of Significant Features"
+    addTitleWithAnchor(doc, titles[[length(titles)]], 2)
     doc = addParagraph(doc, paste("Significance threshold:", param$pValueHighlightThresh))
     if (param$log2RatioHighlightThresh > 0){
       doc = addParagraph(doc, paste("log2 Ratio threshold:", param$log2RatioHighlightThresh))
@@ -395,7 +406,9 @@ writeNgsTwoGroupReport = function(dataset, result, htmlFile, param=NA, rawData=N
   if (doGo(param, seqAnno)){
     goResult = twoGroupsGO(param, result, seqAnno, normalizedAvgSignal=rowMeans(result$groupMeans), method=param$goseqMethod)
     #     writeGOTables(html, param, goResult)
-    doc = addGoUpDownResult(doc, param, goResult) ## REFAC
+    titles[["GO Enrichment Analysis"]] = "GO Enrichment Analysis"
+    addTitleWithAnchor(doc, titles[[length(titles)]], 3)
+    doc = addGoUpDownResult(doc, param, goResult)
     goFiles = list.files('.',pattern='enrich.*txt')
     keepCols = c('GO.ID','Pvalue')
     revigoLinks = matrix(nrow=3, ncol=3)
@@ -412,8 +425,8 @@ writeNgsTwoGroupReport = function(dataset, result, htmlFile, param=NA, rawData=N
                               paste(goResult[,'GO.ID'],goResult[,'Pvalue'],
                                     collapse='%0D%0A'))
     }
-    #     ezWrite(paste0("<h3>ReViGO </h3>"), con=html)
-    doc = addTitle(doc, "ReViGO", level=3)
+    titles[["ReViGO"]] = "ReViGO"
+    addTitleWithAnchor(doc, titles[[length(titles)]], 3)
     revigoResult = capture.output(writeTableToHtml(revigoLinks))          
     revigoResult = gsub("<td valign='middle' bgcolor='#ffffff'>","<td valign='middle' bgcolor='#ffffff'><a target='_blank' href='",revigoResult)
     revigoResult = gsub("</td>","' type='text/plain'>Link2ReViGo</a></td>",revigoResult)
@@ -423,12 +436,14 @@ writeNgsTwoGroupReport = function(dataset, result, htmlFile, param=NA, rawData=N
   
   ## Run Gage
   if(param[['GAGEanalysis']] ) {
-    gageRes <- runGageAnalysis(result, param=param, output=output, rawData=rawData)  ## REFAC
+    gageRes <- runGageAnalysis(result, param=param, output=output, rawData=rawData)  ## TODOP: REFAC
     #     writeGageTables(html, param, gageRes)
-    addGageTables(doc, param, gageRes) ## REFAC
+    titles[["GAGE Enrichment Analysis"]] = "GAGE Enrichment Analysis"
+    addTitleWithAnchor(doc, titles[[length(titles)]], 3)
+    addGageTables(doc, param, gageRes)
   }
   
   ezSessionInfo()
   doc = addParagraph(doc, pot("sessionInfo.txt", hyperlink = "sessionInfo.txt"))
-  closeBsdocReport(doc, htmlFile)
+  closeBsdocReport(doc, htmlFile, titles)
 }

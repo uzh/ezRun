@@ -52,22 +52,22 @@ ezMethodFastQC = function(input=NA, output=NA, param=NA, htmlFile="00index.html"
   ## make for each plot type an html report with all samples
   plotPages = sub(".png", ".html", plots)
   for (i in 1:length(plots)){
-    plotHtml = openBsdocReport(title=paste("FASTQC:", plotPages[i]))
+    plotDoc = openBsdocReport(title=paste("FASTQC:", plotPages[i]))
     png = paste0("<img src=", reportDirs, "/Images/", plots[i], ">")
     tbl = ezFlexTable(ezMatrix(png, rows=names(files), cols=names(plots)[i]), 
                       header.columns=TRUE, add.rownames=TRUE, valign="middle")
-    plotHtml = addFlexTable(plotHtml, tbl)
-    closeBsdocReport(plotHtml, plotPages[i])
+    plotDoc = addFlexTable(plotDoc, tbl)
+    closeBsdocReport(plotDoc, plotPages[i])
   }
   
   ## establish the main report
   titles = list()
   titles[["FastQC"]] = paste("FASTQC:", param$name)
-  html = openBsdocReport(title=titles[[length(titles)]], dataset=dataset)
+  doc = openBsdocReport(title=titles[[length(titles)]], dataset=dataset)
   
   
   titles[["Read Counts"]] = "Read Counts"
-  addTitleWithAnchor(html, titles[[length(titles)]], 2)
+  addTitleWithAnchor(doc, titles[[length(titles)]], 2)
   if (!is.null(dataset$"Read Count")){
     readCount = signif(dataset$"Read Count" / 1e6, digits=3)
     names(readCount) = rownames(dataset)
@@ -85,10 +85,10 @@ ezMethodFastQC = function(input=NA, output=NA, param=NA, htmlFile="00index.html"
   })
   readCountsLink = ezImageFileLink(plotCmd, file="readCounts.png", height=600,
                                    width=min(600 + (nFiles-10)* 30, 2000))
-  html = addParagraph(html, readCountsLink)
+  doc = addParagraph(doc, readCountsLink)
   
   titles[["Fastqc quality measures"]] = "Fastqc quality measures"
-  addTitleWithAnchor(html, titles[[length(titles)]], 2)
+  addTitleWithAnchor(doc, titles[[length(titles)]], 2)
   statusToPng = c(PASS="tick.png", WARN="warning.png", FAIL="error.png")
   for (i in 1:nFiles){
     smy = ezRead.table(file.path(reportDirs[i], "summary.txt"), row.names=NULL, header=FALSE)
@@ -103,10 +103,10 @@ ezMethodFastQC = function(input=NA, output=NA, param=NA, htmlFile="00index.html"
     img = paste0(reportDirs[i], 	"/Icons/", statusToPng[smy[[1]]])
     tbl[i, ] = paste0("<a href=", href, "><img src=", img, "></a>")
   }
-  html = addFlexTable(html, ezFlexTable(tbl, header.columns=TRUE, add.rownames=TRUE, valign="middle"))
+  doc = addFlexTable(doc, ezFlexTable(tbl, header.columns=TRUE, add.rownames=TRUE, valign="middle"))
   
   titles[["Per Base Read Quality"]] = "Per Base Read Quality"
-  addTitleWithAnchor(html, titles[[length(titles)]], 2)
+  addTitleWithAnchor(doc, titles[[length(titles)]], 2)
   qualMatrixList = ezMclapply(files, getQualityMatrix, mc.cores=ezThreads())
   pngMatrix = plotQualityMatrixAsHeatmap(qualMatrixList, isR2=grepl("_R2", names(files)))
 #   for (i in 1:nrow(pngMatrix)){
@@ -114,23 +114,23 @@ ezMethodFastQC = function(input=NA, output=NA, param=NA, htmlFile="00index.html"
 #       pngMatrix[i, j] = imgLinks(pngMatrix[i, j])
 #     }
 #   }
-  html = addFlexTable(html, ezGrid(pngMatrix))
+  doc = addFlexTable(doc, ezGrid(pngMatrix))
   if(nrow(dataset) > 1){
     pngLibCons = character()
     pngLibCons["qPCR"] = plotReadCountToLibConc(dataset, colname='LibConc_qPCR [Characteristic]')
     pngLibCons["100_800bp"] = plotReadCountToLibConc(dataset, colname='LibConc_100_800bp [Characteristic]')
     if(length(pngLibCons) > 0){
       titles[["Correlation"]] = "Correlation between Library concentration measurements and ReadCounts"
-      addTitleWithAnchor(html, titles[[length(titles)]], 3)
-      html = addFlexTable(html, ezGrid(matrix(pngLibCons, nrow=1)))
+      addTitleWithAnchor(doc, titles[[length(titles)]], 3)
+      doc = addFlexTable(doc, ezGrid(matrix(pngLibCons, nrow=1)))
     }
   }
   titles[["Settings"]] = "Settings"
-  addTitleWithAnchor(html, titles[[length(titles)]], 3)
-  html = addParagraph(html, paste("Method/Version:", basename(dirname(FASTQC))))
+  addTitleWithAnchor(doc, titles[[length(titles)]], 3)
+  doc = addParagraph(doc, paste("Method/Version:", basename(dirname(FASTQC))))
   ezSessionInfo()
-  html = addParagraph(html, pot("sessionInfo.txt", hyperlink = "sessionInfo.txt"))
-  closeBsdocReport(html, htmlFile, titles)
+  doc = addParagraph(doc, pot("sessionInfo.txt", hyperlink = "sessionInfo.txt"))
+  closeBsdocReport(doc, htmlFile, titles)
   ezSystem(paste("rm -rf ", paste0(reportDirs, ".zip", collapse=" ")))
   return("Success")
 }
