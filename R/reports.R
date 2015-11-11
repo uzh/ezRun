@@ -605,19 +605,22 @@ addTestScatterPlots = function(doc, param, x, result, seqAnno, types=NULL){
   }
   
   theRange = 2^(range(x, na.rm=TRUE))
+  advancedTitles = list()
+  advancedTitles[["Advanced Plots"]] = "Advanced Plots"
+  advancedPlots = openBsdocReport(title=advancedTitles[[length(advancedTitles)]])
   if (!ezIsSpecified(param$batch)){ ## TODO: we no longer use pairing, we now use batch which is more general; however these plots only work if batch is a real pairing
     for (group in unique(c(param$refGroup, colnames(result$groupMeans)))){
       idx = which(group == param$grouping)
       if (length(idx) > 1){
-        testScatterTitles[[paste("Intra-group Comparison:", group)]] = paste("Intra-group Comparison:", group)
-        addTitleWithAnchor(doc, testScatterTitles[[length(testScatterTitles)]], 3)
+        advancedTitles[[paste("Intra-group Comparison:", group)]] = paste("Intra-group Comparison:", group)
+        addTitleWithAnchor(advancedPlots, advancedTitles[[length(advancedTitles)]], 3)
         pngName = paste0(group, "-scatter.png")
         xlab = paste("Avg of", group)
         refValues = result$groupMeans[ , group]
         plotCmd = expression({
           ezScatter(x=2^refValues, y=2^x[, idx, drop=FALSE], isPresent=result$isPresent[, idx, drop=FALSE], types=types, lim=theRange, xlab=xlab)
         })
-        doc = addParagraph(doc, ezImageFileLink(plotCmd, file=pngName,
+        advancedPlots = addParagraph(advancedPlots, ezImageFileLink(plotCmd, file=pngName,
                                                 width=min(ncol(as.matrix(x[, idx, drop=FALSE])), 6) * 480,
                                                 height=ceiling(ncol(as.matrix(x[, idx, drop=FALSE]))/6) * 480))
         if (ncol(result$groupMeans) == 2){
@@ -628,15 +631,15 @@ addTestScatterPlots = function(doc, param, x, result, seqAnno, types=NULL){
           plotCmd = expression({
             ezScatter(x=2^refValues, y=2^x[, idx, drop=FALSE], isPresent=result$isPresent[, idx, drop=FALSE], types=types, lim=theRange, xlab=xlab)
           })
-          doc = addParagraph(doc, ezImageFileLink(plotCmd, file=pngName,
+          advancedPlots = addParagraph(advancedPlots, ezImageFileLink(plotCmd, file=pngName,
                                                   width=min(ncol(as.matrix(x[, idx, drop=FALSE])), 6) * 480,
                                                   height=ceiling(ncol(as.matrix(x[, idx, drop=FALSE]))/6) * 480))
         }
       }
     }
   } else {
-    testScatterTitles[["Pairs ... over ..."]] = paste("Pairs:", param$sampleGroup, "over", param$refGroup)
-    addTitleWithAnchor(doc, testScatterTitles[[length(testScatterTitles)]], 3)
+    advancedTitles[["Pairs ... over ..."]] = paste("Pairs:", param$sampleGroup, "over", param$refGroup)
+    addTitleWithAnchor(advancedPlots, advancedTitles[[length(advancedTitles)]], 3)
     use = param$grouping %in% c(param$sampleGroup, param$refGroup)
     if (all(table(param$batch[use], param$grouping[use]) == 1)){
       groups = paste(param$grouping, param$batch, sep="--")
@@ -652,10 +655,12 @@ addTestScatterPlots = function(doc, param, x, result, seqAnno, types=NULL){
       plotCmd = expression({
         ezScatter(x=2^refValues, y=2^sampleValues, isPresent=samplePresent | refPresent, types=types, lim=theRange, xlab=colnames(refValues))
       })
-      doc = addParagraph(doc, ezImageFileLink(plotCmd, file=pngName,
+      advancedPlots = addParagraph(advancedPlots, ezImageFileLink(plotCmd, file=pngName,
                                               width=min(ncol(as.matrix(sampleValues)), 6) * 480,
                                               height=ceiling(ncol(as.matrix(sampleValues))/6) * 480))
     }
   }
+  closeBsdocReport(advancedPlots, "advancedPlots.html", advancedTitles)
+  doc = addParagraph(doc, pot("advancedPlots.html", hyperlink = "advancedPlots.html"))
   return(testScatterTitles)
 }

@@ -372,7 +372,6 @@ writeNgsTwoGroupReport = function(dataset, result, htmlFile, param=NA, rawData=N
     revigoResult = capture.output(writeTableToHtml(revigoLinks))          
     revigoResult = gsub("<td valign='middle' bgcolor='#ffffff'>","<td valign='middle' bgcolor='#ffffff'><a target='_blank' href='",revigoResult)
     revigoResult = gsub("</td>","' type='text/plain'>Link2ReViGo</a></td>",revigoResult)
-    #     ezWrite(revigoResult, con=html)
     doc = addParagraph(doc, pot(paste(revigoResult, collapse="\n")))
   }
   

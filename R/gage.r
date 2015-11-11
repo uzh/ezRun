@@ -49,7 +49,7 @@ runGageAnalysis = function(result, param=NULL, output=NULL, rawData=NULL, gene.p
       prefix =  paste0('gage-heatmap',"-", i)
       lab.pathCol = paste(signal, "pathColors", sep=".")
       lab.png = paste(signal, "png", sep=".")
-      res = gageHeatmap(gageResults[['significant']][[i]],param = param, output=output, gene.pValue=gene.pValue, signal=signal, prefix=prefix)
+      res = gageHeatmap(gageResults[['significant']][[i]], param = param, output=output, gene.pValue=gene.pValue, signal=signal, prefix=prefix)
       gageResults[['significant']][[i]][[lab.pathCol]] = res$pathwayColors
       gageResults[['significant']][[i]][[lab.png]] = basename(as.character(res[["fileName"]]))
     }
