@@ -290,52 +290,7 @@ writeResultCounts = function(html, param, result, geneIds=NULL, pThresh=c(0.1, 0
   ezWrite("</td><td>", con=html)
   writeTableToHtml(sigFcTable, con=html)
   ezWrite("</td></tr></table>", con=html)
-
 }
-
-##' @describeIn writeResultCounts
-getSignificantCountsTable = function(result, pThresh=1/10^(1:5), genes=NULL){
-  sigTable = ezMatrix(NA, rows=paste("p <", pThresh), cols=c("#significants", "FDR"))
-  for (i in 1:length(pThresh)){
-    isSig = result$pValue < pThresh[i] & result$usedInTest == 1
-    if (is.null(genes)){
-      sigTable[i, "#significants"] = sum(isSig, na.rm=TRUE)
-    } else {
-      sigTable[i, "#significants"] = length(na.omit(unique(genes[isSig])))
-    }
-    if ( sigTable[i, "#significants"] > 0){
-      sigTable[i, "FDR"] = signif(max(result$fdr[isSig], na.rm=TRUE), digits=4)
-    }
-  }
-  sigTable
-}
-
-##' @describeIn writeResultCounts
-getSignificantFoldChangeCountsTable = function(result, pThresh=1/10^(1:5), fcThresh = c(1, 1.5, 2, 3, 4, 8, 10), genes=NULL){
-  
-  ## counts the significant entries
-  ## if genes is given counts the number of different genes that are significant
-  if (!is.null(result$log2Ratio)){
-    fc = 2^abs(result$log2Ratio)
-  } else {
-    stopifnot(!is.null(result$log2Effect))
-    fc = 2^abs(result$log2Effect)
-  }
-  
-  sigFcTable = ezMatrix(NA, rows=paste("p <", pThresh), cols=paste("fc >=", fcThresh))
-  for (i in 1:length(pThresh)){
-    for (j in 1:length(fcThresh)){
-      isSig = result$pValue < pThresh[i] & result$usedInTest == 1 & fc >= fcThresh[j]
-      if (is.null(genes)){
-        sigFcTable[i, j] = sum(isSig, na.rm=TRUE)
-      } else {
-        sigFcTable[i, j] = length(unique(na.omit(genes[isSig])))
-      }
-    }
-  }
-  sigFcTable
-}
-
 
 ##' @title Writes a result file
 ##' @description Writes a result file in text format or zipped.
