@@ -67,29 +67,3 @@ EzAppDeseq2 <-
                 }
               )
   )
-
-
-## NOTEP: gets called from edgerTwoGroups. the Deseq2 method calls ngsTwoGroupAnalysis() from edgerTwoGroups,
-## maybe it makes sense to combine these apps in one R file.
-##' @describeIn twoGroupCountComparison Runs the Deseq2 test method.
-runDeseq2 = function(x, sampleGroup, refGroup, grouping, batch=NULL, isPresent=NULL){
-  library(DESeq2, warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
-  if (ezIsSpecified(batch)){
-    if (!is.numeric(batch)){
-      batch = as.factor(batch)
-    } else {
-      message("using numeric batch factor")
-    }
-    colData = data.frame(grouping=as.factor(grouping), batch=batch, row.names=colnames(x))
-    dds = DESeqDataSetFromMatrix(countData=x, colData=colData, design= ~ grouping + batch)
-  } else {
-    colData = data.frame(grouping=as.factor(grouping), row.names=colnames(x))
-    dds = DESeqDataSetFromMatrix(countData=x, colData=colData, design= ~ grouping)
-  }
-  dds = estimateSizeFactors(dds, controlGenes=isPresent)
-  dds = DESeq(dds, quiet=FALSE)
-  res = results(dds, contrast=c("grouping", sampleGroup, refGroup), cooksCutoff=FALSE)
-  res=as.list(res)
-  res$sf = 1/colData(dds)$sizeFactor
-  return(res)
-}
