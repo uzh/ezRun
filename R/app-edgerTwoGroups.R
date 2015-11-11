@@ -14,6 +14,12 @@ ezMethodEdger = function(input=NA, output=NA, param=NA, htmlFile="00index.html")
   on.exit(setwd(cwd))
   setwdNew(basename(output$getColumn("Report")))
   stopifnot(param$sampleGroup != param$refGroup)
+#   input = cleanupTwoGroupsInput(input, param)
+#   param$grouping = input$getColumn(param$grouping)
+#   if (ezIsSpecified(param$batch) && length(param$batch) == 1){
+#     param$batch = dataset[[param$batch]]
+#   }
+    
   dataset = input$meta
   if (param$useFactorsAsSampleName){
     dataset$Name = rownames(dataset)
