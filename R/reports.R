@@ -380,7 +380,9 @@ addQcScatterPlots = function(doc, param, design, conds, rawData, signalCond, isP
   signal[signal <= 0] = NA
   isPresent = ezPresentFlags(signal, presentFlag=rawData$presentFlag, param=param, isLog=rawData$isLog)
   signalRange = range(signal, na.rm=TRUE)
-  doc = addTitle(doc, "Scatter Plots by Conditions", level=2)
+  qcScatterTitles = list()
+  qcScatterTitles[["Scatter Plots by Conditions"]] = "Scatter Plots by Conditions"
+  addTitleWithAnchor(doc, qcScatterTitles[[length(qcScatterTitles)]], 2)
   if (!is.null(rawData$seqAnno$gc)){
     gcTypes = data.frame("GC < 0.4"=as.numeric(rawData$seqAnno$gc) < 0.4,
                          "GC > 0.6"=as.numeric(rawData$seqAnno$gc) > 0.6,
@@ -418,7 +420,7 @@ addQcScatterPlots = function(doc, param, design, conds, rawData, signalCond, isP
                                   width=min(max(ncol(signalCond) * 200, 480), 2000),
                                   height=min(max(ncol(signalCond) * 200, 480), 2000))
     }
-    doc = addFlexTable(doc, ezGrid(cbind(defLink, gcLink, widthLink)))
+    doc = addFlexTable(doc, ezGrid(cbind(defLink, ifelse(!is.null(gcTypes), gcLink, NULL) , ifelse(!is.null(widthTypes), widthLink, NULL))))
   }
   for (i in 1:min(4, ncol(design))){
     for (cond in unique(design[,i])){
@@ -426,35 +428,40 @@ addQcScatterPlots = function(doc, param, design, conds, rawData, signalCond, isP
       if (length(idx) > 1){
         idx = idx[order(samples[idx])] ## order alphabetically
         condName = paste(colnames(design)[i], cond)
-        doc = addTitle(doc, condName, level=3)
+        nPlots = length(idx)
+        if (nPlots == 2) nPlots = 1
+        qcScatterTitles[[paste(condName, cond, i)]] = condName
+        addTitleWithAnchor(doc, qcScatterTitles[[length(qcScatterTitles)]], 3)
         pngName = ezValidFilename(paste0(condName, "-scatter.png"))
         plotCmd = expression({
           ezScatter(y=signal[ ,idx], isPresent=isPresent[ ,idx], types=types, lim=signalRange, xlab=paste("Avg of", cond), ylab=NULL)
         })
-        doc = addParagraph(doc, ezImageFileLink(plotCmd, file=pngName,
-                                                width=min(ncol(as.matrix(signal)), 6) * 480,
-                                                height=ceiling(ncol(as.matrix(signal))/6) * 480))
+        defLink = ezImageFileLink(plotCmd, file=pngName,
+                                  width=min(nPlots, 6) * 480,
+                                  height=ceiling(nPlots/6) * 480)
         if (!is.null(gcTypes)){
           pngName = ezValidFilename(paste0(condName, "-ByGcScatter.png"))
           plotCmd = expression({
             ezScatter(y=signal[ ,idx], isPresent=isPresent[ ,idx], types=gcTypes, lim=signalRange, xlab=paste("Avg of", cond), ylab=NULL)
           })
-          doc = addParagraph(doc, ezImageFileLink(plotCmd, file=pngName,
-                                                  width=min(ncol(as.matrix(signal)), 6) * 480,
-                                                  height=ceiling(ncol(as.matrix(signal))/6) * 480))
+          gcLink = ezImageFileLink(plotCmd, file=pngName,
+                                   width=min(nPlots, 6) * 480,
+                                   height=ceiling(nPlots/6) * 480)
         }
         if (!is.null(widthTypes)){
           pngName = ezValidFilename(paste0(condName, "-ByWidthScatter.png"))
           plotCmd = expression({
             ezScatter(y=signal[ ,idx], isPresent=isPresent[ ,idx], types=widthTypes, lim=signalRange, xlab=paste("Avg of", cond), ylab=NULL)
           })
-          doc = addParagraph(doc, ezImageFileLink(plotCmd, file=pngName,
-                                                  width=min(ncol(as.matrix(signal)), 6) * 480,
-                                                  height=ceiling(ncol(as.matrix(signal))/6) * 480))
+          widthLink = ezImageFileLink(plotCmd, file=pngName,
+                                      width=min(nPlots, 6) * 480,
+                                      height=ceiling(nPlots/6) * 480)
         }
+        doc = addFlexTable(doc, ezGrid(cbind(defLink, ifelse(!is.null(gcTypes), gcLink, NULL) , ifelse(!is.null(widthTypes), widthLink, NULL))))
       }
     }
   }
+  return(qcScatterTitles)
 }
 
 

@@ -426,7 +426,7 @@ getTopGoHtmlTable = function(goTermStat, pValueThresh=NA, catSize=NA){
   result
 }
 
-## TODOP: REFAC
+## TODOP: REFAC... difficult, as usage is like this: clusterResult = clusterHeatmap() and clusterResult can't be returned with the new plot method.
 clusterHeatmap = function(param, x, file="cluster-heatmap.png", nClusters=5, lim=c(-4, 4),
                           colColors=NULL, d=NULL, columnDist=NULL, doClusterColumns=FALSE,
                           clusterColors=rainbow(nClusters), doGO=TRUE, ontologies=c("BP", "MF", "CC"), 

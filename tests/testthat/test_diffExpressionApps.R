@@ -67,3 +67,16 @@ test_that("edger_withgo", {
 })
 
 
+test_that("count_QC", {
+  skipLong()
+  setwdNew("/scratch/test_count_QC")
+  input = EzDataset$new(file=system.file("extdata/yeast_10k_STAR_featureCounts/dataset.tsv", package="ezRun", mustWork = TRUE))
+  output = EzDataset$new(file=system.file("extdata/yeast_10k_STAR_featureCounts_edger/dataset.tsv", package="ezRun", mustWork = TRUE))
+  param = yeastCommonDiffExprParam()
+  param[['name']] = 'Count_QC'
+  param[['normMethod']] = 'logMean'
+  myApp = EzAppCountQC$new()
+  myApp$run(input=input, output=output, param=param)
+  setwd(cwd)
+})
+

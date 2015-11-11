@@ -271,12 +271,11 @@ ezXYScatterScatter = function(xVec, yVec, xlim=range(xVec, yVec, na.rm=TRUE), yl
   abline(-log10(2), 1, col="blue", lty=2);
 }
 
-## TODOP: REFAC, countQC depends on it
-ezSmoothScatter <- function(x=NULL, y, file=NULL, isPresent=NULL, types=NULL, cex=0.8,
-                         lim=range(x, y, na.rm=TRUE),
-                         xlab=NULL, ylab=NULL, pch=16, colors=rainbow(ncol(types)),
-                         legendPos="bottomright",
-                         nPlotsPerRow=6, plotWidth=350, plotHeight=400, cex.main=1.0, ...){
+
+ezSmoothScatter <- function(x=NULL, y, isPresent=NULL, types=NULL, cex=0.8,
+                         lim=range(x, y, na.rm=TRUE), xlab=NULL, ylab=NULL,
+                         pch=16, colors=rainbow(ncol(types)),
+                         legendPos="bottomright", nPlotsPerRow=6, cex.main=1.0, ...){
   
   y = as.matrix(y)
   if (is.null(ylab)){
@@ -285,10 +284,6 @@ ezSmoothScatter <- function(x=NULL, y, file=NULL, isPresent=NULL, types=NULL, ce
   
   # treat the special case when the reference is not given but there are only two plots
   if (ncol(y) == 2 & is.null(x)){
-    if (!is.null(file)){
-      png(filename=file, height=plotHeight, width=plotWidth);
-      on.exit(dev.off())
-    }
     par(cex.main=cex.main, cex=cex)
     smoothScatter(log2(y[ ,1]), log2(y[ ,2]), xlim=log2(lim), ylim=log2(lim),
                    xlab=ylab[1], ylab=ylab[2], ...)
@@ -300,10 +295,6 @@ ezSmoothScatter <- function(x=NULL, y, file=NULL, isPresent=NULL, types=NULL, ce
   nPlots = ncol(y)
   nImgRow <- ceiling(nPlots / nPlotsPerRow)
   nImgCol <- min(nPlots, nPlotsPerRow)
-  if (!is.null(file)){
-    png(filename=file, height=nImgRow * plotHeight, width=nImgCol * plotWidth);
-    on.exit(dev.off())
-  }
   par(mfrow=c(nImgRow, nImgCol))
   par(cex.main=cex.main, cex=cex)
   if (nPlots == 1){
@@ -332,13 +323,12 @@ ezSmoothScatter <- function(x=NULL, y, file=NULL, isPresent=NULL, types=NULL, ce
   }
 }
 
-## TODOP: REFAC, countQC depends on it
-ezScatter <- function(x=NULL, y, file=NULL, isPresent=NULL, types=NULL, cex=0.8,
-      lim=range(x, y, na.rm=TRUE), shrink=FALSE,
-      xlab=NULL, ylab=NULL, pch=16, colors=rainbow(ncol(types)),
-      legendPos="bottomright",
-      nPlotsPerRow=6, plotWidth=350, plotHeight=400, cex.main=1.0, ...){
 
+ezScatter <- function(x=NULL, y, isPresent=NULL, types=NULL, cex=0.8,
+                      lim=range(x, y, na.rm=TRUE), shrink=FALSE,
+                      xlab=NULL, ylab=NULL, pch=16, colors=rainbow(ncol(types)),
+                      legendPos="bottomright", nPlotsPerRow=6, cex.main=1.0, ...){
+  
   y = as.matrix(y)
   if (is.null(ylab)){
     ylab=colnames(y)
@@ -351,14 +341,10 @@ ezScatter <- function(x=NULL, y, file=NULL, isPresent=NULL, types=NULL, cex=0.8,
     } else {
       isPres = isPresent[ ,1] | isPresent[ , 2]
     }
-    if (!is.null(file)){
-        png(filename=file, height=plotHeight, width=plotWidth);
-        on.exit(dev.off())
-    }
-   par(cex.main=cex.main, cex=cex)
+    par(cex.main=cex.main, cex=cex)
     ezXYScatterScatter(y[ ,1], y[ ,2], xlim=lim, ylim=lim, isPresent=isPres,
-      types=types, pch=pch, colors=colors, legendPos=legendPos, shrink=shrink,
-      xlab=ylab[1], ylab=ylab[2], ...)
+                       types=types, pch=pch, colors=colors, legendPos=legendPos, shrink=shrink,
+                       xlab=ylab[1], ylab=ylab[2], ...)
     return()
   }
   
@@ -366,41 +352,37 @@ ezScatter <- function(x=NULL, y, file=NULL, isPresent=NULL, types=NULL, cex=0.8,
   nPlots = ncol(y)
   nImgRow <- ceiling(nPlots / nPlotsPerRow)
   nImgCol <- min(nPlots, nPlotsPerRow)
-  if (!is.null(file)){
-      png(filename=file, height=nImgRow * plotHeight, width=nImgCol * plotWidth);
-      on.exit(dev.off())
-  }
   par(mfrow=c(nImgRow, nImgCol))
   par(cex.main=cex.main, cex=cex)
-	if (nPlots == 1){
-		main = ""
-	} else {
-		main = ylab
-		ylab[] = ""
-	}
+  if (nPlots == 1){
+    main = ""
+  } else {
+    main = ylab
+    ylab[] = ""
+  }
   for (i in 1:nPlots){
-		if (is.null(dim(isPresent))){
-			isPres = isPresent
-		} else {
-			isPres = isPresent[ ,i]
-		}
-		if (is.null(x)){
-			xVal = apply(y[ , -i, drop=FALSE], 1, ezGeomean, na.rm=TRUE)
-			if (is.null(xlab)){
-				xlab="Average"
-			}
-		} else {
-			if (is.null(dim(x))){
-				xVal = x
-			} else {
-				xVal = x[ ,i]
-				xlab = colnames(x)[i]
-			}
-		}
-		par(mar=c(4.1, 3.1, 4.1, 0.1))
-		ezXYScatterScatter(xVal, y[ ,i], xlim=lim, ylim=lim, isPresent=isPres,
-			types=types, pch=pch, colors=colors, legendPos=legendPos, shrink=shrink,
-			main=main[i], xlab=xlab, ylab=ylab[i], ...)
+    if (is.null(dim(isPresent))){
+      isPres = isPresent
+    } else {
+      isPres = isPresent[ ,i]
+    }
+    if (is.null(x)){
+      xVal = apply(y[ , -i, drop=FALSE], 1, ezGeomean, na.rm=TRUE)
+      if (is.null(xlab)){
+        xlab="Average"
+      }
+    } else {
+      if (is.null(dim(x))){
+        xVal = x
+      } else {
+        xVal = x[ ,i]
+        xlab = colnames(x)[i]
+      }
+    }
+    par(mar=c(4.1, 3.1, 4.1, 0.1))
+    ezXYScatterScatter(xVal, y[ ,i], xlim=lim, ylim=lim, isPresent=isPres,
+                       types=types, pch=pch, colors=colors, legendPos=legendPos, shrink=shrink,
+                       main=main[i], xlab=xlab, ylab=ylab[i], ...)
   }
 }
 
@@ -446,37 +428,27 @@ ezAllPairScatter = function(x, isPresent=NULL, types=NULL, cex=0.8, lim=range(x,
 }
 
 
-## REFAC, but function is currently unused.
 ezCorrelationPlot <- function(z, cond=NULL, condOrder=NULL, main="Correlation", 
-  labels=NULL, condLabels=NULL, plotLabels=nrow(z) < 100,
-  png=NULL, sampleColors=NULL){
-
+                              labels=NULL, condLabels=NULL, plotLabels=nrow(z) < 100,
+                              sampleColors=NULL){
+  
   colorScale <- gray((1:256)/256)
   condNumbers = NULL
   nRow <- nrow(z)
-
-
-  if (!is.null(png)){
-		height = nRow * 20
-		if (height < 500) height= 500
-		if (height > 2000) height = 2000
-    png(filename=png, width=round(height*1.25), height=height)
-  }
+  
   layout(matrix(c(1,3,4,0,2,0), ncol=3, nrow=2, byrow=TRUE),
          widths=c(0.2,0.6,0.2), heights=c(0.8, 0.2))
-                                        #par(pin=c(4,4))
+  #par(pin=c(4,4))
   tmp <- z
   tmp[ tmp == 1] <- NA;
   if ( is.null(labels)){
     labels <- rownames(tmp)
   }
-
+  
   rge <- range(tmp, finite=TRUE);
   #rge <- c(min(tmp, na.rm=TRUE), 1)
   breaks <- 0:256 / 256 * (rge[2] - rge[1]) + rge[1]
-
-
-
+  
   # left and bottom plot
   if (is.null(cond)){
     par(mar=c(0, 2, 2, 0));
@@ -501,12 +473,12 @@ ezCorrelationPlot <- function(z, cond=NULL, condOrder=NULL, main="Correlation",
     }
     idxOrdered <- order(idx)
     condNumbers <- as.matrix(idx[idxOrdered])
-
+    
     par(mar=c(0, 2, 2, 0));
     image(t((1:nRow)[idxOrdered]), axes=FALSE, frame.plot=FALSE, col=sampleColors)
     par(mar=c(2, 0, 0, 2));
     image(as.matrix((1:nRow)[idxOrdered]), axes=FALSE, frame.plot=FALSE, col=sampleColors)
-
+    
     tmp <- tmp[idxOrdered, idxOrdered]
     if (!is.null(labels)){
       labels <- labels[idxOrdered]
@@ -517,15 +489,11 @@ ezCorrelationPlot <- function(z, cond=NULL, condOrder=NULL, main="Correlation",
       condLabels = condLabels[idxOrdered]
     }
   }
-
-
   inc <- (rge[2] - rge[1])/10
-
-                                        # center plot
+  # center plot
   par(mar=c(0, 0, 2, 2));
-
   image(tmp, main=main, axes=FALSE, col=colorScale, breaks=breaks);
-
+  
   nRow <- dim(tmp)[1]
   if (plotLabels){
     if (!is.null(labels)){
@@ -541,15 +509,11 @@ ezCorrelationPlot <- function(z, cond=NULL, condOrder=NULL, main="Correlation",
       }
     }
   }
-
+  
   # right plot
   par(mar=c(0, 2, 2, 4));
   image(t(as.matrix((1:256))), axes=FALSE, frame.plot=TRUE, col=colorScale)
   axis(4, at=(0:9)/9, las=2, labels=signif(rge[1] + inc * 0:9, 3), cex.axis=1.5)
-
-  if (!is.null(png)){
-    dev.off()
-  }
 }
 
 

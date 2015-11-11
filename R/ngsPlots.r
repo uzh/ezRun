@@ -213,12 +213,7 @@ cumHistPlot = function(param, cts, png, colors, main="all transcripts"){
 }
 
 
-countDensPlot = function(param, cts, png, colors, main="all transcripts", bw=7){
-  
-  if (!is.null(png)){
-    png(filename=png, width=640, height=640)
-    on.exit(dev.off())
-  }
+countDensPlot = function(param, cts, colors, main="all transcripts", bw=7){
   
   cts[cts < 0] = 0  ## zeros will be come -Inf and not be part of the area!! Area will be smaller than 1!
   xlim = 0
@@ -240,18 +235,16 @@ countDensPlot = function(param, cts, png, colors, main="all transcripts", bw=7){
   return(NULL)
 }
 
-myMdsPlot = function(signal,sampleColors,pngName){
+myMdsPlot = function(signal, sampleColors, main){
   require(edgeR)
   y = DGEList(counts=signal,group=colnames(signal))
   #y$counts = cpm(y)
   #y = calcNormFactors(y)
-  png(pngName,width = 640, height = 640)
   mds = plotMDS(y)
-  plot(mds$x,mds$y, pch=c(15),xlab='Leading logFC dim1',ylab='Leading logFC dim2',main=sub('.png','',pngName),
-       xlim=c(1.2*min(mds$x),1.2*max(mds$x)),ylim=c(1.2*min(mds$y),1.2*max(mds$y)),col=sampleColors)
+  plot(mds$x, mds$y, pch=c(15), xlab='Leading logFC dim1', ylab='Leading logFC dim2', main=main,
+       xlim=c(1.2*min(mds$x), 1.2*max(mds$x)), ylim=c(1.2*min(mds$y), 1.2*max(mds$y)), col=sampleColors)
   text(mds$x,mds$y,labels = colnames(signal),pos=1,col=c('darkcyan'),cex=0.7)
   par(bg = 'white')
-  dev.off()
   return(NULL)
 }
 
