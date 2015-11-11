@@ -2,15 +2,12 @@
 % Please edit documentation in R/reports.R
 \name{openBsdocReport}
 \alias{closeBsdocReport}
-\alias{ezAddBootstrapMenu}
 \alias{openBsdocReport}
 \title{Opens an html report}
 \usage{
 openBsdocReport(title = "", dataset = NULL)
 
-closeBsdocReport(doc, file)
-
-ezAddBootstrapMenu(doc, titles = NULL)
+closeBsdocReport(doc, file, titles = NULL)
 }
 \arguments{
 \item{title}{a character specifying the title of the html report.}
@@ -26,8 +23,6 @@ Opens an html report using \code{bsdoc()} from the ReporteRs package. Also adds 
 \section{Functions}{
 \itemize{
 \item \code{closeBsdocReport}: Adds a paragraph showing the finishing time and writes the document. \code{file} must have a .html suffix.
-
-\item \code{ezAddBootstrapMenu}: Adds a bootstrapmenu with the FGCZ link and optional navigation. Section links can be added to the Navigation with \code{#Anchorname}.
 }}
 \examples{
 theDoc = openBsdocReport(title="My html report")

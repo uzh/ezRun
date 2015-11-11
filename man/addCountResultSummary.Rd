@@ -7,7 +7,7 @@
 addCountResultSummary(doc, param, result)
 }
 \arguments{
-\item{doc}{an object of the class bsdoc to add the table to.}
+\item{doc}{an object of the class bsdoc to add the table.}
 
 \item{param}{a list of parameters to influence the output:
 \itemize{

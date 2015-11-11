@@ -26,9 +26,6 @@ Returns
 \description{
 Writes test scatter plots to an html file.
 }
-\examples{
-1
-}
 \author{
 Rehrauer, Hubert
 

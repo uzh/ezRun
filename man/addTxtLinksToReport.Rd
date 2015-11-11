@@ -4,7 +4,7 @@
 \alias{addTxtLinksToReport}
 \title{Writes a text link}
 \usage{
-addTxtLinksToReport(txtNames, mime = "text/plain", doc)
+addTxtLinksToReport(doc, txtNames, mime = "text/plain")
 }
 \arguments{
 \item{txtNames}{a character representing the link name.}

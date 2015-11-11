@@ -269,16 +269,7 @@ writeCountResultSummary = function(html, param, result){
 }
 
 
-##' @title 1
-##' @description 1
-##' @param html a connection to an html file.
-##' @param result
-##' @param geneIds
-##' @param pThresh
-##' @template roxygen-template
-##' @seealso \code{\link{writeTableToHtml}}
-##' @examples
-##' 1
+
 writeResultCounts = function(html, param, result, geneIds=NULL, pThresh=c(0.1, 0.05, 1/10^(2:5))){
 
 	sigTable = getSignificantCountsTable(result, pThresh=pThresh)

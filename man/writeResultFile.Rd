@@ -26,12 +26,6 @@ Returns the name of the result file.
 \description{
 Writes a result file in text format or zipped.
 }
-\examples{
-param = ezParam()
-htmlFile = "example_html"
-html =  openHtmlReport(htmlFile,param)
-writeResultFile(html, param )
-}
 \author{
 Rehrauer, Hubert
 

@@ -29,9 +29,6 @@ writeQcScatterPlots(html, param, design, conds, rawData, signalCond,
 \description{
 Writes QC scatter plots to an html file.
 }
-\examples{
-1
-}
 \author{
 Rehrauer, Hubert
 

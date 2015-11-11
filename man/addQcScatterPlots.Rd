@@ -10,7 +10,7 @@ addQcScatterPlots(doc, param, design, conds, rawData, signalCond, isPresentCond,
 \arguments{
 \item{doc}{an object of the class bsdoc to add the plots to.}
 
-\item{param}{a list of parameters. If \code{writeScatterPlots} is false, the function returns NULL.}
+\item{param}{a list of parameters.}
 
 \item{design}{a data.frame containing the factorial design.}
 

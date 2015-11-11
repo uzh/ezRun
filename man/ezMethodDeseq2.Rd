@@ -4,7 +4,8 @@
 \alias{ezMethodDeseq2}
 \title{The Deseq2 method to run an app}
 \usage{
-ezMethodDeseq2(input = NA, output = NA, param = NA)
+ezMethodDeseq2(input = NA, output = NA, param = NA,
+  htmlFile = "00index.html")
 }
 \arguments{
 \item{input}{a list, file path or an object of the class EzDataset containing the input.}

@@ -4,7 +4,8 @@
 \alias{ezMethodEdger}
 \title{The Edger method to run an app}
 \usage{
-ezMethodEdger(input = NA, output = NA, param = NA)
+ezMethodEdger(input = NA, output = NA, param = NA,
+  htmlFile = "00index.html")
 }
 \arguments{
 \item{input}{a list, file path or an object of the class EzDataset containing the input.}
