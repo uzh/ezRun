@@ -142,7 +142,7 @@ runNgsCountQC = function(dataset, htmlFile="00index.html", param=param, rawData=
                             "Genomic Features <br>with Reads above threshold [%]"=signif(100*presentCounts/nrow(isPresent), digits=3),
                             check.names=FALSE)
   rownames(presentFrame) = samples
-  doc = addFlexTable(doc, ezGrid(presentFrame))
+  doc = addFlexTable(doc, ezFlexTable(presentFrame, header.columns=TRUE, talign="right"))
   
   rawData$signal = signal
   

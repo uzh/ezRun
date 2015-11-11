@@ -19,13 +19,14 @@
 ##' @return Returns an object of the class FlexTable.
 ##' @examples
 ##' ezFlexTable(data.frame(a=1:5,b=11:15))
-ezFlexTable = function(x, border = 1, valign = "top", header.columns = FALSE,  ...){
+ezFlexTable = function(x, border = 1, valign = "top", talign = "left", header.columns = FALSE,  ...){
   if (!is.data.frame(x) & !is.matrix(x)){
     x = ezFrame(x)
   }
   bodyCells = cellProperties(border.width=border, padding=2, vertical.align=valign)
+  bodyPars = parProperties(text.align = talign)
   headerCells = cellProperties(border.width=border, padding=2)
-  FlexTable(x, body.cell.props = bodyCells,
+  FlexTable(x, body.cell.props = bodyCells, body.par.props = bodyPars,
             header.cell.props = headerCells,
             header.columns = header.columns, ...)
 }
@@ -299,8 +300,10 @@ addCountResultSummary = function(doc, param, result){
 ##' @param pThresh a numerical indicating the p-value threshold.
 ##' @template roxygen-template
 addSignificantCounts = function(doc, result, pThresh=c(0.1, 0.05, 1/10^(2:5))){
-  sigTable = ezFlexTable(getSignificantCountsTable(result, pThresh=pThresh), header.columns = TRUE, add.rownames = TRUE)
-  sigFcTable = ezFlexTable(getSignificantFoldChangeCountsTable(result, pThresh=pThresh), header.columns = TRUE, add.rownames=TRUE)
+  sigTable = ezFlexTable(getSignificantCountsTable(result, pThresh=pThresh),
+                         header.columns = TRUE, add.rownames = TRUE, talign = "right")
+  sigFcTable = ezFlexTable(getSignificantFoldChangeCountsTable(result, pThresh=pThresh),
+                           header.columns = TRUE, add.rownames = TRUE, talign = "right")
   tbl = ezGrid(cbind(as.html(sigTable), as.html(sigFcTable)))
   doc = addFlexTable(doc, tbl)
   return(doc)
