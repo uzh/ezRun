@@ -87,7 +87,7 @@ getRangesCoverageChrom = function(chrom=NULL, ranges, reads, strandMode="both"){
 }
 
 
-
+## REFAC, but function is currently unused.
 plotRangesProfiles = function(ranges, rangesProfiles, trdb, pngDir=".", makePng=TRUE, width=50, offset=10, param=param){
   if (makePng){
     if (!file.exists(pngDir)) dir.create(pngDir)
@@ -148,7 +148,7 @@ getTranscriptProfiles = function(transcriptIds, bamFile, gtf=NULL, strandMode=NA
 }
 
 
-
+## REFAC, but function is currently unused.
 plotTranscriptProfiles = function(transcriptProfiles, gtf, sampleColors=NULL, makePng=TRUE,
                                   pngDir=".", pngNames=NULL){
   
