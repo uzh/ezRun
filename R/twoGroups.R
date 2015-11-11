@@ -383,8 +383,5 @@ writeNgsTwoGroupReport = function(dataset, result, htmlFile, param=NA, rawData=N
     addTitleWithAnchor(doc, titles[[length(titles)]], 3)
     addGageTables(doc, param, gageRes)
   }
-  
-  ezSessionInfo()
-  doc = addParagraph(doc, pot("sessionInfo.txt", hyperlink = "sessionInfo.txt"))
   closeBsdocReport(doc, htmlFile, titles)
 }

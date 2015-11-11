@@ -131,6 +131,8 @@ openBsdocReport = function(title="", dataset=NULL){
 
 ##' @describeIn openBsdocReport Adds a paragraph showing the finishing time and writes the document. \code{file} must have a .html suffix.
 closeBsdocReport = function(doc, file, titles=NULL){
+  ezSessionInfo()
+  doc = addParagraph(doc, pot("sessionInfo.txt", hyperlink = "sessionInfo.txt"))
   doc = addParagraph(doc, paste("Finished", format(Sys.time(), "%Y-%m-%d %H:%M:%S")))
   bootStrap = BootstrapMenu("Functional Genomics Center Zurich", link = "http://www.fgcz.ethz.ch")
   if (ezIsSpecified(titles)){

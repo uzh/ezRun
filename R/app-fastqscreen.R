@@ -237,9 +237,5 @@ fastqscreenReport = function(dataset, param, htmlFile="00index.html", fastqData,
       }
     }
   }
-  titles[["Misc"]] = "Misc"
-  addTitleWithAnchor(html, titles[[length(titles)]], 2)
-  ezSessionInfo()
-  html = addParagraph(html, pot("sessionInfo.txt", hyperlink = "sessionInfo.txt"))
   closeBsdocReport(doc=html, file=htmlFile, titles)
 }

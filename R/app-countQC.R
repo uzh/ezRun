@@ -370,7 +370,5 @@ runNgsCountQC = function(dataset, htmlFile="00index.html", param=param, rawData=
     doc = addParagraph(doc, "Zero or negative counts are not represented by the area!")
     doc = addParagraph(doc, pngLink)
   }
-  ezSessionInfo()
-  doc = addParagraph(doc, pot("sessionInfo.txt", hyperlink = "sessionInfo.txt"))
   closeBsdocReport(doc, htmlFile, titles)
 }
