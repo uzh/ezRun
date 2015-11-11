@@ -20,26 +20,12 @@ ezMethodEdger = function(input=NA, output=NA, param=NA, htmlFile="00index.html")
   if (ezIsSpecified(param$batch) && length(param$batch) == 1){
     param$batch = input$meta[[param$batch]]
   }
-    
-#   dataset = input$meta
-#   if (param$useFactorsAsSampleName){
-#     dataset$Name = rownames(dataset)
-#     rownames(dataset) = addReplicate(apply(ezDesignFromDataset(dataset, param), 1, paste, collapse="_"))
-#   }
-#   if (!is.null(param$removeOutliers) && param$removeOutliers && !is.null(dataset$Outlier)){
-#     dataset = dataset[toupper(dataset$Outlier) %in% c("", "NO", '""', "FALSE") == TRUE, ]
-#   }
-#   input$meta = dataset
   
   rawData = loadCountDataset(input, param)
   if (isError(rawData)){
     writeErrorReport(htmlFile, param=param, error=rawData$error)
     return("Error")
   }
-  
-#   modifiedParams = modifyParameters(dataset, param)
-#   param$grouping = modifiedParams$grouping
-#   param$batch = modifiedParams$batch
   
   result = twoGroupCountComparison(rawData, param)
   if (isError(result)){

@@ -6,6 +6,12 @@
 # www.fgcz.ch
 
 
+##' @title Cleans up input from two group apps
+##' @description Cleans up input from two group apps.
+##' @param input an object of the class EzDataset.
+##' @param param a list of parameters to use or clean up.
+##' @template roxygen-template
+##' @return Returns an object of the class EzDataset that is the modified \code{input}.
 cleanupTwoGroupsInput = function(input, param){
   dataset = input$meta
   if (param$useFactorsAsSampleName){
@@ -24,31 +30,6 @@ cleanupTwoGroupsInput = function(input, param){
     inputMod$setColumn(grouping)
   }
   return(inputMod)
-}
-
-##' @describeIn ezMethodEdger Modifies some parameters for \code{twoGroupCountComparison()}.
-modifyParameters = function(dataset, param){
-  if (!is.null(dataset[[param$grouping]])){
-    param$grouping = dataset[[param$grouping]]
-  } else {
-    if (!is.null(dataset[[paste(param$grouping, "[Factor]")]])){
-      param$grouping = dataset[[paste(param$grouping, "[Factor]")]]    
-    } else {
-      stop("column not found: ", param$grouping)
-    }
-  }
-  if (ezIsSpecified(param$batch) && length(param$batch) == 1){
-    if (is.null(dataset[[param$batch]])){
-      stop("column not found: ", param$batch)
-    }
-    param$batch = dataset[[param$batch]]
-  }
-  if (!is.null(param$markOutliers) && param$markOutliers){
-    stopifnot(!is.null(dataset$Outlier))
-    isOut = dataset$Outlier %in% c("", "NO", '""', "FALSE") == FALSE
-    param$grouping[isOut] = paste(param$grouping[isOut], "OUTLIER", sep="_")
-  }
-  return(list(grouping=param$grouping, batch=param$batch))
 }
 
 ## TODO: add runLimma function.
