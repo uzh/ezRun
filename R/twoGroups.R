@@ -331,20 +331,6 @@ writeNgsTwoGroupReport = function(dataset, result, htmlFile, param=NA, rawData=N
     }
     doc = addParagraph(doc, paste("Number of significant features:", sum(use)))
     
-    #     ezWrite("<table border=0><tr><th>Cluster Plot</th><th>GO categories of feature clusters</th></tr>", con=html)
-    #     ezWrite("<tr valign=top><td>", con=html)
-    #     writeImageRowToHtml(clusterPng, con=html)
-    #     ezWrite("</td><td>", con=html)
-    #     if (!is.null(clusterResult$GO)){
-    #       ezWrite("Background color corresponds to the color of the feature cluster in the heatmap plot.<br>", con=html)
-    #       writeGOClusterResult(html, param, clusterResult)
-    #     } else {
-    #       ezWrite("No information available", con=html)
-    #     }
-    #     if (!is.null(clusterResult$Kegg)){
-    #       writeKeggClusterResult(html, param, clusterResult, keggOrganism)
-    #     }
-    #     ezWrite("</td></tr></table>", con=html)
     clusterLink = imgLinks(clusterPng)
     if (!is.null(clusterResult$GO)){
       goLink = as.html(ezGrid(c("Background color corresponds to the row colors in the heatmap plot.",
@@ -362,7 +348,6 @@ writeNgsTwoGroupReport = function(dataset, result, htmlFile, param=NA, rawData=N
   ## only do GO if we have enough genes
   if (doGo(param, seqAnno)){
     goResult = twoGroupsGO(param, result, seqAnno, normalizedAvgSignal=rowMeans(result$groupMeans), method=param$goseqMethod)
-    #     writeGOTables(html, param, goResult)
     titles[["GO Enrichment Analysis"]] = "GO Enrichment Analysis"
     addTitleWithAnchor(doc, titles[[length(titles)]], 3)
     doc = addGoUpDownResult(doc, param, goResult)
@@ -394,7 +379,6 @@ writeNgsTwoGroupReport = function(dataset, result, htmlFile, param=NA, rawData=N
   ## Run Gage
   if(param[['GAGEanalysis']] ) {
     gageRes <- runGageAnalysis(result, param=param, output=output, rawData=rawData)  ## TODOP: REFAC
-    #     writeGageTables(html, param, gageRes)
     titles[["GAGE Enrichment Analysis"]] = "GAGE Enrichment Analysis"
     addTitleWithAnchor(doc, titles[[length(titles)]], 3)
     addGageTables(doc, param, gageRes)
