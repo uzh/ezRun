@@ -299,16 +299,16 @@ transcriptAnnoFromGtf = function(gtf, id=gtf$transcript_id, types="exon", attrib
   gtf = gtf[use, ]
   id = id[use]
   seqAnno = data.frame(row.names=unique(id))
-  seqAnno$gene_id = tapply(gtf$gene_id, id, collapse, empty.rm=TRUE, uniqueOnly=TRUE)[rownames(seqAnno)] 
-  seqAnno$seqid = tapply(gtf$seqid, id, collapse, empty.rm=TRUE, uniqueOnly=TRUE)[rownames(seqAnno)]
-  seqAnno$strand = tapply(gtf$strand, id, collapse, empty.rm=TRUE, uniqueOnly=TRUE)[rownames(seqAnno)]
-  seqAnno$start = tapply(gtf$start, id, collapse)[rownames(seqAnno)]        
-  seqAnno$end = tapply(gtf$end, id, collapse)[rownames(seqAnno)]        
+  seqAnno$gene_id = tapply(gtf$gene_id, id, ezCollapse, empty.rm=TRUE, uniqueOnly=TRUE)[rownames(seqAnno)] 
+  seqAnno$seqid = tapply(gtf$seqid, id, ezCollapse, empty.rm=TRUE, uniqueOnly=TRUE)[rownames(seqAnno)]
+  seqAnno$strand = tapply(gtf$strand, id, ezCollapse, empty.rm=TRUE, uniqueOnly=TRUE)[rownames(seqAnno)]
+  seqAnno$start = tapply(gtf$start, id, ezCollapse)[rownames(seqAnno)]        
+  seqAnno$end = tapply(gtf$end, id, ezCollapse)[rownames(seqAnno)]        
   seqAnno$width = tapply(gtf$end - gtf$start + 1, id, sum)[rownames(seqAnno)]
   if (!is.null(attributes)){
     for (attr in attributes){
       aValues = ezGffAttributeField(x=gtf$attributes, field=attr, attrsep="; *", valuesep=" ")
-      seqAnno[[attr]] = tapply(aValues, id, collapse, na.rm=TRUE, empty.rm=TRUE, uniqueOnly=TRUE)[rownames(seqAnno)]
+      seqAnno[[attr]] = tapply(aValues, id, ezCollapse, na.rm=TRUE, empty.rm=TRUE, uniqueOnly=TRUE)[rownames(seqAnno)]
     }
   }
   return(seqAnno)

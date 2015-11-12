@@ -628,8 +628,8 @@ ezReplicateNumber = function(x){
 ##' @template roxygen-template
 ##' @examples
 ##' l1 = list(a=c(1,"",6),c=c("rsrg","yjrt",NA,6))
-##' collapse(l1,sep="_")
-##' collapse(l1,na.rm=T,empty.rm=T,uniqueOnly=T)
+##' ezCollapse(l1,sep="_")
+##' ezCollapse(l1,na.rm=T,empty.rm=T,uniqueOnly=T)
 ezCollapse = function(x, sep="; ", na.rm=FALSE, empty.rm=FALSE, uniqueOnly=FALSE){
   if (length(x) == 0){
     return("")

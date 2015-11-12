@@ -364,8 +364,7 @@ writeNgsTwoGroupReport = function(dataset, result, htmlFile, param=NA, rawData=N
         goResult = goResult[1:param$maxNumberGroupsDisplayed,]
       }
       revigoLinks[j] = paste0('http://revigo.irb.hr/?inputGoList=',
-                              paste(goResult[,'GO.ID'],goResult[,'Pvalue'],
-                                    collapse='%0D%0A'))
+                              paste(goResult[,'GO.ID'],goResult[,'Pvalue'], collapse='%0D%0A'))
     }
     titles[["ReViGO"]] = "ReViGO"
     addTitleWithAnchor(doc, titles[[length(titles)]], 3)

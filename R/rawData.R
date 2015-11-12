@@ -163,7 +163,7 @@ aggregateCountsByGene = function(param, rawData){
   #                          colnames(rawData$seqAnno))
   for (nm in colnames(rawData$seqAnno)){
     seqAnnoNew[[nm]] = tapply(rawData$seqAnno[[nm]], genes, 
-                              collapse, empty.rm=TRUE, uniqueOnly=TRUE, na.rm=TRUE)[rownames(seqAnnoNew)]
+                              ezCollapse, empty.rm=TRUE, uniqueOnly=TRUE, na.rm=TRUE)[rownames(seqAnnoNew)]
   }
   ## special merging for special columns
   if (!is.null(rawData$seqAnno$start)){

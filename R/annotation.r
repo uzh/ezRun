@@ -37,20 +37,20 @@ ezFeatureAnnotation = function(param, ids, dataFeatureType){
   if (dataFeatureType == "gene"){
     if (!all(ids %in% rownames(seqAnno))){
       stopifnot(ids %in% seqAnno$gene_id)
-      trNames = tapply(rownames(seqAnno), seqAnno$gene_id, collapse, uniqueOnly=TRUE)
+      trNames = tapply(rownames(seqAnno), seqAnno$gene_id, ezCollapse, uniqueOnly=TRUE)
       if (!is.null(seqAnno$gene_name)){
-        gene_name = tapply(seqAnno$gene_name, seqAnno$gene_id, collapse, uniqueOnly=TRUE)
+        gene_name = tapply(seqAnno$gene_name, seqAnno$gene_id, ezCollapse, uniqueOnly=TRUE)
       } else {
         gene_name = NULL
       }
       seqAnnoGene = data.frame(row.names=names(trNames), stringsAsFactors=FALSE)
       if (!is.null(seqAnno$gene_name)){
-        seqAnnoGene$gene_name = tapply(seqAnno$gene_name, seqAnno$gene_id, collapse, uniqueOnly=TRUE)
+        seqAnnoGene$gene_name = tapply(seqAnno$gene_name, seqAnno$gene_id, ezCollapse, uniqueOnly=TRUE)
       }
       seqAnnoGene$transcript_id=as.character(trNames)
       for (nm in intersect(colnames(seqAnno), c("type", "Description", "description", "hgnc_symbol", "Entrez Gene ID", "gene_name", "gene_symbol"))){
         seqAnnoGene[[nm]] = tapply(seqAnno[[nm]], seqAnno$gene_id,
-                                   collapse, empty.rm=TRUE, uniqueOnly=TRUE, na.rm=TRUE)[rownames(seqAnnoGene)]
+                                   ezCollapse, empty.rm=TRUE, uniqueOnly=TRUE, na.rm=TRUE)[rownames(seqAnnoGene)]
       }  
       goAnno = aggregateGoAnnotation(seqAnno, seqAnno$gene_id)
       if (!is.null(seqAnno$width)){
