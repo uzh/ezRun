@@ -66,15 +66,18 @@ ezGGplot = function(...){
   return(ggPlot)
 }
 
+require(ReporteRs)
+require(ggplot2)
 cd2 = getwd()
-setwdNew("./scratch")
+#setwdNew("~/tmp")
+#setwdNew("./scratch")
 theDoc = bsdoc(title = 'My document')
 theDoc = addTitle(theDoc, "A title")
 myPlot = qplot(iris$Sepal.Length, iris$Sepal.Width)
 myLink = ezImageFileLink2(myPlot, file="test.png")
 theDoc = addParagraph(theDoc, myLink)
 writeDoc(theDoc, "my.html")
-setwd(cd2)
+#setwd(cd2)
 
 
 ggVolcano = function(log2Ratio, pValue, xlim=NULL, ylim=NULL,
@@ -120,6 +123,57 @@ ggVolcano = function(log2Ratio, pValue, xlim=NULL, ylim=NULL,
   return(ggPlot)
 }
 
+ggVolcano(log2Ratio = log2Ratio, pValue=yValues)
+
+
+
+ggplot(data=ezFrame(log2Ratio=log2Ratio, yValues=yValues)) + geom_point(aes(x=log2Ratio, y=yValues))  + 
+  theme_bw(base_size=14) + theme(panel.grid.major=element_blank(), panel.grid.minor=element_blank())
+
+ggplot(data=ezFrame(log2Ratio=log2Ratio, yValues=yValues)) + geom_point(aes(x=log2Ratio, y=yValues))
+
+df = ezFrame(log2Ratio=log2Ratio, yValues=yValues)
+
+ggplot() + geom_point(aes(x=log2Ratio, y=yValues))
+
+ggplot(df, aes(x=log2Ratio,y=yValues)) + geom_point()
+
+
+types = ezFrame(row.names=1:100)
+for (x in unique(yValues)){
+  types[[as.character(x)]] = x == yValues
+}
+colors=rainbow(ncol(types))
+
+cp = ggplot() + geom_point(aes(x=log2Ratio, y=yValues))
+for (j in 1:ncol(types)){
+  use = types[[j]]
+  cp = cp +geom_point(data=df[use, ], color=colors[j], aes(x=log2Ratio, y=yValues))
+}
+cp
+
+cp = ggplot() + geom_point(aes(x=log2Ratio, y=yValues))
+for (j in 1:ncol(types)){
+  use = types[[j]]
+  cp = cp + geom_point(data=df[use, ], color=colors[j], aes(x=log2Ratio, y=yValues))
+}
+cp
+
+names(colors) = letters[1:length(colors)]
+cp + scale_color_manual(name="mylegend", values=colors) + theme(legend.position="right")
+
+
+cp = ggplot() + geom_point(aes(x=log2Ratio, y=yValues))
+for (j in 1:ncol(types)){
+  use = types[[j]]
+  cp = cp +geom_point(color=colors[j], aes(x=0.5*log2Ratio[use], y=yValues[use]))
+}
+cp
+
+
+
+  theme_bw(base_size=14) + theme(panel.grid.major=element_blank(), panel.grid.minor=element_blank())
+
 
 # ggtitle("title")
 
@@ -136,4 +190,7 @@ ggVolcano = function(log2Ratio, pValue, xlim=NULL, ylim=NULL,
 # cex=0.8
 # yType="p-value"
 
+bsdoc
 
+  
+  

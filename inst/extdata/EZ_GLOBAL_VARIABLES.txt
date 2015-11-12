@@ -50,7 +50,7 @@ VELVET_DIR="/usr/local/ngseq/stow/velvet_1.1.05_MP/bin"
 
 GATK_JAR="/usr/local/ngseq/src/GenomeAnalysisTK_3.4-46/GenomeAnalysisTK.jar"
 GATK_DIR="/usr/local/ngseq/src/GenomeAnalysisTK_3.4-46/"
-PICARD_DIR="/usr/local/ngseq/src/picard-tools-1.140/picard.jar"
+PICARD_JAR="/usr/local/ngseq/src/picard-tools-1.140/picard.jar"
 SNPEFF_DIR="/usr/local/ngseq/src/snpEff_4.1L"
 #BAM_UTIL="/usr/local/ngseq/src/bamUtil/bin/"
 HUMAN_SNP_DATABASES="/srv/GT/databases/dbSNP/release142/"
