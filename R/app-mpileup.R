@@ -41,7 +41,7 @@ ezMethodMpileup = function(input=NA, output=NA, param=NA){
       ezSystem(paste("cp", bf, "local.bam"))
       ezSystem(paste("cp", paste0(bf, ".bai"), "local.bam.bai"))
     }
-    cmd = paste0(javaCall, " -jar ", PICARD_JAR, "AddOrReplaceReadGroups",
+    cmd = paste0(javaCall, " -jar ", PICARD_JAR, " AddOrReplaceReadGroups",
                 " TMP_DIR=. MAX_RECORDS_IN_RAM=2000000", " I=", "local.bam",
                 " O=withRg.bam SORT_ORDER=coordinate",
                 " RGID=RGID_", sampleName, " RGPL=illumina RGSM=", sampleName, " RGLB=RGLB_", sampleName, " RGPU=RGPU_", sampleName,
@@ -152,58 +152,60 @@ ezMethodMpileup = function(input=NA, output=NA, param=NA){
 #   titles[["Variants by Chromosomes"]] = "Variants by Chromosomes"
 #   addTitleWithAnchor(doc, titles[[length(titles)]], 2)
   ezWrite("<h2>Variants by Chromosomes</h2>",con=html)
-  chrom = sub(":.*", "", rownames(gt))
-  pos = as.integer(sub("_.*", "", sub(".*:", "", rownames(gt))))
-  isRealChrom = !grepl("[\\._]", names(chromSizes)) & chromSizes > 20000 ## TODO select chromosomes by name
-  idxList = split(1:nrow(gt), chrom)
-  snpColors = c("0/0"="blue", "0/1"="darkgrey", "1/1"="red")
-  pngFiles = c()
-#   pngLinks = list()
-  chromUse = sort(chromSizes[isRealChrom], decreasing = TRUE)
-  for (ch in names(chromUse)){
-    pngFiles[ch] = paste0("variantPos-chrom-", ch, ".png")
-#     plotCmd = expression({
-#       par(mar=c(4.1, 10, 4.1, 2.1))
-#       plot(0, 0, type="n", main=paste("Chromsome", ch), xlab="pos", xlim=c(1, chromSizes[ch]), ylim=c(0, 3*ncol(gt)),
-#            axes=FALSE, frame=FALSE, xaxs="i", yaxs="i", ylab="")
-#       axis(1)
-#       mtext(side = 2, at = seq(1, 3*ncol(gt), by=3), text = colnames(gt), las=2,
-#             cex = 1.0, font=2, col=sampleColors)
-#       idx = idxList[[ch]]
-#       xStart = pos[idx]
-#       nm  = colnames(gt)[1]
-#       for (i in 1:ncol(gt)){
-#         offSet = match(gt[idx ,i], names(snpColors))
-#         yTop = (i-1) * 3 + offSet
-#         rect(xStart, yTop - 1, xStart+1, yTop, col = snpColors[offSet], border=snpColors[offSet])
-#       }
-#       abline(h=seq(0, 3*ncol(gt), by=3))
-#     })
-#     pngLinks[ch] = ezImageFileLink(plotCmd, file=pngFiles[ch], height=200+30*ncol(gt), width=1200)
-    png(file=pngFiles[ch], height=200+30*ncol(gt), width=1200)
-    par(mar=c(4.1, 10, 4.1, 2.1))
-    plot(0, 0, type="n", main=paste("Chromsome", ch), xlab="pos", xlim=c(1, chromSizes[ch]), ylim=c(0, 3*ncol(gt)),
-         axes=FALSE, frame=FALSE, xaxs="i", yaxs="i", ylab="")
-    axis(1)
-    mtext(side = 2, at = seq(1, 3*ncol(gt), by=3), text = colnames(gt), las=2,
-          cex = 1.0, font=2, col=sampleColors)
-    idx = idxList[[ch]]
-    xStart = pos[idx]
-    nm  = colnames(gt)[1]
-    for (i in 1:ncol(gt)){
-      offSet = match(gt[idx ,i], names(snpColors))
-      yTop = (i-1) * 3 + offSet
-      rect(xStart, yTop - 1, xStart+1, yTop, col = snpColors[offSet], border=snpColors[offSet])
+  if (nrow(gt) > 0){
+    chrom = sub(":.*", "", rownames(gt))
+    pos = as.integer(sub("_.*", "", sub(".*:", "", rownames(gt))))
+    isRealChrom = !grepl("[\\._]", names(chromSizes)) & chromSizes > 20000 ## TODO select chromosomes by name
+    idxList = split(1:nrow(gt), chrom)
+    snpColors = c("0/0"="blue", "0/1"="darkgrey", "1/1"="red")
+    pngFiles = c()
+    #   pngLinks = list()
+    chromUse = sort(chromSizes[isRealChrom], decreasing = TRUE)
+    for (ch in names(chromUse)){
+      pngFiles[ch] = paste0("variantPos-chrom-", ch, ".png")
+      #     plotCmd = expression({
+      #       par(mar=c(4.1, 10, 4.1, 2.1))
+      #       plot(0, 0, type="n", main=paste("Chromsome", ch), xlab="pos", xlim=c(1, chromSizes[ch]), ylim=c(0, 3*ncol(gt)),
+      #            axes=FALSE, frame=FALSE, xaxs="i", yaxs="i", ylab="")
+      #       axis(1)
+      #       mtext(side = 2, at = seq(1, 3*ncol(gt), by=3), text = colnames(gt), las=2,
+      #             cex = 1.0, font=2, col=sampleColors)
+      #       idx = idxList[[ch]]
+      #       xStart = pos[idx]
+      #       nm  = colnames(gt)[1]
+      #       for (i in 1:ncol(gt)){
+      #         offSet = match(gt[idx ,i], names(snpColors))
+      #         yTop = (i-1) * 3 + offSet
+      #         rect(xStart, yTop - 1, xStart+1, yTop, col = snpColors[offSet], border=snpColors[offSet])
+      #       }
+      #       abline(h=seq(0, 3*ncol(gt), by=3))
+      #     })
+      #     pngLinks[ch] = ezImageFileLink(plotCmd, file=pngFiles[ch], height=200+30*ncol(gt), width=1200)
+      png(file=pngFiles[ch], height=200+30*ncol(gt), width=1200)
+      par(mar=c(4.1, 10, 4.1, 2.1))
+      plot(0, 0, type="n", main=paste("Chromsome", ch), xlab="pos", xlim=c(1, chromSizes[ch]), ylim=c(0, 3*ncol(gt)),
+           axes=FALSE, frame=FALSE, xaxs="i", yaxs="i", ylab="")
+      axis(1)
+      mtext(side = 2, at = seq(1, 3*ncol(gt), by=3), text = colnames(gt), las=2,
+            cex = 1.0, font=2, col=sampleColors)
+      idx = idxList[[ch]]
+      xStart = pos[idx]
+      nm  = colnames(gt)[1]
+      for (i in 1:ncol(gt)){
+        offSet = match(gt[idx ,i], names(snpColors))
+        yTop = (i-1) * 3 + offSet
+        rect(xStart, yTop - 1, xStart+1, yTop, col = snpColors[offSet], border=snpColors[offSet])
+      }
+      abline(h=seq(0, 3*ncol(gt), by=3))
+      dev.off()
     }
-    abline(h=seq(0, 3*ncol(gt), by=3))
-    dev.off()
+    if (length(pngFiles) > 0){
+      #   if (length(pngLinks) > 0){
+      #     doc = addFlexTable(doc, ezGrid(pngLinks))
+      writeImageColumnToHtml(pngFiles, con=html)
+    }
   }
-  if (length(pngFiles) > 0){
-#   if (length(pngLinks) > 0){
-#     doc = addFlexTable(doc, ezGrid(pngLinks))
-    writeImageColumnToHtml(pngFiles, con=html)
-  }
-#   closeBsdocReport(doc, htmlFile, titles)
+    #   closeBsdocReport(doc, htmlFile, titles)
   closeHTML(html)
   setwd("..")
   return("Success")

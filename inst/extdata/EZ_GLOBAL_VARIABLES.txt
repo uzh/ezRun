@@ -15,7 +15,7 @@ PROJECT_BASE_URL="http://fgcz-gstore.uzh.ch/projects"
 ## timout is in minutes
 INDEX_BUILD_TIMEOUT=180 
 SAMTOOLS="/usr/local/ngseq/stow/samtools-1.2/bin/samtools"
-BCFTOOLS="/usr/local/ngseq/stow/samtools-1.2/bin/bcftools"
+BCFTOOLS="/usr/local/ngseq/stow/bcftools-1.2/bin/bcftools"
 FASTQC="/usr/local/ngseq/opt/FastQC-0.11.3/fastqc"
 BOWTIE_DIR="/usr/local/ngseq/src/bowtie-1.1.2"
 BOWTIE2_DIR="/usr/local/ngseq/src/bowtie2-2.2.6"
