@@ -26,8 +26,8 @@ This extends the functionality from \code{paste(..., collapse=...)} by optionall
 }
 \examples{
 l1 = list(a=c(1,"",6),c=c("rsrg","yjrt",NA,6))
-collapse(l1,sep="_")
-collapse(l1,na.rm=T,empty.rm=T,uniqueOnly=T)
+ezCollapse(l1,sep="_")
+ezCollapse(l1,na.rm=T,empty.rm=T,uniqueOnly=T)
 }
 \author{
 Rehrauer, Hubert

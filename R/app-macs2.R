@@ -30,7 +30,7 @@ ezMethodMacs2 = function(input=NA, output=NA, param=NA){
   } else {
     cmd = paste(MACS2, "callpeak -t", input$getFullPaths(param, "BAM"), opt,"-n", output$getNames())
     ezSystem(cmd)
-    createBigWig(input,output,param)
+    createBigWig(input, output, param)
   }
   if(grepl('broad', opt)){
     ezSystem(paste("mv ",paste0(output$getNames(),"_peaks.broadPeak")," ",paste0(output$getNames(),"_peaks.bed")))
@@ -41,7 +41,7 @@ ezMethodMacs2 = function(input=NA, output=NA, param=NA){
   cmd = paste(BEDTOOLS2, " getfasta -fi", file.path(GENOMES_ROOT, dirname(dirname(input$getColumn("refBuild"))), "Sequence/WholeGenomeFasta/genome.fa"),
             " -bed ", peakBedFile, " -name -fo ", paste0(output$getNames(), "_peaks.fa")) 
   ezSystem(cmd)
-  annotatePeaks(input,output,param)  
+  annotatePeaks(input, output, param)  
   return("Success")
 }
 
@@ -62,7 +62,13 @@ EzAppMacs2 <-
               )
   )
 
-annotatePeaks = function(input=NA,output=NA,param=NA) {
+##' @title Annotates peaks
+##' @description Annotates peaks and writes them into a seperate table.
+##' @param input a list, file path or an object of the class EzDataset containing the input.
+##' @param output a list, file path or an object of the class EzDataset containing the output information.
+##' @param param a list of parameters to extract the \code{ezRef@refFeatureFile} and the \code{ezRef@refAnnotationFile} from.
+##' @template roxygen-template
+annotatePeaks = function(input=NA, output=NA, param=NA) {
   peakFile = paste0(output$getNames(), '_peaks.xls')
   data = read.table(peakFile,sep='\t',check.names=F,header=T)
   if (nrow(data) == 0){
@@ -100,7 +106,13 @@ annotatePeaks = function(input=NA,output=NA,param=NA) {
   write.table(annotatedPeaks,peakFile,sep='\t',row.names=F,quote=F)
 }
 
-createBigWig = function(input=NA,output=NA,param=NA){
+##' @title Creates a bigwig file
+##' @description Creates and exports a bigwig file.
+##' @param input a list, file path or an object of the class EzDataset containing the input.
+##' @param output a list, file path or an object of the class EzDataset containing the output information.
+##' @param param a list of parameters to extract \code{paired} from.
+##' @template roxygen-template
+createBigWig = function(input=NA, output=NA, param=NA){
   require(IRanges); require(rtracklayer);require(GenomicRanges);require(GenomicAlignments)
   if(param[['paired']]){
     aligns = readGAlignmentPairs(file=input$getFullPaths(param, "BAM"))

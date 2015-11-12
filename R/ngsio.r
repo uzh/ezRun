@@ -8,7 +8,7 @@
 
 ##' @title Loads the count dataset
 ##' @description Loads the count dataset with the given input.
-##' @param input an object of the class EzDataset.
+##' @param input a list, file path or an object of the class EzDataset containing the input.
 ##' @param param a list of parameters:
 ##' \itemize{
 ##'   \item{dataRoot}{ the root directory of the files.}

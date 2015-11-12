@@ -8,7 +8,7 @@
 
 ##' @title Cleans up input from two group apps
 ##' @description Cleans up input from two group apps.
-##' @param input an object of the class EzDataset.
+##' @param input a list, file path or an object of the class EzDataset containing the input.
 ##' @param param a list of parameters to use or clean up.
 ##' @template roxygen-template
 ##' @return Returns an object of the class EzDataset that is the modified \code{input}.

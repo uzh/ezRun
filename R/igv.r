@@ -38,6 +38,7 @@ ezIgvTemplateFile = function(){
 }
 
 ## this adds a jnlp link to a static html; the html can be moved as long as the session xml stays in the same directory
+## TODOP: REFAC to new report
 ##' @title Writes a jnlp link to a static html
 ##' @description Writes a jnlp link to a static html. The html can be moved as long as the session xml stays in the same directory.
 ##' @param htmlFile the file to send to the html connection.
@@ -172,7 +173,7 @@ writeIgvSession = function(genome, refBuild, file="igvSession.xml", bamUrls=NULL
   return(file)  
 }
 
-## TODOP: improve description after function has been updated.
+## TODOP: improve description after function has been updated. REFAC to new report
 ##' @describeIn writeIgvSession Writes an IGV session link.
 writeIgvSessionLink = function(genome, refBuild, bamFiles, html, locus="All", label="Open Integrative Genomics Viewer", baseUrl=PROJECT_BASE_URL){
   #TODO stopifnot(grepl("^p", bamFiles))
@@ -191,6 +192,7 @@ getIgvGenome = function(param){
          param$ezRef["refBuildName"])
 }
 
+## REFAC to new report, but currently not used
 ##' @title Gets an IGV locus link in .html format
 ##' @description Gets an IGV locus link in html format using chromosome, start and end information.
 ##' @param chrom the name of the chromosome.

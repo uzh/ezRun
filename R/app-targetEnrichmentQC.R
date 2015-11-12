@@ -13,7 +13,7 @@ ezMethodTeqc = function(input=NA, output=NA, param=NA){
   cwd = getwd()
   on.exit(setwd(cwd))
   setwdNew(basename(output$getColumn("Report")))
-  teqc(dataset=input, param)
+  teqc(input, param)
   return("Success")
 }
 
@@ -37,16 +37,28 @@ EzAppTeqc <-
               )
   )
 
-
-teqc = function(dataset, param=NULL){
+##' @title Target enrichment quality control
+##' @description Performs a target enrichment quality control and creates reports of the outcome.
+##' @param input a list, file path or an object of the class EzDataset containing the input.
+##' @param param a list of parameters, some of which are passed to \code{runTEQC()}:
+##' \itemize{
+##'  \item{designFile}{ a file describing the regions selected by the enrichment kit.}
+##'  \item{name}{ a character representing the name of the app.}
+##'  \item{covUniformityPlot}{ a logical indicating whether to generate plots for coverage uniformity.}
+##'  \item{covTargetLengthPlot}{ a logical indicating whether to generate plots for coverage vs. target length.}
+##'  \item{duplicatesPlot}{ a logical indicating whether to generate plots for duplicates.}
+##'  \item{paired}{ a logical indicating whether the samples are paired.}
+##' }
+##' @template roxygen-template
+teqc = function(input, param=NULL){
   require(TEQC)
   logMessage("teqc", param, "Starting") ## TODO: Refactor and remove, logMessage() is already in EzApp.
-  if(basename(param[["designFile"]]) == param[["designFile"]]){
-    path = file.path("/srv/GT/databases/targetEnrichment_designs",param[["designFile"]])
-    param[["designFile"]] = list.files(path, pattern='Covered\\.bed$', full.names = T)[1]
+  if(basename(param$designFile) == param$designFile){
+    path = file.path("/srv/GT/databases/targetEnrichment_designs", param$designFile)
+    param$designFile = list.files(path, pattern='Covered\\.bed$', full.names = T)[1]
   }
-  samples = dataset$getNames()
-  jobList = dataset$getFullPaths(param, "BAM")
+  samples = input$getNames()
+  jobList = input$getFullPaths(param, "BAM")
   #Create one Report per Sample:
   ezMclapply(jobList, runTEQC, param, mc.cores=ezThreads())
   
@@ -66,9 +78,9 @@ teqc = function(dataset, param=NULL){
   htmlFile="00index.html"
 #   titles = list()
 #   titles[["TEQC-Report"]] = paste("TEQC-Report:", param$name)
-#   doc = openBsdocReport(title=titles[[length(titles)]], dataset=dataset$meta)
+#   doc = openBsdocReport(title=titles[[length(titles)]], dataset=input$meta)
   html = openHtmlReport(htmlFile, param=param, title=paste("TEQC-Report:", param$name),
-                        dataset=dataset$meta)
+                        dataset=input$meta)
 #   titles[["MultiSample-Report"]] = "MultiSample-Report"
 #   addTitleWithAnchor(doc, titles[[length(titles)]], 2)
   ezWrite("<h2>MultiSample-Report</h2>",con=html)
@@ -88,7 +100,8 @@ teqc = function(dataset, param=NULL){
   return("Success")
 }
 
-runTEQC = function(file,param){
+##' @describeIn teqc Runs the target enrichment QC.
+runTEQC = function(file, param){
   readsfile = file
   targetsfile = param$designFile
   TEQCreport(sampleName=gsub('\\.bam','',basename(file)),

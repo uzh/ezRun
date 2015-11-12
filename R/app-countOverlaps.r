@@ -121,11 +121,6 @@ countPairedBamHitsSingleChrom = function(chr, bamFile=NULL, param=NULL, gff=NULL
 }
 
 
-
-
-
-
-
 countNonredundant = function(bamFile, param=param, gff=gff){
   if (!ezIsSpecified(param$minFeatureOverlap)){
     param$minFeatureOverlap = 1L

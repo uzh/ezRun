@@ -13,7 +13,7 @@ ezMethodSubsampleReads(input = NA, output = NA, param = NA)
 ezSubsampleFastq(full, sub, subsampleFactor = NA, nYield = 1e+05)
 }
 \arguments{
-\item{input}{an object of the class EzDataset.}
+\item{input}{a list, file path or an object of the class EzDataset containing the input.}
 
 \item{output}{an object of the class EzDataset or NA. If it is NA, it will be copied from the input.}
 

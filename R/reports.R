@@ -101,7 +101,7 @@ imgLinks = function(image){
 
 # currently not possible to use from old report opener:
 # writeLines(readLines(ezCSSFile()), con=html) ## no custom css for reporteRs
-# writeJavaScriptIgvStarter(htmlFile, param$projectId, html) ## perhaps refactorable with addJavascript(), but how to put in html head?
+# writeJavaScriptIgvStarter(htmlFile, param$projectId, html) ## TODOP: perhaps refactorable with addJavascript(), but how to put in html head?
 ##' @title Opens an html report
 ##' @description Opens an html report using \code{bsdoc()} from the ReporteRs package. Also adds some introductory elements.
 ##' @param title a character specifying the title of the html report.
@@ -204,7 +204,7 @@ addTxtLinksToReport = function(doc, txtNames, mime="text/plain"){
   }
 }
 
-## NOTEP: perhaps obsolete now with ReporteRs
+## NOTE: perhaps obsolete now with ReporteRs
 ##' @title Adds a table
 ##' @description Adds a table to a bsdoc object.
 ##' @param doc an object of the class bsdoc to add the table to.

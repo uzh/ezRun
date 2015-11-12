@@ -7,7 +7,7 @@
 loadCountDataset(input, param)
 }
 \arguments{
-\item{input}{an object of the class EzDataset.}
+\item{input}{a list, file path or an object of the class EzDataset containing the input.}
 
 \item{param}{a list of parameters:
 \itemize{

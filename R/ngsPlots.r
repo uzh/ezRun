@@ -6,6 +6,7 @@
 # www.fgcz.ch
 
 
+## REFAC, but function is currently unused.
 fragLengthReadMidDensityPlot = function(fl, file=NULL, xlim=c(-500, 500), bw=5){
   
   if (!is.null(file)){
@@ -26,6 +27,7 @@ fragLengthReadMidDensityPlot = function(fl, file=NULL, xlim=c(-500, 500), bw=5){
 }
 
 
+## REFAC, but function is currently unused.
 fragLengthCovPlot = function(fl, avgFragProf, file=NULL, xlim=c(-500:499), ylim=c(0,max(avgFragProf$forw, avgFragProf$rev)),...){
   
   if (!is.null(file)){
@@ -40,6 +42,7 @@ fragLengthCovPlot = function(fl, avgFragProf, file=NULL, xlim=c(-500:499), ylim=
 }
 
 
+## REFAC, but function is currently unused.
 plotStrandedProfiles = function(gr, covList, gff=gff,
                               featColors = getFeatColors(unique(gff$type)),
                               sampleColors=getSampleColors(names(covList), names(covList)),
@@ -138,7 +141,7 @@ plotStrandedProfiles = function(gr, covList, gff=gff,
 
 
 
-
+## @describeIn plotStrandedProfiles
 profilePlot = function(x=1:length(profileList[[1]]), profileList,
                        profColors, legendLabels=names(profColors), file=NULL, 
                        ylim = range(unlist(profileList)),
@@ -189,7 +192,7 @@ profilePlot = function(x=1:length(profileList[[1]]), profileList,
 }
 
 
-
+## REFAC, but function is currently unused.
 cumHistPlot = function(param, cts, png, colors, main="all transcripts"){
 
   if (!is.null(png)){
