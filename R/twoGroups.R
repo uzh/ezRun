@@ -342,7 +342,7 @@ writeNgsTwoGroupReport = function(dataset, result, htmlFile, param=NA, rawData=N
     if (!is.null(clusterResult$Kegg)){
       ########## TODO: addKeggClusterResult(doc, param, clusterResult, keggOrganism)
     }
-    tbl = ezGrid(ezFrame("Cluster Plot"=clusterLink, "GO categories of feature clusters"=goLink), header.columns = TRUE)
+    tbl = ezGrid(c("Cluster Plot"=clusterLink, "GO categories of feature clusters"=goLink), header.columns = TRUE)
     doc = addFlexTable(doc, tbl)
   }
   ## only do GO if we have enough genes
