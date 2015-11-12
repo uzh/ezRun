@@ -368,7 +368,7 @@ writeNgsTwoGroupReport = function(dataset, result, htmlFile, param=NA, rawData=N
     }
     titles[["ReViGO"]] = "ReViGO"
     addTitleWithAnchor(doc, titles[[length(titles)]], 3)
-    revigoResult = capture.output(writeTableToHtml(revigoLinks))          
+    revigoResult = capture.output(writeTableToHtml(revigoLinks))          ## TODOP: REFAC
     revigoResult = gsub("<td valign='middle' bgcolor='#ffffff'>","<td valign='middle' bgcolor='#ffffff'><a target='_blank' href='",revigoResult)
     revigoResult = gsub("</td>","' type='text/plain'>Link2ReViGo</a></td>",revigoResult)
     doc = addParagraph(doc, pot(paste(revigoResult, collapse="\n")))

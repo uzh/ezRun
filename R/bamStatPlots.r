@@ -6,13 +6,22 @@
 # www.fgcz.ch
 
 
+#rename write bamstatsreport
+# plotBamStat = function(resultList, seqLengths, dataset, param, htmlFile=NULL){
 plotBamStat = function(resultList, seqLengths, dataset, param, html=NULL){
   conds = ezConditionsFromDataset(dataset, param=param)
   samples = rownames(dataset)
   sampleColors = getSampleColors(conds, samples)
   files = dataset$BAM
   
+#   titles = list()
+#   titles[["BAM Statistics"]] = paste("BAM Statistics:", param$name)
+#   doc = openBsdocReport(title=titles[[length(titles)]], dataset=dataset)
+  
+  
   if (param$writeIgvSessionLink){
+#     titles[["Genome Browser"]] = "Genome Browser"
+#     addTitleWithAnchor(doc, titles[[length(titles)]], 2)
     ezWrite("<h2>Genome Browser</h2>", con=html)
     if (length(files) > 4){
       idx = which(!duplicated(conds))
@@ -23,9 +32,14 @@ plotBamStat = function(resultList, seqLengths, dataset, param, html=NULL){
     writeIgvSessionLink(getIgvGenome(param), refBuild=param$ezRef["refBuild"], files[idx], html, label="Open Integrative Genomics Viewer")
   }
   
-  
-  ezWrite("<h2>Read Alignment Statistics</h2>", con=html)  
+#   titles[["Read Alignment Statistics"]] = "Read Alignment Statistics"
+#   addTitleWithAnchor(doc, titles[[length(titles)]], 2)
+  ezWrite("<h2>Read Alignment Statistics</h2>", con=html)
+#   titles[["Multi-Matching Reported in Bam File"]] = "Multi-Matching Reported in Bam File"
+#   addTitleWithAnchor(doc, titles[[length(titles)]], 3)
   ezWrite("<h3>Multi-Matching Reported in Bam File</h3>", con=html)
+#   doc = addParagraph(doc, "The table holds for each sample in column X the number of reads in Millions
+#                       that have X matches in the target and are reported in the file.")
   ezWrite("<p>The table holds for each sample in column X the number of reads in Millions",
            " that have X matches in the target and are reported in the file.</p>", con=html)
   
@@ -40,12 +54,15 @@ plotBamStat = function(resultList, seqLengths, dataset, param, html=NULL){
   }
   
   pngFile = "multiMatchInFile-barplot.png"
+#   pngLink = makeAlignmentCountBarPlot(pngFile, mmCounts)
   makeAlignmentCountBarPlot(pngFile, mmCounts)
+#   doc = addParagraph(doc, pngLink)
   writeImageColumnToHtml(pngFile, con=html)
   txtFile = "read-alignment-statistics.txt"
   colnames(mmCounts) = paste("#hits: ", colnames(mmCounts))
   colnames(mmCounts)[ncol(mmCounts)] = paste0(colnames(mmCounts)[ncol(mmCounts)], "+")
   ezWrite.table(mmCounts, file=txtFile, head="Sample")
+#   addTxtLinksToReport(doc, txtFile)
   writeTxtLinksToHtml(txtFile, mime="text/plain", con=html)
   
   for (nm in c("multiMatchTargetTypeCounts", "uniqueMatchTargetTypeCounts")){
@@ -53,6 +70,8 @@ plotBamStat = function(resultList, seqLengths, dataset, param, html=NULL){
       readSet = switch(nm,
                        multiMatchTargetTypeCounts="Uniquely and multi-matching reads:",
                        uniqueMatchTargetTypeCounts="Uniquely matching reads:")
+#       titles[[paste(readSet, "Match Count Percentages")]] = paste(readSet, "Match Count Percentages")
+#       addTitleWithAnchor(doc, titles[[length(titles)]], 3)
       ezWrite("<h3>", readSet, ": Match Count Percentages", "</h3>", con=html)
       tct = getTypeCountTable(resultList, nm)
       ezWrite.table(tct, file=paste0(nm, ".txt"), digits=4)
@@ -68,20 +87,30 @@ plotBamStat = function(resultList, seqLengths, dataset, param, html=NULL){
         tptUseRel = log2(tptUse)
         tptUseRel = tptUseRel - rowMeans(tptUseRel)
         pngFile = paste0("typePercentage-", nm, "-heatmap.png")
+#         plotCmd = expression({
+#           ezHeatmap(tptUseRel, margins=c(10, 12), lim=c(-2, 2),
+#                     Rowv=FALSE, Colv=FALSE, main="Relative Prevalence [log2]")
+#         })
+#         heatmapLink = ezImageFileLink(plotCmd, file=pngFile, height=600, width=800)
         ezHeatmap(tptUseRel,  height=600, width=800, margins=c(10, 12), file=pngFile,
                    lim=c(-2, 2),
                    Rowv=FALSE, Colv=FALSE, main="Relative Prevalence [log2]")
         ezWrite("<td><img src=", pngFile, "></td>", con=html)
       }
       ezWrite("<td>", con=html)
+#       doc = addFlexTable(doc, ezFlexTable(c(ifelse(nrow(tptUse) >= 2 && ncol(tptUse) >= 2, heatmapLink, NULL),
+#                                             "Match Count Percentages"=signif(tptUse, digits=3)), header.columns = TRUE))
       writeTableToHtml(signif(tptUse, digits=3), head="Match Count<br>Percentages", con=html)
       ezWrite("</td></tr></table>", con=html)
       
+#       titles[[paste(readSet, "Read Starts per Base")]] = paste(readSet, "Read Starts per Base")
+#       addTitleWithAnchor(doc, titles[[length(titles)]], 3)
       ezWrite("<h3>", readSet, ": Read Starts per Base", "</h3>", con=html)
+#       doc = addParagraph(doc, "Read Starts per Base is equivalent to Coverage divided by Read length.")
       ezWrite("<p>Read Starts per Base is equivalent to Coverage divided by Read length</p>", con=html)
       tct = as.matrix(getTypeCoverageTable(resultList, nm))
       ezWrite.table(tct, file=paste0(nm, "-coverage.txt"), digits=4)
-      ezWrite("<table><tr>", con=html)
+      ezWrite("<table><tr>", con=html)    ### CONTINUE REFAC
       if (nrow(tct) >= 2 && ncol(tct) >= 2){
         tctRel = log2(sweep(tct, 2, tct["total", ], FUN="/"))
         tctRel = tctRel[rowsUse, , drop=FALSE]
@@ -321,12 +350,33 @@ plotBamStat = function(resultList, seqLengths, dataset, param, html=NULL){
     closeHTML(subHtml)
   }
   writeTableToHtml(tableOfPages, con=html)
+#   closeBsdocReport(doc, htmlFile, titles)
 }
 
 
+## @describeIn plotBamStat
+getTypeCountTable = function(resultList, name){
+  tbl = data.frame(row.names=rownames(resultList[[1]][[name]]))
+  for (sm in names(resultList)){
+    counts = resultList[[sm]][[name]]
+    tbl[sm] = signif(counts[ rownames(tbl), "count"] / 1e6, digits=4)
+  }
+  return(tbl)
+}
 
 
+## @describeIn plotBamStat
+getTypeCoverageTable = function(resultList, name){
+  tbl = data.frame(row.names=rownames(resultList[[1]][[name]]))
+  for (sm in names(resultList)){
+    counts = resultList[[sm]][[name]]
+    tbl[sm] = counts[ rownames(tbl), "count"] / counts[ rownames(tbl), "width"]
+  }
+  return(tbl)
+}
 
+
+## @describeIn plotBamStat
 makeAlignmentCountBarPlot = function(file, mmCounts){
   multiCount = as.integer(colnames(mmCounts))
   isSmall = multiCount <= 3
@@ -339,6 +389,15 @@ makeAlignmentCountBarPlot = function(file, mmCounts){
                        "3 hit(s)"="green", ">3 hit(s)"="orange")
   colnames(mmCounts) = paste(colnames(mmCounts), "hit(s)")
   stopifnot(colnames(mmCounts) %in% names(multiCountColors))
+#   plotCmd = expression({
+#     par(mar=c(12, 4.1, 4.1, 2.1))
+#     mmCounts = mmCounts[ , rev(colnames(mmCounts))]
+#     barplot(t(mmCounts)/1e6, las=2, ylab="Counts [Mio]", main="total alignments", legend.text=TRUE, border=NA,
+#             col=multiCountColors[colnames(mmCounts)], xlim=c(0, nrow(mmCounts) +5))
+#     #legend("topright", paste0(colnames(mmCountShrink), "hit(s)"), col=multiCountColors[colnames(mmCountShrink)],
+#     #       cex=1.2, pch=20, bty="o", pt.bg="white")
+#   })
+#   pngLink = ezImageFileLink(plotCmd, file=file, width=400 + nrow(mmCounts) * 10, height=700)
   png(file=file, width=400 + nrow(mmCounts) * 10, height=700)
   par(mar=c(12, 4.1, 4.1, 2.1))
   mmCounts = mmCounts[ , rev(colnames(mmCounts))]
@@ -347,13 +406,13 @@ makeAlignmentCountBarPlot = function(file, mmCounts){
   #legend("topright", paste0(colnames(mmCountShrink), "hit(s)"), col=multiCountColors[colnames(mmCountShrink)],
   #       cex=1.2, pch=20, bty="o", pt.bg="white")
   dev.off()
+#   return(pngLink)
   return(file)
 }
 
 
-
-plotPosSpecificErrorRate = function(errorRate, png=NULL, main="Per base mismatch rate",
-                                    writeTxt=TRUE){
+## @describeIn plotBamStat
+plotPosSpecificErrorRate = function(errorRate, png=NULL, main="Per base mismatch rate", writeTxt=TRUE){
   if (!is.null(png)){
     png(file=png, width=1600)
     par(mfrow=c(1,2))

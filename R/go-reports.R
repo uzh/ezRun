@@ -95,7 +95,7 @@ goUpDownTables = function(param, goResult){
   return(list(flexTable=ft, txtFiles=txtFiles))
 }
 
-## TODOP: REFAC
+## TODOP: REFAC, obsolete after refactor 1 table 3 colors into 3 seperate tables.
 ##' @describeIn addGoUpDownResult Parses the GO result into a html table.
 goResultToHtmlTable2 = function(goResults, pThreshGo, minCount, onto=NA, maxNumberOfTerms=40) {
   
@@ -171,5 +171,6 @@ goResultToHtmlTable2 = function(goResults, pThreshGo, minCount, onto=NA, maxNumb
   rows = paste0("<td style='color:", color, "' valign='", valign, "'>", terms, "</td>",
                 "<td style='color:", color, "' valign='", valign, "'>", pValues,"</td>",
                 "<td style='color:", color, "' valign='", valign, "'>", counts, "</td>")
+  # return(ezFrame("Term"=terms, "p"=pValues, "N"=counts))
   rows
 }
