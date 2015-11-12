@@ -48,7 +48,7 @@ teqc = function(dataset, param=NULL){
   samples = dataset$getNames()
   jobList = dataset$getFullPaths(param, "BAM")
   #Create one Report per Sample:
-  ezMclapply(jobList,runTEQC,param, mc.cores=ezThreads())
+  ezMclapply(jobList, runTEQC, param, mc.cores=ezThreads())
   
   #Create MultiSampleReport:
   reportDirs = unlist(jobList)
@@ -62,15 +62,26 @@ teqc = function(dataset, param=NULL){
                     k = c(1,5,10,20,30,50),
                     figureFormat = c("png"))
   
-  capture.output(print(sessionInfo()),file = "sessionInfo.txt")
+  capture.output(print(sessionInfo()), file = "sessionInfo.txt")
   htmlFile="00index.html"
+#   titles = list()
+#   titles[["TEQC-Report"]] = paste("TEQC-Report:", param$name)
+#   doc = openBsdocReport(title=titles[[length(titles)]], dataset=dataset$meta)
   html = openHtmlReport(htmlFile, param=param, title=paste("TEQC-Report:", param$name),
                         dataset=dataset$meta)
+#   titles[["MultiSample-Report"]] = "MultiSample-Report"
+#   addTitleWithAnchor(doc, titles[[length(titles)]], 2)
   ezWrite("<h2>MultiSample-Report</h2>",con=html)
-  writeTxtLinksToHtml('multiTEQCreport/index.html',con=html)
+#   addTxtLinksToReport(doc, "multiTEQCreport/index.html")
+  writeTxtLinksToHtml('multiTEQCreport/index.html', con=html)
+#   titles[["Individual Reports"]] = "Individual Reports"
+#   addTitleWithAnchor(doc, titles[[length(titles)]], 2)
   ezWrite("<h2>Individual Reports</h2>",con=html)
-  writeTxtLinksToHtml(paste0(reportDirs, '/index.html'),con=html)
+#   addTxtLinksToReport(doc, paste0(reportDirs, '/index.html'))
+  writeTxtLinksToHtml(paste0(reportDirs, '/index.html'), con=html)
+#   >>>remove this title<<<
   ezWrite("<h2>Misc</h2>",con=html)
+#   closeBsdocReport(doc, htmlFile, titles)
   writeTxtLinksToHtml('sessionInfo.txt',con=html)
   flush(html)
   closeHTML(html)
