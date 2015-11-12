@@ -12,7 +12,7 @@ closeBsdocReport(doc, file, titles = NULL)
 \arguments{
 \item{title}{a character specifying the title of the html report.}
 
-\item{dataset}{usually a data.frame from the meta field of an EzDataset.}
+\item{dataset}{a data.frame from the meta field of an EzDataset.}
 }
 \value{
 Returns an object of the class bsdoc to add further elements.
@@ -22,7 +22,7 @@ Opens an html report using \code{bsdoc()} from the ReporteRs package. Also adds 
 }
 \section{Functions}{
 \itemize{
-\item \code{closeBsdocReport}: Adds a paragraph showing the finishing time and writes the document. \code{file} must have a .html suffix.
+\item \code{closeBsdocReport}: Adds the session info, the bootstrap menu, a paragraph showing the finishing time and writes the document. \code{file} must have a .html suffix.
 }}
 \examples{
 theDoc = openBsdocReport(title="My html report")

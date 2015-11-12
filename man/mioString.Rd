@@ -2,7 +2,7 @@
 % Please edit documentation in R/io.R
 \name{mioString}
 \alias{mioString}
-\title{Converts a number into a string representing millions}
+\title{Converts a number into a character representing millions}
 \usage{
 mioString(x)
 }
@@ -10,7 +10,7 @@ mioString(x)
 \item{x}{an integer.}
 }
 \value{
-Returns a string representing the input integer in millions.
+Returns a character representing the input integer in millions.
 }
 \description{
 used for labels etc. where typically millions of reads are indicated.

@@ -12,7 +12,7 @@ lastVal(x)
 \examples{
 lastVal(1:10)
 obj1 <- 1:5
-obj2 <- "a string"
+obj2 <- "a character"
 lastVal(c(obj1,obj2))
 }
 \author{

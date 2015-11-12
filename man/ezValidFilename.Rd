@@ -7,12 +7,12 @@
 ezValidFilename(name, replace = "_")
 }
 \arguments{
-\item{name}{a string representing a file name.}
+\item{name}{a character representing a file name.}
 
-\item{replace}{a string defining the replacement character(s).}
+\item{replace}{a character defining the replacement character(s).}
 }
 \value{
-Returns a string where invalid characters for file names are replaced.
+Returns a character where invalid characters for file names are replaced.
 }
 \description{
 Replaces invalid characters and returns a file name with these replaced

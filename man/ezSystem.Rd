@@ -7,7 +7,7 @@
 ezSystem(cmd, echo = TRUE, intern = FALSE, stopOnFailure = !intern, ...)
 }
 \arguments{
-\item{cmd}{a system command input as a character string.}
+\item{cmd}{a system command input as a character.}
 
 \item{echo}{a logical defining whether \code{cmd} should be written by \code{ezWrite}.}
 

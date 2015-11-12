@@ -8,7 +8,7 @@
 
 ##' @title Splits fragment coordinates
 ##' @description Use this function to split chromosome range information in the format of chromosome:start-stop.
-##' @param pos a character string or vector of chromosome ranges to split.
+##' @param pos a character vector of chromosome ranges to split.
 ##' @return Returns a data.frame containing the chromosome name, the start and the stop position.
 ##' @template roxygen-template
 ##' @examples

@@ -7,7 +7,7 @@
 addTitleWithAnchor(doc, title, level = 1)
 }
 \arguments{
-\item{doc}{an object of the class bsdoc to add the anchored title to.}
+\item{doc}{an object of the class bsdoc to add the anchored title.}
 
 \item{title}{a character specifying the title.}
 

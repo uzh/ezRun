@@ -54,8 +54,32 @@ EzAppCountQC <-
               )
   )
 
+##' @title Runs the NGS count QC
+##' @description Runs the NGS count quality control, does various plots and creates a report.
+##' @param dataset a data.frame from the meta field of an EzDataset.
+##' @param htmlFile a character representing the path to write the report in.
+##' @param param a list of parameters, possibly passed to other functions as well:
+##' \itemize{
+##'   \item{name}{ a character representing the name of the app.}
+##'   \item{minSignal}{ a numeric or integer specifying the minimal signal amount.}
+##'   \item{normMethod}{ the normalization method.}
+##'   \item{sigThresh}{ the threshold...}
+##'   \item{useSigThresh}{ ...and whether it should be used.}
+##'   \item{doZip}{ a logical indicating whether to archive the result file.}
+##'   \item{bgExpression}{ a numeric specifying the expression baseline value that is added before heatmap plots.}
+##'   \item{topGeneSize}{ an integer specifying the number of high variance genes to consider in gene clustering.}
+##'   \item{highVarThreshold}{ a numeric specifying the threshold for minimum standard deviation of log2 signal across samples.}
+##'   \item{maxGenesForClustering}{ an integer specifying the maximum amount of genes for clustering. If the amount is higher, the least significant genes get removed first.}
+##'   \item{minGenesForClustering}{ an integer specifying the minimum amount of genes for clustering. If the amount is lower, no clustering will be done.}
+##'   \item{logColorRange}{ a logarithmic color range.}
+##'   \item{writeScatterPlots}{ a logical indicating whether to write scatter plots.}
+##' }
+##' @param rawData a list of raw data. Usually obtained from \code{loadCountDataset()}.
+##' @param writeDataFiles a logical indicating whether to write the data files into seperate tables.
+##' @param types a character vector containing the types.
+##' @template roxygen-template
 runNgsCountQC = function(dataset, htmlFile="00index.html", param=param, rawData=NULL,
-                         writeDataFiles=TRUE, types=NULL, annoFile=NULL){
+                         writeDataFiles=TRUE, types=NULL){
   
   #library(affy, warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
   seqAnno = rawData$seqAnno
@@ -359,6 +383,7 @@ runNgsCountQC = function(dataset, htmlFile="00index.html", param=param, rawData=
     
     ##########################################
     ## count density plots
+    
     pngName = "signalDens.png"
     plotCmd = expression({
       countDensPlot(param, signal, sampleColors, main="all transcripts", bw=0.7)

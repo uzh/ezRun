@@ -247,7 +247,7 @@ runGlm = function(x, sampleGroup, refGroup, grouping, normMethod, batch=NULL){
 
 ##' @title Writes the report for the two group analysis
 ##' @description Writes the report for the two group analysis.
-##' @param dataset usually a data.frame from the meta field of an EzDataset.
+##' @param dataset a data.frame from the meta field of an EzDataset.
 ##' @param result a list of results.
 ##' @param htmlFile a character representing the path to write the report in.
 ##' @param param a list of parameters:

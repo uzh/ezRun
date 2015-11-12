@@ -10,11 +10,11 @@ zipWorkingDir(zipName)
 zipFile(inputs, zipped = NULL)
 }
 \arguments{
-\item{zipName}{a string naming the working directory to be archived.}
+\item{zipName}{a character naming the working directory to be archived.}
 
 \item{inputs}{one or several input files to archive.}
 
-\item{zipped}{optional string to name the archive.}
+\item{zipped}{optional character to name the archive.}
 }
 \value{
 Returns the file name of the zipped archive.

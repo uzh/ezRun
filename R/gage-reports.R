@@ -6,6 +6,19 @@
 # www.fgcz.ch
 
 
+##' @title Adds the gage tables
+##' @description Adds the gage tables to an html file.
+##' @param doc an object of the class bsdoc to add the tables.
+##' @param param a list of parameters, possibly passed to other functions as well:
+##' \itemize{
+##'  \item{gageThreshold}{ the threshold for significant pathways.}
+##'  \item{gageGeneThreshold}{ the threshold for genes selected within a pathway.}
+##'  \item{pathview}{ a logical indicating whether to add links to the kegg pathview.}
+##' }
+##' @param gageResults the results of the gage analysis.
+##' @seealso \code{\link{gageAnalysis}}
+##' @seealso \code{\link{twoGroupsGO}}
+##' @template roxygen-template
 addGageTables = function(doc, param = NULL, gageResults = NULL) {
   doc = addParagraph(doc, paste("Gene sets used:", paste(names(gageResults[['all']]), collapse=", ")))
   if(any(grepl('kg', names(gageResults[['all']])))) {
@@ -28,7 +41,6 @@ addGageTables = function(doc, param = NULL, gageResults = NULL) {
     #     use = paste0("<table border=0><tr><th>Heatmap Plot logRatio Signal for ",i,"</th><th>",i," significant pathways</th></tr>")
     checkpoint = nrow(gageResults[['significant']][[i]][['combined']]) > 0 | nrow(gageResults[['significant']][[i]][['both']]) > 0
     if(!checkpoint) next
-    #     ezWrite(use, con=html)
     tableRows = list()
     for (signal in c("combined", "both")) {
       lab.expr = paste(signal, 'expr', sep='.')
@@ -76,20 +88,12 @@ addGageTables = function(doc, param = NULL, gageResults = NULL) {
       rownames(res) = paste0("<A HREF=\"", res[,"links"],"\">",rownames(res),"</A>")
       res <- res[,!colnames(res) %in% "links", drop=F]
       
-      
       # Writing plot and table
-      #       ezWrite("<tr valign=top><td>", con=html)
-      #       writeImageRowToHtml(x[[lab.png]], con=html)
-      #       ezWrite("</td><td>", con=html)
       imgrow = x[[lab.png]]
       pathColors = unique(x[[lab.pathCol]])
-      #       writeTableToHtmlWhite(res, con=html, 
-      #                             bgcolors=matrix(gsub("FF$", "", unique(pathColors)), nrow=length(unique(pathColors)), ncol=1))
-      #       ezWrite("</td></tr>", con=html)
       tbl = ezAddTableWhite(res, bgcolors=matrix(gsub("FF$", "", unique(pathColors)), nrow=length(unique(pathColors)), ncol=1))
       tableRows[[signal]] = cbind(imgrow, tbl)
     }
-    #     ezWrite("</table>", con=html)
     table = ezGrid(rbind(unlist(tableRows)), header.columns=TRUE)
     table = addHeaderRow(table, cbind(paste("Heatmap Plot logRatio Signal for", i), paste(i, "significant pathways")))
     doc = addFlexTable(doc, table)

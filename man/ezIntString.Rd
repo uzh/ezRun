@@ -2,7 +2,7 @@
 % Please edit documentation in R/io.R
 \name{ezIntString}
 \alias{ezIntString}
-\title{Format an integer into a string using only digits}
+\title{Format an integer into a character using only digits}
 \usage{
 ezIntString(x)
 }
@@ -10,10 +10,10 @@ ezIntString(x)
 \item{x}{an integer.}
 }
 \value{
-Returns the input integer as a string.
+Returns the input integer as a character.
 }
 \description{
-convenience function that prevents scientific notation and surrounding white space. Such strings are need for system calls to commandline tools.
+convenience function that prevents scientific notation and surrounding white space. Such characters are need for system calls to commandline tools.
 }
 \examples{
 ezIntString(4.5e7)

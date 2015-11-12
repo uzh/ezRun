@@ -8,7 +8,7 @@ writeNgsTwoGroupReport(dataset, result, htmlFile, param = NA, rawData = NA,
   types = NULL)
 }
 \arguments{
-\item{dataset}{usually a data.frame from the meta field of an EzDataset.}
+\item{dataset}{a data.frame from the meta field of an EzDataset.}
 
 \item{result}{a list of results.}
 

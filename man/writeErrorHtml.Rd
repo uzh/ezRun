@@ -12,7 +12,7 @@ writeErrorHtml(htmlFile, param = param, dataset = NULL,
 
 \item{param}{a list of parameters to extract the \code{projectId} and \code{name} from.}
 
-\item{dataset}{usually a data.frame from the meta field of an EzDataset.}
+\item{dataset}{a data.frame from the meta field of an EzDataset.}
 
 \item{error}{a character vector representing the error message(s).}
 }

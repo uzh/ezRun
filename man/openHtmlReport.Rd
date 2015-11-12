@@ -19,7 +19,7 @@ ezBannerFile()
 
 \item{title}{a character specifying the title of the html report.}
 
-\item{dataset}{usually a data.frame from the meta field of an EzDataset.}
+\item{dataset}{a data.frame from the meta field of an EzDataset.}
 }
 \value{
 Returns a connection to the written html report.

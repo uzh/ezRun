@@ -7,7 +7,7 @@
 setwdNew(dir)
 }
 \arguments{
-\item{dir}{a character string specifying the desired directory.}
+\item{dir}{a character specifying the desired directory.}
 }
 \description{
 If the directory does not exist, the function will create it recursively.

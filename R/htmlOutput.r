@@ -11,7 +11,7 @@
 ##' @param htmlFile a character representing the path to write the report in.
 ##' @param param a list of parameters to extract the \code{projectId} from.
 ##' @param title a character specifying the title of the html report.
-##' @param dataset usually a data.frame from the meta field of an EzDataset.
+##' @param dataset a data.frame from the meta field of an EzDataset.
 ##' @template roxygen-template
 ##' @return Returns a connection to the written html report.
 ##' @seealso \code{\link{writeJavaScriptIgvStarter}}
@@ -112,7 +112,7 @@ closeHTML = function(html){
 ##' @description Writes an error message to an html file. Also creates the file and closes it.
 ##' @param htmlFile a character representing the path to write the file in.
 ##' @param param a list of parameters to extract the \code{projectId} and \code{name} from.
-##' @param dataset usually a data.frame from the meta field of an EzDataset.
+##' @param dataset a data.frame from the meta field of an EzDataset.
 ##' @param error a character vector representing the error message(s).
 ##' @template roxygen-template
 ##' @seealso \code{\link{openHtmlReport}}

@@ -83,7 +83,7 @@ ezMail = function(text="done", subject="r-mail", to=""){
 
 ##' @title Is the email-address valid?
 ##' @description Checks, whether \code{addressString} is a valid email-address.
-##' @param addressString the string to check.
+##' @param addressString the character to check.
 ##' @return Returns TRUE if \code{addressString} contains an @@.
 ##' @template roxygen-template
 ##' @examples 
@@ -108,7 +108,7 @@ ezValidMail = function(addressString){
 ##' @description Logs a time with an additional context provided in \code{message} and the base directory. Also displays a defined method name and the parameters name and Id.
 ##' @param methodName the name of the method to display.
 ##' @param param the parameter to display.
-##' @param message a character string to start the expression and provide context information.
+##' @param message a character to start the expression and provide context information.
 ##' @return Returns a message about \code{param} with a context.
 ##' @template roxygen-template
 ##' @examples 

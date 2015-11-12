@@ -11,7 +11,7 @@ logMessage(methodName, param, message)
 
 \item{param}{the parameter to display.}
 
-\item{message}{a character string to start the expression and provide context information.}
+\item{message}{a character to start the expression and provide context information.}
 }
 \value{
 Returns a message about \code{param} with a context.

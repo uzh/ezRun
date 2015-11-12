@@ -8,7 +8,7 @@
 
 ##' @title Invokes a system command
 ##' @description Invokes the system command specified by \code{cmd}.
-##' @param cmd a system command input as a character string.
+##' @param cmd a system command input as a character.
 ##' @param echo a logical defining whether \code{cmd} should be written by \code{ezWrite}.
 ##' @param intern a logical which indicates whether to capture the output of the command as an R character vector.
 ##' @param stopOnFailure defaults to the opposite of intern and specifies whether the command should stop.

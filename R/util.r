@@ -12,7 +12,7 @@
 ##' @examples
 ##' lastVal(1:10)
 ##' obj1 <- 1:5
-##' obj2 <- "a string"
+##' obj2 <- "a character"
 ##' lastVal(c(obj1,obj2))
 lastVal = function(x){
   if (is.list(x)){
@@ -24,7 +24,7 @@ lastVal = function(x){
 
 ##' @title Switches to a working directory
 ##' @description If the directory does not exist, the function will create it recursively.
-##' @param dir a character string specifying the desired directory.
+##' @param dir a character specifying the desired directory.
 ##' @template roxygen-template
 ##' @examples
 ##' setwdNew("newDirectory")
@@ -617,8 +617,8 @@ ezReplicateNumber = function(x){
   idx = unsplit(tapply(x, x, function(y){1:length(y)}), x)
 }
 
-##' @title Collapses a vector in a single string
-##' @description This extends the functionality from \code{paste(..., collapse=...)} by optionally removing empty strings, duplicates or NA values
+##' @title Collapses a vector in a single character
+##' @description This extends the functionality from \code{paste(..., collapse=...)} by optionally removing empty characters, duplicates or NA values
 ##' @param x a vector, matrix or list.
 ##' @param sep the separator to use between values.
 ##' @param na.rm a logical specifying whether to remove \code{NA}'s.

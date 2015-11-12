@@ -2,19 +2,21 @@
 % Please edit documentation in R/reports.R
 \name{addTxtLinksToReport}
 \alias{addTxtLinksToReport}
-\title{Writes a text link}
+\title{Adds text links}
 \usage{
 addTxtLinksToReport(doc, txtNames, mime = "text/plain")
 }
 \arguments{
-\item{txtNames}{a character representing the link name.}
+\item{doc}{an object of the class bsdoc to add the text links.}
 
-\item{mime}{a character representing the type of the link.}
+\item{txtNames}{a character representing the link names.}
+
+\item{mime}{a character representing the type of the links.}
 
 \item{con}{the connection to the file to write in.}
 }
 \description{
-Writes a text link to an html file.
+Adds texts link to an html file.
 }
 \examples{
 param = ezParam()

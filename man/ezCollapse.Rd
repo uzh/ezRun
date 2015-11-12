@@ -2,7 +2,7 @@
 % Please edit documentation in R/util.r
 \name{ezCollapse}
 \alias{ezCollapse}
-\title{Collapses a vector in a single string}
+\title{Collapses a vector in a single character}
 \usage{
 ezCollapse(x, sep = "; ", na.rm = FALSE, empty.rm = FALSE,
   uniqueOnly = FALSE)
@@ -22,7 +22,7 @@ ezCollapse(x, sep = "; ", na.rm = FALSE, empty.rm = FALSE,
 Returns the values collapsed into one character.
 }
 \description{
-This extends the functionality from \code{paste(..., collapse=...)} by optionally removing empty strings, duplicates or NA values
+This extends the functionality from \code{paste(..., collapse=...)} by optionally removing empty characters, duplicates or NA values
 }
 \examples{
 l1 = list(a=c(1,"",6),c=c("rsrg","yjrt",NA,6))

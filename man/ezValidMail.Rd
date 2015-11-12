@@ -7,7 +7,7 @@
 ezValidMail(addressString)
 }
 \arguments{
-\item{addressString}{the string to check.}
+\item{addressString}{the character to check.}
 }
 \value{
 Returns TRUE if \code{addressString} contains an @.

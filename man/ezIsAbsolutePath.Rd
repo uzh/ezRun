@@ -7,7 +7,7 @@
 ezIsAbsolutePath(x)
 }
 \arguments{
-\item{x}{a string representing a file path to check.}
+\item{x}{a character representing a file path to check.}
 }
 \value{
 Returns TRUE if \code{x} starts with a /.

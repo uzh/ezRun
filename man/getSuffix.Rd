@@ -13,7 +13,7 @@ getSuffix(filename)
 \item{filename}{a filename to extract the suffix from.}
 }
 \value{
-Returns a string with either the suffix of the file name or the file name without suffix.
+Returns a character with either the suffix of the file name or the file name without suffix.
 }
 \description{
 Gets the suffix of a file name or the file name without the suffix.

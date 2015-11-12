@@ -10,7 +10,7 @@ splitCoordinate(pos)
 splitRegion(pos)
 }
 \arguments{
-\item{pos}{a character string or vector of chromosome ranges to split.}
+\item{pos}{a character vector of chromosome ranges to split.}
 }
 \value{
 Returns a data.frame containing the chromosome name, the start and the stop position.

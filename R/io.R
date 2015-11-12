@@ -6,10 +6,10 @@
 # www.fgcz.ch
 
 
-##' @title Format an integer into a string using only digits
-##' @description convenience function that prevents scientific notation and surrounding white space. Such strings are need for system calls to commandline tools.
+##' @title Format an integer into a character using only digits
+##' @description convenience function that prevents scientific notation and surrounding white space. Such characters are need for system calls to commandline tools.
 ##' @param x an integer.
-##' @return Returns the input integer as a string.
+##' @return Returns the input integer as a character.
 ##' @template roxygen-template
 ##' @examples 
 ##' ezIntString(4.5e7)
@@ -18,10 +18,10 @@ ezIntString = function(x){
   format(x, scientific=FALSE, trim=TRUE)
 }
 
-##' @title Converts a number into a string representing millions
+##' @title Converts a number into a character representing millions
 ##' @description used for labels etc. where typically millions of reads are indicated.
 ##' @param x an integer.
-##' @return Returns a string representing the input integer in millions.
+##' @return Returns a character representing the input integer in millions.
 ##' @template roxygen-template
 ##' @examples 
 ##' mioString(4e7)
@@ -40,9 +40,9 @@ zipWorkingDir = function(zipName){
 
 ##' @title Archives files
 ##' @description Archives one or several files to a .zip extension. Optionally, a seperate name can be given to the archive.
-##' @param zipName a string naming the working directory to be archived.
+##' @param zipName a character naming the working directory to be archived.
 ##' @param inputs one or several input files to archive.
-##' @param zipped optional string to name the archive.
+##' @param zipped optional character to name the archive.
 ##' @return Returns the file name of the zipped archive.
 ##' @template roxygen-template
 ##' @examples 
@@ -136,8 +136,8 @@ ezWrite.table = function(values, file=file, head="Identifier", row.names=TRUE, c
 ##' @title Write in a single line
 ##' @description Concatenates its arguments and writes it as a single line.
 ##' @param ... the arguments to concatenate.
-##' @param sep a string specifying how to seperate the arguments from each other.
-##' @param collapse a string specifying how to seperate entries of each argument from each other.
+##' @param sep a character specifying how to seperate the arguments from each other.
+##' @param collapse a character specifying how to seperate entries of each argument from each other.
 ##' @return Returns a single line written into a seperate file.
 ##' @template roxygen-template
 ##' @template connection-template
@@ -158,9 +158,9 @@ ezWrite = function(..., sep="", collapse=" ", con=stdout()){
 
 ##' @title Enforces a valid file name
 ##' @description Replaces invalid characters and returns a file name with these replaced
-##' @param name a string representing a file name.
-##' @param replace a string defining the replacement character(s).
-##' @return Returns a string where invalid characters for file names are replaced.
+##' @param name a character representing a file name.
+##' @param replace a character defining the replacement character(s).
+##' @return Returns a character where invalid characters for file names are replaced.
 ##' @template roxygen-template
 ##' @examples
 ##' ezValidFilename("example:filename")
@@ -178,7 +178,7 @@ removeSuffix = function(filename){
 ##' @title Gets the suffix of a file name
 ##' @description Gets the suffix of a file name or the file name without the suffix.
 ##' @param filename a filename to extract the suffix from.
-##' @return Returns a string with either the suffix of the file name or the file name without suffix.
+##' @return Returns a character with either the suffix of the file name or the file name without suffix.
 ##' @template roxygen-template
 ##' @examples
 ##' getSuffix("example.file")
@@ -189,7 +189,7 @@ getSuffix = function(filename){
 
 ##' @title Is x an absolute file path?
 ##' @description Checks whether \code{x} is an absolute file path.
-##' @param x a string representing a file path to check.
+##' @param x a character representing a file path to check.
 ##' @return Returns TRUE if \code{x} starts with a /.
 ##' @template roxygen-template
 ##' @examples

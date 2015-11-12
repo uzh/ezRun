@@ -9,9 +9,9 @@ ezWrite(..., sep = "", collapse = " ", con = stdout())
 \arguments{
 \item{...}{the arguments to concatenate.}
 
-\item{sep}{a string specifying how to seperate the arguments from each other.}
+\item{sep}{a character specifying how to seperate the arguments from each other.}
 
-\item{collapse}{a string specifying how to seperate entries of each argument from each other.}
+\item{collapse}{a character specifying how to seperate entries of each argument from each other.}
 
 \item{con}{the connection to the file to write in.}
 }
