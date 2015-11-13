@@ -22,12 +22,11 @@
 addGageTables = function(doc, param = NULL, gageResults = NULL) {
   doc = addParagraph(doc, paste("Gene sets used:", paste(names(gageResults[['all']]), collapse=", ")))
   if(any(grepl('kg', names(gageResults[['all']])))) {
-    doc = addParagraph(doc, as.html(pot("<span style='margin-left:2em'>kg = <A HREF='http://www.genome.jp/kegg/pathway.html'>KEGG</A>
-                                        pathways: dise (disease pathways) , sigmet (signaling or metabolism pathways)")))
+    doc = addParagraph(doc, pot("kg = KEGG pathways: dise (disease pathways), sigmet (signaling or metabolism pathways)",
+                                hyperlink="http://www.genome.jp/kegg/pathway.html"))
   }
   if(any(grepl('msigdb', names(gageResults[['all']])))) {
-    doc = addParagraph(doc, as.html(pot("<span style='margin-left:2em'>msigdb =
-                                        <A HREF='http://www.broadinstitute.org/gsea/msigdb/index.jsp'>MSigDB</A> pathway")))
+    doc = addParagraph(doc, pot("msigdb = MSigDB pathway", hyperlink="http://www.broadinstitute.org/gsea/msigdb/index.jsp"))
   }
   doc = addParagraph(doc, paste0("Significance threshold pathways: ", param[['gageThreshold']],
                                  ". Only pathways below this treshold are represented."))
@@ -38,7 +37,6 @@ addGageTables = function(doc, param = NULL, gageResults = NULL) {
   gene.pValue=param[['gageGeneThreshold']]
   
   for (i in names(gageResults[['significant']])) {
-    #     use = paste0("<table border=0><tr><th>Heatmap Plot logRatio Signal for ",i,"</th><th>",i," significant pathways</th></tr>")
     checkpoint = nrow(gageResults[['significant']][[i]][['combined']]) > 0 | nrow(gageResults[['significant']][[i]][['both']]) > 0
     if(!checkpoint) next
     tableRows = list()
