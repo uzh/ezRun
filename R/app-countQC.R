@@ -319,11 +319,19 @@ runNgsCountQC = function(dataset, htmlFile="00index.html", param=param, rawData=
     if (sum(use, na.rm=TRUE) > param$minGenesForClustering){
       clusterPng = "cluster-heatmap.png"
       clusterColors = c("red", "yellow", "orange", "green", "blue", "cyan")
-      clusterResult = clusterHeatmap(param, xNormed[use, ], file=clusterPng, nClusters=6, 
-                                     lim=c(-param$logColorRange, param$logColorRange), margins=c(18, 9),
-                                     colColors=sampleColors, clusterColors=clusterColors, doClusterColumns=TRUE,
-                                     doGO=doGo(param, seqAnno), seqAnno=seqAnno,
-                                     universeProbeIds=rownames(seqAnno))
+      
+      clusterResult = clusterResults(xNormed[use, ], nClusters=6, clusterColors=clusterColors)
+      plotCmd = expression({
+        clusterHeatmap(xNormed[use, ], param, clusterResult, file=clusterPng, margins=c(18, 9),
+                       colColors=sampleColors, lim=c(-param$logColorRange, param$logColorRange),
+                       doClusterColumns=TRUE)
+      })
+      clusterLink = ezImageFileLink(plotCmd, file=clusterPng, width=max(800, 400 + 10 * ncol(xNormed[use, ])), height=1000)
+      
+      if (doGo(param, seqAnno)){
+        clusterResult = goClusterResults(xNormed[use, ], param, clusterResult, seqAnno=seqAnno,
+                                         universeProbeIds=rownames(seqAnno))
+      }
       
       titles[["Clustering of High Variance Features"]] = "Clustering of High Variance Features"
       addTitleWithAnchor(doc, titles[[length(titles)]], 2)
@@ -336,7 +344,7 @@ runNgsCountQC = function(dataset, htmlFile="00index.html", param=param, rawData=
       } else {
         goLink = as.html(pot("No information available"))
       }
-      tbl = ezGrid(c("Cluster Plot"=imgLinks(clusterPng),"GO categories of feature clusters"=goLink), header.columns = TRUE)
+      tbl = ezGrid(c("Cluster Plot"=clusterLink, "GO categories of feature clusters"=goLink), header.columns = TRUE)
     }
     
     ##########################################

@@ -124,7 +124,7 @@ writeNgsMultiGroupReport = function(dataset, result, htmlFile, param=NA, rawData
     clusterPng = "cluster-heatmap.png"
     clusterColors = c("red", "yellow", "orange", "green", "blue", "cyan")
     doGO = doGo(param, seqAnno)
-    clusterResult = clusterHeatmap(param, xCentered, file=clusterPng, nClusters=6, 
+    clusterResult = clusterHeatmap(param, xCentered, file=clusterPng, nClusters=6, ## REFAC
                                    lim=c(-param$logColorRange, param$logColorRange),
                                    colColors=sampleColors, clusterColors=clusterColors,
                                    doGO=doGO, seqAnno=seqAnno,

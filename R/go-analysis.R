@@ -338,43 +338,42 @@ getTopGoHtmlTable = function(goTermStat, pValueThresh=NA, catSize=NA){
   result
 }
 
-## TODOP: REFAC... difficult, as usage is like this: clusterResult = clusterHeatmap() and clusterResult can't be returned with the new plot method.
-clusterHeatmap = function(param, x, file="cluster-heatmap.png", nClusters=5, lim=c(-4, 4),
-                          colColors=NULL, d=NULL, columnDist=NULL, doClusterColumns=FALSE,
-                          clusterColors=rainbow(nClusters), doGO=TRUE, ontologies=c("BP", "MF", "CC"), 
-                          seqAnno=NULL,
-                          universeGeneIds=NULL, universeProbeIds=NULL, method="ward.D2", 
-                          cexRow=1.0, cexCol=1.5, labRow=rownames(x), width=max(800, 400 + 10 * ncol(x)), height=1000, margins=c(14,9),
-                          colors=ezRedBlueScale(256), maxGenesWithLabel=50, keggOrganism=NA, ...){
-  library(gplots, warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
+
+clusterResults = function(x, nClusters=5, clusterColors=rainbow(nClusters), d=NULL, method="ward.D2"){
   if (is.null(d)){
     xx = x
     xx[is.na(x)] = min(x, na.rm=TRUE)
     d = dist(xx)
   }
   hcl = hclust(d, method=method)
-  probeDendro = as.dendrogram(hcl)
-  probeDendro = reorder(probeDendro, rowMeans(x, na.rm=TRUE))
   clusterNumbers = cutree(hcl, k=nClusters)
-  
+  result = list()
+  result$nClusters = nClusters
+  result$clusterNumbers = clusterNumbers
+  result$clusterColors = clusterColors
+  result$hcl = hcl
+  return(result)
+}
+
+clusterHeatmap = function(x, param, result, file="cluster-heatmap.png", method="ward.D2",
+                          doClusterColumns=FALSE, columnDist=NULL, colColors=NULL, lim=c(-4, 4),
+                          cexRow=1.0, cexCol=1.5, labRow=rownames(x), margins=c(14,9),
+                          colors=ezRedBlueScale(256), maxGenesWithLabel=50, ...){
+  require(gplots, warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
+  probeDendro = as.dendrogram(result$hcl)
+  probeDendro = reorder(probeDendro, rowMeans(x, na.rm=TRUE))
   if (doClusterColumns){
     if (is.null(columnDist)){
       columnDist = dist(t(x))
     }
-    hcl = hclust(columnDist, method=method)
-    colDendro = as.dendrogram(hcl)
+    result$hcl = hclust(columnDist, method=method)
+    colDendro = as.dendrogram(result$hcl)
     colDendro = reorder(colDendro, colMeans(x, na.rm=TRUE))
     showDendro = "both"
   } else {
     colDendro =FALSE
     showDendro = "row"
   }
-  
-  result = list()
-  result$nClusters = nClusters
-  result$clusterNumbers = clusterNumbers
-  result$clusterColors = clusterColors
-  
   if (param$showGeneClusterLabels & nrow(x) < maxGenesWithLabel){
     if (is.null(labRow)){
       labRow = rownames(x)    
@@ -383,15 +382,10 @@ clusterHeatmap = function(param, x, file="cluster-heatmap.png", nClusters=5, lim
     labRow = ""
     margins[2] = 0.5 
   }
-  
-  if (!is.null(file)){
-    png(file=file, width=width, height=height)
-    on.exit(dev.off())
-  }
   if (!is.null(colColors)){
-    if (nClusters > 1){
+    if (result$nClusters > 1){
       heatmap.2(x,
-                ColSideColors=colColors, RowSideColors=clusterColors[clusterNumbers],
+                ColSideColors=colColors, RowSideColors=result$clusterColors[result$clusterNumbers],
                 scale="none", dendrogram=showDendro, labRow=labRow,
                 breaks=seq(from=lim[1], to=lim[2], length.out=257),
                 Colv=colDendro, Rowv=probeDendro, col=colors,
@@ -405,9 +399,9 @@ clusterHeatmap = function(param, x, file="cluster-heatmap.png", nClusters=5, lim
                 key=TRUE, density.info="none", trace="none", margins=margins, cexCol=cexCol, cexRow=cexRow, ...)
     }
   } else {
-    if (nClusters > 1){		
+    if (result$nClusters > 1){
       heatmap.2(x,
-                RowSideColors=clusterColors[clusterNumbers],
+                RowSideColors=result$clusterColors[result$clusterNumbers],
                 scale="none", dendrogram=showDendro, labRow=labRow,
                 breaks=seq(from=lim[1], to=lim[2], length.out=257),
                 Colv=colDendro, Rowv=probeDendro, col=colors,
@@ -430,50 +424,52 @@ clusterHeatmap = function(param, x, file="cluster-heatmap.png", nClusters=5, lim
     xTmp = xTmp[order(xTmp$Cluster), ,drop=FALSE]
     ezWrite.table(xTmp, file=sub(".png$", "-clusterMembers.txt", file))
   }
+}
+
+goClusterResults = function(x, param, result, ontologies=c("BP", "MF", "CC"), seqAnno=NULL,
+                            universeGeneIds=NULL, universeProbeIds=NULL, keggOrganism=NA){
+  require(GOstats, warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
+  require(annotate, warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
+  if (param$featureLevel != "gene"){
+    genes = getGeneMapping(param, seqAnno)
+    if (is.null(genes)){
+      stop("no probe 2 gene mapping found found")
+    }
+    seqAnno = aggregateGoAnnotation(seqAnno, genes)
+  } else {
+    genes = rownames(seqAnno)
+    names(genes) = genes
+  }
   
-  if (doGO && doGo(param, seqAnno)){
-    library(GOstats, warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
-    library(annotate, warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
-    if (param$featureLevel != "gene"){
-      genes = getGeneMapping(param, seqAnno)
-      if (is.null(genes)){
-        stop("no probe 2 gene mapping found found")
-      }
-      seqAnno = aggregateGoAnnotation(seqAnno, genes)
-    } else {
-      genes = rownames(seqAnno)
-      names(genes) = genes
+  if (is.null(universeGeneIds)){
+    #ezWrite("universeProbeIds:\n", str(universeProbeIds))
+    #ezWrite("p2g[universeProbeIds]:\n", str(unlist( probe2Gene[universeProbeIds])))
+    universeGeneIds =na.omit(unique(unlist( genes[universeProbeIds]) ))
+    #ezWrite("universeGeneids:\n", str(universeGeneIds))
+  }
+  keggClusterResults = NULL
+  if (!is.na(keggOrganism)){
+    kegg2GenesList = getPathway2GenesList(param, keggOrganism)
+    if (all(unlist(kegg2GenesList)) %in% universeGeneIds){
+      keggClusterResults = list()
     }
-    
-    if (is.null(universeGeneIds)){
-      #ezWrite("universeProbeIds:\n", str(universeProbeIds))
-      #ezWrite("p2g[universeProbeIds]:\n", str(unlist( probe2Gene[universeProbeIds])))
-      universeGeneIds =na.omit(unique(unlist( genes[universeProbeIds]) ))
-      #ezWrite("universeGeneids:\n", str(universeGeneIds))
+  }
+  genesByCluster = tapply(genes[rownames(x)], result$clusterNumbers, function(x){na.omit(unique(x))}, simplify=FALSE)
+  goClusterResults = ezMclapply(ontologies, function(onto){
+    gene2go = goStringsToList(seqAnno[[paste("GO", onto)]], listNames=rownames(seqAnno))[universeGeneIds]
+    if (param$includeGoParentAnnotation){
+      gene2go = addGoParents(gene2go, onto)
     }
-    keggClusterResults = NULL
-    if (!is.na(keggOrganism)){
-      kegg2GenesList = getPathway2GenesList(param, keggOrganism)
-      if (all(unlist(kegg2GenesList)) %in% universeGeneIds){
-        keggClusterResults = list()
-      }
-    }
-    genesByCluster = tapply(genes[rownames(x)], clusterNumbers, function(x){na.omit(unique(x))}, simplify=FALSE)
-    goClusterResults = ezMclapply(ontologies, function(onto){
-      gene2go = goStringsToList(seqAnno[[paste("GO", onto)]], listNames=rownames(seqAnno))[universeGeneIds]
-      if (param$includeGoParentAnnotation){
-        gene2go = addGoParents(gene2go, onto)
-      }
-      result = lapply(genesByCluster, function(selectedGenes){
-        ezGoseq(param, selectedGenes, universeGeneIds, gene2goList=gene2go,
-                 method="Hypergeometric",
-                 onto=onto, normalizedAvgSignal=NULL, verbose=FALSE)})
-    }, mc.cores=1)
-    names(goClusterResults) = ontologies
-    result$GO = goClusterResults
-  }    
+    result = lapply(genesByCluster, function(selectedGenes){
+      ezGoseq(param, selectedGenes, universeGeneIds, gene2goList=gene2go,
+              method="Hypergeometric",
+              onto=onto, normalizedAvgSignal=NULL, verbose=FALSE)})
+  }, mc.cores=1)
+  names(goClusterResults) = ontologies
+  result$GO = goClusterResults
   return(invisible(result))
 }
+
 
 writeGOClusterResult = function(html, param, clusterResult){
   

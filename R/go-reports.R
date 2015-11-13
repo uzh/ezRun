@@ -9,9 +9,9 @@
 ##' @title Gets the GO cluster table
 ##' @description Gets the GO cluster table 
 ##' @param param a list of parameters to extract \code{pValThreshFisher} and \code{minCountFisher} from
-##' @param clusterResult a list containing the result of the analysis done by \code{clusterHeatmap()}.
+##' @param clusterResult a list containing the result of the analysis done by \code{goClusterResults()}.
 ##' @template roxygen-template
-##' @seealso \code{\link{clusterHeatmap}}
+##' @seealso \code{\link{goClusterResults}}
 ##' @return Returns a flex table containing the GO information of the cluster result.
 goClusterTable = function(param, clusterResult){
   ontologies = names(clusterResult$GO)

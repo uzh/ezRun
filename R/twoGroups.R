@@ -308,13 +308,18 @@ writeNgsTwoGroupReport = function(dataset, result, htmlFile, param=NA, rawData=N
     sampleColors = getSampleColors(param$grouping)[order(param$grouping)]
     clusterPng = "cluster-heatmap.png"
     clusterColors = c("red", "yellow", "orange", "green", "blue", "cyan")
-    doGO = doGo(param, seqAnno)
-    clusterResult = clusterHeatmap(param, xCentered, file=clusterPng, nClusters=6, 
-                                   lim=c(-param$logColorRange, param$logColorRange),
-                                   colColors=sampleColors, clusterColors=clusterColors,
-                                   doGO=doGO, seqAnno=seqAnno,
-                                   universeProbeIds=rownames(seqAnno)[result$isPresentProbe],
-                                   keggOrganism=keggOrganism)
+    clusterResult = clusterResults(xCentered, nClusters=6, clusterColors=clusterColors)
+    plotCmd = expression({
+      clusterHeatmap(xCentered, param, clusterResult, file=clusterPng,
+                     colColors=sampleColors, lim=c(-param$logColorRange, param$logColorRange))
+    })
+    clusterLink = ezImageFileLink(plotCmd, file=clusterPng, width=max(800, 400 + 10 * ncol(xCentered)), height=1000)
+    
+    if (doGo(param, seqAnno)){
+      clusterResult = goClusterResults(xCentered, param, clusterResult, seqAnno=seqAnno,
+                                       universeProbeIds=rownames(seqAnno)[result$isPresentProbe],
+                                       keggOrganism=keggOrganism)
+    }
     
     ## append the result file with the cluster colors
     resultLoaded = ezRead.table(resultFile$resultFile)
@@ -331,7 +336,6 @@ writeNgsTwoGroupReport = function(dataset, result, htmlFile, param=NA, rawData=N
     }
     doc = addParagraph(doc, paste("Number of significant features:", sum(use)))
     
-    clusterLink = imgLinks(clusterPng)
     if (!is.null(clusterResult$GO)){
       goLink = as.html(ezGrid(c("Background color corresponds to the row colors in the heatmap plot.",
                                 as.html(goClusterTable(param, clusterResult)))))
