@@ -51,7 +51,7 @@ runGageAnalysis = function(result, param=NULL, output=NULL, rawData=NULL, gene.p
       lab.png = paste(signal, "png", sep=".")
       res = gageHeatmap(gageResults[['significant']][[i]], param = param, output=output, gene.pValue=gene.pValue, signal=signal, prefix=prefix)
       gageResults[['significant']][[i]][[lab.pathCol]] = res$pathwayColors
-      gageResults[['significant']][[i]][[lab.png]] = basename(as.character(res[["fileName"]]))
+      gageResults[['significant']][[i]][[lab.png]] = res[["fileLink"]]
     }
   }
   
@@ -349,23 +349,22 @@ gageHeatmap = function(x, param=NULL, output=NULL, gene.pValue=NULL, signal=NULL
   # HeatMap
   if(is.null(fileName) & nrow(xCentered) >= 2 & ncol(xCentered) >= 2) {
     fileName = paste0(param[['comparison']],"-", prefix,"-", signal, ".png")
-    
-    png(fileName, width=max(800, 400 + 10 * ncol(xCentered)), height=1000)  ## TODOP: REFAC
-    rowDendro = FALSE
-    colDendro = T
-    showDendro = "column"
-    heatmap.2(xCentered,
-              col=ezRedBlueScale(256),
-              ColSideColors=sampleColors, RowSideColors=pathwayColors,
-              scale="none",
-              Colv=colDendro, Rowv=rowDendro, dendrogram=showDendro,
-              key=TRUE, density.info="none", trace="none",
-              keysize=1, cexCol=1.5,
-              margins=c(14,9), cexRow = 0.00001) ## TODO: why????
-    
-    dev.off()
+    plotCmd = expression({
+      rowDendro = FALSE
+      colDendro = T
+      showDendro = "column"
+      heatmap.2(xCentered,
+                col=ezRedBlueScale(256),
+                ColSideColors=sampleColors, RowSideColors=pathwayColors,
+                scale="none",
+                Colv=colDendro, Rowv=rowDendro, dendrogram=showDendro,
+                key=TRUE, density.info="none", trace="none",
+                keysize=1, cexCol=1.5,
+                margins=c(14,9), cexRow = 0.00001) ## TODO: why????
+    })
+    fileLink = ezImageFileLink(plotCmd, file=fileName, width=max(800, 400 + 10 * ncol(xCentered)), height=1000)
   }  
-  return(list(pathwayColors=pathwayColors, fileName=fileName))
+  return(list(pathwayColors=pathwayColors, fileLink=fileLink))
 }
 
 gagePathview = function(x, param=NULL, output=NULL, signal=NULL, kegg.id=NULL, gene.pValue=NULL, result = result, anno = rawData$seqAnno){

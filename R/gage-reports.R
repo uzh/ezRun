@@ -89,10 +89,10 @@ addGageTables = function(doc, param = NULL, gageResults = NULL) {
       res <- res[,!colnames(res) %in% "links", drop=F]
       
       # Writing plot and table
-      imgrow = x[[lab.png]]
+      imgLink = x[[lab.png]]
       pathColors = unique(x[[lab.pathCol]])
       tbl = ezAddTableWhite(res, bgcolors=matrix(gsub("FF$", "", unique(pathColors)), nrow=length(unique(pathColors)), ncol=1))
-      tableRows[[signal]] = cbind(imgrow, tbl)
+      tableRows[[signal]] = cbind(imgLink, tbl)
     }
     table = ezGrid(rbind(unlist(tableRows)), header.columns=TRUE)
     table = addHeaderRow(table, cbind(paste("Heatmap Plot logRatio Signal for", i), paste(i, "significant pathways")))
