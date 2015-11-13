@@ -162,7 +162,7 @@ writeNgsMultiGroupReport = function(dataset, result, htmlFile, param=NA, rawData
   ## only do GO if we have enough genes
   if (doGo(param, seqAnno)){
     goResult = twoGroupsGO(param, result, seqAnno, normalizedAvgSignal=rowMeans(result$groupMeans), method=param$goseqMethod)
-    writeGOTables(html, param, goResult)
+    writeGOTables(html, param, goResult) ## REFAC, does not work anymore
   } 
   ezSessionInfo()
   writeTxtLinksToHtml('sessionInfo.txt',con=html)

@@ -248,7 +248,7 @@ myFisherTest = function(goGenes, selGenes, allGenes, alternative="greater"){
               factor(allGenes %in% goGenes, levels=c("FALSE", "TRUE")), alternative=alternative)$p.value
 }
 
-
+# does not work anymore
 writeGOTables = function(html , param, goResult){
   
   ezWrite("<h3>GO Enrichment Analysis</h3>", con=html)
@@ -261,7 +261,7 @@ writeGOTables = function(html , param, goResult){
   for (onto in names(goResult)){
     x = goResult[[onto]]
     tables[1,onto] = goResultToHtmlTable2(x, param$pValThreshFisher, 
-                                          param$minCountFisher, onto=onto, maxNumberOfTerms=param$maxNumberGroupsDisplayed)
+                                          param$minCountFisher, onto=onto, maxNumberOfTerms=param$maxNumberGroupsDisplayed)  ### function deprecated
     for (sub in names(x)){ #c("enrichUp", "enrichDown", "enrichBoth")){
       xSub = x[[sub]]
       if (is.data.frame(xSub)){

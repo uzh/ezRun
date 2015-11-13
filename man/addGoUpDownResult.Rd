@@ -2,16 +2,12 @@
 % Please edit documentation in R/go-reports.R
 \name{addGoUpDownResult}
 \alias{addGoUpDownResult}
-\alias{goResultToHtmlTable2}
 \alias{goUpDownTables}
 \title{Adds the GO up-down results}
 \usage{
 addGoUpDownResult(doc, param, goResult)
 
 goUpDownTables(param, goResult)
-
-goResultToHtmlTable2(goResults, pThreshGo, minCount, onto = NA,
-  maxNumberOfTerms = 40)
 }
 \arguments{
 \item{doc}{an object of the class bsdoc to add the result.}
@@ -26,8 +22,6 @@ Adds the GO up-down results to an html file.
 \section{Functions}{
 \itemize{
 \item \code{goUpDownTables}: Gets the GO up-down tables.
-
-\item \code{goResultToHtmlTable2}: Parses the GO result into a html table.
 }}
 \author{
 Rehrauer, Hubert

@@ -364,14 +364,12 @@ writeNgsTwoGroupReport = function(dataset, result, htmlFile, param=NA, rawData=N
         goResult = goResult[1:param$maxNumberGroupsDisplayed,]
       }
       revigoLinks[j] = paste0('http://revigo.irb.hr/?inputGoList=',
-                              paste(goResult[,'GO.ID'],goResult[,'Pvalue'], collapse='%0D%0A'))
+                              paste(goResult[,'GO.ID'], goResult[,'Pvalue'], collapse='%0D%0A'))
+      revigoLinks[j] = pot("ReViGO Link", hyperlink = revigoLinks[j])
     }
     titles[["ReViGO"]] = "ReViGO"
     addTitleWithAnchor(doc, titles[[length(titles)]], 3)
-    revigoResult = capture.output(writeTableToHtml(revigoLinks))          ## TODOP: REFAC
-    revigoResult = gsub("<td valign='middle' bgcolor='#ffffff'>","<td valign='middle' bgcolor='#ffffff'><a target='_blank' href='",revigoResult)
-    revigoResult = gsub("</td>","' type='text/plain'>Link2ReViGo</a></td>",revigoResult)
-    doc = addParagraph(doc, pot(paste(revigoResult, collapse="\n")))
+    doc = addFlexTable(doc, ezFlexTable(cbind(rownames(revigoLinks), revigoLinks), valign="middle", header.columns=TRUE))
   }
   
   ## Run Gage

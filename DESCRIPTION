@@ -15,4 +15,4 @@ Imports:
 Suggests:
     Rsge,GO.db,GOstats,gage,goseq,ChIPpeakAnno,DESeq2,Repitools,TEQC,VariantAnnotation,annotate,biomaRt,bitops,edgeR,htSeqTools,limma,pathview,reshape2,rtracklayer,vsn,testthat,knitr
 VignetteBuilder: knitr
-RoxygenNote: 5.0.0
+RoxygenNote: 5.0.1
