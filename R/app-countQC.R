@@ -344,7 +344,8 @@ runNgsCountQC = function(dataset, htmlFile="00index.html", param=param, rawData=
       } else {
         goLink = as.html(pot("No information available"))
       }
-      tbl = ezGrid(c("Cluster Plot"=clusterLink, "GO categories of feature clusters"=goLink), header.columns = TRUE)
+      tbl = ezGrid(t(c("Cluster Plot"=clusterLink, "GO categories of feature clusters"=goLink)), header.columns = TRUE)
+      doc = addFlexTable(doc, tbl)
     }
     
     ##########################################

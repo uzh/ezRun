@@ -19,11 +19,16 @@ goClusterTable = function(param, clusterResult){
   for (onto in ontologies){
     for (i in 1:clusterResult$nClusters){
       x = clusterResult$GO[[onto]][[i]]
-      tables[i, onto] = as.html(ezFlexTable(.getGoTermsAsTd(x, param$pValThreshFisher, param$minCountFisher, onto=onto)))
+      goFrame = .getGoTermsAsTd(x, param$pValThreshFisher, param$minCountFisher, onto=onto)
+      if (nrow(goFrame) > 0){
+        tables[i, onto] = as.html(ezFlexTable(goFrame))
+      }
     }
   }
-  ft = ezFlexTable(tables, border = 2, header.columns = TRUE)
-  bgColors = rep(gsub("FF$", "", clusterResult$clusterColors), each=ncol(tables))
+  nameMap = c("BP"="Biological Proc. (BP)", "MF"="Molecular Func. (MF)", "CC"="Cellular Comp. (CC)")
+  colnames(tables) = nameMap[colnames(tables)]
+  ft = ezFlexTable(tables, border = 2, header.columns = TRUE, add.rownames=TRUE)
+  bgColors = rep(gsub("FF$", "", clusterResult$clusterColors), each=ncol(tables)+1)
   ft = setFlexTableBackgroundColors(ft, colors=bgColors)
   return(ft)
 }
@@ -101,7 +106,7 @@ goUpDownTables = function(param, goResult){
     x = x[1:maxNumberOfTerms, ]
   }
   if (nrow(x) == 0){
-    return(character(0))
+    return(ezFrame("Term"=character(0), "p"=numeric(0), "N"=integer(0)))
   }
   
   if (onto == "CC"){
