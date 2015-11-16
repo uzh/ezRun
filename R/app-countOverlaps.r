@@ -63,7 +63,7 @@ EzAppCountOverlaps <-
               )
   )
 
-
+##' @describeIn ezMethodCountOverlaps Counts the paired BAM hits.
 countPairedBamHits = function(input=NULL, output=NULL, param=NULL){
   
   param = fillWithDefaults(param)
@@ -97,8 +97,7 @@ countPairedBamHits = function(input=NULL, output=NULL, param=NULL){
   return("Success")
 }
 
-
-## describeIng countPairedBamHits
+##' @describeIn ezMethodCountOverlaps Counts the paired BAM hits for a single chromosome.
 countPairedBamHitsSingleChrom = function(chr, bamFile=NULL, param=NULL, gff=NULL){
   targets = NULL
   tryCatch({    
@@ -121,8 +120,7 @@ countPairedBamHitsSingleChrom = function(chr, bamFile=NULL, param=NULL, gff=NULL
   return(targets)
 }
 
-
-## title
+##' @describeIn ezMethodCountOverlaps Counts the non-redundant overlaps.
 countNonredundant = function(bamFile, param=param, gff=gff){
   if (!ezIsSpecified(param$minFeatureOverlap)){
     param$minFeatureOverlap = 1L
@@ -156,8 +154,7 @@ countNonredundant = function(bamFile, param=param, gff=gff){
   return(countFrame)
 }
 
-
-## title
+##' @describeIn ezMethodCountOverlaps Counts the BAM hits for a single chromosome.
 countBamHitsSingleChrom = function(chr, bamFile=NULL, param=NULL, gff=NULL){  
   targets = NULL
   tryCatch({
@@ -179,8 +176,7 @@ countBamHitsSingleChrom = function(chr, bamFile=NULL, param=NULL, gff=NULL){
   return(targets)
 }
 
-
-## title
+##' @describeIn ezMethodCountOverlaps Gets the target ranges depending on \code{param$featureLevel}.
 getTargetRanges = function (gff, param, chrom=NULL) {
   stopifnot(gff$type == "exon")
   if(!is.null(chrom)){
@@ -193,37 +189,37 @@ getTargetRanges = function (gff, param, chrom=NULL) {
   if (!ezIsSpecified(param$featureLevel)){
     param$featureLevel == "gene"
   }
-  if (param$featureLevel == "exon"){
-    gff$ID = paste(gff$transcript_id, sprintf("%03d", getExonNumber(gff)), sep=":E")
-    targetRanges = gffToRanges(gff)
-  }
-  if (param$featureLevel == "intron"){
-    trRanges = gffGroupToRanges(gff, gff$transcript_id)
-    exonRanges = gffToRanges(gff)
-    exonsByTranscript = split(exonRanges, gff$transcript_id)
-    stopifnot(setequal(names(exonsByTranscript), names(trRanges)))
-    intronsByTranscript = psetdiff(trRanges, exonsByTranscript[names(trRanges)])
-    targetRanges = unlist(intronsByTranscript)
-    ids = names(targetRanges)
-    names(targetRanges) = paste(ids, sprintf("%03d", ezReplicateNumber(ids)), sep= ":I")
-  }
-  if (param$featureLevel == "isoform"){
-    targetRanges = split(gffToRanges(gff), gff$transcript_id)
-  }
-  if (param$featureLevel == "tss"){
-    targetRanges = split(gffToRanges(gff), gff$tss_id)
-  }
-  if (param$featureLevel == "gene"){
-    targetRanges = split(gffToRanges(gff), gff$gene_id)
-  }
+  switch(param$featureLevel,
+         exon={
+           gff$ID = paste(gff$transcript_id, sprintf("%03d", getExonNumber(gff)), sep=":E")
+           targetRanges = gffToRanges(gff)
+         },
+         intron={
+           trRanges = gffGroupToRanges(gff, gff$transcript_id)
+           exonRanges = gffToRanges(gff)
+           exonsByTranscript = split(exonRanges, gff$transcript_id)
+           stopifnot(setequal(names(exonsByTranscript), names(trRanges)))
+           intronsByTranscript = psetdiff(trRanges, exonsByTranscript[names(trRanges)])
+           targetRanges = unlist(intronsByTranscript)
+           ids = names(targetRanges)
+           names(targetRanges) = paste(ids, sprintf("%03d", ezReplicateNumber(ids)), sep= ":I")
+         },
+         isoform={
+           targetRanges = split(gffToRanges(gff), gff$transcript_id)
+         },
+         tss={
+           targetRanges = split(gffToRanges(gff), gff$tss_id)
+         },
+         gene={
+           targetRanges = split(gffToRanges(gff), gff$gene_id)
+         })
   if (is.null(targetRanges)){
     stop("unsupported featureLevel: ", param$featureLevel)
   }
   return(targetRanges)
 }
 
-
-## title
+##' @describeIn ezMethodCountOverlaps Gets the feature counts from the target ranges.
 getFeatureCounts = function(chrom, gff, reads, param){
   if (length(chrom) > 1){
     featCounts = unlist(ezMclapply(chrom, getFeatureCounts, gff, reads, param), recursive=FALSE)
@@ -238,12 +234,11 @@ getFeatureCounts = function(chrom, gff, reads, param){
   return(featCounts)
 }
 
-
 ## generates counts when alignment is done to transcript database
 ## in that case the reference name (rname) is the transcript ID
 ## does handle paired-end consistently, i.e. a pair is counted as 1 if the ends align to the same  transcript
 ## and it is counted fractionally if alignments go to multiple transcripts
-## @title
+##' @describeIn ezMethodCountOverlaps Counts the transcripts from a BAM file.
 countTranscriptBam = function(bamFile, isFirstMateRead=NA, isSecondMateRead=NA, isUnmappedQuery=FALSE, isProperPair=NA){
   bam = ezScanBam(bamFile, what=c("qname", "rname"),
                    isFirstMateRead=isFirstMateRead, isSecondMateRead=isSecondMateRead, 
