@@ -595,15 +595,11 @@ intHist = function(x, range=c(round(min(x, na.rm=TRUE))-0.5, round(max(x, na.rm=
   return(hist(x, breaks=seq(range[1], range[2]+step-1, by = step), ...))
 }
 
-## TODOP: REFAC, used by bamStatPlots
-ezHeatmap = function(x, file=NULL, lim=c(-4, 4), col=ezRedBlueScale,
+
+ezHeatmap = function(x, lim=c(-4, 4), col=ezRedBlueScale,
 											dendrogram="none", margins=c(8,6), cexCol=1.1,
-											Rowv=TRUE, Colv=TRUE, labCol=colnames(x), labRow=rownames(x), width=1800, height=1800,
+											Rowv=TRUE, Colv=TRUE, labCol=colnames(x), labRow=rownames(x),
 											key=TRUE, ...){
-	if (!is.null(file)){
-		png(file=file, width=width, height=height)
-		on.exit(dev.off())
-	}
   if (!is.matrix(x)){
     x = as.matrix(x)
   }
