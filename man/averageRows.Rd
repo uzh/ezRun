@@ -13,7 +13,7 @@ averageRows(data, by = labels, func = mean, ...)
 
 \item{func}{the function to apply to the result. Default: mean.}
 
-\item{...}{additional arguments to be passed to \code{\code{aggregate()}}.}
+\item{...}{additional arguments to be passed to \code{aggregate()}.}
 }
 \value{
 Returns a vector or matrix of averaged rows.

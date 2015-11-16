@@ -15,7 +15,7 @@ ezSystem(cmd, echo = TRUE, intern = FALSE, stopOnFailure = !intern, ...)
 
 \item{stopOnFailure}{defaults to the opposite of intern and specifies whether the command should stop.}
 
-\item{...}{additional arguments to be passed to \code{\code{system()}}.}
+\item{...}{additional arguments to be passed to \code{system()}.}
 }
 \value{
 Returns input as character vector if \code{echo} is set to TRUE. Returns an error code if \code{intern} is set to FALSE.

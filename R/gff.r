@@ -447,7 +447,7 @@ writePresplicedGtf <- function (param, featureFile=param$ezRef["refFeatureFile"]
 ##' @examples
 ##' param = ezParam()
 ##' param$ezRef@@refFeatureFile = "./inst/extdata/genes.gtf"
-##' param$ezRef@@refFastaFile = "./script/Saccharomyces_cerevisiae/Ensembl/EF4/Sequence/WholeGenomeFasta/genome.fa"
+##' param$ezRef@@refFastaFile = "/srv/GT/reference/Saccharomyces_cerevisiae/Ensembl/EF4/Sequence/WholeGenomeFasta/genome.fa"
 ##' getTranscriptSequences(param)
 getTranscriptSequences = function(param, useFivePrimeAsStart=TRUE){
   genomeFasta = param$ezRef["refFastaFile"]
@@ -492,7 +492,7 @@ getTranscriptSequences = function(param, useFivePrimeAsStart=TRUE){
 ##' param = ezParam()
 ##' gtf = ezLoadFeatures(param,"./inst/extdata/genes.gtf")
 ##' param$ezRef@@refFeatureFile = "./inst/extdata/genes.gtf"
-##' param$ezRef@@refFastaFile = "./script/Saccharomyces_cerevisiae/Ensembl/EF4/Sequence/WholeGenomeFasta/genome.fa"
+##' param$ezRef@@refFastaFile = "/srv/GT/reference/Saccharomyces_cerevisiae/Ensembl/EF4/Sequence/WholeGenomeFasta/genome.fa"
 ##' genomeSeq = getTranscriptSequences(param)
 ##' ezUtrSequences(gtf)
 ## TODOP: improve help file. add an argument genomeSeq and maybe provide a default. Currently that object needs to be defined outside the function.
@@ -558,7 +558,7 @@ ezUtrSequences = function(gtf, chromSeqs){
 ##' @examples
 ##' param = ezParam()
 ##' param$ezRef@@refFeatureFile = "./inst/extdata/genes.gtf"
-##' param$ezRef@@refFastaFile = "./script/Saccharomyces_cerevisiae/Ensembl/EF4/Sequence/WholeGenomeFasta/genome.fa"
+##' param$ezRef@@refFastaFile = "/srv/GT/reference/Saccharomyces_cerevisiae/Ensembl/EF4/Sequence/WholeGenomeFasta/genome.fa"
 ##' getTranscriptGcAndWidth(param)
 getTranscriptGcAndWidth = function(param){
   genomeFasta = param$ezRef["refFastaFile"]

@@ -9,7 +9,7 @@ ezGeomean(x, ...)
 \arguments{
 \item{x}{a value, vector or matrix for which to calculate the geometric mean.}
 
-\item{...}{additional arguments to be passed to \code{\code{mean()}}.}
+\item{...}{additional arguments to be passed to \code{mean()}.}
 }
 \value{
 Returns the geometric mean of \code{x}.

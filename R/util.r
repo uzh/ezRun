@@ -223,7 +223,7 @@ isError = function(x){
 ##' @return Returns a logical vector containing the results of the tested pattern.
 ##' @template roxygen-template
 ##' @template addargs-template
-##' @templateVar fun \code{grepl()}
+##' @templateVar fun grepl()
 ##' @examples
 ##' ezGrepl(3,1:40)
 ##' ezGrepl(c(2,4),1:100)
@@ -254,7 +254,7 @@ ezGrepl <- function(patterns, x, combine="or", ...){
 ##' @return Returns a matrix containing the split vector and \code{x} as the rownames.
 ##' @template roxygen-template
 ##' @template addargs-template
-##' @templateVar fun \code{strsplit()}
+##' @templateVar fun strsplit()
 ##' @examples
 ##' ezSplit(letters[1:5],"b")
 ##' ezSplit(rep("abcde",4),letters[1:4])
@@ -397,7 +397,7 @@ ezLogmeanScalingFactor = function(x, use=NULL, target=NULL, presentFlag=NULL){
 ##' @return Returns the geometric mean of \code{x}.
 ##' @template roxygen-template
 ##' @template addargs-template
-##' @templateVar fun \code{mean()}
+##' @templateVar fun mean()
 ##' @examples
 ##' ezGeomean(1:10)
 ezGeomean <- function(x, ...){
@@ -440,7 +440,7 @@ averageColumns = function(x, by=NULL, func=function(x){mean(x, na.rm=TRUE)}){
 ##' @return Returns a vector or matrix of averaged rows.
 ##' @template roxygen-template
 ##' @template addargs-template
-##' @templateVar fun \code{aggregate()}
+##' @templateVar fun aggregate()
 ##' @examples
 ##' m1 = matrix(1:20,5)
 ##' averageRows(m1,c(1,1,2,2,3))
@@ -512,7 +512,7 @@ makeMultiMapping = function(xList){
 ##' @return Returns a list of the same length as \code{x} with \code{FUN} applied to its elements.
 ##' @template roxygen-template
 ##' @template addargs-template
-##' @templateVar fun \code{lapply()} and \code{mclapply()}
+##' @templateVar fun lapply() and mclapply()
 ##' @seealso \code{\link[parallel]{mclapply}}
 ##' @examples
 ##' l1 = list(a=1:3, b=c(2,5), c=4:8)

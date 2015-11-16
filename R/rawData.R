@@ -145,7 +145,7 @@ getRpkm = function(rawData){
 ##' param$dataRoot = system.file(package="ezRun", mustWork = TRUE)
 ##' param$ezRef@@refFeatureFile = "./inst/extdata/genes.gtf"
 ##' param$ezRef@@refAnnotationFile = "./inst/extdata/genes_annotation_example.txt"
-##' param$ezRef@@refFastaFile = "./script/Saccharomyces_cerevisiae/Ensembl/EF4/Sequence/WholeGenomeFasta/genome.fa"
+##' param$ezRef@@refFastaFile = "/srv/GT/reference/Saccharomyces_cerevisiae/Ensembl/EF4/Sequence/WholeGenomeFasta/genome.fa"
 ##' input = EzDataset$new(file=system.file("extdata/yeast_10k_STAR_featureCounts/dataset.tsv", package="ezRun", mustWork = TRUE))
 ##' rawData = loadCountDataset(input, param)
 ##' rawData$seqAnno = writeAnnotationFromGtf(param)
