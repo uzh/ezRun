@@ -269,7 +269,7 @@ writeCountResultSummary = function(html, param, result){
 }
 
 
-
+## will get deprecated eventually
 writeResultCounts = function(html, param, result, geneIds=NULL, pThresh=c(0.1, 0.05, 1/10^(2:5))){
 
 	sigTable = getSignificantCountsTable(result, pThresh=pThresh)
