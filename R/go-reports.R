@@ -45,29 +45,56 @@ addGoUpDownResult = function(doc, param, goResult){
   doc = addParagraph(doc, paste("Maximum number of terms displayed:", param$maxNumberGroupsDisplayed))
   
   doc = addParagraph(doc, "GO categories that are overrepresented among significantly upregulated genes.")
-  doc = addFlexTable(doc, udt$flexTable[["up"]])
+  doc = addFlexTable(doc, udt$flexTables[["enrichUp"]])
   doc = addParagraph(doc, "GO categories that are overrepresented among significantly downregulated genes.")
-  doc = addFlexTable(doc, udt$flexTable[["down"]])
+  doc = addFlexTable(doc, udt$flexTables[["enrichDown"]])
   doc = addParagraph(doc, "GO categories that are overrepresented among all significantly regulated genes.")
-  doc = addFlexTable(doc, udt$flexTable[["both"]])
+  doc = addFlexTable(doc, udt$flexTables[["enrichBoth"]])
   
+  #     goFiles = list.files('.',pattern='enrich.*txt')
+  #     revigoLinks = ezMatrix("", rows=c('Both', 'Down', 'Up'), cols=c('BP', 'CC', 'MF'))
+  #     for(j in 1:length(goFiles)){
+  #       goResult = ezRead.table(goFiles[j], sep='\t')[, c('GO ID','Pvalue')]
+  #       goResult = goResult[which(goResult$Pvalue < param$pValThreshFisher),]
+  #       if(nrow(goResult) > param$maxNumberGroupsDisplayed) {
+  #         goResult = goResult[1:param$maxNumberGroupsDisplayed,]
+  #       }
+  #       revigoLinks[j] = paste0('http://revigo.irb.hr/?inputGoList=',
+  #                               paste(goResult[,'GO ID'], goResult[,'Pvalue'], collapse='%0D%0A'))
+  #       revigoLinks[j] = pot("ReViGO Link", hyperlink = revigoLinks[j])
+  #     }
+  #     titles[["ReViGO"]] = "ReViGO"
+  #     addTitleWithAnchor(doc, titles[[length(titles)]], 3)
+  #     doc = addFlexTable(doc, ezFlexTable(cbind(rownames(revigoLinks), revigoLinks), valign="middle", header.columns=TRUE))
+
+    ## addTxtLinksToReport(doc, param, udt$txtFiles)
   if (param$doZip){
     addTxtLinksToReport(doc, udt$txtFiles, mime="application/zip")
   } else {
     addTxtLinksToReport(doc, udt$txtFiles, mime="application/txt")
   }
+  
+  
+  doc
 }
 
 ##' @describeIn addGoUpDownResult Gets the GO up-down tables.
 goUpDownTables = function(param, goResult){
-  tables = ezMatrix("", rows="Cats", cols=names(goResult))
-  tables = list("enrichUp"=tables, "enrichBoth"=tables, "enrichDown"=tables)
-  txtFiles = character()
-  for (onto in names(goResult)){
+  goTable = ezMatrix("", rows="Cats", cols=names(goResult))
+  resultList = list("enrichUp"=goTable, "enrichBoth"=goTable, "enrichDown"=goTable)
+  txtFiles = character() ## TODO make a list of list; similar to resultList
+  ## txtList = list("enrichUp"=list(), "enrichBoth"=list(), "enrichDown"=list())
+  for (onto in names(goResult)){ ## BP, MF , CC
     x = goResult[[onto]]
     for (sub in names(x)){ #c("enrichUp", "enrichDown", "enrichBoth")){
-      tables[[sub]][1, onto] = .getGoTermsAsTd(x[[sub]], param$pValThreshFisher,
-                                             param$minCountFisher, onto=onto, maxNumberOfTerms=param$maxNumberGroupsDisplayed)
+      message("sub: ", sub)
+      goFrame = .getGoTermsAsTd(x[[sub]], param$pValThreshFisher, param$minCountFisher, onto=onto,
+                                maxNumberOfTerms=param$maxNumberGroupsDisplayed)
+      if (nrow(goFrame) > 0){
+        resultList[[sub]]["Cats", onto] = as.html(ezFlexTable(goFrame))
+      } else {
+        message("no rows")
+      }
       xSub = x[[sub]]
       if (is.data.frame(xSub)){
         name = paste0(onto, "-", param$comparison, "-", sub)
@@ -76,6 +103,7 @@ goUpDownTables = function(param, goResult){
           xSub = cbind("GO ID"=rownames(xSub), xSub)
         }
         txtFile = ezValidFilename(paste0(name, ".txt"), replace="-")
+        # txtList[[sub]][[onto]] = ezValidFilename(paste0(name, ".txt"), replace="-")
         ezWrite.table(xSub, file=txtFile, row.names=FALSE)
         if (param$doZip){
           txtFiles[name] = zipFile(txtFile)
@@ -85,10 +113,10 @@ goUpDownTables = function(param, goResult){
       }
     }
   }
-  ftUp = ezFlexTable(tables[["enrichUp"]], border = 2, header.columns = TRUE)
-  ftBoth = ezFlexTable(tables[["enrichBoth"]], border = 2, header.columns = TRUE)
-  ftDown = ezFlexTable(tables[["enrichDown"]], border = 2, header.columns = TRUE)
-  return(list(flexTables=list("up"=ftUp, "both"=ftBoth, "down"=ftDown), txtFiles=txtFiles))
+  flexTables = lapply(resultList, function(res){
+    ezFlexTable(res, border = 2, header.columns = TRUE)
+  })
+  return(list(flexTables=flexTables, txtFiles=txtFiles))
 }
 
 ##' @describeIn goClusterTable Gets the GO terms and pastes them into a table.
@@ -96,9 +124,9 @@ goUpDownTables = function(param, goResult){
   
   require(GO.db)
   
-  rows = character(0)
   if (!is.data.frame(x)){
-    return(rows)
+    message("got not data frame")
+    return(ezFrame("Term"=character(0), "p"=numeric(0), "N"=integer(0)))
   }
   x = x[x$Count >= minCount & x$Pvalue < pThreshGo, ]
   x = x[order(x$Pvalue), ]

@@ -337,16 +337,13 @@ writeNgsTwoGroupReport = function(dataset, result, htmlFile, param=NA, rawData=N
     doc = addParagraph(doc, paste("Number of significant features:", sum(use)))
     
     if (!is.null(clusterResult$GO)){
-      goLink = as.html(ezGrid(c("Background color corresponds to the row colors in the heatmap plot.",
+      goLink = as.html(ezGrid(cbind("Background color corresponds to the row colors in the heatmap plot.",
                                 as.html(goClusterTable(param, clusterResult)))))
       #goLink[[2]] = addGOClusterResult(doc, param, clusterResult)
     } else {
       goLink = as.html(pot("No information available"))
     }
-    if (!is.null(clusterResult$Kegg)){
-      ########## TODO: addKeggClusterResult(doc, param, clusterResult, keggOrganism)
-    }
-    tbl = ezGrid(c("Cluster Plot"=clusterLink, "GO categories of feature clusters"=goLink), header.columns = TRUE)
+    tbl = ezGrid(cbind("Cluster Plot"=clusterLink, "GO categories of feature clusters"=goLink), header.columns = TRUE)
     doc = addFlexTable(doc, tbl)
   }
   ## only do GO if we have enough genes
@@ -355,25 +352,6 @@ writeNgsTwoGroupReport = function(dataset, result, htmlFile, param=NA, rawData=N
     titles[["GO Enrichment Analysis"]] = "GO Enrichment Analysis"
     addTitleWithAnchor(doc, titles[[length(titles)]], 3)
     doc = addGoUpDownResult(doc, param, goResult)
-    goFiles = list.files('.',pattern='enrich.*txt')
-    keepCols = c('GO.ID','Pvalue')
-    revigoLinks = matrix(nrow=3, ncol=3)
-    colnames(revigoLinks) = c('BP', 'CC', 'MF')
-    rownames(revigoLinks) = c('Both', 'Down', 'Up')
-    for(j in 1:length(goFiles)){
-      goResult = read.table(goFiles[j], sep='\t', stringsAsFactors = F, quote='',
-                            comment.char = '', header = T)[, keepCols]
-      goResult = goResult[which(goResult$Pvalue < param$pValThreshFisher),]
-      if(nrow(goResult) > param$maxNumberGroupsDisplayed) {
-        goResult = goResult[1:param$maxNumberGroupsDisplayed,]
-      }
-      revigoLinks[j] = paste0('http://revigo.irb.hr/?inputGoList=',
-                              paste(goResult[,'GO.ID'], goResult[,'Pvalue'], collapse='%0D%0A'))
-      revigoLinks[j] = pot("ReViGO Link", hyperlink = revigoLinks[j])
-    }
-    titles[["ReViGO"]] = "ReViGO"
-    addTitleWithAnchor(doc, titles[[length(titles)]], 3)
-    doc = addFlexTable(doc, ezFlexTable(cbind(rownames(revigoLinks), revigoLinks), valign="middle", header.columns=TRUE))
   }
   
   ## Run Gage
