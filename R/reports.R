@@ -195,9 +195,10 @@ writeErrorReport = function(htmlFile, param=param, dataset=NULL, error="Unknown 
 ##' @template roxygen-template
 ##' @examples
 ##' param = ezParam()
-##' htmlFile = "example_html"
-##' html =  openHtmlReport(htmlFile,param)
-##' writeTxtLinksToHtml("dataset.tsv", con=html)
+##' htmlFile = "example.html"
+##' doc =  openBsdocReport(title="My report")
+##' addTxtLinksToReport(doc, "dataset.tsv")
+##' closeBsdocReport(doc, htmlFile)
 addTxtLinksToReport = function(doc, txtNames, mime="text/plain"){
   for (each in txtNames){
     doc = addParagraph(doc, pot(paste("<a href='", each, "' type='", mime, "'>", each, "</a>")))
@@ -364,7 +365,6 @@ getSignificantFoldChangeCountsTable = function(result, pThresh=1/10^(1:5), fcThr
 ##' @param file a character representing the name of the result file.
 ##' @template roxygen-template
 ##' @return Returns the name of the result file.
-##' @seealso \code{\link{writeTxtLinksToHtml}}
 addResultFile = function(doc, param, result, rawData, useInOutput=TRUE,
                          file=paste0("result--", param$comparison, ".txt")){
   seqAnno = rawData$seqAnno

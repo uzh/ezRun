@@ -20,9 +20,10 @@ Adds texts link to an html file.
 }
 \examples{
 param = ezParam()
-htmlFile = "example_html"
-html =  openHtmlReport(htmlFile,param)
-writeTxtLinksToHtml("dataset.tsv", con=html)
+htmlFile = "example.html"
+doc =  openBsdocReport(title="My report")
+addTxtLinksToReport(doc, "dataset.tsv")
+closeBsdocReport(doc, htmlFile)
 }
 \author{
 Rehrauer, Hubert

@@ -19,13 +19,11 @@ yeastCommonVariantParam = function(){
   param[['ram']] = '10'
   param[['scratch']] = '10'
   param[['node']] = ''
-  param[['process_mode']] = 'SAMPLE'
+  param[['process_mode']] = 'DATASET'
   param[['refBuild']] = 'Saccharomyces_cerevisiae/Ensembl/EF4/Annotation/Version-2013-03-18'
   param[['paired']] = 'true'
   param[['strandMode']] = 'sense'
   param[['refFeatureFile']] = 'genes.gtf'
-  param[['featureLevel']] = 'gene'
-  param[['specialOptions']] = ''
   param[['mail']] = ''
   param[['dataRoot']] = system.file(package="ezRun", mustWork = TRUE)
   param[['resultDir']] = 'p1001/Count_Result'
@@ -50,15 +48,8 @@ test_that("Variant_Mpileup", {
   output[['IGV Starter [File]']] = 'p1001/Variant_Analysis_samtoolsmpileup_8617_2015-11-12--12-19-54/Mpileup_Variants-igv.jnlp'
   output[['IGV Session [File]']] = 'p1001/Variant_Analysis_samtoolsmpileup_8617_2015-11-12--12-19-54/Mpileup_Variants-igv.xml'
   output = EzDataset$new(meta=output)
-  param = list()
-  param[['cores']] = '8'
-  param[['ram']] = '30'
-  param[['scratch']] = '100'
-  param[['node']] = ''
-  param[['process_mode']] = 'DATASET'
-  param[['paired']] = 'true'
+  param = yeastCommonVariantParam()
   param[['name']] = 'Mpileup_Variants'
-  param[['refBuild']] = 'Saccharomyces_cerevisiae/Ensembl/EF4/Annotation/Version-2013-03-18'
   param[['region']] = ''
   param[['mpileupOptions']] = '--skip-indels --output-tags DP,DV,DPR,INFO/DPR,DP4,SP'
   param[['callOptions']] = '--multiallelic-caller --keep-alts --variants-only'
@@ -67,13 +58,7 @@ test_that("Variant_Mpileup", {
   param[['mail']] = 'peter.schmid@ieu.uzh.ch'
   param[['dataRoot']] = system.file(package="ezRun", mustWork = TRUE)
   param[['resultDir']] = 'p1001/Variant_Analysis_samtoolsmpileup_8617_2015-11-12--12-19-54'
-#   param = yeastCommonVariantParam()
-#   param[['gtfFeatureType']] = 'exon'
-#   param[['allowMultiOverlap']] = 'true'
-#   param[['countPrimaryAlignmentsOnly']] = 'true'
-#   param[['minFeatureOverlap']] = '10'
-#   param[['minMapQuality']] = '10'
-#   param[['keepMultiHits']] = 'true'
+  param = yeastCommonVariantParam()
   myApp = EzAppMpileup$new()
   myApp$run(input=input$copy()$subset(1), output=output$copy()$subset(1), param=param)
   setwd(cwd)

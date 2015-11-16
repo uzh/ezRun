@@ -12,7 +12,7 @@ goClusterTable(param, clusterResult)
 \arguments{
 \item{param}{a list of parameters to extract \code{pValThreshFisher} and \code{minCountFisher} from}
 
-\item{clusterResult}{a list containing the result of the analysis done by \code{clusterHeatmap()}.}
+\item{clusterResult}{a list containing the result of the analysis done by \code{goClusterResults()}.}
 }
 \value{
 Returns a flex table containing the GO information of the cluster result.
@@ -30,6 +30,6 @@ Rehrauer, Hubert
 Schmid, Peter
 }
 \seealso{
-\code{\link{clusterHeatmap}}
+\code{\link{goClusterResults}}
 }
 
