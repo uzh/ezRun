@@ -21,10 +21,8 @@ ezMethodRnaBamStats = function(input=NA, output=NA, param=NA, htmlFile="00index.
     
   gff = ezLoadFeatures(param)
   if (!is.null(gff) && nrow(gff) == 0){
-#     writeErrorReport(htmlFile, param=param, ) # the call below cannot work like this: unused argument and undefined object
-    writeErrorHtml(htmlFile, param=param, experiment=anno, 
-                   error=list(error=paste("No features found in given feature file:<br>", 
-                                          param$ezRef["refFeatureFile"])))
+    writeErrorReport(htmlFile, param=param, error=list(error=paste("No features found in given feature file:<br>", 
+                                                                   param$ezRef["refFeatureFile"])))
     return("Error")
   }
   result = computeBamStats(input, htmlFile, param, gff)
@@ -64,10 +62,6 @@ computeBamStats = function(input, htmlFile, param, gff, resultList=NULL){
     repeatsGff = NULL
   }
   
-#   new reports gets opened in plotBamStat()
-  html = openHtmlReport(htmlFile, param=param, title=paste("BAM Statistics:", param$name),
-                        dataset=dataset)
-  
   if (ezIsSpecified(param$seqNames)){
     gff = gff[gff$seqid %in% param$seqNames, ]
     if(!is.null(repeatsGff)){
@@ -80,9 +74,7 @@ computeBamStats = function(input, htmlFile, param, gff, resultList=NULL){
       message(sm)
       resultList[[sm]] = getStatsFromBam(param, files[sm], sm, gff=gff, repeatsGff=repeatsGff, nReads=dataset[sm, "Read Count"])
       if (isError(resultList[[sm]])){
-#         writeErrorReport(htmlFile, param=param, ) ## there's no experiment defined
-        close(html)
-        writeErrorHtml(htmlFile, param, experiment, error=resultList[[sm]]$error)
+        writeErrorReport(htmlFile, param=param, error=resultList[[sm]]$error)
         return()
       }
       print(gc())
@@ -112,12 +104,7 @@ computeBamStats = function(input, htmlFile, param, gff, resultList=NULL){
     save(resultList, file="resultList.RData")
   }
   
-#   plotBamStat(resultList, seqLengths, dataset, param, htmlFile)
-  plotBamStat(resultList, seqLengths, dataset, param, html=html)
-#   new report also gets closed in plotBamStat()
-  ezSessionInfo()
-  writeTxtLinksToHtml('sessionInfo.txt',con=html)
-  closeHTML(html)
+  plotBamStat(resultList, seqLengths, dataset, param, htmlFile)
   rm(resultList)
   gc()
   return("Success")

@@ -98,6 +98,7 @@ countPairedBamHits = function(input=NULL, output=NULL, param=NULL){
 }
 
 
+## describeIng countPairedBamHits
 countPairedBamHitsSingleChrom = function(chr, bamFile=NULL, param=NULL, gff=NULL){
   targets = NULL
   tryCatch({    
@@ -121,6 +122,7 @@ countPairedBamHitsSingleChrom = function(chr, bamFile=NULL, param=NULL, gff=NULL
 }
 
 
+## title
 countNonredundant = function(bamFile, param=param, gff=gff){
   if (!ezIsSpecified(param$minFeatureOverlap)){
     param$minFeatureOverlap = 1L
@@ -155,6 +157,7 @@ countNonredundant = function(bamFile, param=param, gff=gff){
 }
 
 
+## title
 countBamHitsSingleChrom = function(chr, bamFile=NULL, param=NULL, gff=NULL){  
   targets = NULL
   tryCatch({
@@ -177,6 +180,7 @@ countBamHitsSingleChrom = function(chr, bamFile=NULL, param=NULL, gff=NULL){
 }
 
 
+## title
 getTargetRanges = function (gff, param, chrom=NULL) {
   stopifnot(gff$type == "exon")
   if(!is.null(chrom)){
@@ -219,6 +223,7 @@ getTargetRanges = function (gff, param, chrom=NULL) {
 }
 
 
+## title
 getFeatureCounts = function(chrom, gff, reads, param){
   if (length(chrom) > 1){
     featCounts = unlist(ezMclapply(chrom, getFeatureCounts, gff, reads, param), recursive=FALSE)
@@ -238,6 +243,7 @@ getFeatureCounts = function(chrom, gff, reads, param){
 ## in that case the reference name (rname) is the transcript ID
 ## does handle paired-end consistently, i.e. a pair is counted as 1 if the ends align to the same  transcript
 ## and it is counted fractionally if alignments go to multiple transcripts
+## @title
 countTranscriptBam = function(bamFile, isFirstMateRead=NA, isSecondMateRead=NA, isUnmappedQuery=FALSE, isProperPair=NA){
   bam = ezScanBam(bamFile, what=c("qname", "rname"),
                    isFirstMateRead=isFirstMateRead, isSecondMateRead=isSecondMateRead, 
