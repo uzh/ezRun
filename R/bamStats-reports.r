@@ -6,7 +6,22 @@
 # www.fgcz.ch
 
 
-plotBamStat = function(resultList, seqLengths, dataset, param, htmlFile=NULL){
+##' @title Plots the BAM statistics
+##' @description Plots the BAM statistics and writes the report.
+##' @param resultList a list of results.
+##' @param dataset a data.frame from the meta field of an EzDataset.
+##' @param param a list of parameters:
+##' \itemize{
+##'   \item{name}{ a character representing the name of the app.}
+##'   \item{writeIgvSessionLink}{ a logical indicating whether to write an IGV session link.}
+##'   \item{ezRef@refBuild}{ a character containing the path of the reference build.}
+##'   \item{sigThresh}{ an integer specifying the significance threshold.}
+##'   \item{normMethod}{ a character specifying the normalization method to use.}
+##'   \item{runGO}{ a logical indicating wheter to run the GO analysis.}
+##' }
+##' @param htmlFile a character representing the path to write the report in.
+##' @template roxygen-template
+plotBamStat = function(resultList, dataset, param, htmlFile=NULL){
   conds = ezConditionsFromDataset(dataset, param=param)
   samples = rownames(dataset)
   sampleColors = getSampleColors(conds, samples)
@@ -372,8 +387,7 @@ plotBamStat = function(resultList, seqLengths, dataset, param, htmlFile=NULL){
   closeBsdocReport(doc, htmlFile, titles)
 }
 
-
-## @describeIn plotBamStat
+##' @describeIn plotBamStat Gets the table containing the counts of each type.
 getTypeCountTable = function(resultList, name){
   tbl = data.frame(row.names=rownames(resultList[[1]][[name]]))
   for (sm in names(resultList)){
@@ -383,8 +397,7 @@ getTypeCountTable = function(resultList, name){
   return(tbl)
 }
 
-
-## @describeIn plotBamStat
+##' @describeIn plotBamStat Gets the table containing the coverage of each type.
 getTypeCoverageTable = function(resultList, name){
   tbl = data.frame(row.names=rownames(resultList[[1]][[name]]))
   for (sm in names(resultList)){
@@ -394,8 +407,7 @@ getTypeCoverageTable = function(resultList, name){
   return(tbl)
 }
 
-
-## @describeIn plotBamStat
+##' @describeIn plotBamStat Plots the alignment counts and returns the image file link.
 makeAlignmentCountBarPlot = function(file, mmCounts){
   multiCount = as.integer(colnames(mmCounts))
   isSmall = multiCount <= 3
@@ -421,8 +433,7 @@ makeAlignmentCountBarPlot = function(file, mmCounts){
   return(pngLink)
 }
 
-
-## @describeIn plotBamStat
+##' @describeIn plotBamStat Plots the position specific error rates.
 plotPosSpecificErrorRate = function(errorRate, png, main="Per base mismatch rate", writeTxt=TRUE){
   par(mfrow=c(1,2))
   if (writeTxt){

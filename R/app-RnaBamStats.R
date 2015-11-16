@@ -48,7 +48,21 @@ EzAppRnaBamStats <-
               )
   )
 
-
+##' @title Computes the BAM statistics
+##' @description Computes the BAM statistics.
+##' @param input a list, file path or an object of the class EzDataset containing the input.
+##' @param htmlFile a character representing the path to write the report in.
+##' @param param a list of parameters:
+##' \itemize{
+##'   \item{ezRef@refBuild}{ a character containing the path of the reference build.}
+##'   \item{seqNames}{ the sequence names to select.}
+##'   \item{posErrorRates}{ a logical indicating whether to call \code{getPosErrorFromBam()}.}
+##'   \item{saveImage}{ a logical indicating whether to save the image.}
+##' }
+##' @param gff an annotation data.frame in gtf or gff format.
+##' @param resultList a list of results.
+##' @template roxygen-template
+##' @seealso \code{\link{plotBamStat}}
 computeBamStats = function(input, htmlFile, param, gff, resultList=NULL){
   samples = input$getNames()
   files = input$getFullPaths(param, "BAM")
@@ -104,12 +118,13 @@ computeBamStats = function(input, htmlFile, param, gff, resultList=NULL){
     save(resultList, file="resultList.RData")
   }
   
-  plotBamStat(resultList, seqLengths, dataset, param, htmlFile)
+  plotBamStat(resultList, dataset, param, htmlFile)
   rm(resultList)
   gc()
   return("Success")
 }
 
+##' @describeIn computeBamStats Gets the error positions from the BAM file.
 getPosErrorFromBam = function(bamFile, param){
   library(GenomicRanges, warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
   library(Rsamtools, warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
@@ -149,8 +164,7 @@ getPosErrorFromBam = function(bamFile, param){
   return(result)
 }
 
-
-## @describeIn getPosErrorFromBam
+##' @describeIn computeBamStats Calculates the specific error rates for \code{getPosErrorFromBam()}.
 ezPosSpecErrorRate = function(bam, ReferenceGenome, nMaxReads=100000){
   library(GenomicRanges, warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
   library(Biostrings, warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
@@ -250,7 +264,7 @@ ezPosSpecErrorRate = function(bam, ReferenceGenome, nMaxReads=100000){
   return(list(trimmedRate=trimmedRate, clippedRate=clippedRate, errorRate=errorRate))
 }
 
-
+##' @describeIn computeBamStats Gets the result statistics from the BAM file.
 getStatsFromBam = function(param, bamFile, sm, gff=NULL, repeatsGff=NULL, nReads=NA){
   library(bitops, warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
   job = ezJobStart(paste("count", bamFile))
@@ -296,8 +310,7 @@ getStatsFromBam = function(param, bamFile, sm, gff=NULL, repeatsGff=NULL, nReads
   return(result)
 }
 
-
-## @describeIn getStatsFromBam
+##' @describeIn computeBamStats Gets parallel by chromosome statistics for \code{getStatsFromBam()} if the logical \code{param$splitByChrom} is true.
 getStatsFromBamParallel = function(seqLengths, param, bamFile, sm, nReads, gff=NULL, repeatsGff=NULL, mc.cores=ezThreads()){
   seqNames = names(sort(seqLengths, decreasing=TRUE))
   names(seqNames) = seqNames
@@ -382,8 +395,7 @@ getStatsFromBamParallel = function(seqLengths, param, bamFile, sm, nReads, gff=N
   return(result)
 }
 
-
-## @describeIn getStatsFromBam
+##' @describeIn computeBamStats Gets the statistics of a single chromosome for \code{getStatsFromBam()}.
 getStatsFromBamSingleChrom = function(chrom, param, bamFile, sm, nReads, gff=NULL, repeatsGff=NULL){
   
   library(bitops, warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
@@ -435,8 +447,7 @@ getStatsFromBamSingleChrom = function(chrom, param, bamFile, sm, nReads, gff=NUL
   return(result)
 }
 
-
-## @describeIn getStatsFromBam
+##' @describeIn computeBamStats Gets the counts of the target types for \code{getStatsFromBam()}.
 getTargetTypeCounts = function(param, gff, rr, seqid=NULL, repeatsGff=NULL){
   
   if (class(rr) == "GRangesList"){
@@ -550,7 +561,7 @@ getTargetTypeCounts = function(param, gff, rr, seqid=NULL, repeatsGff=NULL){
   return(result)
 }
 
-
+##' @describeIn computeBamStats Gets the junction results from the BAM file.
 getJunctionPlotsFromBam = function(bamFile, param){
   pngFiles = list()
   ## do the junction annotation
