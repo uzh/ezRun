@@ -19,7 +19,7 @@ goClusterTable = function(param, clusterResult){
   for (onto in ontologies){
     for (i in 1:clusterResult$nClusters){
       x = clusterResult$GO[[onto]][[i]]
-      tables[i, onto] = .getGoTermsAsTd(x, param$pValThreshFisher, param$minCountFisher, onto=onto)
+      tables[i, onto] = as.html(ezFlexTable(.getGoTermsAsTd(x, param$pValThreshFisher, param$minCountFisher, onto=onto)))
     }
   }
   ft = ezFlexTable(tables, border = 2, header.columns = TRUE)

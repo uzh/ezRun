@@ -31,6 +31,7 @@
 ezMethodTrim = function(input=NA, output=NA, param=NA){
   
   ## if output is not defined, set it!
+  ## TODO: gives warning message if outpu is S4 class
   if (is.na(output)){
     output = input$copy()
     output$setColumn("Read1", paste0(input$getNames(), "-trimmed-R1.fastq"))
@@ -156,6 +157,7 @@ ezMethodTrim = function(input=NA, output=NA, param=NA){
 
 ##' @describeIn ezMethodTrim Gets the subsample files, calls \code{ezSubsampleFastq()} on them and returns the output, which is an object of the class EzDataset.
 ezMethodSubsampleReads = function(input=NA, output=NA, param=NA){
+  ## TODO: gives warning message if outpu is S4 class
   if (is.na(output)){
     output = input$copy()
     subsampleFiles = sub(".fastq.*", "-subsample.fastq", basename(input$getColumn("Read1")))
