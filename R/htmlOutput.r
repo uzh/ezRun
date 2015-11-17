@@ -288,7 +288,7 @@ writeResultCounts = function(html, param, result, geneIds=NULL, pThresh=c(0.1, 0
 ##' @param html a connection to an html file.
 ##' @param param a list of parameters that pastes the \code{comparison} into the file name and does a zip file if \code{doZip} is true.
 ##' @param result a list of results.
-##' @param rawData a list of raw data. Usually obtained from \code{loadCountDataset()}.
+##' @template rawData-template
 ##' @param useInOutput a logical specifying whether to use most of the result information.
 ##' @param file a character representing the name of the result file.
 ##' @template roxygen-template
@@ -361,7 +361,7 @@ writeResultFile = function(html, param, result, rawData, useInOutput=TRUE,
 ##' @param param a list of parameters. If \code{writeScatterPlots} is false, the function returns NULL.
 ##' @param design a data.frame containing the factorial design.
 ##' @param conds a named character vector containing the conditions of the factorial design.
-##' @param rawData a list of raw data. Usually obtained from \code{loadCountDataset()}.
+##' @template rawData-template
 ##' @param signalCond a set of values containing signals averaged by the conditions.
 ##' @param isPresentCond Either NULL or a data.frame containing coloring information.
 ##' @param colors a character vector containing rgb codes. The default is a scale from blue to red.

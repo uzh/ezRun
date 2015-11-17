@@ -35,7 +35,7 @@ cleanupTwoGroupsInput = function(input, param){
 ## TODO: add runLimma function.
 ##' @title Compares the counts of two groups
 ##' @description Compares the counts of two groups with the option to choose from several methods to test them.
-##' @param rawData a list of raw data. Usually obtained from \code{loadCountDataset()}.
+##' @template rawData-template
 ##' @param param a list of parameters:
 ##' \itemize{
 ##'   \item{testMethod}{ defines the method to run: deseq2, exactTest, glm, sam or limma. Defaults to glm.}
@@ -265,7 +265,7 @@ runGlm = function(x, sampleGroup, refGroup, grouping, normMethod, batch=NULL){
 ##'   \item{goseqMethod}{ a character specifying the method for the GO analysis. Accepted values: Wallenius, Sampling or Hypergeometric.}
 ##'   \item{maxNumberGroupsDisplayed}{ an integer specifying the maximum amount of rows for each result file of the GO analysis.}
 ##' }
-##' @param rawData a list of raw data. Usually obtained from \code{loadCountDataset()}.
+##' @template rawData-template
 ##' @param types a character vector specifying the different types to plot.
 ##' @template roxygen-template
 writeNgsTwoGroupReport = function(dataset, result, htmlFile, param=NA, rawData=NA, types=NULL) {

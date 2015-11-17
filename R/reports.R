@@ -101,7 +101,7 @@ imgLinks = function(image){
 
 # currently not possible to use from old report opener:
 # writeLines(readLines(ezCSSFile()), con=html) ## no custom css for reporteRs
-# writeJavaScriptIgvStarter(htmlFile, param$projectId, html) ## TODOP: perhaps refactorable with addJavascript(), but how to put in html head?
+# writeJavaScriptIgvStarter(htmlFile, param$projectId, html) ## TODOP: REFAC with addJavascript(), but how to put in html head?
 ##' @title Opens an html report
 ##' @description Opens an html report using \code{bsdoc()} from the ReporteRs package. Also adds some introductory elements.
 ##' @param title a character specifying the title of the html report.
@@ -360,7 +360,7 @@ getSignificantFoldChangeCountsTable = function(result, pThresh=1/10^(1:5), fcThr
 ##' @param doc an object of the class bsdoc to add the results to.
 ##' @param param a list of parameters that pastes the \code{comparison} into the file name and does a zip file if \code{doZip} is true.
 ##' @param result a list of results.
-##' @param rawData a list of raw data. Usually obtained from \code{loadCountDataset()}.
+##' @template rawData-template
 ##' @param useInOutput a logical specifying whether to use most of the result information.
 ##' @param file a character representing the name of the result file.
 ##' @template roxygen-template

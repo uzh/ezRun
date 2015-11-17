@@ -13,8 +13,6 @@ skipLong = function(){
   }
 }
 
-
-
 yeastCommonCountParam = function(){
   param = list()
   param[['cores']] = '8'
@@ -33,9 +31,6 @@ yeastCommonCountParam = function(){
   param[['resultDir']] = 'p1001/Count_Result'
   return(param)
 }
-
-
-
 
 test_that("Count_RSEM", {
   skipLong()
@@ -67,8 +62,6 @@ test_that("Count_RSEM", {
   setwd(cwd)
 })
 
-
-
 test_that("Count_FeatureCounts", {
   skipLong()
   setwdNew("/scratch/test_featureCounts")
@@ -83,6 +76,28 @@ test_that("Count_FeatureCounts", {
   param[['keepMultiHits']] = 'true'
   myApp = EzAppFeatureCounts$new()
   myApp$run(input=input$copy()$subset(1), output=output$copy()$subset(1), param=param)
+  setwd(cwd)
+})
+
+test_that("RNA_Bamstats", {
+  skipLong()
+  setwdNew("/scratch/test_RNA_Bamstats")
+  input = '/srv/gstore/projects/p1001/QC_RNABamStats_8617_2015-11-17--10-15-39/input_dataset.tsv'
+  output = list()
+  output[['Name']] = 'RNA_BAM_Statistics'
+  output[['Report [File]']] = 'p1001/QC_RNABamStats_8617_2015-11-17--10-15-39/RNA_BAM_Statistics'
+  output[['Html [Link]']] = 'p1001/QC_RNABamStats_8617_2015-11-17--10-15-39/RNA_BAM_Statistics/00index.html'
+  output[['Species']] = ''
+  output[['refBuild']] = 'Saccharomyces_cerevisiae/Ensembl/EF4/Annotation/Version-2013-03-18'
+  output[['refFeatureFile']] = 'genes.gtf'
+  param = yeastCommonCountParam()
+  param[['cores']] = 1
+  param[['mail']] = 'peter.schmid@ieu.uzh.ch'
+  param[['process_mode']] = 'DATASET'
+  param[['name']] = 'RNA_BAM_Statistics'
+  param[['dataRoot']] = '/srv/gstore/projects'
+  myApp = EzAppRnaBamStats$new()
+  myApp$run(input=input, output=output, param=param)
   setwd(cwd)
 })
 

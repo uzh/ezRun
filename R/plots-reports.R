@@ -12,7 +12,7 @@
 ##' @param param a list of parameters.
 ##' @param design a data.frame containing the factorial design.
 ##' @param conds a named character vector containing the conditions of the factorial design.
-##' @param rawData a list of raw data. Usually obtained from \code{loadCountDataset()}.
+##' @template rawData-template
 ##' @param signalCond a set of values containing signals averaged by the conditions.
 ##' @param isPresentCond Either NULL or a data.frame containing coloring information.
 ##' @param colors a character vector containing rgb codes. The default is a scale from blue to red.

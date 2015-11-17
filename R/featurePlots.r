@@ -6,6 +6,7 @@
 # www.fgcz.ch
 
 
+## @title
 getTranscriptCoverage = function(chrom, gff, reads, strandMode="both"){
   if (length(chrom) > 1){
     transcriptCov = unlist(lapply(chrom, getTranscriptCoverage, gff, reads, strandMode), recursive=FALSE)
@@ -28,29 +29,7 @@ getTranscriptCoverage = function(chrom, gff, reads, strandMode="both"){
 }
 
 
-getRangesProfiles = function(ranges, strandMode=NA, bamFiles=NULL){
-  sampleList = vector("list", length(bamFiles))
-  names(sampleList) = names(bamFiles)
-  covList = lapply(1:length(ranges), function(x){sampleList})
-  names(covList) = names(ranges)
-  .getCov = function(chrom, rgs=NULL, bamFile=NULL, strandMode=NULL){
-    message(bamFile, " ", chrom)
-    ## TODO: does not consider the parameters minMapQuality, keepMultiHits
-    reads = ezReadGappedAlignments(bamFile, seqname=chrom)
-    rgCov = getRangesCoverageChrom(chrom, rgs[seqnames(rgs) == chrom], reads, strandMode=strandMode)
-    return(rgCov)
-  }
-  chromNames = intersect(ezBamSeqNames(bamFiles[1]), seqlevels(ranges))
-  
-  for(nm in names(bamFiles)){
-    rgCov = unlist(ezMclapply(chromSet, .getCov, rgs=ranges, bamFile=bamFiles[nm], strandMode=strandMode, mc.preschedule=FALSE))
-    covList[names(rgCov)] = mapply(function(x,y){x[[nm]]= y; return(x)}, 
-                                   covList[names(rgCov)], rgCov, SIMPLIFY=FALSE, USE.NAMES=TRUE)
-  }
-  return(covList)
-}
-
-
+## @describeIn getTranscriptCoverage
 getRangesCoverageChrom = function(chrom=NULL, ranges, reads, strandMode="both"){
   if(!is.null(chrom)){
     stopifnot(runValue(seqnames(ranges)) == chrom)
@@ -84,6 +63,33 @@ getRangesCoverageChrom = function(chrom=NULL, ranges, reads, strandMode="both"){
   }
   names(rangeCov) = names(ranges)
   return(rangeCov)
+}
+
+
+
+
+
+## still used?
+getRangesProfiles = function(ranges, strandMode=NA, bamFiles=NULL){
+  sampleList = vector("list", length(bamFiles))
+  names(sampleList) = names(bamFiles)
+  covList = lapply(1:length(ranges), function(x){sampleList})
+  names(covList) = names(ranges)
+  .getCov = function(chrom, rgs=NULL, bamFile=NULL, strandMode=NULL){
+    message(bamFile, " ", chrom)
+    ## TODO: does not consider the parameters minMapQuality, keepMultiHits
+    reads = ezReadGappedAlignments(bamFile, seqname=chrom)
+    rgCov = getRangesCoverageChrom(chrom, rgs[seqnames(rgs) == chrom], reads, strandMode=strandMode)
+    return(rgCov)
+  }
+  chromNames = intersect(ezBamSeqNames(bamFiles[1]), seqlevels(ranges))
+  
+  for(nm in names(bamFiles)){
+    rgCov = unlist(ezMclapply(chromSet, .getCov, rgs=ranges, bamFile=bamFiles[nm], strandMode=strandMode, mc.preschedule=FALSE))
+    covList[names(rgCov)] = mapply(function(x,y){x[[nm]]= y; return(x)}, 
+                                   covList[names(rgCov)], rgCov, SIMPLIFY=FALSE, USE.NAMES=TRUE)
+  }
+  return(covList)
 }
 
 
@@ -128,6 +134,7 @@ plotRangesProfiles = function(ranges, rangesProfiles, trdb, pngDir=".", makePng=
 }
 
 
+## still used?
 getTranscriptProfiles = function(transcriptIds, bamFile, gtf=NULL, strandMode=NA,
                                  nThreads=ezThreads()){
   if (is.null(gtf$transcript_id)){

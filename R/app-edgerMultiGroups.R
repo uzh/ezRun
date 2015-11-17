@@ -6,7 +6,7 @@
 # www.fgcz.ch
 
 
-## TODO: Refactor into RC inheriting from EzApp
+## TODO: REFAC into RC inheriting from EzApp
 edgerMultiGroupApp = function(inputDatasetFile=NA, output=NA, param=NA){
   param = fillWithDefaults(param)
   on.exit({
@@ -46,7 +46,7 @@ ngsMultiGroupAnalysis = function(datasetFile, htmlFile="00index.html", param=NUL
     dataset = dataset[toupper(dataset$Outlier) %in% c("", "NO", '""') == TRUE, ]
   }
   
-  rawData = loadCountDataset(param, dataset) ## TODO: Refactor to loadCountDataset(input, param, dataset) or this call won't work
+  rawData = loadCountDataset(param, dataset) ## TODO: REFAC to loadCountDataset(input, param, dataset) or this call won't work
   param$comparison = paste("glm fit for", param$grouping)
   if (ezIsSpecified(param$batch)){
     param$comparison = paste(param$comparison, "with second factor", param$batch)
@@ -124,7 +124,7 @@ writeNgsMultiGroupReport = function(dataset, result, htmlFile, param=NA, rawData
     clusterPng = "cluster-heatmap.png"
     clusterColors = c("red", "yellow", "orange", "green", "blue", "cyan")
     doGO = doGo(param, seqAnno)
-    clusterResult = clusterHeatmap(param, xCentered, file=clusterPng, nClusters=6, ## REFAC
+    clusterResult = clusterHeatmap(param, xCentered, file=clusterPng, nClusters=6, ## REFAC (see clusterHeatmap in twoGroups)
                                    lim=c(-param$logColorRange, param$logColorRange),
                                    colColors=sampleColors, clusterColors=clusterColors,
                                    doGO=doGO, seqAnno=seqAnno,
@@ -162,7 +162,7 @@ writeNgsMultiGroupReport = function(dataset, result, htmlFile, param=NA, rawData
   ## only do GO if we have enough genes
   if (doGo(param, seqAnno)){
     goResult = twoGroupsGO(param, result, seqAnno, normalizedAvgSignal=rowMeans(result$groupMeans), method=param$goseqMethod)
-    writeGOTables(html, param, goResult) ## REFAC, does not work anymore
+    writeGOTables(html, param, goResult) ## REFAC addGoUpDownResult
   } 
   ezSessionInfo()
   writeTxtLinksToHtml('sessionInfo.txt',con=html)

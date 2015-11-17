@@ -192,27 +192,4 @@ test_that("BampreviewStar", {
   setwd(cwd)
 })
 
-# test_that("BampreviewTophat", {
-#   skipLong()
-#   setwdNew("/scratch/test_bampreview_tophat")
-#   input = EzDataset$new(file=system.file("extdata/yeast_10k/dataset.tsv", package="ezRun", mustWork = TRUE))
-#   output = list()
-#   output[['Name']] = 'BAM_Preview'
-#   output[['Report [File]']] = 'p1001/BAM_Preview'
-#   output[['Html [Link]']] = 'p1001/BAM_Preview/00index.html'
-#   output[['Species']] = ''
-#   output[['refBuild']] = 'Mus_musculus/Ensembl/GRCm38.PatchesSkipped/Annotation/Version-2015-06-25'
-#   output[['refFeatureFile']] = 'genes.gtf'
-#   param = yeastCommonMapParam()
-#   param[['process_mode']] = 'DATASET'
-#   param[['name']] = 'BAM_Preview'
-#   param[['strandMode']] = 'both'
-#   param[['subsampleReads']] = 2
-#   param[['mapMethod']] = 'tophat'
-#   param[['mapOptions']] = ''
-#   param[['trimAdapter']] = 'true'
-#   param[['trimLeft']] = '1'
-#   myApp = EzAppBamPreview$new()
-#   myApp$run(input=input, output=output, param=param)
-#   setwd(cwd)
-# })
+
