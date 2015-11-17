@@ -353,7 +353,7 @@ clusterResults = function(x, nClusters=5, clusterColors=rainbow(nClusters), d=NU
 clusterHeatmap = function(x, param, result, file="cluster-heatmap.png", method="ward.D2",
                           doClusterColumns=FALSE, columnDist=NULL, colColors=NULL, lim=c(-4, 4),
                           cexRow=1.0, cexCol=1.5, labRow=rownames(x), margins=c(14,9),
-                          colors=ezRedBlueScale(256), maxGenesWithLabel=50, ...){
+                          colors=getBlueRedScale(256), maxGenesWithLabel=50, ...){
   require(gplots, warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
   probeDendro = as.dendrogram(result$hcl)
   probeDendro = reorder(probeDendro, rowMeans(x, na.rm=TRUE))

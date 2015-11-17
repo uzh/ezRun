@@ -377,7 +377,7 @@ gageHeatmap = function(x, param=NULL, output=NULL, gene.pValue=NULL, signal=NULL
       colDendro = T
       showDendro = "column"
       heatmap.2(xCentered,
-                col=ezRedBlueScale(256),
+                col=getBlueRedScale(256),
                 ColSideColors=sampleColors, RowSideColors=pathwayColors,
                 scale="none",
                 Colv=colDendro, Rowv=rowDendro, dendrogram=showDendro,

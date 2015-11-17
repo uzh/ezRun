@@ -12,7 +12,7 @@ clusterResults(x, nClusters = 5, clusterColors = rainbow(nClusters),
 clusterHeatmap(x, param, result, file = "cluster-heatmap.png",
   method = "ward.D2", doClusterColumns = FALSE, columnDist = NULL,
   colColors = NULL, lim = c(-4, 4), cexRow = 1, cexCol = 1.5,
-  labRow = rownames(x), margins = c(14, 9), colors = ezRedBlueScale(256),
+  labRow = rownames(x), margins = c(14, 9), colors = getBlueRedScale(256),
   maxGenesWithLabel = 50, ...)
 
 goClusterResults(x, param, result, ontologies = c("BP", "MF", "CC"),

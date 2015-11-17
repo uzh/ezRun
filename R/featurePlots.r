@@ -119,7 +119,7 @@ plotRangesProfiles = function(ranges, rangesProfiles, trdb, pngDir=".", makePng=
       lrShrinked = cbind(seq(-param$logColorRange, param$logColorRange, length.out=ncol(logRatio)), 
                          shrinkToRange(t(logRatio), c(-param$logColorRange, param$logColorRange)))
       dTrack <- DataTrack(data = lrShrinked[rev(colnames(dat)), ], start = c(regionPos[1], regionPos),
-                          end = c(regionPos[1], regionPos+width-1), chromosome = chrom, gradient=ezRedBlueScale(256), nrcolors=256,
+                          end = c(regionPos[1], regionPos+width-1), chromosome = chrom, gradient=getBlueRedScale(256), nrcolors=256,
                           name = names(tssRangesUse[i]), type="heatmap")
       trackList[["heat"]] = dTrack
       for (nm in colnames(dat)){

@@ -57,9 +57,15 @@ getSampleLty = function(conds, ltyNames=names(conds), maxLineTypes=5){
   return(lty)
 }
 
-
-## @title
-ezRedBlueScale <- function(n=256, whiteLevel=0.9){
+##' @title Gets a color scale from blue to red
+##' @description Gets a color scale from blue to red in hex format.
+##' @param n an integer specifying the amount of colors to split the scale in.
+##' @param whiteLevel a numeric specifying the maximum whiteness for red, green and blue.
+##' @template roxygen-template
+##' @return Returns a character vector containing colors in hex format.
+##' @examples
+##' getBlueRedScale()
+getBlueRedScale <- function(n=256, whiteLevel=0.9){
 
   # from blue to red going by white
   cs <- character(n)
@@ -76,9 +82,18 @@ ezRedBlueScale <- function(n=256, whiteLevel=0.9){
   cs
 }
 
-
-## @title
-ezColorLegend = function(colorRange=c(-3,3), colors=ezRedBlueScale(256), vertical=TRUE,
+##' @title Plots a color scale
+##' @description Plots a color scale with colors derived from \code{getBlueRedScale()}.
+##' @param colorRange two numerics specifying the range to plot to the axis.
+##' @param colors a vector of colors.
+##' @param vertical a logical indicating whether to plot vertically.
+##' @param at a numeric vector specifying where to put axis ticks.
+##' @param labels a character vector specifying the axis labels.
+##' @param by.label a numeric specifying the interval between axis labels.
+##' @template roxygen-template
+##' @examples
+##' ezColorLegend()
+ezColorLegend = function(colorRange=c(-3,3), colors=getBlueRedScale(256), vertical=TRUE,
 															at=seq(from=colorRange[1], to=colorRange[2], by=by.label),
 															labels = as.character(at), by.label=0.5){
 	pos = (at - colorRange[1])/(colorRange[2]- colorRange[1])
@@ -532,7 +547,7 @@ intHist = function(x, range=c(round(min(x, na.rm=TRUE))-0.5, round(max(x, na.rm=
 
 
 ## @title
-ezHeatmap = function(x, lim=c(-4, 4), col=ezRedBlueScale,
+ezHeatmap = function(x, lim=c(-4, 4), col=getBlueRedScale,
                      dendrogram="none", margins=c(8,6), cexCol=1.1,
                      Rowv=TRUE, Colv=TRUE, labCol=colnames(x), labRow=rownames(x),
                      key=TRUE, ...){
@@ -650,7 +665,7 @@ createDendogramReport <- function(x, annot, genes = row.names(x), multipalette =
 
 
 ## REFAC, but function is currently unused.
-ezArrayImage = function(mat, file=NULL, colorRange=c(-3,3), xScale=1, yScale=1, colors=ezRedBlueScale(256)){
+ezArrayImage = function(mat, file=NULL, colorRange=c(-3,3), xScale=1, yScale=1, colors=getBlueRedScale(256)){
   
   mat[mat > colorRange[2]] = colorRange[2]
   mat[mat < colorRange[1]] = colorRange[1]

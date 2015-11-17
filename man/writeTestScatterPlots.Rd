@@ -5,7 +5,7 @@
 \title{Writes test scatter plots}
 \usage{
 writeTestScatterPlots(html, param, x, result, seqAnno, colorRange = c(-3, 3),
-  colors = ezRedBlueScale(255), types = NULL)
+  colors = getBlueRedScale(255), types = NULL)
 }
 \arguments{
 \item{html}{a connection to an html file.}

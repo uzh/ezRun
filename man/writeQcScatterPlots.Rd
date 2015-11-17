@@ -5,7 +5,7 @@
 \title{Writes QC scatter plots}
 \usage{
 writeQcScatterPlots(html, param, design, conds, rawData, signalCond,
-  isPresentCond, seqAnno, colors = ezRedBlueScale(255), types = NULL)
+  isPresentCond, seqAnno, colors = getBlueRedScale(255), types = NULL)
 }
 \arguments{
 \item{html}{a connection to an html file.}
