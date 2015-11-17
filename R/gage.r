@@ -72,6 +72,7 @@ runGageAnalysis = function(result, param=NULL, output=NULL, rawData=NULL, gene.p
   return(gageResults)
 }
 
+## @describeIn getGeneSets
 readGmt = function (file) {
   f <- readLines(file)
   lst = sapply(f, function(x) unlist(strsplit(x, "\t", fixed = TRUE)))

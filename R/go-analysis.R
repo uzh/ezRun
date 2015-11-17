@@ -297,7 +297,7 @@ getChildTerms = function(x, subset, goRelatives, indent="", childEnvir){
   result = character()
   if (is.element(x, subset)){
     term = getGOTerm(x)[[1]]
-    displayLabel = paste0(indent, substr(term, 1, 30))
+    displayLabel = paste0(indent, term)
     result[displayLabel] = x
     subset = setdiff(subset, x) ## this is the modification to make the table non-redundant!!
   }
