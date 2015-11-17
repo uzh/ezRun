@@ -30,7 +30,7 @@ writeNgsTwoGroupReport(dataset, result, htmlFile, param = NA, rawData = NA,
   \item{maxNumberGroupsDisplayed}{ an integer specifying the maximum amount of rows for each result file of the GO analysis.}
 }}
 
-\item{rawData}{a list of raw data. Usually obtained from \code{loadCountDataset()}.}
+\item{rawData}{a list of raw data obtained from \code{loadCountDataset()}.}
 
 \item{types}{a character vector specifying the different types to plot.}
 }

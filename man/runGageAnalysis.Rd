@@ -27,6 +27,21 @@ gagePathview(x, param = NULL, output = NULL, signal = NULL,
   kegg.id = NULL, gene.pValue = NULL, result = result,
   anno = rawData$seqAnno)
 }
+\arguments{
+\item{result}{a list of results obtained from \code{twoGroupCountComparison()}.}
+
+\item{param}{a list of parameters, passed to other functions as well:
+\itemize{
+  \item{featureLevel}{ a character representing the feature level. Must be "gene", otherwise the function gets stopped.}
+  \item{pathView}{ a logical indicating whether to do a path view.}
+}}
+
+\item{output}{a list, file path or an object of the class EzDataset containing the output information.}
+
+\item{rawData}{a list of raw data obtained from \code{loadCountDataset()}.}
+
+\item{gene.pValue}{a numeric specifying the p-Value threshold.}
+}
 \value{
 Returns the gage results.
 }
