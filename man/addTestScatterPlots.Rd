@@ -7,7 +7,7 @@
 addTestScatterPlots(doc, param, x, result, seqAnno, types = NULL)
 }
 \arguments{
-\item{doc}{an object of the class bsdoc to add the plots to.}
+\item{doc}{an object of the class bsdoc to add the plots.}
 
 \item{param}{a list of parameters.}
 

@@ -8,7 +8,7 @@
 
 ##' @title Cleans up input from two group apps
 ##' @description Cleans up input from two group apps.
-##' @param input a list, file path or an object of the class EzDataset containing the input.
+##' @template input-template
 ##' @param param a list of parameters to use or clean up.
 ##' @template roxygen-template
 ##' @return Returns an object of the class EzDataset that is the modified \code{input}.
@@ -247,9 +247,9 @@ runGlm = function(x, sampleGroup, refGroup, grouping, normMethod, batch=NULL){
 
 ##' @title Writes the report for the two group analysis
 ##' @description Writes the report for the two group analysis.
-##' @param dataset a data.frame from the meta field of an EzDataset.
-##' @param result a list of results.
-##' @param htmlFile a character representing the path to write the report in.
+##' @template dataset-template
+##' @template result-template
+##' @template htmlFile-template
 ##' @param param a list of parameters:
 ##' \itemize{
 ##'   \item{logColorRange}{ an integer or numeric specifying the log color range.}

@@ -8,6 +8,7 @@
 
 ##' @template method-template
 ##' @templateVar methodName RNA Bam Stats
+##' @template htmlFile-template
 ##' @seealso \code{\link{EzAppRnaBamStats}}
 ezMethodRnaBamStats = function(input=NA, output=NA, param=NA, htmlFile="00index.html"){
   
@@ -50,8 +51,8 @@ EzAppRnaBamStats <-
 
 ##' @title Computes the BAM statistics
 ##' @description Computes the BAM statistics.
-##' @param input a list, file path or an object of the class EzDataset containing the input.
-##' @param htmlFile a character representing the path to write the report in.
+##' @template input-template
+##' @template htmlFile-template
 ##' @param param a list of parameters:
 ##' \itemize{
 ##'   \item{ezRef@refBuild}{ a character containing the path of the reference build.}

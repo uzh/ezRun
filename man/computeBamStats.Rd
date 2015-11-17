@@ -33,7 +33,7 @@ getJunctionPlotsFromBam(bamFile, param)
 \arguments{
 \item{input}{a list, file path or an object of the class EzDataset containing the input.}
 
-\item{htmlFile}{a character representing the path to write the report in.}
+\item{htmlFile}{a character, ending with .html, representing the file path of an html file.}
 
 \item{param}{a list of parameters:
 \itemize{

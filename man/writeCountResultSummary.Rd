@@ -18,14 +18,7 @@ writeCountResultSummary(html, param, result)
  \item{useSigThresh}{ ...and whether it should be used.}
 }}
 
-\item{result}{\itemize{
- \item{analysis}{ which analysis was used.}
- \item{featureLevel}{ which feature level was used.}
- \item{countName}{ which data column was used.}
- \item{method}{ which method was used.}
- \item{pValue}{ counts the number of features.}
- \item{isPresentProbe}{ counts the number of features with counts above threshold.}
-}}
+\item{result}{a list of results.}
 }
 \description{
 Writes a count result summary to an html file.

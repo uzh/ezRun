@@ -13,7 +13,7 @@ ezCSSFile()
 ezBannerFile()
 }
 \arguments{
-\item{htmlFile}{a character representing the path to write the report in.}
+\item{htmlFile}{a character, ending with .html, representing the file path of an html file.}
 
 \item{param}{a list of parameters to extract the \code{projectId} from.}
 

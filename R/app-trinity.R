@@ -8,6 +8,7 @@
 
 ##' @template method-template
 ##' @templateVar methodName Trinity
+##' @template htmlFile-template
 ##' @seealso \code{\link{EzAppTrinity}}
 ##' @seealso \code{\link{ezMethodTrim}}
 ezMethodTrinity = function(input=NA, output=NA, param=NA, htmlFile="00index.html"){

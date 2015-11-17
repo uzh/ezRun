@@ -28,6 +28,8 @@ plotQualityHeatmap(result, name = NULL, colorRange = c(0, sqrt(40)),
 \item{output}{a list, file path or an object of the class EzDataset containing the output information.}
 
 \item{param}{a list of parameters to customize the application run.}
+
+\item{htmlFile}{a character, ending with .html, representing the file path of an html file.}
 }
 \value{
 Returns "Success" if the method runs until the end. Also creates output files.

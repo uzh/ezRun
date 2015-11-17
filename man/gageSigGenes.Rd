@@ -22,7 +22,7 @@ Gets significant genes from the gage analysis.
 \examples{
 param = ezParam(userParam = list('refBuild' = 'Schizosaccharomyces_pombe/Ensembl/EF2/Annotation/Version-2013-03-07'))
 pValue = param$gageGeneThreshold
-x = "TODOP"
+x = "gageResults"
 gageSigGenes(x, pValue, "both")
 }
 \author{

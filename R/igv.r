@@ -38,10 +38,9 @@ ezIgvTemplateFile = function(){
 }
 
 ## this adds a jnlp link to a static html; the html can be moved as long as the session xml stays in the same directory
-## TODOP: REFAC to new report
 ##' @title Writes a jnlp link to a static html
 ##' @description Writes a jnlp link to a static html. The html can be moved as long as the session xml stays in the same directory.
-##' @param htmlFile the file to send to the html connection.
+##' @template htmlFile-template
 ##' @param projectId a character representing the project ID.
 ##' @param html a character representing an html address.
 ##' @template roxygen-template
@@ -114,9 +113,7 @@ writeJavaScriptIgvStarter = function(htmlFile, projectId, html){
 ##' @examples
 ##' param = ezParam()
 ##' genome = getIgvGenome(param)
-##' writeIgvSession(genome,param$ezRef["refBuild"])
-##' writeIgvSessionLink(genome,param$ezRef["refBuild"])
-## TODOP: update writeIgvSessionLink example after function has been updated.
+##' writeIgvSession(genome, param$ezRef["refBuild"])
 writeIgvSession = function(genome, refBuild, file="igvSession.xml", bamUrls=NULL, vcfUrls=NULL,  locus="All"){
 
   library(XML, warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)

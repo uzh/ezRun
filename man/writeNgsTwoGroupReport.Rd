@@ -4,15 +4,15 @@
 \alias{writeNgsTwoGroupReport}
 \title{Writes the report for the two group analysis}
 \usage{
-writeNgsTwoGroupReport(dataset, result, htmlFile, param = NA, rawData = NA,
-  types = NULL)
+writeNgsTwoGroupReport(dataset, result, htmlFile = "00index.html",
+  param = NA, rawData = NA, types = NULL)
 }
 \arguments{
 \item{dataset}{a data.frame from the meta field of an EzDataset.}
 
 \item{result}{a list of results.}
 
-\item{htmlFile}{a character representing the path to write the report in.}
+\item{htmlFile}{a character, ending with .html, representing the file path of an html file.}
 
 \item{param}{a list of parameters:
 \itemize{

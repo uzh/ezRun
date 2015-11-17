@@ -8,7 +8,8 @@
 
 ##' @title Adds the gage tables
 ##' @description Adds the gage tables to an html file.
-##' @param doc an object of the class bsdoc to add the tables.
+##' @template doc-template
+##' @templateVar object tables
 ##' @param param a list of parameters, possibly passed to other functions as well:
 ##' \itemize{
 ##'  \item{gageThreshold}{ the threshold for significant pathways.}

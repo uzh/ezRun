@@ -8,7 +8,8 @@
 
 ##' @title Adds QC scatter plots
 ##' @description Adds QC scatter plots to an html file.
-##' @param doc an object of the class bsdoc to add the plots to.
+##' @template doc-template
+##' @templateVar object plots
 ##' @param param a list of parameters.
 ##' @param design a data.frame containing the factorial design.
 ##' @param conds a named character vector containing the conditions of the factorial design.
@@ -111,10 +112,11 @@ addQcScatterPlots = function(doc, param, design, conds, rawData, signalCond, isP
 
 ##' @title Adds test scatter plots
 ##' @description Adds test scatter plots to an html file.
-##' @param doc an object of the class bsdoc to add the plots to.
+##' @template doc-template
+##' @templateVar object plots
 ##' @param param a list of parameters.
 ##' @param x a vector containing the signal.
-##' @param result a list of results.
+##' @template result-template
 ##' @param seqAnno the sequence annotation. This is used if types is NULL.
 ##' @param types a character vector containing the types.
 ##' @template roxygen-template

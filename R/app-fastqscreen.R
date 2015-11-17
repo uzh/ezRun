@@ -8,6 +8,7 @@
 
 ##' @template method-template
 ##' @templateVar methodName Fastq Screen
+##' @template htmlFile-template
 ##' @seealso \code{\link{EzAppFastqScreen}}
 ezMethodFastqScreen = function(input=NA, output=NA, param=NA, htmlFile="00index.html"){
   cwd = getwd()

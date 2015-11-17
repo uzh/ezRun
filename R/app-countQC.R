@@ -8,6 +8,7 @@
 
 ##' @template method-template
 ##' @templateVar methodName Count QC
+##' @template htmlFile-template
 ##' @seealso \code{\link{EzAppCountQC}}
 ezMethodCountQC = function(input=NA, output=NA, param=NA, htmlFile="00index.html"){
 
@@ -56,8 +57,8 @@ EzAppCountQC <-
 
 ##' @title Runs the NGS count QC
 ##' @description Runs the NGS count quality control, does various plots and creates a report.
-##' @param dataset a data.frame from the meta field of an EzDataset.
-##' @param htmlFile a character representing the path to write the report in.
+##' @template dataset-template
+##' @template htmlFile-template
 ##' @param param a list of parameters, possibly passed to other functions as well:
 ##' \itemize{
 ##'   \item{name}{ a character representing the name of the app.}
@@ -180,7 +181,7 @@ runNgsCountQC = function(dataset, htmlFile="00index.html", param=param, rawData=
   presentLink = ezImageFileLink(plotCmd, file="presentCounts.png", height=600,
                                 width=min(600 + (length(samples)-10)* 30, 2000))
   
-  doc = addFlexTable(doc, ezGrid(cbind(totalLink, presentLink)))  ### TODOP: add.rownames missing, but barplot would be better.
+  doc = addFlexTable(doc, ezGrid(cbind(totalLink, presentLink)))
   
   rawData$signal = signal
   

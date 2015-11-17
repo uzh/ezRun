@@ -8,7 +8,7 @@ addResultFile(doc, param, result, rawData, useInOutput = TRUE,
   file = paste0("result--", param$comparison, ".txt"))
 }
 \arguments{
-\item{doc}{an object of the class bsdoc to add the results to.}
+\item{doc}{an object of the class bsdoc to add the result.}
 
 \item{param}{a list of parameters that pastes the \code{comparison} into the file name and does a zip file if \code{doZip} is true.}
 

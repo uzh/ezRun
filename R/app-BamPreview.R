@@ -8,6 +8,7 @@
 
 ##' @template method-template
 ##' @templateVar methodName Bam Preview
+##' @template htmlFile-template
 ##' @seealso \code{\link{EzAppBamPreview}}
 ezMethodBamPreview = function(input=NA, output=NA, param=NA, htmlFile="00index.html"){
 

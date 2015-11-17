@@ -8,6 +8,7 @@
 
 ##' @template method-template
 ##' @templateVar methodName Chip Stats
+##' @template htmlFile-template
 ##' @seealso \code{\link{EzAppChipStats}}
 ezMethodChipStats = function(input=NA, output=NA, param=NA, htmlFile="00index.html"){
   

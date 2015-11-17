@@ -216,7 +216,7 @@ ezGoseq = function(param, selectedGenes, allGenes, gene2goList=NULL,
 ##' @param goSlim 1
 ##' @template roxygen-template
 ##' @return Returns the results of the GO analysis.
-## TODOP: finish doc
+## TODOP: finish documenting
 ezGroupGO = function(selectedGenes, go2GeneList, onto="CC", levels = 2:4, goSlim=NULL) {
   goByLevel = ezGetGoByLevels(onto, levels, goSlim=goSlim)
   levelCounts = list()

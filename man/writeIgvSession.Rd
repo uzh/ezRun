@@ -48,8 +48,7 @@ Writes an IGV session into a seperate .xml file
 \examples{
 param = ezParam()
 genome = getIgvGenome(param)
-writeIgvSession(genome,param$ezRef["refBuild"])
-writeIgvSessionLink(genome,param$ezRef["refBuild"])
+writeIgvSession(genome, param$ezRef["refBuild"])
 }
 \author{
 Rehrauer, Hubert

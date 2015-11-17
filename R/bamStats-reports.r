@@ -9,7 +9,7 @@
 ##' @title Plots the BAM statistics
 ##' @description Plots the BAM statistics and writes the report.
 ##' @param resultList a list of results.
-##' @param dataset a data.frame from the meta field of an EzDataset.
+##' @template dataset-template
 ##' @param param a list of parameters:
 ##' \itemize{
 ##'   \item{name}{ a character representing the name of the app.}
@@ -19,7 +19,7 @@
 ##'   \item{normMethod}{ a character specifying the normalization method to use.}
 ##'   \item{runGO}{ a logical indicating wheter to run the GO analysis.}
 ##' }
-##' @param htmlFile a character representing the path to write the report in.
+##' @template htmlFile-template
 ##' @template roxygen-template
 plotBamStat = function(resultList, dataset, param, htmlFile=NULL){
   conds = ezConditionsFromDataset(dataset, param=param)
@@ -351,7 +351,7 @@ plotBamStat = function(resultList, dataset, param, htmlFile=NULL){
   }
   
   ## write the resulys by statistics per page to the main pages
-  titles[["The results plot by each statistics"]] = "The results plot by each statistics"
+  titles[["The result plots by each statistics"]] = "The result plots by each statistics"
   addTitleWithAnchor(doc, titles[[length(titles)]], 2)
   tableOfPages = ezMatrix("", rows=names(plotByStatistics), cols="Plots")
   # replace the space with undersocre if available, otherwise some errors will occur in the html
@@ -369,7 +369,7 @@ plotBamStat = function(resultList, dataset, param, htmlFile=NULL){
   doc = addFlexTable(doc, ezFlexTable(tableOfPages, header.columns=TRUE, add.rownames=TRUE))
   
   ## write the reults by sample per page to the main pages
-  titles[["The results plot by each sample"]] = "The results plot by each sample"
+  titles[["The result plots by each sample"]] = "The result plots by each sample"
   addTitleWithAnchor(doc, titles[[length(titles)]], 2)
   plotBySamplesPages = paste0(gsub("[[:space:]]+", "_", names(plotBySamples)), ".html")
   tableOfPages = ezMatrix("", rows=names(plotBySamples), cols="Plots")

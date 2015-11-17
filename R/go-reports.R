@@ -35,7 +35,8 @@ goClusterTable = function(param, clusterResult){
 
 ##' @title Adds the GO up-down results
 ##' @description Adds the GO up-down results to an html file.
-##' @param doc an object of the class bsdoc to add the result.
+##' @template doc-template
+##' @templateVar object result
 ##' @param param a list of parameters to pass to \code{goUpDownTables()} and extract \code{doZip} from.
 ##' @param goResult the GO result to get the up-down results from. Can be obtained by \code{twoGroupsGO()}.
 ##' @seealso \code{\link{twoGroupsGO}}

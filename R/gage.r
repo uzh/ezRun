@@ -289,8 +289,9 @@ getExpressionGage = function(gageResults, result=NULL, rawData=NULL, param = NUL
 ##' @examples
 ##' param = ezParam(userParam = list('refBuild' = 'Schizosaccharomyces_pombe/Ensembl/EF2/Annotation/Version-2013-03-07'))
 ##' pValue = param$gageGeneThreshold
-##' x = "TODOP"
+##' x = "gageResults"
 ##' gageSigGenes(x, pValue, "both")
+## TODOP: get gage results for example
 gageSigGenes = function(x, gene.pValue=NULL, signal=NULL ){
   # Select significant genes
   pValueVar = paste(signal, 'pValue', sep='.')

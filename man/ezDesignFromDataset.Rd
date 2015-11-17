@@ -16,7 +16,7 @@ ezConditionsFromDataset(dataset, param = NULL, maxFactors = 2)
 addReplicate(x, sep = "_", repLabels = 1:length(x))
 }
 \arguments{
-\item{dataset}{a data.frame to get the design from, usually the field meta of an EzDataset object.}
+\item{dataset}{a data.frame from the meta field of an EzDataset.}
 
 \item{param}{a list of parameters to specify the factors directly using \code{param$factors}.}
 }

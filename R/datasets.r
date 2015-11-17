@@ -53,7 +53,7 @@ makeMinimalPairedEndReadDataset = function(fqDir, species="", adapter1="GATCGGAA
 
 ##' @title Gets the design from the dataset
 ##' @description Gets the design from the dataset or parameters, if specified. 
-##' @param dataset a data.frame to get the design from, usually the field meta of an EzDataset object.
+##' @template dataset-template
 ##' @param param a list of parameters to specify the factors directly using \code{param$factors}.
 ##' @template roxygen-template
 ##' @return Returns the factorial design of the dataset.

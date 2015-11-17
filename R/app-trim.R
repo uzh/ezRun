@@ -14,7 +14,7 @@
 ## - fixed
 ##' @title Trims input reads
 ##' @description Trims input reads. There are several options to influence trimming with parameters.
-##' @param input a list, file path or an object of the class EzDataset containing the input.
+##' @template input-template
 ##' @param output an object of the class EzDataset or NA. If it is NA, it will be copied from the input.
 ##' @param param a list of parameters:
 ##' \itemize{

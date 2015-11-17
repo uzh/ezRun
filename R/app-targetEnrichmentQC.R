@@ -39,7 +39,7 @@ EzAppTeqc <-
 
 ##' @title Target enrichment quality control
 ##' @description Performs a target enrichment quality control and creates reports of the outcome.
-##' @param input a list, file path or an object of the class EzDataset containing the input.
+##' @template input-template
 ##' @param param a list of parameters, some of which are passed to \code{runTEQC()}:
 ##' \itemize{
 ##'  \item{designFile}{ a file describing the regions selected by the enrichment kit.}
@@ -52,7 +52,6 @@ EzAppTeqc <-
 ##' @template roxygen-template
 teqc = function(input, param=NULL){
   require(TEQC)
-  logMessage("teqc", param, "Starting") ## TODOP: REFAC and remove, logMessage() is already in EzApp.
   if(basename(param$designFile) == param$designFile){
     path = file.path("/srv/GT/databases/targetEnrichment_designs", param$designFile)
     param$designFile = list.files(path, pattern='Covered\\.bed$', full.names = T)[1]

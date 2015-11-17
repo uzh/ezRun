@@ -12,7 +12,7 @@ ezAddTableWhite(x, bgcolors = NULL, valign = "middle", border = 1,
   head = "")
 }
 \arguments{
-\item{doc}{an object of the class bsdoc to add the table to.}
+\item{doc}{an object of the class bsdoc to add the table.}
 
 \item{x}{a matrix or data.frame to paste a table from.}
 

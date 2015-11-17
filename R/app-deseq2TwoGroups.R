@@ -8,6 +8,7 @@
 
 ##' @template method-template
 ##' @templateVar methodName Deseq2
+##' @template htmlFile-template
 ##' @seealso \code{\link{EzAppDeseq2}}
 ezMethodDeseq2 = function(input=NA, output=NA, param=NA, htmlFile="00index.html"){
   param$testMethod = "deseq2"

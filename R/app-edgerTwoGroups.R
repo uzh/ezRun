@@ -8,6 +8,7 @@
 
 ##' @template method-template
 ##' @templateVar methodName Edger
+##' @template htmlFile-template
 ##' @seealso \code{\link{EzAppEdger}}
 ezMethodEdger = function(input=NA, output=NA, param=NA, htmlFile="00index.html"){
   cwd = getwd()

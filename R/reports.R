@@ -99,13 +99,13 @@ imgLinks = function(image){
   return(links)
 }
 
-# currently not possible to use from old report opener:
-# writeLines(readLines(ezCSSFile()), con=html) ## no custom css for reporteRs
-# writeJavaScriptIgvStarter(htmlFile, param$projectId, html) ## TODOP: REFAC with addJavascript(), but how to put in html head?
+## currently not possible to use from old report opener:
+## writeLines(readLines(ezCSSFile()), con=html) ## no custom css for reporteRs
+## TODOP: get addJavaScriptIgvStarter() and addIgvSessionLink() to work.
 ##' @title Opens an html report
 ##' @description Opens an html report using \code{bsdoc()} from the ReporteRs package. Also adds some introductory elements.
 ##' @param title a character specifying the title of the html report.
-##' @param dataset a data.frame from the meta field of an EzDataset.
+##' @template dataset-template
 ##' @template roxygen-template
 ##' @seealso \code{\link[ReporteRs]{bsdoc}}
 ##' @seealso \code{\link[ReporteRs]{writeDoc}}
@@ -117,6 +117,7 @@ imgLinks = function(image){
 openBsdocReport = function(title="", dataset=NULL){
   require(ReporteRs, warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
   doc = bsdoc(title = title)
+  addJavaScriptIgvStarter(htmlFile, param$projectId, doc)
   pot1 = pot(paste("Started on", format(Sys.time(), "%Y-%m-%d %H:%M:%S"), "--&#160;"))
   pot2 = as.html(pot("Documentation", hyperlink = "http://fgcz-sushi.uzh.ch/doc/methods-20140422.html"))
   doc = addFlexTable(doc, ezGrid(cbind(pot1, pot2)))
@@ -126,6 +127,57 @@ openBsdocReport = function(title="", dataset=NULL){
     doc = addParagraph(doc, pot("dataset.tsv", hyperlink = "dataset.tsv"))
   }
   return(doc)
+}
+
+##' @describeIn openBsdocReport Adds a java function to start Igv from Jnlp.
+addJavaScriptIgvStarter = function(htmlFile, projectId, doc){
+  library(RCurl, warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
+  
+  jnlpLines1 = paste('<jnlp spec="6.0+" codebase="http://www.broadinstitute.org/igv/projects/current">',
+                     '<information>',
+                     '<title>IGV 2.3</title>',
+                     '<vendor>The Broad Institute</vendor>',
+                     '<homepage href="http://www.broadinstitute.org/igv"/>',
+                     '<description>IGV Software</description>',
+                     '<description kind="short">IGV</description>',
+                     '<icon href="IGV_64.png"/>',
+                     '<icon kind="splash" href="IGV_64.png"/>',
+                     '<offline-allowed/>',
+                     '</information>',
+                     '<security>',
+                     '<all-permissions/>',
+                     '</security>',
+                     '<update check="background" />', #check="never" policy="never"/>',
+                     '<resources>',
+                     '<java version="1.6+" initial-heap-size="256m" max-heap-size="1100m" />',
+                     '<jar href="igv.jar" download="eager" main="true"/>',
+                     '<jar href="batik-codec__V1.7.jar" download="eager"/>',
+                     '<jar href="goby-io-igv__V1.0.jar" download="eager"/>',  
+                     '<property name="apple.laf.useScreenMenuBar" value="true"/>',
+                     '<property name="com.apple.mrj.application.growbox.intrudes" value="false"/>',
+                     '<property name="com.apple.mrj.application.live-resize" value="true"/>',
+                     '<property name="com.apple.macos.smallTabs" value="true"/>',
+                     '<property name="http.agent" value="IGV"/>',
+                     '<property name="development" value="false"/>',
+                     '</resources>',
+                     '<application-desc  main-class="org.broad.igv.ui.Main">',
+                     '<argument>--genomeServerURL=http://fgcz-gstore.uzh.ch/reference/igv_genomes.txt</argument>',
+                     paste0('<argument>--dataServerURL=', "http://fgcz-gstore.uzh.ch/list_registries/", projectId, '</argument>'),
+                     '<argument>',
+                     sep="\n")
+  jnlpLines2 = paste("</argument>",
+                     '</application-desc>',
+                     '</jnlp>',
+                     sep="\n")
+  javaScript = paste("function startIgvFromJnlp(label, locus){",
+                     "var theSession = document.location.href.replace('", htmlFile, "', 'igvSession.xml');",
+                     "var igvLink = 'data:application/x-java-jnlp-file;charset=utf-8,';",
+                     "igvLink += '", curlEscape(jnlpLines1), "';",
+                     "igvLink += theSession;",
+                     "igvLink += '", curlEscape(jnlpLines2), "';",
+                     "document.write(label.link(igvLink))",
+                     "}")
+  doc = addJavascript(doc, text=javaScript)
 }
 
 ##' @describeIn openBsdocReport Adds the session info, the bootstrap menu, a paragraph showing the finishing time and writes the document. \code{file} must have a .html suffix.
@@ -147,7 +199,8 @@ closeBsdocReport = function(doc, file, titles=NULL){
 
 ##' @title Adds a title with an anchor
 ##' @description Adds a title with an anchor by using \code{addTitle()} and \code{addCodeBlock()} from the ReporteRs package.
-##' @param doc an object of the class bsdoc to add the anchored title.
+##' @template doc-template
+##' @templateVar object anchored title
 ##' @param title a character specifying the title.
 ##' @param level an integer specifying the heading level.
 ##' @template roxygen-template
@@ -166,9 +219,9 @@ addTitleWithAnchor = function(doc, title, level=1){
 
 ##' @title Writes an error report
 ##' @description Writes an error report to an html file. Also creates the file and closes it.
-##' @param htmlFile a character representing the path to write the file in. Must have a .html suffix.
+##' @template htmlFile-template
 ##' @param param a list of parameters to extract the \code{name} from.
-##' @param dataset a data.frame from the meta field of an EzDataset.
+##' @template dataset-template
 ##' @param error a character vector representing the error message(s).
 ##' @template roxygen-template
 ##' @seealso \code{\link{openBsdocReport}}
@@ -188,7 +241,8 @@ writeErrorReport = function(htmlFile, param=param, dataset=NULL, error="Unknown 
 
 ##' @title Adds text links
 ##' @description Adds texts link to an html file.
-##' @param doc an object of the class bsdoc to add the text links.
+##' @template doc-template
+##' @templateVar object text links
 ##' @param txtNames a character representing the link names.
 ##' @param mime a character representing the type of the links.
 ##' @template connection-template
@@ -208,7 +262,8 @@ addTxtLinksToReport = function(doc, txtNames, mime="text/plain"){
 ## NOTE: perhaps obsolete now with ReporteRs
 ##' @title Adds a table
 ##' @description Adds a table to a bsdoc object.
-##' @param doc an object of the class bsdoc to add the table to.
+##' @template doc-template
+##' @templateVar object table
 ##' @param x a matrix or data.frame to paste a table from.
 ##' @param bgcolors a matrix specifying the background colors.
 ##' @param valign a character specifying where to align the table elements vertically. Use either "top", "middle" or "bottom".
@@ -251,7 +306,8 @@ ezAddTableWhite = function(x, bgcolors=NULL, valign="middle", border=1, head="")
 
 ##' @title Adds a summary of the count result
 ##' @description Adds a summary of the count result to a bsdoc object.
-##' @param doc an object of the class bsdoc to add the table.
+##' @template doc-template
+##' @templateVar object table
 ##' @param param a list of parameters to influence the output:
 ##' \itemize{
 ##'  \item{batch}{ a logical indicating whether the second factor was used.}
@@ -260,15 +316,7 @@ ezAddTableWhite = function(x, bgcolors=NULL, valign="middle", border=1, head="")
 ##'  \item{sigThresh}{ the threshold...}
 ##'  \item{useSigThresh}{ ...and whether it should be used.}
 ##' }
-##' @param result
-##' \itemize{
-##'  \item{analysis}{ which analysis was used.}
-##'  \item{featureLevel}{ which feature level was used.}
-##'  \item{countName}{ which data column was used.}
-##'  \item{method}{ which method was used.}
-##'  \item{pValue}{ counts the number of features.}
-##'  \item{isPresentProbe}{ counts the number of features with counts above threshold.}
-##' }
+##' @template result-template
 ##' @template roxygen-template
 ##' @seealso \code{\link[ReporteRs]{addFlexTable}}
 addCountResultSummary = function(doc, param, result){
@@ -298,8 +346,9 @@ addCountResultSummary = function(doc, param, result){
 
 ##' @title Adds tables of the significant counts
 ##' @description Adds tables of the significant counts.
-##' @param doc an object of the class bsdoc to add the table.
-##' @param result a list of results.
+##' @template doc-template
+##' @templateVar object table
+##' @template result-template
 ##' @param pThresh a numerical indicating the p-value threshold.
 ##' @template roxygen-template
 addSignificantCounts = function(doc, result, pThresh=c(0.1, 0.05, 1/10^(2:5))){
@@ -357,9 +406,10 @@ getSignificantFoldChangeCountsTable = function(result, pThresh=1/10^(1:5), fcThr
 
 ##' @title Adds a result file
 ##' @description Adds a result file in text format or zipped.
-##' @param doc an object of the class bsdoc to add the results to.
+##' @template doc-template
+##' @templateVar object result
 ##' @param param a list of parameters that pastes the \code{comparison} into the file name and does a zip file if \code{doZip} is true.
-##' @param result a list of results.
+##' @template result-template
 ##' @template rawData-template
 ##' @param useInOutput a logical specifying whether to use most of the result information.
 ##' @param file a character representing the name of the result file.

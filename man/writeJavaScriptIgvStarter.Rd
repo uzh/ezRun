@@ -7,7 +7,7 @@
 writeJavaScriptIgvStarter(htmlFile, projectId, html)
 }
 \arguments{
-\item{htmlFile}{the file to send to the html connection.}
+\item{htmlFile}{a character, ending with .html, representing the file path of an html file.}
 
 \item{projectId}{a character representing the project ID.}
 

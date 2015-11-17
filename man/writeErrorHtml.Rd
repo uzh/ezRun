@@ -8,7 +8,7 @@ writeErrorHtml(htmlFile, param = param, dataset = NULL,
   error = "Unknown Error")
 }
 \arguments{
-\item{htmlFile}{a character representing the path to write the file in.}
+\item{htmlFile}{a character, ending with .html, representing the file path of an html file.}
 
 \item{param}{a list of parameters to extract the \code{projectId} and \code{name} from.}
 

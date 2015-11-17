@@ -112,9 +112,9 @@ ezValidMail = function(addressString){
 ##' @return Returns a message about \code{param} with a context.
 ##' @template roxygen-template
 ##' @examples 
-##' param = list(name="parameterName",projectId="ID")
-##' logMessage("a method",param,"Starting")
-##' logMessage("a method",param,"Finished")
+##' param = list(name="parameterName", projectId="ID")
+##' logMessage("a method", param, "Starting")
+##' logMessage("a method", param, "Finished")
 logMessage = function(methodName, param, message){
   msg = paste(message, methodName, param$name, param$projectId, 
               basename(getwd()), format(Sys.time(), "%Y-%m-%d %H:%M:%S\n"), sep="\t")

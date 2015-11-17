@@ -8,10 +8,10 @@
 
 ##' @title Writes an html report
 ##' @description Writes an html report and returns the connection to it.
-##' @param htmlFile a character representing the path to write the report in.
+##' @template htmlFile-template
 ##' @param param a list of parameters to extract the \code{projectId} from.
 ##' @param title a character specifying the title of the html report.
-##' @param dataset a data.frame from the meta field of an EzDataset.
+##' @template dataset-template
 ##' @template roxygen-template
 ##' @return Returns a connection to the written html report.
 ##' @seealso \code{\link{writeJavaScriptIgvStarter}}
@@ -110,9 +110,9 @@ closeHTML = function(html){
 
 ##' @title Writes an error message
 ##' @description Writes an error message to an html file. Also creates the file and closes it.
-##' @param htmlFile a character representing the path to write the file in.
+##' @template htmlFile-template
 ##' @param param a list of parameters to extract the \code{projectId} and \code{name} from.
-##' @param dataset a data.frame from the meta field of an EzDataset.
+##' @template dataset-template
 ##' @param error a character vector representing the error message(s).
 ##' @template roxygen-template
 ##' @seealso \code{\link{openHtmlReport}}
@@ -228,15 +228,7 @@ writeTableToHtml = function(x, con=stdout(), bgcolors=matrix("#ffffff", nrow=nro
 ##'  \item{sigThresh}{ the threshold...}
 ##'  \item{useSigThresh}{ ...and whether it should be used.}
 ##' }
-##' @param result
-##' \itemize{
-##'  \item{analysis}{ which analysis was used.}
-##'  \item{featureLevel}{ which feature level was used.}
-##'  \item{countName}{ which data column was used.}
-##'  \item{method}{ which method was used.}
-##'  \item{pValue}{ counts the number of features.}
-##'  \item{isPresentProbe}{ counts the number of features with counts above threshold.}
-##' }
+##' @template result-template
 ##' @template roxygen-template
 ##' @examples
 ##' 1
@@ -287,7 +279,7 @@ writeResultCounts = function(html, param, result, geneIds=NULL, pThresh=c(0.1, 0
 ##' @description Writes a result file in text format or zipped.
 ##' @param html a connection to an html file.
 ##' @param param a list of parameters that pastes the \code{comparison} into the file name and does a zip file if \code{doZip} is true.
-##' @param result a list of results.
+##' @template result-template
 ##' @template rawData-template
 ##' @param useInOutput a logical specifying whether to use most of the result information.
 ##' @param file a character representing the name of the result file.
@@ -447,7 +439,7 @@ writeQcScatterPlots = function(html, param, design, conds,
 ##' @param html a connection to an html file.
 ##' @param param a list of parameters .....
 ##' @param x a dataset .....
-##' @param result a list of results.
+##' @template result-template
 ##' @param seqAnno the sequence annotation. This is used if types is NULL.
 ##' @param types a character vector specifying the different types to plot.
 ##' @template roxygen-template
@@ -579,7 +571,7 @@ writeTestScatterPlots = function(html, param, x, result, seqAnno, colorRange=c(-
 
 ##' @title Gets significant ratios
 ##' @description Gets significant ratios and counts them in a table.
-##' @param result a list of results.
+##' @template result-template
 ##' @param pThresh a numerical indicating the p-value threshold.
 ##' @param ratioThresh a ratio threshold .....
 ##' @param genes if not NULL, the function counts the number of different genes that are significant.

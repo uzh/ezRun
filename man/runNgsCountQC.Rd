@@ -10,7 +10,7 @@ runNgsCountQC(dataset, htmlFile = "00index.html", param = param,
 \arguments{
 \item{dataset}{a data.frame from the meta field of an EzDataset.}
 
-\item{htmlFile}{a character representing the path to write the report in.}
+\item{htmlFile}{a character, ending with .html, representing the file path of an html file.}
 
 \item{param}{a list of parameters, possibly passed to other functions as well:
 \itemize{

@@ -34,7 +34,7 @@ plotPosSpecificErrorRate(errorRate, png, main = "Per base mismatch rate",
   \item{runGO}{ a logical indicating wheter to run the GO analysis.}
 }}
 
-\item{htmlFile}{a character representing the path to write the report in.}
+\item{htmlFile}{a character, ending with .html, representing the file path of an html file.}
 }
 \description{
 Plots the BAM statistics and writes the report.
