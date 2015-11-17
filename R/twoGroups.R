@@ -268,8 +268,7 @@ runGlm = function(x, sampleGroup, refGroup, grouping, normMethod, batch=NULL){
 ##' @param rawData a list of raw data. Usually obtained from \code{loadCountDataset()}.
 ##' @param types a character vector specifying the different types to plot.
 ##' @template roxygen-template
-writeNgsTwoGroupReport = function(dataset, result, htmlFile, param=NA, rawData=NA, types=NULL) {
-  keggOrganism = NA
+writeNgsTwoGroupReport = function(dataset, result, htmlFile="00index.html", param=NA, rawData=NA, types=NULL) {
   seqAnno = rawData$seqAnno
   
   titles = list()
@@ -317,8 +316,7 @@ writeNgsTwoGroupReport = function(dataset, result, htmlFile, param=NA, rawData=N
     
     if (doGo(param, seqAnno)){
       clusterResult = goClusterResults(xCentered, param, clusterResult, seqAnno=seqAnno,
-                                       universeProbeIds=rownames(seqAnno)[result$isPresentProbe],
-                                       keggOrganism=keggOrganism)
+                                       universeProbeIds=rownames(seqAnno)[result$isPresentProbe])
     }
     
     ## append the result file with the cluster colors
