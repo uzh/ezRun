@@ -4,12 +4,15 @@
 \alias{addTxtLinksToReport}
 \title{Adds text links}
 \usage{
-addTxtLinksToReport(doc, txtNames, mime = "text/plain")
+addTxtLinksToReport(doc, txtNames, doZip = FALSE, mime = ifelse(doZip,
+  "application/zip", "application/text"))
 }
 \arguments{
 \item{doc}{an object of the class bsdoc to add the text links.}
 
-\item{txtNames}{a character representing the link names.}
+\item{txtNames}{a character representing the file names.}
+
+\item{doZip}{a logical indicating whether to zip the files.}
 
 \item{mime}{a character representing the type of the links.}
 

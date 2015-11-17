@@ -67,16 +67,9 @@ addGoUpDownResult = function(doc, param, goResult){
   #     titles[["ReViGO"]] = "ReViGO"
   #     addTitleWithAnchor(doc, titles[[length(titles)]], 3)
   #     doc = addFlexTable(doc, ezFlexTable(cbind(rownames(revigoLinks), revigoLinks), valign="middle", header.columns=TRUE))
-
-    ## addTxtLinksToReport(doc, param, udt$txtFiles)
-  if (param$doZip){
-    addTxtLinksToReport(doc, udt$txtFiles, mime="application/zip")
-  } else {
-    addTxtLinksToReport(doc, udt$txtFiles, mime="application/txt")
-  }
   
-  
-  doc
+  addTxtLinksToReport(doc, udt$txtFiles, param$doZip)
+  return(doc)
 }
 
 ##' @describeIn addGoUpDownResult Gets the GO up-down tables.
@@ -106,11 +99,6 @@ goUpDownTables = function(param, goResult){
         txtFile = ezValidFilename(paste0(name, ".txt"), replace="-")
         # txtList[[sub]][[onto]] = ezValidFilename(paste0(name, ".txt"), replace="-")
         ezWrite.table(xSub, file=txtFile, row.names=FALSE)
-        if (param$doZip){
-          txtFiles[name] = zipFile(txtFile)
-        } else {
-          txtFiles[name] = txtFile
-        }
       }
     }
   }

@@ -29,15 +29,6 @@ mioString = function(x){
   format(x/1e6, scientific=FALSE, digits=3, trim=TRUE)
 }
 
-##' @describeIn zipFile Archives the whole working directory.
-zipWorkingDir = function(zipName){
-  
-  zipFile(".", zipped=zipName)
-  file.remove(list.files(pattern=".*.RData"))
-  ezSystem(paste("zip -q -r", zipName, ".", sep=" "))
-  return(zipName)
-}
-
 ##' @title Archives files
 ##' @description Archives one or several files to a .zip extension. Optionally, a seperate name can be given to the archive.
 ##' @param zipName a character naming the working directory to be archived.
@@ -59,6 +50,15 @@ zipFile = function(inputs, zipped=NULL){
   cmd = paste("zip -q -r", zipped, inputs, sep=" ")
   ezSystem(cmd)
   return(zipped)
+}
+
+##' @describeIn zipFile Archives the whole working directory.
+zipWorkingDir = function(zipName){
+  
+  zipFile(".", zipped=zipName)
+  file.remove(list.files(pattern=".*.RData"))
+  ezSystem(paste("zip -q -r", zipName, ".", sep=" "))
+  return(zipName)
 }
 
 ##' @title Modified version of read.table

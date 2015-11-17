@@ -243,7 +243,8 @@ writeErrorReport = function(htmlFile, param=param, dataset=NULL, error="Unknown 
 ##' @description Adds texts link to an html file.
 ##' @template doc-template
 ##' @templateVar object text links
-##' @param txtNames a character representing the link names.
+##' @param txtNames a character representing the file names.
+##' @param doZip a logical indicating whether to zip the files.
 ##' @param mime a character representing the type of the links.
 ##' @template connection-template
 ##' @template roxygen-template
@@ -253,8 +254,11 @@ writeErrorReport = function(htmlFile, param=param, dataset=NULL, error="Unknown 
 ##' doc =  openBsdocReport(title="My report")
 ##' addTxtLinksToReport(doc, "dataset.tsv")
 ##' closeBsdocReport(doc, htmlFile)
-addTxtLinksToReport = function(doc, txtNames, mime="text/plain"){
+addTxtLinksToReport = function(doc, txtNames, doZip=FALSE, mime=ifelse(doZip, "application/zip", "application/text")){
   for (each in txtNames){
+    if (doZip){
+      each = zipFile(each)
+    }
     doc = addParagraph(doc, pot(paste("<a href='", each, "' type='", mime, "'>", each, "</a>")))
   }
 }
@@ -452,15 +456,6 @@ addResultFile = function(doc, param, result, rawData, useInOutput=TRUE,
   }
   y = y[order(y$fdr, y$pValue), ]
   ezWrite.table(y, file=file, head="Identifier", digits=4)
-  if (param$doZip){
-    zipLink = zipFile(file)
-    if (!is.null(doc)){
-      doc = addParagraph(doc, pot(paste("<a href='", zipLink, "' type='application/zip'>", zipLink, "</a>")))
-    }
-  } else {
-    if (!is.null(doc)){
-      doc = addParagraph(doc, pot(paste("<a href='", file, "' type='application/txt'>", file, "</a>")))
-    }
-  }
+  doc = addTxtLinksToReport(doc, file, param$doZip)
   return(list(resultFile=file))
 }

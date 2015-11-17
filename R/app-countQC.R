@@ -146,16 +146,11 @@ runNgsCountQC = function(dataset, htmlFile="00index.html", param=param, rawData=
     ezWrite.table(combined, file=signalFile, head="Feature ID", digits=4)
     rpkmFile = paste0(ezValidFilename(param$name), "-rpkm.txt")
     ezWrite.table(getRpkm(rawData), file=rpkmFile, head="Feature ID", digits=4)
-    if (param$doZip){
-      dataFiles =c(zipFile(countFile), zipFile(signalFile), zipFile(rpkmFile))
-      titles[["Data Files"]] = "Data Files"
-      addTitleWithAnchor(doc, titles[[length(titles)]], 2)
-      addTxtLinksToReport(doc, dataFiles, mime="application/zip")
-    } else {
-      titles[["Data Files"]] = "Data Files"
-      addTitleWithAnchor(doc, titles[[length(titles)]], 2)
-      addTxtLinksToReport(doc, c(countFile, signalFile, rpkmFile), mime="application/txt")
-    }
+    
+    dataFiles = c(countFile, signalFile, rpkmFile)
+    titles[["Data Files"]] = "Data Files"
+    addTitleWithAnchor(doc, titles[[length(titles)]], 2)
+    addTxtLinksToReport(doc, dataFiles, param$doZip)
   }
   
   titles[["Count Statistics"]] = "Count Statistics"
