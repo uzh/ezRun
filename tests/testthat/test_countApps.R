@@ -91,7 +91,6 @@ test_that("RNA_Bamstats", {
   output[['refBuild']] = 'Saccharomyces_cerevisiae/Ensembl/EF4/Annotation/Version-2013-03-18'
   output[['refFeatureFile']] = 'genes.gtf'
   param = yeastCommonCountParam()
-  param[['mail']] = 'peter.schmid@ieu.uzh.ch'
   param[['process_mode']] = 'DATASET'
   param[['name']] = 'RNA_BAM_Statistics'
   param[['dataRoot']] = '/srv/gstore/projects'
@@ -99,4 +98,3 @@ test_that("RNA_Bamstats", {
   myApp$run(input=input, output=output, param=param)
   setwd(cwd)
 })
-

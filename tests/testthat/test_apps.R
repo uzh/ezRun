@@ -146,27 +146,6 @@ test_that("FastqScreen", {
   setwd(cwd)
 })
 
-
-## trinity fails with the small training data set
-# test_that("Assemble_Trinity", {
-#   skipLong()
-#   setwdNew("/scratch/test_trinity")
-#   input = EzDataset$new(file=system.file("extdata/yeast_10k/dataset.tsv", package="ezRun", mustWork = TRUE))
-#   output = list()
-#   output[['Name']] = 'Trinity_Assembly'
-#   output[['Fasta [File]']] = 'p1001/Trinity_Assembly.fasta'
-#   param = yeastCommonMapParam()
-#   param[['process_mode']] = 'DATASET'
-#   param[['name']] = 'Trinity_Assembly'
-#   param[['trimAdapter']] = 'true'
-#   param[['minAvgQuality']] = '0'
-#   param[['minReadLength']] = '10'
-#   param[['trinityOpt']] = '--min_kmer_cov 2'
-#   myApp = EzAppTrinity$new()
-#   myApp$run(input=input, output=output, param=param)
-#   setwd(cwd)
-# })
-
 test_that("BampreviewStar", {
   skipLong()
   setwdNew("/scratch/test_bampreview_star")
@@ -192,4 +171,22 @@ test_that("BampreviewStar", {
   setwd(cwd)
 })
 
-
+## trinity fails with the small training data set
+# test_that("Assemble_Trinity", {
+#   skipLong()
+#   setwdNew("/scratch/test_trinity")
+#   input = EzDataset$new(file=system.file("extdata/yeast_10k/dataset.tsv", package="ezRun", mustWork = TRUE))
+#   output = list()
+#   output[['Name']] = 'Trinity_Assembly'
+#   output[['Fasta [File]']] = 'p1001/Trinity_Assembly.fasta'
+#   param = yeastCommonMapParam()
+#   param[['process_mode']] = 'DATASET'
+#   param[['name']] = 'Trinity_Assembly'
+#   param[['trimAdapter']] = 'true'
+#   param[['minAvgQuality']] = '0'
+#   param[['minReadLength']] = '10'
+#   param[['trinityOpt']] = '--min_kmer_cov 2'
+#   myApp = EzAppTrinity$new()
+#   myApp$run(input=input, output=output, param=param)
+#   setwd(cwd)
+# })

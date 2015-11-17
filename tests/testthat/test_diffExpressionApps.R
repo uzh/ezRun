@@ -13,8 +13,6 @@ skipLong = function(){
   }
 }
 
-
-
 yeastCommonDiffExprParam = function(){
   param = list()
   param[['cores']] = '1'
@@ -39,8 +37,6 @@ yeastCommonDiffExprParam = function(){
   return(param)
 }
 
-
-
 test_that("deseq2_withgo", {
   skipLong()
   setwdNew("/scratch/test_deseq2_withgo")
@@ -51,8 +47,6 @@ test_that("deseq2_withgo", {
   myApp$run(input=input, output=output, param=param)
   setwd(cwd)
 })
-
-
 
 test_that("edger_withgo", {
   skipLong()
@@ -66,7 +60,6 @@ test_that("edger_withgo", {
   setwd(cwd)
 })
 
-
 test_that("count_QC", {
   skipLong()
   setwdNew("/scratch/test_count_QC")
@@ -79,4 +72,3 @@ test_that("count_QC", {
   myApp$run(input=input, output=output, param=param)
   setwd(cwd)
 })
-

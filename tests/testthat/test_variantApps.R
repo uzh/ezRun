@@ -30,8 +30,6 @@ yeastCommonVariantParam = function(){
   return(param)
 }
 
-
-
 test_that("Variant_Mpileup", {
   skipLong()
   setwdNew("/scratch/test_mpileup")
@@ -63,4 +61,3 @@ test_that("Variant_Mpileup", {
   myApp$run(input=input$copy()$subset(1), output=output$copy()$subset(1), param=param)
   setwd(cwd)
 })
-

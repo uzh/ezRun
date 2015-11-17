@@ -161,12 +161,26 @@ runNgsCountQC = function(dataset, htmlFile="00index.html", param=param, rawData=
   addTitleWithAnchor(doc, titles[[length(titles)]], 2)
   totalCounts = signif(apply(rawData$counts, 2, sum) / 1e6, digits=3)
   presentCounts = apply(isPresent, 2, sum)
-  presentFrame = data.frame("Total Read Counts [Mio]"=totalCounts,
-                            "Genomic Features <br>with Reads above threshold"=presentCounts,
-                            "Genomic Features <br>with Reads above threshold [%]"=signif(100*presentCounts/nrow(isPresent), digits=3),
-                            check.names=FALSE)
-  rownames(presentFrame) = samples
-  doc = addFlexTable(doc, ezFlexTable(presentFrame, header.columns=TRUE, talign="right"))
+  names(totalCounts) = samples
+  names(presentCounts) = samples
+  
+  plotCmd = expression({
+    par(mar=c(10.1, 4.1, 4.1, 2.1))
+    barplot(totalCounts, las=2, ylab="Counts [Mio]", main="Total reads")
+  })
+  totalLink = ezImageFileLink(plotCmd, file="totalCounts.png", height=600,
+                              width=min(600 + (length(samples)-10)* 30, 2000))
+  
+  plotCmd = expression({
+    par(mar=c(10.1, 4.1, 4.1, 2.1))
+    bplot = barplot(presentCounts, las=2, ylab="Counts", main="Genomic Features with Reads above threshold")
+    percentages = paste(signif(100*presentCounts/nrow(isPresent), digits=2), "%")
+    text(x=bplot, y=3, labels=percentages)
+  })
+  presentLink = ezImageFileLink(plotCmd, file="presentCounts.png", height=600,
+                                width=min(600 + (length(samples)-10)* 30, 2000))
+  
+  doc = addFlexTable(doc, ezGrid(cbind(totalLink, presentLink)))  ### TODOP: add.rownames missing, but barplot would be better.
   
   rawData$signal = signal
   
