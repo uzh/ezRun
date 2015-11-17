@@ -188,6 +188,9 @@ writeIgvSessionLink = function(genome, refBuild, bamFiles, html, locus="All", la
 addIgvSessionLink = function(genome, refBuild, bamFiles, doc, locus="All", label="Open Integrative Genomics Viewer", baseUrl=PROJECT_BASE_URL){
   urls = paste(baseUrl, bamFiles, sep="/")
   writeIgvSession(genome, refBuild, bamUrls=urls, locus=locus)
+  for (url in urls){
+    doc = addParagraph(doc, pot(url, hyperlink = url))
+  }
   doc = addJavascript(doc, text=paste0('startIgvFromJnlp("', label, '", "', locus, '")'))
   return()
 }
