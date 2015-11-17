@@ -328,16 +328,6 @@ getChildTerms = function(x, subset, goRelatives, indent="", childEnvir){
 #}
 #
 
-## REFAC: still used?
-getTopGoHtmlTable = function(goTermStat, pValueThresh=NA, catSize=NA){
-  
-  use = goTermStat$Pvalue < pValueThresh & goTermStat$Annotated > catSize & goTermStat$Significant > goTermStat$Expected
-  result = paste("<td>", goTermStat$Term[use], "</td><td>", signif(goTermStat$Pvalue[use], digits=3), "</td>")
-  result = paste(paste("<tr>", result, "</tr>"), collapse="\n")
-  result = paste("<table>", result, "</table")
-  result
-}
-
 
 clusterResults = function(x, nClusters=5, clusterColors=rainbow(nClusters), d=NULL, method="ward.D2"){
   if (is.null(d)){
