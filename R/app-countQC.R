@@ -367,13 +367,13 @@ runNgsCountQC = function(dataset, htmlFile="00index.html", param=param, rawData=
     
     pngName = "mdsPlot_PresentGenes.png"
     plotCmd = expression({
-      myMdsPlot(signal=x, sampleColors=sampleColors, main=sub('.png','',pngName))
+      ezMdsPlot(signal=x, sampleColors=sampleColors, main=sub('.png','',pngName))
     })
     presentLink = ezImageFileLink(plotCmd, file=pngName, width=480, height=480)
     
     pngName = "mdsPlot_TopGenes.png"
     plotCmd = expression({
-      myMdsPlot(signal=x[topGenes,], sampleColors=sampleColors, main=sub('.png','',pngName))
+      ezMdsPlot(signal=x[topGenes,], sampleColors=sampleColors, main=sub('.png','',pngName))
     })
     topLink = ezImageFileLink(plotCmd, file=pngName, width=480, height=480)
     
@@ -418,7 +418,7 @@ runNgsCountQC = function(dataset, htmlFile="00index.html", param=param, rawData=
     
     pngName = "signalDens.png"
     plotCmd = expression({
-      countDensPlot(param, signal, sampleColors, main="all transcripts", bw=0.7)
+      countDensPlot(signal, sampleColors, main="all transcripts", bw=0.7)
     })
     pngLink = ezImageFileLink(plotCmd, file=pngName, width=640, height=640)
     

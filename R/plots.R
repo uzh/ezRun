@@ -6,7 +6,14 @@
 # www.fgcz.ch
 
 
-## @title
+##' @title Gets the sample colors
+##' @description Gets the sample colors from the experimental conditions.
+##' @param conds conditions obtained from \code{ezConditionsFromDesign()} or \code{ezConditionsFromDataset()}.
+##' @param colorNames a character vector containing the names for the colors.
+##' @param hueStep a numeric specifying the hue step for \code{hsv()}.
+##' @template roxygen-template
+##' @seealso \code{\link[grDevices]{hsv}}
+##' @return Returns a character vector containing colors in hex format.
 getSampleColors = function(conds, colorNames=names(conds), hueStep = 1/50){
 
 	condSet = unique(conds)
@@ -30,8 +37,7 @@ getSampleColors = function(conds, colorNames=names(conds), hueStep = 1/50){
 	return(result)
 }
 
-
-## still used?
+##' @describeIn getSampleColors Gets the sample pch from the experimental conditions.
 getSamplePch = function(conds, pchNames=names(conds)){
   
   cnList = split(pchNames, conds)
@@ -41,8 +47,7 @@ getSamplePch = function(conds, pchNames=names(conds)){
   return(pch)
 }
 
-
-## still used?
+##' @describeIn getSampleColors Gets the sample line types from the experimental conditions.
 getSampleLty = function(conds, ltyNames=names(conds), maxLineTypes=5){
   
   cnList = split(ltyNames, conds)

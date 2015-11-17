@@ -6,7 +6,14 @@
 # www.fgcz.ch
 
 
-## @title
+##' @title Gets transcripts coverages
+##' @description Gets transcripts coverages.
+##' @param chrom a character vector containing chromosome names.
+##' @param gff an annotation data.frame in gtf or gff format.
+##' @param reads an object of the class GAlignments.
+##' @param strandMode a character specifying the mode of the strand.
+##' @template roxygen-template
+##' @return Returns a list of transcript coverages.
 getTranscriptCoverage = function(chrom, gff, reads, strandMode="both"){
   if (length(chrom) > 1){
     transcriptCov = unlist(lapply(chrom, getTranscriptCoverage, gff, reads, strandMode), recursive=FALSE)
@@ -28,8 +35,7 @@ getTranscriptCoverage = function(chrom, gff, reads, strandMode="both"){
   return(transcriptCov)
 }
 
-
-## @describeIn getTranscriptCoverage
+##' @describeIn getTranscriptCoverage Gets the range coverages.
 getRangesCoverageChrom = function(chrom=NULL, ranges, reads, strandMode="both"){
   if(!is.null(chrom)){
     stopifnot(runValue(seqnames(ranges)) == chrom)
@@ -40,11 +46,11 @@ getRangesCoverageChrom = function(chrom=NULL, ranges, reads, strandMode="both"){
   stopifnot(strandMode %in% c("both", "sense", "antisense"))
   rangeCov = vector("list", length(ranges))
   if (strandMode == "both"){
-    if(is.null(chrom)){
+    if (is.null(chrom)){
       covChrom = coverage(reads)
       rangeCov = mapply(function(chr, s, e){covChrom[[chr]][s:e]},
                         as.character(seqnames(ranges)), start(ranges), end(ranges))
-    }else{
+    } else {
       # although this can be done in the same way above. But [[chrom]] first can speed up.
       covChrom = coverage(reads)[[chrom]]
       rangeCov = mapply(function(s,e){covChrom[s:e]}, start(ranges), end(ranges))

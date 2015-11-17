@@ -291,7 +291,7 @@ getExpressionGage = function(gageResults, result=NULL, rawData=NULL, param = NUL
 ##' pValue = param$gageGeneThreshold
 ##' x = "gageResults"
 ##' gageSigGenes(x, pValue, "both")
-## TODOP: get gage results for example
+## TODOEXAMPLE: get gage results for example
 gageSigGenes = function(x, gene.pValue=NULL, signal=NULL ){
   # Select significant genes
   pValueVar = paste(signal, 'pValue', sep='.')

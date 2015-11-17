@@ -6,8 +6,14 @@
 # www.fgcz.ch
 
 
-## @title
-countDensPlot = function(param, cts, colors, main="all transcripts", bw=7){
+##' @title Plots the count densities
+##' @description Plots the count densities.
+##' @param cts the signal to use for plotting.
+##' @param colors a character vector containing colors in hex format.
+##' @param main a character representing the plot title.
+##' @param bw a numeric passed to \code{density()}.
+##' @template roxygen-template
+countDensPlot = function(cts, colors, main="all transcripts", bw=7){
   
   cts[cts < 0] = 0  ## zeros will be come -Inf and not be part of the area!! Area will be smaller than 1!
   xlim = 0
@@ -29,9 +35,13 @@ countDensPlot = function(param, cts, colors, main="all transcripts", bw=7){
   return(NULL)
 }
 
-
-## @title
-myMdsPlot = function(signal, sampleColors, main){
+##' @title Plots the multi dimensional scaling
+##' @description Plots the multi dimensional scaling.
+##' @param signal the signal to use for plotting.
+##' @param sampleColors a character vector containing colors in hex format.
+##' @param main a character representing the plot title.
+##' @template roxygen-template
+ezMdsPlot = function(signal, sampleColors, main){
   require(edgeR)
   y = DGEList(counts=signal,group=colnames(signal))
   #y$counts = cpm(y)
@@ -234,7 +244,7 @@ profilePlot = function(x=1:length(profileList[[1]]), profileList,
 
 
 ## REFAC, but function is currently unused.
-cumHistPlot = function(param, cts, png, colors, main="all transcripts"){
+cumHistPlot = function(cts, png, colors, main="all transcripts"){
 
   if (!is.null(png)){
     png(filename=png, width=640, height=640)
