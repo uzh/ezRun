@@ -15,7 +15,7 @@
 ##' @return Returns input as character vector if \code{echo} is set to TRUE. Returns an error code if \code{intern} is set to FALSE.
 ##' @template roxygen-template
 ##' @template addargs-template
-##' @templateVar fun \code{system()}
+##' @templateVar fun system()
 ##' @seealso \code{\link[base]{system}}
 ##' @examples
 ##' try(ezSystem("who"))

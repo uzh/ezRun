@@ -17,7 +17,7 @@ ezGrepl(patterns, x, combine = "or", ...)
  \item{"and"}{ all values from \code{patterns} need to match.}
 }}
 
-\item{...}{additional arguments to be passed to \code{\code{grepl()}}.}
+\item{...}{additional arguments to be passed to \code{grepl()}.}
 }
 \value{
 Returns a logical vector containing the results of the tested pattern.

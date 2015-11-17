@@ -11,7 +11,7 @@ ezSplit(x, split, ...)
 
 \item{split}{a character vector defining with what to split.}
 
-\item{...}{additional arguments to be passed to \code{\code{strsplit()}}.}
+\item{...}{additional arguments to be passed to \code{strsplit()}.}
 }
 \value{
 Returns a matrix containing the split vector and \code{x} as the rownames.

@@ -350,7 +350,7 @@ writeNgsTwoGroupReport = function(dataset, result, htmlFile, param=NA, rawData=N
   if (doGo(param, seqAnno)){
     goResult = twoGroupsGO(param, result, seqAnno, normalizedAvgSignal=rowMeans(result$groupMeans), method=param$goseqMethod)
     titles[["GO Enrichment Analysis"]] = "GO Enrichment Analysis"
-    addTitleWithAnchor(doc, titles[[length(titles)]], 3)
+    addTitleWithAnchor(doc, titles[[length(titles)]], 2)
     doc = addGoUpDownResult(doc, param, goResult)
   }
   

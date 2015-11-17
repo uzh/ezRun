@@ -44,11 +44,11 @@ addGoUpDownResult = function(doc, param, goResult){
   udt = goUpDownTables(param, goResult)
   doc = addParagraph(doc, paste("Maximum number of terms displayed:", param$maxNumberGroupsDisplayed))
   
-  doc = addParagraph(doc, "GO categories that are overrepresented among significantly upregulated genes.")
+  doc = addTitle(doc, "GO categories that are overrepresented among significantly upregulated genes.", 3)
   doc = addFlexTable(doc, udt$flexTables[["enrichUp"]])
-  doc = addParagraph(doc, "GO categories that are overrepresented among significantly downregulated genes.")
+  doc = addTitle(doc, "GO categories that are overrepresented among significantly downregulated genes.", 3)
   doc = addFlexTable(doc, udt$flexTables[["enrichDown"]])
-  doc = addParagraph(doc, "GO categories that are overrepresented among all significantly regulated genes.")
+  doc = addTitle(doc, "GO categories that are overrepresented among all significantly regulated genes.", 3)
   doc = addFlexTable(doc, udt$flexTables[["enrichBoth"]])
   
   #     goFiles = list.files('.',pattern='enrich.*txt')
@@ -166,14 +166,19 @@ goUpDownTables = function(param, goResult){
   goAncestors = unique(unlist(goAncestorList))
   goRelatives = union(intersect(goAncestors, goOffsprings), goIds)
   
-  terms = character(length(goRoots))
-  pValues = character(length(goRoots))
-  counts = character(length(goRoots))
+  terms = character()
+  pValues = character()
+  counts = character()
   for (i in 1:length(goRoots)){
     childTerms = getChildTerms(goRoots[i], goIds, goRelatives, indent="", CHILDREN)
-    terms[i] = getGOTerm(childTerms)[[1]]  ## some entries might be too long
-    pValues[i] = signif(x[childTerms, "Pvalue"], 3)
-    counts[i] = paste(x[childTerms, "Count"], x[childTerms, "Size"], sep="/")
+    for (term in childTerms){
+      terms = append(terms, getGOTerm(term)[[1]])
+      pValues = append(pValues, signif(x[term, "Pvalue"], 3))
+      counts = append(counts, paste(x[term, "Count"], x[term, "Size"], sep="/"))
+#       terms[i] = getGOTerm(childTerms)[[1]]  ## some entries might be too long
+#       pValues[i] = signif(x[childTerms, "Pvalue"], 3)
+#       counts[i] = paste(x[childTerms, "Count"], x[childTerms, "Size"], sep="/")
+    }
   }
   return(ezFrame("Term"=terms, "p"=pValues, "N"=counts))
 }

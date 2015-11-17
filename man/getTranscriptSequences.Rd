@@ -20,7 +20,7 @@ Gets transcript sequences from annotation (gtf or gff) and sequence (fasta) info
 \examples{
 param = ezParam()
 param$ezRef@refFeatureFile = "./inst/extdata/genes.gtf"
-param$ezRef@refFastaFile = "./script/Saccharomyces_cerevisiae/Ensembl/EF4/Sequence/WholeGenomeFasta/genome.fa"
+param$ezRef@refFastaFile = "/srv/GT/reference/Saccharomyces_cerevisiae/Ensembl/EF4/Sequence/WholeGenomeFasta/genome.fa"
 getTranscriptSequences(param)
 }
 \author{

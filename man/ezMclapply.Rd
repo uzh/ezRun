@@ -12,7 +12,7 @@ ezMclapply(x, FUN, ..., mc.preschedule = TRUE, mc.set.seed = TRUE,
 
 \item{FUN}{the function to apply to each list element.}
 
-\item{...}{additional arguments to be passed to \code{\code{lapply()} and \code{mclapply()}}.}
+\item{...}{additional arguments to be passed to \code{lapply() and mclapply()}.}
 }
 \value{
 Returns a list of the same length as \code{x} with \code{FUN} applied to its elements.
