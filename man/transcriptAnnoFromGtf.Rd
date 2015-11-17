@@ -12,7 +12,7 @@ transcriptAnnoFromGtf(gtf, id = gtf$transcript_id, types = "exon",
 
 \item{id}{a column of the gtf data.frame that specifies a factor to group transcripts by.}
 
-\item{types}{a character specifying which transcript types to use.}
+\item{types}{a character vector containing the types.}
 
 \item{attributes}{additional annotation attributes to pass in.}
 }

@@ -77,7 +77,7 @@ EzAppCountQC <-
 ##' }
 ##' @template rawData-template
 ##' @param writeDataFiles a logical indicating whether to write the data files into seperate tables.
-##' @param types a character vector containing the types.
+##' @template types-template
 ##' @template roxygen-template
 runNgsCountQC = function(dataset, htmlFile="00index.html", param=param, rawData=NULL,
                          writeDataFiles=TRUE, types=NULL){

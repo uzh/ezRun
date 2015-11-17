@@ -266,7 +266,7 @@ runGlm = function(x, sampleGroup, refGroup, grouping, normMethod, batch=NULL){
 ##'   \item{maxNumberGroupsDisplayed}{ an integer specifying the maximum amount of rows for each result file of the GO analysis.}
 ##' }
 ##' @template rawData-template
-##' @param types a character vector specifying the different types to plot.
+##' @template types-template
 ##' @template roxygen-template
 writeNgsTwoGroupReport = function(dataset, result, htmlFile="00index.html", param=NA, rawData=NA, types=NULL) {
   seqAnno = rawData$seqAnno

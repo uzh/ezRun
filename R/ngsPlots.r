@@ -9,7 +9,7 @@
 ##' @title Plots the count densities
 ##' @description Plots the count densities.
 ##' @param cts the signal to use for plotting.
-##' @param colors a character vector containing colors in hex format.
+##' @template colors-template
 ##' @param main a character representing the plot title.
 ##' @param bw a numeric passed to \code{density()}.
 ##' @template roxygen-template

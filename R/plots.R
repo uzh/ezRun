@@ -85,7 +85,7 @@ getBlueRedScale <- function(n=256, whiteLevel=0.9){
 ##' @title Plots a color scale
 ##' @description Plots a color scale with colors derived from \code{getBlueRedScale()}.
 ##' @param colorRange two numerics specifying the range to plot to the axis.
-##' @param colors a vector of colors.
+##' @template colors-template
 ##' @param vertical a logical indicating whether to plot vertically.
 ##' @param at a numeric vector specifying where to put axis ticks.
 ##' @param labels a character vector specifying the axis labels.
@@ -219,27 +219,36 @@ ezColorLegend = function(colorRange=c(-3,3), colors=getBlueRedScale(256), vertic
 }
 
 
-## @title
-ezVolcano = function(log2Ratio, pValue, xlim=NULL, ylim=NULL, isPresent=NULL, types=NULL,
-                     pch=16, colors=rainbow(ncol(types)), legendPos="bottomright",
-                     cex.main=1.0, cex=0.8, yType="p-value", ...){
-  yValues = -log10(pValue)
+###### TODOP: continue with documenting plots
 
-  if (is.null(xlim)){
+##' @title Performs the volcano plot
+##' @description Performs the volcano plot.
+##' @param log2Ratio
+##' @param pValue
+##' @param yType
+##' @template plot-template
+##' @template roxygen-template
+ezVolcano = function(log2Ratio, pValue, yType="p-value",
+                     lim=c(NA, NA), isPresent=NULL,
+                     types=NULL, pch=16, colors=rainbow(ncol(types)), legendPos="bottomright",
+                     cex.main=1.0, cex=0.8, ...){
+  yValues = -log10(pValue)
+  
+  if (is.na(lim[1])){
     lrMaxAbs = max(abs(log2Ratio), na.rm=TRUE)
     xm = min(lrMaxAbs, 5)
-    xlim = c(-xm, xm)
-    log2Ratio = shrinkToRange(log2Ratio, theRange = xlim)
+    lim[1] = c(-xm, xm)
+    log2Ratio = shrinkToRange(log2Ratio, theRange = lim[1])
   }
-  if (is.null(ylim)){
+  if (is.na(lim[2])){
     ym = min(max(yValues, na.rm=TRUE), 10)
-    ylim = c(0, ym)
-    yValues = shrinkToRange(yValues, theRange=ylim)
+    lim[2] = c(0, ym)
+    yValues = shrinkToRange(yValues, theRange=lim[2])
   }
 
   par(pty="s")
   par(cex.main=cex.main, cex=cex)
-  plot(log2Ratio, yValues, pch=pch, xlim=xlim, ylim=ylim,
+  plot(log2Ratio, yValues, pch=pch, xlim=lim[1], ylim=lim[2],
       col="gray", xlab="log2 ratio", ylab=paste0("-log10(", yType, ")"),
        ...)
   if (!is.null(isPresent)){
@@ -256,11 +265,14 @@ ezVolcano = function(log2Ratio, pValue, xlim=NULL, ylim=NULL, isPresent=NULL, ty
 }
 
 
-## @title
-ezSmoothScatter <- function(x=NULL, y, isPresent=NULL, types=NULL, cex=0.8,
-                         lim=range(x, y, na.rm=TRUE), xlab=NULL, ylab=NULL,
-                         pch=16, colors=rainbow(ncol(types)),
-                         legendPos="bottomright", nPlotsPerRow=6, cex.main=1.0, ...){
+##' @title 1
+##' @description 1
+##' @template plot-template
+##' @template roxygen-template
+ezSmoothScatter <- function(x=NULL, y, xlab=NULL, ylab=NULL, nPlotsPerRow=6,
+                            lim=range(x, y, na.rm=TRUE), isPresent=NULL,
+                            types=NULL, pch=16, colors=rainbow(ncol(types)), legendPos="bottomright",
+                            cex.main=1.0, cex=0.8, ...){
   
   y = as.matrix(y)
   if (is.null(ylab)){
@@ -309,11 +321,14 @@ ezSmoothScatter <- function(x=NULL, y, isPresent=NULL, types=NULL, cex=0.8,
 }
 
 
-## @title
-ezScatter <- function(x=NULL, y, isPresent=NULL, types=NULL, cex=0.8,
-                      lim=range(x, y, na.rm=TRUE), shrink=FALSE,
-                      xlab=NULL, ylab=NULL, pch=16, colors=rainbow(ncol(types)),
-                      legendPos="bottomright", nPlotsPerRow=6, cex.main=1.0, ...){
+##' @title 1
+##' @description 1
+##' @template plot-template
+##' @template roxygen-template
+ezScatter <- function(x=NULL, y, xlab=NULL, ylab=NULL, nPlotsPerRow=6, shrink=FALSE,
+                      lim=range(x, y, na.rm=TRUE), isPresent=NULL,
+                      types=NULL, pch=16, colors=rainbow(ncol(types)), legendPos="bottomright", 
+                      cex.main=1.0, cex=0.8, ...){
   
   y = as.matrix(y)
   if (is.null(ylab)){
@@ -373,11 +388,10 @@ ezScatter <- function(x=NULL, y, isPresent=NULL, types=NULL, cex=0.8,
 }
 
 
-## @describeIn ezScatter
-ezXYScatterScatter = function(xVec, yVec, xlim=range(xVec, yVec, na.rm=TRUE), ylim=xlim,
-                              isPresent=NULL, types=NULL, absentColor="gray",
-                              frame=TRUE, axes=TRUE, shrink=FALSE, pch=16,
-                              colors=rainbow(ncol(types)), legendPos="bottomright", ...){
+##' @describeIn ezScatter Does the XY scatter plot.
+ezXYScatterScatter = function(xVec, yVec, absentColor="gray", shrink=FALSE, frame=TRUE, axes=TRUE,
+                              xlim=range(xVec, yVec, na.rm=TRUE), ylim=xlim, isPresent=NULL,
+                              types=NULL, pch=16, colors=rainbow(ncol(types)), legendPos="bottomright", ...){
   par(pty="s")
   if (shrink){
     xVec = shrinkToRange(xVec, xlim)
@@ -407,10 +421,14 @@ ezXYScatterScatter = function(xVec, yVec, xlim=range(xVec, yVec, na.rm=TRUE), yl
 }
 
 
-## @title
-ezAllPairScatter = function(x, isPresent=NULL, types=NULL, cex=0.8, lim=range(x, na.rm=TRUE),
-                            main="", shrink=FALSE, xylab=NULL, pch=16,
-                            colors=rainbow(ncol(types)), cex.main=1.0){
+##' @title 1
+##' @description 1
+##' @template plot-template
+##' @template roxygen-template
+ezAllPairScatter = function(x, main="", shrink=FALSE, xylab=NULL,
+                            lim=range(x, na.rm=TRUE), isPresent=NULL,
+                            types=NULL, pch=16, colors=rainbow(ncol(types)), legendPos="bottomright",
+                            cex.main=1.0, cex=0.8, ...){
   nItems = ncol(x)
   if (is.null(xylab)){
     xylab = colnames(x)
@@ -426,7 +444,7 @@ ezAllPairScatter = function(x, isPresent=NULL, types=NULL, cex=0.8, lim=range(x,
          isPres = isPresent[ ,i] | isPresent[ ,j]
        }
        ezXYScatterScatter(x[ ,i], x[, j], xlim=lim, ylim=lim, shrink=shrink, axes=FALSE, frame=TRUE,
-          isPresent=isPres, types=types, pch=pch, colors=colors, legendPos=NULL)
+                          isPresent=isPres, types=types, pch=pch, colors=colors, legendPos=NULL, ...)
        if (i == 1){
          mtext(xylab[j], 2)
        }
@@ -443,10 +461,13 @@ ezAllPairScatter = function(x, isPresent=NULL, types=NULL, cex=0.8, lim=range(x,
       isPres = isPresent[ ,1] | isPresent[ ,2]
     }
     ezXYScatterScatter(x[ ,1], x[, 2], xlim=lim, ylim=lim, shrink=shrink, xlab=xylab[1], ylab=xylab[2],
-      isPresent=isPresent, types=types, pch=pch, colors=colors, legendPos="bottomright")
+                       isPresent=isPresent, types=types, pch=pch, colors=colors, legendPos=legendPos, ...)
   }
   mtext(main, outer=TRUE, line=1)
 }
+
+
+
 
 
 ## @title

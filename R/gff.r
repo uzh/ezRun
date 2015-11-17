@@ -10,7 +10,7 @@
 ##' @description Loads annotation features from a file and returns them as a data.frame.
 ##' @param param contains the feature file and possibly a logical called \code{addPromoters}, which will add promoters if set to true.
 ##' @param featureFile the file to load the features from.
-##' @param types an optional character vector to specify types to use.
+##' @template types-template
 ##' @template roxygen-template
 ##' @return Returns a data.frame of parsed features.
 ##' @seealso \code{\link{ezReadGff}}
@@ -285,7 +285,7 @@ gffGroupToRanges = function(gtf, grouping, skipTransSpliced=FALSE){
 ##' @description Gets the transcript annotation from a gtf annotation.
 ##' @param gtf an annotation data.frame of the gtf format.
 ##' @param id a column of the gtf data.frame that specifies a factor to group transcripts by.
-##' @param types a character specifying which transcript types to use.
+##' @template types-template
 ##' @param attributes additional annotation attributes to pass in.
 ##' @template roxygen-template
 ##' @return Returns a transposed transcript annotation data.frame.

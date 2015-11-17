@@ -32,7 +32,7 @@ writeNgsTwoGroupReport(dataset, result, htmlFile = "00index.html",
 
 \item{rawData}{a list of raw data obtained from \code{loadCountDataset()}.}
 
-\item{types}{a character vector specifying the different types to plot.}
+\item{types}{a character vector containing the types.}
 }
 \description{
 Writes the report for the two group analysis.

@@ -24,7 +24,7 @@ addQcScatterPlots(doc, param, design, conds, rawData, signalCond, isPresentCond,
 
 \item{types}{a character vector containing the types.}
 
-\item{colors}{a character vector containing rgb codes. The default is a scale from blue to red.}
+\item{colors}{a character vector containing colors.}
 }
 \description{
 Adds QC scatter plots to an html file.

@@ -18,7 +18,7 @@ addPromotersToGff(gff, promWidth)
 
 \item{featureFile}{the file to load the features from.}
 
-\item{types}{an optional character vector to specify types to use.}
+\item{types}{a character vector containing the types.}
 }
 \value{
 Returns a data.frame of parsed features.

@@ -22,7 +22,7 @@ writeQcScatterPlots(html, param, design, conds, rawData, signalCond,
 
 \item{isPresentCond}{Either NULL or a data.frame containing coloring information.}
 
-\item{colors}{a character vector containing rgb codes. The default is a scale from blue to red.}
+\item{colors}{a character vector containing colors.}
 
 \item{types}{a character vector containing the types.}
 }

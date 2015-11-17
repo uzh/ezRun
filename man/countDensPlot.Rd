@@ -9,7 +9,7 @@ countDensPlot(cts, colors, main = "all transcripts", bw = 7)
 \arguments{
 \item{cts}{the signal to use for plotting.}
 
-\item{colors}{a character vector containing colors in hex format.}
+\item{colors}{a character vector containing colors.}
 
 \item{main}{a character representing the plot title.}
 

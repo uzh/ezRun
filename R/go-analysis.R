@@ -343,7 +343,7 @@ clusterResults = function(x, nClusters=5, clusterColors=rainbow(nClusters), d=NU
 ##' @param cexCol an integer passed to \code{heatmap.2()}.
 ##' @param labRow a character vector, possibly modified, then passed to \code{heatmap.2()}.
 ##' @param margins an integer, possibly modified, then passed to \code{heatmap.2()}.
-##' @param colors a color vector to be passed to \code{heatmap.2()}.
+##' @template colors-template
 ##' @param maxGenesWithLabel an integer specifying the maximum amount of genes with labels.
 ##' @template addargs-template
 ##' @templateVar fun heatmap.2

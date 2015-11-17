@@ -46,7 +46,7 @@ goClusterResults(x, param, result, ontologies = c("BP", "MF", "CC"),
 
 \item{margins}{an integer, possibly modified, then passed to \code{heatmap.2()}.}
 
-\item{colors}{a color vector to be passed to \code{heatmap.2()}.}
+\item{colors}{a character vector containing colors.}
 
 \item{maxGenesWithLabel}{an integer specifying the maximum amount of genes with labels.}
 

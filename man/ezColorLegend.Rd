@@ -11,7 +11,7 @@ ezColorLegend(colorRange = c(-3, 3), colors = getBlueRedScale(256),
 \arguments{
 \item{colorRange}{two numerics specifying the range to plot to the axis.}
 
-\item{colors}{a vector of colors.}
+\item{colors}{a character vector containing colors.}
 
 \item{vertical}{a logical indicating whether to plot vertically.}
 

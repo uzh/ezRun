@@ -356,8 +356,8 @@ writeResultFile = function(html, param, result, rawData, useInOutput=TRUE,
 ##' @template rawData-template
 ##' @param signalCond a set of values containing signals averaged by the conditions.
 ##' @param isPresentCond Either NULL or a data.frame containing coloring information.
-##' @param colors a character vector containing rgb codes. The default is a scale from blue to red.
-##' @param types a character vector containing the types.
+##' @template colors-template
+##' @template types-template
 ##' @template roxygen-template
 writeQcScatterPlots = function(html, param, design, conds,
 															 rawData, signalCond, isPresentCond, seqAnno,
@@ -441,7 +441,7 @@ writeQcScatterPlots = function(html, param, design, conds,
 ##' @param x a dataset .....
 ##' @template result-template
 ##' @param seqAnno the sequence annotation. This is used if types is NULL.
-##' @param types a character vector specifying the different types to plot.
+##' @template types-template
 ##' @template roxygen-template
 ##' @return Returns
 writeTestScatterPlots = function(html, param, x, result, seqAnno, colorRange=c(-3, 3),

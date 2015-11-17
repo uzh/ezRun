@@ -16,8 +16,8 @@
 ##' @template rawData-template
 ##' @param signalCond a set of values containing signals averaged by the conditions.
 ##' @param isPresentCond Either NULL or a data.frame containing coloring information.
-##' @param colors a character vector containing rgb codes. The default is a scale from blue to red.
-##' @param types a character vector containing the types.
+##' @template colors-template
+##' @template types-template
 ##' @template roxygen-template
 addQcScatterPlots = function(doc, param, design, conds, rawData, signalCond, isPresentCond, types=NULL){
   samples = rownames(design)
@@ -118,7 +118,7 @@ addQcScatterPlots = function(doc, param, design, conds, rawData, signalCond, isP
 ##' @param x a vector containing the signal.
 ##' @template result-template
 ##' @param seqAnno the sequence annotation. This is used if types is NULL.
-##' @param types a character vector containing the types.
+##' @template types-template
 ##' @template roxygen-template
 addTestScatterPlots = function(doc, param, x, result, seqAnno, types=NULL){
   if (is.null(types)){
