@@ -14,7 +14,7 @@ aggregateCountsByGene(param, rawData)
   \item{useSigThresh}{ ...and whether it should be used.}
 }}
 
-\item{rawData}{a list of raw data. Usually obtained from \code{loadCountDataset()}.}
+\item{rawData}{a list of raw data obtained from \code{loadCountDataset()}.}
 }
 \value{
 Returns the aggregates raw data.

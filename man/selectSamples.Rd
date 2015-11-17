@@ -7,7 +7,7 @@
 selectSamples(rawData, samples)
 }
 \arguments{
-\item{rawData}{a list of raw data. Usually obtained from \code{loadCountDataset()}.}
+\item{rawData}{a list of raw data obtained from \code{loadCountDataset()}.}
 
 \item{samples}{a character vector specifying which samples to select.}
 }

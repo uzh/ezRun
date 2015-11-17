@@ -7,7 +7,7 @@
 getRpkm(rawData)
 }
 \arguments{
-\item{rawData}{a list of raw data. Usually obtained from \code{loadCountDataset()}.}
+\item{rawData}{a list of raw data obtained from \code{loadCountDataset()}.}
 }
 \value{
 Returns the rpkm measure.

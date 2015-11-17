@@ -16,7 +16,7 @@ writeQcScatterPlots(html, param, design, conds, rawData, signalCond,
 
 \item{conds}{a named character vector containing the conditions of the factorial design.}
 
-\item{rawData}{a list of raw data. Usually obtained from \code{loadCountDataset()}.}
+\item{rawData}{a list of raw data obtained from \code{loadCountDataset()}.}
 
 \item{signalCond}{a set of values containing signals averaged by the conditions.}
 

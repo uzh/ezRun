@@ -9,7 +9,7 @@
 ##' @title Merges raw data
 ##' @description Merges raw data by combining two lists of raw data into one.
 ##' @param rawData1 a list of raw data. This is the main dataset where the information from the second gets added to.
-##' @param rawData2 the second list of raw data. Usually obtained from \code{loadCountDataset()}.
+##' @param rawData2 the second list of raw data. Both are obtained from \code{loadCountDataset()}.
 ##' @template roxygen-template
 ##' @return Returns a list containing the merged raw data.
 ##' @examples
@@ -37,7 +37,7 @@ mergeRawData = function(rawData1, rawData2){
 ## a sample can figure as a  colum name (e.g. signal) and as a rowname (e.g. dataset)
 ##' @title Select samples from raw data
 ##' @description Select samples from raw data by specifying either the signal names or the sample names.
-##' @param rawData a list of raw data. Usually obtained from \code{loadCountDataset()}.
+##' @template rawData-template
 ##' @param samples a character vector specifying which samples to select.
 ##' @template roxygen-template
 ##' @return Returns a list of the selected samples.
@@ -69,7 +69,7 @@ selectSamples = function(rawData, samples){
 
 ##' @title Gets the signal
 ##' @description Gets the signal from raw data and modifies it if necessary due to logarithm.
-##' @param rawData a list of raw data. Usually obtained from \code{loadCountDataset()}.
+##' @template rawData-template
 ##' @template roxygen-template
 ##' @return Returns the signal.
 ##' @examples
@@ -100,7 +100,7 @@ getLog2Signal = function(rawData){
 
 ##' @title Gets the rpkm measure
 ##' @description Gets the rpkm measure.
-##' @param rawData a list of raw data. Usually obtained from \code{loadCountDataset()}.
+##' @template rawData-template
 ##' @template roxygen-template
 ##' @return Returns the rpkm measure.
 ##' @examples
@@ -136,7 +136,7 @@ getRpkm = function(rawData){
 ##'   \item{sigThresh}{ the threshold...}
 ##'   \item{useSigThresh}{ ...and whether it should be used.}
 ##' }
-##' @param rawData a list of raw data. Usually obtained from \code{loadCountDataset()}.
+##' @template rawData-template
 ##' @template roxygen-template
 ##' @seealso \code{\link{getGeneMapping}}
 ##' @return Returns the aggregates raw data.
@@ -206,7 +206,7 @@ aggregateCountsByGene = function(param, rawData){
 ## all matrices/data.frames in rawData must have rownames!
 ##' @title Selects features from raw data
 ##' @description Selects features from raw data by looking at "signal" (if specified) or "counts" from \code{rawData}.
-##' @param rawData a list of raw data. Usually obtained from \code{loadCountDataset()}.
+##' @template rawData-template
 ##' @param keep a character vector specifying which signals or counts to keep.
 ##' @template roxygen-template
 ##' @return Returns the selected raw data.

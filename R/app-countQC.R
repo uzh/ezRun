@@ -74,7 +74,7 @@ EzAppCountQC <-
 ##'   \item{logColorRange}{ a logarithmic color range.}
 ##'   \item{writeScatterPlots}{ a logical indicating whether to write scatter plots.}
 ##' }
-##' @param rawData a list of raw data. Usually obtained from \code{loadCountDataset()}.
+##' @template rawData-template
 ##' @param writeDataFiles a logical indicating whether to write the data files into seperate tables.
 ##' @param types a character vector containing the types.
 ##' @template roxygen-template

@@ -41,7 +41,7 @@ plotBamStat = function(resultList, dataset, param, htmlFile=NULL){
     } else {
       idx = 1:length(files)
     }
-    writeIgvSessionLink(getIgvGenome(param), refBuild=param$ezRef["refBuild"], files[idx], html, label="Open Integrative Genomics Viewer")
+    addIgvSessionLink(getIgvGenome(param), refBuild=param$ezRef["refBuild"], files[idx], doc, label="Open Integrative Genomics Viewer")
   }
   
   titles[["Read Alignment Statistics"]] = "Read Alignment Statistics"
@@ -422,13 +422,11 @@ makeAlignmentCountBarPlot = function(file, mmCounts){
   stopifnot(colnames(mmCounts) %in% names(multiCountColors))
   plotCmd = expression({
     par(mar=c(12, 4.1, 4.1, 2.1))
-    mmCounts = mmCounts[ , rev(colnames(mmCounts))]
-    barplot(t(mmCounts)/1e6, las=2, ylab="Counts [Mio]", main="total alignments", legend.text=TRUE, border=NA,
-            col=multiCountColors[colnames(mmCounts)], xlim=c(0, nrow(mmCounts) +5))
-    #legend("topright", paste0(colnames(mmCountShrink), "hit(s)"), col=multiCountColors[colnames(mmCountShrink)],
-    #       cex=1.2, pch=20, bty="o", pt.bg="white")
+    x = mmCounts[ , rev(colnames(mmCounts))]
+    barplot(t(x)/1e6, las=2, ylab="Counts [Mio]", main="total alignments", legend.text=TRUE, border=NA,
+            col=multiCountColors[colnames(x)], xlim=c(0, nrow(x) +5))
   })
-  pngLink = ezImageFileLink(plotCmd, file=file, width=400 + nrow(mmCounts) * 10, height=700)
+  pngLink = ezImageFileLink(plotCmd, file=file, width=400 + nrow(mmCounts) * 10, height=480)
   
   return(pngLink)
 }

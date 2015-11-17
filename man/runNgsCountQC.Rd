@@ -29,7 +29,7 @@ runNgsCountQC(dataset, htmlFile = "00index.html", param = param,
   \item{writeScatterPlots}{ a logical indicating whether to write scatter plots.}
 }}
 
-\item{rawData}{a list of raw data. Usually obtained from \code{loadCountDataset()}.}
+\item{rawData}{a list of raw data obtained from \code{loadCountDataset()}.}
 
 \item{writeDataFiles}{a logical indicating whether to write the data files into seperate tables.}
 

@@ -52,7 +52,7 @@ EzAppTeqc <-
 ##' @template roxygen-template
 teqc = function(input, param=NULL){
   require(TEQC)
-  logMessage("teqc", param, "Starting") ## TODO: Refactor and remove, logMessage() is already in EzApp.
+  logMessage("teqc", param, "Starting") ## TODOP: REFAC and remove, logMessage() is already in EzApp.
   if(basename(param$designFile) == param$designFile){
     path = file.path("/srv/GT/databases/targetEnrichment_designs", param$designFile)
     param$designFile = list.files(path, pattern='Covered\\.bed$', full.names = T)[1]

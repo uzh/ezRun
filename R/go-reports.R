@@ -172,12 +172,9 @@ goUpDownTables = function(param, goResult){
   for (i in 1:length(goRoots)){
     childTerms = getChildTerms(goRoots[i], goIds, goRelatives, indent="", CHILDREN)
     for (term in childTerms){
-      terms = append(terms, getGOTerm(term)[[1]])
+      terms = append(terms, names(childTerms)[childTerms==term])
       pValues = append(pValues, signif(x[term, "Pvalue"], 3))
       counts = append(counts, paste(x[term, "Count"], x[term, "Size"], sep="/"))
-#       terms[i] = getGOTerm(childTerms)[[1]]  ## some entries might be too long
-#       pValues[i] = signif(x[childTerms, "Pvalue"], 3)
-#       counts[i] = paste(x[childTerms, "Count"], x[childTerms, "Size"], sep="/")
     }
   }
   return(ezFrame("Term"=terms, "p"=pValues, "N"=counts))

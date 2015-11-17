@@ -6,6 +6,47 @@
 # www.fgcz.ch
 
 
+## @title
+countDensPlot = function(param, cts, colors, main="all transcripts", bw=7){
+  
+  cts[cts < 0] = 0  ## zeros will be come -Inf and not be part of the area!! Area will be smaller than 1!
+  xlim = 0
+  ylim = 0
+  densList = list()
+  for (sm in colnames(cts)){
+    densList[[sm]] = density(log2(cts[ ,sm]), bw=bw)
+    xlim = range(c(xlim, densList[[sm]]$x))
+    ylim = range(c(ylim, densList[[sm]]$y))
+  }
+  xlim[2] = xlim[2] + 5
+  plot(1, 1, xlim=xlim, ylim=ylim, pch=16, col="white", 
+       xlab="log2 expression", ylab="density of transcripts",
+       main=paste(main, "(",nrow(cts), ")"))
+  for (sm in colnames(cts)){
+    lines(densList[[sm]]$x, densList[[sm]]$y, col=colors[sm])
+  }
+  legend("topright", colnames(cts), col=colors[colnames(cts)], cex=1.2, pt.cex=1.5, pch=20, bty="o", pt.bg="white")
+  return(NULL)
+}
+
+
+## @title
+myMdsPlot = function(signal, sampleColors, main){
+  require(edgeR)
+  y = DGEList(counts=signal,group=colnames(signal))
+  #y$counts = cpm(y)
+  #y = calcNormFactors(y)
+  mds = plotMDS(y)
+  plot(mds$x, mds$y, pch=c(15), xlab='Leading logFC dim1', ylab='Leading logFC dim2', main=main,
+       xlim=c(1.2*min(mds$x), 1.2*max(mds$x)), ylim=c(1.2*min(mds$y), 1.2*max(mds$y)), col=sampleColors)
+  text(mds$x,mds$y,labels = colnames(signal),pos=1,col=c('darkcyan'),cex=0.7)
+  par(bg = 'white')
+  return(NULL)
+}
+
+
+
+
 ## REFAC, but function is currently unused.
 fragLengthReadMidDensityPlot = function(fl, file=NULL, xlim=c(-500, 500), bw=5){
   
@@ -140,7 +181,7 @@ plotStrandedProfiles = function(gr, covList, gff=gff,
 }
 
 
-
+## name problematic: profilePlot
 ## @describeIn plotStrandedProfiles
 profilePlot = function(x=1:length(profileList[[1]]), profileList,
                        profColors, legendLabels=names(profColors), file=NULL, 
@@ -214,40 +255,3 @@ cumHistPlot = function(param, cts, png, colors, main="all transcripts"){
   legend("bottomright", colnames(cts), col=colors[colnames(cts)], cex=1.2, pt.cex=1.5, pch=20, bty="o", pt.bg="white")
   return(NULL)
 }
-
-
-countDensPlot = function(param, cts, colors, main="all transcripts", bw=7){
-  
-  cts[cts < 0] = 0  ## zeros will be come -Inf and not be part of the area!! Area will be smaller than 1!
-  xlim = 0
-  ylim = 0
-  densList = list()
-  for (sm in colnames(cts)){
-    densList[[sm]] = density(log2(cts[ ,sm]), bw=bw)
-    xlim = range(c(xlim, densList[[sm]]$x))
-    ylim = range(c(ylim, densList[[sm]]$y))
-  }
-  xlim[2] = xlim[2] + 5
-  plot(1, 1, xlim=xlim, ylim=ylim, pch=16, col="white", 
-       xlab="log2 expression", ylab="density of transcripts",
-       main=paste(main, "(",nrow(cts), ")"))
-  for (sm in colnames(cts)){
-    lines(densList[[sm]]$x, densList[[sm]]$y, col=colors[sm])
-  }
-  legend("topright", colnames(cts), col=colors[colnames(cts)], cex=1.2, pt.cex=1.5, pch=20, bty="o", pt.bg="white")
-  return(NULL)
-}
-
-myMdsPlot = function(signal, sampleColors, main){
-  require(edgeR)
-  y = DGEList(counts=signal,group=colnames(signal))
-  #y$counts = cpm(y)
-  #y = calcNormFactors(y)
-  mds = plotMDS(y)
-  plot(mds$x, mds$y, pch=c(15), xlab='Leading logFC dim1', ylab='Leading logFC dim2', main=main,
-       xlim=c(1.2*min(mds$x), 1.2*max(mds$x)), ylim=c(1.2*min(mds$y), 1.2*max(mds$y)), col=sampleColors)
-  text(mds$x,mds$y,labels = colnames(signal),pos=1,col=c('darkcyan'),cex=0.7)
-  par(bg = 'white')
-  return(NULL)
-}
-

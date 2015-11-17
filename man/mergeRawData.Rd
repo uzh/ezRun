@@ -9,7 +9,7 @@ mergeRawData(rawData1, rawData2)
 \arguments{
 \item{rawData1}{a list of raw data. This is the main dataset where the information from the second gets added to.}
 
-\item{rawData2}{the second list of raw data. Usually obtained from \code{loadCountDataset()}.}
+\item{rawData2}{the second list of raw data. Both are obtained from \code{loadCountDataset()}.}
 }
 \value{
 Returns a list containing the merged raw data.

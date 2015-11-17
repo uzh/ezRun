@@ -6,6 +6,25 @@
 # www.fgcz.ch
 
 
+##' @title Runs the gage analysis
+##' @description Runs the gage analysis.
+##' @param result a list of results obtained from \code{twoGroupCountComparison()}.
+##' @param param a list of parameters, passed to other functions as well:
+##' \itemize{
+##'   \item{featureLevel}{ a character representing the feature level. Must be "gene", otherwise the function gets stopped.}
+##'   \item{pathView}{ a logical indicating whether to do a path view.}
+##' }
+##' @param output a list, file path or an object of the class EzDataset containing the output information.
+##' @template rawData-template
+##' @param gene.pValue a numeric specifying the p-Value threshold.
+##' @template roxygen-template
+##' @seealso \code{\link{getGeneSets}}
+##' @seealso \code{\link[gage]{gage}}
+##' @seealso \code{\link{gageSigGenes}}
+##' @seealso \code{\link{getSpeciesName}}
+##' @seealso \code{\link{getKeggId}}
+##' @seealso \code{\link[pathview]{pathview}}
+##' @return Returns the gage results.
 runGageAnalysis = function(result, param=NULL, output=NULL, rawData=NULL, gene.pValue=param[['gageGeneThreshold']]) {
   
   #require(gage, warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
@@ -72,42 +91,22 @@ runGageAnalysis = function(result, param=NULL, output=NULL, rawData=NULL, gene.p
   return(gageResults)
 }
 
-readGmt = function (file) {
-  f <- readLines(file)
-  lst = sapply(f, function(x) unlist(strsplit(x, "\t", fixed = TRUE)))
-  names(lst) = sapply(lst, function(x) x[1])
-  lst = lapply(lst, function(x) x[-(1:2)])
-  return(lst)
-}
-
-getSpeciesName = function(param){
-  buildFields = strsplit(param[["refBuild"]], "/", fixed=TRUE)[[1]]
-  return(buildFields[1])
-}
-
-getKeggId = function(x, param) {
-  kegg.org.info = read.delim(file.path(param[['KEGGdb']], param[['KEGGOrgId']]))
-  
-  # Query is in kegg.org.info
-  if(x %in% kegg.org.info$fgcz) {
-    kegg.id = kegg.org.info$KeggOrg[kegg.org.info$fgcz==x]
-    return(as.character(kegg.id))
-    stop()
-  }
-  
-  # If not in the original, check if the name is in the full name field using "_" as a separator
-  strOrgName = gsub("_", " ", x)
-  
-  if(any(grepl(strOrgName, kegg.org.info$FullName, ignore.case = T))) {
-    kegg.id = kegg.org.info$KeggOrg[grep(strOrgName, kegg.org.info$FullName, ignore.case = T)]
-    return(as.character(kegg.id))
-  } else {
-    warning(paste("Genome build not found in the KEGG organism list. Please add genome manually to", param[['KEGGOrgId']]))
-    return(NA)
-  }
-}
-
-getGeneSets = function(param) {
+##' @title Gets the gene set
+##' @description Gets the gene set
+##' @param param a list of parameters:
+##' \itemize{
+##'   \item{KEGGgmt}{ a character representing the file path of the gmt data.}
+##'   \item{genesets}{ a character vector containing the gene sets.}
+##'   \item{MSigDB}{ a character. Used if the species is Homo sapiens.}
+##'   \item{MSigDBPath}{ a character representing the file path to \code{MSigDB}. Used if the species is Homo sapiens.}
+##' }
+##' @template roxygen-template
+##' @return Returns the gene set.
+##' @examples
+##' param = ezParam(userParam = list('refBuild' = 'Schizosaccharomyces_pombe/Ensembl/EF2/Annotation/Version-2013-03-07'))
+##' getGeneSets(param)
+## TODOP: no database found at param$KEGGgmt
+getGeneSets = function(param){
   SpeciesName = getSpeciesName(param)
   kegg.id = getKeggId(SpeciesName, param)
   
@@ -117,7 +116,7 @@ getGeneSets = function(param) {
   lf = grep("symbol", list.files(param[['KEGGgmt']], pattern=kegg.id, full.names=T), value=T)
   
   if(grepl(",", param[['genesets']])) param[['genesets']] <- unlist(strsplit(param[['genesets']],","))
-
+  
   if(length(lf)>0) {
     # Read precomputed KEGG gene sets with HGNC symbol
     geneSet = lapply(lf, readGmt)
@@ -141,8 +140,6 @@ getGeneSets = function(param) {
     #                                values = x, 
     #                                mart = ensembl)[,'hgnc_symbol'])
     #keggSet$kg.symbol <- res
-    
-    
   }
   
   # Adding MSigDB if Homo Sapiens
@@ -159,6 +156,16 @@ getGeneSets = function(param) {
   return(geneSet)
 }
 
+##' @describeIn getGeneSets Reads the gmt file in.
+readGmt = function (file) {
+  f <- readLines(file)
+  lst = sapply(f, function(x) unlist(strsplit(x, "\t", fixed = TRUE)))
+  names(lst) = sapply(lst, function(x) x[1])
+  lst = lapply(lst, function(x) x[-(1:2)])
+  return(lst)
+}
+
+##' @describeIn runGageAnalysis Runs the gage command, filters the results and returns them.
 gageAnalysis = function(result, rawData=NULL, param=NULL, geneSets=NULL ) {
   
   # Prepare gage input data
@@ -170,10 +177,10 @@ gageAnalysis = function(result, rawData=NULL, param=NULL, geneSets=NULL ) {
   
   # Run gage and get all the results + add html links
   geneSets.names = names(geneSets)
-
-#   lapply(seq_along(geneSets), function(i) paste(names(geneSets)[[i]], geneSets[[i]]))
   
-  fc.gsets.all = lapply(seq_along(geneSets), function(i, data=gage.input, paramI=param) {
+  #   lapply(seq_along(geneSets), function(i) paste(names(geneSets)[[i]], geneSets[[i]]))
+  
+  fc.gsets.all = lapply(seq_along(geneSets), function(i, data=gage.input, paramI=param){
     x = geneSets[[i]]
     res = gage(data, gsets = x, ref = NULL, samp = NULL)
     both = gage(data, gsets = x, ref = NULL, samp = NULL, same.dir = FALSE)
@@ -198,7 +205,7 @@ gageAnalysis = function(result, rawData=NULL, param=NULL, geneSets=NULL ) {
   
   
   # Filter gage results using param[['gageThreshold']] q value
-  fc.gsets = lapply(fc.gsets.all, function(x, cutoff=param[['gageThreshold']], qpval = "q.val") {
+  fc.gsets = lapply(fc.gsets.all, function(x, cutoff=param[['gageThreshold']], qpval = "q.val"){
     greater.pval = x$greater[,qpval]
     use = greater.pval <= cutoff & !is.na(greater.pval)
     x$greater = x$greater[use, , drop=F]
@@ -231,35 +238,9 @@ gageAnalysis = function(result, rawData=NULL, param=NULL, geneSets=NULL ) {
   return(list(all=fc.gsets.all, significant=fc.gsets))
 }
 
-writeGageResults = function(gageResults, param=NULL, output=NULL, prefix=NULL, signal=c("greater", "less", "both") ) {
-  gageAll = gageResults[['all']]
-  outDir = "."
-  if(is.null(prefix)) prefix = "gage"
-  
-  for(gs in names(gageAll)) {
-    x = gageAll[[gs]]
-    for (test in signal) {
-      outfile = paste(paste(param[['comparison']],prefix, gs, test, sep = "-"), "txt", sep=".")
-      outfile = file.path(outDir, outfile)
-      res = x[[test]]
-      links = x[["links"]][rownames(res),]
-      res = cbind(res,links)
-      
-      fSet = row.names(res)
-      fGenes = lapply(fSet, 
-             function(y, datf=x$less.sigGenes){
-               paste(datf[datf$Set==y,"Gene"],collapse=";") 
-             })
-      
-      res = cbind(res, unlist(fGenes))
-      colnames(res)[ncol(res)] = paste0("genes(",param[['gageGeneThreshold']],")")
-      ezWrite.table(res, file=outfile)
-    }
-  }
-}
-
-getExpressionGage = function(gageResults, result=NULL, rawData=NULL, param = NULL, signal=NULL) {
-  xgetExpressionGage = function (x, gset, anno = NULL, expr = NULL, pValue = NULL, param = NULL) {
+##' @describeIn runGageAnalysis Gets the expression from the gage results.
+getExpressionGage = function(gageResults, result=NULL, rawData=NULL, param = NULL, signal=NULL){
+  xgetExpressionGage = function (x, gset, anno = NULL, expr = NULL, pValue = NULL, param = NULL){
     xNames = row.names(x)
     genes_symbols = unique(unlist(gset[xNames]))
     genes_symbols = intersect(genes_symbols, anno$gene_name)
@@ -282,8 +263,8 @@ getExpressionGage = function(gageResults, result=NULL, rawData=NULL, param = NUL
                                           xexpr = result$xNorm, 
                                           xpValue = result$fdr, 
                                           xparam = param, 
-                                          xsignal = signal) {
-    for (i in xsignal) {
+                                          xsignal = signal){
+    for (i in xsignal){
       expName = paste(i, "expr", sep=".")
       pValueName = paste(i, "pValue", sep=".")
       x[[expName]] = matrix(nrow = 0, ncol = 0)
@@ -298,13 +279,25 @@ getExpressionGage = function(gageResults, result=NULL, rawData=NULL, param = NUL
   })
 }
 
+##' @title Gets significant genes
+##' @description Gets significant genes from the gage analysis.
+##' @param x the gage results to get significant genes from.
+##' @param gene.pValue a numeric specifying the p-Value threshold.
+##' @param signal a character specifying which signal to analyse.
+##' @template roxygen-template
+##' @return Returns the gage results with labeled significant genes.
+##' @examples
+##' param = ezParam(userParam = list('refBuild' = 'Schizosaccharomyces_pombe/Ensembl/EF2/Annotation/Version-2013-03-07'))
+##' pValue = param$gageGeneThreshold
+##' x = "TODOP"
+##' gageSigGenes(x, pValue, "both")
 gageSigGenes = function(x, gene.pValue=NULL, signal=NULL ){
   # Select significant genes
-  pValueVar = paste(signal,'pValue',sep='.')
+  pValueVar = paste(signal, 'pValue', sep='.')
   use = x[[pValueVar]] <= gene.pValue & !is.na(x[[pValueVar]])
   genesUse = names(x[[pValueVar]])[use]
   
-  label = paste(signal,"sigGenes",sep='.')
+  label = paste(signal, "sigGenes", sep='.')
   x[[label]] = matrix(nrow=0, ncol=2, dimnames=list(c(),c("Gene", "Set")))
   if(!is.null(genesUse)) {
     xAnnot = melt(x$gsets[rownames(x[[signal]])])
@@ -315,6 +308,35 @@ gageSigGenes = function(x, gene.pValue=NULL, signal=NULL ){
   return(x)
 }
 
+##' @describeIn runGageAnalysis Writes the gage results into separate tables.
+writeGageResults = function(gageResults, param=NULL, output=NULL, prefix=NULL, signal=c("greater", "less", "both")){
+  gageAll = gageResults[['all']]
+  outDir = "."
+  if(is.null(prefix)) prefix = "gage"
+  
+  for (gs in names(gageAll)){
+    x = gageAll[[gs]]
+    for (test in signal){
+      outfile = paste(paste(param[['comparison']],prefix, gs, test, sep = "-"), "txt", sep=".")
+      outfile = file.path(outDir, outfile)
+      res = x[[test]]
+      links = x[["links"]][rownames(res),]
+      res = cbind(res,links)
+      
+      fSet = row.names(res)
+      fGenes = lapply(fSet, 
+                      function(y, datf=x$less.sigGenes){
+                        paste(datf[datf$Set==y,"Gene"],collapse=";") 
+                      })
+      
+      res = cbind(res, unlist(fGenes))
+      colnames(res)[ncol(res)] = paste0("genes(",param[['gageGeneThreshold']],")")
+      ezWrite.table(res, file=outfile)
+    }
+  }
+}
+
+##' @describeIn runGageAnalysis Plots heatmaps of the significant gage results.
 gageHeatmap = function(x, param=NULL, output=NULL, gene.pValue=NULL, signal=NULL, fileName=NULL, prefix='gage-heatmap'){
   library(gplots, warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
   
@@ -367,6 +389,52 @@ gageHeatmap = function(x, param=NULL, output=NULL, gene.pValue=NULL, signal=NULL
   return(list(pathwayColors=pathwayColors, fileLink=fileLink))
 }
 
+##' @title Gets the species name
+##' @description Gets the species name.
+##' @param param a list of parameters to extract \code{refBuild} from.
+##' @template roxygen-template
+##' @return Returns the name of the species derived from \code{refBuild}.
+##' @examples
+##' param = ezParam(userParam = list('refBuild' = 'Schizosaccharomyces_pombe/Ensembl/EF2/Annotation/Version-2013-03-07'))
+##' getSpeciesName(param)
+getSpeciesName = function(param){
+  buildFields = strsplit(param[["refBuild"]], "/", fixed=TRUE)[[1]]
+  return(buildFields[1])
+}
+
+##' @title Gets the KEGG ID
+##' @description Gets the KEGG ID.
+##' @param x a character representing the species name.
+##' @param param a list of parameters to extract \code{KEGGdb} and \code{KEGGOrgId} from.
+##' @template roxygen-template
+##' @return Returns the KEGG ID as a character.
+##' @examples
+##' param = ezParam(userParam = list('refBuild' = 'Schizosaccharomyces_pombe/Ensembl/EF2/Annotation/Version-2013-03-07'))
+##' x = getSpeciesName(param)
+##' getKeggId(x, param)
+getKeggId = function(x, param) {
+  kegg.org.info = read.delim(file.path(param[['KEGGdb']], param[['KEGGOrgId']]))
+  
+  # Query is in kegg.org.info
+  if(x %in% kegg.org.info$fgcz) {
+    kegg.id = kegg.org.info$KeggOrg[kegg.org.info$fgcz==x]
+    return(as.character(kegg.id))
+    stop()
+  }
+  
+  # If not in the original, check if the name is in the full name field using "_" as a separator
+  strOrgName = gsub("_", " ", x)
+  
+  if(any(grepl(strOrgName, kegg.org.info$FullName, ignore.case = T))) {
+    kegg.id = kegg.org.info$KeggOrg[grep(strOrgName, kegg.org.info$FullName, ignore.case = T)]
+    return(as.character(kegg.id))
+  } else {
+    warning(paste("Genome build not found in the KEGG organism list. Please add genome manually to", param[['KEGGOrgId']]))
+    return(NA)
+  }
+}
+
+##' @describeIn runGageAnalysis Performs the pathview for each gene set and signal.
 gagePathview = function(x, param=NULL, output=NULL, signal=NULL, kegg.id=NULL, gene.pValue=NULL, result = result, anno = rawData$seqAnno){
   library(pathview, warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
   
@@ -411,6 +479,11 @@ gagePathview = function(x, param=NULL, output=NULL, signal=NULL, kegg.id=NULL, g
   }  
 }
 
+
+
+
+
+# to be deprecated eventually, unused currently
 writeGageTables = function(html, param = NULL, gageResults = NULL) {
   ezWrite("<h3>GAGE Enrichment Analysis</h3>", con=html)
   use = paste0("<p>Gene sets used: ", paste(names(gageResults[['all']]), collapse=", "), "<br>")
@@ -499,6 +572,7 @@ writeGageTables = function(html, param = NULL, gageResults = NULL) {
   }
 }
 
+# to be deprecated eventually, unused currently
 writeTableToHtmlWhite = function(x, con=stdout(), bgcolors=matrix("#ffffff", nrow=nrow(x), ncol=ncol(x)),
          valign="middle", border=1, head=""){
   
@@ -514,6 +588,3 @@ writeTableToHtmlWhite = function(x, con=stdout(), bgcolors=matrix("#ffffff", nro
   }
   ezWrite("</table>", con=con)
 }
-
-
-

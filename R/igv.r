@@ -173,7 +173,6 @@ writeIgvSession = function(genome, refBuild, file="igvSession.xml", bamUrls=NULL
   return(file)  
 }
 
-## TODOP: improve description after function has been updated. REFAC to new report
 ##' @describeIn writeIgvSession Writes an IGV session link.
 writeIgvSessionLink = function(genome, refBuild, bamFiles, html, locus="All", label="Open Integrative Genomics Viewer", baseUrl=PROJECT_BASE_URL){
   #TODO stopifnot(grepl("^p", bamFiles))
@@ -185,6 +184,14 @@ writeIgvSessionLink = function(genome, refBuild, bamFiles, html, locus="All", la
   return()
 }
 
+##' @describeIn writeIgvSession Adds an IGV session link to an object of the class bsdoc.
+addIgvSessionLink = function(genome, refBuild, bamFiles, doc, locus="All", label="Open Integrative Genomics Viewer", baseUrl=PROJECT_BASE_URL){
+  urls = paste(baseUrl, bamFiles, sep="/")
+  writeIgvSession(genome, refBuild, bamUrls=urls, locus=locus)
+  doc = addJavascript(doc, text=paste0('startIgvFromJnlp("', label, '", "', locus, '")'))
+  return()
+}
+
 ##' @describeIn writeIgvSession Gets the IGV genome if specified or otherwise tries to get the build name from the parameters.
 getIgvGenome = function(param){
   ifelse(ezIsSpecified(param$igvGenome),
@@ -192,7 +199,7 @@ getIgvGenome = function(param){
          param$ezRef["refBuildName"])
 }
 
-## REFAC to new report, but currently not used
+## REFAC, but function is currently unused.
 ##' @title Gets an IGV locus link in .html format
 ##' @description Gets an IGV locus link in html format using chromosome, start and end information.
 ##' @param chrom the name of the chromosome.
