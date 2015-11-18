@@ -102,7 +102,12 @@ addReplicate = function(x, sep="_", repLabels=1:length(x)){
 }
 
 
-
+##' @title Combine the reads from two datasets in a single dataset
+##' @description Takes the union of the samples in both input datasets and generates a new dataset. 
+##' If a sample is present in both datasets, the read files are concatenated and a new file is written.
+##' If a sample is present in only one dataset it is imply copied
+##' The Read Count column must be present and is updated if two files are combined.
+##' A new dataset is written.
 ezCombineReadDatasets = function(ds1, ds2, newDsDir){
   ds1 = ezRead.table("/srv/GT/analysis/hubert/ds1.tsv")
   ds2 = ezRead.table("/srv/GT/analysis/hubert/ds2.tsv")
