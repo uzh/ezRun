@@ -18,7 +18,7 @@ ezMethodChipStats = function(input=NA, output=NA, param=NA, htmlFile="00index.ht
   dataset = input$meta
   gff = ezLoadFeatures(param, types = 'gene')
   if (!is.null(gff) && nrow(gff) == 0){
-    writeErrorHtml(htmlFile, param = param, experiment = anno, 
+    writeErrorHtml(htmlFile, param = param, dataset = dataset,
                    error = list(error = paste("No features found in given feature file:<br>", 
                                           param$ezRef["refFeatureFile"])))
     return("Error")

@@ -162,6 +162,7 @@ ezTagListFromNames = function(names){
 ##' @seealso \code{\link{EzDataset}}
 ##' @seealso \code{\link{checkFreeDiskSpace}}
 ##' @examples
+##' require("ezRun")
 ##' file = system.file("extdata/yeast_10k/dataset.tsv", package="ezRun", mustWork = TRUE)
 ##' ds = EzDataset$new(file=file)
 ##' NULLApp = EzApp$new(runMethod=function(input, output, param){},name="NULLApp")

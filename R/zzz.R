@@ -7,7 +7,7 @@
 
 
 EZ_PARAM_DEFAULTS <<- ezRead.table(system.file("extdata/EZ_PARAM_DEFAULTS.txt", package="ezRun", mustWork = TRUE), comment.char="#")  
-
+EZ_GLOBAL_VARIABLES <<- system.file("extdata/EZ_GLOBAL_VARIABLES.txt", package="ezRun", mustWork = TRUE)
 
 .onLoad = function(libname, pkgname){
   ## NICE_TO_HAVE: put global variables in a list ezGlobals  
