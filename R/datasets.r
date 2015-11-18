@@ -100,3 +100,41 @@ addReplicate = function(x, sep="_", repLabels=1:length(x)){
   repId = ezReplicateNumber(x)
   paste(x, repLabels[repId], sep=sep)
 }
+
+
+
+ezCombineReadDatasets = function(ds1, ds2, newDsDir){
+  ds1 = ezRead.table("/srv/GT/analysis/hubert/ds1.tsv")
+  ds2 = ezRead.table("/srv/GT/analysis/hubert/ds2.tsv")
+  newDsDir = "/srv/GT/analysis/p1314/HiSeq-20151116-Combined"
+  colnames(ds2) == colnames(ds1)
+  intersect(rownames(ds1), rownames(ds2))
+  #vennFromSets(list(ds1=rownames(ds1), ds2=rownames(ds2)))
+  
+  cols = intersect(colnames(ds1), colnames(ds2))
+  ds = rbind(ds1[ , cols],
+             ds2[setdiff(rownames(ds2), rownames(ds1)), cols])
+  ds$"Read Count" = NA
+  
+  setwdNew(newDsDir)
+  ## below implements only the special case where the ds1 samples are a subset of the ds2 samples
+  for (nm in rownames(ds)){
+    file2 = file.path("/srv/gstore/projects", ds2[nm, "Read1 [File]"])
+    if (nm %in% rownames(ds1)){
+      file1 = file.path("/srv/gstore/projects", ds1[nm, "Read1 [File]"])
+      fileMerged = paste0("20151116.combined-", nm, "_R1.fastq.gz")
+      cmd = paste("zcat", file1, file2, "|", "pigz -p4 --best >", fileMerged)
+      cat(cmd, "\n")
+      ezSystem(cmd)
+      ds[nm, "Read Count"] = ds1[nm, "Read Count"] + ds2[nm, "Read Count"]
+      ds[nm, "Read1 [File]"] = file.path(dsDir, fileMerged)
+    } else {
+      ezSystem(paste("cp", file2, "."))
+      ds[nm, "Read1 [File]"] = file.path(dsDir, basename(file2))
+    }
+  }
+  
+  ezWrite.table(ds, file=file.path(".", "dataset.tsv"), head="Name")
+  return(ds)
+}
+
