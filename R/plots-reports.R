@@ -188,7 +188,7 @@ addTestScatterPlots = function(doc, param, x, result, seqAnno, types=NULL){
     abline(h=sum(result$usedInTest)/ncol(xx))
     at = c(0.01, 0.1, 0.25, 0.5, 0.75, 1)
     axis(1, at=at*ncol(xx), labels = at)
-    legend("top", c("used", "absent"), col=c("blue", "darkorange"), pch=20, cex=1)
+    legend("top", c("used", "not expressed"), col=c("blue", "darkorange"), pch=20, cex=1)
   })
   links["pValueHist"] = ezImageFileLink(plotCmd, file=paste0(param$comparison, "-pValueHist.png"), height=400, width=800)
   doc = addFlexTable(doc, ezGrid(rbind(links)))

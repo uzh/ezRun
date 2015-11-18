@@ -93,7 +93,7 @@ getBlueRedScale <- function(n=256, whiteLevel=0.9){
 ##' @template roxygen-template
 ##' @examples
 ##' ezColorLegend()
-ezColorLegend = function(colorRange=c(-3,3), colors=getBlueRedScale(256), vertical=TRUE,
+ezColorLegend = function(colorRange=c(-3,3), colors=getBlueRedScale(), vertical=TRUE,
 															at=seq(from=colorRange[1], to=colorRange[2], by=by.label),
 															labels = as.character(at), by.label=0.5){
 	pos = (at - colorRange[1])/(colorRange[2]- colorRange[1])
@@ -218,37 +218,40 @@ ezColorLegend = function(colorRange=c(-3,3), colors=getBlueRedScale(256), vertic
   return(valueByTail)
 }
 
-
-###### TODOP: continue with documenting plots
-
-##' @title Performs the volcano plot
-##' @description Performs the volcano plot.
-##' @param log2Ratio
-##' @param pValue
-##' @param yType
+##' @title Does a volcano plot
+##' @description Does a volcano plot.
+##' @param log2Ratio a numeric vector containing the log2 ratios of a result.
+##' @param pValue a numeric vector containing the p-Values of a result.
+##' @param yType a character specifying the type of the y-value. Gets pasted onto the y-axis of the plot.
 ##' @template plot-template
 ##' @template roxygen-template
+##' @examples
+##' types = data.frame(matrix(rep(1:10, each=10), 10))
+##' ezVolcano(log2Ratio=1:100, pValue=rep(10^(-4:5), each=10),
+##' pch=16, isPresent=1:50, types=types, colors=rainbow(ncol(types)), legendPos="bottomleft")
 ezVolcano = function(log2Ratio, pValue, yType="p-value",
-                     lim=c(NA, NA), isPresent=NULL,
+                     lim=list(NA, NA), isPresent=NULL,
                      types=NULL, pch=16, colors=rainbow(ncol(types)), legendPos="bottomright",
                      cex.main=1.0, cex=0.8, ...){
   yValues = -log10(pValue)
+  xlim = lim[[1]]
+  ylim = lim[[2]]
   
-  if (is.na(lim[1])){
+  if (is.na(lim[[1]])){
     lrMaxAbs = max(abs(log2Ratio), na.rm=TRUE)
     xm = min(lrMaxAbs, 5)
-    lim[1] = c(-xm, xm)
-    log2Ratio = shrinkToRange(log2Ratio, theRange = lim[1])
+    xlim = c(-xm, xm)
+    log2Ratio = shrinkToRange(log2Ratio, theRange = xlim)
   }
-  if (is.na(lim[2])){
+  if (is.na(lim[[2]])){
     ym = min(max(yValues, na.rm=TRUE), 10)
-    lim[2] = c(0, ym)
-    yValues = shrinkToRange(yValues, theRange=lim[2])
+    ylim = c(0, ym)
+    yValues = shrinkToRange(yValues, theRange=ylim)
   }
 
   par(pty="s")
   par(cex.main=cex.main, cex=cex)
-  plot(log2Ratio, yValues, pch=pch, xlim=lim[1], ylim=lim[2],
+  plot(log2Ratio, yValues, pch=pch, xlim=xlim, ylim=ylim,
       col="gray", xlab="log2 ratio", ylab=paste0("-log10(", yType, ")"),
        ...)
   if (!is.null(isPresent)){
@@ -264,11 +267,17 @@ ezVolcano = function(log2Ratio, pValue, yType="p-value",
   }
 }
 
-
-##' @title 1
-##' @description 1
+##' @title Does smooth scatter plots
+##' @description Does smooth scatter plots.
+##' @param x an optional reference vector or matrix.
+##' @param y a matrix of values to plot.
+##' @param xlab a character for labeling the reference. If \code{x} is a matrix, its colnames will be used as labels.
+##' @param ylab a character vector for the labels of the plots. If \code{ylab} is NULL, the colnames from \code{y} will be used as labels.
+##' @param nPlotsPerRow an integer specifying the number of plots per row.
 ##' @template plot-template
 ##' @template roxygen-template
+##' @examples
+##' ezSmoothScatter(y=data.frame(a=1:10, b=21:30, c=41:50))
 ezSmoothScatter <- function(x=NULL, y, xlab=NULL, ylab=NULL, nPlotsPerRow=6,
                             lim=range(x, y, na.rm=TRUE), isPresent=NULL,
                             types=NULL, pch=16, colors=rainbow(ncol(types)), legendPos="bottomright",
@@ -315,16 +324,18 @@ ezSmoothScatter <- function(x=NULL, y, xlab=NULL, ylab=NULL, nPlotsPerRow=6,
       }
     }
     smoothScatter(log2(xVal), log2(y[ ,i]), xlim=log2(lim), ylim=log2(lim),
-                  main=main[i], xlab=ylab[1], ylab=ylab[2], ...)
+                  main=main[i], xlab=xlab, ylab=ylab[i], ...)
     abline(0, 1, col="blue")
   }
 }
 
-
-##' @title 1
-##' @description 1
-##' @template plot-template
+##' @title Does scatter plots
+##' @description Does scatter plots.
+##' @inheritParams ezSmoothScatter
+##' @param shrink a logical specifying whether to shrink the values to range.
 ##' @template roxygen-template
+##' @examples
+##' ezScatter(y=data.frame(a=1:10, b=21:30, c=41:50))
 ezScatter <- function(x=NULL, y, xlab=NULL, ylab=NULL, nPlotsPerRow=6, shrink=FALSE,
                       lim=range(x, y, na.rm=TRUE), isPresent=NULL,
                       types=NULL, pch=16, colors=rainbow(ncol(types)), legendPos="bottomright", 
@@ -387,7 +398,6 @@ ezScatter <- function(x=NULL, y, xlab=NULL, ylab=NULL, nPlotsPerRow=6, shrink=FA
   }
 }
 
-
 ##' @describeIn ezScatter Does the XY scatter plot.
 ezXYScatterScatter = function(xVec, yVec, absentColor="gray", shrink=FALSE, frame=TRUE, axes=TRUE,
                               xlim=range(xVec, yVec, na.rm=TRUE), ylim=xlim, isPresent=NULL,
@@ -420,11 +430,16 @@ ezXYScatterScatter = function(xVec, yVec, absentColor="gray", shrink=FALSE, fram
   abline(-log10(2), 1, col="blue", lty=2);
 }
 
-
-##' @title 1
-##' @description 1
+##' @title Does scatter plots of all pairs
+##' @description Does scatter plots of all pairs.
+##' @param x a matrix containing the data to plot.
+##' @param main a character specifying the main title of the plots.
+##' @param shrink a logical specifying whether to shrink the values to range.
+##' @param xylab a character vector containing the axis labels. If it is NULL, colnames of \code{x} will be used.
 ##' @template plot-template
 ##' @template roxygen-template
+##' @examples
+##' ezAllPairScatter(x=matrix(1:10,5))
 ezAllPairScatter = function(x, main="", shrink=FALSE, xylab=NULL,
                             lim=range(x, na.rm=TRUE), isPresent=NULL,
                             types=NULL, pch=16, colors=rainbow(ncol(types)), legendPos="bottomright",
@@ -466,14 +481,22 @@ ezAllPairScatter = function(x, main="", shrink=FALSE, xylab=NULL,
   mtext(main, outer=TRUE, line=1)
 }
 
-
-
-
-
-## @title
+##' @title Does a correlation plot
+##' @description Does a correlation plot.
+##' @param z the data to plot.
+##' @param cond a character vector specifying the conditions.
+##' @param condOrder a sorted character vector specifying the order of the conditions.
+##' @param main a character specifying the main title of the plots.
+##' @param labels a character vector specifying axis labels.
+##' @param condLabels a character vector specifying condition labels.
+##' @param plotLabels a logical specifying whether to do plot labels.
+##' @template colors-template
+##' @template roxygen-template
+##' @examples
+##' ezCorrelationPlot(z=matrix(1:100,10))
 ezCorrelationPlot <- function(z, cond=NULL, condOrder=NULL, main="Correlation", 
                               labels=NULL, condLabels=NULL, plotLabels=nrow(z) < 100,
-                              sampleColors=NULL){
+                              colors=NULL){
   
   colorScale <- gray((1:256)/256)
   condNumbers = NULL
@@ -510,17 +533,17 @@ ezCorrelationPlot <- function(z, cond=NULL, condOrder=NULL, main="Correlation",
     for ( i in 1:length(condOrder)){
       idx[ condOrder[i] == cond] <- i
     }
-    if (is.null(sampleColors)){
+    if (is.null(colors)){
       condCol = rainbow(length(condOrder))
-      sampleColors = condCol[idx]
+      colors = condCol[idx]
     }
     idxOrdered <- order(idx)
     condNumbers <- as.matrix(idx[idxOrdered])
     
     par(mar=c(0, 2, 2, 0));
-    image(t((1:nRow)[idxOrdered]), axes=FALSE, frame.plot=FALSE, col=sampleColors)
+    image(t((1:nRow)[idxOrdered]), axes=FALSE, frame.plot=FALSE, col=colors)
     par(mar=c(2, 0, 0, 2));
-    image(as.matrix((1:nRow)[idxOrdered]), axes=FALSE, frame.plot=FALSE, col=sampleColors)
+    image(as.matrix((1:nRow)[idxOrdered]), axes=FALSE, frame.plot=FALSE, col=colors)
     
     tmp <- tmp[idxOrdered, idxOrdered]
     if (!is.null(labels)){
@@ -559,16 +582,43 @@ ezCorrelationPlot <- function(z, cond=NULL, condOrder=NULL, main="Correlation",
   axis(4, at=(0:9)/9, las=2, labels=signif(rge[1] + inc * 0:9, 3), cex.axis=1.5)
 }
 
-
-## @title
+##' @title Shrinks values and plots a histogram
+##' @description Shrinks values and plots a histogram.
+##' @param x a vector of values to shrink and plot a histogram from.
+##' @param range two values specifying the range to shrink \code{x} to.
+##' @param step a value specifying the step distance between the breaks for \code{hist()}.
+##' @template addargs-template
+##' @templateVar fun hist()
+##' @template roxygen-template
+##' @seealso \code{\link[graphics]{hist}}
+##' @return Returns the histogram.
+##' @examples
+##' intHist(1:10)
 intHist = function(x, range=c(round(min(x, na.rm=TRUE))-0.5, round(max(x, na.rm=TRUE))+0.5), step=1, ...){
   x = shrinkToRange(x, range)
   return(hist(x, breaks=seq(range[1], range[2]+step-1, by = step), ...))
 }
 
-
-## @title
-ezHeatmap = function(x, lim=c(-4, 4), col=getBlueRedScale,
+##' @title Plots a heatmap
+##' @description Plots a heatmap and adds a color key.
+##' @param x the data to plot.
+##' @template colors-template
+##' @param lim two integers used for \code{breaks} argument passed to \code{heatmap.2()}.
+##' @param cexCol an integer passed to \code{heatmap.2()}.
+##' @param labRow a character vector, possibly modified, then passed to \code{heatmap.2()}.
+##' @param margins an integer, possibly modified, then passed to \code{heatmap.2()}.
+##' @param dendrogram a character passed to \code{heatmap.2()}.
+##' @param Rowv a logical passed to \code{heatmap.2()}.
+##' @param Colv a logical passed to \code{heatmap.2()}.
+##' @param labCol a character vector passed to \code{heatmap.2()}.
+##' @param key a logical passed to \code{heatmap.2()}. Will be set to FALSE if there is only one unique numeric in \code{x}.
+##' @template addargs-template
+##' @templateVar fun heatmap.2()
+##' @template roxygen-template
+##' @seealso \code{\link[gplots]{heatmap.2}}
+##' @examples
+##' ezHeatmap(x=matrix(1:100,10))
+ezHeatmap = function(x, lim=c(-4, 4), colors=getBlueRedScale(),
                      dendrogram="none", margins=c(8,6), cexCol=1.1,
                      Rowv=TRUE, Colv=TRUE, labCol=colnames(x), labRow=rownames(x),
                      key=TRUE, ...){
@@ -580,21 +630,29 @@ ezHeatmap = function(x, lim=c(-4, 4), col=getBlueRedScale,
     key=FALSE
   }
   heatmap.2(x,
-            breaks=seq(from=lim[1], to=lim[2], length.out=257), col=col, na.color="black",
+            breaks=seq(from=lim[1], to=lim[2], length.out=257), col=colors, na.color="black",
             Rowv=Rowv, Colv=Colv,
             dendrogram=dendrogram, density.info="none", trace="none", labCol=labCol, labRow=labRow, cexCol=cexCol,
             margins=margins, key=key, ...)
 }
 
-
 ## see http://rpubs.com/gaston/dendrograms
-## @title
-colorClusterLabels = function(hcd, sampleColors) {
-  dendrapply(hcd, colorNode, cols=sampleColors)
+##' @title Gets the color cluster labels
+##' @description Gets the color cluster labels using \code{dendrapply()}.
+##' @param hcd an object of the class dendrogram.
+##' @template colors-template
+##' @template roxygen-template
+##' @seealso \code{\link[stats]{dendrapply}}
+##' @return Returns the modified dendrogram.
+##' @examples
+##' hc = hclust(dist(USArrests), "ave")
+##' dend = as.dendrogram(hc)
+##' colorClusterLabels(dend, rainbow(6))
+colorClusterLabels = function(hcd, colors) {
+  dendrapply(hcd, colorNode, cols=colors)
 }
 
-
-## @describeIn colorClusterLabels
+##' @describeIn colorClusterLabels The functions used in \code{dendrapply()}.
 colorNode = function(n, cols=NULL){
   if (is.leaf(n)) {
     a <- attributes(n)
@@ -791,7 +849,6 @@ normalized.distr <- function(data, bins, dmax=1, dmin=-1, ylim= NULL, add=FALSE,
 }
 
 
-## name problematic: profilePlot
 ## still used?
 ezProfilePlot <- function(x, err=NULL, colors=rainbow(nrow(x)), xaxs="i", yaxs="i", xlim=c(0, ncol(x)+10), ylim=NULL, log="", type="l",
                           names=rownames(x), legendPos="topright", lty=rep(1, nrow(x)), main="", plotXLabels=TRUE, xlab="", ylab="", ...){

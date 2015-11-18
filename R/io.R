@@ -67,7 +67,7 @@ zipWorkingDir = function(zipName){
 ##' @return Returns a data.frame.
 ##' @template roxygen-template
 ##' @template addargs-template
-##' @templateVar fun \code{read.table()}
+##' @templateVar fun read.table()
 ##' @seealso \code{\link[utils]{read.table}}
 ##' @examples 
 ##' m1 = matrix(1:20,5)

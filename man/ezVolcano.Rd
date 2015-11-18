@@ -2,14 +2,20 @@
 % Please edit documentation in R/plots.R
 \name{ezVolcano}
 \alias{ezVolcano}
-\title{Performs the volcano plot}
+\title{Does a volcano plot}
 \usage{
-ezVolcano(log2Ratio, pValue, yType = "p-value", lim = c(NA, NA),
+ezVolcano(log2Ratio, pValue, yType = "p-value", lim = list(NA, NA),
   isPresent = NULL, types = NULL, pch = 16,
   colors = rainbow(ncol(types)), legendPos = "bottomright", cex.main = 1,
   cex = 0.8, ...)
 }
 \arguments{
+\item{log2Ratio}{a numeric vector containing the log2 ratios of a result.}
+
+\item{pValue}{a numeric vector containing the p-Values of a result.}
+
+\item{yType}{a character specifying the type of the y-value. Gets pasted onto the y-axis of the plot.}
+
 \item{lim}{integers specifying the x and y limits of the plot.}
 
 \item{isPresent}{a logical specifying whether the signal is present.}
@@ -29,7 +35,12 @@ ezVolcano(log2Ratio, pValue, yType = "p-value", lim = c(NA, NA),
 \item{...}{additional arguments to be passed further.}
 }
 \description{
-Performs the volcano plot.
+Does a volcano plot.
+}
+\examples{
+types = data.frame(matrix(rep(1:10, each=10), 10))
+ezVolcano(log2Ratio=1:100, pValue=rep(10^(-4:5), each=10),
+pch=16, isPresent=1:50, types=types, colors=rainbow(ncol(types)), legendPos="bottomleft")
 }
 \author{
 Rehrauer, Hubert

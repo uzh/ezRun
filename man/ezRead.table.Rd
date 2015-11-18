@@ -11,7 +11,7 @@ ezRead.table(file, header = TRUE, sep = "\\t", as.is = TRUE,
 \arguments{
 \item{file}{the name of the file to read the data from.}
 
-\item{...}{additional arguments to be passed to \code{\code{read.table()}}.}
+\item{...}{additional arguments to be passed to \code{read.table()}.}
 }
 \value{
 Returns a data.frame.

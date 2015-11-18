@@ -16,7 +16,7 @@
 ##' }
 ##' @param output a list, file path or an object of the class EzDataset containing the output information.
 ##' @template rawData-template
-##' @param gene.pValue a numeric specifying the p-Value threshold.
+##' @param gene.pValue a numeric specifying the p-value threshold.
 ##' @template roxygen-template
 ##' @seealso \code{\link{getGeneSets}}
 ##' @seealso \code{\link[gage]{gage}}
@@ -282,7 +282,7 @@ getExpressionGage = function(gageResults, result=NULL, rawData=NULL, param = NUL
 ##' @title Gets significant genes
 ##' @description Gets significant genes from the gage analysis.
 ##' @param x the gage results to get significant genes from.
-##' @param gene.pValue a numeric specifying the p-Value threshold.
+##' @param gene.pValue a numeric specifying the p-value threshold.
 ##' @param signal a character specifying which signal to analyse.
 ##' @template roxygen-template
 ##' @return Returns the gage results with labeled significant genes.
@@ -377,7 +377,7 @@ gageHeatmap = function(x, param=NULL, output=NULL, gene.pValue=NULL, signal=NULL
       colDendro = T
       showDendro = "column"
       heatmap.2(xCentered,
-                col=getBlueRedScale(256),
+                col=getBlueRedScale(),
                 ColSideColors=sampleColors, RowSideColors=pathwayColors,
                 scale="none",
                 Colv=colDendro, Rowv=rowDendro, dendrogram=showDendro,

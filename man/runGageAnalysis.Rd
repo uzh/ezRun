@@ -40,7 +40,7 @@ gagePathview(x, param = NULL, output = NULL, signal = NULL,
 
 \item{rawData}{a list of raw data obtained from \code{loadCountDataset()}.}
 
-\item{gene.pValue}{a numeric specifying the p-Value threshold.}
+\item{gene.pValue}{a numeric specifying the p-value threshold.}
 }
 \value{
 Returns the gage results.

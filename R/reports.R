@@ -13,7 +13,7 @@
 ##' @param valign "bottom", "middle" or "top" specifying the position of table cell contents.
 ##' @param header.columns a logical indicating whether to use a header for the table.
 ##' @template addargs-template
-##' @templateVar fun FlexTable
+##' @templateVar fun FlexTable()
 ##' @template roxygen-template
 ##' @seealso \code{\link[ReporteRs]{FlexTable}}
 ##' @return Returns an object of the class FlexTable.

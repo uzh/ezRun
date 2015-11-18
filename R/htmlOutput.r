@@ -361,7 +361,7 @@ writeResultFile = function(html, param, result, rawData, useInOutput=TRUE,
 ##' @template roxygen-template
 writeQcScatterPlots = function(html, param, design, conds,
 															 rawData, signalCond, isPresentCond, seqAnno,
-															 colors=getBlueRedScale(255), types=NULL){
+															 colors=getBlueRedScale(), types=NULL){
   samples = rownames(design)
 	nConds = length(unique(conds))
 	signal = getSignal(rawData)
@@ -445,7 +445,7 @@ writeQcScatterPlots = function(html, param, design, conds,
 ##' @template roxygen-template
 ##' @return Returns
 writeTestScatterPlots = function(html, param, x, result, seqAnno, colorRange=c(-3, 3),
-   colors=getBlueRedScale(255), types=NULL){
+   colors=getBlueRedScale(), types=NULL){
   if (is.null(types)){
       types = data.frame(row.names=rownames(x))
 			if ("IsControl" %in% colnames(seqAnno)){

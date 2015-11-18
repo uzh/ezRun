@@ -79,7 +79,7 @@ addGoParents = function(gene2goList, onto){
 ##' @param param a list of parameters:
 ##' \itemize{
 ##'   \item{featureLevel}{ which feature level to use.}
-##'   \item{pValThreshGO}{ a numeric specifying the threshold for the GO p-Value.}
+##'   \item{pValThreshGO}{ a numeric specifying the threshold for the GO p-value.}
 ##'   \item{log2RatioThreshGO}{ a numeric specifying the threshold for the GO log2 ratios.}
 ##'   \item{includeGoParentAnnotation}{ a logical indicating whether to include the annotation of the GO parents.}
 ##' }
@@ -330,7 +330,7 @@ clusterResults = function(x, nClusters=5, clusterColors=rainbow(nClusters), d=NU
 
 ##' @title Plots the cluster heatmap
 ##' @description Plots the cluster heatmap.
-##' @param x a data vector to plot.
+##' @param x the data to plot.
 ##' @param param a list of parameters to extract the logical \code{showGeneClusterLabels} from.
 ##' @param result a list of cluster result properties obtained with \code{clusterResults()}.
 ##' @param file a character representing the name of the .png file to derive tables from.
@@ -346,14 +346,14 @@ clusterResults = function(x, nClusters=5, clusterColors=rainbow(nClusters), d=NU
 ##' @template colors-template
 ##' @param maxGenesWithLabel an integer specifying the maximum amount of genes with labels.
 ##' @template addargs-template
-##' @templateVar fun heatmap.2
+##' @templateVar fun heatmap.2()
 ##' @template roxygen-template
 ##' @seealso \code{\link[stats]{hclust}}
 ##' @seealso \code{\link[gplot]{heatmap.2}}
 clusterHeatmap = function(x, param, result, file="cluster-heatmap.png", method="ward.D2",
                           doClusterColumns=FALSE, columnDist=NULL, colColors=NULL, lim=c(-4, 4),
                           cexRow=1.0, cexCol=1.5, labRow=rownames(x), margins=c(14,9),
-                          colors=getBlueRedScale(256), maxGenesWithLabel=50, ...){
+                          colors=getBlueRedScale(), maxGenesWithLabel=50, ...){
   require(gplots, warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
   probeDendro = as.dendrogram(result$hcl)
   probeDendro = reorder(probeDendro, rowMeans(x, na.rm=TRUE))

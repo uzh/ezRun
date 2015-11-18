@@ -271,7 +271,7 @@ plotQualityMatrixAsHeatmap = function(qualMatrixList, isR2=FALSE, xScale=1, ySca
     colorKeyFile = paste0("diffReadsQuality-Key_", nm, ".png")
     at=seq(from=minDiff, to=maxDiff, by=by.label)
     plotCmd = expression({
-      ezColorLegend(colorRange=c(minDiff, maxDiff), colors=getBlueRedScale(256),
+      ezColorLegend(colorRange=c(minDiff, maxDiff), colors=getBlueRedScale(),
                     vertical=FALSE, by.label=by.label, at=at, labels=as.character(at))
     })
     colorKeyLink = ezImageFileLink(plotCmd, file=colorKeyFile, addPdfLink=FALSE, width=400*yScale, height=200*xScale)
@@ -282,7 +282,7 @@ plotQualityMatrixAsHeatmap = function(qualMatrixList, isR2=FALSE, xScale=1, ySca
       diffResult = signif(prop.table(qm,2)*100, digits=3) - avgQual[1:nrow(qm), 1:ncol(qm)]
       pngFileLink = plotQualityHeatmap(diffResult, colorRange=c(minDiff, maxDiff), 
                                        pngFileName=paste0("diffReadsQuality-heatmap_", sampleName, ".png"),
-                                       colors=getBlueRedScale(256), main=paste("diffReadsQuality", sampleName, sep="_"),
+                                       colors=getBlueRedScale(), main=paste("diffReadsQuality", sampleName, sep="_"),
                                        xScale=xScale, yScale=yScale)
       pngTable[sampleName, nm] = pngFileLink
     }
