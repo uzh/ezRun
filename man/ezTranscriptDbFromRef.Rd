@@ -15,12 +15,6 @@ Returns
 \description{
 1
 }
-\examples{
-refBuild = "Saccharomyces_cerevisiae/Ensembl/EF4/Annotation/Version-2013-03-18"
-genomesRoot = "~/refExample"
-myRef = EzRef(param=ezParam(list(refBuild=refBuild)), genomesRoot=genomesRoot)
-myTrdb = ezTranscriptDbFromRef(myRef)
-}
 \author{
 Rehrauer, Hubert
 

@@ -29,7 +29,6 @@ file = system.file("extdata/yeast_10k_STAR_counts/dataset.tsv", package="ezRun",
 input = EzDataset$new(file=file)
 rawData = loadCountDataset(input, param)
 getSignal(rawData)
-getLog2Signal(rawData)
 }
 \author{
 Rehrauer, Hubert

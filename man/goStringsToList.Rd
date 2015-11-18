@@ -19,7 +19,7 @@ Parses GO strings to a list.
 }
 \examples{
 goStrings = c("GO 1;GO 2;GO 3", "GO 4")
-listNames = letters[1:4]
+listNames = letters[1:2]
 goStringsToList(goStrings, listNames)
 }
 \author{

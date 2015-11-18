@@ -283,7 +283,7 @@ ezGetGoByLevels = function(ont, levels, goSlim=NULL) {
 ##' @return Returns the GO strings as a list.
 ##' @examples
 ##' goStrings = c("GO 1;GO 2;GO 3", "GO 4")
-##' listNames = letters[1:4]
+##' listNames = letters[1:2]
 ##' goStringsToList(goStrings, listNames)
 goStringsToList = function(goStrings, listNames=NULL){
   x = strsplit(goStrings, "; ")

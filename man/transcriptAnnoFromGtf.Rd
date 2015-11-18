@@ -24,7 +24,8 @@ Gets the transcript annotation from a gtf annotation.
 }
 \examples{
 param = ezParam()
-gtf = ezLoadFeatures(param,"./inst/extdata/genes.gtf")
+gtfFile = system.file("extdata/genes.gtf", package="ezRun", mustWork=TRUE)
+gtf = ezLoadFeatures(param, gtfFile)
 transcriptAnnoFromGtf(gtf)
 }
 \author{

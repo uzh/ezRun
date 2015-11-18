@@ -291,7 +291,8 @@ gffGroupToRanges = function(gtf, grouping, skipTransSpliced=FALSE){
 ##' @return Returns a transposed transcript annotation data.frame.
 ##' @examples
 ##' param = ezParam()
-##' gtf = ezLoadFeatures(param,"./inst/extdata/genes.gtf")
+##' gtfFile = system.file("extdata/genes.gtf", package="ezRun", mustWork=TRUE)
+##' gtf = ezLoadFeatures(param, gtfFile)
 ##' transcriptAnnoFromGtf(gtf)
 transcriptAnnoFromGtf = function(gtf, id=gtf$transcript_id, types="exon", attributes=NULL){
   stopifnot(length(id) == nrow(gtf))
@@ -321,7 +322,8 @@ transcriptAnnoFromGtf = function(gtf, id=gtf$transcript_id, types="exon", attrib
 ##' @return Returns an annotation data.frame with transcripts added to it.
 ##' @examples
 ##' param = ezParam()
-##' gtf = ezLoadFeatures(param,"./inst/extdata/genes.gtf")
+##' gtfFile = system.file("extdata/genes.gtf", package="ezRun", mustWork=TRUE)
+##' gtf = ezLoadFeatures(param, gtfFile)
 ##' addTranscriptsToGffExons(gtf)
 addTranscriptsToGffExons = function(gff){
   
@@ -370,11 +372,6 @@ getExonNumber = function(gtf){
 ##' @template roxygen-template
 ##' @return Returns 
 ##' @seealso \code{\link[GenomicFeatures]{makeTxDbFromGFF}}
-##' @examples
-##' refBuild = "Saccharomyces_cerevisiae/Ensembl/EF4/Annotation/Version-2013-03-18"
-##' genomesRoot = "~/refExample"
-##' myRef = EzRef(param=ezParam(list(refBuild=refBuild)), genomesRoot=genomesRoot)
-##' myTrdb = ezTranscriptDbFromRef(myRef)
 ## TODOP: .fai file necessary if chromInfo desired, uncomment code and replace chrominfo=NULL with chrominfo=chrominfo
 ezTranscriptDbFromRef = function(reference, dataSource="FGCZ"){
   library(GenomicFeatures, warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
@@ -489,14 +486,13 @@ getTranscriptSequences = function(param, useFivePrimeAsStart=TRUE){
 ##' @seealso \code{\link[Biostrings]{DNAStringSet}}
 ##' @seealso \code{\link[IRanges]{Views}}
 ##' @seealso \code{\link[Biostrings]{reverseComplement}}
-##' @examples
-##' param = ezParam()
-##' gtf = ezLoadFeatures(param,"./inst/extdata/genes.gtf")
-##' param$ezRef@@refFeatureFile = "./inst/extdata/genes.gtf"
-##' fp = "/srv/GT/reference/Saccharomyces_cerevisiae/Ensembl/EF4/Sequence/WholeGenomeFasta/genome.fa"
-##' param$ezRef@@refFastaFile = fp
-##' genomeSeq = getTranscriptSequences(param)
-##' ezUtrSequences(gtf)
+# param = ezParam()
+# gtf = ezLoadFeatures(param,"./inst/extdata/genes.gtf")
+# param$ezRef@@refFeatureFile = "./inst/extdata/genes.gtf"
+# fp = "/srv/GT/reference/Saccharomyces_cerevisiae/Ensembl/EF4/Sequence/WholeGenomeFasta/genome.fa"
+# param$ezRef@@refFastaFile = fp
+# genomeSeq = getTranscriptSequences(param)
+# ezUtrSequences(gtf)
 ## TODOP: improve help file. add an argument genomeSeq and maybe provide a default. Currently that object needs to be defined outside the function.
 ezUtrSequences = function(gtf, chromSeqs){
   

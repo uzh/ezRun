@@ -457,8 +457,8 @@ buildScanBamParam = function(param, bamFile){
   sh = scanBamHeader(bamFile)
   seqLengths = sh[[1]]$targets
   bamParam = ScanBamParam(tag=c( "NH", "IH", "AS"),
-                          what=c("rname", "pos", "flag", "qwidth", "strand", "qname"),
-                          isUnmappedQuery=param$readUnmapped)
+                          what=c("rname", "pos", "flag", "qwidth", "strand", "qname"))
+  ## TODO isUnmappedQuery=param$readUnmapped, argument is not in ScanBamParam, but in scanBamFlag
 
     if (!is.null(param$subsetGenome) && param$subsetGenome){ ## TODO fix this
     message("using only subset of genome region!")
@@ -503,7 +503,7 @@ buildScanBamParam = function(param, bamFile){
 ##' @examples 
 ##' param = ezParam()
 ##' bamFile <- system.file("extdata", "ex1.bam", package="Rsamtools", mustWork=TRUE)
-##' getBamMultiMatching(param, bamFile, nReads=100)
+##' getBamMultiMatching(param, bamFile, nReads=10000)
 getBamMultiMatching = function(param, bamFile, nReads=NULL){
   library(Rsamtools, warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
   
@@ -550,7 +550,6 @@ getBamMultiMatching = function(param, bamFile, nReads=NULL){
       result = c("0"=nReadsUnmapped, result)
     }
   }
-  
   return(result)
 }
 

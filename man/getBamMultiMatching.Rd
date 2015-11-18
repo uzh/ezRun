@@ -25,7 +25,7 @@ Gets bam multi matching and returns the result as an integer vector.
 \examples{
 param = ezParam()
 bamFile <- system.file("extdata", "ex1.bam", package="Rsamtools", mustWork=TRUE)
-getBamMultiMatching(param, bamFile, nReads=100)
+getBamMultiMatching(param, bamFile, nReads=10000)
 }
 \author{
 Rehrauer, Hubert

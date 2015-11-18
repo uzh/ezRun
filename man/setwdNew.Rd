@@ -13,7 +13,9 @@ setwdNew(dir)
 If the directory does not exist, the function will create it recursively.
 }
 \examples{
+cd = getwd()
 setwdNew("newDirectory")
+setwd(cd)
 }
 \author{
 Rehrauer, Hubert

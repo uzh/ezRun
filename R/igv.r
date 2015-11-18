@@ -15,8 +15,6 @@
 ##' @param sessionUrl a character representing the URL of the session.
 ##' @template roxygen-template
 ##' @return Returns lines written to the specified connection.
-##' @examples 
-##' writeIgvJnlp()
 writeIgvJnlp = function(jnlpFile, projectId, sessionUrl){
   jnlpLines = readLines(ezIgvTemplateFile())
   jnlpLines = sub("PROJECT_ID", projectId, jnlpLines)
@@ -44,8 +42,6 @@ ezIgvTemplateFile = function(){
 ##' @param projectId a character representing the project ID.
 ##' @param html a character representing an html address.
 ##' @template roxygen-template
-##' @examples 
-##' writeJavaScriptIgvStarter()
 writeJavaScriptIgvStarter = function(htmlFile, projectId, html){
   library(RCurl, warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
   

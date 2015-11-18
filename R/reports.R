@@ -112,12 +112,13 @@ imgLinks = function(image){
 ##' @return Returns an object of the class bsdoc to add further elements.
 ##' @examples
 ##' theDoc = openBsdocReport(title="My html report")
-##' ezAddBootstrapMenu(theDoc)
 ##' closeBsdocReport(doc=theDoc, file="example.html")
-openBsdocReport = function(title="", dataset=NULL){
+openBsdocReport = function(title="", dataset=NULL, param=NULL){
   require(ReporteRs, warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
   doc = bsdoc(title = title)
-  addJavaScriptIgvStarter(htmlFile, param$projectId, doc)
+  if (!is.null(param)){
+    addJavaScriptIgvStarter(htmlFile, param$projectId, doc)
+  }
   pot1 = pot(paste("Started on", format(Sys.time(), "%Y-%m-%d %H:%M:%S"), "--&#160;"))
   pot2 = as.html(pot("Documentation", hyperlink = "http://fgcz-sushi.uzh.ch/doc/methods-20140422.html"))
   doc = addFlexTable(doc, ezGrid(cbind(pot1, pot2)))
@@ -209,7 +210,6 @@ closeBsdocReport = function(doc, file, titles=NULL){
 ##' @examples
 ##' theDoc = openBsdocReport(title="My html report")
 ##' title = "My title"
-##' ezAddBootstrapMenu(theDoc, paste0("#", title))
 ##' addTitleWithAnchor(theDoc, title)
 ##' closeBsdocReport(doc=theDoc, file="example.html")
 addTitleWithAnchor = function(doc, title, level=1){

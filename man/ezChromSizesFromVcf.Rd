@@ -15,10 +15,6 @@ Returns a names vector of the chromosome sizes.
 \description{
 Gets chromosome sizes from a VCF file by accessing its contig column.
 }
-\examples{
-vcfFile <- system.file("extdata", "chr22.vcf.gz", package="VariantAnnotation")
-ezChromSizesFromVcf(vcfFile)
-}
 \author{
 Rehrauer, Hubert
 

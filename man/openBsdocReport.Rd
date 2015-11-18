@@ -6,7 +6,7 @@
 \alias{openBsdocReport}
 \title{Opens an html report}
 \usage{
-openBsdocReport(title = "", dataset = NULL)
+openBsdocReport(title = "", dataset = NULL, param = NULL)
 
 addJavaScriptIgvStarter(htmlFile, projectId, doc)
 
@@ -31,7 +31,6 @@ Opens an html report using \code{bsdoc()} from the ReporteRs package. Also adds 
 }}
 \examples{
 theDoc = openBsdocReport(title="My html report")
-ezAddBootstrapMenu(theDoc)
 closeBsdocReport(doc=theDoc, file="example.html")
 }
 \author{

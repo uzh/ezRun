@@ -19,7 +19,6 @@ Adds a title with an anchor by using \code{addTitle()} and \code{addCodeBlock()}
 \examples{
 theDoc = openBsdocReport(title="My html report")
 title = "My title"
-ezAddBootstrapMenu(theDoc, paste0("#", title))
 addTitleWithAnchor(theDoc, title)
 closeBsdocReport(doc=theDoc, file="example.html")
 }

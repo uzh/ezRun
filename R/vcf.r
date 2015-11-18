@@ -11,9 +11,6 @@
 ##' @param vcfFile the VCF file to get the chromosome sizes from.
 ##' @template roxygen-template
 ##' @return Returns a names vector of the chromosome sizes.
-##' @examples
-##' vcfFile <- system.file("extdata", "chr22.vcf.gz", package="VariantAnnotation")
-##' ezChromSizesFromVcf(vcfFile)
 ## TODOEXAMPLE: get vcf file with $contig information.
 ezChromSizesFromVcf = function(vcfFile){
   vh = scanVcfHeader(vcfFile)
@@ -34,12 +31,6 @@ ezChromSizesFromVcf = function(vcfFile){
 ##' @param param a list of parameters to extract the value from \code{vcfFilt.minAltCount}.
 ##' @template roxygen-template
 ##' @return Returns a filtered VCF file.
-##' @examples
-##' vcfFile <- system.file("extdata", "chr22.vcf.gz", package="VariantAnnotation")
-##' vcf = readVcf(vcfFile, genome="genomeDummy")
-##' input = EzDataset(system.file("extdata/yeast_10k/dataset.tsv", package="ezRun", mustWork = TRUE))
-##' ezFilterVcf(vcfFile, "example.gz", bamDataset=input$meta)
-##' ezWriteVcf(vcf, "example.gz")
 ## TODOEXAMPLE: get working .vcf file
 ezFilterVcf = function(vcfFile, vcfFiltFile, discardMultiAllelic=TRUE, bamDataset=bamDataset, param=NULL){
   vcf = readVcf(vcfFile, genome="genomeDummy")

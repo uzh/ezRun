@@ -102,10 +102,6 @@ runGageAnalysis = function(result, param=NULL, output=NULL, rawData=NULL, gene.p
 ##' }
 ##' @template roxygen-template
 ##' @return Returns the gene set.
-##' @examples
-##' ls = list('refBuild' = 'Schizosaccharomyces_pombe/Ensembl/EF2/Annotation/Version-2013-03-07')
-##' param = ezParam(userParam = ls)
-##' getGeneSets(param)
 ## TODOP: no database found at param$KEGGgmt
 getGeneSets = function(param){
   SpeciesName = getSpeciesName(param)
@@ -287,12 +283,6 @@ getExpressionGage = function(gageResults, result=NULL, rawData=NULL, param = NUL
 ##' @param signal a character specifying which signal to analyse.
 ##' @template roxygen-template
 ##' @return Returns the gage results with labeled significant genes.
-##' @examples
-##' ls = list('refBuild' = 'Schizosaccharomyces_pombe/Ensembl/EF2/Annotation/Version-2013-03-07')
-##' param = ezParam(userParam = ls)
-##' pValue = param$gageGeneThreshold
-##' x = "gageResults"
-##' gageSigGenes(x, pValue, "both")
 ## TODOEXAMPLE: get gage results for example
 gageSigGenes = function(x, gene.pValue=NULL, signal=NULL ){
   # Select significant genes

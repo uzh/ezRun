@@ -28,11 +28,6 @@ Gets the gene set
 \itemize{
 \item \code{readGmt}: Reads the gmt file in.
 }}
-\examples{
-ls = list('refBuild' = 'Schizosaccharomyces_pombe/Ensembl/EF2/Annotation/Version-2013-03-07')
-param = ezParam(userParam = ls)
-getGeneSets(param)
-}
 \author{
 Rehrauer, Hubert
 

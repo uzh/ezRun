@@ -13,12 +13,12 @@
 ##' @return Returns the path to the created bed file.
 ##' @examples
 ##' param = ezParam()
-##' param$ezRef@@refFeatureFile = "./inst/extdata/genes.gtf"
+##' param$ezRef@@refFeatureFile = system.file("extdata/genes.gtf", package="ezRun", mustWork=TRUE)
 ##' getReferenceFeaturesBed(param)
 getReferenceFeaturesBed = function(param){
   bedFile = sub(".gtf$", ".bed", param$ezRef["refFeatureFile"])
   if (!file.exists(bedFile)){
-    ezSystem(paste(GTF2BED, "--do-not-sort", "<", param$ezRef["refFeatureFile"], ">", bedFile))
+    ezSystem(paste(GTF2BED, "--do-not-sort", "<", param$ezRef["refFeatureFile"], ">", bedFile)) ## TODO: convert2bed command not found
     ezSystem(paste("chmod", "g+w", bedFile))
   }
   return(bedFile)

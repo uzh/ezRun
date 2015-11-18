@@ -15,9 +15,6 @@ Returns the rawdata read from the NcPro results.
 \description{
 Reads NcPro results and performs some checks on the data.
 }
-\examples{
-readNcProResult(ncproDir)
-}
 \author{
 Rehrauer, Hubert
 

@@ -17,7 +17,7 @@ Gets a bed file from a gtf annotation file.
 }
 \examples{
 param = ezParam()
-param$ezRef@refFeatureFile = "./inst/extdata/genes.gtf"
+param$ezRef@refFeatureFile = system.file("extdata/genes.gtf", package="ezRun", mustWork=TRUE)
 getReferenceFeaturesBed(param)
 }
 \author{

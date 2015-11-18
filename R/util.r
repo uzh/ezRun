@@ -28,7 +28,9 @@ lastVal = function(x){
 ##' @param dir a character specifying the desired directory.
 ##' @template roxygen-template
 ##' @examples
+##' cd = getwd()
 ##' setwdNew("newDirectory")
+##' setwd(cd)
 setwdNew = function(dir){
   if (!file.exists(dir)){
     dir.create(dir, recursive=TRUE)

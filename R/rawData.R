@@ -81,7 +81,6 @@ selectSamples = function(rawData, samples){
 ##' input = EzDataset$new(file=file)
 ##' rawData = loadCountDataset(input, param)
 ##' getSignal(rawData)
-##' getLog2Signal(rawData)
 ## TODOEXAMPLE: get example with proper return and improve description.
 getSignal = function(rawData){
   if (rawData$isLog){
@@ -144,18 +143,6 @@ getRpkm = function(rawData){
 ##' @template roxygen-template
 ##' @seealso \code{\link{getGeneMapping}}
 ##' @return Returns the aggregates raw data.
-##' @examples
-##' param = ezParam()
-##' param$dataRoot = system.file(package="ezRun", mustWork = TRUE)
-##' param$ezRef@@refFeatureFile = "./inst/extdata/genes.gtf"
-##' param$ezRef@@refAnnotationFile = "./inst/extdata/genes_annotation_example.txt"
-##' fp = "/srv/GT/reference/Saccharomyces_cerevisiae/Ensembl/EF4/Sequence/WholeGenomeFasta/genome.fa"
-##' param$ezRef@@refFastaFile = fp
-##' file = system.file("extdata/yeast_10k_STAR_counts/dataset.tsv", package="ezRun", mustWork = TRUE)
-##' input = EzDataset$new(file=file)
-##' rawData = loadCountDataset(input, param)
-##' rawData$seqAnno = writeAnnotationFromGtf(param)
-##' aggregateCountsByGene(param, rawData)
 aggregateCountsByGene = function(param, rawData){
   
   genes = getGeneMapping(param, rawData$seqAnno)

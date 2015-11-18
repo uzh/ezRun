@@ -26,9 +26,6 @@ Writes a .jnlp file and adds the \code{projectId} and the \code{sessionUrl} to t
 \itemize{
 \item \code{ezIgvTemplateFile}: Gets the IGV template file.
 }}
-\examples{
-writeIgvJnlp()
-}
 \author{
 Rehrauer, Hubert
 

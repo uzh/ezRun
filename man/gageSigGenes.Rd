@@ -19,13 +19,6 @@ Returns the gage results with labeled significant genes.
 \description{
 Gets significant genes from the gage analysis.
 }
-\examples{
-ls = list('refBuild' = 'Schizosaccharomyces_pombe/Ensembl/EF2/Annotation/Version-2013-03-07')
-param = ezParam(userParam = ls)
-pValue = param$gageGeneThreshold
-x = "gageResults"
-gageSigGenes(x, pValue, "both")
-}
 \author{
 Rehrauer, Hubert
 

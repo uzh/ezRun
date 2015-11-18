@@ -35,11 +35,6 @@ expandGRanges = function(x, width=2000){
 ##' @seealso \code{\link[IRanges]{RleViewsList}}
 ##' @seealso \code{\link[IRanges]{viewApply}}
 ##' @return Returns the values or a matrix containing them.
-##' @examples
-##' cov = RleList(chr1=Rle(5523:5539),chr2=Rle(6544:6557))
-##' iRanges = IRanges(5000:5002,8000:7998)
-##' targetRanges = GRanges(c("chr1", "chr1", "chr2"), iRanges, strand=c("+", "-", "+"))
-##' getRangeValues(cov, targetRanges)
 ## TODOEXAMPLE: example doesn't work
 getRangeValues = function(cov, targetRanges, doRev=as.character(strand(targetRanges)) == "-", asMatrix=TRUE){
   names(targetRanges) = 1:length(targetRanges)
@@ -73,12 +68,6 @@ getRangeValues = function(cov, targetRanges, doRev=as.character(strand(targetRan
 ##' @seealso \code{\link[IRanges]{RleViewsList}}
 ##' @seealso \code{\link[IRanges]{viewApply}}
 ##' @return Returns the computed values belonging to their genomic ranges.
-##' @examples
-##' cov = RleList(chr1=Rle(5523:5539),chr2=Rle(6544:6557))
-##' iRanges = IRanges(5000:5002,8000:7998)
-##' targetRanges = GRanges(c("chr1", "chr1", "chr2"), iRanges, strand=c("+", "-", "+"))
-##' computeRangeStats(cov, targetRanges)
-## TODOEXAMPLE: example doesn't work
 computeRangeStats = function(cov, targetRanges, FUN=mean){
   rgs = ranges(RangedData(targetRanges))
   gc()

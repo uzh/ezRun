@@ -58,9 +58,9 @@ Objects of this class are a collection of references derived from a list of para
 }}
 \examples{
 refBuild = "Saccharomyces_cerevisiae/Ensembl/EF4/Annotation/Version-2013-03-18"
-gtf = "genes.gtf"
-fp = "/inst/extdata/genome.fa"
-genomesRoot = "~/refExample"
+gtf = system.file("extdata/genes.gtf", package="ezRun", mustWork = TRUE)
+fp = system.file("extdata/genome.fa", package="ezRun", mustWork = TRUE)
+genomesRoot = "./refExample"
 myRef = EzRef(param=ezParam(list(refBuild=refBuild)), genomesRoot=genomesRoot)
 buildRefDir(myRef, fp, gtf, genomesRoot)
 }

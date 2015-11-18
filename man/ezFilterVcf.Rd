@@ -31,13 +31,6 @@ Filters a VCF file and writes it back to the specified connection.
 \itemize{
 \item \code{ezWriteVcf}: Writes a new VCF file.
 }}
-\examples{
-vcfFile <- system.file("extdata", "chr22.vcf.gz", package="VariantAnnotation")
-vcf = readVcf(vcfFile, genome="genomeDummy")
-input = EzDataset(system.file("extdata/yeast_10k/dataset.tsv", package="ezRun", mustWork = TRUE))
-ezFilterVcf(vcfFile, "example.gz", bamDataset=input$meta)
-ezWriteVcf(vcf, "example.gz")
-}
 \author{
 Rehrauer, Hubert
 

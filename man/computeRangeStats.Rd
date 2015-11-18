@@ -19,12 +19,6 @@ Returns the computed values belonging to their genomic ranges.
 \description{
 Computes stats of genomic ranges.
 }
-\examples{
-cov = RleList(chr1=Rle(5523:5539),chr2=Rle(6544:6557))
-iRanges = IRanges(5000:5002,8000:7998)
-targetRanges = GRanges(c("chr1", "chr1", "chr2"), iRanges, strand=c("+", "-", "+"))
-computeRangeStats(cov, targetRanges)
-}
 \author{
 Rehrauer, Hubert
 

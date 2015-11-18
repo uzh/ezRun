@@ -17,15 +17,6 @@ Returns a list with two objects of the class DNAStringSet from the packages Bios
 \description{
 Gets sequences from untranslated regions.
 }
-\examples{
-param = ezParam()
-gtf = ezLoadFeatures(param,"./inst/extdata/genes.gtf")
-param$ezRef@refFeatureFile = "./inst/extdata/genes.gtf"
-fp = "/srv/GT/reference/Saccharomyces_cerevisiae/Ensembl/EF4/Sequence/WholeGenomeFasta/genome.fa"
-param$ezRef@refFastaFile = fp
-genomeSeq = getTranscriptSequences(param)
-ezUtrSequences(gtf)
-}
 \author{
 Rehrauer, Hubert
 

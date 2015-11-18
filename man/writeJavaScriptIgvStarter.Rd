@@ -16,9 +16,6 @@ writeJavaScriptIgvStarter(htmlFile, projectId, html)
 \description{
 Writes a jnlp link to a static html. The html can be moved as long as the session xml stays in the same directory.
 }
-\examples{
-writeJavaScriptIgvStarter()
-}
 \author{
 Rehrauer, Hubert
 
