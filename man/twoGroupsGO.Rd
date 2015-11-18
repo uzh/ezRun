@@ -16,7 +16,7 @@ ezGoseq(param, selectedGenes, allGenes, gene2goList = NULL,
 \item{param}{a list of parameters:
 \itemize{
   \item{featureLevel}{ which feature level to use.}
-  \item{pValThreshGO}{ a numeric specifying the threshold for the GO p-Value.}
+  \item{pValThreshGO}{ a numeric specifying the threshold for the GO p-value.}
   \item{log2RatioThreshGO}{ a numeric specifying the threshold for the GO log2 ratios.}
   \item{includeGoParentAnnotation}{ a logical indicating whether to include the annotation of the GO parents.}
 }}

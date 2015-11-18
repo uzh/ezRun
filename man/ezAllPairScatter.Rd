@@ -2,7 +2,7 @@
 % Please edit documentation in R/plots.R
 \name{ezAllPairScatter}
 \alias{ezAllPairScatter}
-\title{1}
+\title{Does scatter plots of all pairs}
 \usage{
 ezAllPairScatter(x, main = "", shrink = FALSE, xylab = NULL,
   lim = range(x, na.rm = TRUE), isPresent = NULL, types = NULL,
@@ -10,6 +10,14 @@ ezAllPairScatter(x, main = "", shrink = FALSE, xylab = NULL,
   cex.main = 1, cex = 0.8, ...)
 }
 \arguments{
+\item{x}{a matrix containing the data to plot.}
+
+\item{main}{a character specifying the main title of the plots.}
+
+\item{shrink}{a logical specifying whether to shrink the values to range.}
+
+\item{xylab}{a character vector containing the axis labels. If it is NULL, colnames of \code{x} will be used.}
+
 \item{lim}{integers specifying the x and y limits of the plot.}
 
 \item{isPresent}{a logical specifying whether the signal is present.}
@@ -29,7 +37,10 @@ ezAllPairScatter(x, main = "", shrink = FALSE, xylab = NULL,
 \item{...}{additional arguments to be passed further.}
 }
 \description{
-1
+Does scatter plots of all pairs.
+}
+\examples{
+ezAllPairScatter(x=matrix(1:10,5))
 }
 \author{
 Rehrauer, Hubert

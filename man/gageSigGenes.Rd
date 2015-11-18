@@ -9,7 +9,7 @@ gageSigGenes(x, gene.pValue = NULL, signal = NULL)
 \arguments{
 \item{x}{the gage results to get significant genes from.}
 
-\item{gene.pValue}{a numeric specifying the p-Value threshold.}
+\item{gene.pValue}{a numeric specifying the p-value threshold.}
 
 \item{signal}{a character specifying which signal to analyse.}
 }

@@ -55,7 +55,7 @@ ezIsSpecified = function(x){
 ##' @description Modified version of \code{data.frame()} with a different default.
 ##' @template roxygen-template
 ##' @template addargs-template
-##' @templateVar fun data.frame
+##' @templateVar fun data.frame()
 ##' @return Returns a data.frame.
 ##' @examples
 ##' ezFrame(a=1:10,b=5)

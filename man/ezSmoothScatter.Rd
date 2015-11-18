@@ -2,7 +2,7 @@
 % Please edit documentation in R/plots.R
 \name{ezSmoothScatter}
 \alias{ezSmoothScatter}
-\title{1}
+\title{Does smooth scatter plots}
 \usage{
 ezSmoothScatter(x = NULL, y, xlab = NULL, ylab = NULL, nPlotsPerRow = 6,
   lim = range(x, y, na.rm = TRUE), isPresent = NULL, types = NULL,
@@ -10,6 +10,16 @@ ezSmoothScatter(x = NULL, y, xlab = NULL, ylab = NULL, nPlotsPerRow = 6,
   cex.main = 1, cex = 0.8, ...)
 }
 \arguments{
+\item{x}{an optional reference vector or matrix.}
+
+\item{y}{a matrix of values to plot.}
+
+\item{xlab}{a character for labeling the reference. If \code{x} is a matrix, its colnames will be used as labels.}
+
+\item{ylab}{a character vector for the labels of the plots. If \code{ylab} is NULL, the colnames from \code{y} will be used as labels.}
+
+\item{nPlotsPerRow}{an integer specifying the number of plots per row.}
+
 \item{lim}{integers specifying the x and y limits of the plot.}
 
 \item{isPresent}{a logical specifying whether the signal is present.}
@@ -29,7 +39,10 @@ ezSmoothScatter(x = NULL, y, xlab = NULL, ylab = NULL, nPlotsPerRow = 6,
 \item{...}{additional arguments to be passed further.}
 }
 \description{
-1
+Does smooth scatter plots.
+}
+\examples{
+ezSmoothScatter(y=data.frame(a=1:10, b=21:30, c=41:50))
 }
 \author{
 Rehrauer, Hubert

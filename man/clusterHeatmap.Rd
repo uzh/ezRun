@@ -12,7 +12,7 @@ clusterResults(x, nClusters = 5, clusterColors = rainbow(nClusters),
 clusterHeatmap(x, param, result, file = "cluster-heatmap.png",
   method = "ward.D2", doClusterColumns = FALSE, columnDist = NULL,
   colColors = NULL, lim = c(-4, 4), cexRow = 1, cexCol = 1.5,
-  labRow = rownames(x), margins = c(14, 9), colors = getBlueRedScale(256),
+  labRow = rownames(x), margins = c(14, 9), colors = getBlueRedScale(),
   maxGenesWithLabel = 50, ...)
 
 goClusterResults(x, param, result, ontologies = c("BP", "MF", "CC"),
@@ -20,7 +20,7 @@ goClusterResults(x, param, result, ontologies = c("BP", "MF", "CC"),
   keggOrganism = NA)
 }
 \arguments{
-\item{x}{a data vector to plot.}
+\item{x}{the data to plot.}
 
 \item{method}{a character representing the method to pass to \code{hclust()}.}
 
@@ -50,7 +50,7 @@ goClusterResults(x, param, result, ontologies = c("BP", "MF", "CC"),
 
 \item{maxGenesWithLabel}{an integer specifying the maximum amount of genes with labels.}
 
-\item{...}{additional arguments to be passed to \code{heatmap.2}.}
+\item{...}{additional arguments to be passed to \code{heatmap.2()}.}
 }
 \description{
 Plots the cluster heatmap.
