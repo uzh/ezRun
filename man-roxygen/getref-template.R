@@ -4,5 +4,6 @@
 ##' @author Schmid, Peter
 ##' @return Returns a character specifying the file path to the <%= methodName %> indexed reference genome.
 ##' @examples
-##' param = ezParam(userParam = list('refBuild' = 'Schizosaccharomyces_pombe/Ensembl/EF2/Annotation/Version-2013-03-07'))
+##' ls = list('refBuild' = 'Schizosaccharomyces_pombe/Ensembl/EF2/Annotation/Version-2013-03-07')
+##' param = ezParam(userParam = ls)
 ##' get<%= methodName %>Reference(param)

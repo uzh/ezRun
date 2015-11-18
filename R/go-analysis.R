@@ -16,7 +16,8 @@
 ##' param = ezParam()
 ##' param$ezRef@@refFeatureFile = "./inst/extdata/genes.gtf"
 ##' param$ezRef@@refAnnotationFile = "./inst/extdata/genes_annotation_example.txt"
-##' param$ezRef@@refFastaFile = "/srv/GT/reference/Saccharomyces_cerevisiae/Ensembl/EF4/Sequence/WholeGenomeFasta/genome.fa"
+##' fp = "/srv/GT/reference/Saccharomyces_cerevisiae/Ensembl/EF4/Sequence/WholeGenomeFasta/genome.fa"
+##' param$ezRef@@refFastaFile = fp
 ##' seqAnno = writeAnnotationFromGtf(param)
 ##' doGo(param, seqAnno)
 doGo = function(param, seqAnno){
@@ -349,7 +350,7 @@ clusterResults = function(x, nClusters=5, clusterColors=rainbow(nClusters), d=NU
 ##' @templateVar fun heatmap.2()
 ##' @template roxygen-template
 ##' @seealso \code{\link[stats]{hclust}}
-##' @seealso \code{\link[gplot]{heatmap.2}}
+##' @seealso \code{\link[gplots]{heatmap.2}}
 clusterHeatmap = function(x, param, result, file="cluster-heatmap.png", method="ward.D2",
                           doClusterColumns=FALSE, columnDist=NULL, colColors=NULL, lim=c(-4, 4),
                           cexRow=1.0, cexCol=1.5, labRow=rownames(x), margins=c(14,9),

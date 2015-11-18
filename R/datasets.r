@@ -58,7 +58,8 @@ makeMinimalPairedEndReadDataset = function(fqDir, species="", adapter1="GATCGGAA
 ##' @template roxygen-template
 ##' @return Returns the factorial design of the dataset.
 ##' @examples
-##' ds = EzDataset$new(file=system.file("extdata/yeast_10k/dataset.tsv", package="ezRun", mustWork = TRUE))
+##' file = system.file("extdata/yeast_10k/dataset.tsv", package="ezRun", mustWork = TRUE)
+##' ds = EzDataset$new(file=file)
 ##' design = ezDesignFromDataset(ds$meta)
 ##' cond = ezConditionsFromDesign(design)
 ##' addReplicate(apply(design, 1, paste, collapse="_"))

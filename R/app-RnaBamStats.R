@@ -168,7 +168,6 @@ getPosErrorFromBam = function(bamFile, param){
 ##' @describeIn computeBamStats Calculates the specific error rates for \code{getPosErrorFromBam()}.
 ezPosSpecErrorRate = function(bam, ReferenceGenome, nMaxReads=100000){
   library(GenomicRanges, warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
-  library(Biostrings, warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
   library(stringr, warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
   library(Hmisc, warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
   ## remove the reads containing the gaps, insertions, deletions

@@ -27,7 +27,8 @@
 ##' @examples
 ##' param = ezParam()
 ##' param$dataRoot = system.file(package="ezRun", mustWork = TRUE)
-##' input = EzDataset$new(file=system.file("extdata/yeast_10k_STAR_counts/dataset.tsv", package="ezRun", mustWork = TRUE))
+##' file = system.file("extdata/yeast_10k_STAR_counts/dataset.tsv", package="ezRun", mustWork = TRUE)
+##' input = EzDataset$new(file=file)
 ##' loadCountDataset(input, param)
 loadCountDataset = function(input, param){
 
@@ -189,7 +190,8 @@ readNcProResult = function (ncproDir, param) {
 ##' @return Returns the names of the filtered FastQ files.
 ##' @examples 
 ##' bamFile <- system.file("extdata", "ex1.bam", package="Rsamtools", mustWork=TRUE)
-##' input = EzDataset$new(file=system.file("extdata/yeast_10k/dataset.tsv", package="ezRun", mustWork = TRUE))
+##' file = system.file("extdata/yeast_10k/dataset.tsv", package="ezRun", mustWork = TRUE)
+##' input = EzDataset$new(file=file)
 ##' param = list()
 ##' param$dataRoot = system.file(package="ezRun", mustWork = TRUE)
 ##' fqFiles = input$getFullPaths(param, "Read1")
@@ -236,7 +238,8 @@ removeReadsFromFastq = function(fqFiles, readIds, fqOutFiles=NULL, doGzip=TRUE){
 ##' @template roxygen-template
 ##' @return Returns a named numeric vector
 ##' @examples 
-##' input = EzDataset$new(file=system.file("extdata/yeast_10k/dataset.tsv", package="ezRun", mustWork = TRUE))
+##' file = system.file("extdata/yeast_10k/dataset.tsv", package="ezRun", mustWork = TRUE)
+##' input = EzDataset$new(file=file)
 ##' param = list()
 ##' param$dataRoot = system.file(package="ezRun", mustWork = TRUE)
 ##' fqFiles = input$getFullPaths(param, "Read1")

@@ -16,7 +16,6 @@
 ##' @template rawData-template
 ##' @param signalCond a set of values containing signals averaged by the conditions.
 ##' @param isPresentCond Either NULL or a data.frame containing coloring information.
-##' @template colors-template
 ##' @template types-template
 ##' @template roxygen-template
 addQcScatterPlots = function(doc, param, design, conds, rawData, signalCond, isPresentCond, types=NULL){

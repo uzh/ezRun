@@ -103,7 +103,8 @@ runGageAnalysis = function(result, param=NULL, output=NULL, rawData=NULL, gene.p
 ##' @template roxygen-template
 ##' @return Returns the gene set.
 ##' @examples
-##' param = ezParam(userParam = list('refBuild' = 'Schizosaccharomyces_pombe/Ensembl/EF2/Annotation/Version-2013-03-07'))
+##' ls = list('refBuild' = 'Schizosaccharomyces_pombe/Ensembl/EF2/Annotation/Version-2013-03-07')
+##' param = ezParam(userParam = ls)
 ##' getGeneSets(param)
 ## TODOP: no database found at param$KEGGgmt
 getGeneSets = function(param){
@@ -287,7 +288,8 @@ getExpressionGage = function(gageResults, result=NULL, rawData=NULL, param = NUL
 ##' @template roxygen-template
 ##' @return Returns the gage results with labeled significant genes.
 ##' @examples
-##' param = ezParam(userParam = list('refBuild' = 'Schizosaccharomyces_pombe/Ensembl/EF2/Annotation/Version-2013-03-07'))
+##' ls = list('refBuild' = 'Schizosaccharomyces_pombe/Ensembl/EF2/Annotation/Version-2013-03-07')
+##' param = ezParam(userParam = ls)
 ##' pValue = param$gageGeneThreshold
 ##' x = "gageResults"
 ##' gageSigGenes(x, pValue, "both")
@@ -396,7 +398,8 @@ gageHeatmap = function(x, param=NULL, output=NULL, gene.pValue=NULL, signal=NULL
 ##' @template roxygen-template
 ##' @return Returns the name of the species derived from \code{refBuild}.
 ##' @examples
-##' param = ezParam(userParam = list('refBuild' = 'Schizosaccharomyces_pombe/Ensembl/EF2/Annotation/Version-2013-03-07'))
+##' ls = list('refBuild' = 'Schizosaccharomyces_pombe/Ensembl/EF2/Annotation/Version-2013-03-07')
+##' param = ezParam(userParam = ls)
 ##' getSpeciesName(param)
 getSpeciesName = function(param){
   buildFields = strsplit(param[["refBuild"]], "/", fixed=TRUE)[[1]]
@@ -410,7 +413,8 @@ getSpeciesName = function(param){
 ##' @template roxygen-template
 ##' @return Returns the KEGG ID as a character.
 ##' @examples
-##' param = ezParam(userParam = list('refBuild' = 'Schizosaccharomyces_pombe/Ensembl/EF2/Annotation/Version-2013-03-07'))
+##' ls = list('refBuild' = 'Schizosaccharomyces_pombe/Ensembl/EF2/Annotation/Version-2013-03-07')
+##' param = ezParam(userParam = ls)
 ##' x = getSpeciesName(param)
 ##' getKeggId(x, param)
 getKeggId = function(x, param) {

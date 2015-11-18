@@ -15,7 +15,8 @@
 ##' @examples
 ##' param = ezParam()
 ##' param$dataRoot = system.file(package="ezRun", mustWork = TRUE)
-##' input = EzDataset$new(file=system.file("extdata/yeast_10k_STAR_counts/dataset.tsv", package="ezRun", mustWork = TRUE))
+##' file = system.file("extdata/yeast_10k_STAR_counts/dataset.tsv", package="ezRun", mustWork = TRUE)
+##' input = EzDataset$new(file=file)
 ##' rawData1 = loadCountDataset(input$copy()$subset(1), param)
 ##' rawData2 = loadCountDataset(input$copy()$subset(2), param)
 ##' mergeRawData(rawData1, rawData2)
@@ -44,7 +45,8 @@ mergeRawData = function(rawData1, rawData2){
 ##' @examples
 ##' param = ezParam()
 ##' param$dataRoot = system.file(package="ezRun", mustWork = TRUE)
-##' input = EzDataset$new(file=system.file("extdata/yeast_10k_STAR_counts/dataset.tsv", package="ezRun", mustWork = TRUE))
+##' file = system.file("extdata/yeast_10k_STAR_counts/dataset.tsv", package="ezRun", mustWork = TRUE)
+##' input = EzDataset$new(file=file)
 ##' rawData = loadCountDataset(input, param)
 ##' selectSamples(rawData, c("wt_1","wt_2"))
 selectSamples = function(rawData, samples){
@@ -75,7 +77,8 @@ selectSamples = function(rawData, samples){
 ##' @examples
 ##' param = ezParam()
 ##' param$dataRoot = system.file(package="ezRun", mustWork = TRUE)
-##' input = EzDataset$new(file=system.file("extdata/yeast_10k_STAR_counts/dataset.tsv", package="ezRun", mustWork = TRUE))
+##' file = system.file("extdata/yeast_10k_STAR_counts/dataset.tsv", package="ezRun", mustWork = TRUE)
+##' input = EzDataset$new(file=file)
 ##' rawData = loadCountDataset(input, param)
 ##' getSignal(rawData)
 ##' getLog2Signal(rawData)
@@ -106,7 +109,8 @@ getLog2Signal = function(rawData){
 ##' @examples
 ##' param = ezParam()
 ##' param$dataRoot = system.file(package="ezRun", mustWork = TRUE)
-##' input = EzDataset$new(file=system.file("extdata/yeast_10k_STAR_counts/dataset.tsv", package="ezRun", mustWork = TRUE))
+##' file = system.file("extdata/yeast_10k_STAR_counts/dataset.tsv", package="ezRun", mustWork = TRUE)
+##' input = EzDataset$new(file=file)
 ##' rawData = loadCountDataset(input, param)
 ##' getRpkm(rawData)
 ## TODOEXAMPLE: get example with proper return
@@ -145,8 +149,10 @@ getRpkm = function(rawData){
 ##' param$dataRoot = system.file(package="ezRun", mustWork = TRUE)
 ##' param$ezRef@@refFeatureFile = "./inst/extdata/genes.gtf"
 ##' param$ezRef@@refAnnotationFile = "./inst/extdata/genes_annotation_example.txt"
-##' param$ezRef@@refFastaFile = "/srv/GT/reference/Saccharomyces_cerevisiae/Ensembl/EF4/Sequence/WholeGenomeFasta/genome.fa"
-##' input = EzDataset$new(file=system.file("extdata/yeast_10k_STAR_counts/dataset.tsv", package="ezRun", mustWork = TRUE))
+##' fp = "/srv/GT/reference/Saccharomyces_cerevisiae/Ensembl/EF4/Sequence/WholeGenomeFasta/genome.fa"
+##' param$ezRef@@refFastaFile = fp
+##' file = system.file("extdata/yeast_10k_STAR_counts/dataset.tsv", package="ezRun", mustWork = TRUE)
+##' input = EzDataset$new(file=file)
 ##' rawData = loadCountDataset(input, param)
 ##' rawData$seqAnno = writeAnnotationFromGtf(param)
 ##' aggregateCountsByGene(param, rawData)
@@ -213,7 +219,8 @@ aggregateCountsByGene = function(param, rawData){
 ##' @examples
 ##' param = ezParam()
 ##' param$dataRoot = system.file(package="ezRun", mustWork = TRUE)
-##' input = EzDataset$new(file=system.file("extdata/yeast_10k_STAR_counts/dataset.tsv", package="ezRun", mustWork = TRUE))
+##' file = system.file("extdata/yeast_10k_STAR_counts/dataset.tsv", package="ezRun", mustWork = TRUE)
+##' input = EzDataset$new(file=file)
 ##' rawData = loadCountDataset(input, param)
 ##' keep = "YFR014C"
 ##' selectFeatures(rawData, keep)

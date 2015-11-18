@@ -491,7 +491,7 @@ writeTestScatterPlots = function(html, param, x, result, seqAnno, colorRange=c(-
   }
   myBreaks = seq(0, 1, by=0.002)
   pngNames["pValueHist"] = paste0(param$comparison, "-pValueHist.png")
-  png(file=pngNames["pValueHist"], height=400, width=800)
+  png(pngNames["pValueHist"], height=400, width=800)
   histUsed = hist(result$pValue[result$usedInTest], breaks=myBreaks, plot=FALSE)
   histAbs = hist(result$pValue[!result$usedInTest], breaks=myBreaks, plot=FALSE)
   xx =rbind(used=histUsed$counts, absent=histAbs$counts)

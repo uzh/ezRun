@@ -76,7 +76,7 @@ ncpro = function(input, dataset, param=NULL){
   readCounts$remaining = countReadsInFastq(trimmedFastqFiles)
   ezWrite.table(readCounts, "trimCounts.txt")
   readCounts$removed = readCounts$untrimmed - readCounts$remaining
-  png(file=param$readCountsBarplot, width=400 + nrow(readCounts) * 10, height=700)
+  png(param$readCountsBarplot, width=400 + nrow(readCounts) * 10, height=700)
   par(mar=c(12, 4.1, 4.1, 2.1))  
   barplot(t(as.matrix(readCounts[ , c("remaining", "removed")])), las=2, border=NA,
           main="Read Counts after trimming", legend.text=TRUE, col=c("gray30", "gray"))

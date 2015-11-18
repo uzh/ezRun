@@ -21,10 +21,10 @@
 }
 
 ## TODO: refactor: use the general ezMethodTrim
-trimMirna = function(inputFile, outputFile, adapter=NA, param){
-  qtOut = sub(".fastq.gz", "_qualtrim.fastq", basename(inputFile))
-  qtBad = sub(".fastq.gz", "_qualtrimBad.fastq", basename(inputFile))
-  catCmd = paste("gunzip -c", inputFile)
+trimMirna = function(input, output, adapter=NA, param){
+  qtOut = sub(".fastq.gz", "_qualtrim.fastq", basename(input))
+  qtBad = sub(".fastq.gz", "_qualtrimBad.fastq", basename(input))
+  catCmd = paste("gunzip -c", input)
   filtCmd = paste("|", PRINSEQ_LITE, 
                   "-no_qual_header",
                   "-trim_qual_right", 20,
@@ -33,7 +33,7 @@ trimMirna = function(inputFile, outputFile, adapter=NA, param){
                   "-fastq", "stdin",
                   "-out_bad", sub(".fastq$", "", qtBad),
                   "-out_good", sub(".fastq$", "", qtOut), 
-                  ">", sub(".fastq", ".prinseq.out", outputFile))
+                  ">", sub(".fastq", ".prinseq.out", output))
   cmd = paste(catCmd, filtCmd)
   ezSystem(cmd)
   atOut = sub("_qualtrim.fastq", "_allTrimmed.fastq", qtOut)
@@ -48,13 +48,13 @@ trimMirna = function(inputFile, outputFile, adapter=NA, param){
               "--format", "i1.8",
               "--reads", qtOut,
               "--target",  sub(".fastq$", "", atOut),
-              ">", sub(".fastq", ".flexbar.out", outputFile))
+              ">", sub(".fastq", ".flexbar.out", output))
   ezSystem(cmd)
   ezSystem(paste("rm -f ", qtOut, qtBad))
-  if (atOut != outputFile){
-    ezSystem(paste("mv", atOut, outputFile))
+  if (atOut != output){
+    ezSystem(paste("mv", atOut, output))
   } else {
     ezSystem(paste("rm", atOut))    
   }
-  return(outputFile)
+  return(output)
 }

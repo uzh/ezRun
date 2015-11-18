@@ -127,7 +127,7 @@ gatkRnaSeqHaplotyperApp = function(input=NA, output=NA, param=NA, htmlFile="00in
   hcd = as.dendrogram(hclust(d, method="ward.D2"), hang=-0.1)
   hcd = colorClusterLabels(hcd, sampleColors)
   pngFile = "genotype-cluster.png"
-  png(file=pngFile, width=800 + max(0, 10 * (nSamples-20)), height=500)
+  png(pngFile, width=800 + max(0, 10 * (nSamples-20)), height=500)
   plot(hcd, main="Cluster by Genotype", xlab="")
   dev.off()
   writeImageColumnToHtml(pngFile, con=html)
@@ -142,7 +142,7 @@ gatkRnaSeqHaplotyperApp = function(input=NA, output=NA, param=NA, htmlFile="00in
   pngFiles = c()
   for (ch in names(chromSizes)[isRealChrom]){
     pngFiles[ch] = paste0("variantPos-chrom-", ch, ".png")
-    png(file=pngFiles[ch], height=200+30*ncol(gt), width=1200)
+    png(pngFiles[ch], height=200+30*ncol(gt), width=1200)
     par(mar=c(4.1, 10, 4.1, 2.1))
     plot(0, 0, type="n", main=paste("Chromsome", ch), xlab="pos", xlim=c(1, chromSizes[ch]), ylim=c(0, 3*ncol(gt)),
          axes=FALSE, frame=FALSE, xaxs="i", yaxs="i", ylab="")

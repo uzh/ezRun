@@ -246,7 +246,6 @@ writeErrorReport = function(htmlFile, param=param, dataset=NULL, error="Unknown 
 ##' @param txtNames a character representing the file names.
 ##' @param doZip a logical indicating whether to zip the files.
 ##' @param mime a character representing the type of the links.
-##' @template connection-template
 ##' @template roxygen-template
 ##' @examples
 ##' param = ezParam()
@@ -353,7 +352,7 @@ addCountResultSummary = function(doc, param, result){
 ##' @template doc-template
 ##' @templateVar object table
 ##' @template result-template
-##' @param pThresh a numerical indicating the p-value threshold.
+##' @param pThresh a numerical indicating the p-value threshold. genes
 ##' @template roxygen-template
 addSignificantCounts = function(doc, result, pThresh=c(0.1, 0.05, 1/10^(2:5))){
   sigTable = ezFlexTable(getSignificantCountsTable(result, pThresh=pThresh),

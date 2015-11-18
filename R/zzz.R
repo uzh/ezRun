@@ -6,6 +6,9 @@
 # www.fgcz.ch
 
 
+EZ_PARAM_DEFAULTS = ezRead.table(system.file("extdata/EZ_PARAM_DEFAULTS.txt", package="ezRun", mustWork = TRUE), comment.char="#")  
+
+
 .onLoad = function(libname, pkgname){
   ## NICE_TO_HAVE: put global variables in a list ezGlobals  
   ## users should have their own global parameters

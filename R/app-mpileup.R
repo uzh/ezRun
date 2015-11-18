@@ -142,7 +142,7 @@ ezMethodMpileup = function(input=NA, output=NA, param=NA){
 #         plot(hcd, main="Cluster by Genotype", xlab="")
 #       })
 #       pngLink = ezImageFileLink(plotCmd, file=pngFile, width=800 + max(0, 10 * (nSamples-20)), height=500)
-      png(file=pngFile, width=800 + max(0, 10 * (nSamples-20)), height=500)
+      png(pngFile, width=800 + max(0, 10 * (nSamples-20)), height=500)
       plot(hcd, main="Cluster by Genotype", xlab="")
       dev.off()
 #       doc = addParagraph(doc, pngLink)
@@ -181,7 +181,7 @@ ezMethodMpileup = function(input=NA, output=NA, param=NA){
       #       abline(h=seq(0, 3*ncol(gt), by=3))
       #     })
       #     pngLinks[ch] = ezImageFileLink(plotCmd, file=pngFiles[ch], height=200+30*ncol(gt), width=1200)
-      png(file=pngFiles[ch], height=200+30*ncol(gt), width=1200)
+      png(pngFiles[ch], height=200+30*ncol(gt), width=1200)
       par(mar=c(4.1, 10, 4.1, 2.1))
       plot(0, 0, type="n", main=paste("Chromsome", ch), xlab="pos", xlim=c(1, chromSizes[ch]), ylim=c(0, 3*ncol(gt)),
            axes=FALSE, frame=FALSE, xaxs="i", yaxs="i", ylab="")

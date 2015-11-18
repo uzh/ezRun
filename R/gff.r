@@ -366,7 +366,7 @@ getExonNumber = function(gtf){
 
 ##' @title 1
 ##' @description 1
-##' @param gtfFile the gtf file to read the information from.
+##' @param reference a reference to read the information from.
 ##' @template roxygen-template
 ##' @return Returns 
 ##' @seealso \code{\link[GenomicFeatures]{makeTxDbFromGFF}}
@@ -387,7 +387,7 @@ ezTranscriptDbFromRef = function(reference, dataSource="FGCZ"){
 
 ##' @title Gets gene names from annotation
 ##' @description Gets gene names from an annotation data.frame of gtf or gff format.
-##' @param gff the annotation data.frame to get the gene data from.
+##' @param gtf the annotation data.frame to get the gene data from.
 ##' @template roxygen-template
 ##' @return Returns a character vector with the gene names.
 ##' @examples
@@ -447,7 +447,8 @@ writePresplicedGtf <- function (param, featureFile=param$ezRef["refFeatureFile"]
 ##' @examples
 ##' param = ezParam()
 ##' param$ezRef@@refFeatureFile = "./inst/extdata/genes.gtf"
-##' param$ezRef@@refFastaFile = "/srv/GT/reference/Saccharomyces_cerevisiae/Ensembl/EF4/Sequence/WholeGenomeFasta/genome.fa"
+##' fp = "/srv/GT/reference/Saccharomyces_cerevisiae/Ensembl/EF4/Sequence/WholeGenomeFasta/genome.fa"
+##' param$ezRef@@refFastaFile = fp
 ##' getTranscriptSequences(param)
 getTranscriptSequences = function(param, useFivePrimeAsStart=TRUE){
   genomeFasta = param$ezRef["refFastaFile"]
@@ -492,7 +493,8 @@ getTranscriptSequences = function(param, useFivePrimeAsStart=TRUE){
 ##' param = ezParam()
 ##' gtf = ezLoadFeatures(param,"./inst/extdata/genes.gtf")
 ##' param$ezRef@@refFeatureFile = "./inst/extdata/genes.gtf"
-##' param$ezRef@@refFastaFile = "/srv/GT/reference/Saccharomyces_cerevisiae/Ensembl/EF4/Sequence/WholeGenomeFasta/genome.fa"
+##' fp = "/srv/GT/reference/Saccharomyces_cerevisiae/Ensembl/EF4/Sequence/WholeGenomeFasta/genome.fa"
+##' param$ezRef@@refFastaFile = fp
 ##' genomeSeq = getTranscriptSequences(param)
 ##' ezUtrSequences(gtf)
 ## TODOP: improve help file. add an argument genomeSeq and maybe provide a default. Currently that object needs to be defined outside the function.
@@ -558,7 +560,8 @@ ezUtrSequences = function(gtf, chromSeqs){
 ##' @examples
 ##' param = ezParam()
 ##' param$ezRef@@refFeatureFile = "./inst/extdata/genes.gtf"
-##' param$ezRef@@refFastaFile = "/srv/GT/reference/Saccharomyces_cerevisiae/Ensembl/EF4/Sequence/WholeGenomeFasta/genome.fa"
+##' fp = "/srv/GT/reference/Saccharomyces_cerevisiae/Ensembl/EF4/Sequence/WholeGenomeFasta/genome.fa"
+##' param$ezRef@@refFastaFile = fp
 ##' getTranscriptGcAndWidth(param)
 getTranscriptGcAndWidth = function(param){
   genomeFasta = param$ezRef["refFastaFile"]

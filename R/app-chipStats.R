@@ -180,7 +180,7 @@ fragmentSize = function(myBam, isPaired = F){
     maxQuantile=quantile(fragmentSize, 0.9)
     sample_fragmentSize = fragmentSize[which(fragmentSize>minQuantile & fragmentSize < maxQuantile)]
     system('echo sample_fragmentSize calculated, plotting... \n')
-    png(file=paste0(names(myBam),"_fragmentSize.png"))
+    png(paste0(names(myBam),"_fragmentSize.png"))
     d = density(sample_fragmentSize)
     plot(d, main=names(myBam),xlab=paste0("Median of FragmentSize:",medianFS))
     polygon(d, col="red", border="black") 
@@ -201,7 +201,7 @@ MakeEnrichmentPlot = function(myBam, isPaired=F, estimatedFragmentSize = 200){
     seq.len = estimatedFragmentSize
     system (paste('echo SE data, defined FragmentSize:', seq.len, '\n'))
   }
-  png(file=paste0(names(myBam), "_SingleEnrichmentPlot.png"))
+  png(paste0(names(myBam), "_SingleEnrichmentPlot.png"))
   data = enrichmentPlot(myBam, seq.len, cols = c("brown"), lwd = 4, main = names(myBam))
   dev.off()
   write.table(data[[1]], paste(names(myBam),'_EnrichedCoverage.txt', sep = ''),quote = F, row.names = F, sep = '\t')
@@ -222,7 +222,7 @@ MakeCpGDensityPlot = function(myBam, isPaired = F, build, estimatedFragmentSize 
       seq.len = estimatedFragmentSize
       system(paste('echo SE data, defined FragmentSize:', seq.len, '\n'))
     }
-    png(file=paste0(names(myBam), "_cpgDensityPlot.png"))
+    png(paste0(names(myBam), "_cpgDensityPlot.png"))
     cpgDensityPlot(myBam, organism = get(bsgenome_table[2]), w.function = "none", seq.len,
                    cols = c("black"), xlim = c(0, 30), lwd = 2, main = names(myBam))
     dev.off()
@@ -255,7 +255,7 @@ CoverageVarFunction = function(myBam){
 StartPosTableFunction = function(myBam, maxX=20){
   system('echo Function StartPosTableFunction \n')
   startPosTable = table(table(paste(seqnames(myBam[[1]]), start(myBam[[1]]), strand(myBam[[1]]), sep='_')))
-  png(file=paste0(names(myBam), "_StartPositionPlot.png"))
+  png(paste0(names(myBam), "_StartPositionPlot.png"))
   plot(x = as.numeric(names(startPosTable)),y = log2(startPosTable),type='l', ylab=c('Frequency (log2)'), xlab=c('Reads_per_Start_Position'), xlim=c(1,maxX), main=names(myBam), lwd=3)
   legend("topright", c(names(myBam)))
   dev.off()  
@@ -326,8 +326,8 @@ createTSSPlot = function(myBam, gff, flank, name, range=c(1,100)){
   colnames(posDataCounts) = seq(-1*flank, flank-1, 1)
   require(gplots)
   MyCols = colorRampPalette(c('black','white'))(oldRange)
-  filename = paste0(names(myBam), "_TSSPlot.png")
-  png(filename=filename, width=640, height=640)
+  file = paste0(names(myBam), "_TSSPlot.png")
+  png(file, width=640, height=640)
   image(t(sqrt(posDataCounts[-c(1:2),]+1)), col=MyCols, axes=F)
   title(main=names(myBam), col.main="black",
         sub="", col.sub="blue",

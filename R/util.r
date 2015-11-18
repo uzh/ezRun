@@ -7,6 +7,7 @@
 
 
 ##' @title Gets the last value of an object
+##' @description Gets the last value of an object.
 ##' @param x a vector, object or a list.
 ##' @template roxygen-template
 ##' @examples

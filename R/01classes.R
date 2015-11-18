@@ -26,7 +26,8 @@
 ##' }
 ##' @template roxygen-template
 ##' @examples 
-##' ds = EzDataset$new(file=system.file("extdata/yeast_10k/dataset.tsv", package="ezRun", mustWork = TRUE))
+##' file = system.file("extdata/yeast_10k/dataset.tsv", package="ezRun", mustWork = TRUE)
+##' ds = EzDataset$new(file=file)
 ##' dataRoot = system.file(package="ezRun", mustWork = TRUE)
 ##' ds$file
 ##' ds$meta
@@ -161,7 +162,8 @@ ezTagListFromNames = function(names){
 ##' @seealso \code{\link{EzDataset}}
 ##' @seealso \code{\link{checkFreeDiskSpace}}
 ##' @examples
-##' ds = EzDataset$new(file=system.file("extdata/yeast_10k/dataset.tsv", package="ezRun", mustWork = TRUE))
+##' file = system.file("extdata/yeast_10k/dataset.tsv", package="ezRun", mustWork = TRUE)
+##' ds = EzDataset$new(file=file)
 ##' NULLApp = EzApp$new(runMethod=function(input, output, param){},name="NULLApp")
 ##' NULLApp$run(input=ds, output=ds, param=list(process_mode="DATASET"))
 EzApp <- 

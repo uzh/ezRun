@@ -9,7 +9,7 @@ Description: An environment that makes it easy to process data by using R
     packages and external tools.
 License: GPL-3 | file LICENSE
 Depends:
-    parallel,Biostrings,stats,methods
+    parallel,Biostrings,stats,methods,utils
 Imports:
     caTools,Hmisc,RCurl,XML,stringr,matrixStats,GenomicAlignments,GenomicFeatures,GenomicRanges,Rsamtools,ShortRead,Gviz,gplots,ReporteRs
 Suggests:

@@ -17,6 +17,7 @@
 ##' @slot refFastaFile a character specifying the file path to the fasta file.
 ##' @slot refChromDir a character specifying the file path to the directory of the chromosome information.
 ##' @slot refChromSizesFile a character specifying the file path to the file containing the chromosome sizes.
+##' @slot refAnnotationVersion a character specifying the annotation version.
 ##' @template roxygen-template
 ##' @seealso \code{\link{cleanGenomeFiles}}
 ##' @examples

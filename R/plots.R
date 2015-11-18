@@ -130,7 +130,7 @@ ezColorLegend = function(colorRange=c(-3,3), colors=getBlueRedScale(), vertical=
     effects = unlist(effectByTail)
     effects = shrinkToRange(effects, ylim)
     pngNames[sampleName] = paste0(sampleName, "-tailEffectPlot.png")
-    png(file=pngNames[sampleName], height=400, width=400)
+    png(pngNames[sampleName], height=400, width=400)
     for (tail in tails){
       #values = unlist(lapply(valueByTailSet[[sampleName]], function(x){x[-1]}))
       use = grep(paste0(tail, "$"), names(effects))
@@ -171,7 +171,7 @@ ezColorLegend = function(colorRange=c(-3,3), colors=getBlueRedScale(), vertical=
   pngNames = character()
   for (tail in tails){
     pngNames[tail] = paste0("tailEffectPlot-", tail, ".png")
-    png(file=pngNames[tail], height=500, width=500)
+    png(pngNames[tail], height=500, width=500)
     for (sampleName in samples){
       values = unlist(lapply(valueByTailSet[[sampleName]], function(x){x[-length(x)]}))
       #values = unlist(lapply(valueByTailSet[[sampleName]], function(x){x[-1]}))
@@ -750,7 +750,7 @@ ezArrayImage = function(mat, file=NULL, colorRange=c(-3,3), xScale=1, yScale=1, 
   mat[mat < colorRange[1]] = colorRange[1]
   
   if (!is.null(file)){
-    png(file=file, height=nrow(mat)*yScale, width=ncol(mat)*xScale)
+    png(file, height=nrow(mat)*yScale, width=ncol(mat)*xScale)
     on.exit(dev.off())
   }
   par(mar=c(0,0,0,0))
@@ -764,8 +764,8 @@ ezCdfPlot = function(x, itemName="gene", scoreName="expression", percentage=FALS
                      file=NULL, height=600, width=600, col=getSampleColors(colnames(x), colorNames = colnames(x))){
   if (!is.null(file)){
     switch(sub(".*\\.", "", file),
-           pdf=pdf(file=file, height=height/100, width=width/100),
-           png=png(file=file, height=height, width=width),
+           pdf=pdf(file, height=height/100, width=width/100),
+           png=png(file, height=height, width=width),
            stop("unsupported file: ", file))
     on.exit(dev.off())
   }
@@ -799,7 +799,7 @@ ezCdfPlot = function(x, itemName="gene", scoreName="expression", percentage=FALS
 goGroupBarPlot = function(xSub){
   ggr = xSub[xSub$Level %in% c("level 2", "unknown"), ]
   pngFile = ezValidFilename(paste0(name, ".png"), replace="-")
-  png(file=pngFile, height=800, width=600)
+  png(pngFile, height=800, width=600)
   par(mar=c(4,16,4,4)) 
   bp = barplot(t(as.matrix(ggr[ ,c("Count", "Size")])), horiz=TRUE, beside=T, 
                legend.text =c("Count", "Size"),
