@@ -22,11 +22,11 @@
 ##' @seealso \code{\link{cleanGenomeFiles}}
 ##' @examples
 ##' refBuild = "Saccharomyces_cerevisiae/Ensembl/EF4/Annotation/Version-2013-03-18"
-##' gtf = "genes.gtf"
-##' fasta = "genome.fa"
-##' genomesRoot = "~/refExample"
+##' gtf = system.file("extdata/genes.gtf", package="ezRun", mustWork = TRUE)
+##' fp = system.file("extdata/genome.fa", package="ezRun", mustWork = TRUE)
+##' genomesRoot = "./refExample"
 ##' myRef = EzRef(param=ezParam(list(refBuild=refBuild)), genomesRoot=genomesRoot)
-##' buildRefDir(myRef, fasta, gtf, genomesRoot)
+##' buildRefDir(myRef, fp, gtf, genomesRoot)
 EzRef = setClass("EzRef",
                  slots = c(refBuild="character",
                            refBuildName="character",
@@ -105,6 +105,7 @@ setGeneric("buildRefDir", function(.Object, genomeFile, genesFile, genomesRoot =
 ##' @describeIn EzRef Builds the reference directory and copies the annotation and fast file into the right folders.
 setMethod("buildRefDir", "EzRef", function(.Object, genomeFile, genesFile, genomesRoot = "."){
   cd = getwd()
+  on.exit(setwd(cd))
   setwdNew(genomesRoot)
   
   gtfPath = dirname(.Object@refFeatureFile)
@@ -125,7 +126,6 @@ setMethod("buildRefDir", "EzRef", function(.Object, genomeFile, genesFile, genom
   cmd = paste("java -jar", PICARD_JAR, "CreateSequenceDictionary",
               paste0("R=", .Object@refFastaFile), paste0("O=", sub(".fa$", ".dict", .Object@refFastaFile)))
   ezSystem(cmd)
-  setwd(cd)
 })
 
 setGeneric("getOrganism", function(.Object){

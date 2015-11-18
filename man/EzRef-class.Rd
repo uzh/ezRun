@@ -59,10 +59,10 @@ Objects of this class are a collection of references derived from a list of para
 \examples{
 refBuild = "Saccharomyces_cerevisiae/Ensembl/EF4/Annotation/Version-2013-03-18"
 gtf = "genes.gtf"
-fasta = "genome.fa"
+fp = "/inst/extdata/genome.fa"
 genomesRoot = "~/refExample"
 myRef = EzRef(param=ezParam(list(refBuild=refBuild)), genomesRoot=genomesRoot)
-buildRefDir(myRef, fasta, gtf, genomesRoot)
+buildRefDir(myRef, fp, gtf, genomesRoot)
 }
 \author{
 Rehrauer, Hubert
