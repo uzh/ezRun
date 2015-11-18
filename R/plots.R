@@ -849,7 +849,6 @@ normalized.distr <- function(data, bins, dmax=1, dmin=-1, ylim= NULL, add=FALSE,
 }
 
 
-## name problematic: profilePlot
 ## still used?
 ezProfilePlot <- function(x, err=NULL, colors=rainbow(nrow(x)), xaxs="i", yaxs="i", xlim=c(0, ncol(x)+10), ylim=NULL, log="", type="l",
                           names=rownames(x), legendPos="topright", lty=rep(1, nrow(x)), main="", plotXLabels=TRUE, xlab="", ylab="", ...){
