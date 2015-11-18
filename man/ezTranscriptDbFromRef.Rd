@@ -7,7 +7,7 @@
 ezTranscriptDbFromRef(reference, dataSource = "FGCZ")
 }
 \arguments{
-\item{gtfFile}{the gtf file to read the information from.}
+\item{reference}{a reference to read the information from.}
 }
 \value{
 Returns

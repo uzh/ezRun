@@ -482,7 +482,7 @@ makeMultiMapping = function(xList){
 # TODO(Rsge not supported anymore, still waiting for a reply of the authors to use their source code.)
 .ezSgelapply = function(jobList, FUN, param, queue="GT", cores=4, ram=10, scratch=50, mailto=NULL,
                         saveGlobal=TRUE, removeFiles=TRUE){
-  library(Rsge, warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
+  #library(Rsge, warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
   sge.options("sge.qsub.options"=paste0("-cwd -q ", queue,
                                        " -pe smp ", cores,
                                        ##" -l C=1",

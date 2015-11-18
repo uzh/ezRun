@@ -4,7 +4,7 @@
 \name{EzRef-class}
 \alias{EzRef}
 \alias{EzRef-class}
-\alias{[,EzRef,ANY,ANY,ANY-method}
+\alias{[,EzRef,ANY,ANY-method}
 \alias{buildRefDir,EzRef-method}
 \alias{getOrganism,EzRef-method}
 \alias{initialize,EzRef-method}
@@ -13,7 +13,7 @@
 \S4method{initialize}{EzRef}(.Object, param = list(),
   genomesRoot = GENOMES_ROOT)
 
-\S4method{[}{EzRef,ANY,ANY,ANY}(x, i)
+\S4method{[}{EzRef,ANY,ANY}(x, i)
 
 \S4method{buildRefDir}{EzRef}(.Object, genomeFile, genesFile,
   genomesRoot = ".")
@@ -53,6 +53,8 @@ Objects of this class are a collection of references derived from a list of para
 \item{\code{refChromDir}}{a character specifying the file path to the directory of the chromosome information.}
 
 \item{\code{refChromSizesFile}}{a character specifying the file path to the file containing the chromosome sizes.}
+
+\item{\code{refAnnotationVersion}}{a character specifying the annotation version.}
 }}
 \examples{
 refBuild = "Saccharomyces_cerevisiae/Ensembl/EF4/Annotation/Version-2013-03-18"

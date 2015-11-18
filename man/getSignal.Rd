@@ -25,7 +25,8 @@ Gets the signal from raw data and modifies it if necessary due to logarithm.
 \examples{
 param = ezParam()
 param$dataRoot = system.file(package="ezRun", mustWork = TRUE)
-input = EzDataset$new(file=system.file("extdata/yeast_10k_STAR_featureCounts/dataset.tsv", package="ezRun", mustWork = TRUE))
+file = system.file("extdata/yeast_10k_STAR_counts/dataset.tsv", package="ezRun", mustWork = TRUE)
+input = EzDataset$new(file=file)
 rawData = loadCountDataset(input, param)
 getSignal(rawData)
 getLog2Signal(rawData)

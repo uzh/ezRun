@@ -28,7 +28,8 @@ Decides whether to do a gene ontologies analysis.
 param = ezParam()
 param$ezRef@refFeatureFile = "./inst/extdata/genes.gtf"
 param$ezRef@refAnnotationFile = "./inst/extdata/genes_annotation_example.txt"
-param$ezRef@refFastaFile = "/srv/GT/reference/Saccharomyces_cerevisiae/Ensembl/EF4/Sequence/WholeGenomeFasta/genome.fa"
+fp = "/srv/GT/reference/Saccharomyces_cerevisiae/Ensembl/EF4/Sequence/WholeGenomeFasta/genome.fa"
+param$ezRef@refFastaFile = fp
 seqAnno = writeAnnotationFromGtf(param)
 doGo(param, seqAnno)
 }

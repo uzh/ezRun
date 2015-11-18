@@ -20,7 +20,8 @@ Selects features from raw data by looking at "signal" (if specified) or "counts"
 \examples{
 param = ezParam()
 param$dataRoot = system.file(package="ezRun", mustWork = TRUE)
-input = EzDataset$new(file=system.file("extdata/yeast_10k_STAR_featureCounts/dataset.tsv", package="ezRun", mustWork = TRUE))
+file = system.file("extdata/yeast_10k_STAR_counts/dataset.tsv", package="ezRun", mustWork = TRUE)
+input = EzDataset$new(file=file)
 rawData = loadCountDataset(input, param)
 keep = "YFR014C"
 selectFeatures(rawData, keep)

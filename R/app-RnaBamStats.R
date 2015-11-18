@@ -55,7 +55,7 @@ EzAppRnaBamStats <-
 ##' @template htmlFile-template
 ##' @param param a list of parameters:
 ##' \itemize{
-##'   \item{ezRef@refBuild}{ a character containing the path of the reference build.}
+##'   \item{ezRef@@refBuild}{ a character containing the path of the reference build.}
 ##'   \item{seqNames}{ the sequence names to select.}
 ##'   \item{posErrorRates}{ a logical indicating whether to call \code{getPosErrorFromBam()}.}
 ##'   \item{saveImage}{ a logical indicating whether to save the image.}

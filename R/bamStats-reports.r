@@ -14,7 +14,7 @@
 ##' \itemize{
 ##'   \item{name}{ a character representing the name of the app.}
 ##'   \item{writeIgvSessionLink}{ a logical indicating whether to write an IGV session link.}
-##'   \item{ezRef@refBuild}{ a character containing the path of the reference build.}
+##'   \item{ezRef@@refBuild}{ a character containing the path of the reference build.}
 ##'   \item{sigThresh}{ an integer specifying the significance threshold.}
 ##'   \item{normMethod}{ a character specifying the normalization method to use.}
 ##'   \item{runGO}{ a logical indicating wheter to run the GO analysis.}

@@ -9,6 +9,9 @@ lastVal(x)
 \arguments{
 \item{x}{a vector, object or a list.}
 }
+\description{
+Gets the last value of an object.
+}
 \examples{
 lastVal(1:10)
 obj1 <- 1:5

@@ -18,7 +18,7 @@ getSignificantFoldChangeCountsTable(result, pThresh = 1/10^(1:5),
 
 \item{result}{a list of results.}
 
-\item{pThresh}{a numerical indicating the p-value threshold.}
+\item{pThresh}{a numerical indicating the p-value threshold. genes}
 }
 \description{
 Adds tables of the significant counts.

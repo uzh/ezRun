@@ -35,7 +35,8 @@ Filters FastQ files by bam and writes them into new files.
 }}
 \examples{
 bamFile <- system.file("extdata", "ex1.bam", package="Rsamtools", mustWork=TRUE)
-input = EzDataset$new(file=system.file("extdata/yeast_10k/dataset.tsv", package="ezRun", mustWork = TRUE))
+file = system.file("extdata/yeast_10k/dataset.tsv", package="ezRun", mustWork = TRUE)
+input = EzDataset$new(file=file)
 param = list()
 param$dataRoot = system.file(package="ezRun", mustWork = TRUE)
 fqFiles = input$getFullPaths(param, "Read1")

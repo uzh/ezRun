@@ -35,7 +35,8 @@ Gets the design from the dataset or parameters, if specified.
 \item \code{addReplicate}: add a replicate id to make values unique
 }}
 \examples{
-ds = EzDataset$new(file=system.file("extdata/yeast_10k/dataset.tsv", package="ezRun", mustWork = TRUE))
+file = system.file("extdata/yeast_10k/dataset.tsv", package="ezRun", mustWork = TRUE)
+ds = EzDataset$new(file=file)
 design = ezDesignFromDataset(ds$meta)
 cond = ezConditionsFromDesign(design)
 addReplicate(apply(design, 1, paste, collapse="_"))

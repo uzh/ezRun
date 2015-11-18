@@ -18,7 +18,8 @@ Returns the KEGG ID as a character.
 Gets the KEGG ID.
 }
 \examples{
-param = ezParam(userParam = list('refBuild' = 'Schizosaccharomyces_pombe/Ensembl/EF2/Annotation/Version-2013-03-07'))
+ls = list('refBuild' = 'Schizosaccharomyces_pombe/Ensembl/EF2/Annotation/Version-2013-03-07')
+param = ezParam(userParam = ls)
 x = getSpeciesName(param)
 getKeggId(x, param)
 }

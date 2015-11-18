@@ -21,7 +21,8 @@ Returns a character specifying the file path to the Bowtie indexed reference gen
 Builds and gets a Bowtie reference by returning the file path to it.
 }
 \examples{
-param = ezParam(userParam = list('refBuild' = 'Schizosaccharomyces_pombe/Ensembl/EF2/Annotation/Version-2013-03-07'))
+ls = list('refBuild' = 'Schizosaccharomyces_pombe/Ensembl/EF2/Annotation/Version-2013-03-07')
+param = ezParam(userParam = ls)
 getBowtieReference(param)
 }
 \author{

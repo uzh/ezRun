@@ -37,7 +37,8 @@ Gets the sequence annotation from annotation (gtf or gff) and sequence (fasta) i
 param = ezParam()
 param$ezRef@refFeatureFile = "./inst/extdata/genes.gtf"
 param$ezRef@refAnnotationFile = "./inst/extdata/genes_annotation_example.txt"
-param$ezRef@refFastaFile = "/srv/GT/reference/Saccharomyces_cerevisiae/Ensembl/EF4/Sequence/WholeGenomeFasta/genome.fa"
+fp = "/srv/GT/reference/Saccharomyces_cerevisiae/Ensembl/EF4/Sequence/WholeGenomeFasta/genome.fa"
+param$ezRef@refFastaFile = fp
 x = writeAnnotationFromGtf(param)
 ezFeatureAnnotation(param, rownames(x), "gene")
 }

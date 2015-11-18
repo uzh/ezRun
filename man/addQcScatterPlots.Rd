@@ -23,8 +23,6 @@ addQcScatterPlots(doc, param, design, conds, rawData, signalCond, isPresentCond,
 \item{isPresentCond}{Either NULL or a data.frame containing coloring information.}
 
 \item{types}{a character vector containing the types.}
-
-\item{colors}{a character vector containing colors.}
 }
 \description{
 Adds QC scatter plots to an html file.

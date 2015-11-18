@@ -13,6 +13,6 @@ Depends:
 Imports:
     caTools,Hmisc,RCurl,XML,stringr,matrixStats,GenomicAlignments,GenomicFeatures,GenomicRanges,Rsamtools,ShortRead,Gviz,gplots,ReporteRs
 Suggests:
-    Rsge,GO.db,GOstats,gage,goseq,ChIPpeakAnno,DESeq2,Repitools,TEQC,VariantAnnotation,annotate,biomaRt,bitops,edgeR,htSeqTools,limma,pathview,reshape2,rtracklayer,vsn,testthat,knitr
+    GO.db,GOstats,gage,goseq,ChIPpeakAnno,DESeq2,Repitools,TEQC,VariantAnnotation,annotate,biomaRt,bitops,edgeR,htSeqTools,limma,pathview,reshape2,rtracklayer,vsn,testthat,knitr
 VignetteBuilder: knitr
 RoxygenNote: 5.0.1

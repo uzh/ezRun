@@ -10,7 +10,7 @@ getTranscript2Gene(gtf)
 countIsoformsPerGene(tr2Gene)
 }
 \arguments{
-\item{gff}{the annotation data.frame to get the gene data from.}
+\item{gtf}{the annotation data.frame to get the gene data from.}
 }
 \value{
 Returns a character vector with the gene names.

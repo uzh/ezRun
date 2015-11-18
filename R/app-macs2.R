@@ -66,7 +66,7 @@ EzAppMacs2 <-
 ##' @description Annotates peaks and writes them into a seperate table.
 ##' @template input-template
 ##' @param output a list, file path or an object of the class EzDataset containing the output information.
-##' @param param a list of parameters to extract the \code{ezRef@refFeatureFile} and the \code{ezRef@refAnnotationFile} from.
+##' @param param a list of parameters to extract the \code{ezRef@@refFeatureFile} and the \code{ezRef@@refAnnotationFile} from.
 ##' @template roxygen-template
 annotatePeaks = function(input=NA, output=NA, param=NA) {
   peakFile = paste0(output$getNames(), '_peaks.xls')

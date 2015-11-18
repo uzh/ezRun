@@ -45,7 +45,8 @@ Use this to create an object of the class EzDataset that contains the necessary 
 }
 }
 \examples{
-ds = EzDataset$new(file=system.file("extdata/yeast_10k/dataset.tsv", package="ezRun", mustWork = TRUE))
+file = system.file("extdata/yeast_10k/dataset.tsv", package="ezRun", mustWork = TRUE)
+ds = EzDataset$new(file=file)
 dataRoot = system.file(package="ezRun", mustWork = TRUE)
 ds$file
 ds$meta

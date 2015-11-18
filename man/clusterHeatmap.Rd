@@ -69,6 +69,6 @@ Schmid, Peter
 \seealso{
 \code{\link[stats]{hclust}}
 
-\code{\link[gplot]{heatmap.2}}
+\code{\link[gplots]{heatmap.2}}
 }
 

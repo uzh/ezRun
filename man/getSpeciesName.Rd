@@ -16,7 +16,8 @@ Returns the name of the species derived from \code{refBuild}.
 Gets the species name.
 }
 \examples{
-param = ezParam(userParam = list('refBuild' = 'Schizosaccharomyces_pombe/Ensembl/EF2/Annotation/Version-2013-03-07'))
+ls = list('refBuild' = 'Schizosaccharomyces_pombe/Ensembl/EF2/Annotation/Version-2013-03-07')
+param = ezParam(userParam = ls)
 getSpeciesName(param)
 }
 \author{

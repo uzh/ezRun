@@ -29,7 +29,8 @@ Gets the gene set
 \item \code{readGmt}: Reads the gmt file in.
 }}
 \examples{
-param = ezParam(userParam = list('refBuild' = 'Schizosaccharomyces_pombe/Ensembl/EF2/Annotation/Version-2013-03-07'))
+ls = list('refBuild' = 'Schizosaccharomyces_pombe/Ensembl/EF2/Annotation/Version-2013-03-07')
+param = ezParam(userParam = ls)
 getGeneSets(param)
 }
 \author{

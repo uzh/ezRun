@@ -15,8 +15,6 @@ addTxtLinksToReport(doc, txtNames, doZip = FALSE, mime = ifelse(doZip,
 \item{doZip}{a logical indicating whether to zip the files.}
 
 \item{mime}{a character representing the type of the links.}
-
-\item{con}{the connection to the file to write in.}
 }
 \description{
 Adds texts link to an html file.

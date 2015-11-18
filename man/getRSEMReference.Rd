@@ -22,7 +22,8 @@ Returns a character specifying the file path to the RSEM indexed reference genom
 Builds and gets a RSEM reference by returning the file path to it.
 }
 \examples{
-param = ezParam(userParam = list('refBuild' = 'Schizosaccharomyces_pombe/Ensembl/EF2/Annotation/Version-2013-03-07'))
+ls = list('refBuild' = 'Schizosaccharomyces_pombe/Ensembl/EF2/Annotation/Version-2013-03-07')
+param = ezParam(userParam = ls)
 getRSEMReference(param)
 }
 \author{
