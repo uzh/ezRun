@@ -195,7 +195,6 @@ readNcProResult = function (ncproDir, param) {
 ##' fqFiles = input$getFullPaths(param, "Read1")
 ##' filterFastqByBam(fqFiles, bamFile, doGzip = FALSE)
 filterFastqByBam = function(fqFiles, bamFile, fqOutFiles=NULL, doGzip=TRUE, keepUnmapped=TRUE, isProperPair=NA){
-  library(Rsamtools, warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
   param=ScanBamParam(what=c("qname"),
                      flag=scanBamFlag(isUnmappedQuery=!keepUnmapped, isProperPair=isProperPair))
   bamReads = unique(scanBam(bamFile, param=param)[[1]]$qname)
@@ -206,7 +205,7 @@ filterFastqByBam = function(fqFiles, bamFile, fqOutFiles=NULL, doGzip=TRUE, keep
 
 ##' @describeIn filterFastqByBam Removes reads from the FastQ files according to the bam filter.
 removeReadsFromFastq = function(fqFiles, readIds, fqOutFiles=NULL, doGzip=TRUE){
-  library(ShortRead, warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
+  requireNamespace("ShortRead", warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
   if (is.null(fqOutFiles)){
     fqOutFiles = sub(".gz$", "", basename(fqFiles))
     fqOutFiles = sub("R1.fastq", "clean_R1.fastq", fqOutFiles)
@@ -265,7 +264,7 @@ countReadsInFastq = function(fastqFiles){
 
 
 .pairFastqReads = function(fqFile1, fqFile2, fqOut1, fqOut2, overwrite=FALSE,  doGzip=FALSE){
-  library(ShortRead, warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
+  requireNamespace("ShortRead", warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
   for (fn in c(fqOut1, fqOut2)){
     if (file.exists(fn)){
       if (overwrite){
@@ -470,7 +469,7 @@ countReadsInFastq = function(fastqFiles){
 }
 
 .subsampleFromFastq = function(reads, outputDir, sampleno, size){
-  library(ShortRead, warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
+  requireNamespace("ShortRead", warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
   for(i in 1:length(reads)){
     reads1 = reads[i]
     reads2 = getPairedReads(reads1)
@@ -521,7 +520,7 @@ countReadsInFastq = function(fastqFiles){
 
 .getHomoPoloymerTails = function(readFile, maxTailWidth=50, nYield=1e6){
   
-  library(ShortRead, warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
+  requireNamespace("ShortRead", warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
   fqs = FastqStreamer(readFile, nYield)
   template = integer(maxTailWidth+1)
   names(template) = 0:maxTailWidth  

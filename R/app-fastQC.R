@@ -168,7 +168,7 @@ plotReadCountToLibConc = function(dataset, colname){
 ##' @describeIn ezMethodFastQC Gets a quality count matrix from a fastq or gziped fastq.gz file with dimensions read quality and read length.
 getQualityMatrix = function(inputFile){
   ## files could be fastq, or gziped fastq.gz
-  library(ShortRead, warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)  
+  requireNamespace("ShortRead", warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)  
   #job = ezJobStart(paste("start to collect quality matrix from", inputFile))
   
   ## get the qualCountMatrix

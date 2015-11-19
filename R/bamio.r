@@ -26,7 +26,6 @@ ezBamSeqNames = function(bamFile, sizeSorting="decreasing"){
 
 ##' @describeIn ezBamSeqNames Gets the sequence lengths from a bam file.
 ezBamSeqLengths = function(bamFile){
-  library(Rsamtools, warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
   return(scanBamHeader(bamFile)[[1]]$targets)
 }
 
@@ -79,7 +78,6 @@ ezSortIndexBam = function(inBam, bam, samtools=SAMTOOLS, ram=2, removeBam=TRUE, 
 ezScanBam = function(bamFile, seqname=NULL, start=NULL, end=NULL, strand="*",
                       tag=character(0), what=scanBamWhat(),
                       isFirstMateRead=NA, isSecondMateRead=NA, isUnmappedQuery=FALSE, isProperPair=NA, countOnly=FALSE){
-  library(Rsamtools, warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
   ## initialize the parameters for scanBam
   param = ScanBamParam(what=what, tag=tag)
   
@@ -118,7 +116,6 @@ ezScanBam = function(bamFile, seqname=NULL, start=NULL, end=NULL, strand="*",
 ##' ezBam2bigwig(bamFile, bigwigPrefix="bg", param=ezParam(), paired=TRUE)
 ezBam2bigwig = function(bamFile, bigwigPrefix, param=NULL, paired=NULL){
   
-  library(Rsamtools, warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
   ## from bam to wig
   sh = scanBamHeader(bamFile)
   seqLengths = sh[[1]]$targets
@@ -182,7 +179,6 @@ ezReadGappedAlignments = function(bamFile, seqname=NULL, start=NULL, end=NULL, s
                                   tag=character(0), what=character(0), use.names=TRUE,
                                   isFirstMateRead=NA, isSecondMateRead=NA, isUnmappedQuery=FALSE, isProperPair=NA,
                                   minMapQuality=0, keepMultiHits=TRUE){
-  library(Rsamtools, warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
   ## initialize the parameters for scanBam
   if (minMapQuality > 0){
     what = union(what, "mapq")
@@ -453,7 +449,6 @@ buildScanBamParam = function(param, bamFile){
     param$readUnmapped = NA
   }
   
-  library(Rsamtools, warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
   sh = scanBamHeader(bamFile)
   seqLengths = sh[[1]]$targets
   bamParam = ScanBamParam(tag=c( "NH", "IH", "AS"),
@@ -505,7 +500,6 @@ buildScanBamParam = function(param, bamFile){
 ##' bamFile <- system.file("extdata", "ex1.bam", package="Rsamtools", mustWork=TRUE)
 ##' getBamMultiMatching(param, bamFile, nReads=10000)
 getBamMultiMatching = function(param, bamFile, nReads=NULL){
-  library(Rsamtools, warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
   
   #  job = ezJobStart(paste("bam multimatch", basename(bamFile)))
   #   param = ScanBamParam(what="qname")

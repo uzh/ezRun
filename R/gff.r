@@ -215,7 +215,7 @@ gffTrimSingleTranscript = function(gffSingle, maxLength=100, start=TRUE){
 ##' gtf = ezLoadFeatures(param,"./inst/extdata/genes.gtf")
 ##' gffToRanges(gtf)
 gffToRanges = function(gff){
-  library(GenomicRanges, warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
+  requireNamespace("GenomicRanges", warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
   gff$strand[gff$strand == "."] = "*"
   if (is.null(gff$ID)){
     gff$ID = ezGffAttributeField(gff$attributes, field="ID")

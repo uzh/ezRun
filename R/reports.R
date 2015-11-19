@@ -102,7 +102,6 @@ imgLinks = function(image){
 
 ## currently not possible to use from old report opener:
 ## writeLines(readLines(ezCSSFile()), con=html) ## no custom css for reporteRs
-## TODOP: get addJavaScriptIgvStarter() and addIgvSessionLink() to work.
 ##' @title Opens an html report
 ##' @description Opens an html report using \code{bsdoc()} from the ReporteRs package. Also adds some introductory elements.
 ##' @param title a character specifying the title of the html report.
@@ -114,11 +113,8 @@ imgLinks = function(image){
 ##' @examples
 ##' theDoc = openBsdocReport(title="My html report")
 ##' closeBsdocReport(doc=theDoc, file="example.html")
-openBsdocReport = function(title="", dataset=NULL, param=NULL){
+openBsdocReport = function(title="", dataset=NULL){
   doc = bsdoc(title = title)
-  if (!is.null(param)){
-    addJavaScriptIgvStarter(htmlFile, param$projectId, doc)
-  }
   pot1 = pot(paste("Started on", format(Sys.time(), "%Y-%m-%d %H:%M:%S"), "--&#160;"))
   pot2 = as.html(pot("Documentation", hyperlink = "http://fgcz-sushi.uzh.ch/doc/methods-20140422.html"))
   doc = addFlexTable(doc, ezGrid(cbind(pot1, pot2)))
@@ -130,7 +126,13 @@ openBsdocReport = function(title="", dataset=NULL, param=NULL){
   return(doc)
 }
 
-##' @describeIn openBsdocReport Adds a java function to start Igv from Jnlp.
+##' @title Adds a java function
+##' @description Adds a java function to start Igv from Jnlp.
+##' @template htmlFile-template
+##' @param projectId a character representing the project ID.
+##' @template doc-template
+##' @template roxygen-template
+## TODOP: get addJavaScriptIgvStarter() and addIgvSessionLink() to work.
 addJavaScriptIgvStarter = function(htmlFile, projectId, doc){
   jnlpLines1 = paste('<jnlp spec="6.0+" codebase="http://www.broadinstitute.org/igv/projects/current">',
                      '<information>',

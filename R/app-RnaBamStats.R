@@ -12,7 +12,7 @@
 ##' @seealso \code{\link{EzAppRnaBamStats}}
 ezMethodRnaBamStats = function(input=NA, output=NA, param=NA, htmlFile="00index.html"){
   
-  require(GenomicAlignments)
+  requireNamespace("GenomicAlignments")
   requireNamespace("S4Vectors")
   cwd = getwd()
   on.exit(setwd(cwd))
@@ -127,8 +127,7 @@ computeBamStats = function(input, htmlFile, param, gff, resultList=NULL){
 
 ##' @describeIn computeBamStats Gets the error positions from the BAM file.
 getPosErrorFromBam = function(bamFile, param){
-  library(GenomicRanges, warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
-  library(Rsamtools, warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
+  requireNamespace("GenomicRanges", warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
   requireNamespace("bitops", warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
   job = ezJobStart(paste("position error:", bamFile))
   ## heuristic to search for the chromosome with most reads
@@ -167,8 +166,8 @@ getPosErrorFromBam = function(bamFile, param){
 
 ##' @describeIn computeBamStats Calculates the specific error rates for \code{getPosErrorFromBam()}.
 ezPosSpecErrorRate = function(bam, ReferenceGenome, nMaxReads=100000){
-  library(GenomicRanges, warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
-  library(stringr, warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
+  requireNamespace("GenomicRanges", warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
+  requireNamespace("stringr", warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
   requireNamespace("Hmisc", warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
   ## remove the reads containing the gaps, insertions, deletions
   hasGap = grepl("N|I|D", bam$cigar)

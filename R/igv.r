@@ -110,7 +110,7 @@ writeJavaScriptIgvStarter = function(htmlFile, projectId, html){
 ##' writeIgvSession(genome, param$ezRef["refBuild"])
 writeIgvSession = function(genome, refBuild, file="igvSession.xml", bamUrls=NULL, vcfUrls=NULL,  locus="All"){
 
-  library(XML, warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
+  requireNamespace("XML", warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
   
   session=newXMLNode("Session", attrs =c(genome=genome, locus=locus, version="4"))
   resources=newXMLNode("Resources", parent=session)

@@ -148,9 +148,8 @@ galp2gal = function(galp){
 
 readBam = function(file,isPaired=F){
   requireNamespace("limma")
-  require(Rsamtools)
   requireNamespace("rtracklayer")
-  require(GenomicRanges)
+  requireNamespace("GenomicRanges")
   system('echo Function readBam \n')
   if(isPaired){
     system('echo option isPaired=T \n')
@@ -281,8 +280,7 @@ remove_outliers = function(x, na.rm = TRUE, ...) {
 createTSSPlot = function(myBam, gff, flank, name, range=c(1,100)){
   system('echo Function createTSSPlot \n')
   requireNamespace("rtracklayer")
-  require(GenomicRanges)
-  require(Rsamtools)
+  requireNamespace("GenomicRanges")
   cov=coverage(myBam)
   system(paste0('echo ',names(myBam)[1]))
   binMyBam(cov = cov, binLength = 500, sampleName = names(myBam))
@@ -323,7 +321,7 @@ createTSSPlot = function(myBam, gff, flank, name, range=c(1,100)){
     posDataCounts[,i] = MyTable(shrinkToRange(positionData[!is.na(positionData[,i]),i], range), range)    
   }
   colnames(posDataCounts) = seq(-1*flank, flank-1, 1)
-  require(gplots)
+  #require(gplots)  ## TODO: seems unused
   MyCols = colorRampPalette(c('black','white'))(oldRange)
   file = paste0(names(myBam), "_TSSPlot.png")
   png(file, width=640, height=640)
@@ -340,20 +338,19 @@ createTSSPlot = function(myBam, gff, flank, name, range=c(1,100)){
 } 
 
 binMyBam = function(cov, binLength, sampleName){
-  require(matrixStats)
   MyBins = c()
-  if(binLength>1){
-    for(i in 1:length(cov)){
-      y = rep(runValue(cov[[i]]),runLength(cov[[i]]))
+  if (binLength>1){
+    for (i in 1:length(cov)){
+      y = rep(runValue(cov[[i]]), runLength(cov[[i]]))
       x = c(1:length(y))
-      bx = seq(0,rev(x)[1],binLength)
-      result = binMeans(y,x=x,bx=bx)
-      cat(i,'\n')
-      names(result) = paste0(names(cov)[i],'_',bx[-length(bx)])
-      MyBins = c(MyBins,result)
+      bx = seq(0, rev(x)[1], binLength)
+      result = matrixStats::binMeans(y, x=x, bx=bx)
+      cat(i, '\n')
+      names(result) = paste0(names(cov)[i], '_', bx[-length(bx)])
+      MyBins = c(MyBins, result)
     }
   } else {
-    for(i in 1:length(cov)){
+    for (i in 1:length(cov)){
       MyBins = c(MyBins,rep(runValue(cov[[i]]),runLength(cov[[i]])))
     }
   }

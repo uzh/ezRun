@@ -323,7 +323,7 @@ writeGageResults = function(gageResults, param=NULL, output=NULL, prefix=NULL, s
 
 ##' @describeIn runGageAnalysis Plots heatmaps of the significant gage results.
 gageHeatmap = function(x, param=NULL, output=NULL, gene.pValue=NULL, signal=NULL, fileName=NULL, prefix='gage-heatmap'){
-  library(gplots, warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
+  requireNamespace("gplots", warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
   
   sampleColors = getSampleColors(param$grouping)[order(param$grouping)]
   

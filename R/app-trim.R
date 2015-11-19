@@ -192,7 +192,7 @@ ezSubsampleFastq = function(full, sub, subsampleFactor=NA, nYield=1e5){
     warning("removing first: ", filesToRemove)
     file.remove(filesToRemove)
   }
-  require(ShortRead)
+  requireNamespace("ShortRead")
   nReadsVector = integer()
   for (nm in names(full)){ 
     nReads = 0

@@ -69,8 +69,7 @@ countPairedBamHits = function(input=NULL, output=NULL, param=NULL){
   param = fillWithDefaults(param)
   options(cores=param$cores)
   message("countPairedBamHits")
-  library(Rsamtools, warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
-  library(GenomicRanges, warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
+  requireNamespace("GenomicRanges", warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
   requireNamespace("bitops", warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
   
   
