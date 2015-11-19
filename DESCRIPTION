@@ -11,9 +11,9 @@ License: GPL-3 | file LICENSE
 Depends:
     parallel,Biostrings,stats,methods,utils,ReporteRs
 Imports:
-    Hmisc,XML,stringr,matrixStats,GenomicAlignments,GenomicFeatures,GenomicRanges,Rsamtools,ShortRead,Gviz,gplots
+    Hmisc,XML,stringr,matrixStats,GenomicAlignments,GenomicFeatures,GenomicRanges,Rsamtools,ShortRead,Gviz,gplots,
+    GO.db,GOstats,Repitools,annotate,bitops,edgeR,limma,rtracklayer,S4Vectors
 Suggests:
-    GO.db,GOstats,Repitools,annotate,bitops,edgeR,limma,rtracklayer,S4Vectors,
     testthat,knitr,
     gage,goseq,ChIPpeakAnno,DESeq2,TEQC,VariantAnnotation,htSeqTools,pathview,reshape2,vsn,Rsubread,preprocessCore,wesanderson,RCurl,caTools,
     biomaRt,RColorBrewer,WGCNA,plyr,pvclust
