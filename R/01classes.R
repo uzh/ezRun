@@ -206,7 +206,7 @@ EzApp <-
                     result = runMethod(input=input$copy(), output=output$copy(), param=param)
                     return(result)
                   }, error=function(e){dump.frames(format(Sys.time(), format="dump_%Y%m%d%H%M%S"), to.file=TRUE);
-                    stackTrace <<- limitedLabels(sys.calls());}
+                    stackTrace <<- limitedLabels(sys.calls(), maxwidth = 200);}
                   )
                 },
                 appExitAction = function(param, output, appName="unknown")
@@ -238,7 +238,9 @@ EzApp <-
                     }
                     message("error exists: ", recipient)
                     if (ezValidMail(recipient)){
-                      ezMail(subject = paste("Error: ", subject), text=c(text, geterrmessage(), stackTrace), to=recipient)
+                      ezMail(subject = paste("Error: ", subject),
+                             text=c(text, " ", geterrmessage(), " ", stackTrace[1:(length(stacktrace)-2)]), 
+                             to=recipient)
                       message("mail sent to: ", recipient)
                     }
                   } else {

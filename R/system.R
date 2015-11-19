@@ -34,7 +34,9 @@ ezSystem = function(cmd, echo=TRUE, intern=FALSE, stopOnFailure=!intern, ...){
   }
   #res = system(paste("set -o pipefail; ", cmd), intern=intern, ...)
   if (stopOnFailure){
-    stopifnot(res == 0)
+    if (res != 0){
+      stop(pastte(cmd, "\n", "failed"))
+    }
   }
   return(res)
 }
