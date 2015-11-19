@@ -98,7 +98,7 @@ plotBamStat = function(resultList, dataset, param, htmlFile=NULL){
       }
       
       doc = addFlexTable(doc, ezGrid(cbind(ifelse(nrow(tptUse) >= 2 && ncol(tptUse) >= 2, heatmapLink, NULL),
-                                            as.html(ezFlexTable(signif(tptUse, digits=3),
+                                            as.html(ezFlexTable(signif(tptUse, digits=3), talign="right",
                                                                 header.columns=TRUE, add.rownames=TRUE)))))
       
       titles[[paste(readSet, "Read Starts per Base")]] = paste(readSet, "Read Starts per Base")
@@ -118,7 +118,7 @@ plotBamStat = function(resultList, dataset, param, htmlFile=NULL){
         heatmapLink = ezImageFileLink(plotCmd, file=pngFile, height=600, width=800)
       }
       doc = addFlexTable(doc, ezGrid(cbind(ifelse(nrow(tct) >= 2 && ncol(tct) >= 2, heatmapLink, NULL),
-                                       as.html(ezFlexTable(signif(tct[rowsUse, ], digits=4),
+                                       as.html(ezFlexTable(signif(tct[rowsUse, ], digits=4), talign="right",
                                                            header.columns=TRUE, add.rownames=TRUE)))))
     }
   }
@@ -225,9 +225,12 @@ plotBamStat = function(resultList, dataset, param, htmlFile=NULL){
     maxYlim = 0.08 ## this means we allow at most 10-fold enrichment at a percentile #max(sapply(resultList, function(item){max(item[["genebody_coverage"]])}))
     gbcTemplate = resultList[[1]][["genebody_coverage"]]
     pngMatrix = ezMatrix("", rows=names(gbcTemplate), cols=names(gbcTemplate[[1]]))
-    pngLinks = pngMatrix
+    pngLinks = character()
     for (rn in rownames(pngMatrix)){
       for (cn in colnames(pngMatrix)){
+        ## skip all cases that are not medium expressed and skip all cases that are not above 4000 or 400-1000
+        if (!grepl("medium", cn)) next
+        if (!(grepl("above", rn) | grepl("400nt to", rn))) next
         pngMatrix[rn, cn] = ezValidFilename(paste0("genebody_coverage_", rn, "_", cn, ".png"))
         covValues = ezMatrix(0, cols=0:100, rows=samples)
         for (sm in samples){
@@ -255,7 +258,9 @@ plotBamStat = function(resultList, dataset, param, htmlFile=NULL){
           }
           #legend("topright", samples, col=sampleColors[samples], cex=1.2, pt.cex=1.5, bty="o", pt.bg="white", lty=1)
         })
-        pngLinks[rn, cn] = ezImageFileLink(plotCmd, file=pngMatrix[rn, cn], width=600)
+        link = ezImageFileLink(plotCmd, file=pngMatrix[rn, cn], width=600)
+        pngLinks = append(pngLinks, link)
+        # pngLinks[rn, cn] = ezImageFileLink(plotCmd, file=pngMatrix[rn, cn], width=600)
         ezWrite.table(covValues, file=sub(".png$", ".txt", pngMatrix[rn, cn]), head="Name")
       }
     }
@@ -270,7 +275,7 @@ plotBamStat = function(resultList, dataset, param, htmlFile=NULL){
     sampleLink = ezImageFileLink(plotCmd, file="sampleColors.png", height=length(samples)*15 + 20, width=300)
     
     doc = addParagraph(doc, sampleLink)
-    doc = addFlexTable(doc, ezGrid(pngLinks))
+    doc = addFlexTable(doc, ezGrid(rbind(pngLinks)))
   }
   
   geneCounts = resultList[[1]][["geneCounts"]]

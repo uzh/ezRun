@@ -11,6 +11,7 @@
 ##' @param x a matrix or data.frame to turn into an object of the class FlexTable.
 ##' @param border an integer specifying the width of the table borders.
 ##' @param valign "bottom", "middle" or "top" specifying the position of table cell contents.
+##' @param talign "left", "middle" or "right" specifying the position of text within the cells.
 ##' @param header.columns a logical indicating whether to use a header for the table.
 ##' @template addargs-template
 ##' @templateVar fun FlexTable()

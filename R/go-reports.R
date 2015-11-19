@@ -21,7 +21,7 @@ goClusterTable = function(param, clusterResult){
       x = clusterResult$GO[[onto]][[i]]
       goFrame = .getGoTermsAsTd(x, param$pValThreshFisher, param$minCountFisher, onto=onto)
       if (nrow(goFrame) > 0){
-        tables[i, onto] = as.html(ezFlexTable(goFrame))
+        tables[i, onto] = as.html(ezFlexTable(goFrame, talign="right"))
       }
     }
   }
@@ -85,7 +85,7 @@ goUpDownTables = function(param, goResult){
       goFrame = .getGoTermsAsTd(x[[sub]], param$pValThreshFisher, param$minCountFisher, onto=onto,
                                 maxNumberOfTerms=param$maxNumberGroupsDisplayed)
       if (nrow(goFrame) > 0){
-        resultList[[sub]]["Cats", onto] = as.html(ezFlexTable(goFrame))
+        resultList[[sub]]["Cats", onto] = as.html(ezFlexTable(goFrame, talign="right"))
       } else {
         message("no rows")
       }
