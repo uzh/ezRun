@@ -129,7 +129,7 @@ computeBamStats = function(input, htmlFile, param, gff, resultList=NULL){
 getPosErrorFromBam = function(bamFile, param){
   library(GenomicRanges, warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
   library(Rsamtools, warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
-  library(bitops, warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
+  requireNamespace("bitops", warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
   job = ezJobStart(paste("position error:", bamFile))
   ## heuristic to search for the chromosome with most reads
   seqLengths = ezBamSeqLengths(bamFile)
@@ -266,7 +266,7 @@ ezPosSpecErrorRate = function(bam, ReferenceGenome, nMaxReads=100000){
 
 ##' @describeIn computeBamStats Gets the result statistics from the BAM file.
 getStatsFromBam = function(param, bamFile, sm, gff=NULL, repeatsGff=NULL, nReads=NA){
-  library(bitops, warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
+  requireNamespace("bitops", warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
   job = ezJobStart(paste("count", bamFile))
   seqLengths = ezBamSeqLengths(bamFile)  
   if (ezIsSpecified(param$seqNames)){
@@ -398,7 +398,7 @@ getStatsFromBamParallel = function(seqLengths, param, bamFile, sm, nReads, gff=N
 ##' @describeIn computeBamStats Gets the statistics of a single chromosome for \code{getStatsFromBam()}.
 getStatsFromBamSingleChrom = function(chrom, param, bamFile, sm, nReads, gff=NULL, repeatsGff=NULL){
   
-  library(bitops, warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
+  requireNamespace("bitops", warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
   result = list()
   sh = scanBamHeader(bamFile)
   seqLengths = sh[[1]]$targets

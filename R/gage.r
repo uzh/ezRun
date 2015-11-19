@@ -27,13 +27,13 @@
 ##' @return Returns the gage results.
 runGageAnalysis = function(result, param=NULL, output=NULL, rawData=NULL, gene.pValue=param[['gageGeneThreshold']]) {
   
-  #require(gage, warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
-  #require(pathview, warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
-  #require(reshape2, warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
+  #requireNamespace("gage", warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
+  #requireNamespace("pathview", warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
+  #requireNamespace("reshape2", warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
   
-  require(gage)
-  require(pathview)
-  require(reshape2)
+  requireNamespace("gage")
+  requireNamespace("pathview")
+  requireNamespace("reshape2")
   
   stopifnot(param$featureLevel == "gene")
   
@@ -431,7 +431,7 @@ getKeggId = function(x, param) {
 
 ##' @describeIn runGageAnalysis Performs the pathview for each gene set and signal.
 gagePathview = function(x, param=NULL, output=NULL, signal=NULL, kegg.id=NULL, gene.pValue=NULL, result = result, anno = rawData$seqAnno){
-  library(pathview, warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
+  requireNamespace("pathview", warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
   
   # Define labels for list elements
   lab.sigGenes = paste(signal, 'sigGenes', sep='.')

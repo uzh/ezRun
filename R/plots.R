@@ -625,7 +625,7 @@ ezHeatmap = function(x, lim=c(-4, 4), colors=getBlueRedScale(),
   if (!is.matrix(x)){
     x = as.matrix(x)
   }
-  require(gplots, warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
+  requireNamespace("gplots", warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
   if (length(unique(as.numeric((x)))) == 1){
     key=FALSE
   }

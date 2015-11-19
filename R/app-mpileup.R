@@ -11,7 +11,7 @@
 ##' @seealso \code{\link{EzAppMpileup}}
 ezMethodMpileup = function(input=NA, output=NA, param=NA){
 
-  require(VariantAnnotation)
+  requireNamespace("VariantAnnotation")
   
   reportDir = basename(output$getColumn("Report"))
   htmlFile = basename(output$getColumn("Html"))

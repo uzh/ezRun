@@ -111,7 +111,7 @@ goUpDownTables = function(param, goResult){
 ##' @describeIn goClusterTable Gets the GO terms and pastes them into a table.
 .getGoTermsAsTd = function(x, pThreshGo, minCount, onto=NA, maxNumberOfTerms=40){
   
-  require(GO.db)
+  requireNamespace("GO.db")
   
   if (!is.data.frame(x)){
     message("got not data frame")

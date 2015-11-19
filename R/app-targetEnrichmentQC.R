@@ -51,7 +51,7 @@ EzAppTeqc <-
 ##' }
 ##' @template roxygen-template
 teqc = function(input, param=NULL){
-  require(TEQC)
+  requireNamespace("TEQC")
   if(basename(param$designFile) == param$designFile){
     path = file.path("/srv/GT/databases/targetEnrichment_designs", param$designFile)
     param$designFile = list.files(path, pattern='Covered\\.bed$', full.names = T)[1]

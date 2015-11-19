@@ -47,7 +47,7 @@ setwdNew = function(dir){
 ##' vennFromSets(aList)
 vennFromSets = function(setList){
   stopifnot(!is.null(names(setList)) && length(setList) %in% 2:3)
-  require(limma, warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
+  requireNamespace("limma", warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
   x = ezMatrix(FALSE, rows=unique(unlist(setList)), cols=names(setList))
   for (i in 1:length(setList)){
     x[match(setList[[i]], rownames(x)), i] = TRUE
@@ -165,7 +165,7 @@ ezQuantileNorm = function(x){
 ##' m1 = matrix(1:200,50)
 ##' ezVsnNorm(m1)
 ezVsnNorm = function(x, lts.quantile=0.6){
-  require(vsn)
+  requireNamespace("vsn")
   return(2^justvsn(x, lts.quantile=lts.quantile))
 }
 

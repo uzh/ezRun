@@ -24,7 +24,7 @@ ezMethodChipStats = function(input=NA, output=NA, param=NA, htmlFile="00index.ht
     return("Error")
   }
   
-  require(Repitools)
+  requireNamespace("Repitools")
   ezMclapply(dataset$"BAM [File]", 
               Create_ChIP_QCPlots_ind, param=param, gff=gff, maxX=20, range=c(1,100), 
               mc.cores=param$cores, mc.preschedule =FALSE, mc.set.seed=FALSE)
@@ -147,9 +147,9 @@ galp2gal = function(galp){
 }
 
 readBam = function(file,isPaired=F){
-  require(limma)
+  requireNamespace("limma")
   require(Rsamtools)
-  require("rtracklayer")
+  requireNamespace("rtracklayer")
   require(GenomicRanges)
   system('echo Function readBam \n')
   if(isPaired){
@@ -244,7 +244,7 @@ getBSgenomes = function(){
 }
 
 CoverageVarFunction = function(myBam){
-  require(htSeqTools)
+  requireNamespace("htSeqTools")
   system('echo Function CoverageVarFunction \n')
   myCov = ssdCoverage(myBam)
   write.table(myCov, file = paste(names(myBam), "_ssdCoverage.txt",sep= ""), quote = F, row.names = F, col.names = F, sep = "")
@@ -281,7 +281,7 @@ remove_outliers = function(x, na.rm = TRUE, ...) {
 
 createTSSPlot = function(myBam, gff, flank, name, range=c(1,100)){
   system('echo Function createTSSPlot \n')
-  require("rtracklayer")
+  requireNamespace("rtracklayer")
   require(GenomicRanges)
   require(Rsamtools)
   cov=coverage(myBam)
@@ -374,7 +374,7 @@ clusterData = function(data, distmethod='pearson', clustermethod='ward', title =
 
 createBigWig = function(aligns,name,...){
   require(IRanges)
-  require("rtracklayer")
+  requireNamespace("rtracklayer")
   cov = coverage(aligns)
   export(cov, paste0(name,".bw"), format="bigWig")
 }

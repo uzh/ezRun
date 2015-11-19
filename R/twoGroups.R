@@ -141,7 +141,7 @@ runGfold = function(rawData, scalingFactors, isSample, isRef){
 
 ##' @describeIn twoGroupCountComparison Runs the Deseq2 test method.
 runDeseq2 = function(x, sampleGroup, refGroup, grouping, batch=NULL, isPresent=NULL){
-  require("DESeq2", warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
+  requireNamespace("DESeq2", warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
   if (ezIsSpecified(batch)){
     if (!is.numeric(batch)){
       batch = as.factor(batch)
@@ -164,7 +164,7 @@ runDeseq2 = function(x, sampleGroup, refGroup, grouping, batch=NULL, isPresent=N
 
 ##' @describeIn twoGroupCountComparison Runs the Edger test method.
 runEdger = function(x, sampleGroup, refGroup, grouping, normMethod){
-  library(edgeR, warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
+  requireNamespace("edgeR", warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
   cds = DGEList(counts=x, group=grouping)
   cds = calcNormFactors(cds, method=normMethod)
   sf = 1/(cds$samples$norm.factors * cds$samples$lib.size)
@@ -196,7 +196,7 @@ runEdger = function(x, sampleGroup, refGroup, grouping, normMethod){
 
 ##' @describeIn twoGroupCountComparison Runs the Glm test method.
 runGlm = function(x, sampleGroup, refGroup, grouping, normMethod, batch=NULL){
-  library(edgeR, warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
+  requireNamespace("edgeR", warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
   ## get the scaling factors for the entire data set
   cds = DGEList(counts=x, group=grouping)
   cds = calcNormFactors(cds, method=normMethod)
