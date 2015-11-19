@@ -149,7 +149,7 @@ galp2gal = function(galp){
 readBam = function(file,isPaired=F){
   require(limma)
   require(Rsamtools)
-  requireNamespace("rtracklayer")
+  require("rtracklayer")
   require(GenomicRanges)
   system('echo Function readBam \n')
   if(isPaired){
@@ -281,7 +281,7 @@ remove_outliers = function(x, na.rm = TRUE, ...) {
 
 createTSSPlot = function(myBam, gff, flank, name, range=c(1,100)){
   system('echo Function createTSSPlot \n')
-  requireNamespace("rtracklayer")
+  require("rtracklayer")
   require(GenomicRanges)
   require(Rsamtools)
   cov=coverage(myBam)
@@ -374,7 +374,7 @@ clusterData = function(data, distmethod='pearson', clustermethod='ward', title =
 
 createBigWig = function(aligns,name,...){
   require(IRanges)
-  requireNamespace("rtracklayer")
+  require("rtracklayer")
   cov = coverage(aligns)
   export(cov, paste0(name,".bw"), format="bigWig")
 }

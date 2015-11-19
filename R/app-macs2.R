@@ -76,8 +76,8 @@ annotatePeaks = function(input=NA, output=NA, param=NA) {
   }
   data = data[order(data$chr,data$start),]
   
-  requireNamespace("ChIPpeakAnno")
-  requireNamespace("rtracklayer")
+  require("ChIPpeakAnno")
+  require("rtracklayer")
   require(GenomicRanges)
   require(Rsamtools)
   
@@ -118,7 +118,7 @@ annotatePeaks = function(input=NA, output=NA, param=NA) {
 ##' @template roxygen-template
 createBigWig = function(input=NA, output=NA, param=NA){
   require(IRanges)
-  requireNamespace("rtracklayer")
+  require("rtracklayer")
   require(GenomicRanges)
   require(GenomicAlignments)
   if(param[['paired']]){

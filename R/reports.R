@@ -114,7 +114,6 @@ imgLinks = function(image){
 ##' theDoc = openBsdocReport(title="My html report")
 ##' closeBsdocReport(doc=theDoc, file="example.html")
 openBsdocReport = function(title="", dataset=NULL, param=NULL){
-  require(ReporteRs, warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
   doc = bsdoc(title = title)
   if (!is.null(param)){
     addJavaScriptIgvStarter(htmlFile, param$projectId, doc)

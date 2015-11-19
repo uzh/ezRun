@@ -141,7 +141,7 @@ runGfold = function(rawData, scalingFactors, isSample, isRef){
 
 ##' @describeIn twoGroupCountComparison Runs the Deseq2 test method.
 runDeseq2 = function(x, sampleGroup, refGroup, grouping, batch=NULL, isPresent=NULL){
-  requireNamespace("DESeq2", warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
+  require("DESeq2", warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
   if (ezIsSpecified(batch)){
     if (!is.numeric(batch)){
       batch = as.factor(batch)
