@@ -76,7 +76,11 @@ annotatePeaks = function(input=NA, output=NA, param=NA) {
   }
   data = data[order(data$chr,data$start),]
   
-  require(ChIPpeakAnno);require(rtracklayer);require(GenomicRanges);require(Rsamtools)
+  requireNamespace("ChIPpeakAnno")
+  requireNamespace("rtracklayer")
+  require(GenomicRanges)
+  require(Rsamtools)
+  
   gtfFile = param$ezRef@refFeatureFile
   gtf = import(gtfFile, asRangedData=FALSE)
   idx = gtf$type =='gene'
@@ -113,7 +117,10 @@ annotatePeaks = function(input=NA, output=NA, param=NA) {
 ##' @param param a list of parameters to extract \code{paired} from.
 ##' @template roxygen-template
 createBigWig = function(input=NA, output=NA, param=NA){
-  require(IRanges); require(rtracklayer);require(GenomicRanges);require(GenomicAlignments)
+  require(IRanges)
+  requireNamespace("rtracklayer")
+  require(GenomicRanges)
+  require(GenomicAlignments)
   if(param[['paired']]){
     aligns = readGAlignmentPairs(file=input$getFullPaths(param, "BAM"))
   } else {
