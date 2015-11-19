@@ -216,15 +216,14 @@ multiGroupCountComparison = function(x, presentFlag=NULL, param){
 
 
 runDeseq2MultiGroup = function(x, sampleGroup, refGroup, grouping, batch=NULL){
-  requireNamespace("DESeq2", warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
   if (is.null(batch)){
     colData = data.frame(grouping=as.factor(grouping), row.names=colnames(x))
-    dds = DESeqDataSetFromMatrix(countData=x, colData=colData, design= ~ grouping)
+    dds = DESeq2::DESeqDataSetFromMatrix(countData=x, colData=colData, design= ~ grouping)
   } else {
     colData = data.frame(grouping=as.factor(grouping), batch=as.factor(batch), row.names=colnames(x))
-    dds = DESeqDataSetFromMatrix(countData=x, colData=colData, design= ~ grouping + batch)
+    dds = DESeq2::DESeqDataSetFromMatrix(countData=x, colData=colData, design= ~ grouping + batch)
   }
-  dds = DESeq(dds, quiet=FALSE)
+  dds = DESeq2::DESeq(dds, quiet=FALSE)
   res = results(dds, contrast=c("grouping", sampleGroup, refGroup), cooksCutoff=FALSE)
   res=as.list(res)
   res$sf = 1/colData(dds)$sizeFactor

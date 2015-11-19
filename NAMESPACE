@@ -1,2 +1,4 @@
 exportPattern("^[[:alpha:]]+")
-import(utils,methods,stats,parallel,Hmisc,RCurl,XML,stringr,matrixStats,Biostrings,GenomicAlignments,GenomicFeatures,GenomicRanges,Rsamtools,ShortRead,Gviz,gplots,ReporteRs)
+import(parallel,Biostrings,stats,methods,utils,ReporteRs,
+       Hmisc,XML,stringr,matrixStats,GenomicAlignments,GenomicFeatures,GenomicRanges,Rsamtools,ShortRead,Gviz,gplots,
+       GO.db,GOstats,Repitools,annotate,bitops,edgeR,limma,rtracklayer,S4Vectors)

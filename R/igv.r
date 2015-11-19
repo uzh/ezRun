@@ -43,8 +43,6 @@ ezIgvTemplateFile = function(){
 ##' @param html a character representing an html address.
 ##' @template roxygen-template
 writeJavaScriptIgvStarter = function(htmlFile, projectId, html){
-  library(RCurl, warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
-  
   jnlpLines1 = paste('<jnlp spec="6.0+" codebase="http://www.broadinstitute.org/igv/projects/current">',
                     '<information>',
                     '<title>IGV 2.3</title>',
@@ -85,9 +83,9 @@ writeJavaScriptIgvStarter = function(htmlFile, projectId, html){
   ezWrite("function startIgvFromJnlp(label, locus){", con=html)
   ezWrite("var theSession = document.location.href.replace('", htmlFile, "', 'igvSession.xml');", con=html)
   ezWrite("var igvLink = 'data:application/x-java-jnlp-file;charset=utf-8,';", con=html)
-  ezWrite("igvLink += '", curlEscape(jnlpLines1), "';", con=html)
+  ezWrite("igvLink += '", RCurl::curlEscape(jnlpLines1), "';", con=html)
   ezWrite("igvLink += theSession;", con=html)
-  ezWrite("igvLink += '", curlEscape(jnlpLines2), "';", con=html)
+  ezWrite("igvLink += '", RCurl::curlEscape(jnlpLines2), "';", con=html)
   ezWrite("document.write(label.link(igvLink))", con=html)
   ezWrite("}", con=html)
   ezWrite("</script>", con=html)

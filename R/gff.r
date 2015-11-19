@@ -374,7 +374,7 @@ getExonNumber = function(gtf){
 ##' @seealso \code{\link[GenomicFeatures]{makeTxDbFromGFF}}
 ## TODOP: .fai file necessary if chromInfo desired, uncomment code and replace chrominfo=NULL with chrominfo=chrominfo
 ezTranscriptDbFromRef = function(reference, dataSource="FGCZ"){
-  library(GenomicFeatures, warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
+  requireNamespace("GenomicFeatures", warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
   organism = getOrganism(reference)
   #genomeFastaIndexFile = paste0(reference@refFastaFile, ".fai")
   #fai = ezRead.table(genomeFastaIndexFile, header=FALSE)

@@ -107,7 +107,7 @@ gatkRnaSeqHaplotyperApp = function(input=NA, output=NA, param=NA, htmlFile="00in
   html = openHtmlReport(htmlFile, param=param, title=paste("VCF-Report:", param$name),
                         dataset=bamDataset)
   chromSizes = ezChromSizesFromVcf(file.path("..", basename(vcfOutputFile)))
-  genotype = geno(readVcf(file.path("..", basename(vcfOutputFile)), genome="genomeDummy"))
+  genotype = VariantAnnotation::geno(readVcf(file.path("..", basename(vcfOutputFile)), genome="genomeDummy"))
   gt = genotype$GT
   gt[genotype$DP < param$vcfCall.minReadDepth] = "lowCov"
   nSamples = nrow(bamDataset)

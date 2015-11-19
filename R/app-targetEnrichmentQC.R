@@ -51,7 +51,6 @@ EzAppTeqc <-
 ##' }
 ##' @template roxygen-template
 teqc = function(input, param=NULL){
-  requireNamespace("TEQC")
   if(basename(param$designFile) == param$designFile){
     path = file.path("/srv/GT/databases/targetEnrichment_designs", param$designFile)
     param$designFile = list.files(path, pattern='Covered\\.bed$', full.names = T)[1]
@@ -64,7 +63,7 @@ teqc = function(input, param=NULL){
   #Create MultiSampleReport:
   reportDirs = unlist(jobList)
   reportDirs = paste0("report_",gsub('\\.bam', '', basename(reportDirs)))
-  multiTEQCreport(singleReportDirs=reportDirs,
+  TEQC::multiTEQCreport(singleReportDirs=reportDirs,
                     samplenames=samples,
                     projectName=param$name,
                     targetsName=basename(dirname(param$designFile)),
@@ -103,7 +102,7 @@ teqc = function(input, param=NULL){
 runTEQC = function(file, param){
   readsfile = file
   targetsfile = param$designFile
-  TEQCreport(sampleName=gsub('\\.bam','',basename(file)),
+  TEQC::TEQCreport(sampleName=gsub('\\.bam','',basename(file)),
                CovUniformityPlot = param$covUniformityPlot, CovTargetLengthPlot = param$covTargetLengthPlot, duplicatesPlot=param$duplicatesPlot,#CovGCPlot = T,
                k = c(1,5,10,20,30,50),
                targetsName=basename(dirname(targetsfile)),

@@ -244,9 +244,8 @@ getBSgenomes = function(){
 }
 
 CoverageVarFunction = function(myBam){
-  requireNamespace("htSeqTools")
   system('echo Function CoverageVarFunction \n')
-  myCov = ssdCoverage(myBam)
+  myCov = htSeqTools::ssdCoverage(myBam)
   write.table(myCov, file = paste(names(myBam), "_ssdCoverage.txt",sep= ""), quote = F, row.names = F, col.names = F, sep = "")
   system('echo Function CoverageVarFunction done \n')
   return(myCov)

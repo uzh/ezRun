@@ -141,7 +141,6 @@ runGfold = function(rawData, scalingFactors, isSample, isRef){
 
 ##' @describeIn twoGroupCountComparison Runs the Deseq2 test method.
 runDeseq2 = function(x, sampleGroup, refGroup, grouping, batch=NULL, isPresent=NULL){
-  requireNamespace("DESeq2", warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
   if (ezIsSpecified(batch)){
     if (!is.numeric(batch)){
       batch = as.factor(batch)
@@ -149,15 +148,15 @@ runDeseq2 = function(x, sampleGroup, refGroup, grouping, batch=NULL, isPresent=N
       message("using numeric batch factor")
     }
     colData = data.frame(grouping=as.factor(grouping), batch=batch, row.names=colnames(x))
-    dds = DESeqDataSetFromMatrix(countData=x, colData=colData, design= ~ grouping + batch)
+    dds = DESeq2::DESeqDataSetFromMatrix(countData=x, colData=colData, design= ~ grouping + batch)
   } else {
     colData = data.frame(grouping=as.factor(grouping), row.names=colnames(x))
-    dds = DESeqDataSetFromMatrix(countData=x, colData=colData, design= ~ grouping)
+    dds = DESeq2::DESeqDataSetFromMatrix(countData=x, colData=colData, design= ~ grouping)
   }
-  dds = estimateSizeFactors(dds, controlGenes=isPresent)
-  dds = DESeq(dds, quiet=FALSE)
+  dds = DESeq2::estimateSizeFactors(dds, controlGenes=isPresent)
+  dds = DESeq2::DESeq(dds, quiet=FALSE)
   res = results(dds, contrast=c("grouping", sampleGroup, refGroup), cooksCutoff=FALSE)
-  res=as.list(res)
+  res = as.list(res)
   res$sf = 1/colData(dds)$sizeFactor
   return(res)
 }

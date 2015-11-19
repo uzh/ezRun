@@ -27,14 +27,6 @@
 ##' @return Returns the gage results.
 runGageAnalysis = function(result, param=NULL, output=NULL, rawData=NULL, gene.pValue=param[['gageGeneThreshold']]) {
   
-  #requireNamespace("gage", warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
-  #requireNamespace("pathview", warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
-  #requireNamespace("reshape2", warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
-  
-  requireNamespace("gage")
-  requireNamespace("pathview")
-  requireNamespace("reshape2")
-  
   stopifnot(param$featureLevel == "gene")
   
   # Load Gene sets (KEGG and Human MSigDb)
@@ -179,8 +171,8 @@ gageAnalysis = function(result, rawData=NULL, param=NULL, geneSets=NULL ) {
   
   fc.gsets.all = lapply(seq_along(geneSets), function(i, data=gage.input, paramI=param){
     x = geneSets[[i]]
-    res = gage(data, gsets = x, ref = NULL, samp = NULL)
-    both = gage(data, gsets = x, ref = NULL, samp = NULL, same.dir = FALSE)
+    res = gage::gage(data, gsets = x, ref = NULL, samp = NULL)
+    both = gage::gage(data, gsets = x, ref = NULL, samp = NULL, same.dir = FALSE)
     res$both = both$greater
     res$statsboth = both$stats
     res$gsets = x
@@ -293,7 +285,7 @@ gageSigGenes = function(x, gene.pValue=NULL, signal=NULL ){
   label = paste(signal, "sigGenes", sep='.')
   x[[label]] = matrix(nrow=0, ncol=2, dimnames=list(c(),c("Gene", "Set")))
   if(!is.null(genesUse)) {
-    xAnnot = melt(x$gsets[rownames(x[[signal]])])
+    xAnnot = reshape2::melt(x$gsets[rownames(x[[signal]])])
     xAnnot = xAnnot[xAnnot$value %in% genesUse,]
     names(xAnnot) = c("Gene", "Set")
     x[[label]] = xAnnot
@@ -431,7 +423,6 @@ getKeggId = function(x, param) {
 
 ##' @describeIn runGageAnalysis Performs the pathview for each gene set and signal.
 gagePathview = function(x, param=NULL, output=NULL, signal=NULL, kegg.id=NULL, gene.pValue=NULL, result = result, anno = rawData$seqAnno){
-  requireNamespace("pathview", warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
   
   # Define labels for list elements
   lab.sigGenes = paste(signal, 'sigGenes', sep='.')
@@ -463,14 +454,14 @@ gagePathview = function(x, param=NULL, output=NULL, signal=NULL, kegg.id=NULL, g
   for (kegg.path.id in names(genes)) {
     #message(cat(signal,kegg.path.id,"\n"))
     cat(signal,kegg.id,kegg.path.id,"\n")
-    pv.out = try(suppressMessages(pathview(gene.data = genes[[kegg.path.id]],
-                                           pathway.id = kegg.path.id,
-                                           species = kegg.id,
-                                           out.suffix = suffix,
-                                           kegg.native = T,
-                                           kegg.dir = param[['KEGGxml']],
-                                           gene.idtype = "SYMBOL",
-                                           limit = list(gene = 3, cpd = 3))), silent = TRUE)
+    pv.out = try(suppressMessages(pathview::pathview(gene.data = genes[[kegg.path.id]],
+                                                     pathway.id = kegg.path.id,
+                                                     species = kegg.id,
+                                                     out.suffix = suffix,
+                                                     kegg.native = T,
+                                                     kegg.dir = param[['KEGGxml']],
+                                                     gene.idtype = "SYMBOL",
+                                                     limit = list(gene = 3, cpd = 3))), silent = TRUE)
   }  
 }
 

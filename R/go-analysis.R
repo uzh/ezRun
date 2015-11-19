@@ -152,7 +152,6 @@ ezGoseq = function(param, selectedGenes, allGenes, gene2goList=NULL,
                    onto=NULL, normalizedAvgSignal=NULL){
   method = match.arg(method)
   requireNamespace("GO.db", warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
-  requireNamespace("goseq", warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
   if (length(selectedGenes) <= 1){
     return(NA)
   }
@@ -175,7 +174,7 @@ ezGoseq = function(param, selectedGenes, allGenes, gene2goList=NULL,
   allGenes = intersect(allGenes, names(gene2goList))
   selectedGenes = intersect(selectedGenes, names(gene2goList))
   
-  go2GenesList= inverseMapping(gene2goList)
+  go2GenesList = inverseMapping(gene2goList)
   go2GenesList = go2GenesList[sapply(go2GenesList, length) >= param$minCountFisher]    
   goSizes = sapply(go2GenesList, length)
   go2SelectedGenes = lapply(go2GenesList, function(x, y){ intersect(x, y)}, selectedGenes)  
@@ -194,7 +193,7 @@ ezGoseq = function(param, selectedGenes, allGenes, gene2goList=NULL,
   #     stopifnot(method == "Hypergeometric") ## if there is no bias --> method must be Hypergeometric
   #     pwf.counts = data.frame(DEgenes=gene.vector, bias.data=1, pwf=1, row.names=names(gene.vector))
   #   }
-  go.counts = goseq(pwf.counts, gene2cat=gene2goList, method=method)
+  go.counts = goseq::goseq(pwf.counts, gene2cat=gene2goList, method=method)
   pvalues = go.counts[match(names(go2GenesList), go.counts$category), "over_represented_pvalue"]
   
   ## compile the result

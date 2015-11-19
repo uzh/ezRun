@@ -148,8 +148,7 @@ ezNorm = function(x, method="none", presentFlag=NULL){
 ##' m1 = matrix(1:20,4)
 ##' ezQuantileNorm(m1)
 ezQuantileNorm = function(x){
-  requireNamespace("preprocessCore", warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
-  norm = normalize.quantiles(x)
+  norm = preprocessCore::normalize.quantiles(x)
   colnames(norm) = colnames(x)
   rownames(norm) = rownames(x)
   norm
@@ -165,8 +164,7 @@ ezQuantileNorm = function(x){
 ##' m1 = matrix(1:200,50)
 ##' ezVsnNorm(m1)
 ezVsnNorm = function(x, lts.quantile=0.6){
-  requireNamespace("vsn")
-  return(2^justvsn(x, lts.quantile=lts.quantile))
+  return(2^vsn::justvsn(x, lts.quantile=lts.quantile))
 }
 
 ##' @title Convert numeric to factor

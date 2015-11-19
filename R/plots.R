@@ -669,11 +669,13 @@ createDendogramReport <- function(x, annot, genes = row.names(x), multipalette =
   # Description
   # Wrapper function for plotDendroAndColors -> plot(dendro)
   
-  requireNamespace("WGCNA", quietly = T)
-  requireNamespace("plyr", quietly = T)
-  requireNamespace("pvclust", quietly = T)
-  requireNamespace("RColorBrewer", quietly = T)
-  requireNamespace("wesanderson", quietly = T)
+#   requireNamespace("WGCNA", quietly = T)
+#   requireNamespace("plyr", quietly = T)
+#   requireNamespace("pvclust", quietly = T)
+#   requireNamespace("RColorBrewer", quietly = T)
+#   requireNamespace("wesanderson", quietly = T)
+  ## TODO: except wesanderson, these packages seem not to be used currently. If only rarely or in one spot, package::function() should be used.
+  ## requireNamespace() only works, after putting the packe into imports() in the NAMESPACE
   
   # Setup different default parameters for plotDendroAndColors arguments if not specified in function call
   # if(!exists("cex.colorLabels")) cex.colorLabels = 1
@@ -691,12 +693,12 @@ createDendogramReport <- function(x, annot, genes = row.names(x), multipalette =
   # Colors for annotation of dendograms
   if(is.null(paletteList)) {
     if(!multipalette) paletteList <- list("grenYll" = c('#4db6ac','#aed581','#dce775','#ffd54f'))
-    if(multipalette)  paletteList <- list("Royal1" = wes_palette("Royal1"), 
-                                          "Moonrise1" = wes_palette("Moonrise1"),
-                                          'Moonrise2' = wes_palette("Moonrise2"),
-                                          "Chevalier" = wes_palette("Chevalier"),
-                                          "Zissou" = wes_palette("Zissou"),
-                                          "Cavalcanti" = wes_palette("Cavalcanti"))
+    if(multipalette)  paletteList <- list("Royal1" = wesanderson::wes_palette("Royal1"), 
+                                          "Moonrise1" = wesanderson::wes_palette("Moonrise1"),
+                                          'Moonrise2' = wesanderson::wes_palette("Moonrise2"),
+                                          "Chevalier" = wesanderson::wes_palette("Chevalier"),
+                                          "Zissou" = wesanderson::wes_palette("Zissou"),
+                                          "Cavalcanti" = wesanderson::wes_palette("Cavalcanti"))
   }
   colList = list()
   for (j in 1:ncol(annot)) {

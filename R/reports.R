@@ -131,8 +131,6 @@ openBsdocReport = function(title="", dataset=NULL, param=NULL){
 
 ##' @describeIn openBsdocReport Adds a java function to start Igv from Jnlp.
 addJavaScriptIgvStarter = function(htmlFile, projectId, doc){
-  library(RCurl, warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
-  
   jnlpLines1 = paste('<jnlp spec="6.0+" codebase="http://www.broadinstitute.org/igv/projects/current">',
                      '<information>',
                      '<title>IGV 2.3</title>',
@@ -172,9 +170,9 @@ addJavaScriptIgvStarter = function(htmlFile, projectId, doc){
   javaScript = paste("function startIgvFromJnlp(label, locus){",
                      "var theSession = document.location.href.replace('", htmlFile, "', 'igvSession.xml');",
                      "var igvLink = 'data:application/x-java-jnlp-file;charset=utf-8,';",
-                     "igvLink += '", curlEscape(jnlpLines1), "';",
+                     "igvLink += '", RCurl::curlEscape(jnlpLines1), "';",
                      "igvLink += theSession;",
-                     "igvLink += '", curlEscape(jnlpLines2), "';",
+                     "igvLink += '", RCurl::curlEscape(jnlpLines2), "';",
                      "document.write(label.link(igvLink))",
                      "}")
   doc = addJavascript(doc, text=javaScript)

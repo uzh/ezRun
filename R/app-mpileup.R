@@ -111,7 +111,7 @@ ezMethodMpileup = function(input=NA, output=NA, param=NA){
   html = openHtmlReport(htmlFile, param=param, title=paste("VCF-Report:", param$name),
                         dataset=bamDataset)
   chromSizes = ezChromSizesFromVcf(file.path("..", basename(vcfOutputFile)))
-  genotype = geno(readVcf(file.path("..", basename(vcfOutputFile)), genome="genomeDummy"))
+  genotype = VariantAnnotation::geno(readVcf(file.path("..", basename(vcfOutputFile)), genome="genomeDummy"))
   gt = genotype$GT
   gt[genotype$DP < param$minReadDepth] = "lowCov" ## those calls will become NA in subsequent analyses
   nSamples = nrow(bamDataset)
