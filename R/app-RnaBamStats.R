@@ -169,7 +169,7 @@ getPosErrorFromBam = function(bamFile, param){
 ezPosSpecErrorRate = function(bam, ReferenceGenome, nMaxReads=100000){
   library(GenomicRanges, warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
   library(stringr, warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
-  library(Hmisc, warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
+  requireNamespace("Hmisc", warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
   ## remove the reads containing the gaps, insertions, deletions
   hasGap = grepl("N|I|D", bam$cigar)
   readLength = nchar(as.character(bam$seq))
