@@ -100,9 +100,9 @@ writeNgsMultiGroupReport = function(dataset, result, htmlFile, param=NA, rawData
                         dataset=dataset)  
   on.exit(closeHTML(html))
   
-  writeCountResultSummary(html, param, result, rawData$type)
-  writeResultCounts(html, param, result)
-  resultFile = writeResultFile(html, param, result, rawData) ## REFAC addResultFile
+  writeCountResultSummary(html, param, result)                ## REFAC addCountResultSummary
+  writeResultCounts(html, param, result)                      ## REFAC addSignificantCounts
+  resultFile = writeResultFile(html, param, result, rawData)  ## REFAC addResultFile
   
   cr = c(-param$logColorRange, param$logColorRange)
   logSignal = log2(shiftZeros(result$xNorm, param$minSignal))
