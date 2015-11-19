@@ -230,7 +230,7 @@ plotBamStat = function(resultList, dataset, param, htmlFile=NULL){
       for (cn in colnames(pngMatrix)){
         ## skip all cases that are not medium expressed and skip all cases that are not above 4000 or 400-1000
         if (!grepl("medium", cn)) next
-        if (!(grepl("above", rn) | grepl("400nt to", rn))) next
+        if (grepl("less", rn) | grepl("1000 to", rn)) next
         pngMatrix[rn, cn] = ezValidFilename(paste0("genebody_coverage_", rn, "_", cn, ".png"))
         covValues = ezMatrix(0, cols=0:100, rows=samples)
         for (sm in samples){

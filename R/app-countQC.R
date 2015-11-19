@@ -171,7 +171,7 @@ runNgsCountQC = function(dataset, htmlFile="00index.html", param=param, rawData=
     par(mar=c(10.1, 4.1, 4.1, 2.1))
     bplot = barplot(presentCounts, las=2, ylab="Counts", main="Genomic Features with Reads above threshold")
     percentages = paste(signif(100*presentCounts/nrow(isPresent), digits=2), "%")
-    text(x=bplot, y=0, pos=3, offset=3, labels=percentages)
+    text(x=bplot, y=0, pos=3, offset=2, labels=percentages)
   })
   presentLink = ezImageFileLink(plotCmd, file="presentCounts.png", height=600,
                                 width=min(600 + (length(samples)-10)* 30, 2000))
