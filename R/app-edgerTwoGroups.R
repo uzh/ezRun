@@ -36,7 +36,7 @@ ezMethodEdger = function(input=NA, output=NA, param=NA, htmlFile="00index.html")
   result$featureLevel = rawData$featureLevel
   result$countName = rawData$countName
   
-  writeNgsTwoGroupReport(input$meta, result, htmlFile, param=param, rawData=rawData)
+  writeNgsTwoGroupReport(input$meta, result, output, htmlFile, param=param, rawData=rawData)
   return("Success")
 }
 

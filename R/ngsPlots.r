@@ -56,7 +56,7 @@ ezMdsPlot = function(signal, sampleColors, main){
 
 
 
-## REFAC, but function is currently unused.
+## REFAC, but function is currently unused. undefined object: sm
 fragLengthReadMidDensityPlot = function(fl, file=NULL, xlim=c(-500, 500), bw=5){
   
   if (!is.null(file)){

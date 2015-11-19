@@ -763,7 +763,7 @@ ezArrayImage = function(mat, file=NULL, colorRange=c(-3,3), xScale=1, yScale=1, 
 
 ## REFAC, but function is currently unused.
 ezCdfPlot = function(x, itemName="gene", scoreName="expression", percentage=FALSE,
-                     file=NULL, height=600, width=600, col=getSampleColors(colnames(x), colorNames = colnames(x))){
+                     file=NULL, height=600, width=600, colors=getSampleColors(colnames(x), colorNames = colnames(x))){
   if (!is.null(file)){
     switch(sub(".*\\.", "", file),
            pdf=pdf(file, height=height/100, width=width/100),
@@ -791,9 +791,9 @@ ezCdfPlot = function(x, itemName="gene", scoreName="expression", percentage=FALS
     } else {
       yValue = 1:length(cts)			
     }
-    lines(sort(cts), yValue, col=sampleColors[sm])
+    lines(sort(cts), yValue, col=colors[sm])
   }
-  legend("bottomright", colnames(x), col=sampleColors[colnames(x)], cex=1.2, pt.cex=1.5, pch=20, bty="o", pt.bg="white")
+  legend("bottomright", colnames(x), col=colors[colnames(x)], cex=1.2, pt.cex=1.5, pch=20, bty="o", pt.bg="white")
 }
 
 

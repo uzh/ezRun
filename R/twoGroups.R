@@ -267,7 +267,7 @@ runGlm = function(x, sampleGroup, refGroup, grouping, normMethod, batch=NULL){
 ##' @template rawData-template
 ##' @template types-template
 ##' @template roxygen-template
-writeNgsTwoGroupReport = function(dataset, result, htmlFile="00index.html", param=NA, rawData=NA, types=NULL) {
+writeNgsTwoGroupReport = function(dataset, result, output, htmlFile="00index.html", param=NA, rawData=NA, types=NULL) {
   seqAnno = rawData$seqAnno
   
   titles = list()

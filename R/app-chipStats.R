@@ -376,7 +376,7 @@ Create_ChIP_QCPlots_ind = function(file, param, maxX=20, gff=gff, name='', range
   build = param[['refBuild']]
   flank = param[['flank']]
   myBam = readBam(file, isPaired)
-  createBigWig(aligns=myBam, name=basename(file))  ## TODO: refactor
+  #createBigWig(aligns=myBam, name=basename(file))  ## TODO: refactor
   fragmentSize(myBam, isPaired)
   MakeEnrichmentPlot(myBam,isPaired, estimatedFragmentSize)
   #MakeCpGDensityPlot(myBam,isPaired, build, estimatedFragmentSize)

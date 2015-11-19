@@ -133,10 +133,10 @@ ezCombineReadDatasets = function(ds1, ds2, newDsDir){
       cat(cmd, "\n")
       ezSystem(cmd)
       ds[nm, "Read Count"] = ds1[nm, "Read Count"] + ds2[nm, "Read Count"]
-      ds[nm, "Read1 [File]"] = file.path(dsDir, fileMerged)
+      ds[nm, "Read1 [File]"] = file.path(newDsDir, fileMerged)
     } else {
       ezSystem(paste("cp", file2, "."))
-      ds[nm, "Read1 [File]"] = file.path(dsDir, basename(file2))
+      ds[nm, "Read1 [File]"] = file.path(newDsDir, basename(file2))
     }
   }
   

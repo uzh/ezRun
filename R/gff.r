@@ -621,9 +621,8 @@ getEnsemblTypes = function(gff){
   exonIdx = subjectHits(cds2exon)
   table(1:length(cdsRanges) %in% cdsIdx)
   cdsParent = cdsGtf$Parent[cdsIdx]
-  exonParent = exonGtf$Parent[exonIdx]
+  exonParents = exonGtf$Parent[exonIdx]
   isMatch = cdsParent == exonParents
   hasExon = tapply(isMatch, cdsParent, any)
   table(hasExon, useNA="always")
-  
 }

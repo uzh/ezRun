@@ -422,7 +422,7 @@ getKeggId = function(x, param) {
 }
 
 ##' @describeIn runGageAnalysis Performs the pathview for each gene set and signal.
-gagePathview = function(x, param=NULL, output=NULL, signal=NULL, kegg.id=NULL, gene.pValue=NULL, result = result, anno = rawData$seqAnno){
+gagePathview = function(x, param=NULL, output=NULL, signal=NULL, kegg.id=NULL, gene.pValue=NULL, result = result, anno){
   
   # Define labels for list elements
   lab.sigGenes = paste(signal, 'sigGenes', sep='.')

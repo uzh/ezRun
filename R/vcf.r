@@ -58,7 +58,7 @@ ezFilterVcf = function(vcfFile, vcfFiltFile, discardMultiAllelic=TRUE, bamDatase
 }
 
 ##' @describeIn ezFilterVcf Writes a new VCF file.
-ezWriteVcf = function(vcf, file=vcfFile){
+ezWriteVcf = function(vcf, file){
   #vcfTemp = sub("-haplo.vcf", "-haplo-filt.vcf", vcfFiles[dsName])
   stopifnot(grepl(".gz$", file))
   nm = sub(".vcf", "", sub(".gz", "", basename(file)))
