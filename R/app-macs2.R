@@ -117,7 +117,6 @@ annotatePeaks = function(input=NA, output=NA, param=NA) {
 ##' @param param a list of parameters to extract \code{paired} from.
 ##' @template roxygen-template
 createBigWig = function(input=NA, output=NA, param=NA){
-  require(IRanges)
   requireNamespace("rtracklayer")
   require(GenomicRanges)
   require(GenomicAlignments)

@@ -148,7 +148,7 @@ ezNorm = function(x, method="none", presentFlag=NULL){
 ##' m1 = matrix(1:20,4)
 ##' ezQuantileNorm(m1)
 ezQuantileNorm = function(x){
-  library(preprocessCore, warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
+  requireNamespace("preprocessCore", warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
   norm = normalize.quantiles(x)
   colnames(norm) = colnames(x)
   rownames(norm) = rownames(x)

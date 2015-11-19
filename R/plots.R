@@ -669,11 +669,11 @@ createDendogramReport <- function(x, annot, genes = row.names(x), multipalette =
   # Description
   # Wrapper function for plotDendroAndColors -> plot(dendro)
   
-  require(WGCNA, quietly = T)
-  require(plyr, quietly = T)
-  require(pvclust, quietly = T)
-  require(RColorBrewer, quietly = T)
-  require(wesanderson, quietly = T)
+  requireNamespace("WGCNA", quietly = T)
+  requireNamespace("plyr", quietly = T)
+  requireNamespace("pvclust", quietly = T)
+  requireNamespace("RColorBrewer", quietly = T)
+  requireNamespace("wesanderson", quietly = T)
   
   # Setup different default parameters for plotDendroAndColors arguments if not specified in function call
   # if(!exists("cex.colorLabels")) cex.colorLabels = 1

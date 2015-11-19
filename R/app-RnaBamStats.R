@@ -13,7 +13,7 @@
 ezMethodRnaBamStats = function(input=NA, output=NA, param=NA, htmlFile="00index.html"){
   
   require(GenomicAlignments)
-  require(S4Vectors)
+  requireNamespace("S4Vectors")
   cwd = getwd()
   on.exit(setwd(cwd))
   setwdNew(basename(output$getColumn("Report")))

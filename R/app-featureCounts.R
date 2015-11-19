@@ -15,7 +15,7 @@ ezMethodFeatureCounts = function(input=NULL, output=NULL, param=NULL){
   outputFile = basename(output$getColumn("Count"))
   statFile = basename(output$getColumn("Stats"))
   
-  library(Rsubread, warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
+  requireNamespace("Rsubread", warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
   
   sink(file="messages.txt")
   countResult = featureCounts(localBamFile, annot.inbuilt=NULL,

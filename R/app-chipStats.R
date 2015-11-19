@@ -214,7 +214,7 @@ MakeCpGDensityPlot = function(myBam, isPaired = F, build, estimatedFragmentSize 
   if(build %in% bsgenome_table$build){
     bsgenome_table = unlist(bsgenome_table[which(bsgenome_table$build == build),])
     system(paste('echo Found:', bsgenome_table, '\n'))
-    require(bsgenome_table[1], character.only=T)
+    ##require(bsgenome_table[1], character.only=T) ## TODO: which package was intended to be loaded here? BSgenome never gets loaded and is not in the description
     if(isPaired){
       seq.len = median(width(myBam[[1]]))
       system(paste('echo Estimated Median FragmentSize:', seq.len, '\n'))
@@ -372,12 +372,6 @@ clusterData = function(data, distmethod='pearson', clustermethod='ward', title =
   plot(hr, hang = -1,main=title)
 }
 
-createBigWig = function(aligns,name,...){
-  require(IRanges)
-  requireNamespace("rtracklayer")
-  cov = coverage(aligns)
-  export(cov, paste0(name,".bw"), format="bigWig")
-}
 
 Create_ChIP_QCPlots_ind = function(file, param, maxX=20, gff=gff, name='', range=c(1,100)){
   isPaired = as.logical(param[['paired']])
@@ -386,7 +380,7 @@ Create_ChIP_QCPlots_ind = function(file, param, maxX=20, gff=gff, name='', range
   build = param[['refBuild']]
   flank = param[['flank']]
   myBam = readBam(file, isPaired)
-  createBigWig(aligns=myBam, name=basename(file))
+  createBigWig(aligns=myBam, name=basename(file))  ## TODO: refactor
   fragmentSize(myBam, isPaired)
   MakeEnrichmentPlot(myBam,isPaired, estimatedFragmentSize)
   #MakeCpGDensityPlot(myBam,isPaired, build, estimatedFragmentSize)
