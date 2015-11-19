@@ -29,6 +29,7 @@ This reference class is the basis of all other apps that inherit from it. It set
 \item{\code{run(input, output, param)}}{Runs the app with the provided \code{input}, \code{output} and \code{param}.}
 }}
 \examples{
+require("ezRun")
 file = system.file("extdata/yeast_10k/dataset.tsv", package="ezRun", mustWork = TRUE)
 ds = EzDataset$new(file=file)
 NULLApp = EzApp$new(runMethod=function(input, output, param){},name="NULLApp")

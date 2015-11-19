@@ -17,6 +17,8 @@ ezGrid(x, header.columns = FALSE, valign = "top", ...)
 
 \item{valign}{"bottom", "middle" or "top" specifying the position of table cell contents.}
 
+\item{talign}{"left", "middle" or "right" specifying the position of text within the cells.}
+
 \item{header.columns}{a logical indicating whether to use a header for the table.}
 
 \item{...}{additional arguments to be passed to \code{FlexTable()}.}

@@ -4,7 +4,7 @@
 \name{EzRef-class}
 \alias{EzRef}
 \alias{EzRef-class}
-\alias{[,EzRef,ANY,ANY-method}
+\alias{[,EzRef,ANY,ANY,ANY-method}
 \alias{buildRefDir,EzRef-method}
 \alias{getOrganism,EzRef-method}
 \alias{initialize,EzRef-method}
@@ -13,7 +13,7 @@
 \S4method{initialize}{EzRef}(.Object, param = list(),
   genomesRoot = GENOMES_ROOT)
 
-\S4method{[}{EzRef,ANY,ANY}(x, i)
+\S4method{[}{EzRef,ANY,ANY,ANY}(x, i)
 
 \S4method{buildRefDir}{EzRef}(.Object, genomeFile, genesFile,
   genomesRoot = ".")
