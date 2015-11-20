@@ -35,7 +35,6 @@ ezMethodCountQC = function(input=NA, output=NA, param=NA, htmlFile="00index.html
     writeErrorReport(htmlFile, param=param, dataset=dataset, error=rawData$error)
     return("Error")
   }
-  rawData$signal = ezNorm(rawData$counts, presentFlag=rawData$presentFlag, method=param$normMethod)
   runNgsCountQC(dataset, htmlFile, param, rawData=rawData)
   return("Success")
 }
@@ -83,8 +82,11 @@ EzAppCountQC <-
 runNgsCountQC = function(dataset, htmlFile="00index.html", param=param, rawData=NULL,
                          writeDataFiles=TRUE, types=NULL){
   
-  #library(affy, warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
-  seqAnno = rawData$seqAnno
+  if (is.null(rawData$signal)){
+    rawData$signal = ezNorm(rawData$counts, presentFlag=rawData$presentFlag, method=param$normMethod)
+  }
+
+    seqAnno = rawData$seqAnno
   if (is.null(types) && !is.null(seqAnno$type)){
     types = data.frame(row.names=rownames(seqAnno))
     for (nm in setdiff(na.omit(unique(seqAnno$type)), "")){
