@@ -10,7 +10,7 @@
 ##' @templateVar methodName Count QC
 ##' @template htmlFile-template
 ##' @seealso \code{\link{EzAppCountQC}}
-ezMethodCountQC = function(input=NA, output=NA, param=NA, htmlFile="00index.html"){
+ezMethodCountQC = function(input=NA, output=NA, param=NA, htmlFile="00index.html", rawData=NULL){
 
   if (is.null(param$runGO)){
     param$runGO = TRUE
@@ -28,8 +28,9 @@ ezMethodCountQC = function(input=NA, output=NA, param=NA, htmlFile="00index.html
     dataset = dataset[toupper(dataset$Outlier) %in% c("", "NO", '""', "FALSE") == TRUE, ]
   }
   input$meta = dataset
-      
-  rawData = loadCountDataset(input, param)
+  if (is.null(rawData)){
+    rawData = loadCountDataset(input, param)
+  }
   if (isError(rawData)){
     writeErrorReport(htmlFile, param=param, dataset=dataset, error=rawData$error)
     return("Error")
