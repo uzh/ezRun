@@ -9,7 +9,7 @@ ezCombineReadDatasets(ds1, ds2, newDsDir)
 \description{
 Takes the union of the samples in both input datasets and generates a new dataset. 
 If a sample is present in both datasets, the read files are concatenated and a new file is written.
-If a sample is present in only one dataset it is imply copied
+If a sample is present in only one dataset it is simply copied
 The Read Count column must be present and is updated if two files are combined.
 A new dataset is written.
 }

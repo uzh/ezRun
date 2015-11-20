@@ -8,7 +8,7 @@
 ezFilterVcf(vcfFile, vcfFiltFile, discardMultiAllelic = TRUE,
   bamDataset = bamDataset, param = NULL)
 
-ezWriteVcf(vcf, file = vcfFile)
+ezWriteVcf(vcf, file)
 }
 \arguments{
 \item{vcfFile}{a character representing the file path of the input VCF file}

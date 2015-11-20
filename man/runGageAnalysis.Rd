@@ -24,8 +24,7 @@ gageHeatmap(x, param = NULL, output = NULL, gene.pValue = NULL,
   signal = NULL, fileName = NULL, prefix = "gage-heatmap")
 
 gagePathview(x, param = NULL, output = NULL, signal = NULL,
-  kegg.id = NULL, gene.pValue = NULL, result = result,
-  anno = rawData$seqAnno)
+  kegg.id = NULL, gene.pValue = NULL, result = result, anno)
 }
 \arguments{
 \item{result}{a list of results obtained from \code{twoGroupCountComparison()}.}

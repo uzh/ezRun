@@ -106,13 +106,14 @@ addReplicate = function(x, sep="_", repLabels=1:length(x)){
 ##' @title Combine the reads from two datasets in a single dataset
 ##' @description Takes the union of the samples in both input datasets and generates a new dataset. 
 ##' If a sample is present in both datasets, the read files are concatenated and a new file is written.
-##' If a sample is present in only one dataset it is imply copied
+##' If a sample is present in only one dataset it is simply copied
 ##' The Read Count column must be present and is updated if two files are combined.
 ##' A new dataset is written.
+## newDsDir = "/srv/GT/analysis/p1314/HiSeq-20151116-Combined"
+## newDsDir = "/scratch/text_merging_datasets"
 ezCombineReadDatasets = function(ds1, ds2, newDsDir){
   ds1 = ezRead.table("/srv/GT/analysis/hubert/ds1.tsv")
   ds2 = ezRead.table("/srv/GT/analysis/hubert/ds2.tsv")
-  newDsDir = "/srv/GT/analysis/p1314/HiSeq-20151116-Combined"
   colnames(ds2) == colnames(ds1)
   intersect(rownames(ds1), rownames(ds2))
   #vennFromSets(list(ds1=rownames(ds1), ds2=rownames(ds2)))

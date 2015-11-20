@@ -4,7 +4,7 @@
 \alias{writeNgsTwoGroupReport}
 \title{Writes the report for the two group analysis}
 \usage{
-writeNgsTwoGroupReport(dataset, result, htmlFile = "00index.html",
+writeNgsTwoGroupReport(dataset, result, output, htmlFile = "00index.html",
   param = NA, rawData = NA, types = NULL)
 }
 \arguments{
