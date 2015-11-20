@@ -31,18 +31,18 @@ plotBamStat = function(resultList, dataset, param, htmlFile=NULL){
   titles[["BAM Statistics"]] = paste("BAM Statistics:", param$name)
   doc = openBsdocReport(title=titles[[length(titles)]], dataset=dataset)
   
-  
-  if (param$writeIgvSessionLink){
-    titles[["Genome Browser"]] = "Genome Browser"
-    addTitleWithAnchor(doc, titles[[length(titles)]], 2)
-    if (length(files) > 4){
-      idx = which(!duplicated(conds))
-      idx = idx[1:min(4, length(idx))]
-    } else {
-      idx = 1:length(files)
-    }
-    addIgvSessionLink(getIgvGenome(param), refBuild=param$ezRef["refBuild"], files[idx], doc, label="Open Integrative Genomics Viewer")
-  }
+## TODO: add later  
+#   if (param$writeIgvSessionLink){
+#     titles[["Genome Browser"]] = "Genome Browser"
+#     addTitleWithAnchor(doc, titles[[length(titles)]], 2)
+#     if (length(files) > 4){
+#       idx = which(!duplicated(conds))
+#       idx = idx[1:min(4, length(idx))]
+#     } else {
+#       idx = 1:length(files)
+#     }
+#     addIgvSessionLink(getIgvGenome(param), refBuild=param$ezRef["refBuild"], files[idx], doc, label="Open Integrative Genomics Viewer")
+#   }
   
   titles[["Read Alignment Statistics"]] = "Read Alignment Statistics"
   addTitleWithAnchor(doc, titles[[length(titles)]], 2)
