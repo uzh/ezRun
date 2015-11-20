@@ -96,7 +96,7 @@ ezMethodBowtie2 = function(input=NA, output=NA, param=NA){
   defOpt = paste("-p", ezThreads())
   
   cmd = paste(file.path(BOWTIE2_DIR, "bowtie2"), param$cmdOptions, defOpt, 
-              "-x", ref, trimmedInput$getColumn("Read1"), ifelse(param$paired, trimmedInput$getColumn("Read2"), ""),
+              "-x", ref, trimmedInput$getColumn("Read1"), if(param$paired) trimmedInput$getColumn("Read2"),
               "2> bowtie.log", "|", SAMTOOLS, "view -S -b -", " > bowtie.bam")
   ezSystem(cmd)
   ezSortIndexBam("bowtie.bam", basename(bamFile), ram=param$ram, removeBam=TRUE, cores=ezThreads())
@@ -189,7 +189,7 @@ ezMethodBowtie = function(input=NA, output=NA, param=NA){
   trimmedInput = ezMethodTrim(input = input, param = param)
   defOpt = paste("--chunkmbs 256", "--sam", "-p", ezThreads())
     cmd = paste(file.path(BOWTIE_DIR, "bowtie"), param$cmdOptions, defOpt, 
-              ref, trimmedInput$getColumn("Read1"), ifelse(param$paired, trimmedInput$getColumn("Read2"), ""),
+              ref, trimmedInput$getColumn("Read1"), if(param$paired) trimmedInput$getColumn("Read2"),
               "2> bowtie.log", "|", SAMTOOLS, "view -S -b -", " > bowtie.bam")
   ezSystem(cmd)
   ezSortIndexBam("bowtie.bam", basename(bamFile), ram=param$ram, removeBam=TRUE, cores=ezThreads())
@@ -278,7 +278,7 @@ ezMethodSTAR = function(input=NA, output=NA, param=NA){
   trimmedInput = ezMethodTrim(input = input, param = param)
   
   cmd = paste(STAR, "--genomeLoad NoSharedMemory --genomeDir", refDir,  "--sjdbOverhang 150", "--readFilesIn",
-              trimmedInput$getColumn("Read1"), ifelse(param$paired, trimmedInput$getColumn("Read2"), ""),
+              trimmedInput$getColumn("Read1"), if(param$paired) trimmedInput$getColumn("Read2"),
               "--runThreadN", ezThreads(), param$cmdOptions, "--outStd BAM_Unsorted --outSAMtype BAM Unsorted",
               ">  Aligned.out.bam")## writes the output file Aligned.out.bam
   ##"|", SAMTOOLS, "view -S -b -", " >", "Aligned.out.bam")
@@ -407,7 +407,7 @@ ezMethodBWA = function(input=NA, output=NA, param=NA){
       stop("paired is not supported for algorithm bwasw")
     }
     cmd = paste(BWA, param$algorithm, param$cmdOptions, "-t", ezThreads(),
-                refIdx, trimmedInput$getColumn("Read1"), ifelse(param$paired, trimmedInput$getColumn("Read2"), ""),
+                refIdx, trimmedInput$getColumn("Read1"), if(param$paired) trimmedInput$getColumn("Read2"),
                 "|", SAMTOOLS, "view -S -b -", " > aligned.bam", "2> bwa.log")
     ezSystem(cmd)
   }
