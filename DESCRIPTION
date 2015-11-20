@@ -12,10 +12,10 @@ Depends:
     parallel,Biostrings,stats,methods,utils,ReporteRs,Rsamtools
 Imports:
     Hmisc,XML,stringr,GenomicAlignments,GenomicFeatures,GenomicRanges,ShortRead,Gviz,gplots,
-    GO.db,GOstats,Repitools,annotate,bitops,edgeR,limma,rtracklayer,S4Vectors
+    GO.db,GOstats,Repitools,annotate,bitops,edgeR,limma,rtracklayer,S4Vectors,VariantAnnotation
 Suggests:
     testthat,knitr,
-    gage,goseq,ChIPpeakAnno,DESeq2,TEQC,VariantAnnotation,htSeqTools,pathview,reshape2,vsn,Rsubread,preprocessCore,wesanderson,RCurl,caTools,matrixStats,
+    gage,goseq,ChIPpeakAnno,DESeq2,TEQC,htSeqTools,pathview,reshape2,vsn,Rsubread,preprocessCore,wesanderson,RCurl,caTools,matrixStats,
     biomaRt,RColorBrewer,WGCNA,plyr,pvclust
 VignetteBuilder: knitr
 RoxygenNote: 5.0.1
