@@ -24,7 +24,7 @@ ezMethodChipStats = function(input=NA, output=NA, param=NA, htmlFile="00index.ht
     return("Error")
   }
   
-  requireNamespace("Repitools")
+  require("Repitools")
   ezMclapply(dataset$"BAM [File]", 
               Create_ChIP_QCPlots_ind, param=param, gff=gff, maxX=20, range=c(1,100), 
               mc.cores=param$cores, mc.preschedule =FALSE, mc.set.seed=FALSE)
