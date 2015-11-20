@@ -146,82 +146,89 @@ addReplicate = function(x, sep="_", repLabels=1:length(x)){
 }
 
 
-ezCombineReadDatasets = function(df1, df2, newDsDir=NULL){
+## example with the yeast_10k dataset
+# ds1 = ezRead.table(system.file("extdata/yeast_10k/dataset.tsv", package = "ezRun", mustWork = TRUE))
+# ds2 = ds1
+# dataRoot = normalizePath("./inst")
+# newDsDir = "./scratch"
+# ezCombineReadDatasets(ds1, ds2, dataRoot, newDsDir)
+
+ezCombineReadDatasets = function(ds1, ds2, dataRoot="/srv/gstore/projects", newDsDir=NULL){
   
   # these are used a lot
-  rowDf1 = rownames(df1)
-  rowDf2 = rownames(df2)
-  colDf1 = colnames(df1)
-  colDf2 = colnames(df2)
-  cols = intersect(colDf1, colDf2)
-  rowdiff1 = setdiff(rowDf1, rowDf2)
-  rowdiff2 = setdiff(rowDf2, rowDf1)
+  rowDs1 = rownames(ds1)
+  rowDs2 = rownames(ds2)
+  colDs1 = colnames(ds1)
+  colDs2 = colnames(ds2)
+  cols = intersect(colDs1, colDs2)
+  rowdiff1 = setdiff(rowDs1, rowDs2)
+  rowdiff2 = setdiff(rowDs2, rowDs1)
   
-  # create new df starting with the rows in df1 and adding those only found in df2 and set the right rownames
-  dfNew = rbind(df1[, cols], df2[rowdiff2, cols])
-  rownames(dfNew) = c(rowDf1, rowdiff2)
-  rowDfNew = rownames(dfNew)
+  # create new dataset starting with the rows in ds1 and adding those only found in ds2 and set the right rownames
+  dsNew = rbind(ds1[, cols], ds2[rowdiff2, cols])
+  rownames(dsNew) = c(rowDs1, rowdiff2)
+  rowDsNew = rownames(dsNew)
   
   # if colnames are not equal, we're not finished with this part:
-  # this code should be able to merge columns correctly while filling in NA's no matter how column names occur in df1 and df2
-  if (!setequal(colDf1, colDf2)){
+  # this code should be able to merge columns correctly while filling in NA's no matter how column names occur in ds1 and ds2
+  if (!setequal(colDs1, colDs2)){
     
-    # add df1 columns
-    cdiff1 = setdiff(colDf1, colDf2)
+    # add ds1 columns
+    cdiff1 = setdiff(colDs1, colDs2)
     for (i in 1:length(cdiff1)){
-      dfNew = cbind(dfNew, c(df1[, cdiff1[i]], rep(NA, length(rowdiff2))))
+      dsNew = cbind(dsNew, c(ds1[, cdiff1[i]], rep(NA, length(rowdiff2))))
     }
     
-    # add df2 columns while making sure to add everything in the right place
-    cdiff2 = setdiff(colDf2, colDf1)
+    # add ds2 columns while making sure to add everything in the right place
+    cdiff2 = setdiff(colDs2, colDs1)
     for (i in 1:length(cdiff2)){
-      for (j in 1:nrow(dfNew)){
-        colToAdd[j] = ifelse(rowDfNew[j] %in% rowDf2,
-                             df2[rowDf2==rowDfNew[j], cdiff2[i]],
+      for (j in 1:nrow(dsNew)){
+        colToAdd[j] = ifelse(rowDsNew[j] %in% rowDs2,
+                             ds2[rowDs2==rowDsNew[j], cdiff2[i]],
                              NA)
       }
-      dfNew = cbind(dfNew, colToAdd)
+      dsNew = cbind(dsNew, colToAdd)
     }
     
-    # set the colnames for dfNew
-    colnames(dfNew) = c(cols, cdiff1, cdiff2)
+    # set the colnames for dsNew
+    colnames(dsNew) = c(cols, cdiff1, cdiff2)
   }
   
   # adjust the read count and set the directory
-  dfNew$"Read Count" = NA
+  dsNew$"Read Count" = NA
   cwd = getwd()
+  on.exit(setwd(cwd))
   setwdNew(newDsDir)
   
-  # loop through rows of dfNew to apply the merging
-  for (nm in rowDfNew){
-    if (nm %in% rowDf1 && !(nm %in% rowDf2)){
+  # loop through rows of dsNew to apply the merging
+  for (nm in rowDsNew){
+    if (nm %in% rowDs1 && !(nm %in% rowDs2)){
       
-      # nm is in df1, but not in df2
-      dfNew[nm, "Read Count"] = df1[nm, "Read Count"]
-      file = file.path("/srv/gstore/projects", df1[nm, "Read1 [File]"])
+      # nm is in ds1, but not in ds2
+      dsNew[nm, "Read Count"] = ds1[nm, "Read Count"]
+      file = file.path(dataRoot, ds1[nm, "Read1 [File]"])
       ezSystem(paste("cp", file, "."))
-      ds[nm, "Read1 [File]"] = file.path(newDsDir, basename(file))
-    } else if (nm %in% rowDf2 && !(nm %in% rowDf1)){
+      dsNew[nm, "Read1 [File]"] = file.path(newDsDir, basename(file))
+    } else if (nm %in% rowDs2 && !(nm %in% rowDs1)){
       
-      # nm is in df2, but not in df1
-      dfNew[nm, "Read Count"] = df2[nm, "Read Count"]
-      file = file.path("/srv/gstore/projects", df2[nm, "Read1 [File]"])
+      # nm is in ds2, but not in ds1
+      dsNew[nm, "Read Count"] = ds2[nm, "Read Count"]
+      file = file.path(dataRoot, ds2[nm, "Read1 [File]"])
       ezSystem(paste("cp", file, "."))
-      ds[nm, "Read1 [File]"] = file.path(newDsDir, basename(file))
+      dsNew[nm, "Read1 [File]"] = file.path(newDsDir, basename(file))
     } else {
       
-      # nm is in df1 and df2, thus they need to be merged. there should be no other case.
-      dfNew[nm, "Read Count"] = df1[nm, "Read Count"] + df2[nm, "Read Count"]
-      file1 = file.path("/srv/gstore/projects", df1[nm, "Read1 [File]"])
-      file2 = file.path("/srv/gstore/projects", df2[nm, "Read1 [File]"])
+      # nm is in ds1 and ds2, thus they need to be merged. there should be no other case.
+      dsNew[nm, "Read Count"] = ds1[nm, "Read Count"] + ds2[nm, "Read Count"]
+      file1 = file.path(dataRoot, ds1[nm, "Read1 [File]"])
+      file2 = file.path(dataRoot, ds2[nm, "Read1 [File]"])
       fileMerged = paste0("combined-", nm, "_R1.fastq.gz")
       cmd = paste("gunzip -c", file1, file2, "|", "pigz -p4 --best >", fileMerged)
       cat(cmd, "\n")
       ezSystem(cmd)
-      ds[nm, "Read1 [File]"] = file.path(newDsDir, fileMerged)
+      dsNew[nm, "Read1 [File]"] = file.path(newDsDir, fileMerged)
     }
   }
-  setwd(cwd)
-  return(dfNew)
+  return(dsNew)
 }
 
