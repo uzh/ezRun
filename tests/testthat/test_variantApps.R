@@ -56,7 +56,6 @@ test_that("Variant_Mpileup", {
   param[['mail']] = 'peter.schmid@ieu.uzh.ch'
   param[['dataRoot']] = system.file(package="ezRun", mustWork = TRUE)
   param[['resultDir']] = 'p1001/Variant_Analysis_samtoolsmpileup_8617_2015-11-12--12-19-54'
-  param = yeastCommonVariantParam()
   myApp = EzAppMpileup$new()
   myApp$run(input=input$copy()$subset(1), output=output$copy()$subset(1), param=param)
   setwd(cwd)

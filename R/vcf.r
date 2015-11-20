@@ -13,7 +13,7 @@
 ##' @return Returns a names vector of the chromosome sizes.
 ## TODOEXAMPLE: get vcf file with $contig information.
 ezChromSizesFromVcf = function(vcfFile){
-  vh = scanVcfHeader(vcfFile)
+  vh = VariantAnnotation::scanVcfHeader(vcfFile)
   contigs = header(vh)$contig
   chromSizes = as.integer(contigs[ , "length"])
   names(chromSizes) = rownames(contigs)

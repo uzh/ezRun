@@ -66,7 +66,7 @@ test_that("Count_FeatureCounts", {
   skipLong()
   setwdNew("/scratch/test_featureCounts")
   input = EzDataset$new(file=system.file("extdata/yeast_10k_STAR/dataset.tsv", package="ezRun", mustWork = TRUE))
-  output = EzDataset$new(file=system.file("extdata/yeast_10k_STAR_featureCounts/dataset.tsv", package="ezRun", mustWork = TRUE))
+  output = EzDataset$new(file=system.file("extdata/yeast_10k_STAR_counts/dataset.tsv", package="ezRun", mustWork = TRUE))
   param = yeastCommonCountParam()
   param[['gtfFeatureType']] = 'exon'
   param[['allowMultiOverlap']] = 'true'
