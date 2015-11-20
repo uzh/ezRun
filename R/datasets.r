@@ -110,7 +110,7 @@ addReplicate = function(x, sep="_", repLabels=1:length(x)){
 ##' The Read Count column must be present and is updated if two files are combined.
 ##' A new dataset is written.
 ## newDsDir = "/srv/GT/analysis/p1314/HiSeq-20151116-Combined"
-## newDsDir = "/scratch/text_merging_datasets"
+## newDsDir = "/scratch/test_merging_datasets"
 .ezCombineReadDatasets = function(ds1, ds2, newDsDir){
   ds1 = ezRead.table("/srv/GT/analysis/hubert/ds1.tsv")
   ds2 = ezRead.table("/srv/GT/analysis/hubert/ds2.tsv")
@@ -153,7 +153,6 @@ ezCombineReadDatasets = function(df1, df2, newDsDir=NULL){
   rowDf2 = rownames(df2)
   colDf1 = colnames(df1)
   colDf2 = colnames(df2)
-  
   cols = intersect(colDf1, colDf2)
   rowdiff1 = setdiff(rowDf1, rowDf2)
   rowdiff2 = setdiff(rowDf2, rowDf1)
@@ -195,17 +194,23 @@ ezCombineReadDatasets = function(df1, df2, newDsDir=NULL){
   
   # loop through rows of dfNew to apply the merging
   for (nm in rowDfNew){
-    if (nm %in% rowDf1 && !(nm %in% rowDf2)){ # nm is in df1, but not in df2
+    if (nm %in% rowDf1 && !(nm %in% rowDf2)){
+      
+      # nm is in df1, but not in df2
       dfNew[nm, "Read Count"] = df1[nm, "Read Count"]
       file = file.path("/srv/gstore/projects", df1[nm, "Read1 [File]"])
       ezSystem(paste("cp", file, "."))
       ds[nm, "Read1 [File]"] = file.path(newDsDir, basename(file))
-    } else if (nm %in% rowDf2 && !(nm %in% rowDf1)){ # nm is in df2, but not in df1
+    } else if (nm %in% rowDf2 && !(nm %in% rowDf1)){
+      
+      # nm is in df2, but not in df1
       dfNew[nm, "Read Count"] = df2[nm, "Read Count"]
       file = file.path("/srv/gstore/projects", df2[nm, "Read1 [File]"])
       ezSystem(paste("cp", file, "."))
       ds[nm, "Read1 [File]"] = file.path(newDsDir, basename(file))
-    } else { # nm is in df1 and df2, thus they need to be merged. there should be no other case.
+    } else {
+      
+      # nm is in df1 and df2, thus they need to be merged. there should be no other case.
       dfNew[nm, "Read Count"] = df1[nm, "Read Count"] + df2[nm, "Read Count"]
       file1 = file.path("/srv/gstore/projects", df1[nm, "Read1 [File]"])
       file2 = file.path("/srv/gstore/projects", df2[nm, "Read1 [File]"])

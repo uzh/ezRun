@@ -24,7 +24,7 @@ ezMethodChipStats = function(input=NA, output=NA, param=NA, htmlFile="00index.ht
     return("Error")
   }
   
-  requireNamespace("Repitools")
+  require("Repitools")
   ezMclapply(dataset$"BAM [File]", 
               Create_ChIP_QCPlots_ind, param=param, gff=gff, maxX=20, range=c(1,100), 
               mc.cores=param$cores, mc.preschedule =FALSE, mc.set.seed=FALSE)
@@ -201,7 +201,7 @@ MakeEnrichmentPlot = function(myBam, isPaired=F, estimatedFragmentSize = 200){
     system (paste('echo SE data, defined FragmentSize:', seq.len, '\n'))
   }
   png(paste0(names(myBam), "_SingleEnrichmentPlot.png"))
-  data = enrichmentPlot(myBam, seq.len, cols = c("brown"), lwd = 4, main = names(myBam))
+  data = enrichmentPlot(myBam, seq.len, cols = c("brown"), lwd = 4, main = names(myBam)) # Repitools function, might well be the only one
   dev.off()
   write.table(data[[1]], paste(names(myBam),'_EnrichedCoverage.txt', sep = ''),quote = F, row.names = F, sep = '\t')
   system('echo Function MakeEnrichmentPlot done \n')
@@ -361,7 +361,7 @@ clusterData = function(data, distmethod='pearson', clustermethod='ward', title =
   n = round(nrow(data)*0.2)
   keep = names(sort(apply(data,1,var),decreasing=T,na.last=NA))[1:n]
   data = data[keep,]
-  c = cor(data, method="pearson",use='complete.obs')
+  c = cor(data, method = distmethod, use='complete.obs')
   d = as.dist(1-c)
   hr = hclust(d, method = clustermethod, members=NULL) 
   par(mfrow = c(1, 1))
