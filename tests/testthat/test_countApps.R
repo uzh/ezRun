@@ -98,3 +98,30 @@ test_that("RNA_Bamstats", {
   myApp$run(input=input, output=output, param=param)
   setwd(cwd)
 })
+
+
+# wrong dataset, does not work like this (the one from sushi didn't exist anymore, so I changed the paths manually)
+# test_that("TEQC", {
+#   skipLong()
+#   setwdNew("/scratch/test_TEQC")
+#   input = '/srv/gstore/projects/p1001/QC_Teqc_5579_2015-05-04--13-41-58/input_dataset.tsv'
+#   output = list()
+#   output[['Name']] = 'TEQC_Result'
+#   output[['Report [File]']] = 'p1001/QC_Teqc_5579_2015-05-04--13-41-58/TEQC_Result'
+#   output[['Html [Link]']] = 'p1001/QC_Teqc_5579_2015-05-04--13-41-58/TEQC_Result/00index.html'
+#   param = yeastCommonCountParam()
+#   param[['cores']] = 1
+#   param[['process_mode']] = 'DATASET'
+#   param[['name']] = 'TEQC_Result'
+#   param[['dataRoot']] = '/srv/gstore/projects'
+#   param[['designFile']] = ''
+#   param[['covUniformityPlot']] = 'true'
+#   param[['covTargetLengthPlot']] = 'true'
+#   param[['duplicatesPlot']] = 'true'
+#   param[['cmdOptions']] = ''
+#   param[['mail']] = 'peter.schmid@ieu.uzh.ch'
+#   param[['dataRoot']] = '/srv/gstore/projects'
+#   myApp = EzAppTeqc$new()
+#   myApp$run(input=input, output=output, param=param)
+#   setwd(cwd)
+# })

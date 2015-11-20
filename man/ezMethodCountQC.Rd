@@ -5,7 +5,7 @@
 \title{The Count QC method to run an app}
 \usage{
 ezMethodCountQC(input = NA, output = NA, param = NA,
-  htmlFile = "00index.html")
+  htmlFile = "00index.html", rawData = NULL)
 }
 \arguments{
 \item{input}{a list, file path or an object of the class EzDataset containing the input.}

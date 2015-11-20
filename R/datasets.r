@@ -103,12 +103,7 @@ addReplicate = function(x, sep="_", repLabels=1:length(x)){
 }
 
 
-##' @title Combine the reads from two datasets in a single dataset
-##' @description Takes the union of the samples in both input datasets and generates a new dataset. 
-##' If a sample is present in both datasets, the read files are concatenated and a new file is written.
-##' If a sample is present in only one dataset it is simply copied
-##' The Read Count column must be present and is updated if two files are combined.
-##' A new dataset is written.
+
 ## newDsDir = "/srv/GT/analysis/p1314/HiSeq-20151116-Combined"
 ## newDsDir = "/scratch/test_merging_datasets"
 .ezCombineReadDatasets = function(ds1, ds2, newDsDir){
@@ -152,7 +147,12 @@ addReplicate = function(x, sep="_", repLabels=1:length(x)){
 # dataRoot = normalizePath("./inst")
 # newDsDir = "./scratch"
 # ezCombineReadDatasets(ds1, ds2, dataRoot, newDsDir)
-
+##' @title Combine the reads from two datasets in a single dataset
+##' @description Takes the union of the samples in both input datasets and generates a new dataset. 
+##' If a sample is present in both datasets, the read files are concatenated and a new file is written.
+##' If a sample is present in only one dataset it is simply copied
+##' The Read Count column must be present and is updated if two files are combined.
+##' A new dataset is written.
 ezCombineReadDatasets = function(ds1, ds2, dataRoot="/srv/gstore/projects", newDsDir=NULL){
   
   # these are used a lot

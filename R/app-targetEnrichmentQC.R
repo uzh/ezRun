@@ -103,16 +103,16 @@ runTEQC = function(file, param){
   readsfile = file
   targetsfile = param$designFile
   TEQC::TEQCreport(sampleName=gsub('\\.bam','',basename(file)),
-               CovUniformityPlot = param$covUniformityPlot, CovTargetLengthPlot = param$covTargetLengthPlot, duplicatesPlot=param$duplicatesPlot,#CovGCPlot = T,
-               k = c(1,5,10,20,30,50),
-               targetsName=basename(dirname(targetsfile)),
-               referenceName='hg19',
-               pairedend=param$paired,
-               destDir=paste0("report_",gsub('\\.bam', '', basename(file))),
-               reads=get.reads(readsfile,filetype="bam"),
-               targets=get.targets(targetsfile, 
-                                   skip=grep("^track", readLines(targetsfile, n=200))),
-               genome='hg19',figureFormat = c("png"))
+                   CovUniformityPlot = param$covUniformityPlot, CovTargetLengthPlot = param$covTargetLengthPlot, duplicatesPlot=param$duplicatesPlot,#CovGCPlot = T,
+                   k = c(1,5,10,20,30,50),
+                   targetsName=basename(dirname(targetsfile)),
+                   referenceName='hg19',
+                   pairedend=param$paired,
+                   destDir=paste0("report_",gsub('\\.bam', '', basename(file))),
+                   reads=TEQC::get.reads(readsfile,filetype="bam"),
+                   targets=TEQC::get.targets(targetsfile, 
+                                       skip=grep("^track", readLines(targetsfile, n=200))),
+                   genome='hg19',figureFormat = c("png"))
   return("Success")
 }
 

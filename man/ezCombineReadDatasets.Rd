@@ -4,7 +4,8 @@
 \alias{ezCombineReadDatasets}
 \title{Combine the reads from two datasets in a single dataset}
 \usage{
-ezCombineReadDatasets(ds1, ds2, newDsDir)
+ezCombineReadDatasets(ds1, ds2, dataRoot = "/srv/gstore/projects",
+  newDsDir = NULL)
 }
 \description{
 Takes the union of the samples in both input datasets and generates a new dataset. 
