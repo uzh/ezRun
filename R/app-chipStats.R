@@ -24,7 +24,6 @@ ezMethodChipStats = function(input=NA, output=NA, param=NA, htmlFile="00index.ht
     return("Error")
   }
   
-  require("Repitools")
   ezMclapply(dataset$"BAM [File]", 
               Create_ChIP_QCPlots_ind, param=param, gff=gff, maxX=20, range=c(1,100), 
               mc.cores=param$cores, mc.preschedule =FALSE, mc.set.seed=FALSE)
@@ -201,7 +200,7 @@ MakeEnrichmentPlot = function(myBam, isPaired=F, estimatedFragmentSize = 200){
     system (paste('echo SE data, defined FragmentSize:', seq.len, '\n'))
   }
   png(paste0(names(myBam), "_SingleEnrichmentPlot.png"))
-  data = enrichmentPlot(myBam, seq.len, cols = c("brown"), lwd = 4, main = names(myBam)) # Repitools
+  data = Repitools::enrichmentPlot(myBam, seq.len, cols = c("brown"), lwd = 4, main = names(myBam))
   dev.off()
   write.table(data[[1]], paste(names(myBam),'_EnrichedCoverage.txt', sep = ''),quote = F, row.names = F, sep = '\t')
   system('echo Function MakeEnrichmentPlot done \n')
@@ -222,7 +221,7 @@ MakeCpGDensityPlot = function(myBam, isPaired = F, build, estimatedFragmentSize 
       system(paste('echo SE data, defined FragmentSize:', seq.len, '\n'))
     }
     png(paste0(names(myBam), "_cpgDensityPlot.png"))
-    cpgDensityPlot(myBam, organism = get(bsgenome_table[2]), w.function = "none", seq.len, ## Repitools
+    Repitools::cpgDensityPlot(myBam, organism = get(bsgenome_table[2]), w.function = "none", seq.len,
                    cols = c("black"), xlim = c(0, 30), lwd = 2, main = names(myBam))
     dev.off()
     system('echo Function MakeCpGDensityPlot done \n')
