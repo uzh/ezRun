@@ -184,7 +184,7 @@ ezGoseq = function(param, selectedGenes, allGenes, gene2goList=NULL,
   names(gene.vector) = allGenes
   pwf.counts = data.frame(DEgenes=gene.vector, bias.data=1, pwf=1, row.names=names(gene.vector))
   if (!is.null(normalizedAvgSignal)){
-    stopifnot(names(gene.vector) %in% names(normalizedAvgSignal))
+    stopifnot(names(gene.vector) %in% names(normalizedAvgSignal))  ## nullp() is from the goseq package
     tryCatch({pwf.counts = nullp(gene.vector, bias.data=2^normalizedAvgSignal[names(gene.vector)], plot.fit=FALSE)}, error=function(e){message("nullp failed")})
     #tryCatch({pwf.counts = nullp(gene.vector, bias.data=2^normalizedAvgSignal[names(gene.vector)], plot.fit=FALSE)})
     
@@ -440,7 +440,7 @@ goClusterResults = function(x, param, result, ontologies=c("BP", "MF", "CC"), se
   }
   keggClusterResults = NULL
   if (!is.na(keggOrganism)){
-    kegg2GenesList = getPathway2GenesList(param, keggOrganism)
+    kegg2GenesList = getPathway2GenesList(param, keggOrganism)  ## TODO: function does not exist
     if (all(unlist(kegg2GenesList)) %in% universeGeneIds){
       keggClusterResults = list()
     }

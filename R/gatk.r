@@ -8,7 +8,7 @@
 
 .runGatk = function(input=NA, output=NA, param=NA){
   
-  param = fillWithDefaults(param)
+  param = fillWithDefaults(param) ## TODO: function doesn't exist
   options(cores=param$cores)
   ref = param$ezRef["refFastaFile"]
   gatk = paste("java -Xmx8g", "-jar", GATK_JAR)

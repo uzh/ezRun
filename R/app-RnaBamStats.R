@@ -453,7 +453,7 @@ getTargetTypeCounts = function(param, gff, rr, seqid=NULL, repeatsGff=NULL){
     #sn = unlist(sn, use.names=FALSE)[sn@partitioning@end]
     stop("GRangesList not supported")
   }
-  seqNames = names(seqlengths(rr))
+  seqNames = names(seqlengths(rr)) ## TODO: function doesn't exist. ezBamSeqLengths() should be the right one.
   if (!is.null(seqid)){
     stopifnot(length(seqid) == 1)
     seqNames = intersect(seqNames, seqid)
@@ -463,7 +463,7 @@ getTargetTypeCounts = function(param, gff, rr, seqid=NULL, repeatsGff=NULL){
     }
   }
   #effWidth = sum(as.numeric(seqlengths(rr))) * ifelse(param$isStranded, 2, 1)
-  effWidth = (seqlengths(rr) * ifelse(param$strandMode == "both", 2, 1))[seqNames]
+  effWidth = (seqlengths(rr) * ifelse(param$strandMode == "both", 2, 1))[seqNames] ## TODO: function doesn't exist. ezBamSeqLengths() should be the right one.
   result = data.frame(count=0, width=effWidth, row.names=seqNames)
   readCounts = table(as.character(seqnames(rr)))
   result[seqNames, "count"] = readCounts[seqNames]

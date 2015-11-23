@@ -721,14 +721,14 @@ createDendogramReport <- function(x, annot, genes = row.names(x), multipalette =
   
   if(!addLegend) {
     op <- par(no.readonly=TRUE)
-    plotDendroAndColors(hc, colAnnot, autoColorHeight = F, ...)
+    plotDendroAndColors(hc, colAnnot, autoColorHeight = F, ...) ## WGCNA
     par(op)
   }
   if(addLegend) {
     opar <- par(no.readonly=TRUE)
     parMar0 <- par()$mar
     layout(matrix(c(1:4), 2, 2), heights = c(1 - colorHeight, colorHeight), widths = c(1 - 0.25, 0.25))
-    plotDendroAndColors(hc, colAnnot, 
+    plotDendroAndColors(hc, colAnnot,  ## WGCNA
                         autoColorHeight = F,
                         marAll = c(1, 5, 3, 0),
                         setLayout = FALSE, ...)

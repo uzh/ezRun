@@ -136,10 +136,10 @@ galp2gal = function(galp){
     cigar = galcigar,
     strand = strand(left(galp)),
     names = names(left(galp)),
-    seqlengths = seqlengths(galp))
+    seqlengths = seqlengths(galp)) ## TODO: function doesn't exist. ezBamSeqLengths() should be the right one.
   # in case where end of a read exceeds chrom length
   # (which occurs for improper paired reads with large gap)  
-  idx = which(end(gal) < seqlengths(gal)[as.character(seqnames(gal))])  
+  idx = which(end(gal) < seqlengths(gal)[as.character(seqnames(gal))]) ## TODO: function doesn't exist. ezBamSeqLengths() should be the right one.
   if(length(idx) < length(gal))    
     warning(sprintf("%d read-pairs with end larger than chromosome length are discarded", length(gal) - length(idx) + 1))
   system('echo Function galp2gal done \n')
@@ -153,7 +153,7 @@ readBam = function(file,isPaired=F){
   system('echo Function readBam \n')
   if(isPaired){
     system('echo option isPaired=T \n')
-    bam = readBamGappedAlignmentPairs(file, use.names=T)
+    bam = readBamGappedAlignmentPairs(file, use.names=T) ## TODO: function doesn't exist
     system('echo bam read, conversion in progress...\n')
     bam = galp2gal(bam)
   } else {
@@ -201,7 +201,7 @@ MakeEnrichmentPlot = function(myBam, isPaired=F, estimatedFragmentSize = 200){
     system (paste('echo SE data, defined FragmentSize:', seq.len, '\n'))
   }
   png(paste0(names(myBam), "_SingleEnrichmentPlot.png"))
-  data = enrichmentPlot(myBam, seq.len, cols = c("brown"), lwd = 4, main = names(myBam)) # Repitools function, might well be the only one
+  data = enrichmentPlot(myBam, seq.len, cols = c("brown"), lwd = 4, main = names(myBam)) # Repitools
   dev.off()
   write.table(data[[1]], paste(names(myBam),'_EnrichedCoverage.txt', sep = ''),quote = F, row.names = F, sep = '\t')
   system('echo Function MakeEnrichmentPlot done \n')
@@ -222,7 +222,7 @@ MakeCpGDensityPlot = function(myBam, isPaired = F, build, estimatedFragmentSize 
       system(paste('echo SE data, defined FragmentSize:', seq.len, '\n'))
     }
     png(paste0(names(myBam), "_cpgDensityPlot.png"))
-    cpgDensityPlot(myBam, organism = get(bsgenome_table[2]), w.function = "none", seq.len,
+    cpgDensityPlot(myBam, organism = get(bsgenome_table[2]), w.function = "none", seq.len, ## Repitools
                    cols = c("black"), xlim = c(0, 30), lwd = 2, main = names(myBam))
     dev.off()
     system('echo Function MakeCpGDensityPlot done \n')

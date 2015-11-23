@@ -18,7 +18,7 @@
 ##' expandGRanges(x)
 expandGRanges = function(x, width=2000){
   
-  sl = seqlengths(x)
+  sl = seqlengths(x) ## TODO: function doesn't exist. ezBamSeqLengths() should be the right one.
   sl[is.na(sl)] = Inf
   start(x) = pmax(start(x) - width, 1)
   end(x) = pmin(end(x) + width, sl[as.character(seqnames(x))], na.rm=TRUE)

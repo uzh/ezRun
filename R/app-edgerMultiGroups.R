@@ -8,7 +8,7 @@
 
 ## TODO: REFAC into RC inheriting from EzApp
 edgerMultiGroupApp = function(inputDatasetFile=NA, output=NA, param=NA){
-  param = fillWithDefaults(param)
+  param = fillWithDefaults(param) ## TODO: function doesn't exist
   on.exit({
     if(!is.null(param$mail) && grepl('@',param$mail)){
       text=paste0('http://fgcz-gstore.uzh.ch/projects/',output[['Report [File]']],'/00index.html')
@@ -29,7 +29,7 @@ edgerMultiGroupApp = function(inputDatasetFile=NA, output=NA, param=NA){
 
 ngsMultiGroupAnalysis = function(datasetFile, htmlFile="00index.html", param=NULL){
   
-  param = fillWithDefaults(param)
+  param = fillWithDefaults(param) ## TODO: function doesn't exist
   logMessage("ngsMultiGroupAnalysis", param, "Starting") ## TODO: on.exit() and logStart() will run in EzAPP that this app should eventually inherit from.
   on.exit({traceback(); logMessage("ngsMultiGroupAnalysis", param, "Finished")}) 
   
@@ -224,7 +224,7 @@ runDeseq2MultiGroup = function(x, sampleGroup, refGroup, grouping, batch=NULL){
     dds = DESeq2::DESeqDataSetFromMatrix(countData=x, colData=colData, design= ~ grouping + batch)
   }
   dds = DESeq2::DESeq(dds, quiet=FALSE)
-  res = results(dds, contrast=c("grouping", sampleGroup, refGroup), cooksCutoff=FALSE)
+  res = DESeq2::results(dds, contrast=c("grouping", sampleGroup, refGroup), cooksCutoff=FALSE)
   res=as.list(res)
   res$sf = 1/colData(dds)$sizeFactor
   return(res)

@@ -66,7 +66,7 @@ EzAppCountOverlaps <-
 ##' @describeIn ezMethodCountOverlaps Counts the paired BAM hits.
 countPairedBamHits = function(input=NULL, output=NULL, param=NULL){
   
-  param = fillWithDefaults(param)
+  param = fillWithDefaults(param) ## TODO: function doesn't exist
   options(cores=param$cores)
   message("countPairedBamHits")
   requireNamespace("GenomicRanges", warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
