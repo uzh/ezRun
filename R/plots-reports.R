@@ -27,7 +27,7 @@ addQcScatterPlots = function(doc, param, design, conds, rawData, signalCond, isP
   signalRange = range(signal, na.rm=TRUE)
   qcScatterTitles = list()
   qcScatterTitles[["Scatter Plots by Conditions"]] = "Scatter Plots by Conditions"
-  addTitleWithAnchor(doc, qcScatterTitles[[length(qcScatterTitles)]], 2)
+  addTitle(doc, qcScatterTitles[[length(qcScatterTitles)]], 2, id=qcScatterTitles[[length(qcScatterTitles)]])
   if (!is.null(rawData$seqAnno$gc)){
     gcTypes = data.frame("GC < 0.4"=as.numeric(rawData$seqAnno$gc) < 0.4,
                          "GC > 0.6"=as.numeric(rawData$seqAnno$gc) > 0.6,
@@ -76,7 +76,7 @@ addQcScatterPlots = function(doc, param, design, conds, rawData, signalCond, isP
         nPlots = length(idx)
         if (nPlots == 2) nPlots = 1
         qcScatterTitles[[paste(condName, cond, i)]] = condName
-        addTitleWithAnchor(doc, qcScatterTitles[[length(qcScatterTitles)]], 3)
+        addTitle(doc, qcScatterTitles[[length(qcScatterTitles)]], 3, id=qcScatterTitles[[length(qcScatterTitles)]])
         pngName = ezValidFilename(paste0(condName, "-scatter.png"))
         plotCmd = expression({
           ezScatter(y=signal[ ,idx], isPresent=isPresent[ ,idx], types=types, lim=signalRange, xlab=paste("Avg of", cond), ylab=NULL)
@@ -143,10 +143,10 @@ addTestScatterPlots = function(doc, param, x, result, seqAnno, types=NULL){
   
   testScatterTitles = list()
   testScatterTitles[["Scatter Plots"]] = "Scatter Plots"
-  addTitleWithAnchor(doc, testScatterTitles[[length(testScatterTitles)]], 2)
+  addTitle(doc, testScatterTitles[[length(testScatterTitles)]], 2, id=testScatterTitles[[length(testScatterTitles)]])
   doc = addParagraph(doc, msg)
   testScatterTitles[["Between-group Comparison"]] = "Between-group Comparison"
-  addTitleWithAnchor(doc, testScatterTitles[[length(testScatterTitles)]], 3)
+  addTitle(doc, testScatterTitles[[length(testScatterTitles)]], 3, id=testScatterTitles[[length(testScatterTitles)]])
   
   links = character()
   if (ncol(result$groupMeans) == 2 & !is.null(param$sampleGroup) & !is.null(param$refGroup)){
@@ -211,7 +211,7 @@ addTestScatterPlots = function(doc, param, x, result, seqAnno, types=NULL){
       idx = which(group == param$grouping)
       if (length(idx) > 1){
         advancedTitles[[paste("Intra-group Comparison:", group)]] = paste("Intra-group Comparison:", group)
-        addTitleWithAnchor(advancedDoc, advancedTitles[[length(advancedTitles)]], 3)
+        addTitle(advancedDoc, advancedTitles[[length(advancedTitles)]], 3, id=advancedTitles[[length(advancedTitles)]])
         pngName = paste0(group, "-scatter.png")
         xlab = paste("Avg of", group)
         refValues = result$groupMeans[ , group]
@@ -237,7 +237,7 @@ addTestScatterPlots = function(doc, param, x, result, seqAnno, types=NULL){
     }
   } else {
     advancedTitles[["Pairs ... over ..."]] = paste("Pairs:", param$sampleGroup, "over", param$refGroup)
-    addTitleWithAnchor(advancedDoc, advancedTitles[[length(advancedTitles)]], 3)
+    addTitle(advancedDoc, advancedTitles[[length(advancedTitles)]], 3, id=advancedTitles[[length(advancedTitles)]])
     use = param$grouping %in% c(param$sampleGroup, param$refGroup)
     if (all(table(param$batch[use], param$grouping[use]) == 1)){
       groups = paste(param$grouping, param$batch, sep="--")

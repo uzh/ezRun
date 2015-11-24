@@ -119,7 +119,7 @@ ezMethodMpileup = function(input=NA, output=NA, param=NA){
   sampleColors = getSampleColors(conds, colorNames = names(conds))
   
   titles[["IGV"]] = "IGV"
-  addTitleWithAnchor(doc, titles[[length(titles)]], 2)
+  addTitle(doc, titles[[length(titles)]], 2, id=titles[[length(titles)]])
   # ezWrite("<h2>IGV</h2>", con=html)
   writeIgvSession(genome = getIgvGenome(param), refBuild=param$ezRef["refBuild"], file="igvSession.xml", vcfUrls = paste(PROJECT_BASE_URL, vcfOutputFile, sep="/") )
   writeIgvJnlp(jnlpFile="igv.jnlp", projectId = sub("\\/.*", "", output$getColumn("Report")),
@@ -128,7 +128,7 @@ ezMethodMpileup = function(input=NA, output=NA, param=NA){
   # writeTxtLinksToHtml("igv.jnlp", mime = "application/x-java-jnlp-file", con=html)
   
   titles[["Sample Clustering based on Variants"]] = "Sample Clustering based on Variants"
-  addTitleWithAnchor(doc, titles[[length(titles)]], 2)
+  addTitle(doc, titles[[length(titles)]], 2, id=titles[[length(titles)]])
   # ezWrite("<h2>Sample Clustering based on Variants</h2>",con=html)
   if (nrow(bamDataset) > 3){
     idxMat = ezMatrix(match(gt, c("0/0", "0/1", "1/1")) -2, rows=rownames(gt), cols=colnames(gt))
@@ -150,7 +150,7 @@ ezMethodMpileup = function(input=NA, output=NA, param=NA){
     }
   }
   titles[["Variants by Chromosomes"]] = "Variants by Chromosomes"
-  addTitleWithAnchor(doc, titles[[length(titles)]], 2)
+  addTitle(doc, titles[[length(titles)]], 2, id=titles[[length(titles)]])
   # ezWrite("<h2>Variants by Chromosomes</h2>",con=html)
   if (nrow(gt) > 0){
     chrom = sub(":.*", "", rownames(gt))

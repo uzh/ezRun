@@ -65,7 +65,7 @@ addGoUpDownResult = function(doc, param, goResult){
   #       revigoLinks[j] = pot("ReViGO Link", hyperlink = revigoLinks[j])
   #     }
   #     titles[["ReViGO"]] = "ReViGO"
-  #     addTitleWithAnchor(doc, titles[[length(titles)]], 3)
+  #     addTitle(doc, titles[[length(titles)]], 3, id=titles[[length(titles)]])
   #     doc = addFlexTable(doc, ezFlexTable(cbind(rownames(revigoLinks), revigoLinks), valign="middle", header.columns=TRUE))
   
   addTxtLinksToReport(doc, udt$txtFiles, param$doZip)

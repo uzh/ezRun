@@ -14,6 +14,7 @@ appName	character		name of the app that is being run
 name	character		name of the analysis i.e. resulting dataset
 dataRoot	character		the root directory where files are located
 projectId	character		name of the project
+nTableRows	integer	500	the number of rows to select for the interactive table using head()
 # debugging & testing
 saveImage	logical	FALSE	save an image at the end of the analysis?
 saveRawData	logical	FALSE	save an .RData file holding the rawData Object right after import

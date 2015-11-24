@@ -107,7 +107,7 @@ runNgsCountQC = function(dataset, htmlFile="00index.html", param=param, rawData=
   
   if (nSamples < 2){
     titles[["Note"]] = "Note: Statistics and Plots are not available for single sample experiments"
-    addTitleWithAnchor(doc, titles[[length(titles)]], 2)
+    addTitle(doc, titles[[length(titles)]], 2, id=titles[[length(titles)]])
     doc = addParagraph(doc, "Run the report again with multiple samples selected.")
     return("Success")
   }
@@ -122,7 +122,7 @@ runNgsCountQC = function(dataset, htmlFile="00index.html", param=param, rawData=
   isPresentStudy = apply(isPresentCond, 1, mean) >= 0.5
   
   titles[["Parameters"]] = "Parameters"
-  addTitleWithAnchor(doc, titles[[length(titles)]], 2)
+  addTitle(doc, titles[[length(titles)]], 2, id=titles[[length(titles)]])
   settings = character()
   settings["Normalization method:"] = param$normMethod
   if (param$useSigThresh){
@@ -152,12 +152,12 @@ runNgsCountQC = function(dataset, htmlFile="00index.html", param=param, rawData=
     
     dataFiles = c(countFile, signalFile, rpkmFile)
     titles[["Data Files"]] = "Data Files"
-    addTitleWithAnchor(doc, titles[[length(titles)]], 2)
+    addTitle(doc, titles[[length(titles)]], 2, id=titles[[length(titles)]])
     addTxtLinksToReport(doc, dataFiles, param$doZip)
   }
   
   titles[["Count Statistics"]] = "Count Statistics"
-  addTitleWithAnchor(doc, titles[[length(titles)]], 2)
+  addTitle(doc, titles[[length(titles)]], 2, id=titles[[length(titles)]])
   totalCounts = signif(apply(rawData$counts, 2, sum) / 1e6, digits=3)
   presentCounts = apply(isPresent, 2, sum)
   names(totalCounts) = samples
@@ -248,14 +248,14 @@ runNgsCountQC = function(dataset, htmlFile="00index.html", param=param, rawData=
   })
   
   titles[["Sample correlation"]] = "Sample correlation"
-  addTitleWithAnchor(doc, titles[[length(titles)]], 2)
+  addTitle(doc, titles[[length(titles)]], 2, id=titles[[length(titles)]])
   doc = addFlexTable(doc, ezGrid(pngLinks))
   
   advancedTitles = list()
   advancedTitles[["Advanced Plots"]] = "Advanced Plots"
   advancedDoc = openBsdocReport(title=advancedTitles[[length(advancedTitles)]])
   advancedTitles[["Sample correlation"]] = "Sample correlation"
-  addTitleWithAnchor(advancedDoc, advancedTitles[[length(advancedTitles)]], 2)
+  addTitle(advancedDoc, advancedTitles[[length(advancedTitles)]], 2, id=advancedTitles[[length(advancedTitles)]])
   advancedDoc = addFlexTable(advancedDoc, ezGrid(pngAdvancedLinks))
   
   
@@ -314,11 +314,11 @@ runNgsCountQC = function(dataset, htmlFile="00index.html", param=param, rawData=
     pngAdvancedLinks[1, 2] = ezImageFileLink(plotCmd, file=pngName, width=800 + max(0, 10 * (nSamples-20)), height=500)
     
     titles[["Sample Clustering"]] = "Sample Clustering"
-    addTitleWithAnchor(doc, titles[[length(titles)]], 2)
+    addTitle(doc, titles[[length(titles)]], 2, id=titles[[length(titles)]])
     doc = addFlexTable(doc, ezGrid(pngLinks))
     
     advancedTitles[["Sample Clustering"]] = "Sample Clustering"
-    addTitleWithAnchor(advancedDoc, advancedTitles[[length(advancedTitles)]], 2)
+    addTitle(advancedDoc, advancedTitles[[length(advancedTitles)]], 2, id=advancedTitles[[length(advancedTitles)]])
     advancedDoc = addFlexTable(advancedDoc, ezGrid(pngAdvancedLinks))
     
     ## gene clustering
@@ -347,7 +347,7 @@ runNgsCountQC = function(dataset, htmlFile="00index.html", param=param, rawData=
       }
       
       titles[["Clustering of High Variance Features"]] = "Clustering of High Variance Features"
-      addTitleWithAnchor(doc, titles[[length(titles)]], 2)
+      addTitle(doc, titles[[length(titles)]], 2, id=titles[[length(titles)]])
       doc = addParagraph(doc, paste("Threshold for std. dev. of log2 signal across samples:", sdThresh))
       doc = addParagraph(doc, paste("Number of features with high std. dev.:", sum(use)))
       
@@ -365,7 +365,7 @@ runNgsCountQC = function(dataset, htmlFile="00index.html", param=param, rawData=
     ## mds plot
     
     titles[["MDS-Plot"]] = "MDS-Plot"
-    addTitleWithAnchor(doc, titles[[length(titles)]], 2)
+    addTitle(doc, titles[[length(titles)]], 2, id=titles[[length(titles)]])
     pngLinks=vector(length=2)
     
     pngName = "mdsPlot_PresentGenes.png"
@@ -390,7 +390,7 @@ runNgsCountQC = function(dataset, htmlFile="00index.html", param=param, rawData=
     
     if (!is.null(rawData$countsStart) & !is.null(rawData$countsEnd)){
       titles[["3' Bias analysis"]] = "3' Bias analysis"
-      addTitleWithAnchor(doc, titles[[length(titles)]], 2)
+      addTitle(doc, titles[[length(titles)]], 2, id=titles[[length(titles)]])
       
       valStart = shiftZeros(rawData$countsStart, param$minSignal)
       colnames(valStart) = paste(colnames(valStart), "[transcript start]")
@@ -426,7 +426,7 @@ runNgsCountQC = function(dataset, htmlFile="00index.html", param=param, rawData=
     pngLink = ezImageFileLink(plotCmd, file=pngName, width=640, height=640)
     
     titles[["Expression densities"]] = "Expression densities"
-    addTitleWithAnchor(doc, titles[[length(titles)]], 2)
+    addTitle(doc, titles[[length(titles)]], 2, id=titles[[length(titles)]])
     doc = addParagraph(doc, "Zero or negative counts are not represented by the area!")
     doc = addParagraph(doc, pngLink)
   }

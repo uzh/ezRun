@@ -275,11 +275,11 @@ writeNgsTwoGroupReport = function(dataset, result, output, htmlFile="00index.htm
   doc = openBsdocReport(title=titles[[length(titles)]], dataset=dataset)
   
   titles[["Result Summary"]] = "Result Summary"
-  addTitleWithAnchor(doc, titles[[length(titles)]], 2)
+  addTitle(doc, titles[[length(titles)]], 2, id=titles[[length(titles)]])
   addCountResultSummary(doc, param, result)
   
   titles[["Significant Counts"]] = "Significant Counts"
-  addTitleWithAnchor(doc, titles[[length(titles)]], 3)
+  addTitle(doc, titles[[length(titles)]], 3, id=titles[[length(titles)]])
   addSignificantCounts(doc, result)
   
   resultFile = addResultFile(doc, param, result, rawData)
@@ -326,7 +326,7 @@ writeNgsTwoGroupReport = function(dataset, result, output, htmlFile="00index.htm
       zipFile(resultFile$resultFile)
     }
     titles[["Clustering of Significant Features"]] = "Clustering of Significant Features"
-    addTitleWithAnchor(doc, titles[[length(titles)]], 2)
+    addTitle(doc, titles[[length(titles)]], 2, id=titles[[length(titles)]])
     doc = addParagraph(doc, paste("Significance threshold:", param$pValueHighlightThresh))
     if (param$log2RatioHighlightThresh > 0){
       doc = addParagraph(doc, paste("log2 Ratio threshold:", param$log2RatioHighlightThresh))
@@ -347,7 +347,7 @@ writeNgsTwoGroupReport = function(dataset, result, output, htmlFile="00index.htm
   if (doGo(param, seqAnno)){
     goResult = twoGroupsGO(param, result, seqAnno, normalizedAvgSignal=rowMeans(result$groupMeans), method=param$goseqMethod)
     titles[["GO Enrichment Analysis"]] = "GO Enrichment Analysis"
-    addTitleWithAnchor(doc, titles[[length(titles)]], 2)
+    addTitle(doc, titles[[length(titles)]], 2, id=titles[[length(titles)]])
     doc = addGoUpDownResult(doc, param, goResult)
   }
   
@@ -355,7 +355,7 @@ writeNgsTwoGroupReport = function(dataset, result, output, htmlFile="00index.htm
   if(param[['GAGEanalysis']] ) {
     gageRes <- runGageAnalysis(result, param=param, output=output, rawData=rawData)
     titles[["GAGE Enrichment Analysis"]] = "GAGE Enrichment Analysis"
-    addTitleWithAnchor(doc, titles[[length(titles)]], 3)
+    addTitle(doc, titles[[length(titles)]], 3, id=titles[[length(titles)]])
     addGageTables(doc, param, gageRes)
   }
   closeBsdocReport(doc, htmlFile, titles)

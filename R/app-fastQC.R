@@ -67,7 +67,7 @@ ezMethodFastQC = function(input=NA, output=NA, param=NA, htmlFile="00index.html"
   doc = openBsdocReport(title=titles[[length(titles)]], dataset=dataset)
   
   titles[["Read Counts"]] = "Read Counts"
-  addTitleWithAnchor(doc, titles[[length(titles)]], 2)
+  addTitle(doc, titles[[length(titles)]], 2, id=titles[[length(titles)]])
   if (!is.null(dataset$"Read Count")){
     readCount = signif(dataset$"Read Count" / 1e6, digits=3)
     names(readCount) = rownames(dataset)
@@ -88,7 +88,7 @@ ezMethodFastQC = function(input=NA, output=NA, param=NA, htmlFile="00index.html"
   doc = addParagraph(doc, readCountsLink)
   
   titles[["Fastqc quality measures"]] = "Fastqc quality measures"
-  addTitleWithAnchor(doc, titles[[length(titles)]], 2)
+  addTitle(doc, titles[[length(titles)]], 2, id=titles[[length(titles)]])
   statusToPng = c(PASS="tick.png", WARN="warning.png", FAIL="error.png")
   for (i in 1:nFiles){
     smy = ezRead.table(file.path(reportDirs[i], "summary.txt"), row.names=NULL, header=FALSE)
@@ -106,7 +106,7 @@ ezMethodFastQC = function(input=NA, output=NA, param=NA, htmlFile="00index.html"
   doc = addFlexTable(doc, ezFlexTable(tbl, header.columns=TRUE, add.rownames=TRUE, valign="middle"))
   
   titles[["Per Base Read Quality"]] = "Per Base Read Quality"
-  addTitleWithAnchor(doc, titles[[length(titles)]], 2)
+  addTitle(doc, titles[[length(titles)]], 2, id=titles[[length(titles)]])
   qualMatrixList = ezMclapply(files, getQualityMatrix, mc.cores=ezThreads())
   pngMatrix = plotQualityMatrixAsHeatmap(qualMatrixList, isR2=grepl("_R2", names(files)))
   doc = addFlexTable(doc, ezGrid(pngMatrix))
@@ -116,7 +116,7 @@ ezMethodFastQC = function(input=NA, output=NA, param=NA, htmlFile="00index.html"
     pngLibCons["100_800bp"] = plotReadCountToLibConc(dataset, colname='LibConc_100_800bp [Characteristic]')
     if(length(pngLibCons) > 0){
       titles[["Correlation"]] = "Correlation between Library concentration measurements and ReadCounts"
-      addTitleWithAnchor(doc, titles[[length(titles)]], 3)
+      addTitle(doc, titles[[length(titles)]], 3, id=titles[[length(titles)]])
       doc = addFlexTable(doc, ezGrid(matrix(pngLibCons, nrow=1)))
     }
   }

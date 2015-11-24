@@ -34,7 +34,7 @@ plotBamStat = function(resultList, dataset, param, htmlFile=NULL){
 ## TODO: add later  
 #   if (param$writeIgvSessionLink){
 #     titles[["Genome Browser"]] = "Genome Browser"
-#     addTitleWithAnchor(doc, titles[[length(titles)]], 2)
+#     addTitle(doc, titles[[length(titles)]], 2, id=titles[[length(titles)]])
 #     if (length(files) > 4){
 #       idx = which(!duplicated(conds))
 #       idx = idx[1:min(4, length(idx))]
@@ -45,9 +45,9 @@ plotBamStat = function(resultList, dataset, param, htmlFile=NULL){
 #   }
   
   titles[["Read Alignment Statistics"]] = "Read Alignment Statistics"
-  addTitleWithAnchor(doc, titles[[length(titles)]], 2)
+  addTitle(doc, titles[[length(titles)]], 2, id=titles[[length(titles)]])
   titles[["Multi-Matching Reported in Bam File"]] = "Multi-Matching Reported in Bam File"
-  addTitleWithAnchor(doc, titles[[length(titles)]], 3)
+  addTitle(doc, titles[[length(titles)]], 3, id=titles[[length(titles)]])
   doc = addParagraph(doc, "The table holds for each sample in column X the number of reads in Millions
                       that have X matches in the target and are reported in the file.")
   
@@ -76,7 +76,7 @@ plotBamStat = function(resultList, dataset, param, htmlFile=NULL){
                        multiMatchTargetTypeCounts="Uniquely and multi-matching reads:",
                        uniqueMatchTargetTypeCounts="Uniquely matching reads:")
       titles[[paste(readSet, "Match Count Percentages")]] = paste(readSet, "Match Count Percentages")
-      addTitleWithAnchor(doc, titles[[length(titles)]], 3)
+      addTitle(doc, titles[[length(titles)]], 3, id=titles[[length(titles)]])
       tct = getTypeCountTable(resultList, nm)
       ezWrite.table(tct, file=paste0(nm, ".txt"), digits=4)
       tpt = as.matrix(tct)
@@ -102,7 +102,7 @@ plotBamStat = function(resultList, dataset, param, htmlFile=NULL){
                                                                 header.columns=TRUE, add.rownames=TRUE)))))
       
       titles[[paste(readSet, "Read Starts per Base")]] = paste(readSet, "Read Starts per Base")
-      addTitleWithAnchor(doc, titles[[length(titles)]], 3)
+      addTitle(doc, titles[[length(titles)]], 3, id=titles[[length(titles)]])
       doc = addParagraph(doc, "Read Starts per Base is equivalent to Coverage divided by Read length.")
       tct = as.matrix(getTypeCoverageTable(resultList, nm))
       ezWrite.table(tct, file=paste0(nm, "-coverage.txt"), digits=4)
@@ -198,7 +198,7 @@ plotBamStat = function(resultList, dataset, param, htmlFile=NULL){
     pngLink = ezImageFileLink(plotCmd, file=pngFile, width=700)
     
     titles[["Transcripts covered plot"]] = "Transcripts covered plot"
-    addTitleWithAnchor(doc, titles[[length(titles)]], 3)
+    addTitle(doc, titles[[length(titles)]], 3, id=titles[[length(titles)]])
     doc = addParagraph(doc, pngLink)
     
     pngFiles = character()
@@ -265,7 +265,7 @@ plotBamStat = function(resultList, dataset, param, htmlFile=NULL){
       }
     }
     titles[["Genebody coverage plot"]] = "Genebody coverage plot"
-    addTitleWithAnchor(doc, titles[[length(titles)]], 3)
+    addTitle(doc, titles[[length(titles)]], 3, id=titles[[length(titles)]])
     
     plotCmd = expression({
       par(mar=c(0,0,0,0))
@@ -338,7 +338,7 @@ plotBamStat = function(resultList, dataset, param, htmlFile=NULL){
     
     ## do the junction saturation plot in main page for all samples
     titles[["Junction saturation plot for all samples"]] = "Junction saturation plot for all samples"
-    addTitleWithAnchor(doc, titles[[length(titles)]], 3)
+    addTitle(doc, titles[[length(titles)]], 3, id=titles[[length(titles)]])
     
     for (nm in names(resultList[[1]][["Junction"]][["junctionSaturation"]])){
       pngFile = ezValidFilename(paste0("junctionSaturation_", nm, ".png"))
@@ -357,7 +357,7 @@ plotBamStat = function(resultList, dataset, param, htmlFile=NULL){
   
   ## write the resulys by statistics per page to the main pages
   titles[["The result plots by each statistics"]] = "The result plots by each statistics"
-  addTitleWithAnchor(doc, titles[[length(titles)]], 2)
+  addTitle(doc, titles[[length(titles)]], 2, id=titles[[length(titles)]])
   tableOfPages = ezMatrix("", rows=names(plotByStatistics), cols="Plots")
   # replace the space with undersocre if available, otherwise some errors will occur in the html
   plotByStatisticsPages = paste0(gsub("[[:space:]]+", "_", names(plotByStatistics)), ".html")
@@ -367,7 +367,7 @@ plotBamStat = function(resultList, dataset, param, htmlFile=NULL){
     subTitles[[plotByStatisticsPages[i]]] = plotByStatisticsPages[i]
     subDoc = openBsdocReport(title=subTitles[[length(subTitles)]])
     subTitles[[names(plotByStatistics)[i]]] = names(plotByStatistics)[i]
-    addTitleWithAnchor(subDoc, subTitles[[length(subTitles)]], 3)
+    addTitle(subDoc, subTitles[[length(subTitles)]], 3, id=subTitles[[length(subTitles)]])
     subDoc = addFlexTable(subDoc, ezGrid(plotByStatistics[[i]]))
     closeBsdocReport(subDoc, plotByStatisticsPages[i], subTitles)
   }
@@ -375,7 +375,7 @@ plotBamStat = function(resultList, dataset, param, htmlFile=NULL){
   
   ## write the reults by sample per page to the main pages
   titles[["The result plots by each sample"]] = "The result plots by each sample"
-  addTitleWithAnchor(doc, titles[[length(titles)]], 2)
+  addTitle(doc, titles[[length(titles)]], 2, id=titles[[length(titles)]])
   plotBySamplesPages = paste0(gsub("[[:space:]]+", "_", names(plotBySamples)), ".html")
   tableOfPages = ezMatrix("", rows=names(plotBySamples), cols="Plots")
   for (i in 1:length(plotBySamples)){
@@ -384,7 +384,7 @@ plotBamStat = function(resultList, dataset, param, htmlFile=NULL){
     subTitles[[plotBySamplesPages[i]]] = plotBySamplesPages[i]
     subDoc = openBsdocReport(title=subTitles[[length(subTitles)]])
     subTitles[[names(plotBySamples)[i]]] = names(plotBySamples)[i]
-    addTitleWithAnchor(subDoc, subTitles[[length(subTitles)]], 3)
+    addTitle(subDoc, subTitles[[length(subTitles)]], 3, id=subTitles[[length(subTitles)]])
     subDoc = addFlexTable(subDoc, ezGrid(plotBySamples[[i]]))
     closeBsdocReport(subDoc, plotBySamplesPages[i], subTitles)
   }

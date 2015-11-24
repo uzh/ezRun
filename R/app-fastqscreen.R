@@ -165,7 +165,7 @@ fastqscreenReport = function(dataset, param, htmlFile="00index.html", fastqData,
   titles[["FastQ Screen"]] = paste("FastQ Screen:", param$name)
   html = openBsdocReport(title=titles[[length(titles)]], dataset=dataset)
   titles[["Settings"]] = "Settings"
-  addTitleWithAnchor(html, titles[[length(titles)]], 2)
+  addTitle(html, titles[[length(titles)]], 2, id=titles[[length(titles)]])
   settings = character()
   settings["Configuration File:"] = param$confFile
   settings["RefSeq mRNA Reference:"] = REFSEQ_mRNA_REF
@@ -177,9 +177,9 @@ fastqscreenReport = function(dataset, param, htmlFile="00index.html", fastqData,
   # settings["Subset:"] = param$subset     ## param$subset doesn't seem to exist
   html = addFlexTable(html, ezFlexTable(as.data.frame(settings), add.rownames=TRUE))
   titles[["rRNA-Check"]] = "rRNA-Check"
-  addTitleWithAnchor(html, titles[[length(titles)]], 2)
+  addTitle(html, titles[[length(titles)]], 2, id=titles[[length(titles)]])
   titles[["Per Dataset"]] = "Per Dataset"
-  addTitleWithAnchor(html, titles[[length(titles)]], 3)
+  addTitle(html, titles[[length(titles)]], 3, id=titles[[length(titles)]])
   
   plotCmd = expression({
     par(mar=c(10.1, 4.1, 4.1, 2.1))
@@ -216,7 +216,7 @@ fastqscreenReport = function(dataset, param, htmlFile="00index.html", fastqData,
   IMAGESperROW = 4
   if (ezIsSpecified(screenLinks)){
     titles[["Per Sample"]] = "Per Sample"
-    addTitleWithAnchor(html, titles[[length(titles)]], 3)
+    addTitle(html, titles[[length(titles)]], 3, id=titles[[length(titles)]])
     if(length(screenLinks) <= IMAGESperROW){
       html = addFlexTable(html, ezGrid(rbind(screenLinks)))
     } else {
@@ -228,7 +228,7 @@ fastqscreenReport = function(dataset, param, htmlFile="00index.html", fastqData,
   }
   if (ezIsSpecified(detectedSpeciesLinks)){
     titles[["Mapping to RefSeq mRNA"]] = "Mapping to RefSeq mRNA"
-    addTitleWithAnchor(html, titles[[length(titles)]], 2)
+    addTitle(html, titles[[length(titles)]], 2, id=titles[[length(titles)]])
     if(length(detectedSpeciesLinks) <= IMAGESperROW){
       html = addFlexTable(html, ezGrid(rbind(detectedSpeciesLinks)))
     } else {

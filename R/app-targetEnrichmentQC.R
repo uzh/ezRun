@@ -80,12 +80,12 @@ teqc = function(input, param=NULL){
   html = openHtmlReport(htmlFile, param=param, title=paste("TEQC-Report:", param$name),
                         dataset=input$meta)
 #   titles[["MultiSample-Report"]] = "MultiSample-Report"
-#   addTitleWithAnchor(doc, titles[[length(titles)]], 2)
+#   addTitle(doc, titles[[length(titles)]], 2, id=titles[[length(titles)]])
   ezWrite("<h2>MultiSample-Report</h2>",con=html)
 #   addTxtLinksToReport(doc, "multiTEQCreport/index.html")
   writeTxtLinksToHtml('multiTEQCreport/index.html', con=html)
 #   titles[["Individual Reports"]] = "Individual Reports"
-#   addTitleWithAnchor(doc, titles[[length(titles)]], 2)
+#   addTitle(doc, titles[[length(titles)]], 2, id=titles[[length(titles)]])
   ezWrite("<h2>Individual Reports</h2>",con=html)
 #   addTxtLinksToReport(doc, paste0(reportDirs, '/index.html'))
   writeTxtLinksToHtml(paste0(reportDirs, '/index.html'), con=html)

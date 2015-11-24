@@ -118,7 +118,7 @@ openBsdocReport = function(title="", dataset=NULL){
   pot1 = pot(paste("Started on", format(Sys.time(), "%Y-%m-%d %H:%M:%S"), "--&#160;"))
   pot2 = as.html(pot("Documentation", hyperlink = "http://fgcz-sushi.uzh.ch/doc/methods-20140422.html"))
   doc = addFlexTable(doc, ezGrid(cbind(pot1, pot2)))
-  addTitleWithAnchor(doc, title)
+  addTitle(doc, title, id=title)
   if (!is.null(dataset)){
     ezWrite.table(dataset, file="dataset.tsv", head="Name")
     doc = addParagraph(doc, pot("dataset.tsv", hyperlink = "dataset.tsv"))
@@ -210,9 +210,9 @@ closeBsdocReport = function(doc, file, titles=NULL){
 ##' @examples
 ##' theDoc = openBsdocReport(title="My html report")
 ##' title = "My title"
-##' addTitleWithAnchor(theDoc, title)
+##' .addTitleWithAnchor(theDoc, title)
 ##' closeBsdocReport(doc=theDoc, file="example.html")
-addTitleWithAnchor = function(doc, title, level=1){
+.addTitleWithAnchor = function(doc, title, level=1){
   doc = addParagraph(doc, as.html(pot(paste0("<a name='", title, "'></a>"))))
   doc = addTitle(doc, value=title, level=level)
 }
@@ -454,6 +454,11 @@ addResultFile = function(doc, param, result, rawData, useInOutput=TRUE,
     y = cbind(y, yy)
   }
   y = y[order(y$fdr, y$pValue), ]
+  widgetLink = "datatable.html"
+  if (is.null(param$nTableRows)) param$nTableRows = 500
+  interactiveTable = DT::datatable(head(y, param$nTableRows), extensions = "ColVis", options = list(dom = 'C<"clear">lfrtip'))
+  DT::saveWidget(interactiveTable, widgetLink)
+  doc = addParagraph(doc, pot(widgetLink, hyperlink=widgetLink))
   ezWrite.table(y, file=file, head="Identifier", digits=4)
   doc = addTxtLinksToReport(doc, file, param$doZip)
   return(list(resultFile=file))
