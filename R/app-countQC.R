@@ -352,8 +352,10 @@ runNgsCountQC = function(dataset, htmlFile="00index.html", param=param, rawData=
       doc = addParagraph(doc, paste("Number of features with high std. dev.:", sum(use)))
       
       if (!is.null(clusterResult$GO)){
+        goTables = goClusterTable(param, clusterResult)
+        doc = addTxtLinksToReport(doc, goTables$widgetLinks)
         goLink = as.html(ezGrid(c("Background color corresponds to the color of the feature cluster in the heatmap plot.",
-                                  as.html(goClusterTable(param, clusterResult)))))
+                                  as.html(goTables$ft))))
       } else {
         goLink = as.html(pot("No information available"))
       }

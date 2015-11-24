@@ -260,6 +260,7 @@ addTxtLinksToReport = function(doc, txtNames, doZip=FALSE, mime=ifelse(doZip, "a
     }
     doc = addParagraph(doc, pot(paste("<a href='", each, "' type='", mime, "'>", each, "</a>")))
   }
+  return(doc)
 }
 
 ## NOTE: perhaps obsolete now with ReporteRs

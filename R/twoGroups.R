@@ -334,8 +334,10 @@ writeNgsTwoGroupReport = function(dataset, result, output, htmlFile="00index.htm
     doc = addParagraph(doc, paste("Number of significant features:", sum(use)))
     
     if (!is.null(clusterResult$GO)){
+      goTables = goClusterTable(param, clusterResult)
+      doc = addTxtLinksToReport(doc, goTables$widgetLinks)
       goLink = as.html(ezGrid(cbind("Background color corresponds to the row colors in the heatmap plot.",
-                                as.html(goClusterTable(param, clusterResult)))))
+                                as.html(goTables$ft))))
       #goLink[[2]] = addGOClusterResult(doc, param, clusterResult)
     } else {
       goLink = as.html(pot("No information available"))
