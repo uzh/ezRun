@@ -239,7 +239,7 @@ EzApp <-
                     message("error exists: ", recipient)
                     if (ezValidMail(recipient)){
                       ezMail(subject = paste("Error: ", subject),
-                             text=c(text, " ", geterrmessage(), " ", stackTrace[1:(length(stacktrace)-2)]), 
+                             text=c(text, " ", geterrmessage(), " ", stackTrace[1:(length(stackTrace)-2)]), 
                              to=recipient)
                       message("mail sent to: ", recipient)
                     }
