@@ -35,11 +35,15 @@ ezMethodRSEM = function(input=NA, output=NA, param=NA){
     opt = sub("--no-bam-output", "", opt)
     opt = paste("--output-genome-bam", opt)
   }
-  cmd = paste(file.path(RSEM_DIR, "rsem-calculate-expression"), opt, strandOpt,
-              ifelse(param$paired, 
-                     paste("--paired-end", trimmedInput$getColumn("Read2"), trimmedInput$getColumn("Read1")),
-                     trimmedInput$getColumn("Read1")),
-              ref, sampleName, "2> rsem.stderr", "> rsem.stdout")
+  if (param$paired){
+    cmd = paste(file.path(RSEM_DIR, "rsem-calculate-expression"), opt, strandOpt,
+                "--paired-end", trimmedInput$getColumn("Read2"), trimmedInput$getColumn("Read1"),
+                ref, sampleName, "2> rsem.stderr", "> rsem.stdout")
+  } else {
+    cmd = paste(file.path(RSEM_DIR, "rsem-calculate-expression"), opt, strandOpt,
+                trimmedInput$getColumn("Read1"),
+                ref, sampleName, "2> rsem.stderr", "> rsem.stdout")
+  }
   ezSystem(cmd)
   if (!is.null(param$keepBam) && param$keepBam){
     localBam = paste0(sampleName, ".genome.sorted.bam")

@@ -50,7 +50,7 @@ ezMethodTophat = function(input=NA, output=NA, param=NA){
   strandOpt = paste("--library-type", getTuxedoLibraryType(param$strandMode))
   cmd = paste(file.path(TOPHAT_DIR, "tophat"), "-o .", param$cmdOptions, "-z pigz", "--num-threads", ezThreads(), strandOpt,
               "--transcriptome-index", refBase, ref, trimmedInput$getColumn("Read1"),
-              ifelse(param$paired, trimmedInput$getColumn("Read2"), ""), "2> tophat.log")
+              if(param$paired) trimmedInput$getColumn("Read2"), "2> tophat.log")
   ezSystem(cmd)
   ezSortIndexBam("accepted_hits.bam", basename(bamFile), ram=param$ram, removeBam=TRUE, cores=ezThreads())
   
@@ -491,9 +491,11 @@ ezMethodBismark = function(input=NA, output=NA, param=NA){
   ref = file.path('/srv/GT/reference',dirname(dirname(param[['refBuild']])),'Sequence/WholeGenomeFasta')
   bamFile = output$getColumn("BAM")
   trimmedInput = ezMethodTrim(input = input, param = param)
-  defOpt = paste("-p", max(2,ezThreads()/2))
-  cmd = paste(file.path(BISMARK_DIR, "bismark"), param$cmdOptions ,"--path_to_bowtie", BOWTIE2_DIR,defOpt, ref, '-1',
-              trimmedInput$getColumn("Read1"), ifelse(param$paired, paste('-2',trimmedInput$getColumn("Read2")), ""),  
+  defOpt = paste("-p", max(2,ezThreads()/2))  
+  cmd = paste(file.path(BISMARK_DIR, "bismark"), param$cmdOptions ,
+              "--path_to_bowtie", BOWTIE2_DIR,defOpt, ref,
+              '-1', trimmedInput$getColumn("Read1"), ## does this work for single-end data
+              if(param$paired) paste('-2',trimmedInput$getColumn("Read2")),  
               "2> bismark.log")
   
   ezSystem(cmd)
