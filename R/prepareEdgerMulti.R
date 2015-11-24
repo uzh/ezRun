@@ -14,7 +14,7 @@ ezMethodEdgerMulti = function(input=NA, output=NA, param=NA, htmlFile="00index.h
   cwd = getwd()
   on.exit(setwd(cwd))
   setwdNew(basename(output$getColumn("Report")))
-  # stopifnot(param$sampleGroup != param$refGroup)
+  stopifnot(param$sampleGroup != param$refGroup)
   
   param$name = basename(output$Report)
   if (is.null(param$runGO)){
@@ -37,9 +37,7 @@ ezMethodEdgerMulti = function(input=NA, output=NA, param=NA, htmlFile="00index.h
     return("Error")
   }
   
-  x = rawData$counts
-  result = multiGroupCountComparison(x, rawData$presentFlag, param)
-  # result = twoGroupCountComparison(rawData, param)
+  result = multiGroupCountComparison(rawData, param)
   if (isError(result)){
     writeErrorReport(htmlFile, param=param, error=result$error)
     return("Error")
@@ -47,8 +45,7 @@ ezMethodEdgerMulti = function(input=NA, output=NA, param=NA, htmlFile="00index.h
   result$featureLevel = rawData$featureLevel
   result$countName = rawData$countName
   
-  writeNgsMultiGroupReport(input$meta, result, htmlFile, param=param, rawData=rawData, types=types)
-  # writeNgsTwoGroupReport(input$meta, result, output, htmlFile, param=param, rawData=rawData)
+  writeNgsMultiGroupReport(input$meta, result, htmlFile, param=param, rawData=rawData)
   return("Success")
 }
 
@@ -92,8 +89,9 @@ cleanupMultiGroupsInput = function(input, param){
   return(inputMod)
 }
 
-
-multiGroupCountComparison = function(x, presentFlag=NULL, param){
+multiGroupCountComparison = function(rawData , param){
+  x = rawData$counts
+  presentFlag = rawData$presentFlag
   
   result = list()
   result$analysis ="NGS multi group analysis"
@@ -191,24 +189,29 @@ runEdgerGlmMultiGroup = function(x, refGroup, grouping, normMethod, batch=NULL){
   return(res)
 }
 
-
 writeNgsMultiGroupReport = function(dataset, result, htmlFile, param=NA, rawData=NA, types=NULL) {
-  keggOrganism = NA
   seqAnno = rawData$seqAnno
-  html = openHtmlReport(htmlFile, param=param, title=paste("Analysis:", param$name),
-                        dataset=dataset)  
-  on.exit(closeHTML(html))
   
-  writeCountResultSummary(html, param, result)                ## REFAC addCountResultSummary
-  writeResultCounts(html, param, result)                      ## REFAC addSignificantCounts
-  resultFile = writeResultFile(html, param, result, rawData)  ## REFAC addResultFile
+  titles = list()
+  titles[["Analysis"]] = paste("Analysis:", param$name)
+  doc = openBsdocReport(title=titles[[length(titles)]], dataset=dataset)
   
-  cr = c(-param$logColorRange, param$logColorRange)
+  titles[["Result Summary"]] = "Result Summary"
+  addTitle(doc, titles[[length(titles)]], 2, id=titles[[length(titles)]])
+  addCountResultSummary(doc, param, result)
+  
+  titles[["Significant Counts"]] = "Significant Counts"
+  addTitle(doc, titles[[length(titles)]], 3, id=titles[[length(titles)]])
+  addSignificantCounts(doc, result)
+  
+  resultFile = addResultFile(doc, param, result, rawData)
+  
   logSignal = log2(shiftZeros(result$xNorm, param$minSignal))
   result$groupMeans = averageColumns(logSignal, by=param$grouping)
   
   if (param$writeScatterPlots){
-    writeTestScatterPlots(html, param, logSignal, result, seqAnno, types=types, colorRange=cr) ## REFAC addTestScatterPlots
+    testScatterTitles = addTestScatterPlots(doc, param, logSignal, result, seqAnno, types)
+    titles = append(titles, testScatterTitles)
   }
   
   use = result$pValue < param$pValueHighlightThresh & abs(result$log2Ratio) > param$log2RatioHighlightThresh & result$usedInTest
@@ -222,13 +225,17 @@ writeNgsMultiGroupReport = function(dataset, result, htmlFile, param=NA, rawData
     sampleColors = getSampleColors(param$grouping)[order(param$grouping)]
     clusterPng = "cluster-heatmap.png"
     clusterColors = c("red", "yellow", "orange", "green", "blue", "cyan")
-    doGO = doGo(param, seqAnno)
-    clusterResult = clusterHeatmap(param, xCentered, file=clusterPng, nClusters=6, ## REFAC (see clusterHeatmap in twoGroups)
-                                   lim=c(-param$logColorRange, param$logColorRange),
-                                   colColors=sampleColors, clusterColors=clusterColors,
-                                   doGO=doGO, seqAnno=seqAnno,
-                                   universeProbeIds=rownames(seqAnno)[result$isPresentProbe],
-                                   keggOrganism=keggOrganism)
+    clusterResult = clusterResults(xCentered, nClusters=6, clusterColors=clusterColors)
+    plotCmd = expression({
+      clusterHeatmap(xCentered, param, clusterResult, file=clusterPng,
+                     colColors=sampleColors, lim=c(-param$logColorRange, param$logColorRange))
+    })
+    clusterLink = ezImageFileLink(plotCmd, file=clusterPng, width=max(800, 400 + 10 * ncol(xCentered)), height=1000)
+    
+    if (doGo(param, seqAnno)){
+      clusterResult = goClusterResults(xCentered, param, clusterResult, seqAnno=seqAnno,
+                                       universeProbeIds=rownames(seqAnno)[result$isPresentProbe])
+    }
     
     ## append the result file with the cluster colors
     resultLoaded = ezRead.table(resultFile$resultFile)
@@ -237,33 +244,31 @@ writeNgsMultiGroupReport = function(dataset, result, htmlFile, param=NA, rawData
     if (param$doZip){
       zipFile(resultFile$resultFile)
     }
-    ezWrite("<h2>Clustering of Significant Features</h2>", con=html)
-    ezWrite("<p>Significance threshold: ", param$pValueHighlightThresh, "<br>", con=html)
+    titles[["Clustering of Significant Features"]] = "Clustering of Significant Features"
+    addTitle(doc, titles[[length(titles)]], 2, id=titles[[length(titles)]])
+    doc = addParagraph(doc, paste("Significance threshold:", param$pValueHighlightThresh))
     if (param$log2RatioHighlightThresh > 0){
-      ezWrite("log2 Ratio threshold: ", param$log2RatioHighlightThresh, "<br>", con=html)      
+      doc = addParagraph(doc, paste("log2 Ratio threshold:", param$log2RatioHighlightThresh))
     }
-    ezWrite("Number of significant features: ", sum(use), "</p>", con=html)
-    ezWrite("<table border=0><tr><th>Cluster Plot</th><th>GO categories of feature clusters</th></tr>", con=html)
-    ezWrite("<tr valign=top><td>", con=html)
-    writeImageRowToHtml(clusterPng, con=html)
-    ezWrite("</td><td>", con=html)
+    doc = addParagraph(doc, paste("Number of significant features:", sum(use)))
+    
     if (!is.null(clusterResult$GO)){
-      ezWrite("Background color corresponds to the color of the feature cluster in the heatmap plot.<br>", con=html)
-      writeGOClusterResult(html, param, clusterResult)
+      goLink = as.html(ezGrid(cbind("Background color corresponds to the row colors in the heatmap plot.",
+                                    as.html(goClusterTable(param, clusterResult)))))
+      #goLink[[2]] = addGOClusterResult(doc, param, clusterResult)
     } else {
-      ezWrite("No information available", con=html)
+      goLink = as.html(pot("No information available"))
     }
-    if (!is.null(clusterResult$Kegg)){
-      writeKeggClusterResult(html, param, clusterResult, keggOrganism)
-    }
-    ezWrite("</td></tr></table>", con=html)
+    tbl = ezGrid(cbind("Cluster Plot"=clusterLink, "GO categories of feature clusters"=goLink), header.columns = TRUE)
+    doc = addFlexTable(doc, tbl)
   }
   ## only do GO if we have enough genes
   if (doGo(param, seqAnno)){
-    goResult = twoGroupsGO(param, result, seqAnno, normalizedAvgSignal=rowMeans(result$groupMeans), method=param$goseqMethod)
-    writeGOTables(html, param, goResult) ## REFAC addGoUpDownResult
+    goResult = twoGroupsGO(param, result, seqAnno, normalizedAvgSignal=rowMeans(result$groupMeans), method=param$goseqMethod) ## should probably be multiGroupsGO()
+    titles[["GO Enrichment Analysis"]] = "GO Enrichment Analysis"
+    addTitle(doc, titles[[length(titles)]], 2, id=titles[[length(titles)]])
+    doc = addGoUpDownResult(doc, param, goResult)
   } 
-  ezSessionInfo()
-  writeTxtLinksToHtml('sessionInfo.txt',con=html)
+  closeBsdocReport(doc, htmlFile, titles)
 }
 
