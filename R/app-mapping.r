@@ -492,12 +492,18 @@ ezMethodBismark = function(input=NA, output=NA, param=NA){
   bamFile = output$getColumn("BAM")
   trimmedInput = ezMethodTrim(input = input, param = param)
   defOpt = paste("-p", max(2,ezThreads()/2))  
-  cmd = paste(file.path(BISMARK_DIR, "bismark"), param$cmdOptions ,
+  if(param$paired){
+   cmd = paste(file.path(BISMARK_DIR, "bismark"), param$cmdOptions ,
               "--path_to_bowtie", BOWTIE2_DIR,defOpt, ref,
-              '-1', trimmedInput$getColumn("Read1"), ## does this work for single-end data
+              '-1', trimmedInput$getColumn("Read1"),
               if(param$paired) paste('-2',trimmedInput$getColumn("Read2")),  
               "2> bismark.log")
-  
+  } else {
+    cmd = paste(file.path(BISMARK_DIR, "bismark"), param$cmdOptions ,
+                "--path_to_bowtie", BOWTIE2_DIR,defOpt, ref,
+                trimmedInput$getColumn("Read1"), 
+                "2> bismark.log")  
+  }
   ezSystem(cmd)
   bamFileNameBismark = list.files('.',pattern='bam$')
   reportFileNameBismark = list.files('.',pattern='report.txt$')
