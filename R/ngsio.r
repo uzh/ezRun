@@ -326,7 +326,7 @@ countReadsInFastq = function(fastqFiles){
     batchStart = seq(from=1, to=length(phredQual), by=batchSize)
     batchEnd = c(batchStart[-1]-1, length(phredQual))
     qo = qualOffset
-    mqList = mapply(function(bs, be){getMeanQuality(phredQual[bs:be], qualOffset=qo, batchSize=batchSize)},
+    mqList = mapply(function(bs, be){.getMeanQuality(phredQual[bs:be], qualOffset=qo, batchSize=batchSize)},
                     batchStart, batchEnd, SIMPLIFY=FALSE)
     return(unlist(mqList))
   }
@@ -416,7 +416,7 @@ countReadsInFastq = function(fastqFiles){
     }
     if (!is.null(param$minAvgQuality) && !is.na(param$minAvgQuality) && param$minAvgQuality > 0 ){
       minAvgQuality = param$minAvgQuality
-      use = unlist(ezMclapply(getQualities(x), function(qVec){mean(qVec) >= minAvgQuality}, mc.cores=round(ezThreads()/2)))
+      use = unlist(ezMclapply(.getQualities(x), function(qVec){mean(qVec) >= minAvgQuality}, mc.cores=round(ezThreads()/2)))
       if (any(is.na(use))){
         message("encountered na in minAvgQuality: ", sum(is.na(use)))
         use[is.na(use)] = FALSE  
@@ -426,7 +426,7 @@ countReadsInFastq = function(fastqFiles){
     endPos = width(x)
     if (!is.null(param$minTailQuality) && !is.na(param$minTailQuality) && param$minTailQuality > 0 ){
       minTailQuality = param$minTailQuality
-      lastGoodBase = unlist(ezMclapply(getQualities(x), getLastGoodBasePos, minTailQuality, 
+      lastGoodBase = unlist(ezMclapply(.getQualities(x), .getLastGoodBasePos, minTailQuality, 
                                        qualityFilterWindow=param$qualityFilterWindow, mc.cores=round(ezThreads()/2)))
       use = lastGoodBase >= param$minReadLength + param$trimLeft
       endPos[use] = lastGoodBase[use]
@@ -472,7 +472,7 @@ countReadsInFastq = function(fastqFiles){
   requireNamespace("ShortRead", warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
   for(i in 1:length(reads)){
     reads1 = reads[i]
-    reads2 = getPairedReads(reads1)
+    reads2 = .getPairedReads(reads1)
     f1 = FastqFile(reads1)
     r1 = readFastq(f1)
     if(!is.null(reads2)){
@@ -484,10 +484,10 @@ countReadsInFastq = function(fastqFiles){
     for(j in 1:sampleno){
       output1 = file.path(outputDirNow, paste0("S", j, "_", sub(".fastq$", "", basename(reads1)), ".fastq"))
       if(is.null(reads2)){
-        samplingFastq(reads1=r1, output1=output1, size=size)
+        .samplingFastq(reads1=r1, output1=output1, size=size)
       }else{
         output2 = file.path(outputDirNow, paste0("S", j, "_", sub(".fastq$", "", basename(reads2)), ".fastq"))
-        samplingFastq(reads1=r1, reads2=r2, output1=output1, output2=output2, size=size)
+        .samplingFastq(reads1=r1, reads2=r2, output1=output1, output2=output2, size=size)
       }
     }
     close(f1)

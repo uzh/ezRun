@@ -128,11 +128,11 @@ subSampleRle = function(x, idx){
 
 .getProfileMatrixForRanges = function(targetRanges, cov, xPos){
   targetRangesList = split(targetRanges, seqnames(targetRanges))
-  profiles = unlist(mapply(getRleFromRanges, cov[names(targetRangesList)],
+  profiles = unlist(mapply(.getRleFromRanges, cov[names(targetRangesList)],
                            targetRangesList, SIMPLIFY=FALSE))
   names(profiles) = sub(".*?\\.", "", names(profiles))
   if (!is.null(idx)){
-    profMatrix = t(sapply(profiles, subSampleRle, idx))
+    profMatrix = t(sapply(profiles, subSampleRle, idx)) ## TODO: idx should be defined before the if or be passed as an argument.
   } else {
     ## xPos have to be quantiles
     profLength = sapply(profiles, length)

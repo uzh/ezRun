@@ -124,7 +124,7 @@ ezColorLegend = function(colorRange=c(-3,3), colors=getBlueRedScale(), vertical=
 
   pngNames = character()
   for(sampleName in samples){
-    valueByTail = getByTail(logSignal[ , sampleName], NULL, sequence, gene)
+    valueByTail = .getByTail(logSignal[ , sampleName], NULL, sequence, gene)
     values = unlist(lapply(valueByTail, function(x){x[-length(x)]}))
     effectByTail = lapply(valueByTail, diff)
     effects = unlist(effectByTail)
@@ -160,7 +160,7 @@ ezColorLegend = function(colorRange=c(-3,3), colors=getBlueRedScale(), vertical=
   sequence = seqAnno[!isControl, "Sequence"]
   gene = seqAnno[!isControl, "Agilent SystematicName"]
   for(sampleName in samples){
-    valueByTail = getByTail(logSignal[ , sampleName], NULL, sequence, gene)
+    valueByTail = .getByTail(logSignal[ , sampleName], NULL, sequence, gene)
     effectByTailSet[[sampleName]] = lapply(valueByTail, diff)
     valueByTailSet[[sampleName]] = valueByTail  
   }
@@ -202,7 +202,7 @@ ezColorLegend = function(colorRange=c(-3,3), colors=getBlueRedScale(), vertical=
   if (!is.null(isPresent)){
     names(isPresent) = seq
     presentListByGeneAll  = split(isPresent, gene)
-    isPresentGene = mapply(computePresence, presentListByGeneAll)
+    isPresentGene = mapply(computePresence, presentListByGeneAll) ## TODO: function computePresence doesn't exist
     use[!isPresentGene] = FALSE
   }
   valueListByGene = valueListByGeneAll[use]

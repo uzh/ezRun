@@ -42,6 +42,6 @@
   idx = sample(x=1:(2*n), size=2*n, replace=FALSE)
   cuts = round(c(-1000:1000)/ 10) /10
   cuts = sample(cuts, size=length(cuts), replace=FALSE)
-  roc = ezROC(truth, data[idx], cuts=cuts, biggerIsBetter=FALSE)
+  roc = .ezROC(truth, data[idx], cuts=cuts, biggerIsBetter=FALSE)
   plot(1 - roc$spec, roc$sens, type="l")
 }

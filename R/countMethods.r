@@ -66,7 +66,7 @@
   }
   
   gtfFile = param$ezRef["refFeatureFile"]
-  gtfFileFlattened = dexseqFlattenGtf(gtfFile, param)  
+  gtfFileFlattened = .dexseqFlattenGtf(gtfFile, param)  
   strandOpt = switch(param$strandMode, sense="yes", antisense="reverse", both="no", 
                      stop("unsupported strand mode: ", param$strandMode))
   cmd = paste(SAMTOOLS, "view", bamFile, "|", DEXSEQ_COUNT, "-p", paired, "-s", strandOpt, gtfFileFlattened, "-", 
