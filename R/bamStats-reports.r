@@ -62,8 +62,8 @@ plotBamStat = function(resultList, dataset, param, htmlFile=NULL){
   }
   
   pngFile = "multiMatchInFile-barplot.png"
-  pngLink = makeAlignmentCountBarPlot(pngFile, mmCounts)
-  doc = addParagraph(doc, pngLink)
+  pngLinks = makeAlignmentCountBarPlot(pngFile, mmCounts)
+  doc = addFlexTable(doc, ezGrid(rbind(pngLinks)))
   txtFile = "read-alignment-statistics.txt"
   colnames(mmCounts) = paste("#hits: ", colnames(mmCounts))
   colnames(mmCounts)[ncol(mmCounts)] = paste0(colnames(mmCounts)[ncol(mmCounts)], "+")
@@ -425,15 +425,27 @@ makeAlignmentCountBarPlot = function(file, mmCounts){
                        "3 hit(s)"="green", ">3 hit(s)"="orange")
   colnames(mmCounts) = paste(colnames(mmCounts), "hit(s)")
   stopifnot(colnames(mmCounts) %in% names(multiCountColors))
+  pngLinks = character()
   plotCmd = expression({
     par(mar=c(12, 4.1, 4.1, 2.1))
     x = mmCounts[ , rev(colnames(mmCounts))]
     barplot(t(x)/1e6, las=2, ylab="Counts [Mio]", main="total alignments", legend.text=TRUE, border=NA,
             col=multiCountColors[colnames(x)], xlim=c(0, nrow(x) +5))
   })
-  pngLink = ezImageFileLink(plotCmd, file=file, width=400 + nrow(mmCounts) * 10, height=480)
+  pngLinks["Counts"] = ezImageFileLink(plotCmd, file=file, width=400 + nrow(mmCounts) * 10, height=480)
   
-  return(pngLink)
+  plotCmd = expression({
+    par(mar=c(12, 4.1, 4.1, 2.1))
+    x = mmCounts[ , rev(colnames(mmCounts))]
+    for (i in 1:nrow(x)) {
+      x[i, ] = x[i, ]/sum(x[i,])
+    }
+    barplot(t(x), las=2, ylab="Counts [proportion]", main="alignment proportions", legend.text=TRUE, border=NA,
+            col=multiCountColors[colnames(x)], xlim=c(0, nrow(x) +5))
+  })
+  pngLinks["Relative"] = ezImageFileLink(plotCmd, file="multiMatchInFile-barplot-rel.png", width=400 + nrow(mmCounts) * 10, height=480)
+  
+  return(pngLinks)
 }
 
 ##' @describeIn plotBamStat Plots the position specific error rates.

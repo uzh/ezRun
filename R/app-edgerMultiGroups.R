@@ -16,7 +16,6 @@ ezMethodEdgerMulti = function(input=NA, output=NA, param=NA, htmlFile="00index.h
   setwdNew(basename(output$getColumn("Report")))
   stopifnot(param$sampleGroup != param$refGroup)
   
-  param$name = basename(output$Report)
   if (is.null(param$runGO)){
     param$runGO = FALSE
   }
@@ -159,7 +158,7 @@ runEdgerGlmMultiGroup = function(x, refGroup, grouping, normMethod, batch=NULL){
   #sf = ezLogmeanScalingFactor(x, presentFlag=x>0)
   
   groupFactor = factor(grouping, levels=c(refGroup, setdiff(grouping, refGroup)))
-  if (is.null(batch)){
+  if (!ezIsSpecified(batch)){
     design = model.matrix( ~ groupFactor)
     #colnames(design) = c("Intercept", "Grouping")
   } else {
@@ -176,8 +175,8 @@ runEdgerGlmMultiGroup = function(x, refGroup, grouping, normMethod, batch=NULL){
   lrt = glmLRT(fitGlm, coef=2:length(levels(groupFactor)))
   res = list()
   res$id = rownames(lrt$table)
-  logFC = lrt$table[ , grep("^logFC", colnames(lrt$table))]
-  logFC$maxChange = apply(logFC, 1, max) - apply(logFC, 1, min)
+  logFC = lrt$table$logFC
+  logFC$maxChange = apply(logFC, 1, max) - apply(logFC, 1, min) ## doesn't work and I'm not sure what it's supposed to do? perhaps the input data doesn't make sense.
   res$log2FoldChange = apply(abs(logFC), 1, max)
   res$pval = lrt$table$PValue
   #res$log2Expr = lrt$table$logCPM
