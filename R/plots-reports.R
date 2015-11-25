@@ -259,6 +259,6 @@ addTestScatterPlots = function(doc, param, x, result, seqAnno, types=NULL){
     }
   }
   closeBsdocReport(advancedDoc, "advancedPlots.html", advancedTitles)
-  doc = addParagraph(doc, pot("advancedPlots.html", hyperlink = "advancedPlots.html"))
+  doc = addParagraph(doc, pot("advancedPlots", hyperlink = "advancedPlots.html"))
   return(testScatterTitles)
 }

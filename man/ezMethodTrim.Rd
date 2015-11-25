@@ -10,7 +10,8 @@ ezMethodTrim(input = NA, output = NA, param = NA)
 
 ezMethodSubsampleReads(input = NA, output = NA, param = NA)
 
-ezSubsampleFastq(full, sub, subsampleFactor = NA, nYield = 1e+05)
+ezSubsampleFastq(full, sub, subsampleFactor = NA, nYield = 1e+05,
+  overwrite = FALSE)
 }
 \arguments{
 \item{input}{a list, file path or an object of the class EzDataset containing the input.}
@@ -40,6 +41,11 @@ Trims input reads. There are several options to influence trimming with paramete
 
 \item \code{ezSubsampleFastq}: Performs the fastq for the subsamples using the package ShortRead.
 }}
+\examples{
+ inputFile = system.file(package = "ezRun", "extdata/yeast_10k/wt_1_R1.fastq.gz")
+ subsampledFile = "sub_R1.fastq"
+ ezSubsampleFastq(inputFile, subsampledFile, subsampleFactor = 5)
+}
 \author{
 Rehrauer, Hubert
 

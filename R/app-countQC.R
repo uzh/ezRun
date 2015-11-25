@@ -353,7 +353,7 @@ runNgsCountQC = function(dataset, htmlFile="00index.html", param=param, rawData=
       
       if (!is.null(clusterResult$GO)){
         goTables = goClusterTable(param, clusterResult)
-        doc = addTxtLinksToReport(doc, goTables$widgetLinks)
+        doc = addFlexTable(doc, ezFlexTable(goTables$linkTable, add.rownames=TRUE))
         goLink = as.html(ezGrid(c("Background color corresponds to the color of the feature cluster in the heatmap plot.",
                                   as.html(goTables$ft))))
       } else {
@@ -433,6 +433,6 @@ runNgsCountQC = function(dataset, htmlFile="00index.html", param=param, rawData=
     doc = addParagraph(doc, pngLink)
   }
   closeBsdocReport(advancedDoc, "advancedPlots.html", advancedTitles)
-  doc = addParagraph(doc, pot("advancedPlots.html", hyperlink = "advancedPlots.html"))
+  doc = addParagraph(doc, pot("advancedPlots", hyperlink = "advancedPlots.html"))
   closeBsdocReport(doc, htmlFile, titles)
 }

@@ -455,12 +455,19 @@ addResultFile = function(doc, param, result, rawData, useInOutput=TRUE,
     y = cbind(y, yy)
   }
   y = y[order(y$fdr, y$pValue), ]
-  widgetLink = "datatable.html"
-  if (is.null(param$nTableRows)) param$nTableRows = 500
-  interactiveTable = DT::datatable(head(y, param$nTableRows), extensions = "ColVis", options = list(dom = 'C<"clear">lfrtip'))
-  DT::saveWidget(interactiveTable, widgetLink)
-  doc = addParagraph(doc, pot(widgetLink, hyperlink=widgetLink))
   ezWrite.table(y, file=file, head="Identifier", digits=4)
   doc = addTxtLinksToReport(doc, file, param$doZip)
+  useForInteractiveTable = c("gene_name", "transcript_id", "type", "description", "width", "gc", "isPresent", "log2 Ratio", "pValue", "fdr")
+  widgetLink = sub(".txt", "-viewTopGenes.html", file)
+  if (is.null(param$nTableRows)) {
+    
+    param$nTableRows = 500
+  }
+  interactiveTable = DT::datatable(head(y[, useForInteractiveTable], param$nTableRows), extensions = "ColVis", filter="top",
+                                   options = list(dom = 'C<"clear">lfrtip',
+                                                  pageLength = 25))
+  DT::saveWidget(interactiveTable, widgetLink)
+  doc = addParagraph(doc, pot(sub(".html", "", widgetLink), hyperlink=widgetLink))
+  
   return(list(resultFile=file))
 }

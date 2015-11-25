@@ -16,15 +16,21 @@
 goClusterTable = function(param, clusterResult){
   ontologies = names(clusterResult$GO)
   tables = ezMatrix("", rows=paste("Cluster", 1:clusterResult$nClusters), cols=ontologies)
-  if (is.null(param$nTableRows)) param$nTableRows = 500
-  widgetLinks = character()
+  if (is.null(param$nTableRows)) {
+    
+    param$nTableRows = 500
+  }
+  linkTable = ezMatrix("", rows = ontologies, cols = 1:clusterResult$nClusters)
   for (onto in ontologies){
     for (i in 1:clusterResult$nClusters){
       x = clusterResult$GO[[onto]][[i]]
       goFrame = .getGoTermsAsTd(x, param$pValThreshFisher, param$minCountFisher, onto=onto)
-      widgetLinks = append(widgetLinks, paste0(onto, i, "-table.html"))
-      interactiveTable = DT::datatable(head(goFrame, param$nTableRows), extensions = "ColVis", options = list(dom = 'C<"clear">lfrtip'))
-      DT::saveWidget(interactiveTable, widgetLinks[length(widgetLinks)])
+      linkTable[onto, i] = paste0("Cluster-", onto, "-", i, ".html")
+      interactiveTable = DT::datatable(head(goFrame, param$nTableRows), extensions = "ColVis", filter="top",
+                                       options = list(dom = 'C<"clear">lfrtip',
+                                                      pageLength = 25))
+      DT::saveWidget(interactiveTable, linkTable[onto, i])
+      linkTable[onto, i] = as.html(pot(sub(".html", "", linkTable[onto, i]), hyperlink=linkTable[onto, i]))
       if (nrow(goFrame) > 0){
         tables[i, onto] = as.html(ezFlexTable(goFrame, talign="right"))
       }
@@ -35,7 +41,7 @@ goClusterTable = function(param, clusterResult){
   ft = ezFlexTable(tables, border = 2, header.columns = TRUE, add.rownames=TRUE)
   bgColors = rep(gsub("FF$", "", clusterResult$clusterColors), each=ncol(tables)+1)
   ft = setFlexTableBackgroundColors(ft, colors=bgColors)
-  return(list(ft=ft, widgetLinks=widgetLinks))
+  return(list(ft=ft, linkTable=linkTable))
 }
 
 ##' @title Adds the GO up-down results
@@ -50,7 +56,7 @@ addGoUpDownResult = function(doc, param, goResult){
   udt = goUpDownTables(param, goResult)
   doc = addParagraph(doc, paste("Maximum number of terms displayed:", param$maxNumberGroupsDisplayed))
   
-  doc = addTxtLinksToReport(doc, udt$widgetLinks) ## Does 9 plots currently, perhaps we should merge it a bit
+  doc = addFlexTable(doc, ezFlexTable(udt$linkTable, add.rownames=TRUE)) ## Does 9 plots currently, perhaps we should merge it a bit
   doc = addTitle(doc, "GO categories that are overrepresented among significantly upregulated genes.", 3)
   doc = addFlexTable(doc, udt$flexTables[["enrichUp"]])
   doc = addTitle(doc, "GO categories that are overrepresented among significantly downregulated genes.", 3)
@@ -84,17 +90,23 @@ goUpDownTables = function(param, goResult){
   resultList = list("enrichUp"=goTable, "enrichBoth"=goTable, "enrichDown"=goTable)
   txtFiles = character() ## TODO make a list of list; similar to resultList
   ## txtList = list("enrichUp"=list(), "enrichBoth"=list(), "enrichDown"=list())
-  if (is.null(param$nTableRows)) param$nTableRows = 500
-  widgetLinks = character()
+  if (is.null(param$nTableRows)) {
+    
+    param$nTableRows = 500
+  }
+  linkTable = ezMatrix("", rows = names(goResult), cols = c("enrichUp", "enrichDown", "enrichBoth"))
   for (onto in names(goResult)){ ## BP, MF , CC
     x = goResult[[onto]]
     for (sub in names(x)){ #c("enrichUp", "enrichDown", "enrichBoth")){
       message("sub: ", sub)
       goFrame = .getGoTermsAsTd(x[[sub]], param$pValThreshFisher, param$minCountFisher, onto=onto,
                                 maxNumberOfTerms=param$maxNumberGroupsDisplayed)
-      widgetLinks = append(widgetLinks, paste0(onto, sub, "-table.html"))
-      interactiveTable = DT::datatable(head(goFrame, param$nTableRows), extensions = "ColVis", options = list(dom = 'C<"clear">lfrtip'))
-      DT::saveWidget(interactiveTable, widgetLinks[length(widgetLinks)])
+      linkTable[onto, sub] = paste0("Cluster-", onto, "-", sub, ".html")
+      interactiveTable = DT::datatable(head(goFrame, param$nTableRows), extensions = "ColVis", filter="top",
+                                       options = list(dom = 'C<"clear">lfrtip',
+                                                      pageLength = 25))
+      DT::saveWidget(interactiveTable, linkTable[onto, sub])
+      linkTable[onto, sub] = as.html(pot(sub(".html", "", linkTable[onto, sub]), hyperlink=linkTable[onto, sub]))
       if (nrow(goFrame) > 0){
         resultList[[sub]]["Cats", onto] = as.html(ezFlexTable(goFrame, talign="right"))
       } else {
@@ -116,7 +128,7 @@ goUpDownTables = function(param, goResult){
   flexTables = lapply(resultList, function(res){
     ezFlexTable(res, border = 2, header.columns = TRUE)
   })
-  return(list(flexTables=flexTables, txtFiles=txtFiles, widgetLinks=widgetLinks))
+  return(list(flexTables=flexTables, txtFiles=txtFiles, linkTable=linkTable))
 }
 
 ##' @describeIn goClusterTable Gets the GO terms and pastes them into a table.

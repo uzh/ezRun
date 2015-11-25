@@ -253,7 +253,7 @@ writeNgsMultiGroupReport = function(dataset, result, htmlFile, param=NA, rawData
     
     if (!is.null(clusterResult$GO)){
       goTables = goClusterTable(param, clusterResult)
-      doc = addTxtLinksToReport(doc, goTables$widgetLinks)
+      doc = addFlexTable(doc, ezFlexTable(goTables$linkTable, add.rownames=TRUE))
       goLink = as.html(ezGrid(cbind("Background color corresponds to the row colors in the heatmap plot.",
                                     as.html(goTables$ft))))
       #goLink[[2]] = addGOClusterResult(doc, param, clusterResult)
