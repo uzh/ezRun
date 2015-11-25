@@ -34,6 +34,7 @@ yeastCommonCountParam = function(){
 
 test_that("Count_RSEM", {
   skipLong()
+  ezSystem("rm -fr /scratch/test_rsem/*")
   setwdNew("/scratch/test_rsem")
   input = EzDataset$new(file=system.file("extdata/yeast_10k/dataset.tsv", package="ezRun", mustWork = TRUE))
   output = list()
@@ -64,6 +65,7 @@ test_that("Count_RSEM", {
 
 test_that("Count_FeatureCounts", {
   skipLong()
+  ezSystem("rm -fr /scratch/test_featureCounts/*")
   setwdNew("/scratch/test_featureCounts")
   input = EzDataset$new(file=system.file("extdata/yeast_10k_STAR/dataset.tsv", package="ezRun", mustWork = TRUE))
   output = EzDataset$new(file=system.file("extdata/yeast_10k_STAR_counts/dataset.tsv", package="ezRun", mustWork = TRUE))
@@ -81,6 +83,7 @@ test_that("Count_FeatureCounts", {
 
 test_that("RNA_Bamstats", {
   skipLong()
+  ezSystem("rm -fr /scratch/test_RNA_Bamstats/*")
   setwdNew("/scratch/test_RNA_Bamstats")
   input = EzDataset$new(file=system.file("extdata/yeast_10k_STAR/dataset.tsv", package="ezRun", mustWork = TRUE))
   output = list()

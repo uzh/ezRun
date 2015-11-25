@@ -102,7 +102,7 @@ runNgsCountQC = function(dataset, htmlFile="00index.html", param=param, rawData=
   sampleColors = getSampleColors(conds)
   
   titles = list()
-  titles[["Analysis"]] = paste("Analysis:", param$name)
+  titles[["Analysis"]] = paste("Analysis:", ifelse(grepl("bam", param$name, ignore.case = TRUE), sub("$", "_Count_QC", param$name), param$name))
   doc = openBsdocReport(title=titles[[length(titles)]], dataset=dataset)
   
   if (nSamples < 2){
@@ -147,6 +147,14 @@ runNgsCountQC = function(dataset, htmlFile="00index.html", param=param, rawData=
     ezWrite.table(rawData$counts, file=countFile, head="Feature ID", digits=4)
     signalFile = paste0(ezValidFilename(param$name), "-normalized-signal.txt")
     ezWrite.table(combined, file=signalFile, head="Feature ID", digits=4)
+    
+    useInInteractiveTable = c("seqid", "gene_id", "strand", "start", "end", "width", "gc")
+    useInInteractiveTable = intersect(useInInteractiveTable, colnames(combined))
+    tableLink = sub(".txt", "-viewTopGenes.html", signalFile)
+    interactiveTable = DT::datatable(head(combined[, useInInteractiveTable], param$maxTableRows), extensions = "ColVis", filter="top",
+                                     options = list(dom = 'C<"clear">lfrtip', pageLength = 25)) ## TODOP: sort table?
+    DT::saveWidget(interactiveTable, tableLink)
+    
     rpkmFile = paste0(ezValidFilename(param$name), "-rpkm.txt")
     ezWrite.table(getRpkm(rawData), file=rpkmFile, head="Feature ID", digits=4)
     
@@ -154,6 +162,7 @@ runNgsCountQC = function(dataset, htmlFile="00index.html", param=param, rawData=
     titles[["Data Files"]] = "Data Files"
     addTitle(doc, titles[[length(titles)]], 2, id=titles[[length(titles)]])
     addTxtLinksToReport(doc, dataFiles, param$doZip)
+    doc = addParagraph(doc, pot(sub(".html", "", tableLink), hyperlink=tableLink))
   }
   
   titles[["Count Statistics"]] = "Count Statistics"

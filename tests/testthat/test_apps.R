@@ -37,6 +37,7 @@ yeastCommonMapParam = function(){
 
 test_that("Tophat", {
   skipLong()
+  ezSystem("rm -fr /scratch/test_tophat/*")
   setwdNew("/scratch/test_tophat")
   input = EzDataset$new(file=system.file("extdata/yeast_10k/dataset.tsv", package="ezRun", mustWork = TRUE))
   output = list()
@@ -61,6 +62,7 @@ test_that("Tophat", {
 
 test_that("Map_Star", {
   skipLong()
+  ezSystem("rm -fr /scratch/test_star/*")
   setwdNew("/scratch/test_star")
   input = EzDataset$new(file=system.file("extdata/yeast_10k/dataset.tsv", package="ezRun", mustWork = TRUE))
   output = EzDataset$new(file=system.file("extdata/yeast_10k_STAR/dataset.tsv", package="ezRun", mustWork = TRUE))
@@ -74,6 +76,7 @@ test_that("Map_Star", {
 
 test_that("Map_Bowtie", {
   skipLong()
+  ezSystem("rm -fr /scratch/test_bowtie/*")
   setwdNew("/scratch/test_bowtie")
   input = EzDataset$new(file=system.file("extdata/yeast_10k/dataset.tsv", package="ezRun", mustWork = TRUE))
   output = EzDataset$new(file=system.file("extdata/yeast_10k_STAR/dataset.tsv", package="ezRun", mustWork = TRUE))
@@ -85,6 +88,7 @@ test_that("Map_Bowtie", {
 
 test_that("Map_Bowtie2", {
   skipLong()
+  ezSystem("rm -fr /scratch/test_bowtie2/*")
   setwdNew("/scratch/test_bowtie2")
   input = EzDataset$new(file=system.file("extdata/yeast_10k/dataset.tsv", package="ezRun", mustWork = TRUE))
   output = EzDataset$new(file=system.file("extdata/yeast_10k_STAR/dataset.tsv", package="ezRun", mustWork = TRUE))
@@ -97,6 +101,7 @@ test_that("Map_Bowtie2", {
 
 test_that("Map_Bwa", {
   skipLong()
+  ezSystem("rm -fr /scratch/test_bwa/*")
   setwdNew("/scratch/test_bwa")
   input = EzDataset$new(file=system.file("extdata/yeast_10k/dataset.tsv", package="ezRun", mustWork = TRUE))
   output = EzDataset$new(file=system.file("extdata/yeast_10k_STAR/dataset.tsv", package="ezRun", mustWork = TRUE))
@@ -109,6 +114,7 @@ test_that("Map_Bwa", {
 
 test_that("FastQC", {
   skipLong()
+  ezSystem("rm -fr /scratch/test_fastqc/*")
   setwdNew("/scratch/test_fastqc")
   input = EzDataset$new(file=system.file("extdata/yeast_10k/dataset.tsv", package="ezRun", mustWork = TRUE))
   output = list()
@@ -126,6 +132,7 @@ test_that("FastQC", {
 
 test_that("FastqScreen", {
   skipLong()
+  ezSystem("rm -fr /scratch/test_fastqscreen/*")
   setwdNew("/scratch/test_fastqscreen")
   input = EzDataset$new(file=system.file("extdata/yeast_10k/dataset.tsv", package="ezRun", mustWork = TRUE))
   output = list()
@@ -148,6 +155,7 @@ test_that("FastqScreen", {
 
 test_that("BampreviewStar", {
   skipLong()
+  ezSystem("rm -fr /scratch/test_bampreview_star/*")
   setwdNew("/scratch/test_bampreview_star")
   input = EzDataset$new(file=system.file("extdata/yeast_10k/dataset.tsv", package="ezRun", mustWork = TRUE))
   output = list()

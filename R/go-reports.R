@@ -16,19 +16,14 @@
 goClusterTable = function(param, clusterResult){
   ontologies = names(clusterResult$GO)
   tables = ezMatrix("", rows=paste("Cluster", 1:clusterResult$nClusters), cols=ontologies)
-  if (is.null(param$nTableRows)) {
-    
-    param$nTableRows = 500
-  }
   linkTable = ezMatrix("", rows = ontologies, cols = 1:clusterResult$nClusters)
   for (onto in ontologies){
     for (i in 1:clusterResult$nClusters){
       x = clusterResult$GO[[onto]][[i]]
       goFrame = .getGoTermsAsTd(x, param$pValThreshFisher, param$minCountFisher, onto=onto)
       linkTable[onto, i] = paste0("Cluster-", onto, "-", i, ".html")
-      interactiveTable = DT::datatable(head(goFrame, param$nTableRows), extensions = "ColVis", filter="top",
-                                       options = list(dom = 'C<"clear">lfrtip',
-                                                      pageLength = 25))
+      interactiveTable = DT::datatable(head(goFrame, param$maxTableRows), extensions = "ColVis", filter="top",
+                                       options = list(dom = 'C<"clear">lfrtip', pageLength = 25))
       DT::saveWidget(interactiveTable, linkTable[onto, i])
       linkTable[onto, i] = as.html(pot(sub(".html", "", linkTable[onto, i]), hyperlink=linkTable[onto, i]))
       if (nrow(goFrame) > 0){
@@ -90,10 +85,6 @@ goUpDownTables = function(param, goResult){
   resultList = list("enrichUp"=goTable, "enrichBoth"=goTable, "enrichDown"=goTable)
   txtFiles = character() ## TODO make a list of list; similar to resultList
   ## txtList = list("enrichUp"=list(), "enrichBoth"=list(), "enrichDown"=list())
-  if (is.null(param$nTableRows)) {
-    
-    param$nTableRows = 500
-  }
   linkTable = ezMatrix("", rows = names(goResult), cols = c("enrichUp", "enrichDown", "enrichBoth"))
   for (onto in names(goResult)){ ## BP, MF , CC
     x = goResult[[onto]]
@@ -102,9 +93,8 @@ goUpDownTables = function(param, goResult){
       goFrame = .getGoTermsAsTd(x[[sub]], param$pValThreshFisher, param$minCountFisher, onto=onto,
                                 maxNumberOfTerms=param$maxNumberGroupsDisplayed)
       linkTable[onto, sub] = paste0("Cluster-", onto, "-", sub, ".html")
-      interactiveTable = DT::datatable(head(goFrame, param$nTableRows), extensions = "ColVis", filter="top",
-                                       options = list(dom = 'C<"clear">lfrtip',
-                                                      pageLength = 25))
+      interactiveTable = DT::datatable(head(goFrame, param$maxTableRows), extensions = "ColVis", filter="top",
+                                       options = list(dom = 'C<"clear">lfrtip', pageLength = 25))
       DT::saveWidget(interactiveTable, linkTable[onto, sub])
       linkTable[onto, sub] = as.html(pot(sub(".html", "", linkTable[onto, sub]), hyperlink=linkTable[onto, sub]))
       if (nrow(goFrame) > 0){

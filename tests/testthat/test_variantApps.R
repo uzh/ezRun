@@ -32,6 +32,7 @@ yeastCommonVariantParam = function(){
 
 test_that("Variant_Mpileup", {
   skipLong()
+  ezSystem("rm -fr /scratch/test_mpileup/*")
   setwdNew("/scratch/test_mpileup")
   input = EzDataset$new(file=system.file("extdata/yeast_10k_STAR/dataset.tsv", package="ezRun", mustWork = TRUE))
   output = list()
