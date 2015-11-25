@@ -55,12 +55,12 @@ ezMethodRSEM = function(input=NA, output=NA, param=NA){
   }
   
   transcriptResult = ezRead.table(paste0(sampleName, ".isoforms.results"), header=TRUE)
-  gtf = ezLoadFeatures(param)
-  if (!is.null(gtf)){
-    seqAnno = transcriptAnnoFromGtf(gtf)
-    result = seqAnno
+  if (ezIsSpecified(param$transcriptFasta)){
+    result = transcriptResult[ , c("gene_id", "length")]
+    colnames(result) = c("gene_id", "width")
   } else {
-    result = data.frame(row.names=rownames(transcriptResult))
+    result = ezRead.table(param$ezRef["refAnnotationFile"], colClasses="character")
+    result = result[ , intersect(colnames(result), "gene_id", "width", "gc"), drop=FALSE]
   }
   transcriptResult = transcriptResult[rownames(result), ]
   result$transcriptCount = transcriptResult$expected_count

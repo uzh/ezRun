@@ -185,30 +185,42 @@ ezMethodSubsampleReads = function(input=NA, output=NA, param=NA){
 }
 
 ##' @describeIn ezMethodTrim Performs the fastq for the subsamples using the package ShortRead.
-ezSubsampleFastq = function(full, sub, subsampleFactor=NA, nYield=1e5){
+##' @examples 
+##'  inputFile = system.file(package = "ezRun", "extdata/yeast_10k/wt_1_R1.fastq.gz")
+##'  subsampledFile = "sub_R1.fastq"
+##'  ezSubsampleFastq(inputFile, subsampledFile, subsampleFactor = 5)
+ezSubsampleFastq = function(full, sub, subsampleFactor=NA, nYield=1e5, overwrite=FALSE){
   stopifnot(full != sub)
+  stopifnot(length(full) == length(sub))
   if (any(file.exists(sub))){
     filesToRemove = sub[file.exists(sub)]
+    if (!overwrite){
+      stop("files do exist: ", filesToRemove)
+    }
     warning("removing first: ", filesToRemove)
     file.remove(filesToRemove)
   }
   requireNamespace("ShortRead")
+  nms = names(full)
+  if (is.null(nms)){
+    nms = full
+  }
   nReadsVector = integer()
-  for (nm in names(full)){ 
+  for (i in seq_along(full)){ 
     nReads = 0
-    fqs = FastqStreamer(full[nm], n = nYield) 
+    fqs = FastqStreamer(full[i], n = nYield) 
     idx = seq(from=1, to=nYield, by=subsampleFactor)
     while(length(x <- yield(fqs))){
       if (length(x) >= nYield){
-        writeFastq(x[idx], file=sub[nm], mode="a", full=F, compress=F)
+        writeFastq(x[idx], file=sub[i], mode="a", full=F, compress=F)
         nReads = nReads + length(idx)
       } else {
-        writeFastq(x[idx[idx<length(x)]], file=sub[nm], mode="a", full=F, compress=F)
+        writeFastq(x[idx[idx<length(x)]], file=sub[i], mode="a", full=F, compress=F)
         nReads = nReads + sum(idx<length(x))
       }
     }
     close(fqs)
-    nReadsVector[nm] = nReads
+    nReadsVector[nms[i]] = nReads
   }
   return(nReadsVector)
 }
