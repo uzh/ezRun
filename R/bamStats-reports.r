@@ -63,7 +63,13 @@ plotBamStat = function(resultList, dataset, param, htmlFile=NULL){
   
   pngFile = "multiMatchInFile-barplot.png"
   pngLinks = makeAlignmentCountBarPlot(pngFile, mmCounts)
-  doc = addFlexTable(doc, ezGrid(rbind(pngLinks)))
+  doc = addParagraph(doc, pngLinks[["Counts"]])
+  
+  advancedTitles = list()
+  advancedTitles[["Advanced Plots"]] = "Advanced Plots"
+  advancedDoc = openBsdocReport(title=advancedTitles[[length(advancedTitles)]])
+  advancedDoc = addParagraph(advancedDoc, pngLinks[["Relative"]])
+  
   txtFile = "read-alignment-statistics.txt"
   colnames(mmCounts) = paste("#hits: ", colnames(mmCounts))
   colnames(mmCounts)[ncol(mmCounts)] = paste0(colnames(mmCounts)[ncol(mmCounts)], "+")
@@ -350,8 +356,12 @@ plotBamStat = function(resultList, dataset, param, htmlFile=NULL){
         legend("bottomright", legend=samples, col=sampleColors[samples], lwd=1, pch=1)
       })
       pngLink = ezImageFileLink(plotCmd, file=pngFile, width=700)
-    
-      doc = addParagraph(doc, pngLink)
+      
+      if (grepl("known", nm)){
+        doc = addParagraph(doc, pngLink)
+      } else {
+        plotByStatistics[["Junction Plots"]] = c(plotByStatistics[["Junction Plots"]], pngLink)
+      }
     }
   }
   
@@ -389,6 +399,8 @@ plotBamStat = function(resultList, dataset, param, htmlFile=NULL){
     closeBsdocReport(subDoc, plotBySamplesPages[i], subTitles)
   }
   doc = addFlexTable(doc, ezFlexTable(tableOfPages, header.columns=TRUE, add.rownames=TRUE))
+  closeBsdocReport(advancedDoc, "advancedPlots.html", advancedTitles)
+  doc = addParagraph(doc, pot("advancedPlots", hyperlink = "advancedPlots.html"))
   closeBsdocReport(doc, htmlFile, titles)
 }
 
