@@ -18,5 +18,11 @@ datatable(iris, extensions=c("ColReorder", "ColVis"), options = list(dom = 'C<"c
 datatable(iris, extensions=c("ColReorder", "ColVis", "TableTools"), options = list(dom = 'T<"clear">lfrtip', tableTools = list(sSwfPath = copySWF())))
 ## I think these three extensions could be useful, but all of them need a different dom in options...
 
+## example with modified start nRows, modified column alignment, sorting and filtering each column.
+datatable(iris, extensions="ColVis", filter="top", options = list(dom = 'C<"clear">lfrtip',
+                                                                  pageLength = 25,
+                                                                  columnDefs = list(list(className = 'dt-left', targets=1:2)),
+                                                                  order = list(list(1, 'asc'), list(2, 'desc'))))
+
 
 
