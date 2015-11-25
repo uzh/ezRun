@@ -71,8 +71,6 @@ test_that("count_QC", {
   param = yeastCommonDiffExprParam()
   param[['name']] = 'Count_QC'
   param[['normMethod']] = 'logMean'
-  param[['maxTableRows']] = 100
-  param[['mail']] = 'peter.schmid@ieu.uzh.ch'
   myApp = EzAppCountQC$new()
   myApp$run(input=input, output=output, param=param)
   setwd(cwd)

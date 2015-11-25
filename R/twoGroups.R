@@ -272,7 +272,12 @@ writeNgsTwoGroupReport = function(dataset, result, output, htmlFile="00index.htm
   
   titles = list()
   titles[["Analysis"]] = paste("Analysis:", param$name)
-  doc = openBsdocReport(title=titles[[length(titles)]], dataset=dataset)
+  doc = openBsdocReport(title=titles[[length(titles)]])
+  
+  titles[["Parameters"]] = "Parameters"
+  addTitle(doc, titles[[length(titles)]], 2, id=titles[[length(titles)]])
+  addDataset(doc, dataset=dataset)
+  addParagraph(doc, paste("Reference build:", param$refBuild))
   
   titles[["Result Summary"]] = "Result Summary"
   addTitle(doc, titles[[length(titles)]], 2, id=titles[[length(titles)]])

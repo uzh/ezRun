@@ -107,9 +107,15 @@ ezMethodMpileup = function(input=NA, output=NA, param=NA){
   setwdNew(reportDir)
   titles = list()
   titles[["VCF-Report"]] = paste("VCF-Report:", param$name)
-  doc = openBsdocReport(titles[[length(titles)]], dataset=bamDataset)
+  doc = openBsdocReport(titles[[length(titles)]])
   #   html = openHtmlReport(htmlFile, param=param, title=paste("VCF-Report:", param$name),
   #                         dataset=bamDataset)
+  
+  titles[["Parameters"]] = "Parameters"
+  addTitle(doc, titles[[length(titles)]], 2, id=titles[[length(titles)]])
+  addDataset(doc, dataset=bamDataset)
+  addParagraph(doc, paste("Reference build:", param$refBuild))
+  
   chromSizes = ezChromSizesFromVcf(file.path("..", basename(vcfOutputFile)))
   genotype = geno(readVcf(file.path("..", basename(vcfOutputFile)), genome="genomeDummy"))
   gt = genotype$GT

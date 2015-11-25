@@ -32,7 +32,7 @@ ezMethodCountQC = function(input=NA, output=NA, param=NA, htmlFile="00index.html
     rawData = loadCountDataset(input, param)
   }
   if (isError(rawData)){
-    writeErrorReport(htmlFile, param=param, dataset=dataset, error=rawData$error)
+    writeErrorReport(htmlFile, param=param, error=rawData$error)
     return("Error")
   }
   runNgsCountQC(dataset, htmlFile, param, rawData=rawData)
@@ -103,7 +103,7 @@ runNgsCountQC = function(dataset, htmlFile="00index.html", param=param, rawData=
   
   titles = list()
   titles[["Analysis"]] = paste("Analysis:", ifelse(grepl("bam", param$name, ignore.case = TRUE), sub("$", "_Count_QC", param$name), param$name))
-  doc = openBsdocReport(title=titles[[length(titles)]], dataset=dataset)
+  doc = openBsdocReport(title=titles[[length(titles)]])
   
   if (nSamples < 2){
     titles[["Note"]] = "Note: Statistics and Plots are not available for single sample experiments"
@@ -123,6 +123,9 @@ runNgsCountQC = function(dataset, htmlFile="00index.html", param=param, rawData=
   
   titles[["Parameters"]] = "Parameters"
   addTitle(doc, titles[[length(titles)]], 2, id=titles[[length(titles)]])
+  addDataset(doc, dataset=dataset)
+  addParagraph(doc, paste("Reference build:", param$refBuild))
+  
   settings = character()
   settings["Normalization method:"] = param$normMethod
   if (param$useSigThresh){

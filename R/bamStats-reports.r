@@ -29,7 +29,12 @@ plotBamStat = function(resultList, dataset, param, htmlFile=NULL){
   
   titles = list()
   titles[["BAM Statistics"]] = paste("BAM Statistics:", param$name)
-  doc = openBsdocReport(title=titles[[length(titles)]], dataset=dataset)
+  doc = openBsdocReport(title=titles[[length(titles)]])
+  
+  titles[["Parameters"]] = "Parameters"
+  addTitle(doc, titles[[length(titles)]], 2, id=titles[[length(titles)]])
+  addDataset(doc, dataset=dataset)
+  addParagraph(doc, paste("Reference build:", param$refBuild))
   
 ## TODO: add later  
 #   if (param$writeIgvSessionLink){

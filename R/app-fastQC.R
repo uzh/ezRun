@@ -64,7 +64,12 @@ ezMethodFastQC = function(input=NA, output=NA, param=NA, htmlFile="00index.html"
   ## establish the main report
   titles = list()
   titles[["FastQC"]] = paste("FASTQC:", param$name)
-  doc = openBsdocReport(title=titles[[length(titles)]], dataset=dataset)
+  doc = openBsdocReport(title=titles[[length(titles)]])
+  
+  titles[["Parameters"]] = "Parameters"
+  addTitle(doc, titles[[length(titles)]], 2, id=titles[[length(titles)]])
+  addDataset(doc, dataset=dataset)
+  addParagraph(doc, paste("Reference build:", param$refBuild))
   
   titles[["Read Counts"]] = "Read Counts"
   addTitle(doc, titles[[length(titles)]], 2, id=titles[[length(titles)]])

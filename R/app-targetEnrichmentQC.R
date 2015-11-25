@@ -76,9 +76,13 @@ teqc = function(input, param=NULL){
   htmlFile="00index.html"
 #   titles = list()
 #   titles[["TEQC-Report"]] = paste("TEQC-Report:", param$name)
-#   doc = openBsdocReport(title=titles[[length(titles)]], dataset=input$meta)
+#   doc = openBsdocReport(title=titles[[length(titles)]])
   html = openHtmlReport(htmlFile, param=param, title=paste("TEQC-Report:", param$name),
                         dataset=input$meta)
+#   titles[["Parameters"]] = "Parameters"
+#   addTitle(doc, titles[[length(titles)]], 2, id=titles[[length(titles)]])
+#   addDataset(doc, dataset=input$meta)
+#   addParagraph(doc, paste("Reference build:", param$refBuild))
 #   titles[["MultiSample-Report"]] = "MultiSample-Report"
 #   addTitle(doc, titles[[length(titles)]], 2, id=titles[[length(titles)]])
   ezWrite("<h2>MultiSample-Report</h2>",con=html)

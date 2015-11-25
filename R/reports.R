@@ -113,17 +113,28 @@ imgLinks = function(image){
 ##' @examples
 ##' theDoc = openBsdocReport(title="My html report")
 ##' closeBsdocReport(doc=theDoc, file="example.html")
-openBsdocReport = function(title="", dataset=NULL){
+openBsdocReport = function(title=""){
   doc = bsdoc(title = title)
   pot1 = pot(paste("Started on", format(Sys.time(), "%Y-%m-%d %H:%M:%S"), "--&#160;"))
   pot2 = as.html(pot("Documentation", hyperlink = "http://fgcz-sushi.uzh.ch/doc/methods-20140422.html"))
   doc = addFlexTable(doc, ezGrid(cbind(pot1, pot2)))
   addTitle(doc, title, id=title)
-  if (!is.null(dataset)){
-    ezWrite.table(dataset, file="dataset.tsv", head="Name")
-    doc = addParagraph(doc, pot("dataset.tsv", hyperlink = "dataset.tsv"))
-  }
   return(doc)
+}
+
+##' @title Adds a dataset
+##' @description Adds a dataset to a bsdoc object.
+##' @template doc-template
+##' @templateVar object dataset
+##' @template dataset-template
+##' @template roxygen-template
+addDataset = function(doc, dataset){
+  ezWrite.table(dataset, file="dataset.tsv", head="Name")
+  tableLink = "dataset.html"
+  interactiveTable = DT::datatable(dataset, extensions = "ColVis", filter="top",
+                                   options = list(dom = 'C<"clear">lfrtip', pageLength = 25))
+  DT::saveWidget(interactiveTable, tableLink)
+  doc = addParagraph(doc, pot("Input Dataset", hyperlink=tableLink))
 }
 
 ##' @title Adds a java function
@@ -199,7 +210,7 @@ closeBsdocReport = function(doc, file, titles=NULL){
 }
 
 ##' @title Adds a title with an anchor
-##' @description Adds a title with an anchor by using \code{addTitle()} and \code{addCodeBlock()} from the ReporteRs package.
+##' @description Adds a title with an anchor by using \code{addTitle()} from the ReporteRs package.
 ##' @template doc-template
 ##' @templateVar object anchored title
 ##' @param title a character specifying the title.
@@ -230,8 +241,8 @@ closeBsdocReport = function(doc, file, titles=NULL){
 ##' param = ezParam()
 ##' htmlFile = "example.html"
 ##' writeErrorReport(htmlFile, param)
-writeErrorReport = function(htmlFile, param=param, dataset=NULL, error="Unknown Error"){
-  html = openBsdocReport(title=paste("Error:", param$name), dataset=dataset)
+writeErrorReport = function(htmlFile, param=param, error="Unknown Error"){
+  html = openBsdocReport(title=paste("Error:", param$name))
   html = addTitle(html, "Error message", level=2)
   for (i in 1:length(error)){
     html = addParagraph(html, error[i])
@@ -240,7 +251,7 @@ writeErrorReport = function(htmlFile, param=param, dataset=NULL, error="Unknown 
 }
 
 ##' @title Adds text links
-##' @description Adds texts link to an html file.
+##' @description Adds texts link to a bsdoc object.
 ##' @template doc-template
 ##' @templateVar object text links
 ##' @param txtNames a character representing the file names.

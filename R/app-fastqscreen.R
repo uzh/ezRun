@@ -163,9 +163,13 @@ collectBowtie2Output = function(param, dataset, countFiles){
 fastqscreenReport = function(dataset, param, htmlFile="00index.html", fastqData, speciesPercentageTop){
   titles = list()
   titles[["FastQ Screen"]] = paste("FastQ Screen:", param$name)
-  html = openBsdocReport(title=titles[[length(titles)]], dataset=dataset)
-  titles[["Settings"]] = "Settings"
-  addTitle(html, titles[[length(titles)]], 2, id=titles[[length(titles)]])
+  html = openBsdocReport(title=titles[[length(titles)]])
+  
+  titles[["Parameters"]] = "Parameters"
+  addTitle(doc, titles[[length(titles)]], 2, id=titles[[length(titles)]])
+  addDataset(doc, dataset=dataset)
+  addParagraph(doc, paste("Reference build:", param$refBuild))
+  
   settings = character()
   settings["Configuration File:"] = param$confFile
   settings["RefSeq mRNA Reference:"] = REFSEQ_mRNA_REF
