@@ -60,7 +60,7 @@ ezMethodRSEM = function(input=NA, output=NA, param=NA){
     colnames(result) = c("gene_id", "width")
   } else {
     result = ezRead.table(param$ezRef["refAnnotationFile"], colClasses="character")
-    result = result[ , intersect(colnames(result), "gene_id", "width", "gc"), drop=FALSE]
+    result = result[ , intersect(colnames(result), c("gene_id", "width", "gc")), drop=FALSE]
   }
   transcriptResult = transcriptResult[rownames(result), ]
   result$transcriptCount = transcriptResult$expected_count
