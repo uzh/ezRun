@@ -240,12 +240,12 @@ closeBsdocReport = function(doc, file, titles=NULL){
 ##' htmlFile = "example.html"
 ##' writeErrorReport(htmlFile, param)
 writeErrorReport = function(htmlFile, param=param, error="Unknown Error"){
-  html = openBsdocReport(title=paste("Error:", param$name))
-  html = addTitle(html, "Error message", level=2)
+  doc = openBsdocReport(title=paste("Error:", param$name))
+  doc = addTitle(doc, "Error message", level=2)
   for (i in 1:length(error)){
-    html = addParagraph(html, error[i])
+    doc = addParagraph(doc, error[i])
   }
-  closeBsdocReport(html, htmlFile)
+  closeBsdocReport(doc, htmlFile)
 }
 
 ##' @title Adds text links
