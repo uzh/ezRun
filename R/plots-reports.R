@@ -152,10 +152,14 @@ addTestScatterPlots = function(doc, param, x, result, seqAnno, types=NULL){
   if (ncol(result$groupMeans) == 2 & !is.null(param$sampleGroup) & !is.null(param$refGroup)){
     sampleValues = 2^result$groupMeans[ , param$sampleGroup]
     refValues = 2^result$groupMeans[ , param$refGroup]
-#     myPlotFoo = function(){   ### TODO: if types isn't NULL, the code will want to add a legend with legend(), but fails because of the legend.
-#       ezScatter(x=refValues, y=sampleValues, isPresent=result$usedInTest, types=types, xlab=param$refGroup, ylab=param$sampleGroup)
-#       add.plot.interactivity(fun=points, x=refValues[types$Significants], y=sampleValues[types$Significants],
-#                              col="red", pch=16, popup.labels = names(refValues[types$Significants]))
+#     myPlotFoo = function(){
+#       clickActions = paste0("window.open('http://www.ihop-net.org/UniPub/iHOP/?search=%22", names(refValues[types$Significants]),
+#                              "%22&field=synonym&ncbi_tax_id=0');")
+#       ### TODO: if types isn't NULL, the code will want to add a legend with legend(), but fails because of the legend. mtext used as a workaround.
+#       ezScatter(x=refValues, y=sampleValues, isPresent=result$usedInTest, xlab=param$refGroup, ylab=param$sampleGroup)
+#       add.plot.interactivity(fun=points, x=refValues[types$Significants], y=sampleValues[types$Significants], col="red", pch=16,
+#                              popup.labels = names(refValues[types$Significants]), click.actions = clickActions)
+#       mtext(colnames(types), adj=1, col=rainbow(ncol(types)), cex=1.2)
 #     }
 #     doc = addPlot(doc, myPlotFoo, fontname="serif")
     plotCmd = expression({
