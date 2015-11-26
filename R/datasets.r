@@ -172,13 +172,11 @@ ezCombineReadDatasets = function(ds1, ds2, dataRoot="/srv/gstore/projects", newD
   # if colnames are not equal, we're not finished with this part:
   # this code should be able to merge columns correctly while filling in NA's no matter how column names occur in ds1 and ds2
   if (!setequal(colDs1, colDs2)){
-    
     # add ds1 columns
     cdiff1 = setdiff(colDs1, colDs2)
     for (i in 1:length(cdiff1)){
       dsNew = cbind(dsNew, c(ds1[, cdiff1[i]], rep(NA, length(rowdiff2))))
     }
-    
     # add ds2 columns while making sure to add everything in the right place
     cdiff2 = setdiff(colDs2, colDs1)
     for (i in 1:length(cdiff2)){
@@ -189,7 +187,6 @@ ezCombineReadDatasets = function(ds1, ds2, dataRoot="/srv/gstore/projects", newD
       }
       dsNew = cbind(dsNew, colToAdd)
     }
-    
     # set the colnames for dsNew
     colnames(dsNew) = c(cols, cdiff1, cdiff2)
   }
@@ -202,33 +199,61 @@ ezCombineReadDatasets = function(ds1, ds2, dataRoot="/srv/gstore/projects", newD
   
   # loop through rows of dsNew to apply the merging
   for (nm in rowDsNew){
+    read2IsNull.Ds1 = is.null(ds1[nm, "Read2 [File]"])
+    read2IsNull.Ds2 = is.null(ds2[nm, "Read2 [File]"])
     if (nm %in% rowDs1 && !(nm %in% rowDs2)){
-      
       # nm is in ds1, but not in ds2
       dsNew[nm, "Read Count"] = ds1[nm, "Read Count"]
-      file = file.path(dataRoot, ds1[nm, "Read1 [File]"])
-      ezSystem(paste("cp", file, "."))
-      dsNew[nm, "Read1 [File]"] = file.path(newDsDir, basename(file))
+      fileRead1 = file.path(dataRoot, ds1[nm, "Read1 [File]"])
+      ezSystem(paste("cp", fileRead1, "."))
+      dsNew[nm, "Read1 [File]"] = file.path(newDsDir, basename(fileRead1))
+      if (!read2IsNull.Ds1){
+        fileRead2 = file.path(dataRoot, ds1[nm, "Read2 [File]"])
+        ezSystem(paste("cp", fileRead2, "."))
+        dsNew[nm, "Read2 [File]"] = file.path(newDsDir, basename(fileRead2))
+      }
     } else if (nm %in% rowDs2 && !(nm %in% rowDs1)){
-      
       # nm is in ds2, but not in ds1
       dsNew[nm, "Read Count"] = ds2[nm, "Read Count"]
-      file = file.path(dataRoot, ds2[nm, "Read1 [File]"])
-      ezSystem(paste("cp", file, "."))
-      dsNew[nm, "Read1 [File]"] = file.path(newDsDir, basename(file))
+      fileRead1 = file.path(dataRoot, ds2[nm, "Read1 [File]"])
+      ezSystem(paste("cp", fileRead1, "."))
+      dsNew[nm, "Read1 [File]"] = file.path(newDsDir, basename(fileRead1))
+      if (!read2IsNull.Ds2){
+        fileRead2 = file.path(dataRoot, ds2[nm, "Read2 [File]"])
+        ezSystem(paste("cp", fileRead2, "."))
+        dsNew[nm, "Read2 [File]"] = file.path(newDsDir, basename(fileRead2))
+      }
     } else {
-      
       # nm is in ds1 and ds2, thus they need to be merged. there should be no other case.
       dsNew[nm, "Read Count"] = ds1[nm, "Read Count"] + ds2[nm, "Read Count"]
-      file1 = file.path(dataRoot, ds1[nm, "Read1 [File]"])
-      file2 = file.path(dataRoot, ds2[nm, "Read1 [File]"])
+      fileRead1.1 = file.path(dataRoot, ds1[nm, "Read1 [File]"])
+      fileRead1.2 = file.path(dataRoot, ds2[nm, "Read1 [File]"])
       fileMerged = paste0("combined-", nm, "_R1.fastq.gz")
-      cmd = paste("gunzip -c", file1, file2, "|", "pigz -p4 --best >", fileMerged)
+      cmd = paste("gunzip -c", fileRead1.1, fileRead1.2, "|", "pigz -p4 --best >", fileMerged)
       cat(cmd, "\n")
       ezSystem(cmd)
       dsNew[nm, "Read1 [File]"] = file.path(newDsDir, fileMerged)
+      if (!read2IsNull.Ds1 && !read2IsNull.Ds2){
+        # Read2 exists in both datasets and needs to be merged as well
+        fileRead2.1 = file.path(dataRoot, ds1[nm, "Read2 [File]"])
+        fileRead2.2 = file.path(dataRoot, ds2[nm, "Read2 [File]"])
+        fileMerged = paste0("combined-", nm, "_R2.fastq.gz")
+        cmd = paste("gunzip -c", fileRead2.1, fileRead2.2, "|", "pigz -p4 --best >", fileMerged)
+        cat(cmd, "\n")
+        ezSystem(cmd)
+        dsNew[nm, "Read2 [File]"] = file.path(newDsDir, fileMerged)
+      } else if (!read2IsNull.Ds1 && read2IsNull.Ds2){
+        # Read2 only exists in ds1
+        fileRead2 = file.path(dataRoot, ds1[nm, "Read2 [File]"])
+        ezSystem(paste("cp", fileRead2, "."))
+        dsNew[nm, "Read2 [File]"] = file.path(newDsDir, basename(fileRead2))
+      } else if (!read2IsNull.Ds2 && read2IsNull.Ds1){
+        # Read2 only exists in ds2
+        fileRead2 = file.path(dataRoot, ds2[nm, "Read2 [File]"])
+        ezSystem(paste("cp", fileRead2, "."))
+        dsNew[nm, "Read2 [File]"] = file.path(newDsDir, basename(fileRead2))
+      } 
     }
   }
   return(dsNew)
 }
-
