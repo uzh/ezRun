@@ -115,7 +115,8 @@ loadCountDataset = function(input, param){
   if (dataFeatureLevel == "isoform" && param$featureLevel == "gene"){
     rawData = aggregateCountsByGene(param, rawData)
   }
-  rawData$rpkm = getRpkm (rawData)  
+  rawData$rpkm = getRpkm(rawData)  
+  rawData$tpm = getTpm(rawData)
   return(rawData)
 }
 

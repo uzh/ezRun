@@ -15,7 +15,6 @@ ezMethodCountQC = function(input=NA, output=NA, param=NA, htmlFile="00index.html
   if (is.null(param$runGO)){
     param$runGO = TRUE
   }
-  
   cwd = getwd()
   on.exit(setwd(cwd))
   dataset = input$meta
@@ -159,9 +158,12 @@ runNgsCountQC = function(dataset, htmlFile="00index.html", param=param, rawData=
     DT::saveWidget(interactiveTable, tableLink)
     
     rpkmFile = paste0(ezValidFilename(param$name), "-rpkm.txt")
-    ezWrite.table(getRpkm(rawData), file=rpkmFile, head="Feature ID", digits=4)
+    ezWrite.table(getRpkm(rawData), file=rpkmFile, head="Feature ID", digits=4) ## TODOP: getRpkm necessary? rawData$rpkm should work (in all cases?)
     
-    dataFiles = c(countFile, signalFile, rpkmFile)
+    tpmFile = paste0(ezValidFilename(param$name), "-tpm.txt")
+    ezWrite.table(getTpm(rawData), file=tpmFile, head="Feature ID", digits=4) ## TODOP: getTpm necessary? rawData$tpm should work (in all cases?)
+    
+    dataFiles = c(countFile, signalFile, rpkmFile, tpmFile)
     titles[["Data Files"]] = "Data Files"
     addTitle(doc, titles[[length(titles)]], 2, id=titles[[length(titles)]])
     addTxtLinksToReport(doc, dataFiles, param$doZip)

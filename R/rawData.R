@@ -131,6 +131,27 @@ getRpkm = function(rawData){
   return(rpkm)
 }
 
+##' @title Gets the tpm measure
+##' @description Gets the transcripts per million measure.
+##' @template rawData-template
+##' @template roxygen-template
+##' @return Returns the tpm measure.
+getTpm = function(rawData) {
+  if (!is.null(rawData$tpm)){
+    return(rawData$tpm)
+  }
+  if (is.null(rawData$seqAnno$width)){
+    return(NULL)
+  }
+  tpm = rawData$counts
+  for (i in 1:ncol(tpm)){
+    rpk = (rawData$counts[,i] * 1e3) /(rawData$seqAnno$width)
+    scalingFactor = sum(rpk)/1e6
+    tpm[, i] = rpk / scalingFactor
+  }
+  return(tpm)
+}
+
 ##' @title Aggregates counts by gene
 ##' @description Aggregates counts by gene.
 ##' @param param a list of parameters:
