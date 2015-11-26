@@ -163,7 +163,7 @@ collectBowtie2Output = function(param, dataset, countFiles){
 fastqscreenReport = function(dataset, param, htmlFile="00index.html", fastqData, speciesPercentageTop){
   titles = list()
   titles[["FastQ Screen"]] = paste("FastQ Screen:", param$name)
-  html = openBsdocReport(title=titles[[length(titles)]])
+  doc = openBsdocReport(title=titles[[length(titles)]])
   
   titles[["Parameters"]] = "Parameters"
   addTitle(doc, titles[[length(titles)]], 2, id=titles[[length(titles)]])
@@ -179,11 +179,11 @@ fastqscreenReport = function(dataset, param, htmlFile="00index.html", fastqData,
   settings["Minimum AlignmentScore:"] = param$minAlignmentScore
   settings["TopSpecies:"] = param$nTopSpecies
   # settings["Subset:"] = param$subset     ## param$subset doesn't seem to exist
-  html = addFlexTable(html, ezFlexTable(as.data.frame(settings), add.rownames=TRUE))
+  doc = addFlexTable(doc, ezFlexTable(as.data.frame(settings), add.rownames=TRUE))
   titles[["rRNA-Check"]] = "rRNA-Check"
-  addTitle(html, titles[[length(titles)]], 2, id=titles[[length(titles)]])
+  addTitle(doc, titles[[length(titles)]], 2, id=titles[[length(titles)]])
   titles[["Per Dataset"]] = "Per Dataset"
-  addTitle(html, titles[[length(titles)]], 3, id=titles[[length(titles)]])
+  addTitle(doc, titles[[length(titles)]], 3, id=titles[[length(titles)]])
   
   plotCmd = expression({
     par(mar=c(10.1, 4.1, 4.1, 2.1))
@@ -196,7 +196,7 @@ fastqscreenReport = function(dataset, param, htmlFile="00index.html", fastqData,
     barplot(fastqData$Reads, las=2, ylab="#Reads", main="ProcessedReads", col="lightblue")
   })
   readsLink = ezImageFileLink(plotCmd, file="Reads.png", width=600, height=450)
-  html = addFlexTable(html, ezGrid(cbind(mappingRateLink, readsLink)))
+  doc = addFlexTable(doc, ezGrid(cbind(mappingRateLink, readsLink)))
   
   screenLinks = list()
   detectedSpeciesLinks = list()
@@ -220,27 +220,27 @@ fastqscreenReport = function(dataset, param, htmlFile="00index.html", fastqData,
   IMAGESperROW = 4
   if (ezIsSpecified(screenLinks)){
     titles[["Per Sample"]] = "Per Sample"
-    addTitle(html, titles[[length(titles)]], 3, id=titles[[length(titles)]])
+    addTitle(doc, titles[[length(titles)]], 3, id=titles[[length(titles)]])
     if(length(screenLinks) <= IMAGESperROW){
-      html = addFlexTable(html, ezGrid(rbind(screenLinks)))
+      doc = addFlexTable(doc, ezGrid(rbind(screenLinks)))
     } else {
-      html = addFlexTable(html, ezGrid(rbind(screenLinks[1:IMAGESperROW])))
+      doc = addFlexTable(doc, ezGrid(rbind(screenLinks[1:IMAGESperROW])))
       for (i in 1:(ceiling(length(screenLinks)/IMAGESperROW)-1)){
-        html = addFlexTable(html, ezGrid(rbind(screenLinks[(i*IMAGESperROW+1):min((i+1)*IMAGESperROW,length(screenLinks))])))
+        doc = addFlexTable(doc, ezGrid(rbind(screenLinks[(i*IMAGESperROW+1):min((i+1)*IMAGESperROW,length(screenLinks))])))
       }
     }
   }
   if (ezIsSpecified(detectedSpeciesLinks)){
     titles[["Mapping to RefSeq mRNA"]] = "Mapping to RefSeq mRNA"
-    addTitle(html, titles[[length(titles)]], 2, id=titles[[length(titles)]])
+    addTitle(doc, titles[[length(titles)]], 2, id=titles[[length(titles)]])
     if(length(detectedSpeciesLinks) <= IMAGESperROW){
-      html = addFlexTable(html, ezGrid(rbind(detectedSpeciesLinks)))
+      doc = addFlexTable(doc, ezGrid(rbind(detectedSpeciesLinks)))
     } else {
-      html = addFlexTable(html, ezGrid(rbind(detectedSpeciesLinks[1:IMAGESperROW])))
+      doc = addFlexTable(doc, ezGrid(rbind(detectedSpeciesLinks[1:IMAGESperROW])))
       for (i in 1:(ceiling(length(detectedSpeciesLinks)/IMAGESperROW)-1)){
-        html = addFlexTable(html, ezGrid(rbind(detectedSpeciesLinks[(i*IMAGESperROW+1):min((i+1)*IMAGESperROW,length(detectedSpeciesLinks))])))
+        doc = addFlexTable(doc, ezGrid(rbind(detectedSpeciesLinks[(i*IMAGESperROW+1):min((i+1)*IMAGESperROW,length(detectedSpeciesLinks))])))
       }
     }
   }
-  closeBsdocReport(doc=html, file=htmlFile, titles)
+  closeBsdocReport(doc=doc, file=htmlFile, titles)
 }
