@@ -32,8 +32,8 @@ goClusterTable = function(param, clusterResult){
   nameMap = c("BP"="Biological Proc. (BP)", "MF"="Molecular Func. (MF)", "CC"="Cellular Comp. (CC)")
   colnames(tables) = nameMap[colnames(tables)]
   ft = ezFlexTable(tables, border = 2, header.columns = TRUE, add.rownames=TRUE)
-  bgColors = rep(gsub("FF$", "", clusterResult$clusterColors), each=ncol(tables)+1)
-  ft = setFlexTableBackgroundColors(ft, colors=bgColors)
+  bgColors = rep(gsub("FF$", "", clusterResult$clusterColors))
+  ft = setFlexTableBackgroundColors(ft, j=1, colors=bgColors)
   return(list(ft=ft, linkTable=linkTable))
 }
 
