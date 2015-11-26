@@ -4,17 +4,16 @@
 \alias{writeErrorReport}
 \title{Writes an error report}
 \usage{
-writeErrorReport(htmlFile, param = param, dataset = NULL,
-  error = "Unknown Error")
+writeErrorReport(htmlFile, param = param, error = "Unknown Error")
 }
 \arguments{
 \item{htmlFile}{a character, ending with .html, representing the file path of an html file.}
 
 \item{param}{a list of parameters to extract the \code{name} from.}
 
-\item{dataset}{a data.frame from the meta field of an EzDataset.}
-
 \item{error}{a character vector representing the error message(s).}
+
+\item{dataset}{a data.frame from the meta field of an EzDataset.}
 }
 \description{
 Writes an error report to an html file. Also creates the file and closes it.

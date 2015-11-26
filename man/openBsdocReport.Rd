@@ -5,7 +5,7 @@
 \alias{openBsdocReport}
 \title{Opens an html report}
 \usage{
-openBsdocReport(title = "", dataset = NULL)
+openBsdocReport(title = "")
 
 closeBsdocReport(doc, file, titles = NULL)
 }

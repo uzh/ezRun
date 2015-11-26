@@ -17,7 +17,7 @@ addTxtLinksToReport(doc, txtNames, doZip = FALSE, mime = ifelse(doZip,
 \item{mime}{a character representing the type of the links.}
 }
 \description{
-Adds texts link to an html file.
+Adds texts link to a bsdoc object.
 }
 \examples{
 param = ezParam()
