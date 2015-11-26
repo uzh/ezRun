@@ -22,9 +22,7 @@ goClusterTable = function(param, clusterResult){
       x = clusterResult$GO[[onto]][[i]]
       goFrame = .getGoTermsAsTd(x, param$pValThreshFisher, param$minCountFisher, onto=onto)
       linkTable[onto, i] = paste0("Cluster-", onto, "-", i, ".html")
-      interactiveTable = DT::datatable(head(goFrame, param$maxTableRows), extensions = "ColVis", filter="top",
-                                       options = list(dom = 'C<"clear">lfrtip', pageLength = 25))
-      DT::saveWidget(interactiveTable, linkTable[onto, i])
+      ezInteractiveTable(head(goFrame, param$maxTableRows), tableLink = linkTable[onto, i])
       linkTable[onto, i] = as.html(pot(sub(".html", "", linkTable[onto, i]), hyperlink=linkTable[onto, i]))
       if (nrow(goFrame) > 0){
         tables[i, onto] = as.html(ezFlexTable(goFrame, talign="right"))
@@ -93,9 +91,7 @@ goUpDownTables = function(param, goResult){
       goFrame = .getGoTermsAsTd(x[[sub]], param$pValThreshFisher, param$minCountFisher, onto=onto,
                                 maxNumberOfTerms=param$maxNumberGroupsDisplayed)
       linkTable[onto, sub] = paste0("Cluster-", onto, "-", sub, ".html")
-      interactiveTable = DT::datatable(head(goFrame, param$maxTableRows), extensions = "ColVis", filter="top",
-                                       options = list(dom = 'C<"clear">lfrtip', pageLength = 25))
-      DT::saveWidget(interactiveTable, linkTable[onto, sub])
+      ezInteractiveTable(head(goFrame, param$maxTableRows), tableLink = linkTable[onto, sub])
       linkTable[onto, sub] = as.html(pot(sub(".html", "", linkTable[onto, sub]), hyperlink=linkTable[onto, sub]))
       if (nrow(goFrame) > 0){
         resultList[[sub]]["Cats", onto] = as.html(ezFlexTable(goFrame, talign="right"))

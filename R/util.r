@@ -648,4 +648,19 @@ ezCollapse = function(x, sep="; ", na.rm=FALSE, empty.rm=FALSE, uniqueOnly=FALSE
   paste(x, collapse=sep)
 }
 
-
+##' @title Saves an interactive table
+##' @description Saves an interactive table accessible with the provided \code{tableLink}.
+##' @param table a data.frame or table to create an interactive table from.
+##' @param tableLink a character ending with .html representing the link to the interactive table
+##' @template roxygen-template
+##' @seealso \code{\link[DT]{datatable}}
+##' @seealso \code{\link[DT]{saveWidget}}
+##' @examples 
+##' tableLink = "exampleTable.html"
+##' table = data.frame(a=1:100, b=201:300)
+##' ezInteractiveTable(table, tableLink)
+ezInteractiveTable = function(table, tableLink){
+  interactiveTable = DT::datatable(table, extensions = "ColVis", filter="top",
+                                   options = list(dom = 'C<"clear">lfrtip', pageLength = 25)) ## TODOP: sort table?
+  DT::saveWidget(interactiveTable, tableLink)
+}

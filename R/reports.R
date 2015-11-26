@@ -131,9 +131,7 @@ openBsdocReport = function(title=""){
 addDataset = function(doc, dataset){
   ezWrite.table(dataset, file="dataset.tsv", head="Name")
   tableLink = "dataset.html"
-  interactiveTable = DT::datatable(dataset, extensions = "ColVis", filter="top",
-                                   options = list(dom = 'C<"clear">lfrtip', pageLength = 25))
-  DT::saveWidget(interactiveTable, tableLink)
+  ezInteractiveTable(dataset, tableLink)
   doc = addParagraph(doc, pot("Input Dataset", hyperlink=tableLink))
 }
 
@@ -471,9 +469,7 @@ addResultFile = function(doc, param, result, rawData, useInOutput=TRUE,
   useInInteractiveTable = c("gene_name", "transcript_id", "type", "description", "width", "gc", "isPresent", "log2 Ratio", "pValue", "fdr")
   useInInteractiveTable = intersect(useInInteractiveTable, colnames(y))
   widgetLink = sub(".txt", "-viewTopGenes.html", file)
-  interactiveTable = DT::datatable(head(y[, useInInteractiveTable], param$maxTableRows), extensions = "ColVis", filter="top",
-                                   options = list(dom = 'C<"clear">lfrtip', pageLength = 25))
-  DT::saveWidget(interactiveTable, widgetLink)
+  ezInteractiveTable(head(y[, useInInteractiveTable], param$maxTableRows), widgetLink)
   doc = addParagraph(doc, pot(sub(".html", "", widgetLink), hyperlink=widgetLink))
   
   return(list(resultFile=file))
