@@ -158,10 +158,10 @@ runNgsCountQC = function(dataset, htmlFile="00index.html", param=param, rawData=
     DT::saveWidget(interactiveTable, tableLink)
     
     rpkmFile = paste0(ezValidFilename(param$name), "-rpkm.txt")
-    ezWrite.table(getRpkm(rawData), file=rpkmFile, head="Feature ID", digits=4) ## TODOP: getRpkm necessary? rawData$rpkm should work (in all cases?)
+    ezWrite.table(getRpkm(rawData), file=rpkmFile, head="Feature ID", digits=4) ## NOTE: getRpkm/getTpm necessary? rawData$rpkm/tpm should work,
     
     tpmFile = paste0(ezValidFilename(param$name), "-tpm.txt")
-    ezWrite.table(getTpm(rawData), file=tpmFile, head="Feature ID", digits=4) ## TODOP: getTpm necessary? rawData$tpm should work (in all cases?)
+    ezWrite.table(getTpm(rawData), file=tpmFile, head="Feature ID", digits=4) ## NOTE: unless loadCountDataset was not able to properly execute getRpkm/getTpm
     
     dataFiles = c(countFile, signalFile, rpkmFile, tpmFile)
     titles[["Data Files"]] = "Data Files"

@@ -159,6 +159,8 @@ addTestScatterPlots = function(doc, param, x, result, seqAnno, types=NULL){
 #       ezScatter(x=refValues, y=sampleValues, isPresent=result$usedInTest, xlab=param$refGroup, ylab=param$sampleGroup)
 #       add.plot.interactivity(fun=points, x=refValues[types$Significants], y=sampleValues[types$Significants], col="red", pch=16,
 #                              popup.labels = names(refValues[types$Significants]), click.actions = clickActions)
+#       ## NOTE: adding the legend like this also leads to a java.lang.ArrayIndexOutOfBoundsException: 2147483647
+#       # add.plot.interactivity(fun=legend, "bottomright", colnames(types), col=rainbow(ncol(types)), cex=1.2, pt.cex=1.5, pch=20, bty="o", pt.bg="white")
 #       mtext(colnames(types), adj=1, col=rainbow(ncol(types)), cex=1.2)
 #     }
 #     doc = addPlot(doc, myPlotFoo, fontname="serif")
