@@ -21,10 +21,10 @@ ezMethodMacs2 = function(input=NA, output=NA, param=NA){
     ezSystem(cmd)
     bedgraphFileTreat = paste0(output$getNames(), '_treat_pileup.bdg')
     bedgraphFileControl = paste0(output$getNames(), '_control_lambda.bdg')
-    cmd = paste0(MACS2, "bdgcmp -t ", bedgraphFileTreat,
-                "-c", bedgraphFileControl, "-o", paste(output$getNames(),"_FE.bdg"), "-m FE")
+    cmd = paste(MACS2, " bdgcmp -t", bedgraphFileTreat,
+                "-c", bedgraphFileControl, "-o", paste0(output$getNames(),"_FE.bdg"), "-m FE")
     ezSystem(cmd)
-    cmd = paste0(BEDGRAPHBIGWIG, paste(output$getNames(), "_FE.bdg"), getRefChromSizesFile(param), paste(output$getNames(), ".bw"))
+    cmd = paste(BEDGRAPHBIGWIG, paste0(output$getNames(), "_FE.bdg"), getRefChromSizesFile(param), paste0(output$getNames(), ".bw"))
     ezSystem(cmd)
     ezSystem("rm *.bdg")
   } else {
@@ -75,12 +75,11 @@ annotatePeaks = function(input=NA, output=NA, param=NA) {
     return(NULL)
   }
   data = data[order(data$chr,data$start),]
-  
   requireNamespace("rtracklayer")
   requireNamespace("GenomicRanges")
   
   gtfFile = param$ezRef@refFeatureFile
-  gtf = import(gtfFile, asRangedData=FALSE)
+  gtf = rtracklayer::import(gtfFile)
   idx = gtf$type =='gene'
   if(!any(idx)){
     idx = gtf$type =='start_codon'
@@ -95,8 +94,7 @@ annotatePeaks = function(input=NA, output=NA, param=NA) {
   annoRD = as(gtf, "RangedData")
   peaksRD = RangedData(space=data$chr, IRanges(data$start, data$end), strand=rep('*',nrow(data)))
   rownames(peaksRD) = data$name
-  annotatedPeaks = as.data.frame.RangedData(ChIPpeakAnno::annotatePeakInBatch(peaksRD,AnnotationData = annoRD,
-                                                                              output='nearestStart', multiple=FALSE,FeatureLocForDistance='TSS'))
+  annotatedPeaks = as.data.frame(ChIPpeakAnno::annotatePeakInBatch(peaksRD,AnnotationData = annoRD,output='nearestStart',multiple=FALSE,FeatureLocForDistance='TSS'))
   annotatedPeaks = annotatedPeaks[,c("peak","strand","feature","start_position","end_position","insideFeature","distancetoFeature")]
   annotatedPeaks = merge(data,annotatedPeaks,by.x='name',by.y='peak',all.x=T)
   localAnnotation = ezRead.table(param$ezRef@refAnnotationFile)
