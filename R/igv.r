@@ -180,10 +180,9 @@ addIgvSessionLink = function(genome, refBuild, bamFiles, doc, locus="All", label
   urls = paste(baseUrl, bamFiles, sep="/")
   writeIgvSession(genome, refBuild, bamUrls=urls, locus=locus)
   for (url in urls){
-    doc = addParagraph(doc, pot(url, hyperlink = url))
+    addParagraph(doc, pot(url, hyperlink = url))
   }
-  doc = addJavascript(doc, text=paste0('startIgvFromJnlp("', label, '", "', locus, '")'))
-  return()
+  addJavascript(doc, text=paste0('startIgvFromJnlp("', label, '", "', locus, '")'))
 }
 
 ##' @describeIn writeIgvSession Gets the IGV genome if specified or otherwise tries to get the build name from the parameters.

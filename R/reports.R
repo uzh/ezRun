@@ -117,7 +117,7 @@ openBsdocReport = function(title=""){
   doc = bsdoc(title = title)
   pot1 = pot(paste("Started on", format(Sys.time(), "%Y-%m-%d %H:%M:%S"), "--&#160;"))
   pot2 = as.html(pot("Documentation", hyperlink = "http://fgcz-sushi.uzh.ch/doc/methods-20140422.html"))
-  doc = addFlexTable(doc, ezGrid(cbind(pot1, pot2)))
+  addFlexTable(doc, ezGrid(cbind(pot1, pot2)))
   addTitle(doc, title, id=title)
   return(doc)
 }
@@ -132,7 +132,7 @@ addDataset = function(doc, dataset){
   ezWrite.table(dataset, file="dataset.tsv", head="Name")
   tableLink = "dataset.html"
   ezInteractiveTable(dataset, tableLink)
-  doc = addParagraph(doc, pot("Input Dataset", hyperlink=tableLink))
+  addParagraph(doc, pot("Input Dataset", hyperlink=tableLink))
 }
 
 ##' @title Adds a java function
@@ -187,14 +187,14 @@ addJavaScriptIgvStarter = function(htmlFile, projectId, doc){
                      "igvLink += '", RCurl::curlEscape(jnlpLines2), "';",
                      "document.write(label.link(igvLink))",
                      "}")
-  doc = addJavascript(doc, text=javaScript)
+  addJavascript(doc, text=javaScript)
 }
 
 ##' @describeIn openBsdocReport Adds the session info, the bootstrap menu, a paragraph showing the finishing time and writes the document. \code{file} must have a .html suffix.
 closeBsdocReport = function(doc, file, titles=NULL){
   ezSessionInfo()
-  doc = addParagraph(doc, pot("sessionInfo.txt", hyperlink = "sessionInfo.txt"))
-  doc = addParagraph(doc, paste("Finished", format(Sys.time(), "%Y-%m-%d %H:%M:%S")))
+  addParagraph(doc, pot("sessionInfo.txt", hyperlink = "sessionInfo.txt"))
+  addParagraph(doc, paste("Finished", format(Sys.time(), "%Y-%m-%d %H:%M:%S")))
   bootStrap = BootstrapMenu("Functional Genomics Center Zurich", link = "http://www.fgcz.ethz.ch")
   if (ezIsSpecified(titles)){
     ddMenu = DropDownMenu("Navigation")
@@ -203,7 +203,7 @@ closeBsdocReport = function(doc, file, titles=NULL){
     }
     bootStrap = addLinkItem(bootStrap, dd=ddMenu)
   }
-  doc = addBootstrapMenu(doc, bootStrap)
+  addBootstrapMenu(doc, bootStrap)
   writeDoc(doc, file=file)
 }
 
@@ -222,8 +222,8 @@ closeBsdocReport = function(doc, file, titles=NULL){
 ##' .addTitleWithAnchor(theDoc, title)
 ##' closeBsdocReport(doc=theDoc, file="example.html")
 .addTitleWithAnchor = function(doc, title, level=1){
-  doc = addParagraph(doc, as.html(pot(paste0("<a name='", title, "'></a>"))))
-  doc = addTitle(doc, value=title, level=level)
+  addParagraph(doc, as.html(pot(paste0("<a name='", title, "'></a>"))))
+  addTitle(doc, value=title, level=level)
 }
 
 ##' @title Writes an error report
@@ -241,9 +241,9 @@ closeBsdocReport = function(doc, file, titles=NULL){
 ##' writeErrorReport(htmlFile, param)
 writeErrorReport = function(htmlFile, param=param, error="Unknown Error"){
   doc = openBsdocReport(title=paste("Error:", param$name))
-  doc = addTitle(doc, "Error message", level=2)
+  addTitle(doc, "Error message", level=2)
   for (i in 1:length(error)){
-    doc = addParagraph(doc, error[i])
+    addParagraph(doc, error[i])
   }
   closeBsdocReport(doc, htmlFile)
 }
@@ -267,9 +267,8 @@ addTxtLinksToReport = function(doc, txtNames, doZip=FALSE, mime=ifelse(doZip, "a
     if (doZip){
       each = zipFile(each)
     }
-    doc = addParagraph(doc, pot(paste("<a href='", each, "' type='", mime, "'>", each, "</a>")))
+    addParagraph(doc, pot(paste("<a href='", each, "' type='", mime, "'>", each, "</a>")))
   }
-  return(doc)
 }
 
 ## NOTE: perhaps obsolete now with ReporteRs
@@ -354,7 +353,7 @@ addCountResultSummary = function(doc, param, result){
     settings["Log2 signal threshold:"] = signif(log2(param$sigThresh), digits=4)
     settings["Linear signal threshold:"] = signif(param$sigThresh, digits=4)
   }
-  doc = addFlexTable(doc, ezGrid(settings, add.rownames=TRUE))
+  addFlexTable(doc, ezGrid(settings, add.rownames=TRUE))
 }
 
 ##' @title Adds tables of the significant counts
@@ -370,8 +369,7 @@ addSignificantCounts = function(doc, result, pThresh=c(0.1, 0.05, 1/10^(2:5))){
   sigFcTable = ezFlexTable(getSignificantFoldChangeCountsTable(result, pThresh=pThresh),
                            header.columns = TRUE, add.rownames = TRUE, talign = "right")
   tbl = ezGrid(cbind(as.html(sigTable), as.html(sigFcTable)))
-  doc = addFlexTable(doc, tbl)
-  return(doc)
+  addFlexTable(doc, tbl)
 }
 
 ##' @describeIn addSignificantCounts Gets the table containing the significant counts.
@@ -465,12 +463,12 @@ addResultFile = function(doc, param, result, rawData, useInOutput=TRUE,
   }
   y = y[order(y$fdr, y$pValue), ]
   ezWrite.table(y, file=file, head="Identifier", digits=4)
-  doc = addTxtLinksToReport(doc, file, param$doZip)
+  addTxtLinksToReport(doc, file, param$doZip)
   useInInteractiveTable = c("gene_name", "transcript_id", "type", "description", "width", "gc", "isPresent", "log2 Ratio", "pValue", "fdr")
   useInInteractiveTable = intersect(useInInteractiveTable, colnames(y))
   widgetLink = sub(".txt", "-viewTopGenes.html", file)
   ezInteractiveTable(head(y[, useInInteractiveTable], param$maxTableRows), widgetLink)
-  doc = addParagraph(doc, pot(sub(".html", "", widgetLink), hyperlink=widgetLink))
+  addParagraph(doc, pot(sub(".html", "", widgetLink), hyperlink=widgetLink))
   
   return(list(resultFile=file))
 }

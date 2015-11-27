@@ -108,8 +108,6 @@ ezMethodMpileup = function(input=NA, output=NA, param=NA){
   titles = list()
   titles[["VCF-Report"]] = paste("VCF-Report:", param$name)
   doc = openBsdocReport(titles[[length(titles)]])
-  #   html = openHtmlReport(htmlFile, param=param, title=paste("VCF-Report:", param$name),
-  #                         dataset=bamDataset)
   
   titles[["Parameters"]] = "Parameters"
   addTitle(doc, titles[[length(titles)]], 2, id=titles[[length(titles)]])
@@ -126,16 +124,13 @@ ezMethodMpileup = function(input=NA, output=NA, param=NA){
   
   titles[["IGV"]] = "IGV"
   addTitle(doc, titles[[length(titles)]], 2, id=titles[[length(titles)]])
-  # ezWrite("<h2>IGV</h2>", con=html)
   writeIgvSession(genome = getIgvGenome(param), refBuild=param$ezRef["refBuild"], file="igvSession.xml", vcfUrls = paste(PROJECT_BASE_URL, vcfOutputFile, sep="/") )
   writeIgvJnlp(jnlpFile="igv.jnlp", projectId = sub("\\/.*", "", output$getColumn("Report")),
                sessionUrl = paste0(PROJECT_BASE_URL, output$getColumn("Report"), "igvSession.xml"))
   addTxtLinksToReport(doc, "igv.jnlp", mime="application/x-java-jnlp-file")
-  # writeTxtLinksToHtml("igv.jnlp", mime = "application/x-java-jnlp-file", con=html)
   
   titles[["Sample Clustering based on Variants"]] = "Sample Clustering based on Variants"
   addTitle(doc, titles[[length(titles)]], 2, id=titles[[length(titles)]])
-  # ezWrite("<h2>Sample Clustering based on Variants</h2>",con=html)
   if (nrow(bamDataset) > 3){
     idxMat = ezMatrix(match(gt, c("0/0", "0/1", "1/1")) -2, rows=rownames(gt), cols=colnames(gt))
     d = dist(t(idxMat))
@@ -147,17 +142,12 @@ ezMethodMpileup = function(input=NA, output=NA, param=NA){
       plotCmd = expression({
         plot(hcd, main="Cluster by Genotype", xlab="")
       })
-      pngLink = ezImageFileLink(plotCmd, file=pngFile, width=800 + max(0, 10 * (nSamples-20)), height=500)
-      #       png(pngFile, width=800 + max(0, 10 * (nSamples-20)), height=500)
-      #       plot(hcd, main="Cluster by Genotype", xlab="")
-      #       dev.off()
-      doc = addParagraph(doc, pngLink)
-      # writeImageColumnToHtml(pngFile, con=html)
+      pngLink = ezImageFileLink(plotCmd, file=pngFile, width=800 + max(0, 10 * (nSamples-20))) # TODOP: should the width be more sample-dependent?
+      addParagraph(doc, pngLink)
     }
   }
   titles[["Variants by Chromosomes"]] = "Variants by Chromosomes"
   addTitle(doc, titles[[length(titles)]], 2, id=titles[[length(titles)]])
-  # ezWrite("<h2>Variants by Chromosomes</h2>",con=html)
   if (nrow(gt) > 0){
     chrom = sub(":.*", "", rownames(gt))
     pos = as.integer(sub("_.*", "", sub(".*:", "", rownames(gt))))
@@ -186,33 +176,13 @@ ezMethodMpileup = function(input=NA, output=NA, param=NA){
         }
         abline(h=seq(0, 3*ncol(gt), by=3))
       })
-      pngLinks[ch] = ezImageFileLink(plotCmd, file=pngFiles[ch], height=200+30*ncol(gt), width=1200)
-      #       png(pngFiles[ch], height=200+30*ncol(gt), width=1200)
-      #       par(mar=c(4.1, 10, 4.1, 2.1))
-      #       plot(0, 0, type="n", main=paste("Chromsome", ch), xlab="pos", xlim=c(1, chromSizes[ch]), ylim=c(0, 3*ncol(gt)),
-      #            axes=FALSE, frame=FALSE, xaxs="i", yaxs="i", ylab="")
-      #       axis(1)
-      #       mtext(side = 2, at = seq(1, 3*ncol(gt), by=3), text = colnames(gt), las=2,
-      #             cex = 1.0, font=2, col=sampleColors)
-      #       idx = idxList[[ch]]
-      #       xStart = pos[idx]
-      #       nm  = colnames(gt)[1]
-      #       for (i in 1:ncol(gt)){
-      #         offSet = match(gt[idx ,i], names(snpColors))
-      #         yTop = (i-1) * 3 + offSet
-      #         rect(xStart, yTop - 1, xStart+1, yTop, col = snpColors[offSet], border=snpColors[offSet])
-      #       }
-      #       abline(h=seq(0, 3*ncol(gt), by=3))
-      #       dev.off()
+      pngLinks[ch] = ezImageFileLink(plotCmd, file=pngFiles[ch], height=200+30*ncol(gt), width=1200) # TODOP: adjust plot after seeing it...
     }
-    # if (length(pngFiles) > 0){
     if (length(pngLinks) > 0){
-      doc = addFlexTable(doc, ezGrid(pngLinks))
-      # writeImageColumnToHtml(pngFiles, con=html)
+      addFlexTable(doc, ezGrid(pngLinks))
     }
   }
   closeBsdocReport(doc, htmlFile, titles)
-  # closeHTML(html)
   setwd("..")
   return("Success")
 }

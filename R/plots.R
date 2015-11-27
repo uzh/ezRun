@@ -232,7 +232,7 @@ ezColorLegend = function(colorRange=c(-3,3), colors=getBlueRedScale(), vertical=
 ezVolcano = function(log2Ratio, pValue, yType="p-value",
                      lim=list(NA, NA), isPresent=NULL,
                      types=NULL, pch=16, colors=rainbow(ncol(types)), legendPos="bottomright",
-                     cex.main=1.0, cex=0.8, ...){
+                     cex.main=1.0, cex=1, ...){
   yValues = -log10(pValue)
   xlim = lim[[1]]
   ylim = lim[[2]]
@@ -281,7 +281,7 @@ ezVolcano = function(log2Ratio, pValue, yType="p-value",
 ezSmoothScatter <- function(x=NULL, y, xlab=NULL, ylab=NULL, nPlotsPerRow=6,
                             lim=range(x, y, na.rm=TRUE), isPresent=NULL,
                             types=NULL, pch=16, colors=rainbow(ncol(types)), legendPos="bottomright",
-                            cex.main=1.0, cex=0.8, ...){
+                            cex.main=1.0, cex=1, ...){
   
   y = as.matrix(y)
   if (is.null(ylab)){
@@ -339,7 +339,7 @@ ezSmoothScatter <- function(x=NULL, y, xlab=NULL, ylab=NULL, nPlotsPerRow=6,
 ezScatter <- function(x=NULL, y, xlab=NULL, ylab=NULL, nPlotsPerRow=6, shrink=FALSE,
                       lim=range(x, y, na.rm=TRUE), isPresent=NULL,
                       types=NULL, pch=16, colors=rainbow(ncol(types)), legendPos="bottomright", 
-                      cex.main=1.0, cex=0.8, ...){
+                      cex.main=1.0, cex=1, ...){
   
   y = as.matrix(y)
   if (is.null(ylab)){
@@ -443,14 +443,14 @@ ezXYScatterScatter = function(xVec, yVec, absentColor="gray", shrink=FALSE, fram
 ezAllPairScatter = function(x, main="", shrink=FALSE, xylab=NULL,
                             lim=range(x, na.rm=TRUE), isPresent=NULL,
                             types=NULL, pch=16, colors=rainbow(ncol(types)), legendPos="bottomright",
-                            cex.main=1.0, cex=0.8, ...){
+                            cex.main=1.0, cex=1, ...){
   nItems = ncol(x)
   if (is.null(xylab)){
     xylab = colnames(x)
   }
+  par(pch=pch, cex=cex, pty="s", cex.main=cex.main)
   if (nItems > 2){
    par(oma=c(2,2,2,2), mar=c(0,0,0,0), mfcol=c(nItems, nItems))
-   par(pch=pch, cex=cex, pty="s", cex.main=cex.main)
    for( i in 1:nItems){
      for(j in 1:nItems){
        if (is.null(dim(isPresent))){
@@ -469,7 +469,6 @@ ezAllPairScatter = function(x, main="", shrink=FALSE, xylab=NULL,
      }
    }
   } else {
-    par(pch=pch, cex=cex, pty="s", cex.main=cex.main)
     if (is.null(dim(isPresent))){
       isPres = isPresent   ## this covers also the case where isPresent == NULL
     } else {
@@ -478,7 +477,7 @@ ezAllPairScatter = function(x, main="", shrink=FALSE, xylab=NULL,
     ezXYScatterScatter(x[ ,1], x[, 2], xlim=lim, ylim=lim, shrink=shrink, xlab=xylab[1], ylab=xylab[2],
                        isPresent=isPresent, types=types, pch=pch, colors=colors, legendPos=legendPos, ...)
   }
-  mtext(main, outer=TRUE, line=1)
+  mtext(main, line=1)
 }
 
 ##' @title Does a correlation plot
@@ -494,10 +493,11 @@ ezAllPairScatter = function(x, main="", shrink=FALSE, xylab=NULL,
 ##' @template roxygen-template
 ##' @examples
 ##' ezCorrelationPlot(z=matrix(1:100,10))
-ezCorrelationPlot <- function(z, cond=NULL, condOrder=NULL, main="Correlation", 
+ezCorrelationPlot = function(z, cond=NULL, condOrder=NULL, main="Correlation", 
                               labels=NULL, condLabels=NULL, plotLabels=nrow(z) < 100,
                               colors=NULL){
   
+  par(mar=c(5.1, 4.1, 4.1, 4.1))
   colorScale <- gray((1:256)/256)
   condNumbers = NULL
   nRow <- nrow(z)

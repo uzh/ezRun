@@ -47,15 +47,15 @@ goClusterTable = function(param, clusterResult){
 ##' @template roxygen-template
 addGoUpDownResult = function(doc, param, goResult){
   udt = goUpDownTables(param, goResult)
-  doc = addParagraph(doc, paste("Maximum number of terms displayed:", param$maxNumberGroupsDisplayed))
+  addParagraph(doc, paste("Maximum number of terms displayed:", param$maxNumberGroupsDisplayed))
   
-  doc = addFlexTable(doc, ezFlexTable(udt$linkTable, add.rownames=TRUE)) ## Does 9 plots currently, perhaps we should merge it a bit
-  doc = addTitle(doc, "GO categories that are overrepresented among significantly upregulated genes.", 3)
-  doc = addFlexTable(doc, udt$flexTables[["enrichUp"]])
-  doc = addTitle(doc, "GO categories that are overrepresented among significantly downregulated genes.", 3)
-  doc = addFlexTable(doc, udt$flexTables[["enrichDown"]])
-  doc = addTitle(doc, "GO categories that are overrepresented among all significantly regulated genes.", 3)
-  doc = addFlexTable(doc, udt$flexTables[["enrichBoth"]])
+  addFlexTable(doc, ezFlexTable(udt$linkTable, add.rownames=TRUE)) ## Does 9 plots currently, perhaps we should merge it a bit
+  addTitle(doc, "GO categories that are overrepresented among significantly upregulated genes.", 3)
+  addFlexTable(doc, udt$flexTables[["enrichUp"]])
+  addTitle(doc, "GO categories that are overrepresented among significantly downregulated genes.", 3)
+  addFlexTable(doc, udt$flexTables[["enrichDown"]])
+  addTitle(doc, "GO categories that are overrepresented among all significantly regulated genes.", 3)
+  addFlexTable(doc, udt$flexTables[["enrichBoth"]])
   
   #     goFiles = list.files('.',pattern='enrich.*txt')
   #     revigoLinks = ezMatrix("", rows=c('Both', 'Down', 'Up'), cols=c('BP', 'CC', 'MF'))
@@ -71,10 +71,9 @@ addGoUpDownResult = function(doc, param, goResult){
   #     }
   #     titles[["ReViGO"]] = "ReViGO"
   #     addTitle(doc, titles[[length(titles)]], 3, id=titles[[length(titles)]])
-  #     doc = addFlexTable(doc, ezFlexTable(cbind(rownames(revigoLinks), revigoLinks), valign="middle", header.columns=TRUE))
+  #     addFlexTable(doc, ezFlexTable(cbind(rownames(revigoLinks), revigoLinks), valign="middle", header.columns=TRUE))
   
   addTxtLinksToReport(doc, udt$txtFiles, param$doZip)
-  return(doc)
 }
 
 ##' @describeIn addGoUpDownResult Gets the GO up-down tables.

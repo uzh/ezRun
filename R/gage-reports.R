@@ -21,19 +21,19 @@
 ##' @seealso \code{\link{twoGroupsGO}}
 ##' @template roxygen-template
 addGageTables = function(doc, param = NULL, gageResults = NULL) {
-  doc = addParagraph(doc, paste("Gene sets used:", paste(names(gageResults[['all']]), collapse=", ")))
+  addParagraph(doc, paste("Gene sets used:", paste(names(gageResults[['all']]), collapse=", ")))
   if(any(grepl('kg', names(gageResults[['all']])))) {
-    doc = addParagraph(doc, pot("kg = KEGG pathways: dise (disease pathways), sigmet (signaling or metabolism pathways)",
+    addParagraph(doc, pot("kg = KEGG pathways: dise (disease pathways), sigmet (signaling or metabolism pathways)",
                                 hyperlink="http://www.genome.jp/kegg/pathway.html"))
   }
   if(any(grepl('msigdb', names(gageResults[['all']])))) {
-    doc = addParagraph(doc, pot("msigdb = MSigDB pathway", hyperlink="http://www.broadinstitute.org/gsea/msigdb/index.jsp"))
+    addParagraph(doc, pot("msigdb = MSigDB pathway", hyperlink="http://www.broadinstitute.org/gsea/msigdb/index.jsp"))
   }
-  doc = addParagraph(doc, paste0("Significance threshold pathways: ", param[['gageThreshold']],
+  addParagraph(doc, paste0("Significance threshold pathways: ", param[['gageThreshold']],
                                  ". Only pathways below this treshold are represented."))
-  doc = addParagraph(doc, paste0("Significance threshold genes selected within a pathway: ", param[['gageGeneThreshold']],
+  addParagraph(doc, paste0("Significance threshold genes selected within a pathway: ", param[['gageGeneThreshold']],
                                  ". Only genes below this treshold are represented"))
-  doc = addParagraph(doc, "Warning : only pathways with at least one gene significant will be displayed. Only top 30 pathways are represented")
+  addParagraph(doc, "Warning : only pathways with at least one gene significant will be displayed. Only top 30 pathways are represented")
   
   gene.pValue=param[['gageGeneThreshold']]
   
@@ -95,6 +95,6 @@ addGageTables = function(doc, param = NULL, gageResults = NULL) {
     }
     table = ezGrid(rbind(unlist(tableRows)), header.columns=TRUE)
     table = addHeaderRow(table, cbind(paste("Heatmap Plot logRatio Signal for", i), paste(i, "significant pathways")))
-    doc = addFlexTable(doc, table)
+    addFlexTable(doc, table)
   }
 }

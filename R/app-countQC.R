@@ -107,7 +107,7 @@ runNgsCountQC = function(dataset, htmlFile="00index.html", param=param, rawData=
   if (nSamples < 2){
     titles[["Note"]] = "Note: Statistics and Plots are not available for single sample experiments"
     addTitle(doc, titles[[length(titles)]], 2, id=titles[[length(titles)]])
-    doc = addParagraph(doc, "Run the report again with multiple samples selected.")
+    addParagraph(doc, "Run the report again with multiple samples selected.")
     return("Success")
   }
   
@@ -134,7 +134,7 @@ runNgsCountQC = function(dataset, htmlFile="00index.html", param=param, rawData=
   settings["Feature level:"] = rawData$featureLevel
   settings["Number of features:"] = nrow(signal)
   settings["Data Column Used:"] = rawData$countName
-  doc = addFlexTable(doc, ezGrid(settings, add.rownames=TRUE))
+  addFlexTable(doc, ezGrid(settings, add.rownames=TRUE))
   
   if (writeDataFiles){
     if (!is.null(rawData$presentFlag)){
@@ -165,7 +165,7 @@ runNgsCountQC = function(dataset, htmlFile="00index.html", param=param, rawData=
     titles[["Data Files"]] = "Data Files"
     addTitle(doc, titles[[length(titles)]], 2, id=titles[[length(titles)]])
     addTxtLinksToReport(doc, dataFiles, param$doZip)
-    doc = addParagraph(doc, pot(sub(".html", "", tableLink), hyperlink=tableLink))
+    addParagraph(doc, pot(sub(".html", "", tableLink), hyperlink=tableLink))
   }
   
   titles[["Count Statistics"]] = "Count Statistics"
@@ -179,8 +179,7 @@ runNgsCountQC = function(dataset, htmlFile="00index.html", param=param, rawData=
     par(mar=c(10.1, 4.1, 4.1, 2.1))
     barplot(totalCounts, las=2, ylab="Counts [Mio]", main="Total reads")
   })
-  totalLink = ezImageFileLink(plotCmd, file="totalCounts.png", height=600,
-                              width=min(600 + (length(samples)-10)* 30, 2000))
+  totalLink = ezImageFileLink(plotCmd, file="totalCounts.png", width=min(600 + (nSamples-10)* 30, 2000)) # nSamples dependent width
   
   plotCmd = expression({
     par(mar=c(10.1, 4.1, 4.1, 2.1))
@@ -188,10 +187,9 @@ runNgsCountQC = function(dataset, htmlFile="00index.html", param=param, rawData=
     percentages = paste(signif(100*presentCounts/nrow(isPresent), digits=2), "%")
     text(x=bplot, y=0, pos=3, offset=2, labels=percentages)
   })
-  presentLink = ezImageFileLink(plotCmd, file="presentCounts.png", height=600,
-                                width=min(600 + (length(samples)-10)* 30, 2000))
+  presentLink = ezImageFileLink(plotCmd, file="presentCounts.png", width=min(600 + (nSamples-10)* 30, 2000)) # nSamples dependent width
   
-  doc = addFlexTable(doc, ezGrid(cbind(totalLink, presentLink)))
+  addFlexTable(doc, ezGrid(cbind(totalLink, presentLink)))
   
   rawData$signal = signal
   
@@ -217,7 +215,7 @@ runNgsCountQC = function(dataset, htmlFile="00index.html", param=param, rawData=
                       main=paste0("all present genes (", sum(isValid), ")"), colors=sampleColors)
   })
   height = nrow(cor(x, use="complete.obs")) * 20
-  if (height < 500) height= 500
+  if (height < 500) height = 500
   if (height > 2000) height = 2000
   try({
     pngLinks[1, 1] = ezImageFileLink(plotCmd, file=pngName, width=round(height*1.25), height=height)
@@ -229,7 +227,7 @@ runNgsCountQC = function(dataset, htmlFile="00index.html", param=param, rawData=
                       main=paste0("all present genes (", sum(isValid), ") gene-wise normalized"))
   })
   height = nrow(cor(xNormed, use="complete.obs")) * 20
-  if (height < 500) height= 500
+  if (height < 500) height = 500
   if (height > 2000) height = 2000
   try({
     pngAdvancedLinks[1, 1] = ezImageFileLink(plotCmd, file=pngName, width=round(height*1.25), height=height)
@@ -261,15 +259,14 @@ runNgsCountQC = function(dataset, htmlFile="00index.html", param=param, rawData=
   
   titles[["Sample correlation"]] = "Sample correlation"
   addTitle(doc, titles[[length(titles)]], 2, id=titles[[length(titles)]])
-  doc = addFlexTable(doc, ezGrid(pngLinks))
+  addFlexTable(doc, ezGrid(pngLinks))
   
   advancedTitles = list()
   advancedTitles[["Advanced Plots"]] = "Advanced Plots"
   advancedDoc = openBsdocReport(title=advancedTitles[[length(advancedTitles)]])
   advancedTitles[["Sample correlation"]] = "Sample correlation"
   addTitle(advancedDoc, advancedTitles[[length(advancedTitles)]], 2, id=advancedTitles[[length(advancedTitles)]])
-  advancedDoc = addFlexTable(advancedDoc, ezGrid(pngAdvancedLinks))
-  
+  addFlexTable(advancedDoc, ezGrid(pngAdvancedLinks))
   
   ################################
   ## cluster plots
@@ -287,7 +284,7 @@ runNgsCountQC = function(dataset, htmlFile="00index.html", param=param, rawData=
       par(mai=mai)
       plot(hcd, main="all present genes", xlab="")
     })
-    pngLinks[1, 1] = ezImageFileLink(plotCmd, file=pngName, width=800 + max(0, 10 * (nSamples-20)), height=500)
+    pngLinks[1, 1] = ezImageFileLink(plotCmd, file=pngName, width=min(600 + (nSamples-10)*20, 2000)) # nSamples dependent width
     
     pngName = "sampleClustering-AllPresentNormalized.png"
     plotCmd = expression({
@@ -299,7 +296,7 @@ runNgsCountQC = function(dataset, htmlFile="00index.html", param=param, rawData=
       par(mai=mai)
       plot(hcd, main="all present genes; gene-wise normalized", xlab="")
     })
-    pngAdvancedLinks[1, 1] = ezImageFileLink(plotCmd, file=pngName, width=800 + max(0, 10 * (nSamples-20)), height=500)
+    pngAdvancedLinks[1, 1] = ezImageFileLink(plotCmd, file=pngName, width=min(600 + (nSamples-10)*20, 2000)) # nSamples dependent width
     
     pngName = "sampleClustering-TopGenes.png"
     plotCmd = expression({
@@ -311,7 +308,7 @@ runNgsCountQC = function(dataset, htmlFile="00index.html", param=param, rawData=
       par(mai=mai)
       plot(hcd, main=paste("top", length(topGenes), " genes"), xlab="")
     })
-    pngLinks[1, 2] = ezImageFileLink(plotCmd, file=pngName, width=800 + max(0, 10 * (nSamples-20)), height=500)
+    pngLinks[1, 2] = ezImageFileLink(plotCmd, file=pngName, width=min(600 + (nSamples-10)*20, 2000)) # nSamples dependent width
     
     pngName = "sampleClustering-TopGenesNormalized.png"
     plotCmd = expression({
@@ -323,15 +320,15 @@ runNgsCountQC = function(dataset, htmlFile="00index.html", param=param, rawData=
       par(mai=mai)
       plot(hcd, main=paste("top", length(topGenes), "genes; gene-wise normalized"), xlab="")
     })
-    pngAdvancedLinks[1, 2] = ezImageFileLink(plotCmd, file=pngName, width=800 + max(0, 10 * (nSamples-20)), height=500)
+    pngAdvancedLinks[1, 2] = ezImageFileLink(plotCmd, file=pngName, width=min(600 + (nSamples-10)*20, 2000)) # nSamples dependent width
     
     titles[["Sample Clustering"]] = "Sample Clustering"
     addTitle(doc, titles[[length(titles)]], 2, id=titles[[length(titles)]])
-    doc = addFlexTable(doc, ezGrid(pngLinks))
+    addFlexTable(doc, ezGrid(pngLinks))
     
     advancedTitles[["Sample Clustering"]] = "Sample Clustering"
     addTitle(advancedDoc, advancedTitles[[length(advancedTitles)]], 2, id=advancedTitles[[length(advancedTitles)]])
-    advancedDoc = addFlexTable(advancedDoc, ezGrid(pngAdvancedLinks))
+    addFlexTable(advancedDoc, ezGrid(pngAdvancedLinks))
     
     ## gene clustering
     use = xSd > param$highVarThreshold & apply(!is.na(x), 1, all)
@@ -351,7 +348,7 @@ runNgsCountQC = function(dataset, htmlFile="00index.html", param=param, rawData=
                        colColors=sampleColors, lim=c(-param$logColorRange, param$logColorRange),
                        doClusterColumns=TRUE)
       })
-      clusterLink = ezImageFileLink(plotCmd, file=clusterPng, width=max(800, 400 + 10 * ncol(xNormed[use, ])), height=1000)
+      clusterLink = ezImageFileLink(plotCmd, file=clusterPng, width=max(800, 400 + 10 * ncol(xNormed[use, ])), height=1000) # HEATMAP
       
       if (doGo(param, seqAnno)){
         clusterResult = goClusterResults(xNormed[use, ], param, clusterResult, seqAnno=seqAnno,
@@ -360,19 +357,19 @@ runNgsCountQC = function(dataset, htmlFile="00index.html", param=param, rawData=
       
       titles[["Clustering of High Variance Features"]] = "Clustering of High Variance Features"
       addTitle(doc, titles[[length(titles)]], 2, id=titles[[length(titles)]])
-      doc = addParagraph(doc, paste("Threshold for std. dev. of log2 signal across samples:", sdThresh))
-      doc = addParagraph(doc, paste("Number of features with high std. dev.:", sum(use)))
+      addParagraph(doc, paste("Threshold for std. dev. of log2 signal across samples:", sdThresh))
+      addParagraph(doc, paste("Number of features with high std. dev.:", sum(use)))
       
       if (!is.null(clusterResult$GO)){
         goTables = goClusterTable(param, clusterResult)
-        doc = addFlexTable(doc, ezFlexTable(goTables$linkTable, add.rownames=TRUE))
+        addFlexTable(doc, ezFlexTable(goTables$linkTable, add.rownames=TRUE))
         goLink = as.html(ezGrid(c("Background color corresponds to the color of the feature cluster in the heatmap plot.",
                                   as.html(goTables$ft))))
       } else {
         goLink = as.html(pot("No information available"))
       }
       tbl = ezGrid(t(c("Cluster Plot"=clusterLink, "GO categories of feature clusters"=goLink)), header.columns = TRUE)
-      doc = addFlexTable(doc, tbl)
+      addFlexTable(doc, tbl)
     }
     
     ##########################################
@@ -386,15 +383,15 @@ runNgsCountQC = function(dataset, htmlFile="00index.html", param=param, rawData=
     plotCmd = expression({
       ezMdsPlot(signal=x, sampleColors=sampleColors, main=sub('.png','',pngName))
     })
-    presentLink = ezImageFileLink(plotCmd, file=pngName, width=480, height=480)
+    presentLink = ezImageFileLink(plotCmd, file=pngName)
     
     pngName = "mdsPlot_TopGenes.png"
     plotCmd = expression({
       ezMdsPlot(signal=x[topGenes,], sampleColors=sampleColors, main=sub('.png','',pngName))
     })
-    topLink = ezImageFileLink(plotCmd, file=pngName, width=480, height=480)
+    topLink = ezImageFileLink(plotCmd, file=pngName)
     
-    doc = addFlexTable(doc, ezGrid(cbind(presentLink, topLink)))
+    addFlexTable(doc, ezGrid(cbind(presentLink, topLink)))
     
     if (param$writeScatterPlots){
       qcScatterTitles = addQcScatterPlots(doc, param, design, conds,
@@ -417,8 +414,8 @@ runNgsCountQC = function(dataset, htmlFile="00index.html", param=param, rawData=
       })
       pngLink = ezImageFileLink(plotCmd, file=pngName,
                                 width=min(ncol(as.matrix(valEnd)), 6) * 480,
-                                height=ceiling(ncol(as.matrix(valEnd))/6) * 480)
-      doc = addParagraph(doc, pngLink)
+                                height=ceiling(ncol(as.matrix(valEnd))/6) * 480) # dynamic png with possibly many plots
+      addParagraph(doc, pngLink)
       
       pngName = "start-end-countSmoothScatter.png"
       plotCmd = expression({
@@ -426,8 +423,8 @@ runNgsCountQC = function(dataset, htmlFile="00index.html", param=param, rawData=
       })
       pngLink = ezImageFileLink(plotCmd, file=pngName,
                                 width=min(ncol(as.matrix(valEnd)), 6) * 480,
-                                height=ceiling(ncol(as.matrix(valEnd))/6) * 480)
-      doc = addParagraph(doc, pngLink)
+                                height=ceiling(ncol(as.matrix(valEnd))/6) * 480) # dynamic png with possibly many plots
+      addParagraph(doc, pngLink)
     }
     
     ##########################################
@@ -437,14 +434,14 @@ runNgsCountQC = function(dataset, htmlFile="00index.html", param=param, rawData=
     plotCmd = expression({
       countDensPlot(signal, sampleColors, main="all transcripts", bw=0.7)
     })
-    pngLink = ezImageFileLink(plotCmd, file=pngName, width=640, height=640)
+    pngLink = ezImageFileLink(plotCmd, file=pngName)
     
     titles[["Expression densities"]] = "Expression densities"
     addTitle(doc, titles[[length(titles)]], 2, id=titles[[length(titles)]])
-    doc = addParagraph(doc, "Zero or negative counts are not represented by the area!")
-    doc = addParagraph(doc, pngLink)
+    addParagraph(doc, "Zero or negative counts are not represented by the area!")
+    addParagraph(doc, pngLink)
   }
   closeBsdocReport(advancedDoc, "advancedPlots.html", advancedTitles)
-  doc = addParagraph(doc, pot("advancedPlots", hyperlink = "advancedPlots.html"))
+  addParagraph(doc, pot("advancedPlots", hyperlink = "advancedPlots.html"))
   closeBsdocReport(doc, htmlFile, titles)
 }

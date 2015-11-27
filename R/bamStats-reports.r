@@ -53,7 +53,7 @@ plotBamStat = function(resultList, dataset, param, htmlFile=NULL){
   addTitle(doc, titles[[length(titles)]], 2, id=titles[[length(titles)]])
   titles[["Multi-Matching Reported in Bam File"]] = "Multi-Matching Reported in Bam File"
   addTitle(doc, titles[[length(titles)]], 3, id=titles[[length(titles)]])
-  doc = addParagraph(doc, "The table holds for each sample in column X the number of reads in Millions
+  addParagraph(doc, "The table holds for each sample in column X the number of reads in Millions
                       that have X matches in the target and are reported in the file.")
   
   mmValues = integer()
@@ -68,12 +68,12 @@ plotBamStat = function(resultList, dataset, param, htmlFile=NULL){
   
   pngFile = "multiMatchInFile-barplot.png"
   pngLinks = makeAlignmentCountBarPlot(pngFile, mmCounts)
-  doc = addParagraph(doc, pngLinks[["Counts"]])
+  addParagraph(doc, pngLinks[["Counts"]])
   
   advancedTitles = list()
   advancedTitles[["Advanced Plots"]] = "Advanced Plots"
   advancedDoc = openBsdocReport(title=advancedTitles[[length(advancedTitles)]])
-  advancedDoc = addParagraph(advancedDoc, pngLinks[["Relative"]])
+  addParagraph(advancedDoc, pngLinks[["Relative"]])
   
   txtFile = "read-alignment-statistics.txt"
   colnames(mmCounts) = paste("#hits: ", colnames(mmCounts))
@@ -108,13 +108,13 @@ plotBamStat = function(resultList, dataset, param, htmlFile=NULL){
         heatmapLink = ezImageFileLink(plotCmd, file=pngFile, height=600, width=800)
       }
       
-      doc = addFlexTable(doc, ezGrid(cbind(ifelse(nrow(tptUse) >= 2 && ncol(tptUse) >= 2, heatmapLink, NULL),
+      addFlexTable(doc, ezGrid(cbind(ifelse(nrow(tptUse) >= 2 && ncol(tptUse) >= 2, heatmapLink, NULL),
                                             as.html(ezFlexTable(signif(tptUse, digits=3), talign="right",
                                                                 header.columns=TRUE, add.rownames=TRUE)))))
       
       titles[[paste(readSet, "Read Starts per Base")]] = paste(readSet, "Read Starts per Base")
       addTitle(doc, titles[[length(titles)]], 3, id=titles[[length(titles)]])
-      doc = addParagraph(doc, "Read Starts per Base is equivalent to Coverage divided by Read length.")
+      addParagraph(doc, "Read Starts per Base is equivalent to Coverage divided by Read length.")
       tct = as.matrix(getTypeCoverageTable(resultList, nm))
       ezWrite.table(tct, file=paste0(nm, "-coverage.txt"), digits=4)
       if (nrow(tct) >= 2 && ncol(tct) >= 2){
@@ -128,7 +128,7 @@ plotBamStat = function(resultList, dataset, param, htmlFile=NULL){
         })
         heatmapLink = ezImageFileLink(plotCmd, file=pngFile, height=600, width=800)
       }
-      doc = addFlexTable(doc, ezGrid(cbind(ifelse(nrow(tct) >= 2 && ncol(tct) >= 2, heatmapLink, NULL),
+      addFlexTable(doc, ezGrid(cbind(ifelse(nrow(tct) >= 2 && ncol(tct) >= 2, heatmapLink, NULL),
                                        as.html(ezFlexTable(signif(tct[rowsUse, ], digits=4), talign="right",
                                                            header.columns=TRUE, add.rownames=TRUE)))))
     }
@@ -180,7 +180,7 @@ plotBamStat = function(resultList, dataset, param, htmlFile=NULL){
         errorRate = resultList[[sm]][["ErrorRates"]][[nm]]
         if (!is.null(errorRate)){
           pngFile = ezValidFilename(paste0(sm, "_", nm, ".png"))
-          plotCmd = expression({
+          plotCmd = expression({ ## NOTEP: I think the plot looks fine, but perhaps 2 seperate plots, pasted together with an ezGrid, would be better
             plotPosSpecificErrorRate(errorRate, png=pngFile, main=paste(sm, nm))
           })
           pngLinks[nm] = ezImageFileLink(plotCmd, file=pngFile, width=1600)
@@ -205,12 +205,12 @@ plotBamStat = function(resultList, dataset, param, htmlFile=NULL){
         lines(transcript_covered[["mids"]], transcript_covered[["counts"]], col=sampleColors[sm])
       }
       legend("topright", samples, col=sampleColors[samples], cex=1.2, pt.cex=1.5, bty="o", pt.bg="white", lty=1)
-    })
-    pngLink = ezImageFileLink(plotCmd, file=pngFile, width=700)
+    }) ## NOTEP: maxXlim to 100 (or does it occur, that lines would lie under the legend?) There are more xlim=c(0,130) in this file
+    pngLink = ezImageFileLink(plotCmd, file=pngFile, width=600)
     
     titles[["Transcripts covered plot"]] = "Transcripts covered plot"
     addTitle(doc, titles[[length(titles)]], 3, id=titles[[length(titles)]])
-    doc = addParagraph(doc, pngLink)
+    addParagraph(doc, pngLink)
     
     pngFiles = character()
     pngLinks = character()
@@ -225,7 +225,7 @@ plotBamStat = function(resultList, dataset, param, htmlFile=NULL){
         names(cts) = tlc$mids
         barplot(cts, xlab="% length covered", main=paste(sm, "-- Isoforms Covered Histogram"), ylab="number of isoforms")
       })
-      pngLinks[sm] = ezImageFileLink(plotCmd, file=pngFiles[sm], width=700)
+      pngLinks[sm] = ezImageFileLink(plotCmd, file=pngFiles[sm], width=600)
       plotBySamples[[sm]] = c(plotBySamples[[sm]], pngLinks[sm])
       plotByStatistics[["The fraction of isoform length covered"]] = c(plotByStatistics[["The fraction of isoform length covered"]], pngLinks[sm])
     }
@@ -271,7 +271,7 @@ plotBamStat = function(resultList, dataset, param, htmlFile=NULL){
         })
         link = ezImageFileLink(plotCmd, file=pngMatrix[rn, cn], width=600)
         pngLinks = append(pngLinks, link)
-        # pngLinks[rn, cn] = ezImageFileLink(plotCmd, file=pngMatrix[rn, cn], width=600)
+        # pngLinks[rn, cn] = ezImageFileLink(plotCmd, file=pngMatrix[rn, cn], width=600) # old version with all plots
         ezWrite.table(covValues, file=sub(".png$", ".txt", pngMatrix[rn, cn]), head="Name")
       }
     }
@@ -285,8 +285,8 @@ plotBamStat = function(resultList, dataset, param, htmlFile=NULL){
     })
     sampleLink = ezImageFileLink(plotCmd, file="sampleColors.png", height=length(samples)*15 + 20, width=300)
     
-    doc = addParagraph(doc, sampleLink)
-    doc = addFlexTable(doc, ezGrid(rbind(pngLinks)))
+    addParagraph(doc, sampleLink)
+    addFlexTable(doc, ezGrid(rbind(pngLinks)))
   }
   
   geneCounts = resultList[[1]][["geneCounts"]]
@@ -310,7 +310,7 @@ plotBamStat = function(resultList, dataset, param, htmlFile=NULL){
     rawData$signal = ezNorm(rawData$counts, presentFlag=rawData$presentFlag, method=param$normMethod)
     runNgsCountQC(dataset, "00index.html", param, rawData=rawData)
     setwd("..")
-    doc = addParagraph(doc, pot("Count QC Report", hyperlink="Count_QC/00index.html"))
+    addParagraph(doc, pot("Count QC Report", hyperlink="Count_QC/00index.html"))
   }
   
   if (!is.null(names(resultList[[1]][["Junction"]]))){
@@ -360,10 +360,10 @@ plotBamStat = function(resultList, dataset, param, htmlFile=NULL){
         }
         legend("bottomright", legend=samples, col=sampleColors[samples], lwd=1, pch=1)
       })
-      pngLink = ezImageFileLink(plotCmd, file=pngFile, width=700)
+      pngLink = ezImageFileLink(plotCmd, file=pngFile, width=600)
       
       if (grepl("known", nm)){
-        doc = addParagraph(doc, pngLink)
+        addParagraph(doc, pngLink)
       } else {
         plotByStatistics[["Junction Plots"]] = c(plotByStatistics[["Junction Plots"]], pngLink)
       }
@@ -383,10 +383,10 @@ plotBamStat = function(resultList, dataset, param, htmlFile=NULL){
     subDoc = openBsdocReport(title=subTitles[[length(subTitles)]])
     subTitles[[names(plotByStatistics)[i]]] = names(plotByStatistics)[i]
     addTitle(subDoc, subTitles[[length(subTitles)]], 3, id=subTitles[[length(subTitles)]])
-    subDoc = addFlexTable(subDoc, ezGrid(plotByStatistics[[i]]))
+    addFlexTable(subDoc, ezGrid(plotByStatistics[[i]]))
     closeBsdocReport(subDoc, plotByStatisticsPages[i], subTitles)
   }
-  doc = addFlexTable(doc, ezFlexTable(tableOfPages, header.columns=TRUE, add.rownames=TRUE))
+  addFlexTable(doc, ezFlexTable(tableOfPages, header.columns=TRUE, add.rownames=TRUE))
   
   ## write the reults by sample per page to the main pages
   titles[["The result plots by each sample"]] = "The result plots by each sample"
@@ -400,12 +400,12 @@ plotBamStat = function(resultList, dataset, param, htmlFile=NULL){
     subDoc = openBsdocReport(title=subTitles[[length(subTitles)]])
     subTitles[[names(plotBySamples)[i]]] = names(plotBySamples)[i]
     addTitle(subDoc, subTitles[[length(subTitles)]], 3, id=subTitles[[length(subTitles)]])
-    subDoc = addFlexTable(subDoc, ezGrid(plotBySamples[[i]]))
+    addFlexTable(subDoc, ezGrid(plotBySamples[[i]]))
     closeBsdocReport(subDoc, plotBySamplesPages[i], subTitles)
   }
-  doc = addFlexTable(doc, ezFlexTable(tableOfPages, header.columns=TRUE, add.rownames=TRUE))
+  addFlexTable(doc, ezFlexTable(tableOfPages, header.columns=TRUE, add.rownames=TRUE))
   closeBsdocReport(advancedDoc, "advancedPlots.html", advancedTitles)
-  doc = addParagraph(doc, pot("advancedPlots", hyperlink = "advancedPlots.html"))
+  addParagraph(doc, pot("advancedPlots", hyperlink = "advancedPlots.html"))
   closeBsdocReport(doc, htmlFile, titles)
 }
 
@@ -449,7 +449,7 @@ makeAlignmentCountBarPlot = function(file, mmCounts){
     barplot(t(x)/1e6, las=2, ylab="Counts [Mio]", main="total alignments", legend.text=TRUE, border=NA,
             col=multiCountColors[colnames(x)], xlim=c(0, nrow(x) +5))
   })
-  pngLinks["Counts"] = ezImageFileLink(plotCmd, file=file, width=400 + nrow(mmCounts) * 10, height=480)
+  pngLinks["Counts"] = ezImageFileLink(plotCmd, file=file, width=min(600 + (nrow(mmCounts)-10)* 30, 2000)) # nSamples dependent width
   
   plotCmd = expression({
     par(mar=c(12, 4.1, 4.1, 2.1))
@@ -460,7 +460,7 @@ makeAlignmentCountBarPlot = function(file, mmCounts){
     barplot(t(x), las=2, ylab="Counts [proportion]", main="alignment proportions", legend.text=TRUE, border=NA,
             col=multiCountColors[colnames(x)], xlim=c(0, nrow(x) +5))
   })
-  pngLinks["Relative"] = ezImageFileLink(plotCmd, file="multiMatchInFile-barplot-rel.png", width=400 + nrow(mmCounts) * 10, height=480)
+  pngLinks["Relative"] = ezImageFileLink(plotCmd, file="multiMatchInFile-barplot-rel.png", width=min(600 + (nrow(mmCounts)-10)* 30, 2000)) # nSamples dependent width
   
   return(pngLinks)
 }

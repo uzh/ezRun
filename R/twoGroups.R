@@ -316,7 +316,7 @@ writeNgsTwoGroupReport = function(dataset, result, output, htmlFile="00index.htm
       clusterHeatmap(xCentered, param, clusterResult, file=clusterPng,
                      colColors=sampleColors, lim=c(-param$logColorRange, param$logColorRange))
     })
-    clusterLink = ezImageFileLink(plotCmd, file=clusterPng, width=max(800, 400 + 10 * ncol(xCentered)), height=1000)
+    clusterLink = ezImageFileLink(plotCmd, file=clusterPng, width=max(800, 400 + 10 * ncol(xCentered)), height=1000) # HEATMAP
     
     if (doGo(param, seqAnno)){
       clusterResult = goClusterResults(xCentered, param, clusterResult, seqAnno=seqAnno,
@@ -332,15 +332,15 @@ writeNgsTwoGroupReport = function(dataset, result, output, htmlFile="00index.htm
     }
     titles[["Clustering of Significant Features"]] = "Clustering of Significant Features"
     addTitle(doc, titles[[length(titles)]], 2, id=titles[[length(titles)]])
-    doc = addParagraph(doc, paste("Significance threshold:", param$pValueHighlightThresh))
+    addParagraph(doc, paste("Significance threshold:", param$pValueHighlightThresh))
     if (param$log2RatioHighlightThresh > 0){
-      doc = addParagraph(doc, paste("log2 Ratio threshold:", param$log2RatioHighlightThresh))
+      addParagraph(doc, paste("log2 Ratio threshold:", param$log2RatioHighlightThresh))
     }
-    doc = addParagraph(doc, paste("Number of significant features:", sum(use)))
+    addParagraph(doc, paste("Number of significant features:", sum(use)))
     
     if (!is.null(clusterResult$GO)){
       goTables = goClusterTable(param, clusterResult)
-      doc = addFlexTable(doc, ezFlexTable(goTables$linkTable, add.rownames=TRUE))
+      addFlexTable(doc, ezFlexTable(goTables$linkTable, add.rownames=TRUE))
       goLink = as.html(ezGrid(cbind("Background color corresponds to the row colors in the heatmap plot.",
                                 as.html(goTables$ft))))
       #goLink[[2]] = addGOClusterResult(doc, param, clusterResult)
@@ -348,14 +348,14 @@ writeNgsTwoGroupReport = function(dataset, result, output, htmlFile="00index.htm
       goLink = as.html(pot("No information available"))
     }
     tbl = ezGrid(cbind("Cluster Plot"=clusterLink, "GO categories of feature clusters"=goLink), header.columns = TRUE)
-    doc = addFlexTable(doc, tbl)
+    addFlexTable(doc, tbl)
   }
   ## only do GO if we have enough genes
   if (doGo(param, seqAnno)){
     goResult = twoGroupsGO(param, result, seqAnno, normalizedAvgSignal=rowMeans(result$groupMeans), method=param$goseqMethod)
     titles[["GO Enrichment Analysis"]] = "GO Enrichment Analysis"
     addTitle(doc, titles[[length(titles)]], 2, id=titles[[length(titles)]])
-    doc = addGoUpDownResult(doc, param, goResult)
+    addGoUpDownResult(doc, param, goResult)
   }
   
   ## Run Gage
