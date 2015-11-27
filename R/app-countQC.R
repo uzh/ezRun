@@ -442,6 +442,6 @@ runNgsCountQC = function(dataset, htmlFile="00index.html", param=param, rawData=
     addParagraph(doc, pngLink)
   }
   closeBsdocReport(advancedDoc, "advancedPlots.html", advancedTitles)
-  addParagraph(doc, pot("advancedPlots", hyperlink = "advancedPlots.html"))
+  addParagraph(doc, pot("advanced Plots", hyperlink = "advancedPlots.html"))
   closeBsdocReport(doc, htmlFile, titles)
 }

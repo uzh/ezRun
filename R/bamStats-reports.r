@@ -405,7 +405,7 @@ plotBamStat = function(resultList, dataset, param, htmlFile=NULL){
   }
   addFlexTable(doc, ezFlexTable(tableOfPages, header.columns=TRUE, add.rownames=TRUE))
   closeBsdocReport(advancedDoc, "advancedPlots.html", advancedTitles)
-  addParagraph(doc, pot("advancedPlots", hyperlink = "advancedPlots.html"))
+  addParagraph(doc, pot("advanced Plots", hyperlink = "advancedPlots.html"))
   closeBsdocReport(doc, htmlFile, titles)
 }
 

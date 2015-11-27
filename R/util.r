@@ -656,15 +656,22 @@ ezCollapse = function(x, sep="; ", na.rm=FALSE, empty.rm=FALSE, uniqueOnly=FALSE
 ##' @description Saves an interactive table accessible with the provided \code{tableLink}.
 ##' @param table a data.frame or table to create an interactive table from.
 ##' @param tableLink a character ending with .html representing the link to the interactive table
+##' @param format formatting options passed as an expression. The table argument in formatting functions must be named \code{interactiveTable}.
+##' @param envir the environment to evaluate \code{format} in.
 ##' @template roxygen-template
 ##' @seealso \code{\link[DT]{datatable}}
 ##' @seealso \code{\link[DT]{saveWidget}}
 ##' @examples 
 ##' tableLink = "exampleTable.html"
-##' table = data.frame(a=1:100, b=201:300)
-##' ezInteractiveTable(table, tableLink)
-ezInteractiveTable = function(table, tableLink){
+##' table = data.frame(a=c(1.11, 2:100), b=201:300)
+##' format = expression(DT::formatRound(interactiveTable, "a", 1))
+##' ezInteractiveTable(table, tableLink, format)
+ezInteractiveTable = function(table, tableLink, format=NULL, envir=parent.frame()){
   interactiveTable = DT::datatable(table, extensions = "ColVis", filter="top",
-                                   options = list(dom = 'C<"clear">lfrtip', pageLength = 25)) ## TODOP: sort table?
+                                   options = list(dom = 'C<"clear">lfrtip', pageLength = 25))
+  if (!is.null(format)){
+    currEnv = environment()
+    interactiveTable = eval(format, envir=c(envir, currEnv))
+  }
   DT::saveWidget(interactiveTable, tableLink)
 }

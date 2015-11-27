@@ -142,7 +142,7 @@ ezMethodMpileup = function(input=NA, output=NA, param=NA){
       plotCmd = expression({
         plot(hcd, main="Cluster by Genotype", xlab="")
       })
-      pngLink = ezImageFileLink(plotCmd, file=pngFile, width=800 + max(0, 10 * (nSamples-20))) # TODOP: should the width be more sample-dependent?
+      pngLink = ezImageFileLink(plotCmd, file=pngFile, width=800 + max(0, 10 * (nSamples-20))) # NOTEP: should the width be more sample-dependent?
       addParagraph(doc, pngLink)
     }
   }
@@ -176,7 +176,7 @@ ezMethodMpileup = function(input=NA, output=NA, param=NA){
         }
         abline(h=seq(0, 3*ncol(gt), by=3))
       })
-      pngLinks[ch] = ezImageFileLink(plotCmd, file=pngFiles[ch], height=200+30*ncol(gt), width=1200) # TODOP: adjust plot after seeing it...
+      pngLinks[ch] = ezImageFileLink(plotCmd, file=pngFiles[ch], height=200+30*ncol(gt), width=1200) # TODOP: adjust plot after seeing it
     }
     if (length(pngLinks) > 0){
       addFlexTable(doc, ezGrid(pngLinks))

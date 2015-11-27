@@ -497,7 +497,7 @@ ezCorrelationPlot = function(z, cond=NULL, condOrder=NULL, main="Correlation",
                               labels=NULL, condLabels=NULL, plotLabels=nrow(z) < 100,
                               colors=NULL){
   
-  par(mar=c(5.1, 4.1, 4.1, 4.1))
+  par(mar=c(5.1, 4.1, 4.1, 3.1))
   colorScale <- gray((1:256)/256)
   condNumbers = NULL
   nRow <- nrow(z)

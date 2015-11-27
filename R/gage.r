@@ -94,7 +94,7 @@ runGageAnalysis = function(result, param=NULL, output=NULL, rawData=NULL, gene.p
 ##' }
 ##' @template roxygen-template
 ##' @return Returns the gene set.
-## TODOP: no database found at param$KEGGgmt
+## NOTEP: no database found at param$KEGGgmt
 getGeneSets = function(param){
   SpeciesName = getSpeciesName(param)
   kegg.id = getKeggId(SpeciesName, param)

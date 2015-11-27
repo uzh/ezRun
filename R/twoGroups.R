@@ -360,7 +360,7 @@ writeNgsTwoGroupReport = function(dataset, result, output, htmlFile="00index.htm
   
   ## Run Gage
   if(param[['GAGEanalysis']] ) {
-    gageRes <- runGageAnalysis(result, param=param, output=output, rawData=rawData)
+    gageRes = runGageAnalysis(result, param=param, output=output, rawData=rawData)
     titles[["GAGE Enrichment Analysis"]] = "GAGE Enrichment Analysis"
     addTitle(doc, titles[[length(titles)]], 3, id=titles[[length(titles)]])
     addGageTables(doc, param, gageRes)
