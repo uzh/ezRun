@@ -8,7 +8,7 @@
 ezScatter(x = NULL, y, xlab = NULL, ylab = NULL, nPlotsPerRow = 6,
   shrink = FALSE, lim = range(x, y, na.rm = TRUE), isPresent = NULL,
   types = NULL, pch = 16, colors = rainbow(ncol(types)),
-  legendPos = "bottomright", cex.main = 1, cex = 0.8, ...)
+  legendPos = "bottomright", cex.main = 1, cex = 1, ...)
 
 ezXYScatterScatter(xVec, yVec, absentColor = "gray", shrink = FALSE,
   frame = TRUE, axes = TRUE, xlim = range(xVec, yVec, na.rm = TRUE),

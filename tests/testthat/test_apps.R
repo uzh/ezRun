@@ -30,6 +30,7 @@ yeastCommonMapParam = function(){
   param[['trimRight']] = '0'
   param[['minTailQuality']] = '0'
   param[['specialOptions']] = ''
+  param[['mail']] = ''
   param[['dataRoot']] = system.file(package="ezRun", mustWork = TRUE)
   param[['resultDir']] = 'p1001/Map_Result'
   return(param)
