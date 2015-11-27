@@ -5,6 +5,7 @@ cwd = getwd()
 .libPaths("/home/pdschmid/R-libs")
 EZ_GLOBAL_VARIABLES <<- '/usr/local/ngseq/opt/EZ_GLOBAL_VARIABLES.txt'
 library(ezRun)
+ezSystem("rm -fr /scratch/test_go_debugging/*")
 setwdNew("/scratch/test_go_debugging")
 param = list()
 param[['cores']] = '1'

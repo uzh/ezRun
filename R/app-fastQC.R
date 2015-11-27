@@ -57,7 +57,7 @@ ezMethodFastQC = function(input=NA, output=NA, param=NA, htmlFile="00index.html"
     png = paste0("<img src=", reportDirs, "/Images/", plots[i], ">")
     tbl = ezFlexTable(ezMatrix(png, rows=names(files), cols=names(plots)[i]), 
                       header.columns=TRUE, add.rownames=TRUE, valign="middle")
-    plotDoc = addFlexTable(plotDoc, tbl)
+    addFlexTable(plotDoc, tbl)
     closeBsdocReport(plotDoc, plotPages[i])
   }
   
@@ -88,9 +88,8 @@ ezMethodFastQC = function(input=NA, output=NA, param=NA, htmlFile="00index.html"
     par(mar=c(10.1, 4.1, 4.1, 2.1))
     barplot(readCount, las=2, ylab="Counts [Mio]", main="total reads")
   })
-  readCountsLink = ezImageFileLink(plotCmd, file="readCounts.png", height=600,
-                                   width=min(600 + (nFiles-10)* 30, 2000))
-  doc = addParagraph(doc, readCountsLink)
+  readCountsLink = ezImageFileLink(plotCmd, file="readCounts.png", width=min(600 + (nFiles-10)* 30, 2000)) # nSamples dependent width
+  addParagraph(doc, readCountsLink)
   
   titles[["Fastqc quality measures"]] = "Fastqc quality measures"
   addTitle(doc, titles[[length(titles)]], 2, id=titles[[length(titles)]])
@@ -108,21 +107,21 @@ ezMethodFastQC = function(input=NA, output=NA, param=NA, htmlFile="00index.html"
     img = paste0(reportDirs[i], 	"/Icons/", statusToPng[smy[[1]]])
     tbl[i, ] = paste0("<a href=", href, "><img src=", img, "></a>")
   }
-  doc = addFlexTable(doc, ezFlexTable(tbl, header.columns=TRUE, add.rownames=TRUE, valign="middle"))
+  addFlexTable(doc, ezFlexTable(tbl, header.columns=TRUE, add.rownames=TRUE, valign="middle"))
   
   titles[["Per Base Read Quality"]] = "Per Base Read Quality"
   addTitle(doc, titles[[length(titles)]], 2, id=titles[[length(titles)]])
   qualMatrixList = ezMclapply(files, getQualityMatrix, mc.cores=ezThreads())
   pngMatrix = plotQualityMatrixAsHeatmap(qualMatrixList, isR2=grepl("_R2", names(files)))
-  doc = addFlexTable(doc, ezGrid(pngMatrix))
+  addFlexTable(doc, ezGrid(pngMatrix))
   if(nrow(dataset) > 1){
-    pngLibCons = character()
+    pngLibCons = character() # NOTEP: the colnames seem very specific
     pngLibCons["qPCR"] = plotReadCountToLibConc(dataset, colname='LibConc_qPCR [Characteristic]')
     pngLibCons["100_800bp"] = plotReadCountToLibConc(dataset, colname='LibConc_100_800bp [Characteristic]')
     if(length(pngLibCons) > 0){
       titles[["Correlation"]] = "Correlation between Library concentration measurements and ReadCounts"
       addTitle(doc, titles[[length(titles)]], 3, id=titles[[length(titles)]])
-      doc = addFlexTable(doc, ezGrid(matrix(pngLibCons, nrow=1)))
+      addFlexTable(doc, ezGrid(matrix(pngLibCons, nrow=1)))
     }
   }
   closeBsdocReport(doc, htmlFile, titles)
@@ -164,7 +163,7 @@ plotReadCountToLibConc = function(dataset, colname){
         text(dataset$'Read Count', dataset[[colname]], pos=2,
              labels=rownames(dataset), cex=0.7, col='darkcyan')
       })
-      link = ezImageFileLink(plotCmd, file=paste0('ReadCount_', label, '.png'), width=500, height=500)
+      link = ezImageFileLink(plotCmd, file=paste0('ReadCount_', label, '.png'))
       return(link)
     }
   }
@@ -314,6 +313,6 @@ plotQualityHeatmap = function(result, name=NULL, colorRange=c(0,sqrt(40)), color
     axis(1, at=labCol, labels=labCol)
     axis(2, at=seq(1, nrow(result),by=5), labels=labRow)
   })
-  pngFileLink = ezImageFileLink(plotCmd, file=pngFileName, height=500*yScale, width=700*xScale)
+  pngFileLink = ezImageFileLink(plotCmd, file=pngFileName, height=480*yScale, width=670*xScale)
   return(pngFileLink)
 }

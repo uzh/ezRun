@@ -510,11 +510,15 @@ makeMultiMapping = function(xList){
 ##' @description This function is a modified version of \code{mclapply()} of the parallel package and allows a parallelized usage of lapply.
 ##' @param x a list to apply the function to.
 ##' @param FUN the function to apply to each list element.
-##' @return Returns a list of the same length as \code{x} with \code{FUN} applied to its elements.
-##' @template roxygen-template
 ##' @template addargs-template
 ##' @templateVar fun lapply() and mclapply()
+##' @param mc.preschedule a logical passed to \code{mclapply()}.
+##' @param mc.set.seed a logical passed to \code{mclapply()}.
+##' @param mc.silent a logical passed to \code{mclapply()}.
+##' @param mc.cores an integer passed to \code{mclapply()}.
+##' @template roxygen-template
 ##' @seealso \code{\link[parallel]{mclapply}}
+##' @return Returns a list of the same length as \code{x} with \code{FUN} applied to its elements.
 ##' @examples
 ##' l1 = list(a=1:3, b=c(2,5), c=4:8)
 ##' ezMclapply(l1,sum)
@@ -648,4 +652,19 @@ ezCollapse = function(x, sep="; ", na.rm=FALSE, empty.rm=FALSE, uniqueOnly=FALSE
   paste(x, collapse=sep)
 }
 
-
+##' @title Saves an interactive table
+##' @description Saves an interactive table accessible with the provided \code{tableLink}.
+##' @param table a data.frame or table to create an interactive table from.
+##' @param tableLink a character ending with .html representing the link to the interactive table
+##' @template roxygen-template
+##' @seealso \code{\link[DT]{datatable}}
+##' @seealso \code{\link[DT]{saveWidget}}
+##' @examples 
+##' tableLink = "exampleTable.html"
+##' table = data.frame(a=1:100, b=201:300)
+##' ezInteractiveTable(table, tableLink)
+ezInteractiveTable = function(table, tableLink){
+  interactiveTable = DT::datatable(table, extensions = "ColVis", filter="top",
+                                   options = list(dom = 'C<"clear">lfrtip', pageLength = 25)) ## TODOP: sort table?
+  DT::saveWidget(interactiveTable, tableLink)
+}

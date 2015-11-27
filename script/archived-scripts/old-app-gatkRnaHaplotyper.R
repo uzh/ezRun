@@ -1,18 +1,7 @@
-###################################################################
-# Functional Genomics Center Zurich
-# This code is distributed under the terms of the GNU General
-# Public License Version 3, June 2007.
-# The terms are available here: http://www.gnu.org/licenses/gpl.html
-# www.fgcz.ch
 
-
-##' @template method-template
-##' @templateVar methodName Gatk RNA Haplotyper
-##' @template htmlFile-template
-##' @seealso \code{\link{ezAppGatkRnaHaplotyper}}
-ezMethodGatkRnaHaplotyper = function(input=NA, output=NA, param=NA, htmlFile="00index.html"){
+gatkRnaSeqHaplotyperApp = function(input=NA, output=NA, param=NA, htmlFile="00index.html"){
   
-  bamDataset = input$meta
+  bamDataset = input
   
   ## keep only SNPs that have in at least one sample at least minAltCount reads for the ALT variant
   if (is.null(param$vcfFilt.minAltCount)){
@@ -22,12 +11,12 @@ ezMethodGatkRnaHaplotyper = function(input=NA, output=NA, param=NA, htmlFile="00
   if (is.null(param$vcfCall.minReadDepth)){
     param$vcfCall.minReadDepth = 10
   }
-  reportDir = basename(output$getColumn("Report"))
-  htmlFile = basename(output$getColumn("Html"))
-  vcfOutputFile = output$getColumn("VCF [File]") #paste0(param$name, "-haplo.vcf.gz")
+  reportDir = basename(output$"Report")
+  htmlFile = basename(output$Html)
+  vcfOutputFile = output$"VCF [File]" #paste0(param$name, "-haplo.vcf.gz")
   
   
-  bamFiles = input$getFullPaths(param, "BAM")
+  bamFiles = bamDataset$getFullPaths(param, "BAM")
   names(bamFiles) = rownames(bamDataset)
   genomeSeq = param$ezRef["refFastaFile"]
   nBamsInParallel = min(4, param$cores)
@@ -105,92 +94,67 @@ ezMethodGatkRnaHaplotyper = function(input=NA, output=NA, param=NA, htmlFile="00
               bamDataset=bamDataset, param=param)
   gc()
   
+  
   ## create an html report
   setwdNew(reportDir)
-  doc = openBsdocReport(paste("VCF-Report:", param$name))
-  titles[["Parameters"]] = "Parameters"
-  addTitle(doc, titles[[length(titles)]], 2, id=titles[[length(titles)]])
-  addDataset(doc, dataset=bamDataset)
-  addParagraph(doc, paste("Reference build:", param$refBuild))
-  
+  html = openHtmlReport(htmlFile, param=param, title=paste("VCF-Report:", param$name),
+                        dataset=bamDataset)
   chromSizes = ezChromSizesFromVcf(file.path("..", basename(vcfOutputFile)))
   genotype = geno(readVcf(file.path("..", basename(vcfOutputFile)), genome="genomeDummy"))
   gt = genotype$GT
   gt[genotype$DP < param$vcfCall.minReadDepth] = "lowCov"
   nSamples = nrow(bamDataset)
   
-  titles[["IGV"]] = "IGV"
-  addTitle(doc, titles[[length(titles)]], 2, id=titles[[length(titles)]])
+  ezWrite("<h2>IGV</h2>", con=html)
   writeIgvSession(genome = getIgvGenome(param), refBuild=param$ezRef["refBuild"], file="igvSession.xml", vcfUrls = paste(PROJECT_BASE_URL, vcfOutputFile, sep="/") )
   writeIgvJnlp(jnlpFile="igv.jnlp", projectId = sub("\\/.*", "", output$Report),
                sessionUrl = paste(PROJECT_BASE_URL, output$Report, "igvSession.xml", sep="/"))
-  addTxtLinksToReport(doc, "igv.jnlp", mime = "application/x-java-jnlp-file")
+  writeTxtLinksToHtml("igv.jnlp", mime = "application/x-java-jnlp-file", con=html)
   
-  titles[["Sample Clustering based on Variants"]] = "Sample Clustering based on Variants"
-  addTitle(doc, titles[[length(titles)]], 2, id=titles[[length(titles)]])
+  ezWrite("<h2>Sample Clustering based on Variants</h2>",con=html)
   conds = ezConditionsFromDataset(bamDataset, param=param)
   sampleColors = getSampleColors(conds, colorNames = names(conds))
   idxMat = ezMatrix(match(gt, c("0/0", "0/1", "1/1")) -2, rows=rownames(gt), cols=colnames(gt))
   d = dist(t(idxMat))
-  hc = hclust(d, method="ward.D2");
+  hc=hclust(d, method="ward.D2");
   hcd = as.dendrogram(hclust(d, method="ward.D2"), hang=-0.1)
   hcd = colorClusterLabels(hcd, sampleColors)
   pngFile = "genotype-cluster.png"
-  plotCmd = expression({
-    plot(hcd, main="Cluster by Genotype", xlab="")
-  })
-  pngLink = ezImageFileLink(plotCmd, file=pngFile, width=800 + max(0, 10 * (nSamples-20))) # nSamples dependent width
-  addParagraph(doc, pngLink)
+  png(pngFile, width=800 + max(0, 10 * (nSamples-20)), height=500)
+  plot(hcd, main="Cluster by Genotype", xlab="")
+  dev.off()
+  writeImageColumnToHtml(pngFile, con=html)
   
-  titles[["Variants by Chromosomes"]] = "Variants by Chromosomes"
-  addTitle(doc, titles[[length(titles)]], 2, id=titles[[length(titles)]])
-  addParagraph(doc, "Genotype colors are: blue - homozygous reference; gray - heterozygous; red - homozygyous variant")
+  ezWrite("<h2>Variants by Chromosomes</h2>",con=html)
+  ezWrite("<p>Genotype colors are: blue - homozygous reference; gray - heterozygous; red - homozygyous variant</p>", con=html)
   chrom = sub(":.*", "", rownames(gt))
   pos = as.integer(sub("_.*", "", sub(".*:", "", rownames(gt))))
   isRealChrom = !grepl("[\\._]", names(chromSizes)) ## TODO select chromosomes by name
   idxList = split(1:nrow(gt), chrom)
   snpColors = c("0/0"="blue", "0/1"="darkgrey", "1/1"="red")
   pngFiles = c()
-  pngLinks = character()
   for (ch in names(chromSizes)[isRealChrom]){
     pngFiles[ch] = paste0("variantPos-chrom-", ch, ".png")
-    plotCmd = expression({
-      par(mar=c(4.1, 10, 4.1, 2.1))
-      plot(0, 0, type="n", main=paste("Chromsome", ch), xlab="pos", xlim=c(1, chromSizes[ch]), ylim=c(0, 3*ncol(gt)),
-           axes=FALSE, frame=FALSE, xaxs="i", yaxs="i", ylab="")
-      axis(1)
-      mtext(side = 2, at = seq(1, 3*ncol(gt), by=3), text = colnames(gt), las=2,
-            cex = 1.0, font=2, col=sampleColors)
-      idx = idxList[[ch]]
-      xStart = pos[idx]
-      nm  = colnames(gt)[1]
-      for (i in 1:ncol(gt)){
-        offSet = match(gt[idx ,i], names(snpColors))
-        yTop = (i-1) * 3 + offSet
-        rect(xStart, yTop - 1, xStart+1, yTop, col = snpColors[offSet], border=snpColors[offSet])
-      }
-      abline(h=seq(0, 3*ncol(gt), by=3))
-    })
-    pngLinks[ch] = ezImageFileLink(plotCmd, file=pngFiles[ch], height=200+30*ncol(gt), width=1200)
+    png(pngFiles[ch], height=200+30*ncol(gt), width=1200)
+    par(mar=c(4.1, 10, 4.1, 2.1))
+    plot(0, 0, type="n", main=paste("Chromsome", ch), xlab="pos", xlim=c(1, chromSizes[ch]), ylim=c(0, 3*ncol(gt)),
+         axes=FALSE, frame=FALSE, xaxs="i", yaxs="i", ylab="")
+    axis(1)
+    mtext(side = 2, at = seq(1, 3*ncol(gt), by=3), text = colnames(gt), las=2,
+          cex = 1.0, font=2, col=sampleColors)
+    idx = idxList[[ch]]
+    xStart = pos[idx]
+    nm  = colnames(gt)[1]
+    for (i in 1:ncol(gt)){
+      offSet = match(gt[idx ,i], names(snpColors))
+      yTop = (i-1) * 3 + offSet
+      rect(xStart, yTop - 1, xStart+1, yTop, col = snpColors[offSet], border=snpColors[offSet])
+    }
+    abline(h=seq(0, 3*ncol(gt), by=3))
+    dev.off()
   }
-  addFlexTable(doc, ezGrid(pngLinks))
-  closeBsdocReport(doc, htmlFile, titles)
+  writeImageColumnToHtml(pngFiles, con=html)
+  closeHTML(html)
   setwd("..")
   return("Success")
 }
-
-##' @template app-template
-##' @templateVar method ezMethodGatkRnaHaplotyper()
-##' @seealso \code{\link{ezMethodGatkRnaHaplotyper}}
-ezAppGatkRnaHaplotyper <-
-  setRefClass("ezAppGatkRnaHaplotyper",
-              contains = "EzApp",
-              methods = list(
-                initialize = function()
-                {
-                  "Initializes the application using its specific defaults."
-                  runMethod <<- ezMethodGatkRnaHaplotyper
-                  name <<- "ezAppGatkRnaHaplotyper"
-                }
-              )
-  )

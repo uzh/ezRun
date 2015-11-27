@@ -22,9 +22,7 @@ goClusterTable = function(param, clusterResult){
       x = clusterResult$GO[[onto]][[i]]
       goFrame = .getGoTermsAsTd(x, param$pValThreshFisher, param$minCountFisher, onto=onto)
       linkTable[onto, i] = paste0("Cluster-", onto, "-", i, ".html")
-      interactiveTable = DT::datatable(head(goFrame, param$maxTableRows), extensions = "ColVis", filter="top",
-                                       options = list(dom = 'C<"clear">lfrtip', pageLength = 25))
-      DT::saveWidget(interactiveTable, linkTable[onto, i])
+      ezInteractiveTable(head(goFrame, param$maxTableRows), tableLink = linkTable[onto, i])
       linkTable[onto, i] = as.html(pot(sub(".html", "", linkTable[onto, i]), hyperlink=linkTable[onto, i]))
       if (nrow(goFrame) > 0){
         tables[i, onto] = as.html(ezFlexTable(goFrame, talign="right"))
@@ -34,8 +32,8 @@ goClusterTable = function(param, clusterResult){
   nameMap = c("BP"="Biological Proc. (BP)", "MF"="Molecular Func. (MF)", "CC"="Cellular Comp. (CC)")
   colnames(tables) = nameMap[colnames(tables)]
   ft = ezFlexTable(tables, border = 2, header.columns = TRUE, add.rownames=TRUE)
-  bgColors = rep(gsub("FF$", "", clusterResult$clusterColors), each=ncol(tables)+1)
-  ft = setFlexTableBackgroundColors(ft, colors=bgColors)
+  bgColors = rep(gsub("FF$", "", clusterResult$clusterColors))
+  ft = setFlexTableBackgroundColors(ft, j=1, colors=bgColors)
   return(list(ft=ft, linkTable=linkTable))
 }
 
@@ -49,15 +47,15 @@ goClusterTable = function(param, clusterResult){
 ##' @template roxygen-template
 addGoUpDownResult = function(doc, param, goResult){
   udt = goUpDownTables(param, goResult)
-  doc = addParagraph(doc, paste("Maximum number of terms displayed:", param$maxNumberGroupsDisplayed))
+  addParagraph(doc, paste("Maximum number of terms displayed:", param$maxNumberGroupsDisplayed))
   
-  doc = addFlexTable(doc, ezFlexTable(udt$linkTable, add.rownames=TRUE)) ## Does 9 plots currently, perhaps we should merge it a bit
-  doc = addTitle(doc, "GO categories that are overrepresented among significantly upregulated genes.", 3)
-  doc = addFlexTable(doc, udt$flexTables[["enrichUp"]])
-  doc = addTitle(doc, "GO categories that are overrepresented among significantly downregulated genes.", 3)
-  doc = addFlexTable(doc, udt$flexTables[["enrichDown"]])
-  doc = addTitle(doc, "GO categories that are overrepresented among all significantly regulated genes.", 3)
-  doc = addFlexTable(doc, udt$flexTables[["enrichBoth"]])
+  addFlexTable(doc, ezFlexTable(udt$linkTable, add.rownames=TRUE)) ## Does 9 plots currently, perhaps we should merge it a bit
+  addTitle(doc, "GO categories that are overrepresented among significantly upregulated genes.", 3)
+  addFlexTable(doc, udt$flexTables[["enrichUp"]])
+  addTitle(doc, "GO categories that are overrepresented among significantly downregulated genes.", 3)
+  addFlexTable(doc, udt$flexTables[["enrichDown"]])
+  addTitle(doc, "GO categories that are overrepresented among all significantly regulated genes.", 3)
+  addFlexTable(doc, udt$flexTables[["enrichBoth"]])
   
   #     goFiles = list.files('.',pattern='enrich.*txt')
   #     revigoLinks = ezMatrix("", rows=c('Both', 'Down', 'Up'), cols=c('BP', 'CC', 'MF'))
@@ -73,10 +71,9 @@ addGoUpDownResult = function(doc, param, goResult){
   #     }
   #     titles[["ReViGO"]] = "ReViGO"
   #     addTitle(doc, titles[[length(titles)]], 3, id=titles[[length(titles)]])
-  #     doc = addFlexTable(doc, ezFlexTable(cbind(rownames(revigoLinks), revigoLinks), valign="middle", header.columns=TRUE))
+  #     addFlexTable(doc, ezFlexTable(cbind(rownames(revigoLinks), revigoLinks), valign="middle", header.columns=TRUE))
   
   addTxtLinksToReport(doc, udt$txtFiles, param$doZip)
-  return(doc)
 }
 
 ##' @describeIn addGoUpDownResult Gets the GO up-down tables.
@@ -93,9 +90,7 @@ goUpDownTables = function(param, goResult){
       goFrame = .getGoTermsAsTd(x[[sub]], param$pValThreshFisher, param$minCountFisher, onto=onto,
                                 maxNumberOfTerms=param$maxNumberGroupsDisplayed)
       linkTable[onto, sub] = paste0("Cluster-", onto, "-", sub, ".html")
-      interactiveTable = DT::datatable(head(goFrame, param$maxTableRows), extensions = "ColVis", filter="top",
-                                       options = list(dom = 'C<"clear">lfrtip', pageLength = 25))
-      DT::saveWidget(interactiveTable, linkTable[onto, sub])
+      ezInteractiveTable(head(goFrame, param$maxTableRows), tableLink = linkTable[onto, sub])
       linkTable[onto, sub] = as.html(pot(sub(".html", "", linkTable[onto, sub]), hyperlink=linkTable[onto, sub]))
       if (nrow(goFrame) > 0){
         resultList[[sub]]["Cats", onto] = as.html(ezFlexTable(goFrame, talign="right"))
