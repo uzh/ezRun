@@ -197,8 +197,7 @@ writeNgsMultiGroupReport = function(dataset, result, htmlFile, param=NA, rawData
   
   titles[["Parameters"]] = "Parameters"
   addTitle(doc, titles[[length(titles)]], 2, id=titles[[length(titles)]])
-  addDataset(doc, dataset=dataset)
-  addParagraph(doc, paste("Reference build:", param$refBuild))
+  addDataset(doc, dataset, param)
   
   titles[["Result Summary"]] = "Result Summary"
   addTitle(doc, titles[[length(titles)]], 2, id=titles[[length(titles)]])

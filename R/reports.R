@@ -115,7 +115,7 @@ imgLinks = function(image){
 ##' closeBsdocReport(doc=theDoc, file="example.html")
 openBsdocReport = function(title=""){
   doc = bsdoc(title = title)
-  pot1 = pot(paste("Started on", format(Sys.time(), "%Y-%m-%d %H:%M:%S"), "--&#160;"))
+  pot1 = paste("Started on", format(Sys.time(), "%Y-%m-%d %H:%M:%S"), "--&#160;")
   pot2 = as.html(pot("Documentation", hyperlink = "http://fgcz-sushi.uzh.ch/doc/methods-20140422.html"))
   addFlexTable(doc, ezGrid(cbind(pot1, pot2)))
   addTitle(doc, title, id=title)
@@ -123,16 +123,19 @@ openBsdocReport = function(title=""){
 }
 
 ##' @title Adds a dataset
-##' @description Adds a dataset to a bsdoc object.
+##' @description Adds a dataset to a bsdoc object and the reference build.
 ##' @template doc-template
 ##' @templateVar object dataset
 ##' @template dataset-template
+##' @param param a list of parameters to extract \code{refBuild} from.
 ##' @template roxygen-template
-addDataset = function(doc, dataset){
+addDataset = function(doc, dataset, param){
   ezWrite.table(dataset, file="dataset.tsv", head="Name")
   tableLink = "dataset.html"
-  ezInteractiveTable(dataset, tableLink)
-  addParagraph(doc, pot("Input Dataset", hyperlink=tableLink))
+  ezInteractiveTable(dataset, tableLink=tableLink)
+  pot1 = as.html(pot("Input Dataset", hyperlink=tableLink))
+  pot2 = paste("Reference build:", param$refBuild)
+  addFlexTable(doc, ezGrid(rbind(pot1, pot2)))
 }
 
 ##' @title Adds a java function
@@ -462,16 +465,19 @@ addResultFile = function(doc, param, result, rawData, useInOutput=TRUE,
     y = cbind(y, yy)
   }
   y = y[order(y$fdr, y$pValue), ]
+  if (!is.null(y$width)){
+    y$width = as.integer(y$width)
+  }
+  if (!is.null(y$gc)){
+    y$gc = as.numeric(y$gc)
+  }
   ezWrite.table(y, file=file, head="Identifier", digits=4)
   addTxtLinksToReport(doc, file, param$doZip)
-  useInInteractiveTable = c("gene_name", "transcript_id", "type", "description", "width", "gc", "isPresent", "log2 Ratio", "pValue", "fdr")
+  useInInteractiveTable = c("gene_name", "type", "description", "width", "gc", "isPresent", "log2 Ratio", "pValue", "fdr")
   useInInteractiveTable = intersect(useInInteractiveTable, colnames(y))
-  widgetLink = sub(".txt", "-viewTopGenes.html", file)
-  format = expression({
-    DT::formatRound(interactiveTable, c("log2 Ratio", "pValue", "fdr"), 3) ## TODOP: Finally it works, but rounding of 5.64e-34 doesn't go well...
-  })
-  ezInteractiveTable(head(y[, useInInteractiveTable], param$maxTableRows), widgetLink)#, format=format) ## enable when pValue and fdr don't equal 0 anymore after rounding
-  addParagraph(doc, pot(sub(".html", "", widgetLink), hyperlink=widgetLink))
+  tableLink = sub(".txt", "-viewHighVarianceGenes.html", file)
+  ezInteractiveTable(head(y[, useInInteractiveTable, drop=FALSE], param$maxTableRows), tableLink=tableLink, digits=3)
+  addParagraph(doc, pot(sub(".html", "", tableLink), hyperlink=tableLink))
   
   return(list(resultFile=file))
 }

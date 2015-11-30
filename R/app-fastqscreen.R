@@ -167,8 +167,7 @@ fastqscreenReport = function(dataset, param, htmlFile="00index.html", fastqData,
   
   titles[["Parameters"]] = "Parameters"
   addTitle(doc, titles[[length(titles)]], 2, id=titles[[length(titles)]])
-  addDataset(doc, dataset=dataset)
-  addParagraph(doc, paste("Reference build:", param$refBuild))
+  addDataset(doc, dataset, param)
   
   settings = character()
   settings["Configuration File:"] = param$confFile

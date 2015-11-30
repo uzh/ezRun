@@ -122,8 +122,7 @@ runNgsCountQC = function(dataset, htmlFile="00index.html", param=param, rawData=
   
   titles[["Parameters"]] = "Parameters"
   addTitle(doc, titles[[length(titles)]], 2, id=titles[[length(titles)]])
-  addDataset(doc, dataset=dataset)
-  addParagraph(doc, paste("Reference build:", param$refBuild))
+  addDataset(doc, dataset, param)
   
   settings = character()
   settings["Normalization method:"] = param$normMethod
@@ -145,15 +144,20 @@ runNgsCountQC = function(dataset, htmlFile="00index.html", param=param, rawData=
     if (!is.null(seqAnno)){
       combined = cbind(seqAnno[rownames(combined), ,drop=FALSE], combined)
     }
+    if (!is.null(combined$start) && !is.null(combined$end) && !is.null(combined$width)){
+      combined$start = as.integer(combined$start)
+      combined$end = as.integer(combined$end)
+      combined$width = as.integer(combined$width)
+    }
     countFile = paste0(ezValidFilename(param$name), "-raw-count.txt")
     ezWrite.table(rawData$counts, file=countFile, head="Feature ID", digits=4)
     signalFile = paste0(ezValidFilename(param$name), "-normalized-signal.txt")
     ezWrite.table(combined, file=signalFile, head="Feature ID", digits=4)
     
-    useInInteractiveTable = c("seqid", "gene_id", "strand", "start", "end", "width", "gc")
+    useInInteractiveTable = c("seqid", "gene_name", "gene_id", "description", "strand", "start", "end", "width", "gc")
     useInInteractiveTable = intersect(useInInteractiveTable, colnames(combined))
-    tableLink = sub(".txt", "-viewTopGenes.html", signalFile)
-    ezInteractiveTable(head(combined[, useInInteractiveTable], param$maxTableRows), tableLink) ## TODOP: sort table?
+    tableLink = sub(".txt", "-viewHighExpressionGenes.html", signalFile)
+    ezInteractiveTable(head(combined[, useInInteractiveTable, drop=FALSE], param$maxTableRows), tableLink=tableLink, digits=3) ## TODOP: add avg and stdev cols, sort differently?
     
     rpkmFile = paste0(ezValidFilename(param$name), "-rpkm.txt")
     ezWrite.table(getRpkm(rawData), file=rpkmFile, head="Feature ID", digits=4) ## NOTE: getRpkm/getTpm necessary? rawData$rpkm/tpm should work,

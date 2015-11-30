@@ -22,7 +22,7 @@ goClusterTable = function(param, clusterResult){
       x = clusterResult$GO[[onto]][[i]]
       goFrame = .getGoTermsAsTd(x, param$pValThreshFisher, param$minCountFisher, onto=onto)
       linkTable[onto, i] = paste0("Cluster-", onto, "-", i, ".html")
-      ezInteractiveTable(head(goFrame, param$maxTableRows), tableLink = linkTable[onto, i])
+      ezInteractiveTable(goFrame, tableLink=linkTable[onto, i], digits=3)
       linkTable[onto, i] = as.html(pot(sub(".html", "", linkTable[onto, i]), hyperlink=linkTable[onto, i]))
       if (nrow(goFrame) > 0){
         tables[i, onto] = as.html(ezFlexTable(goFrame, talign="right"))
@@ -90,7 +90,7 @@ goUpDownTables = function(param, goResult){
       goFrame = .getGoTermsAsTd(x[[sub]], param$pValThreshFisher, param$minCountFisher, onto=onto,
                                 maxNumberOfTerms=param$maxNumberGroupsDisplayed)
       linkTable[onto, sub] = paste0("Cluster-", onto, "-", sub, ".html")
-      ezInteractiveTable(head(goFrame, param$maxTableRows), tableLink = linkTable[onto, sub])
+      ezInteractiveTable(goFrame, tableLink=linkTable[onto, sub], digits=3)
       linkTable[onto, sub] = as.html(pot(sub(".html", "", linkTable[onto, sub]), hyperlink=linkTable[onto, sub]))
       if (nrow(goFrame) > 0){
         resultList[[sub]]["Cats", onto] = as.html(ezFlexTable(goFrame, talign="right"))
@@ -170,9 +170,10 @@ goUpDownTables = function(param, goResult){
     childTerms = getChildTerms(goRoots[i], goIds, goRelatives, indent="", CHILDREN)
     for (term in childTerms){
       terms = append(terms, names(childTerms)[childTerms==term])
-      pValues = append(pValues, signif(x[term, "Pvalue"], 3))
+      pValues = append(pValues, x[term, "Pvalue"])
       counts = append(counts, paste(x[term, "Count"], x[term, "Size"], sep="/"))
     }
   }
+  pValues = as.numeric(pValues)
   return(ezFrame("Term"=terms, "p"=pValues, "N"=counts))
 }

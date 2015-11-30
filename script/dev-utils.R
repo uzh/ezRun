@@ -3,7 +3,7 @@
 ezSystem("rm -fr /scratch/*")
 
 # open report files by providing character(s) to grepl the path for (case is ignored)
-editReportFile = function(patterns){
+editReportFile = function(patterns=""){
   reportFiles = paste0("/scratch/", list.files("/scratch", "00index", recursive = TRUE))
   select = ezMatrix(FALSE, rows = patterns, cols = 1:length(reportFiles))
   for (i in 1:length(patterns)){
@@ -14,9 +14,11 @@ editReportFile = function(patterns){
 }
 
 # open all report files
-patterns = ""
-editReportFile(patterns)
+editReportFile()
 
+# specific
+patterns = "deseq"
+editReportFile(patterns)
 
 
 

@@ -111,8 +111,7 @@ ezMethodMpileup = function(input=NA, output=NA, param=NA){
   
   titles[["Parameters"]] = "Parameters"
   addTitle(doc, titles[[length(titles)]], 2, id=titles[[length(titles)]])
-  addDataset(doc, dataset=bamDataset)
-  addParagraph(doc, paste("Reference build:", param$refBuild))
+  addDataset(doc, bamDataset, param)
   
   chromSizes = ezChromSizesFromVcf(file.path("..", basename(vcfOutputFile)))
   genotype = geno(readVcf(file.path("..", basename(vcfOutputFile)), genome="genomeDummy"))

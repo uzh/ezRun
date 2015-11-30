@@ -33,8 +33,7 @@ plotBamStat = function(resultList, dataset, param, htmlFile=NULL){
   
   titles[["Parameters"]] = "Parameters"
   addTitle(doc, titles[[length(titles)]], 2, id=titles[[length(titles)]])
-  addDataset(doc, dataset=dataset)
-  addParagraph(doc, paste("Reference build:", param$refBuild))
+  addDataset(doc, dataset, param)
   
 ## TODO: add later  
 #   if (param$writeIgvSessionLink){
