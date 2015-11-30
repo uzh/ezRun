@@ -470,7 +470,7 @@ addResultFile = function(doc, param, result, rawData, useInOutput=TRUE,
   format = expression({
     DT::formatRound(interactiveTable, c("log2 Ratio", "pValue", "fdr"), 3) ## TODOP: Finally it works, but rounding of 5.64e-34 doesn't go well...
   })
-  ezInteractiveTable(head(y[, useInInteractiveTable], param$maxTableRows), widgetLink)#, format=format) ## enable when pValue and fdr don't equal 0 anymore after rounding
+  ezInteractiveTable(head(y[, useInInteractiveTable, drop=FALSE], param$maxTableRows), widgetLink)#, format=format) ## enable when pValue and fdr don't equal 0 anymore after rounding
   addParagraph(doc, pot(sub(".html", "", widgetLink), hyperlink=widgetLink))
   
   return(list(resultFile=file))

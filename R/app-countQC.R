@@ -153,7 +153,7 @@ runNgsCountQC = function(dataset, htmlFile="00index.html", param=param, rawData=
     useInInteractiveTable = c("seqid", "gene_id", "strand", "start", "end", "width", "gc")
     useInInteractiveTable = intersect(useInInteractiveTable, colnames(combined))
     tableLink = sub(".txt", "-viewTopGenes.html", signalFile)
-    ezInteractiveTable(head(combined[, useInInteractiveTable], param$maxTableRows), tableLink) ## TODOP: sort table?
+    ezInteractiveTable(head(combined[, useInInteractiveTable, drop=FALSE], param$maxTableRows), tableLink) ## TODOP: sort table?
     
     rpkmFile = paste0(ezValidFilename(param$name), "-rpkm.txt")
     ezWrite.table(getRpkm(rawData), file=rpkmFile, head="Feature ID", digits=4) ## NOTE: getRpkm/getTpm necessary? rawData$rpkm/tpm should work,
