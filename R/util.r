@@ -251,14 +251,13 @@ ezGrepl <- function(patterns, x, combine="or", ...){
 ##' @param x the character vector to be split element-wise.
 ##' @param split a character vector defining with what to split.
 ##' @seealso \code{\link[base]{strsplit}}
-##' @seealso \code{\link[limma]{strsplit2}}
 ##' @return Returns a matrix containing the split vector and \code{x} as the rownames.
 ##' @template roxygen-template
 ##' @template addargs-template
 ##' @templateVar fun strsplit()
 ##' @examples
-##' ezSplit(letters[1:5],"b")
-##' ezSplit(rep("abcde",4),letters[1:4])
+##' ezSplit(letters[1:5], "b")
+##' ezSplit(rep("abcde", 4), letters[1:4])
 ezSplit = function(x, split, ...){
 
   splitList <- strsplit(x, split, ...)

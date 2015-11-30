@@ -4,15 +4,17 @@
 \alias{addDataset}
 \title{Adds a dataset}
 \usage{
-addDataset(doc, dataset)
+addDataset(doc, dataset, param)
 }
 \arguments{
 \item{doc}{an object of the class bsdoc to add the dataset.}
 
 \item{dataset}{a data.frame from the meta field of an EzDataset.}
+
+\item{param}{a list of parameters to extract \code{refBuild} from.}
 }
 \description{
-Adds a dataset to a bsdoc object.
+Adds a dataset to a bsdoc object and the reference build.
 }
 \author{
 Rehrauer, Hubert

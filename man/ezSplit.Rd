@@ -20,8 +20,8 @@ Returns a matrix containing the split vector and \code{x} as the rownames.
 The \code{split} vector needs to divide the \code{x} vector into pieces of equal lengths. The split is removed from the original input.
 }
 \examples{
-ezSplit(letters[1:5],"b")
-ezSplit(rep("abcde",4),letters[1:4])
+ezSplit(letters[1:5], "b")
+ezSplit(rep("abcde", 4), letters[1:4])
 }
 \author{
 Rehrauer, Hubert
@@ -30,7 +30,5 @@ Schmid, Peter
 }
 \seealso{
 \code{\link[base]{strsplit}}
-
-\code{\link[limma]{strsplit2}}
 }
 

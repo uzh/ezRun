@@ -2,7 +2,7 @@
 % Please edit documentation in R/rawData.R
 \name{getRpkm}
 \alias{getRpkm}
-\title{Gets the rpkm measure}
+\title{Gets the rpkm measurement}
 \usage{
 getRpkm(rawData)
 }
@@ -10,10 +10,10 @@ getRpkm(rawData)
 \item{rawData}{a list of raw data obtained from \code{loadCountDataset()}.}
 }
 \value{
-Returns the rpkm measure.
+Returns the rpkm measurement.
 }
 \description{
-Gets the rpkm measure.
+Gets the rpkm measurement.
 }
 \examples{
 param = ezParam()
