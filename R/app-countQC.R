@@ -156,7 +156,7 @@ runNgsCountQC = function(dataset, htmlFile="00index.html", param=param, rawData=
     
     useInInteractiveTable = c("seqid", "gene_name", "gene_id", "description", "strand", "start", "end", "width", "gc")
     useInInteractiveTable = intersect(useInInteractiveTable, colnames(combined))
-    tableLink = sub(".txt", "-viewHighExpressionGenes.html", signalFile)
+    tableLink = sub(".txt", "-viewHighVarianceGenes.html", signalFile)
     ezInteractiveTable(head(combined[, useInInteractiveTable, drop=FALSE], param$maxTableRows), tableLink=tableLink, digits=3) ## TODOP: add avg and stdev cols, sort differently?
     
     rpkmFile = paste0(ezValidFilename(param$name), "-rpkm.txt")

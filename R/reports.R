@@ -475,7 +475,7 @@ addResultFile = function(doc, param, result, rawData, useInOutput=TRUE,
   addTxtLinksToReport(doc, file, param$doZip)
   useInInteractiveTable = c("gene_name", "type", "description", "width", "gc", "isPresent", "log2 Ratio", "pValue", "fdr")
   useInInteractiveTable = intersect(useInInteractiveTable, colnames(y))
-  tableLink = sub(".txt", "-viewHighVarianceGenes.html", file)
+  tableLink = sub(".txt", "-viewHighExpressionGenes.html", file)
   ezInteractiveTable(head(y[, useInInteractiveTable, drop=FALSE], param$maxTableRows), tableLink=tableLink, digits=3)
   addParagraph(doc, pot(sub(".html", "", tableLink), hyperlink=tableLink))
   
