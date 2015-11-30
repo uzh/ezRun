@@ -60,9 +60,9 @@ ezMethodRSEM = function(input=NA, output=NA, param=NA){
     colnames(result) = c("gene_id", "width")
   } else {
     result = ezRead.table(param$ezRef["refAnnotationFile"], colClasses="character")
-    result = result[ , intersect(colnames(result), c("gene_id", "width", "gc")), drop=FALSE]
+    stopifnot(rownames(transcriptResult) %in% rownames(result))
+    result = result[rownames(transcriptResult) , intersect(colnames(result), c("gene_id", "width", "gc")), drop=FALSE]
   }
-  transcriptResult = transcriptResult[rownames(result), ]
   result$transcriptCount = transcriptResult$expected_count
   #   result$transcriptExpression = transcriptResult$TPM /1e6 * sum(transcriptResult$expected_count)
   result$TPM = transcriptResult$TPM
