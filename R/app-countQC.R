@@ -122,8 +122,7 @@ runNgsCountQC = function(dataset, htmlFile="00index.html", param=param, rawData=
   
   titles[["Parameters"]] = "Parameters"
   addTitle(doc, titles[[length(titles)]], 2, id=titles[[length(titles)]])
-  addDataset(doc, dataset=dataset)
-  addParagraph(doc, paste("Reference build:", param$refBuild))
+  addDataset(doc, dataset, param)
   
   settings = character()
   settings["Normalization method:"] = param$normMethod
@@ -145,15 +144,20 @@ runNgsCountQC = function(dataset, htmlFile="00index.html", param=param, rawData=
     if (!is.null(seqAnno)){
       combined = cbind(seqAnno[rownames(combined), ,drop=FALSE], combined)
     }
+    if (!is.null(combined$start) && !is.null(combined$end) && !is.null(combined$width)){
+      combined$start = as.integer(combined$start)
+      combined$end = as.integer(combined$end)
+      combined$width = as.integer(combined$width)
+    }
     countFile = paste0(ezValidFilename(param$name), "-raw-count.txt")
     ezWrite.table(rawData$counts, file=countFile, head="Feature ID", digits=4)
     signalFile = paste0(ezValidFilename(param$name), "-normalized-signal.txt")
     ezWrite.table(combined, file=signalFile, head="Feature ID", digits=4)
     
-    useInInteractiveTable = c("seqid", "gene_id", "strand", "start", "end", "width", "gc")
+    useInInteractiveTable = c("seqid", "gene_name", "gene_id", "description", "strand", "start", "end", "width", "gc")
     useInInteractiveTable = intersect(useInInteractiveTable, colnames(combined))
-    tableLink = sub(".txt", "-viewTopGenes.html", signalFile)
-    ezInteractiveTable(head(combined[, useInInteractiveTable, drop=FALSE], param$maxTableRows), tableLink) ## TODOP: sort table?
+    tableLink = sub(".txt", "-viewHighExpressionGenes.html", signalFile)
+    ezInteractiveTable(head(combined[, useInInteractiveTable, drop=FALSE], param$maxTableRows), tableLink=tableLink, digits=3) ## TODOP: add avg and stdev cols, sort differently?
     
     rpkmFile = paste0(ezValidFilename(param$name), "-rpkm.txt")
     ezWrite.table(getRpkm(rawData), file=rpkmFile, head="Feature ID", digits=4) ## NOTE: getRpkm/getTpm necessary? rawData$rpkm/tpm should work,
@@ -363,7 +367,7 @@ runNgsCountQC = function(dataset, htmlFile="00index.html", param=param, rawData=
       if (!is.null(clusterResult$GO)){
         goTables = goClusterTable(param, clusterResult)
         addFlexTable(doc, ezFlexTable(goTables$linkTable, add.rownames=TRUE))
-        goLink = as.html(ezGrid(c("Background color corresponds to the color of the feature cluster in the heatmap plot.",
+        goLink = as.html(ezGrid(rbind("Background color corresponds to the color of the feature cluster in the heatmap plot.",
                                   as.html(goTables$ft))))
       } else {
         goLink = as.html(pot("No information available"))
@@ -394,8 +398,8 @@ runNgsCountQC = function(dataset, htmlFile="00index.html", param=param, rawData=
     addFlexTable(doc, ezGrid(cbind(presentLink, topLink)))
     
     if (param$writeScatterPlots){
-      qcScatterTitles = addQcScatterPlots(doc, param, design, conds,
-                                            rawData, signalCond, isPresentCond, types=types)
+      qcScatterTitles = addQcScatterPlots(doc, param, design, conds, rawData,
+                                          signalCond, isPresentCond, types=types)
       titles = append(titles, qcScatterTitles)
     }
     

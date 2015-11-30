@@ -85,7 +85,7 @@ ezRead.table = function(file, header=TRUE, sep="\t", as.is=TRUE, row.names=1, qu
 ##' @param values a vector, matrix of data.frame to write a table from.
 ##' @param file the name of the output file.
 ##' @param head the names of the header.
-##' @param digits the digits to round to, if rounding is desired.
+##' @param digits the number of digits to round to, if rounding is desired.
 ##' @return Returns a table written into a seperate file.
 ##' @template roxygen-template
 ##' @seealso \code{\link[utils]{write.table}}
@@ -131,6 +131,41 @@ ezWrite.table = function(values, file=file, head="Identifier", row.names=TRUE, c
   } else {
     write.table(values, file=file, sep=sep, quote=quote, col.names=col.names, row.names=FALSE, append=append, na=na)
   }
+}
+
+##' @title Saves an interactive table
+##' @description Saves an interactive table accessible with the provided \code{tableLink}.
+##' @param table a data.frame or table to create an interactive table from.
+##' @param tableLink a character ending with .html representing the link to the interactive table
+##' @param digits the number of digits to round to, if rounding is desired.
+##' @param format formatting options passed as an expression. The table argument in formatting functions must be named \code{interactiveTable}.
+##' @param envir the environment to evaluate \code{format} in.
+##' @template roxygen-template
+##' @seealso \code{\link[DT]{datatable}}
+##' @seealso \code{\link[DT]{saveWidget}}
+##' @examples 
+##' tableLink = "exampleTable.html"
+##' table = data.frame(a=c(1.11, 2:100), b=201:300)
+##' format = expression(DT::formatRound(interactiveTable, "a", 1))
+##' ezInteractiveTable(table, tableLink, format)
+ezInteractiveTable = function(table, tableLink, digits=NULL, format=NULL, envir=parent.frame()){
+  if (!is.null(digits)){
+    for (i in 1:ncol(table)) {
+      if (is.numeric(table[, i])){
+        table[, i] = signif(table[, i], digits=digits)
+      }
+    }
+    caption = paste("Numeric values are rounded to", digits, "digits.")
+  } else {
+    caption = NULL
+  }
+  interactiveTable = DT::datatable(table, extensions = "ColVis", filter="top", caption = caption,
+                                   options = list(dom = 'TC<"clear">lfrtip', pageLength = 25))
+  if (!is.null(format)){
+    currEnv = environment()
+    interactiveTable = eval(format, envir=c(envir, currEnv))
+  }
+  DT::saveWidget(interactiveTable, tableLink)
 }
 
 ##' @title Write in a single line
@@ -197,4 +232,3 @@ getSuffix = function(filename){
 ezIsAbsolutePath = function(x){
   !is.null(x) & grepl("^/", x)
 }
-

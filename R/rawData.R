@@ -100,11 +100,11 @@ getLog2Signal = function(rawData){
 }
 
 
-##' @title Gets the rpkm measure
-##' @description Gets the rpkm measure.
+##' @title Gets the rpkm measurement
+##' @description Gets the rpkm measurement.
 ##' @template rawData-template
 ##' @template roxygen-template
-##' @return Returns the rpkm measure.
+##' @return Returns the rpkm measurement.
 ##' @examples
 ##' param = ezParam()
 ##' param$dataRoot = system.file(package="ezRun", mustWork = TRUE)
@@ -131,11 +131,11 @@ getRpkm = function(rawData){
   return(rpkm)
 }
 
-##' @title Gets the tpm measure
-##' @description Gets the transcripts per million measure.
+##' @title Gets the tpm measurement
+##' @description Gets the transcripts per million measurement.
 ##' @template rawData-template
 ##' @template roxygen-template
-##' @return Returns the tpm measure.
+##' @return Returns the tpm measurement.
 getTpm = function(rawData) {
   if (!is.null(rawData$tpm)){
     return(rawData$tpm)

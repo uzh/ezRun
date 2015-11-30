@@ -197,8 +197,7 @@ writeNgsMultiGroupReport = function(dataset, result, htmlFile, param=NA, rawData
   
   titles[["Parameters"]] = "Parameters"
   addTitle(doc, titles[[length(titles)]], 2, id=titles[[length(titles)]])
-  addDataset(doc, dataset=dataset)
-  addParagraph(doc, paste("Reference build:", param$refBuild))
+  addDataset(doc, dataset, param)
   
   titles[["Result Summary"]] = "Result Summary"
   addTitle(doc, titles[[length(titles)]], 2, id=titles[[length(titles)]])
@@ -259,7 +258,7 @@ writeNgsMultiGroupReport = function(dataset, result, htmlFile, param=NA, rawData
     if (!is.null(clusterResult$GO)){
       goTables = goClusterTable(param, clusterResult)
       addFlexTable(doc, ezFlexTable(goTables$linkTable, add.rownames=TRUE))
-      goLink = as.html(ezGrid(cbind("Background color corresponds to the row colors in the heatmap plot.",
+      goLink = as.html(ezGrid(rbind("Background color corresponds to the row colors in the heatmap plot.",
                                     as.html(goTables$ft))))
       #goLink[[2]] = addGOClusterResult(doc, param, clusterResult)
     } else {

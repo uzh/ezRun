@@ -81,8 +81,7 @@ teqc = function(input, param=NULL){
                         dataset=input$meta)
 #   titles[["Parameters"]] = "Parameters"
 #   addTitle(doc, titles[[length(titles)]], 2, id=titles[[length(titles)]])
-#   addDataset(doc, dataset=input$meta)
-#   addParagraph(doc, paste("Reference build:", param$refBuild))
+#   addDataset(doc, input$meta, param)
 #   titles[["MultiSample-Report"]] = "MultiSample-Report"
 #   addTitle(doc, titles[[length(titles)]], 2, id=titles[[length(titles)]])
   ezWrite("<h2>MultiSample-Report</h2>",con=html)
