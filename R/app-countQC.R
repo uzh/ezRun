@@ -156,7 +156,6 @@ runNgsCountQC = function(dataset, htmlFile="00index.html", param=param, rawData=
     
     useInInteractiveTable = c("seqid", "gene_name", "gene_id", "description", "strand", "start", "end", "width", "gc")
     useInInteractiveTable = intersect(useInInteractiveTable, colnames(combined))
-
     tableLink = sub(".txt", "-viewHighExpressionGenes.html", signalFile)
     ezInteractiveTable(head(combined[, useInInteractiveTable, drop=FALSE], param$maxTableRows), tableLink=tableLink, digits=3) ## TODOP: add avg and stdev cols, sort differently?
     
@@ -368,7 +367,7 @@ runNgsCountQC = function(dataset, htmlFile="00index.html", param=param, rawData=
       if (!is.null(clusterResult$GO)){
         goTables = goClusterTable(param, clusterResult)
         addFlexTable(doc, ezFlexTable(goTables$linkTable, add.rownames=TRUE))
-        goLink = as.html(ezGrid(c("Background color corresponds to the color of the feature cluster in the heatmap plot.",
+        goLink = as.html(ezGrid(rbind("Background color corresponds to the color of the feature cluster in the heatmap plot.",
                                   as.html(goTables$ft))))
       } else {
         goLink = as.html(pot("No information available"))
@@ -399,8 +398,8 @@ runNgsCountQC = function(dataset, htmlFile="00index.html", param=param, rawData=
     addFlexTable(doc, ezGrid(cbind(presentLink, topLink)))
     
     if (param$writeScatterPlots){
-      qcScatterTitles = addQcScatterPlots(doc, param, design, conds,
-                                            rawData, signalCond, isPresentCond, types=types)
+      qcScatterTitles = addQcScatterPlots(doc, param, design, conds, rawData,
+                                          signalCond, isPresentCond, types=types)
       titles = append(titles, qcScatterTitles)
     }
     

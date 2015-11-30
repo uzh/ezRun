@@ -26,9 +26,3 @@ editReportFile(patterns)
 
 
 
-
-
-
-
-
-

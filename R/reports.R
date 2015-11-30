@@ -70,7 +70,7 @@ ezImageFileLink = function(plotCmd, file=NULL, name="imagePlot", plotType="plot"
     file = paste0(name, "-", plotType, ".png")
   }
   png(file, width=width, height=height)
-  eval(plotCmd, envir = envir)
+  eval(plotCmd, envir=envir)
   dev.off()
   if (addPdfLink) {
     pdfName = sub(".png$", ".pdf", file)
