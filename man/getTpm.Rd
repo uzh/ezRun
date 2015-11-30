@@ -2,7 +2,7 @@
 % Please edit documentation in R/rawData.R
 \name{getTpm}
 \alias{getTpm}
-\title{Gets the tpm measure}
+\title{Gets the tpm measurement}
 \usage{
 getTpm(rawData)
 }
@@ -10,10 +10,10 @@ getTpm(rawData)
 \item{rawData}{a list of raw data obtained from \code{loadCountDataset()}.}
 }
 \value{
-Returns the tpm measure.
+Returns the tpm measurement.
 }
 \description{
-Gets the transcripts per million measure.
+Gets the transcripts per million measurement.
 }
 \author{
 Rehrauer, Hubert

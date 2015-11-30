@@ -15,7 +15,7 @@ ezWrite.table(values, file = file, head = "Identifier", row.names = TRUE,
 
 \item{head}{the names of the header.}
 
-\item{digits}{the digits to round to, if rounding is desired.}
+\item{digits}{the number of digits to round to, if rounding is desired.}
 }
 \value{
 Returns a table written into a seperate file.
