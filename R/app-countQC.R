@@ -15,8 +15,6 @@ ezMethodCountQC = function(input=NA, output=NA, param=NA, htmlFile="00index.html
   if (is.null(param$runGO)){
     param$runGO = TRUE
   }
-  cwd = getwd()
-  on.exit(setwd(cwd))
   dataset = input$meta
   setwdNew(basename(output$getColumn("Report")))
   if (param$useFactorsAsSampleName){

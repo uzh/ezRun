@@ -58,23 +58,22 @@ addGoUpDownResult = function(doc, param, goResult){
   addTitle(doc, "GO categories that are overrepresented among all significantly regulated genes.", 3)
   addFlexTable(doc, udt$flexTables[["enrichBoth"]])
   
-#   revigoLinks = ezMatrix("", rows=c('Both', 'Down', 'Up'), cols=c('BP', 'CC', 'MF'))
-#   for (rows in 1:nrow(revigoLinks)){
-#     for (cols in 1:ncol(revigoLinks)){
-#       goSubResult = 1
-#       goSubResult = goSubResult[which(goSubResult$Pvalue < param$pValThreshFisher),]
-#       if(nrow(goSubResult) > param$maxNumberGroupsDisplayed) {
-#         goSubResult = goSubResult[1:param$maxNumberGroupsDisplayed,]
-#       }
-#       revigoLinks[rows, cols] = paste0('http://revigo.irb.hr/?inputGoList=',
-#                                        paste(goSubResult[,'GO ID'], goSubResult[,'Pvalue'], collapse='%0D%0A'))
-#       revigoLinks[rows, cols] = pot("ReViGO", hyperlink = revigoLinks[rows, cols])
-#     }
-#   }
-#   titles[["ReViGO"]] = "ReViGO"
-#   addTitle(doc, titles[[length(titles)]], 3, id=titles[[length(titles)]])
-#   addFlexTable(doc, ezFlexTable(revigoLinks, valign="middle", header.columns = TRUE, add.rownames = TRUE))
-  
+  revigoLinks = ezMatrix("", rows=c('enrichBoth', 'enrichDown', 'enrichUp'), cols=c('BP', 'CC', 'MF'))
+  for (col in 1:ncol(revigoLinks)){
+    for (row in 1:nrow(revigoLinks)){
+      goSubResult = goResult[[col]][[row]]
+      goSubResult = goSubResult[which(goSubResult$Pvalue < param$pValThreshFisher),]
+      if(nrow(goSubResult) > param$maxNumberGroupsDisplayed) {
+        goSubResult = goSubResult[1:param$maxNumberGroupsDisplayed,]
+      }
+      revigoLinks[row, col] = paste0('http://revigo.irb.hr/?inputGoList=',
+                                       paste(rownames(goSubResult), goSubResult[,'Pvalue'], collapse='%0D%0A'))
+      revigoLinks[row, col] = pot("ReViGO", hyperlink = revigoLinks[row, col])
+    }
+  }
+  titles[["ReViGO"]] = "ReViGO"
+  addTitle(doc, titles[[length(titles)]], 3, id=titles[[length(titles)]])
+  addFlexTable(doc, ezFlexTable(revigoLinks, valign="middle", header.columns = TRUE, add.rownames = TRUE))
   addTxtLinksToReport(doc, udt$txtFiles, param$doZip)
 }
 
