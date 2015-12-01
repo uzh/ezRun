@@ -21,6 +21,8 @@ runTEQC(file, param)
  \item{duplicatesPlot}{ a logical indicating whether to generate plots for duplicates.}
  \item{paired}{ a logical indicating whether the samples are paired.}
 }}
+
+\item{file}{a character representing the path to the file containing the reads.}
 }
 \description{
 Performs a target enrichment quality control and creates reports of the outcome.

@@ -11,6 +11,12 @@ closeBsdocReport(doc, file, titles = NULL)
 }
 \arguments{
 \item{title}{a character specifying the title of the html report.}
+
+\item{doc}{an object of the class bsdoc to add the}
+
+\item{file}{a character specifying the path to write the report in.}
+
+\item{titles}{a character vector containing the titles of the report. Used to create the bootstrapmenu.}
 }
 \value{
 Returns an object of the class bsdoc to add further elements.

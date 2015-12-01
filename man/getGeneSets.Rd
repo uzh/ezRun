@@ -17,6 +17,8 @@ readGmt(file)
   \item{MSigDB}{ a character. Used if the species is Homo sapiens.}
   \item{MSigDBPath}{ a character representing the file path to \code{MSigDB}. Used if the species is Homo sapiens.}
 }}
+
+\item{file}{a character representing path to the gmt file.}
 }
 \value{
 Returns the gene set.

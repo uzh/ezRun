@@ -10,6 +10,8 @@ interleaveMatricesByColumn(x, y, suffixes = c("[Signal]", "[Present]"))
 \item{x}{first matrix containing both row and column names.}
 
 \item{y}{second matrix containing the same column names as the first one.}
+
+\item{suffixes}{a character vector to append as suffixes to the colnames of the result.}
 }
 \value{
 Returns the combined matrix.

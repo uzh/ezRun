@@ -11,7 +11,8 @@
 ##' @description Makes a minimal single end dataset by combining the arguments to a data.frame.
 ##' @param fqDir a character specifying the path to the fastq files.
 ##' @param species a character specifying the species name.
-##' @param adapter1 a character representing the adapter sequence. There is also an adapter2 argument for the paired end dataset.
+##' @param adapter1 a character representing the adapter sequence.
+##' @param adapter2 a character representing the second adapter sequence in the case of a paired end dataset.
 ##' @param strandMode a character specifying the strand mode for the dataset.
 ##' @template roxygen-template
 ##' @return Returns a data.frame containing the provided information.
@@ -102,57 +103,24 @@ addReplicate = function(x, sep="_", repLabels=1:length(x)){
   paste(x, repLabels[repId], sep=sep)
 }
 
-
-
-## newDsDir = "/srv/GT/analysis/p1314/HiSeq-20151116-Combined"
-## newDsDir = "/scratch/test_merging_datasets"
-.ezCombineReadDatasets = function(ds1, ds2, newDsDir){
-  ds1 = ezRead.table("/srv/GT/analysis/hubert/ds1.tsv")
-  ds2 = ezRead.table("/srv/GT/analysis/hubert/ds2.tsv")
-  colnames(ds2) == colnames(ds1)
-  intersect(rownames(ds1), rownames(ds2))
-  #vennFromSets(list(ds1=rownames(ds1), ds2=rownames(ds2)))
-  
-  cols = intersect(colnames(ds1), colnames(ds2))
-  ds = rbind(ds1[ , cols],
-             ds2[setdiff(rownames(ds2), rownames(ds1)), cols])
-  ds$"Read Count" = NA
-  
-  setwdNew(newDsDir)
-  ## below implements only the special case where the ds1 samples are a subset of the ds2 samples
-  for (nm in rownames(ds)){
-    file2 = file.path("/srv/gstore/projects", ds2[nm, "Read1 [File]"])
-    if (nm %in% rownames(ds1)){
-      file1 = file.path("/srv/gstore/projects", ds1[nm, "Read1 [File]"])
-      fileMerged = paste0("20151116.combined-", nm, "_R1.fastq.gz")
-      cmd = paste("zcat", file1, file2, "|", "pigz -p4 --best >", fileMerged)
-      cat(cmd, "\n")
-      ezSystem(cmd)
-      ds[nm, "Read Count"] = ds1[nm, "Read Count"] + ds2[nm, "Read Count"]
-      ds[nm, "Read1 [File]"] = file.path(newDsDir, fileMerged)
-    } else {
-      ezSystem(paste("cp", file2, "."))
-      ds[nm, "Read1 [File]"] = file.path(newDsDir, basename(file2))
-    }
-  }
-  
-  ezWrite.table(ds, file=file.path(".", "dataset.tsv"), head="Name")
-  return(ds)
-}
-
-
-## example with the yeast_10k dataset
-# ds1 = ezRead.table(system.file("extdata/yeast_10k/dataset.tsv", package = "ezRun", mustWork = TRUE))
-# ds2 = ds1
-# dataRoot = normalizePath("./inst")
-# newDsDir = "./scratch"
-# ezCombineReadDatasets(ds1, ds2, dataRoot, newDsDir)
 ##' @title Combine the reads from two datasets in a single dataset
-##' @description Takes the union of the samples in both input datasets and generates a new dataset. 
+##' @description Takes the union of the samples in both input datasets and generates a new dataset.
+##' @param ds1 a data.frame from the meta field of an EzDataset.
+##' @param ds2 a data.frame from the meta field of an EzDataset.
+##' @param dataRoot a character specifying the file root of the datasets.
+##' @param newDsDir a character specifying the directory to save the new dataset in.
+##' @template roxygen-template
+##' @details 
 ##' If a sample is present in both datasets, the read files are concatenated and a new file is written.
 ##' If a sample is present in only one dataset it is simply copied
 ##' The Read Count column must be present and is updated if two files are combined.
 ##' A new dataset is written.
+##' @examples 
+##' ds1 = ezRead.table(system.file("extdata/yeast_10k/dataset.tsv", package = "ezRun", mustWork = TRUE))
+##' ds2 = ds1
+##' dataRoot = normalizePath("./inst")
+##' newDsDir = "./scratch"
+##' ezCombineReadDatasets(ds1, ds2, dataRoot, newDsDir)
 ezCombineReadDatasets = function(ds1, ds2, dataRoot="/srv/gstore/projects", newDsDir=NULL){
   
   # these are used a lot

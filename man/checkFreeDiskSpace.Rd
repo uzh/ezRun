@@ -15,6 +15,8 @@ getGigabyteFree(dirPath)
   \item{\code{scratch}}{ the required disk space in gigabytes.}
   \item{\code{mail}}{ the e-mail address of the recipient.}
 }}
+
+\item{dirPath}{a character specifying the path of the directory to check the disk space in.}
 }
 \description{
 Checks if there is enough free disk space. If there is not enough disk space, an e-mail will be sent and the job will be put on hold for up to two hours.

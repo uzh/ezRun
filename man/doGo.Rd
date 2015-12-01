@@ -13,6 +13,8 @@ hasGoAnnotation(seqAnnoDF)
 \item{param}{a list of parameters to extract the logical \code{runGO} and the character \code{featureLevel} from.}
 
 \item{seqAnno}{the sequence annotation.}
+
+\item{seqAnnoDF}{a data.frame containing the sequence annotation.}
 }
 \value{
 Returns a logical.

@@ -8,6 +8,8 @@ ezVsnNorm(x, lts.quantile = 0.6)
 }
 \arguments{
 \item{x}{the matrix to normalize.}
+
+\item{lts.quantile}{a numeric passed to \code{justvsn()}.}
 }
 \value{
 Returns the normalized matrix.

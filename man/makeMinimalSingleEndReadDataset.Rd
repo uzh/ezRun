@@ -17,9 +17,11 @@ makeMinimalPairedEndReadDataset(fqDir, species = "",
 
 \item{species}{a character specifying the species name.}
 
-\item{adapter1}{a character representing the adapter sequence. There is also an adapter2 argument for the paired end dataset.}
+\item{adapter1}{a character representing the adapter sequence.}
 
 \item{strandMode}{a character specifying the strand mode for the dataset.}
+
+\item{adapter2}{a character representing the second adapter sequence in the case of a paired end dataset.}
 }
 \value{
 Returns a data.frame containing the provided information.

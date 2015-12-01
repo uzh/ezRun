@@ -17,6 +17,8 @@ getRangesCoverageChrom(chrom = NULL, ranges, reads, strandMode = "both")
 \item{reads}{an object of the class GAlignments.}
 
 \item{strandMode}{a character specifying the mode of the strand.}
+
+\item{ranges}{an object of the class GRanges.}
 }
 \value{
 Returns a list of transcript coverages.

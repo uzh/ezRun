@@ -12,6 +12,7 @@
 ##' @param gff an annotation data.frame in gtf or gff format.
 ##' @param reads an object of the class GAlignments.
 ##' @param strandMode a character specifying the mode of the strand.
+##' @param ranges an object of the class GRanges.
 ##' @template roxygen-template
 ##' @return Returns a list of transcript coverages.
 getTranscriptCoverage = function(chrom, gff, reads, strandMode="both"){

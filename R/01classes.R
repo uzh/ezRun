@@ -262,6 +262,7 @@ EzApp <-
 ##'   \item{\code{scratch}}{ the required disk space in gigabytes.}
 ##'   \item{\code{mail}}{ the e-mail address of the recipient.}
 ##' }
+##' @param dirPath a character specifying the path of the directory to check the disk space in.
 ##' @template roxygen-template
 ##' @examples
 ##' param = list()

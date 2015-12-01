@@ -34,8 +34,9 @@ ezJobStart = function(jobName, con=stderr()){
 
 ##' @title Writes elapsed time of job
 ##' @description Writes the current date and time, the status and how much time elapsed since the jobs' start.
-##' @param job a list with fields \code{$name} and \code{$start}. Be
+##' @param job a list with fields \code{$name} and \code{$start}.
 ##' @param status a character describing the status of the job.
+##' @param x corresponds to \code{job$start}.
 ##' @template roxygen-template
 ##' @template connection-template
 ##' @examples

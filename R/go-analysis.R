@@ -10,6 +10,7 @@
 ##' @description Decides whether to do a gene ontologies analysis.
 ##' @param param a list of parameters to extract the logical \code{runGO} and the character \code{featureLevel} from.
 ##' @param seqAnno the sequence annotation.
+##' @param seqAnnoDF a data.frame containing the sequence annotation.
 ##' @template roxygen-template
 ##' @return Returns a logical.
 ##' @examples
@@ -240,9 +241,9 @@ ezGroupGO = function(selectedGenes, go2GeneList, onto="CC", levels = 2:4, goSlim
 
 ## copied from clusterProfiler
 ##' @describeIn ezGroupGO Gets the gene ontology by level.
-ezGetGoByLevels = function(ont, levels, goSlim=NULL) {
+ezGetGoByLevels = function(onto, levels, goSlim=NULL) {
   requireNamespace("GO.db", warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
-  switch(ont, MF = {
+  switch(onto, MF = {
     topNode <- "GO:0003674"
     children <- GOMFCHILDREN
   }, BP = {
@@ -253,7 +254,7 @@ ezGetGoByLevels = function(ont, levels, goSlim=NULL) {
     children <- GOCCCHILDREN
   })
   if (!is.null(goSlim)){
-    goAncestor = switch(ont, BP=as.list(GOBPANCESTOR),
+    goAncestor = switch(onto, BP=as.list(GOBPANCESTOR),
                         CC=as.list(GOCCANCESTOR),
                         MF=as.list(GOMFANCESTOR))
     goSlim = goSlim[goSlim %in% names(goAncestor)]

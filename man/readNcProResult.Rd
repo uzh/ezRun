@@ -4,7 +4,7 @@
 \alias{readNcProResult}
 \title{Reads NcPro results}
 \usage{
-readNcProResult(ncproDir, param)
+readNcProResult(ncproDir)
 }
 \arguments{
 \item{ncproDir}{a character representing the file path to the directory that contains the NcPro results.}

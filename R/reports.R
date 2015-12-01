@@ -105,6 +105,9 @@ imgLinks = function(image){
 ##' @title Opens an html report
 ##' @description Opens an html report using \code{bsdoc()} from the ReporteRs package. Also adds some introductory elements.
 ##' @param title a character specifying the title of the html report.
+##' @template doc-template
+##' @param file a character specifying the path to write the report in.
+##' @param titles a character vector containing the titles of the report. Used to create the bootstrapmenu.
 ##' @template roxygen-template
 ##' @seealso \code{\link[ReporteRs]{bsdoc}}
 ##' @seealso \code{\link[ReporteRs]{writeDoc}}
@@ -119,6 +122,23 @@ openBsdocReport = function(title=""){
   addFlexTable(doc, ezGrid(cbind(pot1, pot2)))
   addTitle(doc, title, id=title)
   return(doc)
+}
+
+##' @describeIn openBsdocReport Adds the session info, the bootstrap menu, a paragraph showing the finishing time and writes the document. \code{file} must have a .html suffix.
+closeBsdocReport = function(doc, file, titles=NULL){
+  ezSessionInfo()
+  addParagraph(doc, pot("sessionInfo.txt", hyperlink = "sessionInfo.txt"))
+  addParagraph(doc, paste("Finished", format(Sys.time(), "%Y-%m-%d %H:%M:%S")))
+  bootStrap = BootstrapMenu("Functional Genomics Center Zurich", link = "http://www.fgcz.ethz.ch")
+  if (ezIsSpecified(titles)){
+    ddMenu = DropDownMenu("Navigation")
+    for (each in titles){
+      ddMenu = addLinkItem(ddMenu, label=each, link=paste0("#", each))
+    }
+    bootStrap = addLinkItem(bootStrap, dd=ddMenu)
+  }
+  addBootstrapMenu(doc, bootStrap)
+  writeDoc(doc, file=file)
 }
 
 ##' @title Adds a dataset
@@ -190,23 +210,6 @@ addJavaScriptIgvStarter = function(htmlFile, projectId, doc){
                      "document.write(label.link(igvLink))",
                      "}")
   addJavascript(doc, text=javaScript)
-}
-
-##' @describeIn openBsdocReport Adds the session info, the bootstrap menu, a paragraph showing the finishing time and writes the document. \code{file} must have a .html suffix.
-closeBsdocReport = function(doc, file, titles=NULL){
-  ezSessionInfo()
-  addParagraph(doc, pot("sessionInfo.txt", hyperlink = "sessionInfo.txt"))
-  addParagraph(doc, paste("Finished", format(Sys.time(), "%Y-%m-%d %H:%M:%S")))
-  bootStrap = BootstrapMenu("Functional Genomics Center Zurich", link = "http://www.fgcz.ethz.ch")
-  if (ezIsSpecified(titles)){
-    ddMenu = DropDownMenu("Navigation")
-    for (each in titles){
-      ddMenu = addLinkItem(ddMenu, label=each, link=paste0("#", each))
-    }
-    bootStrap = addLinkItem(bootStrap, dd=ddMenu)
-  }
-  addBootstrapMenu(doc, bootStrap)
-  writeDoc(doc, file=file)
 }
 
 ##' @title Writes an error report
@@ -343,7 +346,9 @@ addCountResultSummary = function(doc, param, result){
 ##' @template doc-template
 ##' @templateVar object table
 ##' @template result-template
-##' @param pThresh a numerical indicating the p-value threshold. genes
+##' @param pThresh a numeric vector specifying the p-value threshold.
+##' @param genes a character vector containing the gene names.
+##' @param fcThresh a numeric vector specifying the fold change threshold.
 ##' @template roxygen-template
 addSignificantCounts = function(doc, result, pThresh=c(0.1, 0.05, 1/10^(2:5))){
   sigTable = ezFlexTable(getSignificantCountsTable(result, pThresh=pThresh),

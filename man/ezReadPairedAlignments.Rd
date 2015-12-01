@@ -31,6 +31,10 @@ ezMergeLeftRightAlignments(gaLeft, gaRight, fillGap = "N")
 \item{minMapQuality}{passed further to \code{ezReadGappedAlignments()}.}
 
 \item{keepMultiHits}{passed further to \code{ezReadGappedAlignments()}.}
+
+\item{gaLeft}{the left gapped alignments.}
+
+\item{gaRight}{the right gapped alignments.}
 }
 \value{
 Returns an object of the class GAlignments.

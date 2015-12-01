@@ -18,7 +18,11 @@ getSignificantFoldChangeCountsTable(result, pThresh = 1/10^(1:5),
 
 \item{result}{a list of results.}
 
-\item{pThresh}{a numerical indicating the p-value threshold. genes}
+\item{pThresh}{a numeric vector specifying the p-value threshold.}
+
+\item{genes}{a character vector containing the gene names.}
+
+\item{fcThresh}{a numeric vector specifying the fold change threshold.}
 }
 \description{
 Adds tables of the significant counts.

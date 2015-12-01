@@ -22,6 +22,8 @@ removeReadsFromFastq(fqFiles, readIds, fqOutFiles = NULL, doGzip = TRUE)
 \item{keepUnmapped}{passed further to \code{scanBamFlag()}.}
 
 \item{isProperPair}{passed further to \code{scanBamFlag()}.}
+
+\item{readIds}{a character containing the read ID's from the \code{bamFile}.}
 }
 \value{
 Returns the names of the filtered FastQ files.

@@ -29,6 +29,7 @@ ezChromSizesFromVcf = function(vcfFile){
 ##' @param discardMultiAllelic a logical. Removes multi allelic variants if set to TRUE.
 ##' @param bamDataset a data.frame to help renaming and reordering the fields in genotype.
 ##' @param param a list of parameters to extract the value from \code{vcfFilt.minAltCount}.
+##' @param vcf an object of the class VCF.
 ##' @template roxygen-template
 ##' @return Returns a filtered VCF file.
 ## TODOEXAMPLE: get working .vcf file
@@ -58,13 +59,13 @@ ezFilterVcf = function(vcfFile, vcfFiltFile, discardMultiAllelic=TRUE, bamDatase
 }
 
 ##' @describeIn ezFilterVcf Writes a new VCF file.
-ezWriteVcf = function(vcf, file){
+ezWriteVcf = function(vcf, vcfFiltFile){
   #vcfTemp = sub("-haplo.vcf", "-haplo-filt.vcf", vcfFiles[dsName])
-  stopifnot(grepl(".gz$", file))
-  nm = sub(".vcf", "", sub(".gz", "", basename(file)))
+  stopifnot(grepl(".gz$", vcfFiltFile))
+  nm = sub(".vcf", "", sub(".gz", "", basename(vcfFiltFile)))
   vcfTemp = paste0(nm , "-", Sys.getpid(), ".vcf")
   writeVcf(vcf, filename=vcfTemp, index=TRUE)
-  stopifnot(file.rename(paste0(vcfTemp, ".bgz"), file))
-  stopifnot(file.rename(paste0(vcfTemp, ".bgz.tbi"), paste0(file, ".tbi")))
-  return(invisible(file))
+  stopifnot(file.rename(paste0(vcfTemp, ".bgz"), vcfFiltFile))
+  stopifnot(file.rename(paste0(vcfTemp, ".bgz.tbi"), paste0(vcfFiltFile, ".tbi")))
+  return(invisible(vcfFiltFile))
 }

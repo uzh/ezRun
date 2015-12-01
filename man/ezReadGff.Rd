@@ -13,6 +13,10 @@ ezWriteGff(x, file)
 \item{gffFile}{the gtf or gff file to read the information from.}
 
 \item{nrows}{an integer specifying the maximum number of rows to read in.}
+
+\item{x}{an annotation matrix or data.frame.}
+
+\item{file}{a character representing the connection to write the table to.}
 }
 \value{
 Returns a data.frame containing the annotation information.

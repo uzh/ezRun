@@ -8,7 +8,7 @@
 ezFilterVcf(vcfFile, vcfFiltFile, discardMultiAllelic = TRUE,
   bamDataset = bamDataset, param = NULL)
 
-ezWriteVcf(vcf, file)
+ezWriteVcf(vcf, vcfFiltFile)
 }
 \arguments{
 \item{vcfFile}{a character representing the file path of the input VCF file}
@@ -20,6 +20,8 @@ ezWriteVcf(vcf, file)
 \item{bamDataset}{a data.frame to help renaming and reordering the fields in genotype.}
 
 \item{param}{a list of parameters to extract the value from \code{vcfFilt.minAltCount}.}
+
+\item{vcf}{an object of the class VCF.}
 }
 \value{
 Returns a filtered VCF file.

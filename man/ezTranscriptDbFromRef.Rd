@@ -8,6 +8,8 @@ ezTranscriptDbFromRef(reference, dataSource = "FGCZ")
 }
 \arguments{
 \item{reference}{a reference to read the information from.}
+
+\item{dataSource}{a character specifying the source of the data.}
 }
 \value{
 Returns

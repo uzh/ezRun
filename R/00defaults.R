@@ -11,6 +11,7 @@
 ##' @param userParam a list of parameters defined by the user.
 ##' @param globalDefaults global package defaults. These should normally not be changed.
 ##' @param appDefaults a data.frame containing application specific defaults.
+##' @param optString a character containing special options.
 ##' @template roxygen-template
 ##' @return Returns the complete list of parameters used by the package.
 ##' @examples
@@ -37,36 +38,6 @@ ezParam = function(userParam=list(), globalDefaults=EZ_PARAM_DEFAULTS, appDefaul
     userParam$ezRef = EzRef(userParam)
   }
   return(userParam)
-}
-
-##' @title Is x specified?
-##' @description Checks whether \code{x} is an existing parameter and whether its first entry not an empty character.
-##' @param x usually a parameter to check.
-##' @template roxygen-template
-##' @return Returns FALSE or TRUE.
-##' @examples
-##' ezIsSpecified(c("this","is"))
-##' ezIsSpecified(c("","this isn't"))
-ezIsSpecified = function(x){
-  !is.null(x) && length(x) > 0 && x[1] != ""
-}
-
-##' @title Modified default of data.frame
-##' @description Modified version of \code{data.frame()} with a different default.
-##' @template roxygen-template
-##' @template addargs-template
-##' @templateVar fun data.frame()
-##' @return Returns a data.frame.
-##' @examples
-##' ezFrame(a=1:10,b=5)
-ezFrame = function(..., row.names = NULL, check.rows=TRUE,
-                   check.names=FALSE,
-                   stringsAsFactors=FALSE){
-  x = data.frame(..., check.rows=check.rows, check.names=check.names, stringsAsFactors=stringsAsFactors)
-  if (!is.null(row.names)){
-    rownames(x) = row.names
-  }
-  return(x)
 }
 
 ##' @describeIn ezParam Used to parse additional options specified in \code{userParam$specialOptions}.
@@ -108,4 +79,34 @@ parseOptions = function(optString){
     }
   }
   return(param)
+}
+
+##' @title Is x specified?
+##' @description Checks whether \code{x} is an existing parameter and whether its first entry not an empty character.
+##' @param x usually a parameter to check.
+##' @template roxygen-template
+##' @return Returns FALSE or TRUE.
+##' @examples
+##' ezIsSpecified(c("this","is"))
+##' ezIsSpecified(c("","this isn't"))
+ezIsSpecified = function(x){
+  !is.null(x) && length(x) > 0 && x[1] != ""
+}
+
+##' @title Modified default of data.frame
+##' @description Modified version of \code{data.frame()} with a different default.
+##' @template roxygen-template
+##' @template addargs-template
+##' @templateVar fun data.frame()
+##' @return Returns a data.frame.
+##' @examples
+##' ezFrame(a=1:10,b=5)
+ezFrame = function(..., row.names = NULL, check.rows=TRUE,
+                   check.names=FALSE,
+                   stringsAsFactors=FALSE){
+  x = data.frame(..., check.rows=check.rows, check.names=check.names, stringsAsFactors=stringsAsFactors)
+  if (!is.null(row.names)){
+    rownames(x) = row.names
+  }
+  return(x)
 }

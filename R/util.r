@@ -90,6 +90,7 @@ shrinkToRange = function(x, theRange){
 ##' @description The matrices need to have the same dimensions and column names must be equal. The first matrix needs row names as well. This is used to merge, e.g. matrices for expression signal and present flag by sample.
 ##' @param x first matrix containing both row and column names.
 ##' @param y second matrix containing the same column names as the first one.
+##' @param suffixes a character vector to append as suffixes to the colnames of the result.
 ##' @return Returns the combined matrix.
 ##' @template roxygen-template
 ##' @examples
@@ -157,6 +158,7 @@ ezQuantileNorm = function(x){
 ##' @title Variance Stabilizing Normalization
 ##' @description Normalizes the matrix with the Variance Stabilizing Normalization and keeps row and column names.
 ##' @param x the matrix to normalize.
+##' @param lts.quantile a numeric passed to \code{justvsn()}.
 ##' @return Returns the normalized matrix.
 ##' @seealso \code{\link[vsn]{justvsn}}
 ##' @template roxygen-template

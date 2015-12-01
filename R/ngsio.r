@@ -139,8 +139,8 @@ ezHead = function(target=paste0(x, "_head"), x, n=1000){
 ##' @param ncproDir a character representing the file path to the directory that contains the NcPro results.
 ##' @template roxygen-template
 ##' @return Returns the rawdata read from the NcPro results.
-## TODOEXAMPLE: add example. argument param is unused currently.
-readNcProResult = function (ncproDir, param) {
+## TODOEXAMPLE: add example.
+readNcProResult = function (ncproDir) {
   dataFiles = list.files(ncproDir, "_subfamcov.data$", full.names=TRUE)
   
   df = dataFiles[1]
@@ -183,6 +183,7 @@ readNcProResult = function (ncproDir, param) {
 ##' @param doGzip a logical indicating whether to archive the output files in a gzip archive.
 ##' @param keepUnmapped passed further to \code{scanBamFlag()}.
 ##' @param isProperPair passed further to \code{scanBamFlag()}.
+##' @param readIds a character containing the read ID's from the \code{bamFile}.
 ##' @template roxygen-template
 ##' @seealso \code{\link[Rsamtools]{scanBam}}
 ##' @seealso \code{\link[Rsamtools]{ScanBamParam}}
@@ -196,7 +197,7 @@ readNcProResult = function (ncproDir, param) {
 ##' fqFiles = input$getFullPaths(param, "Read1")
 ##' filterFastqByBam(fqFiles, bamFile, doGzip = FALSE)
 filterFastqByBam = function(fqFiles, bamFile, fqOutFiles=NULL, doGzip=TRUE, keepUnmapped=TRUE, isProperPair=NA){
-  param=ScanBamParam(what=c("qname"),
+  param = ScanBamParam(what=c("qname"),
                      flag=scanBamFlag(isUnmappedQuery=!keepUnmapped, isProperPair=isProperPair))
   bamReads = unique(scanBam(bamFile, param=param)[[1]]$qname)
   gc()

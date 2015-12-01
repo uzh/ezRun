@@ -92,6 +92,7 @@ runGageAnalysis = function(result, param=NULL, output=NULL, rawData=NULL, gene.p
 ##'   \item{MSigDB}{ a character. Used if the species is Homo sapiens.}
 ##'   \item{MSigDBPath}{ a character representing the file path to \code{MSigDB}. Used if the species is Homo sapiens.}
 ##' }
+##' @param file a character representing path to the gmt file.
 ##' @template roxygen-template
 ##' @return Returns the gene set.
 ## NOTEP: no database found at param$KEGGgmt

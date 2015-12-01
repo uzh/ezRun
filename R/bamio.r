@@ -245,13 +245,15 @@ ezReadGappedAlignments = function(bamFile, seqname=NULL, start=NULL, end=NULL, s
 ##' @param fillGap a character to fill into the gaps produced by \code{ezMergeLeftRightAlignments()}.
 ##' @param minMapQuality passed further to \code{ezReadGappedAlignments()}.
 ##' @param keepMultiHits passed further to \code{ezReadGappedAlignments()}.
+##' @param gaLeft the left gapped alignments.
+##' @param gaRight the right gapped alignments.
 ##' @template roxygen-template
 ##' @seealso \code{\link{ezReadGappedAlignments}}
 ##' @return Returns an object of the class GAlignments.
 ##' @examples 
 ##' bamFile <- system.file("extdata", "ex1.bam", package="Rsamtools", mustWork=TRUE)
 ##' ezReadPairedAlignments(bamFile)
-ezReadPairedAlignments <- function(bamFile, seqname=NULL, start=NULL, end=NULL, strand="*",
+ezReadPairedAlignments = function(bamFile, seqname=NULL, start=NULL, end=NULL, strand="*",
                                    tag=c("NH"), keepUnpaired="both", fillGap="N", minMapQuality=0, keepMultiHits=TRUE){
   
   .loadPairedSingleChrom = function(chrom){

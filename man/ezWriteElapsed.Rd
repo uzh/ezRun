@@ -10,11 +10,13 @@ ezWriteElapsed(job, status = "done", con = stderr())
 getElapsed(x)
 }
 \arguments{
-\item{job}{a list with fields \code{$name} and \code{$start}. Be}
+\item{job}{a list with fields \code{$name} and \code{$start}.}
 
 \item{status}{a character describing the status of the job.}
 
 \item{con}{the connection to the file to write in.}
+
+\item{x}{corresponds to \code{job$start}.}
 }
 \description{
 Writes the current date and time, the status and how much time elapsed since the jobs' start.

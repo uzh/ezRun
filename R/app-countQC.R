@@ -10,7 +10,7 @@
 ##' @templateVar methodName Count QC
 ##' @template htmlFile-template
 ##' @seealso \code{\link{EzAppCountQC}}
-ezMethodCountQC = function(input=NA, output=NA, param=NA, htmlFile="00index.html", rawData=NULL){
+ezMethodCountQC = function(input=NA, output=NA, param=NA, htmlFile="00index.html"){
 
   if (is.null(param$runGO)){
     param$runGO = TRUE
@@ -25,9 +25,8 @@ ezMethodCountQC = function(input=NA, output=NA, param=NA, htmlFile="00index.html
     dataset = dataset[toupper(dataset$Outlier) %in% c("", "NO", '""', "FALSE") == TRUE, ]
   }
   input$meta = dataset
-  if (is.null(rawData)){
-    rawData = loadCountDataset(input, param)
-  }
+  
+  rawData = loadCountDataset(input, param)
   if (isError(rawData)){
     writeErrorReport(htmlFile, param=param, error=rawData$error)
     return("Error")
@@ -159,7 +158,7 @@ runNgsCountQC = function(dataset, htmlFile="00index.html", param=param, rawData=
     useInInteractiveTable = c("seqid", "gene_name", "gene_id", "mean", "stdv", "description", "strand", "start", "end", "width", "gc")
     useInInteractiveTable = intersect(useInInteractiveTable, colnames(combined))
     tableLink = sub(".txt", "-viewHighVarianceGenes.html", signalFile)
-    ezInteractiveTable(head(combined[, useInInteractiveTable, drop=FALSE], param$maxTableRows), tableLink=tableLink, digits=3) ## TODOP: add avg and stdev cols, sort differently?
+    ezInteractiveTable(head(combined[, useInInteractiveTable, drop=FALSE], param$maxTableRows), tableLink=tableLink, digits=3)
     
     rpkmFile = paste0(ezValidFilename(param$name), "-rpkm.txt")
     ezWrite.table(getRpkm(rawData), file=rpkmFile, head="Feature ID", digits=4) ## NOTE: getRpkm/getTpm necessary? rawData$rpkm/tpm should work,

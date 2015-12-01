@@ -8,7 +8,7 @@
 ezGroupGO(selectedGenes, go2GeneList, onto = "CC", levels = 2:4,
   goSlim = NULL)
 
-ezGetGoByLevels(ont, levels, goSlim = NULL)
+ezGetGoByLevels(onto, levels, goSlim = NULL)
 }
 \arguments{
 \item{selectedGenes}{a character vector containing the selected genes.}

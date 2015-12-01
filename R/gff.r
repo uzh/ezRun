@@ -122,12 +122,14 @@ ezBuildAttributeField = function(x, format="gtf"){
 ##' @description Reads an annotation table from a gtf or gff file into a data.frame.
 ##' @param gffFile the gtf or gff file to read the information from.
 ##' @param nrows an integer specifying the maximum number of rows to read in.
+##' @param x an annotation matrix or data.frame.
+##' @param file a character representing the connection to write the table to.
 ##' @template roxygen-template
 ##' @return Returns a data.frame containing the annotation information.
 ##' @examples
 ##' gtf = ezReadGff("./inst/extdata/genes.gtf")
 ##' ezWriteGff(gtf,"newgtf")
-ezReadGff <- function(gffFile, nrows = -1) {
+ezReadGff = function(gffFile, nrows = -1) {
   gff = read.table(gffFile, sep="\t", as.is=TRUE, quote="",
                    header=FALSE, comment.char="#", nrows = nrows,
                    colClasses=c("character", "character", "character", "integer", "integer",
@@ -139,7 +141,7 @@ ezReadGff <- function(gffFile, nrows = -1) {
 }
 
 ##' @describeIn ezReadGff Writes a gtf or gff annotation table passed by with \code{x} to the connection \code{file}, keeping only the original columns.
-ezWriteGff = function(x ,file){
+ezWriteGff = function(x, file){
   
   gff = x[ ,c("seqid", "source", "type", "start", "end",
               "score", "strand", "phase", "attributes")]
@@ -152,6 +154,7 @@ ezWriteGff = function(x ,file){
 ##' @title Trims transcripts in annotation data.frames
 ##' @description Trims transcripts in annotation data.frames of gtf or gff format.
 ##' @param gff an annotation data.frame in gtf or gff format.
+##' @param gffSingle the annotation information for a single transcript.
 ##' @param maxLength an integer specifying the maximum length of transcripts after trimming.
 ##' @param start a logical indicating the start direction of each transcript to be trimmed.
 ##' @template roxygen-template
@@ -369,6 +372,7 @@ getExonNumber = function(gtf){
 ##' @title 1
 ##' @description 1
 ##' @param reference a reference to read the information from.
+##' @param dataSource a character specifying the source of the data.
 ##' @template roxygen-template
 ##' @return Returns 
 ##' @seealso \code{\link[GenomicFeatures]{makeTxDbFromGFF}}
@@ -385,6 +389,7 @@ ezTranscriptDbFromRef = function(reference, dataSource="FGCZ"){
 ##' @title Gets gene names from annotation
 ##' @description Gets gene names from an annotation data.frame of gtf or gff format.
 ##' @param gtf the annotation data.frame to get the gene data from.
+##' @param tr2Gene a character vector containing the transcript ID's obtained from the gene ID's.
 ##' @template roxygen-template
 ##' @return Returns a character vector with the gene names.
 ##' @examples

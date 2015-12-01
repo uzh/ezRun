@@ -11,6 +11,8 @@ countIsoformsPerGene(tr2Gene)
 }
 \arguments{
 \item{gtf}{the annotation data.frame to get the gene data from.}
+
+\item{tr2Gene}{a character vector containing the transcript ID's obtained from the gene ID's.}
 }
 \value{
 Returns a character vector with the gene names.

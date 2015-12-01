@@ -47,6 +47,7 @@ EzAppTeqc <-
 ##'  \item{duplicatesPlot}{ a logical indicating whether to generate plots for duplicates.}
 ##'  \item{paired}{ a logical indicating whether the samples are paired.}
 ##' }
+##' @param file a character representing the path to the file containing the reads.
 ##' @template roxygen-template
 teqc = function(input, param=NULL){
   if(basename(param$designFile) == param$designFile){

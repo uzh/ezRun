@@ -7,11 +7,34 @@
 ezCombineReadDatasets(ds1, ds2, dataRoot = "/srv/gstore/projects",
   newDsDir = NULL)
 }
+\arguments{
+\item{ds1}{a data.frame from the meta field of an EzDataset.}
+
+\item{ds2}{a data.frame from the meta field of an EzDataset.}
+
+\item{dataRoot}{a character specifying the file root of the datasets.}
+
+\item{newDsDir}{a character specifying the directory to save the new dataset in.}
+}
 \description{
-Takes the union of the samples in both input datasets and generates a new dataset. 
+Takes the union of the samples in both input datasets and generates a new dataset.
+}
+\details{
 If a sample is present in both datasets, the read files are concatenated and a new file is written.
 If a sample is present in only one dataset it is simply copied
 The Read Count column must be present and is updated if two files are combined.
 A new dataset is written.
+}
+\examples{
+ds1 = ezRead.table(system.file("extdata/yeast_10k/dataset.tsv", package = "ezRun", mustWork = TRUE))
+ds2 = ds1
+dataRoot = normalizePath("./inst")
+newDsDir = "./scratch"
+ezCombineReadDatasets(ds1, ds2, dataRoot, newDsDir)
+}
+\author{
+Rehrauer, Hubert
+
+Schmid, Peter
 }
 

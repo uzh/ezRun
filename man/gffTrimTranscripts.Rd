@@ -15,6 +15,8 @@ gffTrimSingleTranscript(gffSingle, maxLength = 100, start = TRUE)
 \item{maxLength}{an integer specifying the maximum length of transcripts after trimming.}
 
 \item{start}{a logical indicating the start direction of each transcript to be trimmed.}
+
+\item{gffSingle}{the annotation information for a single transcript.}
 }
 \value{
 Returns

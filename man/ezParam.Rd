@@ -16,6 +16,8 @@ parseOptions(optString)
 \item{globalDefaults}{global package defaults. These should normally not be changed.}
 
 \item{appDefaults}{a data.frame containing application specific defaults.}
+
+\item{optString}{a character containing special options.}
 }
 \value{
 Returns the complete list of parameters used by the package.
