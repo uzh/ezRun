@@ -45,7 +45,7 @@ Compares the counts of two groups with the option to choose from several methods
 
 \item \code{runDeseq2}: Runs the Deseq2 test method.
 
-\item \code{runEdger}: Runs the Edger test method.
+\item \code{runEdger}: Runs the EdgeR test method.
 
 \item \code{runGlm}: Runs the Glm test method.
 }}

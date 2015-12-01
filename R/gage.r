@@ -14,7 +14,7 @@
 ##'   \item{featureLevel}{ a character representing the feature level. Must be "gene", otherwise the function gets stopped.}
 ##'   \item{pathView}{ a logical indicating whether to do a path view.}
 ##' }
-##' @param output a list, file path or an object of the class EzDataset containing the output information.
+##' @template output-template
 ##' @template rawData-template
 ##' @param gene.pValue a numeric specifying the p-value threshold.
 ##' @template roxygen-template

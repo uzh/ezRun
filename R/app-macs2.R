@@ -65,7 +65,7 @@ EzAppMacs2 <-
 ##' @title Annotates peaks
 ##' @description Annotates peaks and writes them into a seperate table.
 ##' @template input-template
-##' @param output a list, file path or an object of the class EzDataset containing the output information.
+##' @template output-template
 ##' @param param a list of parameters to extract the \code{ezRef@@refFeatureFile} and the \code{ezRef@@refAnnotationFile} from.
 ##' @template roxygen-template
 annotatePeaks = function(input=NA, output=NA, param=NA) {
@@ -110,7 +110,7 @@ annotatePeaks = function(input=NA, output=NA, param=NA) {
 ##' @title Creates a bigwig file
 ##' @description Creates and exports a bigwig file.
 ##' @template input-template
-##' @param output a list, file path or an object of the class EzDataset containing the output information.
+##' @template output-template
 ##' @param param a list of parameters to extract \code{paired} from.
 ##' @template roxygen-template
 createBigWig = function(input=NA, output=NA, param=NA){

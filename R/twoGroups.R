@@ -161,7 +161,7 @@ runDeseq2 = function(x, sampleGroup, refGroup, grouping, batch=NULL, isPresent=N
   return(res)
 }
 
-##' @describeIn twoGroupCountComparison Runs the Edger test method.
+##' @describeIn twoGroupCountComparison Runs the EdgeR test method.
 runEdger = function(x, sampleGroup, refGroup, grouping, normMethod){
   requireNamespace("edgeR", warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
   cds = DGEList(counts=x, group=grouping)
@@ -248,6 +248,7 @@ runGlm = function(x, sampleGroup, refGroup, grouping, normMethod, batch=NULL){
 ##' @description Writes the report for the two group analysis.
 ##' @template dataset-template
 ##' @template result-template
+##' @template output-template
 ##' @template htmlFile-template
 ##' @param param a list of parameters:
 ##' \itemize{

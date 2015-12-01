@@ -64,8 +64,11 @@ EzAppEdgerMulti <-
               )
   )
 
-
-# functions for multiGroups.R
+##' @title Cleans up input from the edgeR multi groups app
+##' @description Cleans up input from  the edgeR multi groups app.
+##' @inheritParams cleanupTwoGroupsInput
+##' @template roxygen-template
+##' @return Returns an object of the class EzDataset that is the modified \code{input}.
 cleanupMultiGroupsInput = function(input, param){
   dataset = input$meta
   if (param$useFactorsAsSampleName){
@@ -86,6 +89,19 @@ cleanupMultiGroupsInput = function(input, param){
   return(inputMod)
 }
 
+##' @title Compares the counts of many groups
+##' @description Compares the counts of many groups with the option to choose from several methods to test them.
+##' @template rawData-template
+##' @param param a list of parameters:
+##' \itemize{
+##'   \item{testMethod}{ defines the method to run: deseq2, exactTest, glm, sam or limma. Defaults to glm.}
+##'   \item{batch}{ a character vector specifying the batch groups.}
+##'   \item{grouping}{ a character specifying the grouping.}
+##'   \item{refGroup}{ a character specifying the reference group.}
+##'   \item{normMethod}{ a character specifying the normalization method for the edger and glm test methods.}
+##' }
+##' @template roxygen-template
+##' @return Returns a list containing the results of the comparison.
 multiGroupCountComparison = function(rawData , param){
   x = rawData$counts
   presentFlag = rawData$presentFlag
@@ -131,6 +147,7 @@ multiGroupCountComparison = function(rawData , param){
   return(result)
 }
 
+##' @describeIn multiGroupCountComparison Runs the Deseq2 test method for many groups.
 runDeseq2MultiGroup = function(x, sampleGroup, refGroup, grouping, batch=NULL){
   if (is.null(batch)){
     colData = data.frame(grouping=as.factor(grouping), row.names=colnames(x))
@@ -146,6 +163,7 @@ runDeseq2MultiGroup = function(x, sampleGroup, refGroup, grouping, batch=NULL){
   return(res)
 }
 
+##' @describeIn multiGroupCountComparison Runs the EdgeR GLM test method for many groups.
 runEdgerGlmMultiGroup = function(x, refGroup, grouping, normMethod, batch=NULL){
   requireNamespace("edgeR", warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
   ## get the scaling factors for the entire data set
@@ -186,6 +204,27 @@ runEdgerGlmMultiGroup = function(x, refGroup, grouping, normMethod, batch=NULL){
   return(res)
 }
 
+##' @title Writes the report for the multi group analysis
+##' @description Writes the report for the multi group analysis.
+##' @template dataset-template
+##' @template result-template
+##' @template htmlFile-template
+##' @param param a list of parameters:
+##' \itemize{
+##'   \item{name}{ a character specifying the name of the run.}
+##'   \item{logColorRange}{ an integer or numeric specifying the log color range.}
+##'   \item{minSignal}{ a numeric or integer specifying the minimal signal amount.}
+##'   \item{grouping}{ a character specifying the grouping.}
+##'   \item{pValueHighlightThresh}{ a numeric specifying the threshold for highlighting p-values.}
+##'   \item{log2RatioHighlightThresh}{ a numeric specifying the threshold for highlighting log2 ratios.}
+##'   \item{maxGenesForClustering}{ an integer specifying the maximum amount of genes for clustering. If the amount is higher, the least significant genes get removed first.}
+##'   \item{minGenesForClustering}{ an integer specifying the minimum amount of genes for clustering. If the amount is lower, no clustering will be done.}
+##'   \item{doZip}{ a logical indicating whether to archive the result file.}
+##'   \item{goseqMethod}{ a character specifying the method for the GO analysis. Accepted values: Wallenius, Sampling or Hypergeometric.}
+##' }
+##' @template rawData-template
+##' @template types-template
+##' @template roxygen-template
 writeNgsMultiGroupReport = function(dataset, result, htmlFile, param=NA, rawData=NA, types=NULL) {
   seqAnno = rawData$seqAnno
   
@@ -267,11 +306,10 @@ writeNgsMultiGroupReport = function(dataset, result, htmlFile, param=NA, rawData
   }
   ## only do GO if we have enough genes
   if (doGo(param, seqAnno)){
-    goResult = twoGroupsGO(param, result, seqAnno, normalizedAvgSignal=rowMeans(result$groupMeans), method=param$goseqMethod) ## should probably be multiGroupsGO()
+    goResult = twoGroupsGO(param, result, seqAnno, normalizedAvgSignal=rowMeans(result$groupMeans), method=param$goseqMethod) ## TODO: should probably be multiGroupsGO()
     titles[["GO Enrichment Analysis"]] = "GO Enrichment Analysis"
     addTitle(doc, titles[[length(titles)]], 2, id=titles[[length(titles)]])
     addGoUpDownResult(doc, param, goResult)
   } 
   closeBsdocReport(doc, htmlFile, titles)
 }
-
