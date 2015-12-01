@@ -46,7 +46,6 @@ ezMdsPlot = function(signal, sampleColors, main){
   y = DGEList(counts=signal,group=colnames(signal))
   #y$counts = cpm(y)
   #y = calcNormFactors(y)
-  dev.new()
   pdf(file=NULL)
   mds = plotMDS(y)
   dev.off()

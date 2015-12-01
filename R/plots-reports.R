@@ -152,24 +152,24 @@ addTestScatterPlots = function(doc, param, x, result, seqAnno, types=NULL){
   if (ncol(result$groupMeans) == 2 & !is.null(param$sampleGroup) & !is.null(param$refGroup)){
     sampleValues = 2^result$groupMeans[ , param$sampleGroup]
     refValues = 2^result$groupMeans[ , param$refGroup]
-#     myPlotFoo = function(){
-#       clickActions = paste0("window.open('http://www.ihop-net.org/UniPub/iHOP/?search=%22", names(refValues[types$Significants]),
-#                              "%22&field=synonym&ncbi_tax_id=0');")
-#       ### TODO: if types isn't NULL, the code will want to add a legend with legend(), but fails because of the legend. mtext used as a workaround.
-#       ezScatter(x=refValues, y=sampleValues, isPresent=result$usedInTest, xlab=param$refGroup, ylab=param$sampleGroup)
-#       add.plot.interactivity(fun=points, x=refValues[types$Significants], y=sampleValues[types$Significants], col="red", pch=16,
-#                              popup.labels = names(refValues[types$Significants]), click.actions = clickActions)
-#       ## NOTE: adding the legend like this also leads to a java.lang.ArrayIndexOutOfBoundsException: 2147483647
-#       # add.plot.interactivity(fun=legend, "bottomright", colnames(types), col=rainbow(ncol(types)), cex=1.2, pt.cex=1.5, pch=20, bty="o", pt.bg="white")
-#       mtext(colnames(types), adj=1, col=rainbow(ncol(types)), cex=1.2)
-#     }
-#     addPlot(doc, myPlotFoo, fontname="serif")
-    plotCmd = expression({
-      ezScatter(x=refValues, y=sampleValues, isPresent=result$usedInTest, types=types, xlab=param$refGroup, ylab=param$sampleGroup)
-    })
-    links["scatter"] = ezImageFileLink(plotCmd, file=paste0(param$comparison, "-scatter.png"),
-                                       width=min(ncol(as.matrix(sampleValues)), 6) * 480,
-                                       height=ceiling(ncol(as.matrix(sampleValues))/6) * 480) # dynamic png with possibly many plots
+    myPlotFoo = function(){
+      clickActions = paste0("window.open('http://www.ihop-net.org/UniPub/iHOP/?search=%22", names(refValues[types$Significants]),
+                             "%22&field=synonym&ncbi_tax_id=0');")
+      ### TODO: as types isn't NULL, legendPos needs to be, as legends don't work with add.plot.interactivity(). mtext used as a workaround.
+      ezScatter(x=refValues, y=sampleValues, isPresent=result$usedInTest, types=types, xlab=param$refGroup, ylab=param$sampleGroup, legendPos=NULL)
+      add.plot.interactivity(fun=points, x=refValues[types$Significants], y=sampleValues[types$Significants], col="red", pch=16,
+                             popup.labels = names(refValues[types$Significants]), click.actions = clickActions)
+      ## NOTE: adding the legend like this also leads to a java.lang.ArrayIndexOutOfBoundsException: 2147483647
+      # add.plot.interactivity(fun=legend, "bottomright", colnames(types), col=rainbow(ncol(types)), cex=1.2, pt.cex=1.5, pch=20, bty="o", pt.bg="white")
+      mtext(colnames(types), adj=1, col=rainbow(ncol(types)), cex=1.2)
+    }
+    addPlot(doc, myPlotFoo, fontname="serif")
+#     plotCmd = expression({
+#       ezScatter(x=refValues, y=sampleValues, isPresent=result$usedInTest, types=types, xlab=param$refGroup, ylab=param$sampleGroup)
+#     })
+#     links["scatter"] = ezImageFileLink(plotCmd, file=paste0(param$comparison, "-scatter.png"),
+#                                        width=min(ncol(as.matrix(sampleValues)), 6) * 480,
+#                                        height=ceiling(ncol(as.matrix(sampleValues))/6) * 480) # dynamic png with possibly many plots
     plotCmd = expression({
       ezVolcano(log2Ratio=result$log2Ratio, pValue=result$pValue, isPresent=result$usedInTest, types=types, main=param$comparison)
     })
