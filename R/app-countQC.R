@@ -152,7 +152,11 @@ runNgsCountQC = function(dataset, htmlFile="00index.html", param=param, rawData=
     signalFile = paste0(ezValidFilename(param$name), "-normalized-signal.txt")
     ezWrite.table(combined, file=signalFile, head="Feature ID", digits=4)
     
-    useInInteractiveTable = c("seqid", "gene_name", "gene_id", "description", "strand", "start", "end", "width", "gc")
+    selectSignals = grepl("Signal", colnames(combined))
+    combined$mean = apply(combined[, selectSignals], 1, mean)
+    combined$stdv = apply(combined[, selectSignals], 1, sd)
+    combined = combined[order(combined$mean, decreasing = TRUE), , drop=FALSE]
+    useInInteractiveTable = c("seqid", "gene_name", "gene_id", "mean", "stdv", "description", "strand", "start", "end", "width", "gc")
     useInInteractiveTable = intersect(useInInteractiveTable, colnames(combined))
     tableLink = sub(".txt", "-viewHighVarianceGenes.html", signalFile)
     ezInteractiveTable(head(combined[, useInInteractiveTable, drop=FALSE], param$maxTableRows), tableLink=tableLink, digits=3) ## TODOP: add avg and stdev cols, sort differently?
