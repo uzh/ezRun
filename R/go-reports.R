@@ -24,8 +24,9 @@ goClusterTable = function(param, clusterResult){
       linkTable[onto, i] = paste0("Cluster-", onto, "-", i, ".html")
       ezInteractiveTable(goFrame, tableLink=linkTable[onto, i], digits=3)
       linkTable[onto, i] = as.html(pot(sub(".html", "", linkTable[onto, i]), hyperlink=linkTable[onto, i]))
+      goFrame$Term = substr(goFrame$Term, 1, 30)
       if (nrow(goFrame) > 0){
-        tables[i, onto] = as.html(ezFlexTable(goFrame, talign="right"))
+        tables[i, onto] = as.html(ezFlexTable(goFrame, talign="right", header.columns = TRUE))
       }
     }
   }
@@ -92,8 +93,9 @@ goUpDownTables = function(param, goResult){
       linkTable[onto, sub] = paste0("Cluster-", onto, "-", sub, ".html")
       ezInteractiveTable(goFrame, tableLink=linkTable[onto, sub], digits=3)
       linkTable[onto, sub] = as.html(pot(sub(".html", "", linkTable[onto, sub]), hyperlink=linkTable[onto, sub]))
+      goFrame$Term = substr(goFrame$Term, 1, 30)
       if (nrow(goFrame) > 0){
-        resultList[[sub]]["Cats", onto] = as.html(ezFlexTable(goFrame, talign="right"))
+        resultList[[sub]]["Cats", onto] = as.html(ezFlexTable(goFrame, talign="right", header.columns = TRUE))
       } else {
         message("no rows")
       }
@@ -164,16 +166,17 @@ goUpDownTables = function(param, goResult){
   goRelatives = union(intersect(goAncestors, goOffsprings), goIds)
   
   terms = character()
-  pValues = character()
+  ids = character()
+  pValues = numeric()
   counts = character()
   for (i in 1:length(goRoots)){
     childTerms = getChildTerms(goRoots[i], goIds, goRelatives, indent="", CHILDREN)
     for (term in childTerms){
       terms = append(terms, names(childTerms)[childTerms==term])
+      ids = append(ids, term)
       pValues = append(pValues, x[term, "Pvalue"])
       counts = append(counts, paste(x[term, "Count"], x[term, "Size"], sep="/"))
     }
   }
-  pValues = as.numeric(pValues)
-  return(ezFrame("Term"=terms, "p"=pValues, "N"=counts))
+  return(ezFrame("Term"=terms, "ID"=ids,"p"=pValues, "N"=counts))
 }
