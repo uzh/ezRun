@@ -46,14 +46,16 @@ ezMdsPlot = function(signal, sampleColors, main){
   y = DGEList(counts=signal,group=colnames(signal))
   #y$counts = cpm(y)
   #y = calcNormFactors(y)
+  dev.new()
+  pdf(file=NULL)
   mds = plotMDS(y)
+  dev.off()
   plot(mds$x, mds$y, pch=c(15), xlab='Leading logFC dim1', ylab='Leading logFC dim2', main=main,
        xlim=c(1.2*min(mds$x), 1.2*max(mds$x)), ylim=c(1.2*min(mds$y), 1.2*max(mds$y)), col=sampleColors)
   text(mds$x,mds$y,labels = colnames(signal),pos=1,col=c('darkcyan'),cex=0.7)
   par(bg = 'white')
   return(NULL)
 }
-
 
 
 ## REFAC, but function is currently unused. undefined object: sm
