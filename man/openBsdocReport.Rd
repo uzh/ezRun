@@ -11,8 +11,6 @@ closeBsdocReport(doc, file, titles = NULL)
 }
 \arguments{
 \item{title}{a character specifying the title of the html report.}
-
-\item{dataset}{a data.frame from the meta field of an EzDataset.}
 }
 \value{
 Returns an object of the class bsdoc to add further elements.

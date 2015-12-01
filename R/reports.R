@@ -105,7 +105,6 @@ imgLinks = function(image){
 ##' @title Opens an html report
 ##' @description Opens an html report using \code{bsdoc()} from the ReporteRs package. Also adds some introductory elements.
 ##' @param title a character specifying the title of the html report.
-##' @template dataset-template
 ##' @template roxygen-template
 ##' @seealso \code{\link[ReporteRs]{bsdoc}}
 ##' @seealso \code{\link[ReporteRs]{writeDoc}}
@@ -210,30 +209,10 @@ closeBsdocReport = function(doc, file, titles=NULL){
   writeDoc(doc, file=file)
 }
 
-##' @title Adds a title with an anchor
-##' @description Adds a title with an anchor by using \code{addTitle()} from the ReporteRs package.
-##' @template doc-template
-##' @templateVar object anchored title
-##' @param title a character specifying the title.
-##' @param level an integer specifying the heading level.
-##' @template roxygen-template
-##' @seealso \code{\link[ReporteRs]{addTitle}}
-##' @seealso \code{\link[ReporteRs]{addCodeBlock}}
-##' @examples
-##' theDoc = openBsdocReport(title="My html report")
-##' title = "My title"
-##' .addTitleWithAnchor(theDoc, title)
-##' closeBsdocReport(doc=theDoc, file="example.html")
-.addTitleWithAnchor = function(doc, title, level=1){
-  addParagraph(doc, as.html(pot(paste0("<a name='", title, "'></a>"))))
-  addTitle(doc, value=title, level=level)
-}
-
 ##' @title Writes an error report
 ##' @description Writes an error report to an html file. Also creates the file and closes it.
 ##' @template htmlFile-template
 ##' @param param a list of parameters to extract the \code{name} from.
-##' @template dataset-template
 ##' @param error a character vector representing the error message(s).
 ##' @template roxygen-template
 ##' @seealso \code{\link{openBsdocReport}}

@@ -12,8 +12,6 @@ writeErrorReport(htmlFile, param = param, error = "Unknown Error")
 \item{param}{a list of parameters to extract the \code{name} from.}
 
 \item{error}{a character vector representing the error message(s).}
-
-\item{dataset}{a data.frame from the meta field of an EzDataset.}
 }
 \description{
 Writes an error report to an html file. Also creates the file and closes it.

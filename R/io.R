@@ -146,8 +146,7 @@ ezWrite.table = function(values, file=file, head="Identifier", row.names=TRUE, c
 ##' @examples 
 ##' tableLink = "exampleTable.html"
 ##' table = data.frame(a=c(1.11, 2:100), b=201:300)
-##' format = expression(DT::formatRound(interactiveTable, "a", 1))
-##' ezInteractiveTable(table, tableLink, format)
+##' ezInteractiveTable(table, tableLink)
 ezInteractiveTable = function(table, tableLink, digits=NULL, format=NULL, envir=parent.frame()){
   if (!is.null(digits)){
     for (i in 1:ncol(table)) {
@@ -159,7 +158,7 @@ ezInteractiveTable = function(table, tableLink, digits=NULL, format=NULL, envir=
   } else {
     caption = NULL
   }
-  interactiveTable = DT::datatable(table, extensions = "ColVis", filter="top", caption = caption,
+  interactiveTable = DT::datatable(table, extensions = c("ColVis", "TableTools"), filter="top", caption = caption,
                                    options = list(dom = 'TC<"clear">lfrtip', pageLength = 25))
   if (!is.null(format)){
     currEnv = environment()

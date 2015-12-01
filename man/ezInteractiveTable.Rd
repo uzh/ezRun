@@ -24,8 +24,7 @@ Saves an interactive table accessible with the provided \code{tableLink}.
 \examples{
 tableLink = "exampleTable.html"
 table = data.frame(a=c(1.11, 2:100), b=201:300)
-format = expression(DT::formatRound(interactiveTable, "a", 1))
-ezInteractiveTable(table, tableLink, format)
+ezInteractiveTable(table, tableLink)
 }
 \author{
 Rehrauer, Hubert

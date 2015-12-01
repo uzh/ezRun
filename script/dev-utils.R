@@ -17,7 +17,7 @@ editReportFile = function(patterns=""){
 editReportFile()
 
 # specific
-patterns = "deseq"
+patterns = c("deseq", "edger")
 editReportFile(patterns)
 
 
