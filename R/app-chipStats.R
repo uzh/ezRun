@@ -133,10 +133,10 @@ galp2gal = function(galp){
     cigar = galcigar,
     strand = strand(left(galp)),
     names = names(left(galp)),
-    seqlengths = seqlengths(galp)) ## TODO: function doesn't exist. ezBamSeqLengths() should be the right one.
+    seqlengths = seqlengths(galp))
   # in case where end of a read exceeds chrom length
   # (which occurs for improper paired reads with large gap)  
-  idx = which(end(gal) < seqlengths(gal)[as.character(seqnames(gal))]) ## TODO: function doesn't exist. ezBamSeqLengths() should be the right one.
+  idx = which(end(gal) < seqlengths(gal)[as.character(seqnames(gal))])
   if(length(idx) < length(gal))    
     warning(sprintf("%d read-pairs with end larger than chromosome length are discarded", length(gal) - length(idx) + 1))
   system('echo Function galp2gal done \n')
