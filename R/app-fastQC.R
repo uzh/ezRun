@@ -11,8 +11,6 @@
 ##' @template htmlFile-template
 ##' @seealso \code{\link{EzAppFastqc}}
 ezMethodFastQC = function(input=NA, output=NA, param=NA, htmlFile="00index.html"){
-  cwd = getwd()
-  on.exit(setwd(cwd))
   setwdNew(basename(output$getColumn("Report")))
   dataset = input$meta
   samples = rownames(dataset)

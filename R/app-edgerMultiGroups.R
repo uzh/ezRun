@@ -11,8 +11,6 @@
 ##' @template htmlFile-template
 ##' @seealso \code{\link{EzAppEdgerMulti}}
 ezMethodEdgerMulti = function(input=NA, output=NA, param=NA, htmlFile="00index.html"){
-  cwd = getwd()
-  on.exit(setwd(cwd))
   setwdNew(basename(output$getColumn("Report")))
   stopifnot(param$sampleGroup != param$refGroup)
   

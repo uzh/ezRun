@@ -12,8 +12,6 @@
 ##' @seealso \code{\link{EzAppChipStats}}
 ezMethodChipStats = function(input=NA, output=NA, param=NA, htmlFile="00index.html"){
   
-  cwd = getwd()
-  on.exit(setwd(cwd))
   setwdNew(basename(output$getColumn("Report")))
   dataset = input$meta
   gff = ezLoadFeatures(param, types = 'gene')

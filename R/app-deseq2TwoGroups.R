@@ -17,8 +17,6 @@ ezMethodDeseq2 = function(input=NA, output=NA, param=NA, htmlFile="00index.html"
   if (!is.null(param$markOutliers) && param$markOutliers){
     stop("DESeq2 does not support marking outliers because marked outliers would still be used in dispersion estimates")
   }
-  cwd = getwd()
-  on.exit(setwd(cwd))
   setwdNew(basename(output$getColumn("Report")))
   stopifnot(param$sampleGroup != param$refGroup)
   

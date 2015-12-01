@@ -10,8 +10,6 @@
 ##' @templateVar methodName Teqc
 ##' @seealso \code{\link{EzAppTeqc}}
 ezMethodTeqc = function(input=NA, output=NA, param=NA){
-  cwd = getwd()
-  on.exit(setwd(cwd))
   setwdNew(basename(output$getColumn("Report")))
   teqc(input, param)
   return("Success")

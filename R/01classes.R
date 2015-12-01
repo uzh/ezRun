@@ -203,7 +203,9 @@ EzApp <-
                     logMessage(name, param, "Starting")
                     param = ezParam(param, appDefaults=appDefaults)
                     checkFreeDiskSpace(param)
+                    cwd = getwd()
                     result = runMethod(input=input$copy(), output=output$copy(), param=param)
+                    setwd(cwd)
                     return(result)
                   }, error=function(e){dump.frames(format(Sys.time(), format="dump_%Y%m%d%H%M%S"), to.file=TRUE);
                     stackTrace <<- limitedLabels(sys.calls(), maxwidth = 200);}

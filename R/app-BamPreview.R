@@ -12,8 +12,6 @@
 ##' @seealso \code{\link{EzAppBamPreview}}
 ezMethodBamPreview = function(input=NA, output=NA, param=NA, htmlFile="00index.html"){
 
-  cwd = getwd()
-  on.exit(setwd(cwd))
   param$writeIgvSessionLink = FALSE
   
   if (ezIsSpecified(param$samples)){
@@ -21,8 +19,8 @@ ezMethodBamPreview = function(input=NA, output=NA, param=NA, htmlFile="00index.h
   }
   
   bamMeta = input$meta[ , !input$columnHasTag("File")]
-  bamMeta[["BAM [File]"]] = paste0(cwd, "/", input$getNames(), "/", input$getNames(), ".bam")
-  bamMeta[["BAI [File]"]] = paste0(cwd, "/", input$getNames(), "/", input$getNames(), ".bam.bai")
+  bamMeta[["BAM [File]"]] = paste0(getwd(), "/", input$getNames(), "/", input$getNames(), ".bam")
+  bamMeta[["BAI [File]"]] = paste0(getwd(), "/", input$getNames(), "/", input$getNames(), ".bam.bai")
   bamMeta[["Read Count"]] = ceiling(bamMeta[["Read Count"]] / param$subsampleReads)
   bamOutput = EzDataset(meta=bamMeta)
   bamParam = param

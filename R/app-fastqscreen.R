@@ -11,8 +11,6 @@
 ##' @template htmlFile-template
 ##' @seealso \code{\link{EzAppFastqScreen}}
 ezMethodFastqScreen = function(input=NA, output=NA, param=NA, htmlFile="00index.html"){
-  cwd = getwd()
-  on.exit(setwd(cwd))
   dataset = input$meta
   # fastqscreen part
   files = input$getFullPaths(param, "Read1")

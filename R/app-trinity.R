@@ -13,9 +13,6 @@
 ##' @seealso \code{\link{ezMethodTrim}}
 ezMethodTrinity = function(input=NA, output=NA, param=NA, htmlFile="00index.html"){
   
-  cwd = getwd()
-  on.exit(setwd(cwd))
-  
   if (ezIsSpecified(param$samples)){
     input$subset(param$samples)
   }

@@ -10,8 +10,6 @@
 ##' @templateVar methodName Ncpro
 ##' @seealso \code{\link{EzAppNcpro}}
 ezMethodNcpro = function(input=NA, output=NA, param=NA){
-  cwd = getwd()
-  on.exit(setwd(cwd), add=TRUE)
   setwdNew(basename(output$getColumn("Report")))
   param$readCountsBarplot = basename(output$getColumn("TrimCounts"))
   ncpro(input=input, dataset=input$meta, param=param)
