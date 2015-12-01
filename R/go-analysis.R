@@ -67,7 +67,7 @@ getGOparents = function(id, onto="BP"){
   }
 }
 
-## seems very similar to getGOparents
+##' @describeIn getGOparents Adds the GO parents.
 addGoParents = function(gene2goList, onto){
   goParents = switch(onto, BP=as.list(GOBPPARENTS),
                      CC=as.list(GOCCPARENTS),

@@ -183,6 +183,9 @@ writeTxtLinksToHtml = function(txtNames, mime="text/plain", con=stdout()){
   ezWrite("</table>", con=con)
 }
 
+### NOTEP: everything below is not used anymore:
+
+
 ##' @title Writes a table
 ##' @description Writes a table to an html file.
 ##' @param x a matrix or data.frame to paste a table from.
@@ -260,20 +263,19 @@ writeCountResultSummary = function(html, param, result){
   ezWrite("</table>", con=html)
 }
 
-
 ## will get deprecated eventually
-writeResultCounts = function(html, param, result, geneIds=NULL, pThresh=c(0.1, 0.05, 1/10^(2:5))){
-
-	sigTable = getSignificantCountsTable(result, pThresh=pThresh)
-	sigFcTable = getSignificantFoldChangeCountsTable(result, pThresh=pThresh)
-	
-  ezWrite("<p>Feature counts by significance and fold-change (fc)</p>", con=html)
-  ezWrite("<table border=0><tr><td>", con=html)
-  writeTableToHtml(sigTable, con=html)
-  ezWrite("</td><td>", con=html)
-  writeTableToHtml(sigFcTable, con=html)
-  ezWrite("</td></tr></table>", con=html)
-}
+# writeResultCounts = function(html, param, result, geneIds=NULL, pThresh=c(0.1, 0.05, 1/10^(2:5))){
+# 
+# 	sigTable = getSignificantCountsTable(result, pThresh=pThresh)
+# 	sigFcTable = getSignificantFoldChangeCountsTable(result, pThresh=pThresh)
+# 	
+#   ezWrite("<p>Feature counts by significance and fold-change (fc)</p>", con=html)
+#   ezWrite("<table border=0><tr><td>", con=html)
+#   writeTableToHtml(sigTable, con=html)
+#   ezWrite("</td><td>", con=html)
+#   writeTableToHtml(sigFcTable, con=html)
+#   ezWrite("</td></tr></table>", con=html)
+# }
 
 ##' @title Writes a result file
 ##' @description Writes a result file in text format or zipped.
@@ -400,9 +402,6 @@ writeQcScatterPlots = function(html, param, design, conds,
     writeImageRowToHtml(pngNames, con=html)
     flush(html)
   }
-
-  
-  
 
   for (i in 1:min(4, ncol(design))){
     for (cond in unique(design[,i])){
