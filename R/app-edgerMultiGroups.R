@@ -309,7 +309,8 @@ writeNgsMultiGroupReport = function(dataset, result, htmlFile, param=NA, rawData
     goResult = twoGroupsGO(param, result, seqAnno, normalizedAvgSignal=rowMeans(result$groupMeans), method=param$goseqMethod) ## TODO: should probably be multiGroupsGO()
     titles[["GO Enrichment Analysis"]] = "GO Enrichment Analysis"
     addTitle(doc, titles[[length(titles)]], 2, id=titles[[length(titles)]])
-    addGoUpDownResult(doc, param, goResult)
+    revigoTitle = addGoUpDownResult(doc, param, goResult)
+    titles = append(titles, revigoTitle)
   } 
   closeBsdocReport(doc, htmlFile, titles)
 }
