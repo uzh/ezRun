@@ -155,7 +155,7 @@ readBam = function(file,isPaired=F){
   system('echo Function readBam \n')
   if(isPaired){
     system('echo option isPaired=T \n')
-    bam = readBamGappedAlignmentPairs(file, use.names=T) ## TODO: function doesn't exist
+    bam = readBamGappedAlignmentPairs(file, use.names=T) ## TODO: function doesn't exist (or ezReadGappedAlignments() ?)
     system('echo bam read, conversion in progress...\n')
     bam = galp2gal(bam)
   } else {

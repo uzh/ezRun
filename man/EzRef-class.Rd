@@ -29,7 +29,7 @@ Objects of this class are a collection of references derived from a list of para
 
 \item \code{[}: Allows selection with square brackets [ ].
 
-\item \code{buildRefDir}: Builds the reference directory and copies the annotation and fast file into the right folders.
+\item \code{buildRefDir}: Builds the reference directory and copies the annotation and fasta file into the right folders.
 
 \item \code{getOrganism}: Gets the organism name from the reference build.
 }}
