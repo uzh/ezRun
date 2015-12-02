@@ -11,7 +11,7 @@ addJavaScriptIgvStarter(htmlFile, projectId, doc)
 
 \item{projectId}{a character representing the project ID.}
 
-\item{doc}{an object of the class bsdoc to add the}
+\item{doc}{an object of the class bsdoc to add the JS starter.}
 }
 \description{
 Adds a java function to start Igv from Jnlp.

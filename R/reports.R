@@ -105,7 +105,7 @@ imgLinks = function(image){
 ##' @title Opens an html report
 ##' @description Opens an html report using \code{bsdoc()} from the ReporteRs package. Also adds some introductory elements.
 ##' @param title a character specifying the title of the html report.
-##' @template doc-template
+##' @param doc an object of the class bsdoc to write and close.
 ##' @param file a character specifying the path to write the report in.
 ##' @param titles a character vector containing the titles of the report. Used to create the bootstrapmenu.
 ##' @template roxygen-template
@@ -162,6 +162,7 @@ addDataset = function(doc, dataset, param){
 ##' @template htmlFile-template
 ##' @param projectId a character representing the project ID.
 ##' @template doc-template
+##' @templateVar object JS starter
 ##' @template roxygen-template
 ## TODOP: get addJavaScriptIgvStarter() and addIgvSessionLink() to work.
 addJavaScriptIgvStarter = function(htmlFile, projectId, doc){
