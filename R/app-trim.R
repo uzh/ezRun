@@ -60,13 +60,17 @@ ezMethodTrim = function(input=NA, output=NA, param=NA){
   param$trimMinAdaptLength = 5
   param$trimKeepBothReads = "true"
   param$trimQualWindowWidth = 4
-  adaptFile = "/usr/local/ngseq/src/Trimmomatic-0.33/adapters/TruSeq3-PE-2.fa"
   
   if (param$subsampleReads > 1 || param$nReads > 0){
     input = ezMethodSubsampleReads(input=input, param=param)
   }
   
   if (param$trimAdapter){
+    Adapters = readDNAStringSet(TRIMOMMATIC_ADAPTERS)
+    ## TODO add adapters from dataset column
+    # allAdapters["new"] = 
+    # adaptFile = "adapters.fa"
+    # writeXStringSeq(.....)
     trimAdaptOpt =  paste("ILLUMINACLIP", adaptFile, param$trimSeedMismatches, param$trimPalindromClipThresh, 
                           param$trimSimpleClipThresh, param$trimMinAdaptLength, param$trimKeepBothReads, sep=":")
   } else {
