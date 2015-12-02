@@ -20,8 +20,8 @@ ezMethodRnaBamStats = function(input=NA, output=NA, param=NA, htmlFile="00index.
     
   gff = ezLoadFeatures(param)
   if (!is.null(gff) && nrow(gff) == 0){
-    writeErrorReport(htmlFile, param=param, error=list(error=paste("No features found in given feature file:<br>", 
-                                                                   param$ezRef["refFeatureFile"])))
+    writeErrorReport(htmlFile, param=param, error=paste("No features found in given feature file:<br>", 
+                                                                   param$ezRef["refFeatureFile"]))
     return("Error")
   }
   result = computeBamStats(input, htmlFile, param, gff)
