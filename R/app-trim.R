@@ -66,7 +66,7 @@ ezMethodTrim = function(input=NA, output=NA, param=NA){
   }
   
   if (param$trimAdapter){
-    Adapters = readDNAStringSet(TRIMOMMATIC_ADAPTERS)
+    Adapters = readDNAStringSet(TRIMMOMATIC_ADAPTERS)
     ## TODO add adapters from dataset column
     # allAdapters["new"] = 
     # adaptFile = "adapters.fa"

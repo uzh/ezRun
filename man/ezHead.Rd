@@ -20,7 +20,8 @@ Returns the name of the output file.
 Writes the head of a file into a newly created target file.
 }
 \examples{
-ezHead(x="DESCRIPTION")
+description = system.file("DESCRIPTION", package="ezRun", mustWork=TRUE)
+ezHead(x=description)
 }
 \author{
 Rehrauer, Hubert

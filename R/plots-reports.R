@@ -161,23 +161,34 @@ addTestScatterPlots = function(doc, param, x, result, seqAnno, types=NULL){
                              popup.labels = names(refValues[types$Significants]), click.actions = clickActions)
       ## NOTE: adding the legend like this also leads to a java.lang.ArrayIndexOutOfBoundsException: 2147483647
       # add.plot.interactivity(fun=legend, "bottomright", colnames(types), col=rainbow(ncol(types)), cex=1.2, pt.cex=1.5, pch=20, bty="o", pt.bg="white")
-      mtext(colnames(types), adj=1, col=rainbow(ncol(types)), cex=1.2)
+      # mtext(colnames(types), adj=1, col=rainbow(ncol(types)), cex=1.2)
     }
-    addPlot(doc, myPlotFoo, fontname="serif")
+    addPlot(doc, myPlotFoo, fontname="serif", par.properties=parLeft())
 #     plotCmd = expression({
 #       ezScatter(x=refValues, y=sampleValues, isPresent=result$usedInTest, types=types, xlab=param$refGroup, ylab=param$sampleGroup)
 #     })
 #     links["scatter"] = ezImageFileLink(plotCmd, file=paste0(param$comparison, "-scatter.png"),
 #                                        width=min(ncol(as.matrix(sampleValues)), 6) * 480,
 #                                        height=ceiling(ncol(as.matrix(sampleValues))/6) * 480) # dynamic png with possibly many plots
-    plotCmd = expression({
-      ezVolcano(log2Ratio=result$log2Ratio, pValue=result$pValue, isPresent=result$usedInTest, types=types, main=param$comparison)
-    })
-    links["volcano"] = ezImageFileLink(plotCmd, file=paste0(param$comparison, "-volcano.png"))
-    plotCmd = expression({
-      ezVolcano(log2Ratio=result$log2Ratio, pValue=result$fdr, isPresent=result$usedInTest, types=types, main=param$comparison, yType="FDR")
-    })
-    links["volcanoFdr"] = ezImageFileLink(plotCmd, file=paste0(param$comparison, "-FDR-volcano.png"))
+    
+    myPlotFoo2 = function(){
+      clickActions = paste0("window.open('http://www.ihop-net.org/UniPub/iHOP/?search=%22", names(result$pValue[types$Significants]),
+                            "%22&field=synonym&ncbi_tax_id=0');")
+      ezVolcano(log2Ratio=result$log2Ratio, pValue=result$pValue, isPresent=result$usedInTest, types=types, main=param$comparison, legendPos=NULL)
+      add.plot.interactivity(fun=points, x=result$log2Ratio[types$Significants], y=-log10(result$pValue[types$Significants]), col="red", pch=16,
+                             popup.labels = names(result$pValue[types$Significants]), click.actions = clickActions)
+    }
+    addPlot(doc, myPlotFoo2, fontname="serif", par.properties=parLeft()) ## the plots are plotted next to each other. I don't know why, but I like it.
+    addParagraph(doc, "Significant genes are in plotted in red and clicking on them will open an iHop search of the gene.")
+#     plotCmd = expression({
+#       ezVolcano(log2Ratio=result$log2Ratio, pValue=result$pValue, isPresent=result$usedInTest, types=types, main=param$comparison)
+#     })
+#     links["volcano"] = ezImageFileLink(plotCmd, file=paste0(param$comparison, "-volcano.png"))
+    
+#     plotCmd = expression({
+#       ezVolcano(log2Ratio=result$log2Ratio, pValue=result$fdr, isPresent=result$usedInTest, types=types, main=param$comparison, yType="FDR")
+#     })
+#     links["volcanoFdr"] = ezImageFileLink(plotCmd, file=paste0(param$comparison, "-FDR-volcano.png"))
   } else {
     plotCmd = expression({
       ezAllPairScatter(x=2^result$groupMeans, isPresent=result$usedInTest, types=types)

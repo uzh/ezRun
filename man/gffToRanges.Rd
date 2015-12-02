@@ -17,7 +17,7 @@ Gets GRanges from annotation of the format gtf or gff.
 }
 \examples{
 param = ezParam()
-gtf = ezLoadFeatures(param,"./inst/extdata/genes.gtf")
+gtf = ezLoadFeatures(param, system.file("extdata/genes.gtf", package="ezRun", mustWork=TRUE))
 gffToRanges(gtf)
 }
 \author{

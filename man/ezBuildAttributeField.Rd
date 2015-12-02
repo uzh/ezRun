@@ -19,7 +19,7 @@ Builds a compatible attributes field for either the gtf or gff annotation format
 }
 \examples{
 param = ezParam()
-gtf = ezLoadFeatures(param,"./inst/extdata/genes.gtf")
+gtf = ezLoadFeatures(param, system.file("extdata/genes.gtf", package="ezRun", mustWork=TRUE))
 attrNew = ezBuildAttributeField(gtf[ , c("gene_id", "gene_name", "transcript_id", "tss_id")],"gtf")
 gtf$attributes2 = attrNew
 }

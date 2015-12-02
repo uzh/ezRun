@@ -28,7 +28,7 @@ A new dataset is written.
 \examples{
 ds1 = ezRead.table(system.file("extdata/yeast_10k/dataset.tsv", package = "ezRun", mustWork = TRUE))
 ds2 = ds1
-dataRoot = normalizePath("./inst")
+dataRoot = system.file("./inst", package = "ezRun", mustWork = TRUE)
 newDsDir = "./scratch"
 ezCombineReadDatasets(ds1, ds2, dataRoot, newDsDir)
 }

@@ -16,7 +16,7 @@ Writes prespliced annotation directly from the parameters into a new .gtf file.
 }
 \examples{
 param = ezParam()
-writePresplicedGtf(param,"./inst/extdata/genes.gtf")
+writePresplicedGtf(param, system.file("extdata/genes.gtf", package="ezRun", mustWork=TRUE))
 }
 \author{
 Rehrauer, Hubert

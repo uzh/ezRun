@@ -17,7 +17,9 @@ ezMail(text = "done", subject = "r-mail", to = "")
 Mails the nodename and working directory to a specified email-address. A text message and the subject can also be defined.
 }
 \examples{
+\dontrun{
 ezMail(to="example@example.com")
+}
 }
 \author{
 Rehrauer, Hubert

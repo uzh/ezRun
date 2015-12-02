@@ -71,7 +71,9 @@ ezSessionInfo = function(path='.'){
 ##' @param to the recipient of the email.
 ##' @template roxygen-template
 ##' @examples 
+##' \dontrun{
 ##' ezMail(to="example@@example.com")
+##' }
 ezMail = function(text="done", subject="r-mail", to=""){
   stopifnot(to != "")
   text = paste(c(text, 

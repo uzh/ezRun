@@ -60,8 +60,8 @@ getRefChromSizesFile = function(param){
 ##' @template roxygen-template
 ##' @return Returns a list containing a fasta and a gtf object.
 ##' @examples
-##' gtf = "inst/extdata/genes.gtf"
-##' fasta = "inst/extdata/genome.fa"
+##' gtf = system.file("extdata/genes.gtf", package="ezRun", mustWork=TRUE)
+##' fasta = system.file("extdata/genome.fa", package="ezRun", mustWork=TRUE)
 ##' cleanGenomeFiles(fasta,gtf)
 cleanGenomeFiles = function(genomeFile, genesFile, patchPattern="PATCH"){
   

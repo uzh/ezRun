@@ -17,7 +17,7 @@
 ##' @template roxygen-template
 ##' @return Returns a data.frame containing the provided information.
 ##' @examples
-##' fqDir = "inst/extdata/yeast_10k"
+##' fqDir = system.file("extdata/yeast_10k", package="ezRun", mustWork=TRUE)
 ##' species = "Example"
 ##' ds = makeMinimalSingleEndReadDataset(fqDir, species)
 ##' ds2 = makeMinimalPairedEndReadDataset(fqDir, species)
@@ -118,12 +118,10 @@ addReplicate = function(x, sep="_", repLabels=1:length(x)){
 ##' @examples 
 ##' ds1 = ezRead.table(system.file("extdata/yeast_10k/dataset.tsv", package = "ezRun", mustWork = TRUE))
 ##' ds2 = ds1
-##' dataRoot = normalizePath("./inst")
+##' dataRoot = system.file("./inst", package = "ezRun", mustWork = TRUE)
 ##' newDsDir = "./scratch"
 ##' ezCombineReadDatasets(ds1, ds2, dataRoot, newDsDir)
 ezCombineReadDatasets = function(ds1, ds2, dataRoot="/srv/gstore/projects", newDsDir=NULL){
-  
-  # these are used a lot
   rowDs1 = rownames(ds1)
   rowDs2 = rownames(ds2)
   commonCols = intersect(colnames(ds1), colnames(ds2))
@@ -131,7 +129,6 @@ ezCombineReadDatasets = function(ds1, ds2, dataRoot="/srv/gstore/projects", newD
   ds2[ , setdiff(colnames(ds1), commonCols)] = NA
   rowdiff1 = setdiff(rowDs1, rowDs2)
   rowdiff2 = setdiff(rowDs2, rowDs1)
-  
   
   # create new dataset starting with the rows in ds1 and adding those only found in ds2 and set the right rownames
   dsNew = rbind(ds1, ds2[rowdiff2, colnames(ds1)])
@@ -143,7 +140,6 @@ ezCombineReadDatasets = function(ds1, ds2, dataRoot="/srv/gstore/projects", newD
   cwd = getwd()
   on.exit(setwd(cwd))
   setwdNew(newDsDir)
-  
   
   # loop through rows of dsNew to apply the merging
   for (nm in rowDsNew){

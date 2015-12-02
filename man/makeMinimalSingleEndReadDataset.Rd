@@ -34,7 +34,7 @@ Makes a minimal single end dataset by combining the arguments to a data.frame.
 \item \code{makeMinimalPairedEndReadDataset}: Does the same for paired end reads.
 }}
 \examples{
-fqDir = "inst/extdata/yeast_10k"
+fqDir = system.file("extdata/yeast_10k", package="ezRun", mustWork=TRUE)
 species = "Example"
 ds = makeMinimalSingleEndReadDataset(fqDir, species)
 ds2 = makeMinimalPairedEndReadDataset(fqDir, species)

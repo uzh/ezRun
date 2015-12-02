@@ -17,8 +17,7 @@ Adds transcripts from exons to the annotation using a gtf or gff data.frame.
 }
 \examples{
 param = ezParam()
-gtfFile = system.file("extdata/genes.gtf", package="ezRun", mustWork=TRUE)
-gtf = ezLoadFeatures(param, gtfFile)
+gtf = ezLoadFeatures(param, system.file("extdata/genes.gtf", package="ezRun", mustWork=TRUE))
 addTranscriptsToGffExons(gtf)
 }
 \author{

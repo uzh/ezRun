@@ -31,7 +31,7 @@ Groups annotation according to the \code{grouping} factor. Duplicated values are
 }}
 \examples{
 param = ezParam()
-gtf = ezLoadFeatures(param,"./inst/extdata/genes.gtf")
+gtf = ezLoadFeatures(param, system.file("extdata/genes.gtf", package="ezRun", mustWork=TRUE))
 groupGff(gtf)
 gffGroupToRanges(gtf, grouping = gtf$Parent)
 }

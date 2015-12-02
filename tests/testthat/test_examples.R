@@ -1,0 +1,5 @@
+cwd = getwd()
+setwdNew("run_examples")
+devtools::run_examples()
+setwd(cwd)
+ezSystem("rm -fr /run_examples/*")

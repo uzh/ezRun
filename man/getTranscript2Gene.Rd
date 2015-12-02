@@ -26,7 +26,7 @@ Gets gene names from an annotation data.frame of gtf or gff format.
 }}
 \examples{
 param = ezParam()
-gtf = ezLoadFeatures(param,"./inst/extdata/genes.gtf")
+gtf = ezLoadFeatures(param, system.file("extdata/genes.gtf", package="ezRun", mustWork=TRUE))
 tr2Gene = getTranscript2Gene(gtf)
 countIsoformsPerGene(tr2Gene)
 }

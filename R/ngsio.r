@@ -128,7 +128,8 @@ loadCountDataset = function(input, param){
 ##' @template roxygen-template
 ##' @return Returns the name of the output file.
 ##' @examples 
-##' ezHead(x="DESCRIPTION")
+##' description = system.file("DESCRIPTION", package="ezRun", mustWork=TRUE)
+##' ezHead(x=description)
 ezHead = function(target=paste0(x, "_head"), x, n=1000){
   ezSystem(paste("head -n", n, x, ">", target))
   return(target)

@@ -17,7 +17,7 @@ Gets the ensembl types of an annotation data.frame either directly from the sour
 }
 \examples{
 param = ezParam()
-gtf = ezLoadFeatures(param,"./inst/extdata/genes.gtf")
+gtf = ezLoadFeatures(param, system.file("extdata/genes.gtf", package="ezRun", mustWork=TRUE))
 getEnsemblTypes(gtf)
 }
 \author{

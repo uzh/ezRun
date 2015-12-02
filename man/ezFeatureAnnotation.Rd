@@ -35,8 +35,8 @@ Gets the sequence annotation from annotation (gtf or gff) and sequence (fasta) i
 }}
 \examples{
 param = ezParam()
-param$ezRef@refFeatureFile = "./inst/extdata/genes.gtf"
-param$ezRef@refAnnotationFile = "./inst/extdata/genes_annotation_example.txt"
+param$ezRef@refFeatureFile = system.file("extdata/genes.gtf", package="ezRun", mustWork=TRUE)
+param$ezRef@refAnnotationFile = system.file("extdata/genes_annotation_example.txt", package="ezRun", mustWork=TRUE)
 fp = "/srv/GT/reference/Saccharomyces_cerevisiae/Ensembl/EF4/Sequence/WholeGenomeFasta/genome.fa"
 param$ezRef@refFastaFile = fp
 x = writeAnnotationFromGtf(param)
