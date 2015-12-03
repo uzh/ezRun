@@ -179,7 +179,7 @@ plotBamStat = function(resultList, dataset, param, htmlFile=NULL){
         errorRate = resultList[[sm]][["ErrorRates"]][[nm]]
         if (!is.null(errorRate)){
           pngFile = ezValidFilename(paste0(sm, "_", nm, ".png"))
-          plotCmd = expression({ ## NOTEP: I think the plot looks fine, but perhaps 2 seperate plots, pasted together with an ezGrid, would be better
+          plotCmd = expression({
             plotPosSpecificErrorRate(errorRate, png=pngFile, main=paste(sm, nm))
           })
           pngLinks[nm] = ezImageFileLink(plotCmd, file=pngFile, width=1600)
@@ -204,7 +204,7 @@ plotBamStat = function(resultList, dataset, param, htmlFile=NULL){
         lines(transcript_covered[["mids"]], transcript_covered[["counts"]], col=sampleColors[sm])
       }
       legend("topright", samples, col=sampleColors[samples], cex=1.2, pt.cex=1.5, bty="o", pt.bg="white", lty=1)
-    }) ## NOTEP: maxXlim to 100 (or does it occur, that lines would lie under the legend?) There are more xlim=c(0,130) in this file
+    })
     pngLink = ezImageFileLink(plotCmd, file=pngFile, width=600)
     
     titles[["Transcripts covered plot"]] = "Transcripts covered plot"
