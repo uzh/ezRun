@@ -363,7 +363,7 @@ ezReadPairedAlignments = function(bamFile, seqname=NULL, start=NULL, end=NULL, s
 }
 
 ##' @describeIn ezReadPairedAlignments Merges left and right alignments and fills gaps with \code{fillGap}.
-ezMergeLeftRightAlignments <- function(gaLeft, gaRight, fillGap="N"){
+.ezMergeLeftRightAlignments <- function(gaLeft, gaRight, fillGap="N"){
   ## include the multi-paired-hits
   idx <- match(paste(names(gaLeft), values(gaLeft)[["mpos"]]), 
                paste(names(gaRight), start(gaRight)))
