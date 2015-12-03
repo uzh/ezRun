@@ -85,23 +85,7 @@ ezImageFileLink = function(plotCmd, file=NULL, name="imagePlot", plotType="plot"
   return(as.html(imgFilePot))
 }
 
-##' @title Pastes image links as html
-##' @description A simple wrapper that pastes image links as html.
-##' @param image character(s) specifying links to image files.
-##' @template roxygen-template
-##' @return Returns html link(s).
-##' @examples
-##' imgLinks("link.png")
-imgLinks = function(image){
-  links = character()
-  for (each in image){
-    links[each] = as.html(pot(paste0("<img src='", each, "'/>")))
-  }
-  return(links)
-}
-
 ## currently not possible to use from old report opener:
-## writeLines(readLines(ezCSSFile()), con=html) ## no custom css for reporteRs
 ##' @title Opens an html report
 ##' @description Opens an html report using \code{bsdoc()} from the ReporteRs package. Also adds some introductory elements.
 ##' @param title a character specifying the title of the html report.
@@ -157,62 +141,6 @@ addDataset = function(doc, dataset, param){
   addFlexTable(doc, ezGrid(rbind(pot1, pot2)))
 }
 
-##' @title Adds a java function
-##' @description Adds a java function to start Igv from Jnlp.
-##' @template htmlFile-template
-##' @param projectId a character representing the project ID.
-##' @template doc-template
-##' @templateVar object JS starter
-##' @template roxygen-template
-## TODOP: get addJavaScriptIgvStarter() and addIgvSessionLink() to work.
-addJavaScriptIgvStarter = function(htmlFile, projectId, doc){
-  jnlpLines1 = paste('<jnlp spec="6.0+" codebase="http://www.broadinstitute.org/igv/projects/current">',
-                     '<information>',
-                     '<title>IGV 2.3</title>',
-                     '<vendor>The Broad Institute</vendor>',
-                     '<homepage href="http://www.broadinstitute.org/igv"/>',
-                     '<description>IGV Software</description>',
-                     '<description kind="short">IGV</description>',
-                     '<icon href="IGV_64.png"/>',
-                     '<icon kind="splash" href="IGV_64.png"/>',
-                     '<offline-allowed/>',
-                     '</information>',
-                     '<security>',
-                     '<all-permissions/>',
-                     '</security>',
-                     '<update check="background" />', #check="never" policy="never"/>',
-                     '<resources>',
-                     '<java version="1.6+" initial-heap-size="256m" max-heap-size="1100m" />',
-                     '<jar href="igv.jar" download="eager" main="true"/>',
-                     '<jar href="batik-codec__V1.7.jar" download="eager"/>',
-                     '<jar href="goby-io-igv__V1.0.jar" download="eager"/>',  
-                     '<property name="apple.laf.useScreenMenuBar" value="true"/>',
-                     '<property name="com.apple.mrj.application.growbox.intrudes" value="false"/>',
-                     '<property name="com.apple.mrj.application.live-resize" value="true"/>',
-                     '<property name="com.apple.macos.smallTabs" value="true"/>',
-                     '<property name="http.agent" value="IGV"/>',
-                     '<property name="development" value="false"/>',
-                     '</resources>',
-                     '<application-desc  main-class="org.broad.igv.ui.Main">',
-                     '<argument>--genomeServerURL=http://fgcz-gstore.uzh.ch/reference/igv_genomes.txt</argument>',
-                     paste0('<argument>--dataServerURL=', "http://fgcz-gstore.uzh.ch/list_registries/", projectId, '</argument>'),
-                     '<argument>',
-                     sep="\n")
-  jnlpLines2 = paste("</argument>",
-                     '</application-desc>',
-                     '</jnlp>',
-                     sep="\n")
-  javaScript = paste("function startIgvFromJnlp(label, locus){",
-                     "var theSession = document.location.href.replace('", htmlFile, "', 'igvSession.xml');",
-                     "var igvLink = 'data:application/x-java-jnlp-file;charset=utf-8,';",
-                     "igvLink += '", RCurl::curlEscape(jnlpLines1), "';",
-                     "igvLink += theSession;",
-                     "igvLink += '", RCurl::curlEscape(jnlpLines2), "';",
-                     "document.write(label.link(igvLink))",
-                     "}")
-  addJavascript(doc, text=javaScript)
-}
-
 ##' @title Writes an error report
 ##' @description Writes an error report to an html file. Also creates the file and closes it.
 ##' @template htmlFile-template
@@ -255,51 +183,6 @@ addTxtLinksToReport = function(doc, txtNames, doZip=FALSE, mime=ifelse(doZip, "a
     }
     addParagraph(doc, pot(paste("<a href='", each, "' type='", mime, "'>", each, "</a>")))
   }
-}
-
-## NOTE: perhaps obsolete now with ReporteRs
-##' @title Adds a table
-##' @description Adds a table to a bsdoc object.
-##' @template doc-template
-##' @templateVar object table
-##' @param x a matrix or data.frame to paste a table from.
-##' @param bgcolors a matrix specifying the background colors.
-##' @param valign a character specifying where to align the table elements vertically. Use either "top", "middle" or "bottom".
-##' @param border an integer specifying the border width.
-##' @param head a character specifying the contents of the upper-left corner of the table.
-##' @template roxygen-template
-##' @seealso \code{\link[ReporteRs]{addFlexTable}}
-##' @examples
-##' x = matrix(1:25,5)
-##' rownames(x) = letters[1:5]
-##' colnames(x) = LETTERS[1:5]
-##' html = openBsdocReport()
-##' ezAddTable(html, x, head="Example", bgcolors="red")
-##' closeBsdocReport(html, "example.html")
-ezAddTable = function(doc, x, bgcolors=NULL, valign="middle", border=1, head=""){
-  bodyCells = cellProperties(border.width=border, vertical.align=valign)
-  table = FlexTable(x, header.columns = FALSE, body.cell.props=bodyCells,
-                    header.cell.props=cellProperties(border.width = border))
-  if (!is.null(bgcolors)){
-    table = setFlexTableBackgroundColors(table, j=1:ncol(x), colors=bgcolors)
-  }
-  table = addHeaderRow(table, colnames(x))
-  addFlexTable(doc, table)
-}
-
-##' @describeIn ezAddTable Does the same with a white font and returning the table instead of adding it to the document.
-ezAddTableWhite = function(x, bgcolors=NULL, valign="middle", border=1, head=""){
-  if (is.null(bgcolors)){
-    bgcolors = matrix("#ffffff", nrow=nrow(x), ncol=ncol(x))
-  }
-  ##x = cbind(rownames(x),x)
-  x = as.html(pot(paste('<font color="white">', x, '</font>')))
-  bodyCells = cellProperties(border.width=border, vertical.align=valign)
-  table = FlexTable(x, header.columns = FALSE, body.cell.props=bodyCells,
-                    header.cell.props=cellProperties(border.width = border))
-  table = setFlexTableBackgroundColors(table, j=1:ncol(x), colors=bgcolors)
-  table = addHeaderRow(table, colnames(x))
-  return(table)
 }
 
 ##' @title Adds a summary of the count result
@@ -465,4 +348,126 @@ addResultFile = function(doc, param, result, rawData, useInOutput=TRUE,
   addParagraph(doc, pot(sub(".html", "", tableLink), hyperlink=tableLink))
   
   return(list(resultFile=file))
+}
+
+
+
+
+
+############################################################
+### probably not needed:
+
+##' @title Pastes image links as html
+##' @description A simple wrapper that pastes image links as html.
+##' @param image character(s) specifying links to image files.
+##' @template roxygen-template
+##' @return Returns html link(s).
+##' @examples
+##' imgLinks("link.png")
+imgLinks = function(image){
+  links = character()
+  for (each in image){
+    links[each] = as.html(pot(paste0("<img src='", each, "'/>")))
+  }
+  return(links)
+}
+
+##' @title Adds a java function
+##' @description Adds a java function to start Igv from Jnlp.
+##' @template htmlFile-template
+##' @param projectId a character representing the project ID.
+##' @template doc-template
+##' @templateVar object JS starter
+##' @template roxygen-template
+addJavaScriptIgvStarter = function(htmlFile, projectId, doc){
+  jnlpLines1 = paste('<jnlp spec="6.0+" codebase="http://www.broadinstitute.org/igv/projects/current">',
+                     '<information>',
+                     '<title>IGV 2.3</title>',
+                     '<vendor>The Broad Institute</vendor>',
+                     '<homepage href="http://www.broadinstitute.org/igv"/>',
+                     '<description>IGV Software</description>',
+                     '<description kind="short">IGV</description>',
+                     '<icon href="IGV_64.png"/>',
+                     '<icon kind="splash" href="IGV_64.png"/>',
+                     '<offline-allowed/>',
+                     '</information>',
+                     '<security>',
+                     '<all-permissions/>',
+                     '</security>',
+                     '<update check="background" />', #check="never" policy="never"/>',
+                     '<resources>',
+                     '<java version="1.6+" initial-heap-size="256m" max-heap-size="1100m" />',
+                     '<jar href="igv.jar" download="eager" main="true"/>',
+                     '<jar href="batik-codec__V1.7.jar" download="eager"/>',
+                     '<jar href="goby-io-igv__V1.0.jar" download="eager"/>',  
+                     '<property name="apple.laf.useScreenMenuBar" value="true"/>',
+                     '<property name="com.apple.mrj.application.growbox.intrudes" value="false"/>',
+                     '<property name="com.apple.mrj.application.live-resize" value="true"/>',
+                     '<property name="com.apple.macos.smallTabs" value="true"/>',
+                     '<property name="http.agent" value="IGV"/>',
+                     '<property name="development" value="false"/>',
+                     '</resources>',
+                     '<application-desc  main-class="org.broad.igv.ui.Main">',
+                     '<argument>--genomeServerURL=http://fgcz-gstore.uzh.ch/reference/igv_genomes.txt</argument>',
+                     paste0('<argument>--dataServerURL=', "http://fgcz-gstore.uzh.ch/list_registries/", projectId, '</argument>'),
+                     '<argument>',
+                     sep="\n")
+  jnlpLines2 = paste("</argument>",
+                     '</application-desc>',
+                     '</jnlp>',
+                     sep="\n")
+  javaScript = paste("function startIgvFromJnlp(label, locus){",
+                     "var theSession = document.location.href.replace('", htmlFile, "', 'igvSession.xml');",
+                     "var igvLink = 'data:application/x-java-jnlp-file;charset=utf-8,';",
+                     "igvLink += '", RCurl::curlEscape(jnlpLines1), "';",
+                     "igvLink += theSession;",
+                     "igvLink += '", RCurl::curlEscape(jnlpLines2), "';",
+                     "document.write(label.link(igvLink))",
+                     "}")
+  addJavascript(doc, text=javaScript)
+}
+
+##' @title Adds a table
+##' @description Adds a table to a bsdoc object.
+##' @template doc-template
+##' @templateVar object table
+##' @param x a matrix or data.frame to paste a table from.
+##' @param bgcolors a matrix specifying the background colors.
+##' @param valign a character specifying where to align the table elements vertically. Use either "top", "middle" or "bottom".
+##' @param border an integer specifying the border width.
+##' @param head a character specifying the contents of the upper-left corner of the table.
+##' @template roxygen-template
+##' @seealso \code{\link[ReporteRs]{addFlexTable}}
+##' @examples
+##' x = matrix(1:25,5)
+##' rownames(x) = letters[1:5]
+##' colnames(x) = LETTERS[1:5]
+##' html = openBsdocReport()
+##' ezAddTable(html, x, head="Example", bgcolors="red")
+##' closeBsdocReport(html, "example.html")
+ezAddTable = function(doc, x, bgcolors=NULL, valign="middle", border=1, head=""){
+  bodyCells = cellProperties(border.width=border, vertical.align=valign)
+  table = FlexTable(x, header.columns = FALSE, body.cell.props=bodyCells,
+                    header.cell.props=cellProperties(border.width = border))
+  if (!is.null(bgcolors)){
+    table = setFlexTableBackgroundColors(table, j=1:ncol(x), colors=bgcolors)
+  }
+  table = addHeaderRow(table, colnames(x))
+  addFlexTable(doc, table)
+}
+
+## NOTEP: used once in gage-reports.R, but that needs to be refactored anyway.
+##' @describeIn ezAddTable Does the same with a white font and returning the table instead of adding it to the document.
+ezAddTableWhite = function(x, bgcolors=NULL, valign="middle", border=1, head=""){
+  if (is.null(bgcolors)){
+    bgcolors = matrix("#ffffff", nrow=nrow(x), ncol=ncol(x))
+  }
+  ##x = cbind(rownames(x),x)
+  x = as.html(pot(paste('<font color="white">', x, '</font>')))
+  bodyCells = cellProperties(border.width=border, vertical.align=valign)
+  table = FlexTable(x, header.columns = FALSE, body.cell.props=bodyCells,
+                    header.cell.props=cellProperties(border.width = border))
+  table = setFlexTableBackgroundColors(table, j=1:ncol(x), colors=bgcolors)
+  table = addHeaderRow(table, colnames(x))
+  return(table)
 }

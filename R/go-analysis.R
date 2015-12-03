@@ -518,59 +518,9 @@ mapGoToSlim = function(goList, ontology, slimGo){
 
 
 
-# .writeGOClusterResult = function(html, param, clusterResult){
-#   
-#   ontologies = names(clusterResult$GO)
-#   tables = ezMatrix("", rows=paste("Cluster", 1:clusterResult$nClusters), cols=ontologies)
-#   for (onto in ontologies){
-#     for (i in 1:clusterResult$nClusters){
-#       x = clusterResult$GO[[onto]][[i]]
-#       tables[i, onto] = goResultToHtmlTable(x, param$pValThreshFisher, param$minCountFisher, onto=onto);
-#     }
-#   }
-#   writeTableToHtml(tables, con=html, border=2,
-#                    bgcolors=matrix(gsub("FF$", "", clusterResult$clusterColors), nrow=clusterResult$nClusters, ncol=1))
-# }
 
 
-# .writeGOTables = function(html , param, goResult){
-#   
-#   ezWrite("<h3>GO Enrichment Analysis</h3>", con=html)
-#   ezWrite("<p>Red GO categories are overrepresented among the significantly upregulated genes<br>", con=html)
-#   ezWrite("<p>Blue GO categories are overrepresented among the significantly downregulated genes<br>", con=html)
-#   ezWrite("<p>Black GO categories are overrepresented among all signifcantly regulated genes</p>", con=html)
-#   ezWrite("<p>Maximum number of terms displayed: ", param$maxNumberGroupsDisplayed, "</p>", con=html)
-#   tables = ezMatrix("", rows="Cats", cols=names(goResult))
-#   txtFiles = character()
-#   for (onto in names(goResult)){
-#     x = goResult[[onto]]
-#     tables[1,onto] = goResultToHtmlTable2(x, param$pValThreshFisher, 
-#                                           param$minCountFisher, onto=onto, maxNumberOfTerms=param$maxNumberGroupsDisplayed)  ### function deprecated
-#     for (sub in names(x)){ #c("enrichUp", "enrichDown", "enrichBoth")){
-#       xSub = x[[sub]]
-#       if (is.data.frame(xSub)){
-#         name = paste0(onto, "-", param$comparison, "-", sub)
-#         if (!is.null(xSub$Pvalue)){
-#           xSub = xSub[order(xSub$Pvalue), ]
-#           xSub = cbind("GO ID"=rownames(xSub), xSub)
-#         }
-#         txtFile = ezValidFilename(paste0(name, ".txt"), replace="-")
-#         ezWrite.table(xSub, file=txtFile, row.names=FALSE)
-#         if (param$doZip){
-#           txtFiles[name] = zipFile(txtFile)
-#         } else {
-#           txtFiles[name] = txtFile
-#         }
-#       }
-#     }
-#   }
-#   writeTableToHtml(tables, con=html, border=2, valign="top")
-#   if (param$doZip){
-#     writeTxtLinksToHtml(txtFiles, con=html, mime="application/zip")
-#   } else {
-#     writeTxtLinksToHtml(txtFiles, con=html, mime="application/txt")  
-#   }
-# }
+
 
 
 #

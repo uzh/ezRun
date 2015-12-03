@@ -291,7 +291,7 @@ ezReadPairedAlignments = function(bamFile, seqname=NULL, start=NULL, end=NULL, s
                                      minMapQuality=minMapQuality, keepMultiHits=keepMultiHits)
     #ezWriteElapsed(job, "loaded paired gaRight for positive strand")
     ## strand of gaRight will be wrong but we will never use it!!
-    gaPositive <- ezMergeLeftRightAlignments(gaLeft, gaRight, fillGap=fillGap)
+    gaPositive <- .ezMergeLeftRightAlignments(gaLeft, gaRight, fillGap=fillGap)
     rm(gaLeft, gaRight)
     gc()
     gaAll = c(gaAll, gaPositive)
@@ -307,7 +307,7 @@ ezReadPairedAlignments = function(bamFile, seqname=NULL, start=NULL, end=NULL, s
                                      isFirstMateRead=TRUE, isSecondMateRead=FALSE, isProperPair=TRUE, what=c("mpos"), tag=tag,
                                      minMapQuality=minMapQuality, keepMultiHits=keepMultiHits)
     #ezWriteElapsed(job, "loaded paired gaRight for negative strand")
-    gaNegative = ezMergeLeftRightAlignments(gaLeft, gaRight)
+    gaNegative = .ezMergeLeftRightAlignments(gaLeft, gaRight)
     if (!is.null(gaNegative)){
       strand(gaNegative) = "-"
     }
