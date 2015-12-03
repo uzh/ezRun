@@ -69,11 +69,14 @@ ezMethodTrim = function(input=NA, output=NA, param=NA){
     adapters = readDNAStringSet(TRIMMOMATIC_ADAPTERS)
     inputAdapter1 = DNAStringSet(input$meta$Adapter1)
     names(inputAdapter1) = "From_dataset_1"
-    inputAdapter2 = DNAStringSet(input$meta$Adapter2)
-    names(inputAdapter2) = "From_dataset_2"
-    allAdapters = c(adapters, inputAdapter1, inputAdapter2)
+    adapters = c(adapters, inputAdapter1)
+    if (param$paired){
+      inputAdapter2 = DNAStringSet(input$meta$Adapter2)
+      names(inputAdapter2) = "From_dataset_2"
+      adapters = c(adapters, inputAdapter2)
+    }
     adaptFile = "adapters.fa"
-    writeXStringSet(allAdapters, adaptFile)
+    writeXStringSet(adapters, adaptFile)
     trimAdaptOpt =  paste("ILLUMINACLIP", adaptFile, param$trimSeedMismatches, param$trimPalindromClipThresh,
                           param$trimSimpleClipThresh, param$trimMinAdaptLength, param$trimKeepBothReads, sep=":")
   } else {
