@@ -73,30 +73,22 @@ teqc = function(input, param=NULL){
   
   capture.output(print(sessionInfo()), file = "sessionInfo.txt")
   htmlFile="00index.html"
-#   titles = list()
-#   titles[["TEQC-Report"]] = paste("TEQC-Report:", param$name)
-#   doc = openBsdocReport(title=titles[[length(titles)]])
-  html = openHtmlReport(htmlFile, param=param, title=paste("TEQC-Report:", param$name),
-                        dataset=input$meta)
-#   titles[["Parameters"]] = "Parameters"
-#   addTitle(doc, titles[[length(titles)]], 2, id=titles[[length(titles)]])
-#   addDataset(doc, input$meta, param)
-#   titles[["MultiSample-Report"]] = "MultiSample-Report"
-#   addTitle(doc, titles[[length(titles)]], 2, id=titles[[length(titles)]])
-  ezWrite("<h2>MultiSample-Report</h2>",con=html)
-#   addTxtLinksToReport(doc, "multiTEQCreport/index.html")
-  writeTxtLinksToHtml('multiTEQCreport/index.html', con=html)
-#   titles[["Individual Reports"]] = "Individual Reports"
-#   addTitle(doc, titles[[length(titles)]], 2, id=titles[[length(titles)]])
-  ezWrite("<h2>Individual Reports</h2>",con=html)
-#   addTxtLinksToReport(doc, paste0(reportDirs, '/index.html'))
-  writeTxtLinksToHtml(paste0(reportDirs, '/index.html'), con=html)
-#   >>>remove this title<<<
-  ezWrite("<h2>Misc</h2>",con=html)
-#   closeBsdocReport(doc, htmlFile, titles)
-  writeTxtLinksToHtml('sessionInfo.txt',con=html)
-  flush(html)
-  closeHTML(html)
+  
+  titles = list()
+  titles[["TEQC-Report"]] = paste("TEQC-Report:", param$name)
+  doc = openBsdocReport(title=titles[[length(titles)]])
+  
+  titles[["Parameters"]] = "Parameters"
+  addTitle(doc, titles[[length(titles)]], 2, id=titles[[length(titles)]])
+  addDataset(doc, input$meta, param)
+  
+  titles[["MultiSample-Report"]] = "MultiSample-Report"
+  addTitle(doc, titles[[length(titles)]], 2, id=titles[[length(titles)]])
+  addTxtLinksToReport(doc, "multiTEQCreport/index.html")
+  titles[["Individual Reports"]] = "Individual Reports"
+  addTitle(doc, titles[[length(titles)]], 2, id=titles[[length(titles)]])
+  addTxtLinksToReport(doc, paste0(reportDirs, '/index.html'))
+  closeBsdocReport(doc, htmlFile, titles)
   return("Success")
 }
 
