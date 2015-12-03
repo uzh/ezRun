@@ -27,7 +27,8 @@ Gets the gene mapping.
 \examples{
 param = ezParam()
 param$ezRef@refFeatureFile = system.file("extdata/genes.gtf", package="ezRun", mustWork=TRUE)
-param$ezRef@refAnnotationFile = system.file("extdata/genes_annotation_example.txt", package="ezRun", mustWork=TRUE)
+annoFile = system.file("extdata/genes_annotation_example.txt", package="ezRun", mustWork=TRUE)
+param$ezRef@refAnnotationFile = annoFile
 fp = "/srv/GT/reference/Saccharomyces_cerevisiae/Ensembl/EF4/Sequence/WholeGenomeFasta/genome.fa"
 param$ezRef@refFastaFile = fp
 seqAnno = writeAnnotationFromGtf(param)
