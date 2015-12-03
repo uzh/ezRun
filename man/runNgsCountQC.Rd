@@ -31,7 +31,7 @@ runNgsCountQC(dataset, htmlFile = "00index.html", param = param,
 
 \item{rawData}{a list of raw data obtained from \code{loadCountDataset()}.}
 
-\item{writeDataFiles}{a logical indicating whether to write the data files into seperate tables.}
+\item{writeDataFiles}{a logical indicating whether to write the data files into separate tables.}
 
 \item{types}{a character vector containing the types.}
 }

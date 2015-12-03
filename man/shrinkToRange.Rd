@@ -12,7 +12,7 @@ shrinkToRange(x, theRange)
 \item{theRange}{two values specifying the lower and upper boundary of the range.}
 }
 \value{
-Returns the shrinked object.
+Returns the shrunk object.
 }
 \description{
 Values outside the range will be set as the lower or upper boundary of the range.

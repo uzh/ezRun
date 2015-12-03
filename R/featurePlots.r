@@ -6,15 +6,15 @@
 # www.fgcz.ch
 
 
-##' @title Gets transcripts coverages
-##' @description Gets transcripts coverages.
+##' @title Gets transcripts coverage
+##' @description Gets transcripts coverage.
 ##' @param chrom a character vector containing chromosome names.
 ##' @param gff an annotation data.frame in gtf or gff format.
 ##' @param reads an object of the class GAlignments.
 ##' @param strandMode a character specifying the mode of the strand.
 ##' @param ranges an object of the class GRanges.
 ##' @template roxygen-template
-##' @return Returns a list of transcript coverages.
+##' @return Returns a list of transcript coverage.
 getTranscriptCoverage = function(chrom, gff, reads, strandMode="both"){
   if (length(chrom) > 1){
     transcriptCov = unlist(lapply(chrom, getTranscriptCoverage, gff, reads, strandMode), recursive=FALSE)
@@ -36,7 +36,7 @@ getTranscriptCoverage = function(chrom, gff, reads, strandMode="both"){
   return(transcriptCov)
 }
 
-##' @describeIn getTranscriptCoverage Gets the range coverages.
+##' @describeIn getTranscriptCoverage Gets the range coverage.
 getRangesCoverageChrom = function(chrom=NULL, ranges, reads, strandMode="both"){
   if(!is.null(chrom)){
     stopifnot(runValue(seqnames(ranges)) == chrom)

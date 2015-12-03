@@ -17,7 +17,7 @@ ezTime = function(){
 }
 
 ##' @title Writes start time of job
-##' @description Writes the starting date and time of \code{jobName} into a seperate file.
+##' @description Writes the starting date and time of \code{jobName} into a separate file.
 ##' @param jobName a character representing the job name.
 ##' @return Returns a list containing \code{jobName} and the running time of R.
 ##' @template roxygen-template

@@ -92,7 +92,7 @@ writeJavaScriptIgvStarter = function(htmlFile, projectId, html){
 }
 
 ##' @title Writes an IGV session
-##' @description Writes an IGV session into a seperate .xml file
+##' @description Writes an IGV session into a separate .xml file
 ##' @param genome a character representing the build name.
 ##' @param refBuild a character representing a file path to the reference build.
 ##' @param file a character representing the name of the file to write the IGV session in.

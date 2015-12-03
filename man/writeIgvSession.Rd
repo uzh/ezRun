@@ -35,7 +35,7 @@ getIgvGenome(param)
 Returns a character containing the name of the newly written .xml file.
 }
 \description{
-Writes an IGV session into a seperate .xml file
+Writes an IGV session into a separate .xml file
 }
 \section{Functions}{
 \itemize{

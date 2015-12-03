@@ -16,7 +16,7 @@ ezAllPairScatter(x, main = "", shrink = FALSE, xylab = NULL,
 
 \item{shrink}{a logical specifying whether to shrink the values to range.}
 
-\item{xylab}{a character vector containing the axis labels. If it is NULL, colnames of \code{x} will be used.}
+\item{xylab}{a character vector containing the axis labels. If it is NULL, \code{colnames(x)} will be used.}
 
 \item{lim}{integers specifying the x and y limits of the plot.}
 

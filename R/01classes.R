@@ -224,7 +224,7 @@ EzApp <-
                 },
                 outputLinks = function(output, param)
                 {
-                  "Returns urls, that are tagged as Links, specified in the output list together with relevant metadata."
+                  "Returns URLs, that are tagged as Links, specified in the output list together with relevant metadata."
                   use = grepl("Link", output$tags)
                   relUrls = c(param$resultDir, unlist(output$meta[use])) ## always show the link to the resultdir and to all Links if available.
                   return(paste(PROJECT_BASE_URL, relUrls, sep="/"))

@@ -7,7 +7,7 @@
 
 
 ##' @title Gets chromosome sizes from a VCF file
-##' @description Gets chromosome sizes from a VCF file by accessing its contig column.
+##' @description Gets chromosome sizes from a VCF file by accessing its \code{contig} column.
 ##' @param vcfFile the VCF file to get the chromosome sizes from.
 ##' @template roxygen-template
 ##' @return Returns a names vector of the chromosome sizes.

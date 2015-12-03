@@ -26,7 +26,7 @@ ezMclapply(x, FUN, ..., mc.preschedule = TRUE, mc.set.seed = TRUE,
 Returns a list of the same length as \code{x} with \code{FUN} applied to its elements.
 }
 \description{
-This function is a modified version of \code{mclapply()} of the parallel package and allows a parallelized usage of lapply.
+This function is a modified version of \code{mclapply()} of the parallel package and allows a parallel usage of lapply.
 }
 \examples{
 l1 = list(a=1:3, b=c(2,5), c=4:8)

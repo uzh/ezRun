@@ -313,7 +313,7 @@ getChildTerms = function(x, subset, goRelatives, indent="", childEnvir){
   return(result)
 }
 
-##' @describeIn clusterHeatmap Performs some initializations and returns a list of results used by \code{clusterHeatmap()} and \code{goClusterResults()}.
+##' @describeIn clusterHeatmap Initializes and returns a list of results used by \code{clusterHeatmap()} and \code{goClusterResults()}.
 clusterResults = function(x, nClusters=5, clusterColors=rainbow(nClusters), d=NULL, method="ward.D2"){
   if (is.null(d)){
     xx = x

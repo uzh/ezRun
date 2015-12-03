@@ -9,7 +9,7 @@
 ##' @template method-template
 ##' @templateVar methodName Gatk RNA Haplotyper
 ##' @template htmlFile-template
-##' @seealso \code{\link{ezAppGatkRnaHaplotyper}}
+##' @seealso \code{\link{EzAppGatkRnaHaplotyper}}
 ezMethodGatkRnaHaplotyper = function(input=NA, output=NA, param=NA, htmlFile="00index.html"){
   
   bamDataset = input$meta
@@ -181,15 +181,15 @@ ezMethodGatkRnaHaplotyper = function(input=NA, output=NA, param=NA, htmlFile="00
 ##' @template app-template
 ##' @templateVar method ezMethodGatkRnaHaplotyper()
 ##' @seealso \code{\link{ezMethodGatkRnaHaplotyper}}
-ezAppGatkRnaHaplotyper <-
-  setRefClass("ezAppGatkRnaHaplotyper",
+EzAppGatkRnaHaplotyper <-
+  setRefClass("EzAppGatkRnaHaplotyper",
               contains = "EzApp",
               methods = list(
                 initialize = function()
                 {
                   "Initializes the application using its specific defaults."
                   runMethod <<- ezMethodGatkRnaHaplotyper
-                  name <<- "ezAppGatkRnaHaplotyper"
+                  name <<- "EzAppGatkRnaHaplotyper"
                 }
               )
   )

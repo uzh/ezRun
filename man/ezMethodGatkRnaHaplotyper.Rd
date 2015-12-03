@@ -30,6 +30,6 @@ Schmid, Peter
 \seealso{
 \code{\link{EzDataset}}
 
-\code{\link{ezAppGatkRnaHaplotyper}}
+\code{\link{EzAppGatkRnaHaplotyper}}
 }
 

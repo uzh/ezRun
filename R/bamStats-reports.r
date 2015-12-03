@@ -17,7 +17,7 @@
 ##'   \item{ezRef@@refBuild}{ a character containing the path of the reference build.}
 ##'   \item{sigThresh}{ an integer specifying the significance threshold.}
 ##'   \item{normMethod}{ a character specifying the normalization method to use.}
-##'   \item{runGO}{ a logical indicating wheter to run the GO analysis.}
+##'   \item{runGO}{ a logical indicating whether to run the GO analysis.}
 ##' }
 ##' @template htmlFile-template
 ##' @template roxygen-template

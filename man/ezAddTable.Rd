@@ -22,7 +22,7 @@ ezAddTableWhite(x, bgcolors = NULL, valign = "middle", border = 1,
 
 \item{border}{an integer specifying the border width.}
 
-\item{head}{a character specifying the contents of the upperleft corner of the table.}
+\item{head}{a character specifying the contents of the upper-left corner of the table.}
 }
 \description{
 Adds a table to a bsdoc object.

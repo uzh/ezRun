@@ -20,7 +20,7 @@ zipWorkingDir(zipName)
 Returns the file name of the zipped archive.
 }
 \description{
-Archives one or several files to a .zip extension. Optionally, a seperate name can be given to the archive.
+Archives one or several files to a .zip extension. Optionally, a separate name can be given to the archive.
 }
 \section{Functions}{
 \itemize{

@@ -76,7 +76,7 @@ tableFromSets= function(setList){
 ##' @description Values outside the range will be set as the lower or upper boundary of the range.
 ##' @param x the values to modify.
 ##' @param theRange two values specifying the lower and upper boundary of the range.
-##' @return Returns the shrinked object.
+##' @return Returns the shrunk object.
 ##' @template roxygen-template
 ##' @examples
 ##' shrinkToRange(1:10,c(2,6))
@@ -248,7 +248,7 @@ ezGrepl <- function(patterns, x, combine="or", ...){
   return(result)
 }
 
-##' @title Seperates a character vector into a matrix by splitting it.
+##' @title Separates a character vector into a matrix by splitting it.
 ##' @description The \code{split} vector needs to divide the \code{x} vector into pieces of equal lengths. The split is removed from the original input. 
 ##' @param x the character vector to be split element-wise.
 ##' @param split a character vector defining with what to split.
@@ -410,7 +410,7 @@ ezGeomean <- function(x, ...){
 ##' @description Rearranges and averages columns according to \code{by}.
 ##' @param x the matrix whose columns should be averaged.
 ##' @param by an integer or vector by which to average and/or rearrange columns.
-##' @param func the function to apply to the result. Default: mean with removing NA's.
+##' @param func the function to apply to the result. Default: mean with removing NAs.
 ##' @return Returns a vector or matrix of averaged columns.
 ##' @template roxygen-template
 ##' @examples
@@ -471,7 +471,7 @@ inverseMapping = function(xList){
   return(invMap)
 }
 
-##' @describeIn inverseMapping Unlists the input and returns a data.frame with seperated names and values.
+##' @describeIn inverseMapping Unlists the input and returns a data.frame with separated names and values.
 makeMultiMapping = function(xList){
 
 	target = unlist(xList, use.names=FALSE)
@@ -508,7 +508,7 @@ makeMultiMapping = function(xList){
 }
 
 ##' @title Parallel version of \code{lapply()}
-##' @description This function is a modified version of \code{mclapply()} of the parallel package and allows a parallelized usage of lapply.
+##' @description This function is a modified version of \code{mclapply()} of the parallel package and allows a parallel usage of lapply.
 ##' @param x a list to apply the function to.
 ##' @param FUN the function to apply to each list element.
 ##' @template addargs-template
@@ -582,10 +582,10 @@ ezDuplicated = function(x, mode="keepFirst"){
 ##' @param n a positive integer specifying how many times a value needs to occur to return true.
 ##' @param mode specifies how to keep multiplicated values. Possible modes:
 ##' \itemize{
-##'  \item{"keepFirst"}{ keeps values occuring \code{n} times in the original order.}
-##'  \item{"keepLast"}{ keeps values occuring \code{n} times in a reversed order.}
-##'  \item{"random"}{ keeps values occuring \code{n} times in a randomized order.}
-##'  \item{"all"}{ keeps all values occuring \code{n} times independent of the order.}
+##'  \item{"keepFirst"}{ keeps values that occur \code{n} times in the original order.}
+##'  \item{"keepLast"}{ keeps values that occur \code{n} times in a reversed order.}
+##'  \item{"random"}{ keeps values that occur \code{n} times in a randomized order.}
+##'  \item{"all"}{ keeps all values that occur \code{n} times independent of the order.}
 ##' }
 ##' @return Returns a logical indicating which values are multiplicated according to the specified \code{mode} and \code{n}.
 ##' @template roxygen-template

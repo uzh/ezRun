@@ -15,7 +15,7 @@ ezJobStart(jobName, con = stderr())
 Returns a list containing \code{jobName} and the running time of R.
 }
 \description{
-Writes the starting date and time of \code{jobName} into a seperate file.
+Writes the starting date and time of \code{jobName} into a separate file.
 }
 \examples{
 con = file("example.txt", "w")

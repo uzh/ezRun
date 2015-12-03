@@ -31,7 +31,7 @@ plotPosSpecificErrorRate(errorRate, png, main = "Per base mismatch rate",
   \item{ezRef@refBuild}{ a character containing the path of the reference build.}
   \item{sigThresh}{ an integer specifying the significance threshold.}
   \item{normMethod}{ a character specifying the normalization method to use.}
-  \item{runGO}{ a logical indicating wheter to run the GO analysis.}
+  \item{runGO}{ a logical indicating whether to run the GO analysis.}
 }}
 
 \item{htmlFile}{a character, ending with .html, representing the file path of an html file.}
