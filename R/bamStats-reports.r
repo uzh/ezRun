@@ -21,11 +21,11 @@
 ##' }
 ##' @template htmlFile-template
 ##' @template roxygen-template
-plotBamStat = function(resultList, dataset, param, htmlFile=NULL){
+plotBamStat = function(output, resultList, dataset, param, htmlFile=NULL){
   conds = ezConditionsFromDataset(dataset, param=param)
   samples = rownames(dataset)
   sampleColors = getSampleColors(conds, samples)
-  files = dataset$BAM
+  bamFiles = dataset$BAM
   
   titles = list()
   titles[["BAM Statistics"]] = paste("BAM Statistics:", param$name)
@@ -35,17 +35,19 @@ plotBamStat = function(resultList, dataset, param, htmlFile=NULL){
   addTitle(doc, titles[[length(titles)]], 2, id=titles[[length(titles)]])
   addDataset(doc, dataset, param)
   
-## TODO: add later  
 #   if (param$writeIgvSessionLink){
 #     titles[["Genome Browser"]] = "Genome Browser"
-#     addTitle(doc, titles[[length(titles)]], 2, id=titles[[length(titles)]])
-#     if (length(files) > 4){
+#     addTitle(doc, titles[[length(titles)]], 2, id=titles[[length(titles)]]) ## NOTEP: links are not yet added to the report.
+#     if (length(bamFiles) > 4){
 #       idx = which(!duplicated(conds))
 #       idx = idx[1:min(4, length(idx))]
 #     } else {
-#       idx = 1:length(files)
+#       idx = 1:length(bamFiles)
 #     }
-#  writeIgvSession(file=ezColumn(output ......), genome, refBuild, bamUrls=paste(PROJECT_BASE_URL, bamFiles, sep="/"), locus="All")
+#     writeIgvSession(genome=getIgvGenome(param), refBuild=param$ezRef["refBuild"], file=basename(output$getColumn("IGV Session")),  ## TODOP: get IGV Session for RnaBamStats
+#                     bamUrls=paste(PROJECT_BASE_URL, bamFiles[idx], sep="/"), locus="All")
+#     writeIgvJnlp(jnlpFile=basename(output$getColumn("IGV Starter")), projectId=param$projectId,
+#                  sessionUrl=paste(PROJECT_BASE_URL, output$getColumn("IGV Session"), sep="/"))
 #   }
   
   titles[["Read Alignment Statistics"]] = "Read Alignment Statistics"
