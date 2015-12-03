@@ -45,7 +45,7 @@ plotBamStat = function(resultList, dataset, param, htmlFile=NULL){
 #     } else {
 #       idx = 1:length(files)
 #     }
-#     addIgvSessionLink(getIgvGenome(param), refBuild=param$ezRef["refBuild"], files[idx], doc, label="Open Integrative Genomics Viewer")
+#  writeIgvSession(file=ezColumn(output ......), genome, refBuild, bamUrls=paste(PROJECT_BASE_URL, bamFiles, sep="/"), locus="All")
 #   }
   
   titles[["Read Alignment Statistics"]] = "Read Alignment Statistics"

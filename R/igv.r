@@ -179,10 +179,6 @@ writeIgvSessionLink = function(genome, refBuild, bamFiles, html, locus="All", la
 addIgvSessionLink = function(genome, refBuild, bamFiles, doc, locus="All", label="Open Integrative Genomics Viewer", baseUrl=PROJECT_BASE_URL){
   urls = paste(baseUrl, bamFiles, sep="/")
   writeIgvSession(genome, refBuild, bamUrls=urls, locus=locus)
-  for (url in urls){
-    addParagraph(doc, pot(url, hyperlink = url))
-  }
-  addJavascript(doc, text=paste0('startIgvFromJnlp("', label, '", "', locus, '")'))
 }
 
 ##' @describeIn writeIgvSession Gets the IGV genome if specified or otherwise tries to get the build name from the parameters.
