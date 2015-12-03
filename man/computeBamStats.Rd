@@ -11,7 +11,7 @@
 \alias{getTargetTypeCounts}
 \title{Computes the BAM statistics}
 \usage{
-computeBamStats(input, htmlFile, param, gff, resultList = NULL)
+computeBamStats(input, output, htmlFile, param, gff, resultList = NULL)
 
 getPosErrorFromBam(bamFile, param)
 

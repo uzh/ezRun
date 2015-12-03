@@ -8,7 +8,7 @@
 \alias{plotPosSpecificErrorRate}
 \title{Plots the BAM statistics}
 \usage{
-plotBamStat(resultList, dataset, param, htmlFile = NULL)
+plotBamStat(output, resultList, dataset, param, htmlFile = NULL)
 
 getTypeCountTable(resultList, name)
 
