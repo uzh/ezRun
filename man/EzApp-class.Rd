@@ -24,7 +24,7 @@ This reference class is the basis of all other apps that inherit from it. It set
 
 \item{\code{exitMail(text, subject, param)}}{Sends a report e-mail to the specified e-mail address. If not valid, an e-mail will be sent to the administrator if there was an error.}
 
-\item{\code{outputLinks(output, param)}}{Returns urls, that are tagged as Links, specified in the output list together with relevant metadata.}
+\item{\code{outputLinks(output, param)}}{Returns URLs, that are tagged as Links, specified in the output list together with relevant metadata.}
 
 \item{\code{run(input, output, param)}}{Runs the app with the provided \code{input}, \code{output} and \code{param}.}
 }}

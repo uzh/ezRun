@@ -13,7 +13,7 @@ ezChromSizesFromVcf(vcfFile)
 Returns a names vector of the chromosome sizes.
 }
 \description{
-Gets chromosome sizes from a VCF file by accessing its contig column.
+Gets chromosome sizes from a VCF file by accessing its \code{contig} column.
 }
 \author{
 Rehrauer, Hubert

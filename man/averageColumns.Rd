@@ -12,7 +12,7 @@ averageColumns(x, by = NULL, func = function(x) {     mean(x, na.rm = TRUE)
 
 \item{by}{an integer or vector by which to average and/or rearrange columns.}
 
-\item{func}{the function to apply to the result. Default: mean with removing NA's.}
+\item{func}{the function to apply to the result. Default: mean with removing NAs.}
 }
 \value{
 Returns a vector or matrix of averaged columns.

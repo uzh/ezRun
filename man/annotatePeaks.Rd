@@ -14,7 +14,7 @@ annotatePeaks(input = NA, output = NA, param = NA)
 \item{param}{a list of parameters to extract the \code{ezRef@refFeatureFile} and the \code{ezRef@refAnnotationFile} from.}
 }
 \description{
-Annotates peaks and writes them into a seperate table.
+Annotates peaks and writes them into a separate table.
 }
 \author{
 Rehrauer, Hubert

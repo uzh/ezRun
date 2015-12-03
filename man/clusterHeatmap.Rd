@@ -57,7 +57,7 @@ Plots the cluster heatmap.
 }
 \section{Functions}{
 \itemize{
-\item \code{clusterResults}: Performs some initializations and returns a list of results used by \code{clusterHeatmap()} and \code{goClusterResults()}.
+\item \code{clusterResults}: Initializes and returns a list of results used by \code{clusterHeatmap()} and \code{goClusterResults()}.
 
 \item \code{goClusterResults}: Applies a GO analysis to the cluster results if GO should be done.
 }}

@@ -63,7 +63,7 @@ EzAppMacs2 <-
   )
 
 ##' @title Annotates peaks
-##' @description Annotates peaks and writes them into a seperate table.
+##' @description Annotates peaks and writes them into a separate table.
 ##' @template input-template
 ##' @template output-template
 ##' @param param a list of parameters to extract the \code{ezRef@@refFeatureFile} and the \code{ezRef@@refAnnotationFile} from.

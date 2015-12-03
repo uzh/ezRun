@@ -410,7 +410,7 @@ ezGeomean <- function(x, ...){
 ##' @description Rearranges and averages columns according to \code{by}.
 ##' @param x the matrix whose columns should be averaged.
 ##' @param by an integer or vector by which to average and/or rearrange columns.
-##' @param func the function to apply to the result. Default: mean with removing NA's.
+##' @param func the function to apply to the result. Default: mean with removing NAs.
 ##' @return Returns a vector or matrix of averaged columns.
 ##' @template roxygen-template
 ##' @examples

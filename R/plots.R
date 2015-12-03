@@ -435,7 +435,7 @@ ezXYScatterScatter = function(xVec, yVec, absentColor="gray", shrink=FALSE, fram
 ##' @param x a matrix containing the data to plot.
 ##' @param main a character specifying the main title of the plots.
 ##' @param shrink a logical specifying whether to shrink the values to range.
-##' @param xylab a character vector containing the axis labels. If it is NULL, colnames of \code{x} will be used.
+##' @param xylab a character vector containing the axis labels. If it is NULL, \code{colnames(x)} will be used.
 ##' @template plot-template
 ##' @template roxygen-template
 ##' @examples

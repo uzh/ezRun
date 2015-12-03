@@ -266,7 +266,7 @@ addTxtLinksToReport = function(doc, txtNames, doZip=FALSE, mime=ifelse(doZip, "a
 ##' @param bgcolors a matrix specifying the background colors.
 ##' @param valign a character specifying where to align the table elements vertically. Use either "top", "middle" or "bottom".
 ##' @param border an integer specifying the border width.
-##' @param head a character specifying the contents of the upperleft corner of the table.
+##' @param head a character specifying the contents of the upper-left corner of the table.
 ##' @template roxygen-template
 ##' @seealso \code{\link[ReporteRs]{addFlexTable}}
 ##' @examples

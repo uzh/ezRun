@@ -2,7 +2,7 @@
 % Please edit documentation in R/bamio.r
 \name{buildScanBamParam}
 \alias{buildScanBamParam}
-\title{Builds the scanbam parameters}
+\title{Builds the ScanBam parameters}
 \usage{
 buildScanBamParam(param, bamFile)
 }
@@ -21,7 +21,7 @@ buildScanBamParam(param, bamFile)
 Returns an object of the class ScanBamParam.
 }
 \description{
-Builds the scanbam parameters from other parameters and a bam file.
+Builds the ScanBam parameters from other parameters and a bam file.
 }
 \examples{
 param = ezParam()

@@ -428,8 +428,8 @@ ezMergeLeftRightAlignments <- function(gaLeft, gaRight, fillGap="N"){
   return(gaAll)
 }
 
-##' @title Builds the scanbam parameters
-##' @description Builds the scanbam parameters from other parameters and a bam file.
+##' @title Builds the ScanBam parameters
+##' @description Builds the ScanBam parameters from other parameters and a bam file.
 ##' @param param a list of parameters:
 ##' \itemize{
 ##'   \item{readUnmapped}{ whether unmapped (TRUE), mapped (FALSE) or any read (NA) should be returned.}
