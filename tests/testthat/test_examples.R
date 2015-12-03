@@ -3,7 +3,7 @@ context("Runs all function examples and cleans them up afterwards.")
 cwd = getwd()
 
 test_that("Function examples", {
-  setwdNew("tests/testthat/run_examples/")
+  setwdNew("./run_examples/")
   devtools::run_examples()
   rm0 = system.file("tests/testthat/run_examples", package="ezRun", mustWork=TRUE)
   rm1 = system.file("DESCRIPTION_head", package="ezRun", mustWork=TRUE)
