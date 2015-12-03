@@ -18,7 +18,7 @@ ezWrite.table(values, file = file, head = "Identifier", row.names = TRUE,
 \item{digits}{the number of digits to round to, if rounding is desired.}
 }
 \value{
-Returns a table written into a seperate file.
+Returns a table written into a separate file.
 }
 \description{
 Modified version of \code{write.table()} with a different default. Best used together with \code{ezRead.table()}.

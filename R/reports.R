@@ -42,7 +42,7 @@ ezGrid = function(x, header.columns = FALSE,  valign = "top", ...){
             header.columns = header.columns, ...)
 }
 
-# how to add help text? for each plot seperately or not?
+# how to add help text? for each plot separately or not?
 ##' @title Gets an image link as html
 ##' @description Gets an image link as html. Also plots and creates the image.
 ##' @param plotCmd an expression of plot commands.

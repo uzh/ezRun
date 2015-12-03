@@ -72,7 +72,7 @@ EzAppCountQC <-
 ##'   \item{writeScatterPlots}{ a logical indicating whether to write scatter plots.}
 ##' }
 ##' @template rawData-template
-##' @param writeDataFiles a logical indicating whether to write the data files into seperate tables.
+##' @param writeDataFiles a logical indicating whether to write the data files into separate tables.
 ##' @template types-template
 ##' @template roxygen-template
 runNgsCountQC = function(dataset, htmlFile="00index.html", param=param, rawData=NULL,

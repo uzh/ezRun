@@ -30,7 +30,7 @@ mioString = function(x){
 }
 
 ##' @title Archives files
-##' @description Archives one or several files to a .zip extension. Optionally, a seperate name can be given to the archive.
+##' @description Archives one or several files to a .zip extension. Optionally, a separate name can be given to the archive.
 ##' @param zipName a character naming the working directory to be archived.
 ##' @param inputs one or several input files to archive.
 ##' @param zipped optional character to name the archive.
@@ -86,7 +86,7 @@ ezRead.table = function(file, header=TRUE, sep="\t", as.is=TRUE, row.names=1, qu
 ##' @param file the name of the output file.
 ##' @param head the names of the header.
 ##' @param digits the number of digits to round to, if rounding is desired.
-##' @return Returns a table written into a seperate file.
+##' @return Returns a table written into a separate file.
 ##' @template roxygen-template
 ##' @seealso \code{\link[utils]{write.table}}
 ##' @seealso \code{\link{ezRead.table}}
@@ -170,9 +170,9 @@ ezInteractiveTable = function(table, tableLink, digits=NULL, format=NULL, envir=
 ##' @title Write in a single line
 ##' @description Concatenates its arguments and writes it as a single line.
 ##' @param ... the arguments to concatenate.
-##' @param sep a character specifying how to seperate the arguments from each other.
-##' @param collapse a character specifying how to seperate entries of each argument from each other.
-##' @return Returns a single line written into a seperate file.
+##' @param sep a character specifying how to separate the arguments from each other.
+##' @param collapse a character specifying how to separate entries of each argument from each other.
+##' @return Returns a single line written into a separate file.
 ##' @template roxygen-template
 ##' @template connection-template
 ##' @examples 

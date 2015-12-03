@@ -9,14 +9,14 @@ ezWrite(..., sep = "", collapse = " ", con = stdout())
 \arguments{
 \item{...}{the arguments to concatenate.}
 
-\item{sep}{a character specifying how to seperate the arguments from each other.}
+\item{sep}{a character specifying how to separate the arguments from each other.}
 
-\item{collapse}{a character specifying how to seperate entries of each argument from each other.}
+\item{collapse}{a character specifying how to separate entries of each argument from each other.}
 
 \item{con}{the connection to the file to write in.}
 }
 \value{
-Returns a single line written into a seperate file.
+Returns a single line written into a separate file.
 }
 \description{
 Concatenates its arguments and writes it as a single line.

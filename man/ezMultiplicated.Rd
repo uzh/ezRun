@@ -13,10 +13,10 @@ ezMultiplicated(x, n = 2, mode = "keepFirst")
 
 \item{mode}{specifies how to keep multiplicated values. Possible modes:
 \itemize{
- \item{"keepFirst"}{ keeps values occuring \code{n} times in the original order.}
- \item{"keepLast"}{ keeps values occuring \code{n} times in a reversed order.}
- \item{"random"}{ keeps values occuring \code{n} times in a randomized order.}
- \item{"all"}{ keeps all values occuring \code{n} times independent of the order.}
+ \item{"keepFirst"}{ keeps values that occur \code{n} times in the original order.}
+ \item{"keepLast"}{ keeps values that occur \code{n} times in a reversed order.}
+ \item{"random"}{ keeps values that occur \code{n} times in a randomized order.}
+ \item{"all"}{ keeps all values that occur \code{n} times independent of the order.}
 }}
 }
 \value{

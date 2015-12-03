@@ -2,7 +2,7 @@
 % Please edit documentation in R/util.r
 \name{ezSplit}
 \alias{ezSplit}
-\title{Seperates a character vector into a matrix by splitting it.}
+\title{Separates a character vector into a matrix by splitting it.}
 \usage{
 ezSplit(x, split, ...)
 }

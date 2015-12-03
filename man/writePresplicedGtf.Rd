@@ -2,7 +2,7 @@
 % Please edit documentation in R/gff.r
 \name{writePresplicedGtf}
 \alias{writePresplicedGtf}
-\title{Writes prespliced annotation}
+\title{Writes pre-spliced annotation}
 \usage{
 writePresplicedGtf(param, featureFile = param$ezRef["refFeatureFile"])
 }
@@ -12,7 +12,7 @@ writePresplicedGtf(param, featureFile = param$ezRef["refFeatureFile"])
 \item{featureFile}{the file to load the features in the \code{ezLoadFeatures()} call from.}
 }
 \description{
-Writes prespliced annotation directly from the parameters into a new .gtf file.
+Writes pre-spliced annotation directly from the parameters into a new .gtf file.
 }
 \examples{
 param = ezParam()

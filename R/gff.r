@@ -411,8 +411,8 @@ countIsoformsPerGene = function(tr2Gene){
   return(table(tr2Gene))
 }
 
-##' @title Writes prespliced annotation
-##' @description Writes prespliced annotation directly from the parameters into a new .gtf file.
+##' @title Writes pre-spliced annotation
+##' @description Writes pre-spliced annotation directly from the parameters into a new .gtf file.
 ##' @param param contains the feature file to load the annotation from.
 ##' @param featureFile the file to load the features in the \code{ezLoadFeatures()} call from.
 ##' @template roxygen-template

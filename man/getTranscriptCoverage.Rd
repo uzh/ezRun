@@ -3,7 +3,7 @@
 \name{getTranscriptCoverage}
 \alias{getRangesCoverageChrom}
 \alias{getTranscriptCoverage}
-\title{Gets transcripts coverages}
+\title{Gets transcripts coverage}
 \usage{
 getTranscriptCoverage(chrom, gff, reads, strandMode = "both")
 
@@ -21,14 +21,14 @@ getRangesCoverageChrom(chrom = NULL, ranges, reads, strandMode = "both")
 \item{ranges}{an object of the class GRanges.}
 }
 \value{
-Returns a list of transcript coverages.
+Returns a list of transcript coverage.
 }
 \description{
-Gets transcripts coverages.
+Gets transcripts coverage.
 }
 \section{Functions}{
 \itemize{
-\item \code{getRangesCoverageChrom}: Gets the range coverages.
+\item \code{getRangesCoverageChrom}: Gets the range coverage.
 }}
 \author{
 Rehrauer, Hubert
