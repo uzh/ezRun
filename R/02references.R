@@ -128,6 +128,20 @@ setMethod("buildRefDir", "EzRef", function(.Object, genomeFile, genesFile, genom
   ezSystem(cmd)
 })
 
+
+
+
+# setGeneric("buildIgvGenomeBrowser", function(){
+#   standardGeneric("buildIgvGenomeBrowser")
+# })
+# ##' @describeIn EzRef Builds the IGV genome browser.
+# setMethod("buildIgvGenomeBrowser", "EzRef", function(){
+#   
+# })
+
+
+
+
 setGeneric("getOrganism", function(.Object){
   standardGeneric("getOrganism")
 })

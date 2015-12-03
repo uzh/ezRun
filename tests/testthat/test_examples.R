@@ -11,5 +11,6 @@ test_that("Function examples", {
   rm3 = system.file("extdata/genesWithPrespliced.gtf", package="ezRun", mustWork=TRUE)
   cmd = paste("rm -fr", rm0, rm1, rm2, rm3)
   setwd(cwd)
+  ezSystem(paste("rm -fr", paste0(rm0, "/*")))
   ezSystem(cmd)
 })
