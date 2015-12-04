@@ -16,6 +16,9 @@ ezMethodNcpro = function(input=NA, output=NA, param=NA){
   return("Success")
 }
 
+##' Reference Class Constructor for ncPro App
+##' 
+##' @method initialize assigns name and runMethod
 ##' @template app-template
 ##' @templateVar method ezMethodNcpro()
 ##' @seealso \code{\link{ezMethodNcpro}}
