@@ -209,16 +209,15 @@ ezGoseq = function(param, selectedGenes, allGenes, gene2goList=NULL,
   return(result)
 }
 
-##' @title 1
-##' @description 1
+##' @title Groups GO terms and information
+##' @description Groups GO terms and information.
 ##' @param selectedGenes a character vector containing the selected genes.
-##' @param go2GeneList 1
+##' @param go2GeneList a character vector.
 ##' @param onto a character representing the ontology to use.
-##' @param levels 1
-##' @param goSlim 1
+##' @param levels an integer vector selecting the levels to get GO information by.
+##' @param goSlim a character vector.
 ##' @template roxygen-template
-##' @return Returns the results of the GO analysis.
-## TODOP: finish documenting
+##' @return Returns the results of grouping the GO information.
 ezGroupGO = function(selectedGenes, go2GeneList, onto="CC", levels = 2:4, goSlim=NULL) {
   goByLevel = ezGetGoByLevels(onto, levels, goSlim=goSlim)
   levelCounts = list()

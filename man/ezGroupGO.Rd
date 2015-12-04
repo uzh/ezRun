@@ -3,7 +3,7 @@
 \name{ezGroupGO}
 \alias{ezGetGoByLevels}
 \alias{ezGroupGO}
-\title{1}
+\title{Groups GO terms and information}
 \usage{
 ezGroupGO(selectedGenes, go2GeneList, onto = "CC", levels = 2:4,
   goSlim = NULL)
@@ -13,19 +13,19 @@ ezGetGoByLevels(onto, levels, goSlim = NULL)
 \arguments{
 \item{selectedGenes}{a character vector containing the selected genes.}
 
-\item{go2GeneList}{1}
+\item{go2GeneList}{a character vector.}
 
 \item{onto}{a character representing the ontology to use.}
 
-\item{levels}{1}
+\item{levels}{an integer vector selecting the levels to get GO information by.}
 
-\item{goSlim}{1}
+\item{goSlim}{a character vector.}
 }
 \value{
-Returns the results of the GO analysis.
+Returns the results of grouping the GO information.
 }
 \description{
-1
+Groups GO terms and information.
 }
 \section{Functions}{
 \itemize{
