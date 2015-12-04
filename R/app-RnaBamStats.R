@@ -24,7 +24,7 @@ ezMethodRnaBamStats = function(input=NA, output=NA, param=NA, htmlFile="00index.
                                                                    param$ezRef["refFeatureFile"]))
     return("Error")
   }
-  result = computeBamStats(input, output, htmlFile, param, gff)
+  result = computeBamStats(input, htmlFile, param, gff)
   return(result)
 }
 
@@ -62,7 +62,7 @@ EzAppRnaBamStats <-
 ##' @param resultList a list of results.
 ##' @template roxygen-template
 ##' @seealso \code{\link{plotBamStat}}
-computeBamStats = function(input, output, htmlFile, param, gff, resultList=NULL){
+computeBamStats = function(input, htmlFile, param, gff, resultList=NULL){
   samples = input$getNames()
   files = input$getFullPaths(param, "BAM")
   dataset = input$meta
@@ -117,7 +117,7 @@ computeBamStats = function(input, output, htmlFile, param, gff, resultList=NULL)
     save(resultList, file="resultList.RData")
   }
   
-  plotBamStat(output, resultList, dataset, param, htmlFile)
+  plotBamStat(resultList, dataset, param, htmlFile)
   rm(resultList)
   gc()
   return("Success")

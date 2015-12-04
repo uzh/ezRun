@@ -21,7 +21,7 @@
 ##' }
 ##' @template htmlFile-template
 ##' @template roxygen-template
-plotBamStat = function(output, resultList, dataset, param, htmlFile=NULL){
+plotBamStat = function(resultList, dataset, param, htmlFile=NULL){
   conds = ezConditionsFromDataset(dataset, param=param)
   samples = rownames(dataset)
   sampleColors = getSampleColors(conds, samples)
@@ -35,20 +35,22 @@ plotBamStat = function(output, resultList, dataset, param, htmlFile=NULL){
   addTitle(doc, titles[[length(titles)]], 2, id=titles[[length(titles)]])
   addDataset(doc, dataset, param)
   
-#   if (param$writeIgvSessionLink){
+  if (param$writeIgvSessionLink){
 #     titles[["Genome Browser"]] = "Genome Browser"
-#     addTitle(doc, titles[[length(titles)]], 2, id=titles[[length(titles)]]) ## NOTEP: links are not yet added to the report.
-#     if (length(bamFiles) > 4){
-#       idx = which(!duplicated(conds))
-#       idx = idx[1:min(4, length(idx))]
-#     } else {
-#       idx = 1:length(bamFiles)
-#     }
-#     writeIgvSession(genome=getIgvGenome(param), refBuild=param$ezRef["refBuild"], file=basename(output$getColumn("IGV Session")),  ## TODOP: get IGV Session for RnaBamStats
-#                     bamUrls=paste(PROJECT_BASE_URL, bamFiles[idx], sep="/"), locus="All")
-#     writeIgvJnlp(jnlpFile=basename(output$getColumn("IGV Starter")), projectId=param$projectId,
-#                  sessionUrl=paste(PROJECT_BASE_URL, output$getColumn("IGV Session"), sep="/"))
-#   }
+#     addTitle(doc, titles[[length(titles)]], 2, id=titles[[length(titles)]]) ## NOTEP: igv links are not yet added to the report.
+    if (length(bamFiles) > 4){
+      idx = which(!duplicated(conds))
+      idx = idx[1:min(4, length(idx))]
+    } else {
+      idx = 1:length(bamFiles)
+    }
+    for (each in idx){
+      writeIgvSession(genome=getIgvGenome(param), refBuild=param$ezRef["refBuild"], file=basename(sub(".bam", "-igv.xml", bamFiles[each])),
+                      bamUrls=paste(PROJECT_BASE_URL, bamFiles[each], sep="/"))
+      writeIgvJnlp(jnlpFile=basename(sub(".bam", "-igv.jnlp", bamFiles[each])), projectId=param$projectId,
+                   sessionUrl=paste(PROJECT_BASE_URL, sub(".bam", "-igv.xml", bamFiles[each]), sep="/")) 
+    }
+  }
   
   titles[["Read Alignment Statistics"]] = "Read Alignment Statistics"
   addTitle(doc, titles[[length(titles)]], 2, id=titles[[length(titles)]])
