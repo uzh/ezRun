@@ -26,7 +26,8 @@
 ##' fp = system.file("extdata/genome.fa", package="ezRun", mustWork = TRUE)
 ##' genomesRoot = "./refExample"
 ##' myRef = EzRef(param=ezParam(list(refBuild=refBuild)), genomesRoot=genomesRoot)
-##' buildRefDir(myRef, fp, gtf, genomesRoot)
+##' buildRefDir(myRef, fp, gtf)
+##' buildIgvGenome(myRef)
 EzRef = setClass("EzRef",
                  slots = c(refBuild="character",
                            refBuildName="character",
@@ -99,6 +100,14 @@ setMethod("[", "EzRef", function(x, i){
   slot(x, i)
 })
 
+setGeneric("getOrganism", function(.Object){
+  standardGeneric("getOrganism")
+})
+##' @describeIn EzRef Gets the organism name from the reference build.
+setMethod("getOrganism", "EzRef", function(.Object){
+  strsplit(.Object@refBuild,"/")[[1]][1]
+})
+
 setGeneric("buildRefDir", function(.Object, genomeFile, genesFile, genomesRoot = "."){
   standardGeneric("buildRefDir")
 })
@@ -128,24 +137,69 @@ setMethod("buildRefDir", "EzRef", function(.Object, genomeFile, genesFile, genom
   ezSystem(cmd)
 })
 
-
-
-
-# setGeneric("buildIgvGenomeBrowser", function(){
-#   standardGeneric("buildIgvGenomeBrowser")
-# })
-# ##' @describeIn EzRef Builds the IGV genome browser.
-# setMethod("buildIgvGenomeBrowser", "EzRef", function(){
-#   
-# })
-
-
-
-
-setGeneric("getOrganism", function(.Object){
-  standardGeneric("getOrganism")
+## should be called after buildRefDir created the folder structure with genes.gtf and genome.fa
+## I did not include the following commented out functionality from Masa's ruby script:
+# ENTRY_FILE = '/srv/GT/reference/igv_genomes.txt'
+# if ADD_LIST
+#   zip_file = "http://fgcz-gstore.uzh.ch#{zip_file.gsub('/srv/GT','')}"
+#   open(ENTRY_FILE, 'a') do |file|
+#     file.print name, "\t", zip_file, "\t", id_base, "\n" 
+#   end
+# end
+setGeneric("buildIgvGenome", function(.Object, param=NULL){
+  standardGeneric("buildIgvGenome")
 })
-##' @describeIn EzRef Gets the organism name from the reference build.
-setMethod("getOrganism", "EzRef", function(.Object){
-  strsplit(.Object@refBuild,"/")[[1]][1]
+##' @describeIn EzRef Builds the IGV genome.
+setMethod("buildIgvGenome", "EzRef", function(.Object, param=NULL){
+  
+  ## create transcript.only.gtf
+  gtfFile = .Object@refFeatureFile
+  genomeFile = .Object@refFastaFile
+  stopifnot(file.exists(gtfFile))
+  stopifnot(file.exists(genomeFile))
+  tryCatch({
+    gtf = ezLoadFeatures(param=param, featureFile=gtfFile, types="exon")
+    transcriptGtf = groupGff(gtf, grouping=gtf$transcript_id, type="transcript")
+    transcriptGtf$attributes = ezBuildAttributeField(transcriptGtf[ , c("transcript_id", "gene_id", "gene_name")])
+    trxFile = file.path(.Object@refBuildDir, "transcripts.only.gtf")
+    ezWriteGff(transcriptGtf, trxFile)
+    cmd = paste0("sort -k1,1 -k4,4n -k5,5n  ", trxFile, " -o ", trxFile)
+    ezSystem(cmd)
+  }, error=function(e){
+    message("Could not load features. Copy the annotation file instead.")
+    trxFile = file.path(.Object@refBuildDir, "transcripts.only.gtf")
+    cmd = paste("cp", gtfFile, trxFile)
+    ezSystem(cmd)
+  })
+  
+  ## sort and index genes.gtf
+  sortedGtfFile = file.path(dirname(gtfFile), "genes.sorted.gtf")
+  cmd = paste("/usr/local/ngseq/bin/igvtools sort", gtfFile, sortedGtfFile)
+  ezSystem(cmd)
+  cmd = paste("/usr/local/ngseq/bin/igvtools index", sortedGtfFile)
+  ezSystem(cmd)
+  
+  ## make chrom_alias.tab
+  chromFile = file.path(.Object@refBuildDir, "chrom_alias.tab")
+  cmd = paste("grep '>'", genomeFile, ">", chromFile)
+  ezSystem(cmd)
+  
+  ## make property.txt
+  propertyFile = file.path(.Object@refBuildDir, "property.txt")
+  id = .Object@refBuildName
+  name = paste(getOrganism(.Object), id, sep="_")
+  properties = c("fasta=true", "fastaDirectory=false", "ordered=true")
+  properties = c(properties, paste0("id=", id), paste0("name=", name), paste0("sequenceLocation=", genomeFile))
+  properties = c(properties, "geneFile=transcripts.only.gtf", "chrAliasFile=chrom_alias.tab")
+  writeLines(properties, con=propertyFile)
+  
+  ## make zip file and clean up
+  zipFile = paste0("igv_", id, ".genome")
+  filesToZip = c(trxFile, chromFile, propertyFile)
+  cd = getwd()
+  setwd(.Object@refBuildDir)
+  zipFile(basename(filesToZip), zipFile)
+  setwd(cd)
+  cmd = paste("rm -fr", paste(filesToZip, collapse=" "))
+  ezSystem(cmd)
 })
