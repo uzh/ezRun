@@ -157,7 +157,7 @@ runNgsCountQC = function(dataset, htmlFile="00index.html", param=param, rawData=
     combined = combined[order(combined$mean, decreasing = TRUE), , drop=FALSE]
     useInInteractiveTable = c("seqid", "gene_name", "gene_id", "mean", "stdv", "description", "strand", "start", "end", "width", "gc")
     useInInteractiveTable = intersect(useInInteractiveTable, colnames(combined))
-    tableLink = sub(".txt", "-viewHighVarianceGenes.html", signalFile)
+    tableLink = sub(".txt", "-viewHighExpressionGenes.html", signalFile)
     ezInteractiveTable(head(combined[, useInInteractiveTable, drop=FALSE], param$maxTableRows), tableLink=tableLink, digits=3)
     
     rpkmFile = paste0(ezValidFilename(param$name), "-rpkm.txt")
