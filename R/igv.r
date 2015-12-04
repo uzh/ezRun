@@ -35,6 +35,7 @@ ezIgvTemplateFile = function(){
   }
 }
 
+## currently not used
 ## this adds a jnlp link to a static html; the html can be moved as long as the session xml stays in the same directory
 ##' @title Writes a jnlp link to a static html
 ##' @description Writes a jnlp link to a static html. The html can be moved as long as the session xml stays in the same directory.
@@ -164,6 +165,7 @@ writeIgvSession = function(genome, refBuild, file="igvSession.xml", bamUrls=NULL
   return(file)  
 }
 
+## currently not used
 ##' @describeIn writeIgvSession Writes an IGV session link.
 writeIgvSessionLink = function(genome, refBuild, bamFiles, html, locus="All", label="Open Integrative Genomics Viewer", baseUrl=PROJECT_BASE_URL){
   #TODO stopifnot(grepl("^p", bamFiles))
@@ -175,6 +177,7 @@ writeIgvSessionLink = function(genome, refBuild, bamFiles, html, locus="All", la
   return()
 }
 
+## currently not used
 ##' @describeIn writeIgvSession Adds an IGV session link to an object of the class bsdoc.
 addIgvSessionLink = function(genome, refBuild, bamFiles, doc, locus="All", label="Open Integrative Genomics Viewer", baseUrl=PROJECT_BASE_URL){
   urls = paste(baseUrl, bamFiles, sep="/")
