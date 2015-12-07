@@ -168,9 +168,8 @@ gffTrimTranscripts = function(gff, maxLength=100, start=TRUE){
   
   gff$width = gff$end -  gff$start + 1
   gffList = split(gff, gff$Parent)
-  gffListTrimmed = lapply(gffList, gffTrimSingleTranscript, maxLength=maxLength, start=start)
-  unsplitFactor = rep(names(gffListTrimmed), sapply(gffListTrimmed, nrow))
-  result = unsplit(gffListTrimmed, unsplitFactor)
+  gffListTrimmed = ezMclapply(gffList, function(x){gffTrimSingleTranscript(x, maxLength=maxLength, start=start)}, mc.cores=min(ezThreads(), 8))
+  result = do.call("rbind", gffListTrimmed)
   return(result)
 }
 
