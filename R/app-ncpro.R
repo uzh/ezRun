@@ -16,9 +16,6 @@ ezMethodNcpro = function(input=NA, output=NA, param=NA){
   return("Success")
 }
 
-##' Reference Class Constructor for ncPro App
-##' 
-##' @method initialize assigns name and runMethod
 ##' @template app-template
 ##' @templateVar method ezMethodNcpro()
 ##' @seealso \code{\link{ezMethodNcpro}}
@@ -36,6 +33,12 @@ EzAppNcpro <-
   )
 
 ## TODO: make sure there's no conflict with input and refactor trimMirna
+##' Analysis of small RNA sequences using ncpro
+##' 
+##' Trimming is done using function trimMirna(). 
+##' @param input     list of input configuration
+##' @param dataset   dataframe with description of input dataset
+##' @param param     further configuration parameters
 ncpro = function(input, dataset, param=NULL){
   samples = rownames(dataset)
   fqFiles = input$getFullPaths(param, "Read1")
