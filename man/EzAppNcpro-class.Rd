@@ -4,10 +4,8 @@
 \name{EzAppNcpro-class}
 \alias{EzAppNcpro}
 \alias{EzAppNcpro-class}
-\title{Reference Class Constructor for ncPro App}
+\title{The R5 class representing a runnable app using \code{ezMethodNcpro()}}
 \description{
-Reference Class Constructor for ncPro App
-
 This reference class is based on \code{EzApp} and uses the function \code{ezMethodNcpro()}.
 }
 \section{Fields}{

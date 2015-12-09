@@ -5,6 +5,7 @@
 \alias{EzRef}
 \alias{EzRef-class}
 \alias{[,EzRef,ANY,ANY,ANY-method}
+\alias{buildIgvGenome,EzRef-method}
 \alias{buildRefDir,EzRef-method}
 \alias{getOrganism,EzRef-method}
 \alias{initialize,EzRef-method}
@@ -15,10 +16,12 @@
 
 \S4method{[}{EzRef,ANY,ANY,ANY}(x, i)
 
+\S4method{getOrganism}{EzRef}(.Object)
+
 \S4method{buildRefDir}{EzRef}(.Object, genomeFile, genesFile,
   genomesRoot = ".")
 
-\S4method{getOrganism}{EzRef}(.Object)
+\S4method{buildIgvGenome}{EzRef}(.Object, param = NULL)
 }
 \description{
 Objects of this class are a collection of references derived from a list of parameters.
@@ -29,9 +32,11 @@ Objects of this class are a collection of references derived from a list of para
 
 \item \code{[}: Allows selection with square brackets [ ].
 
+\item \code{getOrganism}: Gets the organism name from the reference build.
+
 \item \code{buildRefDir}: Builds the reference directory and copies the annotation and fasta file into the right folders.
 
-\item \code{getOrganism}: Gets the organism name from the reference build.
+\item \code{buildIgvGenome}: Builds the IGV genome.
 }}
 \section{Slots}{
 
@@ -62,7 +67,8 @@ gtf = system.file("extdata/genes.gtf", package="ezRun", mustWork = TRUE)
 fp = system.file("extdata/genome.fa", package="ezRun", mustWork = TRUE)
 genomesRoot = "./refExample"
 myRef = EzRef(param=ezParam(list(refBuild=refBuild)), genomesRoot=genomesRoot)
-buildRefDir(myRef, fp, gtf, genomesRoot)
+buildRefDir(myRef, fp, gtf)
+buildIgvGenome(myRef)
 }
 \author{
 Rehrauer, Hubert

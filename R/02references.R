@@ -138,19 +138,11 @@ setMethod("buildRefDir", "EzRef", function(.Object, genomeFile, genesFile, genom
 })
 
 ## should be called after buildRefDir created the folder structure with genes.gtf and genome.fa
-## I did not include the following commented out functionality from Masa's ruby script:
-# ENTRY_FILE = '/srv/GT/reference/igv_genomes.txt'
-# if ADD_LIST
-#   zip_file = "http://fgcz-gstore.uzh.ch#{zip_file.gsub('/srv/GT','')}"
-#   open(ENTRY_FILE, 'a') do |file|
-#     file.print name, "\t", zip_file, "\t", id_base, "\n" 
-#   end
-# end
-setGeneric("buildIgvGenome", function(.Object, param=NULL){
+setGeneric("buildIgvGenome", function(.Object, param=NULL, addList=FALSE){
   standardGeneric("buildIgvGenome")
 })
 ##' @describeIn EzRef Builds the IGV genome.
-setMethod("buildIgvGenome", "EzRef", function(.Object, param=NULL){
+setMethod("buildIgvGenome", "EzRef", function(.Object, param=NULL, addList=FALSE){
   
   ## create transcript.only.gtf
   gtfFile = .Object@refFeatureFile
@@ -202,4 +194,11 @@ setMethod("buildIgvGenome", "EzRef", function(.Object, param=NULL){
   setwd(cd)
   cmd = paste("rm -fr", paste(filesToZip, collapse=" "))
   ezSystem(cmd)
+  
+  ## add the link to '/srv/GT/reference/igv_genomes.txt' if desired
+  if (addList){
+    entryFile = "/srv/GT/reference/igv_genomes.txt"
+    zipPath = file.path("http://fgcz-gstore.uzh.ch", sub("/srv/GT", "", zipFile))
+    writeLines(paste(name, zipPath, id, sep="\t"), con=entryFile)
+  }
 })
