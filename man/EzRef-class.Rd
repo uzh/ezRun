@@ -21,7 +21,7 @@
 \S4method{buildRefDir}{EzRef}(.Object, genomeFile, genesFile,
   genomesRoot = ".")
 
-\S4method{buildIgvGenome}{EzRef}(.Object, param = NULL)
+\S4method{buildIgvGenome}{EzRef}(.Object, param = NULL, addList = FALSE)
 }
 \description{
 Objects of this class are a collection of references derived from a list of parameters.

@@ -4,7 +4,7 @@
 \alias{ezVolcano}
 \title{Does a volcano plot}
 \usage{
-ezVolcano(log2Ratio, pValue, yType = "p-value", lim = list(NA, NA),
+ezVolcano(log2Ratio, pValue, yType = "p-value", xlim = NULL, ylim = NULL,
   isPresent = NULL, types = NULL, pch = 16,
   colors = rainbow(ncol(types)), legendPos = "bottomright", cex.main = 1,
   cex = 1, ...)
@@ -16,7 +16,9 @@ ezVolcano(log2Ratio, pValue, yType = "p-value", lim = list(NA, NA),
 
 \item{yType}{a character specifying the type of the y-value. Gets pasted onto the y-axis of the plot.}
 
-\item{lim}{integers specifying the x and y limits of the plot.}
+\item{xlim}{integers specifying the x limits of the plot.}
+
+\item{ylim}{integers specifying the y limits of the plot.}
 
 \item{isPresent}{a logical specifying whether the signal is present.}
 
