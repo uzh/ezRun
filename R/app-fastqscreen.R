@@ -17,7 +17,6 @@ ezMethodFastqScreen = function(input=NA, output=NA, param=NA, htmlFile="00index.
   resultFiles = executeFastqscreenCMD(param, files)
   fastqData = collectFastqscreenOutput(dataset, files, resultFiles)
   # bowtie2 reference part
-  param$trimAdapter = TRUE ## 
   trimmedInput = ezMethodTrim(input = input, param = param)
   countFiles = executeBowtie2CMD(param, trimmedInput$getColumn("Read1"))
   speciesPercentageTop = collectBowtie2Output(param, dataset, countFiles)
@@ -40,7 +39,8 @@ EzAppFastqScreen <-
                   name <<- "EzAppFastqScreen"
                   appDefaults <<- rbind(nTopSpecies=ezFrame(Type="integer",  DefaultValue=10,  Description="number of species to show in the plots"),
                                         confFile=ezFrame(Type="character",  DefaultValue="",  Description="the configuration file for fastq screen"),
-                                        minAlignmentScore=ezFrame(Type="integer",  DefaultValue="-20",  Description="the min alignment score for bowtie2"))
+                                        minAlignmentScore=ezFrame(Type="integer",  DefaultValue="-20",  Description="the min alignment score for bowtie2"),
+                                        trimAdapter=ezFrame(Type="logical",  DefaultValue=TRUE,  Description="whether to search for the adapters and trim them"))
                 }
               )
   )

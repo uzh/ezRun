@@ -12,8 +12,6 @@
 ##' @seealso \code{\link{EzAppBamPreview}}
 ezMethodBamPreview = function(input=NA, output=NA, param=NA, htmlFile="00index.html"){
 
-  param$writeIgvSessionLink = FALSE
-  
   if (ezIsSpecified(param$samples)){
     input$subset(param$samples)
   }
@@ -60,7 +58,6 @@ ezMethodBamPreview = function(input=NA, output=NA, param=NA, htmlFile="00index.h
     setwd("..")
   }
   param$dataRoot = ""
-  param$writeIgvSessionLink = FALSE
   result = ezMethodRnaBamStats(bamOutput, output, param)
   return(result)
 }
@@ -79,7 +76,8 @@ EzAppBamPreview <-
                   name <<- "EzAppBamPreview"
                   appDefaults <<- rbind(mapMethod=ezFrame(Type="character",	DefaultValue="STAR",	Description="the mapper to use"),
                                         mapOptions=ezFrame(Type="character", DefaultValue="", Description="options passed to the mapper"),
-                                        fragSizeMax=ezFrame(Type="integer",  DefaultValue=500,	Description="maximum fragment size to plot in fragment size distribution"))
+                                        fragSizeMax=ezFrame(Type="integer",  DefaultValue=500,	Description="maximum fragment size to plot in fragment size distribution"),
+                                        writeIgvSessionLink=ezFrame(Type="logical",  DefaultValue=FALSE,	Description="whether to write IGV session links."))
                 }
               )
   )
