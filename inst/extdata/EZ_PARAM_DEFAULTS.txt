@@ -14,7 +14,8 @@ appName	character		name of the app that is being run
 name	character		name of the analysis i.e. resulting dataset
 dataRoot	character		the root directory where files are located
 projectId	character		name of the project
-maxTableRows	integer	500	the number of rows to select for the interactive table using head()
+maxTableRows	integer	500	the maximum amount of rows to select for the interactive table using head()
+maxInteractivePoints	integer	100	the maximum amount of interactive points to add to interactive plots.
 # debugging & testing
 saveImage	logical	FALSE	save an image at the end of the analysis?
 saveRawData	logical	FALSE	save an .RData file holding the rawData Object right after import

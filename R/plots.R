@@ -223,27 +223,33 @@ ezColorLegend = function(colorRange=c(-3,3), colors=getBlueRedScale(), vertical=
 ##' @param log2Ratio a numeric vector containing the log2 ratios of a result.
 ##' @param pValue a numeric vector containing the p-Values of a result.
 ##' @param yType a character specifying the type of the y-value. Gets pasted onto the y-axis of the plot.
-##' @template plot-template
+##' @param xlim integers specifying the x limits of the plot.
+##' @param ylim integers specifying the y limits of the plot.
+##' @param isPresent a logical specifying whether the signal is present.
+##' @param types a character vector containing the types.
+##' @param pch an integer specifying the look of plotted points.
+##' @param colors a character vector containing colors.
+##' @param legendPos a character vector or integer specifying the position of the legend.
+##' @param cex.main a numeric specifying the size of main titles relative to \code{cex}.
+##' @param cex a numeric specifying the size of text and symbols.
+##' @param ... additional arguments to be passed further.
 ##' @template roxygen-template
 ##' @examples
 ##' types = data.frame(matrix(rep(1:10, each=10), 10))
 ##' ezVolcano(log2Ratio=1:100, pValue=rep(10^(-4:5), each=10),
 ##' pch=16, isPresent=1:50, types=types, colors=rainbow(ncol(types)), legendPos="bottomleft")
 ezVolcano = function(log2Ratio, pValue, yType="p-value",
-                     lim=list(NA, NA), isPresent=NULL,
+                     xlim=NULL, ylim=NULL, isPresent=NULL,
                      types=NULL, pch=16, colors=rainbow(ncol(types)), legendPos="bottomright",
                      cex.main=1.0, cex=1, ...){
   yValues = -log10(pValue)
-  xlim = lim[[1]]
-  ylim = lim[[2]]
-  
-  if (is.na(lim[[1]])){
+  if (is.null(xlim)){
     lrMaxAbs = max(abs(log2Ratio), na.rm=TRUE)
     xm = min(lrMaxAbs, 5)
     xlim = c(-xm, xm)
     log2Ratio = shrinkToRange(log2Ratio, theRange = xlim)
   }
-  if (is.na(lim[[2]])){
+  if (is.null(ylim)){
     ym = min(max(yValues, na.rm=TRUE), 10)
     ylim = c(0, ym)
     yValues = shrinkToRange(yValues, theRange=ylim)
@@ -265,6 +271,7 @@ ezVolcano = function(log2Ratio, pValue, yType="p-value",
       legend(legendPos, colnames(types), col=colors, cex=1.2, pch=20, bty="o", pt.bg="white")
     }
   }
+  return(list(x=log2Ratio, y=yValues))
 }
 
 ##' @title Does smooth scatter plots
