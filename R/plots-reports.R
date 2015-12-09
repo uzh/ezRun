@@ -152,10 +152,10 @@ addTestScatterPlots = function(doc, param, x, result, seqAnno, types=NULL){
   if (ncol(result$groupMeans) == 2 & !is.null(param$sampleGroup) & !is.null(param$refGroup)){
     sampleValues = 2^result$groupMeans[ , param$sampleGroup]
     refValues = 2^result$groupMeans[ , param$refGroup]
-    myPlotFoo = function(){
+    .interactiveScatterPlot = function(){
       clickActions = paste0("window.open('http://www.ihop-net.org/UniPub/iHOP/?search=%22", names(refValues[types$Significants]),
                              "%22&field=synonym&ncbi_tax_id=0');")
-      ### TODO: as types isn't NULL, legendPos needs to be, as legends don't work with add.plot.interactivity(). mtext used as a workaround.
+      ### TODO: legends don't work with add.plot.interactivity(). use mtext as a workaround to add legend information?
       ezScatter(x=refValues, y=sampleValues, isPresent=result$usedInTest, types=types, xlab=param$refGroup, ylab=param$sampleGroup, legendPos=NULL)
       add.plot.interactivity(fun=points, x=refValues[types$Significants], y=sampleValues[types$Significants], col="red", pch=16,
                              popup.labels = names(refValues[types$Significants]), click.actions = clickActions)
@@ -163,7 +163,7 @@ addTestScatterPlots = function(doc, param, x, result, seqAnno, types=NULL){
       # add.plot.interactivity(fun=legend, "bottomright", colnames(types), col=rainbow(ncol(types)), cex=1.2, pt.cex=1.5, pch=20, bty="o", pt.bg="white")
       # mtext(colnames(types), adj=1, col=rainbow(ncol(types)), cex=1.2)
     }
-    addPlot(doc, myPlotFoo, fontname="serif", par.properties=parLeft())
+    addPlot(doc, .interactiveScatterPlot, fontname="serif", par.properties=parLeft())
 #     plotCmd = expression({
 #       ezScatter(x=refValues, y=sampleValues, isPresent=result$usedInTest, types=types, xlab=param$refGroup, ylab=param$sampleGroup)
 #     })
@@ -171,14 +171,17 @@ addTestScatterPlots = function(doc, param, x, result, seqAnno, types=NULL){
 #                                        width=min(ncol(as.matrix(sampleValues)), 6) * 480,
 #                                        height=ceiling(ncol(as.matrix(sampleValues))/6) * 480) # dynamic png with possibly many plots
     
-    myPlotFoo2 = function(){
+    .interactiveVolcanoPlot = function(){
       clickActions = paste0("window.open('http://www.ihop-net.org/UniPub/iHOP/?search=%22", names(result$pValue[types$Significants]),
                             "%22&field=synonym&ncbi_tax_id=0');")
-      ezVolcano(log2Ratio=result$log2Ratio, pValue=result$pValue, isPresent=result$usedInTest, types=types, main=param$comparison, legendPos=NULL)
-      add.plot.interactivity(fun=points, x=result$log2Ratio[types$Significants], y=-log10(result$pValue[types$Significants]), col="red", pch=16,
+      log2Ratio = shrinkToRange(result$log2Ratio, c(-5,5))
+      pValue = shrinkToRange(result$pValue, c(1e-10, 1))
+      ezVolcano(log2Ratio=log2Ratio, pValue=pValue, isPresent=result$usedInTest, types=types, main=param$comparison, legendPos=NULL)
+      add.plot.interactivity(fun=points, 
+                             x=log2Ratio[types$Significants], y=-log10(pValue[types$Significants]), col="red", pch=16,
                              popup.labels = names(result$pValue[types$Significants]), click.actions = clickActions)
     }
-    addPlot(doc, myPlotFoo2, fontname="serif", par.properties=parLeft()) ## the plots are plotted next to each other. I don't know why, but I like it.
+    addPlot(doc, .interactiveVolcanoPlot, fontname="serif", par.properties=parLeft()) ## the plots are plotted next to each other. I don't know why, but I like it.
     addParagraph(doc, "Significant genes are in plotted in red and clicking on them will open an iHop search of the gene.")
 #     plotCmd = expression({
 #       ezVolcano(log2Ratio=result$log2Ratio, pValue=result$pValue, isPresent=result$usedInTest, types=types, main=param$comparison)
