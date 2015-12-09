@@ -12,9 +12,6 @@
 ##' @seealso \code{\link{EzAppCountQC}}
 ezMethodCountQC = function(input=NA, output=NA, param=NA, htmlFile="00index.html"){
 
-  if (is.null(param$runGO)){
-    param$runGO = TRUE
-  }
   dataset = input$meta
   setwdNew(basename(output$getColumn("Report")))
   if (param$useFactorsAsSampleName){
@@ -47,6 +44,7 @@ EzAppCountQC <-
                   "Initializes the application using its specific defaults."
                   runMethod <<- ezMethodCountQC
                   name <<- "EzAppCountQC"
+                  appDefaults <<- rbind(runGO=ezFrame(Type="logical", DefaultValue=TRUE, Description="whether to run the GO analysis"))
                 }
               )
   )

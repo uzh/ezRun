@@ -11,9 +11,6 @@
 ##' @template htmlFile-template
 ##' @seealso \code{\link{EzAppDeseq2}}
 ezMethodDeseq2 = function(input=NA, output=NA, param=NA, htmlFile="00index.html"){
-  param$testMethod = "deseq2"
-  param$normMethod = ""
-  param$runGfold = FALSE ## no need to compute moderated ratios; deseq2 does this already
   if (!is.null(param$markOutliers) && param$markOutliers){
     stop("DESeq2 does not support marking outliers because marked outliers would still be used in dispersion estimates")
   }
@@ -56,6 +53,8 @@ EzAppDeseq2 <-
                   "Initializes the application using its specific defaults."
                   runMethod <<- ezMethodDeseq2
                   name <<- "EzAppDeseq2"
+                  appDefaults <<- rbind(testMethod=ezFrame(Type="character",  DefaultValue="deseq2",  Description="which test method in DESeq to use: deseq2"),
+                                        runGfold=ezFrame(Type="logical", DefaultValue=FALSE, Description="no need to compute moderated ratios; deseq2 does this already"))
                 }
               )
   )

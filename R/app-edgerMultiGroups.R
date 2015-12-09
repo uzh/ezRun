@@ -14,10 +14,6 @@ ezMethodEdgerMulti = function(input=NA, output=NA, param=NA, htmlFile="00index.h
   setwdNew(basename(output$getColumn("Report")))
   stopifnot(param$sampleGroup != param$refGroup)
   
-  if (is.null(param$runGO)){
-    param$runGO = FALSE
-  }
-  
   input = cleanupMultiGroupsInput(input, param)
   param$grouping = input$getColumn(param$grouping)
   if (ezIsSpecified(param$batch) && length(param$batch) == 1){
@@ -59,7 +55,8 @@ EzAppEdgerMulti <-
                   runMethod <<- ezMethodEdgerMulti
                   name <<- "EzAppEdgerMulti"
                   appDefaults <<- rbind(testMethod=ezFrame(Type="character",  DefaultValue="glm",  Description="which test method in edgeR to use: glm or exactTest"),
-                                        normMethod=ezFrame(Type="character", DefaultValue="TMM", Description="edgeR's norm method: TMM, upperquartile, RLE, or none"))
+                                        normMethod=ezFrame(Type="character", DefaultValue="TMM", Description="edgeR's norm method: TMM, upperquartile, RLE, or none"),
+                                        runGO=ezFrame(Type="logical", DefaultValue=FALSE, Description="whether to run the GO analysis"))
                 }
               )
   )

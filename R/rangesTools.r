@@ -126,7 +126,7 @@ subSampleRle = function(x, idx){
   return(list(forw=forw, rev=rev))
 }
 
-.getProfileMatrixForRanges = function(targetRanges, cov, xPos){
+.getProfileMatrixForRanges = function(targetRanges, cov, xPos, idx=NULL){
   targetRangesList = split(targetRanges, seqnames(targetRanges))
   profiles = unlist(mapply(.getRleFromRanges, cov[names(targetRangesList)],
                            targetRangesList, SIMPLIFY=FALSE))

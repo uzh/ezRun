@@ -14,18 +14,9 @@ ezMethodGatkRnaHaplotyper = function(input=NA, output=NA, param=NA, htmlFile="00
   
   bamDataset = input$meta
   
-  ## keep only SNPs that have in at least one sample at least minAltCount reads for the ALT variant
-  if (is.null(param$vcfFilt.minAltCount)){
-    param$vcfFilt.minAltCount = 10
-  }
-  ## consider a call in a sample as lowCov if the read depth is below minReadDepth
-  if (is.null(param$vcfCall.minReadDepth)){
-    param$vcfCall.minReadDepth = 10
-  }
   reportDir = basename(output$getColumn("Report"))
   htmlFile = basename(output$getColumn("Html"))
   vcfOutputFile = output$getColumn("VCF [File]") #paste0(param$name, "-haplo.vcf.gz")
-  
   
   bamFiles = input$getFullPaths(param, "BAM")
   names(bamFiles) = rownames(bamDataset)
@@ -190,6 +181,8 @@ EzAppGatkRnaHaplotyper <-
                   "Initializes the application using its specific defaults."
                   runMethod <<- ezMethodGatkRnaHaplotyper
                   name <<- "EzAppGatkRnaHaplotyper"
+                  appDefaults <<- rbind(vcfFilt.minAltCount = ezFrame(Type="integer",  DefaultValue=10,  Description=""),
+                                        vcfCall.minReadDepth = ezFrame(Type="integer",  DefaultValue=10,  Description="")) ## TODO: add description
                 }
               )
   )
