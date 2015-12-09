@@ -20,7 +20,7 @@ ezMethodCountOverlaps = function(input=NULL, output=NULL, param=NULL){
     ezWrite.table(targets[order(rownames(targets)), , drop=FALSE], file=outputFile)    
   } else {
     if (param$paired){
-      return(countPairedBamHits(bamFile, outputFile, param))
+      return(.countPairedBamHits(bamFile, outputFile, param))
     }
     if (ezIsSpecified(param$seqNames)){
       chroms = param$seqNames
