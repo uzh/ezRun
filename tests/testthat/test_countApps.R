@@ -114,7 +114,7 @@ test_that("RNA_Bamstats", {
 #   param[['cores']] = 1
 #   param[['process_mode']] = 'DATASET'
 #   param[['name']] = 'TEQC_Result'
-#   param[['designFile']] = ''   ## TODO: need design file
+#   param[['designFile']] = ''   ## TODOP: need design file
 #   param[['covUniformityPlot']] = 'true'
 #   param[['covTargetLengthPlot']] = 'true'
 #   param[['duplicatesPlot']] = 'true'

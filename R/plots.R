@@ -681,7 +681,7 @@ createDendogramReport <- function(x, annot, genes = row.names(x), multipalette =
 #   requireNamespace("pvclust", quietly = T)
 #   requireNamespace("RColorBrewer", quietly = T)
 #   requireNamespace("wesanderson", quietly = T)
-  ## TODO: except wesanderson, these packages seem not to be used currently. If only rarely or in one spot, package::function() should be used.
+  ## TODO: except wesanderson and WGCNA, these packages seem not to be used currently. If only rarely or in one spot, package::function() should be used.
   ## requireNamespace() only works, after putting the packe into imports() in the NAMESPACE
   
   # Setup different default parameters for plotDendroAndColors arguments if not specified in function call

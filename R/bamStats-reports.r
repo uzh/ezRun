@@ -286,7 +286,7 @@ plotBamStat = function(resultList, dataset, param, htmlFile=NULL){
       plot(1,1, axes=FALSE, frame=FALSE, type="n", xlab="", ylab="")
       legend("topleft", samples, fill=sampleColors[samples], border=NA, bty="n", pt.bg="white", title="Sample Colors")
     })
-    sampleLink = ezImageFileLink(plotCmd, file="sampleColors.png", height=length(samples)*15 + 20, width=300)
+    sampleLink = ezImageFileLink(plotCmd, file="sampleColors.png", height=length(samples)*15 + 20, width=300, addPdfLink=FALSE)
     
     addParagraph(doc, sampleLink)
     addFlexTable(doc, ezGrid(rbind(pngLinks)))
@@ -374,7 +374,7 @@ plotBamStat = function(resultList, dataset, param, htmlFile=NULL){
   }
   
   ## write the resulys by statistics per page to the main pages
-  titles[["The result plots by each statistics"]] = "The result plots by each statistics"
+  titles[["Result plots by each statistics"]] = "Result plots by each statistics"
   addTitle(doc, titles[[length(titles)]], 2, id=titles[[length(titles)]])
   tableOfPages = ezMatrix("", rows=names(plotByStatistics), cols="Plots")
   # replace the space with undersocre if available, otherwise some errors will occur in the html
@@ -392,7 +392,7 @@ plotBamStat = function(resultList, dataset, param, htmlFile=NULL){
   addFlexTable(doc, ezFlexTable(tableOfPages, header.columns=TRUE, add.rownames=TRUE))
   
   ## write the reults by sample per page to the main pages
-  titles[["The result plots by each sample"]] = "The result plots by each sample"
+  titles[["Result plots by each sample"]] = "Result plots by each sample"
   addTitle(doc, titles[[length(titles)]], 2, id=titles[[length(titles)]])
   plotBySamplesPages = paste0(gsub("[[:space:]]+", "_", names(plotBySamples)), ".html")
   tableOfPages = ezMatrix("", rows=names(plotBySamples), cols="Plots")
