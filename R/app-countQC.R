@@ -150,10 +150,10 @@ runNgsCountQC = function(dataset, htmlFile="00index.html", param=param, rawData=
     ezWrite.table(combined, file=signalFile, head="Feature ID", digits=4)
     
     selectSignals = grepl("Signal", colnames(combined))
-    combined$mean = apply(combined[, selectSignals], 1, mean)
-    combined$stdv = apply(combined[, selectSignals], 1, sd)
+    combined$"Mean signal across samples" = apply(combined[, selectSignals], 1, mean)
+    combined$"Stdv signal across samples" = apply(combined[, selectSignals], 1, sd)
     combined = combined[order(combined$mean, decreasing = TRUE), , drop=FALSE]
-    useInInteractiveTable = c("seqid", "gene_name", "gene_id", "mean", "stdv", "description", "strand", "start", "end", "width", "gc")
+    useInInteractiveTable = c("seqid", "gene_name", "gene_id", "Mean signal across samples", "Stdv. signal across samples", "description", "strand", "start", "end", "width", "gc")
     useInInteractiveTable = intersect(useInInteractiveTable, colnames(combined))
     tableLink = sub(".txt", "-viewHighExpressionGenes.html", signalFile)
     ezInteractiveTable(head(combined[, useInInteractiveTable, drop=FALSE], param$maxTableRows), tableLink=tableLink, digits=3)

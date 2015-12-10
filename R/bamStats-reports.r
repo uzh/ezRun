@@ -56,7 +56,7 @@ plotBamStat = function(resultList, dataset, param, htmlFile=NULL){
   addTitle(doc, titles[[length(titles)]], 2, id=titles[[length(titles)]])
   titles[["Multi-Matching Reported in Bam File"]] = "Multi-Matching Reported in Bam File"
   addTitle(doc, titles[[length(titles)]], 3, id=titles[[length(titles)]])
-  addParagraph(doc, "The table holds for each sample in column X the number of reads in Millions
+  addParagraph(doc, "The plot holds for each sample the number of reads in Millions
                       that have X matches in the target and are reported in the file.")
   
   mmValues = integer()
@@ -282,9 +282,7 @@ plotBamStat = function(resultList, dataset, param, htmlFile=NULL){
     addTitle(doc, titles[[length(titles)]], 3, id=titles[[length(titles)]])
     
     plotCmd = expression({
-      par(mar=c(0,0,0,0))
-      plot(1,1, axes=FALSE, frame=FALSE, type="n", xlab="", ylab="")
-      legend("topleft", samples, fill=sampleColors[samples], border=NA, bty="n", pt.bg="white", title="Sample Colors")
+      ezLegend(legend=samples, fill=sampleColors[samples], title="Sample Colors")
     })
     sampleLink = ezImageFileLink(plotCmd, file="sampleColors.png", height=length(samples)*15 + 20, width=300, addPdfLink=FALSE)
     

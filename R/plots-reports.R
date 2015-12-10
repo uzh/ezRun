@@ -160,8 +160,14 @@ addTestScatterPlots = function(doc, param, x, result, seqAnno, types=NULL){
       sortedGenes = sortedGenes[1:param$maxInteractivePoints]
     }
     useForInteractivePoints = names(result$pValue) %in% sortedGenes
+    if (!is.null(types)){
+      plotCmd = expression({
+        ezLegend(legend=colnames(types), fill=rainbow(ncol(types)))
+      })
+      legendLink = ezImageFileLink(plotCmd, file="scatterAndVolcanoLegend.png", height=length(ncol(types))*15 + 20, width=300, addPdfLink=FALSE)
+      addParagraph(doc, legendLink)
+    }
     .interactiveScatterPlot = function(){
-      ### TODO: legends don't work with add.plot.interactivity(). use mtext as a workaround to add legend information?
       ezScatter(x=refValues, y=sampleValues, isPresent=result$usedInTest, types=types, xlab=param$refGroup, ylab=param$sampleGroup, legendPos=NULL)
       add.plot.interactivity(fun=points, col="red", pch=16,
                              x=refValues[useForInteractivePoints],

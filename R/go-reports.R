@@ -113,7 +113,9 @@ goUpDownTables = function(param, goResult){
       }
     }
   }
+  nameMap = c("BP"="Biological Proc. (BP)", "MF"="Molecular Func. (MF)", "CC"="Cellular Comp. (CC)")
   flexTables = lapply(resultList, function(res){
+    colnames(res) = nameMap[colnames(res)]
     ezFlexTable(res, border = 2, header.columns = TRUE)
   })
   return(list(flexTables=flexTables, txtFiles=txtFiles, linkTable=linkTable))

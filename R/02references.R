@@ -165,14 +165,14 @@ setMethod("buildIgvGenome", "EzRef", function(.Object){
   
   ## sort and index genes.gtf
   sortedGtfFile = file.path(dirname(gtfFile), "genes.sorted.gtf")
-  cmd = paste("/usr/local/ngseq/bin/igvtools sort", gtfFile, sortedGtfFile)
+  cmd = paste(IGVTOOLS, "sort", gtfFile, sortedGtfFile)
   ezSystem(cmd)
-  cmd = paste("/usr/local/ngseq/bin/igvtools index", sortedGtfFile)
+  cmd = paste(IGVTOOLS, "index", sortedGtfFile)
   ezSystem(cmd)
   
   ## make chrom_alias.tab
   chromFile = file.path(.Object@refBuildDir, "chrom_alias.tab")
-  cmd = paste("grep '>'", genomeFile, ">", chromFile)
+  cmd = paste('grep ">"', genomeFile, '| sed "s/>//" >', chromFile)
   ezSystem(cmd)
   
   ## make property.txt
@@ -193,5 +193,4 @@ setMethod("buildIgvGenome", "EzRef", function(.Object){
   setwd(cd)
   cmd = paste("rm -fr", paste(filesToZip, collapse=" "))
   ezSystem(cmd)
-  
 })
