@@ -152,11 +152,11 @@ runNgsCountQC = function(dataset, htmlFile="00index.html", param=param, rawData=
     selectSignals = grepl("Signal", colnames(combined))
     combined$"Mean signal across samples" = apply(combined[, selectSignals], 1, mean)
     combined$"Stdv signal across samples" = apply(combined[, selectSignals], 1, sd)
-    combined = combined[order(combined$mean, decreasing = TRUE), , drop=FALSE]
+    combined = combined[order(combined$"Mean signal across samples", decreasing = TRUE), , drop=FALSE]
     useInInteractiveTable = c("seqid", "gene_name", "gene_id", "Mean signal across samples", "Stdv. signal across samples", "description", "strand", "start", "end", "width", "gc")
     useInInteractiveTable = intersect(useInInteractiveTable, colnames(combined))
     tableLink = sub(".txt", "-viewHighExpressionGenes.html", signalFile)
-    ezInteractiveTable(head(combined[, useInInteractiveTable, drop=FALSE], param$maxTableRows), tableLink=tableLink, digits=3)
+    ezInteractiveTable(head(combined[, useInInteractiveTable, drop=FALSE], param$maxTableRows), tableLink=tableLink, digits=3, rownamesTitle="gene ID")
     
     rpkmFile = paste0(ezValidFilename(param$name), "-rpkm.txt")
     ezWrite.table(getRpkm(rawData), file=rpkmFile, head="Feature ID", digits=4) ## NOTE: getRpkm/getTpm necessary? rawData$rpkm/tpm should work,

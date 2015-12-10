@@ -138,6 +138,7 @@ ezWrite.table = function(values, file=file, head="Identifier", row.names=TRUE, c
 ##' @param table a data.frame or table to create an interactive table from.
 ##' @param tableLink a character ending with .html representing the link to the interactive table
 ##' @param digits the number of digits to round to, if rounding is desired.
+##' @param rownamesTitle a character heading the column of the rownames.
 ##' @param format formatting options passed as an expression. The table argument in formatting functions must be named \code{interactiveTable}.
 ##' @param envir the environment to evaluate \code{format} in.
 ##' @template roxygen-template
@@ -147,7 +148,7 @@ ezWrite.table = function(values, file=file, head="Identifier", row.names=TRUE, c
 ##' tableLink = "exampleTable.html"
 ##' table = data.frame(a=c(1.11, 2:100), b=201:300)
 ##' ezInteractiveTable(table, tableLink)
-ezInteractiveTable = function(table, tableLink, digits=NULL, format=NULL, envir=parent.frame()){
+ezInteractiveTable = function(table, tableLink, digits=NULL, rownamesTitle=NULL, format=NULL, envir=parent.frame()){
   if (!is.null(digits)){
     for (i in 1:ncol(table)) {
       if (is.numeric(table[, i])){
@@ -159,7 +160,7 @@ ezInteractiveTable = function(table, tableLink, digits=NULL, format=NULL, envir=
     caption = NULL
   }
   interactiveTable = DT::datatable(table, extensions = c("ColVis", "TableTools"), filter="top", caption = caption,
-                                   options = list(dom = 'TC<"clear">lfrtip', pageLength = 25))
+                                   options = list(dom = 'TC<"clear">lfrtip', pageLength = 25), colnames=c(rownamesTitle, colnames(table)))
   if (!is.null(format)){
     currEnv = environment()
     interactiveTable = eval(format, envir=c(envir, currEnv))
