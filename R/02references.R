@@ -138,11 +138,11 @@ setMethod("buildRefDir", "EzRef", function(.Object, genomeFile, genesFile, genom
 })
 
 ## should be called after buildRefDir created the folder structure with genes.gtf and genome.fa
-setGeneric("buildIgvGenome", function(.Object, param=NULL, addList=FALSE){
+setGeneric("buildIgvGenome", function(.Object){
   standardGeneric("buildIgvGenome")
 })
 ##' @describeIn EzRef Builds the IGV genome.
-setMethod("buildIgvGenome", "EzRef", function(.Object, param=NULL, addList=FALSE){
+setMethod("buildIgvGenome", "EzRef", function(.Object){
   
   ## create transcript.only.gtf
   gtfFile = .Object@refFeatureFile
@@ -150,13 +150,12 @@ setMethod("buildIgvGenome", "EzRef", function(.Object, param=NULL, addList=FALSE
   stopifnot(file.exists(gtfFile))
   stopifnot(file.exists(genomeFile))
   tryCatch({
-    gtf = ezLoadFeatures(param=param, featureFile=gtfFile, types="exon")
+    gtf = ezLoadFeatures(featureFile=gtfFile, types="exon")
     transcriptGtf = groupGff(gtf, grouping=gtf$transcript_id, type="transcript")
     transcriptGtf$attributes = ezBuildAttributeField(transcriptGtf[ , c("transcript_id", "gene_id", "gene_name")])
     trxFile = file.path(.Object@refBuildDir, "transcripts.only.gtf")
+    transcriptGtf = transcriptGtf[ order(transcriptGtf$seqid, transcriptGtf$start, transcriptGtf$end), ]
     ezWriteGff(transcriptGtf, trxFile)
-    cmd = paste0("sort -k1,1 -k4,4n -k5,5n  ", trxFile, " -o ", trxFile)
-    ezSystem(cmd)
   }, error=function(e){
     message("Could not load features. Copy the annotation file instead.")
     trxFile = file.path(.Object@refBuildDir, "transcripts.only.gtf")
@@ -195,10 +194,4 @@ setMethod("buildIgvGenome", "EzRef", function(.Object, param=NULL, addList=FALSE
   cmd = paste("rm -fr", paste(filesToZip, collapse=" "))
   ezSystem(cmd)
   
-  ## add the link to '/srv/GT/reference/igv_genomes.txt' if desired
-  if (addList){
-    entryFile = "/srv/GT/reference/igv_genomes.txt"
-    zipPath = file.path("http://fgcz-gstore.uzh.ch", sub("/srv/GT", "", zipFile))
-    writeLines(paste(name, zipPath, id, sep="\t"), con=entryFile)
-  }
 })
