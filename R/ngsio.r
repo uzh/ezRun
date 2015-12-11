@@ -255,6 +255,7 @@ countReadsInFastq = function(fastqFiles){
       nRead = ezSystem(cmd , intern=TRUE)
     }
     nRead = trimWhiteSpace(nRead)
+    nRead = ezSplit(nRead, " ")[1]
     stopifnot(as.integer(nRead) %% 4 == 0)
     nRead = as.integer(nRead) / 4
     nReads[fastq] = nRead
