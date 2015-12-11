@@ -11,21 +11,17 @@ genes = c("Nsun3","Polrmt","Nlrx1","Sfxn5","Zc3h12c","Slc25a39","Arsg","Defb29",
 
 if (grepl("musculus", param$refBuild) | grepl("sapiens", param$refBuild)){
   setwdNew("./enrichr")
-  enrichrDoc = openBsdocReport()
-  javaFile = system.file("extdata/enrichrFoo.js", package="ezRun", mustWork=TRUE)
-  addJavascript(enrichrDoc, javaFile)
-#   javaObject = rJava::.jnew("java/awt/Frame", "Hello")
-#   rJava::.jcall(javaObject, "V", "addJavascript", javaFile)
+  on.exit(setwd(".."))
+  
   genesList = paste(genes, collapse="\n")
-  .enrichrLink = function(){
-    ezLegend(title="Enrichr link")
-    add.plot.interactivity(text, labels="click me", x=1, y=0.8, click.actions=paste0("enrich('{list: ", genesList, ", popup: true}');"))
-  }
-  addPlot(enrichrDoc, .enrichrLink, fontname="serif", par.properties=parLeft())
-  enrichrLink = ezImageFileLink(plotCmd, file="enrichrLink.png", width=70, height=40, addPdfLink=FALSE)
-  addParagraph(enrichrDoc, enrichrLink)
+  jsCall = paste0("enrich({list: '", genesList, "', popup: true});")
+  jsFile = system.file("extdata/enrichrFoo.js", package="ezRun", mustWork=TRUE)
+  jsFunction = paste(scan(javaFile, what = "character", sep = "\n", quiet = TRUE), collapse = "\n")
+  wholeJS = paste(jsFunction, "\n", jsCall, collapse=" ")
+  
+  enrichrDoc = openBsdocReport()
+  addJavascript(enrichrDoc, text=wholeJS)
   closeBsdocReport(enrichrDoc, "enrichr.html")
-  setwd("..")
 }
 
 # maybe with cmd line
