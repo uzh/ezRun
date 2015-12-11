@@ -1,3 +1,4 @@
+
 function enrich(options) {
     var defaultOptions = {
     description: "",
