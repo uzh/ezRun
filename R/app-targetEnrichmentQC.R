@@ -78,8 +78,6 @@ teqc = function(input, param=NULL){
   titles[["TEQC-Report"]] = paste("TEQC-Report:", param$name)
   doc = openBsdocReport(title=titles[[length(titles)]])
   
-  titles[["Parameters"]] = "Parameters"
-  addTitle(doc, titles[[length(titles)]], 2, id=titles[[length(titles)]])
   addDataset(doc, input$meta, param)
   
   titles[["MultiSample-Report"]] = "MultiSample-Report"

@@ -118,7 +118,7 @@ ezColorLegend = function(colorRange=c(-3,3), colors=getBlueRedScale(), vertical=
 ##' @seealso \code{\link[graphics]{legend}}
 ##' @examples 
 ##' ezLegend(1:3)
-ezLegend = function(legend, fill=NULL, title="Legend"){
+ezLegend = function(legend="", fill=NULL, title="Legend"){
   par(mar=c(0,0,0,0))
   plot(1,1, axes=FALSE, frame=FALSE, type="n", xlab="", ylab="")
   legend("topleft", legend=legend, fill=fill, border=NA, bty="n", pt.bg="white", title=title)

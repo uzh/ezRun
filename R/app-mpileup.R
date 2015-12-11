@@ -109,8 +109,6 @@ ezMethodMpileup = function(input=NA, output=NA, param=NA){
   titles[["VCF-Report"]] = paste("VCF-Report:", param$name)
   doc = openBsdocReport(titles[[length(titles)]])
   
-  titles[["Parameters"]] = "Parameters"
-  addTitle(doc, titles[[length(titles)]], 2, id=titles[[length(titles)]])
   addDataset(doc, bamDataset, param)
   
   chromSizes = ezChromSizesFromVcf(file.path("..", basename(vcfOutputFile)))

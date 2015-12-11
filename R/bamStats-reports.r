@@ -31,8 +31,6 @@ plotBamStat = function(resultList, dataset, param, htmlFile=NULL){
   titles[["BAM Statistics"]] = paste("BAM Statistics:", param$name)
   doc = openBsdocReport(title=titles[[length(titles)]])
   
-  titles[["Parameters"]] = "Parameters"
-  addTitle(doc, titles[[length(titles)]], 2, id=titles[[length(titles)]])
   addDataset(doc, dataset, param)
   
   if (param$writeIgvSessionLink){
@@ -284,7 +282,7 @@ plotBamStat = function(resultList, dataset, param, htmlFile=NULL){
     plotCmd = expression({
       ezLegend(legend=samples, fill=sampleColors[samples], title="Sample Colors")
     })
-    sampleLink = ezImageFileLink(plotCmd, file="sampleColors.png", height=length(samples)*15 + 20, width=300, addPdfLink=FALSE)
+    sampleLink = ezImageFileLink(plotCmd, file="sampleColors.png", height=length(samples)*15 + 25, width=300, addPdfLink=FALSE)
     
     addParagraph(doc, sampleLink)
     addFlexTable(doc, ezGrid(rbind(pngLinks)))

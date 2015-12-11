@@ -229,8 +229,6 @@ writeNgsMultiGroupReport = function(dataset, result, htmlFile, param=NA, rawData
   titles[["Analysis"]] = paste("Analysis:", param$name)
   doc = openBsdocReport(title=titles[[length(titles)]])
   
-  titles[["Parameters"]] = "Parameters"
-  addTitle(doc, titles[[length(titles)]], 2, id=titles[[length(titles)]])
   addDataset(doc, dataset, param)
   
   titles[["Result Summary"]] = "Result Summary"

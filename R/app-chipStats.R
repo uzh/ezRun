@@ -44,8 +44,6 @@ ezMethodChipStats = function(input=NA, output=NA, param=NA, htmlFile="00index.ht
   titles = list()
   titles[["ChIP Statistics"]] = paste("ChIP Statistics:", param$name)
   doc = openBsdocReport(title=titles[[length(titles)]])
-  titles[["Parameters"]] = "Parameters"
-  addTitle(doc, titles[[length(titles)]], 2, id=titles[[length(titles)]])
   addDataset(doc, dataset, param)
   
   if (param$paired){

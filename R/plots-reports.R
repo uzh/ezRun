@@ -162,9 +162,9 @@ addTestScatterPlots = function(doc, param, x, result, seqAnno, types=NULL){
     useForInteractivePoints = names(result$pValue) %in% sortedGenes
     if (!is.null(types)){
       plotCmd = expression({
-        ezLegend(legend=colnames(types), fill=rainbow(ncol(types)))
+        ezLegend(legend=c("too few reads", "enough reads but not significant", colnames(types)), fill=c("grey", "black", rainbow(ncol(types))))
       })
-      legendLink = ezImageFileLink(plotCmd, file="scatterAndVolcanoLegend.png", height=length(ncol(types))*15 + 20, width=300, addPdfLink=FALSE)
+      legendLink = ezImageFileLink(plotCmd, file="scatterAndVolcanoLegend.png", height=length(ncol(types))*15 + 55, width=300, addPdfLink=FALSE)
       addParagraph(doc, legendLink)
     }
     .interactiveScatterPlot = function(){

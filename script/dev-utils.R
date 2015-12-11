@@ -2,6 +2,8 @@
 # delete entire "/scratch" directory
 ezSystem("rm -fr /scratch/*")
 
+# save() save.image()
+
 # open report files by providing character(s) to grepl the path for (case is ignored)
 editReportFile = function(patterns=""){
   reportFiles = paste0("/scratch/", list.files("/scratch", "00index", recursive = TRUE))
