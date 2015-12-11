@@ -355,6 +355,18 @@ writeNgsTwoGroupReport = function(dataset, result, output, htmlFile="00index.htm
     addTitle(doc, titles[[length(titles)]], 2, id=titles[[length(titles)]])
     revigoTitle = addGoUpDownResult(doc, param, goResult)
     titles = append(titles, revigoTitle)
+    
+    ## enrichrLink for mice and humans
+    if (grepl("musculus", param$refBuild) | grepl("sapiens", param$refBuild)){
+      useForEnrichr = rownames(seqAnno$gene_name) %in% unique(goResult$CC$enrichBoth$Genes) ## TODO: decide, which genes to select for enrichr.
+      genesList = paste(seqAnno$gene_name[useForEnrichr], collapse="\\n")
+      jsCall = paste0('enrich({list: "', genesList, '", popup: true});')
+      jsFile = system.file("extdata/enrichr.js", package="ezRun", mustWork=TRUE)
+      addJavascript(doc, jsFile)
+      titles[["Enrichr"]] = "Enrichr"
+      addTitle(doc, titles[[length(titles)]], 3, id=titles[[length(titles)]])
+      addParagraph(doc, pot(paste0("<a href='javascript:void(0)' onClick='", jsCall, "'>Enrichr</a>")))
+    }
   }
   
   ## Run Gage

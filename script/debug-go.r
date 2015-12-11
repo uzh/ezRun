@@ -30,6 +30,7 @@ param[['comparison']] = 'wound--over--ctrl'
 param[['name']] = 'wound--over--ctrl'
 param[['dataRoot']] = '/srv/gstore/projects'
 param[['resultDir']] = 'p1824/EdgeR_wound--over--control_8261_2015-11-03--18-18-32'
+param[['writeScatterPlots']] = 'FALSE'
 output = list()
 output[['Name']] = 'wound--over--ctrl'
 output[['Species']] = ''
