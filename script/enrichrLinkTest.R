@@ -13,15 +13,15 @@ if (grepl("musculus", param$refBuild) | grepl("sapiens", param$refBuild)){
   setwdNew("./enrichr")
   enrichrDoc = openBsdocReport()
   javaFile = system.file("extdata/enrichrFoo.js", package="ezRun", mustWork=TRUE)
-  # addJavascript(enrichrDoc, javaFile)
+  addJavascript(enrichrDoc, javaFile)
 #   javaObject = rJava::.jnew("java/awt/Frame", "Hello")
 #   rJava::.jcall(javaObject, "V", "addJavascript", javaFile)
   genesList = paste(genes, collapse="\n")
-  plotCmd = expression({
+  .enrichrLink = function(){
     ezLegend(title="Enrichr link")
-    javaCall
-    add.plot.interactivity(text, labels="click me", x=1, y=0.8, click.actions=paste0("enrich({list: ", genesList, ", popup: true});"))
-  })
+    add.plot.interactivity(text, labels="click me", x=1, y=0.8, click.actions=paste0("enrich('{list: ", genesList, ", popup: true}');"))
+  }
+  addPlot(enrichrDoc, .enrichrLink, fontname="serif", par.properties=parLeft())
   enrichrLink = ezImageFileLink(plotCmd, file="enrichrLink.png", width=70, height=40, addPdfLink=FALSE)
   addParagraph(enrichrDoc, enrichrLink)
   closeBsdocReport(enrichrDoc, "enrichr.html")
