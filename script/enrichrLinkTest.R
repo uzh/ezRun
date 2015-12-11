@@ -13,16 +13,20 @@ if (grepl("musculus", param$refBuild) | grepl("sapiens", param$refBuild)){
   setwdNew("./enrichr")
   on.exit(setwd(".."))
   
-  genesList = paste(genes, collapse="\n")
+  genesList = paste(genes, collapse="\\n")
   jsCall = paste0("enrich({list: '", genesList, "', popup: true});")
   jsFile = system.file("extdata/enrichrFoo.js", package="ezRun", mustWork=TRUE)
-  jsFunction = paste(scan(javaFile, what = "character", sep = "\n", quiet = TRUE), collapse = "\n")
-  wholeJS = paste(jsFunction, "\n", jsCall, collapse=" ")
+  jsFunction = paste(scan(jsFile, what = "character", sep = "\n", quiet = TRUE))
+  wholeJS = c(jsFunction, jsCall)
   
   enrichrDoc = openBsdocReport()
   addJavascript(enrichrDoc, text=wholeJS)
   closeBsdocReport(enrichrDoc, "enrichr.html")
 }
+
+
+
+
 
 # maybe with cmd line
 cmd = paste0('javac ', enrichJavaFile, ' "enrich({list: ', genesList, ', popup: true});"')
