@@ -667,7 +667,7 @@ ezCollapse = function(x, sep="; ", na.rm=FALSE, empty.rm=FALSE, uniqueOnly=FALSE
 ##' plot(1:3, xaxt="n", xlab="")
 ##' splittedLabels = ezSplitLongLabels(charVec, nSplit=22)
 ##' axis(1, at=1:3, labels=splittedLabels, las=2)
-ezSplitLongLabels = function(labels, nSplit=22){
+ezSplitLongLabels = function(labels, nSplit=20){
   for (i in 1:length(labels)){
     if (nchar(labels[i]) > nSplit){
       firstLine = substr(labels[i], 1, nSplit)
