@@ -69,7 +69,13 @@ ncpro = function(input, dataset, param=NULL){
   refIndex = getBowtieReference(param)
   Sys.setenv(BOWTIE_INDEXES=dirname(refIndex))
   setwd(workDir)
-  ezSystem(paste(file.path(NCPRO_DIR, "bin/ncPRO-seq"), "-c", "param-ncrna.txt", ">", "ncpro.log"))
+  
+  workflowSteps = c("processRead","mapGenome","mapGenomeStat","processBam","mapAnnOverview","overviewRmsk",
+                    "overviewRfam","generateNcgff","ncrnaProcess", "ncrnaTracks","sigRegion","html_builder")
+  ezSystem(paste(file.path(NCPRO_DIR, "bin/ncPRO-seq"), "-c", "param-ncrna.txt","-s processRead ",">ncpro.log"))
+  for(i in 2:length(workflowSteps)){
+    ezSystem(paste(file.path(NCPRO_DIR, "bin/ncPRO-seq"), "-c", "param-ncrna.txt","-s",workflowSteps[i],">>ncpro.log"))
+  }
   stopifnot(file.exists("report.html"))
   stopifnot(!grepl("^make.*Error", readLines("ncpro.log")))
   setwd(jobDir)
