@@ -16,28 +16,15 @@ if (grepl("musculus", param$refBuild) | grepl("sapiens", param$refBuild)){
   jsFunction = paste(scan(jsFile, what = "character", sep = "\n", quiet = TRUE))
   wholeJS = c(jsFunction, jsCall)
   
-  mainReport = openBsdocReport()
+  doc = openBsdocReport()
   setwdNew("./enrichr")
   enrichrDoc = openBsdocReport()
   enrichrDoc = addJavascript(enrichrDoc, text=wholeJS)
+  addParagraph(enrichrDoc, as.html(pot("Go back", hyperlink="../testEnrichrLink.html")))
   closeBsdocReport(enrichrDoc, "enrichr.html")
   setwd("..")
-  addParagraph(mainReport, as.html(pot("Enrichr", hyperlink="enrichr/enrichr.html")))
-  closeBsdocReport(mainReport, "testEnrichrLink.html")
+  addParagraph(doc, as.html(pot("Enrichr", hyperlink="enrichr/enrichr.html")))
+  closeBsdocReport(doc, "testEnrichrLink.html")
 }
-
-
-
-
-
-# maybe with cmd line
-cmd = paste0('javac ', enrichJavaFile, ' "enrich({list: ', genesList, ', popup: true});"')
-ezSystem(cmd)
-
-
-ezSystem(paste0('java -jar js.jar ', enrichJavaFile))
-
-
-
 
 
