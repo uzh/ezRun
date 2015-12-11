@@ -4,7 +4,7 @@
 \alias{ezLegend}
 \title{Plots a legend}
 \usage{
-ezLegend(legend, fill = NULL, title = "Legend")
+ezLegend(legend = "", fill = NULL, title = "Legend")
 }
 \arguments{
 \item{legend}{passed to \code{legend()}.}
