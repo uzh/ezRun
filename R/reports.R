@@ -136,9 +136,11 @@ addDataset = function(doc, dataset, param){
   ezWrite.table(dataset, file="dataset.tsv", head="Name")
   tableLink = "dataset.html"
   ezInteractiveTable(dataset, tableLink=tableLink)
-  pot1 = as.html(pot("Input Dataset", hyperlink=tableLink))
-  pot2 = paste("Reference build:", param$refBuild)
-  addFlexTable(doc, ezGrid(rbind(pot1, pot2)))
+  pots = as.html(pot("Input Dataset", hyperlink=tableLink))
+  if (ezIsSpecified(param$refBuild)){
+    pots = c(pots, paste("Reference build:", param$refBuild))
+  }
+  addFlexTable(doc, ezGrid(pots))
 }
 
 ##' @title Writes an error report
