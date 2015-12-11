@@ -10,18 +10,20 @@ genes = c("Nsun3","Polrmt","Nlrx1","Sfxn5","Zc3h12c","Slc25a39","Arsg","Defb29",
 
 
 if (grepl("musculus", param$refBuild) | grepl("sapiens", param$refBuild)){
-  setwdNew("./enrichr")
-  on.exit(setwd(".."))
-  
   genesList = paste(genes, collapse="\\n")
   jsCall = paste0("enrich({list: '", genesList, "', popup: true});")
   jsFile = system.file("extdata/enrichrFoo.js", package="ezRun", mustWork=TRUE)
   jsFunction = paste(scan(jsFile, what = "character", sep = "\n", quiet = TRUE))
   wholeJS = c(jsFunction, jsCall)
   
+  mainReport = openBsdocReport()
+  setwdNew("./enrichr")
   enrichrDoc = openBsdocReport()
-  # addJavascript(enrichrDoc, text=wholeJS)
+  enrichrDoc = addJavascript(enrichrDoc, text=wholeJS)
   closeBsdocReport(enrichrDoc, "enrichr.html")
+  setwd("..")
+  addParagraph(mainReport, as.html(pot("Enrichr", hyperlink="enrichr/enrichr.html")))
+  closeBsdocReport(mainReport, "testEnrichrLink.html")
 }
 
 
