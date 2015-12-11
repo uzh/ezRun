@@ -20,7 +20,11 @@ if (grepl("musculus", param$refBuild) | grepl("sapiens", param$refBuild)){
   wholeJS = c(jsFunction, jsCall)
   
   enrichrDoc = openBsdocReport()
-  addJavascript(enrichrDoc, text=wholeJS)
+  .enrichrLink = function(document, js){
+    ezLegend(title="Enrichr link")
+    add.plot.interactivity(text, labels="click me", x=1, y=0.8, click.actions=addJavascript(document, text=js))
+  }
+  addPlot(enrichrDoc, .enrichrLink, fontname="serif", par.properties=parLeft(), document=enrichrDoc, js=wholeJS)
   closeBsdocReport(enrichrDoc, "enrichr.html")
 }
 
