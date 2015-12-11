@@ -53,7 +53,8 @@ getRefChromSizesFile = function(param){
 }
 
 ##' @title Cleans genome files
-##' @description Cleans the fasta and gtf files before they get written into the folder structure.
+##' @description Removes from the seqence files all descriptionso in the header line.
+##' RemovesCleans the fasta and gtf files before they get written into the folder structure.
 ##' @param genomeFile a character specifying the path to a fasta file.
 ##' @param genesFile a character specifying the path to a gtf file.
 ##' @param patchPattern a character specifying the pattern of patches to remove from the genome.

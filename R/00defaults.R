@@ -6,14 +6,15 @@
 # www.fgcz.ch
 
 
-##' @title Gets and processes all parameters
-##' @description Gets and processes all parameters. Removes any duplicates and recognizes the correct datatype.
-##' @param userParam a list of parameters defined by the user.
-##' @param globalDefaults global package defaults. These should normally not be changed.
-##' @param appDefaults a data.frame containing application specific defaults.
-##' @param optString a character containing special options.
+##' @title Build parameter object
+##' @description Parameters can be specified in the global defaults, app-specific defaults and user-given.
+##' If a parameter is specified in multiple places, the user parameters override the app defaults which again
+##' override the global defaults
+##' @param userParam a list of parameters defined by the user
+##' @param globalDefaults a data.frame containing the global defaults
+##' @param appDefaults a data.frame containing application specific defaults
 ##' @template roxygen-template
-##' @return Returns the complete list of parameters used by the package.
+##' @return Returns the merged list of parameters
 ##' @examples
 ##' ezParam()
 ## current implementation: every param needs a default value
