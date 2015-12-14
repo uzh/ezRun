@@ -8,7 +8,7 @@
 \usage{
 getChildTerms(x, subset, goRelatives, indent = "", childEnvir)
 
-goClusterTable(param, clusterResult)
+goClusterTable(param, clusterResult, seqAnno)
 
 .getGoTermsAsTd(x, pThreshGo, minCount, onto = NA, maxNumberOfTerms = 40)
 }
@@ -16,6 +16,8 @@ goClusterTable(param, clusterResult)
 \item{param}{a list of parameters to extract \code{pValThreshFisher} and \code{minCountFisher} from}
 
 \item{clusterResult}{a list containing the result of the analysis done by \code{goClusterResults()}.}
+
+\item{seqAnno}{the sequence annotation.}
 }
 \value{
 Returns a flex table containing the GO information of the cluster result.
