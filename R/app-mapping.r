@@ -530,7 +530,7 @@ ezMethodBismark = function(input=NA, output=NA, param=NA){
   CpGFile = list.files('.',pattern='^CpG.*txt$')
   cmd = paste(file.path(BISMARK_DIR, "bismark2bedGraph"), CpGFile, "-o", names(bamFile))
   ezSystem(cmd)
-  ezSystem(paste('mv ', CpGFile, paste0(names(bamFile),'.CpG_context.txt$')))
+  ezSystem(paste('mv ', CpGFile, paste0(names(bamFile),'.CpG_context.txt')))
   
   splittingReportFile = list.files('.',pattern='splitting_report.txt$')
   ezSystem(paste("cat ", splittingReportFile, ">>",reportFile))
