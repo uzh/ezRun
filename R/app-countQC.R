@@ -179,13 +179,15 @@ runNgsCountQC = function(dataset, htmlFile="00index.html", param=param, rawData=
   
   plotCmd = expression({
     par(mar=c(10.1, 4.1, 4.1, 2.1))
-    barplot(totalCounts, las=2, ylab="Counts [Mio]", main="Total reads")
+    barplot(totalCounts, las=2, ylab="Counts [Mio]", main="Total reads",
+            names.arg=ezSplitLongLabels(names(totalCounts)))
   })
   totalLink = ezImageFileLink(plotCmd, file="totalCounts.png", width=min(600 + (nSamples-10)* 30, 2000)) # nSamples dependent width
   
   plotCmd = expression({
     par(mar=c(10.1, 4.1, 4.1, 2.1))
-    bplot = barplot(presentCounts, las=2, ylab="Counts", main="Genomic Features with Reads above threshold")
+    bplot = barplot(presentCounts, las=2, ylab="Counts", main="Genomic Features with Reads above threshold",
+                    names.arg=ezSplitLongLabels(names(presentCounts)))
     percentages = paste(signif(100*presentCounts/nrow(isPresent), digits=2), "%")
     text(x=bplot, y=0, pos=3, offset=2, labels=percentages)
   })
@@ -213,7 +215,8 @@ runNgsCountQC = function(dataset, htmlFile="00index.html", param=param, rawData=
   
   pngName = "sampleCorrelation-AllPresent.png"
   plotCmd = expression({
-    ezCorrelationPlot(cor(x, use="complete.obs"), cond=conds, condLabels=conds, 
+    zValues = cor(x, use="complete.obs")
+    ezCorrelationPlot(zValues, cond=conds, condLabels=conds, labels=ezSplitLongLabels(rownames(zValues)),
                       main=paste0("all present genes (", sum(isValid), ")"), colors=sampleColors)
   })
   height = nrow(cor(x, use="complete.obs")) * 20
@@ -225,7 +228,8 @@ runNgsCountQC = function(dataset, htmlFile="00index.html", param=param, rawData=
   
   pngName = "sampleCorrelation-AllPresentNormalized.png"
   plotCmd = expression({
-    ezCorrelationPlot(cor(xNormed, use="complete.obs"), cond=conds, condLabels=conds, 
+    zValues = cor(xNormed, use="complete.obs")
+    ezCorrelationPlot(zValues, cond=conds, condLabels=conds, labels=ezSplitLongLabels(rownames(zValues)),
                       main=paste0("all present genes (", sum(isValid), ") gene-wise normalized"))
   })
   height = nrow(cor(xNormed, use="complete.obs")) * 20
@@ -237,7 +241,8 @@ runNgsCountQC = function(dataset, htmlFile="00index.html", param=param, rawData=
   
   pngName = "sampleCorrelation-TopGenes.png"
   plotCmd = expression({
-    ezCorrelationPlot(cor(x[topGenes,], use="complete.obs"), cond=conds, condLabels=conds, 
+    zValues = cor(x[topGenes,], use="complete.obs")
+    ezCorrelationPlot(zValues, cond=conds, condLabels=conds, labels=ezSplitLongLabels(rownames(zValues)),
                       main=paste0("top genes (", length(topGenes), ")"))
   })
   height = nrow(cor(x[topGenes,], use="complete.obs")) * 20
@@ -249,7 +254,8 @@ runNgsCountQC = function(dataset, htmlFile="00index.html", param=param, rawData=
   
   pngName = "sampleCorrelation-TopGenesNormalized.png"
   plotCmd = expression({
-    ezCorrelationPlot(cor(xNormed[topGenes,], use="complete.obs"), cond=conds, condLabels=conds, 
+    zValues = cor(xNormed[topGenes,], use="complete.obs")
+    ezCorrelationPlot(zValues, cond=conds, condLabels=conds, labels=ezSplitLongLabels(rownames(zValues)),
                       main=paste0("top genes (", length(topGenes), ") gene-wise normalized"))
   })
   height = nrow(cor(xNormed[topGenes,], use="complete.obs")) * 20
@@ -273,7 +279,7 @@ runNgsCountQC = function(dataset, htmlFile="00index.html", param=param, rawData=
   ################################
   ## cluster plots
   
-  if(nSamples > 3){
+  if (nSamples > 3){
     pngLinks = ezMatrix("", rows=1, cols=1:2)
     pngAdvancedLinks = pngLinks
     pngName = "sampleClustering-AllPresent.png"
@@ -366,7 +372,7 @@ runNgsCountQC = function(dataset, htmlFile="00index.html", param=param, rawData=
         goTables = goClusterTable(param, clusterResult)
         addFlexTable(doc, ezFlexTable(goTables$linkTable, add.rownames=TRUE))
         goLink = as.html(ezGrid(rbind("Background color corresponds to the color of the feature cluster in the heatmap plot.",
-                                  as.html(goTables$ft))))
+                                      as.html(goTables$ft))))
       } else {
         goLink = as.html(pot("No information available"))
       }

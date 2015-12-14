@@ -182,13 +182,15 @@ fastqscreenReport = function(dataset, param, htmlFile="00index.html", fastqData,
   
   plotCmd = expression({
     par(mar=c(10.1, 4.1, 4.1, 2.1))
-    bplt = barplot(fastqData$MappingRate, las=2, ylim=c(0,100), ylab="MappedReads in %", main="MappingRate", col="blue")
+    bplt = barplot(fastqData$MappingRate, las=2, ylim=c(0,100), ylab="MappedReads in %", main="MappingRate", col="blue",
+                   names.arg=ezSplitLongLabels(names(fastqData$MappingRate)))
     text(y=fastqData$MappingRate+5, x=bplt, labels=paste0(as.character(fastqData$MappingRate),"%"), cex=0.7, xpd=TRUE)
   })
   mappingRateLink = ezImageFileLink(plotCmd, file="MappingRate.png", width=min(600 + (nrow(dataset)-10)* 30, 2000)) # nSamples dependent width
   plotCmd = expression({
     par(mar=c(10.1, 4.1, 4.1, 2.1))
-    barplot(fastqData$Reads, las=2, ylab="#Reads", main="ProcessedReads", col="lightblue")
+    barplot(fastqData$Reads, las=2, ylab="#Reads", main="ProcessedReads", col="lightblue",
+            names.arg=ezSplitLongLabels(names(fastqData$Reads)))
   })
   readsLink = ezImageFileLink(plotCmd, file="Reads.png", width=min(600 + (nrow(dataset)-10)* 30, 2000)) # nSamples dependent width
   addFlexTable(doc, ezGrid(cbind(mappingRateLink, readsLink)))

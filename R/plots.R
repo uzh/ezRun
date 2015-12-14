@@ -528,7 +528,7 @@ ezCorrelationPlot = function(z, cond=NULL, condOrder=NULL, main="Correlation",
   #par(pin=c(4,4))
   tmp <- z
   tmp[ tmp == 1] <- NA;
-  if ( is.null(labels)){
+  if (is.null(labels)){
     labels <- rownames(tmp)
   }
   
@@ -584,8 +584,8 @@ ezCorrelationPlot = function(z, cond=NULL, condOrder=NULL, main="Correlation",
   nRow <- dim(tmp)[1]
   if (plotLabels){
     if (!is.null(labels)){
-      axis(2, at=(0:(nRow-1)/(nRow-1)), las=2, labels=labels, cex.axis=1.3)
-      axis(1, at=(0:(nRow-1)/(nRow-1)), las=2, labels=condLabels, cex.axis=1.3)
+      axis(2, at=(0:(nRow-1)/(nRow-1)), las=2, labels=ezSplitLongLabels(labels), cex.axis=1.3)
+      axis(1, at=(0:(nRow-1)/(nRow-1)), las=2, labels=ezSplitLongLabels(condLabels), cex.axis=1.3)
     }
   }
   if (!is.null(condNumbers)){
@@ -641,7 +641,7 @@ intHist = function(x, range=c(round(min(x, na.rm=TRUE))-0.5, round(max(x, na.rm=
 ##' ezHeatmap(x=matrix(1:100,10))
 ezHeatmap = function(x, lim=c(-4, 4), colors=getBlueRedScale(),
                      dendrogram="none", margins=c(8,6), cexCol=1.1,
-                     Rowv=TRUE, Colv=TRUE, labCol=colnames(x), labRow=rownames(x),
+                     Rowv=TRUE, Colv=TRUE, labCol=ezSplitLongLabels(colnames(x)), labRow=rownames(x),
                      key=TRUE, ...){
   if (!is.matrix(x)){
     x = as.matrix(x)
