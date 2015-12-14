@@ -371,7 +371,7 @@ runNgsCountQC = function(dataset, htmlFile="00index.html", param=param, rawData=
       jsFile = system.file("extdata/enrichr.js", package="ezRun", mustWork=TRUE)
       addJavascript(doc, jsFile)
       if (!is.null(clusterResult$GO)){
-        goTables = goClusterTable(param, clusterResult)
+        goTables = goClusterTable(param, clusterResult, seqAnno)
         addFlexTable(doc, ezFlexTable(goTables$linkTable, add.rownames=TRUE))
         if (any(c(grepl("Homo_", getOrganism(param$ezRef)), grepl("Mus_", getOrganism(param$ezRef))))){
           addFlexTable(doc, ezFlexTable(goTables$enrichrTable))
