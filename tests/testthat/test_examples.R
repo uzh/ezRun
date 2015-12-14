@@ -1,15 +1,15 @@
 context("Runs all function examples and cleans them up afterwards.")
 
 cwd = getwd()
+rm0 = system.file("tests/testthat/run_examples/*", package="ezRun", mustWork=TRUE)
+rm1 = system.file("DESCRIPTION_head", package="ezRun", mustWork=TRUE)
+rm2 = system.file("extdata/genes.bed", package="ezRun", mustWork=TRUE)
+rm3 = system.file("extdata/genesWithPrespliced.gtf", package="ezRun", mustWork=TRUE)
+cmd = paste("rm -fr", rm0, rm1, rm2, rm3)
 
 test_that("Function examples", {
   setwdNew("./run_examples/")
   devtools::run_examples()
-  rm0 = system.file("tests/testthat/run_examples/*", package="ezRun", mustWork=TRUE)
-  rm1 = system.file("DESCRIPTION_head", package="ezRun", mustWork=TRUE)
-  rm2 = system.file("extdata/genes.bed", package="ezRun", mustWork=TRUE)
-  rm3 = system.file("extdata/genesWithPrespliced.gtf", package="ezRun", mustWork=TRUE)
-  cmd = paste("rm -fr", rm0, rm1, rm2, rm3)
   setwd(cwd)
   ezSystem(cmd)
 })
