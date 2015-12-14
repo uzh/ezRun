@@ -368,9 +368,14 @@ runNgsCountQC = function(dataset, htmlFile="00index.html", param=param, rawData=
       addParagraph(doc, paste("Threshold for std. dev. of log2 signal across samples:", sdThresh))
       addParagraph(doc, paste("Number of features with high std. dev.:", sum(use)))
       
+      jsFile = system.file("extdata/enrichr.js", package="ezRun", mustWork=TRUE)
+      addJavascript(doc, jsFile)
       if (!is.null(clusterResult$GO)){
         goTables = goClusterTable(param, clusterResult)
         addFlexTable(doc, ezFlexTable(goTables$linkTable, add.rownames=TRUE))
+        if (any(c(grepl("Homo_", getOrganism(param$ezRef)), grepl("Mus_", getOrganism(param$ezRef))))){
+          addFlexTable(doc, ezFlexTable(goTables$enrichrTable))
+        }
         goLink = as.html(ezGrid(rbind("Background color corresponds to the color of the feature cluster in the heatmap plot.",
                                       as.html(goTables$ft))))
       } else {
