@@ -447,7 +447,7 @@ makeAlignmentCountBarPlot = function(file, mmCounts){
     x = mmCounts[ , rev(colnames(mmCounts))]
     barplot(t(x)/1e6, las=2, ylab="Counts [Mio]", main="total alignments", legend.text=TRUE, border=NA,
             col=multiCountColors[colnames(x)], xlim=c(0, nrow(x) +5),
-            names.arg=ezSplitLongLabels(names(t(x))))
+            names.arg=ezSplitLongLabels(rownames(x)))
   })
   pngLinks["Counts"] = ezImageFileLink(plotCmd, file=file, width=min(600 + (nrow(mmCounts)-10)* 30, 2000)) # nSamples dependent width
   
@@ -459,7 +459,7 @@ makeAlignmentCountBarPlot = function(file, mmCounts){
     }
     barplot(t(x), las=2, ylab="Counts [proportion]", main="alignment proportions", legend.text=TRUE, border=NA,
             col=multiCountColors[colnames(x)], xlim=c(0, nrow(x) +5),
-            names.arg=ezSplitLongLabels(names(t(x))))
+            names.arg=ezSplitLongLabels(rownames(x)))
   })
   pngLinks["Relative"] = ezImageFileLink(plotCmd, file="multiMatchInFile-barplot-rel.png", width=min(600 + (nrow(mmCounts)-10)* 30, 2000)) # nSamples dependent width
   
