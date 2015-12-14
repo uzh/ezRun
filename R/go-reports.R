@@ -10,15 +10,22 @@
 ##' @description Gets the GO cluster table 
 ##' @param param a list of parameters to extract \code{pValThreshFisher} and \code{minCountFisher} from
 ##' @param clusterResult a list containing the result of the analysis done by \code{goClusterResults()}.
+##' @param seqAnno the sequence annotation.
 ##' @template roxygen-template
 ##' @seealso \code{\link{goClusterResults}}
 ##' @return Returns a flex table containing the GO information of the cluster result.
-goClusterTable = function(param, clusterResult){
+goClusterTable = function(param, clusterResult, seqAnno){
   ontologies = names(clusterResult$GO)
   tables = ezMatrix("", rows=paste("Cluster", 1:clusterResult$nClusters), cols=ontologies)
   linkTable = ezMatrix("", rows = ontologies, cols = 1:clusterResult$nClusters)
-  for (onto in ontologies){
-    for (i in 1:clusterResult$nClusters){
+  enrichrTable = ezMatrix("", rows = 1, cols = 1:clusterResult$nClusters)
+  for (i in 1:clusterResult$nClusters){
+    genesToUse = rownames(seqAnno) %in% names(clusterResult$clusterNumbers)[clusterResult$clusterNumbers==i]
+    genesList = paste(seqAnno$gene_name[genesToUse], collapse="\\n")
+    jsCall = paste0('enrich({list: "', genesList, '", popup: true});')
+    enrichrLinkName = paste0("Cluster-", i , "-Enrichr")
+    enrichrTable[1, i] = as.html(pot(paste0("<a href='javascript:void(0)' onClick='", jsCall, "'>", enrichrLinkName, "</a>")))
+    for (onto in ontologies){
       x = clusterResult$GO[[onto]][[i]]
       goFrame = .getGoTermsAsTd(x, param$pValThreshFisher, param$minCountFisher, onto=onto)
       linkTable[onto, i] = paste0("Cluster-", onto, "-", i, ".html")
@@ -35,7 +42,7 @@ goClusterTable = function(param, clusterResult){
   ft = ezFlexTable(tables, border = 2, header.columns = TRUE, add.rownames=TRUE)
   bgColors = rep(gsub("FF$", "", clusterResult$clusterColors))
   ft = setFlexTableBackgroundColors(ft, j=1, colors=bgColors)
-  return(list(ft=ft, linkTable=linkTable))
+  return(list(ft=ft, linkTable=linkTable, enrichrTable=enrichrTable))
 }
 
 ##' @title Adds the GO up-down results
@@ -50,7 +57,7 @@ addGoUpDownResult = function(doc, param, goResult){
   udt = goUpDownTables(param, goResult)
   addParagraph(doc, paste("Maximum number of terms displayed:", param$maxNumberGroupsDisplayed))
   
-  addFlexTable(doc, ezFlexTable(udt$linkTable, add.rownames=TRUE)) ## Does 9 plots currently, perhaps we should merge it a bit
+  addFlexTable(doc, ezFlexTable(udt$linkTable, add.rownames=TRUE))
   addTitle(doc, "GO categories that are overrepresented among significantly upregulated genes.", 3)
   addFlexTable(doc, udt$flexTables[["enrichUp"]])
   addTitle(doc, "GO categories that are overrepresented among significantly downregulated genes.", 3)

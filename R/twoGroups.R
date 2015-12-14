@@ -336,9 +336,14 @@ writeNgsTwoGroupReport = function(dataset, result, output, htmlFile="00index.htm
     }
     addParagraph(doc, paste("Number of significant features:", sum(use)))
     
+    jsFile = system.file("extdata/enrichr.js", package="ezRun", mustWork=TRUE)
+    addJavascript(doc, jsFile)
     if (!is.null(clusterResult$GO)){
-      goTables = goClusterTable(param, clusterResult)
+      goTables = goClusterTable(param, clusterResult, seqAnno)
       addFlexTable(doc, ezFlexTable(goTables$linkTable, add.rownames=TRUE))
+      if (any(c(grepl("Homo_", getOrganism(param$ezRef)), grepl("Mus_", getOrganism(param$ezRef))))){
+        addFlexTable(doc, ezFlexTable(goTables$enrichrTable))
+      }
       goLink = as.html(ezGrid(rbind("Background color corresponds to the row colors in the heatmap plot.",
                                 as.html(goTables$ft))))
       #goLink[[2]] = addGOClusterResult(doc, param, clusterResult)
@@ -356,16 +361,27 @@ writeNgsTwoGroupReport = function(dataset, result, output, htmlFile="00index.htm
     revigoTitle = addGoUpDownResult(doc, param, goResult)
     titles = append(titles, revigoTitle)
     
-    ## enrichrLink for mice and humans
-    if (any(grepl(c("Homo_", "Mus_"), getOrganism(param$ezRef)))){
-      useForEnrichr = rownames(seqAnno) %in% unique(goResult$CC$enrichBoth$Genes) ## TODO: decide, which genes to select for enrichr.
-      genesList = paste(seqAnno$gene_name[useForEnrichr], collapse="\\n")
-      jsCall = paste0('enrich({list: "', genesList, '", popup: true});')
-      jsFile = system.file("extdata/enrichr.js", package="ezRun", mustWork=TRUE)
-      addJavascript(doc, jsFile)
+    ## enrichr links for mice and humans
+    if (any(c(grepl("Homo_", getOrganism(param$ezRef)), grepl("Mus_", getOrganism(param$ezRef))))){
+      
+      isSig = result$pValue < param$pValThreshGO & result$usedInTest
+      isUp = result$log2Ratio > param$log2RatioThreshGO & isSig
+      isDown = result$log2Ratio < -param$log2RatioThreshGO & isSig
+      regulatedGenes = list()
+      regulatedGenes$upGenes = na.omit(unique(seqAnno[isUp, "gene_name"]))
+      regulatedGenes$downGenes = na.omit(unique(seqAnno[isDown, "gene_name"]))
+      regulatedGenes$bothGenes = union(regulatedGenes$upGenes, regulatedGenes$downGenes)
+      
+      enrichrLinks = ezMatrix("", rows=c('bothGenes', 'downGenes', 'upGenes'), cols=1)
+      for (row in rownames(enrichrLinks)){
+        genesToUse = seqAnno$gene_name[which(seqAnno$gene_name %in% regulatedGenes[[row]])]
+        genesList = paste(genesToUse, collapse="\\n")
+        jsCall = paste0('enrich({list: "', genesList, '", popup: true});')
+        enrichrLinks[row, 1] = as.html(pot(paste0("<a href='javascript:void(0)' onClick='", jsCall, "'>Enrichr</a>")))
+      }
       titles[["Enrichr"]] = "Enrichr"
       addTitle(doc, titles[[length(titles)]], 3, id=titles[[length(titles)]])
-      addParagraph(doc, pot(paste0("<a href='javascript:void(0)' onClick='", jsCall, "'>Enrichr</a>")))
+      addFlexTable(doc, ezFlexTable(enrichrLinks, valign="middle", add.rownames = TRUE))
     }
   }
   

@@ -428,7 +428,7 @@ goClusterResults = function(x, param, result, ontologies=c("BP", "MF", "CC"), se
   if (param$featureLevel != "gene"){
     genes = getGeneMapping(param, seqAnno)
     if (is.null(genes)){
-      stop("no probe 2 gene mapping found found")
+      stop("no probe 2 gene mapping found")
     }
     seqAnno = aggregateGoAnnotation(seqAnno, genes)
   } else {
