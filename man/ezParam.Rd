@@ -3,7 +3,7 @@
 \name{ezParam}
 \alias{ezParam}
 \alias{parseOptions}
-\title{Gets and processes all parameters}
+\title{Build parameter object}
 \usage{
 ezParam(userParam = list(), globalDefaults = EZ_PARAM_DEFAULTS,
   appDefaults = ezFrame())
@@ -11,19 +11,19 @@ ezParam(userParam = list(), globalDefaults = EZ_PARAM_DEFAULTS,
 parseOptions(optString)
 }
 \arguments{
-\item{userParam}{a list of parameters defined by the user.}
+\item{userParam}{a list of parameters defined by the user}
 
-\item{globalDefaults}{global package defaults. These should normally not be changed.}
+\item{globalDefaults}{a data.frame containing the global defaults}
 
-\item{appDefaults}{a data.frame containing application specific defaults.}
-
-\item{optString}{a character containing special options.}
+\item{appDefaults}{a data.frame containing application specific defaults}
 }
 \value{
-Returns the complete list of parameters used by the package.
+Returns the merged list of parameters
 }
 \description{
-Gets and processes all parameters. Removes any duplicates and recognizes the correct datatype.
+Parameters can be specified in the global defaults, app-specific defaults and user-given.
+If a parameter is specified in multiple places, the user parameters override the app defaults which again
+override the global defaults
 }
 \section{Functions}{
 \itemize{

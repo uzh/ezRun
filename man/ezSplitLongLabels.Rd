@@ -4,7 +4,7 @@
 \alias{ezSplitLongLabels}
 \title{Splits long labels into two lines}
 \usage{
-ezSplitLongLabels(labels, nSplit = 22)
+ezSplitLongLabels(labels, nSplit = 20)
 }
 \arguments{
 \item{labels}{a character vector to split long elements from.}

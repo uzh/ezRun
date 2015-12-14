@@ -6,8 +6,8 @@
 \usage{
 ezHeatmap(x, lim = c(-4, 4), colors = getBlueRedScale(),
   dendrogram = "none", margins = c(8, 6), cexCol = 1.1, Rowv = TRUE,
-  Colv = TRUE, labCol = colnames(x), labRow = rownames(x), key = TRUE,
-  ...)
+  Colv = TRUE, labCol = ezSplitLongLabels(colnames(x)),
+  labRow = rownames(x), key = TRUE, ...)
 }
 \arguments{
 \item{x}{the data to plot.}

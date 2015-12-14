@@ -17,7 +17,8 @@ cleanGenomeFiles(genomeFile, genesFile, patchPattern = "PATCH")
 Returns a list containing a fasta and a gtf object.
 }
 \description{
-Cleans the fasta and gtf files before they get written into the folder structure.
+Removes from the seqence files all descriptionso in the header line.
+RemovesCleans the fasta and gtf files before they get written into the folder structure.
 }
 \examples{
 gtf = system.file("extdata/genes.gtf", package="ezRun", mustWork=TRUE)

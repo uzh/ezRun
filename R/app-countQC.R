@@ -216,7 +216,7 @@ runNgsCountQC = function(dataset, htmlFile="00index.html", param=param, rawData=
   pngName = "sampleCorrelation-AllPresent.png"
   plotCmd = expression({
     zValues = cor(x, use="complete.obs")
-    ezCorrelationPlot(zValues, cond=conds, condLabels=conds, labels=ezSplitLongLabels(rownames(zValues)),
+    ezCorrelationPlot(zValues, cond=conds, condLabels=conds,
                       main=paste0("all present genes (", sum(isValid), ")"), colors=sampleColors)
   })
   height = nrow(cor(x, use="complete.obs")) * 20
@@ -229,7 +229,7 @@ runNgsCountQC = function(dataset, htmlFile="00index.html", param=param, rawData=
   pngName = "sampleCorrelation-AllPresentNormalized.png"
   plotCmd = expression({
     zValues = cor(xNormed, use="complete.obs")
-    ezCorrelationPlot(zValues, cond=conds, condLabels=conds, labels=ezSplitLongLabels(rownames(zValues)),
+    ezCorrelationPlot(zValues, cond=conds, condLabels=conds,
                       main=paste0("all present genes (", sum(isValid), ") gene-wise normalized"))
   })
   height = nrow(cor(xNormed, use="complete.obs")) * 20
@@ -242,7 +242,7 @@ runNgsCountQC = function(dataset, htmlFile="00index.html", param=param, rawData=
   pngName = "sampleCorrelation-TopGenes.png"
   plotCmd = expression({
     zValues = cor(x[topGenes,], use="complete.obs")
-    ezCorrelationPlot(zValues, cond=conds, condLabels=conds, labels=ezSplitLongLabels(rownames(zValues)),
+    ezCorrelationPlot(zValues, cond=conds, condLabels=conds,
                       main=paste0("top genes (", length(topGenes), ")"))
   })
   height = nrow(cor(x[topGenes,], use="complete.obs")) * 20
@@ -255,7 +255,7 @@ runNgsCountQC = function(dataset, htmlFile="00index.html", param=param, rawData=
   pngName = "sampleCorrelation-TopGenesNormalized.png"
   plotCmd = expression({
     zValues = cor(xNormed[topGenes,], use="complete.obs")
-    ezCorrelationPlot(zValues, cond=conds, condLabels=conds, labels=ezSplitLongLabels(rownames(zValues)),
+    ezCorrelationPlot(zValues, cond=conds, condLabels=conds,
                       main=paste0("top genes (", length(topGenes), ") gene-wise normalized"))
   })
   height = nrow(cor(xNormed[topGenes,], use="complete.obs")) * 20
