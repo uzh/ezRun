@@ -38,7 +38,9 @@ ezHeatmap(x, lim = c(-4, 4), colors = getBlueRedScale(),
 Plots a heatmap and adds a color key.
 }
 \examples{
-ezHeatmap(x=matrix(1:100,10))
+x=matrix(1:100,10)
+colnames(x) = letters[1:10]
+ezHeatmap(x)
 }
 \author{
 Rehrauer, Hubert

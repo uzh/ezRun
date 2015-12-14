@@ -638,7 +638,9 @@ intHist = function(x, range=c(round(min(x, na.rm=TRUE))-0.5, round(max(x, na.rm=
 ##' @template roxygen-template
 ##' @seealso \code{\link[gplots]{heatmap.2}}
 ##' @examples
-##' ezHeatmap(x=matrix(1:100,10))
+##' x=matrix(1:100,10)
+##' colnames(x) = letters[1:10]
+##' ezHeatmap(x)
 ezHeatmap = function(x, lim=c(-4, 4), colors=getBlueRedScale(),
                      dendrogram="none", margins=c(8,6), cexCol=1.1,
                      Rowv=TRUE, Colv=TRUE, labCol=ezSplitLongLabels(colnames(x)), labRow=rownames(x),
