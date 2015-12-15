@@ -119,7 +119,7 @@ ezIsSpecified = function(x){
 ##' @templateVar fun data.frame()
 ##' @return Returns a data.frame.
 ##' @examples
-##' ezFrame(first=1:3, second=5, "with space"="text", row.names=rep("a", 3))letters[1:3])
+##' ezFrame(first=1:3, second=5, "with space"="text", row.names=letters[1:3])
 ezFrame = function(..., row.names = NULL, check.rows=TRUE,
                    check.names=FALSE,
                    stringsAsFactors=FALSE){

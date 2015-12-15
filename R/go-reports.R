@@ -17,20 +17,19 @@
 goClusterTable = function(param, clusterResult, seqAnno){
   ontologies = names(clusterResult$GO)
   tables = ezMatrix("", rows=paste("Cluster", 1:clusterResult$nClusters), cols=ontologies)
-  linkTable = ezMatrix("", rows = ontologies, cols = 1:clusterResult$nClusters)
-  enrichrTable = ezMatrix("", rows = 1, cols = 1:clusterResult$nClusters)
+  linkTable = ezMatrix("", rows = 1:clusterResult$nClusters, cols = ontologies)
+  enrichrTable = ezMatrix("", rows = 1:clusterResult$nClusters, cols = "Enrichr")
   for (i in 1:clusterResult$nClusters){
     genesToUse = rownames(seqAnno) %in% names(clusterResult$clusterNumbers)[clusterResult$clusterNumbers==i]
     genesList = paste(seqAnno$gene_name[genesToUse], collapse="\\n")
     jsCall = paste0('enrich({list: "', genesList, '", popup: true});')
-    enrichrLinkName = paste0("Cluster-", i , "-Enrichr")
-    enrichrTable[1, i] = as.html(pot(paste0("<a href='javascript:void(0)' onClick='", jsCall, "'>", enrichrLinkName, "</a>")))
+    enrichrTable[i, 1] = as.html(pot(paste0("<a href='javascript:void(0)' onClick='", jsCall, "'>Enrichr</a>")))
     for (onto in ontologies){
       x = clusterResult$GO[[onto]][[i]]
       goFrame = .getGoTermsAsTd(x, param$pValThreshFisher, param$minCountFisher, onto=onto)
-      linkTable[onto, i] = paste0("Cluster-", onto, "-", i, ".html")
-      ezInteractiveTable(goFrame, tableLink=linkTable[onto, i], digits=3)
-      linkTable[onto, i] = as.html(pot(sub(".html", "", linkTable[onto, i]), hyperlink=linkTable[onto, i]))
+      linkTable[i, onto] = paste0("Cluster-", onto, "-", i, ".html")
+      ezInteractiveTable(goFrame, tableLink=linkTable[i, onto], digits=3)
+      linkTable[i, onto] = as.html(newWindowLink(linkTable[i, onto]))
       goFrame$Term = substr(goFrame$Term, 1, 30)
       if (nrow(goFrame) > 0){
         tables[i, onto] = as.html(ezFlexTable(goFrame, talign="right", header.columns = TRUE))
@@ -100,7 +99,7 @@ goUpDownTables = function(param, goResult){
                                 maxNumberOfTerms=param$maxNumberGroupsDisplayed)
       linkTable[onto, sub] = paste0("Cluster-", onto, "-", sub, ".html")
       ezInteractiveTable(goFrame, tableLink=linkTable[onto, sub], digits=3)
-      linkTable[onto, sub] = as.html(pot(sub(".html", "", linkTable[onto, sub]), hyperlink=linkTable[onto, sub]))
+      linkTable[onto, sub] = as.html(newWindowLink(linkTable[onto, sub]))
       goFrame$Term = substr(goFrame$Term, 1, 30)
       if (nrow(goFrame) > 0){
         resultList[[sub]]["Cats", onto] = as.html(ezFlexTable(goFrame, talign="right", header.columns = TRUE))

@@ -134,9 +134,9 @@ closeBsdocReport = function(doc, file, titles=NULL){
 ##' @template roxygen-template
 addDataset = function(doc, dataset, param){
   ezWrite.table(dataset, file="dataset.tsv", head="Name")
-  tableLink = "dataset.html"
+  tableLink = "InputDataset.html"
   ezInteractiveTable(dataset, tableLink=tableLink)
-  pots = as.html(pot("Input Dataset", hyperlink=tableLink))
+  pots = as.html(newWindowLink(tableLink))
   if (ezIsSpecified(param$refBuild)){
     pots = c(pots, paste("Reference build:", param$refBuild))
   }
@@ -168,7 +168,8 @@ writeErrorReport = function(htmlFile, param=param, error="Unknown Error"){
 ##' @description Adds texts link to a bsdoc object.
 ##' @template doc-template
 ##' @templateVar object text links
-##' @param txtNames a character representing the file names.
+##' @param txtNames a character vector representing the file names.
+##' @param linkName a single character representing the link name (with .html).
 ##' @param doZip a logical indicating whether to zip the files.
 ##' @param mime a character representing the type of the links.
 ##' @template roxygen-template
@@ -185,6 +186,13 @@ addTxtLinksToReport = function(doc, txtNames, doZip=FALSE, mime=ifelse(doZip, "a
     }
     addParagraph(doc, pot(paste("<a href='", each, "' type='", mime, "'>", each, "</a>")))
   }
+}
+
+##' @describeIn addTxtLinksToReport Gets the link, its name and returns a an html link that will open new windows/tabs.
+newWindowLink = function(linkName){
+  title = sub(".html", "", linkName)
+  jsCall = paste0("javascript:window.open('", linkName, "','", title, "','width=1200,height=900')")
+  return(pot(paste0('<a href="', jsCall, '">', title, '</a>')))
 }
 
 ##' @title Adds a summary of the count result
@@ -347,7 +355,7 @@ addResultFile = function(doc, param, result, rawData, useInOutput=TRUE,
   useInInteractiveTable = intersect(useInInteractiveTable, colnames(y))
   tableLink = sub(".txt", "-viewTopSignificantGenes.html", file)
   ezInteractiveTable(head(y[, useInInteractiveTable, drop=FALSE], param$maxTableRows), tableLink=tableLink, digits=3)
-  addParagraph(doc, pot(sub(".html", "", tableLink), hyperlink=tableLink))
+  addParagraph(doc, newWindowLink(tableLink))
   return(list(resultFile=file))
 }
 

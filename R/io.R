@@ -148,19 +148,23 @@ ezWrite.table = function(values, file=file, head="Identifier", row.names=TRUE, c
 ##' tableLink = "exampleTable.html"
 ##' table = data.frame(a=c(1.11, 2:100), b=201:300)
 ##' ezInteractiveTable(table, tableLink)
-ezInteractiveTable = function(table, tableLink, digits=NULL, colNames=colnames(table), format=NULL, envir=parent.frame()){
+ezInteractiveTable = function(table, tableLink, digits=NULL, colNames=colnames(table), title="Test", format=NULL, envir=parent.frame()){
+  # caption = paste0("<h1>", title, "</h1>") # doesn't seem to work
   if (!is.null(digits)){
     for (i in 1:ncol(table)) {
-      if (is.numeric(table[, i])){
-        table[, i] = signif(table[, i], digits=digits)
+      if (is.numeric(table[, i]) && ezIsSpecified(table[, i])){
+        if (!(as.integer(table[, i])==table[, i])){
+          table[, i] = signif(table[, i], digits=digits)
+        }
       }
     }
     caption = paste("Numeric values are rounded to", digits, "digits.")
   } else {
     caption = NULL
   }
-  interactiveTable = DT::datatable(table, extensions = c("ColVis", "TableTools"), filter="top", caption = caption,
-                                   options = list(dom = 'TC<"clear">lfrtip', pageLength = 25), colnames=colNames)
+  interactiveTable = DT::datatable(table, extensions=c("ColVis", "TableTools"), filter="top",
+                                   caption=caption, colnames=colNames,
+                                   options=list(dom='TC<"clear">lfrtip', pageLength=25, autoWidth=TRUE))
   if (!is.null(format)){
     currEnv = environment()
     interactiveTable = eval(format, envir=c(envir, currEnv))

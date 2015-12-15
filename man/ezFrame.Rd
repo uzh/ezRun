@@ -22,7 +22,7 @@ There exist, similarities with data_frame
 in Hadleys package. The difference is that we encourage to use rownames while he discourages this.
 }
 \examples{
-ezFrame(first=1:3, second=5, "with space"="text", row.names=rep("a", 3))letters[1:3])
+ezFrame(first=1:3, second=5, "with space"="text", row.names=letters[1:3])
 }
 \author{
 Rehrauer, Hubert

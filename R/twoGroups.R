@@ -340,17 +340,29 @@ writeNgsTwoGroupReport = function(dataset, result, output, htmlFile="00index.htm
     addJavascript(doc, jsFile)
     if (!is.null(clusterResult$GO)){
       goTables = goClusterTable(param, clusterResult, seqAnno)
-      addFlexTable(doc, ezFlexTable(goTables$linkTable, add.rownames=TRUE))
+      # addFlexTable(doc, ezFlexTable(goTables$linkTable, add.rownames=TRUE))
       if (any(c(grepl("Homo_", getOrganism(param$ezRef)), grepl("Mus_", getOrganism(param$ezRef))))){
-        addFlexTable(doc, ezFlexTable(goTables$enrichrTable))
+        goAndEnrichr = cbind(goTables$linkTable, goTables$enrichrTable)
+      } else {
+        goAndEnrichr = goTables$linkTable
       }
+      goAndEnrichrFt = ezFlexTable(goAndEnrichr, border = 2, header.columns = TRUE, add.rownames=TRUE)
+      bgColors = rep(gsub("FF$", "", clusterResult$clusterColors))
+      goAndEnrichrFt = setFlexTableBackgroundColors(goAndEnrichrFt, j=1, colors=bgColors)
+      goAndEnrichrTableLink = as.html(ezGrid(rbind("Background color corresponds to the row colors in the heatmap plot.",
+                                                   as.html(goAndEnrichrFt))))
       goLink = as.html(ezGrid(rbind("Background color corresponds to the row colors in the heatmap plot.",
-                                as.html(goTables$ft))))
-      #goLink[[2]] = addGOClusterResult(doc, param, clusterResult)
+                                    as.html(goTables$ft))))
     } else {
-      goLink = as.html(pot("No information available"))
+      goAndEnrichrTableLink = as.html(pot("No information available"))
+      goLink =  as.html(pot("No information available"))
     }
+    goClusterTableDoc = openBsdocReport("GO Cluster tables")
     tbl = ezGrid(cbind("Cluster Plot"=clusterLink, "GO categories of feature clusters"=goLink), header.columns = TRUE)
+    addFlexTable(goClusterTableDoc, tbl)
+    closeBsdocReport(goClusterTableDoc, "goClusterTable.html")
+    addTxtLinksToReport(doc, txtNames="goClusterTable.html")
+    tbl = ezGrid(cbind("Cluster Plot"=clusterLink, "GO categories of feature clusters"=goAndEnrichrTableLink), header.columns = TRUE)
     addFlexTable(doc, tbl)
   }
   ## only do GO if we have enough genes

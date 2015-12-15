@@ -5,7 +5,8 @@
 \title{Saves an interactive table}
 \usage{
 ezInteractiveTable(table, tableLink, digits = NULL,
-  colNames = colnames(table), format = NULL, envir = parent.frame())
+  colNames = colnames(table), title = "Test", format = NULL,
+  envir = parent.frame())
 }
 \arguments{
 \item{table}{a data.frame or table to create an interactive table from.}

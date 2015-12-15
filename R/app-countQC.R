@@ -167,7 +167,7 @@ runNgsCountQC = function(dataset, htmlFile="00index.html", param=param, rawData=
     titles[["Data Files"]] = "Data Files"
     addTitle(doc, titles[[length(titles)]], 2, id=titles[[length(titles)]])
     addTxtLinksToReport(doc, dataFiles, param$doZip)
-    addParagraph(doc, pot(sub(".html", "", tableLink), hyperlink=tableLink))
+    addParagraph(doc, newWindowLink(tableLink))
   }
   
   titles[["Count Statistics"]] = "Count Statistics"
@@ -372,16 +372,29 @@ runNgsCountQC = function(dataset, htmlFile="00index.html", param=param, rawData=
       addJavascript(doc, jsFile)
       if (!is.null(clusterResult$GO)){
         goTables = goClusterTable(param, clusterResult, seqAnno)
-        addFlexTable(doc, ezFlexTable(goTables$linkTable, add.rownames=TRUE))
+        # addFlexTable(doc, ezFlexTable(goTables$linkTable, add.rownames=TRUE))
         if (any(c(grepl("Homo_", getOrganism(param$ezRef)), grepl("Mus_", getOrganism(param$ezRef))))){
-          addFlexTable(doc, ezFlexTable(goTables$enrichrTable))
+          goAndEnrichr = cbind(goTables$linkTable, goTables$enrichrTable)
+        } else {
+          goAndEnrichr = goTables$linkTable
         }
-        goLink = as.html(ezGrid(rbind("Background color corresponds to the color of the feature cluster in the heatmap plot.",
+        goAndEnrichrFt = ezFlexTable(goAndEnrichr, border = 2, header.columns = TRUE, add.rownames=TRUE)
+        bgColors = rep(gsub("FF$", "", clusterResult$clusterColors))
+        goAndEnrichrFt = setFlexTableBackgroundColors(goAndEnrichrFt, j=1, colors=bgColors)
+        goAndEnrichrTableLink = as.html(ezGrid(rbind("Background color corresponds to the row colors in the heatmap plot.",
+                                                     as.html(goAndEnrichrFt))))
+        goLink = as.html(ezGrid(rbind("Background color corresponds to the row colors in the heatmap plot.",
                                       as.html(goTables$ft))))
       } else {
-        goLink = as.html(pot("No information available"))
+        goAndEnrichrTableLink = as.html(pot("No information available"))
+        goLink =  as.html(pot("No information available"))
       }
-      tbl = ezGrid(t(c("Cluster Plot"=clusterLink, "GO categories of feature clusters"=goLink)), header.columns = TRUE)
+      goClusterTableDoc = openBsdocReport("GO Cluster tables")
+      tbl = ezGrid(cbind("Cluster Plot"=clusterLink, "GO categories of feature clusters"=goLink), header.columns = TRUE)
+      addFlexTable(goClusterTableDoc, tbl)
+      closeBsdocReport(goClusterTableDoc, "goClusterTable.html")
+      addTxtLinksToReport(doc, txtNames="goClusterTable.html")
+      tbl = ezGrid(cbind("Cluster Plot"=clusterLink, "GO categories of feature clusters"=goAndEnrichrTableLink), header.columns = TRUE)
       addFlexTable(doc, tbl)
     }
     

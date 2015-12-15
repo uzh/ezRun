@@ -2,23 +2,32 @@
 % Please edit documentation in R/reports.R
 \name{addTxtLinksToReport}
 \alias{addTxtLinksToReport}
+\alias{newWindowLink}
 \title{Adds text links}
 \usage{
 addTxtLinksToReport(doc, txtNames, doZip = FALSE, mime = ifelse(doZip,
   "application/zip", "application/text"))
+
+newWindowLink(linkName)
 }
 \arguments{
 \item{doc}{an object of the class bsdoc to add the text links.}
 
-\item{txtNames}{a character representing the file names.}
+\item{txtNames}{a character vector representing the file names.}
 
 \item{doZip}{a logical indicating whether to zip the files.}
 
 \item{mime}{a character representing the type of the links.}
+
+\item{linkName}{a single character representing the link name (with .html).}
 }
 \description{
 Adds texts link to a bsdoc object.
 }
+\section{Functions}{
+\itemize{
+\item \code{newWindowLink}: Gets the link, its name and returns a an html link that will open new windows/tabs.
+}}
 \examples{
 param = ezParam()
 htmlFile = "example.html"
