@@ -40,5 +40,7 @@ output[['Html [Link]']] = 'p1824/EdgeR_wound--over--control_8261_2015-11-03--18-
 input = '/srv/gstore/projects/p1824/EdgeR_wound--over--control_8261_2015-11-03--18-18-32/input_dataset.tsv'
 EzAppEdger$new()$run(input=input, output=output, param=param)
 
+param[['normMethod']] = 'logMean'
+EzAppCountQC$new()$run(input=input, output=output, param=param)
 
 setwd(cwd)
