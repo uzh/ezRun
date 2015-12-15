@@ -175,8 +175,14 @@ addTestScatterPlots = function(doc, param, x, result, seqAnno, types=NULL){
                              popup.labels=seqAnno$gene_name[useForInteractivePoints],
                              click.actions=clickActions[useForInteractivePoints])
     }
-    addPlot(doc, .interactiveScatterPlot, fontname="serif", par.properties=parLeft())
+    addPlot(doc, .interactiveScatterPlot, fontname="", par.properties=parLeft())
     .interactiveVolcanoPlot = function(){
+#       ezSmoothScatter(x=result$log2Ratio, y=result$pValue, isPresent=result$usedInTest, types=types, main=param$comparison, legendPos=NULL)
+#       add.plot.interactivity(fun=points, col="red", pch=16,
+#                              x=result$log2Ratio[useForInteractivePoints],
+#                              y=result$pValue[useForInteractivePoints],
+#                              popup.labels=seqAnno$gene_name[useForInteractivePoints],
+#                              click.actions=clickActions[useForInteractivePoints])
       values = ezVolcano(log2Ratio=result$log2Ratio, pValue=result$pValue, isPresent=result$usedInTest, types=types, main=param$comparison, legendPos=NULL)
       add.plot.interactivity(fun=points, col="red", pch=16,
                              x=values$x[useForInteractivePoints],
@@ -184,7 +190,7 @@ addTestScatterPlots = function(doc, param, x, result, seqAnno, types=NULL){
                              popup.labels=seqAnno$gene_name[useForInteractivePoints],
                              click.actions=clickActions[useForInteractivePoints])
     }
-    addPlot(doc, .interactiveVolcanoPlot, fontname="serif", par.properties=parLeft()) ## the plots are plotted next to each other. I don't know why, but I like it.
+    addPlot(doc, .interactiveVolcanoPlot, fontname="", par.properties=parLeft()) ## the plots are plotted next to each other. I don't know why, but I like it.
     addParagraph(doc, "Significant genes are plotted in red and clicking on them will open an iHop search of the gene.")
     #       plotCmd = expression({
     #         ezScatter(x=refValues, y=sampleValues, isPresent=result$usedInTest, types=types, xlab=param$refGroup, ylab=param$sampleGroup)
