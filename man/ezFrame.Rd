@@ -2,7 +2,7 @@
 % Please edit documentation in R/00defaults.R
 \name{ezFrame}
 \alias{ezFrame}
-\title{Modified default of data.frame}
+\title{Wrapper for data.frame suitable for data processing rather than stastistical modelling}
 \usage{
 ezFrame(..., row.names = NULL, check.rows = TRUE, check.names = FALSE,
   stringsAsFactors = FALSE)
@@ -14,10 +14,15 @@ ezFrame(..., row.names = NULL, check.rows = TRUE, check.names = FALSE,
 Returns a data.frame.
 }
 \description{
-Modified version of \code{data.frame()} with a different default.
+The original \code{data.frame()} is suitable for statistical modelling with factors etc.
+Our version is designed to be more suitable for data processing, i.e. we
+* do keep column names the way they are; we do not require that they represent valid variable names
+* by default we do not convert strings to factors
+There exist, similarities with data_frame 
+in Hadleys package. The difference is that we encourage to use rownames while he discourages this.
 }
 \examples{
-ezFrame(a=1:10,b=5)
+ezFrame(first=1:3, second=5, "with space"="text", row.names=rep("a", 3))letters[1:3])
 }
 \author{
 Rehrauer, Hubert

@@ -13,9 +13,12 @@ parseOptions(optString)
 \arguments{
 \item{userParam}{a list of parameters defined by the user}
 
-\item{globalDefaults}{a data.frame containing the global defaults}
+\item{globalDefaults}{a data.frame containing the global defaults for parameters. Includes for each parameter a name, 
+a default value, the type, and a description. The global defaults are read from a file. 
+See the file EZ_PARAM_DEFAULTS.txt in the package directory.}
 
-\item{appDefaults}{a data.frame containing application specific defaults}
+\item{appDefaults}{a data.frame containing application specific defaults.
+Must have the same columns as the globalDefaults data.frame.}
 }
 \value{
 Returns the merged list of parameters
@@ -28,9 +31,16 @@ override the global defaults
 \section{Functions}{
 \itemize{
 \item \code{parseOptions}: Used to parse additional options specified in \code{userParam$specialOptions}.
+Converts an option specification in the from "key1=value1 key2=value2" into a named list
 }}
 \examples{
-ezParam()
+library(ezRun)
+head(EZ_PARAM_DEFAULTS)
+globalDefaultTypedParams = ezParam()
+modifiedParams = ezParam(list(ram=40))
+modifiedParams$ram
+globalDefaultTypedParams$ram
+parseOptions("a=5 b='foo with space' c=foo")
 }
 \author{
 Rehrauer, Hubert

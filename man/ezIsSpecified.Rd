@@ -2,7 +2,7 @@
 % Please edit documentation in R/00defaults.R
 \name{ezIsSpecified}
 \alias{ezIsSpecified}
-\title{Is x specified?}
+\title{Used to check if a values is specified}
 \usage{
 ezIsSpecified(x)
 }
@@ -13,9 +13,10 @@ ezIsSpecified(x)
 Returns FALSE or TRUE.
 }
 \description{
-Checks whether \code{x} is an existing parameter and whether its first entry not an empty character.
+A value is specified if it is not \code{NULL}, it is not an empty vector, empty list or empty string.
 }
 \examples{
+ezIsSpecified(5)
 ezIsSpecified(c("this","is"))
 ezIsSpecified(c("","this isn't"))
 }

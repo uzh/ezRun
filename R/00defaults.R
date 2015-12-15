@@ -11,12 +11,21 @@
 ##' If a parameter is specified in multiple places, the user parameters override the app defaults which again
 ##' override the global defaults
 ##' @param userParam a list of parameters defined by the user
-##' @param globalDefaults a data.frame containing the global defaults
-##' @param appDefaults a data.frame containing application specific defaults
+##' @param globalDefaults a data.frame containing the global defaults for parameters. Includes for each parameter a name, 
+##' a default value, the type, and a description. The global defaults are read from a file. 
+##' See the file EZ_PARAM_DEFAULTS.txt in the package directory.
+##' @param appDefaults a data.frame containing application specific defaults.
+##' Must have the same columns as the globalDefaults data.frame.
 ##' @template roxygen-template
 ##' @return Returns the merged list of parameters
 ##' @examples
-##' ezParam()
+##' library(ezRun)
+##' head(EZ_PARAM_DEFAULTS)
+##' globalDefaultTypedParams = ezParam()
+##' modifiedParams = ezParam(list(ram=40))
+##' modifiedParams$ram
+##' globalDefaultTypedParams$ram
+##' parseOptions("a=5 b='foo with space' c=foo")
 ## current implementation: every param needs a default value
 ezParam = function(userParam=list(), globalDefaults=EZ_PARAM_DEFAULTS, appDefaults=ezFrame()){
 
@@ -35,6 +44,7 @@ ezParam = function(userParam=list(), globalDefaults=EZ_PARAM_DEFAULTS, appDefaul
                          logical=as.logical(value),
                          stop("unsupported type: ", defaults[nm, "Type"]))
   }
+  # we build the ezRef object from hints in the general parameters
   if (is.null(userParam$ezRef)){
     userParam$ezRef = EzRef(userParam)
   }
@@ -42,6 +52,7 @@ ezParam = function(userParam=list(), globalDefaults=EZ_PARAM_DEFAULTS, appDefaul
 }
 
 ##' @describeIn ezParam Used to parse additional options specified in \code{userParam$specialOptions}.
+##' Converts an option specification in the from "key1=value1 key2=value2" into a named list
 parseOptions = function(optString){
   param = list()
   if (is.null(optString) || optString == ""){
@@ -82,26 +93,33 @@ parseOptions = function(optString){
   return(param)
 }
 
-##' @title Is x specified?
-##' @description Checks whether \code{x} is an existing parameter and whether its first entry not an empty character.
+##' @title Check if a value is specified
+##' @description A value is specified if it is not \code{NULL}, it is not an empty vector, empty list or empty string.
+##' If the value is a vector, the first element must be different from the empty string.
 ##' @param x usually a parameter to check.
 ##' @template roxygen-template
 ##' @return Returns FALSE or TRUE.
 ##' @examples
+##' ezIsSpecified(5)
 ##' ezIsSpecified(c("this","is"))
 ##' ezIsSpecified(c("","this isn't"))
 ezIsSpecified = function(x){
   !is.null(x) && length(x) > 0 && x[1] != ""
 }
 
-##' @title Modified default of data.frame
-##' @description Modified version of \code{data.frame()} with a different default.
+##' @title Wrapper for data.frame suitable for data processing rather than stastistical modelling
+##' @description The original \code{data.frame()} is suitable for statistical modelling with factors etc.
+##' Our version is designed to be more suitable for data processing, i.e. we
+##' * do keep column names the way they are; we do not require that they represent valid variable names
+##' * by default we do not convert strings to factors
+##' There exist, similarities with data_frame 
+##' in Hadleys package. The difference is that we encourage to use rownames while he discourages this.
 ##' @template roxygen-template
 ##' @template addargs-template
 ##' @templateVar fun data.frame()
 ##' @return Returns a data.frame.
 ##' @examples
-##' ezFrame(a=1:10,b=5)
+##' ezFrame(first=1:3, second=5, "with space"="text", row.names=rep("a", 3))letters[1:3])
 ezFrame = function(..., row.names = NULL, check.rows=TRUE,
                    check.names=FALSE,
                    stringsAsFactors=FALSE){
