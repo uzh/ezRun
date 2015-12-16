@@ -46,26 +46,27 @@ addQcScatterPlots = function(doc, param, design, conds, rawData, signalCond, isP
     plotCmd = expression({
       ezAllPairScatter(signalCond, isPresent=isPresentCond, types=types)
     })
-    defLink = ezImageFileLink(plotCmd, file="allPairs-scatter.png",
-                              width=min(max(ncol(signalCond) * 200, 480), 2000),
-                              height=min(max(ncol(signalCond) * 200, 480), 2000)) # dynamic png with possibly many plots
+    imgLinks = character()
+    imgLinks["def"] = ezImageFileLink(plotCmd, file="allPairs-scatter.png",
+                                      width=min(max(ncol(signalCond) * 200, 480), 2000),
+                                      height=min(max(ncol(signalCond) * 200, 480), 2000)) # dynamic png with possibly many plots
     if (!is.null(gcTypes)){
       plotCmd = expression({
         ezAllPairScatter(signalCond, main="color by GC", isPresent=isPresentCond, types=gcTypes)
       })
-      gcLink = ezImageFileLink(plotCmd, file="allPairs-scatter-byGc.png",
-                               width=min(max(ncol(signalCond) * 200, 480), 2000),
-                               height=min(max(ncol(signalCond) * 200, 480), 2000)) # dynamic png with possibly many plots
+      imgLinks["gc"] = ezImageFileLink(plotCmd, file="allPairs-scatter-byGc.png",
+                                       width=min(max(ncol(signalCond) * 200, 480), 2000),
+                                       height=min(max(ncol(signalCond) * 200, 480), 2000)) # dynamic png with possibly many plots
     }
     if (!is.null(widthTypes)){
       plotCmd = expression({
         ezAllPairScatter(signalCond, main="color by width", isPresent=isPresentCond, types=widthTypes)
       })
-      widthLink = ezImageFileLink(plotCmd, file="allPairs-scatter-byWidth.png",
-                                  width=min(max(ncol(signalCond) * 200, 480), 2000),
-                                  height=min(max(ncol(signalCond) * 200, 480), 2000)) # dynamic png with possibly many plots
+      imgLinks["width"] = ezImageFileLink(plotCmd, file="allPairs-scatter-byWidth.png",
+                                          width=min(max(ncol(signalCond) * 200, 480), 2000),
+                                          height=min(max(ncol(signalCond) * 200, 480), 2000)) # dynamic png with possibly many plots
     }
-    addFlexTable(doc, ezGrid(cbind(defLink, ifelse(!is.null(gcTypes), gcLink, NULL) , ifelse(!is.null(widthTypes), widthLink, NULL))))
+    addFlexTable(doc, ezGrid(t(imgLinks)))
   }
   for (i in 1:min(4, ncol(design))){
     for (cond in unique(design[,i])){
@@ -81,7 +82,8 @@ addQcScatterPlots = function(doc, param, design, conds, rawData, signalCond, isP
         plotCmd = expression({
           ezScatter(y=signal[ ,idx], isPresent=isPresent[ ,idx], types=types, lim=signalRange, xlab=paste("Avg of", cond), ylab=NULL)
         })
-        defLink = ezImageFileLink(plotCmd, file=pngName,
+        imgLinks = character()
+        imgLinks["def"] = ezImageFileLink(plotCmd, file=pngName,
                                   width=min(nPlots, 6) * 480,
                                   height=ceiling(nPlots/6) * 480) # dynamic png with possibly many plots
         if (!is.null(gcTypes)){
@@ -89,7 +91,7 @@ addQcScatterPlots = function(doc, param, design, conds, rawData, signalCond, isP
           plotCmd = expression({
             ezScatter(y=signal[ ,idx], isPresent=isPresent[ ,idx], types=gcTypes, lim=signalRange, xlab=paste("Avg of", cond), ylab=NULL)
           })
-          gcLink = ezImageFileLink(plotCmd, file=pngName,
+          imgLinks["gc"] = ezImageFileLink(plotCmd, file=pngName,
                                    width=min(nPlots, 6) * 480,
                                    height=ceiling(nPlots/6) * 480) # dynamic png with possibly many plots
         }
@@ -98,11 +100,11 @@ addQcScatterPlots = function(doc, param, design, conds, rawData, signalCond, isP
           plotCmd = expression({
             ezScatter(y=signal[ ,idx], isPresent=isPresent[ ,idx], types=widthTypes, lim=signalRange, xlab=paste("Avg of", cond), ylab=NULL)
           })
-          widthLink = ezImageFileLink(plotCmd, file=pngName,
+          imgLinks["width"] = ezImageFileLink(plotCmd, file=pngName,
                                       width=min(nPlots, 6) * 480,
                                       height=ceiling(nPlots/6) * 480) # dynamic png with possibly many plots
         }
-        addFlexTable(doc, ezGrid(cbind(defLink, ifelse(!is.null(gcTypes), gcLink, NULL) , ifelse(!is.null(widthTypes), widthLink, NULL))))
+        addFlexTable(doc, ezGrid(t(imgLinks)))
       }
     }
   }
