@@ -359,7 +359,7 @@ addResultFile = function(doc, param, result, rawData, useInOutput=TRUE,
   useInInteractiveTable = intersect(useInInteractiveTable, colnames(y))
   tableLink = sub(".txt", "-viewTopSignificantGenes.html", file)
   ezInteractiveTable(head(y[, useInInteractiveTable, drop=FALSE], param$maxTableRows), tableLink=tableLink, digits=3,
-                     title=paste("Showing", param$maxTableRows, "most significant genes"))
+                     title=paste("Showing the", param$maxTableRows, "most significant genes"))
   return(list(resultFile=file))
 }
 
