@@ -69,6 +69,7 @@ addGoUpDownResult = function(doc, param, goResult){
   for (col in colnames(revigoLinks)){
     for (row in rownames(revigoLinks)){
       goSubResult = goResult[[col]][[row]]
+      if (is.na(goSubResult)) next
       goSubResult = goSubResult[which(goSubResult$Pvalue < param$pValThreshFisher),]
       if(nrow(goSubResult) > param$maxNumberGroupsDisplayed) {
         goSubResult = goSubResult[1:param$maxNumberGroupsDisplayed,]
@@ -135,7 +136,7 @@ goUpDownTables = function(param, goResult){
   requireNamespace("GO.db")
   
   if (!is.data.frame(x)){
-    message("got not data frame")
+    message("got no data frame")
     return(ezFrame("Term"=character(0), "p"=numeric(0), "N"=integer(0)))
   }
   x = x[x$Count >= minCount & x$Pvalue < pThreshGo, ]

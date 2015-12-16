@@ -23,10 +23,10 @@ patterns = c("deseq", "edger")
 editReportFile(patterns)
 
 # delete left-overs from devtools::run_examples()
-rm0 = system.file("tests/testthat/run_examples/*", package="ezRun", mustWork=TRUE)
-rm1 = system.file("DESCRIPTION_head", package="ezRun", mustWork=TRUE)
-rm2 = system.file("extdata/genes.bed", package="ezRun", mustWork=TRUE)
-rm3 = system.file("extdata/genesWithPrespliced.gtf", package="ezRun", mustWork=TRUE)
+rm0 = "tests/testthat/run_examples/*"
+rm1 = "DESCRIPTION_head"
+rm2 = "inst/extdata/genes.bed"
+rm3 = "inst/extdata/genesWithPrespliced.gtf"
 cmd = paste("rm -fr", rm0, rm1, rm2, rm3)
 ezSystem(cmd)
 
