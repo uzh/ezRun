@@ -135,7 +135,7 @@ closeBsdocReport = function(doc, file, titles=NULL){
 addDataset = function(doc, dataset, param){
   ezWrite.table(dataset, file="dataset.tsv", head="Name")
   tableLink = "InputDataset.html"
-  ezInteractiveTable(dataset, tableLink=tableLink)
+  ezInteractiveTable(dataset, tableLink=tableLink, title="Input Dataset")
   pots = as.html(newWindowLink(tableLink))
   if (ezIsSpecified(param$refBuild)){
     pots = c(pots, paste("Reference build:", param$refBuild))
@@ -354,8 +354,8 @@ addResultFile = function(doc, param, result, rawData, useInOutput=TRUE,
   useInInteractiveTable = c("gene_name", "type", "description", "width", "gc", "isPresent", "log2 Ratio", "pValue", "fdr")
   useInInteractiveTable = intersect(useInInteractiveTable, colnames(y))
   tableLink = sub(".txt", "-viewTopSignificantGenes.html", file)
-  ezInteractiveTable(head(y[, useInInteractiveTable, drop=FALSE], param$maxTableRows), tableLink=tableLink, digits=3)
-  addParagraph(doc, newWindowLink(tableLink))
+  ezInteractiveTable(head(y[, useInInteractiveTable, drop=FALSE], param$maxTableRows), tableLink=tableLink, digits=3,
+                     title=paste("Showing", param$maxTableRows, "most significant genes"))
   return(list(resultFile=file))
 }
 

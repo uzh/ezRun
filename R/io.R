@@ -148,8 +148,7 @@ ezWrite.table = function(values, file=file, head="Identifier", row.names=TRUE, c
 ##' tableLink = "exampleTable.html"
 ##' table = data.frame(a=c(1.11, 2:100), b=201:300)
 ##' ezInteractiveTable(table, tableLink)
-ezInteractiveTable = function(table, tableLink, digits=NULL, colNames=colnames(table), title="Test", format=NULL, envir=parent.frame()){
-  # caption = paste0("<h1>", title, "</h1>") # doesn't seem to work
+ezInteractiveTable = function(table, tableLink, digits=NULL, colNames=colnames(table), title="", format=NULL, envir=parent.frame()){
   if (!is.null(digits)){
     for (i in 1:ncol(table)) {
       if (is.numeric(table[, i]) && ezIsSpecified(table[, i])){
@@ -158,9 +157,10 @@ ezInteractiveTable = function(table, tableLink, digits=NULL, colNames=colnames(t
         }
       }
     }
-    caption = paste("Numeric values are rounded to", digits, "digits.")
+    captionText = paste("Numeric values are rounded to", digits, "digits.")
+    caption = htmltools::tags$caption(htmltools::h1(title), htmltools::p(captionText))
   } else {
-    caption = NULL
+    caption = htmltools::tags$caption(htmltools::h1(title))
   }
   interactiveTable = DT::datatable(table, extensions=c("ColVis", "TableTools"), filter="top",
                                    caption=caption, colnames=colNames,

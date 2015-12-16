@@ -2,10 +2,11 @@
 
 doc = openBsdocReport("testSmoScaAndAddPlot")
 bla = data.frame(a=runif(100), b=runif(100))
+bla = data.frame(a=runif(10000), b=runif(10000))
 
 myplotFoo = function(){
   print(system.time({
-    smoothScatter(bla$a, bla$b)
+    smoothScatter(bla$a, bla$b, nbin=32)
   }))
   print(system.time({
     add.plot.interactivity(points, x=rep(0.5,10), y=seq(0.1, 0.9, length.out = 10))
@@ -13,7 +14,7 @@ myplotFoo = function(){
 }
 myplotFoo2 = function(){
   print(system.time({
-    ezSmoothScatter(bla$a, bla$b)
+    ezSmoothScatter(bla$a, bla$b, nbin=32)
   }))
   print(system.time({
     add.plot.interactivity(points, x=rep(-5,10), y=seq(-1, -9, length.out = 10))

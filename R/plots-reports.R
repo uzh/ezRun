@@ -117,9 +117,10 @@ addQcScatterPlots = function(doc, param, design, conds, rawData, signalCond, isP
 ##' @param x a vector containing the signal.
 ##' @template result-template
 ##' @param seqAnno the sequence annotation. This is used if types is NULL.
+##' @param resultFile a character representing the link to the result file.
 ##' @template types-template
 ##' @template roxygen-template
-addTestScatterPlots = function(doc, param, x, result, seqAnno, types=NULL){
+addTestScatterPlots = function(doc, param, x, result, seqAnno, resultFile, types=NULL){
   if (is.null(types)){
     types = data.frame(row.names=rownames(x))
     if ("IsControl" %in% colnames(seqAnno)){
@@ -160,13 +161,16 @@ addTestScatterPlots = function(doc, param, x, result, seqAnno, types=NULL){
       sortedGenes = sortedGenes[1:param$maxInteractivePoints]
     }
     useForInteractivePoints = names(result$pValue) %in% sortedGenes
+    
+    interactiveDoc = openBsdocReport("Interactive plots")
     if (!is.null(types)){
       plotCmd = expression({
         ezLegend(legend=c("too few reads", "enough reads but not significant", colnames(types)), fill=c("grey", "black", rainbow(ncol(types))))
       })
       legendLink = ezImageFileLink(plotCmd, file="scatterAndVolcanoLegend.png", height=length(ncol(types))*15 + 55, width=300, addPdfLink=FALSE)
-      addParagraph(doc, legendLink)
+      addParagraph(interactiveDoc, legendLink)
     }
+    
     .interactiveScatterPlot = function(){
       ezScatter(x=refValues, y=sampleValues, isPresent=result$usedInTest, types=types, xlab=param$refGroup, ylab=param$sampleGroup, legendPos=NULL)
       add.plot.interactivity(fun=points, col="red", pch=16,
@@ -175,7 +179,7 @@ addTestScatterPlots = function(doc, param, x, result, seqAnno, types=NULL){
                              popup.labels=seqAnno$gene_name[useForInteractivePoints],
                              click.actions=clickActions[useForInteractivePoints])
     }
-    addPlot(doc, .interactiveScatterPlot, fontname="", par.properties=parLeft())
+    addPlot(interactiveDoc, .interactiveScatterPlot, fontname="", par.properties=parLeft())
     .interactiveVolcanoPlot = function(){
 #       ezSmoothScatter(x=result$log2Ratio, y=result$pValue, isPresent=result$usedInTest, types=types, main=param$comparison, legendPos=NULL)
 #       add.plot.interactivity(fun=points, col="red", pch=16,
@@ -190,22 +194,24 @@ addTestScatterPlots = function(doc, param, x, result, seqAnno, types=NULL){
                              popup.labels=seqAnno$gene_name[useForInteractivePoints],
                              click.actions=clickActions[useForInteractivePoints])
     }
-    addPlot(doc, .interactiveVolcanoPlot, fontname="", par.properties=parLeft()) ## the plots are plotted next to each other. I don't know why, but I like it.
-    addParagraph(doc, "Significant genes are plotted in red and clicking on them will open an iHop search of the gene.")
-    #       plotCmd = expression({
-    #         ezScatter(x=refValues, y=sampleValues, isPresent=result$usedInTest, types=types, xlab=param$refGroup, ylab=param$sampleGroup)
-    #       })
-    #       links["scatter"] = ezImageFileLink(plotCmd, file=paste0(param$comparison, "-scatter.png"),
-    #                                          width=min(ncol(as.matrix(sampleValues)), 6) * 480,
-    #                                          height=ceiling(ncol(as.matrix(sampleValues))/6) * 480) # dynamic png with possibly many plots
-    #       plotCmd = expression({
-    #         ezVolcano(log2Ratio=result$log2Ratio, pValue=result$pValue, isPresent=result$usedInTest, types=types, main=param$comparison)
-    #       })
-    #       links["volcano"] = ezImageFileLink(plotCmd, file=paste0(param$comparison, "-volcano.png"))
-    #       plotCmd = expression({
-    #         ezVolcano(log2Ratio=result$log2Ratio, pValue=result$fdr, isPresent=result$usedInTest, types=types, main=param$comparison, yType="FDR")
-    #       })
-    #       links["volcanoFdr"] = ezImageFileLink(plotCmd, file=paste0(param$comparison, "-FDR-volcano.png"))
+    addPlot(interactiveDoc, .interactiveVolcanoPlot, fontname="", par.properties=parLeft()) ## the plots are plotted next to each other. I don't know why, but I like it.
+    addParagraph(interactiveDoc, "Significant genes are plotted in red and clicking on them will open an iHop search of the gene.")
+    closeBsdocReport(interactiveDoc, "interactivePlots.html")
+    
+    plotCmd = expression({
+      ezScatter(x=refValues, y=sampleValues, isPresent=result$usedInTest, types=types, xlab=param$refGroup, ylab=param$sampleGroup)
+    })
+    links["scatter"] = ezImageFileLink(plotCmd, file=paste0(param$comparison, "-scatter.png"),
+                                       width=min(ncol(as.matrix(sampleValues)), 6) * 480,
+                                       height=ceiling(ncol(as.matrix(sampleValues))/6) * 480) # dynamic png with possibly many plots
+    plotCmd = expression({
+      ezVolcano(log2Ratio=result$log2Ratio, pValue=result$pValue, isPresent=result$usedInTest, types=types, main=param$comparison)
+    })
+    links["volcano"] = ezImageFileLink(plotCmd, file=paste0(param$comparison, "-volcano.png"))
+    plotCmd = expression({
+      ezVolcano(log2Ratio=result$log2Ratio, pValue=result$fdr, isPresent=result$usedInTest, types=types, main=param$comparison, yType="FDR")
+    })
+    links["volcanoFdr"] = ezImageFileLink(plotCmd, file=paste0(param$comparison, "-FDR-volcano.png"))
   } else {
     plotCmd = expression({
       ezAllPairScatter(x=2^result$groupMeans, isPresent=result$usedInTest, types=types)
@@ -293,6 +299,10 @@ addTestScatterPlots = function(doc, param, x, result, seqAnno, types=NULL){
     }
   }
   closeBsdocReport(advancedDoc, "advancedPlots.html", advancedTitles)
-  addParagraph(doc, pot("advanced Plots", hyperlink = "advancedPlots.html"))
+  testScatterTitles[["Significant Genes"]] = "Significant Genes"
+  addTitle(doc, testScatterTitles[[length(testScatterTitles)]], 3, id=testScatterTitles[[length(testScatterTitles)]])
+  tableLink = sub(".txt", "-viewTopSignificantGenes.html", resultFile)
+  addParagraph(doc, newWindowLink(tableLink))
+  addParagraph(doc, pot("Interactive Plots", hyperlink = "interactivePlots.html"))
   return(testScatterTitles)
 }

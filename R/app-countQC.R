@@ -155,7 +155,8 @@ runNgsCountQC = function(dataset, htmlFile="00index.html", param=param, rawData=
     useInInteractiveTable = intersect(useInInteractiveTable, colnames(combined))
     tableLink = sub(".txt", "-viewHighExpressionGenes.html", signalFile)
     interactiveTable = head(combined[, useInInteractiveTable, drop=FALSE], param$maxTableRows)
-    ezInteractiveTable(interactiveTable, tableLink=tableLink, digits=3, colNames=c("gene ID", colnames(interactiveTable)))
+    ezInteractiveTable(interactiveTable, tableLink=tableLink, digits=3, colNames=c("gene ID", colnames(interactiveTable)),
+                       title=paste("Showing", param$maxTableRows, "genes with the highest expression"))
     
     rpkmFile = paste0(ezValidFilename(param$name), "-rpkm.txt")
     ezWrite.table(getRpkm(rawData), file=rpkmFile, head="Feature ID", digits=4) ## NOTE: getRpkm/getTpm necessary? rawData$rpkm/tpm should work,

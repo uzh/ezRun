@@ -4,7 +4,7 @@
 \alias{addTestScatterPlots}
 \title{Adds test scatter plots}
 \usage{
-addTestScatterPlots(doc, param, x, result, seqAnno, types = NULL)
+addTestScatterPlots(doc, param, x, result, seqAnno, resultFile, types = NULL)
 }
 \arguments{
 \item{doc}{an object of the class bsdoc to add the plots.}
@@ -16,6 +16,8 @@ addTestScatterPlots(doc, param, x, result, seqAnno, types = NULL)
 \item{result}{a list of results.}
 
 \item{seqAnno}{the sequence annotation. This is used if types is NULL.}
+
+\item{resultFile}{a character representing the link to the result file.}
 
 \item{types}{a character vector containing the types.}
 }

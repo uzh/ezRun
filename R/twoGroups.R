@@ -294,7 +294,7 @@ writeNgsTwoGroupReport = function(dataset, result, output, htmlFile="00index.htm
   colnames(result$groupMeans) = c(param$sampleGroup, param$refGroup)
   
   if (param$writeScatterPlots){
-    testScatterTitles = addTestScatterPlots(doc, param, logSignal, result, seqAnno, types) ## colorRange was also not used in the old function
+    testScatterTitles = addTestScatterPlots(doc, param, logSignal, result, seqAnno, resultFile$resultFile, types) ## colorRange was also not used in the old function
     titles = append(titles, testScatterTitles)
   }
   
@@ -404,5 +404,6 @@ writeNgsTwoGroupReport = function(dataset, result, output, htmlFile="00index.htm
     addTitle(doc, titles[[length(titles)]], 3, id=titles[[length(titles)]])
     addGageTables(doc, param, gageRes)
   }
+  addParagraph(doc, pot("advanced Plots", hyperlink = "advancedPlots.html"))
   closeBsdocReport(doc, htmlFile, titles)
 }

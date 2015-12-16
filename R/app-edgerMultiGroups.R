@@ -245,7 +245,7 @@ writeNgsMultiGroupReport = function(dataset, result, htmlFile, param=NA, rawData
   result$groupMeans = averageColumns(logSignal, by=param$grouping)
   
   if (param$writeScatterPlots){
-    testScatterTitles = addTestScatterPlots(doc, param, logSignal, result, seqAnno, types)
+    testScatterTitles = addTestScatterPlots(doc, param, logSignal, result, seqAnno, resultFile$resultFile, types)
     titles = append(titles, testScatterTitles)
   }
   
@@ -346,6 +346,7 @@ writeNgsMultiGroupReport = function(dataset, result, htmlFile, param=NA, rawData
       addTitle(doc, titles[[length(titles)]], 3, id=titles[[length(titles)]])
       addFlexTable(doc, ezFlexTable(enrichrLinks, valign="middle", add.rownames = TRUE))
     }
-  } 
+  }
+  addParagraph(doc, pot("advanced Plots", hyperlink = "advancedPlots.html"))
   closeBsdocReport(doc, htmlFile, titles)
 }

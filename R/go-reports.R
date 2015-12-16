@@ -28,7 +28,8 @@ goClusterTable = function(param, clusterResult, seqAnno){
       x = clusterResult$GO[[onto]][[i]]
       goFrame = .getGoTermsAsTd(x, param$pValThreshFisher, param$minCountFisher, onto=onto)
       linkTable[i, onto] = paste0("Cluster-", onto, "-", i, ".html")
-      ezInteractiveTable(goFrame, tableLink=linkTable[i, onto], digits=3)
+      ezInteractiveTable(goFrame, tableLink=linkTable[i, onto], digits=3,
+                         title=paste("GO categories of cluster", i, "and ontology", onto))
       linkTable[i, onto] = as.html(newWindowLink(linkTable[i, onto]))
       goFrame$Term = substr(goFrame$Term, 1, 30)
       if (nrow(goFrame) > 0){
@@ -98,7 +99,8 @@ goUpDownTables = function(param, goResult){
       goFrame = .getGoTermsAsTd(x[[sub]], param$pValThreshFisher, param$minCountFisher, onto=onto,
                                 maxNumberOfTerms=param$maxNumberGroupsDisplayed)
       linkTable[onto, sub] = paste0("Cluster-", onto, "-", sub, ".html")
-      ezInteractiveTable(goFrame, tableLink=linkTable[onto, sub], digits=3)
+      ezInteractiveTable(goFrame, tableLink=linkTable[onto, sub], digits=3,
+                         title=paste(sub("enrich", "", sub), "enriched GO categories of ontology", onto))
       linkTable[onto, sub] = as.html(newWindowLink(linkTable[onto, sub]))
       goFrame$Term = substr(goFrame$Term, 1, 30)
       if (nrow(goFrame) > 0){
