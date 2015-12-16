@@ -5,7 +5,7 @@
 \title{Saves an interactive table}
 \usage{
 ezInteractiveTable(table, tableLink, digits = NULL,
-  colNames = colnames(table), title = "Test", format = NULL,
+  colNames = colnames(table), title = "", format = NULL,
   envir = parent.frame())
 }
 \arguments{
@@ -16,6 +16,8 @@ ezInteractiveTable(table, tableLink, digits = NULL,
 \item{digits}{the number of digits to round to, if rounding is desired.}
 
 \item{colNames}{a character vector specifying the column names of the interactive table.}
+
+\item{title}{a character representing the title of the interactive table.}
 
 \item{format}{formatting options passed as an expression. The table argument in formatting functions must be named \code{interactiveTable}.}
 

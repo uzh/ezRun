@@ -139,6 +139,7 @@ ezWrite.table = function(values, file=file, head="Identifier", row.names=TRUE, c
 ##' @param tableLink a character ending with .html representing the link to the interactive table
 ##' @param digits the number of digits to round to, if rounding is desired.
 ##' @param colNames a character vector specifying the column names of the interactive table.
+##' @param title a character representing the title of the interactive table.
 ##' @param format formatting options passed as an expression. The table argument in formatting functions must be named \code{interactiveTable}.
 ##' @param envir the environment to evaluate \code{format} in.
 ##' @template roxygen-template
@@ -162,8 +163,7 @@ ezInteractiveTable = function(table, tableLink, digits=NULL, colNames=colnames(t
   } else {
     caption = htmltools::tags$caption(htmltools::h1(title))
   }
-  interactiveTable = DT::datatable(table, extensions=c("ColVis", "TableTools"), filter="top",
-                                   caption=caption, colnames=colNames,
+  interactiveTable = DT::datatable(table, extensions=c("ColVis", "TableTools"), filter="top", caption=caption, colnames=colNames,
                                    options=list(dom='TC<"clear">lfrtip', pageLength=25, autoWidth=TRUE))
   if (!is.null(format)){
     currEnv = environment()
