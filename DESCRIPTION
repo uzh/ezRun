@@ -15,7 +15,7 @@ Imports:
     GO.db,GOstats,annotate,bitops,edgeR,limma,rtracklayer,S4Vectors,VariantAnnotation
 Suggests:
     testthat,knitr,
-    gage,goseq,ChIPpeakAnno,DESeq2,TEQC,htSeqTools,pathview,reshape2,vsn,Rsubread,preprocessCore,wesanderson,RCurl,caTools,matrixStats,Repitools,DT,
+    gage,goseq,ChIPpeakAnno,DESeq2,TEQC,htSeqTools,pathview,reshape2,vsn,Rsubread,preprocessCore,wesanderson,RCurl,caTools,matrixStats,Repitools,DT,htmltools,
     biomaRt,RColorBrewer,WGCNA,plyr,pvclust
 VignetteBuilder: knitr
 RoxygenNote: 5.0.1
