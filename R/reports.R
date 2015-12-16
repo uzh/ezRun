@@ -193,9 +193,9 @@ addTxtLinksToReport = function(doc, txtNames, doZip=FALSE, mime=ifelse(doZip, "a
 ##' @describeIn addTxtLinksToReport Gets the link, its name and returns a an html link that will open new windows/tabs.
 newWindowLink = function(linkName){
   title = sub(".html", "", linkName)
-  # jsCall = paste0("javascript:window.open('", linkName, "','", title, "','width=1200,height=900')")
   jsCall = paste0('popup({linkName: "', linkName, '"});')
   return(pot(paste0("<a href='javascript:void(0)' onClick='", jsCall, "'>", title, "</a>")))
+  # jsCall = paste0("javascript:window.open('", linkName, "','", title, "','width=1200,height=900')")
   # return(pot(paste0('<a href="', jsCall, '">', title, '</a>')))
 }
 
