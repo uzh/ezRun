@@ -148,15 +148,24 @@ runNgsCountQC = function(dataset, htmlFile="00index.html", param=param, rawData=
     ezWrite.table(combined, file=signalFile, head="Feature ID", digits=4)
     
     selectSignals = grepl("Signal", colnames(combined))
-    combined$"Mean signal across samples" = apply(combined[, selectSignals], 1, mean)
-    combined$"Stdv signal across samples" = apply(combined[, selectSignals], 1, sd)
-    combined = combined[order(combined$"Mean signal across samples", decreasing = TRUE), , drop=FALSE]
-    useInInteractiveTable = c("seqid", "gene_name", "gene_id", "Mean signal across samples", "Stdv. signal across samples", "description", "strand", "start", "end", "width", "gc")
+    combined$"Mean signal" = apply(combined[, selectSignals], 1, mean)
+    combined$"Maximum signal" = apply(combined[, selectSignals], 1, max)
+    topGenesPerSample = apply(combined[, selectSignals], 2, function(col){
+      col = sort(col, decreasing = TRUE)
+      if (length(col) > 100) col = col[1:100]
+      return(names(col))
+    })
+    topGenes = unique(as.vector(topGenesPerSample))
+    
+    combined = combined[order(combined$"Maximum signal", decreasing = TRUE), , drop=FALSE]
+    useInInteractiveTable = c("seqid", "gene_name", "Maximum signal", "Mean signal", "description", "strand", "start", "end", "width", "gc")
     useInInteractiveTable = intersect(useInInteractiveTable, colnames(combined))
     tableLink = sub(".txt", "-viewHighExpressionGenes.html", signalFile)
-    interactiveTable = head(combined[, useInInteractiveTable, drop=FALSE], param$maxTableRows)
-    ezInteractiveTable(interactiveTable, tableLink=tableLink, digits=3, colNames=c("gene ID", colnames(interactiveTable)),
-                       title=paste("Showing the top", param$maxTableRows, "genes with the highest expression"))
+    combinedTopGenes = combined[which(rownames(combined) %in% topGenes),] ## select top genes
+    interactiveTable = head(combinedTopGenes[, useInInteractiveTable, drop=FALSE], param$maxTableRows) ## restrict number of table rows if necessary
+    nRows = ifelse(length(topGenes)>=param$maxTableRows, param$maxTableRows, length(topGenes))
+    ezInteractiveTable(interactiveTable, tableLink=tableLink, digits=3, colNames=c("ID", colnames(interactiveTable)),
+                       title=paste("Showing the top", nRows, "genes with the highest expression"))
     
     rpkmFile = paste0(ezValidFilename(param$name), "-rpkm.txt")
     ezWrite.table(getRpkm(rawData), file=rpkmFile, head="Feature ID", digits=4) ## NOTE: getRpkm/getTpm necessary? rawData$rpkm/tpm should work,
