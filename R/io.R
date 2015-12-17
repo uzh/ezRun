@@ -155,7 +155,7 @@ ezInteractiveTable = function(values, tableLink, digits=NULL, colNames=colnames(
       hasDecimals = suppressWarnings({as.integer(values[ ,i]) != values[ ,i]})
       hasDecimals[is.na(hasDecimals)] = FALSE
       if (any(hasDecimals)){
-        values[[i]] = signif(values[ ,i], digits=digits)
+        values[ ,i] = signif(values[ ,i], digits=digits)
       }
     }
     captionText = paste("Numeric values are rounded to", digits, "digits.")
