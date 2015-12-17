@@ -30,9 +30,8 @@
 ##' @return Returns the output after trimming as an object of the class EzDataset.
 ezMethodTrim = function(input=NA, output=NA, param=NA){
   
-  ## if output is not defined, set it!
-  ## TODO: gives warning message if outpu is S4 class
-  if (is.na(output)){
+  ## if output is not an EzDataset, set it!
+  if (!is(output, "EzDataset")){
     output = input$copy()
     output$setColumn("Read1", paste0(input$getNames(), "-trimmed-R1.fastq"))
     if (param$paired){
@@ -154,8 +153,6 @@ ezMethodTrim = function(input=NA, output=NA, param=NA){
       r1TmpFile = "flexbar.fastq"
     }
   }
-  
-
   if (param$paired){
     ezSystem(paste("mv", r1TmpFile, basename(output$getColumn("Read1"))))
     ezSystem(paste("mv", r2TmpFile, basename(output$getColumn("Read2"))))
@@ -167,8 +164,7 @@ ezMethodTrim = function(input=NA, output=NA, param=NA){
 
 ##' @describeIn ezMethodTrim Gets the subsample files, calls \code{ezSubsampleFastq()} on them and returns the output, which is an object of the class EzDataset.
 ezMethodSubsampleReads = function(input=NA, output=NA, param=NA){
-  ## TODO: gives warning message if outpu is S4 class
-  if (is.na(output)){
+  if (!is(output, "EzDataset")){
     output = input$copy()
     subsampleFiles = sub(".fastq.*", "-subsample.fastq", basename(input$getColumn("Read1")))
     output$setColumn(name="Read1", values = file.path(getwd(), subsampleFiles))
