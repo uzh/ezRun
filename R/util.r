@@ -284,6 +284,18 @@ trimWhiteSpace = function (x){
     sub("[ \t\n\r]*$", "", sub("^[ \t\n\r]*", "", x))
 }
 
+##' @title Checks if the argument can be safely used as a filename
+##' @description only supports alphanumeric characters and "+-_"
+##' @return TRUE or FALSE
+##' @examples 
+##' hasFilesafeCharacters("a")
+##' hasFilesafeCharacters("a\n")
+##' hasFilesafeCharacters(c("1", "2"))
+hasFilesafeCharacters = function(x){
+  all(grepl("[a-zA-Y0-9+-_]", unlist(strsplit(x, ""))))
+}
+
+
 ##' @title Creates a matrix
 ##' @description Either use the rows and columns to define the matrix or the dimensions.
 ##' @param x a vector containing the matrix elements
@@ -677,3 +689,6 @@ ezSplitLongLabels = function(labels, nSplit=20){
   }
   return(labels)
 }
+
+
+
