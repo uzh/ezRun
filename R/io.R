@@ -153,7 +153,7 @@ ezInteractiveTable = function(table, tableLink, digits=NULL, colNames=colnames(t
   if (!is.null(digits)){
     for (i in 1:ncol(table)) {
       if (is.numeric(table[, i]) && ezIsSpecified(table[, i])){
-        if (!(as.integer(table[, i])==table[, i])){
+        if (!any(as.integer(table[, i])==table[, i])){
           table[, i] = signif(table[, i], digits=digits)
         }
       }
