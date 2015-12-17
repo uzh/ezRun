@@ -123,8 +123,7 @@ plotBamStat = function(resultList, dataset, param, htmlFile=NULL){
         tctRel = tctRel[rowsUse, , drop=FALSE]
         pngFile = paste0("typeCoverage-", nm, "-heatmap.png")
         plotCmd = expression({
-          ezHeatmap(tctRel, margins=c(10, 12),
-                    lim=c(-5, 5),
+          ezHeatmap(tctRel, margins=c(10, 12), lim=c(-5, 5),
                     Rowv=FALSE, Colv=FALSE, main="Coverage Enrichment")
         })
         heatmapLink = ezImageFileLink(plotCmd, file=pngFile, height=600, width=800)

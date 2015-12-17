@@ -28,6 +28,7 @@ goClusterTable = function(param, clusterResult, seqAnno){
       x = clusterResult$GO[[onto]][[i]]
       goFrame = .getGoTermsAsTd(x, param$pValThreshFisher, param$minCountFisher, onto=onto)
       linkTable[i, onto] = paste0("Cluster-", onto, "-", i, ".html")
+      if (nrow(goFrame)==0) next
       ezInteractiveTable(goFrame, tableLink=linkTable[i, onto], digits=3,
                          title=paste("GO categories of cluster", i, "and ontology", onto))
       linkTable[i, onto] = as.html(newWindowLink(linkTable[i, onto]))
@@ -69,7 +70,7 @@ addGoUpDownResult = function(doc, param, goResult){
   for (col in colnames(revigoLinks)){
     for (row in rownames(revigoLinks)){
       goSubResult = goResult[[col]][[row]]
-      if (is.na(goSubResult)) next
+      if (all(is.na(goSubResult))) next
       goSubResult = goSubResult[which(goSubResult$Pvalue < param$pValThreshFisher),]
       if(nrow(goSubResult) > param$maxNumberGroupsDisplayed) {
         goSubResult = goSubResult[1:param$maxNumberGroupsDisplayed,]
@@ -100,15 +101,12 @@ goUpDownTables = function(param, goResult){
       goFrame = .getGoTermsAsTd(x[[sub]], param$pValThreshFisher, param$minCountFisher, onto=onto,
                                 maxNumberOfTerms=param$maxNumberGroupsDisplayed)
       linkTable[onto, sub] = paste0("Cluster-", onto, "-", sub, ".html")
+      if (nrow(goFrame)==0) next
       ezInteractiveTable(goFrame, tableLink=linkTable[onto, sub], digits=3,
                          title=paste(sub("enrich", "", sub), "enriched GO categories of ontology", onto))
       linkTable[onto, sub] = as.html(newWindowLink(linkTable[onto, sub]))
       goFrame$Term = substr(goFrame$Term, 1, 30)
-      if (nrow(goFrame) > 0){
-        resultList[[sub]]["Cats", onto] = as.html(ezFlexTable(goFrame, talign="right", header.columns = TRUE))
-      } else {
-        message("no rows")
-      }
+      resultList[[sub]]["Cats", onto] = as.html(ezFlexTable(goFrame, talign="right", header.columns = TRUE))
       xSub = x[[sub]]
       if (is.data.frame(xSub)){
         name = paste0(onto, "-", param$comparison, "-", sub)
