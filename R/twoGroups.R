@@ -276,12 +276,18 @@ writeNgsTwoGroupReport = function(dataset, result, output, htmlFile="00index.htm
   doc = openBsdocReport(title=titles[[length(titles)]])
   
   addDataset(doc, dataset, param)
+  addCountResultSummary(doc, param, result)
   
   titles[["Result Summary"]] = "Result Summary"
   addTitle(doc, titles[[length(titles)]], 2, id=titles[[length(titles)]])
-  addCountResultSummary(doc, param, result)
+  settings = character()
+  settings["Number of features:"] = length(result$pValue)
+  if (!is.null(result$isPresentProbe)){
+    settings["Number of features with counts above threshold:"] = sum(result$isPresentProbe)
+  }
+  addFlexTable(doc, ezGrid(settings, add.rownames=TRUE))
   
-  titles[["Significant Counts"]] = "Significant Counts"
+  titles[["Number of significants by p-value and fold-change"]] = "Number of significants by p-value and fold-change"
   addTitle(doc, titles[[length(titles)]], 3, id=titles[[length(titles)]])
   addSignificantCounts(doc, result)
   
@@ -330,11 +336,13 @@ writeNgsTwoGroupReport = function(dataset, result, output, htmlFile="00index.htm
     }
     titles[["Clustering of Significant Features"]] = "Clustering of Significant Features"
     addTitle(doc, titles[[length(titles)]], 2, id=titles[[length(titles)]])
-    addParagraph(doc, paste("Significance threshold:", param$pValueHighlightThresh))
+    paragraphs = character()
+    paragraphs["Significance threshold:"] = param$pValueHighlightThresh
     if (param$log2RatioHighlightThresh > 0){
-      addParagraph(doc, paste("log2 Ratio threshold:", param$log2RatioHighlightThresh))
+      paragraphs["log2 Ratio threshold:"] = param$log2RatioHighlightThresh
     }
-    addParagraph(doc, paste("Number of significant features:", sum(use)))
+    paragraphs["Number of significant features:"] = sum(use)
+    addFlexTable(doc, ezGrid(paragraphs, add.rownames=TRUE))
     
     jsFile = system.file("extdata/enrichr.js", package="ezRun", mustWork=TRUE)
     addJavascript(doc, jsFile)
@@ -361,7 +369,7 @@ writeNgsTwoGroupReport = function(dataset, result, output, htmlFile="00index.htm
     tbl = ezGrid(cbind("Cluster Plot"=clusterLink, "GO categories of feature clusters"=goLink), header.columns = TRUE)
     addFlexTable(goClusterTableDoc, tbl)
     closeBsdocReport(goClusterTableDoc, "goClusterTable.html")
-    addTxtLinksToReport(doc, txtNames="goClusterTable.html")
+    addParagraph(doc, pot("GO cluster tables", hyperlink="goClusterTable.html"))
     tbl = ezGrid(cbind("Cluster Plot"=clusterLink, "GO categories of feature clusters"=goAndEnrichrTableLink), header.columns = TRUE)
     addFlexTable(doc, tbl)
   }

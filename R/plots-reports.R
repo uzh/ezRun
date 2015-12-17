@@ -129,13 +129,10 @@ addTestScatterPlots = function(doc, param, x, result, seqAnno, resultFile, types
       types$Controls = seqAnno[ rownames(x), "IsControl"]
     }
   }
-  msg = "Highlighting significants with: "
   if (!is.null(param$pValueHighlightThresh)){
     significants = result$pValue <= param$pValueHighlightThresh & result$usedInTest
     types$Significants = result$pValue <= param$pValueHighlightThresh & result$usedInTest
-    msg = paste(msg, "p <= ", param$pValueHighlightThresh)
     if (!is.null(param$log2RatioHighlightThresh)){
-      msg = paste(msg, "and log ratio >= ", param$log2RatioHighlightThresh)
       if (!is.null(result$log2Ratio)){
         types$Significants = types$Significants & abs(result$log2Ratio) >= param$log2RatioHighlightThresh
       } else {
@@ -145,13 +142,23 @@ addTestScatterPlots = function(doc, param, x, result, seqAnno, resultFile, types
   }
   
   testScatterTitles = list()
-  testScatterTitles[["Scatter Plots"]] = "Scatter Plots"
+  testScatterTitles[["Inspection of significant genes"]] = "Inspection of significant genes"
   addTitle(doc, testScatterTitles[[length(testScatterTitles)]], 2, id=testScatterTitles[[length(testScatterTitles)]])
-  addParagraph(doc, msg)
+  paragraphs = character()
+  if (!is.null(param$pValueHighlightThresh)){
+    paragraphs["P-value threshold:"] = paste("p <=", param$pValueHighlightThresh)
+  }
+  if (!is.null(param$log2RatioHighlightThresh)){
+    paragraphs["Log ratio threshold:"] = paste("log ratio >=", param$log2RatioHighlightThresh)
+  }
+  paragraphs["Number of significant genes:"] = length(which(types$Significants))
+  paragraphs["Subsequent plots highlight significant genes in "] = as.html(pot("red", format = textProperties(color="red")))
+  addFlexTable(doc, ezGrid(paragraphs, add.rownames=TRUE))
   testScatterTitles[["Between-group Comparison"]] = "Between-group Comparison"
   addTitle(doc, testScatterTitles[[length(testScatterTitles)]], 3, id=testScatterTitles[[length(testScatterTitles)]])
   
-  links = character()
+  links = ezMatrix("", rows=1:2, cols=1:2)
+  advancedLinks = character()
   if (ncol(result$groupMeans) == 2 & !is.null(param$sampleGroup) & !is.null(param$refGroup)){
     sampleValues = 2^result$groupMeans[ , param$sampleGroup]
     refValues = 2^result$groupMeans[ , param$refGroup]
@@ -199,29 +206,34 @@ addTestScatterPlots = function(doc, param, x, result, seqAnno, resultFile, types
 #     addPlot(interactiveDoc, .interactiveVolcanoPlot, fontname="", par.properties=parLeft()) ## the plots are plotted next to each other. I don't know why, but I like it.
     addParagraph(interactiveDoc, "Significant genes are plotted in red and clicking on them will open an iHop search of the gene.")
     closeBsdocReport(interactiveDoc, "interactivePlots.html")
+    links[2, 1] = as.html(pot("Comparison plot of clickable significant genes", hyperlink = "interactivePlots.html"))
     
     plotCmd = expression({
-      ezScatter(x=refValues, y=sampleValues, isPresent=result$usedInTest, types=types, xlab=param$refGroup, ylab=param$sampleGroup)
+      ezXYScatterScatter(xVec=refValues, yVec=sampleValues, isPresent=result$usedInTest, types=types,
+                         xlab=param$refGroup, ylab=param$sampleGroup, main="Comparison of average expression")
     })
-    links["scatter"] = ezImageFileLink(plotCmd, file=paste0(param$comparison, "-scatter.png"),
+    links[1, 1] = ezImageFileLink(plotCmd, file=paste0(param$comparison, "-scatter.png"),
                                        width=min(ncol(as.matrix(sampleValues)), 6) * 480,
                                        height=ceiling(ncol(as.matrix(sampleValues))/6) * 480) # dynamic png with possibly many plots
     plotCmd = expression({
       ezVolcano(log2Ratio=result$log2Ratio, pValue=result$pValue, isPresent=result$usedInTest, types=types, main=param$comparison)
     })
-    links["volcano"] = ezImageFileLink(plotCmd, file=paste0(param$comparison, "-volcano.png"))
+    links[1, 2] = ezImageFileLink(plotCmd, file=paste0(param$comparison, "-volcano.png"))
     plotCmd = expression({
       ezVolcano(log2Ratio=result$log2Ratio, pValue=result$fdr, isPresent=result$usedInTest, types=types, main=param$comparison, yType="FDR")
     })
-    links["volcanoFdr"] = ezImageFileLink(plotCmd, file=paste0(param$comparison, "-FDR-volcano.png"))
+    advancedLinks["volcanoFdr"] = ezImageFileLink(plotCmd, file=paste0(param$comparison, "-FDR-volcano.png"))
   } else {
     plotCmd = expression({
       ezAllPairScatter(x=2^result$groupMeans, isPresent=result$usedInTest, types=types)
     })
-    links["allPair"] = ezImageFileLink(plotCmd, file=paste0(param$comparison, "-scatter.png"),
+    links[1, 1] = ezImageFileLink(plotCmd, file=paste0(param$comparison, "-scatter.png"),
                                        width=min(max(ncol(result$groupMeans) * 200, 480), 2000),
                                        height=min(max(ncol(result$groupMeans) * 200, 480), 2000)) # dynamic png with possibly many plots
   }
+  
+  tableLink = sub(".txt", "-viewTopSignificantGenes.html", resultFile)
+  links[2, 2] = as.html(newWindowLink(tableLink, "Interactive table of significant genes"))
   
   plotCmd = expression({
     myBreaks = seq(0, 1, by=0.002)
@@ -237,8 +249,7 @@ addTestScatterPlots = function(doc, param, x, result, seqAnno, resultFile, types
     axis(1, at=at*ncol(xx), labels = at)
     legend("top", c("used", "not expressed"), col=c("blue", "darkorange"), pch=20, cex=1)
   })
-  links["pValueHist"] = ezImageFileLink(plotCmd, file=paste0(param$comparison, "-pValueHist.png"), width=800)
-  addFlexTable(doc, ezGrid(rbind(links)))
+  advancedLinks["pValueHist"] = ezImageFileLink(plotCmd, file=paste0(param$comparison, "-pValueHist.png"), width=800)
   
   if (is.null(x)){
     return()
@@ -248,6 +259,7 @@ addTestScatterPlots = function(doc, param, x, result, seqAnno, resultFile, types
   advancedTitles = list()
   advancedTitles[["Advanced Plots"]] = "Advanced Plots"
   advancedDoc = openBsdocReport(title=advancedTitles[[length(advancedTitles)]])
+  addFlexTable(advancedDoc, ezGrid(rbind(advancedLinks)))
   if (!ezIsSpecified(param$batch)){ ## TODO: we no longer use pairing, we now use batch which is more general; however these plots only work if batch is a real pairing
     for (group in unique(c(param$refGroup, colnames(result$groupMeans)))){
       idx = which(group == param$grouping)
@@ -301,10 +313,8 @@ addTestScatterPlots = function(doc, param, x, result, seqAnno, resultFile, types
     }
   }
   closeBsdocReport(advancedDoc, "advancedPlots.html", advancedTitles)
-  testScatterTitles[["Significant Genes"]] = "Significant Genes"
-  addTitle(doc, testScatterTitles[[length(testScatterTitles)]], 3, id=testScatterTitles[[length(testScatterTitles)]])
-  tableLink = sub(".txt", "-viewTopSignificantGenes.html", resultFile)
-  addParagraph(doc, newWindowLink(tableLink))
-  addParagraph(doc, pot("Interactive Plots", hyperlink = "interactivePlots.html"))
+#   testScatterTitles[["Significant Genes"]] = "Significant Genes"
+#   addTitle(doc, testScatterTitles[[length(testScatterTitles)]], 3, id=testScatterTitles[[length(testScatterTitles)]])
+  addFlexTable(doc, ezGrid(links))
   return(testScatterTitles)
 }

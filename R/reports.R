@@ -77,8 +77,7 @@ ezImageFileLink = function(plotCmd, file=NULL, name="imagePlot", plotType="plot"
     pdf(file=pdfName, width=width/ppi, height=height/ppi)
     eval(plotCmd, envir=envir)
     dev.off()
-    imgFilePot = pot(paste("<img src='", file, "' title='", mouseOverText, "'/>"),
-                     hyperlink = pdfName)
+    imgFilePot = pot(paste("<img src='", file, "' title='", mouseOverText, "'/>"), hyperlink = pdfName)
   } else {
     imgFilePot = pot(paste("<img src='", file, "' title='", mouseOverText, "'/>"))
   }
@@ -138,7 +137,7 @@ addDataset = function(doc, dataset, param){
   addJavascript(doc, jsFile)
   tableLink = "InputDataset.html"
   ezInteractiveTable(dataset, tableLink=tableLink, title="Input Dataset")
-  pots = as.html(newWindowLink(tableLink))
+  pots = as.html(newWindowLink(tableLink, "Input Dataset"))
   if (ezIsSpecified(param$refBuild)){
     pots = c(pots, paste("Reference build:", param$refBuild))
   }
@@ -170,8 +169,9 @@ writeErrorReport = function(htmlFile, param=param, error="Unknown Error"){
 ##' @description Adds texts link to a bsdoc object.
 ##' @template doc-template
 ##' @templateVar object text links
-##' @param txtNames a character vector representing the file names.
-##' @param linkName a single character representing the link name (with .html).
+##' @param txtNames a character vector representing the link names.
+##' @param linkName a single character representing the link (with .html).
+##' @param txtName a single character representing the link name.
 ##' @param doZip a logical indicating whether to zip the files.
 ##' @param mime a character representing the type of the links.
 ##' @template roxygen-template
@@ -191,8 +191,12 @@ addTxtLinksToReport = function(doc, txtNames, doZip=FALSE, mime=ifelse(doZip, "a
 }
 
 ##' @describeIn addTxtLinksToReport Gets the link, its name and returns a an html link that will open new windows/tabs.
-newWindowLink = function(linkName){
-  title = sub(".html", "", linkName)
+newWindowLink = function(linkName, txtName=NULL){
+  if (is.null(txtName)){
+    title = sub(".html", "", linkName)
+  } else {
+    title = txtName
+  }
   jsCall = paste0('popup({linkName: "', linkName, '"});')
   return(pot(paste0("<a href='javascript:void(0)' onClick='", jsCall, "'>", title, "</a>")))
   # jsCall = paste0("javascript:window.open('", linkName, "','", title, "','width=1200,height=900')")
@@ -217,7 +221,6 @@ newWindowLink = function(linkName){
 addCountResultSummary = function(doc, param, result){
   settings = character()
   settings["Analysis:"] = result$analysis
-  settings["Genome Build:"] = param$ezRef@refBuild
   settings["Feature level:"] = result$featureLevel
   settings["Data Column Used:"] = result$countName
   settings["Method:"] = result$method
@@ -227,10 +230,6 @@ addCountResultSummary = function(doc, param, result){
   settings["Comparison:"] = param$comparison
   if (!is.null(param$normMethod)){
     settings["Normalization:"] = param$normMethod
-  }
-  settings["Number of features:"] = length(result$pValue)
-  if (!is.null(result$isPresentProbe)){
-    settings["Number of features with counts above threshold:"] = sum(result$isPresentProbe)
   }
   if (param$useSigThresh){
     settings["Log2 signal threshold:"] = signif(log2(param$sigThresh), digits=4)
@@ -354,6 +353,9 @@ addResultFile = function(doc, param, result, rawData, useInOutput=TRUE,
     y$gc = as.numeric(y$gc)
   }
   ezWrite.table(y, file=file, head="Identifier", digits=4)
+  addParagraph(doc, paste("Full result table for opening with a spreadsheet program (e.g. Excel: when",
+                          "opening with Excel, make sure that the Gene symbols are loaded into a",
+                          "column formatted as 'text' that prevents conversion of the symbols to dates):"))
   addTxtLinksToReport(doc, file, param$doZip)
   useInInteractiveTable = c("gene_name", "type", "description", "width", "gc", "isPresent", "log2 Ratio", "pValue", "fdr")
   useInInteractiveTable = intersect(useInInteractiveTable, colnames(y))
