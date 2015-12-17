@@ -107,9 +107,9 @@ ezWrite.table = function(values, file=file, head="Identifier", row.names=TRUE, c
     if (is.data.frame(values)){
       for (i in 1:length(values)){
         if (is.numeric(values[[i]])){
-          isInteger = as.integer(values[[i]]) == values[[i]]
-          isInteger[is.na(isInteger)] = TRUE
-          if (any(!isInteger)){
+          hasDecimals = suppressWarnings({as.integer(values[[i]]) != values[[i]]})
+          hasDecimals[is.na(hasDecimals)] = FALSE
+          if (any(hasDecimals)){
             values[[i]] = signif(values[[i]], digits=digits)
           }
         }
@@ -149,15 +149,13 @@ ezWrite.table = function(values, file=file, head="Identifier", row.names=TRUE, c
 ##' tableLink = "exampleTable.html"
 ##' table = data.frame(a=c(1.11, 2:100), b=201:300)
 ##' ezInteractiveTable(table, tableLink)
-ezInteractiveTable = function(table, tableLink, digits=NULL, colNames=colnames(table), title="", format=NULL, envir=parent.frame()){
+ezInteractiveTable = function(values, tableLink, digits=NULL, colNames=colnames(values), title="", format=NULL, envir=parent.frame()){
   if (!is.null(digits)){
-    for (i in 1:ncol(table)) {
-      if (is.numeric(table[, i]) && ezIsSpecified(table[, i])){
-        flag = !any(as.integer(table[, i])==table[, i])
-        if (is.na(flag)) flag = TRUE
-        if (flag){
-          table[, i] = signif(table[, i], digits=digits)
-        }
+    for (i in 1:ncol(values)) {
+      hasDecimals = suppressWarnings({as.integer(values[ ,i]) != values[ ,i]})
+      hasDecimals[is.na(hasDecimals)] = FALSE
+      if (any(hasDecimals)){
+        values[[i]] = signif(values[ ,i], digits=digits)
       }
     }
     captionText = paste("Numeric values are rounded to", digits, "digits.")
@@ -165,7 +163,7 @@ ezInteractiveTable = function(table, tableLink, digits=NULL, colNames=colnames(t
   } else {
     caption = htmltools::tags$caption(htmltools::h1(title))
   }
-  interactiveTable = DT::datatable(table, extensions=c("ColVis", "TableTools"), filter="top", caption=caption, colnames=colNames,
+  interactiveTable = DT::datatable(values, extensions=c("ColVis", "TableTools"), filter="top", caption=caption, colnames=colNames,
                                    options=list(dom='TC<"clear">lfrtip', pageLength=25, autoWidth=TRUE))
   if (!is.null(format)){
     currEnv = environment()
