@@ -2,9 +2,12 @@
 % Please edit documentation in R/util.r
 \name{ezSplitLongLabels}
 \alias{ezSplitLongLabels}
+\alias{ezSplitLongText}
 \title{Splits long labels into two lines}
 \usage{
 ezSplitLongLabels(labels, nSplit = 20)
+
+ezSplitLongText(text, nSplit = 180)
 }
 \arguments{
 \item{labels}{a character vector to split long elements from.}
@@ -14,6 +17,10 @@ ezSplitLongLabels(labels, nSplit = 20)
 \description{
 Splits long labels into two lines.
 }
+\section{Functions}{
+\itemize{
+\item \code{ezSplitLongText}: Splits long character lines into several.
+}}
 \examples{
 a = paste(letters[1:22], collapse="")
 b = paste(letters[1:23], collapse="")

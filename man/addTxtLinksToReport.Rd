@@ -8,18 +8,20 @@
 addTxtLinksToReport(doc, txtNames, doZip = FALSE, mime = ifelse(doZip,
   "application/zip", "application/text"))
 
-newWindowLink(linkName)
+newWindowLink(linkName, txtName = NULL)
 }
 \arguments{
 \item{doc}{an object of the class bsdoc to add the text links.}
 
-\item{txtNames}{a character vector representing the file names.}
+\item{txtNames}{a character vector representing the link names.}
 
 \item{doZip}{a logical indicating whether to zip the files.}
 
 \item{mime}{a character representing the type of the links.}
 
-\item{linkName}{a single character representing the link name (with .html).}
+\item{linkName}{a single character representing the link (with .html).}
+
+\item{txtName}{a single character representing the link name.}
 }
 \description{
 Adds texts link to a bsdoc object.

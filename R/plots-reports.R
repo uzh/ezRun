@@ -104,7 +104,7 @@ addQcScatterPlots = function(doc, param, design, conds, rawData, signalCond, isP
                                       width=min(nPlots, 6) * 480,
                                       height=ceiling(nPlots/6) * 480) # dynamic png with possibly many plots
         }
-        addFlexTable(doc, ezGrid(t(imgLinks)))
+        addFlexTable(doc, ezGrid(imgLinks))
       }
     }
   }
