@@ -191,11 +191,23 @@ EzApp <-
                       output = EzDataset$new(file=output)
                     }
                   }
+                  checkInputFactors = input$meta[, input$columnHasTag("Factor")]
+                  if (ezIsSpecified(checkInputFactors)){
+                    if (!hasFilesafeCharacters(checkInputFactors)){
+                      stop("Some input factors contain characters not suited for file names.")
+                    }
+                  }
+                  checkOutputFactors = output$meta[, output$columnHasTag("Factor")]
+                  if (ezIsSpecified(checkOutputFactors)){
+                    if (!hasFilesafeCharacters(checkOutputFactors)){
+                      stop("Some output factors contain characters not suited for file names.")
+                    }
+                  }
                   on.exit(.self$appExitAction(param, output, appName=name))
                   withCallingHandlers({
                     if (param$process_mode == "SAMPLE"){
                       if (input$getLength() > 1){
-                        stop("process mode is SAMPLE but more than one sample provided as input")
+                        stop("process mode is SAMPLE but the input contains more than one sample.")
                       }
                     }
                     options(cores=param$cores)

@@ -230,12 +230,18 @@ writeNgsMultiGroupReport = function(dataset, result, htmlFile, param=NA, rawData
   doc = openBsdocReport(title=titles[[length(titles)]])
   
   addDataset(doc, dataset, param)
+  addCountResultSummary(doc, param, result)
   
   titles[["Result Summary"]] = "Result Summary"
   addTitle(doc, titles[[length(titles)]], 2, id=titles[[length(titles)]])
-  addCountResultSummary(doc, param, result)
+  settings = character()
+  settings["Number of features:"] = length(result$pValue)
+  if (!is.null(result$isPresentProbe)){
+    settings["Number of features with counts above threshold:"] = sum(result$isPresentProbe)
+  }
+  addFlexTable(doc, ezGrid(settings, add.rownames=TRUE))
   
-  titles[["Significant Counts"]] = "Significant Counts"
+  titles[["Number of significants by p-value and fold-change"]] = "Number of significants by p-value and fold-change"
   addTitle(doc, titles[[length(titles)]], 3, id=titles[[length(titles)]])
   addSignificantCounts(doc, result)
   
@@ -312,7 +318,7 @@ writeNgsMultiGroupReport = function(dataset, result, htmlFile, param=NA, rawData
     tbl = ezGrid(cbind("Cluster Plot"=clusterLink, "GO categories of feature clusters"=goLink), header.columns = TRUE)
     addFlexTable(goClusterTableDoc, tbl)
     closeBsdocReport(goClusterTableDoc, "goClusterTable.html")
-    addTxtLinksToReport(doc, txtNames="goClusterTable.html")
+    addParagraph(doc, pot("GO cluster tables", hyperlink="goClusterTable.html"))
     tbl = ezGrid(cbind("Cluster Plot"=clusterLink, "GO categories of feature clusters"=goAndEnrichrTableLink), header.columns = TRUE)
     addFlexTable(doc, tbl)
   }

@@ -137,9 +137,7 @@ runNgsCountQC = function(dataset, htmlFile="00index.html", param=param, rawData=
     if (!is.null(seqAnno)){
       combined = cbind(seqAnno[rownames(combined), ,drop=FALSE], combined)
     }
-    if (!is.null(combined$start) && !is.null(combined$end) && !is.null(combined$width)){
-      combined$start = as.integer(combined$start)
-      combined$end = as.integer(combined$end)
+    if (!is.null(combined$width)){
       combined$width = as.integer(combined$width)
     }
     countFile = paste0(ezValidFilename(param$name), "-raw-count.txt")
@@ -158,7 +156,7 @@ runNgsCountQC = function(dataset, htmlFile="00index.html", param=param, rawData=
     topGenes = unique(as.vector(topGenesPerSample))
     
     combined = combined[order(combined$"Maximum signal", decreasing = TRUE), , drop=FALSE]
-    useInInteractiveTable = c("seqid", "gene_name", "Maximum signal", "Mean signal", "description", "strand", "start", "end", "width", "gc")
+    useInInteractiveTable = c("seqid", "gene_name", "Maximum signal", "Mean signal", "description", "width", "gc")
     useInInteractiveTable = intersect(useInInteractiveTable, colnames(combined))
     tableLink = sub(".txt", "-viewHighExpressionGenes.html", signalFile)
     combinedTopGenes = combined[which(rownames(combined) %in% topGenes),] ## select top genes
@@ -403,7 +401,7 @@ runNgsCountQC = function(dataset, htmlFile="00index.html", param=param, rawData=
       tbl = ezGrid(cbind("Cluster Plot"=clusterLink, "GO categories of feature clusters"=goLink), header.columns = TRUE)
       addFlexTable(goClusterTableDoc, tbl)
       closeBsdocReport(goClusterTableDoc, "goClusterTable.html")
-      addTxtLinksToReport(doc, txtNames="goClusterTable.html")
+      addParagraph(doc, pot("GO cluster tables", hyperlink="goClusterTable.html"))
       tbl = ezGrid(cbind("Cluster Plot"=clusterLink, "GO categories of feature clusters"=goAndEnrichrTableLink), header.columns = TRUE)
       addFlexTable(doc, tbl)
     }

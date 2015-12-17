@@ -295,7 +295,6 @@ hasFilesafeCharacters = function(x){
   all(grepl("[a-zA-Y0-9+-_]", unlist(strsplit(x, ""))))
 }
 
-
 ##' @title Creates a matrix
 ##' @description Either use the rows and columns to define the matrix or the dimensions.
 ##' @param x a vector containing the matrix elements
@@ -690,5 +689,15 @@ ezSplitLongLabels = function(labels, nSplit=20){
   return(labels)
 }
 
-
-
+# perhaps not useful
+##' @describeIn ezSplitLongLabels Splits long character lines into several.
+ezSplitLongText = function(text, nSplit=180){
+  if (nchar(text) <= nSplit) return(text)
+  splittedText = character()
+  while (nchar(text) > nSplit){
+    splittedText = paste0(splittedText, substr(text, 1, nSplit), "\n")
+    text = substr(text, nSplit + 1, nchar(text))
+  }
+  splittedText = paste0(splittedText, text)
+  return(splittedText)
+}
