@@ -677,3 +677,16 @@ ezSplitLongLabels = function(labels, nSplit=20){
   }
   return(labels)
 }
+
+# perhaps not useful
+##' @describeIn ezSplitLongLabels Splits long character lines into several.
+ezSplitLongText = function(text, nSplit=180){
+  if (nchar(text) <= nSplit) return(text)
+  splittedText = character()
+  while (nchar(text) > nSplit){
+    splittedText = paste0(splittedText, substr(text, 1, nSplit), "\n")
+    text = substr(text, nSplit + 1, nchar(text))
+  }
+  splittedText = paste0(splittedText, text)
+  return(splittedText)
+}
