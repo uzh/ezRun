@@ -10,13 +10,13 @@
 writeIgvSession(genome, refBuild, file = "igvSession.xml", bamUrls = NULL,
   vcfUrls = NULL, locus = "All")
 
-writeIgvSessionLink(genome, refBuild, bamFiles, html, locus = "All",
-  label = "Open Integrative Genomics Viewer", baseUrl = PROJECT_BASE_URL)
+getIgvGenome(param)
 
 addIgvSessionLink(genome, refBuild, bamFiles, doc, locus = "All",
   label = "Open Integrative Genomics Viewer", baseUrl = PROJECT_BASE_URL)
 
-getIgvGenome(param)
+writeIgvSessionLink(genome, refBuild, bamFiles, html, locus = "All",
+  label = "Open Integrative Genomics Viewer", baseUrl = PROJECT_BASE_URL)
 }
 \arguments{
 \item{genome}{a character representing the build name.}
@@ -39,11 +39,11 @@ Writes an IGV session into a separate .xml file
 }
 \section{Functions}{
 \itemize{
-\item \code{writeIgvSessionLink}: Writes an IGV session link.
+\item \code{getIgvGenome}: Gets the IGV genome if specified or otherwise tries to get the build name from the parameters.
 
 \item \code{addIgvSessionLink}: Adds an IGV session link to an object of the class bsdoc.
 
-\item \code{getIgvGenome}: Gets the IGV genome if specified or otherwise tries to get the build name from the parameters.
+\item \code{writeIgvSessionLink}: Writes an IGV session link.
 }}
 \examples{
 param = ezParam()

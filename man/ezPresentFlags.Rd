@@ -27,9 +27,9 @@ Returns TRUE for values that are considered as measured correctly and that are o
 }
 \examples{
 m1 = matrix(1:20,5)
-rownames(m1) = 1:5
-colnames(m1) = 6:9
-ezPresentFlags(m1,param=list(useSigThresh=TRUE,sigThresh=10))
+rownames(m1) = letters[1:5]
+colnames(m1) = letters[6:9]
+ezPresentFlags(m1, param=list(useSigThresh=TRUE, sigThresh=10))
 }
 \author{
 Rehrauer, Hubert

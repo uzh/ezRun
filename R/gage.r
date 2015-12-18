@@ -276,7 +276,6 @@ getExpressionGage = function(gageResults, result=NULL, rawData=NULL, param = NUL
 ##' @param signal a character specifying which signal to analyse.
 ##' @template roxygen-template
 ##' @return Returns the gage results with labeled significant genes.
-## TODOEXAMPLE: get gage results for example
 gageSigGenes = function(x, gene.pValue=NULL, signal=NULL ){
   # Select significant genes
   pValueVar = paste(signal, 'pValue', sep='.')

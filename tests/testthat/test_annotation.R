@@ -1,9 +1,11 @@
-context("Test annotation and gtf: annotation.r; gff.r; go-analysis.R")
+context("Test annotation and gtf: annotation.r; gff.r; go-analysis.R; ngsReferenceFiles.r")
 
 param = ezParam()
 gtfFile = system.file("extdata/genes.gtf", package="ezRun", mustWork=TRUE)
 param$ezRef@refFeatureFile = system.file("extdata/genes.gtf", package="ezRun", mustWork=TRUE)
 param$ezRef@refAnnotationFile = ""
+param$ezRef@refChromSizesFile = "example.txt"
+param$ezRef@refChromDir = "./script/Saccharomyces_cerevisiae/Ensembl/EF4/Sequence/Chromosomes"
 fp = "/srv/GT/reference/Saccharomyces_cerevisiae/Ensembl/EF4/Sequence/WholeGenomeFasta/genome.fa"
 param$ezRef@refFastaFile = fp
 seqAnno = writeAnnotationFromGtf(param)
@@ -77,4 +79,10 @@ test_that("Tests annotation functions related to GO (from go-analysis.R)", {
   goList = goStringsToList(c("GO:0034762; GO:0034763", "GO:0034764; GO:0034765"))
   expect_is(goList, "list")
   expect_equal(length(unlist(goList)), 4)
+})
+
+test_that("Tests cleanGenomeFiles() from ngsReferenceFiles.r", {
+  cleanedGenome = cleanGenomeFiles(param$ezRef@refFastaFile, gtfFile)
+  expect_is(cleanedGenome$genomeSeq, "DNAStringSet")
+  expect_is(cleanedGenome$gtf, "data.frame")
 })

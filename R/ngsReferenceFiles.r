@@ -63,7 +63,7 @@ getRefChromSizesFile = function(param){
 ##' @examples
 ##' gtf = system.file("extdata/genes.gtf", package="ezRun", mustWork=TRUE)
 ##' fasta = system.file("extdata/genome.fa", package="ezRun", mustWork=TRUE)
-##' cleanGenomeFiles(fasta,gtf)
+##' cleanGenomeFiles(fasta, gtf)
 cleanGenomeFiles = function(genomeFile, genesFile, patchPattern="PATCH"){
   
   genome = readDNAStringSet(genomeFile)

@@ -20,9 +20,9 @@
 ##' @template roxygen-template
 ##' @examples
 ##' m1 = matrix(1:20,5)
-##' rownames(m1) = 1:5
-##' colnames(m1) = 6:9
-##' ezPresentFlags(m1,param=list(useSigThresh=TRUE,sigThresh=10))
+##' rownames(m1) = letters[1:5]
+##' colnames(m1) = letters[6:9]
+##' ezPresentFlags(m1, param=list(useSigThresh=TRUE, sigThresh=10))
 ezPresentFlags = function(x, presentFlag=NULL, param=NULL, isLog=FALSE){
 
   isPresent = ezMatrix(TRUE, rows=rownames(x), cols=colnames(x))
