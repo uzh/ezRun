@@ -38,7 +38,7 @@ ezMethodMacs2 = function(input=NA, output=NA, param=NA){
     ezSystem(paste("mv ",paste0(output$getNames(),"_peaks.narrowPeak")," ",paste0(output$getNames(),"_peaks.bed")))
   }
   peakBedFile = paste0(output$getNames(),"_peaks.bed")
-  cmd = paste(BEDTOOLS2, " getfasta -fi", file.path(GENOMES_ROOT, dirname(dirname(input$getColumn("refBuild"))), "Sequence/WholeGenomeFasta/genome.fa"),
+  cmd = paste(BEDTOOLS2, " getfasta -fi", param$ezRef["refFastaFile"],
             " -bed ", peakBedFile, " -name -fo ", paste0(output$getNames(), "_peaks.fa")) 
   ezSystem(cmd)
   annotatePeaks(input, output, param)  
@@ -70,7 +70,7 @@ EzAppMacs2 <-
 ##' @template roxygen-template
 annotatePeaks = function(input=NA, output=NA, param=NA) {
   peakFile = paste0(output$getNames(), '_peaks.xls')
-  data = read.table(peakFile,sep='\t',check.names=F,header=T)
+  data = ezRead.table(peakFile)
   if (nrow(data) == 0){
     return(NULL)
   }
