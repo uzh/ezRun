@@ -1,11 +1,13 @@
 context("Test annotation and gtf: annotation.r; gff.r; go-analysis.R")
 
 param = ezParam()
+gtfFile = system.file("extdata/genes.gtf", package="ezRun", mustWork=TRUE)
 param$ezRef@refFeatureFile = system.file("extdata/genes.gtf", package="ezRun", mustWork=TRUE)
 param$ezRef@refAnnotationFile = ""
 fp = "/srv/GT/reference/Saccharomyces_cerevisiae/Ensembl/EF4/Sequence/WholeGenomeFasta/genome.fa"
 param$ezRef@refFastaFile = fp
 seqAnno = writeAnnotationFromGtf(param)
+gtf = ezLoadFeatures(param, gtfFile)
 
 test_that("Tests functions in annotation.r", {
   featureAnno = ezFeatureAnnotation(param, rownames(seqAnno), "gene")
@@ -17,8 +19,47 @@ test_that("Tests functions in annotation.r", {
   expect_true(hasMapping)
 })
 
-test_that("", {
-  
+test_that("Tests basic functions in gff.r", {
+  expect_is(gtf, "data.frame")
+  transcripts = ezGffAttributeField(gtf$attributes, field="transcript_id", attrsep="; *", valuesep=" ")
+  expect_is(transcripts, "character")
+  expect_identical(nrow(gtf), length(transcripts))
+  newAttribute = ezBuildAttributeField(gtf[ , c("gene_id", "gene_name", "transcript_id", "tss_id")],"gtf")
+  expect_is(newAttribute, "character")
+  expect_identical(nrow(gtf), length(newAttribute))
+  gtf2 = ezReadGff(system.file("extdata/genes.gtf", package="ezRun", mustWork=TRUE))
+  expect_is(gtf2, "data.frame")
+  trimmedTranscripts = gffTrimTranscripts(gtf)
+  expect_is(trimmedTranscripts, "data.frame")
+  ranges = gffToRanges(gtf)
+  expect_is(ranges, "GRanges")
+  groupedGtf = groupGff(gtf)
+  expect_is(groupedGtf, "data.frame")
+  expect_less_than(nrow(groupedGtf), nrow(gtf))
+  groupedRanges = gffGroupToRanges(gtf, grouping = gtf$Parent)
+  expect_is(groupedRanges, "GRanges")
+  expect_less_than(length(groupedRanges), length(ranges))
+})
+
+test_that("Tests more functions from gff.r", {
+  transcriptAnnotation = transcriptAnnoFromGtf(gtf)
+  expect_is(transcriptAnnotation, "data.frame")
+  moreTranscripts = addTranscriptsToGffExons(gtf)
+  expect_more_than(nrow(moreTranscripts), nrow(gtf))
+  exonNumber = getExonNumber(gtf)
+  expect_is(exonNumber, "integer")
+  expect_identical(length(exonNumber), nrow(gtf))
+  tr2Gene = getTranscript2Gene(gtf)
+  expect_is(tr2Gene, "character")
+  counts = countIsoformsPerGene(tr2Gene)
+  expect_is(counts, "table")
+  transcriptSequences = getTranscriptSequences(param)
+  expect_is(transcriptSequences, "DNAStringSet")
+  gcAndWidth = getTranscriptGcAndWidth(param)
+  expect_is(gcAndWidth$gc, "numeric")
+  expect_is(gcAndWidth$width, "integer")
+  ensemblTypes = getEnsemblTypes(gtf)
+  expect_is(ensemblTypes, "character")
 })
 
 test_that("Tests annotation functions related to GO (from go-analysis.R)", {
