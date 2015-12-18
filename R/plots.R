@@ -355,7 +355,11 @@ ezSmoothScatter <- function(x=NULL, y, xlab=NULL, ylab=NULL, nPlotsPerRow=6,
 ##' @param shrink a logical specifying whether to shrink the values to range.
 ##' @template roxygen-template
 ##' @examples
+##' x = runif(n=1000)
+##' y = runif(n=1000)
+##' isPresent = x > 0.2 & y > 0.2
 ##' ezScatter(y=data.frame(a=1:10, b=21:30, c=41:50))
+##' ezXYScatterScatter(x, y, isPresent=isPresent)
 ezScatter <- function(x=NULL, y, xlab=NULL, ylab=NULL, nPlotsPerRow=6, shrink=FALSE,
                       lim=range(x, y, na.rm=TRUE), isPresent=NULL,
                       types=NULL, pch=16, colors=rainbow(ncol(types)), legendPos="bottomright", 
@@ -433,9 +437,8 @@ ezXYScatterScatter = function(xVec, yVec, absentColor="gray", shrink=FALSE, fram
          ...)
   } else {
     plot(xVec, yVec, log="xy", pch=pch, xlim=xlim, ylim=ylim,
-         col=absentColor, frame=frame, axes=axes,
+         col=ifelse(isPresent, "black", absentColor), frame=frame, axes=axes,
          ...)
-    points(xVec[isPresent], yVec[isPresent], col="black", pch=pch, ...)
   }
   if (!is.null(types) && ncol(types) > 0){
     for (j in 1:ncol(types)){
