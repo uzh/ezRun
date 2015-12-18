@@ -1,4 +1,27 @@
-context("Tests the functions in 01classes.R")
+context("Tests defaults and classes: 00defaults.R; 01classes.R; 02references.R")
+
+test_that("Tests ezParam()", {
+  globalParams = ezParam()
+  expect_is(globalParams, "list")
+  modifiedParam = ezParam(list(ram=7))
+  expect_false(globalParams$ram == modifiedParam$ram)
+})
+
+test_that("Tests ezIsSpecified()", {
+  is = ezIsSpecified("a")
+  expect_is(is, "logical")
+  isnt = ezIsSpecified("")
+  expect_false(isnt)
+  alsoisnt = ezIsSpecified(NULL)
+  expect_false(alsoisnt)
+  isnteither = ezIsSpecified(NA)
+  expect_false(isnteither)
+})
+
+test_that("Tests ezFrame()", {
+  frame = ezFrame(first=1:3, second=5, "with space"="text", row.names=letters[1:3])
+  expect_is(frame, "data.frame")
+})
 
 test_that("Tests EzDataset", {
   ds = EzDataset$new(file=system.file("extdata/yeast_10k/dataset.tsv", package="ezRun", mustWork = TRUE))
@@ -7,8 +30,10 @@ test_that("Tests EzDataset", {
   expect_is(ds,"EzDataset")
   expect_equal(ds$getNames(),c("wt_1","wt_2","mut_1","mut_2"))
   expect_is(ds$file,"character")
+  expect_equal(ds$getLength(), 4)
+  expect_equal(ds$subset("wt_1")$getLength(), 1)
   expect_equal(ds$getColumn("Read1"),c(wt_1="extdata/yeast_10k/wt_1_R1.fastq.gz",wt_2="extdata/yeast_10k/wt_2_R1.fastq.gz",
-                                    mut_1="extdata/yeast_10k/mut_1_R1.fastq.gz",mut_2="extdata/yeast_10k/mut_2_R1.fastq.gz"))
+                                       mut_1="extdata/yeast_10k/mut_1_R1.fastq.gz",mut_2="extdata/yeast_10k/mut_2_R1.fastq.gz"))
   expect_is(ds$meta,"data.frame")
   expect_is(ds$columnHasTag("File"),"logical")
   expect_true(ds$columnHasTag("File")[2])
@@ -37,4 +62,12 @@ test_that("Tests EzApp", {
   expect_is(app$name,"character")
   expect_is(app$appDefaults,"data.frame")
   expect_null(app$run(input=ds,output=ds,param=list(process_mode="DATASET")))
+})
+
+test_that("Tests EzRef constructor", {
+  refBuild = "Saccharomyces_cerevisiae/Ensembl/EF4/Annotation/Version-2013-03-18"
+  ref = EzRef(param=ezParam(list(refBuild=refBuild)))
+  expect_is(ref, "EzRef")
+  expect_identical(ref["refBuild"], refBuild)
+  expect_is(getOrganism(ref), "character")
 })

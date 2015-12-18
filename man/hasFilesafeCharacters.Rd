@@ -16,5 +16,6 @@ only supports alphanumeric characters and "+-_"
 hasFilesafeCharacters("a")
 hasFilesafeCharacters("a\\n")
 hasFilesafeCharacters(c("1", "2"))
+hasFilesafeCharacters(list("1", "2 x"))
 }
 

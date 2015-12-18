@@ -140,7 +140,6 @@ ezHead = function(target=paste0(x, "_head"), x, n=1000){
 ##' @param ncproDir a character representing the file path to the directory that contains the NcPro results.
 ##' @template roxygen-template
 ##' @return Returns the rawdata read from the NcPro results.
-## TODOEXAMPLE: add example.
 readNcProResult = function (ncproDir) {
   dataFiles = list.files(ncproDir, "_subfamcov.data$", full.names=TRUE)
   

@@ -56,6 +56,8 @@ ds2$setColumn("Read1","replacement")
 ds$columnHasTag("File")
 ds$getNames()
 ds$getFullPaths(dataRoot,"Read1")
+ds$meta$"Genotype [Factor]"[1] = "a\\n"
+##ds2 = EzDataset$new(meta = ds$meta) ## gives an error
 }
 \author{
 Rehrauer, Hubert

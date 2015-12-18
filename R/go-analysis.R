@@ -16,8 +16,7 @@
 ##' @examples
 ##' param = ezParam()
 ##' param$ezRef@@refFeatureFile = system.file("extdata/genes.gtf", package="ezRun", mustWork=TRUE)
-##' annoFile = system.file("extdata/genes_annotation_example.txt", package="ezRun", mustWork=TRUE)
-##' param$ezRef@@refAnnotationFile = annoFile
+##' param$ezRef@@refAnnotationFile = ""
 ##' fp = "/srv/GT/reference/Saccharomyces_cerevisiae/Ensembl/EF4/Sequence/WholeGenomeFasta/genome.fa"
 ##' param$ezRef@@refFastaFile = fp
 ##' seqAnno = writeAnnotationFromGtf(param)
@@ -58,13 +57,16 @@ separateGoIdsByOnto = function(goIdStrings){
 ##' @param onto the ontology to use
 ##' @template roxygen-template
 ##' @return Returns the ancestor terms if they are specified.
+##' @examples
+##' getGOparents("GO:0034767")
+##' addGoParents(c("GO:0034767", "GO:0034768"), "BP")
 getGOparents = function(id, onto="BP"){
   go2Ancestor = switch(onto, BP=as.list(GOBPANCESTOR), MF=as.list(GOMFANCESTOR), CC=as.list(GOCCANCESTOR))
   ancestorIds = setdiff(go2Ancestor[[id]], "all") ## remove the all category
   if (is.null(ancestorIds)){
     return()
   } else {
-    ancestorTerms = Term(ancestorIds[GOTERM])
+    ancestorTerms = Term(GOTERM[ancestorIds])
     return(ancestorTerms)
   }
 }

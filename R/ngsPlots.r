@@ -15,7 +15,7 @@
 ##' @template roxygen-template
 countDensPlot = function(cts, colors, main="all transcripts", bw=7){
   
-  cts[cts < 0] = 0  ## zeros will be come -Inf and not be part of the area!! Area will be smaller than 1!
+  cts[cts < 0] = 0  ## zeros will become -Inf and not be part of the area!! Area will be smaller than 1!
   xlim = 0
   ylim = 0
   densList = list()

@@ -24,6 +24,10 @@ Gets the GO parents.
 \itemize{
 \item \code{addGoParents}: Adds the GO parents.
 }}
+\examples{
+getGOparents("GO:0034767")
+addGoParents(c("GO:0034767", "GO:0034768"), "BP")
+}
 \author{
 Rehrauer, Hubert
 
