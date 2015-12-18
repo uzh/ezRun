@@ -18,8 +18,7 @@ Returns a matrix with scaled columns.
 The columns will be scaled by multiplying them with the \code{scaling}.
 }
 \examples{
-m1 = matrix(1:20,5)
-ezScaleColumns(m1,1:4)
+ezScaleColumns(matrix(1:20, 5), 1:4)
 }
 \author{
 Rehrauer, Hubert

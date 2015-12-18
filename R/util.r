@@ -127,7 +127,7 @@ interleaveMatricesByColumn = function(x, y, suffixes=c("[Signal]", "[Present]"))
 ##' @return Returns the modified value.
 ##' @template roxygen-template
 ##' @examples 
-##' ezNorm(4)
+##' ezNorm(runif(100))
 ezNorm = function(x, method="none", presentFlag=NULL){
 
   switch(method, "none"=x,
@@ -321,8 +321,7 @@ ezMatrix <- function(x, rows=NULL, cols=NULL, dim=NULL){
 ##' @return Returns a matrix with scaled columns.
 ##' @template roxygen-template
 ##' @examples
-##' m1 = matrix(1:20,5)
-##' ezScaleColumns(m1,1:4)
+##' ezScaleColumns(matrix(1:20, 5), 1:4)
 ezScaleColumns = function(x, scaling){
   for (i in 1:length(scaling)){
     x[,i] <- x[ ,i] * scaling[i]
@@ -339,10 +338,10 @@ ezScaleColumns = function(x, scaling){
 ##' @return Returns a matrix with columns normalized to a median/medians.
 ##' @template roxygen-template
 ##' @examples
-##' m1 = matrix(1:20,5)
+##' m1 = matrix(1:20, 5)
 ##' ezMedianNorm(m1)
-##' ezMedianNorm(m1,target=10)
-##' ezMedianNorm(m1,use=c(TRUE,FALSE))
+##' ezMedianNorm(m1, target=10)
+##' ezMedianNorm(m1, use=c(TRUE, FALSE))
 ezMedianNorm = function(x, use=NULL, target=NULL, presentFlag=NULL){
   
   sf = ezMedianScalingFactor(x, use=use, target=target, presentFlag=presentFlag)

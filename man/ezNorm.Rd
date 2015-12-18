@@ -27,7 +27,7 @@ Returns the modified value.
 Normalizes a matrix according to the provided method; normalization is performed column-wise.
 }
 \examples{
-ezNorm(4)
+ezNorm(runif(100))
 }
 \author{
 Rehrauer, Hubert

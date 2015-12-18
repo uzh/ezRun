@@ -22,7 +22,7 @@ Returns a chromosome coordinate.
 Creates a chromosome coordinate with the provided input.
 }
 \examples{
-makeCoordinate("chrm",3,150,300)
+makeCoordinate("chrm", 3, 150, 300)
 }
 \author{
 Rehrauer, Hubert
