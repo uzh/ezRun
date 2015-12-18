@@ -37,6 +37,8 @@
 ##' ds$columnHasTag("File")
 ##' ds$getNames()
 ##' ds$getFullPaths(dataRoot,"Read1")
+##' ds$meta$"Genotype [Factor]"[1] = "a\n"
+##' ##ds2 = EzDataset$new(meta = ds$meta) ## gives an error
 EzDataset <-
   setRefClass("EzDataset",
               fields = c("file", "meta", "colNames", "tags", "isModified"),
@@ -65,6 +67,12 @@ EzDataset <-
                   }
                   colNames <<- sub(" \\[.*", "", base::names(meta))
                   tags <<- ezTagListFromNames(base::names(meta))
+                  for (i in which(.self$columnHasTag("Factor"))){
+                    hasBadCharacter = !hasFilesafeCharacters(meta[ ,i])
+                    if (any(hasBadCharacter)){
+                      stop("Invalid character in: ", colnames(meta)[i], " - ", paste("'", meta[hasBadCharacter ,i], "'", sep="", collapse=" "))
+                    }
+                  }
                   isModified <<- FALSE
                 },
                 getColumn = function(names)
@@ -189,18 +197,6 @@ EzApp <-
                   } else {
                     if (is.character(output)){
                       output = EzDataset$new(file=output)
-                    }
-                  }
-                  checkInputFactors = input$meta[, input$columnHasTag("Factor")]
-                  if (ezIsSpecified(checkInputFactors)){
-                    if (!hasFilesafeCharacters(checkInputFactors)){
-                      stop("Some input factors contain characters not suited for file names.")
-                    }
-                  }
-                  checkOutputFactors = output$meta[, output$columnHasTag("Factor")]
-                  if (ezIsSpecified(checkOutputFactors)){
-                    if (!hasFilesafeCharacters(checkOutputFactors)){
-                      stop("Some output factors contain characters not suited for file names.")
                     }
                   }
                   on.exit(.self$appExitAction(param, output, appName=name))

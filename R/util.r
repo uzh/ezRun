@@ -291,8 +291,9 @@ trimWhiteSpace = function (x){
 ##' hasFilesafeCharacters("a")
 ##' hasFilesafeCharacters("a\n")
 ##' hasFilesafeCharacters(c("1", "2"))
+##' hasFilesafeCharacters(list("1", "2 x"))
 hasFilesafeCharacters = function(x){
-  all(grepl("[a-zA-Y0-9+-_]", unlist(strsplit(x, ""))))
+  sapply(x, function(y){all(grepl("[a-zA-Y0-9+-_]", unlist(strsplit(y, ""))))})
 }
 
 ##' @title Creates a matrix
