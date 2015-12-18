@@ -31,7 +31,6 @@ test_that("Tests EzDataset", {
   expect_equal(ds$getNames(),c("wt_1","wt_2","mut_1","mut_2"))
   expect_is(ds$file,"character")
   expect_equal(ds$getLength(), 4)
-  expect_equal(ds$subset("wt_1")$getLength(), 1)
   expect_equal(ds$getColumn("Read1"),c(wt_1="extdata/yeast_10k/wt_1_R1.fastq.gz",wt_2="extdata/yeast_10k/wt_2_R1.fastq.gz",
                                        mut_1="extdata/yeast_10k/mut_1_R1.fastq.gz",mut_2="extdata/yeast_10k/mut_2_R1.fastq.gz"))
   expect_is(ds$meta,"data.frame")
@@ -39,6 +38,7 @@ test_that("Tests EzDataset", {
   expect_true(ds$columnHasTag("File")[2])
   expect_is(path,"character")
   expect_true(all(grepl("^/",path)))
+  expect_equal(ds$subset("wt_1")$getLength(), 1)
 })
 
 test_that("Tests copying an EzDataset and the method setColumn", {
