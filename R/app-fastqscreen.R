@@ -20,7 +20,7 @@ ezMethodFastqScreen = function(input=NA, output=NA, param=NA, htmlFile="00index.
   if ("Adapter1" %in% input$colNames && all(!is.na(input$getColumn("Adapter1")))){
     input = ezMethodTrim(input = input, param = param)
   }
-  countFiles = executeBowtie2CMD(param, input$getColumn("Read1"))
+  countFiles = executeBowtie2CMD(param, input$getFullPaths(param, "Read1"))
   speciesPercentageTop = collectBowtie2Output(param, input$meta, countFiles)
   setwdNew(basename(output$getColumn("Report")))
   fastqscreenReport(dataset, param, htmlFile, fastqData, speciesPercentageTop)
