@@ -162,17 +162,25 @@ addTestScatterPlots = function(doc, param, x, result, seqAnno, resultFile, types
   if (ncol(result$groupMeans) == 2 & !is.null(param$sampleGroup) & !is.null(param$refGroup)){
     sampleValues = 2^result$groupMeans[ , param$sampleGroup]
     refValues = 2^result$groupMeans[ , param$refGroup]
+    
+    sortedGenes = names(sort(result$pValue[types$Significants]))
+    if (length(sortedGenes) > param$maxInteractivePoints){
+      sortedGenes = sortedGenes[1:param$maxInteractivePoints]
+    }
+    useForInteractivePoints = names(result$pValue) %in% sortedGenes
+    
     if (ezIsSpecified(seqAnno)){
       if (is.null(seqAnno$gene_name)) seqAnno$gene_name = seqAnno$gene_id
-      clickActions = paste0("window.open('http://www.ihop-net.org/UniPub/iHOP/?search=%22", seqAnno$gene_name,
+      clickActions = paste0("window.open('http://www.ihop-net.org/UniPub/iHOP/?search=%22", seqAnno$gene_name[useForInteractivePoints],
                             "%22&field=synonym&ncbi_tax_id=0');")
-      sortedGenes = names(sort(result$pValue[types$Significants]))
-      if (length(sortedGenes) > param$maxInteractivePoints){
-        sortedGenes = sortedGenes[1:param$maxInteractivePoints]
-      }
-      useForInteractivePoints = names(result$pValue) %in% sortedGenes
-      
-      interactiveDoc = openBsdocReport("Interactive plots")
+      popupLabels = seqAnno$gene_name[useForInteractivePoints]
+    } else {
+      clickActions = paste0("window.open('http://www.ihop-net.org/UniPub/iHOP/?search=%22", rownames(result$groupMeans)[useForInteractivePoints],
+                            "%22&field=synonym&ncbi_tax_id=0');")
+      popupLabels = rownames(result$groupMeans)[useForInteractivePoints]
+    }
+    
+    interactiveDoc = openBsdocReport("Interactive plots")
 #     if (!is.null(types)){
 #       plotCmd = expression({
 #         ezLegend(legend=c("too few reads", "enough reads but not significant", colnames(types)), fill=c("grey", "black", rainbow(ncol(types))))
@@ -180,35 +188,34 @@ addTestScatterPlots = function(doc, param, x, result, seqAnno, resultFile, types
 #       legendLink = ezImageFileLink(plotCmd, file="scatterAndVolcanoLegend.png", height=length(ncol(types))*15 + 55, width=300, addPdfLink=FALSE)
 #       addParagraph(interactiveDoc, legendLink)
 #     }
-      .interactiveSmoothScatter = function(){
-        ezSmoothScatter(x=refValues, y=sampleValues, isPresent=result$usedInTest, types=types,
-                        xlab=param$refGroup, ylab=param$sampleGroup, legendPos=NULL, nbin=32)
-        add.plot.interactivity(fun=points, col="red", pch=16,
-                               x=log2(refValues[useForInteractivePoints]),
-                               y=log2(sampleValues[useForInteractivePoints]),
-                               popup.labels=seqAnno$gene_name[useForInteractivePoints],
-                               click.actions=clickActions[useForInteractivePoints])
-      }
-      addPlot(interactiveDoc, .interactiveSmoothScatter, fontname="", par.properties=parLeft())
+    .interactiveSmoothScatter = function(){
+      ezSmoothScatter(x=refValues, y=sampleValues, isPresent=result$usedInTest, types=types,
+                      xlab=param$refGroup, ylab=param$sampleGroup, legendPos=NULL, nbin=32)
+      add.plot.interactivity(fun=points, col="red", pch=16,
+                             x=log2(refValues[useForInteractivePoints]),
+                             y=log2(sampleValues[useForInteractivePoints]),
+                             popup.labels=popupLabels,
+                             click.actions=clickActions)
+    }
+    addPlot(interactiveDoc, .interactiveSmoothScatter, fontname="", par.properties=parLeft())
 #     .interactiveVolcanoPlot = function(){
 #       ezSmoothScatter(x=result$log2Ratio, y=result$pValue, isPresent=result$usedInTest, types=types, main=param$comparison, legendPos=NULL)
 #       add.plot.interactivity(fun=points, col="red", pch=16,
 #                              x=result$log2Ratio[useForInteractivePoints],
 #                              y=result$pValue[useForInteractivePoints],
-#                              popup.labels=seqAnno$gene_name[useForInteractivePoints],
-#                              click.actions=clickActions[useForInteractivePoints])
+#                              popup.labels=popupLabels,
+#                              click.actions=clickActions)
 #       values = ezVolcano(log2Ratio=result$log2Ratio, pValue=result$pValue, isPresent=result$usedInTest, types=types, main=param$comparison, legendPos=NULL)
 #       add.plot.interactivity(fun=points, col="red", pch=16,
 #                              x=values$x[useForInteractivePoints],
 #                              y=values$y[useForInteractivePoints],
-#                              popup.labels=seqAnno$gene_name[useForInteractivePoints],
-#                              click.actions=clickActions[useForInteractivePoints])
+#                              popup.labels=popupLabels,
+#                              click.actions=clickActions)
 #     }
 #     addPlot(interactiveDoc, .interactiveVolcanoPlot, fontname="", par.properties=parLeft()) ## the plots are plotted next to each other. I don't know why, but I like it.
-      addParagraph(interactiveDoc, "Significant genes are plotted in red and clicking on them will open an iHop search of the gene.")
-      closeBsdocReport(interactiveDoc, "interactivePlots.html")
-      links[2, 1] = as.html(pot("Comparison plot of clickable significant genes", hyperlink = "interactivePlots.html"))
-    }
+    addParagraph(interactiveDoc, "Significant genes are plotted in red and clicking on them will open an iHop search of the gene.")
+    closeBsdocReport(interactiveDoc, "interactivePlots.html")
+    links[2, 1] = as.html(pot("Comparison plot of clickable significant genes", hyperlink = "interactivePlots.html"))
     
     plotCmd = expression({
       ezXYScatterScatter(xVec=refValues, yVec=sampleValues, isPresent=result$usedInTest, types=types,
