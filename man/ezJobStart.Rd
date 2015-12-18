@@ -19,7 +19,7 @@ Writes the starting date and time of \code{jobName} into a separate file.
 }
 \examples{
 con = file("example.txt", "w")
-ezJobStart("a job",con=con)
+ezJobStart("a job", con=con)
 close(con)
 }
 \author{

@@ -24,7 +24,7 @@ ezTime = function(){
 ##' @template connection-template
 ##' @examples
 ##' con = file("example.txt", "w")
-##' ezJobStart("a job",con=con)
+##' ezJobStart("a job", con=con)
 ##' close(con)
 ezJobStart = function(jobName, con=stderr()){
   ezWrite(ezTime(), " ", jobName, " start", con=con)
@@ -115,7 +115,7 @@ ezValidMail = function(addressString){
 ##' @return Returns a message about \code{param} with a context.
 ##' @template roxygen-template
 ##' @examples 
-##' param = list(name="parameterName", projectId="ID")
+##' param = ezParam()
 ##' logMessage("a method", param, "Starting")
 ##' logMessage("a method", param, "Finished")
 logMessage = function(methodName, param, message){

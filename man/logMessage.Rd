@@ -20,7 +20,7 @@ Returns a message about \code{param} with a context.
 Logs a time with an additional context provided in \code{message} and the base directory. Also displays a defined method name and the parameters name and Id.
 }
 \examples{
-param = list(name="parameterName", projectId="ID")
+param = ezParam()
 logMessage("a method", param, "Starting")
 logMessage("a method", param, "Finished")
 }
