@@ -85,7 +85,7 @@ annotatePeaks = function(input=NA, output=NA, param=NA) {
     idx = gtf$type =='start_codon'
   }
   gtf = gtf[idx]
-  if(grepl('gtf',gtfFile)){
+  if(grepl('gtf$',gtfFile)){
     names_gtf = make.unique(gtf$'gene_id')
   } else {
     names_gtf = make.unique(gtf$'ID')
@@ -103,8 +103,8 @@ annotatePeaks = function(input=NA, output=NA, param=NA) {
     annotatedPeaks = merge(annotatedPeaks,localAnnotation,by.x='feature',by.y='gene_id',all.x=T)
   } 
   annotatedPeaks = annotatedPeaks[order(annotatedPeaks$"-log10(pvalue)",decreasing=T),]
-  colnames(annotatedPeaks) = gsub('-log10','_-log10',colnames(annotatedPeaks))
-  write.table(annotatedPeaks,peakFile,sep='\t',row.names=F,quote=F)
+  colnames(annotatedPeaks) = gsub('-log10','_-log10',colnames(annotatedPeaks)) ## TODO: explain why this is done? and why gsub and not sub?
+  ezWrite.table(annotatedPeaks,peakFile, row.names=F)
 }
 
 ##' @title Creates a bigwig file

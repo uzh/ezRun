@@ -6,15 +6,6 @@
 # www.fgcz.ch
 
 
-##' @template method-template
-##' @templateVar methodName Teqc
-##' @seealso \code{\link{EzAppTeqc}}
-ezMethodTeqc = function(input=NA, output=NA, param=NA){
-  setwdNew(basename(output$getColumn("Report")))
-  teqc(input, param)
-  return("Success")
-}
-
 ##' @template app-template
 ##' @templateVar method ezMethodTeqc()
 ##' @seealso \code{\link{ezMethodTeqc}}
@@ -49,10 +40,11 @@ EzAppTeqc <-
 ##' }
 ##' @param file a character representing the path to the file containing the reads.
 ##' @template roxygen-template
-teqc = function(input, param=NULL){
+ezMethodTeqc = function(input=NA, output=NA, param=NA){
+  setwdNew(basename(output$getColumn("Report")))
   if(basename(param$designFile) == param$designFile){
-    path = file.path("/srv/GT/databases/targetEnrichment_designs", param$designFile)
-    param$designFile = list.files(path, pattern='Covered\\.bed$', full.names = T)[1]
+    param$designFile = list.files(file.path(TEQC_DESIGN_DIR, param$designFile), 
+                                  pattern='Covered\\.bed$', full.names = T)[1]
   }
   samples = input$getNames()
   jobList = input$getFullPaths(param, "BAM")
@@ -108,12 +100,3 @@ runTEQC = function(file, param){
   return("Success")
 }
 
-#prepareEnvironment = function(inputDatasetFile=NA, output=NA, param=NA){
-#  param = fillWithDefaults(param)
-#  options(cores=param$cores)
-  #waitUntilFileExists(inputDatasetFile, maxWaitSeconds=300)
-#  checkFreeDiskSpace(param)
-#  setwdNew(basename(output$Report))
-#  param$Name = basename(output$Report)
-#  return(param)
-#}
