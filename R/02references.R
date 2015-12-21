@@ -95,10 +95,17 @@ setMethod("initialize", "EzRef", function(.Object, param=list(), genomesRoot=GEN
   return(.Object)
 })
 
-##' @describeIn EzRef Allows selection with square brackets [ ].
-setMethod("[", "EzRef", function(x, i){
-  slot(x, i)
+##' @describeIn EzRef Access of slots by name with square brackets [ ]
+setMethod("[", "EzRef", function(x, name){
+  slot(x, name)
 })
+
+##' @describeIn EzRef Assignment to slots by name with square brackets [ ]
+setMethod("[<-", "EzRef", function(x, name, value){
+  slot(x, name) = value
+  x
+})
+
 
 setGeneric("getOrganism", function(.Object){
   standardGeneric("getOrganism")
