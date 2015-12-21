@@ -12,8 +12,7 @@
 \alias{initialize,EzRef-method}
 \title{The S4 class representing a collection of information about the reference build}
 \usage{
-\S4method{initialize}{EzRef}(.Object, param = list(),
-  genomesRoot = GENOMES_ROOT)
+\S4method{initialize}{EzRef}(.Object, param = list())
 
 \S4method{[}{EzRef,ANY,ANY,ANY}(x, i)
 
@@ -68,12 +67,13 @@ Objects of this class are a collection of references derived from a list of para
 }}
 \examples{
 refBuild = "Saccharomyces_cerevisiae/Ensembl/EF4/Annotation/Version-2013-03-18"
+genomesRoot = "./refExample"
+param = ezParam(list(refBuild=refBuild, genomesRoot=genomesRoot))
 gtf = system.file("extdata/genes.gtf", package="ezRun", mustWork = TRUE)
 fp = system.file("extdata/genome.fa", package="ezRun", mustWork = TRUE)
-genomesRoot = "./refExample"
-myRef = EzRef(param=ezParam(list(refBuild=refBuild)), genomesRoot=genomesRoot)
-buildRefDir(myRef, fp, gtf)
+buildRefDir(param$ezRef, fp, gtf)
 buildIgvGenome(myRef)
+seqAnno = writeAnnotationFromGtf(param=param)# featureFile=param$ezRef["refFeatureFile"], featAnnoFile=myRef["refAnnotationFile"])
 }
 \author{
 Rehrauer, Hubert

@@ -24,9 +24,9 @@ Returns a table written into a separate file.
 Modified version of \code{write.table()} with a different default. Best used together with \code{ezRead.table()}.
 }
 \examples{
-m1 = matrix(seq(0.01,1,0.01),10)
+m1 = matrix(seq(0.01, 1, 0.01), 10)
 colnames(m1) = letters[1:10]
-ezWrite.table(m1,"exampleTable",digits=1)
+ezWrite.table(m1, "exampleTable", digits=1)
 }
 \author{
 Rehrauer, Hubert

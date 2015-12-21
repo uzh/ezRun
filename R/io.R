@@ -70,8 +70,8 @@ zipWorkingDir = function(zipName){
 ##' @templateVar fun read.table()
 ##' @seealso \code{\link[utils]{read.table}}
 ##' @examples 
-##' m1 = matrix(1:20,5)
-##' write.table(m1,"exampleTable",sep="\t")
+##' m1 = matrix(1:20, 5)
+##' write.table(m1, "exampleTable", sep="\t")
 ##' ezRead.table("exampleTable")
 ## simple wrapper to read.table with useful defaults
 ezRead.table = function(file, header=TRUE, sep="\t", as.is=TRUE, row.names=1, quote="", skip=0, comment.char="", check.names=FALSE, ...){
@@ -91,9 +91,9 @@ ezRead.table = function(file, header=TRUE, sep="\t", as.is=TRUE, row.names=1, qu
 ##' @seealso \code{\link[utils]{write.table}}
 ##' @seealso \code{\link{ezRead.table}}
 ##' @examples 
-##' m1 = matrix(seq(0.01,1,0.01),10)
+##' m1 = matrix(seq(0.01, 1, 0.01), 10)
 ##' colnames(m1) = letters[1:10]
-##' ezWrite.table(m1,"exampleTable",digits=1)
+##' ezWrite.table(m1, "exampleTable", digits=1)
 ## the example produces an interesting behaviour: signif(0.15,1) == 0.2 == signif(0.15,1). R seems to prefer to round to even digits...
 ## convenience wrapper that writes data.frames and matrices with row and column names such that they can be read again; also supports vectors
 ## NOTE: if x has row and column names and you use write.table(x, file="foo.txt", row.names=TRUE, col.names=TRUE) you can not read in that table with read.table("foo.txt")
