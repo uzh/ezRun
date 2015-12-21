@@ -4,10 +4,7 @@
 \name{EzAppRSEM-class}
 \alias{EzAppRSEM}
 \alias{EzAppRSEM-class}
-\title{The R5 class representing a runnable app using \code{ezMethodRSEM()}}
-\description{
-This reference class is based on \code{EzApp} and uses the function \code{ezMethodRSEM()}.
-}
+\title{The R5 class representing a runnable app using \code{ezMethodRSEM()()}}
 \section{Fields}{
 
 \describe{
@@ -22,16 +19,7 @@ This reference class is based on \code{EzApp} and uses the function \code{ezMeth
 \describe{
 \item{\code{initialize()}}{Initializes the application using its specific defaults.}
 }}
-\author{
-Rehrauer, Hubert
-
-Schmid, Peter
-}
 \seealso{
-\code{\link{EzApp}}
-
-\code{\link{EzDataset}}
-
 \code{\link{ezMethodRSEM}}
 }
 

@@ -5,6 +5,13 @@
 \alias{EzApp}
 \alias{EzApp-class}
 \title{The R5 class representing a runnable app}
+\arguments{
+\item{input}{a list, file path or an object of the class EzDataset containing the input.}
+
+\item{output}{a list, file path or an object of the class EzDataset containing the output information.}
+
+\item{param}{a list of parameters to customize the application run.}
+}
 \description{
 This reference class is the basis of all other apps that inherit from it. It sets the framework to run different apps.
 }
@@ -28,6 +35,61 @@ This reference class is the basis of all other apps that inherit from it. It set
 
 \item{\code{run(input, output, param)}}{Runs the app with the provided \code{input}, \code{output} and \code{param}.}
 }}
+\section{Applications inheriting from \code{EzApp}}{
+
+\itemize{
+  \item{\code{EzAppBamPreview: }}
+  {Use this reference class to run }
+  \item{\code{EzAppBismark: }}
+  {Use this reference class to run }
+  \item{\code{EzAppBowtie: }}
+  {Use this reference class to run }
+  \item{\code{EzAppBowtie2: }}
+  {Use this reference class to run }
+  \item{\code{EzAppBWA: }}
+  {Use this reference class to run }
+  \item{\code{EzAppChipStats: }}
+  {Use this reference class to run }
+  \item{\code{EzAppCountOverlaps: }}
+  {Use this reference class to run }
+  \item{\code{EzAppCountQC: }}
+  {Use this reference class to run }
+  \item{\code{EzAppDeseq2: }}
+  {Use this reference class to run a differential expression analysis with the application deseq2 on two groups.}
+  \item{\code{EzAppEdger: }}
+  {Use this reference class to run a differential expression analysis with the application edgeR on two groups.}
+  \item{\code{EzAppEdgerMulti: }}
+  {Use this reference class to run }
+  \item{\code{EzAppFastqc: }}
+  {Use this reference class to run }
+  \item{\code{EzAppFastqScreen: }}
+  {Use this reference class to run }
+  \item{\code{EzAppFeatureCounts: }}
+  {Use this reference class to run }
+  \item{\code{EzAppFlash: }}
+  {Use this reference class to run }
+  \item{\code{EzAppGatkRnaHaplotyper: }}
+  {Use this reference class to run }
+  \item{\code{EzAppMacs2: }}
+  {Use this reference class to run }
+  \item{\code{EzAppMEME: }}
+  {Use this reference class to run }
+  \item{\code{EzAppMpileup: }}
+  {Use this reference class to run }
+  \item{\code{EzAppNcpro: }}
+  {Use this reference class to run }
+  \item{\code{EzAppRSEM: }}
+  {Use this reference class to run }
+  \item{\code{EzAppSTAR: }}
+  {Use this reference class to run }
+  \item{\code{EzAppTeqc: }}
+  {Use this reference class to run }
+  \item{\code{EzAppTophat: }}
+  {Use this reference class to run }
+  \item{\code{EzAppTrinity: }}
+  {Use this reference class to run }
+}
+}
 \examples{
 require("ezRun")
 file = system.file("extdata/yeast_10k/dataset.tsv", package="ezRun", mustWork = TRUE)
@@ -44,5 +106,55 @@ Schmid, Peter
 \code{\link{EzDataset}}
 
 \code{\link{checkFreeDiskSpace}}
+
+\code{\link{EzAppBamPreview}}
+
+\code{\link{EzAppBismark}}
+
+\code{\link{EzAppBowtie}}
+
+\code{\link{EzAppBowtie2}}
+
+\code{\link{EzAppBWA}}
+
+\code{\link{EzAppChipStats}}
+
+\code{\link{EzAppCountOverlaps}}
+
+\code{\link{EzAppCountQC}}
+
+\code{\link{EzAppDeseq2}}
+
+\code{\link{EzAppEdger}}
+
+\code{\link{EzAppEdgerMulti}}
+
+\code{\link{EzAppFastqc}}
+
+\code{\link{EzAppFastqScreen}}
+
+\code{\link{EzAppFeatureCounts}}
+
+\code{\link{EzAppFlash}}
+
+\code{\link{EzAppGatkRnaHaplotyper}}
+
+\code{\link{EzAppMacs2}}
+
+\code{\link{EzAppMEME}}
+
+\code{\link{EzAppMpileup}}
+
+\code{\link{EzAppNcpro}}
+
+\code{\link{EzAppRSEM}}
+
+\code{\link{EzAppSTAR}}
+
+\code{\link{EzAppTeqc}}
+
+\code{\link{EzAppTophat}}
+
+\code{\link{EzAppTrinity}}
 }
 

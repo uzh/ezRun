@@ -4,10 +4,7 @@
 \name{EzAppMEME-class}
 \alias{EzAppMEME}
 \alias{EzAppMEME-class}
-\title{The R5 class representing a runnable app using \code{ezMethodMEME()}}
-\description{
-This reference class is based on \code{EzApp} and uses the function \code{ezMethodMEME()}.
-}
+\title{The R5 class representing a runnable app using \code{ezMethodMEME()()}}
 \section{Fields}{
 
 \describe{
@@ -24,16 +21,8 @@ This reference class is based on \code{EzApp} and uses the function \code{ezMeth
 }}
 \author{
 Opitz, Lennart
-
-Rehrauer, Hubert
-
-Schmid, Peter
 }
 \seealso{
-\code{\link{EzApp}}
-
-\code{\link{EzDataset}}
-
 \code{\link{ezMethodMEME}}
 }
 

@@ -4,10 +4,7 @@
 \name{EzAppFlash-class}
 \alias{EzAppFlash}
 \alias{EzAppFlash-class}
-\title{The R5 class representing a runnable app using \code{ezMethodFlash()}}
-\description{
-This reference class is based on \code{EzApp} and uses the function \code{ezMethodFlash()}.
-}
+\title{The R5 class representing a runnable app using \code{ezMethodFlash()()}}
 \section{Fields}{
 
 \describe{
@@ -24,16 +21,8 @@ This reference class is based on \code{EzApp} and uses the function \code{ezMeth
 }}
 \author{
 Opitz, Lennart
-
-Rehrauer, Hubert
-
-Schmid, Peter
 }
 \seealso{
-\code{\link{EzApp}}
-
-\code{\link{EzDataset}}
-
 \code{\link{ezMethodFlash}}
 }
 

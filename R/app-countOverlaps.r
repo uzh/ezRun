@@ -6,9 +6,6 @@
 # www.fgcz.ch
 
 
-##' @template method-template
-##' @templateVar methodName Count Overlaps
-##' @seealso \code{\link{EzAppCountOverlaps}}
 ezMethodCountOverlaps = function(input=NULL, output=NULL, param=NULL){
   bamFile = input$getFullPaths(param, "BAM")
   outputFile = basename(output$getColumn("Count"))
@@ -45,6 +42,7 @@ ezMethodCountOverlaps = function(input=NULL, output=NULL, param=NULL){
 
 ##' @template app-template
 ##' @templateVar method ezMethodCountOverlaps()
+##' @templateVar htmlArg 
 ##' @seealso \code{\link{ezMethodCountOverlaps}}
 EzAppCountOverlaps <-
   setRefClass("EzAppCountOverlaps",

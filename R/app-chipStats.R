@@ -6,10 +6,6 @@
 # www.fgcz.ch
 
 
-##' @template method-template
-##' @templateVar methodName Chip Stats
-##' @template htmlFile-template
-##' @seealso \code{\link{EzAppChipStats}}
 ezMethodChipStats = function(input=NA, output=NA, param=NA, htmlFile="00index.html"){
   
   setwdNew(basename(output$getColumn("Report")))
@@ -107,8 +103,9 @@ ezMethodChipStats = function(input=NA, output=NA, param=NA, htmlFile="00index.ht
 }
 
 ##' @template app-template
-##' @templateVar method ezMethodChipStats()
-##' @seealso \code{\link{ezMethodChipStats}}
+##' @templateVar method ezMethodChipStats
+##' @templateVar htmlArg , htmlFile="00index.html"
+##' @description Use this reference class to run 
 EzAppChipStats <-
   setRefClass("EzAppChipStats",
               contains = "EzApp",

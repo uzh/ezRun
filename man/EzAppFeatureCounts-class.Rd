@@ -4,10 +4,7 @@
 \name{EzAppFeatureCounts-class}
 \alias{EzAppFeatureCounts}
 \alias{EzAppFeatureCounts-class}
-\title{The R5 class representing a runnable app using \code{ezMethodFeatureCounts()}}
-\description{
-This reference class is based on \code{EzApp} and uses the function \code{ezMethodFeatureCounts()}.
-}
+\title{The R5 class representing a runnable app using \code{ezMethodFeatureCounts()()}}
 \section{Fields}{
 
 \describe{
@@ -22,16 +19,7 @@ This reference class is based on \code{EzApp} and uses the function \code{ezMeth
 \describe{
 \item{\code{initialize()}}{Initializes the application using its specific defaults.}
 }}
-\author{
-Rehrauer, Hubert
-
-Schmid, Peter
-}
 \seealso{
-\code{\link{EzApp}}
-
-\code{\link{EzDataset}}
-
 \code{\link{ezMethodFeatureCounts}}
 }
 

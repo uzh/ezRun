@@ -4,10 +4,7 @@
 \name{EzAppTophat-class}
 \alias{EzAppTophat}
 \alias{EzAppTophat-class}
-\title{The R5 class representing a runnable app using \code{ezMethodTophat()}}
-\description{
-This reference class is based on \code{EzApp} and uses the function \code{ezMethodTophat()}.
-}
+\title{The R5 class representing a runnable app using \code{ezMethodTophat()()}}
 \section{Fields}{
 
 \describe{
@@ -22,16 +19,7 @@ This reference class is based on \code{EzApp} and uses the function \code{ezMeth
 \describe{
 \item{\code{initialize()}}{Initializes the application using its specific defaults.}
 }}
-\author{
-Rehrauer, Hubert
-
-Schmid, Peter
-}
 \seealso{
-\code{\link{EzApp}}
-
-\code{\link{EzDataset}}
-
 \code{\link{ezMethodTophat}}
 }
 

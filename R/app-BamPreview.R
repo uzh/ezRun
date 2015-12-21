@@ -6,10 +6,6 @@
 # www.fgcz.ch
 
 
-##' @template method-template
-##' @templateVar methodName Bam Preview
-##' @template htmlFile-template
-##' @seealso \code{\link{EzAppBamPreview}}
 ezMethodBamPreview = function(input=NA, output=NA, param=NA, htmlFile="00index.html"){
 
   if (ezIsSpecified(param$samples)){
@@ -63,8 +59,9 @@ ezMethodBamPreview = function(input=NA, output=NA, param=NA, htmlFile="00index.h
 }
 
 ##' @template app-template
-##' @templateVar method ezMethodBamPreview()
-##' @seealso \code{\link{ezMethodBamPreview}}
+##' @templateVar method ezMethodBamPreview
+##' @templateVar htmlArg , htmlFile="00index.html"
+##' @description Use this reference class to run 
 EzAppBamPreview <-
   setRefClass("EzAppBamPreview",
               contains = "EzApp",

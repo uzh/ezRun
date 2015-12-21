@@ -4,10 +4,7 @@
 \name{EzAppTrinity-class}
 \alias{EzAppTrinity}
 \alias{EzAppTrinity-class}
-\title{The R5 class representing a runnable app using \code{ezMethodTrinity()}}
-\description{
-This reference class is based on \code{EzApp} and uses the function \code{ezMethodTrinity()}.
-}
+\title{The R5 class representing a runnable app using \code{ezMethodTrinity()()}}
 \section{Fields}{
 
 \describe{
@@ -22,16 +19,7 @@ This reference class is based on \code{EzApp} and uses the function \code{ezMeth
 \describe{
 \item{\code{initialize()}}{Initializes the application using its specific defaults.}
 }}
-\author{
-Rehrauer, Hubert
-
-Schmid, Peter
-}
 \seealso{
-\code{\link{EzApp}}
-
-\code{\link{EzDataset}}
-
 \code{\link{ezMethodTrinity}}
 }
 

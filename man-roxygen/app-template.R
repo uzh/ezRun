@@ -1,8 +1,16 @@
-##' @title The R5 class representing a runnable app using \code{<%= method %>}
-##' @description This reference class is based on \code{EzApp} and uses the function \code{<%= method %>}.
+##' @title The R5 class representing a runnable app using \code{<%= method %>()}
 ##' @field runMethod the function that will be executed in the \code{run} method.
 ##' @field name the name of the application.
 ##' @field appDefaults the defaults to run the application with.
+##' @section Functions:
+##' \itemize{
+##'   \item{\code{<%= method %>(input=NA, output=NA, param=NA<%= htmlArg %>): }}
+##'   {The function to run this application.}
+##' }
+##' @param input a list, file path or an object of the class EzDataset containing the input.
+##' @param output a list, file path or an object of the class EzDataset containing the output information.
+##' @param param a list of parameters to customize the application run.
+##' @param htmlFile a character, ending with .html, representing the file path of an html file.
 ##' @author Rehrauer, Hubert
 ##' @author Schmid, Peter
 ##' @seealso \code{\link{EzApp}}

@@ -4,10 +4,7 @@
 \name{EzAppEdgerMulti-class}
 \alias{EzAppEdgerMulti}
 \alias{EzAppEdgerMulti-class}
-\title{The R5 class representing a runnable app using \code{ezMethodEdgerMulti()}}
-\description{
-This reference class is based on \code{EzApp} and uses the function \code{ezMethodEdgerMulti()}.
-}
+\title{The R5 class representing a runnable app using \code{ezMethodEdgerMulti()()}}
 \section{Fields}{
 
 \describe{
@@ -22,16 +19,7 @@ This reference class is based on \code{EzApp} and uses the function \code{ezMeth
 \describe{
 \item{\code{initialize()}}{Initializes the application using its specific defaults.}
 }}
-\author{
-Rehrauer, Hubert
-
-Schmid, Peter
-}
 \seealso{
-\code{\link{EzApp}}
-
-\code{\link{EzDataset}}
-
 \code{\link{ezMethodEdgerMulti}}
 }
 

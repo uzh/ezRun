@@ -4,10 +4,7 @@
 \name{EzAppMacs2-class}
 \alias{EzAppMacs2}
 \alias{EzAppMacs2-class}
-\title{The R5 class representing a runnable app using \code{ezMethodMacs2()}}
-\description{
-This reference class is based on \code{EzApp} and uses the function \code{ezMethodMacs2()}.
-}
+\title{The R5 class representing a runnable app using \code{ezMethodMacs2()()}}
 \section{Fields}{
 
 \describe{
@@ -22,16 +19,7 @@ This reference class is based on \code{EzApp} and uses the function \code{ezMeth
 \describe{
 \item{\code{initialize()}}{Initializes the application using its specific defaults.}
 }}
-\author{
-Rehrauer, Hubert
-
-Schmid, Peter
-}
 \seealso{
-\code{\link{EzApp}}
-
-\code{\link{EzDataset}}
-
 \code{\link{ezMethodMacs2}}
 }
 

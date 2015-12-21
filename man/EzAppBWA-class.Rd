@@ -4,10 +4,7 @@
 \name{EzAppBWA-class}
 \alias{EzAppBWA}
 \alias{EzAppBWA-class}
-\title{The R5 class representing a runnable app using \code{ezMethodBWA()}}
-\description{
-This reference class is based on \code{EzApp} and uses the function \code{ezMethodBWA()}.
-}
+\title{The R5 class representing a runnable app using \code{ezMethodBWA()()}}
 \section{Fields}{
 
 \describe{
@@ -22,16 +19,7 @@ This reference class is based on \code{EzApp} and uses the function \code{ezMeth
 \describe{
 \item{\code{initialize()}}{Initializes the application using its specific defaults.}
 }}
-\author{
-Rehrauer, Hubert
-
-Schmid, Peter
-}
 \seealso{
-\code{\link{EzApp}}
-
-\code{\link{EzDataset}}
-
 \code{\link{ezMethodBWA}}
 }
 

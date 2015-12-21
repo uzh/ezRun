@@ -6,10 +6,6 @@
 # www.fgcz.ch
 
 
-##' @template method-template
-##' @templateVar methodName Edger
-##' @template htmlFile-template
-##' @seealso \code{\link{EzAppEdger}}
 ezMethodEdger = function(input=NA, output=NA, param=NA, htmlFile="00index.html"){
   setwdNew(basename(output$getColumn("Report")))
   stopifnot(param$sampleGroup != param$refGroup)
@@ -39,8 +35,9 @@ ezMethodEdger = function(input=NA, output=NA, param=NA, htmlFile="00index.html")
 }
 
 ##' @template app-template
-##' @templateVar method ezMethodEdger()
-##' @seealso \code{\link{ezMethodEdger}}
+##' @templateVar method ezMethodEdger
+##' @templateVar htmlArg , htmlFile="00index.html"
+##' @description Use this reference class to run a differential expression analysis with the application edgeR on two groups.
 EzAppEdger <-
   setRefClass("EzAppEdger",
               contains = "EzApp",

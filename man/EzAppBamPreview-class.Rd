@@ -5,8 +5,17 @@
 \alias{EzAppBamPreview}
 \alias{EzAppBamPreview-class}
 \title{The R5 class representing a runnable app using \code{ezMethodBamPreview()}}
+\arguments{
+\item{input}{a list, file path or an object of the class EzDataset containing the input.}
+
+\item{output}{a list, file path or an object of the class EzDataset containing the output information.}
+
+\item{param}{a list of parameters to customize the application run.}
+
+\item{htmlFile}{a character, ending with .html, representing the file path of an html file.}
+}
 \description{
-This reference class is based on \code{EzApp} and uses the function \code{ezMethodBamPreview()}.
+Use this reference class to run
 }
 \section{Fields}{
 
@@ -22,6 +31,13 @@ This reference class is based on \code{EzApp} and uses the function \code{ezMeth
 \describe{
 \item{\code{initialize()}}{Initializes the application using its specific defaults.}
 }}
+\section{Functions}{
+
+\itemize{
+  \item{\code{ezMethodBamPreview(input=NA, output=NA, param=NA, htmlFile="00index.html"): }}
+  {The function to run this application.}
+}
+}
 \author{
 Rehrauer, Hubert
 
@@ -31,7 +47,5 @@ Schmid, Peter
 \code{\link{EzApp}}
 
 \code{\link{EzDataset}}
-
-\code{\link{ezMethodBamPreview}}
 }
 
