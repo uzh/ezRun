@@ -96,13 +96,13 @@ setMethod("initialize", "EzRef", function(.Object, param=list(), genomesRoot=GEN
 })
 
 ##' @describeIn EzRef Access of slots by name with square brackets [ ]
-setMethod("[", "EzRef", function(x, name){
-  slot(x, name)
+setMethod("[", "EzRef", function(x, i){
+  slot(x, i)
 })
 
 ##' @describeIn EzRef Assignment to slots by name with square brackets [ ]
-setMethod("[<-", "EzRef", function(x, name, value){
-  slot(x, name) = value
+setMethod("[<-", "EzRef", function(x, i, value){
+  slot(x, i) = value
   x
 })
 

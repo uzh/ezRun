@@ -8,6 +8,8 @@
 
 ##' @title Gets the sequence annotation
 ##' @description Gets the sequence annotation from annotation (gtf or gff) and sequence (fasta) information.
+##' Sequence annotation files are on the isoform level. If the analysis is to be done at the gene level, the annotation for
+##' the isoforms is aggregated.
 ##' @param param the parameters to load the annotation and sequence files from and possibly write to.
 ##' @param ids a character vector containing the gene ID's to return.
 ##' @param dataFeatureType either \code{"isoform"} or \code{"gene"}.
@@ -15,12 +17,11 @@
 ##' @return Returns a data.frame containing information about the genes in an easily readable way.
 ##' @examples
 ##' param = ezParam()
-##' param$ezRef@@refFeatureFile = system.file("extdata/genes.gtf", package="ezRun", mustWork=TRUE)
-##' param$ezRef@@refAnnotationFile = ""
-##' fp = "/srv/GT/reference/Saccharomyces_cerevisiae/Ensembl/EF4/Sequence/WholeGenomeFasta/genome.fa"
-##' param$ezRef@@refFastaFile = fp
-##' x = writeAnnotationFromGtf(param)
-##' ezFeatureAnnotation(param, rownames(x), "gene")
+##' param$ezRef["refFeatureFile"] = system.file("extdata/genes.gtf", package="ezRun", mustWork=TRUE)
+##' param$ezRef["refFastaFile"] = system.file("extdata/genome.fa", package="ezRun", mustWork=TRUE)
+##' param$ezRef["refAnnotationFile"] = system.file("extdata/genes_annotation.txt", package="ezRun", mustWork=TRUE)
+##' seqAnno = writeAnnotationFromGtf(param)
+##' seqAnno2 = ezFeatureAnnotation(param, rownames(seqAnno), dataFeatureType="gene")
 ezFeatureAnnotation = function(param, ids, dataFeatureType){
   
   stopifnot(dataFeatureType %in% c("isoform", "gene")) ## not yet supported
@@ -67,7 +68,7 @@ ezFeatureAnnotation = function(param, ids, dataFeatureType){
   return(seqAnno)
 }
 
-##' @describeIn ezFeatureAnnotation Gets the annotation from a .gtf file and transforms it into a more readable .txt file.
+##' @describeIn ezFeatureAnnotation Gets the annotation from a .gtf file and transforms it into a tab-separated tabular .txt file.
 writeAnnotationFromGtf = function(param, featureFile=param$ezRef["refFeatureFile"], featAnnoFile=param$ezRef["refAnnotationFile"]){
   gtf = ezLoadFeatures(param, featureFile=featureFile)
   gtf = gtf[gtf$type == "exon", ]
@@ -95,19 +96,19 @@ aggregateGoAnnotation = function(seqAnno, genes, goColumns=c("GO BP", "GO CC", "
   return(geneAnno)
 }
 
-##' @title Gets the gene mapping
-##' @description Gets the gene mapping.
-##' @param param the parameters to specify which names to use. This is taken from \code{geneColumn} or \code{geneColumnSet} if the first one is not specified.
+##' @title Gets the isoform-to-gene mapping
+##' @description The annotation in the reference folders is at the isoform level but for gene-level analyses we need to map the annotation to the gene level.
+##' Especially all enrichment analyses should be run at the gene-level
+##' @param param the global parameter object. We need the entries \code{geneColumn} or \code{geneColumnSet} to figure out 
+##' which columns of the annotation data frame 
+##' should be used for the mapping
 ##' @param seqAnnoDF a data.frame containing the sequence annotation.
 ##' @template roxygen-template
 ##' @return Returns a named character vector containing the gene mapping.
 ##' @examples
 ##' param = ezParam()
-##' param$ezRef@@refFeatureFile = system.file("extdata/genes.gtf", package="ezRun", mustWork=TRUE)
-##' param$ezRef@@refAnnotationFile = ""
-##' fp = "/srv/GT/reference/Saccharomyces_cerevisiae/Ensembl/EF4/Sequence/WholeGenomeFasta/genome.fa"
-##' param$ezRef@@refFastaFile = fp
-##' seqAnno = writeAnnotationFromGtf(param)
+##' param$ezRef["refAnnotationFile"] = system.file("extdata/genes_annotation.txt", package="ezRun", mustWork=TRUE)
+##' seqAnno = ezFeatureAnnotation(param, rownames(seqAnno), dataFeatureType="gene")
 ##' getGeneMapping(param,seqAnno)
 ##' hasGeneMapping(param,seqAnno)
 getGeneMapping = function(param, seqAnnoDF){
