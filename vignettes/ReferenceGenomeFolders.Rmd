@@ -19,13 +19,15 @@ The commands to generate a reference are:
 ```{r}
 library(ezRun)
 refBuild = "Saccharomyces_cerevisiae/Ensembl/EF4/Annotation/Version-2013-03-18"
-gtf = system.file("extdata/genes.gtf", package="ezRun", mustWork = TRUE)
-fa = system.file("extdata/genome.fa", package="ezRun", mustWork = TRUE)
 genomesRoot = "./refExample"
-myRef = EzRef(param=ezParam(list(refBuild=refBuild)), genomesRoot=genomesRoot)
-buildRefDir(myRef, fp, gtf)
+param = ezParam(list(refBuild=refBuild, genomesRoot=genomesRoot))
+gtf = system.file("extdata/genes.gtf", package="ezRun", mustWork = TRUE)
+fp = system.file("extdata/genome.fa", package="ezRun", mustWork = TRUE)
+buildRefDir(param$ezRef, fp, gtf)
 buildIgvGenome(myRef)
+seqAnno = writeAnnotationFromGtf(param=param)# featureFile=param$ezRef["refFeatureFile"], featAnnoFile=myRef["refAnnotationFile"])
 ```
+
 
 # Structure of a reference genome folder
 
@@ -64,9 +66,9 @@ Indices of the various aligners will be built on demand and also placed in the f
 
 
 
-# Conventions for feature annotation files
+# Genome annotation files
 
-Feature annotation files must be in gtf file format. If the input file is in gff format, it can be converted to gtf with the `gffread` utility from the cufflinks suite
+Genome annotation files that define features (e.g. gene loci) on the genome must be in gtf file format. If the input file is in gff format, it can be converted to gtf with the `gffread` utility from the cufflinks suite
 ```
 gffread -E -T -o genes.gtf genes.gff 
 ```
@@ -77,6 +79,13 @@ By convention the content of the feature files in the reference folders is:
 * transcribed.gtf -- covers all genome features that are transcribed, including non-coding RNAs like lincRNAs, micro-RNAs, ...; 
 designed for whole transcriptome appraoches (e.g. ribo-depletion)
 * features.gtf -- all annotated features in the genome, including pseudogenes, etc.; meant for whole genome exploratory analyses. Note: the included pseudogenes may give rise to multi-mapping reads in RNA-seq approaches because of the inclusion of loci that are never transcribed.
+
+# Feature annotation file
+Every file `<name>.gtf` must be accompanied by a file `<name>_annotation.txt`. This annotation file must have rownames that match the attribute `transcript_id`
+in the .gtf file. This annotation file will probably need additional enhancements. It may can contain annotations like
+* gene_name
+* description
+* GO categories
 
 
 # Processing and checks of genome assemblies and gene annotation files
