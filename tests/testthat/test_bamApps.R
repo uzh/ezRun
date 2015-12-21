@@ -112,6 +112,7 @@ test_that("TEQC", {
   output[['Html [Link]']] = 'p1001/QC_Teqc_5579_2015-05-04--13-41-58/TEQC_Result/00index.html'
   param = yeastCommonCountParam()
   param[['cores']] = 1
+  param[['paired']] = "false"
   param[['process_mode']] = 'DATASET'
   param[['name']] = 'TEQC_Result'
   param[['designFile']] = system.file("extdata/genes.bed", package="ezRun", mustWork=TRUE)
