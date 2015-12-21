@@ -33,9 +33,9 @@ ezMethodTrim = function(input=NA, output=NA, param=NA){
   ## if output is not an EzDataset, set it!
   if (!is(output, "EzDataset")){
     output = input$copy()
-    output$setColumn("Read1", paste0(input$getNames(), "-trimmed-R1.fastq"))
+    output$setColumn("Read1", paste0(getwd(), "/", input$getNames(), "-trimmed-R1.fastq"))
     if (param$paired){
-      output$setColumn("Read2", paste0(input$getNames(), "-trimmed-R2.fastq"))
+      output$setColumn("Read2", paste0(getwd(), "/", input$getNames(), "-trimmed-R2.fastq"))
     } else {
       if ("Read2" %in% input$colNames){
         output$setColumn("Read2", NULL)
