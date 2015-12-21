@@ -18,7 +18,7 @@ Returns an expanded GRanges object.
 Expands genomic ranges of a GRanges object. All ranges will be expanded at both ends by \code{width}.
 }
 \examples{
-x = GRanges(c("chr1", "chr1", "chr2"), IRanges(5000:5002,8000:8002), strand=c("+", "-", "+"))
+x = GRanges(c("chr1", "chr1", "chr2"), IRanges(5000:5002, 8000:8002), strand=c("+", "-", "+"))
 expandGRanges(x)
 }
 \author{

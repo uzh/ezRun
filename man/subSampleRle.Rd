@@ -18,7 +18,7 @@ Returns a subset of an Rle object as an integer or numeric vector.
 Subsets an Rle object.
 }
 \examples{
-rleobj = Rle(c(1,1,1,2,2,3,2,2))
+rleobj = Rle(c(1, 1, 1, 2, 2, 3, 2, 2))
 subSampleRle(rleobj, 1:8)
 }
 \author{

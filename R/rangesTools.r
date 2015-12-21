@@ -14,7 +14,7 @@
 ##' @seealso \code{\link[GenomicRanges]{GRanges}}
 ##' @return Returns an expanded GRanges object.
 ##' @examples
-##' x = GRanges(c("chr1", "chr1", "chr2"), IRanges(5000:5002,8000:8002), strand=c("+", "-", "+"))
+##' x = GRanges(c("chr1", "chr1", "chr2"), IRanges(5000:5002, 8000:8002), strand=c("+", "-", "+"))
 ##' expandGRanges(x)
 expandGRanges = function(x, width=2000){
   
@@ -85,7 +85,7 @@ computeRangeStats = function(cov, targetRanges, FUN=mean){
 ##' @template roxygen-template
 ##' @return Returns a subset of an Rle object as an integer or numeric vector.
 ##' @examples
-##' rleobj = Rle(c(1,1,1,2,2,3,2,2))
+##' rleobj = Rle(c(1, 1, 1, 2, 2, 3, 2, 2))
 ##' subSampleRle(rleobj, 1:8)
 subSampleRle = function(x, idx){
   return(as.vector(x[idx]))

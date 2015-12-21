@@ -9,6 +9,8 @@ ezInteractiveTable(values, tableLink, digits = NULL,
   envir = parent.frame())
 }
 \arguments{
+\item{values}{a data.frame or table to create an interactive table from.}
+
 \item{tableLink}{a character ending with .html representing the link to the interactive table}
 
 \item{digits}{the number of digits to round to, if rounding is desired.}
@@ -20,8 +22,6 @@ ezInteractiveTable(values, tableLink, digits = NULL,
 \item{format}{formatting options passed as an expression. The table argument in formatting functions must be named \code{interactiveTable}.}
 
 \item{envir}{the environment to evaluate \code{format} in.}
-
-\item{table}{a data.frame or table to create an interactive table from.}
 }
 \description{
 Saves an interactive table accessible with the provided \code{tableLink}.

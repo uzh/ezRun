@@ -94,7 +94,7 @@ isValidCigar = function(x){
 ##' @template roxygen-template
 ##' @return Returns the modified count values.
 ##' @examples 
-##' shiftZeros(1:10,5)
+##' shiftZeros(1:10, 5)
 shiftZeros = function(counts, minSignal){
   isLow = counts < minSignal
   isLow[is.na(isLow)] = TRUE
