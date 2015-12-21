@@ -359,7 +359,7 @@ ezSmoothScatter <- function(x=NULL, y, xlab=NULL, ylab=NULL, nPlotsPerRow=6,
 ##' y = runif(n=1000)
 ##' isPresent = x > 0.2 & y > 0.2
 ##' ezScatter(y=data.frame(a=1:10, b=21:30, c=41:50))
-##' ezXYScatterScatter(x, y, isPresent=isPresent)
+##' ezXYScatter(x, y, isPresent=isPresent)
 ezScatter <- function(x=NULL, y, xlab=NULL, ylab=NULL, nPlotsPerRow=6, shrink=FALSE,
                       lim=range(x, y, na.rm=TRUE), isPresent=NULL,
                       types=NULL, pch=16, colors=rainbow(ncol(types)), legendPos="bottomright", 
@@ -378,7 +378,7 @@ ezScatter <- function(x=NULL, y, xlab=NULL, ylab=NULL, nPlotsPerRow=6, shrink=FA
       isPres = isPresent[ ,1] | isPresent[ , 2]
     }
     par(cex.main=cex.main, cex=cex)
-    ezXYScatterScatter(y[ ,1], y[ ,2], xlim=lim, ylim=lim, isPresent=isPres,
+    ezXYScatter(y[ ,1], y[ ,2], xlim=lim, ylim=lim, isPresent=isPres,
                        types=types, pch=pch, colors=colors, legendPos=legendPos, shrink=shrink,
                        xlab=ylab[1], ylab=ylab[2], ...)
     return()
@@ -416,14 +416,14 @@ ezScatter <- function(x=NULL, y, xlab=NULL, ylab=NULL, nPlotsPerRow=6, shrink=FA
       }
     }
     par(mar=c(4.1, 3.1, 4.1, 0.1))
-    ezXYScatterScatter(xVal, y[ ,i], xlim=lim, ylim=lim, isPresent=isPres,
+    ezXYScatter(xVal, y[ ,i], xlim=lim, ylim=lim, isPresent=isPres,
                        types=types, pch=pch, colors=colors, legendPos=legendPos, shrink=shrink,
                        main=main[i], xlab=xlab, ylab=ylab[i], ...)
   }
 }
 
 ##' @describeIn ezScatter Does the XY scatter plot.
-ezXYScatterScatter = function(xVec, yVec, absentColor="gray", shrink=FALSE, frame=TRUE, axes=TRUE,
+ezXYScatter = function(xVec, yVec, absentColor="gray", shrink=FALSE, frame=TRUE, axes=TRUE,
                               xlim=range(xVec, yVec, na.rm=TRUE), ylim=xlim, isPresent=NULL,
                               types=NULL, pch=16, colors=rainbow(ncol(types)), legendPos="bottomright", ...){
   par(pty="s")
@@ -481,7 +481,7 @@ ezAllPairScatter = function(x, main="", shrink=FALSE, xylab=NULL,
        } else {
          isPres = isPresent[ ,i] | isPresent[ ,j]
        }
-       ezXYScatterScatter(x[ ,i], x[, j], xlim=lim, ylim=lim, shrink=shrink, axes=FALSE, frame=TRUE,
+       ezXYScatter(x[ ,i], x[, j], xlim=lim, ylim=lim, shrink=shrink, axes=FALSE, frame=TRUE,
                           isPresent=isPres, types=types, pch=pch, colors=colors, legendPos=NULL, ...)
        if (i == 1){
          mtext(xylab[j], 2)
@@ -497,7 +497,7 @@ ezAllPairScatter = function(x, main="", shrink=FALSE, xylab=NULL,
     } else {
       isPres = isPresent[ ,1] | isPresent[ ,2]
     }
-    ezXYScatterScatter(x[ ,1], x[, 2], xlim=lim, ylim=lim, shrink=shrink, xlab=xylab[1], ylab=xylab[2],
+    ezXYScatter(x[ ,1], x[, 2], xlim=lim, ylim=lim, shrink=shrink, xlab=xylab[1], ylab=xylab[2],
                        isPresent=isPresent, types=types, pch=pch, colors=colors, legendPos=legendPos, ...)
   }
   mtext(main, line=1)

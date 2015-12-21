@@ -218,7 +218,7 @@ addTestScatterPlots = function(doc, param, x, result, seqAnno, resultFile, types
     links[2, 1] = as.html(pot("Comparison plot of clickable significant genes", hyperlink = "interactivePlots.html"))
     
     plotCmd = expression({
-      ezXYScatterScatter(xVec=refValues, yVec=sampleValues, isPresent=result$usedInTest, types=types,
+      ezXYScatter(xVec=refValues, yVec=sampleValues, isPresent=result$usedInTest, types=types,
                          xlab=param$refGroup, ylab=param$sampleGroup, main="Comparison of average expression")
     })
     links[1, 1] = ezImageFileLink(plotCmd, file=paste0(param$comparison, "-scatter.png"),
