@@ -135,7 +135,7 @@ ezWrite.table = function(values, file=file, head="Identifier", row.names=TRUE, c
 
 ##' @title Saves an interactive table
 ##' @description Saves an interactive table accessible with the provided \code{tableLink}.
-##' @param table a data.frame or table to create an interactive table from.
+##' @param values a data.frame or table to create an interactive table from.
 ##' @param tableLink a character ending with .html representing the link to the interactive table
 ##' @param digits the number of digits to round to, if rounding is desired.
 ##' @param colNames a character vector specifying the column names of the interactive table.
