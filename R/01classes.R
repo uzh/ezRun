@@ -224,7 +224,7 @@ ezTagListFromNames = function(names){
 ##' }
 ##' @template roxygen-template
 ##' @seealso \code{\link{EzDataset}}
-##' @seealso \code{\link{checkFreeDiskSpace}}
+##' @seealso \code{\link{waitForFreeDiskSpace}}
 ##' @seealso \code{\link{EzAppBamPreview}}
 ##' @seealso \code{\link{EzAppBismark}}
 ##' @seealso \code{\link{EzAppBowtie}}
@@ -291,7 +291,7 @@ EzApp <-
                     param$appName = name
                     logMessage(name, param, "Starting")
                     param = ezParam(param, appDefaults=appDefaults)
-                    checkFreeDiskSpace(param)
+                    waitForFreeDiskSpace(param)
                     cwd = getwd()
                     result = runMethod(input=input$copy(), output=output$copy(), param=param)
                     setwd(cwd)
@@ -357,8 +357,8 @@ EzApp <-
 ##' param = list()
 ##' param[['mail']] = ''
 ##' param[['scratch']] = '100'
-##' checkFreeDiskSpace(param)
-checkFreeDiskSpace = function(param){
+##' waitForFreeDiskSpace(param)
+waitForFreeDiskSpace = function(param){
   if (is.null(param$scratch)){
     return()
   }
@@ -382,7 +382,10 @@ checkFreeDiskSpace = function(param){
   return()
 }
 
-##' @describeIn checkFreeDiskSpace Gets the number of free gigabytes.
+##' @describeIn waitForFreeDiskSpace Gets the number of free gigabytes.
+##' @examples 
+##' getGigabyteFree(".")
+##' getGigabyteFree("/")
 getGigabyteFree = function(dirPath){
   as.numeric(strsplit(ezSystem(paste("df", dirPath), intern=TRUE, echo=FALSE), " +")[[2]][4]) / 1e6
 }

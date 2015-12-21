@@ -17,7 +17,7 @@ edgerMultiGroupApp = function(inputDatasetFile=NA, output=NA, param=NA){
     }
   })
   #waitUntilFileExists(inputDatasetFile, maxWaitSeconds=300)
-  checkFreeDiskSpace(param)
+  waitForFreeDiskSpace(param)
   cwd = getwd()
   on.exit(setwd(cwd), add=TRUE)
   setwdNew(basename(output$Report))

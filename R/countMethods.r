@@ -50,7 +50,7 @@
 .countDexseq = function(input=NA, output=NA, param=NA){
   
   param = fillWithDefaults(param) ## TODO: function doesn't exist
-  checkFreeDiskSpace(param)
+  waitForFreeDiskSpace(param)
   options(cores=param$cores)
   if (param$paired == FALSE){
     bamFile = input$"BAM"
