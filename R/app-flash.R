@@ -6,9 +6,6 @@
 # www.fgcz.ch
 
 
-##' @template method-template
-##' @templateVar methodName Flash
-##' @seealso \code{\link{EzAppFlash}}
 ezMethodFlash = function(input=NA, output=NA, param=NA){
   opt = param$cmdOptions
   sampleName = input$getNames()
@@ -27,7 +24,8 @@ ezMethodFlash = function(input=NA, output=NA, param=NA){
 ##' @author Opitz, Lennart
 ##' @template app-template
 ##' @templateVar method ezMethodFlash()
-##' @seealso \code{\link{ezMethodFlash}}
+##' @templateVar htmlArg )
+##' @description Use this reference class to run 
 EzAppFlash <-
   setRefClass("EzAppFlash",
               contains = "EzApp",

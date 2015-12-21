@@ -4,7 +4,19 @@
 \name{EzAppMpileup-class}
 \alias{EzAppMpileup}
 \alias{EzAppMpileup-class}
-\title{The R5 class representing a runnable app using \code{ezMethodMpileup()()}}
+\title{The R5 class representing a runnable app using \code{ezMethodMpileup()}}
+\arguments{
+\item{input}{a list, file path or an object of the class EzDataset containing the input.}
+
+\item{output}{a list, file path or an object of the class EzDataset containing the output information.}
+
+\item{param}{a list of parameters to customize the application run.}
+
+\item{htmlFile}{a character, ending with .html, representing the file path of an html file.}
+}
+\description{
+Use this reference class to run
+}
 \section{Fields}{
 
 \describe{
@@ -19,7 +31,21 @@
 \describe{
 \item{\code{initialize()}}{Initializes the application using its specific defaults.}
 }}
+\section{Functions}{
+
+\itemize{
+  \item{\code{ezMethodMpileup(input=NA, output=NA, param=NA): }}
+  {The function to run this application.}
+}
+}
+\author{
+Rehrauer, Hubert
+
+Schmid, Peter
+}
 \seealso{
-\code{\link{ezMethodMpileup}}
+\code{\link{EzApp}}
+
+\code{\link{EzDataset}}
 }
 

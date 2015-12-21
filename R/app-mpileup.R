@@ -6,9 +6,6 @@
 # www.fgcz.ch
 
 
-##' @template method-template
-##' @templateVar methodName Mpileup
-##' @seealso \code{\link{EzAppMpileup}}
 ezMethodMpileup = function(input=NA, output=NA, param=NA){
 
   requireNamespace("VariantAnnotation")
@@ -185,8 +182,9 @@ ezMethodMpileup = function(input=NA, output=NA, param=NA){
 }
 
 ##' @template app-template
-##' @templateVar method ezMethodMpileup()
-##' @seealso \code{\link{ezMethodMpileup}}
+##' @templateVar method ezMethodMpileup
+##' @templateVar htmlArg )
+##' @description Use this reference class to run 
 EzAppMpileup <-
   setRefClass("EzAppMpileup",
               contains = "EzApp",

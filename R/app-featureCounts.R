@@ -6,10 +6,7 @@
 # www.fgcz.ch
 
 
-##' @template method-template
-##' @templateVar methodName Feature Counts
-##' @seealso \code{\link{EzAppFeatureCounts}}
-ezMethodFeatureCounts = function(input=NULL, output=NULL, param=NULL){
+ezMethodFeatureCounts = function(input=NA, output=NA, param=NA){
   bamFile = input$getFullPaths(param, "BAM")
   localBamFile = .getBamLocally(bamFile)
   outputFile = basename(output$getColumn("Count"))
@@ -46,8 +43,9 @@ ezMethodFeatureCounts = function(input=NULL, output=NULL, param=NULL){
 }
 
 ##' @template app-template
-##' @templateVar method ezMethodFeatureCounts()
-##' @seealso \code{\link{ezMethodFeatureCounts}}
+##' @templateVar method ezMethodFeatureCounts
+##' @templateVar htmlArg )
+##' @description Use this reference class to run 
 EzAppFeatureCounts <-
   setRefClass("EzAppFeatureCounts",
               contains = "EzApp",

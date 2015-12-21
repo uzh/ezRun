@@ -7,7 +7,7 @@
 ezBam2bigwig(bamFile, bigwigPrefix, param = NULL, paired = NULL)
 }
 \arguments{
-\item{bamFile}{a character representing the file path to the bam file to convert.}
+\item{bamFile}{a character representing the bam file path.}
 
 \item{bigwigPrefix}{a character representing a prefix to add to the bigwig file names.}
 

@@ -10,7 +10,7 @@ ezBamSeqNames(bamFile, sizeSorting = "decreasing")
 ezBamSeqLengths(bamFile)
 }
 \arguments{
-\item{bamFile}{a character representing the file path of a bam file.}
+\item{bamFile}{a character representing the bam file path.}
 
 \item{sizeSorting}{a character. if equal to "decreasing" the names will be sorted decreasingly.}
 }

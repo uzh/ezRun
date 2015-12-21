@@ -6,10 +6,6 @@
 # www.fgcz.ch
 
 
-##' @template method-template
-##' @templateVar methodName RNA Bam Stats
-##' @template htmlFile-template
-##' @seealso \code{\link{EzAppRnaBamStats}}
 ezMethodRnaBamStats = function(input=NA, output=NA, param=NA, htmlFile="00index.html"){
   
   requireNamespace("GenomicAlignments")
@@ -29,8 +25,9 @@ ezMethodRnaBamStats = function(input=NA, output=NA, param=NA, htmlFile="00index.
 }
 
 ##' @template app-template
-##' @templateVar method ezMethodRnaBamStats()
-##' @seealso \code{\link{ezMethodRnaBamStats}}
+##' @templateVar method ezMethodRnaBamStats
+##' @templateVar htmlArg , htmlFile="00index.html")
+##' @description Use this reference class to run 
 EzAppRnaBamStats <-
   setRefClass("EzAppRnaBamStats",
               contains = "EzApp",

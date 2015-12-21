@@ -178,7 +178,7 @@ readNcProResult = function (ncproDir) {
 ##' @title Filters FastQ files by bam
 ##' @description Filters FastQ files by bam and writes them into new files.
 ##' @param fqFiles a character vector representing file paths to FastQ files.
-##' @param bamFile a character representing the file path to the bam file to read.
+##' @template bamFile-template
 ##' @param fqOutFiles an optional character vector representing file paths to the FastQ output files.
 ##' @param doGzip a logical indicating whether to archive the output files in a gzip archive.
 ##' @param keepUnmapped passed further to \code{scanBamFlag()}.

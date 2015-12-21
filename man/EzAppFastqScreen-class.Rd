@@ -4,7 +4,19 @@
 \name{EzAppFastqScreen-class}
 \alias{EzAppFastqScreen}
 \alias{EzAppFastqScreen-class}
-\title{The R5 class representing a runnable app using \code{ezMethodFastqScreen()()}}
+\title{The R5 class representing a runnable app using \code{ezMethodFastqScreen()}}
+\arguments{
+\item{input}{a list, file path or an object of the class EzDataset containing the input.}
+
+\item{output}{a list, file path or an object of the class EzDataset containing the output information.}
+
+\item{param}{a list of parameters to customize the application run.}
+
+\item{htmlFile}{a character, ending with .html, representing the file path of an html file.}
+}
+\description{
+Use this reference class to run
+}
 \section{Fields}{
 
 \describe{
@@ -19,7 +31,35 @@
 \describe{
 \item{\code{initialize()}}{Initializes the application using its specific defaults.}
 }}
+\section{Functions}{
+
+\itemize{
+  \item{\code{ezMethodFastqScreen(input=NA, output=NA, param=NA, htmlFile="00index.html"): }}
+  {The function to run this application.}
+}
+
+
+\itemize{
+  \item{\code{executeFastqscreenCMD(param, files): }}
+  {Executes the fastqscreen command with given parameters on the input files.}
+  \item{\code{collectFastqscreenOutput(dataset, files, resultFiles): }}
+  {Collects the fastqscreen output after the result files have been obtained by \code{executeFastqscreenCMD()}.}
+  \item{\code{executeBowtie2CMD(param, input): }}
+  {Executes the bowtie2 command with given parameters on the input files.}
+  \item{\code{collectBowtie2Output(param, dataset, countFiles): }}
+  {Collects the bowtie2 output after the count files have been obtained by \code{executeBowtie2CMD()}.}
+  \item{\code{fastqscreenReport(dataset, param, htmlFile="00index.html", fastqData, speciesPercentageTop): }}
+  {Generates a report with plots and other information about the outcome of the run.}
+}
+}
+\author{
+Rehrauer, Hubert
+
+Schmid, Peter
+}
 \seealso{
-\code{\link{ezMethodFastqScreen}}
+\code{\link{EzApp}}
+
+\code{\link{EzDataset}}
 }
 

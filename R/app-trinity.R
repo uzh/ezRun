@@ -6,11 +6,6 @@
 # www.fgcz.ch
 
 
-##' @template method-template
-##' @templateVar methodName Trinity
-##' @template htmlFile-template
-##' @seealso \code{\link{EzAppTrinity}}
-##' @seealso \code{\link{ezMethodTrim}}
 ezMethodTrinity = function(input=NA, output=NA, param=NA, htmlFile="00index.html"){
   
   if (ezIsSpecified(param$samples)){
@@ -45,8 +40,10 @@ ezMethodTrinity = function(input=NA, output=NA, param=NA, htmlFile="00index.html
 }
 
 ##' @template app-template
-##' @templateVar method ezMethodTrinity()
-##' @seealso \code{\link{ezMethodTrinity}}
+##' @templateVar method ezMethodTrinity
+##' @templateVar htmlArg , htmlFile="00index.html")
+##' @description Use this reference class to run 
+##' @seealso \code{\link{ezMethodTrim}}
 EzAppTrinity <-
   setRefClass("EzAppTrinity",
               contains = "EzApp",

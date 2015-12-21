@@ -7,8 +7,9 @@
 
 
 ##' @template app-template
-##' @templateVar method ezMethodTeqc()
-##' @seealso \code{\link{ezMethodTeqc}}
+##' @templateVar method ezMethodTeqc
+##' @templateVar htmlArg )
+##' @description Use this reference class to run 
 EzAppTeqc <-
   setRefClass("EzAppTeqc",
               contains = "EzApp",
@@ -26,20 +27,6 @@ EzAppTeqc <-
               )
   )
 
-##' @title Target enrichment quality control
-##' @description Performs a target enrichment quality control and creates reports of the outcome.
-##' @template input-template
-##' @param param a list of parameters, some of which are passed to \code{runTEQC()}:
-##' \itemize{
-##'  \item{designFile}{ a file describing the regions selected by the enrichment kit.}
-##'  \item{name}{ a character representing the name of the app.}
-##'  \item{covUniformityPlot}{ a logical indicating whether to generate plots for coverage uniformity.}
-##'  \item{covTargetLengthPlot}{ a logical indicating whether to generate plots for coverage vs. target length.}
-##'  \item{duplicatesPlot}{ a logical indicating whether to generate plots for duplicates.}
-##'  \item{paired}{ a logical indicating whether the samples are paired.}
-##' }
-##' @param file a character representing the path to the file containing the reads.
-##' @template roxygen-template
 ezMethodTeqc = function(input=NA, output=NA, param=NA){
   setwdNew(basename(output$getColumn("Report")))
   if(basename(param$designFile) == param$designFile){
@@ -82,7 +69,18 @@ ezMethodTeqc = function(input=NA, output=NA, param=NA){
   return("Success")
 }
 
-##' @describeIn teqc Runs the target enrichment QC.
+##' @title Runs the target enrichment quality control
+##' @description Performs a target enrichment quality control and creates reports of the outcome.
+##' @param param a list of parameters:
+##' \itemize{
+##'  \item{designFile}{ a file describing the regions selected by the enrichment kit.}
+##'  \item{covUniformityPlot}{ a logical indicating whether to generate plots for coverage uniformity.}
+##'  \item{covTargetLengthPlot}{ a logical indicating whether to generate plots for coverage vs. target length.}
+##'  \item{duplicatesPlot}{ a logical indicating whether to generate plots for duplicates.}
+##'  \item{paired}{ a logical indicating whether the samples are paired.}
+##' }
+##' @param file a character representing the path to the file containing the reads.
+##' @template roxygen-template
 runTEQC = function(file, param){
   readsfile = file
   targetsfile = param$designFile
@@ -99,4 +97,3 @@ runTEQC = function(file, param){
                    genome='hg19',figureFormat = c("png"))
   return("Success")
 }
-

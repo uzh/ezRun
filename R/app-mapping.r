@@ -6,11 +6,6 @@
 # www.fgcz.ch
 
 
-##' @template method-template
-##' @templateVar methodName Tophat
-##' @seealso \code{\link{EzAppTophat}}
-##' @seealso \code{\link{getBowtie2Reference}}
-##' @seealso \code{\link{ezMethodTrim}}
 ezMethodTophat = function(input=NA, output=NA, param=NA){
   
   Sys.setenv(PATH=paste(BOWTIE2_DIR, BOWTIE_DIR, dirname(SAMTOOLS), Sys.getenv("PATH"), sep=":"))
@@ -65,8 +60,11 @@ ezMethodTophat = function(input=NA, output=NA, param=NA){
 }
 
 ##' @template app-template
-##' @templateVar method ezMethodTophat()
-##' @seealso \code{\link{ezMethodTophat}}
+##' @templateVar method ezMethodTophat
+##' @templateVar htmlArg )
+##' @description Use this reference class to run 
+##' @seealso \code{\link{getBowtie2Reference}}
+##' @seealso \code{\link{ezMethodTrim}}
 EzAppTophat <-
   setRefClass("EzAppTophat",
               contains = "EzApp",
@@ -81,11 +79,6 @@ EzAppTophat <-
               )
   )
 
-##' @template method-template
-##' @templateVar methodName Bowtie2
-##' @seealso \code{\link{EzAppBowtie2}}
-##' @seealso \code{\link{getBowtie2Reference}}
-##' @seealso \code{\link{ezMethodTrim}}
 ezMethodBowtie2 = function(input=NA, output=NA, param=NA){
   
   ref = getBowtie2Reference(param)
@@ -162,8 +155,11 @@ getBowtie2Reference = function(param){
 }
 
 ##' @template app-template
-##' @templateVar method ezMethodBowtie2()
-##' @seealso \code{\link{ezMethodBowtie2}}
+##' @templateVar method ezMethodBowtie2
+##' @templateVar htmlArg )
+##' @description Use this reference class to run 
+##' @seealso \code{\link{getBowtie2Reference}}
+##' @seealso \code{\link{ezMethodTrim}}
 EzAppBowtie2 <-
   setRefClass("EzAppBowtie2",
               contains = "EzApp",
@@ -178,11 +174,6 @@ EzAppBowtie2 <-
               )
   )
 
-##' @template method-template
-##' @templateVar methodName Bowtie
-##' @seealso \code{\link{EzAppBowtie}}
-##' @seealso \code{\link{getBowtieReference}}
-##' @seealso \code{\link{ezMethodTrim}}
 ezMethodBowtie = function(input=NA, output=NA, param=NA){
     
   ref = getBowtieReference(param)
@@ -251,8 +242,11 @@ getBowtieReference = function(param){
 }
 
 ##' @template app-template
-##' @templateVar method ezMethodBowtie()
-##' @seealso \code{\link{ezMethodBowtie}}
+##' @templateVar method ezMethodBowtie
+##' @templateVar htmlArg )
+##' @description Use this reference class to run 
+##' @seealso \code{\link{getBowtieReference}}
+##' @seealso \code{\link{ezMethodTrim}}
 EzAppBowtie <-
   setRefClass("EzAppBowtie",
               contains = "EzApp",
@@ -267,11 +261,6 @@ EzAppBowtie <-
               )
   )
 
-##' @template method-template
-##' @templateVar methodName STAR
-##' @seealso \code{\link{EzAppSTAR}}
-##' @seealso \code{\link{getSTARReference}}
-##' @seealso \code{\link{ezMethodTrim}}
 ezMethodSTAR = function(input=NA, output=NA, param=NA){
 
   refDir = getSTARReference(param)
@@ -360,8 +349,11 @@ getSTARReference = function(param){
 }
 
 ##' @template app-template
-##' @templateVar method ezMethodSTAR()
-##' @seealso \code{\link{ezMethodSTAR}}
+##' @templateVar method ezMethodSTAR
+##' @templateVar htmlArg )
+##' @description Use this reference class to run 
+##' @seealso \code{\link{getSTARReference}}
+##' @seealso \code{\link{ezMethodTrim}}
 EzAppSTAR <- 
   setRefClass("EzAppSTAR",
               contains = "EzApp",
@@ -377,11 +369,6 @@ EzAppSTAR <-
               )
   )
 
-##' @template method-template
-##' @templateVar methodName BWA
-##' @seealso \code{\link{EzAppBWA}}
-##' @seealso \code{\link{getBWAReference}}
-##' @seealso \code{\link{ezMethodTrim}}
 ezMethodBWA = function(input=NA, output=NA, param=NA){
   
   refIdx = getBWAReference(param)
@@ -467,8 +454,11 @@ getBWAReference = function(param){
 }
 
 ##' @template app-template
-##' @templateVar method ezMethodBWA()
-##' @seealso \code{\link{ezMethodBWA}}
+##' @templateVar method ezMethodBWA
+##' @templateVar htmlArg )
+##' @description Use this reference class to run 
+##' @seealso \code{\link{getBWAReference}}
+##' @seealso \code{\link{ezMethodTrim}}
 EzAppBWA <- 
   setRefClass("EzAppBWA",
               contains = "EzApp",
@@ -484,9 +474,6 @@ EzAppBWA <-
               )
   )
 
-##' @template method-template
-##' @templateVar methodName Bismark
-##' @seealso \code{\link{EzAppBismark}}
 ezMethodBismark = function(input=NA, output=NA, param=NA){
   ##TODO: create reference if not existing
   ref = dirname(param$ezRef@refFastaFile)
@@ -545,8 +532,9 @@ ezMethodBismark = function(input=NA, output=NA, param=NA){
 }
 
 ##' @template app-template
-##' @templateVar method ezMethodBismark()
-##' @seealso \code{\link{ezMethodBismark}}
+##' @templateVar method ezMethodBismark
+##' @templateVar htmlArg )
+##' @description Use this reference class to run 
 EzAppBismark <-
   setRefClass("EzAppBismark",
               contains = "EzApp",

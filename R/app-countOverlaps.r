@@ -6,7 +6,7 @@
 # www.fgcz.ch
 
 
-ezMethodCountOverlaps = function(input=NULL, output=NULL, param=NULL){
+ezMethodCountOverlaps = function(input=NA, output=NA, param=NA){
   bamFile = input$getFullPaths(param, "BAM")
   outputFile = basename(output$getColumn("Count"))
   
@@ -41,9 +41,22 @@ ezMethodCountOverlaps = function(input=NULL, output=NULL, param=NULL){
 }
 
 ##' @template app-template
-##' @templateVar method ezMethodCountOverlaps()
-##' @templateVar htmlArg 
-##' @seealso \code{\link{ezMethodCountOverlaps}}
+##' @templateVar method ezMethodCountOverlaps
+##' @templateVar htmlArg )
+##' @description Use this reference class to run 
+##' @section Functions:
+##' \itemize{
+##'   \item{\code{countNonredundant(bamFile, param=param, gff=gff): }}
+##'   {Counts the non-redundant overlaps.}
+##'   \item{\code{countBamHitsSingleChrom(chr, bamFile=NULL, param=NULL, gff=NULL): }}
+##'   {Counts the BAM hits for a single chromosome.}
+##'   \item{\code{countPairedBamHitsSingleChrom(chr, bamFile=NULL, param=NULL, gff=NULL): }}
+##'   {Counts the paired BAM hits for a single chromosome.}
+##'   \item{\code{getTargetRanges(gff, param, chrom=NULL): }}
+##'   {Gets the target ranges depending on \code{param$featureLevel}.}
+##'   \item{\code{getFeatureCounts(chrom, gff, reads, param): }}
+##'   {Gets the feature counts from the target ranges.}
+##' }
 EzAppCountOverlaps <-
   setRefClass("EzAppCountOverlaps",
               contains = "EzApp",
@@ -61,7 +74,6 @@ EzAppCountOverlaps <-
               )
   )
 
-##' @describeIn ezMethodCountOverlaps Counts the paired BAM hits.
 .countPairedBamHits = function(input=NULL, output=NULL, param=NULL){
   
   #param = fillWithDefaults(param) ## TODO: function doesn't exist
@@ -94,30 +106,6 @@ EzAppCountOverlaps <-
   return("Success")
 }
 
-##' @describeIn ezMethodCountOverlaps Counts the paired BAM hits for a single chromosome.
-countPairedBamHitsSingleChrom = function(chr, bamFile=NULL, param=NULL, gff=NULL){
-  targets = NULL
-  tryCatch({    
-    ga = ezReadPairedAlignments(bamFile, seqname=chr, keepUnpaired=param$keepUnpaired,
-                                 minMapQuality=param$minMapQuality, keepMultiHits=param$keepMultiHits)
-    featCounts = getFeatureCounts(chr, gff, ga, param)
-    targets = data.frame(row.names=names(featCounts))
-    targets$multiMatchCounts = as.numeric(featCounts)
-    if (param$countTrimmedTranscripts){
-      gffStart = gffTrimTranscripts(gff, maxLength=param$trimmedMaxLength, start=TRUE)
-      nm = paste("multiMatchCounts [first", param$trimmedMaxLength, "bases]")
-      targets[[nm]] = getFeatureCounts(chr, gffStart, ga, param)[rownames(targets)]
-      gffEnd = gffTrimTranscripts(gff, maxLength=param$trimmedMaxLength, start=FALSE)
-      nm = paste("multiMatchCounts [last", param$trimmedMaxLength, "bases]")
-      targets[[nm]] = getFeatureCounts(chr, gffEnd, ga, param)[rownames(targets)]
-    }
-    rm(ga)
-    gc()
-  }, error=function(e){ezWrite("Failed on: ", bamFile, " - ", chr); ezWrite(e); warnings(); traceback(); stop(e)})
-  return(targets)
-}
-
-##' @describeIn ezMethodCountOverlaps Counts the non-redundant overlaps.
 countNonredundant = function(bamFile, param=param, gff=gff){
   if (!ezIsSpecified(param$minFeatureOverlap)){
     param$minFeatureOverlap = 1L
@@ -151,7 +139,6 @@ countNonredundant = function(bamFile, param=param, gff=gff){
   return(countFrame)
 }
 
-##' @describeIn ezMethodCountOverlaps Counts the BAM hits for a single chromosome.
 countBamHitsSingleChrom = function(chr, bamFile=NULL, param=NULL, gff=NULL){  
   targets = NULL
   tryCatch({
@@ -173,8 +160,29 @@ countBamHitsSingleChrom = function(chr, bamFile=NULL, param=NULL, gff=NULL){
   return(targets)
 }
 
-##' @describeIn ezMethodCountOverlaps Gets the target ranges depending on \code{param$featureLevel}.
-getTargetRanges = function (gff, param, chrom=NULL) {
+countPairedBamHitsSingleChrom = function(chr, bamFile=NULL, param=NULL, gff=NULL){
+  targets = NULL
+  tryCatch({    
+    ga = ezReadPairedAlignments(bamFile, seqname=chr, keepUnpaired=param$keepUnpaired,
+                                 minMapQuality=param$minMapQuality, keepMultiHits=param$keepMultiHits)
+    featCounts = getFeatureCounts(chr, gff, ga, param)
+    targets = data.frame(row.names=names(featCounts))
+    targets$multiMatchCounts = as.numeric(featCounts)
+    if (param$countTrimmedTranscripts){
+      gffStart = gffTrimTranscripts(gff, maxLength=param$trimmedMaxLength, start=TRUE)
+      nm = paste("multiMatchCounts [first", param$trimmedMaxLength, "bases]")
+      targets[[nm]] = getFeatureCounts(chr, gffStart, ga, param)[rownames(targets)]
+      gffEnd = gffTrimTranscripts(gff, maxLength=param$trimmedMaxLength, start=FALSE)
+      nm = paste("multiMatchCounts [last", param$trimmedMaxLength, "bases]")
+      targets[[nm]] = getFeatureCounts(chr, gffEnd, ga, param)[rownames(targets)]
+    }
+    rm(ga)
+    gc()
+  }, error=function(e){ezWrite("Failed on: ", bamFile, " - ", chr); ezWrite(e); warnings(); traceback(); stop(e)})
+  return(targets)
+}
+
+getTargetRanges = function(gff, param, chrom=NULL){
   stopifnot(gff$type == "exon")
   if(!is.null(chrom)){
     gff = gff[gff$seqid == chrom, ]
@@ -216,7 +224,6 @@ getTargetRanges = function (gff, param, chrom=NULL) {
   return(targetRanges)
 }
 
-##' @describeIn ezMethodCountOverlaps Gets the feature counts from the target ranges.
 getFeatureCounts = function(chrom, gff, reads, param){
   if (length(chrom) > 1){
     featCounts = unlist(ezMclapply(chrom, getFeatureCounts, gff, reads, param), recursive=FALSE)
@@ -235,7 +242,6 @@ getFeatureCounts = function(chrom, gff, reads, param){
 ## in that case the reference name (rname) is the transcript ID
 ## does handle paired-end consistently, i.e. a pair is counted as 1 if the ends align to the same  transcript
 ## and it is counted fractionally if alignments go to multiple transcripts
-##' @describeIn ezMethodCountOverlaps Counts the transcripts from a BAM file.
 countTranscriptBam = function(bamFile, isFirstMateRead=NA, isSecondMateRead=NA, isUnmappedQuery=FALSE, isProperPair=NA){
   bam = ezScanBam(bamFile, what=c("qname", "rname"),
                    isFirstMateRead=isFirstMateRead, isSecondMateRead=isSecondMateRead, 

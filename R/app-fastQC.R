@@ -6,10 +6,6 @@
 # www.fgcz.ch
 
 
-##' @template method-template
-##' @templateVar methodName Fast QC
-##' @template htmlFile-template
-##' @seealso \code{\link{EzAppFastqc}}
 ezMethodFastQC = function(input=NA, output=NA, param=NA, htmlFile="00index.html"){
   setwdNew(basename(output$getColumn("Report")))
   dataset = input$meta
@@ -125,8 +121,20 @@ ezMethodFastQC = function(input=NA, output=NA, param=NA, htmlFile="00index.html"
 }
 
 ##' @template app-template
-##' @templateVar method ezMethodFastQC()
-##' @seealso \code{\link{ezMethodFastQC}}
+##' @templateVar method ezMethodFastQC
+##' @templateVar htmlArg , htmlFile="00index.html")
+##' @description Use this reference class to run 
+##' @section Functions:
+##' \itemize{
+##'   \item{\code{plotReadCountToLibConc(dataset, colname): }}
+##'   {Plots \code{colname} from \code{dataset} against read counts in millions.}
+##'   \item{\code{getQualityMatrix(inputFile): }}
+##'   {Gets a quality count matrix from a fastq or gziped fastq.gz file with dimensions read quality and read length.}
+##'   \item{\code{plotQualityMatrixAsHeatmap(qualMatrixList, isR2=FALSE, xScale=1, yScale=1): }}
+##'   {Returns a png table of quality matrices interpreted as heatmaps.}
+##'   \item{\code{plotQualityHeatmap(result, name=NULL, colorRange=c(0,sqrt(40)), colors=gray((1:256)/256), main=NULL, pngFileName=NULL, xScale=1, yScale=1): }}
+##'   {Creates and returns the images used by \code{plotQualityMatrixAsHeatmap()}.}
+##' }
 EzAppFastqc <-
   setRefClass("EzAppFastqc",
               contains = "EzApp",
@@ -140,7 +148,6 @@ EzAppFastqc <-
               )
   )
 
-##' @describeIn ezMethodFastQC Plots \code{colname} from \code{dataset} against read counts in millions.
 plotReadCountToLibConc = function(dataset, colname){
   if(colname %in% colnames(dataset) && nrow(dataset) > 1){
     if(!all(dataset[[colname]]==0)){
@@ -164,7 +171,6 @@ plotReadCountToLibConc = function(dataset, colname){
   }
 }
 
-##' @describeIn ezMethodFastQC Gets a quality count matrix from a fastq or gziped fastq.gz file with dimensions read quality and read length.
 getQualityMatrix = function(inputFile){
   ## files could be fastq, or gziped fastq.gz
   requireNamespace("ShortRead", warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)  
@@ -213,7 +219,6 @@ getQualityMatrix = function(inputFile){
   return(qualCountMatrix)
 }
 
-##' @describeIn ezMethodFastQC Returns a png table of quality matrices interpreted as heatmaps.
 plotQualityMatrixAsHeatmap = function(qualMatrixList, isR2=FALSE, xScale=1, yScale=1){
   pngFileNames = NULL
   colorsGray = gray((30:256)/256)
@@ -293,7 +298,6 @@ plotQualityMatrixAsHeatmap = function(qualMatrixList, isR2=FALSE, xScale=1, ySca
   return(pngTable)
 }
 
-##' @describeIn ezMethodFastQC Creates and returns the images used by \code{plotQualityMatrixAsHeatmap()}.
 plotQualityHeatmap = function(result, name=NULL, colorRange=c(0,sqrt(40)), colors=gray((1:256)/256), main=NULL, pngFileName=NULL, xScale=1, yScale=1){
   ## some ugly controls of labels
   labCol = seq(0, ncol(result), by=10)

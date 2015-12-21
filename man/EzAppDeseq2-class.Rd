@@ -4,7 +4,19 @@
 \name{EzAppDeseq2-class}
 \alias{EzAppDeseq2}
 \alias{EzAppDeseq2-class}
-\title{The R5 class representing a runnable app using \code{ezMethodDeseq2()()}}
+\title{The R5 class representing a runnable app using \code{ezMethodDeseq2()}}
+\arguments{
+\item{input}{a list, file path or an object of the class EzDataset containing the input.}
+
+\item{output}{a list, file path or an object of the class EzDataset containing the output information.}
+
+\item{param}{a list of parameters to customize the application run.}
+
+\item{htmlFile}{a character, ending with .html, representing the file path of an html file.}
+}
+\description{
+Use this reference class to run
+}
 \section{Fields}{
 
 \describe{
@@ -19,7 +31,21 @@
 \describe{
 \item{\code{initialize()}}{Initializes the application using its specific defaults.}
 }}
+\section{Functions}{
+
+\itemize{
+  \item{\code{ezMethodDeseq2(input=NA, output=NA, param=NA, htmlFile="00index.html"): }}
+  {The function to run this application.}
+}
+}
+\author{
+Rehrauer, Hubert
+
+Schmid, Peter
+}
 \seealso{
-\code{\link{ezMethodDeseq2}}
+\code{\link{EzApp}}
+
+\code{\link{EzDataset}}
 }
 

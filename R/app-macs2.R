@@ -6,9 +6,6 @@
 # www.fgcz.ch
 
 
-##' @template method-template
-##' @templateVar methodName Macs2
-##' @seealso \code{\link{EzAppMacs2}}
 ezMethodMacs2 = function(input=NA, output=NA, param=NA){
   opt = param$cmdOptions
   dataset = input$meta
@@ -46,8 +43,9 @@ ezMethodMacs2 = function(input=NA, output=NA, param=NA){
 }
 
 ##' @template app-template
-##' @templateVar method ezMethodMacs2()
-##' @seealso \code{\link{ezMethodMacs2}}
+##' @templateVar method ezMethodMacs2
+##' @templateVar htmlArg )
+##' @description Use this reference class to run 
 EzAppMacs2 <-
   setRefClass("EzAppMacs2",
               contains = "EzApp",

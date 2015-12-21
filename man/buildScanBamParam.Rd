@@ -15,7 +15,7 @@ buildScanBamParam(param, bamFile)
   \item{seqNames}{ if provided, the function will only use these chromosomes.}
 }}
 
-\item{bamFile}{a character representing the file path to the bam file to read.}
+\item{bamFile}{a character representing the bam file path.}
 }
 \value{
 Returns an object of the class ScanBamParam.
