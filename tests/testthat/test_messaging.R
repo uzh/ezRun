@@ -15,8 +15,6 @@ test_that("Tests ezJobStart() and ezWriteElapsed()", {
   expect_is(job$start, "proc_time")
   expect_is(elapsed$name, "character")
   expect_is(elapsed$start, "proc_time")
-  expect_equal(job$start[2], elapsed$start[2])
-  expect_less_than(job$start[3], elapsed$start[3])
 })
 
 test_that("Tests logMessage()", {

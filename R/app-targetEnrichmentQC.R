@@ -36,12 +36,11 @@ ezMethodTeqc = function(input=NA, output=NA, param=NA){
   samples = input$getNames()
   jobList = input$getFullPaths(param, "BAM")
   #Create one Report per Sample:
-  ezMclapply(jobList, runTEQC, param, mc.cores=ezThreads())
+  destDirs = ezMclapply(jobList, runTEQC, param, mc.cores=ezThreads())
   
   #Create MultiSampleReport:
-  reportDirs = unlist(jobList)
-  reportDirs = paste0("report_",gsub('\\.bam', '', basename(reportDirs)))
-  TEQC::multiTEQCreport(singleReportDirs=reportDirs,
+  destDirs = unlist(destDirs)
+  TEQC::multiTEQCreport(singleReportDirs=destDirs,
                     samplenames=samples,
                     projectName=param$name,
                     targetsName=basename(dirname(param$designFile)),
@@ -64,7 +63,7 @@ ezMethodTeqc = function(input=NA, output=NA, param=NA){
   addTxtLinksToReport(doc, "multiTEQCreport/index.html")
   titles[["Individual Reports"]] = "Individual Reports"
   addTitle(doc, titles[[length(titles)]], 2, id=titles[[length(titles)]])
-  addTxtLinksToReport(doc, paste0(reportDirs, '/index.html'))
+  addTxtLinksToReport(doc, paste0(destDirs, '/index.html'))
   closeBsdocReport(doc, htmlFile, titles)
   return("Success")
 }
@@ -82,18 +81,19 @@ ezMethodTeqc = function(input=NA, output=NA, param=NA){
 ##' @param file a character representing the path to the file containing the reads.
 ##' @template roxygen-template
 runTEQC = function(file, param){
-  readsfile = file
+  sampleName = gsub('\\.bam', '', basename(file))
+  destDir = paste0("report_", sampleName)
   targetsfile = param$designFile
-  TEQC::TEQCreport(sampleName=gsub('\\.bam','',basename(file)),
+  TEQC::TEQCreport(sampleName=sampleName,
                    CovUniformityPlot = param$covUniformityPlot, CovTargetLengthPlot = param$covTargetLengthPlot, duplicatesPlot=param$duplicatesPlot,#CovGCPlot = T,
                    k = c(1,5,10,20,30,50),
                    targetsName=basename(dirname(targetsfile)),
                    referenceName='hg19',
                    pairedend=param$paired,
-                   destDir=paste0("report_",gsub('\\.bam', '', basename(file))),
-                   reads=TEQC::get.reads(readsfile,filetype="bam"),
+                   destDir=destDir,
+                   reads=TEQC::get.reads(file, filetype="bam"),
                    targets=TEQC::get.targets(targetsfile, 
                                        skip=grep("^track", readLines(targetsfile, n=200))),
                    genome='hg19',figureFormat = c("png"))
-  return("Success")
+  return(destDir)
 }
