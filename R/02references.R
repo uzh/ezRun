@@ -128,7 +128,7 @@ setMethod("buildRefDir", "EzRef", function(.Object, genomeFile, genesFile, genom
   fastaPath = dirname(.Object@refFastaFile)
   dir.create(gtfPath, recursive=T)
   dir.create(fastaPath, recursive=T)
-  dir.create(.Object@refChromDir)
+  #dir.create(.Object@refChromDir) ## by default do not generate the chromosome dir -- TODO: check if this directory is indeed needed;
   if (!is.null(.Object@refAnnotationVersion)){
     ezSystem(paste("cd", file.path(.Object@refBuildDir, "Annotation"), "; ", "ln -s",
                    file.path(.Object@refAnnotationVersion, "*"), "."))
