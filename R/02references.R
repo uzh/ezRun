@@ -22,12 +22,13 @@
 ##' @seealso \code{\link{cleanGenomeFiles}}
 ##' @examples
 ##' refBuild = "Saccharomyces_cerevisiae/Ensembl/EF4/Annotation/Version-2013-03-18"
+##' genomesRoot = "./refExample"
+##' param = ezParam(list(refBuild=refBuild, genomesRoot=genomesRoot))
 ##' gtf = system.file("extdata/genes.gtf", package="ezRun", mustWork = TRUE)
 ##' fp = system.file("extdata/genome.fa", package="ezRun", mustWork = TRUE)
-##' genomesRoot = "./refExample"
-##' myRef = EzRef(param=ezParam(list(refBuild=refBuild)), genomesRoot=genomesRoot)
-##' buildRefDir(myRef, fp, gtf)
+##' buildRefDir(param$ezRef, fp, gtf)
 ##' buildIgvGenome(myRef)
+##' seqAnno = writeAnnotationFromGtf(param=param)# featureFile=param$ezRef["refFeatureFile"], featAnnoFile=myRef["refAnnotationFile"])
 EzRef = setClass("EzRef",
                  slots = c(refBuild="character",
                            refBuildName="character",
@@ -41,10 +42,13 @@ EzRef = setClass("EzRef",
                            refAnnotationVersion="character"))
 
 ##' @describeIn EzRef Initializes the slots of EzRef. It will also try to specify some fields and if necessary get full file paths.
-setMethod("initialize", "EzRef", function(.Object, param=list(), genomesRoot=GENOMES_ROOT){
+setMethod("initialize", "EzRef", function(.Object, param=list()){
   #   if (!ezIsSpecified(param$refBuild)){
   #     return(.Object)
   #   }
+  if (is.null(param$genomesRoot)){
+    genomesRoot=GENOMES_ROOT
+  }
   .Object@refBuild = param$refBuild
   refFields = strsplit(.Object@refBuild, "/", fixed=TRUE)[[1]]
   if (ezIsSpecified(param$refBuildName)){

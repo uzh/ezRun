@@ -7,6 +7,10 @@ vignette: >
   %\VignetteEngine{knitr::rmarkdown}
   \usepackage[utf8]{inputenc}
 ---
+```{r, warning=FALSE,message=FALSE,split=TRUE}
+library(ezRun)
+```
+
 
 
 # Introduction
@@ -16,15 +20,15 @@ a gtf file containing the gene annotations and a fasta file holding the genome s
 the reference genomes are available to external tools like read aligners and others.
 
 The commands to generate a reference are:
-```{r}
-library(ezRun)
+```{r,split=TRUE}
 refBuild = "Saccharomyces_cerevisiae/Ensembl/EF4/Annotation/Version-2013-03-18"
 genomesRoot = "./refExample"
+system("rm -rf refExample")
 param = ezParam(list(refBuild=refBuild, genomesRoot=genomesRoot))
 gtf = system.file("extdata/genes.gtf", package="ezRun", mustWork = TRUE)
 fp = system.file("extdata/genome.fa", package="ezRun", mustWork = TRUE)
 buildRefDir(param$ezRef, fp, gtf)
-buildIgvGenome(myRef)
+buildIgvGenome(param$ezRef)
 seqAnno = writeAnnotationFromGtf(param=param)# featureFile=param$ezRef["refFeatureFile"], featAnnoFile=myRef["refAnnotationFile"])
 ```
 
@@ -73,29 +77,31 @@ Genome annotation files that define features (e.g. gene loci) on the genome must
 gffread -E -T -o genes.gtf genes.gff 
 ```
 
-By convention the content of the feature files in the reference folders is:
+By convention the content of the feature files in the reference folders is:  
 
-* genes.gtf -- covers all protein coding loci in the reference (i.e. all loci where transcripts with a poly-A are generated); designed for poly-A RNA-seq
-* transcribed.gtf -- covers all genome features that are transcribed, including non-coding RNAs like lincRNAs, micro-RNAs, ...; 
-designed for whole transcriptome appraoches (e.g. ribo-depletion)
-* features.gtf -- all annotated features in the genome, including pseudogenes, etc.; meant for whole genome exploratory analyses. Note: the included pseudogenes may give rise to multi-mapping reads in RNA-seq approaches because of the inclusion of loci that are never transcribed.
+* genes.gtf -- covers all protein coding loci in the reference (i.e. all loci where transcripts with a poly-A are generated); designed for poly-A RNA-seq  
+* transcribed.gtf -- covers all genome features that are transcribed, including non-coding RNAs like lincRNAs, micro-RNAs, ...;
+designed for whole transcriptome appraoches (e.g. ribo-depletion)  
+* features.gtf -- all annotated features in the genome, including pseudogenes, etc.; meant for whole genome exploratory analyses. Note: the included pseudogenes may give rise to multi-mapping reads in RNA-seq approaches because of the inclusion of loci that are never transcribed.  
 
 # Feature annotation file
 Every file `<name>.gtf` must be accompanied by a file `<name>_annotation.txt`. This annotation file must have rownames that match the attribute `transcript_id`
-in the .gtf file. This annotation file will probably need additional enhancements. It may can contain annotations like
-* gene_name
-* description
-* GO categories
+in the .gtf file. This annotation file will probably need additional enhancements. It may can contain annotations like  
+
+* gene_name  
+* description  
+* GO categories  
 
 
 # Processing and checks of genome assemblies and gene annotation files
 
-The buildRefDir function does:
+The buildRefDir function does:  
+
 * from the fasta file remove anything everything after the first space on the sequence identifier lines  
 * remove contigs where the contig-name includeds the word PATCH  
 * verify that the gene annotation file uses the same chromosome names as the fasta file  
 * remove chromosomes from the annotation files that are not present in the fasta file  
-* create a fasta index file with
+* create a fasta index file with  
 ```
 samtools faidx genome.fa
 ```
