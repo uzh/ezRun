@@ -8,7 +8,7 @@
 
 ##' @title Gets sequence names
 ##' @description Gets sequence names from a bam file.
-##' @param bamFile a character representing the file path of a bam file.
+##' @template bamFile-template
 ##' @param sizeSorting a character. if equal to "decreasing" the names will be sorted decreasingly.
 ##' @template roxygen-template
 ##' @return Returns a character vector of sequence names.
@@ -56,7 +56,7 @@ ezSortIndexBam = function(inBam, bam, samtools=SAMTOOLS, ram=2, removeBam=TRUE, 
 
 ##' @title Scans a bam file
 ##' @description Scans a bam file with the option to select only a part of the output.
-##' @param bamFile a character representing the file path to the bam file to scan.
+##' @template bamFile-template
 ##' @param seqname an optional character vector to keep only the specified sequence names in the returned reads.
 ##' @param start an optional integer vector to limit the start position of the range of returned reads.
 ##' @param end an optional integer vector to limit the start position of the range of returned reads.
@@ -105,7 +105,7 @@ ezScanBam = function(bamFile, seqname=NULL, start=NULL, end=NULL, strand="*",
 
 ##' @title Converts from bam to bigwig
 ##' @description Converts a bam file into a bigwig file.
-##' @param bamFile a character representing the file path to the bam file to convert.
+##' @template bamFile-template
 ##' @param bigwigPrefix a character representing a prefix to add to the bigwig file names. 
 ##' @param param a list of parameter to extract the \code{strandMode} from.
 ##' @param paired a logical indicating whether the samples are paired.
@@ -153,7 +153,7 @@ ezBam2bigwig = function(bamFile, bigwigPrefix, param=NULL, paired=NULL){
 
 ##' @title Reads gapped alignments from bam
 ##' @description Reads gapped alignments from a bam file.
-##' @param bamFile a character representing the file path to the bam file to read.
+##' @template bamFile-template
 ##' @param seqname an optional character vector to keep only the specified sequence names in the returned reads.
 ##' @param start an optional integer vector to limit the start position of the range of returned reads.
 ##' @param end an optional integer vector to limit the start position of the range of returned reads.
@@ -235,7 +235,7 @@ ezReadGappedAlignments = function(bamFile, seqname=NULL, start=NULL, end=NULL, s
 
 ##' @title Reads paired alignments from bam
 ##' @description Reads paired alignments from a bam file.
-##' @param bamFile a character representing the file path to the bam file to read.
+##' @template bamFile-template
 ##' @param seqname an optional character vector to keep only the specified sequence names.
 ##' @param start passed further to \code{ezReadGappedAlignments()}.
 ##' @param end passed further to \code{ezReadGappedAlignments()}.
@@ -437,7 +437,7 @@ ezReadPairedAlignments = function(bamFile, seqname=NULL, start=NULL, end=NULL, s
 ##'   \item{subsetGenome}{ a logical. If true, only a subset (1/20) of the genome region will be used.}
 ##'   \item{seqNames}{ if provided, the function will only use these chromosomes.}
 ##' }
-##' @param bamFile a character representing the file path to the bam file to read.
+##' @template bamFile-template
 ##' @template roxygen-template
 ##' @return Returns an object of the class ScanBamParam.
 ##' @seealso \code{\link[Rsamtools]{ScanBamParam}}
@@ -493,7 +493,7 @@ buildScanBamParam = function(param, bamFile){
 ##' \itemize{
 ##'   \item{paired}{ a logical indicating whether the samples are paired.}
 ##' }
-##' @param bamFile a character representing the file path to the bam file to read.
+##' @template bamFile-template
 ##' @param nReads an integer specifying the number of reads. These additional reads will be counted in "0"
 ##' @template roxygen-template
 ##' @return Returns a integer vector specifying the amount of matching reads.

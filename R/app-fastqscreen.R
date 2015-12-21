@@ -6,10 +6,6 @@
 # www.fgcz.ch
 
 
-##' @template method-template
-##' @templateVar methodName Fastq Screen
-##' @template htmlFile-template
-##' @seealso \code{\link{EzAppFastqScreen}}
 ezMethodFastqScreen = function(input=NA, output=NA, param=NA, htmlFile="00index.html"){
   dataset = input$meta
   # fastqscreen part
@@ -28,8 +24,22 @@ ezMethodFastqScreen = function(input=NA, output=NA, param=NA, htmlFile="00index.
 }
 
 ##' @template app-template
-##' @templateVar method ezMethodFastqScreen()
-##' @seealso \code{\link{ezMethodFastqScreen}}
+##' @templateVar method ezMethodFastqScreen
+##' @templateVar htmlArg , htmlFile="00index.html")
+##' @description Use this reference class to run 
+##' @section Functions:
+##' \itemize{
+##'   \item{\code{executeFastqscreenCMD(param, files): }}
+##'   {Executes the fastqscreen command with given parameters on the input files.}
+##'   \item{\code{collectFastqscreenOutput(dataset, files, resultFiles): }}
+##'   {Collects the fastqscreen output after the result files have been obtained by \code{executeFastqscreenCMD()}.}
+##'   \item{\code{executeBowtie2CMD(param, input): }}
+##'   {Executes the bowtie2 command with given parameters on the input files.}
+##'   \item{\code{collectBowtie2Output(param, dataset, countFiles): }}
+##'   {Collects the bowtie2 output after the count files have been obtained by \code{executeBowtie2CMD()}.}
+##'   \item{\code{fastqscreenReport(dataset, param, htmlFile="00index.html", fastqData, speciesPercentageTop): }}
+##'   {Generates a report with plots and other information about the outcome of the run.}
+##' }
 EzAppFastqScreen <-
   setRefClass("EzAppFastqScreen",
               contains = "EzApp",
@@ -47,7 +57,6 @@ EzAppFastqScreen <-
               )
   )
 
-##' @describeIn ezMethodFastqScreen Executes the fastqscreen command with given parameters on the input files.
 executeFastqscreenCMD = function(param, files){
   confFile = paste0(FASTQSCREEN_CONF_DIR, param$confFile)
   opt = ""
@@ -63,7 +72,6 @@ executeFastqscreenCMD = function(param, files){
   return(resultFiles)
 }
 
-##' @describeIn ezMethodFastqScreen Collects the fastqscreen output after the result files have been obtained by \code{executeFastqscreenCMD()}.
 collectFastqscreenOutput = function(dataset, files, resultFiles){
   fastqData = list()
   fastqData$MappingRate = numeric()
@@ -82,7 +90,6 @@ collectFastqscreenOutput = function(dataset, files, resultFiles){
   return(fastqData)
 }
 
-##' @describeIn ezMethodFastqScreen Executes the bowtie2 command with given parameters on the input files.
 executeBowtie2CMD = function(param, input){
   r1Files = input$getFullPaths(param, "Read1")
   if (param$paired){
@@ -111,7 +118,6 @@ executeBowtie2CMD = function(param, input){
   return(countFiles)
 }
 
-##' @describeIn ezMethodFastqScreen Collects the bowtie2 output after the count files have been obtained by \code{executeBowtie2CMD()}.
 collectBowtie2Output = function(param, dataset, countFiles){
   tax2name = read.table('/srv/GT/reference/RefSeq/mRNA/20150301/Annotation/tax2name.txt',header=F,stringsAsFactors=F,sep='|', 
                         colClasses="character",quote='', comment.char="")
@@ -162,7 +168,6 @@ collectBowtie2Output = function(param, dataset, countFiles){
   return(speciesPercentageTop)
 }
 
-##' @describeIn ezMethodFastqScreen Generates a report with plots and other information about the outcome of the run.
 fastqscreenReport = function(dataset, param, htmlFile="00index.html", fastqData, speciesPercentageTop){
   titles = list()
   titles[["FastQ Screen"]] = paste("FastQ Screen:", param$name)

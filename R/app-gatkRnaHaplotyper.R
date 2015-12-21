@@ -6,10 +6,6 @@
 # www.fgcz.ch
 
 
-##' @template method-template
-##' @templateVar methodName Gatk RNA Haplotyper
-##' @template htmlFile-template
-##' @seealso \code{\link{EzAppGatkRnaHaplotyper}}
 ezMethodGatkRnaHaplotyper = function(input=NA, output=NA, param=NA, htmlFile="00index.html"){
   
   bamDataset = input$meta
@@ -168,8 +164,9 @@ ezMethodGatkRnaHaplotyper = function(input=NA, output=NA, param=NA, htmlFile="00
 }
 
 ##' @template app-template
-##' @templateVar method ezMethodGatkRnaHaplotyper()
-##' @seealso \code{\link{ezMethodGatkRnaHaplotyper}}
+##' @templateVar method ezMethodGatkRnaHaplotyper
+##' @templateVar htmlArg , htmlFile="00index.html")
+##' @description Use this reference class to run 
 EzAppGatkRnaHaplotyper <-
   setRefClass("EzAppGatkRnaHaplotyper",
               contains = "EzApp",

@@ -6,10 +6,6 @@
 # www.fgcz.ch
 
 
-##' @template method-template
-##' @templateVar methodName Deseq2
-##' @template htmlFile-template
-##' @seealso \code{\link{EzAppDeseq2}}
 ezMethodDeseq2 = function(input=NA, output=NA, param=NA, htmlFile="00index.html"){
   if (!is.null(param$markOutliers) && param$markOutliers){
     stop("DESeq2 does not support marking outliers because marked outliers would still be used in dispersion estimates")
@@ -42,8 +38,9 @@ ezMethodDeseq2 = function(input=NA, output=NA, param=NA, htmlFile="00index.html"
 }
 
 ##' @template app-template
-##' @templateVar method ezMethodDeseq2()
-##' @seealso \code{\link{ezMethodDeseq2}}
+##' @templateVar method ezMethodDeseq2
+##' @templateVar htmlArg , htmlFile="00index.html")
+##' @description Use this reference class to run 
 EzAppDeseq2 <-
   setRefClass("EzAppDeseq2",
               contains = "EzApp",

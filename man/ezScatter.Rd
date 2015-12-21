@@ -2,7 +2,7 @@
 % Please edit documentation in R/plots.R
 \name{ezScatter}
 \alias{ezScatter}
-\alias{ezXYScatterScatter}
+\alias{ezXYScatter}
 \title{Does scatter plots}
 \usage{
 ezScatter(x = NULL, y, xlab = NULL, ylab = NULL, nPlotsPerRow = 6,
@@ -10,7 +10,7 @@ ezScatter(x = NULL, y, xlab = NULL, ylab = NULL, nPlotsPerRow = 6,
   types = NULL, pch = 16, colors = rainbow(ncol(types)),
   legendPos = "bottomright", cex.main = 1, cex = 1, ...)
 
-ezXYScatterScatter(xVec, yVec, absentColor = "gray", shrink = FALSE,
+ezXYScatter(xVec, yVec, absentColor = "gray", shrink = FALSE,
   frame = TRUE, axes = TRUE, xlim = range(xVec, yVec, na.rm = TRUE),
   ylim = xlim, isPresent = NULL, types = NULL, pch = 16,
   colors = rainbow(ncol(types)), legendPos = "bottomright", ...)
@@ -51,14 +51,14 @@ Does scatter plots.
 }
 \section{Functions}{
 \itemize{
-\item \code{ezXYScatterScatter}: Does the XY scatter plot.
+\item \code{ezXYScatter}: Does the XY scatter plot.
 }}
 \examples{
 x = runif(n=1000)
 y = runif(n=1000)
 isPresent = x > 0.2 & y > 0.2
 ezScatter(y=data.frame(a=1:10, b=21:30, c=41:50))
-ezXYScatterScatter(x, y, isPresent=isPresent)
+ezXYScatter(x, y, isPresent=isPresent)
 }
 \author{
 Rehrauer, Hubert

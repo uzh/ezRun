@@ -12,7 +12,7 @@ ezReadPairedAlignments(bamFile, seqname = NULL, start = NULL, end = NULL,
 .ezMergeLeftRightAlignments(gaLeft, gaRight, fillGap = "N")
 }
 \arguments{
-\item{bamFile}{a character representing the file path to the bam file to read.}
+\item{bamFile}{a character representing the bam file path.}
 
 \item{seqname}{an optional character vector to keep only the specified sequence names.}
 

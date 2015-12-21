@@ -7,8 +7,9 @@
 
 
 ##' @template app-template
-##' @templateVar method ezMethodTeqc()
-##' @seealso \code{\link{ezMethodTeqc}}
+##' @templateVar method ezMethodTeqc
+##' @templateVar htmlArg )
+##' @description Use this reference class to run 
 EzAppTeqc <-
   setRefClass("EzAppTeqc",
               contains = "EzApp",
@@ -26,20 +27,6 @@ EzAppTeqc <-
               )
   )
 
-##' @title Target enrichment quality control
-##' @description Performs a target enrichment quality control and creates reports of the outcome.
-##' @template input-template
-##' @param param a list of parameters, some of which are passed to \code{runTEQC()}:
-##' \itemize{
-##'  \item{designFile}{ a file describing the regions selected by the enrichment kit.}
-##'  \item{name}{ a character representing the name of the app.}
-##'  \item{covUniformityPlot}{ a logical indicating whether to generate plots for coverage uniformity.}
-##'  \item{covTargetLengthPlot}{ a logical indicating whether to generate plots for coverage vs. target length.}
-##'  \item{duplicatesPlot}{ a logical indicating whether to generate plots for duplicates.}
-##'  \item{paired}{ a logical indicating whether the samples are paired.}
-##' }
-##' @param file a character representing the path to the file containing the reads.
-##' @template roxygen-template
 ezMethodTeqc = function(input=NA, output=NA, param=NA){
   setwdNew(basename(output$getColumn("Report")))
   if(basename(param$designFile) == param$designFile){
@@ -49,12 +36,11 @@ ezMethodTeqc = function(input=NA, output=NA, param=NA){
   samples = input$getNames()
   jobList = input$getFullPaths(param, "BAM")
   #Create one Report per Sample:
-  ezMclapply(jobList, runTEQC, param, mc.cores=ezThreads())
+  destDirs = ezMclapply(jobList, runTEQC, param, mc.cores=ezThreads())
   
   #Create MultiSampleReport:
-  reportDirs = unlist(jobList)
-  reportDirs = paste0("report_",gsub('\\.bam', '', basename(reportDirs)))
-  TEQC::multiTEQCreport(singleReportDirs=reportDirs,
+  destDirs = unlist(destDirs)
+  TEQC::multiTEQCreport(singleReportDirs=destDirs,
                     samplenames=samples,
                     projectName=param$name,
                     targetsName=basename(dirname(param$designFile)),
@@ -77,26 +63,37 @@ ezMethodTeqc = function(input=NA, output=NA, param=NA){
   addTxtLinksToReport(doc, "multiTEQCreport/index.html")
   titles[["Individual Reports"]] = "Individual Reports"
   addTitle(doc, titles[[length(titles)]], 2, id=titles[[length(titles)]])
-  addTxtLinksToReport(doc, paste0(reportDirs, '/index.html'))
+  addTxtLinksToReport(doc, paste0(destDirs, '/index.html'))
   closeBsdocReport(doc, htmlFile, titles)
   return("Success")
 }
 
-##' @describeIn teqc Runs the target enrichment QC.
+##' @title Runs the target enrichment quality control
+##' @description Performs a target enrichment quality control and creates reports of the outcome.
+##' @param param a list of parameters:
+##' \itemize{
+##'  \item{designFile}{ a file describing the regions selected by the enrichment kit.}
+##'  \item{covUniformityPlot}{ a logical indicating whether to generate plots for coverage uniformity.}
+##'  \item{covTargetLengthPlot}{ a logical indicating whether to generate plots for coverage vs. target length.}
+##'  \item{duplicatesPlot}{ a logical indicating whether to generate plots for duplicates.}
+##'  \item{paired}{ a logical indicating whether the samples are paired.}
+##' }
+##' @param file a character representing the path to the file containing the reads.
+##' @template roxygen-template
 runTEQC = function(file, param){
-  readsfile = file
+  sampleName = gsub('\\.bam', '', basename(file))
+  destDir = paste0("report_", sampleName)
   targetsfile = param$designFile
-  TEQC::TEQCreport(sampleName=gsub('\\.bam','',basename(file)),
+  TEQC::TEQCreport(sampleName=sampleName,
                    CovUniformityPlot = param$covUniformityPlot, CovTargetLengthPlot = param$covTargetLengthPlot, duplicatesPlot=param$duplicatesPlot,#CovGCPlot = T,
                    k = c(1,5,10,20,30,50),
                    targetsName=basename(dirname(targetsfile)),
                    referenceName='hg19',
                    pairedend=param$paired,
-                   destDir=paste0("report_",gsub('\\.bam', '', basename(file))),
-                   reads=TEQC::get.reads(readsfile,filetype="bam"),
+                   destDir=destDir,
+                   reads=TEQC::get.reads(file, filetype="bam"),
                    targets=TEQC::get.targets(targetsfile, 
                                        skip=grep("^track", readLines(targetsfile, n=200))),
                    genome='hg19',figureFormat = c("png"))
-  return("Success")
+  return(destDir)
 }
-

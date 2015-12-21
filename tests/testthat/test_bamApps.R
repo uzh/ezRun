@@ -1,4 +1,4 @@
-context("Counting apps with example data")
+context("Counting and bam apps with example data")
 
 ## this tests do take long therefore we only run them if the environment variable RUN_LONG_TEST is set to TRUE
 # Sys.setenv(RUN_LONG_TEST=TRUE)
@@ -101,26 +101,25 @@ test_that("RNA_Bamstats", {
   setwd(cwd)
 })
 
-
-# test_that("TEQC", {
-#   skipLong()
-#   setwdNew("/scratch/test_TEQC")
-#   input = EzDataset$new(file=system.file("extdata/yeast_10k_STAR/dataset.tsv", package="ezRun", mustWork = TRUE))
-#   output = list()
-#   output[['Name']] = 'TEQC_Result'
-#   output[['Report [File]']] = 'p1001/QC_Teqc_5579_2015-05-04--13-41-58/TEQC_Result'
-#   output[['Html [Link]']] = 'p1001/QC_Teqc_5579_2015-05-04--13-41-58/TEQC_Result/00index.html'
-#   param = yeastCommonCountParam()
-#   param[['cores']] = 1
-#   param[['process_mode']] = 'DATASET'
-#   param[['name']] = 'TEQC_Result'
-#   param[['designFile']] = ''   ## TODOP: need design file
-#   param[['covUniformityPlot']] = 'true'
-#   param[['covTargetLengthPlot']] = 'true'
-#   param[['duplicatesPlot']] = 'true'
-#   param[['cmdOptions']] = ''
-#   param[['mail']] = 'peter.schmid@ieu.uzh.ch'
-#   myApp = EzAppTeqc$new()
-#   myApp$run(input=input, output=output, param=param)
-#   setwd(cwd)
-# })
+test_that("TEQC", {
+  skipLong()
+  setwdNew("/scratch/test_TEQC")
+  input = EzDataset$new(file=system.file("extdata/yeast_10k_STAR/dataset.tsv", package="ezRun", mustWork = TRUE))
+  output = list()
+  output[['Name']] = 'TEQC_Result'
+  output[['Report [File]']] = 'p1001/QC_Teqc_5579_2015-05-04--13-41-58/TEQC_Result'
+  output[['Html [Link]']] = 'p1001/QC_Teqc_5579_2015-05-04--13-41-58/TEQC_Result/00index.html'
+  param = yeastCommonCountParam()
+  param[['cores']] = 1
+  param[['process_mode']] = 'DATASET'
+  param[['name']] = 'TEQC_Result'
+  param[['designFile']] = ''   ## TODOP: need design file
+  param[['covUniformityPlot']] = 'true'
+  param[['covTargetLengthPlot']] = 'true'
+  param[['duplicatesPlot']] = 'true'
+  param[['cmdOptions']] = ''
+  param[['mail']] = 'peter.schmid@ieu.uzh.ch'
+  myApp = EzAppTeqc$new()
+  myApp$run(input=input, output=output, param=param)
+  setwd(cwd)
+})

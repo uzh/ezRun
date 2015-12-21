@@ -4,7 +4,19 @@
 \name{EzAppFastqc-class}
 \alias{EzAppFastqc}
 \alias{EzAppFastqc-class}
-\title{The R5 class representing a runnable app using \code{ezMethodFastQC()()}}
+\title{The R5 class representing a runnable app using \code{ezMethodFastQC()}}
+\arguments{
+\item{input}{a list, file path or an object of the class EzDataset containing the input.}
+
+\item{output}{a list, file path or an object of the class EzDataset containing the output information.}
+
+\item{param}{a list of parameters to customize the application run.}
+
+\item{htmlFile}{a character, ending with .html, representing the file path of an html file.}
+}
+\description{
+Use this reference class to run
+}
 \section{Fields}{
 
 \describe{
@@ -19,7 +31,33 @@
 \describe{
 \item{\code{initialize()}}{Initializes the application using its specific defaults.}
 }}
+\section{Functions}{
+
+\itemize{
+  \item{\code{ezMethodFastQC(input=NA, output=NA, param=NA, htmlFile="00index.html"): }}
+  {The function to run this application.}
+}
+
+
+\itemize{
+  \item{\code{plotReadCountToLibConc(dataset, colname): }}
+  {Plots \code{colname} from \code{dataset} against read counts in millions.}
+  \item{\code{getQualityMatrix(inputFile): }}
+  {Gets a quality count matrix from a fastq or gziped fastq.gz file with dimensions read quality and read length.}
+  \item{\code{plotQualityMatrixAsHeatmap(qualMatrixList, isR2=FALSE, xScale=1, yScale=1): }}
+  {Returns a png table of quality matrices interpreted as heatmaps.}
+  \item{\code{plotQualityHeatmap(result, name=NULL, colorRange=c(0,sqrt(40)), colors=gray((1:256)/256), main=NULL, pngFileName=NULL, xScale=1, yScale=1): }}
+  {Creates and returns the images used by \code{plotQualityMatrixAsHeatmap()}.}
+}
+}
+\author{
+Rehrauer, Hubert
+
+Schmid, Peter
+}
 \seealso{
-\code{\link{ezMethodFastQC}}
+\code{\link{EzApp}}
+
+\code{\link{EzDataset}}
 }
 

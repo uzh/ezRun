@@ -6,9 +6,6 @@
 # www.fgcz.ch
 
 
-##' @template method-template
-##' @templateVar methodName Ncpro
-##' @seealso \code{\link{EzAppNcpro}}
 ezMethodNcpro = function(input=NA, output=NA, param=NA){
   setwdNew(basename(output$getColumn("Report")))
   param$readCountsBarplot = basename(output$getColumn("TrimCounts"))
@@ -17,8 +14,9 @@ ezMethodNcpro = function(input=NA, output=NA, param=NA){
 }
 
 ##' @template app-template
-##' @templateVar method ezMethodNcpro()
-##' @seealso \code{\link{ezMethodNcpro}}
+##' @templateVar method ezMethodNcpro
+##' @templateVar htmlArg )
+##' @description Use this reference class to run 
 EzAppNcpro <-
   setRefClass("EzAppNcpro",
               contains = "EzApp",

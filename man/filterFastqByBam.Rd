@@ -13,7 +13,7 @@ removeReadsFromFastq(fqFiles, readIds, fqOutFiles = NULL, doGzip = TRUE)
 \arguments{
 \item{fqFiles}{a character vector representing file paths to FastQ files.}
 
-\item{bamFile}{a character representing the file path to the bam file to read.}
+\item{bamFile}{a character representing the bam file path.}
 
 \item{fqOutFiles}{an optional character vector representing file paths to the FastQ output files.}
 

@@ -4,7 +4,7 @@
 ##' @field appDefaults the defaults to run the application with.
 ##' @section Functions:
 ##' \itemize{
-##'   \item{\code{<%= method %>(input=NA, output=NA, param=NA<%= htmlArg %>): }}
+##'   \item{\code{<%= method %>(input=NA, output=NA, param=NA<%= htmlArg %>: }}
 ##'   {The function to run this application.}
 ##' }
 ##' @param input a list, file path or an object of the class EzDataset containing the input.

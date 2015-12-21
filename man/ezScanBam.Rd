@@ -10,7 +10,7 @@ ezScanBam(bamFile, seqname = NULL, start = NULL, end = NULL,
   isProperPair = NA, countOnly = FALSE)
 }
 \arguments{
-\item{bamFile}{a character representing the file path to the bam file to scan.}
+\item{bamFile}{a character representing the bam file path.}
 
 \item{seqname}{an optional character vector to keep only the specified sequence names in the returned reads.}
 

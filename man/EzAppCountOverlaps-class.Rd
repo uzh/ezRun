@@ -4,7 +4,7 @@
 \name{EzAppCountOverlaps-class}
 \alias{EzAppCountOverlaps}
 \alias{EzAppCountOverlaps-class}
-\title{The R5 class representing a runnable app using \code{ezMethodCountOverlaps()()}}
+\title{The R5 class representing a runnable app using \code{ezMethodCountOverlaps()}}
 \arguments{
 \item{input}{a list, file path or an object of the class EzDataset containing the input.}
 
@@ -13,6 +13,9 @@
 \item{param}{a list of parameters to customize the application run.}
 
 \item{htmlFile}{a character, ending with .html, representing the file path of an html file.}
+}
+\description{
+Use this reference class to run
 }
 \section{Fields}{
 
@@ -31,8 +34,22 @@
 \section{Functions}{
 
 \itemize{
-  \item{\code{ezMethodCountOverlaps()(input=NA, output=NA, param=NANA): }}
+  \item{\code{ezMethodCountOverlaps(input=NA, output=NA, param=NA): }}
   {The function to run this application.}
+}
+
+
+\itemize{
+  \item{\code{countNonredundant(bamFile, param=param, gff=gff): }}
+  {Counts the non-redundant overlaps.}
+  \item{\code{countBamHitsSingleChrom(chr, bamFile=NULL, param=NULL, gff=NULL): }}
+  {Counts the BAM hits for a single chromosome.}
+  \item{\code{countPairedBamHitsSingleChrom(chr, bamFile=NULL, param=NULL, gff=NULL): }}
+  {Counts the paired BAM hits for a single chromosome.}
+  \item{\code{getTargetRanges(gff, param, chrom=NULL): }}
+  {Gets the target ranges depending on \code{param$featureLevel}.}
+  \item{\code{getFeatureCounts(chrom, gff, reads, param): }}
+  {Gets the feature counts from the target ranges.}
 }
 }
 \author{
@@ -44,7 +61,5 @@ Schmid, Peter
 \code{\link{EzApp}}
 
 \code{\link{EzDataset}}
-
-\code{\link{ezMethodCountOverlaps}}
 }
 

@@ -105,7 +105,7 @@ Schmid, Peter
 \seealso{
 \code{\link{EzDataset}}
 
-\code{\link{checkFreeDiskSpace}}
+\code{\link{waitForFreeDiskSpace}}
 
 \code{\link{EzAppBamPreview}}
 

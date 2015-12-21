@@ -6,10 +6,6 @@
 # www.fgcz.ch
 
 
-##' @template method-template
-##' @templateVar methodName Count QC
-##' @template htmlFile-template
-##' @seealso \code{\link{EzAppCountQC}}
 ezMethodCountQC = function(input=NA, output=NA, param=NA, htmlFile="00index.html"){
 
   dataset = input$meta
@@ -33,8 +29,9 @@ ezMethodCountQC = function(input=NA, output=NA, param=NA, htmlFile="00index.html
 }
 
 ##' @template app-template
-##' @templateVar method ezMethodCountQC()
-##' @seealso \code{\link{ezMethodCountQC}}
+##' @templateVar method ezMethodCountQC
+##' @templateVar htmlArg , htmlFile="00index.html")
+##' @description Use this reference class to run 
 EzAppCountQC <-
   setRefClass("EzAppCountQC",
               contains = "EzApp",

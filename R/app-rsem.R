@@ -6,11 +6,6 @@
 # www.fgcz.ch
 
 
-##' @template method-template
-##' @templateVar methodName RSEM
-##' @seealso \code{\link{EzAppRSEM}}
-##' @seealso \code{\link{getRSEMReference}}
-##' @seealso \code{\link{ezMethodTrim}}
 ezMethodRSEM = function(input=NA, output=NA, param=NA){
   
   sampleName = input$getNames()
@@ -79,8 +74,11 @@ ezMethodRSEM = function(input=NA, output=NA, param=NA){
 }
 
 ##' @template app-template
-##' @templateVar method ezMethodRSEM()
-##' @seealso \code{\link{ezMethodRSEM}}
+##' @templateVar method ezMethodRSEM
+##' @templateVar htmlArg )
+##' @description Use this reference class to run 
+##' @seealso \code{\link{getRSEMReference}}
+##' @seealso \code{\link{ezMethodTrim}}
 EzAppRSEM <-
   setRefClass("EzAppRSEM",
               contains = "EzApp",

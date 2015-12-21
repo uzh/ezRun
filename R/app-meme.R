@@ -6,10 +6,6 @@
 # www.fgcz.ch
 
 
-##' @author Opitz, Lennart
-##' @template method-template
-##' @templateVar methodName MEME
-##' @seealso \code{\link{EzAppMEME}}
 ezMethodMEME = function(input=NA, output=NA, param=NA){
   opt = param$cmdOptions
   db = param$motifDB
@@ -22,8 +18,9 @@ ezMethodMEME = function(input=NA, output=NA, param=NA){
 
 ##' @author Opitz, Lennart
 ##' @template app-template
-##' @templateVar method ezMethodMEME()
-##' @seealso \code{\link{ezMethodMEME}}
+##' @templateVar method ezMethodMEME
+##' @templateVar htmlArg )
+##' @description Use this reference class to run 
 EzAppMEME <-
   setRefClass("EzAppMEME",
               contains = "EzApp",

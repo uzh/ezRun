@@ -6,10 +6,6 @@
 # www.fgcz.ch
 
 
-##' @template method-template
-##' @templateVar methodName Edger Multi
-##' @template htmlFile-template
-##' @seealso \code{\link{EzAppEdgerMulti}}
 ezMethodEdgerMulti = function(input=NA, output=NA, param=NA, htmlFile="00index.html"){
   setwdNew(basename(output$getColumn("Report")))
   stopifnot(param$sampleGroup != param$refGroup)
@@ -43,8 +39,9 @@ ezMethodEdgerMulti = function(input=NA, output=NA, param=NA, htmlFile="00index.h
 }
 
 ##' @template app-template
-##' @templateVar method ezMethodEdgerMulti()
-##' @seealso \code{\link{ezMethodEdgerMulti}}
+##' @templateVar method ezMethodEdgerMulti
+##' @templateVar htmlArg , htmlFile="00index.html")
+##' @description Use this reference class to run 
 EzAppEdgerMulti <-
   setRefClass("EzAppEdgerMulti",
               contains = "EzApp",

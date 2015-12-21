@@ -12,7 +12,7 @@ getBamMultiMatching(param, bamFile, nReads = NULL)
   \item{paired}{ a logical indicating whether the samples are paired.}
 }}
 
-\item{bamFile}{a character representing the file path to the bam file to read.}
+\item{bamFile}{a character representing the bam file path.}
 
 \item{nReads}{an integer specifying the number of reads. These additional reads will be counted in "0"}
 }
