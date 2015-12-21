@@ -12,9 +12,11 @@
 ##' @template roxygen-template
 ##' @return Returns the path to the created bed file.
 ##' @examples
+##' \dontrun{
 ##' param = ezParam()
 ##' param$ezRef@@refFeatureFile = system.file("extdata/genes.gtf", package="ezRun", mustWork=TRUE)
 ##' getReferenceFeaturesBed(param)
+##' }
 getReferenceFeaturesBed = function(param){
   bedFile = sub(".gtf$", ".bed", param$ezRef["refFeatureFile"])
   if (!file.exists(bedFile)){

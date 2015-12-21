@@ -3,14 +3,16 @@
 \name{getGeneMapping}
 \alias{getGeneMapping}
 \alias{hasGeneMapping}
-\title{Gets the gene mapping}
+\title{Gets the isoform-to-gene mapping}
 \usage{
 getGeneMapping(param, seqAnnoDF)
 
 hasGeneMapping(param, seqAnnoDF)
 }
 \arguments{
-\item{param}{the parameters to specify which names to use. This is taken from \code{geneColumn} or \code{geneColumnSet} if the first one is not specified.}
+\item{param}{the global parameter object. We need the entries \code{geneColumn} or \code{geneColumnSet} to figure out 
+which columns of the annotation data frame 
+should be used for the mapping}
 
 \item{seqAnnoDF}{a data.frame containing the sequence annotation.}
 }
@@ -18,7 +20,8 @@ hasGeneMapping(param, seqAnnoDF)
 Returns a named character vector containing the gene mapping.
 }
 \description{
-Gets the gene mapping.
+The annotation in the reference folders is at the isoform level but for gene-level analyses we need to map the annotation to the gene level.
+Especially all enrichment analyses should be run at the gene-level
 }
 \section{Functions}{
 \itemize{
@@ -26,11 +29,8 @@ Gets the gene mapping.
 }}
 \examples{
 param = ezParam()
-param$ezRef@refFeatureFile = system.file("extdata/genes.gtf", package="ezRun", mustWork=TRUE)
-param$ezRef@refAnnotationFile = ""
-fp = "/srv/GT/reference/Saccharomyces_cerevisiae/Ensembl/EF4/Sequence/WholeGenomeFasta/genome.fa"
-param$ezRef@refFastaFile = fp
-seqAnno = writeAnnotationFromGtf(param)
+param$ezRef["refAnnotationFile"] = system.file("extdata/genes_annotation.txt", package="ezRun", mustWork=TRUE)
+seqAnno = ezFeatureAnnotation(param, rownames(seqAnno), dataFeatureType="gene")
 getGeneMapping(param,seqAnno)
 hasGeneMapping(param,seqAnno)
 }

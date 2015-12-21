@@ -30,7 +30,10 @@ rm3 = "inst/extdata/genesWithPrespliced.gtf"
 cmd = paste("rm -fr", rm0, rm1, rm2, rm3)
 ezSystem(cmd)
 
-
-
+# create bed dummy for teqc
+randStart = round(runif(500), digits=3)*1000
+randEnd = randStart + round(runif(500), digits=2)*100+50
+dat = data.frame(rep(1,500), randStart, randEnd)
+ezWrite.table(dat, file="./inst/extdata/genes.bed", head="track dummy", row.names = FALSE, col.names = FALSE)
 
 

@@ -16,9 +16,11 @@ Returns the path to the created bed file.
 Gets a bed file from a gtf annotation file.
 }
 \examples{
+\dontrun{
 param = ezParam()
 param$ezRef@refFeatureFile = system.file("extdata/genes.gtf", package="ezRun", mustWork=TRUE)
 getReferenceFeaturesBed(param)
+}
 }
 \author{
 Rehrauer, Hubert

@@ -11,7 +11,7 @@ ezMethodMacs2 = function(input=NA, output=NA, param=NA){
   dataset = input$meta
   #setwdNew(paste(basename(param$resultDir),output$getNames(),sep='_'))
   
-  if(param$useControl){
+  if (param$useControl){
     cmd = paste(MACS2, "callpeak -t", input$getFullPaths(param, "BAM"), 
                 "-c", input$getFullPaths(param, "Control"), 
                 "-B", opt,"-n", output$getNames())
@@ -29,7 +29,7 @@ ezMethodMacs2 = function(input=NA, output=NA, param=NA){
     ezSystem(cmd)
     createBigWig(input, output, param)
   }
-  if(grepl('broad', opt)){
+  if (grepl('broad', opt)){
     ezSystem(paste("mv ",paste0(output$getNames(),"_peaks.broadPeak")," ",paste0(output$getNames(),"_peaks.bed")))
   } else {
     ezSystem(paste("mv ",paste0(output$getNames(),"_peaks.narrowPeak")," ",paste0(output$getNames(),"_peaks.bed")))
@@ -68,7 +68,7 @@ EzAppMacs2 <-
 ##' @template roxygen-template
 annotatePeaks = function(input=NA, output=NA, param=NA) {
   peakFile = paste0(output$getNames(), '_peaks.xls')
-  data = ezRead.table(peakFile)
+  data = ezRead.table(peakFile, comment.char = "#", row.names = NULL)
   if (nrow(data) == 0){
     return(NULL)
   }
@@ -115,7 +115,7 @@ createBigWig = function(input=NA, output=NA, param=NA){
   requireNamespace("rtracklayer")
   requireNamespace("GenomicRanges")
   requireNamespace("GenomicAlignments")
-  if(param[['paired']]){
+  if (param$paired){
     aligns = readGAlignmentPairs(file=input$getFullPaths(param, "BAM"))
   } else {
     aligns = readGAlignments(file=input$getFullPaths(param, "BAM"))

@@ -92,8 +92,7 @@ runTEQC = function(file, param){
                    pairedend=param$paired,
                    destDir=destDir,
                    reads=TEQC::get.reads(file, filetype="bam"),
-                   targets=TEQC::get.targets(targetsfile, 
-                                       skip=grep("^track", readLines(targetsfile, n=200))),
+                   targets=TEQC::get.targets(targetsfile, skip=grep("^track", readLines(targetsfile, n=200))),
                    genome='hg19',figureFormat = c("png"))
   return(destDir)
 }

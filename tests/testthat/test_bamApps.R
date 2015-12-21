@@ -103,8 +103,9 @@ test_that("RNA_Bamstats", {
 
 test_that("TEQC", {
   skipLong()
+  ezSystem("rm -fr /scratch/test_TEQC/*")
   setwdNew("/scratch/test_TEQC")
-  input = EzDataset$new(file=system.file("extdata/yeast_10k_STAR/dataset.tsv", package="ezRun", mustWork = TRUE))
+  input = EzDataset$new(file=system.file("extdata/yeast_10k_STAR/dataset.tsv", package="ezRun", mustWork=TRUE))
   output = list()
   output[['Name']] = 'TEQC_Result'
   output[['Report [File]']] = 'p1001/QC_Teqc_5579_2015-05-04--13-41-58/TEQC_Result'
@@ -113,7 +114,7 @@ test_that("TEQC", {
   param[['cores']] = 1
   param[['process_mode']] = 'DATASET'
   param[['name']] = 'TEQC_Result'
-  param[['designFile']] = ''   ## TODOP: need design file
+  param[['designFile']] = system.file("extdata/genes.bed", package="ezRun", mustWork=TRUE)
   param[['covUniformityPlot']] = 'true'
   param[['covTargetLengthPlot']] = 'true'
   param[['duplicatesPlot']] = 'true'

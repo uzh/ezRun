@@ -5,6 +5,7 @@
 \alias{EzRef}
 \alias{EzRef-class}
 \alias{[,EzRef,ANY,ANY,ANY-method}
+\alias{[<-,EzRef,ANY,ANY,ANY-method}
 \alias{buildIgvGenome,EzRef-method}
 \alias{buildRefDir,EzRef-method}
 \alias{getOrganism,EzRef-method}
@@ -15,6 +16,8 @@
   genomesRoot = GENOMES_ROOT)
 
 \S4method{[}{EzRef,ANY,ANY,ANY}(x, i)
+
+\S4method{[}{EzRef,ANY,ANY,ANY}(x, i) <- value
 
 \S4method{getOrganism}{EzRef}(.Object)
 
@@ -30,7 +33,9 @@ Objects of this class are a collection of references derived from a list of para
 \itemize{
 \item \code{initialize}: Initializes the slots of EzRef. It will also try to specify some fields and if necessary get full file paths.
 
-\item \code{[}: Allows selection with square brackets [ ].
+\item \code{[}: Access of slots by name with square brackets [ ]
+
+\item \code{[<-}: Assignment to slots by name with square brackets [ ]
 
 \item \code{getOrganism}: Gets the organism name from the reference build.
 
