@@ -20,7 +20,7 @@ ezMethodFastqScreen = function(input=NA, output=NA, param=NA, htmlFile="00index.
   if ("Adapter1" %in% input$colNames && all(!is.na(input$getColumn("Adapter1")))){
     input = ezMethodTrim(input = input, param = param)
   }
-  countFiles = executeBowtie2CMD(param, input$getFullPaths(param, "Read1"))
+  countFiles = executeBowtie2CMD(param, input)
   speciesPercentageTop = collectBowtie2Output(param, input$meta, countFiles)
   setwdNew(basename(output$getColumn("Report")))
   fastqscreenReport(dataset, param, htmlFile, fastqData, speciesPercentageTop)
@@ -83,9 +83,13 @@ collectFastqscreenOutput = function(dataset, files, resultFiles){
 }
 
 ##' @describeIn ezMethodFastqScreen Executes the bowtie2 command with given parameters on the input files.
-executeBowtie2CMD = function(param, files){
+executeBowtie2CMD = function(param, input){
+  r1Files = input$getFullPaths(param, "Read1")
+  if (param$paired){
+    r2Files = input$getFullPaths(param, "Read2")
+  }
   countFiles = character()
-  for (nm in names(files)){
+  for (nm in names(r1Files)){
     countFiles[nm] = paste0(nm, "-counts.txt")
     bowtie2options = param$cmdOptions
     if(!param$paired){
@@ -94,9 +98,8 @@ executeBowtie2CMD = function(param, files){
                   "--no-unal --no-hd", "2> ", paste0(nm, "_bowtie2.err"),
                   "| cut -f1,3,12", " |sed s/AS:i://g", ">", countFiles[nm])
     } else {
-      R2_file = sub('R1','R2',files[nm])  ## TODO: this is a hack, R2 files should be passed to the function
       cmd = paste(file.path(BOWTIE2_DIR,'bowtie2'),"-x",REFSEQ_mRNA_REF, 
-                  " -1 ",files[nm]," -2 ", R2_file, bowtie2options, "-p",param$cores,
+                  " -1 ", r1Files[nm]," -2 ", r2Files[nm], bowtie2options, "-p",param$cores,
                   "--no-discordant --no-mixed --no-unal --no-hd",
                   "2> ", paste0(nm, "_bowtie2.err"),
                   "| cut -f1,3,12", " |sed s/AS:i://g", ">", countFiles[nm])
