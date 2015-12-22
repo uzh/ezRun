@@ -31,9 +31,12 @@ Especially all enrichment analyses should be run at the gene-level
 param = ezParam()
 annoFile = system.file("extdata/genes_annotation.txt", package="ezRun", mustWork=TRUE)
 param$ezRef["refAnnotationFile"] = annoFile
+param$ezRef["refFeatureFile"] = system.file("extdata/genes.gtf", package="ezRun", mustWork=TRUE)
+param$ezRef["refFastaFile"] = system.file("extdata/genome.fa", package="ezRun", mustWork=TRUE)
+seqAnno = writeAnnotationFromGtf(param)
 seqAnno = ezFeatureAnnotation(param, rownames(seqAnno), dataFeatureType="gene")
-getGeneMapping(param,seqAnno)
-hasGeneMapping(param,seqAnno)
+getGeneMapping(param, seqAnno)
+hasGeneMapping(param, seqAnno)
 }
 \author{
 Rehrauer, Hubert
