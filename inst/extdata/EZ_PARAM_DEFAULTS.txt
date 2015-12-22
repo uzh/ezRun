@@ -31,8 +31,7 @@ refIndex	character		the location of the index that is used in alignment
 refFeatureFile	character	genes.gtf	the gtf file that defines the features to be used
 refAnnotationFile	character		the annotation file in tab separated format
 refFastaFile	character	Sequence/WholeGenomeFasta/genome.fa	the file that holds the genomic sequence
-refChromDir	character		the directory that hold the genomic sequence with one file per chromosome / contig
-refChromSizesFile	character	chromsizes.txt	the file that holds the chrome sizes
+#refChromDir	character		the directory that hold the genomic sequence with one file per chromosome / contig
 # analysis parameters
 normMethod	character	quantile	The default method to normalize count or other expression data
 factors	character		comma separated list of factors that should be considered; (default: all factors in the dataset)

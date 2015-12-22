@@ -294,7 +294,6 @@ ezMethodSTAR = function(input=NA, output=NA, param=NA){
 ##' \itemize{
 ##'   \item{ezRef@@refIndex}{ a character specifying the location of the index that is used in the alignment.}
 ##'   \item{ezRef@@refFeatureFile}{ a character specifying the file path to the annotation feature file (.gtf).}
-##'   \item{ezRef@@refChromDir}{ a character specifying the file path to the directory of the chromosome information.}
 ##'   \item{ram}{ an integer specifying how many gigabytes of RAM to use.}
 ##'   \item{ezRef@@refFastaFile}{ a character specifying the file path to the fasta file.}
 ##' }
@@ -330,7 +329,7 @@ getSTARReference = function(param){
   dir.create(refDir)
   ezWrite(Sys.info(), con=lockFile)
   
-  if (length(list.files(param$ezRef["refChromDir"], ".fa$")) > 50){
+  if (nrow(ezRead.table(paste0(param$ezRef["refFastaFile"], ".fai"), col.names=FALSE)) > 50){
     binOpt = "--genomeChrBinNbits 16"
   } else {
     binOpt = ""

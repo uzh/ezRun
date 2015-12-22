@@ -25,34 +25,34 @@ getReferenceFeaturesBed = function(param){
   }
   return(bedFile)
 }
-
-##' @title Gets the file containing the chromosome sizes
-##' @description Gets the file containing the chromosome sizes either directly or by the fasta files in the chromosome directory.
-##' @param param a list of parameters:
-##' \itemize{
-##'   \item{ezRef@@refChromSizesFile}{ a character representing the path to the file to get.}
-##'   \item{ezRef@@refChromDir}{ a character representing the path to the directory to get the information to calculate chromosome sizes. Used if the file does not yet exist.}
-##' }
-##' @template roxygen-template
-##' @return Returns the path to the file containing the chromosome sizes.
-##' @examples
-##' param = ezParam()
-##' param$ezRef@@refChromSizesFile = "example.txt"
-##' param$ezRef@@refChromDir = "./script/Saccharomyces_cerevisiae/Ensembl/EF4/Sequence/Chromosomes"
-##' getRefChromSizesFile(param)
-getRefChromSizesFile = function(param){
-  if (!file.exists(param$ezRef@refChromSizesFile)){
-    faFiles = list.files(path = param$ezRef@refChromDir, pattern = ".fa$", full.names = TRUE)
-    chromSizes = character()
-    for (ff in faFiles){
-      message(ff)
-      dss = readDNAStringSet(ff)
-      chromSizes[names(dss)] = width(dss)
-    }
-    ezWrite.table(chromSizes, file=param$ezRef@refChromSizesFile, col.names = FALSE)    
-  }
-  return(param$ezRef@refChromSizesFile)
-}
+# 
+# ##' @title Gets the file containing the chromosome sizes
+# ##' @description Gets the file containing the chromosome sizes either directly or by the fasta files in the chromosome directory.
+# ##' @param param a list of parameters:
+# ##' \itemize{
+# ##'   \item{ezRef@@refChromSizesFile}{ a character representing the path to the file to get.}
+# ##'   \item{ezRef@@refChromDir}{ a character representing the path to the directory to get the information to calculate chromosome sizes. Used if the file does not yet exist.}
+# ##' }
+# ##' @template roxygen-template
+# ##' @return Returns the path to the file containing the chromosome sizes.
+# ##' @examples
+# ##' param = ezParam()
+# ##' param$ezRef@@refChromSizesFile = "example.txt"
+# ##' param$ezRef@@refChromDir = "./script/Saccharomyces_cerevisiae/Ensembl/EF4/Sequence/Chromosomes"
+# ##' getRefChromSizesFile(param)
+# getRefChromSizesFile = function(param){
+#   if (!file.exists(param$ezRef@refChromSizesFile)){
+#     faFiles = list.files(path = param$ezRef@refChromDir, pattern = ".fa$", full.names = TRUE)
+#     chromSizes = character()
+#     for (ff in faFiles){
+#       message(ff)
+#       dss = readDNAStringSet(ff)
+#       chromSizes[names(dss)] = width(dss)
+#     }
+#     ezWrite.table(chromSizes, file=param$ezRef@refChromSizesFile, col.names = FALSE)    
+#   }
+#   return(param$ezRef@refChromSizesFile)
+# }
 
 ##' @title Cleans genome files
 ##' @description Removes from the seqence files all descriptionso in the header line.

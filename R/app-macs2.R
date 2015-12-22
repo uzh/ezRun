@@ -21,7 +21,7 @@ ezMethodMacs2 = function(input=NA, output=NA, param=NA){
     cmd = paste(MACS2, " bdgcmp -t", bedgraphFileTreat,
                 "-c", bedgraphFileControl, "-o", paste0(output$getNames(),"_FE.bdg"), "-m FE")
     ezSystem(cmd)
-    cmd = paste(BEDGRAPHBIGWIG, paste0(output$getNames(), "_FE.bdg"), getRefChromSizesFile(param), paste0(output$getNames(), ".bw"))
+    cmd = paste(BEDGRAPHBIGWIG, paste0(output$getNames(), "_FE.bdg"), param$ezRef@refChromSizesFile, paste0(output$getNames(), ".bw"))
     ezSystem(cmd)
     ezSystem("rm *.bdg")
   } else {

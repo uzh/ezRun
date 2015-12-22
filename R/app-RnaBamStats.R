@@ -135,11 +135,10 @@ getPosErrorFromBam = function(bamFile, param){
     ezScanBam(bamFile, seqname = sn, countOnly=TRUE)$records[1]
   })
   chromSel = names(seqLengths)[which.max(seqCounts)]
+  fai = fasta.index(param$ezRef["refFastaFile"])
+  targetGenome = readDNAStringSet(fai[match(chromSel, fai$desc), ])[[1]]
   
   result = list()
-  chromFn = file.path(param$ezRef["refChromDir"], paste0(chromSel, ".fa"))
-  stopifnot(!is.null(chromFn))
-  targetGenome = readDNAStringSet(chromFn)[[1]]
   ezWriteElapsed(job, "read reference genome done")
   #targetGenome = referenceGenome[[match(chromSel, sub(" .*", "", names(referenceGenome)))]]
   what = c("strand", "cigar", "seq", "rname", "pos")
