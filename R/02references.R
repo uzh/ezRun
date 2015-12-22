@@ -37,6 +37,7 @@ EzRef = setClass("EzRef",
                            refFeatureFile="character",
                            refAnnotationFile="character",
                            refFastaFile="character",
+                           refChromSizesFile="character",
                            refAnnotationVersion="character"))
 
 ##' @describeIn EzRef Initializes the slots of EzRef. It will also try to specify some fields and if necessary get full file paths.
