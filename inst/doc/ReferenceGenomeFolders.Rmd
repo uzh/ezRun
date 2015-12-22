@@ -23,7 +23,7 @@ a gtf file containing the gene annotations and a fasta file holding the genome s
 the reference genomes are available to external tools like read aligners and others.
 
 The commands to generate a reference are:
-```{r,split=TRUE,eval=FALSE}
+```{r,split=TRUE,eval=TRUE}
 refBuild = "Saccharomyces_cerevisiae/Ensembl/EF4/Annotation/Version-2013-03-18"
 genomesRoot = "./refExample"
 system("rm -rf refExample")
