@@ -1,4 +1,4 @@
-context("Test the apps with example data")
+context("Mapping apps with example data")
 
 ## this tests do take long therefore we only run them if the environment variable RUN_LONG_TEST is set to TRUE
 # Sys.setenv(RUN_LONG_TEST=TRUE)

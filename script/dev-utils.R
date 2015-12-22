@@ -33,7 +33,7 @@ ezSystem(cmd)
 # create bed dummy for teqc
 randStart = round(runif(500), digits=3)*1000
 randEnd = randStart + round(runif(500), digits=2)*100+50
-dat = data.frame(rep(1,500), randStart, randEnd)
+dat = data.frame(rep("I",500), randStart*(1:500), randEnd*(1:500))
 ezWrite.table(dat, file="./inst/extdata/genes.bed", head="track dummy", row.names = FALSE, col.names = FALSE)
 
 
