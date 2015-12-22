@@ -79,11 +79,11 @@ test_that("Tests selectSamples() from rawData.R", {
 })
 
 test_that("Tests getSignal() and getLog2Signal() from rawData.R", {
-  ## TODO: get rawData with signal to test these.
+  ## TODOP: get rawData with signal to test these.
 })
 
 test_that("Tests getRpkm() and getTpm() from rawData.R", {
-  ## TODO: get rawData with proper seqAnno to test these.
+  ## TODOP: get rawData with proper seqAnno to test these.
 })
 
 test_that("Tests selectFeatures() from rawData.R", {

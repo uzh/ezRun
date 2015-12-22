@@ -12,7 +12,7 @@
   result = integer(length(cigar))
   for (i in seq(from=1, to=length(cigar), by=batchSize)){
     j = min(i+batchSize-1, length(cigar))
-    cigarList = splitCigar(cigar[i:j]) ## TODO: function splitCigar doesn't exist
+    cigarList = splitCigar(cigar[i:j]) ## TODOMF: function splitCigar doesn't exist
     gc()
     result[i:j] = sapply(cigarList, function(x){if (x[[1]][1] == hRaw) x[[2]][1] else 0})
     gc()

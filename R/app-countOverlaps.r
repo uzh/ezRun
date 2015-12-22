@@ -76,7 +76,7 @@ EzAppCountOverlaps <-
 
 .countPairedBamHits = function(input=NULL, output=NULL, param=NULL){
   
-  #param = fillWithDefaults(param) ## TODO: function doesn't exist
+  #param = fillWithDefaults(param) ## TODOMF: function doesn't exist
   options(cores=param$cores)
   message("countPairedBamHits")
   requireNamespace("GenomicRanges", warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)

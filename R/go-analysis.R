@@ -443,7 +443,7 @@ goClusterResults = function(x, param, result, ontologies=c("BP", "MF", "CC"), se
   }
   keggClusterResults = NULL
   if (!is.na(keggOrganism)){
-    kegg2GenesList = getPathway2GenesList(param, keggOrganism)  ## TODO: function does not exist
+    kegg2GenesList = getPathway2GenesList(param, keggOrganism)  ## TODOMF: function does not exist
     if (all(unlist(kegg2GenesList)) %in% universeGeneIds){
       keggClusterResults = list()
     }

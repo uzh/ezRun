@@ -163,10 +163,10 @@ runNgsCountQC = function(dataset, htmlFile="00index.html", param=param, rawData=
                        title=paste("Showing the top", nRows, "genes with the highest expression"))
     
     rpkmFile = paste0(ezValidFilename(param$name), "-rpkm.txt")
-    ezWrite.table(getRpkm(rawData), file=rpkmFile, head="Feature ID", digits=4) ## NOTE: getRpkm/getTpm necessary? rawData$rpkm/tpm should work,
+    ezWrite.table(getRpkm(rawData), file=rpkmFile, head="Feature ID", digits=4) ## NOTEP: getRpkm/getTpm necessary? rawData$rpkm/tpm should work,
     
     tpmFile = paste0(ezValidFilename(param$name), "-tpm.txt")
-    ezWrite.table(getTpm(rawData), file=tpmFile, head="Feature ID", digits=4) ## NOTE: unless loadCountDataset was not able to properly execute getRpkm/getTpm
+    ezWrite.table(getTpm(rawData), file=tpmFile, head="Feature ID", digits=4) ## NOTEP: unless loadCountDataset was not able to properly execute getRpkm/getTpm
     
     dataFiles = c(countFile, signalFile, rpkmFile, tpmFile)
     titles[["Data Files"]] = "Data Files"

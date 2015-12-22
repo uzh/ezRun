@@ -223,7 +223,7 @@ ezLegend = function(legend="", fill=NULL, title="Legend"){
   if (!is.null(isPresent)){
     names(isPresent) = seq
     presentListByGeneAll  = split(isPresent, gene)
-    isPresentGene = mapply(computePresence, presentListByGeneAll) ## TODO: function computePresence doesn't exist
+    isPresentGene = mapply(computePresence, presentListByGeneAll) ## TODOMF: function computePresence doesn't exist
     use[!isPresentGene] = FALSE
   }
   valueListByGene = valueListByGeneAll[use]
@@ -706,7 +706,7 @@ createDendogramReport <- function(x, annot, genes = row.names(x), multipalette =
 #   requireNamespace("pvclust", quietly = T)
 #   requireNamespace("RColorBrewer", quietly = T)
 #   requireNamespace("wesanderson", quietly = T)
-  ## TODO: except wesanderson and WGCNA, these packages seem not to be used currently. If only rarely or in one spot, package::function() should be used.
+  ## NOTEP: except wesanderson and WGCNA, these packages seem not to be used currently. If only rarely or in one spot, package::function() should be used.
   ## requireNamespace() only works, after putting the packe into imports() in the NAMESPACE
   
   # Setup different default parameters for plotDendroAndColors arguments if not specified in function call

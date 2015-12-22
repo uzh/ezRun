@@ -59,7 +59,7 @@ test_that("Tests ezCorrelationPlot()", {
 
 test_that("Tests intHist()", {
   ret = intHist(1:10)
-  expect_is(ret, "numeric")
+  expect_is(ret, "histogram")
 })
 
 test_that("Tests ezHeatmap()", {

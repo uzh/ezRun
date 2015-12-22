@@ -150,7 +150,7 @@ readBam = function(file,isPaired=F){
   system('echo Function readBam \n')
   if(isPaired){
     system('echo option isPaired=T \n')
-    bam = readBamGappedAlignmentPairs(file, use.names=T) ## TODO: function doesn't exist (or ezReadGappedAlignments() ?)
+    bam = readBamGappedAlignmentPairs(file, use.names=T) ## TODOMF: function doesn't exist (or ezReadGappedAlignments() ?)
     system('echo bam read, conversion in progress...\n')
     bam = galp2gal(bam)
   } else {
@@ -237,7 +237,7 @@ MakeCpGDensityPlot = function(myBam, isPaired = F, build, estimatedFragmentSize 
   if(build %in% bsgenome_table$build){
     bsgenome_table = unlist(bsgenome_table[which(bsgenome_table$build == build),])
     system(paste('echo Found:', bsgenome_table, '\n'))
-    ##require(bsgenome_table[1], character.only=T) ## TODO: which package was intended to be loaded here? BSgenome never gets loaded and is not in the description
+    ##require(bsgenome_table[1], character.only=T) ## TODOMF: which package was intended to be loaded here? BSgenome never gets loaded and is not in the description
     if(isPaired){
       seq.len = median(width(myBam[[1]]))
       system(paste('echo Estimated Median FragmentSize:', seq.len, '\n'))
@@ -340,7 +340,7 @@ createTSSPlot = function(myBam, gff, flank, name, range=c(1,100)){
     posDataCounts[,i] = MyTable(shrinkToRange(positionData[!is.na(positionData[,i]),i], range), range)    
   }
   colnames(posDataCounts) = seq(-1*flank, flank-1, 1)
-  #require(gplots)  ## TODO: seems unused
+  #require(gplots)  ## TODOP: seems unused
   MyCols = colorRampPalette(c('black','white'))(oldRange)
   plotCmd = expression({
     image(t(sqrt(posDataCounts[-c(1:2),]+1)), col=MyCols, axes=F)

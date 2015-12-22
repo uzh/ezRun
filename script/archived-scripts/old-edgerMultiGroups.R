@@ -6,9 +6,8 @@
 # www.fgcz.ch
 
 
-## TODO: REFAC into RC inheriting from EzApp
 edgerMultiGroupApp = function(inputDatasetFile=NA, output=NA, param=NA){
-  param = fillWithDefaults(param) ## TODO: function doesn't exist
+  param = fillWithDefaults(param)
   on.exit({
     if(!is.null(param$mail) && grepl('@',param$mail)){
       text=paste0('http://fgcz-gstore.uzh.ch/projects/',output[['Report [File]']],'/00index.html')
@@ -29,8 +28,8 @@ edgerMultiGroupApp = function(inputDatasetFile=NA, output=NA, param=NA){
 
 ngsMultiGroupAnalysis = function(datasetFile, htmlFile="00index.html", param=NULL){
   
-  param = fillWithDefaults(param) ## TODO: function doesn't exist
-  logMessage("ngsMultiGroupAnalysis", param, "Starting") ## TODO: on.exit() and logStart() will run in EzAPP that this app should eventually inherit from.
+  param = fillWithDefaults(param)
+  logMessage("ngsMultiGroupAnalysis", param, "Starting")
   on.exit({traceback(); logMessage("ngsMultiGroupAnalysis", param, "Finished")}) 
   
   if (is.null(param$runGO)){
@@ -46,7 +45,7 @@ ngsMultiGroupAnalysis = function(datasetFile, htmlFile="00index.html", param=NUL
     dataset = dataset[toupper(dataset$Outlier) %in% c("", "NO", '""') == TRUE, ]
   }
   
-  rawData = loadCountDataset(param, dataset) ## TODO: REFAC to loadCountDataset(input, param, dataset) or this call won't work
+  rawData = loadCountDataset(param, dataset)
   param$comparison = paste("glm fit for", param$grouping)
   if (ezIsSpecified(param$batch)){
     param$comparison = paste(param$comparison, "with second factor", param$batch)

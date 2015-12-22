@@ -49,7 +49,7 @@
 
 .countDexseq = function(input=NA, output=NA, param=NA){
   
-  param = fillWithDefaults(param) ## TODO: function doesn't exist
+  param = fillWithDefaults(param) ## TODOMF: function doesn't exist
   waitForFreeDiskSpace(param)
   options(cores=param$cores)
   if (param$paired == FALSE){
