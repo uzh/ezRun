@@ -73,7 +73,7 @@ gtf = system.file("extdata/genes.gtf", package="ezRun", mustWork = TRUE)
 fp = system.file("extdata/genome.fa", package="ezRun", mustWork = TRUE)
 buildRefDir(param$ezRef, fp, gtf)
 buildIgvGenome(myRef)
-seqAnno = writeAnnotationFromGtf(param=param)# featureFile=param$ezRef["refFeatureFile"], featAnnoFile=myRef["refAnnotationFile"])
+seqAnno = writeAnnotationFromGtf(param=param)
 }
 \author{
 Rehrauer, Hubert

@@ -28,7 +28,8 @@
 ##' fp = system.file("extdata/genome.fa", package="ezRun", mustWork = TRUE)
 ##' buildRefDir(param$ezRef, fp, gtf)
 ##' buildIgvGenome(myRef)
-##' seqAnno = writeAnnotationFromGtf(param=param)# featureFile=param$ezRef["refFeatureFile"], featAnnoFile=myRef["refAnnotationFile"])
+##' seqAnno = writeAnnotationFromGtf(param=param)
+## featureFile=param$ezRef["refFeatureFile"], featAnnoFile=myRef["refAnnotationFile"])
 EzRef = setClass("EzRef",
                  slots = c(refBuild="character",
                            refBuildName="character",

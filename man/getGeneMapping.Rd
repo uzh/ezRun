@@ -29,7 +29,8 @@ Especially all enrichment analyses should be run at the gene-level
 }}
 \examples{
 param = ezParam()
-param$ezRef["refAnnotationFile"] = system.file("extdata/genes_annotation.txt", package="ezRun", mustWork=TRUE)
+annoFile = system.file("extdata/genes_annotation.txt", package="ezRun", mustWork=TRUE)
+param$ezRef["refAnnotationFile"] = annoFile
 seqAnno = ezFeatureAnnotation(param, rownames(seqAnno), dataFeatureType="gene")
 getGeneMapping(param,seqAnno)
 hasGeneMapping(param,seqAnno)

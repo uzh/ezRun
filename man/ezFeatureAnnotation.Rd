@@ -39,7 +39,8 @@ the isoforms is aggregated.
 param = ezParam()
 param$ezRef["refFeatureFile"] = system.file("extdata/genes.gtf", package="ezRun", mustWork=TRUE)
 param$ezRef["refFastaFile"] = system.file("extdata/genome.fa", package="ezRun", mustWork=TRUE)
-param$ezRef["refAnnotationFile"] = system.file("extdata/genes_annotation.txt", package="ezRun", mustWork=TRUE)
+annoFile = system.file("extdata/genes_annotation.txt", package="ezRun", mustWork=TRUE)
+param$ezRef["refAnnotationFile"] = annoFile
 seqAnno = writeAnnotationFromGtf(param)
 seqAnno2 = ezFeatureAnnotation(param, rownames(seqAnno), dataFeatureType="gene")
 }
