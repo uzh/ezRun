@@ -19,7 +19,7 @@
 ##' @seealso \code{\link[ReporteRs]{FlexTable}}
 ##' @return Returns an object of the class FlexTable.
 ##' @examples
-##' ezFlexTable(data.frame(a=1:5,b=11:15))
+##' ezFlexTable(data.frame(a=1:5, b=11:15))
 ezFlexTable = function(x, border = 1, valign = "top", talign = "left", header.columns = FALSE,  ...){
   if (!is.data.frame(x) & !is.matrix(x)){
     x = ezFrame(x)
