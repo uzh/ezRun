@@ -5,7 +5,6 @@ gtfFile = system.file("extdata/genes.gtf", package="ezRun", mustWork=TRUE)
 param$ezRef@refFeatureFile = system.file("extdata/genes.gtf", package="ezRun", mustWork=TRUE)
 param$ezRef@refAnnotationFile = ""
 param$ezRef@refChromSizesFile = "example.txt"
-param$ezRef@refChromDir = "./script/Saccharomyces_cerevisiae/Ensembl/EF4/Sequence/Chromosomes"
 fp = "/srv/GT/reference/Saccharomyces_cerevisiae/Ensembl/EF4/Sequence/WholeGenomeFasta/genome.fa"
 param$ezRef@refFastaFile = fp
 seqAnno = writeAnnotationFromGtf(param)

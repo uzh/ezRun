@@ -25,9 +25,9 @@ editReportFile(patterns)
 # delete left-overs from devtools::run_examples()
 rm0 = "tests/testthat/run_examples/*"
 rm1 = "DESCRIPTION_head"
-rm2 = "inst/extdata/genes.bed"
+#rm2 = "inst/extdata/genes.bed"
 rm3 = "inst/extdata/genesWithPrespliced.gtf"
-cmd = paste("rm -fr", rm0, rm1, rm2, rm3)
+cmd = paste("rm -fr", rm0, rm1, rm3)
 ezSystem(cmd)
 
 # create bed dummy for teqc

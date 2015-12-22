@@ -16,7 +16,7 @@ param[['nTopSpecies']] = '5'
 param[['minAlignmentScore']] = '-20'
 param[['confFile']] = 'variousSpecies_rRNA_20140901_silva119.conf'
 param[['cmdOptions']] = '-k 10 --trim5 4 --trim3 4 --very-sensitive'
-param[['mail']] = 'peter.schmid@ieu.uzh.ch'
+param[['mail']] = ''
 param[['dataRoot']] = system.file(package="ezRun", mustWork = TRUE)
 param[['resultDir']] = 'p1001/QC_FastqScreen_734_TEST_2015-10-16--07-52-36'
 output = list()

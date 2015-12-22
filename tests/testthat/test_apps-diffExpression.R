@@ -84,7 +84,7 @@ test_that("count_QC", {
 #   param = yeastCommonDiffExprParam()
 #   param[['name']] = 'Edger_Multi'
 #   param[['normMethod']] = 'TMM'
-#   param[['mail']] = 'peter.schmid@ieu.uzh.ch'
+#   param[['mail']] = ''
 #   myApp = EzAppEdgerMulti$new()
 #   myApp$run(input=input, output=output, param=param)
 #   setwd(cwd)

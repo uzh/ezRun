@@ -23,7 +23,7 @@ mouseCommonChipParam = function(){
   param[['refBuild']] = 'Mus_musculus/UCSC/mm10/Annotation/Version-2012-05-23'
   param[['paired']] = 'false'
   param[['refFeatureFile']] = 'genes.gtf'
-  param[['mail']] = 'peter.schmid@ieu.uzh.ch'
+  param[['mail']] = ''
   param[['dataRoot']] = system.file(package="ezRun", mustWork = TRUE)
   param[['specialOptions']] = ""
   return(param)

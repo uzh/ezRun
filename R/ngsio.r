@@ -374,7 +374,6 @@ countReadsInFastq = function(fastqFiles){
   return(qList)
 }
 
-
 .getLastGoodBasePos = function(x, minTailQuality, qualityFilterWindow=4){
   x[1:5] = minTailQuality ## do not search for low qualities in the first 5 bases!!!!  
   lastGood1 = match(TRUE, caTools::runmean(x, qualityFilterWindow, align="left", alg="fast") < minTailQuality, nomatch=length(x)+1) - 1

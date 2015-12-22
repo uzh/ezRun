@@ -54,14 +54,14 @@ test_that("Tests copying an EzDataset and the method setColumn", {
 
 test_that("Tests EzApp", {
   ds = EzDataset$new(file=system.file("extdata/yeast_10k/dataset.tsv", package="ezRun", mustWork = TRUE))
-  app = EzApp$new(runMethod=function(input, output, param){},name="Test")
+  app = EzApp$new(runMethod=function(input, output, param){}, name="Test")
   expect_is(app,"EzApp")
   app2 = app$copy()
-  expect_equal(app,app2)
+  expect_equal(app, app2)
   expect_is(app$runMethod,"function")
   expect_is(app$name,"character")
   expect_is(app$appDefaults,"data.frame")
-  expect_null(app$run(input=ds,output=ds,param=list(process_mode="DATASET")))
+  expect_null(app$run(input=ds, output=ds, param=list(process_mode="DATASET")))
 })
 
 test_that("Tests EzRef constructor", {

@@ -11,7 +11,6 @@ getSTARReference(param)
 \itemize{
   \item{ezRef@refIndex}{ a character specifying the location of the index that is used in the alignment.}
   \item{ezRef@refFeatureFile}{ a character specifying the file path to the annotation feature file (.gtf).}
-  \item{ezRef@refChromDir}{ a character specifying the file path to the directory of the chromosome information.}
   \item{ram}{ an integer specifying how many gigabytes of RAM to use.}
   \item{ezRef@refFastaFile}{ a character specifying the file path to the fasta file.}
 }}

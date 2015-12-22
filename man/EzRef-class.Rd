@@ -59,8 +59,6 @@ Objects of this class are a collection of references derived from a list of para
 
 \item{\code{refFastaFile}}{a character specifying the file path to the fasta file.}
 
-\item{\code{refChromDir}}{a character specifying the file path to the directory of the chromosome information.}
-
 \item{\code{refChromSizesFile}}{a character specifying the file path to the file containing the chromosome sizes.}
 
 \item{\code{refAnnotationVersion}}{a character specifying the annotation version.}
@@ -72,7 +70,7 @@ param = ezParam(list(refBuild=refBuild, genomesRoot=genomesRoot))
 gtf = system.file("extdata/genes.gtf", package="ezRun", mustWork = TRUE)
 fp = system.file("extdata/genome.fa", package="ezRun", mustWork = TRUE)
 buildRefDir(param$ezRef, fp, gtf)
-buildIgvGenome(myRef)
+buildIgvGenome(param$ezRef)
 seqAnno = writeAnnotationFromGtf(param=param)
 }
 \author{

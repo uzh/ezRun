@@ -34,10 +34,10 @@ test_that("Tests shrinkToRange()", {
 })
 
 test_that("Tests interleaveMatricesByColumn()", {
-  matrix1 = matrix(1:10,2)
-  matrix2 = matrix(11:20,2)
+  matrix1 = matrix(1:10, 2)
+  matrix2 = matrix(11:20, 2)
   colnames(matrix1) = as.character(1:5)
-  rownames(matrix1) = c("a","b")
+  rownames(matrix1) = c("a", "b")
   colnames(matrix2) = as.character(1:5)
   mNew = interleaveMatricesByColumn(matrix1, matrix2)
   expect_is(mNew, "matrix")

@@ -120,7 +120,6 @@ test_that("TEQC", {
   param[['covTargetLengthPlot']] = 'true'
   param[['duplicatesPlot']] = 'true'
   param[['cmdOptions']] = ''
-  param[['mail']] = 'peter.schmid@ieu.uzh.ch'
   myApp = EzAppTeqc$new()
   myApp$run(input=input, output=output, param=param)
   setwd(cwd)

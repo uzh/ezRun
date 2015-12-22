@@ -26,9 +26,9 @@
 ##' gtf = system.file("extdata/genes.gtf", package="ezRun", mustWork = TRUE)
 ##' fp = system.file("extdata/genome.fa", package="ezRun", mustWork = TRUE)
 ##' buildRefDir(param$ezRef, fp, gtf)
-##' buildIgvGenome(myRef)
+##' buildIgvGenome(param$ezRef)
 ##' seqAnno = writeAnnotationFromGtf(param=param)
-## featureFile=param$ezRef["refFeatureFile"], featAnnoFile=myRef["refAnnotationFile"])
+## featureFile=param$ezRef["refFeatureFile"], featAnnoFile=param$ezRef["refAnnotationFile"])
 EzRef = setClass("EzRef",
                  slots = c(refBuild="character",
                            refBuildName="character",
@@ -46,7 +46,9 @@ setMethod("initialize", "EzRef", function(.Object, param=list()){
   #     return(.Object)
   #   }
   if (is.null(param$genomesRoot)){
-    genomesRoot=GENOMES_ROOT
+    genomesRoot = GENOMES_ROOT
+  } else {
+    genomesRoot = param$genomesRoot
   }
   .Object@refBuild = param$refBuild
   refFields = strsplit(.Object@refBuild, "/", fixed=TRUE)[[1]]
