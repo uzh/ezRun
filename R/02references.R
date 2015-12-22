@@ -15,7 +15,6 @@
 ##' @slot refFeatureFile a character specifying the file path to the annotation feature file (.gtf).
 ##' @slot refAnnotationFile a character specifying the file path to the annotation file (.txt).
 ##' @slot refFastaFile a character specifying the file path to the fasta file.
-##' @slot refChromDir a character specifying the file path to the directory of the chromosome information.
 ##' @slot refChromSizesFile a character specifying the file path to the file containing the chromosome sizes.
 ##' @slot refAnnotationVersion a character specifying the annotation version.
 ##' @template roxygen-template
@@ -37,8 +36,6 @@ EzRef = setClass("EzRef",
                            refFeatureFile="character",
                            refAnnotationFile="character",
                            refFastaFile="character",
-                           refChromDir="character",
-                           refChromSizesFile="character",
                            refAnnotationVersion="character"))
 
 ##' @describeIn EzRef Initializes the slots of EzRef. It will also try to specify some fields and if necessary get full file paths.
@@ -86,16 +83,12 @@ setMethod("initialize", "EzRef", function(.Object, param=list()){
   } else {
     .Object@refFastaFile =  file.path(.Object@refBuildDir, param$refFastaFile)
   }
-  if (ezIsAbsolutePath(param$refChromDir)){
-    .Object@refChromDir = param$refChromDir
-  } else {
-    .Object@refChromDir =  file.path(.Object@refBuildDir, "Sequence/Chromosomes")
-  }
-  if (ezIsAbsolutePath(param$refChromSizesFile)){
-    .Object@refChromSizesFile = param$refChromSizesFile
-  } else {
-    .Object@refChromSizesFile =  file.path(.Object@refChromDir, "chromsizes.txt")
-  }
+#   if (ezIsAbsolutePath(param$refChromDir)){
+#     .Object@refChromDir = param$refChromDir
+#   } else {
+#     .Object@refChromDir =  file.path(.Object@refBuildDir, "Sequence/Chromosomes")
+#   }
+  .Object@refChromSizesFile =  sub(".fa$", "-chromsizes.txt", .Object@refFastaFile)
   return(.Object)
 })
 
@@ -141,8 +134,12 @@ setMethod("buildRefDir", "EzRef", function(.Object, genomeFile, genesFile, genom
   genomeInfoList = cleanGenomeFiles(genomeFile, genesFile)
   writeXStringSet(genomeInfoList$genomeSeq, .Object@refFastaFile)
   ezWriteGff(genomeInfoList$gtf, .Object@refFeatureFile)
-  cmd = paste(SAMTOOLS, "faidx", .Object@refFastaFile)
+  cmd = paste(SAMTOOLS, "faidx", .Object@refFastaFile) # create the .fai file
   ezSystem(cmd)
+  ## create the chromsizes file
+  fai = ezRead.table(paste0(.Object@refFastaFile, ".fai"), header =FALSE, row.names=NULL)
+  ezWrite.table(fai[ ,1:2], .Object@refChromSizesFile, row.names = FALSE, col.names = FALSE)
+  
   cmd = paste("java -jar", PICARD_JAR, "CreateSequenceDictionary",
               paste0("R=", .Object@refFastaFile), paste0("O=", sub(".fa$", ".dict", .Object@refFastaFile)))
   ezSystem(cmd)
