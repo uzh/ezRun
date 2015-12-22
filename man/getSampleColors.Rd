@@ -31,6 +31,14 @@ Gets the sample colors from the experimental conditions.
 
 \item \code{getSampleLty}: Gets the sample line types from the experimental conditions.
 }}
+\examples{
+file = system.file("extdata/yeast_10k/dataset.tsv", package="ezRun", mustWork = TRUE)
+ds = EzDataset$new(file=file)
+cond = ezConditionsFromDataset(ds$meta)
+getSampleColors(cond)
+getSamplePch(cond)
+getSampleLty(cond)
+}
 \author{
 Rehrauer, Hubert
 

@@ -14,6 +14,13 @@
 ##' @template roxygen-template
 ##' @seealso \code{\link[grDevices]{hsv}}
 ##' @return Returns a character vector containing colors in hex format.
+##' @examples 
+##' file = system.file("extdata/yeast_10k/dataset.tsv", package="ezRun", mustWork = TRUE)
+##' ds = EzDataset$new(file=file)
+##' cond = ezConditionsFromDataset(ds$meta)
+##' getSampleColors(cond)
+##' getSamplePch(cond)
+##' getSampleLty(cond)
 getSampleColors = function(conds, colorNames=names(conds), hueStep = 1/50){
 
 	condSet = unique(conds)

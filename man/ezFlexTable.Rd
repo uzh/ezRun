@@ -34,7 +34,7 @@ Wraps \code{FlexTable()} with defaults to remove the cell header and cell border
 \item \code{ezGrid}: A flex table without borders.
 }}
 \examples{
-ezFlexTable(data.frame(a=1:5,b=11:15))
+ezFlexTable(data.frame(a=1:5, b=11:15))
 }
 \author{
 Rehrauer, Hubert
