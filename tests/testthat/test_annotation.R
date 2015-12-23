@@ -50,6 +50,8 @@ test_that("Tests more functions from gff.r", {
   exonNumber = getExonNumber(gtf)
   expect_is(exonNumber, "integer")
   expect_identical(length(exonNumber), nrow(gtf))
+  transcriptDB = ezTranscriptDbFromRef(param$ezRef)
+  expect_is(transcriptDB, "TxDb")
   tr2Gene = getTranscript2Gene(gtf)
   expect_is(tr2Gene, "character")
   counts = countIsoformsPerGene(tr2Gene)
@@ -85,3 +87,5 @@ test_that("Tests cleanGenomeFiles() from ngsReferenceFiles.r", {
   expect_is(cleanedGenome$genomeSeq, "DNAStringSet")
   expect_is(cleanedGenome$gtf, "data.frame")
 })
+
+ezSystem("rm -fr anno.txt")

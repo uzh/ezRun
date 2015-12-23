@@ -2,7 +2,7 @@
 % Please edit documentation in R/gff.r
 \name{ezTranscriptDbFromRef}
 \alias{ezTranscriptDbFromRef}
-\title{1}
+\title{Gets the transcripts database from the reference}
 \usage{
 ezTranscriptDbFromRef(reference, dataSource = "FGCZ")
 }
@@ -12,10 +12,15 @@ ezTranscriptDbFromRef(reference, dataSource = "FGCZ")
 \item{dataSource}{a character specifying the source of the data.}
 }
 \value{
-Returns
+Returns an object of the class TxDb
 }
 \description{
-1
+Gets the transcripts database from the reference.
+}
+\examples{
+refBuild = "Mus_musculus/UCSC/mm10/Annotation/Version-2012-05-23"
+param = ezParam(list(refBuild=refBuild))
+ezTranscriptDbFromRef(param$ezRef)
 }
 \author{
 Rehrauer, Hubert

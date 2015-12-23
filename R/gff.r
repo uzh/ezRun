@@ -367,21 +367,23 @@ getExonNumber = function(gtf){
   return(exonNumbers)
 }
 
-
-##' @title 1
-##' @description 1
+##' @title Gets the transcripts database from the reference
+##' @description Gets the transcripts database from the reference.
 ##' @param reference a reference to read the information from.
 ##' @param dataSource a character specifying the source of the data.
 ##' @template roxygen-template
-##' @return Returns 
+##' @return Returns an object of the class TxDb
 ##' @seealso \code{\link[GenomicFeatures]{makeTxDbFromGFF}}
+##' @examples 
+##' refBuild = "Mus_musculus/UCSC/mm10/Annotation/Version-2012-05-23"
+##' param = ezParam(list(refBuild=refBuild))
+##' ezTranscriptDbFromRef(param$ezRef)
 ezTranscriptDbFromRef = function(reference, dataSource="FGCZ"){
   requireNamespace("GenomicFeatures", warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
-  organism = getOrganism(reference)
   genomeFastaIndexFile = paste0(reference@refFastaFile, ".fai")
   fai = ezRead.table(genomeFastaIndexFile, header=FALSE)
-  chromInfo = data.frame(chrom=I(rownames(fai)), length=I(fai$V2), is_circular=FALSE)
-  makeTxDbFromGFF(reference@refFeatureFile, dataSource=dataSource, organism=organism, chrominfo=chrominfo)
+  chrominfo = data.frame(chrom=rownames(fai), length=fai$V2, is_circular=FALSE)
+  makeTxDbFromGFF(reference@refFeatureFile, dataSource=dataSource, chrominfo=chrominfo)
 }
 
 ##' @title Gets gene names from annotation
