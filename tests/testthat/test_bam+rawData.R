@@ -29,11 +29,6 @@ test_that("Tests ezReadGappedAlignments() and ezReadPairedAlignments() from bami
   expect_more_than(length(gapped), length(paired)*1.8)
 })
 
-test_that("Tests buildScanBamParam() from bamio.r", {
-  scanned = buildScanBamParam(param, bamFile)
-  expect_is(scanned, "ScanBamParam")
-})
-
 test_that("Tests getBamMultiMatching() from bamio.r", {
   multi = getBamMultiMatching(param, bamFile, nReads=10000)
   expect_is(multi, "integer")
