@@ -37,7 +37,7 @@ hasGoAnnotation = function(seqAnnoDF){
 ##' @param goIdStrings the GO ID's to separate.
 ##' @template roxygen-template
 ##' @return Returns the separated GO ID's
-## TODOEXAMPLE: example
+##' @examples separateGoIdsByOnto("GO:0008150", "GO:0005575")
 separateGoIdsByOnto = function(goIdStrings){
   requireNamespace("GO.db", warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
   bpGos = keys(GOBPPARENTS)

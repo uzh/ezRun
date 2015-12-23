@@ -375,14 +375,13 @@ getExonNumber = function(gtf){
 ##' @template roxygen-template
 ##' @return Returns 
 ##' @seealso \code{\link[GenomicFeatures]{makeTxDbFromGFF}}
-## TODOP: .fai file necessary if chromInfo desired, uncomment code and replace chrominfo=NULL with chrominfo=chrominfo
 ezTranscriptDbFromRef = function(reference, dataSource="FGCZ"){
   requireNamespace("GenomicFeatures", warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
   organism = getOrganism(reference)
-  #genomeFastaIndexFile = paste0(reference@refFastaFile, ".fai")
-  #fai = ezRead.table(genomeFastaIndexFile, header=FALSE)
-  #chromInfo = data.frame(chrom=I(rownames(fai)), length=I(fai$V2), is_circular=FALSE)
-  makeTxDbFromGFF(reference@refFeatureFile, dataSource=dataSource, organism=organism, chrominfo=NULL)
+  genomeFastaIndexFile = paste0(reference@refFastaFile, ".fai")
+  fai = ezRead.table(genomeFastaIndexFile, header=FALSE)
+  chromInfo = data.frame(chrom=I(rownames(fai)), length=I(fai$V2), is_circular=FALSE)
+  makeTxDbFromGFF(reference@refFeatureFile, dataSource=dataSource, organism=organism, chrominfo=chrominfo)
 }
 
 ##' @title Gets gene names from annotation
@@ -495,9 +494,8 @@ getTranscriptSequences = function(param, useFivePrimeAsStart=TRUE){
 # param$ezRef@@refFeatureFile = system.file("extdata/genes.gtf", package="ezRun", mustWork=TRUE)
 # fp = "/srv/GT/reference/Saccharomyces_cerevisiae/Ensembl/EF4/Sequence/WholeGenomeFasta/genome.fa"
 # param$ezRef@@refFastaFile = fp
-# genomeSeq = getTranscriptSequences(param)
+# trSeqs = getTranscriptSequences(param)
 # ezUtrSequences(gtf)
-## TODOP: improve help file. add an argument genomeSeq and maybe provide a default. Currently that object needs to be defined outside the function.
 ezUtrSequences = function(gtf, chromSeqs){
   
   if (is.null(gtf$transcript_id)){
@@ -517,7 +515,7 @@ ezUtrSequences = function(gtf, chromSeqs){
   
   threePrimeUtr = DNAStringSet()
   fivePrimeUtr = DNAStringSet()
-  for (nm in names(genomeSeq)){
+  for (nm in names(chromSeqs)){
     message(nm)
     utr3 = utr[utr$seqid == nm & isThreePrime, ,drop=FALSE]
     utr5 = utr[utr$seqid == nm & !isThreePrime, ,drop=FALSE]

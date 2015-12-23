@@ -182,8 +182,6 @@ addIgvSessionLink = function(genome, refBuild, bamFiles, doc, locus="All", label
 ## currently not used
 ##' @describeIn writeIgvSession Writes an IGV session link.
 writeIgvSessionLink = function(genome, refBuild, bamFiles, html, locus="All", label="Open Integrative Genomics Viewer", baseUrl=PROJECT_BASE_URL){
-  #TODO stopifnot(grepl("^p", bamFiles))
-  #bamFiles = sub("^/.*?/p", "p", bamFiles) ## TODO: replace only data root item
   urls = paste(baseUrl, bamFiles, sep="/")
   writeIgvSession(genome, refBuild, bamUrls=urls, locus=locus)
   #ezWrite("<p><a onClick='startIgv(\"", locus, "\")'>", label, "</a></p>", con=html)

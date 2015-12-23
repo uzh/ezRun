@@ -428,64 +428,6 @@ ezReadPairedAlignments = function(bamFile, seqname=NULL, start=NULL, end=NULL, s
   return(gaAll)
 }
 
-##' @title Builds the ScanBam parameters
-##' @description Builds the ScanBam parameters from other parameters and a bam file.
-##' @param param a list of parameters:
-##' \itemize{
-##'   \item{readUnmapped}{ whether unmapped (TRUE), mapped (FALSE) or any read (NA) should be returned.}
-##'   \item{paired}{ a logical indicating whether the samples are paired.}
-##'   \item{subsetGenome}{ a logical. If true, only a subset (1/20) of the genome region will be used.}
-##'   \item{seqNames}{ if provided, the function will only use these chromosomes.}
-##' }
-##' @template bamFile-template
-##' @template roxygen-template
-##' @return Returns an object of the class ScanBamParam.
-##' @seealso \code{\link[Rsamtools]{ScanBamParam}}
-##' @examples 
-##' param = ezParam()
-##' bamFile <- system.file("extdata", "ex1.bam", package="Rsamtools", mustWork=TRUE)
-##' buildScanBamParam(param, bamFile)
-buildScanBamParam = function(param, bamFile){
-  
-  if (is.null(param$readUnmapped)){
-    param$readUnmapped = NA
-  }
-  
-  sh = scanBamHeader(bamFile)
-  seqLengths = sh[[1]]$targets
-  bamParam = ScanBamParam(tag=c( "NH", "IH", "AS"),
-                          what=c("rname", "pos", "flag", "qwidth", "strand", "qname"))
-  ## TODO isUnmappedQuery=param$readUnmapped, argument is not in ScanBamParam, but in scanBamFlag
-
-    if (!is.null(param$subsetGenome) && param$subsetGenome){ ## TODO fix this
-    message("using only subset of genome region!")
-    useRanges = GRanges(seqnames=names(seqLengths), ranges=IRanges(start=rep(1, length(seqLengths)), end=round(seqLengths / 20)))
-    bamParam = ScanBamParam(tag=bamTag(bamParam),
-                            what=bamWhat(bamParam),
-                            flag=bamFlag(bamParam),
-                            which=useRanges)
-  }
-  if (ezIsSpecified(param$seqNames)){
-    message("using only chromosome: ", param$seqNames)
-    
-    if (!all(as.character(param$seqNames) %in% names(seqLengths))){
-      stop("wanted chromosome is not available in bam: ", param$seqNames, " ", bamFile)
-    }
-    
-    chromEnd = seqLengths[param$seqNames]
-    #if (is.na(chromEnd)){
-    #	chromEnd = 536870912
-    #}
-    useRanges = GRanges(seqnames=param$seqNames, ranges=IRanges(start=1, end=chromEnd))
-    bamParam = ScanBamParam(tag=bamTag(bamParam),
-                            what=bamWhat(bamParam),
-                            flag=bamFlag(bamParam),
-                            which=useRanges)
-  }
-  print("scanBamParam:")
-  print(bamParam)
-  return(bamParam)
-}
 
 ##' @title Gets bam multi matching
 ##' @description Gets bam multi matching and returns the result as an integer vector.

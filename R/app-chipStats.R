@@ -233,11 +233,12 @@ MakeEnrichmentPlot = function(myBam, isPaired=F, estimatedFragmentSize = 200){
 ## @describeIn Create_ChIP_QCPlots_ind
 MakeCpGDensityPlot = function(myBam, isPaired = F, build, estimatedFragmentSize = 200){
   system('echo Function MakeCpGDensity Plot \n')
-  bsgenome_table = getBSgenomes()
+  ## TODO loading the BSgenome needs to be redone completely
+  bsgenome_table = BSgenome::available.genomes() 
   if(build %in% bsgenome_table$build){
     bsgenome_table = unlist(bsgenome_table[which(bsgenome_table$build == build),])
     system(paste('echo Found:', bsgenome_table, '\n'))
-    ##require(bsgenome_table[1], character.only=T) ## TODOMF: which package was intended to be loaded here? BSgenome never gets loaded and is not in the description
+    ##require(bsgenome_table[1], character.only=T) ## REFACT:
     if(isPaired){
       seq.len = median(width(myBam[[1]]))
       system(paste('echo Estimated Median FragmentSize:', seq.len, '\n'))
@@ -249,7 +250,7 @@ MakeCpGDensityPlot = function(myBam, isPaired = F, build, estimatedFragmentSize 
       Repitools::cpgDensityPlot(myBam, organism = get(bsgenome_table[2]), w.function = "none", seq.len,
                                 cols = c("black"), xlim = c(0, 30), lwd = 2, main = names(myBam))
     })
-    densityLink = ezImageFileLink(plotCmd, file=paste0(names(myBam), "_cpgDensityPlot.png")) ## REFAC: won't names(myBam) produces several files with the same plot?
+    densityLink = ezImageFileLink(plotCmd, file=paste0(names(myBam), "_cpgDensityPlot.png"))
     system('echo Function MakeCpGDensityPlot done \n')
     return(densityLink)
   } else {

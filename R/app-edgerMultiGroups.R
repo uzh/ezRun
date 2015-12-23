@@ -321,7 +321,7 @@ writeNgsMultiGroupReport = function(dataset, result, htmlFile, param=NA, rawData
   }
   ## only do GO if we have enough genes
   if (doGo(param, seqAnno)){
-    goResult = twoGroupsGO(param, result, seqAnno, normalizedAvgSignal=rowMeans(result$groupMeans), method=param$goseqMethod) ## TODOMF: should probably be multiGroupsGO()
+    goResult = twoGroupsGO(param, result, seqAnno, normalizedAvgSignal=rowMeans(result$groupMeans), method=param$goseqMethod) ## TODO -> multiGroupsGO()
     titles[["GO Enrichment Analysis"]] = "GO Enrichment Analysis"
     addTitle(doc, titles[[length(titles)]], 2, id=titles[[length(titles)]])
     revigoTitle = addGoUpDownResult(doc, param, goResult)

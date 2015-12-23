@@ -170,7 +170,7 @@ ezMethodMpileup = function(input=NA, output=NA, param=NA){
         }
         abline(h=seq(0, 3*ncol(gt), by=3))
       })
-      pngLinks[ch] = ezImageFileLink(plotCmd, file=pngFiles[ch], height=200+30*ncol(gt), width=1200) # TODOP: adjust plot after seeing it
+      pngLinks[ch] = ezImageFileLink(plotCmd, file=pngFiles[ch], height=150+25*ncol(gt), width=1000)
     }
     if (length(pngLinks) > 0){
       addFlexTable(doc, ezGrid(pngLinks))

@@ -35,7 +35,6 @@ expandGRanges = function(x, width=2000){
 ##' @seealso \code{\link[IRanges]{RleViewsList}}
 ##' @seealso \code{\link[IRanges]{viewApply}}
 ##' @return Returns the values or a matrix containing them.
-## TODOEXAMPLE: example doesn't work
 getRangeValues = function(cov, targetRanges, doRev=as.character(strand(targetRanges)) == "-", asMatrix=TRUE){
   names(targetRanges) = 1:length(targetRanges)
   rgs = ranges(RangedData(targetRanges))

@@ -176,8 +176,8 @@ EzAppGatkRnaHaplotyper <-
                   "Initializes the application using its specific defaults."
                   runMethod <<- ezMethodGatkRnaHaplotyper
                   name <<- "EzAppGatkRnaHaplotyper"
-                  appDefaults <<- rbind(vcfFilt.minAltCount = ezFrame(Type="integer",  DefaultValue=10,  Description=""),
-                                        vcfCall.minReadDepth = ezFrame(Type="integer",  DefaultValue=10,  Description="")) ## TODO: add description
+                  appDefaults <<- rbind(vcfFilt.minAltCount = ezFrame(Type="integer",  DefaultValue=10,  Description="minimum coverage for the alternative variant"),
+                                        vcfCall.minReadDepth = ezFrame(Type="integer",  DefaultValue=10,  Description="minimum read deapth"))
                 }
               )
   )
