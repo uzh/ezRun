@@ -113,6 +113,21 @@ test_that("Map_Bwa", {
   setwd(cwd)
 })
 
+# system command fails
+# test_that("Map_Bismark", {
+#   skipLong()
+#   ezSystem("rm -fr /scratch/test_bismark/*")
+#   setwdNew("/scratch/test_bismark")
+#   input = EzDataset$new(file=system.file("extdata/yeast_10k/dataset.tsv", package="ezRun", mustWork = TRUE))
+#   output = EzDataset$new(file=system.file("extdata/yeast_10k_STAR/dataset.tsv", package="ezRun", mustWork = TRUE))
+#   param = yeastCommonMapParam()
+#   param[['cmdOptions']] = '-bowtie2 --maxins 800'
+#   param[['mail']] = ''
+#   myApp = EzAppBismark$new()
+#   myApp$run(input=input$copy()$subset(1), output=output$copy()$subset(1), param=param)
+#   setwd(cwd)
+# })
+
 test_that("FastQC", {
   skipLong()
   ezSystem("rm -fr /scratch/test_fastqc/*")
