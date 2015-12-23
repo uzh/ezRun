@@ -27,22 +27,24 @@ yeastCommonSmallRnaParam = function(){
   return(param)
 }
 
-# test_that("smRNA Ncpro", {
-#   skipLong()
-#   ezSystem("rm -fr /scratch/test_ncpro/*")
-#   setwdNew("/scratch/test_ncpro")
-#   input = EzDataset$new(file=system.file("extdata/smRNA_250k/dataset.tsv", package="ezRun", mustWork = TRUE))
-#   output = list()
-#   output[['Name']] = 'ncPRO_Result'
-#   output[['Species']] = ''
-#   output[['refBuild']] = 'Saccharomyces_cerevisiae/Ensembl/EF4/Annotation/Version-2013-03-18'
-#   output[['Report [File]']] = 'p1001/Count_ncPRO_Report_5750_2015-12-18--12-33-40/ncPRO_Result'
-#   output[['Html [Link]']] = 'p1001/Count_ncPRO_Report_5750_2015-12-18--12-33-40/ncPRO_Result/ncpro/report.html'
-#   output[['TrimCounts [Link]']] = 'p1001/Count_ncPRO_Report_5750_2015-12-18--12-33-40/ncPRO_Result/trimCounts-barplot.png'
-#   param = yeastCommonSmallRnaParam()
-#   param[['name']] = 'ncPRO_Result'
-#   param[['mail']] = 'peter.schmid@ieu.uzh.ch'
-#   myApp = EzAppNcpro$new()
-#   myApp$run(input=input, output=output, param=param)
-#   setwd(cwd)
-# })
+test_that("smRNA Ncpro", {
+  skipLong()
+  ezSystem("rm -fr /scratch/test_ncpro/*")
+  setwdNew("/scratch/test_ncpro")
+  input = EzDataset$new(file=system.file("extdata/smRNA_250k/datasetWithAdapter.tsv", package="ezRun", mustWork = TRUE))
+  output = list()
+  output[['Name']] = 'ncPRO_Result'
+  output[['Species']] = ''
+  output[['refBuild']] = 'Saccharomyces_cerevisiae/Ensembl/EF4/Annotation/Version-2013-03-18'
+  output[['refBuild']] = 'Mus_musculus/UCSC/mm10/Annotation/Version-2012-05-23'
+  output[['Report [File]']] = 'p1001/Count_ncPRO_Report_5750_2015-12-18--12-33-40/ncPRO_Result'
+  output[['Html [Link]']] = 'p1001/Count_ncPRO_Report_5750_2015-12-18--12-33-40/ncPRO_Result/ncpro/report.html'
+  output[['TrimCounts [Link]']] = 'p1001/Count_ncPRO_Report_5750_2015-12-18--12-33-40/ncPRO_Result/trimCounts-barplot.png'
+  param = yeastCommonSmallRnaParam()
+  param[['name']] = 'ncPRO_Result'
+  param[['mail']] = ''
+  param[['refBuild']] = 'Mus_musculus/UCSC/mm10/Annotation/Version-2012-05-23'
+  myApp = EzAppNcpro$new()
+  myApp$run(input=input, output=output, param=param)
+  setwd(cwd)
+})
