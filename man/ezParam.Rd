@@ -5,7 +5,7 @@
 \alias{parseOptions}
 \title{Build parameter object}
 \usage{
-ezParam(userParam = list(), globalDefaults = EZ_PARAM_DEFAULTS,
+ezParam(userParam = list(), globalDefaults = getGlobalDefaults(),
   appDefaults = ezFrame())
 
 parseOptions(optString)

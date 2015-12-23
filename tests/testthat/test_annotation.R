@@ -3,7 +3,7 @@ context("Test annotation and gtf: annotation.r; gff.r; go-analysis.R; ngsReferen
 param = ezParam()
 gtfFile = system.file("extdata/genes.gtf", package="ezRun", mustWork=TRUE)
 param$ezRef@refFeatureFile = system.file("extdata/genes.gtf", package="ezRun", mustWork=TRUE)
-param$ezRef@refAnnotationFile = ""
+param$ezRef@refAnnotationFile = "anno.txt"
 param$ezRef@refChromSizesFile = "example.txt"
 fp = "/srv/GT/reference/Saccharomyces_cerevisiae/Ensembl/EF4/Sequence/WholeGenomeFasta/genome.fa"
 param$ezRef@refFastaFile = fp

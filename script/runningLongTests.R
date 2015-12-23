@@ -1,6 +1,6 @@
 
 ## settings for running the tests as Hubert
-.libPaths("/srv/GT/analysis/course_sushi/lib")
+.libPaths("/srv/localdata/hubert/R-libs")
 setwd("~/R/git/ezRun")
 EZ_GLOBAL_VARIABLES <<- '/usr/local/ngseq/opt/EZ_GLOBAL_VARIABLES.txt'
 require(ezRun)

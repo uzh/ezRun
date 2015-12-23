@@ -27,7 +27,7 @@
 ##' globalDefaultTypedParams$ram
 ##' parseOptions("a=5 b='foo with space' c=foo")
 ## current implementation: every param needs a default value
-ezParam = function(userParam=list(), globalDefaults=EZ_PARAM_DEFAULTS, appDefaults=ezFrame()){
+ezParam = function(userParam=list(), globalDefaults=getGlobalDefaults(), appDefaults=ezFrame()){
 
   specialParam = parseOptions(userParam$specialOptions)
   userParam[names(specialParam)] = specialParam
@@ -49,6 +49,14 @@ ezParam = function(userParam=list(), globalDefaults=EZ_PARAM_DEFAULTS, appDefaul
     userParam$ezRef = EzRef(userParam)
   }
   return(userParam)
+}
+
+getGlobalDefaults = function(){
+  if (exists("EZ_PARAM_DEFAULTS")){
+    return(EZ_PARAM_DEFAULTS)
+  } else {
+    ezRead.table(system.file("extdata/EZ_PARAM_DEFAULTS.txt", package="ezRun", mustWork = TRUE), comment.char="#")  
+  }
 }
 
 ##' @describeIn ezParam Used to parse additional options specified in \code{userParam$specialOptions}.
