@@ -340,7 +340,6 @@ createTSSPlot = function(myBam, gff, flank, name, range=c(1,100)){
     posDataCounts[,i] = MyTable(shrinkToRange(positionData[!is.na(positionData[,i]),i], range), range)    
   }
   colnames(posDataCounts) = seq(-1*flank, flank-1, 1)
-  #require(gplots)  ## TODOP: seems unused
   MyCols = colorRampPalette(c('black','white'))(oldRange)
   plotCmd = expression({
     image(t(sqrt(posDataCounts[-c(1:2),]+1)), col=MyCols, axes=F)

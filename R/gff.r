@@ -73,7 +73,7 @@ addPromotersToGff = function(gff, promWidth){
   if (!any(isTranscript)){
     geneGff = gff[isTranscript, ]
   } else {
-    geneGff = transcriptsFromGffExons(gff) ## TODOMF: function doesn't exist, maybe addTranscriptsToGffExons() is the right one.
+    geneGff = groupGff(gff)
   }
   promGff = geneGff
   promGff$type = "promoter"

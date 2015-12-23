@@ -6,20 +6,6 @@
 # www.fgcz.ch
 
 
-.getLeftClipping = function(cigar, batchSize=100000){
-  
-  hRaw = as.raw(72)
-  result = integer(length(cigar))
-  for (i in seq(from=1, to=length(cigar), by=batchSize)){
-    j = min(i+batchSize-1, length(cigar))
-    cigarList = splitCigar(cigar[i:j]) ## TODOMF: function splitCigar doesn't exist
-    gc()
-    result[i:j] = sapply(cigarList, function(x){if (x[[1]][1] == hRaw) x[[2]][1] else 0})
-    gc()
-  }
-  return(result)
-}
-
 ## TODO: refactor: use the general ezMethodTrim
 trimMirna = function(input, output, adapter=NA, param){
   qtOut = sub(".fastq.gz", "_qualtrim.fastq", basename(input))

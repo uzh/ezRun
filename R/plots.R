@@ -214,30 +214,6 @@ ezLegend = function(legend="", fill=NULL, title="Legend"){
 }
 
 
-## still used?
-.getByTail = function(values, isPresent, seq, gene, method=mean){
-  names(values) = seq
-  valueListByGeneAll = split(values, gene)
-  seqCounts = sapply(valueListByGeneAll, function(x){length(unique(names(x)))})
-  use = seqCounts > 1
-  if (!is.null(isPresent)){
-    names(isPresent) = seq
-    presentListByGeneAll  = split(isPresent, gene)
-    isPresentGene = mapply(computePresence, presentListByGeneAll) ## TODOMF: function computePresence doesn't exist
-    use[!isPresentGene] = FALSE
-  }
-  valueListByGene = valueListByGeneAll[use]
-
-  sortAndName = function(x){
-    x = x[order(names(x))]
-    additionalNuc = sapply(strsplit(names(x), ""), tail, n=1)
-    additionalNuc[1] = ""
-    names(x) = additionalNuc
-    return(x)
-  }
-  valueByTail = lapply(valueListByGene, sortAndName)
-  return(valueByTail)
-}
 
 ##' @title Does a volcano plot
 ##' @description Does a volcano plot.
