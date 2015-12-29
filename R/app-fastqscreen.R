@@ -101,7 +101,7 @@ executeBowtie2CMD = function(param, input){
     bowtie2options = param$cmdOptions
     if(!param$paired){
       cmd = paste(file.path(BOWTIE2_DIR,'bowtie2'),"-x",REFSEQ_mRNA_REF, 
-                  " -U ",files[nm], bowtie2options ,"-p",param$cores,
+                  " -U ", r1Files[nm], bowtie2options ,"-p",param$cores,
                   "--no-unal --no-hd", "2> ", paste0(nm, "_bowtie2.err"),
                   "| cut -f1,3,12", " |sed s/AS:i://g", ">", countFiles[nm])
     } else {
