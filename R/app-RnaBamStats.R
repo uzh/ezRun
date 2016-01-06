@@ -136,7 +136,7 @@ getPosErrorFromBam = function(bamFile, param){
   })
   chromSel = names(seqLengths)[which.max(seqCounts)]
   fai = fasta.index(param$ezRef["refFastaFile"])
-  targetGenome = readDNAStringSet(fai[match(chromSel, fai$desc), ])[[1]]
+  targetGenome = readDNAStringSet(fai[match(chromSel, sub(" .*", "", fai$desc)), ])[[1]]  ## the sub clips potentially present description terms from the read id
   
   result = list()
   ezWriteElapsed(job, "read reference genome done")

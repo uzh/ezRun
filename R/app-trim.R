@@ -6,14 +6,16 @@
 # www.fgcz.ch
 
 
-## order of the trimming
-## - adapter
-## - quality window (SLIDING_WINDOW)
-## - avg qual
-## - minlen
-## - fixed
 ##' @title Trims input reads
-##' @description Trims input reads. There are several options to influence trimming with parameters.
+##' @description Trims input reads. The trimming happens in the following order:
+##' \itemize{
+##'   \item{adapter}
+##'   \item{quality window}
+##'   \item{avg quality}
+##'   \item{minimum length}
+##'   \item{fixed trimming}
+##' }
+##' This means if you specify a fixed trimming this comes on top of the adaptive trimming
 ##' @template input-template
 ##' @param output an object of the class EzDataset or NA. If it is NA, it will be copied from the input.
 ##' @param param a list of parameters:
@@ -162,7 +164,21 @@ ezMethodTrim = function(input=NA, output=NA, param=NA){
   return(output)
 }
 
-##' @describeIn ezMethodTrim Gets the subsample files, calls \code{ezSubsampleFastq()} on them and returns the output, which is an object of the class EzDataset.
+##' @title Subsample reads in a fastq dataset file
+##' @description The subsampled reads are equally distributed across the original files
+##' @param param a list of parameters where the following entries are used
+##' \itemize{
+##'   \item{dataRoot} the prefix of the file paths
+##'   \item{nReads} the number of reads to keep; if given will be used to compute subsampleFactor; it is not guaranteed that the number of reads kept is exact
+##'   \item{subsampleFactor} the factor by which subsampling has been done. if \code{nReads} is specified subsampleFactor will not be used
+##'   \item{paired} whether these are paired-end reads
+##' }
+##' @examples 
+##' inputDatasetFile = system.file(package = "ezRun", "extdata/yeast_10k/dataset.tsv")
+##' input = EzDataset(file=inputDatasetFile)
+##' param = ezParam(list(dataRoot=system.file(package = "ezRun"), subsampleFactor=5))
+##' xSubsampled = ezMethodSubsampleReads(input=input, param=param)
+##' # NOTE: the subsampled files will not be gzip compressed!
 ezMethodSubsampleReads = function(input=NA, output=NA, param=NA){
   if (!is(output, "EzDataset")){
     output = input$copy()
@@ -190,6 +206,7 @@ ezMethodSubsampleReads = function(input=NA, output=NA, param=NA){
   return(output)
 }
 
+##' 
 ##' @describeIn ezMethodTrim Performs the fastq for the subsamples using the package ShortRead.
 ##' @examples 
 ##'  inputFile = system.file(package = "ezRun", "extdata/yeast_10k/wt_1_R1.fastq.gz")
