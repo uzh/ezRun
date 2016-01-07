@@ -290,11 +290,14 @@ getStatsFromBam = function(param, bamFile, sm, gff=NULL, repeatsGff=NULL, nReads
       ltc = sampledTranscriptCov[ , isInLc, drop=FALSE]
       avgCov = colMeans(ltc)
       relativeCov = ezScaleColumns(ltc, 1/colSums(ltc)) ## normalize so that every transcripts adds the same weight
-      covClasses = ezCut(avgCov, breaks=quantile(avgCov, c(0.25, 0.75)), labels=c("low expressed", "medium expressed", "high expressed"))
-      genebody_coverage[[lc]] = list()
-      for (cc in levels(covClasses)){
-        genebody_coverage[[lc]][[cc]] = rowMeans(relativeCov[ , covClasses == cc, drop=FALSE ])
-      }  
+      avgCovQuant = unique(quantile(avgCov, c(0.25, 0.75)))
+      if (length(avgCovQuant) == 2){
+        covClasses = ezCut(avgCov, breaks=avgCovQuant, labels=c("low expressed", "medium expressed", "high expressed"))
+        genebody_coverage[[lc]] = list()
+        for (cc in levels(covClasses)){
+          genebody_coverage[[lc]][[cc]] = rowMeans(relativeCov[ , covClasses == cc, drop=FALSE ])
+        }  
+      }
     }
   }
   result$genebody_coverage = genebody_coverage
