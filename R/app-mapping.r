@@ -329,7 +329,7 @@ getSTARReference = function(param){
   dir.create(refDir)
   ezWrite(Sys.info(), con=lockFile)
   
-  if (nrow(ezRead.table(paste0(param$ezRef["refFastaFile"], ".fai"), col.names=FALSE)) > 50){
+  if (nrow(ezRead.table(paste0(param$ezRef["refFastaFile"], ".fai"), header=FALSE)) > 50){
     binOpt = "--genomeChrBinNbits 16"
   } else {
     binOpt = ""
