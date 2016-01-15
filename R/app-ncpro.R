@@ -10,6 +10,7 @@ ezMethodNcpro = function(input=NA, output=NA, param=NA){
   setwdNew(basename(output$getColumn("Report")))
   param$readCountsBarplot = basename(output$getColumn("TrimCounts"))
   ncpro(input=input, dataset=input$meta, param=param)
+  #postProcessResults(input=input, psReportDir=output$getColumn("Report"))
   return("Success")
 }
 
@@ -108,3 +109,118 @@ ncpro = function(input, dataset, param=NULL){
   ezSystem("rm -rf rawdata")
   setwd(jobDir)
 }
+
+
+#' Postprocessing counts produced as results from ncpro 
+#' 
+#' \code{postProcessResults} takes counts for categories all, mature and precursor
+#' and creates a separate result file for each sample. This splitting of count 
+#' results is done in function splitCounts. In the tsv-formatted input metadata the  
+#' path to the read files is replaced by the path to the count result files. This 
+#' replacement is done in function modifyInput.
+#' @param input   input parameters
+#' @param psReportDir   directory where ncpro results are found 
+postProcessResults <- function(input, psReportDir) {
+  # setting directories to where count files are
+  jobDir <- getwd()
+  # extract samples
+  vSamples=rownames(input$meta)
+  # get some parameter settings specific for splitting counts
+  lLocalParam <- lGetGlobalCountParam()
+  # parameters to different count categories
+  lCountParam <- lLocalParam$countParam
+  # extract smRNA categories
+  vCountCategories <-names(lCountParam)
+  # split the counts using apply over the count categories
+  lapply(vCountCategories, FUN=splitCounts, pvSamples=vSamples, plCountParam=lCountParam )
+  # modify input file such that Reads column is replaced by counts column
+  lapply(vCountCategories, FUN=modifyInput, input=input, psReportDir=psReportDir)
+  # reset directory back to jobDir
+  setwd(jobDir)
+}
+
+#' split count result into different files and put them into result dir
+#' 
+#' \code{splitCounts} for a given count category, count results 
+#' for all samples given in pvSamples are written to different 
+#' files, according to parameters given in plCountParam
+#' 
+#' @param psCountType    for which count category {all, mature or precursor}
+#'                       count results should be split
+#' @param pvSamples      vector of sample names
+#' @param plCountParam   list of parameters specifying existing result files
+splitCounts <- function(psCountType, pvSamples, plCountParam) {
+  # extract file, directory and colIdx parameter from the list plCountParam
+  sInputFile <- plCountParam[[psCountType]]$inputFile
+  sResultDir <- plCountParam[[psCountType]]$resultDir
+  nSampleNameColIdx <- plCountParam[[psCountType]]$nSampleNameColIdx
+  # check whether input file exists
+  stopifnot(file.exists(sInputFile))
+  # create result directory
+  if (!dir.exists(sResultDir)) 
+    dir.create(path = sResultDir)
+  # read input file
+  dfCountInput <- read.delim(file = sInputFile, stringsAsFactors = FALSE)
+  # names of original count df
+  vColNames <- names(dfCountInput)
+  sSampleNameColName <- vColNames[nSampleNameColIdx]
+  # for every sample, extract counts from original results
+  for (sam in pvSamples) {
+    # check that sample name occurs
+    if (!(sam %in% vColNames)) {
+      stop("ERROR in splitCounts, sample: ", sam, " not found in result file", sInputFile, "\n")  
+    }
+    # generate name of result file
+    sResFn <- file.path(sResultDir, paste0(sam,".data"))
+    # combine counts of current sample into separate dataframe
+    dfSamSplit <- cbind(dfCountInput[,nSampleNameColIdx], dfCountInput[,sam])
+    # set the column names
+    colnames(dfSamSplit) <- c(sSampleNameColName, sam)
+    # write output to result file
+    write.table(dfSamSplit, file = sResFn, quote = FALSE, sep = "\t", row.names = FALSE)
+  }
+}
+
+#' input is modified to show the count results
+#' 
+#' \code{modifyInput} for a given count category, tsv-formatted 
+#' metadata is modified such that paths to read files are replaced 
+#' with paths to output count files
+modifyInput <- function(psCountCategory, input, psReportDir) {
+  # localInput metadata dataframe
+  dfDataSet <- input$meta
+  # remove column containing the reads
+  dfDataSet[,"Read1 [File]"] <- list(NULL)
+  vColNames <- colnames(dfDataSet)
+  # extract samples
+  vSamples <- rownames(dfDataSet)
+  # generate resultpaths
+  vResultPaths <- as.vector(sapply(vSamples, 
+                                   function(sam){
+                                     file.path(psReportDir, psCountCategory, 
+                                               paste(sam,"data", sep="."))}))
+  
+  #featureLevel (Wert='smRNA'), refFeatureFile (ohne Inhalt) und refBuild
+  featureLevel <- rep("smRNA", nrow(dfDataSet))
+  refFeatureFile <- rep("", nrow(dfDataSet))
+  refBuild <- rep("", nrow(dfDataSet))
+  # cbind the new dataframe together
+  dfDataSet <- cbind(vResultPaths, dfDataSet,featureLevel,refFeatureFile,refBuild)
+  colnames(dfDataSet) <- c("Count [File]", vColNames, "featureLevel", "refFeatureFile", "refBuild")
+  # write new data frame to file
+  write.table(dfDataSet, file = paste(input$file, psCountCategory, sep = "."), quote = FALSE, sep = "\t", row.names = FALSE)
+}
+
+#' specification of default values used for count splitting
+lGetGlobalCountParam <- function(){
+  return(list(countParam = list(allRNAs         = list(inputFile = "ncpro/doc/all_samples_all_subfamcov.data", 
+                                                      resultDir = "allRNA",
+                                                      nSampleNameColIdx = 1),
+                               maturemiRNAs    = list(inputFile = "ncpro/doc/mature_miRNA_miRNA_e_+2_+2_all_samples_subfamcov.data", 
+                                                      resultDir = "mature_miRNA",
+                                                      nSampleNameColIdx = 1),
+                               precursormiRNAs = list(inputFile = "ncpro/doc/precursor_miRNA_miRNA_all_samples_subfamcov.data",
+                                                      resultDir = "precursor_miRNA",
+                                                      nSampleNameColIdx = 1))))
+}
+
