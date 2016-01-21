@@ -170,7 +170,13 @@ addTestScatterPlots = function(doc, param, x, result, seqAnno, resultFile, types
     useForInteractivePoints = names(result$pValue) %in% sortedGenes
     
     if (ezIsSpecified(seqAnno)){
-      if (is.null(seqAnno$gene_name)) seqAnno$gene_name = seqAnno$gene_id
+      if (is.null(seqAnno$gene_name)) {
+        if (!is.null(seqAnno$gene_id)){
+          seqAnno$gene_name = seqAnno$gene_id
+        } else {
+          seqAnno$gene_name = rownames(seqAnno)
+        }
+      } 
       clickActions = paste0("window.open('http://www.ihop-net.org/UniPub/iHOP/?search=%22", seqAnno$gene_name[useForInteractivePoints],
                             "%22&field=synonym&ncbi_tax_id=0');")
       popupLabels = seqAnno$gene_name[useForInteractivePoints]

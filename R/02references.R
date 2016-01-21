@@ -65,7 +65,7 @@ setMethod("initialize", "EzRef", function(.Object, param=list()){
   if (length(refFields) == 5 && grepl("^Version", refFields[5])){
     .Object@refAnnotationVersion = refFields[5]
   } else {
-    NULL
+    .Object@refAnnotationVersion = NULL
   }
   if (ezIsSpecified(param$refIndex)){
     .Object@refIndex = param$refIndex
@@ -75,7 +75,11 @@ setMethod("initialize", "EzRef", function(.Object, param=list()){
   if (ezIsAbsolutePath(param$refFeatureFile)){
     .Object@refFeatureFile = param$refFeatureFile
   } else {
-    .Object@refFeatureFile =  file.path(.Object@refBuildDir, "Annotation", .Object@refAnnotationVersion, "Genes", param$refFeatureFile)
+    if (is.null(.Object@refAnnotationVersion)){
+      .Object@refFeatureFile =  file.path(.Object@refBuildDir, "Annotation", "Genes", param$refFeatureFile)
+    } else {
+      .Object@refFeatureFile =  file.path(.Object@refBuildDir, "Annotation", .Object@refAnnotationVersion, "Genes", param$refFeatureFile)
+    }
   }
   if (ezIsAbsolutePath(param$refAnnotationFile)){
     .Object@refAnnotationFile = param$refAnnotationFile
@@ -86,6 +90,10 @@ setMethod("initialize", "EzRef", function(.Object, param=list()){
     .Object@refFastaFile = param$refFastaFile
   } else {
     .Object@refFastaFile =  file.path(.Object@refBuildDir, param$refFastaFile)
+  }
+  if (!file.exists(paste0(.Object@refFastaFile, ".fai"))){  ## it should be there but some old builds may lack the fai file.
+    cmd = paste(SAMTOOLS, "faidx", .Object@refFastaFile) # create the .fai file
+    ezSystem(cmd)
   }
 #   if (ezIsAbsolutePath(param$refChromDir)){
 #     .Object@refChromDir = param$refChromDir

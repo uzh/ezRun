@@ -303,7 +303,7 @@ getSTARReference = function(param){
     refDir = param$ezRef["refIndex"]
   } else {
     if (!ezIsSpecified(param$ezRef["refFeatureFile"])){
-      stop("not refFeatureFile defined")
+      stop("refFeatureFile not defined")
     }
     refDir = sub(".gtf$", "_STARIndex", param$ezRef["refFeatureFile"])
   }
