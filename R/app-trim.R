@@ -233,17 +233,24 @@ ezSubsampleFastq = function(full, sub, subsampleFactor=NA, nYield=1e5, overwrite
     nReads = 0
     fqs = FastqStreamer(full[i], n = nYield) 
     idx = seq(from=1, to=nYield, by=subsampleFactor)
+    tmpFile = sub("\\.fastq.*", "_temp.fastq", sub[i])
     while(length(x <- yield(fqs))){
       if (length(x) >= nYield){
-        writeFastq(x[idx], file=sub[i], mode="a", full=F, compress=F)
+        writeFastq(x[idx], file=tmpFile, mode="a", full=F, compress=F)
         nReads = nReads + length(idx)
       } else {
-        writeFastq(x[idx[idx<length(x)]], file=sub[i], mode="a", full=F, compress=F)
+        writeFastq(x[idx[idx<length(x)]], file=tmpFile, mode="a", full=F, compress=F)
         nReads = nReads + sum(idx<length(x))
       }
     }
     close(fqs)
     nReadsVector[nms[i]] = nReads
+    if (grepl(".gz$", sub[i])){
+      ezSystem(paste("pigz --p 2 --best", tmpFile, ">", sub[i]))
+      file.remove(tmpFile)
+    } else {
+      file.rename(tmpFile, sub[i])
+    }
   }
   return(nReadsVector)
 }
