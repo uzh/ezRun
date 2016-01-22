@@ -32,7 +32,7 @@ ezMethodRSEM = function(input=NA, output=NA, param=NA){
   }
   if (param$paired){
     cmd = paste(file.path(RSEM_DIR, "rsem-calculate-expression"), opt, strandOpt,
-                "--paired-end", trimmedInput$getColumn("Read2"), trimmedInput$getColumn("Read1"),
+                "--paired-end", trimmedInput$getColumn("Read1"), trimmedInput$getColumn("Read2"),
                 ref, sampleName, "2> rsem.stderr", "> rsem.stdout")
   } else {
     cmd = paste(file.path(RSEM_DIR, "rsem-calculate-expression"), opt, strandOpt,
