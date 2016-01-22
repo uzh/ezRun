@@ -246,7 +246,7 @@ ezSubsampleFastq = function(full, sub, subsampleFactor=NA, nYield=1e5, overwrite
     close(fqs)
     nReadsVector[nms[i]] = nReads
     if (grepl(".gz$", sub[i])){
-      ezSystem(paste("pigz --p 2 --best", tmpFile, ">", sub[i]))
+      ezSystem(paste("pigz -p 2 --best -c", tmpFile, ">", sub[i]))
       file.remove(tmpFile)
     } else {
       file.rename(tmpFile, sub[i])
