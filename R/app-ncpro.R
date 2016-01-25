@@ -9,8 +9,9 @@
 ezMethodNcpro = function(input=NA, output=NA, param=NA){
   setwdNew(basename(output$getColumn("Report")))
   param$readCountsBarplot = basename(output$getColumn("TrimCounts"))
+  rownames(input$meta) = gsub('_','-',rownames(input$meta))  
   ncpro(input=input, dataset=input$meta, param=param)
-  #postProcessResults(dataset=input$meta, psInputFn=input$file, psReportDir=output$getColumn("Report"))
+  postProcessResults(dataset=input$meta, psInputFn=input$file, psReportDir=output$getColumn("Report"))
   return("Success")
 }
 
@@ -160,7 +161,7 @@ splitCounts <- function(psCountType, pvSamples, plCountParam) {
   if (!dir.exists(sResultDir)) 
     dir.create(path = sResultDir)
   # read input file
-  dfCountInput <- read.delim(file = sInputFile, stringsAsFactors = FALSE)
+  dfCountInput <- read.delim(file = sInputFile, stringsAsFactors = FALSE,check.names=F)
   # names of original count df
   vColNames <- names(dfCountInput)
   sSampleNameColName <- vColNames[nSampleNameColIdx]
@@ -171,11 +172,11 @@ splitCounts <- function(psCountType, pvSamples, plCountParam) {
       stop("ERROR in splitCounts, sample: ", sam, " not found in result file", sInputFile, "\n")  
     }
     # generate name of result file
-    sResFn <- file.path(sResultDir, paste0(sam,".data"))
+    sResFn <- file.path(sResultDir, paste0(sam,".txt"))
     # combine counts of current sample into separate dataframe
     dfSamSplit <- cbind(dfCountInput[,nSampleNameColIdx], dfCountInput[,sam])
     # set the column names
-    colnames(dfSamSplit) <- c(sSampleNameColName, sam)
+    colnames(dfSamSplit) <- c('Identifier','matchCounts') #c(sSampleNameColName, sam)
     # write output to result file
     write.table(dfSamSplit, file = sResFn, quote = FALSE, sep = "\t", row.names = FALSE)
   }
@@ -195,7 +196,7 @@ modifyInput <- function(psCountCategory, pdataset, psInputFn, psReportDir) {
   vResultPaths <- as.vector(sapply(vSampleNames, 
                                    function(sam){
                                      file.path(psReportDir, psCountCategory, 
-                                               paste(sam,"data", sep="."))}))
+                                               paste(sam,"txt", sep="."))}))
   
   #featureLevel (Wert='smRNA'), refFeatureFile (ohne Inhalt) und refBuild
   featureLevel <- rep("smRNA", nrow(dfDataSet))
@@ -209,7 +210,7 @@ modifyInput <- function(psCountCategory, pdataset, psInputFn, psReportDir) {
   dfDataSet <- cbind(vSampleNames,dfDataSet,featureLevel,refFeatureFile,refBuild)
   colnames(dfDataSet) <- c("Name", vColNames, "featureLevel", "refFeatureFile", "refBuild")
   # write new data frame to file
-  write.table(dfDataSet, file = paste(psInputFn, psCountCategory, sep = "."), quote = FALSE, sep = "\t", row.names = FALSE)
+  write.table(dfDataSet, file = file.path('.',paste0(psCountCategory,'_dataset.tsv')), quote = FALSE, sep = "\t", row.names = FALSE)
 }
 
 #' specification of default values used for count splitting
