@@ -9,8 +9,9 @@
 ezMethodNcpro = function(input=NA, output=NA, param=NA){
   setwdNew(basename(output$getColumn("Report")))
   param$readCountsBarplot = basename(output$getColumn("TrimCounts"))
+  rownames(input$meta) = gsub('_','-',rownames(input$meta))  
   ncpro(input=input, dataset=input$meta, param=param)
-  #postProcessResults(input=input, psReportDir=output$getColumn("Report"))
+  postProcessResults(dataset=input$meta, psInputFn=input$file, psReportDir=output$getColumn("Report"))
   return("Success")
 }
 
@@ -120,11 +121,11 @@ ncpro = function(input, dataset, param=NULL){
 #' replacement is done in function modifyInput.
 #' @param input   input parameters
 #' @param psReportDir   directory where ncpro results are found 
-postProcessResults <- function(input, psReportDir) {
+postProcessResults <- function(dataset, psInputFn, psReportDir) {
   # setting directories to where count files are
   jobDir <- getwd()
   # extract samples
-  vSamples=rownames(input$meta)
+  vSamples <- rownames(dataset)
   # get some parameter settings specific for splitting counts
   lLocalParam <- lGetGlobalCountParam()
   # parameters to different count categories
@@ -134,7 +135,7 @@ postProcessResults <- function(input, psReportDir) {
   # split the counts using apply over the count categories
   lapply(vCountCategories, FUN=splitCounts, pvSamples=vSamples, plCountParam=lCountParam )
   # modify input file such that Reads column is replaced by counts column
-  lapply(vCountCategories, FUN=modifyInput, input=input, psReportDir=psReportDir)
+  lapply(vCountCategories, FUN=modifyInput, pdataset=dataset, psInputFn=psInputFn, psReportDir=psReportDir)
   # reset directory back to jobDir
   setwd(jobDir)
 }
@@ -160,7 +161,7 @@ splitCounts <- function(psCountType, pvSamples, plCountParam) {
   if (!dir.exists(sResultDir)) 
     dir.create(path = sResultDir)
   # read input file
-  dfCountInput <- read.delim(file = sInputFile, stringsAsFactors = FALSE)
+  dfCountInput <- read.delim(file = sInputFile, stringsAsFactors = FALSE,check.names=F)
   # names of original count df
   vColNames <- names(dfCountInput)
   sSampleNameColName <- vColNames[nSampleNameColIdx]
@@ -171,11 +172,11 @@ splitCounts <- function(psCountType, pvSamples, plCountParam) {
       stop("ERROR in splitCounts, sample: ", sam, " not found in result file", sInputFile, "\n")  
     }
     # generate name of result file
-    sResFn <- file.path(sResultDir, paste0(sam,".data"))
+    sResFn <- file.path(sResultDir, paste0(sam,".txt"))
     # combine counts of current sample into separate dataframe
     dfSamSplit <- cbind(dfCountInput[,nSampleNameColIdx], dfCountInput[,sam])
     # set the column names
-    colnames(dfSamSplit) <- c(sSampleNameColName, sam)
+    colnames(dfSamSplit) <- c('Identifier','matchCounts') #c(sSampleNameColName, sam)
     # write output to result file
     write.table(dfSamSplit, file = sResFn, quote = FALSE, sep = "\t", row.names = FALSE)
   }
@@ -186,29 +187,30 @@ splitCounts <- function(psCountType, pvSamples, plCountParam) {
 #' \code{modifyInput} for a given count category, tsv-formatted 
 #' metadata is modified such that paths to read files are replaced 
 #' with paths to output count files
-modifyInput <- function(psCountCategory, input, psReportDir) {
+modifyInput <- function(psCountCategory, pdataset, psInputFn, psReportDir) {
   # localInput metadata dataframe
-  dfDataSet <- input$meta
-  # remove column containing the reads
-  dfDataSet[,"Read1 [File]"] <- list(NULL)
-  vColNames <- colnames(dfDataSet)
-  # extract samples
-  vSamples <- rownames(dfDataSet)
+  dfDataSet <- pdataset
+  # extract sample names
+  vSampleNames <- rownames(dfDataSet)
   # generate resultpaths
-  vResultPaths <- as.vector(sapply(vSamples, 
+  vResultPaths <- as.vector(sapply(vSampleNames, 
                                    function(sam){
                                      file.path(psReportDir, psCountCategory, 
-                                               paste(sam,"data", sep="."))}))
+                                               paste(sam,"txt", sep="."))}))
   
   #featureLevel (Wert='smRNA'), refFeatureFile (ohne Inhalt) und refBuild
   featureLevel <- rep("smRNA", nrow(dfDataSet))
   refFeatureFile <- rep("", nrow(dfDataSet))
   refBuild <- rep("", nrow(dfDataSet))
+  # replace column "Read1 [File]" in dfDataSet with column "Count [File]"
+  dfDataSet[,"Read1 [File]"] <- vResultPaths
+  colnames(dfDataSet)[which(colnames(dfDataSet) == "Read1 [File]")] <- "Count [File]"
+  vColNames <- colnames(dfDataSet)
   # cbind the new dataframe together
-  dfDataSet <- cbind(vResultPaths, dfDataSet,featureLevel,refFeatureFile,refBuild)
-  colnames(dfDataSet) <- c("Count [File]", vColNames, "featureLevel", "refFeatureFile", "refBuild")
+  dfDataSet <- cbind(vSampleNames,dfDataSet,featureLevel,refFeatureFile,refBuild)
+  colnames(dfDataSet) <- c("Name", vColNames, "featureLevel", "refFeatureFile", "refBuild")
   # write new data frame to file
-  write.table(dfDataSet, file = paste(input$file, psCountCategory, sep = "."), quote = FALSE, sep = "\t", row.names = FALSE)
+  write.table(dfDataSet, file = file.path('.',paste0(psCountCategory,'_dataset.tsv')), quote = FALSE, sep = "\t", row.names = FALSE)
 }
 
 #' specification of default values used for count splitting
