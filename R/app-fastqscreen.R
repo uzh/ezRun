@@ -135,16 +135,24 @@ collectBowtie2Output = function(param, dataset, countFiles){
     if (nrow(countData) > 0){
       countData$species = sub("_.*", "", countData$hit)
       speciesHitsPerRead = tapply(countData$species, countData$readId, unique)
-      uniqSpeciesHitsPerRead = names(speciesHitsPerRead)[which(sapply(speciesHitsPerRead, length)==1)]
+      uniqSpeciesHitsPerRead = names(speciesHitsPerRead)[sapply(speciesHitsPerRead, length) == 1]
       ###Result UniqHits:
       uniqSpeciesHits = sort(table(unlist(speciesHitsPerRead[uniqSpeciesHitsPerRead])), decreasing = T)
       ###Results MultipleHits:
-      multipleSpeciesHitsPerRead = countData[-which(countData$readId %in% uniqSpeciesHitsPerRead),]
+      multipleSpeciesHitsPerRead = countData[!(countData$readId %in% uniqSpeciesHitsPerRead), ]
       by = paste(multipleSpeciesHitsPerRead$readId, multipleSpeciesHitsPerRead$species,sep='_')
       ##multipleSpeciesHits = sort(table(multipleSpeciesHitsPerRead$species[!duplicated(by)]), decreasing=T) # is equivalent to the row below
       multipleSpeciesHits = sort(table(tapply(multipleSpeciesHitsPerRead$species,by,unique)),decreasing = T)
       
-      topSpeciesUniq = uniqSpeciesHits[1:min(param$nTopSpecies, length(uniqSpeciesHits))]
+      if (length(uniqSpeciesHits) > param$nTopSpecies){
+        topSpeciesUniq = uniqSpeciesHits[1:param$nTopSpecies]
+      }
+      ## Special case where all hits are multi hits --- in that case we sort according to the multi-hits
+      if (length(uniqSpeciesHits) == 0){
+        topSpeciesUniq = rep(0, min(param$nTopSpecies, length(multipleSpeciesHits)))
+        names(topSpeciesUniq) = names(multipleSpeciesHits)[1:min(param$nTopSpecies, length(multipleSpeciesHits))]
+      }
+
       multipleSpeciesHits[setdiff(names(topSpeciesUniq), names(multipleSpeciesHits))] = 0
       topSpeciesMultiple = multipleSpeciesHits[names(topSpeciesUniq)]
       
