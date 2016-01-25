@@ -19,6 +19,7 @@ ezMethodFeatureCounts = function(input=NA, output=NA, param=NA){
                               GTF.attrType=switch(param$featureLevel,
                                                   "gene"="gene_id",
                                                   "transcript"="transcript_id",
+                                                  "isoform"="transcript_id",
                                                   stop("unsupported feature level: ", param$featureLevel)),
                               useMetaFeatures=TRUE,
                               allowMultiOverlap=param$allowMultiOverlap, isPairedEnd=param$paired, 
