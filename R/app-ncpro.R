@@ -215,13 +215,13 @@ modifyInput <- function(psCountCategory, pdataset, psInputFn, psReportDir) {
 
 #' specification of default values used for count splitting
 lGetGlobalCountParam <- function(){
-  return(list(countParam = list(allRNAs         = list(inputFile = "ncpro/doc/all_samples_all_subfamcov.data", 
+  return(list(countParam = list(allRNA         = list(inputFile = "ncpro/doc/all_samples_all_subfamcov.data", 
                                                       resultDir = "allRNA",
                                                       nSampleNameColIdx = 1),
-                               maturemiRNAs    = list(inputFile = "ncpro/doc/mature_miRNA_miRNA_e_+2_+2_all_samples_subfamcov.data", 
+                               mature_miRNA    = list(inputFile = "ncpro/doc/mature_miRNA_miRNA_e_+2_+2_all_samples_subfamcov.data", 
                                                       resultDir = "mature_miRNA",
                                                       nSampleNameColIdx = 1),
-                               precursormiRNAs = list(inputFile = "ncpro/doc/precursor_miRNA_miRNA_all_samples_subfamcov.data",
+                               precursor_miRNA = list(inputFile = "ncpro/doc/precursor_miRNA_miRNA_all_samples_subfamcov.data",
                                                       resultDir = "precursor_miRNA",
                                                       nSampleNameColIdx = 1))))
 }
