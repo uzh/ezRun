@@ -25,7 +25,7 @@
 ##' seqAnno2 = ezFeatureAnnotation(param, rownames(seqAnno), dataFeatureType="gene")
 ezFeatureAnnotation = function(param, ids, dataFeatureType){
   
-  stopifnot(dataFeatureType %in% c("isoform", "gene")) ## not yet supported
+  stopifnot(dataFeatureType %in% c("transcript", "isoform", "gene")) ## not yet supported
   if (!file.exists(param$ezRef["refAnnotationFile"])){
     seqAnno = writeAnnotationFromGtf(param)
   } else {

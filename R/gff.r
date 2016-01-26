@@ -565,6 +565,9 @@ ezUtrSequences = function(gtf, chromSeqs){
 ##' getTranscriptGcAndWidth(param)
 getTranscriptGcAndWidth = function(param){
   genomeFasta = param$ezRef["refFastaFile"]
+  if (!file.exists(genomeFasta)){
+    return(NULL)
+  }
   genomeSeq = readDNAStringSet(genomeFasta)
   names(genomeSeq) = sub(" .*", "", names(genomeSeq))
   gff = ezLoadFeatures(param=param, types="exon")
