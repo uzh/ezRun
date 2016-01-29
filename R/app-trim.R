@@ -70,7 +70,12 @@ ezMethodTrim = function(input=NA, output=NA, param=NA){
     adapters = readDNAStringSet(TRIMMOMATIC_ADAPTERS)
     inputAdapter1 = DNAStringSet(input$meta$Adapter1)
     names(inputAdapter1) = "From_dataset_1"
-    adapters = c(adapters, inputAdapter1)
+    # take only adapter from dataset and ignore the ones from TRIMMOMATIC_ADAPTERS
+    if (!is.null(param$onlyAdapterFromDataset) && param$onlyAdapterFromDataset){
+      adapters = inputAdapter1
+    } else {
+      adapters = c(adapters, inputAdapter1) 
+    }
     if (param$paired){
       inputAdapter2 = DNAStringSet(input$meta$Adapter2)
       names(inputAdapter2) = "From_dataset_2"
@@ -117,7 +122,7 @@ ezMethodTrim = function(input=NA, output=NA, param=NA){
                 #               paste("HEADCROP", param$trimLeft, sep=":"),
                 #               paste("CROP", param$trimRight, sep=":"),
                 paste("MINLEN", param$minReadLength, sep=":"),
-                "> trimmomatic.out 2> trimmomatic.err")
+                ">> trimmomatic.out 2>> trimmomatic.err")
     ezSystem(cmd)
   } else {
     ezSystem(paste("gunzip -c", input$getFullPaths(param, "Read1"), ">", r1TmpFile))
