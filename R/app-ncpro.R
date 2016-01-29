@@ -45,12 +45,17 @@ ncpro = function(input, dataset, param=NULL){
   names(fqFiles) = samples
   adapter = unique(dataset$Adapter1)
   stopifnot(length(adapter) == 1)
-  jobList = lapply(fqFiles, function(fq){list(input=fq, output=file.path(getwd(), sub(".gz$", "", basename(fq))))})
-  .myFunc = function(job, param){
-    trimMirna(input=job$input, output=job$output, adapter=adapter, param=param)
-  }
+  ### # trimming using ezMethodTrim
+  # set parameter defaults for trimming, to work similarly to trimMirna
+  param[['trimAdapter']]            <-  TRUE
+  param[['minTailQuality']]         <-  20
+  param[['minAvgQuality']]          <-  4
+  param[['minReadLength']]          <-  18
+  refObjTrimResult <- ezMethodTrim(input, output=NA, param)
   buildName = param$ezRef["refBuildName"]
-  trimmedFastqFiles = unlist(ezMclapply(jobList,.myFunc,param=param,mc.cores=as.numeric(param[['cores']]),mc.preschedule =FALSE, mc.set.seed=FALSE))
+  ### # get names of trimmed read files from output of ezMethodTrim
+  trimmedFastqFiles <- as.vector(refObjTrimResult$meta[,"Read1 [File]"])
+  names(trimmedFastqFiles) <- samples
   ncproConfigFile = list.files(paste0(NCPRO_ANNOTATION_DIR,"/config-templates/"), pattern=paste0('-', buildName,'-'), full.names=T)[1]
   if(is.na(ncproConfigFile))
     stop(paste0("No ncpro config-template for Genome-Build ", param[['refBuild']]," available."))
