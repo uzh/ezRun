@@ -178,6 +178,7 @@ ezBam2bigwig = function(bamFile, bigwigPrefix, param=NULL, paired=NULL){
 ezReadGappedAlignments = function(bamFile, seqname=NULL, start=NULL, end=NULL, strand="*",
                                   tag=character(0), what=character(0), use.names=TRUE,
                                   isFirstMateRead=NA, isSecondMateRead=NA, isUnmappedQuery=FALSE, isProperPair=NA,
+                                  isSecondaryAlignment = NA,
                                   minMapQuality=0, keepMultiHits=TRUE){
   ## initialize the parameters for scanBam
   if (minMapQuality > 0){
@@ -191,7 +192,7 @@ ezReadGappedAlignments = function(bamFile, seqname=NULL, start=NULL, end=NULL, s
   ### build and set the flag filter
   isMinusStrand = switch(strand, "-"=TRUE, "+"=FALSE, NA)
   bamFlag(param) = scanBamFlag(isMinusStrand=isMinusStrand, isFirstMateRead=isFirstMateRead, isSecondMateRead=isSecondMateRead,
-                               isUnmappedQuery=isUnmappedQuery, isProperPair=isProperPair)
+                               isUnmappedQuery=isUnmappedQuery, isProperPair=isProperPair, isSecondaryAlignment=isSecondaryAlignment)
   
   ### limit the returned reads by chromosome and start/end if these are provided
   if (!is.null(seqname)){
