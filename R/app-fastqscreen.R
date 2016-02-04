@@ -146,6 +146,8 @@ collectBowtie2Output = function(param, dataset, countFiles){
       
       if (length(uniqSpeciesHits) > param$nTopSpecies){
         topSpeciesUniq = uniqSpeciesHits[1:param$nTopSpecies]
+      } else {
+        topSpeciesUniq = uniqSpeciesHits
       }
       ## Special case where all hits are multi hits --- in that case we sort according to the multi-hits
       if (length(uniqSpeciesHits) == 0){
