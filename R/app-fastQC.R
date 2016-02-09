@@ -169,6 +169,7 @@ plotReadCountToLibConc = function(dataset, colname){
       return(link)
     }
   }
+  return(NULL)
 }
 
 getQualityMatrix = function(inputFile){
