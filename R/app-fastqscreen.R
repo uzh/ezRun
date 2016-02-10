@@ -15,6 +15,9 @@ ezMethodFastqScreen = function(input=NA, output=NA, param=NA, htmlFile="00index.
   # bowtie2 reference part
   if ("Adapter1" %in% input$colNames && all(!is.na(input$getColumn("Adapter1")))){
     input = ezMethodTrim(input = input, param = param)
+  } else {
+    param$trimAdapter = FALSE
+    input = ezMethodTrim(input = input, param = param)
   }
   countFiles = executeBowtie2CMD(param, input)
   speciesPercentageTop = collectBowtie2Output(param, input$meta, countFiles)
