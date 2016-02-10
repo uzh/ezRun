@@ -88,16 +88,19 @@ ezMethodTrim = function(input=NA, output=NA, param=NA){
   } else {
     trimAdaptOpt = ""
   }
+  
   if (param$minTailQuality > 0){
     tailQualOpt = paste("SLIDINGWINDOW", param$trimQualWindowWidth, param$minTailQuality, sep=":")
   } else {
     tailQualOpt = ""
   }
+  
   if (param$minAvgQuality > 0){
     minAvgQualOpt = paste("AVGQUAL", param$minAvgQuality, sep=":")
   } else {
     minAvgQualOpt = ""
   }
+  
   r1TmpFile = "trimmed-R1.fastq"
   r2TmpFile = "trimmed-R2.fastq"
   if (any(c(trimAdaptOpt, tailQualOpt, minAvgQualOpt) != "")){
