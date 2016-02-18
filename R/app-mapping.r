@@ -48,7 +48,12 @@ ezMethodTophat = function(input=NA, output=NA, param=NA){
               if(param$paired) trimmedInput$getColumn("Read2"), "2> tophat.log")
   ezSystem(cmd)
   ezSortIndexBam("accepted_hits.bam", basename(bamFile), ram=param$ram, removeBam=TRUE, cores=ezThreads())
-  
+
+
+  ## check the strandedness
+  bedFile = getReferenceFeaturesBed(param)
+  ezSystem(paste(INFER_EXPERIMENT, "-r", bedFile, "-i", basename(bamFile), "-s 1000000"))
+
   ## write an igv link
   if (param$writeIgvSessionLink){
     writeIgvSession(genome = getIgvGenome(param), refBuild=param$ezRef["refBuild"], file=basename(output$getColumn("IGV Session")),
@@ -277,7 +282,11 @@ ezMethodSTAR = function(input=NA, output=NA, param=NA){
   ezSortIndexBam("Aligned.out.bam", basename(bamFile), ram=param$ram, removeBam=TRUE, cores=nSortThreads)
   if (param$getChimericJunctions){
     ezSystem(paste("mv Chimeric.out.junction", basename(output$getColumn("Chimerics"))))
-  }  
+  }
+  ## check the strandedness
+  bedFile = getReferenceFeaturesBed(param)
+  ezSystem(paste(INFER_EXPERIMENT, "-r", bedFile, "-i", basename(bamFile), "-s 1000000"))
+  
   ## write an igv link
   if (param$writeIgvSessionLink){ 
     writeIgvSession(genome = getIgvGenome(param), refBuild=param$ezRef["refBuild"], file=basename(output$getColumn("IGV Session")),
