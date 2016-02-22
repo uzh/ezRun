@@ -74,6 +74,8 @@ WIGTOBIGWIG="/usr/local/ngseq/stow/wigToBigWig-v4/bin/wigToBigWig"
 #DEXSEQ_PREPARE='PYTHONPATH="/usr/local/ngseq/lib/python2.7/" /usr/local/ngseq/bin/python  /usr/local/ngseq/stow/R-3.0.2/lib/R/library/DEXSeq/python_scripts/dexseq_prepare_annotation.py'
 #DEXSEQ_COUNT='PYTHONPATH="/usr/local/ngseq/lib/python2.7/" /usr/local/ngseq/bin/python  /usr/local/ngseq/stow/R-3.0.2/lib/R/library/DEXSeq/python_scripts/dexseq_count.py'
 #HTSEQ_COUNT='PYTHONPATH="/usr/local/ngseq/lib/python2.7/site-packages/:$PYTHONPATH" /usr/local/ngseq/bin/python /usr/local/ngseq/src/HTSeq-0.5.4p5/scripts/htseq-count'
+HTSEQ_PREFIX='PYTHONPATH="/usr/local/ngseq/lib/python/:/usr/local/ngseq/lib/python2.7:/usr/local/ngseq/lib/python2.7/dist-packages" /usr/local/ngseq/bin/python'
+
 SAMSTAT="/usr/local/ngseq/stow/samstat-1.09/bin/samstat"
 QUALIMAP="/usr/local/ngseq/stow/qualimap_v2.1.2/bin/qualimap"
 REFSEQ_mRNA_REF='/srv/GT/reference/RefSeq/mRNA/20150301/Sequence/BOWTIE2Index/transcriptome'
