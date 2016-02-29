@@ -7,7 +7,7 @@
 
 
 ezMethodCountQC = function(input=NA, output=NA, param=NA, htmlFile="00index.html"){
-
+  
   dataset = input$meta
   setwdNew(basename(output$getColumn("Report")))
   if (param$useFactorsAsSampleName){
@@ -76,8 +76,8 @@ runNgsCountQC = function(dataset, htmlFile="00index.html", param=param, rawData=
   if (is.null(rawData$signal)){
     rawData$signal = ezNorm(rawData$counts, presentFlag=rawData$presentFlag, method=param$normMethod)
   }
-
-    seqAnno = rawData$seqAnno
+  
+  seqAnno = rawData$seqAnno
   if (is.null(types) && !is.null(seqAnno$type)){
     types = data.frame(row.names=rownames(seqAnno))
     for (nm in setdiff(na.omit(unique(seqAnno$type)), "")){
@@ -208,6 +208,12 @@ runNgsCountQC = function(dataset, htmlFile="00index.html", param=param, rawData=
   isValid = isPresentStudy
   if (!is.null(seqAnno$IsControl)){
     isValid = isValid & !seqAnno$IsControl
+  }
+  
+  if (sum(isValid) < 10){
+    doc = addParagraph("Not enough valid features for further plots")
+    closeBsdocReport(doc, htmlFile, titles)
+    return("SUCCESS")
   }
   
   pngLinks = ezMatrix("", rows=1, cols=1:2)

@@ -63,8 +63,8 @@ splitByAdapters <-function(reads,forwardAdapters, reverseAdapters, max.mismatch)
   foundRevAdapterNames = rep("none", length(reads))
   adapterEndPos = width(reads)
   
-  readSeq = sread(x)
-  names(readSeq) = sub(" .*","",id(x))
+  readSeq = sread(reads)
+  names(readSeq) = sub(" .*","",id(reads))
   for (i in 1:(length(names(forwardAdapter)))) {
     faName = names(forwardAdapter)[i]
     vp1 = vmatchPattern(forwardAdapter[[faName]], readSeq, max.mismatch =
