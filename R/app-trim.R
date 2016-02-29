@@ -67,19 +67,23 @@ ezMethodTrim = function(input=NA, output=NA, param=NA){
   }
   
   if (param$trimAdapter){
-    adapters = readDNAStringSet(TRIMMOMATIC_ADAPTERS)
-    inputAdapter1 = DNAStringSet(input$meta$Adapter1)
-    names(inputAdapter1) = "From_dataset_1"
+    if (!is.null(input$meta$Adapter1) && !is.na(input$meta$Adapter1) && input$meta$Adapter1 != ""){
+      adapter1 = DNAStringSet(input$meta$Adapter1)
+      names(adapter1) = "GivenAdapter1"
+    } else {
+      adapter1 = DNAStringSet()
+    }
+    if (param$paired && !is.null(input$meta$Adapter2) && !is.na(input$meta$Adapter2) && input$meta$Adapter2 != ""){
+      adapter2 = DNAStringSet(input$meta$Adapter2)
+      names(adapter2) = "GivenAdapter2"
+    } else {
+      adapter2 = DNAStringSet()
+    }
     # take only adapter from dataset and ignore the ones from TRIMMOMATIC_ADAPTERS
     if (!is.null(param$onlyAdapterFromDataset) && param$onlyAdapterFromDataset){
-      adapters = inputAdapter1
+      adapters = c(adapter1, adapter2)
     } else {
-      adapters = c(adapters, inputAdapter1) 
-    }
-    if (param$paired){
-      inputAdapter2 = DNAStringSet(input$meta$Adapter2)
-      names(inputAdapter2) = "From_dataset_2"
-      adapters = c(adapters, inputAdapter2)
+      adapters = c(adapter1, adapter2, readDNAStringSet(TRIMMOMATIC_ADAPTERS))
     }
     adaptFile = "adapters.fa"
     writeXStringSet(adapters, adaptFile)
