@@ -168,12 +168,13 @@ ezMethodTrim = function(input=NA, output=NA, param=NA){
     }
   }
   
+  ## filter by max read length
   if (!is.null(param$maxReadLength) && !is.na(as.integer(param$maxReadLength))){
     newFile = "lengthTrimmed_R1.fastq"
     maxLength = as.integer(param$maxReadLength)
     fqs = FastqStreamer(r1TmpFile, n=1e6)
     while(length(x <- yield(fqs))){
-      writeFasta(x[width(x) <= maxLength], file = newFile, mode="a")
+      writeFastq(x[width(x) <= maxLength], file = newFile, mode="a", compress=FALSE)
     }
     close(fqs) 
     file.remove(r1TmpFile)
@@ -183,13 +184,14 @@ ezMethodTrim = function(input=NA, output=NA, param=NA){
       maxLength = as.integer(param$maxReadLength)
       fqs = FastqStreamer(r2TmpFile, n=1e6)
       while(length(x <- yield(fqs))){
-        writeFasta(x[width(x) <= maxLength], file = newFile, mode="a")
+        writeFastq(x[width(x) <= maxLength], file = newFile, mode="a")
       }
       close(fqs) 
       file.remove(r2TmpFile)
       r2TmpFile = newFile
     }
   }
+  
   if (param$paired){
     ezSystem(paste("mv", r1TmpFile, basename(output$getColumn("Read1"))))
     ezSystem(paste("mv", r2TmpFile, basename(output$getColumn("Read2"))))
