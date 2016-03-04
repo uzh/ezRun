@@ -107,7 +107,7 @@ ezMethodTrim = function(input=NA, output=NA, param=NA){
   
   r1TmpFile = "trimmed-R1.fastq"
   r2TmpFile = "trimmed-R2.fastq"
-  if (any(c(trimAdaptOpt, tailQualOpt, minAvgQualOpt) != "")){
+  if (any(c(trimAdaptOpt, tailQualOpt, minAvgQualOpt) != "") || param$minReadLength > 0){
     if (param$paired){
       method = "PE"
       readOpts = paste(
@@ -165,6 +165,29 @@ ezMethodTrim = function(input=NA, output=NA, param=NA){
     } else {
       file.remove(r1TmpFile)
       r1TmpFile = "flexbar.fastq"
+    }
+  }
+  
+  if (!is.null(param$maxReadLength) && !is.na(as.integer(param$maxReadLength))){
+    newFile = "lengthTrimmed_R1.fastq"
+    maxLength = as.integer(param$maxReadLength)
+    fqs = FastqStreamer(r1TmpFile, n=1e6)
+    while(length(x <- yield(fqs))){
+      writeFasta(x[width(x) <= maxLength], file = newFile, mode="a")
+    }
+    close(fqs) 
+    file.remove(r1TmpFile)
+    r1TmpFile = newFile
+    if (param$paired){
+      newFile = "lengthTrimmed_R1.fastq"
+      maxLength = as.integer(param$maxReadLength)
+      fqs = FastqStreamer(r2TmpFile, n=1e6)
+      while(length(x <- yield(fqs))){
+        writeFasta(x[width(x) <= maxLength], file = newFile, mode="a")
+      }
+      close(fqs) 
+      file.remove(r2TmpFile)
+      r2TmpFile = newFile
     }
   }
   if (param$paired){
