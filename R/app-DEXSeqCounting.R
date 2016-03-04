@@ -25,7 +25,10 @@ ezMethodDEXSeqCounting <- function(input=NA, output=NA, param=NA){
   bamFile = input$getFullPaths(param, "BAM")
 
   ### # call counting routine
-  sapply(as.vector(bamFile), runCountSingleBam, sGffFile)
+  vCountFiles <- sapply(as.vector(bamFile), runCountSingleBam, sGffFile, USE.NAMES = FALSE)
+  
+  ### # write count files back to input$file
+  writeCountFilesToMeta(pvCountFiles = vCountFiles, input = input)
   
   ### # clean up, remove link to gff file
   if (file.exists(sGffBaseFn))
@@ -48,7 +51,6 @@ EzAppDEXSeqCounting <-
                   "Initializes the application using its specific defaults."
                   runMethod <<- ezMethodDEXSeqCounting
                   name <<- "EzAppDEXSeqCounting"
-                  # appDefaults <<- rbind()
                 }
               ))
 
@@ -67,10 +69,8 @@ convertGtfToGff <- function(psGtfFile) {
   setwd(sAnnotDir)
   sGtfFn <- basename(psGtfFile)
   ### # convert using the python scripts
-  sPyScrPath <- system.file(package = "DEXSeq", "python_scripts")
-  sPyScrFn <- "dexseq_prepare_annotation.py"
   sGffFn <- gsub("gtf$", "gff", sGtfFn)
-  sPyConvCmd <- paste(HTSEQ_PREFIX, file.path(sPyScrPath,sPyScrFn), sGtfFn, sGffFn)
+  sPyConvCmd <- paste(DEXSEQ_PREPARE, sGtfFn, sGffFn)
   ezSystem(sPyConvCmd)
   cat("  ... created", sGffFn, "\n")
   setwd(sCurWd)
@@ -87,11 +87,22 @@ runCountSingleBam <- function(psBamFile, psGffFile){
   ezSystem(sSamCmd)
   ### # run counting on sam file
   sCountBaseFn <- gsub("sam$", "count", sSamBaseFn)
-  sPyScrCountFn <- "dexseq_count.py"
-  sPyScrPath <- system.file(package = "DEXSeq", "python_scripts")
-  sPyCountCmd <- paste(HTSEQ_PREFIX, file.path(sPyScrPath,sPyScrCountFn), psGffFile, sSamBaseFn, sCountBaseFn)
+  sPyCountCmd <- paste(DEXSEQ_COUNT, psGffFile, sSamBaseFn, sCountBaseFn)
   ezSystem(sPyCountCmd)
   ### # clean up and remove sam file
   if (file.exists(sSamBaseFn))
     unlink(sSamBaseFn)
+  ### # return name of countfile
+  sCountDir <- getwd()
+  return(file.path(sCountDir, sCountBaseFn))
+}
+
+
+#' Write names of countfiles back into the input file
+#' 
+writeCountFilesToMeta <- function(pvCountFiles, input) {
+  ### # add column with counts to the meta information
+  input$meta$Count <- pvCountFiles
+  ### # write the extended meta information back to the file
+  write.table(input$meta, file = input$file, quote = FALSE, sep = "\t")
 }
