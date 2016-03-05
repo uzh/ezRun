@@ -12,7 +12,7 @@ ezMethodFeatureCounts = function(input=NA, output=NA, param=NA){
   outputFile = basename(output$getColumn("Count"))
   statFile = basename(output$getColumn("Stats"))
   
-  sink(file="messages.txt")
+  sink(file="featureCounts-messages.txt")
   countResult = Rsubread::featureCounts(localBamFile, annot.inbuilt=NULL,
                               annot.ext=param$ezRef@refFeatureFile, isGTFAnnotationFile=TRUE,
                               GTF.featureType=param$gtfFeatureType,
@@ -32,7 +32,7 @@ ezMethodFeatureCounts = function(input=NA, output=NA, param=NA){
                               minOverlap=param$minFeatureOverlap,
                               splitOnly=FALSE,
                               countMultiMappingReads=param$keepMultiHits,
-                              fraction=param$keepMultiHits,
+                              fraction=param$keepMultiHits & !param$countPrimaryAlignmentsOnly,
                               primaryOnly=param$countPrimaryAlignmentsOnly,
                               countChimericFragments=TRUE,ignoreDup=FALSE,chrAliases=NULL,reportReads=FALSE)
   sink(file=NULL)
