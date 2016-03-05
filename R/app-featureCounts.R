@@ -30,10 +30,10 @@ ezMethodFeatureCounts = function(input=NA, output=NA, param=NA){
                               minMQS=param$minMapQuality,
                               readExtension5=0,readExtension3=0,read2pos=NULL,
                               minOverlap=param$minFeatureOverlap,
-                              countSplitAlignmentsOnly=FALSE,
+                              splitOnly=FALSE,
                               countMultiMappingReads=param$keepMultiHits,
                               fraction=param$keepMultiHits,
-                              countPrimaryAlignmentsOnly=param$countPrimaryAlignmentsOnly,
+                              primaryOnly=param$countPrimaryAlignmentsOnly,
                               countChimericFragments=TRUE,ignoreDup=FALSE,chrAliases=NULL,reportReads=FALSE)
   sink(file=NULL)
   
