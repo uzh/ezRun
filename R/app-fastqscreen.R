@@ -70,7 +70,7 @@ executeFastqscreenCMD = function(param, files){
               paste(files, collapse=" "), "--outdir . --aligner bowtie2",
               "> fastqscreen.out", "2> fastqscreen.err")
   ezSystem(cmd)
-  resultFiles = paste0(sub(".fastq.gz", "", basename(files)), "_screen.txt")
+  resultFiles = paste0(sub(".fastq$", "", sub(".gz$", "", basename(files))), "_screen.txt")
   names(resultFiles) = names(files)
   return(resultFiles)
 }
