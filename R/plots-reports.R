@@ -197,13 +197,14 @@ addTestScatterPlots = function(doc, param, x, result, seqAnno, resultFile, types
     .interactiveSmoothScatter = function(){
       ezSmoothScatter(x=refValues, y=sampleValues, isPresent=result$usedInTest, types=types,
                       xlab=param$refGroup, ylab=param$sampleGroup, legendPos=NULL, nbin=32)
-      add.plot.interactivity(fun=points, col="red", pch=16,
-                             x=log2(refValues[useForInteractivePoints]),
-                             y=log2(sampleValues[useForInteractivePoints]),
-                             popup.labels=popupLabels,
-                             click.actions=clickActions)
+      ## TODO replace this with working code using the new package
+#       add.plot.interactivity(fun=points, col="red", pch=16,
+#                              x=log2(refValues[useForInteractivePoints]),
+#                              y=log2(sampleValues[useForInteractivePoints]),
+#                              popup.labels=popupLabels,
+#                              click.actions=clickActions)
     }
-    addPlot(interactiveDoc, .interactiveSmoothScatter, fontname="", par.properties=parLeft())
+    addPlot(interactiveDoc, .interactiveSmoothScatter, par.properties=parLeft())
 #     .interactiveVolcanoPlot = function(){
 #       ezSmoothScatter(x=result$log2Ratio, y=result$pValue, isPresent=result$usedInTest, types=types, main=param$comparison, legendPos=NULL)
 #       add.plot.interactivity(fun=points, col="red", pch=16,
