@@ -70,7 +70,7 @@ executeFastqscreenCMD = function(param, files){
               paste(files, collapse=" "), "--outdir . --aligner bowtie2",
               "> fastqscreen.out", "2> fastqscreen.err")
   ezSystem(cmd)
-  resultFiles = paste0(sub(".fastq$", "", sub(".gz$", "", basename(files))), "_screen.txt")
+  resultFiles = paste0(sub(".fastq$", "", sub(".gz$", "", basename(files))), "_screen.txt") ## remove the suffix .fastq[.gz] with _screen.txt
   names(resultFiles) = names(files)
   return(resultFiles)
 }
@@ -81,7 +81,7 @@ collectFastqscreenOutput = function(dataset, files, resultFiles){
   fastqData$Reads = integer()
   fastqData$CommonResults = list()
   for(nm in rownames(dataset)){
-    cat('Process ',files[nm],':')
+    cat('Process ',files[nm], " - ", resultFiles[nm], ' :')
     x = ezRead.table(resultFiles[nm], skip=1, stringsAsFactors=F, blank.lines.skip=T, fill=T, row.names=NULL)
     fastqData$Reads[nm] = x$"#Reads_processed"[1]
     UnmappedReads = as.numeric(unlist(strsplit(x$Genome[nrow(x)], split = " "))[2])
