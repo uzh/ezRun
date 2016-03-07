@@ -13,7 +13,7 @@ ezMethodEdger = function(input=NA, output=NA, param=NA, htmlFile="00index.html")
   input = cleanupTwoGroupsInput(input, param)
   param$grouping = input$getColumn(param$grouping)
   if (ezIsSpecified(param$batch) && length(param$batch) == 1){
-    param$batch = input$meta[[param$batch]]
+    param$batch = input$getColumn(param$batch)
   }
   
   rawData = loadCountDataset(input, param)

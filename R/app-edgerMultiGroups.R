@@ -13,7 +13,7 @@ ezMethodEdgerMulti = function(input=NA, output=NA, param=NA, htmlFile="00index.h
   input = cleanupMultiGroupsInput(input, param)
   param$grouping = input$getColumn(param$grouping)
   if (ezIsSpecified(param$batch) && length(param$batch) == 1){
-    param$batch = input$meta[[param$batch]]
+    param$batch = input$getColumn(param$batch)
   }
   param$comparison = paste("glm fit for", param$grouping)
   if (ezIsSpecified(param$batch)){
