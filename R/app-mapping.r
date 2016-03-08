@@ -259,7 +259,7 @@ EzAppBowtie <-
                 initialize = function()
                 {
                   "Initializes the application using its specific defaults."
-                  runMethod <<- ezMethodBowtie2
+                  runMethod <<- ezMethodBowtie
                   name <<- "EzAppBowtie"
                   appDefaults <<- rbind(writeIgvSessionLink=ezFrame(Type="logical", DefaultValue="TRUE", Description="should an IGV link be generated"))
                 }
