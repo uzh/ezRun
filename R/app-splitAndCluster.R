@@ -24,7 +24,7 @@ ezMethodSplitAndCluster = function(input=NA, output=NA, param=NA){
   setwdNew(basename(output$getColumn("Clustered")))
   outputFiles = character()
   while(length(x <- yield(fqs))){
-    outputFiles = union(outputFiles, splitByAdapters(x, forwardAdapters, reverseAdapters, max.mismatch=0))
+    outputFiles = union(outputFiles, splitByAdapters(x, forwardAdapter, reverseAdapter, max.mismatch=0))
   }
   close(fqs)
   for (outputFile in outputFiles){
@@ -57,7 +57,7 @@ EzAppSplitAndCluster <-
 
 
 
-splitByAdapters <-function(reads,forwardAdapters, reverseAdapters, max.mismatch){
+splitByAdapters <-function(reads,forwardAdapter, reverseAdapter, max.mismatch){
   foundFwdAdapterNames = rep("none", length(reads))
   adapterStartPos = rep(1, length(reads))
   foundRevAdapterNames = rep("none", length(reads))
