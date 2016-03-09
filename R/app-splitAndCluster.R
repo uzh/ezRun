@@ -1,5 +1,7 @@
 ezMethodSplitAndCluster = function(input=NA, output=NA, param=NA){
   
+  cdHitOpt = "-c 0.98 -d 0" ## TODO put this options in the sushi interface
+  
   fastqFile1 = input$getFullPaths(param, "Read1")
   fastqFile2 = input$getFullPaths(param, "Read2")
   localFastq1 = sub(".gz","",basename(fastqFile1))
@@ -30,7 +32,7 @@ ezMethodSplitAndCluster = function(input=NA, output=NA, param=NA){
   for (outputFile in outputFiles){
     if (file.info(outputFile)$size > 0) {
       cdHitOutForward = paste0("cdHit_", sub(".fasta", "", basename(outputFile)))
-      cdHitCmd = paste(CD_HIT,"-i",outputFile,"-o",cdHitOutForward, sep = " ")
+      cdHitCmd = paste(CD_HIT, cdHitOpt, "-i",outputFile,"-o",cdHitOutForward, sep = " ")
       ezSystem(cdHitCmd)
     }
   }

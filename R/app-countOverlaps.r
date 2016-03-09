@@ -242,9 +242,9 @@ getFeatureCounts = function(chrom, gff, reads, param){
 ## in that case the reference name (rname) is the transcript ID
 ## does handle paired-end consistently, i.e. a pair is counted as 1 if the ends align to the same  transcript
 ## and it is counted fractionally if alignments go to multiple transcripts
-countTranscriptBam = function(bamFile, isFirstMateRead=NA, isSecondMateRead=NA, isUnmappedQuery=FALSE, isProperPair=NA,
+countTranscriptBam = function(bamFile, strand="*", isFirstMateRead=NA, isSecondMateRead=NA, isUnmappedQuery=FALSE, isProperPair=NA,
                               isSecondaryAlignment=NA){
-  bam = ezScanBam(bamFile, what=c("qname", "rname"),
+  bam = ezScanBam(bamFile, what=c("qname", "rname"), strand=strand,
                    isFirstMateRead=isFirstMateRead, isSecondMateRead=isSecondMateRead, 
                    isUnmappedQuery=isUnmappedQuery, isProperPair=isProperPair, isSecondaryAlignment=isSecondaryAlignment)
   multiMatch = table(bam$qname)
