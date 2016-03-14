@@ -30,7 +30,7 @@ ezMethodSplitAndCluster = function(input=NA, output=NA, param=NA){
   }
   close(fqs)
   for (outputFile in outputFiles){
-    if (file.info(outputFile)$size > 0) {
+    if (file.info(outputFile)$size > 0 &basename(outpuFile) != "none.none.fasta") {
       cdHitOutForward = paste0("cdHit_", sub(".fasta", "", basename(outputFile)))
       cdHitCmd = paste(CD_HIT, cdHitOpt, "-i",outputFile,"-o",cdHitOutForward, sep = " ")
       ezSystem(cdHitCmd)

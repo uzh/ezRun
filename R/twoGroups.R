@@ -300,7 +300,7 @@ writeNgsTwoGroupReport = function(dataset, result, output, htmlFile="00index.htm
   colnames(result$groupMeans) = c(param$sampleGroup, param$refGroup)
   
   if (param$writeScatterPlots){
-    testScatterTitles = addTestScatterPlots(doc, param, logSignal, result, seqAnno, resultFile$resultFile, types) ## colorRange was also not used in the old function
+    testScatterTitles = addTestScatterPlots(doc, param, logSignal, result, seqAnno, resultFile$resultFile, types) 
     titles = append(titles, testScatterTitles)
   }
   
