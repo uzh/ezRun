@@ -54,7 +54,7 @@ TRINITY="/usr/local/ngseq/src/trinityrnaseq_v2.1.1/Trinity"
 
 GATK_JAR="/usr/local/ngseq/src/GenomeAnalysisTK_3.4-46/GenomeAnalysisTK.jar"
 GATK_DIR="/usr/local/ngseq/src/GenomeAnalysisTK_3.4-46/"
-PICARD_JAR="/usr/local/ngseq/src/picard-tools-1.140/picard.jar"
+PICARD_JAR="/usr/local/ngseq/src/picard-tools-2.1.1/picard.jar"
 SNPEFF_DIR="/usr/local/ngseq/src/snpEff_4.1L"
 #BAM_UTIL="/usr/local/ngseq/src/bamUtil/bin/"
 HUMAN_SNP_DATABASES="/srv/GT/databases/dbSNP/release142/"
@@ -74,10 +74,6 @@ WIGTOBIGWIG="/usr/local/ngseq/stow/wigToBigWig-v4/bin/wigToBigWig"
 #DEXSEQ_PREPARE='PYTHONPATH="/usr/local/ngseq/lib/python2.7/" /usr/local/ngseq/bin/python  /usr/local/ngseq/stow/R-3.0.2/lib/R/library/DEXSeq/python_scripts/dexseq_prepare_annotation.py'
 #DEXSEQ_COUNT='PYTHONPATH="/usr/local/ngseq/lib/python2.7/" /usr/local/ngseq/bin/python  /usr/local/ngseq/stow/R-3.0.2/lib/R/library/DEXSeq/python_scripts/dexseq_count.py'
 #HTSEQ_COUNT='PYTHONPATH="/usr/local/ngseq/lib/python2.7/site-packages/:$PYTHONPATH" /usr/local/ngseq/bin/python /usr/local/ngseq/src/HTSeq-0.5.4p5/scripts/htseq-count'
-HTSEQ_PREFIX='PYTHONPATH="/usr/local/ngseq/lib/python/:/usr/local/ngseq/lib/python2.7:/usr/local/ngseq/lib/python2.7/dist-packages" /usr/local/ngseq/bin/python'
-DEXSEQ_PREPARE=paste(HTSEQ_PREFIX, file.path(system.file(package = "DEXSeq", "python_scripts"), "dexseq_prepare_annotation.py"))
-DEXSEQ_COUNT=paste(HTSEQ_PREFIX, file.path(system.file(package = "DEXSeq", "python_scripts"), "dexseq_count.py"))
-
 SAMSTAT="/usr/local/ngseq/stow/samstat-1.09/bin/samstat"
 QUALIMAP="/usr/local/ngseq/stow/qualimap_v2.1.2/bin/qualimap"
 REFSEQ_mRNA_REF='/srv/GT/reference/RefSeq/mRNA/20150301/Sequence/BOWTIE2Index/transcriptome'
