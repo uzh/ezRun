@@ -7,9 +7,17 @@
 
 #' RunMethod for reference class EzAppDEXSeqAnalysis
 #' 
+#' @description 
+#' Differential exon usage is assessed using the function \code{DEXSeq}
+#' from the DEXSeq package.
+#' 
+#' @param input either EzDataSet reference object or path to input dataset file
+#' @param output 
+#' @param param
+#' 
 ezMethodDEXSeqAnalysis <- function(input=NA, output=NA, param=NA){
   ### # if count files are not available, generate them
-  if(!is.element("Count", colnames(input$meta))) {
+  if(!is.element("Count", colnames(input$meta)) || !all(file.exists(input$meta$Count))) {
     EzAppDEXSeqCounting$new()$run(input = input, output = output, param = param)
     input <- EzDataset$new(file = input$file)    
   }
@@ -17,23 +25,30 @@ ezMethodDEXSeqAnalysis <- function(input=NA, output=NA, param=NA){
   ### # get count files
   countFiles <- input$getFullPaths(param, "Count")
   ### # check whether conditions are specified
-  if ("Condition" %in% colnames(input$meta))
+  if (param$grouping %in% colnames(input$meta))
     condition <- input$meta$Condition
   if (!is.null(param$condition))
     condition <- param$condition
   ### # if conditions are not specified, then we have to stop here
   if (is.null(condition))
     stop(" * No conditions were specified in ezMethodDEXSeqAnalysis")
+  ### # row indices of samples and reference
+  vIdxSample <- which(condition == param$sampleGroup)
+  vIdxRef <- which(condition == param$refGroup)
+  ### # define order, from the vignette, it seams that 
+  ### #  first come the sample rows then the reference rows
+  vCompOrder <- c(vIdxSample, vIdxRef)
+  
   ### # sample table from rownames and conditions
   sampleTable <- data.frame(
-    row.names = rownames(input$meta),
-    condition = condition
+    row.names = rownames(input$meta)[vCompOrder],
+    condition = condition[vCompOrder]
   )
   ### # check the reference
   sRefFeatGff <- gsub("gtf$", "gff", param[['ezRef']]@refFeatureFile)
   stopifnot(file.exists(sRefFeatGff))
   
-  ### # check whether special design was specified, o/w use default
+  ### # check whether special design was specified, o/w use minimal default design
   if (!is.null(param$design)) {
     design <- param$design
   } else {
@@ -47,11 +62,38 @@ ezMethodDEXSeqAnalysis <- function(input=NA, output=NA, param=NA){
     design        = design,
     flattenedfile = sRefFeatGff )
   
+  ### # plot disersion estimates, if indicated by the parameter
+  if (!is.null(param$disp_plot)) {
+    sDispPlotPdfFile <- ifelse(identical(tools::file_ext(param$disp_plot), "pdf"), param$disp_plot, paste(param$disp_plot, "pdf", sep = "."))
+    pdf(file = sDispPlotPdfFile)
+    dxd %>% 
+      DEXSeq::estimateSizeFactors %>% 
+      DEXSeq::estimateDispersions %>% 
+      DEXSeq::plotDispEsts
+    dev.off()
+  }
   ### # extract the result from the differential analysis
   dxr <- DEXSeq::DEXSeq(dxd)
   
-  ### # generate a report
-  DEXSeq::DEXSeqHTML(dxr)
+  ### # plotting MA, if indicated
+  if (!is.null(param$ma_plot)){
+    sMaPlotPdfFile <- ifelse(identical(tools::file_ext(param$ma_plot), "pdf"), param$ma_plot, paste(param$ma_plot, "pdf", sep = "."))
+    pdf(file = sMaPlotPdfFile)
+    DEXSeq::plotMA( dxr )
+    dev.off()
+  }
+  
+  ### # write tsv file from results
+  if (!is.null(param$ResultFile)) {
+    sResultFile <- param$ResultFile
+  } else {
+    sResultFile <- "DexSeqResult.tsv"
+  }
+  write.table(dxr, file = sResultFile, quote = FALSE, sep = "\t")
+
+  ### # generate a predefined html-report
+  if (!is.null(param$output_format) && identical(tolower(param$output_format), 'html'))
+    DEXSeq::DEXSeqHTML(dxr)
   
   return("Success")  
 }
@@ -59,8 +101,8 @@ ezMethodDEXSeqAnalysis <- function(input=NA, output=NA, param=NA){
 
 ##' @template app-template
 ##' @templateVar method ezMethodDEXSeqCounting
-##' @templateVar htmlArg )
-##' @description Use this reference class to run 
+##' @templateVar htmlArg, htmlFile="00index.html" )
+##' @description Use this reference class to run analysis on differential exon usage
 EzAppDEXSeqAnalysis <- 
   setRefClass(Class = "EzAppDEXSeqAnalysis",
               contains = "EzApp",
@@ -81,3 +123,4 @@ addDEXSeqCondition = function(psInput, pvCondition){
   ezObjInput$meta$Condition <- pvCondition
   write.table(ezObjInput$meta, file = ezObjInput$file, quote = FALSE, sep = "\t")
 }
+
