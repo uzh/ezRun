@@ -70,6 +70,10 @@ convertGtfToGff <- function(psGtfFile) {
   sGtfFn <- basename(psGtfFile)
   ### # convert using the python scripts
   sGffFn <- gsub("gtf$", "gff", sGtfFn)
+  ### # check whether the path exists
+  if (!exists("DEXSEQ_PREPARE")) {
+    DEXSEQ_PREPARE <- lGetPyScriptPaths()$DEXSEQ_PREPARE
+  }
   sPyConvCmd <- paste(DEXSEQ_PREPARE, sGtfFn, sGffFn)
   ezSystem(sPyConvCmd)
   cat("  ... created", sGffFn, "\n")
@@ -87,6 +91,9 @@ runCountSingleBam <- function(psBamFile, psGffFile){
   ezSystem(sSamCmd)
   ### # run counting on sam file
   sCountBaseFn <- gsub("sam$", "count", sSamBaseFn)
+  if (!exists("DEXSEQ_COUNT")){
+    DEXSEQ_COUNT <- lGetPyScriptPaths()$DEXSEQ_COUNT
+  }
   sPyCountCmd <- paste(DEXSEQ_COUNT, psGffFile, sSamBaseFn, sCountBaseFn)
   ezSystem(sPyCountCmd)
   ### # clean up and remove sam file
@@ -106,3 +113,14 @@ writeCountFilesToMeta <- function(pvCountFiles, input) {
   ### # write the extended meta information back to the file
   write.table(input$meta, file = input$file, quote = FALSE, sep = "\t")
 }
+
+
+#' Get list with required python script paths
+#' 
+lGetPyScriptPaths <- function(){
+  HTSEQ_PREFIX='PYTHONPATH="/usr/local/ngseq/lib/python/:/usr/local/ngseq/lib/python2.7:/usr/local/ngseq/lib/python2.7/dist-packages" /usr/local/ngseq/bin/python'
+  return(list(DEXSEQ_PREPARE = paste(HTSEQ_PREFIX, file.path(system.file(package = "DEXSeq", "python_scripts"), "dexseq_prepare_annotation.py")),
+              DEXSEQ_COUNT = paste(HTSEQ_PREFIX, file.path(system.file(package = "DEXSeq", "python_scripts"), "dexseq_count.py"))))
+  
+}
+
