@@ -103,7 +103,7 @@ ezMethodFastQC = function(input=NA, output=NA, param=NA, htmlFile="00index.html"
   titles[["Per Base Read Quality"]] = "Per Base Read Quality"
   addTitle(doc, titles[[length(titles)]], 2, id=titles[[length(titles)]])
   qualMatrixList = ezMclapply(files, getQualityMatrix, mc.cores=ezThreads())
-  pngMatrix = plotQualityMatrixAsHeatmap(qualMatrixList, isR2=grepl("_R2", names(files)))
+  pngMatrix = plotQualityMatrixAsHeatmap(qualMatrixList, isR2=grepl("_R2\\.", names(files)))
   addFlexTable(doc, ezGrid(pngMatrix))
   if(nrow(dataset) > 1){
     pngLibCons = list()

@@ -102,17 +102,18 @@ executeBowtie2CMD = function(param, input){
   for (nm in names(r1Files)){
     countFiles[nm] = paste0(nm, "-counts.txt")
     bowtie2options = param$cmdOptions
+    writeLines("ReadID\tRefSeqID\tAlignmentScore", countFiles[nm])
     if(!param$paired){
       cmd = paste(file.path(BOWTIE2_DIR,'bowtie2'),"-x",REFSEQ_mRNA_REF, 
                   " -U ", r1Files[nm], bowtie2options ,"-p",param$cores,
                   "--no-unal --no-hd", "2> ", paste0(nm, "_bowtie2.err"),
-                  "| cut -f1,3,12", " |sed s/AS:i://g", ">", countFiles[nm])
+                  "| cut -f1,3,12", " |sed s/AS:i://g", ">>", countFiles[nm])
     } else {
       cmd = paste(file.path(BOWTIE2_DIR,'bowtie2'),"-x",REFSEQ_mRNA_REF, 
                   " -1 ", r1Files[nm]," -2 ", r2Files[nm], bowtie2options, "-p",param$cores,
                   "--no-discordant --no-mixed --no-unal --no-hd",
                   "2> ", paste0(nm, "_bowtie2.err"),
-                  "| cut -f1,3,12", " |sed s/AS:i://g", ">", countFiles[nm])
+                  "| cut -f1,3,12", " |sed s/AS:i://g", ">>", countFiles[nm])
     }
     ezSystem(cmd)
     #ezSystem(paste(SAMTOOLS, "view", "bowtie.bam", '|cut -f1,3,12 |sort|sed "s/AS:i://g" >',countFiles[nm]))
@@ -130,20 +131,19 @@ collectBowtie2Output = function(param, dataset, countFiles){
   rownames(tax2name) = tax2name$TAX_ID
   speciesPercentageTop = list()
   for (nm in names(countFiles)){
-    countData = read.table(countFiles[nm], header=F, sep='', stringsAsFactors=F, comment.char='')
-    colnames(countData) = c('readId', 'hit', 'aScore')
-    bestScores = tapply(countData$aScore, countData$readId, max)
-    countData = countData[countData$aScore == bestScores[countData$readId], , drop=FALSE]
-    countData = countData[countData$aScore >= param$minAlignmentScore, , drop=FALSE]
+    countData = ezRead.table(countFiles[nm], row.names = NULL)
+    bestScores = tapply(countData$AlignmentScore, countData$ReadID, max)
+    countData = countData[countData$AlignmentScore == bestScores[countData$ReadID], , drop=FALSE]
+    countData = countData[countData$AlignmentScore >= param$minAlignmentScore, , drop=FALSE]
     if (nrow(countData) > 0){
-      countData$species = sub("_.*", "", countData$hit)
-      speciesHitsPerRead = tapply(countData$species, countData$readId, unique)
+      countData$species = sub("_.*", "", countData$RefSeqID)
+      speciesHitsPerRead = tapply(countData$species, countData$ReadID, unique)
       uniqSpeciesHitsPerRead = names(speciesHitsPerRead)[sapply(speciesHitsPerRead, length) == 1]
       ###Result UniqHits:
       uniqSpeciesHits = sort(table(unlist(speciesHitsPerRead[uniqSpeciesHitsPerRead])), decreasing = T)
       ###Results MultipleHits:
-      multipleSpeciesHitsPerRead = countData[!(countData$readId %in% uniqSpeciesHitsPerRead), ]
-      by = paste(multipleSpeciesHitsPerRead$readId, multipleSpeciesHitsPerRead$species,sep='_')
+      multipleSpeciesHitsPerRead = countData[!(countData$ReadID %in% uniqSpeciesHitsPerRead), ]
+      by = paste(multipleSpeciesHitsPerRead$ReadID, multipleSpeciesHitsPerRead$species,sep='_')
       ##multipleSpeciesHits = sort(table(multipleSpeciesHitsPerRead$species[!duplicated(by)]), decreasing=T) # is equivalent to the row below
       multipleSpeciesHits = sort(table(tapply(multipleSpeciesHitsPerRead$species,by,unique)),decreasing = T)
       
