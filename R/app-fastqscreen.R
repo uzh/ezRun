@@ -131,7 +131,7 @@ collectBowtie2Output = function(param, dataset, countFiles){
   rownames(tax2name) = tax2name$TAX_ID
   speciesPercentageTop = list()
   for (nm in names(countFiles)){
-    countData = ezRead.table(countFiles[nm])
+    countData = ezRead.table(countFiles[nm], row.names = NULL)
     bestScores = tapply(countData$AlignmentScore, countData$ReadID, max)
     countData = countData[countData$AlignmentScore == bestScores[countData$ReadID], , drop=FALSE]
     countData = countData[countData$AlignmentScore >= param$minAlignmentScore, , drop=FALSE]
