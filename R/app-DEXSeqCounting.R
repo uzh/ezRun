@@ -25,7 +25,7 @@ ezMethodDEXSeqCounting <- function(input=NA, output=NA, param=NA){
   bamFile = input$getFullPaths(param, "BAM")
 
   ### # call counting routine
-  vCountFiles <- sapply(as.vector(bamFile), runCountSingleBam, sGffFile, USE.NAMES = FALSE)
+  vCountFiles <- sapply(bamFile, runCountSingleBam, sGffFile)
   
   ### # write count files back to input$file
   writeCountFilesToMeta(pvCountFiles = vCountFiles, input = input)
@@ -84,22 +84,14 @@ convertGtfToGff <- function(psGtfFile) {
 #' Run counts for a single BAM file
 #' 
 runCountSingleBam <- function(psBamFile, psGffFile){
-  sBamBaseFn <- basename(psBamFile)
-  sSamBaseFn <- gsub("bam$", "sam", sBamBaseFn)
-  ### # convert bamfile to sam file
-  sSamCmd <- paste(SAMTOOLS, "view -h -o", sSamBaseFn, psBamFile)
-  ezSystem(sSamCmd)
+  sSamCmd <- paste(SAMTOOLS, "view -h", psBamFile)
   ### # run counting on sam file
-  sCountBaseFn <- gsub("sam$", "count", sSamBaseFn)
+  sCountBaseFn <- gsub("bam$", "count", basename(psBamFile))
   if (!exists("DEXSEQ_COUNT")){
     DEXSEQ_COUNT <- lGetPyScriptPaths()$DEXSEQ_COUNT
   }
-  sPyCountCmd <- paste(DEXSEQ_COUNT, psGffFile, sSamBaseFn, sCountBaseFn)
+  sPyCountCmd <- paste(sSamCmd, "|", DEXSEQ_COUNT, psGffFile, "-", sCountBaseFn)
   ezSystem(sPyCountCmd)
-  ### # clean up and remove sam file
-  if (file.exists(sSamBaseFn))
-    unlink(sSamBaseFn)
-  ### # return name of countfile
   sCountDir <- getwd()
   return(file.path(sCountDir, sCountBaseFn))
 }
@@ -118,9 +110,11 @@ writeCountFilesToMeta <- function(pvCountFiles, input) {
 #' Get list with required python script paths
 #' 
 lGetPyScriptPaths <- function(){
-  HTSEQ_PREFIX='PYTHONPATH="/usr/local/ngseq/lib/python/:/usr/local/ngseq/lib/python2.7:/usr/local/ngseq/lib/python2.7/dist-packages" /usr/local/ngseq/bin/python'
-  return(list(DEXSEQ_PREPARE = paste(HTSEQ_PREFIX, file.path(system.file(package = "DEXSeq", "python_scripts"), "dexseq_prepare_annotation.py")),
-              DEXSEQ_COUNT = paste(HTSEQ_PREFIX, file.path(system.file(package = "DEXSeq", "python_scripts"), "dexseq_count.py"))))
+  if (!exists("PYTHON_CMD")){
+    PYTHON_CMD='PYTHONPATH="/usr/local/ngseq/lib/python/:/usr/local/ngseq/lib/python2.7:/usr/local/ngseq/lib/python2.7/dist-packages" /usr/local/ngseq/bin/python'
+  }
+  return(list(DEXSEQ_PREPARE = paste(PYTHON_CMD, file.path(system.file(package = "DEXSeq", "python_scripts"), "dexseq_prepare_annotation.py")),
+              DEXSEQ_COUNT = paste(PYTHON_CMD, file.path(system.file(package = "DEXSeq", "python_scripts"), "dexseq_count.py"))))
   
 }
 
