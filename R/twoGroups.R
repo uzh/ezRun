@@ -32,7 +32,7 @@ cleanupTwoGroupsInput = function(input, param){
   if (!is.null(param$removeOtherGroups) && param$removeOtherGroups){
     grouping = inputMod$getColumn(param$grouping)
     keep = grouping %in% c(param$sampleGroup, param$refGroup)
-    inputMod = inputMod$subset(getNames(inputMod)[keep])
+    inputMod = inputMod$subset(inputMod$getNames()[keep])
   }
   return(inputMod)
 }
