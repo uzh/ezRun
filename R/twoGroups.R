@@ -29,6 +29,11 @@ cleanupTwoGroupsInput = function(input, param){
     grouping[isOut] = paste(grouping[isOut], "OUTLIER", sep="_")
     inputMod$setColumn(grouping)
   }
+  if (!is.null(param$removeOtherGroups) && param$removeOtherGroups){
+    grouping = inputMod$getColumn(param$grouping)
+    keep = grouping %in% c(param$sampleGroup, param$refGroup)
+    inputMod = inputMod$subset(getNames(inputMod)[keep])
+  }
   return(inputMod)
 }
 

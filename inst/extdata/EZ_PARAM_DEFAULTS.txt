@@ -83,7 +83,8 @@ markOutliers	logical	FALSE	should outlier samples be marked and not considered i
 removeOutliers	logical	FALSE	should outlier samples be removed from the dataset before the analysis; requires a column "Outlier"
 useFactorsAsSampleName	logical	FALSE	should sample names be replaced with the canonical names derived from the factor levels
 refGroup	character		the reference group in a comparison
-sampleGroup	character		the sample group in a comparison
+sampleGroup character		the sample group in a comparison
+removeOtherGroups	logical	FALSE	should only the samples that are in the groups to be compared be kept and other samples should be removed
 ## functional analysis
 goseqMethod	character	Wallenius	method for the goseq analysis
 includeGoParentAnnotation	logical	FALSE	if the genes annotated to the parent should be also counted to the current GO category
