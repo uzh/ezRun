@@ -295,7 +295,7 @@ ezMethodSTAR = function(input=NA, output=NA, param=NA){
   } else {
     ezSystem(paste("mv", "sorted.bam", basename(bamFile)))
   }
-  ezSsytem(paste(samtools, "index", basename(bamFile)))
+  ezSytem(paste(samtools, "index", basename(bamFile)))
   
   if (param$getChimericJunctions){
     ezSystem(paste("mv Chimeric.out.junction", basename(output$getColumn("Chimerics"))))
