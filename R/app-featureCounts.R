@@ -30,6 +30,7 @@ ezMethodFeatureCounts = function(input=NA, output=NA, param=NA){
                               minMQS=param$minMapQuality,
                               readExtension5=0,readExtension3=0,read2pos=NULL,
                               minOverlap=param$minFeatureOverlap,
+                              ignoreDup=param$ignoreDup,
                               splitOnly=FALSE,
                               countMultiMappingReads=param$keepMultiHits,
                               fraction=param$keepMultiHits & !param$countPrimaryAlignmentsOnly,
@@ -60,7 +61,8 @@ EzAppFeatureCounts <-
                   appDefaults <<- rbind(gtfFeatureType = ezFrame(Type="character",  DefaultValue="exon",  Description="which gtf feature types to use; with Ensembl GTF files; use 'transcript' to count also intronic reads"),
                                         allowMultiOverlap = ezFrame(Type="logical",  DefaultValue="TRUE",  Description="make sure that every read counts only as one"),
                                         countPrimaryAlignmentsOnly = ezFrame(Type="logical",  DefaultValue="TRUE",  Description="count only the primary alignment"),
-                                        minFeatureOverlap=ezFrame(Type="integer", DefaultValue="10", Description="the number of bases overlap are need to generate a count"))
+                                        minFeatureOverlap=ezFrame(Type="integer", DefaultValue="10", Description="the number of bases overlap are need to generate a count"),
+                                        ignoreDup=ezFrame(Type="logical", DefaultValue="FALSE", Description="ignore reads marked as duplicates"))
                 }
               )
   )
