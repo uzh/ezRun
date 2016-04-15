@@ -279,8 +279,8 @@ ezMethodSTAR = function(input=NA, output=NA, param=NA){
   ##"|", SAMTOOLS, "view -S -b -", " >", "Aligned.out.bam")
   ezSystem(cmd)
   nSortThreads = min(ezThreads(), 8)
-  ezSortIndexBam("Aligned.out.bam", "sorted.bam", ram=param$ram, removeBam=TRUE, cores=nSortThreads)
   if (!is.null(param$markDuplicates) && param$markDuplicates){
+    ezSortIndexBam("Aligned.out.bam", "sorted.bam", ram=param$ram, removeBam=TRUE, cores=nSortThreads)
     javaCall = paste0("java -Djava.io.tmpdir=. -Xmx", min(floor(param$ram), 10), "g")
     cmd = paste0(javaCall, " -jar ", PICARD_JAR, " MarkDuplicates ",
                  " TMP_DIR=. MAX_RECORDS_IN_RAM=2000000", " I=", "sorted.bam",
@@ -292,10 +292,10 @@ ezMethodSTAR = function(input=NA, output=NA, param=NA){
                  " VERBOSITY=WARNING",
                  " >markdup.stdout 2> markdup.stderr")
     ezSystem(cmd)
+    ezSystem(paste(SAMTOOLS, "index", basename(bamFile)))
   } else {
-    ezSystem(paste("mv", "sorted.bam", basename(bamFile)))
+    ezSortIndexBam("Aligned.out.bam", basename(bamFile), ram=param$ram, removeBam=TRUE, cores=nSortThreads)
   }
-  ezSytem(paste(samtools, "index", basename(bamFile)))
   
   if (param$getChimericJunctions){
     ezSystem(paste("mv Chimeric.out.junction", basename(output$getColumn("Chimerics"))))
