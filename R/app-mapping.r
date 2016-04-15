@@ -389,7 +389,8 @@ EzAppSTAR <-
                   runMethod <<- ezMethodSTAR
                   name <<- "EzAppSTAR"
                   appDefaults <<- rbind(getChimericJunctions=ezFrame(Type="logical",  DefaultValue="FALSE",	Description="should chimeric reads be returned"),
-                                        writeIgvSessionLink=ezFrame(Type="logical", DefaultValue="TRUE", Description="should an IGV link be generated"))
+                                        writeIgvSessionLink=ezFrame(Type="logical", DefaultValue="TRUE", Description="should an IGV link be generated"),
+                                        markDuplicates=ezFrame(Type="logical", DefaultValue="FALSE", Description="should duplicates be marked with picard"))
                 }
               )
   )
