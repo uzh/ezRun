@@ -7,8 +7,8 @@
 ezReadGappedAlignments(bamFile, seqname = NULL, start = NULL, end = NULL,
   strand = "*", tag = character(0), what = character(0),
   use.names = TRUE, isFirstMateRead = NA, isSecondMateRead = NA,
-  isUnmappedQuery = FALSE, isProperPair = NA, minMapQuality = 0,
-  keepMultiHits = TRUE)
+  isUnmappedQuery = FALSE, isProperPair = NA, isSecondaryAlignment = NA,
+  minMapQuality = 0, keepMultiHits = TRUE)
 }
 \arguments{
 \item{bamFile}{a character representing the bam file path.}

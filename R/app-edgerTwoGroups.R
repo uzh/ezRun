@@ -22,15 +22,13 @@ ezMethodEdger = function(input=NA, output=NA, param=NA, htmlFile="00index.html")
     return("Error")
   }
   
-  result = twoGroupCountComparison(rawData, param)
+  deResult = twoGroupCountComparison(rawData, param)
   if (isError(result)){
     writeErrorReport(htmlFile, param=param, error=result$error)
     return("Error")
   }
-  result$featureLevel = rawData$featureLevel
-  result$countName = rawData$countName
   
-  writeNgsTwoGroupReport(input$meta, result, output, htmlFile, param=param, rawData=rawData)
+  writeNgsTwoGroupReport(rawData$dataset, deResult, output, htmlFile)
   return("Success")
 }
 

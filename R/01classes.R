@@ -133,6 +133,7 @@ EzDataset <-
                   } else {
                     dataRoot = param
                   }
+                  ok = ezSystem(paste("cd", dataRoot, "; pwd"))
                   files = .self$getColumn(name)
                   if (all(ezIsAbsolutePath(files))){
                     return(files)
