@@ -12,27 +12,23 @@ ezMethodDEXSeqCounting <- function(input=NA, output=NA, param=NA){
   
   ### # check whether GFF formatted annotation is available
   sGtfFile <- param$ezRef@refFeatureFile
-  sGffFile <- gsub("gtf$", "gff", sGtfFile)
+  ### # gff will be placed in actual working directory, hence no 
+  ### #  soft links will be required
+  sGffFile <- gsub("gtf$", "gff", basename(sGtfFile))
+  if(ezIsSpecified(param$gff_file))
+    sGffFile <- param$gff_file
   if (!file.exists(sGffFile))
-    convertGtfToGff(psGtfFile = sGtfFile)
-  ### # if there is no link in current working directory to the gff File,
-  ### #  created it
-  sGffBaseFn <- basename(sGffFile)
-  if (!file.exists(sGffBaseFn)){
-    sLnCmd <- paste("ln -s", sGffFile, sGffBaseFn)
-  }
+    convertGtfToGff(psGtfFile = sGtfFile, psGffFile = sGffFile)
+
   ### # do the counting, get the bam files from input
   bamFile = input$getFullPaths(param, "BAM")
 
+  ### # determine extension for count files
+  sCountfileExt <- 'count'
+  if (ezIsSpecified(param$countfile_ext))
+    sCountfileExt <- param$countfile_ext
   ### # call counting routine
-  vCountFiles <- sapply(bamFile, runCountSingleBam, sGffFile)
-  
-  ### # write count files back to input$file
-  writeCountFilesToMeta(pvCountFiles = vCountFiles, input = input)
-  
-  ### # clean up, remove link to gff file
-  if (file.exists(sGffBaseFn))
-    unlink(sGffBaseFn)
+  vCountFiles <- sapply(bamFile, runCountSingleBam, sGffFile, sCountfileExt)
   
   return("Success")
 }
@@ -55,38 +51,38 @@ EzAppDEXSeqCounting <-
               ))
 
 
-#' Convert annotation file from GTF to GFF
+#' Convert annotation file from GTF format to GFF
+#' 
+#' @description 
+#' \code{convertGtfToGff} converts an annotation file from 
+#' the GTF format into the GFF format which is required 
+#' by the package \code{DEXSeq}. Input file name and the 
+#' name of the file to be generated are both given as 
+#' function parameters. The conversion is done by a python 
+#' script that is given by the content of \code{DEXSEQ_PREPARE} 
+#' which is either taken as a global variable or from the 
+#' result of function \code{lGetPyScriptPaths}
 #' 
 #' @param psGtfFile   name of the GTF annotation file
-convertGtfToGff <- function(psGtfFile) {
-  ### # assume that we are somewhere in a scratch working directory
-  ### #  because conversion scripts want input in current directory,
-  ### #  we create a link to the gtf file, but not, if the working 
-  ### #  directory is the same as the directory of the annotation file
+#' @param psGffFile   name of the GFF file to be generated
+convertGtfToGff <- function(psGtfFile, psGffFile) {
   cat(" * Converting GTF to GFF ...\n")
-  sCurWd <- getwd()
-  sAnnotDir <- dirname(psGtfFile)
-  setwd(sAnnotDir)
-  sGtfFn <- basename(psGtfFile)
-  ### # convert using the python scripts
-  sGffFn <- gsub("gtf$", "gff", sGtfFn)
   ### # check whether the path exists
   if (!exists("DEXSEQ_PREPARE")) {
     DEXSEQ_PREPARE <- lGetPyScriptPaths()$DEXSEQ_PREPARE
   }
-  sPyConvCmd <- paste(DEXSEQ_PREPARE, sGtfFn, sGffFn)
+  sPyConvCmd <- paste(DEXSEQ_PREPARE, psGtfFile, psGffFile)
   ezSystem(sPyConvCmd)
-  cat("  ... created", sGffFn, "\n")
-  setwd(sCurWd)
+  cat("  ==> created: ", psGffFile, "\n")
   invisible(TRUE)
 }
 
 #' Run counts for a single BAM file
 #' 
-runCountSingleBam <- function(psBamFile, psGffFile){
+runCountSingleBam <- function(psBamFile, psGffFile, psCountfileExt){
   sSamCmd <- paste(SAMTOOLS, "view -h", psBamFile)
   ### # run counting on sam file
-  sCountBaseFn <- gsub("bam$", "count", basename(psBamFile))
+  sCountBaseFn <- gsub("bam$", psCountfileExt, basename(psBamFile))
   if (!exists("DEXSEQ_COUNT")){
     DEXSEQ_COUNT <- lGetPyScriptPaths()$DEXSEQ_COUNT
   }
