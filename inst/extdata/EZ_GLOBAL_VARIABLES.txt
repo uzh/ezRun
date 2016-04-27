@@ -14,7 +14,7 @@ REF_HOST="http://fgcz-gstore.uzh.ch/reference"
 PROJECT_BASE_URL="http://fgcz-gstore.uzh.ch/projects"
 
 
-PYTHON_CMD="/usr/local/ngseq/lib/python/:/usr/local/ngseq/lib/python2.7:/usr/local/ngseq/lib/python2.7/dist-packages /usr/local/ngseq/bin/python"
+PYTHON_CMD='PYTHONPATH="/usr/local/ngseq/lib/python/:/usr/local/ngseq/lib/python2.7:/usr/local/ngseq/lib/python2.7/dist-packages" /usr/local/ngseq/bin/python'
 
 
 ## timout is in minutes
