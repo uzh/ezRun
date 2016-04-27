@@ -16,18 +16,19 @@
 #' @param param
 #' 
 ezMethodDEXSeqAnalysis <- function(input=NA, output=NA, param=NA){
-  ### # if count files are not available, generate them
-  if(!is.element("Count", colnames(input$meta)) || !all(file.exists(input$meta$Count))) {
+  ### # get count files based on the name of the bamfiles  
+  sCountfileExt <- 'count'
+  if (ezIsSpecified(param$countfile_ext))
+    sCountfileExt <- param$countfile_ext
+  countFiles <- gsub("bam$", replacement = sCountfileExt, basename(input$getColumn("BAM")))
+  ### # if count files do not exist, generate them
+  if(!all(file.exists(countFiles)))
     EzAppDEXSeqCounting$new()$run(input = input, output = output, param = param)
-    input <- EzDataset$new(file = input$file)    
-  }
-    
-  ### # get count files
-  countFiles <- input$getFullPaths(param, "Count")
+  
   ### # check whether conditions are specified
   if (param$grouping %in% colnames(input$meta))
     condition <- input$meta$Condition
-  if (!is.null(param$condition))
+  if (ezIsSpecified(param$condition))
     condition <- param$condition
   ### # if conditions are not specified, then we have to stop here
   if (is.null(condition))
@@ -45,14 +46,17 @@ ezMethodDEXSeqAnalysis <- function(input=NA, output=NA, param=NA){
     condition = condition[vCompOrder]
   )
   ### # check the reference
-  sRefFeatGff <- gsub("gtf$", "gff", param[['ezRef']]@refFeatureFile)
+  sRefFeatGff <- gsub("gtf$", "gff", basename(param[['ezRef']]@refFeatureFile))
+  if(ezIsSpecified(param$gff_file))
+    sRefFeatGff <- param$gff_file
   stopifnot(file.exists(sRefFeatGff))
   
   ### # check whether special design was specified, o/w use minimal default design
-  if (!is.null(param$design)) {
+  if (ezIsSpecified(param$design)) {
     design <- param$design
   } else {
     design <- ~ sample + exon + condition:exon
+    param$design <- design
   }
     
   ### # create the initial DEXSeqDataSet object
@@ -62,39 +66,36 @@ ezMethodDEXSeqAnalysis <- function(input=NA, output=NA, param=NA){
     design        = design,
     flattenedfile = sRefFeatGff )
   
-  ### # plot disersion estimates, if indicated by the parameter
-  if (!is.null(param$disp_plot)) {
-    sDispPlotPdfFile <- ifelse(identical(tools::file_ext(param$disp_plot), "pdf"), param$disp_plot, paste(param$disp_plot, "pdf", sep = "."))
-    pdf(file = sDispPlotPdfFile)
-    dxd %>% 
-      DEXSeq::estimateSizeFactors %>% 
-      DEXSeq::estimateDispersions %>% 
-      DEXSeq::plotDispEsts
-    dev.off()
-  }
-  ### # extract the result from the differential analysis
-  dxr <- DEXSeq::DEXSeq(dxd)
-  
-  ### # plotting MA, if indicated
-  if (!is.null(param$ma_plot)){
-    sMaPlotPdfFile <- ifelse(identical(tools::file_ext(param$ma_plot), "pdf"), param$ma_plot, paste(param$ma_plot, "pdf", sep = "."))
-    pdf(file = sMaPlotPdfFile)
-    DEXSeq::plotMA( dxr )
-    dev.off()
-  }
-  
-  ### # write tsv file from results
-  if (!is.null(param$ResultFile)) {
-    sResultFile <- param$ResultFile
-  } else {
-    sResultFile <- "DexSeqResult.tsv"
-  }
-  write.table(dxr, file = sResultFile, quote = FALSE, sep = "\t")
+  ### # estimate size factors and dispersion
+  dxd <- DEXSeq::estimateSizeFactors( dxd )
+  dxd <- DEXSeq::estimateDispersions( dxd )
 
-  ### # generate a predefined html-report
-  if (!is.null(param$output_format) && identical(tolower(param$output_format), 'html'))
-    DEXSeq::DEXSeqHTML(dxr)
+  ### # testing for differential usage
+  dxd  <- DEXSeq::testForDEU( dxd )
   
+  ### # fold changes
+  dxd <- DEXSeq::estimateExonFoldChanges( dxd, fitExpToVar="condition")
+  
+#   ### # plot disersion estimates, if indicated by the parameter
+#   if (ezIsSpecified(param$disp_plot)) {
+#     sDispPlotPdfFile <- ifelse(identical(tools::file_ext(param$disp_plot), "pdf"), param$disp_plot, paste(param$disp_plot, "pdf", sep = "."))
+#     pdf(file = sDispPlotPdfFile)
+#     DESeq2::plotDispEsts( dxd )
+#     dev.off()
+#   }
+#   ### # extract the result from the differential analysis
+#   dxr <- DEXSeq::DEXSeq(dxd)
+#   
+#   ### # plotting MA, if indicated
+#   if (ezIsSpecified(param$ma_plot)){
+#     sMaPlotPdfFile <- ifelse(identical(tools::file_ext(param$ma_plot), "pdf"), param$ma_plot, paste(param$ma_plot, "pdf", sep = "."))
+#     pdf(file = sMaPlotPdfFile)
+#     DEXSeq::plotMA( dxr )
+#     dev.off()
+#   }
+  
+  ### # generate a report
+  writeDEXSeqReport(dataset = input$meta, dexResult = list(param = param, dxd=dxd), output=output)
   return("Success")  
 }
 
@@ -124,3 +125,78 @@ addDEXSeqCondition = function(psInput, pvCondition){
   write.table(ezObjInput$meta, file = ezObjInput$file, quote = FALSE, sep = "\t")
 }
 
+
+#' @title Writing a report for a DEXSeq analysis
+#' 
+#' @description 
+writeDEXSeqReport <- function(dataset, dexResult, output, htmlFile="00index.html", types=NULL, sResultDir = "html") {
+  ### # retrieve parameters 
+  param <- dexResult$param
+  ### # extract name appearing in the report
+  name <- param$name
+  ### # result dataframe and generate html results to be included later
+  dxd <- dexResult$dxd
+  dxr <- DEXSeq::DEXSeq(dxd)
+
+  ### # write tsv file from results
+  if (ezIsSpecified(param$ResultFile)) {
+    sResultFile <- param$ResultFile
+  } else {
+    sResultFile <- "DexSeqResult.tsv"
+  }
+  write.table(dxr, file = sResultFile, quote = FALSE, sep = "\t")
+  
+  ### # put the results into a different subdirectory
+  sCurWd <- getwd()
+  setwdNew(sResultDir)
+
+  ### # write that generic report
+  DEXSeq::DEXSeqHTML(dxr)
+  
+  ### # put a title to the report using name in output
+  titles <- list()
+  titles[["Analysis"]]  <- paste("Analysis:", name)
+  ### # create a report instance
+  doc <- openBsdocReport(title=titles[[length(titles)]])
+  ### # adding the dataset meta information
+  addDataset(doc, dataset, param)
+  
+  ### # result summary
+  titles[["Result Summary"]] = "Result Summary"
+  addTitle(doc, titles[[length(titles)]], 2, id=titles[[length(titles)]])
+  settings = character()
+  settings["Grouping:"] = param$grouping
+  settings["Sample group:"] = param$sampleGroup
+  settings["Reference group:"] = param$refGroup
+  settings["Design:"] = paste(as.character(param$design), collapse = " ")
+  settings["Number of result features:"] = nrow(dxr)
+  addFlexTable(doc, ezGrid(settings, add.rownames=TRUE))
+  
+  ### # Dispersion plot
+  titles[["Dispersion-Plot"]] = "Dispersion Plot"
+  addTitle(doc, titles[[length(titles)]], 3, id=titles[[length(titles)]])
+  if (ezIsSpecified(param$disp_plot)) {
+    sDispPlotFile <- ifelse(identical(tools::file_ext(param$disp_plot), "png"), param$disp_plot, paste(param$disp_plot, "png", sep = "."))
+    addParagraph(doc, 
+                 ezImageFileLink(plotCmd = expression(DESeq2::plotDispEsts( dxd )), 
+                                 file=sDispPlotFile, 
+                                 name="Dispersion Plot",
+                                 mouseOverText = "Dispersion Plot"))
+  }
+  
+  ### # MA-Plot
+  titles[["MA-Plot"]] = "MA Plot"
+  addTitle(doc, titles[[length(titles)]], 4, id=titles[[length(titles)]])
+  if (ezIsSpecified(param$ma_plot)) {
+    sMaPlotPdfFile <- ifelse(identical(tools::file_ext(param$ma_plot), "png"), param$ma_plot, paste(param$ma_plot, "png", sep = "."))
+    addParagraph(doc, 
+                 ezImageFileLink(plotCmd = expression(DEXSeq::plotMA( dxr )), 
+                                 file=sMaPlotPdfFile, 
+                                 name="MA Plot",
+                                 mouseOverText = "MA Plot"))
+  }
+  
+  ### # closing the report leads to writing it to htmlFile
+  closeBsdocReport(doc, htmlFile, titles)
+  setwd(sCurWd)
+}
