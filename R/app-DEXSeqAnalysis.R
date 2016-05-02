@@ -74,25 +74,7 @@ ezMethodDEXSeqAnalysis <- function(input=NA, output=NA, param=NA){
   dxd  <- DEXSeq::testForDEU( dxd )
   
   ### # fold changes
-  dxd <- DEXSeq::estimateExonFoldChanges( dxd, fitExpToVar="condition")
-  
-#   ### # plot disersion estimates, if indicated by the parameter
-#   if (ezIsSpecified(param$disp_plot)) {
-#     sDispPlotPdfFile <- ifelse(identical(tools::file_ext(param$disp_plot), "pdf"), param$disp_plot, paste(param$disp_plot, "pdf", sep = "."))
-#     pdf(file = sDispPlotPdfFile)
-#     DESeq2::plotDispEsts( dxd )
-#     dev.off()
-#   }
-#   ### # extract the result from the differential analysis
-#   dxr <- DEXSeq::DEXSeq(dxd)
-#   
-#   ### # plotting MA, if indicated
-#   if (ezIsSpecified(param$ma_plot)){
-#     sMaPlotPdfFile <- ifelse(identical(tools::file_ext(param$ma_plot), "pdf"), param$ma_plot, paste(param$ma_plot, "pdf", sep = "."))
-#     pdf(file = sMaPlotPdfFile)
-#     DEXSeq::plotMA( dxr )
-#     dev.off()
-#   }
+  dxd <- DEXSeq::estimateExonFoldChanges( dxd, fitExpToVar=tolower(param$grouping))
   
   ### # generate a report
   writeDEXSeqReport(dataset = input$meta, dexResult = list(param = param, dxd=dxd), output=output)
@@ -113,6 +95,12 @@ EzAppDEXSeqAnalysis <-
                   "Initializes the application using its specific defaults."
                   runMethod <<- ezMethodDEXSeqAnalysis
                   name <<- "EzAppDEXSeqAnalysis"
+                  appDefaults <<- rbind(disp_plot      = ezFrame(Type="character", DefaultValue="dispersion_estimate_plot", Description="which test method in DESeq to use: deseq2"),
+                                        ma_plot        = ezFrame(Type="character", DefaultValue="ma_plot",    Description="no need to compute moderated ratios; deseq2 does this already"),
+                                        countfile_ext  = ezFrame(Type="character", DefaultValue="count",      Description="extension of count files"),
+                                        countfile_path = ezFrame(Type="character", DefaultValue=".",          Description="path where count files should be stored"),
+                                        gff_file       = ezFrame(Type="character", DefaultValue="genes.gff",  Description="name of the gff annotation file"),
+                                        fdr            = ezFrame(Type="numeric",   DefaultValue=0.1,          Description="false discovery rate below which genes are reported"))
                 }
               ))
 
@@ -150,9 +138,12 @@ writeDEXSeqReport <- function(dataset, dexResult, output, htmlFile="00index.html
   sCurWd <- getwd()
   setwdNew(sResultDir)
 
-  ### # write that generic report
-  DEXSeq::DEXSeqHTML(dxr)
-  
+  ### # write that generic report for a given FDR, using 0.1 as the default
+#   nFdr <- 0.1
+#   if (ezIsSpecified(param$fdr))
+    nFdr <- param$fdr
+  DEXSeq::DEXSeqHTML(dxr, FDR = nFdr)
+
   ### # put a title to the report using name in output
   titles <- list()
   titles[["Analysis"]]  <- paste("Analysis:", name)
@@ -169,8 +160,19 @@ writeDEXSeqReport <- function(dataset, dexResult, output, htmlFile="00index.html
   settings["Sample group:"] = param$sampleGroup
   settings["Reference group:"] = param$refGroup
   settings["Design:"] = paste(as.character(param$design), collapse = " ")
+  settings["FDR:"] = as.character(nFdr)
   settings["Number of result features:"] = nrow(dxr)
   addFlexTable(doc, ezGrid(settings, add.rownames=TRUE))
+  
+  ### # experimental design
+  titles[["Experimental Design"]] = "Experimental Design"
+  addTitle(doc, titles[[length(titles)]], 3, id=titles[[length(titles)]])
+  ### # put together experimental condition
+  sampleData <- dxr@sampleData
+  fitExpToVar <- tolower(param$grouping)
+  numcond <- length(unique(sampleData[[fitExpToVar]]))
+  cond <- as.data.frame(sampleData[, !colnames(sampleData) %in% "sizeFactor"])
+  addFlexTable(doc, ezFlexTable(cond, add.rownames=FALSE, header.columns = TRUE))
   
   ### # Dispersion plot
   titles[["Dispersion-Plot"]] = "Dispersion Plot"
@@ -186,7 +188,7 @@ writeDEXSeqReport <- function(dataset, dexResult, output, htmlFile="00index.html
   
   ### # MA-Plot
   titles[["MA-Plot"]] = "MA Plot"
-  addTitle(doc, titles[[length(titles)]], 4, id=titles[[length(titles)]])
+  addTitle(doc, titles[[length(titles)]], 3, id=titles[[length(titles)]])
   if (ezIsSpecified(param$ma_plot)) {
     sMaPlotPdfFile <- ifelse(identical(tools::file_ext(param$ma_plot), "png"), param$ma_plot, paste(param$ma_plot, "png", sep = "."))
     addParagraph(doc, 
@@ -195,6 +197,41 @@ writeDEXSeqReport <- function(dataset, dexResult, output, htmlFile="00index.html
                                  name="MA Plot",
                                  mouseOverText = "MA Plot"))
   }
+  
+  ### # Put simply a link to the already existing report
+  titles[["DEXSeq differential exon usage test"]] = "DEXSeq differential exon usage test"
+  addTitle(doc, titles[[length(titles)]], 3, id=titles[[length(titles)]])
+  addParagraph(doc, pot("Test results for differential exon usage", hyperlink = "DEXSeqReport/testForDEU.html"))
+                                                                                                
+  
+#   ### # table with genes showing relevant genes given a certain FDR
+#   genomicData <- as.data.frame(dxr$genomicData)
+#   results <- data.frame(dxr[, c("groupID", 
+#                                 "featureID", 
+#                                 "exonBaseMean", 
+#                                 "dispersion", 
+#                                 "pvalue", 
+#                                 "padj")], stringsAsFactors = TRUE)
+#   results <- cbind(results, genomicData)
+#   results[, c("dispersion", "pvalue", "padj")] <- round(results[, c("dispersion", "pvalue", "padj")], 3)
+#   dexseqR <- mcols(dxr)$type == "DEXSeq results"
+#   if (sum(dexseqR, na.rm = TRUE) > 0) {
+#     results <- cbind(results, round(as.data.frame(dxr[, which(dexseqR)]), 3))
+#   }
+#   rownames(results) <- NULL
+#   resultGenes <- as.character(unique(results$groupID[which(results$padj < nFdr)]))
+#   results <- results[as.character(results$groupID) %in% resultGenes, 
+#                      ]
+#   splitCols <- split(seq_len(nrow(results)), results$groupID)
+#   genetable <- lapply(splitCols, function(x) {
+#     data.frame(chr = unique(results$seqnames[x]), start = min(results$start[x]), 
+#                end = max(results$end[x]), total_exons = length(x), 
+#                exon_changes = sum(results$padj[x] < nFdr, na.rm = TRUE))
+#   })
+#   genetable <- do.call(rbind, genetable)
+#   genetable <- cbind(geneID = rownames(genetable), genetable)
+  
+  
   
   ### # closing the report leads to writing it to htmlFile
   closeBsdocReport(doc, htmlFile, titles)
