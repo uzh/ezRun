@@ -58,6 +58,9 @@ param[['gff_file']] = 'genes.gff'
 # specify the name that will appear in the report
 param[['name']] = 'Exon Usage Comparison in MM Colon Vs SI'
 
+# specify false discovery rate FDR
+param[['fdr']] = 0.01
+
 # specify output information, at least output[['Name']]  must be specified
 output = list()
 output[['Name']] = 'bamFiles_ExonCounting_DEXSeqResults'
