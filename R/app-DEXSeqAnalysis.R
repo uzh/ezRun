@@ -203,36 +203,6 @@ writeDEXSeqReport <- function(dataset, dexResult, output, htmlFile="00index.html
   addTitle(doc, titles[[length(titles)]], 3, id=titles[[length(titles)]])
   addParagraph(doc, pot("Test results for differential exon usage", hyperlink = "DEXSeqReport/testForDEU.html"))
                                                                                                 
-  
-#   ### # table with genes showing relevant genes given a certain FDR
-#   genomicData <- as.data.frame(dxr$genomicData)
-#   results <- data.frame(dxr[, c("groupID", 
-#                                 "featureID", 
-#                                 "exonBaseMean", 
-#                                 "dispersion", 
-#                                 "pvalue", 
-#                                 "padj")], stringsAsFactors = TRUE)
-#   results <- cbind(results, genomicData)
-#   results[, c("dispersion", "pvalue", "padj")] <- round(results[, c("dispersion", "pvalue", "padj")], 3)
-#   dexseqR <- mcols(dxr)$type == "DEXSeq results"
-#   if (sum(dexseqR, na.rm = TRUE) > 0) {
-#     results <- cbind(results, round(as.data.frame(dxr[, which(dexseqR)]), 3))
-#   }
-#   rownames(results) <- NULL
-#   resultGenes <- as.character(unique(results$groupID[which(results$padj < nFdr)]))
-#   results <- results[as.character(results$groupID) %in% resultGenes, 
-#                      ]
-#   splitCols <- split(seq_len(nrow(results)), results$groupID)
-#   genetable <- lapply(splitCols, function(x) {
-#     data.frame(chr = unique(results$seqnames[x]), start = min(results$start[x]), 
-#                end = max(results$end[x]), total_exons = length(x), 
-#                exon_changes = sum(results$padj[x] < nFdr, na.rm = TRUE))
-#   })
-#   genetable <- do.call(rbind, genetable)
-#   genetable <- cbind(geneID = rownames(genetable), genetable)
-  
-  
-  
   ### # closing the report leads to writing it to htmlFile
   closeBsdocReport(doc, htmlFile, titles)
   setwd(sCurWd)
