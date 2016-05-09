@@ -21,7 +21,7 @@ ezMethodFeatureCounts = function(input=NA, output=NA, param=NA){
                                                   "transcript"="transcript_id",
                                                   "isoform"="transcript_id",
                                                   stop("unsupported feature level: ", param$featureLevel)),
-                              useMetaFeatures=TRUE,
+                              useMetaFeatures=param$useMetaFeatures,
                               allowMultiOverlap=param$allowMultiOverlap, isPairedEnd=param$paired, 
                               requireBothEndsMapped=FALSE,
                               checkFragLength=FALSE,minFragLength=50,maxFragLength=600,
@@ -62,6 +62,7 @@ EzAppFeatureCounts <-
                                         allowMultiOverlap = ezFrame(Type="logical",  DefaultValue="TRUE",  Description="make sure that every read counts only as one"),
                                         countPrimaryAlignmentsOnly = ezFrame(Type="logical",  DefaultValue="TRUE",  Description="count only the primary alignment"),
                                         minFeatureOverlap=ezFrame(Type="integer", DefaultValue="10", Description="the number of bases overlap are need to generate a count"),
+                                        useMetaFeatures=ezFrame(Type="logical", DefaultValue="TRUE", Description="should counts be summarized to meta-features"),
                                         ignoreDup=ezFrame(Type="logical", DefaultValue="FALSE", Description="ignore reads marked as duplicates"))
                 }
               )
