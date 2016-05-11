@@ -160,7 +160,7 @@ collectBowtie2Output = function(param, dataset, countFiles){
 
       multipleSpeciesHits[setdiff(names(topSpeciesUniq), names(multipleSpeciesHits))] = 0
       topSpeciesMultiple = multipleSpeciesHits[names(topSpeciesUniq)]
-      
+
       if(param$nReads > 0){
         totalCount = param$nReads
       } else {
@@ -170,8 +170,8 @@ collectBowtie2Output = function(param, dataset, countFiles){
       taxNames = tax2name[taxIds, 'Name']
       hasNoName = is.na(taxNames)
       taxNames[hasNoName] = taxIds[hasNoName]
-      x = ezFrame(UniqueSpeciesHits=signif(100 * topSpeciesUniq/totalCount, digits=4),
-                  MultipleSpeciesHits=signif(100 * topSpeciesMultiple/totalCount, digits=4),
+      x = ezFrame(UniqueSpeciesHits=signif(100 * as.matrix(topSpeciesUniq)/totalCount, digits=4),
+                  MultipleSpeciesHits=signif(100 * as.matrix(topSpeciesMultiple)/totalCount, digits=4),
                   row.names = taxNames)
       speciesPercentageTop[[nm]] = x
     } else {
