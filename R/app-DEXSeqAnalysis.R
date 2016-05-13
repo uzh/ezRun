@@ -78,7 +78,7 @@ ezMethodDEXSeqAnalysis <- function(input=NA, output=NA, param=NA){
   dxd <- DEXSeq::estimateExonFoldChanges( dxd, fitExpToVar=tolower(param$grouping))
   
   ### # generate a report
-  writeDEXSeqReport(dataset = input$meta, dexResult = list(param = param, dxd=dxd), output=output)
+  writeDEXSeqReport(dataset = input$meta, dexResult = list(param = param, dxd=dxd))
   return("Success")  
 }
 
@@ -101,7 +101,9 @@ EzAppDEXSeqAnalysis <-
                                         countfile_ext  = ezFrame(Type="character", DefaultValue="count",      Description="extension of count files"),
                                         countfile_path = ezFrame(Type="character", DefaultValue=".",          Description="path where count files should be stored"),
                                         gff_file       = ezFrame(Type="character", DefaultValue="genes.gff",  Description="name of the gff annotation file"),
-                                        fdr            = ezFrame(Type="numeric",   DefaultValue=0.1,          Description="false discovery rate below which genes are reported"))
+                                        fdr            = ezFrame(Type="numeric",   DefaultValue=0.1,          Description="false discovery rate below which genes are reported"),
+                                        dexseq_report_path = ezFrame(Type="character", DefaultValue="DEXSeqReport",  Description="path DEXSeqHTML report is written to"),
+                                        dexseq_report_file = ezFrame(Type="character", DefaultValue="testForDEU.html",  Description="file name for DEXSeqHTML report")   )
                 }
               ))
 
@@ -118,7 +120,7 @@ addDEXSeqCondition = function(psInput, pvCondition){
 #' @title Writing a report for a DEXSeq analysis
 #' 
 #' @description 
-writeDEXSeqReport <- function(dataset, dexResult, output, htmlFile="00index.html", types=NULL, sResultDir = "html") {
+writeDEXSeqReport <- function(dataset, dexResult, psHtmlFile="00index.html", psResultDir = "html") {
   ### # retrieve parameters 
   param <- dexResult$param
   ### # extract name appearing in the report
@@ -126,6 +128,9 @@ writeDEXSeqReport <- function(dataset, dexResult, output, htmlFile="00index.html
   ### # extract DEXSeqResults object
   dxd <- dexResult$dxd
   dxr <- DEXSeq::DEXSeqResults(dxd)
+  ### # get name of html file and resultdir
+  htmlFile <- psHtmlFile
+  sResultDir <- psResultDir
 
   ### # write tsv file from results
   if (ezIsSpecified(param$ResultFile)) {
@@ -140,7 +145,7 @@ writeDEXSeqReport <- function(dataset, dexResult, output, htmlFile="00index.html
   setwdNew(sResultDir)
 
   ### # write that generic report for a given FDR, using 0.1 as the default
-  DEXSeq::DEXSeqHTML(dxr, FDR = param$fdr)
+  DEXSeq::DEXSeqHTML(dxr, path = param$dexseq_report_path, file = param$dexseq_report_file, FDR = param$fdr)
 
   ### # put a title to the report using name in output
   titles <- list()
@@ -256,6 +261,7 @@ getGeneTable <- function(pdxr, param){
   genetable <- do.call(rbind, genetable)
   genetable <- cbind(geneID = rownames(genetable), genetable)
   
+  
   ### # reading gene annotations from annotation file
   ### #  extract name of annotation file from param
   sGnAnFn <- param[['ezRef']]@refAnnotationFile
@@ -263,15 +269,77 @@ getGeneTable <- function(pdxr, param){
 
   ### # extract gene_names and descriptions for all genes in the whole genetable
   gene_name <- sapply(genetable$geneID, 
-                      function(x) 
-                        paste(unique(dfGnsAnnot[dfGnsAnnot[, "gene_id"] == x,"gene_name"]), sep = "", collapse = " | "), 
+                      function(x) {
+                        ### # some entries in geneID can contain multiple
+                        ### #  gene_ids pasted together with "+"
+                        sSingleId <- unlist(strsplit(x, split = "+"))
+                        nNrIds <- length(sSingleId)
+                        if (nNrIds > 1) {
+                          sResultGeneName <- paste(unique(dfGnsAnnot[dfGnsAnnot[, "gene_id"] == sSingleId[1],"gene_name"]), sep = "", collapse = " | ")
+                          for(nIdx in 2:nNrIds){
+                            sResultGeneName <- paste(sResultGeneName, paste(unique(dfGnsAnnot[dfGnsAnnot[, "gene_id"] == sSingleId[nIdx],"gene_name"]), sep = "", collapse = " | "),
+                                                     sep = "+")
+                          }
+                        } else {
+                          sResultGeneName <- paste(unique(dfGnsAnnot[dfGnsAnnot[, "gene_id"] == x,"gene_name"]), sep = "", collapse = " | ")
+                        }
+                        return(sResultGeneName)
+                      }, 
                       USE.NAMES = FALSE)
   gene_description <- sapply(genetable$geneID, 
-                             function(x) 
-                               paste(unique(dfGnsAnnot[dfGnsAnnot[, "gene_id"] == x,"description"]), sep = "", collapse = " | "), 
+                             function(x) {
+                               ### # some entries in geneID can contain multiple
+                               ### #  gene_ids pasted together with "+"
+                               sSingleId <- unlist(strsplit(x, split = "+"))
+                               nNrIds <- length(sSingleId)
+                               if (nNrIds > 1) {
+                                 sResultGeneDesc <- paste(unique(dfGnsAnnot[dfGnsAnnot[, "gene_id"] == sSingleId[1],"description"]), sep = "", collapse = " | ")
+                                 for(nIdx in 2:nNrIds){
+                                   sResultGeneDesc <- paste(sResultGeneDesc, paste(unique(dfGnsAnnot[dfGnsAnnot[, "gene_id"] == sSingleId[nIdx],"description"]), sep = "", collapse = " | "),
+                                                            sep = "+")
+                                 }
+                               } else {
+                                 sResultGeneDesc <- paste(unique(dfGnsAnnot[dfGnsAnnot[, "gene_id"] == x,"description"]), sep = "", collapse = " | ")
+                               }
+                               return(sResultGeneDesc)
+                             }, 
                              USE.NAMES = FALSE)
   ### # add extracted columns and return genetable
   genetable <- cbind(genetable, gene_name, gene_description)
+  
+  ### # add links to result files
+  genetable$geneID <- as.character(genetable$geneID)
+  genetable$geneID <- getGeneIdExprLinks(pvGeneIds = genetable$geneID, psdexseq_report_path = param$dexseq_report_path)
+  
   return(genetable)
 }
 
+
+#' Get Links from GeneIds to Expression result files
+#' 
+#' @param pvGeneIds              vector of gene ids
+#' @param psdexseq_report_path   path to where DEXSeqHTML report is saved
+getGeneIdExprLinks <- function(pvGeneIds, psdexseq_report_path){
+  ### # elements in pvGeneIds can have multiple GeneIds separated with a "+"
+  ### # the following local function will take a single element in pvGeneIds 
+  ### # split it up, if required and generate the link to the result file
+  getGeneLink <- function(psGeneId) {
+    vSplitIds <- unlist(strsplit(psGeneId, split = "+", fixed = TRUE))
+    nrIds <- length(vSplitIds)
+    if (nrIds > 1) {
+      ### # in case there are multiple GeneIds in psGeneId, the first determines the link, hence we save it
+      sLinkToFirstGene <- paste0(psdexseq_report_path, "/files/", vSplitIds[1], "expression.html")
+      sResultLink <- as.html(pot(vSplitIds[1], hyperlink = sLinkToFirstGene))
+      for (nIdx in 2:nrIds){
+        sResultLink <- paste(sResultLink, 
+                             as.html(pot(vSplitIds[nIdx], hyperlink = sLinkToFirstGene)),
+                             sep = "+")
+      }
+    } else {
+      sResultLink <- as.html(pot(psGeneId, hyperlink = paste0(psdexseq_report_path, "/files/", psGeneId, "expression.html")))
+    }
+    return(sResultLink)
+  }
+  return(sapply(pvGeneIds, getGeneLink, USE.NAMES = FALSE))
+  
+}
