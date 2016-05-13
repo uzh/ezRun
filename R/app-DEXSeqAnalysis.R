@@ -26,10 +26,11 @@ ezMethodDEXSeqAnalysis <- function(input=NA, output=NA, param=NA){
     EzAppDEXSeqCounting$new()$run(input = input, output = output, param = param)
   
   ### # check whether conditions are specified
+  colnames(input$meta) = gsub(' \\[.*','',colnames(input$meta))
   if (param$grouping %in% colnames(input$meta))
-    condition <- input$meta$Condition
-  if (ezIsSpecified(param$condition))
-    condition <- param$condition
+    condition <- input$meta[[param$grouping]]
+  #if (ezIsSpecified(param$grouping))
+  #  condition <- param$grouping
   ### # if conditions are not specified, then we have to stop here
   if (is.null(condition))
     stop(" * No conditions were specified in ezMethodDEXSeqAnalysis")

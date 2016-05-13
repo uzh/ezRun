@@ -209,7 +209,7 @@ runDeseq2 = function(x, sampleGroup, refGroup, grouping, batch=NULL, isPresent=N
   dds = DESeq2::DESeq(dds, quiet=FALSE)
   res = DESeq2::results(dds, contrast=c("grouping", sampleGroup, refGroup), cooksCutoff=FALSE)
   res = as.list(res)
-  res$sf = 1/colData(dds)$sizeFactor
+  res$sf = 1/dds@colData$sizeFactor
   return(res)
 }
 
