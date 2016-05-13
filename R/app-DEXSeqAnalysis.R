@@ -78,7 +78,7 @@ ezMethodDEXSeqAnalysis <- function(input=NA, output=NA, param=NA){
   dxd <- DEXSeq::estimateExonFoldChanges( dxd, fitExpToVar=tolower(param$grouping))
   
   ### # generate a report
-  writeDEXSeqReport(dataset = input$meta, dexResult = list(param = param, dxd=dxd))
+  writeDEXSeqReport(dataset = input$meta, dexResult = list(param = param, dxd=dxd), output=output,sResultDir=basename(output$meta[['Report [File]']]))
   return("Success")  
 }
 
