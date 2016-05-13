@@ -140,7 +140,6 @@ writeDEXSeqReport <- function(dataset, dexResult, output, htmlFile="00index.html
   setwdNew(sResultDir)
 
   ### # write that generic report for a given FDR, using 0.1 as the default
-  #nFdr <- param$fdr
   DEXSeq::DEXSeqHTML(dxr, FDR = param$fdr)
 
   ### # put a title to the report using name in output
@@ -159,7 +158,7 @@ writeDEXSeqReport <- function(dataset, dexResult, output, htmlFile="00index.html
   settings["Sample group:"] = param$sampleGroup
   settings["Reference group:"] = param$refGroup
   settings["Design:"] = paste(as.character(param$design), collapse = " ")
-  settings["FDR:"] = as.character(nFdr)
+  settings["FDR:"] = as.character(param$fdr)
   settings["Number of result features:"] = nrow(dxr)
   addFlexTable(doc, ezGrid(settings, add.rownames=TRUE))
   
