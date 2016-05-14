@@ -133,7 +133,7 @@ EzDataset <-
                   } else {
                     dataRoot = param
                   }
-                  ok = ezSystem(paste("cd", dataRoot, "; pwd"))
+                  ### ok = ezSystem(paste("cd", dataRoot, "; pwd")) ### workaround to make sure the drive where the data sits is mounted by the automounter
                   files = .self$getColumn(name)
                   if (all(ezIsAbsolutePath(files))){
                     return(files)
