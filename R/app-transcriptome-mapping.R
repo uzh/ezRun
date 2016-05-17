@@ -58,7 +58,7 @@ getBowtie2TranscriptomeReference = function(param){
     exonRgList = exonsBy(txdb, by="tx", use.names=TRUE)
     trSeqs = extractTranscriptSeqs(genomeFa, exonRgList)
     writeXStringSet(trSeqs, trSeqFile)
-    cmd = paste(file.path(BOWTIE_DIR2, "bowtie2-build"), "-f", basename(trSeqFile), basename(refBase))
+    cmd = paste(file.path(BOWTIE2_DIR, "bowtie2-build"), "-f", basename(trSeqFile), basename(refBase))
     ezSystem(cmd)
     setwd(wd)
     file.remove(lockFile)
@@ -88,16 +88,16 @@ getBowtie2TranscriptomeReference = function(param){
 ##' @description Use this reference class to run 
 ##' @seealso \code{\link{getBowtie2Reference}}
 ##' @seealso \code{\link{ezMethodTrim}}
-EzAppBowtie2 <-
-  setRefClass("EzAppBowtie2",
+EzAppBowtie2Transcriptome <-
+  setRefClass("EzAppBowtie2Transcriptome",
               contains = "EzApp",
               methods = list(
                 initialize = function()
                 {
                   "Initializes the application using its specific defaults."
-                  runMethod <<- ezMethodBowtie2
-                  name <<- "EzAppBowtie2"
-                  appDefaults <<- rbind(writeIgvSessionLink=ezFrame(Type="logical", DefaultValue="TRUE", Description="should an IGV link be generated"))
+                  runMethod <<- ezMethodBowtie2Transcriptome
+                  name <<- "EzAppBowtie2Transcriptome"
+                  ##appDefaults <<- rbind(writeIgvSessionLink=ezFrame(Type="logical", DefaultValue="FALSE", Description="should an IGV link be generated"))
                 }
               )
   )
