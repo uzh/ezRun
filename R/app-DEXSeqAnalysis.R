@@ -232,7 +232,7 @@ DEXSeqCounting <- function(input = input, output = output, param = param){
   if (ezIsSpecified(param$countfile_ext))
     sCountfileExt <- param$countfile_ext
   ### # call counting routine
-  vCountFiles <- ezMclapply(bamFiles, runCountSingleBam, sGffFile, sCountfileExt,mc.cores = param[['Cores']])
+  vCountFiles <- ezMclapply(bamFiles, runCountSingleBam, sGffFile, sCountfileExt,mc.cores = param[['cores']])
   
   return("Success")
 }
