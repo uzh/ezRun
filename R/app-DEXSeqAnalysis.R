@@ -72,6 +72,7 @@ ezMethodDEXSeqAnalysis <- function(input=NA, output=NA, param=NA){
     flattenedfile = sRefFeatGff )
   
   ### # estimate size factors and dispersion
+  dxd <- DEXSeq::estimateSizeFactors( dxd )
   dxd <- DEXSeq::estimateDispersions( dxd, BPPARAM = param[['BPPARAM']] )
 
   ### # testing for differential usage
