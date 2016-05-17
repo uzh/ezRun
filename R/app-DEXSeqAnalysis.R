@@ -72,7 +72,6 @@ ezMethodDEXSeqAnalysis <- function(input=NA, output=NA, param=NA){
     flattenedfile = sRefFeatGff )
   
   ### # estimate size factors and dispersion
-  dxd <- DEXSeq::estimateSizeFactors( dxd )
   dxd <- DEXSeq::estimateDispersions( dxd, BPPARAM = param[['BPPARAM']] )
 
   ### # testing for differential usage
@@ -80,7 +79,7 @@ ezMethodDEXSeqAnalysis <- function(input=NA, output=NA, param=NA){
   
   ### # fold changes
   dxd <- DEXSeq::estimateExonFoldChanges( dxd, fitExpToVar = tolower(param$grouping), BPPARAM = param[['BPPARAM']])
-  
+
   ### # generate a report
   writeDEXSeqReport(dataset = input$meta, dexResult = list(param = param, dxd=dxd), output = output, sResultDir = basename(output$meta[['Report [File]']]))
   return("Success")  
@@ -147,7 +146,7 @@ writeDEXSeqReport <- function(dataset, dexResult, output, htmlFile="00index.html
 #   nFdr <- 0.1
 #   if (ezIsSpecified(param$fdr))
     nFdr <- param$fdr
-  DEXSeq::DEXSeqHTML(dxr, FDR = nFdr, BPPARAM = param[['BPPARAM']])
+    DEXSeq::DEXSeqHTML(dxr, FDR = nFdr, BPPARAM = param[['BPPARAM']])
 
   ### # put a title to the report using name in output
   titles <- list()
