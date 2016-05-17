@@ -1,0 +1,5 @@
+Name	trBAM [File]	trBAI [File]	Species	refBuild	paired	refFeatureFile	Read Count	Genotype [Factor]
+wt_1	extdata/yeast_10k_Bowtie2Transcriptome/wt_1.bam	extdata/yeast_10k_Bowtie2Transcriptome/wt_1.bam.bai	S. cerevisiae	Schizosaccharomyces_pombe/Ensembl/EF2/Annotation/Version-2013-03-07	true	genes.gtf	9794	wt
+wt_2	extdata/yeast_10k_Bowtie2Transcriptome/wt_2.bam	extdata/yeast_10k_Bowtie2Transcriptome/wt_2.bam.bai	S. cerevisiae	Schizosaccharomyces_pombe/Ensembl/EF2/Annotation/Version-2013-03-07	true	genes.gtf	9998	wt
+mut_1	extdata/yeast_10k_Bowtie2Transcriptome/mut_1.bam	extdata/yeast_10k_Bowtie2Transcriptome/mut_1.bam.bai	S. cerevisiae	Schizosaccharomyces_pombe/Ensembl/EF2/Annotation/Version-2013-03-07	true	genes.gtf	9788	mut
+mut_2	extdata/yeast_10k_Bowtie2Transcriptome/mut_2.bam	extdata/yeast_10k_Bowtie2Transcriptome/mut_2.bam.bai	S. cerevisiae	Schizosaccharomyces_pombe/Ensembl/EF2/Annotation/Version-2013-03-07	true	genes.gtf	9862	mut

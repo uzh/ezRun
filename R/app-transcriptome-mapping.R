@@ -15,8 +15,12 @@ ezMethodBowtie2Transcriptome = function(input=NA, output=NA, param=NA){
   bamFile = output$getColumn("trBAM")
   trimmedInput = ezMethodTrim(input = input, param = param)
   defOpt = paste("-p", ezThreads())
+  strandOpt = switch(param$strandMode,
+                     sense="--norc",
+                     antisense="--nofw",
+                     both="")
   
-  cmd = paste(file.path(BOWTIE2_DIR, "bowtie2"), param$cmdOptions, defOpt, 
+  cmd = paste(file.path(BOWTIE2_DIR, "bowtie2"), param$cmdOptions, defOpt, strandOpt,
               "-x", ref, if(param$paired) "-1", trimmedInput$getColumn("Read1"), 
               if(param$paired) paste("-2", trimmedInput$getColumn("Read2")),
               "2> bowtie.log", "|", SAMTOOLS, "view -S -b -", " > bowtie.bam")
