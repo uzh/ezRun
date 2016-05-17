@@ -16,6 +16,7 @@
 #' @param param
 #' 
 ezMethodDEXSeqAnalysis <- function(input=NA, output=NA, param=NA){
+  param[['BPPARAM']] = BiocParallel::MulticoreParam(workers=param$cores)
   ### # get count files based on the name of the bamfiles  
   sCountfileExt <- 'count'
   if (ezIsSpecified(param$countfile_ext))
@@ -23,7 +24,8 @@ ezMethodDEXSeqAnalysis <- function(input=NA, output=NA, param=NA){
   countFiles <- gsub("bam$", replacement = sCountfileExt, basename(input$getColumn("BAM")))
   ### # if count files do not exist, generate them
   if(!all(file.exists(countFiles)))
-    EzAppDEXSeqCounting$new()$run(input = input, output = output, param = param)
+    DEXSeqCounting(input = input, output = output, param = param)
+    #EzAppDEXSeqCounting$new()$run(input = input, output = output, param = param)
   
   ### # check whether conditions are specified
   colnames(input$meta) = gsub(' \\[.*','',colnames(input$meta))
@@ -40,7 +42,9 @@ ezMethodDEXSeqAnalysis <- function(input=NA, output=NA, param=NA){
   ### # define order, from the vignette, it seams that 
   ### #  first come the sample rows then the reference rows
   vCompOrder <- c(vIdxSample, vIdxRef)
-  
+  if(length(countFiles)>length(vCompOrder)){
+    countFiles = countFiles[vCompOrder]
+  }
   ### # sample table from rownames and conditions
   sampleTable <- data.frame(
     row.names = rownames(input$meta)[vCompOrder],
@@ -69,13 +73,13 @@ ezMethodDEXSeqAnalysis <- function(input=NA, output=NA, param=NA){
   
   ### # estimate size factors and dispersion
   dxd <- DEXSeq::estimateSizeFactors( dxd )
-  dxd <- DEXSeq::estimateDispersions( dxd )
+  dxd <- DEXSeq::estimateDispersions( dxd, BPPARAM=param[['BPPARAM']] )
 
   ### # testing for differential usage
-  dxd  <- DEXSeq::testForDEU( dxd )
+  dxd  <- DEXSeq::testForDEU( dxd, BPPARAM=param[['BPPARAM']] )
   
   ### # fold changes
-  dxd <- DEXSeq::estimateExonFoldChanges( dxd, fitExpToVar=tolower(param$grouping))
+  dxd <- DEXSeq::estimateExonFoldChanges( dxd, fitExpToVar=tolower(param$grouping),BPPARAM=param[['BPPARAM']])
   
   ### # generate a report
   writeDEXSeqReport(dataset = input$meta, dexResult = list(param = param, dxd=dxd), output=output,sResultDir=basename(output$meta[['Report [File]']]))
@@ -143,7 +147,7 @@ writeDEXSeqReport <- function(dataset, dexResult, output, htmlFile="00index.html
 #   nFdr <- 0.1
 #   if (ezIsSpecified(param$fdr))
     nFdr <- param$fdr
-  DEXSeq::DEXSeqHTML(dxr, FDR = nFdr)
+  DEXSeq::DEXSeqHTML(dxr, FDR = nFdr,BPPARAM=param[['BPPARAM']])
 
   ### # put a title to the report using name in output
   titles <- list()
@@ -207,4 +211,91 @@ writeDEXSeqReport <- function(dataset, dexResult, output, htmlFile="00index.html
   ### # closing the report leads to writing it to htmlFile
   closeBsdocReport(doc, htmlFile, titles)
   setwd(sCurWd)
+}
+
+DEXSeqCounting <- function(input = input, output = output, param = param){
+  ### # check whether GFF formatted annotation is available
+  sGtfFile <- param$ezRef@refFeatureFile
+  ### # gff will be placed in actual working directory, hence no 
+  ### #  soft links will be required
+  sGffFile <- gsub("gtf$", "gff", basename(sGtfFile))
+  if(ezIsSpecified(param$gff_file))
+    sGffFile <- param$gff_file
+  if (!file.exists(sGffFile))
+    convertGtfToGff(psGtfFile = sGtfFile, psGffFile = sGffFile)
+  
+  ### # do the counting, get the bam files from input
+  bamFiles = as.list(input$getFullPaths(param, "BAM"))
+  
+  ### # determine extension for count files
+  sCountfileExt <- 'count'
+  if (ezIsSpecified(param$countfile_ext))
+    sCountfileExt <- param$countfile_ext
+  ### # call counting routine
+  vCountFiles <- ezMclapply(bamFiles, runCountSingleBam, sGffFile, sCountfileExt,mc.cores = param[['Cores']])
+  
+  return("Success")
+}
+
+#' Convert annotation file from GTF format to GFF
+#' 
+#' @description 
+#' \code{convertGtfToGff} converts an annotation file from 
+#' the GTF format into the GFF format which is required 
+#' by the package \code{DEXSeq}. Input file name and the 
+#' name of the file to be generated are both given as 
+#' function parameters. The conversion is done by a python 
+#' script that is given by the content of \code{DEXSEQ_PREPARE} 
+#' which is either taken as a global variable or from the 
+#' result of function \code{lGetPyScriptPaths}
+#' 
+#' @param psGtfFile   name of the GTF annotation file
+#' @param psGffFile   name of the GFF file to be generated
+convertGtfToGff <- function(psGtfFile, psGffFile) {
+  cat(" * Converting GTF to GFF ...\n")
+  ### # check whether the path exists
+  if (!exists("DEXSEQ_PREPARE")) {
+    DEXSEQ_PREPARE <- lGetPyScriptPaths()$DEXSEQ_PREPARE
+  }
+  sPyConvCmd <- paste(DEXSEQ_PREPARE, psGtfFile, psGffFile)
+  ezSystem(sPyConvCmd)
+  cat("  ==> created: ", psGffFile, "\n")
+  invisible(TRUE)
+}
+
+#' Run counts for a single BAM file
+#' 
+runCountSingleBam <- function(psBamFile, psGffFile, psCountfileExt){
+  sSamCmd <- paste(SAMTOOLS, "view -h", psBamFile)
+  ### # run counting on sam file
+  sCountBaseFn <- gsub("bam$", psCountfileExt, basename(psBamFile))
+  if (!exists("DEXSEQ_COUNT")){
+    DEXSEQ_COUNT <- lGetPyScriptPaths()$DEXSEQ_COUNT
+  }
+  sPyCountCmd <- paste(sSamCmd, "|", DEXSEQ_COUNT, psGffFile, "-", sCountBaseFn)
+  ezSystem(sPyCountCmd)
+  sCountDir <- getwd()
+  return(file.path(sCountDir, sCountBaseFn))
+}
+
+
+#' Write names of countfiles back into the input file
+#' 
+writeCountFilesToMeta <- function(pvCountFiles, input) {
+  ### # add column with counts to the meta information
+  input$meta$Count <- pvCountFiles
+  ### # write the extended meta information back to the file
+  write.table(input$meta, file = input$file, quote = FALSE, sep = "\t")
+}
+
+
+#' Get list with required python script paths
+#' 
+lGetPyScriptPaths <- function(){
+  if (!exists("PYTHON_CMD")){
+    PYTHON_CMD='PYTHONPATH="/usr/local/ngseq/lib/python/:/usr/local/ngseq/lib/python2.7:/usr/local/ngseq/lib/python2.7/dist-packages" /usr/local/ngseq/bin/python'
+  }
+  return(list(DEXSEQ_PREPARE = paste(PYTHON_CMD, file.path(system.file(package = "DEXSeq", "python_scripts"), "dexseq_prepare_annotation.py")),
+              DEXSEQ_COUNT = paste(PYTHON_CMD, file.path(system.file(package = "DEXSeq", "python_scripts"), "dexseq_count.py"))))
+  
 }
