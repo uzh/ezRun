@@ -54,11 +54,11 @@ getTranscriptProfiles = function(bamFile, param){# strand="+", readLength=32, re
   if (param$getCoverageByReadLength){
     stopifnot((param$maxReadLength - param$minReadLength) %in% 1:50)
     for (readLength in param$minReadLength:param$maxReadLength){
+      alnUse = aln[qwidth(aln) == readLength]
       if (param$readStartOnlyCoverage){
-        profileList[[paste("length", readLength)]] = coverage(aln[qwidth(aln) == readLength])
-      } else {
-        alnUse = aln[qwidth(aln) == readLength]
         profileList[[paste("length", readLength)]] = coverage(GRanges(seqnames = seqnames(alnUse), ranges=IRanges(start=start(alnUse), width=1)))
+      } else {
+        profileList[[paste("length", readLength)]] = coverage(alnUse
       }
     }
   }
