@@ -12,7 +12,7 @@
 ##' @field result list holding the actual results, in particular, the log2 ration and the p-value
 ##' @section Functions:
 ##' \itemize{
-##'   \item{\code{saveToFile(file): }}{Savees the object to the given filepath. Saved files can be loaded with \code{EzDeResult$new(file="mystoredResult.RData"}}
+##'   \item{\code{saveToFile(file): }}{Saves the object to the given filepath. Saved files can be loaded with \code{EzDeResult$new(file="mystoredResult.RData"}}
 ##' }
 ##' @template roxygen-template
 ##' @examples 
@@ -325,7 +325,7 @@ writeNgsTwoGroupReport = function(dataset, deResult, output, htmlFile="00index.h
   rawData = deResult$rawData
   result = deResult$result
   seqAnno = rawData$seqAnno
-  resultObjFile = paste0("result--", param$comparison, "--EzDeResult.RData")
+  resultObjFile = paste0("result--", param$comparison, ezRandomString(length=12), "--EzDeResult.RData")
   deResult$saveToFile(resultObjFile)
   
   titles = list()
@@ -350,6 +350,7 @@ writeNgsTwoGroupReport = function(dataset, deResult, output, htmlFile="00index.h
   
   resultFile = addResultFile(doc, param, result, rawData)
   ezWrite.table(result$sf, file="scalingfactors.txt", head="Name", digits=4)
+  ## TODO: add the link to the shiny-app
   
   logSignal = log2(shiftZeros(result$xNorm, param$minSignal))
   result$groupMeans = cbind(rowMeans(logSignal[ , param$grouping == param$sampleGroup, drop=FALSE]),

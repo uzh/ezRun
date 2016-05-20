@@ -238,3 +238,9 @@ getSuffix = function(filename){
 ezIsAbsolutePath = function(x){
   !is.null(x) & grepl("^/", x)
 }
+
+
+ezRandomString = function(length){
+  paste(sample(c(0:9, letters, LETTERS),
+               length, replace=TRUE), collapse="")
+}

@@ -133,15 +133,15 @@ closeBsdocReport = function(doc, file, titles=NULL){
 ##' @template roxygen-template
 addDataset = function(doc, dataset, param){
   ezWrite.table(dataset, file="dataset.tsv", head="Name")
-  jsFile = system.file("extdata/popup.js", package="ezRun", mustWork=TRUE)
-  addJavascript(doc, jsFile)
+  # jsFile = system.file("extdata/popup.js", package="ezRun", mustWork=TRUE)
+  # addJavascript(doc, jsFile)
   tableLink = "InputDataset.html"
   ezInteractiveTable(dataset, tableLink=tableLink, title="Input Dataset")
-  pots = as.html(newWindowLink(tableLink, "Input Dataset"))
-  if (ezIsSpecified(param$refBuild)){
-    pots = c(pots, paste("Reference build:", param$refBuild))
-  }
-  addFlexTable(doc, ezGrid(pots))
+  addParagraph(doc, ezPot("Input Dataset", hyperlink = tableLink, linkTarget="_blank"))
+  # if (ezIsSpecified(param$refBuild)){
+  #   addParagraphpots = c(pots, paste("Reference build:", param$refBuild))
+  # }
+  # addFlexTable(doc, ezGrid(pots))
 }
 
 ##' @title Writes an error report
@@ -190,8 +190,9 @@ addTxtLinksToReport = function(doc, txtNames, doZip=FALSE, mime=ifelse(doZip, "a
   }
 }
 
-##' @describeIn addTxtLinksToReport Gets the link, its name and returns a an html link that will open new windows/tabs.
+##' @describeIn addTxtLinksToReport Gets the link, its name and returns an html link that will open new windows/tabs.
 newWindowLink = function(linkName, txtName=NULL){
+  .Deprecated("use ezPot")
   if (is.null(txtName)){
     title = sub(".html", "", linkName)
   } else {
@@ -202,6 +203,17 @@ newWindowLink = function(linkName, txtName=NULL){
   # jsCall = paste0("javascript:window.open('", linkName, "','", title, "','width=1200,height=900')")
   # return(pot(paste0('<a href="', jsCall, '">', title, '</a>')))
 }
+
+
+ezPot = function(value="", format=textProperties(), hyperlink, footnote, linkTarget="", linkType=""){
+  if (linkTarget != "" || linkType != ""){
+    value=paste0("<a href='", hyperlink, "' target='", linkTarget, "' type='", linkType, "'>", value, "</a>")
+    pot(value, format=format, footnote=footnote)
+  } else {
+    pot(value, format=format, hyperlink = hyperlink, footnote=footnote)
+  }
+}
+
 
 ##' @title Adds a summary of the count result
 ##' @description Adds a summary of the count result to a bsdoc object.
