@@ -36,6 +36,34 @@ getCdsProfiles = function(bamFile, tisPos, strand="+", readLength=32, offset=14)
 }
 
 
+getTranscriptProfiles = function(bamFile, param){# strand="+", readLength=32, readStartOnlyCoverage=TRUE, getCoverageByReadlength=TRUE, minRead){
+  aln = readGAlignments(bamFile)
+  aln = aln[qwidth(aln) %in% param$minReadLength:param$maxReadLength]
+  if (param$strandMode == "sense"){
+    aln = aln[ as.vector(strand(aln)) == "+"]
+  }
+  if (param$strandMode == "antisense"){
+    aln = aln[ as.vector(strand(aln)) == "-"]
+  }
+  profileList = list()
+  profileList[["all"]] = switch(param$coverageType,
+                                readStart=coverage(GRanges(seqnames = seqnames(aln), ranges=IRanges(start=start(aln), width=1))),
+                                fullRead=coverage(aln))
+  if (param$getCoverageByReadLength){
+    stopifnot((param$maxReadLength - param$minReadLength) %in% 1:50)
+    for (readLength in param$minReadLength:param$maxReadLength){
+      alnUse = aln[qwidth(aln) == readLength]
+      profileList[[paste("length", readLength)]] =
+        switch(param$coverageType,
+               readStart=coverage(GRanges(seqnames = seqnames(alnUse), ranges=IRanges(start=start(alnUse), width=1))),
+               fullRead=coverage(alnUse))
+    }
+  }
+  return(profileList)
+}
+
+
+
 getExonProfiles = function(bamFile, strand="+", readLength=32, offset=14){
   aln = readGAlignments(bamFile)
   aln = aln[ as.vector(strand(aln)) == strand & qwidth(aln) %in% readLength]
@@ -49,6 +77,8 @@ getExonProfiles = function(bamFile, strand="+", readLength=32, offset=14){
   
   return(exonProfile)
 }
+
+
 
 
 ## this function is redundant.
