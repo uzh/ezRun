@@ -8,12 +8,31 @@
 #' RunMethod for reference class EzAppDEXSeqAnalysis
 #' 
 #' @description 
-#' Differential exon usage is assessed using the function \code{DEXSeq}
-#' from the DEXSeq package.
+#' Differential exon usage is assessed using the same steps that are done in 
+#' the wrapper function \code{DEXSeq} from the DEXSeq package. The wrapper 
+#' is not used here, because dispersion plots and MA-plots are integrated 
+#' in the report and those cannot be produced from the resulting object of 
+#' the wrapper function. The following steps are done in the analysis
+#' \itemize{
+#'   \item{DEXSeqDataSetFromHTSeq: }{instantiates a DEXSeqDataSet object}
+#'   \item{estimateSizeFactors: }{normalizes to account for different coverage}
+#'   \item{estimateDispersions: }{assesses variability within and between experimental groups}
+#'   \item{testForDEU: }{getting fdr statistics for deu}
+#'   \item{estimateExonFoldChanges: }{fold changes are estimated}
+#' }
+#' Once these steps are done the results are written to a report.
 #' 
-#' @param input either EzDataSet reference object or path to input dataset file
-#' @param output 
-#' @param param
+#' @details 
+#' Before running the DEU-analysis, it is verified that count data 
+#' is available. It is expected that the current working directory 
+#' contains files with the same name as the BAM-files specified in the 
+#' input, but with a file-extension that can be specified and which 
+#' defaults to 'count'. In case, the count files are not available 
+#' they are generated using the function \code{DEXSeqCounting}.
+#' 
+#' @param input EzDataSet reference object specifying input
+#' @param output EzDataSet reference object specifying output 
+#' @param param EzParam reference object specifying additional parameters
 #' 
 ezMethodDEXSeqAnalysis <- function(input=NA, output=NA, param=NA){
   param[['BPPARAM']] = BiocParallel::MulticoreParam(workers=param$cores)
