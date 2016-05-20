@@ -224,7 +224,6 @@ writeDEXSeqReport <- function(dataset, dexResult, psHtmlFile="00index.html", psR
   setwd(sCurWd)
 }
 
-<<<<<<< HEAD
 
 #' Generate gene table from DEXSeqResults object
 #' 
