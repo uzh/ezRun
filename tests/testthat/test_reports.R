@@ -2,6 +2,10 @@ context("Tests the functions in reports.R")
 
 cwd = getwd()
 setwdNew("./ReportTest")
+
+
+
+
 doc = openBsdocReport("Testreport")
 dat = data.frame(a=1:5, b=11:15)
 param = ezParam()
@@ -17,6 +21,15 @@ test_that("Tests ezFlexTable() and ezGrid()", {
   addParagraph(doc, "Testing ezGrid()")
   addFlexTable(doc, flexGrid)
 })
+
+
+test_that("tests adding links",{
+  addParagraph(doc, ezPot("normal link", hyperlink = "http://www.google.com"))
+  addParagraph(doc, ezPot("link with explicit type", hyperlink = "https://github.com/jgm/pandoc/archive/1.15.1.tar.gz", linkType="application/image"))
+  addParagraph(doc, ezPot("link opening in a new window", hyperlink = "http://www.google.com", linkTarget = "_blank"))
+})
+
+
 
 test_that("Tests ezImageFileLink()", {
   x = 1:10
@@ -41,11 +54,11 @@ test_that("Tests addTxtLinksToReport()", {
   addTxtLinksToReport(doc, "dataset.tsv")
 })
 
-test_that("Tests newWindowLink()", {
-  newWindow = newWindowLink("testLink")
-  expect_is(newWindow, "pot")
-  expect_true(grepl("javascript", newWindow[[1]]$value))
-})
+# test_that("Tests newWindowLink()", {
+#   newWindow = newWindowLink("testLink")
+#   expect_is(newWindow, "pot")
+#   expect_true(grepl("javascript", newWindow[[1]]$value))
+# })
 
 test_that("Tests openBsdocReport() and closeBsdocReport()", {
   expect_is(doc, "bsdoc")
