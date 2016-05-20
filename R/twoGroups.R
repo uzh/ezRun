@@ -352,8 +352,8 @@ writeNgsTwoGroupReport = function(dataset, deResult, output, htmlFile="00index.h
   resultObjFile = paste0("result--", param$comparison, "--", ezRandomString(length=12), "--EzDeResult.RData")
   deResult$saveToFile(resultObjFile)
   addParagraph(doc, ezPot("Explore result interactively",
-                          hyperlink = paste0("http://fgcz-shiny.uzh.ch/shiny/fgcz_rnaSeqInteractiveReport_app/?data=",
-                                             file.path(output$"Report [File]", resultObjFile))))
+                          hyperlink = paste0("http://fgcz-176.uzh.ch/shiny/fgcz_rnaSeqInteractiveReport_app/?data=",
+                                             file.path(output$getColumn("Report"), resultObjFile))))
   ## TODO: add the link to the shiny-app
   
   logSignal = log2(shiftZeros(result$xNorm, param$minSignal))
