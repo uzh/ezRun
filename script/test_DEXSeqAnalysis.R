@@ -56,10 +56,16 @@ param[['countfile_path']] = sResultDir
 param[['gff_file']] = 'genes.gff'
 
 # specify the name that will appear in the report
-param[['name']] = 'Exon Usage Comparison in MM Colon Vs SI'
+param[['name']] = 'Differential Exon Usage of SI over Colon in MM'
 
 # specify false discovery rate FDR
 param[['fdr']] = 0.01
+
+# mart annotations
+param[['bio_mart']] = "ensembl"
+param[['mart_dataset']] = "mmusculus_gene_ensembl"
+param[['mart_filter']] = "ensembl_gene_id"
+param[['mart_attributes']] = c("external_gene_name","description")
 
 # specify output information, at least output[['Name']]  must be specified
 output = list()
