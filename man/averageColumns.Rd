@@ -23,9 +23,9 @@ Rearranges and averages columns according to \code{by}.
 \examples{
 m1 = matrix(1:20,5)
 rownames(m1) = 1:5
-averageColumns(m1,1)
-averageColumns(m1,c(4,2,3,1))
-averageColumns(m1,c(1,1,2,2))
+m2 = averageColumns(m1,1)
+m3 = averageColumns(m1,c(4,2,3,1))
+m4 = averageColumns(m1,c(1,1,2,2))
 }
 \author{
 Rehrauer, Hubert

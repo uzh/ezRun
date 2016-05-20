@@ -18,7 +18,7 @@ Gets the exon numbers of an annotation data.frame of the gtf or gff format.
 \examples{
 param = ezParam()
 gtf = ezLoadFeatures(param, system.file("extdata/genes.gtf", package="ezRun", mustWork=TRUE))
-getExonNumber(gtf)
+en = getExonNumber(gtf)
 }
 \author{
 Rehrauer, Hubert

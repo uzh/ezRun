@@ -87,8 +87,7 @@ getBowtie2TranscriptomeReference = function(param){
 }
 
 ##' @template app-template
-##' @templateVar method ezMethodBowtie2
-##' @templateVar htmlArg )
+##' @templateVar method ezMethodBowtie2(input=NA, output=NA, param=NA)
 ##' @description Use this reference class to run 
 ##' @seealso \code{\link{getBowtie2Reference}}
 ##' @seealso \code{\link{ezMethodTrim}}

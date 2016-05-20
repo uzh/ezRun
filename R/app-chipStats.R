@@ -103,8 +103,7 @@ ezMethodChipStats = function(input=NA, output=NA, param=NA, htmlFile="00index.ht
 }
 
 ##' @template app-template
-##' @templateVar method ezMethodChipStats
-##' @templateVar htmlArg , htmlFile="00index.html")
+##' @templateVar method ezMethodChipStats(input=NA, output=NA, param=NA, htmlFile="00index.html")
 ##' @description Use this reference class to run 
 EzAppChipStats <-
   setRefClass("EzAppChipStats",

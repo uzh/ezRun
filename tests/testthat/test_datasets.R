@@ -7,7 +7,7 @@ test_that("Tests makeMimimal...EndReadDataset()", {
   minPairedDs = makeMinimalPairedEndReadDataset(fqDir, species)
   expect_is(minSingleDs, "data.frame")
   expect_is(minPairedDs, "data.frame")
-  expect_less_than(ncol(minSingleDs), ncol(minPairedDs))
+  expect_lt(ncol(minSingleDs), ncol(minPairedDs))
 })
 
 test_that("Tests ezDesignFromDataset() and similar functions", {

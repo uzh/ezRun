@@ -42,7 +42,7 @@ input = EzDataset$new(file=file)
 param = list()
 param$dataRoot = system.file(package="ezRun", mustWork = TRUE)
 fqFiles = input$getFullPaths(param, "Read1")
-filterFastqByBam(fqFiles, bamFile, doGzip = FALSE)
+fqFiltered = filterFastqByBam(fqFiles, bamFile, doGzip = FALSE)
 }
 \author{
 Rehrauer, Hubert

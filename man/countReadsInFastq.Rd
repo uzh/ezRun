@@ -21,7 +21,7 @@ input = EzDataset$new(file=file)
 param = list()
 param$dataRoot = system.file(package="ezRun", mustWork = TRUE)
 fqFiles = input$getFullPaths(param, "Read1")
-countReadsInFastq(fqFiles)
+result = countReadsInFastq(fqFiles)
 }
 \author{
 Rehrauer, Hubert

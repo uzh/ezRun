@@ -20,7 +20,7 @@ Gets the transcripts database from the reference.
 \examples{
 refBuild = "Mus_musculus/UCSC/mm10/Annotation/Version-2012-05-23"
 param = ezParam(list(refBuild=refBuild))
-ezTranscriptDbFromRef(param$ezRef)
+tdb = ezTranscriptDbFromRef(param$ezRef)
 }
 \author{
 Rehrauer, Hubert

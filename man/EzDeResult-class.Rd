@@ -17,7 +17,7 @@
 \section{Functions}{
 
 \itemize{
-  \item{\code{saveToFile(file): }}{Savees the object to the given filepath. Saved files can be loaded with \code{EzDeResult$new(file="mystoredResult.RData"}}
+  \item{\code{saveToFile(file): }}{Saves the object to the given filepath. Saved files can be loaded with \code{EzDeResult$new(file="mystoredResult.RData"}}
 }
 }
 \examples{

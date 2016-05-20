@@ -74,8 +74,7 @@ ezMethodRSEM = function(input=NA, output=NA, param=NA){
 }
 
 ##' @template app-template
-##' @templateVar method ezMethodRSEM
-##' @templateVar htmlArg )
+##' @templateVar method ezMethodRSEM(input=NA, output=NA, param=NA)
 ##' @description Use this reference class to run 
 ##' @seealso \code{\link{getRSEMReference}}
 ##' @seealso \code{\link{ezMethodTrim}}

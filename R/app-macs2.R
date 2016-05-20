@@ -43,8 +43,7 @@ ezMethodMacs2 = function(input=NA, output=NA, param=NA){
 }
 
 ##' @template app-template
-##' @templateVar method ezMethodMacs2
-##' @templateVar htmlArg )
+##' @templateVar method ezMethodMacs2(input=NA, output=NA, param=NA)
 ##' @description Use this reference class to run 
 EzAppMacs2 <-
   setRefClass("EzAppMacs2",

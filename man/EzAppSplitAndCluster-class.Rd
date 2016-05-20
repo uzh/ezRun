@@ -4,15 +4,13 @@
 \name{EzAppSplitAndCluster-class}
 \alias{EzAppSplitAndCluster}
 \alias{EzAppSplitAndCluster-class}
-\title{The R5 class representing a runnable app using \code{ezMethodSplitAndCluster()}}
+\title{The R5 class representing a runnable app using \code{ezMethodSplitAndCluster(input=NA, output=NA, param=NA)()}}
 \arguments{
 \item{input}{a list, file path or an object of the class EzDataset containing the input.}
 
 \item{output}{a list, file path or an object of the class EzDataset containing the output information.}
 
 \item{param}{a list of parameters to customize the application run.}
-
-\item{htmlFile}{a character, ending with .html, representing the file path of an html file.}
 }
 \description{
 Cluster stuff
@@ -34,7 +32,7 @@ Cluster stuff
 \section{Functions}{
 
 \itemize{
-  \item{\code{ezMethodSplitAndCluster(input=NA, output=NA, param=NA): }}
+  \item{\code{ezMethodSplitAndCluster(input=NA, output=NA, param=NA) }}:
   {The function to run this application.}
 }
 }

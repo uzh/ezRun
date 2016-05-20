@@ -19,7 +19,7 @@
 ##' input = EzDataset$new(file=file)
 ##' rawData1 = loadCountDataset(input$copy()$subset(1), param)
 ##' rawData2 = loadCountDataset(input$copy()$subset(2), param)
-##' mergeRawData(rawData1, rawData2)
+##' rdm = mergeRawData(rawData1, rawData2)
 mergeRawData = function(rawData1, rawData2){
   for (nm in names(rawData1)){
     if (is.matrix(rawData1[[nm]]) || is.data.frame(rawData1[[nm]])){
@@ -48,7 +48,7 @@ mergeRawData = function(rawData1, rawData2){
 ##' file = system.file("extdata/yeast_10k_STAR_counts/dataset.tsv", package="ezRun", mustWork = TRUE)
 ##' input = EzDataset$new(file=file)
 ##' rawData = loadCountDataset(input, param)
-##' selectSamples(rawData, c("wt_1","wt_2"))
+##' rd2 = selectSamples(rawData, c("wt_1","wt_2"))
 selectSamples = function(rawData, samples){
   if (!is.null(rawData$signal)){
     stopifnot(samples %in% colnames(rawData$signal))
@@ -80,7 +80,7 @@ selectSamples = function(rawData, samples){
 ##' file = system.file("extdata/yeast_10k_STAR_counts/dataset.tsv", package="ezRun", mustWork = TRUE)
 ##' input = EzDataset$new(file=file)
 ##' rawData = loadCountDataset(input, param)
-##' getSignal(rawData)
+##' sig = getSignal(rawData)
 ## TODOEXAMPLE: get example with proper return and improve description.
 getSignal = function(rawData){
   if (rawData$isLog){
@@ -111,7 +111,7 @@ getLog2Signal = function(rawData){
 ##' file = system.file("extdata/yeast_10k_STAR_counts/dataset.tsv", package="ezRun", mustWork = TRUE)
 ##' input = EzDataset$new(file=file)
 ##' rawData = loadCountDataset(input, param)
-##' getRpkm(rawData)
+##' rpkm = getRpkm(rawData)
 ## TODOEXAMPLE: get example with proper return
 getRpkm = function(rawData){
   #edgeR::rpkm.default
@@ -231,7 +231,7 @@ aggregateCountsByGene = function(param, rawData){
 ##' input = EzDataset$new(file=file)
 ##' rawData = loadCountDataset(input, param)
 ##' keep = "YFR014C"
-##' selectFeatures(rawData, keep)
+##' rd2 = selectFeatures(rawData, keep)
 selectFeatures = function(rawData, keep){
   
   if (!is.null(rawData$signal)){

@@ -18,7 +18,7 @@
 ##' param = ezParam()
 ##' gtfFile = system.file("extdata/genes.gtf", package="ezRun", mustWork=TRUE)
 ##' gtf = ezLoadFeatures(param, gtfFile)
-##' ezGffAttributeField(gtf$attributes, field="transcript_id", attrsep="; *", valuesep=" ")
+##' attrField = ezGffAttributeField(gtf$attributes, field="transcript_id", attrsep="; *", valuesep=" ")
 ezLoadFeatures = function(param=NULL, featureFile=param$ezRef["refFeatureFile"], types=NULL){
   
   if (!ezIsSpecified(featureFile)){
@@ -163,7 +163,7 @@ ezWriteGff = function(x, file){
 ##' @examples
 ##' param = ezParam()
 ##' gtf = ezLoadFeatures(param, system.file("extdata/genes.gtf", package="ezRun", mustWork=TRUE))
-##' gffTrimTranscripts(gtf[gtf$type == "exon", ])
+##' gtfTrimmed = gffTrimTranscripts(gtf[gtf$type == "exon", ])
 gffTrimTranscripts = function(gff, maxLength=100, start=TRUE){
   
   gff$width = gff$end -  gff$start + 1
@@ -216,7 +216,8 @@ gffTrimSingleTranscript = function(gffSingle, maxLength=100, start=TRUE){
 ##' @examples
 ##' param = ezParam()
 ##' gtf = ezLoadFeatures(param, system.file("extdata/genes.gtf", package="ezRun", mustWork=TRUE))
-##' gffToRanges(gtf)
+##' gRanges = gffToRanges(gtf)
+##' gRanges
 gffToRanges = function(gff){
   requireNamespace("GenomicRanges", warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
   gff$strand[gff$strand == "."] = "*"
@@ -248,7 +249,7 @@ gffToRanges = function(gff){
 ##' @examples
 ##' param = ezParam()
 ##' gtf = ezLoadFeatures(param, system.file("extdata/genes.gtf", package="ezRun", mustWork=TRUE))
-##' groupGff(gtf)
+##' groupedGtf = groupGff(gtf)
 ##' gffGroupToRanges(gtf, grouping = gtf$Parent)
 groupGff = function(gtf, grouping=gtf$Parent, type="transcript", skipTransSpliced=FALSE){
   
@@ -296,7 +297,7 @@ gffGroupToRanges = function(gtf, grouping, skipTransSpliced=FALSE){
 ##' param = ezParam()
 ##' gtfFile = system.file("extdata/genes.gtf", package="ezRun", mustWork=TRUE)
 ##' gtf = ezLoadFeatures(param, gtfFile)
-##' transcriptAnnoFromGtf(gtf)
+##' ta = transcriptAnnoFromGtf(gtf)
 transcriptAnnoFromGtf = function(gtf, id=gtf$transcript_id, types="exon", attributes=NULL){
   stopifnot(length(id) == nrow(gtf))
   use = gtf$type %in% types
@@ -326,7 +327,7 @@ transcriptAnnoFromGtf = function(gtf, id=gtf$transcript_id, types="exon", attrib
 ##' @examples
 ##' param = ezParam()
 ##' gtf = ezLoadFeatures(param, system.file("extdata/genes.gtf", package="ezRun", mustWork=TRUE))
-##' addTranscriptsToGffExons(gtf)
+##' gtf2 = addTranscriptsToGffExons(gtf)
 addTranscriptsToGffExons = function(gff){
   
   gffExon = gff[gff$type == "exon", ]
@@ -356,7 +357,7 @@ addTranscriptsToGffExons = function(gff){
 ##' @examples
 ##' param = ezParam()
 ##' gtf = ezLoadFeatures(param, system.file("extdata/genes.gtf", package="ezRun", mustWork=TRUE))
-##' getExonNumber(gtf)
+##' en = getExonNumber(gtf)
 getExonNumber = function(gtf){
   ## check if the same transcript id occurs at multiple loci
   locusId = paste(gtf$transcript_id, gtf$seqid, gtf$strand)
@@ -377,7 +378,7 @@ getExonNumber = function(gtf){
 ##' @examples 
 ##' refBuild = "Mus_musculus/UCSC/mm10/Annotation/Version-2012-05-23"
 ##' param = ezParam(list(refBuild=refBuild))
-##' ezTranscriptDbFromRef(param$ezRef)
+##' tdb = ezTranscriptDbFromRef(param$ezRef)
 ezTranscriptDbFromRef = function(reference, dataSource="FGCZ"){
   requireNamespace("GenomicFeatures", warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
   genomeFastaIndexFile = paste0(reference@refFastaFile, ".fai")
@@ -396,7 +397,7 @@ ezTranscriptDbFromRef = function(reference, dataSource="FGCZ"){
 ##' param = ezParam()
 ##' gtf = ezLoadFeatures(param, system.file("extdata/genes.gtf", package="ezRun", mustWork=TRUE))
 ##' tr2Gene = getTranscript2Gene(gtf)
-##' countIsoformsPerGene(tr2Gene)
+##' ipg = countIsoformsPerGene(tr2Gene)
 getTranscript2Gene = function(gtf){
   stopifnot(!is.null(gtf$transcript_id))
   stopifnot(!is.null(gtf$gene_id))
@@ -451,7 +452,7 @@ writePresplicedGtf <- function (param, featureFile=param$ezRef["refFeatureFile"]
 ##' param$ezRef@@refFeatureFile = system.file("extdata/genes.gtf", package="ezRun", mustWork=TRUE)
 ##' fp = "/srv/GT/reference/Saccharomyces_cerevisiae/Ensembl/EF4/Sequence/WholeGenomeFasta/genome.fa"
 ##' param$ezRef@@refFastaFile = fp
-##' getTranscriptSequences(param)
+##' ts = getTranscriptSequences(param)
 getTranscriptSequences = function(param, useFivePrimeAsStart=TRUE){
   genomeFasta = param$ezRef["refFastaFile"]
   genomeSeq = readDNAStringSet(genomeFasta)
@@ -562,7 +563,7 @@ ezUtrSequences = function(gtf, chromSeqs){
 ##' param$ezRef@@refFeatureFile = system.file("extdata/genes.gtf", package="ezRun", mustWork=TRUE)
 ##' fp = "/srv/GT/reference/Saccharomyces_cerevisiae/Ensembl/EF4/Sequence/WholeGenomeFasta/genome.fa"
 ##' param$ezRef@@refFastaFile = fp
-##' getTranscriptGcAndWidth(param)
+##' gw = getTranscriptGcAndWidth(param)
 getTranscriptGcAndWidth = function(param){
   genomeFasta = param$ezRef["refFastaFile"]
   if (!file.exists(genomeFasta)){
@@ -595,7 +596,7 @@ getTranscriptGcAndWidth = function(param){
 ##' @examples
 ##' param = ezParam()
 ##' gtf = ezLoadFeatures(param, system.file("extdata/genes.gtf", package="ezRun", mustWork=TRUE))
-##' getEnsemblTypes(gtf)
+##' et = getEnsemblTypes(gtf)
 getEnsemblTypes = function(gff){
   if ("protein_coding" %in% gff$source){
     return(gff$source)

@@ -23,8 +23,7 @@ ezMethodFlash = function(input=NA, output=NA, param=NA){
 
 ##' @author Opitz, Lennart
 ##' @template app-template
-##' @templateVar method ezMethodFlash()
-##' @templateVar htmlArg )
+##' @templateVar method ezMethodFlash(input=NA, output=NA, param=NA)
 ##' @description Use this reference class to run 
 EzAppFlash <-
   setRefClass("EzAppFlash",

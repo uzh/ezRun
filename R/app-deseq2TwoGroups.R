@@ -36,8 +36,7 @@ ezMethodDeseq2 = function(input=NA, output=NA, param=NA, htmlFile="00index.html"
 }
 
 ##' @template app-template
-##' @templateVar method ezMethodDeseq2
-##' @templateVar htmlArg , htmlFile="00index.html")
+##' @templateVar method ezMethodDeseq2(input=NA, output=NA, param=NA, htmlFile="00index.html")
 ##' @description Use this reference class to run 
 EzAppDeseq2 <-
   setRefClass("EzAppDeseq2",

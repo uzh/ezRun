@@ -40,8 +40,7 @@ ezMethodSplitAndCluster = function(input=NA, output=NA, param=NA){
 }
 
 ##' @template app-template
-##' @templateVar method ezMethodSplitAndCluster
-##' @templateVar htmlArg )
+##' @templateVar method ezMethodSplitAndCluster(input=NA, output=NA, param=NA)
 ##' @description Cluster stuff
 EzAppSplitAndCluster <-
   setRefClass("EzAppSplitAndCluster",

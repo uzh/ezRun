@@ -24,7 +24,7 @@ file = system.file("extdata/yeast_10k_STAR_counts/dataset.tsv", package="ezRun",
 input = EzDataset$new(file=file)
 rawData = loadCountDataset(input, param)
 keep = "YFR014C"
-selectFeatures(rawData, keep)
+rd2 = selectFeatures(rawData, keep)
 }
 \author{
 Rehrauer, Hubert

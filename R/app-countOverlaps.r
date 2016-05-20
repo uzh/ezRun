@@ -41,8 +41,7 @@ ezMethodCountOverlaps = function(input=NA, output=NA, param=NA){
 }
 
 ##' @template app-template
-##' @templateVar method ezMethodCountOverlaps
-##' @templateVar htmlArg )
+##' @templateVar method ezMethodCountOverlaps(input=NA, output=NA, param=NA)
 ##' @description Use this reference class to run 
 ##' @section Functions:
 ##' \itemize{

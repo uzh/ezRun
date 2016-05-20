@@ -15,7 +15,7 @@
 ##' \dontrun{
 ##' param = ezParam()
 ##' param$ezRef@@refFeatureFile = system.file("extdata/genes.gtf", package="ezRun", mustWork=TRUE)
-##' getReferenceFeaturesBed(param)
+##' rfbed = getReferenceFeaturesBed(param)
 ##' }
 getReferenceFeaturesBed = function(param){
   bedFile = sub(".gtf$", ".bed", param$ezRef["refFeatureFile"])
@@ -65,7 +65,7 @@ getReferenceFeaturesBed = function(param){
 ##' @examples
 ##' gtf = system.file("extdata/genes.gtf", package="ezRun", mustWork=TRUE)
 ##' fasta = system.file("extdata/genome.fa", package="ezRun", mustWork=TRUE)
-##' cleanGenomeFiles(fasta, gtf)
+##' cg = cleanGenomeFiles(fasta, gtf)
 cleanGenomeFiles = function(genomeFile, genesFile, patchPattern="PATCH"){
   
   genome = readDNAStringSet(genomeFile)

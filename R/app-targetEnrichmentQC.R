@@ -7,8 +7,7 @@
 
 
 ##' @template app-template
-##' @templateVar method ezMethodTeqc
-##' @templateVar htmlArg )
+##' @templateVar method ezMethodTeqc(input=NA, output=NA, param=NA)
 ##' @description Use this reference class to run 
 EzAppTeqc <-
   setRefClass("EzAppTeqc",

@@ -325,8 +325,6 @@ writeNgsTwoGroupReport = function(dataset, deResult, output, htmlFile="00index.h
   rawData = deResult$rawData
   result = deResult$result
   seqAnno = rawData$seqAnno
-  resultObjFile = paste0("result--", param$comparison, ezRandomString(length=12), "--EzDeResult.RData")
-  deResult$saveToFile(resultObjFile)
   
   titles = list()
   titles[["Analysis"]] = paste("Analysis:", param$name)
@@ -350,6 +348,12 @@ writeNgsTwoGroupReport = function(dataset, deResult, output, htmlFile="00index.h
   
   resultFile = addResultFile(doc, param, result, rawData)
   ezWrite.table(result$sf, file="scalingfactors.txt", head="Name", digits=4)
+  
+  resultObjFile = paste0("result--", param$comparison, "--", ezRandomString(length=12), "--EzDeResult.RData")
+  deResult$saveToFile(resultObjFile)
+  addParagraph(doc, ezPot("Explore result interactively",
+                          hyperlink = paste0("http://fgcz-shiny.uzh.ch/shiny/fgcz_rnaSeqInteractiveReport_app/?data=",
+                                             file.path(output$"Report [File]", resultObjFile))))
   ## TODO: add the link to the shiny-app
   
   logSignal = log2(shiftZeros(result$xNorm, param$minSignal))

@@ -36,8 +36,7 @@ ezMethodTranscriptCoverage = function(input=NA, output=NA, param=NA){
 
 
 ##' @template app-template
-##' @templateVar method ezMethodTranscriptCoverage
-##' @templateVar htmlArg )
+##' @templateVar method ezMethodTranscriptCoverage(input=NA, output=NA, param=NA)
 ##' @description Process alignments to transcripts in trBAM files. See also Bowtie2TranscriptomeApp.
 EzAppTranscriptCoverage <-
   setRefClass("EzAppTranscriptCoverage",

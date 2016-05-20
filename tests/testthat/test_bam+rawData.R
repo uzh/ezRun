@@ -26,7 +26,7 @@ test_that("Tests ezReadGappedAlignments() and ezReadPairedAlignments() from bami
   paired = ezReadPairedAlignments(bamFile)
   expect_is(gapped, "GAlignments")
   expect_is(paired, "GAlignments")
-  expect_more_than(length(gapped), length(paired)*1.8)
+  expect_gt(length(gapped), length(paired)*1.8)
 })
 
 test_that("Tests getBamMultiMatching() from bamio.r", {

@@ -19,7 +19,7 @@ ezMethodGatkRnaHaplotyper = function(input=NA, output=NA, param=NA, htmlFile="00
   genomeSeq = param$ezRef["refFastaFile"]
   nBamsInParallel = min(4, param$cores)
   bamFilesClean = ezMclapply(names(bamFiles), function(sampleName){
-    javaCall = paste0("java -Djava.io.tmpdir=. -Xmx", floor(param$ram/nBamsInParallel), "g")
+    javaCall = paste0(JAVA, " -Djava.io.tmpdir=. -Xmx", floor(param$ram/nBamsInParallel), "g")
     setwdNew(paste(sampleName, "proc", sep="-"))
     bf = bamFiles[sampleName]
     obf = file.path(getwd(), basename(bf))
@@ -164,8 +164,7 @@ ezMethodGatkRnaHaplotyper = function(input=NA, output=NA, param=NA, htmlFile="00
 }
 
 ##' @template app-template
-##' @templateVar method ezMethodGatkRnaHaplotyper
-##' @templateVar htmlArg , htmlFile="00index.html")
+##' @templateVar method ezMethodGatkRnaHaplotyper(input=NA, output=NA, param=NA, htmlFile="00index.html")
 ##' @description Use this reference class to run 
 EzAppGatkRnaHaplotyper <-
   setRefClass("EzAppGatkRnaHaplotyper",

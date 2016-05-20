@@ -36,7 +36,7 @@ Loads annotation features from a file and returns them as a data.frame.
 param = ezParam()
 gtfFile = system.file("extdata/genes.gtf", package="ezRun", mustWork=TRUE)
 gtf = ezLoadFeatures(param, gtfFile)
-ezGffAttributeField(gtf$attributes, field="transcript_id", attrsep="; *", valuesep=" ")
+attrField = ezGffAttributeField(gtf$attributes, field="transcript_id", attrsep="; *", valuesep=" ")
 }
 \author{
 Rehrauer, Hubert

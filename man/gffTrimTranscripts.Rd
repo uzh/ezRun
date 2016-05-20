@@ -31,7 +31,7 @@ Trims transcripts in annotation data.frames of gtf or gff format.
 \examples{
 param = ezParam()
 gtf = ezLoadFeatures(param, system.file("extdata/genes.gtf", package="ezRun", mustWork=TRUE))
-gffTrimTranscripts(gtf[gtf$type == "exon", ])
+gtfTrimmed = gffTrimTranscripts(gtf[gtf$type == "exon", ])
 }
 \author{
 Rehrauer, Hubert

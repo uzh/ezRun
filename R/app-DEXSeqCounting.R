@@ -35,8 +35,7 @@ ezMethodDEXSeqCounting <- function(input=NA, output=NA, param=NA){
 
 
 ##' @template app-template
-##' @templateVar method ezMethodDEXSeqCounting
-##' @templateVar htmlArg )
+##' @templateVar method ezMethodDEXSeqCounting(input=NA, output=NA, param=NA)
 ##' @description Use this reference class to run 
 EzAppDEXSeqCounting <-
   setRefClass("EzAppDEXSeqCounting",

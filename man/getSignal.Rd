@@ -28,7 +28,7 @@ param$dataRoot = system.file(package="ezRun", mustWork = TRUE)
 file = system.file("extdata/yeast_10k_STAR_counts/dataset.tsv", package="ezRun", mustWork = TRUE)
 input = EzDataset$new(file=file)
 rawData = loadCountDataset(input, param)
-getSignal(rawData)
+sig = getSignal(rawData)
 }
 \author{
 Rehrauer, Hubert

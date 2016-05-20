@@ -71,7 +71,7 @@ getSampleLty = function(conds, ltyNames=names(conds), maxLineTypes=5){
 ##' @template roxygen-template
 ##' @return Returns a character vector containing colors in hex format.
 ##' @examples
-##' getBlueRedScale()
+##' rbs = getBlueRedScale()
 getBlueRedScale <- function(n=256, whiteLevel=0.9){
 
   # from blue to red going by white
@@ -655,7 +655,7 @@ ezHeatmap = function(x, lim=c(-4, 4), colors=getBlueRedScale(),
 ##' @examples
 ##' hc = hclust(dist(USArrests), "ave")
 ##' dend = as.dendrogram(hc)
-##' colorClusterLabels(dend, rainbow(6))
+##' ccl = colorClusterLabels(dend, rainbow(6))
 colorClusterLabels = function(hcd, colors) {
   dendrapply(hcd, colorNode, cols=colors)
 }

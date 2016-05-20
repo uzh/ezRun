@@ -32,7 +32,7 @@ param = ezParam()
 param$dataRoot = system.file(package="ezRun", mustWork = TRUE)
 file = system.file("extdata/yeast_10k_STAR_counts/dataset.tsv", package="ezRun", mustWork = TRUE)
 input = EzDataset$new(file=file)
-loadCountDataset(input, param)
+cds = loadCountDataset(input, param)
 }
 \author{
 Rehrauer, Hubert

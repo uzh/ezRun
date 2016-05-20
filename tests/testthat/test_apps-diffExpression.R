@@ -44,6 +44,7 @@ test_that("deseq2_withgo", {
   input = EzDataset$new(file=system.file("extdata/yeast_10k_STAR_counts/dataset.tsv", package="ezRun", mustWork = TRUE))
   output = EzDataset$new(file=system.file("extdata/yeast_10k_STAR_counts_deseq2/dataset.tsv", package="ezRun", mustWork = TRUE))
   param = yeastCommonDiffExprParam()
+  param$runGO = FALSE
   myApp = EzAppDeseq2$new()
   myApp$run(input=input, output=output, param=param)
   setwd(cwd)

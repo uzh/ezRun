@@ -65,8 +65,7 @@ ezMethodTophat = function(input=NA, output=NA, param=NA){
 }
 
 ##' @template app-template
-##' @templateVar method ezMethodTophat
-##' @templateVar htmlArg )
+##' @templateVar method ezMethodTophat(input=NA, output=NA, param=NA)
 ##' @description Use this reference class to run 
 ##' @seealso \code{\link{getBowtie2Reference}}
 ##' @seealso \code{\link{ezMethodTrim}}
@@ -160,8 +159,7 @@ getBowtie2Reference = function(param){
 }
 
 ##' @template app-template
-##' @templateVar method ezMethodBowtie2
-##' @templateVar htmlArg )
+##' @templateVar method ezMethodBowtie2(input=NA, output=NA, param=NA)
 ##' @description Use this reference class to run 
 ##' @seealso \code{\link{getBowtie2Reference}}
 ##' @seealso \code{\link{ezMethodTrim}}
@@ -247,8 +245,7 @@ getBowtieReference = function(param){
 }
 
 ##' @template app-template
-##' @templateVar method ezMethodBowtie
-##' @templateVar htmlArg )
+##' @templateVar method ezMethodBowtie(input=NA, output=NA, param=NA)
 ##' @description Use this reference class to run 
 ##' @seealso \code{\link{getBowtieReference}}
 ##' @seealso \code{\link{ezMethodTrim}}
@@ -281,7 +278,7 @@ ezMethodSTAR = function(input=NA, output=NA, param=NA){
   nSortThreads = min(ezThreads(), 8)
   if (!is.null(param$markDuplicates) && param$markDuplicates){
     ezSortIndexBam("Aligned.out.bam", "sorted.bam", ram=param$ram, removeBam=TRUE, cores=nSortThreads)
-    javaCall = paste0("java -Djava.io.tmpdir=. -Xmx", min(floor(param$ram), 10), "g")
+    javaCall = paste0(JAVA, " -Djava.io.tmpdir=. -Xmx", min(floor(param$ram), 10), "g")
     cmd = paste0(javaCall, " -jar ", PICARD_JAR, " MarkDuplicates ",
                  " TMP_DIR=. MAX_RECORDS_IN_RAM=2000000", " I=", "sorted.bam",
                  " O=", basename(bamFile),
@@ -374,8 +371,7 @@ getSTARReference = function(param){
 }
 
 ##' @template app-template
-##' @templateVar method ezMethodSTAR
-##' @templateVar htmlArg )
+##' @templateVar method ezMethodSTAR(input=NA, output=NA, param=NA)
 ##' @description Use this reference class to run 
 ##' @seealso \code{\link{getSTARReference}}
 ##' @seealso \code{\link{ezMethodTrim}}
@@ -480,8 +476,7 @@ getBWAReference = function(param){
 }
 
 ##' @template app-template
-##' @templateVar method ezMethodBWA
-##' @templateVar htmlArg )
+##' @templateVar method ezMethodBWA(input=NA, output=NA, param=NA)
 ##' @description Use this reference class to run 
 ##' @seealso \code{\link{getBWAReference}}
 ##' @seealso \code{\link{ezMethodTrim}}
@@ -558,8 +553,7 @@ ezMethodBismark = function(input=NA, output=NA, param=NA){
 }
 
 ##' @template app-template
-##' @templateVar method ezMethodBismark
-##' @templateVar htmlArg )
+##' @templateVar method ezMethodBismark(input=NA, output=NA, param=NA)
 ##' @description Use this reference class to run 
 EzAppBismark <-
   setRefClass("EzAppBismark",

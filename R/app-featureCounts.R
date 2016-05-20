@@ -46,8 +46,7 @@ ezMethodFeatureCounts = function(input=NA, output=NA, param=NA){
 }
 
 ##' @template app-template
-##' @templateVar method ezMethodFeatureCounts
-##' @templateVar htmlArg )
+##' @templateVar method ezMethodFeatureCounts(input=NA, output=NA, param=NA)
 ##' @description Use this reference class to run 
 EzAppFeatureCounts <-
   setRefClass("EzAppFeatureCounts",

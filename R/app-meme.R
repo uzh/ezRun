@@ -18,8 +18,7 @@ ezMethodMEME = function(input=NA, output=NA, param=NA){
 
 ##' @author Opitz, Lennart
 ##' @template app-template
-##' @templateVar method ezMethodMEME
-##' @templateVar htmlArg )
+##' @templateVar method ezMethodMEME(input=NA, output=NA, param=NA)
 ##' @description Use this reference class to run 
 EzAppMEME <-
   setRefClass("EzAppMEME",

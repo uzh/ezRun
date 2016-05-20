@@ -30,9 +30,9 @@ Columns of the matrix will be scaled to an overall logarithmic mean or to a defi
 }}
 \examples{
 m1 = matrix(1:20,5)
-ezLogmeanNorm(m1)
-ezLogmeanNorm(m1,target=10)
-ezLogmeanNorm(m1,use=c(TRUE,FALSE))
+m2 = ezLogmeanNorm(m1)
+m3 = ezLogmeanNorm(m1,target=10)
+m4 = ezLogmeanNorm(m1,use=c(TRUE,FALSE))
 }
 \author{
 Rehrauer, Hubert

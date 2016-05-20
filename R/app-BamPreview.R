@@ -59,8 +59,7 @@ ezMethodBamPreview = function(input=NA, output=NA, param=NA, htmlFile="00index.h
 }
 
 ##' @template app-template
-##' @templateVar method ezMethodBamPreview
-##' @templateVar htmlArg , htmlFile="00index.html")
+##' @templateVar method ezMethodBamPreview(input=NA, output=NA, param=NA, htmlFile="00index.html")
 ##' @description Use this reference class to run 
 EzAppBamPreview <-
   setRefClass("EzAppBamPreview",

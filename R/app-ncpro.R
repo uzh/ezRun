@@ -16,8 +16,7 @@ ezMethodNcpro = function(input=NA, output=NA, param=NA){
 }
 
 ##' @template app-template
-##' @templateVar method ezMethodNcpro
-##' @templateVar htmlArg )
+##' @templateVar method ezMethodNcpro(input=NA, output=NA, param=NA)
 ##' @description Use this reference class to run 
 EzAppNcpro <-
   setRefClass("EzAppNcpro",

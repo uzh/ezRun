@@ -127,7 +127,7 @@ interleaveMatricesByColumn = function(x, y, suffixes=c("[Signal]", "[Present]"))
 ##' @return Returns the modified value.
 ##' @template roxygen-template
 ##' @examples 
-##' ezNorm(runif(100))
+##' x = ezNorm(runif(100))
 ezNorm = function(x, method="none", presentFlag=NULL){
 
   switch(method, "none"=x,
@@ -147,7 +147,7 @@ ezNorm = function(x, method="none", presentFlag=NULL){
 ##' @template roxygen-template
 ##' @examples 
 ##' m1 = matrix(1:20,4)
-##' ezQuantileNorm(m1)
+##' m2 = ezQuantileNorm(m1)
 ezQuantileNorm = function(x){
   norm = preprocessCore::normalize.quantiles(x)
   colnames(norm) = colnames(x)
@@ -164,7 +164,7 @@ ezQuantileNorm = function(x){
 ##' @template roxygen-template
 ##' @examples 
 ##' m1 = matrix(1:200,50)
-##' ezVsnNorm(m1)
+##' m2 = ezVsnNorm(m1)
 ezVsnNorm = function(x, lts.quantile=0.6){
   return(2^vsn::justvsn(x, lts.quantile=lts.quantile))
 }
@@ -178,7 +178,7 @@ ezVsnNorm = function(x, lts.quantile=0.6){
 ##' @return Returns the numeric input as factors.
 ##' @template roxygen-template
 ##' @examples
-##' ezCut(1:10,breaks=c(2,5,7),prefix=letters[1:4])
+##' x = ezCut(1:10,breaks=c(2,5,7),prefix=letters[1:4])
 ezCut = function(x, breaks, prefix=NULL, labels=NULL){
 	
   if (is.null(labels)){
@@ -321,7 +321,7 @@ ezMatrix <- function(x, rows=NULL, cols=NULL, dim=NULL){
 ##' @return Returns a matrix with scaled columns.
 ##' @template roxygen-template
 ##' @examples
-##' ezScaleColumns(matrix(1:20, 5), 1:4)
+##' x = ezScaleColumns(matrix(1:20, 5), 1:4)
 ezScaleColumns = function(x, scaling){
   for (i in 1:length(scaling)){
     x[,i] <- x[ ,i] * scaling[i]
@@ -339,9 +339,9 @@ ezScaleColumns = function(x, scaling){
 ##' @template roxygen-template
 ##' @examples
 ##' m1 = matrix(1:20, 5)
-##' ezMedianNorm(m1)
-##' ezMedianNorm(m1, target=10)
-##' ezMedianNorm(m1, use=c(TRUE, FALSE))
+##' m2 = ezMedianNorm(m1)
+##' m3 = ezMedianNorm(m1, target=10)
+##' m4 = ezMedianNorm(m1, use=c(TRUE, FALSE))
 ezMedianNorm = function(x, use=NULL, target=NULL, presentFlag=NULL){
   
   sf = ezMedianScalingFactor(x, use=use, target=target, presentFlag=presentFlag)
@@ -375,9 +375,9 @@ ezMedianScalingFactor = function(x, use=NULL, target=NULL, presentFlag=NULL){
 ##' @template roxygen-template
 ##' @examples
 ##' m1 = matrix(1:20,5)
-##' ezLogmeanNorm(m1)
-##' ezLogmeanNorm(m1,target=10)
-##' ezLogmeanNorm(m1,use=c(TRUE,FALSE))
+##' m2 = ezLogmeanNorm(m1)
+##' m3 = ezLogmeanNorm(m1,target=10)
+##' m4 = ezLogmeanNorm(m1,use=c(TRUE,FALSE))
 ezLogmeanNorm = function(x, use=NULL, target=NULL, presentFlag=NULL){
 
 	sf = ezLogmeanScalingFactor(x, use=use, target=target, presentFlag=presentFlag)
@@ -427,9 +427,9 @@ ezGeomean <- function(x, ...){
 ##' @examples
 ##' m1 = matrix(1:20,5)
 ##' rownames(m1) = 1:5
-##' averageColumns(m1,1)
-##' averageColumns(m1,c(4,2,3,1))
-##' averageColumns(m1,c(1,1,2,2))
+##' m2 = averageColumns(m1,1)
+##' m3 = averageColumns(m1,c(4,2,3,1))
+##' m4 = averageColumns(m1,c(1,1,2,2))
 averageColumns = function(x, by=NULL, func=function(x){mean(x, na.rm=TRUE)}){
 
   cols = sort(unique(by))

@@ -16,7 +16,7 @@ Returns the separated GO ID's
 Separates GO ID's by ontology
 }
 \examples{
-separateGoIdsByOnto("GO:0008150", "GO:0005575")
+separateGoIdsByOnto(c("GO:0008150", "GO:0005575"))
 }
 \author{
 Rehrauer, Hubert

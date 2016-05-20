@@ -29,7 +29,7 @@
 ##' param$dataRoot = system.file(package="ezRun", mustWork = TRUE)
 ##' file = system.file("extdata/yeast_10k_STAR_counts/dataset.tsv", package="ezRun", mustWork = TRUE)
 ##' input = EzDataset$new(file=file)
-##' loadCountDataset(input, param)
+##' cds = loadCountDataset(input, param)
 loadCountDataset = function(input, param){
 
   files = input$getFullPaths(param, "Count")
@@ -195,7 +195,7 @@ readNcProResult = function (ncproDir) {
 ##' param = list()
 ##' param$dataRoot = system.file(package="ezRun", mustWork = TRUE)
 ##' fqFiles = input$getFullPaths(param, "Read1")
-##' filterFastqByBam(fqFiles, bamFile, doGzip = FALSE)
+##' fqFiltered = filterFastqByBam(fqFiles, bamFile, doGzip = FALSE)
 filterFastqByBam = function(fqFiles, bamFile, fqOutFiles=NULL, doGzip=TRUE, keepUnmapped=TRUE, isProperPair=NA){
   param = ScanBamParam(what=c("qname"),
                      flag=scanBamFlag(isUnmappedQuery=!keepUnmapped, isProperPair=isProperPair))
@@ -242,7 +242,7 @@ removeReadsFromFastq = function(fqFiles, readIds, fqOutFiles=NULL, doGzip=TRUE){
 ##' param = list()
 ##' param$dataRoot = system.file(package="ezRun", mustWork = TRUE)
 ##' fqFiles = input$getFullPaths(param, "Read1")
-##' countReadsInFastq(fqFiles)
+##' result = countReadsInFastq(fqFiles)
 countReadsInFastq = function(fastqFiles){
   nReads = c()
   for(fastq in fastqFiles){

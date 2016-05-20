@@ -24,7 +24,7 @@ file = system.file("extdata/yeast_10k_STAR_counts/dataset.tsv", package="ezRun",
 input = EzDataset$new(file=file)
 rawData1 = loadCountDataset(input$copy()$subset(1), param)
 rawData2 = loadCountDataset(input$copy()$subset(2), param)
-mergeRawData(rawData1, rawData2)
+rdm = mergeRawData(rawData1, rawData2)
 }
 \author{
 Rehrauer, Hubert

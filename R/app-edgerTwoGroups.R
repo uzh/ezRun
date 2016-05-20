@@ -33,8 +33,7 @@ ezMethodEdger = function(input=NA, output=NA, param=NA, htmlFile="00index.html")
 }
 
 ##' @template app-template
-##' @templateVar method ezMethodEdger
-##' @templateVar htmlArg , htmlFile="00index.html")
+##' @templateVar method ezMethodEdger(input=NA, output=NA, param=NA, htmlFile="00index.html")
 ##' @description Use this reference class to run a differential expression analysis with the application edgeR on two groups.
 EzAppEdger <-
   setRefClass("EzAppEdger",

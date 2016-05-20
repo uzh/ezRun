@@ -20,8 +20,8 @@ Returns a data.frame.
 Modified version of \code{read.table()} with a different default.
 }
 \examples{
-m1 = matrix(1:20, 5)
-write.table(m1, "exampleTable", sep="\\t")
+m1 = ezMatrix(1:20, rows=1:5, cols=1:4)
+ezWrite.table(m1, "exampleTable")
 ezRead.table("exampleTable")
 }
 \author{

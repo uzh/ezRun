@@ -27,7 +27,7 @@ Gets the color cluster labels using \code{dendrapply()}.
 \examples{
 hc = hclust(dist(USArrests), "ave")
 dend = as.dendrogram(hc)
-colorClusterLabels(dend, rainbow(6))
+ccl = colorClusterLabels(dend, rainbow(6))
 }
 \author{
 Rehrauer, Hubert

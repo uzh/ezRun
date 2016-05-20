@@ -37,7 +37,7 @@ hasGoAnnotation = function(seqAnnoDF){
 ##' @param goIdStrings the GO ID's to separate.
 ##' @template roxygen-template
 ##' @return Returns the separated GO ID's
-##' @examples separateGoIdsByOnto("GO:0008150", "GO:0005575")
+##' @examples separateGoIdsByOnto(c("GO:0008150", "GO:0005575"))
 separateGoIdsByOnto = function(goIdStrings){
   requireNamespace("GO.db", warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
   bpGos = keys(GOBPPARENTS)
@@ -45,9 +45,9 @@ separateGoIdsByOnto = function(goIdStrings){
   ccGos = keys(GOCCPARENTS)
   result = data.frame(row.names=1:length(goIdStrings))
   goList = strsplit(trimWhiteSpace(gsub("; ", ";", goIdStrings)), ";") ## support both separators "; " and ";" 
-  result[["GO BP"]] = sapply(lapply(goList, function(x,y){intersect(x,y)}, y=bpGos), collapse)
-  result[["GO MF"]] = sapply(lapply(goList, function(x,y){intersect(x,y)}, y=mfGos), collapse)
-  result[["GO CC"]] = sapply(lapply(goList, function(x,y){intersect(x,y)}, y=ccGos), collapse)
+  result[["GO BP"]] = sapply(lapply(goList, function(x,y){intersect(x,y)}, y=bpGos), ezCollapse)
+  result[["GO MF"]] = sapply(lapply(goList, function(x,y){intersect(x,y)}, y=mfGos), ezCollapse)
+  result[["GO CC"]] = sapply(lapply(goList, function(x,y){intersect(x,y)}, y=ccGos), ezCollapse)
   return(result)
 }
 
