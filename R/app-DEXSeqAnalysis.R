@@ -145,10 +145,19 @@ writeDEXSeqReport <- function(dataset, dexResult, htmlFile="00index.html", sResu
   }
   write.table(dxr, file = sResultFile, quote = FALSE, sep = "\t")
   
-
-  ### # write that generic report for a given FDR, using 0.1 as the default
-  DEXSeq::DEXSeqHTML(dxr, path = param$dexseq_report_path, file = param$dexseq_report_file, FDR = param$fdr)
-
+  ### # if parameters about biomart are specified, use them
+  if (ezIsSpecified(param$bio_mart) & 
+      ezIsSpecified(param$mart_dataset) &
+      ezIsSpecified(param$mart_filter) & 
+      ezIsSpecified(param$mart_attributes) ) {
+    ensembl_mart <- biomaRt::useMart(biomart = param$bio_mart, dataset=param$mart_dataset)  
+    DEXSeq::DEXSeqHTML(dxr, path = param$dexseq_report_path, file = param$dexseq_report_file, FDR = param$fdr,
+                       mart = ensembl_mart, filter = param$mart_filter, attributes = param$mart_attributes)
+  } else {
+    ### # write that generic report for a given FDR, using 0.1 as the default
+    DEXSeq::DEXSeqHTML(dxr, path = param$dexseq_report_path, file = param$dexseq_report_file, FDR = param$fdr)
+  }
+  
   ### # put a title to the report using name in output
   titles <- list()
   titles[["Analysis"]]  <- paste("Analysis:", name)
