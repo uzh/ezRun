@@ -267,7 +267,7 @@ getGeneTable <- function(pdxr, param){
   ### # reading gene annotations from annotation file
   ### #  extract name of annotation file from param
   sGnAnFn <- param[['ezRef']]@refAnnotationFile
-  dfGnsAnnot <- read.table(file = sGnAnFn, header = TRUE, sep = "\t", stringsAsFactors = FALSE, row.names = NULL)
+  dfGnsAnnot <- ezRead.table(file = sGnAnFn, row.names = NULL)
 
   ### # extract gene_names and descriptions for all genes in the whole genetable
   gene_name <- sapply(as.character(genetable$geneID), 
