@@ -82,7 +82,7 @@ ezMethodDEXSeqAnalysis <- function(input=NA, output=NA, param=NA){
   dxd <- DEXSeq::estimateExonFoldChanges( dxd, fitExpToVar = tolower(param$grouping), BPPARAM = param[['BPPARAM']])
 
   ### # generate a report
-  writeDEXSeqReport(dataset = input$meta, dexResult = list(param = param, dxd=dxd), output = output, sResultDir = basename(output$meta[['Report [File]']]))
+  writeDEXSeqReport(dataset = input$meta, dexResult = list(param = param, dxd=dxd), sResultDir = basename(output$meta[['Report [File]']]))
   return("Success")  
 }
 
@@ -124,7 +124,7 @@ addDEXSeqCondition = function(psInput, pvCondition){
 #' @title Writing a report for a DEXSeq analysis
 #' 
 #' @description 
-writeDEXSeqReport <- function(dataset, dexResult, psHtmlFile="00index.html", psResultDir = "html") {
+writeDEXSeqReport <- function(dataset, dexResult, htmlFile="00index.html", sResultDir = "html") {
   ### # retrieve parameters 
   param <- dexResult$param
   ### # extract name appearing in the report
@@ -132,10 +132,11 @@ writeDEXSeqReport <- function(dataset, dexResult, psHtmlFile="00index.html", psR
   ### # extract DEXSeqResults object
   dxd <- dexResult$dxd
   dxr <- DEXSeq::DEXSeqResults(dxd)
-  ### # get name of html file and resultdir
-  htmlFile <- psHtmlFile
-  sResultDir <- psResultDir
 
+  ### # put the results into a different subdirectory
+  sCurWd <- getwd()
+  setwdNew(sResultDir)
+  
   ### # write tsv file from results
   if (ezIsSpecified(param$ResultFile)) {
     sResultFile <- param$ResultFile
@@ -144,9 +145,6 @@ writeDEXSeqReport <- function(dataset, dexResult, psHtmlFile="00index.html", psR
   }
   write.table(dxr, file = sResultFile, quote = FALSE, sep = "\t")
   
-  ### # put the results into a different subdirectory
-  sCurWd <- getwd()
-  setwdNew(sResultDir)
 
   ### # write that generic report for a given FDR, using 0.1 as the default
   DEXSeq::DEXSeqHTML(dxr, path = param$dexseq_report_path, file = param$dexseq_report_file, FDR = param$fdr)
@@ -272,11 +270,11 @@ getGeneTable <- function(pdxr, param){
   dfGnsAnnot <- read.table(file = sGnAnFn, header = TRUE, sep = "\t", stringsAsFactors = FALSE, row.names = NULL)
 
   ### # extract gene_names and descriptions for all genes in the whole genetable
-  gene_name <- sapply(genetable$geneID, 
+  gene_name <- sapply(as.character(genetable$geneID), 
                       function(x) {
                         ### # some entries in geneID can contain multiple
                         ### #  gene_ids pasted together with "+"
-                        sSingleId <- unlist(strsplit(x, split = "+"))
+                        sSingleId <- unlist(strsplit(x, split = "+", fixed = TRUE))
                         nNrIds <- length(sSingleId)
                         if (nNrIds > 1) {
                           sResultGeneName <- paste(unique(dfGnsAnnot[dfGnsAnnot[, "gene_id"] == sSingleId[1],"gene_name"]), sep = "", collapse = " | ")
@@ -290,11 +288,11 @@ getGeneTable <- function(pdxr, param){
                         return(sResultGeneName)
                       }, 
                       USE.NAMES = FALSE)
-  gene_description <- sapply(genetable$geneID, 
+  gene_description <- sapply(as.character(genetable$geneID), 
                              function(x) {
                                ### # some entries in geneID can contain multiple
                                ### #  gene_ids pasted together with "+"
-                               sSingleId <- unlist(strsplit(x, split = "+"))
+                               sSingleId <- unlist(strsplit(x, split = "+", fixed = TRUE))
                                nNrIds <- length(sSingleId)
                                if (nNrIds > 1) {
                                  sResultGeneDesc <- paste(unique(dfGnsAnnot[dfGnsAnnot[, "gene_id"] == sSingleId[1],"description"]), sep = "", collapse = " | ")
