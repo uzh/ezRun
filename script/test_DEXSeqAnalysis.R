@@ -63,7 +63,14 @@ param[['fdr']] = 0.01
 
 # specify output information, at least output[['Name']]  must be specified
 output = list()
-output[['Name']] = 'bamFiles_ExonCounting_DEXSeqResults'
+#output[['Name']] = 'bamFiles_ExonCounting_DEXSeqResults'
+
+output[['Name']] = 'SI--over--Colon'
+output[['Species']] = ''
+output[['refBuild']] = 'Mus_musculus/Ensembl/GRCm38.PatchesSkipped/Annotation/Version-2015-06-25'
+output[['Report [File]']] = 'bamFiles_ExonCounting_DEXSeqResults/html'
+output[['Html [Link]']] = 'bamFiles_ExonCounting_DEXSeqResults/html/00index.html'
+
 
 # file with input meta data
 input = '/scratch/PVR_test/bamFiles_ExonCounting/complete_dataset_local.tsv'
