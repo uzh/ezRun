@@ -24,9 +24,9 @@ test_that("Tests ezFlexTable() and ezGrid()", {
 
 
 test_that("tests adding links",{
-  addParagraph(doc, ezPot("normal link", hyperlink = "http://www.google.com"))
-  addParagraph(doc, ezPot("link with explicit type", hyperlink = "https://github.com/jgm/pandoc/archive/1.15.1.tar.gz", linkType="application/image"))
-  addParagraph(doc, ezPot("link opening in a new window", hyperlink = "http://www.google.com", linkTarget = "_blank"))
+  addParagraph(doc, ezLink("http://www.google.com", "normal link"))
+  addParagraph(doc, ezLink("https://github.com/jgm/pandoc/archive/1.15.1.tar.gz", "link with explicit type", type="application/image"))
+  addParagraph(doc, ezLink("http://www.google.com", "link opening in a new window", target = "_blank"))
 })
 
 

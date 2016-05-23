@@ -171,7 +171,7 @@ runNgsCountQC = function(dataset, htmlFile="00index.html", param=param, rawData=
     titles[["Data Files"]] = "Data Files"
     addTitle(doc, titles[[length(titles)]], 2, id=titles[[length(titles)]])
     addTxtLinksToReport(doc, dataFiles, param$doZip)
-    addParagraph(doc, ezPot(tableLink, hyperlink = tableLink, linkTarget = "_blank"))
+    addParagraph(doc, ezLink(tableLink, target = "_blank"))
   }
   
   titles[["Count Statistics"]] = "Count Statistics"

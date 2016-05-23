@@ -31,7 +31,7 @@ goClusterTable = function(param, clusterResult, seqAnno){
       linkTable[i, onto] = paste0("Cluster-", onto, "-", i, ".html")
       ezInteractiveTable(goFrame, tableLink=linkTable[i, onto], digits=3,
                          title=paste("GO categories of cluster", i, "and ontology", onto))
-      linkTable[i, onto] = as.html(ezPot(linkTable[i, onto], hyperlink =linkTable[i, onto], target="_blank"))
+      linkTable[i, onto] = as.html(ezLink(linkTable[i, onto], target="_blank"))
       goFrame$Term = substr(goFrame$Term, 1, 30)
       if (nrow(goFrame) > 0){
         tables[i, onto] = as.html(ezFlexTable(goFrame, talign="right", header.columns = TRUE))
@@ -104,7 +104,7 @@ goUpDownTables = function(param, goResult){
       linkTable[onto, sub] = paste0("Cluster-", onto, "-", sub, ".html")
       ezInteractiveTable(goFrame, tableLink=linkTable[onto, sub], digits=3,
                          title=paste(sub("enrich", "", sub), "enriched GO categories of ontology", onto))
-      linkTable[onto, sub] = as.html(ezPot(linkTable[onto, sub], hyperlink = linkTable[onto, sub], linkTarget = "_blank"))
+      linkTable[onto, sub] = as.html(ezPot(linkTable[onto, sub], target = "_blank"))
       goFrame$Term = substr(goFrame$Term, 1, 30)
       resultList[[sub]]["Cats", onto] = as.html(ezFlexTable(goFrame, talign="right", header.columns = TRUE))
       xSub = x[[sub]]

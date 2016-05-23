@@ -249,7 +249,7 @@ addTestScatterPlots = function(doc, param, x, result, seqAnno, resultFile, types
   }
   
   tableLink = sub(".txt", "-viewTopSignificantGenes.html", resultFile)
-  links[2, 2] = as.html(ezPot("Interactive table of significant genes", hyperlink = tableLink, linkTarget = "_blank"))
+  links[2, 2] = as.html(ezLink(tableLink, label="Interactive table of significant genes", target = "_blank"))
   
   plotCmd = expression({
     myBreaks = seq(0, 1, by=0.002)

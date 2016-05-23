@@ -137,7 +137,7 @@ addDataset = function(doc, dataset, param){
   # addJavascript(doc, jsFile)
   tableLink = "InputDataset.html"
   ezInteractiveTable(dataset, tableLink=tableLink, title="Input Dataset")
-  addParagraph(doc, ezPot("Input Dataset", hyperlink = tableLink, linkTarget="_blank"))
+  addParagraph(doc, ezLink(tableLink, "Input Datast", target="_blank"))
   # if (ezIsSpecified(param$refBuild)){
   #   addParagraphpots = c(pots, paste("Reference build:", param$refBuild))
   # }
@@ -186,13 +186,14 @@ addTxtLinksToReport = function(doc, txtNames, doZip=FALSE, mime=ifelse(doZip, "a
     if (doZip){
       each = zipFile(each)
     }
-    addParagraph(doc, pot(paste("<a href='", each, "' type='", mime, "'>", each, "</a>")))
+    addParagraph(doc, ezLink(each, type=mime))
+    #addParagraph(doc, pot(paste("<a href='", each, "' type='", mime, "'>", each, "</a>")))
   }
 }
 
 ##' @describeIn addTxtLinksToReport Gets the link, its name and returns an html link that will open new windows/tabs.
 newWindowLink = function(linkName, txtName=NULL){
-  .Deprecated("use ezPot")
+  .Deprecated("use ezLink")
   if (is.null(txtName)){
     title = sub(".html", "", linkName)
   } else {
@@ -204,15 +205,30 @@ newWindowLink = function(linkName, txtName=NULL){
   # return(pot(paste0('<a href="', jsCall, '">', title, '</a>')))
 }
 
-
-ezPot = function(value="", format=textProperties(), hyperlink, footnote, linkTarget="", linkType=""){
-  if (linkTarget != "" || linkType != ""){
-    value=paste0("<a href='", hyperlink, "' target='", linkTarget, "' type='", linkType, "'>", value, "</a>")
-    pot(value, format=format, footnote=footnote)
-  } else {
-    pot(value, format=format, hyperlink = hyperlink, footnote=footnote)
+ezLink = function(link, label=link, target="", type=""){
+  linkTag = paste0("<a href='", link, "'")
+  if (target != ""){
+    linkTag = paste0(linkTag, " target='", target, "'")
   }
+  if (type != ""){
+    linkTag = paste0(linkTag, " type='", type, "'")
+  }  
+  linkTag = paste0(linkTag, ">")
+  pot(paste0(linkTag, label, "</a>"))
 }
+
+# ## enhancement of links with targets and type;
+# ## but see ezLink
+# ezPot = function(value="", format=textProperties(), hyperlink, footnote, linkTarget="", linkType=""){
+#   if (linkTarget != "" || linkType != ""){
+#     value=paste0("<a href='", hyperlink, "' target='", linkTarget, "' type='", linkType, "'>", value, "</a>")
+#     pot(value, format=format, footnote=footnote)
+#     ## in this case the order of the tags is <span><a>label</a></span>
+#   } else {
+#     pot(value, format=format, hyperlink = hyperlink, footnote=footnote)
+#     ## in this case the order of the tags is <a><span>label</span></a>
+#   }
+# }
 
 
 ##' @title Adds a summary of the count result
