@@ -104,7 +104,7 @@ goUpDownTables = function(param, goResult){
       linkTable[onto, sub] = paste0("Cluster-", onto, "-", sub, ".html")
       ezInteractiveTable(goFrame, tableLink=linkTable[onto, sub], digits=3,
                          title=paste(sub("enrich", "", sub), "enriched GO categories of ontology", onto))
-      linkTable[onto, sub] = as.html(ezPot(linkTable[onto, sub], target = "_blank"))
+      linkTable[onto, sub] = as.html(ezLink(linkTable[onto, sub], target = "_blank"))
       goFrame$Term = substr(goFrame$Term, 1, 30)
       resultList[[sub]]["Cats", onto] = as.html(ezFlexTable(goFrame, talign="right", header.columns = TRUE))
       xSub = x[[sub]]
