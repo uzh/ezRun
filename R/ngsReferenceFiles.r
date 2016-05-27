@@ -19,12 +19,33 @@
 ##' }
 getReferenceFeaturesBed = function(param){
   bedFile = sub(".gtf$", ".bed", param$ezRef["refFeatureFile"])
-  if (!file.exists(bedFile)){
+  ## bedFile exists
+  if (file.exists(bedFile)){
+    return(bedFile)
+  }
+  lockFile = sub(".bed", ".bed.lock", bedFile)
+  ## I build the bed file
+  if (!file.exists(lockFile)){
+    ezWrite(Sys.info(), con=lockFile)
     ezSystem(paste(GTF2BED, "--do-not-sort", "<", param$ezRef["refFeatureFile"], ">", bedFile))
     ezSystem(paste("chmod", "g+w", bedFile))
+    file.remove(lockFile)
+    return(bedFile)
   }
-  return(bedFile)
+  ## I wait until it is build
+  i = 0
+  while(file.exists(lockFile) && i < INDEX_BUILD_TIMEOUT){
+    ### somebody else builds and we wait
+    Sys.sleep( 60)
+    i = i + 1
+  }
+  if (file.exists(bedFile)){
+    return(bedFile)
+  } else {
+    stop("bed file unavailable: ", bedFile)
+  }
 }
+
 # 
 # ##' @title Gets the file containing the chromosome sizes
 # ##' @description Gets the file containing the chromosome sizes either directly or by the fasta files in the chromosome directory.

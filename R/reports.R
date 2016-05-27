@@ -132,12 +132,12 @@ closeBsdocReport = function(doc, file, titles=NULL){
 ##' @param param a list of parameters to extract \code{refBuild} from.
 ##' @template roxygen-template
 addDataset = function(doc, dataset, param){
-  ezWrite.table(dataset, file="dataset.tsv", head="Name")
+  ezWrite.table(dataset, file="input_dataset.tsv", head="Name")
   # jsFile = system.file("extdata/popup.js", package="ezRun", mustWork=TRUE)
   # addJavascript(doc, jsFile)
   tableLink = "InputDataset.html"
   ezInteractiveTable(dataset, tableLink=tableLink, title="Input Dataset")
-  addParagraph(doc, ezLink(tableLink, "Input Datast", target="_blank"))
+  addParagraph(doc, ezLink(tableLink, "Input Dataset", target="_blank"))
   # if (ezIsSpecified(param$refBuild)){
   #   addParagraphpots = c(pots, paste("Reference build:", param$refBuild))
   # }
