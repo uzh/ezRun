@@ -55,20 +55,12 @@ ezMethodDEXSeqAnalysis <- function(input=NA, output=NA, param=NA){
   ### # if conditions are not specified, then we have to stop here
   if (is.null(condition))
     stop(" * No conditions were specified in ezMethodDEXSeqAnalysis")
-  ### # row indices of samples and reference
-  vIdxSample <- which(condition == param$sampleGroup)
-  vIdxRef <- which(condition == param$refGroup)
-  ### # define order, from the vignette, it seams that 
-  ### #  first come the sample rows then the reference rows
-  vCompOrder <- c(vIdxSample, vIdxRef)
-  if(length(countFiles)>length(vCompOrder)){
-    countFiles = countFiles[vCompOrder]
-  }
-  ### # sample table from rownames and conditions
+  
   sampleTable <- data.frame(
-    row.names = rownames(input$meta)[vCompOrder],
-    condition = condition[vCompOrder]
+    row.names = rownames(input$meta),
+    condition = condition
   )
+  
   ### # check the reference
   sRefFeatGff <- gsub("gtf$", "gff", basename(param[['ezRef']]@refFeatureFile))
   if(ezIsSpecified(param$gff_file))
@@ -89,6 +81,8 @@ ezMethodDEXSeqAnalysis <- function(input=NA, output=NA, param=NA){
     sampleData    = sampleTable,
     design        = design,
     flattenedfile = sRefFeatGff )
+  ### # define the reference group in the condition levels
+  dxd$condition <- relevel(dxd$condition, param$refGroup)
   
   ### # estimate size factors and dispersion
   dxd <- DEXSeq::estimateSizeFactors( dxd )
