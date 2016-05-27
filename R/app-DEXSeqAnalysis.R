@@ -385,7 +385,7 @@ DEXSeqCounting <- function(input = input, output = output, param = param){
     convertGtfToGff(psGtfFile = sGtfFile, psGffFile = sGffFile)
   
   ### # do the counting, get the bam files from input
-  bamFiles = as.list(input$getFullPaths(param, "BAM"))
+  bamFiles = as.list(input$getFullPaths("BAM"))
   
   ### # determine extension for count files
   sCountfileExt <- 'count'

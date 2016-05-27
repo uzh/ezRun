@@ -7,7 +7,7 @@
 
 
 ezMethodFeatureCounts = function(input=NA, output=NA, param=NA){
-  bamFile = input$getFullPaths(param, "BAM")
+  bamFile = input$getFullPaths("BAM")
   localBamFile = .getBamLocally(bamFile)
   outputFile = basename(output$getColumn("Count"))
   statFile = basename(output$getColumn("Stats"))

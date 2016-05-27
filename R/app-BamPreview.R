@@ -16,7 +16,7 @@ ezMethodBamPreview = function(input=NA, output=NA, param=NA, htmlFile="00index.h
   bamMeta[["BAM [File]"]] = paste0(getwd(), "/", input$getNames(), "/", input$getNames(), ".bam")
   bamMeta[["BAI [File]"]] = paste0(getwd(), "/", input$getNames(), "/", input$getNames(), ".bam.bai")
   bamMeta[["Read Count"]] = ceiling(bamMeta[["Read Count"]] / param$subsampleReads)
-  bamOutput = EzDataset(meta=bamMeta)
+  bamOutput = EzDataset(meta=bamMeta, param$dataRoot)
   bamParam = param
   bamParam$mail = ""
   switch(param$mapMethod,

@@ -12,8 +12,8 @@ ezMethodMacs2 = function(input=NA, output=NA, param=NA){
   #setwdNew(paste(basename(param$resultDir),output$getNames(),sep='_'))
   
   if (param$useControl){
-    cmd = paste(MACS2, "callpeak -t", input$getFullPaths(param, "BAM"), 
-                "-c", input$getFullPaths(param, "Control"), 
+    cmd = paste(MACS2, "callpeak -t", input$getFullPaths("BAM"), 
+                "-c", input$getFullPaths("Control"), 
                 "-B", opt,"-n", output$getNames())
     ezSystem(cmd)
     bedgraphFileTreat = paste0(output$getNames(), '_treat_pileup.bdg')
@@ -25,7 +25,7 @@ ezMethodMacs2 = function(input=NA, output=NA, param=NA){
     ezSystem(cmd)
     ezSystem("rm *.bdg")
   } else {
-    cmd = paste(MACS2, "callpeak -t", input$getFullPaths(param, "BAM"), opt,"-n", output$getNames())
+    cmd = paste(MACS2, "callpeak -t", input$getFullPaths("BAM"), opt,"-n", output$getNames())
     ezSystem(cmd)
     createBigWig(input, output, param)
   }
@@ -115,9 +115,9 @@ createBigWig = function(input=NA, output=NA, param=NA){
   requireNamespace("GenomicRanges")
   requireNamespace("GenomicAlignments")
   if (param$paired){
-    aligns = readGAlignmentPairs(file=input$getFullPaths(param, "BAM"))
+    aligns = readGAlignmentPairs(file=input$getFullPaths("BAM"))
   } else {
-    aligns = readGAlignments(file=input$getFullPaths(param, "BAM"))
+    aligns = readGAlignments(file=input$getFullPaths("BAM"))
   }
   cov = coverage(aligns)
   export(cov,paste0(output$getNames(), ".bw"), format="bigWig")

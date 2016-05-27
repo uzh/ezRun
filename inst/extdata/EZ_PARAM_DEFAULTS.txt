@@ -1,4 +1,5 @@
 Parameter	Type	DefaultValue	Description
+dataRoot	character	/srv/gstore/projects	the root directory where files are located
 # computing parameters
 cores	integer	1	number of cores to use
 ram	integer	4	gigabytes of RAM to use
@@ -12,7 +13,6 @@ doZip	logical	TRUE	whether text files should be zipped
 resultDir	character	.	The directory where the result files should be written
 appName	character		name of the app that is being run
 name	character		name of the analysis i.e. resulting dataset
-dataRoot	character		the root directory where files are located
 projectId	character		name of the project
 maxTableRows	integer	500	the maximum amount of rows to select for the interactive table using head()
 maxInteractivePoints	integer	100	the maximum amount of interactive points to add to interactive plots.

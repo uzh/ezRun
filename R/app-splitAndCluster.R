@@ -2,8 +2,8 @@ ezMethodSplitAndCluster = function(input=NA, output=NA, param=NA){
   
   cdHitOpt = "-c 0.98 -d 0" ## TODO put this options in the sushi interface
   
-  fastqFile1 = input$getFullPaths(param, "Read1")
-  fastqFile2 = input$getFullPaths(param, "Read2")
+  fastqFile1 = input$getFullPaths("Read1")
+  fastqFile2 = input$getFullPaths("Read2")
   localFastq1 = sub(".gz","",basename(fastqFile1))
   localFastq2 = sub(".gz","",basename(fastqFile2))
   fastqJoined = "joined.fastq"

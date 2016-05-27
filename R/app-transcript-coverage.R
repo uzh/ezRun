@@ -12,7 +12,7 @@ ezMethodTranscriptCoverage = function(input=NA, output=NA, param=NA){
   require(GenomicFeatures)
   
   seqAnno = ezRead.table(param$ezRef@refAnnotationFile)
-  bamFile = input$getFullPaths(param, "trBAM")
+  bamFile = input$getFullPaths("trBAM")
   strand = switch(param$strandMode,
                   sense="+",
                   antisense="-",

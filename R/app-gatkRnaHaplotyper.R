@@ -14,7 +14,7 @@ ezMethodGatkRnaHaplotyper = function(input=NA, output=NA, param=NA, htmlFile="00
   htmlFile = basename(output$getColumn("Html"))
   vcfOutputFile = output$getColumn("VCF [File]") #paste0(param$name, "-haplo.vcf.gz")
   
-  bamFiles = input$getFullPaths(param, "BAM")
+  bamFiles = input$getFullPaths("BAM")
   names(bamFiles) = rownames(bamDataset)
   genomeSeq = param$ezRef["refFastaFile"]
   nBamsInParallel = min(4, param$cores)

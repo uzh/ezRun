@@ -40,7 +40,7 @@ EzAppNcpro <-
 ##' @param param     further configuration parameters
 ncpro = function(input, dataset, param=NULL){
   samples = rownames(dataset)
-  fqFiles = input$getFullPaths(param, "Read1")
+  fqFiles = input$getFullPaths("Read1")
   names(fqFiles) = samples
   adapter = unique(dataset$Adapter1)
   stopifnot(length(adapter) == 1)

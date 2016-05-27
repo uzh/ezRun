@@ -111,8 +111,8 @@ ezMethodTrim = function(input=NA, output=NA, param=NA){
     if (param$paired){
       method = "PE"
       readOpts = paste(
-        input$getFullPaths(param, "Read1"),
-        input$getFullPaths(param, "Read2"),
+        input$getFullPaths("Read1"),
+        input$getFullPaths("Read2"),
         r1TmpFile,
         "unpaired-R1.fastq",
         r2TmpFile,
@@ -120,7 +120,7 @@ ezMethodTrim = function(input=NA, output=NA, param=NA){
     } else {
       method = "SE"
       readOpts = paste(
-        input$getFullPaths(param, "Read1"), r1TmpFile)
+        input$getFullPaths("Read1"), r1TmpFile)
     }
     cmd = paste(TRIMMOMATIC, method,
                 "-threads", min(ezThreads(), 8),
@@ -132,9 +132,9 @@ ezMethodTrim = function(input=NA, output=NA, param=NA){
                 ">> trimmomatic.out 2>> trimmomatic.err")
     ezSystem(cmd)
   } else {
-    ezSystem(paste("gunzip -c", input$getFullPaths(param, "Read1"), ">", r1TmpFile))
+    ezSystem(paste("gunzip -c", input$getFullPaths("Read1"), ">", r1TmpFile))
     if (param$paired){
-      ezSystem(paste("gunzip -c", input$getFullPaths(param, "Read2"), ">", r2TmpFile))      
+      ezSystem(paste("gunzip -c", input$getFullPaths("Read2"), ">", r2TmpFile))      
     }
   }
   
@@ -210,8 +210,8 @@ ezMethodTrim = function(input=NA, output=NA, param=NA){
 ##' }
 ##' @examples 
 ##' inputDatasetFile = system.file(package = "ezRun", "extdata/yeast_10k/dataset.tsv")
-##' input = EzDataset(file=inputDatasetFile)
 ##' param = ezParam(list(dataRoot=system.file(package = "ezRun"), subsampleFactor=5))
+##' input = EzDataset(file=inputDatasetFile, dataRoot=param$dataRoot)
 ##' xSubsampled = ezMethodSubsampleReads(input=input, param=param)
 ##' # NOTE: the subsampled files will not be gzip compressed!
 ezMethodSubsampleReads = function(input=NA, output=NA, param=NA){
@@ -233,10 +233,10 @@ ezMethodSubsampleReads = function(input=NA, output=NA, param=NA){
   } else {
     subsampleFactor = param$subsampleReads
   }
-  newReadCounts = ezSubsampleFastq(input$getFullPaths(param, "Read1"), output$getColumn("Read1"), subsampleFactor = subsampleFactor)
+  newReadCounts = ezSubsampleFastq(input$getFullPaths("Read1"), output$getColumn("Read1"), subsampleFactor = subsampleFactor)
   output$setColumn("Read Count", newReadCounts)
   if (param$paired){
-    ezSubsampleFastq(input$getFullPaths(param, "Read2"), output$getColumn("Read2"), subsampleFactor = subsampleFactor)
+    ezSubsampleFastq(input$getFullPaths("Read2"), output$getColumn("Read2"), subsampleFactor = subsampleFactor)
   }
   return(output)
 }

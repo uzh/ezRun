@@ -14,7 +14,7 @@ ezMethodMpileup = function(input=NA, output=NA, param=NA){
   htmlFile = basename(output$getColumn("Html"))
   vcfOutputFile = output$getColumn("VCF")
   
-  bamFiles = input$getFullPaths(param, "BAM")
+  bamFiles = input$getFullPaths("BAM")
   bamDataset = input$meta
   genomeSeq = param$ezRef["refFastaFile"]
   nBamsInParallel = min(4, param$cores)

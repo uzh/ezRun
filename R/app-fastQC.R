@@ -12,9 +12,9 @@ ezMethodFastQC = function(input=NA, output=NA, param=NA, htmlFile="00index.html"
   samples = rownames(dataset)
   files = c()
   for (sm in samples){
-    files[paste0(sm, "_R1")] = input$getFullPaths(param,"Read1")[sm]
+    files[paste0(sm, "_R1")] = input$getFullPaths("Read1")[sm]
     if (!is.null(dataset$Read2)){
-      files[paste0(sm, "_R2")] = input$getFullPaths(param,"Read2")[sm]    
+      files[paste0(sm, "_R2")] = input$getFullPaths("Read2")[sm]    
     }
   }
   nFiles = length(files)

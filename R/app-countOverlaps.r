@@ -7,7 +7,7 @@
 
 
 ezMethodCountOverlaps = function(input=NA, output=NA, param=NA){
-  bamFile = input$getFullPaths(param, "BAM")
+  bamFile = input$getFullPaths("BAM")
   outputFile = basename(output$getColumn("Count"))
   
   requireNamespace("bitops", warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)

@@ -71,7 +71,7 @@ cleanupMultiGroupsInput = function(input, param){
   if (!is.null(param$removeOutliers) && param$removeOutliers && !is.null(dataset$Outlier)){
     dataset = dataset[toupper(dataset$Outlier) %in% c("", "NO", '""', "FALSE") == TRUE, ]  ## CHECK: should FALSE be there?
   }
-  inputMod = EzDataset(meta=dataset)
+  inputMod = EzDataset(meta=dataset, dataRoot=param$dataRoot)
   if (!is.null(param$markOutliers) && param$markOutliers){
     stopifnot(!is.null(dataset$Outlier))
     grouping = inputMod$getColumn(param$grouping)

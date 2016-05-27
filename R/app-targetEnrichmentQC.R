@@ -33,7 +33,7 @@ ezMethodTeqc = function(input=NA, output=NA, param=NA){
                                   pattern='Covered\\.bed$', full.names = T)[1]
   }
   samples = input$getNames()
-  jobList = input$getFullPaths(param, "BAM")
+  jobList = input$getFullPaths("BAM")
   #Create one Report per Sample:
   destDirs = ezMclapply(jobList, runTEQC, param, mc.cores=ezThreads())
   

@@ -28,11 +28,11 @@
 ##' param = ezParam()
 ##' param$dataRoot = system.file(package="ezRun", mustWork = TRUE)
 ##' file = system.file("extdata/yeast_10k_STAR_counts/dataset.tsv", package="ezRun", mustWork = TRUE)
-##' input = EzDataset$new(file=file)
+##' input = EzDataset$new(file=file, dataRoot=param$dataRoot)
 ##' cds = loadCountDataset(input, param)
 loadCountDataset = function(input, param){
 
-  files = input$getFullPaths(param, "Count")
+  files = input$getFullPaths("Count")
   suffix = unique(toupper( sub(".*\\.", "", files)))
   if (length(suffix) > 1){
     return(list(error=paste("different  file suffixes not supported: <br>",
@@ -191,10 +191,10 @@ readNcProResult = function (ncproDir) {
 ##' @examples 
 ##' bamFile <- system.file("extdata", "ex1.bam", package="Rsamtools", mustWork=TRUE)
 ##' file = system.file("extdata/yeast_10k/dataset.tsv", package="ezRun", mustWork = TRUE)
-##' input = EzDataset$new(file=file)
 ##' param = list()
 ##' param$dataRoot = system.file(package="ezRun", mustWork = TRUE)
-##' fqFiles = input$getFullPaths(param, "Read1")
+##' input = EzDataset$new(file=file, dataRoot=param$dataRoot)
+##' fqFiles = input$getFullPaths("Read1")
 ##' fqFiltered = filterFastqByBam(fqFiles, bamFile, doGzip = FALSE)
 filterFastqByBam = function(fqFiles, bamFile, fqOutFiles=NULL, doGzip=TRUE, keepUnmapped=TRUE, isProperPair=NA){
   param = ScanBamParam(what=c("qname"),
@@ -238,10 +238,10 @@ removeReadsFromFastq = function(fqFiles, readIds, fqOutFiles=NULL, doGzip=TRUE){
 ##' @return Returns a named numeric vector
 ##' @examples 
 ##' file = system.file("extdata/yeast_10k/dataset.tsv", package="ezRun", mustWork = TRUE)
-##' input = EzDataset$new(file=file)
 ##' param = list()
 ##' param$dataRoot = system.file(package="ezRun", mustWork = TRUE)
-##' fqFiles = input$getFullPaths(param, "Read1")
+##' input = EzDataset$new(file=file, dataRoot=param$dataRoot)
+##' fqFiles = input$getFullPaths("Read1")
 ##' result = countReadsInFastq(fqFiles)
 countReadsInFastq = function(fastqFiles){
   nReads = c()

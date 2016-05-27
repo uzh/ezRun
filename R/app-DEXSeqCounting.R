@@ -21,7 +21,7 @@ ezMethodDEXSeqCounting <- function(input=NA, output=NA, param=NA){
     convertGtfToGff(psGtfFile = sGtfFile, psGffFile = sGffFile)
 
   ### # do the counting, get the bam files from input
-  bamFile = input$getFullPaths(param, "BAM")
+  bamFile = input$getFullPaths("BAM")
 
   ### # determine extension for count files
   sCountfileExt <- 'count'

@@ -60,7 +60,7 @@ EzAppRnaBamStats <-
 ##' @seealso \code{\link{plotBamStat}}
 computeBamStats = function(input, htmlFile, param, gff, resultList=NULL){
   samples = input$getNames()
-  files = input$getFullPaths(param, "BAM")
+  files = input$getFullPaths("BAM")
   dataset = input$meta
   
   ## get the RNA_repeats if available

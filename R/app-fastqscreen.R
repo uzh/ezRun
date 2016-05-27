@@ -9,7 +9,7 @@
 ezMethodFastqScreen = function(input=NA, output=NA, param=NA, htmlFile="00index.html"){
   dataset = input$meta
   # fastqscreen part
-  files = input$getFullPaths(param, "Read1")
+  files = input$getFullPaths("Read1")
   resultFiles = executeFastqscreenCMD(param, files)
   fastqData = collectFastqscreenOutput(dataset, files, resultFiles)
   # bowtie2 reference part
@@ -93,9 +93,9 @@ collectFastqscreenOutput = function(dataset, files, resultFiles){
 }
 
 executeBowtie2CMD = function(param, input){
-  r1Files = input$getFullPaths(param, "Read1")
+  r1Files = input$getFullPaths("Read1")
   if (param$paired){
-    r2Files = input$getFullPaths(param, "Read2")
+    r2Files = input$getFullPaths("Read2")
   }
   countFiles = character()
   for (nm in names(r1Files)){
