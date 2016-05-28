@@ -20,8 +20,8 @@ The subsampled reads are equally distributed across the original files
 }
 \examples{
 inputDatasetFile = system.file(package = "ezRun", "extdata/yeast_10k/dataset.tsv")
-input = EzDataset(file=inputDatasetFile)
 param = ezParam(list(dataRoot=system.file(package = "ezRun"), subsampleFactor=5))
+input = EzDataset(file=inputDatasetFile, dataRoot=param$dataRoot)
 xSubsampled = ezMethodSubsampleReads(input=input, param=param)
 # NOTE: the subsampled files will not be gzip compressed!
 }

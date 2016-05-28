@@ -31,7 +31,7 @@ Loads the count dataset with the given input.
 param = ezParam()
 param$dataRoot = system.file(package="ezRun", mustWork = TRUE)
 file = system.file("extdata/yeast_10k_STAR_counts/dataset.tsv", package="ezRun", mustWork = TRUE)
-input = EzDataset$new(file=file)
+input = EzDataset$new(file=file, dataRoot=param$dataRoot)
 cds = loadCountDataset(input, param)
 }
 \author{

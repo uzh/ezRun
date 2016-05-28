@@ -21,7 +21,7 @@ Select samples from raw data by specifying either the signal names or the sample
 param = ezParam()
 param$dataRoot = system.file(package="ezRun", mustWork = TRUE)
 file = system.file("extdata/yeast_10k_STAR_counts/dataset.tsv", package="ezRun", mustWork = TRUE)
-input = EzDataset$new(file=file)
+input = EzDataset$new(file=file, dataRoot=param$dataRoot)
 rawData = loadCountDataset(input, param)
 rd2 = selectSamples(rawData, c("wt_1","wt_2"))
 }

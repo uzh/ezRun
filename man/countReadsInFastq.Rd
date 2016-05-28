@@ -17,10 +17,10 @@ Counts reads in FastQ files and returns the amount for each file.
 }
 \examples{
 file = system.file("extdata/yeast_10k/dataset.tsv", package="ezRun", mustWork = TRUE)
-input = EzDataset$new(file=file)
 param = list()
 param$dataRoot = system.file(package="ezRun", mustWork = TRUE)
-fqFiles = input$getFullPaths(param, "Read1")
+input = EzDataset$new(file=file, dataRoot=param$dataRoot)
+fqFiles = input$getFullPaths("Read1")
 result = countReadsInFastq(fqFiles)
 }
 \author{

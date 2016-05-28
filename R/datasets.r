@@ -33,7 +33,7 @@ makeMinimalSingleEndReadDataset = function(fqDir, species="", adapter1="GATCGGAA
   if (!is.null(readCount)){
     ds$"Read Count"=countReadsInFastq(gzFiles)
   } else {
-    ds$"Read Count" = readCount()
+    ds$"Read Count" = readCount
   }
   #ezWrite.table(ds, file=file.path(fqDir, "dataset.tsv"), head="Name")
   return(ds)
