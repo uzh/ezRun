@@ -43,6 +43,7 @@ ezMethodTrim = function(input=NA, output=NA, param=NA){
         output$setColumn("Read2", NULL)
       }
     }
+    output$dataRoot = NULL
   }
   
   ## if there are multiple samples loop through them
@@ -223,6 +224,7 @@ ezMethodSubsampleReads = function(input=NA, output=NA, param=NA){
       subsampleFiles = sub(".fastq.*", "-subsample.fastq", basename(input$getColumn("Read2")))
       output$setColumn(name="Read2", values = file.path(getwd(), subsampleFiles))      
     }
+    output$dataRoot = NULL
   }
   if (param$nReads > 0){
     totalReads = input$getColumn("Read Count")

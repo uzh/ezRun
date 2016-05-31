@@ -131,14 +131,17 @@ EzDataset <-
                   "Gets the files in the nameed column prepended with the \\code{dataRoot}."
                   ### ok = ezSystem(paste("cd", dataRoot, "; pwd")) ### workaround to make sure the drive where the data sits is mounted by the automounter
                   files = .self$getColumn(name)
-                  if (!is.null(dataRoot)){
-                    files = sapply(files, function(x){fn = file.path(dataRoot, x); fn[file.access(fn) == 0][1]})
+                  if (is.null(dataRoot) || dataRoot == "" ){
+                    fullPaths = files
+                  } else {
+                    fullPaths = file.path(dataRoot, files)
+                    names(fullPaths) = names(files)
                   }
-                  isInvalid = is.na(files)
+                  isInvalid = file.access(fullPaths) != 0
                   if (any(isInvalid)){
                     stop("Files are not readable using root:\n", paste(dataRoot, collapse="\n"), "\nfiles:\n", paste(files[isInvalid], collapse="\n"))
                   }
-                  return(files)
+                  return(fullPaths)
                 }
               )
   )
