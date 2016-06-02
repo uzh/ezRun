@@ -35,6 +35,7 @@
 #' @param param EzParam reference object specifying additional parameters
 #' 
 ezMethodDEXSeqAnalysis <- function(input=NA, output=NA, param=NA){
+  require(DEXSeq)
   param[['BPPARAM']] = BiocParallel::MulticoreParam(workers=param$cores)
   ### # get count files based on the name of the bamfiles  
   sCountfileExt <- 'count'
@@ -44,14 +45,12 @@ ezMethodDEXSeqAnalysis <- function(input=NA, output=NA, param=NA){
   ### # if count files do not exist, generate them
   if(!all(file.exists(countFiles)))
     DEXSeqCounting(input = input, output = output, param = param)
-    #EzAppDEXSeqCounting$new()$run(input = input, output = output, param = param)
   
   ### # check whether conditions are specified
   colnames(input$meta) = gsub(' \\[.*','',colnames(input$meta))
   if (param$grouping %in% colnames(input$meta))
     condition <- input$meta[[param$grouping]]
-  #if (ezIsSpecified(param$grouping))
-  #  condition <- param$grouping
+  
   ### # if conditions are not specified, then we have to stop here
   if (is.null(condition))
     stop(" * No conditions were specified in ezMethodDEXSeqAnalysis")
@@ -86,13 +85,13 @@ ezMethodDEXSeqAnalysis <- function(input=NA, output=NA, param=NA){
   
   ### # estimate size factors and dispersion
   dxd <- DEXSeq::estimateSizeFactors( dxd )
-  dxd <- DEXSeq::estimateDispersions( dxd, BPPARAM = param[['BPPARAM']] )
+  dxd <- DEXSeq::estimateDispersions( dxd, BPPARAM = param[['BPPARAM']], quiet = T )
 
   ### # testing for differential usage
   dxd  <- DEXSeq::testForDEU( dxd, BPPARAM = param[['BPPARAM']] )
   
   ### # fold changes
-  dxd <- DEXSeq::estimateExonFoldChanges( dxd, fitExpToVar = tolower(param$grouping), BPPARAM = param[['BPPARAM']])
+  dxd <- DEXSeq::estimateExonFoldChanges( dxd, fitExpToVar = tolower(param$grouping), BPPARAM = param[['BPPARAM']], denominator = param$refGroup)
 
   ### # generate a report
   writeDEXSeqReport(dataset = input$meta, dexResult = list(param = param, dxd=dxd), sResultDir = basename(output$meta[['Report [File]']]))
@@ -119,6 +118,7 @@ EzAppDEXSeqAnalysis <-
                                         countfile_path = ezFrame(Type="character", DefaultValue=".",          Description="path where count files should be stored"),
                                         gff_file       = ezFrame(Type="character", DefaultValue="genes.gff",  Description="name of the gff annotation file"),
                                         fdr            = ezFrame(Type="numeric",   DefaultValue=0.1,          Description="false discovery rate below which genes are reported"),
+                                        minExonCount   = ezFrame(Type="numeric",   DefaultValue=5,          Description="minimal Mean ExonCount for fdr calculation"),
                                         dexseq_report_path = ezFrame(Type="character", DefaultValue="DEXSeqReport",  Description="path DEXSeqHTML report is written to"),
                                         dexseq_report_file = ezFrame(Type="character", DefaultValue="testForDEU.html",  Description="file name for DEXSeqHTML report")   )
                 }
@@ -144,19 +144,21 @@ writeDEXSeqReport <- function(dataset, dexResult, htmlFile="00index.html", sResu
   name <- param$name
   ### # extract DEXSeqResults object
   dxd <- dexResult$dxd
-  dxr <- DEXSeq::DEXSeqResults(dxd)
-
+  dxr <- DEXSeq::DEXSeqResults(dxd,independentFiltering = T,filter=rowMeans( featureCounts(dxd) )>param$minExonCount)
+  
   ### # put the results into a different subdirectory
   sCurWd <- getwd()
   setwdNew(sResultDir)
   
   ### # write tsv file from results
-  if (ezIsSpecified(param$ResultFile)) {
-    sResultFile <- param$ResultFile
-  } else {
-    sResultFile <- "DexSeqResult.tsv"
-  }
+  sResultFile <- paste0("result--", param$comparison, "--", "DEXSeqResult.txt")
   write.table(dxr, file = sResultFile, quote = FALSE, sep = "\t")
+  
+  ###Save dexResult as RData-Object for Shiny
+  resultObj = list(dxr=dxr,param=param)
+  resultObjFile = paste0("result--", param$comparison, "--", ezRandomString(length=12), "--EzDEXSeqResult.RData")
+  save(resultObj,file=resultObjFile)
+  
   
   ### # if parameters about biomart are specified, use them
   if (ezIsSpecified(param$bio_mart) & 
@@ -165,15 +167,15 @@ writeDEXSeqReport <- function(dataset, dexResult, htmlFile="00index.html", sResu
       ezIsSpecified(param$mart_attributes) ) {
     ensembl_mart <- biomaRt::useMart(biomart = param$bio_mart, dataset=param$mart_dataset)  
     DEXSeq::DEXSeqHTML(dxr, path = param$dexseq_report_path, file = param$dexseq_report_file, FDR = param$fdr,
-                       mart = ensembl_mart, filter = param$mart_filter, attributes = param$mart_attributes)
+                       mart = ensembl_mart, filter = param$mart_filter, attributes = param$mart_attributes,BPPARAM = param[['BPPARAM']])
   } else {
     ### # write that generic report for a given FDR, using 0.1 as the default
-    DEXSeq::DEXSeqHTML(dxr, path = param$dexseq_report_path, file = param$dexseq_report_file, FDR = param$fdr)
+    DEXSeq::DEXSeqHTML(dxr, path = param$dexseq_report_path, file = param$dexseq_report_file, FDR = param$fdr,BPPARAM = param[['BPPARAM']])
   }
   
   ### # put a title to the report using name in output
   titles <- list()
-  titles[["Analysis"]]  <- paste("Analysis:", name)
+  titles[["DEXSeq Analysis"]]  <- paste("Analysis:", name)
   ### # create a report instance
   doc <- openBsdocReport(title=titles[[length(titles)]])
   ### # adding the dataset meta information
@@ -188,7 +190,9 @@ writeDEXSeqReport <- function(dataset, dexResult, htmlFile="00index.html", sResu
   settings["Reference group:"] = param$refGroup
   settings["Design:"] = paste(as.character(param$design), collapse = " ")
   settings["FDR:"] = as.character(param$fdr)
-  settings["Number of result features:"] = nrow(dxr)
+  settings["Number of result features: "] = nrow(dxr)
+  settings["Number of significant exons: "] = length(which(dxr$padj < param$fdr))
+  settings["Number of significant genes: "] = sum(perGeneQValue(dxr)< param$fdr)
   addFlexTable(doc, ezGrid(settings, add.rownames=TRUE))
   
   ### # experimental design
@@ -226,11 +230,11 @@ writeDEXSeqReport <- function(dataset, dexResult, htmlFile="00index.html", sResu
   }
 
   ### # table with annotations
-  genetable <- getGeneTable(pdxr = dxr, param = param)
-  titles[["DEXSeq differential exon usage test"]] = "DEXSeq differential exon usage test"
+  candidateReportFile = getGeneTable(pdxr = dxr, param = param)
+  titles[["DEXSeq differential exon usage results"]] = "DEXSeq differential exon usage results"
   addTitle(doc, titles[[length(titles)]], 3, id=titles[[length(titles)]])
-  addFlexTable(doc, ezFlexTable(genetable, add.rownames=FALSE, header.columns = TRUE))
-  
+  addParagraph(doc, pot("Interactive Candidate Table", hyperlink = candidateReportFile))
+  addParagraph(doc, pot("Txt-Result-File Exon-Level", hyperlink = sResultFile))
   
   ### # Put simply a link to the already existing report
   titles[["Report generated by DEXSeq"]] = "Report generated by DEXSeq"
@@ -240,6 +244,8 @@ writeDEXSeqReport <- function(dataset, dexResult, htmlFile="00index.html", sResu
   
                                                                                                 
   ### # closing the report leads to writing it to htmlFile
+  titles[["Misc"]] = "Misc"
+  addTitle(doc, titles[[length(titles)]], 3, id=titles[[length(titles)]])
   closeBsdocReport(doc, htmlFile, titles)
   setwd(sCurWd)
 }
@@ -330,12 +336,30 @@ getGeneTable <- function(pdxr, param){
                              USE.NAMES = FALSE)
   ### # add extracted columns and return genetable
   genetable <- cbind(genetable, gene_name, gene_description)
-  
-  ### # add links to result files
   genetable$geneID <- as.character(genetable$geneID)
+  geneQValues =round(perGeneQValue(pdxr),5)
+  geneQValues = data.frame(ID=names(geneQValues),fdr=geneQValues, stringsAsFactors = F)
+  genetable = merge(genetable,geneQValues,by.x='geneID', by.y='ID')
+  genetable = genetable[order(genetable$fdr),]
+  ### # add links to result files
   genetable$geneID <- getGeneIdExprLinks(pvGeneIds = genetable$geneID, psdexseq_report_path = param$dexseq_report_path)
+  require(DT)
   
-  return(genetable)
+  x = datatable(genetable,escape = F,rownames = FALSE, filter = 'bottom',
+                caption = paste('Candidates DEXSeq:',param$comparison, sep=''),
+                options = list(
+                  initComplete = JS(
+                    "function(settings, json) {",
+                    "$(this.api().table().header()).css({'background-color': '#0000A0', 'color': '#fff'});",
+                    "}"),
+                  dom = c('TRC<"clear">lfrtip'),
+                  tableTools = list(sSwfPath = copySWF())),
+                extensions = c('ColReorder', 'ColVis','TableTools'))
+  candidateReportFile = paste0('candidates_',param$comparison,'.html')
+  saveWidget(x,candidateReportFile)
+  
+  
+  return(candidateReportFile)
 }
 
 
