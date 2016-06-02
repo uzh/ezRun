@@ -36,6 +36,12 @@
 #' 
 ezMethodDEXSeqAnalysis <- function(input=NA, output=NA, param=NA){
   require(DEXSeq)
+  ###Count only relevant bam-files
+  param$sampleGroup
+  param$refGroup
+  condition = paste0(param$grouping,' [Factor]')
+  input$meta = input$meta[which(input$meta[[condition]] %in% c(param$sampleGroup,param$refGroup)),]
+  
   param[['BPPARAM']] = BiocParallel::MulticoreParam(workers=param$cores)
   ### # get count files based on the name of the bamfiles  
   sCountfileExt <- 'count'
