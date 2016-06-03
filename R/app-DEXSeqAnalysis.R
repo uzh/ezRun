@@ -36,22 +36,8 @@
 #' 
 ezMethodDEXSeqAnalysis <- function(input=NA, output=NA, param=NA){
   require(DEXSeq)
-  ###Count only relevant bam-files
-  param$sampleGroup
-  param$refGroup
-  condition = paste0(param$grouping,' [Factor]')
-  input$meta = input$meta[which(input$meta[[condition]] %in% c(param$sampleGroup,param$refGroup)),]
-  
   param[['BPPARAM']] = BiocParallel::MulticoreParam(workers=param$cores)
-  ### # get count files based on the name of the bamfiles  
-  sCountfileExt <- 'count'
-  if (ezIsSpecified(param$countfile_ext))
-    sCountfileExt <- param$countfile_ext
-  countFiles <- gsub("bam$", replacement = sCountfileExt, basename(input$getColumn("BAM")))
-  ### # if count files do not exist, generate them
-  if(!all(file.exists(countFiles)))
-    DEXSeqCounting(input = input, output = output, param = param)
-  
+  param[['minGeneCount']] = 10
   ### # check whether conditions are specified
   colnames(input$meta) = gsub(' \\[.*','',colnames(input$meta))
   if (param$grouping %in% colnames(input$meta))
@@ -60,11 +46,23 @@ ezMethodDEXSeqAnalysis <- function(input=NA, output=NA, param=NA){
   ### # if conditions are not specified, then we have to stop here
   if (is.null(condition))
     stop(" * No conditions were specified in ezMethodDEXSeqAnalysis")
+
+  ###Count only relevant bam-files
+  input$meta = input$meta[which(input$meta[[param$grouping]] %in% c(param$sampleGroup,param$refGroup)),]
   
   sampleTable <- data.frame(
     row.names = rownames(input$meta),
     condition = condition
   )
+  
+  ### # get count files based on the name of the bamfiles  
+  sCountfileExt <- 'count'
+  if (ezIsSpecified(param$countfile_ext))
+    sCountfileExt <- param$countfile_ext
+  countFiles <- gsub("bam$", replacement = sCountfileExt, basename(input$getColumn("BAM")))
+  ### # if count files do not exist, generate them
+  if(!all(file.exists(countFiles)))
+    DEXSeqCounting(input = input, output = output, param = param)
   
   ### # check the reference
   sRefFeatGff <- gsub("gtf$", "gff", basename(param[['ezRef']]@refFeatureFile))
@@ -86,6 +84,32 @@ ezMethodDEXSeqAnalysis <- function(input=NA, output=NA, param=NA){
     sampleData    = sampleTable,
     design        = design,
     flattenedfile = sRefFeatGff )
+  
+  countData = counts(dxd)[,1:length(countFiles)]
+  rownames(countData) = gsub(':.*','',rownames(countData))
+  countDataPerGene = matrix(0,length(unique(rownames(countData))),ncol(countData))
+  colnames(countDataPerGene) = colnames(countData)
+  rownames(countDataPerGene) = unique(rownames(countData))
+  
+  for (j in 1:ncol(countDataPerGene)){
+     countDataPerGene[,j] = tapply(countData[,j],INDEX = rownames(countData),sum)
+  }
+  
+  presentGenes = rownames(countDataPerGene)[which(rowMax(countDataPerGene)>param[['minGeneCount']] & apply(countDataPerGene,1,aboveMinExprSamples)>1)]
+  filteredCountData = counts(dxd)[which(rownames(countData) %in% presentGenes),1:length(countFiles)]
+  transcripts = rowData(dxd)$transcripts[which(rownames(countData) %in% presentGenes)]
+  featureRanges = rowRanges(dxd)[which(rownames(countData) %in% presentGenes)]
+  
+  dxd <- DEXSeq::DEXSeqDataSet(
+    filteredCountData,
+    sampleData    = sampleTable,
+    design        = design,
+    featureID     = gsub('.*:','',rownames(filteredCountData)),
+    groupID       = gsub(':.*','',rownames(filteredCountData)),
+    transcripts   = transcripts,
+    featureRanges = featureRanges
+)
+  
   ### # define the reference group in the condition levels
   dxd$condition <- relevel(dxd$condition, param$refGroup)
   
@@ -124,7 +148,7 @@ EzAppDEXSeqAnalysis <-
                                         countfile_path = ezFrame(Type="character", DefaultValue=".",          Description="path where count files should be stored"),
                                         gff_file       = ezFrame(Type="character", DefaultValue="genes.gff",  Description="name of the gff annotation file"),
                                         fdr            = ezFrame(Type="numeric",   DefaultValue=0.1,          Description="false discovery rate below which genes are reported"),
-                                        minExonCount   = ezFrame(Type="numeric",   DefaultValue=5,          Description="minimal Mean ExonCount for fdr calculation"),
+                                        minExonExprCount   = ezFrame(Type="numeric",   DefaultValue=5,          Description="minimal Mean ExonCount for fdr calculation"),
                                         dexseq_report_path = ezFrame(Type="character", DefaultValue="DEXSeqReport",  Description="path DEXSeqHTML report is written to"),
                                         dexseq_report_file = ezFrame(Type="character", DefaultValue="testForDEU.html",  Description="file name for DEXSeqHTML report")   )
                 }
@@ -150,7 +174,7 @@ writeDEXSeqReport <- function(dataset, dexResult, htmlFile="00index.html", sResu
   name <- param$name
   ### # extract DEXSeqResults object
   dxd <- dexResult$dxd
-  dxr <- DEXSeq::DEXSeqResults(dxd,independentFiltering = T,filter=rowMeans( featureCounts(dxd) )>param$minExonCount)
+  dxr <- DEXSeq::DEXSeqResults(dxd,independentFiltering = T,filter=rowMeans( featureCounts(dxd) )>param[['minExonExprCount']])
   
   ### # put the results into a different subdirectory
   sCurWd <- getwd()
@@ -481,4 +505,10 @@ lGetPyScriptPaths <- function(){
   }
   return(list(DEXSEQ_PREPARE = paste(PYTHON_CMD, file.path(system.file(package = "DEXSeq", "python_scripts"), "dexseq_prepare_annotation.py")),
               DEXSEQ_COUNT = paste(PYTHON_CMD, file.path(system.file(package = "DEXSeq", "python_scripts"), "dexseq_count.py"))))
+}
+
+
+aboveMinExprSamples = function(x,minExpr=5){
+  nSamples = sum(x>minExpr)
+  return(nSamples)
 }
