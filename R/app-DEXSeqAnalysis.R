@@ -37,7 +37,7 @@
 ezMethodDEXSeqAnalysis <- function(input=NA, output=NA, param=NA){
   require(DEXSeq)
   param[['BPPARAM']] = BiocParallel::MulticoreParam(workers=param$cores)
-  param[['minGeneCount']] = 10
+  param[['minGeneExprCount']] = 10
   ### # check whether conditions are specified
   colnames(input$meta) = gsub(' \\[.*','',colnames(input$meta))
   if (param$grouping %in% colnames(input$meta))
@@ -48,7 +48,9 @@ ezMethodDEXSeqAnalysis <- function(input=NA, output=NA, param=NA){
     stop(" * No conditions were specified in ezMethodDEXSeqAnalysis")
 
   ###Count only relevant bam-files
+  condition = condition[which(input$meta[[param$grouping]] %in% c(param$sampleGroup,param$refGroup))]
   input$meta = input$meta[which(input$meta[[param$grouping]] %in% c(param$sampleGroup,param$refGroup)),]
+  
   
   sampleTable <- data.frame(
     row.names = rownames(input$meta),
@@ -95,7 +97,7 @@ ezMethodDEXSeqAnalysis <- function(input=NA, output=NA, param=NA){
      countDataPerGene[,j] = tapply(countData[,j],INDEX = rownames(countData),sum)
   }
   
-  presentGenes = rownames(countDataPerGene)[which(rowMax(countDataPerGene)>param[['minGeneCount']] & apply(countDataPerGene,1,aboveMinExprSamples)>1)]
+  presentGenes = rownames(countDataPerGene)[which(rowMax(countDataPerGene)>param[['minGeneExprCount']] & apply(countDataPerGene,1,aboveMinExprSamples,minExpr=param[['minGeneExprCount']])>1)]
   filteredCountData = counts(dxd)[which(rownames(countData) %in% presentGenes),1:length(countFiles)]
   transcripts = rowData(dxd)$transcripts[which(rownames(countData) %in% presentGenes)]
   featureRanges = rowRanges(dxd)[which(rownames(countData) %in% presentGenes)]
@@ -147,8 +149,12 @@ EzAppDEXSeqAnalysis <-
                                         countfile_ext  = ezFrame(Type="character", DefaultValue="count",      Description="extension of count files"),
                                         countfile_path = ezFrame(Type="character", DefaultValue=".",          Description="path where count files should be stored"),
                                         gff_file       = ezFrame(Type="character", DefaultValue="genes.gff",  Description="name of the gff annotation file"),
-                                        fdr            = ezFrame(Type="numeric",   DefaultValue=0.1,          Description="false discovery rate below which genes are reported"),
-                                        minExonExprCount   = ezFrame(Type="numeric",   DefaultValue=5,          Description="minimal Mean ExonCount for fdr calculation"),
+                                        paired         = ezFrame(Type="character",   DefaultValue='false',          Description="different counting for paired end data"),
+                                        strandMode     = ezFrame(Type="character",   DefaultValue='both',          Description="read orientiation"),
+                                        fdr            = ezFrame(Type="numeric",   DefaultValue=0.05,          Description="false discovery rate below which genes are reported"),
+                                        minGeneExprCount   = ezFrame(Type="numeric",   DefaultValue=20,          Description="minimal Mean GeneCount for candidate selection"),
+                                        minExonExprCount   = ezFrame(Type="numeric",   DefaultValue=10,          Description="minimal Mean ExonCount for candidate selection"),
+                                        minExonLog2Ratio = ezFrame(Type="numeric",   DefaultValue=0.5,          Description="minimal log2Ratio for diff. exon for candidate selection"),
                                         dexseq_report_path = ezFrame(Type="character", DefaultValue="DEXSeqReport",  Description="path DEXSeqHTML report is written to"),
                                         dexseq_report_file = ezFrame(Type="character", DefaultValue="testForDEU.html",  Description="file name for DEXSeqHTML report")   )
                 }
@@ -174,21 +180,20 @@ writeDEXSeqReport <- function(dataset, dexResult, htmlFile="00index.html", sResu
   name <- param$name
   ### # extract DEXSeqResults object
   dxd <- dexResult$dxd
-  dxr <- DEXSeq::DEXSeqResults(dxd,independentFiltering = T,filter=rowMeans( featureCounts(dxd) )>param[['minExonExprCount']])
+  dxr <- DEXSeq::DEXSeqResults(dxd,independentFiltering = T)#,filter=rowMeans( featureCounts(dxd) )>as.numeric(param[['minExonExprCount']]))
   
   ### # put the results into a different subdirectory
   sCurWd <- getwd()
   setwdNew(sResultDir)
-  
-  ### # write tsv file from results
-  sResultFile <- paste0("result--", param$comparison, "--", "DEXSeqResult.txt")
-  write.table(dxr, file = sResultFile, quote = FALSE, sep = "\t")
   
   ###Save dexResult as RData-Object for Shiny
   resultObj = list(dxr=dxr,param=param)
   resultObjFile = paste0("result--", param$comparison, "--", ezRandomString(length=12), "--EzDEXSeqResult.RData")
   save(resultObj,file=resultObjFile)
   
+  ### # write tsv file from results
+  sResultFile <- paste0("result--", param$comparison, "--", "DEXSeqResult.txt")
+  write.table(dxr, file = sResultFile, quote = FALSE, sep = "\t")
   
   ### # if parameters about biomart are specified, use them
   if (ezIsSpecified(param$bio_mart) & 
@@ -202,6 +207,8 @@ writeDEXSeqReport <- function(dataset, dexResult, htmlFile="00index.html", sResu
     ### # write that generic report for a given FDR, using 0.1 as the default
     DEXSeq::DEXSeqHTML(dxr, path = param$dexseq_report_path, file = param$dexseq_report_file, FDR = param$fdr,BPPARAM = param[['BPPARAM']])
   }
+  geneTableInfo = getGeneTable(pdxr = dxr, param = param)
+  candidateReportFile = geneTableInfo[['candidateReportFile']]
   
   ### # put a title to the report using name in output
   titles <- list()
@@ -222,7 +229,7 @@ writeDEXSeqReport <- function(dataset, dexResult, htmlFile="00index.html", sResu
   settings["FDR:"] = as.character(param$fdr)
   settings["Number of result features: "] = nrow(dxr)
   settings["Number of significant exons: "] = length(which(dxr$padj < param$fdr))
-  settings["Number of significant genes: "] = sum(perGeneQValue(dxr)< param$fdr)
+  settings["Number of candidate genes: "] = geneTableInfo[['nCandidates']]
   addFlexTable(doc, ezGrid(settings, add.rownames=TRUE))
   
   ### # experimental design
@@ -260,7 +267,6 @@ writeDEXSeqReport <- function(dataset, dexResult, htmlFile="00index.html", sResu
   }
 
   ### # table with annotations
-  candidateReportFile = getGeneTable(pdxr = dxr, param = param)
   titles[["DEXSeq differential exon usage results"]] = "DEXSeq differential exon usage results"
   addTitle(doc, titles[[length(titles)]], 3, id=titles[[length(titles)]])
   addParagraph(doc, pot("Interactive Candidate Table", hyperlink = candidateReportFile))
@@ -291,15 +297,17 @@ getGeneTable <- function(pdxr, param){
   
   ### # put together a result data consisting of genomic data and the modelling
   genomicData <- as.data.frame(pdxr$genomicData)
+  log2column = paste('log2fold',param$sampleGroup,param$refGroup,sep='_')
   results <- data.frame(pdxr[, c("groupID", 
                                  "featureID", 
                                  "exonBaseMean", 
-                                 "dispersion", 
+                                 "dispersion",
+                                 log2column,
                                  "pvalue", 
                                  "padj")], 
                         stringsAsFactors = FALSE)
   results <- cbind(results, genomicData)
-  results[, c("dispersion", "pvalue", "padj")] <- round(results[, c("dispersion", "pvalue", "padj")], 3)
+  results[, c("dispersion",log2column, "pvalue", "padj")] <- round(results[, c("dispersion",log2column, "pvalue", "padj")], 3)
   dexseqR <- elementMetadata(pdxr)$type == "DEXSeq results"
   if (sum(dexseqR, na.rm = TRUE) > 0) {
     results <- cbind(results, round(as.data.frame(pdxr[, which(dexseqR)]), 3))
@@ -308,13 +316,20 @@ getGeneTable <- function(pdxr, param){
 
   ### # from the results, generate the genetable which seams to be the basis for the
   ### #  table on the results page
-  gns <- as.character(unique(results$groupID[which(results$padj < param$fdr)]))
+  #gns <- as.character(unique(results$groupID[which(results$padj < param$fdr)]))
+  exns <- results[which(results$padj < param$fdr & 
+                          abs(results[[log2column]] > param$minExonLog2Ratio
+                        & results[['exonBaseMean']]>param$minExonExprCount)),c('groupID','featureID',log2column,'padj')]
+  gns  <- names(perGeneQValue(pdxr))[perGeneQValue(pdxr) < param$fdr]
+  gns  <- intersect(gns,unique(exns$groupID))
+  #names(perGeneQValue(pdxr)< param$fdr)
   results <- results[as.character(results$groupID) %in% gns,]
   splitCols <- split(seq_len(nrow(results)), results$groupID)
   genetable <- lapply(splitCols, function(x) {
     data.frame(chr = unique(results$seqnames[x]), start = min(results$start[x]),
                end = max(results$end[x]), total_exons = length(x),
-               exon_changes = sum(results$padj[x] < param$fdr, na.rm = TRUE))
+               exon_changes = sum(results$padj[x] < param$fdr,na.rm = TRUE),
+               rawCount = round(sum(results$exonBaseMean[x]),3))
   })
   
   ### # seams to convert the list "genetable" to a data.frame
@@ -389,7 +404,7 @@ getGeneTable <- function(pdxr, param){
   saveWidget(x,candidateReportFile)
   
   
-  return(candidateReportFile)
+  return(list(candidateReportFile=candidateReportFile,nCandidates=nrow(genetable)))
 }
 
 
@@ -440,7 +455,7 @@ DEXSeqCounting <- function(input = input, output = output, param = param){
   if (ezIsSpecified(param$countfile_ext))
     sCountfileExt <- param$countfile_ext
   ### # call counting routine
-  vCountFiles <- ezMclapply(bamFiles, runCountSingleBam, sGffFile, sCountfileExt,mc.cores = param[['cores']])
+  vCountFiles <- ezMclapply(bamFiles, runCountSingleBam, sGffFile, sCountfileExt, param = param, mc.cores = param[['cores']])
   
   return("Success")
 }
@@ -473,14 +488,27 @@ convertGtfToGff <- function(psGtfFile, psGffFile) {
 
 #' Run counts for a single BAM file
 #' 
-runCountSingleBam <- function(psBamFile, psGffFile, psCountfileExt){
+runCountSingleBam <- function(psBamFile, psGffFile, psCountfileExt, param){
   sSamCmd <- paste(SAMTOOLS, "view -h", psBamFile)
   ### # run counting on sam file
   sCountBaseFn <- gsub("bam$", psCountfileExt, basename(psBamFile))
   if (!exists("DEXSEQ_COUNT")){
     DEXSEQ_COUNT <- lGetPyScriptPaths()$DEXSEQ_COUNT
   }
-  sPyCountCmd <- paste(sSamCmd, "|", DEXSEQ_COUNT, psGffFile, "-", sCountBaseFn)
+  cmdOptions = c()
+  if(param[['paired']]){
+    cmdOptions = c('--paired yes')
+  }
+  
+  if(param[['strandMode']]=='antisense'){
+    cmdOptions = paste(cmdOptions,'--stranded reverse') 
+  } else if(param[['strandMode']]=='both'){
+    cmdOptions = paste(cmdOptions,'--stranded no') 
+  }
+  
+  sPyCountCmd <- paste(sSamCmd, "|", DEXSEQ_COUNT,cmdOptions, psGffFile, "-", sCountBaseFn)
+  sPyCountCmd <- paste(sSamCmd, "|", DEXSEQ_COUNT,cmdOptions, psGffFile, "-", sCountBaseFn)
+  sPyCountCmd <- paste(sSamCmd, "|", DEXSEQ_COUNT,cmdOptions, psGffFile, "-", sCountBaseFn)
   ezSystem(sPyCountCmd)
   sCountDir <- getwd()
   return(file.path(sCountDir, sCountBaseFn))
