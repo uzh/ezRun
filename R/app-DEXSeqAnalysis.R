@@ -454,7 +454,7 @@ DEXSeqCounting <- function(input = input, output = output, param = param){
   if (ezIsSpecified(param$countfile_ext))
     sCountfileExt <- param$countfile_ext
   ### # call counting routine
-  vCountFiles <- ezMclapply(bamFiles, runCountSingleBam, sGffFile, sCountfileExt, param, mc.cores = param[['cores']])
+  vCountFiles <- ezMclapply(bamFiles, runCountSingleBam, sGffFile, sCountfileExt, param$strandMode, param$paired, mc.cores = param[['cores']])
   
   return("Success")
 }
@@ -487,7 +487,7 @@ convertGtfToGff <- function(psGtfFile, psGffFile) {
 
 #' Run counts for a single BAM file
 #' 
-runCountSingleBam <- function(psBamFile, psGffFile, psCountfileExt, param){
+runCountSingleBam <- function(psBamFile, psGffFile, psCountfileExt, strandMode, Paired ){
   sSamCmd <- paste(SAMTOOLS, "view -h", psBamFile)
   ### # run counting on sam file
   sCountBaseFn <- gsub("bam$", psCountfileExt, basename(psBamFile))
@@ -495,13 +495,13 @@ runCountSingleBam <- function(psBamFile, psGffFile, psCountfileExt, param){
     DEXSEQ_COUNT <- lGetPyScriptPaths()$DEXSEQ_COUNT
   }
   cmdOptions = c()
-  if(param[['paired']]){
+  if(Paired){
     cmdOptions = c('--paired yes')
   }
   
-  if(param[['strandMode']]=='antisense'){
+  if(strandMode=='antisense'){
     cmdOptions = paste(cmdOptions,'--stranded reverse') 
-  } else if(param[['strandMode']]=='both'){
+  } else if(strandMode=='both'){
     cmdOptions = paste(cmdOptions,'--stranded no') 
   }
   
