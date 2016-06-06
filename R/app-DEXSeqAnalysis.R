@@ -37,7 +37,6 @@
 ezMethodDEXSeqAnalysis <- function(input=NA, output=NA, param=NA){
   require(DEXSeq)
   param[['BPPARAM']] = BiocParallel::MulticoreParam(workers=param$cores)
-  param[['minGeneExprCount']] = 10
   ### # check whether conditions are specified
   colnames(input$meta) = gsub(' \\[.*','',colnames(input$meta))
   if (param$grouping %in% colnames(input$meta))
@@ -455,7 +454,7 @@ DEXSeqCounting <- function(input = input, output = output, param = param){
   if (ezIsSpecified(param$countfile_ext))
     sCountfileExt <- param$countfile_ext
   ### # call counting routine
-  vCountFiles <- ezMclapply(bamFiles, runCountSingleBam, sGffFile, sCountfileExt, param = param, mc.cores = param[['cores']])
+  vCountFiles <- ezMclapply(bamFiles, runCountSingleBam, sGffFile, sCountfileExt, param, mc.cores = param[['cores']])
   
   return("Success")
 }
