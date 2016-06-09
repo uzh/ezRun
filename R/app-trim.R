@@ -147,6 +147,12 @@ ezMethodTrim = function(input=NA, output=NA, param=NA){
     } else {
       pairedOpt = ""
     }
+    if(param$minReadLength > 0){
+      minReadLengthOpt = paste("--min-read-length", param$minReadLength)
+    }
+    else {
+      minReadLengthOpt = ""
+    }
     cmd = paste(FLEXBAR,
                 "--threads", min(ezThreads(), 8),
                 "-r", r1TmpFile,
@@ -155,6 +161,7 @@ ezMethodTrim = function(input=NA, output=NA, param=NA){
                 "-u", 20, ##### max uncalled bases
                 "--pre-trim-left", param$trimLeft,
                 "--pre-trim-right", param$trimRight,
+                minReadLengthOpt,
                 "--target", "flexbar",
                 "> flexbar.out 2> flexbar.err")
     ezSystem(cmd)
