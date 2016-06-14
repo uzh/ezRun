@@ -317,8 +317,8 @@ getGeneTable <- function(pdxr, param){
   ### #  table on the results page
   #gns <- as.character(unique(results$groupID[which(results$padj < param$fdr)]))
   exns <- results[which(results$padj < param$fdr & 
-                          abs(results[[log2column]] > param$minExonLog2Ratio
-                        & results[['exonBaseMean']]>param$minExonExprCount)),c('groupID','featureID',log2column,'padj')]
+                          abs(results[[log2column]]) > param$minExonLog2Ratio
+                        & results[['exonBaseMean']]>param$minExonExprCount),c('groupID','featureID',log2column,'padj')]
   gns  <- names(perGeneQValue(pdxr))[perGeneQValue(pdxr) < param$fdr]
   gns  <- intersect(gns,unique(exns$groupID))
   #names(perGeneQValue(pdxr)< param$fdr)
@@ -327,8 +327,8 @@ getGeneTable <- function(pdxr, param){
   genetable <- lapply(splitCols, function(x) {
     data.frame(chr = unique(results$seqnames[x]), start = min(results$start[x]),
                end = max(results$end[x]), total_exons = length(x),
-               exon_changes = sum(results$padj[x] < param$fdr,na.rm = TRUE),
-               rawCount = round(sum(results$exonBaseMean[x]),3))
+               exon_changes = sum(results$padj[x] < param$fdr & results$exonBaseMean[x]>param$minExonExprCount & abs(results[[log2column]][x]) > param$minExonLog2Ratio,na.rm = TRUE),
+               meanRawCount = round(sum(results$exonBaseMean[x]),3))
   })
   
   ### # seams to convert the list "genetable" to a data.frame
