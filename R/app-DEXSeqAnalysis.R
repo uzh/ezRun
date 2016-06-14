@@ -488,7 +488,12 @@ convertGtfToGff <- function(psGtfFile, psGffFile) {
 #' Run counts for a single BAM file
 #' 
 runCountSingleBam <- function(psBamFile, psGffFile, psCountfileExt, strandMode, Paired ){
+  if(Paired){
+    sSamCmd <- paste(SAMTOOLS, "sort -n" ,psBamFile, sub('.bam','',basename(psBamFile)),';',SAMTOOLS, "view -h", basename(psBamFile)) 
+  } else {
   sSamCmd <- paste(SAMTOOLS, "view -h", psBamFile)
+  }
+  
   ### # run counting on sam file
   sCountBaseFn <- gsub("bam$", psCountfileExt, basename(psBamFile))
   if (!exists("DEXSEQ_COUNT")){
@@ -506,8 +511,7 @@ runCountSingleBam <- function(psBamFile, psGffFile, psCountfileExt, strandMode, 
   }
   
   sPyCountCmd <- paste(sSamCmd, "|", DEXSEQ_COUNT,cmdOptions, psGffFile, "-", sCountBaseFn)
-  sPyCountCmd <- paste(sSamCmd, "|", DEXSEQ_COUNT,cmdOptions, psGffFile, "-", sCountBaseFn)
-  sPyCountCmd <- paste(sSamCmd, "|", DEXSEQ_COUNT,cmdOptions, psGffFile, "-", sCountBaseFn)
+ 
   ezSystem(sPyCountCmd)
   sCountDir <- getwd()
   return(file.path(sCountDir, sCountBaseFn))
