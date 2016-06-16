@@ -27,24 +27,34 @@ EzAppTeqc <-
   )
 
 ezMethodTeqc = function(input=NA, output=NA, param=NA){
+  param[['build']] = unique(input$meta[['build']])
   setwdNew(basename(output$getColumn("Report")))
   if(basename(param$designFile) == param$designFile){
-    param$designFile = list.files(file.path(TEQC_DESIGN_DIR, param$designFile), 
-                                  pattern='Covered\\.bed$', full.names = T)[1]
+    param$designFile = list.files(file.path(TEQC_DESIGN_DIR, param$designFile), pattern='Covered\\.bed$', full.names = T)[1]
   }
   samples = input$getNames()
   jobList = input$getFullPaths("BAM")
+  
+  sGtfFile <- param$ezRef@refFeatureFile
+  myGTF <- rtracklayer::import(sGtfFile)
+  myGTF <- myGTF[mcols(myGTF)$type=='exon']
+  keepCols = c('seqnames','start','end','strand','type','gene_id','gene_name')
+  gtf_df = data.frame(myGTF,stringsAsFactors = F)
+  gtf_df = unique(gtf_df[,keepCols])
+  ir <- IRanges(start = gtf_df$start, end = gtf_df$end)
+  allExons <- RangedData(ranges = ir, space = gtf_df$seqnames, gene_id=gtf_df$gene_id, gene_name=gtf_df$gene_name, orientation = as.character(gtf_df$strand),typ=gtf_df$type)
+  
   #Create one Report per Sample:
-  destDirs = ezMclapply(jobList, runTEQC, param, mc.cores=ezThreads())
+  destDirs = ezMclapply(jobList, runTEQC, allExons, param, mc.cores=ezThreads())
   
   #Create MultiSampleReport:
   destDirs = unlist(destDirs)
-  TEQC::multiTEQCreport(singleReportDirs=destDirs,
-                    samplenames=samples,
-                    projectName=param$name,
-                    targetsName=basename(dirname(param$designFile)),
-                    referenceName="Human Genome hg19",
-                    destDir="multiTEQCreport",
+  TEQC::multiTEQCreport(singleReportDirs = destDirs,
+                    samplenames = samples,
+                    projectName = param$name,
+                    targetsName = basename(dirname(param$designFile)),
+                    referenceName = param[['build']],
+                    destDir = "multiTEQCreport",
                     k = c(1,5,10,20,30,50),
                     figureFormat = c("png"))
   
@@ -53,7 +63,7 @@ ezMethodTeqc = function(input=NA, output=NA, param=NA){
   
   titles = list()
   titles[["TEQC-Report"]] = paste("TEQC-Report:", param$name)
-  doc = openBsdocReport(title=titles[[length(titles)]])
+  doc = openBsdocReport(title = titles[[length(titles)]])
   
   addDataset(doc, input$meta, param)
   
@@ -79,19 +89,29 @@ ezMethodTeqc = function(input=NA, output=NA, param=NA){
 ##' }
 ##' @param file a character representing the path to the file containing the reads.
 ##' @template roxygen-template
-runTEQC = function(file, param){
+runTEQC = function(file, allExons, param){
   sampleName = gsub('\\.bam', '', basename(file))
   destDir = paste0("report_", sampleName)
   targetsfile = param$designFile
+  genomeSize = sum(as.numeric(system(paste(SAMTOOLS,"view -H",file,"|grep @SQ|cut -f 3|sed 's/LN://'"),intern = T)))
+  reads=TEQC::get.reads(file, filetype="bam")
+  targets=TEQC::get.targets(targetsfile, skip=grep("^track", readLines(targetsfile, n=200)))
+  
   TEQC::TEQCreport(sampleName=sampleName,
                    CovUniformityPlot = param$covUniformityPlot, CovTargetLengthPlot = param$covTargetLengthPlot, duplicatesPlot=param$duplicatesPlot,#CovGCPlot = T,
                    k = c(1,5,10,20,30,50),
                    targetsName=basename(dirname(targetsfile)),
-                   referenceName='hg19',
+                   referenceName=param[['build']],
                    pairedend=param$paired,
                    destDir=destDir,
-                   reads=TEQC::get.reads(file, filetype="bam"),
-                   targets=TEQC::get.targets(targetsfile, skip=grep("^track", readLines(targetsfile, n=200))),
-                   genome='hg19',figureFormat = c("png"))
+                   reads=reads,
+                   targets=targets,
+                   genomesize =genomeSize,figureFormat = c("png"))
+  
+  exonCoverage <- TEQC::coverage.target(reads, allExons, perBase = F, Offset = 0)$targetCoverages
+  exonCoverage <- as.data.frame(TEQC::readsPerTarget(reads, exonCoverage))
+  write.table(exonCoverage, file = file.path(destDir, paste0(sampleName,"_coverage_allExons.txt")), 
+              sep = "\t", row.names = F, quote = F)
+  
   return(destDir)
 }
