@@ -101,12 +101,12 @@ runTEQC = function(file, allExons, param){
                    CovUniformityPlot = param$covUniformityPlot, CovTargetLengthPlot = param$covTargetLengthPlot, duplicatesPlot=param$duplicatesPlot,#CovGCPlot = T,
                    k = c(1,5,10,20,30,50),
                    targetsName=basename(dirname(targetsfile)),
-                   referenceName=param[['build']],
+                   referenceName=param[['refBuild']],
                    pairedend=param$paired,
                    destDir=destDir,
                    reads=reads,
                    targets=targets,
-                   genomesize =genomeSize,figureFormat = c("png"))
+                   genomesize =genomeSize,figureFormat = c("png"), saveWorkspace = F)
   
   exonCoverage <- TEQC::coverage.target(reads, allExons, perBase = F, Offset = 0)$targetCoverages
   exonCoverage <- as.data.frame(TEQC::readsPerTarget(reads, exonCoverage))
