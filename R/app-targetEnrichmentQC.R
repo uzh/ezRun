@@ -53,7 +53,7 @@ ezMethodTeqc = function(input=NA, output=NA, param=NA){
                     samplenames = samples,
                     projectName = param$name,
                     targetsName = basename(dirname(param$designFile)),
-                    referenceName = param[['build']],
+                    referenceName = param[['refBuild']],
                     destDir = "multiTEQCreport",
                     k = c(1,5,10,20,30,50),
                     figureFormat = c("png"))
