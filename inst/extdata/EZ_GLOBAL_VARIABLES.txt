@@ -22,6 +22,8 @@ PYTHON_CMD='PYTHONPATH="/usr/local/ngseq/lib/python/:/usr/local/ngseq/lib/python
 INDEX_BUILD_TIMEOUT=180 
 SAMTOOLS="/usr/local/ngseq/stow/samtools-1.2/bin/samtools"
 BCFTOOLS="/usr/local/ngseq/stow/bcftools-1.2/bin/bcftools"
+SAMTOOLS_v0_1x="/usr/local/ngseq/stow/samtools-0.1.19/bin/samtools
+BCFTOOLS_v0_1x="/usr/local/ngseq/stow/samtools-0.1.19/bin/bcftools
 FASTQC="/usr/local/ngseq/opt/FastQC-0.11.3/fastqc"
 BOWTIE_DIR="/usr/local/ngseq/src/bowtie-1.1.2"
 BOWTIE2_DIR="/usr/local/ngseq/src/bowtie2-2.2.6"
@@ -61,8 +63,9 @@ TRINITY="/usr/local/ngseq/src/trinityrnaseq_v2.1.1/Trinity"
 GATK_JAR="/usr/local/ngseq/src/GenomeAnalysisTK_3.4-46/GenomeAnalysisTK.jar"
 GATK_DIR="/usr/local/ngseq/src/GenomeAnalysisTK_3.4-46/"
 PICARD_JAR="/usr/local/ngseq/src/picard-tools-2.1.1/picard.jar"
+PICARD_DIR="/usr/local/ngseq/stow/picard-tools-1.119/bin/
 SNPEFF_DIR="/usr/local/ngseq/src/snpEff_4.1L"
-#BAM_UTIL="/usr/local/ngseq/src/bamUtil/bin/"
+BAM_UTIL="/usr/local/ngseq/src/bamUtil/bin/"
 HUMAN_SNP_DATABASES="/srv/GT/databases/dbSNP/release142/"
 HUMAN_DBSNP="/srv/GT/databases/dbSNP/release142/"
 BAM2WIG="PYTHONPATH=/usr/local/ngseq/lib/python/:/usr/local/ngseq/lib/python2.7:/usr/local/ngseq/lib/python2.7/dist-packages /usr/local/ngseq/stow/RSeQC-2.6.2/bin/bam2wig.py"
