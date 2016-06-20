@@ -50,6 +50,7 @@ setMethod("initialize", "EzRef", function(.Object, param=list()){
   } else {
     genomesRoot = param$genomesRoot
   }
+  genomesRoot = strsplit(genomesRoot, ":")[[1]]
   .Object@refBuild = param$refBuild
   refFields = strsplit(.Object@refBuild, "/", fixed=TRUE)[[1]]
   if (ezIsSpecified(param$refBuildName)){
@@ -60,7 +61,13 @@ setMethod("initialize", "EzRef", function(.Object, param=list()){
   if (ezIsSpecified(param$refBuildDir)){
     .Object@refBuildDir = param$refBuildDir
   } else {
-    .Object@refBuildDir = file.path(genomesRoot, paste(refFields[1:3], collapse="/"))
+    for (gr in genomesRoot){
+      rbd = file.path(gr, paste(refFields[1:3], collapse="/"))
+      if (file.exists(rbd)){
+        break
+      }
+    }
+    .Object@refBuildDir = rbd
   }
   if (length(refFields) == 5 && grepl("^Version", refFields[5])){
     .Object@refAnnotationVersion = refFields[5]

@@ -9,7 +9,7 @@ REPORT_BANNER_FILE=""
 IGV_TEMPLATE_FILE=""
 
 DEFAULT_DATA_ROOT="/srv/gstore/projects"
-GENOMES_ROOT="/srv/GT/reference"
+GENOMES_ROOT="/srv/GT/reference:/srv/GT/reference-archive"
 IGVTOOLS="/usr/local/ngseq/bin/igvtools"
 REF_HOST="http://fgcz-gstore.uzh.ch/reference"
 PROJECT_BASE_URL="http://fgcz-gstore.uzh.ch/projects"
