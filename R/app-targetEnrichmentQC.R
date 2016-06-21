@@ -73,6 +73,39 @@ ezMethodTeqc = function(input=NA, output=NA, param=NA){
   titles[["Individual Reports"]] = "Individual Reports"
   addTitle(doc, titles[[length(titles)]], 2, id=titles[[length(titles)]])
   addTxtLinksToReport(doc, paste0(destDirs, '/index.html'))
+  
+  
+  titles[["Gene Coverage"]] = "GeneCoverage"
+  addTitle(doc, titles[[length(titles)]], 2, id=titles[[length(titles)]])
+  minCov = 20
+  coverageLinks = paste0(samples,'_coverage_allExons.txt')
+  covData = list()
+  minCovData = matrix(data = 0,nrow = 2,ncol = length(files))
+  rownames(minCovData) = c(paste0('>=',minCov,'x'),paste0('<',minCov,'x'))
+  colnames(minCovData) = samples
+  for(i in 1:length(coverageLinks)){
+    covData[[i]] = ezRead.table(coverageLinks[i],row.names=NULL)
+    avgCovPerGene = tapply(covData[[i]]$avgCoverage, INDEX=covData[[i]]$gene_id, mean)
+    minCovData[,i] = c(sum(avgCovPerGene>=minCov),sum(avgCovPerGene<=minCov))
+    #nReadPerGene = tapply(covData[[i]]$nReads, INDEX=covData[[i]]$gene_id, sum)
+    #minExonCov = tapply(covData[[i]]$avgCoverage, INDEX=covData[[i]]$gene_id, min)
+    #CovSDPerGene = tapply(covData[[i]]$avgCoverage, INDEX=covData[[i]]$gene_id, sd)
+  }
+  
+  #### Simple Barplot
+  addParagraph(doc,ezImageFileLink(plotCmd = expression(bp = barplot(minCovData,legend.text = T,
+                                                                     names.arg = rep('',length(samples)),ylab='#Genes',
+                                                                     main='Gene Coverage above minCov'),
+                                                        text(x = bp, y = par("usr")[3] - 1, srt = 45,
+                                                        adj = 1, labels = colnames(minCovData), xpd = TRUE)), 
+                                 file='genesAboveMinCov.png', 
+                                 name="Genes above minCov",
+                                 mouseOverText = "Genes above minCov"))
+  addTxtLinksToReport(doc, coverageLinks)
+
+  
+  titles[["Misc"]] = "Misc"
+  addTitle(doc, titles[[length(titles)]], 2, id=titles[[length(titles)]])
   closeBsdocReport(doc, htmlFile, titles)
   return("Success")
 }
@@ -110,7 +143,7 @@ runTEQC = function(file, allExons, param){
   
   exonCoverage <- TEQC::coverage.target(reads, allExons, perBase = F, Offset = 0)$targetCoverages
   exonCoverage <- as.data.frame(TEQC::readsPerTarget(reads, exonCoverage))
-  write.table(exonCoverage, file = file.path(destDir, paste0(sampleName,"_coverage_allExons.txt")), 
+  write.table(exonCoverage, file = paste0(sampleName,"_coverage_allExons.txt"), 
               sep = "\t", row.names = F, quote = F)
   
   return(destDir)
