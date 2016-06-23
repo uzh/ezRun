@@ -9,7 +9,7 @@
 ezMethodTrinity = function(input=NA, output=NA, param=NA, htmlFile="00index.html"){
   
   if (ezIsSpecified(param$samples)){
-    input$subset(param$samples)
+    input = input$subset(param$samples)
   }
   
   trimmedInput = ezMethodTrim(input = input, param = param)

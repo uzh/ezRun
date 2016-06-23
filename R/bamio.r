@@ -540,7 +540,10 @@ getBamMultiMatching = function(param, bamFile, nReads=NULL){
 }
 
 .getBamLocally = function(src, toSam=FALSE){
-  
+
+  if (dirname(src) == "."){
+    return(src)
+  }
   target = basename(src)
   stopifnot(target != src)
   if (toSam){
