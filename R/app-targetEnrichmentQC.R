@@ -80,7 +80,7 @@ ezMethodTeqc = function(input=NA, output=NA, param=NA){
   minCov = 20
   coverageLinks = paste0(samples,'_coverage_allExons.txt')
   covData = list()
-  minCovData = matrix(data = 0,nrow = 2,ncol = length(files))
+  minCovData = matrix(data = 0,nrow = 2,ncol = length(coverageLinks))
   rownames(minCovData) = c(paste0('>=',minCov,'x'),paste0('<',minCov,'x'))
   colnames(minCovData) = samples
   for(i in 1:length(coverageLinks)){
@@ -93,11 +93,11 @@ ezMethodTeqc = function(input=NA, output=NA, param=NA){
   }
   
   #### Simple Barplot
-  addParagraph(doc,ezImageFileLink(plotCmd = expression(bp = barplot(minCovData,legend.text = T,
+  addParagraph(doc,ezImageFileLink(plotCmd = expression({bp = barplot(minCovData,legend.text = T,
                                                                      names.arg = rep('',length(samples)),ylab='#Genes',
-                                                                     main='Gene Coverage above minCov'),
+                                                                     main='Gene Coverage above minCov') 
                                                         text(x = bp, y = par("usr")[3] - 1, srt = 45,
-                                                        adj = 1, labels = colnames(minCovData), xpd = TRUE)), 
+                                                        adj = 1, labels = colnames(minCovData), xpd = TRUE)}), 
                                  file='genesAboveMinCov.png', 
                                  name="Genes above minCov",
                                  mouseOverText = "Genes above minCov"))
