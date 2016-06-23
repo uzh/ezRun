@@ -49,7 +49,7 @@ ezMethodTrim = function(input=NA, output=NA, param=NA){
   ## if there are multiple samples loop through them
   if (input$getLength() > 1){
     for (nm in input$getNames()){
-      ezMethodTrim(input$copy()$subset(nm), output$copy()$subset(nm), param)
+      ezMethodTrim(input$subset(nm), output$subset(nm), param)
       ## NOTE: potential risk, temp files might be overwritten
     }
     return(output)

@@ -9,7 +9,7 @@
 ezMethodBamPreview = function(input=NA, output=NA, param=NA, htmlFile="00index.html"){
 
   if (ezIsSpecified(param$samples)){
-    input$subset(param$samples)
+    input = input$subset(param$samples)
   }
   
   bamMeta = input$meta[ , !input$columnHasTag("File")]
@@ -48,9 +48,9 @@ ezMethodBamPreview = function(input=NA, output=NA, param=NA, htmlFile="00index.h
          },
          stop("unsupported mapMethod: ", param$mapMethod)
   )
-  for (i in 1:nrow(input$meta)){
-    setwdNew(input$getNames()[i])
-    mappingApp$run(input=input$copy()$subset(i), output=bamOutput$copy()$subset(i), param=bamParam) ## TODO: Read Count of the bamOutput should be set by the mapping app.
+  for (nm in input$getNames()){
+    setwdNew(nm)
+    mappingApp$run(input=input$subset(nm), output=bamOutput$subset(nm), param=bamParam) ## TODO: Read Count of the bamOutput should be set by the mapping app.
     setwd("..")
   }
   param$dataRoot = ""

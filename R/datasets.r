@@ -30,7 +30,7 @@ makeMinimalSingleEndReadDataset = function(fqDir, species="", adapter1="GATCGGAA
   ds$Species = species
   ds$Adapter1 = adapter1
   ds$strandMode = strandMode
-  if (!is.null(readCount)){
+  if (is.null(readCount)){
     ds$"Read Count"=countReadsInFastq(gzFiles)
   } else {
     ds$"Read Count" = readCount
@@ -41,21 +41,21 @@ makeMinimalSingleEndReadDataset = function(fqDir, species="", adapter1="GATCGGAA
 
 ##' @describeIn makeMinimalSingleEndReadDataset Does the same for paired end reads.
 makeMinimalPairedEndReadDataset = function(fqDir, species="", adapter1="GATCGGAAGAGCACACGTCTGAACTCCAGTCAC", adapter2="AGATCGGAAGAGCGTCGTGTAGGGAAAGAGTGT",
-                                       strandMode="both", readCount=NULL){
-  gzFiles = list.files(fqDir, "R1.fastq.gz$", full.names=TRUE)
-  samples = sub(".*-", "", sub("R1.fastq.gz", "", gzFiles))
+                                       strandMode="both", readCount=NULL, readTypeSuffix=c("-R1.fastq.gz", "-R2.fastq.gz")){
+  gzFiles = list.files(fqDir, readTypeSuffix[1], full.names=TRUE)
+  samples = sub(readTypeSuffix[1], "", gzFiles)
   ds = data.frame("Read1 [File]"=gzFiles, row.names=samples, stringsAsFactors=FALSE, check.names=FALSE)
-  r2Files = sub("R1.fastq", "R2.fastq", gzFiles)
+  r2Files = sub(readTypeSuffix[1], readTypeSuffix[2], gzFiles)
   stopifnot(file.exists(r2Files))
   ds$"Read2 [File]" = r2Files
   ds$Adapter1 = adapter1
   ds$Adapter2 = adapter2
   ds$strandMode = strandMode
   ds$Species = species
-  if (!is.null(readCount)){
+  if (is.null(readCount)){
     ds$"Read Count"=countReadsInFastq(gzFiles)
   } else {
-    ds$"Read Count" = readCount()
+    ds$"Read Count" = readCount
   }
   #ezWrite.table(ds, file=file.path(fqDir, "dataset.tsv"), head="Name")
   return(ds)

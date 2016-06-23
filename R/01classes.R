@@ -111,10 +111,11 @@ EzDataset <-
                 },
                 subset = function(samples)
                 {
-                  "Subsets the meta field keeping \\code{samples}."
-                  meta <<- meta[samples, , drop=FALSE]
-                  isModified <<- TRUE
-                  return(.self)
+                  "Subsets the meta field keeping \\code{samples} and generates a new EzDataset"
+                  # meta <<- meta[samples, , drop=FALSE]
+                  # isModified <<- TRUE
+                  # return(.self)
+                  return(EzDataset(meta=meta[samples, , drop=FALSE], dataRoot=dataRoot))
                 },
                 getNames = function()
                 {
