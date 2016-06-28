@@ -5,46 +5,6 @@
 # The terms are available here: http://www.gnu.org/licenses/gpl.html
 # www.fgcz.ch
 
-##' @title The object that represents a differential expression result
-##' @description 
-##' @field param \code{EzParam} object that was used during the result generation
-##' @field rawData list with the rawData that was used during the result generation
-##' @field result list holding the actual results, in particular, the log2 ration and the p-value
-##' @section Functions:
-##' \itemize{
-##'   \item{\code{saveToFile(file): }}{Saves the object to the given filepath. Saved files can be loaded with \code{EzDeResult$new(file="mystoredResult.RData"}}
-##' }
-##' @template roxygen-template
-##' @examples 
-##' deResult = EzDeResult$new()
-##' deResult = EzDeResult$new(param=list(p1="p1", p2="p2"), rawData=list(a=0, b=1), result=list(u=0, v=1))
-##' rdFile = tempfile(fileext = ".RData")
-##' deResult$saveToFile(file = rdFile)
-##' deResult2 = EzDeResult$new(file=rdFile)
-EzDeResult <-
-  setRefClass("EzDeResult",
-              fields=c("param", "rawData", "result"),
-              methods=list(
-                initialize = function(paramNew=list(), rawDataNew=list(), resultNew=list(),
-                                      file=NULL){
-                  param <<- paramNew
-                  rawData <<- rawDataNew
-                  result <<- resultNew
-                  if (!is.null(file)){
-                    stopifnot(length(paramNew) == 0 && length(rawDataNew) == 0 && length(resultNew) == 0)
-                    stopifnot(file.exists(file))
-                    load(file = file) ## loads
-                    param <<- param
-                    rawData <<- rawData
-                    result <<- result
-                  }
-                },
-                saveToFile = function(file){
-                  save(param, rawData, result, file=file)
-                }
-              )
-  )
-
 
 
 
@@ -154,7 +114,7 @@ twoGroupCountComparison = function(rawData, param){
   result$countName = rawData$countName
   
   ezWriteElapsed(job, status="done")
-  deResult = EzDeResult(param=param, rawData=rawData, result=result)
+  deResult = EzResult(param=param, rawData=rawData, result=result)
   return(deResult)
 }
 
@@ -349,14 +309,13 @@ writeNgsTwoGroupReport = function(dataset, deResult, output, htmlFile="00index.h
   resultFile = addResultFile(doc, param, result, rawData)
   ezWrite.table(result$sf, file="scalingfactors.txt", head="Name", digits=4)
   
-  resultObjFile = paste0("result--", param$comparison, "--", ezRandomString(length=12), "--EzDeResult.RData")
-  deResult$saveToFile(resultObjFile)
-  addParagraph(doc, ezLink(paste0("http://fgcz-176.uzh.ch/shiny/fgcz_rnaSeqInteractiveReport_app/?data=",
-                                             file.path(output$getColumn("Report"), resultObjFile)),
-                           "Explore result interactively",
+  liveReportLink=paste0(SHINY_EXPLORE_DE, "/?data=", output$getColumn("Live Report"))
+  #resultObjFile = paste0("result--", param$comparison, "--", ezRandomString(length=12), "--EzResult.RData")
+  deResult$saveToFile(basename(output$getColumn("Live Report")))
+  addParagraph(doc, ezLink(liveReportLink,
+                           "Live Report and Visualizations",
                            target = "_blank"))
-  ## TODO: add the link to the shiny-app
-  
+
   logSignal = log2(shiftZeros(result$xNorm, param$minSignal))
   result$groupMeans = cbind(rowMeans(logSignal[ , param$grouping == param$sampleGroup, drop=FALSE]),
                             rowMeans(logSignal[ , param$grouping == param$refGroup, drop=FALSE]))

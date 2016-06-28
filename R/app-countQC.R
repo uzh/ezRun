@@ -24,7 +24,7 @@ ezMethodCountQC = function(input=NA, output=NA, param=NA, htmlFile="00index.html
     writeErrorReport(htmlFile, param=param, error=rawData$error)
     return("Error")
   }
-  runNgsCountQC(dataset, htmlFile, param, rawData=rawData)
+  runNgsCountQC(dataset, htmlFile, param, rawData=rawData, output=output)
   return("Success")
 }
 
@@ -70,7 +70,7 @@ EzAppCountQC <-
 ##' @template types-template
 ##' @template roxygen-template
 runNgsCountQC = function(dataset, htmlFile="00index.html", param=param, rawData=NULL,
-                         writeDataFiles=TRUE, types=NULL){
+                         writeDataFiles=TRUE, types=NULL, output=NULL){
   
   if (is.null(rawData$signal)){
     rawData$signal = ezNorm(rawData$counts, presentFlag=rawData$presentFlag, method=param$normMethod)
@@ -123,6 +123,15 @@ runNgsCountQC = function(dataset, htmlFile="00index.html", param=param, rawData=
   settings["Number of features:"] = nrow(signal)
   settings["Data Column Used:"] = rawData$countName
   addFlexTable(doc, ezGrid(settings, add.rownames=TRUE))
+  
+  if (!is.null(output)){
+    liveReportLink=paste0(SHINY_EXPLORE_COUNTS, "/?data=", output$getColumn("Live Report"))
+    result = EzResult(param=param, rawData=rawData, result=NULL)
+    result$saveToFile(basename(output$getColumn("Live Report")))
+    addParagraph(doc, ezLink(liveReportLink,
+                             "Live Report and Visualizations",
+                             target = "_blank"))
+  }  
   
   if (writeDataFiles){
     if (!is.null(rawData$presentFlag)){

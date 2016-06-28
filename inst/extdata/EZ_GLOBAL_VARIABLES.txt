@@ -88,6 +88,13 @@ SAMSTAT="/usr/local/ngseq/stow/samstat-1.09/bin/samstat"
 QUALIMAP="/usr/local/ngseq/stow/qualimap_v2.1.2/bin/qualimap"
 REFSEQ_mRNA_REF='/srv/GT/reference/RefSeq/mRNA/20150301/Sequence/BOWTIE2Index/transcriptome'
 
+
+## SHINY
+SHINY_EXPLORE_COUNTS="http://fgcz-176.uzh.ch/shiny/fgcz_exploreCountQC_mod_app/"
+SHINY_EXPLORE_DE="http://fgcz-176.uzh.ch/shiny/fgcz_rnaSeqInteractiveReport_app/"
+
+
+
 ############# R-SGE options
 # RSGE_RUN_JOB="/usr/local/ngseq/opt/sushi_scripts/Rsge/RunSgeJob"
 # RSGE_MONITOR_JOB="/usr/local/ngseq/opt/sushi_scripts/Rsge/MonitorJob.sh"
