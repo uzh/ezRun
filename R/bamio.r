@@ -44,7 +44,7 @@ ezBamSeqLengths = function(bamFile){
 ##' ezSortIndexBam("test.bam", basename(bamFile), ram=0.5, cores = ezThreads())
 ezSortIndexBam = function(inBam, bam, samtools=SAMTOOLS, ram=2, removeBam=TRUE, cores=2){
   
-  maxMem = paste0(floor(ram * 0.8/cores*1000), "M") ## use only 80% --> 20% safety margin before crash
+  maxMem = paste0(as.integer(floor(ram * 0.8/cores*1000)), "M") ## use only 80% --> 20% safety margin before crash
   cmd = paste(samtools, "sort", "-m", maxMem, "-@", cores, inBam, sub(".bam$", "", bam))
   ezSystem(cmd)
   if (removeBam){
