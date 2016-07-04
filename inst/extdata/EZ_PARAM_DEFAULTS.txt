@@ -78,7 +78,7 @@ countColumnSet	character	multiMatchCounts,matchCounts,transcriptCountPosteriorEs
 ## sample handling and grouping
 comparison	character		the name of the comparison
 grouping	character		the name of the factor column that is used in differential expression analysis to group the samples
-batch	character		the name of the factor column that holds a secondary effect
+grouping2	character		the name of the factor column that holds a secondary effect
 markOutliers	logical	FALSE	should outlier samples be marked and not considered in the test but displayed; requires a column "Outlier"
 removeOutliers	logical	FALSE	should outlier samples be removed from the dataset before the analysis; requires a column "Outlier"
 useFactorsAsSampleName	logical	FALSE	should sample names be replaced with the canonical names derived from the factor levels

@@ -46,8 +46,8 @@ cleanupTwoGroupsInput = function(input, param){
 ##' @param param a list of parameters:
 ##' \itemize{
 ##'   \item{testMethod}{ defines the method to run: deseq2, exactTest, glm, sam or limma. Defaults to glm.}
-##'   \item{batch}{ a character vector specifying the batch groups.}
 ##'   \item{grouping}{ a character specifying the grouping.}
+##'   \item{grouping2}{ a character vector specifying a secondary grouping.}
 ##'   \item{sampleGroup}{ a character specifying the group to sample.}
 ##'   \item{refGroup}{ a character specifying the reference group.}
 ##'   \item{normMethod}{ a character specifying the normalization method for the edger and glm test methods.}
@@ -66,9 +66,9 @@ twoGroupCountComparison = function(rawData, param){
   }
   
   result$method = param$testMethod
-  if (ezIsSpecified(param$batch)){
+  if (ezIsSpecified(param$grouping2)){
     if (param$testMethod %in% c("glm", "sam","deseq2")){
-      result$method = paste(result$method, "batch")
+      result$method = paste(result$method, "using secondary factor")
     } else {
       return(list(error=paste("Second factor only supported for the test methods glm, sam and deseq2")))
     }
@@ -84,10 +84,10 @@ twoGroupCountComparison = function(rawData, param){
   result$isPresentProbe = useProbe
   result$isPresent = isPresent
   res = switch(param$testMethod,
-               deseq2 = runDeseq2(round(x), param$sampleGroup, param$refGroup, param$grouping, batch=param$batch, isPresent=useProbe),
+               deseq2 = runDeseq2(round(x), param$sampleGroup, param$refGroup, param$grouping, grouping2=param$grouping2, isPresent=useProbe),
                exactTest = runEdger(round(x), param$sampleGroup, param$refGroup, param$grouping, param$normMethod),
-               glm = runGlm(round(x), param$sampleGroup, param$refGroup, param$grouping, param$normMethod, batch=param$batch),
-               limma = runLimma(x, param$sampleGroup, param$refGroup, param$grouping, param$batch),
+               glm = runGlm(round(x), param$sampleGroup, param$refGroup, param$grouping, param$normMethod, grouping2=param$grouping2),
+               limma = runLimma(x, param$sampleGroup, param$refGroup, param$grouping, grouping2=param$grouping2),
                stop("unsupported testMethod: ", param$testMethod)
   )
   result$log2Ratio = res$log2FoldChange  
@@ -152,15 +152,15 @@ runGfold = function(rawData, scalingFactors, isSample, isRef){
 }
 
 ##' @describeIn twoGroupCountComparison Runs the Deseq2 test method.
-runDeseq2 = function(x, sampleGroup, refGroup, grouping, batch=NULL, isPresent=NULL){
-  if (ezIsSpecified(batch)){
-    if (!is.numeric(batch)){
-      batch = as.factor(batch)
+runDeseq2 = function(x, sampleGroup, refGroup, grouping, grouping2=NULL, isPresent=NULL){
+  if (ezIsSpecified(grouping2)){
+    if (!is.numeric(grouping2)){
+      grouping = as.factor(grouping2)
     } else {
-      message("using numeric batch factor")
+      message("using numeric secondary factor")
     }
-    colData = data.frame(grouping=as.factor(grouping), batch=batch, row.names=colnames(x))
-    dds = DESeq2::DESeqDataSetFromMatrix(countData=x, colData=colData, design= ~ grouping + batch)
+    colData = data.frame(grouping=as.factor(grouping), grouping2=param$grouping2, row.names=colnames(x))
+    dds = DESeq2::DESeqDataSetFromMatrix(countData=x, colData=colData, design= ~ grouping + grouping2)
   } else {
     colData = data.frame(grouping=as.factor(grouping), row.names=colnames(x))
     dds = DESeq2::DESeqDataSetFromMatrix(countData=x, colData=colData, design= ~ grouping)
@@ -206,7 +206,7 @@ runEdger = function(x, sampleGroup, refGroup, grouping, normMethod){
 }
 
 ##' @describeIn twoGroupCountComparison Runs the Glm test method.
-runGlm = function(x, sampleGroup, refGroup, grouping, normMethod, batch=NULL){
+runGlm = function(x, sampleGroup, refGroup, grouping, normMethod, grouping2=NULL){
   requireNamespace("edgeR", warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
   ## get the scaling factors for the entire data set
   cds = DGEList(counts=x, group=grouping)
@@ -223,9 +223,9 @@ runGlm = function(x, sampleGroup, refGroup, grouping, normMethod, batch=NULL){
   cds = DGEList(counts=x2, group=grouping)
   cds = calcNormFactors(cds, method=normMethod)
   groupFactor = factor(grouping, levels = c(refGroup, sampleGroup))
-  if (ezIsSpecified(batch)){
-    design = model.matrix( ~ groupFactor + factor(batch[isSample|isRef]))
-    colnames(design) = c("Intercept", "Grouping", paste("Batch", 1:(ncol(design)-2), sep="_"))
+  if (ezIsSpecified(grouping2)){
+    design = model.matrix( ~ groupFactor + factor(grouping2[isSample|isRef]))
+    colnames(design) = c("Intercept", "Grouping", paste("Grouping2", 1:(ncol(design)-2), sep="_"))
   } else {
     design = model.matrix( ~ groupFactor)
     colnames(design) = c("Intercept", "Grouping")

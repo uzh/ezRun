@@ -237,7 +237,7 @@ ezLink = function(link, label=link, target="", type=""){
 ##' @templateVar object table
 ##' @param param a list of parameters to influence the output:
 ##' \itemize{
-##'  \item{batch}{ a logical indicating whether the second factor was used.}
+##'  \item{grouping2}{ indicates whether a second factor was used.}
 ##'  \item{comparison}{ which comparison was used.}
 ##'  \item{normMethod}{ the normalization method.}
 ##'  \item{sigThresh}{ the threshold...}
@@ -252,7 +252,7 @@ addCountResultSummary = function(doc, param, result){
   settings["Feature level:"] = result$featureLevel
   settings["Data Column Used:"] = result$countName
   settings["Method:"] = result$method
-  if (ezIsSpecified(param$batch)){
+  if (ezIsSpecified(param$grouping2)){
     settings["Statistical Model:"] = "used provided second factor"
   }
   settings["Comparison:"] = param$comparison

@@ -12,12 +12,12 @@ ezMethodEdgerMulti = function(input=NA, output=NA, param=NA, htmlFile="00index.h
   
   input = cleanupMultiGroupsInput(input, param)
   param$grouping = input$getColumn(param$grouping)
-  if (ezIsSpecified(param$batch) && length(param$batch) == 1){
-    param$batch = input$getColumn(param$batch)
+  if (ezIsSpecified(param$grouping2) && length(param$grouping2) == 1){
+    param$grouping2 = input$getColumn(param$grouping2)
   }
   param$comparison = paste("glm fit for", param$grouping)
-  if (ezIsSpecified(param$batch)){
-    param$comparison = paste(param$comparison, "with second factor", param$batch)
+  if (ezIsSpecified(param$grouping2)){
+    param$comparison = paste(param$comparison, "with second factor", param$grouping2)
   }
   
   rawData = loadCountDataset(input, param)
@@ -88,8 +88,8 @@ cleanupMultiGroupsInput = function(input, param){
 ##' @param param a list of parameters:
 ##' \itemize{
 ##'   \item{testMethod}{ defines the method to run: deseq2, exactTest, glm, sam or limma. Defaults to glm.}
-##'   \item{batch}{ a character vector specifying the batch groups.}
 ##'   \item{grouping}{ a character specifying the grouping.}
+##'   \item{grouping2}{ a character vector specifying a secondary factor.}
 ##'   \item{refGroup}{ a character specifying the reference group.}
 ##'   \item{normMethod}{ a character specifying the normalization method for the edger and glm test methods.}
 ##' }
@@ -108,7 +108,7 @@ multiGroupCountComparison = function(rawData , param){
   result$method = param$testMethod
   isRef = param$grouping == param$refGroup
   res = switch(param$testMethod,
-               glm = runEdgerGlmMultiGroup(round(x), param$refGroup, param$grouping, param$normMethod, batch=param$batch),
+               glm = runEdgerGlmMultiGroup(round(x), param$refGroup, param$grouping, param$normMethod, grouping2=param$grouping2),
                stop("unsupported testMethod: ", param$testMethod)
   )
   result$log2Ratio = res$log2FoldChange  
@@ -141,13 +141,13 @@ multiGroupCountComparison = function(rawData , param){
 }
 
 ##' @describeIn multiGroupCountComparison Runs the Deseq2 test method for many groups.
-runDeseq2MultiGroup = function(x, sampleGroup, refGroup, grouping, batch=NULL){
-  if (is.null(batch)){
+runDeseq2MultiGroup = function(x, sampleGroup, refGroup, grouping, grouping2=NULL){
+  if (is.null(grouping2)){
     colData = data.frame(grouping=as.factor(grouping), row.names=colnames(x))
     dds = DESeq2::DESeqDataSetFromMatrix(countData=x, colData=colData, design= ~ grouping)
   } else {
-    colData = data.frame(grouping=as.factor(grouping), batch=as.factor(batch), row.names=colnames(x))
-    dds = DESeq2::DESeqDataSetFromMatrix(countData=x, colData=colData, design= ~ grouping + batch)
+    colData = data.frame(grouping=as.factor(grouping), grouping2=as.factor(grouping2), row.names=colnames(x))
+    dds = DESeq2::DESeqDataSetFromMatrix(countData=x, colData=colData, design= ~ grouping + grouping2)
   }
   dds = DESeq2::DESeq(dds, quiet=FALSE)
   res = DESeq2::results(dds, contrast=c("grouping", sampleGroup, refGroup), cooksCutoff=FALSE)
@@ -157,7 +157,7 @@ runDeseq2MultiGroup = function(x, sampleGroup, refGroup, grouping, batch=NULL){
 }
 
 ##' @describeIn multiGroupCountComparison Runs the EdgeR GLM test method for many groups.
-runEdgerGlmMultiGroup = function(x, refGroup, grouping, normMethod, batch=NULL){
+runEdgerGlmMultiGroup = function(x, refGroup, grouping, normMethod, grouping2=NULL){
   requireNamespace("edgeR", warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
   ## get the scaling factors for the entire data set
   cds = DGEList(counts=x, group=grouping)
@@ -167,12 +167,11 @@ runEdgerGlmMultiGroup = function(x, refGroup, grouping, normMethod, batch=NULL){
   #sf = ezLogmeanScalingFactor(x, presentFlag=x>0)
   
   groupFactor = factor(grouping, levels=c(refGroup, setdiff(grouping, refGroup)))
-  if (!ezIsSpecified(batch)){
+  if (!ezIsSpecified(grouping2)){
     design = model.matrix( ~ groupFactor)
     #colnames(design) = c("Intercept", "Grouping")
   } else {
-    design = model.matrix( ~ groupFactor + factor(batch))
-    #colnames(design) = c("Intercept", "Grouping", paste("Batch", 1:(ncol(design)-2), sep="_"))
+    design = model.matrix( ~ groupFactor + factor(grouping2))
   }
   
   ## dispersion estimation

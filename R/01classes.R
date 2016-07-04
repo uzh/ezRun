@@ -68,7 +68,7 @@ EzDataset <-
                   colNames <<- sub(" \\[.*", "", base::names(meta))
                   tags <<- ezTagListFromNames(base::names(meta))
                   for (i in which(.self$columnHasTag("Factor"))){
-                    meta[ ,i] = as.character(meta[ ,i])
+                    meta[ ,i] <<- as.character(meta[ ,i])
                     hasBadCharacter = !hasFilesafeCharacters(meta[ ,i])
                     if (any(hasBadCharacter)){
                       stop("Invalid character in: ", colnames(meta)[i], " - ", paste("'", meta[hasBadCharacter ,i], "'", sep="", collapse=" "))

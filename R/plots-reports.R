@@ -276,7 +276,7 @@ addTestScatterPlots = function(doc, param, x, result, seqAnno, resultFile, types
   advancedTitles[["Advanced Plots"]] = "Advanced Plots"
   advancedDoc = openBsdocReport(title=advancedTitles[[length(advancedTitles)]])
   addFlexTable(advancedDoc, ezGrid(rbind(advancedLinks)))
-  if (!ezIsSpecified(param$batch)){ ## TODO: we no longer use pairing, we now use batch which is more general; however these plots only work if batch is a real pairing
+  if (!ezIsSpecified(param$grouping2)){ ## TODO: we no longer use pairing, we now use batch which is more general; however these plots only work if batch is a real pairing
     for (group in unique(c(param$refGroup, colnames(result$groupMeans)))){
       idx = which(group == param$grouping)
       if (length(idx) > 1){
@@ -309,8 +309,8 @@ addTestScatterPlots = function(doc, param, x, result, seqAnno, resultFile, types
     advancedTitles[["Pairs ... over ..."]] = paste("Pairs:", param$sampleGroup, "over", param$refGroup)
     addTitle(advancedDoc, advancedTitles[[length(advancedTitles)]], 3, id=advancedTitles[[length(advancedTitles)]])
     use = param$grouping %in% c(param$sampleGroup, param$refGroup)
-    if (all(table(param$batch[use], param$grouping[use]) == 1)){
-      groups = paste(param$grouping, param$batch, sep="--")
+    if (all(table(param$grouping2[use], param$grouping[use]) == 1)){
+      groups = paste(param$grouping, param$grouping2, sep="--")
       sampleGroups = sort(unique(groups[param$grouping == param$sampleGroup]))
       refGroups = sort(unique(groups[param$grouping == param$refGroup]))
       avgValues = averageColumns(x[ ,use], groups[use], mean)
