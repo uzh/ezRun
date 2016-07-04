@@ -155,7 +155,7 @@ runGfold = function(rawData, scalingFactors, isSample, isRef){
 runDeseq2 = function(x, sampleGroup, refGroup, grouping, grouping2=NULL, isPresent=NULL){
   if (ezIsSpecified(grouping2)){
     if (!is.numeric(grouping2)){
-      grouping = as.factor(grouping2)
+      grouping2 = as.factor(grouping2)
     } else {
       message("using numeric secondary factor")
     }
