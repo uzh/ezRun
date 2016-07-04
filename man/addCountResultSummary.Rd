@@ -11,7 +11,7 @@ addCountResultSummary(doc, param, result)
 
 \item{param}{a list of parameters to influence the output:
 \itemize{
- \item{batch}{ a logical indicating whether the second factor was used.}
+ \item{grouping2}{ indicates whether a second factor was used.}
  \item{comparison}{ which comparison was used.}
  \item{normMethod}{ the normalization method.}
  \item{sigThresh}{ the threshold...}

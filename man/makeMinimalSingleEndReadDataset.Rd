@@ -12,7 +12,7 @@ makeMinimalSingleEndReadDataset(fqDir, species = "",
 makeMinimalPairedEndReadDataset(fqDir, species = "",
   adapter1 = "GATCGGAAGAGCACACGTCTGAACTCCAGTCAC",
   adapter2 = "AGATCGGAAGAGCGTCGTGTAGGGAAAGAGTGT", strandMode = "both",
-  readCount = NULL)
+  readCount = NULL, readTypeSuffix = c("-R1.fastq.gz", "-R2.fastq.gz"))
 }
 \arguments{
 \item{fqDir}{a character specifying the path to the directory holding the fastq files. The path must be relative to the DATA_ROOT}
