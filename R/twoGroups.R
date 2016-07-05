@@ -159,7 +159,7 @@ runDeseq2 = function(x, sampleGroup, refGroup, grouping, grouping2=NULL, isPrese
     } else {
       message("using numeric secondary factor")
     }
-    colData = data.frame(grouping=as.factor(grouping), grouping2=param$grouping2, row.names=colnames(x))
+    colData = data.frame(grouping=as.factor(grouping), grouping2=grouping2, row.names=colnames(x))
     dds = DESeq2::DESeqDataSetFromMatrix(countData=x, colData=colData, design= ~ grouping + grouping2)
   } else {
     colData = data.frame(grouping=as.factor(grouping), row.names=colnames(x))
