@@ -309,7 +309,7 @@ writeNgsTwoGroupReport = function(dataset, deResult, output, htmlFile="00index.h
   resultFile = addResultFile(doc, param, result, rawData)
   ezWrite.table(result$sf, file="scalingfactors.txt", head="Name", digits=4)
   
-  liveReportLink=paste0(SHINY_EXPLORE_DE, "/?data=", output$getColumn("Live Report"))
+  liveReportLink=paste0(SHINY_EXPLORE_DE, "?data=", output$getColumn("Live Report"))
   #resultObjFile = paste0("result--", param$comparison, "--", ezRandomString(length=12), "--EzResult.RData")
   deResult$saveToFile(basename(output$getColumn("Live Report")))
   addParagraph(doc, ezLink(liveReportLink,

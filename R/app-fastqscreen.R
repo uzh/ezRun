@@ -195,11 +195,11 @@ fastqscreenReport = function(dataset, param, htmlFile="00index.html", fastqData,
   settings["Bowtie2 Parameters:"] = param$cmdOptions
   settings["Minimum AlignmentScore:"] = param$minAlignmentScore
   settings["TopSpecies:"] = param$nTopSpecies
-  # settings["Subset:"] = param$subset     ## param$subset doesn't seem to exist
   addFlexTable(doc, ezFlexTable(as.data.frame(settings), add.rownames=TRUE))
-  titles[["rRNA-Check"]] = "rRNA-Check"
+  
+  titles[["rRNA-Check"]] = "FastqScreen Mapping Rates"
   addTitle(doc, titles[[length(titles)]], 2, id=titles[[length(titles)]])
-  titles[["Per Dataset"]] = "Per Dataset"
+  titles[["Per Dataset"]] = "Overview"
   addTitle(doc, titles[[length(titles)]], 3, id=titles[[length(titles)]])
   
   plotCmd = expression({
@@ -231,7 +231,7 @@ fastqscreenReport = function(dataset, param, htmlFile="00index.html", fastqData,
       
       
     })
-    screenLinks[[nm]] = ezImageFileLink(plotCmd, name = nm, plotType = "-rRNA-countsBySpecies-barplot")
+    screenLinks[[nm]] = ezImageFileLink(plotCmd, name = nm, plotType = "-rRNA-countsBySpecies-barplot", width=400, height=400)
     
     plotCmd = expression({
       par(mar=c(10.1, 4.1, 4.1, 2.1))
@@ -243,7 +243,7 @@ fastqscreenReport = function(dataset, param, htmlFile="00index.html", fastqData,
       text(x = bplot, y = par("usr")[3] - 1, srt = 45, adj = 1, 
            labels = rownames(x), xpd = TRUE)
     })
-    detectedSpeciesLinks[[nm]] = ezImageFileLink(plotCmd, name=nm, plotType="-mRNA-countsBySpecies-barplot")
+    detectedSpeciesLinks[[nm]] = ezImageFileLink(plotCmd, name=nm, plotType="-mRNA-countsBySpecies-barplot", width=400, height=400)
   }
   IMAGESperROW = 4
   if (ezIsSpecified(screenLinks)){
