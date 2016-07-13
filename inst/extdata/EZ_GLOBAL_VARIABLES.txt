@@ -90,8 +90,8 @@ REFSEQ_mRNA_REF='/srv/GT/reference/RefSeq/mRNA/20150301/Sequence/BOWTIE2Index/tr
 
 
 ## SHINY
-SHINY_EXPLORE_COUNTS="http://fgcz-176.uzh.ch/shiny/fgcz_exploreCountQC_app/"
-SHINY_EXPLORE_DE="http://fgcz-176.uzh.ch/shiny/fgcz_exploreDEG_app/"
+SHINY_EXPLORE_COUNTS="http://fgcz-shiny.uzh.ch/fgcz_exploreCountQC_app/"
+SHINY_EXPLORE_DE="http://fgcz-shiny.uzh.ch/fgcz_exploreDEG_app/"
 
 
 
