@@ -125,7 +125,7 @@ runNgsCountQC = function(dataset, htmlFile="00index.html", param=param, rawData=
   addFlexTable(doc, ezGrid(settings, add.rownames=TRUE))
   
   if (!is.null(output)){
-    liveReportLink=paste0(SHINY_EXPLORE_COUNTS, "?data=", output$getColumn("Live Report"))
+    liveReportLink = output$getColumn("Live Report")
     result = EzResult(param=param, rawData=rawData, result=NULL)
     result$saveToFile(basename(output$getColumn("Live Report")))
     addParagraph(doc, ezLink(liveReportLink,
