@@ -269,7 +269,7 @@ ezMethodSTAR = function(input=NA, output=NA, param=NA){
   bamFile = output$getColumn("BAM")
   trimmedInput = ezMethodTrim(input = input, param = param)
   
-  cmd = paste(STAR, "--genomeLoad NoSharedMemory --genomeDir", refDir,  "--sjdbOverhang 150", "--readFilesIn",
+  cmd = paste(STAR, " --genomeDir", refDir,  "--sjdbOverhang 150", "--readFilesIn",
               trimmedInput$getColumn("Read1"), if(param$paired) trimmedInput$getColumn("Read2"),
               "--runThreadN", ezThreads(), param$cmdOptions, "--outStd BAM_Unsorted --outSAMtype BAM Unsorted",
               ">  Aligned.out.bam")## writes the output file Aligned.out.bam
