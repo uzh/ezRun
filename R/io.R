@@ -164,8 +164,8 @@ ezInteractiveTable = function(values, tableLink, digits=NULL, colNames=colnames(
     caption = htmltools::tags$caption(htmltools::h1(title))
   }
   interactiveTable = DT::datatable(values, 
-                                   extensions=c("ColVis", "TableTools"), filter="top", caption=caption, colnames=colNames,
-                                   options=list(dom='TC<"clear">lfrtip', pageLength=25, autoWidth=TRUE)
+                                   extensions=c("Buttons"), filter="top", caption=caption, colnames=colNames,
+                                   options=list(dom = 'Bfrtip', buttons = c('colvis','copy', 'csv', 'excel', 'pdf', 'print'), pageLength=25, autoWidth=TRUE)
                                    )
   if (!is.null(format)){
     currEnv = environment()

@@ -388,17 +388,15 @@ getGeneTable <- function(pdxr, param){
   ### # add links to result files
   genetable$geneID <- getGeneIdExprLinks(pvGeneIds = genetable$geneID, psdexseq_report_path = param$dexseq_report_path)
   require(DT)
-  
-  x = datatable(genetable,escape = F,rownames = FALSE, filter = 'bottom',
+  x = datatable(genetable,escape = F,rownames = FALSE, filter = 'bottom',extensions = c('ColReorder','Buttons'),
                 caption = paste('Candidates DEXSeq:',param$comparison, sep=''),
                 options = list(
                   initComplete = JS(
                     "function(settings, json) {",
                     "$(this.api().table().header()).css({'background-color': '#0000A0', 'color': '#fff'});",
                     "}"),
-                  dom = c('TRC<"clear">lfrtip'),
-                  tableTools = list(sSwfPath = copySWF())),
-                extensions = c('ColReorder', 'ColVis','TableTools'))
+                  dom = c('Bfrtip'),
+                  buttons = c('colvis','copy', 'csv', 'excel', 'pdf', 'print')))
   candidateReportFile = paste0('candidates_',param$comparison,'.html')
   saveWidget(x,candidateReportFile)
   
