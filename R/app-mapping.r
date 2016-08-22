@@ -268,6 +268,10 @@ ezMethodSTAR = function(input=NA, output=NA, param=NA){
   refDir = getSTARReference(param)
   bamFile = output$getColumn("BAM")
   trimmedInput = ezMethodTrim(input = input, param = param)
+  # if (basename(refDir) != refDir & !grepl("^\\.", refDir)){
+  #   ezSystem(paste("cp -r", refDir, "."))
+  #   refDir = basename(refDir)
+  # }
   
   cmd = paste(STAR, " --genomeDir", refDir,  "--sjdbOverhang 150", "--readFilesIn",
               trimmedInput$getColumn("Read1"), if(param$paired) trimmedInput$getColumn("Read2"),

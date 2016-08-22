@@ -21,9 +21,13 @@ ezMethodBamPreview = function(input=NA, output=NA, param=NA, htmlFile="00index.h
   bamParam$mail = ""
   switch(param$mapMethod,
          STAR={
+           refDir = getSTARReference(param)
            mappingApp = EzAppSTAR$new()
            bamParam$cmdOptions = ifelse(bamParam$mapOptions != "", bamParam$mapOptions,
                                         "--outFilterType BySJout --outFilterMatchNmin 30 --outFilterMismatchNmax 10 --outFilterMismatchNoverLmax 0.05 --alignSJDBoverhangMin 1 --alignSJoverhangMin 8 --alignIntronMax 1000000 --alignMatesGapMax 1000000  --outFilterMultimapNmax 50 --chimSegmentMin 15 --chimJunctionOverhangMin 15 --chimScoreMin 15 --chimScoreSeparation 10 --outSAMstrandField intronMotif")
+           if (!grepl("genomeLoad", bamParam$cmdOptions)){
+             bamParam$cmdOptions = paste("--genomeLoad LoadAndKeep" , bamParam$cmdOptions)
+           }
          },
          bowtie={
            mappingApp = EzAppBowtie$new()
