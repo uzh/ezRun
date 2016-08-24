@@ -16,8 +16,6 @@ ezMethodFlash = function(input=NA, output=NA, param=NA){
   ezSystem(cmd)
   cmd = paste0('pigz ',sampleName,'.extendedFrags.fastq')
   ezSystem(cmd)
-  cmd = paste0('mv trimmomatic.err ',sampleName,'_trimmomatic.log')
-  ezSystem(cmd)
   return("Success")
 }
 

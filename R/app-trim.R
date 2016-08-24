@@ -132,6 +132,8 @@ ezMethodTrim = function(input=NA, output=NA, param=NA){
                 paste("MINLEN", param$minReadLength, sep=":"),
                 ">> trimmomatic.out 2>> trimmomatic.err")
     ezSystem(cmd)
+    cmd = paste0('mv trimmomatic.err ',input$getNames(),'_trimmomatic.log')
+    ezSystem(cmd)
   } else {
     ezSystem(paste("gunzip -c", input$getFullPaths("Read1"), ">", r1TmpFile))
     if (param$paired){
@@ -164,6 +166,8 @@ ezMethodTrim = function(input=NA, output=NA, param=NA){
                 minReadLengthOpt,
                 "--target", "flexbar",
                 "> flexbar.out 2> flexbar.err")
+    ezSystem(cmd)
+    cmd = paste0('mv flexbar.out ',input$getNames(),'_flexbar.log')
     ezSystem(cmd)
     if (param$paired) {
       file.remove(r1TmpFile)
