@@ -133,7 +133,7 @@ getBowtie2Reference = function(param){
     
     fastaFile = param$ezRef["refFastaFile"]
     ezSystem(paste("ln -s", fastaFile, "."))
-    cmd = paste(file.path(BOWTIE2_DIR, "bowtie2-build"), "-f", basename(fastaFile), basename(refBase))
+    cmd = paste(file.path(BOWTIE2_DIR, "bowtie2-build"), "--threads", as.numeric(param$cores), "-f", basename(fastaFile), basename(refBase))
     ezSystem(cmd)
     #ezWriteElapsed(job, "done")
     setwd(wd)

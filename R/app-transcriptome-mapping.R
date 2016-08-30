@@ -62,7 +62,7 @@ getBowtie2TranscriptomeReference = function(param){
     exonRgList = exonsBy(txdb, by="tx", use.names=TRUE)
     trSeqs = extractTranscriptSeqs(genomeFa, exonRgList)
     writeXStringSet(trSeqs, trSeqFile)
-    cmd = paste(file.path(BOWTIE2_DIR, "bowtie2-build"), "-f", basename(trSeqFile), basename(refBase))
+    cmd = paste(file.path(BOWTIE2_DIR, "bowtie2-build"), "--threads", as.numeric(param$cores), "-f", basename(trSeqFile), basename(refBase))
     ezSystem(cmd)
     setwd(wd)
     file.remove(lockFile)
