@@ -49,6 +49,7 @@ ezMethodTrim = function(input=NA, output=NA, param=NA){
   ## if there are multiple samples loop through them
   if (input$getLength() > 1){
     for (nm in input$getNames()){
+      ezSystem(paste0('touch ', nm, '_preprocessing.log'))
       ezMethodTrim(input$subset(nm), output$subset(nm), param)
       ## NOTE: potential risk, temp files might be overwritten
     }
@@ -132,7 +133,7 @@ ezMethodTrim = function(input=NA, output=NA, param=NA){
                 paste("MINLEN", param$minReadLength, sep=":"),
                 ">> trimmomatic.out 2>> trimmomatic.err")
     ezSystem(cmd)
-    cmd = paste0('mv trimmomatic.err ',input$getNames(),'_trimmomatic.log')
+    cmd = paste0('cat trimmomatic.err >>',input$getNames(),'_preprocessing.log')
     ezSystem(cmd)
   } else {
     ezSystem(paste("gunzip -c", input$getFullPaths("Read1"), ">", r1TmpFile))
@@ -167,7 +168,7 @@ ezMethodTrim = function(input=NA, output=NA, param=NA){
                 "--target", "flexbar",
                 "> flexbar.out 2> flexbar.err")
     ezSystem(cmd)
-    cmd = paste0('mv flexbar.out ',input$getNames(),'_flexbar.log')
+    cmd = paste0('cat flexbar.out >>',input$getNames(),'_preprocessing.log')
     ezSystem(cmd)
     if (param$paired) {
       file.remove(r1TmpFile)
