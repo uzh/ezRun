@@ -99,7 +99,7 @@ twoGroupCountComparison = function(rawData, param){
   if (!is.null(param$runGfold) && param$runGfold && !is.null(rawData$seqAnno$width) && !is.null(rawData$seqAnno$gene_name)){
     result$gfold = runGfold(rawData, result$sf, isSample, isRef)
   }
-  
+  result$nativeResult = res
   useProbe[is.na(useProbe)] = FALSE
   fdr = rep(NA, length(pValue))
   fdr[useProbe] = p.adjust(pValue[useProbe], method="fdr")
