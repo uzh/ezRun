@@ -278,7 +278,19 @@ ezMethodSTAR = function(input=NA, output=NA, param=NA){
               "--runThreadN", ezThreads(), param$cmdOptions, "--outStd BAM_Unsorted --outSAMtype BAM Unsorted",
               ">  Aligned.out.bam")## writes the output file Aligned.out.bam
   ##"|", SAMTOOLS, "view -S -b -", " >", "Aligned.out.bam")
-  ezSystem(cmd)
+  if(!is.null(param$randomSleep)){
+    if(param$randomSleep){
+      randomNumber = runif(1, min = 0, max = 1)
+      if(randomNumber <= 1/3) {
+        cat('Sleep for 9s \n')
+        #Sys.sleep( 900) #ezSystem('sleep 15m')
+      } else if(randomNumber > 1/3 & randomNumber <= 2/3) {
+        cat('Sleep for 18s \n')
+        #Sys.sleep( 1800) #ezSystem('sleep 30m')
+      }
+    }
+  }
+  ezSystem(cmd)  
   nSortThreads = min(ezThreads(), 8)
   if (!is.null(param$markDuplicates) && param$markDuplicates){
     ezSortIndexBam("Aligned.out.bam", "sorted.bam", ram=param$ram, removeBam=TRUE, cores=nSortThreads)
@@ -390,7 +402,8 @@ EzAppSTAR <-
                   name <<- "EzAppSTAR"
                   appDefaults <<- rbind(getChimericJunctions=ezFrame(Type="logical",  DefaultValue="FALSE",	Description="should chimeric reads be returned"),
                                         writeIgvSessionLink=ezFrame(Type="logical", DefaultValue="TRUE", Description="should an IGV link be generated"),
-                                        markDuplicates=ezFrame(Type="logical", DefaultValue="FALSE", Description="should duplicates be marked with picard"))
+                                        markDuplicates=ezFrame(Type="logical", DefaultValue="FALSE", Description="should duplicates be marked with picard"),
+                                        randomSleep=ezFrame(Type="logical",  DefaultValue="FALSE",  Description="should there be a random sleep to avoid to much network traffic when loading the STAR index"))
                 }
               )
   )
