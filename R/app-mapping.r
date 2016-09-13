@@ -267,6 +267,18 @@ ezMethodSTAR = function(input=NA, output=NA, param=NA){
 
   refDir = getSTARReference(param)
   bamFile = output$getColumn("BAM")
+  if(!is.null(param$randomSleep)){
+    if(param$randomSleep){
+      randomNumber = runif(1, min = 0, max = 1)
+      if(randomNumber <= 1/3) {
+        cat('Wait 15m \n')
+        Sys.sleep( 900) 
+      } else if(randomNumber > 1/3 & randomNumber <= 2/3) {
+        cat('Wait 30m \n')
+        Sys.sleep( 1800)
+      }
+    }
+  }
   trimmedInput = ezMethodTrim(input = input, param = param)
   # if (basename(refDir) != refDir & !grepl("^\\.", refDir)){
   #   ezSystem(paste("cp -r", refDir, "."))
@@ -278,18 +290,6 @@ ezMethodSTAR = function(input=NA, output=NA, param=NA){
               "--runThreadN", ezThreads(), param$cmdOptions, "--outStd BAM_Unsorted --outSAMtype BAM Unsorted",
               ">  Aligned.out.bam")## writes the output file Aligned.out.bam
   ##"|", SAMTOOLS, "view -S -b -", " >", "Aligned.out.bam")
-  if(!is.null(param$randomSleep)){
-    if(param$randomSleep){
-      randomNumber = runif(1, min = 0, max = 1)
-      if(randomNumber <= 1/3) {
-        cat('Sleep for 9s \n')
-        #Sys.sleep( 900) #ezSystem('sleep 15m')
-      } else if(randomNumber > 1/3 & randomNumber <= 2/3) {
-        cat('Sleep for 18s \n')
-        #Sys.sleep( 1800) #ezSystem('sleep 30m')
-      }
-    }
-  }
   ezSystem(cmd)  
   nSortThreads = min(ezThreads(), 8)
   if (!is.null(param$markDuplicates) && param$markDuplicates){
