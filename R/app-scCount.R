@@ -104,7 +104,8 @@ EzAppSingleCellCounts <-
                   runMethod <<- ezMethodSingleCellCounts
                   name <<- "EzAppSingleCellCounts"
                   appDefaults <<- rbind(mapMethod=ezFrame(Type="character",	DefaultValue="STAR",	Description="the mapper to use"),
-                                        mapOptions=ezFrame(Type="character", DefaultValue="", Description="options passed to the mapper")
+                                        mapOptions=ezFrame(Type="character", DefaultValue="", Description="options passed to the mapper"),
+                                        writeIgvSessionLink=ezFrame(Type="logical", DefaultValue=FALSE, Description="whether to write IGV session links.")
                                         )
                 }
               )
