@@ -333,6 +333,8 @@ EzApp <-
                              text=c(text, " ", geterrmessage(), " ", stackTrace[1:(length(stackTrace)-2)]), 
                              to=recipient)
                       message("mail sent to: ", recipient)
+                    } else {
+                      message(c(text, " ", geterrmessage(), " ", stackTrace[1:(length(stackTrace)-2)]))
                     }
                   } else {
                     if (ezValidMail(param$mail)){

@@ -153,6 +153,22 @@ runGfold = function(rawData, scalingFactors, isSample, isRef){
 
 ##' @describeIn twoGroupCountComparison Runs the Deseq2 test method.
 runDeseq2 = function(x, sampleGroup, refGroup, grouping, grouping2=NULL, isPresent=NULL){
+  ## get size factors -- grouping2 not needed
+  colData = data.frame(grouping=as.factor(grouping), row.names=colnames(x))
+  dds = DESeq2::DESeqDataSetFromMatrix(countData=x, colData=colData, design= ~ grouping)
+  dds = DESeq2::estimateSizeFactors(dds, controlGenes=isPresent)
+  sf = 1/dds@colData$sizeFactor
+  
+  ## remove the samples that do not participate in the comparison
+  isSample = grouping == sampleGroup
+  isRef = grouping == refGroup
+  grouping = grouping[isSample|isRef]
+  x = x[ ,isSample|isRef]
+  if (ezIsSpecified(grouping2)){
+    grouping2 = grouping2[isSample|isRef]
+  }    
+  
+  ## run the analysis
   if (ezIsSpecified(grouping2)){
     if (!is.numeric(grouping2)){
       grouping2 = as.factor(grouping2)
@@ -169,7 +185,7 @@ runDeseq2 = function(x, sampleGroup, refGroup, grouping, grouping2=NULL, isPrese
   dds = DESeq2::DESeq(dds, quiet=FALSE)
   res = DESeq2::results(dds, contrast=c("grouping", sampleGroup, refGroup), cooksCutoff=FALSE)
   res = as.list(res)
-  res$sf = 1/dds@colData$sizeFactor
+  res$sf = sf
   return(res)
 }
 
