@@ -115,8 +115,6 @@ executeBowtie2CMD = function(param, input){
                   "| cut -f1,3,12", " |sed s/AS:i://g", ">>", countFiles[nm])
     }
     ezSystem(cmd)
-    #ezSystem(paste(SAMTOOLS, "view", "bowtie.bam", '|cut -f1,3,12 |sort|sed "s/AS:i://g" >',countFiles[nm]))
-    #system(paste(SAMTOOLS,"view -F 256",sbamFile,"|cut -f1,12 |sort|sed 's/AS:i://g' >",bestScoreFile))
   }
   return(countFiles)
 }
@@ -206,16 +204,20 @@ fastqscreenReport = function(dataset, param, htmlFile="00index.html", fastqData,
     par(mar=c(10.1, 4.1, 4.1, 2.1))
     bplt = barplot(fastqData$MappingRate, las=2, ylim=c(0,100), ylab="MappedReads in %", main="MappingRate", col="royalblue3",
                    names.arg=rep('',length(ezSplitLongLabels(names(fastqData$MappingRate)))))
-    text(y=fastqData$MappingRate+5, font=2, x=bplt, labels=paste0(as.character(fastqData$MappingRate),"%"), cex=0.7, xpd=TRUE)
-    text(x = bplt, y = par("usr")[3] - 1, srt = 45, adj = 1, labels = ezSplitLongLabels(names(fastqData$MappingRate)), xpd = TRUE)
-    
-  })
+    if(min(fastqData$MappingRate) < 8){
+      text(y=fastqData$MappingRate+2, font=2, x=bplt, labels=as.character(fastqData$MappingRate), cex= 1, xpd=TRUE)
+    } else {
+      text(y=fastqData$MappingRate-5, font=2, x=bplt, labels=as.character(fastqData$MappingRate), cex= 1.1, col='white', xpd=TRUE)
+    }
+    text(x = bplt, y = par("usr")[3] - 2, srt = 45, adj = 1, labels = ezSplitLongLabels(names(fastqData$MappingRate)), xpd = TRUE)
+    })
+  
   mappingRateLink = ezImageFileLink(plotCmd, file="MappingRate.png", width=min(600 + (nrow(dataset)-10)* 30, 2000)) # nSamples dependent width
   plotCmd = expression({
     par(mar=c(10.1, 4.1, 4.1, 2.1))
-    bplt = barplot(fastqData$Reads, las=2, ylab="#Reads", main="ProcessedReads", col="lightblue",
+    bplt = barplot(fastqData$Reads/1000, las=2, ylab="#Reads in K", main="ProcessedReads", col="lightblue",
             names.arg=rep('',length(ezSplitLongLabels(names(fastqData$MappingRate)))))
-    text(x = bplt, y = par("usr")[3] - 1, srt = 45, adj = 1, labels = ezSplitLongLabels(names(fastqData$MappingRate)), xpd = TRUE)
+    text(x = bplt, y = par("usr")[3] - 2, srt = 45, adj = 1, labels = ezSplitLongLabels(names(fastqData$MappingRate)), xpd = TRUE)
   })
   readsLink = ezImageFileLink(plotCmd, file="Reads.png", width=min(600 + (nrow(dataset)-10)* 30, 2000)) # nSamples dependent width
   addFlexTable(doc, ezGrid(cbind(mappingRateLink, readsLink)))
@@ -227,7 +229,7 @@ fastqscreenReport = function(dataset, param, htmlFile="00index.html", fastqData,
       par(mar=c(10.1, 4.1, 4.1, 2.1))
       bplt = barplot(t(fastqData$CommonResults[[nm]]), las=2, ylim=c(0,100), 
                      legend.text=T, ylab="Mapped Reads in %", main=nm, names.arg=rep('', nrow(fastqData$CommonResults[[nm]])))
-      text(x = bplt, y = par("usr")[3] - 1, srt = 45, adj = 1, labels = rownames(fastqData$CommonResults[[nm]]), xpd = TRUE)
+      text(x = bplt, y = par("usr")[3] - 2, srt = 45, adj = 1, labels = rownames(fastqData$CommonResults[[nm]]), xpd = TRUE)
       
       
     })
@@ -239,8 +241,8 @@ fastqscreenReport = function(dataset, param, htmlFile="00index.html", fastqData,
       if (is.null(x)) x = 0
       bplot = barplot(t(x), col=c("royalblue3", "lightblue"), las=2, ylim=c(0,100),
                       legend.text=T, ylab="Mapped Reads in %", main=nm, names.arg=rep('',nrow(x)) )
-      text(y=3, x=bplot, font = 2, labels=paste0(t(x)[ 1, ], '%'), xpd=TRUE)
-      text(x = bplot, y = par("usr")[3] - 1, srt = 45, adj = 1, 
+      text(y=t(x)[ 1,] + 5, x=bplot, font = 2, labels=t(x)[ 1, ], cex=1.1, col='black')
+      text(x = bplot, y = par("usr")[3] - 2, srt = 45, adj = 1, 
            labels = rownames(x), xpd = TRUE)
     })
     detectedSpeciesLinks[[nm]] = ezImageFileLink(plotCmd, name=nm, plotType="-mRNA-countsBySpecies-barplot", width=400, height=400)
