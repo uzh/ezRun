@@ -292,8 +292,15 @@ ezMethodSTAR = function(input=NA, output=NA, param=NA){
   ##"|", SAMTOOLS, "view -S -b -", " >", "Aligned.out.bam")
   ezSystem(cmd)  
   nSortThreads = min(ezThreads(), 8)
+  ## if the index is loaded in shared memory we have to use only 10% of the scheduled RAM
+  if (grepl("--genomeLoad LoadAndKeep", param$cmdOptions)){
+    sortRam = param$ram / 10
+  } else {
+    sortRam = param$ram
+  }
+    
   if (!is.null(param$markDuplicates) && param$markDuplicates){
-    ezSortIndexBam("Aligned.out.bam", "sorted.bam", ram=param$ram, removeBam=TRUE, cores=nSortThreads)
+    ezSortIndexBam("Aligned.out.bam", "sorted.bam", ram=sortRam, removeBam=TRUE, cores=nSortThreads)
     javaCall = paste0(JAVA, " -Djava.io.tmpdir=. -Xmx", min(floor(param$ram), 10), "g")
     cmd = paste0(javaCall, " -jar ", PICARD_JAR, " MarkDuplicates ",
                  " TMP_DIR=. MAX_RECORDS_IN_RAM=2000000", " I=", "sorted.bam",
@@ -307,7 +314,7 @@ ezMethodSTAR = function(input=NA, output=NA, param=NA){
     ezSystem(cmd)
     ezSystem(paste(SAMTOOLS, "index", basename(bamFile)))
   } else {
-    ezSortIndexBam("Aligned.out.bam", basename(bamFile), ram=param$ram, removeBam=TRUE, cores=nSortThreads)
+    ezSortIndexBam("Aligned.out.bam", basename(bamFile), ram=sortRam, removeBam=TRUE, cores=nSortThreads)
   }
   
   if (param$getChimericJunctions){

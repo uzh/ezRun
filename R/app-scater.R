@@ -30,7 +30,7 @@ ezMethodScater = function(input=NA, output=NA, param=NA, htmlFile="00index.html"
   doc = openBsdocReport(title=titles[[length(titles)]])
   addDataset(doc, dataset, param)
   
-  ## load the single cell data
+  ## load the single cell counts
   
   ## create the scater graphics here
   

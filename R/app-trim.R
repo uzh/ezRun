@@ -125,7 +125,7 @@ ezMethodTrim = function(input=NA, output=NA, param=NA){
         input$getFullPaths("Read1"), r1TmpFile)
     }
     cmd = paste(TRIMMOMATIC, method,
-                "-threads", min(ezThreads(), 8),
+                "-threads", min(ezThreads(), 8), "-phred33", ## hardcode phred33 quality encoding
                 #"-trimlog", paste0(input$getNames(), "-trimmomatic.log"),
                 readOpts, trimAdaptOpt, tailQualOpt, minAvgQualOpt,
                 #               paste("HEADCROP", param$trimLeft, sep=":"),
