@@ -88,6 +88,16 @@ ezMethodSingleCellCounts = function(input=NA, output=NA, param=NA, htmlFile="00i
     unlink(nm, recursive=TRUE, force=TRUE)
     
   }
+  
+  countFiles = paste0(countDir, "/", basename(countDs$getColumn("Count")))
+  x = ezRead.table(countFiles[1])
+  counts = ezMatrix(0, rows=rownames(x), cols=countDs$getNames())
+  for (nm in names(countFiles)){
+    x = ezRead.table(countFiles[nm])
+    stopifnot(setequal(rownames(x), rownames(counts)))
+    counts[rownames(x), nm] = x[ , "matchCounts"]
+  }
+  ezWrite.table(x, head=paste0(param$featureLevel, "_id"), file=basename(output$getColumn('CountMatrix')))
   return("SUCCESS")
 }
 
