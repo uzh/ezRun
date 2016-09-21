@@ -393,7 +393,7 @@ writeNgsTwoGroupReport = function(dataset, deResult, output, htmlFile="00index.h
         goAndEnrichr = goTables$linkTable
       }
       goAndEnrichrFt = ezFlexTable(goAndEnrichr, border = 2, header.columns = TRUE, add.rownames=TRUE)
-      bgColors = rep(gsub("FF$", "", clusterResult$clusterColors))
+      bgColors = gsub("FF$", "", clusterResult$clusterColors)
       goAndEnrichrFt = setFlexTableBackgroundColors(goAndEnrichrFt, j=1, colors=bgColors)
       goAndEnrichrTableLink = as.html(ezGrid(rbind("Background color corresponds to the row colors in the heatmap plot.",
                                                    as.html(goAndEnrichrFt))))

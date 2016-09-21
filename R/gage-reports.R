@@ -86,17 +86,21 @@ addGageTables = function(doc, param = NULL, gageResults = NULL) {
       
       # Add links to pathway names
       rownames(res) = paste0("<A HREF=\"", res[,"links"],"\">",rownames(res),"</A>")
-      res <- res[,!colnames(res) %in% "links", drop=F]
+      res <- res[, colnames(res) != "links", drop=F]
       
       # Writing plot and table
-      outerTable[signal, ] = c(x[[lab.png]], as.html(ezFlexTable(res, talign="right", header.columns = TRUE)))
+      resTable = ezFlexTable(res, talign="right", header.columns = TRUE, add.rownames=TRUE)
+      bgColors = gsub("FF$", "", unique(x[[lab.pathCol]]))
+      resTable = setFlexTableBackgroundColors(resTable, j=1, colors=bgColors)
+      
+      outerTable[signal, ] = c(x[[lab.png]], as.html(resTable))
       # imgLink = x[[lab.png]]
       # pathColors = unique(x[[lab.pathCol]])
       # tbl = ezAddTableWhite(res, bgcolors=matrix(gsub("FF$", "", unique(pathColors)), nrow=length(unique(pathColors)), ncol=1))
       #tableRows[[signal]] = cbind(imgLink, tbl)
     }
     if (nrow(outerTable) > 0){
-      addFlexTable(doc, ezGrid(outerTable))
+      addFlexTable(doc, ezGrid(outerTable, add.rownames=TRUE))
     }
     # table = ezGrid(rbind(unlist(tableRows)), header.columns=TRUE)
     # table = addHeaderRow(table, cbind(paste("Heatmap Plot logRatio Signal for", i), paste(i, "significant pathways")))
