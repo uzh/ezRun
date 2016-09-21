@@ -97,7 +97,7 @@ ezMethodSingleCellCounts = function(input=NA, output=NA, param=NA, htmlFile="00i
     stopifnot(setequal(rownames(x), rownames(counts)))
     counts[rownames(x), nm] = x[ , "matchCounts"]
   }
-  ezWrite.table(x, head=paste0(param$featureLevel, "_id"), file=basename(output$getColumn('CountMatrix')))
+  ezWrite.table(counts, head=paste0(param$featureLevel, "_id"), file=basename(output$getColumn('CountMatrix')))
   return("SUCCESS")
 }
 

@@ -7,38 +7,39 @@
 
 
 ezMethodScater = function(input=NA, output=NA, param=NA, htmlFile="00index.html"){
+  require(scater)
   if (is.null(param$minExpressedCells)) {
     param$minExpressedCells <- 4
   }
 
   countMatrix = EzDataset(file=input$getFullPaths("CountMatrix"), dataRoot=param$dataRoot)
   input = EzDataset(file=input$getFullPaths("CountDataset"), dataRoot=param$dataRoot)
-  dataset = input$meta
+  meta = input$meta
 
   setwdNew(basename(output$getColumn("Report")))
   if (param$useFactorsAsSampleName){
-    dataset$Name = rownames(dataset)
-    rownames(dataset) = addReplicate(apply(ezDesignFromDataset(dataset), 1, paste, collapse="_"))
+    meta$Name = rownames(meta)
+    rownames(meta) = addReplicate(apply(ezDesignFromDataset(meta), 1, paste, collapse="_"))
   }
-  if (!is.null(param$removeOutliers) && param$removeOutliers && !is.null(dataset$Outlier)){
-    dataset = dataset[toupper(dataset$Outlier) %in% c("", "NO", '""', "FALSE") == TRUE, ]
+  if (!is.null(param$removeOutliers) && param$removeOutliers && !is.null(meta$Outlier)){
+    meta = meta[toupper(meta$Outlier) %in% c("", "NO", '""', "FALSE") == TRUE, ]
   }
-  input$meta = dataset
+  input$meta = meta
 
   titles = list()
   titles[["scater"]] = paste("scater analysis:", param$name)
   doc = openBsdocReport(title=titles[[length(titles)]])
-  addDataset(doc, dataset, param)
+  addDataset(doc, meta, param)
 
   # Prepare the data for SCE set
-  phenoData = new("AnnotatedDataFrame", data = dataset$meta)
-  rownames(phenoData) <- row.names(dataset$meta)
+  phenoData = new("AnnotatedDataFrame", data = meta)
+  rownames(phenoData) <- row.names(meta)
   countData = countMatrix$meta
   featureNames = row.names(countData)
   featureData <- new("AnnotatedDataFrame", data = data.frame(Feature = featureNames))
   rownames(featureData) <- featureNames
 
-  sceset <- newSCESet(countData = countData, phenoData = phenoData, featureData = featureData)
+  sceset <- newSCESet(countData = as.matrix(countData), phenoData = phenoData, featureData = featureData)
   sceset <- calculateQCMetrics(sceset)
   # Remove features that are not expressed
   expressedMask <- rowSums(is_exprs(sceset)) > param$minExpressedCells
