@@ -8,6 +8,7 @@
 
 ezMethodScater = function(input=NA, output=NA, param=NA, htmlFile="00index.html"){
   require(scater)
+  require(grid)
   if (is.null(param$minExpressedCells)) {
     param$minExpressedCells <- 4
   }
