@@ -482,7 +482,7 @@ runNgsCountQC = function(dataset, htmlFile="00index.html", param=param, rawData=
       print(p)
     })
     
-    pngLink = ezImageFileLink(plotCmd, file=pngName)
+    pngLink = ezImageFileLink(plotCmd, file=pngName, width=700, height=550)
     
     titles[["Expression densities"]] = "Expression densities"
     addTitle(doc, titles[[length(titles)]], 2, id=titles[[length(titles)]])
