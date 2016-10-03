@@ -38,7 +38,9 @@ EzRef = setClass("EzRef",
                            refAnnotationFile="character",
                            refFastaFile="character",
                            refChromSizesFile="character",
-                           refAnnotationVersion="character"))
+                           refAnnotationVersion="character",
+                           refVariantsDir="character")
+                 )
 
 ##' @describeIn EzRef Initializes the slots of EzRef. It will also try to specify some fields and if necessary get full file paths.
 setMethod("initialize", "EzRef", function(.Object, param=list()){
@@ -69,6 +71,7 @@ setMethod("initialize", "EzRef", function(.Object, param=list()){
     }
     .Object@refBuildDir = rbd
   }
+  .Object@refVariantsDir = file.path(.Object@refBuildDir, "Variants")
   if (length(refFields) == 5 && grepl("^Version", refFields[5])){
     .Object@refAnnotationVersion = refFields[5]
   } else {
