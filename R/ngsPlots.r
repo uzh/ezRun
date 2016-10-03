@@ -40,7 +40,7 @@ countDensGGPlot <- function(cts, xmin=min(cts, na.rm=TRUE)-5,
   require(ggplot2)
   cts[cts < 0] = 0
   cts = log2(cts)
-  data = data.frame(signal = unlist(cts),sampleName=rep(colnames(cts),each=ncol(cts)), stringsAsFactors = F)
+  data = data.frame(signal = unlist(cts),sampleName=rep(colnames(cts),each=nrow(cts)), stringsAsFactors = F)
   xvar = 'signal'
   split = 'sampleName'
   p = ggplot(data=data, aes_string(x=xvar, fill=split))
