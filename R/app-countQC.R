@@ -477,7 +477,9 @@ runNgsCountQC = function(dataset, htmlFile="00index.html", param=param, rawData=
     
     pngName = "signalDens.png"
     plotCmd = expression({
-      countDensPlot(signal, sampleColors, main="all transcripts", bw=0.7)
+      #countDensPlot(signal, sampleColors, main="all transcripts", bw=0.7)
+      p = countDensGGPlot(cts=data.frame(signal,stringsAsFactors = F),colors=sampleColors, alpha=0.4)
+      print(p)
     })
     
     pngLink = ezImageFileLink(plotCmd, file=pngName)
@@ -485,15 +487,6 @@ runNgsCountQC = function(dataset, htmlFile="00index.html", param=param, rawData=
     titles[["Expression densities"]] = "Expression densities"
     addTitle(doc, titles[[length(titles)]], 2, id=titles[[length(titles)]])
     addParagraph(doc, "Zero or negative counts are not represented by the area!")
-    addParagraph(doc, pngLink)
-    
-    pngName = "signalDensGGplots.png"
-    plotCmd = expression({
-      p = countDensGGPlot(cts=data.frame(signal,stringsAsFactors = F),colors=sampleColors, alpha=0.4)
-      print(p)
-    })
-    
-    pngLink = ezImageFileLink(plotCmd, file=pngName)
     addParagraph(doc, pngLink)
   }
   closeBsdocReport(advancedDoc, "advancedPlots.html", advancedTitles)

@@ -35,15 +35,17 @@ countDensPlot = function(cts, colors, main="all transcripts", bw=7){
   return(NULL)
 }
 
-countDensGGPlot <- function(cts, xmin=min(cts, na.rm=TRUE), 
-                            xmax=max(cts, na.rm=TRUE), alpha=0.5, colors) {
+countDensGGPlot <- function(cts, xmin=min(cts, na.rm=TRUE)-5, 
+                            xmax=max(cts, na.rm=TRUE)+5, alpha=0.3, colors, main="all transcripts") {
   require(ggplot2)
   cts[cts < 0] = 0
   cts = log2(cts)
   data = data.frame(signal = unlist(cts),sampleName=rep(colnames(cts),each=ncol(cts)), stringsAsFactors = F)
   xvar = 'signal'
   split = 'sampleName'
-  p = ggplot(data=data, aes_string(x=xvar, fill=split)) + xlim(xmin,xmax) + geom_density(alpha=alpha)+ scale_fill_manual(values=colors) + ylab("density of transcripts")+xlab("log2 expression") 
+  p = ggplot(data=data, aes_string(x=xvar, fill=split))
+  p = p + xlim(xmin,xmax) + geom_density(alpha=alpha) + scale_fill_manual(values=colors)
+  p = p + ylab("density of transcripts") + xlab("log2 expression") + ggtitle(paste(main, "(",nrow(cts), ")"))
   return(p)
 }
 
