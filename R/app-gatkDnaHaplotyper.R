@@ -1,7 +1,3 @@
-#TODO: input bamFile -> output vcf with gvcf support
-#Add readGroup, remove duplicates with picard yes/no, run haplotyper full or with intervall for exome kit 
-#If neccessary: resort and index genome.fa file locally, use GATK 3.6
-
 ###################################################################
 # Functional Genomics Center Zurich
 # This code is distributed under the terms of the GNU General
@@ -12,12 +8,10 @@
 
 ezMethodGatkDnaHaplotyper = function(input=NA, output=NA, param=NA){
   knownSites = list.files(param$ezRef["refVariantsDir"],pattern='vcf$',full.names = T) 
-  GATK_JAR='/usr/local/ngseq/src/GenomeAnalysisTK_3.6/GenomeAnalysisTK.jar'
   javaCall = paste0(JAVA, " -Djava.io.tmpdir=. -Xmx", param$ram, "g")
-  bamFile = '/srv/GT/analysis/lopitz/GATK-tutorial_data/bams/NA12877_wgs_20.bam'#input$getFullPaths("BAM")
-  #localBamFile = .getBamLocally(bamFile)
-  genomeSeq = '/srv/GT/analysis/lopitz/GATK-tutorial_data/ref/human_g1k_b37_20.fasta' #param$ezRef["refFastaFile"]
-  sampleName = 'NA12877_wgs_20' #names(bamFile)
+  bamFile = input$getFullPaths("BAM")
+  genomeSeq = param$ezRef["refFastaFile"]
+  sampleName = names(bamFile)
   cmd = paste0(javaCall, " -jar ", PICARD_JAR, " AddOrReplaceReadGroups",
                " TMP_DIR=. MAX_RECORDS_IN_RAM=2000000", " I=", bamFile,
                " O=withRg.bam SORT_ORDER=coordinate",
@@ -72,12 +66,14 @@ ezMethodGatkDnaHaplotyper = function(input=NA, output=NA, param=NA){
   ezSystem(cmd)
 
   ########### haplotyping
+  dbsnpFile = knownSites[grep('dbsnp.*vcf$', knownSites)]
   haplotyperCall = paste(javaCall,"-jar", GATK_JAR, " -T HaplotypeCaller")
   cmd = paste(haplotyperCall, "-R", genomeSeq,
               "-I recal.bam",
-              "-ERC GVCF",
+              "--emitRefConfidence GVCF",
+              "--dbsnp", dbsnpFile,
               "-variant_index_type LINEAR -variant_index_parameter 128000",
-              "-o", paste0(sampleName, "-HC_calls.vcf"))
+              "-o", paste0(sampleName, "-HC_calls.g.vcf"))
   
   if(!is.null(param$targetFile)){
     cmd = paste(cmd,
@@ -94,30 +90,6 @@ ezMethodGatkDnaHaplotyper = function(input=NA, output=NA, param=NA){
                 "-nct", param$cores)
   }
   ezSystem(cmd)
-  
-  #TODO: recalibrate Variants: 1.Snps, 2. InDels
-  #java –jar GenomeAnalysisTK.jar –T VariantRecalibrator \
-  #–R human.fasta \
-  #–input raw.SNPs.vcf \
-  #–resource: {see next slide} \
-  #–an DP –an QD –an FS –an MQRankSum {...} \
-  #–mode SNP \
-  #–recalFile raw.SNPs.recal \
-  #–tranchesFile raw.SNPs.tranches \
-  #–rscriptFile recal.plots.R
-  
-  #java –jar GenomeAnalysisTK.jar –T ApplyRecalibraHon \
-  #–R human.fasta \
-  #–input raw.vcf \
-  #–mode SNP \
-  #–recalFile raw.SNPs.recal \
-  #–tranchesFile raw.SNPs.tranches \
-  #–o recal.SNPs.vcf \
-  #–ts_filter_level 99.0
-  
-  
-  ## filter the vcf file
-  gc()
   return("Success")
 }
 
@@ -135,9 +107,7 @@ EzAppGatkDnaHaplotyper <-
                   name <<- "EzAppGatkDnaHaplotyper"
                   appDefaults <<- rbind(getRealignedBam = ezFrame(Type="logical",  DefaultValue=FALSE, Description="for IGV check"),
                                         targetFile = ezFrame(Type="character",  DefaultValue="", Description="restrict to targeted genomic regions"),
-                                        markDuplicates = ezFrame(Type="logical",  DefaultValue=TRUE, Description="not recommended for gene panels, exomes"), 
-                                        vcfFilt.minAltCount = ezFrame(Type="integer",  DefaultValue=8,  Description="minimum coverage for the alternative variant"),
-                                        vcfFilt.minReadDepth = ezFrame(Type="integer",  DefaultValue=20,  Description="minimum read depth"))
+                                        markDuplicates = ezFrame(Type="logical",  DefaultValue=TRUE, Description="not recommended for gene panels, exomes"))
                 }
               )
   )
