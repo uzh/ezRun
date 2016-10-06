@@ -6,23 +6,32 @@
 # www.fgcz.ch
 
 
+#TODO: make bcfFile + index as output
 ezMethodGatkDnaHaplotyper = function(input=NA, output=NA, param=NA){
-  knownSites = list.files(param$ezRef["refVariantsDir"],pattern='vcf$',full.names = T) 
+  knownSites = list.files(param$ezRef["refVariantsDir"],pattern='vcf$',full.names = T)
+  dbsnpFile = knownSites[grep('dbsnp.*vcf$', knownSites)]
   javaCall = paste0(JAVA, " -Djava.io.tmpdir=. -Xmx", param$ram, "g")
   bamFile = input$getFullPaths("BAM")
+  
+  ezSystem(paste("rsync -va", bamFile, "local.bam"))
+  ezSystem(paste("rsync -va", paste0(bamFile, ".bai"), "local.bam.bai"))
+  
   genomeSeq = param$ezRef["refFastaFile"]
   sampleName = names(bamFile)
-  cmd = paste0(javaCall, " -jar ", PICARD_JAR, " AddOrReplaceReadGroups",
-               " TMP_DIR=. MAX_RECORDS_IN_RAM=2000000", " I=", bamFile,
+  if(param$addReadGroup){
+    cmd = paste0(javaCall, " -jar ", PICARD_JAR, " AddOrReplaceReadGroups",
+               " TMP_DIR=. MAX_RECORDS_IN_RAM=2000000", " I=local.bam",
                " O=withRg.bam SORT_ORDER=coordinate",
                " RGID=RGID_", sampleName, " RGPL=illumina RGSM=", sampleName, " RGLB=RGLB_", sampleName, " RGPU=RGPU_", sampleName,
                " VERBOSITY=WARNING")
-  ezSystem(cmd)
+    ezSystem(cmd) } else {
+    ezSystem('mv local.bam withRg.bam')
+  }
   
   if(param$markDuplicates){
     cmd = paste0(javaCall, " -jar ", PICARD_JAR, " MarkDuplicates ",
-                 " TMP_DIR=. MAX_RECORDS_IN_RAM=2000000", " I=", "withRg.bam",
-                 " O=", "dedup.bam",
+                 " TMP_DIR=. MAX_RECORDS_IN_RAM=2000000", " I=withRg.bam",
+                 " O=dedup.bam",
                  " REMOVE_DUPLICATES=false",
                  " ASSUME_SORTED=true",
                  " VALIDATION_STRINGENCY=SILENT",
@@ -35,14 +44,14 @@ ezMethodGatkDnaHaplotyper = function(input=NA, output=NA, param=NA){
   ezSystem(paste(SAMTOOLS, "index", "withRg.bam"))
   #BaseRecalibration
   baseRecalibration1 = paste(javaCall,"-jar", GATK_JAR, " -T BaseRecalibrator")
-  knownSitesCMD = ''
-  for (j in 1:length(knownSites)){
-    knownSitesCMD = paste(knownSitesCMD,paste("--knownSites", knownSites[j], collapse=','))
-  }
+  #knownSitesCMD = ''
+  #for (j in 1:length(knownSites)){
+  #  knownSitesCMD = paste(knownSitesCMD,paste("--knownSites", knownSites[j], collapse=','))
+  #}
   
   cmd = paste(baseRecalibration1, "-R", genomeSeq,
               "-I withRg.bam",
-              knownSitesCMD,
+              "--knownSites", dbsnpFile,
               "--out recal.table", 
               "-nct", param$cores)
   
@@ -66,14 +75,13 @@ ezMethodGatkDnaHaplotyper = function(input=NA, output=NA, param=NA){
   ezSystem(cmd)
 
   ########### haplotyping
-  dbsnpFile = knownSites[grep('dbsnp.*vcf$', knownSites)]
   haplotyperCall = paste(javaCall,"-jar", GATK_JAR, " -T HaplotypeCaller")
+  outputFile = paste0(sampleName, "-HC_calls.g.vcf")
   cmd = paste(haplotyperCall, "-R", genomeSeq,
               "-I recal.bam",
               "--emitRefConfidence GVCF",
               "--dbsnp", dbsnpFile,
-              "-variant_index_type LINEAR -variant_index_parameter 128000",
-              "-o", paste0(sampleName, "-HC_calls.g.vcf"))
+              "-o", outputFile)
   
   if(!is.null(param$targetFile)){
     cmd = paste(cmd,
@@ -90,6 +98,8 @@ ezMethodGatkDnaHaplotyper = function(input=NA, output=NA, param=NA){
                 "-nct", param$cores)
   }
   ezSystem(cmd)
+  ezSystem(paste('pigz --best -p', param$cores, outputFile))
+  
   return("Success")
 }
 
@@ -105,7 +115,8 @@ EzAppGatkDnaHaplotyper <-
                   "Initializes the application using its specific defaults."
                   runMethod <<- ezMethodGatkDnaHaplotyper
                   name <<- "EzAppGatkDnaHaplotyper"
-                  appDefaults <<- rbind(getRealignedBam = ezFrame(Type="logical",  DefaultValue=FALSE, Description="for IGV check"),
+                  appDefaults <<- rbind(addReadGroup = ezFrame(Type="logical",  DefaultValue=FALSE, Description="add ReadGroup to BAM"),
+                                        getRealignedBam = ezFrame(Type="logical",  DefaultValue=FALSE, Description="for IGV check"),
                                         targetFile = ezFrame(Type="character",  DefaultValue="", Description="restrict to targeted genomic regions"),
                                         markDuplicates = ezFrame(Type="logical",  DefaultValue=TRUE, Description="not recommended for gene panels, exomes"))
                 }

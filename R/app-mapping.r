@@ -89,10 +89,11 @@ ezMethodBowtie2 = function(input=NA, output=NA, param=NA){
   #Sys.setenv(BOWTIE2_INDEXES=dirname(ref))
   #message("bowtie Dir:", Sys.getenv("BOWTIE2_INDEXES"))
   bamFile = output$getColumn("BAM")
+  sampleName = sub('.bam','',basename(bamFile))
   trimmedInput = ezMethodTrim(input = input, param = param)
   defOpt = paste("-p", ezThreads())
-  
-  cmd = paste(file.path(BOWTIE2_DIR, "bowtie2"), param$cmdOptions, defOpt, 
+  readGroupOpt = paste0("--rg-id ", sampleName," --rg SM:", sampleName," --rg LB:RGLB_", sampleName," --rg PL:illumina"," --rg PU:RGPU_", sampleName)
+  cmd = paste(file.path(BOWTIE2_DIR, "bowtie2"), param$cmdOptions, defOpt, readGroupOpt,
               "-x", ref, if(param$paired) "-1", trimmedInput$getColumn("Read1"), 
               if(param$paired) paste("-2", trimmedInput$getColumn("Read2")),
               "2> bowtie.log", "|", SAMTOOLS, "view -S -b -", " > bowtie.bam")
@@ -183,7 +184,7 @@ ezMethodBowtie = function(input=NA, output=NA, param=NA){
   bamFile = output$getColumn("BAM")  
   trimmedInput = ezMethodTrim(input = input, param = param)
   defOpt = paste("--chunkmbs 256", "--sam", "-p", ezThreads())
-    cmd = paste(file.path(BOWTIE_DIR, "bowtie"), param$cmdOptions, defOpt, 
+  cmd = paste(file.path(BOWTIE_DIR, "bowtie"), param$cmdOptions, defOpt, 
               ref, trimmedInput$getColumn("Read1"), if(param$paired) trimmedInput$getColumn("Read2"),
               "2> bowtie.log", "|", SAMTOOLS, "view -S -b -", " > bowtie.bam")
   ezSystem(cmd)
