@@ -126,7 +126,11 @@ runNgsCountQC = function(dataset, htmlFile="00index.html", param=param, rawData=
   
   if (!is.null(output)){
     liveReportLink = output$getColumn("Live Report")
-    result = EzResult(param=param, rawData=rawData, result=NULL)
+    summary = c("Name"=param$name,
+                "Reference Build"=param$refBuild,
+                "Feature Level"=rawData$featureLevel,
+                "Normalization"=param$normMethod)
+    result = EzResult(param=param, rawData=rawData, result=list(summary=summary, analysis="Count_QC"))
     result$saveToFile(basename(output$getColumn("Live Report")))
     addParagraph(doc, ezLink(liveReportLink,
                              "Live Report and Visualizations",

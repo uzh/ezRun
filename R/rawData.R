@@ -69,6 +69,23 @@ selectSamples = function(rawData, samples){
 }
 
 
+renameSamples = function(rawData, samplesNew){
+  samplesOld = rownames(rawData$dataset)
+  stopifnot(length(samplesOld) == length(samplesNew))
+  for (nm in names(rawData)){
+    if (is.matrix(rawData[[nm]]) || is.data.frame(rawData[[nm]])){
+      if (all(samplesOld %in% colnames(rawData[[nm]]))){
+        colnames(rawData[[nm]]) = samplesNew
+      }
+      if (all(samplesOld %in% rownames(rawData[[nm]]))){
+        rownames(rawData[[nm]]) = samplesNew
+      }
+    }
+  }
+  return(rawData)
+}
+
+
 ##' @title Gets the signal
 ##' @description Gets the signal from raw data and modifies it if necessary due to logarithm.
 ##' @template rawData-template
