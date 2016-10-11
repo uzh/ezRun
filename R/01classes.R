@@ -65,13 +65,13 @@ EzDataset <-
                       }
                     }
                   }
-                  colNames <<- sub(" \\[.*", "", base::names(meta))
                   tags <<- ezTagListFromNames(base::names(meta))
                   ## reorder the meta-information such that factors come first!
                   if (class(meta) != "uninitializedField"){
                     meta <<- meta[ , order(.self$columnHasTag("Factor"), decreasing = TRUE), drop=FALSE]
                   }
                   tags <<- ezTagListFromNames(base::names(meta))
+                  colNames <<- sub(" \\[.*", "", base::names(meta))
                   for (i in which(.self$columnHasTag("Factor"))){
                     meta[ ,i] <<- as.character(meta[ ,i])
                     hasBadCharacter = !hasFilesafeCharacters(meta[ ,i])

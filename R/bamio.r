@@ -26,6 +26,7 @@ ezBamSeqNames = function(bamFile, sizeSorting="decreasing"){
 
 ##' @describeIn ezBamSeqNames Gets the sequence lengths from a bam file.
 ezBamSeqLengths = function(bamFile){
+  require(Rsamtools)
   return(scanBamHeader(bamFile)[[1]]$targets)
 }
 
@@ -80,6 +81,7 @@ ezScanBam = function(bamFile, seqname=NULL, start=NULL, end=NULL, strand="*",
                       isFirstMateRead=NA, isSecondMateRead=NA, isUnmappedQuery=FALSE, isProperPair=NA,
                      isSecondaryAlignment=NA, countOnly=FALSE){
   ## initialize the parameters for scanBam
+  require(Rsamtools)
   param = ScanBamParam(what=what, tag=tag)
   
   ### build and set the flag filter
@@ -118,6 +120,7 @@ ezScanBam = function(bamFile, seqname=NULL, start=NULL, end=NULL, strand="*",
 ezBam2bigwig = function(bamFile, bigwigPrefix, param=NULL, paired=NULL){
   
   ## from bam to wig
+  require(Rsamtools)
   sh = scanBamHeader(bamFile)
   seqLengths = sh[[1]]$targets
   chromSize = data.frame(seqLengths, row.names=names(seqLengths))
@@ -182,6 +185,8 @@ ezReadGappedAlignments = function(bamFile, seqname=NULL, start=NULL, end=NULL, s
                                   isSecondaryAlignment = NA,
                                   minMapQuality=0, keepMultiHits=TRUE){
   ## initialize the parameters for scanBam
+  require(Rsamtools)
+  require(GenomicAlignments)
   if (minMapQuality > 0){
     what = union(what, "mapq")
   }
@@ -258,6 +263,8 @@ ezReadGappedAlignments = function(bamFile, seqname=NULL, start=NULL, end=NULL, s
 ezReadPairedAlignments = function(bamFile, seqname=NULL, start=NULL, end=NULL, strand="*",
                                    tag=c("NH"), keepUnpaired="both", fillGap="N", minMapQuality=0, keepMultiHits=TRUE){
   
+  require(Rsamtools)
+  require(GenomicAlignments)
   .loadPairedSingleChrom = function(chrom){
     return(ezReadPairedAlignments(bamFile, seqname=chrom, start=start, end=end, strand=strand,
                                   tag=tag, keepUnpaired=keepUnpaired, minMapQuality=minMapQuality, keepMultiHits=keepMultiHits))

@@ -10,6 +10,7 @@ vignette: >
 
 ```{r, warning=FALSE,message=FALSE,split=TRUE}
 library(ezRun)
+require(Biostrings)
 ```
 
 <!-- see: http://stackoverflow.com/questions/19372260/how-to-get-rstudio-to-automatically-compile-r-markdown-vignettes -->

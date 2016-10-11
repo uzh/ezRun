@@ -8,8 +8,8 @@
 
 ezMethodRnaBamStats = function(input=NA, output=NA, param=NA, htmlFile="00index.html"){
   
-  requireNamespace("GenomicAlignments")
-  requireNamespace("S4Vectors")
+  require("GenomicAlignments")
+  require("S4Vectors")
   setwdNew(basename(output$getColumn("Report")))
   param$featureLevel = "gene"
   param$projectId = sub("\\/.*", "", input$getColumn("BAM")[1]) ## project id is needed for the IGV link

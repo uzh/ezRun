@@ -22,7 +22,5 @@ test_that("Test file paths", {
     print("Some paths do not exist:")
     print(globalPaths[which(!fileExists)])
   }
-  for (each in fileExists){
-    expect_true(each)
-  }
+  expect_true(sum(fileExists) == length(fileExists))
 })

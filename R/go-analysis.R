@@ -39,7 +39,7 @@ hasGoAnnotation = function(seqAnnoDF){
 ##' @return Returns the separated GO ID's
 ##' @examples separateGoIdsByOnto(c("GO:0008150", "GO:0005575"))
 separateGoIdsByOnto = function(goIdStrings){
-  requireNamespace("GO.db", warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
+  require("GO.db", warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
   bpGos = keys(GOBPPARENTS)
   mfGos = keys(GOMFPARENTS)
   ccGos = keys(GOCCPARENTS)
@@ -61,6 +61,7 @@ separateGoIdsByOnto = function(goIdStrings){
 ##' getGOparents("GO:0034767")
 ##' addGoParents(c("GO:0034767", "GO:0034768"), "BP")
 getGOparents = function(id, onto="BP"){
+  require(GO.db)
   go2Ancestor = switch(onto, BP=as.list(GOBPANCESTOR), MF=as.list(GOMFANCESTOR), CC=as.list(GOCCANCESTOR))
   ancestorIds = setdiff(go2Ancestor[[id]], "all") ## remove the all category
   if (is.null(ancestorIds)){
@@ -98,8 +99,8 @@ addGoParents = function(gene2goList, onto){
 twoGroupsGO = function(param, testResult, seqAnno, normalizedAvgSignal=NULL, method="Wallenius"){
   
   job = ezJobStart("twoGroupsGO")
-  requireNamespace("GOstats", warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
-  requireNamespace("annotate", warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
+  require("GOstats", warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
+  require("annotate", warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
   
   if (param$featureLevel != "gene"){
     genes = getGeneMapping(param, seqAnno)
@@ -155,7 +156,7 @@ ezGoseq = function(param, selectedGenes, allGenes, gene2goList=NULL,
                    method=c("Wallenius", "Sampling", "Hypergeometric"),
                    onto=NULL, normalizedAvgSignal=NULL){
   method = match.arg(method)
-  requireNamespace("GO.db", warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
+  require("GO.db", warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
   if (length(selectedGenes) <= 1){
     return(NA)
   }
@@ -244,7 +245,7 @@ ezGroupGO = function(selectedGenes, go2GeneList, onto="CC", levels = 2:4, goSlim
 ## copied from clusterProfiler
 ##' @describeIn ezGroupGO Gets the gene ontology by level.
 ezGetGoByLevels = function(onto, levels, goSlim=NULL) {
-  requireNamespace("GO.db", warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
+  require("GO.db", warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
   switch(onto, MF = {
     topNode <- "GO:0003674"
     children <- GOMFCHILDREN
@@ -357,7 +358,7 @@ clusterHeatmap = function(x, param, result, file="cluster-heatmap.png", method="
                           doClusterColumns=FALSE, columnDist=NULL, colColors=NULL, lim=c(-4, 4),
                           cexRow=1.0, cexCol=1.5, labRow=rownames(x), margins=c(14,9),
                           colors=getBlueRedScale(), maxGenesWithLabel=50, ...){
-  requireNamespace("gplots", warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
+  require("gplots", warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
   probeDendro = as.dendrogram(result$hcl)
   probeDendro = reorder(probeDendro, rowMeans(x, na.rm=TRUE))
   if (doClusterColumns){
@@ -425,8 +426,8 @@ clusterHeatmap = function(x, param, result, file="cluster-heatmap.png", method="
 ##' @describeIn clusterHeatmap Applies a GO analysis to the cluster results if GO should be done.
 goClusterResults = function(x, param, result, ontologies=c("BP", "MF", "CC"), seqAnno=NULL,
                             universeGeneIds=NULL, universeProbeIds=NULL, keggOrganism=NA){
-  requireNamespace("GOstats", warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
-  requireNamespace("annotate", warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
+  require("GOstats", warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
+  require("annotate", warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
   if (param$featureLevel != "gene"){
     genes = getGeneMapping(param, seqAnno)
     if (is.null(genes)){
@@ -496,7 +497,7 @@ myFisherTest = function(goGenes, selGenes, allGenes, alternative="greater"){
 ## a) the perl script installation seems cumbersome; lots of dependencies
 ## b) it requires a gene-assocation-file as input; a more complex than necessary file
 mapGoToSlim = function(goList, ontology, slimGo){
-  requireNamespace("GO.db", warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
+  require("GO.db", warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
   #   require(GSEABase)
   #   slim = getOBOCollection(oboFile)
   #   slimGo = ids(slim)
@@ -554,9 +555,9 @@ mapGoToSlim = function(goList, ontology, slimGo){
 #     return(NULL)
 #   }
 #   
-#   requireNamespace("GOstats", quietly=TRUE)
-#   requireNamespace("GO.db", quietly=TRUE)
-#   requireNamespace("annotate", quietly=TRUE)
+#   require("GOstats", quietly=TRUE)
+#   require("GO.db", quietly=TRUE)
+#   require("annotate", quietly=TRUE)
 #   
 #   #job = ezJobStart("entrez")
 #   entrezid = new.env(hash=TRUE, parent=emptyenv(), size=nrow(probeAnno))

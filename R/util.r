@@ -535,6 +535,7 @@ makeMultiMapping = function(xList){
 ##' l1 = list(a=1:3, b=c(2,5), c=4:8)
 ##' ezMclapply(l1,sum)
 ezMclapply = function(x, FUN, ..., mc.preschedule = TRUE, mc.set.seed = TRUE, mc.silent = FALSE, mc.cores=min(length(x), ezThreads())){
+  require(parallel)
   mc.cores = min(mc.cores, length(x))
   if (mc.cores == 1){
     return(lapply(x, FUN, ...))

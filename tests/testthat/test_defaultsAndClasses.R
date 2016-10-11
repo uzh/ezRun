@@ -24,9 +24,10 @@ test_that("Tests ezFrame()", {
 })
 
 test_that("Tests EzDataset", {
-  ds = EzDataset$new(file=system.file("extdata/yeast_10k/dataset.tsv", package="ezRun", mustWork = TRUE))
-  param = system.file(package="ezRun", mustWork = TRUE)
-  path = ds$getFullPaths(param,"Read1")
+  param = list(dataRoot=system.file(package="ezRun", mustWork = TRUE))
+  ds = EzDataset$new(file=system.file("extdata/yeast_10k/dataset.tsv", package="ezRun", mustWork = TRUE),
+                     dataRoot=param$dataRoot)
+  path = ds$getFullPaths("Read1")
   expect_is(ds,"EzDataset")
   expect_equal(ds$getNames(),c("wt_1","wt_2","mut_1","mut_2"))
   expect_is(ds$file,"character")

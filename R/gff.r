@@ -219,7 +219,7 @@ gffTrimSingleTranscript = function(gffSingle, maxLength=100, start=TRUE){
 ##' gRanges = gffToRanges(gtf)
 ##' gRanges
 gffToRanges = function(gff){
-  requireNamespace("GenomicRanges", warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
+  require("GenomicRanges", warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
   gff$strand[gff$strand == "."] = "*"
   if (is.null(gff$ID)){
     gff$ID = ezGffAttributeField(gff$attributes, field="ID")
@@ -380,7 +380,7 @@ getExonNumber = function(gtf){
 ##' param = ezParam(list(refBuild=refBuild))
 ##' tdb = ezTranscriptDbFromRef(param$ezRef)
 ezTranscriptDbFromRef = function(reference, dataSource="FGCZ"){
-  requireNamespace("GenomicFeatures", warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
+  require("GenomicFeatures", warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
   genomeFastaIndexFile = paste0(reference@refFastaFile, ".fai")
   fai = ezRead.table(genomeFastaIndexFile, header=FALSE)
   chrominfo = data.frame(chrom=rownames(fai), length=fai$V2, is_circular=FALSE)

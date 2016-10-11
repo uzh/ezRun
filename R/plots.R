@@ -630,6 +630,7 @@ ezHeatmap = function(x, lim=c(-4, 4), colors=getBlueRedScale(),
                      dendrogram="none", margins=c(8,6), cexCol=1.1,
                      Rowv=TRUE, Colv=TRUE, labCol=ezSplitLongLabels(colnames(x)), labRow=rownames(x),
                      key=TRUE, ...){
+  require(gplots)
   if (!is.matrix(x)){
     x = as.matrix(x)
   }
