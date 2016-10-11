@@ -9,7 +9,7 @@ test_that("Tests makeMimimal...EndReadDataset()", {
 
 test_that("Tests ezDesignFromDataset() and similar functions", {
   file = system.file("extdata/yeast_10k/dataset.tsv", package="ezRun", mustWork = TRUE)
-  ds = EzDataset$new(file=file)
+  ds = EzDataset$new(file=file, dataRoot=system.file(".", package="ezRun", mustWork = TRUE))
   design = ezDesignFromDataset(ds$meta)
   expect_is(design, "data.frame")
   cond1 = ezConditionsFromDesign(design)

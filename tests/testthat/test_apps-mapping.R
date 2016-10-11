@@ -40,7 +40,8 @@ test_that("Tophat", {
   skipLong()
   ezSystem("rm -fr /scratch/test_tophat/*")
   setwdNew("/scratch/test_tophat")
-  input = EzDataset$new(file=system.file("extdata/yeast_10k/dataset.tsv", package="ezRun", mustWork = TRUE))
+  param = yeastCommonMapParam()
+  input = EzDataset$new(file=system.file("extdata/yeast_10k/dataset.tsv", package="ezRun", mustWork = TRUE), dataRoot=param$dataRoot)
   output = list()
   output[['Name']] = 'wt_1'
   output[['BAM [File]']] = 'p1001/Map_Tophat_5750_2015-10-07--09-46-36/wt_1.bam'
@@ -55,7 +56,6 @@ test_that("Tophat", {
   output[['IGV Starter [File]']] = 'p1001/Map_Tophat_5750_2015-10-07--09-46-36/wt_1-igv.jnlp'
   output[['IGV Session [File]']] = 'p1001/Map_Tophat_5750_2015-10-07--09-46-36/wt_1-igv.xml'
   output[['Genotype [Factor]']] = 'wt'
-  param = yeastCommonMapParam()
   myApp = EzAppTophat$new()
   myApp$run(input=input$copy()$subset(1), output=output, param=param)
   setwd(cwd)
@@ -65,9 +65,9 @@ test_that("Map_Star", {
   skipLong()
   ezSystem("rm -fr /scratch/test_star/*")
   setwdNew("/scratch/test_star")
-  input = EzDataset$new(file=system.file("extdata/yeast_10k/dataset.tsv", package="ezRun", mustWork = TRUE))
-  output = EzDataset$new(file=system.file("extdata/yeast_10k_STAR/dataset.tsv", package="ezRun", mustWork = TRUE))
   param = yeastCommonMapParam()
+  input = EzDataset$new(file=system.file("extdata/yeast_10k/dataset.tsv", package="ezRun", mustWork = TRUE),dataRoot=param$dataRoot)
+  output = EzDataset$new(file=system.file("extdata/yeast_10k_STAR/dataset.tsv", package="ezRun", mustWork = TRUE), dataRoot=param$dataRoot)
   param[['cmdOptions']] = '--outFilterType BySJout --outFilterMatchNmin 30 --outFilterMismatchNmax 10 --outFilterMismatchNoverLmax 0.05 --alignSJDBoverhangMin 1 --alignSJoverhangMin 8 --alignIntronMax 1000000 --alignMatesGapMax 1000000 --outFilterMultimapNmax 50 --chimSegmentMin 15 --chimJunctionOverhangMin 15 --chimScoreMin 15 --chimScoreSeparation 10 --outSAMstrandField intronMotif'
   param[['getChimericJunctions']] = 'false'
   myApp = EzAppSTAR$new()
@@ -79,9 +79,9 @@ test_that("Map_Bowtie", {
   skipLong()
   ezSystem("rm -fr /scratch/test_bowtie/*")
   setwdNew("/scratch/test_bowtie")
-  input = EzDataset$new(file=system.file("extdata/yeast_10k/dataset.tsv", package="ezRun", mustWork = TRUE))
-  output = EzDataset$new(file=system.file("extdata/yeast_10k_STAR/dataset.tsv", package="ezRun", mustWork = TRUE))
   param = yeastCommonMapParam()
+  input = EzDataset$new(file=system.file("extdata/yeast_10k/dataset.tsv", package="ezRun", mustWork = TRUE), dataRoot=param$dataRoot)
+  output = EzDataset$new(file=system.file("extdata/yeast_10k_STAR/dataset.tsv", package="ezRun", mustWork = TRUE), dataRoot=param$dataRoot)
   myApp = EzAppBowtie$new()
   myApp$run(input=input$copy()$subset(1), output=output$copy()$subset(1), param=param)
   setwd(cwd)
@@ -91,9 +91,9 @@ test_that("Map_Bowtie2", {
   skipLong()
   ezSystem("rm -fr /scratch/test_bowtie2/*")
   setwdNew("/scratch/test_bowtie2")
-  input = EzDataset$new(file=system.file("extdata/yeast_10k/dataset.tsv", package="ezRun", mustWork = TRUE))
-  output = EzDataset$new(file=system.file("extdata/yeast_10k_STAR/dataset.tsv", package="ezRun", mustWork = TRUE))
   param = yeastCommonMapParam()
+  input = EzDataset$new(file=system.file("extdata/yeast_10k/dataset.tsv", package="ezRun", mustWork = TRUE), dataRoot=param$dataRoot)
+  output = EzDataset$new(file=system.file("extdata/yeast_10k_STAR/dataset.tsv", package="ezRun", mustWork = TRUE), dataRoot=param$dataRoot)
   param[['cmdOptions']] = '--no-unal'
   myApp = EzAppBowtie2$new()
   myApp$run(input=input$copy()$subset(1), output=output$copy()$subset(1), param=param)
@@ -104,9 +104,9 @@ test_that("Map_Bwa", {
   skipLong()
   ezSystem("rm -fr /scratch/test_bwa/*")
   setwdNew("/scratch/test_bwa")
-  input = EzDataset$new(file=system.file("extdata/yeast_10k/dataset.tsv", package="ezRun", mustWork = TRUE))
-  output = EzDataset$new(file=system.file("extdata/yeast_10k_STAR/dataset.tsv", package="ezRun", mustWork = TRUE))
   param = yeastCommonMapParam()
+  input = EzDataset$new(file=system.file("extdata/yeast_10k/dataset.tsv", package="ezRun", mustWork = TRUE), dataRoot=param$dataRoot)
+  output = EzDataset$new(file=system.file("extdata/yeast_10k_STAR/dataset.tsv", package="ezRun", mustWork = TRUE),dataRoot=param$dataRoot)
   param[['algorithm']] = 'aln'
   myApp = EzAppBWA$new()
   myApp$run(input=input$copy()$subset(1), output=output$copy()$subset(1), param=param)
@@ -132,12 +132,12 @@ test_that("FastQC", {
   skipLong()
   ezSystem("rm -fr /scratch/test_fastqc/*")
   setwdNew("/scratch/test_fastqc")
-  input = EzDataset$new(file=system.file("extdata/yeast_10k/dataset.tsv", package="ezRun", mustWork = TRUE))
+  param = yeastCommonMapParam()
+  input = EzDataset$new(file=system.file("extdata/yeast_10k/dataset.tsv", package="ezRun", mustWork = TRUE),dataRoot=param$dataRoot)
   output = list()
   output[['Name']] = 'FastQC_Result'
   output[['Report [File]']] = 'p1001/FastQC_Result'
   output[['Html [Link]']] = 'p1001/FastQC_Result/00index.html'
-  param = yeastCommonMapParam()
   param[['process_mode']] = 'DATASET'
   param[['ram']] = '50'
   param[['name']] = 'FastQC_Result'
@@ -150,12 +150,12 @@ test_that("FastqScreen", {
   skipLong()
   ezSystem("rm -fr /scratch/test_fastqscreen/*")
   setwdNew("/scratch/test_fastqscreen")
-  input = EzDataset$new(file=system.file("extdata/yeast_10k/dataset.tsv", package="ezRun", mustWork = TRUE))
+  param = yeastCommonMapParam()
+  input = EzDataset$new(file=system.file("extdata/yeast_10k/dataset.tsv", package="ezRun", mustWork = TRUE),dataRoot=param$dataRoot)
   output = list()
   output[['Name']] = 'FastqScreen_Result'
   output[['Report [File]']] = 'p1001/FastqScreen_Result'
   output[['Html [Link]']] = 'p1001/FastqScreen_Result/00index.html'
-  param = yeastCommonMapParam()
   param[['process_mode']] = 'DATASET'
   param[['name']] = 'FastqScreen_Result'
   param[['ram']] = '40'
@@ -173,7 +173,8 @@ test_that("BampreviewStar", {
   skipLong()
   ezSystem("rm -fr /scratch/test_bampreview_star/*")
   setwdNew("/scratch/test_bampreview_star")
-  input = EzDataset$new(file=system.file("extdata/yeast_10k/dataset.tsv", package="ezRun", mustWork = TRUE))
+  param = yeastCommonMapParam()
+  input = EzDataset$new(file=system.file("extdata/yeast_10k/dataset.tsv", package="ezRun", mustWork = TRUE),dataRoot=param$dataRoot)
   output = list()
   output[['Name']] = 'BAM_Preview'
   output[['Report [File]']] = 'p1001/BAM_Preview'
@@ -181,7 +182,6 @@ test_that("BampreviewStar", {
   output[['Species']] = ''
   output[['refBuild']] = 'Schizosaccharomyces_pombe/Ensembl/EF2/Annotation/Version-2013-03-07'
   output[['refFeatureFile']] = 'genes.gtf'
-  param = yeastCommonMapParam()
   param[['process_mode']] = 'DATASET'
   param[['name']] = 'BAM_Preview'
   param[['strandMode']] = 'both'

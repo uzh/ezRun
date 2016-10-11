@@ -31,7 +31,9 @@ test_that("smRNA Ncpro", {
   skipLong()
   ezSystem("rm -fr /scratch/test_ncpro/*")
   setwdNew("/scratch/test_ncpro")
-  input = EzDataset$new(file=system.file("extdata/smRNA_250k/datasetWithAdapter.tsv", package="ezRun", mustWork = TRUE))
+  param = yeastCommonSmallRnaParam()
+  input = EzDataset$new(file=system.file("extdata/smRNA_250k/datasetWithAdapter.tsv", package="ezRun", mustWork = TRUE),
+                        dataRoot=param$dataRoot)
   output = list()
   output[['Name']] = 'ncPRO_Result'
   output[['Species']] = ''
@@ -40,7 +42,6 @@ test_that("smRNA Ncpro", {
   output[['Report [File]']] = 'p1001/Count_ncPRO_Report_5750_2015-12-18--12-33-40/ncPRO_Result'
   output[['Html [Link]']] = 'p1001/Count_ncPRO_Report_5750_2015-12-18--12-33-40/ncPRO_Result/ncpro/report.html'
   output[['TrimCounts [Link]']] = 'p1001/Count_ncPRO_Report_5750_2015-12-18--12-33-40/ncPRO_Result/trimCounts-barplot.png'
-  param = yeastCommonSmallRnaParam()
   param[['name']] = 'ncPRO_Result'
   param[['mail']] = ''
   param[['refBuild']] = 'Mus_musculus/UCSC/mm10/Annotation/Version-2012-05-23'

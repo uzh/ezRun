@@ -9,7 +9,8 @@ setwdNew("./ReportTest")
 doc = openBsdocReport("Testreport")
 dat = data.frame(a=1:5, b=11:15)
 param = ezParam()
-input = EzDataset$new(file=system.file("extdata/yeast_10k/dataset.tsv", package = "ezRun", mustWork = TRUE))
+input = EzDataset$new(file=system.file("extdata/yeast_10k/dataset.tsv", package = "ezRun", mustWork = TRUE),
+                      dataRoot=NULL)
 
 test_that("Tests ezFlexTable() and ezGrid()", {
   flexTable = ezFlexTable(dat)

@@ -163,9 +163,9 @@ EzAppDEXSeqAnalysis <-
 #' Addition experimental conditions to input files
 #'
 addDEXSeqCondition = function(psInput, pvCondition){
-  ezObjInput <- EzDataset$new(file=psInput)
-  ezObjInput$meta$Condition <- pvCondition
-  write.table(ezObjInput$meta, file = ezObjInput$file, quote = FALSE, sep = "\t")
+  x = ezRead.table(psInput)
+  x$Condtion = pvCondition
+  write.table(x, file = psInput, quote = FALSE, sep = "\t")
 }
 
 

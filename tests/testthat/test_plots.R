@@ -1,7 +1,7 @@
 context("Tests the functions from plots.R")
 
 file = system.file("extdata/yeast_10k/dataset.tsv", package="ezRun", mustWork = TRUE)
-ds = EzDataset$new(file=file)
+ds = EzDataset$new(file=file, dataRoot=system.file(".", package="ezRun", mustWork = TRUE))
 cond = ezConditionsFromDataset(ds$meta)
 types = data.frame(matrix(rep(1:10, each=10), 10))
 

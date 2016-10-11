@@ -36,7 +36,9 @@ test_that("Count_RSEM", {
   skipLong()
   ezSystem("rm -fr /scratch/test_rsem/*")
   setwdNew("/scratch/test_rsem")
-  input = EzDataset$new(file=system.file("extdata/yeast_10k/dataset.tsv", package="ezRun", mustWork = TRUE))
+  param = yeastCommonCountParam()
+  input = EzDataset$new(file=system.file("extdata/yeast_10k/dataset.tsv", package="ezRun", mustWork = TRUE),
+                        dataRoot=param$dataRoot)
   output = list()
   output[['Name']] = 'wt_1'
   output[['Count [File]']] = 'p1001/Count_RSEM/wt_1.txt'
@@ -48,7 +50,6 @@ test_that("Count_RSEM", {
   output[['paired']] = 'true'
   output[['Read Count']] = '9794'
   output[['Genotype [Factor]']] = 'wt'
-  param = yeastCommonCountParam()
   param[['trimAdapter']] = 'false'
   param[['trimLeft']] = '0'
   param[['trimRight']] = '0'
@@ -59,7 +60,7 @@ test_that("Count_RSEM", {
   param[['minAvgQuality']] = '10'
   param[['transcriptFasta']] = ''
   myApp = EzAppRSEM$new()
-  myApp$run(input=input$copy()$subset(1), output=EzDataset$new(metaNew=output), param=param)
+  myApp$run(input=input$copy()$subset(1), output=EzDataset$new(metaNew=output,dataRoot=param$dataRoot), param=param)
   setwd(cwd)
 })
 
@@ -67,9 +68,11 @@ test_that("Count_FeatureCounts", {
   skipLong()
   ezSystem("rm -fr /scratch/test_featureCounts/*")
   setwdNew("/scratch/test_featureCounts")
-  input = EzDataset$new(file=system.file("extdata/yeast_10k_STAR/dataset.tsv", package="ezRun", mustWork = TRUE))
-  output = EzDataset$new(file=system.file("extdata/yeast_10k_STAR_counts/dataset.tsv", package="ezRun", mustWork = TRUE))
   param = yeastCommonCountParam()
+  input = EzDataset$new(file=system.file("extdata/yeast_10k_STAR/dataset.tsv", package="ezRun", mustWork = TRUE),
+                        dataRoot=param$dataRoot)
+  output = EzDataset$new(file=system.file("extdata/yeast_10k_STAR_counts/dataset.tsv", package="ezRun", mustWork = TRUE),
+                         dataRoot=param$dataRoot)
   param[['gtfFeatureType']] = 'exon'
   param[['allowMultiOverlap']] = 'true'
   param[['countPrimaryAlignmentsOnly']] = 'true'
@@ -85,7 +88,9 @@ test_that("RNA_Bamstats", {
   skipLong()
   ezSystem("rm -fr /scratch/test_RNA_Bamstats/*")
   setwdNew("/scratch/test_RNA_Bamstats")
-  input = EzDataset$new(file=system.file("extdata/yeast_10k_STAR/dataset.tsv", package="ezRun", mustWork = TRUE))
+  param = yeastCommonCountParam()
+  input = EzDataset$new(file=system.file("extdata/yeast_10k_STAR/dataset.tsv", package="ezRun", mustWork = TRUE),
+                        dataRoot=param$dataRoot)
   output = list()
   output[['Name']] = 'RNA_BAM_Statistics'
   output[['Report [File]']] = 'p1001/QC_RNABamStats_8617_2015-11-17--10-15-39/RNA_BAM_Statistics'
@@ -93,7 +98,6 @@ test_that("RNA_Bamstats", {
   output[['Species']] = ''
   output[['refBuild']] = 'Saccharomyces_cerevisiae/Ensembl/EF4/Annotation/Version-2013-03-18'
   output[['refFeatureFile']] = 'genes.gtf'
-  param = yeastCommonCountParam()
   param[['process_mode']] = 'DATASET'
   param[['name']] = 'RNA_BAM_Statistics'
   myApp = EzAppRnaBamStats$new()
@@ -105,12 +109,13 @@ test_that("TEQC", {
   skipLong()
   ezSystem("rm -fr /scratch/test_TEQC/*")
   setwdNew("/scratch/test_TEQC")
-  input = EzDataset$new(file=system.file("extdata/yeast_10k_STAR/dataset.tsv", package="ezRun", mustWork=TRUE))
+  param = yeastCommonCountParam()
+  input = EzDataset$new(file=system.file("extdata/yeast_10k_STAR/dataset.tsv", package="ezRun", mustWork=TRUE),
+                        dataRoot=param$dataRoot)
   output = list()
   output[['Name']] = 'TEQC_Result'
   output[['Report [File]']] = 'p1001/QC_Teqc_5579_2015-05-04--13-41-58/TEQC_Result'
   output[['Html [Link]']] = 'p1001/QC_Teqc_5579_2015-05-04--13-41-58/TEQC_Result/00index.html'
-  param = yeastCommonCountParam()
   param[['cores']] = 1
   param[['paired']] = "false"
   param[['process_mode']] = 'DATASET'

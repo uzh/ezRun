@@ -38,7 +38,7 @@
 ##' ds$columnHasTag("File")
 ##' ds$getNames()
 ##' ds$meta$"Genotype [Factor]"[1] = "a"
-##' ds2 = EzDataset$new(meta = ds$meta)
+##' ds2 = EzDataset$new(meta = ds$meta, dataRoot=dataRoot)
 EzDataset <-
   setRefClass("EzDataset",
               fields = c("file", "meta", "colNames", "tags", "isModified", "dataRoot"),
@@ -258,7 +258,7 @@ ezTagListFromNames = function(names){
 ##' @examples
 ##' require("ezRun")
 ##' file = system.file("extdata/yeast_10k/dataset.tsv", package="ezRun", mustWork = TRUE)
-##' ds = EzDataset$new(file=file)
+##' ds = EzDataset$new(file=file, dataRoot=NULL)
 ##' NULLApp = EzApp$new(runMethod=function(input, output, param){},name="NULLApp")
 ##' NULLApp$run(input=ds, output=ds, param=list(process_mode="DATASET"))
 EzApp <- 

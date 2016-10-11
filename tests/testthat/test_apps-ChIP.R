@@ -33,9 +33,11 @@ test_that("ChIP_Macs2", {
   skipLong()
   ezSystem("rm -fr /scratch/test_macs2/*")
   setwdNew("/scratch/test_macs2")
-  output = EzDataset$new(file="/scratch/ExampleData_Macs2/PeakCalling_MACS2_7312_TEST_2015-09-01--17-43-41/dataset.tsv")
-  input = EzDataset$new(file="/scratch/ExampleData_Macs2/PeakCalling_MACS2_7312_TEST_2015-09-01--17-43-41/input_dataset.tsv")
   param = mouseCommonChipParam()
+  output = EzDataset$new(file="/scratch/ExampleData_Macs2/PeakCalling_MACS2_7312_TEST_2015-09-01--17-43-41/dataset.tsv",
+                         dataRoot=param$dataRoot)
+  input = EzDataset$new(file="/scratch/ExampleData_Macs2/PeakCalling_MACS2_7312_TEST_2015-09-01--17-43-41/input_dataset.tsv",
+                        dataRoot=param$dataRoot)
   param[['useControl']] = "false"
   param[['cmdOptions']] = "--nomodel --extsize 147 -g hs --bw 200"
   param[['dataRoot']] = "/srv/gstore/projects"

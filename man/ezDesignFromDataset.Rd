@@ -36,7 +36,7 @@ Gets the design from the dataset or parameters, if specified.
 }}
 \examples{
 file = system.file("extdata/yeast_10k/dataset.tsv", package="ezRun", mustWork = TRUE)
-ds = EzDataset$new(file=file)
+ds = EzDataset$new(file=file, dataRoot=NULL)
 design = ezDesignFromDataset(ds$meta)
 cond = ezConditionsFromDesign(design)
 addReplicate(apply(design, 1, paste, collapse="_"))

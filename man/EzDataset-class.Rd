@@ -57,7 +57,7 @@ ds2$setColumn("Read1","replacement")
 ds$columnHasTag("File")
 ds$getNames()
 ds$meta$"Genotype [Factor]"[1] = "a"
-ds2 = EzDataset$new(meta = ds$meta)
+ds2 = EzDataset$new(meta = ds$meta, dataRoot=dataRoot)
 }
 \author{
 Rehrauer, Hubert

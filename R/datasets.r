@@ -69,7 +69,7 @@ makeMinimalPairedEndReadDataset = function(fqDir, species="", adapter1="GATCGGAA
 ##' @return Returns the factorial design of the dataset.
 ##' @examples
 ##' file = system.file("extdata/yeast_10k/dataset.tsv", package="ezRun", mustWork = TRUE)
-##' ds = EzDataset$new(file=file)
+##' ds = EzDataset$new(file=file, dataRoot=NULL)
 ##' design = ezDesignFromDataset(ds$meta)
 ##' cond = ezConditionsFromDesign(design)
 ##' addReplicate(apply(design, 1, paste, collapse="_"))

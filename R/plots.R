@@ -16,7 +16,7 @@
 ##' @return Returns a character vector containing colors in hex format.
 ##' @examples 
 ##' file = system.file("extdata/yeast_10k/dataset.tsv", package="ezRun", mustWork = TRUE)
-##' ds = EzDataset$new(file=file)
+##' ds = EzDataset$new(file=file, dataRoot=NULL)
 ##' cond = ezConditionsFromDataset(ds$meta)
 ##' getSampleColors(cond)
 ##' getSamplePch(cond)

@@ -149,7 +149,7 @@ setMethod("buildRefDir", "EzRef", function(.Object, genomeFile, genesFile, genom
   dir.create(fastaPath, recursive=T)
   #dir.create(.Object@refChromDir) ## by default do not generate the chromosome dir -- TODO: check if this directory is indeed needed;
   if (!is.null(.Object@refAnnotationVersion)){
-    ezSystem(paste("cd", file.path(.Object@refBuildDir, "Annotation"), "; ", "ln -s",
+    ezSystem(paste("cd", file.path(.Object@refBuildDir, "Annotation"), "; rm -f Genes; ", "ln -s",
                    file.path(.Object@refAnnotationVersion, "Genes"), "Genes"))
   }
 
@@ -163,8 +163,12 @@ setMethod("buildRefDir", "EzRef", function(.Object, genomeFile, genesFile, genom
   fai = ezRead.table(paste0(.Object@refFastaFile, ".fai"), header =FALSE, row.names=NULL)
   ezWrite.table(fai[ ,1:2], .Object@refChromSizesFile, row.names = FALSE, col.names = FALSE)
   
+  dictFile = sub(".fa$", ".dict", .Object@refFastaFile)
+  if (file.exists(dictFile)){
+    file.remove(dictFile)
+  }
   cmd = paste(JAVA, " -jar", PICARD_JAR, "CreateSequenceDictionary",
-              paste0("R=", .Object@refFastaFile), paste0("O=", sub(".fa$", ".dict", .Object@refFastaFile)))
+              paste0("R=", .Object@refFastaFile), paste0("O=", dictFile))
   ezSystem(cmd)
 })
 

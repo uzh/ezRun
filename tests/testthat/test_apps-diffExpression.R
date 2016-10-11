@@ -41,9 +41,11 @@ test_that("deseq2_withgo", {
   skipLong()
   ezSystem("rm -fr /scratch/test_deseq2_withgo/*")
   setwdNew("/scratch/test_deseq2_withgo")
-  input = EzDataset$new(file=system.file("extdata/yeast_10k_STAR_counts/dataset.tsv", package="ezRun", mustWork = TRUE))
-  output = EzDataset$new(file=system.file("extdata/yeast_10k_STAR_counts_deseq2/dataset.tsv", package="ezRun", mustWork = TRUE))
   param = yeastCommonDiffExprParam()
+  input = EzDataset$new(file=system.file("extdata/yeast_10k_STAR_counts/dataset.tsv", package="ezRun", mustWork = TRUE),
+                        dataRoot=param$dataRoot)
+  output = EzDataset$new(file=system.file("extdata/yeast_10k_STAR_counts_deseq2/dataset.tsv", package="ezRun", mustWork = TRUE),
+                         dataRoot=param$dataRoot)
   param$runGO = FALSE
   myApp = EzAppDeseq2$new()
   myApp$run(input=input, output=output, param=param)
@@ -54,9 +56,11 @@ test_that("edger_withgo", {
   skipLong()
   ezSystem("rm -fr /scratch/test_edger_withgo/*")
   setwdNew("/scratch/test_edger_withgo")
-  input = EzDataset$new(file=system.file("extdata/yeast_10k_STAR_counts/dataset.tsv", package="ezRun", mustWork = TRUE))
-  output = EzDataset$new(file=system.file("extdata/yeast_10k_STAR_counts_edger/dataset.tsv", package="ezRun", mustWork = TRUE))
   param = yeastCommonDiffExprParam()
+  input = EzDataset$new(file=system.file("extdata/yeast_10k_STAR_counts/dataset.tsv", package="ezRun", mustWork = TRUE),
+                        dataRoot=param$dataRoot)
+  output = EzDataset$new(file=system.file("extdata/yeast_10k_STAR_counts_edger/dataset.tsv", package="ezRun", mustWork = TRUE),
+                         dataRoot=param$dataRoot)
   param[['normMethod']] = 'TMM'
   myApp = EzAppEdger$new()
   myApp$run(input=input, output=output, param=param)
@@ -67,9 +71,11 @@ test_that("count_QC", {
   skipLong()
   ezSystem("rm -fr /scratch/test_count_QC/*")
   setwdNew("/scratch/test_count_QC")
-  input = EzDataset$new(file=system.file("extdata/yeast_10k_STAR_counts/dataset.tsv", package="ezRun", mustWork = TRUE))
-  output = EzDataset$new(file=system.file("extdata/yeast_10k_STAR_counts_edger/dataset.tsv", package="ezRun", mustWork = TRUE))
   param = yeastCommonDiffExprParam()
+  input = EzDataset$new(file=system.file("extdata/yeast_10k_STAR_counts/dataset.tsv", package="ezRun", mustWork = TRUE),
+                        dataRoot=param$dataRoot)
+  output = EzDataset$new(file=system.file("extdata/yeast_10k_STAR_counts_edger/dataset.tsv", package="ezRun", mustWork = TRUE),
+                         dataRoot=param$dataRoot)
   param[['name']] = 'Count_QC'
   param[['normMethod']] = 'logMean'
   myApp = EzAppCountQC$new()
@@ -80,8 +86,9 @@ test_that("count_QC", {
 # test_that("edger_multi", {
 #   skipLong()
 #   setwdNew("/scratch/test_edger_multi")
-#   input = EzDataset$new(file=system.file("extdata/yeast_10k_STAR_counts/dataset.tsv", package="ezRun", mustWork = TRUE))
-#   output = EzDataset$new(file=system.file("extdata/yeast_10k_STAR_counts_edger/dataset.tsv", package="ezRun", mustWork = TRUE))
+#   input = EzDataset$new(file=system.file("extdata/yeast_10k_STAR_counts/dataset.tsv", package="ezRun", mustWork = TRUE), dataRoot=param$dataRoot)
+#   output = EzDataset$new(file=system.file("extdata/yeast_10k_STAR_counts_edger/dataset.tsv", package="ezRun", mustWork = TRUE),
+# dataRoot=param$dataRoot)
 #   param = yeastCommonDiffExprParam()
 #   param[['name']] = 'Edger_Multi'
 #   param[['normMethod']] = 'TMM'

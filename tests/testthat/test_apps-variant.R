@@ -34,7 +34,9 @@ test_that("Variant_Mpileup", {
   skipLong()
   ezSystem("rm -fr /scratch/test_mpileup/*")
   setwdNew("/scratch/test_mpileup")
-  input = EzDataset$new(file=system.file("extdata/yeast_10k_STAR/dataset.tsv", package="ezRun", mustWork = TRUE))
+  param = yeastCommonVariantParam()
+  input = EzDataset$new(file=system.file("extdata/yeast_10k_STAR/dataset.tsv", package="ezRun", mustWork = TRUE),
+                        dataRoot=param$dataRoot)
   output = list()
   output[['Name']] = 'Mpileup_Variants'
   output[['VCF [File]']] = 'p1001/Variant_Analysis_samtoolsmpileup_8617_2015-11-12--12-19-54/Mpileup_Variants.vcf.gz'
@@ -46,8 +48,7 @@ test_that("Variant_Mpileup", {
   output[['refBuild']] = 'Saccharomyces_cerevisiae/Ensembl/EF4/Annotation/Version-2013-03-18'
   output[['IGV Starter [File]']] = 'p1001/Variant_Analysis_samtoolsmpileup_8617_2015-11-12--12-19-54/Mpileup_Variants-igv.jnlp'
   output[['IGV Session [File]']] = 'p1001/Variant_Analysis_samtoolsmpileup_8617_2015-11-12--12-19-54/Mpileup_Variants-igv.xml'
-  output = EzDataset$new(meta=output)
-  param = yeastCommonVariantParam()
+  output = EzDataset$new(meta=output, dataRoot=param$dataRoot)
   param[['name']] = 'Mpileup_Variants'
   param[['region']] = ''
   param[['mpileupOptions']] = '--skip-indels --output-tags DP,DV,DPR,INFO/DPR,DP4,SP'

@@ -41,9 +41,9 @@ test_that("Map_Bowtie2Transcriptome", {
   skipLong()
   ezSystem("rm -fr /scratch/test_bowtie2transcriptomeMapping/*")
   setwdNew("/scratch/test_bowtie2transcriptomeMapping")
+  param = yeastCommonMapParam()
   input = EzDataset$new(file=system.file("extdata/yeast_10k/dataset.tsv", package="ezRun", mustWork = TRUE))
   output = EzDataset$new(file=system.file("extdata/yeast_10k_Bowtie2Transcriptome/dataset.tsv", package="ezRun", mustWork = TRUE))
-  param = yeastCommonMapParam()
   param[['cmdOptions']] = '--no-unal'
   myApp = EzAppBowtie2Transcriptome$new()
   myApp$run(input=input$copy()$subset(1), output=output$copy()$subset(1), param=param)
@@ -55,12 +55,12 @@ test_that("Profiles_TranscriptCoverage", {
   skipLong()
   ezSystem("rm -fr /scratch/test_TranscriptCoverage/*")
   setwdNew("/scratch/test_TranscriptCoverage")
+  param = yeastCommonMapParam()
   input = EzDataset$new(file=system.file("extdata/yeast_10k_Bowtie2Transcriptome/dataset.tsv", package="ezRun", mustWork = TRUE))
   meta = input$meta
   meta$"Count [File]" = paste0(input$getNames(), ".txt")
   meta$"Profiles [File]" = paste0(input$getNames(), "-profiles.RData")
   output = EzDataset$new(meta=meta)
-  param = yeastCommonMapParam()
   param[['minReadLength']] = 35
   param[['maxReadLength']] = 37
   param[["paired"]] = FALSE
