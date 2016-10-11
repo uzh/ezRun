@@ -17,7 +17,7 @@ A convenience call to the corresponding method from the preprocessCore package t
 }
 \examples{
 m1 = matrix(1:20,4)
-ezQuantileNorm(m1)
+m2 = ezQuantileNorm(m1)
 }
 \author{
 Rehrauer, Hubert

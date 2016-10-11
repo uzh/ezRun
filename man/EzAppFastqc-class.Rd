@@ -4,15 +4,13 @@
 \name{EzAppFastqc-class}
 \alias{EzAppFastqc}
 \alias{EzAppFastqc-class}
-\title{The R5 class representing a runnable app using \code{ezMethodFastQC()}}
+\title{The R5 class representing a runnable app using \code{ezMethodFastQC(input=NA, output=NA, param=NA, htmlFile="00index.html")()}}
 \arguments{
 \item{input}{a list, file path or an object of the class EzDataset containing the input.}
 
 \item{output}{a list, file path or an object of the class EzDataset containing the output information.}
 
 \item{param}{a list of parameters to customize the application run.}
-
-\item{htmlFile}{a character, ending with .html, representing the file path of an html file.}
 }
 \description{
 Use this reference class to run
@@ -34,7 +32,7 @@ Use this reference class to run
 \section{Functions}{
 
 \itemize{
-  \item{\code{ezMethodFastQC(input=NA, output=NA, param=NA, htmlFile="00index.html"): }}
+  \item{\code{ezMethodFastQC(input=NA, output=NA, param=NA, htmlFile="00index.html") }}:
   {The function to run this application.}
 }
 

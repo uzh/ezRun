@@ -5,7 +5,7 @@
 \title{Runs the NGS count QC}
 \usage{
 runNgsCountQC(dataset, htmlFile = "00index.html", param = param,
-  rawData = NULL, writeDataFiles = TRUE, types = NULL)
+  rawData = NULL, writeDataFiles = TRUE, types = NULL, output = NULL)
 }
 \arguments{
 \item{dataset}{a data.frame from the meta field of an EzDataset.}

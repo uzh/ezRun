@@ -12,9 +12,9 @@ ezMethodFastQC = function(input=NA, output=NA, param=NA, htmlFile="00index.html"
   samples = rownames(dataset)
   files = c()
   for (sm in samples){
-    files[paste0(sm, "_R1")] = input$getFullPaths(param,"Read1")[sm]
+    files[paste0(sm, "_R1")] = input$getFullPaths("Read1")[sm]
     if (!is.null(dataset$Read2)){
-      files[paste0(sm, "_R2")] = input$getFullPaths(param,"Read2")[sm]    
+      files[paste0(sm, "_R2")] = input$getFullPaths("Read2")[sm]    
     }
   }
   nFiles = length(files)
@@ -77,7 +77,8 @@ ezMethodFastQC = function(input=NA, output=NA, param=NA, htmlFile="00index.html"
   
   plotCmd = expression({
     par(mar=c(10.1, 4.1, 4.1, 2.1))
-    barplot(readCount, las=2, ylab="Counts [Mio]", main="total reads")
+    bp = barplot(readCount, ylab="Counts [Mio]", main="total reads", names.arg = rep('',length(readCount)))
+    text(x = bp, y = par("usr")[3]-0.2, srt = 45, adj = 1, labels = names(readCount), xpd = TRUE)
   })
   readCountsLink = ezImageFileLink(plotCmd, file="readCounts.png", width=min(600 + (nFiles-10)* 30, 2000)) # nSamples dependent width
   addParagraph(doc, readCountsLink)
@@ -103,7 +104,7 @@ ezMethodFastQC = function(input=NA, output=NA, param=NA, htmlFile="00index.html"
   titles[["Per Base Read Quality"]] = "Per Base Read Quality"
   addTitle(doc, titles[[length(titles)]], 2, id=titles[[length(titles)]])
   qualMatrixList = ezMclapply(files, getQualityMatrix, mc.cores=ezThreads())
-  pngMatrix = plotQualityMatrixAsHeatmap(qualMatrixList, isR2=grepl("_R2", names(files)))
+  pngMatrix = plotQualityMatrixAsHeatmap(qualMatrixList, isR2=grepl("_R2\\.", names(files)))
   addFlexTable(doc, ezGrid(pngMatrix))
   if(nrow(dataset) > 1){
     pngLibCons = list()
@@ -121,8 +122,7 @@ ezMethodFastQC = function(input=NA, output=NA, param=NA, htmlFile="00index.html"
 }
 
 ##' @template app-template
-##' @templateVar method ezMethodFastQC
-##' @templateVar htmlArg , htmlFile="00index.html")
+##' @templateVar method ezMethodFastQC(input=NA, output=NA, param=NA, htmlFile="00index.html")
 ##' @description Use this reference class to run 
 ##' @section Functions:
 ##' \itemize{

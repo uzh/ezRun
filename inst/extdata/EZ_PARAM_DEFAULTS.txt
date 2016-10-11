@@ -1,4 +1,5 @@
 Parameter	Type	DefaultValue	Description
+dataRoot	character	/srv/gstore/projects	the root directory where files are located
 # computing parameters
 cores	integer	1	number of cores to use
 ram	integer	4	gigabytes of RAM to use
@@ -12,7 +13,6 @@ doZip	logical	TRUE	whether text files should be zipped
 resultDir	character	.	The directory where the result files should be written
 appName	character		name of the app that is being run
 name	character		name of the analysis i.e. resulting dataset
-dataRoot	character		the root directory where files are located
 projectId	character		name of the project
 maxTableRows	integer	500	the maximum amount of rows to select for the interactive table using head()
 maxInteractivePoints	integer	100	the maximum amount of interactive points to add to interactive plots.
@@ -78,12 +78,13 @@ countColumnSet	character	multiMatchCounts,matchCounts,transcriptCountPosteriorEs
 ## sample handling and grouping
 comparison	character		the name of the comparison
 grouping	character		the name of the factor column that is used in differential expression analysis to group the samples
-batch	character		the name of the factor column that holds a secondary effect
+grouping2	character		the name of the factor column that holds a secondary effect
 markOutliers	logical	FALSE	should outlier samples be marked and not considered in the test but displayed; requires a column "Outlier"
 removeOutliers	logical	FALSE	should outlier samples be removed from the dataset before the analysis; requires a column "Outlier"
 useFactorsAsSampleName	logical	FALSE	should sample names be replaced with the canonical names derived from the factor levels
 refGroup	character		the reference group in a comparison
 sampleGroup	character		the sample group in a comparison
+removeOtherGroups	logical	FALSE	should only the samples that are in the groups to be compared be kept and other samples should be removed
 ## functional analysis
 goseqMethod	character	Wallenius	method for the goseq analysis
 includeGoParentAnnotation	logical	FALSE	if the genes annotated to the parent should be also counted to the current GO category

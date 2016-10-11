@@ -48,23 +48,23 @@ addQcScatterPlots = function(doc, param, design, conds, rawData, signalCond, isP
     })
     imgLinks = character()
     imgLinks["def"] = ezImageFileLink(plotCmd, file="allPairs-scatter.png",
-                                      width=min(max(ncol(signalCond) * 200, 480), 2000),
-                                      height=min(max(ncol(signalCond) * 200, 480), 2000)) # dynamic png with possibly many plots
+                                      width=min(max(ncol(signalCond) * 200, 400), 2000),
+                                      height=min(max(ncol(signalCond) * 200, 400), 2000)) # dynamic png with possibly many plots
     if (!is.null(gcTypes)){
       plotCmd = expression({
         ezAllPairScatter(signalCond, main="color by GC", isPresent=isPresentCond, types=gcTypes)
       })
       imgLinks["gc"] = ezImageFileLink(plotCmd, file="allPairs-scatter-byGc.png",
-                                       width=min(max(ncol(signalCond) * 200, 480), 2000),
-                                       height=min(max(ncol(signalCond) * 200, 480), 2000)) # dynamic png with possibly many plots
+                                       width=min(max(ncol(signalCond) * 200, 400), 2000),
+                                       height=min(max(ncol(signalCond) * 200, 400), 2000)) # dynamic png with possibly many plots
     }
     if (!is.null(widthTypes)){
       plotCmd = expression({
         ezAllPairScatter(signalCond, main="color by width", isPresent=isPresentCond, types=widthTypes)
       })
       imgLinks["width"] = ezImageFileLink(plotCmd, file="allPairs-scatter-byWidth.png",
-                                          width=min(max(ncol(signalCond) * 200, 480), 2000),
-                                          height=min(max(ncol(signalCond) * 200, 480), 2000)) # dynamic png with possibly many plots
+                                          width=min(max(ncol(signalCond) * 200, 400), 2000),
+                                          height=min(max(ncol(signalCond) * 200, 400), 2000)) # dynamic png with possibly many plots
     }
     addFlexTable(doc, ezGrid(t(imgLinks)))
   }
@@ -84,16 +84,16 @@ addQcScatterPlots = function(doc, param, design, conds, rawData, signalCond, isP
         })
         imgLinks = character()
         imgLinks["def"] = ezImageFileLink(plotCmd, file=pngName,
-                                  width=min(nPlots, 6) * 480,
-                                  height=ceiling(nPlots/6) * 480) # dynamic png with possibly many plots
+                                  width=min(nPlots, 6) * 400,
+                                  height=ceiling(nPlots/6) * 400) # dynamic png with possibly many plots
         if (!is.null(gcTypes)){
           pngName = ezValidFilename(paste0(condName, "-ByGcScatter.png"))
           plotCmd = expression({
             ezScatter(y=signal[ ,idx], isPresent=isPresent[ ,idx], types=gcTypes, lim=signalRange, xlab=paste("Avg of", cond), ylab=NULL)
           })
           imgLinks["gc"] = ezImageFileLink(plotCmd, file=pngName,
-                                   width=min(nPlots, 6) * 480,
-                                   height=ceiling(nPlots/6) * 480) # dynamic png with possibly many plots
+                                   width=min(nPlots, 6) * 400,
+                                   height=ceiling(nPlots/6) * 400) # dynamic png with possibly many plots
         }
         if (!is.null(widthTypes)){
           pngName = ezValidFilename(paste0(condName, "-ByWidthScatter.png"))
@@ -101,8 +101,8 @@ addQcScatterPlots = function(doc, param, design, conds, rawData, signalCond, isP
             ezScatter(y=signal[ ,idx], isPresent=isPresent[ ,idx], types=widthTypes, lim=signalRange, xlab=paste("Avg of", cond), ylab=NULL)
           })
           imgLinks["width"] = ezImageFileLink(plotCmd, file=pngName,
-                                      width=min(nPlots, 6) * 480,
-                                      height=ceiling(nPlots/6) * 480) # dynamic png with possibly many plots
+                                      width=min(nPlots, 6) * 400,
+                                      height=ceiling(nPlots/6) * 400) # dynamic png with possibly many plots
         }
         addFlexTable(doc, ezGrid(imgLinks))
       }
@@ -197,13 +197,14 @@ addTestScatterPlots = function(doc, param, x, result, seqAnno, resultFile, types
     .interactiveSmoothScatter = function(){
       ezSmoothScatter(x=refValues, y=sampleValues, isPresent=result$usedInTest, types=types,
                       xlab=param$refGroup, ylab=param$sampleGroup, legendPos=NULL, nbin=32)
-      add.plot.interactivity(fun=points, col="red", pch=16,
-                             x=log2(refValues[useForInteractivePoints]),
-                             y=log2(sampleValues[useForInteractivePoints]),
-                             popup.labels=popupLabels,
-                             click.actions=clickActions)
+      ## TODO replace this with working code using the new package
+#       add.plot.interactivity(fun=points, col="red", pch=16,
+#                              x=log2(refValues[useForInteractivePoints]),
+#                              y=log2(sampleValues[useForInteractivePoints]),
+#                              popup.labels=popupLabels,
+#                              click.actions=clickActions)
     }
-    addPlot(interactiveDoc, .interactiveSmoothScatter, fontname="", par.properties=parLeft())
+    addPlot(interactiveDoc, .interactiveSmoothScatter, par.properties=parLeft())
 #     .interactiveVolcanoPlot = function(){
 #       ezSmoothScatter(x=result$log2Ratio, y=result$pValue, isPresent=result$usedInTest, types=types, main=param$comparison, legendPos=NULL)
 #       add.plot.interactivity(fun=points, col="red", pch=16,
@@ -228,8 +229,8 @@ addTestScatterPlots = function(doc, param, x, result, seqAnno, resultFile, types
                          xlab=param$refGroup, ylab=param$sampleGroup, main="Comparison of average expression")
     })
     links[1, 1] = ezImageFileLink(plotCmd, file=paste0(param$comparison, "-scatter.png"),
-                                       width=min(ncol(as.matrix(sampleValues)), 6) * 480,
-                                       height=ceiling(ncol(as.matrix(sampleValues))/6) * 480) # dynamic png with possibly many plots
+                                       width=min(ncol(as.matrix(sampleValues)), 6) * 400,
+                                       height=ceiling(ncol(as.matrix(sampleValues))/6) * 400) # dynamic png with possibly many plots
     plotCmd = expression({
       ezVolcano(log2Ratio=result$log2Ratio, pValue=result$pValue, isPresent=result$usedInTest, types=types, main=param$comparison)
     })
@@ -243,12 +244,12 @@ addTestScatterPlots = function(doc, param, x, result, seqAnno, resultFile, types
       ezAllPairScatter(x=2^result$groupMeans, isPresent=result$usedInTest, types=types)
     })
     links[1, 1] = ezImageFileLink(plotCmd, file=paste0(param$comparison, "-scatter.png"),
-                                       width=min(max(ncol(result$groupMeans) * 200, 480), 2000),
-                                       height=min(max(ncol(result$groupMeans) * 200, 480), 2000)) # dynamic png with possibly many plots
+                                       width=min(max(ncol(result$groupMeans) * 200, 400), 2000),
+                                       height=min(max(ncol(result$groupMeans) * 200, 400), 2000)) # dynamic png with possibly many plots
   }
   
   tableLink = sub(".txt", "-viewTopSignificantGenes.html", resultFile)
-  links[2, 2] = as.html(newWindowLink(tableLink, "Interactive table of significant genes"))
+  links[2, 2] = as.html(ezLink(tableLink, label="Interactive table of significant genes", target = "_blank"))
   
   plotCmd = expression({
     myBreaks = seq(0, 1, by=0.002)
@@ -275,7 +276,7 @@ addTestScatterPlots = function(doc, param, x, result, seqAnno, resultFile, types
   advancedTitles[["Advanced Plots"]] = "Advanced Plots"
   advancedDoc = openBsdocReport(title=advancedTitles[[length(advancedTitles)]])
   addFlexTable(advancedDoc, ezGrid(rbind(advancedLinks)))
-  if (!ezIsSpecified(param$batch)){ ## TODO: we no longer use pairing, we now use batch which is more general; however these plots only work if batch is a real pairing
+  if (!ezIsSpecified(param$grouping2)){ ## TODO: we no longer use pairing, we now use batch which is more general; however these plots only work if batch is a real pairing
     for (group in unique(c(param$refGroup, colnames(result$groupMeans)))){
       idx = which(group == param$grouping)
       if (length(idx) > 1){
@@ -308,8 +309,8 @@ addTestScatterPlots = function(doc, param, x, result, seqAnno, resultFile, types
     advancedTitles[["Pairs ... over ..."]] = paste("Pairs:", param$sampleGroup, "over", param$refGroup)
     addTitle(advancedDoc, advancedTitles[[length(advancedTitles)]], 3, id=advancedTitles[[length(advancedTitles)]])
     use = param$grouping %in% c(param$sampleGroup, param$refGroup)
-    if (all(table(param$batch[use], param$grouping[use]) == 1)){
-      groups = paste(param$grouping, param$batch, sep="--")
+    if (all(table(param$grouping2[use], param$grouping[use]) == 1)){
+      groups = paste(param$grouping, param$grouping2, sep="--")
       sampleGroups = sort(unique(groups[param$grouping == param$sampleGroup]))
       refGroups = sort(unique(groups[param$grouping == param$refGroup]))
       avgValues = averageColumns(x[ ,use], groups[use], mean)
@@ -323,8 +324,8 @@ addTestScatterPlots = function(doc, param, x, result, seqAnno, resultFile, types
         ezScatter(x=2^refValues, y=2^sampleValues, isPresent=samplePresent | refPresent, types=types, lim=theRange, xlab=colnames(refValues))
       })
       addParagraph(advancedDoc, ezImageFileLink(plotCmd, file=pngName,
-                                                                  width=min(ncol(as.matrix(sampleValues)), 6) * 480,
-                                                                  height=ceiling(ncol(as.matrix(sampleValues))/6) * 480)) # dynamic png with possibly many plots
+                                                                  width=min(ncol(as.matrix(sampleValues)), 6) * 400,
+                                                                  height=ceiling(ncol(as.matrix(sampleValues))/6) * 400)) # dynamic png with possibly many plots
     }
   }
   closeBsdocReport(advancedDoc, "advancedPlots.html", advancedTitles)

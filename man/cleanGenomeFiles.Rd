@@ -23,7 +23,7 @@ RemovesCleans the fasta and gtf files before they get written into the folder st
 \examples{
 gtf = system.file("extdata/genes.gtf", package="ezRun", mustWork=TRUE)
 fasta = system.file("extdata/genome.fa", package="ezRun", mustWork=TRUE)
-cleanGenomeFiles(fasta, gtf)
+cg = cleanGenomeFiles(fasta, gtf)
 }
 \author{
 Rehrauer, Hubert

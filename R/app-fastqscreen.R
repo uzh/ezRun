@@ -9,7 +9,7 @@
 ezMethodFastqScreen = function(input=NA, output=NA, param=NA, htmlFile="00index.html"){
   dataset = input$meta
   # fastqscreen part
-  files = input$getFullPaths(param, "Read1")
+  files = input$getFullPaths("Read1")
   resultFiles = executeFastqscreenCMD(param, files)
   fastqData = collectFastqscreenOutput(dataset, files, resultFiles)
   # bowtie2 reference part
@@ -27,8 +27,7 @@ ezMethodFastqScreen = function(input=NA, output=NA, param=NA, htmlFile="00index.
 }
 
 ##' @template app-template
-##' @templateVar method ezMethodFastqScreen
-##' @templateVar htmlArg , htmlFile="00index.html")
+##' @templateVar method ezMethodFastqScreen(input=NA, output=NA, param=NA, htmlFile="00index.html")
 ##' @description Use this reference class to run 
 ##' @section Functions:
 ##' \itemize{
@@ -70,7 +69,7 @@ executeFastqscreenCMD = function(param, files){
               paste(files, collapse=" "), "--outdir . --aligner bowtie2",
               "> fastqscreen.out", "2> fastqscreen.err")
   ezSystem(cmd)
-  resultFiles = paste0(sub(".fastq.gz", "", basename(files)), "_screen.txt")
+  resultFiles = paste0(sub(".fastq$", "", sub(".gz$", "", basename(files))), "_screen.txt") ## remove the suffix .fastq[.gz] with _screen.txt
   names(resultFiles) = names(files)
   return(resultFiles)
 }
@@ -81,7 +80,7 @@ collectFastqscreenOutput = function(dataset, files, resultFiles){
   fastqData$Reads = integer()
   fastqData$CommonResults = list()
   for(nm in rownames(dataset)){
-    cat('Process ',files[nm],':')
+    cat('Process ',files[nm], " - ", resultFiles[nm], ' :')
     x = ezRead.table(resultFiles[nm], skip=1, stringsAsFactors=F, blank.lines.skip=T, fill=T, row.names=NULL)
     fastqData$Reads[nm] = x$"#Reads_processed"[1]
     UnmappedReads = as.numeric(unlist(strsplit(x$Genome[nrow(x)], split = " "))[2])
@@ -94,29 +93,28 @@ collectFastqscreenOutput = function(dataset, files, resultFiles){
 }
 
 executeBowtie2CMD = function(param, input){
-  r1Files = input$getFullPaths(param, "Read1")
+  r1Files = input$getFullPaths("Read1")
   if (param$paired){
-    r2Files = input$getFullPaths(param, "Read2")
+    r2Files = input$getFullPaths("Read2")
   }
   countFiles = character()
   for (nm in names(r1Files)){
     countFiles[nm] = paste0(nm, "-counts.txt")
     bowtie2options = param$cmdOptions
+    writeLines("ReadID\tRefSeqID\tAlignmentScore", countFiles[nm])
     if(!param$paired){
       cmd = paste(file.path(BOWTIE2_DIR,'bowtie2'),"-x",REFSEQ_mRNA_REF, 
                   " -U ", r1Files[nm], bowtie2options ,"-p",param$cores,
                   "--no-unal --no-hd", "2> ", paste0(nm, "_bowtie2.err"),
-                  "| cut -f1,3,12", " |sed s/AS:i://g", ">", countFiles[nm])
+                  "| cut -f1,3,12", " |sed s/AS:i://g", ">>", countFiles[nm])
     } else {
       cmd = paste(file.path(BOWTIE2_DIR,'bowtie2'),"-x",REFSEQ_mRNA_REF, 
                   " -1 ", r1Files[nm]," -2 ", r2Files[nm], bowtie2options, "-p",param$cores,
                   "--no-discordant --no-mixed --no-unal --no-hd",
                   "2> ", paste0(nm, "_bowtie2.err"),
-                  "| cut -f1,3,12", " |sed s/AS:i://g", ">", countFiles[nm])
+                  "| cut -f1,3,12", " |sed s/AS:i://g", ">>", countFiles[nm])
     }
     ezSystem(cmd)
-    #ezSystem(paste(SAMTOOLS, "view", "bowtie.bam", '|cut -f1,3,12 |sort|sed "s/AS:i://g" >',countFiles[nm]))
-    #system(paste(SAMTOOLS,"view -F 256",sbamFile,"|cut -f1,12 |sort|sed 's/AS:i://g' >",bestScoreFile))
   }
   return(countFiles)
 }
@@ -130,20 +128,19 @@ collectBowtie2Output = function(param, dataset, countFiles){
   rownames(tax2name) = tax2name$TAX_ID
   speciesPercentageTop = list()
   for (nm in names(countFiles)){
-    countData = read.table(countFiles[nm], header=F, sep='', stringsAsFactors=F, comment.char='')
-    colnames(countData) = c('readId', 'hit', 'aScore')
-    bestScores = tapply(countData$aScore, countData$readId, max)
-    countData = countData[countData$aScore == bestScores[countData$readId], , drop=FALSE]
-    countData = countData[countData$aScore >= param$minAlignmentScore, , drop=FALSE]
+    countData = ezRead.table(countFiles[nm], row.names = NULL)
+    bestScores = tapply(countData$AlignmentScore, countData$ReadID, max)
+    countData = countData[countData$AlignmentScore == bestScores[countData$ReadID], , drop=FALSE]
+    countData = countData[countData$AlignmentScore >= param$minAlignmentScore, , drop=FALSE]
     if (nrow(countData) > 0){
-      countData$species = sub("_.*", "", countData$hit)
-      speciesHitsPerRead = tapply(countData$species, countData$readId, unique)
+      countData$species = sub("_.*", "", countData$RefSeqID)
+      speciesHitsPerRead = tapply(countData$species, countData$ReadID, unique)
       uniqSpeciesHitsPerRead = names(speciesHitsPerRead)[sapply(speciesHitsPerRead, length) == 1]
       ###Result UniqHits:
       uniqSpeciesHits = sort(table(unlist(speciesHitsPerRead[uniqSpeciesHitsPerRead])), decreasing = T)
       ###Results MultipleHits:
-      multipleSpeciesHitsPerRead = countData[!(countData$readId %in% uniqSpeciesHitsPerRead), ]
-      by = paste(multipleSpeciesHitsPerRead$readId, multipleSpeciesHitsPerRead$species,sep='_')
+      multipleSpeciesHitsPerRead = countData[!(countData$ReadID %in% uniqSpeciesHitsPerRead), ]
+      by = paste(multipleSpeciesHitsPerRead$ReadID, multipleSpeciesHitsPerRead$species,sep='_')
       ##multipleSpeciesHits = sort(table(multipleSpeciesHitsPerRead$species[!duplicated(by)]), decreasing=T) # is equivalent to the row below
       multipleSpeciesHits = sort(table(tapply(multipleSpeciesHitsPerRead$species,by,unique)),decreasing = T)
       
@@ -160,7 +157,7 @@ collectBowtie2Output = function(param, dataset, countFiles){
 
       multipleSpeciesHits[setdiff(names(topSpeciesUniq), names(multipleSpeciesHits))] = 0
       topSpeciesMultiple = multipleSpeciesHits[names(topSpeciesUniq)]
-      
+
       if(param$nReads > 0){
         totalCount = param$nReads
       } else {
@@ -170,8 +167,8 @@ collectBowtie2Output = function(param, dataset, countFiles){
       taxNames = tax2name[taxIds, 'Name']
       hasNoName = is.na(taxNames)
       taxNames[hasNoName] = taxIds[hasNoName]
-      x = ezFrame(UniqueSpeciesHits=signif(100 * topSpeciesUniq/totalCount, digits=4),
-                  MultipleSpeciesHits=signif(100 * topSpeciesMultiple/totalCount, digits=4),
+      x = ezFrame(UniqueSpeciesHits=signif(100 * as.matrix(topSpeciesUniq)/totalCount, digits=4),
+                  MultipleSpeciesHits=signif(100 * as.matrix(topSpeciesMultiple)/totalCount, digits=4),
                   row.names = taxNames)
       speciesPercentageTop[[nm]] = x
     } else {
@@ -196,24 +193,31 @@ fastqscreenReport = function(dataset, param, htmlFile="00index.html", fastqData,
   settings["Bowtie2 Parameters:"] = param$cmdOptions
   settings["Minimum AlignmentScore:"] = param$minAlignmentScore
   settings["TopSpecies:"] = param$nTopSpecies
-  # settings["Subset:"] = param$subset     ## param$subset doesn't seem to exist
   addFlexTable(doc, ezFlexTable(as.data.frame(settings), add.rownames=TRUE))
-  titles[["rRNA-Check"]] = "rRNA-Check"
+  
+  titles[["rRNA-Check"]] = "FastqScreen Mapping Rates"
   addTitle(doc, titles[[length(titles)]], 2, id=titles[[length(titles)]])
-  titles[["Per Dataset"]] = "Per Dataset"
+  titles[["Per Dataset"]] = "Overview"
   addTitle(doc, titles[[length(titles)]], 3, id=titles[[length(titles)]])
   
   plotCmd = expression({
     par(mar=c(10.1, 4.1, 4.1, 2.1))
-    bplt = barplot(fastqData$MappingRate, las=2, ylim=c(0,100), ylab="MappedReads in %", main="MappingRate", col="blue",
-                   names.arg=ezSplitLongLabels(names(fastqData$MappingRate)))
-    text(y=fastqData$MappingRate+5, x=bplt, labels=paste0(as.character(fastqData$MappingRate),"%"), cex=0.7, xpd=TRUE)
-  })
+    bplt = barplot(fastqData$MappingRate, las=2, ylim=c(0,100), ylab="MappedReads in %", main="MappingRate", col="royalblue3",
+                   names.arg=rep('',length(ezSplitLongLabels(names(fastqData$MappingRate)))))
+    if(min(fastqData$MappingRate) < 8){
+      text(y=fastqData$MappingRate+2, font=2, x=bplt, labels=as.character(fastqData$MappingRate), cex= 1, xpd=TRUE)
+    } else {
+      text(y=fastqData$MappingRate-5, font=2, x=bplt, labels=as.character(fastqData$MappingRate), cex= 1.1, col='white', xpd=TRUE)
+    }
+    text(x = bplt, y = par("usr")[3] - 2, srt = 45, adj = 1, labels = ezSplitLongLabels(names(fastqData$MappingRate)), xpd = TRUE)
+    })
+  
   mappingRateLink = ezImageFileLink(plotCmd, file="MappingRate.png", width=min(600 + (nrow(dataset)-10)* 30, 2000)) # nSamples dependent width
   plotCmd = expression({
     par(mar=c(10.1, 4.1, 4.1, 2.1))
-    barplot(fastqData$Reads, las=2, ylab="#Reads", main="ProcessedReads", col="lightblue",
-            names.arg=ezSplitLongLabels(names(fastqData$Reads)))
+    bplt = barplot(fastqData$Reads/1000, las=2, ylab="#Reads in K", main="ProcessedReads", col="lightblue",
+            names.arg=rep('',length(ezSplitLongLabels(names(fastqData$MappingRate)))))
+    text(x = bplt, y = par("usr")[3] - 2, srt = 45, adj = 1, labels = ezSplitLongLabels(names(fastqData$MappingRate)), xpd = TRUE)
   })
   readsLink = ezImageFileLink(plotCmd, file="Reads.png", width=min(600 + (nrow(dataset)-10)* 30, 2000)) # nSamples dependent width
   addFlexTable(doc, ezGrid(cbind(mappingRateLink, readsLink)))
@@ -223,19 +227,25 @@ fastqscreenReport = function(dataset, param, htmlFile="00index.html", fastqData,
   for (nm in rownames(dataset)){
     plotCmd = expression({
       par(mar=c(10.1, 4.1, 4.1, 2.1))
-      barplot(t(fastqData$CommonResults[[nm]]), las=2, ylim=c(0,100), legend.text=T, ylab="Mapped Reads in %", main=nm)
+      bplt = barplot(t(fastqData$CommonResults[[nm]]), las=2, ylim=c(0,100), 
+                     legend.text=T, ylab="Mapped Reads in %", main=nm, names.arg=rep('', nrow(fastqData$CommonResults[[nm]])))
+      text(x = bplt, y = par("usr")[3] - 2, srt = 45, adj = 1, labels = rownames(fastqData$CommonResults[[nm]]), xpd = TRUE)
+      
+      
     })
-    screenLinks[[nm]] = ezImageFileLink(plotCmd, name = nm, plotType = "-rRNA-countsBySpecies-barplot")
+    screenLinks[[nm]] = ezImageFileLink(plotCmd, name = nm, plotType = "-rRNA-countsBySpecies-barplot", width=400, height=400)
     
     plotCmd = expression({
       par(mar=c(10.1, 4.1, 4.1, 2.1))
       x = speciesPercentageTop[[nm]]
       if (is.null(x)) x = 0
-      bplot = barplot(t(x), col=c("blue", "lightblue"), las=2, ylim=c(0,100),
-                      legend.text=T, ylab="Mapped Reads in %", main=nm)
-      text(y=3, x=bplot, labels=paste0(t(x)[ 1, ], '%'), xpd=TRUE)
+      bplot = barplot(t(x), col=c("royalblue3", "lightblue"), las=2, ylim=c(0,100),
+                      legend.text=T, ylab="Mapped Reads in %", main=nm, names.arg=rep('',nrow(x)) )
+      text(y=t(x)[ 1,] + 5, x=bplot, font = 2, labels=t(x)[ 1, ], cex=1.1, col='black')
+      text(x = bplot, y = par("usr")[3] - 2, srt = 45, adj = 1, 
+           labels = rownames(x), xpd = TRUE)
     })
-    detectedSpeciesLinks[[nm]] = ezImageFileLink(plotCmd, name=nm, plotType="-mRNA-countsBySpecies-barplot")
+    detectedSpeciesLinks[[nm]] = ezImageFileLink(plotCmd, name=nm, plotType="-mRNA-countsBySpecies-barplot", width=400, height=400)
   }
   IMAGESperROW = 4
   if (ezIsSpecified(screenLinks)){

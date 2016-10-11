@@ -26,7 +26,7 @@ Gets the transcript annotation from a gtf annotation.
 param = ezParam()
 gtfFile = system.file("extdata/genes.gtf", package="ezRun", mustWork=TRUE)
 gtf = ezLoadFeatures(param, gtfFile)
-transcriptAnnoFromGtf(gtf)
+ta = transcriptAnnoFromGtf(gtf)
 }
 \author{
 Rehrauer, Hubert

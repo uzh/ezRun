@@ -65,8 +65,7 @@ ezMethodTophat = function(input=NA, output=NA, param=NA){
 }
 
 ##' @template app-template
-##' @templateVar method ezMethodTophat
-##' @templateVar htmlArg )
+##' @templateVar method ezMethodTophat(input=NA, output=NA, param=NA)
 ##' @description Use this reference class to run 
 ##' @seealso \code{\link{getBowtie2Reference}}
 ##' @seealso \code{\link{ezMethodTrim}}
@@ -90,10 +89,11 @@ ezMethodBowtie2 = function(input=NA, output=NA, param=NA){
   #Sys.setenv(BOWTIE2_INDEXES=dirname(ref))
   #message("bowtie Dir:", Sys.getenv("BOWTIE2_INDEXES"))
   bamFile = output$getColumn("BAM")
+  sampleName = sub('.bam','',basename(bamFile))
   trimmedInput = ezMethodTrim(input = input, param = param)
   defOpt = paste("-p", ezThreads())
-  
-  cmd = paste(file.path(BOWTIE2_DIR, "bowtie2"), param$cmdOptions, defOpt, 
+  readGroupOpt = paste0("--rg-id ", sampleName," --rg SM:", sampleName," --rg LB:RGLB_", sampleName," --rg PL:illumina"," --rg PU:RGPU_", sampleName)
+  cmd = paste(file.path(BOWTIE2_DIR, "bowtie2"), param$cmdOptions, defOpt, readGroupOpt,
               "-x", ref, if(param$paired) "-1", trimmedInput$getColumn("Read1"), 
               if(param$paired) paste("-2", trimmedInput$getColumn("Read2")),
               "2> bowtie.log", "|", SAMTOOLS, "view -S -b -", " > bowtie.bam")
@@ -134,7 +134,7 @@ getBowtie2Reference = function(param){
     
     fastaFile = param$ezRef["refFastaFile"]
     ezSystem(paste("ln -s", fastaFile, "."))
-    cmd = paste(file.path(BOWTIE2_DIR, "bowtie2-build"), "-f", basename(fastaFile), basename(refBase))
+    cmd = paste(file.path(BOWTIE2_DIR, "bowtie2-build"), "--threads", as.numeric(param$cores), "-f", basename(fastaFile), basename(refBase))
     ezSystem(cmd)
     #ezWriteElapsed(job, "done")
     setwd(wd)
@@ -160,8 +160,7 @@ getBowtie2Reference = function(param){
 }
 
 ##' @template app-template
-##' @templateVar method ezMethodBowtie2
-##' @templateVar htmlArg )
+##' @templateVar method ezMethodBowtie2(input=NA, output=NA, param=NA)
 ##' @description Use this reference class to run 
 ##' @seealso \code{\link{getBowtie2Reference}}
 ##' @seealso \code{\link{ezMethodTrim}}
@@ -185,7 +184,7 @@ ezMethodBowtie = function(input=NA, output=NA, param=NA){
   bamFile = output$getColumn("BAM")  
   trimmedInput = ezMethodTrim(input = input, param = param)
   defOpt = paste("--chunkmbs 256", "--sam", "-p", ezThreads())
-    cmd = paste(file.path(BOWTIE_DIR, "bowtie"), param$cmdOptions, defOpt, 
+  cmd = paste(file.path(BOWTIE_DIR, "bowtie"), param$cmdOptions, defOpt, 
               ref, trimmedInput$getColumn("Read1"), if(param$paired) trimmedInput$getColumn("Read2"),
               "2> bowtie.log", "|", SAMTOOLS, "view -S -b -", " > bowtie.bam")
   ezSystem(cmd)
@@ -247,8 +246,7 @@ getBowtieReference = function(param){
 }
 
 ##' @template app-template
-##' @templateVar method ezMethodBowtie
-##' @templateVar htmlArg )
+##' @templateVar method ezMethodBowtie(input=NA, output=NA, param=NA)
 ##' @description Use this reference class to run 
 ##' @seealso \code{\link{getBowtieReference}}
 ##' @seealso \code{\link{ezMethodTrim}}
@@ -259,7 +257,7 @@ EzAppBowtie <-
                 initialize = function()
                 {
                   "Initializes the application using its specific defaults."
-                  runMethod <<- ezMethodBowtie2
+                  runMethod <<- ezMethodBowtie
                   name <<- "EzAppBowtie"
                   appDefaults <<- rbind(writeIgvSessionLink=ezFrame(Type="logical", DefaultValue="TRUE", Description="should an IGV link be generated"))
                 }
@@ -270,16 +268,56 @@ ezMethodSTAR = function(input=NA, output=NA, param=NA){
 
   refDir = getSTARReference(param)
   bamFile = output$getColumn("BAM")
+  if(!is.null(param$randomSleep)){
+    if(param$randomSleep){
+      randomNumber = runif(1, min = 0, max = 1)
+      if(randomNumber <= 1/3) {
+        cat('Wait 15m \n')
+        Sys.sleep( 900) 
+      } else if(randomNumber > 1/3 & randomNumber <= 2/3) {
+        cat('Wait 30m \n')
+        Sys.sleep( 1800)
+      }
+    }
+  }
   trimmedInput = ezMethodTrim(input = input, param = param)
+  # if (basename(refDir) != refDir & !grepl("^\\.", refDir)){
+  #   ezSystem(paste("cp -r", refDir, "."))
+  #   refDir = basename(refDir)
+  # }
   
-  cmd = paste(STAR, "--genomeLoad NoSharedMemory --genomeDir", refDir,  "--sjdbOverhang 150", "--readFilesIn",
+  cmd = paste(STAR, " --genomeDir", refDir,  "--sjdbOverhang 150", "--readFilesIn",
               trimmedInput$getColumn("Read1"), if(param$paired) trimmedInput$getColumn("Read2"),
               "--runThreadN", ezThreads(), param$cmdOptions, "--outStd BAM_Unsorted --outSAMtype BAM Unsorted",
               ">  Aligned.out.bam")## writes the output file Aligned.out.bam
   ##"|", SAMTOOLS, "view -S -b -", " >", "Aligned.out.bam")
-  ezSystem(cmd)
+  ezSystem(cmd)  
   nSortThreads = min(ezThreads(), 8)
-  ezSortIndexBam("Aligned.out.bam", basename(bamFile), ram=param$ram, removeBam=TRUE, cores=nSortThreads)
+  ## if the index is loaded in shared memory we have to use only 10% of the scheduled RAM
+  if (grepl("--genomeLoad LoadAndKeep", param$cmdOptions)){
+    sortRam = param$ram / 10
+  } else {
+    sortRam = param$ram
+  }
+    
+  if (!is.null(param$markDuplicates) && param$markDuplicates){
+    ezSortIndexBam("Aligned.out.bam", "sorted.bam", ram=sortRam, removeBam=TRUE, cores=nSortThreads)
+    javaCall = paste0(JAVA, " -Djava.io.tmpdir=. -Xmx", min(floor(param$ram), 10), "g")
+    cmd = paste0(javaCall, " -jar ", PICARD_JAR, " MarkDuplicates ",
+                 " TMP_DIR=. MAX_RECORDS_IN_RAM=2000000", " I=", "sorted.bam",
+                 " O=", basename(bamFile),
+                 " REMOVE_DUPLICATES=false", ## do not remove, do only mark
+                 " ASSUME_SORTED=true",
+                 " VALIDATION_STRINGENCY=SILENT",
+                 " METRICS_FILE=" ,"dupmetrics.txt",
+                 " VERBOSITY=WARNING",
+                 " >markdup.stdout 2> markdup.stderr")
+    ezSystem(cmd)
+    ezSystem(paste(SAMTOOLS, "index", basename(bamFile)))
+  } else {
+    ezSortIndexBam("Aligned.out.bam", basename(bamFile), ram=sortRam, removeBam=TRUE, cores=nSortThreads)
+  }
+  
   if (param$getChimericJunctions){
     ezSystem(paste("mv Chimeric.out.junction", basename(output$getColumn("Chimerics"))))
   }
@@ -357,8 +395,7 @@ getSTARReference = function(param){
 }
 
 ##' @template app-template
-##' @templateVar method ezMethodSTAR
-##' @templateVar htmlArg )
+##' @templateVar method ezMethodSTAR(input=NA, output=NA, param=NA)
 ##' @description Use this reference class to run 
 ##' @seealso \code{\link{getSTARReference}}
 ##' @seealso \code{\link{ezMethodTrim}}
@@ -372,7 +409,9 @@ EzAppSTAR <-
                   runMethod <<- ezMethodSTAR
                   name <<- "EzAppSTAR"
                   appDefaults <<- rbind(getChimericJunctions=ezFrame(Type="logical",  DefaultValue="FALSE",	Description="should chimeric reads be returned"),
-                                        writeIgvSessionLink=ezFrame(Type="logical", DefaultValue="TRUE", Description="should an IGV link be generated"))
+                                        writeIgvSessionLink=ezFrame(Type="logical", DefaultValue="TRUE", Description="should an IGV link be generated"),
+                                        markDuplicates=ezFrame(Type="logical", DefaultValue="FALSE", Description="should duplicates be marked with picard"),
+                                        randomSleep=ezFrame(Type="logical",  DefaultValue="FALSE",  Description="should there be a random sleep to avoid to much network traffic when loading the STAR index"))
                 }
               )
   )
@@ -462,8 +501,7 @@ getBWAReference = function(param){
 }
 
 ##' @template app-template
-##' @templateVar method ezMethodBWA
-##' @templateVar htmlArg )
+##' @templateVar method ezMethodBWA(input=NA, output=NA, param=NA)
 ##' @description Use this reference class to run 
 ##' @seealso \code{\link{getBWAReference}}
 ##' @seealso \code{\link{ezMethodTrim}}
@@ -540,8 +578,7 @@ ezMethodBismark = function(input=NA, output=NA, param=NA){
 }
 
 ##' @template app-template
-##' @templateVar method ezMethodBismark
-##' @templateVar htmlArg )
+##' @templateVar method ezMethodBismark(input=NA, output=NA, param=NA)
 ##' @description Use this reference class to run 
 EzAppBismark <-
   setRefClass("EzAppBismark",

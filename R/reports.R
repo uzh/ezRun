@@ -132,16 +132,16 @@ closeBsdocReport = function(doc, file, titles=NULL){
 ##' @param param a list of parameters to extract \code{refBuild} from.
 ##' @template roxygen-template
 addDataset = function(doc, dataset, param){
-  ezWrite.table(dataset, file="dataset.tsv", head="Name")
-  jsFile = system.file("extdata/popup.js", package="ezRun", mustWork=TRUE)
-  addJavascript(doc, jsFile)
+  ezWrite.table(dataset, file="input_dataset.tsv", head="Name")
+  # jsFile = system.file("extdata/popup.js", package="ezRun", mustWork=TRUE)
+  # addJavascript(doc, jsFile)
   tableLink = "InputDataset.html"
   ezInteractiveTable(dataset, tableLink=tableLink, title="Input Dataset")
-  pots = as.html(newWindowLink(tableLink, "Input Dataset"))
-  if (ezIsSpecified(param$refBuild)){
-    pots = c(pots, paste("Reference build:", param$refBuild))
-  }
-  addFlexTable(doc, ezGrid(pots))
+  addParagraph(doc, ezLink(tableLink, "Input Dataset", target="_blank"))
+  # if (ezIsSpecified(param$refBuild)){
+  #   addParagraphpots = c(pots, paste("Reference build:", param$refBuild))
+  # }
+  # addFlexTable(doc, ezGrid(pots))
 }
 
 ##' @title Writes an error report
@@ -186,12 +186,14 @@ addTxtLinksToReport = function(doc, txtNames, doZip=FALSE, mime=ifelse(doZip, "a
     if (doZip){
       each = zipFile(each)
     }
-    addParagraph(doc, pot(paste("<a href='", each, "' type='", mime, "'>", each, "</a>")))
+    addParagraph(doc, ezLink(each, type=mime))
+    #addParagraph(doc, pot(paste("<a href='", each, "' type='", mime, "'>", each, "</a>")))
   }
 }
 
-##' @describeIn addTxtLinksToReport Gets the link, its name and returns a an html link that will open new windows/tabs.
+##' @describeIn addTxtLinksToReport Gets the link, its name and returns an html link that will open new windows/tabs.
 newWindowLink = function(linkName, txtName=NULL){
+  .Deprecated("use ezLink")
   if (is.null(txtName)){
     title = sub(".html", "", linkName)
   } else {
@@ -203,13 +205,39 @@ newWindowLink = function(linkName, txtName=NULL){
   # return(pot(paste0('<a href="', jsCall, '">', title, '</a>')))
 }
 
+ezLink = function(link, label=link, target="", type=""){
+  linkTag = paste0("<a href='", link, "'")
+  if (target != ""){
+    linkTag = paste0(linkTag, " target='", target, "'")
+  }
+  if (type != ""){
+    linkTag = paste0(linkTag, " type='", type, "'")
+  }  
+  linkTag = paste0(linkTag, ">")
+  pot(paste0(linkTag, label, "</a>"))
+}
+
+# ## enhancement of links with targets and type;
+# ## but see ezLink
+# ezPot = function(value="", format=textProperties(), hyperlink, footnote, linkTarget="", linkType=""){
+#   if (linkTarget != "" || linkType != ""){
+#     value=paste0("<a href='", hyperlink, "' target='", linkTarget, "' type='", linkType, "'>", value, "</a>")
+#     pot(value, format=format, footnote=footnote)
+#     ## in this case the order of the tags is <span><a>label</a></span>
+#   } else {
+#     pot(value, format=format, hyperlink = hyperlink, footnote=footnote)
+#     ## in this case the order of the tags is <a><span>label</span></a>
+#   }
+# }
+
+
 ##' @title Adds a summary of the count result
 ##' @description Adds a summary of the count result to a bsdoc object.
 ##' @template doc-template
 ##' @templateVar object table
 ##' @param param a list of parameters to influence the output:
 ##' \itemize{
-##'  \item{batch}{ a logical indicating whether the second factor was used.}
+##'  \item{grouping2}{ indicates whether a second factor was used.}
 ##'  \item{comparison}{ which comparison was used.}
 ##'  \item{normMethod}{ the normalization method.}
 ##'  \item{sigThresh}{ the threshold...}
@@ -224,7 +252,7 @@ addCountResultSummary = function(doc, param, result){
   settings["Feature level:"] = result$featureLevel
   settings["Data Column Used:"] = result$countName
   settings["Method:"] = result$method
-  if (ezIsSpecified(param$batch)){
+  if (ezIsSpecified(param$grouping2)){
     settings["Statistical Model:"] = "used provided second factor"
   }
   settings["Comparison:"] = param$comparison
@@ -471,18 +499,18 @@ ezAddTable = function(doc, x, bgcolors=NULL, valign="middle", border=1, head="")
   addFlexTable(doc, table)
 }
 
-## NOTEP: used once in gage-reports.R, but that needs to be refactored anyway.
-##' @describeIn ezAddTable Does the same with a white font and returning the table instead of adding it to the document.
-ezAddTableWhite = function(x, bgcolors=NULL, valign="middle", border=1, head=""){
-  if (is.null(bgcolors)){
-    bgcolors = matrix("#ffffff", nrow=nrow(x), ncol=ncol(x))
-  }
-  ##x = cbind(rownames(x),x)
-  x = as.html(pot(paste('<font color="white">', x, '</font>')))
-  bodyCells = cellProperties(border.width=border, vertical.align=valign)
-  table = FlexTable(x, header.columns = FALSE, body.cell.props=bodyCells,
-                    header.cell.props=cellProperties(border.width = border))
-  table = setFlexTableBackgroundColors(table, j=1:ncol(x), colors=bgcolors)
-  table = addHeaderRow(table, colnames(x))
-  return(table)
-}
+# ## NOTEP: used once in gage-reports.R, but that needs to be refactored anyway.
+# ##' @describeIn ezAddTable Does the same with a white font and returning the table instead of adding it to the document.
+# ezAddTableWhite = function(x, bgcolors=NULL, valign="middle", border=1, head=""){
+#   if (is.null(bgcolors)){
+#     bgcolors = matrix("#ffffff", nrow=nrow(x), ncol=ncol(x))
+#   }
+#   ##x = cbind(rownames(x),x)
+#   x = as.html(pot(paste('<font color="white">', x, '</font>')))
+#   bodyCells = cellProperties(border.width=border, vertical.align=valign)
+#   table = FlexTable(x, header.columns = FALSE, body.cell.props=bodyCells,
+#                     header.cell.props=cellProperties(border.width = border))
+#   table = setFlexTableBackgroundColors(table, j=1:ncol(x), colors=bgcolors)
+#   table = addHeaderRow(table, colnames(x))
+#   return(table)
+# }

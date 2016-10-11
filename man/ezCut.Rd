@@ -22,7 +22,7 @@ Returns the numeric input as factors.
 Cuts a numeric vector into factors using defined breaks.
 }
 \examples{
-ezCut(1:10,breaks=c(2,5,7),prefix=letters[1:4])
+x = ezCut(1:10,breaks=c(2,5,7),prefix=letters[1:4])
 }
 \author{
 Rehrauer, Hubert

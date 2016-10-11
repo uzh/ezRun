@@ -28,7 +28,7 @@ Adds texts link to a bsdoc object.
 }
 \section{Functions}{
 \itemize{
-\item \code{newWindowLink}: Gets the link, its name and returns a an html link that will open new windows/tabs.
+\item \code{newWindowLink}: Gets the link, its name and returns an html link that will open new windows/tabs.
 }}
 \examples{
 param = ezParam()

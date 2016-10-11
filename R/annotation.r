@@ -114,7 +114,7 @@ aggregateGoAnnotation = function(seqAnno, genes, goColumns=c("GO BP", "GO CC", "
 ##' param$ezRef["refFastaFile"] = system.file("extdata/genome.fa", package="ezRun", mustWork=TRUE)
 ##' seqAnno = writeAnnotationFromGtf(param)
 ##' seqAnno = ezFeatureAnnotation(param, rownames(seqAnno), dataFeatureType="gene")
-##' getGeneMapping(param, seqAnno)
+##' gm = getGeneMapping(param, seqAnno)
 ##' hasGeneMapping(param, seqAnno)
 getGeneMapping = function(param, seqAnnoDF){
   

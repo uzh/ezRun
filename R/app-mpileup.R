@@ -14,12 +14,12 @@ ezMethodMpileup = function(input=NA, output=NA, param=NA){
   htmlFile = basename(output$getColumn("Html"))
   vcfOutputFile = output$getColumn("VCF")
   
-  bamFiles = input$getFullPaths(param, "BAM")
+  bamFiles = input$getFullPaths("BAM")
   bamDataset = input$meta
   genomeSeq = param$ezRef["refFastaFile"]
   nBamsInParallel = min(4, param$cores)
   bamFilesClean = ezMclapply(names(bamFiles), function(sampleName){
-    javaCall = paste0("java -Djava.io.tmpdir=. -Xmx", floor(param$ram/nBamsInParallel), "g")
+    javaCall = paste0(JAVA, " -Djava.io.tmpdir=. -Xmx", floor(param$ram/nBamsInParallel), "g")
     setwdNew(paste(sampleName, "proc", sep="-"))
     bf = bamFiles[sampleName]
     obf = file.path(getwd(), basename(bf))
@@ -182,8 +182,7 @@ ezMethodMpileup = function(input=NA, output=NA, param=NA){
 }
 
 ##' @template app-template
-##' @templateVar method ezMethodMpileup
-##' @templateVar htmlArg )
+##' @templateVar method ezMethodMpileup(input=NA, output=NA, param=NA)
 ##' @description Use this reference class to run 
 EzAppMpileup <-
   setRefClass("EzAppMpileup",

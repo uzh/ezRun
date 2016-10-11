@@ -6,6 +6,8 @@
 # www.fgcz.ch
 
 
+
+
 ##' @title Cleans up input from two group apps
 ##' @description Cleans up input from two group apps.
 ##' @template input-template
@@ -21,13 +23,18 @@ cleanupTwoGroupsInput = function(input, param){
   if (!is.null(param$removeOutliers) && param$removeOutliers && !is.null(dataset$Outlier)){
     dataset = dataset[toupper(dataset$Outlier) %in% c("", "NO", '""', "FALSE") == TRUE, ]
   }
-  inputMod = EzDataset(meta=dataset)
+  inputMod = EzDataset(meta=dataset, dataRoot=param$dataRoot)
   if (!is.null(param$markOutliers) && param$markOutliers){
     stopifnot(!is.null(dataset$Outlier))
     grouping = inputMod$getColumn(param$grouping)
     isOut = dataset$Outlier %in% c("", "NO", '""', "FALSE") == FALSE
     grouping[isOut] = paste(grouping[isOut], "OUTLIER", sep="_")
     inputMod$setColumn(grouping)
+  }
+  if (!is.null(param$removeOtherGroups) && param$removeOtherGroups){
+    grouping = inputMod$getColumn(param$grouping)
+    keep = grouping %in% c(param$sampleGroup, param$refGroup)
+    inputMod = inputMod$subset(keep)
   }
   return(inputMod)
 }
@@ -39,8 +46,8 @@ cleanupTwoGroupsInput = function(input, param){
 ##' @param param a list of parameters:
 ##' \itemize{
 ##'   \item{testMethod}{ defines the method to run: deseq2, exactTest, glm, sam or limma. Defaults to glm.}
-##'   \item{batch}{ a character vector specifying the batch groups.}
 ##'   \item{grouping}{ a character specifying the grouping.}
+##'   \item{grouping2}{ a character vector specifying a secondary grouping.}
 ##'   \item{sampleGroup}{ a character specifying the group to sample.}
 ##'   \item{refGroup}{ a character specifying the reference group.}
 ##'   \item{normMethod}{ a character specifying the normalization method for the edger and glm test methods.}
@@ -59,9 +66,9 @@ twoGroupCountComparison = function(rawData, param){
   }
   
   result$method = param$testMethod
-  if (ezIsSpecified(param$batch)){
+  if (ezIsSpecified(param$grouping2)){
     if (param$testMethod %in% c("glm", "sam","deseq2")){
-      result$method = paste(result$method, "batch")
+      result$method = paste(result$method, "using secondary factor")
     } else {
       return(list(error=paste("Second factor only supported for the test methods glm, sam and deseq2")))
     }
@@ -77,10 +84,10 @@ twoGroupCountComparison = function(rawData, param){
   result$isPresentProbe = useProbe
   result$isPresent = isPresent
   res = switch(param$testMethod,
-               deseq2 = runDeseq2(round(x), param$sampleGroup, param$refGroup, param$grouping, batch=param$batch, isPresent=useProbe),
+               deseq2 = runDeseq2(round(x), param$sampleGroup, param$refGroup, param$grouping, grouping2=param$grouping2, isPresent=useProbe),
                exactTest = runEdger(round(x), param$sampleGroup, param$refGroup, param$grouping, param$normMethod),
-               glm = runGlm(round(x), param$sampleGroup, param$refGroup, param$grouping, param$normMethod, batch=param$batch),
-               limma = runLimma(x, param$sampleGroup, param$refGroup, param$grouping, param$batch),
+               glm = runGlm(round(x), param$sampleGroup, param$refGroup, param$grouping, param$normMethod, grouping2=param$grouping2),
+               limma = runLimma(x, param$sampleGroup, param$refGroup, param$grouping, grouping2=param$grouping2),
                stop("unsupported testMethod: ", param$testMethod)
   )
   result$log2Ratio = res$log2FoldChange  
@@ -92,7 +99,7 @@ twoGroupCountComparison = function(rawData, param){
   if (!is.null(param$runGfold) && param$runGfold && !is.null(rawData$seqAnno$width) && !is.null(rawData$seqAnno$gene_name)){
     result$gfold = runGfold(rawData, result$sf, isSample, isRef)
   }
-  
+  result$nativeResult = res
   useProbe[is.na(useProbe)] = FALSE
   fdr = rep(NA, length(pValue))
   fdr[useProbe] = p.adjust(pValue[useProbe], method="fdr")
@@ -102,8 +109,13 @@ twoGroupCountComparison = function(rawData, param){
   result$fdr=fdr
   result$usedInTest = useProbe
   result$xNorm = ezScaleColumns(x, result$sf)
+  
+  result$featureLevel = rawData$featureLevel
+  result$countName = rawData$countName
+  
   ezWriteElapsed(job, status="done")
-  return(result)
+  deResult = EzResult(param=param, rawData=rawData, result=result)
+  return(deResult)
 }
 
 ##' @describeIn twoGroupCountComparison Runs the Gfold test method.
@@ -140,15 +152,31 @@ runGfold = function(rawData, scalingFactors, isSample, isRef){
 }
 
 ##' @describeIn twoGroupCountComparison Runs the Deseq2 test method.
-runDeseq2 = function(x, sampleGroup, refGroup, grouping, batch=NULL, isPresent=NULL){
-  if (ezIsSpecified(batch)){
-    if (!is.numeric(batch)){
-      batch = as.factor(batch)
+runDeseq2 = function(x, sampleGroup, refGroup, grouping, grouping2=NULL, isPresent=NULL){
+  ## get size factors -- grouping2 not needed
+  colData = data.frame(grouping=as.factor(grouping), row.names=colnames(x))
+  dds = DESeq2::DESeqDataSetFromMatrix(countData=x, colData=colData, design= ~ grouping)
+  dds = DESeq2::estimateSizeFactors(dds, controlGenes=isPresent)
+  sf = 1/dds@colData$sizeFactor
+  
+  ## remove the samples that do not participate in the comparison
+  isSample = grouping == sampleGroup
+  isRef = grouping == refGroup
+  grouping = grouping[isSample|isRef]
+  x = x[ ,isSample|isRef]
+  if (ezIsSpecified(grouping2)){
+    grouping2 = grouping2[isSample|isRef]
+  }    
+  
+  ## run the analysis
+  if (ezIsSpecified(grouping2)){
+    if (!is.numeric(grouping2)){
+      grouping2 = as.factor(grouping2)
     } else {
-      message("using numeric batch factor")
+      message("using numeric secondary factor")
     }
-    colData = data.frame(grouping=as.factor(grouping), batch=batch, row.names=colnames(x))
-    dds = DESeq2::DESeqDataSetFromMatrix(countData=x, colData=colData, design= ~ grouping + batch)
+    colData = data.frame(grouping=as.factor(grouping), grouping2=grouping2, row.names=colnames(x))
+    dds = DESeq2::DESeqDataSetFromMatrix(countData=x, colData=colData, design= ~ grouping + grouping2)
   } else {
     colData = data.frame(grouping=as.factor(grouping), row.names=colnames(x))
     dds = DESeq2::DESeqDataSetFromMatrix(countData=x, colData=colData, design= ~ grouping)
@@ -157,7 +185,7 @@ runDeseq2 = function(x, sampleGroup, refGroup, grouping, batch=NULL, isPresent=N
   dds = DESeq2::DESeq(dds, quiet=FALSE)
   res = DESeq2::results(dds, contrast=c("grouping", sampleGroup, refGroup), cooksCutoff=FALSE)
   res = as.list(res)
-  res$sf = 1/colData(dds)$sizeFactor
+  res$sf = sf
   return(res)
 }
 
@@ -194,7 +222,7 @@ runEdger = function(x, sampleGroup, refGroup, grouping, normMethod){
 }
 
 ##' @describeIn twoGroupCountComparison Runs the Glm test method.
-runGlm = function(x, sampleGroup, refGroup, grouping, normMethod, batch=NULL){
+runGlm = function(x, sampleGroup, refGroup, grouping, normMethod, grouping2=NULL){
   requireNamespace("edgeR", warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
   ## get the scaling factors for the entire data set
   cds = DGEList(counts=x, group=grouping)
@@ -211,9 +239,9 @@ runGlm = function(x, sampleGroup, refGroup, grouping, normMethod, batch=NULL){
   cds = DGEList(counts=x2, group=grouping)
   cds = calcNormFactors(cds, method=normMethod)
   groupFactor = factor(grouping, levels = c(refGroup, sampleGroup))
-  if (ezIsSpecified(batch)){
-    design = model.matrix( ~ groupFactor + factor(batch[isSample|isRef]))
-    colnames(design) = c("Intercept", "Grouping", paste("Batch", 1:(ncol(design)-2), sep="_"))
+  if (ezIsSpecified(grouping2)){
+    design = model.matrix( ~ groupFactor + factor(grouping2[isSample|isRef]))
+    colnames(design) = c("Intercept", "Grouping", paste("Grouping2", 1:(ncol(design)-2), sep="_"))
   } else {
     design = model.matrix( ~ groupFactor)
     colnames(design) = c("Intercept", "Grouping")
@@ -268,7 +296,10 @@ runGlm = function(x, sampleGroup, refGroup, grouping, normMethod, batch=NULL){
 ##' @template rawData-template
 ##' @template types-template
 ##' @template roxygen-template
-writeNgsTwoGroupReport = function(dataset, result, output, htmlFile="00index.html", param=NA, rawData=NA, types=NULL) {
+writeNgsTwoGroupReport = function(dataset, deResult, output, htmlFile="00index.html", types=NULL) {
+  param = deResult$param
+  rawData = deResult$rawData
+  result = deResult$result
   seqAnno = rawData$seqAnno
   
   titles = list()
@@ -294,13 +325,20 @@ writeNgsTwoGroupReport = function(dataset, result, output, htmlFile="00index.htm
   resultFile = addResultFile(doc, param, result, rawData)
   ezWrite.table(result$sf, file="scalingfactors.txt", head="Name", digits=4)
   
+  liveReportLink = output$getColumn("Live Report")
+  #resultObjFile = paste0("result--", param$comparison, "--", ezRandomString(length=12), "--EzResult.RData")
+  deResult$saveToFile(basename(output$getColumn("Live Report")))
+  addParagraph(doc, ezLink(liveReportLink,
+                           "Live Report and Visualizations",
+                           target = "_blank"))
+
   logSignal = log2(shiftZeros(result$xNorm, param$minSignal))
   result$groupMeans = cbind(rowMeans(logSignal[ , param$grouping == param$sampleGroup, drop=FALSE]),
                             rowMeans(logSignal[ , param$grouping == param$refGroup, drop=FALSE]))
   colnames(result$groupMeans) = c(param$sampleGroup, param$refGroup)
   
   if (param$writeScatterPlots){
-    testScatterTitles = addTestScatterPlots(doc, param, logSignal, result, seqAnno, resultFile$resultFile, types) ## colorRange was also not used in the old function
+    testScatterTitles = addTestScatterPlots(doc, param, logSignal, result, seqAnno, resultFile$resultFile, types) 
     titles = append(titles, testScatterTitles)
   }
   
@@ -355,7 +393,7 @@ writeNgsTwoGroupReport = function(dataset, result, output, htmlFile="00index.htm
         goAndEnrichr = goTables$linkTable
       }
       goAndEnrichrFt = ezFlexTable(goAndEnrichr, border = 2, header.columns = TRUE, add.rownames=TRUE)
-      bgColors = rep(gsub("FF$", "", clusterResult$clusterColors))
+      bgColors = gsub("FF$", "", clusterResult$clusterColors)
       goAndEnrichrFt = setFlexTableBackgroundColors(goAndEnrichrFt, j=1, colors=bgColors)
       goAndEnrichrTableLink = as.html(ezGrid(rbind("Background color corresponds to the row colors in the heatmap plot.",
                                                    as.html(goAndEnrichrFt))))

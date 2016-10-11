@@ -7,7 +7,7 @@
 
 
 ezMethodCountOverlaps = function(input=NA, output=NA, param=NA){
-  bamFile = input$getFullPaths(param, "BAM")
+  bamFile = input$getFullPaths("BAM")
   outputFile = basename(output$getColumn("Count"))
   
   requireNamespace("bitops", warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
@@ -41,8 +41,7 @@ ezMethodCountOverlaps = function(input=NA, output=NA, param=NA){
 }
 
 ##' @template app-template
-##' @templateVar method ezMethodCountOverlaps
-##' @templateVar htmlArg )
+##' @templateVar method ezMethodCountOverlaps(input=NA, output=NA, param=NA)
 ##' @description Use this reference class to run 
 ##' @section Functions:
 ##' \itemize{
@@ -242,10 +241,11 @@ getFeatureCounts = function(chrom, gff, reads, param){
 ## in that case the reference name (rname) is the transcript ID
 ## does handle paired-end consistently, i.e. a pair is counted as 1 if the ends align to the same  transcript
 ## and it is counted fractionally if alignments go to multiple transcripts
-countTranscriptBam = function(bamFile, isFirstMateRead=NA, isSecondMateRead=NA, isUnmappedQuery=FALSE, isProperPair=NA){
-  bam = ezScanBam(bamFile, what=c("qname", "rname"),
+countTranscriptBam = function(bamFile, strand="*", isFirstMateRead=NA, isSecondMateRead=NA, isUnmappedQuery=FALSE, isProperPair=NA,
+                              isSecondaryAlignment=NA){
+  bam = ezScanBam(bamFile, what=c("qname", "rname"), strand=strand,
                    isFirstMateRead=isFirstMateRead, isSecondMateRead=isSecondMateRead, 
-                   isUnmappedQuery=isUnmappedQuery, isProperPair=isProperPair)
+                   isUnmappedQuery=isUnmappedQuery, isProperPair=isProperPair, isSecondaryAlignment=isSecondaryAlignment)
   multiMatch = table(bam$qname)
   counts = tapply(1/multiMatch[bam$qname], bam$rname, sum)
   rm("bam", "multiMatch")

@@ -19,7 +19,7 @@ Normalizes the matrix with the Variance Stabilizing Normalization and keeps row 
 }
 \examples{
 m1 = matrix(1:200,50)
-ezVsnNorm(m1)
+m2 = ezVsnNorm(m1)
 }
 \author{
 Rehrauer, Hubert

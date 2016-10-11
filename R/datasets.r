@@ -9,7 +9,8 @@
 ## code for handling dataset data.frames
 ##' @title Makes a minimal single end dataset
 ##' @description Makes a minimal single end dataset by combining the arguments to a data.frame.
-##' @param fqDir a character specifying the path to the fastq files.
+##' You have to switch directory to the root of the data store first.
+##' @param fqDir a character specifying the path to the directory holding the fastq files. The path must be relative to the DATA_ROOT
 ##' @param species a character specifying the species name.
 ##' @param adapter1 a character representing the adapter sequence.
 ##' @param adapter2 a character representing the second adapter sequence in the case of a paired end dataset.
@@ -22,32 +23,40 @@
 ##' ds = makeMinimalSingleEndReadDataset(fqDir, species)
 ##' ds2 = makeMinimalPairedEndReadDataset(fqDir, species)
 makeMinimalSingleEndReadDataset = function(fqDir, species="", adapter1="GATCGGAAGAGCACACGTCTGAACTCCAGTCAC",
-                                       strandMode="both"){
+                                       strandMode="both", readCount=NULL){
   gzFiles = list.files(fqDir, ".gz$", full.names=TRUE)
   samples = sub(".*-", "", sub(".fastq.gz", "", gzFiles))
   ds = data.frame("Read1 [File]"=gzFiles, row.names=samples, stringsAsFactors=FALSE, check.names=FALSE)
   ds$Species = species
   ds$Adapter1 = adapter1
   ds$strandMode = strandMode
-  ds$"Read Count"=""
+  if (is.null(readCount)){
+    ds$"Read Count"=countReadsInFastq(gzFiles)
+  } else {
+    ds$"Read Count" = readCount
+  }
   #ezWrite.table(ds, file=file.path(fqDir, "dataset.tsv"), head="Name")
   return(ds)
 }
 
 ##' @describeIn makeMinimalSingleEndReadDataset Does the same for paired end reads.
 makeMinimalPairedEndReadDataset = function(fqDir, species="", adapter1="GATCGGAAGAGCACACGTCTGAACTCCAGTCAC", adapter2="AGATCGGAAGAGCGTCGTGTAGGGAAAGAGTGT",
-                                       strandMode="both"){
-  gzFiles = list.files(fqDir, "R1.fastq.gz$", full.names=TRUE)
-  samples = sub(".*-", "", sub("R1.fastq.gz", "", gzFiles))
+                                       strandMode="both", readCount=NULL, readTypeSuffix=c("-R1.fastq.gz", "-R2.fastq.gz")){
+  gzFiles = list.files(fqDir, readTypeSuffix[1], full.names=TRUE)
+  samples = sub(readTypeSuffix[1], "", gzFiles)
   ds = data.frame("Read1 [File]"=gzFiles, row.names=samples, stringsAsFactors=FALSE, check.names=FALSE)
-  r2Files = sub("R1.fastq", "R2.fastq", gzFiles)
+  r2Files = sub(readTypeSuffix[1], readTypeSuffix[2], gzFiles)
   stopifnot(file.exists(r2Files))
   ds$"Read2 [File]" = r2Files
   ds$Adapter1 = adapter1
   ds$Adapter2 = adapter2
   ds$strandMode = strandMode
   ds$Species = species
-  ds$"Read Count"=""
+  if (is.null(readCount)){
+    ds$"Read Count"=countReadsInFastq(gzFiles)
+  } else {
+    ds$"Read Count" = readCount
+  }
   #ezWrite.table(ds, file=file.path(fqDir, "dataset.tsv"), head="Name")
   return(ds)
 }

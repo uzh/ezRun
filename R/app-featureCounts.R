@@ -7,12 +7,12 @@
 
 
 ezMethodFeatureCounts = function(input=NA, output=NA, param=NA){
-  bamFile = input$getFullPaths(param, "BAM")
+  bamFile = input$getFullPaths("BAM")
   localBamFile = .getBamLocally(bamFile)
   outputFile = basename(output$getColumn("Count"))
   statFile = basename(output$getColumn("Stats"))
   
-  sink(file="messages.txt")
+  sink(file="featureCounts-messages.txt")
   countResult = Rsubread::featureCounts(localBamFile, annot.inbuilt=NULL,
                               annot.ext=param$ezRef@refFeatureFile, isGTFAnnotationFile=TRUE,
                               GTF.featureType=param$gtfFeatureType,
@@ -21,7 +21,7 @@ ezMethodFeatureCounts = function(input=NA, output=NA, param=NA){
                                                   "transcript"="transcript_id",
                                                   "isoform"="transcript_id",
                                                   stop("unsupported feature level: ", param$featureLevel)),
-                              useMetaFeatures=TRUE,
+                              useMetaFeatures=param$useMetaFeatures,
                               allowMultiOverlap=param$allowMultiOverlap, isPairedEnd=param$paired, 
                               requireBothEndsMapped=FALSE,
                               checkFragLength=FALSE,minFragLength=50,maxFragLength=600,
@@ -30,10 +30,12 @@ ezMethodFeatureCounts = function(input=NA, output=NA, param=NA){
                               minMQS=param$minMapQuality,
                               readExtension5=0,readExtension3=0,read2pos=NULL,
                               minOverlap=param$minFeatureOverlap,
-                              countSplitAlignmentsOnly=FALSE,
+                              ignoreDup=param$ignoreDup,
+                              splitOnly=FALSE,
                               countMultiMappingReads=param$keepMultiHits,
-                              countPrimaryAlignmentsOnly=param$countPrimaryAlignmentsOnly,
-                              countChimericFragments=TRUE,ignoreDup=FALSE,chrAliases=NULL,reportReads=FALSE)
+                              fraction=param$keepMultiHits & !param$countPrimaryAlignmentsOnly,
+                              primaryOnly=param$countPrimaryAlignmentsOnly,
+                              countChimericFragments=TRUE,chrAliases=NULL,reportReads=FALSE)
   sink(file=NULL)
   
   colnames(countResult$counts) = "matchCounts"
@@ -44,8 +46,7 @@ ezMethodFeatureCounts = function(input=NA, output=NA, param=NA){
 }
 
 ##' @template app-template
-##' @templateVar method ezMethodFeatureCounts
-##' @templateVar htmlArg )
+##' @templateVar method ezMethodFeatureCounts(input=NA, output=NA, param=NA)
 ##' @description Use this reference class to run 
 EzAppFeatureCounts <-
   setRefClass("EzAppFeatureCounts",
@@ -59,7 +60,9 @@ EzAppFeatureCounts <-
                   appDefaults <<- rbind(gtfFeatureType = ezFrame(Type="character",  DefaultValue="exon",  Description="which gtf feature types to use; with Ensembl GTF files; use 'transcript' to count also intronic reads"),
                                         allowMultiOverlap = ezFrame(Type="logical",  DefaultValue="TRUE",  Description="make sure that every read counts only as one"),
                                         countPrimaryAlignmentsOnly = ezFrame(Type="logical",  DefaultValue="TRUE",  Description="count only the primary alignment"),
-                                        minFeatureOverlap=ezFrame(Type="integer", DefaultValue="10", Description="the number of bases overlap are need to generate a count"))
+                                        minFeatureOverlap=ezFrame(Type="integer", DefaultValue="10", Description="the number of bases overlap are need to generate a count"),
+                                        useMetaFeatures=ezFrame(Type="logical", DefaultValue="TRUE", Description="should counts be summarized to meta-features"),
+                                        ignoreDup=ezFrame(Type="logical", DefaultValue="FALSE", Description="ignore reads marked as duplicates"))
                 }
               )
   )

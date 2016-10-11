@@ -19,9 +19,9 @@ Gets the rpkm measurement.
 param = ezParam()
 param$dataRoot = system.file(package="ezRun", mustWork = TRUE)
 file = system.file("extdata/yeast_10k_STAR_counts/dataset.tsv", package="ezRun", mustWork = TRUE)
-input = EzDataset$new(file=file)
+input = EzDataset$new(file=file, dataRoot=param$dataRoot)
 rawData = loadCountDataset(input, param)
-getRpkm(rawData)
+rpkm = getRpkm(rawData)
 }
 \author{
 Rehrauer, Hubert

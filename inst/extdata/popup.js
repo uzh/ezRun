@@ -1,3 +1,8 @@
+/*!
+ * this is probably no longer needed!!
+ */
+
+
 function popup(options) {
   var defaultOptions = {
     linkName: "",

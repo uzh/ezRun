@@ -1,0 +1,18 @@
+cores	8
+ram	16
+scratch	100
+node	""
+process_mode	SAMPLE
+refBuild	Schizosaccharomyces_pombe/Ensembl/EF2/Annotation/Version-2013-03-07
+paired	true
+strandMode	sense
+refFeatureFile	genes.gtf
+cmdOptions	--no-unal --sensitive --end-to-end -a
+trimAdapter	true
+trimLeft	0
+trimRight	0
+minTailQuality	0
+minAvgQuality	10
+minReadLength	20
+specialOptions	""
+mail	""

@@ -20,7 +20,7 @@ param = ezParam()
 param$ezRef@refFeatureFile = system.file("extdata/genes.gtf", package="ezRun", mustWork=TRUE)
 fp = "/srv/GT/reference/Saccharomyces_cerevisiae/Ensembl/EF4/Sequence/WholeGenomeFasta/genome.fa"
 param$ezRef@refFastaFile = fp
-getTranscriptGcAndWidth(param)
+gw = getTranscriptGcAndWidth(param)
 }
 \author{
 Rehrauer, Hubert

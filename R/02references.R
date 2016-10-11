@@ -38,7 +38,9 @@ EzRef = setClass("EzRef",
                            refAnnotationFile="character",
                            refFastaFile="character",
                            refChromSizesFile="character",
-                           refAnnotationVersion="character"))
+                           refAnnotationVersion="character",
+                           refVariantsDir="character")
+                 )
 
 ##' @describeIn EzRef Initializes the slots of EzRef. It will also try to specify some fields and if necessary get full file paths.
 setMethod("initialize", "EzRef", function(.Object, param=list()){
@@ -50,6 +52,7 @@ setMethod("initialize", "EzRef", function(.Object, param=list()){
   } else {
     genomesRoot = param$genomesRoot
   }
+  genomesRoot = strsplit(genomesRoot, ":")[[1]]
   .Object@refBuild = param$refBuild
   refFields = strsplit(.Object@refBuild, "/", fixed=TRUE)[[1]]
   if (ezIsSpecified(param$refBuildName)){
@@ -60,8 +63,15 @@ setMethod("initialize", "EzRef", function(.Object, param=list()){
   if (ezIsSpecified(param$refBuildDir)){
     .Object@refBuildDir = param$refBuildDir
   } else {
-    .Object@refBuildDir = file.path(genomesRoot, paste(refFields[1:3], collapse="/"))
+    for (gr in genomesRoot){
+      rbd = file.path(gr, paste(refFields[1:3], collapse="/"))
+      if (file.exists(rbd)){
+        break
+      }
+    }
+    .Object@refBuildDir = rbd
   }
+  .Object@refVariantsDir = file.path(.Object@refBuildDir, "Variants")
   if (length(refFields) == 5 && grepl("^Version", refFields[5])){
     .Object@refAnnotationVersion = refFields[5]
   } else {
@@ -76,9 +86,9 @@ setMethod("initialize", "EzRef", function(.Object, param=list()){
     .Object@refFeatureFile = param$refFeatureFile
   } else {
     if (ezIsSpecified(.Object@refAnnotationVersion)){
-      .Object@refFeatureFile =  file.path(.Object@refBuildDir, "Annotation", "Genes", param$refFeatureFile)
-    } else {
       .Object@refFeatureFile =  file.path(.Object@refBuildDir, "Annotation", .Object@refAnnotationVersion, "Genes", param$refFeatureFile)
+    } else {
+      .Object@refFeatureFile =  file.path(.Object@refBuildDir, "Annotation", "Genes", param$refFeatureFile)
     }
   }
   if (ezIsAbsolutePath(param$refAnnotationFile)){
@@ -140,8 +150,9 @@ setMethod("buildRefDir", "EzRef", function(.Object, genomeFile, genesFile, genom
   #dir.create(.Object@refChromDir) ## by default do not generate the chromosome dir -- TODO: check if this directory is indeed needed;
   if (!is.null(.Object@refAnnotationVersion)){
     ezSystem(paste("cd", file.path(.Object@refBuildDir, "Annotation"), "; ", "ln -s",
-                   file.path(.Object@refAnnotationVersion, "*"), "."))
+                   file.path(.Object@refAnnotationVersion, "Genes"), "Genes"))
   }
+
   
   genomeInfoList = cleanGenomeFiles(genomeFile, genesFile)
   writeXStringSet(genomeInfoList$genomeSeq, .Object@refFastaFile)
@@ -152,7 +163,7 @@ setMethod("buildRefDir", "EzRef", function(.Object, genomeFile, genesFile, genom
   fai = ezRead.table(paste0(.Object@refFastaFile, ".fai"), header =FALSE, row.names=NULL)
   ezWrite.table(fai[ ,1:2], .Object@refChromSizesFile, row.names = FALSE, col.names = FALSE)
   
-  cmd = paste("java -jar", PICARD_JAR, "CreateSequenceDictionary",
+  cmd = paste(JAVA, " -jar", PICARD_JAR, "CreateSequenceDictionary",
               paste0("R=", .Object@refFastaFile), paste0("O=", sub(".fa$", ".dict", .Object@refFastaFile)))
   ezSystem(cmd)
 })

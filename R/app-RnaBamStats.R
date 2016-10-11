@@ -25,8 +25,7 @@ ezMethodRnaBamStats = function(input=NA, output=NA, param=NA, htmlFile="00index.
 }
 
 ##' @template app-template
-##' @templateVar method ezMethodRnaBamStats
-##' @templateVar htmlArg , htmlFile="00index.html")
+##' @templateVar method ezMethodRnaBamStats(input=NA, output=NA, param=NA, htmlFile="00index.html")
 ##' @description Use this reference class to run 
 EzAppRnaBamStats <-
   setRefClass("EzAppRnaBamStats",
@@ -61,7 +60,7 @@ EzAppRnaBamStats <-
 ##' @seealso \code{\link{plotBamStat}}
 computeBamStats = function(input, htmlFile, param, gff, resultList=NULL){
   samples = input$getNames()
-  files = input$getFullPaths(param, "BAM")
+  files = input$getFullPaths("BAM")
   dataset = input$meta
   
   ## get the RNA_repeats if available

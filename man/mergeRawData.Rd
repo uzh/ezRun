@@ -21,10 +21,10 @@ Merges raw data by combining two lists of raw data into one.
 param = ezParam()
 param$dataRoot = system.file(package="ezRun", mustWork = TRUE)
 file = system.file("extdata/yeast_10k_STAR_counts/dataset.tsv", package="ezRun", mustWork = TRUE)
-input = EzDataset$new(file=file)
-rawData1 = loadCountDataset(input$copy()$subset(1), param)
-rawData2 = loadCountDataset(input$copy()$subset(2), param)
-mergeRawData(rawData1, rawData2)
+input = EzDataset$new(file=file, dataRoot=param$dataRoot)
+rawData1 = loadCountDataset(input$subset(1), param)
+rawData2 = loadCountDataset(input$subset(2), param)
+rdm = mergeRawData(rawData1, rawData2)
 }
 \author{
 Rehrauer, Hubert

@@ -32,7 +32,7 @@ test_that("Tests isValidCigar()", {
 test_that("Tests shiftZeros()", {
   shifted = shiftZeros(runif(100)*10, 2)
   expect_is(shifted, "numeric")
-  expect_more_than(min(shifted), 0.5)
+  expect_gt(min(shifted), 0.5)
 })
 
 test_that("Tests expandGRanges()", {
@@ -41,8 +41,8 @@ test_that("Tests expandGRanges()", {
   expanded = expandGRanges(GRange)
   expect_is(expanded, "GRanges")
   for (i in 1:3){
-    expect_less_than(expanded@ranges@start[i], GRange@ranges@start[i])
-    expect_more_than(expanded@ranges@width[i], GRange@ranges@width[i])
+    expect_lt(expanded@ranges@start[i], GRange@ranges@start[i])
+    expect_gt(expanded@ranges@width[i], GRange@ranges@width[i])
   }
 })
 

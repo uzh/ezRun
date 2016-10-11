@@ -4,17 +4,19 @@
 \alias{writeNgsTwoGroupReport}
 \title{Writes the report for the two group analysis}
 \usage{
-writeNgsTwoGroupReport(dataset, result, output, htmlFile = "00index.html",
-  param = NA, rawData = NA, types = NULL)
+writeNgsTwoGroupReport(dataset, deResult, output, htmlFile = "00index.html",
+  types = NULL)
 }
 \arguments{
 \item{dataset}{a data.frame from the meta field of an EzDataset.}
 
-\item{result}{a list of results.}
-
 \item{output}{a list, file path or an object of the class EzDataset containing the output information.}
 
 \item{htmlFile}{a character, ending with .html, representing the file path of an html file.}
+
+\item{types}{a character vector containing the types.}
+
+\item{result}{a list of results.}
 
 \item{param}{a list of parameters:
 \itemize{
@@ -33,8 +35,6 @@ writeNgsTwoGroupReport(dataset, result, output, htmlFile = "00index.html",
 }}
 
 \item{rawData}{a list of raw data obtained from \code{loadCountDataset()}.}
-
-\item{types}{a character vector containing the types.}
 }
 \description{
 Writes the report for the two group analysis.

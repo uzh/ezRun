@@ -16,10 +16,10 @@
 ##' param = ezParam()
 ##' param$dataRoot = system.file(package="ezRun", mustWork = TRUE)
 ##' file = system.file("extdata/yeast_10k_STAR_counts/dataset.tsv", package="ezRun", mustWork = TRUE)
-##' input = EzDataset$new(file=file)
-##' rawData1 = loadCountDataset(input$copy()$subset(1), param)
-##' rawData2 = loadCountDataset(input$copy()$subset(2), param)
-##' mergeRawData(rawData1, rawData2)
+##' input = EzDataset$new(file=file, dataRoot=param$dataRoot)
+##' rawData1 = loadCountDataset(input$subset(1), param)
+##' rawData2 = loadCountDataset(input$subset(2), param)
+##' rdm = mergeRawData(rawData1, rawData2)
 mergeRawData = function(rawData1, rawData2){
   for (nm in names(rawData1)){
     if (is.matrix(rawData1[[nm]]) || is.data.frame(rawData1[[nm]])){
@@ -46,9 +46,9 @@ mergeRawData = function(rawData1, rawData2){
 ##' param = ezParam()
 ##' param$dataRoot = system.file(package="ezRun", mustWork = TRUE)
 ##' file = system.file("extdata/yeast_10k_STAR_counts/dataset.tsv", package="ezRun", mustWork = TRUE)
-##' input = EzDataset$new(file=file)
+##' input = EzDataset$new(file=file, dataRoot=param$dataRoot)
 ##' rawData = loadCountDataset(input, param)
-##' selectSamples(rawData, c("wt_1","wt_2"))
+##' rd2 = selectSamples(rawData, c("wt_1","wt_2"))
 selectSamples = function(rawData, samples){
   if (!is.null(rawData$signal)){
     stopifnot(samples %in% colnames(rawData$signal))
@@ -69,6 +69,23 @@ selectSamples = function(rawData, samples){
 }
 
 
+renameSamples = function(rawData, samplesNew){
+  samplesOld = rownames(rawData$dataset)
+  stopifnot(length(samplesOld) == length(samplesNew))
+  for (nm in names(rawData)){
+    if (is.matrix(rawData[[nm]]) || is.data.frame(rawData[[nm]])){
+      if (all(samplesOld %in% colnames(rawData[[nm]]))){
+        colnames(rawData[[nm]]) = samplesNew
+      }
+      if (all(samplesOld %in% rownames(rawData[[nm]]))){
+        rownames(rawData[[nm]]) = samplesNew
+      }
+    }
+  }
+  return(rawData)
+}
+
+
 ##' @title Gets the signal
 ##' @description Gets the signal from raw data and modifies it if necessary due to logarithm.
 ##' @template rawData-template
@@ -78,9 +95,9 @@ selectSamples = function(rawData, samples){
 ##' param = ezParam()
 ##' param$dataRoot = system.file(package="ezRun", mustWork = TRUE)
 ##' file = system.file("extdata/yeast_10k_STAR_counts/dataset.tsv", package="ezRun", mustWork = TRUE)
-##' input = EzDataset$new(file=file)
+##' input = EzDataset$new(file=file, dataRoot=param$dataRoot)
 ##' rawData = loadCountDataset(input, param)
-##' getSignal(rawData)
+##' sig = getSignal(rawData)
 ## TODOEXAMPLE: get example with proper return and improve description.
 getSignal = function(rawData){
   if (rawData$isLog){
@@ -109,9 +126,9 @@ getLog2Signal = function(rawData){
 ##' param = ezParam()
 ##' param$dataRoot = system.file(package="ezRun", mustWork = TRUE)
 ##' file = system.file("extdata/yeast_10k_STAR_counts/dataset.tsv", package="ezRun", mustWork = TRUE)
-##' input = EzDataset$new(file=file)
+##' input = EzDataset$new(file=file, dataRoot=param$dataRoot)
 ##' rawData = loadCountDataset(input, param)
-##' getRpkm(rawData)
+##' rpkm = getRpkm(rawData)
 ## TODOEXAMPLE: get example with proper return
 getRpkm = function(rawData){
   #edgeR::rpkm.default
@@ -228,10 +245,10 @@ aggregateCountsByGene = function(param, rawData){
 ##' param = ezParam()
 ##' param$dataRoot = system.file(package="ezRun", mustWork = TRUE)
 ##' file = system.file("extdata/yeast_10k_STAR_counts/dataset.tsv", package="ezRun", mustWork = TRUE)
-##' input = EzDataset$new(file=file)
+##' input = EzDataset$new(file=file, dataRoot=param$dataRoot)
 ##' rawData = loadCountDataset(input, param)
 ##' keep = "YFR014C"
-##' selectFeatures(rawData, keep)
+##' rd2 = selectFeatures(rawData, keep)
 selectFeatures = function(rawData, keep){
   
   if (!is.null(rawData$signal)){

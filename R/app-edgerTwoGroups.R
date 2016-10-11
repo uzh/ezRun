@@ -12,8 +12,8 @@ ezMethodEdger = function(input=NA, output=NA, param=NA, htmlFile="00index.html")
   
   input = cleanupTwoGroupsInput(input, param)
   param$grouping = input$getColumn(param$grouping)
-  if (ezIsSpecified(param$batch) && length(param$batch) == 1){
-    param$batch = input$meta[[param$batch]]
+  if (ezIsSpecified(param$grouping2) && length(param$grouping2) == 1){
+    param$grouping2 = input$getColumn(param$grouping2)
   }
   
   rawData = loadCountDataset(input, param)
@@ -22,21 +22,18 @@ ezMethodEdger = function(input=NA, output=NA, param=NA, htmlFile="00index.html")
     return("Error")
   }
   
-  result = twoGroupCountComparison(rawData, param)
-  if (isError(result)){
-    writeErrorReport(htmlFile, param=param, error=result$error)
+  deResult = twoGroupCountComparison(rawData, param)
+  if (isError(deResult)){
+    writeErrorReport(htmlFile, param=param, error=deResult$error)
     return("Error")
   }
-  result$featureLevel = rawData$featureLevel
-  result$countName = rawData$countName
   
-  writeNgsTwoGroupReport(input$meta, result, output, htmlFile, param=param, rawData=rawData)
+  writeNgsTwoGroupReport(rawData$dataset, deResult, output, htmlFile)
   return("Success")
 }
 
 ##' @template app-template
-##' @templateVar method ezMethodEdger
-##' @templateVar htmlArg , htmlFile="00index.html")
+##' @templateVar method ezMethodEdger(input=NA, output=NA, param=NA, htmlFile="00index.html")
 ##' @description Use this reference class to run a differential expression analysis with the application edgeR on two groups.
 EzAppEdger <-
   setRefClass("EzAppEdger",

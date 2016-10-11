@@ -24,13 +24,12 @@ ezMethodCountQC = function(input=NA, output=NA, param=NA, htmlFile="00index.html
     writeErrorReport(htmlFile, param=param, error=rawData$error)
     return("Error")
   }
-  runNgsCountQC(dataset, htmlFile, param, rawData=rawData)
+  runNgsCountQC(dataset, htmlFile, param, rawData=rawData, output=output)
   return("Success")
 }
 
 ##' @template app-template
-##' @templateVar method ezMethodCountQC
-##' @templateVar htmlArg , htmlFile="00index.html")
+##' @templateVar method ezMethodCountQC(input=NA, output=NA, param=NA, htmlFile="00index.html")
 ##' @description Use this reference class to run 
 EzAppCountQC <-
   setRefClass("EzAppCountQC",
@@ -71,7 +70,7 @@ EzAppCountQC <-
 ##' @template types-template
 ##' @template roxygen-template
 runNgsCountQC = function(dataset, htmlFile="00index.html", param=param, rawData=NULL,
-                         writeDataFiles=TRUE, types=NULL){
+                         writeDataFiles=TRUE, types=NULL, output=NULL){
   
   if (is.null(rawData$signal)){
     rawData$signal = ezNorm(rawData$counts, presentFlag=rawData$presentFlag, method=param$normMethod)
@@ -125,6 +124,19 @@ runNgsCountQC = function(dataset, htmlFile="00index.html", param=param, rawData=
   settings["Data Column Used:"] = rawData$countName
   addFlexTable(doc, ezGrid(settings, add.rownames=TRUE))
   
+  if (!is.null(output)){
+    liveReportLink = output$getColumn("Live Report")
+    summary = c("Name"=param$name,
+                "Reference Build"=param$refBuild,
+                "Feature Level"=rawData$featureLevel,
+                "Normalization"=param$normMethod)
+    result = EzResult(param=param, rawData=rawData, result=list(summary=summary, analysis="Count_QC"))
+    result$saveToFile(basename(output$getColumn("Live Report")))
+    addParagraph(doc, ezLink(liveReportLink,
+                             "Live Report and Visualizations",
+                             target = "_blank"))
+  }  
+  
   if (writeDataFiles){
     if (!is.null(rawData$presentFlag)){
       combined = interleaveMatricesByColumn(rawData$signal, rawData$presentFlag)			
@@ -172,7 +184,7 @@ runNgsCountQC = function(dataset, htmlFile="00index.html", param=param, rawData=
     titles[["Data Files"]] = "Data Files"
     addTitle(doc, titles[[length(titles)]], 2, id=titles[[length(titles)]])
     addTxtLinksToReport(doc, dataFiles, param$doZip)
-    addParagraph(doc, newWindowLink(tableLink))
+    addParagraph(doc, ezLink(tableLink, target = "_blank"))
   }
   
   titles[["Count Statistics"]] = "Count Statistics"
@@ -469,9 +481,12 @@ runNgsCountQC = function(dataset, htmlFile="00index.html", param=param, rawData=
     
     pngName = "signalDens.png"
     plotCmd = expression({
-      countDensPlot(signal, sampleColors, main="all transcripts", bw=0.7)
+      #countDensPlot(signal, sampleColors, main="all transcripts", bw=0.7)
+      p = countDensGGPlot(cts=data.frame(signal,stringsAsFactors = F),colors=sampleColors, alpha=0.4)
+      print(p)
     })
-    pngLink = ezImageFileLink(plotCmd, file=pngName)
+    
+    pngLink = ezImageFileLink(plotCmd, file=pngName, width=700, height=550)
     
     titles[["Expression densities"]] = "Expression densities"
     addTitle(doc, titles[[length(titles)]], 2, id=titles[[length(titles)]])

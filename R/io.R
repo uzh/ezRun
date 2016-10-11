@@ -70,8 +70,8 @@ zipWorkingDir = function(zipName){
 ##' @templateVar fun read.table()
 ##' @seealso \code{\link[utils]{read.table}}
 ##' @examples 
-##' m1 = matrix(1:20, 5)
-##' write.table(m1, "exampleTable", sep="\t")
+##' m1 = ezMatrix(1:20, rows=1:5, cols=1:4)
+##' ezWrite.table(m1, "exampleTable")
 ##' ezRead.table("exampleTable")
 ## simple wrapper to read.table with useful defaults
 ezRead.table = function(file, header=TRUE, sep="\t", as.is=TRUE, row.names=1, quote="", skip=0, comment.char="", check.names=FALSE, ...){
@@ -164,8 +164,8 @@ ezInteractiveTable = function(values, tableLink, digits=NULL, colNames=colnames(
     caption = htmltools::tags$caption(htmltools::h1(title))
   }
   interactiveTable = DT::datatable(values, 
-                                   extensions=c("ColVis", "TableTools"), filter="top", caption=caption, colnames=colNames,
-                                   options=list(dom='TC<"clear">lfrtip', pageLength=25, autoWidth=TRUE)
+                                   extensions=c("Buttons"), filter="top", caption=caption, colnames=colNames,
+                                   options=list(dom = 'Bfrtip', buttons = c('colvis','copy', 'csv', 'excel', 'pdf', 'print'), pageLength=25, autoWidth=TRUE)
                                    )
   if (!is.null(format)){
     currEnv = environment()
@@ -237,4 +237,10 @@ getSuffix = function(filename){
 ##' ezIsAbsolutePath("/absolutepath")
 ezIsAbsolutePath = function(x){
   !is.null(x) & grepl("^/", x)
+}
+
+
+ezRandomString = function(length){
+  paste(sample(c(0:9, letters, LETTERS),
+               length, replace=TRUE), collapse="")
 }

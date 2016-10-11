@@ -27,23 +27,23 @@
 ##' @template roxygen-template
 ##' @examples 
 ##' file = system.file("extdata/yeast_10k/dataset.tsv", package="ezRun", mustWork = TRUE)
-##' ds = EzDataset$new(file=file)
 ##' dataRoot = system.file(package="ezRun", mustWork = TRUE)
+##' ds = EzDataset$new(file=file, dataRoot=dataRoot)
 ##' ds$file
 ##' ds$meta
 ##' ds$getColumn("Read1")
+##' ds$getFullPaths("Read1")
 ##' ds2 = ds$copy()
 ##' ds2$setColumn("Read1","replacement")
 ##' ds$columnHasTag("File")
 ##' ds$getNames()
-##' ds$getFullPaths(dataRoot,"Read1")
-##' ds$meta$"Genotype [Factor]"[1] = "a\n"
-##' ##ds2 = EzDataset$new(meta = ds$meta) ## gives an error
+##' ds$meta$"Genotype [Factor]"[1] = "a"
+##' ds2 = EzDataset$new(meta = ds$meta)
 EzDataset <-
   setRefClass("EzDataset",
-              fields = c("file", "meta", "colNames", "tags", "isModified"),
+              fields = c("file", "meta", "colNames", "tags", "isModified", "dataRoot"),
               methods = list(
-                initialize = function(fileNew=character(0), metaNew=list())
+                initialize = function(fileNew=character(0), metaNew=list(), dataRoot=NULL)
                 {
                   if (length(metaNew) > 0){
                     if (is.data.frame(metaNew)){
@@ -67,12 +67,19 @@ EzDataset <-
                   }
                   colNames <<- sub(" \\[.*", "", base::names(meta))
                   tags <<- ezTagListFromNames(base::names(meta))
+                  ## reorder the meta-information such that factors come first!
+                  if (class(meta) != "uninitializedField"){
+                    meta <<- meta[ , order(.self$columnHasTag("Factor"), decreasing = TRUE), drop=FALSE]
+                  }
+                  tags <<- ezTagListFromNames(base::names(meta))
                   for (i in which(.self$columnHasTag("Factor"))){
+                    meta[ ,i] <<- as.character(meta[ ,i])
                     hasBadCharacter = !hasFilesafeCharacters(meta[ ,i])
                     if (any(hasBadCharacter)){
                       stop("Invalid character in: ", colnames(meta)[i], " - ", paste("'", meta[hasBadCharacter ,i], "'", sep="", collapse=" "))
                     }
                   }
+                  dataRoot <<- dataRoot
                   isModified <<- FALSE
                 },
                 getColumn = function(names)
@@ -110,10 +117,11 @@ EzDataset <-
                 },
                 subset = function(samples)
                 {
-                  "Subsets the meta field keeping \\code{samples}."
-                  meta <<- meta[samples, , drop=FALSE]
-                  isModified <<- TRUE
-                  return(.self)
+                  "Subsets the meta field keeping \\code{samples} and generates a new EzDataset"
+                  # meta <<- meta[samples, , drop=FALSE]
+                  # isModified <<- TRUE
+                  # return(.self)
+                  return(EzDataset(meta=meta[samples, , drop=FALSE], dataRoot=dataRoot))
                 },
                 getNames = function()
                 {
@@ -125,25 +133,22 @@ EzDataset <-
                   "Gets the number of samples."
                   return(length(rownames(meta)))
                 },
-                getFullPaths = function(param, name)
+                getFullPaths = function(name)
                 {
-                  "Combines a root directory specified by \\code{param$dataRoot} or \\code{param} with the file names in the column with \\code{name}."
-                  if (is.list(param)){
-                    dataRoot = param$dataRoot
-                  } else {
-                    dataRoot = param
-                  }
+                  "Gets the files in the nameed column prepended with the \\code{dataRoot}."
+                  ### ok = ezSystem(paste("cd", dataRoot, "; pwd")) ### workaround to make sure the drive where the data sits is mounted by the automounter
                   files = .self$getColumn(name)
-                  if (all(ezIsAbsolutePath(files))){
-                    return(files)
+                  if (is.null(dataRoot) || dataRoot == "" ){
+                    fullPaths = files
+                  } else {
+                    fullPaths = file.path(dataRoot, files)
+                    names(fullPaths) = names(files)
                   }
-                  
-                  fullNames = sapply(files, function(x){fn = file.path(dataRoot, x); fn[file.access(fn) == 0][1]})
-                  isInvalid = is.na(fullNames)
+                  isInvalid = file.access(fullPaths) != 0
                   if (any(isInvalid)){
                     stop("Files are not readable using root:\n", paste(dataRoot, collapse="\n"), "\nfiles:\n", paste(files[isInvalid], collapse="\n"))
                   }
-                  return(fullNames)
+                  return(fullPaths)
                 }
               )
   )
@@ -267,17 +272,17 @@ EzApp <-
                 {
                   "Runs the app with the provided \\code{input}, \\code{output} and \\code{param}."
                   if (is.list(input)){
-                    input = EzDataset$new(meta=input)
+                    input = EzDataset$new(meta=input, dataRoot=param$dataRoot)
                   } else {
                     if (is.character(input)){
-                      input = EzDataset$new(file=input)
+                      input = EzDataset$new(file=input, dataRoot=param$dataRoot)
                     }
                   }
                   if (is.list(output)){
-                    output = EzDataset$new(meta=output)
+                    output = EzDataset$new(meta=output, dataRoot=param$dataRoot)
                   } else {
                     if (is.character(output)){
-                      output = EzDataset$new(file=output)
+                      output = EzDataset$new(file=output, dataRoot=param$dataRoot)
                     }
                   }
                   on.exit(.self$appExitAction(param, output, appName=name))
@@ -333,6 +338,8 @@ EzApp <-
                              text=c(text, " ", geterrmessage(), " ", stackTrace[1:(length(stackTrace)-2)]), 
                              to=recipient)
                       message("mail sent to: ", recipient)
+                    } else {
+                      message(c(text, " ", geterrmessage(), " ", stackTrace[1:(length(stackTrace)-2)]))
                     }
                   } else {
                     if (ezValidMail(param$mail)){

@@ -16,8 +16,7 @@ ezMethodNcpro = function(input=NA, output=NA, param=NA){
 }
 
 ##' @template app-template
-##' @templateVar method ezMethodNcpro
-##' @templateVar htmlArg )
+##' @templateVar method ezMethodNcpro(input=NA, output=NA, param=NA)
 ##' @description Use this reference class to run 
 EzAppNcpro <-
   setRefClass("EzAppNcpro",
@@ -41,7 +40,7 @@ EzAppNcpro <-
 ##' @param param     further configuration parameters
 ncpro = function(input, dataset, param=NULL){
   samples = rownames(dataset)
-  fqFiles = input$getFullPaths(param, "Read1")
+  fqFiles = input$getFullPaths("Read1")
   names(fqFiles) = samples
   adapter = unique(dataset$Adapter1)
   stopifnot(length(adapter) == 1)

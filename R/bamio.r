@@ -44,8 +44,8 @@ ezBamSeqLengths = function(bamFile){
 ##' ezSortIndexBam("test.bam", basename(bamFile), ram=0.5, cores = ezThreads())
 ezSortIndexBam = function(inBam, bam, samtools=SAMTOOLS, ram=2, removeBam=TRUE, cores=2){
   
-  maxMem = paste0(floor(ram * 0.8/cores*1000), "M") ## use only 80% --> 20% safety margin before crash
-  cmd = paste(samtools, "sort", "-m", maxMem, "-@", cores, inBam, sub(".bam$", "", bam))
+  maxMem = paste0(as.integer(floor(ram * 0.8/cores*1000)), "M") ## use only 80% --> 20% safety margin before crash
+  cmd = paste(samtools, "sort", "-l 9", "-m", maxMem, "-@", cores, inBam, "-o", bam)
   ezSystem(cmd)
   if (removeBam){
     file.remove(inBam)
@@ -77,14 +77,15 @@ ezSortIndexBam = function(inBam, bam, samtools=SAMTOOLS, ram=2, removeBam=TRUE, 
 ##' ezScanBam(bamFile)
 ezScanBam = function(bamFile, seqname=NULL, start=NULL, end=NULL, strand="*",
                       tag=character(0), what=scanBamWhat(),
-                      isFirstMateRead=NA, isSecondMateRead=NA, isUnmappedQuery=FALSE, isProperPair=NA, countOnly=FALSE){
+                      isFirstMateRead=NA, isSecondMateRead=NA, isUnmappedQuery=FALSE, isProperPair=NA,
+                     isSecondaryAlignment=NA, countOnly=FALSE){
   ## initialize the parameters for scanBam
   param = ScanBamParam(what=what, tag=tag)
   
   ### build and set the flag filter
   isMinusStrand = switch(strand, "-"=TRUE, "+"=FALSE, NA)
   bamFlag(param) = scanBamFlag(isMinusStrand=isMinusStrand, isFirstMateRead=isFirstMateRead, isSecondMateRead=isSecondMateRead,
-                               isUnmappedQuery=isUnmappedQuery, isProperPair=isProperPair)
+                               isUnmappedQuery=isUnmappedQuery, isProperPair=isProperPair, isSecondaryAlignment=isSecondaryAlignment)
   
   ### limit the returned reads by chromosome and start/end if these are provided
   if (!is.null(seqname)){
@@ -539,7 +540,10 @@ getBamMultiMatching = function(param, bamFile, nReads=NULL){
 }
 
 .getBamLocally = function(src, toSam=FALSE){
-  
+
+  if (normalizePath(dirname(src)) %in% c(".", normalizePath(getwd()))){
+    return(src)
+  }
   target = basename(src)
   stopifnot(target != src)
   if (toSam){

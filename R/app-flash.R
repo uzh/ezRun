@@ -16,15 +16,12 @@ ezMethodFlash = function(input=NA, output=NA, param=NA){
   ezSystem(cmd)
   cmd = paste0('pigz ',sampleName,'.extendedFrags.fastq')
   ezSystem(cmd)
-  cmd = paste0('mv trimmomatic.err ',sampleName,'_trimmomatic.log')
-  ezSystem(cmd)
   return("Success")
 }
 
 ##' @author Opitz, Lennart
 ##' @template app-template
-##' @templateVar method ezMethodFlash()
-##' @templateVar htmlArg )
+##' @templateVar method ezMethodFlash(input=NA, output=NA, param=NA)
 ##' @description Use this reference class to run 
 EzAppFlash <-
   setRefClass("EzAppFlash",

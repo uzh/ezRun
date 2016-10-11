@@ -30,7 +30,7 @@ test_that("Tests shrinkToRange()", {
   shrunkRange = shrinkToRange(runif(100), c(low, high))
   expect_false(all(shrunkRange<low))
   expect_false(all(shrunkRange>high))
-  expect_more_than(length(unique(shrunkRange)), 1)
+  expect_gt(length(unique(shrunkRange)), 1)
 })
 
 test_that("Tests interleaveMatricesByColumn()", {
@@ -49,13 +49,13 @@ test_that("Tests ezNorm()", {
   none = ezNorm(numbers)
   expect_identical(numbers, none)
   quantile = ezNorm(numbers, method = "quantile")
-  expect_less_than(sd(quantile), sd(none))
+  expect_lt(sd(quantile), sd(none))
   logMean = ezNorm(numbers, method = "logMean")
-  expect_more_than(max(logMean), max(none))
+  expect_gt(max(logMean), max(none))
   median = ezNorm(numbers, method = "median")
-  expect_more_than(max(median), max(none))
+  expect_gt(max(median), max(none))
   vsn = ezNorm(numbers, method = "vsn")
-  expect_more_than(mean(vsn), max(c(none, quantile, logMean, median)))
+  expect_gt(mean(vsn), max(c(none, quantile, logMean, median)))
 })
 
 test_that("Tests ezCut()", {
@@ -74,7 +74,7 @@ test_that("Tests ezGrepl()", {
   grepl1 = ezGrepl(c(2, 4), 1:100)
   grepl2 = ezGrepl(c(2, 4), 1:100, combine="and")
   expect_is(grepl1, "logical")
-  expect_more_than(length(which(grepl1)), length(which(grepl2)))
+  expect_gt(length(which(grepl1)), length(which(grepl2)))
 })
 
 test_that("Tests ezSplit()", {
@@ -86,7 +86,7 @@ test_that("Tests ezSplit()", {
 test_that("Tests trimWhiteSpace()", {
   toTrim = "    bla    "
   trimmed = trimWhiteSpace(toTrim)
-  expect_less_than(nchar(trimmed), nchar(toTrim))
+  expect_lt(nchar(trimmed), nchar(toTrim))
 })
 
 test_that("Tests hasFilesafeCharacters()", {
@@ -120,7 +120,7 @@ test_that("Tests averageColumns() and averageRows()", {
   ac2 = averageColumns(m1, c(1, 1, 2, 2))
   ar1 = averageRows(m1, c(1, 1, 2, 2, 3))
   expect_is(ac1, "matrix")
-  expect_less_than(ncol(ac2), ncol(ar1))
+  expect_lt(ncol(ac2), ncol(ar1))
 })
 
 test_that("Tests inverseMapping() and makeMultiMapping()", {
@@ -140,12 +140,12 @@ test_that("Tests ezDuplicated() and ezMultiplicated()", {
   isDup1 = ezDuplicated(v1)
   isDup2 = ezDuplicated(v1,"all")
   expect_is(isDup1, "logical")
-  expect_more_than(length(which(isDup2)), length(which(isDup1)))
+  expect_gt(length(which(isDup2)), length(which(isDup1)))
   isMul1 = ezMultiplicated(v1)
   isMul2 = ezMultiplicated(v1,3)
   isMul3 = ezMultiplicated(v1,2,"all")
   expect_is(isMul1, "logical")
-  expect_more_than(length(which(isMul3)), length(which(isMul2)))
+  expect_gt(length(which(isMul3)), length(which(isMul2)))
 })
 
 test_that("Tests ezReplicateNumber()", {

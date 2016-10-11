@@ -21,7 +21,7 @@ gatkRnaSeqHaplotyperApp = function(input=NA, output=NA, param=NA, htmlFile="00in
   genomeSeq = param$ezRef["refFastaFile"]
   nBamsInParallel = min(4, param$cores)
   bamFilesClean = ezMclapply(names(bamFiles), function(sampleName){
-    javaCall = paste0("java -Djava.io.tmpdir=. -Xmx", floor(param$ram/nBamsInParallel), "g")
+    javaCall = paste0(JAVA, " -Djava.io.tmpdir=. -Xmx", floor(param$ram/nBamsInParallel), "g")
     setwdNew(paste(sampleName, "proc", sep="-"))
     bf = bamFiles[sampleName]
     obf = file.path(getwd(), basename(bf))
@@ -71,7 +71,7 @@ gatkRnaSeqHaplotyperApp = function(input=NA, output=NA, param=NA, htmlFile="00in
   }, mc.cores=nBamsInParallel, mc.preschedule=FALSE)
   
   ########### haplotyping
-  haplotyperCall = paste0("java -Djava.io.tmpdir=. -Xmx", param$ram, "g", " -jar ", GATK_JAR, " -T HaplotypeCaller")
+  haplotyperCall = paste0(JAVA, " -Djava.io.tmpdir=. -Xmx", param$ram, "g", " -jar ", GATK_JAR, " -T HaplotypeCaller")
   cmd = paste(haplotyperCall, "-R", genomeSeq,
               "-nct", param$cores,
               paste("-I", bamFilesClean, collapse=" "),

@@ -4,15 +4,13 @@
 \name{EzAppNcpro-class}
 \alias{EzAppNcpro}
 \alias{EzAppNcpro-class}
-\title{The R5 class representing a runnable app using \code{ezMethodNcpro()}}
+\title{The R5 class representing a runnable app using \code{ezMethodNcpro(input=NA, output=NA, param=NA)()}}
 \arguments{
 \item{input}{a list, file path or an object of the class EzDataset containing the input.}
 
 \item{output}{a list, file path or an object of the class EzDataset containing the output information.}
 
 \item{param}{a list of parameters to customize the application run.}
-
-\item{htmlFile}{a character, ending with .html, representing the file path of an html file.}
 }
 \description{
 Use this reference class to run
@@ -34,7 +32,7 @@ Use this reference class to run
 \section{Functions}{
 
 \itemize{
-  \item{\code{ezMethodNcpro(input=NA, output=NA, param=NA): }}
+  \item{\code{ezMethodNcpro(input=NA, output=NA, param=NA) }}:
   {The function to run this application.}
 }
 }

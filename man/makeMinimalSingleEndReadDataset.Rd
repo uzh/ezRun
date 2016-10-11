@@ -6,14 +6,16 @@
 \title{Makes a minimal single end dataset}
 \usage{
 makeMinimalSingleEndReadDataset(fqDir, species = "",
-  adapter1 = "GATCGGAAGAGCACACGTCTGAACTCCAGTCAC", strandMode = "both")
+  adapter1 = "GATCGGAAGAGCACACGTCTGAACTCCAGTCAC", strandMode = "both",
+  readCount = NULL)
 
 makeMinimalPairedEndReadDataset(fqDir, species = "",
   adapter1 = "GATCGGAAGAGCACACGTCTGAACTCCAGTCAC",
-  adapter2 = "AGATCGGAAGAGCGTCGTGTAGGGAAAGAGTGT", strandMode = "both")
+  adapter2 = "AGATCGGAAGAGCGTCGTGTAGGGAAAGAGTGT", strandMode = "both",
+  readCount = NULL, readTypeSuffix = c("-R1.fastq.gz", "-R2.fastq.gz"))
 }
 \arguments{
-\item{fqDir}{a character specifying the path to the fastq files.}
+\item{fqDir}{a character specifying the path to the directory holding the fastq files. The path must be relative to the DATA_ROOT}
 
 \item{species}{a character specifying the species name.}
 
@@ -28,6 +30,7 @@ Returns a data.frame containing the provided information.
 }
 \description{
 Makes a minimal single end dataset by combining the arguments to a data.frame.
+You have to switch directory to the root of the data store first.
 }
 \section{Functions}{
 \itemize{

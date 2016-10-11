@@ -30,9 +30,9 @@ Columns of the matrix will be scaled to an overall median or to a defined target
 }}
 \examples{
 m1 = matrix(1:20, 5)
-ezMedianNorm(m1)
-ezMedianNorm(m1, target=10)
-ezMedianNorm(m1, use=c(TRUE, FALSE))
+m2 = ezMedianNorm(m1)
+m3 = ezMedianNorm(m1, target=10)
+m4 = ezMedianNorm(m1, use=c(TRUE, FALSE))
 }
 \author{
 Rehrauer, Hubert

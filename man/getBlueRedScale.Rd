@@ -18,7 +18,7 @@ Returns a character vector containing colors in hex format.
 Gets a color scale from blue to red in hex format.
 }
 \examples{
-getBlueRedScale()
+rbs = getBlueRedScale()
 }
 \author{
 Rehrauer, Hubert

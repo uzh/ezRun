@@ -6,6 +6,157 @@
 # www.fgcz.ch
 
 
+
+
+
+
+plotLocusCoverageProfile = function(gRanges, bamFiles, gtfFile=NULL,
+                                    height=10, width=20){
+  require(Gviz)
+  require(GenomicFeatures)
+  require(GenomicRanges)
+  if (!is.null(gtfFile)){
+    txdb = makeTxDbFromGFF(gtfFile, dataSource="FGCZ", taxonomyId = "1") #96061234")
+    #saveDb(txdb, "tx.db")
+    #txdb = loadDb("tx.db")
+  } else {
+    stop("gtfFile is required")
+  }
+  if (is.null(names(bamFiles))){
+    names(bamFiles) = sub(".bam", "", basename(bamFiles))
+  }
+  options(ucscChromosomeNames=FALSE)
+  
+  ### the approach using alTrackObjects
+  alTrackList = list()
+  for (nm in names(bamFiles)){
+    alTrackList[[nm]] <- AlignmentsTrack(bamFiles[nm], name=nm, isPaired = FALSE,
+                                         type = c("coverage")) #, "sashimi"))
+  }
+  pdfFiles = character()
+  grList = split(gRanges, seqnames(gRanges))
+  chrom = names(grList)[1]
+  for (chrom in names(grList)){
+    gr = grList[[chrom]]
+    if (length(gr) == 0){
+      next
+    }
+    if (is.null(names(gr))){
+      stop("genomic ranges must have names")
+    }
+    geneTrack = GeneRegionTrack(range=txdb, chrom=chrom, name="Gene Model", transcriptAnnotation="symbol")
+    nm = names(gr)[1]
+    for (i in 1:length(gr)){
+      message(names(gr)[i])
+      trackList = list(GenomeAxisTrack(), geneTrack)
+      for (sm in names(alTrackList)){
+        trackList[[sm]] = alTrackList[[sm]]
+      }
+      pf = paste0(names(gr)[i], "-coverage.pdf")
+      pdf(file=pf, width=width, height=height)
+      plotTracks(trackList, from=start(gr)[i], to=end(gr)[i], ylim=c(0,40),
+                 lwd=1)
+      dev.off()
+      pdfFiles[names(gr)[i]] = pf
+    }
+  }
+  return(pdfFiles)
+}
+
+plotLocusAverageCoverageProfile = function(gRanges, bamFiles, grouping=NULL, gtfFile=NULL,
+                                           scalingFactors=NULL,
+                                           height=10, width=20){
+  require(Gviz)
+  require(GenomicFeatures)
+  require(GenomicRanges)
+  if (!is.null(gtfFile)){
+    txdb = makeTxDbFromGFF(gtfFile, dataSource="FGCZ", taxonomyId = "1") #96061234")
+    #saveDb(txdb, "tx.db")
+    #txdb = loadDb("tx.db")
+  } else {
+    stop("gtfFile is required")
+  }
+  if (is.null(names(bamFiles))){
+    names(bamFiles) = sub(".bam", "", basename(bamFiles))
+  }
+  
+  options(ucscChromosomeNames=FALSE)
+  
+  #### compute the coverage manually and normalize between samples
+  coverageList = list()
+  for (strand in c("+", "-")){
+    coverageList[[strand]] = list() 
+    for (i in 1:length(gRanges)){
+      gene = names(gRanges)[i]
+      message(i)
+      regionStart = start(gRanges)[i]
+      regionEnd = end(gRanges)[i]
+      chrom = seqnames(gRanges)[i]
+      coverageList[[strand]][[gene]] = ezMatrix(0.0, rows=names(bamFiles), cols=regionStart:regionEnd)
+      for (nm in names(bamFiles)){
+        ga = ezReadGappedAlignments(bamFiles[nm], seqname=chrom, start=regionStart - 100, end=regionEnd + 100, strand = strand)
+        ## TODO average the base positions!!! 
+        covVec = as.vector(coverage(ga)[[chrom]][regionStart:regionEnd])
+        stopifnot(!is.na(covVec))
+        coverageList[[strand]][[gene]][nm, ] = covVec
+      }
+    }
+  }
+  
+  ### normalize and group the coverages
+  groupColors = getSampleColors(unique(grouping), colorNames = unique(grouping))
+  names(group) = names(bamFiles)
+  normCoverageList = lapply(coverageList, function(cl){
+    lapply(cl, function(x){
+      xNorm = ezScaleColumns(t(x), scalingFactors[rownames(x)])
+      averageColumns(xNorm, group[colnames(xNorm)])
+    })
+  })
+  
+  
+  pdfFiles = character()
+  grList = split(gRanges, seqnames(gRanges))
+  chrom = names(grList)[1]
+  for (chrom in names(grList)){
+    gr = grList[[chrom]]
+    if (length(gr) == 0){
+      next
+    }
+    if (is.null(names(gr))){
+      stop("genomic ranges must have names")
+    }
+    geneTrack = GeneRegionTrack(range=txdb, chrom=chrom, name="Gene Model", transcriptAnnotation="symbol")
+    ids = symbol(geneTrack)
+    for (i in 1:length(gr)){
+      message(names(gr)[i])
+      trackList = list(GenomeAxisTrack(), geneTrack)
+      for (strand in c("+", "-")){
+        x = t(normCoverageList[[strand]][[gene]])
+        dTrack = DataTrack(
+          data = x,  chromosome = chrom, start = as.integer(colnames(x)),
+          end = as.integer(colnames(x)), genome="foo",
+          name = paste("coverage", strand), col.line=groupColors, groups=rownames(x), type="l")
+        trackList[[strand]] = dTrack
+      }
+      yMax = max(values(trackList[["+"]]), values(trackList[["-"]]))
+      pf = paste0(names(gr)[i], "-avgCoverage.pdf")
+      pdf(file=pf)
+      plotTracks(trackList, from=start(gr)[i], to=end(gr)[i], legend=TRUE,
+                 lwd=1, ylim=c(0, yMax))
+      dev.off()
+      pdfFiles[names(gr)[i]] = pf
+    }
+  }
+  return(pdfFiles)
+}
+
+
+
+
+
+
+
+
 ##' @title Gets transcripts coverage
 ##' @description Gets transcripts coverage.
 ##' @param chrom a character vector containing chromosome names.

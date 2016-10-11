@@ -35,7 +35,7 @@ param$ezRef["refFeatureFile"] = system.file("extdata/genes.gtf", package="ezRun"
 param$ezRef["refFastaFile"] = system.file("extdata/genome.fa", package="ezRun", mustWork=TRUE)
 seqAnno = writeAnnotationFromGtf(param)
 seqAnno = ezFeatureAnnotation(param, rownames(seqAnno), dataFeatureType="gene")
-getGeneMapping(param, seqAnno)
+gm = getGeneMapping(param, seqAnno)
 hasGeneMapping(param, seqAnno)
 }
 \author{

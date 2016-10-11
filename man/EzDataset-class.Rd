@@ -28,7 +28,7 @@ Use this to create an object of the class EzDataset that contains the necessary 
 
 \item{\code{getColumn(names)}}{Gets the column(s) selected with \code{names}.}
 
-\item{\code{getFullPaths(param, name)}}{Combines a root directory specified by \code{param$dataRoot} or \code{param} with the file names in the column with \code{name}.}
+\item{\code{getFullPaths(name)}}{Gets the files in the nameed column prepended with the \code{dataRoot}.}
 
 \item{\code{getLength()}}{Gets the number of samples.}
 
@@ -36,7 +36,7 @@ Use this to create an object of the class EzDataset that contains the necessary 
 
 \item{\code{setColumn(name, values)}}{Sets the column selected with \code{name} to \code{values}. If \code{values} is \code{NULL} the column gets removed}
 
-\item{\code{subset(samples)}}{Subsets the meta field keeping \code{samples}.}
+\item{\code{subset(samples)}}{Subsets the meta field keeping \code{samples} and generates a new EzDataset}
 }}
 \section{Functions}{
 
@@ -46,18 +46,18 @@ Use this to create an object of the class EzDataset that contains the necessary 
 }
 \examples{
 file = system.file("extdata/yeast_10k/dataset.tsv", package="ezRun", mustWork = TRUE)
-ds = EzDataset$new(file=file)
 dataRoot = system.file(package="ezRun", mustWork = TRUE)
+ds = EzDataset$new(file=file, dataRoot=dataRoot)
 ds$file
 ds$meta
 ds$getColumn("Read1")
+ds$getFullPaths("Read1")
 ds2 = ds$copy()
 ds2$setColumn("Read1","replacement")
 ds$columnHasTag("File")
 ds$getNames()
-ds$getFullPaths(dataRoot,"Read1")
-ds$meta$"Genotype [Factor]"[1] = "a\\n"
-##ds2 = EzDataset$new(meta = ds$meta) ## gives an error
+ds$meta$"Genotype [Factor]"[1] = "a"
+ds2 = EzDataset$new(meta = ds$meta)
 }
 \author{
 Rehrauer, Hubert

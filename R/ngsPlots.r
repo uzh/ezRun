@@ -35,6 +35,28 @@ countDensPlot = function(cts, colors, main="all transcripts", bw=7){
   return(NULL)
 }
 
+countDensGGPlot <- function(cts, xmin=min(cts, na.rm=TRUE)-5, 
+                            xmax=max(cts, na.rm=TRUE)+5, alpha=0.3, colors, main="all transcripts") {
+  require(ggplot2, quietly = T)
+  cts[cts < 0] = 0
+  cts = log2(cts)
+  data = data.frame(signal = unlist(cts),sampleName=rep(colnames(cts),each=nrow(cts)), stringsAsFactors = F)
+  xvar = 'signal'
+  split = 'sampleName'
+  p = ggplot(data=data, aes_string(x=xvar, fill=split))
+  p = p + xlim(xmin,xmax) + geom_density(alpha=alpha) + scale_fill_manual(values=colors)
+  p = p + ylab("density of transcripts") + xlab("log2 expression") + ggtitle(paste(main, "(",nrow(cts), ")"))
+  p = p + theme_bw() + theme(plot.background = element_blank(), #Remove default GRID
+                             panel.grid.major = element_blank(),
+                             panel.grid.minor = element_blank(),
+                             panel.border = element_blank())
+  p = p + theme(axis.line.x = element_line(color="black"), #Draw AxisLines
+                axis.line.y = element_line(color="black"))
+  p = p + theme(legend.position="bottom", legend.title = element_blank()) #Legend
+  return(p)
+}
+
+
 ##' @title Plots the multi dimensional scaling
 ##' @description Plots the multi dimensional scaling.
 ##' @param signal the signal to use for plotting.

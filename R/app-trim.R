@@ -43,12 +43,14 @@ ezMethodTrim = function(input=NA, output=NA, param=NA){
         output$setColumn("Read2", NULL)
       }
     }
+    output$dataRoot = NULL
   }
   
   ## if there are multiple samples loop through them
   if (input$getLength() > 1){
     for (nm in input$getNames()){
-      ezMethodTrim(input$copy()$subset(nm), output$copy()$subset(nm), param)
+      ezSystem(paste0('touch ', nm, '_preprocessing.log'))
+      ezMethodTrim(input$subset(nm), output$subset(nm), param)
       ## NOTE: potential risk, temp files might be overwritten
     }
     return(output)
@@ -107,12 +109,12 @@ ezMethodTrim = function(input=NA, output=NA, param=NA){
   
   r1TmpFile = "trimmed-R1.fastq"
   r2TmpFile = "trimmed-R2.fastq"
-  if (any(c(trimAdaptOpt, tailQualOpt, minAvgQualOpt) != "")){
+  if (any(c(trimAdaptOpt, tailQualOpt, minAvgQualOpt) != "") || param$minReadLength > 0){
     if (param$paired){
       method = "PE"
       readOpts = paste(
-        input$getFullPaths(param, "Read1"),
-        input$getFullPaths(param, "Read2"),
+        input$getFullPaths("Read1"),
+        input$getFullPaths("Read2"),
         r1TmpFile,
         "unpaired-R1.fastq",
         r2TmpFile,
@@ -120,10 +122,10 @@ ezMethodTrim = function(input=NA, output=NA, param=NA){
     } else {
       method = "SE"
       readOpts = paste(
-        input$getFullPaths(param, "Read1"), r1TmpFile)
+        input$getFullPaths("Read1"), r1TmpFile)
     }
     cmd = paste(TRIMMOMATIC, method,
-                "-threads", min(ezThreads(), 8),
+                "-threads", min(ezThreads(), 8), "-phred33", ## hardcode phred33 quality encoding
                 #"-trimlog", paste0(input$getNames(), "-trimmomatic.log"),
                 readOpts, trimAdaptOpt, tailQualOpt, minAvgQualOpt,
                 #               paste("HEADCROP", param$trimLeft, sep=":"),
@@ -131,10 +133,12 @@ ezMethodTrim = function(input=NA, output=NA, param=NA){
                 paste("MINLEN", param$minReadLength, sep=":"),
                 ">> trimmomatic.out 2>> trimmomatic.err")
     ezSystem(cmd)
+    cmd = paste0('cat trimmomatic.err >>',input$getNames(),'_preprocessing.log')
+    ezSystem(cmd)
   } else {
-    ezSystem(paste("gunzip -c", input$getFullPaths(param, "Read1"), ">", r1TmpFile))
+    ezSystem(paste("gunzip -c", input$getFullPaths("Read1"), ">", r1TmpFile))
     if (param$paired){
-      ezSystem(paste("gunzip -c", input$getFullPaths(param, "Read2"), ">", r2TmpFile))      
+      ezSystem(paste("gunzip -c", input$getFullPaths("Read2"), ">", r2TmpFile))      
     }
   }
   
@@ -146,6 +150,12 @@ ezMethodTrim = function(input=NA, output=NA, param=NA){
     } else {
       pairedOpt = ""
     }
+    if(param$minReadLength > 0){
+      minReadLengthOpt = paste("--min-read-length", param$minReadLength)
+    }
+    else {
+      minReadLengthOpt = ""
+    }
     cmd = paste(FLEXBAR,
                 "--threads", min(ezThreads(), 8),
                 "-r", r1TmpFile,
@@ -154,8 +164,11 @@ ezMethodTrim = function(input=NA, output=NA, param=NA){
                 "-u", 20, ##### max uncalled bases
                 "--pre-trim-left", param$trimLeft,
                 "--pre-trim-right", param$trimRight,
+                minReadLengthOpt,
                 "--target", "flexbar",
                 "> flexbar.out 2> flexbar.err")
+    ezSystem(cmd)
+    cmd = paste0('cat flexbar.out >>',input$getNames(),'_preprocessing.log')
     ezSystem(cmd)
     if (param$paired) {
       file.remove(r1TmpFile)
@@ -167,11 +180,34 @@ ezMethodTrim = function(input=NA, output=NA, param=NA){
       r1TmpFile = "flexbar.fastq"
     }
   }
+  
+  ## filter by max read length
+  if (!is.null(param$maxReadLength) && !is.na(as.integer(param$maxReadLength))){
+    newFile = "lengthTrimmed_R1.fastq"
+    maxLength = as.integer(param$maxReadLength)
+    fqs = FastqStreamer(r1TmpFile, n=1e6)
+    while(length(x <- yield(fqs))){
+      writeFastq(x[width(x) <= maxLength], file = newFile, mode="a", compress=FALSE)
+    }
+    close(fqs) 
+    file.remove(r1TmpFile)
+    r1TmpFile = newFile
+    if (param$paired){
+      newFile = "lengthTrimmed_R2.fastq"
+      maxLength = as.integer(param$maxReadLength)
+      fqs = FastqStreamer(r2TmpFile, n=1e6)
+      while(length(x <- yield(fqs))){
+        writeFastq(x[width(x) <= maxLength], file = newFile, mode="a")
+      }
+      close(fqs) 
+      file.remove(r2TmpFile)
+      r2TmpFile = newFile
+    }
+  }
+  
+  ezSystem(paste("mv", r1TmpFile, basename(output$getColumn("Read1"))))
   if (param$paired){
-    ezSystem(paste("mv", r1TmpFile, basename(output$getColumn("Read1"))))
     ezSystem(paste("mv", r2TmpFile, basename(output$getColumn("Read2"))))
-  } else {
-    ezSystem(paste("mv", r1TmpFile, basename(output$getColumn("Read1"))))
   }
   return(output)
 }
@@ -187,8 +223,8 @@ ezMethodTrim = function(input=NA, output=NA, param=NA){
 ##' }
 ##' @examples 
 ##' inputDatasetFile = system.file(package = "ezRun", "extdata/yeast_10k/dataset.tsv")
-##' input = EzDataset(file=inputDatasetFile)
 ##' param = ezParam(list(dataRoot=system.file(package = "ezRun"), subsampleFactor=5))
+##' input = EzDataset(file=inputDatasetFile, dataRoot=param$dataRoot)
 ##' xSubsampled = ezMethodSubsampleReads(input=input, param=param)
 ##' # NOTE: the subsampled files will not be gzip compressed!
 ezMethodSubsampleReads = function(input=NA, output=NA, param=NA){
@@ -200,9 +236,10 @@ ezMethodSubsampleReads = function(input=NA, output=NA, param=NA){
       subsampleFiles = sub(".fastq.*", "-subsample.fastq", basename(input$getColumn("Read2")))
       output$setColumn(name="Read2", values = file.path(getwd(), subsampleFiles))      
     }
+    output$dataRoot = NULL
   }
   if (param$nReads > 0){
-    totalReads = input$getColumn("Read Count")
+    totalReads = as.numeric(input$getColumn("Read Count"))
     subsampleFactor = shrinkToRange(totalReads / param$nReads, c(1, Inf))
     if (param$subsampleReads > 1){
       message("subsampleReads setting will be overwritten by nReads parameter")
@@ -210,10 +247,10 @@ ezMethodSubsampleReads = function(input=NA, output=NA, param=NA){
   } else {
     subsampleFactor = param$subsampleReads
   }
-  newReadCounts = ezSubsampleFastq(input$getFullPaths(param, "Read1"), output$getColumn("Read1"), subsampleFactor = subsampleFactor)
+  newReadCounts = ezSubsampleFastq(input$getFullPaths("Read1"), output$getColumn("Read1"), subsampleFactor = subsampleFactor)
   output$setColumn("Read Count", newReadCounts)
   if (param$paired){
-    ezSubsampleFastq(input$getFullPaths(param, "Read2"), output$getColumn("Read2"), subsampleFactor = subsampleFactor)
+    ezSubsampleFastq(input$getFullPaths("Read2"), output$getColumn("Read2"), subsampleFactor = subsampleFactor)
   }
   return(output)
 }

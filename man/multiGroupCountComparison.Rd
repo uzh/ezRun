@@ -8,9 +8,9 @@
 \usage{
 multiGroupCountComparison(rawData, param)
 
-runDeseq2MultiGroup(x, sampleGroup, refGroup, grouping, batch = NULL)
+runDeseq2MultiGroup(x, sampleGroup, refGroup, grouping, grouping2 = NULL)
 
-runEdgerGlmMultiGroup(x, refGroup, grouping, normMethod, batch = NULL)
+runEdgerGlmMultiGroup(x, refGroup, grouping, normMethod, grouping2 = NULL)
 }
 \arguments{
 \item{rawData}{a list of raw data obtained from \code{loadCountDataset()}.}
@@ -18,8 +18,8 @@ runEdgerGlmMultiGroup(x, refGroup, grouping, normMethod, batch = NULL)
 \item{param}{a list of parameters:
 \itemize{
   \item{testMethod}{ defines the method to run: deseq2, exactTest, glm, sam or limma. Defaults to glm.}
-  \item{batch}{ a character vector specifying the batch groups.}
   \item{grouping}{ a character specifying the grouping.}
+  \item{grouping2}{ a character vector specifying a secondary factor.}
   \item{refGroup}{ a character specifying the reference group.}
   \item{normMethod}{ a character specifying the normalization method for the edger and glm test methods.}
 }}

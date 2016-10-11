@@ -1,7 +1,9 @@
 ezMethodSplitAndCluster = function(input=NA, output=NA, param=NA){
   
-  fastqFile1 = input$getFullPaths(param, "Read1")
-  fastqFile2 = input$getFullPaths(param, "Read2")
+  cdHitOpt = "-c 0.98 -d 0" ## TODO put this options in the sushi interface
+  
+  fastqFile1 = input$getFullPaths("Read1")
+  fastqFile2 = input$getFullPaths("Read2")
   localFastq1 = sub(".gz","",basename(fastqFile1))
   localFastq2 = sub(".gz","",basename(fastqFile2))
   fastqJoined = "joined.fastq"
@@ -24,13 +26,13 @@ ezMethodSplitAndCluster = function(input=NA, output=NA, param=NA){
   setwdNew(basename(output$getColumn("Clustered")))
   outputFiles = character()
   while(length(x <- yield(fqs))){
-    outputFiles = union(outputFiles, splitByAdapters(x, forwardAdapters, reverseAdapters, max.mismatch=0))
+    outputFiles = union(outputFiles, splitByAdapters(x, forwardAdapter, reverseAdapter, max.mismatch=0))
   }
   close(fqs)
   for (outputFile in outputFiles){
-    if (file.info(outputFile)$size > 0) {
+    if (file.info(outputFile)$size > 0 &basename(outputFile) != "none.none.fasta") {
       cdHitOutForward = paste0("cdHit_", sub(".fasta", "", basename(outputFile)))
-      cdHitCmd = paste(CD_HIT,"-i",outputFile,"-o",cdHitOutForward, sep = " ")
+      cdHitCmd = paste(CD_HIT, cdHitOpt, "-i",outputFile,"-o",cdHitOutForward, sep = " ")
       ezSystem(cdHitCmd)
     }
   }
@@ -38,8 +40,7 @@ ezMethodSplitAndCluster = function(input=NA, output=NA, param=NA){
 }
 
 ##' @template app-template
-##' @templateVar method ezMethodSplitAndCluster
-##' @templateVar htmlArg )
+##' @templateVar method ezMethodSplitAndCluster(input=NA, output=NA, param=NA)
 ##' @description Cluster stuff
 EzAppSplitAndCluster <-
   setRefClass("EzAppSplitAndCluster",
@@ -57,7 +58,7 @@ EzAppSplitAndCluster <-
 
 
 
-splitByAdapters <-function(reads,forwardAdapters, reverseAdapters, max.mismatch){
+splitByAdapters <-function(reads,forwardAdapter, reverseAdapter, max.mismatch){
   foundFwdAdapterNames = rep("none", length(reads))
   adapterStartPos = rep(1, length(reads))
   foundRevAdapterNames = rep("none", length(reads))
