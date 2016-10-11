@@ -42,7 +42,7 @@ Scans a bam file with the option to select only a part of the output.
 }
 \examples{
 bamFile <- system.file("extdata", "ex1.bam", package="Rsamtools", mustWork=TRUE)
-ezScanBam(bamFile)
+bam = ezScanBam(bamFile)
 }
 \author{
 Rehrauer, Hubert

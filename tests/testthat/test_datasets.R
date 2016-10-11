@@ -4,10 +4,7 @@ test_that("Tests makeMimimal...EndReadDataset()", {
   fqDir = system.file("extdata/yeast_10k", package="ezRun", mustWork=TRUE)
   species = "Example"
   minSingleDs = makeMinimalSingleEndReadDataset(fqDir, species)
-  minPairedDs = makeMinimalPairedEndReadDataset(fqDir, species)
   expect_is(minSingleDs, "data.frame")
-  expect_is(minPairedDs, "data.frame")
-  expect_lt(ncol(minSingleDs), ncol(minPairedDs))
 })
 
 test_that("Tests ezDesignFromDataset() and similar functions", {

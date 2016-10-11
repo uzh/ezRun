@@ -47,7 +47,7 @@ Reads gapped alignments from a bam file.
 }
 \examples{
 bamFile <- system.file("extdata", "ex1.bam", package="Rsamtools", mustWork=TRUE)
-ezReadGappedAlignments(bamFile)
+ga = ezReadGappedAlignments(bamFile)
 }
 \author{
 Rehrauer, Hubert

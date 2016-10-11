@@ -75,7 +75,7 @@ ezSortIndexBam = function(inBam, bam, samtools=SAMTOOLS, ram=2, removeBam=TRUE, 
 ##' @return Returns a list representing a scanned bam file.
 ##' @examples 
 ##' bamFile <- system.file("extdata", "ex1.bam", package="Rsamtools", mustWork=TRUE)
-##' ezScanBam(bamFile)
+##' bam = ezScanBam(bamFile)
 ezScanBam = function(bamFile, seqname=NULL, start=NULL, end=NULL, strand="*",
                       tag=character(0), what=scanBamWhat(),
                       isFirstMateRead=NA, isSecondMateRead=NA, isUnmappedQuery=FALSE, isProperPair=NA,
@@ -178,7 +178,7 @@ ezBam2bigwig = function(bamFile, bigwigPrefix, param=NULL, paired=NULL){
 ##' @return Returns an object of the class GAlignments.
 ##' @examples 
 ##' bamFile <- system.file("extdata", "ex1.bam", package="Rsamtools", mustWork=TRUE)
-##' ezReadGappedAlignments(bamFile)
+##' ga = ezReadGappedAlignments(bamFile)
 ezReadGappedAlignments = function(bamFile, seqname=NULL, start=NULL, end=NULL, strand="*",
                                   tag=character(0), what=character(0), use.names=TRUE,
                                   isFirstMateRead=NA, isSecondMateRead=NA, isUnmappedQuery=FALSE, isProperPair=NA,

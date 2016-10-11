@@ -70,7 +70,7 @@ ezFeatureAnnotation = function(param, ids, dataFeatureType){
 }
 
 ##' @describeIn ezFeatureAnnotation Gets the annotation from a .gtf file and transforms it into a tab-separated tabular .txt file.
-writeAnnotationFromGtf = function(param, featureFile=param$ezRef["refFeatureFile"], featAnnoFile=param$ezRef["refAnnotationFile"]){
+writeAnnotationFromGtf = function(param, featureFile=param$ezRef@refFeatureFile, featAnnoFile=param$ezRef@refAnnotationFile){
   gtf = ezLoadFeatures(param, featureFile=featureFile)
   gtf = gtf[gtf$type == "exon", ]
   seqAnno = transcriptAnnoFromGtf(gtf, attributes=c("gene_name"))

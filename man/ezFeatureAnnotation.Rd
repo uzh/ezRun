@@ -8,8 +8,8 @@
 \usage{
 ezFeatureAnnotation(param, ids, dataFeatureType)
 
-writeAnnotationFromGtf(param, featureFile = param$ezRef["refFeatureFile"],
-  featAnnoFile = param$ezRef["refAnnotationFile"])
+writeAnnotationFromGtf(param, featureFile = param$ezRef@refFeatureFile,
+  featAnnoFile = param$ezRef@refAnnotationFile)
 
 aggregateGoAnnotation(seqAnno, genes, goColumns = c("GO BP", "GO CC",
   "GO MF"))

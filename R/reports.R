@@ -99,6 +99,7 @@ ezImageFileLink = function(plotCmd, file=NULL, name="imagePlot", plotType="plot"
 ##' theDoc = openBsdocReport(title="My html report")
 ##' closeBsdocReport(doc=theDoc, file="example.html")
 openBsdocReport = function(title=""){
+  require(ReporteRs)
   doc = bsdoc(title = title)
   pot1 = paste("Started on", format(Sys.time(), "%Y-%m-%d %H:%M:%S"), "--&#160;")
   pot2 = as.html(pot("Documentation", hyperlink = "http://fgcz-sushi.uzh.ch/doc/methods-20140422.html"))
