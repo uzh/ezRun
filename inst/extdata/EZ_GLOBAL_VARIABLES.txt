@@ -60,20 +60,12 @@ TRINITY="/usr/local/ngseq/src/trinityrnaseq_v2.1.1/Trinity"
 #CUFFLINKS_DIR="/usr/local/ngseq/stow/cufflinks-2.2.1/bin"
 #DIFFSPLICE_DIR="/usr/local/ngseq/stow/diffsplice_0.1.1"
 
-<<<<<<< HEAD
-GATK_JAR="/usr/local/ngseq/src/GenomeAnalysisTK_3.5/GenomeAnalysisTK.jar"
-GATK_DIR="/usr/local/ngseq/src/GenomeAnalysisTK_3.5/"
-PICARD_JAR="/usr/local/ngseq/src/picard-tools-2.1.1/picard.jar"
-SNPEFF_JAR="/usr/local/ngseq/src/snpEff_4.1L/snpEff.jar"
-#BAM_UTIL="/usr/local/ngseq/src/bamUtil/bin/"
-=======
 GATK_JAR="/usr/local/ngseq/src/GenomeAnalysisTK_3.6/GenomeAnalysisTK.jar"
 GATK_DIR="/usr/local/ngseq/src/GenomeAnalysisTK_3.6/"
 PICARD_JAR="/usr/local/ngseq/src/picard-tools-2.1.1/picard.jar"
 PICARD_DIR="/usr/local/ngseq/stow/picard-tools-1.119/bin/"
 SNPEFF_DIR="/usr/local/ngseq/src/snpEff_4.1L"
 BAM_UTIL="/usr/local/ngseq/src/bamUtil/bin/"
->>>>>>> a4721d9a9dca887f3f07b8e6d070c3883e31094f
 HUMAN_SNP_DATABASES="/srv/GT/databases/dbSNP/release142/"
 HUMAN_DBSNP="/srv/GT/databases/dbSNP/release142/"
 BAM2WIG="PYTHONPATH=/usr/local/ngseq/lib/python/:/usr/local/ngseq/lib/python2.7:/usr/local/ngseq/lib/python2.7/dist-packages /usr/local/ngseq/stow/RSeQC-2.6.2/bin/bam2wig.py"
