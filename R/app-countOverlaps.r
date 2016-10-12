@@ -233,6 +233,7 @@ getFeatureCounts = function(chrom, gff, reads, param){
   if (!ezIsSpecified(param$minFeatureOverlap)){
     param$minFeatureOverlap = 1L
   }  
+  require(GenomicAlignments)
   featCounts = countOverlaps(query=targetRanges, subject=reads, ignore.strand=param$strandMode == "both", minoverlap=param$minFeatureOverlap)
   return(featCounts)
 }
