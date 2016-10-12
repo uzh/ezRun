@@ -634,7 +634,7 @@ ezHeatmap = function(x, lim=c(-4, 4), colors=getBlueRedScale(),
   if (!is.matrix(x)){
     x = as.matrix(x)
   }
-  requireNamespace("gplots", warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
+  require("gplots", warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
   if (length(unique(as.numeric((x)))) == 1){
     key=FALSE
   }
@@ -678,13 +678,13 @@ createDendogramReport <- function(x, annot, genes = row.names(x), multipalette =
   # Description
   # Wrapper function for plotDendroAndColors -> plot(dendro)
   
-#   requireNamespace("WGCNA", quietly = T)
-#   requireNamespace("plyr", quietly = T)
-#   requireNamespace("pvclust", quietly = T)
-#   requireNamespace("RColorBrewer", quietly = T)
-#   requireNamespace("wesanderson", quietly = T)
+#   require("WGCNA", quietly = T)
+#   require("plyr", quietly = T)
+#   require("pvclust", quietly = T)
+#   require("RColorBrewer", quietly = T)
+#   require("wesanderson", quietly = T)
   ## NOTEP: except wesanderson and WGCNA, these packages seem not to be used currently. If only rarely or in one spot, package::function() should be used.
-  ## requireNamespace() only works, after putting the packe into imports() in the NAMESPACE
+  ## require() only works, after putting the packe into imports() in the NAMESPACE
   
   # Setup different default parameters for plotDendroAndColors arguments if not specified in function call
   # if(!exists("cex.colorLabels")) cex.colorLabels = 1

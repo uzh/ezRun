@@ -87,7 +87,7 @@ ezMethodGatkRnaHaplotyper = function(input=NA, output=NA, param=NA, htmlFile="00
   ezSystem(cmd)
   
   ## filter the vcf file
-  requireNamespace("VariantAnnotation")
+  require("VariantAnnotation")
   ezFilterVcf(vcfFile=paste0(param$name, "-all-haplo.vcf"), basename(vcfOutputFile), discardMultiAllelic=FALSE,
               bamDataset=bamDataset, param=param)
   gc()

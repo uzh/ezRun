@@ -10,8 +10,8 @@
 
 twoGrouplsRoast = function(param, testResult, seqAnno){
   job = ezJobStart("twoGroupsRoast")
-  requireNamespace("GOstats", warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
-  requireNamespace("annotate", warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
+  require("GOstats", warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
+  require("annotate", warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
   
   if (param$featureLevel != "gene"){
     stop("only feature level: gene is supported")

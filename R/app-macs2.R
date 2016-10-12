@@ -72,8 +72,8 @@ annotatePeaks = function(input=NA, output=NA, param=NA) {
     return(NULL)
   }
   data = data[order(data$chr,data$start),]
-  requireNamespace("rtracklayer")
-  requireNamespace("GenomicRanges")
+  require("rtracklayer")
+  require("GenomicRanges")
   
   gtfFile = param$ezRef@refFeatureFile
   gtf = rtracklayer::import(gtfFile)
@@ -111,9 +111,9 @@ annotatePeaks = function(input=NA, output=NA, param=NA) {
 ##' @param param a list of parameters to extract \code{paired} from.
 ##' @template roxygen-template
 createBigWig = function(input=NA, output=NA, param=NA){
-  requireNamespace("rtracklayer")
-  requireNamespace("GenomicRanges")
-  requireNamespace("GenomicAlignments")
+  require("rtracklayer")
+  require("GenomicRanges")
+  require("GenomicAlignments")
   if (param$paired){
     aligns = readGAlignmentPairs(file=input$getFullPaths("BAM"))
   } else {

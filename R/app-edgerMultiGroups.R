@@ -158,7 +158,7 @@ runDeseq2MultiGroup = function(x, sampleGroup, refGroup, grouping, grouping2=NUL
 
 ##' @describeIn multiGroupCountComparison Runs the EdgeR GLM test method for many groups.
 runEdgerGlmMultiGroup = function(x, refGroup, grouping, normMethod, grouping2=NULL){
-  requireNamespace("edgeR", warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
+  require("edgeR", warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
   ## get the scaling factors for the entire data set
   cds = DGEList(counts=x, group=grouping)
   cds = calcNormFactors(cds, method=normMethod)

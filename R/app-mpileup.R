@@ -8,7 +8,7 @@
 
 ezMethodMpileup = function(input=NA, output=NA, param=NA){
 
-  requireNamespace("VariantAnnotation")
+  require("VariantAnnotation")
   
   reportDir = basename(output$getColumn("Report"))
   htmlFile = basename(output$getColumn("Html"))
