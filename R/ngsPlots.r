@@ -64,7 +64,7 @@ countDensGGPlot <- function(cts, xmin=min(cts, na.rm=TRUE)-5,
 ##' @param main a character representing the plot title.
 ##' @template roxygen-template
 ezMdsPlot = function(signal, sampleColors, main){
-  requireNamespace("edgeR")
+  require("edgeR")
   y = DGEList(counts=signal,group=colnames(signal))
   #y$counts = cpm(y)
   #y = calcNormFactors(y)
