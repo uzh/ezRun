@@ -10,7 +10,7 @@ ezMethodCountOverlaps = function(input=NA, output=NA, param=NA){
   bamFile = input$getFullPaths("BAM")
   outputFile = basename(output$getColumn("Count"))
   
-  requireNamespace("bitops", warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
+  require("bitops", warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
   gff = ezLoadFeatures(param, types="exon")
   if (ezIsSpecified(param$countNonredundant) && param$countNonredundant){
     targets = countNonredundant(bamFile=bamFile, param=param, gff=gff) ## supports both single- and paired-end
@@ -78,8 +78,8 @@ EzAppCountOverlaps <-
   #param = fillWithDefaults(param) ## TODOMF: function doesn't exist
   options(cores=param$cores)
   message("countPairedBamHits")
-  requireNamespace("GenomicRanges", warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
-  requireNamespace("bitops", warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
+  require("GenomicRanges", warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
+  require("bitops", warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
   
   
   gff = ezLoadFeatures(param)
