@@ -24,7 +24,7 @@ mouseCommonChipParam = function(){
   param[['paired']] = 'false'
   param[['refFeatureFile']] = 'genes.gtf'
   param[['mail']] = ''
-  param[['dataRoot']] = system.file(package="ezRun", mustWork = TRUE)
+  param[['dataRoot']] = "/srv/gstore/projects/" ##system.file(package="ezRun", mustWork = TRUE)
   param[['specialOptions']] = ""
   return(param)
 }

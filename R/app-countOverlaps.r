@@ -182,6 +182,7 @@ countPairedBamHitsSingleChrom = function(chr, bamFile=NULL, param=NULL, gff=NULL
 }
 
 getTargetRanges = function(gff, param, chrom=NULL){
+  require(GenomicRanges)
   stopifnot(gff$type == "exon")
   if(!is.null(chrom)){
     gff = gff[gff$seqid == chrom, ]
@@ -224,6 +225,7 @@ getTargetRanges = function(gff, param, chrom=NULL){
 }
 
 getFeatureCounts = function(chrom, gff, reads, param){
+  require(GenomicAlignments)
   if (length(chrom) > 1){
     featCounts = unlist(ezMclapply(chrom, getFeatureCounts, gff, reads, param), recursive=FALSE)
     return(featCounts)
@@ -233,7 +235,6 @@ getFeatureCounts = function(chrom, gff, reads, param){
   if (!ezIsSpecified(param$minFeatureOverlap)){
     param$minFeatureOverlap = 1L
   }  
-  require(GenomicAlignments)
   featCounts = countOverlaps(query=targetRanges, subject=reads, ignore.strand=param$strandMode == "both", minoverlap=param$minFeatureOverlap)
   return(featCounts)
 }

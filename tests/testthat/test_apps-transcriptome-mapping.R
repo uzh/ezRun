@@ -42,8 +42,9 @@ test_that("Map_Bowtie2Transcriptome", {
   ezSystem("rm -fr /scratch/test_bowtie2transcriptomeMapping/*")
   setwdNew("/scratch/test_bowtie2transcriptomeMapping")
   param = yeastCommonMapParam()
-  input = EzDataset$new(file=system.file("extdata/yeast_10k/dataset.tsv", package="ezRun", mustWork = TRUE))
-  output = EzDataset$new(file=system.file("extdata/yeast_10k_Bowtie2Transcriptome/dataset.tsv", package="ezRun", mustWork = TRUE))
+  input = EzDataset$new(file=system.file("extdata/yeast_10k/dataset.tsv", package="ezRun", mustWork = TRUE), dataRoot=param$dataRoot)
+  output = EzDataset$new(file=system.file("extdata/yeast_10k_Bowtie2Transcriptome/dataset.tsv", package="ezRun", mustWork = TRUE),
+                         dataRoot=param$dataRoot)
   param[['cmdOptions']] = '--no-unal'
   myApp = EzAppBowtie2Transcriptome$new()
   myApp$run(input=input$copy()$subset(1), output=output$copy()$subset(1), param=param)
@@ -56,14 +57,16 @@ test_that("Profiles_TranscriptCoverage", {
   ezSystem("rm -fr /scratch/test_TranscriptCoverage/*")
   setwdNew("/scratch/test_TranscriptCoverage")
   param = yeastCommonMapParam()
-  input = EzDataset$new(file=system.file("extdata/yeast_10k_Bowtie2Transcriptome/dataset.tsv", package="ezRun", mustWork = TRUE))
+  input = EzDataset$new(file=system.file("extdata/yeast_10k_Bowtie2Transcriptome/dataset.tsv", package="ezRun", mustWork = TRUE),
+                        dataRoot=param$dataRoot)
   meta = input$meta
   meta$"Count [File]" = paste0(input$getNames(), ".txt")
   meta$"Profiles [File]" = paste0(input$getNames(), "-profiles.RData")
-  output = EzDataset$new(meta=meta)
+  output = EzDataset$new(meta=meta, dataRoot=param$dataRoot)
   param[['minReadLength']] = 35
   param[['maxReadLength']] = 37
   param[["paired"]] = FALSE
+  param[["getCoverageByReadLength"]] = TRUE
   
   myApp = EzAppTranscriptCoverage$new()
   myApp$run(input=input$copy()$subset(1), output=output$copy()$subset(1), param=param)

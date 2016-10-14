@@ -15,7 +15,7 @@ skipLong = function(){
 
 yeastCommonCountParam = function(){
   param = list()
-  param[['cores']] = '8'
+  param[['cores']] = '1'
   param[['ram']] = '10'
   param[['scratch']] = '10'
   param[['node']] = ''
