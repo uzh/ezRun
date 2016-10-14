@@ -183,6 +183,7 @@ countPairedBamHitsSingleChrom = function(chr, bamFile=NULL, param=NULL, gff=NULL
 
 getTargetRanges = function(gff, param, chrom=NULL){
   require(GenomicRanges)
+  require(S4Vectors)
   stopifnot(gff$type == "exon")
   if(!is.null(chrom)){
     gff = gff[gff$seqid == chrom, ]
@@ -202,7 +203,7 @@ getTargetRanges = function(gff, param, chrom=NULL){
          intron={
            trRanges = gffGroupToRanges(gff, gff$transcript_id)
            exonRanges = gffToRanges(gff)
-           exonsByTranscript = split(exonRanges, gff$transcript_id)
+           exonsByTranscript = S4Vectors::split(exonRanges, gff$transcript_id)
            stopifnot(setequal(names(exonsByTranscript), names(trRanges)))
            intronsByTranscript = psetdiff(trRanges, exonsByTranscript[names(trRanges)])
            targetRanges = unlist(intronsByTranscript)
@@ -210,13 +211,13 @@ getTargetRanges = function(gff, param, chrom=NULL){
            names(targetRanges) = paste(ids, sprintf("%03d", ezReplicateNumber(ids)), sep= ":I")
          },
          isoform={
-           targetRanges = split(gffToRanges(gff), gff$transcript_id)
+           targetRanges = S4Vectors::split(gffToRanges(gff), gff$transcript_id)
          },
          tss={
-           targetRanges = split(gffToRanges(gff), gff$tss_id)
+           targetRanges = S4Vectors::split(gffToRanges(gff), gff$tss_id)
          },
          gene={
-           targetRanges = split(gffToRanges(gff), gff$gene_id)
+           targetRanges = S4Vectors::split(gffToRanges(gff), gff$gene_id)
          })
   if (is.null(targetRanges)){
     stop("unsupported featureLevel: ", param$featureLevel)

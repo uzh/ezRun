@@ -15,6 +15,7 @@ plotLocusCoverageProfile = function(gRanges, bamFiles, gtfFile=NULL,
   require(Gviz)
   require(GenomicFeatures)
   require(GenomicRanges)
+  require(S4Vectors)
   if (!is.null(gtfFile)){
     txdb = makeTxDbFromGFF(gtfFile, dataSource="FGCZ", taxonomyId = "1") #96061234")
     #saveDb(txdb, "tx.db")
