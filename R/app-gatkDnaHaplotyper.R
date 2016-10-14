@@ -5,16 +5,13 @@
 # The terms are available here: http://www.gnu.org/licenses/gpl.html
 # www.fgcz.ch
 
-
-#TODO: make bcfFile + index as output
 ezMethodGatkDnaHaplotyper = function(input=NA, output=NA, param=NA){
+  bamFile = input$getFullPaths("BAM")
+  ezSystem(paste("rsync -va", bamFile, "local.bam"))
+  ezSystem(paste("rsync -va", paste0(bamFile, ".bai"), "local.bam.bai"))
   knownSites = list.files(param$ezRef["refVariantsDir"],pattern='vcf$',full.names = T)
   dbsnpFile = knownSites[grep('dbsnp.*vcf$', knownSites)]
   javaCall = paste0(JAVA, " -Djava.io.tmpdir=. -Xmx", param$ram, "g")
-  bamFile = input$getFullPaths("BAM")
-  
-  ezSystem(paste("rsync -va", bamFile, "local.bam"))
-  ezSystem(paste("rsync -va", paste0(bamFile, ".bai"), "local.bam.bai"))
   
   genomeSeq = param$ezRef["refFastaFile"]
   sampleName = names(bamFile)
