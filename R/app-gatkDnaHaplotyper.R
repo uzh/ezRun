@@ -77,6 +77,7 @@ ezMethodGatkDnaHaplotyper = function(input=NA, output=NA, param=NA){
   cmd = paste(haplotyperCall, "-R", genomeSeq,
               "-I recal.bam",
               "--emitRefConfidence GVCF",
+              "--max_alternate_alleles 2",
               "--dbsnp", dbsnpFile,
               "-o", outputFile)
   
@@ -95,7 +96,8 @@ ezMethodGatkDnaHaplotyper = function(input=NA, output=NA, param=NA){
                 "-nct", param$cores)
   }
   ezSystem(cmd)
-  ezSystem(paste('pigz --best -p', param$cores, outputFile))
+  ezSystem(paste(file.path(HTSLIB_DIR,"bgzip"),"-c",outputFile, ">",paste0(outputFile,".gz")))
+  ezSystem(paste(file.path(HTSLIB_DIR,"tabix"),"-p vcf",paste0(outputFile,".gz")))
   
   return("Success")
 }

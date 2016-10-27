@@ -27,6 +27,7 @@ EzAppTeqc <-
   )
 
 ezMethodTeqc = function(input=NA, output=NA, param=NA){
+  require(GenomicAlignments)
   param[['build']] = unique(input$meta[['build']])
   setwdNew(basename(output$getColumn("Report")))
   if(basename(param$designFile) == param$designFile){
