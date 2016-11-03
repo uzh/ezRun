@@ -6,9 +6,9 @@
 # www.fgcz.ch
 
 ezMethodJoinGenoTypes = function(input=NA, output=NA, param=NA){
+  setwdNew(param[['name']])
   dataset = input$meta
   dataset[['GVCF [File]']] = input$getFullPaths("GVCF")
-  
   genomeSeq = param$ezRef["refFastaFile"]
   species = limma::strsplit2(param$ezRef['refBuild'],'/')[1]
   knownSites = list.files(param$ezRef["refVariantsDir"],pattern='vcf$',full.names = T) 
@@ -54,8 +54,7 @@ ezMethodJoinGenoTypes = function(input=NA, output=NA, param=NA){
                   "-mode SNP",
                   "-recalFile raw.SNPs.recal",
                   "-tranchesFile raw.SNPs.tranches",
-                  "-rscriptFile recal.SNPs.plots.R",
-                  "-nt", param$cores)
+                  "-rscriptFile recal.SNPs.plots.R")
       
       if(!is.null(param$targetFile)){
         cmd = paste(cmd,
@@ -92,8 +91,7 @@ ezMethodJoinGenoTypes = function(input=NA, output=NA, param=NA){
                   "-mode INDEL",
                   "-recalFile raw.InDels.recal",
                   "-tranchesFile raw.InDels.tranches",
-                  "-rscriptFile recal.InDels.plots.R",
-                  "-nt", param$cores)
+                  "-rscriptFile recal.InDels.plots.R")
       if(!is.null(param$targetFile)){
         cmd = paste(cmd,
                     "-L", param$targetFile)
