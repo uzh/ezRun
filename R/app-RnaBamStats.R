@@ -38,7 +38,8 @@ EzAppRnaBamStats <-
                   name <<- "EzAppRnaBamStats"
                   appDefaults <<- rbind(posErrorRates=ezFrame(Type="logical",	DefaultValue="TRUE",	Description="compute position specific error rates?"),
                                     fragSizeMax=ezFrame(Type="integer",  DefaultValue=500,	Description="maximum fragment size to plot in fragment size distribution"),
-                                    writeIgvSessionLink=ezFrame(Type="logical", DefaultValue="TRUE", Description="should an IGV link be generated"))
+                                    writeIgvSessionLink=ezFrame(Type="logical", DefaultValue="TRUE", Description="should an IGV link be generated"),
+                                    ignoreDup=ezFrame(Type="logical", DefaultValue="NA", Description="should marked duplicates be ignored?"))
                 }
               )
   )
@@ -131,7 +132,7 @@ getPosErrorFromBam = function(bamFile, param){
     seqLengths = seqLengths[intersect(param$seqNames, names(seqLengths))]
   }
   seqCounts = sapply(names(seqLengths), function(sn){
-    ezScanBam(bamFile, seqname = sn, countOnly=TRUE)$records[1]
+    ezScanBam(bamFile, seqname = sn, isDuplicate=!param$ignoreDup, countOnly=TRUE)$records[1]
   })
   chromSel = names(seqLengths)[which.max(seqCounts)]
   fai = fasta.index(param$ezRef["refFastaFile"])
@@ -142,12 +143,12 @@ getPosErrorFromBam = function(bamFile, param){
   #targetGenome = referenceGenome[[match(chromSel, sub(" .*", "", names(referenceGenome)))]]
   what = c("strand", "cigar", "seq", "rname", "pos")
   if (param$paired){
-    reads = ezScanBam(bamFile, seqname=chromSel, isFirstMateRead=TRUE, isSecondMateRead=FALSE, isUnmappedQuery=FALSE, what=what)
+    reads = ezScanBam(bamFile, seqname=chromSel, isFirstMateRead=TRUE, isSecondMateRead=FALSE, isUnmappedQuery=FALSE, isDuplicate=!param$ignoreDup, what=what)
     result[[paste(chromSel, "Position Stats of First Read")]] = ezPosSpecErrorRate(reads, targetGenome)
-    reads = ezScanBam(bamFile, seqname=chromSel, isFirstMateRead=FALSE, isSecondMateRead=TRUE, isUnmappedQuery=FALSE, what=what)
+    reads = ezScanBam(bamFile, seqname=chromSel, isFirstMateRead=FALSE, isSecondMateRead=TRUE, isUnmappedQuery=FALSE, isDuplicate=!param$ignoreDup, what=what)
     result[[paste(chromSel, "Position Stats of Second Read")]] = ezPosSpecErrorRate(reads, targetGenome)
   } else {
-    reads = ezScanBam(bamFile, seqname=chromSel, isUnmappedQuery=FALSE, what=what)
+    reads = ezScanBam(bamFile, seqname=chromSel, isUnmappedQuery=FALSE, isDuplicate=!param$ignoreDup, what=what)
     result[[paste(chromSel, "Position Stats")]] = ezPosSpecErrorRate(reads, targetGenome)
   }
   ezWriteElapsed(job, "Position Error Rate done")
@@ -415,7 +416,7 @@ getStatsFromBamSingleChrom = function(chrom, param, bamFile, sm, nReads, gff=NUL
   if(param$paired && length(reads) > 0){
     pairedNames = ezScanBam(bamFile, seqname=chrom, 
                                  isFirstMateRead=TRUE, isSecondMateRead=FALSE, isProperPair=TRUE,
-                                 isUnmappedQuery=FALSE,
+                                 isUnmappedQuery=FALSE, isDuplicate=!param$ignoreDup,
                                  what="qname")$qname
     use = names(reads) %in% pairedNames
     result$fragSizeHist = intHist(width(reads)[use], 

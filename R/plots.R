@@ -170,49 +170,6 @@ ezLegend = function(legend="", fill=NULL, title="Legend"){
 }
 
 
-## still used?
-.makeTailEffectPlotsByTail = function(param, signal, seqAnno, colors=NULL, ylim=c(-2,5)){
-
-  valueByTailSet = list()
-  effectByTailSet = list()
-  isControl = seqAnno$IsControl
-  logSignal = log2(signal[!isControl, ])
-  samples = colnames(logSignal)
-  sequence = seqAnno[!isControl, "Sequence"]
-  gene = seqAnno[!isControl, "Agilent SystematicName"]
-  for(sampleName in samples){
-    valueByTail = .getByTail(logSignal[ , sampleName], NULL, sequence, gene)
-    effectByTailSet[[sampleName]] = lapply(valueByTail, diff)
-    valueByTailSet[[sampleName]] = valueByTail  
-  }
-  xlim = range(logSignal)
-
-  tails = c("A", "C", "G", "T")
-  tail = tails[1]
-  pngNames = character()
-  for (tail in tails){
-    pngNames[tail] = paste0("tailEffectPlot-", tail, ".png")
-    png(pngNames[tail], height=500, width=500)
-    for (sampleName in samples){
-      values = unlist(lapply(valueByTailSet[[sampleName]], function(x){x[-length(x)]}))
-      #values = unlist(lapply(valueByTailSet[[sampleName]], function(x){x[-1]}))
-      effects = unlist(effectByTailSet[[sampleName]])
-      effects = shrinkToRange(effects, ylim)
-      use = grep(paste0(tail, "$"), names(effects))
-      if (sampleName == colnames(logSignal)[1]){
-        plot(values[use], effects[use], pch=20, main=paste("Tail", tail), col=colors[sampleName], 
-             xlim=xlim, ylim=ylim, xlab="Signal", ylab="Tail Effect")
-        abline(h=0, lwd=2, col="gray")
-      } else {
-        points(values[use], effects[use], pch=20, col=colors[sampleName])
-      }
-    }
-    legend("topright", samples, col=colors, bty="n", cex=0.8, pt.bg="white", lty=1, lwd=3 )
-    dev.off()
-  }
-  return(pngNames)
-}
-
 
 
 ##' @title Does a volcano plot

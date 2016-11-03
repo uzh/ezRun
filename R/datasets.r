@@ -93,8 +93,48 @@ ezDesignFromDataset = function(dataset, param=NULL){
       }
     }
   }
+  colnames(design) = sub(" \\[.*", "", colnames(design))
   return(design)
 }
+
+
+ezColorsFromDesign = function(design){
+  ## see http://www.cookbook-r.com/Graphs/Colors_(ggplot2)/#a-colorblind-friendly-palette
+  colorFrame = design[NULL] ## make a data frame with rows but without columns
+  cbbPalette <- c("#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7") ## without black
+  for (nm in names(design)){
+    conds = design[[nm]]
+    n = length(unique(conds))
+    if (n > length(cbbPalette)){
+      condColors = rainbow(n)
+    } else {
+      condColors = cbbPalette[1:n]
+    }
+    names(condColors) = unique(conds)
+    colorFrame[[nm]] = condColors[conds]
+  }
+  return(colorFrame)
+}
+
+ezColorMapFromDesign = function(design){
+  ## see http://www.cookbook-r.com/Graphs/Colors_(ggplot2)/#a-colorblind-friendly-palette
+  colorMap = list()
+  cbbPalette <- c("#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7") ## without black
+  for (nm in names(design)){
+    conds = design[[nm]]
+    n = length(unique(conds))
+    if (n > length(cbbPalette)){
+      condColors = rainbow(n)
+    } else {
+      condColors = cbbPalette[1:n]
+    }
+    names(condColors) = unique(conds)
+    colorMap[[nm]] = condColors
+  }
+  return(colorMap)
+}
+
+
 
 ##' @describeIn ezDesignFromDataset Gets the conditions from the design. Use \code{maxFactors} to limit the amount of factors.
 ezConditionsFromDesign = function(design, maxFactors=2){
