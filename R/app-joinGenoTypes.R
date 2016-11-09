@@ -62,7 +62,7 @@ ezMethodJoinGenoTypes = function(input=NA, output=NA, param=NA){
       } else {
         cmd = paste(cmd, "-an DP")
       }
-      #ezSystem(cmd)
+      ezSystem(cmd)
       
       #Apply RecalibrationOutput for SNPs:
       VariantRecalibrator2 = paste(javaCall,"-jar", GATK_JAR, "-T ApplyRecalibration")
@@ -78,8 +78,8 @@ ezMethodJoinGenoTypes = function(input=NA, output=NA, param=NA){
         cmd = paste(cmd,
                     "-L", param$targetFile)
       } 
-      #ezSystem(cmd)
-      #ezSystem(paste("mv raw.SNPs.tranches.pdf", paste0(names(datasetCaseList)[i],"_raw.SNPs.tranches.pdf")))
+      ezSystem(cmd)
+      ezSystem(paste("mv raw.SNPs.tranches.pdf", paste0(names(datasetCaseList)[i],"_raw.SNPs.tranches.pdf")))
       
       #2.Run VariantRecalibration for InDels:
       millsFile = knownSites[grep('Mills.*vcf$', knownSites)]
@@ -98,7 +98,7 @@ ezMethodJoinGenoTypes = function(input=NA, output=NA, param=NA){
       } else {
         cmd = paste(cmd, "-an DP")
       }
-      #ezSystem(cmd)
+      ezSystem(cmd)
       
       #Apply RecalibrationOutput for InDels:
       VariantRecalibrator2 = paste(javaCall,"-jar", GATK_JAR, "-T ApplyRecalibration")
@@ -114,7 +114,7 @@ ezMethodJoinGenoTypes = function(input=NA, output=NA, param=NA){
         cmd = paste(cmd,
                     "-L", param$targetFile)
       } 
-     # ezSystem(cmd)
+     ezSystem(cmd)
     }
     #1.dbSnp-Annotation/ExAc-Annotation:
     cmd = paste(javaCall, "-jar", file.path(SNPEFF_DIR, "SnpSift.jar"), "annotate -id", dbsnpFile, outputFile, ">", paste0(outputFile, "_annotated.vcf"))
