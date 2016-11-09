@@ -238,7 +238,7 @@ fastqscreenReport = function(dataset, param, htmlFile="00index.html", fastqData,
     plotCmd = expression({
       par(mar=c(10.1, 4.1, 4.1, 2.1))
       x = speciesPercentageTop[[nm]]
-      if (is.null(x)) x = 0
+      if (is.null(x)) x = matrix(0, 2, 1, dimnames=list(c('UniqueSpeciesHits','MultipleSpeciesHits'),'Misc'))
       bplot = barplot(t(x), col=c("royalblue3", "lightblue"), las=2, ylim=c(0,100),
                       legend.text=T, ylab="Mapped Reads in %", main=nm, names.arg=rep('',nrow(x)) )
       text(y=t(x)[ 1,] + 5, x=bplot, font = 2, labels=t(x)[ 1, ], cex=1.1, col='black')

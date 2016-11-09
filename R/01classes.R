@@ -379,6 +379,7 @@ waitForFreeDiskSpace = function(param){
     ezMail(to=recipient,
            subject=paste("Alert: not enough disk space ", Sys.info()["nodename"], "-", getwd()),
            text="Please free up space! Job is on hold for 2 hours and will be terminated afterwards if the issue persists.")
+    cat('Wait for free disk space') 
     i = 0
     while(getGigabyteFree(".") < param$scratch & i < 60){
       Sys.sleep( 120)
