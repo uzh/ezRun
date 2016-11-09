@@ -25,6 +25,7 @@ getTranslationInitiationSite = function(txdb){
 
 
 getCdsProfiles = function(bamFile, tisPos, strand="+", readLength=32, offset=14){
+  require(GenomicAlignments)
   aln = readGAlignments(bamFile)
   stopifnot(names(tisPos) %in% levels(seqnames(aln)))
   message("genes with TIS but without alignments: ", length(setdiff(names(tisPos), as.vector(seqnames(aln)))))
@@ -43,6 +44,7 @@ getCdsProfiles = function(bamFile, tisPos, strand="+", readLength=32, offset=14)
 
 
 getTranscriptProfiles = function(bamFile, param){# strand="+", readLength=32, readStartOnlyCoverage=TRUE, getCoverageByReadlength=TRUE, minRead){
+  require(GenomicAlignments)
   aln = readGAlignments(bamFile)
   aln = aln[qwidth(aln) %in% param$minReadLength:param$maxReadLength]
   if (param$strandMode == "sense"){
@@ -71,6 +73,7 @@ getTranscriptProfiles = function(bamFile, param){# strand="+", readLength=32, re
 
 
 getExonProfiles = function(bamFile, strand="+", readLength=32, offset=14){
+  require(GenomicAlignments)
   aln = readGAlignments(bamFile)
   aln = aln[ as.vector(strand(aln)) == strand & qwidth(aln) %in% readLength]
   codonStartBase = start(aln) + offset 
@@ -91,6 +94,7 @@ getExonProfiles = function(bamFile, strand="+", readLength=32, offset=14){
 ## could be achieved more elegantly be extraing the TIS region from the result of the getExonProfiles function
 
 getAvgTisReadStartProfiles = function(bamFile, tisPos, tisRegion=c(-32, 99), maxExpression=NA, strand="+", readLengths=26:35){
+  require(GenomicAlignments)
   aln = readGAlignments(bamFile)
   stopifnot(names(tisPos) %in% levels(seqnames(aln)))
   message("genes with TIS but without alignments: ", length(setdiff(as.vector(seqnames(aln)), names(tisPos))))
