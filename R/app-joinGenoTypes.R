@@ -62,7 +62,7 @@ ezMethodJoinGenoTypes = function(input=NA, output=NA, param=NA){
       } else {
         cmd = paste(cmd, "-an DP")
       }
-      ezSystem(cmd)
+      #ezSystem(cmd)
       
       #Apply RecalibrationOutput for SNPs:
       VariantRecalibrator2 = paste(javaCall,"-jar", GATK_JAR, "-T ApplyRecalibration")
@@ -78,8 +78,8 @@ ezMethodJoinGenoTypes = function(input=NA, output=NA, param=NA){
         cmd = paste(cmd,
                     "-L", param$targetFile)
       } 
-      ezSystem(cmd)
-      ezSystem(paste("mv raw.SNPs.tranches.pdf", paste0(names(datasetCaseList)[i],"_raw.SNPs.tranches.pdf")))
+      #ezSystem(cmd)
+      #ezSystem(paste("mv raw.SNPs.tranches.pdf", paste0(names(datasetCaseList)[i],"_raw.SNPs.tranches.pdf")))
       
       #2.Run VariantRecalibration for InDels:
       millsFile = knownSites[grep('Mills.*vcf$', knownSites)]
@@ -98,7 +98,7 @@ ezMethodJoinGenoTypes = function(input=NA, output=NA, param=NA){
       } else {
         cmd = paste(cmd, "-an DP")
       }
-      ezSystem(cmd)
+      #ezSystem(cmd)
       
       #Apply RecalibrationOutput for InDels:
       VariantRecalibrator2 = paste(javaCall,"-jar", GATK_JAR, "-T ApplyRecalibration")
@@ -114,13 +114,16 @@ ezMethodJoinGenoTypes = function(input=NA, output=NA, param=NA){
         cmd = paste(cmd,
                     "-L", param$targetFile)
       } 
-      ezSystem(cmd)
+     # ezSystem(cmd)
     }
     #1.dbSnp-Annotation/ExAc-Annotation:
-    cmd = paste(javaCall, "-jar", file.path(SNPEFF_DIR, "SnpSift.jar"), "annotate", dbsnpFile, outputFile, ">", paste0(outputFile, "_annotated.vcf"))
+    cmd = paste(javaCall, "-jar", file.path(SNPEFF_DIR, "SnpSift.jar"), "annotate -id", dbsnpFile, outputFile, ">", paste0(outputFile, "_annotated.vcf"))
     ezSystem(cmd)
     if(species == 'Homo_sapiens'){
-      cmd = paste(javaCall, "-jar", file.path(SNPEFF_DIR, "SnpSift.jar"), "annotate", ExAcFile, paste0(outputFile, "_annotated.vcf"), ">", outputFile)
+      ezSystem(paste("sed -i 's/;AF=/;Case_AF=/g' ", paste0(outputFile, "_annotated.vcf")))
+      ezSystem(paste("sed -i 's/\tAC=/\tCase_AC=/g' ",paste0(outputFile, "_annotated.vcf")))
+      ezSystem(paste("sed -i 's/;AN=/;Case_AN=/g' ",paste0(outputFile, "_annotated.vcf")))
+      cmd = paste(javaCall, "-jar", file.path(SNPEFF_DIR, "SnpSift.jar"), "annotate -noId -info AF,AC,AN", ExAcFile, paste0(outputFile, "_annotated.vcf"), ">", outputFile)
       ezSystem(cmd)
     } else {
       ezSystem(paste("mv",paste0(outputFile, "_annotated.vcf"), outputFile))
@@ -133,7 +136,7 @@ ezMethodJoinGenoTypes = function(input=NA, output=NA, param=NA){
     
     #3.Add SIFT & CO Annotation if Human (dbnsfp):
     if(species == 'Homo_sapiens'){
-      cmd = paste(javaCall, "-jar", file.path(SNPEFF_DIR, "SnpSift.jar"), "dbnsfp -v -db /srv/GT/databases/dbNSFP/dbNSFP2.9.txt.gz",paste0(outputFile, "_annotated.vcf"), ">", outputFile)
+      cmd = paste(javaCall, "-jar", file.path(SNPEFF_DIR, "SnpSift.jar"), "dbnsfp -f SIFT_score,SIFT_pred,Polyphen2_HDIV_pred,1000Gp1_EUR_AF,CADD_phred -v -db /srv/GT/databases/dbNSFP/dbNSFP2.9.txt.gz",paste0(outputFile, "_annotated.vcf"), ">", outputFile)
       ezSystem(cmd)
     } else {
       ezSystem(paste("mv",paste0(outputFile, "_annotated.vcf"), outputFile))
