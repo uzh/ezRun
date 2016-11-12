@@ -223,7 +223,7 @@ runNgsCountQC = function(dataset, htmlFile="00index.html", param=param, rawData=
   }
   
   if (sum(isValid) < 10){
-    doc = addParagraph("Not enough valid features for further plots")
+    doc = addParagraph(doc, "Not enough valid features for further plots")
     closeBsdocReport(doc, htmlFile, titles)
     return("SUCCESS")
   }
