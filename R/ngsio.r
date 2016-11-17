@@ -142,6 +142,7 @@ ezHead = function(target=paste0(x, "_head"), x, n=1000){
 ##' @return Returns the rawdata read from the NcPro results.
 readNcProResult = function (ncproDir) {
   dataFiles = list.files(ncproDir, "_subfamcov.data$", full.names=TRUE)
+  dataFiles = grep("precursor", dataFiles, invert = TRUE, value = TRUE)
   
   df = dataFiles[1]
   allData = NULL

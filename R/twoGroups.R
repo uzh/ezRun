@@ -114,6 +114,10 @@ twoGroupCountComparison = function(rawData, param){
   result$countName = rawData$countName
   
   ezWriteElapsed(job, status="done")
+  result$summary = c("Name"=param$name,
+                     "Reference Build"=param$refBuild,
+                     "Feature Level"=rawData$featureLevel,
+                     "Normalization"=param$normMethod)
   deResult = EzResult(param=param, rawData=rawData, result=result)
   return(deResult)
 }

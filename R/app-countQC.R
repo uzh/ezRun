@@ -106,7 +106,7 @@ runNgsCountQC = function(dataset, htmlFile="00index.html", param=param, rawData=
   presentFlag = rawData$presentFlag
   signalRange = range(signal, na.rm=TRUE)
   log2Signal = log2(signal)
-  isPresent = ezPresentFlags(signal, presentFlag=presentFlag, param=param, isLog=rawData$isLog)
+  isPresent = ezPresentFlags(rawData$counts, presentFlag=presentFlag, param=param, isLog=rawData$isLog)
   signalCond = 2^averageColumns(log2Signal, by=conds)
   isPresentCond = averageColumns(isPresent, by=conds) >= 0.5
   isPresentStudy = apply(isPresentCond, 1, mean) >= 0.5
