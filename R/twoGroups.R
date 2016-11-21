@@ -353,7 +353,13 @@ writeNgsTwoGroupReport = function(dataset, deResult, output, htmlFile="00index.h
   }
   
   if (sum(use) > param$minGenesForClustering){
-    xCentered = (logSignal - rowMeans(logSignal))[use, order(param$grouping)]
+    xCentered = logSignal[use , ]
+    if (!is.null(param$useRefGroupAsBaseline) && param$useRefGroupAsBaseline){
+      xCentered = xCentered - rowMeans(xCentered[ , param$grouping == param$refGroup])
+    } else {
+      xCentered = xCentered - rowMeans(xCentered)
+    }
+    xCentered = xCentered[, order(param$grouping)]
     sampleColors = getSampleColors(param$grouping)[order(param$grouping)]
     clusterPng = "cluster-heatmap.png"
     clusterColors = c("red", "yellow", "orange", "green", "blue", "cyan")
