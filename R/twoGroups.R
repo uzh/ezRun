@@ -105,6 +105,7 @@ twoGroupCountComparison = function(rawData, param){
   fdr[useProbe] = p.adjust(pValue[useProbe], method="fdr")
   names(pValue) = rownames(x)
   names(fdr) = rownames(x)
+  names(result$log2Ratio) = rownames(x)
   result$pValue = pValue  
   result$fdr=fdr
   result$usedInTest = useProbe
