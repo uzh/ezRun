@@ -9,8 +9,8 @@ ezMethodGatkDnaHaplotyper = function(input=NA, output=NA, param=NA){
   bamFile = input$getFullPaths("BAM")
   ezSystem(paste("rsync -va", bamFile, "local.bam"))
   ezSystem(paste("rsync -va", paste0(bamFile, ".bai"), "local.bam.bai"))
-  knownSites = list.files(param$ezRef["refVariantsDir"],pattern='vcf$',full.names = T)
-  dbsnpFile = knownSites[grep('dbsnp.*vcf$', knownSites)]
+  knownSites = list.files(param$ezRef["refVariantsDir"],pattern='vcf.gz$',full.names = T)
+  dbsnpFile = knownSites[grep('dbsnp.*vcf.gz$', knownSites)]
   javaCall = paste0(JAVA, " -Djava.io.tmpdir=. -Xmx", param$ram, "g")
   
   genomeSeq = param$ezRef["refFastaFile"]
