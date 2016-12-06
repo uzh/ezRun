@@ -103,7 +103,7 @@ runGatkPipeline = function(datasetCase, param=NA){
                   "-recalFile", paste0(caseName,"_raw.InDels.recal"),
                   "-tranchesFile", paste0(caseName,"_raw.InDels.tranches"),
                   "-rscriptFile", paste0(caseName,"_recal.InDels.plots.R"))
-      if(!is.null(param$targetFile)){
+      if(param$targetFile != ''){
         cmd = paste(cmd,
                     "-L", param$targetFile)
       } else {
