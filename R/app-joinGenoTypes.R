@@ -44,7 +44,7 @@ runGatkPipeline = function(datasetCase, param=NA){
                 "--dbsnp", param$dbsnpFile,
                 "-o", outputFile,
                 "-nt", round(param$cores/param$mc.cores))
-    if(!is.null(param$targetFile)){
+    if(param$targetFile != ''){
       cmd = paste(cmd,
                   "-L", param$targetFile)
     }
@@ -68,7 +68,7 @@ runGatkPipeline = function(datasetCase, param=NA){
                   "-tranchesFile",paste0(caseName,'_raw.SNPs.tranches'),
                   "-rscriptFile", paste0(caseName,'_recal.SNPs.plots.R'))
       
-      if(!is.null(param$targetFile)){
+      if(param$targetFile != ''){
         cmd = paste(cmd,
                     "-L", param$targetFile, "--max_attempts 3")
       } else {
@@ -86,7 +86,7 @@ runGatkPipeline = function(datasetCase, param=NA){
                   "-o",paste0(caseName,'_recal.SNPs.vcf'),
                   "-ts_filter_level 99.0",
                   "-nt", round(param$cores/param$mc.cores))
-      if(!is.null(param$targetFile)){
+      if(param$targetFile != ''){
         cmd = paste(cmd,
                     "-L", param$targetFile)
       } 
@@ -121,7 +121,7 @@ runGatkPipeline = function(datasetCase, param=NA){
                   "-o ",outputFile,
                   "-ts_filter_level 99.0",
                   "-nt", round(param$cores/param$mc.cores))
-      if(!is.null(param$targetFile)){
+      if(param$targetFile != ''){
         cmd = paste(cmd,
                     "-L", param$targetFile)
       } 
@@ -139,7 +139,7 @@ runGatkPipeline = function(datasetCase, param=NA){
                   "--expression ExAC.AC_Hom",
                   "-V", outputFile,
                   "-nt", round(param$cores/param$mc.cores)) 
-      if(!is.null(param$targetFile)){
+      if(param$targetFile != ''){
         cmd = paste(cmd,
                     "-L", param$targetFile)
       } 

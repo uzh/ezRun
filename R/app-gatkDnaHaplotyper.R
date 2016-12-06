@@ -52,7 +52,7 @@ ezMethodGatkDnaHaplotyper = function(input=NA, output=NA, param=NA){
               "--out recal.table", 
               "-nct", param$cores)
   
-  if(!is.null(param$targetFile)){
+  if(param$targetFile != ''){
     cmd = paste(cmd,
                 "-L", param$targetFile)
   }
@@ -65,7 +65,7 @@ ezMethodGatkDnaHaplotyper = function(input=NA, output=NA, param=NA){
               "-o recal.bam",
               "-nct", param$cores)
   
-  if(!is.null(param$targetFile)){
+  if(param$targetFile != ''){
     cmd = paste(cmd,
                 "-L", param$targetFile)
   }
@@ -81,7 +81,7 @@ ezMethodGatkDnaHaplotyper = function(input=NA, output=NA, param=NA){
               "--dbsnp", dbsnpFile,
               "-o", outputFile)
   
-  if(!is.null(param$targetFile)){
+  if(param$targetFile != ''){
     cmd = paste(cmd,
                 "-L", param$targetFile)
   }
