@@ -455,6 +455,7 @@ writePresplicedGtf <- function (param, featureFile=param$ezRef["refFeatureFile"]
 ##' ts = getTranscriptSequences(param)
 getTranscriptSequences = function(param, useFivePrimeAsStart=TRUE){
   require(GenomicFeatures)
+  require(Rsamtools)
   txdb = makeTxDbFromGFF(param$ezRef["refFeatureFile"],
                          dataSource="FGCZ", taxonomyId = "10090")# organism=organism, chrominfo=NULL)
   exonRgList = exonsBy(txdb, by="tx", use.names=TRUE)
