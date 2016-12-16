@@ -133,6 +133,9 @@ ezMethodTrim = function(input=NA, output=NA, param=NA){
                 paste("MINLEN", param$minReadLength, sep=":"),
                 ">> trimmomatic.out 2>> trimmomatic.err")
     ezSystem(cmd)
+    ## TRIMOMMATIC may throw exception but still return status 0
+    exceptionCount = length(grep("Exception", readLines("trimmomatic.err")))
+    stopifnot(exceptionCount == 0)
     cmd = paste0('cat trimmomatic.err >>',input$getNames(),'_preprocessing.log')
     ezSystem(cmd)
   } else {
