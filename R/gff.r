@@ -442,11 +442,6 @@ writePresplicedGtf <- function (param, featureFile=param$ezRef["refFeatureFile"]
 ##' @param useFivePrimeAsStart a logical indicating whether to start from the 5' primer or not
 ##' @template roxygen-template
 ##' @return Returns an object of the class DNAStringSet from the package Biostrings
-##' @seealso \code{\link{ezLoadFeatures}}
-##' @seealso \code{\link[Biostrings]{readDNAStringSet}}
-##' @seealso \code{\link[IRanges]{Views}}
-##' @seealso \code{\link[Biostrings]{DNAStringSet}}
-##' @seealso \code{\link[Biostrings]{reverseComplement}}
 ##' @examples
 ##' param = ezParam()
 ##' param$ezRef@@refFeatureFile = system.file("extdata/genes.gtf", package="ezRun", mustWork=TRUE)
