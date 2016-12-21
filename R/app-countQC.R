@@ -57,7 +57,7 @@ EzAppCountQC <-
 ##'   \item{sigThresh}{ the threshold...}
 ##'   \item{useSigThresh}{ ...and whether it should be used.}
 ##'   \item{doZip}{ a logical indicating whether to archive the result file.}
-##'   \item{bgExpression}{ a numeric specifying the expression baseline value that is added before heatmap plots.}
+##'   \item{backgroundExpression}{ a numeric specifying the expression baseline value that is added before heatmap plots.}
 ##'   \item{topGeneSize}{ an integer specifying the number of high variance genes to consider in gene clustering.}
 ##'   \item{highVarThreshold}{ a numeric specifying the threshold for minimum standard deviation of log2 signal across samples.}
 ##'   \item{maxGenesForClustering}{ an integer specifying the maximum amount of genes for clustering. If the amount is higher, the least significant genes get removed first.}
@@ -230,7 +230,7 @@ runNgsCountQC = function(dataset, htmlFile="00index.html", param=param, rawData=
   
   pngLinks = ezMatrix("", rows=1, cols=1:2)
   pngAdvancedLinks = pngLinks
-  x = log2(2^log2Signal[isValid, ] + param$bgExpression)
+  x = log2(2^log2Signal[isValid, ] + param$backgroundExpression)
   xNormed = sweep(x, 1 , rowMeans(x));
   xSd = apply(x, 1, sd, na.rm=TRUE)
   ord = order(xSd, decreasing=TRUE)

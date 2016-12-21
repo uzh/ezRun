@@ -85,8 +85,10 @@ twoGroupCountComparison = function(rawData, param){
   result$isPresent = isPresent
   res = switch(param$testMethod,
                deseq2 = runDeseq2(round(x), param$sampleGroup, param$refGroup, param$grouping, grouping2=param$grouping2, isPresent=useProbe),
-               exactTest = runEdger(round(x), param$sampleGroup, param$refGroup, param$grouping, param$normMethod),
-               glm = runGlm(round(x), param$sampleGroup, param$refGroup, param$grouping, param$normMethod, grouping2=param$grouping2),
+               exactTest = runEdger(round(x), param$sampleGroup, param$refGroup, param$grouping, param$normMethod,
+                                    priorCount=param$backgroundExpression),
+               glm = runGlm(round(x), param$sampleGroup, param$refGroup, param$grouping, param$normMethod, grouping2=param$grouping2,
+                            priorCount=param$backgroundExpression),
                limma = runLimma(x, param$sampleGroup, param$refGroup, param$grouping, grouping2=param$grouping2),
                stop("unsupported testMethod: ", param$testMethod)
   )
@@ -187,7 +189,7 @@ runDeseq2 = function(x, sampleGroup, refGroup, grouping, grouping2=NULL, isPrese
     dds = DESeq2::DESeqDataSetFromMatrix(countData=x, colData=colData, design= ~ grouping)
   }
   dds = DESeq2::estimateSizeFactors(dds, controlGenes=isPresent)
-  dds = DESeq2::DESeq(dds, quiet=FALSE)
+  dds = DESeq2::DESeq(dds, quiet=FALSE, minReplicatesForReplace=Inf)
   res = DESeq2::results(dds, contrast=c("grouping", sampleGroup, refGroup), cooksCutoff=FALSE)
   res = as.list(res)
   res$sf = sf
@@ -195,7 +197,7 @@ runDeseq2 = function(x, sampleGroup, refGroup, grouping, grouping2=NULL, isPrese
 }
 
 ##' @describeIn twoGroupCountComparison Runs the EdgeR test method.
-runEdger = function(x, sampleGroup, refGroup, grouping, normMethod){
+runEdger = function(x, sampleGroup, refGroup, grouping, normMethod, priorCount=0.125){
   require("edgeR", warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
   cds = DGEList(counts=x, group=grouping)
   cds = calcNormFactors(cds, method=normMethod)
@@ -208,7 +210,7 @@ runEdger = function(x, sampleGroup, refGroup, grouping, normMethod){
   } else {
     cds$common.dispersion = 0.1
   }
-  et <- exactTest(cds, pair=c(refGroup, sampleGroup))
+  et <- exactTest(cds, pair=c(refGroup, sampleGroup), prior.count = priorCount)
   
   res = list()
   res$id = rownames(et$table)
@@ -227,7 +229,8 @@ runEdger = function(x, sampleGroup, refGroup, grouping, normMethod){
 }
 
 ##' @describeIn twoGroupCountComparison Runs the Glm test method.
-runGlm = function(x, sampleGroup, refGroup, grouping, normMethod, grouping2=NULL){
+runGlm = function(x, sampleGroup, refGroup, grouping, normMethod, grouping2=NULL,
+                  priorCount=0.125){
   require("edgeR", warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
   ## get the scaling factors for the entire data set
   cds = DGEList(counts=x, group=grouping)
@@ -261,7 +264,7 @@ runGlm = function(x, sampleGroup, refGroup, grouping, normMethod, grouping2=NULL
   }
   
   ## Testing for DE genes
-  fitGlm = glmFit(cds, design)
+  fitGlm = glmFit(cds, design, prior.count=priorCount)
   lrt.2vs1 = glmLRT(fitGlm, coef=2)
   res = list()
   res$id = rownames(lrt.2vs1$table)
@@ -337,6 +340,7 @@ writeNgsTwoGroupReport = function(dataset, deResult, output, htmlFile="00index.h
                            "Live Report and Visualizations",
                            target = "_blank"))
 
+  ## for scatter plots we show the highly variable low counts
   logSignal = log2(shiftZeros(result$xNorm, param$minSignal))
   result$groupMeans = cbind(rowMeans(logSignal[ , param$grouping == param$sampleGroup, drop=FALSE]),
                             rowMeans(logSignal[ , param$grouping == param$refGroup, drop=FALSE]))
@@ -352,6 +356,8 @@ writeNgsTwoGroupReport = function(dataset, deResult, output, htmlFile="00index.h
   if (sum(use) > param$maxGenesForClustering){
     use[use] = rank(result$pValue[use], ties.method="max") <= param$maxGenesForClustering
   }
+  ## for clustering we use a moderated logSignal
+  logSignal = log2(result$xNorm + param$backgroundExpression)
   
   if (sum(use) > param$minGenesForClustering){
     xCentered = logSignal[use , ]

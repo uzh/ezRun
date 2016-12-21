@@ -5,7 +5,7 @@ ezGcEffect = function(rawData, param){
     rawData$signal = ezNorm(rawData$counts, presentFlag=rawData$presentFlag,  method=param$normMethod)
   }
   isPresent = rowMeans(rawData$presentFlag) >= 0.5
-  logSig = log2(rawData$signal + param$bgExpression)
+  logSig = log2(rawData$signal + param$backgroundExpression)
   logRatio = logSig - rowMeans(logSig)
   isHighGc = rawData$seqAnno$gc > 0.6 & isPresent
   isLowGc = rawData$seqAnno$gc < 0.4 & isPresent
