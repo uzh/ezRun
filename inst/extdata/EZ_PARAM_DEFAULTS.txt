@@ -49,7 +49,7 @@ pValueHighlightThresh	numeric	0.01	only probes with a p-value below are highligh
 log2RatioHighlightThresh	numeric	0.5	only probes with an absolute log2 ratio above the threshold are highlighted
 geneColumnSet	character	gene_id	the annotation columns that can be used to map features/transcripts to genes
 expressionName	character	matchCounts	the title of the column that holds the count values
-knownExpressionNames	charVector	matchCounts,multiMatchCounts,transcriptCount,transcriptCountPosteriorEstimate,Count	the columns where by default expression values are searched
+knownExpressionNames	charVector	matchCounts,NumReads,est_counts,multiMatchCounts,transcriptCount,transcriptCountPosteriorEstimate,Count	the columns where by default expression values are searched
 runGfold	logical	TRUE	should gold be run
 backgroundExpression	numeric	10	expression baseline value that is added before computing ratios or drawing heatmap plots
 allPairsMaxCondNumber	integer	10	
