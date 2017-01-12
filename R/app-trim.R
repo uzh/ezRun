@@ -46,6 +46,7 @@ ezMethodTrim = function(input=NA, output=NA, param=NA){
     output$dataRoot = NULL
   }
   
+  
   ## if there are multiple samples loop through them
   if (input$getLength() > 1){
     for (nm in input$getNames()){
@@ -57,6 +58,35 @@ ezMethodTrim = function(input=NA, output=NA, param=NA){
   }
   
   ## now we deal only with one sample!
+  
+  
+  ## make a local copy of the dataset and check the md5sum
+  if (param$paired){
+    reads = c("Read1", "Read2")
+  } else{
+    reads = "Read1"
+  }
+  for (rds in reads){
+    readFileIn = input$getFullPaths(rds)
+    ezSystem(paste("cp -n", readFileIn, "."))
+    input$setColumn(rds, basename(readFileIn))
+    md5Local = ezSystem(paste("md5sum", basename(readFileIn)), intern = TRUE)
+    md5Local = sub(" .*", "", md5Local)
+    md5File = file.path(dirname(readFileIn), "md5.txt")
+    md5Remote = NA
+    if (file.exists(md5File)){
+      md5Set = ezRead.table(md5File)
+      md5Remote = md5Set[basename(readFileIn), 1]
+    }
+    if (is.na(md5Remote)){
+      md5Remote = ezSystem(paste("ssh fgcz-s-022 md5sum", readFileIn), intern = TRUE)
+      md5Remote = sub(" .*", "", md5Remote)
+    }
+    stopifnot(md5Local == md5Remote)
+  }
+  input$dataRoot = NULL
+  
+    
   param$trimSeedMismatches = 1
   param$trimPalindromClipThresh = 20
   param$trimSimpleClipThresh = 7
