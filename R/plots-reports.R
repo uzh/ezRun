@@ -84,16 +84,16 @@ addQcScatterPlots = function(doc, param, design, conds, rawData, signalCond, isP
         })
         imgLinks = character()
         imgLinks["def"] = ezImageFileLink(plotCmd, file=pngName,
-                                  width=min(nPlots, 6) * 400,
-                                  height=ceiling(nPlots/6) * 400) # dynamic png with possibly many plots
+                                  width=min(nPlots, 6) * 300,
+                                  height=ceiling(nPlots/6) * 300) # dynamic png with possibly many plots
         if (!is.null(gcTypes)){
           pngName = ezValidFilename(paste0(condName, "-ByGcScatter.png"))
           plotCmd = expression({
             ezScatter(y=signal[ ,idx], isPresent=isPresent[ ,idx], types=gcTypes, lim=signalRange, xlab=paste("Avg of", cond), ylab=NULL)
           })
           imgLinks["gc"] = ezImageFileLink(plotCmd, file=pngName,
-                                   width=min(nPlots, 6) * 400,
-                                   height=ceiling(nPlots/6) * 400) # dynamic png with possibly many plots
+                                   width=min(nPlots, 6) * 300,
+                                   height=ceiling(nPlots/6) * 300) # dynamic png with possibly many plots
         }
         if (!is.null(widthTypes)){
           pngName = ezValidFilename(paste0(condName, "-ByWidthScatter.png"))
@@ -101,8 +101,8 @@ addQcScatterPlots = function(doc, param, design, conds, rawData, signalCond, isP
             ezScatter(y=signal[ ,idx], isPresent=isPresent[ ,idx], types=widthTypes, lim=signalRange, xlab=paste("Avg of", cond), ylab=NULL)
           })
           imgLinks["width"] = ezImageFileLink(plotCmd, file=pngName,
-                                      width=min(nPlots, 6) * 400,
-                                      height=ceiling(nPlots/6) * 400) # dynamic png with possibly many plots
+                                      width=min(nPlots, 6) * 300,
+                                      height=ceiling(nPlots/6) * 300) # dynamic png with possibly many plots
         }
         addFlexTable(doc, ezGrid(imgLinks))
       }

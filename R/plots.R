@@ -355,7 +355,7 @@ ezScatter <- function(x=NULL, y, xlab=NULL, ylab=NULL, nPlotsPerRow=6, shrink=FA
         xlab = colnames(x)[i]
       }
     }
-    par(mar=c(4.1, 3.1, 4.1, 0.1))
+    par(mar=c(4.1, 2.1, 2.2, 0.1))
     ezXYScatter(xVal, y[ ,i], xlim=lim, ylim=lim, isPresent=isPres,
                        types=types, pch=pch, colors=colors, legendPos=legendPos, shrink=shrink,
                        main=main[i], xlab=xlab, ylab=ylab[i], ...)
