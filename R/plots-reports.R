@@ -85,7 +85,7 @@ addQcScatterPlots = function(doc, param, design, conds, rawData, signalCond, isP
         imgLinks = character()
         imgLinks["def"] = ezImageFileLink(plotCmd, file=pngName,
                                   width=min(nPlots, 6) * 300,
-                                  height=ceiling(nPlots/6) * 300) # dynamic png with possibly many plots
+                                  height=ceiling(nPlots/6) * 330) # dynamic png with possibly many plots
         if (!is.null(gcTypes)){
           pngName = ezValidFilename(paste0(condName, "-ByGcScatter.png"))
           plotCmd = expression({
@@ -93,7 +93,7 @@ addQcScatterPlots = function(doc, param, design, conds, rawData, signalCond, isP
           })
           imgLinks["gc"] = ezImageFileLink(plotCmd, file=pngName,
                                    width=min(nPlots, 6) * 300,
-                                   height=ceiling(nPlots/6) * 300) # dynamic png with possibly many plots
+                                   height=ceiling(nPlots/6) * 330) # dynamic png with possibly many plots
         }
         if (!is.null(widthTypes)){
           pngName = ezValidFilename(paste0(condName, "-ByWidthScatter.png"))
@@ -102,7 +102,7 @@ addQcScatterPlots = function(doc, param, design, conds, rawData, signalCond, isP
           })
           imgLinks["width"] = ezImageFileLink(plotCmd, file=pngName,
                                       width=min(nPlots, 6) * 300,
-                                      height=ceiling(nPlots/6) * 300) # dynamic png with possibly many plots
+                                      height=ceiling(nPlots/6) * 330) # dynamic png with possibly many plots
         }
         addFlexTable(doc, ezGrid(imgLinks))
       }
