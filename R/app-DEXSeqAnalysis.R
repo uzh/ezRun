@@ -36,6 +36,8 @@
 #' 
 ezMethodDEXSeqAnalysis <- function(input=NA, output=NA, param=NA){
   require(DEXSeq)
+  require(ReporteRs)
+  
   param[['BPPARAM']] = BiocParallel::MulticoreParam(workers=param$cores)
   ### # check whether conditions are specified
   colnames(input$meta) = gsub(' \\[.*','',colnames(input$meta))
@@ -452,7 +454,8 @@ DEXSeqCounting <- function(input = input, output = output, param = param){
   if (ezIsSpecified(param$countfile_ext))
     sCountfileExt <- param$countfile_ext
   ### # call counting routine
-  vCountFiles <- ezMclapply(bamFiles, runCountSingleBam, sGffFile, sCountfileExt, param$strandMode, param$paired, mc.cores = param[['cores']])
+  ramPerJob = round((param[['ram']]*1000)/param[['cores']])
+  vCountFiles <- ezMclapply(bamFiles, runCountSingleBam, sGffFile, sCountfileExt, param$strandMode, param$paired, ramPerJob, mc.cores = param[['cores']])
   
   return("Success")
 }
@@ -485,10 +488,10 @@ convertGtfToGff <- function(psGtfFile, psGffFile) {
 
 #' Run counts for a single BAM file
 #' 
-runCountSingleBam <- function(psBamFile, psGffFile, psCountfileExt, strandMode, Paired ){
+runCountSingleBam <- function(psBamFile, psGffFile, psCountfileExt, strandMode, Paired, ramPerJob){
   if(Paired){
     stopifnot(psBamFile != basename(psBamFile))
-    ezSystem(paste(SAMTOOLS, "sort -n" ,psBamFile, "-o", basename(psBamFile)))
+    ezSystem(paste(SAMTOOLS, "sort -n" ,psBamFile, "-m", paste0(ramPerJob,"M"), "-o", basename(psBamFile)))
     psBamFile = basename(psBamFile)
   }
   
