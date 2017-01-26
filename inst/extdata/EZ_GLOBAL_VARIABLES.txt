@@ -33,6 +33,8 @@ TOPHAT_DIR="/usr/local/ngseq/src/tophat-2.1.0.Linux_x86_64"
 STAR="/usr/local/ngseq/src/STAR-2.5.1b/bin/Linux_x86_64_static/STAR"
 ##MMSEQ_DIR="/usr/local/ngseq/stow/mmseq_0.11.2a/bin"
 RSEM_DIR="/usr/local/ngseq/src/RSEM-1.2.22"
+KALLISTO="/usr/local/ngseq/stow/kallisto-0.43.0/bin/kallisto"
+SALMON="/usr/local/ngseq/stow/Salmon-0.7.2/bin/salmon"
 PRINSEQ_LITE='/usr/local/ngseq/stow/prinseq-lite-0.20.4/bin/prinseq-lite.pl'
 NCPRO_DIR="export PYTHONPATH=.:/usr/local/ngseq/lib/python && /usr/local/ngseq/opt/ncproseq_v1.6.4"
 NCPRO_ANNOTATION_DIR="/srv/GT/databases/ncPRO-seq/ncPRO-seq.v1.6.3_mirBase21"
@@ -74,6 +76,7 @@ GENEBODY_COVERAGE="PYTHONPATH=/usr/local/ngseq/lib/python/:/usr/local/ngseq/lib/
 JUNCTION_ANNOTATION="PYTHONPATH=/usr/local/ngseq/lib/python/:/usr/local/ngseq/lib/python2.7:/usr/local/ngseq/lib/python2.7/dist-packages /usr/local/ngseq/stow/RSeQC-2.6.2/bin/junction_annotation.py"
 INFER_EXPERIMENT="PYTHONPATH=/usr/local/ngseq/lib/python/:/usr/local/ngseq/lib/python2.7:/usr/local/ngseq/lib/python2.7/dist-packages /usr/local/ngseq/stow/RSeQC-2.6.2/bin/infer_experiment.py"
 TEQC_DESIGN_DIR="/srv/GT/databases/targetEnrichment_designs"
+
 
 # VMATCH="/usr/local/ngseq/src/vmatch-v2.0"
 
