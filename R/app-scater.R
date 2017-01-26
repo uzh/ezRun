@@ -13,7 +13,6 @@ ezMethodScater = function(input=NA, output=NA, param=NA, htmlFile="00index.html"
     param$minExpressedCells <- 4
   }
 
-  countMatrix = EzDataset(file=input$getFullPaths("CountMatrix"), dataRoot=param$dataRoot)
   input = EzDataset(file=input$getFullPaths("CountDataset"), dataRoot=param$dataRoot)
   meta = input$meta
 
@@ -35,7 +34,7 @@ ezMethodScater = function(input=NA, output=NA, param=NA, htmlFile="00index.html"
   # Prepare the data for SCE set
   phenoData = new("AnnotatedDataFrame", data = meta)
   rownames(phenoData) <- row.names(meta)
-  countData = countMatrix$meta
+  countData = ezRead.table(input$getFullPaths("CountMatrix"))
   featureNames = row.names(countData)
   featureData <- new("AnnotatedDataFrame", data = data.frame(Feature = featureNames))
   rownames(featureData) <- featureNames
@@ -45,6 +44,20 @@ ezMethodScater = function(input=NA, output=NA, param=NA, htmlFile="00index.html"
   # Remove features that are not expressed
   expressedMask <- rowSums(is_exprs(sceset)) > param$minExpressedCells
   sceset <- sceset[expressedMask, ]
+  
+  
+  if (!is.null(output)){
+    liveReportLink = output$getColumn("Live Report")
+    summary = c("Name"=param$name,
+                "Reference Build"=param$refBuild,
+                "Feature Level"=rawData$featureLevel)
+    result = EzResult(param=param, sceset=sceset, result=list(summary=summary, analysis="scater"))
+    result$saveToFile(basename(output$getColumn("Live Report")))
+    addParagraph(doc, ezLink(liveReportLink,
+                             "Live Report and Visualizations",
+                             target = "_blank"))
+  }  
+  
 
   plotCmd <- expression(grid.draw(plot(sceset, exprs_values = "counts")))
   cumPropLink <- ezImageFileLink(plotCmd, file = "libCumProp.png",

@@ -23,13 +23,14 @@
 ##' deResult2 = EzResult$new(file=rdFile)
 EzResult <-
   setRefClass("EzResult",
-              fields=c("param", "rawData", "result", "se"),
+              fields=c("param", "rawData", "result", "se", "sceset"),
               methods=list(
                 initialize = function(paramNew=list(), rawDataNew=list(), resultNew=list(),
-                                      file=NULL){
+                                      file=NULL, scesetNew=list()){
                   param <<- paramNew
                   rawData <<- rawDataNew
                   result <<- resultNew
+                  sceset <<- scesetNew
                   if (!is.null(file)){
                     stopifnot(length(paramNew) == 0 && length(rawDataNew) == 0 && length(resultNew) == 0)
                     stopifnot(file.exists(file))
