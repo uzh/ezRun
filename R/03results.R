@@ -23,7 +23,7 @@
 ##' deResult2 = EzResult$new(file=rdFile)
 EzResult <-
   setRefClass("EzResult",
-              fields=c("param", "rawData", "result"),
+              fields=c("param", "rawData", "result", "se"),
               methods=list(
                 initialize = function(paramNew=list(), rawDataNew=list(), resultNew=list(),
                                       file=NULL){
@@ -38,9 +38,37 @@ EzResult <-
                     rawData <<- rawData
                     result <<- result
                   }
+                  se <<- makeSummarizedExperiment(param, rawData, result)
                 },
                 saveToFile = function(file){
                   save(param, rawData, result, file=file)
                 }
               )
   )
+
+
+
+
+makeSummarizedExperiment = function(param, rawData, result){
+  require(SummarizedExperiment)
+  if (is.null(rawData)){
+    return(NULL)
+  }
+  assayList = list(counts=rawData$counts)
+  if (!is.null(rawData$signal)){
+    assayList$countsNorm = rawData$signal
+  } else {
+    if (!is.null(result$xNorm)){
+      assayList$countsNorm = result$xNorm
+    } 
+  }
+  
+  SummarizedExperiment(assays=assayList,
+                       rowData=rawData$seqAnno,
+                       colData=ezDesignFromDataset(rawData$dataset, param),
+                       metadata=param)
+  ## DE results can be represented 
+  ## --- as mcols in the rowData
+  ## --- as an element in the metaData list (subsetting does not work)
+  ## --- as a separate SummarizedExperiment object
+}
