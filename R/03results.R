@@ -26,7 +26,7 @@ EzResult <-
               fields=c("param", "rawData", "result", "se", "sceset"),
               methods=list(
                 initialize = function(paramNew=list(), rawDataNew=list(), resultNew=list(),
-                                      file=NULL, scesetNew=list()){
+                                      file=NULL, seNew=list(), scesetNew=list()){
                   param <<- paramNew
                   rawData <<- rawDataNew
                   result <<- resultNew
@@ -38,11 +38,15 @@ EzResult <-
                     param <<- param
                     rawData <<- rawData
                     result <<- result
+                    se <<- se
+                    sceset <<- sceset
                   }
-                  se <<- makeSummarizedExperiment(param, rawData, result)
+                  if (length(se) == 0){ ## this is for backward compatibility
+                    se <<- makeSummarizedExperiment(param, rawData, result)
+                  }
                 },
                 saveToFile = function(file){
-                  save(param, rawData, result, file=file)
+                  save(param, rawData, result, se, sceset, file=file)
                 }
               )
   )
