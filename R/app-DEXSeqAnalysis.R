@@ -155,7 +155,7 @@ EzAppDEXSeqAnalysis <-
                                         fdr            = ezFrame(Type="numeric",   DefaultValue=0.05,          Description="false discovery rate below which genes are reported"),
                                         minGeneExprCount   = ezFrame(Type="numeric",   DefaultValue=20,          Description="minimal Mean GeneCount for candidate selection"),
                                         minExonExprCount   = ezFrame(Type="numeric",   DefaultValue=10,          Description="minimal Mean ExonCount for candidate selection"),
-                                        minExonLog2Ratio = ezFrame(Type="numeric",   DefaultValue=0.5,          Description="minimal log2Ratio for diff. exon for candidate selection"),
+                                        minExonLog2Ratio = ezFrame(Type="numeric",   DefaultValue=0.3,          Description="minimal log2Ratio for diff. exon for candidate selection"),
                                         dexseq_report_path = ezFrame(Type="character", DefaultValue="DEXSeqReport",  Description="path DEXSeqHTML report is written to"),
                                         dexseq_report_file = ezFrame(Type="character", DefaultValue="testForDEU.html",  Description="file name for DEXSeqHTML report")   )
                 }
