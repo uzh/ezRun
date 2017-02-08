@@ -98,6 +98,8 @@ SHINY_EXPLORE_COUNTS="http://fgcz-shiny.uzh.ch/fgcz_exploreCountQC_app/"
 SHINY_EXPLORE_DE="http://fgcz-shiny.uzh.ch/fgcz_exploreDEG_app/"
 SHINY_SCATER="http://fgcz-shiny.uzh.ch/fgcz_scater_app/"
 
+## Enrichr
+ENRICHR_BASE_URL="http://amp.pharm.mssm.edu/Enrichr"
 
 
 ############# R-SGE options

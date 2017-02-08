@@ -1,0 +1,194 @@
+###################################################################
+# Functional Genomics Center Zurich
+# This code is distributed under the terms of the GNU General
+# Public License Version 3, June 2007.
+# The terms are available here: http://www.gnu.org/licenses/gpl.html
+# www.fgcz.ch
+
+
+##' @title Add gene list
+##' @description Registers a gene list with the Enrichr server
+##' @param genes A list or vector containing gene names
+##' @template roxygen-template
+##' @return Returns a list with userListId and shortId
+enrichrAddList <- function(genes) {
+  require(httr, quietly = T, warn.conflicts = WARN_CONFLICTS)
+
+  reqUrl <- paste(ENRICHR_BASE_URL, "addList", sep = "/")
+
+  if (is.null(genes) || length(genes) < 1) {
+    stop("The gene list should contain at least one gene")
+  }
+
+  geneStr <- paste(genes, collapse = "\n")
+  resp <- POST(reqUrl, body = list(list = geneStr))
+  if (http_error(resp)) {
+    stop_for_status(resp, "register the gene list with Enrichr")
+  }
+  respParsed <- jsonlite::fromJSON(content(resp, as = "text"))
+
+  if (is.null(respParsed$userListId) || is.null(respParsed$shortId)) {
+    stop("Enrichr server returned an invalid response: userListId or shortId is missing")
+  }
+
+  return(respParsed)
+}
+
+#' @title Query string generator
+#' @description Helper function that generates a query string out of named parameters. The main
+#' purpose of this function is to generate query strings for curl requests. All special characters
+#' in the values are escaped.
+#' @param ...  Named parameters that will form the query
+#' @template roxygen-template
+#' @return A string in the following format: \code{param1=value1&param2=value2}.
+mkCurlQryString <- function(...) {
+  x <- c(...)
+  paste(paste(names(x), curl::curl_escape(x), sep = "="), collapse = "&")
+}
+
+
+##' @title Enrichment analysis
+##' @description Runs enrichment analysis against the specified databases. By default, the function
+##' will the internal list (\code{\link{getEnrichrLibNames}}) of the library names.
+##' @param userListId userListId returned by the Enrichr server via \code{\link{enrichrAddList}}
+##' @param libNames vector of library names that should be a subset of those specified at the
+##'   \href{http://amp.pharm.mssm.edu/Enrichr/#stats}{Enrichr} website. This function does not
+##'    validate the list. If the value is NULL, the function will use the internal list.
+##' @param connectionN maximum number of concurrent connections to make
+##' @template roxygen-template
+##' @seealso \code{\link{enrichrAddList}, \link{getEnrichrLibNames}}
+##' @return \code{list} with two elements: success and failure. The first element is a \code{list}
+##' of \code{data.frame} objects that contain enrichment results per library. The names of the
+##' success list match the library names. The failure \code{list} contains error messages for the
+##' libraries that failed enrichment tests. The name of this \code{list} may not match the library
+##' names. You can determine which libraries failed by comparing the success list with the supplied
+##' library names.
+enrichrEnrich <- function(userListId, libNames = getEnrichrLibNames(), connectionN = 10) {
+  # While httr is easier to deal with, it does not support asynchrous requests. Neither does Rcurl.
+  # So, we have to resort to the use of the curl package.
+  require(curl, quietly = T, warn.conflicts = WARN_CONFLICTS)
+
+  reqUrl <- paste(ENRICHR_BASE_URL, "enrich", sep = "/")
+
+  # The functions below are internal helper functions to make the code clear. There is no reason to
+  # expose them.
+
+  # Concatenates gene list into a string. Otherwise, the unlist function would expand them. Note
+  # that the recursive flag will not help you in this case.
+  concatGenes <- function(lst, sep = ";") {
+      lapply(lst, function(x) { x[[6]] <- paste(x[[6]], collapse = sep); x})
+  }
+
+  # The jsonlite parser returns all values as character() and you cannot call as.numeric on a subset
+  # of columns.
+  respToNumeric <- function(x, idx = c(3,4,5,7,8,9)) {
+    for (i in idx) {
+      x[,i] <- as.numeric(x[,i])
+    }
+    x
+  }
+
+  # Parses the response
+  parseResp <- function(resp) {
+    fieldNames <- c("Rank", "Term", "p_value", "z_score", "Combined.Score", "Overlapping.Genes",
+        "Adjusted.p_value", "Old.p_value", "Old.Adjusted.p_value")
+    respParsed <- jsonlite::fromJSON(resp$content %>% rawToChar())[[1]]
+    if (length(respParsed) > 0) {
+      ds <- as.data.frame(
+        do.call("rbind", lapply(concatGenes(respParsed), unlist)),
+        stringsAsFactors = F
+      )
+      names(ds) <- fieldNames
+      respToNumeric(ds)
+    }
+  }
+
+  success <- list()
+  failure <- list()
+
+  # All connections are to the same host, so both parameters should have the same value
+  pool <- new_pool(total_con = connectionN, host_con = connectionN, multiplex = T)
+  for (libName in libNames) {
+    qryString <- mkCurlQryString(userListId = userListId, backgroundType = libName)
+    curl_fetch_multi(
+        paste(reqUrl, qryString, sep="?"),
+        # failonerror will cause curl to fail for any response status >= 400
+        handle = new_handle(failonerror = T),
+        pool = pool,
+        done = function(x) {
+          # libName may be bound after the loop is done rather than immediately. In that case, all
+          # results will be saved under the same libName. To avoid that, we have to extract the
+          # libName here.
+          libName <- sub('^.+backgroundType=([^&]+).*$', '\\1', x$url)
+          success[[libName]] <<- tryCatch(
+            parseResp(x),
+            error = function(e) { failure[[libName]] <<- paste("Response parsing failure with", e) }
+          )
+        },
+        # In case of a failure, curl returns only the error message that does not contain the URL,
+        # so we have no way to determine which request failed. So, we'll just append the message to
+        # the end of the list.
+        fail = function(x) { k <- length(failure) + 1; failure[[k]] <<- x }
+      )
+  }
+  multi_run(pool = pool)
+
+  list(success = success, failure = failure)
+}
+
+
+
+##' @title Result filtering
+##' @description Filters the results returned by Enrichr. Libraries that fail to yield any
+##' significant results are removed. However, libraries that contain significant results, retain all
+##' records whether significant or not)
+##' @param resList list of results returned by \code{\link{enrichrEnrich}}
+##' @param p p-value threshold (maximum)
+##' @param pAdj adjusted p-value threshold (maximum)
+##' @param z z-value threshold (maximum)
+##' @param combinedScore combined score threshold (minimum)
+##' @template roxygen-template
+##' @seealso \code{\link{enrichrEnrich}}
+##' @return \code{list} that contains the results for libraries with at least one significant gene
+##' that satisfies the criteria.
+filterEnrichrResults <- function(resList, p = 1, pAdj = 1, z = 0, combinedScore = 0) {
+  resF <- lapply(resList, function(x) {
+    mask <- x$p_value < p &
+      x$Adjusted.p_value < pAdj &
+      x$z_score < z &
+      x$Combined.Score > combinedScore
+    x[mask, ]
+  })
+  listMask <- sapply(resF, function(x) { nrow(x) > 0 }, simplify = T)
+  resList[listMask]
+}
+
+
+##' @title Get Enrichr library names
+##' @description reads Enrichr library names from the internal file
+##'   (\code{extdata/enrichr_libnames.txt})
+##' @template roxygen-template
+##' @return a vector containing library names
+getEnrichrLibNames <- function() {
+  file <- system.file(file.path("extdata", "enrichr_libnames.txt"), package = "ezRun", mustWork = T)
+  scan(file, character(), quiet = T)
+}
+
+
+##' @title Retrieve Enrichr library names
+##' @description Retrieves Enrichr library names from the specified HTML file and saves it to the
+##'   internal package file (\code{extdata/enrichr_libnames.txt"}). Ideally, this method
+##'   would fetch the data from \url{http://amp.pharm.mssm.edu/Enrichr/#stats}. However, the page
+##'   uses an Ajax query to populate the table, so it is empty when you access it with libcurl.
+##' @param file location of the HTML file saved from \url{http://amp.pharm.mssm.edu/Enrichr/#stats}
+##' @template roxygen-template
+##' @return (invisibly) a vector containing library names
+parseEnrichrLibNames <- function(file) {
+  require(XML, quietly = T, warn.conflicts = WARN_CONFLICTS)
+  mainPage <- htmlParse(file)
+  tblNode <- getNodeSet(mainPage, "//table[@id='stats']")
+  tbl <- readHTMLTable(tblNode[[1]], as.data.table = T, stringsAsFactors=F)
+  fileOut <- system.file(file.path("extdata", "enrichr_libnames.txt"), package = "ezRun", mustWork = T)
+  write(tbl[, 1], file = fileOut, ncolumns = 1)
+  invisible(tbl[, 1])
+}
