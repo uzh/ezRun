@@ -31,7 +31,7 @@
 ##' @template roxygen-template
 ##' @return Returns the output after trimming as an object of the class EzDataset.
 ezMethodTrim = function(input=NA, output=NA, param=NA){
-  
+
   ## if output is not an EzDataset, set it!
   if (!is(output, "EzDataset")){
     output = input$copy()
@@ -45,8 +45,8 @@ ezMethodTrim = function(input=NA, output=NA, param=NA){
     }
     output$dataRoot = NULL
   }
-  
-  
+
+
   ## if there are multiple samples loop through them
   if (input$getLength() > 1){
     for (nm in input$getNames()){
@@ -56,10 +56,10 @@ ezMethodTrim = function(input=NA, output=NA, param=NA){
     }
     return(output)
   }
-  
+
   ## now we deal only with one sample!
-  
-  
+
+
   ## make a local copy of the dataset and check the md5sum
   if (param$paired){
     reads = c("Read1", "Read2")
@@ -85,19 +85,19 @@ ezMethodTrim = function(input=NA, output=NA, param=NA){
     # stopifnot(md5Local == md5Remote)
   }
   input$dataRoot = NULL
-  
-    
+
+
   param$trimSeedMismatches = 1
   param$trimPalindromClipThresh = 20
   param$trimSimpleClipThresh = 7
   param$trimMinAdaptLength = 5
   param$trimKeepBothReads = "true"
   param$trimQualWindowWidth = 4
-  
+
   if (param$subsampleReads > 1 || param$nReads > 0){
     input = ezMethodSubsampleReads(input=input, param=param)
   }
-  
+
   if (param$trimAdapter){
     if (!is.null(input$meta$Adapter1) && !is.na(input$meta$Adapter1) && input$meta$Adapter1 != ""){
       adapter1 = DNAStringSet(input$meta$Adapter1)
@@ -124,19 +124,19 @@ ezMethodTrim = function(input=NA, output=NA, param=NA){
   } else {
     trimAdaptOpt = ""
   }
-  
+
   if (param$minTailQuality > 0){
     tailQualOpt = paste("SLIDINGWINDOW", param$trimQualWindowWidth, param$minTailQuality, sep=":")
   } else {
     tailQualOpt = ""
   }
-  
+
   if (param$minAvgQuality > 0){
     minAvgQualOpt = paste("AVGQUAL", param$minAvgQuality, sep=":")
   } else {
     minAvgQualOpt = ""
   }
-  
+
   r1TmpFile = "trimmed-R1.fastq"
   r2TmpFile = "trimmed-R2.fastq"
   if (any(c(trimAdaptOpt, tailQualOpt, minAvgQualOpt) != "") || param$minReadLength > 0){
@@ -171,10 +171,10 @@ ezMethodTrim = function(input=NA, output=NA, param=NA){
   } else {
     ezSystem(paste("gunzip -c", input$getFullPaths("Read1"), ">", r1TmpFile))
     if (param$paired){
-      ezSystem(paste("gunzip -c", input$getFullPaths("Read2"), ">", r2TmpFile))      
+      ezSystem(paste("gunzip -c", input$getFullPaths("Read2"), ">", r2TmpFile))
     }
   }
-  
+
   ## the flexbar call is done separately because we do want to make sure that fixed trimming is done on top of adapter trimming
   ## this is needed for STAR to be able to pair the reads properly
   if (param$trimLeft > 0 || param$trimRight > 0){
@@ -213,7 +213,7 @@ ezMethodTrim = function(input=NA, output=NA, param=NA){
       r1TmpFile = "flexbar.fastq"
     }
   }
-  
+
   ## filter by max read length
   if (!is.null(param$maxReadLength) && !is.na(as.integer(param$maxReadLength))){
     newFile = "lengthTrimmed_R1.fastq"
@@ -222,7 +222,7 @@ ezMethodTrim = function(input=NA, output=NA, param=NA){
     while(length(x <- yield(fqs))){
       writeFastq(x[width(x) <= maxLength], file = newFile, mode="a", compress=FALSE)
     }
-    close(fqs) 
+    close(fqs)
     file.remove(r1TmpFile)
     r1TmpFile = newFile
     if (param$paired){
@@ -232,12 +232,12 @@ ezMethodTrim = function(input=NA, output=NA, param=NA){
       while(length(x <- yield(fqs))){
         writeFastq(x[width(x) <= maxLength], file = newFile, mode="a")
       }
-      close(fqs) 
+      close(fqs)
       file.remove(r2TmpFile)
       r2TmpFile = newFile
     }
   }
-  
+
   ezSystem(paste("mv", r1TmpFile, basename(output$getColumn("Read1"))))
   if (param$paired){
     ezSystem(paste("mv", r2TmpFile, basename(output$getColumn("Read2"))))
@@ -254,7 +254,7 @@ ezMethodTrim = function(input=NA, output=NA, param=NA){
 ##'   \item{subsampleFactor} the factor by which subsampling has been done. if \code{nReads} is specified subsampleFactor will not be used
 ##'   \item{paired} whether these are paired-end reads
 ##' }
-##' @examples 
+##' @examples
 ##' inputDatasetFile = system.file(package = "ezRun", "extdata/yeast_10k/dataset.tsv")
 ##' param = ezParam(list(dataRoot=system.file(package = "ezRun"), subsampleFactor=5))
 ##' input = EzDataset(file=inputDatasetFile, dataRoot=param$dataRoot)
@@ -267,7 +267,7 @@ ezMethodSubsampleReads = function(input=NA, output=NA, param=NA){
     output$setColumn(name="Read1", values = file.path(getwd(), subsampleFiles))
     if (param$paired){
       subsampleFiles = sub(".fastq.*", "-subsample.fastq", basename(input$getColumn("Read2")))
-      output$setColumn(name="Read2", values = file.path(getwd(), subsampleFiles))      
+      output$setColumn(name="Read2", values = file.path(getwd(), subsampleFiles))
     }
     output$dataRoot = NULL
   }
@@ -288,9 +288,8 @@ ezMethodSubsampleReads = function(input=NA, output=NA, param=NA){
   return(output)
 }
 
-##' 
 ##' @describeIn ezMethodTrim Performs the fastq for the subsamples using the package ShortRead.
-##' @examples 
+##' @examples
 ##'  inputFile = system.file(package = "ezRun", "extdata/yeast_10k/wt_1_R1.fastq.gz")
 ##'  subsampledFile = "sub_R1.fastq"
 ##'  ezSubsampleFastq(inputFile, subsampledFile, subsampleFactor = 5)
@@ -311,9 +310,9 @@ ezSubsampleFastq = function(full, sub, subsampleFactor=NA, nYield=1e5, overwrite
     nms = full
   }
   nReadsVector = integer()
-  for (i in seq_along(full)){ 
+  for (i in seq_along(full)){
     nReads = 0
-    fqs = FastqStreamer(full[i], n = nYield) 
+    fqs = FastqStreamer(full[i], n = nYield)
     idx = seq(from=1, to=nYield, by=subsampleFactor)
     tmpFile = sub("\\.fastq.*", "_temp.fastq", sub[i])
     while(length(x <- yield(fqs))){

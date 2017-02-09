@@ -12,13 +12,13 @@ convertGtfToGff(psGtfFile, psGffFile)
 \item{psGffFile}{name of the GFF file to be generated}
 }
 \description{
-\code{convertGtfToGff} converts an annotation file from 
-the GTF format into the GFF format which is required 
-by the package \code{DEXSeq}. Input file name and the 
-name of the file to be generated are both given as 
-function parameters. The conversion is done by a python 
-script that is given by the content of \code{DEXSEQ_PREPARE} 
-which is either taken as a global variable or from the 
+\code{convertGtfToGff} converts an annotation file from
+the GTF format into the GFF format which is required
+by the package \code{DEXSeq}. Input file name and the
+name of the file to be generated are both given as
+function parameters. The conversion is done by a python
+script that is given by the content of \code{DEXSEQ_PREPARE}
+which is either taken as a global variable or from the
 result of function \code{lGetPyScriptPaths}
 }
 

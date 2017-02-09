@@ -15,9 +15,10 @@ runGfold(rawData, scalingFactors, isSample, isRef)
 runDeseq2(x, sampleGroup, refGroup, grouping, grouping2 = NULL,
   isPresent = NULL)
 
-runEdger(x, sampleGroup, refGroup, grouping, normMethod)
+runEdger(x, sampleGroup, refGroup, grouping, normMethod, priorCount = 0.125)
 
-runGlm(x, sampleGroup, refGroup, grouping, normMethod, grouping2 = NULL)
+runGlm(x, sampleGroup, refGroup, grouping, normMethod, grouping2 = NULL,
+  priorCount = 0.125)
 }
 \arguments{
 \item{rawData}{a list of raw data obtained from \code{loadCountDataset()}.}

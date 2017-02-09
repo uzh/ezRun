@@ -8,10 +8,10 @@
 
 ezMethodKallisto = function(input=NA, output=NA, param=NA){
   sampleName = input$getNames()
-  Sys.setenv(PATH=paste(dirname(KALLISTO), dirname(SAMTOOLS), Sys.getenv("PATH"), sep=":"))  
+  Sys.setenv(PATH=paste(dirname(KALLISTO), dirname(SAMTOOLS), Sys.getenv("PATH"), sep=":"))
   ref = getKallistoReference(param)
   refIdx = paste0(ref, ".idx")
-  
+
   iftrue <- function(p, yes, no = "") {
     if (!is.null(p) && p) { yes } else { no }
   }
@@ -23,7 +23,7 @@ ezMethodKallisto = function(input=NA, output=NA, param=NA){
   }
 
   opt = paste(
-      "-i", refIdx, 
+      "-i", refIdx,
       "-o", param$outputDir,
       "-t", ezThreads(),
       iftrue(param$bias, "--bias"),
@@ -38,9 +38,9 @@ ezMethodKallisto = function(input=NA, output=NA, param=NA){
       condNumAdd("--sd", param$sd),
       iftrue(param$pseudobam, "--pseudobam")
   )
-  
+
   trimmedInput = ezMethodTrim(input = input, param = param)
-  
+
   pathFastqFiles = paste(
       trimmedInput$getColumn("Read1"),
       iftrue(param$paired, trimmedInput$getColumn("Read2"))
@@ -52,9 +52,9 @@ ezMethodKallisto = function(input=NA, output=NA, param=NA){
   pathPseudobam = file.path(param$outputDir, "pseudo.bam")
 
   cmd = paste(
-      KALLISTO, 
+      KALLISTO,
       "quant",
-      opt, 
+      opt,
       pathFastqFiles,
       "2> kallisto.stderr",
       iftrue(param$pseudobam, paste("| samtools view -b - > ", pathPseudobam), " > kallisto.stdout")
@@ -71,7 +71,7 @@ ezMethodKallisto = function(input=NA, output=NA, param=NA){
     ezSystem(paste("mv", pathPseudobam, fnBam))
     ezSystem(paste("samtools index ", fnBam))
   }
-  
+
   return("Success")
 }
 
@@ -81,6 +81,7 @@ ezMethodKallisto = function(input=NA, output=NA, param=NA){
 ##' @description Use this reference class to run kallisto
 ##' @seealso \code{\link{getKallistoReference}}
 ##' @seealso \code{\link{ezMethodTrim}}
+##' @author Roman Briskine
 EzAppKallisto <-
   setRefClass("EzAppKallisto",
               contains = "EzApp",
@@ -140,12 +141,13 @@ EzAppKallisto <-
 ##'   \item{ezRef@@refFeatureFile}{ a character specifying the path to the annotation feature file (.gtf).}
 ##'   \item{ezRef@@refFastaFile}{ a character specifying the path to the fasta file.}
 ##' }
+##' @author Roman Briskine
 getKallistoReference = function(param){
-  
+
   if (ezIsSpecified(param$transcriptFasta)){
     refBase = file.path(getwd(), "kallistoIndex/transcripts") #paste0(file_path_sans_ext(param$trinityFasta), "_kallistoIndex/transcripts")
   } else {
-    refBase = ifelse(param$ezRef["refIndex"] == "", 
+    refBase = ifelse(param$ezRef["refIndex"] == "",
                      sub(".gtf$", "_kallistoIndex/transcripts", param$ezRef["refFeatureFile"]),
                      param$ezRef["refIndex"])
   }
@@ -172,7 +174,7 @@ getKallistoReference = function(param){
   ezWrite(Sys.info(), con=lockFile)
   on.exit(file.remove(lockFile))
   on.exit(setwd(wd), add=TRUE)
-  
+
   job = ezJobStart("kallisto index")
   if (ezIsSpecified(param$transcriptFasta)){
     pathTranscripts = param$transcriptFasta
