@@ -70,19 +70,19 @@ ezMethodTrim = function(input=NA, output=NA, param=NA){
     readFileIn = input$getFullPaths(rds)
     ezSystem(paste("cp -n", readFileIn, "."))
     input$setColumn(rds, basename(readFileIn))
-    md5Local = ezSystem(paste("md5sum", basename(readFileIn)), intern = TRUE)
-    md5Local = sub(" .*", "", md5Local)
-    md5File = file.path(dirname(readFileIn), "md5.txt")
-    md5Remote = NA
-    if (file.exists(md5File)){
-      md5Set = ezRead.table(md5File)
-      md5Remote = md5Set[basename(readFileIn), 1]
-    }
-    if (is.na(md5Remote)){
-      md5Remote = ezSystem(paste("ssh fgcz-s-022 md5sum", readFileIn), intern = TRUE)
-      md5Remote = sub(" .*", "", md5Remote)
-    }
-    stopifnot(md5Local == md5Remote)
+    # md5Local = ezSystem(paste("md5sum", basename(readFileIn)), intern = TRUE)
+    # md5Local = sub(" .*", "", md5Local)
+    # md5File = file.path(dirname(readFileIn), "md5.txt")
+    # md5Remote = NA
+    # if (file.exists(md5File)){
+    #   md5Set = ezRead.table(md5File)
+    #   md5Remote = md5Set[basename(readFileIn), 1]
+    # }
+    # if (is.na(md5Remote)){
+    #   md5Remote = ezSystem(paste("ssh fgcz-s-022 md5sum", readFileIn), intern = TRUE)
+    #   md5Remote = sub(" .*", "", md5Remote)
+    # }
+    # stopifnot(md5Local == md5Remote)
   }
   input$dataRoot = NULL
   
