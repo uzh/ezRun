@@ -4,8 +4,8 @@
 \name{EzRef-class}
 \alias{EzRef}
 \alias{EzRef-class}
-\alias{[,EzRef,ANY,ANY,ANY-method}
-\alias{[<-,EzRef,ANY,ANY,ANY-method}
+\alias{[,EzRef,ANY-method}
+\alias{[<-,EzRef-method}
 \alias{buildIgvGenome,EzRef-method}
 \alias{buildRefDir,EzRef-method}
 \alias{getOrganism,EzRef-method}
@@ -14,9 +14,9 @@
 \usage{
 \S4method{initialize}{EzRef}(.Object, param = list())
 
-\S4method{[}{EzRef,ANY,ANY,ANY}(x, i)
+\S4method{[}{EzRef,ANY}(x, i)
 
-\S4method{[}{EzRef,ANY,ANY,ANY}(x, i) <- value
+\S4method{[}{EzRef}(x, i) <- value
 
 \S4method{getOrganism}{EzRef}(.Object)
 

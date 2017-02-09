@@ -13,7 +13,7 @@
 \item{param}{a list of parameters to customize the application run.}
 }
 \description{
-Use this reference class to run
+Use this reference class to run kallisto
 }
 \section{Fields}{
 
@@ -40,6 +40,8 @@ Use this reference class to run
 Rehrauer, Hubert
 
 Schmid, Peter
+
+Roman Briskine
 }
 \seealso{
 \code{\link{EzApp}}

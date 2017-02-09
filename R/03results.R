@@ -6,7 +6,6 @@
 # www.fgcz.ch
 
 ##' @title The object that represents a result of an expression analysis
-##' @description 
 ##' @field param \code{EzParam} object that was used during the result generation
 ##' @field rawData list with the rawData that was used during the result generation
 ##' @field result list holding the actual results, in particular, the log2 ration and the p-value
@@ -15,7 +14,7 @@
 ##'   \item{\code{saveToFile(file): }}{Saves the object to the given filepath. Saved files can be loaded with \code{EzResult$new(file="mystoredResult.RData"}}
 ##' }
 ##' @template roxygen-template
-##' @examples 
+##' @examples
 ##' deResult = EzResult$new()
 ##' deResult = EzResult$new(param=list(p1="p1", p2="p2"), rawData=list(a=0, b=1), result=list(u=0, v=1))
 ##' rdFile = tempfile(fileext = ".RData")
@@ -65,14 +64,14 @@ makeSummarizedExperiment = function(param, rawData, result){
   } else {
     if (!is.null(result$xNorm)){
       assayList$countsNorm = result$xNorm
-    } 
+    }
   }
-  
+
   SummarizedExperiment(assays=assayList,
                        rowData=rawData$seqAnno,
                        colData=ezDesignFromDataset(rawData$dataset, param),
                        metadata=param)
-  ## DE results can be represented 
+  ## DE results can be represented
   ## --- as mcols in the rowData
   ## --- as an element in the metaData list (subsetting does not work)
   ## --- as a separate SummarizedExperiment object

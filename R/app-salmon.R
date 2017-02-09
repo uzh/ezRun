@@ -8,10 +8,10 @@
 
 ezMethodSalmon = function(input=NA, output=NA, param=NA){
   sampleName = input$getNames()
-  Sys.setenv(PATH=paste(dirname(SALMON), Sys.getenv("PATH"), sep=":"))  
+  Sys.setenv(PATH=paste(dirname(SALMON), Sys.getenv("PATH"), sep=":"))
   ref = getSalmonReference(param)
   refIdx = paste0(ref, ".idx")
-  
+
   iftrue <- function(p, yes, no = "") {
     if (!is.null(p) && p) { yes } else { no }
   }
@@ -30,7 +30,7 @@ ezMethodSalmon = function(input=NA, output=NA, param=NA){
   trimmedInput = ezMethodTrim(input = input, param = param)
 
   opt = paste(
-      "-i", refIdx, 
+      "-i", refIdx,
       "-o", param$outputDir,
       "-p", ezThreads(),
       "-l", libType,
@@ -48,14 +48,14 @@ ezMethodSalmon = function(input=NA, output=NA, param=NA){
       iftrue(param$posBias, "--posBias"),
       if (ezIsSpecified(param$specialParams)) { param$specialParams } else { "" }
   )
-  
+
   pathQuants = file.path(param$outputDir, "quant.sf")
 
   cmd = paste(SALMON, "quant", opt, "2> salmon.stderr > salmon.stdout")
   ezSystem(cmd)
 
   ezSystem(paste("mv", pathQuants, basename(output$getColumn("Count"))))
-  
+
   return("Success")
 }
 
@@ -65,6 +65,7 @@ ezMethodSalmon = function(input=NA, output=NA, param=NA){
 ##' @description Use this reference class to run Salmon
 ##' @seealso \code{\link{getSalmonReference}}
 ##' @seealso \code{\link{ezMethodTrim}}
+##' @author Roman Briskine
 EzAppSalmon <-
   setRefClass("EzAppSalmon",
               contains = "EzApp",
@@ -139,12 +140,13 @@ EzAppSalmon <-
 ##'   \item{ezRef@@refFeatureFile}{ a character specifying the path to the annotation feature file (.gtf).}
 ##'   \item{ezRef@@refFastaFile}{ a character specifying the path to the fasta file.}
 ##' }
+##' @author Roman Briskine
 getSalmonReference = function(param){
-  
+
   if (ezIsSpecified(param$transcriptFasta)){
     refBase = file.path(getwd(), "salmonIndex/transcripts") #paste0(file_path_sans_ext(param$trinityFasta), "_salmonIndex/transcripts")
   } else {
-    refBase = ifelse(param$ezRef["refIndex"] == "", 
+    refBase = ifelse(param$ezRef["refIndex"] == "",
                      sub(".gtf$", "_salmonIndex/transcripts", param$ezRef["refFeatureFile"]),
                      param$ezRef["refIndex"])
   }
@@ -171,7 +173,7 @@ getSalmonReference = function(param){
   ezWrite(Sys.info(), con=lockFile)
   on.exit(file.remove(lockFile))
   on.exit(setwd(wd), add=TRUE)
-  
+
   job = ezJobStart("salmon index")
   if (ezIsSpecified(param$transcriptFasta)){
     pathTranscripts = param$transcriptFasta

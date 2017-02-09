@@ -14,10 +14,10 @@ ezMethodDEXSeqAnalysis(input = NA, output = NA, param = NA)
 \item{param}{EzParam reference object specifying additional parameters}
 }
 \description{
-Differential exon usage is assessed using the same steps that are done in 
-the wrapper function \code{DEXSeq} from the DEXSeq package. The wrapper 
-is not used here, because dispersion plots and MA-plots are integrated 
-in the report and those cannot be produced from the resulting object of 
+Differential exon usage is assessed using the same steps that are done in
+the wrapper function \code{DEXSeq} from the DEXSeq package. The wrapper
+is not used here, because dispersion plots and MA-plots are integrated
+in the report and those cannot be produced from the resulting object of
 the wrapper function. The following steps are done in the analysis
 \itemize{
   \item{DEXSeqDataSetFromHTSeq: }{instantiates a DEXSeqDataSet object}
@@ -29,11 +29,11 @@ the wrapper function. The following steps are done in the analysis
 Once these steps are done the results are written to a report.
 }
 \details{
-Before running the DEU-analysis, it is verified that count data 
-is available. It is expected that the current working directory 
-contains files with the same name as the BAM-files specified in the 
-input, but with a file-extension that can be specified and which 
-defaults to 'count'. In case, the count files are not available 
+Before running the DEU-analysis, it is verified that count data
+is available. It is expected that the current working directory
+contains files with the same name as the BAM-files specified in the
+input, but with a file-extension that can be specified and which
+defaults to 'count'. In case, the count files are not available
 they are generated using the function \code{DEXSeqCounting}.
 }
 

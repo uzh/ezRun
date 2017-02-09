@@ -6,11 +6,74 @@
 # www.fgcz.ch
 
 
+##' @title Run Enrichr
+##' @description Runs Enrichr on the specified genes against all libraries
+##'
+##' If you find that this function is not flexible enough, you can run Enrichr as follows.
+##'
+##' \itemize{
+##' \item Update the internal list of the libraries (if necessary) by running \code{\link{parseEnrichrLibNames}}
+##' \item Register gene list with \code{\link{enrichrAddList}}
+##' \item Run enrichment analysis with \code{\link{enrichrEnrich}}
+##' \item Check the length \code{failure} element of the response to see if there were any failures
+##' \item Filter the \code{success} element of the response by using \code{\link{filterEnrichrResults}}
+##' }
+##'
+##' @param genes A list or vector containing gene names
+##' @param minScore Combined score (\eqn{log(AdjP) * z}) threshold to filter the results.
+##' @param maxAdjP Adjusted p (Benjamini-Hochberg method) threshold to filter the results.
+##' @param connectionN Maximum number of connections to open simultaneously for the enrichment analysis.
+##' @return A named \code{list} with library names as names and \code{data.frame} objects as values.
+##' An entire result set is retained if there is at least one significant gene based on the supplied
+##' criteria.
+##'
+##' @examples
+##' \dontrun{
+##' genes <- c("HPS1", "HPS3", "HPS5", "PSMD11", "CUL7", "SNAPC4", "GNB2")
+##' resList <- runEnrichr(genes, minScore = 15, maxAdjP = 1e-4, connectionN = 20)
+##' }
+##'
+##' # Alternative usage
+##' \dontrun{
+##' addResp <- enrichrAddList(genes)
+##' names(addResp)
+##' # [1] "shortId"    "userListId"
+##' # This will check all libraries specified in the internal list (extdata/enrichr_libnames.txt)
+##' res <- enrichrEnrich(genes)
+##' # Check if any requests failed
+##' if (length(res$failure) > 0) {
+##'   cat(length(res$failure), " requests failed")
+##'   allLibs <- getEnrichrLibNames()
+##'   # Libraries that failed
+##'   setdiff(allLibs, names(res$success))
+##' }
+##' # Filter the data sets
+##' resFilt <- filterEnrichrResults(pAdj = 0.01, z = -3, combinedScore = 12)
+##' }
+##' @author Roman Briskine
+runEnrichr <- function(genes, minScore = 12, maxAdjP = 0.01, connectionN = 10) {
+  geneListResp <- enrichrAddList(genes)
+  res <- enrichrEnrich(geneListResp$userListId, connectionN = connectionN)
+  failureN <- length(res$failure)
+  if (failureN > 0) {
+    message("There were ", failureN, " failures while running Enrichr. First is displayed below.")
+    message(res$failure[[1]])
+  }
+  resFilt <- list()
+  if (length(res$success) > 0) {
+    resFilt <- filterEnrichrResults(res, combinedScore = minScore, pAdj = maxAdjP)
+  }
+  resFilt
+}
+
+
 ##' @title Add gene list
 ##' @description Registers a gene list with the Enrichr server
 ##' @param genes A list or vector containing gene names
 ##' @template roxygen-template
 ##' @return Returns a list with userListId and shortId
+##' @seealso \code{\link{runEnrichr}}
+##' @author Roman Briskine
 enrichrAddList <- function(genes) {
   require(httr, quietly = T, warn.conflicts = WARN_CONFLICTS)
 
@@ -34,13 +97,14 @@ enrichrAddList <- function(genes) {
   return(respParsed)
 }
 
-#' @title Query string generator
-#' @description Helper function that generates a query string out of named parameters. The main
-#' purpose of this function is to generate query strings for curl requests. All special characters
-#' in the values are escaped.
-#' @param ...  Named parameters that will form the query
-#' @template roxygen-template
-#' @return A string in the following format: \code{param1=value1&param2=value2}.
+##' @title Query string generator
+##' @description Helper function that generates a query string out of named parameters. The main
+##' purpose of this function is to generate query strings for curl requests. All special characters
+##' in the values are escaped.
+##' @param ...  Named parameters that will form the query
+##' @template roxygen-template
+##' @return A string in the following format: \code{param1=value1&param2=value2}.
+##' @author Roman Briskine
 mkCurlQryString <- function(...) {
   x <- c(...)
   paste(paste(names(x), curl::curl_escape(x), sep = "="), collapse = "&")
@@ -49,20 +113,21 @@ mkCurlQryString <- function(...) {
 
 ##' @title Enrichment analysis
 ##' @description Runs enrichment analysis against the specified databases. By default, the function
-##' will the internal list (\code{\link{getEnrichrLibNames}}) of the library names.
+##' will use the internal list (\code{\link{getEnrichrLibNames}}) of the library names.
 ##' @param userListId userListId returned by the Enrichr server via \code{\link{enrichrAddList}}
 ##' @param libNames vector of library names that should be a subset of those specified at the
 ##'   \href{http://amp.pharm.mssm.edu/Enrichr/#stats}{Enrichr} website. This function does not
 ##'    validate the list. If the value is NULL, the function will use the internal list.
 ##' @param connectionN maximum number of concurrent connections to make
 ##' @template roxygen-template
-##' @seealso \code{\link{enrichrAddList}, \link{getEnrichrLibNames}}
 ##' @return \code{list} with two elements: success and failure. The first element is a \code{list}
 ##' of \code{data.frame} objects that contain enrichment results per library. The names of the
 ##' success list match the library names. The failure \code{list} contains error messages for the
 ##' libraries that failed enrichment tests. The name of this \code{list} may not match the library
 ##' names. You can determine which libraries failed by comparing the success list with the supplied
 ##' library names.
+##' @seealso \code{\link{runEnrichr}, \link{enrichrAddList}, \link{getEnrichrLibNames}}
+##' @author Roman Briskine
 enrichrEnrich <- function(userListId, libNames = getEnrichrLibNames(), connectionN = 10) {
   # While httr is easier to deal with, it does not support asynchrous requests. Neither does Rcurl.
   # So, we have to resort to the use of the curl package.
@@ -148,9 +213,10 @@ enrichrEnrich <- function(userListId, libNames = getEnrichrLibNames(), connectio
 ##' @param z z-value threshold (maximum)
 ##' @param combinedScore combined score threshold (minimum)
 ##' @template roxygen-template
-##' @seealso \code{\link{enrichrEnrich}}
 ##' @return \code{list} that contains the results for libraries with at least one significant gene
 ##' that satisfies the criteria.
+##' @seealso \code{\link{runEnrichr}, \link{enrichrEnrich}}
+##' @author Roman Briskine
 filterEnrichrResults <- function(resList, p = 1, pAdj = 1, z = 0, combinedScore = 0) {
   resF <- lapply(resList, function(x) {
     mask <- x$p_value < p &
@@ -169,6 +235,8 @@ filterEnrichrResults <- function(resList, p = 1, pAdj = 1, z = 0, combinedScore 
 ##'   (\code{extdata/enrichr_libnames.txt})
 ##' @template roxygen-template
 ##' @return a vector containing library names
+##' @seealso \code{\link{runEnrichr}}
+##' @author Roman Briskine
 getEnrichrLibNames <- function() {
   file <- system.file(file.path("extdata", "enrichr_libnames.txt"), package = "ezRun", mustWork = T)
   scan(file, character(), quiet = T)
@@ -177,12 +245,14 @@ getEnrichrLibNames <- function() {
 
 ##' @title Retrieve Enrichr library names
 ##' @description Retrieves Enrichr library names from the specified HTML file and saves it to the
-##'   internal package file (\code{extdata/enrichr_libnames.txt"}). Ideally, this method
+##'   internal package file (\code{extdata/enrichr_libnames.txt}). Ideally, this method
 ##'   would fetch the data from \url{http://amp.pharm.mssm.edu/Enrichr/#stats}. However, the page
 ##'   uses an Ajax query to populate the table, so it is empty when you access it with libcurl.
 ##' @param file location of the HTML file saved from \url{http://amp.pharm.mssm.edu/Enrichr/#stats}
 ##' @template roxygen-template
 ##' @return (invisibly) a vector containing library names
+##' @seealso \code{\link{runEnrichr}}
+##' @author Roman Briskine
 parseEnrichrLibNames <- function(file) {
   require(XML, quietly = T, warn.conflicts = WARN_CONFLICTS)
   mainPage <- htmlParse(file)
