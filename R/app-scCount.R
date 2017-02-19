@@ -81,6 +81,8 @@ ezMethodSingleCellCounts = function(input=NA, output=NA, param=NA, htmlFile="00i
     mappingApp$run(input=readI, output=bamI, param=bamParam)
     starLogfile = paste0("../", countDir, '/', nm, '-STAR.log')
     file.rename('Log.final.out', to = starLogfile)
+    ezSystem(paste("mv", basename(bamI$getColumn("BAM")), "../countDir" ))
+    ezSystem(paste("mv", basename(bamI$getColumn("BAI")), "../countDir" ))
     EzAppFeatureCounts$new()$run(input=bamI, output=countI, param=bamParam)
     file.rename(basename(countI$getColumn("Count")), paste0("../", countDir, "/", basename(countI$getColumn("Count"))))
     file.rename(basename(countI$getColumn("Stats")), paste0("../", countDir, "/", basename(countI$getColumn("Stats"))))
