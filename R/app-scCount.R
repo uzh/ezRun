@@ -81,21 +81,23 @@ ezMethodSingleCellCounts = function(input=NA, output=NA, param=NA, htmlFile="00i
     mappingApp$run(input=readI, output=bamI, param=bamParam)
     starLogfile = paste0("../", countDir, '/', nm, '-STAR.log')
     file.rename('Log.final.out', to = starLogfile)
-    ezSystem(paste("mv", basename(bamI$getColumn("BAM")), "../countDir" ))
-    ezSystem(paste("mv", basename(bamI$getColumn("BAI")), "../countDir" ))
     EzAppFeatureCounts$new()$run(input=bamI, output=countI, param=bamParam)
     file.rename(basename(countI$getColumn("Count")), paste0("../", countDir, "/", basename(countI$getColumn("Count"))))
     file.rename(basename(countI$getColumn("Stats")), paste0("../", countDir, "/", basename(countI$getColumn("Stats"))))
+    ezSystem(paste("mv", basename(bamI$getColumn("BAM")), file.path("..", countDir) ))
+    ezSystem(paste("mv", basename(bamI$getColumn("BAI")), file.path("..", countDir) ))
     setwd('..')
     unlink(nm, recursive=TRUE, force=TRUE)
     
   }
   
   countFiles = paste0(countDir, "/", basename(countDs$getColumn("Count")))
-  x = ezRead.table(countFiles[1])
+  templateFile = file.path(countDir, countDs$subset( input$getNames()[1] )$getColumn("Count"))
+  x = ezRead.table(templateFile)
   counts = ezMatrix(0, rows=rownames(x), cols=countDs$getNames())
-  for (nm in names(countFiles)){
-    x = ezRead.table(countFiles[nm])
+  for (nm in input$getNames()) {
+    countFile = file.path(countDir, countDs$subset(nm)$getColumn("Count"))
+    x = ezRead.table(countFile)
     stopifnot(setequal(rownames(x), rownames(counts)))
     counts[rownames(x), nm] = x[ , "matchCounts"]
   }
