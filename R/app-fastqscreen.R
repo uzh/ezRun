@@ -105,12 +105,12 @@ executeBowtie2CMD = function(param, input){
     if(!param$paired){
       cmd = paste(file.path(BOWTIE2_DIR,'bowtie2'),"-x",REFSEQ_mRNA_REF, 
                   " -U ", r1Files[nm], bowtie2options ,"-p",param$cores,
-                  "--no-unal --no-hd", "2> ", paste0(nm, "_bowtie2.err"),
+                  "--no-unal --no-hd --mm", "2> ", paste0(nm, "_bowtie2.err"),
                   "| cut -f1,3,12", " |sed s/AS:i://g", ">>", countFiles[nm])
     } else {
       cmd = paste(file.path(BOWTIE2_DIR,'bowtie2'),"-x",REFSEQ_mRNA_REF, 
                   " -1 ", r1Files[nm]," -2 ", r2Files[nm], bowtie2options, "-p",param$cores,
-                  "--no-discordant --no-mixed --no-unal --no-hd",
+                  "--no-discordant --no-mixed --no-unal --no-hd --mm",
                   "2> ", paste0(nm, "_bowtie2.err"),
                   "| cut -f1,3,12", " |sed s/AS:i://g", ">>", countFiles[nm])
     }
