@@ -47,7 +47,6 @@ MEME="/usr/local/ngseq/stow/meme_4.10.2/bin/meme-chip"
 FLASH="/usr/local/ngseq/src/FLASH-1.2.11/flash"
 BEDGRAPHBIGWIG="/usr/local/ngseq/stow/ucsc_tools/bin/bedGraphToBigWig"
 BEDTOOLS2="/usr/local/ngseq/stow/bedtools2-2.24/bin/bedtools"
-GTF2BED="/usr/local/ngseq/stow/bedops-2.4.14/bin/gtf2bed"
 GFOLD_DIR="/usr/local/ngseq/src/gfold.V1.1.4"
 
 JAVA="/usr/local/ngseq/bin/java"
