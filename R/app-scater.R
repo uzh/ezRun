@@ -43,7 +43,7 @@ ezMethodScater = function(input=NA, output=NA, param=NA, htmlFile="00index.html"
   featureData <- new("AnnotatedDataFrame", data = data.frame(Feature = featureNames))
   rownames(featureData) <- featureNames
 
-  sceset <- newSCESet(countData = as.matrix(countData), phenoData = phenoData, featureData = featureData)
+  sceset <- newSCESet(countData = as.matrix(countData), phenoData = phenoData, featureData = featureData, is_exprsData=countData > param$sigThresh)
   sceset <- calculateQCMetrics(sceset)
   # Remove features that are not expressed
   expressedMask <- rowSums(is_exprs(sceset)) > param$minExpressedCells
@@ -54,7 +54,7 @@ ezMethodScater = function(input=NA, output=NA, param=NA, htmlFile="00index.html"
     liveReportLink = output$getColumn("Live Report")
     summary = c("Name"=param$name,
                 "Reference Build"=param$refBuild,
-                "Feature Level"=rawData$featureLevel)
+                "Feature Level"=param$featureLevel) ## the feature level should be in the count dataset but is not!!
     result = EzResult(param=param, sceset=sceset, result=list(summary=summary, analysis="scater"))
     result$saveToFile(basename(output$getColumn("Live Report")))
     addParagraph(doc, ezLink(liveReportLink,
