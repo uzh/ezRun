@@ -32,10 +32,14 @@ ezMethodSingleCellCounts = function(input=NA, output=NA, param=NA, htmlFile="00i
            refDir = getSTARReference(param)
            mappingApp = EzAppSTAR$new()
            bamParam$cmdOptions = ifelse(bamParam$mapOptions != "", bamParam$mapOptions,
-                                        "--outFilterType BySJout --outFilterMatchNmin 30 --outFilterMismatchNmax 10 --outFilterMismatchNoverLmax 0.05 --alignSJDBoverhangMin 1 --alignSJoverhangMin 8 --alignIntronMax 1000000 --alignMatesGapMax 1000000  --outFilterMultimapNmax 50 --chimSegmentMin 15 --chimJunctionOverhangMin 15 --chimScoreMin 15 --chimScoreSeparation 10 --outSAMstrandField intronMotif")
+                                        "--outFilterType BySJout --outFilterMatchNmin 30 --outFilterMismatchNmax 10 --outFilterMismatchNoverLmax 0.05 --alignSJDBoverhangMin 1 --alignSJoverhangMin 8 --alignIntronMax 1000000 --alignMatesGapMax 1000000  --outFilterMultimapNmax 50 --chimSegmentMin 15 --chimJunctionOverhangMin 15 --chimScoreMin 15 --chimScoreSeparation 10 --outSAMstrandField intronMotif --outSAMattributes All")
            if (!grepl("genomeLoad", bamParam$cmdOptions)){
              bamParam$cmdOptions = paste("--genomeLoad LoadAndKeep" , bamParam$cmdOptions)
            }
+           if (!grepl("outSAMattributes", bamParam$cmdOptions)){
+             bamParam$cmdOptions = paste(bamParam$cmdOptions, "--outSAMattributes All")
+           }
+
            on.exit({
              if (ezIsSpecified(param$ezRef["refIndex"])){
                refDir = param$ezRef["refIndex"]
