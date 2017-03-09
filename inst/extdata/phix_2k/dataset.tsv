@@ -1,0 +1,2 @@
+Name	Read1 [File]	Read2 [File]	Species	Adapter1	Adapter2	StrandMode	Enrichment Kit	Read Count
+phix-promega	extdata/phix_2k/SRR2937443_R1.fastq.gz	extdata/phix_2k/SRR2937443_R2.fastq.gz	phix	NA	NA	both	None	2000
