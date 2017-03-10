@@ -16,17 +16,18 @@ ezMethodSpades = function(input=NA, output=NA, param=NA, htmlFile="00index.html"
     read2 = trimmedInput$getColumn("Read2")
     readOpt = paste("-1", read1, "-2", read2)
     cmd = paste(SPADES, readOpt, param$spadesBasicOpt,
-                param$spadesPipeOpt, "-m", param$ram, "-o", sampleName, '-t', ezThreads(), opt, "1> ", paste0(sampleName,"_spades.log"))
+                param$spadesPipeOpt, "-m", param$ram, "-o", spades, '-t', ezThreads(), opt, "1> ", paste0(sampleName,"_spades.log"))
     ezSystem(cmd)
   } else {
     read1 = trimmedInput$getColumn("Read1")
     readOpt = paste("-s", read1)
     cmd = paste(SPADES, readOpt, param$spadesBasicOpt,
-                param$spadesPipeOpt, "-m", param$ram, "-o", sampleName, '-t', ezThreads(), opt, "1> ", paste0(sampleName,"_spades.log"))
+                param$spadesPipeOpt, "-m", param$ram, "-o", spades, '-t', ezThreads(), opt, "1> ", paste0(sampleName,"_spades.log"))
     ezSystem(cmd)
   }
-  pathFasta = file.path(param$outputDir, sampleName, "scaffolds.fasta")
-  ezSystem(paste("mv", pathFasta, basename(output$getColumn("Fasta"))))
+  #pathFasta = file.path(param$outputDir, sampleName, "scaffolds.fasta")
+  #ezSystem(paste("mv", pathFasta, basename(output$getColumn("Fasta"))))
+  ezSystem(paste("mv", "spades/scaffolds.fasta", basename(output$getColumn("Fasta"))))
   cmd = paste0('mv trimmomatic.err', sampleName, '_trimmomatic.log')
   ezSystem(cmd)
   return("Success")
