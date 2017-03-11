@@ -9,7 +9,7 @@
 ezMethodQuast = function(input=NA, output=NA, param=NA, htmlFile="00index.html"){
   opt = param$cmdOptions
   sampleName = input$getNames()
-  draft = input$getColumn("Draft")
+  draft = basename(input$getColumn("Draft"))
   if (ezIsSpecified(param$refGenome)){
   	ref = param$refGenome
 	if (ezIsSpecified(param$refGene)){ 
