@@ -54,6 +54,8 @@ TRIMMOMATIC="/usr/local/ngseq/bin/java -jar /usr/local/ngseq/src/Trimmomatic-0.3
 TRIMMOMATIC_ADAPTERS="/usr/local/ngseq/src/Trimmomatic-0.33/adapters/allIllumina.fasta"
 
 TRINITY="/usr/local/ngseq/src/trinityrnaseq_v2.1.1/Trinity"
+
+QUAST="/usr/local/ngseq/stow/quast-4.4/bin/quast"
 SPADES="/usr/local/ngseq/stow/SPAdes-3.10.1-Linux/bin/spades.py"
 
 

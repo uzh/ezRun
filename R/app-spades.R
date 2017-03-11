@@ -25,9 +25,8 @@ ezMethodSpades = function(input=NA, output=NA, param=NA, htmlFile="00index.html"
                 param$spadesPipeOpt, "-m", param$ram, "-o", "spades", '-t', ezThreads(), opt, "1> ", paste0(sampleName,"_spades.log"))
     ezSystem(cmd)
   }
-  #pathFasta = file.path(param$outputDir, sampleName, "scaffolds.fasta")
-  #ezSystem(paste("mv", pathFasta, basename(output$getColumn("Fasta"))))
-  ezSystem(paste("mv", "spades/scaffolds.fasta", basename(output$getColumn("Fasta"))))
+  ezSystem(paste("cp", "spades/scaffolds.fasta", basename(output$getColumn("Draft"))))
+  ezSystem(paste("mv", "spades", sampleName)
   cmd = paste0('mv trimmomatic.err ', sampleName, '_trimmomatic.log')
   ezSystem(cmd)
   return("Success")
