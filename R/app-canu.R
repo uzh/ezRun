@@ -16,8 +16,7 @@ ezMethodCanu = function(input=NA, output=NA, param=NA, htmlFile="00index.html"){
   ezSystem(paste("tar -zxf", SMRT_File, "--strip-components=4 -C smrt_input"))
   readFile = file.path(dirname(.), "smrt_input", "Analysis_Results", "*.subreads.fastq") 
   ezSystem(paste("cat", readFile, ">", paste0(sampleName,".fastq")))
-  fixOpt = paste("useGrid=false", "gnuplotTested=true")
-  cmd = paste(CANU, "-p", sampleName, "-d", sampleName, paste0("genomeSize=", param$canuGenomeSize, "m"), fixOpt, opt, 
+  cmd = paste(CANU, "-p", sampleName, "-d", sampleName, paste0("genomeSize=", param$canuGenomeSize, "m"), opt, 
                 param$canuReadOpt, paste0(sampleName,".fastq"), "1> ", paste0(sampleName,"_canu.log"))
   ezSystem(cmd)
   return("Success")
