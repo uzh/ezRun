@@ -18,6 +18,7 @@ ezMethodSingleCellCounts = function(input=NA, output=NA, param=NA, htmlFile="00i
   bamMeta[["BAM [File]"]] = paste0(getwd(), "/", input$getNames(), "/", input$getNames(), ".bam")
   bamMeta[["BAI [File]"]] = paste0(getwd(), "/", input$getNames(), "/", input$getNames(), ".bam.bai")
   bamMeta[["Read Count"]] = ceiling(bamMeta[["Read Count"]] / param$subsampleReads)
+  bamMeta[["STARlog [File]"]] = paste0(getwd(), "/", input$getNames(), "/", input$getNames(), "_STAR.log")
   bamOutput = EzDataset(meta=bamMeta, param$dataRoot)
   bamParam = param
   bamParam$mail = ""
