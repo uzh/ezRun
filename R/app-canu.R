@@ -16,7 +16,7 @@ ezMethodCanu = function(input=NA, output=NA, param=NA, htmlFile="00index.html"){
   ezSystem(paste("tar -zxf", SMRT_File, "--strip-components=4 -C smrt_input"))
   readFile = file.path(getwd(), "smrt_input", "Analysis_Results", "*.subreads.fastq") 
   ezSystem(paste("cat", readFile, ">", paste0(sampleName,".fastq")))
-  cmd = paste(CANU, "-p", sampleName, "-d", sampleName, paste0("genomeSize=", param$canuGenomeSize, "m"), opt, 
+  cmd = paste(CANU, "-p", sampleName, "-d", sampleName, paste0("genomeSize=", param$canuGenomeSize, "k"), paste0("maxMemory=", param$ram), paste0("maxThreads=", ezThreads()), opt, 
                 param$canuReadOpt, paste0(sampleName,".fastq"), "1> ", paste0(sampleName,"_canu.log"))
   ezSystem(cmd)
   return("Success")
@@ -36,7 +36,7 @@ EzAppCanu <-
                   runMethod <<- ezMethodCanu
                   name <<- "EzAppCanu"
                   appDefaults <<- rbind(canuReadOpt = ezFrame(Type="character",  DefaultValue="-pacbio-raw",  Description="input read types: -pacbio-raw, -pacbio-corrected, -nanopore-raw, -nanopore-corrected. Default is pacbio raw data"),
-                                        canuGenomeSize = ezFrame(Type="integer",  DefaultValue="5",  Description="estimated genome size in Mb"))
+                                        canuGenomeSize = ezFrame(Type="integer",  DefaultValue="5000",  Description="estimated genome size in Kbp"))
                 }
               )
 )
