@@ -184,16 +184,15 @@ setMethod("buildIgvGenome", "EzRef", function(.Object){
   genomeFile = .Object@refFastaFile
   stopifnot(file.exists(gtfFile))
   stopifnot(file.exists(genomeFile))
+  trxFile = file.path(.Object@refBuildDir, "transcripts.only.gtf")
   tryCatch({
     gtf = ezLoadFeatures(featureFile=gtfFile, types="exon")
     transcriptGtf = groupGff(gtf, grouping=gtf$transcript_id, type="transcript")
     transcriptGtf$attributes = ezBuildAttributeField(transcriptGtf[ , c("transcript_id", "gene_id", "gene_name")])
-    trxFile = file.path(.Object@refBuildDir, "transcripts.only.gtf")
     transcriptGtf = transcriptGtf[ order(transcriptGtf$seqid, transcriptGtf$start, transcriptGtf$end), ]
     ezWriteGff(transcriptGtf, trxFile)
   }, error=function(e){
     message("Could not load features. Copy the annotation file instead.")
-    trxFile = file.path(.Object@refBuildDir, "transcripts.only.gtf")
     cmd = paste("cp", gtfFile, trxFile)
     ezSystem(cmd)
   })
