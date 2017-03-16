@@ -26,10 +26,8 @@ ezMethodHGAP = function(input=NA, output=NA, param=NA, htmlFile="00index.html"){
   new_coverage<-read_xml(paste0("<new><value>", param$xCoverage, "</value></new>"))
   xml_replace( xml_children(xml_children(xml_children(xml_children(setting)[5])[2])[5])[1], xml_children(new_coverage))
   write_xml(setting, "settings.xml")
-  ezSystem("export SMRT=/misc/ngseq8/opt/smrtanalysis.2.3.0/install/smrtanalysis_2.3.0.140936")
-  ezSystem("source $SMRT/etc/setup.sh")
-  ezSystem("fofnToSmrtpipeInput.py input.fofn > input.xml")
-  ezSystem("smrtpipe.py --params=settings.xml xml:input.xml")
+  cmd = "SMRT=/misc/ngseq8/opt/smrtanalysis.2.3.0/install/smrtanalysis_2.3.0.140936; source $SMRT/etc/setup.sh; smrtpipe.py --params=settings.xml xml:input.xml"
+  ezSystem(cmd)
   return("Success")
 }
 
