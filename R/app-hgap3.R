@@ -28,6 +28,10 @@ ezMethodHGAP = function(input=NA, output=NA, param=NA, htmlFile="00index.html"){
   write_xml(setting, "settings.xml")
   cmd = "SMRT=/misc/ngseq8/opt/smrtanalysis.2.3.0/install/smrtanalysis_2.3.0.140936; source $SMRT/etc/setup.sh; smrtpipe.py --params=settings.xml xml:input.xml"
   ezSystem(cmd)
+  ezSystem(paste("cp", "data/polished_assembly.fasta.gz", "."))
+  cmd = "gunzip -d polished_assembly.fasta.gz"
+  ezSystem(cmd)
+  ezSystem(paste("mv", "polished_assembly.fasta", basename(output$getColumn("Draft")))) 
   return("Success")
 }
 
