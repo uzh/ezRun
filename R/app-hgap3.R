@@ -27,7 +27,7 @@ ezMethodHGAP = function(input=NA, output=NA, param=NA, htmlFile="00index.html"){
 	xml_replace(xml_children(xml_children(xml_children(xml_children(setting)[3])[1])[2])[1], xml_children(new_node))
   }
   if(param$readScore != 0.8){
-	new_node<-read_xml(paste0("<new><value>", param$, "</value></new>"))
+	new_node<-read_xml(paste0("<new><value>", param$readScore, "</value></new>"))
 	xml_replace(xml_children(xml_children(xml_children(xml_children(setting)[3])[1])[3])[1], xml_children(new_node))
   }
   if(param$minLength != 100){
@@ -106,7 +106,7 @@ EzAppHGAP <-
 					readScore  = ezFrame(Type="numeric", DefaultValue="0.8",  Description="Minimum Polymerase Read Quality. Polymerase reads with lower quality than this value are filtered out and excluded from pre-assembly."),
      					minLength = ezFrame(Type="integer",  DefaultValue="100",  Description="Minimum Polymerase Read Length. Polymerase reads shorter than this value (in bps) are filtered out and excluded from pre-assembly."),
 					genomeSize = ezFrame(Type="character",  DefaultValue="5000000",  Description="The approximate genome size, in base pairs."),
-                                        xCoverage = ezFrame(Type="integer",  DefaultValue="25",  Description="Fold coverage to target for when picking the minimum fragment length for assembly; typically 15 to 25.")
+                                        xCoverage = ezFrame(Type="integer",  DefaultValue="25",  Description="Fold coverage to target for when picking the minimum fragment length for assembly; typically 15 to 25."),
 					targetChunks = ezFrame(Type="integer",  DefaultValue="6", Description="The number of pieces to split the data files into while running pre-assembly."),
 					splitBestn = ezFrame(Type="integer",  DefaultValue="10", Description="The number of alignments to consider for each read for a particular chunk."),
 					totalBestn = ezFrame(Type="integer",  DefaultValue="24", Description="The number of potential alignments to consider across all chunks for a particular read."),
