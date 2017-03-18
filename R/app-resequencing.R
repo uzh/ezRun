@@ -42,7 +42,7 @@ ezMethodResequencing = function(input=NA, output=NA, param=NA, htmlFile="00index
         new_node<-read_xml(paste0("<new><value>", param$minAnchorSize, "</value></new>"))
         xml_replace(xml_children(xml_children(xml_children(xml_children(setting)[5])[1])[4])[1], xml_children(new_node))
   }
-  new_node<-read_xml(paste0("<new><value>", param$RefFile, "</value></new>"))
+  new_node<-read_xml(paste0("<new><value>common/userdata.d/references/", param$RefFile, "</value></new>"))
   xml_replace(xml_children(xml_children(xml_children(setting)[1])[5]), xml_children(new_node))
   write_xml(setting, "settings.xml")
   cmd = "SMRT=/misc/ngseq8/opt/smrtanalysis.2.3.0/install/smrtanalysis_2.3.0.140936; source $SMRT/etc/setup.sh; fofnToSmrtpipeInput.py input.fofn > input.xml; smrtpipe.py --params=settings.xml xml:input.xml"
