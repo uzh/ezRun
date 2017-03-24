@@ -440,7 +440,7 @@ ezAllPairScatter = function(x, main="", shrink=FALSE, xylab=NULL,
     ezXYScatter(x[ ,1], x[, 2], xlim=lim, ylim=lim, shrink=shrink, xlab=xylab[1], ylab=xylab[2],
                        isPresent=isPresent, types=types, pch=pch, colors=colors, legendPos=legendPos, ...)
   }
-  mtext(main, line=1)
+  #mtext(main, line=1)
 }
 
 ##' @title Does a correlation plot

@@ -72,7 +72,7 @@ setMethod("initialize", "EzRef", function(.Object, param=list()){
     .Object@refBuildDir = rbd
   }
   .Object@refVariantsDir = file.path(.Object@refBuildDir, "Variants")
-  if (length(refFields) == 5 && grepl("^Version", refFields[5])){
+  if (length(refFields) == 5 && grepl("^Version|^Release", refFields[5])){
     .Object@refAnnotationVersion = refFields[5]
   } else {
     .Object@refAnnotationVersion = ""
