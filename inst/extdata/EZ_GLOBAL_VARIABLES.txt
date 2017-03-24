@@ -57,7 +57,7 @@ TRINITY="/usr/local/ngseq/src/trinityrnaseq_v2.1.1/Trinity"
 
 QUAST="/usr/local/ngseq/stow/quast-4.4/bin/quast"
 SPADES="/usr/local/ngseq/stow/SPAdes-3.10.1-Linux/bin/spades.py"
-
+CANU="/usr/local/ngseq/src/canu-1.4/Linux-amd64/bin/canu"
 
 ##VELVET_DIR="/usr/local/ngseq/stow/velvet_1.1.05_MP/bin"
 #CUFFLINKS_DIR="/usr/local/ngseq/stow/cufflinks-2.2.1/bin"
