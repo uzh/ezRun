@@ -86,12 +86,9 @@ ezDesignFromDataset = function(dataset, param=NULL){
     design = dataset[ , paste(factorNames, "[Factor]"), drop=FALSE]
   }
   factorLevelCount = apply(design, 2, function(x){length(unique(x))})
-  if (any(factorLevelCount > 1)){
-    for (nm in colnames(design)){
-      if (length(unique(design[[nm]])) == 1){
-        design[[nm]] = NULL
-      }
-    }
+  design = design[ ,factorLevelCount > 1]
+  if (ncol(design) == 0){
+    design$Condition = rownames(design)
   }
   colnames(design) = sub(" \\[.*", "", colnames(design))
   return(design)
