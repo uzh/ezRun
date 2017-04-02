@@ -8,17 +8,13 @@
 
 ezMethodFastqScreen = function(input=NA, output=NA, param=NA, htmlFile="00index.html"){
   dataset = input$meta
+  # Preprocessing
+  input = ezMethodTrim(input = input, param = param)
   # fastqscreen part
   files = input$getFullPaths("Read1")
   resultFiles = executeFastqscreenCMD(param, files)
   fastqData = collectFastqscreenOutput(dataset, files, resultFiles)
   # bowtie2 reference part
-  if ("Adapter1" %in% input$colNames && all(!is.na(input$getColumn("Adapter1")))){
-    input = ezMethodTrim(input = input, param = param)
-  } else {
-    param$trimAdapter = FALSE
-    input = ezMethodTrim(input = input, param = param)
-  }
   countFiles = executeBowtie2CMD(param, input)
   speciesPercentageTop = collectBowtie2Output(param, input$meta, countFiles)
   setwdNew(basename(output$getColumn("Report")))
