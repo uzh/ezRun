@@ -86,7 +86,7 @@ ezDesignFromDataset = function(dataset, param=NULL){
     design = dataset[ , paste(factorNames, "[Factor]"), drop=FALSE]
   }
   factorLevelCount = apply(design, 2, function(x){length(unique(x))})
-  design = design[ ,factorLevelCount > 1]
+  design = design[ ,factorLevelCount > 1, drop = FALSE]
   if (ncol(design) == 0){
     design$Condition = rownames(design)
   }
