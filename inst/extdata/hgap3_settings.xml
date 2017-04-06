@@ -1,0 +1,288 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<smrtpipeSettings>
+    <protocol version="2.3.0" id="RS_HGAP_Assembly.3" editable="false">
+        <param name="name" label="Protocol Name">
+            <value>RS_HGAP_Assembly</value>
+            <input type="text"/>
+            <rule required="true"/>
+        </param>
+        <param name="description">
+            <value>HGAP version 3. PacBio de novo assembler optimized for speed.</value>
+            <textarea></textarea>
+        </param>
+        <param name="version" hidden="true">
+            <value>3</value>
+            <input type="text"/>
+            <rule type="digits" required="true" min="1.0"/>
+        </param>
+        <param name="state" hidden="true">
+            <value>active</value>
+            <input value="active" type="radio"/>
+            <input value="inactive" type="radio"/>
+        </param>
+        <param name="otfReference" hidden="true">
+            <value>reference</value>
+        </param>
+        <param name="deferRefCheck" hidden="true">
+            <value>True</value>
+        </param>
+        <param name="control" hidden="true">
+            <value></value>
+        </param>
+        <param name="fetch" hidden="true">
+            <value>common/protocols/preprocessing/Fetch.1.xml</value>
+        </param>
+        <param name="filtering">
+            <value>common/protocols/filtering/PreAssemblerSFilter.1.xml</value>
+            <select multiple="true">
+                <import extension="xml" contentType="text/directory">common/protocols/filtering</import>
+            </select>
+        </param>
+        <param name="Control Filtering" editableInJob="true">
+            <value>common/protocols/control/KeepControlReads.1.xml</value>
+            <select multiple="false">
+                <import extension="xml" contentType="text/directory">common/protocols/control</import>
+            </select>
+        </param>
+        <param name="assembly">
+            <value>common/protocols/assembly/PreAssemblerHGAP.3.xml</value>
+            <value>common/protocols/assembly/AssembleUnitig.1.xml</value>
+            <select multiple="true">
+                <import extension="xml" contentType="text/directory">common/protocols/assembly</import>
+            </select>
+        </param>
+        <param name="referenceUploader" hidden="true">
+            <value>common/protocols/referenceuploader/ReferenceUploaderUnitig.1.xml</value>
+        </param>
+        <param name="mapping">
+            <value>common/protocols/mapping/BLASR_Resequencing.1.xml</value>
+            <select multiple="true">
+                <import extension="xml" contentType="text/directory">common/protocols/mapping</import>
+            </select>
+        </param>
+        <param name="consensus">
+            <value>common/protocols/consensus/AssemblyPolishing.1.xml</value>
+            <select multiple="true">
+                <import extension="xml" contentType="text/directory">common/protocols/consensus</import>
+            </select>
+        </param>
+    </protocol>
+    <moduleStage name="fetch" editable="true">
+        <module label="Fetch v1" id="P_Fetch" editableInJob="true">
+            <description>Sets up inputs</description>
+        </module>
+    </moduleStage>
+    <moduleStage name="filtering" editable="true">
+        <module label="PreAssembler Filter v1" id="P_Filter" editableInJob="true">
+            <description>Filter reads for use in the pre-assembly step of HGAP, the hierarchical genome assembly process.</description>
+            <param name="minSubReadLength" label="Minimum Subread Length">
+                <value>500</value>
+                <title>Subreads shorter than this value (in base pairs) are filtered out and excluded from analysis.</title>
+                <input type="text" size="3"/>
+                <rule type="number" min="0.0" message="Value must be a positive integer"/>
+            </param>
+            <param name="readScore" label="Minimum Polymerase Read Quality">
+                <value>0.80</value>
+                <title>Polymerase reads with lower quality than this value are filtered out and excluded from analysis.</title>
+                <input type="text" size="3"/>
+                <rule type="number" min="0.0" message="Value must be between 0 and 1" max="1.0"/>
+            </param>
+            <param name="minLength" label="Minimum Polymerase Read Length">
+                <value>100</value>
+                <title>Polymerase reads shorter than this value (in base pairs) are filtered out and excluded from analysis.</title>
+                <input type="text" size="3"/>
+                <rule type="number" min="0.0" message="Value must be a positive integer"/>
+            </param>
+        </module>
+        <module label="PreAssemblerSFilter Reports v1" id="P_FilterReports" editableInJob="false"/>
+    </moduleStage>
+    <moduleStage name="Control Filtering" editable="true"/>
+    <moduleStage name="assembly" editable="true">
+        <module label="PreAssembler v2" id="P_PreAssemblerDagcon" editableInJob="true">
+            <title>Using DAG-based consensus algorithm, pre-assemble long reads as the first step of the Hierarchical Genome Assembly process (HGAP). Version 2 is a stepping stone for scaling to much larger genomes.</title>
+            <param name="computeLengthCutoff" label="Compute Minimum Seed Read Length" editable="true">
+                <value>True</value>
+                <title>Specify whether or not to compute the minimum seed read length that results in at least 30X target genome coverage, by the longest subreads. This is based on the genome size you specified.</title>
+                <input type="checkbox"/>
+            </param>
+            <param name="minLongReadLength" label="Minimum Seed Read Length">
+                <value>6000</value>
+                <title>The minimum length of reads (in base pairs) to use as seeds for pre-assembly.</title>
+                <input type="text"/>
+                <rule type="digits" required="true" min="1.0" message="Value must be an integer between 1 and 100000" max="100000.0"/>
+            </param>
+            <param name="targetChunks" label="Number of Seed Read Chunks">
+                <value>6</value>
+                <title>The number of pieces to split the data files into while running PreAssembler.</title>
+            </param>
+            <param name="splitBestn" label="Alignment Candidates Per Chunk">
+                <value>10</value>
+                <title>The number of alignments to consider for each read for a particular chunk.</title>
+            </param>
+            <param name="totalBestn" label="Total Alignment Candidates">
+                <value>24</value>
+                <title>The number of potential alignments BLASR should consider across all chunks for a particular read.</title>
+            </param>
+            <param name="minCorCov" label="Minimum Coverage for Correction">
+                <value>6</value>
+                <title>The minimum coverage to maintain correction for a read.  If the coverage falls below that threshold, the read will be broken at that juntion.</title>
+            </param>
+            <param name="blasrOpts" label="BLASR Options (Advanced)">
+                <value> -noSplitSubreads -minReadLength 200 -maxScore -1000 -maxLCPLength 16 </value>
+                <title>The -bestn and -nCandidates options should be approximately equal to the expected seed read coverage</title>
+                <input type="text"/>
+            </param>
+        </module>
+        <module label="AssembleUnitig v1" id="P_AssembleUnitig" editableInJob="true">
+            <description>This module runs Celera Assembler v8.1 to the unitig step, then finishes with our custom unitig consensus caller</description>
+            <param name="genomeSize" label="Genome Size (bp)">
+                <value>5000000</value>
+                <title>The approximate genome size, in base pairs.</title>
+                <input type="text"/>
+                <rule type="digits" required="true" min="1.0" message="Must be a value between 1 and 150000000" max="1.5E8"/>
+            </param>
+            <param name="libraryName" hidden="true">
+                <value>pacbioReads</value>
+            </param>
+            <param name="defaultFrgMinLen" hidden="true">
+                <value>500</value>
+                <input type="text"/>
+            </param>
+            <param name="xCoverage" label="Target Coverage">
+                <value>25</value>
+                <title>Fold coverage to target for when picking the minimum fragment length for assembly; typically 15 to 25.
+			</title>
+                <input type="text"/>
+                <rule type="digits" min="10.0" message="Value must be an integer between 10 and 30, inclusive" max="30.0"/>
+            </param>
+            <param name="ovlErrorRate" label="Overlapper error rate">
+                <value>0.06</value>
+                <title>Trimming and assembly overlaps above this error limit won't be detected.</title>
+                <input type="text"/>
+                <rule type="number" message="Value must be numeric"/>
+            </param>
+            <param name="ovlMinLen" label="Overlapper min length">
+                <value>40</value>
+                <title>Overlaps shorter than this length (in base pairs) are not computed.</title>
+                <input type="text"/>
+                <rule type="digits" message="Value must be an integer"/>
+            </param>
+            <param name="merSize" label="Overlapper k-mer">
+                <value>14</value>
+                <title>The length of the seeds (in base pairs) used by the seed-and-extend algorithm.</title>
+                <input type="text"/>
+                <rule type="digits" message="Value must be an integer"/>
+            </param>
+            <param name="specInRunCA" label="Pre-defined spec file">
+                <title>The path to an existing specification file used to run the assembly program.</title>
+                <input type="text"/>
+                <rule required="false" remote="api/protocols/resource-exists?paramName=specInRunCA" message="File does not exist"/>
+            </param>
+            <param name="maxSlotPerc" hidden="true">
+                <value>1</value>
+            </param>
+            <param name="specTmpl" hidden="true">
+                <value>analysis/etc/celeraAssembler/unitig.spec</value>
+            </param>
+        </module>
+    </moduleStage>
+    <moduleStage name="referenceUploader" editable="false">
+        <module id="P_ReferenceUploader" editableInJob="false">
+            <param name="runUploaderHgap">
+                <value>False</value>
+            </param>
+            <param name="runUploader">
+                <value>False</value>
+            </param>
+            <param name="runUploaderUnitig">
+                <value>True</value>
+            </param>
+            <param name="name">
+                <value>reference</value>
+            </param>
+            <param name="organism"/>
+            <param name="ploidy"/>
+            <param name="user"/>
+            <param name="sawriter">
+                <value>sawriter -blt 8 -welter</value>
+            </param>
+            <param name="samIdx">
+                <value>samtools faidx</value>
+            </param>
+        </module>
+    </moduleStage>
+    <moduleStage name="mapping" editable="true">
+        <module label="BLASR v1" id="P_Mapping" editableInJob="true">
+            <description>
+BLASR maps reads to genomes by finding the highest scoring local alignment or set of local alignments between the read and the genome. The first set of alignments is found by querying an index of the reference genome, and then refining until only high scoring alignments are retained.  Additional pulse metrics are loaded into the resulting cmp.h5 file to enable downstream use of the Quiver algorithm.
+    </description>
+            <param name="maxHits" label="Maximum number of hits per read" hidden="true">
+                <value>10</value>
+                <title>
+        The maximum number of matches of each read to the reference
+        sequence that will be evaluated. maxHits should be greater
+        than the expected number of repeats if you want to spread hits
+        out on the genome.
+      </title>
+                <input type="text"/>
+                <rule type="digits" message="Value must be an integer between 0 and 1000"/>
+            </param>
+            <param name="maxDivergence" label="Maximum divergence (%)">
+                <value>30</value>
+                <title>The maximum allowed divergence (in %) of a read from the reference sequence.</title>
+                <input type="text"/>
+                <rule type="digits" message="Value must be an integer between 0 and 100"/>
+            </param>
+            <param name="minAnchorSize" label="Minimum anchor size">
+                <value>12</value>
+                <title>The minimum size of the read (in base pairs) that must match against the reference.</title>
+                <input type="text"/>
+                <rule type="digits" message="Value must be an integer between 8 and 30"/>
+            </param>
+            <param name="samBam" label="Write output as a BAM file">
+                <value>True</value>
+                <title>Specify whether or not to output a BAM representation of the cmp.h5 file.</title>
+                <input type="checkbox"/>
+            </param>
+            <param name="gff2Bed" label="Write BED coverage file">
+                <value>True</value>
+                <title>Specify whether or not to output a BED representation of the depth of coverage summary.</title>
+                <input type="checkbox"/>
+            </param>
+            <param name="placeRepeatsRandomly" label="Place repeats randomly">
+                <value>True</value>
+                <title>Specify that if BLASR maps a read to more than one location with equal probability, then it randomly selects which location it chooses as the best location. If not set, defaults to the first on the list of matches.</title>
+                <input type="checkbox"/>
+            </param>
+            <param name="pbalign_opts" hidden="true">
+                <value>--seed=1 --minAccuracy=0.75 --minLength=50 --concordant --algorithmOptions="-useQuality"</value>
+            </param>
+            <param name="pbalign_advanced_opts" label="Advanced pbalign options">
+                <value> </value>
+                <title>Specify additional Pbalign options. For advanced users only.</title>
+                <input type="text"/>
+            </param>
+            <param name="pulseMetrics" hidden="true">
+                <value>DeletionQV,IPD,InsertionQV,PulseWidth,QualityValue,MergeQV,SubstitutionQV,DeletionTag</value>
+            </param>
+            <param name="loadPulsesOpts" hidden="true">
+                <value>bymetric</value>
+                <title>The default option of loadPulses is 'byread'. Option 'bymetric' 
+               is desined to sacrifice memory for increased speed, especially 
+               for jobs of which the number of reference contigs is large. </title>
+            </param>
+        </module>
+        <module label="BLASR Reports v1" id="P_MappingReports" editableInJob="false"/>
+    </moduleStage>
+    <moduleStage name="consensus" editable="true">
+        <module label="AssemblyPolishing v1 (Quiver)" id="P_AssemblyPolishing" editableInJob="true">
+            <description>Polish a pure-PacBio assembly for maximum accuracy using the Quiver algorithm.</description>
+            <param name="enableMapQVFilter" label="Use only unambiguously mapped reads">
+                <value>True</value>
+                <title>Specify whether or not to filter out reads where Map QV is less than 10. Reduces coverage in repeat regions that are shorter than the read length.</title>
+                <input type="checkbox"/>
+            </param>
+        </module>
+    </moduleStage>
+    <fileName>RS_HGAP_Assembly.3.xml</fileName>
+</smrtpipeSettings>

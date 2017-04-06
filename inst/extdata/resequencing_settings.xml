@@ -1,0 +1,201 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<smrtpipeSettings>
+    <protocol version="2.3.0" id="RS_Resequencing.1" editable="false">
+        <param name="name" label="Protocol Name">
+            <value>RS_Resequencing</value>
+            <input type="text"/>
+            <rule required="true"/>
+        </param>
+        <param name="description">
+            <value>Map length and quality-filtered reads against a reference sequence; identify consensus and variant sequences using Quiver algorithm.
+      </value>
+            <textarea></textarea>
+        </param>
+        <param name="version" hidden="true">
+            <value>1</value>
+            <input type="text"/>
+            <rule type="digits" required="true" min="1.0"/>
+        </param>
+        <param name="state" hidden="true">
+            <value>active</value>
+            <input value="active" type="radio"/>
+            <input value="inactive" type="radio"/>
+        </param>
+        <param name="reference" hidden="true">
+            <value>common/references/p2332_contigs</value>
+        </param>
+        <param name="control" hidden="true">
+            <value></value>
+        </param>
+        <param name="fetch" hidden="true">
+            <value>common/protocols/preprocessing/Fetch.1.xml</value>
+        </param>
+        <param name="filtering">
+            <value>common/protocols/filtering/SFilter.1.xml</value>
+            <select multiple="true">
+                <import extension="xml" contentType="text/directory">common/protocols/filtering</import>
+            </select>
+        </param>
+        <param name="spikeinControl" hidden="true">
+            <value>common/protocols/control/SControl.1.xml</value>
+        </param>
+        <param name="mapping">
+            <value>common/protocols/mapping/BLASR_Resequencing.1.xml</value>
+            <select multiple="true">
+                <import extension="xml" contentType="text/directory">common/protocols/mapping</import>
+            </select>
+        </param>
+        <param name="consensus">
+            <value>common/protocols/consensus/Quiver.1.xml</value>
+            <select multiple="true">
+                <import extension="xml" contentType="text/directory">common/protocols/consensus</import>
+            </select>
+        </param>
+    </protocol>
+    <moduleStage name="fetch" editable="true">
+        <module label="Fetch v1" id="P_Fetch" editableInJob="true">
+            <description>Sets up inputs</description>
+        </module>
+    </moduleStage>
+    <moduleStage name="filtering" editable="true">
+        <module label="SFilter v1" id="P_Filter" editableInJob="true">
+            <description>This module filters reads based on a minimum subread length, polymerase read quality and polymerase read length.</description>
+            <param name="minSubReadLength" label="Minimum Subread Length">
+                <value>50</value>
+                <title>Subreads shorter than this value (in base pairs) are filtered out and excluded from analysis.</title>
+                <input type="text" size="3"/>
+                <rule type="number" min="0.0" message="Value must be a positive integer"/>
+            </param>
+            <param name="readScore" label="Minimum Polymerase Read Quality">
+                <value>75</value>
+                <title>Polymerase reads with lower quality than this value are filtered out and excluded from analysis.</title>
+                <input type="text"/>
+                <rule type="number" min="0.0" message="Value must be between 0 and 100" max="100.0"/>
+            </param>
+            <param name="minLength" label="Minimum Polymerase Read Length">
+                <value>50</value>
+                <title>Polymerase reads shorter than this value (in base pairs) are filtered out and excluded from analysis.</title>
+                <input type="text" size="3"/>
+                <rule type="number" min="0.0" message="Value must be a positive integer"/>
+            </param>
+        </module>
+        <module label="SFilter Reports v1" id="P_FilterReports" editableInJob="false"/>
+    </moduleStage>
+    <moduleStage name="spikeinControl" editable="true">
+        <module label="SControl v1" id="P_Control" editableInJob="true">
+            <param name="pbalign_opts" hidden="true">
+                <value>--maxHits=1 --minAccuracy=0.75 --minLength=50 --algorithmOptions="-useQuality"</value>
+            </param>
+        </module>
+        <module label="SControl Reports v1" id="P_ControlReports" editableInJob="false"/>
+    </moduleStage>
+    <moduleStage name="mapping" editable="true">
+        <module label="BLASR v1" id="P_Mapping" editableInJob="true">
+            <description>
+BLASR maps reads to genomes by finding the highest scoring local alignment or set of local alignments between the read and the genome. The first set of alignments is found by querying an index of the reference genome, and then refining until only high scoring alignments are retained.  Additional pulse metrics are loaded into the resulting cmp.h5 file to enable downstream use of the Quiver algorithm.
+    </description>
+            <param name="maxHits" label="Maximum number of hits per read" hidden="true">
+                <value>10</value>
+                <title>
+        The maximum number of matches of each read to the reference
+        sequence that will be evaluated. maxHits should be greater
+        than the expected number of repeats if you want to spread hits
+        out on the genome.
+      </title>
+                <input type="text"/>
+                <rule type="digits" message="Value must be an integer between 0 and 1000"/>
+            </param>
+            <param name="maxDivergence" label="Maximum divergence (%)">
+                <value>30</value>
+                <title>The maximum allowed divergence (in %) of a read from the reference sequence.</title>
+                <input type="text"/>
+                <rule type="digits" message="Value must be an integer between 0 and 100"/>
+            </param>
+            <param name="minAnchorSize" label="Minimum anchor size">
+                <value>12</value>
+                <title>The minimum size of the read (in base pairs) that must match against the reference.</title>
+                <input type="text"/>
+                <rule type="digits" message="Value must be an integer between 8 and 30"/>
+            </param>
+            <param name="samBam" label="Write output as a BAM file">
+                <value>True</value>
+                <title>Specify whether or not to output a BAM representation of the cmp.h5 file.</title>
+                <input type="checkbox"/>
+            </param>
+            <param name="gff2Bed" label="Write BED coverage file">
+                <value>True</value>
+                <title>Specify whether or not to output a BED representation of the depth of coverage summary.</title>
+                <input type="checkbox"/>
+            </param>
+            <param name="placeRepeatsRandomly" label="Place repeats randomly">
+                <value>True</value>
+                <title>Specify that if BLASR maps a read to more than one location with equal probability, then it randomly selects which location it chooses as the best location. If not set, defaults to the first on the list of matches.</title>
+                <input type="checkbox"/>
+            </param>
+            <param name="pbalign_opts" hidden="true">
+                <value>--seed=1 --minAccuracy=0.75 --minLength=50 --concordant --algorithmOptions="-useQuality"</value>
+            </param>
+            <param name="pbalign_advanced_opts" label="Advanced pbalign options">
+                <value> </value>
+                <title>Specify additional Pbalign options. For advanced users only.</title>
+                <input type="text"/>
+            </param>
+            <param name="pulseMetrics" hidden="true">
+                <value>DeletionQV,IPD,InsertionQV,PulseWidth,QualityValue,MergeQV,SubstitutionQV,DeletionTag</value>
+            </param>
+            <param name="loadPulsesOpts" hidden="true">
+                <value>bymetric</value>
+                <title>The default option of loadPulses is 'byread'. Option 'bymetric' 
+               is desined to sacrifice memory for increased speed, especially 
+               for jobs of which the number of reference contigs is large. </title>
+            </param>
+        </module>
+        <module label="BLASR Reports v1" id="P_MappingReports" editableInJob="false"/>
+    </moduleStage>
+    <moduleStage name="consensus" editable="true">
+        <module label="Quiver v1" id="P_GenomicConsensus" editableInJob="true">
+            <description>Quiver identifies haploid  SNPs and indels by performing a local  realignment of reads using the full range of sequence quality metrics.</description>
+            <param name="algorithm" label="Consensus algorithm">
+                <value>quiver</value>
+                <title>Specify the consensus/variant algorithm to use in the analysis.</title>
+                <input value="plurality" type="radio"/>
+                <input value="quiver" type="radio"/>
+            </param>
+            <param name="outputConsensus" label="Output consensus FASTA and FASTQ files">
+                <value>True</value>
+                <title>Specify whether or not to output FASTA and FASTQ representations of the consensus sequence.</title>
+                <input type="checkbox"/>
+            </param>
+            <param name="makeVcf" label="Write SNPs/Variants as VCF file">
+                <value>True</value>
+                <title>Specify whether or not to output a VCF representation of the variants.</title>
+                <input type="checkbox"/>
+            </param>
+            <param name="makeBed" label="Write SNPs/Variants as BED file">
+                <value>True</value>
+                <title>Specify whether or not to output a BED representation of the variants.</title>
+                <input type="checkbox"/>
+            </param>
+            <param name="enableMapQVFilter" label="Use only unambiguously mapped reads">
+                <value>True</value>
+                <title>Specify whether or not to filter out reads where Map QV is less than 10. Reduces coverage in repeat regions that are shorter than the read length.</title>
+                <input type="checkbox"/>
+            </param>
+            <param name="minConfidence" label="Minimum variant confidence" hidden="true">
+                <value>40</value>
+                <title>Minimum variant confidence</title>
+            </param>
+            <param name="minCoverage" label="Minimum coverage requirement" hidden="true">
+                <value>5</value>
+                <title>Minimum variant coverage</title>
+            </param>
+            <param name="diploidMode" label="Diploid analysis">
+                <value>False</value>
+                <title>Specify whether or not Quiver operates in diploid mode and calls variants with the assumption that there are two copies of the genome in the sample; the mapping specificity should be higher.</title>
+                <input type="checkbox"/>
+            </param>
+        </module>
+        <module label="Genomic Consensus Reports v1" id="P_ConsensusReports" editableInJob="false"/>
+    </moduleStage>
+    <fileName>RS_Resequencing.1.xml</fileName>
+</smrtpipeSettings>

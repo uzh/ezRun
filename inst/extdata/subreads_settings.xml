@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<smrtpipeSettings>
+    <protocol version="2.3.0" id="RS_Subreads.1" editable="false">
+        <param name="name" label="Protocol Name">
+            <value>RS_Subreads</value>
+            <input type="text"/>
+            <rule required="true" message="Protocol name is required"/>
+        </param>
+        <param name="description">
+            <value>Filter subreads based on read length and quality, optionally splitting by barcode. Output FASTA and bas.h5 file of subreads.</value>
+            <textarea></textarea>
+        </param>
+        <param name="version" hidden="true">
+            <value>1</value>
+            <input type="text"/>
+            <rule type="digits" required="true" min="1.0"/>
+        </param>
+        <param name="state" hidden="true">
+            <value>active</value>
+            <input value="active" type="radio"/>
+            <input value="inactive" type="radio"/>
+        </param>
+        <param name="control" hidden="true">
+            <value></value>
+        </param>
+        <param name="fetch" hidden="true">
+            <value>common/protocols/preprocessing/Fetch.1.xml</value>
+        </param>
+        <param name="filtering">
+            <value>common/protocols/filtering/SFilter.1.xml</value>
+            <select multiple="true">
+                <import extension="xml" contentType="text/directory">common/protocols/filtering</import>
+            </select>
+        </param>
+        <param name="Control Filtering" editableInJob="true">
+            <value>common/protocols/control/KeepControlReads.1.xml</value>
+            <select multiple="false">
+                <import extension="xml" contentType="text/directory">common/protocols/control</import>
+            </select>
+        </param>
+        <param name="barcode" editableInJob="true">
+            <value>common/protocols/barcode/NoBarcode.1.xml</value>
+            <select multiple="false">
+                <import extension="xml" contentType="text/directory">common/protocols/barcode</import>
+            </select>
+        </param>
+    </protocol>
+    <moduleStage name="fetch" editable="true">
+        <module label="Fetch v1" id="P_Fetch" editableInJob="true">
+            <description>Sets up inputs</description>
+        </module>
+    </moduleStage>
+    <moduleStage name="filtering" editable="true">
+        <module label="SFilter v1" id="P_Filter" editableInJob="true">
+            <description>This module filters reads based on a minimum subread length, polymerase read quality and polymerase read length.</description>
+            <param name="minSubReadLength" label="Minimum Subread Length">
+                <value>50</value>
+                <title>Subreads shorter than this value (in base pairs) are filtered out and excluded from analysis.</title>
+                <input type="text" size="3"/>
+                <rule type="number" min="0.0" message="Value must be a positive integer"/>
+            </param>
+            <param name="readScore" label="Minimum Polymerase Read Quality">
+                <value>75</value>
+                <title>Polymerase reads with lower quality than this value are filtered out and excluded from analysis.</title>
+                <input type="text"/>
+                <rule type="number" min="0.0" message="Value must be between 0 and 100" max="100.0"/>
+            </param>
+            <param name="minLength" label="Minimum Polymerase Read Length">
+                <value>50</value>
+                <title>Polymerase reads shorter than this value (in base pairs) are filtered out and excluded from analysis.</title>
+                <input type="text" size="3"/>
+                <rule type="number" min="0.0" message="Value must be a positive integer"/>
+            </param>
+        </module>
+        <module label="SFilter Reports v1" id="P_FilterReports" editableInJob="false"/>
+    </moduleStage>
+    <moduleStage name="Control Filtering" editable="false"/>
+    <moduleStage name="barcode" editable="true"/>
+    <fileName>RS_Subreads.1.xml</fileName>
+</smrtpipeSettings>
