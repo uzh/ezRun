@@ -48,7 +48,7 @@
 ##'   setdiff(allLibs, names(res$success))
 ##' }
 ##' # Filter the data sets
-##' resFilt <- filterEnrichrResults(pAdj = 0.01, z = -3, combinedScore = 12)
+##' resFilt <- filterEnrichrResults(res$success, pAdj = 0.01, z = -3, combinedScore = 12)
 ##' }
 ##' @author Roman Briskine
 runEnrichr <- function(genes, minScore = 12, maxAdjP = 0.01, connectionN = 10) {
@@ -61,7 +61,7 @@ runEnrichr <- function(genes, minScore = 12, maxAdjP = 0.01, connectionN = 10) {
   }
   resFilt <- list()
   if (length(res$success) > 0) {
-    resFilt <- filterEnrichrResults(res, combinedScore = minScore, pAdj = maxAdjP)
+    resFilt <- filterEnrichrResults(res$success, combinedScore = minScore, pAdj = maxAdjP)
   }
   resFilt
 }
@@ -156,16 +156,19 @@ enrichrEnrich <- function(userListId, libNames = getEnrichrLibNames(), connectio
   # Parses the response
   parseResp <- function(resp) {
     fieldNames <- c("Rank", "Term", "p_value", "z_score", "Combined.Score", "Overlapping.Genes",
-        "Adjusted.p_value", "Old.p_value", "Old.Adjusted.p_value")
-    respParsed <- jsonlite::fromJSON(resp$content %>% rawToChar())[[1]]
+               "Adjusted.p_value", "Old.p_value", "Old.Adjusted.p_value")
+    respParsed <- jsonlite::fromJSON( rawToChar(resp$content) )[[1]]
     if (length(respParsed) > 0) {
       ds <- as.data.frame(
         do.call("rbind", lapply(concatGenes(respParsed), unlist)),
         stringsAsFactors = F
       )
-      names(ds) <- fieldNames
-      respToNumeric(ds)
+      ds <- respToNumeric(ds)
+    } else {
+      ds <- as.data.frame(matrix(nrow = 0, ncol = length(fieldNames)))
     }
+    names(ds) <- fieldNames
+    ds
   }
 
   success <- list()
@@ -207,7 +210,7 @@ enrichrEnrich <- function(userListId, libNames = getEnrichrLibNames(), connectio
 ##' @description Filters the results returned by Enrichr. Libraries that fail to yield any
 ##' significant results are removed. However, libraries that contain significant results, retain all
 ##' records whether significant or not)
-##' @param resList list of results returned by \code{\link{enrichrEnrich}}
+##' @param resList list of results, i.e. \code{success} field in the list returned by \code{\link{enrichrEnrich}}
 ##' @param p p-value threshold (maximum)
 ##' @param pAdj adjusted p-value threshold (maximum)
 ##' @param z z-value threshold (maximum)
