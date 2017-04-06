@@ -12,11 +12,14 @@ ezMethodScater = function(input=NA, output=NA, param=NA, htmlFile="00index.html"
   if (is.null(param$minExpressedCells)) {
     param$minExpressedCells <- 4
   }
+  
+  ## input refers to a meta input
+  dsFile = input$getFullPaths("CountDataset")
+  cmFile = input$getFullPaths("CountMatrix")
 
-  countMatrix = EzDataset(file=input$getFullPaths("CountMatrix"), dataRoot=param$dataRoot)
-  input = EzDataset(file=input$getFullPaths("CountDataset"), dataRoot=param$dataRoot)
+  ## we replace the input with the actual input
+  input = EzDataset(file=dsFile, dataRoot=param$dataRoot)
   meta = input$meta
-
   setwdNew(basename(output$getColumn("Report")))
   if (param$useFactorsAsSampleName){
     meta$Name = rownames(meta)
@@ -35,16 +38,30 @@ ezMethodScater = function(input=NA, output=NA, param=NA, htmlFile="00index.html"
   # Prepare the data for SCE set
   phenoData = new("AnnotatedDataFrame", data = meta)
   rownames(phenoData) <- row.names(meta)
-  countData = countMatrix$meta
+  countData = ezRead.table(cmFile)
   featureNames = row.names(countData)
   featureData <- new("AnnotatedDataFrame", data = data.frame(Feature = featureNames))
   rownames(featureData) <- featureNames
 
-  sceset <- newSCESet(countData = as.matrix(countData), phenoData = phenoData, featureData = featureData)
+  sceset <- newSCESet(countData = as.matrix(countData), phenoData = phenoData, featureData = featureData, is_exprsData=countData > param$sigThresh)
   sceset <- calculateQCMetrics(sceset)
   # Remove features that are not expressed
   expressedMask <- rowSums(is_exprs(sceset)) > param$minExpressedCells
   sceset <- sceset[expressedMask, ]
+  
+  
+  if (!is.null(output)){
+    liveReportLink = output$getColumn("Live Report")
+    summary = c("Name"=param$name,
+                "Reference Build"=param$refBuild,
+                "Feature Level"=param$featureLevel) ## the feature level should be in the count dataset but is not!!
+    result = EzResult(param=param, sceset=sceset, result=list(summary=summary, analysis="scater"))
+    result$saveToFile(basename(output$getColumn("Live Report")))
+    addParagraph(doc, ezLink(liveReportLink,
+                             "Live Report and Visualizations",
+                             target = "_blank"))
+  }  
+  
 
   plotCmd <- expression(grid.draw(plot(sceset, exprs_values = "counts")))
   cumPropLink <- ezImageFileLink(plotCmd, file = "libCumProp.png",

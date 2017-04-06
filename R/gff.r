@@ -442,11 +442,6 @@ writePresplicedGtf <- function (param, featureFile=param$ezRef["refFeatureFile"]
 ##' @param useFivePrimeAsStart a logical indicating whether to start from the 5' primer or not
 ##' @template roxygen-template
 ##' @return Returns an object of the class DNAStringSet from the package Biostrings
-##' @seealso \code{\link{ezLoadFeatures}}
-##' @seealso \code{\link[Biostrings]{readDNAStringSet}}
-##' @seealso \code{\link[IRanges]{Views}}
-##' @seealso \code{\link[Biostrings]{DNAStringSet}}
-##' @seealso \code{\link[Biostrings]{reverseComplement}}
 ##' @examples
 ##' param = ezParam()
 ##' param$ezRef@@refFeatureFile = system.file("extdata/genes.gtf", package="ezRun", mustWork=TRUE)
@@ -454,33 +449,46 @@ writePresplicedGtf <- function (param, featureFile=param$ezRef["refFeatureFile"]
 ##' param$ezRef@@refFastaFile = fp
 ##' ts = getTranscriptSequences(param)
 getTranscriptSequences = function(param, useFivePrimeAsStart=TRUE){
-  genomeFasta = param$ezRef["refFastaFile"]
-  genomeSeq = readDNAStringSet(genomeFasta)
-  names(genomeSeq) = sub(" .*", "", names(genomeSeq))
-  gff = ezLoadFeatures(param=param, types = "exon")
-  trSeq = character()
-  for (nm in unique(gff$seqid)){
-    message(nm)
-    use = nm == gff$seqid
-    trIsSorted = tapply(gff$start[use], gff$transcript_id[use], function(sp){all(diff(sp)>0)})
-    
-    stopifnot(trIsSorted)
-    trViews = Views(genomeSeq[[nm]], 
-                    start=gff$start[use],
-                    end=gff$end[use])
-    exonStrings = as.character(trViews)
-    trSeq = c(trSeq, tapply(exonStrings, gff$transcript_id[use], paste, collapse=""))
-  }
-  trSet = DNAStringSet(trSeq)
-  if (useFivePrimeAsStart){
-    trStrand = tapply(gff$strand, gff$transcript_id, unique)
-    stopifnot(setequal(names(trStrand), names(trSet)))
-    stopifnot(length(unlist(trStrand)) == length(trSet))
-    isNegStrand = trStrand[names(trSet)] == "-"
-    trSet[isNegStrand] = reverseComplement(trSet[isNegStrand])
-  }
-  return(trSet)
+  require(GenomicFeatures)
+  require(Rsamtools)
+  txdb = makeTxDbFromGFF(param$ezRef["refFeatureFile"],
+                         dataSource="FGCZ", taxonomyId = "10090")# organism=organism, chrominfo=NULL)
+  exonRgList = exonsBy(txdb, by="tx", use.names=TRUE)
+  genomeFasta = FaFile(param$ezRef["refFastaFile"])
+  trSeqs = extractTranscriptSeqs(genomeFasta, exonRgList)
+  return(trSeqs)
 }
+
+
+# getTranscriptSequences = function(param, useFivePrimeAsStart=TRUE){
+#   genomeFasta = param$ezRef["refFastaFile"]
+#   genomeSeq = readDNAStringSet(genomeFasta)
+#   names(genomeSeq) = sub(" .*", "", names(genomeSeq))
+#   gff = ezLoadFeatures(param=param, types = "exon")
+#   trSeq = character()
+#   for (nm in unique(gff$seqid)){
+#     message(nm)
+#     use = nm == gff$seqid
+#     trIsSorted = tapply(gff$start[use], gff$transcript_id[use], function(sp){all(diff(sp)>0)})
+#     
+#     stopifnot(trIsSorted)
+#     trViews = Views(genomeSeq[[nm]], 
+#                     start=gff$start[use],
+#                     end=gff$end[use])
+#     exonStrings = as.character(trViews)
+#     trSeq = c(trSeq, tapply(exonStrings, gff$transcript_id[use], paste, collapse=""))
+#   }
+#   trSet = DNAStringSet(trSeq)
+#   if (useFivePrimeAsStart){
+#     trStrand = tapply(gff$strand, gff$transcript_id, unique)
+#     stopifnot(setequal(names(trStrand), names(trSet)))
+#     stopifnot(length(unlist(trStrand)) == length(trSet))
+#     isNegStrand = trStrand[names(trSet)] == "-"
+#     trSet[isNegStrand] = reverseComplement(trSet[isNegStrand])
+#   }
+#   return(trSet)
+# }
+
 
 
 ##' @title Gets UTR sequences

@@ -4,7 +4,8 @@
 \alias{runCountSingleBam}
 \title{Run counts for a single BAM file}
 \usage{
-runCountSingleBam(psBamFile, psGffFile, psCountfileExt, strandMode, Paired)
+runCountSingleBam(psBamFile, psGffFile, psCountfileExt, strandMode, Paired,
+  ramPerJob)
 }
 \description{
 Run counts for a single BAM file

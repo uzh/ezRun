@@ -79,7 +79,7 @@ ezSortIndexBam = function(inBam, bam, samtools=SAMTOOLS, ram=2, removeBam=TRUE, 
 ezScanBam = function(bamFile, seqname=NULL, start=NULL, end=NULL, strand="*",
                       tag=character(0), what=scanBamWhat(),
                       isFirstMateRead=NA, isSecondMateRead=NA, isUnmappedQuery=FALSE, isProperPair=NA,
-                     isSecondaryAlignment=NA, countOnly=FALSE){
+                     isSecondaryAlignment=NA, isDuplicate = NA, countOnly=FALSE){
   ## initialize the parameters for scanBam
   require(Rsamtools)
   param = ScanBamParam(what=what, tag=tag)
@@ -87,7 +87,7 @@ ezScanBam = function(bamFile, seqname=NULL, start=NULL, end=NULL, strand="*",
   ### build and set the flag filter
   isMinusStrand = switch(strand, "-"=TRUE, "+"=FALSE, NA)
   bamFlag(param) = scanBamFlag(isMinusStrand=isMinusStrand, isFirstMateRead=isFirstMateRead, isSecondMateRead=isSecondMateRead,
-                               isUnmappedQuery=isUnmappedQuery, isProperPair=isProperPair, isSecondaryAlignment=isSecondaryAlignment)
+                               isUnmappedQuery=isUnmappedQuery, isProperPair=isProperPair, isSecondaryAlignment=isSecondaryAlignment, isDuplicate=isDuplicate)
   
   ### limit the returned reads by chromosome and start/end if these are provided
   if (!is.null(seqname)){

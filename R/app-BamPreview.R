@@ -77,6 +77,7 @@ EzAppBamPreview <-
                   appDefaults <<- rbind(mapMethod=ezFrame(Type="character",	DefaultValue="STAR",	Description="the mapper to use"),
                                         mapOptions=ezFrame(Type="character", DefaultValue="", Description="options passed to the mapper"),
                                         fragSizeMax=ezFrame(Type="integer",  DefaultValue=500,	Description="maximum fragment size to plot in fragment size distribution"),
+                                        ignoreDup=ezFrame(Type="logical", DefaultValue="NA", Description="should marked duplicates be ignored?"),
                                         writeIgvSessionLink=ezFrame(Type="logical",  DefaultValue=FALSE,	Description="whether to write IGV session links."))
                 }
               )

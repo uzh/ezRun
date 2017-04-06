@@ -8,17 +8,13 @@
 
 ezMethodFastqScreen = function(input=NA, output=NA, param=NA, htmlFile="00index.html"){
   dataset = input$meta
+  # Preprocessing
+  input = ezMethodTrim(input = input, param = param)
   # fastqscreen part
   files = input$getFullPaths("Read1")
   resultFiles = executeFastqscreenCMD(param, files)
   fastqData = collectFastqscreenOutput(dataset, files, resultFiles)
   # bowtie2 reference part
-  if ("Adapter1" %in% input$colNames && all(!is.na(input$getColumn("Adapter1")))){
-    input = ezMethodTrim(input = input, param = param)
-  } else {
-    param$trimAdapter = FALSE
-    input = ezMethodTrim(input = input, param = param)
-  }
   countFiles = executeBowtie2CMD(param, input)
   speciesPercentageTop = collectBowtie2Output(param, input$meta, countFiles)
   setwdNew(basename(output$getColumn("Report")))
@@ -105,12 +101,12 @@ executeBowtie2CMD = function(param, input){
     if(!param$paired){
       cmd = paste(file.path(BOWTIE2_DIR,'bowtie2'),"-x",REFSEQ_mRNA_REF, 
                   " -U ", r1Files[nm], bowtie2options ,"-p",param$cores,
-                  "--no-unal --no-hd", "2> ", paste0(nm, "_bowtie2.err"),
+                  "--no-unal --no-hd --mm", "2> ", paste0(nm, "_bowtie2.err"),
                   "| cut -f1,3,12", " |sed s/AS:i://g", ">>", countFiles[nm])
     } else {
       cmd = paste(file.path(BOWTIE2_DIR,'bowtie2'),"-x",REFSEQ_mRNA_REF, 
                   " -1 ", r1Files[nm]," -2 ", r2Files[nm], bowtie2options, "-p",param$cores,
-                  "--no-discordant --no-mixed --no-unal --no-hd",
+                  "--no-discordant --no-mixed --no-unal --no-hd --mm",
                   "2> ", paste0(nm, "_bowtie2.err"),
                   "| cut -f1,3,12", " |sed s/AS:i://g", ">>", countFiles[nm])
     }
@@ -238,7 +234,7 @@ fastqscreenReport = function(dataset, param, htmlFile="00index.html", fastqData,
     plotCmd = expression({
       par(mar=c(10.1, 4.1, 4.1, 2.1))
       x = speciesPercentageTop[[nm]]
-      if (is.null(x)) x = 0
+      if (is.null(x)) x = matrix(0, 2, 1, dimnames=list(c('UniqueSpeciesHits','MultipleSpeciesHits'),'Misc'))
       bplot = barplot(t(x), col=c("royalblue3", "lightblue"), las=2, ylim=c(0,100),
                       legend.text=T, ylab="Mapped Reads in %", main=nm, names.arg=rep('',nrow(x)) )
       text(y=t(x)[ 1,] + 5, x=bplot, font = 2, labels=t(x)[ 1, ], cex=1.1, col='black')

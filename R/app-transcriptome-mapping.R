@@ -56,12 +56,12 @@ getBowtie2TranscriptomeReference = function(param){
 
     txdb = makeTxDbFromGFF(param$ezRef@refFeatureFile,
                            dataSource="FGCZ", taxonomyId = "2759")# organism=organism, chrominfo=NULL) ## taxonomy id is for eukariots
-    genomeFa = FaFile(param$ezRef@refFastaFile)
+    genomeFa = Rsamtools::FaFile(param$ezRef@refFastaFile)
     
     trSeqFile = file.path(getwd(), "transcriptSeq.fa")
     exonRgList = exonsBy(txdb, by="tx", use.names=TRUE)
     trSeqs = extractTranscriptSeqs(genomeFa, exonRgList)
-    writeXStringSet(trSeqs, trSeqFile)
+    Biostrings::writeXStringSet(trSeqs, trSeqFile)
     cmd = paste(file.path(BOWTIE2_DIR, "bowtie2-build"), "--threads", as.numeric(param$cores), "-f", basename(trSeqFile), basename(refBase))
     ezSystem(cmd)
     setwd(wd)

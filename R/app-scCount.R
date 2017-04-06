@@ -18,6 +18,7 @@ ezMethodSingleCellCounts = function(input=NA, output=NA, param=NA, htmlFile="00i
   bamMeta[["BAM [File]"]] = paste0(getwd(), "/", input$getNames(), "/", input$getNames(), ".bam")
   bamMeta[["BAI [File]"]] = paste0(getwd(), "/", input$getNames(), "/", input$getNames(), ".bam.bai")
   bamMeta[["Read Count"]] = ceiling(bamMeta[["Read Count"]] / param$subsampleReads)
+  bamMeta[["STARLog [File]"]] = paste0(getwd(), "/", input$getNames(), "/", input$getNames(), "_STAR.log")
   bamOutput = EzDataset(meta=bamMeta, param$dataRoot)
   bamParam = param
   bamParam$mail = ""
@@ -32,10 +33,14 @@ ezMethodSingleCellCounts = function(input=NA, output=NA, param=NA, htmlFile="00i
            refDir = getSTARReference(param)
            mappingApp = EzAppSTAR$new()
            bamParam$cmdOptions = ifelse(bamParam$mapOptions != "", bamParam$mapOptions,
-                                        "--outFilterType BySJout --outFilterMatchNmin 30 --outFilterMismatchNmax 10 --outFilterMismatchNoverLmax 0.05 --alignSJDBoverhangMin 1 --alignSJoverhangMin 8 --alignIntronMax 1000000 --alignMatesGapMax 1000000  --outFilterMultimapNmax 50 --chimSegmentMin 15 --chimJunctionOverhangMin 15 --chimScoreMin 15 --chimScoreSeparation 10 --outSAMstrandField intronMotif")
+                                        "--outFilterType BySJout --outFilterMatchNmin 30 --outFilterMismatchNmax 10 --outFilterMismatchNoverLmax 0.05 --alignSJDBoverhangMin 1 --alignSJoverhangMin 8 --alignIntronMax 1000000 --alignMatesGapMax 1000000  --outFilterMultimapNmax 50 --chimSegmentMin 15 --chimJunctionOverhangMin 15 --chimScoreMin 15 --chimScoreSeparation 10 --outSAMstrandField intronMotif --outSAMattributes All")
            if (!grepl("genomeLoad", bamParam$cmdOptions)){
              bamParam$cmdOptions = paste("--genomeLoad LoadAndKeep" , bamParam$cmdOptions)
            }
+           if (!grepl("outSAMattributes", bamParam$cmdOptions)){
+             bamParam$cmdOptions = paste(bamParam$cmdOptions, "--outSAMattributes All")
+           }
+
            on.exit({
              if (ezIsSpecified(param$ezRef["refIndex"])){
                refDir = param$ezRef["refIndex"]
@@ -79,21 +84,24 @@ ezMethodSingleCellCounts = function(input=NA, output=NA, param=NA, htmlFile="00i
     bamI = bamOutput$subset(nm)
     countI = countDs$subset(nm)
     mappingApp$run(input=readI, output=bamI, param=bamParam)
-    starLogfile = paste0("../", countDir, '/', nm, '-STAR.log')
-    file.rename('Log.final.out', to = starLogfile)
     EzAppFeatureCounts$new()$run(input=bamI, output=countI, param=bamParam)
     file.rename(basename(countI$getColumn("Count")), paste0("../", countDir, "/", basename(countI$getColumn("Count"))))
     file.rename(basename(countI$getColumn("Stats")), paste0("../", countDir, "/", basename(countI$getColumn("Stats"))))
+    ezSystem(paste("mv", basename(bamI$getColumn("BAM")), file.path("..", countDir) ))
+    ezSystem(paste("mv", basename(bamI$getColumn("BAI")), file.path("..", countDir) ))
+    ezSystem(paste("mv", basename(bamI$getColumn("STARLog")), file.path("..", countDir) ))
     setwd('..')
     unlink(nm, recursive=TRUE, force=TRUE)
     
   }
   
   countFiles = paste0(countDir, "/", basename(countDs$getColumn("Count")))
-  x = ezRead.table(countFiles[1])
+  templateFile = file.path(countDir, countDs$subset( input$getNames()[1] )$getColumn("Count"))
+  x = ezRead.table(templateFile)
   counts = ezMatrix(0, rows=rownames(x), cols=countDs$getNames())
-  for (nm in names(countFiles)){
-    x = ezRead.table(countFiles[nm])
+  for (nm in input$getNames()) {
+    countFile = file.path(countDir, countDs$subset(nm)$getColumn("Count"))
+    x = ezRead.table(countFile)
     stopifnot(setequal(rownames(x), rownames(counts)))
     counts[rownames(x), nm] = x[ , "matchCounts"]
   }

@@ -57,7 +57,7 @@ EzAppCountQC <-
 ##'   \item{sigThresh}{ the threshold...}
 ##'   \item{useSigThresh}{ ...and whether it should be used.}
 ##'   \item{doZip}{ a logical indicating whether to archive the result file.}
-##'   \item{bgExpression}{ a numeric specifying the expression baseline value that is added before heatmap plots.}
+##'   \item{backgroundExpression}{ a numeric specifying the expression baseline value that is added before heatmap plots.}
 ##'   \item{topGeneSize}{ an integer specifying the number of high variance genes to consider in gene clustering.}
 ##'   \item{highVarThreshold}{ a numeric specifying the threshold for minimum standard deviation of log2 signal across samples.}
 ##'   \item{maxGenesForClustering}{ an integer specifying the maximum amount of genes for clustering. If the amount is higher, the least significant genes get removed first.}
@@ -106,7 +106,7 @@ runNgsCountQC = function(dataset, htmlFile="00index.html", param=param, rawData=
   presentFlag = rawData$presentFlag
   signalRange = range(signal, na.rm=TRUE)
   log2Signal = log2(signal)
-  isPresent = ezPresentFlags(signal, presentFlag=presentFlag, param=param, isLog=rawData$isLog)
+  isPresent = ezPresentFlags(rawData$counts, presentFlag=presentFlag, param=param, isLog=rawData$isLog)
   signalCond = 2^averageColumns(log2Signal, by=conds)
   isPresentCond = averageColumns(isPresent, by=conds) >= 0.5
   isPresentStudy = apply(isPresentCond, 1, mean) >= 0.5
@@ -223,14 +223,14 @@ runNgsCountQC = function(dataset, htmlFile="00index.html", param=param, rawData=
   }
   
   if (sum(isValid) < 10){
-    doc = addParagraph("Not enough valid features for further plots")
+    doc = addParagraph(doc, "Not enough valid features for further plots")
     closeBsdocReport(doc, htmlFile, titles)
     return("SUCCESS")
   }
   
   pngLinks = ezMatrix("", rows=1, cols=1:2)
   pngAdvancedLinks = pngLinks
-  x = log2(2^log2Signal[isValid, ] + param$bgExpression)
+  x = log2(2^log2Signal[isValid, ] + param$backgroundExpression)
   xNormed = sweep(x, 1 , rowMeans(x));
   xSd = apply(x, 1, sd, na.rm=TRUE)
   ord = order(xSd, decreasing=TRUE)

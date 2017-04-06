@@ -29,15 +29,4 @@ Rehrauer, Hubert
 
 Schmid, Peter
 }
-\seealso{
-\code{\link{ezLoadFeatures}}
-
-\code{\link[Biostrings]{readDNAStringSet}}
-
-\code{\link[IRanges]{Views}}
-
-\code{\link[Biostrings]{DNAStringSet}}
-
-\code{\link[Biostrings]{reverseComplement}}
-}
 

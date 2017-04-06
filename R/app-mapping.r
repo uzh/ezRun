@@ -286,6 +286,10 @@ ezMethodSTAR = function(input=NA, output=NA, param=NA){
   #   refDir = basename(refDir)
   # }
   
+  
+  if (!grepl("outSAMattributes", param$cmdOptions)){
+    param$cmdOptions = paste(param$cmdOptions, "--outSAMattributes All")
+  }
   cmd = paste(STAR, " --genomeDir", refDir,  "--sjdbOverhang 150", "--readFilesIn",
               trimmedInput$getColumn("Read1"), if(param$paired) trimmedInput$getColumn("Read2"),
               "--runThreadN", ezThreads(), param$cmdOptions, "--outStd BAM_Unsorted --outSAMtype BAM Unsorted",
@@ -299,6 +303,8 @@ ezMethodSTAR = function(input=NA, output=NA, param=NA){
   } else {
     sortRam = param$ram
   }
+
+  file.rename('Log.final.out', to = basename(output$getColumn("STARLog")))
     
   if (!is.null(param$markDuplicates) && param$markDuplicates){
     ezSortIndexBam("Aligned.out.bam", "sorted.bam", ram=sortRam, removeBam=TRUE, cores=nSortThreads)

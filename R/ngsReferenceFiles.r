@@ -27,7 +27,10 @@ getReferenceFeaturesBed = function(param){
   ## I build the bed file
   if (!file.exists(lockFile)){
     ezWrite(Sys.info(), con=lockFile)
-    ezSystem(paste(GTF2BED, "--do-not-sort", "<", param$ezRef["refFeatureFile"], ">", bedFile))
+    require(GenomicFeatures)
+    txdb = makeTxDbFromGFF(param$ezRef["refFeatureFile"], dataSource="FGCZ", organism="NA", taxonomyId=NA, chrominfo = NULL)
+    require(rtracklayer)
+    export(txdb, bedFile)
     ezSystem(paste("chmod", "g+w", bedFile))
     file.remove(lockFile)
     return(bedFile)
