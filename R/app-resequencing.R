@@ -19,7 +19,7 @@ ezMethodResequencing = function(input=NA, output=NA, param=NA, htmlFile="00index
   workdir = file.path(getwd(), sampleName)
   setwd(workdir)
   ezSystem(paste("ls", readFile, ">input.fofn"))
-  library(xml2)
+  require(xml2)
   inputXmlFile <-system.file(package = "ezRun", "extdata/resequencing_settings.xml")
   setting<-read_xml(inputXmlFile)
   if (param$minSubReadLength != 50){

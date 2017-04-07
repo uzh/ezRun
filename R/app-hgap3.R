@@ -19,7 +19,7 @@ ezMethodHGAP = function(input=NA, output=NA, param=NA, htmlFile="00index.html"){
   workdir = file.path(getwd(), sampleName)
   setwd(workdir)
   ezSystem(paste("ls", readFile, ">input.fofn"))
-  library(xml2)
+  require(xml2)
   inputXmlFile <-system.file(package = "ezRun", "extdata/hgap3_settings.xml")
   setting<-read_xml(inputXmlFile)
   if (param$minSubReadLength != 500){
