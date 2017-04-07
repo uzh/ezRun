@@ -26,12 +26,11 @@ Invokes the system command specified by \code{cmd}.
 \examples{
 try(ezSystem("who"))
 }
+\seealso{
+\code{\link[base]{system}}
+}
 \author{
 Rehrauer, Hubert
 
 Schmid, Peter
 }
-\seealso{
-\code{\link[base]{system}}
-}
-

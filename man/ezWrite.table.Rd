@@ -28,14 +28,13 @@ m1 = matrix(seq(0.01, 1, 0.01), 10)
 colnames(m1) = letters[1:10]
 ezWrite.table(m1, "exampleTable", digits=1)
 }
-\author{
-Rehrauer, Hubert
-
-Schmid, Peter
-}
 \seealso{
 \code{\link[utils]{write.table}}
 
 \code{\link{ezRead.table}}
 }
+\author{
+Rehrauer, Hubert
 
+Schmid, Peter
+}

@@ -22,6 +22,7 @@ Use this function to split chromosome range information in the format of chromos
 \itemize{
 \item \code{splitRegion}: Does the same as \code{splitCoordinate}, but returns the result as a list and is more robust.
 }}
+
 \examples{
 splitCoordinate("chrm:1-50")
 }
@@ -30,4 +31,3 @@ Rehrauer, Hubert
 
 Schmid, Peter
 }
-

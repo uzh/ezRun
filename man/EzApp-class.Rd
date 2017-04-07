@@ -2,8 +2,8 @@
 % Please edit documentation in R/01classes.R
 \docType{class}
 \name{EzApp-class}
-\alias{EzApp}
 \alias{EzApp-class}
+\alias{EzApp}
 \title{The R5 class representing a runnable app}
 \arguments{
 \item{input}{a list, file path or an object of the class EzDataset containing the input.}
@@ -24,6 +24,7 @@ This reference class is the basis of all other apps that inherit from it. It set
 
 \item{\code{appDefaults}}{the defaults to run the application with.}
 }}
+
 \section{Methods}{
 
 \describe{
@@ -35,6 +36,7 @@ This reference class is the basis of all other apps that inherit from it. It set
 
 \item{\code{run(input, output, param)}}{Runs the app with the provided \code{input}, \code{output} and \code{param}.}
 }}
+
 \section{Applications inheriting from \code{EzApp}}{
 
 \itemize{
@@ -90,17 +92,13 @@ This reference class is the basis of all other apps that inherit from it. It set
   {Use this reference class to run }
 }
 }
+
 \examples{
 require("ezRun")
 file = system.file("extdata/yeast_10k/dataset.tsv", package="ezRun", mustWork = TRUE)
 ds = EzDataset$new(file=file, dataRoot=NULL)
 NULLApp = EzApp$new(runMethod=function(input, output, param){},name="NULLApp")
 NULLApp$run(input=ds, output=ds, param=list(process_mode="DATASET"))
-}
-\author{
-Rehrauer, Hubert
-
-Schmid, Peter
 }
 \seealso{
 \code{\link{EzDataset}}
@@ -157,4 +155,8 @@ Schmid, Peter
 
 \code{\link{EzAppTrinity}}
 }
+\author{
+Rehrauer, Hubert
 
+Schmid, Peter
+}

@@ -2,8 +2,8 @@
 % Please edit documentation in R/app-mapping.r
 \docType{class}
 \name{EzAppBWA-class}
-\alias{EzAppBWA}
 \alias{EzAppBWA-class}
+\alias{EzAppBWA}
 \title{The R5 class representing a runnable app using \code{ezMethodBWA(input=NA, output=NA, param=NA)()}}
 \arguments{
 \item{input}{a list, file path or an object of the class EzDataset containing the input.}
@@ -24,11 +24,13 @@ Use this reference class to run
 
 \item{\code{appDefaults}}{the defaults to run the application with.}
 }}
+
 \section{Methods}{
 
 \describe{
 \item{\code{initialize()}}{Initializes the application using its specific defaults.}
 }}
+
 \section{Functions}{
 
 \itemize{
@@ -36,11 +38,7 @@ Use this reference class to run
   {The function to run this application.}
 }
 }
-\author{
-Rehrauer, Hubert
 
-Schmid, Peter
-}
 \seealso{
 \code{\link{EzApp}}
 
@@ -50,4 +48,8 @@ Schmid, Peter
 
 \code{\link{ezMethodTrim}}
 }
+\author{
+Rehrauer, Hubert
 
+Schmid, Peter
+}

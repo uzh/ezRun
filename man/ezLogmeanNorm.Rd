@@ -28,6 +28,7 @@ Columns of the matrix will be scaled to an overall logarithmic mean or to a defi
 \itemize{
 \item \code{ezLogmeanScalingFactor}: Calculates the scaling factor for the main function.
 }}
+
 \examples{
 m1 = matrix(1:20,5)
 m2 = ezLogmeanNorm(m1)
@@ -39,4 +40,3 @@ Rehrauer, Hubert
 
 Schmid, Peter
 }
-

@@ -2,8 +2,8 @@
 % Please edit documentation in R/app-fastQC.R
 \docType{class}
 \name{EzAppFastqc-class}
-\alias{EzAppFastqc}
 \alias{EzAppFastqc-class}
+\alias{EzAppFastqc}
 \title{The R5 class representing a runnable app using \code{ezMethodFastQC(input=NA, output=NA, param=NA, htmlFile="00index.html")()}}
 \arguments{
 \item{input}{a list, file path or an object of the class EzDataset containing the input.}
@@ -24,11 +24,13 @@ Use this reference class to run
 
 \item{\code{appDefaults}}{the defaults to run the application with.}
 }}
+
 \section{Methods}{
 
 \describe{
 \item{\code{initialize()}}{Initializes the application using its specific defaults.}
 }}
+
 \section{Functions}{
 
 \itemize{
@@ -48,14 +50,14 @@ Use this reference class to run
   {Creates and returns the images used by \code{plotQualityMatrixAsHeatmap()}.}
 }
 }
-\author{
-Rehrauer, Hubert
 
-Schmid, Peter
-}
 \seealso{
 \code{\link{EzApp}}
 
 \code{\link{EzDataset}}
 }
+\author{
+Rehrauer, Hubert
 
+Schmid, Peter
+}

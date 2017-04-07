@@ -2,21 +2,21 @@
 % Please edit documentation in R/02references.R
 \docType{class}
 \name{EzRef-class}
-\alias{EzRef}
 \alias{EzRef-class}
-\alias{[,EzRef,ANY-method}
-\alias{[<-,EzRef-method}
-\alias{buildIgvGenome,EzRef-method}
-\alias{buildRefDir,EzRef-method}
-\alias{getOrganism,EzRef-method}
+\alias{EzRef}
 \alias{initialize,EzRef-method}
+\alias{[,EzRef,ANY,ANY,ANY-method}
+\alias{[<-,EzRef,ANY,ANY,ANY-method}
+\alias{getOrganism,EzRef-method}
+\alias{buildRefDir,EzRef-method}
+\alias{buildIgvGenome,EzRef-method}
 \title{The S4 class representing a collection of information about the reference build}
 \usage{
 \S4method{initialize}{EzRef}(.Object, param = list())
 
-\S4method{[}{EzRef,ANY}(x, i)
+\S4method{[}{EzRef,ANY,ANY,ANY}(x, i)
 
-\S4method{[}{EzRef}(x, i) <- value
+\S4method{[}{EzRef,ANY,ANY,ANY}(x, i) <- value
 
 \S4method{getOrganism}{EzRef}(.Object)
 
@@ -42,6 +42,7 @@ Objects of this class are a collection of references derived from a list of para
 
 \item \code{buildIgvGenome}: Builds the IGV genome.
 }}
+
 \section{Slots}{
 
 \describe{
@@ -63,6 +64,7 @@ Objects of this class are a collection of references derived from a list of para
 
 \item{\code{refAnnotationVersion}}{a character specifying the annotation version.}
 }}
+
 \examples{
 refBuild = "Saccharomyces_cerevisiae/Ensembl/EF4/Annotation/Version-2013-03-18"
 genomesRoot = "./refExample"
@@ -73,12 +75,11 @@ buildRefDir(param$ezRef, fp, gtf)
 buildIgvGenome(param$ezRef)
 seqAnno = writeAnnotationFromGtf(param=param)
 }
+\seealso{
+\code{\link{cleanGenomeFiles}}
+}
 \author{
 Rehrauer, Hubert
 
 Schmid, Peter
 }
-\seealso{
-\code{\link{cleanGenomeFiles}}
-}
-

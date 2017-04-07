@@ -23,12 +23,11 @@ The \code{split} vector needs to divide the \code{x} vector into pieces of equal
 ezSplit(letters[1:5], "b")
 ezSplit(rep("abcde", 4), letters[1:4])
 }
+\seealso{
+\code{\link[base]{strsplit}}
+}
 \author{
 Rehrauer, Hubert
 
 Schmid, Peter
 }
-\seealso{
-\code{\link[base]{strsplit}}
-}
-

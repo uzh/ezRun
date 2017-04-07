@@ -2,8 +2,8 @@
 % Please edit documentation in R/01classes.R
 \docType{class}
 \name{EzDataset-class}
-\alias{EzDataset}
 \alias{EzDataset-class}
+\alias{EzDataset}
 \title{The R5 class representing a dataset}
 \description{
 Use this to create an object of the class EzDataset that contains the necessary fields for the input and output datasets.
@@ -21,6 +21,7 @@ Use this to create an object of the class EzDataset that contains the necessary 
 
 \item{\code{isModified}}{whether the dataset has been modified.}
 }}
+
 \section{Methods}{
 
 \describe{
@@ -38,12 +39,14 @@ Use this to create an object of the class EzDataset that contains the necessary 
 
 \item{\code{subset(samples)}}{Subsets the meta field keeping \code{samples} and generates a new EzDataset}
 }}
+
 \section{Functions}{
 
 \itemize{
   \item{\code{ezTagListFromNames(names): }}{Gets the tags from \code{names} that are in the format [tag].}
 }
 }
+
 \examples{
 file = system.file("extdata/yeast_10k/dataset.tsv", package="ezRun", mustWork = TRUE)
 dataRoot = system.file(package="ezRun", mustWork = TRUE)
@@ -64,4 +67,3 @@ Rehrauer, Hubert
 
 Schmid, Peter
 }
-

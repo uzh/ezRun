@@ -2,8 +2,8 @@
 % Please edit documentation in R/app-transcript-coverage.R
 \docType{class}
 \name{EzAppTranscriptCoverage-class}
-\alias{EzAppTranscriptCoverage}
 \alias{EzAppTranscriptCoverage-class}
+\alias{EzAppTranscriptCoverage}
 \title{The R5 class representing a runnable app using \code{ezMethodTranscriptCoverage(input=NA, output=NA, param=NA)()}}
 \arguments{
 \item{input}{a list, file path or an object of the class EzDataset containing the input.}
@@ -24,11 +24,13 @@ Process alignments to transcripts in trBAM files. See also Bowtie2TranscriptomeA
 
 \item{\code{appDefaults}}{the defaults to run the application with.}
 }}
+
 \section{Methods}{
 
 \describe{
 \item{\code{initialize()}}{Initializes the application using its specific defaults.}
 }}
+
 \section{Functions}{
 
 \itemize{
@@ -36,14 +38,14 @@ Process alignments to transcripts in trBAM files. See also Bowtie2TranscriptomeA
   {The function to run this application.}
 }
 }
-\author{
-Rehrauer, Hubert
 
-Schmid, Peter
-}
 \seealso{
 \code{\link{EzApp}}
 
 \code{\link{EzDataset}}
 }
+\author{
+Rehrauer, Hubert
 
+Schmid, Peter
+}

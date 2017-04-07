@@ -27,6 +27,9 @@ library names.
 Runs enrichment analysis against the specified databases. By default, the function
 will use the internal list (\code{\link{getEnrichrLibNames}}) of the library names.
 }
+\seealso{
+\code{\link{runEnrichr}, \link{enrichrAddList}, \link{getEnrichrLibNames}}
+}
 \author{
 Rehrauer, Hubert
 
@@ -34,7 +37,3 @@ Schmid, Peter
 
 Roman Briskine
 }
-\seealso{
-\code{\link{runEnrichr}, \link{enrichrAddList}, \link{getEnrichrLibNames}}
-}
-

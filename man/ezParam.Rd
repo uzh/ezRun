@@ -33,6 +33,7 @@ override the global defaults
 \item \code{parseOptions}: Used to parse additional options specified in \code{userParam$specialOptions}.
 Converts an option specification in the from "key1=value1 key2=value2" into a named list
 }}
+
 \examples{
 library(ezRun)
 head(EZ_PARAM_DEFAULTS)
@@ -47,4 +48,3 @@ Rehrauer, Hubert
 
 Schmid, Peter
 }
-

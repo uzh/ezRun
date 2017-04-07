@@ -9,4 +9,3 @@ lGetGlobalCountParam()
 \description{
 specification of default values used for count splitting
 }
-

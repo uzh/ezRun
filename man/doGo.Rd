@@ -26,6 +26,7 @@ Decides whether to do a gene ontologies analysis.
 \itemize{
 \item \code{hasGoAnnotation}: Checks if the Annotation contains gene ontologies.
 }}
+
 \examples{
 param = ezParam()
 param$ezRef@refFeatureFile = system.file("extdata/genes.gtf", package="ezRun", mustWork=TRUE)
@@ -40,4 +41,3 @@ Rehrauer, Hubert
 
 Schmid, Peter
 }
-

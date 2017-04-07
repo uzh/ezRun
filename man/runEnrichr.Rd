@@ -54,10 +54,9 @@ if (length(res$failure) > 0) {
   setdiff(allLibs, names(res$success))
 }
 # Filter the data sets
-resFilt <- filterEnrichrResults(pAdj = 0.01, z = -3, combinedScore = 12)
+resFilt <- filterEnrichrResults(res$success, pAdj = 0.01, z = -3, combinedScore = 12)
 }
 }
 \author{
 Roman Briskine
 }
-

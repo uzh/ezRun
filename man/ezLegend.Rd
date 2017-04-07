@@ -19,12 +19,11 @@ Plots only a legend, removing all the other plot elements.
 \examples{
 ezLegend(1:3)
 }
+\seealso{
+\code{\link[graphics]{legend}}
+}
 \author{
 Rehrauer, Hubert
 
 Schmid, Peter
 }
-\seealso{
-\code{\link[graphics]{legend}}
-}
-

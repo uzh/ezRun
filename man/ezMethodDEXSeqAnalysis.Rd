@@ -36,4 +36,3 @@ input, but with a file-extension that can be specified and which
 defaults to 'count'. In case, the count files are not available
 they are generated using the function \code{DEXSeqCounting}.
 }
-

@@ -7,7 +7,7 @@
 filterEnrichrResults(resList, p = 1, pAdj = 1, z = 0, combinedScore = 0)
 }
 \arguments{
-\item{resList}{list of results returned by \code{\link{enrichrEnrich}}}
+\item{resList}{list of results, i.e. \code{success} field in the list returned by \code{\link{enrichrEnrich}}}
 
 \item{p}{p-value threshold (maximum)}
 
@@ -26,6 +26,9 @@ Filters the results returned by Enrichr. Libraries that fail to yield any
 significant results are removed. However, libraries that contain significant results, retain all
 records whether significant or not)
 }
+\seealso{
+\code{\link{runEnrichr}, \link{enrichrEnrich}}
+}
 \author{
 Rehrauer, Hubert
 
@@ -33,7 +36,3 @@ Schmid, Peter
 
 Roman Briskine
 }
-\seealso{
-\code{\link{runEnrichr}, \link{enrichrEnrich}}
-}
-

@@ -21,14 +21,13 @@ param = ezParam()
 htmlFile = "example.html"
 writeErrorReport(htmlFile, param)
 }
-\author{
-Rehrauer, Hubert
-
-Schmid, Peter
-}
 \seealso{
 \code{\link{openBsdocReport}}
 
 \code{\link{closeBsdocReport}}
 }
+\author{
+Rehrauer, Hubert
 
+Schmid, Peter
+}

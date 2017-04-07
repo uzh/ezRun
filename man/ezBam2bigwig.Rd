@@ -22,12 +22,11 @@ Converts a bam file into a bigwig file.
 bamFile <- system.file("extdata", "ex1.bam", package="Rsamtools", mustWork=TRUE)
 ezBam2bigwig(bamFile, bigwigPrefix="bg", param=ezParam(), paired=TRUE)
 }
+\seealso{
+\code{\link[Rsamtools]{scanBamHeader}}
+}
 \author{
 Rehrauer, Hubert
 
 Schmid, Peter
 }
-\seealso{
-\code{\link[Rsamtools]{scanBamHeader}}
-}
-

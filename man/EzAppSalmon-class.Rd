@@ -2,8 +2,8 @@
 % Please edit documentation in R/app-salmon.R
 \docType{class}
 \name{EzAppSalmon-class}
-\alias{EzAppSalmon}
 \alias{EzAppSalmon-class}
+\alias{EzAppSalmon}
 \title{The R5 class representing a runnable app using \code{ezMethodSalmon(input=NA, output=NA, param=NA)()}}
 \arguments{
 \item{input}{a list, file path or an object of the class EzDataset containing the input.}
@@ -24,11 +24,13 @@ Use this reference class to run Salmon
 
 \item{\code{appDefaults}}{the defaults to run the application with.}
 }}
+
 \section{Methods}{
 
 \describe{
 \item{\code{initialize()}}{Initializes the application using its specific defaults.}
 }}
+
 \section{Functions}{
 
 \itemize{
@@ -36,13 +38,7 @@ Use this reference class to run Salmon
   {The function to run this application.}
 }
 }
-\author{
-Rehrauer, Hubert
 
-Schmid, Peter
-
-Roman Briskine
-}
 \seealso{
 \code{\link{EzApp}}
 
@@ -52,4 +48,10 @@ Roman Briskine
 
 \code{\link{ezMethodTrim}}
 }
+\author{
+Rehrauer, Hubert
 
+Schmid, Peter
+
+Roman Briskine
+}

@@ -33,9 +33,9 @@ Adds tables of the significant counts.
 
 \item \code{getSignificantFoldChangeCountsTable}: Gets the table containing the significant fold change counts.
 }}
+
 \author{
 Rehrauer, Hubert
 
 Schmid, Peter
 }
-

@@ -23,12 +23,12 @@ Adds the GO up-down results to an html file.
 \itemize{
 \item \code{goUpDownTables}: Gets the GO up-down tables.
 }}
+
+\seealso{
+\code{\link{twoGroupsGO}}
+}
 \author{
 Rehrauer, Hubert
 
 Schmid, Peter
 }
-\seealso{
-\code{\link{twoGroupsGO}}
-}
-

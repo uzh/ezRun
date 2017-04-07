@@ -2,8 +2,8 @@
 % Please edit documentation in R/app-edgerTwoGroups.R
 \docType{class}
 \name{EzAppEdger-class}
-\alias{EzAppEdger}
 \alias{EzAppEdger-class}
+\alias{EzAppEdger}
 \title{The R5 class representing a runnable app using \code{ezMethodEdger(input=NA, output=NA, param=NA, htmlFile="00index.html")()}}
 \arguments{
 \item{input}{a list, file path or an object of the class EzDataset containing the input.}
@@ -24,11 +24,13 @@ Use this reference class to run a differential expression analysis with the appl
 
 \item{\code{appDefaults}}{the defaults to run the application with.}
 }}
+
 \section{Methods}{
 
 \describe{
 \item{\code{initialize()}}{Initializes the application using its specific defaults.}
 }}
+
 \section{Functions}{
 
 \itemize{
@@ -36,14 +38,14 @@ Use this reference class to run a differential expression analysis with the appl
   {The function to run this application.}
 }
 }
-\author{
-Rehrauer, Hubert
 
-Schmid, Peter
-}
 \seealso{
 \code{\link{EzApp}}
 
 \code{\link{EzDataset}}
 }
+\author{
+Rehrauer, Hubert
 
+Schmid, Peter
+}

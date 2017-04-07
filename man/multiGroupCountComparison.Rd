@@ -36,9 +36,9 @@ Compares the counts of many groups with the option to choose from several method
 
 \item \code{runEdgerGlmMultiGroup}: Runs the EdgeR GLM test method for many groups.
 }}
+
 \author{
 Rehrauer, Hubert
 
 Schmid, Peter
 }
-

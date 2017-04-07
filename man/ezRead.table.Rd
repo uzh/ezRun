@@ -24,12 +24,11 @@ m1 = ezMatrix(1:20, rows=1:5, cols=1:4)
 ezWrite.table(m1, "exampleTable")
 ezRead.table("exampleTable")
 }
+\seealso{
+\code{\link[utils]{read.table}}
+}
 \author{
 Rehrauer, Hubert
 
 Schmid, Peter
 }
-\seealso{
-\code{\link[utils]{read.table}}
-}
-

@@ -25,6 +25,7 @@ Writes the current date and time, the status and how much time elapsed since the
 \itemize{
 \item \code{getElapsed}: Gets the elapsed time in minutes since a reference time.
 }}
+
 \examples{
 con = file("example.txt", "w")
 job = ezJobStart("a job",con=con)
@@ -36,4 +37,3 @@ Rehrauer, Hubert
 
 Schmid, Peter
 }
-

@@ -16,4 +16,3 @@ ncpro(input, dataset, param = NULL)
 \description{
 Trimming is done using function trimMirna().
 }
-

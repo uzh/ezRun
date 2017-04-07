@@ -30,6 +30,7 @@ Adds texts link to a bsdoc object.
 \itemize{
 \item \code{newWindowLink}: Gets the link, its name and returns an html link that will open new windows/tabs.
 }}
+
 \examples{
 param = ezParam()
 htmlFile = "example.html"
@@ -42,4 +43,3 @@ Rehrauer, Hubert
 
 Schmid, Peter
 }
-

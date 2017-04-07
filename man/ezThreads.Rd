@@ -15,12 +15,11 @@ The function will try to find the amount of CPU cores on the current host or how
 \examples{
 ezThreads()
 }
+\seealso{
+\code{\link[parallel]{detectCores}}
+}
 \author{
 Rehrauer, Hubert
 
 Schmid, Peter
 }
-\seealso{
-\code{\link[parallel]{detectCores}}
-}
-

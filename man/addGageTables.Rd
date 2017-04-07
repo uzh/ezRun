@@ -21,14 +21,13 @@ addGageTables(doc, param = NULL, gageResults = NULL)
 \description{
 Adds the gage tables to an html file.
 }
-\author{
-Rehrauer, Hubert
-
-Schmid, Peter
-}
 \seealso{
 \code{\link{gageAnalysis}}
 
 \code{\link{twoGroupsGO}}
 }
+\author{
+Rehrauer, Hubert
 
+Schmid, Peter
+}

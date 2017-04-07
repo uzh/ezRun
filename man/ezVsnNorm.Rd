@@ -21,12 +21,11 @@ Normalizes the matrix with the Variance Stabilizing Normalization and keeps row 
 m1 = matrix(1:200,50)
 m2 = ezVsnNorm(m1)
 }
+\seealso{
+\code{\link[vsn]{justvsn}}
+}
 \author{
 Rehrauer, Hubert
 
 Schmid, Peter
 }
-\seealso{
-\code{\link[vsn]{justvsn}}
-}
-

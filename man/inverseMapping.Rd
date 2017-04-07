@@ -22,6 +22,7 @@ Strips the names and values of a list apart and rematches all the names that app
 \itemize{
 \item \code{makeMultiMapping}: Unlists the input and returns a data.frame with separated names and values.
 }}
+
 \examples{
 l1 = list(a=1:3, b=c(2,5), c=4:8)
 inverseMapping(l1)
@@ -31,4 +32,3 @@ Rehrauer, Hubert
 
 Schmid, Peter
 }
-

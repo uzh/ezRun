@@ -13,6 +13,9 @@ a vector containing library names
 reads Enrichr library names from the internal file
   (\code{extdata/enrichr_libnames.txt})
 }
+\seealso{
+\code{\link{runEnrichr}}
+}
 \author{
 Rehrauer, Hubert
 
@@ -20,7 +23,3 @@ Schmid, Peter
 
 Roman Briskine
 }
-\seealso{
-\code{\link{runEnrichr}}
-}
-

@@ -35,6 +35,7 @@ Filters FastQ files by bam and writes them into new files.
 \itemize{
 \item \code{removeReadsFromFastq}: Removes reads from the FastQ files according to the bam filter.
 }}
+
 \examples{
 bamFile <- system.file("extdata", "ex1.bam", package="Rsamtools", mustWork=TRUE)
 file = system.file("extdata/yeast_10k/dataset.tsv", package="ezRun", mustWork = TRUE)
@@ -44,14 +45,13 @@ input = EzDataset$new(file=file, dataRoot=param$dataRoot)
 fqFiles = input$getFullPaths("Read1")
 fqFiltered = filterFastqByBam(fqFiles, bamFile, doGzip = FALSE)
 }
-\author{
-Rehrauer, Hubert
-
-Schmid, Peter
-}
 \seealso{
 \code{\link[Rsamtools]{scanBam}}
 
 \code{\link[Rsamtools]{ScanBamParam}}
 }
+\author{
+Rehrauer, Hubert
 
+Schmid, Peter
+}

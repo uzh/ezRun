@@ -10,4 +10,3 @@ runCountSingleBam(psBamFile, psGffFile, psCountfileExt, strandMode, Paired,
 \description{
 Run counts for a single BAM file
 }
-

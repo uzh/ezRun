@@ -7,4 +7,3 @@
 writeDEXSeqReport(dataset, dexResult, htmlFile = "00index.html",
   sResultDir = "html")
 }
-

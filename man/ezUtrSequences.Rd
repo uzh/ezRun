@@ -17,11 +17,6 @@ Returns a list with two objects of the class DNAStringSet from the packages Bios
 \description{
 Gets sequences from untranslated regions.
 }
-\author{
-Rehrauer, Hubert
-
-Schmid, Peter
-}
 \seealso{
 \code{\link[Biostrings]{DNAStringSet}}
 
@@ -29,4 +24,8 @@ Schmid, Peter
 
 \code{\link[Biostrings]{reverseComplement}}
 }
+\author{
+Rehrauer, Hubert
 
+Schmid, Peter
+}

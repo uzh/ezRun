@@ -18,12 +18,11 @@ Writes pre-spliced annotation directly from the parameters into a new .gtf file.
 param = ezParam()
 writePresplicedGtf(param, system.file("extdata/genes.gtf", package="ezRun", mustWork=TRUE))
 }
+\seealso{
+\code{\link{ezLoadFeatures}}
+}
 \author{
 Rehrauer, Hubert
 
 Schmid, Peter
 }
-\seealso{
-\code{\link{ezLoadFeatures}}
-}
-

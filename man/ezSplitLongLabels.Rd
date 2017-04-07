@@ -21,6 +21,7 @@ Splits long labels into two lines.
 \itemize{
 \item \code{ezSplitLongText}: Splits long character lines into several.
 }}
+
 \examples{
 a = paste(letters[1:22], collapse="")
 b = paste(letters[1:23], collapse="")
@@ -36,4 +37,3 @@ Rehrauer, Hubert
 
 Schmid, Peter
 }
-

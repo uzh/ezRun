@@ -24,17 +24,17 @@ Gets the color cluster labels using \code{dendrapply()}.
 \itemize{
 \item \code{colorNode}: The functions used in \code{dendrapply()}.
 }}
+
 \examples{
 hc = hclust(dist(USArrests), "ave")
 dend = as.dendrogram(hc)
 ccl = colorClusterLabels(dend, rainbow(6))
+}
+\seealso{
+\code{\link[stats]{dendrapply}}
 }
 \author{
 Rehrauer, Hubert
 
 Schmid, Peter
 }
-\seealso{
-\code{\link[stats]{dendrapply}}
-}
-

@@ -22,12 +22,11 @@ Returns the aggregates raw data.
 \description{
 Aggregates counts by gene.
 }
+\seealso{
+\code{\link{getGeneMapping}}
+}
 \author{
 Rehrauer, Hubert
 
 Schmid, Peter
 }
-\seealso{
-\code{\link{getGeneMapping}}
-}
-

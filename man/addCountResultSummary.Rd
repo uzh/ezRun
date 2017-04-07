@@ -23,12 +23,11 @@ addCountResultSummary(doc, param, result)
 \description{
 Adds a summary of the count result to a bsdoc object.
 }
+\seealso{
+\code{\link[ReporteRs]{addFlexTable}}
+}
 \author{
 Rehrauer, Hubert
 
 Schmid, Peter
 }
-\seealso{
-\code{\link[ReporteRs]{addFlexTable}}
-}
-

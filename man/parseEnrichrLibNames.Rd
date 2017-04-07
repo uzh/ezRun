@@ -18,6 +18,9 @@ Retrieves Enrichr library names from the specified HTML file and saves it to the
   would fetch the data from \url{http://amp.pharm.mssm.edu/Enrichr/#stats}. However, the page
   uses an Ajax query to populate the table, so it is empty when you access it with libcurl.
 }
+\seealso{
+\code{\link{runEnrichr}}
+}
 \author{
 Rehrauer, Hubert
 
@@ -25,7 +28,3 @@ Schmid, Peter
 
 Roman Briskine
 }
-\seealso{
-\code{\link{runEnrichr}}
-}
-

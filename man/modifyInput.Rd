@@ -11,4 +11,3 @@ modifyInput(psCountCategory, pdataset, psInputFn, psReportDir)
 metadata is modified such that paths to read files are replaced 
 with paths to output count files
 }
-

@@ -53,6 +53,7 @@ Does scatter plots.
 \itemize{
 \item \code{ezXYScatter}: Does the XY scatter plot.
 }}
+
 \examples{
 x = runif(n=1000)
 y = runif(n=1000)
@@ -65,4 +66,3 @@ Rehrauer, Hubert
 
 Schmid, Peter
 }
-

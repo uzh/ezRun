@@ -30,12 +30,11 @@ ezGrepl(3,1:40)
 ezGrepl(c(2,4),1:100)
 ezGrepl(c(2,4),1:100,combine="and")
 }
+\seealso{
+\code{\link[base]{grepl}}
+}
 \author{
 Rehrauer, Hubert
 
 Schmid, Peter
 }
-\seealso{
-\code{\link[base]{grepl}}
-}
-

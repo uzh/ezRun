@@ -2,8 +2,8 @@
 % Please edit documentation in R/app-kallisto.R
 \docType{class}
 \name{EzAppKallisto-class}
-\alias{EzAppKallisto}
 \alias{EzAppKallisto-class}
+\alias{EzAppKallisto}
 \title{The R5 class representing a runnable app using \code{ezMethodKallisto(input=NA, output=NA, param=NA)()}}
 \arguments{
 \item{input}{a list, file path or an object of the class EzDataset containing the input.}
@@ -24,11 +24,13 @@ Use this reference class to run kallisto
 
 \item{\code{appDefaults}}{the defaults to run the application with.}
 }}
+
 \section{Methods}{
 
 \describe{
 \item{\code{initialize()}}{Initializes the application using its specific defaults.}
 }}
+
 \section{Functions}{
 
 \itemize{
@@ -36,13 +38,7 @@ Use this reference class to run kallisto
   {The function to run this application.}
 }
 }
-\author{
-Rehrauer, Hubert
 
-Schmid, Peter
-
-Roman Briskine
-}
 \seealso{
 \code{\link{EzApp}}
 
@@ -52,4 +48,10 @@ Roman Briskine
 
 \code{\link{ezMethodTrim}}
 }
+\author{
+Rehrauer, Hubert
 
+Schmid, Peter
+
+Roman Briskine
+}

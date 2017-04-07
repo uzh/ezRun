@@ -19,4 +19,3 @@ This can be used to get replicate identifiers. For each value unique value in th
 x = c("a", "c", "a", "b", "c")
 ezReplicateNumber(x)
 }
-

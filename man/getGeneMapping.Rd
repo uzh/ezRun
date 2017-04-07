@@ -27,6 +27,7 @@ Especially all enrichment analyses should be run at the gene-level
 \itemize{
 \item \code{hasGeneMapping}: Returns a logical indicating if the set parameters have gene mapping or not.
 }}
+
 \examples{
 param = ezParam()
 annoFile = system.file("extdata/genes_annotation.txt", package="ezRun", mustWork=TRUE)
@@ -43,4 +44,3 @@ Rehrauer, Hubert
 
 Schmid, Peter
 }
-

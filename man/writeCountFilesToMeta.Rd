@@ -9,4 +9,3 @@ writeCountFilesToMeta(pvCountFiles, input)
 \description{
 Write names of countfiles back into the input file
 }
-

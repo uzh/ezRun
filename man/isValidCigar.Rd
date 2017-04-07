@@ -18,12 +18,11 @@ Tests whether \code{x} is a valid cigar by checking the format of the character.
 \examples{
 isValidCigar("3M5G")
 }
+\seealso{
+\code{\link[GenomicAlignments]{cigarWidthAlongReferenceSpace}}
+}
 \author{
 Rehrauer, Hubert
 
 Schmid, Peter
 }
-\seealso{
-\code{\link[GenomicAlignments]{cigarWidthAlongReferenceSpace}}
-}
-

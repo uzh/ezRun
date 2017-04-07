@@ -2,8 +2,8 @@
 % Please edit documentation in R/plots.R
 \name{getSampleColors}
 \alias{getSampleColors}
-\alias{getSampleLty}
 \alias{getSamplePch}
+\alias{getSampleLty}
 \title{Gets the sample colors}
 \usage{
 getSampleColors(conds, colorNames = names(conds), hueStep = 1/50)
@@ -31,6 +31,7 @@ Gets the sample colors from the experimental conditions.
 
 \item \code{getSampleLty}: Gets the sample line types from the experimental conditions.
 }}
+
 \examples{
 file = system.file("extdata/yeast_10k/dataset.tsv", package="ezRun", mustWork = TRUE)
 ds = EzDataset$new(file=file, dataRoot=NULL)
@@ -39,12 +40,11 @@ getSampleColors(cond)
 getSamplePch(cond)
 getSampleLty(cond)
 }
+\seealso{
+\code{\link[grDevices]{hsv}}
+}
 \author{
 Rehrauer, Hubert
 
 Schmid, Peter
 }
-\seealso{
-\code{\link[grDevices]{hsv}}
-}
-

@@ -25,12 +25,11 @@ Shrinks values and plots a histogram.
 \examples{
 intHist(1:10)
 }
+\seealso{
+\code{\link[graphics]{hist}}
+}
 \author{
 Rehrauer, Hubert
 
 Schmid, Peter
 }
-\seealso{
-\code{\link[graphics]{hist}}
-}
-

@@ -22,11 +22,6 @@ fp = "/srv/GT/reference/Saccharomyces_cerevisiae/Ensembl/EF4/Sequence/WholeGenom
 param$ezRef@refFastaFile = fp
 gw = getTranscriptGcAndWidth(param)
 }
-\author{
-Rehrauer, Hubert
-
-Schmid, Peter
-}
 \seealso{
 \code{\link{ezLoadFeatures}}
 
@@ -36,4 +31,8 @@ Schmid, Peter
 
 \code{\link[Biostrings]{letterFrequency}}
 }
+\author{
+Rehrauer, Hubert
 
+Schmid, Peter
+}

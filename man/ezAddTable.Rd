@@ -31,12 +31,11 @@ html = openBsdocReport()
 ezAddTable(html, x, head="Example", bgcolors="red")
 closeBsdocReport(html, "example.html")
 }
+\seealso{
+\code{\link[ReporteRs]{addFlexTable}}
+}
 \author{
 Rehrauer, Hubert
 
 Schmid, Peter
 }
-\seealso{
-\code{\link[ReporteRs]{addFlexTable}}
-}
-

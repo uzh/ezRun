@@ -21,4 +21,3 @@ script that is given by the content of \code{DEXSEQ_PREPARE}
 which is either taken as a global variable or from the
 result of function \code{lGetPyScriptPaths}
 }
-

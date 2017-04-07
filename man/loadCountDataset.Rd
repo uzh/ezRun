@@ -34,14 +34,13 @@ file = system.file("extdata/yeast_10k_STAR_counts/dataset.tsv", package="ezRun",
 input = EzDataset$new(file=file, dataRoot=param$dataRoot)
 cds = loadCountDataset(input, param)
 }
-\author{
-Rehrauer, Hubert
-
-Schmid, Peter
-}
 \seealso{
 \code{\link{ezFeatureAnnotation}}
 
 \code{\link{aggregateCountsByGene}}
 }
+\author{
+Rehrauer, Hubert
 
+Schmid, Peter
+}

@@ -2,13 +2,13 @@
 % Please edit documentation in R/app-RnaBamStats.R
 \name{computeBamStats}
 \alias{computeBamStats}
-\alias{ezPosSpecErrorRate}
-\alias{getJunctionPlotsFromBam}
 \alias{getPosErrorFromBam}
+\alias{ezPosSpecErrorRate}
 \alias{getStatsFromBam}
 \alias{getStatsFromBamParallel}
 \alias{getStatsFromBamSingleChrom}
 \alias{getTargetTypeCounts}
+\alias{getJunctionPlotsFromBam}
 \title{Computes the BAM statistics}
 \usage{
 computeBamStats(input, htmlFile, param, gff, resultList = NULL)
@@ -66,12 +66,12 @@ Computes the BAM statistics.
 
 \item \code{getJunctionPlotsFromBam}: Gets the junction results from the BAM file.
 }}
+
+\seealso{
+\code{\link{plotBamStat}}
+}
 \author{
 Rehrauer, Hubert
 
 Schmid, Peter
 }
-\seealso{
-\code{\link{plotBamStat}}
-}
-

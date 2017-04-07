@@ -2,8 +2,8 @@
 % Please edit documentation in R/03results.R
 \docType{class}
 \name{EzResult-class}
-\alias{EzResult}
 \alias{EzResult-class}
+\alias{EzResult}
 \title{The object that represents a result of an expression analysis}
 \section{Fields}{
 
@@ -14,12 +14,15 @@
 
 \item{\code{result}}{list holding the actual results, in particular, the log2 ration and the p-value}
 }}
+
+
 \section{Functions}{
 
 \itemize{
   \item{\code{saveToFile(file): }}{Saves the object to the given filepath. Saved files can be loaded with \code{EzResult$new(file="mystoredResult.RData"}}
 }
 }
+
 \examples{
 deResult = EzResult$new()
 deResult = EzResult$new(param=list(p1="p1", p2="p2"), rawData=list(a=0, b=1), result=list(u=0, v=1))
@@ -32,4 +35,3 @@ Rehrauer, Hubert
 
 Schmid, Peter
 }
-

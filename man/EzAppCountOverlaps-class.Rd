@@ -2,8 +2,8 @@
 % Please edit documentation in R/app-countOverlaps.r
 \docType{class}
 \name{EzAppCountOverlaps-class}
-\alias{EzAppCountOverlaps}
 \alias{EzAppCountOverlaps-class}
+\alias{EzAppCountOverlaps}
 \title{The R5 class representing a runnable app using \code{ezMethodCountOverlaps(input=NA, output=NA, param=NA)()}}
 \arguments{
 \item{input}{a list, file path or an object of the class EzDataset containing the input.}
@@ -24,11 +24,13 @@ Use this reference class to run
 
 \item{\code{appDefaults}}{the defaults to run the application with.}
 }}
+
 \section{Methods}{
 
 \describe{
 \item{\code{initialize()}}{Initializes the application using its specific defaults.}
 }}
+
 \section{Functions}{
 
 \itemize{
@@ -50,14 +52,14 @@ Use this reference class to run
   {Gets the feature counts from the target ranges.}
 }
 }
-\author{
-Rehrauer, Hubert
 
-Schmid, Peter
-}
 \seealso{
 \code{\link{EzApp}}
 
 \code{\link{EzDataset}}
 }
+\author{
+Rehrauer, Hubert
 
+Schmid, Peter
+}

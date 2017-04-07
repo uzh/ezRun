@@ -25,4 +25,3 @@ input = EzDataset(file=inputDatasetFile, dataRoot=param$dataRoot)
 xSubsampled = ezMethodSubsampleReads(input=input, param=param)
 # NOTE: the subsampled files will not be gzip compressed!
 }
-

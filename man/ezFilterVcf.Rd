@@ -33,9 +33,9 @@ Filters a VCF file and writes it back to the specified connection.
 \itemize{
 \item \code{ezWriteVcf}: Writes a new VCF file.
 }}
+
 \author{
 Rehrauer, Hubert
 
 Schmid, Peter
 }
-

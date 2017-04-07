@@ -24,4 +24,3 @@ Schmid, Peter
 
 Roman Briskine
 }
-

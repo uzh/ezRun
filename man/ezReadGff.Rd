@@ -28,6 +28,7 @@ Reads an annotation table from a gtf or gff file into a data.frame.
 \itemize{
 \item \code{ezWriteGff}: Writes a gtf or gff annotation table passed by with \code{x} to the connection \code{file}, keeping only the original columns.
 }}
+
 \examples{
 gtf = ezReadGff(system.file("extdata/genes.gtf", package="ezRun", mustWork=TRUE))
 ezWriteGff(gtf,"newgtf")
@@ -37,4 +38,3 @@ Rehrauer, Hubert
 
 Schmid, Peter
 }
-

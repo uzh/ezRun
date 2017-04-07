@@ -14,4 +14,3 @@ getGeneTable(pdxr, param)
 \description{
 Generate gene table from DEXSeqResults object
 }
-

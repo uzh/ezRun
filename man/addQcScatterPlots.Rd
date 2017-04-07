@@ -32,4 +32,3 @@ Rehrauer, Hubert
 
 Schmid, Peter
 }
-

@@ -21,12 +21,11 @@ Expands genomic ranges of a GRanges object. All ranges will be expanded at both 
 x = GRanges(c("chr1", "chr1", "chr2"), IRanges(5000:5002, 8000:8002), strand=c("+", "-", "+"))
 expandGRanges(x)
 }
+\seealso{
+\code{\link[GenomicRanges]{GRanges}}
+}
 \author{
 Rehrauer, Hubert
 
 Schmid, Peter
 }
-\seealso{
-\code{\link[GenomicRanges]{GRanges}}
-}
-

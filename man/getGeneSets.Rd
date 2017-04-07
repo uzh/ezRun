@@ -30,9 +30,9 @@ Gets the gene set
 \itemize{
 \item \code{readGmt}: Reads the gmt file in.
 }}
+
 \author{
 Rehrauer, Hubert
 
 Schmid, Peter
 }
-

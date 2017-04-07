@@ -45,14 +45,13 @@ Scans a bam file with the option to select only a part of the output.
 bamFile <- system.file("extdata", "ex1.bam", package="Rsamtools", mustWork=TRUE)
 bam = ezScanBam(bamFile)
 }
-\author{
-Rehrauer, Hubert
-
-Schmid, Peter
-}
 \seealso{
 \code{\link[Rsamtools]{scanBam}}
 
 \code{\link[Rsamtools]{ScanBamParam}}
 }
+\author{
+Rehrauer, Hubert
 
+Schmid, Peter
+}

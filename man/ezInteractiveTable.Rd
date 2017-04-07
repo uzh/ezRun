@@ -31,14 +31,13 @@ tableLink = "exampleTable.html"
 table = data.frame(a=c(1.11, 2:100), b=201:300)
 ezInteractiveTable(table, tableLink)
 }
-\author{
-Rehrauer, Hubert
-
-Schmid, Peter
-}
 \seealso{
 \code{\link[DT]{datatable}}
 
 \code{\link[DT]{saveWidget}}
 }
+\author{
+Rehrauer, Hubert
 
+Schmid, Peter
+}

@@ -19,4 +19,3 @@ count results should be split}
 for all samples given in pvSamples are written to different 
 files, according to parameters given in plCountParam
 }
-

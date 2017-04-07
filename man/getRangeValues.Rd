@@ -22,14 +22,13 @@ Returns the values or a matrix containing them.
 \description{
 Gets the values of genomic ranges
 }
-\author{
-Rehrauer, Hubert
-
-Schmid, Peter
-}
 \seealso{
 \code{\link[IRanges]{RleViewsList}}
 
 \code{\link[IRanges]{viewApply}}
 }
+\author{
+Rehrauer, Hubert
 
+Schmid, Peter
+}

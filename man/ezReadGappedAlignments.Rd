@@ -49,11 +49,6 @@ Reads gapped alignments from a bam file.
 bamFile <- system.file("extdata", "ex1.bam", package="Rsamtools", mustWork=TRUE)
 ga = ezReadGappedAlignments(bamFile)
 }
-\author{
-Rehrauer, Hubert
-
-Schmid, Peter
-}
 \seealso{
 \code{\link[Rsamtools]{scanBam}}
 
@@ -61,4 +56,8 @@ Schmid, Peter
 
 \code{\link[GenomicAlignments]{readGAlignments}}
 }
+\author{
+Rehrauer, Hubert
 
+Schmid, Peter
+}

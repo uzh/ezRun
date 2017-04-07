@@ -2,8 +2,8 @@
 % Please edit documentation in R/app-meme.R
 \docType{class}
 \name{EzAppMEME-class}
-\alias{EzAppMEME}
 \alias{EzAppMEME-class}
+\alias{EzAppMEME}
 \title{The R5 class representing a runnable app using \code{ezMethodMEME(input=NA, output=NA, param=NA)()}}
 \arguments{
 \item{input}{a list, file path or an object of the class EzDataset containing the input.}
@@ -24,17 +24,25 @@ Use this reference class to run
 
 \item{\code{appDefaults}}{the defaults to run the application with.}
 }}
+
 \section{Methods}{
 
 \describe{
 \item{\code{initialize()}}{Initializes the application using its specific defaults.}
 }}
+
 \section{Functions}{
 
 \itemize{
   \item{\code{ezMethodMEME(input=NA, output=NA, param=NA) }}:
   {The function to run this application.}
 }
+}
+
+\seealso{
+\code{\link{EzApp}}
+
+\code{\link{EzDataset}}
 }
 \author{
 Opitz, Lennart
@@ -43,9 +51,3 @@ Rehrauer, Hubert
 
 Schmid, Peter
 }
-\seealso{
-\code{\link{EzApp}}
-
-\code{\link{EzDataset}}
-}
-

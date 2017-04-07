@@ -32,12 +32,11 @@ This function is a modified version of \code{mclapply()} of the parallel package
 l1 = list(a=1:3, b=c(2,5), c=4:8)
 ezMclapply(l1,sum)
 }
+\seealso{
+\code{\link[parallel]{mclapply}}
+}
 \author{
 Rehrauer, Hubert
 
 Schmid, Peter
 }
-\seealso{
-\code{\link[parallel]{mclapply}}
-}
-

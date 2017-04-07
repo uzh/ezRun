@@ -9,4 +9,3 @@ lGetPyScriptPaths()
 \description{
 Get list with required python script paths
 }
-

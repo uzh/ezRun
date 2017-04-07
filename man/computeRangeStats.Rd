@@ -19,14 +19,13 @@ Returns the computed values belonging to their genomic ranges.
 \description{
 Computes stats of genomic ranges.
 }
-\author{
-Rehrauer, Hubert
-
-Schmid, Peter
-}
 \seealso{
 \code{\link[IRanges]{RleViewsList}}
 
 \code{\link[IRanges]{viewApply}}
 }
+\author{
+Rehrauer, Hubert
 
+Schmid, Peter
+}

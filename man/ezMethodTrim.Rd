@@ -44,6 +44,7 @@ This means if you specify a fixed trimming this comes on top of the adaptive tri
 \itemize{
 \item \code{ezSubsampleFastq}: Performs the fastq for the subsamples using the package ShortRead.
 }}
+
 \examples{
  inputFile = system.file(package = "ezRun", "extdata/yeast_10k/wt_1_R1.fastq.gz")
  subsampledFile = "sub_R1.fastq"
@@ -54,4 +55,3 @@ Rehrauer, Hubert
 
 Schmid, Peter
 }
-

@@ -40,4 +40,3 @@ Rehrauer, Hubert
 
 Schmid, Peter
 }
-

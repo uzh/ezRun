@@ -22,12 +22,11 @@ refBuild = "Mus_musculus/UCSC/mm10/Annotation/Version-2012-05-23"
 param = ezParam(list(refBuild=refBuild))
 tdb = ezTranscriptDbFromRef(param$ezRef)
 }
+\seealso{
+\code{\link[GenomicFeatures]{makeTxDbFromGFF}}
+}
 \author{
 Rehrauer, Hubert
 
 Schmid, Peter
 }
-\seealso{
-\code{\link[GenomicFeatures]{makeTxDbFromGFF}}
-}
-

@@ -19,12 +19,11 @@ A convenience call to the corresponding method from the preprocessCore package t
 m1 = matrix(1:20,4)
 m2 = ezQuantileNorm(m1)
 }
+\seealso{
+\code{\link[preprocessCore]{normalize.quantiles}}
+}
 \author{
 Rehrauer, Hubert
 
 Schmid, Peter
 }
-\seealso{
-\code{\link[preprocessCore]{normalize.quantiles}}
-}
-

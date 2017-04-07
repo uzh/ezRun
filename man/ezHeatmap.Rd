@@ -42,12 +42,11 @@ x=matrix(1:100,10)
 colnames(x) = letters[1:10]
 ezHeatmap(x)
 }
+\seealso{
+\code{\link[gplots]{heatmap.2}}
+}
 \author{
 Rehrauer, Hubert
 
 Schmid, Peter
 }
-\seealso{
-\code{\link[gplots]{heatmap.2}}
-}
-

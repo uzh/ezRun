@@ -29,6 +29,7 @@ Fixes the strand information by either leaving it as it is, flipping it or setti
 \itemize{
 \item \code{flipStrand}: This function performs the flipping of the strand values.
 }}
+
 \examples{
 strandValues = c("+","+","-","*")
 fixStrand(strandValues, "sense")
@@ -39,4 +40,3 @@ Rehrauer, Hubert
 
 Schmid, Peter
 }
-

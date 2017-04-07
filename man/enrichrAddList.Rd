@@ -15,6 +15,9 @@ Returns a list with userListId and shortId
 \description{
 Registers a gene list with the Enrichr server
 }
+\seealso{
+\code{\link{runEnrichr}}
+}
 \author{
 Rehrauer, Hubert
 
@@ -22,7 +25,3 @@ Schmid, Peter
 
 Roman Briskine
 }
-\seealso{
-\code{\link{runEnrichr}}
-}
-

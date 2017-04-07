@@ -21,12 +21,11 @@ gtf = ezLoadFeatures(param, system.file("extdata/genes.gtf", package="ezRun", mu
 gRanges = gffToRanges(gtf)
 gRanges
 }
+\seealso{
+\code{\link[GenomicRanges]{GRanges}}
+}
 \author{
 Rehrauer, Hubert
 
 Schmid, Peter
 }
-\seealso{
-\code{\link[GenomicRanges]{GRanges}}
-}
-
