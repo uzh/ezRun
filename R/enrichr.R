@@ -31,6 +31,8 @@
 ##' \dontrun{
 ##' genes <- c("HPS1", "HPS3", "HPS5", "PSMD11", "CUL7", "SNAPC4", "GNB2")
 ##' resList <- runEnrichr(genes, minScore = 15, maxAdjP = 1e-4, connectionN = 20)
+##' resList = lapply(names(resList), function(nm){return(cbind("Gene-set library"=nm, resList[[nm]]))}) ## add the name as a first column
+##' resMerged = do.call("rbind", resList)
 ##' }
 ##'
 ##' # Alternative usage
@@ -141,7 +143,10 @@ enrichrEnrich <- function(userListId, libNames = getEnrichrLibNames(), connectio
   # Concatenates gene list into a string. Otherwise, the unlist function would expand them. Note
   # that the recursive flag will not help you in this case.
   concatGenes <- function(lst, sep = ";") {
-      lapply(lst, function(x) { x[[6]] <- paste(x[[6]], collapse = sep); x})
+      lapply(lst, function(x) {
+        x[[10]] = length(x[[6]])
+        x[[6]] <- paste(x[[6]], collapse = sep);
+        x})
   }
 
   # The jsonlite parser returns all values as character() and you cannot call as.numeric on a subset
@@ -155,9 +160,9 @@ enrichrEnrich <- function(userListId, libNames = getEnrichrLibNames(), connectio
 
   # Parses the response
   parseResp <- function(resp) {
-    fieldNames <- c("Rank", "Term", "p_value", "z_score", "Combined.Score", "Overlapping.Genes",
-               "Adjusted.p_value", "Old.p_value", "Old.Adjusted.p_value")
     respParsed <- jsonlite::fromJSON( rawToChar(resp$content) )[[1]]
+    fieldNames <- c("Rank", "Term", "p_value", "z_score", "Combined.Score", "Overlapping.Genes",
+                    "Adjusted.p_value", "Old.p_value", "Old.Adjusted.p_value", "nOverlapping.Genes")
     if (length(respParsed) > 0) {
       ds <- as.data.frame(
         do.call("rbind", lapply(concatGenes(respParsed), unlist)),
@@ -211,22 +216,28 @@ enrichrEnrich <- function(userListId, libNames = getEnrichrLibNames(), connectio
 ##' significant results are removed. However, libraries that contain significant results, retain all
 ##' records whether significant or not)
 ##' @param resList list of results, i.e. \code{success} field in the list returned by \code{\link{enrichrEnrich}}
-##' @param p p-value threshold (maximum)
-##' @param pAdj adjusted p-value threshold (maximum)
-##' @param z z-value threshold (maximum)
-##' @param combinedScore combined score threshold (minimum)
+##' @param maxP p-value threshold (maximum)
+##' @param maxPAdj adjusted p-value threshold (maximum)
+##' @param maxZ z-value threshold (maximum)
+##' @param minCombinedScore combined score threshold (minimum)
+##' @param minOverlapGenes minimum number of genes in the overlap
 ##' @template roxygen-template
 ##' @return \code{list} that contains the results for libraries with at least one significant gene
 ##' that satisfies the criteria.
 ##' @seealso \code{\link{runEnrichr}, \link{enrichrEnrich}}
 ##' @author Roman Briskine
-filterEnrichrResults <- function(resList, p = 1, pAdj = 1, z = 0, combinedScore = 0) {
+filterEnrichrResults <- function(resList, maxP = 1, maxPAdj = 1, maxZ = 0, minCombinedScore = 0, minOverlapGenes=3) {
   resF <- lapply(resList, function(x) {
-    mask <- x$p_value < p &
-      x$Adjusted.p_value < pAdj &
-      x$z_score < z &
-      x$Combined.Score > combinedScore
-    x[mask, ]
+    mask <- x$p_value <= maxP &
+      x$Adjusted.p_value <= maxPAdj &
+      x$z_score <= maxZ &
+      x$Combined.Score >= minCombinedScore &
+      x$nOverlapping.Genes >= minOverlapGenes
+    maskIdx = which(mask)
+    if (!is.na(maxResult) && length(maskIdx) > maxResult){
+      maskIdx = maskIdx[1:maxResult]
+    }
+    x[maskIdx, ]
   })
   listMask <- sapply(resF, function(x) { nrow(x) > 0 }, simplify = T)
   resList[listMask]

@@ -430,12 +430,6 @@ writeNgsTwoGroupReport = function(dataset, deResult, output, htmlFile="00index.h
   }
   ## only do GO if we have enough genes
   if (doGo(param, seqAnno)){
-    goResult = twoGroupsGO(param, result, seqAnno, normalizedAvgSignal=rowMeans(result$groupMeans), method=param$goseqMethod)
-    titles[["GO Enrichment Analysis"]] = "GO Enrichment Analysis"
-    addTitle(doc, titles[[length(titles)]], 2, id=titles[[length(titles)]])
-    revigoTitle = addGoUpDownResult(doc, param, goResult)
-    titles = append(titles, revigoTitle)
-    
     ## enrichr links for mice and humans
     if (any(c(grepl("Homo_", getOrganism(param$ezRef)), grepl("Mus_", getOrganism(param$ezRef))))){
       
@@ -447,17 +441,37 @@ writeNgsTwoGroupReport = function(dataset, deResult, output, htmlFile="00index.h
       regulatedGenes$downGenes = na.omit(unique(seqAnno[isDown, "gene_name"]))
       regulatedGenes$bothGenes = union(regulatedGenes$upGenes, regulatedGenes$downGenes)
       
-      enrichrLinks = ezMatrix("", rows=c('bothGenes', 'downGenes', 'upGenes'), cols=1)
+      enrichrLinks = ezMatrix("", rows=names(regulatedGenes), cols=1)
+      enrichrResList = list()
+      maxResultsPerLibrary = 5
       for (row in rownames(enrichrLinks)){
-        genesToUse = seqAnno$gene_name[which(seqAnno$gene_name %in% regulatedGenes[[row]])]
-        genesList = paste(genesToUse, collapse="\\n")
-        jsCall = paste0('enrich({list: "', genesList, '", popup: true});')
+        genesToUse = regulatedGenes[[row]]
+        jsCall = paste0('enrich({list: "', paste(genesToUse, collapse="\\n"), '", popup: true});')
         enrichrLinks[row, 1] = as.html(pot(paste0("<a href='javascript:void(0)' onClick='", jsCall, "'>Enrichr</a>")))
+        resList = runEnrichr(genesToUse)
+        resList = lapply(names(resList), function(nm){return(cbind("Gene-set library"=nm, resList[[nm]]))}) ## add the name as a first column
+        resMerged = do.call("rbind", lapply(resList, function(x){if (nrow(x) > maxResultsPerLibrary) x[1:maxResultsPerLibrary, ] else x}))
+        enrichrResList[[row]] = resMerged
+        
       }
       titles[["Enrichr"]] = "Enrichr"
       addTitle(doc, titles[[length(titles)]], 3, id=titles[[length(titles)]])
       addFlexTable(doc, ezFlexTable(enrichrLinks, valign="middle", add.rownames = TRUE))
+      addTitle(doc, "Enrichr gene-sets that are overrepresented among significantly upregulated genes.", 3)
+      addFlexTable(doc, ezFlexTable(enrichrResList["upGenes"]))
+      addTitle(doc, "Enrichr gene-sets that are overrepresented among significantly downregulated genes.", 3)
+      addFlexTable(doc, ezFlexTable(enrichrResList["downGenes"]))
+      addTitle(doc, "Enrichr gene-sets that are overrepresented among significantly regulated genes.", 3)
+      addFlexTable(doc, ezFlexTable(enrichrResList["bothGenes"]))
+      
     }
+
+        goResult = twoGroupsGO(param, result, seqAnno, normalizedAvgSignal=rowMeans(result$groupMeans), method=param$goseqMethod)
+    titles[["GO Enrichment Analysis"]] = "GO Enrichment Analysis"
+    addTitle(doc, titles[[length(titles)]], 2, id=titles[[length(titles)]])
+    revigoTitle = addGoUpDownResult(doc, param, goResult)
+    titles = append(titles, revigoTitle)
+    
   }
   
   ## Run Gage
