@@ -28,7 +28,7 @@ getReferenceFeaturesBed = function(param){
   if (!file.exists(lockFile)){
     ezWrite(Sys.info(), con=lockFile)
     require(GenomicFeatures)
-    txdb = makeTxDbFromGFF(param$ezRef["refFeatureFile"], dataSource="FGCZ", organism="NA", taxonomyId=NA, chrominfo = NULL)
+    txdb = makeTxDbFromGFF(param$ezRef["refFeatureFile"], dataSource="FGCZ", organism=NA, taxonomyId=NA, chrominfo = NULL)
     require(rtracklayer)
     export(txdb, bedFile)
     ezSystem(paste("chmod", "g+w", bedFile))
