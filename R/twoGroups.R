@@ -448,21 +448,22 @@ writeNgsTwoGroupReport = function(dataset, deResult, output, htmlFile="00index.h
         genesToUse = regulatedGenes[[row]]
         jsCall = paste0('enrich({list: "', paste(genesToUse, collapse="\\n"), '", popup: true});')
         enrichrLinks[row, 1] = as.html(pot(paste0("<a href='javascript:void(0)' onClick='", jsCall, "'>Enrichr</a>")))
-        resList = runEnrichr(genesToUse)
-        resList = lapply(names(resList), function(nm){return(cbind("Gene-set library"=nm, resList[[nm]]))}) ## add the name as a first column
-        resMerged = do.call("rbind", lapply(resList, function(x){if (nrow(x) > maxResultsPerLibrary) x[1:maxResultsPerLibrary, ] else x}))
+        resList = runEnrichr(genesToUse, maxResult = maxResultsPerLibrary)
+        resList = lapply(names(resList), function(nm){return(cbind("Gene-set library"=nm, resList[[nm]][, c(2:5, 7:10)]))}) ## add the name as a first column
+        resMerged = do.call("rbind", resList)
+        resMerged[, c(3,6:8)] <- apply(resMerged[, c(3,6:8)], 2, sprintf, fmt = "%0.2e")
+        resMerged[, c(4,5)] <- apply(resMerged[, c(4,5)], 2, sprintf, fmt = "%0.3f")
         enrichrResList[[row]] = resMerged
-        
       }
       titles[["Enrichr"]] = "Enrichr"
       addTitle(doc, titles[[length(titles)]], 3, id=titles[[length(titles)]])
       addFlexTable(doc, ezFlexTable(enrichrLinks, valign="middle", add.rownames = TRUE))
       addTitle(doc, "Enrichr gene-sets that are overrepresented among significantly upregulated genes.", 3)
-      addFlexTable(doc, ezFlexTable(enrichrResList["upGenes"]))
+      addFlexTable(doc, ezFlexTable(enrichrResList[["upGenes"]], header.columns = T))
       addTitle(doc, "Enrichr gene-sets that are overrepresented among significantly downregulated genes.", 3)
-      addFlexTable(doc, ezFlexTable(enrichrResList["downGenes"]))
+      addFlexTable(doc, ezFlexTable(enrichrResList[["downGenes"]], header.columns = T))
       addTitle(doc, "Enrichr gene-sets that are overrepresented among significantly regulated genes.", 3)
-      addFlexTable(doc, ezFlexTable(enrichrResList["bothGenes"]))
+      addFlexTable(doc, ezFlexTable(enrichrResList[["bothGenes"]], header.columns = T))
       
     }
 

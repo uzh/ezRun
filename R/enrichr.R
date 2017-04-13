@@ -22,6 +22,9 @@
 ##' @param genes A list or vector containing gene names
 ##' @param minScore Combined score (\eqn{log(AdjP) * z}) threshold to filter the results.
 ##' @param maxAdjP Adjusted p (Benjamini-Hochberg method) threshold to filter the results.
+##' @param minOverlapGenes Minimum number of genes in the overlap
+##' @param softFilter select libraries with at least one significant result but report all results
+##' @param maxResult maximum number of results to return
 ##' @param connectionN Maximum number of connections to open simultaneously for the enrichment analysis.
 ##' @return A named \code{list} with library names as names and \code{data.frame} objects as values.
 ##' An entire result set is retained if there is at least one significant gene based on the supplied
@@ -30,7 +33,7 @@
 ##' @examples
 ##' \dontrun{
 ##' genes <- c("HPS1", "HPS3", "HPS5", "PSMD11", "CUL7", "SNAPC4", "GNB2")
-##' resList <- runEnrichr(genes, minScore = 15, maxAdjP = 1e-4, connectionN = 20)
+##' resList <- runEnrichr(genes, minScore = 15, maxAdjP = 1e-4, minOverlapGenes = 3, connectionN = 20)
 ##' resList = lapply(names(resList), function(nm){return(cbind("Gene-set library"=nm, resList[[nm]]))}) ## add the name as a first column
 ##' resMerged = do.call("rbind", resList)
 ##' }
@@ -50,10 +53,11 @@
 ##'   setdiff(allLibs, names(res$success))
 ##' }
 ##' # Filter the data sets
-##' resFilt <- filterEnrichrResults(res$success, pAdj = 0.01, z = -3, combinedScore = 12)
+##' resFilt <- filterEnrichrResults(res$success, maxPAdj = 0.01, maxZ = -3, minCombinedScore = 12, minOverlapGenes = 3)
 ##' }
 ##' @author Roman Briskine
-runEnrichr <- function(genes, minScore = 12, maxAdjP = 0.01, connectionN = 10) {
+runEnrichr <- function(genes, minScore = 12, maxAdjP = 0.01, minOverlapGenes = 3, softFilter = F, 
+                       maxResult = NA, connectionN = 10) {
   geneListResp <- enrichrAddList(genes)
   res <- enrichrEnrich(geneListResp$userListId, connectionN = connectionN)
   failureN <- length(res$failure)
@@ -63,7 +67,9 @@ runEnrichr <- function(genes, minScore = 12, maxAdjP = 0.01, connectionN = 10) {
   }
   resFilt <- list()
   if (length(res$success) > 0) {
-    resFilt <- filterEnrichrResults(res$success, combinedScore = minScore, pAdj = maxAdjP)
+    resFilt <- filterEnrichrResults(res$success, minCombinedScore = minScore, maxPAdj = maxAdjP, 
+                                    minOverlapGenes = minOverlapGenes, softFilter = softFilter,
+                                    maxResult = maxResult)
   }
   resFilt
 }
@@ -90,7 +96,7 @@ enrichrAddList <- function(genes) {
   if (http_error(resp)) {
     stop_for_status(resp, "register the gene list with Enrichr")
   }
-  respParsed <- jsonlite::fromJSON(content(resp, as = "text"))
+  respParsed <- jsonlite::fromJSON(httr::content(resp, as = "text"))
 
   if (is.null(respParsed$userListId) || is.null(respParsed$shortId)) {
     stop("Enrichr server returned an invalid response: userListId or shortId is missing")
@@ -221,12 +227,15 @@ enrichrEnrich <- function(userListId, libNames = getEnrichrLibNames(), connectio
 ##' @param maxZ z-value threshold (maximum)
 ##' @param minCombinedScore combined score threshold (minimum)
 ##' @param minOverlapGenes minimum number of genes in the overlap
+##' @param softFilter select libraries with at least one significant result but report all results
+##' @param maxResult maximum number of results to return
 ##' @template roxygen-template
 ##' @return \code{list} that contains the results for libraries with at least one significant gene
 ##' that satisfies the criteria.
 ##' @seealso \code{\link{runEnrichr}, \link{enrichrEnrich}}
 ##' @author Roman Briskine
-filterEnrichrResults <- function(resList, maxP = 1, maxPAdj = 1, maxZ = 0, minCombinedScore = 0, minOverlapGenes=3) {
+filterEnrichrResults <- function(resList, maxP = 1, maxPAdj = 1, maxZ = 0, minCombinedScore = 0, 
+                                 minOverlapGenes=3, softFilter = F, maxResult = NA) {
   resF <- lapply(resList, function(x) {
     mask <- x$p_value <= maxP &
       x$Adjusted.p_value <= maxPAdj &
@@ -240,7 +249,11 @@ filterEnrichrResults <- function(resList, maxP = 1, maxPAdj = 1, maxZ = 0, minCo
     x[maskIdx, ]
   })
   listMask <- sapply(resF, function(x) { nrow(x) > 0 }, simplify = T)
-  resList[listMask]
+  if (softFilter) {
+    resList[listMask]
+  } else {
+    resF[listMask]
+  }
 }
 
 
