@@ -116,6 +116,56 @@ ezColorLegend = function(colorRange=c(-3,3), colors=getBlueRedScale(), vertical=
 	}
 }
 
+##' @title Plots a color scale with ggplot2
+##' @description Plots a color scale with colors derived from \code{getBlueRedScale()}.
+##' @param colorRange two numerics specifying the range to plot to the axis.
+##' @template colors-template
+##' @param vertical a logical indicating whether to plot vertically.
+##' @param at a numeric vector specifying where to put axis ticks.
+##' @param labels a character vector specifying the axis labels.
+##' @param by.label a numeric specifying the interval between axis labels.
+##' @template roxygen-template
+##' @examples
+##' ezColorLegendGG2()
+ezColorLegendGG2 = function(colorRange=c(-3,3), colors=getBlueRedScale(), 
+                            vertical=TRUE,
+                            at=seq(from=colorRange[1], to=colorRange[2], 
+                                   by=by.label),
+                            labels = as.character(at), 
+                            by.label=0.5){
+  require(ggplot2)
+  if (vertical){
+    df <- data.frame(x=1, 
+                     y=seq(from=colorRange[1], to=colorRange[2], 
+                           length.out=length(colors)), 
+                     z=seq.int(length(colors)))
+    p <- ggplot(data=df, aes(x=x, y=y)) + geom_tile(aes(fill=z)) +
+      scale_fill_gradientn(colours = colors) +
+      theme_bw() +
+      scale_y_continuous(breaks=at, labels=labels, expand = c(0, 0), 
+                         position = "right") + 
+      scale_x_continuous(expand = c(0, 0)) +
+      theme(panel.border=element_blank(), panel.grid=element_blank(),
+            axis.title=element_blank(), axis.ticks.x=element_blank(),
+            axis.text.x=element_blank(), legend.position="none")
+  }else{
+    df <- data.frame(x=seq(from=colorRange[1], to=colorRange[2], 
+                           length.out=length(colors)),
+                     y=1,
+                     z=seq.int(length(colors)))
+    p <- ggplot(data=df, aes(x=x, y=y)) + geom_tile(aes(fill=z)) +
+      scale_fill_gradientn(colours = colors) +
+      theme_bw() +
+      scale_x_continuous(breaks=at, labels=labels, expand = c(0, 0)) + 
+      scale_y_continuous(expand = c(0, 0)) +
+      theme(panel.border=element_blank(), panel.grid=element_blank(),
+            axis.title=element_blank(), axis.ticks.y=element_blank(),
+            axis.text.y=element_blank(), legend.position="none")
+  }
+  return(p)
+}
+
+
 ##' @title Plots a legend
 ##' @description Plots only a legend, removing all the other plot elements.
 ##' @param legend passed to \code{legend()}.
