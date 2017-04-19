@@ -4,7 +4,8 @@
 \alias{runEnrichr}
 \title{Run Enrichr}
 \usage{
-runEnrichr(genes, minScore = 12, maxAdjP = 0.01, connectionN = 10)
+runEnrichr(genes, minScore = 12, maxAdjP = 0.01, minOverlapGenes = 3,
+  softFilter = F, maxResult = NA, connectionN = 10)
 }
 \arguments{
 \item{genes}{A list or vector containing gene names}
@@ -12,6 +13,12 @@ runEnrichr(genes, minScore = 12, maxAdjP = 0.01, connectionN = 10)
 \item{minScore}{Combined score (\eqn{log(AdjP) * z}) threshold to filter the results.}
 
 \item{maxAdjP}{Adjusted p (Benjamini-Hochberg method) threshold to filter the results.}
+
+\item{minOverlapGenes}{Minimum number of genes in the overlap}
+
+\item{softFilter}{select libraries with at least one significant result but report all results}
+
+\item{maxResult}{maximum number of results to return}
 
 \item{connectionN}{Maximum number of connections to open simultaneously for the enrichment analysis.}
 }
@@ -36,7 +43,9 @@ If you find that this function is not flexible enough, you can run Enrichr as fo
 \examples{
 \dontrun{
 genes <- c("HPS1", "HPS3", "HPS5", "PSMD11", "CUL7", "SNAPC4", "GNB2")
-resList <- runEnrichr(genes, minScore = 15, maxAdjP = 1e-4, connectionN = 20)
+resList <- runEnrichr(genes, minScore = 15, maxAdjP = 1e-4, minOverlapGenes = 3, connectionN = 20)
+resList = lapply(names(resList), function(nm){return(cbind("Gene-set library"=nm, resList[[nm]]))}) ## add the name as a first column
+resMerged = do.call("rbind", resList)
 }
 
 # Alternative usage
@@ -54,7 +63,7 @@ if (length(res$failure) > 0) {
   setdiff(allLibs, names(res$success))
 }
 # Filter the data sets
-resFilt <- filterEnrichrResults(res$success, pAdj = 0.01, z = -3, combinedScore = 12)
+resFilt <- filterEnrichrResults(res$success, maxPAdj = 0.01, maxZ = -3, minCombinedScore = 12, minOverlapGenes = 3)
 }
 }
 \author{

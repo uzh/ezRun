@@ -4,18 +4,26 @@
 \alias{filterEnrichrResults}
 \title{Result filtering}
 \usage{
-filterEnrichrResults(resList, p = 1, pAdj = 1, z = 0, combinedScore = 0)
+filterEnrichrResults(resList, maxP = 1, maxPAdj = 1, maxZ = 0,
+  minCombinedScore = 0, minOverlapGenes = 3, softFilter = F,
+  maxResult = NA)
 }
 \arguments{
 \item{resList}{list of results, i.e. \code{success} field in the list returned by \code{\link{enrichrEnrich}}}
 
-\item{p}{p-value threshold (maximum)}
+\item{maxP}{p-value threshold (maximum)}
 
-\item{pAdj}{adjusted p-value threshold (maximum)}
+\item{maxPAdj}{adjusted p-value threshold (maximum)}
 
-\item{z}{z-value threshold (maximum)}
+\item{maxZ}{z-value threshold (maximum)}
 
-\item{combinedScore}{combined score threshold (minimum)}
+\item{minCombinedScore}{combined score threshold (minimum)}
+
+\item{minOverlapGenes}{minimum number of genes in the overlap}
+
+\item{softFilter}{select libraries with at least one significant result but report all results}
+
+\item{maxResult}{maximum number of results to return}
 }
 \value{
 \code{list} that contains the results for libraries with at least one significant gene
