@@ -77,7 +77,7 @@ annotatePeaks = function(input=NA, output=NA, param=NA) {
   
   gtfFile = param$ezRef@refFeatureFile
   gtf = rtracklayer::import(gtfFile)
-  idx = gtf$type =='gene'
+  idx = gtf$type == 'gene'
   if(!any(idx)){
     idx = gtf$type =='start_codon'
   }

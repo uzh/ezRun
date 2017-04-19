@@ -99,7 +99,7 @@ ezMethodDEXSeqAnalysis <- function(input=NA, output=NA, param=NA){
   }
 
   presentGenes = rownames(countDataPerGene)[which(rowMax(countDataPerGene)>param[['minGeneExprCount']] & apply(countDataPerGene,1,aboveMinExprSamples,minExpr=param[['minGeneExprCount']])>1)]
-  filteredCountData = counts(dxd)[which(rownames(countData) %in% presentGenes),1:length(countFiles)]
+  filteredCountData = counts(dxd)[which(rownames(countData) %in% presentGenes),1:length(countFiles)] + param$countOffset
   transcripts = rowData(dxd)$transcripts[which(rownames(countData) %in% presentGenes)]
   featureRanges = rowRanges(dxd)[which(rownames(countData) %in% presentGenes)]
 
@@ -145,7 +145,7 @@ EzAppDEXSeqAnalysis <-
                   "Initializes the application using its specific defaults."
                   runMethod <<- ezMethodDEXSeqAnalysis
                   name <<- "EzAppDEXSeqAnalysis"
-                  appDefaults <<- rbind(disp_plot      = ezFrame(Type="character", DefaultValue="dispersion_estimate_plot", Description="which test method in DESeq to use: deseq2"),
+                  appDefaults <<- rbind(disp_plot      = ezFrame(Type="character", DefaultValue="dispersion_estimate_plot", Description="which test method in DEXSeq to use: deseq2"),
                                         ma_plot        = ezFrame(Type="character", DefaultValue="ma_plot",    Description="no need to compute moderated ratios; deseq2 does this already"),
                                         countfile_ext  = ezFrame(Type="character", DefaultValue="count",      Description="extension of count files"),
                                         countfile_path = ezFrame(Type="character", DefaultValue=".",          Description="path where count files should be stored"),
@@ -156,6 +156,7 @@ EzAppDEXSeqAnalysis <-
                                         minGeneExprCount   = ezFrame(Type="numeric",   DefaultValue=20,          Description="minimal Mean GeneCount for candidate selection"),
                                         minExonExprCount   = ezFrame(Type="numeric",   DefaultValue=10,          Description="minimal Mean ExonCount for candidate selection"),
                                         minExonLog2Ratio = ezFrame(Type="numeric",   DefaultValue=0.3,          Description="minimal log2Ratio for diff. exon for candidate selection"),
+                                        countOffset = ezFrame(Type="numeric",   DefaultValue=10,          Description="add pseudo counts to shrink logRatios"),
                                         dexseq_report_path = ezFrame(Type="character", DefaultValue="DEXSeqReport",  Description="path DEXSeqHTML report is written to"),
                                         dexseq_report_file = ezFrame(Type="character", DefaultValue="testForDEU.html",  Description="file name for DEXSeqHTML report")   )
                 }
@@ -314,12 +315,12 @@ getGeneTable <- function(pdxr, param){
   }
   rownames(results) <- NULL
 
-  ### # from the results, generate the genetable which seams to be the basis for the
+  ### # from the results, generate the genetable which seems to be the basis for the
   ### #  table on the results page
   #gns <- as.character(unique(results$groupID[which(results$padj < param$fdr)]))
   exns <- results[which(results$padj < param$fdr &
                           abs(results[[log2column]]) > param$minExonLog2Ratio
-                        & results[['exonBaseMean']]>param$minExonExprCount),c('groupID','featureID',log2column,'padj')]
+                        & results[['exonBaseMean']] > param$minExonExprCount), c('groupID','featureID',log2column,'padj')]
   gns  <- names(perGeneQValue(pdxr))[perGeneQValue(pdxr) < param$fdr]
   gns  <- intersect(gns,unique(exns$groupID))
   #names(perGeneQValue(pdxr)< param$fdr)
@@ -329,7 +330,8 @@ getGeneTable <- function(pdxr, param){
     data.frame(chr = unique(results$seqnames[x]), start = min(results$start[x]),
                end = max(results$end[x]), total_exons = length(x),
                exon_changes = sum(results$padj[x] < param$fdr & results$exonBaseMean[x]>param$minExonExprCount & abs(results[[log2column]][x]) > param$minExonLog2Ratio,na.rm = TRUE),
-               meanRawCount = round(sum(results$exonBaseMean[x]),3))
+               meanRawCount = round(sum(results$exonBaseMean[x]),3),
+               max_ExonLog2FC = results[[log2column]][x][order(abs(results[[log2column]][x]),decreasing = T)][1])
   })
 
   ### # seams to convert the list "genetable" to a data.frame
@@ -385,7 +387,7 @@ getGeneTable <- function(pdxr, param){
   geneQValues =round(perGeneQValue(pdxr),5)
   geneQValues = data.frame(ID=names(geneQValues),fdr=geneQValues, stringsAsFactors = F)
   genetable = merge(genetable,geneQValues,by.x='geneID', by.y='ID')
-  genetable = genetable[order(genetable$fdr),]
+  genetable = genetable[order(genetable$fdr, abs(genetable$max_ExonLog2FC)),]
   ### # add links to result files
   genetable$geneID <- getGeneIdExprLinks(pvGeneIds = genetable$geneID, psdexseq_report_path = param$dexseq_report_path)
   require(DT)

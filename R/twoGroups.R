@@ -404,7 +404,7 @@ writeNgsTwoGroupReport = function(dataset, deResult, output, htmlFile="00index.h
     if (!is.null(clusterResult$GO)){
       goTables = goClusterTable(param, clusterResult, seqAnno)
       # addFlexTable(doc, ezFlexTable(goTables$linkTable, add.rownames=TRUE))
-      if (any(c(grepl("Homo_", getOrganism(param$ezRef)), grepl("Mus_", getOrganism(param$ezRef))))){
+      if (any(c(grepl("Homo_", getOrganism(param$ezRef)),grepl("Rattus_", getOrganism(param$ezRef)), grepl("Sus_", getOrganism(param$ezRef)), grepl("Canis_", getOrganism(param$ezRef)), grepl("Mus_", getOrganism(param$ezRef))))){
         goAndEnrichr = cbind(goTables$linkTable, goTables$enrichrTable)
       } else {
         goAndEnrichr = goTables$linkTable
@@ -431,7 +431,7 @@ writeNgsTwoGroupReport = function(dataset, deResult, output, htmlFile="00index.h
   ## only do GO if we have enough genes
   if (doGo(param, seqAnno)){
     ## enrichr links for mice and humans
-    if (any(c(grepl("Homo_", getOrganism(param$ezRef)), grepl("Mus_", getOrganism(param$ezRef))))){
+    if (any(c(grepl("Homo_", getOrganism(param$ezRef)), grepl("Sus_", getOrganism(param$ezRef)), grepl("Rattus_", getOrganism(param$ezRef)), grepl("Canis_", getOrganism(param$ezRef)), grepl("Mus_", getOrganism(param$ezRef))))){
       
       isSig = result$pValue < param$pValThreshGO & result$usedInTest
       isUp = result$log2Ratio > param$log2RatioThreshGO & isSig
