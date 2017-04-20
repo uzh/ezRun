@@ -51,7 +51,7 @@ GFOLD_DIR="/usr/local/ngseq/src/gfold.V1.1.4"
 
 JAVA="/usr/local/ngseq/bin/java"
 TRIMMOMATIC="/usr/local/ngseq/bin/java -jar /usr/local/ngseq/src/Trimmomatic-0.33/trimmomatic-0.33.jar"
-TRIMMOMATIC_ADAPTERS="/usr/local/ngseq/src/Trimmomatic-0.33/adapters/allIllumina.fasta"
+TRIMMOMATIC_ADAPTERS="/srv/GT/databases/contaminants/allIllumina-forTrimmomatic-20160202.fa"
 
 TRINITY="/usr/local/ngseq/src/trinityrnaseq_v2.1.1/Trinity"
 

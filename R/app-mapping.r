@@ -290,7 +290,7 @@ ezMethodSTAR = function(input=NA, output=NA, param=NA){
   if (!grepl("outSAMattributes", param$cmdOptions)){
     param$cmdOptions = paste(param$cmdOptions, "--outSAMattributes All")
   }
-  cmd = paste(STAR, " --genomeDir", refDir,  "--sjdbOverhang 150", "--readFilesIn",
+  cmd = paste("STAR", " --genomeDir", refDir,  "--sjdbOverhang 150", "--readFilesIn",
               trimmedInput$getColumn("Read1"), if(param$paired) trimmedInput$getColumn("Read2"),
               "--runThreadN", ezThreads(), param$cmdOptions, "--outStd BAM_Unsorted --outSAMtype BAM Unsorted",
               ">  Aligned.out.bam")## writes the output file Aligned.out.bam
@@ -389,7 +389,7 @@ getSTARReference = function(param){
   }
   
   job = ezJobStart("STAR genome build")
-  cmd = paste(STAR, "--runMode genomeGenerate --genomeDir", refDir, binOpt,
+  cmd = paste("STAR", "--runMode genomeGenerate --genomeDir", refDir, binOpt,
               "--limitGenomeGenerateRAM", format(param$ram * 1e9, scientific=FALSE),
               "--genomeFastaFiles", param$ezRef["refFastaFile"], 
               "--sjdbGTFfile", param$ezRef["refFeatureFile"], "--sjdbOverhang 150", "--runThreadN", ezThreads())
