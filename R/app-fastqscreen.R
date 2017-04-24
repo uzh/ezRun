@@ -11,14 +11,34 @@ ezMethodFastqScreen = function(input=NA, output=NA, param=NA, htmlFile="00index.
   # Preprocessing
   input = ezMethodTrim(input = input, param = param)
   # fastqscreen part
-  files = input$getFullPaths("Read1")
-  resultFiles = executeFastqscreenCMD(param, files)
-  fastqData = collectFastqscreenOutput(dataset, files, resultFiles)
+  ## PreprocessedData
+  files_ppData = input$getFullPaths("Read1")
+  resultFiles_ppData = executeFastqscreenCMD(param, confFile = NULL, files_ppData)
+  fastqData_ppData = collectFastqscreenOutput(dataset, files_ppData, resultFiles_ppData)
+  
+  ## get Adapter contamination from raw data
+  confFile = FASTQSCREEN_ADAPTER_CONF
+  files_rawData = basename(dataset[['Read1 [File]']])
+  names(files_rawData) = names(files_ppData)
+  resultFiles_rawData = executeFastqscreenCMD(param, confFile = confFile, files_rawData)
+  fastqData_rawData = collectFastqscreenOutput(dataset, files_rawData, resultFiles_rawData)
+  
   # bowtie2 reference part
   countFiles = executeBowtie2CMD(param, input)
-  speciesPercentageTop = collectBowtie2Output(param, input$meta, countFiles)
+  speciesPercentageTop = collectBowtie2Output(param, input$meta, countFiles, virusResult = F)
+  
+  if(param[['virusCheck']]){
+    noHit_files = gsub('.fastq.gz','.tagged_filter.fastq.gz',basename(dataset[['Read1 [File]']]))
+    names(noHit_files) = names(files_ppData)
+    countFiles = executeBowtie2CMD_Virus(param, noHit_files)
+    speciesPercentageTopVirus = collectBowtie2Output(param, input$meta, countFiles, virusResult = T)
+  } else {
+    speciesPercentageTopVirus = NULL
+  }
+  
+  #create report
   setwdNew(basename(output$getColumn("Report")))
-  fastqscreenReport(dataset, param, htmlFile, fastqData, speciesPercentageTop)
+  fastqscreenReport(dataset, param, htmlFile, fastqData_ppData, fastqData_rawData, speciesPercentageTop, speciesPercentageTopVirus = speciesPercentageTopVirus)
   return("Success")
 }
 
@@ -49,20 +69,23 @@ EzAppFastqScreen <-
                   name <<- "EzAppFastqScreen"
                   appDefaults <<- rbind(nTopSpecies=ezFrame(Type="integer",  DefaultValue=10,  Description="number of species to show in the plots"),
                                         confFile=ezFrame(Type="character",  DefaultValue="",  Description="the configuration file for fastq screen"),
+                                        virusCheck=ezFrame(Type="logical",  DefaultValue=FALSE,  Description="check for viruses in unmapped data"),
                                         minAlignmentScore=ezFrame(Type="integer",  DefaultValue="-20",  Description="the min alignment score for bowtie2"),
                                         trimAdapter=ezFrame(Type="logical",  DefaultValue=TRUE,  Description="whether to search for the adapters and trim them"))
                 }
               )
   )
 
-executeFastqscreenCMD = function(param, files){
-  confFile = paste0(FASTQSCREEN_CONF_DIR, param$confFile)
+executeFastqscreenCMD = function(param, confFile = NULL, files){
+  if(is.null(confFile)){
+    confFile = paste0(FASTQSCREEN_CONF_DIR, param$confFile)
+  }
   opt = ""
   if (param$nReads > 0){
     opt = paste(opt, "--subset", ezIntString(param$nReads))
   }
   cmd = paste(FASTQSCREEN, opt, " --threads", param$cores, " --conf ", confFile,
-              paste(files, collapse=" "), "--outdir . --aligner bowtie2",
+              paste(files, collapse=" "), "--outdir . --nohits --aligner bowtie2",
               "> fastqscreen.out", "2> fastqscreen.err")
   ezSystem(cmd)
   resultFiles = paste0(sub(".fastq$", "", sub(".gz$", "", basename(files))), "_screen.txt") ## remove the suffix .fastq[.gz] with _screen.txt
@@ -115,7 +138,23 @@ executeBowtie2CMD = function(param, input){
   return(countFiles)
 }
 
-collectBowtie2Output = function(param, dataset, countFiles){
+executeBowtie2CMD_Virus = function(param, files){
+  r1Files = files
+  countFiles = character()
+  for (nm in names(r1Files)){
+    countFiles[nm] = paste0(nm, "-counts.txt")
+    bowtie2options = param$cmdOptions
+    writeLines("ReadID\tRefSeqID\tAlignmentScore", countFiles[nm])
+    cmd = paste(file.path(BOWTIE2_DIR,'bowtie2'),"-x",REFSEQ_pathogenicHumanViruses_REF, 
+                  " -U ", r1Files[nm], bowtie2options ,"-p",param$cores,
+                  "--no-unal --no-hd", "2> ", paste0(nm, "_bowtie2.err"),
+                  "| cut -f1,3,12", " |sed s/AS:i://g", ">>", countFiles[nm])
+    ezSystem(cmd)
+  }
+  return(countFiles)
+}
+
+collectBowtie2Output = function(param, dataset, countFiles, virusResult = F){
   tax2name = read.table('/srv/GT/reference/RefSeq/mRNA/20150301/Annotation/tax2name.txt',header=F,stringsAsFactors=F,sep='|', 
                         colClasses="character",quote='', comment.char="")
   colnames(tax2name) = c('TAX_ID','Name')
@@ -129,7 +168,11 @@ collectBowtie2Output = function(param, dataset, countFiles){
     countData = countData[countData$AlignmentScore == bestScores[countData$ReadID], , drop=FALSE]
     countData = countData[countData$AlignmentScore >= param$minAlignmentScore, , drop=FALSE]
     if (nrow(countData) > 0){
-      countData$species = sub("_.*", "", countData$RefSeqID)
+      if(virusResult){
+        countData$species = substr(sub("_NC_[0-9].*", "", countData$RefSeqID), 1, 30)
+      } else {
+        countData$species = sub("_.*", "", countData$RefSeqID)
+      }
       speciesHitsPerRead = tapply(countData$species, countData$ReadID, unique)
       uniqSpeciesHitsPerRead = names(speciesHitsPerRead)[sapply(speciesHitsPerRead, length) == 1]
       ###Result UniqHits:
@@ -174,7 +217,7 @@ collectBowtie2Output = function(param, dataset, countFiles){
   return(speciesPercentageTop)
 }
 
-fastqscreenReport = function(dataset, param, htmlFile="00index.html", fastqData, speciesPercentageTop){
+fastqscreenReport = function(dataset, param, htmlFile="00index.html", fastqData, fastqDataAdapters, speciesPercentageTop, speciesPercentageTopVirus=NULL){
   titles = list()
   titles[["FastQ Screen"]] = paste("FastQ Screen:", param$name)
   doc = openBsdocReport(title=titles[[length(titles)]])
@@ -198,7 +241,7 @@ fastqscreenReport = function(dataset, param, htmlFile="00index.html", fastqData,
   
   plotCmd = expression({
     par(mar=c(10.1, 4.1, 4.1, 2.1))
-    bplt = barplot(fastqData$MappingRate, las=2, ylim=c(0,100), ylab="MappedReads in %", main="MappingRate", col="royalblue3",
+    bplt = barplot(fastqData$MappingRate, las=2, ylim=c(0,100), ylab="MappedReads in %", main="Overall MappingRate", col="royalblue3",
                    names.arg=rep('',length(ezSplitLongLabels(names(fastqData$MappingRate)))))
     if(min(fastqData$MappingRate) < 8){
       text(y=fastqData$MappingRate+2, font=2, x=bplt, labels=as.character(fastqData$MappingRate), cex= 1, xpd=TRUE)
@@ -209,6 +252,21 @@ fastqscreenReport = function(dataset, param, htmlFile="00index.html", fastqData,
     })
   
   mappingRateLink = ezImageFileLink(plotCmd, file="MappingRate.png", width=min(600 + (nrow(dataset)-10)* 30, 2000)) # nSamples dependent width
+  
+  plotCmd = expression({
+    par(mar=c(10.1, 4.1, 4.1, 2.1))
+    bplt = barplot(fastqDataAdapters$MappingRate, las=2, ylim=c(0,100), ylab="MappedReads in %", main="MappingRate to Adapters without trimming", col="royalblue3",
+                   names.arg=rep('',length(ezSplitLongLabels(names(fastqDataAdapters$MappingRate)))))
+    if(min(fastqDataAdapters$MappingRate) < 8){
+      text(y=fastqDataAdapters$MappingRate+2, font=2, x=bplt, labels=as.character(fastqDataAdapters$MappingRate), cex= 1, xpd=TRUE)
+    } else {
+      text(y=fastqDataAdapters$MappingRate-5, font=2, x=bplt, labels=as.character(fastqDataAdapters$MappingRate), cex= 1.1, col='white', xpd=TRUE)
+    }
+    text(x = bplt, y = par("usr")[3] - 2, srt = 45, adj = 1, labels = ezSplitLongLabels(names(fastqDataAdapters$MappingRate)), xpd = TRUE)
+  })
+  
+  mappingRateAdaptersLink = ezImageFileLink(plotCmd, file="MappingRateAdapters.png", width=min(600 + (nrow(dataset)-10)* 30, 2000)) # nSamples dependent width
+  
   plotCmd = expression({
     par(mar=c(10.1, 4.1, 4.1, 2.1))
     bplt = barplot(fastqData$Reads/1000, las=2, ylab="#Reads in K", main="ProcessedReads", col="lightblue",
@@ -216,7 +274,7 @@ fastqscreenReport = function(dataset, param, htmlFile="00index.html", fastqData,
     text(x = bplt, y = par("usr")[3] - 2, srt = 45, adj = 1, labels = ezSplitLongLabels(names(fastqData$MappingRate)), xpd = TRUE)
   })
   readsLink = ezImageFileLink(plotCmd, file="Reads.png", width=min(600 + (nrow(dataset)-10)* 30, 2000)) # nSamples dependent width
-  addFlexTable(doc, ezGrid(cbind(mappingRateLink, readsLink)))
+  addFlexTable(doc, ezGrid(cbind(mappingRateLink, mappingRateAdaptersLink, readsLink)))
   
   screenLinks = list()
   detectedSpeciesLinks = list()
@@ -268,5 +326,35 @@ fastqscreenReport = function(dataset, param, htmlFile="00index.html", fastqData,
       }
     }
   }
+  
+  if(param[['virusCheck']]){
+    detectedVirusLinks = list()
+    for (nm in rownames(dataset)){
+      plotCmd = expression({
+        par(mar=c(18.1, 7.1, 2.1, 2.1))
+        x = speciesPercentageTopVirus[[nm]]
+        if (is.null(x)) x = matrix(0, 2, 1, dimnames=list(c('UniqueSpeciesHits','MultipleSpeciesHits'),'Misc'))
+        bplot = barplot(t(x), col=c("royalblue3", "lightblue"), las = 2, ylim = c(0,100),
+                        legend.text=T, ylab="Mapped Reads in %", main=nm, names.arg=rep('',nrow(x)) )
+        text(y=t(x)[ 1,] + 5, x=bplot, font = 2, labels=t(x)[ 1, ], cex = 1.1, col = 'black')
+        text(x = bplot, y = par("usr")[3] - 2, srt = 60, adj = 1, 
+             labels = rownames(x), xpd = TRUE)
+      })
+      detectedVirusLinks[[nm]] = ezImageFileLink(plotCmd, name=nm, plotType="-refSeq-countsByVirus-barplot", width=400, height=400)
+    }
+    if (ezIsSpecified(detectedVirusLinks)){
+      titles[["Mapping to RefSeq human pathogenic Viruses"]] = "Mapping to RefSeq human pathogenic Viruses"
+      addTitle(doc, titles[[length(titles)]], 2, id=titles[[length(titles)]])
+      if(length(detectedVirusLinks) <= IMAGESperROW){
+        addFlexTable(doc, ezGrid(rbind(detectedVirusLinks)))
+      } else {
+        addFlexTable(doc, ezGrid(rbind(detectedVirusLinks[1:IMAGESperROW])))
+        for (i in 1:(ceiling(length(detectedVirusLinks)/IMAGESperROW)-1)){
+          addFlexTable(doc, ezGrid(rbind(detectedVirusLinks[(i*IMAGESperROW+1):min((i+1)*IMAGESperROW,length(detectedVirusLinks))])))
+        }
+      }
+    }
+  }
+  
   closeBsdocReport(doc=doc, file=htmlFile, titles)
 }
