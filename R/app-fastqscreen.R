@@ -27,6 +27,11 @@ ezMethodFastqScreen = function(input=NA, output=NA, param=NA, htmlFile="00index.
   countFiles = executeBowtie2CMD(param, input)
   speciesPercentageTop = collectBowtie2Output(param, input$meta, countFiles, virusResult = F)
   
+  #Always check human data for viruses
+  if(grepl('^Human|^Homo',dataset$Species[1])){
+    param[['virusCheck']] = T
+  }
+  
   if(param[['virusCheck']]){
     noHit_files = gsub('.fastq.gz','.tagged_filter.fastq.gz',basename(dataset[['Read1 [File]']]))
     names(noHit_files) = names(files_ppData)
