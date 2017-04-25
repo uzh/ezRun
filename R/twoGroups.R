@@ -445,14 +445,20 @@ writeNgsTwoGroupReport = function(dataset, deResult, output, htmlFile="00index.h
       enrichrResList = list()
       maxResultsPerLibrary = 5
       for (row in rownames(enrichrLinks)){
+        browser()
         genesToUse = regulatedGenes[[row]]
         jsCall = paste0('enrich({list: "', paste(genesToUse, collapse="\\n"), '", popup: true});')
         enrichrLinks[row, 1] = as.html(pot(paste0("<a href='javascript:void(0)' onClick='", jsCall, "'>Enrichr</a>")))
-        resList = runEnrichr(genesToUse, maxResult = maxResultsPerLibrary)
-        resList = lapply(names(resList), function(nm){return(cbind("Gene-set library"=nm, resList[[nm]][, c(2:5, 7:10)]))}) ## add the name as a first column
-        resMerged = do.call("rbind", resList)
-        resMerged[, c(3,6:8)] <- apply(resMerged[, c(3,6:8)], 2, sprintf, fmt = "%0.2e")
-        resMerged[, c(4,5)] <- apply(resMerged[, c(4,5)], 2, sprintf, fmt = "%0.3f")
+        resMerged <- NA
+        if (!is.null(genesToUse) && length(genesToUse) > 3) {
+          resList = runEnrichr(genesToUse, maxResult = maxResultsPerLibrary)
+          resList = lapply(names(resList), function(nm){return(cbind("Gene-set library"=nm, resList[[nm]][, c(2:5, 7:10)]))}) ## add the name as a first column
+          if (length(resList) > 0) {
+            resMerged = do.call("rbind", resList)
+            resMerged[, c(3,6:8)] <- apply(resMerged[, c(3,6:8)], 2, sprintf, fmt = "%0.2e")
+            resMerged[, c(4,5)] <- apply(resMerged[, c(4,5)], 2, sprintf, fmt = "%0.3f")
+          }
+        }
         enrichrResList[[row]] = resMerged
       }
       titles[["Enrichr"]] = "Enrichr"
