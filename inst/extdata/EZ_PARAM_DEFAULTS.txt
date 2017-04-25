@@ -1,6 +1,7 @@
 Parameter	Type	DefaultValue	Description
 dataRoot	character	/srv/gstore/projects	the root directory where files are located
 # computing parameters
+node character    computing node 
 cores	integer	1	number of cores to use
 ram	integer	4	gigabytes of RAM to use
 scratch	integer	10	gigaybtes of scratch disk to use
@@ -68,6 +69,7 @@ minReadLength	integer	20	minimum read length to keep
 nReads	integer	-1	if above zero at most that many reads will be used
 filterReads	logical	TRUE	filter reads and copy them to current directory
 strandMode	character	both	the strand orientation of the reads relative to the features; can be "sense", "antigense", "both"; illumina stranded RNA-seq is antisense
+copyReadsLocally logical FALSE copy reads to local scratch first
 # alignment handling
 minFeatureOverlap	integer	1	minimum overlap a reads must have with a feature to be counted for that feature
 minMapQuality	integer	0	minimum mapping quality of an alignment to be used; 255 will be used

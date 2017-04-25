@@ -77,7 +77,7 @@ EzAppFastqScreen <-
                                         virusCheck=ezFrame(Type="logical",  DefaultValue=FALSE,  Description="check for viruses in unmapped data"),
                                         minAlignmentScore=ezFrame(Type="integer",  DefaultValue="-20",  Description="the min alignment score for bowtie2"),
                                         trimAdapter=ezFrame(Type="logical",  DefaultValue=TRUE,  Description="whether to search for the adapters and trim them"),
-                                        copyReadsLocally=ezFrame(Type="logical",  DefaultValue=TRUE,  Description="whether to search for the adapters and trim them"))
+                                        copyReadsLocally=ezFrame(Type="logical",  DefaultValue=TRUE,  Description="copy reads to scratch first"))
                 }
               )
   )
