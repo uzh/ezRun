@@ -62,7 +62,7 @@ ezMethodTrim = function(input=NA, output=NA, param=NA){
   
   ## make a local copy of the dataset and check the md5sum
   if (!is.null(param$copyReadsLocally) && param$copyReadsLocally){
-    input = copyReadsLocally(input)
+    input = copyReadsLocally(input, param)
   }
   
   param$trimSeedMismatches = 1
