@@ -31,7 +31,7 @@
 ##' @template roxygen-template
 ##' @return Returns the output after trimming as an object of the class EzDataset.
 ezMethodTrim = function(input=NA, output=NA, param=NA){
-
+  
   ## if output is not an EzDataset, set it!
   if (!is(output, "EzDataset")){
     output = input$copy()
@@ -45,8 +45,8 @@ ezMethodTrim = function(input=NA, output=NA, param=NA){
     }
     output$dataRoot = NULL
   }
-
-
+  
+  
   ## if there are multiple samples loop through them
   if (input$getLength() > 1){
     for (nm in input$getNames()){
@@ -56,50 +56,26 @@ ezMethodTrim = function(input=NA, output=NA, param=NA){
     }
     return(output)
   }
-
+  
   ## now we deal only with one sample!
-
-
+  
+  
   ## make a local copy of the dataset and check the md5sum
-  if (param$paired){
-    reads = c("Read1", "Read2")
-  } else{
-    reads = "Read1"
+  if (!is.null(param$copyReadsLocally) && param$copyReadsLocally){
+    input = copyReadsLocally(input)
   }
-  for (rds in reads){
-    readFileIn = input$getFullPaths(rds)
-    ezSystem(paste("cp -n", readFileIn, "."))
-    input$setColumn(rds, basename(readFileIn))
-    if (Sys.info()["user"] == "trxcopy") { ## only run the check for the user trxcopy!!!
-      md5Local = ezSystem(paste("md5sum", basename(readFileIn)), intern = TRUE)
-      md5Local = sub(" .*", "", md5Local)
-      md5File = file.path(dirname(readFileIn), "md5.txt")
-      md5Remote = NA
-      if (file.exists(md5File)){
-        md5Set = ezRead.table(md5File)
-        md5Remote = md5Set[basename(readFileIn), 1]
-      }
-      if (is.na(md5Remote)){
-        md5Remote = ezSystem(paste("ssh fgcz-s-022 md5sum", readFileIn), intern = TRUE)
-        md5Remote = sub(" .*", "", md5Remote)
-      }
-      stopifnot(md5Local == md5Remote)
-    }
-  }
-  input$dataRoot = NULL
-
-
+  
   param$trimSeedMismatches = 1
   param$trimPalindromClipThresh = 20
   param$trimSimpleClipThresh = 7
   param$trimMinAdaptLength = 5
   param$trimKeepBothReads = "true"
   param$trimQualWindowWidth = 4
-
+  
   if (param$subsampleReads > 1 || param$nReads > 0){
     input = ezMethodSubsampleReads(input=input, param=param)
   }
-
+  
   if (param$trimAdapter){
     if (!is.null(input$meta$Adapter1) && !is.na(input$meta$Adapter1) && input$meta$Adapter1 != ""){
       adapter1 = DNAStringSet(input$meta$Adapter1)
@@ -127,19 +103,19 @@ ezMethodTrim = function(input=NA, output=NA, param=NA){
   } else {
     trimAdaptOpt = ""
   }
-
+  
   if (param$minTailQuality > 0){
     tailQualOpt = paste("SLIDINGWINDOW", param$trimQualWindowWidth, param$minTailQuality, sep=":")
   } else {
     tailQualOpt = ""
   }
-
+  
   if (param$minAvgQuality > 0){
     minAvgQualOpt = paste("AVGQUAL", param$minAvgQuality, sep=":")
   } else {
     minAvgQualOpt = ""
   }
-
+  
   r1TmpFile = "trimmed-R1.fastq"
   r2TmpFile = "trimmed-R2.fastq"
   if (any(c(trimAdaptOpt, tailQualOpt, minAvgQualOpt) != "") || param$minReadLength > 0){
@@ -177,7 +153,7 @@ ezMethodTrim = function(input=NA, output=NA, param=NA){
       ezSystem(paste("gunzip -c", input$getFullPaths("Read2"), ">", r2TmpFile))
     }
   }
-
+  
   ## the flexbar call is done separately because we do want to make sure that fixed trimming is done on top of adapter trimming
   ## this is needed for STAR to be able to pair the reads properly
   if (param$trimLeft > 0 || param$trimRight > 0){
@@ -216,7 +192,7 @@ ezMethodTrim = function(input=NA, output=NA, param=NA){
       r1TmpFile = "flexbar.fastq"
     }
   }
-
+  
   ## filter by max read length
   if (!is.null(param$maxReadLength) && !is.na(as.integer(param$maxReadLength))){
     newFile = "lengthTrimmed_R1.fastq"
@@ -240,13 +216,47 @@ ezMethodTrim = function(input=NA, output=NA, param=NA){
       r2TmpFile = newFile
     }
   }
-
+  
   ezSystem(paste("mv", r1TmpFile, basename(output$getColumn("Read1"))))
   if (param$paired){
     ezSystem(paste("mv", r2TmpFile, basename(output$getColumn("Read2"))))
   }
   return(output)
 }
+
+
+## copies the read files locally and computes md5 sums
+copyReadsLocally = function(input, param){
+  if (param$paired){
+    reads = c("Read1", "Read2")
+  } else{
+    reads = "Read1"
+  }
+  for (rds in reads){
+    readFileIn = input$getFullPaths(rds)
+    ezSystem(paste("cp -n", readFileIn, "."))
+    input$setColumn(rds, basename(readFileIn))
+    # if (Sys.info()["user"] == "trxcopy") { ## only run the check for the user trxcopy!!!
+    #   md5Local = ezSystem(paste("md5sum", basename(readFileIn)), intern = TRUE)
+    #   md5Local = sub(" .*", "", md5Local)
+    #   md5File = file.path(dirname(readFileIn), "md5.txt")
+    #   md5Remote = NA
+    #   if (file.exists(md5File)){
+    #     md5Set = ezRead.table(md5File)
+    #     md5Remote = md5Set[basename(readFileIn), 1]
+    #   }
+    #   if (is.na(md5Remote)){
+    #     md5Remote = ezSystem(paste("ssh fgcz-s-022 md5sum", readFileIn), intern = TRUE)
+    #     md5Remote = sub(" .*", "", md5Remote)
+    #   }
+    #   stopifnot(md5Local == md5Remote)
+    # }
+  }
+  input$dataRoot = NULL
+  return(input)
+}
+
+
 
 ##' @title Subsample reads in a fastq dataset file
 ##' @description The subsampled reads are equally distributed across the original files
