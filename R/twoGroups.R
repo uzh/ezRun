@@ -445,7 +445,6 @@ writeNgsTwoGroupReport = function(dataset, deResult, output, htmlFile="00index.h
       enrichrResList = list()
       maxResultsPerLibrary = 5
       for (row in rownames(enrichrLinks)){
-        browser()
         genesToUse = regulatedGenes[[row]]
         jsCall = paste0('enrich({list: "', paste(genesToUse, collapse="\\n"), '", popup: true});')
         enrichrLinks[row, 1] = as.html(pot(paste0("<a href='javascript:void(0)' onClick='", jsCall, "'>Enrichr</a>")))
