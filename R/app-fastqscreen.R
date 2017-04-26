@@ -11,21 +11,32 @@ ezMethodFastqScreen = function(input=NA, output=NA, param=NA, htmlFile="00index.
   # Preprocessing
   input = ezMethodTrim(input = input, param = param)
   # fastqscreen part
-  ## PreprocessedData
-  files_ppData = input$getFullPaths("Read1")
-  resultFiles_ppData = executeFastqscreenCMD(param, confFile = NULL, files_ppData)
-  fastqData_ppData = collectFastqscreenOutput(dataset, files_ppData, resultFiles_ppData)
   
   ## get Adapter contamination from raw data
   confFile = FASTQSCREEN_ADAPTER_CONF
   files_rawData = basename(dataset[['Read1 [File]']])
-  names(files_rawData) = names(files_ppData)
+  names(files_rawData) = names(input$getFullPaths("Read1"))
   resultFiles_rawData = executeFastqscreenCMD(param, confFile = confFile, files_rawData)
   fastqData_rawData = collectFastqscreenOutput(dataset, files_rawData, resultFiles_rawData)
   
+  ## PreprocessedData
+  confFile = FASTQSCREEN_GENOMICDNA_RIBORNA_CONF
+  files_ppData = input$getFullPaths("Read1")
+  resultFiles_ppData = executeFastqscreenCMD(param, confFile = confFile, files_ppData)
+  fastqData_ppData = collectFastqscreenOutput(dataset, files_ppData, resultFiles_ppData)
+  noHit_files = gsub('.fastq$', '.tagged_filter.fastq', files_ppData)
+  names(noHit_files) = names(files_ppData)
+  readCount = data.frame(totalReadCount = rep(0,length(files_ppData)), unmappedReadCount = rep(0,length(files_ppData)), stringsAsFactors = F)
+  rownames(readCount) = names(files_ppData)
+  
+  for(nm in names(files_ppData)){
+    readCount[nm,'totalReadCount'] = countReads(files_ppData[nm], compressed=F)
+    readCount[nm,'unmappedReadCount'] = countReads(noHit_files[nm],compressed=F)
+  }
+  
   # bowtie2 reference part
   countFiles = executeBowtie2CMD(param, input)
-  speciesPercentageTop = collectBowtie2Output(param, input$meta, countFiles, virusResult = F)
+  speciesPercentageTop = collectBowtie2Output(param, input$meta, countFiles, readCount, virusResult = F)
   
   #Always check human data for viruses
   if(grepl('^Human|^Homo',dataset$Species[1])){
@@ -33,10 +44,8 @@ ezMethodFastqScreen = function(input=NA, output=NA, param=NA, htmlFile="00index.
   }
   
   if(param[['virusCheck']]){
-    noHit_files = gsub('.fastq.gz','.tagged_filter.fastq.gz',basename(dataset[['Read1 [File]']]))
-    names(noHit_files) = names(files_ppData)
     countFiles = executeBowtie2CMD_Virus(param, noHit_files)
-    speciesPercentageTopVirus = collectBowtie2Output(param, input$meta, countFiles, virusResult = T)
+    speciesPercentageTopVirus = collectBowtie2Output(param, input$meta, countFiles, readCount, virusResult = T)
   } else {
     speciesPercentageTopVirus = NULL
   }
@@ -83,9 +92,6 @@ EzAppFastqScreen <-
   )
 
 executeFastqscreenCMD = function(param, confFile = NULL, files){
-  if(is.null(confFile)){
-    confFile = paste0(FASTQSCREEN_CONF_DIR, param$confFile)
-  }
   opt = ""
   if (param$nReads > 0){
     opt = paste(opt, "--subset", ezIntString(param$nReads))
@@ -160,7 +166,7 @@ executeBowtie2CMD_Virus = function(param, files){
   return(countFiles)
 }
 
-collectBowtie2Output = function(param, dataset, countFiles, virusResult = F){
+collectBowtie2Output = function(param, dataset, countFiles, readCount, virusResult = F){
   tax2name = read.table('/srv/GT/reference/RefSeq/mRNA/20150301/Annotation/tax2name.txt',header=F,stringsAsFactors=F,sep='|', 
                         colClasses="character",quote='', comment.char="")
   colnames(tax2name) = c('TAX_ID','Name')
@@ -202,19 +208,20 @@ collectBowtie2Output = function(param, dataset, countFiles, virusResult = F){
 
       multipleSpeciesHits[setdiff(names(topSpeciesUniq), names(multipleSpeciesHits))] = 0
       topSpeciesMultiple = multipleSpeciesHits[names(topSpeciesUniq)]
-
-      if(param$nReads > 0){
-        totalCount = param$nReads
-      } else {
-        totalCount = dataset[nm, 'Read Count']
-      }
+      
       taxIds = names(topSpeciesUniq)
       taxNames = tax2name[taxIds, 'Name']
       hasNoName = is.na(taxNames)
       taxNames[hasNoName] = taxIds[hasNoName]
-      x = ezFrame(UniqueSpeciesHits=signif(100 * as.matrix(topSpeciesUniq)/totalCount, digits=4),
-                  MultipleSpeciesHits=signif(100 * as.matrix(topSpeciesMultiple)/totalCount, digits=4),
+      if(!virusResult){
+        x = ezFrame(UniqueSpeciesHits=signif(100 * as.matrix(topSpeciesUniq)/readCount[nm,'totalReadCount'], digits=4),
+                  MultipleSpeciesHits=signif(100 * as.matrix(topSpeciesMultiple)/readCount[nm,'totalReadCount'], digits=4),
                   row.names = taxNames)
+      } else {
+        x = ezFrame(UniqueSpeciesHits=signif(100 * as.matrix(topSpeciesUniq)/readCount[nm,'unmappedReadCount'], digits=4),
+                    MultipleSpeciesHits=signif(100 * as.matrix(topSpeciesMultiple)/readCount[nm,'unmappedReadCount'], digits=4),
+                    row.names = taxNames)  
+      }
       speciesPercentageTop[[nm]] = x
     } else {
       speciesPercentageTop[[nm]] = NULL
@@ -364,3 +371,4 @@ fastqscreenReport = function(dataset, param, htmlFile="00index.html", fastqData,
   
   closeBsdocReport(doc=doc, file=htmlFile, titles)
 }
+
