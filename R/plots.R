@@ -138,7 +138,8 @@ ezColorLegendGG2 = function(colorRange=c(-3,3), colors=getBlueRedScale(),
     df <- data.frame(x=1, 
                      y=seq(from=colorRange[1], to=colorRange[2], 
                            length.out=length(colors)), 
-                     z=seq.int(length(colors)))
+                     z=seq(from=colorRange[1], to=colorRange[2], 
+                           length.out=length(colors)))
     p <- ggplot(data=df, aes(x=x, y=y)) + geom_raster(aes(fill=z)) +
       scale_fill_gradientn(colours = colors) +
       theme_bw() +
@@ -147,12 +148,15 @@ ezColorLegendGG2 = function(colorRange=c(-3,3), colors=getBlueRedScale(),
       scale_x_continuous(expand = c(0, 0)) +
       theme(panel.border=element_blank(), panel.grid=element_blank(),
             axis.title=element_blank(), axis.ticks.x=element_blank(),
-            axis.text.x=element_blank(), legend.position="none")
+            axis.text.y=element_text(size=14),
+            axis.text.x=element_blank(), legend.position="none"
+            )
   }else{
     df <- data.frame(x=seq(from=colorRange[1], to=colorRange[2], 
                            length.out=length(colors)),
                      y=1,
-                     z=seq.int(length(colors)))
+                     z=seq(from=colorRange[1], to=colorRange[2], 
+                           length.out=length(colors)))
     p <- ggplot(data=df, aes(x=x, y=y)) + geom_raster(aes(fill=z)) +
       scale_fill_gradientn(colours = colors) +
       theme_bw() +
@@ -160,7 +164,9 @@ ezColorLegendGG2 = function(colorRange=c(-3,3), colors=getBlueRedScale(),
       scale_y_continuous(expand = c(0, 0)) +
       theme(panel.border=element_blank(), panel.grid=element_blank(),
             axis.title=element_blank(), axis.ticks.y=element_blank(),
-            axis.text.y=element_blank(), legend.position="none")
+            axis.text.x=element_text(size=14),
+            axis.text.y=element_blank(), legend.position="none"
+            )
   }
   return(p)
 }

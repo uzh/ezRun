@@ -174,6 +174,48 @@ ezInteractiveTable = function(values, tableLink, digits=NULL, colNames=colnames(
   DT::saveWidget(interactiveTable, tableLink)
 }
 
+##' @title Generates an interactive table
+##' @description Generates an interactive table embeded in rmarkdown document.
+##' @param values a data.frame or table to create an interactive table from.
+##' @param digits the number of digits to round to, if rounding is desired.
+##' @param colNames a character vector specifying the column names of the interactive table.
+##' @param title a character representing the title of the interactive table.
+##' @param format formatting options passed as an expression. The table argument in formatting functions must be named \code{interactiveTable}.
+##' @param envir the environment to evaluate \code{format} in.
+##' @template roxygen-template
+##' @seealso \code{\link[DT]{datatable}}
+##' @seealso \code{\link[DT]{saveWidget}}
+##' @examples 
+##' table = data.frame(a=c(1.11, 2:100), b=201:300)
+##' ezInteractiveTableRmd(table)
+ezInteractiveTableRmd = function(values, digits=NULL, 
+                                   colNames=colnames(values), title="", 
+                                   format=NULL, envir=parent.frame()){
+  if (!is.null(digits)){
+    for (i in 1:ncol(values)) {
+      hasDecimals = suppressWarnings({as.integer(values[ ,i]) != values[ ,i]})
+      hasDecimals[is.na(hasDecimals)] = FALSE
+      if (any(hasDecimals)){
+        values[ ,i] = signif(values[ ,i], digits=digits)
+      }
+    }
+    captionText = paste("Numeric values are rounded to", digits, "digits.")
+    caption = htmltools::tags$caption(htmltools::h1(title), htmltools::p(captionText))
+  } else {
+    caption = htmltools::tags$caption(htmltools::h1(title))
+  }
+  interactiveTable = DT::datatable(values, 
+                                   extensions=c("Buttons"), filter="top", caption=caption, colnames=colNames,
+                                   options=list(dom = 'Bfrtip', buttons = c('colvis','copy', 'csv', 'excel', 'pdf', 'print'), pageLength=25, autoWidth=TRUE)
+  )
+  if (!is.null(format)){
+    currEnv = environment()
+    interactiveTable = eval(format, envir=c(envir, currEnv))
+  }
+  #DT::saveWidget(interactiveTable, tableLink)
+  return(interactiveTable)
+}
+
 ##' @title Write in a single line
 ##' @description Concatenates its arguments and writes it as a single line.
 ##' @param ... the arguments to concatenate.
