@@ -39,8 +39,10 @@ PRINSEQ_LITE='/usr/local/ngseq/stow/prinseq-lite-0.20.4/bin/prinseq-lite.pl'
 NCPRO_DIR="export PYTHONPATH=.:/usr/local/ngseq/lib/python && /usr/local/ngseq/opt/ncproseq_v1.6.4"
 NCPRO_ANNOTATION_DIR="/srv/GT/databases/ncPRO-seq/ncPRO-seq.v1.6.3_mirBase21"
 BWA="/usr/local/ngseq/src/bwa-0.7.12/bwa"
-FASTQSCREEN="/usr/local/ngseq/opt/fastq_screen_v0.7.0/fastq_screen"
-FASTQSCREEN_CONF_DIR="/usr/local/ngseq/opt/fastq_screen_v0.7.0/conf/"
+FASTQSCREEN="/usr/local/ngseq/opt/fastq_screen_v0.11.1/fastq_screen"
+FASTQSCREEN_CONF_DIR="/usr/local/ngseq/opt/fastq_screen_v0.11.1/conf/"
+FASTQSCREEN_GENOMICDNA_RIBORNA_CONF="/usr/local/ngseq/opt/fastq_screen_v0.11.1/conf/variousSpecies_rRNA_20160826_silva123.conf"
+FASTQSCREEN_ADAPTER_CONF="/usr/local/ngseq/opt/fastq_screen_v0.11.1/conf/adapters_20170421.txt"
 FLEXBAR="/usr/local/ngseq/stow/flexbar_v2.5_linux64/bin/flexbar"
 MACS2="export PYTHONPATH=.:/usr/local/ngseq/lib/python:/usr/local/ngseq/lib/python2.7:/usr/local/ngseq/stow/MACS2-2.1.0.20150731/lib/python && /usr/local/ngseq/stow/MACS2-2.1.0.20150731/bin/macs2"
 MEME="/usr/local/ngseq/stow/meme_4.10.2/bin/meme-chip"
@@ -51,7 +53,7 @@ GFOLD_DIR="/usr/local/ngseq/src/gfold.V1.1.4"
 
 JAVA="/usr/local/ngseq/bin/java"
 TRIMMOMATIC="/usr/local/ngseq/bin/java -jar /usr/local/ngseq/src/Trimmomatic-0.33/trimmomatic-0.33.jar"
-TRIMMOMATIC_ADAPTERS="/usr/local/ngseq/src/Trimmomatic-0.33/adapters/allIllumina.fasta"
+TRIMMOMATIC_ADAPTERS="/srv/GT/databases/contaminants/allIllumina-forTrimmomatic-20160202.fa"
 
 TRINITY="/usr/local/ngseq/src/trinityrnaseq_v2.1.1/Trinity"
 
