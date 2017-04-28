@@ -1,0 +1,120 @@
+---
+title: "`r paste('FASTQC:', param$name)`"
+author: "Functional Genomics Center Zurich"
+output: 
+  html_document:
+    self_contained: false
+    includes:
+      in_header: fgcz_header.html
+    css: fgcz.css
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
+
+## FastQC_Result {.tabset}
+
+### Read Counts
+The read counts in each sample.
+
+```{r readCounts, echo=FALSE}
+readCount <- ans4Report[["Read Counts"]]
+par(mar=c(10.1, 4.1, 4.1, 2.1))
+bp = barplot(readCount, ylab="Counts [Mio]", main="total reads", 
+             names.arg = rep('',length(readCount)))
+text(x = bp, y = par("usr")[3]-0.2, srt = 45, adj = 1, 
+     labels = names(readCount), xpd = TRUE)
+```
+
+### Fastqc Quality Measures
+The summary of [FastQC](https://www.bioinformatics.babraham.ac.uk/projects/fastqc/) reports.
+
+```{r quality, echo=FALSE, results='asis'}
+tbl <- ans4Report[["Fastqc quality measures"]]
+knitr::kable(tbl, col.names=colnames(tbl), row.names=TRUE)
+```
+
+### Per Base Read Quality
+The black and white heatmaps show the average reads quality  
+over all samples per base.
+The color scale corresponds to the percentage of reads at each reads quality.
+
+```{r avgQualColors, fig.width=16, fig.height=2, echo=FALSE}
+qualMatrixList <- ans4Report[["Per Base Read Quality"]]
+plotList <- plotQualityMatrixAsHeatmapGG2(qualMatrixList, 
+                                          isR2=grepl("_R2", names(qualMatrixList)))
+isPaired <- any(grepl("_R2", names(qualMatrixList)))
+# To plot in the order of R1, R2 in row
+library(grid)
+library(gridExtra)
+## This is quite stupid.
+if(isPaired){
+  grid.arrange(plotList[["R1"]][["Avg Qual Colors"]],
+               plotList[["R2"]][["Avg Qual Colors"]], ncol = 2)
+}else{
+  grid.arrange(plotList[["R1"]][["Avg Qual Colors"]], ncol = 2)
+}
+```
+
+```{r average, fig.width=16, echo=FALSE}
+if(isPaired){
+  grid.arrange(plotList[["R1"]][["Average"]],
+               plotList[["R2"]][["Average"]], ncol = 2)
+}else{
+  grid.arrange(plotList[["R1"]][["Average"]], ncol = 2)
+}
+```
+
+The blue and read heatmaps show the difference between each sample's reads quality
+and the average reads quality per base.
+The red represents a higher percentage of reads over the average, 
+while the blue represents a lower percentage of reads over the average.
+
+```{r diffQualColors, fig.width=16, fig.height=2, echo=FALSE}
+if(isPaired){
+  grid.arrange(plotList[["R1"]][["Diff Qual Colors"]],
+               plotList[["R2"]][["Diff Qual Colors"]], ncol = 2)
+}else{
+  grid.arrange(plotList[["R1"]][["Diff Qual Colors"]], ncol = 2)
+}
+```
+
+```{r sampleDiffQualColors, fig.width=16, echo=FALSE}
+sampleIndices <- which(!(names(plotList[["R1"]]) %in%
+                       c("Avg Qual Colors", "Average", "Diff Qual Colors")))
+for(sampleIndex in sampleIndices){
+  if(isPaired){
+    grid.arrange(plotList[["R1"]][[sampleIndex]],
+                 plotList[["R2"]][[sampleIndex]], ncol = 2)
+  }else{
+    grid.arrange(plotList[["R1"]][[sampleIndex]], ncol = 2)
+  }
+}
+```
+
+### Correlation
+Correlation between Library concentration measurements and ReadCounts.
+It's only shown when "LibConc_qPCR" or "LibConc_100_800bp" columns exit in `dataset`.
+
+```{r correlation, echo=FALSE}
+dataset <- ans4Report[["dataset"]]
+if(nrow(dataset) > 1){
+  plotReadCountToLibConcRmd(dataset, 
+                            colname='LibConc_qPCR [Characteristic]')
+  plotReadCountToLibConcRmd(dataset, 
+                            colname='LibConc_100_800bp [Characteristic]')
+}
+```
+
+### Input Dataset
+```{r, echo=FALSE}
+ezInteractiveTableRmd(values=ans4Report[["dataset"]])
+```
+
+### SessionInfo
+```{r, echo=FALSE}
+sessionInfo()
+```
+
