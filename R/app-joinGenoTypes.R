@@ -43,7 +43,7 @@ runGatkPipeline = function(datasetCase, param=NA){
                 fileCmd,
                 "--dbsnp", param$dbsnpFile,
                 "-o", outputFile,
-                "-nt", round(param$cores/param$mc.cores))
+                "-nt", 1) ####It's often crashing with more than one core
     if(param$targetFile != ''){
       cmd = paste(cmd,
                   "-L", param$targetFile)
