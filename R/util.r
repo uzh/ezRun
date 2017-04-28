@@ -702,15 +702,11 @@ ezSplitLongText = function(text, nSplit=180){
   splittedText = paste0(splittedText, text)
   return(splittedText)
 }
-##' @title Count reads in compressed fastq file
-##' @description  Count reads in compressed fastq file
+##' @title Count reads in fastq file
+##' @description  Count reads in gz-compressed or uncompressed fastq file
 ##' @param file a character file name
-##' @param compressed logical is gzipped file
 countReads = function(file, compressed){
-  if(compressed){
-    count = as.numeric(system(paste('pigz -dc ',file,'|wc -l',sep=''),intern = T))/4
-  } else {
-    count = as.numeric(system(paste('cat', file, '|wc -l'),intern = T))/4
-  }
+  require(Biostrings)
+  count <- sapply(file, fastq.geometry)[1, ]
   return(count)
 }
