@@ -245,27 +245,10 @@ removeReadsFromFastq = function(fqFiles, readIds, fqOutFiles=NULL, doGzip=TRUE){
 ##' fqFiles = input$getFullPaths("Read1")
 ##' result = countReadsInFastq(fqFiles)
 countReadsInFastq = function(fastqFiles){
-  nReads = c()
-  for(fastq in fastqFiles){
-    if(grepl(".gz$", fastq)){
-      cmd = paste("gunzip -c", fastq, "| wc -l")
-      nRead = ezSystem(cmd, intern=TRUE)
-    }else{
-      cmd = paste("wc -l", fastq)
-      nRead = ezSystem(cmd , intern=TRUE)
-    }
-    nRead = trimWhiteSpace(nRead)
-    nRead = ezSplit(nRead, " ")[1]
-    stopifnot(as.integer(nRead) %% 4 == 0)
-    nRead = as.integer(nRead) / 4
-    nReads[fastq] = nRead
-  }
+  require(Biostrings)
+  nReads <- sapply(fastqFiles, fastq.geometry)[1, ]
   return(nReads)
 }
-
-
-
-
 
 .pairFastqReads = function(fqFile1, fqFile2, fqOut1, fqOut2, overwrite=FALSE,  doGzip=FALSE){
   require("ShortRead", warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)

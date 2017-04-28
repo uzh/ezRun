@@ -702,11 +702,3 @@ ezSplitLongText = function(text, nSplit=180){
   splittedText = paste0(splittedText, text)
   return(splittedText)
 }
-##' @title Count reads in fastq file
-##' @description  Count reads in gz-compressed or uncompressed fastq file
-##' @param file a character file name
-countReads = function(file, compressed){
-  require(Biostrings)
-  count <- sapply(file, fastq.geometry)[1, ]
-  return(count)
-}
