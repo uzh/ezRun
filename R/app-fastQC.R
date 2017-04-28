@@ -143,7 +143,7 @@ EzAppFastqc <-
                 initialize = function()
                 {
                   "Initializes the application using its specific defaults."
-                  runMethod <<- ezMethodFastQC
+                  runMethod <<- ezMethodFastQCRmd
                   name <<- "EzAppFastqc"
                 }
               )
