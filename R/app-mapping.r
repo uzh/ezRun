@@ -96,7 +96,7 @@ ezMethodBowtie2 = function(input=NA, output=NA, param=NA){
   cmd = paste(file.path(BOWTIE2_DIR, "bowtie2"), param$cmdOptions, defOpt, readGroupOpt,
               "-x", ref, if(param$paired) "-1", trimmedInput$getColumn("Read1"), 
               if(param$paired) paste("-2", trimmedInput$getColumn("Read2")),
-              "2> bowtie.log", "|", SAMTOOLS, "view -S -b -", " > bowtie.bam")
+              "2>", paste0(sampleName,"_bowtie2.log"), "|", SAMTOOLS, "view -S -b -", " > bowtie.bam")
   ezSystem(cmd)
   ezSortIndexBam("bowtie.bam", basename(bamFile), ram=param$ram, removeBam=TRUE, cores=ezThreads())
   
