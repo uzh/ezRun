@@ -96,7 +96,7 @@ ezMethodFastQCRmd = function(input=NA, output=NA, param=NA,
   ans4Report[["Per Base Read Quality"]] <- qualMatrixList
   
   ## generate the main reports
-  render(input="FastQC.Rmd", output_dir=".", output_file="00index.html")
+  render(input="FastQC.Rmd", output_dir=".", output_file=htmlFile)
   
   ezSystem(paste("rm -rf ", paste0(reportDirs, ".zip", collapse=" ")))
   return("Success")
