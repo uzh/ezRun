@@ -30,8 +30,8 @@ ezMethodFastqScreen = function(input=NA, output=NA, param=NA, htmlFile="00index.
   rownames(readCount) = names(files_ppData)
   
   for(nm in names(files_ppData)){
-    readCount[nm,'totalReadCount'] = countReads(files_ppData[nm], compressed=F)
-    readCount[nm,'unmappedReadCount'] = countReads(noHit_files[nm],compressed=F)
+    readCount[nm,'totalReadCount'] = countReadsInFastq(files_ppData[nm])
+    readCount[nm,'unmappedReadCount'] = countReadsInFastq(noHit_files[nm])
   }
   
   # bowtie2 reference part
