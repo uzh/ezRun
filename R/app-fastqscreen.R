@@ -52,7 +52,18 @@ ezMethodFastqScreen = function(input=NA, output=NA, param=NA, htmlFile="00index.
   
   #create report
   setwdNew(basename(output$getColumn("Report")))
-  fastqscreenReport(dataset, param, htmlFile, fastqData_ppData, fastqData_rawData, speciesPercentageTop, speciesPercentageTopVirus = speciesPercentageTopVirus)
+  
+  ## Copy the style files and templates
+  styleFiles <- file.path(system.file("templates", package="ezRun"),
+                          c("fgcz.css", "FastqScreen.Rmd",
+                            "fgcz_header.html", "banner.png"))
+  file.copy(from=styleFiles, to=".", overwrite=TRUE)
+  
+  ## generate the main reports
+  require(rmarkdown)
+  render(input="FastqScreen.Rmd", output_dir=".", output_file=htmlFile)
+  
+  #fastqscreenReport(dataset, param, htmlFile, fastqData_ppData, fastqData_rawData, speciesPercentageTop, speciesPercentageTopVirus = speciesPercentageTopVirus)
   return("Success")
 }
 
