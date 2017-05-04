@@ -41,7 +41,7 @@ The black and white heatmaps show the average reads quality
 over all samples per base.
 The color scale corresponds to the percentage of reads at each reads quality.
 
-```{r avgQualColors, fig.width=16, fig.height=2, echo=FALSE}
+```{r avgQualColors, fig.width=16, fig.height=2, echo=FALSE, results='hide', warning=FALSE, message=FALSE}
 qualMatrixList <- ans4Report[["Per Base Read Quality"]]
 plotList <- plotQualityMatrixAsHeatmapGG2(qualMatrixList, 
                                           isR2=grepl("_R2", names(qualMatrixList)))
@@ -58,7 +58,7 @@ if(isPaired){
 }
 ```
 
-```{r average, fig.width=16, echo=FALSE}
+```{r average, fig.width=16, echo=FALSE, results='hide', warning=FALSE, message=FALSE}
 if(isPaired){
   grid.arrange(plotList[["R1"]][["Average"]],
                plotList[["R2"]][["Average"]], ncol = 2)
@@ -72,7 +72,7 @@ and the average reads quality per base.
 The red represents a higher percentage of reads over the average, 
 while the blue represents a lower percentage of reads over the average.
 
-```{r diffQualColors, fig.width=16, fig.height=2, echo=FALSE}
+```{r diffQualColors, fig.width=16, fig.height=2, echo=FALSE, results='hide', warning=FALSE, message=FALSE}
 if(isPaired){
   grid.arrange(plotList[["R1"]][["Diff Qual Colors"]],
                plotList[["R2"]][["Diff Qual Colors"]], ncol = 2)
@@ -81,7 +81,7 @@ if(isPaired){
 }
 ```
 
-```{r sampleDiffQualColors, fig.width=16, echo=FALSE}
+```{r sampleDiffQualColors, fig.width=16, echo=FALSE, results='hide', warning=FALSE, message=FALSE}
 sampleIndices <- which(!(names(plotList[["R1"]]) %in%
                        c("Avg Qual Colors", "Average", "Diff Qual Colors")))
 for(sampleIndex in sampleIndices){
@@ -98,7 +98,7 @@ for(sampleIndex in sampleIndices){
 Correlation between Library concentration measurements and ReadCounts.
 It's only shown when "LibConc_qPCR" or "LibConc_100_800bp" columns exit in `dataset`.
 
-```{r correlation, echo=FALSE}
+```{r correlation, echo=FALSE, results='hide', warning=FALSE, message=FALSE}
 dataset <- ans4Report[["dataset"]]
 if(nrow(dataset) > 1){
   plotReadCountToLibConcRmd(dataset, 
