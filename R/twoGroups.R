@@ -205,8 +205,7 @@ runEdger = function(x, sampleGroup, refGroup, grouping, normMethod, priorCount=0
   sf = sf / ezGeomean(sf)
   #sf = ezLogmeanScalingFactor(x, presentFlag=x>0)
   if (sum(grouping == refGroup) >=2 & sum(grouping == sampleGroup) >=2){
-    cds = estimateCommonDisp(cds)
-    cds = estimateTagwiseDisp(cds)
+    cds <- estimateDisp(cds)
   } else {
     cds$common.dispersion = 0.1
   }
@@ -257,8 +256,7 @@ runGlm = function(x, sampleGroup, refGroup, grouping, normMethod, grouping2=NULL
   
   ## dispersion estimation
   if (sum(grouping == refGroup) >=2 & sum(grouping == sampleGroup) >=2){
-    cds = estimateGLMTrendedDisp(cds, design)
-    cds = estimateGLMTagwiseDisp(cds, design)
+    cds <- estimateDisp(cds, design)
   } else {
     cds$common.dispersion = 0.1
   }
