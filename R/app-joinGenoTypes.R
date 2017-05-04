@@ -45,6 +45,7 @@ runGatkPipeline = function(datasetCase, param=NA){
                 "-o", outputFile,
                 "-nt", 1) ####It's often crashing with more than one core
     if(param$targetFile != ''){
+      param$targetFile = file.path(TARGET_ENRICHMENT_DESIGN_DIR, param$targetFile)
       cmd = paste(cmd,
                   "-L", param$targetFile)
     }

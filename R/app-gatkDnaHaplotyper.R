@@ -53,6 +53,7 @@ ezMethodGatkDnaHaplotyper = function(input=NA, output=NA, param=NA){
               "-nct", param$cores)
   
   if(param$targetFile != ''){
+    param$targetFile = file.path(TARGET_ENRICHMENT_DESIGN_DIR, param$targetFile)
     cmd = paste(cmd,
                 "-L", param$targetFile)
   }
