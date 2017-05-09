@@ -19,23 +19,67 @@ ezMethodTrinity = function(input=NA, output=NA, param=NA, htmlFile="00index.html
     read1 = paste(trimmedInput$getColumn("Read1"), collapse=",")
     read2 = paste(trimmedInput$getColumn("Read2"), collapse=",")
     readOpt = paste("--left", read1, "--right", read2)
-#    readOpt = paste("--left", reads1, "--right", reads2)
     libOpt = switch(param$strandMode, sense="--SS_lib_type FR", antisense="--SS_lib_type RF", both="")
   } else {
     read1 = paste(trimmedInput$getColumn("Read1"), collapse=",")
     readOpt = paste("--single", read1)
-#    readOpt = paste("--single", reads1)
     libOpt = switch(param$strandMode, sense="--SS_lib_type F", antisense="--SS_lib_type R", both="")
   }
   
-  cmd = paste(TRINITY, "-seqType fq", readOpt,
+  cmd = paste("Trinity", "-seqType fq", readOpt,
               "--max_memory", paste0(param$ram, "G"), "--bflyCalculateCPU", ## "--bflyHeapSpaceMax", paste0(round(as.numeric(param$ram)/4), "G"),
               "--CPU", ezThreads(),
               libOpt,
               param$trinityOpt,
               "--output", "trinity", ">", "trinity.stdout")
   ezSystem(cmd)
-  ezSystem(paste("mv", "trinity/Trinity.fasta", basename(output$getColumn("Fasta"))))
+  pathTranscripts = "trinity/Trinity.fasta"
+  
+  # Stats and QC
+  cmd = paste("TrinityStats.pl", pathTranscripts, ">", basename(output$getColumn("Stats")))
+  ezSystem(cmd)
+  
+  dir.create("abundance")
+  # Note that if you change the method, you would also need to change the names of the abundance
+  # files, e.g. salmon produces quant.sf while kallisto creates abundance.tsv
+  abundanceMethod = "salmon"
+  abundancePrefix = "transcript"
+  for (nm in trimmedInput$getNames()) {
+    sampleDs = trimmedInput$subset(nm)
+    if (param$paired) {
+      readOpt = paste("--left", sampleDs$getColumn("Read1"), "--right", sampleDs$getColumn("Read2"))
+    } else {
+      readOpt = paste("--single", sampleDs$getColumn("Read1"))
+    }
+    cmd = paste("align_and_estimate_abundance.pl", 
+                "--transcripts", pathTranscripts,
+                "--seqType", "fq",
+                "--est_method", abundanceMethod,
+                "--prep_reference",
+                "--trinity_mode",
+                readOpt,
+                "--output_dir", file.path("abundance", nm))
+    ezSystem(cmd)
+  }
+  abundanceFiles <- file.path("abundance", trimmedInput$getNames(), "quant.sf")
+  cmd = paste("abundance_estimates_to_matrix.pl",
+              "--est_method", abundanceMethod,
+              "--out_prefix", abundancePrefix,
+              "--name_sample_by_basedir",
+              paste(abundanceFiles, collapse = " "))
+  ezSystem(cmd)
+  cmd = paste("$Trinity/util/misc/contig_ExN50_statistic.pl", 
+              paste0(abundancePrefix, ".TMM.EXPR.matrix"),
+              pathTranscripts,
+              ">", basename(output$getColumn("ExN50")))
+  ezSystem(cmd)
+  
+  # Rename output files
+  ezSystem(paste("mv", pathTranscripts, basename(output$getColumn("Fasta")) ))
+  ezSystem(paste("mv", paste0(abundancePrefix, ".counts.matrix"), basename(output$getColumn("Abundance Counts"))))
+  ezSystem(paste("mv", paste0(abundancePrefix, ".TPM.not_cross_norm"), basename(output$getColumn("Abundance TPM"))))
+  ezSystem(paste("mv", paste0(abundancePrefix, ".TMM.EXPR.matrix"), basename(output$getColumn("Abundance TMM"))))
+  
   return("Success")
 }
 
