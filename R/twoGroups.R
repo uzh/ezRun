@@ -88,7 +88,7 @@ twoGroupCountComparison = function(rawData, param){
                exactTest = runEdger(round(x), param$sampleGroup, param$refGroup, param$grouping, param$normMethod,
                                     priorCount=param$backgroundExpression),
                glm = runGlm(round(x), param$sampleGroup, param$refGroup, param$grouping, param$normMethod, grouping2=param$grouping2,
-                            priorCount=param$backgroundExpression),
+                            priorCount=param$backgroundExpression, deTest=param$deTest),
                limma = runLimma(x, param$sampleGroup, param$refGroup, param$grouping, grouping2=param$grouping2),
                stop("unsupported testMethod: ", param$testMethod)
   )
@@ -229,8 +229,14 @@ runEdger = function(x, sampleGroup, refGroup, grouping, normMethod, priorCount=0
 
 ##' @describeIn twoGroupCountComparison Runs the Glm test method.
 runGlm = function(x, sampleGroup, refGroup, grouping, normMethod, grouping2=NULL,
-                  priorCount=0.125){
+                  priorCount=0.125, deTest=c("QL", "LR")){
   require("edgeR", warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
+  
+  ## differential expression test by quasi-likelihood (QL) F-test or 
+  ## likelihood ratio test.
+  ## QL as default.
+  deTest <- match.arg(deTest)
+  
   ## get the scaling factors for the entire data set
   cds = DGEList(counts=x, group=grouping)
   cds = calcNormFactors(cds, method=normMethod)
@@ -262,8 +268,17 @@ runGlm = function(x, sampleGroup, refGroup, grouping, normMethod, grouping2=NULL
   }
   
   ## Testing for DE genes
-  fitGlm = glmFit(cds, design, prior.count=priorCount)
-  lrt.2vs1 = glmLRT(fitGlm, coef=2)
+  if(deTest == "QL"){
+    ## quasi-likelihood (QL) F-test
+    message("Using quasi-likelihood (QL) F-test!")
+    fitGlm = glmQLFit(cds, design, prior.count=priorCount)
+    lrt.2vs1 = glmQLFTest(fitGlm, coef=2)
+  }else{
+    ## likelihood ratio test
+    message("Using likelihood ratio test!")
+    fitGlm = glmFit(cds, design, prior.count=priorCount)
+    lrt.2vs1 = glmLRT(fitGlm, coef=2)
+  }
   res = list()
   res$id = rownames(lrt.2vs1$table)
   res$log2FoldChange = lrt.2vs1$table$logFC

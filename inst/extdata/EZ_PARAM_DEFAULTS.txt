@@ -35,6 +35,7 @@ refFastaFile	character	Sequence/WholeGenomeFasta/genome.fa	the file that holds t
 #refChromDir	character		the directory that hold the genomic sequence with one file per chromosome / contig
 # analysis parameters
 normMethod	character	quantile	The default method to normalize count or other expression data
+deTest	character	QL	The default method to do differential expression test
 factors	character		comma separated list of factors that should be considered; (default: all factors in the dataset)
 featureLevel	character	gene	the level at which features should be analyzed
 useSigThresh	logical	TRUE	Use the sigThresh value to call features absent if below

@@ -260,6 +260,9 @@ addCountResultSummary = function(doc, param, result){
   if (!is.null(param$normMethod)){
     settings["Normalization:"] = param$normMethod
   }
+  if(!is.null(param$deTest)){
+    settings["Differential expression test:"] <- param$deTest
+  }
   if (param$useSigThresh){
     settings["Log2 signal threshold:"] = signif(log2(param$sigThresh), digits=4)
     settings["Linear signal threshold:"] = signif(param$sigThresh, digits=4)
