@@ -153,8 +153,8 @@ ezInteractiveTable = function(values, tableLink, digits=NULL, colNames=colnames(
   if (!is.null(digits)){
     for (i in 1:ncol(values)) {
       hasDecimals = suppressWarnings({as.integer(values[ ,i]) != values[ ,i]})
-      hasDecimals[is.na(hasDecimals)] = FALSE
-      if (any(hasDecimals)){
+      #hasDecimals[is.na(hasDecimals)] = FALSE
+      if (any(hasDecimals) & all(!is.na(hasDecimals))){
         values[ ,i] = signif(values[ ,i], digits=digits)
       }
     }
@@ -195,7 +195,7 @@ ezInteractiveTableRmd = function(values, digits=NULL,
     for (i in 1:ncol(values)) {
       hasDecimals = suppressWarnings({as.integer(values[ ,i]) != values[ ,i]})
       hasDecimals[is.na(hasDecimals)] = FALSE
-      if (any(hasDecimals)){
+      if (any(hasDecimals)  & all(!is.na(hasDecimals))){
         values[ ,i] = signif(values[ ,i], digits=digits)
       }
     }
