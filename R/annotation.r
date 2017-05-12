@@ -80,6 +80,74 @@ writeAnnotationFromGtf = function(param, featureFile=param$ezRef@refFeatureFile,
   return(seqAnno)
 }
 
+### -----------------------------------------------------------------
+### make the feature annotation file <name>_annotation.txt
+### for Ensembl gtf.
+makeFeatAnnoEnsembl <- function(featureFile, 
+                                featAnnoFile=sub(".gtf", "_annotation.txt", 
+                                                 featureFile),
+                                organism="hsapiens_gene_ensembl",
+                                host=NULL){
+  require(plyr)
+  require(biomaRt)
+  if(is.null(host)){
+    ensembl <- useMart("ENSEMBL_MART_ENSEMBL")
+  }else{
+    ensembl <- useMart("ENSEMBL_MART_ENSEMBL", host=host)
+  }
+  ensembl <- useDataset(organism, mart=ensembl)
+  
+  require(rtracklayer)
+  feature <- import(featureFile)
+  transcripts <- feature[feature$type=="transcript"]
+  featAnno <- ezFrame(transcript_id=transcripts$transcript_id,
+                      gene_id=transcripts$gene_id,
+                      gene_name=transcripts$gene_name,
+                      type=transcripts$transcript_biotype,
+                      strand=strand(transcripts),
+                      seqid=seqnames(transcripts),
+                      start=start(transcripts),
+                      end=end(transcripts),
+                      biotypes=transcripts$gene_biotype,
+                      row.names=transcripts$transcript_id
+                      )
+  
+  ## additional information from Ensembl
+  mapping <-
+    getBM(attributes= c("ensembl_transcript_id", "description", 
+                        "go_id", "namespace_1003",
+                        "percentage_gene_gc_content", "transcript_length"),
+          filters=c("ensembl_transcript_id"),
+          values=rownames(featAnno), mart=ensembl)
+  ### description, gc, width
+  txid2description <- mapping[c("ensembl_transcript_id", "description", 
+                                "percentage_gene_gc_content", 
+                                "transcript_length")]
+  colnames(txid2description) <- c("transcript_id", "description",
+                                  "gc", "width")
+  txid2description <- transform(txid2description, gc=gc/100)
+  featAnno <- join(featAnno, txid2description, by="transcript_id", 
+                   match="first")
+  
+  ### GO
+  GOMapping <- c("biological_process"="GO BP",
+                 "molecular_function"="GO MF",
+                 "cellular_component"="GO CC")
+  for(i in 1:length(GOMapping)){
+    isBP <- mapping$namespace_1003 == names(GOMapping)[i]
+    txid2BP <- lapply(split(mapping$go_id[isBP], 
+                            mapping$ensembl_transcript_id[isBP]), unique)
+    txid2BP <- sapply(txid2BP, paste, collapse="; ")
+    #### Some transcript_id may not have GO IDs. we use match.
+    featAnno[[GOMapping[i]]] <- txid2BP[match(featAnno$transcript_id, 
+                                              names(txid2BP))]
+  }
+  featAnno[is.na(featAnno)] <- ""
+  featAnno$transcript_id <- NULL
+  ezWrite.table(featAnno, file=featAnnoFile)
+  invisible(featAnno)
+}
+
 ##' @describeIn ezFeatureAnnotation Aggregates the Go annotation.
 aggregateGoAnnotation = function(seqAnno, genes, goColumns=c("GO BP", "GO CC", "GO MF")){
   if (setequal(genes, rownames(seqAnno))){

@@ -91,14 +91,18 @@ getReferenceFeaturesBed = function(param){
 ##' gtf = system.file("extdata/genes.gtf", package="ezRun", mustWork=TRUE)
 ##' fasta = system.file("extdata/genome.fa", package="ezRun", mustWork=TRUE)
 ##' cg = cleanGenomeFiles(fasta, gtf)
-cleanGenomeFiles = function(genomeFile, genesFile, patchPattern="PATCH"){
-  
+cleanGenomeFiles = function(genomeFile, genesFile, 
+                            patchPattern="(^CHR|^KI|PATCH)"){
+  require(Biostrings)
+  require(rtracklayer)
   genome = readDNAStringSet(genomeFile)
   names(genome) = sub(" .*", "", names(genome))
   genome = genome[!grepl(patchPattern, names(genome))]
-  gtf = ezReadGff(genesFile)
-  use = gtf$seqid %in% names(genome)
+  
+  #gtf = ezReadGff(genesFile)
+  gtf <- import(genesFile)
+  use = seqnames(gtf) %in% names(genome)
   stopifnot(any(use))
-  gtf = gtf[use,]
+  gtf = gtf[use]
   return(list(genomeSeq=genome, gtf=gtf))
 }
