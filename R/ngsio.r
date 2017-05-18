@@ -31,11 +31,11 @@
 ##' input = EzDataset$new(file=file, dataRoot=param$dataRoot)
 ##' cds = loadCountDataset(input, param)
 loadCountDataset = function(input, param){
-
+  require(tools)
   files = input$getFullPaths("Count")
-  suffix = unique(toupper( sub(".*\\.", "", files)))
+  suffix = unique(toupper(file_ext(files)))
   if (length(suffix) > 1){
-    return(list(error=paste("different  file suffixes not supported: <br>",
+    return(list(error=paste("different file suffixes not supported: <br>",
                             paste(files, collapse="<br>"))))
   }
   x = ezRead.table(files[1])
