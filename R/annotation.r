@@ -86,16 +86,10 @@ writeAnnotationFromGtf = function(param, featureFile=param$ezRef@refFeatureFile,
 makeFeatAnnoEnsembl <- function(featureFile, 
                                 featAnnoFile=sub(".gtf", "_annotation.txt", 
                                                  featureFile),
+                                biomartFile=NULL,
                                 organism="hsapiens_gene_ensembl",
                                 host=NULL){
   require(plyr)
-  require(biomaRt)
-  if(is.null(host)){
-    ensembl <- useMart("ENSEMBL_MART_ENSEMBL")
-  }else{
-    ensembl <- useMart("ENSEMBL_MART_ENSEMBL", host=host)
-  }
-  ensembl <- useDataset(organism, mart=ensembl)
   
   require(rtracklayer)
   feature <- import(featureFile)
@@ -103,7 +97,7 @@ makeFeatAnnoEnsembl <- function(featureFile,
   featAnno <- ezFrame(transcript_id=transcripts$transcript_id,
                       gene_id=transcripts$gene_id,
                       gene_name=transcripts$gene_name,
-                      type=transcripts$transcript_biotype,
+                      type=transcripts$gene_biotype,
                       strand=strand(transcripts),
                       seqid=seqnames(transcripts),
                       start=start(transcripts),
@@ -112,20 +106,60 @@ makeFeatAnnoEnsembl <- function(featureFile,
                       row.names=transcripts$transcript_id
                       )
   
-  ## additional information from Ensembl
-  mapping <-
-    getBM(attributes= c("ensembl_transcript_id", "description", 
-                        "go_id", "namespace_1003",
-                        "percentage_gene_gc_content", "transcript_length"),
-          filters=c("ensembl_transcript_id"),
-          values=rownames(featAnno), mart=ensembl)
+  ## Group the biotype into more general groups
+  stopifnot(all(featAnno$type %in% listBiotypes("all")))
+  isProteinCoding <- featAnno$type %in% listBiotypes("protein_coding")
+  isLNC <- featAnno$type %in% listBiotypes("long_noncoding")
+  isSHNC <- featAnno$type %in% listBiotypes("short_noncoding")
+  isrRNA <- featAnno$type %in% listBiotypes("rRNA")
+  istRNA <- featAnno$type %in% listBiotypes("tRNA")
+  isPseudo <- featAnno$type %in% listBiotypes("pseudogene")
+  featAnno$type[isPseudo] <- "pseudogene"
+  featAnno$type[isLNC] <- "long_noncoding"
+  featAnno$type[isSHNC] <- "short_noncoding"
+  featAnno$type[isProteinCoding] <- "protein_coding"
+  ### rRNA and tRNA have to be after noncoding
+  ### since they are subset of noncoding
+  featAnno$type[isrRNA] <- "rRNA"
+  featAnno$type[istRNA] <- "tRNA"
+  
+  ## additional information from Ensembl or downloaded biomart file
+  attributes <- c("ensembl_transcript_id", "description", 
+                  "go_id", "namespace_1003",
+                  "percentage_gene_gc_content", "transcript_length")
+  names(attributes) <- c("Transcript stable ID", "Gene description",
+                         "GO term accession", "GO domain",
+                         "% GC content", 
+                         "Transcript length (including UTRs and CDS)")
+  if(!is.null(biomartFile)){
+    require(readr)
+    mapping <- read_tsv(biomartFile)
+    if(!setequal(colnames(mapping), names(attributes))){
+      stop("Make sure ", paste(names(attributes), collapse="; "), 
+           "are downloaded from web biomart!")
+    }
+    colnames(mapping) <- attributes[colnames(mapping)]
+  }else{
+    require(biomaRt)
+    if(is.null(host)){
+      ensembl <- useMart("ENSEMBL_MART_ENSEMBL")
+    }else{
+      ensembl <- useMart("ENSEMBL_MART_ENSEMBL", host=host)
+    }
+    ensembl <- useDataset(organism, mart=ensembl)
+    mapping <-
+      getBM(attributes=attributes,
+            filters=c("ensembl_transcript_id"),
+            values=rownames(featAnno), mart=ensembl)
+  }
+  
   ### description, gc, width
   txid2description <- mapping[c("ensembl_transcript_id", "description", 
                                 "percentage_gene_gc_content", 
                                 "transcript_length")]
   colnames(txid2description) <- c("transcript_id", "description",
                                   "gc", "width")
-  txid2description <- transform(txid2description, gc=gc/100)
+  txid2description$gc <- txid2description$gc / 100
   featAnno <- join(featAnno, txid2description, by="transcript_id", 
                    match="first")
   

@@ -155,18 +155,19 @@ setMethod("buildRefDir", "EzRef", function(.Object, genomeFile, genesFile,
                    "; rm -f Genes; ", "ln -s",
                    file.path(.Object@refAnnotationVersion, "Genes"), "Genes"))
   }
-
   
-  genomeInfoList = cleanGenomeFiles(genomeFile, genesFile)
-  writeXStringSet(genomeInfoList$genomeSeq, .Object@refFastaFile)
-  ## 3 GTF files: The naming should be fixed later refFeatureFile, refGeneFile..
+  ## fasta
+  genome <- readDNAStringSet(genomeFile)
+  ### remove everything after chr id
+  names(genome) = sub(" .*", "", names(genome)) 
+  writeXStringSet(genome, .Object@refFastaFile)
+  
+  ## 2 GTF files: 
   ### features.gtf
-  export(genomeInfoList$gtf, file.path(gtfPath, "features.gtf"))
-  ### transcribed.gtf
-  export(featureFilter(genomeInfoList$gtf, "transcribed"),
-         con=file.path(gtfPath, "transcribed.gtf"))
+  gtf <- import(genesFile)
+  export(gtf, con=file.path(gtfPath, "features.gtf"))
   ### genes.gtf
-  export(featureFilter(genomeInfoList$gtf, "genes"),
+  export(gtf[gtf$gene_biotype %in% listBiotypes("genes")],
          con=file.path(gtfPath, "genes.gtf"))
   
   cmd = paste(SAMTOOLS, "faidx", .Object@refFastaFile) # create the .fai file
@@ -184,23 +185,65 @@ setMethod("buildRefDir", "EzRef", function(.Object, genomeFile, genesFile,
   ezSystem(cmd)
 })
 
-featureFilter <- function(feature, select=c("genes", "transcribed")){
+##' @describeIn listBiotypes returns the Ensembl gene_biotypes according to more general groups.
+listBiotypes <- function(select=c("genes", "protein_coding", "long_noncoding",
+                                  "short_noncoding", "rRNA", "tRNA", "pseudogene",
+                                  "all")){
   ## Based on http://www.ensembl.org/Help/Faq?id=468
   ## http://vega.archive.ensembl.org/info/about/gene_and_transcript_types.html
   ## http://www.ensembl.org/Help/Glossary
   select <- match.arg(select)
+  ## The following are from Ensembl glossary
   proteinCoding <- c("IG_C_gene", "IG_D_gene", "IG_J_gene", "IG_LV_gene", 
                      "IG_M_gene", "IG_V_gene", "IG_Z_gene", 
                      "nonsense_mediated_decay", "nontranslating_CDS", 
                      "non_stop_decay", "polymorphic_pseudogene", 
                      "protein_coding", "TR_C_gene", "TR_D_gene", "TR_gene", 
-                     "TR_J_gene", "TR_V_gene")
-  unTranscribed <- c("unprocessed_pseudogene", "unitary_pseudogene")
-  feature <- switch(select,
-                    "genes"=feature[feature$gene_biotype %in% proteinCoding],
-                    "transcribed"=feature[!feature$gene_biotype %in% unTranscribed]
+                     "TR_J_gene", "TR_V_gene",
+                     "TEC")
+  pseudogene <- c("disrupted_domain", "IG_C_pseudogene", "IG_J_pseudogene", 
+                  "IG_pseudogene", "IG_V_pseudogene", "processed_pseudogene", 
+                  "pseudogene", "transcribed_processed_pseudogene", 
+                  "transcribed_unprocessed_pseudogene", 
+                  "translated_processed_pseudogene", 
+                  "translated_unprocessed_pseudogene", "TR_J_pseudogene", 
+                  "TR_V_pseudogene", "unitary_pseudogene", 
+                  "unprocessed_pseudogene",
+                  "transcribed_unitary_pseudogene",
+                  "miRNA_pseudogene", "misc_RNA_pseudogene", 
+                  "Mt_tRNA_pseudogene", "rRNA_pseudogene", 
+                  "scRNA_pseudogene", "snRNA_pseudogene",
+                  "snoRNA_pseudogene", "tRNA_pseudogene",
+                  "IG_D_pseudogene")
+  lnc <- c("3prime_overlapping_ncrna", "ambiguous_orf", "antisense", "lincRNA", 
+           "ncrna_host", "non_coding", "processed_transcript", 
+           "retained_intron", "sense_intronic", "sense_overlapping",
+           "3prime_overlapping_ncRNA", "bidirectional_promoter_lncRNA",
+           "macro_lncRNA")
+  shnc <- c("miRNA", "misc_RNA", 
+            "Mt_rRNA", "Mt_tRNA", "ncRNA", "pre_miRNA", 
+            "RNase_MRP_RNA", "RNase_P_RNA", "rRNA",
+            "snlRNA", "snoRNA", 
+            "snRNA", "SRP_RNA", "tmRNA", "tRNA", 
+            "scaRNA", "scRNA", "sRNA", "ribozyme", "vaultRNA")
+  unionBiotypes <- unique(c(proteinCoding, pseudogene, lnc, shnc))
+  ## genes.gtf
+  genes <- unique(c(setdiff(unionBiotypes, pseudogene),
+                    grep("transcribed", pseudogene, value=TRUE)
                     )
-  return(feature)
+                  )
+  
+  types <- switch(select,
+                  "genes"=genes,
+                  "protein_coding"=proteinCoding,
+                  "long_noncoding"=lnc,
+                  "short_noncoding"=shnc,
+                  "pseudogene"=pseudogene,
+                  "rRNA"=c("rRNA"),
+                  "tRNA"=c("tRNA"),
+                  "all"=unionBiotypes
+                  )
+  return(types)
 }
 
 ## should be called after buildRefDir created the folder structure with genes.gtf and genome.fa
