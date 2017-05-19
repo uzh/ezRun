@@ -24,7 +24,7 @@ fastqDataAdapters=fastqData_rawData
 
 ### FastqScreen Mapping Rates Overview
 
-```{r overview, echo=FALSE, results='hide', warning=FALSE, message=FALSE}
+```{r overview, echo=FALSE, results='hide', warning=FALSE, message=FALSE, fig.width=min(7+(nrow(dataset)-20)*0.3, 30)}
 # MappingRate
 par(mar=c(10.1, 4.1, 4.1, 2.1))
     bplt = barplot(fastqData$MappingRate, las=2, ylim=c(0,100), ylab="MappedReads in %", main="Overall MappingRate", col="royalblue3",
