@@ -8,7 +8,6 @@
 
 ezMethodFastQCRmd = function(input=NA, output=NA, param=NA, 
                              htmlFile="00index.html"){
-  require(rmarkdown)
   setwdNew(basename(output$getColumn("Report")))
   dataset = input$meta
   samples = rownames(dataset)
@@ -95,7 +94,11 @@ ezMethodFastQCRmd = function(input=NA, output=NA, param=NA,
   qualMatrixList = ezMclapply(files, getQualityMatrix, mc.cores=ezThreads())
   ans4Report[["Per Base Read Quality"]] <- qualMatrixList
   
+  ## debug
+  ## save(ans4Report, file="ans4Report.rda")
+  
   ## generate the main reports
+  require(rmarkdown)
   render(input="FastQC.Rmd", output_dir=".", output_file=htmlFile)
   
   ezSystem(paste("rm -rf ", paste0(reportDirs, ".zip", collapse=" ")))
