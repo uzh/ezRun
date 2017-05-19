@@ -15,6 +15,7 @@ ezMethodBamPreview = function(input=NA, output=NA, param=NA, htmlFile="00index.h
   bamMeta = input$meta[ , !input$columnHasTag("File")]
   bamMeta[["BAM [File]"]] = paste0(getwd(), "/", input$getNames(), "/", input$getNames(), ".bam")
   bamMeta[["BAI [File]"]] = paste0(getwd(), "/", input$getNames(), "/", input$getNames(), ".bam.bai")
+  bamMeta[["STARLog [File]"]] = paste0(getwd(), "/", input$getNames(), "/", input$getNames(), "_STAR.log")
   bamMeta[["Read Count"]] = ceiling(bamMeta[["Read Count"]] / param$subsampleReads)
   bamOutput = EzDataset(meta=bamMeta, param$dataRoot)
   bamParam = param

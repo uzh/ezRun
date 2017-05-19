@@ -66,9 +66,15 @@ par(mar=c(10.1, 4.1, 4.1, 2.1))
 ```{r FastqScreenPerSample, echo=FALSE, results='hide', warning=FALSE, message=FALSE}
 for (nm in rownames(dataset)){
   par(mar=c(10.1, 4.1, 4.1, 2.1))
-      bplt = barplot(t(fastqData$CommonResults[[nm]]), las=2, ylim=c(0,100), 
-                     legend.text=T, ylab="Mapped Reads in %", main=nm, names.arg=rep('', nrow(fastqData$CommonResults[[nm]])))
-      text(x = bplt, y = par("usr")[3] - 2, srt = 45, adj = 1, labels = rownames(fastqData$CommonResults[[nm]]), xpd = TRUE)
+  x = fastqData$CommonResults[[nm]]
+  if (nrow(x) > 0){
+    bplt = barplot(t(x), las=2, ylim=c(0,100), 
+                   legend.text=T, ylab="Mapped Reads in %", main=nm, names.arg=rep('', x))
+      itext(x = bplt, y = par("usr")[3] - 2, srt = 45, adj = 1, labels = rownames(x), xpd = TRUE)
+  } else {
+    plot(1,1, type="n", axes=FALSE, main=nm, xlab="", ylab="", frame=TRUE)
+    text(1,1, "no hits found")
+  }
 }
 ```
 

@@ -125,11 +125,15 @@ collectFastqscreenOutput = function(dataset, files, resultFiles){
     cat('Process ',files[nm], " - ", resultFiles[nm], ' :')
     x = ezRead.table(resultFiles[nm], skip=1, stringsAsFactors=F, blank.lines.skip=T, fill=T, row.names=NULL)
     fastqData$Reads[nm] = x$"#Reads_processed"[1]
-    UnmappedReads = as.numeric(unlist(strsplit(x$Genome[nrow(x)], split = " "))[2])
-    fastqData$MappingRate[nm] = round((100 - UnmappedReads), digits = 2)
+    if (nrow(x) > 0){
+      UnmappedReads = as.numeric(unlist(strsplit(x$Genome[nrow(x)], split = " "))[2])
+      fastqData$MappingRate[nm] = round((100 - UnmappedReads), digits = 2)
+    } else {
+      fastqData$MappingRate[nm] = 0
+    }
     rownames(x) = x$Genome
     x = x[-nrow(x), grep('%.*hit',colnames(x))]
-    fastqData$CommonResults[[nm]] = x
+    fastqData$CommonResults[[nm]] = x ## can be a data.frame with 0 rows
   }
   return(fastqData)
 }
@@ -305,11 +309,15 @@ fastqscreenReport = function(dataset, param, htmlFile="00index.html", fastqData,
   for (nm in rownames(dataset)){
     plotCmd = expression({
       par(mar=c(10.1, 4.1, 4.1, 2.1))
-      bplt = barplot(t(fastqData$CommonResults[[nm]]), las=2, ylim=c(0,100), 
-                     legend.text=T, ylab="Mapped Reads in %", main=nm, names.arg=rep('', nrow(fastqData$CommonResults[[nm]])))
-      text(x = bplt, y = par("usr")[3] - 2, srt = 45, adj = 1, labels = rownames(fastqData$CommonResults[[nm]]), xpd = TRUE)
-      
-      
+      x = fastqData$CommonResults[[nm]]
+      if (nrow(x) > 0){
+        bplt = barplot(t(x), las=2, ylim=c(0,100), 
+                       legend.text=T, ylab="Mapped Reads in %", main=nm, names.arg=rep('', nrow(x)))
+        text(x = bplt, y = par("usr")[3] - 2, srt = 45, adj = 1, labels = rownames(x), xpd = TRUE)
+      } else {
+        plot(1,1, type="n", axes=FALSE, ann=FALSE)
+        text(1,1, "no hits found")
+      }
     })
     screenLinks[[nm]] = ezImageFileLink(plotCmd, name = nm, plotType = "-rRNA-countsBySpecies-barplot", width=400, height=400)
     
