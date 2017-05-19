@@ -11,6 +11,7 @@ output:
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+library(plotly)
 ```
 Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
 
@@ -21,11 +22,18 @@ The read counts in each sample.
 
 ```{r readCounts, echo=FALSE}
 readCount <- ans4Report[["Read Counts"]]
-par(mar=c(10.1, 4.1, 4.1, 2.1))
-bp = barplot(readCount, ylab="Counts [Mio]", main="total reads", 
-             names.arg = rep('',length(readCount)))
-text(x = bp, y = par("usr")[3]-0.2, srt = 45, adj = 1, 
-     labels = names(readCount), xpd = TRUE)
+# par(mar=c(10.1, 4.1, 4.1, 2.1))
+# bp = barplot(readCount, ylab="Counts [Mio]", main="total reads", 
+#              names.arg = rep('',length(readCount)))
+# text(x = bp, y = par("usr")[3]-0.2, srt = 45, adj = 1, 
+#      labels = names(readCount), xpd = TRUE)
+```
+
+```{r readCountsPlotly, echo=FALSE}
+plot_ly(x=names(readCount), y=readCount, type="bar") %>%
+  layout(title="total reads",
+         yaxis = list(title = "Counts [Mio]")
+  )
 ```
 
 ### Fastqc Quality Measures
