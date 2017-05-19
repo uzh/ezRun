@@ -80,26 +80,20 @@ getReferenceFeaturesBed = function(param){
 # }
 
 ##' @title Cleans genome files
-##' @description Removes from the seqence files all descriptionso in the header line.
-##' RemovesCleans the fasta and gtf files before they get written into the folder structure.
+##' @description Removes from the seqence files all descriptions in the header line.
 ##' @param genomeFile a character specifying the path to a fasta file.
 ##' @param genesFile a character specifying the path to a gtf file.
-##' @param patchPattern a character specifying the pattern of patches to remove from the genome.
 ##' @template roxygen-template
 ##' @return Returns a list containing a fasta and a gtf object.
 ##' @examples
 ##' gtf = system.file("extdata/genes.gtf", package="ezRun", mustWork=TRUE)
 ##' fasta = system.file("extdata/genome.fa", package="ezRun", mustWork=TRUE)
 ##' cg = cleanGenomeFiles(fasta, gtf)
-cleanGenomeFiles = function(genomeFile, genesFile, 
-                            patchPattern="(^CHR|^KI|PATCH)"){
+cleanGenomeFiles = function(genomeFile, genesFile){
   require(Biostrings)
   require(rtracklayer)
   genome = readDNAStringSet(genomeFile)
   names(genome) = sub(" .*", "", names(genome))
-  genome = genome[!grepl(patchPattern, names(genome))]
-  
-  #gtf = ezReadGff(genesFile)
   gtf <- import(genesFile)
   use = seqnames(gtf) %in% names(genome)
   stopifnot(any(use))
