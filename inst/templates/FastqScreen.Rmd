@@ -70,7 +70,7 @@ for (nm in rownames(dataset)){
   if (nrow(x) > 0){
     bplt = barplot(t(x), las=2, ylim=c(0,100), 
                    legend.text=T, ylab="Mapped Reads in %", main=nm, names.arg=rep('', nrow(x)))
-      itext(x = bplt, y = par("usr")[3] - 2, srt = 45, adj = 1, labels = rownames(x), xpd = TRUE)
+      text(x = bplt, y = par("usr")[3] - 2, srt = 45, adj = 1, labels = rownames(x), xpd = TRUE)
   } else {
     plot(1,1, type="n", axes=FALSE, main=nm, xlab="", ylab="", frame=TRUE)
     text(1,1, "no hits found")
