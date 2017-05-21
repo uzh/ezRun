@@ -45,5 +45,5 @@ output[['Report [File]']] = 'p2401/Fastqc_17776_2017-04-24--09-09-19/FastQC_Resu
 output[['Html [Link]']] = 'p2401/Fastqc_17776_2017-04-24--09-09-19/FastQC_Result/00index.html'
 input = '/srv/gstore/projects/p2401/Fastqc_17776_2017-04-24--09-09-19/input_dataset5.tsv'
 EzAppFastqc$new()$run(input=input, output=output, param=param)
-rmarkdown::render(input="/srv/GT/analysis/gtan/p2401-FastQCRmarkdown/FastQC_Result/FastQC.Rmd",
-                  output_dir=".", output_file="00index.html")
+rmarkdown::render(input="/Users/gtan/Repos/FGCZ/ezRun/inst/templates/FastQC.Rmd",
+                  output_dir="FastQC_Result", output_file="00index.html")

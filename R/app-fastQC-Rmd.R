@@ -96,7 +96,7 @@ ezMethodFastQCRmd = function(input=NA, output=NA, param=NA,
   ans4Report[["Per Base Read Quality"]] <- qualMatrixList
   
   ## debug
-  ## save(ans4Report, file="ans4Report.rda")
+  #save(ans4Report, file="ans4Report.rda")
   
   ## generate the main reports
   render(input="FastQC.Rmd", output_dir=".", output_file=htmlFile)
@@ -114,19 +114,65 @@ plotReadCountToLibConcRmd = function(dataset, colname){
                            method = 'spearman')
       regressionResult = lm(dataset[[colname]]~dataset$'Read Count')
       label = sub(' \\[.*','',colname)
-        plot(dataset$'Read Count', dataset[[colname]], pch=c(18), 
-             cex=1.5, main=label,
-             xlab='ReadCount in Mio', ylab=sub('\\[.*','', colname), 
-             xlim=c(0, max(dataset$'Read Count', na.rm=TRUE)*1.2), #min(dataset$'Read Count')*0.8
-             ylim=c(min(dataset[[colname]], na.rm = TRUE) * 0.8, 
-                    max(dataset[[colname]], na.rm=TRUE) * 1.2))
-        legend("topright", paste('r=', round(corResult$estimate, 2)), bty="n")
-        abline(regressionResult, col='red',lty=c(2))
-        text(dataset$'Read Count', dataset[[colname]], pos=2,
-             labels=rownames(dataset), cex=0.7, col='darkcyan')
+        # plot(dataset$'Read Count', dataset[[colname]], pch=c(18), 
+        #      cex=1.5, main=label,
+        #      xlab='ReadCount in Mio', ylab=sub('\\[.*','', colname), 
+        #      xlim=c(0, max(dataset$'Read Count', na.rm=TRUE)*1.2), #min(dataset$'Read Count')*0.8
+        #      ylim=c(min(dataset[[colname]], na.rm = TRUE) * 0.8, 
+        #             max(dataset[[colname]], na.rm=TRUE) * 1.2))
+        #legend("topright", paste('r=', round(corResult$estimate, 2)), bty="n")
+        #abline(regressionResult, col='red',lty=c(2))
+        #text(dataset$'Read Count', dataset[[colname]], pos=2,
+        #     labels=rownames(dataset), cex=0.7, col='darkcyan')
+        
+        ## plotly
+      require(plotly)
+        #a function to calculate your abline
+        xmin <- min(dataset$'Read Count') - 5
+        xmax <- max(dataset$'Read Count') + 5
+        intercept <- regressionResult$coefficients[1]
+        slope <- regressionResult$coefficients[2]
+        p_abline <- function(x, a, b){
+          y <- a * x + b
+          return(y)
+        }
+        
+        p <- plot_ly(x=dataset$'Read Count', y=dataset[[colname]], 
+                 text=rownames(dataset)) %>%
+           add_markers() %>%
+           add_text(textposition = "top right") %>%
+           layout(showlegend = FALSE)
+        a <- list(
+          x = max(dataset$'Read Count'),
+          y = max(dataset[[colname]]),
+          text = paste0("r=", round(corResult$estimate, 2)),
+          xref = "x",
+          yref = "y",
+          showarrow = FALSE
+        )
+        p <- p %>% layout(
+          shapes=list(type='line', line=list(dash="dash"),
+                      x0=xmin, x1=xmax,
+                      y0=p_abline(xmin, slope, intercept), 
+                      y1=p_abline(xmax, slope, intercept)),
+          annotations = a,
+          title=label, yaxis = list(title = label),
+          xaxis = list(title = "Counts [Mio]")
+        )
+        return(p)
+        ## ggplot2
+        # toPlot <- data.frame(x=dataset$`Read Count`,
+        #                      y=dataset[[colname]],
+        #                      label=rownames(dataset))
+        # p <- ggplot(toPlot, aes(x=x, y=y, label=label)) +
+        #   geom_point() + geom_text(hjust = 0, nudge_x = 0.05) +
+        #   theme_bw()
+    }else{
+      return(NULL)
     }
+  }else{
+    return(NULL)
   }
-  return(NULL)
 }
 
 plotQualityMatrixAsHeatmapGG2 = function(qualMatrixList, isR2=FALSE, 
