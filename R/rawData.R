@@ -233,6 +233,68 @@ aggregateCountsByGene = function(param, rawData){
   return(rawData)
 }
 
+aggregateCountsByGeneSE <- function(param, rawData){
+  require(SummarizedExperiment)
+  genes = getGeneMapping(param, rowData(rawData))
+  
+  if (is.null(genes)){
+    return(list(error=paste("gene summaries requested but not gene column available. did you specify the build?<br>column names tried:<br>",
+                            paste(param$geneColumnSet, collapse="<br>"))))
+  }
+  
+  seqAnnoNew = data.frame(row.names=na.omit(unique(genes)))
+  for (nm in colnames(rowData(rawData))){
+    seqAnnoNew[[nm]] = tapply(rowData(rawData)[[nm]], genes, 
+                              ezCollapse, empty.rm=TRUE, uniqueOnly=TRUE, 
+                              na.rm=TRUE)[rownames(seqAnnoNew)]
+  }
+  
+  ## special merging for special columns
+  if (!is.null(rowData(rawData)$start)){
+    gStart = tapply(as.integer(sub(";.*", "", rowData(rawData)$start)), 
+                    genes, min)
+    seqAnnoNew$start = gStart[rownames(seqAnnoNew)]
+  }
+  if (!is.null(rowData(rawData)$end)){
+    gEnd = tapply(as.integer(sub(".*;", "", rowData(rawData)$end)), 
+                  genes, max)
+    seqAnnoNew$end = gEnd[rownames(seqAnnoNew)]
+  }
+  if (!is.null(rowData(rawData)$width)){
+    seqAnnoNew$width = tapply(rowData(rawData)$width, genes, mean)[rownames(seqAnnoNew)]
+  }
+  if (!is.null(rowData(rawData)$gc)){
+    seqAnnoNew$gc = tapply(as.numeric(rowData(rawData)$gc), genes, mean)[rownames(seqAnnoNew)]
+  }
+  
+  if (metadata(rawData)$isLog){
+    stop("Counts in logarithm are not supported!")
+  }
+  
+  newRawCounts <- SimpleList()
+  for (nm in setdiff(names(assays(rawData)), "presentFlag")){
+      newRawCounts[[nm]] = as.matrix(averageRows(assays(rawData)[[nm]], genes, 
+                                       func=sum))[rownames(seqAnnoNew), ]
+  }
+  if (param$useSigThresh){
+    newRawCounts[["presentFlag"]] = newRawCounts[["counts"]] > param$sigThresh
+  } else {
+    newRawCounts[["presentFlag"]] = newRawCounts[["counts"]] > 0      
+  }
+  newRawCounts[["signal"]] <- ezMatrix(NA, 
+                                       rows=rownames(newRawCounts[["counts"]]),
+                                       cols=colnames(newRawCounts[["counts"]])
+                                       )
+    
+  newRawData <- SummarizedExperiment(
+    assays=newRawCounts,
+    rowData=seqAnnoNew, colData=colData(rawData),
+    metadata=list(isLog=FALSE, featureLevel="gene",
+                  type="Counts", countName=columnName)
+  )
+  return(newRawData)
+}
+
 ## a feature will typically be a gene, isoform, or a microarray probe
 ## all matrices/data.frames in rawData must have rownames!
 ##' @title Selects features from raw data
