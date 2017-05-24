@@ -279,12 +279,12 @@ aggregateCountsByGeneSE <- function(param, rawData){
   if (param$useSigThresh){
     newRawCounts[["presentFlag"]] = newRawCounts[["counts"]] > param$sigThresh
   } else {
-    newRawCounts[["presentFlag"]] = newRawCounts[["counts"]] > 0      
+    newRawCounts[["presentFlag"]] = newRawCounts[["counts"]] > 0
   }
-  newRawCounts[["signal"]] <- ezMatrix(NA, 
-                                       rows=rownames(newRawCounts[["counts"]]),
-                                       cols=colnames(newRawCounts[["counts"]])
-                                       )
+  
+  ## Get rid of signal matrix in case it exists
+  ## signal will not be valid after the aggregation
+  newRawCounts[["signal"]] <- NULL
     
   newRawData <- SummarizedExperiment(
     assays=newRawCounts,
