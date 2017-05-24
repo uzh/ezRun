@@ -290,7 +290,7 @@ aggregateCountsByGeneSE <- function(param, rawData){
     assays=newRawCounts,
     rowData=seqAnnoNew, colData=colData(rawData),
     metadata=list(isLog=FALSE, featureLevel="gene",
-                  type="Counts", countName=columnName)
+                  type="Counts", countName=metadata(rawData)$countName)
   )
   return(newRawData)
 }

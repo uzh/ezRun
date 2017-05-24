@@ -146,6 +146,8 @@ loadCountDataset = function(input, param){
 ##' cds = loadCountDatasetSE(input, param)
 loadCountDatasetSE <- function(input, param){
   require(tools)
+  require(SummarizedExperiment)
+  
   files = input$getFullPaths("Count")
   suffix = unique(toupper(file_ext(files)))
   if (length(suffix) > 1){
