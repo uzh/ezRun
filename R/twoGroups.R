@@ -417,7 +417,7 @@ writeNgsTwoGroupReport = function(dataset, deResult, output, htmlFile="00index.h
     if (!is.null(clusterResult$GO)){
       goTables = goClusterTable(param, clusterResult, seqAnno)
       # addFlexTable(doc, ezFlexTable(goTables$linkTable, add.rownames=TRUE))
-      if (any(c(grepl("Homo_", getOrganism(param$ezRef)),grepl("Rattus_", getOrganism(param$ezRef)), grepl("Sus_", getOrganism(param$ezRef)), grepl("Canis_", getOrganism(param$ezRef)), grepl("Mus_", getOrganism(param$ezRef))))){
+      if (doEnrichr(param)){
         goAndEnrichr = cbind(goTables$linkTable, goTables$enrichrTable)
       } else {
         goAndEnrichr = goTables$linkTable
@@ -443,9 +443,7 @@ writeNgsTwoGroupReport = function(dataset, deResult, output, htmlFile="00index.h
   }
   ## only do GO if we have enough genes
   if (doGo(param, seqAnno)){
-    ## enrichr links for mice and humans
-    if (any(c(grepl("Homo_", getOrganism(param$ezRef)), grepl("Sus_", getOrganism(param$ezRef)), grepl("Rattus_", getOrganism(param$ezRef)), grepl("Canis_", getOrganism(param$ezRef)), grepl("Mus_", getOrganism(param$ezRef))))){
-      
+    if (doEnrichr(param)){
       isSig = result$pValue < param$pValThreshGO & result$usedInTest
       isUp = result$log2Ratio > param$log2RatioThreshGO & isSig
       isDown = result$log2Ratio < -param$log2RatioThreshGO & isSig
@@ -461,7 +459,7 @@ writeNgsTwoGroupReport = function(dataset, deResult, output, htmlFile="00index.h
         jsCall = paste0('enrich({list: "', paste(genesToUse, collapse="\\n"), '", popup: true});')
         enrichrLinks[row, "External"] = as.html(pot(paste0("<a href='javascript:void(0)' onClick='", jsCall, "'>Analyse at Enrichr website</a>")))
         resMerged <- NA
-        if (!is.null(genesToUse) && length(genesToUse) > 3) {
+        if (!is.null(genesToUse) && length(genesToUse) > 3 && ezIsSpecified(param$doPrecomputeEnrichr)) {
           resList = runEnrichr(genesToUse, maxResult = maxResultsPerLibrary)
           resList = lapply(names(resList), function(nm){return(cbind("Gene-set library"=nm, resList[[nm]][, c(2:5, 7:10)]))}) ## add the name as a first column
           if (length(resList) > 0) {

@@ -6,6 +6,10 @@
 # www.fgcz.ch
 
 
+doEnrichr = function(param){
+  grepl("^Homo_|^Rattus_|^Sus_|^Canis_|^Mus_", getOrganism(param$ezRef)) & param$featureLevel == "gene"
+}
+
 ##' @title Run Enrichr
 ##' @description Runs Enrichr on the specified genes against all libraries
 ##'

@@ -98,6 +98,7 @@ log2RatioThreshGO	numeric	0	only probes with a higher expression change will be 
 pValThreshFisher	numeric	1e-4	only GO categories with a Bonferroni-Holm correted p-value below will be shown
 minCountFisher	integer	3	only GO categories that have at least this many genes are searched for overrepresented genes
 maxNumberGroupsDisplayed	integer	40	the maximum number of GO groups to show in the HTML tables
+doPrecomputeEnrichr logical TRUE  should enrichr results be precomputed
 MSigDBPath	character	/misc/GT/databases/MSigDB	
 MSigDB	character	c2.cp	
 MSigDBhtml	character	http://www.broadinstitute.org/gsea/msigdb/cards	
