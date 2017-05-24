@@ -176,18 +176,6 @@ loadCountDatasetSE <- function(input, param){
   }
   
   signal = ezMatrix(0, rows=rownames(seqAnno), cols=names(files))
-  signalStart <- signalEnd <- ezMatrix(NA, rows=rownames(seqAnno), 
-                                       cols=names(files))
-  columnNameStart = grep(paste(columnName, "[first"), colnames(x), 
-                         fixed=TRUE, value=TRUE)
-  if (length(columnNameStart) == 1){
-    signalStart = signal
-  }
-  columnNameEnd = grep(paste(columnName, "[last"), colnames(x), fixed=TRUE,
-                       value=TRUE)
-  if (length(columnNameEnd) == 1){
-    signalEnd = signal
-  }
   
   for (i in 1:length(files)){
     message("loading file: ", files[i])
@@ -202,16 +190,6 @@ loadCountDatasetSE <- function(input, param){
     y = x[rownames(seqAnno), columnName]
     y[is.na(y)] = 0
     signal[ , i] = y
-    if (!all(is.na(signalStart))){
-      y = x[rownames(seqAnno), columnNameStart]
-      y[is.na(y)] = 0
-      signalStart[ , i] = y
-    }
-    if (!all(is.na(signalEnd))){
-      y = x[rownames(seqAnno), columnNameEnd]
-      y[is.na(y)] = 0
-      signalEnd[ , i] = y
-    }
   }
   
   if (param$useSigThresh){
@@ -220,13 +198,11 @@ loadCountDatasetSE <- function(input, param){
     sigThresh = 0
   }
   
-  ## assays: counts, presentFlag, signalStart, signalEnd
+  ## assays: counts, presentFlag, (signal), (RPKM), (TPM)
   ## rowData, colData
   ## meta:
   rawData <- SummarizedExperiment(
-    assays=SimpleList(counts=signal, presentFlag=signal > sigThresh,
-                      signalStart=signalStart, signalEnd=signalEnd
-                      ),
+    assays=SimpleList(counts=signal, presentFlag=signal > sigThresh),
     rowData=seqAnno, colData=input$meta,
     metadata=list(isLog=FALSE, featureLevel=dataFeatureLevel,
                   type="Counts", countName=columnName)
