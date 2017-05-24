@@ -224,7 +224,7 @@ loadCountDatasetSE <- function(input, param){
   ## rowData, colData
   ## meta:
   rawData <- SummarizedExperiment(
-    assays=SimpleList(counts=signal, presentFlag=signal > 10,
+    assays=SimpleList(counts=signal, presentFlag=signal > sigThresh,
                       signalStart=signalStart, signalEnd=signalEnd
                       ),
     rowData=seqAnno, colData=input$meta,
