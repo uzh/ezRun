@@ -135,7 +135,7 @@ loadCountDataset = function(input, param){
 ##'   \item{featureLevel}{ if equal to "gene" and the feature level of the dataset to "isoform", the rawdata will be passed to \code{aggregateCountsByGene()} before returning it.}
 ##' }
 ##' @template roxygen-template
-##' @return Returns a list of raw data.
+##' @return Returns a \code{SummarizedExperiment} object with assays: counts, presentFlag, rpkm, tpm
 ##' @seealso \code{\link{ezFeatureAnnotation}}
 ##' @seealso \code{\link{aggregateCountsByGene}}
 ##' @examples
@@ -198,9 +198,9 @@ loadCountDatasetSE <- function(input, param){
     sigThresh = 0
   }
   
-  ## assays: counts, presentFlag, (signal), (RPKM), (TPM)
+  ## assays: counts, presentFlag, RPKM, TPM, (signal)
   ## rowData, colData
-  ## meta:
+  ## meta: isLog, featureLevel, type, countName
   rawData <- SummarizedExperiment(
     assays=SimpleList(counts=signal, presentFlag=signal > sigThresh),
     rowData=seqAnno, colData=input$meta,
@@ -219,6 +219,8 @@ loadCountDatasetSE <- function(input, param){
     rawData = aggregateCountsByGeneSE(param, rawData)
   }
   
+  assays(rawData)$rpkm = getRpkmSE(rawData)
+  assays(rawData)$tpm = getTpmSE(rawData)
   return(rawData)
 }
 

@@ -148,6 +148,26 @@ getRpkm = function(rawData){
   return(rpkm)
 }
 
+getRpkmSE = function(rawData){
+  #edgeR::rpkm.default
+  #edgeR::cpm.default
+  if (!is.null(assays(rawData)$rpkm)){
+    return(assays(rawData)$rpkm)
+  }
+  if (is.null(rowData(rawData)$width)){
+    warning("The `width` is not available in annotation.")
+    return(NULL)
+  }
+  libSize = colSums(assays(rawData)$counts)
+  rpkm = assays(rawData)$counts
+  for (i in 1:ncol(rpkm)){
+    rpkm[, i] = (assays(rawData)$counts[,i] * 1e9) /(rowData(rawData)$width * libSize[i])
+    #rpkm[, i] = rawData$counts[,i] /(libSize[i]* 1e6) /(rawData$seqAnno$width / 1e3)
+  }
+  return(rpkm)
+}
+
+
 ##' @title Gets the tpm measurement
 ##' @description Gets the transcripts per million measurement.
 ##' @template rawData-template
@@ -168,6 +188,24 @@ getTpm = function(rawData) {
   }
   return(tpm)
 }
+
+getTpmSE = function(rawData) {
+  if (!is.null(assays(rawData)$tpm)){
+    return(assays(rawData)$tpm)
+  }
+  if (is.null(rowData(rawData)$width)){
+    warning("The `width` is not available in annotation.")
+    return(NULL)
+  }
+  tpm = assays(rawData)$counts
+  for (i in 1:ncol(tpm)){
+    rpk = (assays(rawData)$counts[,i] * 1e3) /(rowData(rawData)$width)
+    scalingFactor = sum(rpk)/1e6
+    tpm[, i] = rpk / scalingFactor
+  }
+  return(tpm)
+}
+
 
 ##' @title Aggregates counts by gene
 ##' @description Aggregates counts by gene.
