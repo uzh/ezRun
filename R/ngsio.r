@@ -120,6 +120,111 @@ loadCountDataset = function(input, param){
   return(rawData)
 }
 
+##' @title Loads the count dataset
+##' @description Loads the count dataset with the given input.
+##' @template input-template
+##' @param param a list of parameters:
+##' \itemize{
+##'   \item{dataRoot}{ the root directory of the files.}
+##'   \item{expressionName}{ if specified, this will be used as the column name...}
+##'   \item{knownExpressionNames}{ ...or otherwise known expression names that occur in the dataset will be used.}
+##'   \item{ezRef@@refBuild}{ if specified, the sequence annotation will be extracted from \code{ezFeatureAnnotation()}.}
+##'   \item{useTranscriptType}{ if specified, only the defined transcript type will be used.}
+##'   \item{sigThresh}{ the threshold...}
+##'   \item{useSigThresh}{ ...and whether it should be used.}
+##'   \item{featureLevel}{ if equal to "gene" and the feature level of the dataset to "isoform", the rawdata will be passed to \code{aggregateCountsByGene()} before returning it.}
+##' }
+##' @template roxygen-template
+##' @return Returns a \code{SummarizedExperiment} object with assays: counts, presentFlag, rpkm, tpm
+##' @seealso \code{\link{ezFeatureAnnotation}}
+##' @seealso \code{\link{aggregateCountsByGene}}
+##' @examples
+##' param = ezParam()
+##' param$dataRoot = system.file(package="ezRun", mustWork = TRUE)
+##' file = system.file("extdata/yeast_10k_STAR_counts/dataset.tsv", package="ezRun", mustWork = TRUE)
+##' input = EzDataset$new(file=file, dataRoot=param$dataRoot)
+##' cds = loadCountDatasetSE(input, param)
+loadCountDatasetSE <- function(input, param){
+  require(tools)
+  require(SummarizedExperiment)
+  
+  files = input$getFullPaths("Count")
+  suffix = unique(toupper(file_ext(files)))
+  if (length(suffix) > 1){
+    return(list(error=paste("different file suffixes not supported: <br>",
+                            paste(files, collapse="<br>"))))
+  }
+  x = ezRead.table(files[1])
+  if (ezIsSpecified(param$expressionName)){
+    columnName = param$expressionName
+  } else {
+    columnName = intersect(param$knownExpressionNames, colnames(x))[1]
+  }
+  if (!columnName %in% colnames(x)){
+    return(list(error=paste0("Specified column name not found in data!<br>columnName: '", columnName, "'\n",
+                             "<br>Available column names:<br>\n",
+                             paste0("'", colnames(x), "'", collapse="<br>"),
+                             "<br>Set the option columnName to one of the names above!")))
+  }
+  dataFeatureLevel = unique(input$getColumn("featureLevel"))
+  stopifnot(length(dataFeatureLevel) == 1)
+  
+  if (ezIsSpecified(param$ezRef@refBuild)){
+    seqAnno = ezFeatureAnnotation(param, rownames(x), dataFeatureLevel)
+  } else {
+    seqAnno = x[ , intersect(c("type", "gene_name", "gene_id", "transcript_id", "Description", "GO BP", "GO MF", "GO CC", "gc", "width"), colnames(x)), drop=FALSE]
+  }
+  
+  signal = ezMatrix(0, rows=rownames(seqAnno), cols=names(files))
+  
+  for (i in 1:length(files)){
+    message("loading file: ", files[i])
+    x = ezRead.table(files[i], strip.white = FALSE)
+    if(!setequal(rownames(x), rownames(seqAnno))){
+      if (all( rownames(seqAnno) %in% rownames(x))){
+        warning("inconsistent ID set")
+      } else {
+        stop("later arrays have IDs not present in the first array")
+      }
+    }
+    y = x[rownames(seqAnno), columnName]
+    y[is.na(y)] = 0
+    signal[ , i] = y
+  }
+  
+  if (param$useSigThresh){
+    sigThresh = param$sigThresh
+  } else {
+    sigThresh = 0
+  }
+  
+  ## assays: counts, presentFlag, RPKM, TPM, (signal)
+  ## rowData, colData
+  ## meta: isLog, featureLevel, type, countName
+  rawData <- SummarizedExperiment(
+    assays=SimpleList(counts=signal, presentFlag=signal > sigThresh),
+    rowData=seqAnno, colData=input$meta,
+    metadata=list(isLog=FALSE, featureLevel=dataFeatureLevel,
+                  type="Counts", countName=columnName)
+    )
+  
+  if (ezIsSpecified(param$useTranscriptType)){
+    use = seqAnno$type == param$useTranscriptType
+  } else {
+    use = TRUE
+  }
+  rawData <- rawData[use, ]
+  
+  if (dataFeatureLevel == "isoform" && param$featureLevel == "gene"){
+    rawData = aggregateCountsByGeneSE(param, rawData)
+  }
+  
+  assays(rawData)$rpkm = getRpkmSE(rawData)
+  assays(rawData)$tpm = getTpmSE(rawData)
+  return(rawData)
+}
+
+
 ##' @title Writes the head of a file
 ##' @description Writes the head of a file into a newly created target file.
 ##' @param target a character specifying the path of the output.

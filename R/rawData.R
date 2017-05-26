@@ -107,6 +107,15 @@ getSignal = function(rawData){
   }
 }
 
+getSignalSE = function(rawData){
+  if (metadata(rawData)$isLog){
+    return(2^assays(rawData)$signal)
+  } else {
+    return(assays(rawData)$signal)
+  }
+}
+
+
 ##' @describeIn getSignal Does the same but returns the log2 instead.
 getLog2Signal = function(rawData){
   if (rawData$isLog){
@@ -148,6 +157,26 @@ getRpkm = function(rawData){
   return(rpkm)
 }
 
+getRpkmSE = function(rawData){
+  #edgeR::rpkm.default
+  #edgeR::cpm.default
+  if (!is.null(assays(rawData)$rpkm)){
+    return(assays(rawData)$rpkm)
+  }
+  if (is.null(rowData(rawData)$width)){
+    warning("The `width` is not available in annotation.")
+    return(NULL)
+  }
+  libSize = colSums(assays(rawData)$counts)
+  rpkm = assays(rawData)$counts
+  for (i in 1:ncol(rpkm)){
+    rpkm[, i] = (assays(rawData)$counts[,i] * 1e9) /(rowData(rawData)$width * libSize[i])
+    #rpkm[, i] = rawData$counts[,i] /(libSize[i]* 1e6) /(rawData$seqAnno$width / 1e3)
+  }
+  return(rpkm)
+}
+
+
 ##' @title Gets the tpm measurement
 ##' @description Gets the transcripts per million measurement.
 ##' @template rawData-template
@@ -168,6 +197,24 @@ getTpm = function(rawData) {
   }
   return(tpm)
 }
+
+getTpmSE = function(rawData) {
+  if (!is.null(assays(rawData)$tpm)){
+    return(assays(rawData)$tpm)
+  }
+  if (is.null(rowData(rawData)$width)){
+    warning("The `width` is not available in annotation.")
+    return(NULL)
+  }
+  tpm = assays(rawData)$counts
+  for (i in 1:ncol(tpm)){
+    rpk = (assays(rawData)$counts[,i] * 1e3) /(rowData(rawData)$width)
+    scalingFactor = sum(rpk)/1e6
+    tpm[, i] = rpk / scalingFactor
+  }
+  return(tpm)
+}
+
 
 ##' @title Aggregates counts by gene
 ##' @description Aggregates counts by gene.
@@ -231,6 +278,70 @@ aggregateCountsByGene = function(param, rawData){
   rawData$signal = NULL
   rawData$featureLevel = "gene"
   return(rawData)
+}
+
+aggregateCountsByGeneSE <- function(param, rawData){
+  require(SummarizedExperiment)
+  genes = getGeneMapping(param, rowData(rawData))
+  
+  if (is.null(genes)){
+    return(list(error=paste("gene summaries requested but not gene column available. did you specify the build?<br>column names tried:<br>",
+                            paste(param$geneColumnSet, collapse="<br>"))))
+  }
+  ## TODO: have separate aggregated _annotaton_byGene.txt file.
+  ## Replace the following aggregation code.
+  
+  seqAnnoNew = data.frame(row.names=na.omit(unique(genes)))
+  for (nm in colnames(rowData(rawData))){
+    seqAnnoNew[[nm]] = tapply(rowData(rawData)[[nm]], genes, 
+                              ezCollapse, empty.rm=TRUE, uniqueOnly=TRUE, 
+                              na.rm=TRUE)[rownames(seqAnnoNew)]
+  }
+  
+  ## special merging for special columns
+  if (!is.null(rowData(rawData)$start)){
+    gStart = tapply(as.integer(sub(";.*", "", rowData(rawData)$start)), 
+                    genes, min)
+    seqAnnoNew$start = gStart[rownames(seqAnnoNew)]
+  }
+  if (!is.null(rowData(rawData)$end)){
+    gEnd = tapply(as.integer(sub(".*;", "", rowData(rawData)$end)), 
+                  genes, max)
+    seqAnnoNew$end = gEnd[rownames(seqAnnoNew)]
+  }
+  if (!is.null(rowData(rawData)$width)){
+    seqAnnoNew$width = tapply(rowData(rawData)$width, genes, mean)[rownames(seqAnnoNew)]
+  }
+  if (!is.null(rowData(rawData)$gc)){
+    seqAnnoNew$gc = tapply(as.numeric(rowData(rawData)$gc), genes, mean)[rownames(seqAnnoNew)]
+  }
+  
+  if (metadata(rawData)$isLog){
+    stop("Counts in logarithm are not supported!")
+  }
+  
+  newRawCounts <- SimpleList()
+  for (nm in setdiff(names(assays(rawData)), "presentFlag")){
+      newRawCounts[[nm]] = as.matrix(averageRows(assays(rawData)[[nm]], genes, 
+                                       func=sum))[rownames(seqAnnoNew), ]
+  }
+  if (param$useSigThresh){
+    newRawCounts[["presentFlag"]] = newRawCounts[["counts"]] > param$sigThresh
+  } else {
+    newRawCounts[["presentFlag"]] = newRawCounts[["counts"]] > 0
+  }
+  
+  ## Get rid of signal matrix in case it exists
+  ## signal will not be valid after the aggregation
+  newRawCounts[["signal"]] <- NULL
+    
+  newRawData <- SummarizedExperiment(
+    assays=newRawCounts,
+    rowData=seqAnnoNew, colData=colData(rawData),
+    metadata=list(isLog=FALSE, featureLevel="gene",
+                  type="Counts", countName=metadata(rawData)$countName)
+  )
+  return(newRawData)
 }
 
 ## a feature will typically be a gene, isoform, or a microarray probe

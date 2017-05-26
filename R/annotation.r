@@ -38,6 +38,7 @@ ezFeatureAnnotation = function(param, ids, dataFeatureType){
     }
   }
   if (dataFeatureType == "gene"){
+    ## TODO: use the aggregated _annotation_byGene.txt file
     if (!all(ids %in% rownames(seqAnno))){
       stopifnot(ids %in% seqAnno$gene_id)
       trNames = tapply(rownames(seqAnno), seqAnno$gene_id, ezCollapse, uniqueOnly=TRUE)
