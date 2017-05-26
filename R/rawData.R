@@ -107,6 +107,15 @@ getSignal = function(rawData){
   }
 }
 
+getSignalSE = function(rawData){
+  if (metadata(rawData)$isLog){
+    return(2^assays(rawData)$signal)
+  } else {
+    return(assays(rawData)$signal)
+  }
+}
+
+
 ##' @describeIn getSignal Does the same but returns the log2 instead.
 getLog2Signal = function(rawData){
   if (rawData$isLog){
@@ -279,6 +288,8 @@ aggregateCountsByGeneSE <- function(param, rawData){
     return(list(error=paste("gene summaries requested but not gene column available. did you specify the build?<br>column names tried:<br>",
                             paste(param$geneColumnSet, collapse="<br>"))))
   }
+  ## TODO: have separate aggregated _annotaton_byGene.txt file.
+  ## Replace the following aggregation code.
   
   seqAnnoNew = data.frame(row.names=na.omit(unique(genes)))
   for (nm in colnames(rowData(rawData))){

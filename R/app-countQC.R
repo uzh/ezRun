@@ -6,20 +6,21 @@
 # www.fgcz.ch
 
 
-ezMethodCountQC = function(input=NA, output=NA, param=NA, htmlFile="00index.html"){
-  
+ezMethodCountQC = function(input=NA, output=NA, param=NA, 
+                           htmlFile="00index.html"){
   dataset = input$meta
   setwdNew(basename(output$getColumn("Report")))
   if (param$useFactorsAsSampleName){
     dataset$Name = rownames(dataset)
-    rownames(dataset) = addReplicate(apply(ezDesignFromDataset(dataset), 1, paste, collapse="_"))
+    rownames(dataset) = addReplicate(apply(ezDesignFromDataset(dataset), 1, 
+                                           paste, collapse="_"))
   }
   if (!is.null(param$removeOutliers) && param$removeOutliers && !is.null(dataset$Outlier)){
     dataset = dataset[toupper(dataset$Outlier) %in% c("", "NO", '""', "FALSE") == TRUE, ]
   }
   input$meta = dataset
   
-  rawData = loadCountDataset(input, param)
+  rawData = loadCountDatasetSE(input, param)
   if (isError(rawData)){
     writeErrorReport(htmlFile, param=param, error=rawData$error)
     return("Error")
@@ -69,14 +70,26 @@ EzAppCountQC <-
 ##' @param writeDataFiles a logical indicating whether to write the data files into separate tables.
 ##' @template types-template
 ##' @template roxygen-template
-runNgsCountQC = function(dataset, htmlFile="00index.html", param=param, rawData=NULL,
+runNgsCountQC = function(dataset, htmlFile="00index.html", param=param, 
+                         rawData=NULL,
                          writeDataFiles=TRUE, types=NULL, output=NULL){
   
-  if (is.null(rawData$signal)){
-    rawData$signal = ezNorm(rawData$counts, presentFlag=rawData$presentFlag, method=param$normMethod)
+  if (is.null(assays(rawData)$signal)){
+    assays(rawData)$signal = ezNorm(assays(rawData)$counts,
+                                    presentFlag=assays(rawData)$presentFlag,
+                                    method=param$normMethod)
   }
   
-  seqAnno = rawData$seqAnno
+  seqAnno = as.data.frame(rowData(rawData))
+  ## TODO: "GO BP" will be "GO.BP" after converting DataFrame to data.frame()
+  ##       It has to be solved!.
+  ##       "DataFrame" cannot be cbind(ed) with matrix later.
+  colnames(seqAnno) <- colnames(rowData(rawData))
+  
+  ## rowData doesn't have rownames.
+  ## TODO: check whether the rownames are really needed.
+  rownames(seqAnno) <- rownames(assays(rawData)$counts)
+  
   if (is.null(types) && !is.null(seqAnno$type)){
     types = data.frame(row.names=rownames(seqAnno))
     for (nm in setdiff(na.omit(unique(seqAnno$type)), "")){
@@ -102,11 +115,12 @@ runNgsCountQC = function(dataset, htmlFile="00index.html", param=param, rawData=
     return("Success")
   }
   
-  signal = shiftZeros(getSignal(rawData), param$minSignal)
-  presentFlag = rawData$presentFlag
+  signal = shiftZeros(getSignalSE(rawData), param$minSignal)
+  presentFlag = assays(rawData)$presentFlag
   signalRange = range(signal, na.rm=TRUE)
   log2Signal = log2(signal)
-  isPresent = ezPresentFlags(rawData$counts, presentFlag=presentFlag, param=param, isLog=rawData$isLog)
+  isPresent = ezPresentFlags(assays(rawData)$counts, presentFlag=presentFlag, 
+                             param=param, isLog=metadata(rawData)$isLog)
   signalCond = 2^averageColumns(log2Signal, by=conds)
   isPresentCond = averageColumns(isPresent, by=conds) >= 0.5
   isPresentStudy = apply(isPresentCond, 1, mean) >= 0.5
@@ -119,10 +133,23 @@ runNgsCountQC = function(dataset, htmlFile="00index.html", param=param, rawData=
     settings["Log2 signal threshold:"] = signif(log2(param$sigThresh), digits=4)
     settings["Linear signal threshold:"] = signif(param$sigThresh, digits=4)
   }
-  settings["Feature level:"] = rawData$featureLevel
+  settings["Feature level:"] = metadata(rawData)$featureLevel
   settings["Number of features:"] = nrow(signal)
-  settings["Data Column Used:"] = rawData$countName
+  settings["Data Column Used:"] = metadata(rawData)$countName
   addFlexTable(doc, ezGrid(settings, add.rownames=TRUE))
+  
+  ## TODO: it's temporary fix to make a compatible with EzResult, addQcScatterPlots
+  ## 
+  ## In the future, we should always use SummarizedExperiement rawDtaa.
+  rawDataList <- list(counts=assays(rawData)$counts,
+                      signal=assays(rawData)$signal,
+                      isLog=metadata(rawData)$isLog,
+                      presentFlag=assays(rawData)$presentFlag,
+                      seqAnno=rowData(rawData),
+                      featureLevel=metadata(rawData)$featureLevel,
+                      type=metadata(rawData)$type, 
+                      countName=metadata(rawData)$countName, 
+                      dataset=colData(rawData))
   
   if (!is.null(output)){
     liveReportLink = output$getColumn("Live Report")
@@ -130,7 +157,8 @@ runNgsCountQC = function(dataset, htmlFile="00index.html", param=param, rawData=
                 "Reference Build"=param$refBuild,
                 "Feature Level"=rawData$featureLevel,
                 "Normalization"=param$normMethod)
-    result = EzResult(param=param, rawData=rawData, result=list(summary=summary, analysis="Count_QC"))
+    result = EzResult(param=param, rawData=rawDataList, 
+                      result=list(summary=summary, analysis="Count_QC"))
     result$saveToFile(basename(output$getColumn("Live Report")))
     addParagraph(doc, ezLink(liveReportLink,
                              "Live Report and Visualizations",
@@ -138,10 +166,11 @@ runNgsCountQC = function(dataset, htmlFile="00index.html", param=param, rawData=
   }  
   
   if (writeDataFiles){
-    if (!is.null(rawData$presentFlag)){
-      combined = interleaveMatricesByColumn(rawData$signal, rawData$presentFlag)			
+    if (!is.null(assays(rawData)$presentFlag)){
+      combined = interleaveMatricesByColumn(assays(rawData)$signal, 
+                                            assays(rawData)$presentFlag)
     } else {
-      combined = rawData$signal
+      combined = assays(rawData)$signal
     }
     if (!is.null(seqAnno)){
       combined = cbind(seqAnno[rownames(combined), ,drop=FALSE], combined)
@@ -150,11 +179,13 @@ runNgsCountQC = function(dataset, htmlFile="00index.html", param=param, rawData=
       combined$width = as.integer(combined$width)
     }
     countFile = paste0(ezValidFilename(param$name), "-raw-count.txt")
-    ezWrite.table(rawData$counts, file=countFile, head="Feature ID", digits=4)
+    ezWrite.table(assays(rawData)$counts, file=countFile, 
+                  head="Feature ID", digits=4)
     signalFile = paste0(ezValidFilename(param$name), "-normalized-signal.txt")
     ezWrite.table(combined, file=signalFile, head="Feature ID", digits=4)
     
     selectSignals = grepl("Signal", colnames(combined))
+    ## TODO: use rowMeans
     combined$"Mean signal" = apply(combined[, selectSignals], 1, mean)
     combined$"Maximum signal" = apply(combined[, selectSignals], 1, max)
     topGenesPerSample = apply(combined[, selectSignals], 2, function(col){
@@ -162,6 +193,7 @@ runNgsCountQC = function(dataset, htmlFile="00index.html", param=param, rawData=
       if (length(col) > 100) col = col[1:100]
       return(names(col))
     })
+    ## TODO: use as.character later. as.vector is bad..
     topGenes = unique(as.vector(topGenesPerSample))
     
     combined = combined[order(combined$"Maximum signal", decreasing = TRUE), , drop=FALSE]
@@ -175,10 +207,10 @@ runNgsCountQC = function(dataset, htmlFile="00index.html", param=param, rawData=
                        title=paste("Showing the top", nRows, "genes with the highest expression"))
     
     rpkmFile = paste0(ezValidFilename(param$name), "-rpkm.txt")
-    ezWrite.table(getRpkm(rawData), file=rpkmFile, head="Feature ID", digits=4) 
+    ezWrite.table(getRpkmSE(rawData), file=rpkmFile, head="Feature ID", digits=4) 
     
     tpmFile = paste0(ezValidFilename(param$name), "-tpm.txt")
-    ezWrite.table(getTpm(rawData), file=tpmFile, head="Feature ID", digits=4)
+    ezWrite.table(getTpmSE(rawData), file=tpmFile, head="Feature ID", digits=4)
     
     dataFiles = c(countFile, signalFile, rpkmFile, tpmFile)
     titles[["Data Files"]] = "Data Files"
@@ -189,7 +221,9 @@ runNgsCountQC = function(dataset, htmlFile="00index.html", param=param, rawData=
   
   titles[["Count Statistics"]] = "Count Statistics"
   addTitle(doc, titles[[length(titles)]], 2, id=titles[[length(titles)]])
-  totalCounts = signif(apply(rawData$counts, 2, sum) / 1e6, digits=3)
+  ## TODO: use colSums.
+  totalCounts = signif(apply(assays(rawData)$counts, 2, sum) / 1e6, digits=3)
+  ## TODO: use colSums.
   presentCounts = apply(isPresent, 2, sum)
   names(totalCounts) = samples
   names(presentCounts) = samples
@@ -212,7 +246,9 @@ runNgsCountQC = function(dataset, htmlFile="00index.html", param=param, rawData=
   
   addFlexTable(doc, ezGrid(cbind(totalLink, presentLink)))
   
-  rawData$signal = signal
+  assays(rawData)$signal = signal
+  ## TDOD: remove this when we no longer use rawDataList
+  rawDataList$signal <- signal
   
   #################################
   ## correlation plot
@@ -443,38 +479,40 @@ runNgsCountQC = function(dataset, htmlFile="00index.html", param=param, rawData=
     addFlexTable(doc, ezGrid(cbind(presentLink, topLink)))
     
     if (param$writeScatterPlots){
-      qcScatterTitles = addQcScatterPlots(doc, param, design, conds, rawData,
+      qcScatterTitles = addQcScatterPlots(doc, param, design, conds, rawDataList,
                                           signalCond, isPresentCond, types=types)
       titles = append(titles, qcScatterTitles)
     }
     
-    if (!is.null(rawData$countsStart) & !is.null(rawData$countsEnd)){
-      titles[["3' Bias analysis"]] = "3' Bias analysis"
-      addTitle(doc, titles[[length(titles)]], 2, id=titles[[length(titles)]])
-      
-      valStart = shiftZeros(rawData$countsStart, param$minSignal)
-      colnames(valStart) = paste(colnames(valStart), "[transcript start]")
-      valEnd = shiftZeros(rawData$countsEnd, param$minSignal)
-      colnames(valEnd) = paste(colnames(valEnd), "[transcript end]")
-      
-      pngName = "start-end-countScatter.png"
-      plotCmd = expression({
-        ezScatter(x=valStart, y=valEnd, types=types)
-      })
-      pngLink = ezImageFileLink(plotCmd, file=pngName,
-                                width=min(ncol(as.matrix(valEnd)), 6) * 480,
-                                height=ceiling(ncol(as.matrix(valEnd))/6) * 480) # dynamic png with possibly many plots
-      addParagraph(doc, pngLink)
-      
-      pngName = "start-end-countSmoothScatter.png"
-      plotCmd = expression({
-        ezSmoothScatter(x=valStart, y=valEnd)
-      })
-      pngLink = ezImageFileLink(plotCmd, file=pngName,
-                                width=min(ncol(as.matrix(valEnd)), 6) * 480,
-                                height=ceiling(ncol(as.matrix(valEnd))/6) * 480) # dynamic png with possibly many plots
-      addParagraph(doc, pngLink)
-    }
+    ## TODO: the following code shall be removed 
+    ##       since countsStart and countsEnd will never be used again.
+    # if (!is.null(rawData$countsStart) & !is.null(rawData$countsEnd)){
+    #   titles[["3' Bias analysis"]] = "3' Bias analysis"
+    #   addTitle(doc, titles[[length(titles)]], 2, id=titles[[length(titles)]])
+    #   
+    #   valStart = shiftZeros(rawData$countsStart, param$minSignal)
+    #   colnames(valStart) = paste(colnames(valStart), "[transcript start]")
+    #   valEnd = shiftZeros(rawData$countsEnd, param$minSignal)
+    #   colnames(valEnd) = paste(colnames(valEnd), "[transcript end]")
+    #   
+    #   pngName = "start-end-countScatter.png"
+    #   plotCmd = expression({
+    #     ezScatter(x=valStart, y=valEnd, types=types)
+    #   })
+    #   pngLink = ezImageFileLink(plotCmd, file=pngName,
+    #                             width=min(ncol(as.matrix(valEnd)), 6) * 480,
+    #                             height=ceiling(ncol(as.matrix(valEnd))/6) * 480) # dynamic png with possibly many plots
+    #   addParagraph(doc, pngLink)
+    #   
+    #   pngName = "start-end-countSmoothScatter.png"
+    #   plotCmd = expression({
+    #     ezSmoothScatter(x=valStart, y=valEnd)
+    #   })
+    #   pngLink = ezImageFileLink(plotCmd, file=pngName,
+    #                             width=min(ncol(as.matrix(valEnd)), 6) * 480,
+    #                             height=ceiling(ncol(as.matrix(valEnd))/6) * 480) # dynamic png with possibly many plots
+    #   addParagraph(doc, pngLink)
+    # }
     
     ##########################################
     ## count density plots
@@ -482,7 +520,8 @@ runNgsCountQC = function(dataset, htmlFile="00index.html", param=param, rawData=
     pngName = "signalDens.png"
     plotCmd = expression({
       #countDensPlot(signal, sampleColors, main="all transcripts", bw=0.7)
-      p = countDensGGPlot(cts=data.frame(signal,stringsAsFactors = F),colors=sampleColors, alpha=0.4)
+      p = countDensGGPlot(cts=data.frame(signal,stringsAsFactors = F),
+                          colors=sampleColors, alpha=0.4)
       print(p)
     })
     
