@@ -185,16 +185,15 @@ runNgsCountQC = function(dataset, htmlFile="00index.html", param=param,
     ezWrite.table(combined, file=signalFile, head="Feature ID", digits=4)
     
     selectSignals = grepl("Signal", colnames(combined))
-    ## TODO: use rowMeans
-    combined$"Mean signal" = apply(combined[, selectSignals], 1, mean)
+    combined$"Mean signal" = rowMeans(combined[, selectSignals])
     combined$"Maximum signal" = apply(combined[, selectSignals], 1, max)
     topGenesPerSample = apply(combined[, selectSignals], 2, function(col){
       col = sort(col, decreasing = TRUE)
       if (length(col) > 100) col = col[1:100]
       return(names(col))
     })
-    ## TODO: use as.character later. as.vector is bad..
-    topGenes = unique(as.vector(topGenesPerSample))
+    
+    topGenes = unique(as.character(topGenesPerSample))
     
     combined = combined[order(combined$"Maximum signal", decreasing = TRUE), , drop=FALSE]
     useInInteractiveTable = c("seqid", "gene_name", "Maximum signal", "Mean signal", "description", "width", "gc")
@@ -221,10 +220,8 @@ runNgsCountQC = function(dataset, htmlFile="00index.html", param=param,
   
   titles[["Count Statistics"]] = "Count Statistics"
   addTitle(doc, titles[[length(titles)]], 2, id=titles[[length(titles)]])
-  ## TODO: use colSums.
-  totalCounts = signif(apply(assays(rawData)$counts, 2, sum) / 1e6, digits=3)
-  ## TODO: use colSums.
-  presentCounts = apply(isPresent, 2, sum)
+  totalCounts = signif(colSums(assays(rawData)$counts) / 1e6, digits=3)
+  presentCounts = colSums(isPresent)
   names(totalCounts) = samples
   names(presentCounts) = samples
   
