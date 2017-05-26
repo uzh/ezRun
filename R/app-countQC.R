@@ -138,7 +138,7 @@ runNgsCountQC = function(dataset, htmlFile="00index.html", param=param,
   settings["Data Column Used:"] = metadata(rawData)$countName
   addFlexTable(doc, ezGrid(settings, add.rownames=TRUE))
   
-  ## TODO: it's temporary fix to make a compatible with EzResult, addQcScatterPlots
+  ## TODO: it's temporary fix to make a compatible with EzResult
   ## 
   ## In the future, we should always use SummarizedExperiement rawDtaa.
   rawDataList <- list(counts=assays(rawData)$counts,
@@ -155,7 +155,7 @@ runNgsCountQC = function(dataset, htmlFile="00index.html", param=param,
     liveReportLink = output$getColumn("Live Report")
     summary = c("Name"=param$name,
                 "Reference Build"=param$refBuild,
-                "Feature Level"=rawData$featureLevel,
+                "Feature Level"=rawDataList$featureLevel,
                 "Normalization"=param$normMethod)
     result = EzResult(param=param, rawData=rawDataList, 
                       result=list(summary=summary, analysis="Count_QC"))
@@ -247,8 +247,6 @@ runNgsCountQC = function(dataset, htmlFile="00index.html", param=param,
   addFlexTable(doc, ezGrid(cbind(totalLink, presentLink)))
   
   assays(rawData)$signal = signal
-  ## TDOD: remove this when we no longer use rawDataList
-  rawDataList$signal <- signal
   
   #################################
   ## correlation plot
@@ -479,7 +477,7 @@ runNgsCountQC = function(dataset, htmlFile="00index.html", param=param,
     addFlexTable(doc, ezGrid(cbind(presentLink, topLink)))
     
     if (param$writeScatterPlots){
-      qcScatterTitles = addQcScatterPlots(doc, param, design, conds, rawDataList,
+      qcScatterTitles = addQcScatterPlots(doc, param, design, conds, rawData,
                                           signalCond, isPresentCond, types=types)
       titles = append(titles, qcScatterTitles)
     }

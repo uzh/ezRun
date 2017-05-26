@@ -21,23 +21,24 @@
 addQcScatterPlots = function(doc, param, design, conds, rawData, signalCond, isPresentCond, types=NULL){
   samples = rownames(design)
   nConds = length(unique(conds))
-  signal = getSignal(rawData)
+  signal = getSignalSE(rawData)
   signal[signal <= 0] = NA
-  isPresent = ezPresentFlags(signal, presentFlag=rawData$presentFlag, param=param, isLog=rawData$isLog)
+  isPresent = ezPresentFlags(signal, presentFlag=assays(rawData)$presentFlag, 
+                             param=param, isLog=metadata(rawData)$isLog)
   signalRange = range(signal, na.rm=TRUE)
   qcScatterTitles = list()
   qcScatterTitles[["Scatter Plots by Conditions"]] = "Scatter Plots by Conditions"
   addTitle(doc, qcScatterTitles[[length(qcScatterTitles)]], 2, id=qcScatterTitles[[length(qcScatterTitles)]])
-  if (!is.null(rawData$seqAnno$gc)){
-    gcTypes = data.frame("GC < 0.4"=as.numeric(rawData$seqAnno$gc) < 0.4,
-                         "GC > 0.6"=as.numeric(rawData$seqAnno$gc) > 0.6,
+  if (!is.null(rowData(rawData)$gc)){
+    gcTypes = data.frame("GC < 0.4"=as.numeric(rowData(rawData)$gc) < 0.4,
+                         "GC > 0.6"=as.numeric(rowData(rawData)$gc) > 0.6,
                          check.names=FALSE)
   } else {
     gcTypes = NULL
   }
-  if (!is.null(rawData$seqAnno$width)){
-    widthTypes = data.frame("width < 500nt"=as.numeric(rawData$seqAnno$width) < 500, 
-                            "width > 5000nt"=as.numeric(rawData$seqAnno$width) > 5000,
+  if (!is.null(rowData(rawData)$width)){
+    widthTypes = data.frame("width < 500nt"=as.numeric(rowData(rawData)$width) < 500, 
+                            "width > 5000nt"=as.numeric(rowData(rawData)$width) > 5000,
                             check.names=FALSE)
   } else {
     widthTypes = NULL
