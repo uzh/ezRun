@@ -267,8 +267,7 @@ setMethod("buildIgvGenome", "EzRef", function(.Object){
     ezWriteGff(transcriptGtf, trxFile)
   }, error=function(e){
     message("Could not load features. Copy the annotation file instead.")
-    cmd = paste("cp", gtfFile, trxFile)
-    ezSystem(cmd)
+    file.copy(gtfFile, trxFile)
   })
   
   ## sort and index genes.gtf
@@ -299,6 +298,5 @@ setMethod("buildIgvGenome", "EzRef", function(.Object){
   setwd(.Object@refBuildDir)
   zipFile(basename(filesToZip), zipFile)
   setwd(cd)
-  cmd = paste("rm -fr", paste(filesToZip, collapse=" "))
-  ezSystem(cmd)
+  unlink(filesToZip)
 })
