@@ -12,9 +12,22 @@ ezMethodFeatureCounts = function(input=NA, output=NA, param=NA){
   outputFile = basename(output$getColumn("Count"))
   statFile = basename(output$getColumn("Stats"))
   
+  
+  if (ezIsSpecified(param$useTranscriptType)){
+    gtfFile = "genes.gtf"
+    seqAnno = ezRead.table(param$ezRef@refAnnotationFile)
+    transcriptsUse = rownames(seqAnno)[seqAnno$type %in% param$useTranscriptType]
+    require(rtracklayer)
+    gtf = import(param$ezRef@refFeatureFile)
+    gtf = gtf[gtf$transcript_id %in% transcriptsUse, ]
+    export(gtf, gtfFile, format="gtf")
+  } else {
+    gtfFile = param$ezRef@refFeatureFile
+  }
+  
   sink(file="featureCounts-messages.txt")
   countResult = Rsubread::featureCounts(localBamFile, annot.inbuilt=NULL,
-                              annot.ext=param$ezRef@refFeatureFile, isGTFAnnotationFile=TRUE,
+                              annot.ext=gtfFile, isGTFAnnotationFile=TRUE,
                               GTF.featureType=param$gtfFeatureType,
                               GTF.attrType=switch(param$featureLevel,
                                                   "gene"="gene_id",
