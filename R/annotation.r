@@ -84,15 +84,17 @@ writeAnnotationFromGtf = function(param, featureFile=param$ezRef@refFeatureFile,
 ### -----------------------------------------------------------------
 ### make the feature annotation file <name>_annotation.txt
 ### for Ensembl gtf.
-makeFeatAnnoEnsembl <- function(featureFile, 
-                                featAnnoFile=sub(".gtf", "_annotation.txt", 
-                                                 featureFile),
+makeFeatAnnoEnsembl <- function(featureFile,
                                 biomartFile=NULL,
                                 organism="hsapiens_gene_ensembl",
                                 host=NULL){
   require(plyr)
-  
   require(rtracklayer)
+  
+  featAnnoFile <- sub(".gtf", "_annotation_byTranscript.txt", featureFile)
+  featAnnoFileCompat <- sub(".gtf", "_annotation.txt", featureFile)
+  featAnnoGeneFile <- sub(".gtf", "_annotation_byGene.txt", featureFile)
+  
   feature <- import(featureFile)
   transcripts <- feature[feature$type=="transcript"]
   featAnno <- ezFrame(transcript_id=transcripts$transcript_id,
@@ -133,14 +135,20 @@ makeFeatAnnoEnsembl <- function(featureFile,
                          "% GC content", 
                          "Transcript length (including UTRs and CDS)")
   if(!is.null(biomartFile)){
+    ### Use the downloaded biomartFile when availble
     require(readr)
+    stopifnot(file.exists(biomartFile))
     mapping <- read_tsv(biomartFile)
     if(!setequal(colnames(mapping), names(attributes))){
       stop("Make sure ", paste(names(attributes), collapse="; "), 
            "are downloaded from web biomart!")
     }
     colnames(mapping) <- attributes[colnames(mapping)]
+    if(!all(featAnno$transcript_id %in% mapping$ensembl_transcript_id)){
+      stop("Some transcript ids don't exist in biomart file!")
+    }
   }else{
+    ### Query Biomart from R
     require(biomaRt)
     if(is.null(host)){
       ensembl <- useMart("ENSEMBL_MART_ENSEMBL")
@@ -177,9 +185,20 @@ makeFeatAnnoEnsembl <- function(featureFile,
     featAnno[[GOMapping[i]]] <- txid2BP[match(featAnno$transcript_id, 
                                               names(txid2BP))]
   }
-  featAnno[is.na(featAnno)] <- ""
-  featAnno$transcript_id <- NULL
-  ezWrite.table(featAnno, file=featAnnoFile)
+  featAnno[is.na(featAnno)] <- ""  ## replace NA in GO with ""
+  
+  ## output annotation file on transcript level
+  ezWrite.table(featAnno, file=featAnnoFile, row.names=FALSE)
+  cwd <- getwd()
+  ### For compatibility, create _annotation.txt symlink
+  setwd(dirname(featAnnoFile))
+  file.symlink(basename(featAnnoFile), basename(featAnnoFileCompat))
+  setwd(cwd)
+  
+  ## make annotation at gene level
+  featAnnoGene <- aggregateFeatAnno(featAnno)
+  ezWrite.table(featAnnoGene, file=featAnnoGeneFile, row.names=FALSE)
+  
   invisible(featAnno)
 }
 
@@ -198,6 +217,40 @@ aggregateGoAnnotation = function(seqAnno, genes, goColumns=c("GO BP", "GO CC", "
     geneAnno[names(x), nm] = x
   }
   return(geneAnno)
+}
+
+### -----------------------------------------------------------------
+### aggregate feature annotation at isoform level into gene level
+### 
+aggregateFeatAnno <- function(featAnno){
+  ## featAnno is the content of *_annotation.txt
+  ## it's expected to contain the columns: transcript_id, gene_id, gene_name, 
+  ## type, strand, seqid, start, end, biotypes, description, gc, width, GO BP,
+  ## GO MF, GO CC
+  features <- c("gene_id", "transcript_id", "gene_name", "type", "strand", 
+                "seqid", "start", "end", "biotypes", "description", "gc", 
+                "width", "GO BP", "GO MF", "GO CC")
+  if(!setequal(colnames(featAnno), features)){
+    stop("`featAnno` must have the columns: ", ezCollapse(features))
+  }
+  featAnnoGene <- data.frame(row.names=na.omit(unique(featAnno$gene_id)))
+  for(nm in features){
+    featAnnoGene[[nm]] <- tapply(featAnno[[nm]], featAnno$gene_id,
+                                 ezCollapse, empty.rm=TRUE, uniqueOnly=TRUE, 
+                                 na.rm=TRUE)[rownames(featAnnoGene)]
+  }
+  
+  ## special processing for numeric columns
+  featAnnoGene$start = tapply(featAnno$start, featAnno$gene_id,
+                              min)[rownames(featAnnoGene)]
+  featAnnoGene$end = tapply(featAnno$end, featAnno$gene_id,
+                            max)[rownames(featAnnoGene)]
+  featAnnoGene$width = tapply(featAnno$width, featAnno$gene_id,
+                              mean)[rownames(featAnnoGene)]
+  featAnnoGene$gc = tapply(featAnno$gc, featAnno$gene_id, 
+                           mean)[rownames(featAnnoGene)]
+  
+  return(featAnnoGene)
 }
 
 ##' @title Gets the isoform-to-gene mapping
