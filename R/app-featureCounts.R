@@ -20,7 +20,7 @@ ezMethodFeatureCounts = function(input=NA, output=NA, param=NA){
     require(rtracklayer)
     gtf = import(param$ezRef@refFeatureFile)
     gtf = gtf[gtf$transcript_id %in% transcriptsUse, ]
-    export(gtf, localGtfFile, format="gtf")
+    export(gtf, gtfFile, format="gtf")
   } else {
     gtfFile = param$ezRef@refFeatureFile
   }
