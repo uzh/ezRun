@@ -17,10 +17,28 @@ ezMethodFeatureCounts = function(input=NA, output=NA, param=NA){
     gtfFile = "genes.gtf"
     seqAnno = ezRead.table(param$ezRef@refAnnotationFile)
     transcriptsUse = rownames(seqAnno)[seqAnno$type %in% param$useTranscriptType]
-    require(rtracklayer)
-    gtf = import(param$ezRef@refFeatureFile)
-    gtf = gtf[gtf$transcript_id %in% transcriptsUse, ]
-    export(gtf, gtfFile, format="gtf")
+    require(readr)
+    require(stringr)
+    ## read_tsv is faster than read.table and import.
+    gtf <- read_tsv(param$ezRef@refFeatureFile, comment="#", quote="", 
+                    quoted_na=FALSE, na="", col_names=FALSE, 
+                    col_types=cols(col_character(), col_character(),
+                                   col_character(), col_character(),
+                                   col_character(), col_character(),
+                                   col_character(), col_character(),
+                                   col_character()
+                                   )
+                    )
+    transcripts <- sub("\";$", "", 
+                       sub("^transcript_id \"", "", 
+                           str_extract(gtf$X9, 
+                                       "transcript_id \"[[:alnum:]]+\";")))
+    
+    gtf = gtf[transcripts %in% transcriptsUse, ]
+    ## as.data.frame() is necessary as read_tsv quotes the attribute column.
+    ## write.table is much faster than write_tsv and export.
+    write.table(as.data.frame(gtf), gtfFile, quote=FALSE, sep="\t", 
+                row.names=FALSE, col.names=FALSE)
   } else {
     gtfFile = param$ezRef@refFeatureFile
   }
