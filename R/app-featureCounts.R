@@ -17,27 +17,25 @@ ezMethodFeatureCounts = function(input=NA, output=NA, param=NA){
     gtfFile = "genes.gtf"
     seqAnno = ezRead.table(param$ezRef@refAnnotationFile)
     transcriptsUse = rownames(seqAnno)[seqAnno$type %in% param$useTranscriptType]
-    require(readr)
+    require(data.table)
     require(stringr)
-    ## read_tsv is faster than read.table and import.
-    gtf <- read_tsv(param$ezRef@refFeatureFile, comment="#", quote="", 
-                    quoted_na=FALSE, na="", col_names=FALSE, 
-                    col_types=cols(col_character(), col_character(),
-                                   col_character(), col_character(),
-                                   col_character(), col_character(),
-                                   col_character(), col_character(),
-                                   col_character()
-                                   )
-                    )
+    ## fread is faster than read_tsv, read.table and import.
+    ## some benchmarks for human gtf on Mac i7-3615QM
+    ### read_tsv: 27.662s
+    ### ezRead.table: 127.461s
+    ### import: 33.419s
+    gtf <- fread(param$ezRef@refFeatureFile)
     transcripts <- sub("\";$", "", 
                        sub("^transcript_id \"", "", 
-                           str_extract(gtf$X9, 
+                           str_extract(gtf$V9,
                                        "transcript_id \"[[:alnum:]]+\";")))
     
     gtf = gtf[transcripts %in% transcriptsUse, ]
-    ## as.data.frame() is necessary as read_tsv quotes the attribute column.
     ## write.table is much faster than write_tsv and export.
-    write.table(as.data.frame(gtf), gtfFile, quote=FALSE, sep="\t", 
+    ### write_tsv: 38.270s
+    ### export: 347.998s
+    ### write.table: 8.787s
+    write.table(gtf, gtfFile, quote=FALSE, sep="\t", 
                 row.names=FALSE, col.names=FALSE)
   } else {
     gtfFile = param$ezRef@refFeatureFile
