@@ -8,9 +8,8 @@ vignette: >
   \usepackage[utf8]{inputenc}
 ---
 
-```{r, warning=FALSE,message=FALSE,split=TRUE}
+```{r library, warning=FALSE,message=FALSE,split=TRUE, message=FALSE, warning=FALSE, results='hide'}
 library(ezRun)
-require(Biostrings)
 ```
 
 <!-- see: http://stackoverflow.com/questions/19372260/how-to-get-rstudio-to-automatically-compile-r-markdown-vignettes -->
@@ -19,58 +18,103 @@ require(Biostrings)
 
 # Introduction
 
-`ezRun` makes use of reference genomes stored in a canonical directory structure. Reference genomes can be built from
-a gtf file containing the gene annotations and a fasta file holding the genome sequence. With the file-based representation
-the reference genomes are available to external tools like read aligners and others.
+`ezRun` makes use of reference genomes stored in a canonical directory structure. 
+Reference genomes can be built from a gtf file containing the gene annotations 
+and a fasta file holding the genome sequence.
+With the file-based representation the reference genomes are available to external tools like read aligners and others.
 
-The commands to generate a reference are:
-```{r,split=TRUE,eval=FALSE}
-refBuild = "Saccharomyces_cerevisiae/Ensembl/EF4/Annotation/Version-2013-03-18"
-genomesRoot = "./refExample"
-system("rm -rf refExample")
+## Ensembl
+Here we give an exmaple of human reference annotation from Ensembl.
+
+```{r humanSetup, echo=TRUE, eval=TRUE}
+genomesRoot <- "."
+organism <- "Homo_sapiens"
+db <- "Ensembl"
+build <- "GRCh38.p10"
+```
+
+```{r humanDownload, echo=TRUE, eval=FALSE}
+## We download the reference genome and gtf from Ensembl release 89
+gtfURL <- "ftp://ftp.ensembl.org/pub/release-89/homo_sapiens/Homo_sapiens.GRCh38.89.gtf.gz"
+download.file(gtfURL, basename(gtfURL))
+genomeURL <- "ftp://ftp.ensembl.org/pub/release-89/fasta/homo_sapiens/dna/Homo_sapiens.GRCh38.dna.primary_assembly.fa.gz"
+download.file(genomeURL, basename(genomeURL))
+featureFn <- basename(gtfURL)
+genomeFn <- basename(genomeURL)
+```
+
+Other annotation information can either be fetched via `biomaRt` in `makeFeatAnnoEnsembl` function or downloaded from [biomart](http://www.ensembl.org/biomart/martview).
+The latter is recommended becuase `biomaRt` is not stable sometimes.
+
+The attributes are "Transcript stable ID", "Gene description", 
+"GO term accession", "GO domain", "% GC content", 
+"Transcript length (including UTRs and CDS)".
+
+```{r biomart, echo=TRUE, eval=TRUE}
+## We download the annotation in a gzip file from biomart web page
+biomartFile="martquery_Homo_sapiens.txt.gz"
+```
+
+```{r build, echo=TRUE, eval=FALSE}
+refBuild = file.path(organism, db, build, "Annotation",
+                     paste("Release_89", Sys.Date(),
+                           sep="-"))
 param = ezParam(list(refBuild=refBuild, genomesRoot=genomesRoot))
-gtf = system.file("extdata/genes.gtf", package="ezRun", mustWork = TRUE)
-fp = system.file("extdata/genome.fa", package="ezRun", mustWork = TRUE)
-buildRefDir(param$ezRef, fp, gtf)
+buildRefDir(param$ezRef, genomeFile=genomeFn, genesFile=featureFn)
 buildIgvGenome(param$ezRef)
-seqAnno = writeAnnotationFromGtf(param=param)# featureFile=param$ezRef["refFeatureFile"], featAnnoFile=myRef["refAnnotationFile"])
+
+makeFeatAnnoEnsembl(featureFile=file.path(dirname(param$ezRef@refFeatureFile),
+                                          "features.gtf"),
+                    biomartFile=biomartFile)
+makeFeatAnnoEnsembl(featureFile=file.path(dirname(param$ezRef@refFeatureFile),
+                                          "genes.gtf"),
+                    biomartFile=biomartFile)
 ```
 
 
 # Structure of a reference genome folder
 
-The reference genome folder is inspired by illumina's iGenome folders but has differences with respect to handling
-different annotation versions.
+The reference genome folder is inspired by illumina's iGenome folders,
+but has differences with respect to handling different annotation versions.
 
 A reference genome build must be in a folder with the path
 
 ```
-<species> / <provider> / <build name>
+<species> / <provider> / <build>
 ```
 
 Build names should be unique within an installation. Within each build the sub-directories are:
+
 ```
 - <provider>
-  - <genome_build>
+  - <build>
     - Annotation
       - Genes (is a link to the latest version)
-        - Version-<date>
-          - Genes
-             - genes.gtf
-             - features.gtf
+      - Release-<date>
+        - Genes
+          - genes.gtf                            # buildRefDir
+          - genes.sorted.gtf                     # buildIgvGenome
+          - genes.sorted.gtf.idx                 # buildIgvGenome
+          - genes_annotation.txt                 # makeFeatAnnoEnsembl
+          - genes_annotation_byGene.txt          # makeFeatAnnoEnsembl
+          - genes_annotation_byTranscript.txt    # makeFeatAnnoEnsembl
+          - features.gtf                         # buildRefDir
+          - features_annotation.txt              # makeFeatAnnoEnsembl
+          - features_annotation_byGene.txt       # makeFeatAnnoEnsembl 
+          - features_annotation_byTranscript.txt # makeFeatAnnoEnsembl
     - Sequence
       - WholeGenomeFasta
-        - genome.fa
-        - genome.fa.fai
-        - genome.dict
+        - genome-chromsizes.txt                  # ezParam
+        - genome.fa                              # buildRefDir
+        - genome.fa.fai                          # buildRefDir
+        - genome.dict                            # buildRefDir
+    - igv_build.genome                           # buildIgvGenome
 ```
-
 
 Indices of the various aligners will be built on demand and also placed in the folder structure.
 
-
-
-# Genome annotation files
+# Description of annotation files
+## Genome annotation files
 
 Genome annotation files that define features (e.g. gene loci) on the genome must be in gtf file format. If the input file is in gff format, it can be converted to gtf with the `gffread` utility from the cufflinks suite
 ```
@@ -79,22 +123,35 @@ gffread -E -T -o genes.gtf genes.gff
 
 By convention the content of the feature files in the reference folders is:  
 
-* genes.gtf -- covers all protein coding loci in the reference (i.e. all loci where transcripts with a poly-A are generated); designed for poly-A RNA-seq  
-* transcribed.gtf -- covers all genome features that are transcribed, including non-coding RNAs like lincRNAs, micro-RNAs, ...;
-designed for whole transcriptome appraoches (e.g. ribo-depletion)  
-* features.gtf -- all annotated features in the genome, including pseudogenes, etc.; meant for whole genome exploratory analyses. Note: the included pseudogenes may give rise to multi-mapping reads in RNA-seq approaches because of the inclusion of loci that are never transcribed.  
+* genes.gtf -- covers all protein coding loci and transcribed noncoding regions in the reference (i.e. all loci where transcripts with a poly-A are generated); designed for poly-A RNA-seq  
+<!-- * transcribed.gtf -- covers all genome features that are transcribed, including non-coding RNAs like lincRNAs, micro-RNAs, ...; -->
+<!-- designed for whole transcriptome appraoches (e.g. ribo-depletion)   -->
+* features.gtf -- all annotated features in the genome, including pseudogenes, etc.; meant for whole genome exploratory analyses. Note: the included pseudogenes may give rise to multi-mapping reads in RNA-seq approaches because of the inclusion of loci that are never transcribed.
 
-# Feature annotation file
-Every file `<name>.gtf` must be accompanied by a file `<name>_annotation.txt`. This annotation file must have rownames that match the attribute `transcript_id`
-in the .gtf file. This annotation file will probably need additional enhancements. It may can contain annotations like  
+## Feature annotation file
+Every file `<name>.gtf` must be accompanied by two annotation files `<name>_annotation_byGene.txt` and `<name>_annotation_byTranscript.txt`
+This annotation file must have rownames in the first column of the two files: `gene_id` and `transcript_id`, respectively.
+These ids should match the corresponding ids in the gtf file.
+Currently these annotation files contain the following columns:
 
+* transcript_id
+* gene_id
 * gene_name  
-* description  
-* GO categories  
+* type: more general types of gene_biotype: "pseudogene", "long_noncoding", "short_noncoding", "protein_coding", "rRNA", "tRNA"
+* strand
+* seqid
+* start
+* end
+* biotypes: gene biotype
+* description: gene description
+* gc
+* width
+* GO BP
+* GO MF
+* GO CC
 
 
 # Processing and checks of genome assemblies and gene annotation files
-
 The buildRefDir function does:  
 
 * from the fasta file remove anything everything after the first space on the sequence identifier lines  
