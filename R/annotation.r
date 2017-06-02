@@ -24,50 +24,73 @@
 ##' seqAnno = writeAnnotationFromGtf(param)
 ##' seqAnno2 = ezFeatureAnnotation(param, rownames(seqAnno), dataFeatureType="gene")
 ezFeatureAnnotation = function(param, ids, dataFeatureType){
-  
-  stopifnot(dataFeatureType %in% c("transcript", "isoform", "gene")) ## not yet supported
-  if (!file.exists(param$ezRef["refAnnotationFile"])){
-    seqAnno = writeAnnotationFromGtf(param)
-  } else {
-    seqAnno = ezRead.table(param$ezRef["refAnnotationFile"], colClasses="character")
-    if (!is.null(seqAnno$gc)){
-      seqAnno$gc = signif(as.numeric(seqAnno$gc), digits=4)
+  if(dataFeatureType == "gene"){
+    ## TODO: in the future, shall we have parameters for _byGene and _byTranscipt
+    refAnnoGeneFn <- sub("\\.txt", "_byGene.txt", 
+                         param$ezRef["refAnnotationFile"])
+    
+    if(file.exists(refAnnoGeneFn)){
+      message("Using gene level annotation: ", refAnnoGeneFn)
+      seqAnno <- ezRead.table(refAnnoGeneFn, row.names=NULL)
+      rownames(seqAnno) <- seqAnno$gene_id
+    }else{
+      message("Using isoform level annotation and aggregating.")
+      ## For compatibility of old annotation without _byGene.txt
+      seqAnnoTx <- ezRead.table(param$ezRef["refAnnotationFile"], row.names=NULL)
+      ## historical reason: replace Identifier with transcript_id
+      colnames(seqAnnoTx)[colnames(seqAnnoTx)=="Identifier"] <- "transcript_id"
+      seqAnno <- aggregateFeatAnno(seqAnnoTx)
     }
-    if (!is.null(seqAnno$width)){
-      seqAnno$width = as.numeric(seqAnno$width)
-    }
+  }else if(dataFeatureType %in% c("transcript", "isoform")){
+    seqAnno <- ezRead.table(param$ezRef["refAnnotationFile"], row.names=NULL)
+    ## historical reason: replace Identifier with transcript_id
+    colnames(seqAnno)[colnames(seqAnno)=="Identifier"] <- "transcript_id"
+    rownames(seqAnno) <- seqAnno$transcript_id
+  }else{
+    stop("Only support dataFeatureType in 'transcript', 'isoform', 'gene'")
   }
-  if (dataFeatureType == "gene"){
-    ## TODO: use the aggregated _annotation_byGene.txt file
-    if (!all(ids %in% rownames(seqAnno))){
-      stopifnot(ids %in% seqAnno$gene_id)
-      trNames = tapply(rownames(seqAnno), seqAnno$gene_id, ezCollapse, uniqueOnly=TRUE)
-      if (!is.null(seqAnno$gene_name)){
-        gene_name = tapply(seqAnno$gene_name, seqAnno$gene_id, ezCollapse, uniqueOnly=TRUE)
-      } else {
-        gene_name = NULL
-      }
-      seqAnnoGene = data.frame(row.names=names(trNames), stringsAsFactors=FALSE)
-      if (!is.null(seqAnno$gene_name)){
-        seqAnnoGene$gene_name = tapply(seqAnno$gene_name, seqAnno$gene_id, ezCollapse, uniqueOnly=TRUE)
-      }
-      seqAnnoGene$transcript_id=as.character(trNames)
-      for (nm in intersect(colnames(seqAnno), c("type", "Description", "description", "hgnc_symbol", "Entrez Gene ID", "gene_name", "gene_symbol"))){
-        seqAnnoGene[[nm]] = tapply(seqAnno[[nm]], seqAnno$gene_id,
-                                   ezCollapse, empty.rm=TRUE, uniqueOnly=TRUE, na.rm=TRUE)[rownames(seqAnnoGene)]
-      }  
-      goAnno = aggregateGoAnnotation(seqAnno, seqAnno$gene_id)
-      if (!is.null(seqAnno$width)){
-        seqAnnoGene$width = signif(tapply(seqAnno$width, seqAnno$gene_id, mean)[rownames(seqAnnoGene)], digits=3)
-      }
-      if (!is.null(seqAnno$gc)){
-        seqAnnoGene$gc = signif(tapply(seqAnno$gc, seqAnno$gene_id, mean)[rownames(seqAnnoGene)], digits=3)
-      }
-      seqAnno = cbind(seqAnnoGene, goAnno[rownames(seqAnnoGene), ], stringsAsFactors=FALSE)
-    }
-  }
-  seqAnno = seqAnno[ids, ,drop=FALSE]
+  seqAnno = seqAnno[ids, , drop=FALSE]
   return(seqAnno)
+  # if (!file.exists(param$ezRef["refAnnotationFile"])){
+  #   seqAnno = writeAnnotationFromGtf(param)
+  # } else {
+  #   seqAnno = ezRead.table(param$ezRef["refAnnotationFile"], colClasses="character")
+  #   if (!is.null(seqAnno$gc)){
+  #     seqAnno$gc = signif(as.numeric(seqAnno$gc), digits=4)
+  #   }
+  #   if (!is.null(seqAnno$width)){
+  #     seqAnno$width = as.numeric(seqAnno$width)
+  #   }
+  # }
+  # if (dataFeatureType == "gene"){
+  #   ## TODO: use the aggregated _annotation_byGene.txt file
+  #   if (!all(ids %in% rownames(seqAnno))){
+  #     stopifnot(ids %in% seqAnno$gene_id)
+  #     trNames = tapply(rownames(seqAnno), seqAnno$gene_id, ezCollapse, uniqueOnly=TRUE)
+  #     if (!is.null(seqAnno$gene_name)){
+  #       gene_name = tapply(seqAnno$gene_name, seqAnno$gene_id, ezCollapse, uniqueOnly=TRUE)
+  #     } else {
+  #       gene_name = NULL
+  #     }
+  #     seqAnnoGene = data.frame(row.names=names(trNames), stringsAsFactors=FALSE)
+  #     if (!is.null(seqAnno$gene_name)){
+  #       seqAnnoGene$gene_name = tapply(seqAnno$gene_name, seqAnno$gene_id, ezCollapse, uniqueOnly=TRUE)
+  #     }
+  #     seqAnnoGene$transcript_id=as.character(trNames)
+  #     for (nm in intersect(colnames(seqAnno), c("type", "Description", "description", "hgnc_symbol", "Entrez Gene ID", "gene_name", "gene_symbol"))){
+  #       seqAnnoGene[[nm]] = tapply(seqAnno[[nm]], seqAnno$gene_id,
+  #                                  ezCollapse, empty.rm=TRUE, uniqueOnly=TRUE, na.rm=TRUE)[rownames(seqAnnoGene)]
+  #     }  
+  #     goAnno = aggregateGoAnnotation(seqAnno, seqAnno$gene_id)
+  #     if (!is.null(seqAnno$width)){
+  #       seqAnnoGene$width = signif(tapply(seqAnno$width, seqAnno$gene_id, mean)[rownames(seqAnnoGene)], digits=3)
+  #     }
+  #     if (!is.null(seqAnno$gc)){
+  #       seqAnnoGene$gc = signif(tapply(seqAnno$gc, seqAnno$gene_id, mean)[rownames(seqAnnoGene)], digits=3)
+  #     }
+  #     seqAnno = cbind(seqAnnoGene, goAnno[rownames(seqAnnoGene), ], stringsAsFactors=FALSE)
+  #   }
+  # }
 }
 
 ##' @describeIn ezFeatureAnnotation Gets the annotation from a .gtf file and transforms it into a tab-separated tabular .txt file.
@@ -230,26 +253,40 @@ aggregateFeatAnno <- function(featAnno){
   features <- c("gene_id", "transcript_id", "gene_name", "type", "strand", 
                 "seqid", "start", "end", "biotypes", "description", "gc", 
                 "width", "GO BP", "GO MF", "GO CC")
+  goColumns=c("GO BP", "GO MF", "GO CC")
   if(!setequal(colnames(featAnno), features)){
     stop("`featAnno` must have the columns: ", ezCollapse(features))
   }
-  featAnnoGene <- data.frame(row.names=na.omit(unique(featAnno$gene_id)))
-  for(nm in features){
-    featAnnoGene[[nm]] <- tapply(featAnno[[nm]], featAnno$gene_id,
-                                 ezCollapse, empty.rm=TRUE, uniqueOnly=TRUE, 
-                                 na.rm=TRUE)[rownames(featAnnoGene)]
+  
+  require(data.table)
+  featAnno <- as.data.table(featAnno)
+  ## Aggregate the character columns
+  featAnnoGene <- featAnno[ ,
+                            lapply(.SD, ezCollapse, empty.rm=TRUE, 
+                                   uniqueOnly=TRUE, na.rm=TRUE),
+                            by=.(gene_id), 
+                            .SDcols = setdiff(features, c("gene_id", "start", 
+                                                          "end", "gc", "width",
+                                                          goColumns))]
+  ## Aggregate the numeric columns
+  featAnnoGeneNumeric <- featAnno[ , .(start=min(start),
+                                       end=max(end),
+                                       gc=mean(gc),
+                                       width=mean(gc)),
+                                   by=.(gene_id)
+                                   ]
+  ## Aggregate the GO columns which reuqire more processing
+  mergeGo = function(x){
+    ezCollapse(strsplit(x, "; "), na.rm=TRUE, empty.rm=TRUE, uniqueOnly=TRUE)
   }
-  
-  ## special processing for numeric columns
-  featAnnoGene$start = tapply(featAnno$start, featAnno$gene_id,
-                              min)[rownames(featAnnoGene)]
-  featAnnoGene$end = tapply(featAnno$end, featAnno$gene_id,
-                            max)[rownames(featAnnoGene)]
-  featAnnoGene$width = tapply(featAnno$width, featAnno$gene_id,
-                              mean)[rownames(featAnnoGene)]
-  featAnnoGene$gc = tapply(featAnno$gc, featAnno$gene_id, 
-                           mean)[rownames(featAnnoGene)]
-  
+  featAnnoGeneGO <- featAnno[ , lapply(.SD, mergeGo),
+                              by=.(gene_id),
+                              .SDcols=goColumns]
+  featAnnoGene <- merge(merge(featAnnoGene, featAnnoGeneNumeric), 
+                        featAnnoGeneGO)
+  ## TODO: in the future, maybe we want to return featAnnoGene as data.table
+  featAnnoGene <- as.data.frame(featAnnoGene)
+  rownames(featAnnoGene) <- featAnnoGene$gene_id
   return(featAnnoGene)
 }
 
