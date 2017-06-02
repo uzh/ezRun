@@ -236,7 +236,8 @@ loadCountDatasetSE <- function(input, param){
 ##' description = system.file("DESCRIPTION", package="ezRun", mustWork=TRUE)
 ##' ezHead(x=description)
 ezHead = function(target=paste0(x, "_head"), x, n=1000){
-  ezSystem(paste("head -n", n, x, ">", target))
+  writeLines(readLines(x, n=n), con=target)
+  #ezSystem(paste("head -n", n, x, ">", target))
   return(target)
 }
 
