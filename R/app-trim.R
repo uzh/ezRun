@@ -140,7 +140,7 @@ ezMethodTrim = function(input=NA, output=NA, param=NA){
                 #               paste("HEADCROP", param$trimLeft, sep=":"),
                 #               paste("CROP", param$trimRight, sep=":"),
                 paste("MINLEN", param$minReadLength, sep=":"),
-                ">> trimmomatic.out 2>> trimmomatic.err")
+                "> trimmomatic.out 2> trimmomatic.err")
     ezSystem(cmd)
     ## TRIMOMMATIC may throw exception but still return status 0
     exceptionCount = length(grep("Exception", readLines("trimmomatic.err")))
