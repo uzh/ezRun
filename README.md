@@ -21,7 +21,7 @@ packages <- c("testthat", "knitr", "gage", "goseq", "ChIPpeakAnno",
               "GenomicRanges", "ShortRead", "Gviz", "gplots", "GO.db", 
               "GOstats", "annotate", "bitops", "edgeR", "limma", "S4Vectors",
               "VariantAnnotation", "rmarkdown", "plotly",
-              "ReporteRsjars", "ReporteRs")
+              "ReporteRsjars", "ReporteRs", "data.table")
 packages <- setdiff(packages, rownames(installed.packages()))
 biocLite(packages)
 ## reinstall ReporteRs with 0.8.6 version

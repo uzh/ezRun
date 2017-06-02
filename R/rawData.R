@@ -271,7 +271,7 @@ aggregateCountsByGene = function(param, rawData){
     if (param$useSigThresh){
       rawData[["presentFlag"]] = rawData[["counts"]] > param$sigThresh
     } else {
-      rawData[["presentFlag"]] = rawData[["counts"]] > 0      
+      rawData[["presentFlag"]] = rawData[["counts"]] > 0     
     }
   }
   
@@ -288,33 +288,11 @@ aggregateCountsByGeneSE <- function(param, rawData){
     return(list(error=paste("gene summaries requested but not gene column available. did you specify the build?<br>column names tried:<br>",
                             paste(param$geneColumnSet, collapse="<br>"))))
   }
-  ## TODO: have separate aggregated _annotaton_byGene.txt file.
-  ## Replace the following aggregation code.
   
-  seqAnnoNew = data.frame(row.names=na.omit(unique(genes)))
-  for (nm in colnames(rowData(rawData))){
-    seqAnnoNew[[nm]] = tapply(rowData(rawData)[[nm]], genes, 
-                              ezCollapse, empty.rm=TRUE, uniqueOnly=TRUE, 
-                              na.rm=TRUE)[rownames(seqAnnoNew)]
-  }
-  
-  ## special merging for special columns
-  if (!is.null(rowData(rawData)$start)){
-    gStart = tapply(as.integer(sub(";.*", "", rowData(rawData)$start)), 
-                    genes, min)
-    seqAnnoNew$start = gStart[rownames(seqAnnoNew)]
-  }
-  if (!is.null(rowData(rawData)$end)){
-    gEnd = tapply(as.integer(sub(".*;", "", rowData(rawData)$end)), 
-                  genes, max)
-    seqAnnoNew$end = gEnd[rownames(seqAnnoNew)]
-  }
-  if (!is.null(rowData(rawData)$width)){
-    seqAnnoNew$width = tapply(rowData(rawData)$width, genes, mean)[rownames(seqAnnoNew)]
-  }
-  if (!is.null(rowData(rawData)$gc)){
-    seqAnnoNew$gc = tapply(as.numeric(rowData(rawData)$gc), genes, mean)[rownames(seqAnnoNew)]
-  }
+  ## `GO BP` will be replaced by `GO.BP` after as.data.frame
+  seqAnnoNew <- setNames(as.data.frame(rowData(rawData)),
+                         colnames(rowData(rawData)))
+  seqAnnoNew <- aggregateFeatAnno(seqAnnoNew)
   
   if (metadata(rawData)$isLog){
     stop("Counts in logarithm are not supported!")
