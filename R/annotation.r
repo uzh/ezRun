@@ -113,6 +113,7 @@ makeFeatAnnoEnsembl <- function(featureFile,
                                 host=NULL){
   require(plyr)
   require(rtracklayer)
+  require(data.table)
   
   featAnnoFile <- sub(".gtf", "_annotation_byTranscript.txt", featureFile)
   featAnnoFileCompat <- sub(".gtf", "_annotation.txt", featureFile)
@@ -120,17 +121,16 @@ makeFeatAnnoEnsembl <- function(featureFile,
   
   feature <- import(featureFile)
   transcripts <- feature[feature$type=="transcript"]
-  featAnno <- ezFrame(transcript_id=transcripts$transcript_id,
-                      gene_id=transcripts$gene_id,
-                      gene_name=transcripts$gene_name,
-                      type=transcripts$gene_biotype,
-                      strand=strand(transcripts),
-                      seqid=seqnames(transcripts),
-                      start=start(transcripts),
-                      end=end(transcripts),
-                      biotypes=transcripts$gene_biotype,
-                      row.names=transcripts$transcript_id
-                      )
+  featAnno <- data.table(transcript_id=transcripts$transcript_id,
+                         gene_id=transcripts$gene_id,
+                         gene_name=transcripts$gene_name,
+                         type=transcripts$gene_biotype,
+                         strand=as.character(strand(transcripts)),
+                         seqid=as.character(seqnames(transcripts)),
+                         start=start(transcripts),
+                         end=end(transcripts),
+                         biotypes=transcripts$gene_biotype
+                        )
   
   ## Group the biotype into more general groups
   stopifnot(all(featAnno$type %in% listBiotypes("all")))
@@ -159,14 +159,15 @@ makeFeatAnnoEnsembl <- function(featureFile,
                          "Transcript length (including UTRs and CDS)")
   if(!is.null(biomartFile)){
     ### Use the downloaded biomartFile when availble
-    require(readr)
     stopifnot(file.exists(biomartFile))
-    mapping <- read_tsv(biomartFile)
+    require(readr)
+    
+    mapping <- as.data.table(read_tsv(biomartFile)) # fread cannot handle compressed file
     if(!setequal(colnames(mapping), names(attributes))){
       stop("Make sure ", paste(names(attributes), collapse="; "), 
            "are downloaded from web biomart!")
     }
-    colnames(mapping) <- attributes[colnames(mapping)]
+    colnames(mapping) <- attributes[colnames(mapping)] # To make it consistent with Biomart
     if(!all(featAnno$transcript_id %in% mapping$ensembl_transcript_id)){
       stop("Some transcript ids don't exist in biomart file!")
     }
@@ -183,31 +184,31 @@ makeFeatAnnoEnsembl <- function(featureFile,
       getBM(attributes=attributes,
             filters=c("ensembl_transcript_id"),
             values=rownames(featAnno), mart=ensembl)
+    mapping <- as.data.table(mapping)
   }
   
   ### description, gc, width
-  txid2description <- mapping[c("ensembl_transcript_id", "description", 
-                                "percentage_gene_gc_content", 
-                                "transcript_length")]
-  colnames(txid2description) <- c("transcript_id", "description",
-                                  "gc", "width")
-  txid2description$gc <- txid2description$gc / 100
-  featAnno <- join(featAnno, txid2description, by="transcript_id", 
-                   match="first")
+  txid2description <- mapping[!duplicated(ensembl_transcript_id), 
+                              .(transcript_id=ensembl_transcript_id,
+                                description=description,
+                                gc=percentage_gene_gc_content/100,
+                                width=transcript_length)]
+  
+  featAnno <- merge(featAnno, txid2description, all.x=TRUE, all.y=FALSE)
   
   ### GO
   GOMapping <- c("biological_process"="GO BP",
                  "molecular_function"="GO MF",
-                 "cellular_component"="GO CC")
-  for(i in 1:length(GOMapping)){
-    isBP <- mapping$namespace_1003 == names(GOMapping)[i]
-    txid2BP <- lapply(split(mapping$go_id[isBP], 
-                            mapping$ensembl_transcript_id[isBP]), unique)
-    txid2BP <- sapply(txid2BP, paste, collapse="; ")
-    #### Some transcript_id may not have GO IDs. we use match.
-    featAnno[[GOMapping[i]]] <- txid2BP[match(featAnno$transcript_id, 
-                                              names(txid2BP))]
-  }
+                 "cellular_component"="GO CC",
+                 "ensembl_transcript_id"="transcript_id")
+  go <- mapping[!(is.na(go_id) | is.na(namespace_1003)), 
+                .(go_id=ezCollapse(go_id, na.rm=TRUE, empty.rm=TRUE, 
+                                   uniqueOnly=TRUE)), 
+                by=.(ensembl_transcript_id, namespace_1003)]
+  go <- dcast(go, ensembl_transcript_id~namespace_1003, value.var ="go_id")
+  colnames(go) <- GOMapping[colnames(go)]
+  featAnno <- merge(featAnno, go, all.x=TRUE, all.y=FALSE)
+  
   featAnno[is.na(featAnno)] <- ""  ## replace NA in GO with ""
   
   ## output annotation file on transcript level
