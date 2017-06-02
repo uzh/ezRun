@@ -111,7 +111,6 @@ makeFeatAnnoEnsembl <- function(featureFile,
                                 biomartFile=NULL,
                                 organism="hsapiens_gene_ensembl",
                                 host=NULL){
-  require(plyr)
   require(rtracklayer)
   require(data.table)
   
