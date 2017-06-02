@@ -51,46 +51,6 @@ ezFeatureAnnotation = function(param, ids, dataFeatureType){
   }
   seqAnno = seqAnno[ids, , drop=FALSE]
   return(seqAnno)
-  # if (!file.exists(param$ezRef["refAnnotationFile"])){
-  #   seqAnno = writeAnnotationFromGtf(param)
-  # } else {
-  #   seqAnno = ezRead.table(param$ezRef["refAnnotationFile"], colClasses="character")
-  #   if (!is.null(seqAnno$gc)){
-  #     seqAnno$gc = signif(as.numeric(seqAnno$gc), digits=4)
-  #   }
-  #   if (!is.null(seqAnno$width)){
-  #     seqAnno$width = as.numeric(seqAnno$width)
-  #   }
-  # }
-  # if (dataFeatureType == "gene"){
-  #   ## TODO: use the aggregated _annotation_byGene.txt file
-  #   if (!all(ids %in% rownames(seqAnno))){
-  #     stopifnot(ids %in% seqAnno$gene_id)
-  #     trNames = tapply(rownames(seqAnno), seqAnno$gene_id, ezCollapse, uniqueOnly=TRUE)
-  #     if (!is.null(seqAnno$gene_name)){
-  #       gene_name = tapply(seqAnno$gene_name, seqAnno$gene_id, ezCollapse, uniqueOnly=TRUE)
-  #     } else {
-  #       gene_name = NULL
-  #     }
-  #     seqAnnoGene = data.frame(row.names=names(trNames), stringsAsFactors=FALSE)
-  #     if (!is.null(seqAnno$gene_name)){
-  #       seqAnnoGene$gene_name = tapply(seqAnno$gene_name, seqAnno$gene_id, ezCollapse, uniqueOnly=TRUE)
-  #     }
-  #     seqAnnoGene$transcript_id=as.character(trNames)
-  #     for (nm in intersect(colnames(seqAnno), c("type", "Description", "description", "hgnc_symbol", "Entrez Gene ID", "gene_name", "gene_symbol"))){
-  #       seqAnnoGene[[nm]] = tapply(seqAnno[[nm]], seqAnno$gene_id,
-  #                                  ezCollapse, empty.rm=TRUE, uniqueOnly=TRUE, na.rm=TRUE)[rownames(seqAnnoGene)]
-  #     }  
-  #     goAnno = aggregateGoAnnotation(seqAnno, seqAnno$gene_id)
-  #     if (!is.null(seqAnno$width)){
-  #       seqAnnoGene$width = signif(tapply(seqAnno$width, seqAnno$gene_id, mean)[rownames(seqAnnoGene)], digits=3)
-  #     }
-  #     if (!is.null(seqAnno$gc)){
-  #       seqAnnoGene$gc = signif(tapply(seqAnno$gc, seqAnno$gene_id, mean)[rownames(seqAnnoGene)], digits=3)
-  #     }
-  #     seqAnno = cbind(seqAnnoGene, goAnno[rownames(seqAnnoGene), ], stringsAsFactors=FALSE)
-  #   }
-  # }
 }
 
 ##' @describeIn ezFeatureAnnotation Gets the annotation from a .gtf file and transforms it into a tab-separated tabular .txt file.

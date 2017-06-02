@@ -479,36 +479,6 @@ runNgsCountQC = function(dataset, htmlFile="00index.html", param=param,
       titles = append(titles, qcScatterTitles)
     }
     
-    ## TODO: the following code shall be removed 
-    ##       since countsStart and countsEnd will never be used again.
-    # if (!is.null(rawData$countsStart) & !is.null(rawData$countsEnd)){
-    #   titles[["3' Bias analysis"]] = "3' Bias analysis"
-    #   addTitle(doc, titles[[length(titles)]], 2, id=titles[[length(titles)]])
-    #   
-    #   valStart = shiftZeros(rawData$countsStart, param$minSignal)
-    #   colnames(valStart) = paste(colnames(valStart), "[transcript start]")
-    #   valEnd = shiftZeros(rawData$countsEnd, param$minSignal)
-    #   colnames(valEnd) = paste(colnames(valEnd), "[transcript end]")
-    #   
-    #   pngName = "start-end-countScatter.png"
-    #   plotCmd = expression({
-    #     ezScatter(x=valStart, y=valEnd, types=types)
-    #   })
-    #   pngLink = ezImageFileLink(plotCmd, file=pngName,
-    #                             width=min(ncol(as.matrix(valEnd)), 6) * 480,
-    #                             height=ceiling(ncol(as.matrix(valEnd))/6) * 480) # dynamic png with possibly many plots
-    #   addParagraph(doc, pngLink)
-    #   
-    #   pngName = "start-end-countSmoothScatter.png"
-    #   plotCmd = expression({
-    #     ezSmoothScatter(x=valStart, y=valEnd)
-    #   })
-    #   pngLink = ezImageFileLink(plotCmd, file=pngName,
-    #                             width=min(ncol(as.matrix(valEnd)), 6) * 480,
-    #                             height=ceiling(ncol(as.matrix(valEnd))/6) * 480) # dynamic png with possibly many plots
-    #   addParagraph(doc, pngLink)
-    # }
-    
     ##########################################
     ## count density plots
     
