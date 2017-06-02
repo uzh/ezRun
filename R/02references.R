@@ -187,7 +187,7 @@ setMethod("buildRefDir", "EzRef", function(.Object, genomeFile, genesFile,
 
 ##' @describeIn listBiotypes returns the Ensembl gene_biotypes according to more general groups.
 listBiotypes <- function(select=c("genes", "protein_coding", "long_noncoding",
-                                  "short_noncoding", "rRNA", "tRNA", "pseudogene",
+                                  "short_noncoding", "rRNA", "tRNA", "Mt_tRNA", "Mt_rRNA", "pseudogene",
                                   "all")){
   ## Based on http://www.ensembl.org/Help/Faq?id=468
   ## http://vega.archive.ensembl.org/info/about/gene_and_transcript_types.html
@@ -241,6 +241,8 @@ listBiotypes <- function(select=c("genes", "protein_coding", "long_noncoding",
                   "pseudogene"=pseudogene,
                   "rRNA"=c("rRNA"),
                   "tRNA"=c("tRNA"),
+                  "Mt_tRNA"=c("Mt_tRNA"),
+                  "Mt_rRNA"=c("Mt_rRNA"),
                   "all"=unionBiotypes
                   )
   return(types)

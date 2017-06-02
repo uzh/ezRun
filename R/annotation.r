@@ -139,6 +139,8 @@ makeFeatAnnoEnsembl <- function(featureFile,
   isSHNC <- featAnno$type %in% listBiotypes("short_noncoding")
   isrRNA <- featAnno$type %in% listBiotypes("rRNA")
   istRNA <- featAnno$type %in% listBiotypes("tRNA")
+  isMtrRNA <- featAnno$type %in% listBiotypes("Mt_rRNA")
+  isMttRNA <- featAnno$type %in% listBiotypes("Mt_tRNA")
   isPseudo <- featAnno$type %in% listBiotypes("pseudogene")
   featAnno$type[isPseudo] <- "pseudogene"
   featAnno$type[isLNC] <- "long_noncoding"
@@ -148,6 +150,8 @@ makeFeatAnnoEnsembl <- function(featureFile,
   ### since they are subset of noncoding
   featAnno$type[isrRNA] <- "rRNA"
   featAnno$type[istRNA] <- "tRNA"
+  featAnno$type[isMtrRNA] <- "Mt_rRNA"
+  featAnno$type[isMttRNA] <- "Mt_tRNA"
   
   ## additional information from Ensembl or downloaded biomart file
   attributes <- c("ensembl_transcript_id", "description", 
