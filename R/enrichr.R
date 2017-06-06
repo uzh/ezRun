@@ -48,7 +48,7 @@ doEnrichr = function(param){
 ##' names(addResp)
 ##' # [1] "shortId"    "userListId"
 ##' # This will check all libraries specified in the internal list (extdata/enrichr_libnames.txt)
-##' res <- enrichrEnrich(genes)
+##' res <- enrichrEnrich(addResp$userListId)
 ##' # Check if any requests failed
 ##' if (length(res$failure) > 0) {
 ##'   cat(length(res$failure), " requests failed")
@@ -131,6 +131,7 @@ mkCurlQryString <- function(...) {
 ##'   \href{http://amp.pharm.mssm.edu/Enrichr/#stats}{Enrichr} website. This function does not
 ##'    validate the list. If the value is NULL, the function will use the internal list.
 ##' @param connectionN maximum number of concurrent connections to make
+##' @param retryN total number of times to retry a query if it fails
 ##' @template roxygen-template
 ##' @return \code{list} with two elements: success and failure. The first element is a \code{list}
 ##' of \code{data.frame} objects that contain enrichment results per library. The names of the
@@ -140,7 +141,7 @@ mkCurlQryString <- function(...) {
 ##' library names.
 ##' @seealso \code{\link{runEnrichr}, \link{enrichrAddList}, \link{getEnrichrLibNames}}
 ##' @author Roman Briskine
-enrichrEnrich <- function(userListId, libNames = getEnrichrLibNames(), connectionN = 10) {
+enrichrEnrich <- function(userListId, libNames = getEnrichrLibNames(), connectionN = 10, retryN = 3) {
   # While httr is easier to deal with, it does not support asynchrous requests. Neither does Rcurl.
   # So, we have to resort to the use of the curl package.
   require(curl, quietly = T, warn.conflicts = WARN_CONFLICTS)
@@ -170,7 +171,11 @@ enrichrEnrich <- function(userListId, libNames = getEnrichrLibNames(), connectio
 
   # Parses the response
   parseResp <- function(resp) {
-    respParsed <- jsonlite::fromJSON( rawToChar(resp$content) )[[1]]
+    respParsed <- jsonlite::fromJSON( rawToChar(resp$content) )
+    if ("expired" %in% names(respParsed) && respParsed$expired == T) {
+      stop("The server response indicates that the gene set has expired")
+    }
+    respParsed <- respParsed[[1]]
     fieldNames <- c("Rank", "Term", "p_value", "z_score", "Combined.Score", "Overlapping.Genes",
                     "Adjusted.p_value", "Old.p_value", "Old.Adjusted.p_value", "nOverlapping.Genes")
     if (length(respParsed) > 0) {
@@ -188,33 +193,40 @@ enrichrEnrich <- function(userListId, libNames = getEnrichrLibNames(), connectio
 
   success <- list()
   failure <- list()
+  tryId <- 0
 
-  # All connections are to the same host, so both parameters should have the same value
-  pool <- new_pool(total_con = connectionN, host_con = connectionN, multiplex = T)
-  for (libName in libNames) {
-    qryString <- mkCurlQryString(userListId = userListId, backgroundType = libName)
-    curl_fetch_multi(
-        paste(reqUrl, qryString, sep="?"),
-        # failonerror will cause curl to fail for any response status >= 400
-        handle = new_handle(failonerror = T),
-        pool = pool,
-        done = function(x) {
-          # libName may be bound after the loop is done rather than immediately. In that case, all
-          # results will be saved under the same libName. To avoid that, we have to extract the
-          # libName here.
-          libName <- sub('^.+backgroundType=([^&]+).*$', '\\1', x$url)
-          success[[libName]] <<- tryCatch(
-            parseResp(x),
-            error = function(e) { failure[[libName]] <<- paste("Response parsing failure with", e) }
-          )
-        },
-        # In case of a failure, curl returns only the error message that does not contain the URL,
-        # so we have no way to determine which request failed. So, we'll just append the message to
-        # the end of the list.
-        fail = function(x) { k <- length(failure) + 1; failure[[k]] <<- x }
-      )
+  while (tryId == 0 || (length(failure) > 0 && tryId < retryN + 1)) {
+    tryId <- tryId + 1
+    message(sprintf("Try: %d; failures: %d", tryId, length(failure)))
+    failure <<- list()
+    libNamesToQuery <- setdiff(libNames, names(success))
+    # All connections are to the same host, so both parameters should have the same value
+    pool <- new_pool(total_con = connectionN, host_con = connectionN, multiplex = T)
+    for (libName in libNamesToQuery) {
+      qryString <- mkCurlQryString(userListId = userListId, backgroundType = libName)
+      curl_fetch_multi(
+          paste(reqUrl, qryString, sep="?"),
+          # failonerror will cause curl to fail for any response status >= 400
+          handle = new_handle(failonerror = T),
+          pool = pool,
+          done = function(x) {
+            # libName may be bound after the loop is done rather than immediately. In that case, all
+            # results will be saved under the same libName. To avoid that, we have to extract the
+            # libName here.
+            libName <- sub('^.+backgroundType=([^&]+).*$', '\\1', x$url)
+            success[[libName]] <<- tryCatch(
+              parseResp(x),
+              error = function(e) { failure[[libName]] <<- paste("Response parsing failure with", e) }
+            )
+          },
+          # In case of a failure, curl returns only the error message that does not contain the URL,
+          # so we have no way to determine which request failed. So, we'll just append the message to
+          # the end of the list.
+          fail = function(x) { k <- length(failure) + 1; failure[[k]] <<- x }
+        )
+    }
+    multi_run(pool = pool)
   }
-  multi_run(pool = pool)
 
   list(success = success, failure = failure)
 }
