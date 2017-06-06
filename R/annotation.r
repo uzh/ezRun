@@ -27,7 +27,9 @@ ezFeatureAnnotation = function(param, ids, dataFeatureType){
   require(data.table)
   if(dataFeatureType == "gene"){
     ## TODO: in the future, shall we have parameters for _byGene and _byTranscipt
-    refAnnoGeneFn <- sub("\\.txt", "_byGene.txt", 
+    ## For compatibility reason, we can have _annotation.txt or 
+    ##   _annotation_byTranscript.txt from refAnnotationFile
+    refAnnoGeneFn <- sub("(_byTranscript)*\\.txt$", "_byGene.txt",
                          param$ezRef["refAnnotationFile"])
     
     if(file.exists(refAnnoGeneFn)){
