@@ -95,15 +95,15 @@ makeFeatAnnoEnsembl <- function(featureFile,
                         )
   
   ## Group the biotype into more general groups
-  stopifnot(all(featAnno$type %in% listBiotypes("all")))
-  isProteinCoding <- featAnno$type %in% listBiotypes("protein_coding")
-  isLNC <- featAnno$type %in% listBiotypes("long_noncoding")
-  isSHNC <- featAnno$type %in% listBiotypes("short_noncoding")
-  isrRNA <- featAnno$type %in% listBiotypes("rRNA")
-  istRNA <- featAnno$type %in% listBiotypes("tRNA")
-  isMtrRNA <- featAnno$type %in% listBiotypes("Mt_rRNA")
-  isMttRNA <- featAnno$type %in% listBiotypes("Mt_tRNA")
-  isPseudo <- featAnno$type %in% listBiotypes("pseudogene")
+  stopifnot(all(featAnno$biotypes %in% listBiotypes("all")))
+  isProteinCoding <- featAnno$biotypes %in% listBiotypes("protein_coding")
+  isLNC <- featAnno$biotypes %in% listBiotypes("long_noncoding")
+  isSHNC <- featAnno$biotypes %in% listBiotypes("short_noncoding")
+  isrRNA <- featAnno$biotypes %in% listBiotypes("rRNA")
+  istRNA <- featAnno$biotypes %in% listBiotypes("tRNA")
+  isMtrRNA <- featAnno$biotypes %in% listBiotypes("Mt_rRNA")
+  isMttRNA <- featAnno$biotypes %in% listBiotypes("Mt_tRNA")
+  isPseudo <- featAnno$biotypes %in% listBiotypes("pseudogene")
   featAnno$type[isPseudo] <- "pseudogene"
   featAnno$type[isLNC] <- "long_noncoding"
   featAnno$type[isSHNC] <- "short_noncoding"
@@ -230,7 +230,7 @@ aggregateFeatAnno <- function(featAnno){
                 "seqid", "start", "end", "biotypes", "description", "gc", 
                 "width", "GO BP", "GO MF", "GO CC")
   goColumns=c("GO BP", "GO MF", "GO CC")
-  if(!setequal(colnames(featAnno), features)){
+  if(!all(colnames(featAnno) %in% features)){
     stop("`featAnno` must have the columns: ", ezCollapse(features))
   }
   
