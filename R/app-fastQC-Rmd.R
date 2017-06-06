@@ -167,11 +167,7 @@ plotReadCountToLibConcRmd = function(dataset, colname){
         # p <- ggplot(toPlot, aes(x=x, y=y, label=label)) +
         #   geom_point() + geom_text(hjust = 0, nudge_x = 0.05) +
         #   theme_bw()
-    }else{
-      return(NULL)
     }
-  }else{
-    return(NULL)
   }
 }
 
