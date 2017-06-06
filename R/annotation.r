@@ -123,17 +123,26 @@ makeFeatAnnoEnsembl <- function(featureFile,
                          "GO term accession", "GO domain",
                          "% GC content", 
                          "Transcript length (including UTRs and CDS)")
+  ## Older web-page biomart has different names
+  attributesOld <- setNames(attributes, 
+                            c("Ensembl Transcript ID", "Description",
+                              "GO Term Accession", "GO domain",
+                              "% GC content", "Transcript length"))
   if(!is.null(biomartFile)){
     ### Use the downloaded biomartFile when availble
     stopifnot(file.exists(biomartFile))
     require(readr)
     
     mapping <- as.data.table(read_tsv(biomartFile)) # fread cannot handle compressed file
-    if(!setequal(colnames(mapping), names(attributes))){
+    if(setequal(colnames(mapping), names(attributes))){
+      colnames(mapping) <- attributes[colnames(mapping)] # To make it consistent with biomaRt
+    }else if(setequal(colnames(mapping), names(attributesOld))){
+      colnames(mapping) <- attributesOld[colnames(mapping)] 
+    }else{
       stop("Make sure ", paste(names(attributes), collapse="; "), 
            "are downloaded from web biomart!")
     }
-    colnames(mapping) <- attributes[colnames(mapping)] # To make it consistent with Biomart
+    
     if(!all(featAnno$transcript_id %in% mapping$ensembl_transcript_id)){
       stop("Some transcript ids don't exist in biomart file!")
     }
