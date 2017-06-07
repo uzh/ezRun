@@ -229,7 +229,8 @@ aggregateFeatAnno <- function(featAnno){
   features <- c("gene_id", "transcript_id", "gene_name", "type", "strand", 
                 "seqid", "start", "end", "biotypes", "description", "gc", 
                 "width", "GO BP", "GO MF", "GO CC", 
-                "gene_source", "transcript_name")
+                ## below is for old _annotation.txt
+                "gene_source", "transcript_name", "hgnc_symbol", "orignal type")
   goColumns=c("GO BP", "GO MF", "GO CC")
   if(!all(colnames(featAnno) %in% features)){
     stop("`featAnno` can only have the columns: ", ezCollapse(features))
