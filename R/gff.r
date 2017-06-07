@@ -572,14 +572,14 @@ ezUtrSequences = function(gtf, chromSeqs){
 ##' fp = "/srv/GT/reference/Saccharomyces_cerevisiae/Ensembl/EF4/Sequence/WholeGenomeFasta/genome.fa"
 ##' param$ezRef@@refFastaFile = fp
 ##' gw = getTranscriptGcAndWidth(param)
-getTranscriptGcAndWidth = function(param=NULL, genomeFn=NULL, gtfFn=NULL){
+getTranscriptGcAndWidth = function(param=NULL, genomeFn=NULL, featureFn=NULL){
   require(data.table)
   require(Biostrings)
   require(GenomicRanges)
   require(stringr)
   if(!is.null(param)){
     genomeFn <- param$ezRef["refFastaFile"]
-    gtfFn <- param$ezRef["refFeatureFile"]
+    featureFn <- param$ezRef["refFeatureFile"]
   }
   genomeFasta = genomeFn
   if (!file.exists(genomeFasta)){
@@ -587,7 +587,7 @@ getTranscriptGcAndWidth = function(param=NULL, genomeFn=NULL, gtfFn=NULL){
   }
   genomeSeq = readDNAStringSet(genomeFasta)
   names(genomeSeq) = sub(" .*", "", names(genomeSeq))
-  gff <- fread(gtfFn, header=FALSE, sep="\t")
+  gff <- fread(featureFn, header=FALSE, sep="\t")
   gff <- gff[V3=="exon", .(chr=V1, start=V4, end=V5, strand=V7, attribute=V9)]
   exonsByTx <- GRanges(seqnames=gff$chr,
                        ranges=IRanges(start=gff$start,

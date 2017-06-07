@@ -71,6 +71,7 @@ writeAnnotationFromGtf = function(param, featureFile=param$ezRef@refFeatureFile,
 ### make the feature annotation file <name>_annotation.txt
 ### for Ensembl gtf.
 makeFeatAnnoEnsembl <- function(featureFile,
+                                genomeFile,
                                 biomartFile=NULL,
                                 organism="hsapiens_gene_ensembl",
                                 host=NULL){
@@ -83,6 +84,10 @@ makeFeatAnnoEnsembl <- function(featureFile,
   
   feature <- import(featureFile)
   transcripts <- feature[feature$type=="transcript"]
+  
+  ## Calculate gc and width
+  gw <- getTranscriptGcAndWidth(genomeFn=genomeFile,
+                                featureFn=featureFile)
   featAnno <- data.table(transcript_id=transcripts$transcript_id,
                          gene_id=transcripts$gene_id,
                          gene_name=transcripts$gene_name,
@@ -91,7 +96,9 @@ makeFeatAnnoEnsembl <- function(featureFile,
                          seqid=as.character(seqnames(transcripts)),
                          start=start(transcripts),
                          end=end(transcripts),
-                         biotypes=transcripts$gene_biotype
+                         biotypes=transcripts$gene_biotype,
+                         gc=gw$gc[transcripts$transcript_id],
+                         width=gw$width[transcripts$transcript_id]
                         )
   
   ## Group the biotype into more general groups
@@ -117,27 +124,29 @@ makeFeatAnnoEnsembl <- function(featureFile,
   
   ## additional information from Ensembl or downloaded biomart file
   attributes <- c("ensembl_transcript_id", "description", 
-                  "go_id", "namespace_1003",
-                  "percentage_gene_gc_content", "transcript_length")
+                  "go_id", "namespace_1003")#,
+                  #"percentage_gene_gc_content", "transcript_length")
   names(attributes) <- c("Transcript stable ID", "Gene description",
-                         "GO term accession", "GO domain",
-                         "% GC content", 
-                         "Transcript length (including UTRs and CDS)")
+                         "GO term accession", "GO domain")#,
+                         #"% GC content", 
+                         #"Transcript length (including UTRs and CDS)")
   ## Older web-page biomart has different names
-  attributesOld <- setNames(attributes, 
+  attributesOld <- setNames(attributes,
                             c("Ensembl Transcript ID", "Description",
-                              "GO Term Accession", "GO domain",
-                              "% GC content", "Transcript length"))
+                              "GO Term Accession", "GO domain"))#,
+                              #"% GC content", "Transcript length"))
   if(!is.null(biomartFile)){
     ### Use the downloaded biomartFile when availble
     stopifnot(file.exists(biomartFile))
     require(readr)
     
     mapping <- as.data.table(read_tsv(biomartFile)) # fread cannot handle compressed file
-    if(setequal(colnames(mapping), names(attributes))){
+    if(all(names(attributes) %in% colnames(mapping))){
+      mapping <- mapping[ ,names(attributes), with=FALSE]
       colnames(mapping) <- attributes[colnames(mapping)] # To make it consistent with biomaRt
-    }else if(setequal(colnames(mapping), names(attributesOld))){
-      colnames(mapping) <- attributesOld[colnames(mapping)] 
+    }else if(all(names(attributesOld) %in% colnames(mapping))){
+      mapping <- mapping[ ,names(attributesOld), with=FALSE]
+      colnames(mapping) <- attributesOld[colnames(mapping)]
     }else{
       stop("Make sure ", paste(names(attributes), collapse="; "), 
            "are downloaded from web biomart!")
@@ -162,12 +171,12 @@ makeFeatAnnoEnsembl <- function(featureFile,
     mapping <- as.data.table(mapping)
   }
   
-  ### description, gc, width
+  ### description
   txid2description <- mapping[!duplicated(ensembl_transcript_id), 
                               .(transcript_id=ensembl_transcript_id,
-                                description=description,
-                                gc=percentage_gene_gc_content/100,
-                                width=transcript_length)]
+                                description=description)]#,
+                                #gc=percentage_gene_gc_content/100,
+                                #width=transcript_length)]
   
   featAnno <- merge(featAnno, txid2description, all.x=TRUE, all.y=FALSE)
   

@@ -65,9 +65,11 @@ buildIgvGenome(param$ezRef)
 
 makeFeatAnnoEnsembl(featureFile=file.path(dirname(param$ezRef@refFeatureFile),
                                           "features.gtf"),
+                    genomeFile=param$ezRef@refFastaFile,
                     biomartFile=biomartFile)
 makeFeatAnnoEnsembl(featureFile=file.path(dirname(param$ezRef@refFeatureFile),
                                           "genes.gtf"),
+                    genomeFile=param$ezRef@refFastaFile,
                     biomartFile=biomartFile)
 ```
 
