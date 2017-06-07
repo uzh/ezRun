@@ -234,6 +234,7 @@ aggregateFeatAnno <- function(featAnno){
   if(!all(colnames(featAnno) %in% features)){
     stop("`featAnno` can only have the columns: ", ezCollapse(features))
   }
+  features <- intersect(features, colnames(featAnno))
   
   require(data.table)
   featAnno <- as.data.table(featAnno)
