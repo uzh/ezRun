@@ -259,8 +259,8 @@ aggregateFeatAnno <- function(featAnno){
   ## Aggregate the numeric columns
   featAnnoGeneNumeric <- featAnno[ , .(start=min(start),
                                        end=max(end),
-                                       gc=mean(gc),
-                                       width=mean(width)),
+                                       gc=signif(mean(gc), digits = 4),
+                                       width=signif(mean(width), digits = 4)),
                                    by=.(gene_id)
                                    ]
   ## Aggregate the GO columns which reuqire more processing

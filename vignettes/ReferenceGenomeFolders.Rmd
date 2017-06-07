@@ -47,8 +47,7 @@ Other annotation information can either be fetched via `biomaRt` in `makeFeatAnn
 The latter is recommended becuase `biomaRt` is not stable sometimes.
 
 The attributes are "Transcript stable ID", "Gene description", 
-"GO term accession", "GO domain", "% GC content", 
-"Transcript length (including UTRs and CDS)".
+"GO term accession", "GO domain".
 
 ```{r biomart, echo=TRUE, eval=TRUE}
 ## We download the annotation in a gzip file from biomart web page

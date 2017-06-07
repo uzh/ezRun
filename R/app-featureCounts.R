@@ -24,7 +24,7 @@ ezMethodFeatureCounts = function(input=NA, output=NA, param=NA){
     ### read_tsv: 27.662s
     ### ezRead.table: 127.461s
     ### import: 33.419s
-    gtf <- fread(param$ezRef@refFeatureFile)
+    gtf <- fread(param$ezRef@refFeatureFile, header=FALSE)
     transcripts <- sub("\";$", "", 
                        sub("^transcript_id \"", "", 
                            str_extract(gtf$V9, ## column 9 is the attributes field
