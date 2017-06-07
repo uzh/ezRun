@@ -9,9 +9,8 @@ Description: An environment that makes it easy to process data by using R
     packages and external tools.
 License: GPL-3 | file LICENSE
 Depends:
-    stats,methods,utils,data.table
+    stats,methods,utils,data.table,Biostrings,GenomicRanges
 Imports:
-    Biostrings,GenomicRanges
 Suggests:
     testthat, knitr, gage, goseq, ChIPpeakAnno, DESeq2, TEQC, htSeqTools,
     pathview, reshape2, vsn, Rsubread, preprocessCore, wesanderson,
