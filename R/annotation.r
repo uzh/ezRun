@@ -228,10 +228,11 @@ aggregateFeatAnno <- function(featAnno){
   ## GO MF, GO CC
   features <- c("gene_id", "transcript_id", "gene_name", "type", "strand", 
                 "seqid", "start", "end", "biotypes", "description", "gc", 
-                "width", "GO BP", "GO MF", "GO CC")
+                "width", "GO BP", "GO MF", "GO CC", 
+                "gene_source", "transcript_name")
   goColumns=c("GO BP", "GO MF", "GO CC")
   if(!all(colnames(featAnno) %in% features)){
-    stop("`featAnno` must have the columns: ", ezCollapse(features))
+    stop("`featAnno` can only have the columns: ", ezCollapse(features))
   }
   
   require(data.table)
