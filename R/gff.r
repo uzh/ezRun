@@ -573,27 +573,36 @@ ezUtrSequences = function(gtf, chromSeqs){
 ##' param$ezRef@@refFastaFile = fp
 ##' gw = getTranscriptGcAndWidth(param)
 getTranscriptGcAndWidth = function(param){
+  require(data.table)
+  require(Biostrings)
+  require(GenomicRanges)
+  require(stringr)
+  
   genomeFasta = param$ezRef["refFastaFile"]
   if (!file.exists(genomeFasta)){
     return(NULL)
   }
   genomeSeq = readDNAStringSet(genomeFasta)
   names(genomeSeq) = sub(" .*", "", names(genomeSeq))
-  gff = ezLoadFeatures(param=param, types="exon")
-  trWidth = integer()
-  trGc = numeric()
-  for (nm in unique(gff$seqid)){
-    message(nm)
-    use = nm == gff$seqid
-    exonViews = Views(genomeSeq[[nm]], 
-                    start=gff$start[use],
-                    end=gff$end[use])
-    width = tapply(width(exonViews), gff$transcript_id[use], sum)
-    gcCount = tapply(letterFrequency(exonViews, letters="GC", as.prob=FALSE), gff$transcript_id[use], sum)
-    trWidth = c(trWidth, width)
-    trGc = c(trGc, gcCount / width)
-  }
-  return(list(gc=signif(trGc, digits=4), width=trWidth))
+  gff <- fread(param$ezRef["refFeatureFile"], header=FALSE, sep="\t")
+  gff <- gff[V3=="exon", .(chr=V1, start=V4, end=V5, strand=V7, attribute=V9)]
+  exonsByTx <- GRanges(seqnames=gff$chr,
+                       ranges=IRanges(start=gff$start,
+                                      end=gff$end),
+                       strand=gff$strand)
+  transcripts <- sub("\";$", "", 
+                     sub("^transcript_id \"", "", 
+                         str_extract(gff$attribute,
+                                     "transcript_id \"[[:alnum:]]+\";")))
+  exonsByTx <- genomeSeq[exonsByTx]
+  gcCount <- letterFrequency(exonsByTx, letters="GC", as.prob = FALSE)[ ,"G|C"]
+  txWidth <- width(exonsByTx)
+  data <- data.table(tx=transcripts, txWidth=txWidth, gcCount=gcCount)
+  data <- data[ , lapply(.SD, sum), by=.(tx)]
+  ans <- list(gc=signif(setNames(data[ , gcCount/txWidth], data[ ,tx]),
+                        digits=4),
+              width=setNames(data[ , txWidth], data[ ,tx]))
+  return(ans)
 }
 
 ##' @title Gets the ensembl types
