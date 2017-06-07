@@ -151,10 +151,6 @@ makeFeatAnnoEnsembl <- function(featureFile,
       stop("Make sure ", paste(names(attributes), collapse="; "), 
            "are downloaded from web biomart!")
     }
-    
-    if(!all(featAnno$transcript_id %in% mapping$ensembl_transcript_id)){
-      stop("Some transcript ids don't exist in biomart file!")
-    }
   }else{
     ### Query Biomart from R
     require(biomaRt)
@@ -164,11 +160,21 @@ makeFeatAnnoEnsembl <- function(featureFile,
       ensembl <- useMart("ENSEMBL_MART_ENSEMBL", host=host)
     }
     ensembl <- useDataset(organism, mart=ensembl)
-    mapping <-
-      getBM(attributes=attributes,
+    mapping1 <-
+      getBM(attributes=setdiff(attributes, c("go_id", "namespace_1003")),
             filters=c("ensembl_transcript_id"),
-            values=rownames(featAnno), mart=ensembl)
-    mapping <- as.data.table(mapping)
+            values=featAnno$transcript_id, mart=ensembl)
+    mapping1 <- as.data.table(mapping1)
+    mapping2 <-
+      getBM(attributes=c("ensembl_transcript_id", "go_id", "namespace_1003"),
+            filters=c("ensembl_transcript_id"),
+            values=featAnno$transcript_id, mart=ensembl)
+    mapping2 <- as.data.table(mapping2)
+    mapping <- merge(mapping1, mapping2, all=TRUE)
+  }
+  
+  if(!all(featAnno$transcript_id %in% mapping$ensembl_transcript_id)){
+    stop("Some transcript ids don't exist in biomart file!")
   }
   
   ### description
@@ -185,9 +191,10 @@ makeFeatAnnoEnsembl <- function(featureFile,
                  "molecular_function"="GO MF",
                  "cellular_component"="GO CC",
                  "ensembl_transcript_id"="transcript_id")
-  go <- mapping[!(is.na(go_id) | is.na(namespace_1003)), 
+  go <- mapping[!(is.na(go_id) | go_id == "") & namespace_1003 %in% c("biological_process", "molecular_function", "cellular_component"),
+                ## They can be NA, "", or weird character (EFO)
                 .(go_id=ezCollapse(go_id, na.rm=TRUE, empty.rm=TRUE, 
-                                   uniqueOnly=TRUE)), 
+                                   uniqueOnly=TRUE)),
                 by=.(ensembl_transcript_id, namespace_1003)]
   go <- dcast(go, ensembl_transcript_id~namespace_1003, value.var ="go_id")
   colnames(go) <- GOMapping[colnames(go)]
