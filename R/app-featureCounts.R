@@ -27,7 +27,7 @@ ezMethodFeatureCounts = function(input=NA, output=NA, param=NA){
     gtf <- fread(param$ezRef@refFeatureFile)
     transcripts <- sub("\";$", "", 
                        sub("^transcript_id \"", "", 
-                           str_extract(gtf$V9,
+                           str_extract(gtf$V9, ## column 9 is the attributes field
                                        "transcript_id \"[[:alnum:]]+\";")))
     
     gtf = gtf[transcripts %in% transcriptsUse, ]
