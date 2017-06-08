@@ -261,12 +261,13 @@ aggregateFeatAnno <- function(featAnno){
   features <- c("gene_id", "transcript_id", "gene_name", "type", "strand", 
                 "seqid", "start", "end", "biotypes", "description", "gc", 
                 "width", "GO BP", "GO MF", "GO CC", 
-                ## below is for old _annotation.txt
+                ## below is for compatibility with old _annotation.txt
                 "gene_source", "transcript_name", "hgnc_symbol", "orignal type")
   goColumns=c("GO BP", "GO MF", "GO CC")
   if(!all(colnames(featAnno) %in% features)){
     stop("`featAnno` can only have the columns: ", ezCollapse(features))
   }
+  
   features <- intersect(features, colnames(featAnno))
   
   require(data.table)
@@ -290,10 +291,17 @@ aggregateFeatAnno <- function(featAnno){
   mergeGo = function(x){
     ezCollapse(strsplit(x, "; "), na.rm=TRUE, empty.rm=TRUE, uniqueOnly=TRUE)
   }
-  featAnnoGeneGO <- featAnno[ , lapply(.SD, mergeGo),
-                              by=.(gene_id),
-                              .SDcols=goColumns]
-  featAnnoGene <- merge(merge(featAnnoGene, featAnnoGeneNumeric), 
+  if(all(goColumns %in% colnames(featAnno))){
+    featAnnoGeneGO <- featAnno[ , lapply(.SD, mergeGo),
+                                by=.(gene_id),
+                                .SDcols=goColumns]
+  }else{
+    ## Some annotation has no GO terms.
+    featAnnoGeneGO <- data.table(gene_id=featAnnoGeneNumeric$gene_id,
+                                 "GO BP"="", "GO MF"="", "GO CC"="")
+  }
+  
+  featAnnoGene <- merge(merge(featAnnoGene, featAnnoGeneNumeric),
                         featAnnoGeneGO)
   ## TODO: in the future, maybe we want to return featAnnoGene as data.table
   featAnnoGene <- as.data.frame(featAnnoGene)
