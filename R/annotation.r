@@ -263,7 +263,9 @@ aggregateFeatAnno <- function(featAnno){
                 "width", "GO BP", "GO MF", "GO CC", 
                 ## below is for compatibility with old _annotation.txt
                 "gene_source", "transcript_name", "hgnc_symbol", "orignal type",
-                "uniprot", "Short_description", "Curator_summary", "GO")
+                "uniprot", "Short_description", "Curator_summary", "GO",
+                "Blast.Score.Eval", "EnsemblGeneID_HS", "Gene.Symbol",
+                "Gene.Description")
   goColumns=c("GO BP", "GO MF", "GO CC")
   if(!all(colnames(featAnno) %in% features)){
     stop("`featAnno` can only have the columns: ", ezCollapse(features))
