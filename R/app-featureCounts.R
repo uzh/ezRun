@@ -28,7 +28,7 @@ ezMethodFeatureCounts = function(input=NA, output=NA, param=NA){
     transcripts <- sub("\";$", "", 
                        sub("^transcript_id \"", "", 
                            str_extract(gtf$V9, ## column 9 is the attributes field
-                                       "transcript_id \"[[:alnum:]]+\";")))
+                                       "transcript_id \"[[:alnum:][:punct:]]+\";")))
     
     gtf = gtf[transcripts %in% transcriptsUse, ]
     ## write.table is much faster than write_tsv and export.

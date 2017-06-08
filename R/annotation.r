@@ -73,7 +73,7 @@ writeAnnotationFromGtf = function(param, featureFile=param$ezRef@refFeatureFile,
 makeFeatAnnoEnsembl <- function(featureFile,
                                 genomeFile,
                                 biomartFile=NULL,
-                                organism="hsapiens_gene_ensembl",
+                                organism=NULL,
                                 host=NULL){
   require(rtracklayer)
   require(data.table)
@@ -100,6 +100,8 @@ makeFeatAnnoEnsembl <- function(featureFile,
                          gc=gw$gc[transcripts$transcript_id],
                          width=gw$width[transcripts$transcript_id]
                         )
+  ## The numeric columns should not have NAs.
+  stopifnot(!any(is.na(featAnno[ ,.(start, end, gc, width)])))
   
   ## Group the biotype into more general groups
   stopifnot(all(featAnno$biotypes %in% listBiotypes("all")))
@@ -124,35 +126,37 @@ makeFeatAnnoEnsembl <- function(featureFile,
   
   ## additional information from Ensembl or downloaded biomart file
   attributes <- c("ensembl_transcript_id", "description", 
-                  "go_id", "namespace_1003")#,
-                  #"percentage_gene_gc_content", "transcript_length")
+                  "go_id", "namespace_1003")
+                  
   names(attributes) <- c("Transcript stable ID", "Gene description",
-                         "GO term accession", "GO domain")#,
-                         #"% GC content", 
-                         #"Transcript length (including UTRs and CDS)")
+                         "GO term accession", "GO domain")
   ## Older web-page biomart has different names
   attributesOld <- setNames(attributes,
                             c("Ensembl Transcript ID", "Description",
-                              "GO Term Accession", "GO domain"))#,
-                              #"% GC content", "Transcript length"))
+                              "GO Term Accession", "GO domain"))
   if(!is.null(biomartFile)){
+    message("Use local biomart file!")
     ### Use the downloaded biomartFile when availble
     stopifnot(file.exists(biomartFile))
     require(readr)
     
-    mapping <- as.data.table(read_tsv(biomartFile)) # fread cannot handle compressed file
+    # fread cannot handle compressed file
+    mapping <- as.data.table(read_tsv(biomartFile)) 
     if(all(names(attributes) %in% colnames(mapping))){
       mapping <- mapping[ ,names(attributes), with=FALSE]
-      colnames(mapping) <- attributes[colnames(mapping)] # To make it consistent with biomaRt
+      # To make it consistent with biomaRt
+      colnames(mapping) <- attributes[colnames(mapping)] 
     }else if(all(names(attributesOld) %in% colnames(mapping))){
       mapping <- mapping[ ,names(attributesOld), with=FALSE]
+      # To make it consistent with biomaRt
       colnames(mapping) <- attributesOld[colnames(mapping)]
     }else{
       stop("Make sure ", paste(names(attributes), collapse="; "), 
            "are downloaded from web biomart!")
     }
-  }else{
+  }else if(!is.null(organism)){
     ### Query Biomart from R
+    message("Query via biomaRt package!")
     require(biomaRt)
     if(is.null(host)){
       ensembl <- useMart("ENSEMBL_MART_ENSEMBL")
@@ -171,6 +175,12 @@ makeFeatAnnoEnsembl <- function(featureFile,
             values=featAnno$transcript_id, mart=ensembl)
     mapping2 <- as.data.table(mapping2)
     mapping <- merge(mapping1, mapping2, all=TRUE)
+  }else{
+    message("Not using any additional annotation!")
+    mapping <- data.table(ensembl_transcript_id=featAnno$transcript_id,
+                          description="",
+                          go_id="",
+                          namespace_1003="")
   }
   
   if(!all(featAnno$transcript_id %in% mapping$ensembl_transcript_id)){
@@ -180,9 +190,7 @@ makeFeatAnnoEnsembl <- function(featureFile,
   ### description
   txid2description <- mapping[!duplicated(ensembl_transcript_id), 
                               .(transcript_id=ensembl_transcript_id,
-                                description=description)]#,
-                                #gc=percentage_gene_gc_content/100,
-                                #width=transcript_length)]
+                                description=description)]
   
   featAnno <- merge(featAnno, txid2description, all.x=TRUE, all.y=FALSE)
   
@@ -196,7 +204,15 @@ makeFeatAnnoEnsembl <- function(featureFile,
                 .(go_id=ezCollapse(go_id, na.rm=TRUE, empty.rm=TRUE, 
                                    uniqueOnly=TRUE)),
                 by=.(ensembl_transcript_id, namespace_1003)]
-  go <- dcast(go, ensembl_transcript_id~namespace_1003, value.var ="go_id")
+  if(nrow(go)==0L){
+    ## If go is an empty data.table
+    go <- data.table(ensembl_transcript_id=featAnno$transcript_id,
+                     biological_process="",
+                     molecular_function="",
+                     cellular_component="")
+  }else{
+    go <- dcast(go, ensembl_transcript_id~namespace_1003, value.var ="go_id")
+  }
   colnames(go) <- GOMapping[colnames(go)]
   featAnno <- merge(featAnno, go, all.x=TRUE, all.y=FALSE)
   

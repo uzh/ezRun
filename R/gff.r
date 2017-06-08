@@ -596,7 +596,7 @@ getTranscriptGcAndWidth = function(param=NULL, genomeFn=NULL, featureFn=NULL){
   transcripts <- sub("\";$", "", 
                      sub("^transcript_id \"", "", 
                          str_extract(gff$attribute,
-                                     "transcript_id \"[[:alnum:]]+\";")))
+                                     "transcript_id \"[[:alnum:][:punct:]]+\";")))
   exonsByTx <- genomeSeq[exonsByTx]
   gcCount <- letterFrequency(exonsByTx, letters="GC", as.prob = FALSE)[ ,"G|C"]
   txWidth <- width(exonsByTx)
