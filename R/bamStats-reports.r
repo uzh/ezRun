@@ -294,10 +294,21 @@ plotBamStat = function(resultList, dataset, param, htmlFile=NULL){
       counts[ ,i] = resultList[[i]][["geneCounts"]][rownames(counts)]
     }
     seqAnno = ezFeatureAnnotation(param, rownames(counts), "gene")
-    rawData = list(counts=counts, isLog=FALSE,
-                   presentFlag=counts > param$sigThresh, 
-                   seqAnno=seqAnno, featureLevel="gene",
-                   type="Counts", countName="multiMatchCounts")
+    rawData <- SummarizedExperiment(
+      assays=SimpleList(counts=counts, presentFlag=counts > param$sigThresh),
+      rowData=seqAnno, colData=dataset,
+      metadata=list(isLog=FALSE, featureLevel="gene",
+                    type="Counts", countName="multiMatchCounts")
+    )
+    if (ezIsSpecified(param$useTranscriptType)){
+      use = seqAnno$type == param$useTranscriptType
+    } else {
+      use = TRUE
+    }
+    rawData <- rawData[use, ]
+    assays(rawData)$rpkm = getRpkmSE(rawData)
+    assays(rawData)$tpm = getTpmSE(rawData)
+    
     if (is.null(param$normMethod)){
       param$normMethod = "logMean"
     }
@@ -305,7 +316,9 @@ plotBamStat = function(resultList, dataset, param, htmlFile=NULL){
       param$runGO = TRUE
     }
     setwdNew("Count_QC")
-    rawData$signal = ezNorm(rawData$counts, presentFlag=rawData$presentFlag, method=param$normMethod)
+    assays(rawData)$signal = ezNorm(assays(rawData)$counts,
+                                    presentFlag=assays(rawData)$presentFlag,
+                                    method=param$normMethod)
     runNgsCountQC(dataset, "00index.html", param, rawData=rawData)
     setwd("..")
     addParagraph(doc, pot("Count QC Report", hyperlink="Count_QC/00index.html"))
