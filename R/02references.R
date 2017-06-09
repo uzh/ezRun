@@ -94,7 +94,8 @@ setMethod("initialize", "EzRef", function(.Object, param=list()){
   if (ezIsAbsolutePath(param$refAnnotationFile)){
     .Object@refAnnotationFile = param$refAnnotationFile
   } else {
-    .Object@refAnnotationFile =  sub(".gtf$", "_annotation.txt", .Object@refFeatureFile)
+    .Object@refAnnotationFile = sub(".gtf$", "_annotation_byTranscript.txt",
+                                    .Object@refFeatureFile)
   }
   if (ezIsAbsolutePath(param$refFastaFile)){
     .Object@refFastaFile = param$refFastaFile
