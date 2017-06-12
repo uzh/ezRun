@@ -50,7 +50,7 @@ ezMethodSingleCellCounts = function(input=NA, output=NA, param=NA, htmlFile="00i
                }
                refDir = sub(".gtf$", "_STARIndex", param$ezRef["refFeatureFile"])
              }
-             ezSystem(paste(STAR, '--genomeDir', refDir, '--genomeLoad Remove'))
+             ezSystem(paste("STAR", '--genomeDir', refDir, '--genomeLoad Remove'))
            })
          },
          bowtie={
