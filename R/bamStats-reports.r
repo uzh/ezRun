@@ -294,6 +294,7 @@ plotBamStat = function(resultList, dataset, param, htmlFile=NULL){
       counts[ ,i] = resultList[[i]][["geneCounts"]][rownames(counts)]
     }
     seqAnno = ezFeatureAnnotation(param, rownames(counts), "gene")
+    require(SummarizedExperiment)
     rawData <- SummarizedExperiment(
       assays=SimpleList(counts=counts, presentFlag=counts > param$sigThresh),
       rowData=seqAnno, colData=dataset,
