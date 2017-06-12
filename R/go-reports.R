@@ -132,6 +132,7 @@ goUpDownTables = function(param, goResult){
 .getGoTermsAsTd = function(x, pThreshGo, minCount, onto=NA, maxNumberOfTerms=40){
   
   require("GO.db")
+  require(AnnotationDbi)
   
   if (!is.data.frame(x)){
     message("got no data frame")
@@ -163,7 +164,7 @@ goUpDownTables = function(param, goResult){
   }
   
   goIds = rownames(x)
-  goAncestorList = as.list(ANCESTOR[goIds])
+  goAncestorList = AnnotationDbi::as.list(ANCESTOR[goIds]) ## without the explicit choice of AnnotationDbi:: this fails in RnaBamStats ..... no idea why
   
   goRoots = character()
   for (goId in goIds){
@@ -171,7 +172,7 @@ goUpDownTables = function(param, goResult){
       goRoots[goId] = goId
     }
   }
-  goOffsprings = unique(as.list(OFFSPRING[goIds]))[[1]]
+  goOffsprings = unique(AnnotationDbi::as.list(OFFSPRING[goIds]))[[1]]
   goAncestors = unique(unlist(goAncestorList))
   goRelatives = union(intersect(goAncestors, goOffsprings), goIds)
   
