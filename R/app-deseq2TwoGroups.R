@@ -35,7 +35,7 @@ ezMethodDeseq2 = function(input=NA, output=NA, param=NA, htmlFile="00index.html"
   dataset <- setNames(as.data.frame(colData(rawData)),
                       colnames(colData(rawData)))
   
-  writeNgsTwoGroupReport(dataset=dataset, deResult, output, htmlFile)
+  writeNgsTwoGroupReport(deResult, output, htmlFile)
   return("Success")
 }
 

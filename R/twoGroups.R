@@ -64,7 +64,6 @@ twoGroupCountComparison = function(rawData, param){
     param$testMethod = "glm"    
   }
   
-  #result$method = param$testMethod
   metadata(rawData)$method <- param$testMethod
   
   if (ezIsSpecified(param$grouping2)){
@@ -84,9 +83,7 @@ twoGroupCountComparison = function(rawData, param){
   useProbe = rep(FALSE, nrow(x))
   useProbe[rowMeans(isPresent[, isRef, drop=FALSE]) >= 0.5] = TRUE
   useProbe[rowMeans(isPresent[, isSample, drop=FALSE]) >= 0.5] = TRUE
-  #result$isPresentProbe = useProbe
   rowData(rawData)$isPresentProbe <- useProbe
-  #result$isPresent = isPresent
   assays(rawData)$isPresent <- isPresent
   
   res = switch(param$testMethod,
@@ -119,15 +116,10 @@ twoGroupCountComparison = function(rawData, param){
   useProbe[is.na(useProbe)] = FALSE
   fdr = rep(NA, length(pValue))
   fdr[useProbe] = p.adjust(pValue[useProbe], method="fdr")
-  #names(pValue) = rownames(x)
-  #names(fdr) = rownames(x)
   rowData(rawData)$pValue <- pValue
   rowData(rawData)$fdr <- fdr
   rowData(rawData)$usedInTest = useProbe
   assays(rawData)$xNorm = ezScaleColumns(x, colData(rawData)$sf)
-  
-  #result$featureLevel = metadata(rawData)$featureLevel
-  #result$countName = rawData$countName
   
   ezWriteElapsed(job, status="done")
   metadata(rawData)$summary = c("Name"=param$name,
@@ -344,10 +336,13 @@ runGlm = function(x, sampleGroup, refGroup, grouping, normMethod, grouping2=NULL
 ##' @template rawData-template
 ##' @template types-template
 ##' @template roxygen-template
-writeNgsTwoGroupReport = function(dataset, deResult, output, 
+writeNgsTwoGroupReport = function(deResult, output, 
                                   htmlFile="00index.html", types=NULL) {
   param = deResult$param
   se <- deResult$se
+  
+  dataset <- setNames(as.data.frame(colData(se)),
+                      colnames(colData(se)))
   
   # TODO: this is temporary fix to make it compatible with old functions
   ## In the future, we should always use SummarizedExperiement rawDtaa.
@@ -385,14 +380,15 @@ writeNgsTwoGroupReport = function(dataset, deResult, output,
   doc = openBsdocReport(title=titles[[length(titles)]])
   
   addDataset(doc, dataset, param)
-  addCountResultSummary(doc, param, result)
+  addCountResultSummarySE(doc, param, se)
   
   titles[["Result Summary"]] = "Result Summary"
   addTitle(doc, titles[[length(titles)]], 2, id=titles[[length(titles)]])
   settings = character()
-  settings["Number of features:"] = length(result$pValue)
-  if (!is.null(result$isPresentProbe)){
-    settings["Number of features with counts above threshold:"] = sum(result$isPresentProbe)
+  settings["Number of features:"] = length(rowData(se)$pValue)
+  if (!is.null(rowData(se)$isPresentProbe)){
+    settings["Number of features with counts above threshold:"] = 
+      sum(rowData(se)$isPresentProbe)
   }
   addFlexTable(doc, ezGrid(settings, add.rownames=TRUE))
   

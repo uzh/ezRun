@@ -270,6 +270,29 @@ addCountResultSummary = function(doc, param, result){
   addFlexTable(doc, ezGrid(settings, add.rownames=TRUE))
 }
 
+addCountResultSummarySE = function(doc, param, se){
+  settings = character()
+  settings["Analysis:"] = metadata(se)$analysis
+  settings["Feature level:"] = metadata(se)$featureLeve
+  settings["Data Column Used:"] = metadata(se)$countName
+  settings["Method:"] = metadata(se)$method
+  if (ezIsSpecified(param$grouping2)){
+    settings["Statistical Model:"] = "used provided second factor"
+  }
+  settings["Comparison:"] = param$comparison
+  if (!is.null(param$normMethod)){
+    settings["Normalization:"] = param$normMethod
+  }
+  if(!is.null(param$deTest)){
+    settings["Differential expression test:"] <- param$deTest
+  }
+  if (param$useSigThresh){
+    settings["Log2 signal threshold:"] = signif(log2(param$sigThresh), digits=4)
+    settings["Linear signal threshold:"] = signif(param$sigThresh, digits=4)
+  }
+  addFlexTable(doc, ezGrid(settings, add.rownames=TRUE))
+}
+
 ##' @title Adds tables of the significant counts
 ##' @description Adds tables of the significant counts.
 ##' @template doc-template
@@ -306,7 +329,9 @@ getSignificantCountsTable = function(result, pThresh=1/10^(1:5), genes=NULL){
 }
 
 ##' @describeIn addSignificantCounts Gets the table containing the significant fold change counts.
-getSignificantFoldChangeCountsTable = function(result, pThresh=1/10^(1:5), fcThresh = c(1, 1.5, 2, 3, 4, 8, 10), genes=NULL){
+getSignificantFoldChangeCountsTable = function(result, pThresh=1/10^(1:5), 
+                                               fcThresh = c(1, 1.5, 2, 3, 4, 8, 10), 
+                                               genes=NULL){
   
   ## counts the significant entries
   ## if genes is given counts the number of different genes that are significant
