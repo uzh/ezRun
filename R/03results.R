@@ -24,12 +24,15 @@ EzResult <-
   setRefClass("EzResult",
               fields=c("param", "rawData", "result", "se", "sceset"),
               methods=list(
-                initialize = function(paramNew=list(), rawDataNew=list(), resultNew=list(),
-                                      file=NULL, seNew=list(), scesetNew=list()){
+                initialize = function(paramNew=list(), rawDataNew=list(), 
+                                      resultNew=list(),
+                                      file=NULL, seNew=SummarizedExperiment(), 
+                                      scesetNew=list()){
                   param <<- paramNew
                   rawData <<- rawDataNew
                   result <<- resultNew
                   sceset <<- scesetNew
+                  se <<- seNew
                   if (!is.null(file)){
                     stopifnot(length(paramNew) == 0 && length(rawDataNew) == 0 && length(resultNew) == 0)
                     stopifnot(file.exists(file))
@@ -49,9 +52,6 @@ EzResult <-
                 }
               )
   )
-
-
-
 
 makeSummarizedExperiment = function(param, rawData, result){
   require(SummarizedExperiment)

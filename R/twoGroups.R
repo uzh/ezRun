@@ -56,19 +56,22 @@ cleanupTwoGroupsInput = function(input, param){
 ##' @template roxygen-template
 ##' @return Returns a list containing the results of the comparison.
 twoGroupCountComparison = function(rawData, param){
-  x = rawData$counts
-  presentFlag = rawData$presentFlag
+  x = assays(rawData)$counts
+  presentFlag = assays(rawData)$presentFlag
   job = ezJobStart("twoGroupCountComparison")
-  result = list()
-  result$analysis ="NGS two group analysis"
+  metadata(rawData)$analysis <- "NGS two group analysis"
   if (is.null(param$testMethod)){
     param$testMethod = "glm"    
   }
   
-  result$method = param$testMethod
+  #result$method = param$testMethod
+  metadata(rawData)$method <- param$testMethod
+  
   if (ezIsSpecified(param$grouping2)){
     if (param$testMethod %in% c("glm", "sam","deseq2")){
-      result$method = paste(result$method, "using secondary factor")
+      #result$method = paste(result$method, "using secondary factor")
+      metadata(rawData)$method <- paste(metadata(rawData)$method, 
+                                        "using secondary factor")
     } else {
       return(list(error=paste("Second factor only supported for the test methods glm, sam and deseq2")))
     }
@@ -79,49 +82,73 @@ twoGroupCountComparison = function(rawData, param){
   ## compute which probes are present
   isPresent = ezPresentFlags(x, presentFlag=presentFlag, param=param, isLog=FALSE)
   useProbe = rep(FALSE, nrow(x))
-  useProbe[apply(isPresent[, isRef, drop=FALSE], 1, mean) >= 0.5] = TRUE
-  useProbe[apply(isPresent[, isSample, drop=FALSE], 1, mean) >= 0.5] = TRUE
-  result$isPresentProbe = useProbe
-  result$isPresent = isPresent
+  useProbe[rowMeans(isPresent[, isRef, drop=FALSE]) >= 0.5] = TRUE
+  useProbe[rowMeans(isPresent[, isSample, drop=FALSE]) >= 0.5] = TRUE
+  #result$isPresentProbe = useProbe
+  rowData(rawData)$isPresentProbe <- useProbe
+  #result$isPresent = isPresent
+  assays(rawData)$isPresent <- isPresent
+  
   res = switch(param$testMethod,
-               deseq2 = runDeseq2(round(x), param$sampleGroup, param$refGroup, param$grouping, grouping2=param$grouping2, isPresent=useProbe),
-               exactTest = runEdger(round(x), param$sampleGroup, param$refGroup, param$grouping, param$normMethod,
+               deseq2 = runDeseq2(round(x), param$sampleGroup, param$refGroup, 
+                                  param$grouping, grouping2=param$grouping2, 
+                                  isPresent=useProbe),
+               exactTest = runEdger(round(x), param$sampleGroup, param$refGroup,
+                                    param$grouping, param$normMethod,
                                     priorCount=param$backgroundExpression),
-               glm = runGlm(round(x), param$sampleGroup, param$refGroup, param$grouping, param$normMethod, grouping2=param$grouping2,
-                            priorCount=param$backgroundExpression, deTest=param$deTest),
-               limma = runLimma(x, param$sampleGroup, param$refGroup, param$grouping, grouping2=param$grouping2),
+               glm = runGlm(round(x), param$sampleGroup, param$refGroup, 
+                            param$grouping, param$normMethod, 
+                            grouping2=param$grouping2,
+                            priorCount=param$backgroundExpression,
+                            deTest=param$deTest),
+               limma = runLimma(x, param$sampleGroup, param$refGroup, 
+                                param$grouping, grouping2=param$grouping2),
                stop("unsupported testMethod: ", param$testMethod)
   )
-  result$log2Ratio = res$log2FoldChange  
-  result$fitGlm = res$fitGlm
-  result$sf = res$sf
+  rowData(rawData)$log2Ratio <- res$log2FoldChange
+  metadata(rawData)$fitGlm = res$fitGlm
+  colData(rawData)$sf <- res$sf
   pValue = res$pval
   pValue[is.na(pValue)] = 1
   
-  if (!is.null(param$runGfold) && param$runGfold && !is.null(rawData$seqAnno$width) && !is.null(rawData$seqAnno$gene_name)){
-    result$gfold = runGfold(rawData, result$sf, isSample, isRef)
+  if (!is.null(param$runGfold) && param$runGfold && 
+      !is.null(rawData$seqAnno$width) && !is.null(rawData$seqAnno$gene_name)){
+    rowData(rawData)$gfold <- runGfold(rawData, result$sf, isSample, isRef)
   }
-  result$nativeResult = res
+  metadata(rawData)$nativeResult <- res
   useProbe[is.na(useProbe)] = FALSE
   fdr = rep(NA, length(pValue))
   fdr[useProbe] = p.adjust(pValue[useProbe], method="fdr")
-  names(pValue) = rownames(x)
-  names(fdr) = rownames(x)
-  names(result$log2Ratio) = rownames(x)
-  result$pValue = pValue  
-  result$fdr=fdr
-  result$usedInTest = useProbe
-  result$xNorm = ezScaleColumns(x, result$sf)
+  #names(pValue) = rownames(x)
+  #names(fdr) = rownames(x)
+  rowData(rawData)$pValue <- pValue
+  rowData(rawData)$fdr <- fdr
+  rowData(rawData)$usedInTest = useProbe
+  assays(rawData)$xNorm = ezScaleColumns(x, colData(rawData)$sf)
   
-  result$featureLevel = rawData$featureLevel
-  result$countName = rawData$countName
+  #result$featureLevel = metadata(rawData)$featureLevel
+  #result$countName = rawData$countName
   
   ezWriteElapsed(job, status="done")
-  result$summary = c("Name"=param$name,
-                     "Reference Build"=param$refBuild,
-                     "Feature Level"=rawData$featureLevel,
-                     "Normalization"=param$normMethod)
-  deResult = EzResult(param=param, rawData=rawData, result=result)
+  metadata(rawData)$summary = c("Name"=param$name,
+                                "Reference Build"=param$refBuild,
+                                "Feature Level"=metadata(rawData)$featureLevel,
+                                "Normalization"=param$normMethod)
+  
+  ## TODO: it's temporary fix to make a compatible with EzResult
+  ## 
+  ## In the future, we should always use SummarizedExperiement rawDtaa.
+  rawDataList <- list(counts=assays(rawData)$counts,
+                      signal=assays(rawData)$signal,
+                      isLog=metadata(rawData)$isLog,
+                      presentFlag=assays(rawData)$presentFlag,
+                      seqAnno=rowData(rawData),
+                      featureLevel=metadata(rawData)$featureLevel,
+                      type=metadata(rawData)$type,
+                      countName=metadata(rawData)$countName, 
+                      dataset=colData(rawData))
+  
+  deResult = EzResult(param=param, rawData=rawDataList, se=rawData)
   return(deResult)
 }
 
@@ -317,11 +344,41 @@ runGlm = function(x, sampleGroup, refGroup, grouping, normMethod, grouping2=NULL
 ##' @template rawData-template
 ##' @template types-template
 ##' @template roxygen-template
-writeNgsTwoGroupReport = function(dataset, deResult, output, htmlFile="00index.html", types=NULL) {
+writeNgsTwoGroupReport = function(dataset, deResult, output, 
+                                  htmlFile="00index.html", types=NULL) {
   param = deResult$param
-  rawData = deResult$rawData
-  result = deResult$result
-  seqAnno = rawData$seqAnno
+  se <- deResult$se
+  
+  # TODO: this is temporary fix to make it compatible with old functions
+  ## In the future, we should always use SummarizedExperiement rawDtaa.
+  rawData <- deResult$rawData
+  
+  #result = deResult$result
+  ## TODO: this is temporary fix to make it compatible with old functions
+  result = list()
+  result$analysis = metadata(se)$analysis
+  result$method = metadata(se)$method
+  result$isPresentProbe = rowData(se)$isPresentProbe
+  result$isPresent = assays(se)$isPresent
+  result$log2Ratio = setNames(rowData(se)$log2Ratio, 
+                              rownames(assays(se)$counts))
+  result$fitGlm = metadata(se)$fitGlm
+  result$sf = colData(se)$sf
+  result$gfold = rowData(se)$gfold
+  result$nativeResult = metadata(se)$nativeResult
+  result$pValue = setNames(rowData(se)$pValue,
+                           rownames(assays(se)$counts))
+  result$fdr = rowData(se)$fdr
+  result$usedInTest = rowData(se)$usedInTest
+  result$xNorm = assays(se)$xNorm
+  result$featureLevel <- metadata(se)$featureLeve
+  result$countName <- metadata(se)$countName
+  result$summary <- metadata(se)$summary
+  
+  ## TODO: fix this same issue later.
+  seqAnno <- as.data.frame(rowData(se))
+  colnames(seqAnno) <- colnames(rowData(se))
+  rownames(seqAnno) <- rownames(assays(se)$counts)
   
   titles = list()
   titles[["Analysis"]] = paste("Analysis:", param$name)

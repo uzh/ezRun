@@ -7,7 +7,10 @@
 
 
 ezMethodEdger = function(input=NA, output=NA, param=NA, htmlFile="00index.html"){
+  cwd <- getwd()
   setwdNew(basename(output$getColumn("Report")))
+  on.exit(setwd(cwd))
+  
   stopifnot(param$sampleGroup != param$refGroup)
   
   input = cleanupTwoGroupsInput(input, param)
@@ -16,7 +19,7 @@ ezMethodEdger = function(input=NA, output=NA, param=NA, htmlFile="00index.html")
     param$grouping2 = input$getColumn(param$grouping2)
   }
   
-  rawData = loadCountDataset(input, param)
+  rawData = loadCountDatasetSE(input, param)
   if (isError(rawData)){
     writeErrorReport(htmlFile, param=param, error=rawData$error)
     return("Error")
@@ -27,8 +30,10 @@ ezMethodEdger = function(input=NA, output=NA, param=NA, htmlFile="00index.html")
     writeErrorReport(htmlFile, param=param, error=deResult$error)
     return("Error")
   }
+  dataset <- setNames(as.data.frame(colData(rawData)),
+                      colnames(colData(rawData)))
   
-  writeNgsTwoGroupReport(rawData$dataset, deResult, output, htmlFile)
+  writeNgsTwoGroupReport(dataset=dataset, deResult, output, htmlFile)
   return("Success")
 }
 
