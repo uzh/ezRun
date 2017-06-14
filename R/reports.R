@@ -311,6 +311,15 @@ addSignificantCounts = function(doc, result, pThresh=c(0.1, 0.05, 1/10^(2:5))){
   addFlexTable(doc, tbl)
 }
 
+addSignificantCountsSE = function(doc, se, pThresh=c(0.1, 0.05, 1/10^(2:5))){
+  sigTable = ezFlexTable(getSignificantCountsTableSE(se, pThresh=pThresh),
+                         header.columns = TRUE, add.rownames = TRUE, talign = "right")
+  sigFcTable = ezFlexTable(getSignificantFoldChangeCountsTableSE(se, pThresh=pThresh),
+                           header.columns = TRUE, add.rownames = TRUE, talign = "right")
+  tbl = ezGrid(cbind(as.html(sigTable), as.html(sigFcTable)))
+  addFlexTable(doc, tbl)
+}
+
 ##' @describeIn addSignificantCounts Gets the table containing the significant counts.
 getSignificantCountsTable = function(result, pThresh=1/10^(1:5), genes=NULL){
   sigTable = ezMatrix(NA, rows=paste("p <", pThresh), cols=c("#significants", "FDR"))
@@ -323,6 +332,24 @@ getSignificantCountsTable = function(result, pThresh=1/10^(1:5), genes=NULL){
     }
     if ( sigTable[i, "#significants"] > 0){
       sigTable[i, "FDR"] = signif(max(result$fdr[isSig], na.rm=TRUE), digits=4)
+    }
+  }
+  sigTable
+}
+
+getSignificantCountsTableSE = function(se, pThresh=1/10^(1:5), genes=NULL){
+  sigTable = ezMatrix(NA, rows=paste("p <", pThresh), cols=c("#significants", "FDR"))
+  for (i in 1:length(pThresh)){
+    ## TODO: check usedInTest is logial? if so, use isTRUE
+    isSig = rowData(se)$pValue < pThresh[i] & rowData(se)$usedInTest == 1
+    if (is.null(genes)){
+      sigTable[i, "#significants"] = sum(isSig, na.rm=TRUE)
+    } else {
+      sigTable[i, "#significants"] = length(na.omit(unique(genes[isSig])))
+    }
+    if ( sigTable[i, "#significants"] > 0){
+      sigTable[i, "FDR"] = signif(max(rowData(se)$fdr[isSig], na.rm=TRUE), 
+                                  digits=4)
     }
   }
   sigTable
@@ -346,6 +373,34 @@ getSignificantFoldChangeCountsTable = function(result, pThresh=1/10^(1:5),
   for (i in 1:length(pThresh)){
     for (j in 1:length(fcThresh)){
       isSig = result$pValue < pThresh[i] & result$usedInTest == 1 & fc >= fcThresh[j]
+      if (is.null(genes)){
+        sigFcTable[i, j] = sum(isSig, na.rm=TRUE)
+      } else {
+        sigFcTable[i, j] = length(unique(na.omit(genes[isSig])))
+      }
+    }
+  }
+  sigFcTable
+}
+
+getSignificantFoldChangeCountsTableSE = function(se, pThresh=1/10^(1:5), 
+                                                 fcThresh = c(1, 1.5, 2, 3, 4, 8, 10), 
+                                                 genes=NULL){
+  
+  ## counts the significant entries
+  ## if genes is given counts the number of different genes that are significant
+  if (!is.null(rowData(se)$log2Ratio)){
+    fc = 2^abs(rowData(se)$log2Ratio)
+  } else {
+    stopifnot(!is.null(rowData(se)$log2Effect))
+    fc = 2^abs(rowData(se)$log2Effect)
+  }
+  
+  sigFcTable = ezMatrix(NA, rows=paste("p <", pThresh), cols=paste("fc >=", fcThresh))
+  for (i in 1:length(pThresh)){
+    for (j in 1:length(fcThresh)){
+      isSig = rowData(se)$pValue < pThresh[i] & rowData(se)$usedInTest == 1 & 
+        fc >= fcThresh[j]
       if (is.null(genes)){
         sigFcTable[i, j] = sum(isSig, na.rm=TRUE)
       } else {
@@ -422,7 +477,64 @@ addResultFile = function(doc, param, result, rawData, useInOutput=TRUE,
   return(list(resultFile=file))
 }
 
-
+addResultFileSE = function(doc, param, se, useInOutput=TRUE,
+                           file=paste0("result--", param$comparison, ".txt")){
+  ## TODO: fix this same issue later.
+  seqAnno <- as.data.frame(rowData(se))
+  colnames(seqAnno) <- colnames(rowData(se))
+  rownames(seqAnno) <- rownames(assays(se)$counts)
+  
+  probes = rownames(seqAnno)[useInOutput]
+  y = data.frame(row.names=probes, stringsAsFactors=FALSE, check.names=FALSE)
+  y[ , colnames(seqAnno)] = sapply(seqAnno[match(probes, rownames(seqAnno)), ], as.character)
+  y$"log2 Signal" = result$log2Expr[useInOutput]
+  y$"isPresent" = result$isPresentProbe[useInOutput]
+  y$"log2 Ratio" = result$log2Ratio[useInOutput]
+  y$"gfold (log2 Change)" = result$gfold[useInOutput]
+  y$"log2 Effect" = result$log2Effect[useInOutput]
+  y$"probesetCount" = result$nProbes[useInOutput]
+  y$"presentProbesetCount" = result$nPresentProbes[useInOutput]
+  y$ratio = result$ratio[useInOutput]
+  y$pValue = result$pValue[useInOutput]
+  y$fdr = result$fdr[useInOutput]
+  for (nm in grep("Tukey pValue", names(result), value=TRUE)){
+    y[[nm]] = result[[nm]][useInOutput]
+  }
+  if (!is.null(result$groupMeans)){
+    groupMeans = result$groupMeans[useInOutput, ]
+    colnames(groupMeans) = paste("log2 Avg of", colnames(groupMeans))
+    y = data.frame(y, groupMeans, check.names=FALSE, stringsAsFactors=FALSE)
+  }
+  
+  if (!is.null(result$xNorm)){
+    yy = result$xNorm[useInOutput, ]
+    colnames(yy) = paste(colnames(yy), "[normalized count]")
+    y = cbind(y, yy)
+  }
+  yy = getRpkm(rawData)[useInOutput, ]
+  if (!is.null(yy)){
+    colnames(yy) = paste(colnames(yy), "[FPKM]")
+    y = cbind(y, yy)
+  }
+  y = y[order(y$fdr, y$pValue), ]
+  if (!is.null(y$width)){
+    y$width = as.integer(y$width)
+  }
+  if (!is.null(y$gc)){
+    y$gc = as.numeric(y$gc)
+  }
+  ezWrite.table(y, file=file, head="Identifier", digits=4)
+  addParagraph(doc, paste("Full result table for opening with a spreadsheet program (e.g. Excel: when",
+                          "opening with Excel, make sure that the Gene symbols are loaded into a",
+                          "column formatted as 'text' that prevents conversion of the symbols to dates):"))
+  addTxtLinksToReport(doc, file, param$doZip)
+  useInInteractiveTable = c("gene_name", "type", "description", "width", "gc", "isPresent", "log2 Ratio", "pValue", "fdr")
+  useInInteractiveTable = intersect(useInInteractiveTable, colnames(y))
+  tableLink = sub(".txt", "-viewTopSignificantGenes.html", file)
+  ezInteractiveTable(head(y[, useInInteractiveTable, drop=FALSE], param$maxTableRows), tableLink=tableLink, digits=3,
+                     title=paste("Showing the", param$maxTableRows, "most significant genes"))
+  return(list(resultFile=file))
+}
 
 
 

@@ -109,8 +109,9 @@ twoGroupCountComparison = function(rawData, param){
   pValue[is.na(pValue)] = 1
   
   if (!is.null(param$runGfold) && param$runGfold && 
-      !is.null(rawData$seqAnno$width) && !is.null(rawData$seqAnno$gene_name)){
-    rowData(rawData)$gfold <- runGfold(rawData, result$sf, isSample, isRef)
+      !is.null(rowData(rawData)$width) && !is.null(rowData(rawData)$gene_name)){
+    rowData(rawData)$gfold <- runGfold(rawData, rowData(rawData)$sf, 
+                                       isSample, isRef)
   }
   metadata(rawData)$nativeResult <- res
   useProbe[is.na(useProbe)] = FALSE
@@ -129,12 +130,18 @@ twoGroupCountComparison = function(rawData, param){
   
   ## TODO: it's temporary fix to make a compatible with EzResult
   ## 
-  ## In the future, we should always use SummarizedExperiement rawDtaa.
+  ## In the future, we should always use SummarizedExperiement rawData.
+  seqAnno = as.data.frame(rowData(rawData))
+  colnames(seqAnno) <- colnames(rowData(rawData))
+  rownames(seqAnno) <- rownames(assays(rawData)$counts)
+  seqAnno$isPresentProbe <- NULL
+  seqAnno$log2Ratio <- NULL
+  seqAnno$usedInTest <- NULL
   rawDataList <- list(counts=assays(rawData)$counts,
                       signal=assays(rawData)$signal,
                       isLog=metadata(rawData)$isLog,
                       presentFlag=assays(rawData)$presentFlag,
-                      seqAnno=rowData(rawData),
+                      seqAnno=seqAnno,
                       featureLevel=metadata(rawData)$featureLevel,
                       type=metadata(rawData)$type,
                       countName=metadata(rawData)$countName, 
@@ -394,7 +401,7 @@ writeNgsTwoGroupReport = function(deResult, output,
   
   titles[["Number of significants by p-value and fold-change"]] = "Number of significants by p-value and fold-change"
   addTitle(doc, titles[[length(titles)]], 3, id=titles[[length(titles)]])
-  addSignificantCounts(doc, result)
+  addSignificantCountsSE(doc, se)
   
   resultFile = addResultFile(doc, param, result, rawData)
   ezWrite.table(result$sf, file="scalingfactors.txt", head="Name", digits=4)
