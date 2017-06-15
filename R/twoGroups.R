@@ -119,6 +119,7 @@ twoGroupCountComparison = function(rawData, param){
   fdr[useProbe] = p.adjust(pValue[useProbe], method="fdr")
   rowData(rawData)$pValue <- pValue
   rowData(rawData)$fdr <- fdr
+  ## usedInTest was used before to pre-filter. Not used for now.
   rowData(rawData)$usedInTest = useProbe
   assays(rawData)$xNorm = ezScaleColumns(x, colData(rawData)$sf)
   
@@ -385,10 +386,9 @@ writeNgsTwoGroupReport = function(deResult, output,
   result$countName <- metadata(se)$countName
   result$summary <- metadata(se)$summary
   
-  ## TODO: fix this same issue later.
-  seqAnno <- as.data.frame(rowData(se))
-  colnames(seqAnno) <- colnames(rowData(se))
-  rownames(seqAnno) <- rownames(assays(se)$counts)
+  ## TODO: seqAnno should not be used.
+  seqAnno <- data.frame(rowData(se), row.names=rownames(se),
+                        check.names = FALSE, stringsAsFactors=FALSE)
   
   titles = list()
   titles[["Analysis"]] = paste("Analysis:", param$name)
@@ -411,7 +411,7 @@ writeNgsTwoGroupReport = function(deResult, output,
   addTitle(doc, titles[[length(titles)]], 3, id=titles[[length(titles)]])
   addSignificantCountsSE(doc, se)
   
-  resultFile = addResultFile(doc, param, result, rawData)
+  resultFile = addResultFileSE(doc, param, se)
   ezWrite.table(result$sf, file="scalingfactors.txt", head="Name", digits=4)
   
   liveReportLink = output$getColumn("Live Report")

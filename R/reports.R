@@ -479,50 +479,44 @@ addResultFile = function(doc, param, result, rawData, useInOutput=TRUE,
 
 addResultFileSE = function(doc, param, se, useInOutput=TRUE,
                            file=paste0("result--", param$comparison, ".txt")){
-  ## TODO: fix this same issue later.
-  seqAnno <- as.data.frame(rowData(se))
-  colnames(seqAnno) <- colnames(rowData(se))
-  rownames(seqAnno) <- rownames(assays(se)$counts)
   
-  probes = rownames(seqAnno)[useInOutput]
-  y = data.frame(row.names=probes, stringsAsFactors=FALSE, check.names=FALSE)
-  y[ , colnames(seqAnno)] = sapply(seqAnno[match(probes, rownames(seqAnno)), ], as.character)
-  y$"log2 Signal" = result$log2Expr[useInOutput]
-  y$"isPresent" = result$isPresentProbe[useInOutput]
-  y$"log2 Ratio" = result$log2Ratio[useInOutput]
-  y$"gfold (log2 Change)" = result$gfold[useInOutput]
-  y$"log2 Effect" = result$log2Effect[useInOutput]
-  y$"probesetCount" = result$nProbes[useInOutput]
-  y$"presentProbesetCount" = result$nPresentProbes[useInOutput]
-  y$ratio = result$ratio[useInOutput]
-  y$pValue = result$pValue[useInOutput]
-  y$fdr = result$fdr[useInOutput]
-  for (nm in grep("Tukey pValue", names(result), value=TRUE)){
-    y[[nm]] = result[[nm]][useInOutput]
-  }
-  if (!is.null(result$groupMeans)){
-    groupMeans = result$groupMeans[useInOutput, ]
-    colnames(groupMeans) = paste("log2 Avg of", colnames(groupMeans))
-    y = data.frame(y, groupMeans, check.names=FALSE, stringsAsFactors=FALSE)
-  }
+  se <- se[useInOutput, ]
+  y = data.frame(rowData(se), row.names=rownames(se),
+                 stringsAsFactors=FALSE, check.names=FALSE)
+  y$"isPresent" = y$isPresentProbe
+  y$isPresentProbe <- NULL
+  y$"log2 Ratio" = y$log2Ratio
+  y$log2Ratio <- NULL
+  y$"gfold (log2 Change)" = y$gfold
+  y$gfold <- NULL
+  y$usedInTest <- NULL ## don't output usedInTest.
   
-  if (!is.null(result$xNorm)){
-    yy = result$xNorm[useInOutput, ]
+  # We don't export this groupMeans to result file
+  #if (!is.null(result$groupMeans)){
+  #  groupMeans = result$groupMeans[useInOutput, ]
+  #  colnames(groupMeans) = paste("log2 Avg of", colnames(groupMeans))
+  #  y = data.frame(y, groupMeans, check.names=FALSE, stringsAsFactors=FALSE)
+  #}
+  
+  if (!is.null(assays(se)$xNorm)){
+    yy = assays(se)$xNorm
     colnames(yy) = paste(colnames(yy), "[normalized count]")
     y = cbind(y, yy)
   }
-  yy = getRpkm(rawData)[useInOutput, ]
+  yy = getRpkmSE(se)
   if (!is.null(yy)){
     colnames(yy) = paste(colnames(yy), "[FPKM]")
     y = cbind(y, yy)
   }
   y = y[order(y$fdr, y$pValue), ]
-  if (!is.null(y$width)){
-    y$width = as.integer(y$width)
-  }
-  if (!is.null(y$gc)){
-    y$gc = as.numeric(y$gc)
-  }
+  # if (!is.null(y$width)){
+  #   ## TODO: probably this is not necessary. width is always integer from se
+  #   y$width = as.integer(y$width)
+  # }
+  # if (!is.null(y$gc)){
+  #   ## TODO: probably this is not necessary. gc is always numeric from se
+  #   y$gc = as.numeric(y$gc)
+  # }
   ezWrite.table(y, file=file, head="Identifier", digits=4)
   addParagraph(doc, paste("Full result table for opening with a spreadsheet program (e.g. Excel: when",
                           "opening with Excel, make sure that the Gene symbols are loaded into a",
@@ -535,8 +529,6 @@ addResultFileSE = function(doc, param, se, useInOutput=TRUE,
                      title=paste("Showing the", param$maxTableRows, "most significant genes"))
   return(list(resultFile=file))
 }
-
-
 
 ############################################################
 ### probably not needed:
