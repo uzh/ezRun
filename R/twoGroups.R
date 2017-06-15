@@ -110,7 +110,7 @@ twoGroupCountComparison = function(rawData, param){
   
   if (!is.null(param$runGfold) && param$runGfold && 
       !is.null(rowData(rawData)$width) && !is.null(rowData(rawData)$gene_name)){
-    rowData(rawData)$gfold <- runGfold(rawData, rowData(rawData)$sf, 
+    rowData(rawData)$gfold <- runGfold(rawData, colData(rawData)$sf, 
                                        isSample, isRef)
   }
   metadata(rawData)$nativeResult <- res
@@ -137,6 +137,7 @@ twoGroupCountComparison = function(rawData, param){
   seqAnno$isPresentProbe <- NULL
   seqAnno$log2Ratio <- NULL
   seqAnno$usedInTest <- NULL
+  seqAnno$gfold <- NULL
   rawDataList <- list(counts=assays(rawData)$counts,
                       signal=assays(rawData)$signal,
                       isLog=metadata(rawData)$isLog,
@@ -156,20 +157,28 @@ runGfold = function(rawData, scalingFactors, isSample, isRef){
   message("running gfold ")
   # prepare input data for gfold
   .writeGfoldInput = function(sampleName){
-    gene_name = rawData$seqAnno$gene_name
+    gene_name = rowData(rawData)$gene_name
     if (is.null(gene_name)) gene_name = "NA"
-    gfoldData = data.frame(gene_name=gene_name, count=rawData$counts[, sampleName], rawData$seqAnno$width, 
-                           rawData$rpkm[, sampleName], row.names=rownames(rawData$seqAnno), check.names=FALSE, stringsAsFactors=FALSE)
+    gfoldData = data.frame(gene_name=gene_name, 
+                           count=assays(rawData)$counts[, sampleName], 
+                           rowData(rawData)$width, 
+                           assays(rawData)$rpkm[, sampleName], 
+                           row.names=rownames(assays(rawData)$counts), 
+                           check.names=FALSE, stringsAsFactors=FALSE)
     gfoldFile = paste0(sampleName, ".read_cnt")
     ezWrite.table(gfoldData, file=gfoldFile, col.names = FALSE)
     return(gfoldFile)
   }
-  sampleFiles = sapply(colnames(rawData$counts)[isSample], .writeGfoldInput)
-  refFiles = sapply(colnames(rawData$counts)[isRef], .writeGfoldInput)
+  sampleFiles = sapply(colnames(assays(rawData)$counts)[isSample], 
+                       .writeGfoldInput)
+  refFiles = sapply(colnames(assays(rawData)$counts)[isRef], 
+                    .writeGfoldInput)
   
   # run gfold
   cmd = paste (file.path(GFOLD_DIR, "gfold"), "diff -v 0",
-               "-norm", paste(signif(1/c(scalingFactors[isRef], scalingFactors[isSample]), digits=4), collapse=","),
+               "-norm", paste(signif(1/c(scalingFactors[isRef], 
+                                         scalingFactors[isSample]), digits=4), 
+                              collapse=","),
                "-s1", paste(sub(".read_cnt", "", refFiles), collapse=","), 
                "-s2", paste(sub(".read_cnt", "", sampleFiles), collapse=","),
                "-suf .read_cnt -o out.diff")
@@ -179,8 +188,9 @@ runGfold = function(rawData, scalingFactors, isSample, isRef){
   gfold = gfoldRes$gfold
   names(gfold) = rownames(gfoldRes)
   # remove gfold input / output files
-  cmd = paste("rm out.diff out.diff.ext", paste(c(sampleFiles, refFiles), collapse=" "))
-  ezSystem(cmd)
+  #cmd = paste("rm out.diff out.diff.ext", paste(c(sampleFiles, refFiles), collapse=" "))
+  #ezSystem(cmd)
+  file.remove(c("out.diff", "out.diff.ext", sampleFiles, refFiles))
   return(gfold)
 }
 
