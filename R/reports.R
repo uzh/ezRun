@@ -509,10 +509,10 @@ addResultFileSE = function(doc, param, se, useInOutput=TRUE,
     y = cbind(y, yy)
   }
   y = y[order(y$fdr, y$pValue), ]
-  # if (!is.null(y$width)){
-  #   ## TODO: probably this is not necessary. width is always integer from se
-  #   y$width = as.integer(y$width)
-  # }
+   if (!is.null(y$width)){
+     ## This is to round the with after averaging the transcript lengths
+     y$width = as.integer(y$width)
+  }
   # if (!is.null(y$gc)){
   #   ## TODO: probably this is not necessary. gc is always numeric from se
   #   y$gc = as.numeric(y$gc)

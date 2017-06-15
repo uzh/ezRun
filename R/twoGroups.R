@@ -386,7 +386,7 @@ writeNgsTwoGroupReport = function(deResult, output,
   result$countName <- metadata(se)$countName
   result$summary <- metadata(se)$summary
   
-  ## TODO: seqAnno should not be used.
+  ## TODO: seqAnno should not be used in the future.
   seqAnno <- data.frame(rowData(se), row.names=rownames(se),
                         check.names = FALSE, stringsAsFactors=FALSE)
   
@@ -412,7 +412,7 @@ writeNgsTwoGroupReport = function(deResult, output,
   addSignificantCountsSE(doc, se)
   
   resultFile = addResultFileSE(doc, param, se)
-  ezWrite.table(result$sf, file="scalingfactors.txt", head="Name", digits=4)
+  ezWrite.table(colData(se)$sf, file="scalingfactors.txt", head="Name", digits=4)
   
   liveReportLink = output$getColumn("Live Report")
   #resultObjFile = paste0("result--", param$comparison, "--", ezRandomString(length=12), "--EzResult.RData")
@@ -422,13 +422,14 @@ writeNgsTwoGroupReport = function(deResult, output,
                            target = "_blank"))
 
   ## for scatter plots we show the highly variable low counts
-  logSignal = log2(shiftZeros(result$xNorm, param$minSignal))
+  logSignal = log2(shiftZeros(assays(se)$xNorm, param$minSignal))
   result$groupMeans = cbind(rowMeans(logSignal[ , param$grouping == param$sampleGroup, drop=FALSE]),
                             rowMeans(logSignal[ , param$grouping == param$refGroup, drop=FALSE]))
   colnames(result$groupMeans) = c(param$sampleGroup, param$refGroup)
   
   if (param$writeScatterPlots){
-    testScatterTitles = addTestScatterPlots(doc, param, logSignal, result, seqAnno, resultFile$resultFile, types) 
+    testScatterTitles = addTestScatterPlotsSE(doc, param, logSignal, se,
+                                              resultFile$resultFile, types)
     titles = append(titles, testScatterTitles)
   }
   
