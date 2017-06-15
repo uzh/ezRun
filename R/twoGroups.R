@@ -68,7 +68,6 @@ twoGroupCountComparison = function(rawData, param){
   
   if (ezIsSpecified(param$grouping2)){
     if (param$testMethod %in% c("glm", "sam","deseq2")){
-      #result$method = paste(result$method, "using secondary factor")
       metadata(rawData)$method <- paste(metadata(rawData)$method, 
                                         "using secondary factor")
     } else {
@@ -132,13 +131,9 @@ twoGroupCountComparison = function(rawData, param){
   ## TODO: it's temporary fix to make a compatible with EzResult
   ## 
   ## In the future, we should always use SummarizedExperiement rawData.
-  seqAnno = as.data.frame(rowData(rawData))
-  colnames(seqAnno) <- colnames(rowData(rawData))
-  rownames(seqAnno) <- rownames(assays(rawData)$counts)
-  seqAnno$isPresentProbe <- NULL
-  seqAnno$log2Ratio <- NULL
-  seqAnno$usedInTest <- NULL
-  seqAnno$gfold <- NULL
+  seqAnno <- data.frame(rowData(rawData), row.names=rownames(rawData),
+                        check.names = FALSE, stringsAsFactors=FALSE)
+
   rawDataList <- list(counts=assays(rawData)$counts,
                       signal=assays(rawData)$signal,
                       isLog=metadata(rawData)$isLog,
@@ -146,7 +141,7 @@ twoGroupCountComparison = function(rawData, param){
                       seqAnno=seqAnno,
                       featureLevel=metadata(rawData)$featureLevel,
                       type=metadata(rawData)$type,
-                      countName=metadata(rawData)$countName, 
+                      countName=metadata(rawData)$countName,
                       dataset=colData(rawData))
   
   deResult = EzResult(param=param, rawData=rawDataList, se=rawData)
@@ -364,8 +359,7 @@ writeNgsTwoGroupReport = function(deResult, output,
   ## In the future, we should always use SummarizedExperiement rawDtaa.
   rawData <- deResult$rawData
   
-  #result = deResult$result
-  ## TODO: this is temporary fix to make it compatible with old functions
+  ## TODO: this is temporary fix to make it compatible with GO and GAGE analysis
   result = list()
   result$analysis = metadata(se)$analysis
   result$method = metadata(se)$method
@@ -386,7 +380,6 @@ writeNgsTwoGroupReport = function(deResult, output,
   result$countName <- metadata(se)$countName
   result$summary <- metadata(se)$summary
   
-  ## TODO: seqAnno should not be used in the future.
   seqAnno <- data.frame(rowData(se), row.names=rownames(se),
                         check.names = FALSE, stringsAsFactors=FALSE)
   
@@ -433,13 +426,14 @@ writeNgsTwoGroupReport = function(deResult, output,
     titles = append(titles, testScatterTitles)
   }
   
-  use = result$pValue < param$pValueHighlightThresh & abs(result$log2Ratio) > param$log2RatioHighlightThresh & result$usedInTest
+  use = rowData(se)$pValue < param$pValueHighlightThresh & 
+    abs(rowData(se)$log2Ratio) > param$log2RatioHighlightThresh & rowData(se)$usedInTest
   use[is.na(use)] = FALSE
   if (sum(use) > param$maxGenesForClustering){
-    use[use] = rank(result$pValue[use], ties.method="max") <= param$maxGenesForClustering
+    use[use] = rank(rowData(se)$pValue[use], ties.method="max") <= param$maxGenesForClustering
   }
   ## for clustering we use a moderated logSignal
-  logSignal = log2(result$xNorm + param$backgroundExpression)
+  logSignal = log2(assays(se)$xNorm + param$backgroundExpression)
   
   if (sum(use) > param$minGenesForClustering){
     xCentered = logSignal[use , ]
@@ -461,7 +455,7 @@ writeNgsTwoGroupReport = function(deResult, output,
     
     if (doGo(param, seqAnno)){
       clusterResult = goClusterResults(xCentered, param, clusterResult, seqAnno=seqAnno,
-                                       universeProbeIds=rownames(seqAnno)[result$isPresentProbe])
+                                       universeProbeIds=rownames(seqAnno)[rowData(se)$isPresentProbe])
     }
     
     ## append the result file with the cluster colors
@@ -513,9 +507,9 @@ writeNgsTwoGroupReport = function(deResult, output,
   ## only do GO if we have enough genes
   if (doGo(param, seqAnno)){
     if (doEnrichr(param)){
-      isSig = result$pValue < param$pValThreshGO & result$usedInTest
-      isUp = result$log2Ratio > param$log2RatioThreshGO & isSig
-      isDown = result$log2Ratio < -param$log2RatioThreshGO & isSig
+      isSig = rowData(se)$pValue < param$pValThreshGO & rowData(se)$usedInTest
+      isUp = rowData(se)$log2Ratio > param$log2RatioThreshGO & isSig
+      isDown = rowData(se)$log2Ratio < -param$log2RatioThreshGO & isSig
       regulatedGenes = list()
       regulatedGenes$upGenes = na.omit(unique(seqAnno[isUp, "gene_name"]))
       regulatedGenes$downGenes = na.omit(unique(seqAnno[isDown, "gene_name"]))
