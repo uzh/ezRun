@@ -355,7 +355,7 @@ writeNgsTwoGroupReport = function(deResult, output,
   dataset <- setNames(as.data.frame(colData(se)),
                       colnames(colData(se)))
   
-  # TODO: this is temporary fix to make it compatible with old functions
+  # TODO: this is temporary fix to make it compatible with GO and GAGE analysis
   ## In the future, we should always use SummarizedExperiement rawDtaa.
   rawData <- deResult$rawData
   

@@ -340,7 +340,6 @@ getSignificantCountsTable = function(result, pThresh=1/10^(1:5), genes=NULL){
 getSignificantCountsTableSE = function(se, pThresh=1/10^(1:5), genes=NULL){
   sigTable = ezMatrix(NA, rows=paste("p <", pThresh), cols=c("#significants", "FDR"))
   for (i in 1:length(pThresh)){
-    ## TODO: check usedInTest is logial? if so, use isTRUE
     isSig = rowData(se)$pValue < pThresh[i] & rowData(se)$usedInTest == 1
     if (is.null(genes)){
       sigTable[i, "#significants"] = sum(isSig, na.rm=TRUE)
@@ -513,10 +512,7 @@ addResultFileSE = function(doc, param, se, useInOutput=TRUE,
      ## This is to round the with after averaging the transcript lengths
      y$width = as.integer(y$width)
   }
-  # if (!is.null(y$gc)){
-  #   ## TODO: probably this is not necessary. gc is always numeric from se
-  #   y$gc = as.numeric(y$gc)
-  # }
+
   ezWrite.table(y, file=file, head="Identifier", digits=4)
   addParagraph(doc, paste("Full result table for opening with a spreadsheet program (e.g. Excel: when",
                           "opening with Excel, make sure that the Gene symbols are loaded into a",
