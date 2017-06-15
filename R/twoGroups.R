@@ -188,8 +188,6 @@ runGfold = function(rawData, scalingFactors, isSample, isRef){
   gfold = gfoldRes$gfold
   names(gfold) = rownames(gfoldRes)
   # remove gfold input / output files
-  #cmd = paste("rm out.diff out.diff.ext", paste(c(sampleFiles, refFiles), collapse=" "))
-  #ezSystem(cmd)
   file.remove(c("out.diff", "out.diff.ext", sampleFiles, refFiles))
   return(gfold)
 }

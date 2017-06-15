@@ -30,8 +30,6 @@ ezMethodEdger = function(input=NA, output=NA, param=NA, htmlFile="00index.html")
     writeErrorReport(htmlFile, param=param, error=deResult$error)
     return("Error")
   }
-  dataset <- setNames(as.data.frame(colData(rawData)),
-                      colnames(colData(rawData)))
   
   writeNgsTwoGroupReport(deResult, output, htmlFile)
   return("Success")
