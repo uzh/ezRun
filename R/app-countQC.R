@@ -142,9 +142,11 @@ runNgsCountQC = function(dataset, htmlFile="00index.html", param=param,
                       featureLevel=metadata(rawData)$featureLevel,
                       type=metadata(rawData)$type, 
                       countName=metadata(rawData)$countName, 
-                      dataset=data.frame(colData(rawData), row.names=colnames(rawData),
-                                         check.names = FALSE, stringsAsFactors=FALSE)
-  )
+                      dataset=data.frame(colData(rawData), 
+                                         row.names=colnames(rawData),
+                                         check.names = FALSE, 
+                                         stringsAsFactors=FALSE)
+                      )
   
   if (!is.null(output)){
     liveReportLink = output$getColumn("Live Report")

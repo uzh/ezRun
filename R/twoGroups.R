@@ -142,7 +142,11 @@ twoGroupCountComparison = function(rawData, param){
                       featureLevel=metadata(rawData)$featureLevel,
                       type=metadata(rawData)$type,
                       countName=metadata(rawData)$countName,
-                      dataset=colData(rawData))
+                      dataset=data.frame(colData(rawData), 
+                                         row.names=colnames(rawData),
+                                         check.names = FALSE, 
+                                         stringsAsFactors=FALSE)
+                      )
   
   deResult = EzResult(param=param, rawData=rawDataList, se=rawData)
   return(deResult)
@@ -379,6 +383,7 @@ writeNgsTwoGroupReport = function(deResult, output,
   result$featureLevel <- metadata(se)$featureLeve
   result$countName <- metadata(se)$countName
   result$summary <- metadata(se)$summary
+  deResult$result <- result  ## For deResult output
   
   seqAnno <- data.frame(rowData(se), row.names=rownames(se),
                         check.names = FALSE, stringsAsFactors=FALSE)
