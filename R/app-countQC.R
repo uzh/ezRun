@@ -80,15 +80,8 @@ runNgsCountQC = function(dataset, htmlFile="00index.html", param=param,
                                     method=param$normMethod)
   }
   
-  seqAnno = as.data.frame(rowData(rawData))
-  ## TODO: "GO BP" will be "GO.BP" after converting DataFrame to data.frame()
-  ##       It has to be solved!.
-  ##       "DataFrame" cannot be cbind(ed) with matrix later.
-  colnames(seqAnno) <- colnames(rowData(rawData))
-  
-  ## rowData doesn't have rownames.
-  ## TODO: check whether the rownames are really needed.
-  rownames(seqAnno) <- rownames(assays(rawData)$counts)
+  seqAnno <- data.frame(rowData(rawData), row.names=rownames(rawData),
+                        check.names = FALSE, stringsAsFactors=FALSE)
   
   if (is.null(types) && !is.null(seqAnno$type)){
     types = data.frame(row.names=rownames(seqAnno))
