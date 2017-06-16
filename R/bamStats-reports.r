@@ -302,7 +302,6 @@ plotBamStat = function(resultList, dataset, param, htmlFile=NULL){
                     type="Counts", countName="multiMatchCounts")
     )
     if (ezIsSpecified(param$transcriptTypes)){
-      param$transcriptTypes <- strsplit(param$transcriptTypes, ",")[[1]]
       use = seqAnno$type %in% param$transcriptTypes
     } else {
       use = TRUE

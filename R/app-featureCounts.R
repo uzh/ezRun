@@ -14,7 +14,6 @@ ezMethodFeatureCounts = function(input=NA, output=NA, param=NA){
   
   
   if (ezIsSpecified(param$transcriptTypes)){
-    param$transcriptTypes <- strsplit(param$transcriptTypes, ",")[[1]]
     gtfFile = "genes.gtf"
     seqAnno = ezRead.table(param$ezRef@refAnnotationFile)
     transcriptsUse = rownames(seqAnno)[seqAnno$type %in% param$transcriptTypes]

@@ -209,7 +209,6 @@ loadCountDatasetSE <- function(input, param){
     )
   
   if (ezIsSpecified(param$transcriptTypes)){
-    param$transcriptTypes <- strsplit(param$transcriptTypes, ",")[[1]]
     use = seqAnno$type %in% param$transcriptTypes
   } else {
     use = TRUE
