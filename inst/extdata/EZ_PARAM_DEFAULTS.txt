@@ -116,7 +116,7 @@ GAGEanalysis	logical	FALSE
 genesets	character	kg.sigmet,kg.dise,msigdb	
 goSlim	logical	FALSE	should GO categories translated into GO SLIM categories
 ## feature handling
-useTranscriptType	charVector		if analysis should be restricted to certain types of transcripts; requires the annotation column "type" in the annotation file
+transcriptTypes	charVector		if analysis should be restricted to certain types of transcripts; requires the annotation column "type" in the annotation file
 addPromoters	logical	FALSE	add promoters on the fly as features to the gtf file
 seqNames	charVector		should analyse be restricted to certain chromosomes/contigs; comma-separated list of names;
 #vcfCall.minReadDepth

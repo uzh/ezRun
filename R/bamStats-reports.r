@@ -301,8 +301,8 @@ plotBamStat = function(resultList, dataset, param, htmlFile=NULL){
       metadata=list(isLog=FALSE, featureLevel="gene",
                     type="Counts", countName="multiMatchCounts")
     )
-    if (ezIsSpecified(param$useTranscriptType)){
-      use = seqAnno$type == param$useTranscriptType
+    if (ezIsSpecified(param$transcriptTypes)){
+      use = seqAnno$type %in% param$transcriptTypes
     } else {
       use = TRUE
     }

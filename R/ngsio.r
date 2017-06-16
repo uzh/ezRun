@@ -208,8 +208,8 @@ loadCountDatasetSE <- function(input, param){
                   type="Counts", countName=columnName)
     )
   
-  if (ezIsSpecified(param$useTranscriptType)){
-    use = seqAnno$type == param$useTranscriptType
+  if (ezIsSpecified(param$transcriptTypes)){
+    use = seqAnno$type %in% param$transcriptTypes
   } else {
     use = TRUE
   }

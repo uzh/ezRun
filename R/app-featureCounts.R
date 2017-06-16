@@ -13,10 +13,10 @@ ezMethodFeatureCounts = function(input=NA, output=NA, param=NA){
   statFile = basename(output$getColumn("Stats"))
   
   
-  if (ezIsSpecified(param$useTranscriptType)){
+  if (ezIsSpecified(param$transcriptTypes)){
     gtfFile = "genes.gtf"
     seqAnno = ezRead.table(param$ezRef@refAnnotationFile)
-    transcriptsUse = rownames(seqAnno)[seqAnno$type %in% param$useTranscriptType]
+    transcriptsUse = rownames(seqAnno)[seqAnno$type %in% param$transcriptTypes]
     require(data.table)
     require(stringr)
     ## fread is faster than read_tsv, read.table and import.
