@@ -18,6 +18,7 @@ Suggests:
     RColorBrewer, WGCNA, plyr, pvclust, parallel, Biostrings, ReporteRs,
     Rsamtools, Hmisc, XML, stringr, GenomicAlignments, GenomicFeatures,
     GenomicRanges, ShortRead, Gviz, gplots, GO.db, GOstats, annotate,
-    bitops, edgeR, limma, S4Vectors, VariantAnnotation, rmarkdown, plotly
+    bitops, edgeR, limma, S4Vectors, VariantAnnotation, rmarkdown, plotly,
+    kableExtra
 VignetteBuilder: knitr
 RoxygenNote: 5.0.1

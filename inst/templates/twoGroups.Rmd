@@ -12,6 +12,8 @@ output:
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ## This report requires objects: se, param, output, deResult
+require(knitr)
+require(kableExtra)
 ```
 Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
 
@@ -20,7 +22,9 @@ Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
 ### Settings
 
 ```{r setting, echo=FALSE}
-knitr::kable(makeCountResultSummary(param, se), row.names=TRUE)
+kable(makeCountResultSummary(param, se), row.names=TRUE, format="html") %>%
+  kable_styling(bootstrap_options = "striped", full_width = F,
+                  position = "left")
 ```
 
 ### Input Dataset
@@ -37,12 +41,17 @@ if (!is.null(rowData(se)$isPresentProbe)){
   settings["Number of features with counts above threshold:"] = 
     sum(rowData(se)$isPresentProbe)
 }
-knitr::kable(as.data.frame(settings), col.names="Number", row.names=TRUE)
+knitr::kable(as.data.frame(settings), format="html", 
+             col.names="Number", row.names=TRUE) %>%
+    kable_styling(bootstrap_options = "striped", full_width = F,
+                  position = "left")
 ```
 
 #### Number of significants by p-value and fold-change
 ```{r, echo=FALSE}
-knitr::kable(makeSignificantCounts(se), row.names=TRUE)
+knitr::kable(makeSignificantCounts(se), row.names=TRUE,  format="html") %>%
+  kable_styling(bootstrap_options = "striped", full_width = F, 
+                position = "left")
 ```
 
 Full result table for opening with a spreadsheet program 
@@ -62,3 +71,10 @@ deResult$saveToFile(basename(output$getColumn("Live Report")))
 
 [Live Report and Visualizations](`r liveReportLink`)
 
+### Inspection of significant genes
+
+#### Between-group Comparison
+```{r, echo=FALSE}
+logSignal = log2(shiftZeros(assays(se)$xNorm, param$minSignal))
+
+```
