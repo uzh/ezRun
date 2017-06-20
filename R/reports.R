@@ -293,6 +293,30 @@ addCountResultSummarySE = function(doc, param, se){
   addFlexTable(doc, ezGrid(settings, add.rownames=TRUE))
 }
 
+addCountResultSummaryRmd = function(param, se){
+  require(knitr)
+  settings = character()
+  settings["Analysis:"] = metadata(se)$analysis
+  settings["Feature level:"] = metadata(se)$featureLeve
+  settings["Data Column Used:"] = metadata(se)$countName
+  settings["Method:"] = metadata(se)$method
+  if (ezIsSpecified(param$grouping2)){
+    settings["Statistical Model:"] = "used provided second factor"
+  }
+  settings["Comparison:"] = param$comparison
+  if (!is.null(param$normMethod)){
+    settings["Normalization:"] = param$normMethod
+  }
+  if(!is.null(param$deTest)){
+    settings["Differential expression test:"] <- param$deTest
+  }
+  if (param$useSigThresh){
+    settings["Log2 signal threshold:"] = signif(log2(param$sigThresh), digits=4)
+    settings["Linear signal threshold:"] = signif(param$sigThresh, digits=4)
+  }
+  kable(as.data.frame(settings), col.names=NA, row.names=TRUE)
+}
+
 ##' @title Adds tables of the significant counts
 ##' @description Adds tables of the significant counts.
 ##' @template doc-template

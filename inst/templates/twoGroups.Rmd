@@ -1,0 +1,24 @@
+---
+title: "`r paste('Two groups analysis:', param$comparison)`"
+author: "Functional Genomics Center Zurich"
+output: 
+  html_document:
+    self_contained: false
+    includes:
+      in_header: fgcz_header.html
+    css: fgcz.css
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
+
+## TwoGroupsAnalysis_Result {.tabset}
+
+### Settings
+
+```{r setting, echo=FALSE}
+addCountResultSummaryRmd(param, se)
+```
+

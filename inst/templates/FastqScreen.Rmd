@@ -120,7 +120,7 @@ settings["Bowtie2 Version:"] = basename(BOWTIE2_DIR)
 settings["Bowtie2 Parameters:"] = param$cmdOptions
 settings["Minimum AlignmentScore:"] = param$minAlignmentScore
 settings["TopSpecies:"] = param$nTopSpecies
-knitr::kable(as.data.frame(settings), col.names=FALSE, row.names=TRUE)
+knitr::kable(as.data.frame(settings), col.names=NA, row.names=TRUE)
 ```
 
 

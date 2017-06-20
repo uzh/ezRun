@@ -1,0 +1,40 @@
+setwd("/srv/GT/analysis/gtan/p1997-edgeR/LR/EdgeR--AME--over--NS_Rmd")
+library(ezRun)
+param = list()
+param[['cores']] = '1'
+param[['ram']] = '2'
+param[['scratch']] = '10'
+param[['node']] = ''
+param[['process_mode']] = 'DATASET'
+param[['refBuild']] = 'Homo_sapiens/Ensembl/GRCh38.PatchesSkipped/Annotation/Version-2015-07-05'
+param[['refFeatureFile']] = 'genes.gtf'
+param[['featureLevel']] = 'gene'
+param[['testMethod']] = 'glm'
+param[['grouping']] = 'Condition'
+param[['sampleGroup']] = 'AME'
+param[['refGroup']] = 'NS'
+param[['normMethod']] = 'TMM'
+param[['runGO']] = 'false'
+param[['grouping2']] = ''
+param[['backgroundExpression']] = '10'
+param[['specialOptions']] = ''
+param[['expressionName']] = ''
+param[['mail']] = 'ge.tan@fgcz.ethz.ch'
+param[['comparison']] = 'AME--over--NS'
+param[['name']] = 'AME--over--NS'
+param[['dataRoot']] = '/srv/gstore/projects'
+param[['resultDir']] = 'p1997/EdgeR_17729_AME--over--NS_2017-05-03--13-16-23'
+param[['deTest']] = 'LR'
+output = list()
+output[['Name']] = 'AME--over--NS'
+output[['Species']] = ''
+output[['refBuild']] = 'Homo_sapiens/Ensembl/GRCh38.PatchesSkipped/Annotation/Version-2015-07-05'
+output[['Static Report [Link]']] = 'p1997/EdgeR_17729_AME--over--NS_2017-05-03--13-16-23/EdgeR--AME--over--NS/00index.html'
+output[['Live Report [Link]']] = 'http://fgcz-shiny.uzh.ch/fgcz_exploreDEG_app/?data=p1997/EdgeR_17729_AME--over--NS_2017-05-03--13-16-23/EdgeR--AME--over--NS/result-AME--over--NS-gbunszhvhmxz-EzResult.RData'
+output[['Report [File]']] = 'p1997/EdgeR_17729_AME--over--NS_2017-05-03--13-16-23/EdgeR--AME--over--NS'
+input = '/srv/gstore/projects/p1997/EdgeR_17729_AME--over--NS_2017-05-03--13-16-23/input_dataset.tsv'
+param[['runGfold']] = 'false'
+param[['runGO']] = 'false'
+#EzAppEdger$new()$run(input=input, output=output, param=param)
+rmarkdown::render(input="/Users/gtan/Repos/FGCZ/ezRun/inst/templates/twoGroups.Rmd",
+                  output_dir=".", output_file="00index.html")
