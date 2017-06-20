@@ -11,6 +11,7 @@ output:
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+## This report requires objects: se, param, output, deResult
 ```
 Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
 
@@ -43,3 +44,21 @@ knitr::kable(as.data.frame(settings), col.names="Number", row.names=TRUE)
 ```{r, echo=FALSE}
 knitr::kable(makeSignificantCounts(se), row.names=TRUE)
 ```
+
+Full result table for opening with a spreadsheet program 
+(e.g. Excel: when opening with Excel, make sure that the Gene symbols are loaded into a column formatted as 'text' that prevents conversion of the symbols to dates).
+
+```{r, echo=FALSE}
+resultFile <- makeResultFile(param, se)
+
+ezWrite.table(colData(se)[, "sf", drop=FALSE],
+              file="scalingfactors.txt", head="Name", digits=4)
+
+liveReportLink = output$getColumn("Live Report")
+deResult$saveToFile(basename(output$getColumn("Live Report")))
+```
+
+[`r resultFile$resultZip`](`r resultFile$resultZip`)
+
+[Live Report and Visualizations](`r liveReportLink`)
+

@@ -555,6 +555,54 @@ addResultFileSE = function(doc, param, se, useInOutput=TRUE,
   return(list(resultFile=file))
 }
 
+makeResultFile = function(param, se, useInOutput=TRUE,
+                          file=paste0("result--", param$comparison, ".txt")){
+  se <- se[useInOutput, ]
+  y = data.frame(rowData(se), row.names=rownames(se),
+                 stringsAsFactors=FALSE, check.names=FALSE)
+  y$"isPresent" = y$isPresentProbe
+  y$isPresentProbe <- NULL
+  y$"log2 Ratio" = y$log2Ratio
+  y$log2Ratio <- NULL
+  y$"gfold (log2 Change)" = y$gfold
+  y$gfold <- NULL
+  y$usedInTest <- NULL ## don't output usedInTest.
+  
+  if (!is.null(assays(se)$xNorm)){
+    yy = assays(se)$xNorm
+    colnames(yy) = paste(colnames(yy), "[normalized count]")
+    y = cbind(y, yy)
+  }
+  yy = getRpkmSE(se)
+  if (!is.null(yy)){
+    colnames(yy) = paste(colnames(yy), "[FPKM]")
+    y = cbind(y, yy)
+  }
+  y = y[order(y$fdr, y$pValue), ]
+  if (!is.null(y$width)){
+    ## This is to round the with after averaging the transcript lengths
+    y$width = as.integer(y$width)
+  }
+  
+  ezWrite.table(y, file=file, digits=4, row.names=FALSE)
+  if(isTRUE(param$doZip)){
+    zipFile <- sub(file_ext(file), "zip", file)
+    zip(zipfile=zipFile, files=file)
+    return(list(resultFile=file, resultZip=zipFile))
+  }
+  return(list(resultFile=file))
+  # addParagraph(doc, paste("Full result table for opening with a spreadsheet program (e.g. Excel: when",
+  #                         "opening with Excel, make sure that the Gene symbols are loaded into a",
+  #                         "column formatted as 'text' that prevents conversion of the symbols to dates):"))
+  # addTxtLinksToReport(doc, file, param$doZip)
+  # useInInteractiveTable = c("gene_name", "type", "description", "width", "gc", "isPresent", "log2 Ratio", "pValue", "fdr")
+  # useInInteractiveTable = intersect(useInInteractiveTable, colnames(y))
+  # tableLink = sub(".txt", "-viewTopSignificantGenes.html", file)
+  # ezInteractiveTable(head(y[, useInInteractiveTable, drop=FALSE], param$maxTableRows), tableLink=tableLink, digits=3,
+  #                    title=paste("Showing the", param$maxTableRows, "most significant genes"))
+  # return(list(resultFile=file))
+}
+
 ############################################################
 ### probably not needed:
 
