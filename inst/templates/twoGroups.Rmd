@@ -19,6 +19,27 @@ Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
 ### Settings
 
 ```{r setting, echo=FALSE}
-addCountResultSummaryRmd(param, se)
+knitr::kable(makeCountResultSummary(param, se), row.names=TRUE)
 ```
 
+### Input Dataset
+```{r, echo=FALSE}
+dataset <- data.frame(colData(se), check.names=FALSE, stringsAsFactors=FALSE)
+ezInteractiveTableRmd(values=dataset, digits=4)
+```
+
+### Result Summary
+```{r, echo=FALSE}
+settings = character()
+settings["Number of features:"] = nrow(se)
+if (!is.null(rowData(se)$isPresentProbe)){
+  settings["Number of features with counts above threshold:"] = 
+    sum(rowData(se)$isPresentProbe)
+}
+knitr::kable(as.data.frame(settings), col.names="Number", row.names=TRUE)
+```
+
+#### Number of significants by p-value and fold-change
+```{r, echo=FALSE}
+knitr::kable(makeSignificantCounts(se), row.names=TRUE)
+```

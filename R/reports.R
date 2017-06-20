@@ -293,8 +293,7 @@ addCountResultSummarySE = function(doc, param, se){
   addFlexTable(doc, ezGrid(settings, add.rownames=TRUE))
 }
 
-addCountResultSummaryRmd = function(param, se){
-  require(knitr)
+makeCountResultSummary = function(param, se){
   settings = character()
   settings["Analysis:"] = metadata(se)$analysis
   settings["Feature level:"] = metadata(se)$featureLeve
@@ -314,7 +313,7 @@ addCountResultSummaryRmd = function(param, se){
     settings["Log2 signal threshold:"] = signif(log2(param$sigThresh), digits=4)
     settings["Linear signal threshold:"] = signif(param$sigThresh, digits=4)
   }
-  kable(as.data.frame(settings), col.names=NA, row.names=TRUE)
+  return(as.data.frame(settings))
 }
 
 ##' @title Adds tables of the significant counts
@@ -342,6 +341,12 @@ addSignificantCountsSE = function(doc, se, pThresh=c(0.1, 0.05, 1/10^(2:5))){
                            header.columns = TRUE, add.rownames = TRUE, talign = "right")
   tbl = ezGrid(cbind(as.html(sigTable), as.html(sigFcTable)))
   addFlexTable(doc, tbl)
+}
+
+makeSignificantCounts = function(se, pThresh=c(0.1, 0.05, 1/10^(2:5))){
+  sigTable = getSignificantCountsTableSE(se, pThresh=pThresh)
+  sigFcTable = getSignificantFoldChangeCountsTableSE(se, pThresh=pThresh)
+  return(as.data.frame(cbind(sigTable, sigFcTable)))
 }
 
 ##' @describeIn addSignificantCounts Gets the table containing the significant counts.
