@@ -24,7 +24,7 @@ Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
 ```{r setting, echo=FALSE}
 kable(makeCountResultSummary(param, se), row.names=TRUE, format="html") %>%
   kable_styling(bootstrap_options = "striped", full_width = F,
-                  position = "left")
+                position = "left")
 ```
 
 ### Input Dataset

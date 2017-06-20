@@ -11,6 +11,8 @@ output:
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+require(knitr)
+require(kableExtra)
 ```
 Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
 
@@ -120,7 +122,9 @@ settings["Bowtie2 Version:"] = basename(BOWTIE2_DIR)
 settings["Bowtie2 Parameters:"] = param$cmdOptions
 settings["Minimum AlignmentScore:"] = param$minAlignmentScore
 settings["TopSpecies:"] = param$nTopSpecies
-knitr::kable(as.data.frame(settings), col.names=NA, row.names=TRUE)
+kable(as.data.frame(settings), col.names=NA, row.names=TRUE, format="html") %>%
+  kable_styling(bootstrap_options = "striped", full_width = F,
+                position = "left")
 ```
 
 
