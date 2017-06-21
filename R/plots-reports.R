@@ -571,7 +571,7 @@ addTestScatterPlotsSE = function(doc, param, x, se, resultFile, types=NULL){
   return(testScatterTitles)
 }
 
-addTestScatterPlotsPlotly <- function(param, se, resultFile, types=NULL){
+addTestScatterPlotsPlotly <- function(param, se, types=NULL){
   seqAnno <- data.frame(rowData(se), row.names=rownames(se),
                         check.names = FALSE, stringsAsFactors=FALSE)
   ## x is the logSignal
@@ -609,6 +609,7 @@ addTestScatterPlotsPlotly <- function(param, se, resultFile, types=NULL){
     
     ezXYScatterPlotly(xVec=refValues, yVec=sampleValues,
                       isPresent=rowData(se)$usedInTest, types=types,
+                      names=rowData(se)$gene_name,
                       xlab=param$refGroup, ylab=param$sampleGroup,
                       main="Comparison of average expression")
     

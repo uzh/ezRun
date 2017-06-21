@@ -460,12 +460,12 @@ ezXYScatterPlotly = function(xVec, yVec, absentColor="gray", shrink=FALSE,
     xVec = shrinkToRange(xVec, xlim)
     yVec = shrinkToRange(yVec, ylim)
   }
-  toPlot <- data.frame(x=xVec, y=yVec, types="absent",
+  toPlot <- data.frame(x=xVec, y=yVec, types="Absent",
                        stringsAsFactors = FALSE)
   if (is.null(isPresent)){
-    toPlot$types <- "present"
+    toPlot$types <- "Present"
   } else {
-    toPlot$types[isPresent] <- "present"
+    toPlot$types[isPresent] <- "Present"
   }
   if(!is.null(names)){
     toPlot$names <- names
@@ -484,7 +484,7 @@ ezXYScatterPlotly = function(xVec, yVec, absentColor="gray", shrink=FALSE,
     p <- plot_ly(toPlot, x = ~x, y = ~y, color=~types, colors=typesColours,
                  type = 'scatter', mode = 'markers')
   }else{
-    ## With names, we show it as hove text
+    ## With names, we show it as hover text
     p <- plot_ly(toPlot, x = ~x, y = ~y, color=~types, colors=typesColours,
                  type = 'scatter', mode = 'markers', hoverinfo = 'text',
                  text=~names) %>%
@@ -494,7 +494,7 @@ ezXYScatterPlotly = function(xVec, yVec, absentColor="gray", shrink=FALSE,
                    // d.points is an array of objects which, in this case,
                    // is length 1 since the click is tied to 1 point.
                    var pt = d.points[0];
-                   var genecardUrl = 'http://www.genecards.org/cgi-bin/carddisp.pl?gene=';
+                   var genecardUrl = 'http://www.ihop-net.org/UniPub/iHOP/index.html?field=synonym&ncbi_tax_id=0&search=';
                    var url = genecardUrl.concat(pt.data.text[pt.pointNumber]);
                    // DISCLAIMER: this won't work from RStudio
                    window.open(url);
@@ -502,11 +502,45 @@ ezXYScatterPlotly = function(xVec, yVec, absentColor="gray", shrink=FALSE,
                }
                ")
   }
-  # with log scales
+  p_abline_log <- function(x, a, b){
+    y <- 10^(a * log10(x) + log10(b))
+    return(y)
+  }
+  xmin <- min(toPlot$x)
+  xmax <- max(toPlot$x)
+  ## Ugly code to simulate the abline in plotly
+  line <- list(
+    type = "line",
+    line = list(color = "blue"),
+    xref = "x",
+    yref = "y"
+  )
+  lines <- list()
+  line[["x0"]] <- xmin
+  line[["x1"]] <- xmax
+  line[["y0"]] <- xmin
+  line[["y1"]] <- xmax
+  line[["line"]] <- list(color = "blue", dash="solid")
+  lines <- c(lines, list(line))
+  line[["x0"]] <- xmin
+  line[["x1"]] <- xmax
+  line[["y0"]] <- p_abline_log(xmin, 1, 2)
+  line[["y1"]] <- p_abline_log(xmax, 1, 2)
+  line[["line"]] <- list(color = "blue", dash="dash")
+  lines <- c(lines, list(line))
+  line[["x0"]] <- xmin
+  line[["x1"]] <- xmax
+  line[["y0"]] <- p_abline_log(xmin, 1, 1/2)
+  line[["y1"]] <- p_abline_log(xmax, 1, 1/2)
+  line[["line"]] <- list(color = "blue", dash="dash")
+  lines <- c(lines, list(line))
+  
+  p <- p %>% layout(shapes=lines)
+  # with log10 scales
   p <- layout(p, xaxis=list(type="log", title=xlab),
               yaxis=list(type="log", title=ylab),
               title=main)
-  
+  return(p)
 }
 
 ##' @title Does scatter plots of all pairs
