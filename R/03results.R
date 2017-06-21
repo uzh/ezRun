@@ -26,7 +26,7 @@ EzResult <-
               methods=list(
                 initialize = function(paramNew=list(), rawDataNew=list(), 
                                       resultNew=list(),
-                                      file=NULL, seNew=SummarizedExperiment(), 
+                                      file=NULL, seNew=SummarizedExperiment::SummarizedExperiment(), 
                                       scesetNew=list()){
                   param <<- paramNew
                   rawData <<- rawDataNew
