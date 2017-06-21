@@ -572,6 +572,8 @@ addTestScatterPlotsSE = function(doc, param, x, se, resultFile, types=NULL){
 }
 
 addTestScatterPlotsPlotly <- function(param, se, types=NULL){
+  require(webshot)
+  require(htmlwidgets)
   seqAnno <- data.frame(rowData(se), row.names=rownames(se),
                         check.names = FALSE, stringsAsFactors=FALSE)
   ## x is the logSignal
@@ -602,17 +604,26 @@ addTestScatterPlotsPlotly <- function(param, se, types=NULL){
     }
   }
   
+  ans <- list()
   if (ncol(groupMeans) == 2 & !is.null(param$sampleGroup) & 
       !is.null(param$refGroup)){
     sampleValues = 2^groupMeans[ , param$sampleGroup]
     refValues = 2^groupMeans[ , param$refGroup]
     
-    ezXYScatterPlotly(xVec=refValues, yVec=sampleValues,
-                      isPresent=rowData(se)$usedInTest, types=types,
-                      names=rowData(se)$gene_name,
-                      xlab=param$refGroup, ylab=param$sampleGroup,
-                      main="Comparison of average expression")
-    
+    p_scatter <- ezXYScatterPlotly(xVec=refValues, yVec=sampleValues,
+                                   isPresent=rowData(se)$usedInTest, 
+                                   types=types, names=rowData(se)$gene_name,
+                                   xlab=param$refGroup, ylab=param$sampleGroup,
+                                   main="Comparison of average expression")
+    scatterPng <- paste0(param$comparison, "-scatter.png")
+    export(p_scatter, file=scatterPng)
+    scatterPdf <- sub("png$", "pdf", scatterPng)
+    export(p_scatter, file=scatterPdf)
+    scatterHtml <- paste0(param$comparison, "-scatter.html")
+    saveWidget(as_widget(p_scatter), scatterHtml)
+    ans$scatterPng <- scatterPng
+    ans$scatterPdf <- scatterPdf
+    ans$scatterHtml <- scatterHtml
   }
   
 }

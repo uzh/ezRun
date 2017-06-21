@@ -477,7 +477,7 @@ ezXYScatterPlotly = function(xVec, yVec, absentColor="gray", shrink=FALSE,
     }
   }
   typesColours <- setNames(c("grey", "black", colors), 
-                           c("absent", "present", colnames(types))
+                           c("Absent", "Present", colnames(types))
                            )
   if(is.null(names)){
     ## Without names, we use default hover text
