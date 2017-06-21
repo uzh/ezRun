@@ -449,6 +449,40 @@ ezXYScatter = function(xVec, yVec, absentColor="gray", shrink=FALSE, frame=TRUE,
   abline(-log10(2), 1, col="blue", lty=2);
 }
 
+ezXYScatterPlotly = function(xVec, yVec, absentColor="gray", shrink=FALSE, 
+                             frame=TRUE, axes=TRUE, 
+                             xlim=range(xVec, yVec, na.rm=TRUE), ylim=xlim,
+                             isPresent=NULL, types=NULL, pch=16, 
+                             colors=rainbow(ncol(types)), 
+                             legendPos="bottomright", ...){
+  if (shrink){
+    xVec = shrinkToRange(xVec, xlim)
+    yVec = shrinkToRange(yVec, ylim)
+  }
+  toPlot <- data.frame(x=xVec, y=yVec, types="absent",
+                       stringsAsFactors = FALSE)
+  if (is.null(isPresent)){
+    toPlot$types <- "present"
+  } else {
+    toPlot$types[isPresent] <- "present"
+  }
+  
+  if (!is.null(types) && ncol(types) > 0){
+    for (j in 1:ncol(types)){
+      toPlot$types[types[,j]] <- colnames(types)[j]
+    }
+  }
+  typesColours <- setNames(c("grey", "black", colors), 
+                           c("absent", "present", colnames(types))
+                           )
+  p <- plot_ly(toPlot, x = ~x, y = ~y, color=~types, colors=typesColours) %>% 
+    add_markers()
+  # with log scales
+  p <- layout(p, xaxis = list(type = "log"),
+              yaxis = list(type = "log"))
+  
+}
+
 ##' @title Does scatter plots of all pairs
 ##' @description Does scatter plots of all pairs.
 ##' @param x a matrix containing the data to plot.

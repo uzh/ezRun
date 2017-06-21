@@ -571,3 +571,47 @@ addTestScatterPlotsSE = function(doc, param, x, se, resultFile, types=NULL){
   return(testScatterTitles)
 }
 
+addTestScatterPlotsPlotly <- function(param, se, resultFile, types=NULL){
+  seqAnno <- data.frame(rowData(se), row.names=rownames(se),
+                        check.names = FALSE, stringsAsFactors=FALSE)
+  ## x is the logSignal
+  x <- logSignal <- log2(shiftZeros(assays(se)$xNorm, param$minSignal))
+  groupMeans <- cbind(rowMeans(logSignal[ , param$grouping == param$sampleGroup, 
+                                          drop=FALSE]),
+                      rowMeans(logSignal[ , param$grouping == param$refGroup, 
+                                          drop=FALSE])
+                     )
+  colnames(groupMeans) = c(param$sampleGroup, param$refGroup)
+  
+  if (is.null(types)){
+    types = data.frame(row.names=rownames(x))
+    if ("IsControl" %in% colnames(seqAnno)){
+      types$Controls = seqAnno[rownames(x), "IsControl"]
+    }
+  }
+  if (!is.null(param$pValueHighlightThresh)){
+    significants = rowData(se)$pValue <= param$pValueHighlightThresh & rowData(se)$usedInTest
+    types$Significants = significants
+    if (!is.null(param$log2RatioHighlightThresh)){
+      if (!is.null(rowData(se)$log2Ratio)){
+        types$Significants = types$Significants & 
+          abs(rowData(se)$log2Ratio) >= param$log2RatioHighlightThresh
+      } else {
+        types$Significants = types$Significants & rowData(se)$log2Effect >= param$log2RatioHighlightThresh
+      }
+    }
+  }
+  
+  if (ncol(groupMeans) == 2 & !is.null(param$sampleGroup) & 
+      !is.null(param$refGroup)){
+    sampleValues = 2^groupMeans[ , param$sampleGroup]
+    refValues = 2^groupMeans[ , param$refGroup]
+    
+    ezXYScatter(xVec=refValues, yVec=sampleValues,
+                isPresent=rowData(se)$usedInTest, types=types,
+                xlab=param$refGroup, ylab=param$sampleGroup,
+                main="Comparison of average expression")
+    
+  }
+  
+}

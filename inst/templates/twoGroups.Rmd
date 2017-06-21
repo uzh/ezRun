@@ -75,6 +75,6 @@ deResult$saveToFile(basename(output$getColumn("Live Report")))
 
 #### Between-group Comparison
 ```{r, echo=FALSE}
-logSignal = log2(shiftZeros(assays(se)$xNorm, param$minSignal))
+
 
 ```
