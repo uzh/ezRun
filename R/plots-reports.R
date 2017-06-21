@@ -607,10 +607,10 @@ addTestScatterPlotsPlotly <- function(param, se, resultFile, types=NULL){
     sampleValues = 2^groupMeans[ , param$sampleGroup]
     refValues = 2^groupMeans[ , param$refGroup]
     
-    ezXYScatter(xVec=refValues, yVec=sampleValues,
-                isPresent=rowData(se)$usedInTest, types=types,
-                xlab=param$refGroup, ylab=param$sampleGroup,
-                main="Comparison of average expression")
+    ezXYScatterPlotly(xVec=refValues, yVec=sampleValues,
+                      isPresent=rowData(se)$usedInTest, types=types,
+                      xlab=param$refGroup, ylab=param$sampleGroup,
+                      main="Comparison of average expression")
     
   }
   

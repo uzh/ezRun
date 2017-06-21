@@ -449,12 +449,13 @@ ezXYScatter = function(xVec, yVec, absentColor="gray", shrink=FALSE, frame=TRUE,
   abline(-log10(2), 1, col="blue", lty=2);
 }
 
-ezXYScatterPlotly = function(xVec, yVec, absentColor="gray", shrink=FALSE, 
-                             frame=TRUE, axes=TRUE, 
+ezXYScatterPlotly = function(xVec, yVec, absentColor="gray", shrink=FALSE,
                              xlim=range(xVec, yVec, na.rm=TRUE), ylim=xlim,
-                             isPresent=NULL, types=NULL, pch=16, 
-                             colors=rainbow(ncol(types)), 
-                             legendPos="bottomright", ...){
+                             isPresent=NULL, names=NULL,
+                             types=NULL,
+                             colors=rainbow(ncol(types)), ...){
+  require(plotly)
+  require(htmlwidgets)
   if (shrink){
     xVec = shrinkToRange(xVec, xlim)
     yVec = shrinkToRange(yVec, ylim)
@@ -466,6 +467,9 @@ ezXYScatterPlotly = function(xVec, yVec, absentColor="gray", shrink=FALSE,
   } else {
     toPlot$types[isPresent] <- "present"
   }
+  if(!is.null(names)){
+    toPlot$names <- names
+  }
   
   if (!is.null(types) && ncol(types) > 0){
     for (j in 1:ncol(types)){
@@ -475,11 +479,23 @@ ezXYScatterPlotly = function(xVec, yVec, absentColor="gray", shrink=FALSE,
   typesColours <- setNames(c("grey", "black", colors), 
                            c("absent", "present", colnames(types))
                            )
-  p <- plot_ly(toPlot, x = ~x, y = ~y, color=~types, colors=typesColours) %>% 
-    add_markers()
+  if(is.null(names)){
+    ## Without names, we use default hover text
+    p <- plot_ly(toPlot, x = ~x, y = ~y, color=~types, colors=typesColours,
+                 type = 'scatter', mode = 'markers')
+  }else{
+    ## With names, we show it as hove text
+    search <- paste0(
+      "http://www.genecards.org/cgi-bin/carddisp.pl?gene=", curl::curl_escape(names)
+    )
+    p <- plot_ly(toPlot, x = ~x, y = ~y, color=~types, colors=typesColours,
+                 type = 'scatter', mode = 'markers', hoverinfo = 'text',
+                 text=~names)
+  }
   # with log scales
-  p <- layout(p, xaxis = list(type = "log"),
-              yaxis = list(type = "log"))
+  p <- layout(p, xaxis=list(type="log", title=xlab),
+              yaxis=list(type="log", title=ylab),
+              title=main)
   
 }
 
