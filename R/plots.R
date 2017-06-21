@@ -485,12 +485,22 @@ ezXYScatterPlotly = function(xVec, yVec, absentColor="gray", shrink=FALSE,
                  type = 'scatter', mode = 'markers')
   }else{
     ## With names, we show it as hove text
-    search <- paste0(
-      "http://www.genecards.org/cgi-bin/carddisp.pl?gene=", curl::curl_escape(names)
-    )
     p <- plot_ly(toPlot, x = ~x, y = ~y, color=~types, colors=typesColours,
                  type = 'scatter', mode = 'markers', hoverinfo = 'text',
-                 text=~names)
+                 text=~names) %>%
+      onRender("
+               function(el, x) {
+                 el.on('plotly_click', function(d) {
+                   // d.points is an array of objects which, in this case,
+                   // is length 1 since the click is tied to 1 point.
+                   var pt = d.points[0];
+                   var genecardUrl = 'http://www.genecards.org/cgi-bin/carddisp.pl?gene=';
+                   var url = genecardUrl.concat(pt.data.text[pt.pointNumber]);
+                   // DISCLAIMER: this won't work from RStudio
+                   window.open(url);
+                 });
+               }
+               ")
   }
   # with log scales
   p <- layout(p, xaxis=list(type="log", title=xlab),
