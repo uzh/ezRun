@@ -470,20 +470,20 @@ DEXSeqCounting <- function(input = input, output = output, param = param){
 #' name of the file to be generated are both given as
 #' function parameters. The conversion is done by a python
 #' script that is given by the content of \code{DEXSEQ_PREPARE}
-#' which is either taken as a global variable or from the
-#' result of function \code{lGetPyScriptPaths}
+#' which is taken from the result of function
+#' \code{lGetPyScriptPaths}
 #'
 #' @param psGtfFile   name of the GTF annotation file
 #' @param psGffFile   name of the GFF file to be generated
 convertGtfToGff <- function(psGtfFile, psGffFile) {
   cat(" * Converting GTF to GFF ...\n")
-  ### # check whether the path exists
-  if (!exists("DEXSEQ_PREPARE")) {
-    DEXSEQ_PREPARE <- lGetPyScriptPaths()$DEXSEQ_PREPARE
-  }
   ezSystem(paste('cp', psGtfFile, '.'))
   ezSystem(paste('grep protein_coding', basename(psGtfFile), '>protein_coding_genes.gtf'))
-  sPyConvCmd <- paste(DEXSEQ_PREPARE, 'protein_coding_genes.gtf', psGffFile)
+  sPyConvCmd <- paste(
+    "python",
+    file.path(system.file(package = "DEXSeq", "python_scripts"), "dexseq_prepare_annotation.py"),
+    'protein_coding_genes.gtf',
+    psGffFile)
   ezSystem(sPyConvCmd)
   cat("  ==> created: ", psGffFile, "\n")
   invisible(TRUE)
@@ -500,21 +500,18 @@ runCountSingleBam <- function(psBamFile, psGffFile, psCountfileExt, strandMode, 
 
   ### # run counting on sam file
   sCountBaseFn <- gsub("bam$", psCountfileExt, basename(psBamFile))
-  if (!exists("DEXSEQ_COUNT")){
-    DEXSEQ_COUNT <- lGetPyScriptPaths()$DEXSEQ_COUNT
-  }
-  cmdOptions = c()
+  cmd <- paste("python", file.path(system.file(package = "DEXSeq", "python_scripts"), "dexseq_count.py"))
   if(Paired){
-    cmdOptions = c('--paired yes')
+    cmd = paste(cmd, '--paired yes')
   }
 
   if(strandMode=='antisense'){
-    cmdOptions = paste(cmdOptions,'--stranded reverse')
+    cmd = paste(cmd,'--stranded reverse')
   } else if(strandMode=='both'){
-    cmdOptions = paste(cmdOptions,'--stranded no')
+    cmd = paste(cmd,'--stranded no')
   }
 
-  sPyCountCmd <- paste(SAMTOOLS, "view -h", psBamFile, "|", DEXSEQ_COUNT,cmdOptions, psGffFile, "-", sCountBaseFn)
+  sPyCountCmd <- paste(SAMTOOLS, "view -h", psBamFile, "|", cmd, psGffFile, "-", sCountBaseFn)
 
   ezSystem(sPyCountCmd)
   sCountDir <- getwd()
@@ -529,17 +526,6 @@ writeCountFilesToMeta <- function(pvCountFiles, input) {
   input$meta$Count <- pvCountFiles
   ### # write the extended meta information back to the file
   write.table(input$meta, file = input$file, quote = FALSE, sep = "\t")
-}
-
-
-#' Get list with required python script paths
-#'
-lGetPyScriptPaths <- function(){
-  if (!exists("PYTHON_CMD")){
-    PYTHON_CMD='PYTHONPATH="/usr/local/ngseq/lib/python/:/usr/local/ngseq/lib/python2.7:/usr/local/ngseq/lib/python2.7/dist-packages" /usr/local/ngseq/bin/python'
-  }
-  return(list(DEXSEQ_PREPARE = paste(PYTHON_CMD, file.path(system.file(package = "DEXSeq", "python_scripts"), "dexseq_prepare_annotation.py")),
-              DEXSEQ_COUNT = paste(PYTHON_CMD, file.path(system.file(package = "DEXSeq", "python_scripts"), "dexseq_count.py"))))
 }
 
 

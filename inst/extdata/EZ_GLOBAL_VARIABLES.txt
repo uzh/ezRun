@@ -2,6 +2,7 @@
 
 WARN_CONFLICTS=FALSE
 
+# This URL is not valid
 DOC_URL="http://fgcz-sushi.uzh.ch/doc/methods-20140422.html"
 
 REPORT_CSS_FILE=""
@@ -13,9 +14,6 @@ GENOMES_ROOT="/srv/GT/reference:/srv/GT/reference-archive"
 IGVTOOLS="/usr/local/ngseq/bin/igvtools"
 REF_HOST="http://fgcz-gstore.uzh.ch/reference"
 PROJECT_BASE_URL="http://fgcz-gstore.uzh.ch/projects"
-
-
-PYTHON_CMD='PYTHONPATH="/usr/local/ngseq/lib/python/:/usr/local/ngseq/lib/python2.7:/usr/local/ngseq/lib/python2.7/dist-packages" /usr/local/ngseq/bin/python'
 
 
 ## timout is in minutes
@@ -87,9 +85,6 @@ TEQC_DESIGN_DIR="/srv/GT/databases/targetEnrichment_designs"
 #FETCHCHROMSSIZES="/usr/local/ngseq/bin/fetchChromSizes"
 WIGTOBIGWIG="/usr/local/ngseq/stow/wigToBigWig-v4/bin/wigToBigWig"
 
-
-DEXSEQ_PREPARE='PYTHONPATH="/usr/local/ngseq/lib/python/:/usr/local/ngseq/lib/python2.7:/usr/local/ngseq/lib/python2.7/dist-packages" /usr/local/ngseq/bin/python /misc/ngseq8/stow/R-3.3.2/lib/R/library/DEXSeq/python_scripts/dexseq_prepare_annotation.py'
-DEXSEQ_COUNT='PYTHONPATH="/usr/local/ngseq/lib/python/:/usr/local/ngseq/lib/python2.7:/usr/local/ngseq/lib/python2.7/dist-packages" /usr/local/ngseq/bin/python /misc/ngseq8/stow/R-3.3.2/lib/R/library/DEXSeq/python_scripts/dexseq_count.py'
 
 SAMSTAT="/usr/local/ngseq/stow/samstat-1.09/bin/samstat"
 QUALIMAP="/usr/local/ngseq/stow/qualimap_v2.1.2/bin/qualimap"
