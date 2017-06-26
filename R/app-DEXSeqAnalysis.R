@@ -188,7 +188,7 @@ writeDEXSeqReport <- function(dataset, dexResult, htmlFile="00index.html", sResu
   setwdNew(sResultDir)
 
   ###Save dexResult as RData-Object for Shiny
-  resultObj = list(dxr=dxr, dxd, param=param)
+  resultObj = list(dxd = dxd, param=param)
   resultObjFile = paste0("result--", param$comparison, "--", ezRandomString(length=12), "--EzDEXSeqResult.RData")
   save(resultObj,file=resultObjFile)
 
