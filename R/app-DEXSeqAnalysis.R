@@ -188,7 +188,7 @@ writeDEXSeqReport <- function(dataset, dexResult, htmlFile="00index.html", sResu
   setwdNew(sResultDir)
 
   ###Save dexResult as RData-Object for Shiny
-  resultObj = list(dxr=dxr,param=param)
+  resultObj = list(dxr=dxr, dxd, param=param)
   resultObjFile = paste0("result--", param$comparison, "--", ezRandomString(length=12), "--EzDEXSeqResult.RData")
   save(resultObj,file=resultObjFile)
 
@@ -345,7 +345,7 @@ getGeneTable <- function(pdxr, param){
   dfGnsAnnot <- ezRead.table(file = sGnAnFn, row.names = NULL)
 
   ### # extract gene_names and descriptions for all genes in the whole genetable
-  gene_name <- sapply(sub('-$|\\+$','',sub('^.*_','',as.character(genetable$geneID))),
+  gene_name <- sapply(as.character(genetable$geneID),
                       function(x) {
                         ### # some entries in geneID can contain multiple
                         ### #  gene_ids pasted together with "+"
@@ -363,7 +363,7 @@ getGeneTable <- function(pdxr, param){
                         return(sResultGeneName)
                       },
                       USE.NAMES = FALSE)
-  gene_description <- sapply(sub('-$|\\+$','',sub('^.*_','',as.character(genetable$geneID))),
+  gene_description <- sapply(as.character(genetable$geneID),
                              function(x) {
                                ### # some entries in geneID can contain multiple
                                ### #  gene_ids pasted together with "+"
@@ -389,7 +389,7 @@ getGeneTable <- function(pdxr, param){
   genetable = merge(genetable,geneQValues,by.x='geneID', by.y='ID')
   genetable = genetable[order(genetable$fdr, abs(genetable$max_ExonLog2FC)),]
   ### # add links to result files
-  genetable$geneID <- getGeneIdExprLinks(pvGeneIds = sub('\\+$','',genetable$geneID), psdexseq_report_path = param$dexseq_report_path)
+  genetable$geneID <- getGeneIdExprLinks(pvGeneIds = genetable$geneID, psdexseq_report_path = param$dexseq_report_path)
   require(DT)
   x = datatable(genetable, escape = F,rownames = FALSE, filter = 'bottom',extensions = c('ColReorder','Buttons'),
                 caption = paste('Candidates DEXSeq:',param$comparison, sep=''),
@@ -481,7 +481,9 @@ convertGtfToGff <- function(psGtfFile, psGffFile) {
   if (!exists("DEXSEQ_PREPARE")) {
     DEXSEQ_PREPARE <- lGetPyScriptPaths()$DEXSEQ_PREPARE
   }
-  sPyConvCmd <- paste(DEXSEQ_PREPARE, psGtfFile, psGffFile)
+  ezSystem(paste('cp', psGtfFile, '.'))
+  ezSystem(paste('grep protein_coding', basename(psGtfFile), '>protein_coding_genes.gtf'))
+  sPyConvCmd <- paste(DEXSEQ_PREPARE, 'protein_coding_genes.gtf', psGffFile)
   ezSystem(sPyConvCmd)
   cat("  ==> created: ", psGffFile, "\n")
   invisible(TRUE)
