@@ -177,7 +177,7 @@ runNgsCountQC = function(dataset, htmlFile="00index.html", param=param,
     }
     countFile = paste0(ezValidFilename(param$name), "-raw-count.txt")
     ezWrite.table(assays(rawData)$counts, file=countFile, 
-                  head="Feature ID", digits=4)
+                  head="Feature ID", digits=NA)
     signalFile = paste0(ezValidFilename(param$name), "-normalized-signal.txt")
     ezWrite.table(combined, file=signalFile, head="Feature ID", digits=4)
     
