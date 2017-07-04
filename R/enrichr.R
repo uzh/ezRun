@@ -291,6 +291,7 @@ getEnrichrLibNames <- function() {
 ##'   internal package file (\code{extdata/enrichr_libnames.txt}). Ideally, this method
 ##'   would fetch the data from \url{http://amp.pharm.mssm.edu/Enrichr/#stats}. However, the page
 ##'   uses an Ajax query to populate the table, so it is empty when you access it with libcurl.
+##'   Note: this does not modify the file in your source directory but the file in your installed package
 ##' @param file location of the HTML file saved from \url{http://amp.pharm.mssm.edu/Enrichr/#stats}
 ##' @template roxygen-template
 ##' @return (invisibly) a vector containing library names
