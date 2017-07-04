@@ -172,7 +172,6 @@ ezMethodTrim = function(input=NA, output=NA, param=NA){
                 "--threads", min(ezThreads(), 8),
                 "-r", r1TmpFile,
                 pairedOpt,
-                "--format", "i1.8",
                 "-u", 20, ##### max uncalled bases
                 "--pre-trim-left", param$trimLeft,
                 "--pre-trim-right", param$trimRight,
