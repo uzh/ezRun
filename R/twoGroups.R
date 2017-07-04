@@ -175,9 +175,9 @@ runGfold = function(rawData, scalingFactors, isSample, isRef){
                     .writeGfoldInput)
   
   # run gfold
-  cmd = paste (file.path(GFOLD_DIR, "gfold"), "diff -v 0",
-               "-norm", paste(signif(1/c(scalingFactors[isRef], 
-                                         scalingFactors[isSample]), digits=4), 
+  cmd = paste ("gfold", "diff -v 0",
+               "-norm", paste(signif(1/c(scalingFactors[isRef],
+                                         scalingFactors[isSample]), digits=4),
                               collapse=","),
                "-s1", paste(sub(".read_cnt", "", refFiles), collapse=","), 
                "-s2", paste(sub(".read_cnt", "", sampleFiles), collapse=","),

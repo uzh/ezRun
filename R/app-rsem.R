@@ -9,7 +9,6 @@
 ezMethodRSEM = function(input=NA, output=NA, param=NA){
   
   sampleName = input$getNames()
-  Sys.setenv(PATH=paste(BOWTIE_DIR, dirname(SAMTOOLS), Sys.getenv("PATH"), sep=":"))  
   ref = getRSEMReference(param)
   
   opt = param$cmdOptions
@@ -18,7 +17,7 @@ ezMethodRSEM = function(input=NA, output=NA, param=NA){
   }
   samtoolsSortMem = paste0(round( (as.numeric(param$ram) / ezThreads() /2)*1000), "M")
   ciMemory = round((as.numeric(param$ram) - 4) * 1000)
-  opt = paste(opt, "-p", ezThreads(), "--bowtie-path", BOWTIE_DIR, "--samtools-sort-mem", samtoolsSortMem, "--ci-memory", ciMemory)
+  opt = paste(opt, "-p", ezThreads(), "--bowtie-path $Bowtie", "--samtools-sort-mem", samtoolsSortMem, "--ci-memory", ciMemory)
   
   trimmedInput = ezMethodTrim(input = input, param = param)
   
@@ -31,11 +30,11 @@ ezMethodRSEM = function(input=NA, output=NA, param=NA){
     opt = paste("--output-genome-bam", opt)
   }
   if (param$paired){
-    cmd = paste(file.path(RSEM_DIR, "rsem-calculate-expression"), opt, strandOpt,
+    cmd = paste("rsem-calculate-expression", opt, strandOpt,
                 "--paired-end", trimmedInput$getColumn("Read1"), trimmedInput$getColumn("Read2"),
                 ref, sampleName, "2> rsem.stderr", "> rsem.stdout")
   } else {
-    cmd = paste(file.path(RSEM_DIR, "rsem-calculate-expression"), opt, strandOpt,
+    cmd = paste("rsem-calculate-expression", opt, strandOpt,
                 trimmedInput$getColumn("Read1"),
                 ref, sampleName, "2> rsem.stderr", "> rsem.stdout")
   }
@@ -137,24 +136,24 @@ getRSEMReference = function(param){
   on.exit(file.remove(lockFile))
   on.exit(setwd(wd), add=TRUE)
   
-  prepareReference = file.path(RSEM_DIR, "rsem-prepare-reference")
+  prepareReference = "rsem-prepare-reference"
   job = ezJobStart("rsem build")
   if (ezIsSpecified(param$transcriptFasta)){
     ## check if the file comes from trinity
     trxNames = sub(" .*", "", names(readDNAStringSet(param$transcriptFasta, nrec=100)))
     if (all(grepl("^comp.+_c.+_s.+", trxNames))){
       mapFile = paste0(refBase, "_geneMap.txt")
-      cmd = paste(file.path(RSEM_DIR, "extract-transcript-to-gene-map-from-trinity"), param$transcriptFasta, mapFile)
+      cmd = paste("extract-transcript-to-gene-map-from-trinity", param$transcriptFasta, mapFile)
       ezSystem(cmd)
-      cmd = paste(prepareReference, "--bowtie", "-q", "--bowtie-path", BOWTIE_DIR, "--transcript-to-gene-map", mapFile, param$transcriptFasta, "transcripts")
+      cmd = paste(prepareReference, "--bowtie", "-q", "--bowtie-path $Bowtie", "--transcript-to-gene-map", mapFile, param$transcriptFasta, "transcripts")
       ezSystem(cmd)    
     } else {
-      cmd = paste(prepareReference, "--bowtie", "-q", "--bowtie-path", BOWTIE_DIR, param$transcriptFasta, "transcripts")
+      cmd = paste(prepareReference, "--bowtie", "-q", "--bowtie-path $Bowtie", param$transcriptFasta, "transcripts")
       ezSystem(cmd)    
     }
   } else{
     cmd = paste(prepareReference, "--bowtie", "--gtf", param$ezRef["refFeatureFile"], 
-                "--bowtie-path", BOWTIE_DIR, param$ezRef["refFastaFile"],
+                "--bowtie-path $Bowtie", param$ezRef["refFastaFile"],
                 "transcripts")
     ezSystem(cmd)
     ezSystem(paste("ln -s", param$ezRef["refFeatureFile"], "."))

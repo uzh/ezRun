@@ -8,7 +8,6 @@
 
 ezMethodKallisto = function(input=NA, output=NA, param=NA){
   sampleName = input$getNames()
-  Sys.setenv(PATH=paste(dirname(KALLISTO), dirname(SAMTOOLS), Sys.getenv("PATH"), sep=":"))
   ref = getKallistoReference(param)
   refIdx = paste0(ref, ".idx")
 
@@ -52,7 +51,7 @@ ezMethodKallisto = function(input=NA, output=NA, param=NA){
   pathPseudobam = file.path(param$outputDir, "pseudo.bam")
 
   cmd = paste(
-      KALLISTO,
+      "kallisto",
       "quant",
       opt,
       pathFastqFiles,

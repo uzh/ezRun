@@ -8,7 +8,6 @@
 
 ezMethodSalmon = function(input=NA, output=NA, param=NA){
   sampleName = input$getNames()
-  Sys.setenv(PATH=paste(dirname(SALMON), Sys.getenv("PATH"), sep=":"))
   ref = getSalmonReference(param)
   refIdx = paste0(ref, ".idx")
 
@@ -51,7 +50,7 @@ ezMethodSalmon = function(input=NA, output=NA, param=NA){
 
   pathQuants = file.path(param$outputDir, "quant.sf")
 
-  cmd = paste(SALMON, "quant", opt, "2> salmon.stderr > salmon.stdout")
+  cmd = paste("salmon", "quant", opt, "2> salmon.stderr > salmon.stdout")
   ezSystem(cmd)
 
   ezSystem(paste("mv", pathQuants, basename(output$getColumn("Count"))))

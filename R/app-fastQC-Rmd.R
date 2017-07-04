@@ -27,7 +27,7 @@ ezMethodFastQCRmd = function(input=NA, output=NA, param=NA,
   stopifnot(!duplicated(reportDirs))
   filesUse = files[!file.exists(reportDirs)]
   if (length(filesUse) > 0){
-    cmd = paste(FASTQC, "--extract -o . -t", min(ezThreads(), 8), param$cmdOptions,
+    cmd = paste("fastqc", "--extract -o . -t", min(ezThreads(), 8), param$cmdOptions,
                 paste(filesUse, collapse=" "),
                 "> fastqc.out", "2> fastqc.err")
     result = ezSystem(cmd)

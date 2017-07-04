@@ -564,7 +564,8 @@ getJunctionPlotsFromBam = function(bamFile, param){
   outputJunction = paste0("junction-", Sys.getpid())
   bed = getReferenceFeaturesBed(param)
   stopifnot(!is.null(bed))
-  cmd = paste(JUNCTION_ANNOTATION, "--mapq=1", "-i", bamFile, "-o", outputJunction, "-r", bed)
+  # junction_annotation.py is in RSeQC module
+  cmd = paste("junction_annotation.py", "--mapq=1", "-i", bamFile, "-o", outputJunction, "-r", bed)
   res = ezSystem(cmd, stopOnFailure=FALSE)
   junctionFile = paste0(outputJunction, ".junction.xls")
   if (res == 0 && length(readLines(junctionFile)) > 1){

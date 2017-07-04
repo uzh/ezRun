@@ -34,7 +34,7 @@ EzAppNcpro <-
 ## TODO: make sure there's no conflict with input and refactor trimMirna
 ##' Analysis of small RNA sequences using ncpro
 ##' 
-##' Trimming is done using function trimMirna(). 
+##' Trimming is done using ezMethodTrim which is similar to trimMirna(). 
 ##' @param input     list of input configuration
 ##' @param dataset   dataframe with description of input dataset
 ##' @param param     further configuration parameters
@@ -60,7 +60,7 @@ ncpro = function(input, dataset, param=NULL){
     stop(paste0("No ncpro config-template for Genome-Build ", param[['refBuild']]," available."))
   jobDir = getwd()
   workDir = file.path(jobDir, "ncpro")
-  ezSystem(paste(file.path(NCPRO_DIR, "bin/ncPRO-deploy"), "-o", workDir))
+  ezSystem(paste("ncPRO-deploy", "-o", workDir))
   x = readLines(ncproConfigFile)
   x = sub("^N_CPU.*", paste("N_CPU =", param[['cores']]), x)
   writeLines(x, file.path(workDir, "param-ncrna.txt"))
@@ -76,9 +76,9 @@ ncpro = function(input, dataset, param=NULL){
   
   workflowSteps = c("processRead","mapGenome","mapGenomeStat","processBam","mapAnnOverview",
                     "overviewRfam","generateNcgff","ncrnaProcess", "ncrnaTracks","sigRegion","html_builder")
-  ezSystem(paste(file.path(NCPRO_DIR, "bin/ncPRO-seq"), "-c", "param-ncrna.txt","-s processRead ",">ncpro.log"))
+  ezSystem(paste("ncPRO-seq", "-c", "param-ncrna.txt","-s processRead ",">ncpro.log"))
   for(i in 2:length(workflowSteps)){
-    ezSystem(paste(file.path(NCPRO_DIR, "bin/ncPRO-seq"), "-c", "param-ncrna.txt","-s",workflowSteps[i],">>ncpro.log"))
+    ezSystem(paste("ncPRO-seq", "-c", "param-ncrna.txt","-s",workflowSteps[i],">>ncpro.log"))
   }
   stopifnot(file.exists("report.html"))
   stopifnot(!grepl("^make.*Error", readLines("ncpro.log")))

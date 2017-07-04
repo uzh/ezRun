@@ -19,7 +19,7 @@ ezMethodMpileup = function(input=NA, output=NA, param=NA){
   genomeSeq = param$ezRef["refFastaFile"]
   nBamsInParallel = min(4, param$cores)
   bamFilesClean = ezMclapply(names(bamFiles), function(sampleName){
-    javaCall = paste0(JAVA, " -Djava.io.tmpdir=. -Xmx", floor(param$ram/nBamsInParallel), "g")
+    javaCall = paste0("java", " -Djava.io.tmpdir=. -Xmx", floor(param$ram/nBamsInParallel), "g")
     setwdNew(paste(sampleName, "proc", sep="-"))
     bf = bamFiles[sampleName]
     obf = file.path(getwd(), basename(bf))
@@ -33,12 +33,12 @@ ezMethodMpileup = function(input=NA, output=NA, param=NA){
       }
       bamWhich(bamParam) = GRanges(seqnames=reg$seq, ranges=IRanges(start=reg$start, end=reg$end))
       filterBam(bf, "local.bam", param=bamParam)
-      ezSystem(paste(SAMTOOLS, "index", "local.bam"))
+      ezSystem(paste("samtools", "index", "local.bam"))
     } else {
       ezSystem(paste("cp", bf, "local.bam"))
       ezSystem(paste("cp", paste0(bf, ".bai"), "local.bam.bai"))
     }
-    cmd = paste0(javaCall, " -jar ", PICARD_JAR, " AddOrReplaceReadGroups",
+    cmd = paste0(javaCall, " -jar ", "$Picard_jar", " AddOrReplaceReadGroups",
                 " TMP_DIR=. MAX_RECORDS_IN_RAM=2000000", " I=", "local.bam",
                 " O=withRg.bam SORT_ORDER=coordinate",
                 " RGID=RGID_", sampleName, " RGPL=illumina RGSM=", sampleName, " RGLB=RGLB_", sampleName, " RGPU=RGPU_", sampleName,
@@ -47,7 +47,7 @@ ezMethodMpileup = function(input=NA, output=NA, param=NA){
     ezSystem(cmd)
     file.remove("local.bam")
     
-    cmd = paste0(javaCall, " -jar ", PICARD_JAR, " MarkDuplicates ",
+    cmd = paste0(javaCall, " -jar ", "$Picard_jar", " MarkDuplicates ",
                 " TMP_DIR=. MAX_RECORDS_IN_RAM=2000000", " I=", "withRg.bam",
                 " O=", "dedup.bam",
                 " REMOVE_DUPLICATES=false", ## do not remove, do only mark
@@ -59,8 +59,8 @@ ezMethodMpileup = function(input=NA, output=NA, param=NA){
     ezSystem(cmd)
     file.remove("withRg.bam")
     
-    #     ezSystem(paste(SAMTOOLS, "index", "dedup.bam"))
-    #     gatk = paste(javaCall, "-jar", GATK_JAR)
+    #     ezSystem(paste("samtools", "index", "dedup.bam"))
+    #     gatk = paste(javaCall, "-jar", "$GATK_jar")
     #     cmd = paste(gatk, "-T SplitNCigarReads", "-R", genomeSeq,
     #                 "-I", "dedup.bam",
     #                 "-rf ReassignOneMappingQuality -RMQF 255 -RMQT 60 -U ALLOW_N_CIGAR_READS",
@@ -69,23 +69,23 @@ ezMethodMpileup = function(input=NA, output=NA, param=NA){
     #     ezSystem(cmd)
     #     file.remove("dedup.bam")
     ezSystem(paste("mv", "dedup.bam", obf))
-    ezSystem(paste(SAMTOOLS, "index", obf))
+    ezSystem(paste("samtools", "index", obf))
     setwd("..")
     return(obf)
   }, mc.cores=nBamsInParallel, mc.preschedule=FALSE)
   
   ########### run mpileup/call/filter
-  mpileupCmd = paste(SAMTOOLS, "mpileup",
+  mpileupCmd = paste("samtools", "mpileup",
                      "-f", param$ezRef["refFastaFile"],
                      "--VCF",
                      param$mpileupOptions,
                      ifelse(param$region == "", "", paste("--region", param$region)),
                      paste(bamFilesClean, collapse=" "))
-  callCmd = paste(BCFTOOLS, "call",
+  callCmd = paste("bcftools", "call",
                   "--output-type z",
                   param$callOptions,
                   "-") ## read from stdin
-  filterCmd = paste(BCFTOOLS, "filter",
+  filterCmd = paste("bcftools", "filter",
                     "--output-type z",
                     "--output", basename(vcfOutputFile),
                     param$filterOptions,

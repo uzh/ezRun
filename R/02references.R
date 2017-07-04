@@ -103,7 +103,7 @@ setMethod("initialize", "EzRef", function(.Object, param=list()){
     .Object@refFastaFile =  file.path(.Object@refBuildDir, param$refFastaFile)
   }
   if (file.exists(.Object@refFastaFile) && !file.exists(paste0(.Object@refFastaFile, ".fai"))){  ## it should be there but some old builds may lack the fai file.
-    cmd = paste(SAMTOOLS, "faidx", .Object@refFastaFile) # create the .fai file
+    cmd = paste("samtools", "faidx", .Object@refFastaFile) # create the .fai file
     ezSystem(cmd)
   }
 #   if (ezIsAbsolutePath(param$refChromDir)){
@@ -171,7 +171,7 @@ setMethod("buildRefDir", "EzRef", function(.Object, genomeFile, genesFile,
   export(gtf[gtf$gene_biotype %in% listBiotypes("genes")],
          con=file.path(gtfPath, "genes.gtf"))
   
-  cmd = paste(SAMTOOLS, "faidx", .Object@refFastaFile) # create the .fai file
+  cmd = paste("samtools", "faidx", .Object@refFastaFile) # create the .fai file
   ezSystem(cmd)
   ## create the chromsizes file
   fai = ezRead.table(paste0(.Object@refFastaFile, ".fai"), header =FALSE, row.names=NULL)
@@ -181,7 +181,7 @@ setMethod("buildRefDir", "EzRef", function(.Object, genomeFile, genesFile,
   if (file.exists(dictFile)){
     file.remove(dictFile)
   }
-  cmd = paste(JAVA, " -jar", PICARD_JAR, "CreateSequenceDictionary",
+  cmd = paste("java", " -jar", "$Picard_jar", "CreateSequenceDictionary",
               paste0("R=", .Object@refFastaFile), paste0("O=", dictFile))
   ezSystem(cmd)
 })
@@ -275,9 +275,9 @@ setMethod("buildIgvGenome", "EzRef", function(.Object){
   
   ## sort and index genes.gtf
   sortedGtfFile = file.path(dirname(gtfFile), "genes.sorted.gtf")
-  cmd = paste(IGVTOOLS, "sort", gtfFile, sortedGtfFile)
+  cmd = paste("igvtools", "sort", gtfFile, sortedGtfFile)
   ezSystem(cmd)
-  cmd = paste(IGVTOOLS, "index", sortedGtfFile)
+  cmd = paste("igvtools", "index", sortedGtfFile)
   ezSystem(cmd)
   
   ## make chrom_alias.tab

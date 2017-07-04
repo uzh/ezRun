@@ -133,7 +133,7 @@ ezMethodTrim = function(input=NA, output=NA, param=NA){
       readOpts = paste(
         input$getFullPaths("Read1"), r1TmpFile)
     }
-    cmd = paste(TRIMMOMATIC, method,
+    cmd = paste("java -jar $Trimmomatic_jar", method,
                 "-threads", min(ezThreads(), 8), "-phred33", ## hardcode phred33 quality encoding
                 #"-trimlog", paste0(input$getNames(), "-trimmomatic.log"),
                 readOpts, trimAdaptOpt, tailQualOpt, minAvgQualOpt,
@@ -168,7 +168,7 @@ ezMethodTrim = function(input=NA, output=NA, param=NA){
     else {
       minReadLengthOpt = ""
     }
-    cmd = paste(FLEXBAR,
+    cmd = paste("flexbar",
                 "--threads", min(ezThreads(), 8),
                 "-r", r1TmpFile,
                 pairedOpt,

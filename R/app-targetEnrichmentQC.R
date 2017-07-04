@@ -127,7 +127,7 @@ runTEQC = function(file, allExons, param){
   sampleName = gsub('\\.bam', '', basename(file))
   destDir = paste0("report_", sampleName)
   targetsfile = param$designFile
-  genomeSize = sum(as.numeric(system(paste(SAMTOOLS,"view -H",file,"|grep @SQ|cut -f 3|sed 's/LN://'"),intern = T)))
+  genomeSize = sum(as.numeric(system(paste("samtools","view -H",file,"|grep @SQ|cut -f 3|sed 's/LN://'"),intern = T)))
   reads=TEQC::get.reads(file, filetype="bam")
   targets=TEQC::get.targets(targetsfile, skip=grep("^track", readLines(targetsfile, n=200)))
   
