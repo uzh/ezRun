@@ -29,13 +29,13 @@ kable(makeCountResultSummary(param, se), row.names=TRUE, format="html") %>%
 ```
 
 ### Input Dataset
-```{r, echo=FALSE}
+```{r input, echo=FALSE}
 dataset <- data.frame(colData(se), check.names=FALSE, stringsAsFactors=FALSE)
 ezInteractiveTableRmd(values=dataset, digits=4)
 ```
 
 ### Result Summary
-```{r, echo=FALSE}
+```{r summary, echo=FALSE}
 settings = character()
 settings["Number of features:"] = nrow(se)
 if (!is.null(rowData(se)$isPresentProbe)){
@@ -49,7 +49,7 @@ knitr::kable(as.data.frame(settings), format="html",
 ```
 
 #### Number of significants by p-value and fold-change
-```{r, echo=FALSE}
+```{r gene table, echo=FALSE}
 knitr::kable(makeSignificantCounts(se), row.names=TRUE,  format="html") %>%
   kable_styling(bootstrap_options = "striped", full_width = F, 
                 position = "left")
@@ -58,7 +58,7 @@ knitr::kable(makeSignificantCounts(se), row.names=TRUE,  format="html") %>%
 Full result table for opening with a spreadsheet program 
 (e.g. Excel: when opening with Excel, make sure that the Gene symbols are loaded into a column formatted as 'text' that prevents conversion of the symbols to dates).
 
-```{r, echo=FALSE}
+```{r result live report, echo=FALSE}
 resultFile <- makeResultFile(param, se)
 
 ezWrite.table(colData(se)[, "sf", drop=FALSE],
@@ -75,7 +75,8 @@ deResult$saveToFile(basename(output$getColumn("Live Report")))
 ### Inspection of significant genes
 
 #### Between-group Comparison
-```{r, echo=FALSE}
+```{r scatter comparison, echo=FALSE, warning=FALSE}
+## warning=FALSE because FDR contains NA. Shall we make them always 1?
 scatters <- addTestScatterPlotsPlotly(param, se)
 include_graphics(scatters$scatterPng, dpi=72*1.5)  ## To make legend more visible on non-retinal display
 ```
@@ -84,4 +85,20 @@ include_graphics(scatters$scatterPng, dpi=72*1.5)  ## To make legend more visibl
 
 [Interactive comparison plot (With thousands of genes, it can be slow and requires a modern web brwoser for best javascript performance!)](`r scatters$scatterHtml`)
 
+#### Volcano plot with p-value
+```{r volcano p-value, echo=FALSE}
+include_graphics(scatters$volcanoPng, dpi=72*1.5)  ## To make legend more visible on non-retinal display
+```
 
+[Plot in pdf](`r scatters$volcanoPdf`)
+
+[Interactive comparison plot (With thousands of genes, it can be slow and requires a modern web brwoser for best javascript performance!)](`r scatters$volcanoHtml`)
+
+#### Volcano plot with FDR
+```{r volcano FDR, echo=FALSE}
+include_graphics(scatters$volcanoFDRPng, dpi=72*1.5)  ## To make legend more visible on non-retinal display
+```
+
+[Plot in pdf](`r scatters$volcanoFDRPdf`)
+
+[Interactive comparison plot (With thousands of genes, it can be slow and requires a modern web brwoser for best javascript performance!)](`r scatters$volcanoFDRHtml`)
