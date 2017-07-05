@@ -625,5 +625,5 @@ addTestScatterPlotsPlotly <- function(param, se, types=NULL){
     ans$scatterPdf <- scatterPdf
     ans$scatterHtml <- scatterHtml
   }
-  
+  return(ans)
 }

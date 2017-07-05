@@ -557,6 +557,7 @@ addResultFileSE = function(doc, param, se, useInOutput=TRUE,
 
 makeResultFile = function(param, se, useInOutput=TRUE,
                           file=paste0("result--", param$comparison, ".txt")){
+  require(tools)
   se <- se[useInOutput, ]
   y = data.frame(rowData(se), row.names=rownames(se),
                  stringsAsFactors=FALSE, check.names=FALSE)

@@ -14,6 +14,7 @@ knitr::opts_chunk$set(echo = TRUE)
 ## This report requires objects: se, param, output, deResult
 require(knitr)
 require(kableExtra)
+require(SummarizedExperiment)
 ```
 Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
 
@@ -76,5 +77,11 @@ deResult$saveToFile(basename(output$getColumn("Live Report")))
 #### Between-group Comparison
 ```{r, echo=FALSE}
 scatters <- addTestScatterPlotsPlotly(param, se)
-include_graphics(scatters$scatterPng)
+include_graphics(scatters$scatterPng, dpi=72*1.5)  ## To make legend more visible on non-retinal display
 ```
+
+[Plot in pdf](`r scatters$scatterPdf`)
+
+[Interactive comparison plot (With thousands of genes, it can be slow and requires a modern web brwoser for best javascript performance!)](`r scatters$scatterHtml`)
+
+
