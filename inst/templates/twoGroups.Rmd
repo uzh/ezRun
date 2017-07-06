@@ -183,3 +183,20 @@ if(isTRUE(isTwoGroup)){
   cat(paste0("[Interactive comparison plot (With thousands of genes, it can be slow and requires a modern web brwoser for best javascript performance!)](", volcanoFDRHtml, ")"), "\n")
 }
 ```
+
+```{r pvalue hist, echo=FALSE}
+myBreaks = seq(0, 1, by=0.002)
+histUsed = hist(rowData(se)$pValue[rowData(se)$usedInTest], breaks=myBreaks, plot=FALSE)
+histAbs = hist(rowData(se)$pValue[!rowData(se)$usedInTest], breaks=myBreaks, plot=FALSE)
+xx = rbind(used=histUsed$counts, absent=histAbs$counts)
+xx = shrinkToRange(xx, c(0, max(xx["used", ])))
+barplot(xx, space=0, border=NA, col=c("blue", "darkorange"), 
+        xlab="p-value", ylab="counts", ylim=c(0, max(xx["used", ])),
+        main="p-value histogram")
+abline(h=sum(rowData(se)$usedInTest)/ncol(xx))
+at = c(0.01, 0.1, 0.25, 0.5, 0.75, 1)
+axis(1, at=at*ncol(xx), labels = at)
+legend("top", c("used", "not expressed"), col=c("blue", "darkorange"), pch=20, cex=1)
+```
+
+
