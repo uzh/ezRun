@@ -77,6 +77,8 @@ deResult$saveToFile(basename(output$getColumn("Live Report")))
 ### Inspection of significant genes
 
 #### Between-group Comparison
+[Interactive table of significant genes](`r resultFile$resultHtml`)
+
 ```{r make scatter data, echo=FALSE}
 scatterData <- makeTestScatterData(param, se)
 groupMeans <- scatterData$groupMeans
