@@ -41,7 +41,7 @@ ezMethodBowtie2Transcriptome = function(input=NA, output=NA, param=NA){
 getBowtie2TranscriptomeReference = function(param){
   
   refBase = ifelse(param$ezRef["refIndex"] == "", 
-                   sub(".gtf$", "_Bowtie2Index/transcripts", param$ezRef["refFeatureFile"]),
+                   sub(".gtf$", "_BOWTIE2Index/transcripts", param$ezRef["refFeatureFile"]),
                    param$ezRef["refIndex"])
   ## check the ref
   lockFile = file.path(dirname(refBase), "lock")
