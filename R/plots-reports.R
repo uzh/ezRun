@@ -571,9 +571,10 @@ addTestScatterPlotsSE = function(doc, param, x, se, resultFile, types=NULL){
   return(testScatterTitles)
 }
 
-addTestScatterPlotsPlotly <- function(param, se, types=NULL){
-  require(webshot)
-  require(htmlwidgets)
+### -----------------------------------------------------------------
+### Prepare the group means and types for producing the scatter plots
+###
+makeTestScatterData <- function(param, se, types=NULL){
   seqAnno <- data.frame(rowData(se), row.names=rownames(se),
                         check.names = FALSE, stringsAsFactors=FALSE)
   ## x is the logSignal
@@ -582,7 +583,7 @@ addTestScatterPlotsPlotly <- function(param, se, types=NULL){
                                           drop=FALSE]),
                       rowMeans(logSignal[ , param$grouping == param$refGroup, 
                                           drop=FALSE])
-                     )
+  )
   colnames(groupMeans) = c(param$sampleGroup, param$refGroup)
   
   if (is.null(types)){
@@ -603,59 +604,5 @@ addTestScatterPlotsPlotly <- function(param, se, types=NULL){
       }
     }
   }
-  
-  ans <- list()
-  if (ncol(groupMeans) == 2 & !is.null(param$sampleGroup) & 
-      !is.null(param$refGroup)){
-    ## scatter plot
-    sampleValues = 2^groupMeans[ , param$sampleGroup]
-    refValues = 2^groupMeans[ , param$refGroup]
-    p_scatter <- ezXYScatterPlotly(xVec=refValues, yVec=sampleValues,
-                                   isPresent=rowData(se)$usedInTest, 
-                                   types=types, names=rowData(se)$gene_name,
-                                   xlab=param$refGroup, ylab=param$sampleGroup,
-                                   main="Comparison of average expression")
-    scatterPng <- paste0(param$comparison, "-scatter.png")
-    export(p_scatter, file=scatterPng)
-    scatterPdf <- sub("png$", "pdf", scatterPng)
-    export(p_scatter, file=scatterPdf)
-    scatterHtml <- paste0(param$comparison, "-scatter.html")
-    saveWidget(as_widget(p_scatter), scatterHtml)
-    ans$scatterPng <- scatterPng
-    ans$scatterPdf <- scatterPdf
-    ans$scatterHtml <- scatterHtml
-    
-    ## volcano plot with p-value
-    p_volcano <- ezVolcanoPlotly(log2Ratio=rowData(se)$log2Ratio, 
-                                 pValue=rowData(se)$pValue, yType="p-value",
-                                 isPresent=rowData(se)$usedInTest, types=types,
-                                 names=rowData(se)$gene_name,
-                                 main=param$comparison)
-    volcanoPng <- paste0(param$comparison, "-volcano.png")
-    export(p_volcano, file=volcanoPng)
-    volcanoPdf <- sub("png$", "pdf", volcanoPng)
-    export(p_volcano, file=volcanoPdf)
-    volcanoHtml <- paste0(param$comparison, "-volcano.html")
-    saveWidget(as_widget(p_volcano), volcanoHtml)
-    ans$volcanoPng <- volcanoPng
-    ans$volcanoPdf <- volcanoPdf
-    ans$volcanoHtml <- volcanoHtml
-    
-    ## volcano plot with FDR
-    p_volcano <- ezVolcanoPlotly(log2Ratio=rowData(se)$log2Ratio, 
-                                 pValue=rowData(se)$fdr, yType="FDR",
-                                 isPresent=rowData(se)$usedInTest, types=types,
-                                 names=rowData(se)$gene_name,
-                                 main=param$comparison)
-    volcanoPng <- paste0(param$comparison, "-FDR-volcano.png")
-    export(p_volcano, file=volcanoPng)
-    volcanoPdf <- sub("png$", "pdf", volcanoPng)
-    export(p_volcano, file=volcanoPdf)
-    volcanoHtml <- paste0(param$comparison, "-FDR-volcano.html")
-    saveWidget(as_widget(p_volcano), volcanoHtml)
-    ans$volcanoFDRPng <- volcanoPng
-    ans$volcanoFDRPdf <- volcanoPdf
-    ans$volcanoFDRHtml <- volcanoHtml
-  }
-  return(ans)
+  return(list(groupMeans=groupMeans, types=types))
 }

@@ -15,6 +15,8 @@ knitr::opts_chunk$set(echo = TRUE)
 require(knitr)
 require(kableExtra)
 require(SummarizedExperiment)
+require(webshot)
+require(htmlwidgets)
 ```
 Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
 
@@ -75,30 +77,96 @@ deResult$saveToFile(basename(output$getColumn("Live Report")))
 ### Inspection of significant genes
 
 #### Between-group Comparison
-```{r scatter comparison, echo=FALSE, warning=FALSE}
-## warning=FALSE because FDR contains NA. Shall we make them always 1?
-scatters <- addTestScatterPlotsPlotly(param, se)
-include_graphics(scatters$scatterPng, dpi=72*1.5)  ## To make legend more visible on non-retinal display
+```{r make scatter data, echo=FALSE}
+scatterData <- makeTestScatterData(param, se)
+groupMeans <- scatterData$groupMeans
+types <- scatterData$types
+isTwoGroup <- ncol(groupMeans) == 2 & !is.null(param$sampleGroup) & 
+  !is.null(param$refGroup)
 ```
 
-[Plot in pdf](`r scatters$scatterPdf`)
+```{r scatter comparison, echo=FALSE}
+if (isTRUE(isTwoGroup)){
+  ## scatter plot
+  sampleValues = 2^groupMeans[ , param$sampleGroup]
+  refValues = 2^groupMeans[ , param$refGroup]
+  p_scatter <- ezXYScatterPlotly(xVec=refValues, yVec=sampleValues,
+                                 isPresent=rowData(se)$usedInTest, 
+                                 types=types, names=rowData(se)$gene_name,
+                                 xlab=param$refGroup, ylab=param$sampleGroup,
+                                 main="Comparison of average expression")
+  scatterPng <- paste0(param$comparison, "-scatter.png")
+  export(p_scatter, file=scatterPng)
+  scatterPdf <- sub("png$", "pdf", scatterPng)
+  export(p_scatter, file=scatterPdf)
+  scatterHtml <- paste0(param$comparison, "-scatter.html")
+  saveWidget(as_widget(p_scatter), scatterHtml)
+  ### To make legend more visible on non-retinal display
+  include_graphics(scatterPng, dpi=72*1.5)
+  }
+```
 
-[Interactive comparison plot (With thousands of genes, it can be slow and requires a modern web brwoser for best javascript performance!)](`r scatters$scatterHtml`)
+```{r scatter comparison link, echo=FALSE, results='asis'}
+if (isTRUE(isTwoGroup)){
+  cat(paste0("[Plot in pdf](", scatterPdf, ")"), "\n")
+  cat("\n")
+  cat(paste0("[Interactive comparison plot (With thousands of genes, it can be slow and requires a modern web brwoser for best javascript performance!)](", scatterHtml, ")"), "\n")
+}
+```
 
 #### Volcano plot with p-value
 ```{r volcano p-value, echo=FALSE}
-include_graphics(scatters$volcanoPng, dpi=72*1.5)  ## To make legend more visible on non-retinal display
+if (isTRUE(isTwoGroup)){
+    ## volcano plot with p-value
+    p_volcano <- ezVolcanoPlotly(log2Ratio=rowData(se)$log2Ratio, 
+                                 pValue=rowData(se)$pValue, yType="p-value",
+                                 isPresent=rowData(se)$usedInTest, types=types,
+                                 names=rowData(se)$gene_name,
+                                 main=param$comparison)
+    volcanoPng <- paste0(param$comparison, "-volcano.png")
+    export(p_volcano, file=volcanoPng)
+    volcanoPdf <- sub("png$", "pdf", volcanoPng)
+    export(p_volcano, file=volcanoPdf)
+    volcanoHtml <- paste0(param$comparison, "-volcano.html")
+    saveWidget(as_widget(p_volcano), volcanoHtml)
+    ### To make legend more visible on non-retinal display
+    include_graphics(volcanoPng, dpi=72*1.5)  
+}
 ```
 
-[Plot in pdf](`r scatters$volcanoPdf`)
-
-[Interactive comparison plot (With thousands of genes, it can be slow and requires a modern web brwoser for best javascript performance!)](`r scatters$volcanoHtml`)
-
-#### Volcano plot with FDR
-```{r volcano FDR, echo=FALSE}
-include_graphics(scatters$volcanoFDRPng, dpi=72*1.5)  ## To make legend more visible on non-retinal display
+```{r volcano p-value link , echo=FALSE, results='asis'}
+if (isTRUE(isTwoGroup)){
+  cat(paste0("[Plot in pdf](", volcanoPdf, ")"), "\n")
+  cat("\n")
+  cat(paste0("[Interactive comparison plot (With thousands of genes, it can be slow and requires a modern web brwoser for best javascript performance!)](", volcanoHtml, ")"), "\n")
+}
 ```
 
-[Plot in pdf](`r scatters$volcanoFDRPdf`)
+### Inspection of significant genes (Advanced plots)
+```{r volcano FDR, echo=FALSE, warning=FALSE}
+if(isTRUE(isTwoGroup)){
+  ## warning=FALSE because FDR contains NA. Shall we make them always 1?
+  ## volcano plot with FDR
+  p_volcano <- ezVolcanoPlotly(log2Ratio=rowData(se)$log2Ratio, 
+                               pValue=rowData(se)$fdr, yType="FDR",
+                               isPresent=rowData(se)$usedInTest, types=types,
+                               names=rowData(se)$gene_name,
+                               main=param$comparison)
+  volcanoFDRPng <- paste0(param$comparison, "-FDR-volcano.png")
+  export(p_volcano, file=volcanoFDRPng)
+  volcanoFDRPdf <- sub("png$", "pdf", volcanoFDRPng)
+  export(p_volcano, file=volcanoFDRPdf)
+  volcanoFDRHtml <- paste0(param$comparison, "-FDR-volcano.html")
+  saveWidget(as_widget(p_volcano), volcanoFDRHtml)
+  ## To make legend more visible on non-retinal display
+  include_graphics(volcanoFDRPng, dpi=72*1.5)
+}
+```
 
-[Interactive comparison plot (With thousands of genes, it can be slow and requires a modern web brwoser for best javascript performance!)](`r scatters$volcanoFDRHtml`)
+```{r volcano FDR link, echo=FALSE, results='asis'}
+if(isTRUE(isTwoGroup)){
+  cat(paste0("[Plot in pdf](", volcanoFDRPdf, ")"), "\n")
+  cat("\n")
+  cat(paste0("[Interactive comparison plot (With thousands of genes, it can be slow and requires a modern web brwoser for best javascript performance!)](", volcanoFDRHtml, ")"), "\n")
+}
+```
