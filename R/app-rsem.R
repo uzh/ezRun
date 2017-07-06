@@ -17,7 +17,8 @@ ezMethodRSEM = function(input=NA, output=NA, param=NA){
   }
   samtoolsSortMem = paste0(round( (as.numeric(param$ram) / ezThreads() /2)*1000), "M")
   ciMemory = round((as.numeric(param$ram) - 4) * 1000)
-  opt = paste(opt, "-p", ezThreads(), "--bowtie-path $Bowtie", "--samtools-sort-mem", samtoolsSortMem, "--ci-memory", ciMemory)
+  opt = paste(opt, "-p", ezThreads(), "--sort-bam-memory-per-thread", samtoolsSortMem, 
+              "--ci-memory", ciMemory)
   
   trimmedInput = ezMethodTrim(input = input, param = param)
   
@@ -145,15 +146,15 @@ getRSEMReference = function(param){
       mapFile = paste0(refBase, "_geneMap.txt")
       cmd = paste("extract-transcript-to-gene-map-from-trinity", param$transcriptFasta, mapFile)
       ezSystem(cmd)
-      cmd = paste(prepareReference, "--bowtie", "-q", "--bowtie-path $Bowtie", "--transcript-to-gene-map", mapFile, param$transcriptFasta, "transcripts")
+      cmd = paste(prepareReference, "--bowtie", "-q", "--transcript-to-gene-map", mapFile, param$transcriptFasta, "transcripts")
       ezSystem(cmd)    
     } else {
-      cmd = paste(prepareReference, "--bowtie", "-q", "--bowtie-path $Bowtie", param$transcriptFasta, "transcripts")
+      cmd = paste(prepareReference, "--bowtie", "-q", param$transcriptFasta, "transcripts")
       ezSystem(cmd)    
     }
   } else{
     cmd = paste(prepareReference, "--bowtie", "--gtf", param$ezRef["refFeatureFile"], 
-                "--bowtie-path $Bowtie", param$ezRef["refFastaFile"],
+                param$ezRef["refFastaFile"],
                 "transcripts")
     ezSystem(cmd)
     ezSystem(paste("ln -s", param$ezRef["refFeatureFile"], "."))
