@@ -17,23 +17,17 @@ require(kableExtra)
 require(SummarizedExperiment)
 require(webshot)
 require(htmlwidgets)
+debug <- FALSE
 ```
 Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
 
 ## TwoGroupsAnalysis_Result {.tabset}
 
 ### Settings
-
 ```{r setting, echo=FALSE}
 kable(makeCountResultSummary(param, se), row.names=TRUE, format="html") %>%
   kable_styling(bootstrap_options = "striped", full_width = F,
                 position = "left")
-```
-
-### Input Dataset
-```{r input, echo=FALSE}
-dataset <- data.frame(colData(se), check.names=FALSE, stringsAsFactors=FALSE)
-ezInteractiveTableRmd(values=dataset, digits=4)
 ```
 
 ### Result Summary
@@ -77,18 +71,37 @@ deResult$saveToFile(basename(output$getColumn("Live Report")))
 ### Inspection of significant genes
 
 #### Between-group Comparison
-[Interactive table of significant genes](`r resultFile$resultHtml`)
 
 ```{r make scatter data, echo=FALSE}
 scatterData <- makeTestScatterData(param, se)
 logSignal <- scatterData$logSignal
 groupMeans <- scatterData$groupMeans
 types <- scatterData$types
-isTwoGroup <- ncol(groupMeans) == 2 & !is.null(param$sampleGroup) & 
+isTwoGroup <- ncol(groupMeans) == 2 & !is.null(param$sampleGroup) &
   !is.null(param$refGroup)
 ```
 
-```{r scatter comparison, echo=FALSE, eval=FALSE}
+```{r, echo=FALSE}
+settings = character()
+if (!is.null(param$pValueHighlightThresh)){
+  settings["P-value threshold:"] = paste("p <=", param$pValueHighlightThresh)
+}
+if (!is.null(param$log2RatioHighlightThresh)){
+    settings["Log ratio threshold:"] = paste("log ratio >=", 
+                                             param$log2RatioHighlightThresh)
+}
+settings["Number of significant genes:"] = sum(types$Significants)
+knitr::kable(as.data.frame(settings), format="html", 
+             col.names="Number", row.names=TRUE) %>%
+    kable_styling(bootstrap_options = "striped", full_width = F,
+                  position = "left")
+```
+
+Subsequent plots highlight significant genes in <span style="color:red">red</span>.
+
+[Interactive table of significant genes](`r resultFile$resultHtml`)
+
+```{r scatter comparison, echo=FALSE, eval=!debug}
 if (isTRUE(isTwoGroup)){
   ## scatter plot
   sampleValues = 2^groupMeans[ , param$sampleGroup]
@@ -117,7 +130,7 @@ if (isTRUE(isTwoGroup)){
 }
 ```
 
-```{r volcano p-value, echo=FALSE, eval=FALSE}
+```{r volcano p-value, echo=FALSE, eval=!debug}
 if (isTRUE(isTwoGroup)){
     ## volcano plot with p-value
     p_volcano <- ezVolcanoPlotly(log2Ratio=rowData(se)$log2Ratio, 
@@ -160,7 +173,7 @@ if (!isTRUE(isTwoGroup)){
 ```
 
 ### Inspection of significant genes (Advanced plots)
-```{r volcano FDR, echo=FALSE, warning=FALSE, eval=FALSE}
+```{r volcano FDR, echo=FALSE, warning=FALSE, eval=!debug}
 if(isTRUE(isTwoGroup)){
   ## warning=FALSE because FDR contains NA. Shall we make them always 1?
   ## volcano plot with FDR
@@ -188,7 +201,7 @@ if(isTRUE(isTwoGroup)){
 }
 ```
 
-```{r pvalue hist, echo=FALSE, results='asis'}
+```{r pvalue hist, echo=FALSE, results='asis', eval=!debug}
 plotCmd = expression({
     myBreaks = seq(0, 1, by=0.002)
     histUsed = hist(rowData(se)$pValue[rowData(se)$usedInTest], breaks=myBreaks, plot=FALSE)
@@ -209,9 +222,7 @@ includeHtml <- ezImageFileLink(plotCmd,
 cat(includeHtml)
 ```
 
-[Plot in pdf](`r pdfName`)
-
-```{r intra group, echo=FALSE, results='asis'}
+```{r intra group, echo=FALSE, results='asis', eval=!debug}
 theRange = 2^(range(logSignal, na.rm=TRUE))
 x <- logSignal
 if (!ezIsSpecified(param$grouping2)){ ## TODO: we no longer use pairing, we now use batch which is more general; however these plots only work if batch is a real pairing
@@ -277,4 +288,15 @@ if (!ezIsSpecified(param$grouping2)){ ## TODO: we no longer use pairing, we now 
       cat(includeHtml)
   }
 }
+```
+
+### Input Dataset
+```{r input, echo=FALSE}
+dataset <- data.frame(colData(se), check.names=FALSE, stringsAsFactors=FALSE)
+ezInteractiveTableRmd(values=dataset, digits=4)
+```
+
+### SessionInfo
+```{r, echo=FALSE}
+sessionInfo()
 ```
