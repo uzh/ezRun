@@ -114,7 +114,6 @@ if (isTRUE(isTwoGroup)){
 }
 ```
 
-#### Volcano plot with p-value
 ```{r volcano p-value, echo=FALSE}
 if (isTRUE(isTwoGroup)){
     ## volcano plot with p-value
@@ -130,7 +129,7 @@ if (isTRUE(isTwoGroup)){
     volcanoHtml <- paste0(param$comparison, "-volcano.html")
     saveWidget(as_widget(p_volcano), volcanoHtml)
     ### To make legend more visible on non-retinal display
-    include_graphics(volcanoPng, dpi=72*1.5)  
+    include_graphics(volcanoPng, dpi=72*1.5)
 }
 ```
 
@@ -139,6 +138,18 @@ if (isTRUE(isTwoGroup)){
   cat(paste0("[Plot in pdf](", volcanoPdf, ")"), "\n")
   cat("\n")
   cat(paste0("[Interactive comparison plot (With thousands of genes, it can be slow and requires a modern web brwoser for best javascript performance!)](", volcanoHtml, ")"), "\n")
+}
+```
+
+```{r scatter all pairs, echo=FALSE, fig.width=min(max(7, 7+(ncol(groupMeans)-2)*3), 30), fig.height=min(max(7, 7+(ncol(groupMeans)-2)*3), 30)}
+## All pairs
+if (!isTRUE(isTwoGroup)){
+  pdfName = paste0(param$comparison, "-scatter.pdf")
+  pdf(file=pdfName, width=7, height=7)
+  ezAllPairScatter(x=2^groupMeans, isPresent=rowData(se)$usedInTest, types=types)
+  dev.off()
+  
+  ezAllPairScatter(x=2^groupMeans, isPresent=rowData(se)$usedInTest, types=types)
 }
 ```
 

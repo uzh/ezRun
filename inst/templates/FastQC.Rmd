@@ -29,7 +29,7 @@ readCount <- ans4Report[["Read Counts"]]
 #      labels = names(readCount), xpd = TRUE)
 ```
 
-```{r readCountsPlotly, fig.height=7, fig.width=min(max(7, (length(readCount)-20)*0.3), 30), echo=FALSE}
+```{r readCountsPlotly, fig.height=7, fig.width=min(max(7, 7+(length(readCount)-20)*0.3), 30), echo=FALSE}
 m <- list(
   l = 80,
   r = 80,
