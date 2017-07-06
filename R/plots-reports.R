@@ -577,8 +577,8 @@ addTestScatterPlotsSE = function(doc, param, x, se, resultFile, types=NULL){
 makeTestScatterData <- function(param, se, types=NULL){
   seqAnno <- data.frame(rowData(se), row.names=rownames(se),
                         check.names = FALSE, stringsAsFactors=FALSE)
-  ## x is the logSignal
-  x <- logSignal <- log2(shiftZeros(assays(se)$xNorm, param$minSignal))
+  
+  logSignal <- log2(shiftZeros(assays(se)$xNorm, param$minSignal))
   groupMeans <- cbind(rowMeans(logSignal[ , param$grouping == param$sampleGroup, 
                                           drop=FALSE]),
                       rowMeans(logSignal[ , param$grouping == param$refGroup, 
@@ -587,9 +587,9 @@ makeTestScatterData <- function(param, se, types=NULL){
   colnames(groupMeans) = c(param$sampleGroup, param$refGroup)
   
   if (is.null(types)){
-    types = data.frame(row.names=rownames(x))
+    types = data.frame(row.names=rownames(se))
     if ("IsControl" %in% colnames(seqAnno)){
-      types$Controls = seqAnno[rownames(x), "IsControl"]
+      types$Controls = seqAnno[rownames(se), "IsControl"]
     }
   }
   if (!is.null(param$pValueHighlightThresh)){
@@ -604,5 +604,5 @@ makeTestScatterData <- function(param, se, types=NULL){
       }
     }
   }
-  return(list(groupMeans=groupMeans, types=types))
+  return(list(logSignal=logSignal, groupMeans=groupMeans, types=types))
 }

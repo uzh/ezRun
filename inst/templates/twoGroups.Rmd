@@ -81,13 +81,14 @@ deResult$saveToFile(basename(output$getColumn("Live Report")))
 
 ```{r make scatter data, echo=FALSE}
 scatterData <- makeTestScatterData(param, se)
+logSignal <- scatterData$logSignal
 groupMeans <- scatterData$groupMeans
 types <- scatterData$types
 isTwoGroup <- ncol(groupMeans) == 2 & !is.null(param$sampleGroup) & 
   !is.null(param$refGroup)
 ```
 
-```{r scatter comparison, echo=FALSE}
+```{r scatter comparison, echo=FALSE, eval=FALSE}
 if (isTRUE(isTwoGroup)){
   ## scatter plot
   sampleValues = 2^groupMeans[ , param$sampleGroup]
@@ -116,7 +117,7 @@ if (isTRUE(isTwoGroup)){
 }
 ```
 
-```{r volcano p-value, echo=FALSE}
+```{r volcano p-value, echo=FALSE, eval=FALSE}
 if (isTRUE(isTwoGroup)){
     ## volcano plot with p-value
     p_volcano <- ezVolcanoPlotly(log2Ratio=rowData(se)$log2Ratio, 
@@ -156,7 +157,7 @@ if (!isTRUE(isTwoGroup)){
 ```
 
 ### Inspection of significant genes (Advanced plots)
-```{r volcano FDR, echo=FALSE, warning=FALSE}
+```{r volcano FDR, echo=FALSE, warning=FALSE, eval=FALSE}
 if(isTRUE(isTwoGroup)){
   ## warning=FALSE because FDR contains NA. Shall we make them always 1?
   ## volcano plot with FDR
@@ -184,19 +185,33 @@ if(isTRUE(isTwoGroup)){
 }
 ```
 
-```{r pvalue hist, echo=FALSE}
-myBreaks = seq(0, 1, by=0.002)
-histUsed = hist(rowData(se)$pValue[rowData(se)$usedInTest], breaks=myBreaks, plot=FALSE)
-histAbs = hist(rowData(se)$pValue[!rowData(se)$usedInTest], breaks=myBreaks, plot=FALSE)
-xx = rbind(used=histUsed$counts, absent=histAbs$counts)
-xx = shrinkToRange(xx, c(0, max(xx["used", ])))
-barplot(xx, space=0, border=NA, col=c("blue", "darkorange"), 
-        xlab="p-value", ylab="counts", ylim=c(0, max(xx["used", ])),
-        main="p-value histogram")
-abline(h=sum(rowData(se)$usedInTest)/ncol(xx))
-at = c(0.01, 0.1, 0.25, 0.5, 0.75, 1)
-axis(1, at=at*ncol(xx), labels = at)
-legend("top", c("used", "not expressed"), col=c("blue", "darkorange"), pch=20, cex=1)
+```{r pvalue hist, echo=FALSE, results='hide'}
+plotCmd = expression({
+    myBreaks = seq(0, 1, by=0.002)
+    histUsed = hist(rowData(se)$pValue[rowData(se)$usedInTest], breaks=myBreaks, plot=FALSE)
+    histAbs = hist(rowData(se)$pValue[!rowData(se)$usedInTest], breaks=myBreaks, plot=FALSE)
+    xx = rbind(used=histUsed$counts, absent=histAbs$counts)
+    xx = shrinkToRange(xx, c(0, max(xx["used", ])))
+    barplot(xx, space=0, border=NA, col=c("blue", "darkorange"), 
+            xlab="p-value", ylab="counts", ylim=c(0, max(xx["used", ])),
+            main="p-value histogram")
+    abline(h=sum(rowData(se)$usedInTest)/ncol(xx))
+    at = c(0.01, 0.1, 0.25, 0.5, 0.75, 1)
+    axis(1, at=at*ncol(xx), labels = at)
+    legend("top", c("used", "not expressed"), col=c("blue", "darkorange"), pch=20, cex=1)
+})
+
+pdfName = paste0(param$comparison, "-pValueHist.pdf")
+pdf(file=pdfName, height=7, width=7*1.4)
+eval(plotCmd)
+dev.off()
+
+eval(plotCmd)
 ```
 
+[Plot in pdf](`r pdfName`)
 
+```{r intra group, echo=FALSE}
+theRange = 2^(range(logSignal, na.rm=TRUE))
+
+```
