@@ -144,15 +144,18 @@ if (isTRUE(isTwoGroup)){
 }
 ```
 
-```{r scatter all pairs, echo=FALSE, fig.width=min(max(7, 7+(ncol(groupMeans)-2)*3), 30), fig.height=min(max(7, 7+(ncol(groupMeans)-2)*3), 30)}
+```{r scatter all pairs, echo=FALSE, results='asis'}
 ## All pairs
 if (!isTRUE(isTwoGroup)){
-  pdfName = paste0(param$comparison, "-scatter.pdf")
-  pdf(file=pdfName, width=7, height=7)
-  ezAllPairScatter(x=2^groupMeans, isPresent=rowData(se)$usedInTest, types=types)
-  dev.off()
-  
-  ezAllPairScatter(x=2^groupMeans, isPresent=rowData(se)$usedInTest, types=types)
+  plotCmd = expression({
+      ezAllPairScatter(x=2^groupMeans, isPresent=rowData(se)$usedInTest, 
+                       types=types)
+  })
+  includeHtml <- ezImageFileLink(plotCmd, file=paste0(param$comparison, "-scatter.png"),
+                                 width=min(max(ncol(groupMeans) * 200, 400), 2000),
+                                 height=min(max(ncol(groupMeans) * 200, 400), 2000)) 
+  # dynamic png with possibly many plots
+  cat(includeHtml)
 }
 ```
 
@@ -185,7 +188,7 @@ if(isTRUE(isTwoGroup)){
 }
 ```
 
-```{r pvalue hist, echo=FALSE, results='hide'}
+```{r pvalue hist, echo=FALSE, results='asis'}
 plotCmd = expression({
     myBreaks = seq(0, 1, by=0.002)
     histUsed = hist(rowData(se)$pValue[rowData(se)$usedInTest], breaks=myBreaks, plot=FALSE)
@@ -200,18 +203,78 @@ plotCmd = expression({
     axis(1, at=at*ncol(xx), labels = at)
     legend("top", c("used", "not expressed"), col=c("blue", "darkorange"), pch=20, cex=1)
 })
-
-pdfName = paste0(param$comparison, "-pValueHist.pdf")
-pdf(file=pdfName, height=7, width=7*1.4)
-eval(plotCmd)
-dev.off()
-
-eval(plotCmd)
+includeHtml <- ezImageFileLink(plotCmd, 
+                               file=paste0(param$comparison, "-pValueHist.png"), 
+                               width=800)
+cat(includeHtml)
 ```
 
 [Plot in pdf](`r pdfName`)
 
-```{r intra group, echo=FALSE}
+```{r intra group, echo=FALSE, results='asis'}
 theRange = 2^(range(logSignal, na.rm=TRUE))
-
+x <- logSignal
+if (!ezIsSpecified(param$grouping2)){ ## TODO: we no longer use pairing, we now use batch which is more general; however these plots only work if batch is a real pairing
+  for (group in unique(c(param$refGroup, colnames(groupMeans)))){
+    idx = which(group == param$grouping)
+    if (length(idx) > 1){
+      cat("\n")
+      cat(paste("#### Intra-group Comparison:", group), "\n")
+      
+      pngName = paste0(group, "-scatter.png")
+      xlab = paste("Avg of", group)
+      refValues = groupMeans[ , group]
+      plotCmd = expression({
+        ezScatter(x=2^refValues, y=2^x[, idx, drop=FALSE], 
+                  isPresent=assays(se)$isPresent[, idx, drop=FALSE], 
+                  types=types, lim=theRange, xlab=xlab)
+      })
+      includeHtml <- ezImageFileLink(plotCmd, file=pngName, 
+                                     width=min(ncol(as.matrix(x[, idx, drop=FALSE])), 6) * 480,
+                                     height=ceiling(ncol(as.matrix(x[, idx, drop=FALSE]))/6) * 480)
+      # dynamic png with possibly many plots
+      cat(includeHtml)
+      
+      if (ncol(groupMeans) == 2){
+          otherGroup = setdiff(colnames(groupMeans), group)
+          pngName = paste0(group, "-over-", otherGroup, "-scatter.png")
+          xlab = paste("Avg of", otherGroup)
+          refValues = groupMeans[ , otherGroup]
+          plotCmd = expression({
+            ezScatter(x=2^refValues, y=2^x[, idx, drop=FALSE], 
+                      isPresent=assays(se)$isPresent[, idx, drop=FALSE], 
+                      types=types, lim=theRange, xlab=xlab)
+          })
+          includeHtml <- ezImageFileLink(plotCmd, file=pngName,
+                                         width=min(ncol(as.matrix(x[, idx, drop=FALSE])), 6) * 480,
+                                         height=ceiling(ncol(as.matrix(x[, idx, drop=FALSE]))/6) * 480)
+          # dynamic png with possibly many plots
+          cat(includeHtml)
+      }
+    }
+    cat("\n")
+  }
+}else{
+  cat(paste("Pairs:", param$sampleGroup, "over", param$refGroup), "\n")
+  use = param$grouping %in% c(param$sampleGroup, param$refGroup)
+  if (all(table(param$grouping2[use], param$grouping[use]) == 1)){
+      groups = paste(param$grouping, param$grouping2, sep="--")
+      sampleGroups = sort(unique(groups[param$grouping == param$sampleGroup]))
+      refGroups = sort(unique(groups[param$grouping == param$refGroup]))
+      avgValues = averageColumns(x[ ,use], groups[use], mean)
+      avgPresent= averageColumns(x[ ,use], groups[use], function(x){mean(x) > 0.5})
+      sampleValues = avgValues[ , sampleGroups, drop=FALSE]
+      refValues = avgValues[ , refGroups, drop=FALSE]
+      samplePresent = avgPresent[ ,sampleGroups, drop=FALSE]
+      refPresent = avgPresent[ , refGroups, drop=FALSE]
+      pngName = paste0(param$sampleGroup, "-over-", param$refGroup, "-pairs.png")
+      plotCmd = expression({
+        ezScatter(x=2^refValues, y=2^sampleValues, isPresent=samplePresent | refPresent, types=types, lim=theRange, xlab=colnames(refValues))
+      })
+      includeHtml <- ezImageFileLink(plotCmd, file=pngName,
+                                     width=min(ncol(as.matrix(sampleValues)), 6) * 400,
+                                     height=ceiling(ncol(as.matrix(sampleValues))/6) * 400)
+      cat(includeHtml)
+  }
+}
 ```

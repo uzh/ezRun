@@ -66,6 +66,7 @@ ezGrid = function(x, header.columns = FALSE,  valign = "top", ...){
 ##' ezImageFileLink(plotCmd)
 ezImageFileLink = function(plotCmd, file=NULL, name="imagePlot", plotType="plot", mouseOverText="my mouse over",
                            addPdfLink=TRUE, width=480, height=480, ppi=72, envir=parent.frame()){
+  require(ReporteRs)
   if (is.null(file)){
     file = paste0(name, "-", plotType, ".png")
   }
