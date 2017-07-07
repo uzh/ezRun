@@ -191,11 +191,11 @@ enrichrEnrich <- function(userListId, libNames = getEnrichrLibNames(), connectio
     ds
   }
 
-  success <- list()
-  failure <- list()
+  success <<- list()
+  failure <<- list()
   tryId <- 0
 
-  while (tryId == 0 || (length(failure) > 0 && tryId < retryN + 1)) {
+  while ((tryId == 0 || (length(failure) > 0) && tryId < retryN + 1)) {
     tryId <- tryId + 1
     message(sprintf("Try: %d; failures: %d", tryId, length(failure)))
     failure <<- list()
@@ -230,7 +230,6 @@ enrichrEnrich <- function(userListId, libNames = getEnrichrLibNames(), connectio
 
   list(success = success, failure = failure)
 }
-
 
 
 ##' @title Result filtering
