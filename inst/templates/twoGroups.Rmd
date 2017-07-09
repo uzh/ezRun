@@ -312,8 +312,13 @@ knitr::kable(as.data.frame(settings), format="html",
 ```
 
 #### Cluster Plot
+```{r javascript, echo=FALSE, results='asis'}
+jsFile = system.file("extdata/enrichr.js", package="ezRun", mustWork=TRUE)
+invisible(file.copy(from=jsFile, to=basename(jsFile), overwrite=TRUE))
+cat(paste0("<SCRIPT language=\"JavaScript\" SRC=\"", basename(jsFile), "\"></SCRIPT>"))
+```
 
-```{r cluster, echo=FALSE, eval=TRUE, results='asis'}
+```{r cluster, echo=FALSE, eval=TRUE, message=FALSE, fig.width=max(8,0.1*ncol(se)), fig.height=10, fig.retina=2, }
 ## for clustering we use a moderated logSignal
 logSignal = log2(assays(se)$xNorm + param$backgroundExpression)
 if (sum(use) > param$minGenesForClustering){
@@ -328,25 +333,70 @@ if (sum(use) > param$minGenesForClustering){
   clusterPng = "cluster-heatmap.png"
   clusterColors = c("red", "yellow", "orange", "green", "blue", "cyan")
   clusterResult = clusterResults(xCentered, nClusters=6, clusterColors=clusterColors)
-  plotCmd = expression({
-    clusterHeatmap(xCentered, param, clusterResult, file=clusterPng,
+  #plotCmd = expression({
+    clusterHeatmap(xCentered, param, clusterResult, file=NULL,
                    colColors=sampleColors, lim=c(-param$logColorRange, param$logColorRange))
-  })
-  clusterLink = ezImageFileLink(plotCmd, file=clusterPng, 
-                                width=max(800, 400 + 10 * ncol(xCentered)), 
-                                height=1000) # HEATMAP
-  cat(clusterLink)
+  #})
+  #eval(plotCmd)
+  #clusterLink = ezImageFileLink(plotCmd, file=clusterPng, 
+  #                              width=max(800, 400 + 10 * ncol(xCentered)), 
+  #                              height=1000) # HEATMAP
+  #cat(clusterLink)
   
   seqAnno <- data.frame(rowData(se), row.names=rownames(se),
                         check.names = FALSE, stringsAsFactors=FALSE)
   if (doGo(param, seqAnno)){
-      clusterResult = goClusterResults(xCentered, param, clusterResult, seqAnno=seqAnno,
-                                       universeProbeIds=rownames(seqAnno)[rowData(se)$isPresentProbe])
+    clusterResult = goClusterResults(xCentered, param, clusterResult, seqAnno=seqAnno, universeProbeIds=rownames(seqAnno)[rowData(se)$isPresentProbe])
+  }
+  ## append the result file with the cluster colors
+  resultLoaded = ezRead.table(resultFile$resultFile)
+  resultLoaded$Cluster = clusterResult$clusterColors[clusterResult$clusterNumbers[rownames(resultLoaded)]]
+  ezWrite.table(resultLoaded, file=resultFile$resultFile)
+  if (param$doZip){
+    zipFile(resultFile$resultFile)
+  }
+  if (!is.null(clusterResult$GO)){
+    goTables = goClusterTable(param, clusterResult, seqAnno)
+    if (doEnrichr(param)){
+        goAndEnrichr = cbind(goTables$linkTable, goTables$enrichrTable)
+    } else {
+      goAndEnrichr = goTables$linkTable
+    }
+    bgColors = gsub("FF$", "", clusterResult$clusterColors)
+    ## kable solution
+    #rownames(goAndEnrichr) <- paste0('<td bgcolor="', bgColors, 
+    #                                 '">',rownames(goAndEnrichr),'</td>')
+    rownames(goAndEnrichr) <- paste0('<font color="', bgColors,
+                                     '">Cluster ', rownames(goAndEnrichr),
+                                     '</font>')
+    kable(goAndEnrichr, escape=FALSE, row.names=TRUE, format = "html") %>%
+      kable_styling(bootstrap_options = "striped",
+                    full_width = F, position = "float_right")
+    
+    ## htmlTable solution
+    #htmlTable(goAndEnrichr, col.rgroup = clusterColors)
   }
 }
 ```
 
+```{r test, echo=FALSE, results='asis'}
+#library(formattable)
+#formattable(goAndEnrichr, list(BP=formatter("span", style(color = "green", font.weight = "bold"), NA)))
+#require(htmlTable)
+#htmlTable(goAndEnrichr, col.rgroup = clusterColors)
+#set.seed(123)
+#df <- data.frame(id       = sample(1:100, 20, replace = TRUE),
+#                 inputval = sample(seq(0, 1, by=0.01), 20, replace = TRUE),
+#                 outcome  = sample(1:4, 20, replace = TRUE))
 
+#cols <- with(df, ifelse(outcome == 1, 'magenta', 'white'))
+#df <- goAndEnrichr
+#htmlTable(as.matrix(df))
+```
+
+```{r test datatable, echo=FALSE}
+#datatable(goAndEnrichr, escape = FALSE)
+```
 
 ### Input Dataset
 ```{r input, echo=FALSE}
