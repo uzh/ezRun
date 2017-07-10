@@ -369,9 +369,12 @@ if (sum(use) > param$minGenesForClustering){
     rownames(goAndEnrichr) <- paste0('<font color="', bgColors,
                                      '">Cluster ', rownames(goAndEnrichr),
                                      '</font>')
-    kable(goAndEnrichr, escape=FALSE, row.names=TRUE, format = "html") %>%
+    kable(goAndEnrichr, escape=FALSE, row.names=TRUE, format = "html",
+          caption="GO categories of feature clusters") %>%
       kable_styling(bootstrap_options = "striped",
-                    full_width = F, position = "float_right")
+                    full_width = F, position = "float_right") %>%
+      add_footnote(c("Cluster font color corresponds to the row colors in the heatmap plot."), 
+                   notation = "alphabet")
     
     ## htmlTable solution
     #htmlTable(goAndEnrichr, col.rgroup = clusterColors)
