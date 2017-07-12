@@ -318,7 +318,7 @@ invisible(file.copy(from=jsFile, to=basename(jsFile), overwrite=TRUE))
 cat(paste0("<SCRIPT language=\"JavaScript\" SRC=\"", basename(jsFile), "\"></SCRIPT>"))
 ```
 
-```{r cluster, echo=FALSE, eval=TRUE, message=FALSE, fig.width=max(8,0.1*ncol(se)), fig.height=10, fig.retina=2, }
+```{r cluster, echo=FALSE, eval=TRUE, message=FALSE, fig.width=max(8,0.1*ncol(se)), fig.height=10, fig.retina=2}
 ## for clustering we use a moderated logSignal
 logSignal = log2(assays(se)$xNorm + param$backgroundExpression)
 if (sum(use) > param$minGenesForClustering){
@@ -335,7 +335,8 @@ if (sum(use) > param$minGenesForClustering){
   clusterResult = clusterResults(xCentered, nClusters=6, clusterColors=clusterColors)
   #plotCmd = expression({
     clusterHeatmap(xCentered, param, clusterResult, file=NULL,
-                   colColors=sampleColors, lim=c(-param$logColorRange, param$logColorRange))
+                   colColors=sampleColors, 
+                   lim=c(-param$logColorRange, param$logColorRange))
   #})
   #eval(plotCmd)
   #clusterLink = ezImageFileLink(plotCmd, file=clusterPng, 
@@ -356,7 +357,7 @@ if (sum(use) > param$minGenesForClustering){
     zipFile(resultFile$resultFile)
   }
   if (!is.null(clusterResult$GO)){
-    goTables = goClusterTable(param, clusterResult, seqAnno)
+    goTables = goClusterTableRmd(param, clusterResult, seqAnno)
     if (doEnrichr(param)){
         goAndEnrichr = cbind(goTables$linkTable, goTables$enrichrTable)
     } else {
@@ -382,23 +383,24 @@ if (sum(use) > param$minGenesForClustering){
 }
 ```
 
-```{r test, echo=FALSE, results='asis'}
-#library(formattable)
-#formattable(goAndEnrichr, list(BP=formatter("span", style(color = "green", font.weight = "bold"), NA)))
-#require(htmlTable)
-#htmlTable(goAndEnrichr, col.rgroup = clusterColors)
-#set.seed(123)
-#df <- data.frame(id       = sample(1:100, 20, replace = TRUE),
-#                 inputval = sample(seq(0, 1, by=0.01), 20, replace = TRUE),
-#                 outcome  = sample(1:4, 20, replace = TRUE))
-
-#cols <- with(df, ifelse(outcome == 1, 'magenta', 'white'))
-#df <- goAndEnrichr
-#htmlTable(as.matrix(df))
+```{r render go cluster, echo=FALSE, results='hide', message=FALSE, warning=FALSE}
+if (sum(use) > param$minGenesForClustering){
+  if (!is.null(clusterResult$GO)){
+    ## GO Cluster tables
+    file <- file.path(system.file("templates", package="ezRun"), 
+                      "twoGroups_goClusterTable.Rmd")
+    file.copy(from=file, to=basename(file), overwrite=TRUE)
+    rmarkdown::render(input=basename(file),
+                      output_dir=".", output_file="goClusterTable.html")
+  }
+}
 ```
 
-```{r test datatable, echo=FALSE}
-#datatable(goAndEnrichr, escape = FALSE)
+```{r go cluster table link, echo=FALSE, results='asis'}
+if (file.exists("goClusterTable.html")){
+  cat(paste0("[GO cluster tables](", "goClusterTable.html", ")"), "\n")
+  cat("\n")
+}
 ```
 
 ### Input Dataset
