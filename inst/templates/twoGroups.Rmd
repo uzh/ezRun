@@ -318,7 +318,7 @@ invisible(file.copy(from=jsFile, to=basename(jsFile), overwrite=TRUE))
 cat(paste0("<SCRIPT language=\"JavaScript\" SRC=\"", basename(jsFile), "\"></SCRIPT>"))
 ```
 
-```{r cluster, echo=FALSE, eval=TRUE, message=FALSE, fig.width=max(8,0.1*ncol(se)), fig.height=10, fig.retina=2}
+```{r cluster, echo=FALSE, eval=!debug, message=FALSE, fig.width=max(8,0.1*ncol(se)), fig.height=10, fig.retina=2}
 ## for clustering we use a moderated logSignal
 logSignal = log2(assays(se)$xNorm + param$backgroundExpression)
 if (sum(use) > param$minGenesForClustering){
@@ -383,7 +383,7 @@ if (sum(use) > param$minGenesForClustering){
 }
 ```
 
-```{r render go cluster, echo=FALSE, results='hide', message=FALSE, warning=FALSE}
+```{r render go cluster, echo=FALSE, results='hide', message=FALSE, warning=FALSE, eval=!debug}
 if (sum(use) > param$minGenesForClustering){
   if (!is.null(clusterResult$GO)){
     ## GO Cluster tables
@@ -402,6 +402,58 @@ if (file.exists("goClusterTable.html")){
   cat("\n")
 }
 ```
+
+### Enrichr
+```{r enrichr, echo=FALSE, message=FALSE}
+if (doGo(param, seqAnno)){
+    if (doEnrichr(param)){
+      isSig = rowData(se)$pValue < param$pValThreshGO & rowData(se)$usedInTest
+      isUp = rowData(se)$log2Ratio > param$log2RatioThreshGO & isSig
+      isDown = rowData(se)$log2Ratio < -param$log2RatioThreshGO & isSig
+      regulatedGenes = list()
+      regulatedGenes$upGenes = na.omit(unique(seqAnno[isUp, "gene_name"]))
+      regulatedGenes$downGenes = na.omit(unique(seqAnno[isDown, "gene_name"]))
+      regulatedGenes$bothGenes = union(regulatedGenes$upGenes, regulatedGenes$downGenes)
+      
+      enrichrLinks = ezMatrix("", rows=names(regulatedGenes), cols=c("External", "Precomputed"))
+      maxResultsPerLibrary = 5
+      for (row in rownames(enrichrLinks)){
+        genesToUse = regulatedGenes[[row]]
+        jsCall = paste0('enrich({list: "', paste(genesToUse, collapse="\\n"), '", popup: true});')
+        enrichrLinks[row, "External"] = as.html(pot(paste0("<a href='javascript:void(0)' onClick='", jsCall, "'>Analyse at Enrichr website</a>")))
+        resMerged <- NA
+        if (!is.null(genesToUse) && length(genesToUse) > 3 && param$doPrecomputeEnrichr) {
+          resList = runEnrichr(genesToUse, maxResult = maxResultsPerLibrary)
+          resList = lapply(names(resList), function(nm){return(cbind("Gene-set library"=nm, resList[[nm]][, c(2:5, 7:10)]))}) ## add the name as a first column
+          if (length(resList) > 0) {
+            resMerged = do.call("rbind", resList)
+            resMerged <- resMerged[order(-resMerged[,5]), ]
+            resMerged[, c(3,6:8)] <- apply(resMerged[, c(3,6:8)], 2, sprintf, fmt = "%0.2e")
+            resMerged[, c(4,5)] <- apply(resMerged[, c(4,5)], 2, sprintf, fmt = "%0.3f")
+            enrichrTablePath <- paste0("enrichrTable_", row, ".html")
+            ezInteractiveTable(resMerged, tableLink=enrichrTablePath, title=paste("Enrichr report for ", row))
+            enrichrLinks[row, "Precomputed"] = as.html(ezLink(link = enrichrTablePath, label = "Report", target = "_blank"))
+          } else {
+            enrichrLinks[row, "Precomputed"] = "No significant results"
+          }
+        } else {
+          enrichrLinks[row, "Precomputed"] = "Not run (too few genes)"
+        }
+      }
+      kable(enrichrLinks, escape=FALSE, row.names=TRUE, format = "html") %>%
+      kable_styling(bootstrap_options = "striped",
+                    full_width = F, position = "float_left")
+    }
+}
+```
+
+### GO Enrichment Analysis
+Maximum number of terms displayed: `r param$maxNumberGroupsDisplayed`.
+
+```{r goseq interactive table, echo=FALSE}
+
+```
+
 
 ### Input Dataset
 ```{r input, echo=FALSE}
