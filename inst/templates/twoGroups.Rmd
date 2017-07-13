@@ -17,7 +17,7 @@ require(kableExtra)
 require(SummarizedExperiment)
 require(webshot)
 require(htmlwidgets)
-debug <- TRUE
+debug <- FALSE
 ```
 Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
 
@@ -490,6 +490,13 @@ kable(ktables[["enrichBoth"]], escape=TRUE, row.names=FALSE, format="html",
                      "Cellular Comp. (CC)" = 4))
 ```
 
+### ReViGO
+```{r revigo, echo=FALSE, eval=TRUE}
+kable(revigoUpDownTables(param, goResult), escape = FALSE, row.names = TRUE,
+      format="html") %>%
+  kable_styling(bootstrap_options = "striped",
+                full_width = F, position = "float_left")
+```
 ### Input Dataset
 ```{r input, echo=FALSE}
 dataset <- data.frame(colData(se), check.names=FALSE, stringsAsFactors=FALSE)

@@ -125,6 +125,25 @@ addGoUpDownResult = function(doc, param, goResult){
   return(revigoTitle)
 }
 
+revigoUpDownTables <- function(param, goResult){
+  revigoLinks = ezMatrix("", rows=c('enrichUp', 'enrichDown', 'enrichBoth'), 
+                         cols=c('BP', 'MF', 'CC'))
+  for (col in colnames(revigoLinks)){
+    for (row in rownames(revigoLinks)){
+      goSubResult = goResult[[col]][[row]]
+      if (all(is.na(goSubResult))) next
+      goSubResult = goSubResult[which(goSubResult$Pvalue < param$pValThreshFisher),]
+      if(nrow(goSubResult) > param$maxNumberGroupsDisplayed) {
+        goSubResult = goSubResult[1:param$maxNumberGroupsDisplayed,]
+      }
+      revigoLinks[row, col] = paste0('http://revigo.irb.hr/?inputGoList=',
+                                     paste(rownames(goSubResult), goSubResult[,'Pvalue'], collapse='%0D%0A'))
+      revigoLinks[row, col] = as.html(pot("ReViGO", hyperlink = revigoLinks[row, col]))
+    }
+  }
+  return(t(revigoLinks))
+}
+
 ##' @describeIn addGoUpDownResult Gets the GO up-down tables.
 goUpDownTables = function(param, goResult){
   #goTable = ezMatrix("", rows="Cats", cols=names(goResult))
