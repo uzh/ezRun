@@ -79,6 +79,10 @@ goClusterTableRmd = function(param, clusterResult, seqAnno){
                                                        cols=seq_len(ncol(x))))}
                             )
     ktableCluster <- do.call(cbind, ktableCluster)
+    if(nrow(ktableCluster) == 0L){
+      ## for later grouping in cluster kables, we need empty cells.
+      ktableCluster <- ezMatrix("", rows=1, cols=colnames(ktableCluster))
+    }
     ktables[[i]] <- ktableCluster
   }
   return(list(ktables=ktables, linkTable=linkTable, enrichrTable=enrichrTable))

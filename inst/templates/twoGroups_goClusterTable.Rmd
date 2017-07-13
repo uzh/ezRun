@@ -9,12 +9,14 @@ output:
     css: fgcz.css
 ---
 
-```{r cluster table, echo=FALSE, fig.width=max(8,0.1*ncol(se)), fig.height=10, fig.retina=2}
+```{r cluster plot, echo=FALSE, fig.width=max(8,0.1*ncol(se)), fig.height=10, fig.retina=2, warning=FALSE}
 ## Cluster plot again
 clusterHeatmap(xCentered, param, clusterResult, file=NULL,
                colColors=sampleColors, 
                lim=c(-param$logColorRange, param$logColorRange))
+```
 
+```{r cluster table, echo=FALSE}
 ## The detailed table
 ktables <- goTables$ktables
 ngroups <- sapply(ktables, nrow)

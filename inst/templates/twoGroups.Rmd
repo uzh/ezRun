@@ -345,7 +345,7 @@ invisible(file.copy(from=jsFile, to=basename(jsFile), overwrite=TRUE))
 cat(paste0("<SCRIPT language=\"JavaScript\" SRC=\"", basename(jsFile), "\"></SCRIPT>"))
 ```
 
-```{r cluster, echo=FALSE, eval=!debug, message=FALSE, fig.width=max(8,0.1*ncol(se)), fig.height=10, fig.retina=2}
+```{r cluster, echo=FALSE, eval=!debug, message=FALSE, fig.width=max(8,0.1*ncol(se)), fig.height=10, fig.retina=2, warning=FALSE}
 ## for clustering we use a moderated logSignal
 logSignal = log2(assays(se)$xNorm + param$backgroundExpression)
 if (sum(use) > param$minGenesForClustering){
@@ -469,7 +469,7 @@ if (doGo(param, seqAnno)){
       }
       kable(enrichrLinks, escape=FALSE, row.names=TRUE, format = "html") %>%
         kable_styling(bootstrap_options = "striped",
-                    full_width = F, position = "float_left")
+                    full_width = F, position = "left")
     }
 }
 ```
@@ -485,7 +485,7 @@ goResult <- twoGroupsGOSE(param, se, method=param$goseqMethod)
 goTables <- goUpDownTables(param, goResult)
 kable(goTables$linkTable, escape=FALSE, row.names=TRUE, format = "html") %>%
         kable_styling(bootstrap_options = "striped",
-                    full_width = F, position = "float_left")
+                    full_width = F, position = "left")
 ktables <- goTables$ktables
 ```
 
@@ -494,7 +494,7 @@ ktables <- goTables$ktables
 kable(ktables[["enrichUp"]], escape=TRUE, row.names=FALSE, format="html",
       caption="GO categories that are overrepresented among significantly upregulated genes.") %>%
   kable_styling(bootstrap_options = "striped",
-                full_width = F, position = "float_left") %>%
+                full_width = F, position = "left") %>%
   add_header_above(c("Biological Proc. (BP)" = 4, "Molecular Func. (MF)" = 4, 
                      "Cellular Comp. (CC)" = 4))
 ```
@@ -503,7 +503,7 @@ kable(ktables[["enrichUp"]], escape=TRUE, row.names=FALSE, format="html",
 kable(ktables[["enrichDown"]], escape=TRUE, row.names=FALSE, format="html",
       caption="GO categories that are overrepresented among significantly downregulated genes.") %>%
   kable_styling(bootstrap_options = "striped",
-                full_width = F, position = "float_left") %>%
+                full_width = F, position = "left") %>%
   add_header_above(c("Biological Proc. (BP)" = 4, "Molecular Func. (MF)" = 4, 
                      "Cellular Comp. (CC)" = 4))
 ```
@@ -512,7 +512,7 @@ kable(ktables[["enrichDown"]], escape=TRUE, row.names=FALSE, format="html",
 kable(ktables[["enrichBoth"]], escape=TRUE, row.names=FALSE, format="html",
       caption="GO categories that are overrepresented among all significantly regulated genes.") %>%
   kable_styling(bootstrap_options = "striped",
-                full_width = F, position = "float_left") %>%
+                full_width = F, position = "left") %>%
   add_header_above(c("Biological Proc. (BP)" = 4, "Molecular Func. (MF)" = 4, 
                      "Cellular Comp. (CC)" = 4))
 ```
