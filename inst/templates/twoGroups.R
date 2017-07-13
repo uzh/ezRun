@@ -34,7 +34,8 @@ output[['Live Report [Link]']] = 'http://fgcz-shiny.uzh.ch/fgcz_exploreDEG_app/?
 output[['Report [File]']] = 'p1997/EdgeR_17729_AME--over--NS_2017-05-03--13-16-23/EdgeR--AME--over--NS'
 input = '/srv/gstore/projects/p1997/EdgeR_17729_AME--over--NS_2017-05-03--13-16-23/input_dataset.tsv'
 param[['runGfold']] = 'false'
-param[['runGO']] = 'false'
+param[['runGO']] = 'true'
+param[['doPrecomputeEnrichr']] = 'false'
 #EzAppEdger$new()$run(input=input, output=output, param=param)
 
 # debug
@@ -42,7 +43,7 @@ output = EzDataset$new(meta=output, dataRoot=param$dataRoot)
 load("/srv/GT/analysis/gtan/p1997-edgeR/LR/EdgeR--AME--over--NS_withSE_rightdeResult/result-AME--over--NS-gbunszhvhmxz-EzResult.RData")
 deResult = EzResult(param=param, rawData=rawData, se=se)
 
-file.copy(from="/Users/gtan/Repos/FGCZ/ezRun/inst/templates/twoGroups.Rmd", 
+file.copy(from="/Users/gtan/Repos/FGCZ/ezRun/inst/templates/twoGroups.Rmd",
           to="twoGroups.Rmd", overwrite = TRUE)
 rmarkdown::render(input="twoGroups.Rmd",
                   output_dir=".", output_file="00index.html")

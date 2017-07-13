@@ -127,24 +127,28 @@ addGoUpDownResult = function(doc, param, goResult){
 
 ##' @describeIn addGoUpDownResult Gets the GO up-down tables.
 goUpDownTables = function(param, goResult){
-  goTable = ezMatrix("", rows="Cats", cols=names(goResult))
-  resultList = list("enrichUp"=goTable, "enrichBoth"=goTable, "enrichDown"=goTable)
+  #goTable = ezMatrix("", rows="Cats", cols=names(goResult))
+  goTable <- list()
+  ktables = list("enrichUp"=goTable, "enrichDown"=goTable, "enrichBoth"=goTable)
   txtFiles = character() ## TODO make a list of list; similar to resultList
   ## txtList = list("enrichUp"=list(), "enrichBoth"=list(), "enrichDown"=list())
-  linkTable = ezMatrix("", rows = names(goResult), cols = c("enrichUp", "enrichDown", "enrichBoth"))
+  linkTable = ezMatrix("", rows = names(goResult), 
+                       cols = c("enrichUp", "enrichDown", "enrichBoth"))
   for (onto in names(goResult)){ ## BP, MF , CC
     x = goResult[[onto]]
     for (sub in names(x)){ #c("enrichUp", "enrichDown", "enrichBoth")){
       message("sub: ", sub)
-      goFrame = .getGoTermsAsTd(x[[sub]], param$pValThreshFisher, param$minCountFisher, onto=onto,
+      goFrame = .getGoTermsAsTd(x[[sub]], param$pValThreshFisher,
+                                param$minCountFisher, onto=onto,
                                 maxNumberOfTerms=param$maxNumberGroupsDisplayed)
-      if (nrow(goFrame)==0) next
+      ktables[[sub]][[onto]] = goFrame
+      if (nrow(goFrame)==0)
+        next
       linkTable[onto, sub] = paste0("Cluster-", onto, "-", sub, ".html")
       ezInteractiveTable(goFrame, tableLink=linkTable[onto, sub], digits=3,
                          title=paste(sub("enrich", "", sub), "enriched GO categories of ontology", onto))
       linkTable[onto, sub] = as.html(ezLink(linkTable[onto, sub], target = "_blank"))
       goFrame$Term = substr(goFrame$Term, 1, 30)
-      resultList[[sub]]["Cats", onto] = as.html(ezFlexTable(goFrame, talign="right", header.columns = TRUE))
       xSub = x[[sub]]
       if (is.data.frame(xSub)){
         name = paste0(onto, "-", param$comparison, "-", sub)
@@ -158,12 +162,18 @@ goUpDownTables = function(param, goResult){
       }
     }
   }
-  nameMap = c("BP"="Biological Proc. (BP)", "MF"="Molecular Func. (MF)", "CC"="Cellular Comp. (CC)")
-  flexTables = lapply(resultList, function(res){
-    colnames(res) = nameMap[colnames(res)]
-    ezFlexTable(res, border = 2, header.columns = TRUE)
-  })
-  return(list(flexTables=flexTables, txtFiles=txtFiles, linkTable=linkTable))
+  for(sub in names(ktables)){
+    ### Add the ""
+    maxNrow <- max(sapply(ktables[[sub]], nrow))
+    ktables[[sub]] <- lapply(ktables[[sub]],
+                             function(x){rbind(as.matrix(x),
+                                               ezMatrix("", rows=seq_len(maxNrow-nrow(x)),
+                                                        cols=seq_len(ncol(x))))}
+                             )
+    ktables[[sub]] <- do.call(cbind, ktables[[sub]])
+  }
+  #nameMap = c("BP"="Biological Proc. (BP)", "MF"="Molecular Func. (MF)", "CC"="Cellular Comp. (CC)")
+  return(list(ktables=ktables, txtFiles=txtFiles, linkTable=linkTable))
 }
 
 ##' @describeIn goClusterTable Gets the GO terms and pastes them into a table.

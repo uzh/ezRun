@@ -150,6 +150,90 @@ twoGroupsGO = function(param, testResult, seqAnno, normalizedAvgSignal=NULL, met
   return(goResults)
 }
 
+addGeneNamesEnrich <- function(resEnrich, se){
+  gene_ids <- strsplit(resEnrich$Genes, "; ")
+  ids2names <- setNames(rowData(se)$gene_name, rowData(se)$gene_id)
+  gene_names <- relist(ids2names[unlist(gene_ids)], gene_ids)
+  gene_names <- sapply(gene_names, paste, collapse="; ")
+  resEnrich$GenesNames <- gene_names
+  return(resEnrich)
+}
+
+twoGroupsGOSE = function(param, se, method="Wallenius"){
+  
+  seqAnno <- data.frame(rowData(se), row.names=rownames(se),
+                        check.names = FALSE, stringsAsFactors=FALSE)
+  logSignal <- log2(shiftZeros(assays(se)$xNorm, param$minSignal))
+  groupMeans <- cbind(rowMeans(logSignal[ , param$grouping == param$sampleGroup, 
+                                          drop=FALSE]),
+                      rowMeans(logSignal[ , param$grouping == param$refGroup, 
+                                          drop=FALSE])
+                      )
+  colnames(groupMeans) = c(param$sampleGroup, param$refGroup)
+  normalizedAvgSignal=rowMeans(groupMeans)
+  
+  job = ezJobStart("twoGroupsGO")
+  require("GOstats", warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
+  require("annotate", warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
+  
+  if (param$featureLevel != "gene"){
+    genes = getGeneMapping(param, seqAnno)
+    seqAnno = aggregateGoAnnotation(seqAnno, genes)
+    if (!is.null(normalizedAvgSignal)){ ## if its not an identity mapping
+      normalizedAvgSignal = tapply(normalizedAvgSignal[names(genes)], genes, mean)
+      normalizedAvgSignal = normalizedAvgSignal[rownames(seqAnno)]
+    }
+    if (is.null(genes)){
+      stop("no probe 2 gene mapping found found for ")
+    }
+  } else {
+    genes = rownames(seqAnno)
+    names(genes) = genes
+  }
+  
+  isSig = rowData(se)$pValue < param$pValThreshGO & rowData(se)$usedInTest
+  isUp = rowData(se)$log2Ratio > param$log2RatioThreshGO & isSig
+  isDown = rowData(se)$log2Ratio < -param$log2RatioThreshGO & isSig
+  probes = rownames(groupMeans)
+  presentGenes = na.omit(unique(genes[probes[rowData(se)$isPresentProbe]]))
+  upGenes = na.omit(unique(genes[probes[isUp]]))
+  downGenes = na.omit(unique(genes[probes[isDown]]))
+  bothGenes = union(upGenes, downGenes)
+  normalizedAvgSignal = normalizedAvgSignal[presentGenes]
+  if (length(presentGenes) == 0 | length(bothGenes) == 0){
+    ezWrite("presentGenes: ", length(presentGenes), " up: ", length(upGenes), 
+            " down: ", length(downGenes), " both: ", length(bothGenes))
+  }
+  ontologies = c("BP", "MF", "CC")
+  #goResults = list()
+  #for (onto in ontologies){
+  goResults = ezMclapply(ontologies, function(onto){
+    gene2goList = goStringsToList(seqAnno[[paste("GO", onto)]], 
+                                  listNames=rownames(seqAnno))[presentGenes]
+    if (param$includeGoParentAnnotation){
+      gene2goList = addGoParents(gene2goList, onto) 
+    }
+    enrichUp = ezGoseq(param, selectedGenes=upGenes, allGenes=presentGenes, 
+                       gene2goList=gene2goList, method=method, 
+                       normalizedAvgSignal=normalizedAvgSignal, onto=onto)
+    enrichDown = ezGoseq(param, selectedGenes=downGenes, allGenes=presentGenes, 
+                         gene2goList=gene2goList, method=method, 
+                         normalizedAvgSignal=normalizedAvgSignal, onto=onto)
+    enrichBoth = ezGoseq(param, selectedGenes=bothGenes, allGenes=presentGenes, 
+                         gene2goList=gene2goList, method=method, 
+                         normalizedAvgSignal=normalizedAvgSignal, onto=onto)
+    result = list(enrichUp=enrichUp, enrichDown=enrichDown, enrichBoth=enrichBoth)
+    result <- lapply(result, addGeneNamesEnrich, se)
+    return(result)
+  }, mc.cores=1)
+  names(goResults) = ontologies
+  #     goResults[[onto]] = list(enrichUp=enrichUp, enrichDown=enrichDown, enrichBoth=enrichBoth,
+  #                              countsUp=countsUp, countsDown=countsDown, countsBoth=countsBoth)
+  ezWriteElapsed(job)
+  return(goResults)
+}
+
+
 ## ezGoseq considers only the genes that have annotations; genes without annotation are removed from the selectedGenes and allGenes
 ##' @describeIn twoGroupsGO Performs the GO analysis and returns a list of results.
 ezGoseq = function(param, selectedGenes, allGenes, gene2goList=NULL, 

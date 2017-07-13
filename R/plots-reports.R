@@ -583,7 +583,7 @@ makeTestScatterData <- function(param, se, types=NULL){
                                           drop=FALSE]),
                       rowMeans(logSignal[ , param$grouping == param$refGroup, 
                                           drop=FALSE])
-  )
+                      )
   colnames(groupMeans) = c(param$sampleGroup, param$refGroup)
   
   if (is.null(types)){

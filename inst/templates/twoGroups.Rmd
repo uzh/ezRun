@@ -404,7 +404,7 @@ if (file.exists("goClusterTable.html")){
 ```
 
 ### Enrichr
-```{r enrichr, echo=FALSE, message=FALSE}
+```{r enrichr, echo=FALSE, message=FALSE, eval=!debug}
 if (doGo(param, seqAnno)){
     if (doEnrichr(param)){
       isSig = rowData(se)$pValue < param$pValThreshGO & rowData(se)$usedInTest
@@ -441,19 +441,54 @@ if (doGo(param, seqAnno)){
         }
       }
       kable(enrichrLinks, escape=FALSE, row.names=TRUE, format = "html") %>%
-      kable_styling(bootstrap_options = "striped",
+        kable_styling(bootstrap_options = "striped",
                     full_width = F, position = "float_left")
     }
 }
 ```
 
-### GO Enrichment Analysis
+### GO Enrichment Analysis (goseq)
 Maximum number of terms displayed: `r param$maxNumberGroupsDisplayed`.
 
-```{r goseq interactive table, echo=FALSE}
-
+```{r goseq compute, echo=FALSE, message=FALSE, warning=FALSE}
+goResult <- twoGroupsGOSE(param, se, method=param$goseqMethod)
 ```
 
+```{r goseq interactive table, echo=FALSE, eval=TRUE, message=FALSE}
+goTables <- goUpDownTables(param, goResult)
+kable(goTables$linkTable, escape=FALSE, row.names=TRUE, format = "html") %>%
+        kable_styling(bootstrap_options = "striped",
+                    full_width = F, position = "float_left")
+ktables <- goTables$ktables
+```
+
+```{r enrichUp, echo=FALSE, eval=TRUE}
+## The code in a for loop doesn't work.
+kable(ktables[["enrichUp"]], escape=TRUE, row.names=FALSE, format="html",
+      caption="GO categories that are overrepresented among significantly upregulated genes.") %>%
+  kable_styling(bootstrap_options = "striped",
+                full_width = F, position = "float_left") %>%
+  add_header_above(c("Biological Proc. (BP)" = 4, "Molecular Func. (MF)" = 4, 
+                     "Cellular Comp. (CC)" = 4))
+```
+
+```{r enrichDown, echo=FALSE, eval=TRUE}
+kable(ktables[["enrichDown"]], escape=TRUE, row.names=FALSE, format="html",
+      caption="GO categories that are overrepresented among significantly downregulated genes.") %>%
+  kable_styling(bootstrap_options = "striped",
+                full_width = F, position = "float_left") %>%
+  add_header_above(c("Biological Proc. (BP)" = 4, "Molecular Func. (MF)" = 4, 
+                     "Cellular Comp. (CC)" = 4))
+```
+
+```{r enrichBoth, echo=FALSE, eval=TRUE}
+kable(ktables[["enrichBoth"]], escape=TRUE, row.names=FALSE, format="html",
+      caption="GO categories that are overrepresented among all significantly regulated genes.") %>%
+  kable_styling(bootstrap_options = "striped",
+                full_width = F, position = "float_left") %>%
+  add_header_above(c("Biological Proc. (BP)" = 4, "Molecular Func. (MF)" = 4, 
+                     "Cellular Comp. (CC)" = 4))
+```
 
 ### Input Dataset
 ```{r input, echo=FALSE}
