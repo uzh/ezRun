@@ -552,7 +552,7 @@ imgLinks = function(image){
 ##' @templateVar object JS starter
 ##' @template roxygen-template
 addJavaScriptIgvStarter = function(htmlFile, projectId, doc){
-  jnlpLines1 = paste('<jnlp spec="6.0+" codebase="http://www.broadinstitute.org/igv/projects/current">',
+  jnlpLines1 = paste('<jnlp spec="6.0+" codebase="http://data.broadinstitute.org/igv/projects/current">',
                      '<information>',
                      '<title>IGV 2.3</title>',
                      '<vendor>The Broad Institute</vendor>',

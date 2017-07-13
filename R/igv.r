@@ -44,7 +44,7 @@ ezIgvTemplateFile = function(){
 ##' @param html a character representing an html address.
 ##' @template roxygen-template
 writeJavaScriptIgvStarter = function(htmlFile, projectId, html){
-  jnlpLines1 = paste('<jnlp spec="6.0+" codebase="http://www.broadinstitute.org/igv/projects/current">',
+  jnlpLines1 = paste('<jnlp spec="6.0+" codebase="http://data.broadinstitute.org/igv/projects/current">',
                     '<information>',
                     '<title>IGV 2.3</title>',
                     '<vendor>The Broad Institute</vendor>',
@@ -205,19 +205,19 @@ writeIgvSessionLink = function(genome, refBuild, bamFiles, html, locus="All", la
 getIgvLocusLink = function(chrom, start, end){
   
   locus = paste0(chrom, ":", start, "-", end)
-  link = paste0("http://www.broadinstitute.org/igv/projects/current/launch.php?locus=", locus)
+  link = paste0("http://data.broadinstitute.org/igv/projects/current/launch.php?locus=", locus)
   return(paste0("<a href=", link, ">", locus, "</a>"))
 }
 
 
-#http://www.broadinstitute.org/igv/projects/current/launch.php?locus=chr16:36762879-36778737
-#http://www.broadinstitute.org/igv/projects/current/launch.php?sessionURL=/Users/hubert/work/IGV/igvLaunch-mm9.xml&locus=chr16:36762879-36778737
+#http://data.broadinstitute.org/igv/projects/current/launch.php?locus=chr16:36762879-36778737
+#http://data.broadinstitute.org/igv/projects/current/launch.php?sessionURL=/Users/hubert/work/IGV/igvLaunch-mm9.xml&locus=chr16:36762879-36778737
 
 # writeIgvSessionScript = function(htmlFile, html){
 #   ezWrite("<script>", con=html)
 #   ezWrite("function startIgv(label, locus){", con=html)
 #   ezWrite("var theSession = document.location.href.replace('", htmlFile, "', 'igvSession.xml');", con=html)
-# 	ezWrite("var igvlink = 'http://www.broadinstitute.org/igv/projects/current/launch.php?sessionURL=' + theSession + '&locus=' + locus;", con=html)
+# 	ezWrite("var igvlink = 'http://data.broadinstitute.org/igv/projects/current/launch.php?sessionURL=' + theSession + '&locus=' + locus;", con=html)
 #   ezWrite("document.write(label.link(igvlink))", con=html)
 # 	ezWrite("}", con=html)
 #   ezWrite("</script>", con=html)
