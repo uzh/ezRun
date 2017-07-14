@@ -244,10 +244,11 @@ plotCmd = expression({
     axis(1, at=at*ncol(xx), labels = at)
     legend("top", c("used", "not expressed"), col=c("blue", "darkorange"), pch=20, cex=1)
 })
-includeHtml <- ezImageFileLink(plotCmd, 
-                               file=paste0(param$comparison, "-pValueHist.png"), 
-                               width=800)
-cat(includeHtml)
+#includeHtml <- ezImageFileLink(plotCmd, 
+#                               file=paste0(param$comparison, "-pValueHist.png"), 
+#                               width=800)
+#cat(includeHtml)
+eval(plotCmd)
 ```
 
 ```{r intra group, echo=FALSE, results='asis', eval=!debug}
