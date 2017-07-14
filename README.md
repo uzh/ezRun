@@ -22,7 +22,7 @@ packages <- c("testthat", "knitr", "gage", "goseq", "ChIPpeakAnno",
               "GOstats", "annotate", "bitops", "edgeR", "limma", "S4Vectors",
               "VariantAnnotation", "rmarkdown", "plotly",
               "ReporteRsjars", "data.table", "kableExtra", "htmlwidgets",
-              "RSelenium", "webshot")
+              "RSelenium", "webshot", "clusterProfiler")
 packages <- setdiff(packages, rownames(installed.packages()))
 biocLite(packages)
 ## reinstall ReporteRs with 0.8.6 version

@@ -518,12 +518,57 @@ kable(ktables[["enrichBoth"]], escape=TRUE, row.names=FALSE, format="html",
 ```
 
 ### ReViGO
-```{r revigo, echo=FALSE, eval=TRUE}
+```{r revigo, echo=FALSE, eval=!debug}
 kable(revigoUpDownTables(param, goResult), escape = FALSE, row.names = TRUE,
       format="html") %>%
   kable_styling(bootstrap_options = "striped",
                 full_width = F, position = "float_left")
 ```
+
+### Hypergeometric overrepresentation
+```{r enricher compute, echo=FALSE, eval=TRUE, message=FALSE}
+enrichResult <- ezEnricher(param, se)
+```
+
+#### dotplot
+```{r dotplot, echo=FALSE, eval=TRUE}
+for(onto in names(enrichResult)){
+  for(sig in names(enrichResult[[1]])){
+    p <- dotplot(enrichResult[[onto]][[sig]], showCategory=20, 
+                 title=paste(onto, sig))
+    print(p)
+  }
+}
+```
+
+#### enrichMap
+```{r enrichMap, echo=FALSE, eval=TRUE}
+for(onto in names(enrichResult)){
+  for(sig in names(enrichResult[[1]])){
+    if(nrow(enrichResult[[onto]][[sig]]@result) == 0L){
+      next
+    }else{
+      enrichMap(enrichResult[[onto]][[sig]], n=50, main=paste(onto, sig))
+    }
+  }
+}
+```
+
+#### cnetplot
+```{r cnetplot, echo=FALSE, eval=TRUE}
+for(onto in names(enrichResult)){
+  for(sig in names(enrichResult[[1]])){
+    if(nrow(enrichResult[[onto]][[sig]]@result) == 0L){
+      next
+    }else{
+      cnetplot(enrichResult[[onto]][[sig]],
+             foldChange=setNames(rowData(se)$log2Ratio, rowData(se)$gene_name),
+             main=paste(onto, sig))
+    }
+  }
+}
+```
+
 ### Input Dataset
 ```{r input, echo=FALSE}
 dataset <- data.frame(colData(se), check.names=FALSE, stringsAsFactors=FALSE)
