@@ -370,6 +370,54 @@ ezEnricher <- function(param, se){
   return(goResults)
 }
 
+### -----------------------------------------------------------------
+### ezGSEA
+###
+ezGSEA <- function(param, se){
+  require(clusterProfiler)
+  require(GO.db)
+  godata <- prepareGOData(param, se)
+  presentGenes <- godata$presentGenes
+  seqAnno <- data.frame(rowData(se), row.names=rownames(se),
+                        check.names = FALSE, stringsAsFactors=FALSE)
+  geneid2name <- setNames(seqAnno$gene_name, seqAnno$gene_id)
+  geneList <- setNames(rowData(se)$log2Ratio, rowData(se)$gene_name)
+  geneList <- sort(geneList, decreasing = TRUE)
+  
+  ontologies = c("BP", "MF", "CC")
+  
+  goResults = ezMclapply(ontologies, function(onto){
+    message("Enricher: ", onto)
+    gene2goList = goStringsToList(seqAnno[[paste("GO", onto)]], 
+                                  listNames=rownames(seqAnno))[presentGenes]
+    if (param$includeGoParentAnnotation){
+      gene2goList = addGoParents(gene2goList, onto) 
+    }
+    ### consider only genes with annotation in the currently selected ontology!!!!
+    allGos = switch(onto,
+                    BP=keys(GOBPPARENTS),
+                    MF=keys(GOMFPARENTS),
+                    CC=keys(GOCCPARENTS),
+                    NA)
+    if (!all(unlist(gene2goList) %in% allGos)){
+      gene2goList = lapply(gene2goList, function(x){intersect(x, allGos)})
+    }
+    gene2goList = gene2goList[lengths(gene2goList) > 0]
+    terms <- Term(GOTERM[unlist(gene2goList)])
+    go2geneDF <- data.frame(ont=substr(terms, start=1L, 
+                                       stop=pmin(30L, nchar(terms))),
+                            gene=geneid2name[rep(names(gene2goList), 
+                                                 lengths(gene2goList))],
+                            stringsAsFactors = FALSE
+    )
+    resGSEA <- GSEA(gene=geneList, TERM2GENE=go2geneDF,
+                    by="fgsea")
+    return(resGSEA)
+  }, mc.cores=1)
+  names(goResults) = ontologies
+  return(goResults)
+}
+
 ##' @title Groups GO terms and information
 ##' @description Groups GO terms and information.
 ##' @param selectedGenes a character vector containing the selected genes.

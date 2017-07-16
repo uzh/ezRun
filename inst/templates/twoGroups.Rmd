@@ -526,13 +526,13 @@ kable(revigoUpDownTables(param, goResult), escape = FALSE, row.names = TRUE,
                 full_width = F, position = "float_left")
 ```
 
-### Hypergeometric overrepresentation
+### Hypergeometric overrepresentation test
 ```{r enricher compute, echo=FALSE, eval=TRUE, message=FALSE}
 enrichResult <- ezEnricher(param, se)
 ```
 
 #### dotplot
-```{r dotplot, echo=FALSE, eval=TRUE}
+```{r dotplot gsea, echo=FALSE, eval=TRUE}
 for(onto in names(enrichResult)){
   for(sig in names(enrichResult[[1]])){
     p <- dotplot(enrichResult[[onto]][[sig]], showCategory=20, 
@@ -543,7 +543,7 @@ for(onto in names(enrichResult)){
 ```
 
 #### enrichMap
-```{r enrichMap, echo=FALSE, eval=TRUE}
+```{r enrichMap gsea, echo=FALSE, eval=TRUE}
 for(onto in names(enrichResult)){
   for(sig in names(enrichResult[[1]])){
     if(nrow(enrichResult[[onto]][[sig]]@result) == 0L){
@@ -556,7 +556,7 @@ for(onto in names(enrichResult)){
 ```
 
 #### cnetplot
-```{r cnetplot, echo=FALSE, eval=TRUE}
+```{r cnetplot gsea, echo=FALSE, eval=TRUE}
 for(onto in names(enrichResult)){
   for(sig in names(enrichResult[[1]])){
     if(nrow(enrichResult[[onto]][[sig]]@result) == 0L){
@@ -569,6 +569,49 @@ for(onto in names(enrichResult)){
   }
 }
 ```
+
+### Gene set enrichment analysis
+```{r gsea compute, echo=FALSE, message=FALSE}
+enrichResult <- ezGSEA(param, se)
+```
+
+#### dotplot
+```{r dotplot, echo=FALSE, eval=TRUE}
+for(onto in names(enrichResult)){
+  if(nrow(enrichResult[[onto]]@result) == 0L){
+      next
+  }else{
+    p <- dotplot(enrichResult[[onto]], showCategory=20, 
+                 title=paste(onto, sig))
+    print(p)
+  }
+}
+```
+
+#### enrichMap
+```{r enrichMap, echo=FALSE, eval=TRUE}
+for(onto in names(enrichResult)){
+    if(nrow(enrichResult[[onto]]@result) == 0L){
+      next
+    }else{
+      enrichMap(enrichResult[[onto]], n=50, main=paste(onto, sig))
+    }
+}
+```
+
+#### cnetplot
+```{r cnetplot, echo=FALSE, eval=TRUE}
+for(onto in names(enrichResult)){
+    if(nrow(enrichResult[[onto]]@result) == 0L){
+      next
+    }else{
+      cnetplot(enrichResult[[onto]],
+             foldChange=setNames(rowData(se)$log2Ratio, rowData(se)$gene_name),
+             main=paste(onto, sig))
+    }
+}
+```
+
 
 ### Input Dataset
 ```{r input, echo=FALSE}
