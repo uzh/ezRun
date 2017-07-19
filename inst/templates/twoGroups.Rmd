@@ -435,6 +435,7 @@ if (file.exists("goClusterTable.html")){
 ```{r enrichr, echo=FALSE, message=FALSE, eval=!debug}
 if (doGo(param, seqAnno)){
     if (doEnrichr(param)){
+      require(ReporteRs)
       isSig = rowData(se)$pValue < param$pValThreshGO & rowData(se)$usedInTest
       isUp = rowData(se)$log2Ratio > param$log2RatioThreshGO & isSig
       isDown = rowData(se)$log2Ratio < -param$log2RatioThreshGO & isSig

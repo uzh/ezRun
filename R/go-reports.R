@@ -47,6 +47,7 @@ goClusterTable = function(param, clusterResult, seqAnno){
 }
 
 goClusterTableRmd = function(param, clusterResult, seqAnno){
+  require(ReporteRs)
   ontologies = names(clusterResult$GO)
   ktables = list()
   linkTable = ezMatrix("", rows = 1:clusterResult$nClusters, cols = ontologies)

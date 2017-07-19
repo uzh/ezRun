@@ -387,7 +387,7 @@ ezGSEA <- function(param, se){
   ontologies = c("BP", "MF", "CC")
   
   goResults = ezMclapply(ontologies, function(onto){
-    message("Enricher: ", onto)
+    message("GSEA: ", onto)
     gene2goList = goStringsToList(seqAnno[[paste("GO", onto)]], 
                                   listNames=rownames(seqAnno))[presentGenes]
     if (param$includeGoParentAnnotation){
