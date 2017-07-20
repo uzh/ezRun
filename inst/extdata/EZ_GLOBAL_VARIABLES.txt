@@ -50,6 +50,7 @@ FLASH="/usr/local/ngseq/src/FLASH-1.2.11/flash"
 BEDGRAPHBIGWIG="/usr/local/ngseq/stow/ucsc_tools/bin/bedGraphToBigWig"
 BEDTOOLS2="/usr/local/ngseq/stow/bedtools2-2.24/bin/bedtools"
 GFOLD_DIR="/usr/local/ngseq/src/gfold.V1.1.4"
+PHANTOMJS_DIR="/usr/local/ngseq/packages/Dev/PhantomJS/2.1.1/bin/"
 
 JAVA="/usr/local/ngseq/bin/java"
 TRIMMOMATIC="/usr/local/ngseq/bin/java -jar /usr/local/ngseq/src/Trimmomatic-0.33/trimmomatic-0.33.jar"

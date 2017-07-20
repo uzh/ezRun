@@ -20,5 +20,6 @@ Suggests:
     GenomicRanges, ShortRead, Gviz, gplots, GO.db, GOstats, annotate,
     bitops, edgeR, limma, S4Vectors, VariantAnnotation, rmarkdown, plotly,
     kableExtra, htmlwidgets, RSelenium, webshot, clusterProfiler
+SystemRequirements: PhantomJS
 VignetteBuilder: knitr
 RoxygenNote: 5.0.1
