@@ -58,7 +58,7 @@ biomartFile="martquery_Homo_sapiens.txt.gz"
 refBuild = file.path(organism, db, build, "Annotation",
                      paste("Release_89", Sys.Date(),
                            sep="-"))
-param = ezParam(list(refBuild=refBuild, genomesRoot=genomesRoot))
+param = ezParam(list(refBuild=refBuild))
 buildRefDir(param$ezRef, genomeFile=genomeFn, genesFile=featureFn)
 buildIgvGenome(param$ezRef)
 
