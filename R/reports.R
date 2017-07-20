@@ -66,6 +66,7 @@ ezGrid = function(x, header.columns = FALSE,  valign = "top", ...){
 ##' ezImageFileLink(plotCmd)
 ezImageFileLink = function(plotCmd, file=NULL, name="imagePlot", plotType="plot", mouseOverText="my mouse over",
                            addPdfLink=TRUE, width=480, height=480, ppi=72, envir=parent.frame()){
+  require(ReporteRs)
   if (is.null(file)){
     file = paste0(name, "-", plotType, ".png")
   }
@@ -293,6 +294,29 @@ addCountResultSummarySE = function(doc, param, se){
   addFlexTable(doc, ezGrid(settings, add.rownames=TRUE))
 }
 
+makeCountResultSummary = function(param, se){
+  settings = character()
+  settings["Analysis:"] = metadata(se)$analysis
+  settings["Feature level:"] = metadata(se)$featureLeve
+  settings["Data Column Used:"] = metadata(se)$countName
+  settings["Method:"] = metadata(se)$method
+  if (ezIsSpecified(param$grouping2)){
+    settings["Statistical Model:"] = "used provided second factor"
+  }
+  settings["Comparison:"] = param$comparison
+  if (!is.null(param$normMethod)){
+    settings["Normalization:"] = param$normMethod
+  }
+  if(!is.null(param$deTest)){
+    settings["Differential expression test:"] <- param$deTest
+  }
+  if (param$useSigThresh){
+    settings["Log2 signal threshold:"] = signif(log2(param$sigThresh), digits=4)
+    settings["Linear signal threshold:"] = signif(param$sigThresh, digits=4)
+  }
+  return(as.data.frame(settings))
+}
+
 ##' @title Adds tables of the significant counts
 ##' @description Adds tables of the significant counts.
 ##' @template doc-template
@@ -318,6 +342,12 @@ addSignificantCountsSE = function(doc, se, pThresh=c(0.1, 0.05, 1/10^(2:5))){
                            header.columns = TRUE, add.rownames = TRUE, talign = "right")
   tbl = ezGrid(cbind(as.html(sigTable), as.html(sigFcTable)))
   addFlexTable(doc, tbl)
+}
+
+makeSignificantCounts = function(se, pThresh=c(0.1, 0.05, 1/10^(2:5))){
+  sigTable = getSignificantCountsTableSE(se, pThresh=pThresh)
+  sigFcTable = getSignificantFoldChangeCountsTableSE(se, pThresh=pThresh)
+  return(as.data.frame(cbind(sigTable, sigFcTable)))
 }
 
 ##' @describeIn addSignificantCounts Gets the table containing the significant counts.
@@ -524,6 +554,60 @@ addResultFileSE = function(doc, param, se, useInOutput=TRUE,
   ezInteractiveTable(head(y[, useInInteractiveTable, drop=FALSE], param$maxTableRows), tableLink=tableLink, digits=3,
                      title=paste("Showing the", param$maxTableRows, "most significant genes"))
   return(list(resultFile=file))
+}
+
+makeResultFile = function(param, se, useInOutput=TRUE,
+                          file=paste0("result--", param$comparison, ".txt")){
+  require(tools)
+  require(DT)
+  se <- se[useInOutput, ]
+  y = data.frame(rowData(se), row.names=rownames(se),
+                 stringsAsFactors=FALSE, check.names=FALSE)
+  y$"isPresent" = y$isPresentProbe
+  y$isPresentProbe <- NULL
+  y$"log2 Ratio" = y$log2Ratio
+  y$log2Ratio <- NULL
+  y$"gfold (log2 Change)" = y$gfold
+  y$gfold <- NULL
+  y$usedInTest <- NULL ## don't output usedInTest.
+  
+  if (!is.null(assays(se)$xNorm)){
+    yy = assays(se)$xNorm
+    colnames(yy) = paste(colnames(yy), "[normalized count]")
+    y = cbind(y, yy)
+  }
+  yy = getRpkmSE(se)
+  if (!is.null(yy)){
+    colnames(yy) = paste(colnames(yy), "[FPKM]")
+    y = cbind(y, yy)
+  }
+  y = y[order(y$fdr, y$pValue), ]
+  if (!is.null(y$width)){
+    ### This is to round the with after averaging the transcript lengths
+    y$width = as.integer(y$width)
+  }
+  
+  ezWrite.table(y, file=file, digits=4, row.names=FALSE)
+  ans <- list()
+  ans$resultFile <- file
+  if(isTRUE(param$doZip)){
+    zipFile <- sub(file_ext(file), "zip", file)
+    zip(zipfile=zipFile, files=file)
+    ans$resultZip <- zipFile
+  }
+  
+  ## Interactive gene tables
+  useInInteractiveTable = c("gene_name", "type", "description", "width", "gc", 
+                            "isPresent", "log2 Ratio", "pValue", "fdr")
+  useInInteractiveTable = intersect(useInInteractiveTable, colnames(y))
+  tableLink = sub(".txt", "-viewTopSignificantGenes.html", file)
+  tableDT <- ezInteractiveTableRmd(head(y[, useInInteractiveTable, drop=FALSE], 
+                                        param$maxTableRows),
+                                   digits=3,
+                                   title=paste("Showing the", param$maxTableRows, "most significant genes"))
+  DT::saveWidget(tableDT, tableLink)
+  ans$resultHtml <- tableLink
+  return(ans)
 }
 
 ############################################################

@@ -48,7 +48,7 @@ zipFile = function(inputs, zipped=NULL){
   inputs = paste0("'", inputs, "'") ## surround with quotes to support files that contain white space
   inputs = paste(inputs, collapse=" ") ## concat the files if multiple files are given;
   cmd = paste("zip -q -r", zipped, inputs, sep=" ")
-  ezSystem(cmd)
+  ezSystem(cmd, echo=FALSE)
   return(zipped)
 }
 

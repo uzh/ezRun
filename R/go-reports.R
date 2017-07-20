@@ -46,6 +46,49 @@ goClusterTable = function(param, clusterResult, seqAnno){
   return(list(ft=ft, linkTable=linkTable, enrichrTable=enrichrTable))
 }
 
+goClusterTableRmd = function(param, clusterResult, seqAnno){
+  require(ReporteRs)
+  ontologies = names(clusterResult$GO)
+  ktables = list()
+  linkTable = ezMatrix("", rows = 1:clusterResult$nClusters, cols = ontologies)
+  enrichrTable = ezMatrix("", rows = 1:clusterResult$nClusters, cols = "Enrichr")
+  for (i in 1:clusterResult$nClusters){
+    genesToUse = rownames(seqAnno) %in% names(clusterResult$clusterNumbers)[clusterResult$clusterNumbers==i]
+    genesList = paste(seqAnno$gene_name[genesToUse], collapse="\\n")
+    jsCall = paste0('enrich({list: "', genesList, '", popup: true});')
+    enrichrTable[i, 1] = as.html(pot(paste0("<a href='javascript:void(0)' onClick='", jsCall, "'>Enrichr</a>")))
+    ## Prepare the table for kable
+    ktableCluster <- list()
+    for (onto in ontologies){
+      x = clusterResult$GO[[onto]][[i]]
+      goFrame = .getGoTermsAsTd(x, param$pValThreshFisher, param$minCountFisher, 
+                                onto=onto)
+      ktableCluster[[onto]] <- goFrame
+      if (nrow(goFrame)==0)
+        next
+      linkTable[i, onto] = paste0("Cluster-", onto, "-", i, ".html")
+      ezInteractiveTable(goFrame, tableLink=linkTable[i, onto], digits=3,
+                         title=paste("GO categories of cluster", i, "and ontology", onto))
+      linkTable[i, onto] = as.html(ezLink(linkTable[i, onto], target="_blank"))
+      goFrame$Term = substr(goFrame$Term, 1, 30)
+    }
+    ## This is some ugly code to append some "" cell, so they can used in kable
+    maxNrow <- max(sapply(ktableCluster, nrow))
+    ktableCluster <- lapply(ktableCluster, 
+                            function(x){rbind(as.matrix(x), 
+                                              ezMatrix("", rows=seq_len(maxNrow-nrow(x)), 
+                                                       cols=seq_len(ncol(x))))}
+                            )
+    ktableCluster <- do.call(cbind, ktableCluster)
+    if(nrow(ktableCluster) == 0L){
+      ## for later grouping in cluster kables, we need empty cells.
+      ktableCluster <- ezMatrix("", rows=1, cols=colnames(ktableCluster))
+    }
+    ktables[[i]] <- ktableCluster
+  }
+  return(list(ktables=ktables, linkTable=linkTable, enrichrTable=enrichrTable))
+}
+
 ##' @title Adds the GO up-down results
 ##' @description Adds the GO up-down results to an html file.
 ##' @template doc-template
@@ -87,26 +130,49 @@ addGoUpDownResult = function(doc, param, goResult){
   return(revigoTitle)
 }
 
+revigoUpDownTables <- function(param, goResult){
+  revigoLinks = ezMatrix("", rows=c('enrichUp', 'enrichDown', 'enrichBoth'), 
+                         cols=c('BP', 'MF', 'CC'))
+  for (col in colnames(revigoLinks)){
+    for (row in rownames(revigoLinks)){
+      goSubResult = goResult[[col]][[row]]
+      if (all(is.na(goSubResult))) next
+      goSubResult = goSubResult[which(goSubResult$Pvalue < param$pValThreshFisher),]
+      if(nrow(goSubResult) > param$maxNumberGroupsDisplayed) {
+        goSubResult = goSubResult[1:param$maxNumberGroupsDisplayed,]
+      }
+      revigoLinks[row, col] = paste0('http://revigo.irb.hr/?inputGoList=',
+                                     paste(rownames(goSubResult), goSubResult[,'Pvalue'], collapse='%0D%0A'))
+      revigoLinks[row, col] = as.html(pot("ReViGO", hyperlink = revigoLinks[row, col]))
+    }
+  }
+  return(t(revigoLinks))
+}
+
 ##' @describeIn addGoUpDownResult Gets the GO up-down tables.
 goUpDownTables = function(param, goResult){
-  goTable = ezMatrix("", rows="Cats", cols=names(goResult))
-  resultList = list("enrichUp"=goTable, "enrichBoth"=goTable, "enrichDown"=goTable)
+  #goTable = ezMatrix("", rows="Cats", cols=names(goResult))
+  goTable <- list()
+  ktables = list("enrichUp"=goTable, "enrichDown"=goTable, "enrichBoth"=goTable)
   txtFiles = character() ## TODO make a list of list; similar to resultList
   ## txtList = list("enrichUp"=list(), "enrichBoth"=list(), "enrichDown"=list())
-  linkTable = ezMatrix("", rows = names(goResult), cols = c("enrichUp", "enrichDown", "enrichBoth"))
+  linkTable = ezMatrix("", rows = names(goResult), 
+                       cols = c("enrichUp", "enrichDown", "enrichBoth"))
   for (onto in names(goResult)){ ## BP, MF , CC
     x = goResult[[onto]]
     for (sub in names(x)){ #c("enrichUp", "enrichDown", "enrichBoth")){
       message("sub: ", sub)
-      goFrame = .getGoTermsAsTd(x[[sub]], param$pValThreshFisher, param$minCountFisher, onto=onto,
+      goFrame = .getGoTermsAsTd(x[[sub]], param$pValThreshFisher,
+                                param$minCountFisher, onto=onto,
                                 maxNumberOfTerms=param$maxNumberGroupsDisplayed)
-      if (nrow(goFrame)==0) next
+      ktables[[sub]][[onto]] = goFrame
+      if (nrow(goFrame)==0)
+        next
       linkTable[onto, sub] = paste0("Cluster-", onto, "-", sub, ".html")
       ezInteractiveTable(goFrame, tableLink=linkTable[onto, sub], digits=3,
                          title=paste(sub("enrich", "", sub), "enriched GO categories of ontology", onto))
       linkTable[onto, sub] = as.html(ezLink(linkTable[onto, sub], target = "_blank"))
       goFrame$Term = substr(goFrame$Term, 1, 30)
-      resultList[[sub]]["Cats", onto] = as.html(ezFlexTable(goFrame, talign="right", header.columns = TRUE))
       xSub = x[[sub]]
       if (is.data.frame(xSub)){
         name = paste0(onto, "-", param$comparison, "-", sub)
@@ -120,12 +186,18 @@ goUpDownTables = function(param, goResult){
       }
     }
   }
-  nameMap = c("BP"="Biological Proc. (BP)", "MF"="Molecular Func. (MF)", "CC"="Cellular Comp. (CC)")
-  flexTables = lapply(resultList, function(res){
-    colnames(res) = nameMap[colnames(res)]
-    ezFlexTable(res, border = 2, header.columns = TRUE)
-  })
-  return(list(flexTables=flexTables, txtFiles=txtFiles, linkTable=linkTable))
+  for(sub in names(ktables)){
+    ### Add the ""
+    maxNrow <- max(sapply(ktables[[sub]], nrow))
+    ktables[[sub]] <- lapply(ktables[[sub]],
+                             function(x){rbind(as.matrix(x),
+                                               ezMatrix("", rows=seq_len(maxNrow-nrow(x)),
+                                                        cols=seq_len(ncol(x))))}
+                             )
+    ktables[[sub]] <- do.call(cbind, ktables[[sub]])
+  }
+  #nameMap = c("BP"="Biological Proc. (BP)", "MF"="Molecular Func. (MF)", "CC"="Cellular Comp. (CC)")
+  return(list(ktables=ktables, txtFiles=txtFiles, linkTable=linkTable))
 }
 
 ##' @describeIn goClusterTable Gets the GO terms and pastes them into a table.
@@ -136,7 +208,8 @@ goUpDownTables = function(param, goResult){
   
   if (!is.data.frame(x)){
     message("got no data frame")
-    return(ezFrame("Term"=character(0), "p"=numeric(0), "N"=integer(0)))
+    return(ezFrame("Term"=character(0), "ID"=character(0), 
+                   "p"=numeric(0), "N"=integer(0)))
   }
   x = x[x$Count >= minCount & x$Pvalue < pThreshGo, ]
   x = x[order(x$Pvalue), ]
@@ -144,7 +217,8 @@ goUpDownTables = function(param, goResult){
     x = x[1:maxNumberOfTerms, ]
   }
   if (nrow(x) == 0){
-    return(ezFrame("Term"=character(0), "p"=numeric(0), "N"=integer(0)))
+    return(ezFrame("Term"=character(0), "ID"=character(0),
+                   "p"=numeric(0), "N"=integer(0)))
   }
   
   if (onto == "CC"){

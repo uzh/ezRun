@@ -449,6 +449,206 @@ ezXYScatter = function(xVec, yVec, absentColor="gray", shrink=FALSE, frame=TRUE,
   abline(-log10(2), 1, col="blue", lty=2);
 }
 
+ezXYScatterPlotly = function(xVec, yVec, absentColor="gray", shrink=FALSE,
+                             xlim=range(xVec, yVec, na.rm=TRUE), ylim=xlim,
+                             isPresent=NULL, names=NULL,
+                             types=NULL,
+                             colors=rainbow(ncol(types)),
+                             main=NULL, xlab=NULL, ylab=NULL){
+  require(plotly)
+  require(htmlwidgets)
+  if (shrink){
+    xVec = shrinkToRange(xVec, xlim)
+    yVec = shrinkToRange(yVec, ylim)
+  }
+  toPlot <- data.frame(x=xVec, y=yVec, types="Absent",
+                       stringsAsFactors = FALSE)
+  if (is.null(isPresent)){
+    toPlot$types <- "Present"
+  } else {
+    toPlot$types[isPresent] <- "Present"
+  }
+  if(!is.null(names)){
+    toPlot$names <- names
+  }
+  
+  if (!is.null(types) && ncol(types) > 0){
+    for (j in 1:ncol(types)){
+      toPlot$types[types[,j]] <- colnames(types)[j]
+    }
+  }
+  typesColours <- setNames(c("grey", "black", colors), 
+                           c("Absent", "Present", colnames(types))
+                           )
+  if(is.null(names)){
+    ## Without names, we use default hover text
+    p <- plot_ly(toPlot, x = ~x, y = ~y, color=~types, colors=typesColours,
+                 type = 'scatter', mode = 'markers')
+  }else{
+    ## With names, we show it as hover text
+    p <- plot_ly(toPlot, x = ~x, y = ~y, color=~types, colors=typesColours,
+                 type = 'scatter', mode = 'markers', hoverinfo = 'text',
+                 text=~names) %>%
+      onRender("
+               function(el, x) {
+                 el.on('plotly_click', function(d) {
+                   // d.points is an array of objects which, in this case,
+                   // is length 1 since the click is tied to 1 point.
+                   var pt = d.points[0];
+                   var genecardUrl = 'http://www.ihop-net.org/UniPub/iHOP/index.html?field=synonym&ncbi_tax_id=0&search=';
+                   var url = genecardUrl.concat(pt.data.text[pt.pointNumber]);
+                   // DISCLAIMER: this won't work from RStudio
+                   window.open(url);
+                 });
+               }
+               ")
+  }
+  p_abline_log <- function(x, a, b){
+    y <- 10^(a * log10(x) + log10(b))
+    return(y)
+  }
+  xmin <- min(toPlot$x)
+  xmax <- max(toPlot$x)
+  ## Ugly code to simulate the abline in plotly
+  line <- list(
+    type = "line",
+    line = list(color = "blue"),
+    xref = "x",
+    yref = "y"
+  )
+  lines <- list()
+  line[["x0"]] <- xmin
+  line[["x1"]] <- xmax
+  line[["y0"]] <- xmin
+  line[["y1"]] <- xmax
+  line[["line"]] <- list(color = "blue", dash="solid")
+  lines <- c(lines, list(line))
+  line[["x0"]] <- xmin
+  line[["x1"]] <- xmax
+  line[["y0"]] <- p_abline_log(xmin, 1, 2)
+  line[["y1"]] <- p_abline_log(xmax, 1, 2)
+  line[["line"]] <- list(color = "blue", dash="dash")
+  lines <- c(lines, list(line))
+  line[["x0"]] <- xmin
+  line[["x1"]] <- xmax
+  line[["y0"]] <- p_abline_log(xmin, 1, 1/2)
+  line[["y1"]] <- p_abline_log(xmax, 1, 1/2)
+  line[["line"]] <- list(color = "blue", dash="dash")
+  lines <- c(lines, list(line))
+  
+  p <- p %>% layout(shapes=lines)
+  l <- list(font = list(size = 20))
+  ftitle <- list(size=20)
+  ftick <- list(size=20)
+  m <- list(
+    l = 90,
+    r = 90,
+    b = 90,
+    t = 110,
+    pad = 0
+  )
+  # with log10 scales
+  p <- layout(p, xaxis=list(type="log", title=xlab, 
+                            titlefont=ftitle,
+                            tickfont=ftick),
+              yaxis=list(type="log", title=ylab,
+                         titlefont=ftitle,
+                         tickfont=ftick),
+              title=main, font=ftitle,
+              legend=l, margin=m)
+  return(p)
+}
+
+ezVolcanoPlotly <- function(log2Ratio, pValue, yType=c("p-value", "FDR"),
+                            xlim=NULL, ylim=NULL, isPresent=NULL, names=NULL,
+                            types=NULL, pch=16, colors=rainbow(ncol(types)),
+                            main=NULL){
+  require(plotly)
+  require(htmlwidgets)
+  
+  yType <- match.arg(yType)
+  
+  yValues = -log10(pValue)
+  
+  if (is.null(xlim)){
+    lrMaxAbs = max(abs(log2Ratio), na.rm=TRUE)
+    xm = min(lrMaxAbs, 5)
+    xlim = c(-xm, xm)
+    log2Ratio = shrinkToRange(log2Ratio, theRange = xlim)
+  }
+  if (is.null(ylim)){
+    ym = min(max(yValues, na.rm=TRUE), 10)
+    ylim = c(0, ym)
+    yValues = shrinkToRange(yValues, theRange=ylim)
+  }
+  
+  toPlot <- data.frame(x=log2Ratio, y=yValues, types="Absent",
+                       stringsAsFactors = FALSE)
+  
+  if (is.null(isPresent)){
+    toPlot$types <- "Present"
+  } else {
+    toPlot$types[isPresent] <- "Present"
+  }
+  if(!is.null(names)){
+    toPlot$names <- names
+  }
+  
+  if (!is.null(types) && ncol(types) > 0){
+    for (j in 1:ncol(types)){
+      toPlot$types[types[,j]] <- colnames(types)[j]
+    }
+  }
+  
+  typesColours <- setNames(c("grey", "black", colors), 
+                           c("Absent", "Present", colnames(types))
+                           )
+  
+  if(is.null(names)){
+    ## Without names, we use default hover text
+    p <- plot_ly(toPlot, x = ~x, y = ~y, color=~types, colors=typesColours,
+                 type = 'scatter', mode = 'markers')
+  }else{
+    ## With names, we show it as hover text
+    p <- plot_ly(toPlot, x = ~x, y = ~y, color=~types, colors=typesColours,
+                 type = 'scatter', mode = 'markers', hoverinfo = 'text',
+                 text=~names) %>%
+      onRender("
+               function(el, x) {
+               el.on('plotly_click', function(d) {
+               // d.points is an array of objects which, in this case,
+               // is length 1 since the click is tied to 1 point.
+               var pt = d.points[0];
+               var genecardUrl = 'http://www.ihop-net.org/UniPub/iHOP/index.html?field=synonym&ncbi_tax_id=0&search=';
+               var url = genecardUrl.concat(pt.data.text[pt.pointNumber]);
+               // DISCLAIMER: this won't work from RStudio
+               window.open(url);
+               });
+               }
+               ")
+  }
+  l <- list(font = list(size = 20))
+  ftitle <- list(size=20)
+  ftick <- list(size=20)
+  m <- list(
+    l = 90,
+    r = 90,
+    b = 90,
+    t = 110,
+    pad = 0
+  )
+  p <- layout(p, 
+              xaxis=list(title="log2 ratio", 
+                         titlefont=ftitle,
+                         tickfont=ftick),
+              yaxis=list(title=paste0("-log10(", yType, ")"),
+                         titlefont=ftitle,
+                         tickfont=ftick),
+              title=main, font=ftitle,
+              legend=l, margin=m)
+  return(p)
+}
+
 ##' @title Does scatter plots of all pairs
 ##' @description Does scatter plots of all pairs.
 ##' @param x a matrix containing the data to plot.

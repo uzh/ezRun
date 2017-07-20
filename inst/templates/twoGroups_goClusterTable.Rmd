@@ -1,0 +1,41 @@
+---
+title: "GO Cluster tables"
+author: "Functional Genomics Center Zurich"
+output: 
+  html_document:
+    self_contained: false
+    includes:
+      in_header: fgcz_header.html
+    css: fgcz.css
+---
+
+```{r cluster plot, echo=FALSE, fig.width=max(8,0.1*ncol(se)), fig.height=10, fig.retina=2, warning=FALSE}
+## Cluster plot again
+clusterHeatmap(xCentered, param, clusterResult, file=NULL,
+               colColors=sampleColors, 
+               lim=c(-param$logColorRange, param$logColorRange))
+```
+
+```{r cluster table, echo=FALSE}
+## The detailed table
+ktables <- goTables$ktables
+ngroups <- sapply(ktables, nrow)
+ktables <- do.call(rbind, ktables)
+stopifnot(identical(names(clusterResult$GO), c("BP", "MF", "CC"))) ## The order matters
+p <- kable(ktables, escape=FALSE, row.names=FALSE, format = "html", digits=4,
+          caption="GO categories of feature clusters") %>%
+  kable_styling(bootstrap_options = "striped",
+                full_width = F, position = "float_right") %>%
+  add_footnote(c("Cluster font color corresponds to the row colors in the heatmap plot."), 
+               notation = "alphabet") %>%
+  add_header_above(c("Biological Proc. (BP)" = 4, "Molecular Func. (MF)" = 4, "Cellular Comp. (CC)" = 4))
+stopifnot(length(bgColors) == length(ngroups)) ## The colour and clusters should match.
+indices <- c(0,cumsum(ngroups))
+for(i in 1:length(ngroups)){
+  p <- p %>% 
+    group_rows(paste("Cluster", i), indices[i]+1, indices[i+1],
+               label_row_css = paste("background-color:", bgColors[i], 
+                                     "; color: #fff;"))
+}
+p
+```

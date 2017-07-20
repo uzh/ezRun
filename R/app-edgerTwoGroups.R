@@ -31,7 +31,17 @@ ezMethodEdger = function(input=NA, output=NA, param=NA, htmlFile="00index.html")
     return("Error")
   }
   
-  writeNgsTwoGroupReport(deResult, output, htmlFile)
+  rmdFn <- file.path(system.file("templates", package="ezRun"), 
+                    "twoGroups.Rmd")
+  ## Copy the style files and templates
+  styleFiles <- file.path(system.file("templates", package="ezRun"),
+                          c("fgcz.css", "twoGroups.Rmd",
+                            "fgcz_header.html", "banner.png"))
+  file.copy(from=styleFiles, to=".", overwrite=TRUE)
+  rmarkdown::render(input="twoGroups.Rmd",
+                    output_dir=".", output_file=htmlFile)
+  
+  #writeNgsTwoGroupReport(deResult, output, htmlFile)
   return("Success")
 }
 
