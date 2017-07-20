@@ -1,7 +1,6 @@
-
-
 WARN_CONFLICTS=FALSE
 
+# This URL is not valid
 DOC_URL="http://fgcz-sushi.uzh.ch/doc/methods-20140422.html"
 
 REPORT_CSS_FILE=""
@@ -10,92 +9,21 @@ IGV_TEMPLATE_FILE=""
 
 DEFAULT_DATA_ROOT="/srv/gstore/projects"
 GENOMES_ROOT="/srv/GT/reference:/srv/GT/reference-archive"
-IGVTOOLS="/usr/local/ngseq/bin/igvtools"
 REF_HOST="http://fgcz-gstore.uzh.ch/reference"
 PROJECT_BASE_URL="http://fgcz-gstore.uzh.ch/projects"
 
-
-PYTHON_CMD='PYTHONPATH="/usr/local/ngseq/lib/python/:/usr/local/ngseq/lib/python2.7:/usr/local/ngseq/lib/python2.7/dist-packages" /usr/local/ngseq/bin/python'
-
+## Databases
+NCPRO_ANNOTATION_DIR="/srv/GT/databases/ncPRO-seq/ncPRO-seq.v1.6.3_mirBase21"
+FASTQSCREEN_GENOMICDNA_RIBORNA_CONF="/usr/local/ngseq/packages/QC/FastQScreen/conf/variousSpecies_rRNA_20160826_silva123.conf"
+FASTQSCREEN_ADAPTER_CONF="/usr/local/ngseq/packages/QC/FastQScreen/conf/adapters_20170421.txt"
+TRIMMOMATIC_ADAPTERS="/srv/GT/databases/contaminants/allIllumina-forTrimmomatic-20160202.fa"
+HUMAN_SNP_DATABASES="/srv/GT/databases/dbSNP/release142/"
+HUMAN_DBSNP="/srv/GT/databases/dbSNP/release142/"
+TEQC_DESIGN_DIR="/srv/GT/databases/targetEnrichment_designs"
+REFSEQ_mRNA_REF='/srv/GT/reference/RefSeq/mRNA/20150301/Sequence/BOWTIE2Index/transcriptome'
 
 ## timout is in minutes
 INDEX_BUILD_TIMEOUT=180 
-SAMTOOLS="/usr/local/ngseq/packages/Tools/samtools/1.4/bin/samtools"
-BCFTOOLS="/usr/local/ngseq/packages/Tools/bcftools/1.4/bin/bcftools"
-SAMTOOLS_v0_1x="/usr/local/ngseq/stow/samtools-0.1.19/bin/samtools"
-BCFTOOLS_v0_1x="/usr/local/ngseq/stow/samtools-0.1.19/bin/bcftools"
-FASTQC="/usr/local/ngseq/opt/FastQC-0.11.3/fastqc"
-BOWTIE_DIR="/usr/local/ngseq/src/bowtie-1.1.2"
-BOWTIE2_DIR="/usr/local/ngseq/src/bowtie2-2.3.0"
-BISMARK_DIR="/usr/local/ngseq/src/bismark_v0.14.5"
-TOPHAT_DIR="/usr/local/ngseq/src/tophat-2.1.0.Linux_x86_64"
-#CUFFLINKS_DIR="/usr/local/ngseq/stow/cufflinks-2.0.2.Linux_x86_64/bin"
-STAR="/usr/local/ngseq/src/STAR-2.5.1b/bin/Linux_x86_64_static/STAR"
-##MMSEQ_DIR="/usr/local/ngseq/stow/mmseq_0.11.2a/bin"
-RSEM_DIR="/usr/local/ngseq/src/RSEM-1.2.22"
-KALLISTO="/usr/local/ngseq/stow/kallisto-0.43.0/bin/kallisto"
-SALMON="/usr/local/ngseq/stow/Salmon-0.7.2/bin/salmon"
-PRINSEQ_LITE='/usr/local/ngseq/stow/prinseq-lite-0.20.4/bin/prinseq-lite.pl'
-NCPRO_DIR="export PYTHONPATH=.:/usr/local/ngseq/lib/python && /usr/local/ngseq/opt/ncproseq_v1.6.4"
-NCPRO_ANNOTATION_DIR="/srv/GT/databases/ncPRO-seq/ncPRO-seq.v1.6.3_mirBase21"
-BWA="/usr/local/ngseq/src/bwa-0.7.12/bwa"
-FASTQSCREEN="/usr/local/ngseq/opt/fastq_screen_v0.11.1/fastq_screen"
-FASTQSCREEN_CONF_DIR="/usr/local/ngseq/opt/fastq_screen_v0.11.1/conf/"
-FASTQSCREEN_GENOMICDNA_RIBORNA_CONF="/usr/local/ngseq/opt/fastq_screen_v0.11.1/conf/variousSpecies_rRNA_20160826_silva123.conf"
-FASTQSCREEN_ADAPTER_CONF="/usr/local/ngseq/opt/fastq_screen_v0.11.1/conf/adapters_20170421.txt"
-FLEXBAR="/usr/local/ngseq/stow/flexbar_v2.5_linux64/bin/flexbar"
-MACS2="export PYTHONPATH=.:/usr/local/ngseq/lib/python:/usr/local/ngseq/lib/python2.7:/usr/local/ngseq/stow/MACS2-2.1.0.20150731/lib/python && /usr/local/ngseq/stow/MACS2-2.1.0.20150731/bin/macs2"
-MEME="/usr/local/ngseq/stow/meme_4.10.2/bin/meme-chip"
-FLASH="/usr/local/ngseq/src/FLASH-1.2.11/flash"
-BEDGRAPHBIGWIG="/usr/local/ngseq/stow/ucsc_tools/bin/bedGraphToBigWig"
-BEDTOOLS2="/usr/local/ngseq/stow/bedtools2-2.24/bin/bedtools"
-GFOLD_DIR="/usr/local/ngseq/src/gfold.V1.1.4"
-PHANTOMJS_DIR="/usr/local/ngseq/packages/Dev/PhantomJS/2.1.1/bin/"
-
-JAVA="/usr/local/ngseq/bin/java"
-TRIMMOMATIC="/usr/local/ngseq/bin/java -jar /usr/local/ngseq/src/Trimmomatic-0.33/trimmomatic-0.33.jar"
-TRIMMOMATIC_ADAPTERS="/srv/GT/databases/contaminants/allIllumina-forTrimmomatic-20160202.fa"
-
-TRINITY="/usr/local/ngseq/src/trinityrnaseq_v2.1.1/Trinity"
-
-QUAST="/usr/local/ngseq/stow/quast-4.4/bin/quast"
-SPADES="/usr/local/ngseq/stow/SPAdes-3.10.1-Linux/bin/spades.py"
-CANU="/usr/local/ngseq/src/canu-1.4/Linux-amd64/bin/canu"
-
-##VELVET_DIR="/usr/local/ngseq/stow/velvet_1.1.05_MP/bin"
-#CUFFLINKS_DIR="/usr/local/ngseq/stow/cufflinks-2.2.1/bin"
-#DIFFSPLICE_DIR="/usr/local/ngseq/stow/diffsplice_0.1.1"
-
-GATK_JAR="/usr/local/ngseq/src/GenomeAnalysisTK_3.6/GenomeAnalysisTK.jar"
-GATK_DIR="/usr/local/ngseq/src/GenomeAnalysisTK_3.6/"
-PICARD_JAR="/usr/local/ngseq/src/picard-tools-2.1.1/picard.jar"
-PICARD_DIR="/usr/local/ngseq/stow/picard-tools-1.119/bin/"
-SNPEFF_DIR="/usr/local/ngseq/src/snpEff_4.1L"
-HTSLIB_DIR="/usr/local/ngseq/stow/htslib-1.2/bin"
-BAM_UTIL="/usr/local/ngseq/src/bamUtil/bin/"
-HUMAN_SNP_DATABASES="/srv/GT/databases/dbSNP/release142/"
-HUMAN_DBSNP="/srv/GT/databases/dbSNP/release142/"
-BAM2WIG="PYTHONPATH=/usr/local/ngseq/lib/python/:/usr/local/ngseq/lib/python2.7:/usr/local/ngseq/lib/python2.7/dist-packages /usr/local/ngseq/stow/RSeQC-2.6.2/bin/bam2wig.py"
-GENEBODY_COVERAGE="PYTHONPATH=/usr/local/ngseq/lib/python/:/usr/local/ngseq/lib/python2.7:/usr/local/ngseq/lib/python2.7/dist-packages /usr/local/ngseq/stow/RSeQC-2.6.2/bin/geneBody_coverage2.py"
-JUNCTION_ANNOTATION="PYTHONPATH=/usr/local/ngseq/lib/python/:/usr/local/ngseq/lib/python2.7:/usr/local/ngseq/lib/python2.7/dist-packages /usr/local/ngseq/stow/RSeQC-2.6.2/bin/junction_annotation.py"
-INFER_EXPERIMENT="PYTHONPATH=/usr/local/ngseq/lib/python/:/usr/local/ngseq/lib/python2.7:/usr/local/ngseq/lib/python2.7/dist-packages /usr/local/ngseq/stow/RSeQC-2.6.2/bin/infer_experiment.py"
-TEQC_DESIGN_DIR="/srv/GT/databases/targetEnrichment_designs"
-
-
-# VMATCH="/usr/local/ngseq/src/vmatch-v2.0"
-
-
-#FETCHCHROMSSIZES="/usr/local/ngseq/bin/fetchChromSizes"
-WIGTOBIGWIG="/usr/local/ngseq/stow/wigToBigWig-v4/bin/wigToBigWig"
-
-
-DEXSEQ_PREPARE='PYTHONPATH="/usr/local/ngseq/lib/python/:/usr/local/ngseq/lib/python2.7:/usr/local/ngseq/lib/python2.7/dist-packages" /usr/local/ngseq/bin/python /misc/ngseq8/stow/R-3.3.2/lib/R/library/DEXSeq/python_scripts/dexseq_prepare_annotation.py'
-DEXSEQ_COUNT='PYTHONPATH="/usr/local/ngseq/lib/python/:/usr/local/ngseq/lib/python2.7:/usr/local/ngseq/lib/python2.7/dist-packages" /usr/local/ngseq/bin/python /misc/ngseq8/stow/R-3.3.2/lib/R/library/DEXSeq/python_scripts/dexseq_count.py'
-
-SAMSTAT="/usr/local/ngseq/stow/samstat-1.09/bin/samstat"
-QUALIMAP="/usr/local/ngseq/stow/qualimap_v2.1.2/bin/qualimap"
-REFSEQ_mRNA_REF='/srv/GT/reference/RefSeq/mRNA/20150301/Sequence/BOWTIE2Index/transcriptome'
-
 
 ## SHINY
 SHINY_EXPLORE_COUNTS="http://fgcz-shiny.uzh.ch/fgcz_exploreCountQC_app/"
@@ -106,11 +34,10 @@ SHINY_SCATER="http://fgcz-shiny.uzh.ch/fgcz_scater_app/"
 ENRICHR_BASE_URL="http://amp.pharm.mssm.edu/Enrichr"
 
 
+SMRT_CMD="SMRT=/misc/ngseq8/opt/smrtanalysis.2.3.0/install/smrtanalysis_2.3.0.140936; source $SMRT/etc/setup.sh; fofnToSmrtpipeInput.py input.fofn > input.xml; smrtpipe.py --params=settings.xml xml:input.xml"
+
 ############# R-SGE options
 # RSGE_RUN_JOB="/usr/local/ngseq/opt/sushi_scripts/Rsge/RunSgeJob"
 # RSGE_MONITOR_JOB="/usr/local/ngseq/opt/sushi_scripts/Rsge/MonitorJob.sh"
 # QSUB="/usr/local/ge62/bin/lx24-amd64/qsub"
 # SGE_ROOT="/usr/local/ge62"
-
-
-

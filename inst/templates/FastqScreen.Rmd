@@ -114,11 +114,12 @@ if(param[['virusCheck']]){
 
 ### Settings
 ```{r setting, echo=FALSE}
+getAppVer <- function(appName) { sub("^.+/([^/]+)$", "\\1", Sys.getenv(appName)) }
 settings = character()
 settings["Configuration File:"] = param$confFile
 settings["RefSeq mRNA Reference:"] = REFSEQ_mRNA_REF
-settings["FastqScreen Version:"] = basename(dirname(FASTQSCREEN))
-settings["Bowtie2 Version:"] = basename(BOWTIE2_DIR)
+settings["FastqScreen Version:"] = getAppVer("FastQScreen")
+settings["Bowtie2 Version:"] = getAppVer("Bowtie2")
 settings["Bowtie2 Parameters:"] = param$cmdOptions
 settings["Minimum AlignmentScore:"] = param$minAlignmentScore
 settings["TopSpecies:"] = param$nTopSpecies

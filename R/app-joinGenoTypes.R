@@ -20,7 +20,7 @@ ezMethodJoinGenoTypes = function(input=NA, output=NA, param=NA){
   param[['snpEffConfig']] = file.path(dirname(param$ezRef["refFeatureFile"]),"snpEff/snpEff.config")
   snpEffDB = basename(list.dirs(dirname(param$snpEffConfig))) ####bad Hack
   param[['snpEffDB']] = snpEffDB[grep(param$species, snpEffDB)]
-  param[['javaCall']] = paste0(JAVA, " -Djava.io.tmpdir=. -Xmx", param$ram/param$mc.cores, "g")
+  param[['javaCall']] = paste0("java", " -Djava.io.tmpdir=. -Xmx", param$ram/param$mc.cores, "g")
   
   require(parallel)
   ezMclapply(datasetCaseList,runGatkPipeline, param, mc.cores = param$mc.cores)
@@ -37,7 +37,7 @@ runGatkPipeline = function(datasetCase, param=NA){
       fileCmd = paste(fileCmd,paste("--variant", datasetCase[['GVCF [File]']][j], collapse=','))
     }  
     
-    GenotypeGVCF = paste(param$javaCall,"-jar", GATK_JAR, " -T GenotypeGVCFs")
+    GenotypeGVCF = paste(param$javaCall,"-jar", "$GATK_jar", " -T GenotypeGVCFs")
     outputFile = paste0(caseName,'.vcf')
     cmd = paste(GenotypeGVCF, "-R", param$genomeSeq,
                 fileCmd,
@@ -52,7 +52,7 @@ runGatkPipeline = function(datasetCase, param=NA){
     ezSystem(paste(cmd,'2>',myLog))
     
     if(param$species == 'Homo_sapiens'){
-      VariantRecalibrator1 = paste(param$javaCall,"-jar", GATK_JAR, " -T VariantRecalibrator")
+      VariantRecalibrator1 = paste(param$javaCall,"-jar", "$GATK_jar", " -T VariantRecalibrator")
       hapmapFile = param$knownSites[grep('hapmap_.*vcf.gz$', param$knownSites)]
       h1000G_omniFile = param$knownSites[grep('1000G_omni.*vcf.gz$', param$knownSites)]
       h1000G_phase1File = param$knownSites[grep('1000G_phase1.snps.*vcf.gz$', param$knownSites)]
@@ -78,7 +78,7 @@ runGatkPipeline = function(datasetCase, param=NA){
       ezSystem(paste(cmd,'2>>',myLog))
       
       #Apply RecalibrationOutput for SNPs:
-      VariantRecalibrator2 = paste(param$javaCall,"-jar", GATK_JAR, "-T ApplyRecalibration")
+      VariantRecalibrator2 = paste(param$javaCall,"-jar", "$GATK_jar", "-T ApplyRecalibration")
       cmd = paste(VariantRecalibrator2, "-R", param$genomeSeq,
                   "-input", outputFile,
                   "-mode SNP",
@@ -113,7 +113,7 @@ runGatkPipeline = function(datasetCase, param=NA){
       ezSystem(paste(cmd,'2>>',myLog))
       
       #Apply RecalibrationOutput for InDels:
-      VariantRecalibrator2 = paste(param$javaCall,"-jar", GATK_JAR, "-T ApplyRecalibration")
+      VariantRecalibrator2 = paste(param$javaCall,"-jar", "$GATK_jar", "-T ApplyRecalibration")
       cmd = paste(VariantRecalibrator2, "-R", param$genomeSeq,
                   "-input", paste0(caseName,"_recal.SNPs.vcf"),
                   "-mode INDEL",
@@ -129,7 +129,7 @@ runGatkPipeline = function(datasetCase, param=NA){
       ezSystem(paste(cmd,'2>>',myLog))
       #Add ExAc-Annotation:
       ExAcFile = param$knownSites[grep('ExAC.*vcf.gz$', param$knownSites)]
-      VariantAnnotation = paste(param$javaCall,"-jar", GATK_JAR, "-T VariantAnnotator")
+      VariantAnnotation = paste(param$javaCall,"-jar", "$GATK_jar", "-T VariantAnnotator")
       cmd = paste(VariantAnnotation, "-R", param$genomeSeq,
                   "--resource:ExAC",  ExAcFile,
                   "-o ",paste0(outputFile, "_annotated.vcf"),
@@ -145,14 +145,14 @@ runGatkPipeline = function(datasetCase, param=NA){
                     "-L", param$targetFile)
       } 
       ezSystem(paste(cmd,'2>>',myLog))
-      cmd = paste(param$javaCall, "-jar", file.path(SNPEFF_DIR, "SnpSift.jar"), "dbnsfp -f 1000Gp1_EUR_AF,Uniprot_acc,Interpro_domain,phastCons100way_vertebrate,CADD_phred,Polyphen2_HDIV_pred,Polyphen2_HVAR_pred,SIFT_score,SIFT_pred -v -db /srv/GT/databases/dbNSFP/dbNSFP2.9.txt.gz",paste0(outputFile, "_annotated.vcf"), ">", outputFile)
+      cmd = paste(param$javaCall, "-jar", "$SnpEff/SnpSift.jar", "dbnsfp -f 1000Gp1_EUR_AF,Uniprot_acc,Interpro_domain,phastCons100way_vertebrate,CADD_phred,Polyphen2_HDIV_pred,Polyphen2_HVAR_pred,SIFT_score,SIFT_pred -v -db /srv/GT/databases/dbNSFP/dbNSFP2.9.txt.gz",paste0(outputFile, "_annotated.vcf"), ">", outputFile)
       ezSystem(paste(cmd,'2>>',myLog))
     } 
     
     ezSystem(paste("mv",outputFile,paste0(outputFile, "_annotated.vcf")))
     #SnpEff:
     htmlOutputFile = paste0(caseName,'.html')
-    cmd = paste(param$javaCall, "-jar", file.path(SNPEFF_DIR, "snpEff.jar"), "-s", htmlOutputFile, "-c", param$snpEffConfig, param$snpEffDB, "-v", paste0(outputFile, "_annotated.vcf"),">", 
+    cmd = paste(param$javaCall, "-jar", "$SnpEff/snpEff.jar", "-s", htmlOutputFile, "-c", param$snpEffConfig, param$snpEffDB, "-v", paste0(outputFile, "_annotated.vcf"),">", 
                 outputFile)
     ezSystem(paste(cmd,'2>>',myLog))
     }

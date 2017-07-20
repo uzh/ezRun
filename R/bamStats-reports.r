@@ -109,9 +109,12 @@ plotBamStat = function(resultList, dataset, param, htmlFile=NULL){
         heatmapLink = ezImageFileLink(plotCmd, file=pngFile, height=600, width=800)
       }
       
-      addFlexTable(doc, ezGrid(cbind(ifelse(nrow(tptUse) >= 2 && ncol(tptUse) >= 2, heatmapLink, NULL),
-                                            as.html(ezFlexTable(signif(tptUse, digits=3), talign="right",
-                                                                header.columns=TRUE, add.rownames=TRUE)))))
+      if (nrow(tptUse) >= 2 && ncol(tptUse) >= 2) {
+        addFlexTable(doc, ezGrid(
+          cbind(heatmapLink, 
+                as.html(ezFlexTable(signif(tptUse, digits=3), 
+                                    talign="right", header.columns=TRUE, add.rownames=TRUE)))))
+      }
       
       titles[[paste(readSet, "Read Starts per Base")]] = paste(readSet, "Read Starts per Base")
       addTitle(doc, titles[[length(titles)]], 3, id=titles[[length(titles)]])
@@ -128,9 +131,13 @@ plotBamStat = function(resultList, dataset, param, htmlFile=NULL){
         })
         heatmapLink = ezImageFileLink(plotCmd, file=pngFile, height=600, width=800)
       }
-      addFlexTable(doc, ezGrid(cbind(ifelse(nrow(tct) >= 2 && ncol(tct) >= 2, heatmapLink, NULL),
-                                       as.html(ezFlexTable(signif(tct[rowsUse, ], digits=4), talign="right",
-                                                           header.columns=TRUE, add.rownames=TRUE)))))
+      
+      if (nrow(tptUse) >= 2 && ncol(tptUse) >= 2) {
+        addFlexTable(doc, ezGrid(
+          cbind(heatmapLink, as.html(ezFlexTable(
+            signif(tct[rowsUse, ], digits=4), 
+            talign="right", header.columns=TRUE, add.rownames=TRUE)))))
+      }
     }
   }
   ## use these two to record the generated png files
@@ -457,7 +464,7 @@ makeAlignmentCountBarPlot = function(file, mmCounts){
   pngLinks = character()
   plotCmd = expression({
     par(mar=c(12, 4.1, 4.1, 2.1))
-    x = mmCounts[ , rev(colnames(mmCounts))]
+    x = mmCounts[ , rev(colnames(mmCounts)), drop = F]
     barplot(t(x)/1e6, las=2, ylab="Counts [Mio]", main="total alignments", legend.text=TRUE, border=NA,
             col=multiCountColors[colnames(x)], xlim=c(0, nrow(x) +5),
             names.arg=ezSplitLongLabels(rownames(x)))
@@ -466,7 +473,7 @@ makeAlignmentCountBarPlot = function(file, mmCounts){
   
   plotCmd = expression({
     par(mar=c(12, 4.1, 4.1, 2.1))
-    x = mmCounts[ , rev(colnames(mmCounts))]
+    x = mmCounts[ , rev(colnames(mmCounts)), drop = F]
     for (i in 1:nrow(x)) {
       x[i, ] = x[i, ]/sum(x[i,])
     }

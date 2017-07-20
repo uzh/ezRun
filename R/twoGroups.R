@@ -175,9 +175,9 @@ runGfold = function(rawData, scalingFactors, isSample, isRef){
                     .writeGfoldInput)
   
   # run gfold
-  cmd = paste (file.path(GFOLD_DIR, "gfold"), "diff -v 0",
-               "-norm", paste(signif(1/c(scalingFactors[isRef], 
-                                         scalingFactors[isSample]), digits=4), 
+  cmd = paste ("gfold", "diff -v 0",
+               "-norm", paste(signif(1/c(scalingFactors[isRef],
+                                         scalingFactors[isSample]), digits=4),
                               collapse=","),
                "-s1", paste(sub(".read_cnt", "", refFiles), collapse=","), 
                "-s2", paste(sub(".read_cnt", "", sampleFiles), collapse=","),
@@ -527,7 +527,7 @@ writeNgsTwoGroupReport = function(deResult, output,
         jsCall = paste0('enrich({list: "', paste(genesToUse, collapse="\\n"), '", popup: true});')
         enrichrLinks[row, "External"] = as.html(pot(paste0("<a href='javascript:void(0)' onClick='", jsCall, "'>Analyse at Enrichr website</a>")))
         resMerged <- NA
-        if (!is.null(genesToUse) && length(genesToUse) > 3 && ezIsSpecified(param$doPrecomputeEnrichr)) {
+        if (!is.null(genesToUse) && length(genesToUse) > 3 && param$doPrecomputeEnrichr) {
           resList = runEnrichr(genesToUse, maxResult = maxResultsPerLibrary)
           resList = lapply(names(resList), function(nm){return(cbind("Gene-set library"=nm, resList[[nm]][, c(2:5, 7:10)]))}) ## add the name as a first column
           if (length(resList) > 0) {

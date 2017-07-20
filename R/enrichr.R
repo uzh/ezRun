@@ -191,11 +191,11 @@ enrichrEnrich <- function(userListId, libNames = getEnrichrLibNames(), connectio
     ds
   }
 
-  success <- list()
-  failure <- list()
+  success <<- list()
+  failure <<- list()
   tryId <- 0
 
-  while (tryId == 0 || (length(failure) > 0 && tryId < retryN + 1)) {
+  while ((tryId == 0 || (length(failure) > 0) && tryId < retryN + 1)) {
     tryId <- tryId + 1
     message(sprintf("Try: %d; failures: %d", tryId, length(failure)))
     failure <<- list()
@@ -230,7 +230,6 @@ enrichrEnrich <- function(userListId, libNames = getEnrichrLibNames(), connectio
 
   list(success = success, failure = failure)
 }
-
 
 
 ##' @title Result filtering
@@ -291,6 +290,7 @@ getEnrichrLibNames <- function() {
 ##'   internal package file (\code{extdata/enrichr_libnames.txt}). Ideally, this method
 ##'   would fetch the data from \url{http://amp.pharm.mssm.edu/Enrichr/#stats}. However, the page
 ##'   uses an Ajax query to populate the table, so it is empty when you access it with libcurl.
+##'   Note: this does not modify the file in your source directory but the file in your installed package
 ##' @param file location of the HTML file saved from \url{http://amp.pharm.mssm.edu/Enrichr/#stats}
 ##' @template roxygen-template
 ##' @return (invisibly) a vector containing library names

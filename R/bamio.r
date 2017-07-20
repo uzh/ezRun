@@ -43,7 +43,7 @@ ezBamSeqLengths = function(bamFile){
 ##' bamFile <- system.file("extdata", "ex1.bam", package="Rsamtools", mustWork=TRUE)
 ##' file.create("test.bam")
 ##' ezSortIndexBam("test.bam", basename(bamFile), ram=0.5, cores = ezThreads())
-ezSortIndexBam = function(inBam, bam, samtools=SAMTOOLS, ram=2, removeBam=TRUE, cores=2){
+ezSortIndexBam = function(inBam, bam, samtools="samtools", ram=2, removeBam=TRUE, cores=2){
   
   maxMem = paste0(as.integer(floor(ram * 0.7/cores*1000)), "M") ## use only 70% --> 30% safety margin before crash
   cmd = paste(samtools, "sort", "-l 9", "-m", maxMem, "-@", cores, inBam, "-o", bam)
@@ -139,7 +139,8 @@ ezBam2bigwig = function(bamFile, bigwigPrefix, param=NULL, paired=NULL){
                          sense="--strand='++,--'",
                          antisense="--strand='+-,-+'")    
   }
-  cmd = paste(BAM2WIG, "-i", bamFile, "-s", chromSizeFile, "-o", outputWig, strand_rule)
+  # bam2wig.py is in RSeQC module
+  cmd = paste("bam2wig.py", "-i", bamFile, "-s", chromSizeFile, "-o", outputWig, strand_rule)
   ezSystem(cmd)
   
   ## from wig to bigwig
@@ -147,7 +148,7 @@ ezBam2bigwig = function(bamFile, bigwigPrefix, param=NULL, paired=NULL){
   bigwigFiles = gsub(outputWig, bigwigPrefix, wigFiles)
   bigwigFiles = gsub(".wig$", ".bw", bigwigFiles)
   for(i in 1:length(wigFiles)){
-    cmd = paste(WIGTOBIGWIG, wigFiles[i], chromSizeFile, bigwigFiles[i])
+    cmd = paste("wigToBigWig", wigFiles[i], chromSizeFile, bigwigFiles[i])
     try(ezSystem(cmd))
   }
   
@@ -475,12 +476,12 @@ getBamMultiMatching = function(param, bamFile, nReads=NULL){
     flagOption = "-F 4"
   }
   countFile = paste0(Sys.getpid(), "-BamMultiMatch.txt")
-  #cmd = paste(SAMTOOLS, "view", flagOption, bamFile, "| cut -f1 | sort | uniq -c | cut -c 1-7 | sort | uniq -c >", countFile)
+  #cmd = paste("samtools", "view", flagOption, bamFile, "| cut -f1 | sort | uniq -c | cut -c 1-7 | sort | uniq -c >", countFile)
   ## direct usage of regular expression, slow
-  #cmd = paste(SAMTOOLS, "view", flagOption, bamFile, "| cut -f1 | sort | uniq -c | grep -o "[[:blank:]]*[[:digit:]]\+[ ]" | sort | uniq -c >", countFile)
+  #cmd = paste("samtools", "view", flagOption, bamFile, "| cut -f1 | sort | uniq -c | grep -o "[[:blank:]]*[[:digit:]]\+[ ]" | sort | uniq -c >", countFile)
   ## trim the leading spaces first and then cut the first field, faster
   ## set the temp directory to be the current one, because /tmp may be too small
-  cmd = paste(SAMTOOLS, "view", flagOption, bamFile, "| cut -f1 | sort --temporary-directory=. | uniq -c | sed -e \"s/^[ \t]*//\" | cut -f1 -d\" \" |sort | uniq -c >", countFile)
+  cmd = paste("samtools", "view", flagOption, bamFile, "| cut -f1 | sort --temporary-directory=. | uniq -c | sed -e \"s/^[ \t]*//\" | cut -f1 -d\" \" |sort | uniq -c >", countFile)
   
   ezSystem(cmd)
   temp = read.table(countFile)
@@ -503,7 +504,7 @@ getBamMultiMatching = function(param, bamFile, nReads=NULL){
 
 
 
-# .samToBam = function(sam, bam, samtools =SAMTOOLS, maxMem="1000000000", removeSam=TRUE, sortIndexBam=TRUE){
+# .samToBam = function(sam, bam, samtools ="samtools", maxMem="1000000000", removeSam=TRUE, sortIndexBam=TRUE){
 #   tmpBam = sub("sam$", "tmp.bam", sam)
 #   cmd = paste(samtools, "view -S", sam, "-b -o", tmpBam)
 #   ezSystem(cmd)
@@ -523,25 +524,25 @@ getBamMultiMatching = function(param, bamFile, nReads=NULL){
       modBam = basename(bams[i])
       stopifnot(!file.exists(modBam))
       modSam = sub(".bam$", ".sam", modBam)
-      cmd = paste(SAMTOOLS, "view -H", bams[i], ">", modSam)
+      cmd = paste("samtools", "view -H", bams[i], ">", modSam)
       ezSystem(cmd)
-      cmd = paste0(SAMTOOLS, " view ", bams[i], " | awk '{print \"set_", i, "_\" $0}'", " >> ", modSam)
+      cmd = paste0("samtools", " view ", bams[i], " | awk '{print \"set_", i, "_\" $0}'", " >> ", modSam)
       ezSystem(cmd)
-      cmd = paste(SAMTOOLS, "view -S -b -h", modSam, ">", modBam)
+      cmd = paste("samtools", "view -S -b -h", modSam, ">", modBam)
       ezSystem(cmd)
-      cmd = paste(SAMTOOLS, "index", modBam)
+      cmd = paste("samtools", "index", modBam)
       ezSystem(cmd)
       modBams[i] = modBam
     }
-    cmd = paste(SAMTOOLS, "merge -r", output, paste(modBams, collapse=" "))
+    cmd = paste("samtools", "merge -r", output, paste(modBams, collapse=" "))
     ezSystem(cmd)
     file.remove(modBams)
     file.remove(paste0(modBams, ".bai"))
   } else {
-    cmd = paste(SAMTOOLS, "merge -r", output, paste(bams, collapse=" "))
+    cmd = paste("samtools", "merge -r", output, paste(bams, collapse=" "))
     ezSystem(cmd)
   }
-  cmd = paste(SAMTOOLS, "index", output)
+  cmd = paste("samtools", "index", output)
   ezSystem(cmd)
   return(output)
 }
@@ -556,7 +557,7 @@ getBamMultiMatching = function(param, bamFile, nReads=NULL){
   if (toSam){
     target = sub(".bam$", ".sam", target)
     if (file.exists(target)) file.remove(target)
-    cmd = paste(SAMTOOLS, "view -h", "-o", target, src)
+    cmd = paste("samtools", "view -h", "-o", target, src)
     ezSystem(cmd)
   } else {
     ezSystem(paste("cp", src, target))

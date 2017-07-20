@@ -11,12 +11,12 @@ ezMethodGatkDnaHaplotyper = function(input=NA, output=NA, param=NA){
   ezSystem(paste("rsync -va", paste0(bamFile, ".bai"), "local.bam.bai"))
   knownSites = list.files(param$ezRef["refVariantsDir"],pattern='vcf.gz$',full.names = T)
   dbsnpFile = knownSites[grep('dbsnp.*vcf.gz$', knownSites)]
-  javaCall = paste0(JAVA, " -Djava.io.tmpdir=. -Xmx", param$ram, "g")
+  javaCall = paste0("java", " -Djava.io.tmpdir=. -Xmx", param$ram, "g")
   
   genomeSeq = param$ezRef["refFastaFile"]
   sampleName = names(bamFile)
   if(param$addReadGroup){
-    cmd = paste0(javaCall, " -jar ", PICARD_JAR, " AddOrReplaceReadGroups",
+    cmd = paste0(javaCall, " -jar ", "$Picard_jar", " AddOrReplaceReadGroups",
                " TMP_DIR=. MAX_RECORDS_IN_RAM=2000000", " I=local.bam",
                " O=withRg.bam SORT_ORDER=coordinate",
                " RGID=RGID_", sampleName, " RGPL=illumina RGSM=", sampleName, " RGLB=RGLB_", sampleName, " RGPU=RGPU_", sampleName,
@@ -26,7 +26,7 @@ ezMethodGatkDnaHaplotyper = function(input=NA, output=NA, param=NA){
   }
   
   if(param$markDuplicates){
-    cmd = paste0(javaCall, " -jar ", PICARD_JAR, " MarkDuplicates ",
+    cmd = paste0(javaCall, " -jar ", "$Picard_jar", " MarkDuplicates ",
                  " TMP_DIR=. MAX_RECORDS_IN_RAM=2000000", " I=withRg.bam",
                  " O=dedup.bam",
                  " REMOVE_DUPLICATES=false",
@@ -38,9 +38,9 @@ ezMethodGatkDnaHaplotyper = function(input=NA, output=NA, param=NA){
     ezSystem('mv dedup.bam withRg.bam')
   }
   
-  ezSystem(paste(SAMTOOLS, "index", "withRg.bam"))
+  ezSystem(paste("samtools", "index", "withRg.bam"))
   #BaseRecalibration
-  baseRecalibration1 = paste(javaCall,"-jar", GATK_JAR, " -T BaseRecalibrator")
+  baseRecalibration1 = paste(javaCall,"-jar", "$GATK_jar", " -T BaseRecalibrator")
   #knownSitesCMD = ''
   #for (j in 1:length(knownSites)){
   #  knownSitesCMD = paste(knownSitesCMD,paste("--knownSites", knownSites[j], collapse=','))
@@ -59,7 +59,7 @@ ezMethodGatkDnaHaplotyper = function(input=NA, output=NA, param=NA){
   }
   ezSystem(cmd)
   
-  baseRecalibration2 = paste(javaCall,"-jar", GATK_JAR, " -T PrintReads")
+  baseRecalibration2 = paste(javaCall,"-jar", "$GATK_jar", " -T PrintReads")
   cmd = paste(baseRecalibration2, "-R", genomeSeq,
               "-I withRg.bam",
               "-BQSR recal.table",
@@ -73,7 +73,7 @@ ezMethodGatkDnaHaplotyper = function(input=NA, output=NA, param=NA){
   ezSystem(cmd)
 
   ########### haplotyping
-  haplotyperCall = paste(javaCall,"-jar", GATK_JAR, " -T HaplotypeCaller")
+  haplotyperCall = paste(javaCall,"-jar", "$GATK_jar", " -T HaplotypeCaller")
   outputFile = paste0(sampleName, "-HC_calls.g.vcf")
   cmd = paste(haplotyperCall, "-R", genomeSeq,
               "-I recal.bam",
@@ -97,8 +97,8 @@ ezMethodGatkDnaHaplotyper = function(input=NA, output=NA, param=NA){
                 "-nct", param$cores)
   }
   ezSystem(cmd)
-  ezSystem(paste(file.path(HTSLIB_DIR,"bgzip"),"-c",outputFile, ">",paste0(outputFile,".gz")))
-  ezSystem(paste(file.path(HTSLIB_DIR,"tabix"),"-p vcf",paste0(outputFile,".gz")))
+  ezSystem(paste("bgzip","-c",outputFile, ">",paste0(outputFile,".gz")))
+  ezSystem(paste("tabix","-p vcf",paste0(outputFile,".gz")))
   
   return("Success")
 }

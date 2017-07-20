@@ -12,20 +12,20 @@ ezMethodMacs2 = function(input=NA, output=NA, param=NA){
   #setwdNew(paste(basename(param$resultDir),output$getNames(),sep='_'))
   
   if (param$useControl){
-    cmd = paste(MACS2, "callpeak -t", input$getFullPaths("BAM"), 
+    cmd = paste("macs2", "callpeak -t", input$getFullPaths("BAM"), 
                 "-c", input$getFullPaths("Control"), 
                 "-B", opt,"-n", output$getNames())
     ezSystem(cmd)
     bedgraphFileTreat = paste0(output$getNames(), '_treat_pileup.bdg')
     bedgraphFileControl = paste0(output$getNames(), '_control_lambda.bdg')
-    cmd = paste(MACS2, " bdgcmp -t", bedgraphFileTreat,
+    cmd = paste("macs2", " bdgcmp -t", bedgraphFileTreat,
                 "-c", bedgraphFileControl, "-o", paste0(output$getNames(),"_FE.bdg"), "-m FE")
     ezSystem(cmd)
-    cmd = paste(BEDGRAPHBIGWIG, paste0(output$getNames(), "_FE.bdg"), param$ezRef@refChromSizesFile, paste0(output$getNames(), ".bw"))
+    cmd = paste("bedGraphToBigWig", paste0(output$getNames(), "_FE.bdg"), param$ezRef@refChromSizesFile, paste0(output$getNames(), ".bw"))
     ezSystem(cmd)
     ezSystem("rm *.bdg")
   } else {
-    cmd = paste(MACS2, "callpeak -t", input$getFullPaths("BAM"), opt,"-n", output$getNames())
+    cmd = paste("macs2", "callpeak -t", input$getFullPaths("BAM"), opt,"-n", output$getNames())
     ezSystem(cmd)
     createBigWig(input, output, param)
   }
@@ -35,7 +35,7 @@ ezMethodMacs2 = function(input=NA, output=NA, param=NA){
     ezSystem(paste("mv ",paste0(output$getNames(),"_peaks.narrowPeak")," ",paste0(output$getNames(),"_peaks.bed")))
   }
   peakBedFile = paste0(output$getNames(),"_peaks.bed")
-  cmd = paste(BEDTOOLS2, " getfasta -fi", param$ezRef["refFastaFile"],
+  cmd = paste("bedtools", " getfasta -fi", param$ezRef["refFastaFile"],
             " -bed ", peakBedFile, " -name -fo ", paste0(output$getNames(), "_peaks.fa")) 
   ezSystem(cmd)
   annotatePeaks(input, output, param)  

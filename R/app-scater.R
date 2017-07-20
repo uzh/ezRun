@@ -43,7 +43,13 @@ ezMethodScater = function(input=NA, output=NA, param=NA, htmlFile="00index.html"
   featureData <- new("AnnotatedDataFrame", data = data.frame(Feature = featureNames))
   rownames(featureData) <- featureNames
 
-  sceset <- newSCESet(countData = as.matrix(countData), phenoData = phenoData, featureData = featureData, is_exprsData=countData > param$sigThresh)
+  sceset <- newSCESet(countData = as.matrix(countData), phenoData = phenoData, featureData = featureData)
+  # When countData is provided, scater ignores is_exprsData parameter value in the constructor. This
+  # is probably because it wants to rely on lowerDetectionLimit, which is not properly implemented.
+  # Setting lowerDetectionLimit does not generate is_exprs attrbute regardless whether 
+  # lowerDetectionLimit is set in the constructor or afterwards. Therefore, is_exprs should be set
+  # after sceset object is created.
+  is_exprs(sceset) = countData > param$sigThresh
   sceset <- calculateQCMetrics(sceset)
   # Remove features that are not expressed
   expressedMask <- rowSums(is_exprs(sceset)) > param$minExpressedCells

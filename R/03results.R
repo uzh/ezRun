@@ -26,7 +26,7 @@ EzResult <-
               methods=list(
                 initialize = function(paramNew=list(), rawDataNew=list(), 
                                       resultNew=list(),
-                                      file=NULL, seNew=SummarizedExperiment(), 
+                                      file=NULL, seNew=SummarizedExperiment::SummarizedExperiment(), 
                                       scesetNew=list()){
                   param <<- paramNew
                   rawData <<- rawDataNew
@@ -42,9 +42,6 @@ EzResult <-
                     result <<- result
                     se <<- se
                     sceset <<- sceset
-                  }
-                  if (length(se) == 0){ ## this is for backward compatibility
-                    se <<- makeSummarizedExperiment(param, rawData, result)
                   }
                 },
                 saveToFile = function(file){

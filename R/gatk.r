@@ -11,7 +11,7 @@
   param = fillWithDefaults(param) ## TODOMF: function doesn't exist
   options(cores=param$cores)
   ref = param$ezRef["refFastaFile"]
-  gatk = paste("java -Xmx8g", "-jar", GATK_JAR)
+  gatk = paste("java -Xmx8g", "-jar", "$GATK_jar")
   inputBam = ezFullPaths(param$dataRoot, input$BAM) ## TODO: Refactor when updating function
   localBam = basename(input$BAM)
   realigned = sub(".bam$", ".realigned.bam", localBam)
@@ -21,22 +21,22 @@
   vcfReport = basename(output$"VCF Report [File]")
   
   
-  cmd = paste0("java -Xmx8g -jar ", PICARD_JAR, " AddOrReplaceReadGroups ",
+  cmd = paste0("java -Xmx8g -jar ", "$Picard_jar", " AddOrReplaceReadGroups ",
               " TMP_DIR=. MAX_RECORDS_IN_RAM=2000000", " I=", inputBam,
               " O=", "tmp.bam", ' SORT_ORDER=coordinate',
               " RGID=RGID_", input$Name, " RGPL=illumina RGSM=RGSM_", input$Name, " RGLB=RGLB_", input$Name, " RGPU=RGPU_", input$Name,
               " VERBOSITY=WARNING",
               " > addreplace.out")
   ezSystem(cmd)
-  ezSystem(paste(SAMTOOLS, "index", "tmp.bam"))
-  cmd = paste0("java -Xmx8g -jar ", PICARD_JAR, " ReorderSam ",
+  ezSystem(paste("samtools", "index", "tmp.bam"))
+  cmd = paste0("java -Xmx8g -jar ", "$Picard_jar", " ReorderSam ",
               " TMP_DIR=. MAX_RECORDS_IN_RAM=2000000", " I=", "tmp.bam",
               " O=", "ordered.bam",
               " REFERENCE=" , ref,
               " VERBOSITY=WARNING",
               " > reorder.out")
   ezSystem(cmd)
-  cmd = paste0("java -Xmx8g -jar ", PICARD_JAR, " MarkDuplicates",
+  cmd = paste0("java -Xmx8g -jar ", "$Picard_jar", " MarkDuplicates",
               " TMP_DIR=. MAX_RECORDS_IN_RAM=2000000", " I=", "ordered.bam",
               " O=", localBam,
               " REMOVE_DUPLICATES=true",
@@ -45,7 +45,7 @@
               " VERBOSITY=WARNING",
               " >markdup.out")
   ezSystem(cmd)
-  ezSystem(paste(SAMTOOLS, "index", localBam))
+  ezSystem(paste("samtools", "index", localBam))
   
   
   ########FINDING POSSIBLE INDELS ####
@@ -75,7 +75,7 @@
 ## calling a haplotype
 
 .gatkHaplotypeCaller = function(bamFile, genomeSeq, knownVariants, vcfOutput){
-  gatk = paste("java -Xmx8g", "-jar", GATK_JAR)
+  gatk = paste("java -Xmx8g", "-jar", "$GATK_jar")
   cmd = paste(gatk, "-T HaplotypeCaller", "-R", genomeSeq,
               "-I", bamFile,
               "--dbsnp", knownVariants,

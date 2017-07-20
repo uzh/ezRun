@@ -107,7 +107,7 @@ executeFastqscreenCMD = function(param, confFile = NULL, files){
   if (param$nReads > 0){
     opt = paste(opt, "--subset", ezIntString(param$nReads))
   }
-  cmd = paste(FASTQSCREEN, opt, " --threads", param$cores, " --conf ", confFile,
+  cmd = paste("fastq_screen", opt, " --threads", param$cores, " --conf ", confFile,
               paste(files, collapse=" "), "--outdir . --nohits --aligner bowtie2",
               "> fastqscreen.out", "2> fastqscreen.err")
   ezSystem(cmd)
@@ -149,12 +149,12 @@ executeBowtie2CMD = function(param, input){
     bowtie2options = param$cmdOptions
     writeLines("ReadID\tRefSeqID\tAlignmentScore", countFiles[nm])
     if(!param$paired){
-      cmd = paste(file.path(BOWTIE2_DIR,'bowtie2'),"-x",REFSEQ_mRNA_REF, 
+      cmd = paste('bowtie2',"-x",REFSEQ_mRNA_REF, 
                   " -U ", r1Files[nm], bowtie2options ,"-p",param$cores,
                   "--no-unal --no-hd --mm", "2> ", paste0(nm, "_bowtie2.err"),
                   "| cut -f1,3,12", " |sed s/AS:i://g", ">>", countFiles[nm])
     } else {
-      cmd = paste(file.path(BOWTIE2_DIR,'bowtie2'),"-x",REFSEQ_mRNA_REF, 
+      cmd = paste('bowtie2',"-x",REFSEQ_mRNA_REF, 
                   " -1 ", r1Files[nm]," -2 ", r2Files[nm], bowtie2options, "-p",param$cores,
                   "--no-discordant --no-mixed --no-unal --no-hd --mm",
                   "2> ", paste0(nm, "_bowtie2.err"),
@@ -172,7 +172,7 @@ executeBowtie2CMD_Virus = function(param, files){
     countFiles[nm] = paste0(nm, "-counts.txt")
     bowtie2options = param$cmdOptions
     writeLines("ReadID\tRefSeqID\tAlignmentScore", countFiles[nm])
-    cmd = paste(file.path(BOWTIE2_DIR,'bowtie2'),"-x",REFSEQ_pathogenicHumanViruses_REF, 
+    cmd = paste('bowtie2',"-x",REFSEQ_pathogenicHumanViruses_REF, 
                   " -U ", r1Files[nm], bowtie2options ,"-p",param$cores,
                   "--no-unal --no-hd", "2> ", paste0(nm, "_bowtie2.err"),
                   "| cut -f1,3,12", " |sed s/AS:i://g", ">>", countFiles[nm])
@@ -255,8 +255,8 @@ fastqscreenReport = function(dataset, param, htmlFile="00index.html", fastqData,
   settings = character()
   settings["Configuration File:"] = param$confFile
   settings["RefSeq mRNA Reference:"] = REFSEQ_mRNA_REF
-  settings["FastqScreen Version:"] = basename(dirname(FASTQSCREEN))
-  settings["Bowtie2 Version:"] = basename(BOWTIE2_DIR)
+  settings["FastqScreen Version:"] = basename(dirname("$FastQScreen"))
+  settings["Bowtie2 Version:"] = basename(Sys.getenv("Bowtie2"))
   settings["Bowtie2 Parameters:"] = param$cmdOptions
   settings["Minimum AlignmentScore:"] = param$minAlignmentScore
   settings["TopSpecies:"] = param$nTopSpecies

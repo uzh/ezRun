@@ -11,7 +11,7 @@ ezMethodFlash = function(input=NA, output=NA, param=NA){
   sampleName = input$getNames()
   stopifnot((param$paired))
   trimmedInput = ezMethodTrim(input = input, param = param)
-  cmd = paste(FLASH,trimmedInput$getColumn("Read1"), trimmedInput$getColumn("Read2"),
+  cmd = paste("flash",trimmedInput$getColumn("Read1"), trimmedInput$getColumn("Read2"),
               "-o",sampleName,'-t',ezThreads(),opt,"1> ",paste0(sampleName,"_flash.log"))
   ezSystem(cmd)
   cmd = paste0('pigz ',sampleName,'.extendedFrags.fastq')
