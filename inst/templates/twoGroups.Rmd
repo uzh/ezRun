@@ -129,7 +129,7 @@ Subsequent plots highlight significant genes in <span style="color:red">red</spa
 
 [Interactive table of significant genes](`r resultFile$resultHtml`)
 
-```{r scatter comparison, echo=FALSE, eval=!debug}
+```{r scatter comparison, echo=FALSE, eval=!debug, message=FALSE}
 if (isTRUE(isTwoGroup)){
   ## scatter plot
   sampleValues = 2^groupMeans[ , param$sampleGroup]
@@ -158,7 +158,7 @@ if (isTRUE(isTwoGroup)){
 }
 ```
 
-```{r volcano p-value, echo=FALSE, eval=!debug}
+```{r volcano p-value, echo=FALSE, eval=!debug, message=FALSE}
 if (isTRUE(isTwoGroup)){
     ## volcano plot with p-value
     p_volcano <- ezVolcanoPlotly(log2Ratio=rowData(se)$log2Ratio, 
@@ -185,7 +185,7 @@ if (isTRUE(isTwoGroup)){
 }
 ```
 
-```{r scatter all pairs, echo=FALSE, results='asis'}
+```{r scatter all pairs, echo=FALSE, results='asis', message=FALSE}
 ## All pairs
 if (!isTRUE(isTwoGroup)){
   plotCmd = expression({
@@ -346,7 +346,7 @@ invisible(file.copy(from=jsFile, to=basename(jsFile), overwrite=TRUE))
 cat(paste0("<SCRIPT language=\"JavaScript\" SRC=\"", basename(jsFile), "\"></SCRIPT>"))
 ```
 
-```{r cluster, echo=FALSE, eval=!debug, message=FALSE, fig.width=max(8,0.1*ncol(se)), fig.height=10, fig.retina=2, warning=FALSE}
+```{r cluster, echo=FALSE, eval=!debug, message=FALSE, fig.width=max(8,4+0.1*ncol(se)), fig.height=10, fig.retina=2, warning=FALSE}
 ## for clustering we use a moderated logSignal
 logSignal = log2(assays(se)$xNorm + param$backgroundExpression)
 if (sum(use) > param$minGenesForClustering){
@@ -359,18 +359,22 @@ if (sum(use) > param$minGenesForClustering){
   xCentered = xCentered[, order(param$grouping)]
   sampleColors = getSampleColors(param$grouping)[order(param$grouping)]
   clusterPng = "cluster-heatmap.png"
+  clusterPdf = "cluster-heatmap.pdf"
   clusterColors = c("red", "yellow", "orange", "green", "blue", "cyan")
   clusterResult = clusterResults(xCentered, nClusters=6, clusterColors=clusterColors)
-  #plotCmd = expression({
+  plotCmd = expression({
     clusterHeatmap(xCentered, param, clusterResult, file=NULL,
                    colColors=sampleColors, 
                    lim=c(-param$logColorRange, param$logColorRange))
-  #})
-  #eval(plotCmd)
+  })
+  eval(plotCmd)
   #clusterLink = ezImageFileLink(plotCmd, file=clusterPng, 
   #                              width=max(800, 400 + 10 * ncol(xCentered)), 
   #                              height=1000) # HEATMAP
   #cat(clusterLink)
+  pdf(clusterPdf, width=max(8,4+0.1*ncol(se)), height=10)
+  eval(plotCmd)
+  dev.off()
   
   seqAnno <- data.frame(rowData(se), row.names=rownames(se),
                         check.names = FALSE, stringsAsFactors=FALSE)
@@ -421,6 +425,13 @@ if (sum(use) > param$minGenesForClustering){
     rmarkdown::render(input=basename(file),
                       output_dir=".", output_file="goClusterTable.html")
   }
+}
+```
+
+```{r cluster plot link , echo=FALSE, results='asis', eval=!debug}
+if (sum(use) > param$minGenesForClustering){
+  cat(paste0("[Plot in pdf](", clusterPdf, ")"), "\n")
+  cat("\n")
 }
 ```
 
@@ -479,11 +490,11 @@ if (doGo(param, seqAnno)){
 ### GO Enrichment Analysis (goseq)
 Maximum number of terms displayed: `r param$maxNumberGroupsDisplayed`.
 
-```{r goseq compute, echo=FALSE, message=FALSE, warning=FALSE}
+```{r goseq compute, echo=FALSE, message=FALSE, warning=FALSE, eval=!debug}
 goResult <- twoGroupsGOSE(param, se, method=param$goseqMethod)
 ```
 
-```{r goseq interactive table, echo=FALSE, eval=TRUE, message=FALSE}
+```{r goseq interactive table, echo=FALSE, eval=!debug, message=FALSE}
 goTables <- goUpDownTables(param, goResult)
 kable(goTables$linkTable, escape=FALSE, row.names=TRUE, format = "html") %>%
         kable_styling(bootstrap_options = "striped",
@@ -491,7 +502,7 @@ kable(goTables$linkTable, escape=FALSE, row.names=TRUE, format = "html") %>%
 ktables <- goTables$ktables
 ```
 
-```{r enrichUp, echo=FALSE, eval=TRUE}
+```{r enrichUp, echo=FALSE, eval=!debug}
 ## The code in a for loop doesn't work.
 kable(ktables[["enrichUp"]], escape=TRUE, row.names=FALSE, format="html",
       caption="GO categories that are overrepresented among significantly upregulated genes.") %>%
@@ -501,7 +512,7 @@ kable(ktables[["enrichUp"]], escape=TRUE, row.names=FALSE, format="html",
                      "Cellular Comp. (CC)" = 4))
 ```
 
-```{r enrichDown, echo=FALSE, eval=TRUE}
+```{r enrichDown, echo=FALSE, eval=!debug}
 kable(ktables[["enrichDown"]], escape=TRUE, row.names=FALSE, format="html",
       caption="GO categories that are overrepresented among significantly downregulated genes.") %>%
   kable_styling(bootstrap_options = "striped",
@@ -510,7 +521,7 @@ kable(ktables[["enrichDown"]], escape=TRUE, row.names=FALSE, format="html",
                      "Cellular Comp. (CC)" = 4))
 ```
 
-```{r enrichBoth, echo=FALSE, eval=TRUE}
+```{r enrichBoth, echo=FALSE, eval=!debug}
 kable(ktables[["enrichBoth"]], escape=TRUE, row.names=FALSE, format="html",
       caption="GO categories that are overrepresented among all significantly regulated genes.") %>%
   kable_styling(bootstrap_options = "striped",
@@ -528,12 +539,12 @@ kable(revigoUpDownTables(param, goResult), escape = FALSE, row.names = TRUE,
 ```
 
 ### Hypergeometric overrepresentation test
-```{r enricher compute, echo=FALSE, eval=TRUE, message=FALSE}
+```{r enricher compute, echo=FALSE, eval=!debug, message=FALSE}
 enrichResult <- ezEnricher(param, se)
 ```
 
 #### dotplot
-```{r dotplot gsea, echo=FALSE, eval=TRUE}
+```{r dotplot gsea, echo=FALSE, eval=!debug}
 for(onto in names(enrichResult)){
   for(sig in names(enrichResult[[1]])){
     p <- dotplot(enrichResult[[onto]][[sig]], showCategory=20, 
@@ -544,7 +555,7 @@ for(onto in names(enrichResult)){
 ```
 
 #### enrichMap
-```{r enrichMap gsea, echo=FALSE, eval=TRUE}
+```{r enrichMap gsea, echo=FALSE, eval=!debug, fig.width=14, fig.height=14}
 for(onto in names(enrichResult)){
   for(sig in names(enrichResult[[1]])){
     if(nrow(enrichResult[[onto]][[sig]]@result) == 0L){
@@ -557,7 +568,7 @@ for(onto in names(enrichResult)){
 ```
 
 #### cnetplot
-```{r cnetplot gsea, echo=FALSE, eval=TRUE}
+```{r cnetplot gsea, echo=FALSE, eval=!debug, fig.width=14, fig.height=14}
 for(onto in names(enrichResult)){
   for(sig in names(enrichResult[[1]])){
     if(nrow(enrichResult[[onto]][[sig]]@result) == 0L){
@@ -572,12 +583,12 @@ for(onto in names(enrichResult)){
 ```
 
 ### Gene set enrichment analysis
-```{r gsea compute, echo=FALSE, message=FALSE}
+```{r gsea compute, echo=FALSE, message=FALSE, eval=!debug}
 enrichResult <- ezGSEA(param, se)
 ```
 
 #### dotplot
-```{r dotplot, echo=FALSE, eval=TRUE}
+```{r dotplot, echo=FALSE, eval=!debug}
 for(onto in names(enrichResult)){
   if(nrow(enrichResult[[onto]]@result) == 0L){
       next
@@ -590,7 +601,7 @@ for(onto in names(enrichResult)){
 ```
 
 #### enrichMap
-```{r enrichMap, echo=FALSE, eval=TRUE}
+```{r enrichMap, echo=FALSE, eval=!debug, fig.width=14, fig.height=14}
 for(onto in names(enrichResult)){
     if(nrow(enrichResult[[onto]]@result) == 0L){
       next
@@ -601,7 +612,7 @@ for(onto in names(enrichResult)){
 ```
 
 #### cnetplot
-```{r cnetplot, echo=FALSE, eval=TRUE}
+```{r cnetplot, echo=FALSE, eval=!debug, fig.width=14, fig.height=14}
 for(onto in names(enrichResult)){
     if(nrow(enrichResult[[onto]]@result) == 0L){
       next
