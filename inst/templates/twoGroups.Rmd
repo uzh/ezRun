@@ -129,7 +129,7 @@ Subsequent plots highlight significant genes in <span style="color:red">red</spa
 
 [Interactive table of significant genes](`r resultFile$resultHtml`)
 
-```{r scatter comparison, echo=FALSE, eval=!debug, message=FALSE}
+```{r scatter comparison, echo=FALSE, eval=TRUE, message=FALSE}
 if (isTRUE(isTwoGroup)){
   ## scatter plot
   sampleValues = 2^groupMeans[ , param$sampleGroup]
@@ -146,7 +146,7 @@ if (isTRUE(isTwoGroup)){
   scatterHtml <- paste0(param$comparison, "-scatter.html")
   saveWidget(as_widget(p_scatter), scatterHtml)
   ### To make legend more visible on non-retinal display
-  include_graphics(scatterPng, dpi=72*1.5)
+  include_graphics(scatterPng)
   }
 ```
 
@@ -158,7 +158,7 @@ if (isTRUE(isTwoGroup)){
 }
 ```
 
-```{r volcano p-value, echo=FALSE, eval=!debug, message=FALSE}
+```{r volcano p-value, echo=FALSE, eval=TRUE, message=FALSE}
 if (isTRUE(isTwoGroup)){
     ## volcano plot with p-value
     p_volcano <- ezVolcanoPlotly(log2Ratio=rowData(se)$log2Ratio, 
@@ -173,7 +173,7 @@ if (isTRUE(isTwoGroup)){
     volcanoHtml <- paste0(param$comparison, "-volcano.html")
     saveWidget(as_widget(p_volcano), volcanoHtml)
     ### To make legend more visible on non-retinal display
-    include_graphics(volcanoPng, dpi=72*1.5)
+    include_graphics(volcanoPng)
 }
 ```
 
@@ -217,7 +217,7 @@ if(isTRUE(isTwoGroup)){
   volcanoFDRHtml <- paste0(param$comparison, "-FDR-volcano.html")
   saveWidget(as_widget(p_volcano), volcanoFDRHtml)
   ## To make legend more visible on non-retinal display
-  include_graphics(volcanoFDRPng, dpi=72*1.5)
+  include_graphics(volcanoFDRPng)
 }
 ```
 
@@ -506,7 +506,7 @@ ktables <- goTables$ktables
 ## The code in a for loop doesn't work.
 kable(ktables[["enrichUp"]], escape=TRUE, row.names=FALSE, format="html",
       caption="GO categories that are overrepresented among significantly upregulated genes.") %>%
-  kable_styling(bootstrap_options = "striped",
+  kable_styling(bootstrap_options = c("striped", "bordered"),
                 full_width = F, position = "left") %>%
   add_header_above(c("Biological Proc. (BP)" = 4, "Molecular Func. (MF)" = 4, 
                      "Cellular Comp. (CC)" = 4))
@@ -515,7 +515,7 @@ kable(ktables[["enrichUp"]], escape=TRUE, row.names=FALSE, format="html",
 ```{r enrichDown, echo=FALSE, eval=!debug}
 kable(ktables[["enrichDown"]], escape=TRUE, row.names=FALSE, format="html",
       caption="GO categories that are overrepresented among significantly downregulated genes.") %>%
-  kable_styling(bootstrap_options = "striped",
+  kable_styling(bootstrap_options = c("striped", "bordered"),
                 full_width = F, position = "left") %>%
   add_header_above(c("Biological Proc. (BP)" = 4, "Molecular Func. (MF)" = 4, 
                      "Cellular Comp. (CC)" = 4))
@@ -524,7 +524,7 @@ kable(ktables[["enrichDown"]], escape=TRUE, row.names=FALSE, format="html",
 ```{r enrichBoth, echo=FALSE, eval=!debug}
 kable(ktables[["enrichBoth"]], escape=TRUE, row.names=FALSE, format="html",
       caption="GO categories that are overrepresented among all significantly regulated genes.") %>%
-  kable_styling(bootstrap_options = "striped",
+  kable_styling(bootstrap_options = c("striped", "bordered"),
                 full_width = F, position = "left") %>%
   add_header_above(c("Biological Proc. (BP)" = 4, "Molecular Func. (MF)" = 4, 
                      "Cellular Comp. (CC)" = 4))

@@ -537,10 +537,25 @@ ezXYScatterPlotly = function(xVec, yVec, absentColor="gray", shrink=FALSE,
   lines <- c(lines, list(line))
   
   p <- p %>% layout(shapes=lines)
+  l <- list(font = list(size = 20))
+  ftitle <- list(size=20)
+  ftick <- list(size=20)
+  m <- list(
+    l = 90,
+    r = 90,
+    b = 90,
+    t = 110,
+    pad = 0
+  )
   # with log10 scales
-  p <- layout(p, xaxis=list(type="log", title=xlab),
-              yaxis=list(type="log", title=ylab),
-              title=main)
+  p <- layout(p, xaxis=list(type="log", title=xlab, 
+                            titlefont=ftitle,
+                            tickfont=ftick),
+              yaxis=list(type="log", title=ylab,
+                         titlefont=ftitle,
+                         tickfont=ftick),
+              title=main, font=ftitle,
+              legend=l, margin=m)
   return(p)
 }
 
@@ -612,9 +627,25 @@ ezVolcanoPlotly <- function(log2Ratio, pValue, yType=c("p-value", "FDR"),
                }
                ")
   }
-  p <- layout(p, xaxis=list(title="log2 ratio"),
-              yaxis=list(title=paste0("-log10(", yType, ")")),
-              title=main)
+  l <- list(font = list(size = 20))
+  ftitle <- list(size=20)
+  ftick <- list(size=20)
+  m <- list(
+    l = 90,
+    r = 90,
+    b = 90,
+    t = 110,
+    pad = 0
+  )
+  p <- layout(p, 
+              xaxis=list(title="log2 ratio", 
+                         titlefont=ftitle,
+                         tickfont=ftick),
+              yaxis=list(title=paste0("-log10(", yType, ")"),
+                         titlefont=ftitle,
+                         tickfont=ftick),
+              title=main, font=ftitle,
+              legend=l, margin=m)
   return(p)
 }
 
