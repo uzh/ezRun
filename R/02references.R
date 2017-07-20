@@ -64,12 +64,12 @@ setMethod("initialize", "EzRef", function(.Object, param=list()){
     .Object@refBuildDir = param$refBuildDir
   } else {
     for (gr in genomesRoot){
-      rbd = file.path(gr, paste(refFields[1:3], collapse="/"))
+      rbd = file.path(gr, paste(refFields, collapse="/"))
       if (file.exists(rbd)){
         break
       }
     }
-    .Object@refBuildDir = rbd
+    .Object@refBuildDir = file.path(gr, paste(refFields[1:3], collapse="/"))
   }
   .Object@refVariantsDir = file.path(.Object@refBuildDir, "Variants")
   if (length(refFields) == 5 && grepl("^Version|^Release", refFields[5])){
