@@ -47,12 +47,7 @@ setMethod("initialize", "EzRef", function(.Object, param=list()){
   #   if (!ezIsSpecified(param$refBuild)){
   #     return(.Object)
   #   }
-  if (is.null(param$genomesRoot)){
-    genomesRoot = GENOMES_ROOT
-  } else {
-    genomesRoot = param$genomesRoot
-  }
-  genomesRoot = strsplit(genomesRoot, ":")[[1]]
+  genomesRoot = strsplit(GENOMES_ROOT, ":")[[1]]
   .Object@refBuild = param$refBuild
   refFields = strsplit(.Object@refBuild, "/", fixed=TRUE)[[1]]
   if (ezIsSpecified(param$refBuildName)){
