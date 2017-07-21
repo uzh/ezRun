@@ -151,6 +151,7 @@ revigoUpDownTables <- function(param, goResult){
 
 ##' @describeIn addGoUpDownResult Gets the GO up-down tables.
 goUpDownTables = function(param, goResult){
+  require(ReporteRs)
   #goTable = ezMatrix("", rows="Cats", cols=names(goResult))
   goTable <- list()
   ktables = list("enrichUp"=goTable, "enrichDown"=goTable, "enrichBoth"=goTable)
