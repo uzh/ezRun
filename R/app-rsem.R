@@ -42,11 +42,8 @@ ezMethodRSEM = function(input=NA, output=NA, param=NA){
   ezSystem(cmd)
   if (!is.null(param$keepBam) && param$keepBam){
     localBam = paste0(sampleName, ".genome.bam")
-    localBai = paste0(sampleName, ".genome.bam.bai")
     bamFile = basename(output$getColumn("BAM"))
-    baiFile = basename(output$getColumn("BAI"))
-    ezSystem(paste("mv", localBam, bamFile))
-    ezSystem(paste("mv", localBai, baiFile))
+    ezSortIndexBam(localBam, bamFile, ram = param$ram, min(param$cores, 8))
   }
   
   transcriptResult = ezRead.table(paste0(sampleName, ".isoforms.results"), header=TRUE)
