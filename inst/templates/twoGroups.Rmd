@@ -19,7 +19,7 @@ require(webshot)
 require(htmlwidgets)
 if(Sys.which("phantomjs") == ""){
   ## phantomjs has to be in the PATH
-  Sys.setenv("PATH"=paste(PHANTOMJS_DIR, Sys.getenv("PATH"), sep=":"))
+  system("module load Dev/PhantomJS")
   stopifnot(Sys.which("phantomjs") != "")
 }
 debug <- FALSE
