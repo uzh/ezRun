@@ -117,10 +117,10 @@ It's only shown when "LibConc_qPCR" or "LibConc_100_800bp" columns exit in `data
 ```{r correlation, echo=FALSE, warning=FALSE, message=FALSE}
 dataset <- ans4Report[["dataset"]]
 if(nrow(dataset) > 1){
-  plotReadCountToLibConcRmd(dataset,
-                            colname='LibConc_qPCR [Characteristic]')
-  plotReadCountToLibConcRmd(dataset,
-                            colname='LibConc_100_800bp [Characteristic]')
+  plotReadCountToLibConc(dataset,
+                         colname='LibConc_qPCR [Characteristic]')
+  plotReadCountToLibConc(dataset,
+                         colname='LibConc_100_800bp [Characteristic]')
 }
 ```
 

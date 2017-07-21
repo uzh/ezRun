@@ -6,8 +6,8 @@
 # www.fgcz.ch
 
 
-ezMethodFastQCRmd = function(input=NA, output=NA, param=NA, 
-                             htmlFile="00index.html"){
+ezMethodFastQC = function(input=NA, output=NA, param=NA, 
+                          htmlFile="00index.html"){
   require(rmarkdown)
   setwdNew(basename(output$getColumn("Report")))
   dataset = input$meta
@@ -27,7 +27,8 @@ ezMethodFastQCRmd = function(input=NA, output=NA, param=NA,
   stopifnot(!duplicated(reportDirs))
   filesUse = files[!file.exists(reportDirs)]
   if (length(filesUse) > 0){
-    cmd = paste("fastqc", "--extract -o . -t", min(ezThreads(), 8), param$cmdOptions,
+    cmd = paste("fastqc", "--extract -o . -t", min(ezThreads(), 8), 
+                param$cmdOptions,
                 paste(filesUse, collapse=" "),
                 "> fastqc.out", "2> fastqc.err")
     result = ezSystem(cmd)
@@ -72,7 +73,8 @@ ezMethodFastQCRmd = function(input=NA, output=NA, param=NA,
     for (i in 1:nFiles){
       x = ezRead.table(file.path(reportDirs[i], "fastqc_data.txt"), 
                        header=FALSE, nrows=7, fill=TRUE)
-      readCount[names(files)[i]] = signif(as.integer(x["Total Sequences", 1]) / 1e6, digits=3)
+      readCount[names(files)[i]] = signif(as.integer(x["Total Sequences", 1]) / 
+                                            1e6, digits=3)
     }
   }
   ans4Report[["Read Counts"]] <- readCount
@@ -80,9 +82,11 @@ ezMethodFastQCRmd = function(input=NA, output=NA, param=NA,
   for (i in 1:nFiles){
     smy = ezRead.table(file.path(reportDirs[i], "summary.txt"), row.names=NULL, header=FALSE)
     if (i == 1){
-      rowNames = paste0("<a href=", reportDirs, "/fastqc_report.html>", names(files), "</a>")
+      rowNames = paste0("<a href=", reportDirs, "/fastqc_report.html>", 
+                        names(files), "</a>")
       colNames = ifelse(smy[[2]] %in% names(plotPages),
-                        paste0("<a href=", plotPages[smy[[2]]], ">", smy[[2]], "</a>"),
+                        paste0("<a href=", plotPages[smy[[2]]], ">", smy[[2]], 
+                               "</a>"),
                         smy[[2]])
       tbl = ezMatrix("", rows=rowNames, cols=colNames)
     }
@@ -105,7 +109,34 @@ ezMethodFastQCRmd = function(input=NA, output=NA, param=NA,
   return("Success")
 }
 
-plotReadCountToLibConcRmd = function(dataset, colname){
+##' @template app-template
+##' @templateVar method ezMethodFastQC(input=NA, output=NA, param=NA, htmlFile="00index.html")
+##' @description Use this reference class to run 
+##' @section Functions:
+##' \itemize{
+##'   \item{\code{plotReadCountToLibConc(dataset, colname): }}
+##'   {Plots \code{colname} from \code{dataset} against read counts in millions.}
+##'   \item{\code{getQualityMatrix(inputFile): }}
+##'   {Gets a quality count matrix from a fastq or gziped fastq.gz file with dimensions read quality and read length.}
+##'   \item{\code{plotQualityMatrixAsHeatmap(qualMatrixList, isR2=FALSE, xScale=1, yScale=1): }}
+##'   {Returns a png table of quality matrices interpreted as heatmaps.}
+##'   \item{\code{plotQualityHeatmap(result, name=NULL, colorRange=c(0,sqrt(40)), colors=gray((1:256)/256), main=NULL, pngFileName=NULL, xScale=1, yScale=1): }}
+##'   {Creates and returns the images used by \code{plotQualityMatrixAsHeatmap()}.}
+##' }
+EzAppFastqc <-
+  setRefClass("EzAppFastqc",
+              contains = "EzApp",
+              methods = list(
+                initialize = function()
+                {
+                  "Initializes the application using its specific defaults."
+                  runMethod <<- ezMethodFastQC
+                  name <<- "EzAppFastqc"
+                }
+              )
+  )
+
+plotReadCountToLibConc = function(dataset, colname){
   if(colname %in% colnames(dataset) && nrow(dataset) > 1){
     if(!all(dataset[[colname]]==0)){
       dataset = dataset[order(dataset$'Read Count',decreasing = T),]
@@ -270,4 +301,52 @@ plotQualityHeatmapGG2 = function(result, name=NULL, colorRange=c(0,sqrt(40)),
           plot.title = element_text(hjust = 0.5)) +
     xlab("Read Position") + ylab("Read Quality") + ggtitle(main)
   return(p)
+}
+
+getQualityMatrix = function(inputFile){
+  ## files could be fastq, or gziped fastq.gz
+  require("ShortRead", warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)  
+  #job = ezJobStart(paste("start to collect quality matrix from", inputFile))
+  
+  ## get the qualCountMatrix
+  qualCountMatrix = NULL
+  maxReadLength = NULL
+  subSample = 0.01
+  fqs = FastqStreamer(inputFile, 1e6)
+  while(length(x <- yield(fqs))){
+    nSamples = round(subSample * length(x))
+    if (nSamples == 0){
+      nSamples = length(x)
+    }
+    qual = quality(x[sample.int(length(x), size=nSamples , replace=FALSE)]) ## this gives the integer quality as stringSets
+    readLengths = width(qual)
+    #qualMatrix = as(qual, "matrix") ## this should be now a matrix with integer quality values, only work with same read length
+    if (is.null(maxReadLength)){
+      maxReadLength = max(readLengths)
+    }
+    qualMatrix = ezMatrix(NA, cols=1:maxReadLength, rows=1:length(qual))
+    availableLengths = unique(readLengths)
+    useLengths = intersect(availableLengths, 1:maxReadLength)
+    ## This is the fastest way to turn the quality into a integer matrix with NAs if some reads with shorted length
+    for(l in useLengths){
+      index = readLengths == l
+      qualMatrix[index, 1:l] = as(qual[index], "matrix") 
+    }
+    
+    if (is.null(qualCountMatrix)){
+      maxQuality = max(qualMatrix, na.rm=TRUE)
+      ## min quality is 0!!
+      ## the qualCountMatrix has dimensions read quality * read length
+      qualCountMatrix = ezMatrix(0, rows=0:maxQuality, cols=1:maxReadLength)
+    }
+    qualMatrix[qualMatrix > maxQuality] = maxQuality
+    for (basePos in 1:ncol(qualMatrix)){
+      qualCountByPos = table(qualMatrix[ , basePos])
+      idx = names(qualCountByPos)
+      qualCountMatrix[idx, basePos] = qualCountMatrix[idx, basePos] + qualCountByPos
+    }
+  }
+  close(fqs)
+  #ezWriteElapsed(job)
+  return(qualCountMatrix)
 }

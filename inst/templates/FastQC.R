@@ -1,6 +1,5 @@
 ## p1997 Paired-end samples
 setwd("/srv/GT/analysis/gtan/p1997-FastQCRmarkdown")
-EZ_GLOBAL_VARIABLES <<- '/usr/local/ngseq/opt/EZ_GLOBAL_VARIABLES.txt'
 param = list()
 param[['cores']] = '8'
 param[['ram']] = '16'
