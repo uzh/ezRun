@@ -31,8 +31,6 @@ ezMethodEdger = function(input=NA, output=NA, param=NA, htmlFile="00index.html")
     return("Error")
   }
   
-  rmdFn <- file.path(system.file("templates", package="ezRun"), 
-                    "twoGroups.Rmd")
   ## Copy the style files and templates
   styleFiles <- file.path(system.file("templates", package="ezRun"),
                           c("fgcz.css", "twoGroups.Rmd",
