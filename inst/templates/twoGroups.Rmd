@@ -17,11 +17,6 @@ require(kableExtra)
 require(SummarizedExperiment)
 require(webshot)
 require(htmlwidgets)
-if(Sys.which("phantomjs") == ""){
-  ## phantomjs has to be in the PATH
-  system("module load Dev/PhantomJS")
-  stopifnot(Sys.which("phantomjs") != "")
-}
 debug <- FALSE
 ```
 
