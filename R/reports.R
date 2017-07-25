@@ -66,7 +66,7 @@ ezGrid = function(x, header.columns = FALSE,  valign = "top", ...){
 ##' ezImageFileLink(plotCmd)
 ezImageFileLink = function(plotCmd, file=NULL, name="imagePlot", plotType="plot", mouseOverText="my mouse over",
                            addPdfLink=TRUE, width=480, height=480, ppi=72, envir=parent.frame()){
-  require(ReporteRs)
+  require(ReporteRs, quietly = TRUE)
   if (is.null(file)){
     file = paste0(name, "-", plotType, ".png")
   }
@@ -559,7 +559,7 @@ addResultFileSE = function(doc, param, se, useInOutput=TRUE,
 makeResultFile = function(param, se, useInOutput=TRUE,
                           file=paste0("result--", param$comparison, ".txt")){
   require(tools)
-  require(DT)
+  require(DT, quietly=TRUE)
   se <- se[useInOutput, ]
   y = data.frame(rowData(se), row.names=rownames(se),
                  stringsAsFactors=FALSE, check.names=FALSE)
