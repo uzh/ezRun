@@ -124,6 +124,26 @@ if(nrow(dataset) > 1){
 }
 ```
 
+### Heatmaps of reads/concentration perl cell on the plate
+Sequenced reads or concentration per cell, on the plate layout.
+
+```{r plate layout, echo=FALSE}
+plateMatrix <- plateStatistics(dataset)
+if(!is.na(plateMatrix)){
+  for(plateName in names(plateMatrix)){
+    for(colname in names(plateMatrix[[1]])){
+      dataHeatMap <- plateMatrix[[plateName]][[colname]]
+      plot_ly(z=dataHeatMap, x=colnames(dataHeatMap),
+              y=rownames(dataHeatMap), type="heatmap",
+              colors = colorRamp(c("black", "white"))) %>%
+        layout(xaxis=list(autotick = FALSE, dtick=1),
+               yaxis=list(autorange = "reversed"),
+               title=paste(plateName, colname, sep=": "))
+    }
+  }
+}
+```
+
 ### Input Dataset
 ```{r, echo=FALSE}
 ezInteractiveTableRmd(values=ans4Report[["dataset"]])
