@@ -46,3 +46,25 @@ input = '/srv/gstore/projects/p2401/Fastqc_17776_2017-04-24--09-09-19/input_data
 EzAppFastqc$new()$run(input=input, output=output, param=param)
 rmarkdown::render(input="/Users/gtan/Repos/FGCZ/ezRun/inst/templates/FastQC.Rmd",
                   output_dir="FastQC_Result", output_file="00index.html")
+
+## p2438 with plate position
+setwd("/srv/GT/analysis/gtan/p2438-FastQC")
+library(ezRun)
+param = list()
+param[['cores']] = '8'
+param[['ram']] = '16'
+param[['scratch']] = '100'
+param[['node']] = ''
+param[['process_mode']] = 'DATASET'
+param[['paired']] = 'false'
+param[['name']] = 'FastQC_Result'
+param[['cmdOptions']] = ''
+param[['mail']] = ''
+param[['dataRoot']] = '/srv/gstore/projects'
+param[['resultDir']] = 'p2438/Fastqc_18564_2017-06-07--14-06-33'
+output = list()
+output[['Name']] = 'FastQC_Result'
+output[['Report [File]']] = 'p2438/Fastqc_18564_2017-06-07--14-06-33/FastQC_Result'
+output[['Html [Link]']] = 'p2438/Fastqc_18564_2017-06-07--14-06-33/FastQC_Result/00index.html'
+input = '/srv/gstore/projects/p2438/Fastqc_18564_2017-06-07--14-06-33/input_dataset.tsv'
+EzAppFastqc$new()$run(input=input, output=output, param=param)
