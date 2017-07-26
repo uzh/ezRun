@@ -124,6 +124,31 @@ if(nrow(dataset) > 1){
 }
 ```
 
+### Heatmaps of reads/concentration perl cell on the plate
+Sequenced reads or concentration per cell, on the plate layout.
+
+```{r plate layout, echo=FALSE, message=FALSE, warning=FALSE}
+plateMatrix <- plateStatistics(dataset)
+if(!is.na(plateMatrix)){
+  l <- htmltools::tagList()
+  ## This is the way of plotting plotly figures within a loop in knitr code chunk
+  for(plateName in names(plateMatrix)){
+    for(colname in names(plateMatrix[[1]])){
+      dataHeatMap <- plateMatrix[[plateName]][[colname]]
+      p <- plot_ly(z=dataHeatMap, x=colnames(dataHeatMap),
+                   y=rownames(dataHeatMap), type="heatmap",
+                   colors = colorRamp(c("black", "white")),
+                   width = 500*(1 + sqrt(5))/2, height = 500) %>%
+        layout(xaxis=list(autotick = FALSE, dtick=1),
+               yaxis=list(autorange = "reversed"),
+               title=paste(plateName, colname, sep=": "))
+      l[[paste(plateName, colname, sep=": ")]] <- as_widget(p)
+    }
+  }
+  l
+}
+```
+
 ### Input Dataset
 ```{r, echo=FALSE}
 ezInteractiveTableRmd(values=ans4Report[["dataset"]])

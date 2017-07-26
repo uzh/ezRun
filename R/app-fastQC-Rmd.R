@@ -350,3 +350,49 @@ getQualityMatrix = function(inputFile){
   #ezWriteElapsed(job)
   return(qualCountMatrix)
 }
+
+plateStatistics <- function(dataset,
+                            colname=c("Read Count", 
+                                      "LibConc_qPCR [Characteristic]",
+                                      "LibConc_100_800bp [Characteristic]")){
+  colsExist <- colname %in% colnames(dataset)
+  if(any(!colsExist)){
+    warning("No column ", colname[!colsExist], " in dataset!")
+    colname <- colname[colsExist]
+  }
+  colsZero <- colSums(dataset[, colname, drop=FALSE]) == 0
+  if(any(colsZero)){
+    message("The column ", colname[colsZero], " is empty!")
+    colname <- colname[!colsZero]
+  }
+  
+  if(!is.null(dataset$`PlatePosition [Characteristic]`)){
+    plateChar <- dataset$`PlatePosition [Characteristic]`
+    ## Plate position should be in the format of *_C4;
+    ## * is the plate number
+    ## C is the column; 4 is the row
+    require(stringr, quietly = TRUE)
+    plateNumber <- sub("_[[:alpha:]]\\d+$", "", plateChar)
+    datasetByPlate <- split(dataset, plateNumber)
+    ans <- list()
+    for(i in seq_len(length(datasetByPlate))){
+      platePos <- str_extract(datasetByPlate[[i]]$`PlatePosition [Characteristic]`,
+                              "_[[:alpha:]]\\d+$")
+      plateRow <- str_extract(platePos, "[[:alpha:]]")
+      plateCol <- str_extract(platePos, "\\d+")
+      ans[[names(datasetByPlate)[i]]] <- list()
+      for(oneCol in colname){
+        counts <- datasetByPlate[[i]][[oneCol]]
+        countMatrix <- ezMatrix(0, rows=LETTERS[1:which(LETTERS==max(plateRow))],
+                                cols=seq_len(max(as.integer(plateCol))))
+        for(j in seq_len(length(counts))){
+          countMatrix[plateRow[j], plateCol[j]] <- counts[j]
+        }
+        ans[[names(datasetByPlate)[i]]][[oneCol]] <- countMatrix
+      }
+    }
+    return(ans)
+  }else{
+    return(NA)
+  }
+}
