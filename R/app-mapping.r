@@ -330,9 +330,13 @@ ezMethodSTAR = function(input=NA, output=NA, param=NA){
   if (param$getChimericJunctions){
     ezSystem(paste("mv Chimeric.out.junction", basename(output$getColumn("Chimerics"))))
   }
+
   ## check the strandedness
-  bedFile = getReferenceFeaturesBed(param)
-  ezSystem(paste("infer_experiment.py", "-r", bedFile, "-i", basename(bamFile), "-s 1000000"))
+  if (!is.null(param$checkStrandness) && param$checkStrandness){
+    cat(Sys.getenv("PATH"))
+    bedFile = getReferenceFeaturesBed(param)
+    ezSystem(paste(INFER_EXPERIMENT, "-r", bedFile, "-i", basename(bamFile), "-s 1000000"))
+  }
   
   ## write an igv link
   if (param$writeIgvSessionLink){ 
@@ -420,6 +424,7 @@ EzAppSTAR <-
                   appDefaults <<- rbind(getChimericJunctions=ezFrame(Type="logical",  DefaultValue="FALSE",	Description="should chimeric reads be returned"),
                                         writeIgvSessionLink=ezFrame(Type="logical", DefaultValue="TRUE", Description="should an IGV link be generated"),
                                         markDuplicates=ezFrame(Type="logical", DefaultValue="FALSE", Description="should duplicates be marked with picard"),
+                                        checkStrandness=ezFrame(Type="logical", DefaultValue="TRUE", Description="should strandness be checked"),
                                         randomSleep=ezFrame(Type="logical",  DefaultValue="FALSE",  Description="should there be a random sleep to avoid to much network traffic when loading the STAR index"))
                 }
               )
