@@ -335,7 +335,7 @@ ezMethodSTAR = function(input=NA, output=NA, param=NA){
   if (!is.null(param$checkStrandness) && param$checkStrandness){
     cat(Sys.getenv("PATH"))
     bedFile = getReferenceFeaturesBed(param)
-    ezSystem(paste(INFER_EXPERIMENT, "-r", bedFile, "-i", basename(bamFile), "-s 1000000"))
+    ezSystem(paste("infer_experiment.py", "-r", bedFile, "-i", basename(bamFile), "-s 1000000"))
   }
   
   ## write an igv link
