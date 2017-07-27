@@ -27,7 +27,7 @@ With the file-based representation the reference genomes are available to extern
 Here we give an exmaple of human reference annotation from Ensembl.
 
 ```{r humanSetup, echo=TRUE, eval=TRUE}
-genomesRoot <- "."
+GENOMES_ROOT <<- "."
 organism <- "Homo_sapiens"
 db <- "Ensembl"
 build <- "GRCh38.p10"
