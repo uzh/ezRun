@@ -25,9 +25,10 @@ ezMethodFeatureCounts = function(input=NA, output=NA, param=NA){
     ### ezRead.table: 127.461s
     ### import: 33.419s
     gtf <- fread(param$ezRef@refFeatureFile, header=FALSE)
+    colnames(gtf) = c('seqname','source','feature','start','end','score','strand','frame','attribute')
     transcripts <- sub("\";$", "", 
                        sub("^transcript_id \"", "", 
-                           str_extract(gtf$V9, ## column 9 is the attributes field
+                           str_extract(gtf$attribute,
                                        "transcript_id \"[[:alnum:][:punct:]]+\";")))
     
     gtf = gtf[transcripts %in% transcriptsUse, ]
@@ -42,7 +43,51 @@ ezMethodFeatureCounts = function(input=NA, output=NA, param=NA){
   }
   
   sink(file="featureCounts-messages.txt")
-  countResult = Rsubread::featureCounts(localBamFile, annot.inbuilt=NULL,
+  if(!is.null(param$aroundTSSCounting) & param$aroundTSSCounting & ezIsSpecified(param$transcriptTypes)){
+    gtf = rtracklayer::import(param$ezRef@refFeatureFile)
+    idx = gtf$type == 'gene'
+    gtf = gtf[idx]
+    
+   if (ezIsSpecified(param$transcriptTypes)){
+       idx = gtf$gene_biotype %in% 'protein_coding'
+      gtf = gtf[idx]}
+    
+    rtracklayer::export(gtf, 'genes.gtf')
+    
+    gtf <- fread('genes.gtf', header=FALSE)
+    colnames(gtf) = c('seqname','source','feature','start','end','score','strand','frame','attribute')
+    for (i in 1:nrow(gtf)){
+      if(gtf[['strand']][i] == '+'){
+        gtf[['end']][i] = max(0,gtf[['start']][i] + param$downstreamFlanking)
+        gtf[['start']][i] = max(0,gtf[['start']][i] - param$upstreamFlanking)
+      } else {
+        gtf[['start']][i] = max(0,gtf[['end']][i] - param$downstreamFlanking)
+        gtf[['end']][i] = max(0,gtf[['end']][i] + param$upstreamFlanking)
+      }
+    }
+    write.table(gtf, gtfFile, quote=FALSE, sep="\t", row.names=FALSE, col.names=FALSE)
+    countResult = Rsubread::featureCounts(localBamFile, annot.inbuilt=NULL,
+                                          annot.ext=gtfFile, isGTFAnnotationFile=TRUE,
+                                          GTF.featureType='gene',
+                                          GTF.attrType= 'gene_id',                                          
+                                          useMetaFeatures=param$useMetaFeatures,
+                                          allowMultiOverlap=param$allowMultiOverlap, isPairedEnd=param$paired, 
+                                          requireBothEndsMapped=FALSE,
+                                          checkFragLength=FALSE,minFragLength=50,maxFragLength=600,
+                                          nthreads=param$cores, 
+                                          strandSpecific=switch(param$strandMode, "both"=0, "sense"=1, "antisense"=2, stop("unsupported strand mode: ", param$strandMode)),
+                                          minMQS=param$minMapQuality,
+                                          readExtension5=0,readExtension3=0,read2pos=NULL,
+                                          minOverlap=param$minFeatureOverlap,
+                                          ignoreDup=param$ignoreDup,
+                                          splitOnly=FALSE,
+                                          countMultiMappingReads=param$keepMultiHits,
+                                          fraction=param$keepMultiHits & !param$countPrimaryAlignmentsOnly,
+                                          primaryOnly=param$countPrimaryAlignmentsOnly,
+                                          countChimericFragments=TRUE,chrAliases=NULL,reportReads=FALSE)
+  }
+  else{
+    countResult = Rsubread::featureCounts(localBamFile, annot.inbuilt=NULL,
                               annot.ext=gtfFile, isGTFAnnotationFile=TRUE,
                               GTF.featureType=param$gtfFeatureType,
                               GTF.attrType=switch(param$featureLevel,
@@ -65,6 +110,7 @@ ezMethodFeatureCounts = function(input=NA, output=NA, param=NA){
                               fraction=param$keepMultiHits & !param$countPrimaryAlignmentsOnly,
                               primaryOnly=param$countPrimaryAlignmentsOnly,
                               countChimericFragments=TRUE,chrAliases=NULL,reportReads=FALSE)
+  }
   sink(file=NULL)
   
   colnames(countResult$counts) = "matchCounts"
@@ -91,7 +137,10 @@ EzAppFeatureCounts <-
                                         countPrimaryAlignmentsOnly = ezFrame(Type="logical",  DefaultValue="TRUE",  Description="count only the primary alignment"),
                                         minFeatureOverlap=ezFrame(Type="integer", DefaultValue="10", Description="the number of bases overlap are need to generate a count"),
                                         useMetaFeatures=ezFrame(Type="logical", DefaultValue="TRUE", Description="should counts be summarized to meta-features"),
-                                        ignoreDup=ezFrame(Type="logical", DefaultValue="FALSE", Description="ignore reads marked as duplicates"))
+                                        ignoreDup=ezFrame(Type="logical", DefaultValue="FALSE", Description="ignore reads marked as duplicates"),
+                                        aroundTSSCounting=ezFrame(Type="logical",  DefaultValue="FALSE",  Description="count reads only around TSS of genes"),
+                                        downstreamFlanking=ezFrame(Type="integer", DefaultValue="250", Description="the number of bases downstream of TSS"),
+                                        upstreamFlanking=ezFrame(Type="integer", DefaultValue="250", Description="the number of bases upstream of TSS"))
                 }
               )
   )
