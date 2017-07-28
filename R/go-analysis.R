@@ -256,9 +256,9 @@ ezGoseq = function(param, selectedGenes, allGenes, gene2goList=NULL,
                    onto=NULL, normalizedAvgSignal=NULL){
   method = match.arg(method)
   require("GO.db", warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
-  if (length(selectedGenes) <= 1){
-    return(NA)
-  }
+  #if (length(selectedGenes) <= 1){
+  #  return(NA)
+  #}
   
   stopifnot(names(gene2goList) %in% allGenes)
   stopifnot(!is.null(onto))

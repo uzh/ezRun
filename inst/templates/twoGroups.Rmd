@@ -547,9 +547,13 @@ enrichResult <- ezEnricher(param, se)
 ```{r dotplot gsea, echo=FALSE, eval=!debug}
 for(onto in names(enrichResult)){
   for(sig in names(enrichResult[[1]])){
-    p <- dotplot(enrichResult[[onto]][[sig]], showCategory=20, 
+    if(is.null(enrichResult[[onto]][[sig]])){
+      next
+    }else{
+      p <- dotplot(enrichResult[[onto]][[sig]], showCategory=20, 
                  title=paste(onto, sig))
-    print(p)
+      print(p)
+    }
   }
 }
 ```
@@ -558,7 +562,7 @@ for(onto in names(enrichResult)){
 ```{r enrichMap gsea, echo=FALSE, eval=!debug, fig.width=14, fig.height=14}
 for(onto in names(enrichResult)){
   for(sig in names(enrichResult[[1]])){
-    if(nrow(enrichResult[[onto]][[sig]]@result) == 0L){
+    if(is.null(enrichResult[[onto]][[sig]]) || nrow(enrichResult[[onto]][[sig]]@result) == 0L){
       next
     }else{
       enrichMap(enrichResult[[onto]][[sig]], n=50, main=paste(onto, sig))
@@ -571,7 +575,7 @@ for(onto in names(enrichResult)){
 ```{r cnetplot gsea, echo=FALSE, eval=!debug, fig.width=14, fig.height=14}
 for(onto in names(enrichResult)){
   for(sig in names(enrichResult[[1]])){
-    if(nrow(enrichResult[[onto]][[sig]]@result) == 0L){
+    if(is.null(enrichResult[[onto]][[sig]]) || nrow(enrichResult[[onto]][[sig]]@result) == 0L){
       next
     }else{
       cnetplot(enrichResult[[onto]][[sig]],
@@ -590,7 +594,7 @@ enrichResult <- ezGSEA(param, se)
 #### dotplot
 ```{r dotplot, echo=FALSE, eval=!debug}
 for(onto in names(enrichResult)){
-  if(nrow(enrichResult[[onto]]@result) == 0L){
+  if(is.null(enrichResult[[onto]]) || nrow(enrichResult[[onto]]@result) == 0L){
       next
   }else{
     p <- dotplot(enrichResult[[onto]], showCategory=20, 
@@ -603,7 +607,7 @@ for(onto in names(enrichResult)){
 #### enrichMap
 ```{r enrichMap, echo=FALSE, eval=!debug, fig.width=14, fig.height=14}
 for(onto in names(enrichResult)){
-    if(nrow(enrichResult[[onto]]@result) == 0L){
+    if(is.null(enrichResult[[onto]]) || nrow(enrichResult[[onto]]@result) == 0L){
       next
     }else{
       enrichMap(enrichResult[[onto]], n=50, main=paste(onto, sig))
@@ -614,7 +618,7 @@ for(onto in names(enrichResult)){
 #### cnetplot
 ```{r cnetplot, echo=FALSE, eval=!debug, fig.width=14, fig.height=14}
 for(onto in names(enrichResult)){
-    if(nrow(enrichResult[[onto]]@result) == 0L){
+    if(is.null(enrichResult[[onto]]) || nrow(enrichResult[[onto]]@result) == 0L){
       next
     }else{
       cnetplot(enrichResult[[onto]],
