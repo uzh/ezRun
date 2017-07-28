@@ -23,6 +23,8 @@ debug <- FALSE
 ```{r prepare data, include=FALSE}
 param = deResult$param
 se <- deResult$se
+seqAnno <- data.frame(rowData(se), row.names=rownames(se),
+                      check.names = FALSE, stringsAsFactors=FALSE)
 ## TODO: this is temporary fix to make it compatible with GO and GAGE analysis
   result = list()
   result$analysis = metadata(se)$analysis
@@ -376,8 +378,6 @@ if (sum(use) > param$minGenesForClustering){
   eval(plotCmd)
   dev.off()
   
-  seqAnno <- data.frame(rowData(se), row.names=rownames(se),
-                        check.names = FALSE, stringsAsFactors=FALSE)
   if (doGo(param, seqAnno)){
     clusterResult = goClusterResults(xCentered, param, clusterResult, seqAnno=seqAnno, universeProbeIds=rownames(seqAnno)[rowData(se)$isPresentProbe])
   }
