@@ -378,6 +378,10 @@ plateStatistics <- function(dataset,
     for(i in seq_len(length(datasetByPlate))){
       platePos <- str_extract(datasetByPlate[[i]]$`PlatePosition [Characteristic]`,
                               "_[[:alpha:]]\\d+$")
+      if(any(is.na(platePos))){
+        warning("The PlatePosition format is not supported!")
+        return(NA)
+      }
       plateRow <- str_extract(platePos, "[[:alpha:]]")
       plateCol <- str_extract(platePos, "\\d+")
       ans[[names(datasetByPlate)[i]]] <- list()
