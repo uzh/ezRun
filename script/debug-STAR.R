@@ -1,0 +1,71 @@
+setwd("/srv/GT/analysis/gtan/p2438-STAR/2-pass")
+Sys.setenv("PATH"=paste("/usr/local/ngseq/packages/Dev/Python2/2.7.13/bin", Sys.getenv("PATH"), sep=":"))
+library(ezRun)
+param = list()
+param[['cores']] = '8'
+param[['ram']] = '40'
+param[['scratch']] = '100'
+param[['node']] = ''
+param[['process_mode']] = 'SAMPLE'
+param[['refBuild']] = 'Homo_sapiens/Ensembl/GRCh38.p10/Annotation/Release_89-2017-05-31'
+param[['paired']] = 'false'
+param[['strandMode']] = 'antisense'
+param[['refFeatureFile']] = 'genes.gtf'
+param[['cmdOptions']] = '--outFilterType BySJout --outFilterMatchNmin 30 --outFilterMismatchNmax 10 --outFilterMismatchNoverLmax 0.05 --alignSJDBoverhangMin 1 --alignSJoverhangMin 8 --alignIntronMax 1000000 --alignMatesGapMax 1000000 --outFilterMultimapNmax 50 --chimSegmentMin 15 --chimJunctionOverhangMin 15 --chimScoreMin 15 --chimScoreSeparation 10 --outSAMstrandField intronMotif'
+param[['getChimericJunctions']] = 'false'
+param[['trimAdapter']] = 'true'
+param[['trimLeft']] = '5'
+param[['trimRight']] = '0'
+param[['minTailQuality']] = '10'
+param[['minAvgQuality']] = '10'
+param[['minReadLength']] = '20'
+param[['specialOptions']] = ''
+param[['mail']] = 'ge.tan@fgcz.ethz.ch'
+param[['dataRoot']] = '/srv/gstore/projects'
+param[['resultDir']] = 'p2438/STAR_18564_2017-06-12--13-46-30'
+param[['twopassMode']] = "true" #false
+output = list()
+output[['Name']] = '53KW_d3_A'
+output[['BAM [File]']] = 'p2438/STAR_18564_2017-06-12--13-46-30/53KW_d3_A.bam'
+output[['BAI [File]']] = 'p2438/STAR_18564_2017-06-12--13-46-30/53KW_d3_A.bam.bai'
+output[['IGV Starter [Link]']] = 'p2438/STAR_18564_2017-06-12--13-46-30/53KW_d3_A-igv.jnlp'
+output[['Species']] = 'Homo sapiens (human)'
+output[['refBuild']] = 'Homo_sapiens/Ensembl/GRCh38.p10/Annotation/Release_89-2017-05-31'
+output[['paired']] = 'false'
+output[['refFeatureFile']] = 'genes.gtf'
+output[['strandMode']] = 'antisense'
+output[['Read Count']] = '39534111'
+output[['IGV Starter [File]']] = 'p2438/STAR_18564_2017-06-12--13-46-30/53KW_d3_A-igv.jnlp'
+output[['IGV Session [File]']] = 'p2438/STAR_18564_2017-06-12--13-46-30/53KW_d3_A-igv.xml'
+output[['PreprocessingLog [File]']] = 'p2438/STAR_18564_2017-06-12--13-46-30/53KW_d3_A_preprocessing.log'
+output[['STARLog [File]']] = 'p2438/STAR_18564_2017-06-12--13-46-30/53KW_d3_A_STAR.log'
+output[['Condition [Factor]']] = 'asthmatic'
+output[['Extract Id [B-Fabric]']] = 'bfe_53715'
+input = list()
+input[['Name']] = '53KW_d3_A'
+input[['Condition']] = 'asthmatic'
+input[['Read1']] = 'p2438/HiSeq4000_20170601_RUN346_copy_o3365/20170601.B-53KW_d3_R1.fastq.gz'
+input[['Species']] = 'Homo sapiens (human)'
+input[['FragmentSize']] = '0'
+input[['SampleConc']] = '9.1'
+input[['Tube']] = 'p2438_3365/24'
+input[['Extract Id']] = 'bfe_53715'
+input[['Index']] = 'GAATTCGT-CAGGACGT'
+input[['PlatePosition']] = '1_G6'
+input[['LibConc_100_800bp']] = '1.75'
+input[['LibConc_qPCR']] = '0'
+input[['Adapter1']] = 'GATCGGAAGAGCACACGTCTGAACTCCAGTCAC'
+input[['strandMode']] = 'antisense'
+input[['LibraryPrepKit']] = 'TruSeq RNA stranded'
+input[['EnrichmentMethod']] = 'PolyA, TruSeq RNA Kit'
+input[['InputAmount']] = '100'
+input[['Read Count']] = '39534111'
+input[['Time']] = 'd3'
+input[['Age']] = '22'
+input[['Gender']] = 'F'
+EzAppSTAR$new()$run(input=input, output=output, param=param)
+
+## debug 
+input = EzDataset$new(meta=input, dataRoot=param$dataRoot)
+output = EzDataset$new(meta=output, dataRoot=param$dataRoot)
+param = ezParam(param, appDefaults=appDefaults)
