@@ -32,7 +32,7 @@ ezLoadFeatures = function(param=NULL, featureFile=param$ezRef["refFeatureFile"],
   gff = gff[!ezGrepl(c("CDS", "codon", "UTR", "protein"), gff$type, 
                      ignore.case=TRUE), ]
   if (getSuffix(featureFile) == "gtf" ){
-    gff$transcript_id = 	ezGffAttributeField(gff$attributes, 
+    gff$transcript_id = ezGffAttributeField(gff$attributes, 
                                              field="transcript_id", 
                                              attrsep="; *", valuesep=" ")
     stopifnot(!is.na(gff$transcript_id[gff$type == "exon"]))
@@ -71,12 +71,11 @@ ezLoadFeatures = function(param=NULL, featureFile=param$ezRef["refFeatureFile"],
 ezGffAttributeField = function (x, field, attrsep = ";", valuesep="=") {
   require(stringr)
   ## gene_id "ENSG00000278267"; gene_version "1"; gene_name "MIR6859-1"; gene_source "mirbase"; gene_biotype "miRNA"; transcript_id "ENST00000619216"; transcript_version "1"; transcript_name "MIR6859-1-201"; transcript_source "mirbase"; transcript_biotype "miRNA"; tag "basic"; transcript_support_level "NA";
-  x <- str_extract(gff$attributes,
-                   paste(field, paste0("\"{0,1}[^\"]+\"{0,1}", attrsep),
-                         sep=valuesep)
+  x <- str_extract(x, paste(field, paste0("\"{0,1}[^\"]+\"{0,1}", attrsep),
+                            sep=valuesep)
                    )
   x <- sub(paste(field, "\"{0,1}", sep=valuesep), "", x)
-  x <- sub(paste0("\"{0,1}",attrsep, "$"), "", x)
+  x <- sub(paste0("\"{0,1}", attrsep, "$"), "", x)
   # This implementation is 2 times faster than the old implementation below.
   # Old: 30.419 seconds; New: 6.353 seconds
   
