@@ -6,7 +6,8 @@
 # www.fgcz.ch
 
 
-ezMethodRnaBamStats = function(input=NA, output=NA, param=NA, htmlFile="00index.html"){
+ezMethodRnaBamStats = function(input=NA, output=NA, param=NA, 
+                               htmlFile="00index.html"){
   
   setwdNew(basename(output$getColumn("Report")))
   param$featureLevel = "gene"
@@ -297,7 +298,7 @@ getStatsFromBam = function(param, bamFile, sm, gff=NULL, repeatsGff=NULL, nReads
         genebody_coverage[[lc]] = list()
         for (cc in levels(covClasses)){
           genebody_coverage[[lc]][[cc]] = rowMeans(relativeCov[ , covClasses == cc, drop=FALSE ])
-        }  
+        }
       }
     }
   }
@@ -396,6 +397,8 @@ getStatsFromBamParallel = function(seqLengths, param, bamFile, sm, nReads, gff=N
 getStatsFromBamSingleChrom = function(chrom, param, bamFile, sm, nReads, gff=NULL, repeatsGff=NULL){
   
   require("bitops", warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
+  message("Processing chr ", ifelse(is.null(chrom), "all", chrom))
+  
   result = list()
   seqLengths = ezBamSeqLengths(bamFile)
   if (param$paired){
