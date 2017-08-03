@@ -29,15 +29,20 @@ ezLoadFeatures = function(param=NULL, featureFile=param$ezRef["refFeatureFile"],
   
   gff = ezReadGff(featureFile)
   
-  gff = gff[!ezGrepl(c("CDS", "codon", "UTR", "protein"), gff$type, ignore.case=TRUE), ]
+  gff = gff[!ezGrepl(c("CDS", "codon", "UTR", "protein"), gff$type, 
+                     ignore.case=TRUE), ]
   if (getSuffix(featureFile) == "gtf" ){
-    gff$transcript_id = 	ezGffAttributeField(gff$attributes, field="transcript_id", attrsep="; *", valuesep=" ")
+    gff$transcript_id = 	ezGffAttributeField(gff$attributes, 
+                                             field="transcript_id", 
+                                             attrsep="; *", valuesep=" ")
     stopifnot(!is.na(gff$transcript_id[gff$type == "exon"]))
-    gff$gene_id = 	ezGffAttributeField(gff$attributes, field="gene_id", attrsep="; *", valuesep=" ")
+    gff$gene_id = 	ezGffAttributeField(gff$attributes, field="gene_id", 
+                                       attrsep="; *", valuesep=" ")
     use = is.na(gff$gene_id) & gff$type == "exon"
     gff$gene_id[use] = gff$transcript_id[use]
     stopifnot(!is.na(gff$gene_id[gff$type == "exon"]))
-    gff$gene_name =   ezGffAttributeField(gff$attributes, field="gene_name", attrsep="; *", valuesep=" ")
+    gff$gene_name =   ezGffAttributeField(gff$attributes, field="gene_name", 
+                                          attrsep="; *", valuesep=" ")
     gff$Parent = gff$transcript_id
     gff$ID = gff$transcript_id
     gff$Name = gff$gene_id
@@ -45,7 +50,8 @@ ezLoadFeatures = function(param=NULL, featureFile=param$ezRef["refFeatureFile"],
     # 		gff$ID[isChild] = NA
     # 		gff$Name[isChild] = NA
     gff$Parent[!isChild] = NA
-    gff$tss_id = ezGffAttributeField(gff$attributes, field="tss_id", attrsep="; *", valuesep=" ")
+    gff$tss_id = ezGffAttributeField(gff$attributes, field="tss_id", 
+                                     attrsep="; *", valuesep=" ")
   }
   if (getSuffix(featureFile) == "gff"){
     gff$Parent = ezGffAttributeField(gff$attributes, field="Parent")
@@ -63,10 +69,21 @@ ezLoadFeatures = function(param=NULL, featureFile=param$ezRef["refFeatureFile"],
 
 ##' @describeIn ezLoadFeatures Gets the attribute from the specified \code{field}.
 ezGffAttributeField = function (x, field, attrsep = ";", valuesep="=") {
-  x[ !ezGrepl(paste0(field, valuesep), x)] = NA
-  x = sub(paste0(".*", field, valuesep), "", x)
-  x = sub(paste0(attrsep, ".*"), "", x)
-  x = sub("^\"", "", sub("\"$", "", x))
+  require(stringr)
+  ## gene_id "ENSG00000278267"; gene_version "1"; gene_name "MIR6859-1"; gene_source "mirbase"; gene_biotype "miRNA"; transcript_id "ENST00000619216"; transcript_version "1"; transcript_name "MIR6859-1-201"; transcript_source "mirbase"; transcript_biotype "miRNA"; tag "basic"; transcript_support_level "NA";
+  x <- str_extract(gff$attributes,
+                   paste(field, paste0("\"{0,1}[^\"]+\"{0,1}", attrsep),
+                         sep=valuesep)
+                   )
+  x <- sub(paste(field, "\"{0,1}", sep=valuesep), "", x)
+  x <- sub(paste0("\"{0,1}",attrsep, "$"), "", x)
+  # This implementation is 2 times faster than the old implementation below.
+  # Old: 30.419 seconds; New: 6.353 seconds
+  
+#  x[ !ezGrepl(paste0(field, valuesep), x)] = NA
+#  x = sub(paste0(".*", field, valuesep), "", x)
+#  x = sub(paste0(attrsep, ".*"), "", x)
+#  x = sub("^\"", "", sub("\"$", "", x))
   return(x)
 }
 
