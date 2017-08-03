@@ -16,6 +16,12 @@ ezMethodScater = function(input=NA, output=NA, param=NA, htmlFile="00index.html"
   ## input refers to a meta input
   dsFile = input$getFullPaths("CountDataset")
   cmFile = input$getFullPaths("CountMatrix")
+  phases = NULL
+  if ("CellCyclePhase" %in% input$colNames && any(nchar(input$getColumn("CellCyclePhase")) > 0)) {
+	  phaseFile = input$getFullPaths("CellCyclePhase")
+	  phases = read.delim(phaseFile, header = T, stringsAsFactors = F)
+  }
+  
 
   ## we replace the input with the actual input
   input = EzDataset(file=dsFile, dataRoot=param$dataRoot)
@@ -28,6 +34,10 @@ ezMethodScater = function(input=NA, output=NA, param=NA, htmlFile="00index.html"
   if (!is.null(param$removeOutliers) && param$removeOutliers && !is.null(meta$Outlier)){
     meta = meta[toupper(meta$Outlier) %in% c("", "NO", '""', "FALSE") == TRUE, ]
   }
+  if (!is.null(phases)) {
+    meta$Phase = phases$Phase
+  }
+  
   input$meta = meta
 
   titles = list()

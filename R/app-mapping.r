@@ -334,7 +334,7 @@ ezMethodSTAR = function(input=NA, output=NA, param=NA){
 
   ## check the strandedness
   if (!is.null(param$checkStrandness) && param$checkStrandness){
-    cat(Sys.getenv("PATH"))
+    cat(Sys.getenv("PATH"), "\n")
     bedFile = getReferenceFeaturesBed(param)
     ezSystem(paste("infer_experiment.py", "-r", bedFile, "-i", basename(bamFile), "-s 1000000"))
   }

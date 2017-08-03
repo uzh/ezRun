@@ -37,6 +37,8 @@ ezMethodSingleCellCounts = function(input=NA, output=NA, param=NA, htmlFile="00i
            if (!grepl("genomeLoad", bamParam$cmdOptions)){
              bamParam$cmdOptions = paste("--genomeLoad LoadAndKeep" , bamParam$cmdOptions)
            }
+           # LoadAndKeep is not compatible with twopassMode
+           bamParam$twopassMode = F
            if (!grepl("outSAMattributes", bamParam$cmdOptions)){
              bamParam$cmdOptions = paste(bamParam$cmdOptions, "--outSAMattributes All")
            }
@@ -106,6 +108,19 @@ ezMethodSingleCellCounts = function(input=NA, output=NA, param=NA, htmlFile="00i
     counts[rownames(x), nm] = x[ , "matchCounts"]
   }
   ezWrite.table(counts, head=paste0(param$featureLevel, "_id"), file=basename(output$getColumn('CountMatrix')))
+  
+  # Determine cell cycle phases. The training data is only available for Hsap and Mmus Ensembl
+  trainData = NULL
+  if (startsWith(param$refBuild, "Homo_sapiens/Ensembl")) {
+    trainData = readRDS(system.file("exdata", "human_cycle_markers.rds", package = "scran"))
+  } else if (startsWith(param$refBuild, "Mus_musculus/Ensembl")) {
+    trainData = readRDS(system.file("exdata", "mouse_cycle_markers.rds", package = "scran"))
+  }
+  if (! is.null(trainData)) {
+    cellCycleData = scran::cyclone(counts, trainData)
+    cellPhase = data.frame(Name = colnames(counts), Phase = cellCycleData$phases)
+    write.table(cellPhase, file = basename(output$getColumn('CellCyclePhase')), quote = F, sep = "\t", row.names = F)
+  }
   return("SUCCESS")
 }
 
