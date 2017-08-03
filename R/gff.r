@@ -19,13 +19,16 @@
 ##' gtfFile = system.file("extdata/genes.gtf", package="ezRun", mustWork=TRUE)
 ##' gtf = ezLoadFeatures(param, gtfFile)
 ##' attrField = ezGffAttributeField(gtf$attributes, field="transcript_id", attrsep="; *", valuesep=" ")
-ezLoadFeatures = function(param=NULL, featureFile=param$ezRef["refFeatureFile"], types=NULL){
+ezLoadFeatures = function(param=NULL, featureFile=param$ezRef["refFeatureFile"], 
+                          types=NULL){
   
   if (!ezIsSpecified(featureFile)){
     ezWrite("no features specified in param")
     return(NULL)
   }
+  
   gff = ezReadGff(featureFile)
+  
   gff = gff[!ezGrepl(c("CDS", "codon", "UTR", "protein"), gff$type, ignore.case=TRUE), ]
   if (getSuffix(featureFile) == "gtf" ){
     gff$transcript_id = 	ezGffAttributeField(gff$attributes, field="transcript_id", attrsep="; *", valuesep=" ")
@@ -131,12 +134,22 @@ ezBuildAttributeField = function(x, format="gtf"){
 ##' gtf = ezReadGff(system.file("extdata/genes.gtf", package="ezRun", mustWork=TRUE))
 ##' ezWriteGff(gtf,"newgtf")
 ezReadGff = function(gffFile, nrows = -1) {
-  gff = read.table(gffFile, sep="\t", as.is=TRUE, quote="",
-                   header=FALSE, comment.char="#", nrows = nrows,
-                   colClasses=c("character", "character", "character", "integer", "integer",
-                                "character", "character", "character", "character"))
-  colnames(gff) = c("seqid", "source", "type", "start", "end",
-                    "score", "strand", "phase", "attributes")
+  require(data.table)
+  gff <- fread(gffFile, sep="\t", header=FALSE, data.table=FALSE,
+               quote="", col.names=c("seqid", "source", "type", "start", "end",
+                                     "score", "strand", "phase", "attributes"),
+               colClasses=c("character", "character", "character", "integer", 
+                            "integer", "character", "character", "character",
+                            "character"),
+               nrows=nrows)
+  # fread is much faster than read.table.
+  # human genes.gtf, read.table: 97.124 seconds. fread: 5.976 seconds
+  # gff = read.table(gffFile, sep="\t", as.is=TRUE, quote="",
+  #                 header=FALSE, comment.char="#", nrows = nrows,
+  #                 colClasses=c("character", "character", "character", "integer", "integer",
+  #                              "character", "character", "character", "character"))
+  # colnames(gff) = c("seqid", "source", "type", "start", "end",
+  #                  "score", "strand", "phase", "attributes")
   stopifnot(!any(is.na(gff$start)), !any(is.na(gff$end)))
   return(gff)
 }
