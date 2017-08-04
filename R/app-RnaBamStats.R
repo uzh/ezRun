@@ -448,7 +448,7 @@ getStatsFromBamSingleChrom = function(chrom, param, bamFile, sm, nReads, gff=NUL
 
 ##' @describeIn computeBamStats Gets the counts of the target types for \code{getStatsFromBam()}.
 getTargetTypeCounts = function(param, gff, rr, seqid=NULL, repeatsGff=NULL){
-  
+  require(data.table)
   if (class(rr) == "GRangesList"){
     #sn = unlist(sn, use.names=FALSE)[sn@partitioning@end]
     stop("GRangesList not supported")
@@ -465,11 +465,14 @@ getTargetTypeCounts = function(param, gff, rr, seqid=NULL, repeatsGff=NULL){
   #effWidth = sum(as.numeric(seqlengths(rr))) * ifelse(param$isStranded, 2, 1)
   effWidth = (seqlengths(rr) * ifelse(param$strandMode == "both", 2, 1))[seqNames]
   result = data.frame(count=0, width=effWidth, row.names=seqNames)
-  readCounts = table(as.character(seqnames(rr)))
+  #readCounts = table(as.character(seqnames(rr)))
+  readCounts <- table(seqnames(rr)) # It also works with different order
+  
   result[seqNames, "count"] = readCounts[seqNames]
   result$count[is.na(result$count)] = 0 ## if a chromosome has no reads the value would be na
   
-  hasAnyHit = rep(FALSE, length(rr))
+  #hasAnyHit = rep(FALSE, length(rr))
+  hasAnyHit <- logical(length(rr))
   repeatsRanges = NULL
   gffRanges = NULL
   
@@ -500,14 +503,29 @@ getTargetTypeCounts = function(param, gff, rr, seqid=NULL, repeatsGff=NULL){
       gffRanges = gffToRanges(gff)
       ensemblTypes = getEnsemblTypes(gff)
       if (!is.null(ensemblTypes)){
-        for (type in unique(ensemblTypes)){
-          targetRanges = gffRanges[ensemblTypes == type]
-          hitsTarget = overlapsAny(rr, targetRanges, minoverlap=10)
-          result[type, ] = c(sum(hitsTarget), sum(width(reduce(targetRanges))))
-          hasAnyHit = hasAnyHit | hitsTarget
-        }
+        # for (type in unique(ensemblTypes)){
+        #   targetRanges = gffRanges[ensemblTypes == type]
+        #   hitsTarget = overlapsAny(rr, targetRanges, minoverlap=10)
+        #   result[type, ] = c(sum(hitsTarget), sum(width(reduce(targetRanges))))
+        #   hasAnyHit = hasAnyHit | hitsTarget
+        # }
+        ## The following code is much faster than the loop above.
+        ## The loop: 537.492 seconds;
+        ## New implementation: 184 seconds
+        hits <- findOverlaps(rr, gffRanges, minoverlap=10)
+        hitsByType <- data.table(queryHits=queryHits(hits), 
+                                 ensemblTypes=ensemblTypes[subjectHits(hits)])
+        hitsByType <- unique(hitsByType)
+        countsByType <- hitsByType[ , .N, by=ensemblTypes]
+        widthByType <- sum(width(reduce(GenomicRanges::split(gffRanges, 
+                                                             ensemblTypes))))
+        hasAnyHit[hitsByType$queryHits] <- TRUE
+        result[countsByType$ensemblTypes, ] <- cbind(countsByType$N,
+                                                     widthByType[countsByType$ensemblTypes])
+        
         isMsg = ensemblTypes == "protein_coding" & gff$type == "exon"
-        msgRanges = gffGroupToRanges(gff[isMsg, ], gff$transcript_id[isMsg], skipTransSpliced = TRUE)
+        msgRanges = gffGroupToRanges(gff[isMsg, ], gff$transcript_id[isMsg], 
+                                     skipTransSpliced = TRUE)
         targetExonRanges = gffRanges[isMsg]
       } else {
         rootTypes = setdiff(gff$type, c("intron", "exon"))
@@ -519,7 +537,8 @@ getTargetTypeCounts = function(param, gff, rr, seqid=NULL, repeatsGff=NULL){
           hasAnyHit = hasAnyHit | hitsTarget
         }
         isExon = gff$type == "exon"
-        msgRanges = gffGroupToRanges(gff[isExon, ], gff$transcript_id[isExon], skipTransSpliced = TRUE)
+        msgRanges = gffGroupToRanges(gff[isExon, ], gff$transcript_id[isExon], 
+                                     skipTransSpliced = TRUE)
         targetExonRanges = gffRanges[isExon]
       }
       ## check additionally for intron/exon/prom
