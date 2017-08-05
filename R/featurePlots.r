@@ -178,10 +178,13 @@ getTranscriptCoverage = function(chrom, gff, reads, strandMode="both"){
   }
   gffExon = gffExon[order(gffExon$start), ]
   exonRanges = gffToRanges(gffExon)
-  exonCov = getRangesCoverageChrom(chrom, exonRanges, reads, strandMode=strandMode)
-  transcriptCov = tapply(exonCov, gffExon$transcript_id, function(exonCovList){
-    Rle(values=unlist(lapply(exonCovList, runValue)), lengths=unlist(lapply(exonCovList, runLength)))}, 
-                         simplify=FALSE)
+  exonCov = getRangesCoverage(exonRanges, reads, strandMode=strandMode)
+  transcriptCov <- S4Vectors::split(exonCov[1:100], names(exonCov)[1:100])
+  
+  #transcriptCov = tapply(exonCov, gffExon$transcript_id, function(exonCovList){
+  #  Rle(values=unlist(lapply(exonCovList, runValue)), lengths=unlist(lapply(exonCovList, runLength)))}, 
+  #                       simplify=FALSE)
+  
   trStrand = gffExon$strand[match(names(transcriptCov), gffExon$transcript_id)]
   indexNegStrand = which(trStrand == "-")
   transcriptCov[indexNegStrand] = lapply(transcriptCov[indexNegStrand], rev)
@@ -189,37 +192,47 @@ getTranscriptCoverage = function(chrom, gff, reads, strandMode="both"){
 }
 
 ##' @describeIn getTranscriptCoverage Gets the range coverage.
-getRangesCoverageChrom = function(chrom=NULL, ranges, reads, strandMode="both"){
-  if(!is.null(chrom)){
-    stopifnot(runValue(seqnames(ranges)) == chrom)
-  }
+getRangesCoverage = function(ranges, reads, strandMode="both"){
+  require(GenomicAlignments)
+  #if(!is.null(chrom)){
+  #  stopifnot(runValue(seqnames(ranges)) == chrom)
+  #}
   if (length(ranges) == 0){
-    return(list())
+    return(RleList())
   }
   stopifnot(strandMode %in% c("both", "sense", "antisense"))
-  rangeCov = vector("list", length(ranges))
+  #rangeCov = vector("list", length(ranges))
   if (strandMode == "both"){
-    if (is.null(chrom)){
-      covChrom = coverage(reads)
-      rangeCov = mapply(function(chr, s, e){covChrom[[chr]][s:e]},
-                        as.character(seqnames(ranges)), start(ranges), end(ranges))
-    } else {
+    #if (is.null(chrom)){
+    covChrom = coverage(reads)
+    rangeCov <- covChrom[ranges]
+    #  rangeCov = mapply(function(chr, s, e){covChrom[[chr]][s:e]},
+    #                    as.character(seqnames(ranges)), start(ranges), end(ranges))
+    #} else {
       # although this can be done in the same way above. But [[chrom]] first can speed up.
-      covChrom = coverage(reads)[[chrom]]
-      rangeCov = mapply(function(s,e){covChrom[s:e]}, start(ranges), end(ranges))
-    }
+    #  covChrom = coverage(reads)[[chrom]]
+    #  rangeCov = mapply(function(s,e){covChrom[s:e]}, start(ranges), end(ranges))
+    #}
   } else {
     if (strandMode == "antisense"){
       strand(ranges) = flipStrand(strand(ranges))
     }
-    isPos = as.character(strand(ranges)) == "+"
-    use = strand(reads)== "+"
-    covPos = coverage(reads[use])[[chrom]]
-    rangeCov[isPos] = mapply(function(s,e){covPos[s:e]}, start(ranges[isPos]), end(ranges[isPos]))
+    #isPos = as.character(strand(ranges)) == "+"
+    isPos <- strand(ranges) == "+"
+    use = strand(reads) == "+"
+    covPos = coverage(reads[use])
+    rangeCovPos <- covPos[ranges[isPos]]  ## This is ultra-fast. 1 seconds..
+    names(rangeCovPos) <- which(as.logical(isPos))
+    #rangeCov[isPos] = mapply(function(chr,s,e){covPos[[chr]][s:e]}, as.character(seqnames(ranges[isPos])), start(ranges[isPos]), end(ranges[isPos]))  ## This is too slow! Takes 1046.812 seconds
     use = strand(reads)== "-"
-    covNeg = coverage(reads[strand(reads)== "-"])[[chrom]]
-    rangeCov[!isPos] = mapply(function(s,e){covNeg[s:e]}, start(ranges[!isPos]), end(ranges[!isPos]))    
+    covNeg = coverage(reads[use])
+    rangeCovNeg <- covNeg[ranges[!isPos]]
+    names(rangeCovNeg) <- which(as.logical(!isPos))
+    #rangeCov[!isPos] = mapply(function(s,e){covNeg[s:e]}, start(ranges[!isPos]), end(ranges[!isPos]))    
+    rangeCov <- c(rangeCovPos, rangeCovNeg)
+    ## reorder into the same order in ranges
+    rangeCov <- rangeCov[order(as.integer(names(rangeCov)))]
   }
-  names(rangeCov) = names(ranges)
+  names(rangeCov) <- names(ranges)
   return(rangeCov)
 }
