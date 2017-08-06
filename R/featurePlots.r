@@ -151,13 +151,6 @@ plotLocusAverageCoverageProfile = function(gRanges, bamFiles, grouping=NULL, gtf
   return(pdfFiles)
 }
 
-
-
-
-
-
-
-
 ##' @title Gets transcripts coverage
 ##' @description Gets transcripts coverage.
 ##' @param chrom a character vector containing chromosome names.
@@ -178,16 +171,38 @@ getTranscriptCoverage = function(chrom, gff, reads, strandMode="both"){
   }
   gffExon = gffExon[order(gffExon$start), ]
   exonRanges = gffToRanges(gffExon)
-  exonCov = getRangesCoverage(exonRanges, reads, strandMode=strandMode)
-  transcriptCov <- S4Vectors::split(exonCov[1:100], names(exonCov)[1:100])
+  ## This sorting is not quite necessary because the order above; 
+  ## but for the future, data.frame gff is not ideal.
+  exonRanges <- sort(exonRanges) 
+  exonsByTx <- GenomicRanges::split(exonRanges, names(exonRanges))
+  exonCov <- getRangesCoverage(unlist(exonsByTx, use.names=FALSE),
+                               reads, strandMode=strandMode)
+  #exonCov_old = getRangesCoverage(exonRanges, reads, strandMode=strandMode)
   
-  #transcriptCov = tapply(exonCov, gffExon$transcript_id, function(exonCovList){
-  #  Rle(values=unlist(lapply(exonCovList, runValue)), lengths=unlist(lapply(exonCovList, runLength)))}, 
-  #                       simplify=FALSE)
+  #system.time(transcriptCov2 <- S4Vectors::split(exonCov, names(exonCov)))
+  transcriptCov <- relist(exonCov, exonsByTx)
+  # system.time(transcriptCov3 <- tapply(exonCov, names(exonCov), unlist))
+  ## These two methods are still relative slow. Should be faster than old tapply implementation.
+  ## split: 7023.148 seconds.
+  ## relist: 6879 seconds.
+  ## tapply: 7474.300 seconds.
   
-  trStrand = gffExon$strand[match(names(transcriptCov), gffExon$transcript_id)]
-  indexNegStrand = which(trStrand == "-")
-  transcriptCov[indexNegStrand] = lapply(transcriptCov[indexNegStrand], rev)
+  #system.time(transcriptCov_old <- tapply(exonCov, names(exonCov), function(exonCovList){
+  # Rle(values=unlist(lapply(exonCovList, runValue)), lengths=unlist(lapply(exonCovList, runLength)))}, 
+  #                       simplify=FALSE))
+  # 12939.112 seconds
+  
+  transcriptCov <- endoapply(transcriptCov, unlist)
+  # 169.468 seconds
+  transcriptCov <- RleList(transcriptCov)
+  txNegStrand <- unlist(unique(strand(exonsByTx))) == "-"
+  stopifnot(length(txNegStrand) == length(exonsByTx)) ## Only one strand from each transcript
+  txNegStrand <- which(txNegStrand)
+  transcriptCov <- revElements(transcriptCov, txNegStrand)
+  #trStrand = gffExon$strand[match(names(transcriptCov), gffExon$transcript_id)]
+  #indexNegStrand = which(trStrand == "-")
+  #transcriptCov[indexNegStrand] = lapply(transcriptCov[indexNegStrand], rev)
+  
   return(transcriptCov)
 }
 
