@@ -273,10 +273,13 @@ getStatsFromBam = function(param, bamFile, sm, gff=NULL, repeatsGff=NULL, nReads
     result = getStatsFromBamSingleChrom(NULL, param, bamFile, sm, nReads, gff, repeatsGff)
   }
   transcriptCov = result$transcriptCov    
-  transcriptLengthCov = sapply(transcriptCov, function(x){sum(x>0)})
-  transcriptLengthTotal = sapply(transcriptCov, length)
+  # transcriptLengthCov = sapply(transcriptCov, function(x){sum(x>0)}) slow!
+  transcriptLengthCov = sum(transcriptCov > 0)
+  # transcriptLengthTotal = sapply(transcriptCov, length) slow!
+  transcriptLengthTotal <- elementNROWS(transcriptCov)
   percentCovered = transcriptLengthCov / transcriptLengthTotal * 100
-  percentCoveredHist = hist(percentCovered, breaks=c(0, seq(from=0, to=100, by=2)), plot=FALSE)
+  percentCoveredHist = hist(percentCovered, 
+                            breaks=c(0, seq(from=0, to=100, by=2)), plot=FALSE)
   result$TranscriptsCovered = percentCoveredHist
   
   ## Do the genebody_coverage
@@ -402,26 +405,31 @@ getStatsFromBamSingleChrom = function(chrom, param, bamFile, sm, nReads, gff=NUL
   result = list()
   seqLengths = ezBamSeqLengths(bamFile)
   if (param$paired){
-    reads = ezReadPairedAlignments(bamFile, seqname=chrom, keepUnpaired=param$keepUnpaired,
-                                                  minMapQuality=param$minMapQuality, keepMultiHits=param$keepMultiHits)
+    reads = ezReadPairedAlignments(bamFile, seqname=chrom, 
+                                   keepUnpaired=param$keepUnpaired,
+                                   minMapQuality=param$minMapQuality,
+                                   keepMultiHits=param$keepMultiHits)
   } else {
-    reads = ezReadGappedAlignments(bamFile, seqname=chrom, minMapQuality=param$minMapQuality, keepMultiHits=param$keepMultiHits)	
+    reads = ezReadGappedAlignments(bamFile, seqname=chrom, 
+                                   minMapQuality=param$minMapQuality,
+                                   keepMultiHits=param$keepMultiHits)	
   }
   if (isError(reads)){
     return(reads)
   }
   #isMultiHit = my.duplicated(names(reads), mode = "all")
   if (length(reads) > 0){
-    result$segmentCountHist = intHist(njunc(reads)+1, range=c(0.5, 10.5), plot=FALSE)
+    result$segmentCountHist = intHist(njunc(reads)+1, range=c(0.5, 10.5),
+                                      plot=FALSE)
   }
   #ezWriteElapsed(job, "segment hist done")
   gc()
   
   if(param$paired && length(reads) > 0){
     pairedNames = ezScanBam(bamFile, seqname=chrom, 
-                                 isFirstMateRead=TRUE, isSecondMateRead=FALSE, isProperPair=TRUE,
-                                 isUnmappedQuery=FALSE, isDuplicate=!param$ignoreDup,
-                                 what="qname")$qname
+                            isFirstMateRead=TRUE, isSecondMateRead=FALSE,
+                            isProperPair=TRUE, isUnmappedQuery=FALSE,
+                            isDuplicate=!param$ignoreDup, what="qname")$qname
     use = names(reads) %in% pairedNames
     result$fragSizeHist = intHist(width(reads)[use], 
                                   range=c(-0.5, param$fragSizeMax + 0.5), plot=FALSE)
@@ -429,14 +437,16 @@ getStatsFromBamSingleChrom = function(chrom, param, bamFile, sm, nReads, gff=NUL
     gc()
   }
   
-  result$multiMatchTargetTypeCounts = getTargetTypeCounts(param, gff, reads, seqid=chrom, repeatsGff)
-  result$geneCounts = getFeatureCounts(chrom=chrom, gff=gff[gff$type == "exon", ], reads=reads, param=param)
+  result$multiMatchTargetTypeCounts = getTargetTypeCounts(param, gff, reads,
+                                                          seqid=chrom, repeatsGff)
+  result$geneCounts = getFeatureCounts(chrom=chrom, gff=gff[gff$type == "exon", ],
+                                       reads=reads, param=param)
   #ezWriteElapsed(job, "multi match type counts")
   #if (any(isMultiHit)){
   #	result$uniqueMatchTargetTypeCounts = getTargetTypeCounts(param, gff, reads[!isMultiHit])
   #	ezWriteElapsed(job, "unique match type counts")
   #}
-  
+  gc()
   ## Do transcripts covered
   result$transcriptCov = getTranscriptCoverage(chrom, gff, reads, strandMode=param$strandMode)
   gc()
