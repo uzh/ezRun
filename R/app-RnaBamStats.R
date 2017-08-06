@@ -67,7 +67,8 @@ computeBamStats = function(input, htmlFile, param, gff, resultList=NULL){
   dataset = input$meta
   
   ## get the RNA_repeats if available
-  refRepeatsFeat = file.path(GENOMES_ROOT, param$ezRef["refBuild"], "Repeats/RNA_repeats.gff")
+  refRepeatsFeat = file.path(GENOMES_ROOT, param$ezRef["refBuild"], 
+                             "Repeats/RNA_repeats.gff")
   if (file.exists(refRepeatsFeat)){
     repeatsGff = ezReadGff(refRepeatsFeat)
   } else {
@@ -84,7 +85,9 @@ computeBamStats = function(input, htmlFile, param, gff, resultList=NULL){
     resultList = list()
     for (sm in samples){
       message(sm)
-      resultList[[sm]] = getStatsFromBam(param, files[sm], sm, gff=gff, repeatsGff=repeatsGff, nReads=dataset[sm, "Read Count"])
+      resultList[[sm]] = getStatsFromBam(param, files[sm], sm, gff=gff, 
+                                         repeatsGff=repeatsGff, 
+                                         nReads=dataset[sm, "Read Count"])
       if (isError(resultList[[sm]])){
         writeErrorReport(htmlFile, param=param, error=resultList[[sm]]$error)
         return()
@@ -101,7 +104,7 @@ computeBamStats = function(input, htmlFile, param, gff, resultList=NULL){
       }
       rm(errorRates)
       gc()
-    }    
+    }
     ## do the analysis from package rseqc
     junctionsResults = ezMclapply(files, getJunctionPlotsFromBam, param, mc.preschedule=TRUE,
                                    mc.cores = min(length(files), ezThreads()))
@@ -322,11 +325,14 @@ getStatsFromBam = function(param, bamFile, sm, gff=NULL, repeatsGff=NULL,
 }
 
 ##' @describeIn computeBamStats Gets parallel by chromosome statistics for \code{getStatsFromBam()} if the logical \code{param$splitByChrom} is true.
-getStatsFromBamParallel = function(seqLengths, param, bamFile, sm, nReads, gff=NULL, repeatsGff=NULL, mc.cores=ezThreads()){
+getStatsFromBamParallel = function(seqLengths, param, bamFile, sm, nReads, 
+                                   gff=NULL, repeatsGff=NULL, 
+                                   mc.cores=ezThreads()){
   seqNames = names(sort(seqLengths, decreasing=TRUE))
   names(seqNames) = seqNames
-  chromResults = ezMclapply(seqNames, getStatsFromBamSingleChrom, param, bamFile, sm, nReads, gff, repeatsGff,
-                             mc.preschedule=FALSE, mc.cores=ezThreads())
+  chromResults = ezMclapply(seqNames, getStatsFromBamSingleChrom, param, 
+                            bamFile, sm, nReads, gff, repeatsGff,
+                            mc.preschedule=FALSE, mc.cores=ezThreads())
   if (param$saveImage){
     save(chromResults, file=paste0(sm, "-chromResults.RData"))
   }

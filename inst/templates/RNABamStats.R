@@ -16,7 +16,8 @@ param[['specialOptions']] = ''
 param[['mail']] = 'ge.tan@fgcz.ethz.ch'
 param[['dataRoot']] = '/srv/gstore/projects'
 param[['resultDir']] = 'p2438/RNABamStats_18683_2017-06-12--16-29-29'
-param[['splitByChrom']] = 'false'
+param[['splitByChrom']] = 'true'
+param[['saveImage']] = 'true'
 output = list()
 output[['Name']] = 'RNA_BAM_Statistics'
 output[['Report [File]']] = 'p2438/RNABamStats_18683_2017-06-12--16-29-29/RNA_BAM_Statistics'
@@ -25,7 +26,7 @@ output[['Species']] = ''
 output[['refBuild']] = 'Homo_sapiens/Ensembl/GRCh38.p10/Annotation/Release_89-2017-05-31'
 output[['refFeatureFile']] = 'genes.gtf'
 input = 'input_dataset.tsv'
-debug("getTargetTypeCounts")
+debug("getStatsFromBamParallel")
 EzAppRnaBamStats$new()$run(input=input, output=output, param=param)
 
 # debug
