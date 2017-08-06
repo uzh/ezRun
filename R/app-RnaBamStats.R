@@ -221,6 +221,7 @@ ezPosSpecErrorRate = function(bam, ReferenceGenome, nMaxReads=100000){
   bam$seq = paste0(Xbegin, bam$seq, Xend)
   
   seqChar = strsplit(as.character(bam$seq),"")
+  ## TODO: this sapply(, length) should be replaced with lengths.
   readLength = sapply(seqChar, length)
   ## build the reference views object
   maxLength = quantile(readLength, 0.95)
@@ -260,7 +261,8 @@ ezPosSpecErrorRate = function(bam, ReferenceGenome, nMaxReads=100000){
 }
 
 ##' @describeIn computeBamStats Gets the result statistics from the BAM file.
-getStatsFromBam = function(param, bamFile, sm, gff=NULL, repeatsGff=NULL, nReads=NA){
+getStatsFromBam = function(param, bamFile, sm, gff=NULL, repeatsGff=NULL, 
+                           nReads=NA){
   require("bitops", warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
   job = ezJobStart(paste("count", bamFile))
   seqLengths = ezBamSeqLengths(bamFile)  
@@ -268,9 +270,12 @@ getStatsFromBam = function(param, bamFile, sm, gff=NULL, repeatsGff=NULL, nReads
     seqLengths = seqLengths[param$seqNames]
   }
   if (is.null(param$splitByChrom) || param$splitByChrom){
-    result = getStatsFromBamParallel(seqLengths, param, bamFile, sm, nReads, gff, repeatsGff, mc.cores=ezThreads())
+    result = getStatsFromBamParallel(seqLengths, param, bamFile, sm, nReads, 
+                                     gff, repeatsGff, mc.cores=ezThreads())
   } else {
-    result = getStatsFromBamSingleChrom(NULL, param, bamFile, sm, nReads, gff, repeatsGff)
+    stop("getBamMultiMatching is not computed by getStatsFromBamSingleChrom")
+    result = getStatsFromBamSingleChrom(NULL, param, bamFile, sm, nReads, gff, 
+                                        repeatsGff)
   }
   transcriptCov = result$transcriptCov    
   # transcriptLengthCov = sapply(transcriptCov, function(x){sum(x>0)}) slow!
@@ -283,11 +288,14 @@ getStatsFromBam = function(param, bamFile, sm, gff=NULL, repeatsGff=NULL, nReads
   result$TranscriptsCovered = percentCoveredHist
   
   ## Do the genebody_coverage
-  sampledTranscriptCov = sapply(transcriptCov, function(x){as.integer(x[round(seq(1, length(x), length.out=101))])})
+  sampledTranscriptCov = sapply(transcriptCov, 
+                                function(x){as.integer(x[round(seq(1, length(x), length.out=101))])})
   trUse = colSums(sampledTranscriptCov) > 0
   sampledTranscriptCov = sampledTranscriptCov[ , trUse, drop=FALSE]
   trLength = transcriptLengthTotal[trUse]
-  lengthClasses = ezCut(trLength, breaks=c(399, 999, 4000), labels=c("less than 400nt", "400 to 1000nt", "1000 to 4000nt", "above 4000nt"))
+  lengthClasses = ezCut(trLength, breaks=c(399, 999, 4000), 
+                        labels=c("less than 400nt", "400 to 1000nt", 
+                                 "1000 to 4000nt", "above 4000nt"))
   genebody_coverage = list()
   for (lc in levels(lengthClasses)){
     isInLc = lengthClasses == lc
@@ -297,7 +305,9 @@ getStatsFromBam = function(param, bamFile, sm, gff=NULL, repeatsGff=NULL, nReads
       relativeCov = ezScaleColumns(ltc, 1/colSums(ltc)) ## normalize so that every transcripts adds the same weight
       avgCovQuant = unique(quantile(avgCov, c(0.25, 0.75)))
       if (length(avgCovQuant) == 2){
-        covClasses = ezCut(avgCov, breaks=avgCovQuant, labels=c("low expressed", "medium expressed", "high expressed"))
+        covClasses = ezCut(avgCov, breaks=avgCovQuant,
+                           labels=c("low expressed", "medium expressed", 
+                                    "high expressed"))
         genebody_coverage[[lc]] = list()
         for (cc in levels(covClasses)){
           genebody_coverage[[lc]][[cc]] = rowMeans(relativeCov[ , covClasses == cc, drop=FALSE ])
@@ -371,7 +381,8 @@ getStatsFromBamParallel = function(seqLengths, param, bamFile, sm, nReads, gff=N
   
   #mytotal = colSums(temp[names(seqLengths), ])
   #result$multiMatchTargetTypeCounts = rbind(total=mytotal, temp)
-  tempNamesOrdered = intersect(c(setdiff(rownames(temp), seqNames), seqNames), rownames(temp))
+  tempNamesOrdered = intersect(c(setdiff(rownames(temp), seqNames), seqNames), 
+                               rownames(temp))
   result$multiMatchTargetTypeCounts = temp[tempNamesOrdered, ,drop=FALSE]
   rm(temp)
   gc()
@@ -385,6 +396,8 @@ getStatsFromBamParallel = function(seqLengths, param, bamFile, sm, nReads, gff=N
   }
   result$geneCounts = geneCounts
   result$seqLengths = seqLengths
+  
+  ## TODO: this getBamMultiMatching should be moved to computeBamStats
   result$multiMatchInFileTable = getBamMultiMatching(param, bamFile, nReads)
   
   ## Merge the TranscriptsCovered results
@@ -397,8 +410,8 @@ getStatsFromBamParallel = function(seqLengths, param, bamFile, sm, nReads, gff=N
 }
 
 ##' @describeIn computeBamStats Gets the statistics of a single chromosome for \code{getStatsFromBam()}.
-getStatsFromBamSingleChrom = function(chrom, param, bamFile, sm, nReads, gff=NULL, repeatsGff=NULL){
-  
+getStatsFromBamSingleChrom = function(chrom, param, bamFile, sm, nReads, 
+                                      gff=NULL, repeatsGff=NULL){
   require("bitops", warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
   message("Processing chr ", ifelse(is.null(chrom), "all", chrom))
   
