@@ -23,6 +23,7 @@ HUMAN_DBSNP="/srv/GT/databases/dbSNP/release142/"
 TEQC_DESIGN_DIR="/srv/GT/databases/targetEnrichment_designs"
 REFSEQ_mRNA_REF='/srv/GT/reference/RefSeq/mRNA/20150301/Sequence/BOWTIE2Index/transcriptome'
 REFSEQ_pathogenicHumanViruses_REF='/srv/GT/reference/Viruses/ncbi/humanPathogenic_20170419/Sequence/BOWTIE2Index/genome'
+TARGET_ENRICHMENT_DESIGN_DIR="/srv/GT/databases/targetEnrichment_designs/bedFiles"
 
 ## timout is in minutes
 INDEX_BUILD_TIMEOUT=180 
