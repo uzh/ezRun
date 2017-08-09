@@ -170,7 +170,8 @@ ezPosSpecErrorRate = function(bam, ReferenceGenome, nMaxReads=100000){
   require("Hmisc", warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
   ## remove the reads containing the gaps, insertions, deletions
   hasGap = grepl("N|I|D", bam$cigar)
-  readLength = nchar(as.character(bam$seq))
+  #readLength = nchar(as.character(bam$seq))
+  readLength <- width(bam$seq)
   isOutOfRange = bam$pos + readLength - 1 > length(ReferenceGenome) | bam$pos < readLength ## this is very conservative; needed because there might be clipped bases in the beginning
   if (any(isOutOfRange)){
     ezWrite("#reads out of range: ", sum(isOutOfRange))
@@ -223,15 +224,14 @@ ezPosSpecErrorRate = function(bam, ReferenceGenome, nMaxReads=100000){
   nEndClipped = noOfH + noOfS
   bam$seq = paste0(Xbegin, bam$seq, Xend)
   
-  seqChar = strsplit(as.character(bam$seq),"")
-  ## TODO: this sapply(, length) should be replaced with lengths.
-  readLength = sapply(seqChar, length)
+  seqChar = strsplit(bam$seq,"")
+  readLength <- lengths(seqChar)
   ## build the reference views object
   maxLength = quantile(readLength, 0.95)
   if (maxLength < max(readLength)){
     readLength[readLength > maxLength] = maxLength
     seqChar = mapply(function(x, l){x[1:l]}, seqChar, readLength)
-  }  
+  }
   ReferenceViews = Views(ReferenceGenome, start=bam$pos, width=readLength)
   referenceChar = strsplit(as.character(ReferenceViews), "")
   
@@ -260,7 +260,8 @@ ezPosSpecErrorRate = function(bam, ReferenceGenome, nMaxReads=100000){
   names(errorRate) = 1:nrow(matchMatrix)
   names(clippedRate) = 1:nrow(matchMatrix)
   names(trimmedRate) = 1:nrow(matchMatrix)
-  return(list(trimmedRate=trimmedRate, clippedRate=clippedRate, errorRate=errorRate))
+  return(list(trimmedRate=trimmedRate, clippedRate=clippedRate, 
+              errorRate=errorRate))
 }
 
 ##' @describeIn computeBamStats Gets the result statistics from the BAM file.
