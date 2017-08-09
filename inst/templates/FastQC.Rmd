@@ -124,7 +124,7 @@ if(nrow(dataset) > 1){
 }
 ```
 
-### Heatmaps of reads/concentration perl cell on the plate
+### Heatmaps of reads/concentration per cell on the plate
 Sequenced reads or concentration per cell, on the plate layout.
 The current supported plate layout format is "PlateNumber_[A-Z][Integer]", e.g. "1_A2".
 Otherwise, the platelayout is not shown.
