@@ -192,14 +192,14 @@ getTranscriptCoverage = function(chrom, gff, reads, strandMode="both"){
   #                       simplify=FALSE))
   # 12939.112 seconds
   
-  transcriptCov <- endoapply(transcriptCov, unlist)
+  transcriptCov <- lapply(transcriptCov, unlist)
   # 169.468 seconds
-  if(length(transcriptCov) == 0L){
+  #if(length(transcriptCov) == 0L){
     ## This can happen when gff on chrom has 0 ranges.
-    return(RleList())
-  }else{
-    transcriptCov <- RleList(transcriptCov)
-  }
+  #  return(list())
+  #}else{
+  #  transcriptCov <- RleList(transcriptCov)
+  #}
   txNegStrand <- unlist(unique(strand(exonsByTx))) == "-"
   stopifnot(length(txNegStrand) == length(exonsByTx)) ## Only one strand from each transcript
   txNegStrand <- which(txNegStrand)
@@ -208,7 +208,7 @@ getTranscriptCoverage = function(chrom, gff, reads, strandMode="both"){
   #indexNegStrand = which(trStrand == "-")
   #transcriptCov[indexNegStrand] = lapply(transcriptCov[indexNegStrand], rev)
   
-  return(transcriptCov)
+  return(transcriptCov) ## as a list. RleList is unbelievably slow in loop!
 }
 
 ##' @describeIn getTranscriptCoverage Gets the range coverage.

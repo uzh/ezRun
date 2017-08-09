@@ -277,23 +277,31 @@ getStatsFromBam = function(param, bamFile, sm, gff=NULL, repeatsGff=NULL,
     result = getStatsFromBamParallel(seqLengths, param, bamFile, sm, nReads, 
                                      gff, repeatsGff, mc.cores=ezThreads())
   } else {
-    stop("getBamMultiMatching is not computed by getStatsFromBamSingleChrom")
     result = getStatsFromBamSingleChrom(NULL, param, bamFile, sm, nReads, gff, 
                                         repeatsGff)
   }
+  ## TODO: this getBamMultiMatching should be moved to computeBamStats
+  result$multiMatchInFileTable = getBamMultiMatching(param, bamFile, nReads)
+  
   transcriptCov = result$transcriptCov
+  transcriptCovRleList <- RleList(transcriptCov)
   # transcriptLengthCov = sapply(transcriptCov, function(x){sum(x>0)}) slow!
-  transcriptLengthCov = sum(transcriptCov > 0)
+  transcriptLengthCov = sum(transcriptCovRleList > 0)
   # transcriptLengthTotal = sapply(transcriptCov, length) slow!
-  transcriptLengthTotal <- elementNROWS(transcriptCov)
+  transcriptLengthTotal <- elementNROWS(transcriptCovRleList)
   percentCovered = transcriptLengthCov / transcriptLengthTotal * 100
   percentCoveredHist = hist(percentCovered, 
                             breaks=c(0, seq(from=0, to=100, by=2)), plot=FALSE)
   result$TranscriptsCovered = percentCoveredHist
   
   ## Do the genebody_coverage
-  sampledTranscriptCov = sapply(transcriptCov, 
-                                function(x){as.integer(x[round(seq(1, length(x), length.out=101))])})
+  #sampledTranscriptCov = sapply(transcriptCov, ## RleList will be slow. use list
+  #                              function(x){as.integer(x[round(seq(1, length(x), length.out=101))])})
+  sampledTranscriptCov <- ezMclapply(transcriptCov, ## RleList will be slow. use list
+                                function(x){as.integer(x[round(seq(1, length(x), length.out=101))])},
+                                mc.preschedule=TRUE, mc.cores=ezThreads())
+  sampledTranscriptCov <- do.call(cbind, sampledTranscriptCov)
+  
   trUse = colSums(sampledTranscriptCov) > 0
   sampledTranscriptCov = sampledTranscriptCov[ , trUse, drop=FALSE]
   trLength = transcriptLengthTotal[trUse]
@@ -404,16 +412,13 @@ getStatsFromBamParallel = function(seqLengths, param, bamFile, sm, nReads,
   result$geneCounts = geneCounts
   result$seqLengths = seqLengths
   
-  ## TODO: this getBamMultiMatching should be moved to computeBamStats
-  result$multiMatchInFileTable = getBamMultiMatching(param, bamFile, nReads)
-  
   ## Merge the TranscriptsCovered results
-  #transcriptCov <- RleList()
-  #for(chrom in names(chromResults)){
-  #  transcriptCov = c(transcriptCov, chromResults[[chrom]]$transcriptCov)
-  #}
-  transcriptCov <- Reduce("c", lapply(chromResults, "[[", "transcriptCov"))
-  # RleList object
+  transcriptCov <- list()
+  for(chrom in names(chromResults)){
+    transcriptCov = c(transcriptCov, chromResults[[chrom]]$transcriptCov)
+  }
+  #transcriptCov <- unlist(lapply(chromResults, "[[", "transcriptCov"))
+  # list object
   result$transcriptCov = transcriptCov
   
   return(result)
