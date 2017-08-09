@@ -280,7 +280,7 @@ getStatsFromBam = function(param, bamFile, sm, gff=NULL, repeatsGff=NULL,
     result = getStatsFromBamSingleChrom(NULL, param, bamFile, sm, nReads, gff, 
                                         repeatsGff)
   }
-  transcriptCov = result$transcriptCov    
+  transcriptCov = result$transcriptCov
   # transcriptLengthCov = sapply(transcriptCov, function(x){sum(x>0)}) slow!
   transcriptLengthCov = sum(transcriptCov > 0)
   # transcriptLengthTotal = sapply(transcriptCov, length) slow!
@@ -407,11 +407,14 @@ getStatsFromBamParallel = function(seqLengths, param, bamFile, sm, nReads,
   result$multiMatchInFileTable = getBamMultiMatching(param, bamFile, nReads)
   
   ## Merge the TranscriptsCovered results
-  transcriptCov = c()
-  for(chrom in names(chromResults)){
-    transcriptCov = c(transcriptCov, chromResults[[chrom]]$transcriptCov)
-  }
+  #transcriptCov <- RleList()
+  #for(chrom in names(chromResults)){
+  #  transcriptCov = c(transcriptCov, chromResults[[chrom]]$transcriptCov)
+  #}
+  transcriptCov <- Reduce("c", lapply(chromResults, "[[", "transcriptCov"))
+  # RleList object
   result$transcriptCov = transcriptCov
+  
   return(result)
 }
 
@@ -546,6 +549,11 @@ getTargetTypeCounts = function(param, gff, rr, seqid=NULL, repeatsGff=NULL){
                                  ensemblTypes=ensemblTypes[subjectHits(hits)])
         hitsByType <- unique(hitsByType)
         countsByType <- hitsByType[ , .N, by=ensemblTypes]
+        if(nrow(countsByType) == 0L){
+          ## When there is no hit for all reads
+          countsByType <- data.table(ensemblTypes=unique(ensemblTypes),
+                                     N=0)
+        }
         widthByType <- sum(width(reduce(GenomicRanges::split(gffRanges, 
                                                              ensemblTypes))))
         hasAnyHit[hitsByType$queryHits] <- TRUE

@@ -194,7 +194,12 @@ getTranscriptCoverage = function(chrom, gff, reads, strandMode="both"){
   
   transcriptCov <- endoapply(transcriptCov, unlist)
   # 169.468 seconds
-  transcriptCov <- RleList(transcriptCov)
+  if(length(transcriptCov) == 0L){
+    ## This can happen when gff on chrom has 0 ranges.
+    return(RleList())
+  }else{
+    transcriptCov <- RleList(transcriptCov)
+  }
   txNegStrand <- unlist(unique(strand(exonsByTx))) == "-"
   stopifnot(length(txNegStrand) == length(exonsByTx)) ## Only one strand from each transcript
   txNegStrand <- which(txNegStrand)
