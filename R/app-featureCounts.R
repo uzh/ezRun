@@ -24,13 +24,21 @@ ezMethodFeatureCounts = function(input=NA, output=NA, param=NA){
     ### read_tsv: 27.662s
     ### ezRead.table: 127.461s
     ### import: 33.419s
-    gtf <- fread(param$ezRef@refFeatureFile, header=FALSE)
-    colnames(gtf) = c('seqname','source','feature','start','end','score','strand','frame','attribute')
-    transcripts <- sub("\";$", "", 
-                       sub("^transcript_id \"", "", 
-                           str_extract(gtf$attribute,
-                                       "transcript_id \"[[:alnum:][:punct:]]+\";")))
-    
+    gtf <- fread(param$ezRef@refFeatureFile, header=FALSE, sep="\t", 
+                 quote="", data.table=FALSE,
+                 colClasses=c("character", "character", "character", "integer", 
+                              "integer", "character", "character", "character",
+                              "character"),
+                 col.names=c('seqname','source','feature','start','end',
+                             'score','strand','frame','attribute')
+                 )
+    #transcripts <- sub("\";$", "", 
+    #                   sub("^transcript_id \"", "", 
+    #                       str_extract(gtf$attribute,
+    #                                   "transcript_id \"[[:alnum:][:punct:]]+\";")))
+    transcripts <- ezGffAttributeField(gtf$attribute,
+                                       field="transcript_id", 
+                                       attrsep="; *", valuesep=" ")
     gtf = gtf[transcripts %in% transcriptsUse, ]
     ## write.table is much faster than write_tsv and export.
     ### write_tsv: 38.270s

@@ -182,7 +182,8 @@ ezBam2bigwig = function(bamFile, bigwigPrefix, param=NULL, paired=NULL){
 ##' ga = ezReadGappedAlignments(bamFile)
 ezReadGappedAlignments = function(bamFile, seqname=NULL, start=NULL, end=NULL, strand="*",
                                   tag=character(0), what=character(0), use.names=TRUE,
-                                  isFirstMateRead=NA, isSecondMateRead=NA, isUnmappedQuery=FALSE, isProperPair=NA,
+                                  isFirstMateRead=NA, isSecondMateRead=NA, 
+                                  isUnmappedQuery=FALSE, isProperPair=NA,
                                   isSecondaryAlignment = NA,
                                   minMapQuality=0, keepMultiHits=TRUE){
   ## initialize the parameters for scanBam
@@ -198,8 +199,12 @@ ezReadGappedAlignments = function(bamFile, seqname=NULL, start=NULL, end=NULL, s
   
   ### build and set the flag filter
   isMinusStrand = switch(strand, "-"=TRUE, "+"=FALSE, NA)
-  bamFlag(param) = scanBamFlag(isMinusStrand=isMinusStrand, isFirstMateRead=isFirstMateRead, isSecondMateRead=isSecondMateRead,
-                               isUnmappedQuery=isUnmappedQuery, isProperPair=isProperPair, isSecondaryAlignment=isSecondaryAlignment)
+  bamFlag(param) = scanBamFlag(isMinusStrand=isMinusStrand, 
+                               isFirstMateRead=isFirstMateRead, 
+                               isSecondMateRead=isSecondMateRead,
+                               isUnmappedQuery=isUnmappedQuery, 
+                               isProperPair=isProperPair, 
+                               isSecondaryAlignment=isSecondaryAlignment)
   
   ### limit the returned reads by chromosome and start/end if these are provided
   if (!is.null(seqname)){
@@ -454,41 +459,60 @@ ezReadPairedAlignments = function(bamFile, seqname=NULL, start=NULL, end=NULL, s
 ##' bamFile <- system.file("extdata", "ex1.bam", package="Rsamtools", mustWork=TRUE)
 ##' getBamMultiMatching(param, bamFile, nReads=10000)
 getBamMultiMatching = function(param, bamFile, nReads=NULL){
+  require(data.table)
+  require(Rsamtools)
+  
+  # This data.table based implementation is the fastest and most elegant!
+  # test file: /srv/gstore/projects/p2438/STAR_18564_2017-06-12--13-46-30/26EV_d3_A.bam
+  ## Shell based is ugly and slow. Writing temps to disks. 1534.172 seconds
+  ## table(table()) method is more tidy but slow. 1521.440 seconds + reading qname
+  ## plyr::count is slow: 1770.432 seconds + reading qname
+  ## rle(sort()) is slow: 1781.552 seconds + reading qname
+  ## data.table: 4.036 seconds + reading qname
   
   #  job = ezJobStart(paste("bam multimatch", basename(bamFile)))
-  #   param = ScanBamParam(what="qname")
-  #   bamFlag(param) = scanBamFlag(isUnmappedQuery=FALSE)
-  #   if (!is.null(param$paired)){
+  paramBam = ScanBamParam(what="qname")
+  bamFlag(paramBam) = scanBamFlag(isUnmappedQuery=FALSE)
+  if(isTRUE(param$paired)){
   #     bamFlag(param) = switch(param$paired,
   #                       paired=scanBamFlag(isFirstMateRead=TRUE, isProperPair=TRUE, isUnmappedQuery=FALSE),
   #                       first=scanBamFlag(isFirstMateRead=TRUE, isUnmappedQuery=FALSE),
   #                       second=scanBamFlag(isSecondMateRead=TRUE, isUnmappedQuery=FALSE))
-  #   }
-  #bamReads = scanBam(bamFile, param=param)[[1]]$qname
+    bamFlag(paramBam) = scanBamFlag(isFirstMateRead=TRUE, isProperPair=TRUE, 
+                                    isUnmappedQuery=FALSE)
+  }
+  bamReads = scanBam(bamFile, param=paramBam)[[1]]$qname
+  bamReadsDT <- as.data.table(bamReads)
+  bamReadsDTCount <- bamReadsDT[, .N, by=bamReads]
+  colnames(bamReadsDTCount)[2] <- "qnameN"
+  bamReadsDTCount2 <- bamReadsDTCount[, .N, by=qnameN]
+  bamReadsDTCount2 <- bamReadsDTCount2[order(qnameN)]
+  result <- setNames(bamReadsDTCount2$N,
+                     bamReadsDTCount2$qnameN)
   #result = table(table(bamReads))
-  if (param$paired){
-    flagOption = "-f 3 -F 132"
+  #if (param$paired){
+  #  flagOption = "-f 3 -F 132"
 #     switch(param$pairedMode,
 #                         paired="-f 3 -F 132",
 #                         first="-F 132",
 #                         second="-F 68")    
-  } else {
-    flagOption = "-F 4"
-  }
-  countFile = paste0(Sys.getpid(), "-BamMultiMatch.txt")
+  #} else {
+  #  flagOption = "-F 4"
+  #}
+  #countFile = paste0(Sys.getpid(), "-BamMultiMatch.txt")
   #cmd = paste("samtools", "view", flagOption, bamFile, "| cut -f1 | sort | uniq -c | cut -c 1-7 | sort | uniq -c >", countFile)
   ## direct usage of regular expression, slow
   #cmd = paste("samtools", "view", flagOption, bamFile, "| cut -f1 | sort | uniq -c | grep -o "[[:blank:]]*[[:digit:]]\+[ ]" | sort | uniq -c >", countFile)
   ## trim the leading spaces first and then cut the first field, faster
   ## set the temp directory to be the current one, because /tmp may be too small
-  cmd = paste("samtools", "view", flagOption, bamFile, "| cut -f1 | sort --temporary-directory=. | uniq -c | sed -e \"s/^[ \t]*//\" | cut -f1 -d\" \" |sort | uniq -c >", countFile)
+  #cmd = paste("samtools", "view", flagOption, bamFile, "| cut -f1 | sort --temporary-directory=. | uniq -c | sed -e \"s/^[ \t]*//\" | cut -f1 -d\" \" |sort | uniq -c >", countFile)
   
-  ezSystem(cmd)
-  temp = read.table(countFile)
-  tempOrdered = temp[order(temp[,2]), ]
-  result = tempOrdered[ ,1]
-  names(result) = tempOrdered[, 2]
-  file.remove(countFile)
+  #ezSystem(cmd)
+  # temp = read.table(countFile)
+  # tempOrdered = temp[order(temp[,2]), ]
+  # result = tempOrdered[ ,1]
+  # names(result) = tempOrdered[, 2]
+  #file.remove(countFile)
   
   if (!is.null(nReads)){
     nReads = as.integer(nReads)
@@ -500,9 +524,6 @@ getBamMultiMatching = function(param, bamFile, nReads=NULL){
   }
   return(result)
 }
-
-
-
 
 # .samToBam = function(sam, bam, samtools ="samtools", maxMem="1000000000", removeSam=TRUE, sortIndexBam=TRUE){
 #   tmpBam = sub("sam$", "tmp.bam", sam)

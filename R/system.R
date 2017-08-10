@@ -57,7 +57,7 @@ ezThreads = function(){
   if (!is.na(nslots)){
     return(nslots)
   }
-  nslots = parallel::detectCores(logical=TRUE)
+  nslots = parallel::detectCores(logical=FALSE)
   return(nslots)
 }
 

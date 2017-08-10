@@ -151,13 +151,6 @@ plotLocusAverageCoverageProfile = function(gRanges, bamFiles, grouping=NULL, gtf
   return(pdfFiles)
 }
 
-
-
-
-
-
-
-
 ##' @title Gets transcripts coverage
 ##' @description Gets transcripts coverage.
 ##' @param chrom a character vector containing chromosome names.
@@ -178,48 +171,88 @@ getTranscriptCoverage = function(chrom, gff, reads, strandMode="both"){
   }
   gffExon = gffExon[order(gffExon$start), ]
   exonRanges = gffToRanges(gffExon)
-  exonCov = getRangesCoverageChrom(chrom, exonRanges, reads, strandMode=strandMode)
-  transcriptCov = tapply(exonCov, gffExon$transcript_id, function(exonCovList){
-    Rle(values=unlist(lapply(exonCovList, runValue)), lengths=unlist(lapply(exonCovList, runLength)))}, 
-                         simplify=FALSE)
-  trStrand = gffExon$strand[match(names(transcriptCov), gffExon$transcript_id)]
-  indexNegStrand = which(trStrand == "-")
-  transcriptCov[indexNegStrand] = lapply(transcriptCov[indexNegStrand], rev)
-  return(transcriptCov)
+  ## This sorting is not quite necessary because the order above; 
+  ## but for the future, data.frame gff is not ideal.
+  exonRanges <- sort(exonRanges) 
+  exonsByTx <- GenomicRanges::split(exonRanges, names(exonRanges))
+  exonCov <- getRangesCoverage(unlist(exonsByTx, use.names=FALSE),
+                               reads, strandMode=strandMode)
+  #exonCov_old = getRangesCoverage(exonRanges, reads, strandMode=strandMode)
+  
+  #system.time(transcriptCov2 <- S4Vectors::split(exonCov, names(exonCov)))
+  transcriptCov <- relist(exonCov, exonsByTx)
+  # system.time(transcriptCov3 <- tapply(exonCov, names(exonCov), unlist))
+  ## These two methods are still relative slow. Should be faster than old tapply implementation.
+  ## split: 7023.148 seconds.
+  ## relist: 6879 seconds.
+  ## tapply: 7474.300 seconds.
+  
+  #system.time(transcriptCov_old <- tapply(exonCov, names(exonCov), function(exonCovList){
+  # Rle(values=unlist(lapply(exonCovList, runValue)), lengths=unlist(lapply(exonCovList, runLength)))}, 
+  #                       simplify=FALSE))
+  # 12939.112 seconds
+  
+  transcriptCov <- lapply(transcriptCov, unlist)
+  # 169.468 seconds
+  #if(length(transcriptCov) == 0L){
+    ## This can happen when gff on chrom has 0 ranges.
+  #  return(list())
+  #}else{
+  #  transcriptCov <- RleList(transcriptCov)
+  #}
+  txNegStrand <- unlist(unique(strand(exonsByTx))) == "-"
+  stopifnot(length(txNegStrand) == length(exonsByTx)) ## Only one strand from each transcript
+  txNegStrand <- which(txNegStrand)
+  transcriptCov <- revElements(transcriptCov, txNegStrand)
+  #trStrand = gffExon$strand[match(names(transcriptCov), gffExon$transcript_id)]
+  #indexNegStrand = which(trStrand == "-")
+  #transcriptCov[indexNegStrand] = lapply(transcriptCov[indexNegStrand], rev)
+  
+  return(transcriptCov) ## as a list. RleList is unbelievably slow in loop!
 }
 
 ##' @describeIn getTranscriptCoverage Gets the range coverage.
-getRangesCoverageChrom = function(chrom=NULL, ranges, reads, strandMode="both"){
-  if(!is.null(chrom)){
-    stopifnot(runValue(seqnames(ranges)) == chrom)
-  }
+getRangesCoverage = function(ranges, reads, strandMode="both"){
+  require(GenomicAlignments)
+  #if(!is.null(chrom)){
+  #  stopifnot(runValue(seqnames(ranges)) == chrom)
+  #}
   if (length(ranges) == 0){
-    return(list())
+    return(RleList())
   }
   stopifnot(strandMode %in% c("both", "sense", "antisense"))
-  rangeCov = vector("list", length(ranges))
+  #rangeCov = vector("list", length(ranges))
   if (strandMode == "both"){
-    if (is.null(chrom)){
-      covChrom = coverage(reads)
-      rangeCov = mapply(function(chr, s, e){covChrom[[chr]][s:e]},
-                        as.character(seqnames(ranges)), start(ranges), end(ranges))
-    } else {
+    #if (is.null(chrom)){
+    covChrom = coverage(reads)
+    rangeCov <- covChrom[ranges]
+    #  rangeCov = mapply(function(chr, s, e){covChrom[[chr]][s:e]},
+    #                    as.character(seqnames(ranges)), start(ranges), end(ranges))
+    #} else {
       # although this can be done in the same way above. But [[chrom]] first can speed up.
-      covChrom = coverage(reads)[[chrom]]
-      rangeCov = mapply(function(s,e){covChrom[s:e]}, start(ranges), end(ranges))
-    }
+    #  covChrom = coverage(reads)[[chrom]]
+    #  rangeCov = mapply(function(s,e){covChrom[s:e]}, start(ranges), end(ranges))
+    #}
   } else {
     if (strandMode == "antisense"){
       strand(ranges) = flipStrand(strand(ranges))
     }
-    isPos = as.character(strand(ranges)) == "+"
-    use = strand(reads)== "+"
-    covPos = coverage(reads[use])[[chrom]]
-    rangeCov[isPos] = mapply(function(s,e){covPos[s:e]}, start(ranges[isPos]), end(ranges[isPos]))
+    #isPos = as.character(strand(ranges)) == "+"
+    isPos <- strand(ranges) == "+"
+    use = strand(reads) == "+"
+    covPos = coverage(reads[use])
+    rangeCovPos <- covPos[ranges[isPos]]  ## This is ultra-fast. 1 seconds..
+    names(rangeCovPos) <- which(as.logical(isPos))
+    #rangeCov[isPos] = mapply(function(chr,s,e){covPos[[chr]][s:e]}, as.character(seqnames(ranges[isPos])), start(ranges[isPos]), end(ranges[isPos]))  ## This is too slow! Takes 1046.812 seconds
     use = strand(reads)== "-"
-    covNeg = coverage(reads[strand(reads)== "-"])[[chrom]]
-    rangeCov[!isPos] = mapply(function(s,e){covNeg[s:e]}, start(ranges[!isPos]), end(ranges[!isPos]))    
+    covNeg = coverage(reads[use])
+    rangeCovNeg <- covNeg[ranges[!isPos]]
+    names(rangeCovNeg) <- which(as.logical(!isPos))
+    #rangeCov[!isPos] = mapply(function(s,e){covNeg[s:e]}, start(ranges[!isPos]), end(ranges[!isPos]))    
+    rangeCov <- c(rangeCovPos, rangeCovNeg)
+    ## reorder into the same order in ranges
+    rangeCov <- rangeCov[order(as.integer(names(rangeCov)))]
   }
-  names(rangeCov) = names(ranges)
+  names(rangeCov) <- names(ranges)
   return(rangeCov)
 }
