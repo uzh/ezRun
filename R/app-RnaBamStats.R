@@ -280,6 +280,7 @@ getStatsFromBam = function(param, bamFile, sm, gff=NULL, repeatsGff=NULL,
     result = getStatsFromBamSingleChrom(NULL, param, bamFile, sm, nReads, gff, 
                                         repeatsGff)
   }
+  gc()
   ## TODO: this getBamMultiMatching should be moved to computeBamStats
   result$multiMatchInFileTable = getBamMultiMatching(param, bamFile, nReads)
   
@@ -560,8 +561,17 @@ getTargetTypeCounts = function(param, gff, rr, seqid=NULL, repeatsGff=NULL){
           countsByType <- data.table(ensemblTypes=unique(ensemblTypes),
                                      N=0)
         }
+        ## some ensemblType has not hits and not included in findOverlaps.
+        ## Add them with N=0
+        missingTypes <- setdiff(unique(ensemblTypes), countsByType$ensemblTypes)
+        if(length(missingTypes) != 0L){
+          countsByType <- rbind(countsByType,
+                                data.table(ensemblTypes=missingTypes, N=0))
+        }
+        
         widthByType <- sum(width(reduce(GenomicRanges::split(gffRanges, 
                                                              ensemblTypes))))
+        
         hasAnyHit[hitsByType$queryHits] <- TRUE
         result[countsByType$ensemblTypes, ] <- cbind(countsByType$N,
                                                      widthByType[countsByType$ensemblTypes])
