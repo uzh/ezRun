@@ -303,16 +303,16 @@ plotQualityHeatmapGG2 = function(result, name=NULL, colorRange=c(0,sqrt(40)),
   return(p)
 }
 
-getQualityMatrix = function(inputFile){
+getQualityMatrix = function(fn){
   ## files could be fastq, or gziped fastq.gz
   require("ShortRead", warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)  
-  #job = ezJobStart(paste("start to collect quality matrix from", inputFile))
+  #job = ezJobStart(paste("start to collect quality matrix from", fn))
   
   ## get the qualCountMatrix
   qualCountMatrix = NULL
   maxReadLength = NULL
   subSample = 0.01
-  fqs = FastqStreamer(inputFile, 1e6)
+  fqs = FastqStreamer(fn, 1e6)
   while(length(x <- yield(fqs))){
     nSamples = round(subSample * length(x))
     if (nSamples == 0){
@@ -320,18 +320,22 @@ getQualityMatrix = function(inputFile){
     }
     qual = quality(x[sample.int(length(x), size=nSamples , replace=FALSE)]) ## this gives the integer quality as stringSets
     readLengths = width(qual)
-    #qualMatrix = as(qual, "matrix") ## this should be now a matrix with integer quality values, only work with same read length
+    # #qualMatrix = as(qual, "matrix") ## this should be now a matrix with integer quality values, only work with same read length
     if (is.null(maxReadLength)){
-      maxReadLength = max(readLengths)
+       maxReadLength = max(readLengths)
     }
-    qualMatrix = ezMatrix(NA, cols=1:maxReadLength, rows=1:length(qual))
-    availableLengths = unique(readLengths)
-    useLengths = intersect(availableLengths, 1:maxReadLength)
-    ## This is the fastest way to turn the quality into a integer matrix with NAs if some reads with shorted length
-    for(l in useLengths){
-      index = readLengths == l
-      qualMatrix[index, 1:l] = as(qual[index], "matrix") 
-    }
+    # qualMatrix = ezMatrix(NA, cols=1:maxReadLength, rows=1:length(qual))
+    # availableLengths = unique(readLengths)
+    # useLengths = intersect(availableLengths, 1:maxReadLength)
+    # ## This is the fastest way to turn the quality into a integer matrix with NAs if some reads with shorted length
+    # for(l in useLengths){
+    #   index = readLengths == l
+    #   qualMatrix[index, 1:l] = as(qual[index], "matrix") 
+    # }
+    
+    ## this works on qual with various lengths
+    ## The above workaround is no longer needed.
+    qualMatrix <- as(qual, "matrix")
     
     if (is.null(qualCountMatrix)){
       maxQuality = max(qualMatrix, na.rm=TRUE)
@@ -351,9 +355,6 @@ getQualityMatrix = function(inputFile){
   return(qualCountMatrix)
 }
 
-### -----------------------------------------------------------------
-### plateStatistics: plate layout
-### 
 plateStatistics <- function(dataset,
                             colname=c("Read Count", 
                                       "LibConc_qPCR [Characteristic]",
@@ -404,9 +405,6 @@ plateStatistics <- function(dataset,
   }
 }
 
-### -----------------------------------------------------------------
-### heatmapPlate: plot the counts/concentration of plate in a heatmap
-###
 heatmapPlate <- function(x, center=TRUE, log10=TRUE){
   require(plotly)
   if(isTRUE(log10)){
