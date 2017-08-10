@@ -13,7 +13,7 @@
 %- maybe also 'usage' for other objects documented here.
 \arguments{
   \item{fn}{
-    \code{\character(1)}: path of a fastq file.
+    \code{character(1)}: path of a fastq file.
   }
 }
 \details{
