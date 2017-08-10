@@ -129,6 +129,9 @@ Sequenced reads or concentration per cell, on the plate layout.
 The current supported plate layout format is "PlateNumber_[A-Z][Integer]", e.g. "1_A2".
 Otherwise, the platelayout is not shown.
 
+The heatmap values are in $log10$ scale.
+The colorScale ranges from half of median value to twice of median value.
+
 ```{r plate layout, echo=FALSE, message=FALSE, warning=FALSE}
 plateMatrix <- plateStatistics(dataset)
 if(!is.na(plateMatrix)){
@@ -136,10 +139,15 @@ if(!is.na(plateMatrix)){
   ## This is the way of plotting plotly figures within a loop in knitr code chunk
   for(plateName in names(plateMatrix)){
     for(colname in names(plateMatrix[[1]])){
-      dataHeatMap <- plateMatrix[[plateName]][[colname]]
+      dataHeatMap <- log10(plateMatrix[[plateName]][[colname]])
+      medianPlotVal <- median(dataHeatMap, na.rm = TRUE)
       p <- plot_ly(z=dataHeatMap, x=colnames(dataHeatMap),
                    y=rownames(dataHeatMap), type="heatmap",
-                   colors = colorRamp(c("black", "white")),
+                   #colors = colorRamp(c("black", "white")),
+                   zmin=medianPlotVal-log10(2),#medianPlotVal/2, 
+                   zmax=medianPlotVal+log10(2),#medianPlotVal*2,
+                   hoverinfo="text", text=matrix(paste0("10^", format(dataHeatMap, digits=3), "=", 10^dataHeatMap), ncol=7),
+                     #10^dataHeatMap,#paste0("10^", dataHeatMap, "=", 10^dataHeatMap),
                    width = 500*(1 + sqrt(5))/2, height = 500) %>%
         layout(xaxis=list(autotick = FALSE, dtick=1),
                yaxis=list(autorange = "reversed"),

@@ -387,7 +387,7 @@ plateStatistics <- function(dataset,
       ans[[names(datasetByPlate)[i]]] <- list()
       for(oneCol in colname){
         counts <- datasetByPlate[[i]][[oneCol]]
-        countMatrix <- ezMatrix(0, rows=LETTERS[1:which(LETTERS==max(plateRow))],
+        countMatrix <- ezMatrix(NA, rows=LETTERS[1:which(LETTERS==max(plateRow))],
                                 cols=seq_len(max(as.integer(plateCol))))
         for(j in seq_len(length(counts))){
           countMatrix[plateRow[j], plateCol[j]] <- counts[j]
