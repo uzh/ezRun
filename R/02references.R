@@ -161,6 +161,16 @@ setMethod("buildRefDir", "EzRef", function(.Object, genomeFile, genesFile,
   ## 2 GTF files: 
   ### features.gtf
   gtf <- import(genesFile)
+  #### some controls over gtf
+  if(is.null(gtf$gene_biotype)){
+    message("gene_biotype is not available in gtf. Assigning protein_coding.")
+    gtf$gene_biotype <- "protein_coding"
+  }
+  if(is.null(gtf$gene_name)){
+    message("gene_name is not available in gtf. Assigning gene_id.")
+    gtf$gene_name <- gtf$gene_id
+  }
+  
   export(gtf, con=file.path(gtfPath, "features.gtf"))
   ### genes.gtf
   export(gtf[gtf$gene_biotype %in% listBiotypes("genes")],
