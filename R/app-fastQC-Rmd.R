@@ -351,6 +351,9 @@ getQualityMatrix = function(inputFile){
   return(qualCountMatrix)
 }
 
+### -----------------------------------------------------------------
+### plateStatistics: plate layout
+### 
 plateStatistics <- function(dataset,
                             colname=c("Read Count", 
                                       "LibConc_qPCR [Characteristic]",
@@ -399,4 +402,49 @@ plateStatistics <- function(dataset,
   }else{
     return(NA)
   }
+}
+
+### -----------------------------------------------------------------
+### heatmapPlate: plot the counts/concentration of plate in a heatmap
+###
+heatmapPlate <- function(x, center=TRUE, log10=TRUE){
+  require(plotly)
+  if(isTRUE(log10)){
+    x <- log10(x)
+    if(isTRUE(center)){
+      medianX <- median(x, na.rm = TRUE)
+      p <- plot_ly(z=x, x=colnames(x),
+                   y=rownames(x), type="heatmap",
+                   zmin=medianX-log10(2),
+                   zmax=medianX+log10(2),
+                   hoverinfo="text", 
+                   text=matrix(paste0("10^", format(x, digits=3), "=", 
+                                      10^x), ncol=ncol(x)),
+                   width = 500*(1 + sqrt(5))/2, height = 500)
+    }else{
+      p <- plot_ly(z=x, x=colnames(x),
+                   y=rownames(x), type="heatmap",
+                   hoverinfo="text", 
+                   text=matrix(paste0("10^", format(x, digits=3), "=", 
+                                      10^x), ncol=ncol(x)),
+                   width = 500*(1 + sqrt(5))/2, height = 500)
+    }
+  }else{
+    if(isTRUE(center)){
+      medianX <- median(x, na.rm = TRUE)
+      p <- plot_ly(z=x, x=colnames(x),
+                   y=rownames(x), type="heatmap",
+                   zmin=medianX/2, zmax=medianX*2,
+                   width = 500*(1 + sqrt(5))/2, height = 500)
+    }else{
+      p <- plot_ly(z=x, x=colnames(x),
+                   y=rownames(x), type="heatmap",
+                   width = 500*(1 + sqrt(5))/2, height = 500)
+    }
+  }
+  
+  p <- p %>% layout(xaxis=list(autotick = FALSE, dtick=1),
+                  yaxis=list(autorange = "reversed"),
+                  title=paste(plateName, colname, sep=": "))
+  p
 }
