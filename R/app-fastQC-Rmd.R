@@ -303,7 +303,7 @@ plotQualityHeatmapGG2 = function(result, name=NULL, colorRange=c(0,sqrt(40)),
   return(p)
 }
 
-getQualityMatrix = function(fn){
+getQualityMatrix_old = function(fn){
   ## files could be fastq, or gziped fastq.gz
   require("ShortRead", warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)  
   #job = ezJobStart(paste("start to collect quality matrix from", fn))
@@ -355,14 +355,15 @@ getQualityMatrix = function(fn){
   return(qualCountMatrix)
 }
 
-getQualityMatrix2 <- function(fn){
-  ## This implementation is not faster than the old one.
+getQualityMatrix <- function(fn){
+  ## This implementation is faster than the FastqStreamer.
   require(ShortRead)
   require(Biostrings)
-  nReads <- fastq.geometry(fn)[1]
-  subSample <- 0.01
-  nReads <- round(nReads * subSample)
-  f <- FastqSampler(fn, nReads)
+  #nReads <- fastq.geometry(fn)[1]
+  #subSample <- 0.01
+  #nReads <- round(nReads * subSample)
+  nReads <- 3e5
+  f <- FastqSampler(fn, nReads) ## we sample no more than 300k reads.
   reads <- yield(f)
   qual <- quality(reads)
   maxReadLength <- max(width(qual))

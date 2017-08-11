@@ -17,7 +17,7 @@
   }
 }
 \details{
-  Subsample 1\% of the reads to get the statistics.
+  Subsample no more than 300k reads to get the statistics.
 }
 \value{
   A \code{matrix} of occurency of each quality per base.
