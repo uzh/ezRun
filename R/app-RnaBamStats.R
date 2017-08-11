@@ -424,7 +424,7 @@ getStatsFromBamParallel = function(seqLengths, param, bamFile, sm, nReads,
   }
   #transcriptCov <- unlist(lapply(chromResults, "[[", "transcriptCov"))
   # list object
-  result$transcriptCov = transcriptCov
+  result$transcriptCov = unlist(transcriptCov)
   
   return(result)
 }
