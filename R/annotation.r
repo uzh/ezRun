@@ -81,6 +81,21 @@ makeFeatAnnoEnsembl <- function(featureFile,
   
   feature <- import(featureFile)
   transcripts <- feature[feature$type=="transcript"]
+  if(length(transcripts) == 0L){
+    ## Incomplete gtf with only exons.
+    ## Try to reconstruct the transcripts.
+    exons <- feature[feature$type == "exon"]
+    exonsByTx <- GenomicRanges::split(exons, exons$transcript_id)
+    transcripts <- unlist(range(exonsByTx))
+    transcripts$transcript_id <- names(transcripts)
+    names(transcripts) <- NULL
+    transcripts$gene_id <- exons$gene_id[match(transcripts$transcript_id, 
+                                               exons$transcript_id)]
+    transcripts$gene_name <- exons$gene_name[match(transcripts$transcript_id, 
+                                                   exons$transcript_id)]
+    transcripts$gene_biotype <- exons$gene_biotype[match(transcripts$transcript_id, 
+                                                         exons$transcript_id)]
+  }
   
   ## Calculate gc and width
   gw <- getTranscriptGcAndWidth(genomeFn=genomeFile,
