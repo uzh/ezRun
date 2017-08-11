@@ -414,9 +414,13 @@ getStatsFromBamParallel = function(seqLengths, param, bamFile, sm, nReads,
   result$seqLengths = seqLengths
   
   ## Merge the TranscriptsCovered results
-  transcriptCov <- list()
+  #transcriptCov <- list()
+  transcriptCov <- vector("list", length(chromResults))
+  i <- 1
   for(chrom in names(chromResults)){
-    transcriptCov = c(transcriptCov, chromResults[[chrom]]$transcriptCov)
+    #transcriptCov = c(transcriptCov, chromResults[[chrom]]$transcriptCov)
+    transcriptCov[[i]] <- chromResults[[chrom]]$transcriptCov
+    i <- i + 1
   }
   #transcriptCov <- unlist(lapply(chromResults, "[[", "transcriptCov"))
   # list object
