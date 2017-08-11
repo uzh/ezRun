@@ -119,6 +119,9 @@ computeBamStats = function(input, htmlFile, param, gff, resultList=NULL){
     save(resultList, file="resultList.RData")
   }
   
+  ## debug
+  save(dataset, param, file="dataParam.rda")
+  
   plotBamStat(resultList, dataset, param, htmlFile)
   rm(resultList)
   gc()

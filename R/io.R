@@ -189,8 +189,10 @@ ezInteractiveTable = function(values, tableLink, digits=NULL, colNames=colnames(
 ##' table = data.frame(a=c(1.11, 2:100), b=201:300)
 ##' ezInteractiveTableRmd(table)
 ezInteractiveTableRmd = function(values, digits=NULL, 
-                                   colNames=colnames(values), title="", 
-                                   format=NULL, envir=parent.frame()){
+                                 colNames=colnames(values), title="", 
+                                 format=NULL, envir=parent.frame()){
+  require(DT)
+  require(htmltools)
   if (!is.null(digits)){
     for (i in 1:ncol(values)) {
       hasDecimals = suppressWarnings({as.integer(values[ ,i]) != values[ ,i]})
@@ -200,19 +202,23 @@ ezInteractiveTableRmd = function(values, digits=NULL,
       }
     }
     captionText = paste("Numeric values are rounded to", digits, "digits.")
-    caption = htmltools::tags$caption(htmltools::h1(title), htmltools::p(captionText))
+    caption = htmltools::tags$caption(htmltools::h1(title), 
+                                      htmltools::p(captionText))
   } else {
     caption = htmltools::tags$caption(htmltools::h1(title))
   }
-  interactiveTable = DT::datatable(values, 
-                                   extensions=c("Buttons"), filter="top", caption=caption, colnames=colNames,
-                                   options=list(dom = 'Bfrtip', buttons = c('colvis','copy', 'csv', 'excel', 'pdf', 'print'), pageLength=25, autoWidth=TRUE)
-  )
+  interactiveTable <- datatable(values, 
+                                extensions=c("Buttons"), filter="top", 
+                                caption=caption, colnames=colNames,
+                                options=list(dom = 'Bfrtip', 
+                                             buttons = c('colvis','copy', 'csv',
+                                                         'excel', 'pdf', 'print'), 
+                                             pageLength=25, autoWidth=TRUE)
+                                )
   if (!is.null(format)){
     currEnv = environment()
     interactiveTable = eval(format, envir=c(envir, currEnv))
   }
-  #DT::saveWidget(interactiveTable, tableLink)
   return(interactiveTable)
 }
 
