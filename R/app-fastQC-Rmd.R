@@ -355,6 +355,28 @@ getQualityMatrix = function(fn){
   return(qualCountMatrix)
 }
 
+getQualityMatrix2 <- function(fn){
+  ## This implementation is not faster than the old one.
+  require(ShortRead)
+  require(Biostrings)
+  nReads <- fastq.geometry(fn)[1]
+  subSample <- 0.01
+  nReads <- round(nReads * subSample)
+  f <- FastqSampler(fn, nReads)
+  reads <- yield(f)
+  qual <- quality(reads)
+  maxReadLength <- max(width(qual))
+  qualMatrix <- as(qual, "matrix")
+  maxQuality <- max(qualMatrix, na.rm=TRUE)
+  
+  qualCountMatrix = ezMatrix(0, rows=0:maxQuality, cols=1:maxReadLength)
+  for (basePos in 1:ncol(qualMatrix)){
+    qualCountByPos <- table(qualMatrix[ , basePos])
+    qualCountMatrix[names(qualCountByPos), basePos] <- qualCountByPos
+  }
+  return(qualCountMatrix)
+}
+
 plateStatistics <- function(dataset,
                             colname=c("Read Count", 
                                       "LibConc_qPCR [Characteristic]",
