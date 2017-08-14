@@ -1,0 +1,153 @@
+---
+title: "`r paste('BAM Statistics:', 'TODO: RNA_BAM_Statistics')`"
+author: "Functional Genomics Center Zurich"
+output: 
+  html_document:
+    self_contained: false
+    includes:
+      in_header: fgcz_header.html
+    css: fgcz.css
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+## This report requires the object resultList, dataset, param
+require(knitr)
+require(kableExtra)
+
+## TODO:
+require(ezRun)
+```
+
+```{r prepare data, include=FALSE}
+load("/home/gtan/analysis/gtan/p2438-RNABamStats/RNA_BAM_Statistics_forTest/resultList.RData")
+load("/home/gtan/analysis/gtan/p2438-RNABamStats/RNA_BAM_Statistics_forTest/dataParam.rda")
+conds = ezConditionsFromDataset(dataset, param=param)
+samples = rownames(dataset)
+sampleColors = getSampleColors(conds, samples)
+bamFiles = dataset$BAM
+```
+
+Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
+
+```{r igv link, include=FALSE}
+if (param$writeIgvSessionLink){
+#     titles[["Genome Browser"]] = "Genome Browser"
+#     addTitle(doc, titles[[length(titles)]], 2, id=titles[[length(titles)]]) ## NOTEP: igv links are not yet added to the report.
+  if (length(bamFiles) > 4){
+    idx = which(!duplicated(conds))
+    idx = idx[1:min(4, length(idx))]
+  } else {
+    idx = 1:length(bamFiles)
+  }
+  for (each in idx){
+    writeIgvSession(genome=getIgvGenome(param), refBuild=param$ezRef["refBuild"],
+                    file=basename(sub(".bam", "-igv.xml", bamFiles[each])),
+                    bamUrls=paste(PROJECT_BASE_URL, bamFiles[each], sep="/"))
+    writeIgvJnlp(jnlpFile=basename(sub(".bam", "-igv.jnlp", bamFiles[each])),
+                 projectId=param$projectId,
+                 sessionUrl=paste(PROJECT_BASE_URL, sub(".bam", "-igv.xml", 
+                                                        bamFiles[each]), 
+                                  sep="/"))
+  }
+}
+```
+
+## RNA_BAM_Statistics {.tabset}
+
+<!-- ### Read Alignment Statistics -->
+
+### Multi-Matching Reported in Bam File
+The plot holds for each sample the number of reads in Millions 
+that have X matches in the target and are reported in the file.
+
+```{r multi-matching data, echo=FALSE}
+mmValues = integer()
+for (sm in samples){
+  mmValues = union(mmValues, as.integer(names(resultList[[sm]]$multiMatchInFileTable)))
+}
+mmCounts = ezMatrix(0, rows=samples, cols=sort(mmValues))
+for (sm in samples){
+  mm = resultList[[sm]]$multiMatchInFileTable
+  mmCounts[sm, names(mm)] = mm
+}
+```
+
+```{r multi-matching plot, echo=FALSE, message=FALSE}
+alignmentCountBarPlot(mmCounts, file="multiMatchInFile-barplot.txt")
+```
+
+```{r multi-matching export, echo=FALSE}
+txtFile <- "read-alignment-statistics.txt"
+ezWrite.table(mmCounts, file=txtFile, head="Sample")
+```
+[`r txtFile`](`r txtFile`)
+
+
+
+```{r MatchTargetTypeCounts, echo=FALSE, results='asis', message=FALSE, fig.width=8, fig.height=7, warning=FALSE}
+for (nm in c("multiMatchTargetTypeCounts", "uniqueMatchTargetTypeCounts")){
+    if (!is.null(resultList[[1]][[nm]])){
+      readSet = switch(nm,
+                       multiMatchTargetTypeCounts="Uniquely and multi-matching reads:",
+                       uniqueMatchTargetTypeCounts="Uniquely matching reads:")
+      cat("###", paste(readSet, "Match Count Percentages"), "\n")
+      tct = getTypeCountTable(resultList, nm)
+      ezWrite.table(tct, file=paste0(nm, ".txt"), digits=4)
+      tpt = as.matrix(tct)
+      for (cn in colnames(tpt)){
+        tpt[ ,cn] = tct[ ,cn]/ tct["total", cn] * 100
+      }
+      minPercentage = 1
+      rowsUse = setdiff(rownames(tpt)[apply(tpt, 1, max) > minPercentage], "total")
+      tptUse = tpt[rowsUse, , drop=FALSE]
+      if (nrow(tptUse) >= 2 && ncol(tptUse) >= 2){
+        tptUseRel = log2(tptUse)
+        tptUseRel = tptUseRel - rowMeans(tptUseRel)
+        plotCmd = expression({
+          ezHeatmap(tptUseRel, margins=c(10, 12), lim=c(-2, 2),
+                    Rowv=FALSE, Colv=FALSE, main="Relative Prevalence [log2]")
+        })
+        eval(plotCmd)
+        k <- kable(signif(tptUse, digits=3),
+              row.names=TRUE, format = "html",
+              caption="Match Count Percentages") %>%
+          kable_styling(bootstrap_options = "striped",
+                        full_width = F, position = "float_right") %>%
+          add_footnote(c("Percentage value."), notation = "alphabet")
+        print(k)
+      }
+      
+      cat("###", paste(readSet, "Read Starts per Base"), "\n")
+      tct = as.matrix(getTypeCoverageTable(resultList, nm))
+      ezWrite.table(tct, file=paste0(nm, "-coverage.txt"), digits=4)
+      if (nrow(tct) >= 2 && ncol(tct) >= 2){
+        tctRel = log2(sweep(tct, 2, tct["total", ], FUN="/"))
+        tctRel = tctRel[rowsUse, , drop=FALSE]
+        plotCmd = expression({
+          ezHeatmap(tctRel, margins=c(10, 12), lim=c(-5, 5),
+                    Rowv=FALSE, Colv=FALSE, main="Coverage Enrichment")
+        })
+        eval(plotCmd)
+        k <- kable(signif(tct[rowsUse, ], digits=4),
+                   row.names=TRUE, format = "html",
+          caption="Read Starts per Base") %>%
+      kable_styling(bootstrap_options = "striped",
+                    full_width = F, position = "float_right") %>%
+      add_footnote(c("Read Starts per Base is equivalent to Coverage divided by Read length."), 
+                   notation = "alphabet")
+        print(k)
+      }
+    }
+}
+
+```
+
+```{r}
+
+```
+
+### Input Dataset
+```{r, echo=FALSE, message=FALSE}
+ezInteractiveTableRmd(dataset)
+```
