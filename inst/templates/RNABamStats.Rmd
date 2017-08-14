@@ -244,11 +244,47 @@ if (length(resultList[[1]][["genebody_coverage"]]) != 0){ ## TODO this could be 
   }
 ```
 
+```{r junction plot, echo=FALSE, results='asis', eval=FALSE}
+if (!is.null(names(resultList[[1]][["Junction"]]))){
+    junctionMaxVal = numeric()
+    for (nm in names(resultList[[1]][["Junction"]])){
+      junctionMaxVal[nm] = 0
+      for (sm in samples){
+        junctionMaxVal[nm] = max(junctionMaxVal[nm], unlist(resultList[[sm]][["Junction"]][[nm]]))
+      }
+    }
+    for (sm in samples){
+      pngLinks = character()
+      for (nm in names(resultList[[sm]][["Junction"]])){
+        junctionPlot = resultList[[sm]][["Junction"]][[nm]]
+        pngFile = ezValidFilename(paste0(sm, "_", nm, ".png"))
+        
+        plotCmd = expression({
+          if (nm %in% c("splice_events", "splice_junction")){
+            pie(junctionPlot, col=c(2,3,4), init.angle=30,angle=c(60,120,150),density=c(70,70,70),main=nm, labels=paste(names(junctionPlot), paste0(round(junctionPlot), "%")))
+          } else if (nm =="junctionSaturation"){
+            x = as.numeric(names(junctionPlot[[1]])) * 100
+            plot(1,1,xlab="percent of total reads", ylab='Number of splicing junctions (x1000)',type='o',
+                 ylim=c(0, junctionMaxVal[nm]/1000), xlim=range(x))
+            saturationColors = c("all junctions"="blue", "known junctions"="red", "novel junctions"="green")
+            for (item in names(junctionPlot)){
+              lines(x, junctionPlot[[item]]/1000, col=saturationColors[item], type="o")
+            }
+            legend("topleft", legend=names(saturationColors), col=saturationColors,lwd=1,pch=1)
+          }
+        })
+        pngLinks[nm] = ezImageFileLink(plotCmd, file=pngFile, width=600)
+      }
+      plotBySamples[[sm]] = c(plotBySamples[[sm]], pngLinks)
+      plotByStatistics[["Junction Plots"]] = c(plotByStatistics[["Junction Plots"]], pngLinks)
+    }
+}
+```
+
 ```{r fragSizeHist, echo=FALSE, results='asis', eval=FALSE}
 plotBySamples = list()
 plotByStatistics = list()
 if(!is.null(resultList[[1]]$fragSizeHist)){
-  
   pngFiles = character()
   for (sm in samples){
     fsh = resultList[[sm]]$fragSizeHist
