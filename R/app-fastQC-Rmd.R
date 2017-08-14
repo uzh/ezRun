@@ -405,7 +405,7 @@ plateStatistics <- function(dataset,
   }
 }
 
-heatmapPlate <- function(x, plateName="unnamed", center=TRUE, log10=TRUE){
+heatmapPlate <- function(x, title="unnamed", center=TRUE, log10=TRUE){
   require(plotly)
   if(isTRUE(log10)){
     x <- log10(x)
@@ -442,7 +442,7 @@ heatmapPlate <- function(x, plateName="unnamed", center=TRUE, log10=TRUE){
   }
   
   p <- p %>% layout(xaxis=list(autotick = FALSE, dtick=1),
-                  yaxis=list(autorange = "reversed"),
-                  title=paste(plateName, colname, sep=": "))
+                    yaxis=list(autorange = "reversed"),
+                    title=title)
   p
 }

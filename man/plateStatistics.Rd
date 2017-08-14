@@ -13,15 +13,15 @@
   plateStatistics(dataset, colname = c("Read Count",
                                        "LibConc_qPCR [Characteristic]",
                                        "LibConc_100_800bp [Characteristic]"))
-  heatmapPlate(x, center=TRUE, log10=TRUE)                                       
+  heatmapPlate(x, title="unnamed", center=TRUE, log10=TRUE)                                       
 }
 
 \arguments{
   \item{dataset}{
     A \code{data.frame} read from \dQuote{input_dataset.tsv}.
   }
-  \item{colname}{
-    A \code{character(n)} of columns of fetch.
+  \item{title}{
+    A \code{character(1)}: title of the plate heatmap.
   }
   \item{x}{
     A \code{matrix} of counts/concentration of a plate.

@@ -139,7 +139,8 @@ if(!is.na(plateMatrix)){
   ## This is the way of plotting plotly figures within a loop in knitr code chunk
   for(plateName in names(plateMatrix)){
     for(colname in names(plateMatrix[[1]])){
-      p <- heatmapPlate(plateMatrix[[plateName]][[colname]], plateName=plateName,
+      p <- heatmapPlate(plateMatrix[[plateName]][[colname]], 
+                        title=paste(plateName, colname, sep=": "),
                         center=TRUE, log10=TRUE)
       l[[paste(plateName, colname, sep=": ")]] <- as_widget(p)
     }
