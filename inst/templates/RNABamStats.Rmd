@@ -143,8 +143,128 @@ for (nm in c("multiMatchTargetTypeCounts", "uniqueMatchTargetTypeCounts")){
 
 ```
 
-```{r}
+```{r transcript coverage, echo=FALSE, results='asis'}
+if (!is.null(resultList[[1]][["TranscriptsCovered"]])){
+  cat("###", "Coverage plot\n")
+  cat("####", "Transcripts covered plot\n")
+  minYlim = 0 #min(sapply(resultList, function(item){min(item[["TranscriptsCovered"]][["counts"]])}))
+  minXlim = 0
+  maxYlim = max(sapply(resultList,
+                  function(item){max(item[["TranscriptsCovered"]][["counts"]])}))
+  maxXlim = 130 #max(sapply(resultList, function(item){max(item[["TranscriptsCovered"]][["mids"]])}))
+    
+  plotCmd = expression({
+    plot(1, 1, xlim=c(minXlim, maxXlim), ylim=c(minYlim, maxYlim), xlab = "% length covered", ylab="number of isoforms", main="Isoforms Covered Histogram", type="n")
+      for (sm in samples){
+        transcript_covered = resultList[[sm]][["TranscriptsCovered"]]
+        lines(transcript_covered[["mids"]], transcript_covered[["counts"]], col=sampleColors[sm])
+      }
+      legend("topright", samples, col=sampleColors[samples], cex=1.2, pt.cex=1.5, bty="o", pt.bg="white", lty=1)
+    })
+  eval(plotCmd)
+    
+    # pngFiles = character()
+    # pngLinks = character()
+    # for (sm in samples){
+    #   tlc = resultList[[sm]][["TranscriptsCovered"]]
+    #   pngFiles[sm] = paste0(sm, "-transcriptsCovered.png")
+    #   ezWrite.table(cbind(Percents=tlc$mids, Count=tlc$counts),
+    #                  file=paste0(sm, "-transcriptsCovered.txt"), row.names=FALSE)
+    #   
+    #   plotCmd = expression({
+    #     cts = tlc$counts
+    #     names(cts) = tlc$mids
+    #     barplot(cts, xlab="% length covered", main=paste(sm, "-- Isoforms Covered Histogram"), ylab="number of isoforms")
+    #   })
+    #   pngLinks[sm] = ezImageFileLink(plotCmd, file=pngFiles[sm], width=600)
+    #   plotBySamples[[sm]] = c(plotBySamples[[sm]], pngLinks[sm])
+    #   plotByStatistics[["The fraction of isoform length covered"]] = c(plotByStatistics[["The fraction of isoform length covered"]], pngLinks[sm])
+    # }
+  }
+```
 
+```{r genebody coverage legend, echo=FALSE, fig.width=3, fig.height=1, results='asis'}
+if (length(resultList[[1]][["genebody_coverage"]]) != 0){ ## TODO this could be done better by searching alls results for a valide genebody_coverage element
+  cat("####", "Genebody coverage plot\n")
+  plotCmd = expression({
+    ezLegend(legend=samples, fill=sampleColors[samples], title="Sample Colors")
+    })
+  eval(plotCmd)
+}
+```
+
+```{r genebody coverage, echo=FALSE, results='asis'}
+if (length(resultList[[1]][["genebody_coverage"]]) != 0){ ## TODO this could be done better by searching alls results for a valide genebody_coverage element
+    minYlim = 0 #min(sapply(resultList, function(item){min(item[["genebody_coverage"]])}))
+    maxYlim = 0.08 ## this means we allow at most 10-fold enrichment at a percentile #max(sapply(resultList, function(item){max(item[["genebody_coverage"]])}))
+    gbcTemplate = resultList[[1]][["genebody_coverage"]]
+    pngMatrix = ezMatrix("", rows=names(gbcTemplate),
+                         cols=names(gbcTemplate[[1]]))
+    #pngLinks = character()
+    for (rn in rownames(pngMatrix)){
+      for (cn in colnames(pngMatrix)){
+        ## skip all cases that are not medium expressed and skip all cases that are not above 4000 or 400-1000
+        if (!grepl("medium", cn)) next
+        if (grepl("less", rn) | grepl("1000 to", rn)) next
+        pngMatrix[rn, cn] = ezValidFilename(paste0("genebody_coverage_", rn, "_", cn, ".png"))
+        covValues = ezMatrix(0, cols=0:100, rows=samples)
+        for (sm in samples){
+          y = resultList[[sm]][["genebody_coverage"]][[rn]][[cn]]
+          if (!is.null(y)){
+            covValues[sm, ] = y
+          } else {
+            covValues[sm, ] = NA
+          }
+        }
+        plotCmd = expression({
+          plot(1, 1, xlim=c(0,100), ylim=c(minYlim, maxYlim), xlab="percentile of geneBody (5'->3')", ylab="relative coverage", 
+               main=paste("Genebody coverage", rn, cn), type="n",
+               axes=FALSE, frame=TRUE)
+          axis(side=2)
+          axis(side=1, at=seq(0, 100, by=10))
+          for (sm in samples){
+            y = resultList[[sm]][["genebody_coverage"]][[rn]][[cn]]
+            if (!is.null(y)){
+              covValues[sm, ] = y
+              lines(0:100, y, col=sampleColors[sm])
+            } else {
+              covValues[sm, ] = NA
+            }
+          }
+          #legend("topright", samples, col=sampleColors[samples], cex=1.2, pt.cex=1.5, bty="o", pt.bg="white", lty=1)
+        })
+        eval(plotCmd)
+        #link = ezImageFileLink(plotCmd, file=pngMatrix[rn, cn], width=600)
+        #pngLinks = append(pngLinks, link)
+        # pngLinks[rn, cn] = ezImageFileLink(plotCmd, file=pngMatrix[rn, cn], width=600) # old version with all plots
+        ezWrite.table(covValues, file=sub(".png$", ".txt", pngMatrix[rn, cn]),
+                      head="Name")
+      }
+    }
+  }
+```
+
+```{r fragSizeHist, echo=FALSE, results='asis', eval=FALSE}
+plotBySamples = list()
+plotByStatistics = list()
+if(!is.null(resultList[[1]]$fragSizeHist)){
+  
+  pngFiles = character()
+  for (sm in samples){
+    fsh = resultList[[sm]]$fragSizeHist
+    pngFiles[sm] = paste0(sm, "-fragSizeHist.png")
+    ezWrite.table(cbind(Length=fsh$mids, Count=fsh$counts),
+                  file=paste0(sm, "-fragSizeHist.txt"), row.names=FALSE)
+    plotCmd = expression({
+        plot(fsh, xlab="fragment size", main=paste(sm, "-- Length Histogram"), ylim=c(0, max(fsh$counts[-length(fsh$counts)]))) ## don't use the longest fragment size
+    })
+    try({
+      pngFiles[sm] = ezImageFileLink(plotCmd, file=pngFiles[sm], width=600)
+    })
+    plotBySamples[[sm]] = c(plotBySamples[[sm]], pngFiles[sm])
+    plotByStatistics[["Length distribution of fragments for paired reads"]] = c(plotByStatistics[["Length distribution of fragments for paired reads"]], pngFiles[sm])
+  }
+}
 ```
 
 ### Input Dataset
