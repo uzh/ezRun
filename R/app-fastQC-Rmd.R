@@ -79,28 +79,48 @@ ezMethodFastQC = function(input=NA, output=NA, param=NA,
   }
   ans4Report[["Read Counts"]] <- readCount
   
+  ## Each sample can have different number of reports.
+  ## Especially per tile sequence quality
+  nrReports <- sapply(reportDirs, function(x){smy = ezRead.table(file.path(x, "summary.txt"), row.names=NULL, header=FALSE);nrow(smy)})
+  i <- which.max(nrReports)
+  smy = ezRead.table(file.path(reportDirs[i], "summary.txt"), 
+                     row.names=NULL, header=FALSE)
+  rowNames = paste0("<a href=", reportDirs, "/fastqc_report.html>", 
+                    names(files), "</a>")
+  #colNames = ifelse(smy[[2]] %in% names(plotPages),
+  #                  paste0("<a href=", plotPages[smy[[2]]], ">", smy[[2]],
+  #                         "</a>"),
+  #                  smy[[2]])
+  tbl = ezMatrix("", rows=rowNames, cols=smy[[2]])
   for (i in 1:nFiles){
-    smy = ezRead.table(file.path(reportDirs[i], "summary.txt"), row.names=NULL, header=FALSE)
-    if (i == 1){
-      rowNames = paste0("<a href=", reportDirs, "/fastqc_report.html>", 
-                        names(files), "</a>")
-      colNames = ifelse(smy[[2]] %in% names(plotPages),
-                        paste0("<a href=", plotPages[smy[[2]]], ">", smy[[2]], 
-                               "</a>"),
-                        smy[[2]])
-      tbl = ezMatrix("", rows=rowNames, cols=colNames)
-    }
-    href = paste0(reportDirs[i], "/fastqc_report.html#M", 0:(ncol(tbl)-1))
+    smy = ezRead.table(file.path(reportDirs[i], "summary.txt"), 
+                       row.names=NULL, header=FALSE)
+    # if (i == 1){
+    #   rowNames = paste0("<a href=", reportDirs, "/fastqc_report.html>", 
+    #                     names(files), "</a>")
+    #   colNames = ifelse(smy[[2]] %in% names(plotPages),
+    #                     paste0("<a href=", plotPages[smy[[2]]], ">", smy[[2]], 
+    #                            "</a>"),
+    #                     smy[[2]])
+    #   tbl = ezMatrix("", rows=rowNames, cols=colNames)
+    # }
+    href = paste0(reportDirs[i], "/fastqc_report.html#M", 0:(ncol(tbl)-1))[colnames(tbl) %in% smy[[2]]]
     img = paste0(reportDirs[i], 	"/Icons/", statusToPng[smy[[1]]])
-    tbl[i, ] = paste0("<a href=", href, "><img src=", img, "></a>")
+    tbl[i, colnames(tbl) %in% smy[[2]]] = paste0("<a href=", href, "><img src=", img, "></a>")
   }
+  colnames(tbl) <- ifelse(colnames(tbl) %in% names(plotPages),
+                          paste0("<a href=", plotPages[colnames(tbl)], 
+                                 ">", colnames(tbl),
+                                 "</a>"),
+                          colnames(tbl))
+  
   ans4Report[["Fastqc quality measures"]] <- tbl
   
   qualMatrixList = ezMclapply(files, getQualityMatrix, mc.cores=ezThreads())
   ans4Report[["Per Base Read Quality"]] <- qualMatrixList
   
   ## debug
-  #save(ans4Report, file="ans4Report.rda")
+  save(ans4Report, file="ans4Report.rda")
   
   ## generate the main reports
   render(input="FastQC.Rmd", output_dir=".", output_file=htmlFile)
