@@ -405,7 +405,7 @@ plateStatistics <- function(dataset,
   }
 }
 
-heatmapPlate <- function(x, center=TRUE, log10=TRUE){
+heatmapPlate <- function(x, plateName="unnamed", center=TRUE, log10=TRUE){
   require(plotly)
   if(isTRUE(log10)){
     x <- log10(x)
