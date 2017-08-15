@@ -1,0 +1,4 @@
+Name	Expression
+QD	! vc.hasAttribute('QD') || QD < 2.0
+MQ	vc.isSNP() && (MQ < 40.0 || (vc.hasAttribute('MQRankSum') && MQRankSum < -12.5))
+ReadPos	vc.hasAttribute('ReadPosRankSum') && ((vc.isSNP() && ReadPosRankSum < -8.0) || (vc.isIndel() && ReadPosRankSum < -20.0))
