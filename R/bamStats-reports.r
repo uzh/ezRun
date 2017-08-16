@@ -490,6 +490,7 @@ makeAlignmentCountBarPlot = function(file, mmCounts){
 alignmentCountBarPlot <- function(mmCounts, relative=FALSE,
                                   file=NULL){
   require(plotly)
+  title <- ifelse(relative, "alignment proportions", "total alignments")
   multiCount = as.integer(colnames(mmCounts))
   isSmall = multiCount <= 3
   if (any(!isSmall)){
@@ -521,7 +522,8 @@ alignmentCountBarPlot <- function(mmCounts, relative=FALSE,
                          name=colnames(x)[i],
                          marker = list(color = multiCountColors[colnames(x)[i]]))
   }
-  p <- p %>% layout(yaxis = list(title = 'Count'), barmode = 'stack')
+  p <- p %>% layout(yaxis = list(title = 'Count'), barmode = 'stack',
+                    title = title)
   p
 }
 

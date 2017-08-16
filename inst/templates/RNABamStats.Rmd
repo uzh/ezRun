@@ -74,7 +74,9 @@ for (sm in samples){
 ```
 
 ```{r multi-matching plot, echo=FALSE, message=FALSE}
-alignmentCountBarPlot(mmCounts, file="multiMatchInFile-barplot.txt")
+alignmentCountBarPlot(mmCounts, relative=FALSE,
+                      file="multiMatchInFile-barplot.txt")
+alignmentCountBarPlot(mmCounts, relative=TRUE)
 ```
 
 ```{r multi-matching export, echo=FALSE}
@@ -292,7 +294,8 @@ if(!is.null(resultList[[1]]$fragSizeHist)){
     ezWrite.table(cbind(Length=fsh$mids, Count=fsh$counts),
                   file=paste0(sm, "-fragSizeHist.txt"), row.names=FALSE)
     plotCmd = expression({
-        plot(fsh, xlab="fragment size", main=paste(sm, "-- Length Histogram"), ylim=c(0, max(fsh$counts[-length(fsh$counts)]))) ## don't use the longest fragment size
+        plot(fsh, xlab="fragment size", main=paste(sm, "-- Length Histogram"), 
+             ylim=c(0, max(fsh$counts[-length(fsh$counts)]))) ## don't use the longest fragment size
     })
     try({
       eval(plotCmd)
