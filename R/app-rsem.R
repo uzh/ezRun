@@ -92,22 +92,19 @@ EzAppRSEM <-
               )
   )
 
-##' @template getref-template
-##' @templateVar methodName RSEM
-##' @param param a list of parameters:
-##' \itemize{
-##'   \item{transcriptFasta}{ an optional character specifying the path to a fasta file. If specified, the reference will be prepared using it.}
-##'   \item{ezRef@@refIndex}{ a character specifying the location of the index that is used in the alignment.}
-##'   \item{ezRef@@refFeatureFile}{ a character specifying the path to the annotation feature file (.gtf).}
-##'   \item{ezRef@@refFastaFile}{ a character specifying the path to the fasta file.}
-##' }
 getRSEMReference = function(param){
-  
   if (ezIsSpecified(param$transcriptFasta)){
     refBase = file.path(getwd(), "RSEMIndex/transcripts") #paste0(file_path_sans_ext(param$trinityFasta), "_RSEMIndex/transcripts")
   } else {
+    if(ezIsSpecified(param$transcriptTypes)){
+      rsemBase <- paste(sort(param$transcriptTypes), collapse="-")
+      ## This is a combination of transcript types to use.
+    }else{
+      rsemBase <- ""
+    }
     refBase = ifelse(param$ezRef["refIndex"] == "", 
-                     sub(".gtf$", "_RSEMIndex/transcripts", param$ezRef["refFeatureFile"]),
+                     sub(".gtf$", paste0("_", rsemBase, "_RSEMIndex/transcripts"),
+                         param$ezRef["refFeatureFile"]),
                      param$ezRef["refIndex"])
   }
   lockFile = file.path(dirname(refBase), "lock")
@@ -150,11 +147,27 @@ getRSEMReference = function(param){
       ezSystem(cmd)    
     }
   } else{
-    cmd = paste(prepareReference, "--bowtie", "--gtf", param$ezRef["refFeatureFile"], 
+    if(ezIsSpecified(param$transcriptTypes)){
+      seqAnno = ezRead.table(param$ezRef@refAnnotationFile)
+      transcriptsUse = rownames(seqAnno)[seqAnno$type %in% param$transcriptTypes]
+      
+      gtf <- ezReadGff(param$ezRef@refFeatureFile)
+      transcripts <- ezGffAttributeField(gtf$attribute,
+                                         field="transcript_id", 
+                                         attrsep="; *", valuesep=" ")
+      gtf = gtf[transcripts %in% transcriptsUse, ]
+      gtfFile <- sub(".gtf$", paste0("_", rsemBase, ".gtf"),
+                     param$ezRef["refFeatureFile"])
+      write.table(gtf, gtfFile, quote=FALSE, sep="\t", 
+                  row.names=FALSE, col.names=FALSE)
+    }else{
+      gtfFile <- param$ezRef["refFeatureFile"]
+    }
+    cmd = paste(prepareReference, "--bowtie", "--gtf", gtfFile, #param$ezRef["refFeatureFile"],
                 param$ezRef["refFastaFile"],
                 "transcripts")
     ezSystem(cmd)
-    ezSystem(paste("ln -s", param$ezRef["refFeatureFile"], "."))
+    ezSystem(paste("ln -s", gtfFile, "."))
   }
   ezWriteElapsed(job, "done")
   return(refBase)
