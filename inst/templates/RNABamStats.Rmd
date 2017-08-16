@@ -162,25 +162,7 @@ if (!is.null(resultList[[1]][["TranscriptsCovered"]])){
       legend("topright", samples, col=sampleColors[samples], cex=1.2, pt.cex=1.5, bty="o", pt.bg="white", lty=1)
     })
   eval(plotCmd)
-    
-    # pngFiles = character()
-    # pngLinks = character()
-    # for (sm in samples){
-    #   tlc = resultList[[sm]][["TranscriptsCovered"]]
-    #   pngFiles[sm] = paste0(sm, "-transcriptsCovered.png")
-    #   ezWrite.table(cbind(Percents=tlc$mids, Count=tlc$counts),
-    #                  file=paste0(sm, "-transcriptsCovered.txt"), row.names=FALSE)
-    #   
-    #   plotCmd = expression({
-    #     cts = tlc$counts
-    #     names(cts) = tlc$mids
-    #     barplot(cts, xlab="% length covered", main=paste(sm, "-- Isoforms Covered Histogram"), ylab="number of isoforms")
-    #   })
-    #   pngLinks[sm] = ezImageFileLink(plotCmd, file=pngFiles[sm], width=600)
-    #   plotBySamples[[sm]] = c(plotBySamples[[sm]], pngLinks[sm])
-    #   plotByStatistics[["The fraction of isoform length covered"]] = c(plotByStatistics[["The fraction of isoform length covered"]], pngLinks[sm])
-    # }
-  }
+}
 ```
 
 ```{r genebody coverage legend, echo=FALSE, fig.width=3, fig.height=0.25*(length(samples)+1L), results='asis'}
@@ -320,8 +302,63 @@ if(!is.null(resultList[[1]]$fragSizeHist)){
 }
 ```
 
-```{r }
+### Histogram of aligned segments per read
+```{r Histogram of aligned segments per read, echo=FALSE, results='asis'}
+for (sm in samples){
+  fsh = resultList[[sm]]$segmentCountHist
+  #pngFiles[sm] = paste0(sm, "-segmentCountHist.png")
+  ezWrite.table(cbind(Length=fsh$mids, Count=fsh$counts),
+                file=paste0(sm, "-segmentCountHist.txt"), row.names=FALSE)
+    
+  plotCmd = expression({
+    plot(fsh, xlab="# segments in alignment", 
+         main=paste(sm, "-- Histogram of Segments per Alignment"))
+  })
+  try({
+    #pngFiles[sm] = ezImageFileLink(plotCmd, file=pngFiles[sm], width=600)
+    eval(plotCmd)
+  })
+}
+```
 
+```{r Read position specific error rate, echo=FALSE, results='asis', fig.width=16}
+if (!is.null(resultList[[1]][["ErrorRates"]])){
+  cat("###", "Read position specific error rate\n")
+  for (sm in samples){
+    for (nm in names(resultList[[sm]][["ErrorRates"]])){
+      errorRate = resultList[[sm]][["ErrorRates"]][[nm]]
+      if (!is.null(errorRate)){
+        pngFile = ezValidFilename(paste0(sm, "_", nm, ".png"))
+        plotCmd = expression({
+          plotPosSpecificErrorRate(errorRate, png=pngFile, main=paste(sm, nm))
+        })
+        eval(plotCmd)
+        #pngLinks[nm] = ezImageFileLink(plotCmd, file=pngFile, width=1600)
+      }
+    }
+  }
+}
+```
+
+```{r The fraction of isoform length covered, echo=FALSE, results='asis'}
+if (!is.null(resultList[[1]][["TranscriptsCovered"]])){
+  cat("###", "The fraction of isoform length covered\n")
+  for (sm in samples){
+    tlc = resultList[[sm]][["TranscriptsCovered"]]
+    #pngFiles[sm] = paste0(sm, "-transcriptsCovered.png")
+    ezWrite.table(cbind(Percents=tlc$mids, Count=tlc$counts),
+                  file=paste0(sm, "-transcriptsCovered.txt"), row.names=FALSE)
+    plotCmd = expression({
+      cts = tlc$counts
+      names(cts) = tlc$mids
+      barplot(cts, xlab="% length covered", main=paste(sm, "-- Isoforms Covered Histogram"), ylab="number of isoforms")
+    })
+    #pngLinks[sm] = ezImageFileLink(plotCmd, file=pngFiles[sm], width=600)
+    eval(plotCmd)
+    #plotBySamples[[sm]] = c(plotBySamples[[sm]], pngLinks[sm])
+    #plotByStatistics[["The fraction of isoform length covered"]] = c(plotByStatistics[["The fraction of isoform length covered"]], pngLinks[sm])
+  }
+}
 ```
 
 
