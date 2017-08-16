@@ -1,7 +1,7 @@
 WARN_CONFLICTS=FALSE
 
 # This URL is not valid
-DOC_URL="http://fgcz-sushi.uzh.ch/doc/methods-20140422.html"
+DOC_URL="https://fgcz-sushi.uzh.ch/doc/methods-20140422.html"
 
 REPORT_CSS_FILE=""
 REPORT_BANNER_FILE=""
@@ -9,8 +9,8 @@ IGV_TEMPLATE_FILE=""
 
 DEFAULT_DATA_ROOT="/srv/gstore/projects"
 GENOMES_ROOT="/srv/GT/reference:/srv/GT/reference-archive"
-REF_HOST="http://fgcz-gstore.uzh.ch/reference"
-PROJECT_BASE_URL="http://fgcz-gstore.uzh.ch/projects"
+REF_HOST="https://fgcz-gstore.uzh.ch/reference"
+PROJECT_BASE_URL="https://fgcz-gstore.uzh.ch/projects"
 
 ## Databases
 NCPRO_ANNOTATION_DIR="/srv/GT/databases/ncPRO-seq/ncPRO-seq.v1.6.3_mirBase21"
@@ -34,7 +34,7 @@ SHINY_EXPLORE_DE="http://fgcz-shiny.uzh.ch/fgcz_exploreDEG_app/"
 SHINY_SCATER="http://fgcz-shiny.uzh.ch/fgcz_scater_app/"
 
 ## Enrichr
-ENRICHR_BASE_URL="http://amp.pharm.mssm.edu/Enrichr"
+ENRICHR_BASE_URL="https://amp.pharm.mssm.edu/Enrichr"
 
 
 SMRT_CMD="SMRT=/misc/ngseq8/opt/smrtanalysis.2.3.0/install/smrtanalysis_2.3.0.140936; source $SMRT/etc/setup.sh; fofnToSmrtpipeInput.py input.fofn > input.xml; smrtpipe.py --params=settings.xml xml:input.xml"

@@ -51,14 +51,20 @@ ezMethodFeatureCounts = function(input=NA, output=NA, param=NA){
   }
   
   sink(file="featureCounts-messages.txt")
-  if(!is.null(param$aroundTSSCounting) & param$aroundTSSCounting & ezIsSpecified(param$transcriptTypes)){
+  if(!is.null(param$aroundTSSCounting) && param$aroundTSSCounting){
+    ## TODO:  refactor below; you can not rely that "gene" entries are in the gtf file; GenomicFeatures has functions for flanking
+    ## - load the gtf in a txdb, use the promoter function to get the promoters
+    ## - read transcript type from the genes_annotation.txt
+    ## - filter on transcript type
+    ## - provide the promoter coordinates as a data.frame to featureCounts 
     gtf = rtracklayer::import(param$ezRef@refFeatureFile)
     idx = gtf$type == 'gene'
     gtf = gtf[idx]
     
-   if (ezIsSpecified(param$transcriptTypes)){
-       idx = gtf$gene_biotype %in% 'protein_coding'
-      gtf = gtf[idx]}
+    if (ezIsSpecified(param$transcriptTypes)){
+      idx = gtf$gene_biotype %in% param$transcriptTypes
+      gtf = gtf[idx]
+    }
     
     rtracklayer::export(gtf, 'genes.gtf')
     

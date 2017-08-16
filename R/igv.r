@@ -43,54 +43,54 @@ ezIgvTemplateFile = function(){
 ##' @param projectId a character representing the project ID.
 ##' @param html a character representing an html address.
 ##' @template roxygen-template
-writeJavaScriptIgvStarter = function(htmlFile, projectId, html){
-  jnlpLines1 = paste('<jnlp spec="6.0+" codebase="http://data.broadinstitute.org/igv/projects/current">',
-                    '<information>',
-                    '<title>IGV 2.3</title>',
-                    '<vendor>The Broad Institute</vendor>',
-                    '<homepage href="http://www.broadinstitute.org/igv"/>',
-                    '<description>IGV Software</description>',
-                    '<description kind="short">IGV</description>',
-                    '<icon href="IGV_64.png"/>',
-                    '<icon kind="splash" href="IGV_64.png"/>',
-                    '<offline-allowed/>',
-                    '</information>',
-                    '<security>',
-                    '<all-permissions/>',
-                    '</security>',
-                    '<update check="background" />', #check="never" policy="never"/>',
-                    '<resources>',
-                    '<java version="1.6+" initial-heap-size="256m" max-heap-size="1100m" />',
-                    '<jar href="igv.jar" download="eager" main="true"/>',
-                    '<jar href="batik-codec__V1.7.jar" download="eager"/>',
-                    '<jar href="goby-io-igv__V1.0.jar" download="eager"/>',  
-                    '<property name="apple.laf.useScreenMenuBar" value="true"/>',
-                    '<property name="com.apple.mrj.application.growbox.intrudes" value="false"/>',
-                    '<property name="com.apple.mrj.application.live-resize" value="true"/>',
-                    '<property name="com.apple.macos.smallTabs" value="true"/>',
-                    '<property name="http.agent" value="IGV"/>',
-                    '<property name="development" value="false"/>',
-                    '</resources>',
-                    '<application-desc  main-class="org.broad.igv.ui.Main">',
-                    '<argument>--genomeServerURL=http://fgcz-gstore.uzh.ch/reference/igv_genomes.txt</argument>',
-                    paste0('<argument>--dataServerURL=', "http://fgcz-gstore.uzh.ch/list_registries/", projectId, '</argument>'),
-                    '<argument>',
-                    sep="\n")
-  jnlpLines2 = paste("</argument>",
-                    '</application-desc>',
-                    '</jnlp>',
-                    sep="\n")
-  ezWrite("<script>", con=html)
-  ezWrite("function startIgvFromJnlp(label, locus){", con=html)
-  ezWrite("var theSession = document.location.href.replace('", htmlFile, "', 'igvSession.xml');", con=html)
-  ezWrite("var igvLink = 'data:application/x-java-jnlp-file;charset=utf-8,';", con=html)
-  ezWrite("igvLink += '", RCurl::curlEscape(jnlpLines1), "';", con=html)
-  ezWrite("igvLink += theSession;", con=html)
-  ezWrite("igvLink += '", RCurl::curlEscape(jnlpLines2), "';", con=html)
-  ezWrite("document.write(label.link(igvLink))", con=html)
-  ezWrite("}", con=html)
-  ezWrite("</script>", con=html)
-}
+# writeJavaScriptIgvStarter = function(htmlFile, projectId, html){
+#   jnlpLines1 = paste('<jnlp spec="6.0+" codebase="http://data.broadinstitute.org/igv/projects/current">',
+#                     '<information>',
+#                     '<title>IGV 2.3</title>',
+#                     '<vendor>The Broad Institute</vendor>',
+#                     '<homepage href="http://www.broadinstitute.org/igv"/>',
+#                     '<description>IGV Software</description>',
+#                     '<description kind="short">IGV</description>',
+#                     '<icon href="IGV_64.png"/>',
+#                     '<icon kind="splash" href="IGV_64.png"/>',
+#                     '<offline-allowed/>',
+#                     '</information>',
+#                     '<security>',
+#                     '<all-permissions/>',
+#                     '</security>',
+#                     '<update check="background" />', #check="never" policy="never"/>',
+#                     '<resources>',
+#                     '<java version="1.6+" initial-heap-size="256m" max-heap-size="1100m" />',
+#                     '<jar href="igv.jar" download="eager" main="true"/>',
+#                     '<jar href="batik-codec__V1.7.jar" download="eager"/>',
+#                     '<jar href="goby-io-igv__V1.0.jar" download="eager"/>',  
+#                     '<property name="apple.laf.useScreenMenuBar" value="true"/>',
+#                     '<property name="com.apple.mrj.application.growbox.intrudes" value="false"/>',
+#                     '<property name="com.apple.mrj.application.live-resize" value="true"/>',
+#                     '<property name="com.apple.macos.smallTabs" value="true"/>',
+#                     '<property name="http.agent" value="IGV"/>',
+#                     '<property name="development" value="false"/>',
+#                     '</resources>',
+#                     '<application-desc  main-class="org.broad.igv.ui.Main">',
+#                     '<argument>--genomeServerURL=http://fgcz-gstore.uzh.ch/reference/igv_genomes.txt</argument>',
+#                     paste0('<argument>--dataServerURL=', "http://fgcz-gstore.uzh.ch/list_registries/", projectId, '</argument>'),
+#                     '<argument>',
+#                     sep="\n")
+#   jnlpLines2 = paste("</argument>",
+#                     '</application-desc>',
+#                     '</jnlp>',
+#                     sep="\n")
+#   ezWrite("<script>", con=html)
+#   ezWrite("function startIgvFromJnlp(label, locus){", con=html)
+#   ezWrite("var theSession = document.location.href.replace('", htmlFile, "', 'igvSession.xml');", con=html)
+#   ezWrite("var igvLink = 'data:application/x-java-jnlp-file;charset=utf-8,';", con=html)
+#   ezWrite("igvLink += '", RCurl::curlEscape(jnlpLines1), "';", con=html)
+#   ezWrite("igvLink += theSession;", con=html)
+#   ezWrite("igvLink += '", RCurl::curlEscape(jnlpLines2), "';", con=html)
+#   ezWrite("document.write(label.link(igvLink))", con=html)
+#   ezWrite("}", con=html)
+#   ezWrite("</script>", con=html)
+# }
 
 ##' @title Writes an IGV session
 ##' @description Writes an IGV session into a separate .xml file
