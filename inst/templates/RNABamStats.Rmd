@@ -183,7 +183,7 @@ if (!is.null(resultList[[1]][["TranscriptsCovered"]])){
   }
 ```
 
-```{r genebody coverage legend, echo=FALSE, fig.width=3, fig.height=1, results='asis'}
+```{r genebody coverage legend, echo=FALSE, fig.width=3, fig.height=0.25*(length(samples)+1L), results='asis'}
 if (length(resultList[[1]][["genebody_coverage"]]) != 0){ ## TODO this could be done better by searching alls results for a valide genebody_coverage element
   cat("####", "Genebody coverage plot\n")
   plotCmd = expression({
@@ -231,12 +231,9 @@ if (length(resultList[[1]][["genebody_coverage"]]) != 0){ ## TODO this could be 
               covValues[sm, ] = NA
             }
           }
-          #legend("topright", samples, col=sampleColors[samples], cex=1.2, pt.cex=1.5, bty="o", pt.bg="white", lty=1)
         })
         eval(plotCmd)
-        #link = ezImageFileLink(plotCmd, file=pngMatrix[rn, cn], width=600)
-        #pngLinks = append(pngLinks, link)
-        # pngLinks[rn, cn] = ezImageFileLink(plotCmd, file=pngMatrix[rn, cn], width=600) # old version with all plots
+       
         ezWrite.table(covValues, file=sub(".png$", ".txt", pngMatrix[rn, cn]),
                       head="Name")
       }
@@ -244,24 +241,48 @@ if (length(resultList[[1]][["genebody_coverage"]]) != 0){ ## TODO this could be 
   }
 ```
 
-```{r junction plot, echo=FALSE, results='asis', eval=FALSE}
-if (!is.null(names(resultList[[1]][["Junction"]]))){
-    junctionMaxVal = numeric()
-    for (nm in names(resultList[[1]][["Junction"]])){
-      junctionMaxVal[nm] = 0
-      for (sm in samples){
-        junctionMaxVal[nm] = max(junctionMaxVal[nm], unlist(resultList[[sm]][["Junction"]][[nm]]))
-      }
-    }
+```{r junction saturation plot for all samples, echo=FALSE, results='asis'}
+if(!is.null(resultList[[1]][["Junction"]])){
+  cat("###", "Junction saturation plot for all samples\n")
+  junctionMaxVal = numeric()
+  for (nm in names(resultList[[1]][["Junction"]])){
+    junctionMaxVal[nm] = 0
     for (sm in samples){
-      pngLinks = character()
-      for (nm in names(resultList[[sm]][["Junction"]])){
+      junctionMaxVal[nm] = max(junctionMaxVal[nm], unlist(resultList[[sm]][["Junction"]][[nm]]))
+    }
+  }
+  for (nm in names(resultList[[1]][["Junction"]][["junctionSaturation"]])){
+    plotCmd = expression({
+        plot(1,1, xlab="percent of total reads", 
+             ylab='Number of splicing junctions (x1000)',
+             type='o', xlim=c(0, 130),
+             ylim=c(0, junctionMaxVal["junctionSaturation"]/1000), main=nm)
+        for (sm in samples){
+          x <- resultList[[sm]][["Junction"]][["junctionSaturation"]][[nm]]
+          lines(as.numeric(names(x))*100, x/1000, col=sampleColors[sm], type="o")
+        }
+        legend("bottomright", legend=samples, col=sampleColors[samples], 
+               lwd=1, pch=1)
+      })
+    eval(plotCmd)
+  }
+}
+```
+
+```{r junction plot, echo=FALSE, results='asis'}
+if (!is.null(resultList[[1]][["Junction"]])){
+  cat("###", "Junction plots\n")
+  for (sm in samples){
+    #pngLinks = character()
+    cat("\n")
+    cat("####", sm, "\n")
+    for (nm in names(resultList[[sm]][["Junction"]])){
         junctionPlot = resultList[[sm]][["Junction"]][[nm]]
-        pngFile = ezValidFilename(paste0(sm, "_", nm, ".png"))
-        
         plotCmd = expression({
           if (nm %in% c("splice_events", "splice_junction")){
-            pie(junctionPlot, col=c(2,3,4), init.angle=30,angle=c(60,120,150),density=c(70,70,70),main=nm, labels=paste(names(junctionPlot), paste0(round(junctionPlot), "%")))
+            pie(junctionPlot, col=c(2,3,4), init.angle=30, angle=c(60,120,150),
+                density=c(70,70,70),main=nm, 
+                labels=paste(names(junctionPlot), paste0(round(junctionPlot), "%")))
           } else if (nm =="junctionSaturation"){
             x = as.numeric(names(junctionPlot[[1]])) * 100
             plot(1,1,xlab="percent of total reads", ylab='Number of splicing junctions (x1000)',type='o',
@@ -273,35 +294,36 @@ if (!is.null(names(resultList[[1]][["Junction"]]))){
             legend("topleft", legend=names(saturationColors), col=saturationColors,lwd=1,pch=1)
           }
         })
-        pngLinks[nm] = ezImageFileLink(plotCmd, file=pngFile, width=600)
-      }
-      plotBySamples[[sm]] = c(plotBySamples[[sm]], pngLinks)
-      plotByStatistics[["Junction Plots"]] = c(plotByStatistics[["Junction Plots"]], pngLinks)
+        eval(plotCmd)
     }
+    cat("\n")
+  }
 }
 ```
 
-```{r fragSizeHist, echo=FALSE, results='asis', eval=FALSE}
-plotBySamples = list()
-plotByStatistics = list()
+```{r fragSizeHist, echo=FALSE, results='asis'}
 if(!is.null(resultList[[1]]$fragSizeHist)){
-  pngFiles = character()
+  cat("###", "Length distribution of fragments for paired reads\n")
   for (sm in samples){
     fsh = resultList[[sm]]$fragSizeHist
-    pngFiles[sm] = paste0(sm, "-fragSizeHist.png")
+    #pngFiles[sm] = paste0(sm, "-fragSizeHist.png")
     ezWrite.table(cbind(Length=fsh$mids, Count=fsh$counts),
                   file=paste0(sm, "-fragSizeHist.txt"), row.names=FALSE)
     plotCmd = expression({
         plot(fsh, xlab="fragment size", main=paste(sm, "-- Length Histogram"), ylim=c(0, max(fsh$counts[-length(fsh$counts)]))) ## don't use the longest fragment size
     })
     try({
-      pngFiles[sm] = ezImageFileLink(plotCmd, file=pngFiles[sm], width=600)
+      eval(plotCmd)
+      #pngFiles[sm] = ezImageFileLink(plotCmd, file=pngFiles[sm], width=600)
     })
-    plotBySamples[[sm]] = c(plotBySamples[[sm]], pngFiles[sm])
-    plotByStatistics[["Length distribution of fragments for paired reads"]] = c(plotByStatistics[["Length distribution of fragments for paired reads"]], pngFiles[sm])
   }
 }
 ```
+
+```{r }
+
+```
+
 
 ### Input Dataset
 ```{r, echo=FALSE, message=FALSE}
