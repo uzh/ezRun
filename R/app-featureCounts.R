@@ -15,27 +15,20 @@ ezMethodFeatureCounts = function(input=NA, output=NA, param=NA){
   
   if (ezIsSpecified(param$transcriptTypes)){
     gtfFile = "genes.gtf"
+    ## TODO: check to replace it with ezFeatureAnnotation
     seqAnno = ezRead.table(param$ezRef@refAnnotationFile)
     transcriptsUse = rownames(seqAnno)[seqAnno$type %in% param$transcriptTypes]
     require(data.table)
     require(stringr)
-    ## fread is faster than read_tsv, read.table and import.
-    ## some benchmarks for human gtf on Mac i7-3615QM
-    ### read_tsv: 27.662s
-    ### ezRead.table: 127.461s
-    ### import: 33.419s
-    gtf <- fread(param$ezRef@refFeatureFile, header=FALSE, sep="\t", 
-                 quote="", data.table=FALSE,
-                 colClasses=c("character", "character", "character", "integer", 
-                              "integer", "character", "character", "character",
-                              "character"),
-                 col.names=c('seqname','source','feature','start','end',
-                             'score','strand','frame','attribute')
-                 )
-    #transcripts <- sub("\";$", "", 
-    #                   sub("^transcript_id \"", "", 
-    #                       str_extract(gtf$attribute,
-    #                                   "transcript_id \"[[:alnum:][:punct:]]+\";")))
+    gtf <- ezReadGff(param$ezRef@refFeatureFile)
+    # gtf <- fread(param$ezRef@refFeatureFile, header=FALSE, sep="\t", 
+    #              quote="", data.table=FALSE,
+    #              colClasses=c("character", "character", "character", "integer", 
+    #                           "integer", "character", "character", "character",
+    #                           "character"),
+    #              col.names=c('seqname','source','feature','start','end',
+    #                          'score','strand','frame','attribute')
+    #              )
     transcripts <- ezGffAttributeField(gtf$attribute,
                                        field="transcript_id", 
                                        attrsep="; *", valuesep=" ")
