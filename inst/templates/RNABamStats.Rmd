@@ -1,5 +1,5 @@
 ---
-title: "`r paste('BAM Statistics:', 'TODO: RNA_BAM_Statistics')`"
+title: "`r paste('BAM Statistics:', param$name)`"
 author: "Functional Genomics Center Zurich"
 output: 
   html_document:
@@ -20,8 +20,8 @@ require(ezRun)
 ```
 
 ```{r prepare data, include=FALSE}
-load("/home/gtan/analysis/gtan/p2438-RNABamStats/RNA_BAM_Statistics_forTest/resultList.RData")
-load("/home/gtan/analysis/gtan/p2438-RNABamStats/RNA_BAM_Statistics_forTest/dataParam.rda")
+#load("/home/gtan/analysis/gtan/p2438-RNABamStats/RNA_BAM_Statistics_forTest/resultList.RData")
+#load("/home/gtan/analysis/gtan/p2438-RNABamStats/RNA_BAM_Statistics_forTest/dataParam.rda")
 conds = ezConditionsFromDataset(dataset, param=param)
 samples = rownames(dataset)
 sampleColors = getSampleColors(conds, samples)

@@ -120,9 +120,18 @@ computeBamStats = function(input, htmlFile, param, gff, resultList=NULL){
   }
   
   ## debug
-  save(dataset, param, file="dataParam.rda")
+  #save(dataset, param, file="dataParam.rda")
   
-  plotBamStat(resultList, dataset, param, htmlFile)
+  #plotBamStat(resultList, dataset, param, htmlFile)
+  
+  ## Copy the style files and templates
+  styleFiles <- file.path(system.file("templates", package="ezRun"),
+                          c("fgcz.css", "RNABamStats.Rmd",
+                            "fgcz_header.html", "banner.png"))
+  file.copy(from=styleFiles, to=".", overwrite=TRUE)
+  rmarkdown::render(input="RNABamStats.Rmd",
+                    output_dir=".", output_file=htmlFile)
+  
   rm(resultList)
   gc()
   return("Success")
