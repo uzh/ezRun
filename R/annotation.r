@@ -23,15 +23,18 @@
 ##' param$ezRef["refAnnotationFile"] = annoFile
 ##' seqAnno = writeAnnotationFromGtf(param)
 ##' seqAnno2 = ezFeatureAnnotation(param, rownames(seqAnno), dataFeatureType="gene")
-ezFeatureAnnotation = function(param, ids, dataFeatureType){
+ezFeatureAnnotation = function(param, ids=NULL,
+                               dataFeatureType=c("gene", "transcript", "isoform")){
   require(data.table)
+  dataFeatureType <- match.arg(dataFeatureType)
+  
   if(dataFeatureType == "gene"){
     refAnnoGeneFn <- sub("(_byTranscript)*\\.txt$", "_byGene.txt",
                          param$ezRef["refAnnotationFile"])
     
     if(file.exists(refAnnoGeneFn)){
       message("Using gene level annotation: ", refAnnoGeneFn)
-      seqAnno <- as.data.frame(fread(refAnnoGeneFn))
+      seqAnno <- fread(refAnnoGeneFn, data.table=FALSE)
       rownames(seqAnno) <- seqAnno$gene_id
     }else{
       message("Using isoform level annotation and aggregating.")
@@ -42,14 +45,16 @@ ezFeatureAnnotation = function(param, ids, dataFeatureType){
       seqAnno <- aggregateFeatAnno(seqAnnoTx)
     }
   }else if(dataFeatureType %in% c("transcript", "isoform")){
-    seqAnno <- as.data.frame(fread(param$ezRef["refAnnotationFile"]))
+    seqAnno <- fread(param$ezRef["refAnnotationFile"], data.table=FALSE)
     ## historical reason: replace Identifier with transcript_id
     colnames(seqAnno)[colnames(seqAnno)=="Identifier"] <- "transcript_id"
     rownames(seqAnno) <- seqAnno$transcript_id
   }else{
     stop("Only support dataFeatureType in 'transcript', 'isoform', 'gene'")
   }
-  seqAnno = seqAnno[ids, , drop=FALSE]
+  if(!is.null(ids)){
+    seqAnno <- seqAnno[ids, , drop=FALSE]
+  }
   return(seqAnno)
 }
 
