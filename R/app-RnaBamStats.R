@@ -119,7 +119,19 @@ computeBamStats = function(input, htmlFile, param, gff, resultList=NULL){
     save(resultList, file="resultList.RData")
   }
   
-  plotBamStat(resultList, dataset, param, htmlFile)
+  ## debug
+  #save(dataset, param, file="dataParam.rda")
+  
+  #plotBamStat(resultList, dataset, param, htmlFile)
+  
+  ## Copy the style files and templates
+  styleFiles <- file.path(system.file("templates", package="ezRun"),
+                          c("fgcz.css", "RNABamStats.Rmd",
+                            "fgcz_header.html", "banner.png"))
+  file.copy(from=styleFiles, to=".", overwrite=TRUE)
+  rmarkdown::render(input="RNABamStats.Rmd",
+                    output_dir=".", output_file=htmlFile)
+  
   rm(resultList)
   gc()
   return("Success")
@@ -414,13 +426,17 @@ getStatsFromBamParallel = function(seqLengths, param, bamFile, sm, nReads,
   result$seqLengths = seqLengths
   
   ## Merge the TranscriptsCovered results
-  transcriptCov <- list()
+  #transcriptCov <- list()
+  transcriptCov <- vector("list", length(chromResults))
+  i <- 1
   for(chrom in names(chromResults)){
-    transcriptCov = c(transcriptCov, chromResults[[chrom]]$transcriptCov)
+    #transcriptCov = c(transcriptCov, chromResults[[chrom]]$transcriptCov)
+    transcriptCov[[i]] <- chromResults[[chrom]]$transcriptCov
+    i <- i + 1
   }
   #transcriptCov <- unlist(lapply(chromResults, "[[", "transcriptCov"))
   # list object
-  result$transcriptCov = transcriptCov
+  result$transcriptCov = unlist(transcriptCov)
   
   return(result)
 }

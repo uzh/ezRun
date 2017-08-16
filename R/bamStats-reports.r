@@ -474,9 +474,10 @@ makeAlignmentCountBarPlot = function(file, mmCounts){
   plotCmd = expression({
     par(mar=c(12, 4.1, 4.1, 2.1))
     x = mmCounts[ , rev(colnames(mmCounts)), drop = F]
-    for (i in 1:nrow(x)) {
-      x[i, ] = x[i, ]/sum(x[i,])
-    }
+    #for (i in 1:nrow(x)) {
+    #  x[i, ] = x[i, ]/sum(x[i,])
+    #}
+    x <- sweep(x, MARGIN=1, STATS=rowSums(x), FUN="/")
     barplot(t(x), las=2, ylab="Counts [proportion]", main="alignment proportions", legend.text=TRUE, border=NA,
             col=multiCountColors[colnames(x)], xlim=c(0, nrow(x) +5),
             names.arg=ezSplitLongLabels(rownames(x)))
@@ -484,6 +485,46 @@ makeAlignmentCountBarPlot = function(file, mmCounts){
   pngLinks["Relative"] = ezImageFileLink(plotCmd, file="multiMatchInFile-barplot-rel.png", width=min(600 + (nrow(mmCounts)-10)* 30, 2000)) # nSamples dependent width
   
   return(pngLinks)
+}
+
+alignmentCountBarPlot <- function(mmCounts, relative=FALSE,
+                                  file=NULL){
+  require(plotly)
+  title <- ifelse(relative, "alignment proportions", "total alignments")
+  multiCount = as.integer(colnames(mmCounts))
+  isSmall = multiCount <= 3
+  if (any(!isSmall)){
+    mmCounts = cbind(mmCounts[ , isSmall, drop=FALSE], 
+                     ">3"=rowSums(mmCounts[ , !isSmall, drop=FALSE]))
+  }
+  
+  if(!is.null(file)){
+    ezWrite.table(mmCounts, file=file)
+  }
+  
+  multiCountColors = c("0 hit(s)"="gray", "1 hit(s)"="blue", "2 hit(s)"="cyan",
+                       "3 hit(s)"="green", ">3 hit(s)"="orange")
+  colnames(mmCounts) = paste(colnames(mmCounts), "hit(s)")
+  stopifnot(colnames(mmCounts) %in% names(multiCountColors))
+  
+  x = mmCounts[ , rev(colnames(mmCounts)), drop = F]
+  if(isTRUE(relative)){
+    x <- sweep(x, MARGIN=1, STATS=rowSums(x), FUN="/")
+  }
+  x <- as.data.frame(x)
+  x$"sample" <- rownames(x)
+  
+  p <- plot_ly(x, x=~sample, y=as.formula(paste0("~`", colnames(x)[1], "`")), 
+               type="bar", name = colnames(x)[1], 
+               marker = list(color = multiCountColors[colnames(x)[1]]))
+  for(i in 2:(ncol(x)-1)){
+    p <- p %>% add_trace(y=as.formula(paste0("~`", colnames(x)[i], "`")), 
+                         name=colnames(x)[i],
+                         marker = list(color = multiCountColors[colnames(x)[i]]))
+  }
+  p <- p %>% layout(yaxis = list(title = 'Count'), barmode = 'stack',
+                    title = title)
+  p
 }
 
 ##' @describeIn plotBamStat Plots the position specific error rates.

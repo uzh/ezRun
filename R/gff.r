@@ -158,6 +158,12 @@ ezReadGff = function(gffFile, nrows = -1) {
                             "integer", "character", "character", "character",
                             "character"),
                nrows=nrows)
+  ## fread is faster than read_tsv, read.table and import.
+  ## some benchmarks for human gtf on Mac i7-3615QM
+  ### read_tsv: 27.662s
+  ### ezRead.table: 127.461s
+  ### import: 33.419s
+  
   # fread is much faster than read.table.
   # human genes.gtf, read.table: 97.124 seconds. fread: 5.976 seconds
   # gff = read.table(gffFile, sep="\t", as.is=TRUE, quote="",
