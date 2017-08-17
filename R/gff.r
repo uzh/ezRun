@@ -635,9 +635,6 @@ getEnsemblTypes = function(gff){
   return(NULL)
 }
 
-
-
-
 .checkGtfForExons = function(){
   ## TODO 
   gtfFile = "/srv/GT/reference/Homo_sapiens/Ensembl/GRCh37/Annotation/Version-2014-03-28/Genes/genes.gtf"
