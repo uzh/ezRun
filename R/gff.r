@@ -471,25 +471,19 @@ writePresplicedGtf <- function (param, featureFile=param$ezRef["refFeatureFile"]
   ezWriteGff(gtfBoth, file=gtfBothFile)
 }
 
-##' @title Gets transcript sequences
-##' @description Gets transcript sequences from annotation (gtf or gff) and sequence (fasta) information.
-##' @param param the parameters to load the annotation and sequence files from.
-##' @param useFivePrimeAsStart a logical indicating whether to start from the 5' primer or not
-##' @template roxygen-template
-##' @return Returns an object of the class DNAStringSet from the package Biostrings
-##' @examples
-##' param = ezParam()
-##' param$ezRef@@refFeatureFile = system.file("extdata/genes.gtf", package="ezRun", mustWork=TRUE)
-##' fp = "/srv/GT/reference/Saccharomyces_cerevisiae/Ensembl/EF4/Sequence/WholeGenomeFasta/genome.fa"
-##' param$ezRef@@refFastaFile = fp
-##' ts = getTranscriptSequences(param)
-getTranscriptSequences = function(param, useFivePrimeAsStart=TRUE){
+
+getTranscriptSequences = function(param=NULL, genomeFn=NULL, featureFn=NULL){
   require(GenomicFeatures)
   require(Rsamtools)
-  txdb = makeTxDbFromGFF(param$ezRef["refFeatureFile"],
-                         dataSource="FGCZ", taxonomyId = "10090")# organism=organism, chrominfo=NULL)
+  if(!is.null(param)){
+    genomeFn <- param$ezRef["refFastaFile"]
+    featureFn <- param$ezRef["refFeatureFile"]
+  }
+  txdb = makeTxDbFromGFF(featureFn,
+                         dataSource="FGCZ", taxonomyId = "10090")
+  # organism=organism, chrominfo=NULL)
   exonRgList = exonsBy(txdb, by="tx", use.names=TRUE)
-  genomeFasta = FaFile(param$ezRef["refFastaFile"])
+  genomeFasta = FaFile(genomeFn)
   trSeqs = extractTranscriptSeqs(genomeFasta, exonRgList)
   return(trSeqs)
 }
