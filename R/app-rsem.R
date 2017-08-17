@@ -148,11 +148,12 @@ getRSEMReference = function(param){
     }
   } else{
     if(ezIsSpecified(param$transcriptTypes)){
-      seqAnno = ezRead.table(param$ezRef@refAnnotationFile)
+      seqAnno = ezFeatureAnnotation(param$ezRef@refAnnotationFile,
+                                    dataFeatureType="transcript")
       transcriptsUse = rownames(seqAnno)[seqAnno$type %in% param$transcriptTypes]
       
       gtf <- ezReadGff(param$ezRef@refFeatureFile)
-      transcripts <- ezGffAttributeField(gtf$attribute,
+      transcripts <- ezGffAttributeField(gtf$attributes,
                                          field="transcript_id", 
                                          attrsep="; *", valuesep=" ")
       gtf = gtf[transcripts %in% transcriptsUse, ]

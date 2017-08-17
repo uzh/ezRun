@@ -15,21 +15,13 @@ ezMethodFeatureCounts = function(input=NA, output=NA, param=NA){
   
   if (ezIsSpecified(param$transcriptTypes)){
     gtfFile = "genes.gtf"
-    ## TODO: check to replace it with ezFeatureAnnotation
-    seqAnno = ezRead.table(param$ezRef@refAnnotationFile)
+    seqAnno = ezFeatureAnnotation(param$ezRef@refAnnotationFile,
+                                  dataFeatureType="transcript")
     transcriptsUse = rownames(seqAnno)[seqAnno$type %in% param$transcriptTypes]
     require(data.table)
     require(stringr)
     gtf <- ezReadGff(param$ezRef@refFeatureFile)
-    # gtf <- fread(param$ezRef@refFeatureFile, header=FALSE, sep="\t", 
-    #              quote="", data.table=FALSE,
-    #              colClasses=c("character", "character", "character", "integer", 
-    #                           "integer", "character", "character", "character",
-    #                           "character"),
-    #              col.names=c('seqname','source','feature','start','end',
-    #                          'score','strand','frame','attribute')
-    #              )
-    transcripts <- ezGffAttributeField(gtf$attribute,
+    transcripts <- ezGffAttributeField(gtf$attributes,
                                        field="transcript_id", 
                                        attrsep="; *", valuesep=" ")
     gtf = gtf[transcripts %in% transcriptsUse, ]

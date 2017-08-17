@@ -152,7 +152,7 @@ ezBuildAttributeField = function(x, format="gtf"){
 ##' @examples
 ##' gtf = ezReadGff(system.file("extdata/genes.gtf", package="ezRun", mustWork=TRUE))
 ##' ezWriteGff(gtf,"newgtf")
-ezReadGff = function(gffFile, nrows = -1) {
+ezReadGff = function(gffFile, nrows=-1){
   require(data.table)
   gff <- fread(gffFile, sep="\t", header=FALSE, data.table=FALSE,
                quote="", col.names=c("seqid", "source", "type", "start", "end",
