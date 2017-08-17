@@ -67,13 +67,16 @@ ezLoadFeatures = function(param=NULL, featureFile=param$ezRef["refFeatureFile"],
   return(gff)
 }
 
-##' @describeIn ezLoadFeatures Gets the attribute from the specified \code{field}.
 ezGffAttributeField = function (x, field, attrsep = ";", valuesep="=") {
   require(stringr)
   ## gene_id "ENSG00000278267"; gene_version "1"; gene_name "MIR6859-1"; gene_source "mirbase"; gene_biotype "miRNA"; transcript_id "ENST00000619216"; transcript_version "1"; transcript_name "MIR6859-1-201"; transcript_source "mirbase"; transcript_biotype "miRNA"; tag "basic"; transcript_support_level "NA";
-  x <- str_extract(x, paste(field, paste0("\"{0,1}[^\"]+\"{0,1}", attrsep),
+  #x <- str_extract(x, paste(field, paste0("\"{0,1}[^\"]+\"{0,1}", attrsep),
+  #                          sep=valuesep)
+  #                 )
+  x <- str_extract(x, paste(field, paste0('"{0,1}[^"',attrsep, ']+"{0,1}', attrsep),
                             sep=valuesep)
                    )
+  
   x <- sub(paste(field, "\"{0,1}", sep=valuesep), "", x)
   x <- sub(paste0("\"{0,1}", attrsep, "$"), "", x)
   # This implementation is 2 times faster than the old implementation below.
@@ -487,38 +490,6 @@ getTranscriptSequences = function(param=NULL, genomeFn=NULL, featureFn=NULL){
   trSeqs = extractTranscriptSeqs(genomeFasta, exonRgList)
   return(trSeqs)
 }
-
-
-# getTranscriptSequences = function(param, useFivePrimeAsStart=TRUE){
-#   genomeFasta = param$ezRef["refFastaFile"]
-#   genomeSeq = readDNAStringSet(genomeFasta)
-#   names(genomeSeq) = sub(" .*", "", names(genomeSeq))
-#   gff = ezLoadFeatures(param=param, types = "exon")
-#   trSeq = character()
-#   for (nm in unique(gff$seqid)){
-#     message(nm)
-#     use = nm == gff$seqid
-#     trIsSorted = tapply(gff$start[use], gff$transcript_id[use], function(sp){all(diff(sp)>0)})
-#     
-#     stopifnot(trIsSorted)
-#     trViews = Views(genomeSeq[[nm]], 
-#                     start=gff$start[use],
-#                     end=gff$end[use])
-#     exonStrings = as.character(trViews)
-#     trSeq = c(trSeq, tapply(exonStrings, gff$transcript_id[use], paste, collapse=""))
-#   }
-#   trSet = DNAStringSet(trSeq)
-#   if (useFivePrimeAsStart){
-#     trStrand = tapply(gff$strand, gff$transcript_id, unique)
-#     stopifnot(setequal(names(trStrand), names(trSet)))
-#     stopifnot(length(unlist(trStrand)) == length(trSet))
-#     isNegStrand = trStrand[names(trSet)] == "-"
-#     trSet[isNegStrand] = reverseComplement(trSet[isNegStrand])
-#   }
-#   return(trSet)
-# }
-
-
 
 ##' @title Gets UTR sequences
 ##' @description Gets sequences from untranslated regions.

@@ -2,14 +2,11 @@
 % Please edit documentation in R/gff.r
 \name{ezLoadFeatures}
 \alias{ezLoadFeatures}
-\alias{ezGffAttributeField}
 \alias{addPromotersToGff}
 \title{Loads annotation features from a file}
 \usage{
 ezLoadFeatures(param = NULL, featureFile = param$ezRef["refFeatureFile"],
   types = NULL)
-
-ezGffAttributeField(x, field, attrsep = ";", valuesep = "=")
 
 addPromotersToGff(gff, promWidth)
 }
