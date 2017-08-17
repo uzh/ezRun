@@ -131,23 +131,23 @@ EzAppKallisto <-
               )
   )
 
-##' @template getref-template
-##' @templateVar methodName kallisto
-##' @param param a list of parameters:
-##' \itemize{
-##'   \item{transcriptFasta}{ an optional character specifying the path to a fasta file. If specified, the reference will be prepared using it.}
-##'   \item{ezRef@@refIndex}{ a character specifying the location of the index that is used in the alignment.}
-##'   \item{ezRef@@refFeatureFile}{ a character specifying the path to the annotation feature file (.gtf).}
-##'   \item{ezRef@@refFastaFile}{ a character specifying the path to the fasta file.}
-##' }
-##' @author Roman Briskine
+
 getKallistoReference = function(param){
 
   if (ezIsSpecified(param$transcriptFasta)){
-    refBase = file.path(getwd(), "kallistoIndex/transcripts") #paste0(file_path_sans_ext(param$trinityFasta), "_kallistoIndex/transcripts")
+    refBase = file.path(getwd(), "kallistoIndex/transcripts") 
+    #paste0(file_path_sans_ext(param$trinityFasta), "_kallistoIndex/transcripts")
   } else {
+    if(ezIsSpecified(param$transcriptTypes)){
+      kallistoBase <- paste(sort(param$transcriptTypes), collapse="-")
+      ## This is a combination of transcript types to use.
+    }else{
+      kallistoBase <- ""
+    }
     refBase = ifelse(param$ezRef["refIndex"] == "",
-                     sub(".gtf$", "_kallistoIndex/transcripts", param$ezRef["refFeatureFile"]),
+                     sub(".gtf$", 
+                         paste0("_", kallistoBase, "_kallistoIndex/transcripts"),
+                         param$ezRef["refFeatureFile"]),
                      param$ezRef["refIndex"])
   }
   lockFile = file.path(dirname(refBase), "lock")
@@ -180,6 +180,13 @@ getKallistoReference = function(param){
   } else{
     pathTranscripts <- paste0(refBase, ".fa")
     transcripts = getTranscriptSequences(param)
+    if(ezIsSpecified(param$transcriptTypes)){
+      ## Prepare the subset of transcipts sequence
+      seqAnno = ezFeatureAnnotation(param$ezRef@refAnnotationFile,
+                                    dataFeatureType="transcript")
+      transcriptsUse = rownames(seqAnno)[seqAnno$type %in% param$transcriptTypes]
+      transcripts <- transcripts[unique(transcriptsUse)]
+    }
     writeXStringSet(transcripts, pathTranscripts)
   }
   cmdTemplate = "kallisto index -i %s.idx %s"
