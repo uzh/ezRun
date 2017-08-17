@@ -27,10 +27,14 @@ ezFeatureAnnotation = function(param, ids=NULL,
                                dataFeatureType=c("gene", "transcript", "isoform")){
   require(data.table)
   dataFeatureType <- match.arg(dataFeatureType)
+  if(is.list(param)){
+    featAnnoFn <- param$ezRef["refAnnotationFile"]
+  }else{
+    featAnnoFn <- param
+  }
   
   if(dataFeatureType == "gene"){
-    refAnnoGeneFn <- sub("(_byTranscript)*\\.txt$", "_byGene.txt",
-                         param$ezRef["refAnnotationFile"])
+    refAnnoGeneFn <- sub("(_byTranscript)*\\.txt$", "_byGene.txt", featAnnoFn)
     
     if(file.exists(refAnnoGeneFn)){
       message("Using gene level annotation: ", refAnnoGeneFn)
@@ -39,13 +43,13 @@ ezFeatureAnnotation = function(param, ids=NULL,
     }else{
       message("Using isoform level annotation and aggregating.")
       ## For compatibility of old annotation without _byGene.txt
-      seqAnnoTx <- fread(param$ezRef["refAnnotationFile"])
+      seqAnnoTx <- fread(featAnnoFn)
       ## historical reason: replace Identifier with transcript_id
       colnames(seqAnnoTx)[colnames(seqAnnoTx)=="Identifier"] <- "transcript_id"
       seqAnno <- aggregateFeatAnno(seqAnnoTx)
     }
   }else if(dataFeatureType %in% c("transcript", "isoform")){
-    seqAnno <- fread(param$ezRef["refAnnotationFile"], data.table=FALSE)
+    seqAnno <- fread(featAnnoFn, data.table=FALSE)
     ## historical reason: replace Identifier with transcript_id
     colnames(seqAnno)[colnames(seqAnno)=="Identifier"] <- "transcript_id"
     rownames(seqAnno) <- seqAnno$transcript_id
