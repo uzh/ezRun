@@ -130,23 +130,23 @@ EzAppSalmon <-
               )
   )
 
-##' @template getref-template
-##' @templateVar methodName salmon
-##' @param param a list of parameters:
-##' \itemize{
-##'   \item{transcriptFasta}{ an optional character specifying the path to a fasta file. If specified, the reference will be prepared using it.}
-##'   \item{ezRef@@refIndex}{ a character specifying the location of the index that is used in the alignment.}
-##'   \item{ezRef@@refFeatureFile}{ a character specifying the path to the annotation feature file (.gtf).}
-##'   \item{ezRef@@refFastaFile}{ a character specifying the path to the fasta file.}
-##' }
-##' @author Roman Briskine
 getSalmonReference = function(param){
 
   if (ezIsSpecified(param$transcriptFasta)){
-    refBase = file.path(getwd(), "salmonIndex/transcripts") #paste0(file_path_sans_ext(param$trinityFasta), "_salmonIndex/transcripts")
+    refBase = file.path(getwd(), "salmonIndex/transcripts") 
+    #paste0(file_path_sans_ext(param$trinityFasta), "_salmonIndex/transcripts")
   } else {
+    if(ezIsSpecified(param$transcriptTypes)){
+      salmonBase <- paste(sort(param$transcriptTypes), collapse="-")
+      ## This is a combination of transcript types to use.
+    }else{
+      salmonBase <- ""
+    }
     refBase = ifelse(param$ezRef["refIndex"] == "",
-                     sub(".gtf$", "_salmonIndex/transcripts", param$ezRef["refFeatureFile"]),
+                     sub(".gtf$",
+                         paste0("_", salmonBase, "_salmonIndex/transcripts"),
+                         #"_salmonIndex/transcripts", 
+                         param$ezRef["refFeatureFile"]),
                      param$ezRef["refIndex"])
   }
   lockFile = file.path(dirname(refBase), "lock")
@@ -179,6 +179,13 @@ getSalmonReference = function(param){
   } else{
     pathTranscripts <- paste0(refBase, ".fa")
     transcripts = getTranscriptSequences(param)
+    if(ezIsSpecified(param$transcriptTypes)){
+      ## Prepare the subset of transcipts sequence
+      seqAnno = ezFeatureAnnotation(param$ezRef@refAnnotationFile,
+                                    dataFeatureType="transcript")
+      transcriptsUse = rownames(seqAnno)[seqAnno$type %in% param$transcriptTypes]
+      transcripts <- transcripts[unique(transcriptsUse)]
+    }
     writeXStringSet(transcripts, pathTranscripts)
   }
   cmdTemplate = "salmon index -i %s.idx -t %s"
