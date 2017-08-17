@@ -120,35 +120,13 @@ loadCountDataset = function(input, param){
   return(rawData)
 }
 
-##' @title Loads the count dataset
-##' @description Loads the count dataset with the given input.
-##' @template input-template
-##' @param param a list of parameters:
-##' \itemize{
-##'   \item{dataRoot}{ the root directory of the files.}
-##'   \item{expressionName}{ if specified, this will be used as the column name...}
-##'   \item{knownExpressionNames}{ ...or otherwise known expression names that occur in the dataset will be used.}
-##'   \item{ezRef@@refBuild}{ if specified, the sequence annotation will be extracted from \code{ezFeatureAnnotation()}.}
-##'   \item{useTranscriptType}{ if specified, only the defined transcript type will be used.}
-##'   \item{sigThresh}{ the threshold...}
-##'   \item{useSigThresh}{ ...and whether it should be used.}
-##'   \item{featureLevel}{ if equal to "gene" and the feature level of the dataset to "isoform", the rawdata will be passed to \code{aggregateCountsByGene()} before returning it.}
-##' }
-##' @template roxygen-template
-##' @return Returns a \code{SummarizedExperiment} object with assays: counts, presentFlag, rpkm, tpm
-##' @seealso \code{\link{ezFeatureAnnotation}}
-##' @seealso \code{\link{aggregateCountsByGene}}
-##' @examples
-##' param = ezParam()
-##' param$dataRoot = system.file(package="ezRun", mustWork = TRUE)
-##' file = system.file("extdata/yeast_10k_STAR_counts/dataset.tsv", package="ezRun", mustWork = TRUE)
-##' input = EzDataset$new(file=file, dataRoot=param$dataRoot)
-##' cds = loadCountDatasetSE(input, param)
+
 loadCountDatasetSE <- function(input, param){
   require(tools)
   require(SummarizedExperiment)
   
   files = input$getFullPaths("Count")
+  
   suffix = unique(toupper(file_ext(files)))
   if (length(suffix) > 1){
     return(list(error=paste("different file suffixes not supported: <br>",
@@ -200,12 +178,13 @@ loadCountDatasetSE <- function(input, param){
   
   ## assays: counts, presentFlag, RPKM, TPM, (signal)
   ## rowData, colData
-  ## meta: isLog, featureLevel, type, countName
+  ## meta: isLog, featureLevel, type, countName, param
   rawData <- SummarizedExperiment(
     assays=SimpleList(counts=signal, presentFlag=signal > sigThresh),
     rowData=seqAnno, colData=input$meta,
     metadata=list(isLog=FALSE, featureLevel=dataFeatureLevel,
-                  type="Counts", countName=columnName)
+                  type="Counts", countName=columnName,
+                  param=param)
     )
   
   if (ezIsSpecified(param$transcriptTypes)){
