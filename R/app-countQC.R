@@ -25,7 +25,7 @@ ezMethodCountQC = function(input=NA, output=NA, param=NA,
     writeErrorReport(htmlFile, param=param, error=rawData$error)
     return("Error")
   }
-  runNgsCountQC(dataset, htmlFile, param, rawData=rawData, output=output)
+  runNgsCountQC(htmlFile, rawData=rawData, output=output)
   return("Success")
 }
 
@@ -70,8 +70,8 @@ EzAppCountQC <-
 ##' @param writeDataFiles a logical indicating whether to write the data files into separate tables.
 ##' @template types-template
 ##' @template roxygen-template
-runNgsCountQC = function(dataset, htmlFile="00index.html", param=param, 
-                         rawData=NULL,
+runNgsCountQC = function(htmlFile="00index.html",
+                         rawData=SummarizedExperiment::SummarizedExperiment(),
                          writeDataFiles=TRUE, types=NULL, output=NULL){
   
   if (is.null(assays(rawData)$signal)){
@@ -79,9 +79,12 @@ runNgsCountQC = function(dataset, htmlFile="00index.html", param=param,
                                     presentFlag=assays(rawData)$presentFlag,
                                     method=param$normMethod)
   }
-  
+  param <- metadata(rawData)$param
   seqAnno <- data.frame(rowData(rawData), row.names=rownames(rawData),
                         check.names = FALSE, stringsAsFactors=FALSE)
+  dataset <- data.frame(colData(rawData), 
+                        row.names=colnames(rawData), check.names = FALSE,
+                        stringsAsFactors=FALSE)
   
   if (is.null(types) && !is.null(seqAnno$type)){
     types = data.frame(row.names=rownames(seqAnno))
@@ -134,27 +137,27 @@ runNgsCountQC = function(dataset, htmlFile="00index.html", param=param,
   ## TODO: it's temporary fix to make a compatible with EzResult
   ## 
   ## In the future, we should always use SummarizedExperiement rawDtaa.
-  rawDataList <- list(counts=assays(rawData)$counts,
-                      signal=assays(rawData)$signal,
-                      isLog=metadata(rawData)$isLog,
-                      presentFlag=assays(rawData)$presentFlag,
-                      seqAnno=seqAnno,
-                      featureLevel=metadata(rawData)$featureLevel,
-                      type=metadata(rawData)$type, 
-                      countName=metadata(rawData)$countName, 
-                      dataset=data.frame(colData(rawData), 
-                                         row.names=colnames(rawData),
-                                         check.names = FALSE, 
-                                         stringsAsFactors=FALSE)
-                      )
+  # rawDataList <- list(counts=assays(rawData)$counts,
+  #                     signal=assays(rawData)$signal,
+  #                     isLog=metadata(rawData)$isLog,
+  #                     presentFlag=assays(rawData)$presentFlag,
+  #                     seqAnno=seqAnno,
+  #                     featureLevel=metadata(rawData)$featureLevel,
+  #                     type=metadata(rawData)$type, 
+  #                     countName=metadata(rawData)$countName, 
+  #                     dataset=data.frame(colData(rawData), 
+  #                                        row.names=colnames(rawData),
+  #                                        check.names = FALSE, 
+  #                                        stringsAsFactors=FALSE)
+  #                     )
   
   if (!is.null(output)){
     liveReportLink = output$getColumn("Live Report")
     summary = c("Name"=param$name,
                 "Reference Build"=param$refBuild,
-                "Feature Level"=rawDataList$featureLevel,
+                "Feature Level"=metadata(rawData)$featureLevel,
                 "Normalization"=param$normMethod)
-    result = EzResult(param=param, rawData=rawDataList, 
+    result = EzResult(se=rawData,
                       result=list(summary=summary, analysis="Count_QC"))
     result$saveToFile(basename(output$getColumn("Live Report")))
     addParagraph(doc, ezLink(liveReportLink,
