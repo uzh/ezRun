@@ -157,8 +157,8 @@ runNgsCountQC = function(htmlFile="00index.html",
                 "Reference Build"=param$refBuild,
                 "Feature Level"=metadata(rawData)$featureLevel,
                 "Normalization"=param$normMethod)
-    result = EzResult(se=rawData,
-                      result=list(summary=summary, analysis="Count_QC"))
+    result = EzResult(se=rawData)#,
+                      #result=list(summary=summary, analysis="Count_QC"))
     result$saveToFile(basename(output$getColumn("Live Report")))
     addParagraph(doc, ezLink(liveReportLink,
                              "Live Report and Visualizations",
