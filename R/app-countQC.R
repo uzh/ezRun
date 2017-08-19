@@ -85,6 +85,7 @@ runNgsCountQC = function(htmlFile="00index.html",
   dataset <- data.frame(colData(rawData), 
                         row.names=colnames(rawData), check.names = FALSE,
                         stringsAsFactors=FALSE)
+  metadata(rawData)$analysis <- "Count_QC"
   
   if (is.null(types) && !is.null(seqAnno$type)){
     types = data.frame(row.names=rownames(seqAnno))
@@ -153,10 +154,10 @@ runNgsCountQC = function(htmlFile="00index.html",
   
   if (!is.null(output)){
     liveReportLink = output$getColumn("Live Report")
-    summary = c("Name"=param$name,
-                "Reference Build"=param$refBuild,
-                "Feature Level"=metadata(rawData)$featureLevel,
-                "Normalization"=param$normMethod)
+    # summary = c("Name"=param$name,
+    #             "Reference Build"=param$refBuild,
+    #             "Feature Level"=metadata(rawData)$featureLevel,
+    #             "Normalization"=param$normMethod)
     result = EzResult(se=rawData)#,
                       #result=list(summary=summary, analysis="Count_QC"))
     result$saveToFile(basename(output$getColumn("Live Report")))

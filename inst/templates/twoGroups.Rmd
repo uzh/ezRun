@@ -11,7 +11,7 @@ output:
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-## This report requires objects: output, deResult
+## This report requires objects: output, deResult, param
 require(knitr)
 require(kableExtra)
 require(SummarizedExperiment)
@@ -21,31 +21,31 @@ debug <- FALSE
 ```
 
 ```{r prepare data, include=FALSE}
-param = deResult$param
+#param = deResult$param
 se <- deResult$se
 seqAnno <- data.frame(rowData(se), row.names=rownames(se),
                       check.names = FALSE, stringsAsFactors=FALSE)
 ## TODO: this is temporary fix to make it compatible with GO and GAGE analysis
-  result = list()
-  result$analysis = metadata(se)$analysis
-  result$method = metadata(se)$method
-  result$isPresentProbe = rowData(se)$isPresentProbe
-  result$isPresent = assays(se)$isPresent
-  result$log2Ratio = setNames(rowData(se)$log2Ratio, 
-                              rownames(assays(se)$counts))
-  result$fitGlm = metadata(se)$fitGlm
-  result$sf = colData(se)$sf
-  result$gfold = rowData(se)$gfold
-  result$nativeResult = metadata(se)$nativeResult
-  result$pValue = setNames(rowData(se)$pValue,
-                           rownames(assays(se)$counts))
-  result$fdr = rowData(se)$fdr
-  result$usedInTest = rowData(se)$usedInTest
-  result$xNorm = assays(se)$xNorm
-  result$featureLevel <- metadata(se)$featureLeve
-  result$countName <- metadata(se)$countName
-  result$summary <- metadata(se)$summary
-  deResult$result <- result  ## For deResult output
+  # result = list()
+  # result$analysis = metadata(se)$analysis
+  # result$method = metadata(se)$method
+  # result$isPresentProbe = rowData(se)$isPresentProbe
+  # result$isPresent = assays(se)$isPresent
+  # result$log2Ratio = setNames(rowData(se)$log2Ratio, 
+  #                             rownames(assays(se)$counts))
+  # result$fitGlm = metadata(se)$fitGlm
+  # result$sf = colData(se)$sf
+  # result$gfold = rowData(se)$gfold
+  # result$nativeResult = metadata(se)$nativeResult
+  # result$pValue = setNames(rowData(se)$pValue,
+  #                          rownames(assays(se)$counts))
+  # result$fdr = rowData(se)$fdr
+  # result$usedInTest = rowData(se)$usedInTest
+  # result$xNorm = assays(se)$xNorm
+  # result$featureLevel <- metadata(se)$featureLeve
+  # result$countName <- metadata(se)$countName
+  # result$summary <- metadata(se)$summary
+  # deResult$result <- result  ## For deResult output
 ```
 
 Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
@@ -91,6 +91,7 @@ ezWrite.table(colData(se)[, "sf", drop=FALSE],
               file="scalingfactors.txt", head="Name", digits=4)
 
 liveReportLink = output$getColumn("Live Report")
+
 deResult$saveToFile(basename(output$getColumn("Live Report")))
 ```
 
