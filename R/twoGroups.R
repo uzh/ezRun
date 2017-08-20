@@ -55,13 +55,16 @@ cleanupTwoGroupsInput = function(input, param){
 ##' }
 ##' @template roxygen-template
 ##' @return Returns a list containing the results of the comparison.
-twoGroupCountComparison = function(rawData, param){
+twoGroupCountComparison = function(rawData){
+  require(SummarizedExperiment)
   x = assays(rawData)$counts
+  param <- metadata(rawData)$param
   presentFlag = assays(rawData)$presentFlag
   job = ezJobStart("twoGroupCountComparison")
   metadata(rawData)$analysis <- "NGS two group analysis"
   if (is.null(param$testMethod)){
-    param$testMethod = "glm"    
+    param$testMethod = "glm"
+    metadata(rawData)$param <- param
   }
   
   metadata(rawData)$method <- param$testMethod
@@ -131,24 +134,24 @@ twoGroupCountComparison = function(rawData, param){
   ## TODO: it's temporary fix to make a compatible with EzResult
   ## 
   ## In the future, we should always use SummarizedExperiement rawData.
-  seqAnno <- data.frame(rowData(rawData), row.names=rownames(rawData),
-                        check.names = FALSE, stringsAsFactors=FALSE)
-
-  rawDataList <- list(counts=assays(rawData)$counts,
-                      signal=assays(rawData)$signal,
-                      isLog=metadata(rawData)$isLog,
-                      presentFlag=assays(rawData)$presentFlag,
-                      seqAnno=seqAnno,
-                      featureLevel=metadata(rawData)$featureLevel,
-                      type=metadata(rawData)$type,
-                      countName=metadata(rawData)$countName,
-                      dataset=data.frame(colData(rawData), 
-                                         row.names=colnames(rawData),
-                                         check.names = FALSE, 
-                                         stringsAsFactors=FALSE)
-                      )
+  # seqAnno <- data.frame(rowData(rawData), row.names=rownames(rawData),
+  #                       check.names = FALSE, stringsAsFactors=FALSE)
+  # 
+  # rawDataList <- list(counts=assays(rawData)$counts,
+  #                     signal=assays(rawData)$signal,
+  #                     isLog=metadata(rawData)$isLog,
+  #                     presentFlag=assays(rawData)$presentFlag,
+  #                     seqAnno=seqAnno,
+  #                     featureLevel=metadata(rawData)$featureLevel,
+  #                     type=metadata(rawData)$type,
+  #                     countName=metadata(rawData)$countName,
+  #                     dataset=data.frame(colData(rawData), 
+  #                                        row.names=colnames(rawData),
+  #                                        check.names = FALSE, 
+  #                                        stringsAsFactors=FALSE)
+  #                     )
   
-  deResult = EzResult(param=param, rawData=rawDataList, se=rawData)
+  deResult = EzResult(se=rawData)
   return(deResult)
 }
 

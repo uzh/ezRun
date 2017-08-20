@@ -27,7 +27,7 @@ ezMethodDeseq2 = function(input=NA, output=NA, param=NA, htmlFile="00index.html"
     return("Error")
   }
   
-  deResult = twoGroupCountComparison(rawData, param)
+  deResult = twoGroupCountComparison(rawData)
   if (isError(deResult)){
     writeErrorReport(htmlFile, param=param, error=deResult$error)
     return("Error")
