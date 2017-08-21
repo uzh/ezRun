@@ -280,19 +280,19 @@ aggregateCountsByGene = function(param, rawData){
   return(rawData)
 }
 
-aggregateCountsByGeneSE <- function(param, rawData){
+aggregateCountsByGeneSE <- function(rawData){
   require(SummarizedExperiment)
-  genes = getGeneMapping(param, rowData(rawData))
+  param <- metadata(rawData)$param
+  seqAnno <- data.frame(rowData(rawData), row.names=rownames(rawData),
+                        check.names = FALSE, stringsAsFactors=FALSE)
+  genes = getGeneMapping(param, seqAnno)
   
   if (is.null(genes)){
     return(list(error=paste("gene summaries requested but not gene column available. did you specify the build?<br>column names tried:<br>",
                             paste(param$geneColumnSet, collapse="<br>"))))
   }
   
-  ## `GO BP` will be replaced by `GO.BP` after as.data.frame
-  seqAnnoNew <- setNames(as.data.frame(rowData(rawData)),
-                         colnames(rowData(rawData)))
-  seqAnnoNew <- aggregateFeatAnno(seqAnnoNew)
+  seqAnnoNew <- aggregateFeatAnno(seqAnno)
   
   if (metadata(rawData)$isLog){
     stop("Counts in logarithm are not supported!")
@@ -317,7 +317,8 @@ aggregateCountsByGeneSE <- function(param, rawData){
     assays=newRawCounts,
     rowData=seqAnnoNew, colData=colData(rawData),
     metadata=list(isLog=FALSE, featureLevel="gene",
-                  type="Counts", countName=metadata(rawData)$countName)
+                  type="Counts", countName=metadata(rawData)$countName,
+                  param=param)
   )
   return(newRawData)
 }
