@@ -84,7 +84,7 @@ knitr::kable(makeSignificantCounts(se), row.names=TRUE,  format="html") %>%
 Full result table for opening with a spreadsheet program 
 (e.g. Excel: when opening with Excel, make sure that the Gene symbols are loaded into a column formatted as 'text' that prevents conversion of the symbols to dates).
 
-```{r result live report, echo=FALSE}
+```{r result live report, echo=FALSE, message=FALSE}
 resultFile <- makeResultFile(param, se)
 
 ezWrite.table(colData(se)[, "sf", drop=FALSE],
