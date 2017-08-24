@@ -29,7 +29,7 @@ Rehrauer, Hubert
 Schmid, Peter
 }
 
-\example{
+\examples{
   \dontrun{
     bamFn <- "/srv/gstore/projects/p2438/STAR_18564_2017-06-12--13-46-30/26EV_BL_A.bam"
     reads = ezReadGappedAlignments(bamFn)
