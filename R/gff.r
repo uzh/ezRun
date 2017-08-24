@@ -5,20 +5,6 @@
 # The terms are available here: http://www.gnu.org/licenses/gpl.html
 # www.fgcz.ch
 
-
-##' @title Loads annotation features from a file
-##' @description Loads annotation features from a file and returns them as a data.frame.
-##' @param param contains the feature file and possibly a logical called \code{addPromoters}, which will add promoters if set to true.
-##' @param featureFile the file to load the features from.
-##' @template types-template
-##' @template roxygen-template
-##' @return Returns a data.frame of parsed features.
-##' @seealso \code{\link{ezReadGff}}
-##' @examples
-##' param = ezParam()
-##' gtfFile = system.file("extdata/genes.gtf", package="ezRun", mustWork=TRUE)
-##' gtf = ezLoadFeatures(param, gtfFile)
-##' attrField = ezGffAttributeField(gtf$attributes, field="transcript_id", attrsep="; *", valuesep=" ")
 ezLoadFeatures = function(param=NULL, featureFile=param$ezRef["refFeatureFile"], 
                           types=NULL){
   
@@ -89,10 +75,11 @@ ezGffAttributeField = function (x, field, attrsep = ";", valuesep="=") {
   return(x)
 }
 
-##' @describeIn ezLoadFeatures Adds promoters to the gff list if \code{addPromoters} is specified.
+## TODO: we should use promoters() to replace the following code.
+## The boundaries of chromosoems should always be checked.
 addPromotersToGff = function(gff, promWidth){
   isTranscript = gff$type %in% c("transcript", "mRNA", "gene")
-  if (!any(isTranscript)){
+  if (any(isTranscript)){
     geneGff = gff[isTranscript, ]
   } else {
     geneGff = groupGff(gff)
