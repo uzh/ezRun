@@ -161,13 +161,16 @@ plotLocusAverageCoverageProfile = function(gRanges, bamFiles, grouping=NULL, gtf
 ##' @template roxygen-template
 ##' @return Returns a list of transcript coverage.
 getTranscriptCoverage = function(chrom, gff, reads, strandMode="both"){
-  if (length(chrom) > 1){
-    transcriptCov = unlist(lapply(chrom, getTranscriptCoverage, gff, reads, strandMode), recursive=FALSE)
-    return(transcriptCov)
-  }
+  ## chrom can be NULL, single chr or multiple chrs.
+  
+  #if (length(chrom) > 1){
+  #  transcriptCov = unlist(lapply(chrom, getTranscriptCoverage, gff, reads, strandMode), recursive=FALSE)
+  #  return(transcriptCov)
+  #}
+  
   gffExon = gff[gff$type == "exon", ]
   if(!is.null(chrom)){
-    gffExon = gffExon[gffExon$seqid == chrom, ]
+    gffExon = gffExon[gffExon$seqid %in% chrom, ]
   }
   gffExon = gffExon[order(gffExon$start), ]
   exonRanges = gffToRanges(gffExon)
@@ -192,7 +195,7 @@ getTranscriptCoverage = function(chrom, gff, reads, strandMode="both"){
   #                       simplify=FALSE))
   # 12939.112 seconds
   
-  transcriptCov <- lapply(transcriptCov, unlist)
+  transcriptCov <- lapply(transcriptCov, unlist, use.names=FALSE)
   # 169.468 seconds
   #if(length(transcriptCov) == 0L){
     ## This can happen when gff on chrom has 0 ranges.
