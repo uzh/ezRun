@@ -6,30 +6,18 @@
 # www.fgcz.ch
 
 
-##' @title Do GO?
-##' @description Decides whether to do a gene ontologies analysis.
-##' @param param a list of parameters to extract the logical \code{runGO} and the character \code{featureLevel} from.
-##' @param seqAnno the sequence annotation.
-##' @param seqAnnoDF a data.frame containing the sequence annotation.
-##' @template roxygen-template
-##' @return Returns a logical.
-##' @examples
-##' param = ezParam()
-##' param$ezRef@@refFeatureFile = system.file("extdata/genes.gtf", package="ezRun", mustWork=TRUE)
-##' param$ezRef@@refAnnotationFile = "delme_anno.txt"
-##' fp = "/srv/GT/reference/Saccharomyces_cerevisiae/Ensembl/EF4/Sequence/WholeGenomeFasta/genome.fa"
-##' param$ezRef@@refFastaFile = fp
-##' seqAnno = writeAnnotationFromGtf(param)
-##' doGo(param, seqAnno)
 doGo = function(param, seqAnno){
   flag = param$runGO && (hasGeneMapping(param, seqAnno) || param$featureLevel == "gene") && hasGoAnnotation(seqAnno)
   message("doGo: ", flag)
   return(flag)
 }
 
-##' @describeIn doGo Checks if the Annotation contains gene ontologies.
-hasGoAnnotation = function(seqAnnoDF){
-  any(c("GO BP", "GO MF", "GO CC") %in% colnames(seqAnnoDF))
+hasGoAnnotation = function(seqAnno){
+  goColumns <- c("GO BP", "GO MF", "GO CC")
+  hasGO <- all(goColumns %in% colnames(seqAnno))
+  validGO <- all(colSums(seqAnno[, goColumns] == "") != nrow(seqAnno))
+  validGO2 <- !any(is.na(seqAnno[, goColumns]))
+  return(hasGO && validGO && validGO2)
 }
 
 ##' @title Separates GO ID's by ontology

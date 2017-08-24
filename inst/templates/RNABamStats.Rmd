@@ -256,6 +256,7 @@ if (!is.null(geneCounts)){
     if (!ezIsSpecified(param$runGO)){
       param$runGO = TRUE
     }
+    metadata(rawData)$param <- param
     setwdNew("Count_QC")
     assays(rawData)$signal = ezNorm(assays(rawData)$counts,
                                     presentFlag=assays(rawData)$presentFlag,

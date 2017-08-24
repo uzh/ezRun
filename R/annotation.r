@@ -24,7 +24,8 @@
 ##' seqAnno = writeAnnotationFromGtf(param)
 ##' seqAnno2 = ezFeatureAnnotation(param, rownames(seqAnno), dataFeatureType="gene")
 ezFeatureAnnotation = function(param, ids=NULL,
-                               dataFeatureType=c("gene", "transcript", "isoform")){
+                               dataFeatureType=c("gene", "transcript", 
+                                                 "isoform")){
   require(data.table)
   dataFeatureType <- match.arg(dataFeatureType)
   if(is.list(param)){
@@ -39,17 +40,26 @@ ezFeatureAnnotation = function(param, ids=NULL,
     if(file.exists(refAnnoGeneFn)){
       message("Using gene level annotation: ", refAnnoGeneFn)
       seqAnno <- fread(refAnnoGeneFn, data.table=FALSE)
+      ## replace the NA character columns with ""; 
+      ## numeric columns shall not have NA.
+      seqAnno[is.na(seqAnno)] <- ""
       rownames(seqAnno) <- seqAnno$gene_id
     }else{
       message("Using isoform level annotation and aggregating.")
       ## For compatibility of old annotation without _byGene.txt
       seqAnnoTx <- fread(featAnnoFn)
+      ## replace the NA character columns with ""; 
+      ## numeric columns shall not have NA.
+      seqAnnoTx[is.na(seqAnnoTx)] <- ""
       ## historical reason: replace Identifier with transcript_id
       colnames(seqAnnoTx)[colnames(seqAnnoTx)=="Identifier"] <- "transcript_id"
       seqAnno <- aggregateFeatAnno(seqAnnoTx)
     }
   }else if(dataFeatureType %in% c("transcript", "isoform")){
     seqAnno <- fread(featAnnoFn, data.table=FALSE)
+    ## replace the NA character columns with ""; 
+    ## numeric columns shall not have NA.
+    seqAnno[is.na(seqAnno)] <- ""
     ## historical reason: replace Identifier with transcript_id
     colnames(seqAnno)[colnames(seqAnno)=="Identifier"] <- "transcript_id"
     rownames(seqAnno) <- seqAnno$transcript_id
