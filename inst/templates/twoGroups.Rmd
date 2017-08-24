@@ -492,75 +492,94 @@ if (doGo(param, seqAnno)){
 Maximum number of terms displayed: `r param$maxNumberGroupsDisplayed`.
 
 ```{r goseq compute, echo=FALSE, message=FALSE, warning=FALSE, eval=!debug}
-goResult <- twoGroupsGOSE(param, se, method=param$goseqMethod)
+if (doGo(param, seqAnno)){
+  goResult <- twoGroupsGOSE(param, se, method=param$goseqMethod)
+}
 ```
 
 ```{r goseq interactive table, echo=FALSE, eval=!debug, message=FALSE}
-goTables <- goUpDownTables(param, goResult)
-kable(goTables$linkTable, escape=FALSE, row.names=TRUE, format = "html") %>%
-        kable_styling(bootstrap_options = "striped",
-                    full_width = F, position = "left")
-ktables <- goTables$ktables
+if (exists("goResult")){
+  goTables <- goUpDownTables(param, goResult)
+  kable(goTables$linkTable, escape=FALSE, row.names=TRUE, format = "html") %>%
+          kable_styling(bootstrap_options = "striped",
+                        full_width = F, position = "left")
+  ktables <- goTables$ktables
+}
 ```
 
 ```{r enrichUp, echo=FALSE, eval=!debug}
 ## The code in a for loop doesn't work.
+## TODO: maybe explicit print or tagList method can work.
+if (exists("ktables")){
 kable(ktables[["enrichUp"]], escape=TRUE, row.names=FALSE, format="html",
       caption="GO categories that are overrepresented among significantly upregulated genes.") %>%
   kable_styling(bootstrap_options = c("striped", "bordered"),
                 full_width = F, position = "left") %>%
   add_header_above(c("Biological Proc. (BP)" = 4, "Molecular Func. (MF)" = 4, 
                      "Cellular Comp. (CC)" = 4))
+}
 ```
 
 ```{r enrichDown, echo=FALSE, eval=!debug}
+if (exists("ktables")){
 kable(ktables[["enrichDown"]], escape=TRUE, row.names=FALSE, format="html",
       caption="GO categories that are overrepresented among significantly downregulated genes.") %>%
   kable_styling(bootstrap_options = c("striped", "bordered"),
                 full_width = F, position = "left") %>%
   add_header_above(c("Biological Proc. (BP)" = 4, "Molecular Func. (MF)" = 4, 
                      "Cellular Comp. (CC)" = 4))
+}
 ```
 
 ```{r enrichBoth, echo=FALSE, eval=!debug}
+if (exists("ktables")){
 kable(ktables[["enrichBoth"]], escape=TRUE, row.names=FALSE, format="html",
       caption="GO categories that are overrepresented among all significantly regulated genes.") %>%
   kable_styling(bootstrap_options = c("striped", "bordered"),
                 full_width = F, position = "left") %>%
   add_header_above(c("Biological Proc. (BP)" = 4, "Molecular Func. (MF)" = 4, 
                      "Cellular Comp. (CC)" = 4))
+}
 ```
 
 ### ReViGO
 ```{r revigo, echo=FALSE, eval=!debug}
-kable(revigoUpDownTables(param, goResult), escape = FALSE, row.names = TRUE,
-      format="html") %>%
-  kable_styling(bootstrap_options = "striped",
-                full_width = F, position = "float_left")
+if (exists("goResult")){
+  kable(revigoUpDownTables(param, goResult), escape = FALSE, row.names = TRUE,
+        format="html") %>%
+    kable_styling(bootstrap_options = "striped",
+                  full_width = F, position = "float_left")
+}
 ```
 
 ### Hypergeometric overrepresentation test
 ```{r enricher compute, echo=FALSE, eval=!debug, message=FALSE}
-enrichResult <- ezEnricher(param, se)
+if (doGo(param, seqAnno)){
+  enrichResult <- ezEnricher(param, se)
+}
 ```
 
 #### dotplot
 ```{r dotplot gsea, echo=FALSE, eval=!debug}
-for(onto in names(enrichResult)){
-  for(sig in names(enrichResult[[1]])){
-    if(is.null(enrichResult[[onto]][[sig]])){
-      next
-    }else{
-      p <- dotplot(enrichResult[[onto]][[sig]], showCategory=20, 
-                 title=paste(onto, sig))
-      print(p)
+if(exists("enrichResult")){
+  for(onto in names(enrichResult)){
+    for(sig in names(enrichResult[[1]])){
+      if(is.null(enrichResult[[onto]][[sig]])){
+        next
+      }else{
+        p <- dotplot(enrichResult[[onto]][[sig]], showCategory=20, 
+                     title=paste(onto, sig))
+        print(p)
+      }
     }
   }
 }
+
 ```
 
 #### enrichMap
 ```{r enrichMap gsea, echo=FALSE, eval=!debug, fig.width=14, fig.height=14}
+if(exists("enrichResult")){
 for(onto in names(enrichResult)){
   for(sig in names(enrichResult[[1]])){
     if(is.null(enrichResult[[onto]][[sig]]) || nrow(enrichResult[[onto]][[sig]]@result) == 0L){
@@ -570,10 +589,12 @@ for(onto in names(enrichResult)){
     }
   }
 }
+}
 ```
 
 #### cnetplot
 ```{r cnetplot gsea, echo=FALSE, eval=!debug, fig.width=14, fig.height=14}
+if(exists("enrichResult")){
 for(onto in names(enrichResult)){
   for(sig in names(enrichResult[[1]])){
     if(is.null(enrichResult[[onto]][[sig]]) || nrow(enrichResult[[onto]][[sig]]@result) == 0L){
@@ -585,47 +606,56 @@ for(onto in names(enrichResult)){
     }
   }
 }
+}
 ```
 
 ### Gene set enrichment analysis
 ```{r gsea compute, echo=FALSE, message=FALSE, eval=!debug}
-enrichResult <- ezGSEA(param, se)
+if (doGo(param, seqAnno)){
+  enrichResultGSEA <- ezGSEA(param, se)
+}
 ```
 
 #### dotplot
 ```{r dotplot, echo=FALSE, eval=!debug}
-for(onto in names(enrichResult)){
-  if(is.null(enrichResult[[onto]]) || nrow(enrichResult[[onto]]@result) == 0L){
+if(exists("enrichResultGSEA")){
+for(onto in names(enrichResultGSEA)){
+  if(is.null(enrichResultGSEA[[onto]]) || nrow(enrichResultGSEA[[onto]]@result) == 0L){
       next
   }else{
-    p <- dotplot(enrichResult[[onto]], showCategory=20, 
+    p <- dotplot(enrichResultGSEA[[onto]], showCategory=20, 
                  title=paste(onto, sig))
     print(p)
   }
+}
 }
 ```
 
 #### enrichMap
 ```{r enrichMap, echo=FALSE, eval=!debug, fig.width=14, fig.height=14}
-for(onto in names(enrichResult)){
-    if(is.null(enrichResult[[onto]]) || nrow(enrichResult[[onto]]@result) == 0L){
+if(exists("enrichResultGSEA")){
+  for(onto in names(enrichResultGSEA)){
+    if(is.null(enrichResultGSEA[[onto]]) || nrow(enrichResultGSEA[[onto]]@result) == 0L){
       next
     }else{
-      enrichMap(enrichResult[[onto]], n=50, main=paste(onto, sig))
+      enrichMap(enrichResultGSEA[[onto]], n=50, main=paste(onto, sig))
     }
+  }
 }
 ```
 
 #### cnetplot
 ```{r cnetplot, echo=FALSE, eval=!debug, fig.width=14, fig.height=14}
-for(onto in names(enrichResult)){
-    if(is.null(enrichResult[[onto]]) || nrow(enrichResult[[onto]]@result) == 0L){
+if(exists("enrichResultGSEA")){
+  for(onto in names(enrichResultGSEA)){
+    if(is.null(enrichResultGSEA[[onto]]) || nrow(enrichResultGSEA[[onto]]@result) == 0L){
       next
     }else{
-      cnetplot(enrichResult[[onto]],
+      cnetplot(enrichResultGSEA[[onto]],
              foldChange=setNames(rowData(se)$log2Ratio, rowData(se)$gene_name),
              main=paste(onto, sig))
     }
+  }
 }
 ```
 
