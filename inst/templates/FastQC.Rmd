@@ -150,7 +150,7 @@ if(!is.na(plateMatrix)){
 ```
 
 ### Input Dataset
-```{r, echo=FALSE}
+```{r, echo=FALSE, message=FALSE}
 ezInteractiveTableRmd(values=ans4Report[["dataset"]])
 ```
 
