@@ -26,7 +26,7 @@ fastqDataAdapters=fastqData_rawData
 
 ### FastqScreen Mapping Rates Overview
 
-```{r overview, echo=FALSE, results='hide', warning=FALSE, message=FALSE, fig.width=min(7+(nrow(dataset)-20)*0.3, 30)}
+```{r overview, echo=FALSE, results='hide', warning=FALSE, message=FALSE, fig.width=min(max(7,7+(nrow(dataset)-20)*0.3), 30)}
 # MappingRate
 par(mar=c(10.1, 4.1, 4.1, 2.1))
     bplt = barplot(fastqData$MappingRate, las=2, ylim=c(0,100), ylab="MappedReads in %", main="Overall MappingRate", col="royalblue3",
@@ -130,7 +130,7 @@ kable(as.data.frame(settings), col.names=NA, row.names=TRUE, format="html") %>%
 
 
 ### Input Dataset
-```{r, echo=FALSE}
+```{r, echo=FALSE, message=FALSE}
 ezInteractiveTableRmd(values=dataset)
 ```
 
