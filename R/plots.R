@@ -641,11 +641,11 @@ ezVolcanoPlotly <- function(log2Ratio, pValue, yType=c("p-value", "FDR"),
               xaxis=list(title="log2 ratio", 
                          titlefont=ftitle,
                          tickfont=ftick,
-                         range=xlim),
+                         range=c(xlim[1]-0.2, xlim[2]+0.2)),
               yaxis=list(title=paste0("-log10(", yType, ")"),
                          titlefont=ftitle,
                          tickfont=ftick,
-                         range=ylim),
+                         range=c(ylim[1], ylim[2]+0.2)),
               title=main, font=ftitle,
               legend=l, margin=m)
   return(p)
