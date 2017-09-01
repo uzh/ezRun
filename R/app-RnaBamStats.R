@@ -130,7 +130,7 @@ computeBamStats = function(input, htmlFile, param, gff, resultList=NULL){
                             "fgcz_header.html", "banner.png"))
   file.copy(from=styleFiles, to=".", overwrite=TRUE)
   rmarkdown::render(input="RNABamStats.Rmd",
-                    output_dir=".", output_file=htmlFile)
+                    output_dir=".", output_file=htmlFile, quiet=TRUE)
   
   rm(resultList)
   gc()
