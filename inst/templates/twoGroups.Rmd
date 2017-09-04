@@ -161,7 +161,7 @@ if (isTRUE(isTwoGroup)){
 }
 ```
 
-```{r volcano p-value, echo=FALSE, eval=TRUE, message=FALSE}
+```{r volcano p-value, echo=FALSE, eval=TRUE, message=FALSE, warning=FALSE}
 if (isTRUE(isTwoGroup)){
     ## volcano plot with p-value
     p_volcano <- ezVolcanoPlotly(log2Ratio=rowData(se)$log2Ratio, 
