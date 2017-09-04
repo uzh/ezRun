@@ -424,7 +424,8 @@ if (sum(use) > param$minGenesForClustering){
                       "twoGroups_goClusterTable.Rmd")
     file.copy(from=file, to=basename(file), overwrite=TRUE)
     rmarkdown::render(input=basename(file),
-                      output_dir=".", output_file="goClusterTable.html")
+                      output_dir=".", output_file="goClusterTable.html",
+                      quiet=TRUE)
   }
 }
 ```
