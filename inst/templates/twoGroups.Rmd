@@ -1,5 +1,5 @@
 ---
-title: "`r paste('Two groups analysis:', param$comparison)`"
+title: "`r paste('Two groups analysis:', metadata(se)$param$comparison)`"
 author: "Functional Genomics Center Zurich"
 output: 
   html_document:
@@ -11,7 +11,7 @@ output:
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-## This report requires objects: output, deResult, param
+## This report requires objects: output, deResult
 require(knitr)
 require(kableExtra)
 require(SummarizedExperiment)
@@ -21,31 +21,17 @@ debug <- FALSE
 ```
 
 ```{r prepare data, include=FALSE}
-#param = deResult$param
+## debug
+#library(ezRun)
+#load("/srv/gstore/projects/p1536/EdgeR_20650_pos--over--neg_2017-09-01--10-05-45/pos--over--neg/result-pos--over--neg-wcmkyoxvxuzd-EzResult.RData")
+#deResult = EzResult(se=se)
+## end of debug
+
 se <- deResult$se
+param <- metadata(se)$param
 seqAnno <- data.frame(rowData(se), row.names=rownames(se),
                       check.names = FALSE, stringsAsFactors=FALSE)
-## TODO: this is temporary fix to make it compatible with GO and GAGE analysis
-  # result = list()
-  # result$analysis = metadata(se)$analysis
-  # result$method = metadata(se)$method
-  # result$isPresentProbe = rowData(se)$isPresentProbe
-  # result$isPresent = assays(se)$isPresent
-  # result$log2Ratio = setNames(rowData(se)$log2Ratio, 
-  #                             rownames(assays(se)$counts))
-  # result$fitGlm = metadata(se)$fitGlm
-  # result$sf = colData(se)$sf
-  # result$gfold = rowData(se)$gfold
-  # result$nativeResult = metadata(se)$nativeResult
-  # result$pValue = setNames(rowData(se)$pValue,
-  #                          rownames(assays(se)$counts))
-  # result$fdr = rowData(se)$fdr
-  # result$usedInTest = rowData(se)$usedInTest
-  # result$xNorm = assays(se)$xNorm
-  # result$featureLevel <- metadata(se)$featureLeve
-  # result$countName <- metadata(se)$countName
-  # result$summary <- metadata(se)$summary
-  # deResult$result <- result  ## For deResult output
+
 ```
 
 Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
@@ -84,7 +70,7 @@ knitr::kable(makeSignificantCounts(se), row.names=TRUE,  format="html") %>%
 Full result table for opening with a spreadsheet program 
 (e.g. Excel: when opening with Excel, make sure that the Gene symbols are loaded into a column formatted as 'text' that prevents conversion of the symbols to dates).
 
-```{r result live report, echo=FALSE, message=FALSE}
+```{r result live report, echo=FALSE, message=FALSE, eval=TRUE}
 resultFile <- makeResultFile(param, se)
 
 ezWrite.table(colData(se)[, "sf", drop=FALSE],
@@ -132,7 +118,7 @@ Subsequent plots highlight significant genes in <span style="color:red">red</spa
 
 [Interactive table of significant genes](`r resultFile$resultHtml`)
 
-```{r scatter comparison, echo=FALSE, eval=TRUE, message=FALSE}
+```{r scatter comparison, echo=FALSE, message=FALSE, eval=!debug}
 if (isTRUE(isTwoGroup)){
   ## scatter plot
   sampleValues = 2^groupMeans[ , param$sampleGroup]
@@ -153,7 +139,7 @@ if (isTRUE(isTwoGroup)){
   }
 ```
 
-```{r scatter comparison link, echo=FALSE, results='asis'}
+```{r scatter comparison link, echo=FALSE, results='asis', eval=!debug}
 if (isTRUE(isTwoGroup)){
   cat(paste0("[Plot in pdf](", scatterPdf, ")"), "\n")
   cat("\n")
@@ -161,7 +147,7 @@ if (isTRUE(isTwoGroup)){
 }
 ```
 
-```{r volcano p-value, echo=FALSE, eval=TRUE, message=FALSE, warning=FALSE}
+```{r volcano p-value, echo=FALSE, message=FALSE, warning=FALSE, eval=!debug}
 if (isTRUE(isTwoGroup)){
     ## volcano plot with p-value
     p_volcano <- ezVolcanoPlotly(log2Ratio=rowData(se)$log2Ratio, 
@@ -180,7 +166,7 @@ if (isTRUE(isTwoGroup)){
 }
 ```
 
-```{r volcano p-value link , echo=FALSE, results='asis'}
+```{r volcano p-value link , echo=FALSE, results='asis', eval=!debug}
 if (isTRUE(isTwoGroup)){
   cat(paste0("[Plot in pdf](", volcanoPdf, ")"), "\n")
   cat("\n")
@@ -188,7 +174,7 @@ if (isTRUE(isTwoGroup)){
 }
 ```
 
-```{r scatter all pairs, echo=FALSE, results='asis', message=FALSE}
+```{r scatter all pairs, echo=FALSE, results='asis', message=FALSE, eval=!debug}
 ## All pairs
 if (!isTRUE(isTwoGroup)){
   plotCmd = expression({
@@ -224,7 +210,7 @@ if(isTRUE(isTwoGroup)){
 }
 ```
 
-```{r volcano FDR link, echo=FALSE, results='asis'}
+```{r volcano FDR link, echo=FALSE, results='asis', eval=!debug}
 if(isTRUE(isTwoGroup)){
   cat(paste0("[Plot in pdf](", volcanoFDRPdf, ")"), "\n")
   cat("\n")
@@ -323,7 +309,7 @@ if (!ezIsSpecified(param$grouping2)){ ## TODO: we no longer use pairing, we now 
 ```
 
 ### Clustering of Significant Features
-```{r cluster setup, echo=FALSE}
+```{r cluster setup, echo=FALSE, eval=!debug}
 use = rowData(se)$pValue < param$pValueHighlightThresh & 
     abs(rowData(se)$log2Ratio) > param$log2RatioHighlightThresh & rowData(se)$usedInTest
 use[is.na(use)] = FALSE
@@ -343,13 +329,13 @@ knitr::kable(as.data.frame(settings), format="html",
 ```
 
 #### Cluster Plot
-```{r javascript, echo=FALSE, results='asis'}
+```{r javascript, echo=FALSE, results='asis', eval=!debug}
 jsFile = system.file("extdata/enrichr.js", package="ezRun", mustWork=TRUE)
 invisible(file.copy(from=jsFile, to=basename(jsFile), overwrite=TRUE))
 cat(paste0("<SCRIPT language=\"JavaScript\" SRC=\"", basename(jsFile), "\"></SCRIPT>"))
 ```
 
-```{r cluster, echo=FALSE, eval=!debug, message=FALSE, fig.width=max(8,4+0.1*ncol(se)), fig.height=10, fig.retina=2, warning=FALSE}
+```{r cluster, echo=FALSE, message=FALSE, fig.width=max(8,4+0.1*ncol(se)), fig.height=10, fig.retina=2, warning=FALSE, eval=!debug}
 ## for clustering we use a moderated logSignal
 logSignal = log2(assays(se)$xNorm + param$backgroundExpression)
 if (sum(use) > param$minGenesForClustering){
@@ -437,7 +423,7 @@ if (sum(use) > param$minGenesForClustering){
 }
 ```
 
-```{r go cluster table link, echo=FALSE, results='asis'}
+```{r go cluster table link, echo=FALSE, results='asis', eval=!debug}
 if (file.exists("goClusterTable.html")){
   cat(paste0("[GO cluster tables](", "goClusterTable.html", ")"), "\n")
   cat("\n")
@@ -495,50 +481,50 @@ Maximum number of terms displayed: `r param$maxNumberGroupsDisplayed`.
 ```{r goseq compute, echo=FALSE, message=FALSE, warning=FALSE, eval=!debug}
 if (doGo(param, seqAnno)){
   goResult <- twoGroupsGOSE(param, se, method=param$goseqMethod)
+  goTables <- goUpDownTables(param, goResult)
 }
 ```
 
-```{r goseq interactive table, echo=FALSE, eval=!debug, message=FALSE}
-if (exists("goResult")){
-  goTables <- goUpDownTables(param, goResult)
+```{r goseq interactive table, echo=FALSE, eval=!debug}
+if (exists("goTables")){
   kable(goTables$linkTable, escape=FALSE, row.names=TRUE, format = "html") %>%
-          kable_styling(bootstrap_options = "striped",
-                        full_width = F, position = "left")
-  ktables <- goTables$ktables
+              kable_styling(bootstrap_options = "striped",
+                            full_width = F, position = "left")
 }
 ```
 
 ```{r enrichUp, echo=FALSE, eval=!debug}
 ## The code in a for loop doesn't work.
 ## TODO: maybe explicit print or tagList method can work.
-if (exists("ktables")){
-kable(ktables[["enrichUp"]], escape=TRUE, row.names=FALSE, format="html",
-      caption="GO categories that are overrepresented among significantly upregulated genes.") %>%
-  kable_styling(bootstrap_options = c("striped", "bordered"),
-                full_width = F, position = "left") %>%
-  add_header_above(c("Biological Proc. (BP)" = 4, "Molecular Func. (MF)" = 4, 
-                     "Cellular Comp. (CC)" = 4))
+if (exists("goTables")){
+  ktables <- goTables$ktables
+  kable(ktables[["enrichUp"]], escape=TRUE, row.names=FALSE, format="html",
+        caption="GO categories that are overrepresented among significantly upregulated genes.") %>%
+    kable_styling(bootstrap_options = c("striped", "bordered"),
+                  full_width = F, position = "left") %>%
+    add_header_above(c("Biological Proc. (BP)" = 4, "Molecular Func. (MF)" = 4, 
+                       "Cellular Comp. (CC)" = 4))
 }
 ```
 
 ```{r enrichDown, echo=FALSE, eval=!debug}
 if (exists("ktables")){
-kable(ktables[["enrichDown"]], escape=TRUE, row.names=FALSE, format="html",
-      caption="GO categories that are overrepresented among significantly downregulated genes.") %>%
-  kable_styling(bootstrap_options = c("striped", "bordered"),
-                full_width = F, position = "left") %>%
-  add_header_above(c("Biological Proc. (BP)" = 4, "Molecular Func. (MF)" = 4, 
+  kable(ktables[["enrichDown"]], escape=TRUE, row.names=FALSE, format="html",
+        caption="GO categories that are overrepresented among significantly downregulated genes.") %>%
+    kable_styling(bootstrap_options = c("striped", "bordered"),
+                  full_width = F, position = "left") %>%
+    add_header_above(c("Biological Proc. (BP)" = 4, "Molecular Func. (MF)" = 4, 
                      "Cellular Comp. (CC)" = 4))
 }
 ```
 
 ```{r enrichBoth, echo=FALSE, eval=!debug}
 if (exists("ktables")){
-kable(ktables[["enrichBoth"]], escape=TRUE, row.names=FALSE, format="html",
-      caption="GO categories that are overrepresented among all significantly regulated genes.") %>%
-  kable_styling(bootstrap_options = c("striped", "bordered"),
-                full_width = F, position = "left") %>%
-  add_header_above(c("Biological Proc. (BP)" = 4, "Molecular Func. (MF)" = 4, 
+  kable(ktables[["enrichBoth"]], escape=TRUE, row.names=FALSE, format="html",
+        caption="GO categories that are overrepresented among all significantly regulated genes.") %>%
+    kable_styling(bootstrap_options = c("striped", "bordered"),
+                  full_width = F, position = "left") %>%
+    add_header_above(c("Biological Proc. (BP)" = 4, "Molecular Func. (MF)" = 4, 
                      "Cellular Comp. (CC)" = 4))
 }
 ```
@@ -554,7 +540,7 @@ if (exists("goResult")){
 ```
 
 ### Hypergeometric overrepresentation test
-```{r enricher compute, echo=FALSE, eval=!debug, message=FALSE}
+```{r enricher compute, echo=FALSE, message=FALSE, eval=!debug}
 if (doGo(param, seqAnno)){
   enrichResult <- ezEnricher(param, se)
 }
@@ -579,7 +565,7 @@ if(exists("enrichResult")){
 ```
 
 #### enrichMap
-```{r enrichMap gsea, echo=FALSE, eval=!debug, fig.width=14, fig.height=14}
+```{r enrichMap gsea, echo=FALSE, fig.width=14, fig.height=14, eval=!debug}
 if(exists("enrichResult")){
 for(onto in names(enrichResult)){
   for(sig in names(enrichResult[[1]])){
@@ -594,7 +580,7 @@ for(onto in names(enrichResult)){
 ```
 
 #### cnetplot
-```{r cnetplot gsea, echo=FALSE, eval=!debug, fig.width=14, fig.height=14}
+```{r cnetplot gsea, echo=FALSE, fig.width=14, fig.height=14, eval=!debug}
 if(exists("enrichResult")){
 for(onto in names(enrichResult)){
   for(sig in names(enrichResult[[1]])){

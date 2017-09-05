@@ -131,26 +131,6 @@ twoGroupCountComparison = function(rawData){
                                 "Feature Level"=metadata(rawData)$featureLevel,
                                 "Normalization"=param$normMethod)
   
-  ## TODO: it's temporary fix to make a compatible with EzResult
-  ## 
-  ## In the future, we should always use SummarizedExperiement rawData.
-  # seqAnno <- data.frame(rowData(rawData), row.names=rownames(rawData),
-  #                       check.names = FALSE, stringsAsFactors=FALSE)
-  # 
-  # rawDataList <- list(counts=assays(rawData)$counts,
-  #                     signal=assays(rawData)$signal,
-  #                     isLog=metadata(rawData)$isLog,
-  #                     presentFlag=assays(rawData)$presentFlag,
-  #                     seqAnno=seqAnno,
-  #                     featureLevel=metadata(rawData)$featureLevel,
-  #                     type=metadata(rawData)$type,
-  #                     countName=metadata(rawData)$countName,
-  #                     dataset=data.frame(colData(rawData), 
-  #                                        row.names=colnames(rawData),
-  #                                        check.names = FALSE, 
-  #                                        stringsAsFactors=FALSE)
-  #                     )
-  
   deResult = EzResult(se=rawData)
   return(deResult)
 }
