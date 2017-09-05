@@ -1,5 +1,5 @@
 ---
-title: "`r paste('Two groups analysis:', metadata(se)$param$comparison)`"
+title: "`r paste('Two groups analysis:', param$comparison)`"
 author: "Functional Genomics Center Zurich"
 output: 
   html_document:
@@ -11,7 +11,7 @@ output:
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-## This report requires objects: output, deResult
+## This report requires objects: output, deResult, param
 require(knitr)
 require(kableExtra)
 require(SummarizedExperiment)
