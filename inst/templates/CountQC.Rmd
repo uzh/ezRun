@@ -164,3 +164,126 @@ for(each in dataFiles){
 }
 ```
 
+### Count Statistics
+```{r count statistics, echo=FALSE, fig.width=min(7+(nSamples-10)*0.3, 30)}
+totalCounts = signif(colSums(assays(rawData)$counts) / 1e6, digits=3)
+presentCounts = colSums(isPresent)
+names(totalCounts) = samples
+names(presentCounts) = samples
+
+## Total reads
+par(mar=c(10.1, 4.1, 4.1, 2.1))
+barplot(totalCounts, las=2, ylab="Counts [Mio]", main="Total reads",
+        names.arg=ezSplitLongLabels(names(totalCounts)))
+## Genomic Features with Reads above threshold
+par(mar=c(10.1, 4.1, 4.1, 2.1))
+bplot = barplot(presentCounts, las=2, ylab="Counts", main="Genomic Features with Reads above threshold",
+                names.arg=ezSplitLongLabels(names(presentCounts)))
+percentages = paste(signif(100*presentCounts/nrow(isPresent), digits=2), "%")
+text(x=bplot, y=0, pos=3, offset=2, labels=percentages)
+```
+
+### Correlation/Clustering Plot
+
+```{r prepare data correlation, include=FALSE}
+assays(rawData)$signal = signal
+
+isValid = isPresentStudy
+if (!is.null(seqAnno$IsControl)){
+  isValid = isValid & !seqAnno$IsControl
+}
+  
+if(sum(isValid) < 10){
+  cat("Not enough valid features for further plots", "\n")
+  knit_exit()
+}
+
+x = log2(2^log2Signal[isValid, ] + param$backgroundExpression)
+xNormed = sweep(x, 1 , rowMeans(x));
+xSd = apply(x, 1, sd, na.rm=TRUE)
+ord = order(xSd, decreasing=TRUE)
+topGenes = ord[1:min(param$topGeneSize, length(ord))]
+```
+
+#### Sample correlation
+```{r sample correlation data, include=FALSE}
+## All genes
+zValues = cor(x, use="complete.obs")
+figure.height <- min(max(7, nrow(zValues) * 0.3), 30)
+## Top genes
+zValuesNormaled = cor(x[topGenes, ], use="complete.obs")
+```
+
+```{r plot sample correlation, echo=FALSE, fig.height=figure.height, fig.width=figure.height*1.25}
+## All genes
+ezCorrelationPlot(zValues, cond=conds, condLabels=conds,
+                  main=paste0("all present genes (", sum(isValid), ")"), 
+                  colors=sampleColors)
+## Top genes
+ezCorrelationPlot(zValuesNormaled, cond=conds, condLabels=conds,
+                  main=paste0("top genes (", length(topGenes), ")"))
+```
+
+#### Sample clustering
+```{r sample clustering, echo=FALSE, fig.height=7, fig.width=min(7 + (nSamples-10)*0.3, 30)}
+if (nSamples > 3){
+  ## All genes
+  d = as.dist(1-cor(x, use="complete.obs"));
+  hcd = as.dendrogram(hclust(d, method="ward.D2"), hang=-0.1)
+  hcd = colorClusterLabels(hcd, sampleColors)
+  mai = par("mai")
+  mai[1] = 3
+  par(mai=mai)
+  plot(hcd, main="all present genes", xlab="")
+
+  ## Top genes
+  d = as.dist(1-cor(x[topGenes, ], use="complete.obs"));
+  hcd = as.dendrogram(hclust(d, method="ward.D2"), hang=-0.1)
+  hcd = colorClusterLabels(hcd, sampleColors)
+  mai = par("mai")
+  mai[1] = 3
+  par(mai=mai)
+  plot(hcd, main=paste("top", length(topGenes), " genes"), xlab="")  
+}
+```
+
+### Correlation/Clustering Plot (Gene-wise)
+#### Sample correlation
+```{r gene wise sample correlation data, include=FALSE}
+## All genes
+zValues = cor(xNormed, use="complete.obs")
+figure.height <- min(max(7, nrow(zValues) * 0.3), 30)
+## Top genes
+zValuesNormaled = cor(xNormed[topGenes,], use="complete.obs")
+```
+
+```{r gene wise sample correlation, echo=FALSE, fig.height=figure.height, fig.width=figure.height*1.25}
+## All genes
+ezCorrelationPlot(zValues, cond=conds, condLabels=conds,
+                  main=paste0("all present genes (", sum(isValid), ") gene-wise normalized"))
+## Top genes
+ezCorrelationPlot(zValuesNormaled, cond=conds, condLabels=conds,
+                  main=paste0("top genes (", length(topGenes), ") gene-wise normalized"))
+```
+
+#### Sample clustering
+```{r gene wise sample clustering, echo=FALSE, fig.height=7, fig.width=min(7 + (nSamples-10)*0.3, 30)}
+if (nSamples > 3){
+  ## All genes
+  d = as.dist(1-cor(xNormed, use="complete.obs"));
+  hcd = as.dendrogram(hclust(d, method="ward.D2"), hang=-0.1)
+  hcd = colorClusterLabels(hcd, sampleColors)
+  mai = par("mai")
+  mai[1] = 3
+  par(mai=mai)
+  plot(hcd, main="all present genes; gene-wise normalized", xlab="")
+  ## Top genes
+  d = as.dist(1-cor(xNormed[topGenes, ], use="complete.obs"));
+  hcd = as.dendrogram(hclust(d, method="ward.D2"), hang=-0.1)
+  hcd = colorClusterLabels(hcd, sampleColors)
+  mai = par("mai")
+  mai[1] = 3
+  par(mai=mai)
+  plot(hcd, main=paste("top", length(topGenes), "genes; gene-wise normalized"), xlab="")
+}
+```
