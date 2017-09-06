@@ -414,6 +414,10 @@ plateStatistics <- function(dataset,
     message("The column ", colname[colsZero], " is empty!")
     colname <- colname[!colsZero]
   }
+  if(length(colname) == 0L){
+    warning("No suitable columns left in dataset!")
+    return(NA)
+  }
   
   if(!is.null(dataset$`PlatePosition [Characteristic]`)){
     plateChar <- dataset$`PlatePosition [Characteristic]`
