@@ -73,4 +73,94 @@ isPresentCond = averageColumns(isPresent, by=conds) >= 0.5
 isPresentStudy = apply(isPresentCond, 1, mean) >= 0.5
 ```
 
+## CountQC_Result {.tabset}
+
+### Settings
+```{r setting, echo=FALSE}
+settings = character()
+settings["Normalization method:"] = param$normMethod
+if (param$useSigThresh){
+  settings["Log2 signal threshold:"] = signif(log2(param$sigThresh), digits=4)
+  settings["Linear signal threshold:"] = signif(param$sigThresh, digits=4)
+}
+settings["Feature level:"] = metadata(rawData)$featureLevel
+settings["Number of features:"] = nrow(signal)
+settings["Data Column Used:"] = metadata(rawData)$countName
+  
+kable(settings, row.names=TRUE, 
+      col.names="Setting", format="html") %>%
+  kable_styling(bootstrap_options = "striped", full_width = F,
+                position = "left")
+```
+
+```{r output live report, echo=FALSE, results='asis'}
+if (!is.null(output)){
+  liveReportLink = output$getColumn("Live Report")
+  result = EzResult(se=rawData)
+  result$saveToFile(basename(output$getColumn("Live Report")))
+  cat(paste0("[Live Report and Visualizations](", liveReportLink, ")"), "\n")
+}
+```
+
+### Data Files
+```{r wirte data files, include=FALSE}
+if(!is.null(assays(rawData)$presentFlag)){
+  combined = interleaveMatricesByColumn(assays(rawData)$signal, 
+                                        assays(rawData)$presentFlag)
+}else{
+  combined = assays(rawData)$signal
+}
+if(!is.null(seqAnno)){
+  combined = cbind(seqAnno[rownames(combined), ,drop=FALSE], combined)
+}
+if(!is.null(combined$width)){
+  combined$width = as.integer(combined$width)
+}
+countFile = paste0(ezValidFilename(param$name), "-raw-count.txt")
+ezWrite.table(assays(rawData)$counts, file=countFile, 
+              head="Feature ID", digits=NA)
+signalFile = paste0(ezValidFilename(param$name), "-normalized-signal.txt")
+ezWrite.table(combined, file=signalFile, head="Feature ID", digits=4)
+
+selectSignals = grepl("Signal", colnames(combined))
+combined$"Mean signal" = rowMeans(combined[, selectSignals])
+combined$"Maximum signal" = apply(combined[, selectSignals], 1, max)
+topGenesPerSample = apply(combined[, selectSignals], 2, function(col){
+  col = sort(col, decreasing = TRUE)
+  if (length(col) > 100) col = col[1:100]
+    return(names(col))
+  })
+    
+topGenes = unique(as.character(topGenesPerSample))
+    
+combined = combined[order(combined$"Maximum signal", decreasing = TRUE), , drop=FALSE]
+useInInteractiveTable = c("seqid", "gene_name", "Maximum signal", "Mean signal", "description", "width", "gc")
+useInInteractiveTable = intersect(useInInteractiveTable, colnames(combined))
+tableLink = sub(".txt", "-viewHighExpressionGenes.html", signalFile)
+combinedTopGenes = combined[which(rownames(combined) %in% topGenes),] ## select top genes
+interactiveTable = head(combinedTopGenes[, useInInteractiveTable, drop=FALSE], param$maxTableRows) ## restrict number of table rows if necessary
+nRows = ifelse(length(topGenes)>=param$maxTableRows, param$maxTableRows, length(topGenes))
+ezInteractiveTable(interactiveTable, tableLink=tableLink, digits=3, colNames=c("ID", colnames(interactiveTable)),
+                   title=paste("Showing the top", nRows, "genes with the highest expression"))
+
+rpkmFile = paste0(ezValidFilename(param$name), "-rpkm.txt")
+ezWrite.table(getRpkmSE(rawData), file=rpkmFile, head="Feature ID", digits=4) 
+    
+tpmFile = paste0(ezValidFilename(param$name), "-tpm.txt")
+ezWrite.table(getTpmSE(rawData), file=tpmFile, head="Feature ID", digits=4)
+  
+dataFiles = c(countFile, signalFile, rpkmFile, tpmFile)
+
+if(isTRUE(param$doZip)){
+  dataFiles <- sapply(dataFiles, zipFile)
+}
+```
+
+```{r add data files link, echo=FALSE, results='asis', message=FALSE}
+for(each in dataFiles){
+  cat("\n")
+  cat(paste0("[", each, "](", each, ")"))
+  cat("\n")
+}
+```
 
