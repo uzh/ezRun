@@ -1,0 +1,76 @@
+---
+title: "debug title"
+author: "Functional Genomics Center Zurich"
+output: 
+  html_document:
+    self_contained: false
+    includes:
+      in_header: fgcz_header.html
+    css: fgcz.css
+---
+
+Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
+
+```{r setup, include=FALSE}
+#title: "`r paste('Analysis:', ifelse(grepl('bam', param$name, ignore.case = TRUE), sub('$', '_Count_QC', param$name), param$name))`"
+
+knitr::opts_chunk$set(echo = TRUE)
+## This report requires the object rawData, output
+require(knitr)
+require(kableExtra)
+require(SummarizedExperiment)
+```
+
+```{r prepare data, include=FALSE}
+## debug:
+require(ezRun)
+load("/home/gtan/analysis/gtan/p1536-CountQC/testCountQC.rda")
+## end of debug
+
+param <- metadata(rawData)$param
+seqAnno <- data.frame(rowData(rawData), row.names=rownames(rawData),
+                      check.names = FALSE, stringsAsFactors=FALSE)
+if (is.null(assays(rawData)$signal)){
+  assays(rawData)$signal = ezNorm(assays(rawData)$counts,
+                                  presentFlag=assays(rawData)$presentFlag,
+                                  method=param$normMethod)
+}
+dataset <- data.frame(colData(rawData), 
+                      row.names=colnames(rawData), check.names = FALSE,
+                      stringsAsFactors=FALSE)
+metadata(rawData)$analysis <- "Count_QC"
+
+types = data.frame(row.names=rownames(seqAnno))
+for (nm in setdiff(na.omit(unique(seqAnno$type)), "")){
+  types[[nm]] = seqAnno$type == nm
+}
+
+design = ezDesignFromDataset(dataset, param)
+samples = rownames(design)
+nSamples = length(samples)
+conds = ezConditionsFromDesign(design, maxFactors = 2)
+nConds = length(unique(conds))
+sampleColors = getSampleColors(conds)
+```
+
+```{r check enough samples, echo=FALSE, results='asis'}
+if (nSamples < 2){
+  cat("Note: Statistics and Plots are not available for single sample experiments.", "\n")
+  cat("Run the report again with multiple samples selected.", "\n")
+  knit_exit()
+}
+```
+
+```{r prepare signal, include=FALSE}
+signal = shiftZeros(getSignalSE(rawData), param$minSignal)
+presentFlag = assays(rawData)$presentFlag
+signalRange = range(signal, na.rm=TRUE)
+log2Signal = log2(signal)
+isPresent = ezPresentFlags(assays(rawData)$counts, presentFlag=presentFlag, 
+                           param=param, isLog=metadata(rawData)$isLog)
+signalCond = 2^averageColumns(log2Signal, by=conds)
+isPresentCond = averageColumns(isPresent, by=conds) >= 0.5
+isPresentStudy = apply(isPresentCond, 1, mean) >= 0.5
+```
+
+
