@@ -29,5 +29,5 @@ output[['Report [File]']] = 'p1536/CountQC_20650_2017-09-01--10-05-09/Count_QC'
 input = '/srv/gstore/projects/p1536/CountQC_20650_2017-09-01--10-05-09/input_dataset.tsv'
 
 # debug
-debug(ezMethodCountQC)
+#debug(ezMethodCountQC)
 EzAppCountQC$new()$run(input=input, output=output, param=param)

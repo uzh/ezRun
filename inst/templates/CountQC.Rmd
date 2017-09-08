@@ -1,5 +1,5 @@
 ---
-title: "debug title"
+title: "`r paste('Analysis:', ifelse(grepl('bam', param$name, ignore.case = TRUE), sub('$', '_Count_QC', param$name), param$name))`"
 author: "Functional Genomics Center Zurich"
 output: 
   html_document:
@@ -13,6 +13,7 @@ Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
 
 ```{r setup, include=FALSE}
 #title: "`r paste('Analysis:', ifelse(grepl('bam', param$name, ignore.case = TRUE), sub('$', '_Count_QC', param$name), param$name))`"
+# title: "debug title"
 
 knitr::opts_chunk$set(echo = TRUE)
 ## This report requires the object rawData, output
@@ -23,8 +24,8 @@ require(SummarizedExperiment)
 
 ```{r prepare data, include=FALSE}
 ## debug:
-require(ezRun)
-load("/home/gtan/analysis/gtan/p1536-CountQC/testCountQC.rda")
+#require(ezRun)
+#load("/home/gtan/analysis/gtan/p1536-CountQC/testCountQC.rda")
 ## end of debug
 debug <- FALSE
 
@@ -139,10 +140,13 @@ useInInteractiveTable = c("seqid", "gene_name", "Maximum signal", "Mean signal",
 useInInteractiveTable = intersect(useInInteractiveTable, colnames(combined))
 tableLink = sub(".txt", "-viewHighExpressionGenes.html", signalFile)
 combinedTopGenes = combined[which(rownames(combined) %in% topGenes),] ## select top genes
-interactiveTable = head(combinedTopGenes[, useInInteractiveTable, drop=FALSE], param$maxTableRows) ## restrict number of table rows if necessary
+interactiveTable = head(combinedTopGenes[, useInInteractiveTable, drop=FALSE], 
+                        param$maxTableRows) ## restrict number of table rows if necessary
 nRows = ifelse(length(topGenes)>=param$maxTableRows, param$maxTableRows, length(topGenes))
-ezInteractiveTable(interactiveTable, tableLink=tableLink, digits=3, colNames=c("ID", colnames(interactiveTable)),
-                   title=paste("Showing the top", nRows, "genes with the highest expression"))
+ezInteractiveTable(interactiveTable, tableLink=tableLink, digits=3, 
+                   colNames=c("ID", colnames(interactiveTable)),
+                   title=paste("Showing the top", nRows, 
+                               "genes with the highest expression"))
 
 rpkmFile = paste0(ezValidFilename(param$name), "-rpkm.txt")
 ezWrite.table(getRpkmSE(rawData), file=rpkmFile, head="Feature ID", digits=4) 
@@ -150,7 +154,7 @@ ezWrite.table(getRpkmSE(rawData), file=rpkmFile, head="Feature ID", digits=4)
 tpmFile = paste0(ezValidFilename(param$name), "-tpm.txt")
 ezWrite.table(getTpmSE(rawData), file=tpmFile, head="Feature ID", digits=4)
   
-dataFiles = c(countFile, signalFile, rpkmFile, tpmFile)
+dataFiles = c(countFile, signalFile, rpkmFile, tpmFile, tableLink)
 
 if(isTRUE(param$doZip)){
   dataFiles <- sapply(dataFiles, zipFile)
@@ -427,7 +431,7 @@ if(nSamples > 3){
 ```{r density plot, echo=FALSE, results='asis'}
 if(nSamples > 3){
   cat("### Expression densities", "\n")
-  cat("Zero or negative counts are not represented by the area!")
+  cat("Zero or negative counts are not represented by the area!", "\n")
   cat("\n")
   plotCmd = expression({
       #countDensPlot(signal, sampleColors, main="all transcripts", bw=0.7)
