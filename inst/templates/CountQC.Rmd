@@ -405,3 +405,19 @@ if(nSamples > 3){
 }
 ```
 
+```{r scatter plot, echo=FALSE, results='asis'}
+if (param$writeScatterPlots){
+  cat("### Scatter Plots by Conditions", "\n")
+  qcScatterFiles = countQcScatterPlots(param, design, conds, rawData,
+                                       signalCond, isPresentCond, types=types)
+  for(i in 1:length(qcScatterFiles)){
+    cat("\n")
+    cat("####", names(qcScatterFiles)[i], "\n")
+    for(j in 1:length(qcScatterFiles[[i]])){
+       cat("![](",qcScatterFiles[[i]][j],")")
+       cat("\n")
+    }
+    cat("\n")
+  }
+}
+```
