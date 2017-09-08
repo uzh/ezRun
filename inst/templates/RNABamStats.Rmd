@@ -8,20 +8,22 @@ output:
       in_header: fgcz_header.html
     css: fgcz.css
 ---
+Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ## This report requires the object resultList, dataset, param
 require(knitr)
 require(kableExtra)
-
-## TODO:
-require(ezRun)
 ```
 
 ```{r prepare data, include=FALSE}
+## debug:
+#require(ezRun)
 #load("/home/gtan/analysis/gtan/p2438-RNABamStats/RNA_BAM_Statistics_forTest/resultList.RData")
 #load("/home/gtan/analysis/gtan/p2438-RNABamStats/RNA_BAM_Statistics_forTest/dataParam.rda")
+## end of debug
+
 conds = ezConditionsFromDataset(dataset, param=param)
 samples = rownames(dataset)
 sampleColors = getSampleColors(conds, samples)

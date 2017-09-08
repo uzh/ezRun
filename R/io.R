@@ -191,8 +191,8 @@ ezInteractiveTable = function(values, tableLink, digits=NULL, colNames=colnames(
 ezInteractiveTableRmd = function(values, digits=NULL, 
                                  colNames=colnames(values), title="", 
                                  format=NULL, envir=parent.frame()){
-  require(DT)
-  require(htmltools)
+  require(DT, quietly=TRUE)
+  require(htmltools, quietly=TRUE)
   if (!is.null(digits)){
     for (i in 1:ncol(values)) {
       hasDecimals = suppressWarnings({as.integer(values[ ,i]) != values[ ,i]})

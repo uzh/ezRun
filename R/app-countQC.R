@@ -25,7 +25,19 @@ ezMethodCountQC = function(input=NA, output=NA, param=NA,
     writeErrorReport(htmlFile, param=param, error=rawData$error)
     return("Error")
   }
-  runNgsCountQC(htmlFile, rawData=rawData, output=output)
+  
+  ## debug
+  #save(rawData, output, file="testCountQC.rda")
+  
+  #runNgsCountQC(htmlFile, rawData=rawData, output=output)
+  ## Copy the style files and templates
+  styleFiles <- file.path(system.file("templates", package="ezRun"),
+                          c("fgcz.css", "CountQC.Rmd",
+                            "fgcz_header.html", "banner.png"))
+  file.copy(from=styleFiles, to=".", overwrite=TRUE)
+  rmarkdown::render(input="CountQC.Rmd",
+                    output_dir=".", output_file=htmlFile, quiet=TRUE)
+  
   return("Success")
 }
 
@@ -73,13 +85,12 @@ EzAppCountQC <-
 runNgsCountQC = function(htmlFile="00index.html",
                          rawData=SummarizedExperiment::SummarizedExperiment(),
                          writeDataFiles=TRUE, types=NULL, output=NULL){
-  
+  param <- metadata(rawData)$param
   if (is.null(assays(rawData)$signal)){
     assays(rawData)$signal = ezNorm(assays(rawData)$counts,
                                     presentFlag=assays(rawData)$presentFlag,
                                     method=param$normMethod)
   }
-  param <- metadata(rawData)$param
   seqAnno <- data.frame(rowData(rawData), row.names=rownames(rawData),
                         check.names = FALSE, stringsAsFactors=FALSE)
   dataset <- data.frame(colData(rawData), 
@@ -135,31 +146,9 @@ runNgsCountQC = function(htmlFile="00index.html",
   settings["Data Column Used:"] = metadata(rawData)$countName
   addFlexTable(doc, ezGrid(settings, add.rownames=TRUE))
   
-  ## TODO: it's temporary fix to make a compatible with EzResult
-  ## 
-  ## In the future, we should always use SummarizedExperiement rawDtaa.
-  # rawDataList <- list(counts=assays(rawData)$counts,
-  #                     signal=assays(rawData)$signal,
-  #                     isLog=metadata(rawData)$isLog,
-  #                     presentFlag=assays(rawData)$presentFlag,
-  #                     seqAnno=seqAnno,
-  #                     featureLevel=metadata(rawData)$featureLevel,
-  #                     type=metadata(rawData)$type, 
-  #                     countName=metadata(rawData)$countName, 
-  #                     dataset=data.frame(colData(rawData), 
-  #                                        row.names=colnames(rawData),
-  #                                        check.names = FALSE, 
-  #                                        stringsAsFactors=FALSE)
-  #                     )
-  
   if (!is.null(output)){
     liveReportLink = output$getColumn("Live Report")
-    # summary = c("Name"=param$name,
-    #             "Reference Build"=param$refBuild,
-    #             "Feature Level"=metadata(rawData)$featureLevel,
-    #             "Normalization"=param$normMethod)
-    result = EzResult(se=rawData)#,
-                      #result=list(summary=summary, analysis="Count_QC"))
+    result = EzResult(se=rawData)
     result$saveToFile(basename(output$getColumn("Live Report")))
     addParagraph(doc, ezLink(liveReportLink,
                              "Live Report and Visualizations",

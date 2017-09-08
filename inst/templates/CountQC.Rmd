@@ -1,0 +1,454 @@
+---
+title: "`r paste('Analysis:', ifelse(grepl('bam', param$name, ignore.case = TRUE), sub('$', '_Count_QC', param$name), param$name))`"
+author: "Functional Genomics Center Zurich"
+output: 
+  html_document:
+    self_contained: false
+    includes:
+      in_header: fgcz_header.html
+    css: fgcz.css
+---
+
+Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
+
+```{r setup, include=FALSE}
+#title: "`r paste('Analysis:', ifelse(grepl('bam', param$name, ignore.case = TRUE), sub('$', '_Count_QC', param$name), param$name))`"
+# title: "debug title"
+
+knitr::opts_chunk$set(echo = TRUE)
+## This report requires the object rawData, output
+require(knitr)
+require(kableExtra)
+require(SummarizedExperiment)
+```
+
+```{r prepare data, include=FALSE}
+## debug:
+#require(ezRun)
+#load("/home/gtan/analysis/gtan/p1536-CountQC/testCountQC.rda")
+## end of debug
+debug <- FALSE
+
+param <- metadata(rawData)$param
+seqAnno <- data.frame(rowData(rawData), row.names=rownames(rawData),
+                      check.names = FALSE, stringsAsFactors=FALSE)
+if (is.null(assays(rawData)$signal)){
+  assays(rawData)$signal = ezNorm(assays(rawData)$counts,
+                                  presentFlag=assays(rawData)$presentFlag,
+                                  method=param$normMethod)
+}
+dataset <- data.frame(colData(rawData), 
+                      row.names=colnames(rawData), check.names = FALSE,
+                      stringsAsFactors=FALSE)
+metadata(rawData)$analysis <- "Count_QC"
+
+types = data.frame(row.names=rownames(seqAnno))
+for (nm in setdiff(na.omit(unique(seqAnno$type)), "")){
+  types[[nm]] = seqAnno$type == nm
+}
+
+design = ezDesignFromDataset(dataset, param)
+samples = rownames(design)
+nSamples = length(samples)
+conds = ezConditionsFromDesign(design, maxFactors = 2)
+nConds = length(unique(conds))
+sampleColors = getSampleColors(conds)
+```
+
+```{r check enough samples, echo=FALSE, results='asis'}
+if (nSamples < 2){
+  cat("Note: Statistics and Plots are not available for single sample experiments.", "\n")
+  cat("Run the report again with multiple samples selected.", "\n")
+  knit_exit()
+}
+```
+
+```{r prepare signal, include=FALSE}
+signal = shiftZeros(getSignalSE(rawData), param$minSignal)
+presentFlag = assays(rawData)$presentFlag
+signalRange = range(signal, na.rm=TRUE)
+log2Signal = log2(signal)
+isPresent = ezPresentFlags(assays(rawData)$counts, presentFlag=presentFlag, 
+                           param=param, isLog=metadata(rawData)$isLog)
+signalCond = 2^averageColumns(log2Signal, by=conds)
+isPresentCond = averageColumns(isPresent, by=conds) >= 0.5
+isPresentStudy = apply(isPresentCond, 1, mean) >= 0.5
+```
+
+## CountQC_Result {.tabset}
+
+### Settings
+```{r setting, echo=FALSE}
+settings = character()
+settings["Normalization method:"] = param$normMethod
+if (param$useSigThresh){
+  settings["Log2 signal threshold:"] = signif(log2(param$sigThresh), digits=4)
+  settings["Linear signal threshold:"] = signif(param$sigThresh, digits=4)
+}
+settings["Feature level:"] = metadata(rawData)$featureLevel
+settings["Number of features:"] = nrow(signal)
+settings["Data Column Used:"] = metadata(rawData)$countName
+  
+kable(settings, row.names=TRUE, 
+      col.names="Setting", format="html") %>%
+  kable_styling(bootstrap_options = "striped", full_width = F,
+                position = "left")
+```
+
+```{r output live report, echo=FALSE, results='asis'}
+if (!is.null(output)){
+  liveReportLink = output$getColumn("Live Report")
+  result = EzResult(se=rawData)
+  result$saveToFile(basename(output$getColumn("Live Report")))
+  cat(paste0("[Live Report and Visualizations](", liveReportLink, ")"), "\n")
+}
+```
+
+### Data Files
+```{r write data files, include=FALSE}
+if(!is.null(assays(rawData)$presentFlag)){
+  combined = interleaveMatricesByColumn(assays(rawData)$signal, 
+                                        assays(rawData)$presentFlag)
+}else{
+  combined = assays(rawData)$signal
+}
+if(!is.null(seqAnno)){
+  combined = cbind(seqAnno[rownames(combined), ,drop=FALSE], combined)
+}
+if(!is.null(combined$width)){
+  combined$width = as.integer(combined$width)
+}
+countFile = paste0(ezValidFilename(param$name), "-raw-count.txt")
+ezWrite.table(assays(rawData)$counts, file=countFile, 
+              head="Feature ID", digits=NA)
+signalFile = paste0(ezValidFilename(param$name), "-normalized-signal.txt")
+ezWrite.table(combined, file=signalFile, head="Feature ID", digits=4)
+
+selectSignals = grepl("Signal", colnames(combined))
+combined$"Mean signal" = rowMeans(combined[, selectSignals])
+combined$"Maximum signal" = apply(combined[, selectSignals], 1, max)
+topGenesPerSample = apply(combined[, selectSignals], 2, function(col){
+  col = sort(col, decreasing = TRUE)
+  if (length(col) > 100) col = col[1:100]
+    return(names(col))
+  })
+    
+topGenes = unique(as.character(topGenesPerSample))
+    
+combined = combined[order(combined$"Maximum signal", decreasing = TRUE), , drop=FALSE]
+useInInteractiveTable = c("seqid", "gene_name", "Maximum signal", "Mean signal", "description", "width", "gc")
+useInInteractiveTable = intersect(useInInteractiveTable, colnames(combined))
+tableLink = sub(".txt", "-viewHighExpressionGenes.html", signalFile)
+combinedTopGenes = combined[which(rownames(combined) %in% topGenes),] ## select top genes
+interactiveTable = head(combinedTopGenes[, useInInteractiveTable, drop=FALSE], 
+                        param$maxTableRows) ## restrict number of table rows if necessary
+nRows = ifelse(length(topGenes)>=param$maxTableRows, param$maxTableRows, length(topGenes))
+ezInteractiveTable(interactiveTable, tableLink=tableLink, digits=3, 
+                   colNames=c("ID", colnames(interactiveTable)),
+                   title=paste("Showing the top", nRows, 
+                               "genes with the highest expression"))
+
+rpkmFile = paste0(ezValidFilename(param$name), "-rpkm.txt")
+ezWrite.table(getRpkmSE(rawData), file=rpkmFile, head="Feature ID", digits=4) 
+    
+tpmFile = paste0(ezValidFilename(param$name), "-tpm.txt")
+ezWrite.table(getTpmSE(rawData), file=tpmFile, head="Feature ID", digits=4)
+  
+dataFiles = c(countFile, signalFile, rpkmFile, tpmFile, tableLink)
+
+if(isTRUE(param$doZip)){
+  dataFiles <- sapply(dataFiles, zipFile)
+}
+```
+
+```{r add data files link, echo=FALSE, results='asis', message=FALSE}
+for(each in dataFiles){
+  cat("\n")
+  cat(paste0("[", each, "](", each, ")"))
+  cat("\n")
+}
+```
+
+### Count Statistics
+```{r count statistics, echo=FALSE, fig.width=min(7+(nSamples-10)*0.3, 30)}
+totalCounts = signif(colSums(assays(rawData)$counts) / 1e6, digits=3)
+presentCounts = colSums(isPresent)
+names(totalCounts) = samples
+names(presentCounts) = samples
+
+## Total reads
+par(mar=c(10.1, 4.1, 4.1, 2.1))
+barplot(totalCounts, las=2, ylab="Counts [Mio]", main="Total reads",
+        names.arg=ezSplitLongLabels(names(totalCounts)))
+## Genomic Features with Reads above threshold
+par(mar=c(10.1, 4.1, 4.1, 2.1))
+bplot = barplot(presentCounts, las=2, ylab="Counts", main="Genomic Features with Reads above threshold",
+                names.arg=ezSplitLongLabels(names(presentCounts)))
+percentages = paste(signif(100*presentCounts/nrow(isPresent), digits=2), "%")
+text(x=bplot, y=0, pos=3, offset=2, labels=percentages)
+```
+
+### Correlation/Clustering Plot
+
+```{r prepare data correlation, include=FALSE}
+assays(rawData)$signal = signal
+
+isValid = isPresentStudy
+if (!is.null(seqAnno$IsControl)){
+  isValid = isValid & !seqAnno$IsControl
+}
+  
+if(sum(isValid) < 10){
+  cat("Not enough valid features for further plots", "\n")
+  knit_exit()
+}
+
+x = log2(2^log2Signal[isValid, ] + param$backgroundExpression)
+xNormed = sweep(x, 1 , rowMeans(x));
+xSd = apply(x, 1, sd, na.rm=TRUE)
+ord = order(xSd, decreasing=TRUE)
+topGenes = ord[1:min(param$topGeneSize, length(ord))]
+```
+
+#### Sample correlation
+```{r sample correlation data, include=FALSE}
+## All genes
+zValues = cor(x, use="complete.obs")
+figure.height <- min(max(7, nrow(zValues) * 0.3), 30)
+## Top genes
+zValuesNormaled = cor(x[topGenes, ], use="complete.obs")
+```
+
+```{r plot sample correlation, echo=FALSE, fig.height=figure.height, fig.width=figure.height*1.25}
+## All genes
+ezCorrelationPlot(zValues, cond=conds, condLabels=conds,
+                  main=paste0("all present genes (", sum(isValid), ")"), 
+                  colors=sampleColors)
+## Top genes
+ezCorrelationPlot(zValuesNormaled, cond=conds, condLabels=conds,
+                  main=paste0("top genes (", length(topGenes), ")"))
+```
+
+```{r sample clustering, echo=FALSE, fig.height=7, fig.width=min(7 + (nSamples-10)*0.3, 30), results='asis'}
+if (nSamples > 3){
+  cat("#### Sample clustering", "\n")
+  ## All genes
+  d = as.dist(1-cor(x, use="complete.obs"));
+  hcd = as.dendrogram(hclust(d, method="ward.D2"), hang=-0.1)
+  hcd = colorClusterLabels(hcd, sampleColors)
+  mai = par("mai")
+  mai[1] = 3
+  par(mai=mai)
+  plot(hcd, main="all present genes", xlab="")
+
+  ## Top genes
+  d = as.dist(1-cor(x[topGenes, ], use="complete.obs"));
+  hcd = as.dendrogram(hclust(d, method="ward.D2"), hang=-0.1)
+  hcd = colorClusterLabels(hcd, sampleColors)
+  mai = par("mai")
+  mai[1] = 3
+  par(mai=mai)
+  plot(hcd, main=paste("top", length(topGenes), " genes"), xlab="")  
+}
+```
+
+### Correlation/Clustering Plot (Gene-wise)
+#### Sample correlation
+```{r gene wise sample correlation data, include=FALSE}
+## All genes
+zValues = cor(xNormed, use="complete.obs")
+figure.height <- min(max(7, nrow(zValues) * 0.3), 30)
+## Top genes
+zValuesNormaled = cor(xNormed[topGenes,], use="complete.obs")
+```
+
+```{r gene wise sample correlation, echo=FALSE, fig.height=figure.height, fig.width=figure.height*1.25}
+## All genes
+ezCorrelationPlot(zValues, cond=conds, condLabels=conds,
+                  main=paste0("all present genes (", sum(isValid), ") gene-wise normalized"))
+## Top genes
+ezCorrelationPlot(zValuesNormaled, cond=conds, condLabels=conds,
+                  main=paste0("top genes (", length(topGenes), ") gene-wise normalized"))
+```
+
+```{r gene wise sample clustering, echo=FALSE, fig.height=7, fig.width=min(7 + (nSamples-10)*0.3, 30), results='asis'}
+if (nSamples > 3){
+  cat("#### Sample clustering", "\n")
+  ## All genes
+  d = as.dist(1-cor(xNormed, use="complete.obs"));
+  hcd = as.dendrogram(hclust(d, method="ward.D2"), hang=-0.1)
+  hcd = colorClusterLabels(hcd, sampleColors)
+  mai = par("mai")
+  mai[1] = 3
+  par(mai=mai)
+  plot(hcd, main="all present genes; gene-wise normalized", xlab="")
+  ## Top genes
+  d = as.dist(1-cor(xNormed[topGenes, ], use="complete.obs"));
+  hcd = as.dendrogram(hclust(d, method="ward.D2"), hang=-0.1)
+  hcd = colorClusterLabels(hcd, sampleColors)
+  mai = par("mai")
+  mai[1] = 3
+  par(mai=mai)
+  plot(hcd, main=paste("top", length(topGenes), "genes; gene-wise normalized"), xlab="")
+}
+```
+
+
+```{r javascript, echo=FALSE, results='asis', eval=!debug}
+jsFile = system.file("extdata/enrichr.js", package="ezRun", mustWork=TRUE)
+invisible(file.copy(from=jsFile, to=basename(jsFile), overwrite=TRUE))
+cat(paste0("<SCRIPT language=\"JavaScript\" SRC=\"", basename(jsFile), "\"></SCRIPT>"))
+```
+
+```{r Clustering of High Variance Features, echo=FALSE, message=FALSE, fig.width=max(8,4+0.1*ncol(xNormed)), fig.height=10, results='asis'}
+if (nSamples > 3){
+  ## gene clustering
+  use = xSd > param$highVarThreshold & apply(!is.na(x), 1, all)
+  sdThresh = param$highVarThreshold
+  if (sum(use, na.rm=TRUE) > param$maxGenesForClustering){
+    use[use] = rank(-1 * xSd[use], ties.method="max") <= param$maxGenesForClustering
+    sdThresh = signif(min(xSd[use]), digits=3)
+  }
+    
+  if (sum(use, na.rm=TRUE) > param$minGenesForClustering){
+    cat("### Clustering of High Variance Features", "\n")
+    cat("\n")
+    cat(paste("Threshold for std. dev. of log2 signal across samples:", sdThresh), "\n")
+    cat("\n")
+    cat(paste("Number of features with high std. dev.:", sum(use)), "\n")
+    cat("\n")
+    
+    clusterPng = "cluster-heatmap.png"
+    clusterColors = c("red", "yellow", "orange", "green", "blue", "cyan")
+      
+    clusterResult = clusterResults(xNormed[use, ], nClusters=6, clusterColors=clusterColors)
+    plotCmd = expression({
+        clusterHeatmap(xNormed[use, ], param, clusterResult, file=clusterPng, margins=c(18, 9),
+                       colColors=sampleColors, lim=c(-param$logColorRange, param$logColorRange),
+                       doClusterColumns=TRUE)
+      })
+    eval(plotCmd)
+    
+    ## pdf export
+    clusterPdf = "cluster-heatmap.pdf"
+    pdf(clusterPdf, width=max(8,4+0.1*ncol(xNormed)), height=10)
+    eval(plotCmd)
+    dev.off()
+  
+    if (doGo(param, seqAnno)){
+      clusterResult = goClusterResults(xNormed[use, ], param, clusterResult, seqAnno=seqAnno,
+                                       universeProbeIds=rownames(seqAnno))
+    }
+    
+    if (!is.null(clusterResult$GO)){
+      goTables = goClusterTableRmd(param, clusterResult, seqAnno)
+      if (doEnrichr(param)){
+        goAndEnrichr = cbind(goTables$linkTable, goTables$enrichrTable)
+      } else {
+        goAndEnrichr = goTables$linkTable
+      }
+      bgColors = rep(gsub("FF$", "", clusterResult$clusterColors))
+      rownames(goAndEnrichr) <- paste0('<font color="', bgColors,
+                                     '">Cluster ', rownames(goAndEnrichr),
+                                     '</font>')
+    kable(goAndEnrichr, escape=FALSE, row.names=TRUE, format = "html",
+          caption="GO categories of feature clusters") %>%
+      kable_styling(bootstrap_options = "striped",
+                    full_width = F, position = "float_right") %>%
+      add_footnote(c("Cluster font color corresponds to the row colors in the heatmap plot."), 
+                   notation = "alphabet")
+    } else {
+      cat("No information available", "\n")
+    }
+  }
+}
+```
+
+```{r render go cluster, echo=FALSE, results='hide', message=FALSE, warning=FALSE, eval=!debug}
+if (nSamples > 3){
+  if (sum(use, na.rm=TRUE) > param$minGenesForClustering){
+    if (!is.null(clusterResult$GO)){
+    ## GO Cluster tables
+    file <- file.path(system.file("templates", package="ezRun"), 
+                      "CountQC_goClusterTable.Rmd")
+    file.copy(from=file, to=basename(file), overwrite=TRUE)
+    rmarkdown::render(input=basename(file),
+                      output_dir=".", output_file="goClusterTable.html",
+                      quiet=TRUE)
+    }
+  }
+}
+```
+
+```{r cluster plot link , echo=FALSE, results='asis', eval=!debug}
+if(file.exists(clusterPdf)){
+    cat(paste0("[Plot in pdf](", clusterPdf, ")"), "\n")
+    cat("\n")
+}
+```
+
+```{r go cluster table link, echo=FALSE, results='asis', eval=!debug}
+if (file.exists("goClusterTable.html")){
+  cat(paste0("[GO cluster tables](", "goClusterTable.html", ")"), "\n")
+  cat("\n")
+}
+```
+
+
+```{r MDS plot, echo=FALSE, results='asis', message=FALSE, fig.width=7, fig.height=7}
+if(nSamples > 3){
+  cat("### MDS Plot", "\n")
+  ## Present genes
+  pngName = "mdsPlot_PresentGenes.png"
+  ezMdsPlot(signal=x, sampleColors=sampleColors, main=sub('.png','',pngName))
+  
+  ## Top genes
+  pngName = "mdsPlot_TopGenes.png"
+  ezMdsPlot(signal=x[topGenes,], sampleColors=sampleColors, 
+            main=sub('.png','',pngName))
+}
+```
+
+```{r scatter plot, echo=FALSE, results='asis'}
+if(nSamples > 3){
+  if (param$writeScatterPlots){
+    cat("### Scatter Plots by Conditions", "\n")
+    qcScatterFiles = countQcScatterPlots(param, design, conds, rawData,
+                                         signalCond, isPresentCond, types=types)
+    for(i in 1:length(qcScatterFiles)){
+      cat("\n")
+      cat("####", names(qcScatterFiles)[i], "\n")
+      for(j in 1:length(qcScatterFiles[[i]])){
+        cat("![](",qcScatterFiles[[i]][j],")")
+        cat("\n")
+      }
+      cat("\n")
+    }
+  }
+}
+```
+
+```{r density plot, echo=FALSE, results='asis'}
+if(nSamples > 3){
+  cat("### Expression densities", "\n")
+  cat("Zero or negative counts are not represented by the area!", "\n")
+  cat("\n")
+  plotCmd = expression({
+      #countDensPlot(signal, sampleColors, main="all transcripts", bw=0.7)
+      p = countDensGGPlot(cts=data.frame(signal,stringsAsFactors = F),
+                          colors=sampleColors, alpha=0.4)
+      print(p)
+    })
+  eval(plotCmd)
+}
+```
+
+### Input Dataset
+```{r input, echo=FALSE}
+ezInteractiveTableRmd(values=dataset, digits=4)
+```
+
+### SessionInfo
+```{r, echo=FALSE}
+sessionInfo()
+```
