@@ -66,6 +66,11 @@ twoGroupCountComparison = function(rawData){
     param$testMethod = "glm"
     metadata(rawData)$param <- param
   }
+  if(param$testMethod != "glm"){
+    ## deTest option is only for glm method.
+    param$deTest <- NULL
+    metadata(rawData)$param <- param
+  }
   
   metadata(rawData)$method <- param$testMethod
   
