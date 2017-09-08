@@ -406,18 +406,45 @@ if(nSamples > 3){
 ```
 
 ```{r scatter plot, echo=FALSE, results='asis'}
-if (param$writeScatterPlots){
-  cat("### Scatter Plots by Conditions", "\n")
-  qcScatterFiles = countQcScatterPlots(param, design, conds, rawData,
-                                       signalCond, isPresentCond, types=types)
-  for(i in 1:length(qcScatterFiles)){
-    cat("\n")
-    cat("####", names(qcScatterFiles)[i], "\n")
-    for(j in 1:length(qcScatterFiles[[i]])){
-       cat("![](",qcScatterFiles[[i]][j],")")
-       cat("\n")
+if(nSamples > 3){
+  if (param$writeScatterPlots){
+    cat("### Scatter Plots by Conditions", "\n")
+    qcScatterFiles = countQcScatterPlots(param, design, conds, rawData,
+                                         signalCond, isPresentCond, types=types)
+    for(i in 1:length(qcScatterFiles)){
+      cat("\n")
+      cat("####", names(qcScatterFiles)[i], "\n")
+      for(j in 1:length(qcScatterFiles[[i]])){
+        cat("![](",qcScatterFiles[[i]][j],")")
+        cat("\n")
+      }
+      cat("\n")
     }
-    cat("\n")
   }
 }
+```
+
+```{r density plot, echo=FALSE, results='asis'}
+if(nSamples > 3){
+  cat("### Expression densities", "\n")
+  cat("Zero or negative counts are not represented by the area!")
+  cat("\n")
+  plotCmd = expression({
+      #countDensPlot(signal, sampleColors, main="all transcripts", bw=0.7)
+      p = countDensGGPlot(cts=data.frame(signal,stringsAsFactors = F),
+                          colors=sampleColors, alpha=0.4)
+      print(p)
+    })
+  eval(plotCmd)
+}
+```
+
+### Input Dataset
+```{r input, echo=FALSE}
+ezInteractiveTableRmd(values=dataset, digits=4)
+```
+
+### SessionInfo
+```{r, echo=FALSE}
+sessionInfo()
 ```
