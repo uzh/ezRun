@@ -20,8 +20,8 @@ require(kableExtra)
 ```{r prepare data, include=FALSE}
 ## debug:
 #require(ezRun)
-#load("/home/gtan/analysis/gtan/p2438-RNABamStats/RNA_BAM_Statistics_forTest/resultList.RData")
-#load("/home/gtan/analysis/gtan/p2438-RNABamStats/RNA_BAM_Statistics_forTest/dataParam.rda")
+#load("/home/gtan/analysis/gtan/p2438-RNABamStats/resultList.RData")
+#load("/home/gtan/analysis/gtan/p2438-RNABamStats/dataParam.rda")
 ## end of debug
 
 conds = ezConditionsFromDataset(dataset, param=param)
@@ -409,6 +409,19 @@ if (!is.null(resultList[[1]][["TranscriptsCovered"]])){
 }
 ```
 
+```{r duplication rates, echo=FALSE, results='asis'}
+if(!is.null(resultList[[1]][["dupRate"]])){
+  cat("###", "Duplication rate quality control\n")
+  cat("\n")
+  cat("The number of reads per base assigned to a gene in an ideal RNA-Seq data set is expected to be proportional to the abundance of its transcripts in the sample. For lowly expressed genes we expect read duplication to happen rarely by chance, while for highly expressed genes - depending on the total sequencing depth - we expect read duplication to happen often.", "\n")
+  cat("\n")
+  require(dupRadar, quietly = TRUE)
+  for(sm in samples){
+    duprateExpDensPlot(DupMat=resultList[[sm]][["dupRate"]])
+    title(paste(sm, "-- 2D density scatter plot"))
+  }
+}
+```
 
 ### Input Dataset
 ```{r, echo=FALSE, message=FALSE}

@@ -97,8 +97,9 @@ computeBamStats = function(input, htmlFile, param, gff, resultList=NULL){
     seqLengths = resultList[[1]]$seqLengths
     
     if (is.null(param$posErrorRates) || param$posErrorRates == TRUE){
-      errorRates = ezMclapply(files, getPosErrorFromBam, param, mc.preschedule=TRUE,
-                               mc.cores = min(length(files), ezThreads()))
+      errorRates = ezMclapply(files, getPosErrorFromBam, param, 
+                              mc.preschedule=FALSE,
+                              mc.cores = min(length(files), ezThreads()))
       for (sm in samples){
         resultList[[sm]][["ErrorRates"]] = errorRates[[sm]]
       }
@@ -106,12 +107,23 @@ computeBamStats = function(input, htmlFile, param, gff, resultList=NULL){
       gc()
     }
     ## do the analysis from package rseqc
-    junctionsResults = ezMclapply(files, getJunctionPlotsFromBam, param, mc.preschedule=TRUE,
-                                   mc.cores = min(length(files), ezThreads()))
+    junctionsResults = ezMclapply(files, getJunctionPlotsFromBam, param, 
+                                  mc.preschedule=FALSE,
+                                  mc.cores = min(length(files), ezThreads()))
     for(sm in samples){
       resultList[[sm]][["Junction"]] = junctionsResults[[sm]]
     }
     rm(junctionsResults)
+    gc()
+    
+    ## do Assessment of duplication rates from package dupRadar
+    dupRateResults <- ezMclapply(files, getDupRateFromBam, param,
+                                 mc.preschedule = FALSE,
+                                 mc.cores = min(length(files), ezThreads()))
+    for(sm in samples){
+      resultList[[sm]][["dupRate"]] = dupRateResults[[sm]]
+    }
+    rm(dupRateResults)
     gc()
   }
   
@@ -725,3 +737,42 @@ getJunctionPlotsFromBam = function(bamFile, param){
 #   useRow = apply(tbl, 1, max) > minPercentage & rownames(tbl) != "total"
 #   return(tbl[useRow , ])
 # }
+
+getDupRateFromBam <- function(bamFile, param=NULL, gtfFn, 
+                              stranded=c("both", "sense", "antisense"), 
+                              paired=FALSE, threads=1){
+  if(!is.null(param)){
+    gtfFn <- param$ezRef@refFeatureFile
+    stranded <- param$strandMode
+    paired <- param$paired
+    threads <- param$cores
+  }
+  require(dupRadar)
+  if(!isTRUE(isValidEnvironments("picard"))){
+    setEnvironments("picard")
+  }
+  ## Make the duplicates in bamFile
+  inputBam <- paste(Sys.getpid(), basename(bamFile), sep="-")
+  ### The bamFile may not be writable.
+  file.symlink(from=bamFile, to=inputBam)
+  picardMetricsFn <- gsub("\\.bam$", "_picard_metrics.txt", inputBam)
+  bamDuprmFn <- gsub("\\.bam$", "_duprm.bam", inputBam)
+  
+  on.exit(file.remove(c(inputBam, bamDuprmFn, picardMetricsFn)))
+  
+  picardDir <- dirname(Sys.getenv("Picard_jar")) ## when modue load Tools/Picard.
+  bamDuprm <- markDuplicates(dupremover="picard",
+                             bam=inputBam,
+                             out=bamDuprmFn,
+                             path=picardDir,
+                             rminput=FALSE)
+  
+  ## Duplication rate analysis
+  dm <- analyzeDuprates(bam=bamDuprm, gtf=gtfFn,
+                        stranded=switch(stranded, "both"=0, "sense"=1, 
+                                        "antisense"=2, 
+                                        stop("unsupported strand mode: ", 
+                                             stranded)), 
+                        paired=paired, threads=threads)
+  return(dm)
+}
