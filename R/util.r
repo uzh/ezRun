@@ -702,3 +702,20 @@ ezSplitLongText = function(text, nSplit=180){
   splittedText = paste0(splittedText, text)
   return(splittedText)
 }
+
+isValidEnvironments <- function(tool){
+  ans <- switch(tool,
+                "picard"=Sys.getenv("Picard_jar") != "" && 
+                           Sys.which("java") != "",
+                stop("unsupported tool: ", tool)
+                )
+  return(ans)
+}
+
+setEnvironments <- function(tool, envir=parent.frame()){
+  cmd <- switch(tool,
+                "picard"=expression({Sys.setenv("PATH"=paste("/usr/local/ngseq/packages/Dev/jdk/8/bin", Sys.getenv("PATH"), sep=":")); Sys.setenv("Picard_jar"="/usr/local/ngseq/packages/Tools/Picard/2.9.0/picard.jar")}),
+                stop("unsupported tool: ", tool)
+                )
+  eval(cmd, envir=envir)
+}

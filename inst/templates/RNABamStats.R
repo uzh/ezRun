@@ -2,7 +2,7 @@ setwd("/home/gtan/analysis/gtan/p2438-RNABamStats")
 Sys.setenv("PATH"=paste("/usr/local/ngseq/packages/Dev/Python2/2.7.13/bin", "/usr/local/ngseq/packages/Tools/samtools/1.5/bin", Sys.getenv("PATH"), sep=":"))
 library(ezRun)
 param = list()
-param[['cores']] = '8'
+param[['cores']] = '16'
 param[['ram']] = '50'
 param[['scratch']] = '100'
 param[['node']] = ''
@@ -28,7 +28,7 @@ output[['refFeatureFile']] = 'genes.gtf'
 input = 'input_dataset.tsv'
 #debug(getStatsFromBam)
 #debug(getStatsFromBamParallel)
-system.time(EzAppRnaBamStats$new()$run(input=input, output=output, param=param))
+EzAppRnaBamStats$new()$run(input=input, output=output, param=param)
 
 # debug
 input = EzDataset$new(file=input, dataRoot=param$dataRoot)
