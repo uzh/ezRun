@@ -600,6 +600,9 @@ ezVolcanoPlotly <- function(log2Ratio, pValue, yType=c("p-value", "FDR"),
     }
   }
   
+  ## Make sure "Absent", "Present" always first, then the order in types.
+  toPlot$types <- factor(toPlot$types,
+                         levels=c("Absent", "Present", colnames(types)))
   typesColours <- setNames(c("grey", "black", colors), 
                            c("Absent", "Present", colnames(types))
                            )
