@@ -513,6 +513,13 @@ alignmentCountBarPlot <- function(mmCounts, relative=FALSE,
   }
   x <- as.data.frame(x)
   x$"sample" <- rownames(x)
+  m <- list(
+    l = 80,
+    r = 80,
+    b = 200,
+    t = 100,
+    pad = 0
+  )
   
   p <- plot_ly(x, x=~sample, y=as.formula(paste0("~`", colnames(x)[1], "`")), 
                type="bar", name = colnames(x)[1], 
@@ -523,7 +530,8 @@ alignmentCountBarPlot <- function(mmCounts, relative=FALSE,
                          marker = list(color = multiCountColors[colnames(x)[i]]))
   }
   p <- p %>% layout(yaxis = list(title = 'Count'), barmode = 'stack',
-                    title = title)
+                    title = title,
+                    margin=m)
   p
 }
 
