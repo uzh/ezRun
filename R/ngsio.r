@@ -150,7 +150,10 @@ loadCountDatasetSE <- function(input, param){
   if (ezIsSpecified(param$ezRef@refBuild)){
     seqAnno = ezFeatureAnnotation(param, rownames(x), dataFeatureLevel)
   } else {
-    seqAnno = x[ , intersect(c("type", "gene_name", "gene_id", "transcript_id", "Description", "GO BP", "GO MF", "GO CC", "gc", "width"), colnames(x)), drop=FALSE]
+    seqAnno = x[ , intersect(c("type", "gene_name", "gene_id", "transcript_id", 
+                               "Description", "GO BP", "GO MF", "GO CC", "gc", 
+                               "width"), colnames(x)), drop=FALSE]
+    seqAnno[[dataFeatureLevel]] <- rownames(x)
   }
   
   signal = ezMatrix(0, rows=rownames(seqAnno), cols=names(files))
