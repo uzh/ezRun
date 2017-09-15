@@ -57,6 +57,7 @@ runGatkPipeline = function(datasetCase, param=NA){
       h1000G_omniFile = param$knownSites[grep('1000G_omni.*vcf.gz$', param$knownSites)]
       h1000G_phase1File = param$knownSites[grep('1000G_phase1.snps.*vcf.gz$', param$knownSites)]
       
+      if(param$recalibrateVariants){
       cmd = paste(VariantRecalibrator1, "-R", param$genomeSeq,
                   "-input", outputFile,
                   "-resource:hapmap,known=false,training=true,truth=true,prior=15.0", hapmapFile,
@@ -127,6 +128,7 @@ runGatkPipeline = function(datasetCase, param=NA){
                     "-L", param$targetFile)
       } 
       ezSystem(paste(cmd,'2>>',myLog))
+      }
       #Add ExAc-Annotation:
       ExAcFile = param$knownSites[grep('ExAC.*vcf.gz$', param$knownSites)]
       VariantAnnotation = paste(param$javaCall,"-jar", "$GATK_jar", "-T VariantAnnotator")
@@ -172,7 +174,8 @@ EzAppJoinGenoTypes <-
                   name <<- "EzAppJoinGenoTypes"
                   appDefaults <<- rbind(targetFile = ezFrame(Type="character",  DefaultValue="", Description="restrict to targeted genomic regions"),
                                         vcfFilt.minAltCount = ezFrame(Type="integer",  DefaultValue=3,  Description="minimum coverage for the alternative variant"),
-                                        vcfFilt.minReadDepth = ezFrame(Type="integer",  DefaultValue=20,  Description="minimum read depth"))
+                                        vcfFilt.minReadDepth = ezFrame(Type="integer",  DefaultValue=20,  Description="minimum read depth"),
+                                        recalibrateVariants = ezFrame(Type="logical",  DefaultValue=TRUE,  Description="recalibrateVariants"))
                 }
               )
   )
