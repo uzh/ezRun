@@ -24,7 +24,11 @@ ezMethodJoinGenoTypes = function(input=NA, output=NA, param=NA){
   
   require(parallel)
   ezMclapply(datasetCaseList,runGatkPipeline, param, mc.cores = param$mc.cores)
-  ezSystem('rm *.tranches *recal* *_annotated.vcf*')
+  if(param$recalibrateVariants){
+    ezSystem('rm *.tranches *recal* *_annotated.vcf*')
+  } else {
+    ezSystem('rm *_annotated.vcf*')
+  }
   #Further processing for Kispi-Samples ->make Report per Family (per flag)
   return("Success")
 }
