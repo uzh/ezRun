@@ -145,7 +145,7 @@ runGatkPipeline = function(datasetCase, param=NA){
                   "--expression ExAC.AC_Het",
                   "--expression ExAC.AC_Hom",
                   "-V", outputFile,
-                  "-nt", round(param$cores/param$mc.cores)) 
+                  "-nt", 1) 
       if(param$targetFile != ''){
         cmd = paste(cmd,
                     "-L", param$targetFile)
