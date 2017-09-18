@@ -419,7 +419,10 @@ plateStatistics <- function(dataset,
     return(NA)
   }
   
-  if(!is.null(dataset$`PlatePosition [Characteristic]`)){
+  if(!is.null(dataset$`PlatePosition [Characteristic]`) && 
+     !any(is.na(dataset$`PlatePosition [Characteristic]`))){
+    # `PlatePosition [Characteristic]` may not exist or is empty
+    
     plateChar <- dataset$`PlatePosition [Characteristic]`
     ## Plate position should be in the format of *_C4;
     ## * is the plate number
