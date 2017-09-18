@@ -26,6 +26,7 @@ require(SummarizedExperiment)
 ## debug:
 #require(ezRun)
 #load("/home/gtan/analysis/gtan/p1536-CountQC/testCountQC.rda")
+#output <- NULL
 ## end of debug
 debug <- FALSE
 
@@ -412,17 +413,19 @@ if(nSamples > 3){
 ```{r scatter plot, echo=FALSE, results='asis'}
 if(nSamples > 3){
   if (param$writeScatterPlots){
-    cat("### Scatter Plots by Conditions", "\n")
     qcScatterFiles = countQcScatterPlots(param, design, conds, rawData,
                                          signalCond, isPresentCond, types=types)
-    for(i in 1:length(qcScatterFiles)){
-      cat("\n")
-      cat("####", names(qcScatterFiles)[i], "\n")
-      for(j in 1:length(qcScatterFiles[[i]])){
-        cat("![](",qcScatterFiles[[i]][j],")")
+    if(length(qcScatterFiles) > 0){
+      cat("### Scatter Plots by Conditions", "\n")
+      for(i in 1:length(qcScatterFiles)){
+        cat("\n")
+        cat("####", names(qcScatterFiles)[i], "\n")
+        for(j in 1:length(qcScatterFiles[[i]])){
+          cat("![](",qcScatterFiles[[i]][j],")")
+          cat("\n")
+        }
         cat("\n")
       }
-      cat("\n")
     }
   }
 }
