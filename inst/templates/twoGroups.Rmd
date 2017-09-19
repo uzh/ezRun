@@ -18,6 +18,9 @@ require(SummarizedExperiment)
 require(webshot)
 require(htmlwidgets)
 debug <- FALSE
+if(!isValidEnvironments("phantomjs")){
+  setEnvironments("phantomsjs")
+}
 ```
 
 ```{r prepare data, include=FALSE}
@@ -143,7 +146,7 @@ if (isTRUE(isTwoGroup)){
 if (isTRUE(isTwoGroup)){
   cat(paste0("[Plot in pdf](", scatterPdf, ")"), "\n")
   cat("\n")
-  cat(paste0("[Interactive comparison plot (With thousands of genes, it can be slow and requires a modern web brwoser for best javascript performance!)](", scatterHtml, ")"), "\n")
+  cat(paste0("[Interactive comparison plot (64-bit Chrome or Safari is recommended for best performance!)](", scatterHtml, ")"), "\n")
 }
 ```
 
@@ -170,7 +173,7 @@ if (isTRUE(isTwoGroup)){
 if (isTRUE(isTwoGroup)){
   cat(paste0("[Plot in pdf](", volcanoPdf, ")"), "\n")
   cat("\n")
-  cat(paste0("[Interactive comparison plot (With thousands of genes, it can be slow and requires a modern web brwoser for best javascript performance!)](", volcanoHtml, ")"), "\n")
+  cat(paste0("[Interactive comparison plot (64-bit Chrome or Safari is recommended for best performance!)](", volcanoHtml, ")"), "\n")
 }
 ```
 
@@ -214,7 +217,7 @@ if(isTRUE(isTwoGroup)){
 if(isTRUE(isTwoGroup)){
   cat(paste0("[Plot in pdf](", volcanoFDRPdf, ")"), "\n")
   cat("\n")
-  cat(paste0("[Interactive comparison plot (With thousands of genes, it can be slow and requires a modern web brwoser for best javascript performance!)](", volcanoFDRHtml, ")"), "\n")
+  cat(paste0("[Interactive comparison plot (64-bit Chrome or Safari is recommended for best performance!)](", volcanoFDRHtml, ")"), "\n")
 }
 ```
 
