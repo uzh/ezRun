@@ -765,7 +765,8 @@ getDupRateFromBam <- function(bamFile, param=NULL, gtfFn,
                              bam=inputBam,
                              out=bamDuprmFn,
                              path=picardDir,
-                             rminput=FALSE)
+                             rminput=FALSE,
+                             maxmem="8g")
   
   ## Duplication rate analysis
   dm <- analyzeDuprates(bam=bamDuprm, gtf=gtfFn,
