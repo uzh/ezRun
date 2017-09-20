@@ -328,7 +328,8 @@ ezMethodSTAR = function(input=NA, output=NA, param=NA){
     ezSortIndexBam("Aligned.out.bam", basename(bamFile), ram=sortRam, removeBam=TRUE, cores=nSortThreads)
   }
   
-  if (param$getChimericJunctions){
+  if (param$getJunctions){
+    ezSystem(paste("mv SJ.out.tab", basename(output$getColumn("Junctions"))))
     ezSystem(paste("mv Chimeric.out.junction", basename(output$getColumn("Chimerics"))))
   }
 
@@ -422,7 +423,7 @@ EzAppSTAR <-
                   "Initializes the application using its specific defaults."
                   runMethod <<- ezMethodSTAR
                   name <<- "EzAppSTAR"
-                  appDefaults <<- rbind(getChimericJunctions=ezFrame(Type="logical",  DefaultValue="FALSE",	Description="should chimeric reads be returned"),
+                  appDefaults <<- rbind(getJunctions=ezFrame(Type="logical",  DefaultValue="FALSE",	Description="should junctions be returned"),
                                         writeIgvSessionLink=ezFrame(Type="logical", DefaultValue="TRUE", Description="should an IGV link be generated"),
                                         markDuplicates=ezFrame(Type="logical", DefaultValue="FALSE", Description="should duplicates be marked with picard"),
                                         checkStrandness=ezFrame(Type="logical", DefaultValue="TRUE", Description="should strandness be checked"),
