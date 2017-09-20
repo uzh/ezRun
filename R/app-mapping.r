@@ -328,7 +328,8 @@ ezMethodSTAR = function(input=NA, output=NA, param=NA){
     ezSortIndexBam("Aligned.out.bam", basename(bamFile), ram=sortRam, removeBam=TRUE, cores=nSortThreads)
   }
   
-  if (param$getChimericJunctions){
+  if (param$getJunctions){
+    ezSystem(paste("mv SJ.out.tab", basename(output$getColumn("Junctions"))))
     ezSystem(paste("mv Chimeric.out.junction", basename(output$getColumn("Chimerics"))))
   }
 
