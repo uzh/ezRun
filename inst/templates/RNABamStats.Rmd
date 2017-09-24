@@ -30,8 +30,6 @@ sampleColors = getSampleColors(conds, samples)
 bamFiles = dataset$BAM
 ```
 
-Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
-
 ```{r igv link, include=FALSE}
 if (param$writeIgvSessionLink){
 #     titles[["Genome Browser"]] = "Genome Browser"
@@ -75,7 +73,7 @@ for (sm in samples){
 }
 ```
 
-```{r multi-matching plot, echo=FALSE, message=FALSE}
+```{r multi-matching plot, echo=FALSE, message=FALSE, fig.height=7, fig.width=min(max(7, 7+(nrow(mmCounts)-20)*0.3), 30)}
 alignmentCountBarPlot(mmCounts, relative=FALSE,
                       file="multiMatchInFile-barplot.txt")
 alignmentCountBarPlot(mmCounts, relative=TRUE)
@@ -86,8 +84,6 @@ txtFile <- "read-alignment-statistics.txt"
 ezWrite.table(mmCounts, file=txtFile, head="Sample")
 ```
 [`r txtFile`](`r txtFile`)
-
-
 
 ```{r MatchTargetTypeCounts, echo=FALSE, results='asis', message=FALSE, fig.width=8, fig.height=7, warning=FALSE}
 for (nm in c("multiMatchTargetTypeCounts", "uniqueMatchTargetTypeCounts")){
