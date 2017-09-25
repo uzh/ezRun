@@ -153,7 +153,10 @@ loadCountDatasetSE <- function(input, param){
     seqAnno = x[ , intersect(c("type", "gene_name", "gene_id", "transcript_id", 
                                "Description", "GO BP", "GO MF", "GO CC", "gc", 
                                "width"), colnames(x)), drop=FALSE]
-    seqAnno[[dataFeatureLevel]] <- rownames(x)
+    seqAnno[[switch(dataFeatureLevel,
+                    "isoform"="transcript_id",
+                    "transcript"="transcript_id",
+                    gene="gene_id")]] <- rownames(x)
   }
   
   signal = ezMatrix(0, rows=rownames(seqAnno), cols=names(files))

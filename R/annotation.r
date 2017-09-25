@@ -315,12 +315,16 @@ aggregateFeatAnno <- function(featAnno){
                                                           "end", "gc", "width",
                                                           goColumns))]
   ## Aggregate the numeric columns
-  featAnnoGeneNumeric <- featAnno[ , .(start=min(start),
-                                       end=max(end),
-                                       gc=signif(mean(gc), digits = 4),
-                                       width=signif(mean(width), digits = 4)),
-                                   by=.(gene_id)
-                                   ]
+  if (all(c("start", "end", "gc", "width") %in% colnames(featAnno))){
+    featAnnoGeneNumeric <- featAnno[ , .(start=min(start),
+                                         end=max(end),
+                                         gc=signif(mean(gc), digits = 4),
+                                         width=signif(mean(width), digits = 4)),
+                                     by=.(gene_id)
+                                     ]
+    featAnnoGene <- merge(featAnnoGene, featAnnoGeneNumeric)
+  }
+
   ## Aggregate the GO columns which reuqire more processing
   mergeGo = function(x){
     ezCollapse(strsplit(x, "; "), na.rm=TRUE, empty.rm=TRUE, uniqueOnly=TRUE)
@@ -329,14 +333,13 @@ aggregateFeatAnno <- function(featAnno){
     featAnnoGeneGO <- featAnno[ , lapply(.SD, mergeGo),
                                 by=.(gene_id),
                                 .SDcols=goColumns]
+    featAnnoGene <- merge(featAnnoGene, featAnnoGeneGO)
   }else{
     ## Some annotation has no GO terms.
-    featAnnoGeneGO <- data.table(gene_id=featAnnoGeneNumeric$gene_id,
-                                 "GO BP"="", "GO MF"="", "GO CC"="")
+    featAnnoGene$"GO BP" = ""
+    featAnnoGene$"GO MF" = ""
+    featAnnoGene$"GO CC" = ""
   }
-  
-  featAnnoGene <- merge(merge(featAnnoGene, featAnnoGeneNumeric),
-                        featAnnoGeneGO)
   ## TODO: in the future, maybe we want to return featAnnoGene as data.table
   featAnnoGene <- as.data.frame(featAnnoGene)
   rownames(featAnnoGene) <- featAnnoGene$gene_id
