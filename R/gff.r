@@ -22,8 +22,7 @@ ezLoadFeatures = function(param=NULL, featureFile=param$ezRef["refFeatureFile"],
                                              field="transcript_id", 
                                              attrsep="; *", valuesep=" ")
     stopifnot(!is.na(gff$transcript_id[gff$type == "exon"]))
-    gff$gene_id = 	ezGffAttributeField(gff$attributes, field="gene_id", 
-                                       attrsep="; *", valuesep=" ")
+    gff$gene_id = 	ezGffAttributeField(gff$attributes, field="gene_id", attrsep=";", valuesep=" ")
     use = is.na(gff$gene_id) & gff$type == "exon"
     gff$gene_id[use] = gff$transcript_id[use]
     stopifnot(!is.na(gff$gene_id[gff$type == "exon"]))
@@ -59,7 +58,7 @@ ezGffAttributeField = function (x, field, attrsep = ";", valuesep="=") {
   #x <- str_extract(x, paste(field, paste0("\"{0,1}[^\"]+\"{0,1}", attrsep),
   #                          sep=valuesep)
   #                 )
-  x <- str_extract(x, paste(field, paste0('"{0,1}[^"',attrsep, ']+"{0,1}', attrsep),
+  x <- str_extract(paste0(x, attrsep), paste(field, paste0('"{0,1}[^"',attrsep, ']+"{0,1}', attrsep),
                             sep=valuesep)
                    )
   
