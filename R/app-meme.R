@@ -10,7 +10,7 @@ ezMethodMEME = function(input=NA, output=NA, param=NA){
   opt = param$cmdOptions
   db = param$motifDB
   sampleName = input$getNames()
-  cmd = paste("meme-chip","-oc",sampleName,"-index-name",paste0(sampleName,"_meme-chip.html"),"-time 300 -order 1",db, opt, 
+  cmd = paste(MEMECHIP,"-oc",sampleName,"-index-name",paste0(sampleName,"_meme-chip.html"),"-time 300 -order 1",db, opt, 
               input$getFullPaths("PeakSequences"))
   ezSystem(cmd)
   return("Success")
