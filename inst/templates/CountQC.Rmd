@@ -302,6 +302,7 @@ cat(paste0("<SCRIPT language=\"JavaScript\" SRC=\"", basename(jsFile), "\"></SCR
 ```
 
 ```{r Clustering of High Variance Features, echo=FALSE, message=FALSE, fig.width=max(8,4+0.1*ncol(xNormed)), fig.height=10, results='asis'}
+clusterPdf = "cluster-heatmap.pdf"
 if (nSamples > 3){
   ## gene clustering
   use = xSd > param$highVarThreshold & apply(!is.na(x), 1, all)
@@ -331,7 +332,6 @@ if (nSamples > 3){
     eval(plotCmd)
     
     ## pdf export
-    clusterPdf = "cluster-heatmap.pdf"
     pdf(clusterPdf, width=max(8,4+0.1*ncol(xNormed)), height=10)
     eval(plotCmd)
     dev.off()
