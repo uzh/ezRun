@@ -39,7 +39,9 @@ ezMethodGatkDnaHaplotyper = function(input=NA, output=NA, param=NA){
   }
   
   ezSystem(paste("samtools", "index", "withRg.bam"))
-  #BaseRecalibration
+  
+  #BaseRecalibration is done only if known sites are available
+  if(param$knownSitesAvailable){
   baseRecalibration1 = paste(javaCall,"-jar", "$GATK_jar", " -T BaseRecalibrator")
   #knownSitesCMD = ''
   #for (j in 1:length(knownSites)){
@@ -59,6 +61,7 @@ ezMethodGatkDnaHaplotyper = function(input=NA, output=NA, param=NA){
   }
   ezSystem(cmd)
   
+  
   baseRecalibration2 = paste(javaCall,"-jar", "$GATK_jar", " -T PrintReads")
   cmd = paste(baseRecalibration2, "-R", genomeSeq,
               "-I withRg.bam",
@@ -70,7 +73,9 @@ ezMethodGatkDnaHaplotyper = function(input=NA, output=NA, param=NA){
     cmd = paste(cmd,
                 "-L", param$targetFile)
   }
-  ezSystem(cmd)
+  ezSystem(cmd) } else {
+    ezSystem('mv withRg.bam recal.bam')
+  }
 
   ########### haplotyping
   haplotyperCall = paste(javaCall,"-jar", "$GATK_jar", " -T HaplotypeCaller")
@@ -79,8 +84,12 @@ ezMethodGatkDnaHaplotyper = function(input=NA, output=NA, param=NA){
               "-I recal.bam",
               "--emitRefConfidence GVCF",
               "--max_alternate_alleles 2",
-              "--dbsnp", dbsnpFile,
               "-o", outputFile)
+  
+  if(param$knownSitesAvailable){
+    cmd = paste(cmd,
+                "--dbsnp", dbsnpFile)
+  }
   
   if(param$targetFile != ''){
     cmd = paste(cmd,
