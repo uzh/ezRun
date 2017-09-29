@@ -84,8 +84,12 @@ ezMethodGatkDnaHaplotyper = function(input=NA, output=NA, param=NA){
               "-I recal.bam",
               "--emitRefConfidence GVCF",
               "--max_alternate_alleles 2",
-              "--dbsnp", dbsnpFile,
               "-o", outputFile)
+  
+  if(param$knownSitesAvailable){
+    cmd = paste(cmd,
+                "--dbsnp", dbsnpFile)
+  }
   
   if(param$targetFile != ''){
     cmd = paste(cmd,
