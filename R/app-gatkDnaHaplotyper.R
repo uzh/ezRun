@@ -76,7 +76,7 @@ ezMethodGatkDnaHaplotyper = function(input=NA, output=NA, param=NA){
   ezSystem(cmd) } else {
     ezSystem('mv withRg.bam recal.bam')
   }
-
+  ezSystem(paste("samtools", "index", "recal.bam"))
   ########### haplotyping
   haplotyperCall = paste(javaCall,"-jar", "$GATK_jar", " -T HaplotypeCaller")
   outputFile = paste0(sampleName, "-HC_calls.g.vcf")
