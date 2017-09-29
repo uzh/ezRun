@@ -708,6 +708,7 @@ isValidEnvironments <- function(tool){
                 "picard"=Sys.getenv("Picard_jar") != "" && 
                            Sys.which("java") != "",
                 "phantomjs"=Sys.which("phantomjs") != "",
+                "samtools"=Sys.which("samtools") != "",
                 stop("unsupported tool: ", tool)
                 )
   return(ans)
@@ -717,6 +718,7 @@ setEnvironments <- function(tool, envir=parent.frame()){
   cmd <- switch(tool,
                 "picard"=expression({Sys.setenv("PATH"=paste("/usr/local/ngseq/packages/Dev/jdk/8/bin", Sys.getenv("PATH"), sep=":")); Sys.setenv("Picard_jar"="/usr/local/ngseq/packages/Tools/Picard/2.9.0/picard.jar")}),
                 "phantomjs"=expression({Sys.setenv("PATH"=paste("/usr/local/ngseq/packages/Dev/PhantomJS/2.1.1/bin", Sys.getenv("PATH"), sep=":"))}),
+                "samtools"=expression({Sys.setenv("PATH"=paste("/usr/local/ngseq/packages/Tools/samtools/1.5/bin", Sys.getenv("PATH"), sep=":"))}),
                 stop("unsupported tool: ", tool)
                 )
   eval(cmd, envir=envir)
