@@ -410,6 +410,11 @@ plateStatistics <- function(dataset,
     warning("No column ", colname[!colsExist], " in dataset!")
     colname <- colname[colsExist]
   }
+  colsNA <- is.na(colSums(dataset[, colname, drop=FALSE]))
+  if(any(colsNA)){
+    message("The column ", colname[colsNA], " has NA!")
+    colname <- colname[!colsNA]
+  }
   colsZero <- colSums(dataset[, colname, drop=FALSE]) == 0
   if(any(colsZero)){
     message("The column ", colname[colsZero], " is empty!")
