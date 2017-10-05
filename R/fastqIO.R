@@ -6,15 +6,15 @@ fastq2bam <- function(fastqFn, refFn, bamFn, fastqI1Fn=NULL, fastqI2Fn=NULL){
   require(ShortRead)
   require(Biostrings)
   tempSamFn <- paste(Sys.getpid(), "temp.sam", sep="-")
-  on.exit(file.remove(tempSamFn))
+  tempBamFn <- paste(Sys.getpid(), "temp", sep="-")
   
   ## SQ header; required by asBam
   seqlengths <- fasta.seqlengths(refFn)
   seqlengthsHeader <- paste0("@SQ\tSN:", names(seqlengths), "\tLN:", seqlengths)
   
   ## Add headers
-  writeLines("@HD\tVN:1.5\tSO:unknown", con=tempSamFn)
-  write(seqlengthsHeader, file=tempSamFn, append = TRUE, sep="\t")
+  cat("@HD\tVN:1.5\tSO:unknown", file=tempSamFn, sep="\n", append=FALSE)
+  cat(seqlengthsHeader, file=tempSamFn, sep="\n", append=TRUE)
   
   ## parse the fastq files
   f <- FastqStreamer(fastqFn, 1e6)
@@ -38,9 +38,14 @@ fastq2bam <- function(fastqFn, refFn, bamFn, fastqI1Fn=NULL, fastqI2Fn=NULL){
                         "CR:Z:", sread(fq1), "\t",
                         "CY:Z:", quality(quality(fq1)))
     }
-    write(samText, file=tempSamFn, append=TRUE, sep="\t")
+    cat(samText, file=tempSamFn, append=TRUE, sep="\n")
   }
-  asBam(file=tempSamFn, destination=bamFn, indexDestination=FALSE)
+  tempBamFn <- asBam(file=tempSamFn, destination=tempBamFn, 
+                     indexDestination=FALSE)
+  bamFn <- sortBam(file=tempBamFn, destination=bamFn, byQname=TRUE, 
+                   maxMemory=1024)
+  on.exit(file.remove(tempSamFn))
+  on.exit(file.remove(tempBamFn))
   invisible(bamFn)
 }
 
