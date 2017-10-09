@@ -83,7 +83,7 @@ ezMethodFeatureCounts = function(input=NA, output=NA, param=NA){
                                           countMultiMappingReads=param$keepMultiHits,
                                           fraction=param$keepMultiHits & !param$countPrimaryAlignmentsOnly,
                                           primaryOnly=param$countPrimaryAlignmentsOnly,
-                                          countChimericFragments=TRUE,chrAliases=NULL,reportReads=FALSE)
+                                          countChimericFragments=TRUE,chrAliases=NULL,reportReads=NULL)
   }
   else{
     countResult = Rsubread::featureCounts(localBamFile, annot.inbuilt=NULL,
@@ -108,7 +108,7 @@ ezMethodFeatureCounts = function(input=NA, output=NA, param=NA){
                               countMultiMappingReads=param$keepMultiHits,
                               fraction=param$keepMultiHits & !param$countPrimaryAlignmentsOnly,
                               primaryOnly=param$countPrimaryAlignmentsOnly,
-                              countChimericFragments=TRUE,chrAliases=NULL,reportReads=FALSE)
+                              countChimericFragments=TRUE,chrAliases=NULL,reportReads=NULL)
   }
   sink(file=NULL)
   
