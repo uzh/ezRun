@@ -40,6 +40,18 @@ ezMethodGatkDnaHaplotyper = function(input=NA, output=NA, param=NA){
   
   ezSystem(paste("samtools", "index", "withRg.bam"))
   
+  if(param$splitNtrim){
+    gatk = paste(javaCall, "-jar", "$GATK_jar")
+    cmd = paste(gatk, "-T SplitNCigarReads", "-R", genomeSeq,
+                "-I", "withRg.bam",
+                "-rf ReassignOneMappingQuality -RMQF 255 -RMQT 60 -U ALLOW_N_CIGAR_READS",
+                "-o splitNtrim.bam") 
+    ezSystem(cmd)
+    ezSystem('mv splitNtrim.bam withRg.bam')
+    ezSystem(paste("samtools", "index", "withRg.bam"))
+  }
+  
+  
   #BaseRecalibration is done only if known sites are available
   if(param$knownSitesAvailable){
   baseRecalibration1 = paste(javaCall,"-jar", "$GATK_jar", " -T BaseRecalibrator")
@@ -126,6 +138,7 @@ EzAppGatkDnaHaplotyper <-
                   name <<- "EzAppGatkDnaHaplotyper"
                   appDefaults <<- rbind(addReadGroup = ezFrame(Type="logical",  DefaultValue=FALSE, Description="add ReadGroup to BAM"),
                                         getRealignedBam = ezFrame(Type="logical",  DefaultValue=FALSE, Description="for IGV check"),
+                                        splitNtrim = ezFrame(Type="logical",  DefaultValue=FALSE, Description="for RNA-Seq data"),
                                         targetFile = ezFrame(Type="character",  DefaultValue="", Description="restrict to targeted genomic regions"),
                                         markDuplicates = ezFrame(Type="logical",  DefaultValue=TRUE, Description="not recommended for gene panels, exomes"))
                 }
