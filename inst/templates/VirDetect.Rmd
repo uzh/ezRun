@@ -1,0 +1,104 @@
+---
+title: "`r paste('VirDetect:', input$getNames(), 'minimum ', param$minReadCount, 'mapped reads per genome')`"
+author: "Functional Genomics Center Zurich"
+output: 
+  html_document:
+    self_contained: false
+    includes:
+      in_header: fgcz_header.html
+    css: fgcz.css
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+## Sample
+
+```{r sample, echo=FALSE}
+#params$sample=input$getNames()
+params$sample
+#params$minReadCount=param$minReadCount
+```
+
+## Contamination and virome mapping rates
+
+Raw reads were trimed and filtered based on quality scores, further filtered by contaminated genomes (human and none-human host), before being mapped to the reference virome databases.
+
+
+```{r count, echo=FALSE}
+dat.file=paste0(params$sample, "/bowtie2.log" )
+dat<-readLines(dat.file)
+counts1 <- data.frame( Count=c(scan(text=dat[1], what="")[1], scan(text=dat[16], what="")[1], scan(text=dat[31], what="")[1]))
+row.names(counts1)<-c("QCReads", "HostRemoved", "Host&HumanRemoved")
+library(knitr)
+kable(counts1, caption = "Filtered read counts")
+counts2 <- data.frame( Count=c(scan(text=dat[34], what="")[1], scan(text=dat[35], what="")[1]))
+row.names(counts2)<-c("UniqueMapped", "MultiMapped")
+kable(counts2, caption = "Virome mapped read counts")
+par(mfrow=c(1,2), mar = c(10,4,4,2))
+barplot(t(as.matrix(counts1)), main="Host and human contamination rate", cex.main=0.7, cex.names=0.7, las=2)
+barplot(t(as.matrix(counts2)), main="virome mapping rate", cex.main=0.7, cex.names=0.7, las=2)
+```
+
+## Detected viral genomes in the virome database
+
+```{r s1, echo=FALSE}
+list.file=paste0(params$sample, "/summary_table.tsv")
+list<-read.table(list.file, header=TRUE, stringsAsFactors=FALSE)
+sub<-list[list$mappedReads>params$minReadCount, ]
+if (nrow(sub)!=0){
+  library(knitr)
+  kable(sub, row.names=FALSE, caption = "Smmmary table")
+}else{
+  txt<-paste("No virus detected with more than", params$minReadCount, "reads.")
+  txt
+}
+```
+
+### Bubble plot of all detected viral families
+
+```{r s2, echo=FALSE}
+if (nrow(sub)!=0){
+	agg<-aggregate(cbind(mappedBases, genomeCov_pect, aveDepth) ~ Family, data=sub, mean)
+	symbols(agg$genomeCov_pect, agg$aveDepth, circles=sqrt(agg$mappedBases/pi), inches=0.35, fg=factor(agg$Family), bg="white", xlab="% genome coverage", ylab="Mean depth", xlim=c(min(agg$genomeCov_pect)-max(sqrt(agg$mappedBases/pi))*0.35, max(agg$genomeCov_pect)+max(sqrt(agg$mappedBases/pi))*0.35), ylim=c(min(agg$aveDepth)-max(sqrt(agg$mappedBases/pi))*0.35, max(agg$aveDepth)+max(sqrt(agg$mappedBases/pi))*0.35))
+text(agg$benomeCov_pect, agg$aveDepth,agg$Family, cex=0.7, col = 1:length(agg$Family))
+}else{
+  txt<-paste("No virus detected with more than", params$minReadCount, "reads.")
+  txt
+}
+```
+
+### Bubble plot of viral species, grouped by viral families
+
+```{r s3, echo=FALSE}
+if (nrow(sub)!=0){
+  mylist<-split(sub, factor(subFamily))
+  for (i in length(mylist):1){
+    df<-mylist[[i]]
+    symbols(df$genomeCov_pect, df$aveDepth, circles=sqrt(df$mappedBases/pi), inches=0.35, fg=i, bg="white", xlab="% genome coverage", ylab="Mean depth", xlim=c(min(df$genomeCov_pect)-max(sqrt(agg$mappedBases/pi))*0.35, max(df$genomeCov_pect)+max(sqrt(agg$mappedBases/pi))*0.35), ylim=c(min(df$aveDepth)-max(sqrt(agg$mappedBases/pi))*0.35, max(df$aveDepth)+max(sqrt(agg$mappedBases/pi))*0.35), main=unique(df$Family))
+    text(df$genomeCov_pect, df$aveDepth,df$CommonName, cex=0.7, c=i)
+  }
+}else{
+  txt<-paste("No virus detected with more than", params$minReadCount, "reads.")
+  txt
+}
+```
+
+### Coverage plot of individual viral genome, sorted by abundance
+
+```{r s4, echo=FALSE}
+if (nrow(sub)!=0){
+  for(i in 1:nrow(sub)) {
+	chr=sub$ID
+	common_name=sub$CommonName
+	csv.file<-paste0(params$sample, "/", chr, ".csv")
+	cov<-read.table(csv.file, header=FALSE, sep="\t", quote="", stringsAsFactors=FALSE)
+	plot(cov$V5, cov$V6, type="l", col="blue", xlab=common_name, ylab="Depth", cex=0.5)
+  } 
+}else{
+  txt<-paste("No virus detected with more than", params$minReadCount, "reads.")
+  txt
+}
+```
+
