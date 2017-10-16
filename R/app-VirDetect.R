@@ -7,13 +7,11 @@
 
 ezMethodVirDetect = function(input=NA, output=NA, param=NA,
                              htmlFile="00index.html"){
+  require(Rsamtools)
   sampleName = input$getNames() ##first parameter pass to rmarkdown::render
   stopifnot((param$paired))
-  
-  ezSystem(paste("mkdir", sampleName))
-  start_path = getwd()
-  workdir = file.path(getwd(), sampleName)
-  setwd(workdir)
+#  start_path = getwd()
+  setwdNew(sampleName)
   
   ## trim reads
   trimmedInput = ezMethodTrim(input = input, param = param)
@@ -32,13 +30,18 @@ ezMethodVirDetect = function(input=NA, output=NA, param=NA,
   ezSystem(cmd)
   cmd = "samtools view -b -f 12 -F 256 human.bam > human.both_unmapped.bam"
   ezSystem(cmd)
-  cmd = "samtools sort -n -m 10G human.both_unmapped.bam human.both_unmapped.sorted"
-  ezSystem(cmd)
+  sortBam("human.both_unmapped.bam", "human.both_unmapped.sorted", byQname=TRUE,
+          maxMemory=10240)
+  #cmd = "samtools sort -n -m 10G human.both_unmapped.bam human.both_unmapped.sorted"
+  #ezSystem(cmd)
   cmd = "bedtools bamtofastq -i human.both_unmapped.sorted.bam -fq tr_human_removed_R1.fastq -fq2 tr_human_removed_R2.fastq"
   ezSystem(cmd) 
   
-  ## align filtered reads to the selected host genome, get read pairs, in which both reads were unmapped 
-  host = getBowtie2Reference(param$hostBuild) ##???
+  ## align filtered reads to the selected host genome, get read pairs, in which both reads were unmapped
+  paramHost <- param
+  paramHost$refBuild <- param$hostBuild
+  paramHost$ezRef <- EzRef(paramHost)
+  host = getBowtie2Reference(paramHost)
   cmd = paste("bowtie2", param$cmdOptionsHost, defOpt, readGroupOpt,
               "-x", host, "-1 tr_human_removed_R1.fastq",
               "-2 tr_human_removed_R2.fastq",
@@ -47,28 +50,35 @@ ezMethodVirDetect = function(input=NA, output=NA, param=NA,
   ezSystem(cmd)
   cmd = "samtools view -b -f 12 -F 256 host.bam > host.both_unmapped.bam"
   ezSystem(cmd)
-  cmd = "samtools sort -n -m 10G host.both_unmapped.bam host.both_unmapped.sorted"
-  ezSystem(cmd)
+  sortBam("host.both_unmapped.bam", "host.both_unmapped.sorted", byQname=TRUE,
+          maxMemory=10240)
+  #cmd = "samtools sort -n -m 10G host.both_unmapped.bam host.both_unmapped.sorted"
+  #ezSystem(cmd)
   cmd = "bedtools bamtofastq -i host.both_unmapped.sorted.bam -fq tr_host_removed_R1.fastq -fq2 tr_host_removed_R2.fastq"
   ezSystem(cmd)
   
   ## align filtered reads to the viral reference database, get sorted bam file and idex, output idxstats into a text file
-  vir = getBowtie2Reference(param$virBuild) ## ????
+  paramVirom <- param
+  paramVirom$refBuild <- param$virBuild
+  paramVirom$ezRef <- EzRef(paramVirom)
+  vir = getBowtie2Reference(paramVirom)
   cmd = paste("bowtie2", param$cmdOptions, defOpt, readGroupOpt,
               "-x", vir, "-1 tr_host_removed_R1.fastq", 
               "-2 tr_host_removed_R2.fastq",
               "2>>", "bowtie2.log", "|", "samtools", "view -S -b -", 
               " > virome.bam")
   ezSystem(cmd)
-  ezSortIndexBam("virome.bam", "virome.sorted", ram=param$ram, removeBam=TRUE, 
-                 cores=ezThreads())
+  ezSortIndexBam("virome.bam", "virome.sorted.bam", ram=param$ram, 
+                 removeBam=TRUE, cores=ezThreads())
   cmd = "samtools idxstats virome.sorted.bam > virome.idxstats.txt"
   ezSystem(cmd)
   
+  bamFile <- "virome.sorted.bam"
+  
   ## collect summary statistics and save in a summary table, collect per base coverage of each mapped viral genomes and save in individual csv files
   idx<-read.table("virome.idxstats.txt", header=FALSE, stringsAsFactors=FALSE)
-  sub<-list[idx$V3>0, ]
-  csvFile = sub(".fa$", ".csv", param$virBuild["refFastaFile"]) ##???
+  sub<-idx[idx$V3>0, ]
+  csvFile = sub(".fa$", ".csv", paramVirom$ezRef["refFastaFile"])
   names<-read.csv(csvFile, quote="", stringsAsFactors=FALSE, header=FALSE)
   sub<-merge(sub, names, by="V1")
   if (nrow(sub)!=0){
@@ -81,12 +91,12 @@ ezMethodVirDetect = function(input=NA, output=NA, param=NA,
         	csv.file<-paste0(chr, ".csv")
         	write.table(temp.df, file=bed.file, quote=FALSE, col.names=FALSE, 
         	            row.names=FALSE, sep="\t")
-        	system(paste0("/usr/local/ngseq/bin/bedtools coverage -a ", bed.file, 
+        	system(paste0("bedtools coverage -a ", bed.file, 
         	              " -b ", bamFile, " -d > ", csv.file))
-        	system(paste0("/usr/local/ngseq/bin/samtools view -b ", bamFile, " ", 
+        	system(paste0("samtools view -b ", bamFile, " ", 
         	              chr, "> ", chr, ".bam"))
-        	system(paste0("/usr/local/ngseq/bin/samtools index ", chr, ".bam"))
-        	cov<-read.table(csv.file, header=FALSE, sep="\t", quote="", 
+        	system(paste0("samtools index ", chr, ".bam"))
+        	cov<-read.table(csv.file, header=FALSE, sep="\t", quote="",
         	                stringsAsFactors=FALSE)
         	sub[i,8]<-sum(cov$V6!=0)
         	sub[i,9]<-sum(cov$V6!=0)/len*100
@@ -100,24 +110,23 @@ ezMethodVirDetect = function(input=NA, output=NA, param=NA,
   	            quote=FALSE, sep="\t")
   }
   ##delete intermediate result files, this folder will be copied back to gstore
-  ezSystem("rm *.bed")
-  ezSystem("rm  virome.bam")
-  ezSystem("rm  *host*")
-  ezSystem("rm  *human*")
-  ezSystem("rm *.gz")
+  ezSystem("rm -f *.bed")
+  ezSystem("rm -f virome.bam")
+  ezSystem("rm -f *host*")
+  ezSystem("rm -f *human*")
+  ezSystem("rm -f *.gz")
   
   ##html file  
-  setwd(start_path)
+  #setwd(start_path)
   htmlFile = output$getColumn("OutReport")
   styleFiles <- file.path(system.file("templates", package="ezRun"),
                           c("fgcz.css", "VirDetect.Rmd",
                             "fgcz_header.html", "banner.png"))
   file.copy(from=styleFiles, to=".", overwrite=TRUE)
+  params = list(sample=sampleName,
+                minReadCount=param$minReadCount)
   rmarkdown::render(input="VirDetect.Rmd",
-                    output_dir=".", output_file=htmlFile,
-                    params = list(sample=sampleName, 
-                                  minReadCount=param$minReadCount), 
-                    quiet=TRUE)
+                    output_dir=".", output_file=htmlFile, quiet=TRUE)
   return("Success")
 }
 

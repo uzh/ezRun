@@ -46,7 +46,8 @@ ezBamSeqLengths = function(bamFile){
 ezSortIndexBam = function(inBam, bam, ram=2, removeBam=TRUE, cores=2){
   
   maxMem = paste0(as.integer(floor(ram * 0.7/cores*1000)), "M") ## use only 70% --> 30% safety margin before crash
-  cmd = paste("samtools", "sort", "-l 9", "-m", maxMem, "-@", cores, inBam, "-o", bam)
+  cmd = paste("samtools", "sort", "-l 9", "-m", maxMem, "-@", cores, inBam, 
+              "-o", bam)
   ezSystem(cmd)
   if (removeBam){
     file.remove(inBam)
