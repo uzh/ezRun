@@ -54,15 +54,12 @@ fastqs2bam <- function(fastqFns, bamFn){
   if(!isTRUE(isValidEnvironments("picard"))){
     setEnvironments("picard")
   }
-  if(!isTRUE(isValidEnvironments("samtools"))){
-    setEnvironments("samtools")
-  }
   sampleBasenames <- sub("\\.fastq(\\.gz){0,1}$", "", basename(fastqFns))
   cmd <- paste("java -jar", Sys.getenv("Picard_jar"), "FastqToSam",
                paste0("F1=", fastqFns), 
                paste0("O=", sampleBasenames, ".bam"),
                paste0("SM=", sampleBasenames),
-               paste0("READ_GROUP_NAME=", LETTERS[1:4])
+               paste0("READ_GROUP_NAME=", sampleBasenames)
                #paste0("SORT_ORDER=", "unsorted")
                )
   lapply(cmd, ezSystem)
@@ -78,4 +75,8 @@ fastqs2bam <- function(fastqFns, bamFn){
                paste0("O=", bamFn),
                "SORT_ORDER=queryname")
   ezSystem(cmd)
+  
+  file.remove(paste0(sampleBasenames, ".bam"))
+  
+  invisible(bamFn)
 }
