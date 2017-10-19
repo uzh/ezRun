@@ -757,7 +757,8 @@ getJunctionPlotsFromBam = function(bamFile, param){
 
 getDupRateFromBam <- function(bamFile, param=NULL, gtfFn, 
                               stranded=c("both", "sense", "antisense"), 
-                              paired=FALSE, threads=1){
+                              paired=FALSE, dupremover=c("bamutil", "picard"),
+                              threads=1){
   if(!is.null(param)){
     gtfFn <- param$ezRef@refFeatureFile
     stranded <- param$strandMode
@@ -765,25 +766,32 @@ getDupRateFromBam <- function(bamFile, param=NULL, gtfFn,
     threads <- param$cores
   }
   require(dupRadar)
-  if(!isTRUE(isValidEnvironments("picard"))){
-    setEnvironments("picard")
-  }
+  dupremover <- match.arg(dupremover)
+  setEnvironments(dupremover)
+  
   ## Make the duplicates in bamFile
   inputBam <- paste(Sys.getpid(), basename(bamFile), sep="-")
   ### The bamFile may not be writable.
   file.symlink(from=bamFile, to=inputBam)
-  picardMetricsFn <- gsub("\\.bam$", "_picard_metrics.txt", inputBam)
+  
+  ## intermediate files
+  picardMetricsFn <- gsub("\\.bam$", "_picard_metrics.txt", inputBam) # picard
   bamDuprmFn <- gsub("\\.bam$", "_duprm.bam", inputBam)
+  bamutilLogFn <- paste0(bamDuprmFn, ".log") # bamutil
+  on.exit(file.remove(c(inputBam, bamDuprmFn, picardMetricsFn, bamutilLogFn)))
   
-  on.exit(file.remove(c(inputBam, bamDuprmFn, picardMetricsFn)))
+  if(dupremover == "bamutil"){
+    dupremoverDir <- dirname(Sys.which("bam"))
+  }else if(dupremover == "picard"){
+    dupremoverDir <- dirname(Sys.getenv("Picard_jar"))
+    ## when modue load Tools/Picard.
+  }
   
-  picardDir <- dirname(Sys.getenv("Picard_jar")) ## when modue load Tools/Picard.
-  bamDuprm <- markDuplicates(dupremover="picard",
+  bamDuprm <- markDuplicates(dupremover=dupremover,
                              bam=inputBam,
                              out=bamDuprmFn,
-                             path=picardDir,
-                             rminput=FALSE,
-                             maxmem="8g")
+                             path=dupremoverDir,
+                             rminput=FALSE)
   
   ## Duplication rate analysis
   dm <- analyzeDuprates(bam=bamDuprm, gtf=gtfFn,
