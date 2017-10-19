@@ -283,23 +283,37 @@ ezMethodSTAR = function(input=NA, output=NA, param=NA){
       }
     }
   }
-  trimmedInput = ezMethodTrim(input = input, param = param)
-  # if (basename(refDir) != refDir & !grepl("^\\.", refDir)){
-  #   ezSystem(paste("cp -r", refDir, "."))
-  #   refDir = basename(refDir)
-  # }
   
+  if(input$readType() == "bam"){
+    fastqInput <- ezMethodBam2Fastq(input = input, param = param)
+    trimmedInput <- ezMethodTrim(input = fastqInput, param = param)
+  }else{
+    trimmedInput <- ezMethodTrim(input = input, param = param)
+  }
   
   if (!grepl("outSAMattributes", param$cmdOptions)){
     param$cmdOptions = paste(param$cmdOptions, "--outSAMattributes All")
   }
-  cmd = paste("STAR", " --genomeDir", refDir,  "--sjdbOverhang 150", "--readFilesIn",
-              trimmedInput$getColumn("Read1"), if(param$paired) trimmedInput$getColumn("Read2"),
+  cmd = paste("STAR", " --genomeDir", refDir,  "--sjdbOverhang 150", 
+              "--readFilesIn", trimmedInput$getColumn("Read1"), 
+              if(param$paired) trimmedInput$getColumn("Read2"),
               "--twopassMode", ifelse(param$twopassMode, "Basic", "None"),
-              "--runThreadN", ezThreads(), param$cmdOptions, "--outStd BAM_Unsorted --outSAMtype BAM Unsorted",
+              "--runThreadN", ezThreads(), param$cmdOptions, 
+              "--outStd BAM_Unsorted --outSAMtype BAM Unsorted",
               ">  Aligned.out.bam")## writes the output file Aligned.out.bam
   ##"|", "samtools", "view -S -b -", " >", "Aligned.out.bam")
-  ezSystem(cmd)  
+  ezSystem(cmd)
+  
+  ## Merge unmapped and mapped bam to recover the tags
+  if(input$readType() == "bam"){
+    mergeBamAlignments(alignedBamFn="Aligned.out.bam",
+                       unmappedBamFn=input$getColumn("Read1"),
+                       outputBamFn="Aligned.out.merged.bam",
+                       fastaFn=param$ezRef@refFastaFile)
+    file.remove("Aligned.out.bam")
+    file.rename(from="Aligned.out.merged.bam", to="Aligned.out.bam")
+  }
+  
   nSortThreads = min(ezThreads(), 8)
   ## if the index is loaded in shared memory we have to use only 10% of the scheduled RAM
   if (grepl("--genomeLoad LoadAndKeep", param$cmdOptions)){
@@ -309,10 +323,12 @@ ezMethodSTAR = function(input=NA, output=NA, param=NA){
   }
 
   file.rename('Log.final.out', to = basename(output$getColumn("STARLog")))
-    
+  
   if (!is.null(param$markDuplicates) && param$markDuplicates){
-    ezSortIndexBam("Aligned.out.bam", "sorted.bam", ram=sortRam, removeBam=TRUE, cores=nSortThreads)
-    javaCall = paste0("java", " -Djava.io.tmpdir=. -Xmx", min(floor(param$ram), 10), "g")
+    ezSortIndexBam("Aligned.out.bam", "sorted.bam", ram=sortRam, removeBam=TRUE, 
+                   cores=nSortThreads)
+    javaCall = paste0("java", " -Djava.io.tmpdir=. -Xmx", 
+                      min(floor(param$ram), 10), "g")
     cmd = paste0(javaCall, " -jar ", "$Picard_jar", " MarkDuplicates ",
                  " TMP_DIR=. MAX_RECORDS_IN_RAM=2000000", " I=", "sorted.bam",
                  " O=", basename(bamFile),
@@ -325,27 +341,34 @@ ezMethodSTAR = function(input=NA, output=NA, param=NA){
     ezSystem(cmd)
     ezSystem(paste("samtools", "index", basename(bamFile)))
   } else {
-    ezSortIndexBam("Aligned.out.bam", basename(bamFile), ram=sortRam, removeBam=TRUE, cores=nSortThreads)
+    ezSortIndexBam("Aligned.out.bam", basename(bamFile), ram=sortRam, 
+                   removeBam=TRUE, cores=nSortThreads)
   }
   
   if (param$getJunctions){
     ezSystem(paste("mv SJ.out.tab", basename(output$getColumn("Junctions"))))
-    ezSystem(paste("mv Chimeric.out.junction", basename(output$getColumn("Chimerics"))))
+    ezSystem(paste("mv Chimeric.out.junction", 
+                   basename(output$getColumn("Chimerics"))))
   }
 
   ## check the strandedness
   if (!is.null(param$checkStrandness) && param$checkStrandness){
     cat(Sys.getenv("PATH"), "\n")
     bedFile = getReferenceFeaturesBed(param)
-    ezSystem(paste("infer_experiment.py", "-r", bedFile, "-i", basename(bamFile), "-s 1000000"))
+    ezSystem(paste("infer_experiment.py", "-r", bedFile,
+                   "-i", basename(bamFile), "-s 1000000"))
   }
   
   ## write an igv link
   if (param$writeIgvSessionLink){ 
-    writeIgvSession(genome = getIgvGenome(param), refBuild=param$ezRef["refBuild"], file=basename(output$getColumn("IGV Session")),
+    writeIgvSession(genome = getIgvGenome(param), 
+                    refBuild=param$ezRef["refBuild"], 
+                    file=basename(output$getColumn("IGV Session")),
                     bamUrls = paste(PROJECT_BASE_URL, bamFile, sep="/") )
-    writeIgvJnlp(jnlpFile=basename(output$getColumn("IGV Starter")), projectId = sub("\\/.*", "", bamFile),
-                 sessionUrl = paste(PROJECT_BASE_URL, output$getColumn("IGV Session"), sep="/"))
+    writeIgvJnlp(jnlpFile=basename(output$getColumn("IGV Starter")), 
+                 projectId = sub("\\/.*", "", bamFile),
+                 sessionUrl = paste(PROJECT_BASE_URL, 
+                                    output$getColumn("IGV Session"), sep="/"))
   }
   return("Success")
 }

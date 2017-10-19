@@ -233,7 +233,11 @@ copyReadsLocally = function(input, param){
   }
   for (rds in reads){
     readFileIn = input$getFullPaths(rds)
-    ezSystem(paste("cp -n", readFileIn, "."))
+    
+    #ezSystem(paste("cp -n", readFileIn, "."))
+    file.copy(from=readFileIn, to=".")
+    ## cp will fail when readFileIn is already local.
+    
     input$setColumn(rds, basename(readFileIn))
     # if (Sys.info()["user"] == "trxcopy") { ## only run the check for the user trxcopy!!!
     #   md5Local = ezSystem(paste("md5sum", basename(readFileIn)), intern = TRUE)

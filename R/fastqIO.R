@@ -97,16 +97,6 @@ bam2fastq <- function(bamFns,
   if(!isTRUE(isValidEnvironments("picard"))){
     setEnvironments("picard")
   }
-  
-  # require(Rsamtools)
-  # pairedInfo <- sapply(bamFns, testPairedEndBam)
-  # ## bamFns have to be all single-end or paired-end
-  # stopifnot(all(pairedInfo) || all(!pairedInfo)) 
-  # if(all(pairedInfo)){
-  #   paired <- TRUE
-  # }else if(all(!pairedInfo)){
-  #   paired <- FALSE
-  # }
   cmd <- paste("java -jar", Sys.getenv("Picard_jar"), "SamToFastq",
                paste0("I=", bamFns),
                paste0("FASTQ=", fastqFns),
@@ -114,4 +104,26 @@ bam2fastq <- function(bamFns,
                       ""))
   lapply(cmd, ezSystem)
   invisible(fastqFns)
+}
+
+ezMethodBam2Fastq <- function(input=NA, output=NA, param=NA){
+  ## if output is not an EzDataset, set it!
+  if (!is(output, "EzDataset")){
+    output = input$copy()
+    output$setColumn("Read1", paste0(getwd(), "/", input$getNames(), "-R1.fastq"))
+    if (param$paired){
+      output$setColumn("Read2", paste0(getwd(), "/", input$getNames(), "-R2.fastq"))
+    } else {
+      if ("Read2" %in% input$colNames){
+        output$setColumn("Read2", NULL)
+      }
+    }
+    output$dataRoot = NULL
+  }
+  
+  bam2fastq(bamFns=input$getColumn("Read1"),
+            fastqFns=output$getColumn("Read1"),
+            fastq2Fns=ifelse(isTRUE(param$paired, output$getColumn("Read2"))),
+            paired=param$paired)
+  return(output)
 }
