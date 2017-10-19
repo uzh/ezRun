@@ -8,19 +8,23 @@
   with filenames as RG tag.
 }
 \usage{
-  fastqs2bam(fastqFns, bamFn)
+  fastqs2bam(fastqFns, fastq2Fns=NULL, bamFn)
 }
 \arguments{
   \item{fastqFns}{
     \code{character}(n): paths of input fastq files
+  }
+  \item{fastq2Fns}{
+    \code{character}(n): optional paths of the second read of paired-end data.
   }
   \item{bamFn}{
     \code{character}(1): filename of merged Bam file.
   }
 }
 \details{
-  Each fastq file first is converted into Bam file with filename as RG tag
-  using picard's FastqToSam.
+  Each fastq file first is converted into Bam file with filename, 
+  anything before .fastq.gz/.fq.gz,
+  as RG tag using picard's FastqToSam.
   Then Bam files are merged into one big Bam file using picard's MergeSamFiles
   with a sort order by queryname.
 }
@@ -32,12 +36,12 @@
 }
 
 \seealso{
-%% ~~objects to See Also as \code{\link{help}}, ~~~
+  \code{\link{bam2fastq}}
 }
 \examples{
   \dontrun{
     fastqFns <- list.files(path="/srv/gstore/projects/p2288/HiSeq2500_20171011_RR99_o3511/dmx",
-                           pattern="\\.fastq\\.gz$", full.names=TRUE)
-    fastqs2bam(fastqFns, bamFn="20171011.A-C1_HT_24H.bam")
+                           pattern="\\\.fastq\\\.gz$", full.names=TRUE)
+    fastqs2bam(fastqFns[1:5], bamFn="20171011.A-C1_HT_24H.bam")
   }
 }

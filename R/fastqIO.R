@@ -50,13 +50,20 @@ fastq2bam <- function(fastqFn, refFn, bamFn, fastqI1Fn=NULL, fastqI2Fn=NULL){
 }
 
 ### convert fastq files into a bam file, with read group tags
-fastqs2bam <- function(fastqFns, bamFn){
+fastqs2bam <- function(fastqFns, fastq2Fns=NULL, bamFn){
   if(!isTRUE(isValidEnvironments("picard"))){
     setEnvironments("picard")
   }
-  sampleBasenames <- sub("\\.fastq(\\.gz){0,1}$", "", basename(fastqFns))
+  paired <- FALSE
+  if(!is.null(fastq2Fns)){
+    stopifnot(length(fastqFns) == length(fastq2Fns))
+    paired <- TRUE
+  }
+  sampleBasenames <- sub("\\.(fastq|fq)(\\.gz){0,1}$", "",
+                         basename(fastqFns))
   cmd <- paste("java -jar", Sys.getenv("Picard_jar"), "FastqToSam",
-               paste0("F1=", fastqFns), 
+               paste0("F1=", fastqFns),
+               ifelse(isTRUE(paired), paste0("F2=", fastq2Fns), ""),
                paste0("O=", sampleBasenames, ".bam"),
                paste0("SM=", sampleBasenames),
                paste0("READ_GROUP_NAME=", sampleBasenames)
@@ -79,4 +86,32 @@ fastqs2bam <- function(fastqFns, bamFn){
   file.remove(paste0(sampleBasenames, ".bam"))
   
   invisible(bamFn)
+}
+
+### Convert  bam/sam files into fastqs
+bam2fastq <- function(bamFns,
+                      fastqFns=sub("(\\.bam|\\.sam)$", "_R1.fastq", bamFns),
+                      fastq2Fns=sub("(\\.bam|\\.sam)$", "_R2.fastq", bamFns),
+                      paired=FALSE){
+  
+  if(!isTRUE(isValidEnvironments("picard"))){
+    setEnvironments("picard")
+  }
+  
+  # require(Rsamtools)
+  # pairedInfo <- sapply(bamFns, testPairedEndBam)
+  # ## bamFns have to be all single-end or paired-end
+  # stopifnot(all(pairedInfo) || all(!pairedInfo)) 
+  # if(all(pairedInfo)){
+  #   paired <- TRUE
+  # }else if(all(!pairedInfo)){
+  #   paired <- FALSE
+  # }
+  cmd <- paste("java -jar", Sys.getenv("Picard_jar"), "SamToFastq",
+               paste0("I=", bamFns),
+               paste0("FASTQ=", fastqFns),
+               ifelse(isTRUE(paired), PASTE0("SECOND_END_FASTQ=", fastq2Fns),
+                      ""))
+  lapply(cmd, ezSystem)
+  invisible(fastqFns)
 }
