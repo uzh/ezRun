@@ -39,7 +39,21 @@ ezMethodGatkDnaHaplotyper = function(input=NA, output=NA, param=NA){
   }
   
   ezSystem(paste("samtools", "index", "withRg.bam"))
-  #BaseRecalibration
+  
+  if(param$splitNtrim){
+    gatk = paste(javaCall, "-jar", "$GATK_jar")
+    cmd = paste(gatk, "-T SplitNCigarReads", "-R", genomeSeq,
+                "-I", "withRg.bam",
+                "-rf ReassignOneMappingQuality -RMQF 255 -RMQT 60 -U ALLOW_N_CIGAR_READS",
+                "-o splitNtrim.bam") 
+    ezSystem(cmd)
+    ezSystem('mv splitNtrim.bam withRg.bam')
+    ezSystem(paste("samtools", "index", "withRg.bam"))
+  }
+  
+  
+  #BaseRecalibration is done only if known sites are available
+  if(param$knownSitesAvailable){
   baseRecalibration1 = paste(javaCall,"-jar", "$GATK_jar", " -T BaseRecalibrator")
   #knownSitesCMD = ''
   #for (j in 1:length(knownSites)){
@@ -59,6 +73,7 @@ ezMethodGatkDnaHaplotyper = function(input=NA, output=NA, param=NA){
   }
   ezSystem(cmd)
   
+  
   baseRecalibration2 = paste(javaCall,"-jar", "$GATK_jar", " -T PrintReads")
   cmd = paste(baseRecalibration2, "-R", genomeSeq,
               "-I withRg.bam",
@@ -70,8 +85,10 @@ ezMethodGatkDnaHaplotyper = function(input=NA, output=NA, param=NA){
     cmd = paste(cmd,
                 "-L", param$targetFile)
   }
-  ezSystem(cmd)
-
+  ezSystem(cmd) } else {
+    ezSystem('mv withRg.bam recal.bam')
+  }
+  ezSystem(paste("samtools", "index", "recal.bam"))
   ########### haplotyping
   haplotyperCall = paste(javaCall,"-jar", "$GATK_jar", " -T HaplotypeCaller")
   outputFile = paste0(sampleName, "-HC_calls.g.vcf")
@@ -79,8 +96,12 @@ ezMethodGatkDnaHaplotyper = function(input=NA, output=NA, param=NA){
               "-I recal.bam",
               "--emitRefConfidence GVCF",
               "--max_alternate_alleles 2",
-              "--dbsnp", dbsnpFile,
               "-o", outputFile)
+  
+  if(param$knownSitesAvailable){
+    cmd = paste(cmd,
+                "--dbsnp", dbsnpFile)
+  }
   
   if(param$targetFile != ''){
     cmd = paste(cmd,
@@ -117,6 +138,7 @@ EzAppGatkDnaHaplotyper <-
                   name <<- "EzAppGatkDnaHaplotyper"
                   appDefaults <<- rbind(addReadGroup = ezFrame(Type="logical",  DefaultValue=FALSE, Description="add ReadGroup to BAM"),
                                         getRealignedBam = ezFrame(Type="logical",  DefaultValue=FALSE, Description="for IGV check"),
+                                        splitNtrim = ezFrame(Type="logical",  DefaultValue=FALSE, Description="for RNA-Seq data"),
                                         targetFile = ezFrame(Type="character",  DefaultValue="", Description="restrict to targeted genomic regions"),
                                         markDuplicates = ezFrame(Type="logical",  DefaultValue=TRUE, Description="not recommended for gene panels, exomes"))
                 }

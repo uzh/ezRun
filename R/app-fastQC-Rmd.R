@@ -160,7 +160,8 @@ EzAppFastqc <-
 
 plotReadCountToLibConc = function(dataset, colname){
   if(colname %in% colnames(dataset) && nrow(dataset) > 1){
-    if(!all(dataset[[colname]]==0)){
+    if(!all(dataset[[colname]]==0) && !any(is.na(dataset[[colname]]))){
+      ## LibCon column can all be 0 or NA. Then don't plot.
       dataset = dataset[order(dataset$'Read Count',decreasing = T),]
       dataset$'Read Count' = dataset$'Read Count'/10^6
       corResult = cor.test(dataset$'Read Count',dataset[[colname]],
@@ -408,6 +409,11 @@ plateStatistics <- function(dataset,
   if(any(!colsExist)){
     warning("No column ", colname[!colsExist], " in dataset!")
     colname <- colname[colsExist]
+  }
+  colsNA <- is.na(colSums(dataset[, colname, drop=FALSE]))
+  if(any(colsNA)){
+    message("The column ", colname[colsNA], " has NA!")
+    colname <- colname[!colsNA]
   }
   colsZero <- colSums(dataset[, colname, drop=FALSE]) == 0
   if(any(colsZero)){

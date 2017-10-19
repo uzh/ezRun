@@ -8,8 +8,9 @@
 }
 \usage{
   getDupRateFromBam(bamFile, param = NULL, gtfFn,
-                    stranded = c("both", "sense", "antisense"), paired = FALSE,
-                    threads = 1)
+                    stranded = c("both", "sense", "antisense"),
+                    dupremover=c("bamutil", "picard"),
+                    paired = FALSE, threads = 1)
 }
 \arguments{
   \item{bamFile}{
@@ -23,6 +24,10 @@
   }
   \item{stranded}{
     \code{character}(1): \dQuote{both}, \dQuote{sense} or \dQuote{antisense}
+  }
+  \item{dupremover}{
+    \code{character}(1): the software to mark the duplicates. 
+    \dQuote{bamutil} is faster than \dQuote{picard}.
   }
   \item{paired}{
     \code{logical}: Paired end experiment?
@@ -47,13 +52,15 @@
 \examples{
   \dontrun{
     bamFile <- "/srv/gstore/projects/p2438/STAR_18564_2017-06-12--13-46-30/26EV_BL_A.bam"
-    Sys.setenv("Picard_jar"="/usr/local/ngseq/packages/Tools/Picard/2.9.0/picard.jar")
-    Sys.setenv("PATH"=paste("/usr/local/ngseq/packages/Dev/jdk/8/bin", Sys.getenv("PATH"), sep=":"))
     gtfFn <- "/srv/GT/reference/Homo_sapiens/Ensembl/GRCh38.p10/Annotation/Release_89-2017-05-31/Genes/genes.gtf"
     stranded <- "antisense"
     paired <- FALSE
     threads <- 4
-    getDupRateFromBam(bamFile=bamFile, gtfFn=gtfFn, stranded=stranded,
-                      paired=paired, threads=threads)
+    resBamUtil <- getDupRateFromBam(bamFile=bamFile, gtfFn=gtfFn,
+                                    stranded=stranded, dupremover="bamutil",
+                                    paired=paired, threads=threads)
+    resPicard <- getDupRateFromBam(bamFile=bamFile, gtfFn=gtfFn,
+                                   stranded=stranded, dupremover="picard",
+                                   paired=paired, threads=threads)
   }
 }

@@ -75,7 +75,6 @@ ezMdsPlot = function(signal, sampleColors, main){
        xlim=c(1.2*min(mds$x), 1.2*max(mds$x)), ylim=c(1.2*min(mds$y), 1.2*max(mds$y)), col=sampleColors)
   text(mds$x,mds$y,labels = colnames(signal),pos=1,col=c('darkcyan'),cex=0.7)
   par(bg = 'white')
-  return(NULL)
 }
 
 

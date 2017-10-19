@@ -178,6 +178,11 @@ getTranscriptCoverage = function(chrom, gff, reads, strandMode="both"){
   ## but for the future, data.frame gff is not ideal.
   exonRanges <- sort(exonRanges) 
   exonsByTx <- GenomicRanges::split(exonRanges, names(exonRanges))
+  
+  ## For some gene build, especially drosophila, there is trans-splicing genes
+  ## The exons within one transcript contains different strands.
+  exonsByTx <- exonsByTx[elementNROWS(unique(strand(exonsByTx))) == 1L]
+  
   exonCov <- getRangesCoverage(unlist(exonsByTx, use.names=FALSE),
                                reads, strandMode=strandMode)
   #exonCov_old = getRangesCoverage(exonRanges, reads, strandMode=strandMode)
@@ -204,7 +209,9 @@ getTranscriptCoverage = function(chrom, gff, reads, strandMode="both"){
   #  transcriptCov <- RleList(transcriptCov)
   #}
   txNegStrand <- unlist(unique(strand(exonsByTx))) == "-"
-  stopifnot(length(txNegStrand) == length(exonsByTx)) ## Only one strand from each transcript
+  stopifnot(length(txNegStrand) == length(exonsByTx)) 
+  ## Only one strand from each transcript
+  
   txNegStrand <- which(txNegStrand)
   transcriptCov <- revElements(transcriptCov, txNegStrand)
   #trStrand = gffExon$strand[match(names(transcriptCov), gffExon$transcript_id)]

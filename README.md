@@ -7,8 +7,7 @@ An R meta-package for the analysis of Next Generation Sequencing data
 devtools::install_github("uzh/ezRun")
 ```
 
-## Dependencies
-
+## Dependencies of R/Bioconductor packages
 ```R
 packages <- c("testthat", "knitr", "gage", "goseq", "ChIPpeakAnno", 
               "DESeq2", "TEQC", "htSeqTools", "pathview", "reshape2", 
@@ -25,5 +24,8 @@ packages <- c("testthat", "knitr", "gage", "goseq", "ChIPpeakAnno",
               "RSelenium", "webshot", "clusterProfiler", "dupRadar")
 packages <- setdiff(packages, rownames(installed.packages()))
 biocLite(packages)
-## reinstall ReporteRs with 0.8.6 version
 ```
+
+## Dependencies of external software
+* phantomjs
+* bwa, bowtie, bowtie, STAR

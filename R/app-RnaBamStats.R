@@ -530,7 +530,7 @@ getTargetTypeCounts = function(param, gff, rr, seqid=NULL, repeatsGff=NULL){
     }
   }
   #effWidth = sum(as.numeric(seqlengths(rr))) * ifelse(param$isStranded, 2, 1)
-  effWidth = (seqlengths(rr) * ifelse(param$strandMode == "both", 2, 1))[seqNames]
+  effWidth = (seqlengths(rr) * ifelse(param$strandMode == "both", 1, 2))[seqNames]
   result = data.frame(count=0, width=effWidth, row.names=seqNames)
   #readCounts = table(as.character(seqnames(rr)))
   readCounts <- table(seqnames(rr)) # It also works with different order
@@ -622,21 +622,31 @@ getTargetTypeCounts = function(param, gff, rr, seqid=NULL, repeatsGff=NULL){
                                      skipTransSpliced = TRUE)
         targetExonRanges = gffRanges[isExon]
       }
+      ## Add seqlengths for msgRanges because of potential out-of-bound by flank
+      ## TODO: now we use seqlengths from rr, which is not ideal.
+      ## gff as data.frame has no seqlengths information.
+      seqlengths(msgRanges) <- seqlengths(rr)[names(seqlengths(msgRanges))]
+      
       ## check additionally for intron/exon/prom
       hitsTranscript = overlapsAny(rr, msgRanges, minoverlap=10)
       hasAnyHit = hasAnyHit | hitsTranscript  
       mRnaWidth = sum(width(reduce(msgRanges)))
-      hitsTargetExons = overlapsAny(rr[hitsTranscript], targetExonRanges, minoverlap=10)
-      result["mRNA Exons", ] = c(sum(hitsTargetExons), sum(width(reduce(targetExonRanges))))
-      result["mRNA Introns", ] = c(sum(!hitsTargetExons), mRnaWidth - result["mRNA Exons", "width"])
-      
-      promRanges = flank(msgRanges, 2000)
+      hitsTargetExons = overlapsAny(rr[hitsTranscript], 
+                                    targetExonRanges, minoverlap=10)
+      result["mRNA Exons", ] = c(sum(hitsTargetExons), 
+                                 sum(width(reduce(targetExonRanges))))
+      result["mRNA Introns", ] = c(sum(!hitsTargetExons), 
+                                   mRnaWidth - result["mRNA Exons", "width"])
+      ## suppressWarnings for out-of-bound ranges.
+      promRanges = trim(suppressWarnings(flank(msgRanges, 2000)))
       hitsTargetProms = overlapsAny(rr, promRanges, minoverlap=10)
-      result["mRNA Promoter 2kb", ] = c(sum(hitsTargetProms), sum(width(reduce(promRanges))))
+      result["mRNA Promoter 2kb", ] = c(sum(hitsTargetProms), 
+                                        sum(width(reduce(promRanges))))
       hasAnyHit = hasAnyHit | hitsTargetProms
-      downRanges = flank(msgRanges, 2000, start=FALSE)
+      downRanges = trim(suppressWarnings(flank(msgRanges, 2000, start=FALSE)))
       hitsTargetDown = overlapsAny(rr, downRanges, minoverlap=10)
-      result["mRNA Downstream 2kb", ] = c(sum(hitsTargetDown), sum(width(reduce(promRanges))))
+      result["mRNA Downstream 2kb", ] = c(sum(hitsTargetDown), 
+                                          sum(width(reduce(promRanges))))
       hasAnyHit = hasAnyHit | hitsTargetDown
       gffRanges = c(gffRanges, promRanges, downRanges)
     }
@@ -654,7 +664,8 @@ getTargetTypeCounts = function(param, gff, rr, seqid=NULL, repeatsGff=NULL){
     annotatedWidth = 0
   }
   #result["unannotated", ] = c(sum(!hasAnyHit), result[seqNames, "width"] - annotatedWidth)
-  result["unannotated", ] = c(sum(!hasAnyHit), sum(result[seqNames, "width"]) - annotatedWidth)
+  result["unannotated", ] = c(sum(!hasAnyHit), 
+                              sum(result[seqNames, "width"]) - annotatedWidth)
   result["total", ] = colSums(result[seqNames, ], na.rm=TRUE)
   result = result[c("total", setdiff(rownames(result), "total")), ]
   return(result)
@@ -668,7 +679,8 @@ getJunctionPlotsFromBam = function(bamFile, param){
   bed = getReferenceFeaturesBed(param)
   stopifnot(!is.null(bed))
   # junction_annotation.py is in RSeQC package available through Dev/Python2
-  cmd = paste("junction_annotation.py", "--mapq=1", "-i", bamFile, "-o", outputJunction, "-r", bed)
+  cmd = paste("junction_annotation.py", "--mapq=1", "-i", bamFile, 
+              "-o", outputJunction, "-r", bed)
   res = ezSystem(cmd, stopOnFailure=FALSE)
   junctionFile = paste0(outputJunction, ".junction.xls")
   if (res == 0 && length(readLines(junctionFile)) > 1){
@@ -680,18 +692,23 @@ getJunctionPlotsFromBam = function(bamFile, param){
     pngFiles[["splice_junction"]] = junctions
     
     ## do the junction_saturation
-    id = paste(juncsTable[["chrom"]], juncsTable[["intron_st.0.based."]], juncsTable[["intron_end.1.based."]])
+    id = paste(juncsTable[["chrom"]], juncsTable[["intron_st.0.based."]], 
+               juncsTable[["intron_end.1.based."]])
     juncReads = rep(id, juncsTable[["read_count"]])
     juncTypes = rep(juncsTable[["annotation"]], juncsTable[["read_count"]])
     juncTypeSet = c("annotated", "complete_novel", "partial_novel")
     nSim = 10
     quantiles = seq(0.05, 1, by=0.05)
-    juncCounts = array(0, dim=c(length(juncTypeSet), length(quantiles), nSim), dimnames=list(types=juncTypeSet, quantiles=as.character(quantiles), sim=1:nSim))
+    juncCounts = array(0, dim=c(length(juncTypeSet), length(quantiles), nSim), 
+                       dimnames=list(types=juncTypeSet, 
+                                     quantiles=as.character(quantiles), 
+                                     sim=1:nSim))
     for(n in 1:nSim){
       idx = sample(1:length(juncReads), replace=FALSE)
       for(q in 1:length(quantiles)){
         idxUse = idx[1:round(quantiles[q] * length(idx))]
-        cts = tapply(juncReads[idxUse], juncTypes[idxUse], function(x){length(unique(x))})
+        cts = tapply(juncReads[idxUse], juncTypes[idxUse], 
+                     function(x){length(unique(x))})
         juncCounts[names(cts), q, n] = as.vector(cts)
       }
     }
@@ -740,7 +757,8 @@ getJunctionPlotsFromBam = function(bamFile, param){
 
 getDupRateFromBam <- function(bamFile, param=NULL, gtfFn, 
                               stranded=c("both", "sense", "antisense"), 
-                              paired=FALSE, threads=1){
+                              paired=FALSE, dupremover=c("bamutil", "picard"),
+                              threads=1){
   if(!is.null(param)){
     gtfFn <- param$ezRef@refFeatureFile
     stranded <- param$strandMode
@@ -748,25 +766,32 @@ getDupRateFromBam <- function(bamFile, param=NULL, gtfFn,
     threads <- param$cores
   }
   require(dupRadar)
-  if(!isTRUE(isValidEnvironments("picard"))){
-    setEnvironments("picard")
-  }
+  dupremover <- match.arg(dupremover)
+  setEnvironments(dupremover)
+  
   ## Make the duplicates in bamFile
   inputBam <- paste(Sys.getpid(), basename(bamFile), sep="-")
   ### The bamFile may not be writable.
   file.symlink(from=bamFile, to=inputBam)
-  picardMetricsFn <- gsub("\\.bam$", "_picard_metrics.txt", inputBam)
+  
+  ## intermediate files
+  picardMetricsFn <- gsub("\\.bam$", "_picard_metrics.txt", inputBam) # picard
   bamDuprmFn <- gsub("\\.bam$", "_duprm.bam", inputBam)
+  bamutilLogFn <- paste0(bamDuprmFn, ".log") # bamutil
+  on.exit(file.remove(c(inputBam, bamDuprmFn, picardMetricsFn, bamutilLogFn)))
   
-  on.exit(file.remove(c(inputBam, bamDuprmFn, picardMetricsFn)))
+  if(dupremover == "bamutil"){
+    dupremoverDir <- dirname(Sys.which("bam"))
+  }else if(dupremover == "picard"){
+    dupremoverDir <- dirname(Sys.getenv("Picard_jar"))
+    ## when modue load Tools/Picard.
+  }
   
-  picardDir <- dirname(Sys.getenv("Picard_jar")) ## when modue load Tools/Picard.
-  bamDuprm <- markDuplicates(dupremover="picard",
+  bamDuprm <- markDuplicates(dupremover=dupremover,
                              bam=inputBam,
                              out=bamDuprmFn,
-                             path=picardDir,
-                             rminput=FALSE,
-                             maxmem="8g")
+                             path=dupremoverDir,
+                             rminput=FALSE)
   
   ## Duplication rate analysis
   dm <- analyzeDuprates(bam=bamDuprm, gtf=gtfFn,

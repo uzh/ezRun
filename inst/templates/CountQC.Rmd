@@ -20,6 +20,8 @@ knitr::opts_chunk$set(echo = TRUE)
 require(knitr)
 require(kableExtra)
 require(SummarizedExperiment)
+require(wesanderson)
+require(WGCNA)
 ```
 
 ```{r prepare data, include=FALSE}
@@ -136,14 +138,19 @@ topGenesPerSample = apply(combined[, selectSignals], 2, function(col){
     
 topGenes = unique(as.character(topGenesPerSample))
     
-combined = combined[order(combined$"Maximum signal", decreasing = TRUE), , drop=FALSE]
-useInInteractiveTable = c("seqid", "gene_name", "Maximum signal", "Mean signal", "description", "width", "gc")
+combined = combined[order(combined$"Maximum signal", decreasing = TRUE), ,
+                    drop=FALSE]
+useInInteractiveTable = c("seqid", "gene_name", "Maximum signal", 
+                          "Mean signal", "description", "width", "gc")
 useInInteractiveTable = intersect(useInInteractiveTable, colnames(combined))
 tableLink = sub(".txt", "-viewHighExpressionGenes.html", signalFile)
-combinedTopGenes = combined[which(rownames(combined) %in% topGenes),] ## select top genes
+## select top genes
+combinedTopGenes = combined[which(rownames(combined) %in% topGenes),]
+## restrict number of table rows if necessary
 interactiveTable = head(combinedTopGenes[, useInInteractiveTable, drop=FALSE], 
-                        param$maxTableRows) ## restrict number of table rows if necessary
-nRows = ifelse(length(topGenes)>=param$maxTableRows, param$maxTableRows, length(topGenes))
+                        param$maxTableRows)
+nRows = ifelse(length(topGenes)>=param$maxTableRows, param$maxTableRows,
+               length(topGenes))
 ezInteractiveTable(interactiveTable, tableLink=tableLink, digits=3, 
                    colNames=c("ID", colnames(interactiveTable)),
                    title=paste("Showing the top", nRows, 
@@ -233,23 +240,50 @@ ezCorrelationPlot(zValuesNormaled, cond=conds, condLabels=conds,
 ```{r sample clustering, echo=FALSE, fig.height=7, fig.width=min(7 + (nSamples-10)*0.3, 30), results='asis'}
 if (nSamples > 3){
   cat("#### Sample clustering", "\n")
+  ## colour for dendrogram objects
+  paletteList <- list("Cavalcanti" = wes_palette("Cavalcanti"),
+                      "Moonrise1" = wes_palette("Moonrise1"),
+                      "Darjeeling" = wes_palette("Darjeeling"),
+                      "Royal1" = wes_palette("Royal1"),
+                      "FantasticFox" = wes_palette("FantasticFox"),
+                      "Chevalier" = wes_palette("Chevalier"),
+                      'Moonrise2' = wes_palette("Moonrise2"))
+  colList = list()
+  for (j in 1:ncol(design)) {
+    gtab <- unique(design[, j])
+    colJ = length(paletteList) - (j %% length(paletteList))
+    cols <- colorRampPalette(paletteList[[colJ]])(length(gtab))
+    names(cols) = gtab
+    colList[[colnames(design)[j]]] = cols
+  }
+  colAnnot <- design
+  for (nm in colnames(colAnnot)){
+    colAnnot[,nm] = colList[[nm]][design[,nm]]
+  }
   ## All genes
   d = as.dist(1-cor(x, use="complete.obs"));
-  hcd = as.dendrogram(hclust(d, method="ward.D2"), hang=-0.1)
-  hcd = colorClusterLabels(hcd, sampleColors)
-  mai = par("mai")
-  mai[1] = 3
-  par(mai=mai)
-  plot(hcd, main="all present genes", xlab="")
+  hc <- hclust(d, method="ward.D2")
+  plotDendroAndColors(hc, colAnnot, autoColorHeight=TRUE, hang = -0.1,
+                      main="all present genes")
+  
+  # hcd = as.dendrogram(hclust(d, method="ward.D2"), hang=-0.1)
+  # hcd = colorClusterLabels(hcd, sampleColors)
+  # mai = par("mai")
+  # mai[1] = 3
+  # par(mai=mai)
+  # plot(hcd, main="all present genes", xlab="")
 
   ## Top genes
   d = as.dist(1-cor(x[topGenes, ], use="complete.obs"));
-  hcd = as.dendrogram(hclust(d, method="ward.D2"), hang=-0.1)
-  hcd = colorClusterLabels(hcd, sampleColors)
-  mai = par("mai")
-  mai[1] = 3
-  par(mai=mai)
-  plot(hcd, main=paste("top", length(topGenes), " genes"), xlab="")  
+  hc <- hclust(d, method="ward.D2")
+  plotDendroAndColors(hc, colAnnot, autoColorHeight=TRUE, hang = -0.1,
+                      main=paste("top", length(topGenes), " genes"))
+  # hcd = as.dendrogram(hclust(d, method="ward.D2"), hang=-0.1)
+  # hcd = colorClusterLabels(hcd, sampleColors)
+  # mai = par("mai")
+  # mai[1] = 3
+  # par(mai=mai)
+  # plot(hcd, main=paste("top", length(topGenes), " genes"), xlab="")  
 }
 ```
 
@@ -276,21 +310,29 @@ ezCorrelationPlot(zValuesNormaled, cond=conds, condLabels=conds,
 if (nSamples > 3){
   cat("#### Sample clustering", "\n")
   ## All genes
-  d = as.dist(1-cor(xNormed, use="complete.obs"));
-  hcd = as.dendrogram(hclust(d, method="ward.D2"), hang=-0.1)
-  hcd = colorClusterLabels(hcd, sampleColors)
-  mai = par("mai")
-  mai[1] = 3
-  par(mai=mai)
-  plot(hcd, main="all present genes; gene-wise normalized", xlab="")
+  d <- as.dist(1-cor(xNormed, use="complete.obs"));
+  hc <- hclust(d, method="ward.D2")
+  #hcd = as.dendrogram(, hang=-0.1)
+  #hcd = colorClusterLabels(hcd, sampleColors)
+  plotDendroAndColors(hc, colAnnot, autoColorHeight=TRUE, hang = -0.1,
+                      main="all present genes; gene-wise normalized")
+  
+  #mai = par("mai")
+  #mai[1] = 3
+  #par(mai=mai)
+  #plot(hcd, main="all present genes; gene-wise normalized", xlab="")
   ## Top genes
   d = as.dist(1-cor(xNormed[topGenes, ], use="complete.obs"));
-  hcd = as.dendrogram(hclust(d, method="ward.D2"), hang=-0.1)
-  hcd = colorClusterLabels(hcd, sampleColors)
-  mai = par("mai")
-  mai[1] = 3
-  par(mai=mai)
-  plot(hcd, main=paste("top", length(topGenes), "genes; gene-wise normalized"), xlab="")
+  hc <- hclust(d, method="ward.D2")
+  plotDendroAndColors(hc, colAnnot, autoColorHeight=TRUE, hang = -0.1,
+                      main=paste("top", length(topGenes), 
+                                 "genes; gene-wise normalized"))
+  #hcd = as.dendrogram(hclust(d, method="ward.D2"), hang=-0.1)
+  #hcd = colorClusterLabels(hcd, sampleColors)
+  #mai = par("mai")
+  #mai[1] = 3
+  #par(mai=mai)
+  #plot(hcd, main=paste("top", length(topGenes), "genes; gene-wise normalized"), xlab="")
 }
 ```
 
@@ -302,6 +344,7 @@ cat(paste0("<SCRIPT language=\"JavaScript\" SRC=\"", basename(jsFile), "\"></SCR
 ```
 
 ```{r Clustering of High Variance Features, echo=FALSE, message=FALSE, fig.width=max(8,4+0.1*ncol(xNormed)), fig.height=10, results='asis'}
+clusterPdf = "cluster-heatmap.pdf"
 if (nSamples > 3){
   ## gene clustering
   use = xSd > param$highVarThreshold & apply(!is.na(x), 1, all)
@@ -331,7 +374,6 @@ if (nSamples > 3){
     eval(plotCmd)
     
     ## pdf export
-    clusterPdf = "cluster-heatmap.pdf"
     pdf(clusterPdf, width=max(8,4+0.1*ncol(xNormed)), height=10)
     eval(plotCmd)
     dev.off()
