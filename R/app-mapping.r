@@ -287,6 +287,9 @@ ezMethodSTAR = function(input=NA, output=NA, param=NA){
   if(input$readType() == "bam"){
     fastqInput <- ezMethodBam2Fastq(input = input, param = param)
     trimmedInput <- ezMethodTrim(input = fastqInput, param = param)
+    file.remove(fastqInput$getColumn("Read1"))
+    if(param$paired)
+      file.remove(fastqInput$getColumn("Read2"))
   }else{
     trimmedInput <- ezMethodTrim(input = input, param = param)
   }

@@ -20,6 +20,72 @@ system.time(fastq2bam(fastqFn, refFn, bamFn, fastqI1Fn=fastqI1Fn, fastqI2Fn=fast
 #7957.988   399.820 12582.806
 
 ## Mapping pipeline
+setEnvironments("star")
+setEnvironments("flexbar")
+setEnvironments("trimmomatic")
+setEnvironments("python2")
+setEnvironments("samtools")
+setwd("/scratch/gtan/scRNA")
+param = list()
+param[['cores']] = '8'
+param[['ram']] = '40'
+param[['scratch']] = '100'
+param[['node']] = ''
+param[['process_mode']] = 'SAMPLE'
+param[['refBuild']] = 'Mus_musculus/Ensembl/GRCm38.p5/Annotation/Release_89-2017-05-31'
+param[['paired']] = 'false'
+param[['strandMode']] = 'sense'
+param[['refFeatureFile']] = 'genes.gtf'
+param[['cmdOptions']] = '--outFilterType BySJout --outFilterMatchNmin 30 --outFilterMismatchNmax 10 --outFilterMismatchNoverLmax 0.05 --alignSJDBoverhangMin 1 --alignSJoverhangMin 8 --alignIntronMax 1000000 --alignMatesGapMax 1000000 --outFilterMultimapNmax 50 --chimSegmentMin 15 --chimJunctionOverhangMin 15 --chimScoreMin 15 --chimScoreSeparation 10 --outSAMstrandField intronMotif'
+param[['getChimericJunctions']] = 'false'
+param[['trimAdapter']] = 'true'
+param[['trimLeft']] = '5'
+param[['trimRight']] = '0'
+param[['minTailQuality']] = '10'
+param[['minAvgQuality']] = '10'
+param[['minReadLength']] = '20'
+param[['specialOptions']] = ''
+param[['mail']] = 'ge.tan@fgcz.ethz.ch'
+param[['dataRoot']] = '.'
+param[['resultDir']] = 'p2438/STAR_18564_2017-06-12--13-46-30'
+param[['twopassMode']] = "true" #false
+output = list()
+output[['Name']] = '20171011.A-C1_HT_24H'
+output[['BAM [File]']] = '20171011.A-C1_HT_24H.bam'
+output[['BAI [File]']] = '20171011.A-C1_HT_24H.bam.bai'
+output[['IGV Starter [Link]']] = '20171011.A-C1_HT_24H-igv.jnlp'
+output[['Species']] = 'Mus musculus (mouse)'
+output[['refBuild']] = 'Mus_musculus/Ensembl/GRCm38.p5/Annotation/Release_89-2017-05-31'
+output[['paired']] = 'false'
+output[['refFeatureFile']] = 'genes.gtf'
+output[['strandMode']] = 'sense'
+output[['Read Count']] = '39534111'
+output[['IGV Starter [File]']] = '20171011.A-C1_HT_24H-igv.jnlp'
+output[['IGV Session [File]']] = '20171011.A-C1_HT_24H-igv.xml'
+output[['PreprocessingLog [File]']] = '20171011.A-C1_HT_24H_preprocessing.log'
+output[['STARLog [File]']] = '20171011.A-C1_HT_24H_STAR.log'
+input = list()
+input[['Name']] = '20171011.A-C1_HT_24H'
+input[['Condition']] = ''
+input[['Read1']] = '20171011.A-C1_HT_24H_unmapped.bam'
+input[['Species']] = 'Mus musculus (mouse)'
+input[['FragmentSize']] = '0'
+input[['SampleConc']] = '9.1'
+input[['Tube']] = 'p2438_3365/24'
+input[['Extract Id']] = 'bfe_53715'
+input[['Index']] = 'GAATTCGT-CAGGACGT'
+input[['PlatePosition']] = '1_G6'
+input[['LibConc_100_800bp']] = '1.75'
+input[['LibConc_qPCR']] = '0'
+input[['Adapter1']] = 'GATCGGAAGAGCACACGTCTGAACTCCAGTCAC'
+input[['strandMode']] = 'both'
+input[['LibraryPrepKit']] = 'TruSeq RNA stranded'
+input[['EnrichmentMethod']] = 'PolyA, TruSeq RNA Kit'
+input[['InputAmount']] = '100'
+input[['Read Count']] = '39534111'
+debug(ezMethodSTAR)
+EzAppSTAR$new()$run(input=input, output=output, param=param)
+
 # module add Dev/jdk/8 Aligner/STAR/2.5.3a Tools/samtools/1.5 Aligner/BWA/0.7.15 Aligner/Bowtie/1.2.1.1 Aligner/Bowtie2/2.3.2 Aligner/TopHat/2.1.1 QC/Trimmomatic/0.36 QC/Flexbar/3.0.3 Tools/Picard/2.9.0 Dev/Python2/2.7.13
 # java -jar $Picard_jar SamToFastq  I=20170822.B-Pool1_EBO6_11_A2B5_R1.bam  FASTQ=20170822.B-Pool1_EBO6_11_A2B5_R1.fastq
 # cp /srv/GT/databases/contaminants/allIllumina-forTrimmomatic-20160202.fa adapters.fa
