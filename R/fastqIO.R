@@ -50,7 +50,8 @@ fastq2bam <- function(fastqFn, refFn, bamFn, fastqI1Fn=NULL, fastqI2Fn=NULL){
 }
 
 ### convert fastq files into a bam file, with read group tags
-fastqs2bam <- function(fastqFns, fastq2Fns=NULL, bamFn){
+fastqs2bam <- function(fastqFns, fastq2Fns=NULL, readGroupNames=NULL,
+                       bamFn){
   if(!isTRUE(isValidEnvironments("picard"))){
     setEnvironments("picard")
   }
@@ -61,28 +62,22 @@ fastqs2bam <- function(fastqFns, fastq2Fns=NULL, bamFn){
   }
   sampleBasenames <- sub("\\.(fastq|fq)(\\.gz){0,1}$", "",
                          basename(fastqFns))
+  if(is.null(readGroupNames))
+    readGroupNames <- sampleBasenames
   cmd <- paste("java -jar", Sys.getenv("Picard_jar"), "FastqToSam",
                paste0("F1=", fastqFns),
                ifelse(isTRUE(paired), paste0("F2=", fastq2Fns), ""),
                paste0("O=", sampleBasenames, ".bam"),
-               paste0("SM=", sampleBasenames),
-               paste0("READ_GROUP_NAME=", sampleBasenames)
-               #paste0("SORT_ORDER=", "unsorted")
+               paste0("SM=", basename(fastqFns)),
+               paste0("READ_GROUP_NAME=", readGroupNames)
                )
   lapply(cmd, ezSystem)
-  
-  ## Rsamtolls merge only keeps the header from first bam
-  #cmd <- paste("samtools merge", bamFn, 
-  #             paste0(sampleBasenames, ".bam", collapse=" "))
-  #ezSystem(cmd)
-  
   ## picard tools merge
   cmd <- paste("java -jar", Sys.getenv("Picard_jar"), "MergeSamFiles",
                paste0("I=", paste0(sampleBasenames, ".bam"), collapse=" "),
                paste0("O=", bamFn),
                "SORT_ORDER=queryname")
   ezSystem(cmd)
-  
   file.remove(paste0(sampleBasenames, ".bam"))
   
   invisible(bamFn)

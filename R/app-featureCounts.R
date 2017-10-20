@@ -12,6 +12,9 @@ ezMethodFeatureCounts = function(input=NA, output=NA, param=NA){
   outputFile = basename(output$getColumn("Count"))
   statFile = basename(output$getColumn("Stats"))
   
+  require(Rsamtools)
+  bamHeaders <- scanBamHeader(localBamFile)
+  hasRG <- "@RG" %in% names(bamHeaders[[1]]$text)
   
   if (ezIsSpecified(param$transcriptTypes)){
     gtfFile = "genes.gtf"
@@ -68,22 +71,27 @@ ezMethodFeatureCounts = function(input=NA, output=NA, param=NA){
     countResult = Rsubread::featureCounts(localBamFile, annot.inbuilt=NULL,
                                           annot.ext=gtfFile, isGTFAnnotationFile=TRUE,
                                           GTF.featureType='gene',
-                                          GTF.attrType= 'gene_id',                                          
+                                          GTF.attrType= 'gene_id',
                                           useMetaFeatures=param$useMetaFeatures,
-                                          allowMultiOverlap=param$allowMultiOverlap, isPairedEnd=param$paired, 
+                                          allowMultiOverlap=param$allowMultiOverlap,
+                                          isPairedEnd=param$paired, 
                                           requireBothEndsMapped=FALSE,
-                                          checkFragLength=FALSE,minFragLength=50,maxFragLength=600,
+                                          checkFragLength=FALSE,minFragLength=50,
+                                          maxFragLength=600,
                                           nthreads=param$cores, 
                                           strandSpecific=switch(param$strandMode, "both"=0, "sense"=1, "antisense"=2, stop("unsupported strand mode: ", param$strandMode)),
                                           minMQS=param$minMapQuality,
-                                          readExtension5=0,readExtension3=0,read2pos=NULL,
+                                          readExtension5=0,readExtension3=0,
+                                          read2pos=NULL,
                                           minOverlap=param$minFeatureOverlap,
                                           ignoreDup=param$ignoreDup,
                                           splitOnly=FALSE,
                                           countMultiMappingReads=param$keepMultiHits,
                                           fraction=param$keepMultiHits & !param$countPrimaryAlignmentsOnly,
                                           primaryOnly=param$countPrimaryAlignmentsOnly,
-                                          countChimericFragments=TRUE,chrAliases=NULL,reportReads=NULL)
+                                          countChimericFragments=TRUE,
+                                          chrAliases=NULL,reportReads=NULL,
+                                          byReadGroup=ifelse(hasRG, TRUE, FALSE))
   }
   else{
     countResult = Rsubread::featureCounts(localBamFile, annot.inbuilt=NULL,
@@ -95,9 +103,11 @@ ezMethodFeatureCounts = function(input=NA, output=NA, param=NA){
                                                   "isoform"="transcript_id",
                                                   stop("unsupported feature level: ", param$featureLevel)),
                               useMetaFeatures=param$useMetaFeatures,
-                              allowMultiOverlap=param$allowMultiOverlap, isPairedEnd=param$paired, 
+                              allowMultiOverlap=param$allowMultiOverlap,
+                              isPairedEnd=param$paired, 
                               requireBothEndsMapped=FALSE,
-                              checkFragLength=FALSE,minFragLength=50,maxFragLength=600,
+                              checkFragLength=FALSE,minFragLength=50,
+                              maxFragLength=600,
                               nthreads=param$cores, 
                               strandSpecific=switch(param$strandMode, "both"=0, "sense"=1, "antisense"=2, stop("unsupported strand mode: ", param$strandMode)),
                               minMQS=param$minMapQuality,
@@ -108,7 +118,9 @@ ezMethodFeatureCounts = function(input=NA, output=NA, param=NA){
                               countMultiMappingReads=param$keepMultiHits,
                               fraction=param$keepMultiHits & !param$countPrimaryAlignmentsOnly,
                               primaryOnly=param$countPrimaryAlignmentsOnly,
-                              countChimericFragments=TRUE,chrAliases=NULL,reportReads=NULL)
+                              countChimericFragments=TRUE,chrAliases=NULL,
+                              reportReads=NULL,
+                              byReadGroup=ifelse(hasRG, TRUE, FALSE))
   }
   sink(file=NULL)
   
