@@ -142,4 +142,20 @@ countResult = Rsubread::featureCounts("20171011.A-C1_HT_24H.bam", annot.inbuilt=
                                       chrAliases=NULL,reportReads=NULL,
                                       byReadGroup=TRUE)
 
-# subread-1.5.3-Linux-x86_64/bin/featureCounts -a /srv/GT/reference/Mus_musculus/Ensembl/GRCm38.p5/Annotation/Release_89-2017-05-31/Genes/genes.gtf -o featureCounts.txt --byReadGroup merge_alignments.bam
+
+## p2277 HiSeq4000_20170822_RUN376_o3645
+setEnvironments("star")
+setEnvironments("flexbar")
+setEnvironments("trimmomatic")
+setEnvironments("python2")
+setEnvironments("samtools")
+setwd("/scratch/gtan/scRNA-p2277/HiSeq4000_20170822_RUN376_o3645")
+input <- EzDataset(file="/srv/gstore/projects/p2277/HiSeq4000_20170822_RUN376_o3645_A2B5/A2B5-cells-dataset.tsv", dataRoot="/srv/gstore/projects")
+fastqs2bam(fastqFns=input$getFullPaths("Read1"), readGroupNames=input$getNames(),
+           bamFn="A2B5_unmapped.bam")
+input <- EzDataset(file="/srv/gstore/projects/p2277/HiSeq4000_20170822_RUN376_o3645_Pool2/Auto-cells-dataset.tsv", dataRoot="/srv/gstore/projects")
+fastqs2bam(fastqFns=input$getFullPaths("Read1"), readGroupNames=input$getNames(), 
+           bamFn="Auto_unmapped.bam")
+input <- EzDataset(file="/srv/gstore/projects/p2277/HiSeq4000_20170822_RUN376_o3645_Pool3/NEG-cells-dataset.tsv", dataRoot="/srv/gstore/projects")
+fastqs2bam(fastqFns=input$getFullPaths("Read1"), readGroupNames=input$getNames(), 
+           bamFn="NEG_unmapped.bam")
