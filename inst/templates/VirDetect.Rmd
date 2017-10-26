@@ -73,7 +73,7 @@ if (file.exists(list.file)){
 ### Bubble plot of all detected viral families
 
 ```{r s2, echo=FALSE}
-if (exists(sub)){
+if (exists("sub")){
 	if (nrow(sub)!=0){
 		agg<-aggregate(cbind(mappedBases, genomeCov_pect, aveDepth) ~ Family, data=sub, mean)
 		symbols(agg$genomeCov_pect, agg$aveDepth, circles=sqrt(agg$mappedBases/pi),
@@ -98,7 +98,7 @@ if (exists(sub)){
 ### Bubble plot of viral species, grouped by viral families
 
 ```{r s3, echo=FALSE}
-if (exists(sub)){
+if (exists("sub")){
 	if (nrow(sub)!=0){
   		mylist<-split(sub, factor(sub$Family))
   		for (i in length(mylist):1){
@@ -119,7 +119,7 @@ if (exists(sub)){
 ### Coverage plot of individual viral genome, sorted by abundance
 
 ```{r s4, echo=FALSE}
-if (exists(sub)){
+if (exists("sub")){
 	if (nrow(sub)!=0){
   		for(i in 1:nrow(sub)) {
 			chr=sub$ID[i]
