@@ -115,6 +115,7 @@ ezMethodVirDetect = function(input=NA, output=NA, param=NA,
   ezSystem("rm -f *host*")
   ezSystem("rm -f *human*")
   ezSystem("rm -f *.gz")
+  ezSystem("rm -f *.fastq")
   
   ##html file  
   #setwd(start_path)
