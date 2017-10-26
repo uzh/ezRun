@@ -91,11 +91,11 @@ ezMethodVirDetect = function(input=NA, output=NA, param=NA,
         	csv.file<-paste0(chr, ".csv")
         	write.table(temp.df, file=bed.file, quote=FALSE, col.names=FALSE, 
         	            row.names=FALSE, sep="\t")
+		system(paste0("samtools view -b ", bamFile, " ",
+                              chr, " > ", chr, ".bam"))
+                system(paste0("samtools index ", chr, ".bam"))
         	system(paste0("bedtools coverage -a ", bed.file, 
-        	              " -b ", bamFile, " -d > ", csv.file))
-        	system(paste0("samtools view -b ", bamFile, " ", 
-        	              chr, "> ", chr, ".bam"))
-        	system(paste0("samtools index ", chr, ".bam"))
+        	              " -b ", chr, ".bam", " -d > ", csv.file))
         	cov<-read.table(csv.file, header=FALSE, sep="\t", quote="",
         	                stringsAsFactors=FALSE)
         	sub[i,8]<-sum(cov$V6!=0)
