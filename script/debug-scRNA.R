@@ -143,7 +143,7 @@ countResult = Rsubread::featureCounts("20171011.A-C1_HT_24H.bam", annot.inbuilt=
                                       byReadGroup=TRUE)
 
 
-## p2277 HiSeq4000_20170822_RUN376_o3645
+# p2277 HiSeq4000_20170822_RUN376_o3645
 setEnvironments("star")
 setEnvironments("flexbar")
 setEnvironments("trimmomatic")
@@ -159,3 +159,51 @@ fastqs2bam(fastqFns=input$getFullPaths("Read1"), readGroupNames=input$getNames()
 input <- EzDataset(file="/srv/gstore/projects/p2277/HiSeq4000_20170822_RUN376_o3645_Pool3/NEG-cells-dataset.tsv", dataRoot="/srv/gstore/projects")
 fastqs2bam(fastqFns=input$getFullPaths("Read1"), readGroupNames=input$getNames(), 
            bamFn="NEG_unmapped.bam")
+
+## STAR
+setwd("/scratch/gtan/scRNA-p2277/STAR")
+library(ezRun)
+param = list()
+param[['cores']] = '8'
+param[['ram']] = '40'
+param[['scratch']] = '100'
+param[['node']] = ''
+param[['process_mode']] = 'SAMPLE'
+param[['refBuild']] = 'Mus_musculus/Ensembl/GRCm38.p5/Annotation/Release_89-2017-05-31'
+param[['paired']] = 'false'
+param[['strandMode']] = 'antisense'
+param[['refFeatureFile']] = 'genes.gtf'
+param[['cmdOptions']] = '--outFilterType BySJout --outFilterMatchNmin 30 --outFilterMismatchNmax 10 --outFilterMismatchNoverLmax 0.05 --alignSJDBoverhangMin 1 --alignSJoverhangMin 8 --alignIntronMax 1000000 --alignMatesGapMax 1000000  --outFilterMultimapNmax 50 --chimSegmentMin 15 --chimJunctionOverhangMin 15 --chimScoreMin 15 --chimScoreSeparation 10 --outSAMstrandField intronMotif'
+param[['getChimericJunctions']] = 'false'
+param[['trimAdapter']] = 'true'
+param[['trimLeft']] = '5'
+param[['trimRight']] = '0'
+param[['minTailQuality']] = '10'
+param[['minAvgQuality']] = '10'
+param[['minReadLength']] = '20'
+param[['specialOptions']] = ''
+param[['mail']] = 'ge.tan@fgcz.ethz.ch'
+param[['dataRoot']] = '/scratch/gtan'
+param[['resultDir']] = 'scRNA-p2277/STAR'
+output = list()
+output[['Name']] = 'A2B5'
+output[['BAM [File]']] = 'scRNA-p2277/STAR/A2B5.bam'
+output[['BAI [File]']] = 'scRNA-p2277/STAR/A2B5.bam.bai'
+output[['IGV Starter [Link]']] = 'scRNA-p2277/STAR/A2B5-igv.jnlp'
+output[['Species']] = 'Mus musculus'
+output[['refBuild']] = 'Mus_musculus/Ensembl/GRCm38.p5/Annotation/Release_89-2017-05-31'
+output[['paired']] = 'false'
+output[['refFeatureFile']] = 'genes.gtf'
+output[['strandMode']] = 'antisense'
+#output[['Read Count']] = '32231106'
+output[['IGV Starter [File]']] = 'scRNA-p2277/STAR/A2B5-igv.jnlp'
+output[['IGV Session [File]']] = 'scRNA-p2277/STAR/A2B5-igv.xml'
+output[['PreprocessingLog [File]']] = 'scRNA-p2277/STAR/A2B5_preprocessing.log'
+output[['STARLog [File]']] = 'scRNA-p2277/STAR/A2B5_STAR.log'
+input = list()
+input[['Name']] = 'A2B5'
+input[['Read1']] = 'scRNA-p2277/HiSeq4000_20170822_RUN376_o3645/A2B5_unmapped_part.bam'
+input[['Species']] = 'Mus musculus'
+input[['strandMode']] = 'antisense'
+debug(ezMethodSingleCellSTAR)
+EzAppSingleCellSTAR$new()$run(input=input, output=output, param=param)

@@ -284,15 +284,7 @@ ezMethodSTAR = function(input=NA, output=NA, param=NA){
     }
   }
   
-  if(input$readType() == "bam"){
-    fastqInput <- ezMethodBam2Fastq(input = input, param = param)
-    trimmedInput <- ezMethodTrim(input = fastqInput, param = param)
-    file.remove(fastqInput$getColumn("Read1"))
-    if(param$paired)
-      file.remove(fastqInput$getColumn("Read2"))
-  }else{
-    trimmedInput <- ezMethodTrim(input = input, param = param)
-  }
+  trimmedInput <- ezMethodTrim(input = input, param = param)
   
   if (!grepl("outSAMattributes", param$cmdOptions)){
     param$cmdOptions = paste(param$cmdOptions, "--outSAMattributes All")
@@ -306,16 +298,6 @@ ezMethodSTAR = function(input=NA, output=NA, param=NA){
               ">  Aligned.out.bam")## writes the output file Aligned.out.bam
   ##"|", "samtools", "view -S -b -", " >", "Aligned.out.bam")
   ezSystem(cmd)
-  
-  ## Merge unmapped and mapped bam to recover the tags
-  if(input$readType() == "bam"){
-    mergeBamAlignments(alignedBamFn="Aligned.out.bam",
-                       unmappedBamFn=input$getColumn("Read1"),
-                       outputBamFn="Aligned.out.merged.bam",
-                       fastaFn=param$ezRef@refFastaFile)
-    file.remove("Aligned.out.bam")
-    file.rename(from="Aligned.out.merged.bam", to="Aligned.out.bam")
-  }
   
   nSortThreads = min(ezThreads(), 8)
   ## if the index is loaded in shared memory we have to use only 10% of the scheduled RAM

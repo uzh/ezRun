@@ -116,9 +116,9 @@ ezMethodBam2Fastq <- function(input=NA, output=NA, param=NA){
     output$dataRoot = NULL
   }
   
-  bam2fastq(bamFns=input$getColumn("Read1"),
+  bam2fastq(bamFns=input$getFullPaths("Read1"),
             fastqFns=output$getColumn("Read1"),
-            fastq2Fns=ifelse(isTRUE(param$paired, output$getColumn("Read2"))),
+            fastq2Fns=ifelse(isTRUE(param$paired, output$getFullPaths("Read2"))),
             paired=param$paired)
   return(output)
 }
