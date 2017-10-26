@@ -46,7 +46,7 @@ ezParam = function(userParam=list(), globalDefaults=getGlobalDefaults(), appDefa
   }
   ## avoid special characters in any option
   lapply(userParam, function(optString){
-    if (any(grepl("[;\\(){}$%#!*]", optString))){
+    if (class(optString) == "character" && any(grepl("[;\\(){}$%#!*]", optString))){
       stop("special characters not allowed in option string: ", optString)
     }
   })

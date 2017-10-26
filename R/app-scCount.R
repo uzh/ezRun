@@ -112,11 +112,11 @@ ezMethodSingleCellCounts = function(input=NA, output=NA, param=NA, htmlFile="00i
   # Determine cell cycle phases. The training data is only available for Hsap and Mmus Ensembl
   trainData = NULL
   if (startsWith(param$refBuild, "Homo_sapiens/Ensembl")) {
-    trainData = readRDS(system.file("exdata", "human_cycle_markers.rds", package = "scran"))
+    trainData = readRDS(system.file("exdata", "human_cycle_markers.rds", package = "scran", mustWork=TRUE))
   } else if (startsWith(param$refBuild, "Mus_musculus/Ensembl")) {
-    trainData = readRDS(system.file("exdata", "mouse_cycle_markers.rds", package = "scran"))
+    trainData = readRDS(system.file("exdata", "mouse_cycle_markers.rds", package = "scran", mustWork=TRUE))
   }
-  if (! is.null(trainData)) {
+  if (!is.null(trainData)) {
     cellCycleData = scran::cyclone(counts, trainData)
     cellPhase = data.frame(Name = colnames(counts), Phase = cellCycleData$phases)
     write.table(cellPhase, file = basename(output$getColumn('CellCyclePhase')), quote = F, sep = "\t", row.names = F)
