@@ -145,7 +145,6 @@ EzAppSingleCellCounts <-
   )
 
 ### EzAppSingleCellSTAR
-
 EzAppSingleCellSTAR <- 
   setRefClass("EzAppSingleCellSTAR",
               contains = "EzApp",
@@ -206,6 +205,13 @@ ezMethodSingleCellSTAR = function(input=NA, output=NA, param=NA){
               ">  Aligned.out.bam")## writes the output file Aligned.out.bam
   ##"|", "samtools", "view -S -b -", " >", "Aligned.out.bam")
   ezSystem(cmd)
+  file.remove(trimmedInput$getColumn("Read1"))
+  if(param$paired)
+    file.remove(trimmedInput$getColumn("Read2"))
+  
+  on.exit(file.remove(c("Log.progress.out", "Log.out", 
+                        "Log.std.out")), add=TRUE) ## clean star log files
+  
   
   ## Merge unmapped and mapped bam to recover the tags
   if(input$readType() == "bam"){
@@ -241,6 +247,8 @@ ezMethodSingleCellSTAR = function(input=NA, output=NA, param=NA){
                  " METRICS_FILE=" ,"dupmetrics.txt",
                  " VERBOSITY=WARNING",
                  " >markdup.stdout 2> markdup.stderr")
+    on.exit(file.remove(c("markdup.stdout", "markdup.stderr")), add=TRUE)
+    
     ezSystem(cmd)
     ezSystem(paste("samtools", "index", basename(bamFile)))
   } else {
@@ -252,6 +260,9 @@ ezMethodSingleCellSTAR = function(input=NA, output=NA, param=NA){
     ezSystem(paste("mv SJ.out.tab", basename(output$getColumn("Junctions"))))
     ezSystem(paste("mv Chimeric.out.junction", 
                    basename(output$getColumn("Chimerics"))))
+  }else{
+    on.exit(file.remove(c("SJ.out.tab", "Chimeric.out.junction",
+                          "Chimeric.out.sam")), add=TRUE)
   }
   
   ## check the strandedness
