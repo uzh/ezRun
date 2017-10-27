@@ -156,6 +156,7 @@ loadCountDatasetSE <- function(input, param){
     seqAnno[[switch(dataFeatureLevel,
                     "isoform"="transcript_id",
                     "transcript"="transcript_id",
+                    "smRNA"="smRNA_id",
                     gene="gene_id")]] <- rownames(x)
   }
   

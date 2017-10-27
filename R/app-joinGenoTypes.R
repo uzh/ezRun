@@ -34,34 +34,34 @@ ezMethodJoinGenoTypes = function(input=NA, output=NA, param=NA){
 }
 
 runGatkPipeline = function(datasetCase, param=NA){
-    caseName = unique(datasetCase[[paste(param$grouping,'[Factor]')]])
-    myLog = paste0('log_',caseName,'.txt')
-    fileCmd = vector(mode = 'character',length = 1)
-    for (j in 1:nrow(datasetCase)){
-      fileCmd = paste(fileCmd,paste("--variant", datasetCase[['GVCF [File]']][j], collapse=','))
-    }  
+  caseName = unique(datasetCase[[paste(param$grouping,'[Factor]')]])
+  myLog = paste0('log_',caseName,'.txt')
+  fileCmd = vector(mode = 'character',length = 1)
+  for (j in 1:nrow(datasetCase)){
+    fileCmd = paste(fileCmd,paste("--variant", datasetCase[['GVCF [File]']][j], collapse=','))
+  }  
+  
+  GenotypeGVCF = paste(param$javaCall,"-jar", "$GATK_jar", " -T GenotypeGVCFs")
+  outputFile = paste0(caseName,'.vcf')
+  cmd = paste(GenotypeGVCF, "-R", param$genomeSeq,
+              fileCmd,
+              "--dbsnp", param$dbsnpFile,
+              "-o", outputFile,
+              "-nt", 1) ####It's often crashing with more than one core
+  if(param$targetFile != ''){
+    param$targetFile = file.path(TARGET_ENRICHMENT_DESIGN_DIR, param$targetFile)
+    cmd = paste(cmd,
+                "-L", param$targetFile)
+  }
+  ezSystem(paste(cmd,'2>',myLog))
+  
+  if(param$species == 'Homo_sapiens'){
+    VariantRecalibrator1 = paste(param$javaCall,"-jar", "$GATK_jar", " -T VariantRecalibrator")
+    hapmapFile = param$knownSites[grep('hapmap_.*vcf.gz$', param$knownSites)]
+    h1000G_omniFile = param$knownSites[grep('1000G_omni.*vcf.gz$', param$knownSites)]
+    h1000G_phase1File = param$knownSites[grep('1000G_phase1.snps.*vcf.gz$', param$knownSites)]
     
-    GenotypeGVCF = paste(param$javaCall,"-jar", "$GATK_jar", " -T GenotypeGVCFs")
-    outputFile = paste0(caseName,'.vcf')
-    cmd = paste(GenotypeGVCF, "-R", param$genomeSeq,
-                fileCmd,
-                "--dbsnp", param$dbsnpFile,
-                "-o", outputFile,
-                "-nt", 1) ####It's often crashing with more than one core
-    if(param$targetFile != ''){
-      param$targetFile = file.path(TARGET_ENRICHMENT_DESIGN_DIR, param$targetFile)
-      cmd = paste(cmd,
-                  "-L", param$targetFile)
-    }
-    ezSystem(paste(cmd,'2>',myLog))
-    
-    if(param$species == 'Homo_sapiens'){
-      VariantRecalibrator1 = paste(param$javaCall,"-jar", "$GATK_jar", " -T VariantRecalibrator")
-      hapmapFile = param$knownSites[grep('hapmap_.*vcf.gz$', param$knownSites)]
-      h1000G_omniFile = param$knownSites[grep('1000G_omni.*vcf.gz$', param$knownSites)]
-      h1000G_phase1File = param$knownSites[grep('1000G_phase1.snps.*vcf.gz$', param$knownSites)]
-      
-      if(param$recalibrateVariants){
+    if(param$recalibrateVariants){
       cmd = paste(VariantRecalibrator1, "-R", param$genomeSeq,
                   "-input", outputFile,
                   "-resource:hapmap,known=false,training=true,truth=true,prior=15.0", hapmapFile,
@@ -132,37 +132,52 @@ runGatkPipeline = function(datasetCase, param=NA){
                     "-L", param$targetFile)
       } 
       ezSystem(paste(cmd,'2>>',myLog))
-      }
-      #Add ExAc-Annotation:
-      ExAcFile = param$knownSites[grep('ExAC.*vcf.gz$', param$knownSites)]
-      VariantAnnotation = paste(param$javaCall,"-jar", "$GATK_jar", "-T VariantAnnotator")
-      cmd = paste(VariantAnnotation, "-R", param$genomeSeq,
-                  "--resource:ExAC",  ExAcFile,
-                  "-o ",paste0(outputFile, "_annotated.vcf"),
-                  "--expression ExAC.AF",
-                  "--expression ExAC.AC",
-                  "--expression ExAC.AN",
-                  "--expression ExAC.AC_Het",
-                  "--expression ExAC.AC_Hom",
-                  "-V", outputFile,
-                  "-nt", 1) 
-      if(param$targetFile != ''){
-        cmd = paste(cmd,
-                    "-L", param$targetFile)
-      } 
-      ezSystem(paste(cmd,'2>>',myLog))
-      cmd = paste(param$javaCall, "-jar", "$SnpEff/SnpSift.jar", "dbnsfp -f 1000Gp1_EUR_AF,Uniprot_acc,Interpro_domain,phastCons100way_vertebrate,CADD_phred,Polyphen2_HDIV_pred,Polyphen2_HVAR_pred,SIFT_score,SIFT_pred -v -db /srv/GT/databases/dbNSFP/dbNSFP2.9.txt.gz",paste0(outputFile, "_annotated.vcf"), ">", outputFile)
-      ezSystem(paste(cmd,'2>>',myLog))
-    } 
-    
-    ezSystem(paste("mv",outputFile,paste0(outputFile, "_annotated.vcf")))
-    #SnpEff:
-    htmlOutputFile = paste0(caseName,'.html')
-    cmd = paste(param$javaCall, "-jar", "$SnpEff/snpEff.jar", "-s", htmlOutputFile, "-c", param$snpEffConfig, param$snpEffDB, "-v", paste0(outputFile, "_annotated.vcf"),">", 
-                outputFile)
-    ezSystem(paste(cmd,'2>>',myLog))
     }
-
+    #Add ExAc-Annotation:
+    ExAcFile = param$knownSites[grep('ExAC.*vcf.gz$', param$knownSites)]
+    VariantAnnotation = paste(param$javaCall,"-jar", "$GATK_jar", "-T VariantAnnotator")
+    cmd = paste(VariantAnnotation, "-R", param$genomeSeq,
+                "--resource:ExAC",  ExAcFile,
+                "-o ",paste0(outputFile, "_annotated.vcf"),
+                "--expression ExAC.AF",
+                "--expression ExAC.AC",
+                "--expression ExAC.AN",
+                "--expression ExAC.AC_Het",
+                "--expression ExAC.AC_Hom",
+                "-V", outputFile,
+                "-nt", 1) 
+    if(param$targetFile != ''){
+      cmd = paste(cmd,
+                  "-L", param$targetFile)
+    } 
+    ezSystem(paste(cmd,'2>>',myLog))
+    cmd = paste(param$javaCall, "-jar", "$SnpEff/SnpSift.jar", "dbnsfp -f 1000Gp1_EUR_AF,Uniprot_acc,Interpro_domain,phastCons100way_vertebrate,CADD_phred,Polyphen2_HDIV_pred,Polyphen2_HVAR_pred,SIFT_score,SIFT_pred -v -db /srv/GT/databases/dbNSFP/dbNSFP2.9.txt.gz",paste0(outputFile, "_annotated.vcf"), ">", outputFile)
+    ezSystem(paste(cmd,'2>>',myLog))
+  } 
+  
+  ezSystem(paste("mv",outputFile,paste0(outputFile, "_annotated.vcf")))
+  #SnpEff:
+  if(param$annotateVariants){
+    htmlOutputFile = paste0(caseName,'.html')
+    if(param$proteinCodingTranscriptsOnly){
+      gtfFile = param$ezRef@refFeatureFile
+      gtf = rtracklayer::import(gtfFile)
+      idx = gtf$type == 'transcript'
+      gtf = data.frame(gtf[idx])
+      protCodingTranscripts = gtf$transcript_id[gtf$source=='protein_coding']
+      write.table(protCodingTranscripts, 'protCodingTranscripts.txt',col.names = F, row.names = F, quote =F)
+      cmd = paste(param$javaCall, "-jar", "$SnpEff/snpEff.jar","-onlyTr protCodingTranscripts.txt", "-s", htmlOutputFile, "-c", param$snpEffConfig, param$snpEffDB, "-v", paste0(outputFile, "_annotated.vcf"),">", 
+                  outputFile)
+    } else {
+      cmd = paste(param$javaCall, "-jar", "$SnpEff/snpEff.jar", "-s", htmlOutputFile, "-c", param$snpEffConfig, param$snpEffDB, "-v", paste0(outputFile, "_annotated.vcf"),">", 
+                  outputFile)
+    }
+    ezSystem(paste(cmd,'2>>',myLog))
+  } else {
+    ezSystem(paste("mv",paste0(outputFile, "_annotated.vcf"), outputFile))
+  }
+}
+  
 
 ##' @template app-template
 ##' @templateVar method ezMethodJoinGenoTypes(input=NA, output=NA, param=NA)
@@ -179,7 +194,9 @@ EzAppJoinGenoTypes <-
                   appDefaults <<- rbind(targetFile = ezFrame(Type="character",  DefaultValue="", Description="restrict to targeted genomic regions"),
                                         vcfFilt.minAltCount = ezFrame(Type="integer",  DefaultValue=3,  Description="minimum coverage for the alternative variant"),
                                         vcfFilt.minReadDepth = ezFrame(Type="integer",  DefaultValue=20,  Description="minimum read depth"),
-                                        recalibrateVariants = ezFrame(Type="logical",  DefaultValue=TRUE,  Description="recalibrateVariants"))
+                                        recalibrateVariants = ezFrame(Type="logical",  DefaultValue=TRUE,  Description="recalibrateVariants"),
+                                        annotateVariants = ezFrame(Type="logical",  DefaultValue=TRUE,  Description="annotate Variants with SnpEff"),
+                                        proteinCodingTranscriptsOnly = ezFrame(Type="logical",  DefaultValue=TRUE,  Description="annotate variants only with protCod variants"))
                 }
               )
   )
