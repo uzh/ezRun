@@ -193,6 +193,7 @@ EzAppSingleCellFeatureCounts <-
   )
 
 ezMethodSingleCellFeatureCounts <- function(input=NA, output=NA, param=NA){
+  require(Matrix) # 
   bamFile = input$getFullPaths("BAM")
   localBamFile = .getBamLocally(bamFile)
   on.exit(file.remove(c(localBamFile, paste0(localBamFile, ".bai"))),
@@ -310,8 +311,7 @@ ezMethodSingleCellFeatureCounts <- function(input=NA, output=NA, param=NA){
                                           reportReads=NULL,
                                           byReadGroup=ifelse(hasRG, TRUE, FALSE))
   }
-  ezWrite.table(countResult$counts, head=paste0(param$featureLevel, "_id"),
-                file=outputFile)
+  writeMM(Matrix(countResult$counts), file=outputFile)
   ezWrite.table(countResult$stat, file=statFile, row.names=FALSE)
   
   # Determine cell cycle phases. The training data is only available for Hsap and Mmus Ensembl
