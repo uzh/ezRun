@@ -227,8 +227,6 @@ ezMethodSingleCellFeatureCounts <- function(input=NA, output=NA, param=NA){
     gtfFile = param$ezRef@refFeatureFile
   }
   
-  sink(file="featureCounts-messages.txt")
-  on.exit(file.remove("featureCounts-messages.txt"), add=TRUE)
   if(!is.null(param$aroundTSSCounting) && param$aroundTSSCounting){
     ## TODO:  refactor below; you can not rely that "gene" entries are in the gtf file; GenomicFeatures has functions for flanking
     ## - load the gtf in a txdb, use the promoter function to get the promoters
@@ -312,9 +310,26 @@ ezMethodSingleCellFeatureCounts <- function(input=NA, output=NA, param=NA){
                                           reportReads=NULL,
                                           byReadGroup=ifelse(hasRG, TRUE, FALSE))
   }
-  sink(file=NULL)
-  
-  ezWrite.table(countResult$counts, file=outputFile)
+  ezWrite.table(countResult$counts, head=paste0(param$featureLevel, "_id"),
+                file=outputFile)
   ezWrite.table(countResult$stat, file=statFile, row.names=FALSE)
+  
+  # Determine cell cycle phases. The training data is only available for Hsap and Mmus Ensembl
+  trainData = NULL
+  if (startsWith(param$refBuild, "Homo_sapiens/Ensembl")) {
+    trainData = readRDS(system.file("exdata", "human_cycle_markers.rds", 
+                                    package = "scran", mustWork=TRUE))
+  } else if (startsWith(param$refBuild, "Mus_musculus/Ensembl")) {
+    trainData = readRDS(system.file("exdata", "mouse_cycle_markers.rds", 
+                                    package = "scran", mustWork=TRUE))
+  }
+  if (!is.null(trainData)) {
+    cellCycleData = scran::cyclone(countResult$counts, trainData)
+    cellPhase = data.frame(Name = colnames(countResult$counts),
+                           Phase = cellCycleData$phases)
+    write.table(cellPhase, file = basename(output$getColumn('CellCyclePhase')),
+                quote = F, sep = "\t", row.names = F)
+  }
+  
   return("Success")
 }

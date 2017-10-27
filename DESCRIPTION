@@ -19,7 +19,8 @@ Suggests:
     Rsamtools, Hmisc, XML, stringr, GenomicAlignments, GenomicFeatures,
     GenomicRanges, ShortRead, Gviz, gplots, GO.db, GOstats, annotate,
     bitops, edgeR, limma, S4Vectors, VariantAnnotation, rmarkdown, plotly,
-    kableExtra, htmlwidgets, RSelenium, webshot, clusterProfiler, dupRadar
+    kableExtra, htmlwidgets, RSelenium, webshot, clusterProfiler, dupRadar,
+    scran
 SystemRequirements: PhantomJS
 VignetteBuilder: knitr
 RoxygenNote: 5.0.1

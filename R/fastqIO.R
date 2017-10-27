@@ -18,13 +18,13 @@ fastq2bam <- function(fastqFn, refFn, bamFn, fastqI1Fn=NULL, fastqI2Fn=NULL){
   
   ## parse the fastq files
   f <- FastqStreamer(fastqFn, 1e6)
-  on.exit(close(f))
+  on.exit(close(f), add=TRUE)
   if(!is.null(fastqI1Fn)){
     stopifnot(!is.null(fastqI2Fn))
     f1 <- FastqStreamer(fastqI1Fn, 1e6)
     f2 <- FastqStreamer(fastqI2Fn, 1e6)
-    on.exit(close(f1))
-    on.exit(close(f2))
+    on.exit(close(f1), add=TRUE)
+    on.exit(close(f2), add=TRUE)
   }
   while(length(fq <- yield(f))){
     samText <- paste(id(fq), "4", "*", "0", "0", "*", "*", "0", "0",
@@ -44,8 +44,8 @@ fastq2bam <- function(fastqFn, refFn, bamFn, fastqI1Fn=NULL, fastqI2Fn=NULL){
                      indexDestination=FALSE)
   bamFn <- sortBam(file=tempBamFn, destination=bamFn, byQname=TRUE, 
                    maxMemory=1024)
-  on.exit(file.remove(tempSamFn))
-  on.exit(file.remove(tempBamFn))
+  on.exit(file.remove(tempSamFn), add=TRUE)
+  on.exit(file.remove(tempBamFn), add=TRUE)
   invisible(bamFn)
 }
 
@@ -105,9 +105,11 @@ ezMethodBam2Fastq <- function(input=NA, output=NA, param=NA){
   ## if output is not an EzDataset, set it!
   if (!is(output, "EzDataset")){
     output = input$copy()
-    output$setColumn("Read1", paste0(getwd(), "/", input$getNames(), "-R1.fastq"))
+    output$setColumn("Read1", paste0(getwd(), "/", input$getNames(), 
+                                     "-R1.fastq"))
     if (param$paired){
-      output$setColumn("Read2", paste0(getwd(), "/", input$getNames(), "-R2.fastq"))
+      output$setColumn("Read2", paste0(getwd(), "/", input$getNames(), 
+                                       "-R2.fastq"))
     } else {
       if ("Read2" %in% input$colNames){
         output$setColumn("Read2", NULL)

@@ -263,6 +263,7 @@ output = list()
 output[['Name']] = 'A2B5'
 output[['Count [File]']] = 'scRNA-p2277/FeatureCounts/A2B5.txt'
 output[['Stats [File]']] = 'scRNA-p2277/FeatureCounts/A2B5-stats.txt'
+output[['CellCyclePhase [File]']] = 'scRNA-p2277/FeatureCounts/A2B5-CellCyclePhase.txt'
 output[['Species']] = 'Mus musculus'
 output[['refBuild']] = 'Mus_musculus/Ensembl/GRCm38.p5/Annotation/Release_89-2017-05-31'
 output[['featureLevel']] = 'gene'
@@ -288,6 +289,7 @@ input[['BAI']] = 'scRNA-p2277/STAR/Auto.bam.bai'
 output[['Name']] = 'Auto'
 output[['Count [File]']] = 'scRNA-p2277/FeatureCounts/Auto.txt'
 output[['Stats [File]']] = 'scRNA-p2277/FeatureCounts/Auto-stats.txt'
+output[['CellCyclePhase [File]']] = 'scRNA-p2277/FeatureCounts/Auto-CellCyclePhase.txt'
 EzAppSingleCellFeatureCounts$new()$run(input=input, output=output, param=param)
 
 input[['Name']] = 'NEG'
@@ -296,4 +298,5 @@ input[['BAI']] = 'scRNA-p2277/STAR/NEG.bam.bai'
 output[['Name']] = 'NEG'
 output[['Count [File]']] = 'scRNA-p2277/FeatureCounts/NEG.txt'
 output[['Stats [File]']] = 'scRNA-p2277/FeatureCounts/NEG-stats.txt'
+output[['CellCyclePhase [File]']] = 'scRNA-p2277/FeatureCounts/NEG-CellCyclePhase.txt'
 EzAppSingleCellFeatureCounts$new()$run(input=input, output=output, param=param)
