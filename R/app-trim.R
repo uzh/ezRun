@@ -98,7 +98,7 @@ ezMethodTrim = function(input=NA, output=NA, param=NA){
       ezSystem(paste("cp", TRIMMOMATIC_ADAPTERS, adaptFile))
       writeXStringSet(adapters, adaptFile, append=TRUE)
     }
-    on.exit(file.remove(adaptFile))
+    on.exit(file.remove(adaptFile), add=TRUE)
     
     trimAdaptOpt =  paste("ILLUMINACLIP", adaptFile, param$trimSeedMismatches, param$trimPalindromClipThresh,
                           param$trimSimpleClipThresh, param$trimMinAdaptLength, param$trimKeepBothReads, sep=":")
@@ -143,7 +143,7 @@ ezMethodTrim = function(input=NA, output=NA, param=NA){
                 #               paste("CROP", param$trimRight, sep=":"),
                 paste("MINLEN", param$minReadLength, sep=":"),
                 "> trimmomatic.out 2> trimmomatic.err")
-    on.exit(file.remove(c("trimmomatic.out", "trimmomatic.err")))
+    on.exit(file.remove(c("trimmomatic.out", "trimmomatic.err")), add=TRUE)
     
     ezSystem(cmd)
     ## TRIMOMMATIC may throw exception but still return status 0
@@ -183,7 +183,8 @@ ezMethodTrim = function(input=NA, output=NA, param=NA){
                 "--target", "flexbar",
                 "> flexbar.out 2> flexbar.err")
     ezSystem(cmd)
-    on.exit(file.remove(c("flexbar.out", "flexbar.err", "flexbar.log")))
+    on.exit(file.remove(c("flexbar.out", "flexbar.err", "flexbar.log")),
+            add=TRUE)
     
     cmd = paste0('cat flexbar.out >>',input$getNames(),'_preprocessing.log')
     ezSystem(cmd)
