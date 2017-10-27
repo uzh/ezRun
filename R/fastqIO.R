@@ -76,7 +76,7 @@ fastqs2bam <- function(fastqFns, fastq2Fns=NULL, readGroupNames=NULL,
   cmd <- paste("java -jar", Sys.getenv("Picard_jar"), "MergeSamFiles",
                paste0("I=", paste0(sampleBasenames, ".bam"), collapse=" "),
                paste0("O=", bamFn),
-               "SORT_ORDER=queryname")
+               "USE_THREADING=true", "SORT_ORDER=queryname")
   ezSystem(cmd)
   file.remove(paste0(sampleBasenames, ".bam"))
   
@@ -120,7 +120,8 @@ ezMethodBam2Fastq <- function(input=NA, output=NA, param=NA){
   
   bam2fastq(bamFns=input$getFullPaths("Read1"),
             fastqFns=output$getColumn("Read1"),
-            fastq2Fns=ifelse(isTRUE(param$paired, output$getFullPaths("Read2"))),
+            fastq2Fns=ifelse(isTRUE(param$paired), output$getFullPaths("Read2"),
+                             NULL),
             paired=param$paired)
   return(output)
 }

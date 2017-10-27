@@ -144,21 +144,27 @@ countResult = Rsubread::featureCounts("20171011.A-C1_HT_24H.bam", annot.inbuilt=
 
 
 # p2277 HiSeq4000_20170822_RUN376_o3645
-setEnvironments("star")
-setEnvironments("flexbar")
-setEnvironments("trimmomatic")
-setEnvironments("python2")
-setEnvironments("samtools")
+# fastqs2bam: is supposed to run on dmx server
+# For each lane, it produces one unmapped Bam file and a dataset.tsv
 setwd("/scratch/gtan/scRNA-p2277/HiSeq4000_20170822_RUN376_o3645")
+library(ezRun)
 input <- EzDataset(file="/srv/gstore/projects/p2277/HiSeq4000_20170822_RUN376_o3645_A2B5/A2B5-cells-dataset.tsv", dataRoot="/srv/gstore/projects")
 fastqs2bam(fastqFns=input$getFullPaths("Read1"), readGroupNames=input$getNames(),
            bamFn="A2B5_unmapped.bam")
+countMeta = input$meta[ , !input$columnHasTag("File")]
+ezWrite.table(countMeta, file="A2B5-dataset.tsv", head='Name')
+
 input <- EzDataset(file="/srv/gstore/projects/p2277/HiSeq4000_20170822_RUN376_o3645_Pool2/Auto-cells-dataset.tsv", dataRoot="/srv/gstore/projects")
 fastqs2bam(fastqFns=input$getFullPaths("Read1"), readGroupNames=input$getNames(), 
            bamFn="Auto_unmapped.bam")
+countMeta = input$meta[ , !input$columnHasTag("File")]
+ezWrite.table(countMeta, file="Auto-dataset.tsv", head='Name')
+
 input <- EzDataset(file="/srv/gstore/projects/p2277/HiSeq4000_20170822_RUN376_o3645_Pool3/NEG-cells-dataset.tsv", dataRoot="/srv/gstore/projects")
 fastqs2bam(fastqFns=input$getFullPaths("Read1"), readGroupNames=input$getNames(), 
            bamFn="NEG_unmapped.bam")
+countMeta = input$meta[ , !input$columnHasTag("File")]
+ezWrite.table(countMeta, file="NEG-dataset.tsv", head='Name')
 
 ## STAR
 setwd("/scratch/gtan/scRNA-p2277/STAR")
