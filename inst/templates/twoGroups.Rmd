@@ -18,9 +18,7 @@ require(SummarizedExperiment)
 require(webshot)
 require(htmlwidgets)
 debug <- FALSE
-if(!isValidEnvironments("phantomjs")){
-  setEnvironments("phantomsjs")
-}
+setEnvironments("phantomjs")
 ```
 
 ```{r prepare data, include=FALSE}
