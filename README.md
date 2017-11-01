@@ -19,7 +19,7 @@ packages <- c("testthat", "knitr", "gage", "goseq", "ChIPpeakAnno",
               "stringr", "GenomicAlignments", "GenomicFeatures",
               "GenomicRanges", "ShortRead", "Gviz", "gplots", "GO.db", 
               "GOstats", "annotate", "bitops", "edgeR", "limma", "S4Vectors",
-              "VariantAnnotation", "rmarkdown", "plotly",
+              "VariantAnnotation", "rmarkdown", "plotly", "scran",
               "ReporteRsjars", "data.table", "kableExtra", "htmlwidgets",
               "RSelenium", "webshot", "clusterProfiler", "dupRadar")
 packages <- setdiff(packages, rownames(installed.packages()))

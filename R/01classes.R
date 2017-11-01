@@ -50,7 +50,8 @@ EzDataset <-
                       meta <<- metaNew ## we accept a data frame for multiple samples
                     } else {
                       stopifnot(length(metaNew$Name) == 1) ## we accept a list for single samples; a sample must always have a Name
-                      meta <<- data.frame(metaNew, stringsAsFactors=FALSE, check.names=FALSE, row.names=metaNew$Name)
+                      meta <<- data.frame(metaNew, stringsAsFactors=FALSE, 
+                                          check.names=FALSE, row.names=metaNew$Name)
                       meta$Name <<- NULL
                     }
                   } else {
@@ -153,6 +154,22 @@ EzDataset <-
                     stop("Files are not readable using root:\n", paste(dataRoot, collapse="\n"), "\nfiles:\n", paste(files[isInvalid], collapse="\n"))
                   }
                   return(fullPaths)
+                },
+                readType = function(){
+                  if("Read1" %in% colNames){
+                    isFastq <- all(grepl("\\.(fastq|fq)(\\.gz){0,1}$", 
+                                         meta[["Read1"]]))
+                    isBam <- all(grepl("bam$", meta[["Read1"]], 
+                                       ignore.case = TRUE))
+                    stopifnot(isFastq || isBam)
+                    if(isTRUE(isFastq)){
+                      return("fastq")
+                    }else if(isTRUE(isBam)){
+                      return("bam")
+                    }
+                  }else{
+                    return(NA)
+                  }
                 }
               )
   )

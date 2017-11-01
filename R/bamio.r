@@ -587,3 +587,16 @@ getBamMultiMatching = function(param, bamFile, nReads=NULL){
   }
   return(target)
 }
+
+mergeBamAlignments <- function(alignedBamFn, unmappedBamFn,
+                               outputBamFn, fastaFn){
+  setEnvironments("picard")
+  
+  cmd <- paste("java -jar", Sys.getenv("Picard_jar"), "MergeBamAlignment",
+               paste0("ALIGNED=", alignedBamFn), 
+               paste0("UNMAPPED=", unmappedBamFn),
+               paste0("O=", outputBamFn),
+               paste0("R=", fastaFn)
+  )
+  ezSystem(cmd)
+}
