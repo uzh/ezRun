@@ -12,29 +12,36 @@ output:
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ## This report requires objects: output, deResult, param
+
+## debug
+#library(ezRun)
+#load("/srv/gstore/projects/p1536/EdgeR_20650_pos--over--neg_2017-09-01--10-05-45/pos--over--neg/result-pos--over--neg-wcmkyoxvxuzd-EzResult.RData")
+# load("/scratch/gtan/debug/p2497-Deseq2/result-orange--over--rest-gxzhakauugzk-EzResult.RData")
+# deResult = EzResult(se=se)
+# output = list()
+# output[['Name']] = 'orange--over--rest'
+# output[['Species']] = ''
+# output[['refBuild']] = 'Mus_musculus/Ensembl/GRCm38.PatchesSkipped/Annotation/Version-2015-06-25'
+# output[['Static Report [Link]']] = 'p2497/DESeq2_22056_orange--over--rest_2017-11-01--10-42-27/orange--over--rest/00index.html'
+# output[['Live Report [Link]']] = 'http://fgcz-shiny.uzh.ch/fgcz_exploreDEG_app/?data=p2497/DESeq2_22056_orange--over--rest_2017-11-01--10-42-27/orange--over--rest/result-orange--over--rest-gxzhakauugzk-EzResult.RData'
+# output[['Report [File]']] = 'p2497/DESeq2_22056_orange--over--rest_2017-11-01--10-42-27/orange--over--rest'
+# output = EzDataset$new(meta=output, dataRoot=param$dataRoot)
+## end of debug
+
 require(knitr)
 require(kableExtra)
 require(SummarizedExperiment)
 require(webshot)
 require(htmlwidgets)
 debug <- FALSE
-if(!isValidEnvironments("phantomjs")){
-  setEnvironments("phantomsjs")
-}
+setEnvironments("phantomjs")
 ```
 
 ```{r prepare data, include=FALSE}
-## debug
-#library(ezRun)
-#load("/srv/gstore/projects/p1536/EdgeR_20650_pos--over--neg_2017-09-01--10-05-45/pos--over--neg/result-pos--over--neg-wcmkyoxvxuzd-EzResult.RData")
-#deResult = EzResult(se=se)
-## end of debug
-
 se <- deResult$se
 param <- metadata(se)$param
 seqAnno <- data.frame(rowData(se), row.names=rownames(se),
                       check.names = FALSE, stringsAsFactors=FALSE)
-
 ```
 
 Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
@@ -246,6 +253,7 @@ eval(plotCmd)
 ```{r intra group, echo=FALSE, results='asis', eval=!debug}
 theRange = 2^(range(logSignal, na.rm=TRUE))
 x <- logSignal
+if(ncol(x) <= 100){
 if (!ezIsSpecified(param$grouping2)){ ## TODO: we no longer use pairing, we now use batch which is more general; however these plots only work if batch is a real pairing
   for (group in unique(c(param$refGroup, colnames(groupMeans)))){
     idx = which(group == param$grouping)
@@ -308,6 +316,7 @@ if (!ezIsSpecified(param$grouping2)){ ## TODO: we no longer use pairing, we now 
                                      height=ceiling(ncol(as.matrix(sampleValues))/6) * 400)
       cat(includeHtml)
   }
+}
 }
 ```
 
@@ -412,7 +421,7 @@ if (sum(use) > param$minGenesForClustering){
     file <- file.path(system.file("templates", package="ezRun"), 
                       "twoGroups_goClusterTable.Rmd")
     file.copy(from=file, to=basename(file), overwrite=TRUE)
-    rmarkdown::render(input=basename(file),
+    rmarkdown::render(input=basename(file), envir = new.env(),
                       output_dir=".", output_file="goClusterTable.html",
                       quiet=TRUE)
   }
