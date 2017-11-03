@@ -349,6 +349,7 @@ input[['strandMode']] = 'both'
 ## A2B5
 input[['Name']] = 'A2B5'
 input[['Read1']] = 'scRNA-p2277/HiSeq4000_20170822_RUN376_o3645/A2B5_unmapped_part.bam'
+input[['CellDataset']] = 'scRNA-p2277/HiSeq4000_20170822_RUN376_o3645/A2B5-dataset.tsv'
 output[['Name']] = 'A2B5'
 output[['BAM [File]']] = 'scRNA-p2277/scCount/A2B5.bam'
 output[['BAI [File]']] = 'scRNA-p2277/scCount/A2B5.bam.bai'
@@ -357,6 +358,7 @@ output[['STARLog [File]']] = 'scRNA-p2277/scCount/A2B5_STAR.log'
 output[['Count [File]']] = 'scRNA-p2277/scCount/A2B5.mtx'
 output[['Stats [File]']] = 'scRNA-p2277/scCount/A2B5-stats.txt'
 output[['CellCyclePhase [File]']] = 'scRNA-p2277/scCount/A2B5-CellCyclePhase.txt'
+output[['CellDataset [File]']] = 'scRNA-p2277/scCount/A2B5-dataset.txt'
 #undebug(ezMethodscCounts)
 EzAppscCounts$new()$run(input=input, output=output, param=param)
 

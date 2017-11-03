@@ -174,6 +174,18 @@ EzAppscCounts <-
 
 ezMethodscCounts = function(input=NA, output=NA, param=NA,
                             htmlFile="00index.html"){
+  metainput = EzDataset(file=input$getFullPaths("CellDataset"),
+                        dataRoot=param$dataRoot)
+  cellMeta = metainput$meta[ , !metainput$columnHasTag("File")]
+  cellMeta[["BAM [File]"]] = output$getColumn("BAM")
+  cellMeta[["BAI [File]"]] = output$getColumn("BAI")
+  cellMeta[["STARLog [File]"]] = output$getColumn("STARLog")
+  cellMeta[['Count [File]']] = output$getColumn("Count")
+  cellMeta[['Stats [File]']] = output$getColumn("Stats")
+  cellMeta[['CellCyclePhase [File]']] = output$getColumn("Stats")
+  ezWrite.table(cellMeta, file=basename(output$getColumn('CellDataset')),
+                head='Name')
+  
   bamParam = param
   bamParam$mail = ""
 
