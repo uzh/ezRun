@@ -60,9 +60,8 @@ ezMethodFastqScreen = function(input=NA, output=NA, param=NA, htmlFile="00index.
   file.copy(from=styleFiles, to=".", overwrite=TRUE)
   
   ## generate the main reports
-  require(rmarkdown)
-  render(input="FastqScreen.Rmd", output_dir=".", output_file=htmlFile,
-         quiet=TRUE)
+  rmarkdown::render(input="FastqScreen.Rmd", envir = new.env(),
+                    output_dir=".", output_file=htmlFile, quiet=TRUE)
   
   #fastqscreenReport(dataset, param, htmlFile, fastqData_ppData, fastqData_rawData, speciesPercentageTop, speciesPercentageTopVirus = speciesPercentageTopVirus)
   return("Success")

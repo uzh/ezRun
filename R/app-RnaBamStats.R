@@ -141,7 +141,7 @@ computeBamStats = function(input, htmlFile, param, gff, resultList=NULL){
                           c("fgcz.css", "RNABamStats.Rmd",
                             "fgcz_header.html", "banner.png"))
   file.copy(from=styleFiles, to=".", overwrite=TRUE)
-  rmarkdown::render(input="RNABamStats.Rmd",
+  rmarkdown::render(input="RNABamStats.Rmd", envir = new.env(),
                     output_dir=".", output_file=htmlFile, quiet=TRUE)
   
   rm(resultList)

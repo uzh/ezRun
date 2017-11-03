@@ -35,7 +35,7 @@ ezMethodCountQC = function(input=NA, output=NA, param=NA,
                           c("fgcz.css", "CountQC.Rmd",
                             "fgcz_header.html", "banner.png"))
   file.copy(from=styleFiles, to=".", overwrite=TRUE)
-  rmarkdown::render(input="CountQC.Rmd",
+  rmarkdown::render(input="CountQC.Rmd", envir = new.env(),
                     output_dir=".", output_file=htmlFile, quiet=TRUE)
   
   return("Success")

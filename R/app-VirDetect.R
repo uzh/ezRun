@@ -126,7 +126,7 @@ ezMethodVirDetect = function(input=NA, output=NA, param=NA,
   file.copy(from=styleFiles, to=".", overwrite=TRUE)
   params = list(sample=sampleName,
                 minReadCount=param$minReadCount)
-  rmarkdown::render(input="VirDetect.Rmd",
+  rmarkdown::render(input="VirDetect.Rmd", envir = new.env(),
                     output_dir=".", output_file=htmlFile, quiet=TRUE)
   return("Success")
 }
