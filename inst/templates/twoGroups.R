@@ -45,7 +45,7 @@ deResult = EzResult(param=param, rawData=rawData, se=se)
 param <- deResult$param
 file.copy(from="/Users/gtan/Repos/FGCZ/ezRun/inst/templates/twoGroups.Rmd",
           to="twoGroups.Rmd", overwrite = TRUE)
-rmarkdown::render(input="twoGroups.Rmd",
+rmarkdown::render(input="twoGroups.Rmd", envir = new.env(),
                   output_dir=".", output_file="00index.html")
 
 # p2444
@@ -96,5 +96,5 @@ deResult = EzResult(param=param, rawData=rawData, se=se)
 setwd("/srv/GT/analysis/gtan/p2444-edgeR/EdgeR--d3--over--BL")
 file.copy(from="/Users/gtan/Repos/FGCZ/ezRun/inst/templates/twoGroups.Rmd",
           to="twoGroups.Rmd", overwrite = TRUE)
-rmarkdown::render(input="twoGroups.Rmd",
+rmarkdown::render(input="twoGroups.Rmd", envir = new.env(),
                   output_dir=".", output_file="00index.html")

@@ -421,7 +421,7 @@ if (sum(use) > param$minGenesForClustering){
     file <- file.path(system.file("templates", package="ezRun"), 
                       "twoGroups_goClusterTable.Rmd")
     file.copy(from=file, to=basename(file), overwrite=TRUE)
-    rmarkdown::render(input=basename(file),
+    rmarkdown::render(input=basename(file), envir = new.env(),
                       output_dir=".", output_file="goClusterTable.html",
                       quiet=TRUE)
   }
