@@ -21,7 +21,7 @@
 ##' getSampleColors(cond)
 ##' getSamplePch(cond)
 ##' getSampleLty(cond)
-getSampleColors = function(conds, colorNames=names(conds), hueStep = 1/50){
+getSampleColors = function(conds, colorNames=names(conds), hueStep = 0){
 
 	condSet = unique(conds)
 	hueDelta = 1 / length(condSet)
@@ -29,11 +29,12 @@ getSampleColors = function(conds, colorNames=names(conds), hueStep = 1/50){
 	vs = rep(1, length(conds))
 	for (cond in condSet){
 		idx = which(cond == conds)
-		if (length(idx) <= 8){
+		if (length(idx) <= 4){
 		  vs[idx] = seq.int(from=1, by=-0.1, length.out=length(idx))
-		} else {
-		  vs[idx] = seq.int(from=1, to=0.2, length.out=length(idx))
 		}
+		# else {
+		#   vs[idx] = seq.int(from=1, to=0.2, length.out=length(idx))
+		# }
 		if ((length(idx)+2) * hueStep > hueDelta){
 			hueStep = hueDelta / (length(idx)+2)
 		}

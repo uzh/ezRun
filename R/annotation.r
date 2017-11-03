@@ -90,7 +90,8 @@ makeFeatAnnoEnsembl <- function(featureFile,
                                 genomeFile,
                                 biomartFile=NULL,
                                 organism=NULL,
-                                host=NULL){
+                                host=NULL,
+                                mart='ENSEMBL_MART_ENSEMBL'){
   require(rtracklayer)
   require(data.table)
   
@@ -190,9 +191,9 @@ makeFeatAnnoEnsembl <- function(featureFile,
     message("Query via biomaRt package!")
     require(biomaRt)
     if(is.null(host)){
-      ensembl <- useMart("ENSEMBL_MART_ENSEMBL")
+      ensembl <- useMart(mart)
     }else{
-      ensembl <- useMart("ENSEMBL_MART_ENSEMBL", host=host)
+      ensembl <- useMart(mart, host=host)
     }
     ensembl <- useDataset(organism, mart=ensembl)
     mapping1 <-

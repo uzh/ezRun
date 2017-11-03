@@ -23,7 +23,7 @@ ezMethodFastQC = function(input=NA, output=NA, param=NA,
   
   ## guess the names of the report directories that will be creatd by fastqc
   reportDirs = sub(".fastq.gz", "_fastqc", basename(files))
-  reportDirs = sub(".fq.gz", ".fq_fastqc", reportDirs)
+  reportDirs = sub(".fq.gz", "_fastqc", reportDirs)
   stopifnot(!duplicated(reportDirs))
   filesUse = files[!file.exists(reportDirs)]
   if (length(filesUse) > 0){
@@ -58,8 +58,8 @@ ezMethodFastQC = function(input=NA, output=NA, param=NA,
   for(i in 1:length(plots)){
     plotPage <- plotPages[i]
     pngs <- file.path(reportDirs, "Images", plots[i])
-    render(input="FastQC_overview.Rmd", output_dir=".", output_file=plotPage,
-           quiet=TRUE)
+    rmarkdown::render(input="FastQC_overview.Rmd", envir = new.env(),
+                      output_dir=".", output_file=plotPage, quiet=TRUE)
   }
   
   ## establish the main report
@@ -124,8 +124,8 @@ ezMethodFastQC = function(input=NA, output=NA, param=NA,
   save(ans4Report, file="ans4Report.rda")
   
   ## generate the main reports
-  render(input="FastQC.Rmd", output_dir=".", output_file=htmlFile,
-         quiet=TRUE)
+  rmarkdown::render(input="FastQC.Rmd", envir = new.env(),
+                    output_dir=".", output_file=htmlFile, quiet=TRUE)
   
   ezSystem(paste("rm -rf ", paste0(reportDirs, ".zip", collapse=" ")))
   return("Success")
