@@ -200,6 +200,7 @@ ezMethodSingleCellFeatureCounts <- function(input=NA, output=NA, param=NA){
     on.exit(file.remove(c(localBamFile, paste0(localBamFile, ".bai"))),
             add=TRUE)
   }
+  
   outputFile = basename(output$getColumn("Count"))
   statFile = basename(output$getColumn("Stats"))
   
@@ -313,7 +314,20 @@ ezMethodSingleCellFeatureCounts <- function(input=NA, output=NA, param=NA){
                                           reportReads=NULL,
                                           byReadGroup=ifelse(hasRG, TRUE, FALSE))
   }
-  writeMM(Matrix(countResult$counts), file=outputFile)
+  
+  ## The count matrix from featurecounts has colnames messed up
+  ## recover them here
+  countsFixed <- countResult$counts
+  colnames(countsFixed) <- sub(paste0(make.names(localBamFile), "."), "", 
+                               colnames(countsFixed))
+  tagsRG <- sub("ID:", "", 
+                sapply(bamHeaders[[1]]$text[names(bamHeaders[[1]]$text) == "@RG"], "[", 1))
+  fixNameMapping <- setNames(tagsRG, make.names(tagsRG))
+  colnames(countsFixed) <- fixNameMapping[colnames(countsFixed)]
+  
+  ## wirteMM doesn't hold the colnames and rownames in mtx
+  ezWrite.table(countsFixed, head=paste0(param$featureLevel, "_id"),
+                file=outputFile)
   ezWrite.table(countResult$stat, file=statFile, row.names=FALSE)
   
   # Determine cell cycle phases. The training data is only available for Hsap and Mmus Ensembl
