@@ -145,145 +145,91 @@ EzAppSingleCellCounts <-
               )
   )
 
-### EzAppSingleCellSTAR
-EzAppSingleCellSTAR <- 
-  setRefClass("EzAppSingleCellSTAR",
+##' @template app-template
+##' @templateVar method ezMethodSingleCellCounts(input=NA, output=NA, param=NA)
+##' @description Use this reference class to run 
+EzAppSCCounts <-
+  setRefClass("EzAppSCCounts",
               contains = "EzApp",
               methods = list(
                 initialize = function()
                 {
                   "Initializes the application using its specific defaults."
-                  runMethod <<- ezMethodSingleCellSTAR
-                  name <<- "ezMethodSingleCellSTAR"
-                  appDefaults <<- rbind(getJunctions=ezFrame(Type="logical",  DefaultValue="FALSE",	Description="should junctions be returned"),
-                                        writeIgvSessionLink=ezFrame(Type="logical", DefaultValue="TRUE", Description="should an IGV link be generated"),
-                                        markDuplicates=ezFrame(Type="logical", DefaultValue="FALSE", Description="should duplicates be marked with picard"),
-                                        checkStrandness=ezFrame(Type="logical", DefaultValue="TRUE", Description="should strandness be checked"),
-                                        randomSleep=ezFrame(Type="logical",  DefaultValue="FALSE",  Description="should there be a random sleep to avoid to much network traffic when loading the STAR index"),
-                                        twopassMode=ezFrame(Type="logical", DefaultValue="FALSE", Description="1-pass mapping or basic 2-pass mapping")
+                  runMethod <<- ezMethodSCCounts
+                  name <<- "EzAppSCCounts"
+                  appDefaults <<- rbind(mapMethod=ezFrame(Type="character",	
+                                                          DefaultValue="STAR",
+                                                          Description="the mapper to use"),
+                                        mapOptions=ezFrame(Type="character",
+                                                           DefaultValue="",
+                                                           Description="options passed to the mapper"),
+                                        writeIgvSessionLink=ezFrame(Type="logical",
+                                                                    DefaultValue=FALSE,
+                                                                    Description="whether to write IGV session links.")
                   )
                 }
               )
   )
-### STAR for single cell data: reads in a unmapped bam
-###
-ezMethodSingleCellSTAR = function(input=NA, output=NA, param=NA){
+
+
+ezMethodSCCounts = function(input=NA, output=NA, param=NA,
+                            htmlFile="00index.html"){
+  metainput = EzDataset(file=input$getFullPaths("CellDataset"),
+                        dataRoot=param$dataRoot)
+  cellMeta = metainput$meta[ , !metainput$columnHasTag("File")]
+  cellMeta[["BAM [File]"]] = output$getColumn("BAM")
+  cellMeta[["BAI [File]"]] = output$getColumn("BAI")
+  cellMeta[["STARLog [File]"]] = output$getColumn("STARLog")
+  cellMeta[['Count [File]']] = output$getColumn("Count")
+  cellMeta[['Stats [File]']] = output$getColumn("Stats")
+  cellMeta[['CellCyclePhase [File]']] = output$getColumn("Stats")
+  ezWrite.table(cellMeta, file=basename(output$getColumn('CellDataset')),
+                head='Name')
   
-  refDir = getSTARReference(param)
-  bamFile = output$getColumn("BAM")
-  if(!is.null(param$randomSleep)){
-    if(param$randomSleep){
-      randomNumber = runif(1, min = 0, max = 1)
-      if(randomNumber <= 1/3) {
-        cat('Wait 15m \n')
-        Sys.sleep( 900) 
-      } else if(randomNumber > 1/3 & randomNumber <= 2/3) {
-        cat('Wait 30m \n')
-        Sys.sleep( 1800)
-      }
-    }
-  }
+  bamParam = param
+  bamParam$mail = ""
+
+  switch(param$mapMethod,
+         STAR={
+           mappingApp = EzAppSingleCellSTAR$new()
+           bamParam$cmdOptions = ifelse(bamParam$mapOptions != "", bamParam$mapOptions,
+                                        "--outFilterType BySJout --outFilterMatchNmin 30 --outFilterMismatchNmax 10 --outFilterMismatchNoverLmax 0.05 --alignSJDBoverhangMin 1 --alignSJoverhangMin 8 --alignIntronMax 1000000 --alignMatesGapMax 1000000  --outFilterMultimapNmax 50 --chimSegmentMin 15 --chimJunctionOverhangMin 15 --chimScoreMin 15 --chimScoreSeparation 10 --outSAMstrandField intronMotif --outSAMattributes All")
+           if (!grepl("outSAMattributes", bamParam$cmdOptions)){
+             bamParam$cmdOptions = paste(bamParam$cmdOptions, "--outSAMattributes All")
+           }
+         },
+         bowtie={
+           mappingApp = EzAppBowtie$new()
+           bamParam$cmdOptions = ifelse(bamParam$mapOptions != "", bamParam$mapOptions,
+                                        "")
+         },
+         bowtie2={
+           mappingApp = EzAppBowtie2$new()
+           bamParam$cmdOptions = ifelse(bamParam$mapOptions != "", bamParam$mapOptions,
+                                        "--no-unal")
+         },
+         tophat={
+           mappingApp = EzAppTophat$new()
+           bamParam$cmdOptions = ifelse(bamParam$mapOptions != "", bamParam$mapOptions,
+                                        "--mate-inner-dist 100 --mate-std-dev 150")
+         },
+         "bwa-mem"={
+           mappingApp = EzAppBWA$new()
+           bamParam$algorithm = "mem"
+           bamParam$cmdOptions = ifelse(bamParam$mapOptions != "", bamParam$mapOptions,
+                                        "")
+         },
+         stop("unsupported mapMethod: ", param$mapMethod)
+  )
+
+  mappingApp$run(input=input, output=output, param=bamParam)
   
-  if(input$readType() == "bam"){
-    fastqInput <- ezMethodBam2Fastq(input = input, param = param)
-    trimmedInput <- ezMethodTrim(input = fastqInput, param = param)
-    file.remove(fastqInput$getColumn("Read1"))
-    if(param$paired)
-      file.remove(fastqInput$getColumn("Read2"))
-  }else{
-    trimmedInput <- ezMethodTrim(input = input, param = param)
-  }
-  
-  if (!grepl("outSAMattributes", param$cmdOptions)){
-    param$cmdOptions = paste(param$cmdOptions, "--outSAMattributes All")
-  }
-  cmd = paste("STAR", " --genomeDir", refDir,  "--sjdbOverhang 150", 
-              "--readFilesIn", trimmedInput$getColumn("Read1"), 
-              if(param$paired) trimmedInput$getColumn("Read2"),
-              "--twopassMode", ifelse(param$twopassMode, "Basic", "None"),
-              "--runThreadN", ezThreads(), param$cmdOptions, 
-              "--outStd BAM_Unsorted --outSAMtype BAM Unsorted",
-              ">  Aligned.out.bam")## writes the output file Aligned.out.bam
-  ##"|", "samtools", "view -S -b -", " >", "Aligned.out.bam")
-  ezSystem(cmd)
-  file.remove(trimmedInput$getColumn("Read1"))
-  if(param$paired)
-    file.remove(trimmedInput$getColumn("Read2"))
-  
-  on.exit(file.remove(c("Log.progress.out", "Log.out", 
-                        "Log.std.out")), add=TRUE) ## clean star log files
-  
-  
-  ## Merge unmapped and mapped bam to recover the tags
-  if(input$readType() == "bam"){
-    mergeBamAlignments(alignedBamFn="Aligned.out.bam",
-                       unmappedBamFn=input$getFullPaths("Read1"),
-                       outputBamFn="Aligned.out.merged.bam",
-                       fastaFn=param$ezRef@refFastaFile)
-    file.remove("Aligned.out.bam")
-    file.rename(from="Aligned.out.merged.bam", to="Aligned.out.bam")
-  }
-  
-  nSortThreads = min(ezThreads(), 8)
-  ## if the index is loaded in shared memory we have to use only 10% of the scheduled RAM
-  if (grepl("--genomeLoad LoadAndKeep", param$cmdOptions)){
-    sortRam = param$ram / 10
-  } else {
-    sortRam = param$ram
-  }
-  
-  file.rename('Log.final.out', to = basename(output$getColumn("STARLog")))
-  
-  if (!is.null(param$markDuplicates) && param$markDuplicates){
-    ezSortIndexBam("Aligned.out.bam", "sorted.bam", ram=sortRam, removeBam=TRUE, 
-                   cores=nSortThreads)
-    javaCall = paste0("java", " -Djava.io.tmpdir=. -Xmx", 
-                      min(floor(param$ram), 10), "g")
-    cmd = paste0(javaCall, " -jar ", "$Picard_jar", " MarkDuplicates ",
-                 " TMP_DIR=. MAX_RECORDS_IN_RAM=2000000", " I=", "sorted.bam",
-                 " O=", basename(bamFile),
-                 " REMOVE_DUPLICATES=false", ## do not remove, do only mark
-                 " ASSUME_SORTED=true",
-                 " VALIDATION_STRINGENCY=SILENT",
-                 " METRICS_FILE=" ,"dupmetrics.txt",
-                 " VERBOSITY=WARNING",
-                 " >markdup.stdout 2> markdup.stderr")
-    on.exit(file.remove(c("markdup.stdout", "markdup.stderr")), add=TRUE)
-    
-    ezSystem(cmd)
-    ezSystem(paste("samtools", "index", basename(bamFile)))
-  } else {
-    ezSortIndexBam("Aligned.out.bam", basename(bamFile), ram=sortRam, 
-                   removeBam=TRUE, cores=nSortThreads)
-  }
-  
-  if (param$getJunctions){
-    ezSystem(paste("mv SJ.out.tab", basename(output$getColumn("Junctions"))))
-    ezSystem(paste("mv Chimeric.out.junction", 
-                   basename(output$getColumn("Chimerics"))))
-  }else{
-    on.exit(file.remove(c("SJ.out.tab", "Chimeric.out.junction",
-                          "Chimeric.out.sam")), add=TRUE)
-  }
-  
-  ## check the strandedness
-  if (!is.null(param$checkStrandness) && param$checkStrandness){
-    cat(Sys.getenv("PATH"), "\n")
-    bedFile = getReferenceFeaturesBed(param)
-    ezSystem(paste("infer_experiment.py", "-r", bedFile,
-                   "-i", basename(bamFile), "-s 1000000"))
-  }
-  
-  ## write an igv link
-  if (param$writeIgvSessionLink){ 
-    writeIgvSession(genome = getIgvGenome(param), 
-                    refBuild=param$ezRef["refBuild"], 
-                    file=basename(output$getColumn("IGV Session")),
-                    bamUrls = paste(PROJECT_BASE_URL, bamFile, sep="/") )
-    writeIgvJnlp(jnlpFile=basename(output$getColumn("IGV Starter")), 
-                 projectId = sub("\\/.*", "", bamFile),
-                 sessionUrl = paste(PROJECT_BASE_URL, 
-                                    output$getColumn("IGV Session"), sep="/"))
-  }
-  return("Success")
+  ## Prepare the input for featurecounts
+  featurecountsInput = output$copy()
+  featurecountsInput$dataRoot <- ""
+  featurecountsInput$setColumn("BAM",
+                               basename(output$getColumn("BAM")))
+  EzAppSingleCellFeatureCounts$new()$run(input=featurecountsInput,
+                                         output=output, param=bamParam)
+  return("SUCCESS")
 }
