@@ -308,7 +308,7 @@ output[['CellCyclePhase [File]']] = 'scRNA-p2277/FeatureCounts/NEG-CellCyclePhas
 EzAppSingleCellFeatureCounts$new()$run(input=input, output=output, param=param)
 
 ## EzAppscCounts
-setwd("/scratch/gtan/scRNA-p2277/scCount")
+setwd("/scratch/gtan/scRNA-p2277/scCount-test")
 library(ezRun)
 setEnvironments("star")
 setEnvironments("flexbar")
@@ -355,45 +355,72 @@ output[['BAM [File]']] = 'scRNA-p2277/scCount/A2B5.bam'
 output[['BAI [File]']] = 'scRNA-p2277/scCount/A2B5.bam.bai'
 output[['PreprocessingLog [File]']] = 'scRNA-p2277/scCount/A2B5_preprocessing.log'
 output[['STARLog [File]']] = 'scRNA-p2277/scCount/A2B5_STAR.log'
-output[['Count [File]']] = 'scRNA-p2277/scCount/A2B5.mtx'
+output[['Count [File]']] = 'scRNA-p2277/scCount/A2B5-counts.txt'
 output[['Stats [File]']] = 'scRNA-p2277/scCount/A2B5-stats.txt'
 output[['CellCyclePhase [File]']] = 'scRNA-p2277/scCount/A2B5-CellCyclePhase.txt'
 output[['CellDataset [File]']] = 'scRNA-p2277/scCount/A2B5-dataset.txt'
-#undebug(ezMethodscCounts)
-EzAppscCounts$new()$run(input=input, output=output, param=param)
-
-
-## Scater
-library(ezRun)
-param = list()
-param[['cores']] = '1'
-param[['ram']] = '8'
-param[['scratch']] = '10'
-param[['node']] = ''
-param[['process_mode']] = 'SAMPLE'
-param[['name']] = 'Scater_QC'
-param[['refBuild']] = 'Mus_musculus/Ensembl/GRCm38.p5/Annotation/Release_89-2017-05-31'
-param[['refFeatureFile']] = 'genes.gtf'
-param[['featureLevel']] = 'gene'
-param[['specialOptions']] = ''
-param[['mail']] = ''
-param[['dataRoot']] = '/scratch/gtan'
-param[['resultDir']] = 'scRNA-p2277/Scater'
-output = list()
-output[['Name']] = 'Scater_QC'
-output[['Species']] = 'Mus musculus'
-output[['refBuild']] = 'Mus_musculus/Ensembl/GRCm38.p5/Annotation/Release_89-2017-05-31'
-output[['Static Report [Link]']] = 'p2277/ScaterApp_20774_2017-09-05--07-25-28/Scater_QC/00index.html'
-output[['Live Report [Link]']] = 'http://fgcz-shiny.uzh.ch/fgcz_scater_app/?data=p2277/ScaterApp_20774_2017-09-05--07-25-28/Scater_QC/counts-cbbohwdtniyq-EzResult.RData'
-output[['Report [File]']] = 'p2277/ScaterApp_20774_2017-09-05--07-25-28/Scater_QC'
-input = list()
+EzAppSCCounts$new()$run(input=input, output=output, param=param)
+## Auto
+input[['Name']] = 'Auto'
+input[['Read1']] = 'scRNA-p2277/HiSeq4000_20170822_RUN376_o3645/Auto_unmapped_part.bam'
+input[['CellDataset']] = 'scRNA-p2277/HiSeq4000_20170822_RUN376_o3645/Auto-dataset.tsv'
+output[['Name']] = 'Auto'
+output[['BAM [File]']] = 'scRNA-p2277/scCount/Auto.bam'
+output[['BAI [File]']] = 'scRNA-p2277/scCount/Auto.bam.bai'
+output[['PreprocessingLog [File]']] = 'scRNA-p2277/scCount/Auto_preprocessing.log'
+output[['STARLog [File]']] = 'scRNA-p2277/scCount/Auto_STAR.log'
+output[['Count [File]']] = 'scRNA-p2277/scCount/Auto-counts.txt'
+output[['Stats [File]']] = 'scRNA-p2277/scCount/Auto-stats.txt'
+output[['CellCyclePhase [File]']] = 'scRNA-p2277/scCount/Auto-CellCyclePhase.txt'
+output[['CellDataset [File]']] = 'scRNA-p2277/scCount/Auto-dataset.txt'
+EzAppSCCounts$new()$run(input=input, output=output, param=param)
+## NEG
 input[['Name']] = 'NEG'
-input[['CountDataset']] = 'p2277/SingleCellCountsApp_20773_2017-09-04--17-25-44/NEG-dataset.tsv'
-input[['CountMatrix']] = 'p2277/SingleCellCountsApp_20773_2017-09-04--17-25-44/NEG-counts.txt'
-input[['CountFolder']] = 'p2277/SingleCellCountsApp_20773_2017-09-04--17-25-44/NEG-Counts'
-input[['CellCyclePhase']] = 'p2277/SingleCellCountsApp_20773_2017-09-04--17-25-44/NEG-CellCyclePhase.txt'
-input[['Species']] = 'Mus musculus'
-input[['refBuild']] = 'Mus_musculus/Ensembl/GRCm38.p5/Annotation/Release_89-2017-05-31'
-input[['paired']] = 'false'
-input[['refFeatureFile']] = 'genes.gtf'
-EzAppScater$new()$run(input=input, output=output, param=param)
+input[['Read1']] = 'scRNA-p2277/HiSeq4000_20170822_RUN376_o3645/NEG_unmapped_part.bam'
+input[['CellDataset']] = 'scRNA-p2277/HiSeq4000_20170822_RUN376_o3645/NEG-dataset.tsv'
+output[['Name']] = 'NEG'
+output[['BAM [File]']] = 'scRNA-p2277/scCount/NEG.bam'
+output[['BAI [File]']] = 'scRNA-p2277/scCount/NEG.bam.bai'
+output[['PreprocessingLog [File]']] = 'scRNA-p2277/scCount/NEG_preprocessing.log'
+output[['STARLog [File]']] = 'scRNA-p2277/scCount/NEG_STAR.log'
+output[['Count [File]']] = 'scRNA-p2277/scCount/NEG-counts.txt'
+output[['Stats [File]']] = 'scRNA-p2277/scCount/NEG-stats.txt'
+output[['CellCyclePhase [File]']] = 'scRNA-p2277/scCount/NEG-CellCyclePhase.txt'
+output[['CellDataset [File]']] = 'scRNA-p2277/scCount/NEG-dataset.txt'
+EzAppSCCounts$new()$run(input=input, output=output, param=param)
+
+
+# ## Scater
+# library(ezRun)
+# param = list()
+# param[['cores']] = '1'
+# param[['ram']] = '8'
+# param[['scratch']] = '10'
+# param[['node']] = ''
+# param[['process_mode']] = 'SAMPLE'
+# param[['name']] = 'Scater_QC'
+# param[['refBuild']] = 'Mus_musculus/Ensembl/GRCm38.p5/Annotation/Release_89-2017-05-31'
+# param[['refFeatureFile']] = 'genes.gtf'
+# param[['featureLevel']] = 'gene'
+# param[['specialOptions']] = ''
+# param[['mail']] = ''
+# param[['dataRoot']] = '/scratch/gtan'
+# param[['resultDir']] = 'scRNA-p2277/Scater'
+# output = list()
+# output[['Name']] = 'Scater_QC'
+# output[['Species']] = 'Mus musculus'
+# output[['refBuild']] = 'Mus_musculus/Ensembl/GRCm38.p5/Annotation/Release_89-2017-05-31'
+# output[['Static Report [Link]']] = 'p2277/ScaterApp_20774_2017-09-05--07-25-28/Scater_QC/00index.html'
+# output[['Live Report [Link]']] = 'http://fgcz-shiny.uzh.ch/fgcz_scater_app/?data=p2277/ScaterApp_20774_2017-09-05--07-25-28/Scater_QC/counts-cbbohwdtniyq-EzResult.RData'
+# output[['Report [File]']] = 'p2277/ScaterApp_20774_2017-09-05--07-25-28/Scater_QC'
+# input = list()
+# input[['Name']] = 'NEG'
+# input[['CountDataset']] = 'p2277/SingleCellCountsApp_20773_2017-09-04--17-25-44/NEG-dataset.tsv'
+# input[['CountMatrix']] = 'p2277/SingleCellCountsApp_20773_2017-09-04--17-25-44/NEG-counts.txt'
+# input[['CountFolder']] = 'p2277/SingleCellCountsApp_20773_2017-09-04--17-25-44/NEG-Counts'
+# input[['CellCyclePhase']] = 'p2277/SingleCellCountsApp_20773_2017-09-04--17-25-44/NEG-CellCyclePhase.txt'
+# input[['Species']] = 'Mus musculus'
+# input[['refBuild']] = 'Mus_musculus/Ensembl/GRCm38.p5/Annotation/Release_89-2017-05-31'
+# input[['paired']] = 'false'
+# input[['refFeatureFile']] = 'genes.gtf'
+# EzAppScater$new()$run(input=input, output=output, param=param)

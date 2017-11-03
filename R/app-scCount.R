@@ -148,15 +148,15 @@ EzAppSingleCellCounts <-
 ##' @template app-template
 ##' @templateVar method ezMethodSingleCellCounts(input=NA, output=NA, param=NA)
 ##' @description Use this reference class to run 
-EzAppscCounts <-
-  setRefClass("EzAppscCounts",
+EzAppSCCounts <-
+  setRefClass("EzAppSCCounts",
               contains = "EzApp",
               methods = list(
                 initialize = function()
                 {
                   "Initializes the application using its specific defaults."
-                  runMethod <<- ezMethodscCounts
-                  name <<- "EzAppscCounts"
+                  runMethod <<- ezMethodSCCounts
+                  name <<- "EzAppSCCounts"
                   appDefaults <<- rbind(mapMethod=ezFrame(Type="character",	
                                                           DefaultValue="STAR",
                                                           Description="the mapper to use"),
@@ -172,7 +172,7 @@ EzAppscCounts <-
   )
 
 
-ezMethodscCounts = function(input=NA, output=NA, param=NA,
+ezMethodSCCounts = function(input=NA, output=NA, param=NA,
                             htmlFile="00index.html"){
   metainput = EzDataset(file=input$getFullPaths("CellDataset"),
                         dataRoot=param$dataRoot)
@@ -223,6 +223,13 @@ ezMethodscCounts = function(input=NA, output=NA, param=NA,
   )
 
   mappingApp$run(input=input, output=output, param=bamParam)
-  EzAppSingleCellFeatureCounts$new()$run(input=output, output=output, param=bamParam)
+  
+  ## Prepare the input for featurecounts
+  featurecountsInput = output$copy()
+  featurecountsInput$dataRoot <- ""
+  featurecountsInput$setColumn("BAM",
+                               basename(output$getColumn("BAM")))
+  EzAppSingleCellFeatureCounts$new()$run(input=featurecountsInput,
+                                         output=output, param=bamParam)
   return("SUCCESS")
 }
