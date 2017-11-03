@@ -307,6 +307,60 @@ output[['Stats [File]']] = 'scRNA-p2277/FeatureCounts/NEG-stats.txt'
 output[['CellCyclePhase [File]']] = 'scRNA-p2277/FeatureCounts/NEG-CellCyclePhase.txt'
 EzAppSingleCellFeatureCounts$new()$run(input=input, output=output, param=param)
 
+## EzAppscCounts
+setwd("/scratch/gtan/scRNA-p2277/scCount")
+library(ezRun)
+setEnvironments("star")
+setEnvironments("flexbar")
+setEnvironments("trimmomatic")
+setEnvironments("python2")
+setEnvironments("samtools")
+param = list()
+param[['cores']] = '8'
+param[['ram']] = '40'
+param[['scratch']] = '100'
+param[['node']] = ''
+param[['process_mode']] = 'SAMPLE'
+param[['refBuild']] = 'Mus_musculus/Ensembl/GRCm38.p5/Annotation/Release_89-2017-05-31'
+param[['paired']] = 'false'
+param[['strandMode']] = 'both'
+param[['refFeatureFile']] = 'genes.gtf'
+param[['cmdOptions']] = '--outFilterType BySJout --outFilterMatchNmin 30 --outFilterMismatchNmax 10 --outFilterMismatchNoverLmax 0.05 --alignSJDBoverhangMin 1 --alignSJoverhangMin 8 --alignIntronMax 1000000 --alignMatesGapMax 1000000  --outFilterMultimapNmax 50 --chimSegmentMin 15 --chimJunctionOverhangMin 15 --chimScoreMin 15 --chimScoreSeparation 10 --outSAMstrandField intronMotif'
+param[['getChimericJunctions']] = 'false'
+param[['trimAdapter']] = 'true'
+param[['trimLeft']] = '5'
+param[['trimRight']] = '0'
+param[['minTailQuality']] = '10'
+param[['minAvgQuality']] = '10'
+param[['minReadLength']] = '20'
+param[['specialOptions']] = ''
+param[['mail']] = 'ge.tan@fgcz.ethz.ch'
+param[['dataRoot']] = '/scratch/gtan'
+param[['resultDir']] = 'scRNA-p2277/scCount'
+output = list()
+output[['Species']] = 'Mus musculus'
+output[['refBuild']] = 'Mus_musculus/Ensembl/GRCm38.p5/Annotation/Release_89-2017-05-31'
+output[['paired']] = 'false'
+output[['refFeatureFile']] = 'genes.gtf'
+output[['strandMode']] = 'antisense'
+input = list()
+input[['Species']] = 'Mus musculus'
+input[['strandMode']] = 'both'
+## A2B5
+input[['Name']] = 'A2B5'
+input[['Read1']] = 'scRNA-p2277/HiSeq4000_20170822_RUN376_o3645/A2B5_unmapped_part.bam'
+output[['Name']] = 'A2B5'
+output[['BAM [File]']] = 'scRNA-p2277/scCount/A2B5.bam'
+output[['BAI [File]']] = 'scRNA-p2277/scCount/A2B5.bam.bai'
+output[['PreprocessingLog [File]']] = 'scRNA-p2277/scCount/A2B5_preprocessing.log'
+output[['STARLog [File]']] = 'scRNA-p2277/scCount/A2B5_STAR.log'
+output[['Count [File]']] = 'scRNA-p2277/scCount/A2B5.mtx'
+output[['Stats [File]']] = 'scRNA-p2277/scCount/A2B5-stats.txt'
+output[['CellCyclePhase [File]']] = 'scRNA-p2277/scCount/A2B5-CellCyclePhase.txt'
+#undebug(ezMethodscCounts)
+EzAppscCounts$new()$run(input=input, output=output, param=param)
+
+
 ## Scater
 library(ezRun)
 param = list()

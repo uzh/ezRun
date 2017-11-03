@@ -196,8 +196,10 @@ ezMethodSingleCellFeatureCounts <- function(input=NA, output=NA, param=NA){
   require(Matrix) # 
   bamFile = input$getFullPaths("BAM")
   localBamFile = .getBamLocally(bamFile)
-  on.exit(file.remove(c(localBamFile, paste0(localBamFile, ".bai"))),
-          add=TRUE)
+  if(localBamFile != bamFile){
+    on.exit(file.remove(c(localBamFile, paste0(localBamFile, ".bai"))),
+            add=TRUE)
+  }
   outputFile = basename(output$getColumn("Count"))
   statFile = basename(output$getColumn("Stats"))
   
