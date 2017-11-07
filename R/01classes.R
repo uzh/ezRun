@@ -318,12 +318,14 @@ EzApp <-
                     logMessage(name, param, "Starting")
                     param = ezParam(param, appDefaults=appDefaults)
                     waitForFreeDiskSpace(param)
-                    cwd = getwd()
+                    jobDir = getwd()
                     result = runMethod(input=input$copy(), output=output$copy(), param=param)
-                    setwd(cwd)
+                    setwd(jobDir)
                     return(result)
-                  }, error=function(e){dump.frames(format(Sys.time(), format="dump_%Y%m%d%H%M%S"), to.file=TRUE);
-                    stackTrace <<- limitedLabels(sys.calls(), maxwidth = 200);}
+                  }, error=function(e){
+                    dump.frames(format(Sys.time(), format="dump_%Y%m%d%H%M%S"), to.file=TRUE);
+                    stackTrace <<- limitedLabels(sys.calls(), maxwidth = 200);
+                  }
                   )
                 },
                 appExitAction = function(param, output, appName="unknown")

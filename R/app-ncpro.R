@@ -70,8 +70,9 @@ ncpro = function(input, dataset, param=NULL){
     fqFile = paste0(rawDir, "/", sm, ".fastq")
     ezSystem(paste("ln -s", trimmedFastqFiles[sm], fqFile))
   }
-  refIndex = getBowtieReference(param)
-  Sys.setenv(BOWTIE_INDEXES=dirname(refIndex))
+  # we now specify the absolute path of the index in the config file
+  # refIndex = getBowtieReference(param)
+  # Sys.setenv(BOWTIE_INDEXES=dirname(refIndex))
   setwd(workDir)
   
   workflowSteps = c("processRead","mapGenome","mapGenomeStat","processBam","mapAnnOverview",
