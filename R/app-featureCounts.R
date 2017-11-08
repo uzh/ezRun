@@ -201,7 +201,7 @@ ezMethodSingleCellFeatureCounts <- function(input=NA, output=NA, param=NA){
             add=TRUE)
   }
   
-  outputFile = basename(output$getColumn("Count"))
+  outputFile = basename(output$getColumn("CountMatrix"))
   statFile = basename(output$getColumn("Stats"))
   
   require(Rsamtools)
