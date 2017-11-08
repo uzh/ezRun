@@ -180,7 +180,8 @@ ezMethodSCCounts = function(input=NA, output=NA, param=NA,
   cellMeta[["BAM [File]"]] = output$getColumn("BAM")
   cellMeta[["BAI [File]"]] = output$getColumn("BAI")
   cellMeta[["STARLog [File]"]] = output$getColumn("STARLog")
-  cellMeta[['Count [File]']] = output$getColumn("Count")
+  cellMeta[["PreprocessingLog [File]"]] = output$getColumn("PreprocessingLog")
+  cellMeta[['CountMatrix [File]']] = output$getColumn("CountMatrix")
   cellMeta[['Stats [File]']] = output$getColumn("Stats")
   cellMeta[['CellCyclePhase [File]']] = output$getColumn("Stats")
   ezWrite.table(cellMeta, file=basename(output$getColumn('CellDataset')),
