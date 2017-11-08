@@ -297,7 +297,7 @@ addCountResultSummarySE = function(doc, param, se){
 makeCountResultSummary = function(param, se){
   settings = character()
   settings["Analysis:"] = metadata(se)$analysis
-  settings["Feature level:"] = metadata(se)$featureLeve
+  settings["Feature level:"] = metadata(se)$featureLevel
   settings["Data Column Used:"] = metadata(se)$countName
   settings["Method:"] = metadata(se)$method
   if (ezIsSpecified(param$grouping2)){
