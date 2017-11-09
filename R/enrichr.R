@@ -207,8 +207,8 @@ enrichrEnrich <- function(userListId, libNames = getEnrichrLibNames(), connectio
       
       curl_fetch_multi(
           paste(reqUrl, qryString, sep="?"),
-          # failonerror will cause curl to fail for any response status >= 400
-          handle = new_handle(failonerror = F),
+          # failonerror=T will cause curl to fail for any response status >= 400
+          handle = new_handle(failonerror = T),
           pool = pool,
           done = function(x) {
             # libName may be bound after the loop is done rather than immediately. In that case, all
