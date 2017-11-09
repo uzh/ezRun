@@ -188,7 +188,7 @@ ezMethodSCCounts = function(input=NA, output=NA, param=NA,
                 head='Name')
   
   bamParam = param
-  bamParam$mail = ""
+  #bamParam$mail = "" Let's send several emails during SCCounts. It's a long computation.
 
   switch(param$mapMethod,
          STAR={
