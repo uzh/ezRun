@@ -30,11 +30,11 @@ ezMethodSpades = function(input=NA, output=NA, param=NA, htmlFile="00index.html"
   cfile <- file.path(wddir, "spades/contigs.fasta")
   if (file.exists(sfile)){
   	ezSystem(paste("cp", "spades/scaffolds.fasta", basename(output$getColumn("Draft"))))
-  }elsif (file.exists(cfile)){
+  }else if (file.exists(cfile)){
   	ezSystem(paste("cp", "spades/contigs.fasta", basename(output$getColumn("Draft"))))
   }
   ezSystem(paste("mv", "spades", sampleName))
-  cmd = paste0('mv trimmomatic.err ', sampleName, '_trimmomatic.log')
+  cmd = paste0('mv ', sampleName, '_preprocessing.log', sampleName, '_trimmomatic.log')
   ezSystem(cmd)
   return("Success")
 }
