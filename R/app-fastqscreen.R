@@ -50,6 +50,7 @@ ezMethodFastqScreen = function(input=NA, output=NA, param=NA, htmlFile="00index.
     speciesPercentageTopVirus = NULL
   }
   
+  rRNA_strandInfo = get_rRNA_Strandness(param, input)
   #create report
   setwdNew(basename(output$getColumn("Report")))
   
@@ -179,6 +180,40 @@ executeBowtie2CMD_Virus = function(param, files){
     ezSystem(cmd)
   }
   return(countFiles)
+}
+
+get_rRNA_Strandness = function(param, input){
+  rRNA_REF = '/srv/GT/reference/Silva/silva/release_123_1/SILVA_123.1_LSU_SSU'
+  r1Files = input$getFullPaths("Read1")
+  
+  countFiles = character()
+  for (nm in names(r1Files)){
+    countFiles[nm] = paste0(nm, "-counts.txt")
+    bowtie2options = param$cmdOptions
+    writeLines("ReadID\tFlag\tID\tAlignmentScore", countFiles[nm])
+    
+      cmd = paste('bowtie2',"-x",rRNA_REF, 
+                  " -U ", r1Files[nm], bowtie2options ,"-p",param$cores,
+                  "--no-unal --no-hd --mm", "2> ", paste0(nm, "_bowtie2.err"),
+                  "| cut -f1,2,3,12", " |sed s/AS:i://g", ">>", countFiles[nm])
+    ezSystem(cmd)
+  }
+
+  rRNA_strandInfo = matrix(0, nrow = length(countFiles), ncol = 2)
+  colnames(rRNA_strandInfo) = c('Sense', 'Antisense')
+  rownames(rRNA_strandInfo) = names(r1Files)
+  k = 1
+  for (nm in names(countFiles)){
+    countData = ezRead.table(countFiles[nm], row.names = NULL)
+    bestScores = tapply(countData$AlignmentScore, countData$ReadID, max)
+    countData = countData[countData$AlignmentScore == bestScores[countData$ReadID], , drop=FALSE]
+    countData = countData[countData$AlignmentScore >= param$minAlignmentScore, , drop=FALSE]
+    rRNA_strandInfo[k, 1] = length(which(countData$Flag == 0))
+    rRNA_strandInfo[k, 2] = length(which(countData$Flag == 16))
+    k = k + 1
+  }
+  ezWrite.table(rRNA_strandInfo, 'rRNA_strandInfo.txt')
+  return(rRNA_strandInfo)
 }
 
 collectBowtie2Output = function(param, dataset, countFiles, readCount, virusResult = F){
