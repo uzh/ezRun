@@ -64,7 +64,8 @@ fastqs2bam <- function(fastqFns, fastq2Fns=NULL, readGroupNames=NULL,
                          basename(fastqFns))
   if(is.null(readGroupNames))
     readGroupNames <- sampleBasenames
-  cmd <- paste("java -jar", Sys.getenv("Picard_jar"), "FastqToSam",
+  cmd <- paste("java -Djava.io.tmpdir=. -jar", 
+               Sys.getenv("Picard_jar"), "FastqToSam",
                paste0("F1=", fastqFns),
                ifelse(isTRUE(paired), paste0("F2=", fastq2Fns), ""),
                paste0("O=", sampleBasenames, ".bam"),
@@ -73,7 +74,8 @@ fastqs2bam <- function(fastqFns, fastq2Fns=NULL, readGroupNames=NULL,
                )
   lapply(cmd, ezSystem)
   ## picard tools merge
-  cmd <- paste("java -jar", Sys.getenv("Picard_jar"), "MergeSamFiles",
+  cmd <- paste("java -Djava.io.tmpdir=. -jar", 
+               Sys.getenv("Picard_jar"), "MergeSamFiles",
                paste0("I=", paste0(sampleBasenames, ".bam"), collapse=" "),
                paste0("O=", bamFn),
                "USE_THREADING=true", "SORT_ORDER=queryname")
@@ -92,7 +94,8 @@ bam2fastq <- function(bamFns,
   if(!isTRUE(isValidEnvironments("picard"))){
     setEnvironments("picard")
   }
-  cmd <- paste("java -jar", Sys.getenv("Picard_jar"), "SamToFastq",
+  cmd <- paste("java -Djava.io.tmpdir=. -jar", 
+               Sys.getenv("Picard_jar"), "SamToFastq",
                paste0("I=", bamFns),
                paste0("FASTQ=", fastqFns),
                ifelse(isTRUE(paired), PASTE0("SECOND_END_FASTQ=", fastq2Fns),

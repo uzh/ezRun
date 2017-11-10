@@ -46,7 +46,7 @@ ezParam = function(userParam=list(), globalDefaults=getGlobalDefaults(), appDefa
   }
   ## avoid special characters in any option
   lapply(userParam, function(optString){
-    if (class(optString) == "character" && any(grepl("[;\\(){}$%#!*]", optString))){
+    if (class(optString) == "character" && any(grepl("[;\\{}$%#!*]", optString))){
       stop("special characters not allowed in option string: ", optString)
     }
   })
@@ -77,7 +77,7 @@ parseOptions = function(optString){
   if (length(grep("[[:cntrl:]]", optString))> 0){
     stop("control characters not allowed in option string")
   }
-  if (any(grepl("[;\\(){}$%#!*]", optString))){
+  if (any(grepl("[;\\{}$%#!*]", optString))){
     stop("special characters not allowed in option string")
   }
   params = unlist(strsplit(optString, " ", fixed=TRUE))

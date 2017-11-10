@@ -40,17 +40,19 @@ ezMethodDEXSeqAnalysis <- function(input=NA, output=NA, param=NA){
 
   param[['BPPARAM']] = BiocParallel::MulticoreParam(workers=param$cores)
   ### # check whether conditions are specified
-  colnames(input$meta) = gsub(' \\[.*','',colnames(input$meta))
-  if (param$grouping %in% colnames(input$meta))
-    condition <- input$meta[[param$grouping]]
+  condition = input$getColumn(param$grouping)
+  # colnames(input$meta) = gsub(' \\[.*','',colnames(input$meta))
+  # if (param$grouping %in% colnames(input$meta))
+  #   condition <- input$meta[[param$grouping]]
 
   ### # if conditions are not specified, then we have to stop here
   if (is.null(condition))
     stop(" * No conditions were specified in ezMethodDEXSeqAnalysis")
 
   ###Count only relevant bam-files
-  condition = condition[which(input$meta[[param$grouping]] %in% c(param$sampleGroup,param$refGroup))]
-  input$meta = input$meta[which(input$meta[[param$grouping]] %in% c(param$sampleGroup,param$refGroup)),]
+  samplesUse = condition %in% c(param$sampleGroup,param$refGroup)
+  input = input$subset(samplesUse)
+  condition = factor(condition[samplesUse], levels=c(param$refGroup, param$sampleGroup))
 
 
   sampleTable <- data.frame(
@@ -89,19 +91,21 @@ ezMethodDEXSeqAnalysis <- function(input=NA, output=NA, param=NA){
     flattenedfile = sRefFeatGff )
 
   countData = counts(dxd)[,1:length(countFiles)]
-  rownames(countData) = gsub(':.*','',rownames(countData))
-  countDataPerGene = matrix(0,length(unique(rownames(countData))),ncol(countData))
-  colnames(countDataPerGene) = colnames(countData)
-  rownames(countDataPerGene) = unique(rownames(countData))
+  countDataPerGene = averageRows(countData, by=gsub(':.*','',rownames(countData)), func = sum)
+  # rownames(countData) = gsub(':.*','',rownames(countData))
+  # countDataPerGene = matrix(0,length(unique(rownames(countData))),ncol(countData))
+  # colnames(countDataPerGene) = colnames(countData)
+  # rownames(countDataPerGene) = unique(rownames(countData))
+  # 
+  # for (j in 1:ncol(countDataPerGene)){
+  #    countDataPerGene[,j] = tapply(countData[,j],INDEX = rownames(countData),sum)
+  # }
 
-  for (j in 1:ncol(countDataPerGene)){
-     countDataPerGene[,j] = tapply(countData[,j],INDEX = rownames(countData),sum)
-  }
-
-  presentGenes = rownames(countDataPerGene)[which(rowMax(countDataPerGene)>param[['minGeneExprCount']] & apply(countDataPerGene,1,aboveMinExprSamples,minExpr=param[['minGeneExprCount']])>1)]
-  filteredCountData = counts(dxd)[which(rownames(countData) %in% presentGenes),1:length(countFiles)] + param$countOffset
-  transcripts = rowData(dxd)$transcripts[which(rownames(countData) %in% presentGenes)]
-  featureRanges = rowRanges(dxd)[which(rownames(countData) %in% presentGenes)]
+  presentGenes = rownames(countDataPerGene)[rowSums(countDataPerGene > param[['minGeneExprCount']]) > 1]
+  #presentGenes = rownames(countDataPerGene)[which(rowMax(countDataPerGene)>param[['minGeneExprCount']] & apply(countDataPerGene,1,aboveMinExprSamples,minExpr=param[['minGeneExprCount']])>1)]
+  filteredCountData = counts(dxd)[rownames(countData) %in% presentGenes , 1:length(countFiles)] + param$countOffset
+  transcripts = rowData(dxd)$transcripts[rownames(countData) %in% presentGenes]
+  featureRanges = rowRanges(dxd)[rownames(countData) %in% presentGenes]
 
   dxd <- DEXSeq::DEXSeqDataSet(
     filteredCountData,
@@ -113,8 +117,6 @@ ezMethodDEXSeqAnalysis <- function(input=NA, output=NA, param=NA){
     featureRanges = featureRanges
 )
 
-  ### # define the reference group in the condition levels
-  dxd$condition <- relevel(dxd$condition, param$refGroup)
 
   ### # estimate size factors and dispersion
   dxd <- DEXSeq::estimateSizeFactors( dxd )
@@ -124,7 +126,7 @@ ezMethodDEXSeqAnalysis <- function(input=NA, output=NA, param=NA){
   dxd  <- DEXSeq::testForDEU( dxd, BPPARAM = param[['BPPARAM']] )
 
   ### # fold changes
-  dxd <- DEXSeq::estimateExonFoldChanges( dxd, fitExpToVar = tolower(param$grouping), BPPARAM = param[['BPPARAM']], denominator = param$refGroup)
+  dxd <- DEXSeq::estimateExonFoldChanges( dxd, BPPARAM = param[['BPPARAM']], denominator = param$refGroup)
 
   ### # generate a report
   writeDEXSeqReport(dataset = input$meta, dexResult = list(param = param, dxd=dxd), sResultDir = basename(output$meta[['Report [File]']]))
@@ -165,11 +167,11 @@ EzAppDEXSeqAnalysis <-
 
 #' Addition experimental conditions to input files
 #'
-addDEXSeqCondition = function(psInput, pvCondition){
-  x = ezRead.table(psInput)
-  x$Condtion = pvCondition
-  write.table(x, file = psInput, quote = FALSE, sep = "\t")
-}
+# addDEXSeqCondition = function(psInput, pvCondition){
+#   x = ezRead.table(psInput)
+#   x$Condition = pvCondition
+#   write.table(x, file = psInput, quote = FALSE, sep = "\t")
+# }
 
 
 #' @title Writing a report for a DEXSeq analysis
@@ -455,7 +457,7 @@ DEXSeqCounting <- function(input = input, output = output, param = param){
   if (ezIsSpecified(param$countfile_ext))
     sCountfileExt <- param$countfile_ext
   ### # call counting routine
-  ramPerJob = round((param[['ram']]*1000)/param[['cores']])
+  ramPerJob = round((param[['ram']]*1000)/param[['cores']] * 0.25) ## keep a reserve of 25% RAM ... for samtools being greedhy and the Dexseq python script
   vCountFiles <- ezMclapply(bamFiles, runCountSingleBam, sGffFile, sCountfileExt, param$strandMode, param$paired, ramPerJob, mc.cores = param[['cores']])
 
   return("Success")
@@ -493,10 +495,12 @@ convertGtfToGff <- function(psGtfFile, psGffFile) {
 #'
 runCountSingleBam <- function(psBamFile, psGffFile, psCountfileExt, strandMode, Paired, ramPerJob){
   if(Paired){
+    # samCmd = paste("samtools", "sort -n" , psBamFile, "-m", paste0(ramPerJob,"M"), "-O SAM")
     stopifnot(psBamFile != basename(psBamFile))
     ezSystem(paste("samtools", "sort -n" ,psBamFile, "-m", paste0(ramPerJob,"M"), "-o", basename(psBamFile)))
     psBamFile = basename(psBamFile)
   }
+  samCmd = paste("samtools", "view -h", psBamFile)
 
   ### # run counting on sam file
   sCountBaseFn <- gsub("bam$", psCountfileExt, basename(psBamFile))
@@ -511,11 +515,9 @@ runCountSingleBam <- function(psBamFile, psGffFile, psCountfileExt, strandMode, 
     cmd = paste(cmd,'--stranded no')
   }
 
-  sPyCountCmd <- paste("samtools", "view -h", psBamFile, "|", cmd, psGffFile, "-", sCountBaseFn)
-
+  sPyCountCmd <- paste(samCmd, "|", cmd, psGffFile, "-", sCountBaseFn, "2>", paste0(sCountBaseFn, ".err"))
   ezSystem(sPyCountCmd)
-  sCountDir <- getwd()
-  return(file.path(sCountDir, sCountBaseFn))
+  return(file.path(getwd(), sCountBaseFn))
 }
 
 
