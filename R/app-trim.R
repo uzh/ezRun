@@ -135,7 +135,7 @@ ezMethodTrim = function(input=NA, output=NA, param=NA){
       readOpts = paste(
         input$getFullPaths("Read1"), r1TmpFile)
     }
-    cmd = paste("java -jar", Sys.getenv("Trimmomatic_jar"), method,
+    cmd = paste("java -Djava.io.tmpdir=. -jar", Sys.getenv("Trimmomatic_jar"), method,
                 "-threads", min(ezThreads(), 8), "-phred33", ## hardcode phred33 quality encoding
                 #"-trimlog", paste0(input$getNames(), "-trimmomatic.log"),
                 readOpts, trimAdaptOpt, tailQualOpt, minAvgQualOpt,
