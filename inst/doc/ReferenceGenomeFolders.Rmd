@@ -106,5 +106,5 @@ samtools faidx genome.fa
 ```
 * create the genome dict file with
 ```
-java -jar picard.jar CreateSequenceDictionary R=genome.fa O=genome.dict
+java -Djava.io.tmpdir=. -jar picard.jar CreateSequenceDictionary R=genome.fa O=genome.dict
 ```
