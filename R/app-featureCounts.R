@@ -7,63 +7,35 @@
 
 
 ezMethodFeatureCounts = function(input=NA, output=NA, param=NA){
+  require(GenomicRanges)
   bamFile = input$getFullPaths("BAM")
   localBamFile = .getBamLocally(bamFile)
+  if(localBamFile != bamFile){
+    on.exit(file.remove(c(localBamFile, paste0(localBamFile, ".bai"))),
+            add=TRUE)
+  }
+  
   outputFile = basename(output$getColumn("Count"))
   statFile = basename(output$getColumn("Stats"))
   
-  if (ezIsSpecified(param$transcriptTypes)){
-    gtfFile = "genes.gtf"
-    seqAnno = ezFeatureAnnotation(param$ezRef@refAnnotationFile,
-                                  dataFeatureType="transcript")
-    transcriptsUse = rownames(seqAnno)[seqAnno$type %in% param$transcriptTypes]
-    require(data.table)
-    require(stringr)
-    gtf <- ezReadGff(param$ezRef@refFeatureFile)
-    transcripts <- ezGffAttributeField(gtf$attributes,
-                                       field="transcript_id", 
-                                       attrsep="; *", valuesep=" ")
-    gtf = gtf[transcripts %in% transcriptsUse, ]
-    ## write.table is much faster than write_tsv and export.
-    ### write_tsv: 38.270s
-    ### export: 347.998s
-    ### write.table: 8.787s
-    write.table(gtf, gtfFile, quote=FALSE, sep="\t", 
-                row.names=FALSE, col.names=FALSE)
-  } else {
-    gtfFile = param$ezRef@refFeatureFile
-  }
-  
-  sink(file="featureCounts-messages.txt")
   if(!is.null(param$aroundTSSCounting) && param$aroundTSSCounting){
-    ## TODO:  refactor below; you can not rely that "gene" entries are in the gtf file; GenomicFeatures has functions for flanking
-    ## - load the gtf in a txdb, use the promoter function to get the promoters
-    ## - read transcript type from the genes_annotation.txt
-    ## - filter on transcript type
-    ## - provide the promoter coordinates as a data.frame to featureCounts 
-    gtf = rtracklayer::import(param$ezRef@refFeatureFile)
-    idx = gtf$type == 'gene'
-    gtf = gtf[idx]
-    
+    gtf <- rtracklayer::import(param$ezRef@refFeatureFile)
+    seqlengthsRef <- fasta.seqlengths(param$ezRef@refFastaFile)
+    seqlengths(gtf) <- seqlengthsRef[names(seqlengths(gtf))]
+    gtf <- gtf[gtf$type == "gene"]
     if (ezIsSpecified(param$transcriptTypes)){
-      idx = gtf$gene_biotype %in% param$transcriptTypes
-      gtf = gtf[idx]
+      seqAnno = ezFeatureAnnotation(param$ezRef@refAnnotationFile,
+                                    dataFeatureType="gene")
+      genesUse <- rownames(seqAnno)[seqAnno$type %in% param$transcriptTypes]
+      gtf <- gtf[gtf$gene_id %in% genesUse]
     }
     
-    rtracklayer::export(gtf, 'genes.gtf')
-    
-    gtf <- fread('genes.gtf', header=FALSE)
-    colnames(gtf) = c('seqname','source','feature','start','end','score','strand','frame','attribute')
-    for (i in 1:nrow(gtf)){
-      if(gtf[['strand']][i] == '+'){
-        gtf[['end']][i] = max(0,gtf[['start']][i] + param$downstreamFlanking)
-        gtf[['start']][i] = max(0,gtf[['start']][i] - param$upstreamFlanking)
-      } else {
-        gtf[['start']][i] = max(0,gtf[['end']][i] - param$downstreamFlanking)
-        gtf[['end']][i] = max(0,gtf[['end']][i] + param$upstreamFlanking)
-      }
-    }
-    write.table(gtf, gtfFile, quote=FALSE, sep="\t", row.names=FALSE, col.names=FALSE)
+    gtfFile = paste(Sys.getpid(), "genes.gtf", sep="-")
+    gtf <- trim(suppressWarnings(promoters(gtf, upstream=param$upstreamFlanking,
+                                           downstream=param$downstreamFlanking)))
+    rtracklayer::export(gtf, gtfFile)
+    on.exit(file.remove(gtfFile), add=TRUE)
+
     countResult = Rsubread::featureCounts(localBamFile, annot.inbuilt=NULL,
                                           annot.ext=gtfFile, isGTFAnnotationFile=TRUE,
                                           GTF.featureType='gene',
@@ -88,6 +60,29 @@ ezMethodFeatureCounts = function(input=NA, output=NA, param=NA){
                                           countChimericFragments=TRUE,
                                           chrAliases=NULL,reportReads=NULL)
   }else{
+    ## Count exons by gene
+    if (ezIsSpecified(param$transcriptTypes)){
+      gtfFile = paste(Sys.getpid(), "genes.gtf", sep="-")
+      on.exit(file.remove(gtfFile), add=TRUE)
+      seqAnno = ezFeatureAnnotation(param$ezRef@refAnnotationFile,
+                                    dataFeatureType="transcript")
+      transcriptsUse = rownames(seqAnno)[seqAnno$type %in% param$transcriptTypes]
+      require(data.table)
+      require(stringr)
+      gtf <- ezReadGff(param$ezRef@refFeatureFile)
+      transcripts <- ezGffAttributeField(gtf$attributes,
+                                         field="transcript_id", 
+                                         attrsep="; *", valuesep=" ")
+      gtf = gtf[transcripts %in% transcriptsUse, ]
+      ## write.table is much faster than write_tsv and export.
+      ### write_tsv: 38.270s
+      ### export: 347.998s
+      ### write.table: 8.787s
+      write.table(gtf, gtfFile, quote=FALSE, sep="\t", 
+                  row.names=FALSE, col.names=FALSE)
+    } else {
+      gtfFile = param$ezRef@refFeatureFile
+    }
     countResult = Rsubread::featureCounts(localBamFile, annot.inbuilt=NULL,
                               annot.ext=gtfFile, isGTFAnnotationFile=TRUE,
                               GTF.featureType=param$gtfFeatureType,
@@ -115,7 +110,6 @@ ezMethodFeatureCounts = function(input=NA, output=NA, param=NA){
                               countChimericFragments=TRUE,chrAliases=NULL,
                               reportReads=NULL)
   }
-  sink(file=NULL)
   
   colnames(countResult$counts) = "matchCounts"
   ezWrite.table(countResult$counts, file=outputFile)
@@ -193,7 +187,8 @@ EzAppSingleCellFeatureCounts <-
   )
 
 ezMethodSingleCellFeatureCounts <- function(input=NA, output=NA, param=NA){
-  require(Matrix) # 
+  require(GenomicRanges)
+  
   bamFile = input$getFullPaths("BAM")
   localBamFile = .getBamLocally(bamFile)
   if(localBamFile != bamFile){
@@ -208,58 +203,24 @@ ezMethodSingleCellFeatureCounts <- function(input=NA, output=NA, param=NA){
   bamHeaders <- scanBamHeader(localBamFile)
   hasRG <- "@RG" %in% names(bamHeaders[[1]]$text)
   
-  if (ezIsSpecified(param$transcriptTypes)){
-    gtfFile = "genes.gtf"
-    on.exit(file.remove(gtfFile), add=TRUE)
-    seqAnno = ezFeatureAnnotation(param$ezRef@refAnnotationFile,
-                                  dataFeatureType="transcript")
-    transcriptsUse = rownames(seqAnno)[seqAnno$type %in% param$transcriptTypes]
-    require(data.table)
-    require(stringr)
-    gtf <- ezReadGff(param$ezRef@refFeatureFile)
-    transcripts <- ezGffAttributeField(gtf$attributes,
-                                       field="transcript_id", 
-                                       attrsep="; *", valuesep=" ")
-    gtf = gtf[transcripts %in% transcriptsUse, ]
-    ## write.table is much faster than write_tsv and export.
-    ### write_tsv: 38.270s
-    ### export: 347.998s
-    ### write.table: 8.787s
-    write.table(gtf, gtfFile, quote=FALSE, sep="\t", 
-                row.names=FALSE, col.names=FALSE)
-  } else {
-    gtfFile = param$ezRef@refFeatureFile
-  }
-  
   if(!is.null(param$aroundTSSCounting) && param$aroundTSSCounting){
-    ## TODO:  refactor below; you can not rely that "gene" entries are in the gtf file; GenomicFeatures has functions for flanking
-    ## - load the gtf in a txdb, use the promoter function to get the promoters
-    ## - read transcript type from the genes_annotation.txt
-    ## - filter on transcript type
-    ## - provide the promoter coordinates as a data.frame to featureCounts 
-    gtf = rtracklayer::import(param$ezRef@refFeatureFile)
-    idx = gtf$type == 'gene'
-    gtf = gtf[idx]
-    
+    gtf <- rtracklayer::import(param$ezRef@refFeatureFile)
+    seqlengthsRef <- fasta.seqlengths(param$ezRef@refFastaFile)
+    seqlengths(gtf) <- seqlengthsRef[names(seqlengths(gtf))]
+    gtf <- gtf[gtf$type == "gene"]
     if (ezIsSpecified(param$transcriptTypes)){
-      idx = gtf$gene_biotype %in% param$transcriptTypes
-      gtf = gtf[idx]
+      seqAnno = ezFeatureAnnotation(param$ezRef@refAnnotationFile,
+                                    dataFeatureType="gene")
+      genesUse <- rownames(seqAnno)[seqAnno$type %in% param$transcriptTypes]
+      gtf <- gtf[gtf$gene_id %in% genesUse]
     }
     
-    rtracklayer::export(gtf, 'genes.gtf')
+    gtfFile = paste(Sys.getpid(), "genes.gtf", sep="-")
+    gtf <- trim(suppressWarnings(promoters(gtf, upstream=param$upstreamFlanking,
+                                           downstream=param$downstreamFlanking)))
+    rtracklayer::export(gtf, gtfFile)
+    on.exit(file.remove(gtfFile), add=TRUE)
     
-    gtf <- fread('genes.gtf', header=FALSE)
-    colnames(gtf) = c('seqname','source','feature','start','end','score','strand','frame','attribute')
-    for (i in 1:nrow(gtf)){
-      if(gtf[['strand']][i] == '+'){
-        gtf[['end']][i] = max(0,gtf[['start']][i] + param$downstreamFlanking)
-        gtf[['start']][i] = max(0,gtf[['start']][i] - param$upstreamFlanking)
-      } else {
-        gtf[['start']][i] = max(0,gtf[['end']][i] - param$downstreamFlanking)
-        gtf[['end']][i] = max(0,gtf[['end']][i] + param$upstreamFlanking)
-      }
-    }
-    write.table(gtf, gtfFile, quote=FALSE, sep="\t", row.names=FALSE, col.names=FALSE)
     countResult = Rsubread::featureCounts(localBamFile, annot.inbuilt=NULL,
                                           annot.ext=gtfFile, isGTFAnnotationFile=TRUE,
                                           GTF.featureType='gene',
@@ -284,8 +245,26 @@ ezMethodSingleCellFeatureCounts <- function(input=NA, output=NA, param=NA){
                                           countChimericFragments=TRUE,
                                           chrAliases=NULL,reportReads=NULL,
                                           byReadGroup=ifelse(hasRG, TRUE, FALSE))
-  }
-  else{
+  }else{
+    if (ezIsSpecified(param$transcriptTypes)){
+      gtfFile = paste(Sys.getpid(), "genes.gtf", sep="-")
+      on.exit(file.remove(gtfFile), add=TRUE)
+      seqAnno = ezFeatureAnnotation(param$ezRef@refAnnotationFile,
+                                    dataFeatureType="transcript")
+      transcriptsUse = rownames(seqAnno)[seqAnno$type %in% param$transcriptTypes]
+      require(data.table)
+      require(stringr)
+      gtf <- ezReadGff(param$ezRef@refFeatureFile)
+      transcripts <- ezGffAttributeField(gtf$attributes,
+                                         field="transcript_id", 
+                                         attrsep="; *", valuesep=" ")
+      gtf = gtf[transcripts %in% transcriptsUse, ]
+      write.table(gtf, gtfFile, quote=FALSE, sep="\t", 
+                  row.names=FALSE, col.names=FALSE)
+    } else {
+      gtfFile = param$ezRef@refFeatureFile
+    }
+    
     countResult = Rsubread::featureCounts(localBamFile, annot.inbuilt=NULL,
                                           annot.ext=gtfFile, isGTFAnnotationFile=TRUE,
                                           GTF.featureType=param$gtfFeatureType,
