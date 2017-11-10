@@ -25,7 +25,11 @@ ezMethodSpades = function(input=NA, output=NA, param=NA, htmlFile="00index.html"
                 param$spadesPipeOpt, "-m", param$ram, "-o", "spades", '-t', ezThreads(), opt, "1> ", paste0(sampleName,"_spades.log"))
     ezSystem(cmd)
   }
-  ezSystem(paste("cp", "spades/scaffolds.fasta", basename(output$getColumn("Draft"))))
+  if (file.exists(./spades/scaffolds.fasta)){
+  	ezSystem(paste("cp", "spades/scaffolds.fasta", basename(output$getColumn("Draft"))))
+  }else{
+  	ezSystem(paste("cp", "spades/contigs.fasta", basename(output$getColumn("Draft"))))
+  }
   ezSystem(paste("mv", "spades", sampleName))
   cmd = paste0('mv trimmomatic.err ', sampleName, '_trimmomatic.log')
   ezSystem(cmd)
