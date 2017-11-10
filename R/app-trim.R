@@ -158,6 +158,14 @@ ezMethodTrim = function(input=NA, output=NA, param=NA){
     }
   }
   
+  ## Clean the Read1 and Read2 when they are local; save scratch space
+  if(!is.null(param$copyReadsLocally) && param$copyReadsLocally){
+    file.remove(input$getFullPaths("Read1"))
+    if (param$paired){
+      file.remove(input$getFullPaths("Read2"))
+    }
+  }
+  
   ## the flexbar call is done separately because we do want to make sure that fixed trimming is done on top of adapter trimming
   ## this is needed for STAR to be able to pair the reads properly
   if (param$trimLeft > 0 || param$trimRight > 0){
