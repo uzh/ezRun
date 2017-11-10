@@ -204,9 +204,10 @@ enrichrEnrich <- function(userListId, libNames = getEnrichrLibNames(), connectio
     pool <- new_pool(total_con = connectionN, host_con = connectionN, multiplex = T)
     for (libName in libNamesToQuery) {
       qryString <- mkCurlQryString(userListId = userListId, backgroundType = libName)
+      
       curl_fetch_multi(
           paste(reqUrl, qryString, sep="?"),
-          # failonerror will cause curl to fail for any response status >= 400
+          # failonerror=T will cause curl to fail for any response status >= 400
           handle = new_handle(failonerror = T),
           pool = pool,
           done = function(x) {

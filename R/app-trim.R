@@ -135,7 +135,7 @@ ezMethodTrim = function(input=NA, output=NA, param=NA){
       readOpts = paste(
         input$getFullPaths("Read1"), r1TmpFile)
     }
-    cmd = paste("java -jar", Sys.getenv("Trimmomatic_jar"), method,
+    cmd = paste("java -Djava.io.tmpdir=. -jar", Sys.getenv("Trimmomatic_jar"), method,
                 "-threads", min(ezThreads(), 8), "-phred33", ## hardcode phred33 quality encoding
                 #"-trimlog", paste0(input$getNames(), "-trimmomatic.log"),
                 readOpts, trimAdaptOpt, tailQualOpt, minAvgQualOpt,
@@ -155,6 +155,14 @@ ezMethodTrim = function(input=NA, output=NA, param=NA){
     ezSystem(paste("gunzip -c", input$getFullPaths("Read1"), ">", r1TmpFile))
     if (param$paired){
       ezSystem(paste("gunzip -c", input$getFullPaths("Read2"), ">", r2TmpFile))
+    }
+  }
+  
+  ## Clean the Read1 and Read2 when they are local; save scratch space
+  if(!is.null(param$copyReadsLocally) && param$copyReadsLocally){
+    file.remove(input$getFullPaths("Read1"))
+    if (param$paired){
+      file.remove(input$getFullPaths("Read2"))
     }
   }
   

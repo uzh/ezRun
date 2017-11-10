@@ -307,7 +307,7 @@ output[['Stats [File]']] = 'scRNA-p2277/FeatureCounts/NEG-stats.txt'
 output[['CellCyclePhase [File]']] = 'scRNA-p2277/FeatureCounts/NEG-CellCyclePhase.txt'
 EzAppSingleCellFeatureCounts$new()$run(input=input, output=output, param=param)
 
-## EzAppscCounts
+## EzAppSCCounts
 setwd("/scratch/gtan/scRNA-p2277/scCount-test")
 library(ezRun)
 setEnvironments("star")
