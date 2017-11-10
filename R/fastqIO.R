@@ -74,7 +74,8 @@ fastqs2bam <- function(fastqFns, fastq2Fns=NULL, readGroupNames=NULL,
                )
   lapply(cmd, ezSystem)
   ## picard tools merge
-  cmd <- paste("java -jar", Sys.getenv("Picard_jar"), "MergeSamFiles",
+  cmd <- paste("java -Djava.io.tmpdir=. -jar", 
+               Sys.getenv("Picard_jar"), "MergeSamFiles",
                paste0("I=", paste0(sampleBasenames, ".bam"), collapse=" "),
                paste0("O=", bamFn),
                "USE_THREADING=true", "SORT_ORDER=queryname")
