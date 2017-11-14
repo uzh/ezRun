@@ -428,10 +428,10 @@ cleanForFreeDiskSpace <- function(param){
     if(getGigabyteTotal(".") > 1024){
       ## For big nodes with more than 1TB scratch, only clean for trxcopy
       message("Clean for trxcopy!")
-      cleanOldestDir(".", user="trxcopy")
+      cleanOldestDir(dirPath="/scratch", user="trxcopy")
     }else{
       message("Clean for all users!")
-      cleanOldestDir(".", user=NULL)
+      cleanOldestDir(dirPath="/scratch", user=NULL)
     }
     Sys.sleep(60)
     i = i + 1
@@ -475,6 +475,6 @@ cleanOldestDir <- function(dirPath, user=NULL){
     allInfo <- allInfo[order(allInfo$ctime), ]
     message("Deleting ", rownames(allInfo)[1])
     Sys.sleep(60)
-    unlink(rownames(allInfo)[1], recursive=TRUE, force=TRUE)
+#    unlink(rownames(allInfo)[1], recursive=TRUE, force=TRUE)
   }
 }
