@@ -460,6 +460,9 @@ cleanOldestDir <- function(dirPath, user=NULL){
   ## Don't clean symlinks
   allDirs <- allDirs[Sys.readlink(allDirs) == ""]
   
+  ## Don't clean smrt* , pacbio stuff
+  allDirs <- allDirs[grep("(smrt|pacbio)", allDirs, invert = TRUE)]
+  
   allInfo <- file.info(allDirs)
   if(!is.null(user)){
     allInfo <- allInfo[allInfo$uname %in% user, ]
@@ -475,6 +478,6 @@ cleanOldestDir <- function(dirPath, user=NULL){
     allInfo <- allInfo[order(allInfo$ctime), ]
     message("Deleting ", rownames(allInfo)[1])
     Sys.sleep(60)
-#    unlink(rownames(allInfo)[1], recursive=TRUE, force=TRUE)
+    unlink(rownames(allInfo)[1], recursive=TRUE, force=TRUE)
   }
 }
