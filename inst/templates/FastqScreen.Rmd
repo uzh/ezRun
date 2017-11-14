@@ -64,9 +64,10 @@ par(mar=c(10.1, 4.1, 4.1, 2.1))
     
 # rRNA Mapping
 par(mar=c(10.1, 4.1, 4.1, 2.1))
-    bplt = barplot(t(rRNA_strandInfo/1000), las=2, ylab="#rRNA_Alignments in K", main="rRNA Silva Mapping", col=c("lightblue","darkblue"),
-            names.arg=rep('',length(ezSplitLongLabels(rownames(rRNA_strandInfo)))), legend.text = T)
-    text(x = bplt, y = par("usr")[3] - 2, srt = 45, adj = 1, labels = ezSplitLongLabels(rownames(rRNA_strandInfo)), xpd = TRUE)
+    rRNA_mappingRate = t(rRNA_strandInfo/(param[['nReads']]/100))
+    bplt = barplot(rRNA_mappingRate, las=2, ylim=c(0,min(max(colSums(rRNA_mappingRate))+20,100)), ylab="rRNA-Mapping-Rate in %", main="rRNA Silva Mapping", col=c("lightblue","darkblue"),
+           names.arg=rep('',length(ezSplitLongLabels(rownames(rRNA_strandInfo)))), legend.text = T)
+    text(x = bplt, y = par("usr")[3] - min(max(colSums(rRNA_mappingRate))+20,100) * 0.02, srt = 45, adj = 1, labels = ezSplitLongLabels(rownames(rRNA_strandInfo)), xpd = TRUE)
 ```
 
 ### FastqScreen Mapping Per Sample
