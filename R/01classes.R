@@ -317,7 +317,8 @@ EzApp <-
                     param$appName = name
                     logMessage(name, param, "Starting")
                     param = ezParam(param, appDefaults=appDefaults)
-                    waitForFreeDiskSpace(param)
+                    cleanForFreeDiskSpace(param)
+                    #waitForFreeDiskSpace(param)
                     jobDir = getwd()
                     result = runMethod(input=input$copy(), output=output$copy(), param=param)
                     setwd(jobDir)
@@ -413,10 +414,79 @@ waitForFreeDiskSpace = function(param){
   return()
 }
 
+### Check scratch for enough space and clean it
+### When the working director is other than scratch, no cleaning.
+cleanForFreeDiskSpace <- function(param){
+  if (is.null(param$scratch) || !grepl("^(/scratch|/export/local/scratch)", getwd())){
+    message("Scratch is not specificed or the current working directory is not under /scratch. No cleaning.")
+    return(TRUE)
+  }
+  
+  freeSpace = getGigabyteFree(".")
+  i = 0
+  while(getGigabyteFree(".") < param$scratch & i < 60){
+    if(getGigabyteTotal(".") > 1024){
+      ## For big nodes with more than 1TB scratch, only clean for trxcopy
+      message("Clean for trxcopy!")
+      cleanOldestDir(dirPath="/scratch", user="trxcopy")
+    }else{
+      message("Clean for all users!")
+      cleanOldestDir(dirPath="/scratch", user=NULL)
+    }
+    Sys.sleep(60)
+    i = i + 1
+  }
+  if (getGigabyteFree(".") < param$scratch){
+    if (ezValidMail(param$mail)){
+      recipient = param$mail
+    } else{
+      recipient = param$adminMail
+    }
+    ezMail(to=recipient,
+           subject=paste("Alert: not enough disk space ", Sys.info()["nodename"], "-", getwd()),
+           text="Please free up space manually!")
+    stop("actual free disk space is less than required")
+  }
+
+  return(TRUE)
+}
+
 ##' @describeIn waitForFreeDiskSpace Gets the number of free gigabytes.
 ##' @examples 
 ##' getGigabyteFree(".")
 ##' getGigabyteFree("/")
 getGigabyteFree = function(dirPath){
   as.numeric(strsplit(ezSystem(paste("df", dirPath), intern=TRUE, echo=FALSE), " +")[[2]][4]) / 1e6
+}
+getGigabyteTotal = function(dirPath){
+  as.numeric(strsplit(ezSystem(paste("df", dirPath), intern=TRUE, echo=FALSE), " +")[[2]][2]) / 1e6
+}
+
+### Clean the oldest, not used dir
+cleanOldestDir <- function(dirPath, user=NULL){
+  allDirs <- list.dirs(path=dirPath, recursive=FALSE)
+  
+  ## Don't clean symlinks
+  allDirs <- allDirs[Sys.readlink(allDirs) == ""]
+  
+  ## Don't clean smrt* , pacbio stuff
+  allDirs <- allDirs[grep("(smrt|pacbio)", allDirs, invert = TRUE)]
+  
+  allInfo <- file.info(allDirs)
+  if(!is.null(user)){
+    allInfo <- allInfo[allInfo$uname %in% user, ]
+  }
+  
+  ## Check being used or not
+  isUsed <- suppressWarnings(lapply(paste("lsof", rownames(allInfo)), 
+                                    system, inter=TRUE))
+  isUsed <- lengths(isUsed) != 0L
+  if(!all(isUsed)){
+    allInfo <- allInfo[!isUsed, ]
+    ## order by ctime
+    allInfo <- allInfo[order(allInfo$ctime), ]
+    message("Deleting ", rownames(allInfo)[1])
+    Sys.sleep(60)
+    unlink(rownames(allInfo)[1], recursive=TRUE, force=TRUE)
+  }
 }
