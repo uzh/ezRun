@@ -38,7 +38,9 @@ ezMethodDEXSeqAnalysis <- function(input=NA, output=NA, param=NA){
   require(DEXSeq)
   require(ReporteRs)
 
-  param[['BPPARAM']] = BiocParallel::MulticoreParam(workers=param$cores)
+  BPPARAM = BiocParallel::MulticoreParam(workers=max(param$cores -1, 1))
+  register(BPPARAM) ## register it because exon fold changes does use the default
+  
   ### # check whether conditions are specified
   condition = input$getColumn(param$grouping)
   # colnames(input$meta) = gsub(' \\[.*','',colnames(input$meta))
@@ -103,9 +105,10 @@ ezMethodDEXSeqAnalysis <- function(input=NA, output=NA, param=NA){
 
   presentGenes = rownames(countDataPerGene)[rowSums(countDataPerGene > param[['minGeneExprCount']]) > 1]
   #presentGenes = rownames(countDataPerGene)[which(rowMax(countDataPerGene)>param[['minGeneExprCount']] & apply(countDataPerGene,1,aboveMinExprSamples,minExpr=param[['minGeneExprCount']])>1)]
-  filteredCountData = counts(dxd)[rownames(countData) %in% presentGenes , 1:length(countFiles)] + param$countOffset
-  transcripts = rowData(dxd)$transcripts[rownames(countData) %in% presentGenes]
-  featureRanges = rowRanges(dxd)[rownames(countData) %in% presentGenes]
+  useRow = gsub(':.*','',rownames(countData)) %in% presentGenes
+  filteredCountData = countData[useRow , ] + param$countOffset
+  transcripts = rowData(dxd)$transcripts[useRow]
+  featureRanges = rowRanges(dxd)[useRow]
 
   dxd <- DEXSeq::DEXSeqDataSet(
     filteredCountData,
@@ -120,16 +123,17 @@ ezMethodDEXSeqAnalysis <- function(input=NA, output=NA, param=NA){
 
   ### # estimate size factors and dispersion
   dxd <- DEXSeq::estimateSizeFactors( dxd )
-  dxd <- DEXSeq::estimateDispersions( dxd, BPPARAM = param[['BPPARAM']], quiet = T )
+  dxd <- DEXSeq::estimateDispersions( dxd, BPPARAM = BPPARAM, quiet = T )
 
   ### # testing for differential usage
-  dxd  <- DEXSeq::testForDEU( dxd, BPPARAM = param[['BPPARAM']] )
+  dxd  <- DEXSeq::testForDEU( dxd, BPPARAM = BPPARAM )
 
   ### # fold changes
-  dxd <- DEXSeq::estimateExonFoldChanges( dxd, BPPARAM = param[['BPPARAM']], denominator = param$refGroup)
+  dxd <- DEXSeq::estimateExonFoldChanges( dxd, BPPARAM = BPPARAM, denominator = param$refGroup)
 
   ### # generate a report
-  writeDEXSeqReport(dataset = input$meta, dexResult = list(param = param, dxd=dxd), sResultDir = basename(output$meta[['Report [File]']]))
+  writeDEXSeqReport(dataset = input$meta, dexResult = list(param = param, dxd=dxd), 
+                    sResultDir = basename(output$meta[['Report [File]']]))
   return("Success")
 }
 
@@ -176,7 +180,7 @@ EzAppDEXSeqAnalysis <-
 
 #' @title Writing a report for a DEXSeq analysis
 #'
-writeDEXSeqReport <- function(dataset, dexResult, htmlFile="00index.html", sResultDir = "html") {
+writeDEXSeqReport <- function(dataset, dexResult, htmlFile="00index.html", sResultDir = "html", BPPARAM=bpparam()) {
   ### # retrieve parameters
   param <- dexResult$param
   ### # extract name appearing in the report
@@ -205,10 +209,12 @@ writeDEXSeqReport <- function(dataset, dexResult, htmlFile="00index.html", sResu
       ezIsSpecified(param$mart_attributes) ) {
     ensembl_mart <- biomaRt::useMart(biomart = param$bio_mart, dataset=param$mart_dataset)
     DEXSeq::DEXSeqHTML(dxr, path = param$dexseq_report_path, file = param$dexseq_report_file, FDR = param$fdr,
-                       mart = ensembl_mart, filter = param$mart_filter, attributes = param$mart_attributes,BPPARAM = param[['BPPARAM']])
+                       mart = ensembl_mart, filter = param$mart_filter, attributes = param$mart_attributes,
+                       BPPARAM = BPPARAM)
   } else {
     ### # write that generic report for a given FDR, using 0.1 as the default
-    DEXSeq::DEXSeqHTML(dxr, path = param$dexseq_report_path, file = param$dexseq_report_file, FDR = param$fdr,BPPARAM = param[['BPPARAM']])
+    DEXSeq::DEXSeqHTML(dxr, path = param$dexseq_report_path, file = param$dexseq_report_file, FDR = param$fdr,
+                       BPPARAM = BPPARAM)
   }
   geneTableInfo = getGeneTable(pdxr = dxr, param = param)
   candidateReportFile = geneTableInfo[['candidateReportFile']]
