@@ -62,6 +62,7 @@ getGOparents = function(id, onto="BP"){
 
 ##' @describeIn getGOparents Adds the GO parents.
 addGoParents = function(gene2goList, onto){
+  require(GO.db)
   goParents = switch(onto, BP=as.list(GOBPPARENTS),
                      CC=as.list(GOCCPARENTS),
                      MF=as.list(GOMFPARENTS))
