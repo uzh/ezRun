@@ -436,9 +436,18 @@ cleanForFreeDiskSpace <- function(param){
     Sys.sleep(60)
     i = i + 1
   }
-  if (getGigabyteFree(".") < param$scratch)
+  if (getGigabyteFree(".") < param$scratch){
+    if (ezValidMail(param$mail)){
+      recipient = param$mail
+    } else{
+      recipient = param$adminMail
+    }
+    ezMail(to=recipient,
+           subject=paste("Alert: not enough disk space ", Sys.info()["nodename"], "-", getwd()),
+           text="Please free up space manually!")
     stop("actual free disk space is less than required")
-  
+  }
+
   return(TRUE)
 }
 
