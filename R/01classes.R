@@ -418,7 +418,7 @@ waitForFreeDiskSpace = function(param){
 ### When the working director is other than scratch, no cleaning.
 cleanForFreeDiskSpace <- function(param){
   if (is.null(param$scratch) || !grepl("^(/scratch|/export/local/scratch)", getwd())){
-    message("The current working directory is not under /scratch. No cleaning.")
+    message("Scratch is not specificed or the current working directory is not under /scratch. No cleaning.")
     return(TRUE)
   }
   
@@ -475,6 +475,6 @@ cleanOldestDir <- function(dirPath, user=NULL){
     allInfo <- allInfo[order(allInfo$ctime), ]
     message("Deleting ", rownames(allInfo)[1])
     Sys.sleep(60)
-#    unlink(rownames(allInfo)[1], recursive=TRUE, force=TRUE)
+    unlink(rownames(allInfo)[1], recursive=TRUE, force=TRUE)
   }
 }
