@@ -13,7 +13,7 @@
 ##' @slot refBuildDir a character specifying the directory of the reference build.
 ##' @slot refIndex a character specifying the location of the index that is used in the alignment.
 ##' @slot refFeatureFile a character specifying the file path to the annotation feature file (.gtf).
-##' @slot refAnnotationFile a character specifying the file path to the annotation file (.txt).
+##' @slot refAnnotationFile a character specifying the file path to the annotation file (.txt). Subsetting species are automatically removed
 ##' @slot refFastaFile a character specifying the file path to the fasta file.
 ##' @slot refChromSizesFile a character specifying the file path to the file containing the chromosome sizes.
 ##' @slot refAnnotationVersion a character specifying the annotation version.
