@@ -347,54 +347,26 @@ getGeneTable <- function(pdxr, param){
   genetable <- cbind(geneID = rownames(genetable), genetable)
 
 
-  ### # reading gene annotations from annotation file
-  ### #  extract name of annotation file from param
-  sGnAnFn <- param[['ezRef']]@refAnnotationFile
-  dfGnsAnnot <- ezRead.table(file = sGnAnFn, row.names = NULL)
+  dfGnsAnnot <- ezFeatureAnnotation(param, ids=NULL, "gene")
 
   ### # extract gene_names and descriptions for all genes in the whole genetable
-  gene_name <- sapply(as.character(genetable$geneID),
+  gene_name <- sapply(genetable$geneID,
                       function(x) {
-                        ### # some entries in geneID can contain multiple
-                        ### #  gene_ids pasted together with "+"
-                        sSingleId <- unlist(strsplit(x, split = "+", fixed = TRUE))
-                        nNrIds <- length(sSingleId)
-                        if (nNrIds > 1) {
-                          sResultGeneName <- paste(unique(dfGnsAnnot[dfGnsAnnot[, "gene_id"] == sSingleId[1],"gene_name"]), sep = "", collapse = " | ")
-                          for(nIdx in 2:nNrIds){
-                            sResultGeneName <- paste(sResultGeneName, paste(unique(dfGnsAnnot[dfGnsAnnot[, "gene_id"] == sSingleId[nIdx],"gene_name"]), sep = "", collapse = " | "),
-                                                     sep = "+")
-                          }
-                        } else {
-                          sResultGeneName <- paste(unique(dfGnsAnnot[dfGnsAnnot[, "gene_id"] == x,"gene_name"]), sep = "", collapse = " | ")
-                        }
-                        return(sResultGeneName)
+                        geneIds <- unlist(strsplit(x, split = "+", fixed = TRUE))
+                        geneNames = ezCollapse(dfGnsAnnot[geneIds, "gene_name"], uniqueOnly=TRUE, empty.rm=TRUE, sep="+")
+                        return(geneNames)
                       },
                       USE.NAMES = FALSE)
-  gene_description <- sapply(as.character(genetable$geneID),
-                             function(x) {
-                               ### # some entries in geneID can contain multiple
-                               ### #  gene_ids pasted together with "+"
-                               sSingleId <- unlist(strsplit(x, split = "+", fixed = TRUE))
-                               nNrIds <- length(sSingleId)
-                               if (nNrIds > 1) {
-                                 sResultGeneDesc <- paste(unique(dfGnsAnnot[dfGnsAnnot[, "gene_id"] == sSingleId[1],"description"]), sep = "", collapse = " | ")
-                                 for(nIdx in 2:nNrIds){
-                                   sResultGeneDesc <- paste(sResultGeneDesc, paste(unique(dfGnsAnnot[dfGnsAnnot[, "gene_id"] == sSingleId[nIdx],"description"]), sep = "", collapse = " | "),
-                                                            sep = "+")
-                                 }
-                               } else {
-                                 sResultGeneDesc <- paste(unique(dfGnsAnnot[dfGnsAnnot[, "gene_id"] == x,"description"]), sep = "", collapse = " | ")
-                               }
-                               return(sResultGeneDesc)
-                             },
-                             USE.NAMES = FALSE)
+  gene_description <- sapply(genetable$geneID,
+                      function(x) {
+                        geneIds <- unlist(strsplit(x, split = "+", fixed = TRUE))
+                        geneNames = ezCollapse(dfGnsAnnot[geneIds, "description"], uniqueOnly=TRUE, empty.rm=TRUE, sep="+")
+                        return(geneNames)
+                      },
+                      USE.NAMES = FALSE)
   ### # add extracted columns and return genetable
   genetable <- cbind(genetable, gene_name, gene_description)
-  genetable$geneID <- as.character(genetable$geneID)
-  geneQValues =round(perGeneQValue(pdxr),5)
-  geneQValues = data.frame(ID=names(geneQValues),fdr=geneQValues, stringsAsFactors = F)
-  genetable = merge(genetable,geneQValues,by.x='geneID', by.y='ID')
+  genetable$fdr = round(perGeneQValue(pdxr),5)[genetable$geneID]
   genetable = genetable[order(genetable$fdr, abs(genetable$max_ExonLog2FC)),]
   ### # add links to result files
   genetable$geneID <- getGeneIdExprLinks(pvGeneIds = genetable$geneID, psdexseq_report_path = param$dexseq_report_path)
