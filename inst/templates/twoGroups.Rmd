@@ -555,6 +555,7 @@ if (exists("goResult")){
 ```{r enricher compute, echo=FALSE, message=FALSE, eval=!debug}
 if (doGo(param, seqAnno)){
   enrichResult <- ezEnricher(param, se)
+  resFns <- c() ## Provide download links for these results
 }
 ```
 
@@ -566,7 +567,7 @@ if(exists("enrichResult")){
       if(is.null(enrichResult[[onto]][[sig]])){
         next
       }else{
-        p <- dotplot(enrichResult[[onto]][[sig]], showCategory=20, 
+        p <- dotplot(enrichResult[[onto]][[sig]], showCategory=20,
                      title=paste(onto, sig))
         print(p)
       }
@@ -585,6 +586,10 @@ for(onto in names(enrichResult)){
       next
     }else{
       enrichMap(enrichResult[[onto]][[sig]], n=50, main=paste(onto, sig))
+      resFn <- paste(onto, sig, "hypergeometric.txt", sep="_")
+      write.table(enrichResult[[onto]][[sig]], file=resFn,
+                  quote=FALSE, col.names = TRUE, row.names = FALSE)
+      resFns <- append(resFns, resFn)
     }
   }
 }
@@ -608,10 +613,18 @@ for(onto in names(enrichResult)){
 }
 ```
 
+#### Result files
+```{r hypergeometric result files, echo=FALSE, results="asis"}
+for(resFn in resFns){
+  cat(paste0("[", resFn, "](", resFn, ")"), "\n")
+}
+```
+
 ### Gene set enrichment analysis
 ```{r gsea compute, echo=FALSE, message=FALSE, eval=!debug}
 if (doGo(param, seqAnno)){
   enrichResultGSEA <- ezGSEA(param, se)
+  resFns <- c()
 }
 ```
 
@@ -625,6 +638,10 @@ for(onto in names(enrichResultGSEA)){
     p <- dotplot(enrichResultGSEA[[onto]], showCategory=20, 
                  title=paste(onto, sig))
     print(p)
+    resFn <- paste(onto, sig, "GSEA.txt", sep="_")
+    write.table(enrichResultGSEA[[onto]], file=resFn,
+                quote=FALSE, col.names = TRUE, row.names = FALSE)
+    resFns <- append(resFns, resFn)
   }
 }
 }
@@ -655,6 +672,13 @@ if(exists("enrichResultGSEA")){
              main=paste(onto, sig))
     }
   }
+}
+```
+
+#### Result files
+```{r GSEA result files, echo=FALSE, results="asis"}
+for(resFn in resFns){
+  cat(paste0("[", resFn, "](", resFn, ")"), "\n")
 }
 ```
 
