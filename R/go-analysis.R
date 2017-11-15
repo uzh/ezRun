@@ -149,6 +149,7 @@ addGeneNamesEnrich <- function(resEnrich, se){
 }
 
 prepareGOData <- function(param, se){
+  require(SummarizedExperiment)
   seqAnno <- data.frame(rowData(se), row.names=rownames(se),
                         check.names = FALSE, stringsAsFactors=FALSE)
   logSignal <- log2(shiftZeros(assays(se)$xNorm, param$minSignal))
@@ -302,7 +303,7 @@ ezGoseq = function(param, selectedGenes, allGenes, gene2goList=NULL,
 }
 
 ### -----------------------------------------------------------------
-### ezEnricher
+### ezEnricher with hypergeometric implementation from clusterProfiler
 ###
 ezEnricher <- function(param, se){
   require(clusterProfiler)
@@ -335,22 +336,35 @@ ezEnricher <- function(param, se){
       gene2goList = lapply(gene2goList, function(x){intersect(x, allGos)})
     }
     gene2goList = gene2goList[lengths(gene2goList) > 0]
-    terms <- Term(GOTERM[unlist(gene2goList)])
-    go2geneDF <- data.frame(ont=substr(terms, start=1L, 
-                                       stop=pmin(30L, nchar(terms))),
-                            gene=geneid2name[rep(names(gene2goList), 
-                                                 lengths(gene2goList))],
-                            stringsAsFactors = FALSE
-                            )
-    enrichUp <- enricher(gene=geneid2name[upGenes], 
-                         universe=geneid2name[presentGenes],
+    goIDs <- unlist(gene2goList, use.names=FALSE)
+    go2geneDF <- data.frame(ont=goIDs,
+                            gene=rep(names(gene2goList), lengths(gene2goList)),
+                            stringsAsFactors = FALSE)
+    
+    enrichUp <- enricher(gene=upGenes,
+                         universe=presentGenes,
                          TERM2GENE=go2geneDF)
-    enrichDown <- enricher(gene=geneid2name[downGenes], 
-                           universe=geneid2name[presentGenes],
+    tempTable <- enrichUp@result
+    tempTable$Description <- Term(GOTERM[tempTable$ID])
+    tempTable$geneName <- sapply(relist(geneid2name[unlist(strsplit(tempTable$geneID, "/"))], strsplit(tempTable$geneID, "/")), paste, collapse="/")
+    enrichUp@result <- tempTable
+    
+    enrichDown <- enricher(gene=downGenes,
+                           universe=presentGenes,
                            TERM2GENE=go2geneDF)
-    enrichBoth <- enricher(gene=geneid2name[bothGenes], 
-                           universe=geneid2name[presentGenes],
+    tempTable <- enrichDown@result
+    tempTable$Description <- Term(GOTERM[tempTable$ID])
+    tempTable$geneName <- sapply(relist(geneid2name[unlist(strsplit(tempTable$geneID, "/"))], strsplit(tempTable$geneID, "/")), paste, collapse="/")
+    enrichDown@result <- tempTable
+    
+    enrichBoth <- enricher(gene=bothGenes,
+                           universe=presentGenes,
                            TERM2GENE=go2geneDF)
+    tempTable <- enrichBoth@result
+    tempTable$Description <- Term(GOTERM[tempTable$ID])
+    tempTable$geneName <- sapply(relist(geneid2name[unlist(strsplit(tempTable$geneID, "/"))], strsplit(tempTable$geneID, "/")), paste, collapse="/")
+    enrichBoth@result <- tempTable
+    
     result = list(enrichUp=enrichUp, enrichDown=enrichDown,
                   enrichBoth=enrichBoth)
     return(result)
@@ -370,7 +384,7 @@ ezGSEA <- function(param, se){
   seqAnno <- data.frame(rowData(se), row.names=rownames(se),
                         check.names = FALSE, stringsAsFactors=FALSE)
   geneid2name <- setNames(seqAnno$gene_name, seqAnno$gene_id)
-  geneList <- setNames(rowData(se)$log2Ratio, rowData(se)$gene_name)
+  geneList <- setNames(rowData(se)$log2Ratio, rowData(se)$gene_id)
   geneList <- sort(geneList, decreasing = TRUE)
   
   ontologies = c("BP", "MF", "CC")
@@ -392,15 +406,16 @@ ezGSEA <- function(param, se){
       gene2goList = lapply(gene2goList, function(x){intersect(x, allGos)})
     }
     gene2goList = gene2goList[lengths(gene2goList) > 0]
-    terms <- Term(GOTERM[unlist(gene2goList)])
-    go2geneDF <- data.frame(ont=substr(terms, start=1L, 
-                                       stop=pmin(30L, nchar(terms))),
-                            gene=geneid2name[rep(names(gene2goList), 
-                                                 lengths(gene2goList))],
-                            stringsAsFactors = FALSE
-    )
+    goIDs <- unlist(gene2goList, use.names=FALSE)
+    go2geneDF <- data.frame(ont=goIDs,
+                            gene=rep(names(gene2goList), lengths(gene2goList)),
+                            stringsAsFactors = FALSE)
     resGSEA <- GSEA(gene=geneList, TERM2GENE=go2geneDF,
                     by="fgsea")
+    tempTable <- resGSEA@result
+    tempTable$Description <- Term(GOTERM[tempTable$ID])
+    tempTable$geneName <- sapply(relist(geneid2name[unlist(strsplit(tempTable$core_enrichment, "/"))], strsplit(tempTable$core_enrichment, "/")), paste, collapse="/")
+    resGSEA@result <- tempTable
     return(resGSEA)
   }, mc.cores=1)
   names(goResults) = ontologies
