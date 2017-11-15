@@ -14,8 +14,8 @@ knitr::opts_chunk$set(echo = TRUE)
 ## This report requires objects: output, deResult, param
 
 ## debug
-#library(ezRun)
-#load("/srv/gstore/projects/p1536/EdgeR_20650_pos--over--neg_2017-09-01--10-05-45/pos--over--neg/result-pos--over--neg-wcmkyoxvxuzd-EzResult.RData")
+# library(ezRun)
+# load("/srv/gstore/projects/p1536/EdgeR_20650_pos--over--neg_2017-09-01--10-05-45/pos--over--neg/result-pos--over--neg-wcmkyoxvxuzd-EzResult.RData")
 # load("/scratch/gtan/debug/p2497-Deseq2/result-orange--over--rest-gxzhakauugzk-EzResult.RData")
 # deResult = EzResult(se=se)
 # output = list()
@@ -40,6 +40,7 @@ setEnvironments("phantomjs")
 ```{r prepare data, include=FALSE}
 se <- deResult$se
 param <- metadata(se)$param
+#param$doPrecomputeEnrichr <- FALSE
 seqAnno <- data.frame(rowData(se), row.names=rownames(se),
                       check.names = FALSE, stringsAsFactors=FALSE)
 ```
@@ -541,6 +542,17 @@ if (exists("ktables")){
 }
 ```
 
+#### Result files
+```{r goseq result files, echo=FALSE, results='asis'}
+if (exists("goTables")){
+  for(resFn in goTables$txtFiles){
+    cat("\n")
+    cat(paste0("[", resFn, "](", resFn, ")"))
+    cat("\n")
+  }
+}
+```
+
 ### ReViGO
 ```{r revigo, echo=FALSE, eval=!debug}
 if (exists("goResult")){
@@ -614,9 +626,11 @@ for(onto in names(enrichResult)){
 ```
 
 #### Result files
-```{r hypergeometric result files, echo=FALSE, results="asis"}
+```{r hypergeometric result files, echo=FALSE, results='asis'}
 for(resFn in resFns){
-  cat(paste0("[", resFn, "](", resFn, ")"), "\n")
+  cat("\n")
+  cat(paste0("[", resFn, "](", resFn, ")"))
+  cat("\n")
 }
 ```
 
@@ -676,9 +690,11 @@ if(exists("enrichResultGSEA")){
 ```
 
 #### Result files
-```{r GSEA result files, echo=FALSE, results="asis"}
+```{r GSEA result files, echo=FALSE, results='asis'}
 for(resFn in resFns){
-  cat(paste0("[", resFn, "](", resFn, ")"), "\n")
+  cat("\n")
+  cat(paste0("[", resFn, "](", resFn, ")"))
+  cat("\n")
 }
 ```
 
