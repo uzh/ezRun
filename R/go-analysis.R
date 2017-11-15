@@ -345,25 +345,31 @@ ezEnricher <- function(param, se){
                          universe=presentGenes,
                          TERM2GENE=go2geneDF)
     tempTable <- enrichUp@result
-    tempTable$Description <- Term(GOTERM[tempTable$ID])
-    tempTable$geneName <- sapply(relist(geneid2name[unlist(strsplit(tempTable$geneID, "/"))], strsplit(tempTable$geneID, "/")), paste, collapse="/")
-    enrichUp@result <- tempTable
+    if(nrow(tempTable) != 0L){
+      tempTable$Description <- substr(Term(GOTERM[tempTable$ID]), 1, 30)
+      tempTable$geneName <- sapply(relist(geneid2name[unlist(strsplit(tempTable$geneID, "/"))], strsplit(tempTable$geneID, "/")), paste, collapse="/")
+      enrichUp@result <- tempTable
+    }
     
     enrichDown <- enricher(gene=downGenes,
                            universe=presentGenes,
                            TERM2GENE=go2geneDF)
     tempTable <- enrichDown@result
-    tempTable$Description <- Term(GOTERM[tempTable$ID])
-    tempTable$geneName <- sapply(relist(geneid2name[unlist(strsplit(tempTable$geneID, "/"))], strsplit(tempTable$geneID, "/")), paste, collapse="/")
-    enrichDown@result <- tempTable
+    if(nrow(tempTable) != 0L){
+      tempTable$Description <- substr(Term(GOTERM[tempTable$ID]), 1, 30)
+      tempTable$geneName <- sapply(relist(geneid2name[unlist(strsplit(tempTable$geneID, "/"))], strsplit(tempTable$geneID, "/")), paste, collapse="/")
+      enrichDown@result <- tempTable
+    }
     
     enrichBoth <- enricher(gene=bothGenes,
                            universe=presentGenes,
                            TERM2GENE=go2geneDF)
     tempTable <- enrichBoth@result
-    tempTable$Description <- Term(GOTERM[tempTable$ID])
-    tempTable$geneName <- sapply(relist(geneid2name[unlist(strsplit(tempTable$geneID, "/"))], strsplit(tempTable$geneID, "/")), paste, collapse="/")
-    enrichBoth@result <- tempTable
+    if(nrow(tempTable) != 0L){
+      tempTable$Description <- substr(Term(GOTERM[tempTable$ID]), 1, 30)
+      tempTable$geneName <- sapply(relist(geneid2name[unlist(strsplit(tempTable$geneID, "/"))], strsplit(tempTable$geneID, "/")), paste, collapse="/")
+      enrichBoth@result <- tempTable
+    }
     
     result = list(enrichUp=enrichUp, enrichDown=enrichDown,
                   enrichBoth=enrichBoth)
@@ -413,9 +419,11 @@ ezGSEA <- function(param, se){
     resGSEA <- GSEA(gene=geneList, TERM2GENE=go2geneDF,
                     by="fgsea")
     tempTable <- resGSEA@result
-    tempTable$Description <- Term(GOTERM[tempTable$ID])
-    tempTable$geneName <- sapply(relist(geneid2name[unlist(strsplit(tempTable$core_enrichment, "/"))], strsplit(tempTable$core_enrichment, "/")), paste, collapse="/")
-    resGSEA@result <- tempTable
+    if(nrow(tempTable) != 0L){
+      tempTable$Description <- substr(Term(GOTERM[tempTable$ID]), 1, 30)
+      tempTable$geneName <- sapply(relist(geneid2name[unlist(strsplit(tempTable$core_enrichment, "/"))], strsplit(tempTable$core_enrichment, "/")), paste, collapse="/")
+      resGSEA@result <- tempTable
+    }
     return(resGSEA)
   }, mc.cores=1)
   names(goResults) = ontologies

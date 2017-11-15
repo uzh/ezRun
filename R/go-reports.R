@@ -182,6 +182,7 @@ goUpDownTables = function(param, goResult){
           xSub = cbind("GO ID"=rownames(xSub), xSub)
         }
         txtFile = ezValidFilename(paste0(name, ".txt"), replace="-")
+        txtFiles <- append(txtFiles, txtFile)
         # txtList[[sub]][[onto]] = ezValidFilename(paste0(name, ".txt"), replace="-")
         ezWrite.table(xSub, file=txtFile, row.names=FALSE)
       }
