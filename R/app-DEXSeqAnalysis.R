@@ -333,43 +333,35 @@ getGeneTable <- function(pdxr, param){
   gns  <- intersect(gns,unique(exns$groupID))
   #names(perGeneQValue(pdxr)< param$fdr)
   results <- results[as.character(results$groupID) %in% gns,]
-  splitCols <- split(seq_len(nrow(results)), results$groupID)
-  genetable <- lapply(splitCols, function(x) {
-    data.frame(chr = unique(results$seqnames[x]), start = min(results$start[x]),
-               end = max(results$end[x]), total_exons = length(x),
-               exon_changes = sum(results$padj[x] < param$fdr & results$exonBaseMean[x]>param$minExonExprCount & abs(results[[log2column]][x]) > param$minExonLog2Ratio,na.rm = TRUE),
-               meanRawCount = round(sum(results$exonBaseMean[x]),3),
-               max_ExonLog2FC = results[[log2column]][x][order(abs(results[[log2column]][x]),decreasing = T)][1])
-  })
-
-  ### # seams to convert the list "genetable" to a data.frame
-  genetable <- do.call(rbind, genetable)
-  genetable <- cbind(geneID = rownames(genetable), genetable)
-
-
   dfGnsAnnot <- ezFeatureAnnotation(param, ids=NULL, "gene")
-
-  ### # extract gene_names and descriptions for all genes in the whole genetable
-  gene_name <- sapply(genetable$geneID,
-                      function(x) {
-                        geneIds <- unlist(strsplit(x, split = "+", fixed = TRUE))
-                        geneNames = ezCollapse(dfGnsAnnot[geneIds, "gene_name"], uniqueOnly=TRUE, empty.rm=TRUE, sep="+")
-                        return(geneNames)
-                      },
-                      USE.NAMES = FALSE)
-  gene_description <- sapply(genetable$geneID,
-                      function(x) {
-                        geneIds <- unlist(strsplit(x, split = "+", fixed = TRUE))
-                        geneNames = ezCollapse(dfGnsAnnot[geneIds, "description"], uniqueOnly=TRUE, empty.rm=TRUE, sep="+")
-                        return(geneNames)
-                      },
-                      USE.NAMES = FALSE)
+  genetable = ezFrame(gene_id=tapply(results$groupID, results$groupID, unique))
+  genetable$gene_name <- sapply(genetable$gene_id,
+                                function(x) {
+                                  geneIds <- unlist(strsplit(x, split = "+", fixed = TRUE))
+                                  geneNames = ezCollapse(dfGnsAnnot[geneIds, "gene_name"], uniqueOnly=TRUE, empty.rm=TRUE, sep="+")
+                                  return(geneNames)
+                                },
+                                USE.NAMES=FALSE)
+  genetable$gene_description <- sapply(genetable$gene_id,
+                                       function(x) {
+                                         geneIds <- unlist(strsplit(x, split = "+", fixed = TRUE))
+                                         geneNames = ezCollapse(dfGnsAnnot[geneIds, "description"], uniqueOnly=TRUE, empty.rm=TRUE, sep="+")
+                                         return(geneNames)
+                                       },
+                                       USE.NAMES = FALSE)
+  genetable$seqnames=tapply(as.character(results$seqnames), results$groupID, unique)
+  genetable$end = tapply(results$end, results$groupID, max)
+  genetable$exon_changes = tapply(results$padj < param$fdr & 
+                                    results$exonBaseMean>param$minExonExprCount & 
+                                    abs(results[[log2column]]) > param$minExonLog2Ratio,
+                                  results$groupID, sum, na.rm = TRUE)
+  genetable$meanRawCount = round(tapply(results$exonBaseMean, results$groupID, sum),3)
+  genetable$max_ExonLog2FC = round(tapply(results[[log2column]], results$groupID, 
+                                          function(x){x[which.max(abs(x))]}), 3)
   ### # add extracted columns and return genetable
-  genetable <- cbind(genetable, gene_name, gene_description)
-  genetable$fdr = round(perGeneQValue(pdxr),5)[genetable$geneID]
-  genetable = genetable[order(genetable$fdr, abs(genetable$max_ExonLog2FC)),]
-  ### # add links to result files
-  genetable$geneID <- getGeneIdExprLinks(pvGeneIds = genetable$geneID, psdexseq_report_path = param$dexseq_report_path)
+  genetable$fdr = round(perGeneQValue(pdxr),5)[rownames(genetable)]
+  genetable$gene_id <- getGeneIdExprLinks(pvGeneIds = genetable$gene_id, psdexseq_report_path = param$dexseq_report_path)
+  genetable = genetable[order(genetable$fdr),]
   require(DT)
   x = datatable(genetable, escape = F,rownames = FALSE, filter = 'bottom',extensions = c('ColReorder','Buttons'),
                 caption = paste('Candidates DEXSeq:',param$comparison, sep=''),
