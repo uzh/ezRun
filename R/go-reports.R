@@ -163,19 +163,9 @@ goUpDownTables = function(param, goResult){
     x = goResult[[onto]]
     for (sub in names(x)){ #c("enrichUp", "enrichDown", "enrichBoth")){
       message("sub: ", sub)
-      goFrame = .getGoTermsAsTd(x[[sub]], param$pValThreshFisher,
-                                param$minCountFisher, onto=onto,
-                                maxNumberOfTerms=param$maxNumberGroupsDisplayed)
-      ktables[[sub]][[onto]] = goFrame
-      if (nrow(goFrame)==0)
-        next
-      linkTable[onto, sub] = paste0("Cluster-", onto, "-", sub, ".html")
-      ezInteractiveTable(goFrame, tableLink=linkTable[onto, sub], digits=3,
-                         title=paste(sub("enrich", "", sub), "enriched GO categories of ontology", onto))
-      linkTable[onto, sub] = as.html(ezLink(linkTable[onto, sub], target = "_blank"))
-      goFrame$Term = substr(goFrame$Term, 1, 30)
       xSub = x[[sub]]
       if (is.data.frame(xSub)){
+        ## We always output the goseq results files
         name = paste0(onto, "-", param$comparison, "-", sub)
         if (!is.null(xSub$Pvalue)){
           xSub = xSub[order(xSub$Pvalue), ]
@@ -186,6 +176,19 @@ goUpDownTables = function(param, goResult){
         # txtList[[sub]][[onto]] = ezValidFilename(paste0(name, ".txt"), replace="-")
         ezWrite.table(xSub, file=txtFile, row.names=FALSE)
       }
+      goFrame = .getGoTermsAsTd(xSub, param$pValThreshFisher,
+                                param$minCountFisher, onto=onto,
+                                maxNumberOfTerms=param$maxNumberGroupsDisplayed)
+      ktables[[sub]][[onto]] = goFrame
+      if (nrow(goFrame)==0)
+        next
+      linkTable[onto, sub] = paste0("Cluster-", onto, "-", sub, ".html")
+      ezInteractiveTable(goFrame, tableLink=linkTable[onto, sub], digits=3,
+                         title=paste(sub("enrich", "", sub), 
+                                     "enriched GO categories of ontology", onto))
+      linkTable[onto, sub] = as.html(ezLink(linkTable[onto, sub], 
+                                            target = "_blank"))
+      #goFrame$Term = substr(goFrame$Term, 1, 30)
     }
   }
   for(sub in names(ktables)){
