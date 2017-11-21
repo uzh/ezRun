@@ -627,10 +627,12 @@ for(onto in names(enrichResult)){
 
 #### Result files
 ```{r hypergeometric result files, echo=FALSE, results='asis'}
-for(resFn in resFns){
-  cat("\n")
-  cat(paste0("[", resFn, "](", resFn, ")"))
-  cat("\n")
+if(exists("enrichResult")){
+  for(resFn in resFns){
+    cat("\n")
+    cat(paste0("[", resFn, "](", resFn, ")"))
+    cat("\n")
+  }
 }
 ```
 
@@ -691,10 +693,12 @@ if(exists("enrichResultGSEA")){
 
 #### Result files
 ```{r GSEA result files, echo=FALSE, results='asis'}
-for(resFn in resFns){
-  cat("\n")
-  cat(paste0("[", resFn, "](", resFn, ")"))
-  cat("\n")
+if(exists("enrichResultGSEA")){
+  for(resFn in resFns){
+    cat("\n")
+    cat(paste0("[", resFn, "](", resFn, ")"))
+    cat("\n")
+  }
 }
 ```
 
