@@ -366,7 +366,7 @@ gageHeatmap = function(x, param=NULL, output=NULL, gene.pValue=NULL, signal=NULL
                 scale="none",
                 Colv=colDendro, Rowv=rowDendro, dendrogram=showDendro,
                 key=TRUE, density.info="none", trace="none",
-                keysize=1, cexCol=1.5,
+                keysize=1, cexCol=1.5, lwid=lwid, lhei=lhei,
                 margins=c(14,9), cexRow = 0.00001) ## TODO: why????
     })
     fileLink = ezImageFileLink(plotCmd, file=fileName, width=max(800, 400 + 10 * ncol(xCentered)), height=1000) # HEATMAP

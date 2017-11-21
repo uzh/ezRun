@@ -848,7 +848,7 @@ intHist = function(x, range=c(round(min(x, na.rm=TRUE))-0.5, round(max(x, na.rm=
 ezHeatmap = function(x, lim=c(-4, 4), colors=getBlueRedScale(),
                      dendrogram="none", margins=c(8,6), cexCol=1.1,
                      Rowv=TRUE, Colv=TRUE, labCol=ezSplitLongLabels(colnames(x)), labRow=rownames(x),
-                     key=TRUE, ...){
+                     key=TRUE, lwid=c(1, 4), lhei=c(1,5), ...){
   require(gplots)
   if (!is.matrix(x)){
     x = as.matrix(x)
@@ -861,7 +861,7 @@ ezHeatmap = function(x, lim=c(-4, 4), colors=getBlueRedScale(),
             breaks=seq(from=lim[1], to=lim[2], length.out=257), col=colors, na.color="black",
             Rowv=Rowv, Colv=Colv,
             dendrogram=dendrogram, density.info="none", trace="none", labCol=labCol, labRow=labRow, cexCol=cexCol,
-            margins=margins, key=key, ...)
+            margins=margins, key=key, lwid=lwid, lhei=lhei, ...)
 }
 
 ## see http://rpubs.com/gaston/dendrograms

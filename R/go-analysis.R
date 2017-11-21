@@ -575,6 +575,7 @@ clusterResults = function(x, nClusters=5, clusterColors=rainbow(nClusters), d=NU
 ##' @seealso \code{\link[gplots]{heatmap.2}}
 clusterHeatmap = function(x, param, result, file="cluster-heatmap.png", method="ward.D2",
                           doClusterColumns=FALSE, columnDist=NULL, colColors=NULL, lim=c(-4, 4),
+                          lwid=c(1, 4), lhei=c(1,5),
                           cexRow=1.0, cexCol=1.5, labRow=rownames(x), margins=c(14,9),
                           colors=getBlueRedScale(), maxGenesWithLabel=50, ...){
   require("gplots", warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
@@ -607,14 +608,14 @@ clusterHeatmap = function(x, param, result, file="cluster-heatmap.png", method="
                 scale="none", dendrogram=showDendro, labRow=labRow,
                 breaks=seq(from=lim[1], to=lim[2], length.out=257),
                 Colv=colDendro, Rowv=probeDendro, col=colors,
-                key=TRUE, density.info="none", trace="none", margins=margins, cexCol=cexCol, cexRow=cexRow, ...)
+                key=TRUE, density.info="none", trace="none", margins=margins, cexCol=cexCol, cexRow=cexRow, lwid=lwid, lhei=lhei, ...)
     } else {
       heatmap.2(x,
                 ColSideColors=colColors,
                 scale="none", dendrogram=showDendro, labRow=labRow,
                 breaks=seq(from=lim[1], to=lim[2], length.out=257),
                 Colv=colDendro, Rowv=probeDendro, col=colors,
-                key=TRUE, density.info="none", trace="none", margins=margins, cexCol=cexCol, cexRow=cexRow, ...)
+                key=TRUE, density.info="none", trace="none", margins=margins, cexCol=cexCol, cexRow=cexRow, lwid=lwid, lhei=lhei, ...)
     }
   } else {
     if (result$nClusters > 1){
@@ -623,13 +624,13 @@ clusterHeatmap = function(x, param, result, file="cluster-heatmap.png", method="
                 scale="none", dendrogram=showDendro, labRow=labRow,
                 breaks=seq(from=lim[1], to=lim[2], length.out=257),
                 Colv=colDendro, Rowv=probeDendro, col=colors,
-                key=TRUE, density.info="none", trace="none", margins=margins, cexCol=cexCol, cexRow=cexRow, ...)
+                key=TRUE, density.info="none", trace="none", margins=margins, cexCol=cexCol, cexRow=cexRow, lwid=lwid, lhei=lhei,...)
     } else {
       heatmap.2(x,
                 scale="none", dendrogram=showDendro, labRow=labRow,
                 breaks=seq(from=lim[1], to=lim[2], length.out=257),
                 Colv=colDendro, Rowv=probeDendro, col=colors,
-                key=TRUE, density.info="none", trace="none", margins=margins, cexCol=cexCol, cexRow=cexRow, ...)
+                key=TRUE, density.info="none", trace="none", margins=margins, cexCol=cexCol, cexRow=cexRow, lwid=lwid, lhei=lhei, ...)
     }
   }
   if (!is.null(file)){
