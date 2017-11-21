@@ -106,19 +106,19 @@ ezMethodDEXSeqAnalysis <- function(input=NA, output=NA, param=NA){
   presentGenes = rownames(countDataPerGene)[rowSums(countDataPerGene > param[['minGeneExprCount']]) > 1]
   #presentGenes = rownames(countDataPerGene)[which(rowMax(countDataPerGene)>param[['minGeneExprCount']] & apply(countDataPerGene,1,aboveMinExprSamples,minExpr=param[['minGeneExprCount']])>1)]
   useRow = gsub(':.*','',rownames(countData)) %in% presentGenes
-  filteredCountData = countData[useRow , ] + param$countOffset
-  transcripts = rowData(dxd)$transcripts[useRow]
-  featureRanges = rowRanges(dxd)[useRow]
-
-  dxd <- DEXSeq::DEXSeqDataSet(
-    filteredCountData,
-    sampleData    = sampleTable,
-    design        = design,
-    featureID     = gsub('.*:','',rownames(filteredCountData)),
-    groupID       = gsub(':.*','',rownames(filteredCountData)),
-    transcripts   = transcripts,
-    featureRanges = featureRanges
-)
+  # filteredCountData = countData[useRow , ] + param$countOffset
+  # transcripts = rowData(dxd)$transcripts[useRow]
+  # featureRanges = rowRanges(dxd)[useRow]
+  # 
+  # dxd <- DEXSeq::DEXSeqDataSet(
+  #   filteredCountData,
+  #   sampleData    = sampleTable,
+  #   design        = design,
+  #   featureID     = gsub('.*:','',rownames(filteredCountData)),
+  #   groupID       = gsub(':.*','',rownames(filteredCountData)),
+  #   transcripts   = transcripts,
+  #   featureRanges = featureRanges
+  # )
 
 
   ### # estimate size factors and dispersion
@@ -129,10 +129,10 @@ ezMethodDEXSeqAnalysis <- function(input=NA, output=NA, param=NA){
   dxd  <- DEXSeq::testForDEU( dxd, BPPARAM = BPPARAM )
 
   ### # fold changes
-  dxd <- DEXSeq::estimateExonFoldChanges( dxd, BPPARAM = BPPARAM, denominator = param$refGroup)
+  dxd <- DEXSeq::estimateExonFoldChanges( dxd, BPPARAM = BPPARAM, denominator = param$refGroup, independentFiltering = TRUE)
 
   ### # generate a report
-  writeDEXSeqReport(dataset = input$meta, dexResult = list(param = param, dxd=dxd), 
+  writeDEXSeqReport(dataset = input$meta, dexResult = list(param = param, dxd=dxd, useRow=useRow), 
                     sResultDir = basename(output$meta[['Report [File]']]))
   return("Success")
 }
@@ -162,7 +162,7 @@ EzAppDEXSeqAnalysis <-
                                         minGeneExprCount   = ezFrame(Type="numeric",   DefaultValue=20,          Description="minimal Mean GeneCount for candidate selection"),
                                         minExonExprCount   = ezFrame(Type="numeric",   DefaultValue=10,          Description="minimal Mean ExonCount for candidate selection"),
                                         minExonLog2Ratio = ezFrame(Type="numeric",   DefaultValue=0.3,          Description="minimal log2Ratio for diff. exon for candidate selection"),
-                                        countOffset = ezFrame(Type="numeric",   DefaultValue=10,          Description="add pseudo counts to shrink logRatios"),
+                                        bgExpression = ezFrame(Type="numeric",   DefaultValue=10,          Description="add pseudo counts to shrink logRatios"),
                                         dexseq_report_path = ezFrame(Type="character", DefaultValue="DEXSeqReport",  Description="path DEXSeqHTML report is written to"),
                                         dexseq_report_file = ezFrame(Type="character", DefaultValue="testForDEU.html",  Description="file name for DEXSeqHTML report")   )
                 }
@@ -187,7 +187,7 @@ writeDEXSeqReport <- function(dataset, dexResult, htmlFile="00index.html", sResu
   name <- param$name
   ### # extract DEXSeqResults object
   dxd <- dexResult$dxd
-  dxr <- DEXSeq::DEXSeqResults(dxd,independentFiltering = T)#,filter=rowMeans( featureCounts(dxd) )>as.numeric(param[['minExonExprCount']]))
+  dxr <- DEXSeq::DEXSeqResults(dxd,independentFiltering = TRUE)
 
   ### # put the results into a different subdirectory
   sCurWd <- getwd()
@@ -200,6 +200,7 @@ writeDEXSeqReport <- function(dataset, dexResult, htmlFile="00index.html", sResu
 
   ### # write tsv file from results
   sResultFile <- paste0("result--", param$comparison, "--", "DEXSeqResult.txt")
+  dxr$transcripts = sapply(dxr$transcripts, function(trList){paste(trList, collapse="; ")})
   write.table(dxr, file = sResultFile, quote = FALSE, sep = "\t")
 
   ### # if parameters about biomart are specified, use them
