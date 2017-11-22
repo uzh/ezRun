@@ -42,7 +42,9 @@ ezMethodDEXSeqAnalysis <- function(input=NA, output=NA, param=NA){
   register(BPPARAM) ## register it because exon fold changes does use the default
   
   ### # check whether conditions are specified
-  condition = input$getColumn(param$grouping)
+  condition = make.names(input$getColumn(param$grouping))
+  param$sampleGroup = make.names(param$sampleGroup)
+  param$refGroup = make.names(param$refGroup)
   # colnames(input$meta) = gsub(' \\[.*','',colnames(input$meta))
   # if (param$grouping %in% colnames(input$meta))
   #   condition <- input$meta[[param$grouping]]
@@ -72,9 +74,11 @@ ezMethodDEXSeqAnalysis <- function(input=NA, output=NA, param=NA){
     DEXSeqCounting(input = input, output = output, param = param)
 
   ### # check the reference
-  sRefFeatGff <- gsub("gtf$", "gff", basename(param[['ezRef']]@refFeatureFile))
-  if(ezIsSpecified(param$gff_file))
+  if(ezIsSpecified(param$gff_file)){
     sRefFeatGff <- param$gff_file
+  } else {
+    sRefFeatGff <- gsub("gtf$", "gff", basename(param[['ezRef']]@refFeatureFile))
+  }
   stopifnot(file.exists(sRefFeatGff))
 
   ### # check whether special design was specified, o/w use minimal default design
@@ -307,7 +311,7 @@ getGeneTable <- function(pdxr, param){
 
   ### # put together a result data consisting of genomic data and the modelling
   genomicData <- as.data.frame(pdxr$genomicData)
-  log2column = paste('log2fold',param$sampleGroup,param$refGroup,sep='_')
+  log2column = grep('log2fold',colnames(pdxr), value=TRUE)
   results <- data.frame(pdxr[, c("groupID",
                                  "featureID",
                                  "exonBaseMean",
