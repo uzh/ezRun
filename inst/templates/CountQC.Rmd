@@ -369,7 +369,7 @@ invisible(file.copy(from=jsFile, to=basename(jsFile), overwrite=TRUE))
 cat(paste0("<SCRIPT language=\"JavaScript\" SRC=\"", basename(jsFile), "\"></SCRIPT>"))
 ```
 
-```{r Clustering of High Variance Features, echo=FALSE, message=FALSE, fig.width=max(8,4+0.1*ncol(xNormed)), fig.height=10, results='asis'}
+```{r Clustering of High Variance Features, echo=FALSE, message=FALSE, fig.width=max(8,4+0.1*ncol(xNormed)), fig.height=10, results='asis', eval=!debug}
 clusterPdf = "cluster-heatmap.pdf"
 if (nSamples > 3){
   ## gene clustering
@@ -463,22 +463,43 @@ if (file.exists("goClusterTable.html")){
 }
 ```
 
-
-```{r MDS plot, echo=FALSE, results='asis', message=FALSE, fig.width=7, fig.height=7}
+```{r MDS section, echo=FALSE, results='asis', message=FALSE, eval=TRUE}
 if(nSamples > 3){
   cat("### MDS Plot", "\n")
-  ## Present genes
-  pngName = "mdsPlot_PresentGenes.png"
-  ezMdsPlot(signal=x, sampleColors=sampleColors, main=sub('.png','',pngName))
-  
-  ## Top genes
-  pngName = "mdsPlot_TopGenes.png"
-  ezMdsPlot(signal=x[topGenes,], sampleColors=sampleColors, 
-            main=sub('.png','',pngName))
 }
 ```
 
-```{r scatter plot, echo=FALSE, results='asis'}
+```{r MDS plot 3D present, echo=FALSE, message=FALSE, fig.width=7, fig.height=7, eval=TRUE}
+if(nSamples > 3){
+  ## 3D scatter plot is strange. The plots are messy when use htmltools::tagList()
+  ## subplot doesn't work either.
+  ezMdsPlotly(signal=x, sampleColors=sampleColors, ndim=3, 
+                   main="mdsPlot_PresentGenes 3D")
+}
+```
+```{r MDS plot 2D present, echo=FALSE, message=FALSE, fig.width=7, fig.height=7, eval=TRUE}
+if(nSamples > 3){
+  ezMdsPlotly(signal=x, sampleColors=sampleColors, ndim=2,
+              main="mdsPlot_PresentGenes 2D")
+}
+```
+
+```{r MDS plot 3D top, echo=FALSE, message=FALSE, fig.width=7, fig.height=7, eval=TRUE}
+if(nSamples > 3){
+  ezMdsPlotly(signal=x[topGenes,], sampleColors=sampleColors, ndim=3,
+                   main="mdsPlot_TopGenes 3D")
+}
+```
+
+```{r MDS plot 2D top, echo=FALSE, message=FALSE, fig.width=7, fig.height=7, eval=TRUE}
+if(nSamples > 3){
+  ezMdsPlotly(signal=x[topGenes,], sampleColors=sampleColors, ndim=2,
+                   main="mdsPlot_TopGenes 2D")
+}
+```
+
+
+```{r scatter plot, echo=FALSE, results='asis', eval=!debug}
 if(nSamples > 3){
   if (param$writeScatterPlots){
     qcScatterFiles = countQcScatterPlots(param, design, conds, rawData,

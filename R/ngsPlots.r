@@ -68,13 +68,52 @@ ezMdsPlot = function(signal, sampleColors, main){
   y = DGEList(counts=signal,group=colnames(signal))
   #y$counts = cpm(y)
   #y = calcNormFactors(y)
-  pdf(file=NULL)
-  mds = plotMDS(y)
-  dev.off()
+  
+  mds = plotMDS(y, plot=FALSE)
+  
   plot(mds$x, mds$y, pch=c(15), xlab='Leading logFC dim1', ylab='Leading logFC dim2', main=main,
        xlim=c(1.2*min(mds$x), 1.2*max(mds$x)), ylim=c(1.2*min(mds$y), 1.2*max(mds$y)), col=sampleColors)
   text(mds$x,mds$y,labels = colnames(signal),pos=1,col=c('darkcyan'),cex=0.7)
   par(bg = 'white')
+}
+
+ezMdsPlotly <- function(signal, sampleColors, ndim=c(3,2), main){
+  require("edgeR")
+  require(plotly)
+  y = DGEList(counts=signal, group=colnames(signal))
+  mds = plotMDS(y, plot=FALSE, ndim=ndim)
+  toPlot <- data.frame(samples=colnames(signal),
+                       stringsAsFactors = FALSE)
+  mdsOut <- mds$cmdscale.out
+ 
+  if(ndim == 3){
+    colnames(mdsOut) <- c("Leading logFC dim1", "Leading logFC dim2", 
+                          "Leading logFC dim3")
+    toPlot <- cbind(toPlot, mdsOut)
+    plot_ly(toPlot, x=~`Leading logFC dim1`, y=~`Leading logFC dim2`, 
+            z=~`Leading logFC dim3`, color=~samples, colors=sampleColors,
+            text=toPlot$samples) %>%
+      add_markers() %>% 
+      add_text(textposition = "top right", showlegend=FALSE) %>%
+      layout(title=main,
+             scene = list(xaxis = list(title = 'Leading logFC dim1'),
+                          yaxis = list(title = 'Leading logFC dim2'),
+                          zaxis = list(title = 'Leading logFC dim3')))
+  }else if(ndim ==2){
+    colnames(mdsOut) <- c("Leading logFC dim1", "Leading logFC dim2")
+    toPlot <- cbind(toPlot, mdsOut)
+    plot_ly(toPlot, x=~`Leading logFC dim1`, y=~`Leading logFC dim2`, 
+            color=~samples, colors=sampleColors,
+            text=toPlot$samples) %>%
+      add_markers() %>% 
+      add_text(textposition = "top center", showlegend=FALSE) %>%
+      layout(title=main,
+             xaxis = list(title = 'Leading logFC dim1'),
+             yaxis = list(title = 'Leading logFC dim2'))
+  }else{
+    stop("We only support 3D or 2D mds plot.")
+  }
+  
 }
 
 
