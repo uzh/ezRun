@@ -18,7 +18,24 @@ ezMethodMothurDataClean = function(input=NA, output=NA, param=NA,
   cmdNoHead = paste("grep -v Name", "dataset.tsv", ">", mothurInput)
   ezSystem(cmdNoHead)
   cmdMothur = paste(mothurExe,mothurBatchFile)
+  ezSystem(cmdMothur)
   
+  ## Copy the style files and templates
+  styleFiles <- file.path(system.file("templates", package="ezRun"),
+                          c("fgcz.css", "FastQC.Rmd", "FastQC_overview.Rmd",
+                            "fgcz_header.html", "banner.png"))
+  file.copy(from=styleFiles, to=".", overwrite=TRUE)
+  
+  plots = c("Summary of sequences in each sample.png",
+            "Per sequence quality scores"="per_sequence_quality.png",
+            "Per tile sequence quality"="per_tile_quality.png",
+            "Per base sequence content"="per_base_sequence_content.png",
+            "Per sequence GC content"="per_sequence_gc_content.png",
+            "Per base N content"="per_base_n_content.png",
+            "Sequence Length Distribution"="sequence_length_distribution.png",
+            "Sequence Duplication Levels"="duplication_levels.png",
+            "Adapter Content"="adapter_content.png",
+            "Kmer Content"="kmer_profiles.png")
 }
  
 ##' @template app-template
