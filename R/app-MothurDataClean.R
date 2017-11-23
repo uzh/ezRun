@@ -13,7 +13,7 @@ ezMethodMothurDataClean = function(input=NA, output=NA, param=NA,
   mothurBatchFile = "/home/grusso/Rcodes/giancarlo/genericScipts/mothurMiSeqSOPtest.batch"
   mothurInput = "datasetNoHeaderForMothur.tsv"
   
-  setwdNew(basename(output$getColumn("Report")))
+  setwdNew(basename(output$getColumn("Static Report")))
   ## remove header to creat input files for mothur and copy it 
   cmdNoHead = paste("grep -v Name", "dataset.tsv", ">", mothurInput)
   ezSystem(cmdNoHead)
@@ -51,7 +51,7 @@ EzAppMothurDataClean <-
                   "Initializes the application using its specific defaults."
                   runMethod <<- ezMethodMothurDataClean
                   name <<- "EzAppMothurDataClean"
-                  appDefaults <<- rbind(cutOff = ezFrame(Type="real",  DefaultValue="0,03",Description="Cut-off for OTU clustering.")
+                  appDefaults <<- rbind(cutOff = ezFrame(Type="numeric",  DefaultValue="0,03",Description="Cut-off for OTU clustering.")
                   )
                 }
               )
