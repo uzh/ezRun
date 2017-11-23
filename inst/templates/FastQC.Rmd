@@ -38,7 +38,7 @@ m <- list(
   pad = 0
 )
 plot_ly(x=names(readCount), y=readCount, type="bar") %>%
-  layout(title="total reads",
+  layout(title="Total reads",
          yaxis = list(title = "Counts [Mio]"),
          margin = m
   )

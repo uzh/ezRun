@@ -1,4 +1,4 @@
-setwd("/home/gtan/analysis/gtan/p1536-CountQC")
+setwd("/srv/GT/analysis/gtan/debug/p1536-CountQC")
 library(ezRun)
 param = list()
 param[['cores']] = '1'
