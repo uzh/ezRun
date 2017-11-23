@@ -47,7 +47,7 @@ setMethod("initialize", "EzRef", function(.Object, param=list()){
   #   if (!ezIsSpecified(param$refBuild)){
   #     return(.Object)
   #   }
-  genomesRoot = strsplit(GENOMES_ROOT, ":")[[1]]
+  genomesRoot = strsplit(GENOMES_ROOT, ":")[[1]][1]
   .Object@refBuild = param$refBuild
   refFields = strsplit(.Object@refBuild, "/", fixed=TRUE)[[1]]
   if (ezIsSpecified(param$refBuildName)){
@@ -267,6 +267,9 @@ setMethod("buildIgvGenome", "EzRef", function(.Object){
   ## create transcript.only.gtf
   gtfFile = .Object@refFeatureFile
   genomeFile = .Object@refFastaFile
+  genomeFileURL <- paste0(REF_HOST, 
+                         sub(strsplit(GENOMES_ROOT, ":")[[1]][1], "", 
+                             genomeFile, fixed=TRUE))
   stopifnot(file.exists(gtfFile))
   stopifnot(file.exists(genomeFile))
   trxFile = file.path(.Object@refBuildDir, "transcripts.only.gtf")
@@ -298,8 +301,12 @@ setMethod("buildIgvGenome", "EzRef", function(.Object){
   id = .Object@refBuildName
   name = paste(getOrganism(.Object), id, sep="_")
   properties = c("fasta=true", "fastaDirectory=false", "ordered=true")
-  properties = c(properties, paste0("id=", id), paste0("name=", name), paste0("sequenceLocation=", genomeFile))
-  properties = c(properties, "geneFile=transcripts.only.gtf", "chrAliasFile=chrom_alias.tab")
+  properties = c(properties, 
+                 paste0("id=", id), 
+                 paste0("name=", name), 
+                 paste0("sequenceLocation=", genomeFileURL))
+  properties = c(properties, "geneFile=transcripts.only.gtf", 
+                 "chrAliasFile=chrom_alias.tab")
   writeLines(properties, con=propertyFile)
   
   ## make zip file and clean up
