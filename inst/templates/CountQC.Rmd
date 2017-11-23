@@ -22,13 +22,14 @@ require(kableExtra)
 require(SummarizedExperiment)
 require(wesanderson)
 require(WGCNA)
+require(plotly)
 ```
 
 ```{r prepare data, include=FALSE}
 ## debug:
-#require(ezRun)
-#load("/home/gtan/analysis/gtan/p1536-CountQC/testCountQC.rda")
-#output <- NULL
+# require(ezRun)
+# load("/srv/GT/analysis/gtan/debug/p1536-CountQC/testCountQC.rda")
+# output <- NULL
 ## end of debug
 debug <- FALSE
 
@@ -183,17 +184,40 @@ totalCounts = signif(colSums(assays(rawData)$counts) / 1e6, digits=3)
 presentCounts = colSums(isPresent)
 names(totalCounts) = samples
 names(presentCounts) = samples
-
-## Total reads
-par(mar=c(10.1, 4.1, 4.1, 2.1))
-barplot(totalCounts, las=2, ylab="Counts [Mio]", main="Total reads",
-        names.arg=ezSplitLongLabels(names(totalCounts)))
-## Genomic Features with Reads above threshold
-par(mar=c(10.1, 4.1, 4.1, 2.1))
-bplot = barplot(presentCounts, las=2, ylab="Counts", main="Genomic Features with Reads above threshold",
-                names.arg=ezSplitLongLabels(names(presentCounts)))
 percentages = paste(signif(100*presentCounts/nrow(isPresent), digits=2), "%")
-text(x=bplot, y=0, pos=3, offset=2, labels=percentages)
+toPlot <- data.frame(samples=names(totalCounts),
+                     totalCounts=totalCounts,
+                     presentCounts=presentCounts,
+                     percentages=percentages)
+m <- list(
+  l = 80,
+  r = 80,
+  b = 200,
+  t = 100,
+  pad = 0
+)
+## Total reads
+plot_ly(toPlot, x=~samples, 
+        y=~totalCounts, type="bar") %>%
+  layout(title="Total reads",
+         yaxis = list(title = "Counts [Mio]"),
+         margin = m
+  )
+#par(mar=c(10.1, 4.1, 4.1, 2.1))
+#barplot(totalCounts, las=2, ylab="Counts [Mio]", main="Total reads",
+#        names.arg=ezSplitLongLabels(names(totalCounts)))
+
+## Genomic Features with Reads above threshold
+#par(mar=c(10.1, 4.1, 4.1, 2.1))
+#bplot = barplot(presentCounts, las=2, ylab="Counts", main="Genomic Features with Reads above threshold",
+#                names.arg=ezSplitLongLabels(names(presentCounts)))
+# text(x=bplot, y=0, pos=3, offset=2, labels=percentages)
+plot_ly(toPlot, x=~samples, y=~presentCounts, type="bar",
+        text=~percentages, textposition = 'auto') %>%
+  layout(title="Genomic Features with Reads above threshold",
+         yaxis = list(title = "Counts"),
+         margin = m
+  )
 ```
 
 ### Correlation/Clustering Plot
