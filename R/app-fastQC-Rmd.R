@@ -121,7 +121,7 @@ ezMethodFastQC = function(input=NA, output=NA, param=NA,
   ans4Report[["Per Base Read Quality"]] <- qualMatrixList
   
   ## debug
-  save(ans4Report, file="ans4Report.rda")
+  ## save(ans4Report, file="ans4Report.rda")
   
   ## generate the main reports
   rmarkdown::render(input="FastQC.Rmd", envir = new.env(),
@@ -378,17 +378,44 @@ getQualityMatrix_old = function(fn){
   return(qualCountMatrix)
 }
 
+### Sample up to 300k reads from a fastq file or bam file.
+### Calculate the quality matrix
 getQualityMatrix <- function(fn){
   ## This implementation is faster than the FastqStreamer.
   require(ShortRead)
   require(Biostrings)
-  #nReads <- fastq.geometry(fn)[1]
-  #subSample <- 0.01
-  #nReads <- round(nReads * subSample)
+  #require(GenomicFiles)
+  #require(Rsamtools)
+  #require(GenomicAlignments)
   nReads <- 3e5
-  f <- FastqSampler(fn, nReads) ## we sample no more than 300k reads.
-  reads <- yield(f)
+  
+  if(grepl("\\.bam$", fn)){
+    ## BamFile and readGAlignments doesn't work because no chr infor in unmapped bam
+    # bf <- BamFile(fn, yieldSize=nReads)
+    # yield <- function(x){
+    #   readGAlignments(x, param=ScanBamParam(what=c("qual")))
+    # }
+    # map <- identity
+    # qual <- reduceByYield(bf, yield, map, REDUCEsampler(nReads, TRUE))
+    cmd <- paste("samtools flagstat", fn)
+    cmdOutput <- ezSystem(cmd, intern = TRUE)
+    nrTotal <- eval(parse(text=sub(" in total.*", "", cmdOutput[1])))
+    
+    tempBamFn <- paste(Sys.getpid(), "temp.bam", sep="-")
+    on.exit(file.remove(tempBamFn), add=TRUE)
+    cmd <- paste("samtools view -s", nReads/nrTotal, "-b", fn, 
+                 ">", tempBamFn)
+    ezSystem(cmd)
+    tempFastqFn <- paste(Sys.getpid(), "temp.fastq", sep="-")
+    on.exit(file.remove(tempFastqFn), add=TRUE)
+    bam2fastq(bamFns=tempBamFn, fastqFns=tempFastqFn, paired=FALSE)
+    reads <- readFastq(tempFastqFn)
+  }else{
+    f <- FastqSampler(fn, nReads) ## we sample no more than 300k reads.
+    reads <- yield(f)
+  }
   qual <- quality(reads)
+  
   maxReadLength <- max(width(qual))
   qualMatrix <- as(qual, "matrix")
   maxQuality <- max(qualMatrix, na.rm=TRUE)
