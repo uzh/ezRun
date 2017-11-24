@@ -469,35 +469,26 @@ if(nSamples > 3){
 }
 ```
 
-```{r MDS plot 3D present, echo=FALSE, message=FALSE, fig.height=7, eval=TRUE}
+```{r MDS plot 3D present, echo=FALSE, message=FALSE, fig.height=7, fig.width=9, eval=TRUE}
 if(nSamples > 3){
   ## 3D scatter plot is strange. The plots are messy when use htmltools::tagList()
   ## subplot doesn't work either.
   ezMdsPlotly(signal=x, sampleColors=sampleColors, ndim=3, 
-                   main="mdsPlot_PresentGenes 3D")
+              main="mdsPlot_PresentGenes 3D")
 }
-```
-```{r MDS plot 2D present, echo=FALSE, message=FALSE, fig.height=7, eval=TRUE}
+if(nSamples > 3){
+  ezMdsPlotly(signal=x[topGenes,], sampleColors=sampleColors, ndim=3,
+              main="mdsPlot_TopGenes 3D")
+}
 if(nSamples > 3){
   ezMdsPlotly(signal=x, sampleColors=sampleColors, ndim=2,
               main="mdsPlot_PresentGenes 2D")
 }
-```
-
-```{r MDS plot 3D top, echo=FALSE, message=FALSE, fig.height=7, eval=TRUE}
-if(nSamples > 3){
-  ezMdsPlotly(signal=x[topGenes,], sampleColors=sampleColors, ndim=3,
-                   main="mdsPlot_TopGenes 3D")
-}
-```
-
-```{r MDS plot 2D top, echo=FALSE, message=FALSE, fig.height=7, eval=TRUE}
 if(nSamples > 3){
   ezMdsPlotly(signal=x[topGenes,], sampleColors=sampleColors, ndim=2,
-                   main="mdsPlot_TopGenes 2D")
+              main="mdsPlot_TopGenes 2D")
 }
 ```
-
 
 ```{r scatter plot, echo=FALSE, results='asis', eval=!debug}
 if(nSamples > 3){
