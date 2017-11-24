@@ -90,9 +90,9 @@ ezMdsPlotly <- function(signal, sampleColors, ndim=c(3,2), main){
     colnames(mdsOut) <- c("Leading logFC dim1", "Leading logFC dim2", 
                           "Leading logFC dim3")
     toPlot <- cbind(toPlot, mdsOut)
-    plot_ly(toPlot, x=~`Leading logFC dim1`, y=~`Leading logFC dim2`, 
-            z=~`Leading logFC dim3`, color=~samples, colors=sampleColors,
-            text=toPlot$samples) %>%
+    p <- plot_ly(toPlot, x=~`Leading logFC dim1`, y=~`Leading logFC dim2`, 
+                 z=~`Leading logFC dim3`, color=~samples, colors=sampleColors,
+                 text=toPlot$samples) %>%
       add_markers() %>% 
       add_text(textposition = "top right", showlegend=FALSE) %>%
       layout(title=main,
@@ -102,9 +102,9 @@ ezMdsPlotly <- function(signal, sampleColors, ndim=c(3,2), main){
   }else if(ndim ==2){
     colnames(mdsOut) <- c("Leading logFC dim1", "Leading logFC dim2")
     toPlot <- cbind(toPlot, mdsOut)
-    plot_ly(toPlot, x=~`Leading logFC dim1`, y=~`Leading logFC dim2`, 
-            color=~samples, colors=sampleColors,
-            text=toPlot$samples) %>%
+    p <- plot_ly(toPlot, x=~`Leading logFC dim1`, y=~`Leading logFC dim2`, 
+                 color=~samples, colors=sampleColors,
+                 text=toPlot$samples) %>%
       add_markers() %>% 
       add_text(textposition = "top center", showlegend=FALSE) %>%
       layout(title=main,
@@ -113,7 +113,7 @@ ezMdsPlotly <- function(signal, sampleColors, ndim=c(3,2), main){
   }else{
     stop("We only support 3D or 2D mds plot.")
   }
-  
+  p
 }
 
 
