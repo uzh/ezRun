@@ -22,13 +22,14 @@ require(kableExtra)
 require(SummarizedExperiment)
 require(wesanderson)
 require(WGCNA)
+require(plotly)
 ```
 
 ```{r prepare data, include=FALSE}
 ## debug:
-#require(ezRun)
-#load("/home/gtan/analysis/gtan/p1536-CountQC/testCountQC.rda")
-#output <- NULL
+# require(ezRun)
+# load("/srv/GT/analysis/gtan/debug/p1536-CountQC/testCountQC.rda")
+# output <- NULL
 ## end of debug
 debug <- FALSE
 
@@ -183,17 +184,40 @@ totalCounts = signif(colSums(assays(rawData)$counts) / 1e6, digits=3)
 presentCounts = colSums(isPresent)
 names(totalCounts) = samples
 names(presentCounts) = samples
-
-## Total reads
-par(mar=c(10.1, 4.1, 4.1, 2.1))
-barplot(totalCounts, las=2, ylab="Counts [Mio]", main="Total reads",
-        names.arg=ezSplitLongLabels(names(totalCounts)))
-## Genomic Features with Reads above threshold
-par(mar=c(10.1, 4.1, 4.1, 2.1))
-bplot = barplot(presentCounts, las=2, ylab="Counts", main="Genomic Features with Reads above threshold",
-                names.arg=ezSplitLongLabels(names(presentCounts)))
 percentages = paste(signif(100*presentCounts/nrow(isPresent), digits=2), "%")
-text(x=bplot, y=0, pos=3, offset=2, labels=percentages)
+toPlot <- data.frame(samples=names(totalCounts),
+                     totalCounts=totalCounts,
+                     presentCounts=presentCounts,
+                     percentages=percentages)
+m <- list(
+  l = 80,
+  r = 80,
+  b = 200,
+  t = 100,
+  pad = 0
+)
+## Total reads
+plot_ly(toPlot, x=~samples, 
+        y=~totalCounts, type="bar") %>%
+  layout(title="Total reads",
+         yaxis = list(title = "Counts [Mio]"),
+         margin = m
+  )
+#par(mar=c(10.1, 4.1, 4.1, 2.1))
+#barplot(totalCounts, las=2, ylab="Counts [Mio]", main="Total reads",
+#        names.arg=ezSplitLongLabels(names(totalCounts)))
+
+## Genomic Features with Reads above threshold
+#par(mar=c(10.1, 4.1, 4.1, 2.1))
+#bplot = barplot(presentCounts, las=2, ylab="Counts", main="Genomic Features with Reads above threshold",
+#                names.arg=ezSplitLongLabels(names(presentCounts)))
+# text(x=bplot, y=0, pos=3, offset=2, labels=percentages)
+plot_ly(toPlot, x=~samples, y=~presentCounts, type="bar",
+        text=~percentages, textposition = 'auto') %>%
+  layout(title="Genomic Features with Reads above threshold",
+         yaxis = list(title = "Counts"),
+         margin = m
+  )
 ```
 
 ### Correlation/Clustering Plot
@@ -345,7 +369,7 @@ invisible(file.copy(from=jsFile, to=basename(jsFile), overwrite=TRUE))
 cat(paste0("<SCRIPT language=\"JavaScript\" SRC=\"", basename(jsFile), "\"></SCRIPT>"))
 ```
 
-```{r Clustering of High Variance Features, echo=FALSE, message=FALSE, fig.width=max(8,4+0.1*ncol(xNormed)), fig.height=10, results='asis'}
+```{r Clustering of High Variance Features, echo=FALSE, message=FALSE, fig.width=max(8,4+0.1*ncol(xNormed)), fig.height=10, results='asis', eval=!debug}
 clusterPdf = "cluster-heatmap.pdf"
 if (nSamples > 3){
   ## gene clustering
@@ -439,22 +463,43 @@ if (file.exists("goClusterTable.html")){
 }
 ```
 
-
-```{r MDS plot, echo=FALSE, results='asis', message=FALSE, fig.width=7, fig.height=7}
+```{r MDS section, echo=FALSE, results='asis', message=FALSE, eval=TRUE}
 if(nSamples > 3){
   cat("### MDS Plot", "\n")
-  ## Present genes
-  pngName = "mdsPlot_PresentGenes.png"
-  ezMdsPlot(signal=x, sampleColors=sampleColors, main=sub('.png','',pngName))
-  
-  ## Top genes
-  pngName = "mdsPlot_TopGenes.png"
-  ezMdsPlot(signal=x[topGenes,], sampleColors=sampleColors, 
-            main=sub('.png','',pngName))
 }
 ```
 
-```{r scatter plot, echo=FALSE, results='asis'}
+```{r MDS plot 3D present, echo=FALSE, message=FALSE, fig.width=7, fig.height=7, eval=TRUE}
+if(nSamples > 3){
+  ## 3D scatter plot is strange. The plots are messy when use htmltools::tagList()
+  ## subplot doesn't work either.
+  ezMdsPlotly(signal=x, sampleColors=sampleColors, ndim=3, 
+                   main="mdsPlot_PresentGenes 3D")
+}
+```
+```{r MDS plot 2D present, echo=FALSE, message=FALSE, fig.width=7, fig.height=7, eval=TRUE}
+if(nSamples > 3){
+  ezMdsPlotly(signal=x, sampleColors=sampleColors, ndim=2,
+              main="mdsPlot_PresentGenes 2D")
+}
+```
+
+```{r MDS plot 3D top, echo=FALSE, message=FALSE, fig.width=7, fig.height=7, eval=TRUE}
+if(nSamples > 3){
+  ezMdsPlotly(signal=x[topGenes,], sampleColors=sampleColors, ndim=3,
+                   main="mdsPlot_TopGenes 3D")
+}
+```
+
+```{r MDS plot 2D top, echo=FALSE, message=FALSE, fig.width=7, fig.height=7, eval=TRUE}
+if(nSamples > 3){
+  ezMdsPlotly(signal=x[topGenes,], sampleColors=sampleColors, ndim=2,
+                   main="mdsPlot_TopGenes 2D")
+}
+```
+
+
+```{r scatter plot, echo=FALSE, results='asis', eval=!debug}
 if(nSamples > 3){
   if (param$writeScatterPlots){
     qcScatterFiles = countQcScatterPlots(param, design, conds, rawData,
