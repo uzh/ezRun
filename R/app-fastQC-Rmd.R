@@ -24,6 +24,7 @@ ezMethodFastQC = function(input=NA, output=NA, param=NA,
   ## guess the names of the report directories that will be creatd by fastqc
   reportDirs = sub(".fastq.gz", "_fastqc", basename(files))
   reportDirs = sub(".fq.gz", "_fastqc", reportDirs)
+  reportDirs = sub(".bam", "_fastqc", reportDirs)
   stopifnot(!duplicated(reportDirs))
   filesUse = files[!file.exists(reportDirs)]
   if (length(filesUse) > 0){

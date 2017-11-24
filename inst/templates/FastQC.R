@@ -68,3 +68,26 @@ output[['Report [File]']] = 'p2438/Fastqc_18564_2017-06-07--14-06-33/FastQC_Resu
 output[['Html [Link]']] = 'p2438/Fastqc_18564_2017-06-07--14-06-33/FastQC_Result/00index.html'
 input = '/srv/gstore/projects/p2438/Fastqc_18564_2017-06-07--14-06-33/input_dataset.tsv'
 EzAppFastqc$new()$run(input=input, output=output, param=param)
+
+# p2000 single cell bam
+setwd("/scratch/gtan/p2000-SCFastQC")
+library(ezRun)
+param = list()
+param[['cores']] = '8'
+param[['ram']] = '16'
+param[['scratch']] = '100'
+param[['node']] = ''
+param[['process_mode']] = 'DATASET'
+param[['paired']] = 'false'
+param[['name']] = 'FastQC_Result'
+param[['cmdOptions']] = ''
+param[['mail']] = 'ge.tan@fgcz.ethz.ch'
+param[['dataRoot']] = '/srv/gstore/projects'
+param[['resultDir']] = 'projects/p2000/SingleCellUnmappedBam'
+output = list()
+output[['Name']] = 'FastQC_Result'
+output[['Report [File]']] = 'p2438/Fastqc_18564_2017-06-07--14-06-33/FastQC_Result'
+output[['Html [Link]']] = 'p2438/Fastqc_18564_2017-06-07--14-06-33/FastQC_Result/00index.html'
+input = '/srv/gstore/projects/p2000/SingleCellUnmappedBam/dataset.tsv'
+#debug(ezMethodSCFastQC)
+EzAppFastqc$new()$run(input=input, output=output, param=param)
