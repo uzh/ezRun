@@ -28,5 +28,5 @@ biocLite(packages)
 
 ## Dependencies of external software
 * phantomjs
-* bwa, bowtie, bowtie2, STAR
+* bwa, bowtie, bowtie2, STAR, picard
 * lsof
