@@ -126,5 +126,7 @@ ezMethodBam2Fastq <- function(input=NA, output=NA, param=NA){
             fastq2Fns=ifelse(isTRUE(param$paired), output$getFullPaths("Read2"),
                              NULL),
             paired=param$paired)
+  output$setColumn("Read Count", 
+                   sapply(output$getColumn("Read1"), fastq.geometry)[1, ])
   return(output)
 }
