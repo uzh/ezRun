@@ -158,8 +158,8 @@ EzDataset <-
                 readType = function(){
                   if("Read1" %in% colNames){
                     isFastq <- all(grepl("\\.(fastq|fq)(\\.gz){0,1}$", 
-                                         meta[["Read1"]]))
-                    isBam <- all(grepl("bam$", meta[["Read1"]], 
+                                         .self$getColumn("Read1")))
+                    isBam <- all(grepl("bam$", .self$getColumn("Read1"),
                                        ignore.case = TRUE))
                     stopifnot(isFastq || isBam)
                     if(isTRUE(isFastq)){
