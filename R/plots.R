@@ -655,6 +655,69 @@ ezVolcanoPlotly <- function(log2Ratio, pValue, yType=c("p-value", "FDR"),
   return(p)
 }
 
+ezVolcanoGG <- function(log2Ratio, pValue, yType=c("p-value", "FDR"),
+                        xlim=NULL, ylim=NULL, isPresent=NULL, names=NULL,
+                        types=NULL, pch=16, colors=rainbow(ncol(types)),
+                        main=NULL, labelGenes=NULL){
+  require(ggplot2)
+  require(ggrepel)
+  yType <- match.arg(yType)
+  
+  yValues = -log10(pValue)
+  
+  if (is.null(xlim)){
+    lrMaxAbs = max(abs(log2Ratio), na.rm=TRUE)
+    xm = min(lrMaxAbs, 5)
+    xlim = c(-xm, xm)
+    log2Ratio = shrinkToRange(log2Ratio, theRange = xlim)
+  }
+  if (is.null(ylim)){
+    ym = min(max(yValues, na.rm=TRUE), 10)
+    ylim = c(0, ym)
+    yValues = shrinkToRange(yValues, theRange=ylim)
+  }
+  
+  toPlot <- data.frame(x=log2Ratio, y=yValues, types="Absent",
+                       stringsAsFactors = FALSE)
+  if (is.null(isPresent)){
+    toPlot$types <- "Present"
+  } else {
+    toPlot$types[isPresent] <- "Present"
+  }
+  if(!is.null(names)){
+    toPlot$names <- names
+  }
+  
+  if (!is.null(types) && ncol(types) > 0){
+    for (j in 1:ncol(types)){
+      toPlot$types[types[,j]] <- colnames(types)[j]
+    }
+  }
+  ## Make sure "Absent", "Present" always first, then the order in types.
+  toPlot$types <- factor(toPlot$types,
+                         levels=c("Absent", "Present", colnames(types)))
+  typesColours <- setNames(c("grey", "black", colors), 
+                           c("Absent", "Present", colnames(types))
+  )
+  p <- ggplot(toPlot, aes(x, y)) + geom_point(aes(col=types)) +
+    scale_color_manual(values=typesColours) + 
+    scale_x_continuous(limits=xlim) + scale_y_continuous(limits=ylim)+
+    theme_bw() + xlab("log2 ratio") + ylab(paste0("-log10(", yType, ")"))+
+    ggtitle(comparison) +
+    theme(plot.title = element_text(hjust = 0.5))
+  if(!is.null(labelGenes)){
+    stopifnot(!is.null(names))
+    p <- p + geom_label_repel(data=dplyr::filter(toPlot, names%in% labelGenes),
+                              aes(label=names), fontface = 'bold.italic',
+                              box.padding = 0.35, 
+                              point.padding = 0.5, size=7,
+                              segment.color = 'grey50', 
+                              segment.size=1, 
+                              arrow = arrow(length = unit(0.01, 'npc')))
+  }
+  p
+}
+
 ##' @title Does scatter plots of all pairs
 ##' @description Does scatter plots of all pairs.
 ##' @param x a matrix containing the data to plot.
