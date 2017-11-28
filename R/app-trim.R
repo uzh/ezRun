@@ -73,7 +73,14 @@ ezMethodTrim = function(input=NA, output=NA, param=NA){
   param$trimQualWindowWidth = 4
   
   if (param$subsampleReads > 1 || param$nReads > 0){
+    inputRead1 <- input$getColumn("Read1")
+    if(param$paired)
+      inputRead2 <- input$getColumn("Read2")
     input = ezMethodSubsampleReads(input=input, param=param)
+    file.remove(inputRead1)
+    if(param$paired)
+      file.remove(inputRead2)
+    param$copyReadsLocally <- TRUE
   }
   
   if (param$trimAdapter){
@@ -292,6 +299,7 @@ copyReadsLocally = function(input, param){
 ##' xSubsampled = ezMethodSubsampleReads(input=input, param=param)
 ##' # NOTE: the subsampled files will not be gzip compressed!
 ezMethodSubsampleReads = function(input=NA, output=NA, param=NA){
+  require(ShortRead)
   if (!is(output, "EzDataset")){
     output = input$copy()
     subsampleFiles = sub(".fastq.*", "-subsample.fastq", basename(input$getColumn("Read1")))
@@ -302,19 +310,28 @@ ezMethodSubsampleReads = function(input=NA, output=NA, param=NA){
     }
     output$dataRoot = NULL
   }
+  totalReads = as.numeric(input$getColumn("Read Count"))
   if (param$nReads > 0){
-    totalReads = as.numeric(input$getColumn("Read Count"))
-    subsampleFactor = shrinkToRange(totalReads / param$nReads, c(1, Inf))
+    #subsampleFactor = shrinkToRange(totalReads / param$nReads, c(1, Inf))
     if (param$subsampleReads > 1){
       message("subsampleReads setting will be overwritten by nReads parameter")
     }
+    nReads <- min(param$nReads, totalReads)
   } else {
-    subsampleFactor = param$subsampleReads
+    nReads <- as.integer(1/param$subsampleReads * totalReads)
   }
-  newReadCounts = ezSubsampleFastq(input$getFullPaths("Read1"), output$getColumn("Read1"), subsampleFactor = subsampleFactor)
-  output$setColumn("Read Count", newReadCounts)
+  set.seed(123L);
+  writeFastq(ShortRead::yield(FastqSampler(input$getFullPaths("Read1"), 
+                                           n=nReads)),
+             file=output$getColumn("Read1"), 
+             compress=grepl("\\.gz$", output$getColumn("Read1")))
+  output$setColumn("Read Count", nReads)
   if (param$paired){
-    ezSubsampleFastq(input$getFullPaths("Read2"), output$getColumn("Read2"), subsampleFactor = subsampleFactor)
+    set.seed(123L);
+    writeFastq(ShortRead::yield(FastqSampler(input$getFullPaths("Read2"), 
+                                             n=nReads)),
+               file=output$getColumn("Read2"),
+               compress=grepl("\\.gz$", output$getColumn("Read2")))
   }
   return(output)
 }
@@ -324,45 +341,45 @@ ezMethodSubsampleReads = function(input=NA, output=NA, param=NA){
 ##'  inputFile = system.file(package = "ezRun", "extdata/yeast_10k/wt_1_R1.fastq.gz")
 ##'  subsampledFile = "sub_R1.fastq"
 ##'  ezSubsampleFastq(inputFile, subsampledFile, subsampleFactor = 5)
-ezSubsampleFastq = function(full, sub, subsampleFactor=NA, nYield=1e5, overwrite=FALSE){
-  stopifnot(full != sub)
-  stopifnot(length(full) == length(sub))
-  if (any(file.exists(sub))){
-    filesToRemove = sub[file.exists(sub)]
-    if (!overwrite){
-      stop("files do exist: ", filesToRemove)
-    }
-    warning("removing first: ", filesToRemove)
-    file.remove(filesToRemove)
-  }
-  require("ShortRead")
-  nms = names(full)
-  if (is.null(nms)){
-    nms = full
-  }
-  nReadsVector = integer()
-  for (i in seq_along(full)){
-    nReads = 0
-    fqs = FastqStreamer(full[i], n = nYield)
-    idx = seq(from=1, to=nYield, by=subsampleFactor)
-    tmpFile = sub("\\.fastq.*", "_temp.fastq", sub[i])
-    while(length(x <- yield(fqs))){
-      if (length(x) >= nYield){
-        writeFastq(x[idx], file=tmpFile, mode="a", full=F, compress=F)
-        nReads = nReads + length(idx)
-      } else {
-        writeFastq(x[idx[idx<length(x)]], file=tmpFile, mode="a", full=F, compress=F)
-        nReads = nReads + sum(idx<length(x))
-      }
-    }
-    close(fqs)
-    nReadsVector[nms[i]] = nReads
-    if (grepl(".gz$", sub[i])){
-      ezSystem(paste("pigz -p 2 --best -c", tmpFile, ">", sub[i]))
-      file.remove(tmpFile)
-    } else {
-      file.rename(tmpFile, sub[i])
-    }
-  }
-  return(nReadsVector)
-}
+# ezSubsampleFastq = function(full, sub, subsampleFactor=NA, nYield=1e5, overwrite=FALSE){
+#   stopifnot(full != sub)
+#   stopifnot(length(full) == length(sub))
+#   if (any(file.exists(sub))){
+#     filesToRemove = sub[file.exists(sub)]
+#     if (!overwrite){
+#       stop("files do exist: ", filesToRemove)
+#     }
+#     warning("removing first: ", filesToRemove)
+#     file.remove(filesToRemove)
+#   }
+#   require("ShortRead")
+#   nms = names(full)
+#   if (is.null(nms)){
+#     nms = full
+#   }
+#   nReadsVector = integer()
+#   for (i in seq_along(full)){
+#     nReads = 0
+#     fqs = FastqStreamer(full[i], n = nYield)
+#     idx = seq(from=1, to=nYield, by=subsampleFactor)
+#     tmpFile = sub("\\.fastq.*", "_temp.fastq", sub[i])
+#     while(length(x <- yield(fqs))){
+#       if (length(x) >= nYield){
+#         writeFastq(x[idx], file=tmpFile, mode="a", full=F, compress=F)
+#         nReads = nReads + length(idx)
+#       } else {
+#         writeFastq(x[idx[idx<length(x)]], file=tmpFile, mode="a", full=F, compress=F)
+#         nReads = nReads + sum(idx<length(x))
+#       }
+#     }
+#     close(fqs)
+#     nReadsVector[nms[i]] = nReads
+#     if (grepl(".gz$", sub[i])){
+#       ezSystem(paste("pigz -p 2 --best -c", tmpFile, ">", sub[i]))
+#       file.remove(tmpFile)
+#     } else {
+#       file.rename(tmpFile, sub[i])
+#     }
+#   }
+#   return(nReadsVector)
+# }

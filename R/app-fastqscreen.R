@@ -9,7 +9,15 @@
 ezMethodFastqScreen = function(input=NA, output=NA, param=NA, htmlFile="00index.html"){
   dataset = input$meta
   # Preprocessing
-  input = ezMethodTrim(input = input, param = param)
+  if(input$readType() == "bam"){
+    fastqInput <- ezMethodBam2Fastq(input = input, param = param)
+    ## BAM to fastq, fastq is local. Do the cleaning in ezMethodTrim 
+    param$copyReadsLocally <- TRUE
+    input <- ezMethodTrim(input = fastqInput, param = param)
+  }else{
+    input <- ezMethodTrim(input = input, param = param)
+  }
+  
   # fastqscreen part
   
   ## get Adapter contamination from raw data
