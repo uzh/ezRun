@@ -26,7 +26,7 @@ updateBatchCmdPacbio <- paste0("sed -e s/\"MIN_LEN\"/", param$minLen_PacBio, "/g
                                " -e s/\"MAX_LEN\"/", param$maxLen_PacBio, "/g",
                                " -e s/\"CUTOFF\"/", param$cutOff, "/g",
                                " -e s/\"DIFFS\"/", param$diffs_PacBio, "/g",
-                               " -e s/\"Mothur\"/\"PacBio\/g",
+                               " -e s/\"Mothur\"/\"PacBio\"/g",
                                MOTHUR_DATA_CLEAN_BATCH, " >", MOTHUR_DATA_CLEAN_BATCH_PACBIO)
 ezSystem(updateBatchCmdPacbio)
 cmdMothurPacBio = paste(MOTHUR_EXE,MOTHUR_DATA_CLEAN_BATCH_PACBIO)
@@ -36,7 +36,7 @@ updateBatchCmdPacbio <- paste0("sed -e s/\"MIN_LEN\"/", param$minLen_Illumina, "
                                " -e s/\"MAX_LEN\"/", param$maxLen_Illumina, "/g",
                                " -e s/\"CUTOFF\"/", param$cutOff, "/g",
                                " -e s/\"DIFFS\"/", param$diffs_Illumina, "/g",
-                               " -e s/\"Mothur\"/\"Illumina\/g",
+                               " -e s/\"Mothur\"/\"Illumina\"/g",
                                MOTHUR_DATA_CLEAN_BATCH, " >", MOTHUR_DATA_CLEAN_BATCH_ILLUMINA)
 ezSystem(updateBatchCmdIllumina)
 cmdMothurPacBio = paste(MOTHUR_EXE,MOTHUR_DATA_CLEAN_BATCH_ILLUMINA)
