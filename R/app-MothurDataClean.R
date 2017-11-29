@@ -42,7 +42,7 @@ updateBatchCmdIllumina <- paste0("sed -e s/\"MIN_LEN\"/", param$minLen_Illumina,
                                " -e s/\"CUTOFF\"/", param$cutOff, "/g",
                                " -e s/\"DIFFS\"/", param$diffs_Illumina, "/g",
                                " -e s/\"Mothur\"/\"Illumina\"/g ",
-                               MOTHUR_ERROR_ESTIMATE_AND_CLUSTER_BATCH_TEMPLATE, " >", MOTHUR_DATA_CLEAN_BATCH_ILLUMINA)
+                               MOTHUR_DATA_CLEAN_BATCH_TEMPLATE, " >", MOTHUR_DATA_CLEAN_BATCH_ILLUMINA)
 ezSystem(updateBatchCmdIllumina)
 cmdMothurIllumina = paste(MOTHUR_EXE,MOTHUR_DATA_CLEAN_BATCH_ILLUMINA)
 ezSystem(cmdMothurIllumina)
