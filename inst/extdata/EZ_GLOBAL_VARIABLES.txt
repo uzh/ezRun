@@ -36,7 +36,14 @@ SHINY_SCATER="http://fgcz-shiny.uzh.ch/fgcz_scater_app/"
 ## Enrichr
 ENRICHR_BASE_URL="https://amp.pharm.mssm.edu/Enrichr"
 
+## MOTHUR-ASSOCIATED
+MOTHUR_EXE = "/usr/local/ngseq/src/mothur-1.39.5/mothur"
+MOTHUR_DATA_CLEAN_BATCH = "/home/grusso/Rcodes/giancarlo/genericScipts/mothurSingleEndCleanApp.batch"
+ MOTHUR_DATA_CLEAN_BATCH_ILLUMINA = "/home/grusso/Rcodes/giancarlo/genericScipts/mothurSingleEndIlluminaCleanApp.batch"
+ MOTHUR_DATA_CLEAN_BATCH_PACBIO = "/home/grusso/Rcodes/giancarlo/genericScipts/mothurSingleEndPacBioCleanApp.batch"
+MOTHUR_ERROR_ESTIMATE_AND_CLUSTER_BATCH = "/home/grusso/Rcodes/giancarlo/genericScipts/mothurSingleEndErrorEstimateAndClusterApp.batch"
 
+## SMRT 
 SMRT_CMD="SMRT=/misc/ngseq8/opt/smrtanalysis.2.3.0/install/smrtanalysis_2.3.0.140936; source $SMRT/etc/setup.sh; fofnToSmrtpipeInput.py input.fofn > input.xml; smrtpipe.py --params=settings.xml xml:input.xml"
 
 ############# R-SGE options

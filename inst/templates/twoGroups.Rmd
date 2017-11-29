@@ -134,11 +134,12 @@ if (isTRUE(isTwoGroup)){
   ## scatter plot
   sampleValues = 2^groupMeans[ , param$sampleGroup]
   refValues = 2^groupMeans[ , param$refGroup]
-  p_scatter <- ezXYScatterPlotly(xVec=refValues, yVec=sampleValues,
-                                 isPresent=rowData(se)$usedInTest, 
-                                 types=types, names=rowData(se)$gene_name,
-                                 xlab=param$refGroup, ylab=param$sampleGroup,
-                                 main="Comparison of average expression")
+  p_scatter <- ezXYScatter.2(xVec=refValues, yVec=sampleValues,
+                             isPresent=rowData(se)$usedInTest, 
+                             types=types, names=rowData(se)$gene_name,
+                             xlab=param$refGroup, ylab=param$sampleGroup,
+                             main="Comparison of average expression",
+                             mode="plotly")
   scatterPng <- paste0(param$comparison, "-scatter.png")
   export(p_scatter, file=scatterPng)
   scatterPdf <- sub("png$", "pdf", scatterPng)
@@ -161,11 +162,12 @@ if (isTRUE(isTwoGroup)){
 ```{r volcano p-value, echo=FALSE, message=FALSE, warning=FALSE, eval=!debug}
 if (isTRUE(isTwoGroup)){
     ## volcano plot with p-value
-    p_volcano <- ezVolcanoPlotly(log2Ratio=rowData(se)$log2Ratio, 
+    p_volcano <- ezVolcano(log2Ratio=rowData(se)$log2Ratio, 
                                  pValue=rowData(se)$pValue, yType="p-value",
                                  isPresent=rowData(se)$usedInTest, types=types,
                                  names=rowData(se)$gene_name,
-                                 main=param$comparison)
+                                 main=param$comparison,
+                           mode="plotly")
     volcanoPng <- paste0(param$comparison, "-volcano.png")
     export(p_volcano, file=volcanoPng)
     volcanoPdf <- sub("png$", "pdf", volcanoPng)
@@ -205,11 +207,12 @@ if (!isTRUE(isTwoGroup)){
 if(isTRUE(isTwoGroup)){
   ## warning=FALSE because FDR contains NA. Shall we make them always 1?
   ## volcano plot with FDR
-  p_volcano <- ezVolcanoPlotly(log2Ratio=rowData(se)$log2Ratio, 
+  p_volcano <- ezVolcano(log2Ratio=rowData(se)$log2Ratio, 
                                pValue=rowData(se)$fdr, yType="FDR",
                                isPresent=rowData(se)$usedInTest, types=types,
                                names=rowData(se)$gene_name,
-                               main=param$comparison)
+                               main=param$comparison,
+                         mode="plotly")
   volcanoFDRPng <- paste0(param$comparison, "-FDR-volcano.png")
   export(p_volcano, file=volcanoFDRPng)
   volcanoFDRPdf <- sub("png$", "pdf", volcanoFDRPng)
