@@ -37,7 +37,7 @@ ezSystem(updateBatchCmdPacbio)
 cmdMothurPacBio = paste(MOTHUR_EXE,MOTHUR_DATA_CLEAN_BATCH_PACBIO)
 ezSystem(cmdMothurPacBio)
 ### update batch file Illumina with parameters and run mothur
-updateBatchCmdPacbio <- paste0("sed -e s/\"MIN_LEN\"/", param$minLen_Illumina, "/g",
+updateBatchCmdIllumina <- paste0("sed -e s/\"MIN_LEN\"/", param$minLen_Illumina, "/g",
                                " -e s/\"MAX_LEN\"/", param$maxLen_Illumina, "/g",
                                " -e s/\"CUTOFF\"/", param$cutOff, "/g",
                                " -e s/\"DIFFS\"/", param$diffs_Illumina, "/g",
