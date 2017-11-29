@@ -259,10 +259,14 @@ if (!is.null(geneCounts)){
     assays(rawData)$signal = ezNorm(assays(rawData)$counts,
                                     presentFlag=assays(rawData)$presentFlag,
                                     method=param$normMethod)
-    runNgsCountQC(htmlFile="00index.html", rawData=rawData)
+    styleFiles <- file.path(system.file("templates", package="ezRun"),
+                          c("fgcz.css", "CountQC.Rmd",
+                            "fgcz_header.html", "banner.png"))
+    file.copy(from=styleFiles, to=".", overwrite=TRUE)
+    rmarkdown::render(input="CountQC.Rmd", envir = new.env(),
+                      output_dir=".", output_file=htmlFile, quiet=TRUE)
     setwd("..")
     cat("[Count QC Report](Count_QC/00index.html)\n")
-    #addParagraph(doc, pot("Count QC Report", hyperlink="Count_QC/00index.html"))
 }
 ```
 

@@ -284,7 +284,11 @@ runGlm = function(x, sampleGroup, refGroup, grouping, normMethod, grouping2=NULL
   
   ## dispersion estimation
   if (sum(grouping == refGroup) >=2 & sum(grouping == sampleGroup) >=2){
-    cds <- estimateDisp(cds, design)
+    if (ezIsSpecified(param$robustDispersion) && param$robustDispersion){
+      cds = estimateGLMRobustDisp(cds, design)
+    } else {
+      cds <- estimateDisp(cds, design)
+    }
   } else {
     cds$common.dispersion = 0.1
   }
