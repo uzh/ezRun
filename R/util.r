@@ -720,6 +720,8 @@ isValidEnvironments <- function(tool){
                 "bowtie"=Sys.which("bowtie") != "",
                 "tophat"=Sys.which("tophat") != "",
                 "python2"=Sys.which("python2") != "",
+                "fastq_screen"=Sys.which("fastq_screen") != "",
+                "bowtie2"=Sys.which("bowtie2") != "",
                 stop("unsupported tool: ", tool)
                 )
   return(ans)
@@ -741,6 +743,8 @@ setEnvironments <- function(tool, envir=parent.frame()){
                   "bowtie"=expression({Sys.setenv("PATH"=paste("/usr/local/ngseq/packages/Aligner/Bowtie/1.2.1.1/bin", Sys.getenv("PATH"), sep=":"))}),
                   "tophat"=expression({Sys.setenv("PATH"=paste("/usr/local/ngseq/packages/Aligner/TopHat/2.1.1/bin", Sys.getenv("PATH"), sep=":"))}),
                   "python2"=expression({Sys.setenv("PATH"=paste("/usr/local/ngseq/packages/Dev/Python2/2.7.13/bin", Sys.getenv("PATH"), sep=":"))}),
+                  "fastq_screen"=expression({Sys.setenv("PATH"=paste("/usr/local/ngseq/packages/QC/FastQScreen/0.11.1", Sys.getenv("PATH"), sep=":"))}),
+                  "bowtie2"=expression({Sys.setenv("PATH"=paste("/usr/local/ngseq/packages/Aligner/Bowtie2/2.3.2/bin", Sys.getenv("PATH"), sep=":"))}),
                   stop("unsupported tool: ", tool)
     )
     eval(cmd, envir=envir)
