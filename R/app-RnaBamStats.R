@@ -298,10 +298,10 @@ getStatsFromBam = function(param, bamFile, sm, gff=NULL, repeatsGff=NULL,
     seqLengths = seqLengths[param$seqNames]
   }
   if (is.null(param$splitByChrom) || param$splitByChrom){
-    result = getStatsFromBamParallel(seqLengths, param, bamFile, sm, nReads, 
+    result = getStatsFromBamParallel(seqLengths, param, bamFile, sm, 
                                      gff, repeatsGff, mc.cores=ezThreads())
   } else {
-    result = getStatsFromBamSingleChrom(NULL, param, bamFile, sm, nReads, gff, 
+    result = getStatsFromBamSingleChrom(NULL, param, bamFile, sm, gff, 
                                         repeatsGff)
   }
   gc()
@@ -359,13 +359,13 @@ getStatsFromBam = function(param, bamFile, sm, gff=NULL, repeatsGff=NULL,
 }
 
 ##' @describeIn computeBamStats Gets parallel by chromosome statistics for \code{getStatsFromBam()} if the logical \code{param$splitByChrom} is true.
-getStatsFromBamParallel = function(seqLengths, param, bamFile, sm, nReads, 
+getStatsFromBamParallel = function(seqLengths, param, bamFile, sm, 
                                    gff=NULL, repeatsGff=NULL, 
                                    mc.cores=ezThreads()){
   seqNames = names(sort(seqLengths, decreasing=TRUE))
   names(seqNames) = seqNames
   chromResults = ezMclapply(seqNames, getStatsFromBamSingleChrom, param, 
-                            bamFile, sm, nReads, gff, repeatsGff,
+                            bamFile, sm, gff, repeatsGff,
                             mc.preschedule=FALSE, mc.cores=ezThreads())
   if (param$saveImage){
     save(chromResults, file=paste0(sm, "-chromResults.RData"))
@@ -454,7 +454,7 @@ getStatsFromBamParallel = function(seqLengths, param, bamFile, sm, nReads,
 }
 
 ##' @describeIn computeBamStats Gets the statistics of a single chromosome for \code{getStatsFromBam()}.
-getStatsFromBamSingleChrom = function(chrom, param, bamFile, sm, nReads, 
+getStatsFromBamSingleChrom = function(chrom, param, bamFile, sm, 
                                       gff=NULL, repeatsGff=NULL){
   require("bitops", warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
   message("Processing chr ", ifelse(is.null(chrom), "all", chrom))
