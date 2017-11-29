@@ -274,6 +274,7 @@ ezVolcano <- function(log2Ratio, pValue, yType=c("p-value", "FDR"),
   }
   
   ## Make sure "Absent", "Present" always first, then the order in types.
+  ## This is only for plotly.
   toPlot$types <- factor(toPlot$types,
                          levels=c("Absent", "Present", colnames(types)))
   typesColours <- setNames(c("grey", "black", colors), 
@@ -330,7 +331,7 @@ ezVolcano <- function(log2Ratio, pValue, yType=c("p-value", "FDR"),
       scale_x_continuous(limits=xlim) + scale_y_continuous(limits=ylim)+
       theme_bw() + xlab("log2 ratio") + ylab(paste0("-log10(", yType, ")"))+
       ggtitle(main) +
-      theme(plot.title = element_text(hjust = 0.5))
+      theme(plot.title=element_text(hjust=0.5), legend.title=element_blank())
     if(!is.null(labelGenes)){
       stopifnot(!is.null(toPlot$names))
       p <- p + geom_label_repel(data=dplyr::filter(toPlot, names%in% labelGenes),
@@ -511,14 +512,19 @@ ezXYScatter = function(xVec, yVec, absentColor="gray", shrink=FALSE, frame=TRUE,
   abline(-log10(2), 1, col="blue", lty=2);
 }
 
-ezXYScatterPlotly = function(xVec, yVec, absentColor="gray", shrink=FALSE,
-                             xlim=range(xVec, yVec, na.rm=TRUE), ylim=xlim,
-                             isPresent=NULL, names=NULL,
-                             types=NULL,
-                             colors=rainbow(ncol(types)),
-                             main=NULL, xlab=NULL, ylab=NULL){
+ezXYScatter.2 = function(xVec, yVec, absentColor="gray", shrink=FALSE,
+                         xlim=range(xVec, yVec, na.rm=TRUE), ylim=xlim,
+                         isPresent=NULL, names=NULL,
+                         types=NULL,
+                         colors=rainbow(ncol(types)),
+                         main=NULL, xlab=NULL, ylab=NULL,
+                         labelGenes=NULL, mode=c("plotly", "ggplot2")){
   require(plotly)
   require(htmlwidgets)
+  require(ggplot2)
+  require(ggrepel)
+  mode <- match.arg(mode)
+  
   if (shrink){
     xVec = shrinkToRange(xVec, xlim)
     yVec = shrinkToRange(yVec, ylim)
@@ -539,85 +545,115 @@ ezXYScatterPlotly = function(xVec, yVec, absentColor="gray", shrink=FALSE,
       toPlot$types[types[,j]] <- colnames(types)[j]
     }
   }
+  ## Make sure "Absent", "Present" always first, then the order in types.
+  ## This is only for plotly.
+  toPlot$types <- factor(toPlot$types,
+                         levels=c("Absent", "Present", colnames(types)))
   typesColours <- setNames(c("grey", "black", colors), 
                            c("Absent", "Present", colnames(types))
                            )
-  if(is.null(names)){
-    ## Without names, we use default hover text
-    p <- plot_ly(toPlot, x = ~x, y = ~y, color=~types, colors=typesColours,
-                 type = 'scatter', mode = 'markers')
-  }else{
-    ## With names, we show it as hover text
-    p <- plot_ly(toPlot, x = ~x, y = ~y, color=~types, colors=typesColours,
-                 type = 'scatter', mode = 'markers', hoverinfo = 'text',
-                 text=~names) %>%
-      onRender("
-               function(el, x) {
+  if(mode == "plotly"){
+    if(is.null(names)){
+      ## Without names, we use default hover text
+      p <- plot_ly(toPlot, x = ~x, y = ~y, color=~types, colors=typesColours,
+                   type = 'scatter', mode = 'markers')
+    }else{
+      ## With names, we show it as hover text
+      p <- plot_ly(toPlot, x = ~x, y = ~y, color=~types, colors=typesColours,
+                   type = 'scatter', mode = 'markers', hoverinfo = 'text',
+                   text=~names) %>%
+        onRender("
+                 function(el, x) {
                  el.on('plotly_click', function(d) {
-                   // d.points is an array of objects which, in this case,
-                   // is length 1 since the click is tied to 1 point.
-                   var pt = d.points[0];
-                   var genecardUrl = 'http://www.ihop-net.org/UniPub/iHOP/index.html?field=synonym&ncbi_tax_id=0&search=';
-                   var url = genecardUrl.concat(pt.data.text[pt.pointNumber]);
-                   // DISCLAIMER: this won't work from RStudio
-                   window.open(url);
+                 // d.points is an array of objects which, in this case,
+                 // is length 1 since the click is tied to 1 point.
+                 var pt = d.points[0];
+                 var genecardUrl = 'http://www.ihop-net.org/UniPub/iHOP/index.html?field=synonym&ncbi_tax_id=0&search=';
+                 var url = genecardUrl.concat(pt.data.text[pt.pointNumber]);
+                 // DISCLAIMER: this won't work from RStudio
+                 window.open(url);
                  });
-               }
-               ")
+                 }
+                 ")
+                 }
+    p_abline_log <- function(x, a, b){
+      y <- 10^(a * log10(x) + log10(b))
+      return(y)
+    }
+    xmin <- min(toPlot$x)
+    xmax <- max(toPlot$x)
+    ## Ugly code to simulate the abline in plotly
+    line <- list(
+      type = "line",
+      line = list(color = "blue"),
+      xref = "x",
+      yref = "y"
+    )
+    lines <- list()
+    line[["x0"]] <- xmin
+    line[["x1"]] <- xmax
+    line[["y0"]] <- xmin
+    line[["y1"]] <- xmax
+    line[["line"]] <- list(color = "blue", dash="solid")
+    lines <- c(lines, list(line))
+    line[["x0"]] <- xmin
+    line[["x1"]] <- xmax
+    line[["y0"]] <- p_abline_log(xmin, 1, 2)
+    line[["y1"]] <- p_abline_log(xmax, 1, 2)
+    line[["line"]] <- list(color = "blue", dash="dash")
+    lines <- c(lines, list(line))
+    line[["x0"]] <- xmin
+    line[["x1"]] <- xmax
+    line[["y0"]] <- p_abline_log(xmin, 1, 1/2)
+    line[["y1"]] <- p_abline_log(xmax, 1, 1/2)
+    line[["line"]] <- list(color = "blue", dash="dash")
+    lines <- c(lines, list(line))
+    
+    p <- p %>% layout(shapes=lines)
+    l <- list(font = list(size = 20))
+    ftitle <- list(size=20)
+    ftick <- list(size=20)
+    m <- list(
+      l = 90,
+      r = 90,
+      b = 90,
+      t = 110,
+      pad = 0
+    )
+    # with log10 scales
+    p <- layout(p, xaxis=list(type="log", title=xlab, 
+                              titlefont=ftitle,
+                              tickfont=ftick),
+                yaxis=list(type="log", title=ylab,
+                           titlefont=ftitle,
+                           tickfont=ftick),
+                title=main, font=ftitle,
+                legend=l, margin=m)
+  }else{
+    ## Reorder the points in the data.frame
+    ## ggplot2 plots in the native order
+    toPlot <- toPlot[order(match(toPlot$types, 
+                                 c("Absent", "Present", colnames(types)))), ]
+    p <- ggplot(toPlot, aes(x, y)) + geom_point(aes(col=types)) +
+      scale_color_manual(values=typesColours) +
+      scale_x_log10() + scale_y_log10() +
+      theme_bw() + xlab(xlab) + ylab(ylab) + 
+      geom_abline(intercept=log10(2), colour = "blue", linetype="dashed") + 
+      geom_abline(intercept=-log10(2), colour = "blue", linetype="dashed") + 
+      geom_abline(intercept=0, colour = "blue") + 
+      ggtitle(main) + 
+      theme(plot.title=element_text(hjust=0.5), legend.title=element_blank())
+    if(!is.null(labelGenes)){
+      stopifnot(!is.null(toPlot$names))
+      p <- p + geom_label_repel(data=dplyr::filter(toPlot, names%in% labelGenes),
+                                aes(label=names), fontface = 'bold.italic',
+                                box.padding = 0.35, 
+                                point.padding = 0.5, #size=7,
+                                segment.color = 'grey50', 
+                                segment.size=1, 
+                                arrow = arrow(length = unit(0.01, 'npc')))
+    }
   }
-  p_abline_log <- function(x, a, b){
-    y <- 10^(a * log10(x) + log10(b))
-    return(y)
-  }
-  xmin <- min(toPlot$x)
-  xmax <- max(toPlot$x)
-  ## Ugly code to simulate the abline in plotly
-  line <- list(
-    type = "line",
-    line = list(color = "blue"),
-    xref = "x",
-    yref = "y"
-  )
-  lines <- list()
-  line[["x0"]] <- xmin
-  line[["x1"]] <- xmax
-  line[["y0"]] <- xmin
-  line[["y1"]] <- xmax
-  line[["line"]] <- list(color = "blue", dash="solid")
-  lines <- c(lines, list(line))
-  line[["x0"]] <- xmin
-  line[["x1"]] <- xmax
-  line[["y0"]] <- p_abline_log(xmin, 1, 2)
-  line[["y1"]] <- p_abline_log(xmax, 1, 2)
-  line[["line"]] <- list(color = "blue", dash="dash")
-  lines <- c(lines, list(line))
-  line[["x0"]] <- xmin
-  line[["x1"]] <- xmax
-  line[["y0"]] <- p_abline_log(xmin, 1, 1/2)
-  line[["y1"]] <- p_abline_log(xmax, 1, 1/2)
-  line[["line"]] <- list(color = "blue", dash="dash")
-  lines <- c(lines, list(line))
-  
-  p <- p %>% layout(shapes=lines)
-  l <- list(font = list(size = 20))
-  ftitle <- list(size=20)
-  ftick <- list(size=20)
-  m <- list(
-    l = 90,
-    r = 90,
-    b = 90,
-    t = 110,
-    pad = 0
-  )
-  # with log10 scales
-  p <- layout(p, xaxis=list(type="log", title=xlab, 
-                            titlefont=ftitle,
-                            tickfont=ftick),
-              yaxis=list(type="log", title=ylab,
-                         titlefont=ftitle,
-                         tickfont=ftick),
-              title=main, font=ftitle,
-              legend=l, margin=m)
   return(p)
 }
 
