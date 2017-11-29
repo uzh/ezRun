@@ -47,11 +47,24 @@ ezSystem(updateBatchCmdIllumina)
 cmdMothurIllumina = paste(MOTHUR_EXE,MOTHUR_DATA_CLEAN_BATCH_ILLUMINA)
 ezSystem(cmdMothurIllumina)
 
+## Define input for rmd file
+rawPacbio <- "PacBio.summary"
+lengthDeduppedPacbio <- "PacBio.good.unique.summary"
+mappedAndHomopFilteredPacbio <- "PacBio.good.unique.good.summary"
+preClusteredAndChimeraFilteredPacbio <- "PacBio.good.unique.good.filter.unique.precluster.pick.summary"
+
+rawIllumina <- "Illumina.summary"
+lengthDeduppedIllumina <- "Illumina.good.unique.summary"
+mappedAndHomopFilteredIllumina <- "Illumina.good.unique.good.summary"
+preClusteredAndChimeraFilteredIllumina <- "Illumina.good.unique.good.filter.unique.precluster.pick.summary"
+
 ## Copy the style files and templates
   styleFiles <- file.path(system.file("templates", package="ezRun"),
                           c("fgcz.css", "MothurDataClean.Rmd",
                             "fgcz_header.html", "banner.png"))
   file.copy(from=styleFiles, to=".", overwrite=TRUE)
+  rmarkdown::render(input="MothurDataClean.Rmd", envir = new.env(),
+                    output_dir=".", output_file=htmlFile, quiet=TRUE)
 }
  
 ##' @template app-template
