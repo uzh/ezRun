@@ -17,9 +17,9 @@ ezMethodMothurDataClean = function(input=NA, output=NA, param=NA,
 #  mothurExe = "/usr/local/ngseq/src/mothur-1.39.5/mothur"
 #  mothurBatchFile = "/home/grusso/Rcodes/giancarlo/genericScipts/mothurSingleEndCleanApp.batch"
   setwdNew(basename(output$getColumn("Static Report")))
-  dataset = input$meta
+  dataset = ezRead.table(input)
   ### read fastq files and prepare inputs for Mothur
-  datasetToMothur(dataset)
+  datasetToMothur(dataset,param)
 
 ### update batch file pacbio with parameters and run mothur
 updateBatchCmdPacbio <- paste0("sed -e s/\"MIN_LEN\"/", param$minLen_PacBio, "/g",
@@ -63,10 +63,8 @@ EzAppMothurDataClean <-
                   runMethod <<- ezMethodMothurDataClean
                   name <<- "EzAppMothurDataClean"
                   appDefaults <<- rbind(cutOff = ezFrame(Type="integer",  DefaultValue="80",Description="Cut-off for taxonomy assignment"),
-                                        diffs_Illumina = ezFrame(Type="integer",  DefaultValue="2",Description="Differences allowed in the pre.cluster step. 
-                                                                 Should be 1 every 100 bases"),
-                                        diffs_PacBio = ezFrame(Type="integer",  DefaultValue="15",Description="Differences allowed in the pre.cluster step. 
-                                                               Should be 1 every 100 bases"),
+                                        diffs_Illumina = ezFrame(Type="integer",  DefaultValue="2",Description="Differences allowed in the pre.cluster step.Should be 1 every 100 bases"),
+                                        diffs_PacBio = ezFrame(Type="integer",  DefaultValue="15",Description="Differences allowed in the pre.cluster step.Should be 1 every 100 bases"),
                                         minLen_Illumina = ezFrame(Type="integer",  DefaultValue="290",Description="Min length Illumina"),     
                                         maxLen_Illumina = ezFrame(Type="integer",  DefaultValue="330",Description="Max length Illumina"),
                                         minLen_PacBio = ezFrame(Type="integer",  DefaultValue="1400",Description="Min length PacBio"),
