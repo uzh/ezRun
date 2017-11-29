@@ -104,8 +104,11 @@ EzDataset <-
                   "Sets the column selected with \\code{name} to \\code{values}. If \\code{values} is \\code{NULL} the column gets removed"
                   idx = match(name, colNames)
                   if (any(is.na(idx))){
-                    stop("Column not found in dataset: ", paste(name[is.na(idx)], collapse=" "),
-                         "\nAvailable columns: ", paste(colNames, collapse=" "))
+                    #stop("Column not found in dataset: ", paste(name[is.na(idx)], collapse=" "),
+                    #    "\nAvailable columns: ", paste(colNames, collapse=" "))
+                    meta[[name]] <<- NA
+                    colNames <<- sub(" \\[.*", "", base::names(meta))
+                    idx = match(name, colNames)
                   }
                   meta[ ,idx] <<- values
                   if (is.null(values)){
@@ -158,8 +161,8 @@ EzDataset <-
                 readType = function(){
                   if("Read1" %in% colNames){
                     isFastq <- all(grepl("\\.(fastq|fq)(\\.gz){0,1}$", 
-                                         meta[["Read1"]]))
-                    isBam <- all(grepl("bam$", meta[["Read1"]], 
+                                         .self$getColumn("Read1")))
+                    isBam <- all(grepl("bam$", .self$getColumn("Read1"),
                                        ignore.case = TRUE))
                     stopifnot(isFastq || isBam)
                     if(isTRUE(isFastq)){

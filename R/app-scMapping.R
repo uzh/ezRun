@@ -46,9 +46,13 @@ ezMethodSingleCellSTAR = function(input=NA, output=NA, param=NA){
   
   if(input$readType() == "bam"){
     fastqInput <- ezMethodBam2Fastq(input = input, param = param)
-    ## BAM to fastq, fastq is local. Do the cleaning in ezMethodTrim 
-    param$copyReadsLocally <- TRUE 
     trimmedInput <- ezMethodTrim(input = fastqInput, param = param)
+    ## BAM to fastq, fastq is local. 
+    ## Better not to do the cleaning in ezMethodTrim 
+    file.remove(fastqInput$getFullPaths("Read1"))
+    if (param$paired){
+      file.remove(fastqInput$getFullPaths("Read2"))
+    }
   }else{
     trimmedInput <- ezMethodTrim(input = input, param = param)
   }
