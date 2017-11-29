@@ -73,14 +73,13 @@ ezMethodTrim = function(input=NA, output=NA, param=NA){
   param$trimQualWindowWidth = 4
   
   if (param$subsampleReads > 1 || param$nReads > 0){
-    inputRead1 <- input$getColumn("Read1")
-    if(param$paired)
-      inputRead2 <- input$getColumn("Read2")
     input = ezMethodSubsampleReads(input=input, param=param)
-    file.remove(inputRead1)
-    if(param$paired)
-      file.remove(inputRead2)
-    param$copyReadsLocally <- TRUE
+    inputRead1 <- input$getFullPaths("Read1")
+    on.exit(file.remove(inputRead1), add=TRUE)
+    if(param$paired){
+      inputRead2 <- input$getFullPaths("Read2")
+      on.exit(file.remove(inputRead2), add=TRUE)
+    }
   }
   
   if (param$trimAdapter){
@@ -162,14 +161,6 @@ ezMethodTrim = function(input=NA, output=NA, param=NA){
     ezSystem(paste("gunzip -c", input$getFullPaths("Read1"), ">", r1TmpFile))
     if (param$paired){
       ezSystem(paste("gunzip -c", input$getFullPaths("Read2"), ">", r2TmpFile))
-    }
-  }
-  
-  ## Clean the Read1 and Read2 when they are local; save scratch space
-  if(!is.null(param$copyReadsLocally) && param$copyReadsLocally){
-    file.remove(input$getFullPaths("Read1"))
-    if (param$paired){
-      file.remove(input$getFullPaths("Read2"))
     }
   }
   
@@ -321,15 +312,17 @@ ezMethodSubsampleReads = function(input=NA, output=NA, param=NA){
     nReads <- as.integer(1/param$subsampleReads * totalReads)
   }
   set.seed(123L);
-  writeFastq(ShortRead::yield(FastqSampler(input$getFullPaths("Read1"), 
-                                           n=nReads)),
+  fR1 <- FastqSampler(input$getFullPaths("Read1"), n=nReads)
+  on.exit(close(fR1), add = TRUE)
+  writeFastq(ShortRead::yield(fR1),
              file=output$getColumn("Read1"), 
              compress=grepl("\\.gz$", output$getColumn("Read1")))
   output$setColumn("Read Count", nReads)
   if (param$paired){
     set.seed(123L);
-    writeFastq(ShortRead::yield(FastqSampler(input$getFullPaths("Read2"), 
-                                             n=nReads)),
+    fR2 <- FastqSampler(input$getFullPaths("Read2"), n=nReads)
+    on.exit(close(fR2))
+    writeFastq(ShortRead::yield(fR2),
                file=output$getColumn("Read2"),
                compress=grepl("\\.gz$", output$getColumn("Read2")))
   }

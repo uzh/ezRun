@@ -33,6 +33,10 @@ EzAppFastqScreen$new()$run(input=input, output=output, param=param)
 
 # p2000 single cell unmapped bam
 setwd("/scratch/gtan/p2000-SCFastqScreen")
+setEnvironments("trimmomatic")
+setEnvironments("flexbar")
+setEnvironments("fastq_screen")
+setEnvironments("bowtie2")
 param = list()
 param[['cores']] = '8'
 param[['ram']] = '40'
@@ -61,6 +65,6 @@ output[['Name']] = 'FastqScreen_Result'
 output[['Report [File]']] = 'p2401/FastqScreen_17776_2017-04-24--09-10-26/FastqScreen_Result'
 output[['Html [Link]']] = 'p2401/FastqScreen_17776_2017-04-24--09-10-26/FastqScreen_Result/00index.html'
 input = '/srv/gstore/projects/p2000/SingleCellUnmappedBam/dataset.tsv'
-debug(ezMethodFastqScreen)
+#debug(ezMethodFastqScreen)
 EzAppFastqScreen$new()$run(input=input, output=output, param=param)
 
