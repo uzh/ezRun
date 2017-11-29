@@ -103,11 +103,11 @@ return(sampleObject)
 ##' @description Converts Sushi dataset into Mothur input.
 ##' @param  taxaFileName, mothur taxonomy file.
 ##' @return Returns the .groups and .fasta files
-datasetToMothur <- function(inputDataset){
-for (i in (1:nrow(inputDataset))) {
-filePathInDatset <- inputDataset$`Read1 [File]`[i]
-techID <- inputDataset$`Technology [Factor]`[i]
-groupID <- rownames(inputDataset)[i]
+datasetToMothur <- function(sushiInputDataset, param){
+for (i in (1:nrow(sushiInputDataset))) {
+filePathInDatset <- paste0(param$dataRoot,"/",sushiInputDataset$`Read1 [File]`[i])
+techID <- sushiInputDataset$`Technology [Factor]`[i]
+groupID <- rownames(sushiInputDataset)[i]
 fastqFile <- readFastq(filePathInDatset)
 x=data.frame(fastqFile@id)
 readID <- data.frame(apply(x,1,function(y) unlist(strsplit(y," "))[[1]]))
