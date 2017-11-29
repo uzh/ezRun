@@ -134,11 +134,12 @@ if (isTRUE(isTwoGroup)){
   ## scatter plot
   sampleValues = 2^groupMeans[ , param$sampleGroup]
   refValues = 2^groupMeans[ , param$refGroup]
-  p_scatter <- ezXYScatterPlotly(xVec=refValues, yVec=sampleValues,
-                                 isPresent=rowData(se)$usedInTest, 
-                                 types=types, names=rowData(se)$gene_name,
-                                 xlab=param$refGroup, ylab=param$sampleGroup,
-                                 main="Comparison of average expression")
+  p_scatter <- ezXYScatter.2(xVec=refValues, yVec=sampleValues,
+                             isPresent=rowData(se)$usedInTest, 
+                             types=types, names=rowData(se)$gene_name,
+                             xlab=param$refGroup, ylab=param$sampleGroup,
+                             main="Comparison of average expression",
+                             mode="plotly")
   scatterPng <- paste0(param$comparison, "-scatter.png")
   export(p_scatter, file=scatterPng)
   scatterPdf <- sub("png$", "pdf", scatterPng)
