@@ -42,7 +42,7 @@ Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
 
 ### Summary of the raw reads
 #### PacBio
-```{r setting, echo=FALSE}
+```{r sumPB, echo=FALSE}
 kable(rawSummaryTablePacbio, row.names=TRUE, 
       col.names=TRUE, format="html") %>%
   kable_styling(bootstrap_options = "striped", full_width = F,
@@ -50,7 +50,7 @@ kable(rawSummaryTablePacbio, row.names=TRUE,
 ```
 
 #### Illumina
-```{r setting, echo=FALSE}
+```{r sumIll, echo=FALSE}
 kable(rawSummaryTableIllumina, row.names=TRUE, 
       col.names=TRUE, format="html") %>%
   kable_styling(bootstrap_options = "striped", full_width = F,
@@ -59,7 +59,7 @@ kable(rawSummaryTableIllumina, row.names=TRUE,
 
 ### Reads filtered by length and duplication
 #### PacBio
-```{r setting, echo=FALSE}
+```{r filtPB, echo=FALSE}
 kable(lengthDeduppedSummaryTablePacbio, row.names=TRUE, 
       col.names=TRUE, format="html") %>%
   kable_styling(bootstrap_options = "striped", full_width = F,
@@ -67,7 +67,7 @@ kable(lengthDeduppedSummaryTablePacbio, row.names=TRUE,
 ```
 
 #### Illumina
-```{r setting, echo=FALSE}
+```{r filtIll, echo=FALSE}
 kable(lengthDeduppedSummaryTableIllumina, row.names=TRUE, 
       col.names=TRUE, format="html") %>%
   kable_styling(bootstrap_options = "striped", full_width = F,
@@ -76,7 +76,7 @@ kable(lengthDeduppedSummaryTableIllumina, row.names=TRUE,
 
 ### Reads filtered by mapping coordinates and Homopolymers
 #### PacBio
-```{r setting, echo=FALSE}
+```{r mapPB, echo=FALSE}
 kable(mappedAndHomopFilteredSummaryTablePacbio, row.names=TRUE, 
       col.names=TRUE, format="html") %>%
   kable_styling(bootstrap_options = "striped", full_width = F,
@@ -84,7 +84,7 @@ kable(mappedAndHomopFilteredSummaryTablePacbio, row.names=TRUE,
 ```
 
 #### Illumina
-```{r setting, echo=FALSE}
+```{r mapIll, echo=FALSE}
 kable(mappedAndHomopFilteredSummaryTableIllumina, row.names=TRUE, 
       col.names=TRUE, format="html") %>%
   kable_styling(bootstrap_options = "striped", full_width = F,
@@ -93,7 +93,7 @@ kable(mappedAndHomopFilteredSummaryTableIllumina, row.names=TRUE,
 
 ### Reads preclusterd and filtered for chimeras
 #### PacBio
-```{r setting, echo=FALSE}
+```{r precPB, echo=FALSE}
 kable(preClusteredAndChimeraFilteredSummaryTablePacbio, row.names=TRUE, 
       col.names=TRUE, format="html") %>%
   kable_styling(bootstrap_options = "striped", full_width = F,
@@ -101,7 +101,7 @@ kable(preClusteredAndChimeraFilteredSummaryTablePacbio, row.names=TRUE,
 ```
 
 #### Illumina
-```{r setting, echo=FALSE}
+```{r precIll, echo=FALSE}
 kable(preClusteredAndChimeraFilteredSummaryTableIllumina, row.names=TRUE, 
       col.names=TRUE, format="html") %>%
   kable_styling(bootstrap_options = "striped", full_width = F,
