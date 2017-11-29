@@ -16,8 +16,9 @@ ezMethodMothurDataClean = function(input=NA, output=NA, param=NA,
   require(ggplot2)
 #  mothurExe = "/usr/local/ngseq/src/mothur-1.39.5/mothur"
 #  mothurBatchFile = "/home/grusso/Rcodes/giancarlo/genericScipts/mothurSingleEndCleanApp.batch"
-  setwdNew(basename(output$getColumn("Static Report")))
-  dataset = ezRead.table(input)
+#  setwdNew(basename(output$getColumn("Static Report")))
+  dataset = input$meta
+  #dataset = ezRead.table(input)
   ### read fastq files and prepare inputs for Mothur
   datasetToMothur(dataset,param)
 
@@ -26,8 +27,12 @@ updateBatchCmdPacbio <- paste0("sed -e s/\"MIN_LEN\"/", param$minLen_PacBio, "/g
                                " -e s/\"MAX_LEN\"/", param$maxLen_PacBio, "/g",
                                " -e s/\"CUTOFF\"/", param$cutOff, "/g",
                                " -e s/\"DIFFS\"/", param$diffs_PacBio, "/g",
-                               " -e s/\"Mothur\"/\"PacBio\"/g",
-                               MOTHUR_DATA_CLEAN_BATCH, " >", MOTHUR_DATA_CLEAN_BATCH_PACBIO)
+                               " -e s/\"Mothur\"/\"PacBio\"/g ",
+                               " -e s/\"pcr.seqs\"/\"#pcr.seqs\"/g ",
+                               " -e s/\"rename.file\"/\"#rename.file\"/g ",
+                               " -e s/\"start=1968, end=11540\"/\"start=1046, end=43116\"/g ",
+                               " -e s/\"v4\"/\"bacteria\"/g ",
+                               MOTHUR_DATA_CLEAN_BATCH_TEMPLATE, " > ", MOTHUR_DATA_CLEAN_BATCH_PACBIO)
 ezSystem(updateBatchCmdPacbio)
 cmdMothurPacBio = paste(MOTHUR_EXE,MOTHUR_DATA_CLEAN_BATCH_PACBIO)
 ezSystem(cmdMothurPacBio)
@@ -36,10 +41,10 @@ updateBatchCmdPacbio <- paste0("sed -e s/\"MIN_LEN\"/", param$minLen_Illumina, "
                                " -e s/\"MAX_LEN\"/", param$maxLen_Illumina, "/g",
                                " -e s/\"CUTOFF\"/", param$cutOff, "/g",
                                " -e s/\"DIFFS\"/", param$diffs_Illumina, "/g",
-                               " -e s/\"Mothur\"/\"Illumina\"/g",
-                               MOTHUR_DATA_CLEAN_BATCH, " >", MOTHUR_DATA_CLEAN_BATCH_ILLUMINA)
+                               " -e s/\"Mothur\"/\"Illumina\"/g ",
+                               MOTHUR_ERROR_ESTIMATE_AND_CLUSTER_BATCH_TEMPLATE, " >", MOTHUR_DATA_CLEAN_BATCH_ILLUMINA)
 ezSystem(updateBatchCmdIllumina)
-cmdMothurPacBio = paste(MOTHUR_EXE,MOTHUR_DATA_CLEAN_BATCH_ILLUMINA)
+cmdMothurIllumina = paste(MOTHUR_EXE,MOTHUR_DATA_CLEAN_BATCH_ILLUMINA)
 ezSystem(cmdMothurIllumina)
 
 ## Copy the style files and templates
