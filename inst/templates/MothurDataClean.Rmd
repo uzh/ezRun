@@ -1,0 +1,69 @@
+---
+title: "`r paste('Mothur Data Clean')`"
+author: "Functional Genomics Center Zurich"
+output: 
+  html_document:
+    self_contained: false
+    includes:
+      in_header: fgcz_header.html
+    css: fgcz.css
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+## This report requires summary files form mothur
+
+require(knitr)
+require(kableExtra)
+require(SummarizedExperiment)
+require(webshot)
+require(htmlwidgets)
+debug <- FALSE
+setEnvironments("phantomjs")
+```
+
+```{r prepare data, include=FALSE}
+### rawDataSummary 
+rawSummaryTable <- createSummaryTable(rawSummaryFile)
+mappedAndHomopFilteredSummaryTable <- createSummaryTable(mappedAndHomopFilteredSummaryFile)
+preClusteredAndChimeraFilteredSummaryTable <- createSummaryTable(preClusteredAndChimeraFilteredSummaryFile)
+```
+
+Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
+
+## Mothur Data Clean {.tabset}
+
+### Summary of the raw reads
+```{r setting, echo=FALSE}
+kable(rawSummaryTable, row.names=TRUE, 
+      col.names=TRUE, format="html") %>%
+  kable_styling(bootstrap_options = "striped", full_width = F,
+                position = "left")
+```
+
+### Reads filtered by mapping coordinates and Homopolymers
+```{r setting, echo=FALSE}
+kable(mappedAndHomopFilteredSummaryTable, row.names=TRUE, 
+      col.names=TRUE, format="html") %>%
+  kable_styling(bootstrap_options = "striped", full_width = F,
+                position = "left")
+```
+
+### Reads preclusterd and filtered for chimeras
+```{r setting, echo=FALSE}
+kable(preClusteredAndChimeraFilteredSummaryTable, row.names=TRUE, 
+      col.names=TRUE, format="html") %>%
+  kable_styling(bootstrap_options = "striped", full_width = F,
+                position = "left")
+```
+
+### Input Dataset
+```{r input, echo=FALSE}
+dataset <- data.frame(colData(se), check.names=FALSE, stringsAsFactors=FALSE)
+ezInteractiveTableRmd(values=dataset, digits=4)
+```
+
+### SessionInfo
+```{r, echo=FALSE}
+sessionInfo()
+```

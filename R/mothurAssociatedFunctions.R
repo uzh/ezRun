@@ -43,7 +43,7 @@ phyloSeqOTU <- function(otuFileName){
 otuFile <- read.table(otuFileName, sep = "\t", stringsAsFactors = FALSE, header = TRUE)
 rownames(otuFile) <- otuFile$Group
 colToDrop <- c("label","Group","numOtus")
-otuFile <- as.matrix(otuFile[,!names(otuFile)%in%colToDrop])
+otuFile1 <- as.matrix(otuFile1[,!names(otuFile1)%in%colToDrop])
 otuObject <- otu_table(otuFile, taxa_are_rows = FALSE)
 return(otuObject)
 }
@@ -61,11 +61,11 @@ return(otuObject)
 ##' @param  taxaFileName, mothur taxonomy file.
 ##' @return Returns a Phyloseq Taxa object.
 
-phyloSeqTaxa <- function(taxaFileName){
+phyloSeqTaxa <- function(taxaFileName,technology){
 taxaFile <- read.table(taxaFileName, sep = "\t", stringsAsFactors = FALSE, header = TRUE)
-tempList <- lapply(taxaFile$Taxonomy,function(y) gsub("\\(.*","",unlist(strsplit(y,";"))))
+tempList <- lapply(taxaFile$Taxonomy,function(y) unlist(strsplit(y,";")))
 taxaMatrix <- as.matrix(ldply(tempList))
-rownames(taxaMatrix) <- taxaFile$OTU
+rownames(taxaMatrix) <- paste(taxaFile$OTU, technology, sep = "_")
 colnames(taxaMatrix) <- c("Domain","Phylum","Class","Order","Family","Genus","Species")[1:(ncol(taxaMatrix))]
 taxaObject <- tax_table(taxaMatrix)
 return(taxaObject)
@@ -123,3 +123,22 @@ writeFasta(fastqFile,'Illumina.fasta', mode = 'a')
 }
 }
 
+###################################################################
+# Functional Genomics Center Zurich
+# This code is distributed under the terms of the GNU General
+# Public License Version 3, June 2007.
+# The terms are available here: http://www.gnu.org/licenses/gpl.html
+# www.fgcz.ch
+
+
+##' @title Error rate
+##' @description Summarizes error rate from error count file
+##' @param  errorCountFile, mothur taxonomy file.
+##' @return Returns a number.
+errorRateSummary <- function(errorCountFileName){
+  errorTable <- read.table(errorCountFileName, sep = "\t", stringsAsFactors = FALSE, header = TRUE)
+  errorTable$wrongBases = errorTable$Sequences*errorTable$Errors
+  errorTable$totBases = errorTable$Sequences*1450
+  errorRate <- sum(errorTable$wrongBases)/sum(errorTable$totBases)*100
+  return(errorRate)
+}
