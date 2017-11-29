@@ -62,15 +62,15 @@ EzAppMothurDataClean <-
                   "Initializes the application using its specific defaults."
                   runMethod <<- ezMethodMothurDataClean
                   name <<- "EzAppMothurDataClean"
-                  appDefaults <<- rbind(cutOff = ezFrame(Type="numeric",  DefaultValue="80",Description="Cut-off for taxonomy assignment"),
+                  appDefaults <<- rbind(cutOff = ezFrame(Type="integer",  DefaultValue="80",Description="Cut-off for taxonomy assignment"),
                                         diffs_Illumina = ezFrame(Type="integer",  DefaultValue="2",Description="Differences allowed in the pre.cluster step. 
                                                                  Should be 1 every 100 bases"),
                                         diffs_PacBio = ezFrame(Type="integer",  DefaultValue="15",Description="Differences allowed in the pre.cluster step. 
                                                                Should be 1 every 100 bases"),
                                         minLen_Illumina = ezFrame(Type="integer",  DefaultValue="290",Description="Min length Illumina"),     
-                                        maxLen_Illumina = ezFrame(Type="integer",  DefaultValue="290",Description="Max length Illumina"),
-                                        minLen_PacBio = ezFrame(Type="integer",  DefaultValue="290",Description="Min length PacBio"),
-                                        maxLen_PacBio = ezFrame(Type="integer",  DefaultValue="290",Description="Max length PacBio"),
+                                        maxLen_Illumina = ezFrame(Type="integer",  DefaultValue="330",Description="Max length Illumina"),
+                                        minLen_PacBio = ezFrame(Type="integer",  DefaultValue="1400",Description="Min length PacBio"),
+                                        maxLen_PacBio = ezFrame(Type="integer",  DefaultValue="1700",Description="Max length PacBio")
                   )
                 }
               )
