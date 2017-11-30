@@ -18,10 +18,10 @@ k=1
 part2[k] = 1
 for (i in c(2.5,25,50,75,97.5,100)) {
   k=k+1
-  part2[k] <- nrow(f)*i/100
+  part2[k] <- nrow(summary)*i/100
 }
 part2 <- data.frame(numSeqs=part2)
-rawDataSummaryTable <- cbind(part1,data.frame(part2))
+rawDataSummaryTable <- round(cbind(part1,data.frame(part2)), digits = 0)
 rownames(rawDataSummaryTable) <- c("Mininmun","2.5%-tile","25%-tile","Median","75%-tile","97.5%-tile","Maximum")
 return(rawDataSummaryTable)
 }

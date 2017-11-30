@@ -48,15 +48,15 @@ cmdMothurIllumina = paste(MOTHUR_EXE,MOTHUR_DATA_CLEAN_BATCH_ILLUMINA)
 ezSystem(cmdMothurIllumina)
 
 ## Define input for rmd file
-rawPacbio <- "PacBio.summary"
-lengthDeduppedPacbio <- "PacBio.good.unique.summary"
-mappedAndHomopFilteredPacbio <- "PacBio.good.unique.good.summary"
-preClusteredAndChimeraFilteredPacbio <- "PacBio.good.unique.good.filter.unique.precluster.pick.summary"
+rawPacbio <- ezRead.table("PacBio.summary")
+lengthDeduppedPacbio <- ezRead.table("PacBio.good.unique.summary")
+mappedAndHomopFilteredPacbio <- ezRead.table("PacBio.good.unique.good.summary")
+preClusteredAndChimeraFilteredPacbio <- ezRead.table("PacBio.good.unique.good.filter.unique.precluster.pick.summary")
 
-rawIllumina <- "Illumina.summary"
-lengthDeduppedIllumina <- "Illumina.good.unique.summary"
-mappedAndHomopFilteredIllumina <- "Illumina.good.unique.good.summary"
-preClusteredAndChimeraFilteredIllumina <- "Illumina.good.unique.good.filter.unique.precluster.pick.summary"
+rawIllumina <- ezRead.table("Illumina.summary")
+lengthDeduppedIllumina <- ezRead.table("Illumina.good.unique.summary")
+mappedAndHomopFilteredIllumina <- ezRead.table("Illumina.good.unique.good.summary")
+preClusteredAndChimeraFilteredIllumina <- ezRead.table("Illumina.good.unique.good.filter.unique.precluster.pick.summary")
 
 ## Copy the style files and templates
   styleFiles <- file.path(system.file("templates", package="ezRun"),
