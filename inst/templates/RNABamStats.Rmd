@@ -113,7 +113,7 @@ for (nm in c("multiMatchTargetTypeCounts", "uniqueMatchTargetTypeCounts")){
               row.names=TRUE, format = "html",
               caption="Match Count Percentages") %>%
           kable_styling(bootstrap_options = "striped",
-                        full_width = F, position = "float_right") %>%
+                        full_width = F, position = "left") %>%
           add_footnote(c("Percentage value."), notation = "alphabet")
         print(k)
       }
@@ -133,7 +133,7 @@ for (nm in c("multiMatchTargetTypeCounts", "uniqueMatchTargetTypeCounts")){
                    row.names=TRUE, format = "html",
           caption="Read Starts per Base") %>%
       kable_styling(bootstrap_options = "striped",
-                    full_width = F, position = "float_right") %>%
+                    full_width = F, position = "left") %>%
       add_footnote(c("Read Starts per Base is equivalent to Coverage divided by Read length."), 
                    notation = "alphabet")
         print(k)
