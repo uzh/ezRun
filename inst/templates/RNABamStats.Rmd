@@ -116,6 +116,9 @@ for (nm in c("multiMatchTargetTypeCounts", "uniqueMatchTargetTypeCounts")){
                         full_width = F, position = "left") %>%
           add_footnote(c("Percentage value."), notation = "alphabet")
         print(k)
+      }else{
+        cat("The plot and table are shown when there are at least two samples!",
+            "\n")
       }
       
       cat("###", paste(readSet, "Read Starts per Base"), "\n")
@@ -137,6 +140,9 @@ for (nm in c("multiMatchTargetTypeCounts", "uniqueMatchTargetTypeCounts")){
       add_footnote(c("Read Starts per Base is equivalent to Coverage divided by Read length."), 
                    notation = "alphabet")
         print(k)
+      }else{
+        cat("The plot and table are shown when there are at least two samples!",
+            "\n")
       }
     }
 }
