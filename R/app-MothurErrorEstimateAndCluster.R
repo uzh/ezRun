@@ -21,7 +21,7 @@ ezMethodMothurErrorEstimateAndCluster = function(input=NA, output=NA, param=NA,
   dataset = input$meta
   
   ### update batch file pacbio with parameters and run mothur
-  updateBatchCmdPacbio <- paste0("sed -e s/\"REFERENCE\"/", param$mockReference, "/g",
+  updateBatchCmdPacbio <- paste0("sed -e s/\"REFERENCE\"/", param$referenceFasta, "/g",
                                  " -e s/\"CUTOFF\"/", param$cutOff, "/g",
                                  " -e s/\"Mothur\"/\"PacBio\"/g ",
                                  " -e s/\"GROUPS\"/", param$group, "/g",
@@ -32,7 +32,7 @@ ezMethodMothurErrorEstimateAndCluster = function(input=NA, output=NA, param=NA,
   cmdMothurPacBio = paste(MOTHUR_EXE,MOTHUR_ERROR_ESTIMATE_AND_CLUSTER_BATCH_PACBIO)
   ezSystem(cmdMothurPacBio)
   ### update batch file Illumina with parameters and run mothur
-  updateBatchCmdPacbio <- paste0("sed -e s/\"REFERENCE\"/", param$mockReference, "/g",
+  updateBatchCmdPacbio <- paste0("sed -e s/\"REFERENCE\"/", param$referenceFasta, "/g",
                                  " -e s/\"CUTOFF\"/", param$cutOff, "/g",
                                  " -e s/\"Mothur\"/\"Illumina\"/g ",
                                  " -e s/\"GROUPS\"/", param$group, "/g",
@@ -46,20 +46,11 @@ ezMethodMothurErrorEstimateAndCluster = function(input=NA, output=NA, param=NA,
 
   ## Copy the style files and templates
   styleFiles <- file.path(system.file("templates", package="ezRun"),
-                          c("fgcz.css", "FastQC.Rmd", "FastQC_overview.Rmd",
+                          c("fgcz.css", "MothurErrorEstimateAndCluster.Rmd",
                             "fgcz_header.html", "banner.png"))
   file.copy(from=styleFiles, to=".", overwrite=TRUE)
-  
-  plots = c("Summary of sequences in each sample.png",
-            "Per sequence quality scores"="per_sequence_quality.png",
-            "Per tile sequence quality"="per_tile_quality.png",
-            "Per base sequence content"="per_base_sequence_content.png",
-            "Per sequence GC content"="per_sequence_gc_content.png",
-            "Per base N content"="per_base_n_content.png",
-            "Sequence Length Distribution"="sequence_length_distribution.png",
-            "Sequence Duplication Levels"="duplication_levels.png",
-            "Adapter Content"="adapter_content.png",
-            "Kmer Content"="kmer_profiles.png")
+  rmarkdown::render(input="MothurErrorEstimateAndCluster.Rmd", envir = new.env(),
+                    output_dir=".", output_file=htmlFile, quiet=TRUE)
 }
  
 ##' @template app-template
@@ -77,7 +68,7 @@ EzAppMothurErrorEstimateAndCluster <-
                   name <<- "EzAppMothurErrorEstimateAndCluster"
                   appDefaults <<- rbind(cutOff = ezFrame(Type="numeric",  DefaultValue="0.03",Description="Cut-off for OTU clustering."),
                                         group = ezFrame(Type="character",  DefaultValue="Mock",Description="Mock group."),
-                                        reference = ezFrame(Type="character",  DefaultValue="",Description="Mock reference seqeuences")
+                                        referenceFasta = ezFrame(Type="character",  DefaultValue="",Description="Mock reference seqeuences.")
                   )
                 }
               )
