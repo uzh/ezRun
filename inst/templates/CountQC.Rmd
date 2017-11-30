@@ -11,7 +11,7 @@ output:
 
 Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
 
-```{r setup, include=FALSE}
+```{r setup countQC, include=FALSE}
 #title: "`r paste('Analysis:', ifelse(grepl('bam', param$name, ignore.case = TRUE), sub('$', '_Count_QC', param$name), param$name))`"
 # title: "debug title"
 
@@ -25,7 +25,7 @@ require(WGCNA)
 require(plotly)
 ```
 
-```{r prepare data, include=FALSE}
+```{r prepare data countQC, include=FALSE}
 ## debug:
 # require(ezRun)
 # load("/srv/GT/analysis/gtan/debug/p1536-CountQC/testCountQC.rda")
@@ -100,7 +100,7 @@ kable(settings, row.names=TRUE,
 ```
 
 ```{r output live report, echo=FALSE, results='asis'}
-if (!is.null(output)){
+if (exists("output") && !is.null(output)){
   liveReportLink = output$getColumn("Live Report")
   result = EzResult(se=rawData)
   result$saveToFile(basename(output$getColumn("Live Report")))
