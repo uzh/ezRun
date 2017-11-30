@@ -8,9 +8,9 @@
 
 ezMethodMothurDataClean = function(input=NA, output=NA, param=NA, 
                           htmlFile="00index.html"){
-  cwd <- getwd()
-  setwdNew(basename(output$getColumn("Report")))
-  on.exit(setwd(cwd))
+ # cwd <- getwd()
+#  setwdNew(basename(output$getColumn("Report")))
+#  on.exit(setwd(cwd))
   require(rmarkdown)
   require(ShortRead)
   require(phyloseq)
