@@ -8,17 +8,16 @@
 
 ezMethodMothurDataClean = function(input=NA, output=NA, param=NA, 
                           htmlFile="00index.html"){
+  cwd <- getwd()
+  setwdNew(basename(output$getColumn("Report")))
+  on.exit(setwd(cwd))
   require(rmarkdown)
   require(ShortRead)
   require(phyloseq)
   require(plyr)
   require(ape)
   require(ggplot2)
-#  mothurExe = "/usr/local/ngseq/src/mothur-1.39.5/mothur"
-#  mothurBatchFile = "/home/grusso/Rcodes/giancarlo/genericScipts/mothurSingleEndCleanApp.batch"
-#  setwdNew(basename(output$getColumn("Static Report")))
   dataset = input$meta
-  #dataset = ezRead.table(input)
   ### read fastq files and prepare inputs for Mothur
   datasetToMothur(dataset,param)
 
@@ -50,6 +49,7 @@ ezSystem(cmdMothurIllumina)
 ## Define input for rmd file
 rawPacbio <- ezRead.table("PacBio.summary")
 lengthDeduppedPacbio <- ezRead.table("PacBio.good.unique.summary")
+
 mappedAndHomopFilteredPacbio <- ezRead.table("PacBio.good.unique.good.summary")
 preClusteredAndChimeraFilteredPacbio <- ezRead.table("PacBio.good.unique.good.filter.unique.precluster.pick.summary")
 
