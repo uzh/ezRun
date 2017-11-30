@@ -21,7 +21,7 @@ ezMethodMothurErrorEstimateAndCluster = function(input=NA, output=NA, param=NA,
   dataset = input$meta
   
   ### update batch file pacbio with parameters and run mothur
-  updateBatchCmdPacbio <- paste0("sed -e s/\"REFERENCE\"/", param$mockReference, "/g",
+  updateBatchCmdPacbio <- paste0("sed -e s/\"REFERENCE\"/", param$referenceFasta, "/g",
                                  " -e s/\"CUTOFF\"/", param$cutOff, "/g",
                                  " -e s/\"Mothur\"/\"PacBio\"/g ",
                                  " -e s/\"GROUPS\"/", param$group, "/g",
@@ -32,7 +32,7 @@ ezMethodMothurErrorEstimateAndCluster = function(input=NA, output=NA, param=NA,
   cmdMothurPacBio = paste(MOTHUR_EXE,MOTHUR_ERROR_ESTIMATE_AND_CLUSTER_BATCH_PACBIO)
   ezSystem(cmdMothurPacBio)
   ### update batch file Illumina with parameters and run mothur
-  updateBatchCmdPacbio <- paste0("sed -e s/\"REFERENCE\"/", param$mockReference, "/g",
+  updateBatchCmdPacbio <- paste0("sed -e s/\"REFERENCE\"/", param$referenceFasta, "/g",
                                  " -e s/\"CUTOFF\"/", param$cutOff, "/g",
                                  " -e s/\"Mothur\"/\"Illumina\"/g ",
                                  " -e s/\"GROUPS\"/", param$group, "/g",
@@ -68,7 +68,7 @@ EzAppMothurErrorEstimateAndCluster <-
                   name <<- "EzAppMothurErrorEstimateAndCluster"
                   appDefaults <<- rbind(cutOff = ezFrame(Type="numeric",  DefaultValue="0.03",Description="Cut-off for OTU clustering."),
                                         group = ezFrame(Type="character",  DefaultValue="Mock",Description="Mock group."),
-                                        mockReference = ezFrame(Type="character",  DefaultValue="",Description="Mock reference seqeuences")
+                                        referenceFasta = ezFrame(Type="character",  DefaultValue="",Description="Mock reference seqeuences.")
                   )
                 }
               )
