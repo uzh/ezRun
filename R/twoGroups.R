@@ -259,6 +259,8 @@ runGlm = function(x, sampleGroup, refGroup, grouping, normMethod, grouping2=NULL
   ## QL as default.
   deTest <- match.arg(deTest)
   
+  robust = ezIsSpecified(param$robust) && param$robust
+
   ## get the scaling factors for the entire data set
   cds = DGEList(counts=x, group=grouping)
   cds = calcNormFactors(cds, method=normMethod)
@@ -284,7 +286,7 @@ runGlm = function(x, sampleGroup, refGroup, grouping, normMethod, grouping2=NULL
   
   ## dispersion estimation
   if (sum(grouping == refGroup) >=2 & sum(grouping == sampleGroup) >=2){
-    if (ezIsSpecified(param$robustDispersion) && param$robustDispersion){
+    if (robust){
       cds = estimateGLMRobustDisp(cds, design)
     } else {
       cds <- estimateDisp(cds, design)
@@ -297,12 +299,12 @@ runGlm = function(x, sampleGroup, refGroup, grouping, normMethod, grouping2=NULL
   if(deTest == "QL"){
     ## quasi-likelihood (QL) F-test
     message("Using quasi-likelihood (QL) F-test!")
-    fitGlm = glmQLFit(cds, design, prior.count=priorCount)
+    fitGlm = glmQLFit(cds, design, prior.count=priorCount, robust = robust)
     lrt.2vs1 = glmQLFTest(fitGlm, coef=2)
   }else{
     ## likelihood ratio test
     message("Using likelihood ratio test!")
-    fitGlm = glmFit(cds, design, prior.count=priorCount)
+    fitGlm = glmFit(cds, design, prior.count=priorCount, robust=robust)
     lrt.2vs1 = glmLRT(fitGlm, coef=2)
   }
   res = list()
