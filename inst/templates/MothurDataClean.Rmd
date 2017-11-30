@@ -29,7 +29,7 @@ lengthDeduppedSummaryTablePacbio <- createSummaryTable(lengthDeduppedPacbio)
 mappedAndHomopFilteredSummaryTablePacbio <- createSummaryTable(mappedAndHomopFilteredPacbio)
 preClusteredAndChimeraFilteredSummaryTablePacbio <- createSummaryTable(preClusteredAndChimeraFilteredPacbio)
 
-rawSummaryTableIllumina <- createSummaryTable(rawSummaryTableIllumina)
+rawSummaryTableIllumina <- createSummaryTable(rawIllumina)
 lengthDeduppedSummaryTableIllumina <- createSummaryTable(lengthDeduppedIllumina)
 mappedAndHomopFilteredSummaryTableIllumina <- createSummaryTable(mappedAndHomopFilteredIllumina)
 preClusteredAndChimeraFilteredSummaryTableIllumina <- createSummaryTable(preClusteredAndChimeraFilteredIllumina)
@@ -38,21 +38,21 @@ preClusteredAndChimeraFilteredSummaryTableIllumina <- createSummaryTable(preClus
 
 Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
 
-## Mothur Data Clean {.tabset}
+## Data pre-processing {.tabset}
 
 ### Summary of the raw reads
 #### PacBio
 ```{r sumPB, echo=FALSE}
-kable(rawSummaryTablePacbio, row.names=TRUE, 
-      col.names=TRUE, format="html") %>%
-  kable_styling(bootstrap_options = "striped", full_width = F,
+kable(rawSummaryTablePacbio,row.names=TRUE,  
+      col.names=colnames(rawSummaryTablePacbio),format="html") %>%
+kable_styling(bootstrap_options = "striped", full_width = F,
                 position = "left")
 ```
 
 #### Illumina
 ```{r sumIll, echo=FALSE}
 kable(rawSummaryTableIllumina, row.names=TRUE, 
-      col.names=TRUE, format="html") %>%
+      col.names=colnames(rawSummaryTableIllumina), format="html") %>%
   kable_styling(bootstrap_options = "striped", full_width = F,
                 position = "left")
 ```
@@ -61,7 +61,7 @@ kable(rawSummaryTableIllumina, row.names=TRUE,
 #### PacBio
 ```{r filtPB, echo=FALSE}
 kable(lengthDeduppedSummaryTablePacbio, row.names=TRUE, 
-      col.names=TRUE, format="html") %>%
+      col.names=colnames(lengthDeduppedSummaryTablePacbio), format="html") %>%
   kable_styling(bootstrap_options = "striped", full_width = F,
                 position = "left")
 ```
@@ -69,7 +69,7 @@ kable(lengthDeduppedSummaryTablePacbio, row.names=TRUE,
 #### Illumina
 ```{r filtIll, echo=FALSE}
 kable(lengthDeduppedSummaryTableIllumina, row.names=TRUE, 
-      col.names=TRUE, format="html") %>%
+      col.names=colnames(lengthDeduppedSummaryTableIllumina), format="html") %>%
   kable_styling(bootstrap_options = "striped", full_width = F,
                 position = "left")
 ```
@@ -78,7 +78,7 @@ kable(lengthDeduppedSummaryTableIllumina, row.names=TRUE,
 #### PacBio
 ```{r mapPB, echo=FALSE}
 kable(mappedAndHomopFilteredSummaryTablePacbio, row.names=TRUE, 
-      col.names=TRUE, format="html") %>%
+      col.names=colnames(preClusteredAndChimeraFilteredSummaryTablePacbio), format="html") %>%
   kable_styling(bootstrap_options = "striped", full_width = F,
                 position = "left")
 ```
@@ -86,7 +86,7 @@ kable(mappedAndHomopFilteredSummaryTablePacbio, row.names=TRUE,
 #### Illumina
 ```{r mapIll, echo=FALSE}
 kable(mappedAndHomopFilteredSummaryTableIllumina, row.names=TRUE, 
-      col.names=TRUE, format="html") %>%
+      col.names=colnames(preClusteredAndChimeraFilteredSummaryTablePacbio), format="html") %>%
   kable_styling(bootstrap_options = "striped", full_width = F,
                 position = "left")
 ```
@@ -95,7 +95,7 @@ kable(mappedAndHomopFilteredSummaryTableIllumina, row.names=TRUE,
 #### PacBio
 ```{r precPB, echo=FALSE}
 kable(preClusteredAndChimeraFilteredSummaryTablePacbio, row.names=TRUE, 
-      col.names=TRUE, format="html") %>%
+      col.names=colnames(preClusteredAndChimeraFilteredSummaryTablePacbio), format="html") %>%
   kable_styling(bootstrap_options = "striped", full_width = F,
                 position = "left")
 ```
@@ -103,7 +103,7 @@ kable(preClusteredAndChimeraFilteredSummaryTablePacbio, row.names=TRUE,
 #### Illumina
 ```{r precIll, echo=FALSE}
 kable(preClusteredAndChimeraFilteredSummaryTableIllumina, row.names=TRUE, 
-      col.names=TRUE, format="html") %>%
+      col.names=colnames(preClusteredAndChimeraFilteredSummaryTableIllumina), format="html") %>%
   kable_styling(bootstrap_options = "striped", full_width = F,
                 position = "left")
 ```
