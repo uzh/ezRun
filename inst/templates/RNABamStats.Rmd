@@ -10,14 +10,14 @@ output:
 ---
 Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
 
-```{r setup, include=FALSE}
+```{r setup RNABamStats, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ## This report requires the object resultList, dataset, param
 require(knitr)
 require(kableExtra)
 ```
 
-```{r prepare data, include=FALSE}
+```{r prepare data RNABamStats, include=FALSE}
 ## debug:
 #require(ezRun)
 #load("/home/gtan/analysis/gtan/p2438-RNABamStats/resultList.RData")
