@@ -25,14 +25,18 @@ ezMethodFastqScreen = function(input=NA, output=NA, param=NA,
   files_rawData = inputRaw$getFullPaths("Read1")
   resultFiles_rawData = executeFastqscreenCMD(param, confFile = confFile,
                                               files_rawData)
-  fastqData_rawData = collectFastqscreenOutput(files_rawData, resultFiles_rawData)
+  fastqData_rawData = collectFastqscreenOutput(files_rawData, 
+                                               resultFiles_rawData)
   tempFns <- list.files(".",
                         pattern=".*(tagged\\.fastq|tagged_filter\\.fastq)$")
   file.remove(tempFns)
   tempFns <- list.files(".", 
                         pattern=".*(screen\\.html|screen\\.png)$")
   file.remove(tempFns)
-  file.remove(files_rawData)
+  if(exists("fastqInput")){
+    ## Then files_rawData is bam converted fastq locally.
+    file.remove(files_rawData)
+  }
   file.remove(resultFiles_rawData)
   
   ## PreprocessedData
@@ -280,8 +284,7 @@ collectBowtie2Output = function(param, countFiles, readCount, virusResult = F){
       }
       ## Special case where all hits are multi hits --- in that case we sort according to the multi-hits
       if (length(uniqSpeciesHits) == 0){
-        topSpeciesUniq = integer(0, min(param$nTopSpecies, 
-                                        length(multipleSpeciesHits)))
+        topSpeciesUniq = integer(min(param$nTopSpecies, length(multipleSpeciesHits)))
         names(topSpeciesUniq) = names(multipleSpeciesHits)[1:min(param$nTopSpecies, 
                                                                  length(multipleSpeciesHits))]
       }

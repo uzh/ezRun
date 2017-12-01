@@ -269,6 +269,7 @@ if (!is.null(geneCounts)){
                           c("fgcz.css", "CountQC.Rmd",
                             "fgcz_header.html", "banner.png"))
     file.copy(from=styleFiles, to=".", overwrite=TRUE)
+    output <- NULL ## No live report 
     rmarkdown::render(input="CountQC.Rmd", envir = new.env(),
                       output_dir=".", output_file=htmlFile, quiet=TRUE)
     setwd("..")
