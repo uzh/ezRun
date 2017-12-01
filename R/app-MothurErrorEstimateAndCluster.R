@@ -31,7 +31,7 @@ ezMethodMothurErrorEstimateAndCluster = function(input=NA, output=NA, param=NA,
                                  " -e s/\"CUTOFF\"/", param$cutOff, "/g",
                                  " -e s/\"Mothur\"/\"PacBio\"/g ",
                                  " -e s/\"GROUPS\"/", param$group, "/g",
-                                 " -e s/\"INPUT_COUNT\"/", basename(dataset$CountTablePacbio), "/g",
+                                 " -e s/\"INPUT_COUNT\"/", basename(dataset$CountTablePacBio), "/g",
                                  " -e s/\"INPUT_FASTA\"/", basename(dataset$PreClusteredFastaFilePacbio), "/g ",                                 
                                  MOTHUR_ERROR_ESTIMATE_AND_CLUSTER_BATCH_TEMPLATE, " > ", MOTHUR_ERROR_ESTIMATE_AND_CLUSTER_BATCH_PACBIO)
   ezSystem(updateBatchCmdPacbio)
