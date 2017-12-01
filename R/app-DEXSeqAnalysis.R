@@ -363,7 +363,14 @@ getGeneTable <- function(pdxr, param){
                                   results$groupID, sum, na.rm = TRUE)[genetable$gene_id]
   genetable$meanRawCount = round(tapply(results$exonBaseMean, results$groupID, sum)[genetable$gene_id],3)
   genetable$max_ExonLog2FC = round(tapply(results[[log2column]], results$groupID, 
-                                          function(x){x[which.max(abs(x))]})[genetable$gene_id], 3)
+                                          function(x){
+                                            idx = which.max(abs(x))
+                                            if (length(idx) == 0){
+                                              return(NA)
+                                            } else {
+                                              return(x[idx])
+                                            }
+                                          })[genetable$gene_id], 3)
   ### # add extracted columns and return genetable
   genetable$fdr = round(perGeneQValue(pdxr),5)[genetable$gene_id]
   genetable$gene_id <- getGeneIdExprLinks(pvGeneIds = genetable$gene_id, psdexseq_report_path = param$dexseq_report_path)
