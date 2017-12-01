@@ -22,10 +22,15 @@ ezMethodMothurErrorEstimateAndCluster = function(input=NA, output=NA, param=NA,
   ezSystem(copyCountTablePacbioCmd)
   copyClusteredFastaFilePacbioCmd <- paste("cp", input$getFullPaths("PreClusteredFastaFilePacbio"),"./", sep = " ")
   ezSystem(copyClusteredFastaFilePacbioCmd)
+  copyTaxFilePacbioCmd <- paste("cp", input$getFullPaths("TaxonomyFilePacbio"),"./", sep = " ")
+  ezSystem(copyTaxFilePacbioCmd)
   copyCountTableIllCmd <- paste("cp", input$getFullPaths("CountTableIllumina"),"./", sep = " ")
   ezSystem(copyCountTableIllCmd)
-  copyClusteredFastaFileIllCmd <- paste("cp", input$getFullPaths("PreClusteredFastaFileIllumina"),"./", sep = " ")
+  copyClusteredFastaFileIllCmd <- paste("cp", input$getFullPaths("TaxonomyFileIllumina"),"./", sep = " ")
   ezSystem(copyClusteredFastaFileIllCmd)
+  copyTaxFilePacbioIll <- paste("cp", input$getFullPaths("TaxonomyFilePacbio"),"./", sep = " ")
+  ezSystem(copyTaxFilePacbioCmd)
+  
   ### update batch file pacbio with parameters and run mothur
   updateBatchCmdPacbio <- paste0("sed -e s/\"REFERENCE\"/", basename(param$referenceFasta), "/g",
                                  " -e s/\"CUTOFF\"/", param$cutOff, "/g",
@@ -48,7 +53,7 @@ ezMethodMothurErrorEstimateAndCluster = function(input=NA, output=NA, param=NA,
   stepFilePacbio <- "PacBio.good.unique.good.filter.unique.precluster.pick.pick.opti_mcc.steps"
   sharedFilePacbio <- "PacBio.good.unique.good.filter.unique.precluster.pick.pick.opti_mcc.shared"
   
-  errorCountFileNameIllumina <- "Illumina.good.unique.good.filter.unique.precluster.pick.pick.error.count"
+  errorCountFileNameIllumina <- "PacBio.good.unique.good.filter.unique.precluster.pick.pick.error.count"
   stepFileIllumina <- "Illumina.good.unique.good.filter.unique.precluster.pick.pick.opti_mcc.steps"
   sharedFileIllumina <- "Illumina.good.unique.good.filter.unique.precluster.pick.pick.opti_mcc.shared"
 

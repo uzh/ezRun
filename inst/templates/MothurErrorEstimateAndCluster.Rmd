@@ -1,5 +1,5 @@
 ---
-title: "`r paste('Mothur Data Clean')`"
+title: "`r paste('Mothur metagenomics workflow')`"
 author: "Functional Genomics Center Zurich"
 output: 
   html_document:
@@ -58,7 +58,7 @@ plot(errorRateSummaryPlotIllumina)
 ### OTUs onvergence summary
 #### PacBio
 ```{r conPB, echo=FALSE}
-kable(convStepTablePacbio, row.names=TRUE, 
+kable(convStepTablePacbio, row.names=FALSE, 
       col.names=colnames(convStepTablePacbio), format="html") %>%
   kable_styling(bootstrap_options = "striped", full_width = F,
                 position = "left")
@@ -66,7 +66,7 @@ kable(convStepTablePacbio, row.names=TRUE,
 
 #### Illumina
 ```{r convIll, echo=FALSE}
-kable(convStepTableIllumina, row.names=TRUE, 
+kable(convStepTableIllumina, row.names=FALSE, 
       col.names=colnames(convStepTableIllumina), format="html") %>%
   kable_styling(bootstrap_options = "striped", full_width = F,
                 position = "left")
@@ -84,18 +84,19 @@ plot(otuSaturPlotIllumina)
 ```
 
 ### OTUs saturation tables
-#### PacBio
+#### Percentage of total sequences represented by increasing numbers of OTUs
+##### PacBio
 ```{r satTabPB, echo=FALSE}
-kable(convStepTablePacbio, row.names=TRUE, 
-      col.names=colnames(convStepTablePacbio), format="html") %>%
+kable(otuSaturationTablePacbio, row.names=FALSE, 
+      col.names=colnames(otuSaturationTablePacbio), format="html") %>%
   kable_styling(bootstrap_options = "striped", full_width = F,
                 position = "left")
 ```
 
-#### Illumina
+##### Illumina
 ```{r satTabIll, echo=FALSE}
-kable(convStepTableIllumina, row.names=TRUE, 
-      col.names=colnames(convStepTableIllumina), format="html") %>%
+kable(otuSaturationTableIllumina, row.names=FALSE, 
+      col.names=colnames(otuSaturationTableIllumina), format="html") %>%
   kable_styling(bootstrap_options = "striped", full_width = F,
                 position = "left")
 ```
