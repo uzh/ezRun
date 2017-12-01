@@ -29,22 +29,16 @@ ezMethodMothurErrorEstimateAndCluster = function(input=NA, output=NA, param=NA,
   ### update batch file pacbio with parameters and run mothur
   updateBatchCmdPacbio <- paste0("sed -e s/\"REFERENCE\"/", basename(param$referenceFasta), "/g",
                                  " -e s/\"CUTOFF\"/", param$cutOff, "/g",
-                                 " -e s/\"Mothur\"/\"PacBio\"/g ",
-                                 " -e s/\"GROUPS\"/", param$group, "/g",
-                                 " -e s/\"INPUT_COUNT\"/", basename(dataset$CountTablePacBio), "/g",
-                                 " -e s/\"INPUT_FASTA\"/", basename(dataset$PreClusteredFastaFilePacbio), "/g ",                                 
-                                 MOTHUR_ERROR_ESTIMATE_AND_CLUSTER_BATCH_TEMPLATE, " > ", MOTHUR_ERROR_ESTIMATE_AND_CLUSTER_BATCH_PACBIO)
+                                 " -e s/\"GROUP\"/", param$group, "/g ",                                  
+                                 MOTHUR_ERROR_ESTIMATE_AND_CLUSTER_BATCH_TEMPLATE_PACBIO, " > ", MOTHUR_ERROR_ESTIMATE_AND_CLUSTER_BATCH_PACBIO)
   ezSystem(updateBatchCmdPacbio)
   cmdMothurPacBio = paste(MOTHUR_EXE,MOTHUR_ERROR_ESTIMATE_AND_CLUSTER_BATCH_PACBIO)
   ezSystem(cmdMothurPacBio)
   ### update batch file Illumina with parameters and run mothur
-  updateBatchCmdPacbio <- paste0("sed -e s/\"REFERENCE\"/", basename(param$referenceFasta), "/g",
+  updateBatchCmdIllumina <- paste0("sed -e s/\"REFERENCE\"/", basename(param$referenceFasta), "/g",
                                  " -e s/\"CUTOFF\"/", param$cutOff, "/g",
-                                 " -e s/\"Mothur\"/\"Illumina\"/g ",
-                                 " -e s/\"GROUPS\"/", param$group, "/g",
-                                 " -e s/\"INPUT_COUNT\"/", basename(dataset$CountTableIllumina), "/g",
-                                 " -e s/\"INPUT_FASTA\"/", basename(dataset$PreClusteredFastaFileIllumina), "/g ",  
-                                 MOTHUR_ERROR_ESTIMATE_AND_CLUSTER_BATCH_TEMPLATE, " >", MOTHUR_ERROR_ESTIMATE_AND_CLUSTER_BATCH_ILLUMINA)
+                                 " -e s/\"GROUP\"/", param$group, "/g ",
+                                 MOTHUR_ERROR_ESTIMATE_AND_CLUSTER_BATCH_TEMPLATE_ILL, " >", MOTHUR_ERROR_ESTIMATE_AND_CLUSTER_BATCH_ILLUMINA)
   ezSystem(updateBatchCmdIllumina)
   cmdMothurIllumina = paste(MOTHUR_EXE,MOTHUR_ERROR_ESTIMATE_AND_CLUSTER_BATCH_ILLUMINA)
   ezSystem(cmdMothurIllumina)
