@@ -14,35 +14,49 @@ ezMethodMothurErrorEstimateAndCluster = function(input=NA, output=NA, param=NA,
   require(plyr)
   require(ape)
   require(ggplot2)
-  mothurExe = "/usr/local/ngseq/src/mothur-1.39.5/mothur"
-  mothurBatchFile = "/home/grusso/Rcodes/giancarlo/genericScipts/mothurSingleEndErrorEstimateAndClusterApp.batch"
-  mothurInput = "datasetNoHeaderForMothur.tsv"
-  setwdNew(basename(output$getColumn("Static Report")))
   dataset = input$meta
-  
+  ### copy files locally
+  copyRefCmd <- paste("cp", param$referenceFasta,"./", sep = " ")
+  ezSystem(copyRefCmd)
+  copyCountTablePacbioCmd <- paste("cp", input$getFullPaths("CountTablePacBio"),"./", sep = " ")
+  ezSystem(copyCountTablePacbioCmd)
+  copyClusteredFastaFilePacbioCmd <- paste("cp", input$getFullPaths("PreClusteredFastaFilePacBio"),"./", sep = " ")
+  ezSystem(copyCClusteredFastaFilePacbioCmd)
+  copyCountTableIllCmd <- paste("cp", input$getFullPaths("CountTableIllumina"),"./", sep = " ")
+  ezSystem(copyCountTableIllCmd)
+  copyClusteredFastaFileIllCmd <- paste("cp", input$getFullPaths("PreClusteredFastaFileIllumina"),"./", sep = " ")
+  ezSystem(copyClusteredFastaFileIllCmd)
   ### update batch file pacbio with parameters and run mothur
-  updateBatchCmdPacbio <- paste0("sed -e s/\"REFERENCE\"/", param$referenceFasta, "/g",
+  updateBatchCmdPacbio <- paste0("sed -e s/\"REFERENCE\"/", basename(param$referenceFasta), "/g",
                                  " -e s/\"CUTOFF\"/", param$cutOff, "/g",
                                  " -e s/\"Mothur\"/\"PacBio\"/g ",
                                  " -e s/\"GROUPS\"/", param$group, "/g",
-                                 " -e s/\"INPUT_COUNT\"/", input$CountTablePacBio, "/g",
-                                 " -e s/\"INPUT_FASTA\"/", input$PreClusteredFastaFilePacBio, "/g",                                 
+                                 " -e s/\"INPUT_COUNT\"/", basename(dataset$CountTablePacBio), "/g",
+                                 " -e s/\"INPUT_FASTA\"/", basename(dataset$PreClusteredFastaFilePacBio), "/g ",                                 
                                  MOTHUR_ERROR_ESTIMATE_AND_CLUSTER_BATCH_TEMPLATE, " > ", MOTHUR_ERROR_ESTIMATE_AND_CLUSTER_BATCH_PACBIO)
   ezSystem(updateBatchCmdPacbio)
   cmdMothurPacBio = paste(MOTHUR_EXE,MOTHUR_ERROR_ESTIMATE_AND_CLUSTER_BATCH_PACBIO)
   ezSystem(cmdMothurPacBio)
   ### update batch file Illumina with parameters and run mothur
-  updateBatchCmdPacbio <- paste0("sed -e s/\"REFERENCE\"/", param$referenceFasta, "/g",
+  updateBatchCmdPacbio <- paste0("sed -e s/\"REFERENCE\"/", basename(param$referenceFasta), "/g",
                                  " -e s/\"CUTOFF\"/", param$cutOff, "/g",
                                  " -e s/\"Mothur\"/\"Illumina\"/g ",
                                  " -e s/\"GROUPS\"/", param$group, "/g",
-                                 " -e s/\"INPUT_COUNT\"/", input$CountTableIllumina, "/g",
-                                 " -e s/\"INPUT_FASTA\"/", input$PreClusteredFastaFileIllumina, "/g",  
+                                 " -e s/\"INPUT_COUNT\"/", basename(dataset$CountTableIllumina), "/g",
+                                 " -e s/\"INPUT_FASTA\"/", basename(dataset$PreClusteredFastaFileIllumina), "/g ",  
                                  MOTHUR_ERROR_ESTIMATE_AND_CLUSTER_BATCH_TEMPLATE, " >", MOTHUR_ERROR_ESTIMATE_AND_CLUSTER_BATCH_ILLUMINA)
   ezSystem(updateBatchCmdIllumina)
   cmdMothurIllumina = paste(MOTHUR_EXE,MOTHUR_ERROR_ESTIMATE_AND_CLUSTER_BATCH_ILLUMINA)
   ezSystem(cmdMothurIllumina)
   
+  ## Define input for rmd file
+  errorCountFileNamePacbio <- "PacBio.good.unique.good.filter.unique.precluster.pick.pick.error.count"
+  stepFilePacbio <- "PacBio.good.unique.good.filter.unique.precluster.pick.pick.opti_mcc.steps"
+  sharedFilePacbio <- "PacBio.good.unique.good.filter.unique.precluster.pick.pick.opti_mcc.shared"
+  
+  errorCountFileNameIllumina <- "Illumina.good.unique.good.filter.unique.precluster.pick.pick.error.count"
+  stepFileIllumina <- "Illumina.good.unique.good.filter.unique.precluster.pick.pick.opti_mcc.steps"
+  sharedFileIllumina <- "Illumina.good.unique.good.filter.unique.precluster.pick.pick.opti_mcc.shared"
 
   ## Copy the style files and templates
   styleFiles <- file.path(system.file("templates", package="ezRun"),
