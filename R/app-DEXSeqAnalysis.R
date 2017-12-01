@@ -347,14 +347,14 @@ getGeneTable <- function(pdxr, param){
                                   geneNames = ezCollapse(dfGnsAnnot[geneIds, "gene_name"], uniqueOnly=TRUE, empty.rm=TRUE, sep="+")
                                   return(geneNames)
                                 },
-                                USE.NAMES=FALSE)[genetable$gene_id]
+                                USE.NAMES=TRUE)[genetable$gene_id]
   genetable$gene_description <- sapply(genetable$gene_id,
                                        function(x) {
                                          geneIds <- unlist(strsplit(x, split = "+", fixed = TRUE))
                                          geneNames = ezCollapse(dfGnsAnnot[geneIds, "description"], uniqueOnly=TRUE, empty.rm=TRUE, sep="+")
                                          return(geneNames)
                                        },
-                                       USE.NAMES = FALSE)[genetable$gene_id]
+                                       USE.NAMES = TRUE)[genetable$gene_id]
   genetable$seqnames=tapply(as.character(results$seqnames), results$groupID, unique)[genetable$gene_id]
   genetable$end = tapply(results$end, results$groupID, max)[genetable$gene_id]
   genetable$exon_changes = tapply(results$padj < param$fdr & 
@@ -377,7 +377,8 @@ getGeneTable <- function(pdxr, param){
   genetable = genetable[order(genetable$fdr),]
   ezWrite.table(genetable, file=paste0("result--", param$comparison, "--DEXSeqGeneResult.txt"), head="gene_id")
   require(DT)
-  x = datatable(genetable[genetable$fdr < param$fdr, ], escape = F,rownames = FALSE, filter = 'bottom',extensions = c('ColReorder','Buttons'),
+  geneTableSel = genetable[!is.na(genetable$fdr) & genetable$fdr < param$fdr, ]
+  x = datatable(geneTableSel, escape = F,rownames = FALSE, filter = 'bottom',extensions = c('ColReorder','Buttons'),
                 caption = paste('Candidates DEXSeq:',param$comparison, sep=''),
                 options = list(
                   initComplete = JS(
