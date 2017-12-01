@@ -18,7 +18,7 @@ ezMethodMothurErrorEstimateAndCluster = function(input=NA, output=NA, param=NA,
   ### copy files locally
   copyRefCmd <- paste("cp", param$referenceFasta,"./", sep = " ")
   ezSystem(copyRefCmd)
-  copyCountTablePacbioCmd <- paste("cp", input$getFullPaths("CountTablePacBio"),"./", sep = " ")
+  copyCountTablePacbioCmd <- paste("cp", input$getFullPaths("CountTablePacbio"),"./", sep = " ")
   ezSystem(copyCountTablePacbioCmd)
   copyClusteredFastaFilePacbioCmd <- paste("cp", input$getFullPaths("PreClusteredFastaFilePacbio"),"./", sep = " ")
   ezSystem(copyClusteredFastaFilePacbioCmd)
