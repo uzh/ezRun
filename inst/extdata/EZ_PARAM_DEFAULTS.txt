@@ -34,6 +34,7 @@ refAnnotationFile	character		the annotation file in tab separated format
 refFastaFile	character	Sequence/WholeGenomeFasta/genome.fa	the file that holds the genomic sequence
 #refChromDir	character		the directory that hold the genomic sequence with one file per chromosome / contig
 # analysis parameters
+correctBias	logical	FALSE	apply a GC and gene length bias correction to the counts
 normMethod	character	quantile	The default method to normalize count or other expression data
 deTest	character	QL	The default method to do differential expression test
 twopassMode	logical	TRUE	The 1-pass mapping or basic 2-pass mapping to be used
