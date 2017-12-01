@@ -321,7 +321,7 @@ ezMethodSubsampleReads = function(input=NA, output=NA, param=NA){
   if (param$paired){
     set.seed(123L);
     fR2 <- FastqSampler(input$getFullPaths("Read2"), n=nReads)
-    on.exit(close(fR2))
+    on.exit(close(fR2), add=TRUE)
     writeFastq(ShortRead::yield(fR2),
                file=output$getColumn("Read2"),
                compress=grepl("\\.gz$", output$getColumn("Read2")))
