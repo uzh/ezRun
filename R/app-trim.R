@@ -271,24 +271,9 @@ copyReadsLocally = function(input, param){
   input$dataRoot = NULL
   return(input)
 }
-
-
-
-##' @title Subsample reads in a fastq dataset file
-##' @description The subsampled reads are equally distributed across the original files
-##' @param param a list of parameters where the following entries are used
-##' \itemize{
-##'   \item{dataRoot} the prefix of the file paths
-##'   \item{nReads} the number of reads to keep; if given will be used to compute subsampleFactor; it is not guaranteed that the number of reads kept is exact
-##'   \item{subsampleFactor} the factor by which subsampling has been done. if \code{nReads} is specified subsampleFactor will not be used
-##'   \item{paired} whether these are paired-end reads
-##' }
-##' @examples
-##' inputDatasetFile = system.file(package = "ezRun", "extdata/yeast_10k/dataset.tsv")
-##' param = ezParam(list(dataRoot=system.file(package = "ezRun"), subsampleFactor=5))
-##' input = EzDataset(file=inputDatasetFile, dataRoot=param$dataRoot)
-##' xSubsampled = ezMethodSubsampleReads(input=input, param=param)
-##' # NOTE: the subsampled files will not be gzip compressed!
+### -----------------------------------------------------------------
+### ezMethodSubsampleReads: subsample fastq
+###
 ezMethodSubsampleReads = function(input=NA, output=NA, param=NA){
   require(ShortRead)
   if (!is(output, "EzDataset")){
@@ -307,24 +292,26 @@ ezMethodSubsampleReads = function(input=NA, output=NA, param=NA){
     if (param$subsampleReads > 1){
       message("subsampleReads setting will be overwritten by nReads parameter")
     }
-    nReads <- min(param$nReads, totalReads)
+    nReads <- pmin(param$nReads, totalReads)
   } else {
     nReads <- as.integer(1/param$subsampleReads * totalReads)
   }
   set.seed(123L);
-  fR1 <- FastqSampler(input$getFullPaths("Read1"), n=nReads)
-  on.exit(close(fR1), add = TRUE)
-  writeFastq(ShortRead::yield(fR1),
-             file=output$getColumn("Read1"), 
-             compress=grepl("\\.gz$", output$getColumn("Read1")))
-  output$setColumn("Read Count", nReads)
-  if (param$paired){
-    set.seed(123L);
-    fR2 <- FastqSampler(input$getFullPaths("Read2"), n=nReads)
-    on.exit(close(fR2))
-    writeFastq(ShortRead::yield(fR2),
-               file=output$getColumn("Read2"),
-               compress=grepl("\\.gz$", output$getColumn("Read2")))
+  for(i in 1:length(input$getFullPaths("Read1"))){
+    fR1 <- FastqSampler(input$getFullPaths("Read1")[i], n=nReads[i])
+    writeFastq(ShortRead::yield(fR1),
+               file=output$getColumn("Read1")[i], 
+               compress=grepl("\\.gz$", output$getColumn("Read1")[i]))
+    close(fR1)
+    output$setColumn("Read Count", nReads[i])
+    if (param$paired){
+      set.seed(123L);
+      fR2 <- FastqSampler(input$getFullPaths("Read2")[i], n=nReads[i])
+      writeFastq(ShortRead::yield(fR2),
+                 file=output$getColumn("Read2")[i],
+                 compress=grepl("\\.gz$", output$getColumn("Read2")[i]))
+      close(fR2)
+    }
   }
   return(output)
 }
