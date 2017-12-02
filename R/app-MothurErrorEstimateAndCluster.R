@@ -26,9 +26,9 @@ ezMethodMothurErrorEstimateAndCluster = function(input=NA, output=NA, param=NA,
   ezSystem(copyTaxFilePacbioCmd)
   copyCountTableIllCmd <- paste("cp", input$getFullPaths("CountTableIllumina"),"./", sep = " ")
   ezSystem(copyCountTableIllCmd)
-  copyClusteredFastaFileIllCmd <- paste("cp", input$getFullPaths("TaxonomyFileIllumina"),"./", sep = " ")
+  copyClusteredFastaFileIllCmd <- paste("cp", input$getFullPaths("PreClusteredFastaFilePacbio"),"./", sep = " ")
   ezSystem(copyClusteredFastaFileIllCmd)
-  copyTaxFilePacbioIll <- paste("cp", input$getFullPaths("TaxonomyFilePacbio"),"./", sep = " ")
+  copyTaxFilePacbioIll <- paste("cp", input$getFullPaths("TaxonomyFileIllumina"),"./", sep = " ")
   ezSystem(copyTaxFilePacbioCmd)
   
   ### update batch file pacbio with parameters and run mothur
