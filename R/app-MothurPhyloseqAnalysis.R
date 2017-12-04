@@ -17,7 +17,7 @@ ezMethodMothurPhyloSeqAnalysis = function(input=NA, output=NA, param=NA,
   library(DESeq2)
   dataset = input$meta
 
-### analyze results with phyloseq
+### Analyzes results with phyloseq: preparing objects to be processed in the Rmd file
 
 ### OTUs
 otuObjectPacBio <- phyloSeqOTU(input$OTU_pacbio)
@@ -26,10 +26,8 @@ otuObjectIllumina <- phyloSeqOTU(input$OTU_Illumina)
 taxaObjectPacBio <- phyloSeqTaxa(input$Taxonomy_pacbio)
 taxaObjectIllumina <- phyloSeqTaxa(input$Taxonomy_Illumina)
 ### pruning level
-pruneIll <- param$represntativeOTUsIllumina
-prunePB <- param$represntativeOTUsPacbio
-
-
+pruneIll <- param$representativeOTUsIllumina
+prunePB <- param$representativeOTUsPacbio
 ### Samples
 designMatrix <- param$designMatrix 
 sampleObjectIllumina <- designMatrix[designMatrix$`Technology [Factor]` == "Illumina",]
@@ -49,58 +47,14 @@ treeObjectPacbio = rtree(ntaxa(physeqPacBioNoTree), rooted=TRUE, tip.label=taxa_
 physeqPacBio <-  merge_phyloseq(physeqPacBioNoTree,treeObjectPacbio)
 physeqPacBio <- phyloSeqPreprocess(physeqPacBio)
 physeqPacBio <- prune_taxa(taxa_names(physeqPacBio)[1:prunePB], physeqPacBio)
-  
-### create plots: 1. abundance
-illAbPlot <- plot_bar(pruned_physeqIll, "Group", "Abundance", "Phylum")
-+ geom_bar(aes(color=Phylum, fill=Phylum), stat="identity", position="stack")
-pbAbPlot <- plot_bar(physeqPacBio, "Group", "Abundance", "Phylum")
-+ geom_bar(aes(color=Phylum, fill=Phylum), stat="identity", position="stack")
 
-### create plots: 2. ordination
-pbOrd <- ordinate(physeqPacBio, "NMDS", "bray")
-plotOrdTaxaPB = plot_ordination(physeqPacBio, pbOrd, type="taxa", color="Phylum", title="Taxa") + facet_wrap(~Phylum, 3)
-plotOrdSamplesPB = plot_ordination(GP1, GP.ord, type="samples", color="Group") 
-plotOrdSamplesPB = plotOrdSamplesPB + geom_polygon(aes(fill=Group)) + geom_point(size=5) + ggtitle("Samples")
-
-illOrd <- ordinate(physeqIll, "NMDS", "bray")
-plotOrdTaxaIll = plot_ordination(physeqIll, illOrd, type="taxa", color="Phylum", title="Taxa") + facet_wrap(~Phylum, 3)
-plotOrdSamplesIll = plot_ordination(GP1, GP.ord, type="samples", color="Group") 
-plotOrdSamplesIll = pplotOrdSamplesIll + geom_polygon(aes(fill=Group)) + geom_point(size=5) + ggtitle("samples")
-
-### create plots: 3. richness 
-plotRichIll <- plot_richness(physeqIll, x="Group", measures=c("Chao1", "Shannon"))
-plotRichPB <- plot_richness(physeqPacBio, x="Group", measures=c("Chao1", "Shannon"))
-
-### create plots: 4. tree
-
-plotTreeIll <- plot_tree(physeqIll , ladderize="left", color="Group")
-plotTreePB<- plot_tree(physeqPacBio , ladderize="left", color="Group")
-
-### create plots:5. heatmap
-plotHeatmapIll <- plot_heatmap(physeqIll, taxa.label="Phylum")
-plotHeatmapIll <- plot_heatmap(physeqPacBio, taxa.label="Phylum")
-
-### 6: compare groups
-deseqResults <- phyloSeqToDeseq2_tableAndPlots(physeqIll)
 
   ## Copy the style files and templates
   styleFiles <- file.path(system.file("templates", package="ezRun"),
                           c("fgcz.css", "FastQC.Rmd", "FastQC_overview.Rmd",
                             "fgcz_header.html", "banner.png"))
   file.copy(from=styleFiles, to=".", overwrite=TRUE)
-  
-  plots = c("Summary of sequences in each sample.png",
-            "Per sequence quality scores"="per_sequence_quality.png",
-            "Per tile sequence quality"="per_tile_quality.png",
-            "Per base sequence content"="per_base_sequence_content.png",
-            "Per sequence GC content"="per_sequence_gc_content.png",
-            "Per base N content"="per_base_n_content.png",
-            "Sequence Length Distribution"="sequence_length_distribution.png",
-            "Sequence Duplication Levels"="duplication_levels.png",
-            "Adapter Content"="adapter_content.png",
-            "Kmer Content"="kmer_profiles.png")
 }
- 
 ##' @template app-template
 ##' @templateVar method ezMethodMothurPhyloSeqAnalysis()
 ##' @templateVar htmlArg )
@@ -114,8 +68,6 @@ EzAppMothurPhyloSeqAnalysis <-
                   "Initializes the application using its specific defaults."
                   runMethod <<- ezMethodMothurPhyloSeqAnalysis
                   name <<- "EzAppMothurPhyloSeqAnalysis"
-                  appDefaults <<- rbind(cutOff = ezFrame(Type="numeric",  DefaultValue="0,03",Description="Cut-off for OTU clustering.")
-                  )
                 }
               )
   )

@@ -97,10 +97,10 @@ phyloSeqPreprocess <- function(phyloseqObj){
 # www.fgcz.ch
 
 
-##' @title Phyloseq preprocess
-##' @description Preprocesses a phyloseq object.
+##' @title Differential abundance analysis between groups
+##' @description Comaprison of metagenomics communities from files stored as a phyloseq object.
 ##' @param  phyloseqObj, a phyloseq object.
-##' @return Returns a  filtered Phyloseq  object.
+##' @return Returns a list of tables and plots.
 phyloSeqToDeseq2_tableAndPlots <- function(phyloseqObj){
   ## Convert to Deseq obj and analyze
   ## to do: add selector for group and test
