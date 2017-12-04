@@ -49,13 +49,38 @@ readID <- data.frame(apply(x,1,function(y) unlist(strsplit(y," "))[[1]]))
 groupFile <- data.frame(apply(readID,1,function(y) gsub(":","_",y)))
 groupFile$group <- groupID
 if (techID == "Illumina"){
-write.table(groupFile, 'Illumina.groups', row.names = FALSE, quote = FALSE, col.names = FALSE, append = TRUE)
+write.table(groupFile, 'Illumina.groups', row.names = FALSE, quote = FALSE, col.names = FALSE, append = TRUE, sep = "\t")
 writeFasta(fastqFile,'Illumina.fasta', mode = 'a')
 }else{
-  write.table(groupFile, 'PacBio.groups', row.names = FALSE, quote = FALSE, col.names = FALSE, append = TRUE)
+  write.table(groupFile, 'PacBio.groups', row.names = FALSE, quote = FALSE, col.names = FALSE, append = TRUE, sep = "\t")
   writeFasta(fastqFile,'PacBio.fasta', mode = 'a')
 }
 }
+}
+
+###################################################################
+# Functional Genomics Center Zurich
+# This code is distributed under the terms of the GNU General
+# Public License Version 3, June 2007.
+# The terms are available here: http://www.gnu.org/licenses/gpl.html
+# www.fgcz.ch
+
+
+##' @title OTUs saturation table conversion for VAMPs
+##' @description writeOTUgzFileForVamps
+##' @param  sharedFile,taxafile mothur shared abundance and taxa files.
+##' @return Writes a gzipped file
+writeOTUgzFileForVamps <- function(sharedFile, taxaFile){
+  sharedAbund <- read.table(sharedFile, stringsAsFactors = FALSE, sep = "\t", header = TRUE)
+  taxaAssign <- read.table(taxaFile, stringsAsFactors = FALSE, sep = "\t", header = TRUE)
+  sharedAbund <- t(sharedAbund)
+  rowToKeep <- grepl("^Otu.*$",rownames(sharedAbund))
+  sharedAbundDF <- data.frame(data.matrix(data.frame(sharedAbund[rowToKeep,], stringsAsFactors = FALSE)))
+  sharedAbundDF <- data.frame(cbind(taxaAssign$OTU,sharedAbundDF,taxaAssign$Taxonomy))
+  colnames(sharedAbundDF) <- c("Cluster_ID",sharedAbund[rownames(sharedAbund) == "Group",],"Taxonomy")
+  gz1 <- gzfile("OTUfileForVamps.txt.gz", "w")
+  write.table(sharedAbundDF, gz1, row.names = FALSE, quote = FALSE, col.names = TRUE, sep = "\t")
+  close(gz1)
 }
 
  
