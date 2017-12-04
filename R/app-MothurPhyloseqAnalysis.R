@@ -14,18 +14,10 @@ ezMethodMothurPhyloSeqAnalysis = function(input=NA, output=NA, param=NA,
   require(plyr)
   require(ape)
   require(ggplot2)
+  library(DESeq2)
   dataset = input$meta
 
 ### analyze results with phyloseq
-### load OTUs, taxa and sample file 
-#IlluminaOtuFileName = "Illumina.good.unique.good.filter.unique.precluster.pick.pick.pick.opti_mcc.shared"
-#PacbioOtuFileName = "PacBio.good.unique.good.filter.unique.precluster.pick.pick.opti_mcc.shared"
-
-#IlluminaTaxaFileName = "Illumina.good.unique.good.filter.unique.precluster.pick.pick.pick.opti_mcc.0.03.cons.taxonomy"
-#PacBioTaxaFileName = "PacBio.good.unique.good.filter.unique.precluster.pick.pick.opti_mcc.0.03.cons.taxonomy"
-
-#sampleFileNamePacBio = ""
-
 
 ### OTUs
 otuObjectPacBio <- phyloSeqOTU(input$OTU_pacbio)
@@ -33,6 +25,11 @@ otuObjectIllumina <- phyloSeqOTU(input$OTU_Illumina)
 ### taxonomy
 taxaObjectPacBio <- phyloSeqTaxa(input$Taxonomy_pacbio)
 taxaObjectIllumina <- phyloSeqTaxa(input$Taxonomy_Illumina)
+### pruning level
+pruneIll <- param$represntativeOTUsIllumina
+prunePB <- param$represntativeOTUsPacbio
+
+
 ### Samples
 designMatrix <- param$designMatrix 
 sampleObjectIllumina <- designMatrix[designMatrix$`Technology [Factor]` == "Illumina",]
@@ -40,23 +37,23 @@ sampleObjectIllumina <- phyloSeqSample(sampleObjectIllumina)
 sampleObjectPacbio <- designMatrix[designMatrix$`Technology [Factor]` == "PacBio",]
 sampleObjectPacbio <- phyloSeqSample(sampleObjectPacbio)
 
-
-
-### create, add trees and preprocess phyloseq object 
+### create, add trees, preprocess and prune phyloseq object 
 physeqIllNoTree = phyloseq(otuObjectIllumina, taxaObjectIllumina,sampleObjectIllumina)
 treeObjectIll = rtree(ntaxa(physeqIllNoTree), rooted=TRUE, tip.label=taxa_names(physeqIllNoTree))
 physeqIll <- merge_phyloseq(physeqIllNoTree,treeObjectIll)
 physeqIll <- phyloSeqPreprocess(physeqIll)
+physeqIll <- prune_taxa(taxa_names(physeqIll)[1:pruneIll], physeqIll)
 
 physeqPacBioNoTree = phyloseq(otuObjectPacBio, taxaObjectPacBio, sampleObjectPacbio)
 treeObjectPacbio = rtree(ntaxa(physeqPacBioNoTree), rooted=TRUE, tip.label=taxa_names(physeqPacBioNoTree))
 physeqPacBio <-  merge_phyloseq(physeqPacBioNoTree,treeObjectPacbio)
 physeqPacBio <- phyloSeqPreprocess(physeqPacBio)
-
+physeqPacBio <- prune_taxa(taxa_names(physeqPacBio)[1:prunePB], physeqPacBio)
+  
 ### create plots: 1. abundance
-illAbPlot <- plot_bar(physeqIll, "Group", "Abundance", "Phylum")
+illAbPlot <- plot_bar(pruned_physeqIll, "Group", "Abundance", "Phylum")
 + geom_bar(aes(color=Phylum, fill=Phylum), stat="identity", position="stack")
-pbAbPlot <- plot_bar(pbAbPlot, "Group", "Abundance", "Phylum")
+pbAbPlot <- plot_bar(physeqPacBio, "Group", "Abundance", "Phylum")
 + geom_bar(aes(color=Phylum, fill=Phylum), stat="identity", position="stack")
 
 ### create plots: 2. ordination
@@ -72,15 +69,19 @@ plotOrdSamplesIll = pplotOrdSamplesIll + geom_polygon(aes(fill=Group)) + geom_po
 
 ### create plots: 3. richness 
 plotRichIll <- plot_richness(physeqIll, x="Group", measures=c("Chao1", "Shannon"))
-plotRichPB <- plot_richness(physeqPB, x="Group", measures=c("Chao1", "Shannon"))
+plotRichPB <- plot_richness(physeqPacBio, x="Group", measures=c("Chao1", "Shannon"))
 
 ### create plots: 4. tree
-pruned_physeqIll <- 
-plotTreeIll <- plot_tree(physeqIll , ladderize="left", color="Group")
-plotTreePB<- plot_tree(plotRichPB , ladderize="left", color="Group")
 
-### create plots: 3. heatmap
-plot_heatmap(physeq2, taxa.label="Phylum")
+plotTreeIll <- plot_tree(physeqIll , ladderize="left", color="Group")
+plotTreePB<- plot_tree(physeqPacBio , ladderize="left", color="Group")
+
+### create plots:5. heatmap
+plotHeatmapIll <- plot_heatmap(physeqIll, taxa.label="Phylum")
+plotHeatmapIll <- plot_heatmap(physeqPacBio, taxa.label="Phylum")
+
+### 6: compare groups
+deseqResults <- phyloSeqToDeseq2_tableAndPlots(physeqIll)
 
   ## Copy the style files and templates
   styleFiles <- file.path(system.file("templates", package="ezRun"),
