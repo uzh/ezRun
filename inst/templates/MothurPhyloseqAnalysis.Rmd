@@ -23,16 +23,38 @@ setEnvironments("phantomjs")
 ```
 
 ```{r prepare data, include=FALSE}
-### rawDataSummary 
-rawSummaryTablePacbio <- createSummaryTable(rawPacbio)
-lengthDeduppedSummaryTablePacbio <- createSummaryTable(lengthDeduppedPacbio)
-mappedAndHomopFilteredSummaryTablePacbio <- createSummaryTable(mappedAndHomopFilteredPacbio)
-preClusteredAndChimeraFilteredSummaryTablePacbio <- createSummaryTable(preClusteredAndChimeraFilteredPacbio)
+### create plots: 1. abundance
+illAbPlot <- plot_bar(pruned_physeqIll, "Group", "Abundance", "Phylum")
++ geom_bar(aes(color=Phylum, fill=Phylum), stat="identity", position="stack")
+pbAbPlot <- plot_bar(physeqPacBio, "Group", "Abundance", "Phylum")
++ geom_bar(aes(color=Phylum, fill=Phylum), stat="identity", position="stack")
 
-rawSummaryTableIllumina <- createSummaryTable(rawIllumina)
-lengthDeduppedSummaryTableIllumina <- createSummaryTable(lengthDeduppedIllumina)
-mappedAndHomopFilteredSummaryTableIllumina <- createSummaryTable(mappedAndHomopFilteredIllumina)
-preClusteredAndChimeraFilteredSummaryTableIllumina <- createSummaryTable(preClusteredAndChimeraFilteredIllumina)
+### create plots: 2. ordination
+pbOrd <- ordinate(physeqPacBio, "NMDS", "bray")
+plotOrdTaxaPB = plot_ordination(physeqPacBio, pbOrd, type="taxa", color="Phylum", title="Taxa") + facet_wrap(~Phylum, 3)
+plotOrdSamplesPB = plot_ordination(GP1, GP.ord, type="samples", color="Group") 
+plotOrdSamplesPB = plotOrdSamplesPB + geom_polygon(aes(fill=Group)) + geom_point(size=5) + ggtitle("Samples")
+
+illOrd <- ordinate(physeqIll, "NMDS", "bray")
+plotOrdTaxaIll = plot_ordination(physeqIll, illOrd, type="taxa", color="Phylum", title="Taxa") + facet_wrap(~Phylum, 3)
+plotOrdSamplesIll = plot_ordination(GP1, GP.ord, type="samples", color="Group") 
+plotOrdSamplesIll = pplotOrdSamplesIll + geom_polygon(aes(fill=Group)) + geom_point(size=5) + ggtitle("samples")
+
+### create plots: 3. richness 
+plotRichIll <- plot_richness(physeqIll, x="Group", measures=c("Chao1", "Shannon"))
+plotRichPB <- plot_richness(physeqPacBio, x="Group", measures=c("Chao1", "Shannon"))
+
+### create plots: 4. tree
+
+plotTreeIll <- plot_tree(physeqIll , ladderize="left", color="Group")
+plotTreePB <- plot_tree(physeqPacBio , ladderize="left", color="Group")
+
+### create plots:5. heatmap
+plotHeatmapIll <- plot_heatmap(physeqIll, taxa.label="Phylum")
+plotHeatmapIll <- plot_heatmap(physeqPacBio, taxa.label="Phylum")
+
+### 6: compare groups
+deseqResults <- phyloSeqToDeseq2_tableAndPlots(physeqIll)
 
 ```
 
@@ -40,72 +62,75 @@ Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
 
 ## Data pre-processing {.tabset}
 
-### Summary of the raw reads
+### Abundance barplots
 #### PacBio
-```{r sumPB, echo=FALSE}
-kable(rawSummaryTablePacbio,row.names=TRUE,  
-      col.names=colnames(rawSummaryTablePacbio),format="html") %>%
-kable_styling(bootstrap_options = "striped", full_width = F,
-                position = "left")
+```{r abundPB, echo=FALSE}
+plot(pbAbPlot)
 ```
 
 #### Illumina
-```{r sumIll, echo=FALSE}
-kable(rawSummaryTableIllumina, row.names=TRUE, 
-      col.names=colnames(rawSummaryTableIllumina), format="html") %>%
-  kable_styling(bootstrap_options = "striped", full_width = F,
-                position = "left")
+```{r abundIll, echo=FALSE}
+plot(illAbPlot)
 ```
 
-### Reads filtered by length and duplication
+### Ordination plots
 #### PacBio
-```{r filtPB, echo=FALSE}
-kable(lengthDeduppedSummaryTablePacbio, row.names=TRUE, 
-      col.names=colnames(lengthDeduppedSummaryTablePacbio), format="html") %>%
-  kable_styling(bootstrap_options = "striped", full_width = F,
-                position = "left")
+```{r ordPB, echo=FALSE}
+plot(plotOrdSamplesPB)
 ```
 
 #### Illumina
-```{r filtIll, echo=FALSE}
-kable(lengthDeduppedSummaryTableIllumina, row.names=TRUE, 
-      col.names=colnames(lengthDeduppedSummaryTableIllumina), format="html") %>%
-  kable_styling(bootstrap_options = "striped", full_width = F,
-                position = "left")
+```{r ordIll, echo=FALSE}
+plot(plotOrdSamplesIll)
 ```
 
-### Reads filtered by mapping coordinates and Homopolymers
+### Richness plots
 #### PacBio
-```{r mapPB, echo=FALSE}
-kable(mappedAndHomopFilteredSummaryTablePacbio, row.names=TRUE, 
-      col.names=colnames(preClusteredAndChimeraFilteredSummaryTablePacbio), format="html") %>%
-  kable_styling(bootstrap_options = "striped", full_width = F,
-                position = "left")
+```{r richPB, echo=FALSE}
+plot(plotRichPB)
 ```
 
 #### Illumina
-```{r mapIll, echo=FALSE}
-kable(mappedAndHomopFilteredSummaryTableIllumina, row.names=TRUE, 
-      col.names=colnames(preClusteredAndChimeraFilteredSummaryTablePacbio), format="html") %>%
-  kable_styling(bootstrap_options = "striped", full_width = F,
-                position = "left")
+```{r richIll, echo=FALSE}
+plot(plotRichIll)
 ```
 
-### Reads preclusterd and filtered for chimeras
+### Tree plots
 #### PacBio
-```{r precPB, echo=FALSE}
-kable(preClusteredAndChimeraFilteredSummaryTablePacbio, row.names=TRUE, 
-      col.names=colnames(preClusteredAndChimeraFilteredSummaryTablePacbio), format="html") %>%
-  kable_styling(bootstrap_options = "striped", full_width = F,
-                position = "left")
+```{r treePB, echo=FALSE}
+plot(plotTreePB)
 ```
 
 #### Illumina
-```{r precIll, echo=FALSE}
-kable(preClusteredAndChimeraFilteredSummaryTableIllumina, row.names=TRUE, 
-      col.names=colnames(preClusteredAndChimeraFilteredSummaryTableIllumina), format="html") %>%
-  kable_styling(bootstrap_options = "striped", full_width = F,
-                position = "left")
+```{r treeIll, echo=FALSE}
+plot(plotTreeIll)
+```
+
+### Heatmaps
+#### PacBio
+```{r heatPB, echo=FALSE}
+plot(plotTreePB)
+```
+
+#### Illumina
+```{r heatIll, echo=FALSE}
+plot(plotHeatmapIll)
+```
+
+### Two-goups comparison
+#### Volcano plot
+```{r volcano, echo=FALSE}
+plot(deseqResults$vPlot)
+```
+
+#### Log-fold changes 
+```{r logfold, echo=FALSE}
+plot(deseqResults$logPlot)
+```
+
+#### Summary table
+```{r logfold, echo=FALSE}
+plot(deseqResults$table)
 ```
 
 ### SessionInfo
