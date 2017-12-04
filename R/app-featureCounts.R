@@ -301,7 +301,13 @@ ezMethodSingleCellFeatureCounts <- function(input=NA, output=NA, param=NA){
                                colnames(countsFixed))
   tagsRG <- sub("ID:", "", 
                 sapply(bamHeaders[[1]]$text[names(bamHeaders[[1]]$text) == "@RG"], "[", 1))
+  ## RG starts with numbers will have X after make.names
+  ## But featureCounts doesn't have this X.
   fixNameMapping <- setNames(tagsRG, make.names(tagsRG))
+  indexStartNumber <- grep("^\\d", fixNameMapping)
+  names(fixNameMapping)[indexStartNumber] <- sub("^X", "", 
+                                                 names(fixNameMapping)[indexStartNumber])
+  }
   colnames(countsFixed) <- fixNameMapping[colnames(countsFixed)]
   
   ## wirteMM doesn't hold the colnames and rownames in mtx
