@@ -29,7 +29,7 @@ taxaObjectIllumina <- phyloSeqTaxa(input$Taxonomy_Illumina)
 pruneIll <- param$representativeOTUsIllumina
 prunePB <- param$representativeOTUsPacbio
 ### Samples
-designMatrix <- param$designMatrix 
+designMatrix <- "/srv/GT/analysis/course_sushi/public/projects/p2000/MetagenomicsCourseTestData/designMatrix.tsv" 
 sampleObjectIllumina <- designMatrix[designMatrix$`Technology [Factor]` == "Illumina",]
 sampleObjectIllumina <- phyloSeqSample(sampleObjectIllumina)
 sampleObjectPacbio <- designMatrix[designMatrix$`Technology [Factor]` == "PacBio",]
