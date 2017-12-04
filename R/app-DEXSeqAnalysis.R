@@ -366,11 +366,11 @@ getGeneTable <- function(pdxr, param){
                                           function(x){
                                             idx = which.max(abs(x))
                                             if (length(idx) == 0){
-                                              return(NA)
+                                              return(0)
                                             } else {
                                               return(x[idx])
                                             }
-                                          })[genetable$gene_id], 3)
+                                          })[rownames(genetable)], 3)
   ### # add extracted columns and return genetable
   genetable$fdr = round(perGeneQValue(pdxr),5)[genetable$gene_id]
   genetable$gene_id <- getGeneIdExprLinks(pvGeneIds = genetable$gene_id, psdexseq_report_path = param$dexseq_report_path)
