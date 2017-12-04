@@ -307,7 +307,6 @@ ezMethodSingleCellFeatureCounts <- function(input=NA, output=NA, param=NA){
   indexStartNumber <- grep("^\\d", fixNameMapping)
   names(fixNameMapping)[indexStartNumber] <- sub("^X", "", 
                                                  names(fixNameMapping)[indexStartNumber])
-  }
   colnames(countsFixed) <- fixNameMapping[colnames(countsFixed)]
   
   ## wirteMM doesn't hold the colnames and rownames in mtx
