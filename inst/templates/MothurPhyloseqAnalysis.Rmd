@@ -22,40 +22,47 @@ debug <- FALSE
 setEnvironments("phantomjs")
 ```
 
-```{r prepare data, include=FALSE}
+```{r prepAbund, include=FALSE}
 ### create plots: 1. abundance
-illAbPlot <- plot_bar(pruned_physeqIll, "Group", "Abundance", "Phylum")
-+ geom_bar(aes(color=Phylum, fill=Phylum), stat="identity", position="stack")
-pbAbPlot <- plot_bar(physeqPacBio, "Group", "Abundance", "Phylum")
-+ geom_bar(aes(color=Phylum, fill=Phylum), stat="identity", position="stack")
+illAbPlot <- plot_bar(physeqIll, "Group", "Abundance", "Phylum") + geom_bar(aes(color=Phylum, fill=Phylum), stat="identity", position="stack")
+pbAbPlot <- plot_bar(physeqPacBio, "Group", "Abundance", "Phylum") + geom_bar(aes(color=Phylum, fill=Phylum), stat="identity", position="stack")
+```
 
+```{r prepOrd, include=FALSE}
 ### create plots: 2. ordination
 pbOrd <- ordinate(physeqPacBio, "NMDS", "bray")
-plotOrdTaxaPB = plot_ordination(physeqPacBio, pbOrd, type="taxa", color="Phylum", title="Taxa") + facet_wrap(~Phylum, 3)
-plotOrdSamplesPB = plot_ordination(GP1, GP.ord, type="samples", color="Group") 
-plotOrdSamplesPB = plotOrdSamplesPB + geom_polygon(aes(fill=Group)) + geom_point(size=5) + ggtitle("Samples")
+plotOrdTaxaPB = plot_ordination(physeqPacBio, pbOrd, type="taxa", color="Phylum", title="Taxa") +facet_wrap(~Phylum, 3)
+plotOrdSamplesPB = plot_ordination(physeqPacBio, pbOrd, type="samples", color="Group") 
+plotOrdSamplesPB = plotOrdSamplesPB + geom_polygon(aes(fill=Group)) + geom_point(size=5) +ggtitle("Samples")
 
 illOrd <- ordinate(physeqIll, "NMDS", "bray")
-plotOrdTaxaIll = plot_ordination(physeqIll, illOrd, type="taxa", color="Phylum", title="Taxa") + facet_wrap(~Phylum, 3)
-plotOrdSamplesIll = plot_ordination(GP1, GP.ord, type="samples", color="Group") 
-plotOrdSamplesIll = pplotOrdSamplesIll + geom_polygon(aes(fill=Group)) + geom_point(size=5) + ggtitle("samples")
+plotOrdTaxaIll = plot_ordination(physeqIll, illOrd, type="taxa", color="Phylum") + facet_wrap(~Phylum, 3) + ggtitle("Taxa ordination")
+plotOrdSamplesIll = plot_ordination(physeqIll, illOrd, type="samples", color="Group") 
+plotOrdSamplesIll = plotOrdSamplesIll + geom_polygon(aes(fill=Group)) + geom_point(size=5) + ggtitle("Sample ordination")
+```
 
+```{r prepRich, include=FALSE}
 ### create plots: 3. richness 
-plotRichIll <- plot_richness(physeqIll, x="Group", measures=c("Chao1", "Shannon"))
-plotRichPB <- plot_richness(physeqPacBio, x="Group", measures=c("Chao1", "Shannon"))
+plotRichIll <- plot_richness(physeqIll, x="Group", measures=c("Simpson", "Shannon"), color="Group")
+plotRichPB <- plot_richness(physeqPacBio, x="Group", measures=c( "Simpson","Shannon"), color="Group")
+```
 
+```{r prepTree, include=FALSE}
 ### create plots: 4. tree
 
 plotTreeIll <- plot_tree(physeqIll , ladderize="left", color="Group")
 plotTreePB <- plot_tree(physeqPacBio , ladderize="left", color="Group")
+```
 
+```{r prepHeat, include=FALSE}
 ### create plots:5. heatmap
-plotHeatmapIll <- plot_heatmap(physeqIll, taxa.label="Phylum")
-plotHeatmapIll <- plot_heatmap(physeqPacBio, taxa.label="Phylum")
+#plotHeatmapIll <- plot_heatmap(physeqIll, taxa.label="Phylum")
+#plotHeatmapIll <- plot_heatmap(physeqPacBio, taxa.label="Phylum")
+```
 
+```{r prepDeSeq, include=FALSE}
 ### 6: compare groups
 deseqResults <- phyloSeqToDeseq2_tableAndPlots(physeqIll)
-
 ```
 
 Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
@@ -74,14 +81,14 @@ plot(illAbPlot)
 ```
 
 ### Ordination plots
-#### PacBio
+<!-- #### PacBio
 ```{r ordPB, echo=FALSE}
 plot(plotOrdSamplesPB)
 ```
-
+-->
 #### Illumina
 ```{r ordIll, echo=FALSE}
-plot(plotOrdSamplesIll)
+plot(plotOrdTaxaIll)
 ```
 
 ### Richness plots
@@ -102,6 +109,7 @@ plot(plotTreePB)
 ```
 
 #### Illumina
+
 ```{r treeIll, echo=FALSE}
 plot(plotTreeIll)
 ```
@@ -109,7 +117,7 @@ plot(plotTreeIll)
 ### Heatmaps
 #### PacBio
 ```{r heatPB, echo=FALSE}
-plot(plotTreePB)
+plot(plotHeatmapIll)
 ```
 
 #### Illumina
@@ -129,7 +137,7 @@ plot(deseqResults$logPlot)
 ```
 
 #### Summary table
-```{r logfold, echo=FALSE}
+```{r table, echo=FALSE}
 plot(deseqResults$table)
 ```
 
