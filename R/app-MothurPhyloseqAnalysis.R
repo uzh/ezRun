@@ -62,7 +62,7 @@ physeqPacBio <- prune_taxa(taxa_names(physeqPacBio)[1:prunePB], physeqPacBio)
 physeqMergedNoTree <- merge_phyloseq(physeqIllNoTree,physeqPacBioNoTree)
 treeMerged <- rtree(ntaxa(physeqMergedNoTree), rooted=TRUE, tip.label=taxa_names(physeqMergedNoTree))
 physeqMerged <- merge_phyloseq(physeqMergedNoTree,treeMerged)
-physeqMergedPruned <- prune_taxa(taxa_names(physeqMerged)[1:100], physeqMerged)
+physeqMergedPruned <- prune_taxa(taxa_names(physeqMerged)[1:50], physeqMerged)
 
   ## Copy the style files and templates
   styleFiles <- file.path(system.file("templates", package="ezRun"),
