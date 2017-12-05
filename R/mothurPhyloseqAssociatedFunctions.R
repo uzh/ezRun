@@ -159,6 +159,7 @@ phyloSeqDivPlotAndPercUnclassified <- function(taxaFileName, rank){
   taxaDF <- data.frame(taxaMatrix)
   tableTaxa <- data.frame(table(taxaDF[,rank]))
   colnames(tableTaxa)[1] <- rank
+  labs <- as.character(tableTaxa[order(tableTaxa[,rank]),][,rank][1:3])
   colRain=rainbow(nrow(tableTaxa))
   percUnclassified <- length(grep("unclassified",taxaDF[,rank]))/length(taxaDF[,rank])*100
   percUnclassified <- paste(round(percUnclassified,2),"%", sep = " ")
@@ -168,7 +169,7 @@ phyloSeqDivPlotAndPercUnclassified <- function(taxaFileName, rank){
     scale_fill_manual(values=colRain)
   pieVersion <- bp + coord_polar("y", start=0)
   finalVersion <- pieVersion +  labs(title=titleText, subtitle=subtitleText) + 
-    theme(legend.position="bottom",plot.title=element_text(size=15, face="bold",hjust=0.5),  
+    theme(legend.position="none",plot.title=element_text(size=15, face="bold",hjust=0.5),  
           plot.subtitle=element_text(size=10, face="bold",hjust=0.5))
   return(finalVersion)
 }
