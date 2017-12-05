@@ -369,7 +369,7 @@ invisible(file.copy(from=jsFile, to=basename(jsFile), overwrite=TRUE))
 cat(paste0("<SCRIPT language=\"JavaScript\" SRC=\"", basename(jsFile), "\"></SCRIPT>"))
 ```
 
-```{r Clustering of High Variance Features, echo=FALSE, message=FALSE, fig.width=max(8,4+0.1*ncol(xNormed)), fig.height=10, results='asis', eval=!debug}
+```{r Clustering of High Variance Features, echo=FALSE, message=FALSE, fig.width=max(8,4+0.15*ncol(xNormed)), fig.height=10, results='asis', eval=!debug}
 clusterPdf = "cluster-heatmap.pdf"
 if (nSamples > 3){
   ## gene clustering
