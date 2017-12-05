@@ -53,7 +53,7 @@ ezMethodMothurErrorEstimateAndCluster = function(input=NA, output=NA, param=NA,
   stepFilePacbio <- "PacBio.good.unique.good.filter.unique.precluster.pick.pick.opti_mcc.steps"
   sharedFilePacbio <- "PacBio.good.unique.good.filter.unique.precluster.pick.pick.opti_mcc.shared"
   
-  errorCountFileNameIllumina <- "Illumina.good.unique.good.filter.unique.precluster.pick.pick.error.count"
+  errorCountFileNameIllumina <- "Illumina.good.unique.good.filter.unique.precluster.pick.pick.pick.error.count"
   stepFileIllumina <- "Illumina.good.unique.good.filter.unique.precluster.pick.pick.opti_mcc.steps"
   sharedFileIllumina <- "Illumina.good.unique.good.filter.unique.precluster.pick.pick.opti_mcc.shared"
 
