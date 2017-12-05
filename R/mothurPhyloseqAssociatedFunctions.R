@@ -124,7 +124,6 @@ phyloSeqToDeseq2_tableAndPlots <- function(phyloseqObj){
   addTaxa[addTaxa$padj > 0.05,]$Significance <- "nonSignificant"
   addTaxa$Significance <- as.factor(addTaxa$Significance)
   addTaxa$Significance <- factor(addTaxa$Significance, levels = rev(levels(addTaxa$Significance)))
-#  addTaxa$neglog10pvalue <- -log10(addTaxa$pvalue)
   ### log2fold plot
   title <- "Abundance changes between the groups"
   plotLogFoldVsTaxon <- ggplot(addTaxa, aes(x=Genus, y=log2FoldChange, color=Phylum)) + geom_point(size=3) + 
@@ -136,4 +135,40 @@ phyloSeqToDeseq2_tableAndPlots <- function(phyloseqObj){
     geom_point(aes(shape=Significance, color=Phylum),size=3) 
   volcanoPlot <- volcanoPlot + labs(title=title) + theme(plot.title=element_text(size=15, face="bold",hjust=0.5))
   return(list(logPlot=plotLogFoldVsTaxon,vPlot=volcanoPlot,table=addTaxaOut))
+}
+
+###################################################################
+# Functional Genomics Center Zurich
+# This code is distributed under the terms of the GNU General
+# Public License Version 3, June 2007.
+# The terms are available here: http://www.gnu.org/licenses/gpl.html
+# www.fgcz.ch
+
+
+##' @title Richness plot for a certain taxa 
+##' @description Create pie chart richness plot 
+##' @param  taxaFileName,rank mothur taxonomy file.
+##' @return Returns a pie chart plot.
+
+phyloSeqDivPlotAndPercUnclassified <- function(taxaFileName, rank){
+  taxaFile <- read.table(taxaFileName, sep = "\t", stringsAsFactors = FALSE, header = TRUE)
+  tempList <- lapply(taxaFile$Taxonomy,function(y) unlist(strsplit(y,";")))
+  taxaMatrix <- as.matrix(ldply(tempList))
+  rownames(taxaMatrix) <- taxaFile$OTU
+  colnames(taxaMatrix) <- c("Domain","Phylum","Class","Order","Family","Genus","Species")[1:(ncol(taxaMatrix))]
+  taxaDF <- data.frame(taxaMatrix)
+  tableTaxa <- data.frame(table(taxaDF[,rank]))
+  colnames(tableTaxa)[1] <- rank
+  colRain=rainbow(nrow(tableTaxa))
+  percUnclassified <- length(grep("unclassified",taxaDF[,rank]))/length(taxaDF[,rank])*100
+  percUnclassified <- paste(round(percUnclassified,2),"%", sep = " ")
+  titleText = paste("Community diversity at the", rank, "level", sep = " ")
+  subtitleText = paste("Percentage of unclassified", rank, "=", percUnclassified, sep = " ")
+  bp <- ggplot(tableTaxa, aes(x="", y=Freq, fill=get(rank))) + geom_bar(width = 10, stat = "identity") + 
+    scale_fill_manual(values=colRain)
+  pieVersion <- bp + coord_polar("y", start=0)
+  finalVersion <- pieVersion +  labs(title=titleText, subtitle=subtitleText) + 
+    theme(legend.position="bottom",plot.title=element_text(size=15, face="bold",hjust=0.5),  
+          plot.subtitle=element_text(size=10, face="bold",hjust=0.5))
+  return(finalVersion)
 }

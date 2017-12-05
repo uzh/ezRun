@@ -24,8 +24,8 @@ setEnvironments("phantomjs")
 
 ```{r prepare data, include=FALSE}
 ### plotData 
-errorRateSummaryPlotPacbio <- errorRateSummaryPlot(errorCountFileNamePacbio)
-errorRateSummaryPlotIllumina <- errorRateSummaryPlot(errorCountFileNameIllumina)
+errorRateSummaryPlotPacbio <- errorRateSummaryPlot(errorCountFileNamePacbio,"1450")
+errorRateSummaryPlotIllumina <- errorRateSummaryPlot(errorCountFileNameIllumina,"290")
 
 ### stepsData
 convStepTablePacbio <- convStepTable(stepFilePacbio)
