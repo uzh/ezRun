@@ -14,22 +14,33 @@ ezMethodMothurPhyloSeqAnalysis = function(input=NA, output=NA, param=NA,
   require(plyr)
   require(ape)
   require(ggplot2)
-  library(DESeq2)
+  require(DESeq2)
   dataset = input$meta
 
 ### Analyzes results with phyloseq: preparing objects to be processed in the Rmd file
 
 ### OTUs
-otuObjectPacBio <- phyloSeqOTU(input$OTU_pacbio)
-otuObjectIllumina <- phyloSeqOTU(input$OTU_Illumina)
+copyOTUTablePacbioCmd <- paste("cp", input$getFullPaths("OTU_pacbio"),"./", sep = " ")
+ezSystem(copyOTUTablePacbioCmd)
+otuObjectPacBio <- phyloSeqOTU(basename(input$getFullPaths("OTU_pacbio")))
+
+copyOTUTableIllCmd <- paste("cp", input$getFullPaths("OTU_Illumina"),"./", sep = " ")
+ezSystem(copyOTUTableIllCmd)
+otuObjectIllumina <- phyloSeqOTU(basename(input$getFullPaths("OTU_Illumina")))
+
+
 ### taxonomy
-taxaObjectPacBio <- phyloSeqTaxa(input$Taxonomy_pacbio)
-taxaObjectIllumina <- phyloSeqTaxa(input$Taxonomy_Illumina)
+copytaxaTablePacbioCmd <- paste("cp", input$getFullPaths("Taxonomy_pacbio"),"./", sep = " ")
+ezSystem(copytaxaTablePacbioCmd)
+taxaObjectPacBio <- phyloSeqTaxa(basename(input$getFullPaths("Taxonomy_pacbio")))
+copytaxaTableIllCmd <- paste("cp", input$getFullPaths("Taxonomy_Illumina"),"./", sep = " ")
+ezSystem(copytaxaTableIllCmd)
+taxaObjectIllumina <- phyloSeqTaxa(basename(input$getFullPaths("Taxonomy_Illumina")))
 ### pruning level
-pruneIll <- param$representativeOTUsIllumina
-prunePB <- param$representativeOTUsPacbio
+prunePB <- param$pacbioRepresentativeOTUs
+pruneIll <- param$illuminaRepresentativeOTUs
 ### Samples
-designMatrix <- "/srv/GT/analysis/course_sushi/public/projects/p2000/MetagenomicsCourseTestData/designMatrix.tsv" 
+designMatrix <- ezRead.table("/srv/GT/analysis/course_sushi/public/projects/p2000/MetagenomicsCourseTestData/designMatrix.tsv")
 sampleObjectIllumina <- designMatrix[designMatrix$`Technology [Factor]` == "Illumina",]
 sampleObjectIllumina <- phyloSeqSample(sampleObjectIllumina)
 sampleObjectPacbio <- designMatrix[designMatrix$`Technology [Factor]` == "PacBio",]
@@ -48,12 +59,18 @@ physeqPacBio <-  merge_phyloseq(physeqPacBioNoTree,treeObjectPacbio)
 physeqPacBio <- phyloSeqPreprocess(physeqPacBio)
 physeqPacBio <- prune_taxa(taxa_names(physeqPacBio)[1:prunePB], physeqPacBio)
 
+physeqMergedNoTree <- merge_phyloseq(physeqIllNoTree,physeqPacBioNoTree)
+treeMerged <- rtree(ntaxa(physeqMergedNoTree), rooted=TRUE, tip.label=taxa_names(physeqMergedNoTree))
+physeqMerged <- merge_phyloseq(physeqMergedNoTree,treeMerged)
+physeqMergedPruned <- prune_taxa(taxa_names(physeqMerged)[1:50], physeqMerged)
 
   ## Copy the style files and templates
   styleFiles <- file.path(system.file("templates", package="ezRun"),
-                          c("fgcz.css", "FastQC.Rmd", "FastQC_overview.Rmd",
+                          c("fgcz.css", "MothurPhyloseqAnalysisMerged.Rmd", 
                             "fgcz_header.html", "banner.png"))
   file.copy(from=styleFiles, to=".", overwrite=TRUE)
+  rmarkdown::render(input="MothurPhyloseqAnalysisMerged.Rmd", envir = new.env(),
+                    output_dir=".", output_file=htmlFile, quiet=TRUE)
 }
 ##' @template app-template
 ##' @templateVar method ezMethodMothurPhyloSeqAnalysis()
@@ -68,6 +85,9 @@ EzAppMothurPhyloSeqAnalysis <-
                   "Initializes the application using its specific defaults."
                   runMethod <<- ezMethodMothurPhyloSeqAnalysis
                   name <<- "EzAppMothurPhyloSeqAnalysis"
+                  appDefaults <<- rbind(pacbioRepresentativeOTUs = ezFrame(Type="numeric",  DefaultValue="",Description="Number of core OTUs for Pacbio samples."),
+                                        illuminaRepresentativeOTUs = ezFrame(Type="character",  DefaultValue="",Description="Number of core OTUs for Illumina samples.")
+                  )
                 }
               )
   )

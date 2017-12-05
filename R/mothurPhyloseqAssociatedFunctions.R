@@ -57,7 +57,8 @@ return(taxaObject)
 ##' @param  path to the tsv desing file 
 ##' @return Returns a Phyloseq Taxa object.
 phyloSeqSample <- function(sampleFileName){
-sampleFile <- ezRead.table(sampleFileName, sep = "\t")
+#sampleFile <- ezRead.table(sampleFileName)
+  sampleFile <- sampleFileName
 colToKeep <- grep("Factor",colnames(sampleFile))
 colnames(sampleFile) <- sub('\\s\\[Factor\\]',"",colnames(sampleFile))
 sampleObject <- sample_data(sampleFile)
@@ -86,6 +87,7 @@ phyloSeqPreprocess <- function(phyloseqObj){
   GPfr = filter_taxa(GPr, function(x) mean(x) > 1e-5, TRUE)
   filteredPhyloseqObj = filter_taxa(GPfr, function(x) sum(x > 3*1e-5) > (0.2*length(x)), TRUE)
   filteredPhyloseqObj = subset_taxa(filteredPhyloseqObj, Domain=="Bacteria")
+  filteredPhyloseqObj = subset_taxa(gps, Domain=="Bacteria")
   return(filteredPhyloseqObj)
 }
 
@@ -127,11 +129,11 @@ phyloSeqToDeseq2_tableAndPlots <- function(phyloseqObj){
   title <- "Abundance changes between the groups"
   plotLogFoldVsTaxon <- ggplot(addTaxa, aes(x=Genus, y=log2FoldChange, color=Phylum)) + geom_point(size=3) + 
     theme(axis.text.x = element_text(angle = -90, hjust = 0, vjust=0.5)) + geom_hline(yintercept = c(-1,1),color="red")
-  plotLogFoldVsTaxon <- plotLogFoldVsTaxon + labs(title=title)
+  plotLogFoldVsTaxon <- plotLogFoldVsTaxon + labs(title=title) + theme(plot.title=element_text(size=15, face="bold",hjust=0.5))
   ### volcano plot
   title <- "Volcano plot (padj  = 0.05)"
   volcanoPlot <- ggplot(addTaxa, aes(y=-log10(pvalue), x=log2FoldChange)) +
-    geom_point(aes(color=Significance, shape=Phylum),size=3) 
+    geom_point(aes(shape=Significance, color=Phylum),size=3) 
   volcanoPlot <- volcanoPlot + labs(title=title) + theme(plot.title=element_text(size=15, face="bold",hjust=0.5))
   return(list(logPlot=plotLogFoldVsTaxon,vPlot=volcanoPlot,table=addTaxaOut))
 }

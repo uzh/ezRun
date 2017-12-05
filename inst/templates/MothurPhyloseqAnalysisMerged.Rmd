@@ -1,0 +1,126 @@
+---
+title: "`r paste('Mothur Data Clean')`"
+author: "Functional Genomics Center Zurich"
+output: 
+  html_document:
+    self_contained: false
+    includes:
+      in_header: fgcz_header.html
+    css: fgcz.css
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+## This report requires summary files form mothur
+
+require(knitr)
+require(kableExtra)
+require(SummarizedExperiment)
+require(webshot)
+require(htmlwidgets)
+debug <- FALSE
+setEnvironments("phantomjs")
+```
+
+```{r prepare data, include=FALSE}
+### create plots: 1. abundance
+mergedAbPlot <- plot_bar(physeqMerged, "Group", "Abundance", "Phylum") + geom_bar(aes(color=Phylum, fill=Phylum), stat="identity", position="stack")
+
+### create plots: 2. ordination
+mergedOrd <- ordinate(physeqMerged, "NMDS", "bray")
+plotOrdTaxaMerged = plot_ordination(physeqMerged, mergedOrd, type="taxa", color="Phylum") + facet_wrap(~Phylum, 3) + ggtitle("Taxa ordination")
+plotOrdSamplesMerged = plot_ordination(physeqMerged, mergedOrd, type="samples", color="Group", shape = "Technology") 
+plotOrdSamplesMerged = plotOrdSamplesMerged + geom_polygon(aes(fill=Group)) + geom_point(size=3) + ggtitle("Sample ordination")
+
+illOrd <- ordinate(physeqIllNoTree, "NMDS", "bray")
+plotOrdTaxaIll = plot_ordination(physeqIllNoTree, illOrd, type="taxa", color="Phylum") + facet_wrap(~Phylum, 3) + ggtitle("Taxa ordination")
+plotOrdSamplesIll = plot_ordination(physeqIllNoTree, illOrd, type="samples", color="Group") 
+plotOrdSamplesIll = plotOrdSamplesIll + geom_polygon(aes(fill=Group)) + geom_point(size=5) + ggtitle("Sample ordination")
+
+### create plots: 3. richness 
+plotRichMerged <- plot_richness(physeqMerged, x="Technology", color = "Group", measures=c("Chao1", "Shannon"))
+
+### create plots: 4. tree
+plotTreeMerged <- plot_tree(physeqMergedPruned , ladderize="left", color="Group")
+plotTreeRadialMerged <- plot_tree(physeqMergedPruned,  color="Group", shape="Technology", ladderize="left") + coord_polar(theta="y")
+
+### create plots:5. heatmap
+plotHeatmapMerged <- plot_heatmap(physeqMergedPruned, taxa.label="Genus")
+
+### 6: compare groups only Illumina for now
+deseqResults <- phyloSeqToDeseq2_tableAndPlots(physeqIllNoTree)
+tableToPlot <- deseqResults$table
+tableToPlot <- tableToPlot[order(tableToPlot$padj),][1:20,]
+
+```
+
+Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
+
+## Data pre-processing {.tabset}
+
+### Abundance barplots
+#### Community composition
+```{r abundPB, echo=FALSE}
+plot(mergedAbPlot)
+```
+
+### Ordination plots
+#### Taxa level
+```{r ordPBtaxa, echo=FALSE}
+##plot(plotOrdTaxaMerged)
+plot(plotOrdTaxaIll)
+```
+
+#### Sample level
+```{r ordPB, echo=FALSE}
+##plot(plotOrdSamplesMerged)
+plot(plotOrdSamplesIll)
+
+```
+
+### Richness plots
+#### Community alpha-diversity
+```{r richPB, echo=FALSE}
+plot(plotRichMerged)
+```
+
+### Tree plots
+#### Classical tree
+```{r treePB, echo=FALSE}
+plot(plotTreeMerged)
+```
+
+#### Radial tree
+```{r radialTreePB, echo=FALSE}
+plot(plotTreeRadialMerged)
+```
+
+### Heatmaps
+#### Abundances
+```{r heatPB, echo=FALSE}
+plot(plotHeatmapMerged)
+```
+
+### Two-goups comparison (Illumina real data)
+#### Volcano plot
+```{r volcano, echo=FALSE}
+plot(deseqResults$vPlot)
+```
+
+#### Log-fold changes 
+```{r logfold, echo=FALSE}
+plot(deseqResults$logPlot)
+```
+
+#### Summary table
+```{r table, echo=FALSE}
+kable(tableToPlot, row.names=FALSE, 
+      col.names=colnames(tableToPlot), format="html") %>%
+  kable_styling(bootstrap_options = "striped", full_width = F,
+                position = "left")
+```
+
+### SessionInfo
+```{r, echo=FALSE}
+sessionInfo()
+```
