@@ -94,7 +94,7 @@ plot(plotRichMerged)
 plot(plotDeepDistPB)
 ```
 ####Illumina
-```{r distPB, echo=FALSE}
+```{r distIll, echo=FALSE}
 plot(plotDeepDistIll)
 ```
 
