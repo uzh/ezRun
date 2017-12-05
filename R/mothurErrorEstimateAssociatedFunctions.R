@@ -10,12 +10,12 @@
 ##' @title Error rate
 ##' @description Summarizes error rate from error count file
 ##' @param  errorCountFile, mothur taxonomy file.
-##' @return Returns a number.
-  errorRateSummaryPlot <- function(errorCountFileName){
+##' @return Returns a pie chart plot.
+  errorRateSummaryPlot <- function(errorCountFileName,avReadLen){
   errorTable <- read.table(errorCountFileName, sep = "\t", stringsAsFactors = FALSE, header = TRUE)
   
   errorTable$wrongBases = errorTable$Sequences*errorTable$Errors
-  errorTable$totBases = errorTable$Sequences*1450
+  errorTable$totBases = errorTable$Sequences*avReadLen
   errorTable$Errors <- as.factor(errorTable$Errors)
   overallErrorRate <- round(sum(errorTable$wrongBases)/sum(errorTable$totBases)*100,2)
   pct <- cumsum(round(errorTable$Sequences/sum(errorTable$Sequences)*100,2))
