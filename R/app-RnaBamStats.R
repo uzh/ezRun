@@ -299,7 +299,7 @@ getStatsFromBam = function(param, bamFile, sm, gff=NULL, repeatsGff=NULL,
   }
   if (is.null(param$splitByChrom) || param$splitByChrom){
     result = getStatsFromBamParallel(seqLengths, param, bamFile, sm, 
-                                     gff, repeatsGff, mc.cores=ezThreads())
+                                     gff, repeatsGff, mc.cores=ezThreads(), nReads=nReads)
   } else {
     result = getStatsFromBamSingleChrom(NULL, param, bamFile, sm, gff, 
                                         repeatsGff)
@@ -361,12 +361,21 @@ getStatsFromBam = function(param, bamFile, sm, gff=NULL, repeatsGff=NULL,
 ##' @describeIn computeBamStats Gets parallel by chromosome statistics for \code{getStatsFromBam()} if the logical \code{param$splitByChrom} is true.
 getStatsFromBamParallel = function(seqLengths, param, bamFile, sm, 
                                    gff=NULL, repeatsGff=NULL, 
-                                   mc.cores=ezThreads()){
+                                   mc.cores=ezThreads(), nReads=NA){
   seqNames = names(sort(seqLengths, decreasing=TRUE))
   names(seqNames) = seqNames
+  if (!is.na(nReads)){
+    ## heuristic: reduce the number of cores so that we have at least 0.25GB RAM per chromosome per Million Reads in the total bam file
+    #reduce the number of threads in case of
+    maxCores = ceil(param$ram / (nReads / 1e6) * 4)
+    if (maxCores < mc.cores){
+      message("too many reads --reducing the number of cores: ", maxCores)
+      mc.cores = maxCores
+    }
+  }
   chromResults = ezMclapply(seqNames, getStatsFromBamSingleChrom, param, 
                             bamFile, sm, gff, repeatsGff,
-                            mc.preschedule=FALSE, mc.cores=ezThreads())
+                            mc.preschedule=FALSE, mc.cores=mc.cores)
   if (param$saveImage){
     save(chromResults, file=paste0(sm, "-chromResults.RData"))
   }
