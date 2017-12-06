@@ -111,7 +111,7 @@ kable(preClusteredAndChimeraFilteredSummaryTablePacbio, row.names=TRUE,
 #### Illumina
 ```{r precIll, echo=FALSE}
 kable(preClusteredAndChimeraFilteredSummaryTableIllumina, row.names=TRUE, 
-      col.names=colnames(preClusteredAndChimeraFilteredSummaryTableIllumina), format="html" caption =titlePreClusteredAndChimeraFilteredSummaryTableIllumina) %>%
+      col.names=colnames(preClusteredAndChimeraFilteredSummaryTableIllumina), format="html", caption = titlePreClusteredAndChimeraFilteredSummaryTableIllumina) %>%
   kable_styling(bootstrap_options = "striped", full_width = F,
                 position = "left")
 ```
