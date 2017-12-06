@@ -24,8 +24,9 @@ setEnvironments("phantomjs")
 
 ```{r prepare data, include=FALSE}
 ### plotData 
-errorRateSummaryPlotPacbio <- errorRateSummaryPlot(errorCountFileNamePacbio,"1450")
-errorRateSummaryPlotIllumina <- errorRateSummaryPlot(errorCountFileNameIllumina,"290")
+## TODO: enter av.read length in sushi app param
+errorRateSummaryPlotPacbio <- errorRateSummaryPlot(errorCountFileNamePacbio,1450)
+errorRateSummaryPlotIllumina <- errorRateSummaryPlot(errorCountFileNameIllumina,290)
 
 ### stepsData
 convStepTablePacbio <- convStepTable(stepFilePacbio)
