@@ -127,13 +127,24 @@ phyloSeqToDeseq2_tableAndPlots <- function(phyloseqObj){
   ### log2fold plot
   title <- "Abundance changes between the groups"
   plotLogFoldVsTaxon <- ggplot(addTaxa, aes(x=Genus, y=log2FoldChange, color=Phylum)) + geom_point(size=3) + 
-    theme(axis.text.x = element_text(angle = -90, hjust = 0, vjust=0.5)) + geom_hline(yintercept = c(-1,1),color="red")
+    theme(axis.text.x = element_text(angle = -90, hjust = 0, vjust=0.5)) + geom_hline(aes(yintercept = c(-1,1),color="red"))
   plotLogFoldVsTaxon <- plotLogFoldVsTaxon + labs(title=title) + theme(plot.title=element_text(size=15, face="bold",hjust=0.5))
   ### volcano plot
   title <- "Volcano plot (padj  = 0.05)"
   volcanoPlot <- ggplot(addTaxa, aes(y=-log10(pvalue), x=log2FoldChange)) +
     geom_point(aes(shape=Significance, color=Phylum),size=3) 
   volcanoPlot <- volcanoPlot + labs(title=title) + theme(plot.title=element_text(size=15, face="bold",hjust=0.5))
+  ### Diff.expr. pia chart
+  tableTaxa <- data.frame(table(addTaxa[,"Genus"]))
+  colnames(tableTaxa)[1] <- "Genus"
+  colRain=rainbow(nrow(tableTaxa))
+  titleText = "Differentially abundant genera"
+  bp <- ggplot(tableTaxa, aes(x="", y=Freq, fill=Genus)) + geom_bar(width = 10, stat = "identity") + 
+    scale_fill_manual(values=colRain)
+  pieVersion <- bp + coord_polar("y", start=0)
+  finalVersion <- pieVersion +  labs(title=titleText) + 
+    theme(plot.title=element_text(size=15, face="bold",hjust=0.5))
+  
   return(list(logPlot=plotLogFoldVsTaxon,vPlot=volcanoPlot,table=addTaxaOut))
 }
 
