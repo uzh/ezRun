@@ -129,7 +129,7 @@ phyloSeqToDeseq2_tableAndPlots <- function(phyloseqObj){
   plotLogFoldVsTaxon <- ggplot(addTaxa, aes(x=Genus, y=log2FoldChange, color=Phylum)) + geom_point(size=3) + 
     theme(axis.text.x = element_text(angle = -90, hjust = 0, vjust=0.5)) +
     geom_hline(aes(yintercept=1),color="red") + geom_text(aes(1,1,label = 1, vjust = -1), color = "red", size =3) + 
-    geom_hline(aes(yintercept=-1),color="red") + geom_text(aes(1,-1,label = -1, vjust = -1), color = "red", size =3)
+    geom_hline(aes(yintercept=-1),color="red") + geom_text(aes(1,-1,label = -1, vjust = 1), color = "red", size =3)
   plotLogFoldVsTaxon <- plotLogFoldVsTaxon + labs(title=title) + theme(plot.title=element_text(size=15, face="bold",hjust=0.5))
   ### volcano plot
   title <- "Volcano plot (padj  = 0.05)"
@@ -137,7 +137,8 @@ phyloSeqToDeseq2_tableAndPlots <- function(phyloseqObj){
     geom_point(aes(shape=Significance, color=Phylum),size=3) 
   volcanoPlot <- volcanoPlot + labs(title=title) + theme(plot.title=element_text(size=15, face="bold",hjust=0.5))
   ### Diff.expr. pie chart
-  tableTaxa <- data.frame(table(addTaxa[,"Genus"]))
+  OTUsToPlot <- na.omit(addTaxa[addTaxa$padj < 0.05,])
+  tableTaxa <- data.frame(table(OTUsToPlot[,"Genus"]))
   colnames(tableTaxa)[1] <- "Genus"
   colRain=rainbow(nrow(tableTaxa))
   titleText = "Differentially abundant genera"
