@@ -367,7 +367,7 @@ getStatsFromBamParallel = function(seqLengths, param, bamFile, sm,
   if (!is.na(nReads)){
     ## heuristic: reduce the number of cores so that we have at least 0.25GB RAM per chromosome per Million Reads in the total bam file
     #reduce the number of threads in case of
-    maxCores = ceil(param$ram / (nReads / 1e6) * 4)
+    maxCores = ceiling(param$ram / (nReads / 1e6) * 4)
     if (maxCores < mc.cores){
       message("too many reads --reducing the number of cores: ", maxCores)
       mc.cores = maxCores
