@@ -24,7 +24,7 @@
   titleText <- "Error distribution in the sequences"
   subtitleText <- paste0("Overall error rate = ", overallErrorRate, "%")
   bp <- ggplot(errorTable, aes(x="", y=Sequences, fill=Errors)) + geom_bar(width = 1, stat = "identity") + 
-    scale_fill_manual(breaks=c(0,5,10,50), labels=lbls[c(1,4,9,49)], values=col)
+    scale_fill_manual(breaks=c(0,5,10,50), labels=lbls[c(1,6,11,51)], values=col)
   pieVersion <- bp + coord_polar("y", start=0)
   finalVersion <- pieVersion +  labs(title=titleText, subtitle=subtitleText) + 
     theme(plot.title=element_text(size=15, face="bold",hjust=0.5),  

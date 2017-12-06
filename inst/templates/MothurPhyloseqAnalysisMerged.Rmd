@@ -10,7 +10,7 @@ output:
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE, warning=FALSE, message=FALSE, fig.width=12, fig.height=8)
+knitr::opts_chunk$set(echo = TRUE, warning=FALSE, message=FALSE, fig.width=10, fig.height=7)
 ## This report requires summary files form mothur
 
 require(knitr)
@@ -25,7 +25,7 @@ setEnvironments("phantomjs")
 ```{r prepare data, include=FALSE}
 ### create plots: 1. abundance
 mergedAbPlotIndPhylum <- plot_bar(physeqMerged, fill="Phylum") + geom_bar(aes(color=Phylum, fill=Phylum), stat="identity", position="stack")
-mergedAbPlotGroupGenus <- plot_bar(physeqMerged, "Group", "Abundance", fill="Order") + geom_bar(aes(color=Phylum, fill=Phylum), stat="identity", position="stack")
+mergedAbPlotGroupClass <- plot_bar(physeqMerged, "Group", "Abundance", fill="Class") + geom_bar(aes(color=Phylum, fill=Phylum), stat="identity", position="stack")
 
 
 ### create plots: 2. ordination
@@ -47,8 +47,9 @@ plotDeepDistPB  <- phyloSeqDivPlotAndPercUnclassified(basename(input$getFullPath
 plotDeepDistIll <- phyloSeqDivPlotAndPercUnclassified(basename(input$getFullPaths("Taxonomy_Illumina")),"Genus")
 
 ### create plots: 4. tree
-plotTreeMerged <- plot_tree(physeqMergedPruned , ladderize="left", color="Group", shape="Technology", label.tips="Genus")
-plotTreeRadialMerged <- plot_tree(physeqMergedPruned,  color="Group", shape="Technology", ladderize="left") + coord_polar(theta="y")
+plotTreeMerged <- plot_tree(physeqMergedPruned , ladderize="left", color="Group", shape="Technology")
+forRadialTree <- subset_taxa(physeqMergedPruned, Phylum=="Bacteroidetes")
+plotTreeRadialMerged <- plot_tree(forRadialTree,  color="Group", shape="Family", ladderize="left", size = "abundance", label.tips="Genus") + coord_polar(theta="y") + ggtitle("BActeroidetes-only tree")
 
 ### create plots:5. heatmap
 plotHeatmapMerged <- plot_heatmap(physeqMergedPruned, taxa.label="Genus")
@@ -56,7 +57,7 @@ plotHeatmapMerged <- plot_heatmap(physeqMergedPruned, taxa.label="Genus")
 ### 6: compare groups only Illumina for now
 deseqResults <- phyloSeqToDeseq2_tableAndPlots(physeqIllNoTree)
 tableToPlot <- deseqResults$table
-tableToPlot <- tableToPlot[order(tableToPlot$padj),][1:20,]
+tableToPlot <- tableToPlot[tableToPlot$padj < 0.05,]
 
 ```
 
@@ -70,9 +71,9 @@ Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
 plot(mergedAbPlotIndPhylum)
 ```
 
-#### Community composition by group: genera
-```{r abundPBGroupGenus, echo=FALSE}
-plot(mergedAbPlotGroupGenus)
+#### Community composition by group: class
+```{r abundPBGroupClass, echo=FALSE}
+plot(mergedAbPlotGroupClass)
 ```
 
 ### Ordination plots
@@ -134,7 +135,7 @@ plot(deseqResults$vPlot)
 plot(deseqResults$logPlot)
 ```
 
-#### Summary table
+#### Summary table (20 most significant OTUs)
 ```{r table, echo=FALSE}
 kable(tableToPlot, row.names=FALSE, 
       col.names=colnames(tableToPlot), format="html") %>%
