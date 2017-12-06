@@ -96,7 +96,8 @@ twoGroupCountComparison = function(rawData){
   res = switch(param$testMethod,
                deseq2 = runDeseq2(round(x), param$sampleGroup, param$refGroup, 
                                   param$grouping, grouping2=param$grouping2, 
-                                  isPresent=useProbe),
+                                  isPresent=useProbe,
+                                  cooksCutoff = ezIsSpecified(param$cooksCutoff) && param$cooksCutoff),
                exactTest = runEdger(round(x), param$sampleGroup, param$refGroup,
                                     param$grouping, param$normMethod,
                                     priorCount=param$backgroundExpression),
@@ -181,12 +182,13 @@ runGfold = function(rawData, scalingFactors, isSample, isRef){
 }
 
 ##' @describeIn twoGroupCountComparison Runs the Deseq2 test method.
-runDeseq2 = function(x, sampleGroup, refGroup, grouping, grouping2=NULL, isPresent=NULL){
+runDeseq2 = function(x, sampleGroup, refGroup, grouping, grouping2=NULL, isPresent=NULL, cooksCutoff=FALSE){
   ## get size factors -- grouping2 not needed
   colData = data.frame(grouping=as.factor(grouping), row.names=colnames(x))
   dds = DESeq2::DESeqDataSetFromMatrix(countData=x, colData=colData, design= ~ grouping)
   dds = DESeq2::estimateSizeFactors(dds, controlGenes=isPresent)
   sf = 1/dds@colData$sizeFactor
+
   
   ## remove the samples that do not participate in the comparison
   isSample = grouping == sampleGroup
@@ -212,7 +214,7 @@ runDeseq2 = function(x, sampleGroup, refGroup, grouping, grouping2=NULL, isPrese
   }
   dds = DESeq2::estimateSizeFactors(dds, controlGenes=isPresent)
   dds = DESeq2::DESeq(dds, quiet=FALSE, minReplicatesForReplace=Inf)
-  res = DESeq2::results(dds, contrast=c("grouping", sampleGroup, refGroup), cooksCutoff=FALSE)
+  res = DESeq2::results(dds, contrast=c("grouping", sampleGroup, refGroup), cooksCutoff=cooksCutoff)
   res = as.list(res)
   res$sf = sf
   return(res)
