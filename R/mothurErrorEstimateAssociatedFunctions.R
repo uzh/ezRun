@@ -111,7 +111,7 @@
     tempList <- apply(cumSumTransform,2,function(y) 
       ldply(lapply(seq(from = 20, to = 200, by = 20),function(x) y[x]/y[nrow(cumSumTransform)]*100)))
     finalSaturationTable <- data.frame(matrix(unlist(tempList), nrow=10, byrow=F),stringsAsFactors=FALSE)
-    finalSaturationTable <- data.frame(cbind(seq(from = 10, to = 100, by = 10),finalSaturationTable))
+    finalSaturationTable <- data.frame(cbind(seq(from = 20, to = 200, by = 20),finalSaturationTable))
     colnames(finalSaturationTable) <- c("num OTUs",names(tempList))
     return(finalSaturationTable)
   }

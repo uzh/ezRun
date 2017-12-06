@@ -60,8 +60,8 @@ preClusteredAndChimeraFilteredSummaryTableIllumina <- preClusteredAndChimeraFilt
 titlePreClusteredAndChimeraFilteredSummaryTableIllumina <- createSummaryTable(preClusteredAndChimeraFilteredIllumina)
 titlePreClusteredAndChimeraFilteredSummaryTableIllumina <- titlePreClusteredAndChimeraFilteredSummaryTableIllumina$rawDataSummaryTableTitle
 
-chimeraPacBioPlot <- chimeraSummaryPlot(chimeraPacBio)
-chimeraIlluminaPlot <- chimeraSummaryPlot(chimeraIllumina)
+chimeraPacBioPlot <- chimeraSummaryPlot(chimeraPacBio,preClusteredAndChimeraCountPacbio)
+chimeraIlluminaPlot <- chimeraSummaryPlot(chimeraIllumina,preClusteredAndChimeraCountIllumina)
 ```
 
 Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`

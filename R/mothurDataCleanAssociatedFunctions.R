@@ -97,19 +97,20 @@ writeOTUgzFileForVamps <- function(sharedFile, taxaFile){
 ##' @description Summarizes chimera rates from chimera file 
 ##' @param  chimerFile ezTable from  mothur chimera file.
 ##' @return Returns a pie chart plot.
-chimeraSummaryPlot <- function(chimeraFile){
+chimeraSummaryPlot <- function(chimeraFile, countFile){
   chimeraDF <- data.frame(table(chimeraFile$V18),stringsAsFactors = FALSE)
   colnames(chimeraDF)[1] = "Type"
   chimeraDF$Type  = as.character(chimeraDF$Type)
   chimeraDF[chimeraDF$Type == "?",]$Type = "Borderline"
   chimeraDF[chimeraDF$Type == "Y",]$Type = "Chimeric"
   chimeraDF[chimeraDF$Type == "N",]$Type = "Not chimeric"
-  pct <- round(chimeraDF$Freq/sum(chimeraDF$Freq)*100,2)
+  fullCount <- sum(countFile[,total])
+  pct <- round(chimeraDF$Freq/fullCount*100,2)
   lbls <- paste(chimeraDF$Freq, " (",pct, "%)", sep = "") # add percents to labels 
   col=rainbow(length(lbls))
   titleText <- "Chimeric sequences in the sample"
   bp <- ggplot(chimeraDF, aes(x="", y=Freq, fill=Type)) + geom_bar(width = 1, stat = "identity") + 
-    scale_fill_manual(values=col)
+    scale_fill_manual(values=col, labels=lbls)
   pieVersion <- bp + coord_polar("y", start=0)
   finalVersionChimeraPlot <- pieVersion +  labs(title=titleText) + 
     theme(plot.title=element_text(size=15, face="bold",hjust=0.5))

@@ -52,12 +52,14 @@ lengthDeduppedPacbio <- ezRead.table("PacBio.good.unique.summary")
 mappedAndHomopFilteredPacbio <- ezRead.table("PacBio.good.unique.good.summary")
 chimeraPacBio <- read.delim("PacBio.good.unique.good.filter.unique.precluster.denovo.vsearch.chimeras",header = FALSE)
 preClusteredAndChimeraFilteredPacbio <- ezRead.table("PacBio.good.unique.good.filter.unique.precluster.pick.summary")
+preClusteredAndChimeraCountPacbio <- ezRead.table("PacBio.good.unique.good.filter.unique.precluster.denovo.vsearch.pick.count_table")
 
 rawIllumina <- ezRead.table("Illumina.summary")
 lengthDeduppedIllumina <- ezRead.table("Illumina.good.unique.summary")
 mappedAndHomopFilteredIllumina <- ezRead.table("Illumina.good.unique.good.summary")
 chimeraIllumina <- read.delim("Illumina.good.unique.good.filter.unique.precluster.denovo.vsearch.chimeras", header = FALSE)
 preClusteredAndChimeraFilteredIllumina <- ezRead.table("Illumina.good.unique.good.filter.unique.precluster.pick.summary")
+preClusteredAndChimeraCountPacbio <- ezRead.table("Illumina.good.unique.good.filter.unique.precluster.denovo.vsearch.pick.count_table")
 
 ## Copy the style files and templates
   styleFiles <- file.path(system.file("templates", package="ezRun"),
