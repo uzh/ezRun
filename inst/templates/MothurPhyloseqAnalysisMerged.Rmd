@@ -144,7 +144,7 @@ kable(tableToPlot, row.names=FALSE,
 ```
 
 #### Differentially adundant Genera 
-```{r logfold, echo=FALSE}
+```{r DiffAbundGenPie, echo=FALSE}
 plot(deseqResults$pieChart)
 ```
 
