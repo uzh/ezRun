@@ -85,4 +85,34 @@ writeOTUgzFileForVamps <- function(sharedFile, taxaFile){
   close(gz1)
 }
 
+###################################################################
+# Functional Genomics Center Zurich
+# This code is distributed under the terms of the GNU General
+# Public License Version 3, June 2007.
+# The terms are available here: http://www.gnu.org/licenses/gpl.html
+# www.fgcz.ch
+
+
+##' @title Chimera identification 
+##' @description Summarizes chimera rates from chimera file 
+##' @param  chimerFile ezTable from  mothur chimera file.
+##' @return Returns a pie chart plot.
+chimeraSummaryPlot <- function(chimeraFile){
+  chimeraDF <- data.frame(table(chimeraFile$V18),stringsAsFactors = FALSE)
+  colnames(chimeraDF)[1] = "Type"
+  chimeraDF$Type  = as.character(chimeraDF$Type)
+  chimeraDF[chimeraDF$Type == "?",]$Type = "Borderline"
+  chimeraDF[chimeraDF$Type == "Y",]$Type = "Chimeric"
+  chimeraDF[chimeraDF$Type == "N",]$Type = "Not chimeric"
+  pct <- round(chimeraDF$Freq/sum(chimeraDF$Freq)*100,2)
+  lbls <- paste(chimeraDF$Freq, " (",pct, "%)", sep = "") # add percents to labels 
+  col=rainbow(length(lbls))
+  titleText <- "Chimeric sequences in the sample"
+  bp <- ggplot(chimeraDF, aes(x="", y=Freq, fill=Type)) + geom_bar(width = 1, stat = "identity") + 
+    scale_fill_manual(values=col)
+  pieVersion <- bp + coord_polar("y", start=0)
+  finalVersionChimeraPlot <- pieVersion +  labs(title=titleText) + 
+    theme(plot.title=element_text(size=15, face="bold",hjust=0.5))
+  return(finalVersionChimeraPlot)
+}
  
