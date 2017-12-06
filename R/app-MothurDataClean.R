@@ -49,13 +49,14 @@ ezSystem(cmdMothurIllumina)
 ## Define input for rmd file
 rawPacbio <- ezRead.table("PacBio.summary")
 lengthDeduppedPacbio <- ezRead.table("PacBio.good.unique.summary")
-
 mappedAndHomopFilteredPacbio <- ezRead.table("PacBio.good.unique.good.summary")
+chimeraPacBio <- read.delim("PacBio.good.unique.good.filter.unique.precluster.denovo.vsearch.chimeras",header = FALSE)
 preClusteredAndChimeraFilteredPacbio <- ezRead.table("PacBio.good.unique.good.filter.unique.precluster.pick.summary")
 
 rawIllumina <- ezRead.table("Illumina.summary")
 lengthDeduppedIllumina <- ezRead.table("Illumina.good.unique.summary")
 mappedAndHomopFilteredIllumina <- ezRead.table("Illumina.good.unique.good.summary")
+chimeraIllumina <- read.delim("Illumina.good.unique.good.filter.unique.precluster.denovo.vsearch.chimeras", header = FALSE)
 preClusteredAndChimeraFilteredIllumina <- ezRead.table("Illumina.good.unique.good.filter.unique.precluster.pick.summary")
 
 ## Copy the style files and templates
