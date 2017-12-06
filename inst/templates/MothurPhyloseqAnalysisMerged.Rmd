@@ -10,7 +10,7 @@ output:
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE, warning=FALSE, message=FALSE, fig.width=18, fig.height=12)
+knitr::opts_chunk$set(echo = TRUE, warning=FALSE, message=FALSE, fig.width=12, fig.height=8)
 ## This report requires summary files form mothur
 
 require(knitr)
@@ -24,8 +24,8 @@ setEnvironments("phantomjs")
 
 ```{r prepare data, include=FALSE}
 ### create plots: 1. abundance
-mergedAbPlotIndPhylum <- plot_bar(physeqMerged, "Abundance", "Phylum") + geom_bar(aes(color=Phylum, fill=Phylum), stat="identity", position="stack")
-mergedAbPlotGroupGenus <- plot_bar(physeqMerged, "Group", "Abundance", "Genus") + geom_bar(aes(color=Phylum, fill=Phylum), stat="identity", position="stack")
+mergedAbPlotIndPhylum <- plot_bar(physeqMerged, fill="Phylum") + geom_bar(aes(color=Phylum, fill=Phylum), stat="identity", position="stack")
+mergedAbPlotGroupGenus <- plot_bar(physeqMerged, "Group", "Abundance", fill="Order") + geom_bar(aes(color=Phylum, fill=Phylum), stat="identity", position="stack")
 
 
 ### create plots: 2. ordination
