@@ -104,7 +104,7 @@ chimeraSummaryPlot <- function(chimeraFile, countFile){
   chimeraDF[chimeraDF$Type == "?",]$Type = "Borderline"
   chimeraDF[chimeraDF$Type == "Y",]$Type = "Chimeric"
   chimeraDF[chimeraDF$Type == "N",]$Type = "Not chimeric"
-  fullCount <- sum(countFile[,total])
+  fullCount <- sum(countFile[,"total"])
   pct <- round(chimeraDF$Freq/fullCount*100,2)
   lbls <- paste(chimeraDF$Freq, " (",pct, "%)", sep = "") # add percents to labels 
   col=rainbow(length(lbls))
