@@ -136,7 +136,7 @@ phyloSeqToDeseq2_tableAndPlots <- function(phyloseqObj){
   volcanoPlot <- ggplot(addTaxa, aes(y=-log10(pvalue), x=log2FoldChange)) +
     geom_point(aes(shape=Significance, color=Phylum),size=3) 
   volcanoPlot <- volcanoPlot + labs(title=title) + theme(plot.title=element_text(size=15, face="bold",hjust=0.5))
-  ### Diff.expr. pia chart
+  ### Diff.expr. pie chart
   tableTaxa <- data.frame(table(addTaxa[,"Genus"]))
   colnames(tableTaxa)[1] <- "Genus"
   colRain=rainbow(nrow(tableTaxa))
@@ -144,10 +144,10 @@ phyloSeqToDeseq2_tableAndPlots <- function(phyloseqObj){
   bp <- ggplot(tableTaxa, aes(x="", y=Freq, fill=Genus)) + geom_bar(width = 10, stat = "identity") + 
     scale_fill_manual(values=colRain)
   pieVersion <- bp + coord_polar("y", start=0)
-  finalVersion <- pieVersion +  labs(title=titleText) + 
+  finalVersionPie <- pieVersion +  labs(title=titleText) + 
     theme(plot.title=element_text(size=15, face="bold",hjust=0.5))
   
-  return(list(logPlot=plotLogFoldVsTaxon,vPlot=volcanoPlot,table=addTaxaOut))
+  return(list(logPlot=plotLogFoldVsTaxon,vPlot=volcanoPlot,pieChart=finalVersionPie,table=addTaxaOut))
 }
 
 ###################################################################

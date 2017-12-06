@@ -25,7 +25,7 @@ setEnvironments("phantomjs")
 ```{r prepare data, include=FALSE}
 ### create plots: 1. abundance
 mergedAbPlotIndPhylum <- plot_bar(physeqMerged, fill="Phylum") + geom_bar(aes(color=Phylum, fill=Phylum), stat="identity", position="stack")
-mergedAbPlotGroupClass <- plot_bar(physeqMerged, "Group", "Abundance", fill="Class") + geom_bar(aes(color=Phylum, fill=Phylum), stat="identity", position="stack")
+mergedAbPlotGroupClass <- plot_bar(physeqMerged, "Group", "Abundance", fill="Class") + geom_bar(aes(color=Phylum, fill=Class), stat="identity", position="stack")
 
 
 ### create plots: 2. ordination
@@ -47,9 +47,9 @@ plotDeepDistPB  <- phyloSeqDivPlotAndPercUnclassified(basename(input$getFullPath
 plotDeepDistIll <- phyloSeqDivPlotAndPercUnclassified(basename(input$getFullPaths("Taxonomy_Illumina")),"Genus")
 
 ### create plots: 4. tree
-plotTreeMerged <- plot_tree(physeqMergedPruned , ladderize="left", color="Group", shape="Technology")
+plotTreeMerged <- plot_tree(physeqMergedPruned , ladderize="left", color="Group", shape="Technology", size = "abundance", label.tips="Genus")
 forRadialTree <- subset_taxa(physeqMergedPruned, Phylum=="Bacteroidetes")
-plotTreeRadialMerged <- plot_tree(forRadialTree,  color="Group", shape="Family", ladderize="left", size = "abundance", label.tips="Genus") + coord_polar(theta="y") + ggtitle("BActeroidetes-only tree")
+plotTreeRadialMerged <- plot_tree(forRadialTree,  color="Group", shape="Family", ladderize="left") + coord_polar(theta="y") + ggtitle("Bacteroidetes-only tree")
 
 ### create plots:5. heatmap
 plotHeatmapMerged <- plot_heatmap(physeqMergedPruned, taxa.label="Genus")
@@ -57,7 +57,7 @@ plotHeatmapMerged <- plot_heatmap(physeqMergedPruned, taxa.label="Genus")
 ### 6: compare groups only Illumina for now
 deseqResults <- phyloSeqToDeseq2_tableAndPlots(physeqIllNoTree)
 tableToPlot <- deseqResults$table
-tableToPlot <- tableToPlot[tableToPlot$padj < 0.05,]
+tableToPlot <- na.omit(tableToPlot[tableToPlot$padj < 0.05,])
 
 ```
 
@@ -135,12 +135,17 @@ plot(deseqResults$vPlot)
 plot(deseqResults$logPlot)
 ```
 
-#### Summary table (20 most significant OTUs)
+#### Summary table (Significant OTUs)
 ```{r table, echo=FALSE}
 kable(tableToPlot, row.names=FALSE, 
       col.names=colnames(tableToPlot), format="html") %>%
   kable_styling(bootstrap_options = "striped", full_width = F,
                 position = "left")
+```
+
+#### Differentially adundant Genera 
+```{r logfold, echo=FALSE}
+plot(deseqResults$pieChart)
 ```
 
 ### SessionInfo
