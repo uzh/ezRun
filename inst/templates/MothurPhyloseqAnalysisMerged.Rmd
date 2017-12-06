@@ -10,7 +10,7 @@ output:
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = TRUE, warning=FALSE, message=FALSE)
 ## This report requires summary files form mothur
 
 require(knitr)
@@ -24,7 +24,9 @@ setEnvironments("phantomjs")
 
 ```{r prepare data, include=FALSE}
 ### create plots: 1. abundance
-mergedAbPlot <- plot_bar(physeqMerged, "Group", "Abundance", "Phylum") + geom_bar(aes(color=Phylum, fill=Phylum), stat="identity", position="stack")
+mergedAbPlotIndPhylum <- plot_bar(physeqMerged, "Abundance", "Phylum") + geom_bar(aes(color=Phylum, fill=Phylum), stat="identity", position="stack")
+mergedAbPlotGroupGenus <- plot_bar(physeqMerged, "Group", "Abundance", "Genus") + geom_bar(aes(color=Phylum, fill=Phylum), stat="identity", position="stack")
+
 
 ### create plots: 2. ordination
 mergedOrd <- ordinate(physeqMerged, "NMDS", "bray")
@@ -45,7 +47,7 @@ plotDeepDistPB  <- phyloSeqDivPlotAndPercUnclassified(basename(input$getFullPath
 plotDeepDistIll <- phyloSeqDivPlotAndPercUnclassified(basename(input$getFullPaths("Taxonomy_Illumina")),"Genus")
 
 ### create plots: 4. tree
-plotTreeMerged <- plot_tree(physeqMergedPruned , ladderize="left", color="Group")
+plotTreeMerged <- plot_tree(physeqMergedPruned , ladderize="left", color="Group", shape="Technology", label.tips="Genus")
 plotTreeRadialMerged <- plot_tree(physeqMergedPruned,  color="Group", shape="Technology", ladderize="left") + coord_polar(theta="y")
 
 ### create plots:5. heatmap
@@ -63,9 +65,14 @@ Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
 ## Data pre-processing {.tabset}
 
 ### Abundance barplots
-#### Community composition
+#### Community composition by sample: phyla
 ```{r abundPB, echo=FALSE}
-plot(mergedAbPlot)
+plot(mergedAbPlotIndPhylum)
+```
+
+#### Community composition by group: genera
+```{r abundPB, echo=FALSE}
+plot(mergedAbPlotGroupGenus)
 ```
 
 ### Ordination plots
@@ -93,6 +100,7 @@ plot(plotRichMerged)
 ```{r distPB, echo=FALSE}
 plot(plotDeepDistPB)
 ```
+
 #### Illumina
 ```{r distIll, echo=FALSE}
 plot(plotDeepDistIll)

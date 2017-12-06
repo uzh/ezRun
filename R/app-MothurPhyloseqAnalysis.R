@@ -70,7 +70,7 @@ physeqMergedPruned <- prune_taxa(taxa_names(physeqMerged)[1:50], physeqMerged)
                             "fgcz_header.html", "banner.png"))
   file.copy(from=styleFiles, to=".", overwrite=TRUE)
   rmarkdown::render(input="MothurPhyloseqAnalysisMerged.Rmd", envir = new.env(),
-                    output_dir=".", output_file=htmlFile, quiet=TRUE)
+                    output_dir=".", output_file=htmlFile, quiet=TRUE,fig.width=18, fig.height=12)
 }
 ##' @template app-template
 ##' @templateVar method ezMethodMothurPhyloSeqAnalysis()
