@@ -24,15 +24,23 @@ setEnvironments("phantomjs")
 
 ```{r prepare data, include=FALSE}
 ### rawDataSummary 
-rawSummaryTablePacbio <- createSummaryTable(rawPacbio)
-lengthDeduppedSummaryTablePacbio <- createSummaryTable(lengthDeduppedPacbio)
-mappedAndHomopFilteredSummaryTablePacbio <- createSummaryTable(mappedAndHomopFilteredPacbio)
-preClusteredAndChimeraFilteredSummaryTablePacbio <- createSummaryTable(preClusteredAndChimeraFilteredPacbio)
+rawSummaryTablePacbio <- createSummaryTable(rawPacbio)$rawDataSummaryTable
+lengthDeduppedSummaryTablePacbio <- createSummaryTable(lengthDeduppedPacbio)$rawDataSummaryTable
+titleLengthDeduppedSummaryTablePacbio <- createSummaryTable(lengthDeduppedPacbio)$rawDataSummaryTableTitle
+mappedAndHomopFilteredSummaryTablePacbio <- createSummaryTable(mappedAndHomopFilteredPacbio)$rawDataSummaryTable
+titleMappedAndHomopFilteredSummaryTablePacbio <- createSummaryTable(mappedAndHomopFilteredPacbio)$rawDataSummaryTableTitle
+preClusteredAndChimeraFilteredSummaryTablePacbio <- createSummaryTable(preClusteredAndChimeraFilteredPacbio)$rawDataSummaryTable
+titlePreClusteredAndChimeraFilteredSummaryTablePacbio <- createSummaryTable(preClusteredAndChimeraFilteredPacbio)$rawDataSummaryTableTitle
 
-rawSummaryTableIllumina <- createSummaryTable(rawIllumina)
-lengthDeduppedSummaryTableIllumina <- createSummaryTable(lengthDeduppedIllumina)
-mappedAndHomopFilteredSummaryTableIllumina <- createSummaryTable(mappedAndHomopFilteredIllumina)
-preClusteredAndChimeraFilteredSummaryTableIllumina <- createSummaryTable(preClusteredAndChimeraFilteredIllumina)
+rawSummaryTableIllumina <- createSummaryTable(rawIllumina)$rawDataSummaryTable
+lengthDeduppedSummaryTableIllumina <- createSummaryTable(lengthDeduppedIllumina)$rawDataSummaryTable
+titleLengthDeduppedSummaryTableIllumina <- createSummaryTable(lengthDeduppedIllumina)$rawDataSummaryTableTitle
+mappedAndHomopFilteredSummaryTableIllumina <- createSummaryTable(mappedAndHomopFilteredIllumina)$rawDataSummaryTable
+titleMappedAndHomopFilteredSummaryTableIllumina <- createSummaryTable(mappedAndHomopFilteredIllumina)$rawDataSummaryTableTitle
+preClusteredAndChimeraFilteredSummaryTableIllumina <- createSummaryTable(preClusteredAndChimeraFilteredIllumina)$rawDataSummaryTable
+titlePreClusteredAndChimeraFilteredSummaryTableIllumina <- createSummaryTable(preClusteredAndChimeraFilteredIllumina)$rawDataSummaryTableTitle
+
+
 
 ```
 
@@ -61,7 +69,7 @@ kable(rawSummaryTableIllumina, row.names=TRUE,
 #### PacBio
 ```{r filtPB, echo=FALSE}
 kable(lengthDeduppedSummaryTablePacbio, row.names=TRUE, 
-      col.names=colnames(lengthDeduppedSummaryTablePacbio), format="html") %>%
+      col.names=colnames(lengthDeduppedSummaryTablePacbio), format="html",caption = lengthDeduppedSummaryTablePacbio) %>%
   kable_styling(bootstrap_options = "striped", full_width = F,
                 position = "left")
 ```
@@ -69,7 +77,7 @@ kable(lengthDeduppedSummaryTablePacbio, row.names=TRUE,
 #### Illumina
 ```{r filtIll, echo=FALSE}
 kable(lengthDeduppedSummaryTableIllumina, row.names=TRUE, 
-      col.names=colnames(lengthDeduppedSummaryTableIllumina), format="html") %>%
+      col.names=colnames(lengthDeduppedSummaryTableIllumina), format="html",caption =lengthDeduppedSummaryTableIllumina) %>%
   kable_styling(bootstrap_options = "striped", full_width = F,
                 position = "left")
 ```
@@ -78,7 +86,7 @@ kable(lengthDeduppedSummaryTableIllumina, row.names=TRUE,
 #### PacBio
 ```{r mapPB, echo=FALSE}
 kable(mappedAndHomopFilteredSummaryTablePacbio, row.names=TRUE, 
-      col.names=colnames(preClusteredAndChimeraFilteredSummaryTablePacbio), format="html") %>%
+      col.names=colnames(preClusteredAndChimeraFilteredSummaryTablePacbio), format="html",caption =titleMappedAndHomopFilteredSummaryTablePacbio) %>%
   kable_styling(bootstrap_options = "striped", full_width = F,
                 position = "left")
 ```
@@ -86,7 +94,7 @@ kable(mappedAndHomopFilteredSummaryTablePacbio, row.names=TRUE,
 #### Illumina
 ```{r mapIll, echo=FALSE}
 kable(mappedAndHomopFilteredSummaryTableIllumina, row.names=TRUE, 
-      col.names=colnames(preClusteredAndChimeraFilteredSummaryTablePacbio), format="html") %>%
+      col.names=colnames(preClusteredAndChimeraFilteredSummaryTablePacbio), format="html",caption =titleMappedAndHomopFilteredSummaryTableIllumina) %>%
   kable_styling(bootstrap_options = "striped", full_width = F,
                 position = "left")
 ```
@@ -95,7 +103,7 @@ kable(mappedAndHomopFilteredSummaryTableIllumina, row.names=TRUE,
 #### PacBio
 ```{r precPB, echo=FALSE}
 kable(preClusteredAndChimeraFilteredSummaryTablePacbio, row.names=TRUE, 
-      col.names=colnames(preClusteredAndChimeraFilteredSummaryTablePacbio), format="html") %>%
+      col.names=colnames(preClusteredAndChimeraFilteredSummaryTablePacbio), format="html", caption =titlePreClusteredAndChimeraFilteredSummaryTablePacbio) %>%
   kable_styling(bootstrap_options = "striped", full_width = F,
                 position = "left")
 ```
@@ -103,7 +111,7 @@ kable(preClusteredAndChimeraFilteredSummaryTablePacbio, row.names=TRUE,
 #### Illumina
 ```{r precIll, echo=FALSE}
 kable(preClusteredAndChimeraFilteredSummaryTableIllumina, row.names=TRUE, 
-      col.names=colnames(preClusteredAndChimeraFilteredSummaryTableIllumina), format="html") %>%
+      col.names=colnames(preClusteredAndChimeraFilteredSummaryTableIllumina), format="html", caption = titlePreClusteredAndChimeraFilteredSummaryTableIllumina) %>%
   kable_styling(bootstrap_options = "striped", full_width = F,
                 position = "left")
 ```
