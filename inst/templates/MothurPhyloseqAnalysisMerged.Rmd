@@ -66,12 +66,12 @@ Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
 
 ### Abundance barplots
 #### Community composition by sample: phyla
-```{r abundPB, echo=FALSE}
+```{r abundPBSamplePhylum, echo=FALSE}
 plot(mergedAbPlotIndPhylum)
 ```
 
 #### Community composition by group: genera
-```{r abundPB, echo=FALSE}
+```{r abundPBGroupGenus, echo=FALSE}
 plot(mergedAbPlotGroupGenus)
 ```
 
