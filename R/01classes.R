@@ -473,7 +473,10 @@ cleanOldestDir <- function(dirPath, user=NULL){
   allDirs <- allDirs[Sys.readlink(allDirs) == ""]
   
   ## Don't clean smrt* , pacbio stuff
-  allDirs <- allDirs[grep("(smrt|pacbio)", allDirs, invert = TRUE)]
+  allDirs <- grep("(smrt|pacbio)", allDirs, invert = TRUE, value=TRUE)
+  
+  ## Don't clean **.GT folder; created by grid engine
+  allDirs <- grep("GT$", allDirs, invert = TRUE, value=TRUE)
   
   allInfo <- file.info(allDirs)
   if(!is.null(user)){
