@@ -25,7 +25,7 @@ setEnvironments("phantomjs")
 ```{r prepare data, include=FALSE}
 ### create plots: 1. abundance
 mergedAbPlotIndPhylum <- plot_bar(physeqMerged, fill="Phylum") + geom_bar(aes(color=Phylum, fill=Phylum), stat="identity", position="stack")
-mergedAbPlotGroupClass <- plot_bar(physeqMerged, "Group", "Abundance", fill="Class") + geom_bar(aes(color=Phylum, fill=Class), stat="identity", position="stack")
+mergedAbPlotGroupClass <- plot_bar(physeqMerged, "Group", "Abundance", fill="Class") + geom_bar(aes(color=Class, fill=Class), stat="identity", position="stack")
 
 
 ### create plots: 2. ordination
@@ -47,9 +47,9 @@ plotDeepDistPB  <- phyloSeqDivPlotAndPercUnclassified(basename(input$getFullPath
 plotDeepDistIll <- phyloSeqDivPlotAndPercUnclassified(basename(input$getFullPaths("Taxonomy_Illumina")),"Genus")
 
 ### create plots: 4. tree
-plotTreeMerged <- plot_tree(physeqMergedPruned , ladderize="left", color="Group", shape="Technology", size = "abundance", label.tips="Genus")
-forRadialTree <- subset_taxa(physeqMergedPruned, Phylum=="Bacteroidetes")
-plotTreeRadialMerged <- plot_tree(forRadialTree,  color="Group", shape="Family", ladderize="left") + coord_polar(theta="y") + ggtitle("Bacteroidetes-only tree")
+plotTreeMerged <- plot_tree(physeqMergedPruned , ladderize="left", color="Group", shape="Technology")
+onlyBacteroidetes <- subset_taxa(physeqMergedPruned, Phylum=="Bacteroidetes")
+plotTreeBacteroidetes <-  plot_tree(onlyBacteroidetes , ladderize="left", color="Group", shape="Technology", size = "abundance", label.tips="Genus") + ggtitle("Bacteroidetes-only tree")
 
 ### create plots:5. heatmap
 plotHeatmapMerged <- plot_heatmap(physeqMergedPruned, taxa.label="Genus")
@@ -108,14 +108,14 @@ plot(plotDeepDistIll)
 ```
 
 ### Tree plots
-#### Classical tree
+#### Full tree
 ```{r treePB, echo=FALSE}
 plot(plotTreeMerged)
 ```
 
-#### Radial tree
+#### Subsetted tree
 ```{r radialTreePB, echo=FALSE}
-plot(plotTreeRadialMerged)
+plot(plotTreeBacteroidetes)
 ```
 
 ### Heatmaps
