@@ -8,10 +8,12 @@
 
 ##' @title Mothur Summary Table
 ##' @description Create summary table from mothur summary files.
-##' @param  summary, mothur summary files.
+##' @param  summary, ezTable from mothur summary files.
 ##' @return Returns a data.frame.
 
 createSummaryTable <- function(summary){
+numUniqReads <- nrow(summary)
+rawDataSummaryTableTitle <- paste("Numer of unique sequences =",numUniqReads , sep = " ")
 part2 <- vector()
 part1 <- apply(subset(summary,select=start:polymer),2,function(x)quantile(x, probs = c(0, 0.025,0.25, 0.5, 0.75, 0.975,1)))
 k=1
@@ -23,7 +25,7 @@ for (i in c(2.5,25,50,75,97.5,100)) {
 part2 <- data.frame(numSeqs=part2)
 rawDataSummaryTable <- round(cbind(part1,data.frame(part2)), digits = 0)
 rownames(rawDataSummaryTable) <- c("Mininmun","2.5%-tile","25%-tile","Median","75%-tile","97.5%-tile","Maximum")
-return(rawDataSummaryTable)
+return(list(rawDataSummaryTable=rawDataSummaryTable, rawDataSummaryTableTitle=rawDataSummaryTableTitle))
 }
 
 ###################################################################
