@@ -145,7 +145,7 @@ phyloSeqToDeseq2_tableAndPlots <- function(phyloseqObj){
   bp <- ggplot(tableTaxa, aes(x="", y=Freq, fill=Genus)) + geom_bar(width = 10, stat = "identity") + 
     scale_fill_manual(values=colRain)
   pieVersion <- bp + coord_polar("y", start=0)
-  finalVersionPie <- pieVersion +  labs(title=titleText) + 
+  finalVersionPie <- pieVersion +  labs(title=titleText, y="") + 
     theme(plot.title=element_text(size=15, face="bold",hjust=0.5))
   
   return(list(logPlot=plotLogFoldVsTaxon,vPlot=volcanoPlot,pieChart=finalVersionPie,table=addTaxaOut))
@@ -182,7 +182,7 @@ phyloSeqDivPlotAndPercUnclassified <- function(taxaFileName, rank){
   bp <- ggplot(tableTaxa, aes(x="", y=Freq, fill=get(rank))) + geom_bar(width = 10, stat = "identity") + 
     scale_fill_manual(values=colRain)
   pieVersion <- bp + coord_polar("y", start=0)
-  finalVersion <- pieVersion +  labs(title=titleText, subtitle=subtitleText) + 
+  finalVersion <- pieVersion +  labs(title=titleText, subtitle=subtitleText, y="") + 
     theme(legend.position="none",plot.title=element_text(size=15, face="bold",hjust=0.5),  
           plot.subtitle=element_text(size=10, face="bold",hjust=0.5))
   return(finalVersion)
