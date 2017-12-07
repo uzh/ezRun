@@ -139,13 +139,13 @@ phyloSeqToDeseq2_tableAndPlots <- function(phyloseqObj){
   volcanoPlot <- volcanoPlot + labs(title=title) + theme(plot.title=element_text(size=15, face="bold",hjust=0.5))
   ### Diff.expr. pie chart
   OTUsToPlot <- na.omit(addTaxaOut[addTaxaOut$padj < 0.05,])
-  tableTaxa <- data.frame(table(OTUsToPlot[,"Genus"]))
+  tableTaxa <- data.frame(table(droplevels(OTUsToPlot[,"Genus"])))
   colnames(tableTaxa)[1] <- "Genus"
   pct <- round(tableTaxa$Freq/sum(tableTaxa$Freq)*100,2)
+  pct = paste0(pct,"%")
   titleText = "Differentially abundant genera"
   bp <- ggplot(tableTaxa, aes(x="", y=Freq, fill=Genus)) + 
-    geom_bar(position = position_stack(),width = 1, stat = "identity") + 
-    geom_text(aes(label = pct), position = position_stack(vjust = 0.5),  size = 5)
+    geom_bar(position = position_stack(),width = 1, stat = "identity") 
   pieVersion <- bp + coord_polar("y", start=0)
   finalVersionPie <- pieVersion +  labs(title=titleText, y="") + 
     theme(plot.title=element_text(size=15, face="bold",hjust=0.5))
