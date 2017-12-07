@@ -106,6 +106,7 @@ phyloSeqPreprocess <- function(phyloseqObj){
 phyloSeqToDeseq2_tableAndPlots <- function(phyloseqObj){
   ## Convert to Deseq obj and analyze
   ## to do: add selector for group and test
+  phyloseqObjNoMock <- prune_samples(sample_data(phyloseqObj)$Group != "Mock")
   phyloseq_to_deseq2 = phyloseq_to_deseq2(phyloseqObj, ~ Group)
   DEseqPhyRes <- DESeq(phyloseq_to_deseq2, test="Wald", fitType="parametric")
   res = results(DEseqPhyRes, cooksCutoff = FALSE)
