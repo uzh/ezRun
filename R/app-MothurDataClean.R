@@ -15,6 +15,7 @@ ezMethodMothurDataClean = function(input=NA, output=NA, param=NA,
   require(plyr)
   require(ape)
   require(ggplot2)
+  library(scales)
   dataset = input$meta
   ### read fastq files and prepare inputs for Mothur
   datasetToMothur(dataset,param)
