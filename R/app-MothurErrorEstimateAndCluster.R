@@ -80,7 +80,6 @@ EzAppMothurErrorEstimateAndCluster <-
                   runMethod <<- ezMethodMothurErrorEstimateAndCluster
                   name <<- "EzAppMothurErrorEstimateAndCluster"
                   appDefaults <<- rbind(cutOff = ezFrame(Type="numeric",  DefaultValue="0.03",Description="Cut-off for OTU clustering."),
-                                        group = ezFrame(Type="character",  DefaultValue="Mock",Description="Mock group."),
                                         referenceFasta = ezFrame(Type="character",  DefaultValue="",Description="Mock reference seqeuences.")
                   )
                 }
