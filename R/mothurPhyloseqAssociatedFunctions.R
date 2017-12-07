@@ -138,17 +138,17 @@ phyloSeqToDeseq2_tableAndPlots <- function(phyloseqObj){
     geom_point(aes(shape=Significance, color=Phylum),size=3) 
   volcanoPlot <- volcanoPlot + labs(title=title) + theme(plot.title=element_text(size=15, face="bold",hjust=0.5))
   ### Diff.expr. pie chart
-  OTUsToPlot <- na.omit(addTaxa[addTaxa$padj < 0.05,])
+  OTUsToPlot <- na.omit(addTaxaOut[addTaxaOut$padj < 0.05,])
   tableTaxa <- data.frame(table(OTUsToPlot[,"Genus"]))
   colnames(tableTaxa)[1] <- "Genus"
-  colRain=rainbow(nrow(tableTaxa))
+  pct <- round(tableTaxa$Freq/sum(tableTaxa$Freq)*100,2)
   titleText = "Differentially abundant genera"
-  bp <- ggplot(tableTaxa, aes(x="", y=Freq, fill=Genus)) + geom_bar(width = 10, stat = "identity") + 
-    scale_fill_manual(values=colRain)
+  bp <- ggplot(tableTaxa, aes(x="", y=Freq, fill=Genus)) + 
+    geom_bar(position = position_stack(),width = 1, stat = "identity") + 
+    geom_text(aes(label = pct), position = position_stack(vjust = 0.5),  size = 5)
   pieVersion <- bp + coord_polar("y", start=0)
   finalVersionPie <- pieVersion +  labs(title=titleText, y="") + 
     theme(plot.title=element_text(size=15, face="bold",hjust=0.5))
-  
   return(list(logPlot=plotLogFoldVsTaxon,vPlot=volcanoPlot,pieChart=finalVersionPie,table=addTaxaOut))
 }
 

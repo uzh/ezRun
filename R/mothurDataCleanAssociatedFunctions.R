@@ -105,8 +105,6 @@ chimeraSummaryPlot <- function(chimeraFile){
   colnames(chimeraDF) = "Freq"
   chimeraDF$Type  = as.factor(c("Chimeric","Not chimeric","Borderline"))
   pct <- round(chimeraDF$Freq/sum(chimeraDF$Freq)*100,2)
-  lbls <- paste(chimeraDF$Type, " (",pct, "%)", sep = "") # add percents to labels 
-  col=rainbow(length(lbls))
   titleText <- "Chimeric sequences in the sample"
   bp <- ggplot(chimeraDF, aes(x="", y=Freq, fill=Type)) + 
     geom_bar(position = position_stack(),width = 1, stat = "identity") + 
