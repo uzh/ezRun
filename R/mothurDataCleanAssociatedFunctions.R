@@ -107,13 +107,12 @@ chimeraSummaryPlot <- function(chimeraFile){
   pct <- round(chimeraDF$Freq/sum(chimeraDF$Freq)*100,2)
   lbls <- paste(chimeraDF$Type, " (",pct, "%)", sep = "") # add percents to labels 
   col=rainbow(length(lbls))
-  finalVersionChimeraPlot <- pie(chimeraDF$Freq,labels = lbls, col=col, main =  "Chimeric sequences in the sample")
-#  titleText <- "Chimeric sequences in the sample"
-#  bp <- ggplot(arrange(chimeraDF,Type), aes(x="", y=Freq, fill=Type)) + geom_bar(width = 1, stat = "identity") + 
-#    scale_fill_manual(values=col, labels=lbls)
-#  pieVersion <- bp + coord_polar("y", start=0)
-#  finalVersionChimeraPlot <- pieVersion +  labs(title=titleText, y="") + 
-#    theme(plot.title=element_text(size=15, face="bold",hjust=0.5))
+  titleText <- "Chimeric sequences in the sample"
+  bp <- ggplot(arrange(chimeraDF,Type), aes(x="", y=Freq, fill=Type)) + geom_bar(width = 1, stat = "identity") + 
+    scale_colour_manual(values=col, labels=lbls)
+  pieVersion <- bp + coord_polar("y", start=0)
+  finalVersionChimeraPlot <- pieVersion +  labs(title=titleText, y="") + 
+    theme(plot.title=element_text(size=15, face="bold",hjust=0.5))
   return(finalVersionChimeraPlot)
 }
  
