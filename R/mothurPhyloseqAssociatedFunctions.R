@@ -107,11 +107,11 @@ phyloSeqToDeseq2_tableAndPlots <- function(phyloseqObj){
   ## Convert to Deseq obj and analyze
   ## to do: add selector for group and test
   phyloseqObjNoMock <- prune_samples(sample_data(phyloseqObj)$Group != "Mock", phyloseqObj)
-  phyloseq_to_deseq2 = phyloseq_to_deseq2(phyloseqObj, ~ Group)
+  phyloseq_to_deseq2 = phyloseq_to_deseq2(phyloseqObjNoMock, ~ Group)
   DEseqPhyRes <- DESeq(phyloseq_to_deseq2, test="Wald", fitType="parametric")
   res = results(DEseqPhyRes, cooksCutoff = FALSE)
-  addTaxa <- cbind(data.frame(res),t(otu_table(phyloseqObj)), tax_table(phyloseqObj))
-  addTaxaOut <- cbind(data.frame(res),t(otu_table(phyloseqObj)), tax_table(phyloseqObj))
+  addTaxa <- cbind(data.frame(res),t(otu_table(phyloseqObjNoMock)), tax_table(phyloseqObjNoMock))
+  addTaxaOut <- cbind(data.frame(res),t(otu_table(phyloseqObjNoMock)), tax_table(phyloseqObjNoMock))
   ## sort and prepare fpr plot
   x = tapply(addTaxa$log2FoldChange, addTaxa$Phylum, function(x) max(x))
   x = sort(x, TRUE)
