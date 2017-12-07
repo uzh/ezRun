@@ -58,6 +58,7 @@ plotHeatmapMerged <- plot_heatmap(physeqMergedPruned, taxa.label="Genus")
 deseqResults <- phyloSeqToDeseq2_tableAndPlots(physeqIllNoTree)
 tableToPlot <- deseqResults$table
 tableToPlot <- na.omit(tableToPlot[tableToPlot$padj < 0.05,])
+tableToPlot <- tableToPlot[order(tableToPlot$padj),]
 
 ```
 
