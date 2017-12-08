@@ -188,3 +188,38 @@ phyloSeqDivPlotAndPercUnclassified <- function(taxaFileName, rank){
           plot.subtitle=element_text(size=10, face="bold",hjust=0.5))
   return(finalVersion)
 }
+
+###################################################################
+# Functional Genomics Center Zurich
+# This code is distributed under the terms of the GNU General
+# Public License Version 3, June 2007.
+# The terms are available here: http://www.gnu.org/licenses/gpl.html
+# www.fgcz.ch
+
+
+##' @title  Rank summary plots  
+##' @description Summarized the top present genera  
+##' @param  phySeq,rank a phyloseq object and the rank to summarize
+##' @return Returns a stacked bar  plot.
+
+phyloSeqCommunityComp <- function(physeq){
+  sampleToKeep <- rownames(sample_data(physeq))[grep("mock",rownames(sample_data(physeq)))]
+  mockObj <- prune_samples(sampleToKeep, physeq)
+  otus <- data.frame(t(otu_table(mockObj)))
+  joinedData <- data.frame(cbind(Freq=otus[,sampleToKeep],Genus=data.frame(tax_table(physeq), stringsAsFactors = FALSE)$Genus),
+                           stringsAsFactors = FALSE)
+  joinedData$Freq <- as.numeric(joinedData$Freq)
+  fractions <- lapply(unique(joinedData$Genus), 
+                             function(x) cbind(x,sum(joinedData[joinedData$Genus == x,]$Freq)/sum(joinedData$Freq)*100))
+  fractions <- data.frame(matrix(unlist(fractions), byrow = TRUE, ncol = 2), stringsAsFactors = FALSE)
+  colnames(fractions) <- c("Genus","Freq")
+  fractions$Freq <- round(as.numeric(fractions$Freq),2)
+  fractions <- fractions[fractions$Freq >2 ,]
+  titleText <- "Community composition (Genera, min. 2 %)"
+  bp <- ggplot(fractions, aes(x="", y=Freq, fill=Genus)) +  
+    geom_bar(position = position_stack(),width = 1, stat = "identity") + 
+    geom_text(aes(label = paste0(Freq,"%")), position = position_stack(vjust = 0.5),  size = 3)
+  finalVersion <- bp +  labs(title=titleText, y="") + 
+    theme(legend.position="none",plot.title=element_text(size=15, face="bold",hjust=0.5))
+  return(finalVersion)
+}
