@@ -220,6 +220,6 @@ phyloSeqCommunityComp <- function(physeq){
     geom_bar(position = position_stack(),width = 1, stat = "identity") + 
     geom_text(aes(label = paste0(Freq,"%")), position = position_stack(vjust = 0.5),  size = 3)
   finalVersion <- bp +  labs(title=titleText, y="") + 
-    theme(legend.position="none",plot.title=element_text(size=15, face="bold",hjust=0.5))
+    theme(plot.title=element_text(size=15, face="bold",hjust=0.5))
   return(finalVersion)
 }
