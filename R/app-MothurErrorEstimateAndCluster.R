@@ -49,7 +49,7 @@ ezMethodMothurErrorEstimateAndCluster = function(input=NA, output=NA, param=NA,
   ezSystem(cmdMothurIllumina)
   
   ## Define input for rmd file
-  errorCountFileNamePacbio <- "PacBio.good.unique.good.filter.unique.precluster.pick.pick.error.count"
+  errorCountFileNamePacbio <- "PacBio.good.unique.good.filter.unique.precluster.pick.pick.pick.error.count"
   stepFilePacbio <- "PacBio.good.unique.good.filter.unique.precluster.pick.pick.opti_mcc.steps"
   sharedFilePacbio <- "PacBio.good.unique.good.filter.unique.precluster.pick.pick.opti_mcc.shared"
   
