@@ -41,8 +41,8 @@ plotOrdTaxaMerged = plot_ordination(physeqMerged, mergedOrd, type="taxa", color=
 plotOrdSamplesMerged = plot_ordination(physeqMerged, mergedOrd, type="samples", color="Group", shape = "Technology") 
 plotOrdSamplesMerged = plotOrdSamplesMerged + geom_polygon(aes(fill=Group)) + geom_point(size=3) + ggtitle("Sample ordination, all samples")
 
-#illOrd <- ordinate(physeqIllNoTree, "NMDS", "bray")
-#plotOrdTaxaIll = plot_ordination(physeqIllNoTree, illOrd, type="taxa", color="Phylum") + facet_wrap(~Phylum, 3) + #ggtitle("Taxa ordination, only Illumina samples")
+illOrd <- ordinate(physeqIllNoTree, "NMDS", "bray")
+plotOrdTaxaIll = plot_ordination(physeqIllNoTree, illOrd, type="taxa", color="Phylum") + facet_wrap(~Phylum, 3) + ggtitle("Taxa ordination, only Illumina samples")
 #plotOrdSamplesIll = plot_ordination(physeqIllNoTree, illOrd, type="samples", color="Group") 
 #plotOrdSamplesIll = plotOrdSamplesIll + geom_polygon(aes(fill=Group)) + geom_point(size=5) + ggtitle("Sample ordination, only #Illumina samples")
 ```
@@ -115,7 +115,7 @@ plot(plotOrdTaxaIll)
 #### Sample level
 ```{r ordPB, echo=FALSE}
 plot(plotOrdSamplesMerged)
-plot(plotOrdSamplesIll)
+##plot(plotOrdSamplesIll)
 
 ```
 
