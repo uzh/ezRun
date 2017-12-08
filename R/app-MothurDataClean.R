@@ -21,8 +21,10 @@ ezMethodMothurDataClean = function(input=NA, output=NA, param=NA,
   datasetToMothur(dataset,param)
 
 ### update batch file pacbio with parameters and run mothur
+projNum <- dirname(param$resultDir)
 updateBatchCmdPacbio <- paste0("sed -e s/\"MIN_LEN\"/", param$minLen_PacBio, "/g",
                                " -e s/\"MAX_LEN\"/", param$maxLen_PacBio, "/g",
+                               " -e s/\"PROJ_NUM\"/", projNum, "/g",
                                " -e s/\"CUTOFF\"/", param$cutOff, "/g",
                                " -e s/\"DIFFS\"/", param$diffs_PacBio, "/g",
                                " -e s/\"Mothur\"/\"PacBio\"/g ",
@@ -37,6 +39,7 @@ ezSystem(cmdMothurPacBio)
 ### update batch file Illumina with parameters and run mothur
 updateBatchCmdIllumina <- paste0("sed -e s/\"MIN_LEN\"/", param$minLen_Illumina, "/g",
                                " -e s/\"MAX_LEN\"/", param$maxLen_Illumina, "/g",
+                               " -e s/\"PROJ_NUM\"/", projNum, "/g",
                                " -e s/\"CUTOFF\"/", param$cutOff, "/g",
                                " -e s/\"DIFFS\"/", param$diffs_Illumina, "/g",
                                " -e s/\"Mothur\"/\"Illumina\"/g ",
