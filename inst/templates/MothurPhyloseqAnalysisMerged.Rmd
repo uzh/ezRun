@@ -27,6 +27,9 @@ setEnvironments("phantomjs")
 mergedAbPlotIndPhylum <- plot_bar(physeqMerged, fill="Phylum") + geom_bar(aes(color=Phylum, fill=Phylum), stat="identity", position="stack")
 mergedAbPlotGroupClass <- plot_bar(physeqMerged, "Group", "Abundance", fill="Class") + geom_bar(aes(color=Class, fill=Class), stat="identity", position="stack")
 
+### Comparison with mock community
+mockPacbioPlot <- phyloSeqCommunityComp(physeqPacBioNoTree)
+mockIlluminaPlot <- phyloSeqCommunityComp(physeqIllNoTree)
 
 ### create plots: 2. ordination
 mergedOrd <- ordinate(physeqMerged, "NMDS", "bray")
@@ -75,6 +78,17 @@ plot(mergedAbPlotIndPhylum)
 #### Community composition by group: class
 ```{r abundPBGroupClass, echo=FALSE}
 plot(mergedAbPlotGroupClass)
+```
+
+### Comparison with the mock community
+#### PacBio
+```{r mockPB, echo=FALSE}
+plot(mockPacbioPlot)
+```
+
+####Illumina
+```{r mockIll, echo=FALSE}
+plot(mockIlluminaPlot)
 ```
 
 ### Ordination plots
