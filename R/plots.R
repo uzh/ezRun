@@ -501,6 +501,9 @@ ezXYScatter = function(xVec, yVec, absentColor="gray", shrink=FALSE, frame=TRUE,
   }
   if (!is.null(types) && ncol(types) > 0){
     for (j in 1:ncol(types)){
+      if (length(pch) == length(xVec)){
+        pch=pch[types[,j]]
+      }
       points(xVec[types[,j]], yVec[types[,j]], col=colors[j], pch=pch, ...)
     }
     if (!is.null(legendPos)){
