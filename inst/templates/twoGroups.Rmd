@@ -603,7 +603,7 @@ for(onto in names(enrichResult)){
       enrichMap(enrichResult[[onto]][[sig]], n=50, main=paste(onto, sig))
       resFn <- paste(onto, sig, "hypergeometric.txt", sep="_")
       write.table(enrichResult[[onto]][[sig]], file=resFn,
-                  quote=FALSE, col.names = TRUE, row.names = FALSE)
+                  quote=FALSE, col.names = TRUE, row.names = FALSE, sep = "\t")
       resFns <- append(resFns, resFn)
     }
   }
