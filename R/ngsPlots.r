@@ -77,12 +77,13 @@ ezMdsPlot = function(signal, sampleColors, main){
   par(bg = 'white')
 }
 
-ezMdsPlotly <- function(signal, sampleColors, ndim=c(3,2), main){
+ezMdsPlotly <- function(signal, design, ndim=c(3,2), main){
   require("edgeR")
   require(plotly)
   y = DGEList(counts=signal, group=colnames(signal))
   mds = plotMDS(y, plot=FALSE, ndim=ndim)
   toPlot <- data.frame(samples=colnames(signal),
+                       design,
                        stringsAsFactors = FALSE)
   mdsOut <- mds$cmdscale.out
  
@@ -91,7 +92,12 @@ ezMdsPlotly <- function(signal, sampleColors, ndim=c(3,2), main){
                           "Leading logFC dim3")
     toPlot <- cbind(toPlot, mdsOut)
     p <- plot_ly(toPlot, x=~`Leading logFC dim1`, y=~`Leading logFC dim2`, 
-                 z=~`Leading logFC dim3`, color=~samples, colors=sampleColors,
+                 z=~`Leading logFC dim3`, 
+                 color=formula(paste0("~", colnames(design)[1])),
+                 colors = "Set1",
+                 #mode = "markers",
+                 #symbol = ~Subject, ## 3D scatter plot doesn't support many symbols
+                 #symbols = 1:4,
                  text=toPlot$samples) %>%
       add_markers() %>% 
       add_text(textposition = "top right", showlegend=FALSE) %>%
@@ -102,11 +108,26 @@ ezMdsPlotly <- function(signal, sampleColors, ndim=c(3,2), main){
   }else if(ndim ==2){
     colnames(mdsOut) <- c("Leading logFC dim1", "Leading logFC dim2")
     toPlot <- cbind(toPlot, mdsOut)
-    p <- plot_ly(toPlot, x=~`Leading logFC dim1`, y=~`Leading logFC dim2`, 
-                 color=~samples, colors=sampleColors,
-                 text=toPlot$samples) %>%
-      add_markers() %>% 
-      add_text(textposition = "top center", showlegend=FALSE) %>%
+    if(ncol(design) >= 1L){
+      p <- plot_ly(toPlot, x=~`Leading logFC dim1`, y=~`Leading logFC dim2`, 
+                   color=formula(paste0("~", colnames(design)[1])), 
+                   colors="Set1", marker = list(size = 10),
+                   symbol=formula(paste0("~", colnames(design)[2])),
+                   text=toPlot$samples)
+    }else{
+      p <- plot_ly(toPlot, x=~`Leading logFC dim1`, y=~`Leading logFC dim2`, 
+                   color=formula(paste0("~", colnames(design)[1])), 
+                   colors="Set1", marker = list(size = 10),
+                   text=toPlot$samples)
+    }
+    p <- p %>% add_markers() %>% 
+      #add_annotations(x=toPlot$`Leading logFC dim1`,
+      #                y=toPlot$`Leading logFC dim2`,
+      #                text=toPlot$samples,
+      #               xref = "x", yref = "y", showarrow=FALSE
+      #               ) %>%
+      # Showing the text all mess up the coloring with symbols
+      #add_text(textposition = "top center", showlegend=FALSE) %>%
       layout(title=main,
              xaxis = list(title = 'Leading logFC dim1'),
              yaxis = list(title = 'Leading logFC dim2'))

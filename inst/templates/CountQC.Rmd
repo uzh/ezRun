@@ -30,8 +30,9 @@ require(plotly)
 # require(ezRun)
 # load("/srv/GT/analysis/gtan/debug/p1536-CountQC/testCountQC.rda")
 # output <- NULL
-## end of debug
 debug <- FALSE
+## end of debug
+
 
 param <- metadata(rawData)$param
 seqAnno <- data.frame(rowData(rawData), row.names=rownames(rawData),
@@ -203,15 +204,6 @@ plot_ly(toPlot, x=~samples,
          yaxis = list(title = "Counts [Mio]"),
          margin = m
   )
-#par(mar=c(10.1, 4.1, 4.1, 2.1))
-#barplot(totalCounts, las=2, ylab="Counts [Mio]", main="Total reads",
-#        names.arg=ezSplitLongLabels(names(totalCounts)))
-
-## Genomic Features with Reads above threshold
-#par(mar=c(10.1, 4.1, 4.1, 2.1))
-#bplot = barplot(presentCounts, las=2, ylab="Counts", main="Genomic Features with Reads above threshold",
-#                names.arg=ezSplitLongLabels(names(presentCounts)))
-# text(x=bplot, y=0, pos=3, offset=2, labels=percentages)
 plot_ly(toPlot, x=~samples, y=~presentCounts, type="bar",
         text=~percentages, textposition = 'auto') %>%
   layout(title="Genomic Features with Reads above threshold",
@@ -285,29 +277,16 @@ if (nSamples > 3){
     colAnnot[,nm] = colList[[nm]][design[,nm]]
   }
   ## All genes
-  d = as.dist(1-cor(x, use="complete.obs"));
+  d = as.dist(1-cor(x, use="complete.obs"))
   hc <- hclust(d, method="ward.D2")
   plotDendroAndColors(hc, colAnnot, autoColorHeight=TRUE, hang = -0.1,
                       main="all present genes")
-  
-  # hcd = as.dendrogram(hclust(d, method="ward.D2"), hang=-0.1)
-  # hcd = colorClusterLabels(hcd, sampleColors)
-  # mai = par("mai")
-  # mai[1] = 3
-  # par(mai=mai)
-  # plot(hcd, main="all present genes", xlab="")
 
   ## Top genes
-  d = as.dist(1-cor(x[topGenes, ], use="complete.obs"));
+  d = as.dist(1-cor(x[topGenes, ], use="complete.obs"))
   hc <- hclust(d, method="ward.D2")
   plotDendroAndColors(hc, colAnnot, autoColorHeight=TRUE, hang = -0.1,
                       main=paste("top", length(topGenes), " genes"))
-  # hcd = as.dendrogram(hclust(d, method="ward.D2"), hang=-0.1)
-  # hcd = colorClusterLabels(hcd, sampleColors)
-  # mai = par("mai")
-  # mai[1] = 3
-  # par(mai=mai)
-  # plot(hcd, main=paste("top", length(topGenes), " genes"), xlab="")  
 }
 ```
 
@@ -343,22 +322,12 @@ if (nSamples > 3){
   plotDendroAndColors(hc, colAnnot, autoColorHeight=TRUE, hang = -0.1,
                       main="all present genes; gene-wise normalized")
   
-  #mai = par("mai")
-  #mai[1] = 3
-  #par(mai=mai)
-  #plot(hcd, main="all present genes; gene-wise normalized", xlab="")
   ## Top genes
   d = as.dist(1-cor(xNormed[topGenes, ], use="complete.obs"));
   hc <- hclust(d, method="ward.D2")
   plotDendroAndColors(hc, colAnnot, autoColorHeight=TRUE, hang = -0.1,
                       main=paste("top", length(topGenes), 
                                  "genes; gene-wise normalized"))
-  #hcd = as.dendrogram(hclust(d, method="ward.D2"), hang=-0.1)
-  #hcd = colorClusterLabels(hcd, sampleColors)
-  #mai = par("mai")
-  #mai[1] = 3
-  #par(mai=mai)
-  #plot(hcd, main=paste("top", length(topGenes), "genes; gene-wise normalized"), xlab="")
 }
 ```
 
@@ -473,19 +442,19 @@ if(nSamples > 3){
 if(nSamples > 3){
   ## 3D scatter plot is strange. The plots are messy when use htmltools::tagList()
   ## subplot doesn't work either.
-  ezMdsPlotly(signal=x, sampleColors=sampleColors, ndim=3, 
+  ezMdsPlotly(signal=x, design=design, ndim=3,
               main="mdsPlot_PresentGenes 3D")
 }
 if(nSamples > 3){
-  ezMdsPlotly(signal=x[topGenes,], sampleColors=sampleColors, ndim=3,
+  ezMdsPlotly(signal=x[topGenes,], design=design, ndim=3,
               main="mdsPlot_TopGenes 3D")
 }
 if(nSamples > 3){
-  ezMdsPlotly(signal=x, sampleColors=sampleColors, ndim=2,
+  ezMdsPlotly(signal=x, design=design, ndim=2,
               main="mdsPlot_PresentGenes 2D")
 }
 if(nSamples > 3){
-  ezMdsPlotly(signal=x[topGenes,], sampleColors=sampleColors, ndim=2,
+  ezMdsPlotly(signal=x[topGenes,], design=design, ndim=2,
               main="mdsPlot_TopGenes 2D")
 }
 ```
