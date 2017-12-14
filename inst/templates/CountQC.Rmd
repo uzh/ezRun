@@ -23,6 +23,7 @@ require(SummarizedExperiment)
 require(wesanderson)
 require(WGCNA)
 require(plotly)
+require(matrixStats)
 ```
 
 ```{r prepare data countQC, include=FALSE}
@@ -77,7 +78,7 @@ isPresent = ezPresentFlags(assays(rawData)$counts, presentFlag=presentFlag,
                            param=param, isLog=metadata(rawData)$isLog)
 signalCond = 2^averageColumns(log2Signal, by=conds)
 isPresentCond = averageColumns(isPresent, by=conds) >= 0.5
-isPresentStudy = apply(isPresentCond, 1, mean) >= 0.5
+isPresentStudy <- rowMeans(isPresentCond) >= 0.5
 ```
 
 ## CountQC_Result {.tabset}
@@ -130,8 +131,9 @@ signalFile = paste0(ezValidFilename(param$name), "-normalized-signal.txt")
 ezWrite.table(combined, file=signalFile, head="Feature ID", digits=4)
 
 selectSignals = grepl("Signal", colnames(combined))
-combined$"Mean signal" = rowMeans(combined[, selectSignals])
-combined$"Maximum signal" = apply(combined[, selectSignals], 1, max)
+combined$"Mean signal" = rowMeans(combined[, selectSignals], na.rm=TRUE)
+combined$"Maximum signal" = rowMaxs(as.matrix(combined[, selectSignals]),
+                                    na.rm = TRUE)
 topGenesPerSample = apply(combined[, selectSignals], 2, function(col){
   col = sort(col, decreasing = TRUE)
   if (length(col) > 100) col = col[1:100]
@@ -180,7 +182,7 @@ for(each in dataFiles){
 ```
 
 ### Count Statistics
-```{r count statistics, echo=FALSE, fig.width=min(7+(nSamples-10)*0.3, 30)}
+```{r count statistics, echo=FALSE, fig.width=min(7+(nSamples-10)*0.3, 30), eval=!debug}
 totalCounts = signif(colSums(assays(rawData)$counts) / 1e6, digits=3)
 presentCounts = colSums(isPresent)
 names(totalCounts) = samples
@@ -228,8 +230,8 @@ if(sum(isValid) < 10){
 }
 
 x = log2(2^log2Signal[isValid, ] + param$backgroundExpression)
-xNormed = sweep(x, 1 , rowMeans(x));
-xSd = apply(x, 1, sd, na.rm=TRUE)
+xNormed = sweep(x, 1 , rowMeans(x))
+xSd <- setNames(rowSds(x, na.rm=TRUE), rownames(x))
 ord = order(xSd, decreasing=TRUE)
 topGenes = ord[1:min(param$topGeneSize, length(ord))]
 ```
@@ -340,9 +342,9 @@ cat(paste0("<SCRIPT language=\"JavaScript\" SRC=\"", basename(jsFile), "\"></SCR
 
 ```{r Clustering of High Variance Features, echo=FALSE, message=FALSE, fig.width=max(8,4+0.15*ncol(xNormed)), fig.height=10, results='asis', eval=!debug}
 clusterPdf = "cluster-heatmap.pdf"
-if (nSamples > 3){
+if(nSamples > 3){
   ## gene clustering
-  use = xSd > param$highVarThreshold & apply(!is.na(x), 1, all)
+  use = xSd > param$highVarThreshold & !rowAnyMissings(x)
   sdThresh = param$highVarThreshold
   if (sum(use, na.rm=TRUE) > param$maxGenesForClustering){
     use[use] = rank(-1 * xSd[use], ties.method="max") <= param$maxGenesForClustering
@@ -360,7 +362,8 @@ if (nSamples > 3){
     clusterPng = "cluster-heatmap.png"
     clusterColors = c("red", "yellow", "orange", "green", "blue", "cyan")
       
-    clusterResult = clusterResults(xNormed[use, ], nClusters=6, clusterColors=clusterColors)
+    clusterResult = clusterResults(xNormed[use, ], nClusters=6,
+                                   clusterColors=clusterColors)
     plotCmd = expression({
         clusterHeatmap(xNormed[use, ], param, clusterResult, file=clusterPng, margins=c(18, 9),
                        colColors=sampleColors, lim=c(-param$logColorRange, param$logColorRange),
