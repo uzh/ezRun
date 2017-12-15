@@ -108,7 +108,7 @@ ezMdsPlotly <- function(signal, design, ndim=c(3,2), main){
   }else if(ndim ==2){
     colnames(mdsOut) <- c("Leading logFC dim1", "Leading logFC dim2")
     toPlot <- cbind(toPlot, mdsOut)
-    if(ncol(design) >= 1L){
+    if(ncol(design) > 1L){
       p <- plot_ly(toPlot, x=~`Leading logFC dim1`, y=~`Leading logFC dim2`, 
                    color=formula(paste0("~", colnames(design)[1])), 
                    colors="Set1", marker = list(size = 10),
