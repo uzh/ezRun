@@ -535,7 +535,8 @@ getChildTerms = function(x, subset, goRelatives, indent="", childEnvir){
 }
 
 ##' @describeIn clusterHeatmap Initializes and returns a list of results used by \code{clusterHeatmap()} and \code{goClusterResults()}.
-clusterResults = function(x, nClusters=5, clusterColors=rainbow(nClusters), d=NULL, method="ward.D2"){
+clusterResults = function(x, nClusters=5, clusterColors=rainbow(nClusters), 
+                          d=NULL, method="ward.D2"){
   if (is.null(d)){
     xx = x
     xx[is.na(x)] = min(x, na.rm=TRUE)
@@ -573,11 +574,15 @@ clusterResults = function(x, nClusters=5, clusterColors=rainbow(nClusters), d=NU
 ##' @template roxygen-template
 ##' @seealso \code{\link[stats]{hclust}}
 ##' @seealso \code{\link[gplots]{heatmap.2}}
-clusterHeatmap = function(x, param, result, file="cluster-heatmap.png", method="ward.D2",
-                          doClusterColumns=FALSE, columnDist=NULL, colColors=NULL, lim=c(-4, 4),
+clusterHeatmap = function(x, param, result, file="cluster-heatmap.png", 
+                          method="ward.D2",
+                          doClusterColumns=FALSE, columnDist=NULL, 
+                          colColors=NULL, lim=c(-4, 4),
                           lwid=c(1, 4), lhei=c(1,5),
-                          cexRow=1.0, cexCol=1.5, labRow=rownames(x), margins=c(14,9),
-                          colors=getBlueRedScale(), maxGenesWithLabel=50, ...){
+                          cexRow=1.0, cexCol=1.5, labRow=rownames(x), 
+                          margins=c(14,9),
+                          colors=getBlueRedScale(), 
+                          maxGenesWithLabel=50, ...){
   require("gplots", warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
   probeDendro = as.dendrogram(result$hcl)
   probeDendro = reorder(probeDendro, rowMeans(x, na.rm=TRUE))
@@ -641,6 +646,54 @@ clusterHeatmap = function(x, param, result, file="cluster-heatmap.png", method="
     xTmp = xTmp[order(xTmp$Cluster), ,drop=FALSE]
     ezWrite.table(xTmp, file=sub(".png$", "-clusterMembers.txt", file))
   }
+}
+
+clusterPheatmap <- function(x, design, param, 
+                            clusterColors=c("red", "yellow", "orange", 
+                                            "green", "blue", "cyan"), 
+                            method="ward.D2", doClusterColumns=FALSE,
+                            colors=getBlueRedScale(),
+                            colColors=NULL, lim=c(-4, 4),
+                            maxGenesWithLabel=50){
+  require(pheatmap)
+  nClusters <- length(clusterColors)
+  
+  if(param$showGeneClusterLabels & nrow(x) < maxGenesWithLabel){
+    isShowRowNames <- TRUE
+  }else{
+    isShowRowNames <- FALSE
+  }
+  
+  callback = function(hc, mat){
+    dend = reorder(as.dendrogram(hc), wts = rowMeans(mat, na.rm=TRUE))
+    as.hclust(dend)
+  }
+  clusterInfo <- pheatmap(x, color=colors, clustering_method=method,
+                          breaks=seq(from=lim[1], to=lim[2], length.out=257),
+                          scale="none",
+                          clustering_callback = callback,
+                          silent=TRUE)
+  
+  clusters <- as.factor(cutree(clusterInfo$tree_row, nClusters))
+  annotation_row = data.frame(Clusters=clusters)
+  if(doClusterColumns){
+    colDendro <- clusterInfo$tree_col
+  }else{
+    colDendro <- FALSE
+  }
+  ann_colors <- list(clusters=setNames(clusterColors, levels(clusters)))
+  p <- pheatmap(x, color=colors, clustering_method=method,
+           breaks=seq(from=lim[1], to=lim[2], length.out=257),
+           scale="none", cluster_rows=clusterInfo$tree_row,
+           cluster_cols=colDendro,
+           show_rownames=isShowRowNames,
+           annotation_col=design, annotation_row=annotation_row,
+           annotation_colors = ann_colors)
+  
+  ans <- list(nClusters=nClusters, clusterNumbers=clusters,
+              clusterColors=clusterColors, hcl=clusterInfo$tree_row,
+              pheatmap=p)
+  invisible(ans)
 }
 
 ##' @describeIn clusterHeatmap Applies a GO analysis to the cluster results if GO should be done.
