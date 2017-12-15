@@ -675,7 +675,7 @@ clusterPheatmap <- function(x, design, param,
                           silent=TRUE)
   
   clusters <- as.factor(cutree(clusterInfo$tree_row, nClusters))
-  annotation_row = data.frame(clusters)
+  annotation_row = data.frame(Clusters=clusters)
   if(doClusterColumns){
     colDendro <- clusterInfo$tree_col
   }else{
