@@ -9,9 +9,9 @@ output:
     css: fgcz.css
 ---
 
-```{r cluster plot, echo=FALSE, fig.width=max(8,4+0.1*ncol(xNormed)), fig.height=10, fig.retina=2, warning=FALSE}
+```{r cluster plot, echo=FALSE, fig.width=max(8,4+0.15*ncol(xNormed)), fig.height=10, fig.retina=2, warning=FALSE}
 ## Cluster plot again
-eval(plotCmd)
+plot(clusterResult$pheatmap$gtable)
 ```
 
 ```{r cluster table, echo=FALSE}

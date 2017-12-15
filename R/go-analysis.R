@@ -649,7 +649,8 @@ clusterHeatmap = function(x, param, result, file="cluster-heatmap.png",
 }
 
 clusterPheatmap <- function(x, design, param, 
-                            clusterColors=c("red", "yellow", "orange", "green", "blue", "cyan"), 
+                            clusterColors=c("red", "yellow", "orange", 
+                                            "green", "blue", "cyan"), 
                             method="ward.D2", doClusterColumns=FALSE,
                             colors=getBlueRedScale(),
                             colColors=NULL, lim=c(-4, 4),
@@ -669,7 +670,7 @@ clusterPheatmap <- function(x, design, param,
   }
   clusterInfo <- pheatmap(x, color=colors, clustering_method=method,
                           breaks=seq(from=lim[1], to=lim[2], length.out=257),
-                          scale="none", cutree_rows=nClusters, 
+                          scale="none",
                           clustering_callback = callback,
                           silent=TRUE)
   
@@ -681,7 +682,7 @@ clusterPheatmap <- function(x, design, param,
     colDendro <- FALSE
   }
   ann_colors <- list(clusters=setNames(clusterColors, levels(clusters)))
-  pheatmap(x, color=colors, clustering_method=method,
+  p <- pheatmap(x, color=colors, clustering_method=method,
            breaks=seq(from=lim[1], to=lim[2], length.out=257),
            scale="none", cluster_rows=clusterInfo$tree_row,
            cluster_cols=colDendro,
@@ -689,6 +690,10 @@ clusterPheatmap <- function(x, design, param,
            annotation_col=design, annotation_row=annotation_row,
            annotation_colors = ann_colors)
   
+  ans <- list(nClusters=nClusters, clusterNumbers=clusters,
+              clusterColors=clusterColors, hcl=clusterInfo$tree_row,
+              pheatmap=p)
+  invisible(ans)
 }
 
 ##' @describeIn clusterHeatmap Applies a GO analysis to the cluster results if GO should be done.
