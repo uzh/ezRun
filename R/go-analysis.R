@@ -681,7 +681,7 @@ clusterPheatmap <- function(x, design, param,
   }else{
     colDendro <- FALSE
   }
-  ann_colors <- list(clusters=setNames(clusterColors, levels(clusters)))
+  ann_colors <- list(Clusters=setNames(clusterColors, levels(clusters)))
   p <- pheatmap(x, color=colors, clustering_method=method,
            breaks=seq(from=lim[1], to=lim[2], length.out=257),
            scale="none", cluster_rows=clusterInfo$tree_row,
