@@ -334,7 +334,7 @@ if (nSamples > 3){
 ```
 
 
-```{r javascript, echo=FALSE, results='asis', eval=!debug}
+```{r javascript, echo=FALSE, results='asis', eval=TRUE}
 jsFile = system.file("extdata/enrichr.js", package="ezRun", mustWork=TRUE)
 invisible(file.copy(from=jsFile, to=basename(jsFile), overwrite=TRUE))
 cat(paste0("<SCRIPT language=\"JavaScript\" SRC=\"", basename(jsFile), "\"></SCRIPT>"))
@@ -344,8 +344,9 @@ cat(paste0("<SCRIPT language=\"JavaScript\" SRC=\"", basename(jsFile), "\"></SCR
 clusterPdf = "cluster-heatmap.pdf"
 if(nSamples > 3){
   ## gene clustering
-  use = xSd > param$highVarThreshold & !rowAnyMissings(x)
   sdThresh = param$highVarThreshold
+  use = xSd > sdThresh & !rowAnyMissings(x)
+  
   if (sum(use, na.rm=TRUE) > param$maxGenesForClustering){
     use[use] = rank(-1 * xSd[use], ties.method="max") <= param$maxGenesForClustering
     sdThresh = signif(min(xSd[use]), digits=3)
@@ -359,25 +360,38 @@ if(nSamples > 3){
     cat(paste("Number of features with high std. dev.:", sum(use)), "\n")
     cat("\n")
     
-    clusterPng = "cluster-heatmap.png"
+    #clusterPng = "cluster-heatmap.png"
     clusterColors = c("red", "yellow", "orange", "green", "blue", "cyan")
       
-    clusterResult = clusterResults(xNormed[use, ], nClusters=6,
-                                   clusterColors=clusterColors)
-    plotCmd = expression({
-        clusterHeatmap(xNormed[use, ], param, clusterResult, file=clusterPng, margins=c(18, 9),
-                       colColors=sampleColors, lim=c(-param$logColorRange, param$logColorRange),
-                       doClusterColumns=TRUE)
-      })
-    eval(plotCmd)
+    #clusterResult = clusterResults(xNormed[use, ],
+    #                               nClusters=length(clusterColors),
+    #                               clusterColors=clusterColors)
+    #plotCmd = expression({
+    #    clusterHeatmap(xNormed[use, ], param, clusterResult, 
+    #                   file=clusterPng, margins=c(18, 9),
+    #                   colColors=sampleColors, 
+    #                   lim=c(-param$logColorRange, param$logColorRange),
+    #                   doClusterColumns=TRUE)
+    #  })
+    #eval(plotCmd)
+    clusterResult <-
+      clusterPheatmap(xNormed[use, ], design, param, clusterColors,
+                      lim=c(-param$logColorRange, param$logColorRange),
+                      doClusterColumns=TRUE)
     
+    xTmp = data.frame(Cluster=clusterResult$clusterNumbers)
+    xTmp[ ,1] = clusterResult$clusterColors[xTmp[,1]]
+    xTmp = xTmp[order(xTmp$Cluster), ,drop=FALSE]
+    ezWrite.table(xTmp, file="cluster-heatmap-clusterMembers.txt")
+
     ## pdf export
-    pdf(clusterPdf, width=max(8,4+0.1*ncol(xNormed)), height=10)
-    eval(plotCmd)
+    pdf(clusterPdf, width=max(8,4+0.1*ncol(xNormed)), height=10, onefile=FALSE)
+    plot(clusterResult$pheatmap$gtable)
     dev.off()
   
     if (doGo(param, seqAnno)){
-      clusterResult = goClusterResults(xNormed[use, ], param, clusterResult, seqAnno=seqAnno,
+      clusterResult = goClusterResults(xNormed[use, ], param, clusterResult, 
+                                       seqAnno=seqAnno,
                                        universeProbeIds=rownames(seqAnno))
     }
     
