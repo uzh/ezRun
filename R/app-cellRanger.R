@@ -5,7 +5,7 @@
 # The terms are available here: http://www.gnu.org/licenses/gpl.html
 # www.fgcz.ch
 
-
+##ToD: --localmem, --localcores, use opt-Parameters
 ezMethodCellRanger = function(input=NA, output=NA, param=NA){
   opt = param$cmdOptions
   sampleName = input$getNames()
@@ -14,7 +14,12 @@ ezMethodCellRanger = function(input=NA, output=NA, param=NA){
   cmd = paste(CELLRANGER,"count", paste0("--id=", sampleName),
               paste0("--transcriptome=", param$reference),
               paste0("--fastqs=", sampleDir),
-              paste0("--sample=", sampleName))
+              paste0("--sample=", sampleName),
+              paste0("--localmem=",param$ram),
+              paste0("--localcores=",param$cores))
+  if(opt!=''){
+    cmd = paste(cmd, opt)
+  }
   ezSystem(cmd)
   return("Success")
 }
