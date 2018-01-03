@@ -36,6 +36,10 @@ SHINY_SCATER="http://fgcz-shiny.uzh.ch/fgcz_scater_app/"
 ## Enrichr
 ENRICHR_BASE_URL="https://amp.pharm.mssm.edu/Enrichr"
 
+## Tools
+MEMECHIP="/usr/local/ngseq/stow/meme_4.10.2/bin/meme-chip"
+CELLRANGER="/usr/local/ngseq/opt/cellranger-2.0.2/cellranger"
+
 ## MOTHUR-ASSOCIATED
 MOTHUR_EXE = "/usr/local/ngseq/src/mothur-1.39.5/mothur"
 MOTHUR_DATA_CLEAN_BATCH_TEMPLATE = "/home/grusso/Rcodes/giancarlo/genericScipts/mothurSingleEndCleanAppTemplate.batch"
