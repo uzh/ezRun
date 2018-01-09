@@ -7,7 +7,9 @@
 
 
 ezMethodMacs2 = function(input=NA, output=NA, param=NA){
-  opt = param$cmdOptions
+  opt = param$cmdOptions 
+  if(param$paired) {
+    opt = paste(opt,'-f BAMPE') }
   dataset = input$meta
   #setwdNew(paste(basename(param$resultDir),output$getNames(),sep='_'))
   
