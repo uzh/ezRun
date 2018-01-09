@@ -21,6 +21,7 @@ ezMethodFeatureCounts = function(input=NA, output=NA, param=NA){
   if(!is.null(param$aroundTSSCounting) && param$aroundTSSCounting){
     gtf <- rtracklayer::import(param$ezRef@refFeatureFile)
     seqlengthsRef <- fasta.seqlengths(param$ezRef@refFastaFile)
+    names(seqlengthsRef) <- sub('[[:blank:]].*$','',names(seqlengthsRef))
     seqlengths(gtf) <- seqlengthsRef[names(seqlengths(gtf))]
     gtf <- gtf[gtf$type == "gene"]
     if (ezIsSpecified(param$transcriptTypes)){

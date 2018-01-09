@@ -10,6 +10,27 @@
 
 
 
+#' Title
+#'
+#' @param gRanges 
+#' @param bamFiles 
+#' @param gtfFile 
+#' @param height 
+#' @param width 
+#'
+#' @return
+#' @export
+#'
+#' @examples
+#' \dontrun{
+#' require(GenomicRanges)
+#' require(ezRun)
+#' gtfFile = "/srv/GT/reference/Homo_sapiens/Ensembl/GRCh38.p10/Annotation/Release_89-2017-05-31/Genes/genes.gtf"
+#' myGeneRange = GRanges(seqnames="2", ranges=IRanges(start=1, end=1000, name="foo"))
+#' plotLocusCoverageProfile(myGeneRange, bamFiles, gtfFile=gtfFile,
+#'                          height=20, width=20)
+#'}
+
 plotLocusCoverageProfile = function(gRanges, bamFiles, gtfFile=NULL,
                                     height=10, width=20){
   require(Gviz)
