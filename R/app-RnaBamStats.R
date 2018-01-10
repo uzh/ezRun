@@ -117,7 +117,6 @@ computeBamStats = function(input, htmlFile, param, gff, resultList=NULL){
     gc()
     
     ## do Assessment of duplication rates from package dupRadar
-    ### changed cores to 1 because of segmentation fault errors in parallel mode, instead the function itself gets the cores
     dupRateResults <- ezMclapply(files, getDupRateFromBam, param, 
                                  mc.preschedule = FALSE,
                                  mc.cores = min(length(files), ezThreads()))
