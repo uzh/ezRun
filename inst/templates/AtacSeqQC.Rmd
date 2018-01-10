@@ -1,0 +1,153 @@
+---
+title: "ATAC-Seq QC Report"
+author: "Functional Genomics Center Zurich"
+output: 
+  html_document:
+    self_contained: false
+    includes:
+      in_header: fgcz_header.html
+    css: fgcz.css
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# QC Summary {.tabset}
+
+## InsertSize
+
+### Short Fragments
+```{r insert1, results='asis', echo = FALSE}
+cat("![](",'ShortFragmentFraction.png',")")
+```
+
+### InsertSize Distribution based on ATACseqQC
+```{r insert2, results='asis', echo = FALSE}
+plots2 <- list.files(".","fragmentSize_.*png$")
+   for(i in 1:length(plots2)){
+      filename2 <- plots2[i]
+      cat("![](",filename2,")")
+   }
+```
+
+### InsertSize Distribution based on TEQC
+```{r insert3, results='asis', echo = FALSE}
+plots2 <- list.files(".","InsertSize.*png$")
+   for(i in 1:length(plots2)){
+      filename2 <- plots2[i]
+      cat("![](",filename2,")")
+   }
+```
+
+## chrM Content
+
+```{r chrM, results='asis', echo = FALSE}
+plots2 <- list.files(".","ChrM.*png$")
+   for(i in 1:length(plots2)){
+      filename2 <- plots2[i]
+      cat("![](",filename2,")")
+    }
+```
+
+## Enrichment around TSS
+### Mono-Nucleosomal
+```{r tss mono, results='asis', echo = FALSE, fig.width = 5}
+plots <- list.files(".","heatmap_TSS.*monoNucleosomal.png$")
+plots2 <- list.files(".","lineplot_TSS.*monoNucleosomal.png$")
+   for(i in 1:length(plots2)){
+     filename2 <- plots2[i]
+     if(length(plots)>0){
+      filename <- plots[i]
+      cat("![text](",filename,") ![text](",filename2,")")
+     } else {
+      cat("![text](",filename2,")") 
+     }
+    }
+```
+
+### Sub-Nucleosomal
+```{r tss sub, results='asis', echo = FALSE, fig.width = 5}
+plots <- list.files(".","heatmap_TSS.*subNucleosomal.png$")
+plots2 <- list.files(".","lineplot_TSS.*subNucleosomal.png$")
+   for(i in 1:length(plots2)){
+     filename2 <- plots2[i]
+     if(length(plots)>0){
+      filename <- plots[i]
+      cat("![text](",filename,") ![text](",filename2,")")
+     } else {
+      cat("![text](",filename2,")") 
+     }
+    }
+```
+
+### Multi-Nucleosomal
+```{r tss multi, results='asis', echo = FALSE, fig.width = 5}
+plots <- list.files(".","heatmap_TSS.*multiNucleosomal.png$")
+plots2 <- list.files(".","lineplot_TSS.*multiNucleosomal.png$")
+   for(i in 1:length(plots2)){
+     filename2 <- plots2[i]
+     if(length(plots)>0){
+      filename <- plots[i]
+      cat("![text](",filename,") ![text](",filename2,")")
+     } else {
+      cat("![text](",filename2,")") 
+     }
+    }
+```
+
+## Enrichment around CTCF binding motifs
+
+### Mono-Nucleosomal
+
+```{r ctcf mono, results='asis', echo = FALSE, fig.width = 5}
+plots <- list.files(".","heatmap_CTCF.*monoNucleosomal.png$")
+plots2 <- list.files(".","lineplot_CTCF.*monoNucleosomal.png$")
+   for(i in 1:length(plots2)){
+     filename2 <- plots2[i]
+     if(length(plots)>0){
+      filename <- plots[i]
+      cat("![text](",filename,") ![text](",filename2,")")
+     } else {
+      cat("![text](",filename2,")") 
+     }
+    }
+```
+
+### Sub-Nucleosomal
+
+```{r ctcf sub, results='asis', echo = FALSE, fig.width = 5}
+plots <- list.files(".","heatmap_CTCF.*subNucleosomal.png$")
+plots2 <- list.files(".","lineplot_CTCF.*subNucleosomal.png$")
+   for(i in 1:length(plots2)){
+     filename2 <- plots2[i]
+     if(length(plots)>0){
+      filename <- plots[i]
+      cat("![text](",filename,") ![text](",filename2,")")
+     } else {
+      cat("![text](",filename2,")") 
+     }
+    }
+```
+
+### Multi-Nucleosomal
+
+```{r ctcf multi, results='asis', echo = FALSE, fig.width = 5}
+plots <- list.files(".","heatmap_CTCF.*multiNucleosomal.png$")
+plots2 <- list.files(".","lineplot_CTCF.*multiNucleosomal.png$")
+   for(i in 1:length(plots2)){
+     filename2 <- plots2[i]
+     if(length(plots)>0){
+      filename <- plots[i]
+      cat("![text](",filename,") ![text](",filename2,")")
+     } else {
+      cat("![text](",filename2,")") 
+     }
+    }
+```
+
+## SessionInfo
+```{r, echo=FALSE}
+sessionInfo()
+```
