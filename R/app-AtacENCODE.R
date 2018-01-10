@@ -33,9 +33,12 @@ ezMethodAtacENCODE <- function(input=NA, output=NA, param=NA,
   samples = rownames(dataset)
   
   ## This pipeline only supports human and mouse
-  if(grepl("(Homo|human)", param$Species, ignore.case = TRUE)){
+  species <- unique(input$getColumn("Species"))
+  stopifnot(length(species)==1L)
+  
+  if(grepl("(Homo|human)", species, ignore.case = TRUE)){
     refBuild <- "hg38"
-  }else if(grepl("(Mus|mouse)", param$Species, ignore.case = TRUE)){
+  }else if(grepl("(Mus|mouse)", species, ignore.case = TRUE)){
     refBuild <- "mm10"
   }else{
     stop("Only human and mouse are supported by this pipeline!")
