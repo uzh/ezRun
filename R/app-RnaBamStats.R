@@ -117,7 +117,8 @@ computeBamStats = function(input, htmlFile, param, gff, resultList=NULL){
     gc()
     
     ## do Assessment of duplication rates from package dupRadar
-    dupRateResults <- ezMclapply(files, getDupRateFromBam, param,
+    ### changed cores to 1 because of segmentation fault errors in parallel mode, instead the function itself gets the cores
+    dupRateResults <- ezMclapply(files, getDupRateFromBam, param, 
                                  mc.preschedule = FALSE,
                                  mc.cores = min(length(files), ezThreads()))
     for(sm in samples){
@@ -766,7 +767,7 @@ getJunctionPlotsFromBam = function(bamFile, param){
 
 getDupRateFromBam <- function(bamFile, param=NULL, gtfFn, 
                               stranded=c("both", "sense", "antisense"), 
-                              paired=FALSE, dupremover=c("bamutil", "picard"),
+                              paired=FALSE, dupremover=c("picard", "bamutil"),
                               threads=1){
   if(!is.null(param)){
     gtfFn <- param$ezRef@refFeatureFile
