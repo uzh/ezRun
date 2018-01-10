@@ -69,6 +69,13 @@ ezFeatureAnnotation = function(param, ids=NULL,
   if(!is.null(ids)){
     seqAnno <- seqAnno[ids, , drop=FALSE]
   }
+  minimalCols <- c("gene_id", "transcript_id", "gene_name", "type", "strand",
+                   "seqid", "biotypes", "description", "start", "end",
+                   "gc", "width", "GO BP", "GO MF", "GO CC")
+  if(!all(minimalCols %in% colnames(seqAnno))){
+    stop(minimalCols[!minimalCols %in% colnames(seqAnno)], 
+         "must exist in annotation file!")
+  }
   return(seqAnno)
 }
 
