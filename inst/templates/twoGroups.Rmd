@@ -602,7 +602,9 @@ for(onto in names(enrichResult)){
     if(is.null(enrichResult[[onto]][[sig]]) || nrow(enrichResult[[onto]][[sig]]@result) == 0L){
       next
     }else{
-      enrichMap(enrichResult[[onto]][[sig]], n=50, main=paste(onto, sig))
+        enrichResultReduced <- enrichResult
+        enrichResultReduced[[onto]][[sig]]@result$Description <- substr(enrichResultReduced[[onto]][[sig]]@result$Description, 1, 30)
+      enrichMap(enrichResultReduced[[onto]][[sig]], n=50, main=paste(onto, sig))
       resFn <- paste(onto, sig, "hypergeometric.txt", sep="_")
       write.table(enrichResult[[onto]][[sig]], file=resFn,
                   quote=FALSE, col.names = TRUE, row.names = FALSE, sep = "\t")
