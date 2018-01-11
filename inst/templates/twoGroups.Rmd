@@ -582,6 +582,7 @@ if(exists("enrichResult")){
       if(is.null(enrichResult[[onto]][[sig]])){
         next
       }else{
+        enrichResult[[onto]][[sig]]$Description <- substr(enrichResult[[onto]][[sig]]$Description, 1, 30)
         p <- dotplot(enrichResult[[onto]][[sig]], showCategory=20,
                      title=paste(onto, sig))
         print(p)

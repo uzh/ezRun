@@ -346,7 +346,8 @@ ezEnricher <- function(param, se){
                          TERM2GENE=go2geneDF)
     tempTable <- enrichUp@result
     if(nrow(tempTable) != 0L){
-      tempTable$Description <- substr(Term(GOTERM[tempTable$ID]), 1, 30)
+      tempTable$Description <- Term(GOTERM[tempTable$ID])
+      #tempTable$Description <- substr(Term(GOTERM[tempTable$ID]), 1, 30)
       tempTable$geneName <- sapply(relist(geneid2name[unlist(strsplit(tempTable$geneID, "/"))], strsplit(tempTable$geneID, "/")), paste, collapse="/")
       enrichUp@result <- tempTable
     }
@@ -356,7 +357,8 @@ ezEnricher <- function(param, se){
                            TERM2GENE=go2geneDF)
     tempTable <- enrichDown@result
     if(nrow(tempTable) != 0L){
-      tempTable$Description <- substr(Term(GOTERM[tempTable$ID]), 1, 30)
+      tempTable$Description <- Term(GOTERM[tempTable$ID])
+      #tempTable$Description <- substr(Term(GOTERM[tempTable$ID]), 1, 30)
       tempTable$geneName <- sapply(relist(geneid2name[unlist(strsplit(tempTable$geneID, "/"))], strsplit(tempTable$geneID, "/")), paste, collapse="/")
       enrichDown@result <- tempTable
     }
@@ -366,7 +368,8 @@ ezEnricher <- function(param, se){
                            TERM2GENE=go2geneDF)
     tempTable <- enrichBoth@result
     if(nrow(tempTable) != 0L){
-      tempTable$Description <- substr(Term(GOTERM[tempTable$ID]), 1, 30)
+      tempTable$Description <- Term(GOTERM[tempTable$ID])
+      #tempTable$Description <- substr(Term(GOTERM[tempTable$ID]), 1, 30)
       tempTable$geneName <- sapply(relist(geneid2name[unlist(strsplit(tempTable$geneID, "/"))], strsplit(tempTable$geneID, "/")), paste, collapse="/")
       enrichBoth@result <- tempTable
     }
