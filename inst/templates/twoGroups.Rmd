@@ -578,7 +578,7 @@ if (doGo(param, seqAnno)){
 ```{r dotplot gsea, echo=FALSE, eval=!debug}
 if(exists("enrichResult")){
   for(onto in names(enrichResult)){
-    for(sig in names(enrichResult[[1]])){
+    for(sig in names(enrichResult[[onto]])){
       if(is.null(enrichResult[[onto]][[sig]])){
         next
       }else{
