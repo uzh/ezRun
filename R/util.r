@@ -395,7 +395,7 @@ ezLogmeanScalingFactor = function(x, use=NULL, target=NULL, presentFlag=NULL){
     isAllPresent = apply(presentFlag, 1, all)
     use = use & isAllPresent
   }
-  means <- apply(x.log[use, ], 2, mean, na.rm=TRUE)
+  means <- apply(x.log[use, , drop=FALSE], 2, mean, na.rm=TRUE)
 	if (is.null(target)){
 		target = exp(mean(means))
 	}
