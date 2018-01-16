@@ -19,25 +19,18 @@ knitr::opts_chunk$set(echo = TRUE)
 ## InsertSize
 
 ### Short Fragments
+
 ```{r insert1, results='asis', echo = FALSE}
 cat("![](",'ShortFragmentFraction.png',")")
 ```
 
-### InsertSize Distribution based on ATACseqQC
-```{r insert2, results='asis', echo = FALSE}
-plots2 <- list.files(".","fragmentSize_.*png$")
-   for(i in 1:length(plots2)){
-      filename2 <- plots2[i]
-      cat("![](",filename2,")")
-   }
-```
+### InsertSize Distribution
 
-### InsertSize Distribution based on TEQC
-```{r insert3, results='asis', echo = FALSE}
-plots2 <- list.files(".","InsertSize.*png$")
-   for(i in 1:length(plots2)){
-      filename2 <- plots2[i]
-      cat("![](",filename2,")")
+```{r insert2, results='asis', echo = FALSE}
+plots <- list.files(".","fragmentSize_.*png$")
+   for(i in 1:length(plots)){
+      filename <- plots[i]
+      cat("![](",filename,")")
    }
 ```
 
@@ -54,47 +47,56 @@ plots2 <- list.files(".","ChrM.*png$")
 ## Enrichment around TSS
 ### Mono-Nucleosomal
 ```{r tss mono, results='asis', echo = FALSE, fig.width = 5}
-plots <- list.files(".","heatmap_TSS.*monoNucleosomal.png$")
-plots2 <- list.files(".","lineplot_TSS.*monoNucleosomal.png$")
+plots <- list.files(".","heatmap_TSS.*monoNucl.png$")
+plots2 <- list.files(".","lineplot_TSS.*monoNucl.png$")
    for(i in 1:length(plots2)){
-     filename2 <- plots2[i]
-     if(length(plots)>0){
+      filename <- plots2[i]
+      cat("![](",filename,")")
+   }
+
+   for(i in 1:length(plots)){
       filename <- plots[i]
-      cat("![text](",filename,") ![text](",filename2,")")
-     } else {
-      cat("![text](",filename2,")") 
-     }
-    }
+      cat("![](",filename,")")
+   }
 ```
 
 ### Sub-Nucleosomal
 ```{r tss sub, results='asis', echo = FALSE, fig.width = 5}
-plots <- list.files(".","heatmap_TSS.*subNucleosomal.png$")
-plots2 <- list.files(".","lineplot_TSS.*subNucleosomal.png$")
+plots <- list.files(".","heatmap_TSS.*subNucl.png$")
+plots2 <- list.files(".","lineplot_TSS.*subNucl.png$")
    for(i in 1:length(plots2)){
-     filename2 <- plots2[i]
-     if(length(plots)>0){
+      filename <- plots2[i]
+      cat("![](",filename,")")
+   }
+
+   for(i in 1:length(plots)){
       filename <- plots[i]
-      cat("![text](",filename,") ![text](",filename2,")")
-     } else {
-      cat("![text](",filename2,")") 
-     }
-    }
+      cat("![](",filename,")")
+   }
 ```
 
 ### Multi-Nucleosomal
 ```{r tss multi, results='asis', echo = FALSE, fig.width = 5}
-plots <- list.files(".","heatmap_TSS.*multiNucleosomal.png$")
-plots2 <- list.files(".","lineplot_TSS.*multiNucleosomal.png$")
+plots <- list.files(".","heatmap_TSS.*multiNucl.png$")
+plots2 <- list.files(".","lineplot_TSS.*multiNucl.png$")
    for(i in 1:length(plots2)){
-     filename2 <- plots2[i]
-     if(length(plots)>0){
+      filename <- plots2[i]
+      cat("![](",filename,")")
+   }
+
+   for(i in 1:length(plots)){
       filename <- plots[i]
-      cat("![text](",filename,") ![text](",filename2,")")
-     } else {
-      cat("![text](",filename2,")") 
-     }
-    }
+      cat("![](",filename,")")
+   }
+```
+
+### Per-Sample-Plots
+```{r tss per sample, results='asis', echo = FALSE, fig.width = 5}
+plots <- list.files(".","lineplot_TSS.*bam.png$")
+   for(i in 1:length(plots)){
+      filename <- plots[i]
+      cat("![](",filename,")")
+   }
 ```
 
 ## Enrichment around CTCF binding motifs
@@ -102,49 +104,59 @@ plots2 <- list.files(".","lineplot_TSS.*multiNucleosomal.png$")
 ### Mono-Nucleosomal
 
 ```{r ctcf mono, results='asis', echo = FALSE, fig.width = 5}
-plots <- list.files(".","heatmap_CTCF.*monoNucleosomal.png$")
-plots2 <- list.files(".","lineplot_CTCF.*monoNucleosomal.png$")
-   for(i in 1:length(plots2)){
-     filename2 <- plots2[i]
-     if(length(plots)>0){
+plots <- list.files(".","heatmap_CTCF.*monoNucl.png$")
+plots2 <- list.files(".","lineplot_CTCF.*monoNucl.png$")
+  for(i in 1:length(plots2)){
+      filename <- plots2[i]
+      cat("![](",filename,")")
+   }
+
+   for(i in 1:length(plots)){
       filename <- plots[i]
-      cat("![text](",filename,") ![text](",filename2,")")
-     } else {
-      cat("![text](",filename2,")") 
-     }
-    }
+      cat("![](",filename,")")
+   }
 ```
 
 ### Sub-Nucleosomal
 
 ```{r ctcf sub, results='asis', echo = FALSE, fig.width = 5}
-plots <- list.files(".","heatmap_CTCF.*subNucleosomal.png$")
-plots2 <- list.files(".","lineplot_CTCF.*subNucleosomal.png$")
+plots <- list.files(".","heatmap_CTCF.*subNucl.png$")
+plots2 <- list.files(".","lineplot_CTCF.*subNucl.png$")
    for(i in 1:length(plots2)){
-     filename2 <- plots2[i]
-     if(length(plots)>0){
+      filename <- plots2[i]
+      cat("![](",filename,")")
+   }
+
+   for(i in 1:length(plots)){
       filename <- plots[i]
-      cat("![text](",filename,") ![text](",filename2,")")
-     } else {
-      cat("![text](",filename2,")") 
-     }
-    }
+      cat("![](",filename,")")
+   }
 ```
 
 ### Multi-Nucleosomal
 
 ```{r ctcf multi, results='asis', echo = FALSE, fig.width = 5}
-plots <- list.files(".","heatmap_CTCF.*multiNucleosomal.png$")
-plots2 <- list.files(".","lineplot_CTCF.*multiNucleosomal.png$")
-   for(i in 1:length(plots2)){
-     filename2 <- plots2[i]
-     if(length(plots)>0){
+plots <- list.files(".","heatmap_CTCF.*multiNucl.png$")
+plots2 <- list.files(".","lineplot_CTCF.*multiNucl.png$")
+  for(i in 1:length(plots2)){
+      filename <- plots2[i]
+      cat("![](",filename,")")
+   }
+
+   for(i in 1:length(plots)){
       filename <- plots[i]
-      cat("![text](",filename,") ![text](",filename2,")")
-     } else {
-      cat("![text](",filename2,")") 
-     }
-    }
+      cat("![](",filename,")")
+   }
+```
+
+### Per-Sample-Plots
+
+```{r ctcf per sample, results='asis', echo = FALSE, fig.width = 5}
+plots <- list.files(".","lineplot_CTCF.*bam.png$")
+   for(i in 1:length(plots)){
+      filename <- plots[i]
+      cat("![](",filename,")")
+   }
 ```
 
 ## SessionInfo
