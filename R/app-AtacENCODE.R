@@ -57,10 +57,12 @@ ezMethodAtacENCODE <- function(input=NA, output=NA, param=NA,
   ## We force it to rerun until it succeed.
   status <- try(ezSystem(cmd))
   attempt <- 1L
-  while(class(status) == "try-error" && attempt <= 10L){
+  while(class(status) == "try-error"){
     status <- try(ezSystem(cmd))
     attempt <- attempt + 1L
+    if(attempt > 10L){
+      stop("The pipeline still fails after 10 attempts.")
+    }
   }
   return("Success")
 }
-
