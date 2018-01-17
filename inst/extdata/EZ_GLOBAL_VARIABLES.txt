@@ -39,6 +39,7 @@ ENRICHR_BASE_URL="https://amp.pharm.mssm.edu/Enrichr"
 ## Tools
 MEMECHIP="/usr/local/ngseq/stow/meme_4.10.2/bin/meme-chip"
 CELLRANGER="/usr/local/ngseq/opt/cellranger-2.0.2/cellranger"
+ATACENCODE="/usr/local/ngseq/opt/atac_dnase_pipelines/atac.bds"
 
 ## MOTHUR-ASSOCIATED
 MOTHUR_EXE = "/usr/local/ngseq/src/mothur-1.39.5/mothur"
