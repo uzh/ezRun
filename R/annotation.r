@@ -400,3 +400,27 @@ getGeneMapping = function(param, seqAnnoDF){
 hasGeneMapping = function(param, seqAnnoDF){
   any(param$geneColumnSet %in% colnames(seqAnnoDF) | param$featureLevel == "gene")
 }
+
+### Get the black listed genomic regions for functional genomics analysis
+getBlacklistedRegions <- function(refBuild=c("hg38", "hg19", "mm10", "mm9",
+                                             "ce10", "dm3"),
+                                  format=c("UCSC", "Ensembl")){
+  require(rtracklayer)
+  require(GenomeInfoDb)
+  refBuild <- match.arg(refBuild)
+  format <- match.arg(format)
+  
+  url <- switch(refBuild,
+                hg38="https://www.encodeproject.org/files/ENCFF419RSJ/@@download/ENCFF419RSJ.bed.gz",
+                hg19="https://www.encodeproject.org/files/ENCFF001TDO/@@download/ENCFF001TDO.bed.gz",
+                mm10="https://www.encodeproject.org/files/ENCFF547MET/@@download/ENCFF547MET.bed.gz",
+                mm9="http://mitra.stanford.edu/kundaje/akundaje/release/blacklists/mm9-mouse/mm9-blacklist.bed.gz",
+                ce10="http://mitra.stanford.edu/kundaje/akundaje/release/blacklists/ce10-C.elegans/ce10-blacklist.bed.gz",
+                dm3="http://mitra.stanford.edu/kundaje/akundaje/release/blacklists/dm3-D.melanogaster/dm3-blacklist.bed.gz")
+  bedGR <- import.bed(url)
+  
+  if(format == "Ensembl"){
+    seqlevelsStyle(bedGR) <- "Ensembl"
+  }
+  return(bedGR)
+}
