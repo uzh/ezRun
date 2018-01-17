@@ -485,7 +485,7 @@ cleanOldestDir <- function(dirPath, user=NULL){
   
   ## Check being used or not
   isUsed <- suppressWarnings(lapply(paste("lsof", rownames(allInfo)), 
-                                    system, inter=TRUE))
+                                    system, intern=TRUE))
   isUsed <- lengths(isUsed) != 0L
   if(!all(isUsed)){
     allInfo <- allInfo[!isUsed, ]
