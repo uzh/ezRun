@@ -56,8 +56,10 @@ ezMethodAtacENCODE <- function(input=NA, output=NA, param=NA,
   ## This ATAC ENCODE pipeline can fail randomly. 
   ## We force it to rerun until it succeed.
   status <- try(ezSystem(cmd))
-  while(class(status) == "try-error"){
+  attempt <- 1L
+  while(class(status) == "try-error" && attempt <= 10L){
     status <- try(ezSystem(cmd))
+    attempt <- attempt + 1L
   }
   return("Success")
 }
