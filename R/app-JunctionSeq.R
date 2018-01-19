@@ -1,5 +1,6 @@
 ###QoRTs/JunctionSeqApp
 ezMethodRunJunctionSeqPipeline <- function(input, output, param, htmlFile="00index.html"){
+  setwdNew(param$comparison)
   runQoRTs(input, output, param)
   runJunctionSeq(input, output, param)
   ###TODO: multigroup support, order of levels in dataset (resort dataset by groupname?), usage of flattend gff?? only known SJ, result annotation -> simple report,
@@ -14,7 +15,7 @@ runQoRTs <- function(input, output, param){
   #1. Get BAM-Files:
   bamFiles = input$getFullPaths("BAM")
   bamFileList = as.list(bamFiles)
-  ezWrite.table(data.frame(sample.ID = rownames(dataset), dataset, stringsAsFactors = F), 'decoderFile.txt', row.names = FALSE)
+  ezWrite.table(data.frame(sample.ID = rownames(dataset), dataset, stringsAsFactors = F, check.names = F), 'decoderFile.txt', row.names = FALSE)
   gtfFile = param$ezRef@refFeatureFile
   
   #Make flattend gtfFile
@@ -42,10 +43,12 @@ runQoRTs <- function(input, output, param){
 runJunctionSeq <- function(input, output, param, htmlFile="00index.html"){
   require("JunctionSeq")
   samples = input$getNames()
+  dataset = input$meta
   gffOutputIncludingNovelJunctions = 'withNovel.forJunctionSeq.gff.gz'
   # including novel junctions
   countFiles <- file.path(samples,"QC.spliceJunctionAndExonCounts.withNovel.forJunctionSeq.txt.gz");
   param[['grouping']] = sub('.\\[.*', '', param[['grouping']])
+  colnames(dataset) = sub('.\\[.*', '', colnames(dataset))
   jscs <- runJunctionSeqAnalyses(sample.files = countFiles,
                                  sample.names = samples,
                                  condition = factor(dataset[[param$grouping]]),
@@ -58,12 +61,12 @@ runJunctionSeq <- function(input, output, param, htmlFile="00index.html"){
   writeCompleteResults(jscs,
                        outfile.prefix="./JuncSeq_Result-File",
                        save.jscs = TRUE, 
-                       FDR.threshold = param$fdr);
+                       FDR.threshold = as.numeric(param$fdr));
   
   buildAllPlots(jscs=jscs,
                 outfile.prefix = "./finalOutput",
                 use.plotting.device = "CairoPNG",
-                FDR.threshold = param$fdr)
+                FDR.threshold = as.numeric(param$fdr))
   return('sucess')
 }
 
