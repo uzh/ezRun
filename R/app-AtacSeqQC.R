@@ -115,7 +115,7 @@ ezMethodATACSeqQC <- function(input, output, param, htmlFile="00index.html"){
       }
       x=new("ScoreMatrixList",myList)
       png(paste0('lineplot_TSS_multiSample_',names(multiScoreMatrixList[[1]])[j],'.png'),width = 700, height = 500, res = 90)
-      plotMeta(x, xcoords = c(-2000, 2000),xlab='CTCF-Motif',
+      plotMeta(x, xcoords = c(-2000, 2000),xlab='TSS',
                main=paste('MultiSample TSS',names(multiScoreMatrixList[[1]])[j]), 
                profile.names=samples, lwd=3)
       dev.off()
