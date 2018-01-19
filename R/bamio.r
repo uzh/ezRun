@@ -43,17 +43,30 @@ ezBamSeqLengths = function(bamFile){
 ##' bamFile <- system.file("extdata", "ex1.bam", package="Rsamtools", mustWork=TRUE)
 ##' file.create("test.bam")
 ##' ezSortIndexBam("test.bam", basename(bamFile), ram=0.5, cores = ezThreads())
-ezSortIndexBam = function(inBam, bam, ram=2, removeBam=TRUE, cores=2){
+ezSortIndexBam = function(inBam, bam, ram=2, removeBam=TRUE, cores=2,
+                          method=c("sambamba", "samtools")){
+  method <- match.arg(method)
   
-  maxMem = paste0(as.integer(floor(ram * 0.7/cores*1000)), "M") ## use only 70% --> 30% safety margin before crash
-  cmd = paste("samtools", "sort", "-l 9", "-m", maxMem, "-@", cores, inBam, 
-              "-o", bam)
-  ezSystem(cmd)
+  maxMem = paste0(as.integer(floor(ram * 0.7/cores*1000)), "M") 
+  ## use only 70% --> 30% safety margin before crash
+  setEnvironments(method)
+  
+  if(method == "sambamba"){
+    cmd <- paste(method, "sort", "-l 9", "-m", maxMem, "-t", cores, inBam,
+                 "-o", bam)
+    ezSystem(cmd)
+    cmd = paste(method, "index", "-t", cores, bam)
+    ezSystem(cmd)
+  }else{
+    cmd = paste(method, "sort", "-l 9", "-m", maxMem, "-@", cores, inBam, 
+                "-o", bam)
+    ezSystem(cmd)
+    cmd = paste(method, "index", bam)
+    ezSystem(cmd)
+  }
   if (removeBam){
     file.remove(inBam)
   }
-  cmd = paste("samtools", "index", bam)
-  ezSystem(cmd)
 }
 
 ##' @title Scans a bam file
