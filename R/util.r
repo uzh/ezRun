@@ -723,6 +723,7 @@ isValidEnvironments <- function(tool){
                 "fastq_screen"=Sys.which("fastq_screen") != "",
                 "bowtie2"=Sys.which("bowtie2") != "",
                 "conda"=Sys.which("conda") != "",
+                "sambamba"=Sys.which("sambamba") != "",
                 stop("unsupported tool: ", tool)
                 )
   return(ans)
@@ -747,6 +748,7 @@ setEnvironments <- function(tool, envir=parent.frame()){
                   "fastq_screen"=expression({Sys.setenv("PATH"=paste("/usr/local/ngseq/packages/QC/FastQScreen/0.11.1", Sys.getenv("PATH"), sep=":"))}),
                   "bowtie2"=expression({Sys.setenv("PATH"=paste("/usr/local/ngseq/packages/Aligner/Bowtie2/2.3.2/bin", Sys.getenv("PATH"), sep=":"))}),
                   "conda"=expression({Sys.setenv("PATH"=paste("/usr/local/ngseq/miniconda3/bin", Sys.getenv("PATH"), sep=":"))}),
+                  "sambamba"=expression({Sys.setenv("PATH"=paste("/usr/local/ngseq/packages/Tools/sambamda/0.6.7/bin", Sys.getenv("PATH"), sep=":"))}),
                   stop("unsupported tool: ", tool)
     )
     eval(cmd, envir=envir)
