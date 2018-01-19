@@ -55,12 +55,13 @@ ezMethodAtacENCODE <- function(input=NA, output=NA, param=NA,
                "-auto_detect_adapter -nth", param$cores, cmd)
   ## This ATAC ENCODE pipeline can fail randomly. 
   ## We force it to rerun until it succeed.
-  status <- try(ezSystem(cmd))
   attempt <- 1L
+  status <- try(ezSystem(cmd))
   while(class(status) == "try-error"){
-    status <- try(ezSystem(cmd))
+    message("Attemp: ", attempt)
     attempt <- attempt + 1L
-    if(attempt > 10L){
+    status <- try(ezSystem(cmd))
+    if(attempt >= 10L){
       stop("The pipeline still fails after 10 attempts.")
     }
   }
