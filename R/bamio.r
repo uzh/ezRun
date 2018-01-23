@@ -30,19 +30,6 @@ ezBamSeqLengths = function(bamFile){
   return(scanBamHeader(bamFile)[[1]]$targets)
 }
 
-##' @title Sorts and indexes a bam file
-##' @description Sorts and indexes a bam file.
-##' @param inBam a character representing the file path of the input bam file to sort.
-##' @param bam a character representing the file path of the output bam file.
-##' @param samtools a character representing the file path to the samtools directory.
-##' @param ram max RAM to use in GB
-##' @param removeBam a logical indicating whether to remove the file specified in \code{inBam}.
-##' @param cores an integer specifying how many cores to use for the command.
-##' @template roxygen-template
-##' @examples 
-##' bamFile <- system.file("extdata", "ex1.bam", package="Rsamtools", mustWork=TRUE)
-##' file.create("test.bam")
-##' ezSortIndexBam("test.bam", basename(bamFile), ram=0.5, cores = ezThreads())
 ezSortIndexBam = function(inBam, bam, ram=2, removeBam=TRUE, cores=2,
                           method=c("sambamba", "samtools")){
   method <- match.arg(method)
