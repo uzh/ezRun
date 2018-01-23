@@ -20,3 +20,9 @@ output[['Html [Link]']] = 'p2578/AtacENCODE_18564_2017-06-07--14-06-33/asthmatic
 input = 'HiSeq2500_ATAC_o3757_asthmaticP.tsv'
 EzAppAtacENCODE$new()$run(input=input, output=output, param=param)
 
+
+## atacBamFilter
+setwd("/scratch/gtan/p2578-atacENCODE/atacBamFilter")
+localBamFile <- "/srv/gstore/projects/p2578/Bowtie2_22155_2017-11-06--22-58-25/A8901US.bam"
+param <- list()
+param$strandMode <- "both"
