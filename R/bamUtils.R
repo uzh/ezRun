@@ -6,10 +6,10 @@
 # www.fgcz.ch
 
 ### Filter ATAC-seq bam file; process by sample;
-#### 1. chrM removal
-#### 2. low mapping quality filtering (< 10)
-#### 3. shift the 5' start
-#### 4. mark and remove duplicates: sambamba
+#### 1. remove duplicates: sambamba
+#### 2. chrM removal
+#### 3. low mapping quality filtering (< 10)
+#### 4. shift the 5' start
 atacBamProcess <- function(input=NA, output=NA, param=NA){
   require(GenomicAlignments)
   require(Rsamtools)
@@ -35,6 +35,11 @@ atacBamProcess <- function(input=NA, output=NA, param=NA){
   ## For now, we only have paired-end ATAC-seq
   stopifnot(param$paired)
   
+  ## remove the duplicates in bam
+  noDupBam <- tempfile(pattern="nodup_", tmpdir=".", fileext = ".bam")
+  dupBam(inBam=localBamFile, outBam=noDupBam, operation="remove", 
+         cores=param$cores)
+  
   what <- c("qname", "flag", "mapq", "isize", "seq", "qual", "mrnm")
   tags <- c("AS", "XN", "XM", "XO", "XG", "NM", "MD", "YS", "YT")
   flag <- scanBamFlag(isSecondaryAlignment = FALSE, 
@@ -44,7 +49,8 @@ atacBamProcess <- function(input=NA, output=NA, param=NA){
   ## mapq < 10: discarded
   scanBamParam <- ScanBamParam(flag=flag, tag=tags, what=what, mapqFilter=10L)
   
-  reads <- readGAlignmentPairs(file=localBamFile, param=scanBamParam)
+  reads <- readGAlignmentPairs(file=noDupBam, param=scanBamParam)
+  file.remove(noDupBam)
   
   ## Remove the reads on mitochondrial chr
   mitChrs <- c("M", "MT", "chrM")
@@ -58,9 +64,7 @@ atacBamProcess <- function(input=NA, output=NA, param=NA){
   rm(reads)
   gc()
   shiftedReads <- GAlignmentPairs(first=firstReads, last=lastReads)
-  
-  tempShiftedBam <- tempfile(pattern="shifted_", tmpdir=".", fileext = ".bam")
-  export(shiftedReads, tempShiftedBam)
+  export(shiftedReads, basename(output$getColumn("BAM")))
   
   return(output)
 }
