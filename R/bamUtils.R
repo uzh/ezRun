@@ -37,6 +37,7 @@ atacBamProcess <- function(input=NA, output=NA, param=NA){
   
   ## remove the duplicates in bam
   noDupBam <- tempfile(pattern="nodup_", tmpdir=".", fileext = ".bam")
+  message("Remove duplicates...")
   dupBam(inBam=localBamFile, outBam=noDupBam, operation="remove", 
          cores=param$cores)
   
@@ -48,7 +49,7 @@ atacBamProcess <- function(input=NA, output=NA, param=NA){
   
   ## mapq < 10: discarded
   scanBamParam <- ScanBamParam(flag=flag, tag=tags, what=what, mapqFilter=10L)
-  
+  message("Read nodup bam file...")
   reads <- readGAlignmentPairs(file=noDupBam, param=scanBamParam)
   file.remove(noDupBam)
   
@@ -57,6 +58,7 @@ atacBamProcess <- function(input=NA, output=NA, param=NA){
   reads <- reads[!seqnames(reads) %in% mitChrs]
   
   ## shiftAlignments
+  message("Shifting 5' start...")
   firstReads <- ATACseqQC:::shiftReads(first(reads),
                                        positive = 4L, negative = 5L)
   lastReads <- ATACseqQC:::shiftReads(last(reads),
@@ -64,6 +66,7 @@ atacBamProcess <- function(input=NA, output=NA, param=NA){
   rm(reads)
   gc()
   shiftedReads <- GAlignmentPairs(first=firstReads, last=lastReads)
+  message("Exporting bam file...")
   export(shiftedReads, basename(output$getColumn("BAM")))
   
   return(output)
