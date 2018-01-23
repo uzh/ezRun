@@ -26,7 +26,8 @@ ezSortIndexBam(inBam, bam, ram=2, removeBam=TRUE, cores=2,
 \examples{
   bamFile <- system.file("extdata", "ex1.bam", package="Rsamtools", 
                          mustWork=TRUE)
-  ezSortIndexBam(inBam=bamFile, bam="test.bam", ram=0.5, 
+  outBam <- tempfile(pattern="test-", fileext=".bam")
+  ezSortIndexBam(inBam=bamFile, bam=outBam, ram=0.5, 
                  removeBam=FALSE, cores = ezThreads())
 }
 \author{

@@ -65,3 +65,20 @@ atacBamProcess <- function(input=NA, output=NA, param=NA){
   return(output)
 }
 
+
+dupBam <- function(inBam, outBam, operation=c("mark", "remove"),
+                   cores=ezThreads()){
+  operation <- match.arg(operation)
+  setEnvironments("sambamba")
+  
+  if(operation == "mark"){
+    cmd <- paste("sambamba markdup -t", cores, "-l 9 --tmpdir=.",
+                 inBam, outBam)
+  }else{
+    cmd <- paste("sambamba markdup -r -t", cores, "-l 9 --tmpdir=.",
+                 inBam, outBam)
+  }
+  ezSystem(cmd)
+  invisible(outBam)
+}
+
