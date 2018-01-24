@@ -50,11 +50,11 @@ atacBamProcess <- function(input=NA, output=NA, param=NA){
   scanBamParam <- ScanBamParam(flag=flag, tag=tags, what=what, mapqFilter=10L)
   
   reads <- readGAlignmentPairs(file=noDupBam, param=scanBamParam)
-  file.remove(noDupBam)
+  file.remove(c(noDupBam, paste0(noDupBam, ".bai")))
   
   ## Remove the reads on mitochondrial chr
   mitChrs <- c("M", "MT", "chrM")
-  reads <- reads[!seqnames(reads) %in% mitChrs]
+  reads <- reads[!as(seqnames(reads), "vector") %in% mitChrs]
   
   ## shiftAlignments
   firstReads <- ATACseqQC:::shiftReads(first(reads),

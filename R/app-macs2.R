@@ -7,11 +7,10 @@
 
 
 ezMethodMacs2 = function(input=NA, output=NA, param=NA){
-  opt = param$cmdOptions 
-  if(param$paired) {
-    opt = paste(opt,'-f BAMPE') }
+  opt = param$cmdOptions
+  if(param$paired)
+    opt = paste(opt,'-f BAMPE')
   dataset = input$meta
-  #setwdNew(paste(basename(param$resultDir),output$getNames(),sep='_'))
   
   if (param$useControl){
     cmd = paste("macs2", "callpeak -t", input$getFullPaths("BAM"), 
@@ -58,7 +57,7 @@ EzAppMacs2 <-
                   "Initializes the application using its specific defaults."
                   runMethod <<- ezMethodMacs2
                   name <<- "EzAppMacs2"
-                  appDefaults <<- rbind(useControl=ezFrame(Type="logical",  DefaultValue="TRUE",	Description="should control samples be used"))
+                  appDefaults <<- rbind(useControl=ezFrame(Type="logical", DefaultValue="TRUE",	Description="should control samples be used"))
                 }
               )
   )
