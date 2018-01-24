@@ -22,7 +22,11 @@ EzAppAtacENCODE$new()$run(input=input, output=output, param=param)
 
 
 ## atacBamFilter
+library(ezRun)
 setwd("/scratch/gtan/p2578-atacENCODE/atacBamFilter")
 localBamFile <- "/srv/gstore/projects/p2578/Bowtie2_22155_2017-11-06--22-58-25/A8901US.bam"
 param <- list()
-param$strandMode <- "both"
+param$paired <- TRUE
+param$cores <- 8L
+input <- EzDataset(file="dataset.tsv", dataRoot="/srv/gstore/projects")
+system.time(output <- atacBamProcess(input=input, output=NA, param=param))
