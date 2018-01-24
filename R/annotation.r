@@ -74,7 +74,7 @@ ezFeatureAnnotation = function(param, ids=NULL,
                    "gc", "width", "GO BP", "GO MF", "GO CC")
   if(!all(minimalCols %in% colnames(seqAnno))){
     stop(minimalCols[!minimalCols %in% colnames(seqAnno)], 
-         "must exist in annotation file!")
+         " must exist in annotation file!")
   }
   return(seqAnno)
 }
