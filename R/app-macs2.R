@@ -12,26 +12,75 @@ ezMethodMacs2 = function(input=NA, output=NA, param=NA){
     opt = paste(opt,'-f BAMPE')
   dataset = input$meta
   
-  if (param$useControl){
-    cmd = paste("macs2", "callpeak -t", input$getFullPaths("BAM"), 
-                "-c", input$getFullPaths("Control"), 
-                "-B", opt,"-n", output$getNames())
-    ezSystem(cmd)
-    bedgraphFileTreat = paste0(output$getNames(), '_treat_pileup.bdg')
-    bedgraphFileControl = paste0(output$getNames(), '_control_lambda.bdg')
-    cmd = paste("macs2", " bdgcmp -t", bedgraphFileTreat,
-                "-c", bedgraphFileControl, "-o", paste0(output$getNames(),"_FE.bdg"), "-m FE")
-    ezSystem(cmd)
-    bdgSorted = "sorted.bdg"
-    ezSystem(paste("bedSort", paste0(output$getNames(), "_FE.bdg"), bdgSorted))
-    cmd = paste("bedGraphToBigWig", bdgSorted, param$ezRef@refChromSizesFile, paste0(output$getNames(), ".bw"))
-    ezSystem(cmd)
-    ezSystem("rm *.bdg")
-  } else {
-    cmd = paste("macs2", "callpeak -t", input$getFullPaths("BAM"), opt,"-n", output$getNames())
+  ## -g option: mappable genome size
+  if(!grepl("-g", opt)){
+    gsizes <- c("Homo sapiens (human)"="hs",
+                "Mus musculus (mouse)"="mm",
+                "Caenorhabditis elegans (worm)"="ce",
+                "Drosophila melanogaster (fruitfly)"="dm")
+    isGsize <- grepl(input$getColumn("Species"), names(gsizes),
+                     ignore.case = TRUE)
+    if(any(isGsize)){
+      message("Use predefined gsize: ", gsizes[isGsize])
+      gsize <- gsizes[isGsize]
+    }else{
+      require(Biostrings)
+      gsize <- sum(as.numeric(fasta.seqlengths(param$ezRef["refFastaFile"])))
+      gsize <- round(gsize * 0.8)
+      message("Use calculated gsize: ", gsize)
+    }
+    opt <- paste(opt, "-g", gsize)
+  }
+  
+  if(param$mode == "ChIP-seq"){
+    ## --extsize: extend reads in 5'->3' direction to fix-sized fragments.
+    if(!grepl("--extsize", opt)){
+      opt <- paste(opt, "--extsize 147")
+    }
+    
+    if (isTRUE(param$useControl)){
+      if(!grepl("Control", input$colNames))
+        stop("Control is not available when paramter useControl is true.")
+      
+      cmd = paste("macs2", "callpeak -t", input$getFullPaths("BAM"), 
+                  "-c", input$getFullPaths("Control"),
+                  "-B", opt,"-n", output$getNames())
+      ezSystem(cmd)
+      bedgraphFileTreat = paste0(output$getNames(), '_treat_pileup.bdg')
+      bedgraphFileControl = paste0(output$getNames(), '_control_lambda.bdg')
+      cmd = paste("macs2", " bdgcmp -t", bedgraphFileTreat,
+                  "-c", bedgraphFileControl, "-o", 
+                  paste0(output$getNames(),"_FE.bdg"), "-m FE")
+      ezSystem(cmd)
+      bdgSorted = "sorted.bdg"
+      ezSystem(paste("bedSort", paste0(output$getNames(), "_FE.bdg"), bdgSorted))
+      cmd = paste("bedGraphToBigWig", bdgSorted, param$ezRef@refChromSizesFile,
+                  paste0(output$getNames(), ".bw"))
+      ezSystem(cmd)
+      ezSystem("rm *.bdg")
+    } else {
+      cmd = paste("macs2", "callpeak -t", input$getFullPaths("BAM"), opt,
+                  "-n", output$getNames())
+      ezSystem(cmd)
+      createBigWig(input, output, param)
+    }
+  }else if(param$mode == "ATAC-seq"){
+    if(!param$paired)
+      stop("For ATAC-seq, we only support paired-end data.")
+    
+    ## --extsize: extend reads in 5'->3' direction to fix-sized fragments.
+    if(!grepl("--extsize", opt)){
+      ## https://github.com/taoliu/MACS/issues/145
+      opt <- paste(opt, "--extsize 200")
+    }
+    cmd = paste("macs2", "callpeak -t", input$getFullPaths("BAM"), opt,
+                "-n", output$getNames())
     ezSystem(cmd)
     createBigWig(input, output, param)
+  }else{
+    stop("MACS2 only supports ChIP-seq or ATAC-seq data.")
   }
+  
   if (grepl('broad', opt)){
     file.rename(from=paste0(output$getNames(),"_peaks.broadPeak"),
                 to=paste0(output$getNames(),"_peaks.bed"))
@@ -103,7 +152,7 @@ annotatePeaks = function(input=NA, output=NA, param=NA) {
   localAnnotation = unique(localAnnotation[,grep('^gene_id$|^description$|name$|symbol$|^type$',colnames(localAnnotation),ignore.case=TRUE)])
   if(!is.null(ncol(localAnnotation))){
     annotatedPeaks = merge(annotatedPeaks,localAnnotation,by.x='feature',by.y='gene_id',all.x=T)
-  } 
+  }
   annotatedPeaks = annotatedPeaks[order(annotatedPeaks$"-log10(pvalue)",decreasing=T),]
   colnames(annotatedPeaks) = gsub('-log10','_-log10',colnames(annotatedPeaks)) ## TODO: explain why this is done? and why gsub and not sub?
   ezWrite.table(annotatedPeaks,peakFile, row.names=F)
@@ -125,5 +174,5 @@ createBigWig = function(input=NA, output=NA, param=NA){
     aligns = readGAlignments(file=input$getFullPaths("BAM"))
   }
   cov = coverage(aligns)
-  export(cov,paste0(output$getNames(), ".bw"), format="bigWig")
+  export.bw(cov, paste0(output$getNames(), ".bw"))
 }
