@@ -16,11 +16,15 @@
   }
   \item{outBam}{
     \code{character}(1): the output bam file.
+  }
   \item{cores}{
     \code{integer}(1): the number of threads to use.
   }
   \item{chrs}{
     \code{character}(n): the chromosomes to filter out.
+  }
+  \item{mapQ}{
+    \code{integer}(1): The minimal mapping quality for alignments.
   }
 }
 \value{
@@ -33,5 +37,5 @@
   inBam <- system.file("extdata", "ex1.bam", package="Rsamtools", 
                        mustWork=TRUE)
   outBam <- tempfile(pattern="test-", fileext=".bam")
-  filterBam(inBam, outBam, chrs="seq1")
+  filterBam(inBam, outBam, chrs="seq1", mapQ=10)
 }
