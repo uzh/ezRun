@@ -20,7 +20,7 @@ output[['Html [Link]']] = 'p2578/AtacENCODE_18564_2017-06-07--14-06-33/asthmatic
 input = 'HiSeq2500_ATAC_o3757_asthmaticP.tsv'
 EzAppAtacENCODE$new()$run(input=input, output=output, param=param)
 
-## atacBamFilter
+## atacBamFilter and MACS2
 library(ezRun)
 setwd("/scratch/gtan/p2578-atacENCODE/atacBamFilter")
 param = list()
@@ -38,6 +38,7 @@ param[['specialOptions']] = ''
 param[['mail']] = 'ge.tan@fgcz.ethz.ch'
 param[['dataRoot']] = '/srv/gstore/projects'
 param[['resultDir']] = 'p2578/MACS2_22192_2018-01-24--14-31-29'
+param[['mode']] = 'ATAC-seq'
 
 input = list()
 input[['Name']] = 'A9502US'
@@ -87,7 +88,10 @@ output[['InputAmount [Characteristic]']] = '0'
 
 ## atacBamProcess
 input = EzDataset$new(meta=input, dataRoot=param$dataRoot)
+output = EzDataset$new(meta=output, dataRoot=param$dataRoot)
+param = ezParam(param)
 system.time(output <- atacBamProcess(input=input, output=NA, param=param))
 ## MACS2
-param[['mode']] = 'ATAC-seq'
-param = ezParam(param)
+setEnvironments("macs2")
+EzAppMacs2$new()$run(input=input, output=output, param=param)
+
