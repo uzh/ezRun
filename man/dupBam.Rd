@@ -20,6 +20,9 @@
   \item{operation}{
     \code{character}(1): either to mark or remove the duplicates in bam file.
   }
+  \item{cores}{
+    \code{integer}(1): the number of threads to use.
+  }
 }
 \details{
   It use \dQuote{sambamba} to mark and remove the duplicates,
