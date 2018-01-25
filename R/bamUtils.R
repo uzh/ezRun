@@ -64,6 +64,7 @@ atacBamProcess <- function(input=NA, output=NA, param=NA){
   shiftedReads <- GAlignmentPairs(first=firstReads, last=lastReads)
   message("Exporting bam file...")
   export(shiftedReads, basename(output$getColumn("BAM")))
+  gc()
   
   return(output)
 }

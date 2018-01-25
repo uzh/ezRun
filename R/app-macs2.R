@@ -80,7 +80,7 @@ ezMethodMacs2 = function(input=NA, output=NA, param=NA){
     ## Preprocess ATAC-seq bam file
     atacBamProcess(input=input, output=output, param=param)
     
-    cmd = paste("macs2", "callpeak -t", basename(output$getFullPaths("BAM")),
+    cmd = paste("macs2", "callpeak -t", basename(output$getColumn("BAM")),
                 opt, "-n", output$getNames())
     ezSystem(cmd)
     createBigWig(input, output, param)
