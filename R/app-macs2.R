@@ -37,7 +37,10 @@ ezMethodMacs2 = function(input=NA, output=NA, param=NA){
     if(!grepl("--extsize", opt)){
       opt <- paste(opt, "--extsize 147")
     }
-    
+    bamFile <- input$getFullPaths("BAM")
+    outBam <- basename(output$getFullPaths("BAM"))
+    dupBam(inBam=bamFile, outBam=outBam, operation="remove",
+           cores=param$cores)
     if (isTRUE(param$useControl)){
       if(!grepl("Control", input$colNames))
         stop("Control is not available when paramter useControl is true.")
@@ -73,14 +76,17 @@ ezMethodMacs2 = function(input=NA, output=NA, param=NA){
       ## https://github.com/taoliu/MACS/issues/145
       opt <- paste(opt, "--extsize 200")
     }
-    cmd = paste("macs2", "callpeak -t", input$getFullPaths("BAM"), opt,
-                "-n", output$getNames())
+    
+    ## Preprocess ATAC-seq bam file
+    atacBamProcess(input=input, output=output, param=param)
+    
+    cmd = paste("macs2", "callpeak -t", basename(output$getFullPaths("BAM")),
+                opt, "-n", output$getNames())
     ezSystem(cmd)
     createBigWig(input, output, param)
   }else{
     stop("MACS2 only supports ChIP-seq or ATAC-seq data.")
   }
-  
   if (grepl('broad', opt)){
     file.rename(from=paste0(output$getNames(),"_peaks.broadPeak"),
                 to=paste0(output$getNames(),"_peaks.bed"))
@@ -90,7 +96,8 @@ ezMethodMacs2 = function(input=NA, output=NA, param=NA){
   }
   peakBedFile = paste0(output$getNames(),"_peaks.bed")
   cmd = paste("bedtools", " getfasta -fi", param$ezRef["refFastaFile"],
-            " -bed ", peakBedFile, " -name -fo ", paste0(output$getNames(), "_peaks.fa"))
+              " -bed ", peakBedFile, " -name -fo ",
+              paste0(output$getNames(), "_peaks.fa"))
   ezSystem(cmd)
   annotatePeaks(input, output, param)
   return("Success")
