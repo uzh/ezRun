@@ -89,13 +89,22 @@ dupBam <- function(inBam, outBam, operation=c("mark", "remove"),
 }
 
 ### Filter bam by removing chrs
-filterBam <- function(inBam, outBam, cores=ezThreads(), chrs=NA){
+filterBam <- function(inBam, outBam, cores=ezThreads(), chrs=NA, mapQ=NA){
   setEnvironments("sambamba")
-  allChrs <- ezBamSeqNames(inBam)
-  keepChrs <- setdiff(allChrs, chrs)
   
   cmd <- paste("sambamba view -f bam -l 9", "-t", cores,
-               "-c", outBam)
+               "-o", outBam)
+  if(!is.na(mapQ)){
+    cmd <- paste(cmd, paste0('-F "mapping_quality >= ', mapQ, '"'))
+  }
+  
+  cmd <- paste(cmd, inBam)
+  
+  if(!is.na(chrs)){
+    allChrs <- ezBamSeqNames(inBam)
+    keepChrs <- setdiff(allChrs, chrs)
+    cmd <- paste(cmd, paste(keepChrs, collapse=" "))
+  }
   ezSystem(cmd)
   invisible(outBam)
 }
