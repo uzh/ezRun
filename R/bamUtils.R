@@ -20,24 +20,21 @@ atacBamProcess <- function(input=NA, output=NA, param=NA){
   if (!is(output, "EzDataset")){
     output = input$copy()
     output$setColumn("BAM", paste0(getwd(), "/", input$getNames(), 
-                                   "-shifted-nodup.bam"))
+                                   "_processed.bam"))
     output$setColumn("BAI", paste0(getwd(), "/", input$getNames(), 
-                                   "-shifted-nodup.bam.bai"))
+                                   "_processed.bam.bai"))
     output$dataRoot = NULL
   }
   
   bamFile = input$getFullPaths("BAM")
-  localBamFile = .getBamLocally(bamFile)
-  if(localBamFile != bamFile){
-    on.exit(file.remove(c(localBamFile, paste0(localBamFile, ".bai"))),
-            add=TRUE)
-  }
+  
   ## For now, we only have paired-end ATAC-seq
   stopifnot(param$paired)
   
   ## remove the duplicates in bam
   noDupBam <- tempfile(pattern="nodup_", tmpdir=".", fileext = ".bam")
-  dupBam(inBam=localBamFile, outBam=noDupBam, operation="remove", 
+  message("Remove duplicates...")
+  dupBam(inBam=bamFile, outBam=noDupBam, operation="remove", 
          cores=param$cores)
   
   what <- c("qname", "flag", "mapq", "isize", "seq", "qual", "mrnm")
@@ -48,7 +45,7 @@ atacBamProcess <- function(input=NA, output=NA, param=NA){
   
   ## mapq < 10: discarded
   scanBamParam <- ScanBamParam(flag=flag, tag=tags, what=what, mapqFilter=10L)
-  
+  message("Read nodup bam file...")
   reads <- readGAlignmentPairs(file=noDupBam, param=scanBamParam)
   file.remove(c(noDupBam, paste0(noDupBam, ".bai")))
   
@@ -57,15 +54,20 @@ atacBamProcess <- function(input=NA, output=NA, param=NA){
   reads <- reads[!as(seqnames(reads), "vector") %in% mitChrs]
   
   ## shiftAlignments
+  message("Shifting 5' start...")
   firstReads <- ATACseqQC:::shiftReads(first(reads),
                                        positive = 4L, negative = 5L)
   lastReads <- ATACseqQC:::shiftReads(last(reads),
                                       positive = 4L, negative = 5L)
   rm(reads)
-  gc()
-  shiftedReads <- GAlignmentPairs(first=firstReads, last=lastReads)
-  export(shiftedReads, basename(output$getColumn("BAM")))
   
+  gc()
+  message("Exporting bam file...")
+  export(GAlignmentPairs(first=firstReads, last=lastReads), 
+         basename(output$getColumn("BAM")))
+  rm(firstReads)
+  rm(lastReads)
+  gc()
   return(output)
 }
 
