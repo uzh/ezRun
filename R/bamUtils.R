@@ -60,12 +60,14 @@ atacBamProcess <- function(input=NA, output=NA, param=NA){
   lastReads <- ATACseqQC:::shiftReads(last(reads),
                                       positive = 4L, negative = 5L)
   rm(reads)
-  gc()
-  shiftedReads <- GAlignmentPairs(first=firstReads, last=lastReads)
-  message("Exporting bam file...")
-  export(shiftedReads, basename(output$getColumn("BAM")))
-  gc()
   
+  gc()
+  message("Exporting bam file...")
+  export(GAlignmentPairs(first=firstReads, last=lastReads), 
+         basename(output$getColumn("BAM")))
+  rm(firstReads)
+  rm(lastReads)
+  gc()
   return(output)
 }
 
