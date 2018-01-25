@@ -750,7 +750,7 @@ setEnvironments <- function(tool, envir=parent.frame()){
                   "bowtie2"=expression({Sys.setenv("PATH"=paste("/usr/local/ngseq/packages/Aligner/Bowtie2/2.3.2/bin", Sys.getenv("PATH"), sep=":"))}),
                   "conda"=expression({Sys.setenv("PATH"=paste("/usr/local/ngseq/miniconda3/bin", Sys.getenv("PATH"), sep=":"))}),
                   "sambamba"=expression({Sys.setenv("PATH"=paste("/usr/local/ngseq/packages/Tools/sambamda/0.6.7/bin", Sys.getenv("PATH"), sep=":"))}),
-                  "macs2"=expression({Sys.setenv("PATH"=paste(paste("/usr/local/ngseq/packages/Dev/Python2/2.7.13/bin", "/usr/local/ngseq/packages/Tools/MACS2/2.1.1.20160309/bin", Sys.getenv("PATH"), sep=":"))}),
+                  "macs2"=expression({Sys.setenv("PATH"=paste("/usr/local/ngseq/packages/Dev/Python2/2.7.13/bin", "/usr/local/ngseq/packages/Tools/MACS2/2.1.1.20160309/bin", Sys.getenv("PATH"), sep=":"))}),
                   stop("unsupported tool: ", tool)
     )
     eval(cmd, envir=envir)
