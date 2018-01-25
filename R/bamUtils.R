@@ -20,25 +20,21 @@ atacBamProcess <- function(input=NA, output=NA, param=NA){
   if (!is(output, "EzDataset")){
     output = input$copy()
     output$setColumn("BAM", paste0(getwd(), "/", input$getNames(), 
-                                   "-shifted-nodup.bam"))
+                                   "_processed.bam"))
     output$setColumn("BAI", paste0(getwd(), "/", input$getNames(), 
-                                   "-shifted-nodup.bam.bai"))
+                                   "_processed.bam.bai"))
     output$dataRoot = NULL
   }
   
   bamFile = input$getFullPaths("BAM")
-  localBamFile = .getBamLocally(bamFile)
-  if(localBamFile != bamFile){
-    on.exit(file.remove(c(localBamFile, paste0(localBamFile, ".bai"))),
-            add=TRUE)
-  }
+  
   ## For now, we only have paired-end ATAC-seq
   stopifnot(param$paired)
   
   ## remove the duplicates in bam
   noDupBam <- tempfile(pattern="nodup_", tmpdir=".", fileext = ".bam")
   message("Remove duplicates...")
-  dupBam(inBam=localBamFile, outBam=noDupBam, operation="remove", 
+  dupBam(inBam=bamFile, outBam=noDupBam, operation="remove", 
          cores=param$cores)
   
   what <- c("qname", "flag", "mapq", "isize", "seq", "qual", "mrnm")
