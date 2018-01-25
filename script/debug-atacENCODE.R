@@ -91,6 +91,10 @@ input = EzDataset$new(meta=input, dataRoot=param$dataRoot)
 output = EzDataset$new(meta=output, dataRoot=param$dataRoot)
 param = ezParam(param)
 system.time(output <- atacBamProcess(input=input, output=NA, param=param))
+
+## annotatePeaks
+annotatePeaks(peakFile="A9502US_peaks.xls", param=param)
+
 ## MACS2
 setEnvironments("macs2")
 EzAppMacs2$new()$run(input=input, output=output, param=param)

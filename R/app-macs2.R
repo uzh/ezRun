@@ -99,7 +99,7 @@ ezMethodMacs2 = function(input=NA, output=NA, param=NA){
               " -bed ", peakBedFile, " -name -fo ",
               paste0(output$getNames(), "_peaks.fa"))
   ezSystem(cmd)
-  annotatePeaks(input, output, param)
+  annotatePeaks(paste0(output$getNames(), '_peaks.xls'), param)
   return("Success")
 }
 
@@ -126,15 +126,16 @@ EzAppMacs2 <-
 ##' @template output-template
 ##' @param param a list of parameters to extract the \code{ezRef@@refFeatureFile} and the \code{ezRef@@refAnnotationFile} from.
 ##' @template roxygen-template
-annotatePeaks = function(input=NA, output=NA, param=NA) {
-  peakFile = paste0(output$getNames(), '_peaks.xls')
+annotatePeaks = function(peakFile, param=NA) {
+  require(rtracklayer)
+  require(GenomicRanges)
+  require(ChIPpeakAnno)
   data = ezRead.table(peakFile, comment.char = "#", row.names = NULL)
   if (nrow(data) == 0){
     return(NULL)
   }
-  data = data[order(data$chr,data$start),]
-  require("rtracklayer")
-  require("GenomicRanges")
+  data = data[order(data$chr,data$start), ]
+  
   
   gtfFile = param$ezRef@refFeatureFile
   gtf = rtracklayer::import(gtfFile)
@@ -149,20 +150,28 @@ annotatePeaks = function(input=NA, output=NA, param=NA) {
     names_gtf = make.unique(gtf$'ID')
   }
   names(gtf) = names_gtf
-  annoRD = as(gtf, "RangedData")
-  peaksRD = RangedData(space=data$chr, IRanges(data$start, data$end), strand=rep('*',nrow(data)))
-  rownames(peaksRD) = data$name
-  annotatedPeaks = as.data.frame(ChIPpeakAnno::annotatePeakInBatch(peaksRD,AnnotationData = annoRD,output='nearestStart',multiple=FALSE,FeatureLocForDistance='TSS'))
-  annotatedPeaks = annotatedPeaks[,c("peak","strand","feature","start_position","end_position","insideFeature","distancetoFeature")]
-  annotatedPeaks = merge(data,annotatedPeaks,by.x='name',by.y='peak',all.x=T)
-  localAnnotation = ezRead.table(param$ezRef@refAnnotationFile)
-  localAnnotation = unique(localAnnotation[,grep('^gene_id$|^description$|name$|symbol$|^type$',colnames(localAnnotation),ignore.case=TRUE)])
+  peaksRD = makeGRangesFromDataFrame(data, keep.extra.columns = TRUE)
+  names(peaksRD) = mcols(peaksRD)$name
+  annotatedPeaks <- annotatePeakInBatch(peaksRD,
+                                        AnnotationData = gtf,
+                                        output='nearestStart',
+                                        multiple=FALSE,
+                                        FeatureLocForDistance='TSS')
+  annotatedPeaks = as.data.frame(annotatedPeaks)
+  annotatedPeaks = annotatedPeaks[ , c("peak", "strand", "feature",
+                                       "start_position", "end_position", 
+                                       "insideFeature", "distancetoFeature")]
+  annotatedPeaks = merge(data, annotatedPeaks,by.x='name', by.y='peak', all.x=T)
+  localAnnotation <- ezFeatureAnnotation(param, dataFeatureType="gene")
+  localAnnotation = unique(localAnnotation[, grep('^gene_id$|^description$|name$|symbol$|^type$',colnames(localAnnotation),ignore.case=TRUE)])
   if(!is.null(ncol(localAnnotation))){
-    annotatedPeaks = merge(annotatedPeaks,localAnnotation,by.x='feature',by.y='gene_id',all.x=T)
+    annotatedPeaks = merge(annotatedPeaks, localAnnotation, by.x='feature', 
+                           by.y='gene_id',all.x=T)
   }
-  annotatedPeaks = annotatedPeaks[order(annotatedPeaks$"-log10(pvalue)",decreasing=T),]
-  colnames(annotatedPeaks) = gsub('-log10','_-log10',colnames(annotatedPeaks)) ## TODO: explain why this is done? and why gsub and not sub?
-  ezWrite.table(annotatedPeaks,peakFile, row.names=F)
+  annotatedPeaks = annotatedPeaks[order(annotatedPeaks$"-log10(pvalue)", 
+                                        decreasing=T), ]
+  colnames(annotatedPeaks) = gsub('-log10','_-log10', colnames(annotatedPeaks))
+  ezWrite.table(annotatedPeaks, peakFile, row.names=F)
 }
 
 ##' @title Creates a bigwig file
