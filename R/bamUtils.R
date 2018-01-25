@@ -71,7 +71,7 @@ atacBamProcess <- function(input=NA, output=NA, param=NA){
   return(output)
 }
 
-
+### Make or remove duplicated in bam file
 dupBam <- function(inBam, outBam, operation=c("mark", "remove"),
                    cores=ezThreads()){
   operation <- match.arg(operation)
@@ -88,3 +88,14 @@ dupBam <- function(inBam, outBam, operation=c("mark", "remove"),
   invisible(outBam)
 }
 
+### Filter bam by removing chrs
+filterBam <- function(inBam, outBam, cores=ezThreads(), chrs=NA){
+  setEnvironments("sambamba")
+  allChrs <- ezBamSeqNames(inBam)
+  keepChrs <- setdiff(allChrs, chrs)
+  
+  cmd <- paste("sambamba view -f bam -l 9", "-t", cores,
+               "-c", outBam)
+  ezSystem(cmd)
+  invisible(outBam)
+}
