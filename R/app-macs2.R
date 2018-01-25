@@ -126,7 +126,7 @@ EzAppMacs2 <-
 ##' @template output-template
 ##' @param param a list of parameters to extract the \code{ezRef@@refFeatureFile} and the \code{ezRef@@refAnnotationFile} from.
 ##' @template roxygen-template
-annotatePeaks = function(peakFile, param=NA) {
+annotatePeaks = function(peakFile, param) {
   require(rtracklayer)
   require(GenomicRanges)
   require(ChIPpeakAnno)
@@ -135,7 +135,6 @@ annotatePeaks = function(peakFile, param=NA) {
     return(NULL)
   }
   data = data[order(data$chr,data$start), ]
-  
   
   gtfFile = param$ezRef@refFeatureFile
   gtf = rtracklayer::import(gtfFile)
