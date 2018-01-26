@@ -13,7 +13,6 @@
 atacBamProcess <- function(input=NA, output=NA, param=NA){
   require(GenomicAlignments)
   require(Rsamtools)
-  require(ATACseqQC)
   require(rtracklayer)
   
   ## if output is not an EzDataset, set it!
@@ -37,45 +36,47 @@ atacBamProcess <- function(input=NA, output=NA, param=NA){
   dupBam(inBam=bamFile, outBam=noDupBam, operation="remove", 
          cores=param$cores)
   
-  what <- c("qname", "flag", "mapq", "isize", "seq", "qual", "mrnm")
-  tags <- c("AS", "XN", "XM", "XO", "XG", "NM", "MD", "YS", "YT")
-  flag <- scanBamFlag(isSecondaryAlignment = FALSE, 
-                      isUnmappedQuery = FALSE, 
-                      isNotPassingQualityControls = FALSE)
-  
-  ## mapq < 10: discarded
-  scanBamParam <- ScanBamParam(flag=flag, tag=tags, what=what, mapqFilter=10L)
-  message("Read nodup bam file...")
-  reads <- readGAlignmentPairs(file=noDupBam, param=scanBamParam)
+  noDupNoMTNOLowBam <- basename(output$getColumn("BAM"))
+  filterBam(inBam=noDupBam, outBam=noDupNoMTNOLowBam, 
+            cores=param$cores, chrs=c("M", "MT", "chrM"), mapQ=10)
   file.remove(c(noDupBam, paste0(noDupBam, ".bai")))
   
-  ## Remove the reads on mitochondrial chr
-  mitChrs <- c("M", "MT", "chrM")
-  reads <- reads[!as(seqnames(reads), "vector") %in% mitChrs]
+  if(param$shiftATAC){
+    require(ATACseqQC)
+    what <- c("qname", "flag", "mapq", "isize", "seq", "qual", "mrnm")
+    tags <- c("AS", "XN", "XM", "XO", "XG", "NM", "MD", "YS", "YT")
+    flag <- scanBamFlag(isSecondaryAlignment = FALSE, 
+                        isUnmappedQuery = FALSE, 
+                        isNotPassingQualityControls = FALSE)
+    scanBamParam <- ScanBamParam(flag=flag, tag=tags, what=what)
+    message("Reading nodup noMT bam file...")
+    reads <- readGAlignmentPairs(file=noDupNoMTNOLowBam, param=scanBamParam)
+    file.remove(c(noDupNoMTNOLowBam, paste0(noDupNoMTNOLowBam, ".bai")))
+    ## shiftAlignments
+    message("Shifting 5' start...")
+    firstReads <- ATACseqQC:::shiftReads(first(reads),
+                                         positive = 4L, negative = 5L)
+    lastReads <- ATACseqQC:::shiftReads(last(reads),
+                                        positive = 4L, negative = 5L)
+    rm(reads)
+    message("Exporting bam file...")
+    export(GAlignmentPairs(first=firstReads, last=lastReads), 
+           noDupNoMTNOLowBam)
+    rm(firstReads)
+    rm(lastReads)
+    gc()
+  }
   
-  ## shiftAlignments
-  message("Shifting 5' start...")
-  firstReads <- ATACseqQC:::shiftReads(first(reads),
-                                       positive = 4L, negative = 5L)
-  lastReads <- ATACseqQC:::shiftReads(last(reads),
-                                      positive = 4L, negative = 5L)
-  rm(reads)
-  
-  gc()
-  message("Exporting bam file...")
-  export(GAlignmentPairs(first=firstReads, last=lastReads), 
-         basename(output$getColumn("BAM")))
-  rm(firstReads)
-  rm(lastReads)
-  gc()
   return(output)
 }
 
-
+### Make or remove duplicated in bam file
 dupBam <- function(inBam, outBam, operation=c("mark", "remove"),
                    cores=ezThreads()){
   operation <- match.arg(operation)
   setEnvironments("sambamba")
+  
+  noDupBam <- tempfile(pattern="nodup_", tmpdir=".", fileext = ".bam")
   
   if(operation == "mark"){
     cmd <- paste("sambamba markdup -t", cores, "-l 9 --tmpdir=.",
@@ -85,6 +86,33 @@ dupBam <- function(inBam, outBam, operation=c("mark", "remove"),
                  inBam, outBam)
   }
   ezSystem(cmd)
+  
+  ## sort bam by coordinates
+  #cmd <- paste("sambamba sort --tmpdir=. -l 9 -o", outBam, "-t", cores,
+  #             noDupBam)
+  #ezSystem(cmd)
+  #file.remove(c(noDupBam, paste0(noDupBam, ".bai")))
+  
   invisible(outBam)
 }
 
+### Filter bam by removing chrs
+filterBam <- function(inBam, outBam, cores=ezThreads(), chrs=NULL, mapQ=NULL){
+  setEnvironments("samtools")
+  
+  cmd <- paste("samtools view -b", "-@", cores, "-o", outBam)
+  
+  if(!is.null(mapQ)){
+    cmd <- paste(cmd, "-q", mapQ)
+  }
+  
+  cmd <- paste(cmd, inBam)
+  
+  if(!is.null(chrs)){
+    allChrs <- ezBamSeqNames(inBam)
+    keepChrs <- setdiff(allChrs, chrs)
+    cmd <- paste(cmd, paste(keepChrs, collapse=" "))
+  }
+  ezSystem(cmd)
+  invisible(outBam)
+}
