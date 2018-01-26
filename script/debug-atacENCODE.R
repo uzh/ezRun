@@ -32,6 +32,7 @@ param[['process_mode']] = 'SAMPLE'
 param[['refBuild']] = 'Homo_sapiens/Ensembl/GRCh38.p10/Annotation/Release_89-2017-05-31'
 param[['paired']] = 'true'
 param[['useControl']] = 'false'
+param[['shiftATAC']] = 'false'
 param[['refFeatureFile']] = 'genes.gtf'
 param[['cmdOptions']] = '--nomodel --extsize 147 -g hs --bw 200'
 param[['specialOptions']] = ''
@@ -97,5 +98,6 @@ annotatePeaks(peakFile="A9502US_peaks.xls", param=param)
 
 ## MACS2
 setEnvironments("macs2")
+debug(atacBamProcess)
 EzAppMacs2$new()$run(input=input, output=output, param=param)
 
