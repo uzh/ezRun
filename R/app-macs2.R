@@ -87,19 +87,21 @@ ezMethodMacs2 = function(input=NA, output=NA, param=NA){
   }else{
     stop("MACS2 only supports ChIP-seq or ATAC-seq data.")
   }
+  
+  peakBedFile = paste0(output$getNames(),"_peaks.bed")
   if (grepl('broad', opt)){
     file.rename(from=paste0(output$getNames(),"_peaks.broadPeak"),
-                to=paste0(output$getNames(),"_peaks.bed"))
+                to=peakBedFile)
   } else {
     file.rename(from=paste0(output$getNames(),"_peaks.narrowPeak"),
-                to=paste0(output$getNames(),"_peaks.bed"))
+                to=peakBedFile)
   }
-  peakBedFile = paste0(output$getNames(),"_peaks.bed")
   cmd = paste("bedtools", " getfasta -fi", param$ezRef["refFastaFile"],
               " -bed ", peakBedFile, " -name -fo ",
               paste0(output$getNames(), "_peaks.fa"))
   ezSystem(cmd)
-  annotatePeaks(paste0(output$getNames(), '_peaks.xls'), param)
+  peakXlsFile <- paste0(output$getNames(), '_peaks.xls')
+  annotatePeaks(peakXlsFile, param)
   return("Success")
 }
 
@@ -115,7 +117,8 @@ EzAppMacs2 <-
                   "Initializes the application using its specific defaults."
                   runMethod <<- ezMethodMacs2
                   name <<- "EzAppMacs2"
-                  appDefaults <<- rbind(useControl=ezFrame(Type="logical", DefaultValue="TRUE",	Description="should control samples be used"))
+                  appDefaults <<- rbind(useControl=ezFrame(Type="logical", DefaultValue="TRUE",	Description="should control samples be used"),
+                                        shiftATAC=ezFrame(Type="logical", DefaultValue="FALSE",	Description="should all reads aligning to + strand were offset by +4bp, all reads aligning to the - strand are offset -5 bp"))
                 }
               )
   )
