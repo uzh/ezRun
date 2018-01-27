@@ -98,6 +98,8 @@ dupBam <- function(inBam, outBam, operation=c("mark", "remove"),
 
 ### Filter bam by removing chrs
 filterBam <- function(inBam, outBam, cores=ezThreads(), chrs=NULL, mapQ=NULL){
+  require(Rsamtools)
+  
   setEnvironments("samtools")
   
   cmd <- paste("samtools view -b", "-@", cores, "-o", outBam)
@@ -114,5 +116,23 @@ filterBam <- function(inBam, outBam, cores=ezThreads(), chrs=NULL, mapQ=NULL){
     cmd <- paste(cmd, paste(keepChrs, collapse=" "))
   }
   ezSystem(cmd)
+  
+  indexBam(outBam)
+  
   invisible(outBam)
+}
+
+### Convert bam to bigwig file
+bam2bw <- function(inBam, outBw, paired=FALSE,
+                   #mode=c("RNA-seq", "DNA-seq"), ## TODO: add strandness for RNA-seq
+                   method=c("deepTools", "Bioconductor")){
+  method <- match.arg(method)
+  
+  if(method == "Bioconductor"){
+    
+  }else if(method == "deepTools"){
+    
+  }
+  
+  invisible(outBw)
 }
