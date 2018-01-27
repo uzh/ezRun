@@ -117,21 +117,33 @@ filterBam <- function(inBam, outBam, cores=ezThreads(), chrs=NULL, mapQ=NULL){
   }
   ezSystem(cmd)
   
-  indexBam(outBam)
+  cmd <- paste("samtools index", outBam)
+  ezSystem(cmd)
   
   invisible(outBam)
 }
 
 ### Convert bam to bigwig file
-bam2bw <- function(inBam, outBw, paired=FALSE,
+bam2bw <- function(file, destination=sub("\\.bam", ".bw", ignore.case = TRUE), 
+                   paired=FALSE,
                    #mode=c("RNA-seq", "DNA-seq"), ## TODO: add strandness for RNA-seq
                    method=c("deepTools", "Bioconductor")){
   method <- match.arg(method)
   
   if(method == "Bioconductor"){
-    
+    ## Better compatability; single-base resolutio;
+    ## Slower; higher RAM comsuption
+    require(rtracklayer)
+    require(GenomicAlignments)
+    if (paired){
+      aligns = readGAlignmentPairs(file)
+    } else {
+      aligns = readGAlignments(file)
+    }
+    cov = coverage(aligns)
+    export.bw(cov, destination)
   }else if(method == "deepTools"){
-    
+    ## 
   }
   
   invisible(outBw)
