@@ -124,10 +124,11 @@ filterBam <- function(inBam, outBam, cores=ezThreads(), chrs=NULL, mapQ=NULL){
 }
 
 ### Convert bam to bigwig file
-bam2bw <- function(file, destination=sub("\\.bam", ".bw", ignore.case = TRUE), 
+bam2bw <- function(file, destination=sub("\\.bam$", ".bw", ignore.case = TRUE), 
                    paired=FALSE,
                    #mode=c("RNA-seq", "DNA-seq"), ## TODO: add strandness for RNA-seq
-                   method=c("deepTools", "Bioconductor")){
+                   method=c("deepTools", "Bioconductor"),
+                   cores=ezThreads()){
   method <- match.arg(method)
   
   if(method == "Bioconductor"){
@@ -143,8 +144,10 @@ bam2bw <- function(file, destination=sub("\\.bam", ".bw", ignore.case = TRUE),
     cov = coverage(aligns)
     export.bw(cov, destination)
   }else if(method == "deepTools"){
-    ## 
+    cmd <- paste("bamCoverage", "--bam", file, "-o", destination,
+                 "--binSize 10 -of bigwig", "-p", cores
+                 )
+    ezSystem(cmd)
   }
-  
-  invisible(outBw)
+  invisible(destination)
 }
