@@ -38,7 +38,7 @@ ezMethodMacs2 = function(input=NA, output=NA, param=NA){
       opt <- paste(opt, "--extsize 147")
     }
     bamFile <- input$getFullPaths("BAM")
-    outBam <- basename(output$getFullPaths("BAM"))
+    outBam <- basename(output$getColumn("BAM"))
     
     dupBam(inBam=bamFile, outBam=outBam, operation="remove",
            cores=param$cores)
