@@ -67,7 +67,8 @@ ezMethodMacs2 = function(input=NA, output=NA, param=NA){
       cmd = paste("macs2", "callpeak -t", outBam, opt,
                   "-n", output$getNames())
       ezSystem(cmd)
-      bam2bw(file=outBam, paired=param$paired, 
+      bam2bw(file=outBam, destination=basename(output$getColumn("BigWigFile")),
+             paired=param$paired, 
              method="deepTools", cores=param$cores)
     }
   }else if(param$mode == "ATAC-seq"){
@@ -86,13 +87,16 @@ ezMethodMacs2 = function(input=NA, output=NA, param=NA){
     cmd = paste("macs2", "callpeak -t", basename(output$getColumn("BAM")),
                 opt, "-n", output$getNames())
     ezSystem(cmd)
-    bam2bw(file=basename(output$getColumn("BAM")), paired=param$paired,
+    bam2bw(file=basename(output$getColumn("BAM")),
+           destination=basename(output$getColumn("BigWigFile")),
+           paired=param$paired,
            method="deepTools", cores=param$cores)
   }else{
     stop("MACS2 only supports ChIP-seq or ATAC-seq data.")
   }
   
-  peakBedFile = paste0(output$getNames(),"_peaks.bed")
+  peakBedFile = basename(output$getColumn("BED"))
+  #paste0(output$getNames(),"_peaks.bed")
   if (grepl('broad', opt)){
     file.rename(from=paste0(output$getNames(),"_peaks.broadPeak"),
                 to=peakBedFile)
@@ -102,9 +106,12 @@ ezMethodMacs2 = function(input=NA, output=NA, param=NA){
   }
   cmd = paste("bedtools", " getfasta -fi", param$ezRef["refFastaFile"],
               " -bed ", peakBedFile, " -name -fo ",
-              paste0(output$getNames(), "_peaks.fa"))
+              #paste0(output$getNames(), "_peaks.fa")
+              basename(output$getColumn("PeakSequences"))
+              )
   ezSystem(cmd)
-  peakXlsFile <- paste0(output$getNames(), '_peaks.xls')
+  peakXlsFile <- basename(output$getColumn("CalledPeaks"))
+  #paste0(output$getNames(), '_peaks.xls')
   annotatePeaks(peakXlsFile, param)
   return("Success")
 }
