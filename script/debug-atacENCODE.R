@@ -73,7 +73,7 @@ output[['paired']] = 'true'
 output[['CalledPeaks [File]']] = 'p2578/MACS2_22192_2018-01-24--14-31-29/A9502US_peaks.xls'
 output[['BED [File]']] = 'p2578/MACS2_22192_2018-01-24--14-31-29/A9502US_peaks.bed'
 output[['PeakSequences [File]']] = 'p2578/MACS2_22192_2018-01-24--14-31-29/A9502US_peaks.fa'
-output[['BigWigFile [File]']] = 'p2578/MACS2_22192_2018-01-24--14-31-29/A9502US.bw'
+output[['BigWigFile [File]']] = 'p2578/MACS2_22192_2018-01-24--14-31-29/A9502US_processed.bw'
 output[['BAM [File]']] = 'p2578/Bowtie2_22155_2017-11-06--22-58-25/A9502US_processed.bam'
 output[['BAI [File]']] = 'p2578/Bowtie2_22155_2017-11-06--22-58-25/A9502US_processed.bam.bai'
 output[['Condition [Factor]']] = ''
@@ -96,8 +96,14 @@ system.time(output <- atacBamProcess(input=input, output=NA, param=param))
 ## annotatePeaks
 annotatePeaks(peakFile="A9502US_peaks.xls", param=param)
 
+## bam2bw
+bam2bw(file="A9502US_processed.bam", destination="A9502US_processed_deepTpools.bw",
+       paired=TRUE, method="deepTools", cores=8)
+
 ## MACS2
-setEnvironments("macs2")
-debug(atacBamProcess)
+## module load Dev/Python2
+## module load Tools/MACS2
+## setEnvironments("macs2")
+#debug(atacBamProcess)
 EzAppMacs2$new()$run(input=input, output=output, param=param)
 
