@@ -96,6 +96,10 @@ system.time(output <- atacBamProcess(input=input, output=NA, param=param))
 ## annotatePeaks
 annotatePeaks(peakFile="A9502US_peaks.xls", param=param)
 
+## bam2bw
+bam2bw(file="A9502US_processed.bam", destination="A9502US_processed_deepTpools.bw",
+       paired=TRUE, method="deepTools", cores=8)
+
 ## MACS2
 setEnvironments("macs2")
 debug(atacBamProcess)

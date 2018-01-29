@@ -39,13 +39,15 @@ ezMethodMacs2 = function(input=NA, output=NA, param=NA){
     }
     bamFile <- input$getFullPaths("BAM")
     outBam <- basename(output$getFullPaths("BAM"))
+    
     dupBam(inBam=bamFile, outBam=outBam, operation="remove",
            cores=param$cores)
+    
     if (isTRUE(param$useControl)){
       if(!grepl("Control", input$colNames))
         stop("Control is not available when paramter useControl is true.")
       
-      cmd = paste("macs2", "callpeak -t", input$getFullPaths("BAM"), 
+      cmd = paste("macs2", "callpeak -t", outBam, #input$getFullPaths("BAM"), 
                   "-c", input$getFullPaths("Control"),
                   "-B", opt,"-n", output$getNames())
       ezSystem(cmd)
@@ -62,10 +64,11 @@ ezMethodMacs2 = function(input=NA, output=NA, param=NA){
       ezSystem(cmd)
       ezSystem("rm *.bdg")
     } else {
-      cmd = paste("macs2", "callpeak -t", input$getFullPaths("BAM"), opt,
+      cmd = paste("macs2", "callpeak -t", outBam, opt,
                   "-n", output$getNames())
       ezSystem(cmd)
-      createBigWig(input, output, param)
+      bam2bw(file=outBam, paired=param$paired, 
+             method="deepTools", cores=param$cores)
     }
   }else if(param$mode == "ATAC-seq"){
     if(!param$paired)
@@ -83,7 +86,8 @@ ezMethodMacs2 = function(input=NA, output=NA, param=NA){
     cmd = paste("macs2", "callpeak -t", basename(output$getColumn("BAM")),
                 opt, "-n", output$getNames())
     ezSystem(cmd)
-    createBigWig(input, output, param)
+    bam2bw(file=basename(output$getColumn("BAM")), paired=param$paired,
+           method="deepTools", cores=param$cores)
   }else{
     stop("MACS2 only supports ChIP-seq or ATAC-seq data.")
   }
@@ -174,23 +178,4 @@ annotatePeaks = function(peakFile, param) {
                                         decreasing=T), ]
   colnames(annotatedPeaks) = gsub('-log10','_-log10', colnames(annotatedPeaks))
   ezWrite.table(annotatedPeaks, peakFile, row.names=F)
-}
-
-##' @title Creates a bigwig file
-##' @description Creates and exports a bigwig file.
-##' @template input-template
-##' @template output-template
-##' @param param a list of parameters to extract \code{paired} from.
-##' @template roxygen-template
-createBigWig = function(input=NA, output=NA, param=NA){
-  require("rtracklayer")
-  require("GenomicRanges")
-  require("GenomicAlignments")
-  if (param$paired){
-    aligns = readGAlignmentPairs(file=input$getFullPaths("BAM"))
-  } else {
-    aligns = readGAlignments(file=input$getFullPaths("BAM"))
-  }
-  cov = coverage(aligns)
-  export.bw(cov, paste0(output$getNames(), ".bw"))
 }
