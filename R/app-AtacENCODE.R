@@ -53,6 +53,10 @@ ezMethodAtacENCODE <- function(input=NA, output=NA, param=NA,
   cmd <- paste0(cmd, collapse=" ")
   cmd <- paste("bds", ATACENCODE, "-species", refBuild, 
                "-auto_detect_adapter -nth", param$cores, cmd)
+  
+  Sys.setenv("LD_LIBRARY_PATH"="/usr/local/ngseq/lib")
+  ## This is needed due to library clash in /usr/local/ngseq/lib and /usr/lib/x86_64-linux-gnu
+  
   ## This ATAC ENCODE pipeline can fail randomly. 
   ## We force it to rerun until it succeed.
   attempt <- 1L

@@ -47,7 +47,7 @@ ezMethodMacs2 = function(input=NA, output=NA, param=NA){
       if(!grepl("Control", input$colNames))
         stop("Control is not available when paramter useControl is true.")
       
-      cmd = paste("macs2", "callpeak -t", outBam, #input$getFullPaths("BAM"), 
+      cmd = paste("macs2", "callpeak -t", outBam,
                   "-c", input$getFullPaths("Control"),
                   "-B", opt,"-n", output$getNames())
       ezSystem(cmd)
@@ -96,7 +96,6 @@ ezMethodMacs2 = function(input=NA, output=NA, param=NA){
   }
   
   peakBedFile = basename(output$getColumn("BED"))
-  #paste0(output$getNames(),"_peaks.bed")
   if (grepl('broad', opt)){
     file.rename(from=paste0(output$getNames(),"_peaks.broadPeak"),
                 to=peakBedFile)
@@ -106,12 +105,10 @@ ezMethodMacs2 = function(input=NA, output=NA, param=NA){
   }
   cmd = paste("bedtools", " getfasta -fi", param$ezRef["refFastaFile"],
               " -bed ", peakBedFile, " -name -fo ",
-              #paste0(output$getNames(), "_peaks.fa")
               basename(output$getColumn("PeakSequences"))
               )
   ezSystem(cmd)
   peakXlsFile <- basename(output$getColumn("CalledPeaks"))
-  #paste0(output$getNames(), '_peaks.xls')
   annotatePeaks(peakXlsFile, param)
   return("Success")
 }
