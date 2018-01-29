@@ -98,6 +98,8 @@ dupBam <- function(inBam, outBam, operation=c("mark", "remove"),
 
 ### Filter bam by removing chrs
 filterBam <- function(inBam, outBam, cores=ezThreads(), chrs=NULL, mapQ=NULL){
+  require(Rsamtools)
+  
   setEnvironments("samtools")
   
   cmd <- paste("samtools view -b", "-@", cores, "-o", outBam)
@@ -114,5 +116,39 @@ filterBam <- function(inBam, outBam, cores=ezThreads(), chrs=NULL, mapQ=NULL){
     cmd <- paste(cmd, paste(keepChrs, collapse=" "))
   }
   ezSystem(cmd)
+  
+  cmd <- paste("samtools index", outBam)
+  ezSystem(cmd)
+  
   invisible(outBam)
+}
+
+### Convert bam to bigwig file
+bam2bw <- function(file,
+                   destination=sub("\\.bam$", ".bw", file, ignore.case = TRUE), 
+                   paired=FALSE,
+                   #mode=c("RNA-seq", "DNA-seq"), ## TODO: add strandness for RNA-seq
+                   method=c("deepTools", "Bioconductor"),
+                   cores=ezThreads()){
+  method <- match.arg(method)
+  
+  if(method == "Bioconductor"){
+    ## Better compatability; single-base resolutio;
+    ## Slower; higher RAM comsuption
+    require(rtracklayer)
+    require(GenomicAlignments)
+    if (paired){
+      aligns = readGAlignmentPairs(file)
+    } else {
+      aligns = readGAlignments(file)
+    }
+    cov = coverage(aligns)
+    export.bw(cov, destination)
+  }else if(method == "deepTools"){
+    cmd <- paste("bamCoverage", "--bam", file, "-o", destination,
+                 "--binSize 10 -of bigwig", "-p", cores
+                 )
+    ezSystem(cmd)
+  }
+  invisible(destination)
 }
