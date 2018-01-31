@@ -1,5 +1,5 @@
-\name{filterBam}
-\alias{filterBam}
+\name{filteroutBam}
+\alias{filteroutBam}
 \title{
   Filter bam
 }
@@ -7,7 +7,7 @@
   Filter bam file by removing...
 }
 \usage{
-  filterBam(inBam, outBam, cores = ezThreads(), chrs = NA)
+  filteroutBam(inBam, outBam, cores = ezThreads(), chrs = NA)
 }
   
 \arguments{
@@ -37,5 +37,5 @@
   inBam <- system.file("extdata", "ex1.bam", package="Rsamtools", 
                        mustWork=TRUE)
   outBam <- tempfile(pattern="test-", fileext=".bam")
-  filterBam(inBam, outBam, chrs="seq1", mapQ=10)
+  filteroutBam(inBam, outBam, chrs="seq1", mapQ=10)
 }

@@ -37,8 +37,8 @@ atacBamProcess <- function(input=NA, output=NA, param=NA){
          cores=param$cores)
   
   noDupNoMTNOLowBam <- basename(output$getColumn("BAM"))
-  filterBam(inBam=noDupBam, outBam=noDupNoMTNOLowBam, 
-            cores=param$cores, chrs=c("M", "MT", "chrM"), mapQ=10)
+  filteroutBam(inBam=noDupBam, outBam=noDupNoMTNOLowBam, 
+               cores=param$cores, chrs=c("M", "MT", "chrM"), mapQ=10)
   file.remove(c(noDupBam, paste0(noDupBam, ".bai")))
   
   if(param$shiftATAC){
@@ -96,8 +96,8 @@ dupBam <- function(inBam, outBam, operation=c("mark", "remove"),
   invisible(outBam)
 }
 
-### Filter bam by removing chrs
-filterBam <- function(inBam, outBam, cores=ezThreads(), chrs=NULL, mapQ=NULL){
+### Filter bam by removing chrs, low mapQ
+filteroutBam <- function(inBam, outBam, cores=ezThreads(), chrs=NULL, mapQ=NULL){
   require(Rsamtools)
   
   setEnvironments("samtools")
