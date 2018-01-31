@@ -143,3 +143,25 @@ subSampleRle = function(x, idx){
   gc()
   return(profMatrix)
 }
+
+### Get the consensus peaks from a list of peaks
+consensusPeaks <- function(x){
+  require(GenomicRanges)
+  if(!is(x, "GRangesList"))
+    stop("x must be a GRangesList object.")
+  if(length(x) == 1L){
+    return(x[[1]])
+  }
+  if(length(x) > 2){
+    consensusPeaks(c(GRangesList(consensusPeaks(x[1:(length(x)-1)])), 
+                     x[length(x)]))
+  }
+  gr1 <- x[[1]]
+  gr2 <- x[[2]]
+  hits <- findOverlaps(gr1, gr2)
+  grPairs <- Pairs(first=gr1, second=gr2, hits=hits)
+  intersectedGR <- pintersect(first(grPairs), second(grPairs))
+  toKeep <- width(intersectedGR) / width(first(grPairs)) > 0.5 |
+              width(intersectedGR) / width(second(grPairs)) > 0.5
+  return(first(grPairs)[toKeep])
+}
