@@ -10,6 +10,7 @@ ezMethodMacs2 = function(input=NA, output=NA, param=NA){
   opt = param$cmdOptions
   if(param$paired)
     opt = paste(opt,'-f BAMPE')
+  ## With BAMPE file, --shift cannot be set.
   dataset = input$meta
   
   ## -g option: mappable genome size
@@ -34,6 +35,7 @@ ezMethodMacs2 = function(input=NA, output=NA, param=NA){
   
   if(param$mode == "ChIP-seq"){
     ## --extsize: extend reads in 5'->3' direction to fix-sized fragments.
+    ## This size is taken from sushi app.
     if(!grepl("--extsize", opt)){
       opt <- paste(opt, "--extsize 147")
     }
