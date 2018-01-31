@@ -183,3 +183,14 @@ annotatePeaks = function(peakFile, param) {
   colnames(annotatedPeaks) = gsub('-log10','_-log10', colnames(annotatedPeaks))
   ezWrite.table(annotatedPeaks, peakFile, row.names=F)
 }
+
+### import Macs2's BED6+4 file: narrowPeak or broadPeak
+import.Macs2Peaks <- function(con){
+  require(GenomicRanges)
+  bed <- ezRead.table(con, header=FALSE, row.names=NULL)
+  colnames(bed) <- c("chr", "start", "end", "name", "score", "strand",
+                     "fold-change", "p-value", "q-value", "summit")
+  bed <- transform(bed, start=start+1)
+  bed <- makeGRangesFromDataFrame(bed, keep.extra.columns=TRUE)
+  return(bed)
+}
