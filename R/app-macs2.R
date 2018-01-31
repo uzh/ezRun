@@ -10,6 +10,7 @@ ezMethodMacs2 = function(input=NA, output=NA, param=NA){
   opt = param$cmdOptions
   if(param$paired)
     opt = paste(opt,'-f BAMPE')
+  ## With BAMPE file, --shift cannot be set.
   dataset = input$meta
   
   ## -g option: mappable genome size
@@ -34,6 +35,7 @@ ezMethodMacs2 = function(input=NA, output=NA, param=NA){
   
   if(param$mode == "ChIP-seq"){
     ## --extsize: extend reads in 5'->3' direction to fix-sized fragments.
+    ## This size is taken from sushi app.
     if(!grepl("--extsize", opt)){
       opt <- paste(opt, "--extsize 147")
     }
@@ -182,4 +184,15 @@ annotatePeaks = function(peakFile, param) {
                                         decreasing=T), ]
   colnames(annotatedPeaks) = gsub('-log10','_-log10', colnames(annotatedPeaks))
   ezWrite.table(annotatedPeaks, peakFile, row.names=F)
+}
+
+### import Macs2's BED6+4 file: narrowPeak or broadPeak
+import.Macs2Peaks <- function(con){
+  require(GenomicRanges)
+  bed <- ezRead.table(con, header=FALSE, row.names=NULL)
+  colnames(bed) <- c("chr", "start", "end", "name", "score", "strand",
+                     "fold-change", "p-value", "q-value", "summit")
+  bed <- transform(bed, start=start+1)
+  bed <- makeGRangesFromDataFrame(bed, keep.extra.columns=TRUE)
+  return(bed)
 }
