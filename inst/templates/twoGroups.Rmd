@@ -14,6 +14,7 @@ knitr::opts_chunk$set(echo = TRUE)
 ## This report requires objects: output, deResult, param
 
 ## debug
+#title: "`r paste('Two groups analysis:', param$comparison)`"
 # library(ezRun)
 # load("/srv/gstore/projects/p1536/EdgeR_20650_pos--over--neg_2017-09-01--10-05-45/pos--over--neg/result-pos--over--neg-wcmkyoxvxuzd-EzResult.RData")
 # load("/scratch/gtan/debug/p2497-Deseq2/result-orange--over--rest-gxzhakauugzk-EzResult.RData")
@@ -163,10 +164,10 @@ if (isTRUE(isTwoGroup)){
 if (isTRUE(isTwoGroup)){
     ## volcano plot with p-value
     p_volcano <- ezVolcano(log2Ratio=rowData(se)$log2Ratio, 
-                                 pValue=rowData(se)$pValue, yType="p-value",
-                                 isPresent=rowData(se)$usedInTest, types=types,
-                                 names=rowData(se)$gene_name,
-                                 main=param$comparison,
+                           pValue=rowData(se)$pValue, yType="p-value",
+                           isPresent=rowData(se)$usedInTest, types=types,
+                           names=rowData(se)$gene_name,
+                           main=param$comparison,
                            mode="plotly")
     volcanoPng <- paste0(param$comparison, "-volcano.png")
     export(p_volcano, file=volcanoPng)
@@ -208,10 +209,10 @@ if(isTRUE(isTwoGroup)){
   ## warning=FALSE because FDR contains NA. Shall we make them always 1?
   ## volcano plot with FDR
   p_volcano <- ezVolcano(log2Ratio=rowData(se)$log2Ratio, 
-                               pValue=rowData(se)$fdr, yType="FDR",
-                               isPresent=rowData(se)$usedInTest, types=types,
-                               names=rowData(se)$gene_name,
-                               main=param$comparison,
+                         pValue=rowData(se)$fdr, yType="FDR",
+                         isPresent=rowData(se)$usedInTest, types=types,
+                         names=rowData(se)$gene_name,
+                         main=param$comparison,
                          mode="plotly")
   volcanoFDRPng <- paste0(param$comparison, "-FDR-volcano.png")
   export(p_volcano, file=volcanoFDRPng)
@@ -706,6 +707,70 @@ if(exists("enrichResultGSEA")){
     cat(paste0("[", resFn, "](", resFn, ")"))
     cat("\n")
   }
+}
+```
+
+### Bias check
+This show whether there is a significant overlap between high/low GC
+and gene length.
+If there is a significant overlap, 
+the result is suspicious and potentially an artefact.
+
+```{r bias, echo=FALSE, eval=TRUE}
+biasTable <- data.frame("GC < 0.4"=rowData(se)$gc < 0.4,
+                        "GC > 0.6"=rowData(se)$gc > 0.6,
+                        "width < 800nt"=rowData(se)$width < 800,
+                        "width > 2000nt"=rowData(se)$width > 2000,
+                        check.names=FALSE)
+isUp <- rowData(se)$pValue < param$pValueHighlightThresh & 
+        rowData(se)$log2Ratio > param$log2RatioHighlightThresh & 
+        rowData(se)$usedInTest
+isDown <- rowData(se)$pValue < param$pValueHighlightThresh & 
+        rowData(se)$log2Ratio < -param$log2RatioHighlightThresh & 
+        rowData(se)$usedInTest
+upBiasTable <- biasTable[isUp, ]
+downBiasTable <- biasTable[isDown, ]
+upTestMatrix <- matrix(c(sum(upBiasTable$`GC < 0.4` & upBiasTable$`width < 800nt`),
+                         sum(upBiasTable$`GC < 0.4` & upBiasTable$`width > 2000nt`),
+                         sum(upBiasTable$`GC > 0.6` & upBiasTable$`width < 800nt`),
+                         sum(upBiasTable$`GC > 0.6` & upBiasTable$`width > 2000nt`)),
+                       byrow=TRUE, nrow=2, 
+                       dimnames=list(GC=c("GC < 0.4", "GC > 0.6"),
+                                     width=c("width < 800nt", "width > 2000nt")))
+downTestMatrix <- matrix(c(sum(downBiasTable$`GC < 0.4` & downBiasTable$`width < 800nt`),
+                         sum(downBiasTable$`GC < 0.4` & downBiasTable$`width > 2000nt`),
+                         sum(downBiasTable$`GC > 0.6` & downBiasTable$`width < 800nt`),
+                         sum(downBiasTable$`GC > 0.6` & downBiasTable$`width > 2000nt`)),
+                         byrow=TRUE, nrow=2, 
+                         dimnames=list(GC=c("GC < 0.4", "GC > 0.6"),
+                                       width=c("width < 800nt", "width > 2000nt")))
+```
+
+```{r bias table up, echo=FALSE, eval=TRUE}
+if(any(upTestMatrix != 0 )){
+  kable(upTestMatrix, "html", caption = "Upregulated genes") %>%
+    kable_styling(bootstrap_options = "striped", full_width = F, 
+                  position = "left")
+}
+```
+
+```{r bias test up, echo=FALSE, eval=TRUE}
+if(any(upTestMatrix != 0 )){
+  fisher.test(upTestMatrix)
+}
+```
+
+```{r bias table down, echo=FALSE, eval=TRUE}
+if(any(downTestMatrix != 0 )){
+  kable(downTestMatrix, "html", caption = "Upregulated genes") %>%
+    kable_styling(bootstrap_options = "striped", full_width = F, 
+                  position = "left")
+}
+```
+
+```{r bias test down, echo=FALSE, eval=TRUE}
+if(any(downTestMatrix != 0 )){
+  fisher.test(downTestMatrix)
 }
 ```
 
