@@ -107,3 +107,11 @@ bam2bw(file="A9502US_processed.bam", destination="A9502US_processed_deepTpools.b
 #debug(atacBamProcess)
 EzAppMacs2$new()$run(input=input, output=output, param=param)
 
+## HOMER
+### makeTagDirectory
+makeTagDirectory A0101P A0101P_processed.bam -format sam
+makeTagDirectory A0062P A0062P_processed.bam -format sam
+makeTagDirectory A0101US A0101US_processed.bam -format sam
+makeTagDirectory A0062US A0062US_processed.bam -format sam
+### getDifferentialPeaksReplicates.pl
+getDifferentialPeaksReplicates.pl -t A0101P A0062P -b A0101US A0062US > outputPeaks_P--over--US.txt
