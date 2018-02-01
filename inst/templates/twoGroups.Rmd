@@ -762,7 +762,7 @@ if(any(upTestMatrix != 0 )){
 
 ```{r bias table down, echo=FALSE, eval=TRUE}
 if(any(downTestMatrix != 0 )){
-  kable(downTestMatrix, "html", caption = "Upregulated genes") %>%
+  kable(downTestMatrix, "html", caption = "Downregulated genes") %>%
     kable_styling(bootstrap_options = "striped", full_width = F, 
                   position = "left")
 }
