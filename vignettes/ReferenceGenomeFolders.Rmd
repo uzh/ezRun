@@ -23,6 +23,8 @@ Reference genomes can be built from a gtf file containing the gene annotations
 and a fasta file holding the genome sequence.
 With the file-based representation the reference genomes are available to external tools like read aligners and others.
 
+This pipeline has been tested for Ensembl and GENCODE annotation.
+
 ## Ensembl
 Here we give an exmaple of human reference annotation from Ensembl.
 

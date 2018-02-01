@@ -155,9 +155,9 @@ setMethod("buildRefDir", "EzRef", function(.Object, genomeFile, genesFile,
   }
   
   ## fasta
-  genome <- readDNAStringSet(genomeFile)
+  genome <- readBStringSet(genomeFile) #BString for lower cased softmasked repeats
   ### remove everything after chr id
-  names(genome) = sub(" .*", "", names(genome)) 
+  names(genome) = sub(" .*", "", names(genome))
   writeXStringSet(genome, .Object@refFastaFile)
   
   ## 2 GTF files: 
@@ -165,13 +165,22 @@ setMethod("buildRefDir", "EzRef", function(.Object, genomeFile, genesFile,
   gtf <- import(genesFile)
   #### some controls over gtf
   if(is.null(gtf$gene_biotype)){
-    message("gene_biotype is not available in gtf. Assigning protein_coding.")
-    gtf$gene_biotype <- "protein_coding"
+    if(is.null(gtf$gene_type)){
+      message("gene_biotype is not available in gtf. Assigning protein_coding.")
+      gtf$gene_biotype <- "protein_coding"
+    }else{
+      ## In GENCODE gtf, there is gene_type, instead of gene_biotype.
+      gtf$gene_biotype <- gtf$gene_type
+      gtf$gene_type <- NULL
+    }
   }
   if(is.null(gtf$gene_name)){
     message("gene_name is not available in gtf. Assigning gene_id.")
     gtf$gene_name <- gtf$gene_id
   }
+  #### GENCODE.gtf: remove the version number from gene_id, transcript_id
+  gtf$gene_id <- sub("\\..*$", "", gtf$gene_id)
+  gtf$transcript_id <- sub("\\..*$", "", gtf$transcript_id)
   
   export(gtf, con=file.path(gtfPath, "features.gtf"))
   ### genes.gtf
