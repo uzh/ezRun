@@ -710,10 +710,9 @@ if(exists("enrichResultGSEA")){
 }
 ```
 
-### Bias check
-This show whether there is a significant overlap between high/low GC
-and gene length.
-If there is a significant overlap, 
+### Association test
+This show whether up and down-regulated genes are associated with GC content and gene length.
+If there is a significant association, 
 the result is suspicious and potentially an artefact.
 
 ```{r bias, echo=FALSE, eval=TRUE}
@@ -726,54 +725,31 @@ isUp <- rowData(se)$pValue < param$pValueHighlightThresh &
         rowData(se)$log2Ratio > param$log2RatioHighlightThresh & 
         rowData(se)$usedInTest
 isDown <- rowData(se)$pValue < param$pValueHighlightThresh & 
-        rowData(se)$log2Ratio < -param$log2RatioHighlightThresh & 
-        rowData(se)$usedInTest
-upBiasTable <- biasTable[isUp, ]
-downBiasTable <- biasTable[isDown, ]
-upTestMatrix <- matrix(c(sum(upBiasTable$`GC < 0.4` & upBiasTable$`width < 800nt`),
-                         sum(upBiasTable$`GC < 0.4` & upBiasTable$`width > 2000nt`),
-                         sum(upBiasTable$`GC > 0.6` & upBiasTable$`width < 800nt`),
-                         sum(upBiasTable$`GC > 0.6` & upBiasTable$`width > 2000nt`)),
-                       byrow=TRUE, nrow=2, 
-                       dimnames=list(GC=c("GC < 0.4", "GC > 0.6"),
-                                     width=c("width < 800nt", "width > 2000nt")))
-downTestMatrix <- matrix(c(sum(downBiasTable$`GC < 0.4` & downBiasTable$`width < 800nt`),
-                         sum(downBiasTable$`GC < 0.4` & downBiasTable$`width > 2000nt`),
-                         sum(downBiasTable$`GC > 0.6` & downBiasTable$`width < 800nt`),
-                         sum(downBiasTable$`GC > 0.6` & downBiasTable$`width > 2000nt`)),
-                         byrow=TRUE, nrow=2, 
-                         dimnames=list(GC=c("GC < 0.4", "GC > 0.6"),
-                                       width=c("width < 800nt", "width > 2000nt")))
-```
-
-```{r bias table up, echo=FALSE, eval=TRUE}
-if(any(upTestMatrix != 0 )){
-  kable(upTestMatrix, "html", caption = "Upregulated genes") %>%
-    kable_styling(bootstrap_options = "striped", full_width = F, 
-                  position = "left")
+          rowData(se)$log2Ratio < -param$log2RatioHighlightThresh & 
+          rowData(se)$usedInTest
+sigTable <- data.frame("Up-regulation"=isUp,
+                       "Down-regulation"=isDown,
+                       check.names=FALSE)
+testTable <- data.frame(row.names=apply(expand.grid(names(sigTable), 
+                                                    names(biasTable)), 
+                                        1, paste, collapse=": "),
+                        check.names=FALSE)
+for(rowName in names(sigTable)){
+  for(colName in names(biasTable)){
+    res.fisher <- fisher.test(biasTable[[colName]], sigTable[[rowName]],
+                              alternative="two.sided")
+    testTable[paste(rowName, colName, sep=": "), "overlapping genes"] = 
+      sum(biasTable[[colName]] & sigTable[[rowName]])
+    testTable[paste(rowName, colName, sep=": "), "odds ratio"] = 
+      res.fisher$estimate
+    testTable[paste(rowName, colName, sep=": "), "p-value"] = res.fisher$p.value
+  }
 }
-```
+kable(testTable, "html", caption = "Association test summary") %>%
+  kable_styling(bootstrap_options = "striped", full_width = F, 
+                position = "left")
 
-```{r bias test up, echo=FALSE, eval=TRUE}
-if(any(upTestMatrix != 0 )){
-  fisher.test(upTestMatrix)
-}
 ```
-
-```{r bias table down, echo=FALSE, eval=TRUE}
-if(any(downTestMatrix != 0 )){
-  kable(downTestMatrix, "html", caption = "Downregulated genes") %>%
-    kable_styling(bootstrap_options = "striped", full_width = F, 
-                  position = "left")
-}
-```
-
-```{r bias test down, echo=FALSE, eval=TRUE}
-if(any(downTestMatrix != 0 )){
-  fisher.test(downTestMatrix)
-}
-```
-
 
 ### Input Dataset
 ```{r input, echo=FALSE}
