@@ -493,6 +493,10 @@ plateStatistics <- function(dataset,
 
 heatmapPlate <- function(x, title="unnamed", center=TRUE, log10=TRUE){
   require(plotly)
+  if (any(x == 0)){
+    ## a concentration might be zero!
+    x[x==0] = min(0.5 * x[x >0])
+  }
   if(isTRUE(log10)){
     x <- log10(x)
     if(isTRUE(center)){
