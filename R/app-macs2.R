@@ -46,7 +46,7 @@ ezMethodMacs2 = function(input=NA, output=NA, param=NA){
            cores=param$cores)
     
     if (isTRUE(param$useControl)){
-      if(!grepl("Control", input$colNames))
+      if(!any(grepl("Control", input$colNames)))
         stop("Control is not available when paramter useControl is true.")
       
       cmd = paste("macs2", "callpeak -t", outBam,
