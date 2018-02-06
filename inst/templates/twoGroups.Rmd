@@ -27,14 +27,15 @@ knitr::opts_chunk$set(echo = TRUE)
 # output[['Live Report [Link]']] = 'http://fgcz-shiny.uzh.ch/fgcz_exploreDEG_app/?data=p2497/DESeq2_22056_orange--over--rest_2017-11-01--10-42-27/orange--over--rest/result-orange--over--rest-gxzhakauugzk-EzResult.RData'
 # output[['Report [File]']] = 'p2497/DESeq2_22056_orange--over--rest_2017-11-01--10-42-27/orange--over--rest'
 # output = EzDataset$new(meta=output, dataRoot=param$dataRoot)
+debug <- FALSE
 ## end of debug
+
 
 require(knitr)
 require(kableExtra)
 require(SummarizedExperiment)
 require(webshot)
 require(htmlwidgets)
-debug <- FALSE
 setEnvironments("phantomjs")
 ```
 
@@ -739,16 +740,28 @@ for(rowName in names(sigTable)){
     res.fisher <- fisher.test(biasTable[[colName]], sigTable[[rowName]],
                               alternative="two.sided")
     testTable[paste(rowName, colName, sep=": "), "overlapping genes"] = 
-      sum(biasTable[[colName]] & sigTable[[rowName]])
+      paste(sum(biasTable[[colName]] & sigTable[[rowName]]),
+            sum(sigTable[[rowName]]), sep="/")
     testTable[paste(rowName, colName, sep=": "), "odds ratio"] = 
       res.fisher$estimate
     testTable[paste(rowName, colName, sep=": "), "p-value"] = res.fisher$p.value
   }
 }
-kable(testTable, "html", caption = "Association test summary") %>%
-  kable_styling(bootstrap_options = "striped", full_width = F, 
-                position = "left")
-
+t <- kable(format(testTable, digits=4, scientific=TRUE), "html", 
+           caption=paste("Association test:",
+                         sum(isUp), "up-regulated and",
+                         sum(isDown), "down-regulated genes")) %>%
+     kable_styling(bootstrap_options = "striped", full_width = F, 
+                   position = "left") %>%
+     footnote(number = c("The significant (p <= 1e-3) rows are in red.",
+                         "The overlapping genes column is the number of overlapping genes over the total number of genes with the GC content or gene width criteria.")
+     )
+isSig <- testTable$`p-value` <= 1e-3
+if(any(isSig)){
+  t <- t %>% 
+    row_spec(which(isSig), bold = T, color = "white", background = "#D7261E")
+}
+t
 ```
 
 ### Input Dataset
