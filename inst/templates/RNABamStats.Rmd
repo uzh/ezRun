@@ -114,7 +114,7 @@ for (nm in c("multiMatchTargetTypeCounts", "uniqueMatchTargetTypeCounts")){
               caption="Match Count Percentages") %>%
           kable_styling(bootstrap_options = "striped",
                         full_width = F, position = "left") %>%
-          add_footnote(c("Percentage value."), notation = "alphabet")
+          footnote(general="Percentage value.")
         print(k)
       }else{
         cat("The plot and table are shown when there are at least two samples!",
@@ -134,11 +134,10 @@ for (nm in c("multiMatchTargetTypeCounts", "uniqueMatchTargetTypeCounts")){
         eval(plotCmd)
         k <- kable(signif(tct[rowsUse, ], digits=4),
                    row.names=TRUE, format = "html",
-          caption="Read Starts per Base") %>%
-      kable_styling(bootstrap_options = "striped",
-                    full_width = F, position = "left") %>%
-      add_footnote(c("Read Starts per Base is equivalent to Coverage divided by Read length."), 
-                   notation = "alphabet")
+                   caption="Read Starts per Base") %>%
+          kable_styling(bootstrap_options = "striped",
+                        full_width = F, position = "left") %>%
+          footnote(general="Read Starts per Base is equivalent to Coverage divided by Read length.")
         print(k)
       }else{
         cat("The plot and table are shown when there are at least two samples!",
