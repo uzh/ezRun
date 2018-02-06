@@ -110,16 +110,17 @@ EzAppMacs2$new()$run(input=input, output=output, param=param)
 ## HOMER
 ### makeTagDirectory App
 setEnvironments("samtools")
+setEnvironments("r")
+setEnvironments("HOMER")
 library(ezRun)
 setwd("/scratch/gtan/p2578-atacENCODE/HOMER")
 param = list()
-param[['cores']] = '8'
-param[['ram']] = '60'
+param[['cores']] = '4'
+param[['ram']] = '16'
 param[['scratch']] = '100'
 param[['node']] = ''
 param[['process_mode']] = 'SAMPLE'
 param[['refBuild']] = 'Homo_sapiens/GENCODE/GRCh38.p10/Annotation/Release_27-2018-02-01'
-param[['refBuildHOMER']] = 'hg38'
 param[['paired']] = 'true'
 param[['refFeatureFile']] = 'genes.gtf'
 param[['grouping']] = 'Condition'
@@ -130,6 +131,12 @@ param[['specialOptions']] = ''
 param[['mail']] = 'ge.tan@fgcz.ethz.ch'
 param[['dataRoot']] = '/srv/gstore/projects'
 param[['resultDir']] = 'p2578/HomerDiffPeaks_2018'
+### special params for HOMER
+param[['refBuildHOMER']] = 'hg38'
+param[['repFoldChange']] = '2'
+param[['repFDR']] = '0.05'
+param[['balanced']] = 'false'
+param[['style']] = 'histone' # factor, tss, groseq, dnase, super, mC
 
 input <- "input_dataset.tsv"
 output = list()
@@ -137,17 +144,10 @@ output[['Name']] = 'P--over--US'
 output[['Species']] = 'Homo sapiens (human)'
 output[['refBuild']] = 'Homo_sapiens/GENCODE/GRCh38.p10/Annotation/Release_27-2018-02-01'
 output[['Report [File]']] = 'p2578/HomerDiffPeaks_2018/HomerDiffPeaks_asthmatic_P--over--US'
+output[['DiffPeaks [File]']] = 'p2578/HomerDiffPeaks_2018/HomerDiffPeaks_asthmatic_P--over--US/diffPeaks.txt'
 
-input = EzDataset$new(file=input, dataRoot=param$dataRoot)
-param <- ezParam(param)
-output = EzDataset$new(meta=output, dataRoot=param$dataRoot)
+# input = EzDataset$new(file=input, dataRoot=param$dataRoot)
+# param <- ezParam(param)
+# output = EzDataset$new(meta=output, dataRoot=param$dataRoot)
+EzAppHomerDiffPeaks$new()$run(input=input, output=output, param=param)
 
-
-makeTagDirectory A0101P A0101P_processed.bam -format sam
-makeTagDirectory A0062P A0062P_processed.bam -format sam
-makeTagDirectory A0101US A0101US_processed.bam -format sam
-makeTagDirectory A0062US A0062US_processed.bam -format sam
-time makeTagDirectory A3401P A3401P_processed.bam -format sam
-
-### getDifferentialPeaksReplicates.pl
-getDifferentialPeaksReplicates.pl -t A0101P A0062P -b A0101US A0062US > outputPeaks_P--over--US.txt
