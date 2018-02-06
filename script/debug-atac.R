@@ -109,17 +109,17 @@ EzAppMacs2$new()$run(input=input, output=output, param=param)
 
 ## HOMER
 ### makeTagDirectory App
+library(ezRun)
 setEnvironments("samtools")
 setEnvironments("r")
 setEnvironments("HOMER")
-library(ezRun)
 setwd("/scratch/gtan/p2578-atacENCODE/HOMER")
 param = list()
 param[['cores']] = '4'
 param[['ram']] = '16'
 param[['scratch']] = '100'
 param[['node']] = ''
-param[['process_mode']] = 'SAMPLE'
+param[['process_mode']] = 'DATASET'
 param[['refBuild']] = 'Homo_sapiens/GENCODE/GRCh38.p10/Annotation/Release_27-2018-02-01'
 param[['paired']] = 'true'
 param[['refFeatureFile']] = 'genes.gtf'
@@ -134,7 +134,7 @@ param[['resultDir']] = 'p2578/HomerDiffPeaks_2018'
 ### special params for HOMER
 param[['refBuildHOMER']] = 'hg38'
 param[['repFoldChange']] = '2'
-param[['repFDR']] = '0.05'
+param[['repFDR']] = '0.1'
 param[['balanced']] = 'false'
 param[['style']] = 'histone' # factor, tss, groseq, dnase, super, mC
 

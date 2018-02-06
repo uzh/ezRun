@@ -14,7 +14,8 @@ EzAppHomerDiffPeaks <-
                   "Initializes the application using its specific defaults."
                   runMethod <<- ezMethodHomerDiffPeaks
                   name <<- "EzAppHomerDiffPeaks"
-                  appDefaults <<- rbind(repFoldChange=ezFrame(Type="numeric", DefaultValue=2, Description="replicate fold change cutoff for peak identification (calculated by DESeq2)"),
+                  appDefaults <<- rbind(refBuildHOMER=ezFrame(Type="character", DefaultValue="hg38", Description="Genome version to use from HOMER: hg38, mm10, danRer10, etc."),
+                                        repFoldChange=ezFrame(Type="numeric", DefaultValue=2, Description="replicate fold change cutoff for peak identification (calculated by DESeq2)"),
                                         repFDR=ezFrame(Type="numeric", DefaultValue=0.05, Description="replicate FDR cutoff for peak identification (calculated by DESeq2)"),
                                         balanced=ezFrame(Type="logical", DefaultValue=TRUE, Description="Do not force the use of normalization factors to match total mapped reads.  This can be useful when analyzing differential peaks between similar data (for example H3K27ac) where we expect similar levels in all experiments. Applying this allows the data to essentially be quantile normalized during the differential calculation."),
                                         style=ezFrame(Type="character", DefaultValue="histone", Description="style of peaks found by findPeaks during features selection (factor, histone, super, groseq, tss, dnase, mC)")
