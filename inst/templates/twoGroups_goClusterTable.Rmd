@@ -26,8 +26,7 @@ p <- kable(ktables, escape=FALSE, row.names=FALSE, format = "html", digits=4,
           caption="GO categories of feature clusters") %>%
   kable_styling(bootstrap_options = "striped",
                 full_width = F, position = "float_right") %>%
-  add_footnote(c("Cluster font color corresponds to the row colors in the heatmap plot."), 
-               notation = "alphabet") %>%
+  footnote(general="Cluster font color corresponds to the row colors in the heatmap plot.") %>%
   add_header_above(c("Biological Proc. (BP)" = 4, "Molecular Func. (MF)" = 4, "Cellular Comp. (CC)" = 4))
 stopifnot(length(bgColors) == length(ngroups)) ## The colour and clusters should match.
 indices <- c(0,cumsum(ngroups))
