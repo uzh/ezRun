@@ -526,7 +526,7 @@ getBamMultiMatching = function(param, bamFile, nReads=NULL){
   return(result)
 }
 
-.getBamLocally = function(src, toSam=FALSE){
+getBamLocally = function(src, toSam=FALSE){
 
   if (normalizePath(dirname(src)) %in% c(".", normalizePath(getwd()))){
     return(src)
@@ -539,8 +539,9 @@ getBamMultiMatching = function(param, bamFile, nReads=NULL){
     cmd = paste("samtools", "view -h", "-o", target, src)
     ezSystem(cmd)
   } else {
-    ezSystem(paste("cp", src, target))
-    ezSystem(paste0("cp ", src, ".bai ", target, ".bai"))
+    file.copy(from=src, to=target)
+    file.copy(from=paste0(src, ".bai"),
+              to=paste0(target, ".bai"))
   }
   return(target)
 }
