@@ -479,9 +479,7 @@ plateStatistics <- function(dataset,
         counts <- datasetByPlate[[i]][[oneCol]]
         countMatrix <- ezMatrix(NA, rows=LETTERS[1:which(LETTERS==max(plateRow))],
                                 cols=seq_len(max(as.integer(plateCol))))
-        for(j in seq_len(length(counts))){
-          countMatrix[plateRow[j], plateCol[j]] <- counts[j]
-        }
+        for(j in seq_len(length(counts))) { countMatrix[plateRow[j], plateCol[j]] <- counts[j]}
         ans[[names(datasetByPlate)[i]]][[oneCol]] <- countMatrix
       }
     }
@@ -493,10 +491,14 @@ plateStatistics <- function(dataset,
 
 heatmapPlate <- function(x, title="unnamed", center=TRUE, log10=TRUE){
   require(plotly)
-  if (any(x == 0)){
-    ## a concentration might be zero!
-    x[x==0] = min(0.5 * x[x >0])
+  ## do not plot if there are only NA or zeros
+  if (all(x %in% c(NA, 0))){
+    return(NULL)
   }
+  ## shift zeros a bit
+  isZero = x == 0
+  isZero[is.na(isZero)] = FALSE
+  x[isZero] = min(0.25 * x[x >0], na.rm = TRUE)
   if(isTRUE(log10)){
     x <- log10(x)
     if(isTRUE(center)){
