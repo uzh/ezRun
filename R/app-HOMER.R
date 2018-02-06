@@ -62,7 +62,7 @@ ezMethodHomerDiffPeaks = function(input=NA, output=NA, param=NA,
                  "-style", param$style)
     cmd <- paste(cmd, "-t", paste(firstSamples, collapse=" "),
                  "-b", paste(secondSamples, collapse=" "),
-                 ">", basename(output$getColumn("DiffPeaks")))
+                 ">", basename(output$getColumn("DiffPeak")))
     ezSystem(cmd)
   }else{
     ## The experiments without replicates;
@@ -74,7 +74,7 @@ ezMethodHomerDiffPeaks = function(input=NA, output=NA, param=NA,
     ezSystem(cmd)
     cmd <- paste("getDifferentialPeaks", "tss.txt",
                  firstSamples, secondSamples,
-                 ">", basename(output$getColumn("DiffPeaks")))
+                 ">", basename(output$getColumn("DiffPeak")))
     ezSystem(cmd)
     file.remove("tss.txt")
   }
