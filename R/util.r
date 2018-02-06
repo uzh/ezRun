@@ -725,6 +725,9 @@ isValidEnvironments <- function(tool){
                 "conda"=Sys.which("conda") != "",
                 "sambamba"=Sys.which("sambamba") != "",
                 "macs2"=Sys.which("macs2") != "",
+                "igvtools"=Sys.which("igvtools") != "",
+                "homer"=Sys.which("homer") != "",
+                "r"=Sys.which("R") != "",
                 stop("unsupported tool: ", tool)
                 )
   return(ans)
@@ -750,7 +753,10 @@ setEnvironments <- function(tool, envir=parent.frame()){
                   "bowtie2"=expression({Sys.setenv("PATH"=paste("/usr/local/ngseq/packages/Aligner/Bowtie2/2.3.2/bin", Sys.getenv("PATH"), sep=":"))}),
                   "conda"=expression({Sys.setenv("PATH"=paste("/usr/local/ngseq/miniconda3/bin", Sys.getenv("PATH"), sep=":"))}),
                   "sambamba"=expression({Sys.setenv("PATH"=paste("/usr/local/ngseq/packages/Tools/sambamda/0.6.7/bin", Sys.getenv("PATH"), sep=":"))}),
-                  "macs2"=expression({Sys.setenv("PATH"=paste("/usr/local/ngseq/packages/Dev/Python2/2.7.13/bin", "/usr/local/ngseq/packages/Tools/MACS2/2.1.1.20160309/bin", Sys.getenv("PATH"), sep=":"))}),
+                  "macs2"=expression({Sys.setenv("PATH"=paste("/usr/local/ngseq/packages/Dev/Python2/2.7.13/bin", Sys.getenv("PATH"), sep=":"))}),
+                  "igvtools"=expression({Sys.setenv("PATH"=paste("/usr/local/ngseq/packages/Tools/IGVTools/2.3.91", Sys.getenv("PATH"), sep=":"))}),
+                  "homer"=expression({Sys.setenv("PATH"=paste("/usr/local/ngseq/packages/Tools/HOMER/4.9/bin", Sys.getenv("PATH"), sep=":"))}),
+                  "r"=expression({Sys.setenv("PATH"=paste("/usr/local/ngseq/packages/Dev/R/3.4.2/bin", Sys.getenv("PATH"), sep=":"))}),
                   stop("unsupported tool: ", tool)
     )
     eval(cmd, envir=envir)

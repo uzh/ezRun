@@ -9,7 +9,7 @@
 ezMethodFeatureCounts = function(input=NA, output=NA, param=NA){
   require(GenomicRanges)
   bamFile = input$getFullPaths("BAM")
-  localBamFile = .getBamLocally(bamFile)
+  localBamFile = getBamLocally(bamFile)
   if(localBamFile != bamFile){
     on.exit(file.remove(c(localBamFile, paste0(localBamFile, ".bai"))),
             add=TRUE)
@@ -191,7 +191,7 @@ ezMethodSingleCellFeatureCounts <- function(input=NA, output=NA, param=NA){
   require(GenomicRanges)
   
   bamFile = input$getFullPaths("BAM")
-  localBamFile = .getBamLocally(bamFile)
+  localBamFile = getBamLocally(bamFile)
   if(localBamFile != bamFile){
     on.exit(file.remove(c(localBamFile, paste0(localBamFile, ".bai"))),
             add=TRUE)
