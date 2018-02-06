@@ -126,8 +126,6 @@ param[['refFeatureFile']] = 'genes.gtf'
 param[['grouping']] = 'Condition'
 param[['sampleGroup']] = 'asthmatic_P'
 param[['refGroup']] = 'asthmatic_US'
-param[['cmdOptions']] = ''
-param[['specialOptions']] = ''
 param[['mail']] = 'ge.tan@fgcz.ethz.ch'
 param[['dataRoot']] = '/srv/gstore/projects'
 param[['resultDir']] = 'p2578/HomerDiffPeaks_2018'
@@ -135,7 +133,7 @@ param[['resultDir']] = 'p2578/HomerDiffPeaks_2018'
 param[['refBuildHOMER']] = 'hg38'
 param[['repFoldChange']] = '2'
 param[['repFDR']] = '0.1'
-param[['balanced']] = 'false'
+param[['balanced']] = 'true'
 param[['style']] = 'histone' # factor, tss, groseq, dnase, super, mC
 
 input <- "input_dataset.tsv"
