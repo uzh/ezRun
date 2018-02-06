@@ -36,6 +36,7 @@ EzAppRnaBamStats <-
                   runMethod <<- ezMethodRnaBamStats
                   name <<- "EzAppRnaBamStats"
                   appDefaults <<- rbind(posErrorRates=ezFrame(Type="logical",	DefaultValue="TRUE",	Description="compute position specific error rates?"),
+                                        dupRadar=ezFrame(Type="logical",	DefaultValue="TRUE",	Description="run dupradar"),
                                     fragSizeMax=ezFrame(Type="integer",  DefaultValue=500,	Description="maximum fragment size to plot in fragment size distribution"),
                                     writeIgvSessionLink=ezFrame(Type="logical", DefaultValue="TRUE", Description="should an IGV link be generated"),
                                     ignoreDup=ezFrame(Type="logical", DefaultValue="NA", Description="should marked duplicates be ignored?"))
@@ -117,14 +118,16 @@ computeBamStats = function(input, htmlFile, param, gff, resultList=NULL){
     gc()
     
     ## do Assessment of duplication rates from package dupRadar
-    dupRateResults <- ezMclapply(files, getDupRateFromBam, param, 
-                                 mc.preschedule = FALSE,
-                                 mc.cores = min(length(files), ezThreads()))
-    for(sm in samples){
-      resultList[[sm]][["dupRate"]] = dupRateResults[[sm]]
+    if (is.null(param$dupRadar) || param$dupRadar == TRUE){
+      dupRateResults <- ezMclapply(files, getDupRateFromBam, param, 
+                                   mc.preschedule = FALSE,
+                                   mc.cores = min(length(files), ezThreads()))
+      for(sm in samples){
+        resultList[[sm]][["dupRate"]] = dupRateResults[[sm]]
+      }
+      rm(dupRateResults)
+      gc()
     }
-    rm(dupRateResults)
-    gc()
   }
   
   if (param$saveImage){
