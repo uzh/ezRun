@@ -32,6 +32,10 @@ ezMethodMacs2 = function(input=NA, output=NA, param=NA){
     }
     opt <- paste(opt, "-g", gsize)
   }
+  ## --keep-dup: behavior towards duplicate tags at the exact same location
+  if(!grepl("--keep-dup", opt)){
+    opt <- paste(opt, "--keep-dup all")
+  }
   
   if(param$mode == "ChIP-seq"){
     ## --extsize: extend reads in 5'->3' direction to fix-sized fragments.
@@ -46,7 +50,7 @@ ezMethodMacs2 = function(input=NA, output=NA, param=NA){
            cores=param$cores)
     
     if (isTRUE(param$useControl)){
-      if(!any(grepl("Control", input$colNames)))
+      if(!any(grepl("Control", input$colNames, ignore.case = TRUE)))
         stop("Control is not available when paramter useControl is true.")
       
       cmd = paste("macs2", "callpeak -t", outBam,
