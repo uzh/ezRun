@@ -726,6 +726,7 @@ isValidEnvironments <- function(tool){
                 "sambamba"=Sys.which("sambamba") != "",
                 "macs2"=Sys.which("macs2") != "",
                 "igvtools"=Sys.which("igvtools") != "",
+                "homer"=Sys.which("homer") != "",
                 stop("unsupported tool: ", tool)
                 )
   return(ans)
@@ -753,6 +754,7 @@ setEnvironments <- function(tool, envir=parent.frame()){
                   "sambamba"=expression({Sys.setenv("PATH"=paste("/usr/local/ngseq/packages/Tools/sambamda/0.6.7/bin", Sys.getenv("PATH"), sep=":"))}),
                   "macs2"=expression({Sys.setenv("PATH"=paste("/usr/local/ngseq/packages/Dev/Python2/2.7.13/bin", Sys.getenv("PATH"), sep=":"))}),
                   "igvtools"=expression({Sys.setenv("PATH"=paste("/usr/local/ngseq/packages/Tools/IGVTools/2.3.91", Sys.getenv("PATH"), sep=":"))}),
+                  "homer"=expression({Sys.setenv("PATH"=paste("/usr/local/ngseq/packages/Tools/HOMER/4.9/bin", Sys.getenv("PATH"), sep=":"))}),
                   stop("unsupported tool: ", tool)
     )
     eval(cmd, envir=envir)
