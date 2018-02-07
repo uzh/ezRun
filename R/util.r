@@ -762,3 +762,44 @@ setEnvironments <- function(tool, envir=parent.frame()){
     eval(cmd, envir=envir)
   }
 }
+
+## extend intersect to multiple arguments
+## does only support operations on arguments that are elementary data types not on lists
+ezIntersect = function(...){
+  x = list(...)
+  if (length(x) == 1 && is.list(x[[1]])){
+    x = x[[1]]
+  }
+  Reduce(intersect, x)
+}
+
+
+## extend union to multiple arguments
+## does only support operations on arguments that are elementary data types not on lists
+ezUnion = function(...){
+  x = list(...)
+  if (length(x) == 1 && is.list(x[[1]])){
+    x = x[[1]]
+  }
+  Reduce(union, x)
+}
+
+## extend rbind to combine multiple elements
+## arguments can alfready be combined as a list
+ezRbind = function(...){
+  x = list(...)
+  if (length(x) == 1 && is.list(x[[1]])){
+    x = x[[1]]
+  }
+  do.call(rbind, x)
+}
+
+ezCbind = function(...){
+  x = list(...)
+  if (length(x) == 1 && is.list(x[[1]])){
+    x = x[[1]]
+  }
+  do.call(cbind, x)
+}
+
+
