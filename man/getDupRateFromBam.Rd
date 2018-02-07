@@ -9,7 +9,6 @@
 \usage{
   getDupRateFromBam(bamFile, param = NULL, gtfFn,
                     stranded = c("both", "sense", "antisense"),
-                    dupremover=c("bamutil", "picard"),
                     paired = FALSE, threads = 1)
 }
 \arguments{
@@ -24,10 +23,6 @@
   }
   \item{stranded}{
     \code{character}(1): \dQuote{both}, \dQuote{sense} or \dQuote{antisense}
-  }
-  \item{dupremover}{
-    \code{character}(1): the software to mark the duplicates. 
-    \dQuote{bamutil} is faster than \dQuote{picard}.
   }
   \item{paired}{
     \code{logical}: Paired end experiment?
@@ -56,11 +51,8 @@
     stranded <- "antisense"
     paired <- FALSE
     threads <- 4
-    resBamUtil <- getDupRateFromBam(bamFile=bamFile, gtfFn=gtfFn,
-                                    stranded=stranded, dupremover="bamutil",
+    resBam <- getDupRateFromBam(bamFile=bamFile, gtfFn=gtfFn,
+                                    stranded=stranded,
                                     paired=paired, threads=threads)
-    resPicard <- getDupRateFromBam(bamFile=bamFile, gtfFn=gtfFn,
-                                   stranded=stranded, dupremover="picard",
-                                   paired=paired, threads=threads)
   }
 }
