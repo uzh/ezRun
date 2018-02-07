@@ -98,7 +98,7 @@ ezMethodBowtie2 = function(input=NA, output=NA, param=NA){
   ezSystem(cmd)
   if (!is.null(param$markDuplicates) && param$markDuplicates){
     ezSortIndexBam("bowtie.bam", "sorted.bam", ram=param$ram, removeBam=TRUE,
-                   cores=nSortThreads)
+                   cores=param$cores)
     dupBam(inBam="sorted.bam", outBam=basename(bamFile),
            operation="mark", cores=param$cores)
     file.remove("sorted.bam")
