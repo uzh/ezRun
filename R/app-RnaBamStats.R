@@ -769,17 +769,17 @@ getJunctionPlotsFromBam = function(bamFile, param){
 
 getDupRateFromBam <- function(bamFile, param=NULL, gtfFn, 
                               stranded=c("both", "sense", "antisense"), 
-                              paired=FALSE, dupremover=c("picard", "bamutil"),
+                              paired=FALSE, #dupremover=c("picard", "bamutil"),
                               threads=1){
   if(!is.null(param)){
     gtfFn <- param$ezRef@refFeatureFile
     stranded <- param$strandMode
     paired <- param$paired
-    threads <- param$cores
+    threads <- ceiling(param$cores / 2)
   }
   require(dupRadar)
-  dupremover <- match.arg(dupremover)
-  setEnvironments(dupremover)
+  #dupremover <- match.arg(dupremover)
+  #setEnvironments(dupremover)
   
   ## Make the duplicates in bamFile
   inputBam <- paste(Sys.getpid(), basename(bamFile), sep="-")
@@ -787,26 +787,27 @@ getDupRateFromBam <- function(bamFile, param=NULL, gtfFn,
   file.symlink(from=bamFile, to=inputBam)
   
   ## intermediate files
-  picardMetricsFn <- gsub("\\.bam$", "_picard_metrics.txt", inputBam) # picard
+  # picardMetricsFn <- gsub("\\.bam$", "_picard_metrics.txt", inputBam) # picard
   bamDuprmFn <- gsub("\\.bam$", "_duprm.bam", inputBam)
-  bamutilLogFn <- paste0(bamDuprmFn, ".log") # bamutil
-  on.exit(file.remove(c(inputBam, bamDuprmFn, picardMetricsFn, bamutilLogFn)))
+  # bamutilLogFn <- paste0(bamDuprmFn, ".log") # bamutil
+  on.exit(file.remove(c(inputBam, bamDuprmFn)))#, picardMetricsFn, bamutilLogFn)))
+  # 
+  # if(dupremover == "bamutil"){
+  #   dupremoverDir <- dirname(Sys.which("bam"))
+  # }else if(dupremover == "picard"){
+  #   dupremoverDir <- dirname(Sys.getenv("Picard_jar"))
+  #   ## when modue load Tools/Picard.
+  # }
   
-  if(dupremover == "bamutil"){
-    dupremoverDir <- dirname(Sys.which("bam"))
-  }else if(dupremover == "picard"){
-    dupremoverDir <- dirname(Sys.getenv("Picard_jar"))
-    ## when modue load Tools/Picard.
-  }
-  
-  bamDuprm <- markDuplicates(dupremover=dupremover,
-                             bam=inputBam,
-                             out=bamDuprmFn,
-                             path=dupremoverDir,
-                             rminput=FALSE)
-  
+  # bamDuprm <- markDuplicates(dupremover=dupremover,
+  #                            bam=inputBam,
+  #                            out=bamDuprmFn,
+  #                            path=dupremoverDir,
+  #                            rminput=FALSE)
+  dupBam(inBam=inputBam, outBam=bamDuprmFn, operation="mark",
+         cores=threads)
   ## Duplication rate analysis
-  dm <- analyzeDuprates(bam=bamDuprm, gtf=gtfFn,
+  dm <- analyzeDuprates(bam=bamDuprmFn, gtf=gtfFn,
                         stranded=switch(stranded, "both"=0, "sense"=1, 
                                         "antisense"=2, 
                                         stop("unsupported strand mode: ", 

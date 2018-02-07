@@ -448,7 +448,7 @@ EzAppSTAR <-
                   name <<- "EzAppSTAR"
                   appDefaults <<- rbind(getJunctions=ezFrame(Type="logical",  DefaultValue="FALSE",	Description="should junctions be returned"),
                                         writeIgvSessionLink=ezFrame(Type="logical", DefaultValue="TRUE", Description="should an IGV link be generated"),
-                                        markDuplicates=ezFrame(Type="logical", DefaultValue="FALSE", Description="should duplicates be marked with picard"),
+                                        markDuplicates=ezFrame(Type="logical", DefaultValue="TRUE", Description="should duplicates be marked with picard"),
                                         checkStrandness=ezFrame(Type="logical", DefaultValue="TRUE", Description="should strandness be checked"),
                                         randomSleep=ezFrame(Type="logical",  DefaultValue="FALSE",  Description="should there be a random sleep to avoid to much network traffic when loading the STAR index"),
                                         twopassMode=ezFrame(Type="logical", DefaultValue="TRUE", Description="1-pass mapping or basic 2-pass mapping")
