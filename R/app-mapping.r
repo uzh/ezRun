@@ -48,7 +48,6 @@ ezMethodTophat = function(input=NA, output=NA, param=NA){
   ezSystem(cmd)
   ezSortIndexBam("accepted_hits.bam", basename(bamFile), ram=param$ram, removeBam=TRUE, cores=ezThreads())
 
-
   ## check the strandedness
   bedFile = getReferenceFeaturesBed(param)
   ezSystem(paste("infer_experiment.py", "-r", bedFile, "-i", basename(bamFile), "-s 1000000"))
@@ -83,27 +82,39 @@ EzAppTophat <-
   )
 
 ezMethodBowtie2 = function(input=NA, output=NA, param=NA){
-  
   ref = getBowtie2Reference(param)
-  #Sys.setenv(BOWTIE2_INDEXES=dirname(ref))
-  #message("bowtie Dir:", Sys.getenv("BOWTIE2_INDEXES"))
   bamFile = output$getColumn("BAM")
   sampleName = sub('.bam','',basename(bamFile))
   trimmedInput = ezMethodTrim(input = input, param = param)
   defOpt = paste("-p", ezThreads())
-  readGroupOpt = paste0("--rg-id ", sampleName," --rg SM:", sampleName," --rg LB:RGLB_", sampleName," --rg PL:illumina"," --rg PU:RGPU_", sampleName)
+  readGroupOpt = paste0("--rg-id ", sampleName," --rg SM:", sampleName,
+                        " --rg LB:RGLB_", sampleName,
+                        " --rg PL:illumina"," --rg PU:RGPU_", sampleName)
   cmd = paste("bowtie2", param$cmdOptions, defOpt, readGroupOpt,
               "-x", ref, if(param$paired) "-1", trimmedInput$getColumn("Read1"), 
               if(param$paired) paste("-2", trimmedInput$getColumn("Read2")),
-              "2>", paste0(sampleName,"_bowtie2.log"), "|", "samtools", "view -S -b -", " > bowtie.bam")
+              "2>", paste0(sampleName,"_bowtie2.log"), "|", 
+              "samtools", "view -S -b -", " > bowtie.bam")
   ezSystem(cmd)
-  ezSortIndexBam("bowtie.bam", basename(bamFile), ram=param$ram, removeBam=TRUE, cores=ezThreads())
+  if (!is.null(param$markDuplicates) && param$markDuplicates){
+    ezSortIndexBam("bowtie.bam", "sorted.bam", ram=param$ram, removeBam=TRUE,
+                   cores=nSortThreads)
+    dupBam(inBam="sorted.bam", outBam=basename(bamFile),
+           operation="mark", cores=param$cores)
+    file.remove("sorted.bam")
+  }else{
+    ezSortIndexBam("bowtie.bam", basename(bamFile), ram=param$ram, 
+                   removeBam=TRUE, cores=param$cores)
+  }
   
   ## write an igv link
   if (param$writeIgvSessionLink){
-    writeIgvSession(genome = getIgvGenome(param), refBuild=param$ezRef["refBuild"], file=basename(output$getColumn("IGV Session")),
+    writeIgvSession(genome = getIgvGenome(param), 
+                    refBuild=param$ezRef["refBuild"], 
+                    file=basename(output$getColumn("IGV Session")),
                     bamUrls = paste(PROJECT_BASE_URL, bamFile, sep="/") )
-    writeIgvJnlp(jnlpFile=basename(output$getColumn("IGV Starter")), projectId = sub("\\/.*", "", bamFile),
+    writeIgvJnlp(jnlpFile=basename(output$getColumn("IGV Starter")),
+                 projectId = sub("\\/.*", "", bamFile),
                  sessionUrl = paste(PROJECT_BASE_URL, output$getColumn("IGV Session"), sep="/"))
   }
   return("Success")
@@ -172,7 +183,8 @@ EzAppBowtie2 <-
                   "Initializes the application using its specific defaults."
                   runMethod <<- ezMethodBowtie2
                   name <<- "EzAppBowtie2"
-                  appDefaults <<- rbind(writeIgvSessionLink=ezFrame(Type="logical", DefaultValue="TRUE", Description="should an IGV link be generated"))
+                  appDefaults <<- rbind(writeIgvSessionLink=ezFrame(Type="logical", DefaultValue="TRUE", Description="should an IGV link be generated"),
+                                        markDuplicates=ezFrame(Type="logical", DefaultValue="TRUE", Description="should duplicates be marked with sambamba"))
                 }
               )
   )
@@ -312,19 +324,22 @@ ezMethodSTAR = function(input=NA, output=NA, param=NA){
   if (!is.null(param$markDuplicates) && param$markDuplicates){
     ezSortIndexBam("Aligned.out.bam", "sorted.bam", ram=sortRam, removeBam=TRUE, 
                    cores=nSortThreads)
-    javaCall = paste0("java", " -Djava.io.tmpdir=. -Xmx", 
-                      min(floor(param$ram), 10), "g")
-    cmd = paste0(javaCall, " -jar ", "$Picard_jar", " MarkDuplicates ",
-                 " TMP_DIR=. MAX_RECORDS_IN_RAM=2000000", " I=", "sorted.bam",
-                 " O=", basename(bamFile),
-                 " REMOVE_DUPLICATES=false", ## do not remove, do only mark
-                 " ASSUME_SORTED=true",
-                 " VALIDATION_STRINGENCY=SILENT",
-                 " METRICS_FILE=" ,"dupmetrics.txt",
-                 " VERBOSITY=WARNING",
-                 " >markdup.stdout 2> markdup.stderr")
-    ezSystem(cmd)
-    ezSystem(paste("samtools", "index", basename(bamFile)))
+    #javaCall = paste0("java", " -Djava.io.tmpdir=. -Xmx", 
+    #                  min(floor(param$ram), 10), "g")
+    #cmd = paste0(javaCall, " -jar ", "$Picard_jar", " MarkDuplicates ",
+    #             " TMP_DIR=. MAX_RECORDS_IN_RAM=2000000", " I=", "sorted.bam",
+    #             " O=", basename(bamFile),
+    #              " REMOVE_DUPLICATES=false", ## do not remove, do only mark
+    #              " ASSUME_SORTED=true",
+    #              " VALIDATION_STRINGENCY=SILENT",
+    #              " METRICS_FILE=" ,"dupmetrics.txt",
+    #              " VERBOSITY=WARNING",
+    #              " >markdup.stdout 2> markdup.stderr")
+    # ezSystem(cmd)
+    # ezSystem(paste("samtools", "index", basename(bamFile)))
+    dupBam(inBam="sorted.bam", outBam=basename(bamFile),
+           operation="mark", cores=param$cores)
+    file.remove("sorted.bam")
   } else {
     ezSortIndexBam("Aligned.out.bam", basename(bamFile), ram=sortRam, 
                    removeBam=TRUE, cores=nSortThreads)
