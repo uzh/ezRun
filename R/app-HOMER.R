@@ -79,7 +79,7 @@ ezMethodHomerDiffPeaks = function(input=NA, output=NA, param=NA,
     file.remove("tss.txt")
   }
   
-  unlink(names(localBamFiles)) ## clean the tag directory
+  unlink(names(localBamFiles), recursive=TRUE) ## clean the tag directory
   
   return("Success")
 }
