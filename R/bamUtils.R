@@ -38,7 +38,7 @@ atacBamProcess <- function(input=NA, output=NA, param=NA){
   
   noDupNoMTNOLowBam <- basename(output$getColumn("BAM"))
   filteroutBam(inBam=noDupBam, outBam=noDupNoMTNOLowBam, 
-               cores=param$cores, chrs=c("M", "MT", "chrM"), mapQ=10)
+               cores=param$cores, chrs=c("M", "MT", "chrM", "chrMT"), mapQ=10)
   file.remove(c(noDupBam, paste0(noDupBam, ".bai")))
   
   if(param$shiftATAC){

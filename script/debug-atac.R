@@ -149,3 +149,43 @@ output[['DiffPeaks [File]']] = 'p2578/HomerDiffPeaks_2018/HomerDiffPeaks_asthmat
 # output = EzDataset$new(meta=output, dataRoot=param$dataRoot)
 EzAppHomerDiffPeaks$new()$run(input=input, output=output, param=param)
 
+## ataqv
+library(ezRun)
+setEnvironments("ataqv")
+setwd("/export/local/scratch/gtan/p2578-atacENCODE/ataqv")
+param = list()
+param[['cores']] = '8'
+param[['ram']] = '16'
+param[['scratch']] = '100'
+param[['node']] = ''
+param[['process_mode']] = 'DATASET'
+param[['refBuild']] = 'Homo_sapiens/GENCODE/GRCh38.p10/Annotation/Release_27-2018-02-01'
+param[['paired']] = 'true'
+param[['refFeatureFile']] = 'genes.gtf'
+param[['grouping']] = 'Condition'
+param[['sampleGroup']] = 'asthmatic_P'
+param[['refGroup']] = 'asthmatic_US'
+param[['mail']] = 'ge.tan@fgcz.ethz.ch'
+param[['dataRoot']] = '/srv/gstore/projects'
+param[['resultDir']] = 'p2578/ataqvApp-2018'
+param[['name']] = 'ataqv'
+### special params for HOMER
+param[['refBuildHOMER']] = 'hg38'
+param[['repFoldChange']] = '2'
+param[['repFDR']] = '0.1'
+param[['balanced']] = 'true'
+param[['style']] = 'histone' # factor, tss, groseq, dnase, super, mC
+
+input <- "input_dataset.tsv"
+output = list()
+output[['Name']] = 'ataqv'
+output[['Species']] = 'Homo sapiens (human)'
+output[['refBuild']] = 'Homo_sapiens/GENCODE/GRCh38.p10/Annotation/Release_27-2018-02-01'
+output[['Report [File]']] = 'p2578/ataqvApp-2018/ataqv'
+output[['Static Report [Link]']] = 'p2578/ataqvApp-2018/ataqv/index.html'
+
+#input = EzDataset$new(file=input, dataRoot=param$dataRoot)
+#param <- ezParam(param)
+#output = EzDataset$new(meta=output, dataRoot=param$dataRoot)
+EzAppAtaqv$new()$run(input=input, output=output, param=param)
+
