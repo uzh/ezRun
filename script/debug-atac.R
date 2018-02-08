@@ -151,9 +151,10 @@ EzAppHomerDiffPeaks$new()$run(input=input, output=output, param=param)
 
 ## ataqv
 library(ezRun)
+setEnvironments("ataqv")
 setwd("/export/local/scratch/gtan/p2578-atacENCODE/ataqv")
 param = list()
-param[['cores']] = '4'
+param[['cores']] = '8'
 param[['ram']] = '16'
 param[['scratch']] = '100'
 param[['node']] = ''
@@ -167,6 +168,7 @@ param[['refGroup']] = 'asthmatic_US'
 param[['mail']] = 'ge.tan@fgcz.ethz.ch'
 param[['dataRoot']] = '/srv/gstore/projects'
 param[['resultDir']] = 'p2578/HomerDiffPeaks_2018'
+param[['name']] = 'ataqv'
 ### special params for HOMER
 param[['refBuildHOMER']] = 'hg38'
 param[['repFoldChange']] = '2'
