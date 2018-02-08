@@ -124,6 +124,11 @@ makeFeatAnnoEnsembl <- function(featureFile,
                                                          exons$transcript_id)]
   }
   
+  transcripts <- transcripts[!duplicated(transcripts$transcript_id)]
+  ## This is to deal with the cases of duplicates transcripts from GENCODE annotation
+  ## Example: ENST00000399012 can be on chrX and chrY.
+  ## Ensembl only keeps the ones on chrX.
+  
   ## Calculate gc and width
   gw <- getTranscriptGcAndWidth(genomeFn=genomeFile,
                                 featureFn=featureFile)
