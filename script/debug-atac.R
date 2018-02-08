@@ -167,7 +167,7 @@ param[['sampleGroup']] = 'asthmatic_P'
 param[['refGroup']] = 'asthmatic_US'
 param[['mail']] = 'ge.tan@fgcz.ethz.ch'
 param[['dataRoot']] = '/srv/gstore/projects'
-param[['resultDir']] = 'p2578/HomerDiffPeaks_2018'
+param[['resultDir']] = 'p2578/ataqvApp-2018'
 param[['name']] = 'ataqv'
 ### special params for HOMER
 param[['refBuildHOMER']] = 'hg38'
@@ -181,15 +181,11 @@ output = list()
 output[['Name']] = 'ataqv'
 output[['Species']] = 'Homo sapiens (human)'
 output[['refBuild']] = 'Homo_sapiens/GENCODE/GRCh38.p10/Annotation/Release_27-2018-02-01'
-output[['Report [File]']] = 'p2578/HomerDiffPeaks_2018/HomerDiffPeaks_asthmatic_P--over--US'
-output[['DiffPeaks [File]']] = 'p2578/HomerDiffPeaks_2018/HomerDiffPeaks_asthmatic_P--over--US/diffPeaks.txt'
+output[['Report [File]']] = 'p2578/ataqvApp-2018/ataqv'
+output[['Static Report [Link]']] = 'p2578/ataqvApp-2018/ataqv/index.html'
 
-input = EzDataset$new(file=input, dataRoot=param$dataRoot)
-param <- ezParam(param)
-output = EzDataset$new(meta=output, dataRoot=param$dataRoot)
+#input = EzDataset$new(file=input, dataRoot=param$dataRoot)
+#param <- ezParam(param)
+#output = EzDataset$new(meta=output, dataRoot=param$dataRoot)
 EzAppAtaqv$new()$run(input=input, output=output, param=param)
-
-module load Tools/ataqv
-ataqv human /srv/gstore/projects/p2578/Bowtie2_23817_GENCODE_2018-02-01--19-37-26/A0062P.bam
-ataqv human /srv/gstore/projects/p2578/Bowtie2_23817_GENCODE_2018-02-01--19-37-26/A0062US.bam
 
