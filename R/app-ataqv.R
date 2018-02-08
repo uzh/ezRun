@@ -21,6 +21,7 @@ EzAppAtaqv <-
 ezMethodAtaqv = function(input=NA, output=NA, param=NA, 
                          htmlFile="index.html"){
   require(GenomeInfoDb)
+  require(rtracklayer)
   
   bamFiles <- input$getFullPaths("BAM")
   
@@ -79,6 +80,8 @@ ezMethodAtaqv = function(input=NA, output=NA, param=NA,
   ## mkarv
   cmd <- paste("mkarv", param$name, paste(jsonFns, collapse=" "))
   ezSystem(cmd)
+  
+  file.remove(jsonFns)
   
   return("Success")
 }
