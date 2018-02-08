@@ -709,57 +709,60 @@ if(exists("enrichResultGSEA")){
 }
 ```
 
-### Association test
-This show whether up and down-regulated genes are associated with GC content and gene length.
-If there is a significant association, 
-the result is suspicious and potentially an artefact.
+### Technical bias
+The tests below indicate whether up or down-regulated genes are associated 
+with the genes having either extreme GC content or extreme gene length.
+
+If there is a significant association, some of the significant genes are potentially false positives 
+due to a technical bias.
+
+Tests that show a significant association (p-value below 1e-3) are highlighted in red.
+The column "overlapping/total genes" shows the number of overlapping genes
+and the total number of genes in that category.
+
 
 ```{r bias, echo=FALSE, eval=TRUE}
-biasTable <- data.frame("GC < 0.4"=rowData(se)$gc < 0.4,
-                        "GC > 0.6"=rowData(se)$gc > 0.6,
-                        "width < 800nt"=rowData(se)$width < 800,
-                        "width > 2000nt"=rowData(se)$width > 2000,
-                        check.names=FALSE)
-isUp <- rowData(se)$pValue < param$pValueHighlightThresh & 
-        rowData(se)$log2Ratio > param$log2RatioHighlightThresh & 
-        rowData(se)$usedInTest
-isDown <- rowData(se)$pValue < param$pValueHighlightThresh & 
-          rowData(se)$log2Ratio < -param$log2RatioHighlightThresh & 
-          rowData(se)$usedInTest
-sigTable <- data.frame("Up-regulation"=isUp,
-                       "Down-regulation"=isDown,
-                       check.names=FALSE)
-testTable <- data.frame(row.names=apply(expand.grid(names(sigTable), 
-                                                    names(biasTable)), 
-                                        1, paste, collapse=": "),
-                        check.names=FALSE)
-for(rowName in names(sigTable)){
-  for(colName in names(biasTable)){
-    res.fisher <- fisher.test(biasTable[[colName]], sigTable[[rowName]],
-                              alternative="two.sided")
-    testTable[paste(rowName, colName, sep=": "), "overlapping genes"] = 
-      paste(sum(biasTable[[colName]] & sigTable[[rowName]]),
-            sum(sigTable[[rowName]]), sep="/")
-    testTable[paste(rowName, colName, sep=": "), "odds ratio"] = 
-      res.fisher$estimate
-    testTable[paste(rowName, colName, sep=": "), "p-value"] = res.fisher$p.value
+x = rowData(se)[rowData(se)$usedInTest, ]
+if(all(c("gc", "width") %in% colnames(x))){
+  gcThresh = quantile(x$gc, c(0.05, 0.95))
+  widthThresh = quantile(x$width, c(0.05, 0.95))
+  biasTable <- data.frame("low GC"=x$gc < gcThresh[1],
+                          "high GC"=x$gc > gcThresh[2],
+                          "short genes"= x$width < widthThresh[1],
+                          "long genes"=x$width > widthThresh[2],
+                          check.names=FALSE)
+  isUp <- x$pValue < param$pValueHighlightThresh & 
+          x$log2Ratio > param$log2RatioHighlightThresh
+  isDown <- x$pValue < param$pValueHighlightThresh & 
+            x$log2Ratio < -param$log2RatioHighlightThresh
+  sigTable <- data.frame("Up-regulation"=isUp,
+                         "Down-regulation"=isDown,
+                         check.names=FALSE)
+
+  tests = expand.grid(sig=names(sigTable), bias=names(biasTable))
+  testTable = ezFrame("overlapping/total genes"=character(), "odds ratio"=numeric(), "p-value"=numeric())
+  for (i in 1:nrow(tests)){
+    testName = paste(tests$bias[i], " -- ", tests$sig[i])
+    myBias = biasTable[[tests$bias[i]]]
+    mySig = sigTable[[tests$sig[i]]]
+    res.fisher <- fisher.test(myBias, mySig, alternative="greater")
+    testTable[testName, "overlapping/total genes"] = paste(sum(myBias & mySig), sum(myBias), sep="/")
+    testTable[testName, "odds ratio"] = res.fisher$estimate
+    testTable[testName, "p-value"] = res.fisher$p.value
   }
+  t <- kable(format(testTable, digits=3, scientific=-2), "html", 
+             caption=paste("Association test:",
+                           sum(isUp), "up-regulated and",
+                           sum(isDown), "down-regulated genes")) %>%
+       kable_styling(bootstrap_options = "striped", full_width = F, 
+                     position = "left")
+  isSig <- testTable$`p-value` <= 1e-3
+  if(any(isSig)){
+    t <- t %>% 
+      row_spec(which(isSig), bold = T, color = "white", background = "#D7261E")
+  }
+  t
 }
-t <- kable(format(testTable, digits=4, scientific=TRUE), "html", 
-           caption=paste("Association test:",
-                         sum(isUp), "up-regulated and",
-                         sum(isDown), "down-regulated genes")) %>%
-     kable_styling(bootstrap_options = "striped", full_width = F, 
-                   position = "left") %>%
-     footnote(number = c("The significant (p <= 1e-3) rows are in red.",
-                         "The overlapping genes column is the number of overlapping genes over the total number of genes with the GC content or gene width criteria.")
-     )
-isSig <- testTable$`p-value` <= 1e-3
-if(any(isSig)){
-  t <- t %>% 
-    row_spec(which(isSig), bold = T, color = "white", background = "#D7261E")
-}
-t
 ```
 
 ### Input Dataset

@@ -79,6 +79,8 @@ ezMethodFastqScreen = function(input=NA, output=NA, param=NA,
   file.remove(noHit_files)
   
   rRNA_strandInfo = get_rRNA_Strandness(param, input)
+  krakenResult = runKraken(param, input)
+  
   file.remove(input$getFullPaths("Read1"))
   if(param$paired)
     file.remove(input$getFullPaths("Read2"))
@@ -247,7 +249,35 @@ get_rRNA_Strandness = function(param, input){
   return(rRNA_strandInfo)
 }
 
-collectBowtie2Output = function(param, countFiles, readCount, virusResult = F){
+runKraken <- function(param, input){
+  r1Files = input$getFullPaths("Read1")
+  krakenResult = list()
+  for (i in 1:length(r1Files)){
+    resultFile = paste0('report_', names(r1Files)[i], '.kraken')
+    cmd = paste('/usr/local/ngseq/src/kraken-1.0/kraken -db', KRAKEN_DB,
+                ' --fastq-input', r1Files[i], '--threads', param$cores, '>sequences.kraken')
+    ezSystem(cmd)
+    cmd = paste('/usr/local/ngseq/src/kraken-1.0/kraken-report -db', KRAKEN_DB, 'sequences.kraken >', resultFile)
+    ezSystem(cmd)
+    ##simple result filtering
+    data = ezRead.table(resultFile, stringsAsFactors = F, row.names = NULL)
+    colnames(data) = c('readFraction', 'nreads_clade', 'nreads_taxon', 'rankCode', 'ncbi', 'name')
+    data = data[data$rankCode %in% c('U','S'), ]
+    data = data[order(data$readFraction, decreasing = T),]
+    data = data[!(data$ncbi %in% c(1, 131567, 136843)),] #remove general terms
+    
+    ##save table for report
+    ezWrite.table(data, resultFile, row.names = FALSE)
+    data = data[!(data$ncbi %in% c(0)), ]
+    data = data[1:min(nrow(data), 10), ]
+    krakenResult[[i]] = data
+  }
+  names(krakenResult) = names(r1Files)
+  file.remove('sequences.kraken')
+  return(krakenResult)
+}
+
+collectBowtie2Output <- function(param, countFiles, readCount, virusResult = F){
   tax2name = read.table('/srv/GT/reference/RefSeq/mRNA/20150301/Annotation/tax2name.txt',
                         header=F, stringsAsFactors=F, sep='\t', 
                         colClasses="character", quote='', comment.char="")
