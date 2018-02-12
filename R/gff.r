@@ -563,6 +563,8 @@ getTranscriptGcAndWidth = function(param=NULL, genomeFn=NULL, featureFn=NULL){
   require(Biostrings)
   require(GenomicRanges)
   require(stringr)
+  require(Rsamtools)
+  
   if(!is.null(param)){
     genomeFn <- param$ezRef["refFastaFile"]
     featureFn <- param$ezRef["refFeatureFile"]
@@ -571,22 +573,22 @@ getTranscriptGcAndWidth = function(param=NULL, genomeFn=NULL, featureFn=NULL){
   if (!file.exists(genomeFasta)){
     return(NULL)
   }
-  genomeSeq = readDNAStringSet(genomeFasta)
-  names(genomeSeq) = sub(" .*", "", names(genomeSeq))
+  #genomeSeq = readDNAStringSet(genomeFasta)
+  #names(genomeSeq) = sub(" .*", "", names(genomeSeq))
   gff <- fread(featureFn, header=FALSE, sep="\t")
   gff <- gff[V3=="exon", .(chr=V1, start=V4, end=V5, strand=V7, attribute=V9)]
   exonsByTx <- GRanges(seqnames=gff$chr,
                        ranges=IRanges(start=gff$start,
                                       end=gff$end),
                        strand=gff$strand)
-  #transcripts <- sub("\";$", "", 
-  #                   sub("^transcript_id \"", "", 
-  #                       str_extract(gff$attribute,
-  #                                   "transcript_id \"[[:alnum:][:punct:]]+\";")))
   transcripts <- ezGffAttributeField(gff$attribute,
                                      field="transcript_id", 
                                      attrsep="; *", valuesep=" ")
-  exonsByTx <- genomeSeq[exonsByTx]
+  #exonsByTx <- genomeSeq[exonsByTx] ## This can results in error of XString
+  #                                     object of length 2^31 or more
+  exonsByTx <- getSeq(FaFile(genomeFasta), exonsByTx) 
+  # FaFile can deal with spaces witin header name.
+  # ">chr1 test1" can be subset by chr1 GRanges.
   gcCount <- letterFrequency(exonsByTx, letters="GC", as.prob = FALSE)[ ,"G|C"]
   txWidth <- width(exonsByTx)
   data <- data.table(tx=transcripts, txWidth=txWidth, gcCount=gcCount)
