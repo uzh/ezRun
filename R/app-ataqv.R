@@ -22,15 +22,20 @@ ezMethodAtaqv = function(input=NA, output=NA, param=NA,
                          htmlFile="index.html"){
   require(GenomeInfoDb)
   require(rtracklayer)
+  require(taxize)
   
   bamFiles <- input$getFullPaths("BAM")
   
   ## Get the autosomes
-  species <- unique(input$getColumn("Species"))
-  stopifnot(length(species)==1L)
+  #species <- unique(input$getColumn("Species"))
+  #stopifnot(length(species)==1L)
   ## in the format of Homo_sapiens
-  speciesLatin <- sub(" ", "_", sub(" \\(.*$", "", species))
-  speciesNormal <- sub("\\)$", "", sub(".*\\(", "", species))
+  speciesLatin <- strsplit(param$refBuild, split="/")[[1]][1]
+  #speciesLatin <- sub(" ", "_", sub(" \\(.*$", "", species))
+  speciesNormal <- strsplit(sci2comm(scinames=speciesLatin, db='ncbi')[[1]],
+                            split=" ")[[1]]
+  speciesNormal <- tail(speciesNormal, 1)
+  #sub("\\)$", "", sub(".*\\(", "", species))
   
   if(speciesLatin %in% names(genomeStyles())){
     # Use the autosomes from GenomeInfoDb

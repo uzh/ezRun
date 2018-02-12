@@ -21,12 +21,13 @@ packages <- c("testthat", "knitr", "gage", "goseq", "ChIPpeakAnno",
               "GOstats", "annotate", "bitops", "edgeR", "limma", "S4Vectors",
               "VariantAnnotation", "rmarkdown", "plotly", "scran",
               "ReporteRsjars", "data.table", "kableExtra", "htmlwidgets",
-              "RSelenium", "webshot", "clusterProfiler", "dupRadar")
+              "RSelenium", "webshot", "clusterProfiler", "dupRadar",
+              "taxize")
 packages <- setdiff(packages, rownames(installed.packages()))
 biocLite(packages)
 ```
 
 ## Dependencies of external software
 * phantomjs
-* bwa, bowtie, bowtie2, STAR, picard
+* bwa, bowtie, bowtie2, STAR, picard, sambamba
 * lsof
