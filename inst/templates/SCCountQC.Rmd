@@ -1,0 +1,23 @@
+---
+title: "SCCountQC"
+author: "Functional Genomics Center Zurich"
+output: 
+  html_document:
+    self_contained: false
+    includes:
+      in_header: fgcz_header.html
+    css: fgcz.css
+---
+
+Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
+
+```{r setup, include=FALSE}
+
+```
+
+## CountQC_Result {.tabset}
+
+### SessionInfo
+```{r, echo=FALSE}
+sessionInfo()
+```
