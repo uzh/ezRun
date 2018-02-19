@@ -26,6 +26,7 @@ input = EzDataset$new(file=input, dataRoot=param$dataRoot)
 param <- ezParam(param)
 output = EzDataset$new(meta=output, dataRoot=param$dataRoot)
 
+sce <- loadSCCountDataset(input, param)
 EzAppSCCountQC$new()$run(input=input, output=output, param=param)
 
 
