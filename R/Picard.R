@@ -5,9 +5,10 @@
 # The terms are available here: http://www.gnu.org/licenses/gpl.html
 # www.fgcz.ch
 
-CollectAlignmentSummaryMetrics <- function(inBam, fastaFn, 
+CollectAlignmentSummaryMetrics <- function(inBam, fastaFn,
                                            metricLevel=c("ALL_READS", "SAMPLE",
                                                          "LIBRARY", "READ_GROUP")){
+  metricLevel <- match.arg(metricLevel)
   setEnvironments("picard")
   outputFn <- tempfile(pattern="CollectAlignmentSummaryMetrics",
                        fileext=".txt")
@@ -20,6 +21,7 @@ CollectAlignmentSummaryMetrics <- function(inBam, fastaFn,
   ezSystem(cmd)
   
   metrics <- ezRead.table(outputFn, comment.char="#", row.names=NULL)
-  metrics <- t(metrics)
+  nameColumns <- c("SAMPLE", "LIBRARY", "READ_GROUP")
+  metrics <- metrics[ , c(nameColumns, setdiff(colnames(metrics), nameColumns))]
   return(metrics)
 }

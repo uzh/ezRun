@@ -28,5 +28,7 @@ ezMethodSCCountQC = function(input=NA, output=NA, param=NA,
   rawData = loadSCCountDataset(input, param)
   
   ## Alignment Metrics
-  
+  alnMetrics <- CollectAlignmentSummaryMetrics(inBam=input$getFullPaths("BAM"),
+                                               fastaFn=param$ezRef['refFastaFile'],
+                                               metricLevel="SAMPLE")
 }
