@@ -51,7 +51,7 @@ fastq2bam <- function(fastqFn, refFn, bamFn, fastqI1Fn=NULL, fastqI2Fn=NULL){
 
 ### convert fastq files into a bam file, with read group tags
 fastqs2bam <- function(fastqFns, fastq2Fns=NULL, readGroupNames=NULL,
-                       bamFn){
+                       bamFn, mc.cores=ezThreads()){
   if(!isTRUE(isValidEnvironments("picard"))){
     setEnvironments("picard")
   }
@@ -77,7 +77,8 @@ fastqs2bam <- function(fastqFns, fastq2Fns=NULL, readGroupNames=NULL,
                paste0("LIBRARY_NAME=", basename(fastqFns)),
                paste0("READ_GROUP_NAME=", readGroupNames)
                )
-  lapply(cmd, ezSystem)
+  ezMclapply(cmd, ezSystem, mc.cores = mc.cores)
+  
   ## picard tools merge
   cmd <- paste("java -Djava.io.tmpdir=. -jar", 
                Sys.getenv("Picard_jar"), "MergeSamFiles",
