@@ -26,7 +26,7 @@
 }
 \details{
   Each fastq file first is converted into Bam file with filename
-  as \dQuote{SM} and \code{readGroupNames} as \sQuote{ID} in RG tag 
+  as \dQuote{LB} and \code{readGroupNames} as \sQuote{ID} and \sQuote{SM} in RG tag 
   using picard's FastqToSam.
   Then Bam files are merged into one big Bam file using picard's MergeSamFiles
   with a sort order by queryname.

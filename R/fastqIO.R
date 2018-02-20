@@ -73,7 +73,8 @@ fastqs2bam <- function(fastqFns, fastq2Fns=NULL, readGroupNames=NULL,
                paste0("F1=", fastqFns),
                ifelse(isTRUE(paired), paste0("F2=", fastq2Fns), ""),
                paste0("O=", sampleBasenames, ".bam"),
-               paste0("SM=", basename(fastqFns)),
+               paste0("SAMPLE_NAME=", readGroupNames),
+               paste0("LIBRARY_NAME=", basename(fastqFns)),
                paste0("READ_GROUP_NAME=", readGroupNames)
                )
   lapply(cmd, ezSystem)
