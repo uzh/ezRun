@@ -45,7 +45,8 @@
   \dontrun{
     fastqFns <- list.files(path="/srv/gstore/projects/p2288/HiSeq2500_20171011_RR99_o3511/dmx",
                            pattern="\\\.fastq\\\.gz$", full.names=TRUE)
-    fastqs2bam(fastqFns[1:5],
+    fastqFns <- fastqFns[1:5]
+    fastqs2bam(fastqFns,
                readGroupNames=sub("\\\.(fastq|fq)(\\\.gz){0,1}$", "", 
                                   basename(fastqFns)),
                bamFn="20171011.A-C1_HT_24H_unmapped.bam")

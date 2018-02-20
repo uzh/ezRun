@@ -62,8 +62,12 @@ fastqs2bam <- function(fastqFns, fastq2Fns=NULL, readGroupNames=NULL,
   }
   sampleBasenames <- sub("\\.(fastq|fq)(\\.gz){0,1}$", "",
                          basename(fastqFns))
-  if(is.null(readGroupNames))
+  if(is.null(readGroupNames)){
     readGroupNames <- sampleBasenames
+  }else{
+    stopifnot(length(fastqFns) == length(readGroupNames))
+  }
+    
   cmd <- paste("java -Djava.io.tmpdir=. -jar", 
                Sys.getenv("Picard_jar"), "FastqToSam",
                paste0("F1=", fastqFns),
