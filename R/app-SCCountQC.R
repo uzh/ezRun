@@ -21,5 +21,12 @@ EzAppSCCountQC <-
 
 ezMethodSCCountQC = function(input=NA, output=NA, param=NA, 
                              htmlFile="00index.html"){
-
+  if(length(input$getNames()) > 1L)
+    stop("Currently we support one pooled bam file!")
+  
+  setwdNew(basename(output$getColumn("Report")))
+  rawData = loadSCCountDataset(input, param)
+  
+  ## Alignment Metrics
+  
 }
