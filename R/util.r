@@ -729,6 +729,7 @@ isValidEnvironments <- function(tool){
                 "homer"=Sys.which("homer") != "",
                 "r"=Sys.which("R") != "",
                 "ataqv"=Sys.which("ataqv") != "",
+                "ucsc"=Sys.which("faToTwoBit") != "",
                 stop("unsupported tool: ", tool)
                 )
   return(ans)
@@ -759,6 +760,7 @@ setEnvironments <- function(tool, envir=parent.frame()){
                   "homer"=expression({Sys.setenv("PATH"=paste("/usr/local/ngseq/packages/Tools/HOMER/4.9/bin", Sys.getenv("PATH"), sep=":"))}),
                   "r"=expression({Sys.setenv("PATH"=paste("/usr/local/ngseq/packages/Dev/R/3.4.2/bin", Sys.getenv("PATH"), sep=":"))}),
                   "ataqv"=expression({Sys.setenv("PATH"=paste("/usr/local/ngseq/packages/Tools/ataqv/1.0.0/bin", Sys.getenv("PATH"), sep=":"))}),
+                  "ucsc"=expression({Sys.setenv("PATH"=paste("/usr/local/ngseq/packages/Tools/UCSC/349/bin", Sys.getenv("PATH"), sep=":"))}),
                   stop("unsupported tool: ", tool)
     )
     eval(cmd, envir=envir)
