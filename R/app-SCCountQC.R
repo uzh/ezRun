@@ -14,7 +14,7 @@ EzAppSCCountQC <-
                   "Initializes the application using its specific defaults."
                   runMethod <<- ezMethodSCCountQC
                   name <<- "EzAppSCCountQC"
-                  appDefaults <<- rbind(runGO=ezFrame(Type="logical", DefaultValue=TRUE, Description="whether to run the GO analysis"))
+                  #appDefaults <<- rbind(runGO=ezFrame(Type="logical", DefaultValue=TRUE, Description="whether to run the GO analysis"))
                 }
               )
   )
@@ -27,8 +27,11 @@ ezMethodSCCountQC = function(input=NA, output=NA, param=NA,
   setwdNew(basename(output$getColumn("Report")))
   rawData = loadSCCountDataset(input, param)
   
-  ## Alignment Metrics
+  ## CollectAlignmentSummaryMetrics
   alnMetrics <- CollectAlignmentSummaryMetrics(inBam=input$getFullPaths("BAM"),
                                                fastaFn=param$ezRef['refFastaFile'],
                                                metricLevel="SAMPLE")
+  
+  ## CollectRnaSeqMetrics
+  rnaSeqMetrics <- CollectRnaSeqMetrics()
 }
