@@ -22,7 +22,7 @@ output[['Static Report [Link]']] = 'p2497/p2497-SCCountQC/SCCount_QC/00index.htm
 output[['Report [File]']] = 'p2497/p2497-SCCountQC/SCCount_QC'
 input = 'input_dataset.tsv'
 
-input = EzDataset$new(file=input, dataRoot=param$dataRoot)
+input = EzDataset$new(file=input, dataRoot=NULL)#param$dataRoot)
 param <- ezParam(param)
 output = EzDataset$new(meta=output, dataRoot=param$dataRoot)
 
