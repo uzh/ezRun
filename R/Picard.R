@@ -38,7 +38,8 @@ CollectAlignmentSummaryMetrics <- function(inBams, fastaFn,
 CollectRnaSeqMetrics <- function(inBams, gtfFn, featAnnoFn,
                                  strandMode=c("both", "sense", "antisense"),
                                  metricLevel=c("ALL_READS", "SAMPLE",
-                                               "LIBRARY", "READ_GROUP")
+                                               "LIBRARY", "READ_GROUP"),
+                                 mc.cores=ezThreads()
                                  ){
   require(matrixStats)
   setEnvironments("UCSC")
@@ -126,7 +127,28 @@ CollectRnaSeqMetrics <- function(inBams, gtfFn, featAnnoFn,
   return(metrics)
 }
 
-DuplicationMetrics <- function(inBam){
+DuplicationMetrics <- function(inBams, mc.cores=ezThreads()){
   setEnvironments("picard")
   
+  ouputBams <- tempfile(pattern=inBams, tmpdir=".", 
+                        fileext=".markedDupbam")
+  on.exit(file.remove(ouputBams), add=TRUE)
+  outputFns <- tempfile(pattern=inBams, fileext=".markedDupMetrics")
+  
+  cmd <- paste("java -jar", Sys.getenv("Picard_jar"),
+               "MarkDuplicates",
+               paste0("I=", inBams),
+               paste0("O=", ouputBams),
+               paste0("M=", outputFns)
+               )
+  ezMclapply(cmd, ezSystem, mc.preschedule=FALSE, mc.cores=mc.cores)
+  
+  metrics <- lapply(outputFns, ezRead.table, comment.char="#", row.names=NULL)
+  metrics <- do.call(rbind, metrics)
+  metrics <- metrics[ ,!colAlls(is.na(metrics))] ## Remove the NA columns of nameColumns
+  nameColumns <- c("SAMPLE", "LIBRARY", "READ_GROUP")
+  indexName <- intersect(colnames(metrics), nameColumns)
+  rownames(metrics) <- metrics[ ,indexName]
+  metrics[[indexName]] <- NULL
+  return(metrics)
 }
