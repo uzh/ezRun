@@ -74,7 +74,7 @@ fastqs2bam <- function(fastqFns, fastq2Fns=NULL, readGroupNames=NULL,
                ifelse(isTRUE(paired), paste0("F2=", fastq2Fns), ""),
                paste0("O=", sampleBasenames, ".bam"),
                paste0("SAMPLE_NAME=", readGroupNames),
-               paste0("LIBRARY_NAME=", basename(fastqFns)),
+               paste0("LIBRARY_NAME=", readGroupNames),
                paste0("READ_GROUP_NAME=", readGroupNames)
                )
   ezMclapply(cmd, ezSystem, mc.cores = mc.cores)
