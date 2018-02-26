@@ -215,6 +215,69 @@ loadCountDatasetSE <- function(input, param){
   return(rawData)
 }
 
+loadSCCountDataset <- function(input, param){
+  require(SingleCellExperiment)
+  require(SummarizedExperiment)
+  
+  if(length(input$getNames()) > 1L)
+    stop("Currently we only support one bam file per dataset.")
+  
+  countMatrix <- as.matrix(ezRead.table(input$getFullPaths("CountMatrix")))
+  cellDataSet <- ezRead.table(input$getFullPaths("CellDataset"))
+  
+  ## TODO: this is a temporary solution to fix the discrepency of sample names
+  if(!setequal(colnames(countMatrix), rownames(cellDataSet))){
+    ## fix the colnames in countMatrix
+    ## It's only possible if sample names are part of fastq file names
+    matches <- lapply(rownames(cellDataSet), grep, colnames(countMatrix), 
+                      fixed=TRUE, value=TRUE)
+    stopifnot(all(lengths(matches) == 1L)) ## stop when mutiple matches happens
+    matches <- setNames(rownames(cellDataSet), unlist(matches))
+    colnames(countMatrix) <- matches[colnames(countMatrix)]
+  }
+  ## Reorder the countMatrix columns
+  ## This should be unnecessary if we retain the order of RG when creating unmapped bam
+  countMatrix <- countMatrix[ , rownames(cellDataSet)]
+  
+  dataFeatureLevel <- unique(input$getColumn("featureLevel"))
+  stopifnot(length(dataFeatureLevel) == 1)
+  
+  seqAnno <- ezFeatureAnnotation(param, rownames(countMatrix), dataFeatureLevel)
+  
+  if (param$useSigThresh){
+    sigThresh <- param$sigThresh
+  } else {
+    sigThresh <- 0
+  }
+  
+  if (ezIsSpecified(param$correctBias) && param$correctBias){
+    countMatrix <- ezCorrectBias(countMatrix, gc = seqAnno$gc, 
+                                 width=seqAnno$width)$correctedCounts
+  }
+  
+  sce <- SummarizedExperiment(assays=list(counts=countMatrix,
+                                          presentFlag=countMatrix > sigThresh),
+                              rowData=seqAnno, colData=cellDataSet,
+                              metadata=list(isLog=FALSE, 
+                                            featureLevel=dataFeatureLevel,
+                                            type="Counts", param=param))
+  if (ezIsSpecified(param$transcriptTypes)){
+    use = seqAnno$type %in% param$transcriptTypes
+  } else {
+    use = TRUE
+  }
+  sce <- sce[use, ]
+  
+  if (dataFeatureLevel == "isoform" && param$featureLevel == "gene"){
+    sce <- aggregateCountsByGeneSE(sce)
+  }
+  assays(sce)$rpkm <- getRpkmSE(sce)
+  assays(sce)$tpm <- getTpmSE(sce)
+  
+  sce <- as(sce, "SingleCellExperiment")
+  
+  return(sce)
+}
 
 ##' @title Writes the head of a file
 ##' @description Writes the head of a file into a newly created target file.

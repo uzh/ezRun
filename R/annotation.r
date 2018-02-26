@@ -429,3 +429,15 @@ getBlacklistedRegions <- function(refBuild=c("hg38", "hg19", "mm10", "mm9",
   }
   return(bedGR)
 }
+
+### Make interval list file
+makeIntervalList <- function(param=NULL, gtfFn, fastaFn,
+                             outputFn="output.intervalList"){
+  require(Biostrings)
+  if(!is.null(param)){
+    gtfFn <- param$ezRef['refFeatureFile']
+    fastaFn <- param$ezRef['refFastaFile']
+  }
+  
+}
+
