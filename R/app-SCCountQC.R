@@ -33,15 +33,19 @@ ezMethodSCCountQC = function(input=NA, output=NA, param=NA,
   ## CollectAlignmentSummaryMetrics
   alnMetrics <- CollectAlignmentSummaryMetrics(inBams=bamRGFns,
                                                fastaFn=param$ezRef['refFastaFile'],
-                                               metricLevel="SAMPLE")
+                                               metricLevel="SAMPLE",
+                                               mc.cores=param$cores)
   
   ## CollectRnaSeqMetrics
   rnaSeqMetrics <- CollectRnaSeqMetrics(inBams=bamRGFns,
                                         gtfFn=param$ezRef['refFeatureFile'],
                                         featAnnoFn=param$ezRef['refAnnotationFile'],
                                         strandMode=param$strandMode,
-                                        metricLevel="SAMPLE")
+                                        metricLevel="SAMPLE",
+                                        mc.cores=param$cores)
   
   ## DuplicationMetrics
+  dupMetrics <- DuplicationMetrics(inBams=bamRGFns, mc.cores=param$cores)
+  
   
 }
