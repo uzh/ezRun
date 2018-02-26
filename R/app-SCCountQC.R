@@ -27,13 +27,16 @@ ezMethodSCCountQC = function(input=NA, output=NA, param=NA,
   setwdNew(basename(output$getColumn("Report")))
   rawData = loadSCCountDataset(input, param)
   
+  bamRGFns <- splitBamByRG(inBam, mc.cores=param$cores)
+  on.exit(fileremove(bamRGFns), add = TRUE)
+  
   ## CollectAlignmentSummaryMetrics
-  alnMetrics <- CollectAlignmentSummaryMetrics(inBam=input$getFullPaths("BAM"),
+  alnMetrics <- CollectAlignmentSummaryMetrics(inBams=bamRGFns,
                                                fastaFn=param$ezRef['refFastaFile'],
                                                metricLevel="SAMPLE")
   
   ## CollectRnaSeqMetrics
-  rnaSeqMetrics <- CollectRnaSeqMetrics(inBam=input$getFullPaths("BAM"),
+  rnaSeqMetrics <- CollectRnaSeqMetrics(inBams=bamRGFns,
                                         gtfFn=param$ezRef['refFeatureFile'],
                                         featAnnoFn=param$ezRef['refAnnotationFile'],
                                         strandMode=param$strandMode,
