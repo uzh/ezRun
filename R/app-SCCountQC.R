@@ -27,6 +27,7 @@ ezMethodSCCountQC = function(input=NA, output=NA, param=NA,
   setwdNew(basename(output$getColumn("Report")))
   rawData = loadSCCountDataset(input, param)
   
+  inBam <- input$getFullPaths("BAM")
   bamRGFns <- splitBamByRG(inBam, mc.cores=param$cores)
   on.exit(file.remove(bamRGFns), add = TRUE)
   
