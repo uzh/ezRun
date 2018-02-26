@@ -11,9 +11,13 @@ CollectAlignmentSummaryMetrics <- function(inBam, fastaFn,
   require(matrixStats)
   metricLevel <- match.arg(metricLevel)
   setEnvironments("picard")
+  
+  fileSizeInG <- ceiling(file.size(inBam)/1e9)
+  
   outputFn <- tempfile(pattern="CollectAlignmentSummaryMetrics",
                        fileext=".txt")
-  cmd <- paste("java -Xmx50g -jar", Sys.getenv("Picard_jar"),
+  cmd <- paste("java", paste0("-Xmx", fileSizeInG*4, "g"), 
+               "-jar", Sys.getenv("Picard_jar"),
                "CollectAlignmentSummaryMetrics",
                paste0("R=", fastaFn),
                paste0("I=", inBam),
@@ -39,6 +43,8 @@ CollectRnaSeqMetrics <- function(inBam, gtfFn, featAnnoFn,
   setEnvironments("UCSC")
   setEnvironments("samtools")
   setEnvironments("picard")
+  
+  fileSizeInG <- ceiling(file.size(inBam)/1e9)
   
   strandMode <- match.arg(strandMode)
   metricLevel <- match.arg(metricLevel)
@@ -73,7 +79,8 @@ CollectRnaSeqMetrics <- function(inBam, gtfFn, featAnnoFn,
   ## CollectRnaSeqMetrics
   outputFn <- tempfile(pattern="CollectRnaSeqMetrics",
                        fileext=".txt")
-  cmd <- paste("java -Xmx50g -jar", Sys.getenv("Picard_jar"), ## it needs big RAM
+  cmd <- paste("java", paste0("-Xmx", fileSizeInG*4, "g"), ## it needs big RAM
+               "-jar", Sys.getenv("Picard_jar"), 
                "CollectRnaSeqMetrics",
                paste0("I=", inBam),
                paste0("O=", outputFn),
