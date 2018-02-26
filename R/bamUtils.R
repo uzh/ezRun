@@ -152,3 +152,19 @@ bam2bw <- function(file,
   }
   invisible(destination)
 }
+
+splitBamByRG <- function(inBam, mc.cores=ezThreads()){
+  setEnvironments("samtools")
+  require(Rsamtools)
+  header <- scanBamHeader(inBam)
+  readGroupNames <- header[[inBam]]$text[names(header[[inBam]]$text) == "@RG"]
+  readGroupNames <- sub("ID:", "", sapply(readGroupNames, "[", 1))
+  
+  cmd <- paste("samtools split -@", mc.cores, "-f %!", inBam)
+  ezSystem(cmd)
+  
+  bamFns <- paste0(readGroupNames, ".bam")
+  file.rename(from=readGroupNames, to=bamFns)
+  
+  return(bamFns)
+}
