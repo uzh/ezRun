@@ -28,7 +28,7 @@ ezMethodSCCountQC = function(input=NA, output=NA, param=NA,
   rawData = loadSCCountDataset(input, param)
   
   bamRGFns <- splitBamByRG(inBam, mc.cores=param$cores)
-  on.exit(fileremove(bamRGFns), add = TRUE)
+  on.exit(file.remove(bamRGFns), add = TRUE)
   
   ## CollectAlignmentSummaryMetrics
   alnMetrics <- CollectAlignmentSummaryMetrics(inBams=bamRGFns,
