@@ -22,7 +22,7 @@ packages <- c("testthat", "knitr", "gage", "goseq", "ChIPpeakAnno",
               "VariantAnnotation", "rmarkdown", "plotly", "scran",
               "ReporteRsjars", "data.table", "kableExtra", "htmlwidgets",
               "RSelenium", "webshot", "clusterProfiler", "dupRadar",
-              "taxize")
+              "taxize", "SingleCellExperiment", "SummarizedExperiment")
 packages <- setdiff(packages, rownames(installed.packages()))
 biocLite(packages)
 ```
