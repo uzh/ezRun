@@ -326,7 +326,7 @@ ezVolcano <- function(log2Ratio, pValue, yType=c("p-value", "FDR"),
                 title=main, font=ftitle,
                 legend=l, margin=m)
   }else{
-    p <- ggplot(toPlot, aes(x, y)) + geom_point(aes(col=types)) +
+    p <- ggplot(toPlot, aes(x, y)) + geom_point(aes(col=types), alpha =0.3) +
       scale_color_manual(values=typesColours) + 
       scale_x_continuous(limits=xlim) + scale_y_continuous(limits=ylim)+
       theme_bw() + xlab("log2 ratio") + ylab(paste0("-log10(", yType, ")"))+
@@ -336,11 +336,12 @@ ezVolcano <- function(log2Ratio, pValue, yType=c("p-value", "FDR"),
       stopifnot(!is.null(toPlot$names))
       p <- p + geom_label_repel(data=dplyr::filter(toPlot, names%in% labelGenes),
                                 aes(label=names), fontface = 'bold.italic',
-                                box.padding = 0.35, 
-                                point.padding = 0.5, #size=7,
-                                segment.color = 'grey50', 
-                                segment.size=1, 
-                                arrow = arrow(length = unit(0.01, 'npc')))
+                                #box.padding = 0.35, 
+                                #point.padding = 0.5, #size=7,
+                                segment.color = 'grey50'
+                                #segment.size=1, 
+                                #arrow = arrow(length = unit(0.01, 'npc'))
+                               )
     }
   }
   
