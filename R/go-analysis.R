@@ -344,34 +344,40 @@ ezEnricher <- function(param, se){
     enrichUp <- enricher(gene=upGenes,
                          universe=presentGenes,
                          TERM2GENE=go2geneDF)
-    tempTable <- enrichUp@result
-    if(nrow(tempTable) != 0L){
-      tempTable$Description <- Term(GOTERM[tempTable$ID])
-      #tempTable$Description <- substr(Term(GOTERM[tempTable$ID]), 1, 30)
-      tempTable$geneName <- sapply(relist(geneid2name[unlist(strsplit(tempTable$geneID, "/"))], strsplit(tempTable$geneID, "/")), paste, collapse="/")
-      enrichUp@result <- tempTable
+    if(!is.null(enrichUp)){
+      tempTable <- enrichUp@result
+      if(nrow(tempTable) != 0L){
+        tempTable$Description <- Term(GOTERM[tempTable$ID])
+        #tempTable$Description <- substr(Term(GOTERM[tempTable$ID]), 1, 30)
+        tempTable$geneName <- sapply(relist(geneid2name[unlist(strsplit(tempTable$geneID, "/"))], strsplit(tempTable$geneID, "/")), paste, collapse="/")
+        enrichUp@result <- tempTable
+      }
     }
     
     enrichDown <- enricher(gene=downGenes,
                            universe=presentGenes,
                            TERM2GENE=go2geneDF)
-    tempTable <- enrichDown@result
-    if(nrow(tempTable) != 0L){
-      tempTable$Description <- Term(GOTERM[tempTable$ID])
-      #tempTable$Description <- substr(Term(GOTERM[tempTable$ID]), 1, 30)
-      tempTable$geneName <- sapply(relist(geneid2name[unlist(strsplit(tempTable$geneID, "/"))], strsplit(tempTable$geneID, "/")), paste, collapse="/")
-      enrichDown@result <- tempTable
+    if(!is.null(enrichDown)){
+      tempTable <- enrichDown@result
+      if(nrow(tempTable) != 0L){
+        tempTable$Description <- Term(GOTERM[tempTable$ID])
+        #tempTable$Description <- substr(Term(GOTERM[tempTable$ID]), 1, 30)
+        tempTable$geneName <- sapply(relist(geneid2name[unlist(strsplit(tempTable$geneID, "/"))], strsplit(tempTable$geneID, "/")), paste, collapse="/")
+        enrichDown@result <- tempTable
+      }
     }
     
     enrichBoth <- enricher(gene=bothGenes,
                            universe=presentGenes,
                            TERM2GENE=go2geneDF)
-    tempTable <- enrichBoth@result
-    if(nrow(tempTable) != 0L){
-      tempTable$Description <- Term(GOTERM[tempTable$ID])
-      #tempTable$Description <- substr(Term(GOTERM[tempTable$ID]), 1, 30)
-      tempTable$geneName <- sapply(relist(geneid2name[unlist(strsplit(tempTable$geneID, "/"))], strsplit(tempTable$geneID, "/")), paste, collapse="/")
-      enrichBoth@result <- tempTable
+    if(!is.null(enrichBoth)){
+      tempTable <- enrichBoth@result
+      if(nrow(tempTable) != 0L){
+        tempTable$Description <- Term(GOTERM[tempTable$ID])
+        #tempTable$Description <- substr(Term(GOTERM[tempTable$ID]), 1, 30)
+        tempTable$geneName <- sapply(relist(geneid2name[unlist(strsplit(tempTable$geneID, "/"))], strsplit(tempTable$geneID, "/")), paste, collapse="/")
+        enrichBoth@result <- tempTable
+      }
     }
     
     result = list(enrichUp=enrichUp, enrichDown=enrichDown,
