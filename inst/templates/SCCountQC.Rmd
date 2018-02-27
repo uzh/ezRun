@@ -12,10 +12,62 @@ output:
 Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
 
 ```{r setup, include=FALSE}
+require(SummarizedExperiment)
+require(plotly)
 
+load("/export/local/scratch/gtan/p2497-SCCountQC/sce.rdata")
+
+param <- metadata(sce)$param
+mlog <- metadata(sce)$mlog
+
+param$minSCCount <- 1e4
+totalCells <- ncol(sce)
+sce <- sce[, colSums(assays(sce)$counts) > param$minSCCount]
+
+seqAnno <- data.frame(rowData(sce), row.names=rownames(sce),
+                      check.names = FALSE, stringsAsFactors=FALSE)
+mito <- rownames(seqAnno)[grepl("^mt-", seqAnno$gene_name)]
+x <- assays(sce)$counts
+cell_info <- data.frame(row.names = colnames(x),
+                        lib_size=colSums(x)/1e6, 
+                        expr_genes = colSums(x>0), 
+                        perc_mito=colSums(x[mito,])*100/colSums(x))
 ```
 
 ## CountQC_Result {.tabset}
+
+### Overview
+
+**Number of Cells** = `r ncol(x)`
+
+**Median Genes per Cell** = `r as.integer(median(cell_info$expr_genes))`
+
+**Median Reads per Cell** = `r round(median(cell_info$lib_size*1e6),0)`
+
+We filtered out `r totalCells-ncol(sce)` cells with < `r param$minSCCount` reads.
+
+Number of input reads = `r mlog["Number of input reads",2]`
+
+% of reads mapped to multiple loci = `r mlog["% of reads mapped to multiple loci",2]`
+
+### #Genes detected in cells
+
+Interactive plot showing the read counts vs the number of expressed genes for all cells. Each dot is a cell.
+
+```{r, fig.width=8, fig.height=5, echo=FALSE, message=FALSE, warning=FALSE}
+par(mfrow=c(1,2), mar=c(5.1, 4.1, 0.1, 0.1))
+xax <- list(
+  title = "Read counts (million)",
+  zeroline = FALSE
+)
+yax <- list(
+  title = "Number of expressed genes",
+  zeroline = FALSE
+)
+plot_ly(data=cell_info, x=~lib_size, y=~expr_genes, 
+        text=rownames(cell_info), bg="deepskyblue3") %>% 
+  layout(xaxis = xax, yaxis = yax)
+```
 
 ### SessionInfo
 ```{r, echo=FALSE}
