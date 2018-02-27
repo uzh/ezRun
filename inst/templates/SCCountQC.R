@@ -27,7 +27,7 @@ input = 'input_dataset_original.tsv'
 #output = EzDataset$new(meta=output, dataRoot=param$dataRoot)
 
 #sce <- loadSCCountDataset(input, param)
-debug(ezMethodSCCountQC)
+#debug(ezMethodSCCountQC)
 EzAppSCCountQC$new()$run(input=input, output=output, param=param)
 
 
