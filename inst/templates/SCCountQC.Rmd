@@ -15,14 +15,17 @@ Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
 require(SummarizedExperiment)
 require(plotly)
 require(scater)
+require(ezRun)
 
 load("/export/local/scratch/gtan/p2497-SCCountQC/sce.rdata")
+
+sceAllCells <- sce
 
 param <- metadata(sce)$param
 mlog <- metadata(sce)$mlog
 
 param$minSCCount <- 1e4
-totalCells <- ncol(sce)
+
 sce <- sce[, colSums(assays(sce)$counts) > param$minSCCount]
 
 seqAnno <- data.frame(rowData(sce), row.names=rownames(sce),
@@ -43,6 +46,9 @@ libsize.drop <- isOutlier(sceFixName$total_counts, nmads=5, type="lower", log=TR
 feature.drop <- isOutlier(sceFixName$total_features, nmads=5, type="lower", log=TRUE)
 sceFixName <- sceFixName[,!(libsize.drop | feature.drop )]
 
+## datasetAllCells for section "Heatmap of reads per cell on the plate"
+datasetAllCells <- data.frame(colData(sceAllCells),
+                              check.names = FALSE, stringsAsFactors=FALSE)
 ```
 
 ## CountQC_Result {.tabset}
@@ -55,7 +61,7 @@ sceFixName <- sceFixName[,!(libsize.drop | feature.drop )]
 
 **Median Reads per Cell** = `r round(median(cell_info$lib_size*1e6),0)`
 
-We filtered out `r totalCells-ncol(sce)` cells with < `r param$minSCCount` reads.
+We filtered out `r ncol(sceAllCells)-ncol(sce)` cells with < `r param$minSCCount` reads.
 
 Number of input reads = `r mlog["Number of input reads",2]`
 
@@ -110,7 +116,27 @@ Number of cells with expression for a gene against mean expression level.
 plotQC(sceFixName, type = "exprs-freq-vs-mean")
 ```
 
+### Heatmap of reads per cell on the plate
 
+Sequenced reads on the plate layout.The heatmap values are in $log10$ scale. The colorScale ranges from half of median value to twice of median value.
+
+```{r plate layout, echo=FALSE, message=FALSE, warning=FALSE}
+plateMatrix <- plateStatistics(datasetAllCells)
+plateMatrix$`user ready made`$`LibConc_100_800bp [Characteristic]`=NULL
+if(!is.na(plateMatrix)){
+  l <- htmltools::tagList()
+  ## This is the way of plotting plotly figures within a loop in knitr code chunk
+  for(plateName in names(plateMatrix)){
+    for(colname in names(plateMatrix[[plateName]])){
+      p <- heatmapPlate(plateMatrix[[plateName]][[colname]],
+                        title=paste(plateName, colname, sep=": "),
+                        center=TRUE, log10=TRUE)
+      l[[paste(plateName, colname, sep=": ")]] <- as_widget(p)
+    }
+  }
+  l
+}
+```
 
 ### SessionInfo
 ```{r, echo=FALSE}
