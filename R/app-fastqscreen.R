@@ -261,9 +261,9 @@ runKraken <- function(param, input){
     ezSystem(cmd)
     ##simple result filtering
     data = ezRead.table(resultFile, stringsAsFactors = F, row.names = NULL)
-    colnames(data) = c('readFraction', 'nreads_clade', 'nreads_taxon', 'rankCode', 'ncbi', 'name')
+    colnames(data) = c('readPercentage', 'nreads_clade', 'nreads_taxon', 'rankCode', 'ncbi', 'name')
     data = data[data$rankCode %in% c('U','S'), ]
-    data = data[order(data$readFraction, decreasing = T),]
+    data = data[order(data$readPercentage, decreasing = T),]
     data = data[!(data$ncbi %in% c(1, 131567, 136843)),] #remove general terms
     
     ##save table for report
