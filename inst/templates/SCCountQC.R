@@ -22,11 +22,11 @@ output[['Static Report [Link]']] = 'p2497/p2497-SCCountQC/SCCount_QC/00index.htm
 output[['Report [File]']] = 'p2497/p2497-SCCountQC/SCCount_QC'
 input = 'input_dataset_original.tsv'
 
-input = EzDataset$new(file=input, dataRoot=param$dataRoot)
-param <- ezParam(param)
-output = EzDataset$new(meta=output, dataRoot=param$dataRoot)
+#input = EzDataset$new(file=input, dataRoot=param$dataRoot)
+#param <- ezParam(param)
+#output = EzDataset$new(meta=output, dataRoot=param$dataRoot)
 
-sce <- loadSCCountDataset(input, param)
+#sce <- loadSCCountDataset(input, param)
 #debug(ezMethodSCCountQC)
 EzAppSCCountQC$new()$run(input=input, output=output, param=param)
 

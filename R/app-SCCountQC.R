@@ -33,34 +33,42 @@ ezMethodSCCountQC = function(input=NA, output=NA, param=NA,
   rownames(mlog) <- trimws(mlog[,1])
   metadata(sce)$mlog <- mlog
   
-  save(sce, file="sce.rdata")
+  ## debug
+  #save(sce, file="sce.rdata")
   
+  ## Copy the style files and templates
+  styleFiles <- file.path(system.file("templates", package="ezRun"),
+                          c("fgcz.css", "SCCountQC.Rmd",
+                            "fgcz_header.html", "banner.png"))
+  file.copy(from=styleFiles, to=".", overwrite=TRUE)
+  rmarkdown::render(input="SCCountQC.Rmd", envir = new.env(),
+                    output_dir=".", output_file=htmlFile, quiet=TRUE)
   
-  inBam <- input$getFullPaths("BAM")
-  bamRGFns <- splitBamByRG(inBam, mc.cores=param$cores)
-  on.exit(file.remove(bamRGFns), add = TRUE)
-  
-  ## CollectAlignmentSummaryMetrics
-  message("Start CollectAlignmentSummaryMetrics", date())
-  alnMetrics <- CollectAlignmentSummaryMetrics(inBams=bamRGFns,
-                                               fastaFn=param$ezRef['refFastaFile'],
-                                               metricLevel="SAMPLE",
-                                               mc.cores=param$cores)
-  save(alnMetrics, file="alnMetrics.rda")
-  message("End CollectAlignmentSummaryMetrics", date())
-  ## CollectRnaSeqMetrics
-  rnaSeqMetrics <- CollectRnaSeqMetrics(inBams=bamRGFns,
-                                        gtfFn=param$ezRef['refFeatureFile'],
-                                        featAnnoFn=param$ezRef['refAnnotationFile'],
-                                        strandMode=param$strandMode,
-                                        metricLevel="SAMPLE",
-                                        mc.cores=param$cores)
-  save(rnaSeqMetrics, file="rnaSeqMetrics.rda")
-  message("End CollectRnaSeqMetrics", date())
-  ## DuplicationMetrics
-  dupMetrics <- DuplicationMetrics(inBams=bamRGFns, mc.cores=param$cores)
-  save(dupMetrics, file="dupMetrics.rda")
-  message("End DuplicationMetrics", date())
+  # Picard metrics
+  # inBam <- input$getFullPaths("BAM")
+  # bamRGFns <- splitBamByRG(inBam, mc.cores=param$cores)
+  # on.exit(file.remove(bamRGFns), add = TRUE)
+  # 
+  # ## CollectAlignmentSummaryMetrics
+  # message("Start CollectAlignmentSummaryMetrics", date())
+  # alnMetrics <- CollectAlignmentSummaryMetrics(inBams=bamRGFns,
+  #                                              fastaFn=param$ezRef['refFastaFile'],
+  #                                              metricLevel="SAMPLE",
+  #                                              mc.cores=param$cores)
+  # save(alnMetrics, file="alnMetrics.rda")
+  # message("End CollectAlignmentSummaryMetrics", date())
+  # ## CollectRnaSeqMetrics
+  # rnaSeqMetrics <- CollectRnaSeqMetrics(inBams=bamRGFns,
+  #                                       gtfFn=param$ezRef['refFeatureFile'],
+  #                                       featAnnoFn=param$ezRef['refAnnotationFile'],
+  #                                       strandMode=param$strandMode,
+  #                                       metricLevel="SAMPLE",
+  #                                       mc.cores=param$cores)
+  # save(rnaSeqMetrics, file="rnaSeqMetrics.rda")
+  # message("End CollectRnaSeqMetrics", date())
+  # ## DuplicationMetrics
+  # dupMetrics <- DuplicationMetrics(inBams=bamRGFns, mc.cores=param$cores)
+  # save(dupMetrics, file="dupMetrics.rda")
+  # message("End DuplicationMetrics", date())
 
-    
 }
