@@ -31,6 +31,7 @@ ezMethodRSEM = function(input=NA, output=NA, param=NA){
     opt = paste("--output-genome-bam", opt)
   }
   if (param$paired){
+    opt = sub('--sort-bam-by-read-name', '', opt)
     cmd = paste("rsem-calculate-expression", opt, strandOpt,
                 "--paired-end", trimmedInput$getColumn("Read1"), trimmedInput$getColumn("Read2"),
                 ref, sampleName, "2> rsem.stderr", "> rsem.stdout")

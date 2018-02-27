@@ -199,11 +199,27 @@ twoGroupsGOSE = function(param, se, method="Wallenius"){
   godata <- prepareGOData(param, se)
   seqAnno <- data.frame(rowData(se), row.names=rownames(se),
                         check.names = FALSE, stringsAsFactors=FALSE)
+  
   upGenes <- godata$upGenes
   downGenes <- godata$downGenes
   bothGenes <- godata$bothGenes
   presentGenes <- godata$presentGenes
   normalizedAvgSignal <- godata$normalizedAvgSignal
+  
+  if (param$featureLevel != "gene"){
+    genes = getGeneMapping(param, seqAnno)
+    seqAnno = aggregateGoAnnotation(seqAnno, genes)
+    if (!is.null(normalizedAvgSignal)){ ## if its not an identity mapping
+      normalizedAvgSignal = tapply(normalizedAvgSignal[names(genes)], genes, mean)
+      normalizedAvgSignal = normalizedAvgSignal[rownames(seqAnno)]
+    }
+    if (is.null(genes)){
+      stop("no probe 2 gene mapping found found for ")
+    }
+  } else {
+    genes = rownames(seqAnno)
+    names(genes) = genes
+  }
   
   job = ezJobStart("twoGroupsGO")
   require("GOstats", warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
@@ -317,6 +333,17 @@ ezEnricher <- function(param, se){
   bothGenes <- godata$bothGenes
   presentGenes <- godata$presentGenes
   
+  if (param$featureLevel != "gene"){
+    genes = getGeneMapping(param, seqAnno)
+    seqAnno = aggregateGoAnnotation(seqAnno, genes)
+    if (is.null(genes)){
+      stop("no probe 2 gene mapping found found for ")
+    }
+  } else {
+    genes = rownames(seqAnno)
+    names(genes) = genes
+  }
+  
   ontologies = c("BP", "MF", "CC")
   
   goResults = ezMclapply(ontologies, function(onto){
@@ -395,6 +422,17 @@ ezGSEA <- function(param, se){
   geneid2name <- setNames(seqAnno$gene_name, seqAnno$gene_id)
   geneList <- setNames(rowData(se)$log2Ratio, rowData(se)$gene_id)
   geneList <- sort(geneList, decreasing = TRUE)
+  
+  if (param$featureLevel != "gene"){
+    genes = getGeneMapping(param, seqAnno)
+    seqAnno = aggregateGoAnnotation(seqAnno, genes)
+    if (is.null(genes)){
+      stop("no probe 2 gene mapping found found for ")
+    }
+  } else {
+    genes = rownames(seqAnno)
+    names(genes) = genes
+  }
   
   ontologies = c("BP", "MF", "CC")
   
