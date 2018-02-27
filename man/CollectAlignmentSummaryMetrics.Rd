@@ -7,19 +7,23 @@
   Produces a summary of alignment metrics from a SAM or BAM file with picard.
 }
 \usage{
-  CollectAlignmentSummaryMetrics(inBam, fastaFn,
+  CollectAlignmentSummaryMetrics(inBams, fastaFn,
                                  metricLevel = c("ALL_READS", "SAMPLE",
-                                                 "LIBRARY", "READ_GROUP"))
+                                                 "LIBRARY", "READ_GROUP"),
+                                 mc.cores=ezThreads())
 }
 \arguments{
-  \item{inBam}{
-    \code{character}(1): the filepath of input bam file.
+  \item{inBams}{
+    \code{character}(n): the filepaths of input bam files.
   }
   \item{fastaFn}{
     \code{character}(1): the filepath of reference genome file for mapping.
   }
   \item{metricLevel}{
     \code{character}(1): the level of summarisation. See details below.
+  }
+  \item{mc.cores}{
+    \code{integer}(1): the threads to use.
   }
 }
 \details{
