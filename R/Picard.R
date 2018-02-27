@@ -22,7 +22,8 @@ CollectAlignmentSummaryMetrics <- function(inBams, fastaFn,
                paste0("I=", inBams),
                paste0("O=", outputFns),
                "METRIC_ACCUMULATION_LEVEL=null", ## clear the default "ALL_READS"
-               paste0("METRIC_ACCUMULATION_LEVEL=", metricLevel))
+               paste0("METRIC_ACCUMULATION_LEVEL=", metricLevel),
+               "> /dev/null")
   ezMclapply(cmd, ezSystem, mc.preschedule=FALSE, mc.cores=mc.cores)
   
   metrics <- lapply(outputFns, ezRead.table, comment.char="#", row.names=NULL)
@@ -88,7 +89,8 @@ CollectRnaSeqMetrics <- function(inBams, gtfFn, featAnnoFn,
                paste0("STRAND=", strandMode),
                paste0("RIBOSOMAL_INTERVALS=", riboFn),
                "METRIC_ACCUMULATION_LEVEL=null", ## clear the default "ALL_READS"
-               paste0("METRIC_ACCUMULATION_LEVEL=", metricLevel)
+               paste0("METRIC_ACCUMULATION_LEVEL=", metricLevel),
+               "> /dev/null"
                )
   ezMclapply(cmd, ezSystem, mc.preschedule=FALSE, mc.cores=mc.cores)
   
@@ -139,7 +141,8 @@ DuplicationMetrics <- function(inBams, mc.cores=ezThreads()){
                "MarkDuplicates",
                paste0("I=", inBams),
                paste0("O=", ouputBams),
-               paste0("M=", outputFns)
+               paste0("M=", outputFns),
+               "> /dev/null"
                )
   ezMclapply(cmd, ezSystem, mc.preschedule=FALSE, mc.cores=mc.cores)
   
