@@ -15,9 +15,9 @@ Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
 require(SummarizedExperiment)
 require(plotly)
 require(scater)
-require(ezRun)
+#require(ezRun)
 
-load("/export/local/scratch/gtan/p2497-SCCountQC/sce.rdata")
+#load("/export/local/scratch/gtan/p2497-SCCountQC/sce.rdata")
 
 sceAllCells <- sce
 
