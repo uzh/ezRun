@@ -25,7 +25,16 @@ ezMethodSCCountQC = function(input=NA, output=NA, param=NA,
     stop("Currently we support one pooled bam file!")
   
   setwdNew(basename(output$getColumn("Report")))
-  rawData = loadSCCountDataset(input, param)
+  sce <- loadSCCountDataset(input, param)
+  
+  ## STAR log
+  mlog = read.table(input$getFullPaths("STARLog"), sep="|", 
+                    as.is = TRUE, quote = "\"", fill=T)
+  rownames(mlog) <- trimws(mlog[,1])
+  metadata(sce)$mlog <- mlog
+  
+  save(sce, file="sce.rdata")
+  
   
   inBam <- input$getFullPaths("BAM")
   bamRGFns <- splitBamByRG(inBam, mc.cores=param$cores)
