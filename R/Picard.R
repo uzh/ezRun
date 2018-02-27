@@ -5,28 +5,29 @@
 # The terms are available here: http://www.gnu.org/licenses/gpl.html
 # www.fgcz.ch
 
-CollectAlignmentSummaryMetrics <- function(inBam, fastaFn,
+CollectAlignmentSummaryMetrics <- function(inBams, fastaFn,
                                            metricLevel=c("ALL_READS", "SAMPLE",
-                                                         "LIBRARY", "READ_GROUP")){
+                                                         "LIBRARY", "READ_GROUP"),
+                                           mc.cores=ezThreads()){
   require(matrixStats)
   metricLevel <- match.arg(metricLevel)
   setEnvironments("picard")
   
-  fileSizeInG <- ceiling(file.size(inBam)/1e9)
-  
-  outputFn <- tempfile(pattern="CollectAlignmentSummaryMetrics",
-                       fileext=".txt")
-  cmd <- paste("java", paste0("-Xmx", fileSizeInG*4, "g"), 
+  outputFns <- tempfile(pattern=inBams,
+                       fileext=".CollectAlignmentSummaryMetrics")
+  cmd <- paste("java", 
                "-jar", Sys.getenv("Picard_jar"),
                "CollectAlignmentSummaryMetrics",
                paste0("R=", fastaFn),
-               paste0("I=", inBam),
-               paste0("O=", outputFn),
+               paste0("I=", inBams),
+               paste0("O=", outputFns),
                "METRIC_ACCUMULATION_LEVEL=null", ## clear the default "ALL_READS"
-               paste0("METRIC_ACCUMULATION_LEVEL=", metricLevel))
-  ezSystem(cmd)
+               paste0("METRIC_ACCUMULATION_LEVEL=", metricLevel),
+               "> /dev/null")
+  ezMclapply(cmd, ezSystem, mc.preschedule=FALSE, mc.cores=mc.cores)
   
-  metrics <- ezRead.table(outputFn, comment.char="#", row.names=NULL)
+  metrics <- lapply(outputFns, ezRead.table, comment.char="#", row.names=NULL)
+  metrics <- do.call(rbind, metrics)
   metrics <- metrics[ ,!colAlls(is.na(metrics))] ## Remove the NA columns of nameColumns
   nameColumns <- c("SAMPLE", "LIBRARY", "READ_GROUP")
   indexName <- intersect(colnames(metrics), nameColumns)
@@ -35,16 +36,16 @@ CollectAlignmentSummaryMetrics <- function(inBam, fastaFn,
   return(metrics)
 }
 
-CollectRnaSeqMetrics <- function(inBam, gtfFn, featAnnoFn,
+CollectRnaSeqMetrics <- function(inBams, gtfFn, featAnnoFn,
                                  strandMode=c("both", "sense", "antisense"),
                                  metricLevel=c("ALL_READS", "SAMPLE",
-                                               "LIBRARY", "READ_GROUP")
+                                               "LIBRARY", "READ_GROUP"),
+                                 mc.cores=ezThreads()
                                  ){
+  require(matrixStats)
   setEnvironments("UCSC")
   setEnvironments("samtools")
   setEnvironments("picard")
-  
-  fileSizeInG <- ceiling(file.size(inBam)/1e9)
   
   strandMode <- match.arg(strandMode)
   metricLevel <- match.arg(metricLevel)
@@ -66,7 +67,7 @@ CollectRnaSeqMetrics <- function(inBam, gtfFn, featAnnoFn,
   
   ## RIBOSOMAL_INTERVALS
   riboFn <- tempfile(pattern="ribosomal", fileext=".interval")
-  cmd <- paste("samtools view -H", inBam, ">", riboFn)
+  cmd <- paste("samtools view -H", inBams[1], ">", riboFn)
   ezSystem(cmd)
   
   gtf <- ezReadGff(gtfFn)
@@ -77,38 +78,80 @@ CollectRnaSeqMetrics <- function(inBam, gtfFn, featAnnoFn,
               append=TRUE, row.names=FALSE, col.names = FALSE)
   
   ## CollectRnaSeqMetrics
-  outputFn <- tempfile(pattern="CollectRnaSeqMetrics",
-                       fileext=".txt")
-  cmd <- paste("java", paste0("-Xmx", fileSizeInG*4, "g"), ## it needs big RAM
+  outputFns <- tempfile(pattern=inBams,
+                        fileext=".CollectRnaSeqMetrics")
+  cmd <- paste("java",
                "-jar", Sys.getenv("Picard_jar"), 
                "CollectRnaSeqMetrics",
-               paste0("I=", inBam),
-               paste0("O=", outputFn),
+               paste0("I=", inBams),
+               paste0("O=", outputFns),
                paste0("REF_FLAT=", refFlatFn),
                paste0("STRAND=", strandMode),
                paste0("RIBOSOMAL_INTERVALS=", riboFn),
                "METRIC_ACCUMULATION_LEVEL=null", ## clear the default "ALL_READS"
-               paste0("METRIC_ACCUMULATION_LEVEL=", metricLevel)
+               paste0("METRIC_ACCUMULATION_LEVEL=", metricLevel),
+               "> /dev/null"
                )
-  ezSystem(cmd)
-  metricsAll <- readLines(outputFn)
-  outputFn1 <- tempfile(pattern="CollectRnaSeqMetrics_1_",
-                        fileext=".txt")
-  breakLine <- grep("^## HISTOGRAM", metricsAll)
-  writeLines(head(metricsAll, breakLine-2), con=outputFn1)
+  ezMclapply(cmd, ezSystem, mc.preschedule=FALSE, mc.cores=mc.cores)
   
-  metrics <- ezRead.table(outputFn1, comment.char="#", row.names=NULL)
-  metrics <- metrics[ ,!colAlls(is.na(metrics))]
+  for(outputFn in outputFns){
+    ## Remove the stuff after HISTOGRAM
+    metricsAll <- readLines(outputFn)
+    breakLine <- grep("^## HISTOGRAM", metricsAll)
+    if(length(breakLine) >= 1){
+      writeLines(head(metricsAll, breakLine-2), con=outputFn)
+    }
+  }
+  metrics <- lapply(outputFns, ezRead.table, comment.char="#", row.names=NULL)
+  metrics <- do.call(rbind, metrics)
+  metrics <- metrics[ ,!colAlls(is.na(metrics))] ## Remove the NA columns of nameColumns
   nameColumns <- c("SAMPLE", "LIBRARY", "READ_GROUP")
   indexName <- intersect(colnames(metrics), nameColumns)
   rownames(metrics) <- metrics[ ,indexName]
   metrics[[indexName]] <- NULL
   
-  outputFn2 <- tempfile(pattern="CollectRnaSeqMetrics_2_",
-                        fileext=".txt")
-  writeLines(metricsAll[breakLine:(102+breakLine)], con=outputFn2)
-  histogram <- ezRead.table(outputFn2, comment.char="#", row.names=NULL)
+  # 
+  # writeLines(head(metricsAll, breakLine-2), con=outputFn1)
+  # 
+  # metrics <- ezRead.table(outputFn1, comment.char="#", row.names=NULL)
+  # metrics <- metrics[ ,!colAlls(is.na(metrics))]
+  # nameColumns <- c("SAMPLE", "LIBRARY", "READ_GROUP")
+  # indexName <- intersect(colnames(metrics), nameColumns)
+  # rownames(metrics) <- metrics[ ,indexName]
+  # metrics[[indexName]] <- NULL
+  # 
+  # outputFn2 <- tempfile(pattern="CollectRnaSeqMetrics_2_",
+  #                       fileext=".txt")
+  # writeLines(metricsAll[breakLine:(102+breakLine)], con=outputFn2)
+  # histogram <- ezRead.table(outputFn2, comment.char="#", row.names=NULL)
+  # 
+  # ans <- list(metrics, histogram)
+  return(metrics)
+}
+
+DuplicationMetrics <- function(inBams, mc.cores=ezThreads()){
+  setEnvironments("picard")
   
-  ans <- list(metrics, histogram)
-  return(ans)
+  ouputBams <- tempfile(pattern=inBams, tmpdir=".", 
+                        fileext=".markedDupbam")
+  on.exit(file.remove(ouputBams), add=TRUE)
+  outputFns <- tempfile(pattern=inBams, fileext=".markedDupMetrics")
+  
+  cmd <- paste("java -jar", Sys.getenv("Picard_jar"),
+               "MarkDuplicates",
+               paste0("I=", inBams),
+               paste0("O=", ouputBams),
+               paste0("M=", outputFns),
+               "> /dev/null"
+               )
+  ezMclapply(cmd, ezSystem, mc.preschedule=FALSE, mc.cores=mc.cores)
+  
+  metrics <- lapply(outputFns, ezRead.table, comment.char="#", row.names=NULL)
+  metrics <- do.call(rbind, metrics)
+  metrics <- metrics[ ,!colAlls(is.na(metrics))] ## Remove the NA columns of nameColumns
+  nameColumns <- c("SAMPLE", "LIBRARY", "READ_GROUP")
+  indexName <- intersect(colnames(metrics), nameColumns)
+  rownames(metrics) <- metrics[ ,indexName]
+  metrics[[indexName]] <- NULL
+  return(metrics)
 }
