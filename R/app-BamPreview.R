@@ -29,6 +29,8 @@ ezMethodBamPreview = function(input=NA, output=NA, param=NA, htmlFile="00index.h
            if (!grepl("genomeLoad", bamParam$cmdOptions)){
              bamParam$cmdOptions = paste("--genomeLoad LoadAndKeep" , bamParam$cmdOptions)
            }
+           # LoadAndKeep is not compatible with twopassMode
+           bamParam$twopassMode = F
          },
          bowtie={
            mappingApp = EzAppBowtie$new()
