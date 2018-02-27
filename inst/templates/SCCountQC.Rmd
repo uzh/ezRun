@@ -33,6 +33,16 @@ cell_info <- data.frame(row.names = colnames(x),
                         lib_size=colSums(x)/1e6, 
                         expr_genes = colSums(x>0), 
                         perc_mito=colSums(x[mito,])*100/colSums(x))
+
+## sceFixName for section "Reads on top 50 genes" and "Expression metrics"
+sceFixName <- sce
+rownames(sceFixName) <- make.unique(rowData(sceFixName)$gene_name)
+is.mito <- grepl("^mt-", rownames(sceFixName))
+sceFixName <- calculateQCMetrics(sceFixName, feature_controls=list(Mt=is.mito))
+libsize.drop <- isOutlier(sceFixName$total_counts, nmads=5, type="lower", log=TRUE)
+feature.drop <- isOutlier(sceFixName$total_features, nmads=5, type="lower", log=TRUE)
+sceFixName <- sceFixName[,!(libsize.drop | feature.drop )]
+
 ```
 
 ## CountQC_Result {.tabset}
@@ -89,16 +99,18 @@ hist(cell_info$perc_mito, xlab="Mitochondrial proportion (%)",
 Percentage of total counts assigned to the top 50 most highly-abundant genes. For each gene, each bar represents the percentage assigned to that gene for a single cell, while the circle represents the average across all cells.
 
 ```{r, fig.width=6, fig.height=6, echo=FALSE, message=FALSE, warning=FALSE}
-sceFixName <- sce
-rownames(sceFixName) <- make.unique(rowData(sceFixName)$gene_name)
-is.mito <- grepl("^mt-", rownames(sceFixName))
-sceFixName <- calculateQCMetrics(sceFixName, feature_controls=list(Mt=is.mito))
-libsize.drop <- isOutlier(sceFixName$total_counts, nmads=5, type="lower", log=TRUE)
-feature.drop <- isOutlier(sceFixName$total_features, nmads=5, type="lower", log=TRUE)
-sceFixName <- sceFixName[,!(libsize.drop | feature.drop )]
 plotQC(sceFixName, type = "highest-expression", n=50)
-
 ```
+
+### Expression metrics
+
+Number of cells with expression for a gene against mean expression level.
+
+```{r, fig.width=8, fig.height=6, echo=FALSE, message=FALSE, warning=FALSE}
+plotQC(sceFixName, type = "exprs-freq-vs-mean")
+```
+
+
 
 ### SessionInfo
 ```{r, echo=FALSE}
