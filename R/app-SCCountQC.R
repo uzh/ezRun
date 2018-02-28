@@ -23,8 +23,10 @@ ezMethodSCCountQC = function(input=NA, output=NA, param=NA,
                              htmlFile="00index.html"){
   if(length(input$getNames()) > 1L)
     stop("Currently we support one pooled bam file!")
-  
+  cwd <- getwd()
   setwdNew(basename(output$getColumn("Report")))
+  on.exit(setwd(cwd), add=TRUE)
+  
   sce <- loadSCCountDataset(input, param)
   
   ## STAR log
