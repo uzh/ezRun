@@ -103,7 +103,8 @@ for (nm in c("multiMatchTargetTypeCounts", "uniqueMatchTargetTypeCounts")){
       tptUse = tpt[rowsUse, , drop=FALSE]
       if (nrow(tptUse) >= 2 && ncol(tptUse) >= 2){
         tptUseRel = log2(tptUse)
-        tptUseRel = tptUseRel - rowMeans(tptUseRel)
+        meanVals = apply(tptUseRel, 1, function(x){mean(x[is.finite(x)])}) ## ignore zero counts
+        tptUseRel = tptUseRel - meanVals
         plotCmd = expression({
           ezHeatmap(tptUseRel, margins=c(10, 12), lim=c(-2, 2),
                     Rowv=FALSE, Colv=FALSE, main="Relative Prevalence [log2]")
