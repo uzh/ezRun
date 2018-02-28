@@ -302,7 +302,8 @@ getStatsFromBam = function(param, bamFile, sm, gff=NULL, repeatsGff=NULL,
   }
   if (is.null(param$splitByChrom) || param$splitByChrom){
     result = getStatsFromBamParallel(seqLengths, param, bamFile, sm, 
-                                     gff, repeatsGff, mc.cores=ezThreads(), nReads=nReads)
+                                     gff, repeatsGff, mc.cores=param$cores, 
+                                     nReads=nReads)
   } else {
     result = getStatsFromBamSingleChrom(NULL, param, bamFile, sm, gff, 
                                         repeatsGff)
@@ -327,7 +328,7 @@ getStatsFromBam = function(param, bamFile, sm, gff=NULL, repeatsGff=NULL,
   #                              function(x){as.integer(x[round(seq(1, length(x), length.out=101))])})
   sampledTranscriptCov <- ezMclapply(transcriptCov, ## RleList will be slow. use list
                                 function(x){as.integer(x[round(seq(1, length(x), length.out=101))])},
-                                mc.preschedule=TRUE, mc.cores=ezThreads())
+                                mc.preschedule=TRUE, mc.cores=param$cores)
   sampledTranscriptCov <- do.call(cbind, sampledTranscriptCov)
   
   trUse = colSums(sampledTranscriptCov) > 0
