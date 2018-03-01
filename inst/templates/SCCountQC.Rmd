@@ -28,7 +28,7 @@ mlog <- metadata(sce)$mlog
 
 param$minReadsPerCell = 1e4
 param$minReadsPerGene = 3
-param$minGenesDetected = 800 ## we should also filter genes that do not have param$minReadsPerGene for at least param$minGenesDetected
+param$minGenesDetected = 400 ## we should also filter genes that do not have param$minReadsPerGene for at least param$minGenesDetected
 
 sce <- sce[, colSums(assays(sce)$counts) >= param$minReadsPerCell]
 sce <- sce[, colSums(assays(sce)$counts >= param$minReadsPerGene) >= param$minGenesDetected]
