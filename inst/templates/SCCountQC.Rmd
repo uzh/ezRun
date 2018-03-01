@@ -15,18 +15,23 @@ Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
 require(SummarizedExperiment)
 require(plotly)
 require(scater)
-#require(ezRun)
+require(ezRun)
 
-#load("/export/local/scratch/gtan/p2497-SCCountQC/sce.rdata")
+load("/export/local/scratch/gtan/p2497-SCCountQC/sce.rdata")
 
 sceAllCells <- sce
+
+
 
 param <- metadata(sce)$param
 mlog <- metadata(sce)$mlog
 
-param$minSCCount <- 1e4
+param$minReadsPerCell = 1e4
+param$minReadsPerGene = 3
+param$minGenesDetected = 800 ## we should also filter genes that do not have param$minReadsPerGene for at least param$minGenesDetected
 
-sce <- sce[, colSums(assays(sce)$counts) > param$minSCCount]
+sce <- sce[, colSums(assays(sce)$counts) >= param$minReadsPerCell]
+sce <- sce[, colSums(assays(sce)$counts >= param$minReadsPerGene) >= param$minGenesDetected]
 
 seqAnno <- data.frame(rowData(sce), row.names=rownames(sce),
                       check.names = FALSE, stringsAsFactors=FALSE)
@@ -55,17 +60,21 @@ datasetAllCells <- data.frame(colData(sceAllCells),
 
 ### Overview
 
-**Number of Cells** = `r ncol(x)`
+* **Total Number of Cells:** `r ncol(sceAllCells)`
 
-**Median Genes per Cell** = `r as.integer(median(cell_info$expr_genes))`
+* **Number of cells removed:**  `r ncol(sceAllCells)-ncol(sce)`
+  + cells with less than `r param$minReadsPerCell` reads aligned 
+  + cells with less than`r param$minGenesDetected` genes that have at least `r param$minReadsPerGene` reads
 
-**Median Reads per Cell** = `r round(median(cell_info$lib_size*1e6),0)`
+* **Cells used:** `r ncol(sce)`
 
-We filtered out `r ncol(sceAllCells)-ncol(sce)` cells with < `r param$minSCCount` reads.
+* **Median Genes per Cell** = `r as.integer(median(cell_info$expr_genes))`
 
-Number of input reads = `r mlog["Number of input reads",2]`
+* **Median Reads per Cell** = `r round(median(cell_info$lib_size*1e6),0)`
 
-% of reads mapped to multiple loci = `r mlog["% of reads mapped to multiple loci",2]`
+* Number of input reads = `r mlog["Number of input reads",2]`
+
+* % of reads mapped to multiple loci = `r mlog["% of reads mapped to multiple loci",2]`
 
 ### #Genes detected in cells
 
@@ -137,6 +146,46 @@ if(!is.na(plateMatrix)){
   l
 }
 ```
+
+
+### Gene Detection Rates
+
+```{r gene detection rates, fig.width=8, fig.height=8}
+scePC = sce
+rowData(scePC) = NULL #rowData(sce)[ , c("gene_name", "type", "biotypes", "gc", "width")]
+#rownames(scePC) = rownames(sce)
+scePC = scePC[seqAnno[rownames(scePC), "biotypes"] == "protein_coding", ]
+widthOffset = 200
+logWidthBreaks = c(9.5, 10.5, 11.5)
+gcBreaks = c(0.42, 0.48, 0.53, 0.57, 0.62)
+refWidthBin = "(9.5 - 10.5]" 
+refGcBin = "(0.53 - 0.57]"
+  ## define the gene strata
+logWidth = log2(seqAnno[rownames(scePC), "width"] + widthOffset)
+lwClasses = ezCut(logWidth, breaks = logWidthBreaks)
+gcClasses = ezCut(seqAnno[rownames(scePC), "gc"], gcBreaks)
+geneBins = tapply((1:nrow(scePC)), list(logWidth=lwClasses, gc=gcClasses), identity)
+  
+fracPresentByGene = rowMeans(assays(scePC)$counts > param$minReadsPerGene)
+fracPresentBinned = ezMatrix(0, rows=rownames(geneBins), cols=colnames(geneBins))
+for (i in 1:length(geneBins)){
+  fracPresentBinned[i] = mean(fracPresentByGene[geneBins[[i]]])
+}
+
+ezHeatmap(fracPresentBinned[nrow(fracPresentBinned):1, ], lim=c(0, 0.2), Rowv = FALSE, Colv = FALSE, main="", colors=gray((1:256)/256),
+          cexRow=1, cexCol=1, key.xlab="detection rate", key.title="", xlab="GC", ylab="log2 gene length", margins=c(8,8))
+
+
+ezHeatmap(log2((fracPresentBinned[nrow(fracPresentBinned):1, ] + 1e-3) / fracPresentBinned[refWidthBin, refGcBin]), lim=c(-2, 2), Rowv = FALSE, Colv = FALSE, main="",
+          colors=getBlueRedScale(),
+          cexRow=1, cexCol=1, key.xlab="detection rate", key.title="", xlab="GC", ylab="log2 gene length", margins=c(8,8))
+
+
+```
+
+
+### Cluster by GC and Length Profile
+
 
 ### SessionInfo
 ```{r, echo=FALSE}
