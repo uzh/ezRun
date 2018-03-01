@@ -61,19 +61,13 @@ datasetAllCells <- data.frame(colData(sceAllCells),
 ### Overview
 
 * **Total Number of Cells:** `r ncol(sceAllCells)`
-
 * **Number of cells removed:**  `r ncol(sceAllCells)-ncol(sce)`
   + cells with less than `r param$minReadsPerCell` reads aligned 
-  + cells with less than`r param$minGenesDetected` genes that have at least `r param$minReadsPerGene` reads
-
+  + cells with less than `r param$minGenesDetected` genes that have at least `r param$minReadsPerGene` reads
 * **Cells used:** `r ncol(sce)`
-
 * **Median Genes per Cell** = `r as.integer(median(cell_info$expr_genes))`
-
 * **Median Reads per Cell** = `r round(median(cell_info$lib_size*1e6),0)`
-
 * Number of input reads = `r mlog["Number of input reads",2]`
-
 * % of reads mapped to multiple loci = `r mlog["% of reads mapped to multiple loci",2]`
 
 ### #Genes detected in cells
@@ -150,7 +144,7 @@ if(!is.na(plateMatrix)){
 
 ### Gene Detection Rates
 
-```{r gene detection rates, fig.width=8, fig.height=8}
+```{r gene detection rates, fig.width=8, fig.height=8, echo=FALSE, message=FALSE, warning=FALSE}
 scePC = sce
 rowData(scePC) = NULL #rowData(sce)[ , c("gene_name", "type", "biotypes", "gc", "width")]
 #rownames(scePC) = rownames(sce)
@@ -200,8 +194,6 @@ ezHeatmap(gcWidthScoresRel[ ,order(colSums(assays(scePC)$counts > 3))], lim=c(-2
 
 ```
 
-
-### Cluster by GC and Length Profile
 
 
 ### SessionInfo
