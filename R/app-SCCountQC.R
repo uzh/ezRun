@@ -30,10 +30,23 @@ ezMethodSCCountQC = function(input=NA, output=NA, param=NA,
   sce <- loadSCCountDataset(input, param)
   
   ## STAR log
-  mlog = read.table(input$getFullPaths("STARLog"), sep="|", 
-                    as.is = TRUE, quote = "\"", fill=T)
+  mlog <- read.table(input$getFullPaths("STARLog"), sep="|", 
+                     as.is = TRUE, quote = "\"", fill=T)
   rownames(mlog) <- trimws(mlog[,1])
   metadata(sce)$mlog <- mlog
+  
+  ## 3' and 5' bias
+  minCount <- 20
+  minTxLength <- 1e3
+  if(metadata(sce)$featureLevel == "gene"){
+    useGeneIDs <- rownames(sce)[(rowSums(assays(sce)$counts > minCount) >= 1)]
+    useTxIDs <- strsplit(rowData(sce)$transcript_id[rownames(sce) %in% useGeneIDs], "; ")
+    useTxIDs <- unlist(useTxIDs)
+  }else{
+    useTxIDs <- rownames(sce)[(rowSums(assays(sce)$counts > minCount) >= 1)]
+  }
+  txEndBias(inBam=input$getFullPaths("BAM"))
+  
   
   ## debug
   #save(sce, file="sce.rdata")
@@ -73,4 +86,8 @@ ezMethodSCCountQC = function(input=NA, output=NA, param=NA,
   # save(dupMetrics, file="dupMetrics.rda")
   # message("End DuplicationMetrics", date())
 
+}
+
+txEndBias <- function(inBam, gtfFn){
+  
 }

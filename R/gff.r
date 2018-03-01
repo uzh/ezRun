@@ -642,3 +642,76 @@ getEnsemblTypes = function(gff){
   hasExon = tapply(isMatch, cdsParent, any)
   table(hasExon, useNA="always")
 }
+
+
+trimTxGtf <- function(param=NULL, inGTF, outGTF, fastaFile, refAnnotationFile,
+                      transcriptTypes,
+                      width=100, fix=c("start", "end"),
+                      minTxLength=NULL, useTxIDs=NULL){
+  fix <- match.arg(fix)
+  if(!is.null(param)){
+    inGTF <- param$ezRef@refFeatureFile
+    fastaFile <- param$ezRef@refFastaFile
+    refAnnotationFile <- param$ezRef@refAnnotationFile
+    transcriptTypes <- param$transcriptTypes
+  }
+  require(rtracklayer)
+  gtf <- import(inGTF)
+  seqlengthsRef <- fasta.seqlengths(fastaFile)
+  names(seqlengthsRef) <- sub('[[:blank:]].*$','',names(seqlengthsRef))
+  seqlengths(gtf) <- seqlengthsRef[names(seqlengths(gtf))]
+  gtf <- gtf[gtf$type == "exon"]
+  exonsByTx <- split(gtf, gtf$transcript_id)
+  
+  if(!is.null(minTxLength)){
+    exonsByTx <- exonsByTx[sum(width(exonsByTx)) >= minTxLength]
+  }
+  
+  if(!is.null(useTxIDs)){
+    exonsByTx <- exonsByTx[intersect(useTxIDs, names(exonsByTx))]
+  }
+  
+  if(ezIsSpecified(transcriptTypes)){
+    seqAnno <- ezFeatureAnnotation(refAnnotationFile,
+                                  dataFeatureType="isoform")
+    txUse <- rownames(seqAnno)[seqAnno$type %in% transcriptTypes]
+    exonsByTx <- exonsByTx[names(exonsByTx) %in% txUse]
+  }
+  system.time(exonsByTx <- endoapply(exonsByTx, trimGRanges, width=100L,
+                         start=ifelse(fix=="start", TRUE, FALSE)))
+  
+  gtfFile = paste(Sys.getpid(), "genes.gtf", sep="-")
+  gtf <- unlist(exonsByTx)
+  export(gtf, gtfFile)
+  on.exit(file.remove(gtfFile), add=TRUE)
+}
+
+trimGRanges <- function(x, width=100, start=TRUE){
+  require(GenomicRanges)
+  stopifnot(length(unique(strand(x))) == 1L)
+  decreasing <- xor(unique(strand(x)) == "+", start)
+  # "+", TRUE -> FALSE
+  # "-", FALSE -> FALSE
+  # "-", TRUE -> TRUE
+  # "+", FALSE -> TRUE
+  x <- sort(x, decreasing = decreasing)
+  cs <- cumsum(width(x))
+  trimThis <- which(cs >= width)[1]
+  if(is.na(trimThis)){
+    xTrim <- x
+  }else{
+    if(trimThis > 1){
+      xTrim <- x[1:(trimThis-1)]
+      width <- width - cs[trimThis-1L]
+      xTrim <- c(xTrim, resize(x[trimThis], 
+                               fix=ifelse(start, "start", "end"),
+                               width=width))
+    }else{
+      xTrim <- resize(x[trimThis],
+                      fix=ifelse(start, "start", "end"),
+                      width=width)
+    }
+  }
+  return(sort(xTrim)) ## Let's return always coordinate sorted GRanges.
+}
+
