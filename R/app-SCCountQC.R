@@ -42,7 +42,7 @@ ezMethodSCCountQC = function(input=NA, output=NA, param=NA,
                             "fgcz_header.html", "banner.png"))
   file.copy(from=styleFiles, to=".", overwrite=TRUE)
   ## debug
-  save.image(file="image.RData")
+  save(list = ls(all.names = TRUE), file = "image.RData", envir = parent.frame())
   rmarkdown::render(input="SCCountQC.Rmd", envir = new.env(),
                     output_dir=".", output_file=htmlFile, quiet=TRUE)
   
