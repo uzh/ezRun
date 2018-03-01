@@ -70,8 +70,16 @@ ezFeatureAnnotation = function(param, ids=NULL,
     seqAnno <- seqAnno[ids, , drop=FALSE]
   }
   minimalCols <- c("gene_id", "transcript_id", "gene_name", "type", "strand",
-                   "seqid", "description", "start", "end",
+                   "seqid", "biotypes", "description", "start", "end",
                    "gc", "width", "GO BP", "GO MF", "GO CC")
+  if(!"type" %in% colnames(seqAnno) || all(seqAnno$type == "")){
+    message("Assigning type with protein coding.")
+    seqAnno$type <- "protein_coding"
+  }
+  if(!"biotypes" %in% colnames(seqAnno) || all(seqAnno$biotypes == "")){
+    message("Assigning biotypes with protein coding.")
+    seqAnno$biotypes <- "protein_coding"
+  }
   if(!all(minimalCols %in% colnames(seqAnno))){
     stop(minimalCols[!minimalCols %in% colnames(seqAnno)], 
          " must exist in annotation file!")
