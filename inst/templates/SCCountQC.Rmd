@@ -185,7 +185,7 @@ for (i in 1:nrow(binCombs)){
 
 gcWidthScoresRel = log2((gcWidthScores + 0.01) / rowMeans(gcWidthScores))
 
-ezHeatmap(gcWidthScores[ ,order(colSums(assays(scePC)$counts))], lim=c(0, 0.2), Rowv = FALSE, Colv = FALSE, main="", colors=gray((1:256)/256), labCol="",
+ezHeatmap(gcWidthScores[ ,order(colSums(assays(scePC)$counts) > 3)], lim=c(0, 0.2), Rowv = FALSE, Colv = FALSE, main="", colors=gray((1:256)/256), labCol="",
           cexRow=1, cexCol=1, key.xlab="detection rate", key.title="", xlab="cells", ylab="bins", margins=c(8,8))
 
 
