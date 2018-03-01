@@ -17,7 +17,7 @@ require(plotly)
 require(scater)
 require(ezRun)
 
-load("/export/local/scratch/gtan/p2497-SCCountQC/sce.rdata")
+#load("/export/local/scratch/gtan/p2497-SCCountQC/sce.rdata")
 
 sceAllCells <- sce
 
@@ -165,6 +165,7 @@ logWidth = log2(seqAnno[rownames(scePC), "width"] + widthOffset)
 lwClasses = ezCut(logWidth, breaks = logWidthBreaks)
 gcClasses = ezCut(seqAnno[rownames(scePC), "gc"], gcBreaks)
 geneBins = tapply((1:nrow(scePC)), list(logWidth=lwClasses, gc=gcClasses), identity)
+
   
 fracPresentByGene = rowMeans(assays(scePC)$counts > param$minReadsPerGene)
 fracPresentBinned = ezMatrix(0, rows=rownames(geneBins), cols=colnames(geneBins))
@@ -180,6 +181,22 @@ ezHeatmap(log2((fracPresentBinned[nrow(fracPresentBinned):1, ] + 1e-3) / fracPre
           colors=getBlueRedScale(),
           cexRow=1, cexCol=1, key.xlab="detection rate", key.title="", xlab="GC", ylab="log2 gene length", margins=c(8,8))
 
+
+binCombs = expand.grid(logWidth=rownames(geneBins), gc=colnames(geneBins))
+gcWidthScores = ezMatrix(NA, rows=paste(binCombs$logWidth, binCombs$gc), cols=colnames(scePC))
+for (i in 1:nrow(binCombs)){
+  idx = geneBins[[binCombs$logWidth[i], binCombs$gc[i]]]
+  gcWidthScores[paste(binCombs$logWidth[i], binCombs$gc[i]), ] = colMeans(assays(scePC)$counts[idx, , drop=FALSE] > param$minReadsPerGene)
+}
+
+gcWidthScoresRel = log2((gcWidthScores + 0.01) / rowMeans(gcWidthScores))
+
+ezHeatmap(gcWidthScores[ ,order(colSums(assays(scePC)$counts))], lim=c(0, 0.2), Rowv = FALSE, Colv = FALSE, main="", colors=gray((1:256)/256), labCol="",
+          cexRow=1, cexCol=1, key.xlab="detection rate", key.title="", xlab="cells", ylab="bins", margins=c(8,8))
+
+
+ezHeatmap(gcWidthScoresRel[ ,order(colSums(assays(scePC)$counts > 3))], lim=c(-2, 2), Rowv = TRUE, Colv = FALSE, main="", colors=getBlueRedScale(), labCol = "",
+          cexRow=1, cexCol=1, key.xlab="detection bias", key.title="", xlab="cells", ylab="bins", margins=c(8,16))
 
 ```
 
