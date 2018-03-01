@@ -35,14 +35,14 @@ ezMethodSCCountQC = function(input=NA, output=NA, param=NA,
   rownames(mlog) <- trimws(mlog[,1])
   metadata(sce)$mlog <- mlog
   
-  ## debug
-  #save(sce, file="sce.rdata")
   
   ## Copy the style files and templates
   styleFiles <- file.path(system.file("templates", package="ezRun"),
                           c("fgcz.css", "SCCountQC.Rmd",
                             "fgcz_header.html", "banner.png"))
   file.copy(from=styleFiles, to=".", overwrite=TRUE)
+  ## debug
+  save.image(file="image.RData")
   rmarkdown::render(input="SCCountQC.Rmd", envir = new.env(),
                     output_dir=".", output_file=htmlFile, quiet=TRUE)
   
