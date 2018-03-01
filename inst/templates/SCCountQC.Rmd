@@ -125,8 +125,9 @@ Sequenced reads on the plate layout.The heatmap values are in $log10$ scale. The
 
 ```{r plate layout, echo=FALSE, message=FALSE, warning=FALSE}
 plateMatrix <- plateStatistics(datasetAllCells)
-plateMatrix$`user ready made`$`LibConc_100_800bp [Characteristic]`=NULL
+
 if(!is.na(plateMatrix)){
+  plateMatrix$`user ready made`$`LibConc_100_800bp [Characteristic]`=NULL
   l <- htmltools::tagList()
   ## This is the way of plotting plotly figures within a loop in knitr code chunk
   for(plateName in names(plateMatrix)){
