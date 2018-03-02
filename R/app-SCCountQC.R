@@ -35,6 +35,7 @@ ezMethodSCCountQC = function(input=NA, output=NA, param=NA,
   rownames(mlog) <- trimws(mlog[,1])
   metadata(sce)$mlog <- mlog
   
+
   ## 3' and 5' bias
   minCount <- 20
   minTxLength <- 1e3
@@ -45,17 +46,20 @@ ezMethodSCCountQC = function(input=NA, output=NA, param=NA,
   }else{
     useTxIDs <- rownames(sce)[(rowSums(assays(sce)$counts > minCount) >= 1)]
   }
-  txEndBias(inBam=input$getFullPaths("BAM"))
+  #txEndBias(inBam=input$getFullPaths("BAM"))
   
   
   ## debug
   #save(sce, file="sce.rdata")
+
   
   ## Copy the style files and templates
   styleFiles <- file.path(system.file("templates", package="ezRun"),
                           c("fgcz.css", "SCCountQC.Rmd",
                             "fgcz_header.html", "banner.png"))
   file.copy(from=styleFiles, to=".", overwrite=TRUE)
+  ## debug
+  saveRDS(sce, file="sce.rds")
   rmarkdown::render(input="SCCountQC.Rmd", envir = new.env(),
                     output_dir=".", output_file=htmlFile, quiet=TRUE)
   

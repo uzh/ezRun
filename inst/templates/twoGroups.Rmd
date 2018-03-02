@@ -745,6 +745,7 @@ if(all(c("gc", "width") %in% colnames(x))){
     testName = paste(tests$bias[i], " -- ", tests$sig[i])
     myBias = biasTable[[tests$bias[i]]]
     mySig = sigTable[[tests$sig[i]]]
+    if(!any(mySig)) mySig[1] = TRUE
     res.fisher <- fisher.test(myBias, mySig, alternative="greater")
     testTable[testName, "overlapping/total genes"] = paste(sum(myBias & mySig), sum(myBias), sep="/")
     testTable[testName, "odds ratio"] = res.fisher$estimate
