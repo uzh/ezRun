@@ -10,6 +10,7 @@ param[['name']] = 'SCCount_QC'
 param[['refBuild']] = 'Mus_musculus/Ensembl/GRCm38.p5/Annotation/Release_89-2017-05-31'
 param[['refFeatureFile']] = 'genes.gtf'
 param[['featureLevel']] = 'gene'
+param[['transcriptTypes']] = 'protein_coding,rRNA,tRNA,Mt_rRNA,Mt_tRNA'
 param[['mail']] = 'ge.tan@fgcz.ethz.ch'
 param[['dataRoot']] = '/srv/gstore/projects'
 param[['resultDir']] = 'p2497/p2497-SCCountQC'
@@ -21,9 +22,13 @@ output[['Static Report [Link]']] = 'p2497/p2497-SCCountQC/SCCount_QC/00index.htm
 output[['Report [File]']] = 'p2497/p2497-SCCountQC/SCCount_QC'
 input = 'input_dataset_original.tsv'
 
-#input = EzDataset$new(file=input, dataRoot=param$dataRoot)
-#param <- ezParam(param)
-#output = EzDataset$new(meta=output, dataRoot=param$dataRoot)
+input = EzDataset$new(file=input, dataRoot=param$dataRoot)
+param <- ezParam(param)
+output = EzDataset$new(meta=output, dataRoot=param$dataRoot)
+
+minTxLength <- 1e3
+width <- 100
+fix="start"
 
 #sce <- loadSCCountDataset(input, param)
 #debug(ezMethodSCCountQC)

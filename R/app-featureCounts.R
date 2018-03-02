@@ -8,6 +8,9 @@
 
 ezMethodFeatureCounts = function(input=NA, output=NA, param=NA){
   require(GenomicRanges)
+  require(Rsubread)
+  require(rtracklayer)
+  
   bamFile = input$getFullPaths("BAM")
   localBamFile = getBamLocally(bamFile)
   if(localBamFile != bamFile){
@@ -39,8 +42,8 @@ ezMethodFeatureCounts = function(input=NA, output=NA, param=NA){
     gtfFile = paste(Sys.getpid(), "genes.gtf", sep="-")
     rtracklayer::export(gtf, gtfFile)
     on.exit(file.remove(gtfFile), add=TRUE)
-    
-    countResult = Rsubread::featureCounts(localBamFile, annot.inbuilt=NULL,
+
+    countResult = featureCounts(localBamFile, annot.inbuilt=NULL,
                                           annot.ext=gtfFile, isGTFAnnotationFile=TRUE,
                                           GTF.featureType='gene',
                                           GTF.attrType= 'gene_id',
@@ -88,7 +91,7 @@ ezMethodFeatureCounts = function(input=NA, output=NA, param=NA){
                     row.names=FALSE, col.names=FALSE)
       }
     }
-    countResult = Rsubread::featureCounts(localBamFile, annot.inbuilt=NULL,
+    countResult = featureCounts(localBamFile, annot.inbuilt=NULL,
                               annot.ext=gtfFile, isGTFAnnotationFile=TRUE,
                               GTF.featureType=param$gtfFeatureType,
                               GTF.attrType=switch(param$featureLevel,
@@ -193,6 +196,8 @@ EzAppSingleCellFeatureCounts <-
 
 ezMethodSingleCellFeatureCounts <- function(input=NA, output=NA, param=NA){
   require(GenomicRanges)
+  require(Rsubread)
+  require(rtracklayer)
   
   bamFile = input$getFullPaths("BAM")
   localBamFile = getBamLocally(bamFile)
@@ -226,7 +231,7 @@ ezMethodSingleCellFeatureCounts <- function(input=NA, output=NA, param=NA){
     rtracklayer::export(gtf, gtfFile)
     on.exit(file.remove(gtfFile), add=TRUE)
     
-    countResult = Rsubread::featureCounts(localBamFile, annot.inbuilt=NULL,
+    countResult = featureCounts(localBamFile, annot.inbuilt=NULL,
                                           annot.ext=gtfFile, isGTFAnnotationFile=TRUE,
                                           GTF.featureType='gene',
                                           GTF.attrType= 'gene_id',
@@ -270,7 +275,7 @@ ezMethodSingleCellFeatureCounts <- function(input=NA, output=NA, param=NA){
       gtfFile = param$ezRef@refFeatureFile
     }
     
-    countResult = Rsubread::featureCounts(localBamFile, annot.inbuilt=NULL,
+    countResult = featureCounts(localBamFile, annot.inbuilt=NULL,
                                           annot.ext=gtfFile, isGTFAnnotationFile=TRUE,
                                           GTF.featureType=param$gtfFeatureType,
                                           GTF.attrType=switch(param$featureLevel,
