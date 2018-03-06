@@ -236,6 +236,7 @@ loadSCCountDataset <- function(input, param){
     matches <- sapply(rownames(cellDataSet), grep, colnames(countMatrix), 
                       fixed=TRUE, value=FALSE)
     colnames(countMatrix)[unlist(matches)] = names(matches)
+    ## TODO this is a temporary solution to support cells with zero reads
   }
   ## Reorder the countMatrix columns
   ## This should be unnecessary if we retain the order of RG when creating unmapped bam
