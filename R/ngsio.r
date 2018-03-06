@@ -230,10 +230,12 @@ loadSCCountDataset <- function(input, param){
     ## fix the colnames in countMatrix
     ## It's only possible if sample names are part of fastq file names
     matches <- lapply(rownames(cellDataSet), grep, colnames(countMatrix), 
-                      fixed=TRUE, value=TRUE)
-    stopifnot(all(lengths(matches) == 1L)) ## stop when mutiple matches happens
-    matches <- setNames(rownames(cellDataSet), unlist(matches))
-    colnames(countMatrix) <- matches[colnames(countMatrix)]
+                      fixed=TRUE, value=FALSE)
+    stopifnot(all(lengths(matches) <= 1L)) ## stop when mutiple matches happen
+    cellDataSet = cellDataSet[sapply(matches, length) == 1, ]
+    matches <- sapply(rownames(cellDataSet), grep, colnames(countMatrix), 
+                      fixed=TRUE, value=FALSE)
+    colnames(countMatrix)[unlist(matches)] = names(matches)
   }
   ## Reorder the countMatrix columns
   ## This should be unnecessary if we retain the order of RG when creating unmapped bam
