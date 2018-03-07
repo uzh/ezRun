@@ -12,7 +12,7 @@ ezMethodCellRanger = function(input=NA, output=NA, param=NA){
   sampleDir = input$getFullPaths("RawDataDir")
   
   cmd = paste(CELLRANGER,"count", paste0("--id=", sampleName),
-              paste0("--transcriptome=", param$reference),
+              paste0("--transcriptome=", file.path(REFERENCES_10X_DIR, param$reference)),
               paste0("--fastqs=", sampleDir),
               paste0("--sample=", sampleName),
               paste0("--localmem=",param$ram),
