@@ -39,6 +39,7 @@ ezMethodSCCountQC = function(input=NA, output=NA, param=NA,
   ## 3' and 5' bias
   minCount <- 20
   minTxLength <- 1e3
+  maxTxs <- 2e3
   if(metadata(sce)$featureLevel == "gene"){
     useGeneIDs <- rownames(sce)[(rowSums(assays(sce)$counts > minCount) >= 1)]
     useTxIDs <- strsplit(rowData(sce)$transcript_id[rownames(sce) %in% useGeneIDs], "; ")
@@ -46,7 +47,9 @@ ezMethodSCCountQC = function(input=NA, output=NA, param=NA,
   }else{
     useTxIDs <- rownames(sce)[(rowSums(assays(sce)$counts > minCount) >= 1)]
   }
-  #txEndBias(inBam=input$getFullPaths("BAM"))
+  useTxIDs <- sample(useTxIDs, size=min(length(useTxIDs), maxTxs))
+  
+  txEndBias(param, inBam=input$getFullPaths("BAM"), minTxLength=minTxLength, maxTxs=maxTxs, useTxIDs=useTxIDs)
   
   
   ## debug
@@ -92,6 +95,16 @@ ezMethodSCCountQC = function(input=NA, output=NA, param=NA,
 
 }
 
-txEndBias <- function(inBam, gtfFn){
+txEndBias <- function(param, inBam, maxTxs=1e3, width=100L, minTxLength=NULL,
+                      useTxIDs=NULL){
+  require(Rsubread)
+  ## 5' 100bp
+  gtfTempFn <- tempfile(pattern="trimGTF-5-", fileext=".gtf")
+  trimTxGtf(param, outGTF=gtfTempFn, width=width, fix="start",
+            minTxLength=minTxLength, useTxIDs=useTxIDs)
   
+  ## 3' 100 bp
+  gtfTempFn <- tempfile(pattern="trimGTF-3-", fileext=".gtf")
+  trimTxGtf(param, outGTF=gtfTempFn, width=width, fix="end",
+            minTxLength=minTxLength, useTxIDs=useTxIDs)
 }
