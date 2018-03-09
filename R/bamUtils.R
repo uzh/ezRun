@@ -72,27 +72,35 @@ atacBamProcess <- function(input=NA, output=NA, param=NA){
 
 ### Make or remove duplicated in bam file
 dupBam <- function(inBam, outBam, operation=c("mark", "remove"),
+                   program=c("sambamba", "picard"),
                    cores=ezThreads()){
   operation <- match.arg(operation)
-  setEnvironments("sambamba")
+  program <- match.arg(program)
   
   noDupBam <- tempfile(pattern="nodup_", tmpdir=".", fileext = ".bam")
   
-  if(operation == "mark"){
+  if(program == "sambamba"){
+    setEnvironments("sambamba")
     cmd <- paste("sambamba markdup -t", cores, "-l 9 --tmpdir=.",
-                 inBam, outBam)
+                 ifelse(operation=="mark", "", "-r"), inBam, outBam)
   }else{
-    cmd <- paste("sambamba markdup -r -t", cores, "-l 9 --tmpdir=.",
-                 inBam, outBam)
+    setEnvironments("picard")
+    tempBam <- tempfile(pattern="tempBam", tmpdir=".", fileext = ".bam")
+    ezSortIndexBam(inBam=inBam, bam=tempBam, removeBam=FALSE,
+                   method="picard")
+    
+    metricFn <- tempfile()
+    cmd <- paste("java -Djava.io.tmpdir=. -jar", 
+                 Sys.getenv("Picard_jar"), "MarkDuplicates",
+                 paste0("I=", tempBam),
+                 paste0("O=", outBam),
+                 paste0("M=", metricFn),
+                 paste0("REMOVE_DUPLICATES=", 
+                        ifelse(operation=="mark", "false", "true")),
+                 "> /dev/null")
+    on.exit(file.remove(c(tempBam, paste0(tempBam, ".bai"))))
   }
   ezSystem(cmd)
-  
-  ## sort bam by coordinates
-  #cmd <- paste("sambamba sort --tmpdir=. -l 9 -o", outBam, "-t", cores,
-  #             noDupBam)
-  #ezSystem(cmd)
-  #file.remove(c(noDupBam, paste0(noDupBam, ".bai")))
-  
   invisible(outBam)
 }
 

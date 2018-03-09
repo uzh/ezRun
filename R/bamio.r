@@ -31,7 +31,7 @@ ezBamSeqLengths = function(bamFile){
 }
 
 ezSortIndexBam = function(inBam, bam, ram=2, removeBam=TRUE, cores=2,
-                          method=c("sambamba", "samtools")){
+                          method=c("sambamba", "samtools", "picard")){
   method <- match.arg(method)
   
   maxMem = paste0(as.integer(floor(ram * 0.7/cores*1000)), "M") 
@@ -44,11 +44,24 @@ ezSortIndexBam = function(inBam, bam, ram=2, removeBam=TRUE, cores=2,
     ezSystem(cmd)
     cmd = paste(method, "index", "-t", cores, bam)
     ezSystem(cmd)
-  }else{
+  }else if(method == "samtools"){
     cmd = paste(method, "sort", "-l 9", "-m", maxMem, "-@", cores, inBam, 
                 "-o", bam)
     ezSystem(cmd)
     cmd = paste(method, "index", bam)
+    ezSystem(cmd)
+  }else{
+    cmd <- paste("java -Djava.io.tmpdir=. -jar", 
+                 Sys.getenv("Picard_jar"), "SortSam",
+                 paste0("I=", inBam),
+                 paste0("O=", bam),
+                 "SORT_ORDER=coordinate")
+    ezSystem(cmd)
+    cmd <- paste("java -Djava.io.tmpdir=. -jar", 
+                 Sys.getenv("Picard_jar"), "BuildBamIndex",
+                 paste0("I=", bam),
+                 paste0("OUTPUT=", bam, ".bai")
+                 )
     ezSystem(cmd)
   }
   if (removeBam){
