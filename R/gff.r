@@ -646,7 +646,7 @@ getEnsemblTypes = function(gff){
 
 trimTxGtf <- function(param=NULL, inGTF, outGTF, fastaFile, refAnnotationFile,
                       transcriptTypes,
-                      width=100, fix=c("start", "end"),
+                      width=100L, fix=c("start", "end"),
                       minTxLength=NULL, useTxIDs=NULL){
   fix <- match.arg(fix)
   if(!is.null(param)){
@@ -656,19 +656,17 @@ trimTxGtf <- function(param=NULL, inGTF, outGTF, fastaFile, refAnnotationFile,
     transcriptTypes <- param$transcriptTypes
   }
   require(rtracklayer)
+  require(GenomicRanges)
+  
   gtf <- import(inGTF)
   seqlengthsRef <- fasta.seqlengths(fastaFile)
   names(seqlengthsRef) <- sub('[[:blank:]].*$','',names(seqlengthsRef))
   seqlengths(gtf) <- seqlengthsRef[names(seqlengths(gtf))]
   gtf <- gtf[gtf$type == "exon"]
-  exonsByTx <- split(gtf, gtf$transcript_id)
+  exonsByTx <- S4Vectors::split(gtf, gtf$transcript_id)
   
   if(!is.null(minTxLength)){
     exonsByTx <- exonsByTx[sum(width(exonsByTx)) >= minTxLength]
-  }
-  
-  if(!is.null(useTxIDs)){
-    exonsByTx <- exonsByTx[intersect(useTxIDs, names(exonsByTx))]
   }
   
   if(ezIsSpecified(transcriptTypes)){
@@ -677,13 +675,20 @@ trimTxGtf <- function(param=NULL, inGTF, outGTF, fastaFile, refAnnotationFile,
     txUse <- rownames(seqAnno)[seqAnno$type %in% transcriptTypes]
     exonsByTx <- exonsByTx[names(exonsByTx) %in% txUse]
   }
-  system.time(exonsByTx <- endoapply(exonsByTx, trimGRanges, width=100L,
-                         start=ifelse(fix=="start", TRUE, FALSE)))
   
-  gtfFile = paste(Sys.getpid(), "genes.gtf", sep="-")
+  if(!is.null(useTxIDs)){
+    exonsByTx <- exonsByTx[intersect(useTxIDs, names(exonsByTx))]
+  }
+  
+  exonsByTx <- endoapply(exonsByTx, trimGRanges, width=width,
+                         start=ifelse(fix=="start", TRUE, FALSE))
+  
+  #gtfFile = paste(Sys.getpid(), "genes.gtf", sep="-")
   gtf <- unlist(exonsByTx)
-  export(gtf, gtfFile)
-  on.exit(file.remove(gtfFile), add=TRUE)
+  export(gtf, outGTF)
+  #on.exit(file.remove(gtfFile), add=TRUE)
+  
+  invisible(outGTF)
 }
 
 trimGRanges <- function(x, width=100, start=TRUE){
