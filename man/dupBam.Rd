@@ -8,7 +8,7 @@
 }
 \usage{
   dupBam(inBam, outBam, operation=c("mark", "remove"),
-         cores=ezThreads())
+         program=c("sambamba", "picard"), cores=ezThreads())
 }
 \arguments{
   \item{inBam}{
@@ -19,6 +19,9 @@
   }
   \item{operation}{
     \code{character}(1): either to mark or remove the duplicates in bam file.
+  }
+  \item{program}{
+    \code{character}(1): either use \dQuote{sambamba} or \dQuote{picard} to mark the duplicates.
   }
   \item{cores}{
     \code{integer}(1): the number of threads to use.
@@ -44,6 +47,8 @@
   bamFile <- system.file("extdata", "ex1.bam", package="Rsamtools", 
                          mustWork=TRUE)
   outBam <- tempfile(pattern="test-", fileext=".bam")
-  dupBam(inBam=bamFile, outBam=outBam, operation="mark")
-  dupBam(inBam=bamFile, outBam=outBam, operation="remove")
+  dupBam(inBam=bamFile, outBam=outBam, program="sambamba", operation="mark")
+  dupBam(inBam=bamFile, outBam=outBam, program="sambamba", operation="remove")
+  dupBam(inBam=bamFile, outBam=outBam, program="picard", operation="mark")
+  dupBam(inBam=bamFile, outBam=outBam, program="picard", operation="remove")
 }
