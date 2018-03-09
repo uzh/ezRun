@@ -74,10 +74,22 @@ atacBamProcess <- function(input=NA, output=NA, param=NA){
 dupBam <- function(inBam, outBam, operation=c("mark", "remove"),
                    program=c("sambamba", "picard"),
                    cores=ezThreads()){
+  require(Rsamtools)
+  
   operation <- match.arg(operation)
   program <- match.arg(program)
   
   noDupBam <- tempfile(pattern="nodup_", tmpdir=".", fileext = ".bam")
+  
+  headers <- scanBamHeader(inBam)
+  if(length(headers[[1]]$targets) >= 1000){
+    ## sambamba cannot work on highly fragmented genome
+    ## 1000 is a random pick.
+    program <- "picard"
+  }
+  
+  message("Marking duplicates with ", program)
+  
   
   if(program == "sambamba"){
     setEnvironments("sambamba")
