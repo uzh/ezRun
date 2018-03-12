@@ -29,6 +29,9 @@ ezMethodSCCountQC = function(input=NA, output=NA, param=NA,
   
   sce <- loadSCCountDataset(input, param)
   
+  inBam <- getBamLocally(input$getFullPaths("BAM"))
+  on.exit(file.remove(inBam), add = TRUE)
+  
   ## STAR log
   mlog <- read.table(input$getFullPaths("STARLog"), sep="|", 
                      as.is = TRUE, quote = "\"", fill=T)
@@ -47,14 +50,10 @@ ezMethodSCCountQC = function(input=NA, output=NA, param=NA,
   }else{
     useTxIDs <- rownames(sce)[(rowSums(assays(sce)$counts > minCount) >= 1)]
   }
-  useTxIDs <- sample(useTxIDs, size=min(length(useTxIDs), maxTxs))
+ 
+  #txEndBias(param, inBam=inBam, minTxLength=minTxLength, useTxIDs=useTxIDs, maxTxs=maxTxs)
   
-  txEndBias(param, inBam=input$getFullPaths("BAM"), minTxLength=minTxLength, maxTxs=maxTxs, useTxIDs=useTxIDs)
   
-  
-  ## debug
-  #save(sce, file="sce.rdata")
-
   
   ## Copy the style files and templates
   styleFiles <- file.path(system.file("templates", package="ezRun"),
@@ -95,16 +94,76 @@ ezMethodSCCountQC = function(input=NA, output=NA, param=NA,
 
 }
 
-txEndBias <- function(param, inBam, maxTxs=1e3, width=100L, minTxLength=NULL,
-                      useTxIDs=NULL){
-  require(Rsubread)
-  ## 5' 100bp
-  gtfTempFn <- tempfile(pattern="trimGTF-5-", fileext=".gtf")
-  trimTxGtf(param, outGTF=gtfTempFn, width=width, fix="start",
-            minTxLength=minTxLength, useTxIDs=useTxIDs)
+txEndBias <- function(param, inBam, width=100L, minTxLength=NULL,
+                      useTxIDs=NULL, maxTxs=NULL){
+  require(matrixStats)
   
-  ## 3' 100 bp
-  gtfTempFn <- tempfile(pattern="trimGTF-3-", fileext=".gtf")
-  trimTxGtf(param, outGTF=gtfTempFn, width=width, fix="end",
-            minTxLength=minTxLength, useTxIDs=useTxIDs)
+  ## 5' 100bp and 3' 100bp
+  gtf5TempFn <- tempfile(pattern="trimGTF-5-", tmpdir=".", fileext=".gtf")
+  gtf3TempFn <- tempfile(pattern="trimGTF-3-", tmpdir=".", fileext=".gtf")
+  
+  trimTxGtf(param, outGTF=c(gtf5TempFn, gtf3TempFn), 
+            width=width, fix=c("start", "end"),
+            minTxLength=minTxLength, useTxIDs=useTxIDs, maxTxs=maxTxs)
+  counts5 <- txFeatureCounts(param, inBam, gtf5TempFn)
+  counts3 <- txFeatureCounts(param, inBam, gtf3TempFn)
+  stopifnor(identical(rownames(counts5), rownames(counts3)))
+  
+  ## All txs
+  countsAll <- txFeatureCounts(param, inBam, param$ezRef@refFeatureFile)
+  countsAll <- countsAll[rownames(counts5), ]
+  
+  widthsTx <- getTranscriptGcAndWidth(param)
+  widthsTx <- widthsTx$width[rownames(counts5)]
+  bias5 <- (counts5 / 100) / (countsAll / widthsTx)
+  bias3 <- (counts3 / 100) / (countsAll / widthsTx)
+  
+  bias5 <- setNames(colMedians(bias5, na.rm=TRUE), colnames(bias5))
+  bias3 <- setNames(colMedians(bias3, na.rm=TRUE), colnames(bias3))
+  
+  return(list(bias5=bias5, bias3=bias3))
+}
+
+
+fixFeatureCountsRGMatrix <- function(counts, inBam){
+  require(Rsamtools)
+  countsFixed <- counts
+  bamHeaders <- scanBamHeader(inBam)
+  
+  colnames(countsFixed) <- sub(paste0(make.names(inBam), "."), "", 
+                               colnames(countsFixed))
+  tagsRG <- sub("ID:", "", 
+                sapply(bamHeaders[[1]]$text[names(bamHeaders[[1]]$text) == "@RG"], 
+                       "[", 1))
+  ## RG starts with numbers will have X after make.names
+  ## But featureCounts doesn't have this X.
+  fixNameMapping <- setNames(tagsRG, make.names(tagsRG))
+  indexStartNumber <- grep("^\\d", fixNameMapping)
+  names(fixNameMapping)[indexStartNumber] <- sub("^X", "", 
+                                                 names(fixNameMapping)[indexStartNumber])
+  colnames(countsFixed) <- fixNameMapping[colnames(countsFixed)]
+  return(countsFixed)
+}
+
+txFeatureCounts <- function(param, inBam, gtfFn){
+  require(Rsubread)
+  require(Rsamtools)
+  bamHeaders <- scanBamHeader(inBam)
+  hasRG <- "@RG" %in% names(bamHeaders[[1]]$text)
+  
+  countResult <- featureCounts(inBam, annot.inbuilt=NULL,
+                               annot.ext=gtfFn, isGTFAnnotationFile=TRUE,
+                               GTF.featureType="exon",
+                               GTF.attrType="transcript_id",
+                               allowMultiOverlap=TRUE,
+                               isPairedEnd=param$paired,
+                               nthreads=param$cores,
+                               strandSpecific=switch(param$strandMode, "both"=0, "sense"=1, "antisense"=2, stop("unsupported strand mode: ", param$strandMode)),
+                               minMQS=param$minMapQuality,
+                               minOverlap=param$minFeatureOverlap,
+                               countMultiMappingReads=param$keepMultiHits,
+                               primaryOnly=TRUE,
+                               byReadGroup=ifelse(hasRG, TRUE, FALSE))
+  ans <- fixFeatureCountsRGMatrix(countResult$counts, inBam)
+  return(ans)
 }

@@ -647,8 +647,9 @@ getEnsemblTypes = function(gff){
 trimTxGtf <- function(param=NULL, inGTF, outGTF, fastaFile, refAnnotationFile,
                       transcriptTypes,
                       width=100L, fix=c("start", "end"),
-                      minTxLength=NULL, useTxIDs=NULL){
-  fix <- match.arg(fix)
+                      minTxLength=NULL, useTxIDs=NULL, maxTxs=NULL){
+  stopifnot(length(outGTF) == length(fix))
+  
   if(!is.null(param)){
     inGTF <- param$ezRef@refFeatureFile
     fastaFile <- param$ezRef@refFastaFile
@@ -663,6 +664,7 @@ trimTxGtf <- function(param=NULL, inGTF, outGTF, fastaFile, refAnnotationFile,
   names(seqlengthsRef) <- sub('[[:blank:]].*$','',names(seqlengthsRef))
   seqlengths(gtf) <- seqlengthsRef[names(seqlengths(gtf))]
   gtf <- gtf[gtf$type == "exon"]
+  ## This explicit usage of S4Vectors:: isnecessary. Otherwise, it use base::split.
   exonsByTx <- S4Vectors::split(gtf, gtf$transcript_id)
   
   if(!is.null(minTxLength)){
@@ -679,16 +681,18 @@ trimTxGtf <- function(param=NULL, inGTF, outGTF, fastaFile, refAnnotationFile,
   if(!is.null(useTxIDs)){
     exonsByTx <- exonsByTx[intersect(useTxIDs, names(exonsByTx))]
   }
+  if(!is.null(maxTxs)){
+    exonsByTx <- sample(exonsByTx, size=min(length(exonsByTx), maxTxs))
+  }
   
-  exonsByTx <- endoapply(exonsByTx, trimGRanges, width=width,
-                         start=ifelse(fix=="start", TRUE, FALSE))
+  for(i in 1:length(fix)){
+    exonsByTxTrimmed <- endoapply(exonsByTx, trimGRanges, width=width,
+                           start=ifelse(fix[i]=="start", TRUE, FALSE))
+    gtf <- unlist(exonsByTxTrimmed)
+    export(gtf, outGTF[i])
+  }
   
-  #gtfFile = paste(Sys.getpid(), "genes.gtf", sep="-")
-  gtf <- unlist(exonsByTx)
-  export(gtf, outGTF)
-  #on.exit(file.remove(gtfFile), add=TRUE)
-  
-  invisible(outGTF)
+  invisible(setNames(outGTF, fix))
 }
 
 trimGRanges <- function(x, width=100, start=TRUE){

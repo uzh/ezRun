@@ -359,6 +359,7 @@ output[['CountMatrix [File]']] = 'scRNA-p2277/scCount/A2B5-counts.txt'
 output[['Stats [File]']] = 'scRNA-p2277/scCount/A2B5-stats.txt'
 output[['CellCyclePhase [File]']] = 'scRNA-p2277/scCount/A2B5-CellCyclePhase.txt'
 output[['CellDataset [File]']] = 'scRNA-p2277/scCount/A2B5-dataset.txt'
+debug(ezMethodSingleCellSTAR)
 EzAppSCCounts$new()$run(input=input, output=output, param=param)
 ## Auto
 input[['Name']] = 'Auto'
