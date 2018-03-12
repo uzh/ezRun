@@ -24,11 +24,12 @@ ezMethodSCCountQC = function(input=NA, output=NA, param=NA,
   cwd <- getwd()
   setwdNew(basename(output$getColumn("Report")))
   on.exit(setwd(cwd), add=TRUE)
+  reportCwd <- getwd()
   
   sce <- loadSCCountDataset(input, param)
   
   inBam <- getBamLocally(input$getFullPaths("BAM"))
-  on.exit(file.remove(file.path(getwd(), inBam)), add = TRUE)
+  on.exit(file.remove(file.path(reportCwd, inBam)), add = TRUE)
   
   ## STAR log
   mlog <- read.table(input$getFullPaths("STARLog"), sep="|", 
@@ -56,7 +57,7 @@ ezMethodSCCountQC = function(input=NA, output=NA, param=NA,
   
   ## Picard metrics
   bamRGFns <- splitBamByRG(inBam, mc.cores=param$cores)
-  on.exit(file.remove(file.path(getwd(), bamRGFns)), add = TRUE)
+  on.exit(file.remove(file.path(reportCwd, bamRGFns)), add = TRUE)
 
   ### CollectAlignmentSummaryMetrics
   message("Start CollectAlignmentSummaryMetrics", date())
