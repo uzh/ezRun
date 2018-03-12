@@ -21,8 +21,6 @@ EzAppSCCountQC <-
 
 ezMethodSCCountQC = function(input=NA, output=NA, param=NA, 
                              htmlFile="00index.html"){
-  if(length(input$getNames()) > 1L)
-    stop("Currently we support one pooled bam file!")
   cwd <- getwd()
   setwdNew(basename(output$getColumn("Report")))
   on.exit(setwd(cwd), add=TRUE)
@@ -30,7 +28,7 @@ ezMethodSCCountQC = function(input=NA, output=NA, param=NA,
   sce <- loadSCCountDataset(input, param)
   
   inBam <- getBamLocally(input$getFullPaths("BAM"))
-  on.exit(file.remove(inBam), add = TRUE)
+  on.exit(file.remove(file.path(getwd(), inBam)), add = TRUE)
   
   ## STAR log
   mlog <- read.table(input$getFullPaths("STARLog"), sep="|", 
@@ -53,46 +51,48 @@ ezMethodSCCountQC = function(input=NA, output=NA, param=NA,
  
   primeBias <- txEndBias(param, inBam=inBam, minTxLength=minTxLength,
                          useTxIDs=useTxIDs, maxTxs=maxTxs)
+  colData(sce)$bias5 <- primeBias$bias5[colnames(sce)]
+  colData(sce)$bias3 <- primeBias$bias3[colnames(sce)]
   
+  ## Picard metrics
+  bamRGFns <- splitBamByRG(inBam, mc.cores=param$cores)
+  on.exit(file.remove(file.path(getwd(), bamRGFns)), add = TRUE)
+
+  ### CollectAlignmentSummaryMetrics
+  message("Start CollectAlignmentSummaryMetrics", date())
+  alnMetrics <- CollectAlignmentSummaryMetrics(inBams=bamRGFns,
+                                               fastaFn=param$ezRef['refFastaFile'],
+                                               metricLevel="SAMPLE",
+                                               mc.cores=param$cores)
+  colData(sce) <- cbind(colData(sce), alnMetrics[colnames(sce), ])
   
+  ### CollectRnaSeqMetrics
+  message("Start CollectRnaSeqMetrics", date())
+  rnaSeqMetrics <- CollectRnaSeqMetrics(inBams=bamRGFns,
+                                        gtfFn=param$ezRef['refFeatureFile'],
+                                        featAnnoFn=param$ezRef['refAnnotationFile'],
+                                        strandMode=param$strandMode,
+                                        metricLevel="SAMPLE",
+                                        mc.cores=param$cores)
+  colData(sce) <- cbind(colData(sce), rnaSeqMetrics[colnames(sce), ])
+  
+  ### DuplicationMetrics
+  message("Start DuplicationMetrics", date())
+  dupMetrics <- DuplicationMetrics(inBams=bamRGFns, mc.cores=param$cores)
+  colData(sce) <- cbind(colData(sce), dupMetrics[colnames(sce), ])
+  
+  ## debug
+  saveRDS(sce, file="sce.rds")
   
   ## Copy the style files and templates
   styleFiles <- file.path(system.file("templates", package="ezRun"),
                           c("fgcz.css", "SCCountQC.Rmd",
                             "fgcz_header.html", "banner.png"))
   file.copy(from=styleFiles, to=".", overwrite=TRUE)
-  ## debug
-  saveRDS(sce, file="sce.rds")
   rmarkdown::render(input="SCCountQC.Rmd", envir = new.env(),
                     output_dir=".", output_file=htmlFile, quiet=TRUE)
-  
-  # Picard metrics
-  # inBam <- input$getFullPaths("BAM")
-  # bamRGFns <- splitBamByRG(inBam, mc.cores=param$cores)
-  # on.exit(file.remove(bamRGFns), add = TRUE)
-  # 
-  # ## CollectAlignmentSummaryMetrics
-  # message("Start CollectAlignmentSummaryMetrics", date())
-  # alnMetrics <- CollectAlignmentSummaryMetrics(inBams=bamRGFns,
-  #                                              fastaFn=param$ezRef['refFastaFile'],
-  #                                              metricLevel="SAMPLE",
-  #                                              mc.cores=param$cores)
-  # save(alnMetrics, file="alnMetrics.rda")
-  # message("End CollectAlignmentSummaryMetrics", date())
-  # ## CollectRnaSeqMetrics
-  # rnaSeqMetrics <- CollectRnaSeqMetrics(inBams=bamRGFns,
-  #                                       gtfFn=param$ezRef['refFeatureFile'],
-  #                                       featAnnoFn=param$ezRef['refAnnotationFile'],
-  #                                       strandMode=param$strandMode,
-  #                                       metricLevel="SAMPLE",
-  #                                       mc.cores=param$cores)
-  # save(rnaSeqMetrics, file="rnaSeqMetrics.rda")
-  # message("End CollectRnaSeqMetrics", date())
-  # ## DuplicationMetrics
-  # dupMetrics <- DuplicationMetrics(inBams=bamRGFns, mc.cores=param$cores)
-  # save(dupMetrics, file="dupMetrics.rda")
-  # message("End DuplicationMetrics", date())
 
+  return("Success")
 }
 
 txEndBias <- function(param, inBam, width=100L, minTxLength=NULL,
