@@ -569,13 +569,13 @@ ezMethodBismark = function(input=NA, output=NA, param=NA){
   defOpt = paste("-p", max(2,ezThreads()/2))  
   if(param$paired){
    cmd = paste("bismark", param$cmdOptions ,
-              "--path_to_bowtie $Bowtie2", defOpt, ref,
+              "--path_to_bowtie", paste0("$Bowtie2","/bin"), defOpt, ref,
               '-1', trimmedInput$getColumn("Read1"),
               if(param$paired) paste('-2',trimmedInput$getColumn("Read2")),  
               "2> bismark.log")
   } else {
     cmd = paste("bismark", param$cmdOptions ,
-                "--path_to_bowtie $Bowtie2", defOpt, ref,
+                "--path_to_bowtie", paste0("$Bowtie2","/bin"), defOpt, ref,
                 trimmedInput$getColumn("Read1"), 
                 "2> bismark.log")  
   }
