@@ -51,7 +51,8 @@ ezMethodSCCountQC = function(input=NA, output=NA, param=NA,
     useTxIDs <- rownames(sce)[(rowSums(assays(sce)$counts > minCount) >= 1)]
   }
  
-  #txEndBias(param, inBam=inBam, minTxLength=minTxLength, useTxIDs=useTxIDs, maxTxs=maxTxs)
+  primeBias <- txEndBias(param, inBam=inBam, minTxLength=minTxLength,
+                         useTxIDs=useTxIDs, maxTxs=maxTxs)
   
   
   
@@ -107,7 +108,7 @@ txEndBias <- function(param, inBam, width=100L, minTxLength=NULL,
             minTxLength=minTxLength, useTxIDs=useTxIDs, maxTxs=maxTxs)
   counts5 <- txFeatureCounts(param, inBam, gtf5TempFn)
   counts3 <- txFeatureCounts(param, inBam, gtf3TempFn)
-  stopifnor(identical(rownames(counts5), rownames(counts3)))
+  stopifnot(identical(rownames(counts5), rownames(counts3)))
   
   ## All txs
   countsAll <- txFeatureCounts(param, inBam, param$ezRef@refFeatureFile)
@@ -115,11 +116,14 @@ txEndBias <- function(param, inBam, width=100L, minTxLength=NULL,
   
   widthsTx <- getTranscriptGcAndWidth(param)
   widthsTx <- widthsTx$width[rownames(counts5)]
-  bias5 <- (counts5 / 100) / (countsAll / widthsTx)
-  bias3 <- (counts3 / 100) / (countsAll / widthsTx)
+  bias5 <- (counts5 / width) / (countsAll / widthsTx)
+  bias3 <- (counts3 / width) / (countsAll / widthsTx)
   
-  bias5 <- setNames(colMedians(bias5, na.rm=TRUE), colnames(bias5))
-  bias3 <- setNames(colMedians(bias3, na.rm=TRUE), colnames(bias3))
+  #bias5 <- setNames(colMedians(bias5, na.rm=TRUE), colnames(bias5))
+  #bias3 <- setNames(colMedians(bias3, na.rm=TRUE), colnames(bias3))
+  
+  bias5 <- colMeans(bias5, na.rm=TRUE)
+  bias3 <- colMeans(bias3, na.rm=TRUE)
   
   return(list(bias5=bias5, bias3=bias3))
 }
