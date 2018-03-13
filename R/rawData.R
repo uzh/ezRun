@@ -164,8 +164,12 @@ getRpkmSE = function(rawData){
     return(assays(rawData)$rpkm)
   }
   if (is.null(rowData(rawData)$width)){
-    warning("The `width` is not available in annotation.")
-    return(NULL)
+    if(is.null(rowData(rawData)$featWidth)){
+      warning("The `width` is not available in annotation.")
+      return(NULL)
+    }else{
+      rowData(rawData)$width <- rowData(rawData)$featWidth
+    }
   }
   libSize = colSums(assays(rawData)$counts)
   rpkm = assays(rawData)$counts
@@ -203,8 +207,12 @@ getTpmSE = function(rawData) {
     return(assays(rawData)$tpm)
   }
   if (is.null(rowData(rawData)$width)){
-    warning("The `width` is not available in annotation.")
-    return(NULL)
+    if(is.null(rowData(rawData)$featWidth)){
+      warning("The `width` is not available in annotation.")
+      return(NULL)
+    }else{
+      rowData(rawData)$width <- rowData(rawData)$featWidth
+    }
   }
   tpm = assays(rawData)$counts
   for (i in 1:ncol(tpm)){
