@@ -31,7 +31,8 @@ ezMethodSCCountQC = function(input=NA, output=NA, param=NA,
   sce <- loadSCCountDataset(input, param)
   
   inBam <- getBamLocally(input$getFullPaths("BAM"))
-  on.exit(file.remove(file.path(reportCwd, inBam)), add = TRUE)
+  on.exit(file.remove(file.path(reportCwd, c(inBam, paste(inBam, ".bai")))), 
+                      add = TRUE)
   
   ## STAR log
   mlog <- read.table(input$getFullPaths("STARLog"), sep="|", 
@@ -109,6 +110,7 @@ txEndBias <- function(param, inBam, width=100L, minTxLength=NULL,
   ## 5' 100bp and 3' 100bp
   gtf5TempFn <- tempfile(pattern="trimGTF-5-", tmpdir=".", fileext=".gtf")
   gtf3TempFn <- tempfile(pattern="trimGTF-3-", tmpdir=".", fileext=".gtf")
+  on.exit(file.remove(c(gtf5TempFn, gtf3TempFn)), add=TRUE)
   
   trimTxGtf(param, outGTF=c(gtf5TempFn, gtf3TempFn), 
             width=width, fix=c("start", "end"),

@@ -17,7 +17,8 @@ require(plotly)
 require(scater)
 require(ezRun)
 
-sce <- readRDS("/export/local/scratch/gtan/p2497-SCCountQC/20171222.A-SiCSeq_SCs_P5_SCCountQC/sce.rds")
+# debug
+# sce <- readRDS("/export/local/scratch/gtan/p2497-SCCountQC/20171222.A-SiCSeq_SCs_P5_SCCountQC/sce.rds")
 
 sceAllCells <- sce
 
@@ -193,6 +194,29 @@ ezHeatmap(gcWidthScoresRel[ ,order(colSums(assays(scePC)$counts > 3))], lim=c(-2
 
 ```
 
+### Prime Bias
+
+```{r 5 prime bias, echo=FALSE}
+x <- list(
+  title = "Prime bias"
+)
+
+p <- plot_ly(alpha = 0.6) %>%
+  add_histogram(x = ~colData(sce)$`bias5`, name="5 prime bias") %>%
+  add_histogram(x = ~colData(sce)$`bias3`, name="3 prime bias") %>%
+  layout(barmode = "overlay", title="Mean prime bias",
+         xaxis=x)
+
+p
+
+p2 <- plot_ly(alpha = 0.6) %>%
+  add_histogram(x = ~colData(sce)$`MEDIAN_5PRIME_BIAS`, name="5 prime bias") %>%
+  add_histogram(x = ~colData(sce)$`MEDIAN_3PRIME_BIAS`, name="3 prime bias") %>%
+  layout(barmode = "overlay", title="Median prime bias: Picard",
+         xaxis=x)
+p2
+
+```
 
 
 ### SessionInfo
