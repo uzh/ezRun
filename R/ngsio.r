@@ -280,8 +280,6 @@ loadSCCountDataset <- function(input, param){
   assays(sce)$rpkm <- getRpkmSE(sce)
   assays(sce)$tpm <- getTpmSE(sce)
   
-  #sce <- as(sce, "SingleCellExperiment")
-  
   return(sce)
 }
 

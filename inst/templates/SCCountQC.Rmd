@@ -17,11 +17,9 @@ require(plotly)
 require(scater)
 require(ezRun)
 
-#load("/export/local/scratch/gtan/p2497-SCCountQC/sce.rdata")
+sce <- readRDS("/export/local/scratch/gtan/p2497-SCCountQC/20171222.A-SiCSeq_SCs_P5_SCCountQC/sce.rds")
 
 sceAllCells <- sce
-
-
 
 param <- metadata(sce)$param
 mlog <- metadata(sce)$mlog
@@ -156,7 +154,7 @@ gcBreaks = c(0.42, 0.48, 0.53, 0.57, 0.62)
 refWidthBin = "(9.5 - 10.5]" 
 refGcBin = "(0.53 - 0.57]"
   ## define the gene strata
-logWidth = log2(seqAnno[rownames(scePC), "width"] + widthOffset)
+logWidth = log2(seqAnno[rownames(scePC), "featWidth"] + widthOffset)
 lwClasses = ezCut(logWidth, breaks = logWidthBreaks)
 gcClasses = ezCut(seqAnno[rownames(scePC), "gc"], gcBreaks)
 geneBins = tapply((1:nrow(scePC)), list(logWidth=lwClasses, gc=gcClasses), identity)

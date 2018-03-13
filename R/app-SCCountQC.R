@@ -21,6 +21,8 @@ EzAppSCCountQC <-
 
 ezMethodSCCountQC = function(input=NA, output=NA, param=NA, 
                              htmlFile="00index.html"){
+  require(S4Vectors)
+  
   cwd <- getwd()
   setwdNew(basename(output$getColumn("Report")))
   on.exit(setwd(cwd), add=TRUE)
@@ -37,7 +39,6 @@ ezMethodSCCountQC = function(input=NA, output=NA, param=NA,
   rownames(mlog) <- trimws(mlog[,1])
   metadata(sce)$mlog <- mlog
   
-
   ## 3' and 5' bias
   minCount <- 20
   minTxLength <- 1e3
@@ -65,7 +66,9 @@ ezMethodSCCountQC = function(input=NA, output=NA, param=NA,
                                                fastaFn=param$ezRef['refFastaFile'],
                                                metricLevel="SAMPLE",
                                                mc.cores=param$cores)
-  colData(sce) <- cbind(colData(sce), alnMetrics[colnames(sce), ])
+  colData(sce) <- as(data.frame(colData(sce), alnMetrics[colnames(sce), ],
+                                check.names = FALSE, stringsAsFactors = FALSE),
+                     "DataFrame")
   
   ### CollectRnaSeqMetrics
   message("Start CollectRnaSeqMetrics", date())
@@ -75,13 +78,16 @@ ezMethodSCCountQC = function(input=NA, output=NA, param=NA,
                                         strandMode=param$strandMode,
                                         metricLevel="SAMPLE",
                                         mc.cores=param$cores)
-  colData(sce) <- cbind(colData(sce), rnaSeqMetrics[colnames(sce), ])
+  colData(sce) <- as(data.frame(colData(sce), rnaSeqMetrics[colnames(sce), ],
+                                check.names = FALSE, stringsAsFactors = FALSE),
+                     "DataFrame")
   
   ### DuplicationMetrics
   message("Start DuplicationMetrics", date())
   dupMetrics <- DuplicationMetrics(inBams=bamRGFns, mc.cores=param$cores)
-  colData(sce) <- cbind(colData(sce), dupMetrics[colnames(sce), ])
-  
+  colData(sce) <- as(data.frame(colData(sce), dupMetrics[colnames(sce), ],
+                                check.names = FALSE, stringsAsFactors = FALSE),
+                     "DataFrame")
   ## debug
   saveRDS(sce, file="sce.rds")
   
