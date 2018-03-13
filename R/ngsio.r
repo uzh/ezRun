@@ -245,9 +245,10 @@ loadSCCountDataset <- function(input, param){
   dataFeatureLevel <- unique(input$getColumn("featureLevel"))
   stopifnot(length(dataFeatureLevel) == 1)
   
-  seqAnnoDF <- ezFeatureAnnotation(param, rownames(countMatrix), dataFeatureLevel)
+  seqAnnoDF <- ezFeatureAnnotation(param, rownames(countMatrix), 
+                                   dataFeatureLevel)
   seqAnno <- makeGRangesFromDataFrame(seqAnnoDF, keep.extra.columns=TRUE)
-  seqAnno$width <- seqAnnoDF$width
+  seqAnno$featWidth <- seqAnnoDF$width
   
   if (param$useSigThresh){
     sigThresh <- param$sigThresh
@@ -278,8 +279,6 @@ loadSCCountDataset <- function(input, param){
   }
   assays(sce)$rpkm <- getRpkmSE(sce)
   assays(sce)$tpm <- getTpmSE(sce)
-  
-  #sce <- as(sce, "SingleCellExperiment")
   
   return(sce)
 }

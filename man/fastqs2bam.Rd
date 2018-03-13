@@ -8,7 +8,8 @@
   with filenames as RG tag.
 }
 \usage{
-  fastqs2bam(fastqFns, fastq2Fns=NULL, readGroupNames=NULL, bamFn)
+  fastqs2bam(fastqFns, fastq2Fns=NULL, readGroupNames=NULL, bamFn,
+             platform="illumina", mc.cores=ezThreads())
 }
 \arguments{
   \item{fastqFns}{
@@ -22,6 +23,12 @@
   }
   \item{bamFn}{
     \code{character}(1): filename of merged Bam file.
+  }
+  \item{platform}{
+    \code{character}(1): the platform used.
+  }
+  \item{mc.cores}{
+    \code{integer}(1): the threads to run.
   }
 }
 \details{

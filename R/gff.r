@@ -646,9 +646,10 @@ getEnsemblTypes = function(gff){
 
 trimTxGtf <- function(param=NULL, inGTF, outGTF, fastaFile, refAnnotationFile,
                       transcriptTypes,
-                      width=100, fix=c("start", "end"),
-                      minTxLength=NULL, useTxIDs=NULL){
-  fix <- match.arg(fix)
+                      width=100L, fix=c("start", "end"),
+                      minTxLength=NULL, useTxIDs=NULL, maxTxs=NULL){
+  stopifnot(length(outGTF) == length(fix))
+  
   if(!is.null(param)){
     inGTF <- param$ezRef@refFeatureFile
     fastaFile <- param$ezRef@refFastaFile
@@ -656,19 +657,18 @@ trimTxGtf <- function(param=NULL, inGTF, outGTF, fastaFile, refAnnotationFile,
     transcriptTypes <- param$transcriptTypes
   }
   require(rtracklayer)
+  require(GenomicRanges)
+  
   gtf <- import(inGTF)
   seqlengthsRef <- fasta.seqlengths(fastaFile)
   names(seqlengthsRef) <- sub('[[:blank:]].*$','',names(seqlengthsRef))
   seqlengths(gtf) <- seqlengthsRef[names(seqlengths(gtf))]
   gtf <- gtf[gtf$type == "exon"]
-  exonsByTx <- split(gtf, gtf$transcript_id)
+  ## This explicit usage of S4Vectors:: isnecessary. Otherwise, it use base::split.
+  exonsByTx <- S4Vectors::split(gtf, gtf$transcript_id)
   
   if(!is.null(minTxLength)){
     exonsByTx <- exonsByTx[sum(width(exonsByTx)) >= minTxLength]
-  }
-  
-  if(!is.null(useTxIDs)){
-    exonsByTx <- exonsByTx[intersect(useTxIDs, names(exonsByTx))]
   }
   
   if(ezIsSpecified(transcriptTypes)){
@@ -677,13 +677,22 @@ trimTxGtf <- function(param=NULL, inGTF, outGTF, fastaFile, refAnnotationFile,
     txUse <- rownames(seqAnno)[seqAnno$type %in% transcriptTypes]
     exonsByTx <- exonsByTx[names(exonsByTx) %in% txUse]
   }
-  system.time(exonsByTx <- endoapply(exonsByTx, trimGRanges, width=100L,
-                         start=ifelse(fix=="start", TRUE, FALSE)))
   
-  gtfFile = paste(Sys.getpid(), "genes.gtf", sep="-")
-  gtf <- unlist(exonsByTx)
-  export(gtf, gtfFile)
-  on.exit(file.remove(gtfFile), add=TRUE)
+  if(!is.null(useTxIDs)){
+    exonsByTx <- exonsByTx[intersect(useTxIDs, names(exonsByTx))]
+  }
+  if(!is.null(maxTxs)){
+    exonsByTx <- sample(exonsByTx, size=min(length(exonsByTx), maxTxs))
+  }
+  
+  for(i in 1:length(fix)){
+    exonsByTxTrimmed <- endoapply(exonsByTx, trimGRanges, width=width,
+                           start=ifelse(fix[i]=="start", TRUE, FALSE))
+    gtf <- unlist(exonsByTxTrimmed)
+    export(gtf, outGTF[i])
+  }
+  
+  invisible(setNames(outGTF, fix))
 }
 
 trimGRanges <- function(x, width=100, start=TRUE){
