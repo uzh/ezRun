@@ -39,7 +39,7 @@ input[['PreprocessingLog']] = 'p2497/SCCountsApp_24762_2018-02-20--21-32-42/2017
 input[['STARLog']] = 'p2497/SCCountsApp_24762_2018-02-20--21-32-42/20171222.A-SiCSeq_SCs_P5_STAR.log'
 input[['featureLevel']] = 'gene'
 
-#input = EzDataset$new(file=input, dataRoot=param$dataRoot)
+#input = EzDataset$new(meta=input, dataRoot=param$dataRoot)
 #param <- ezParam(param)
 #output = EzDataset$new(meta=output, dataRoot=param$dataRoot)
 
