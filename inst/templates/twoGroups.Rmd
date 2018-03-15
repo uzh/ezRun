@@ -16,8 +16,7 @@ knitr::opts_chunk$set(echo = TRUE)
 ## debug
 #title: "`r paste('Two groups analysis:', param$comparison)`"
 # library(ezRun)
-# load("/srv/gstore/projects/p1536/EdgeR_20650_pos--over--neg_2017-09-01--10-05-45/pos--over--neg/result-pos--over--neg-wcmkyoxvxuzd-EzResult.RData")
-# load("/scratch/gtan/debug/p2497-Deseq2/result-orange--over--rest-gxzhakauugzk-EzResult.RData")
+# load("/srv/gstore/projects/p2578/EdgeR_22305_healthy_P--over--US_2017-11-10--21-50-06/P--over--US/result-P--over--US-mpjeuntzmnfa-EzResult.RData")
 # deResult = EzResult(se=se)
 # output = list()
 # output[['Name']] = 'orange--over--rest'
@@ -623,7 +622,14 @@ for(onto in names(enrichResult)){
     if(is.null(enrichResult[[onto]][[sig]]) || nrow(enrichResult[[onto]][[sig]]@result) == 0L){
       next
     }else{
-      cnetplot(enrichResult[[onto]][[sig]],
+      ## By default it plots gene id instead of gene name.
+      ## Replace the gene id with name.
+      enrichResultToPlot <- enrichResult[[onto]][[sig]]
+      resultToPlot <- enrichResultToPlot@result
+      resultToPlot$geneID <- resultToPlot$geneName
+      enrichResultToPlot@result <- resultToPlot
+      
+      cnetplot(enrichResultToPlot,
              foldChange=setNames(rowData(se)$log2Ratio, rowData(se)$gene_name),
              main=paste(onto, sig))
     }
@@ -658,10 +664,9 @@ for(onto in names(enrichResultGSEA)){
   if(is.null(enrichResultGSEA[[onto]]) || nrow(enrichResultGSEA[[onto]]@result) == 0L){
       next
   }else{
-    p <- dotplot(enrichResultGSEA[[onto]], showCategory=20, 
-                 title=paste(onto, sig))
+    p <- dotplot(enrichResultGSEA[[onto]], showCategory=20, title=onto)
     print(p)
-    resFn <- paste(onto, sig, "GSEA.txt", sep="_")
+    resFn <- paste(onto, "GSEA.txt", sep="_")
     write.table(enrichResultGSEA[[onto]], file=resFn,
                 quote=FALSE, col.names = TRUE, row.names = FALSE)
     resFns <- append(resFns, resFn)
@@ -677,7 +682,7 @@ if(exists("enrichResultGSEA")){
     if(is.null(enrichResultGSEA[[onto]]) || nrow(enrichResultGSEA[[onto]]@result) == 0L){
       next
     }else{
-      enrichMap(enrichResultGSEA[[onto]], n=50, main=paste(onto, sig))
+      enrichMap(enrichResultGSEA[[onto]], n=50, main=onto)
     }
   }
 }
@@ -690,9 +695,16 @@ if(exists("enrichResultGSEA")){
     if(is.null(enrichResultGSEA[[onto]]) || nrow(enrichResultGSEA[[onto]]@result) == 0L){
       next
     }else{
-      cnetplot(enrichResultGSEA[[onto]],
+      ## By default it plots gene id instead of gene name.
+      ## Replace the gene id with name.
+      enrichResultToPlot <- enrichResultGSEA[[onto]]
+      resultToPlot <- enrichResultToPlot@result
+      resultToPlot$core_enrichment <- resultToPlot$geneName
+      enrichResultToPlot@result <- resultToPlot
+      
+      cnetplot(enrichResultToPlot,
              foldChange=setNames(rowData(se)$log2Ratio, rowData(se)$gene_name),
-             main=paste(onto, sig))
+             main=onto)
     }
   }
 }
