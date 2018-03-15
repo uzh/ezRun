@@ -67,19 +67,35 @@ fastqs2bam <- function(fastqFns, fastq2Fns=NULL, readGroupNames=NULL,
   }else{
     stopifnot(length(fastqFns) == length(readGroupNames))
   }
-    
+  if(isTRUE(paired)){
   cmd <- paste("java -Djava.io.tmpdir=. -jar", 
                Sys.getenv("Picard_jar"), "FastqToSam",
                paste0("F1=", fastqFns),
-               ifelse(isTRUE(paired), paste0("F2=", fastq2Fns), ""),
+               #ifelse(isTRUE(paired), paste0("F2=", fastq2Fns), ""), ###takes only the first fqFile of R2 for all calls 
+               paste0("F2=", fastq2Fns),
                paste0("O=", sampleBasenames, ".bam"),
                paste0("SAMPLE_NAME=", readGroupNames),
                paste0("LIBRARY_NAME=", readGroupNames),
                paste0("READ_GROUP_NAME=", readGroupNames),
-               paste0("RUN_DATE=", format(Sys.time(), "%Y-%m-%d-%H:%M:%S+00:00")),
+               paste0("RUN_DATE=", format(Sys.time(), "%Y-%m-%dT%H:%M:%S+00:00")),
                paste0("PLATFORM=", platform),
                "SEQUENCING_CENTER=FGCZ"
                )
+  } else {
+    cmd <- paste("java -Djava.io.tmpdir=. -jar", 
+                 Sys.getenv("Picard_jar"), "FastqToSam",
+                 paste0("F1=", fastqFns),
+                 #ifelse(isTRUE(paired), paste0("F2=", fastq2Fns), ""),
+                 paste0("F2=", fastq2Fns),
+                 paste0("O=", sampleBasenames, ".bam"),
+                 paste0("SAMPLE_NAME=", readGroupNames),
+                 paste0("LIBRARY_NAME=", readGroupNames),
+                 paste0("READ_GROUP_NAME=", readGroupNames),
+                 paste0("RUN_DATE=", format(Sys.time(), "%Y-%m-%dT%H:%M:%S+00:00")),
+                 paste0("PLATFORM=", platform),
+                 "SEQUENCING_CENTER=FGCZ"
+    )  
+  }
   ezMclapply(cmd, ezSystem, mc.cores = mc.cores)
   
   ## picard tools merge
