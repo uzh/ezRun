@@ -76,8 +76,7 @@ fastqs2bam <- function(fastqFns, fastq2Fns=NULL, readGroupNames=NULL,
                paste0("SAMPLE_NAME=", readGroupNames),
                paste0("LIBRARY_NAME=", readGroupNames),
                paste0("READ_GROUP_NAME=", readGroupNames),
-               paste0("RUN_DATE=", format(as.POSIXlt(date, tz = "UTC"), 
-                                          "%Y-%m-%dT%H:%M:%S+00:00")),
+               paste0("RUN_DATE=", format(Sys.time(), "%Y-%m-%d-%H:%M:%S+00:00")),
                paste0("PLATFORM=", platform),
                "SEQUENCING_CENTER=FGCZ"
                )
