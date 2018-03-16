@@ -339,13 +339,13 @@ output[['CellDataset [File]']] = 'scRNA-p2277/scCount/NEG-dataset.txt'
 EzAppSCCounts$new()$run(input=input, output=output, param=param)
 
 # p2497 SCCounts
+library(ezRun)
 setEnvironments("star")
 setEnvironments("flexbar")
 setEnvironments("trimmomatic")
 setEnvironments("python2")
 setEnvironments("samtools")
 setwd("/export/local/scratch/gtan/p2497-SCCounts")
-library(ezRun)
 param = list()
 param[['cores']] = '8'
 param[['ram']] = '50'
@@ -394,11 +394,11 @@ output[['PreprocessingLog [File]']] = 'p2497/SCCountsApp_24762_2018-02-20--21-32
 output[['STARLog [File]']] = 'p2497/SCCountsApp_24762_2018-02-20--21-32-42/20171222.A-SiCSeq_SCs_P5_STAR.log'
 input = list()
 input[['Name']] = '20171222.A-SiCSeq_SCs_P5'
-#input[['Read1']] = 'p2497/HiSeq4000_20171222_RUN420_o3705_fixedRG/20171222.A-SiCSeq_SCs_P5_unmapped.bam'
-input[['Read1']] = 'p2497/HiSeq4000_20171222_RUN420_o3705_fixedRG/20171222.A-SiCSeq_SCs_P5_subset.bam'
+input[['Read1']] = 'p2497/HiSeq4000_20171222_RUN420_o3705_fixedRG/20171222.A-SiCSeq_SCs_P5_unmapped.bam'
+#input[['Read1']] = 'p2497/HiSeq4000_20171222_RUN420_o3705_fixedRG/20171222.A-SiCSeq_SCs_P5_subset.bam'
 input[['Read Count']] = '312016990'
 input[['Species']] = 'Mus musculus (house mouse)'
 input[['CellDataset']] = 'p2497/HiSeq4000_20171222_RUN420_o3705_fixedRG/fq_dataset.tsv'
-debug(ezMethodSingleCellSTAR)
+#debug(ezMethodSingleCellSTAR)
 EzAppSCCounts$new()$run(input=input, output=output, param=param)
 
