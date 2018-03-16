@@ -98,25 +98,42 @@ fastqs2bam <- function(fastqFns, fastq2Fns=NULL, readGroupNames=NULL,
 }
 
 ### Convert  bam/sam files into fastqs
-bam2fastq <- function(bamFns,
-                      fastqFns=sub("(\\.bam|\\.sam)$", "_R1.fastq", bamFns),
-                      fastq2Fns=sub("(\\.bam|\\.sam)$", "_R2.fastq", bamFns),
-                      paired=FALSE, OUTPUT_PER_RG=TRUE,
-                      mc.cores=ezThreads()){
+bam2fastq <- function(bamFn, OUTPUT_PER_RG=TRUE, OUTPUT_DIR=".",
+                      paired=FALSE,
+                      fastqFns=sub("(\\.bam|\\.sam)$", "_R1.fastq", bamFn),
+                      fastq2Fns=sub("(\\.bam|\\.sam)$", "_R2.fastq", bamFn)){
+  setEnvironments("picard")
+  stopifnot(length(bamFn) == 1L)
   
-  if(!isTRUE(isValidEnvironments("picard"))){
-    setEnvironments("picard")
+  if(isTRUE(OUTPUT_PER_RG)){
+    ## I don't want to parse the bam header to get RG IDs
+    ## Put them in a tempdir and move to OUTPUT_DIR later
+    tempDIR <- paste("SamtoFastqTempDir", Sys.getpid(), sep="-")
+    dir.create(tempDIR)
+    on.exit(file.remove(tempDIR), add = TRUE)
+    cmd <- paste("java -Djava.io.tmpdir=. -jar", 
+                 Sys.getenv("Picard_jar"), "SamToFastq",
+                 paste0("I=", bamFn),
+                 paste0("OUTPUT_DIR=", tempDIR),
+                 "OUTPUT_PER_RG=true RG_TAG=ID"
+                 )
+   ezSystem(cmd)
+   fastqFns <- list.files(path=tempDIR, pattern="_1\\.fastq$")
+   fromFns <- file.path(tempDIR, fastqFns)
+   toFns <- file.path(OUTPUT_DIR, sub("_1", "_R1", fastqFns))
+   
+   file.rename(from=fromFns, to=toFns)
+   return(invisible(toFns))
+  }else{
+    cmd <- paste("java -Djava.io.tmpdir=. -jar", 
+                 Sys.getenv("Picard_jar"), "SamToFastq",
+                 paste0("I=", bamFn),
+                 paste0("FASTQ=", fastqFns))
+    if(isTRUE(paired))
+      cmd <- paste(cmd, paste0("SECOND_END_FASTQ=", fastq2Fns))
+    ezSystem(cmd)
+    return(invisible(fastqFns))
   }
-  cmd <- paste("java -Djava.io.tmpdir=. -jar", 
-               Sys.getenv("Picard_jar"), "SamToFastq",
-               paste0("I=", bamFns),
-               paste0("FASTQ=", fastqFns))
-  if(isTRUE(paired))
-    cmd <- paste(cmd, paste0("SECOND_END_FASTQ=", fastq2Fns))
-  
-  ezMclapply(cmd, ezSystem, mc.cores = mc.cores)
-  
-  invisible(fastqFns)
 }
 
 ezMethodBam2Fastq <- function(input=NA, output=NA, param=NA){
