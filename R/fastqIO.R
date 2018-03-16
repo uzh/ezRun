@@ -136,29 +136,50 @@ bam2fastq <- function(bamFn, OUTPUT_PER_RG=TRUE, OUTPUT_DIR=".",
   }
 }
 
-ezMethodBam2Fastq <- function(input=NA, output=NA, param=NA){
-  ## if output is not an EzDataset, set it!
-  if (!is(output, "EzDataset")){
-    output = input$copy()
-    output$setColumn("Read1", paste0(getwd(), "/", input$getNames(), 
-                                     "-R1.fastq"))
+ezMethodBam2Fastq <- function(input=NA, output=NA, param=NA,
+                              OUTPUT_PER_RG=TRUE){
+  require(Biostrings)
+  
+  if(isTRUE(OUTPUT_PER_RG)){
+    output = EzDataset(file=input$getFullPaths("CellDataset"),
+                       dataRoot=param$dataRoot)
+    output$setColumn("Read1", paste0(getwd(), "/", output$getNames(),
+                                     "_R1.fastq"))
     if (param$paired){
       output$setColumn("Read2", paste0(getwd(), "/", input$getNames(), 
-                                       "-R2.fastq"))
+                                       "_R2.fastq"))
     } else {
-      if ("Read2" %in% input$colNames){
+      if ("Read2" %in% input$colNames)
         output$setColumn("Read2", NULL)
-      }
     }
     output$dataRoot = NULL
+    
+    bam2fastq(bamFn=input$getFullPaths("Read1"),
+              OUTPUT_PER_RG=TRUE, OUTPUT_DIR=getwd(),
+              paired=param$paired)
+  }else{
+    if (!is(output, "EzDataset")){
+      output = input$copy()
+      output$setColumn("Read1", paste0(getwd(), "/", input$getNames(), 
+                                       "-R1.fastq"))
+      if (param$paired){
+        output$setColumn("Read2", paste0(getwd(), "/", input$getNames(), 
+                                         "-R2.fastq"))
+      } else {
+        if ("Read2" %in% input$colNames){
+          output$setColumn("Read2", NULL)
+        }
+      }
+      output$dataRoot = NULL
+    }
+    bam2fastq(bamFn=input$getFullPaths("Read1"),
+              OUTPUT_PER_RG=FALSE,
+              fastqFns=output$getColumn("Read1"),
+              fastq2Fns=ifelse(isTRUE(param$paired), output$getFullPaths("Read2"),
+                               NULL),
+              paired=param$paired)
+    output$setColumn("Read Count", 
+                     sapply(output$getColumn("Read1"), fastq.geometry)[1, ])
   }
-  
-  bam2fastq(bamFns=input$getFullPaths("Read1"),
-            fastqFns=output$getColumn("Read1"),
-            fastq2Fns=ifelse(isTRUE(param$paired), output$getFullPaths("Read2"),
-                             NULL),
-            paired=param$paired)
-  output$setColumn("Read Count", 
-                   sapply(output$getColumn("Read1"), fastq.geometry)[1, ])
   return(output)
 }
