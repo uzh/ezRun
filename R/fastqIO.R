@@ -101,7 +101,8 @@ fastqs2bam <- function(fastqFns, fastq2Fns=NULL, readGroupNames=NULL,
 bam2fastq <- function(bamFns,
                       fastqFns=sub("(\\.bam|\\.sam)$", "_R1.fastq", bamFns),
                       fastq2Fns=sub("(\\.bam|\\.sam)$", "_R2.fastq", bamFns),
-                      paired=FALSE){
+                      paired=FALSE, OUTPUT_PER_RG=TRUE,
+                      mc.cores=ezThreads()){
   
   if(!isTRUE(isValidEnvironments("picard"))){
     setEnvironments("picard")
@@ -109,10 +110,12 @@ bam2fastq <- function(bamFns,
   cmd <- paste("java -Djava.io.tmpdir=. -jar", 
                Sys.getenv("Picard_jar"), "SamToFastq",
                paste0("I=", bamFns),
-               paste0("FASTQ=", fastqFns),
-               ifelse(isTRUE(paired), PASTE0("SECOND_END_FASTQ=", fastq2Fns),
-                      ""))
-  lapply(cmd, ezSystem)
+               paste0("FASTQ=", fastqFns))
+  if(isTRUE(paired))
+    cmd <- paste(cmd, paste0("SECOND_END_FASTQ=", fastq2Fns))
+  
+  ezMclapply(cmd, ezSystem, mc.cores = mc.cores)
+  
   invisible(fastqFns)
 }
 
