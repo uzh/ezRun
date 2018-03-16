@@ -137,7 +137,7 @@ DuplicationMetrics <- function(inBams, mc.cores=ezThreads()){
   on.exit(file.remove(ouputBams), add=TRUE)
   outputFns <- tempfile(pattern=inBams, fileext=".markedDupMetrics")
   
-  cmd <- paste("java -jar", Sys.getenv("Picard_jar"),
+  cmd <- paste("java -XX:ParallelGCThreads=4 -jar", Sys.getenv("Picard_jar"),
                "MarkDuplicates",
                paste0("I=", inBams),
                paste0("O=", ouputBams),
