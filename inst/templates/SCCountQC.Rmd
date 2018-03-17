@@ -16,6 +16,7 @@ require(SummarizedExperiment)
 require(plotly)
 require(scater)
 require(ezRun)
+require(DT)
 
 # debug
 # sce <- readRDS("/export/local/scratch/gtan/p2497-SCCountQC/20171222.A-SiCSeq_SCs_P5_SCCountQC/sce.rds")
@@ -195,6 +196,11 @@ ezHeatmap(gcWidthScoresRel[ ,order(colSums(assays(scePC)$counts > 3))], lim=c(-2
 ```
 
 ### Prime Bias
+```{r metrics, echo=FALSE}
+metricsDT <- colData(sce)[, (tail(grep("\\[File\\]", colnames(colData(sce))), 1)+1):ncol(colData(sce))]
+datatable(data.frame(metricsDT, check.names = FALSE), filter = 'top',
+          caption="scRNASeq QC Metrics")
+```
 
 ```{r 5 prime bias, echo=FALSE}
 x <- list(
