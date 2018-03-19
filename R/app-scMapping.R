@@ -45,14 +45,51 @@ ezMethodSingleCellSTAR = function(input=NA, output=NA, param=NA){
   }
   
   if(input$readType() == "bam"){
-    fastqInput <- ezMethodBam2Fastq(input = input, param = param)
+    fastqInput <- ezMethodBam2Fastq(input = input, param = param,
+                                    OUTPUT_PER_RG=TRUE)
     trimmedInput <- ezMethodTrim(input = fastqInput, param = param)
-    ## BAM to fastq, fastq is local. 
-    ## Better not to do the cleaning in ezMethodTrim 
+    
+    ## Merge and clean prepross logs
+    preprocessLogFns <- paste0(trimmedInput$getNames(), "_preprocessing.log")
+    preprocessLogs <- lapply(preprocessLogFns, readLines)
+    writeLines(unlist(preprocessLogs),
+               con=paste0(input$getNames(), "_preprocessing.log"))
+    file.remove(preprocessLogFns)
+    
+    # Clean converted fastqs
     file.remove(fastqInput$getFullPaths("Read1"))
     if (param$paired){
       file.remove(fastqInput$getFullPaths("Read2"))
     }
+    
+    ## fastq to bam
+    trimmedBamFn <- tempfile(pattern = "trimmedBam", tmpdir=getwd(),
+                             fileext = ".bam")
+    on.exit(file.remove(trimmedBamFn), add = TRUE)
+    
+    if (param$paired){
+      fastqs2bam(fastqFns=trimmedInput$getFullPaths("Read1"),
+                 fastq2Fns=ifelse(isTRUE(param$paired), 
+                                  trimmedInput$getFullPaths("Read2"), NULL),
+                 readGroupNames=trimmedInput$getNames(),
+                 bamFn=trimmedBamFn, mc.cores=param$cores)
+      file.remove(c(trimmedInput$getFullPaths("Read1"),
+                    trimmedInput$getFullPaths("Read2")))
+    }else{
+      fastqs2bam(fastqFns=trimmedInput$getFullPaths("Read1"),
+                 readGroupNames=trimmedInput$getNames(),
+                 bamFn=trimmedBamFn, mc.cores=param$cores)
+      file.remove(trimmedInput$getFullPaths("Read1"))
+    }
+    ## We can concatenate the fastqs for the aligner
+    ## But it will takes more space. So we delete and convert here.
+    
+    inputTrimmed <- input$copy()
+    inputTrimmed$setColumn("Read1", trimmedBamFn)
+    inputTrimmed$dataRoot <- NULL
+    alignerInput <- ezMethodBam2Fastq(input=inputTrimmed, param = param,
+                                      OUTPUT_PER_RG=FALSE)
+    trimmedInput <- alignerInput$copy()
   }else{
     trimmedInput <- ezMethodTrim(input = input, param = param)
   }
@@ -83,7 +120,7 @@ ezMethodSingleCellSTAR = function(input=NA, output=NA, param=NA){
   ## Merge unmapped and mapped bam to recover the tags
   if(input$readType() == "bam"){
     mergeBamAlignments(alignedBamFn="Aligned.out.bam",
-                       unmappedBamFn=input$getFullPaths("Read1"),
+                       unmappedBamFn=inputTrimmed$getFullPaths("Read1"),
                        outputBamFn="Aligned.out.merged.bam",
                        fastaFn=param$ezRef@refFastaFile)
     file.remove("Aligned.out.bam")
@@ -103,21 +140,6 @@ ezMethodSingleCellSTAR = function(input=NA, output=NA, param=NA){
   if (!is.null(param$markDuplicates) && param$markDuplicates){
     ezSortIndexBam("Aligned.out.bam", "sorted.bam", ram=sortRam, removeBam=TRUE, 
                    cores=nSortThreads)
-    # javaCall = paste0("java", " -Djava.io.tmpdir=. -Xmx", 
-    #                   min(floor(param$ram), 10), "g")
-    # cmd = paste0(javaCall, " -jar ", "$Picard_jar", " MarkDuplicates ",
-    #              " TMP_DIR=. MAX_RECORDS_IN_RAM=2000000", " I=", "sorted.bam",
-    #              " O=", basename(bamFile),
-    #              " REMOVE_DUPLICATES=false", ## do not remove, do only mark
-    #              " ASSUME_SORTED=true",
-    #              " VALIDATION_STRINGENCY=SILENT",
-    #              " METRICS_FILE=" ,"dupmetrics.txt",
-    #              " VERBOSITY=WARNING",
-    #              " >markdup.stdout 2> markdup.stderr")
-    # on.exit(file.remove(c("markdup.stdout", "markdup.stderr")), add=TRUE)
-    # 
-    # ezSystem(cmd)
-    # ezSystem(paste("samtools", "index", basename(bamFile)))
     dupBam(inBam="sorted.bam", outBam=basename(bamFile),
            operation="mark", cores=param$cores)
     file.remove("sorted.bam")
