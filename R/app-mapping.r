@@ -324,19 +324,6 @@ ezMethodSTAR = function(input=NA, output=NA, param=NA){
   if (!is.null(param$markDuplicates) && param$markDuplicates){
     ezSortIndexBam("Aligned.out.bam", "sorted.bam", ram=sortRam, removeBam=TRUE, 
                    cores=nSortThreads)
-    #javaCall = paste0("java", " -Djava.io.tmpdir=. -Xmx", 
-    #                  min(floor(param$ram), 10), "g")
-    #cmd = paste0(javaCall, " -jar ", "$Picard_jar", " MarkDuplicates ",
-    #             " TMP_DIR=. MAX_RECORDS_IN_RAM=2000000", " I=", "sorted.bam",
-    #             " O=", basename(bamFile),
-    #              " REMOVE_DUPLICATES=false", ## do not remove, do only mark
-    #              " ASSUME_SORTED=true",
-    #              " VALIDATION_STRINGENCY=SILENT",
-    #              " METRICS_FILE=" ,"dupmetrics.txt",
-    #              " VERBOSITY=WARNING",
-    #              " >markdup.stdout 2> markdup.stderr")
-    # ezSystem(cmd)
-    # ezSystem(paste("samtools", "index", basename(bamFile)))
     dupBam(inBam="sorted.bam", outBam=basename(bamFile),
            operation="mark", cores=param$cores)
     file.remove("sorted.bam")
