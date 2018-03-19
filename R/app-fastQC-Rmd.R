@@ -476,9 +476,10 @@ plateStatistics <- function(dataset,
       plateCol <- str_extract(platePos, "\\d+")
       ans[[names(datasetByPlate)[i]]] <- list()
       for(oneCol in colname){
+        ##always the entire plate should be shown which is either 8x12 or 16x24 ....
         counts <- datasetByPlate[[i]][[oneCol]]
-        countMatrix <- ezMatrix(NA, rows=LETTERS[1:which(LETTERS==max(plateRow))],
-                                cols=seq_len(max(as.integer(plateCol))))
+        countMatrix <- ezMatrix(NA, rows=LETTERS[1:ifelse(max(plateRow) > "I", 16, 8)],
+                                cols=seq_len(ifelse(max(as.integer(plateCol)) > 12, 24, 12)))
         for(j in seq_len(length(counts))) { countMatrix[plateRow[j], plateCol[j]] <- counts[j]}
         ans[[names(datasetByPlate)[i]]][[oneCol]] <- countMatrix
       }
