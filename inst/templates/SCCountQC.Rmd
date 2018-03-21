@@ -231,11 +231,12 @@ cd <- data.frame(colData(sceAllCells), check.names = FALSE)
 cd$nGenesDetected <- colSums(assays(sceAllCells)$counts > 3)
 ```
 
-```{r picard plot, echo=FALSE}
-plateMatrix <- plateStatistics(cd, colname="PCT_RIBOSOMAL_BASES")
+```{r picard plot, echo=FALSE, fig.width=24, fig.height=8}
+plateMatrix <- plateStatistics(cd, colname=c("PF_READS", "nGenesDetected",
+                                             "PCT_RIBOSOMAL_BASES"))
 
 plateName <- names(plateMatrix)[1]
-for(plateName in names(plateMatrix)){
+#for(plateName in names(plateMatrix)){
   
   matrix2Plot <- plateMatrix[[plateName]]$PCT_RIBOSOMAL_BASES
   matrix2Plot[matrix2Plot==0] = min(0.25 * matrix2Plot[matrix2Plot >0],
@@ -245,20 +246,30 @@ for(plateName in names(plateMatrix)){
   matrix2Plot[matrix2Plot > med_matrix2Plot+log10(2)] <- med_matrix2Plot+log10(2)
   matrix2Plot[matrix2Plot < med_matrix2Plot-log10(2)] <- med_matrix2Plot-log10(2)
   
-  vals <- unique(scales::rescale(c(matrix2Plot)))
-  o <- order(vals, decreasing = FALSE)
-  cols <- scales::col_numeric("RdYlGn", domain = NULL)(vals)
-  colz <- setNames(data.frame(vals[o], cols[o]),
-                   NULL)
-
-  heatmapPlate(matrix2Plot, log10 = FALSE, center = FALSE, title=plateName,
-               colorscale=colz)
+  p1 <- heatmapPlate(matrix2Plot, log10 = FALSE, center = FALSE, title=plateName,
+                     colors="RdYlGn")
+  cd2 <- data.frame(PF_READS=c(plateMatrix[[plateName]]$PF_READS),
+                    nGenesDetected=c(plateMatrix[[plateName]]$nGenesDetected),
+                    metric=c(matrix2Plot),
+                    metricOriginal=c(plateMatrix[[plateName]]$PCT_RIBOSOMAL_BASES))
+  p2 <- plot_ly(data = cd2, x = ~PF_READS, y = ~nGenesDetected, color = ~metric,
+                type="scatter", mode = 'markers', colors="RdYlGn"
+                ) %>%
+    layout(xaxis=list(type="log"),
+           yaxis=list(type="log"))
+  p3 <- plot_ly(data = cd2, x = ~PF_READS, y = ~metricOriginal, color = ~metric,
+                type="scatter", mode = 'markers', colors="RdYlGn"
+                ) %>%
+    layout(xaxis=list(type="log"),
+           yaxis=list(type="log"))
+  subplot(p1, p2, p3, nrows=1)
   
-}
+  subplot(p2, p1, p3, nrows=1)
+#}
 
 
-plot(cd$PF_READS, cd$nGenesDetected, log="xy") ### with points colored by the same color as in the heatmap
-plot(cd$PF_READS, cd$PCT_RIBOSOMAL_BASES, log="xy")
+
+
 ```
 
 ### SessionInfo
