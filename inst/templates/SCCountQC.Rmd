@@ -231,13 +231,12 @@ cd <- data.frame(colData(sceAllCells), check.names = FALSE)
 cd$nGenesDetected <- colSums(assays(sceAllCells)$counts > 3)
 ```
 
-```{r picard plot, echo=FALSE, fig.width=24, fig.height=8}
+```{r picard plot, echo=FALSE, fig.width=20, fig.height=6}
 plateMatrix <- plateStatistics(cd, colname=c("PF_READS", "nGenesDetected",
                                              "PCT_RIBOSOMAL_BASES"))
 
 plateName <- names(plateMatrix)[1]
 #for(plateName in names(plateMatrix)){
-  
   matrix2Plot <- plateMatrix[[plateName]]$PCT_RIBOSOMAL_BASES
   matrix2Plot[matrix2Plot==0] = min(0.25 * matrix2Plot[matrix2Plot >0],
                                     na.rm = TRUE)
@@ -263,8 +262,6 @@ plateName <- names(plateMatrix)[1]
     layout(xaxis=list(type="log"),
            yaxis=list(type="log"))
   subplot(p1, p2, p3, nrows=1)
-  
-  subplot(p2, p1, p3, nrows=1)
 #}
 
 
