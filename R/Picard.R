@@ -29,10 +29,11 @@ CollectAlignmentSummaryMetrics <- function(inBams, fastaFn,
   metrics <- lapply(outputFns, ezRead.table, comment.char="#", row.names=NULL)
   metrics <- do.call(rbind, metrics)
   metrics <- metrics[ ,!colAlls(is.na(metrics))] ## Remove the NA columns of nameColumns
-  nameColumns <- c("SAMPLE", "LIBRARY", "READ_GROUP")
-  indexName <- intersect(colnames(metrics), nameColumns)
-  rownames(metrics) <- metrics[ ,indexName]
-  metrics[[indexName]] <- NULL
+  rownames(metrics) = names(inBams)
+  # nameColumns <- c("SAMPLE", "LIBRARY", "READ_GROUP")
+  # indexName <- intersect(colnames(metrics), nameColumns)
+  # rownames(metrics) <- metrics[ ,indexName]
+  # metrics[[indexName]] <- NULL
   return(metrics)
 }
 
@@ -105,10 +106,11 @@ CollectRnaSeqMetrics <- function(inBams, gtfFn, featAnnoFn,
   metrics <- lapply(outputFns, ezRead.table, comment.char="#", row.names=NULL)
   metrics <- do.call(rbind, metrics)
   metrics <- metrics[ ,!colAlls(is.na(metrics))] ## Remove the NA columns of nameColumns
-  nameColumns <- c("SAMPLE", "LIBRARY", "READ_GROUP")
-  indexName <- intersect(colnames(metrics), nameColumns)
-  rownames(metrics) <- metrics[ ,indexName]
-  metrics[[indexName]] <- NULL
+  rownames(metrics) = names(inBams)
+  # nameColumns <- c("SAMPLE", "LIBRARY", "READ_GROUP")
+  # indexName <- intersect(colnames(metrics), nameColumns)
+  # rownames(metrics) <- metrics[ ,indexName]
+  # metrics[[indexName]] <- NULL
   
   # 
   # writeLines(head(metricsAll, breakLine-2), con=outputFn1)
@@ -148,10 +150,11 @@ DuplicationMetrics <- function(inBams, mc.cores=ezThreads()){
   
   metrics <- lapply(outputFns, ezRead.table, comment.char="#", row.names=NULL)
   metrics <- do.call(rbind, metrics)
-  metrics <- metrics[ ,!colAlls(is.na(metrics))] ## Remove the NA columns of nameColumns
-  nameColumns <- c("SAMPLE", "LIBRARY", "READ_GROUP")
-  indexName <- intersect(colnames(metrics), nameColumns)
-  rownames(metrics) <- metrics[ ,indexName]
-  metrics[[indexName]] <- NULL
+  rownames(metrics) = names(inBams)
+  # metrics <- metrics[ ,!colAlls(is.na(metrics))] ## Remove the NA columns of nameColumns
+  # nameColumns <- c("SAMPLE", "LIBRARY", "READ_GROUP")
+  # indexName <- intersect(colnames(metrics), nameColumns)
+  # rownames(metrics) <- metrics[ ,indexName]
+  # metrics[[indexName]] <- NULL
   return(metrics)
 }
