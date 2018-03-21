@@ -512,7 +512,7 @@ heatmapPlate <- function(x, title="unnamed", center=TRUE, log10=TRUE, ...){
                    hoverinfo="text", 
                    text=matrix(paste0("10^", format(x, digits=3), "=", 
                                       10^x), ncol=ncol(x)),
-                   width = 500*(1 + sqrt(5))/2, height = 500,
+                   #width = 500*(1 + sqrt(5))/2, height = 500,
                    ...)
     }else{
       p <- plot_ly(z=x, x=colnames(x),
@@ -520,7 +520,8 @@ heatmapPlate <- function(x, title="unnamed", center=TRUE, log10=TRUE, ...){
                    hoverinfo="text", 
                    text=matrix(paste0("10^", format(x, digits=3), "=", 
                                       10^x), ncol=ncol(x)),
-                   width = 500*(1 + sqrt(5))/2, height = 500, ...)
+                   #width = 500*(1 + sqrt(5))/2, height = 500, 
+                   ...)
     }
   }else{
     if(isTRUE(center)){
@@ -528,11 +529,13 @@ heatmapPlate <- function(x, title="unnamed", center=TRUE, log10=TRUE, ...){
       p <- plot_ly(z=x, x=colnames(x),
                    y=rownames(x), type="heatmap",
                    zmin=medianX/2, zmax=medianX*2,
-                   width = 500*(1 + sqrt(5))/2, height = 500, ...)
+                   #width = 500*(1 + sqrt(5))/2, height = 500, 
+                   ...)
     }else{
       p <- plot_ly(z=x, x=colnames(x),
                    y=rownames(x), type="heatmap",
-                   width = 500*(1 + sqrt(5))/2, height = 500, ...)
+                   #width = 500*(1 + sqrt(5))/2, height = 500, 
+                   ...)
     }
   }
   
