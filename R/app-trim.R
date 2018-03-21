@@ -32,6 +32,10 @@
 ##' @return Returns the output after trimming as an object of the class EzDataset.
 ezMethodTrim = function(input=NA, output=NA, param=NA){
   
+  if (any(grepl("bam$", input$getFullPaths("Read1")))){
+    stop("can not process unmapped bam as input")
+  }
+  
   ## if output is not an EzDataset, set it!
   if (!is(output, "EzDataset")){
     output = input$copy()
