@@ -99,25 +99,25 @@ dupBam <- function(inBam, outBam, operation=c("mark", "remove"),
   }else{
     setEnvironments("picard")
     tempBam <- tempfile(pattern="tempBam", tmpdir=".", fileext = ".bam")
-    ezSortIndexBam(inBam=inBam, bam=tempBam, removeBam=FALSE,
-                   method="picard")
+    #ezSortIndexBam(inBam=inBam, bam=tempBam, removeBam=FALSE,
+    #               method="picard")
     
     metricFn <- tempfile()
     tempMarkedBam <- tempfile(pattern="tempMarkedBam", tmpdir=".",
                               fileext = ".bam")
     cmd <- paste("java -Djava.io.tmpdir=. -jar", 
                  Sys.getenv("Picard_jar"), "MarkDuplicates",
-                 paste0("I=", tempBam),
-                 paste0("O=", tempMarkedBam),
+                 paste0("I=", inBam),
+                 paste0("O=", outBam),
                  paste0("M=", metricFn),
                  paste0("REMOVE_DUPLICATES=", 
                         ifelse(operation=="mark", "false", "true")),
                  "> /dev/null")
     ezSystem(cmd)
-    file.remove(c(tempBam, paste0(tempBam, ".bai")))
+    #file.remove(c(tempBam, paste0(tempBam, ".bai")))
     
-    ezSortIndexBam(inBam=tempMarkedBam, bam=outBam, removeBam=TRUE,
-                   method="picard")
+    #ezSortIndexBam(inBam=tempMarkedBam, bam=outBam, removeBam=TRUE)
+    ezSystem(paste("samtools", "index", outBam))
   }
   
   invisible(outBam)
