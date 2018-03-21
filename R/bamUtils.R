@@ -192,6 +192,7 @@ splitBamByRG <- function(inBam, mc.cores=ezThreads()){
   
   bamFns <- paste0(readGroupNames, ".bam")
   file.rename(from=readGroupNames, to=bamFns)
+  names(bamFns) = readGroupNames
   
   return(bamFns)
 }
