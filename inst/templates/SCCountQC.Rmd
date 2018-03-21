@@ -202,7 +202,7 @@ datatable(data.frame(metricsDT, check.names = FALSE), filter = 'top',
           caption="scRNASeq QC Metrics")
 ```
 
-```{r 5 prime bias, echo=FALSE}
+```{r 5 prime bias, echo=FALSE, eval=FALSE}
 x <- list(
   title = "Prime bias"
 )
@@ -232,41 +232,62 @@ cd$nGenesDetected <- colSums(assays(sceAllCells)$counts > 3)
 ```
 
 ```{r picard plot, echo=FALSE, fig.width=20, fig.height=6}
-plateMatrix <- plateStatistics(cd, colname=c("PF_READS", "nGenesDetected",
-                                             "PCT_RIBOSOMAL_BASES"))
+plateMatrix <- plateStatistics(cd, 
+                               colname=c("PF_READS", "nGenesDetected",
+                                         "PCT_RIBOSOMAL_BASES", "PF_READS_ALIGNED",
+                                         "PF_MISMATCH_RATE", "PCT_ADAPTER",
+                                         "PCT_MRNA_BASES", "MEDIAN_CV_COVERAGE",
+                                         "MEDIAN_5PRIME_BIAS", "MEDIAN_3PRIME_BIAS",
+                                         "PERCENT_DUPLICATION"))
 
 plateName <- names(plateMatrix)[1]
-#for(plateName in names(plateMatrix)){
-  matrix2Plot <- plateMatrix[[plateName]]$PCT_RIBOSOMAL_BASES
-  matrix2Plot[matrix2Plot==0] = min(0.25 * matrix2Plot[matrix2Plot >0],
-                                    na.rm = TRUE)
-  matrix2Plot <- log10(matrix2Plot)
-  med_matrix2Plot <- median(matrix2Plot, na.rm=TRUE)
-  matrix2Plot[matrix2Plot > med_matrix2Plot+log10(2)] <- med_matrix2Plot+log10(2)
-  matrix2Plot[matrix2Plot < med_matrix2Plot-log10(2)] <- med_matrix2Plot-log10(2)
+l <- htmltools::tagList()
+for(plateName in names(plateMatrix)){
+  for(colname in setdiff(names(plateMatrix[[plateName]]), c("PF_READS", "nGenesDetected"))){
+    matrix2Plot <- plateMatrix[[plateName]][[colname]]
+    matrix2Plot[matrix2Plot==0] = min(0.25 * matrix2Plot[matrix2Plot >0],
+                                      na.rm = TRUE)
+    matrix2Plot <- log10(matrix2Plot)
+    med_matrix2Plot <- median(matrix2Plot, na.rm=TRUE)
+    matrix2Plot[matrix2Plot > med_matrix2Plot+log10(2)] <- med_matrix2Plot+log10(2)
+    matrix2Plot[matrix2Plot < med_matrix2Plot-log10(2)] <- med_matrix2Plot-log10(2)
   
-  p1 <- heatmapPlate(matrix2Plot, log10 = FALSE, center = FALSE, title=plateName,
-                     colors="RdYlGn")
-  cd2 <- data.frame(PF_READS=c(plateMatrix[[plateName]]$PF_READS),
-                    nGenesDetected=c(plateMatrix[[plateName]]$nGenesDetected),
-                    metric=c(matrix2Plot),
-                    metricOriginal=c(plateMatrix[[plateName]]$PCT_RIBOSOMAL_BASES))
-  p2 <- plot_ly(data = cd2, x = ~PF_READS, y = ~nGenesDetected, color = ~metric,
-                type="scatter", mode = 'markers', colors="RdYlGn"
-                ) %>%
-    layout(xaxis=list(type="log"),
-           yaxis=list(type="log"))
-  p3 <- plot_ly(data = cd2, x = ~PF_READS, y = ~metricOriginal, color = ~metric,
-                type="scatter", mode = 'markers', colors="RdYlGn"
-                ) %>%
-    layout(xaxis=list(type="log"),
-           yaxis=list(type="log"))
-  subplot(p1, p2, p3, nrows=1)
-#}
-
-
-
-
+    p1 <- heatmapPlate(matrix2Plot, log10 = FALSE, center = FALSE,
+                       title=paste(plateName, colname, sep=": "), 
+                       colors="RdYlGn")
+    cd2 <- data.frame(PF_READS=c(plateMatrix[[plateName]]$PF_READS),
+                      nGenesDetected=c(plateMatrix[[plateName]]$nGenesDetected),
+                      metric=c(matrix2Plot),
+                      metricOriginal=c(plateMatrix[[plateName]][[colname]])
+                      )
+    if(colname == "PF_READS_ALIGNED"){
+      cd2 <- transform(cd2, nGenesDetected=nGenesDetected/PF_READS)
+    }
+    if(colname %in% c("PF_MISMATCH_RATE", "PCT_ADAPTER", "MEDIAN_5PRIME_BIAS",
+                      "MEDIAN_3PRIME_BIAS", "PERCENT_DUPLICATION")){
+      p2 <- plot_ly(data = cd2, x = ~PF_READS, y = ~nGenesDetected, 
+                  color = ~metric, type="scatter", mode = 'markers', 
+                  colors="RdYlGn") %>% 
+              layout(xaxis=list(type="log"), 
+                     yaxis=list(title="# of Genes Detected"))
+    }else{
+      p2 <- plot_ly(data = cd2, x = ~PF_READS, y = ~nGenesDetected, 
+                  color = ~metric, type="scatter", mode = 'markers', 
+                  colors="RdYlGn") %>%
+              layout(xaxis=list(type="log"),
+                     yaxis=list(type="log", title="# of Genes Detected"))
+    }
+    
+    p3 <- plot_ly(data = cd2, x = ~PF_READS, y = ~metricOriginal,
+                  color = ~metric, type="scatter", mode = 'markers',
+                  colors="RdYlGn") %>%
+            layout(xaxis=list(type="log"),
+                   yaxis=list(type="log", title=colname))
+    l[[paste(plateName, colname, sep=": ")]] <- 
+      as_widget(subplot(p1, p2, p3, nrows=1, titleX=TRUE, titleY=TRUE))
+  }
+}
+l
 ```
 
 ### SessionInfo
