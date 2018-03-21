@@ -19,7 +19,7 @@ require(ezRun)
 require(DT)
 
 # debug
-# sce <- readRDS("/export/local/scratch/gtan/p2497-SCCountQC/20171222.A-SiCSeq_SCs_P5_SCCountQC/sce.rds")
+sce <- readRDS("/export/local/scratch/gtan/p2497-SCCountQC/20171222.A-SiCSeq_SCs_P5_SCCountQC/sce.rds")
 
 sceAllCells <- sce
 
@@ -224,6 +224,42 @@ p2
 
 ```
 
+### Picard Metrics
+
+```{r picard setup, echo=FALSE}
+cd <- data.frame(colData(sceAllCells), check.names = FALSE)
+cd$nGenesDetected <- colSums(assays(sceAllCells)$counts > 3)
+```
+
+```{r picard plot, echo=FALSE}
+plateMatrix <- plateStatistics(cd, colname="PCT_RIBOSOMAL_BASES")
+
+plateName <- names(plateMatrix)[1]
+for(plateName in names(plateMatrix)){
+  
+  matrix2Plot <- plateMatrix[[plateName]]$PCT_RIBOSOMAL_BASES
+  matrix2Plot[matrix2Plot==0] = min(0.25 * matrix2Plot[matrix2Plot >0],
+                                    na.rm = TRUE)
+  matrix2Plot <- log10(matrix2Plot)
+  med_matrix2Plot <- median(matrix2Plot, na.rm=TRUE)
+  matrix2Plot[matrix2Plot > med_matrix2Plot+log10(2)] <- med_matrix2Plot+log10(2)
+  matrix2Plot[matrix2Plot < med_matrix2Plot-log10(2)] <- med_matrix2Plot-log10(2)
+  
+  vals <- unique(scales::rescale(c(matrix2Plot)))
+  o <- order(vals, decreasing = FALSE)
+  cols <- scales::col_numeric("RdYlGn", domain = NULL)(vals)
+  colz <- setNames(data.frame(vals[o], cols[o]),
+                   NULL)
+
+  heatmapPlate(matrix2Plot, log10 = FALSE, center = FALSE, title=plateName,
+               colorscale=colz)
+  
+}
+
+
+plot(cd$PF_READS, cd$nGenesDetected, log="xy") ### with points colored by the same color as in the heatmap
+plot(cd$PF_READS, cd$PCT_RIBOSOMAL_BASES, log="xy")
+```
 
 ### SessionInfo
 ```{r, echo=FALSE}
