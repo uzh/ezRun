@@ -3,7 +3,7 @@
 require(ezRun)
 require(stringr)
 
-sce = readRDS("~/tmp/sce.rds")
+sce = readRDS("/export/local/scratch/gtan/p2497-SCCountQC/20171222.A-SiCSeq_SCs_P5_SCCountQC/sce.rds")
 colData(sce)$nGenesDetected = colSums(assays(sce)$counts > 3)
 cd = colData(sce)
 
