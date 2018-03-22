@@ -244,17 +244,28 @@ plateName <- names(plateMatrix)[1]
 l <- htmltools::tagList()
 for(plateName in names(plateMatrix)){
   for(colname in setdiff(names(plateMatrix[[plateName]]), c("PF_READS", "nGenesDetected"))){
-    matrix2Plot <- plateMatrix[[plateName]][[colname]]
+    matrix2PlotOrigin <- matrix2Plot <- plateMatrix[[plateName]][[colname]]
     matrix2Plot[matrix2Plot==0] = min(0.25 * matrix2Plot[matrix2Plot >0],
                                       na.rm = TRUE)
-    matrix2Plot <- log10(matrix2Plot)
-    med_matrix2Plot <- median(matrix2Plot, na.rm=TRUE)
-    matrix2Plot[matrix2Plot > med_matrix2Plot+log10(2)] <- med_matrix2Plot+log10(2)
-    matrix2Plot[matrix2Plot < med_matrix2Plot-log10(2)] <- med_matrix2Plot-log10(2)
-  
-    p1 <- heatmapPlate(matrix2Plot, log10 = FALSE, center = FALSE,
+    if(colname %in% c("PF_MISMATCH_RATE", "PCT_ADAPTER", "MEDIAN_5PRIME_BIAS",
+                      "MEDIAN_3PRIME_BIAS", "PERCENT_DUPLICATION")){
+      ## non-log scale
+      med_matrix2Plot <- median(matrix2Plot, na.rm=TRUE)
+      matrix2Plot[matrix2Plot > 2*med_matrix2Plot] <- 2*med_matrix2Plot
+      matrix2Plot[matrix2Plot < 0] <- 0
+      p1 <- heatmapPlate(matrix2PlotOrigin, log10 = FALSE, center = TRUE,
                        title=paste(plateName, colname, sep=": "), 
                        colors="RdYlGn")
+    }else{
+      matrix2Plot <- log10(matrix2Plot)
+      med_matrix2Plot <- median(matrix2Plot, na.rm=TRUE)
+      matrix2Plot[matrix2Plot > med_matrix2Plot+log10(2)] <- med_matrix2Plot+log10(2)
+      matrix2Plot[matrix2Plot < med_matrix2Plot-log10(2)] <- med_matrix2Plot-log10(2)
+      p1 <- heatmapPlate(matrix2PlotOrigin, log10=TRUE, center = TRUE,
+                       title=paste(plateName, colname, sep=": "), 
+                       colors="RdYlGn")
+    }
+    
     cd2 <- data.frame(PF_READS=c(plateMatrix[[plateName]]$PF_READS),
                       nGenesDetected=c(plateMatrix[[plateName]]$nGenesDetected),
                       metric=c(matrix2Plot),
@@ -266,8 +277,8 @@ for(plateName in names(plateMatrix)){
     if(colname %in% c("PF_MISMATCH_RATE", "PCT_ADAPTER", "MEDIAN_5PRIME_BIAS",
                       "MEDIAN_3PRIME_BIAS", "PERCENT_DUPLICATION")){
       p2 <- plot_ly(data = cd2, x = ~PF_READS, y = ~nGenesDetected, 
-                  color = ~metric, type="scatter", mode = 'markers', 
-                  colors="RdYlGn") %>% 
+                    color = ~metric, type="scatter", mode = 'markers', 
+                    colors="RdYlGn") %>% 
               layout(xaxis=list(type="log"), 
                      yaxis=list(title="# of Genes Detected"))
     }else{
