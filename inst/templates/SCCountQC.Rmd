@@ -202,7 +202,7 @@ datatable(data.frame(metricsDT, check.names = FALSE), filter = 'top',
           caption="scRNASeq QC Metrics")
 ```
 
-```{r 5 prime bias, echo=FALSE}
+```{r 5 prime bias, echo=FALSE, eval=FALSE}
 x <- list(
   title = "Prime bias"
 )
@@ -224,6 +224,111 @@ p2
 
 ```
 
+### Picard Metrics
+
+```{r picard setup, echo=FALSE}
+cd <- data.frame(colData(sceAllCells), check.names = FALSE)
+cd$nGenesDetected <- colSums(assays(sceAllCells)$counts > 3)
+```
+
+```{r picard plot, echo=FALSE, fig.width=20, fig.height=6}
+plateMatrix <- plateStatistics(cd, 
+                               colname=c("PF_READS", "nGenesDetected",
+                                         "PCT_RIBOSOMAL_BASES", "PF_READS_ALIGNED",
+                                         "PF_MISMATCH_RATE", "PCT_ADAPTER",
+                                         "PCT_MRNA_BASES", "MEDIAN_CV_COVERAGE",
+                                         "MEDIAN_5PRIME_BIAS", "MEDIAN_3PRIME_BIAS",
+                                         "PERCENT_DUPLICATION"))
+plateName <- names(plateMatrix)[1]
+l <- htmltools::tagList()
+for(plateName in names(plateMatrix)){
+  for(colname in setdiff(names(plateMatrix[[plateName]]), 
+                         c("PF_READS", "nGenesDetected"))){
+    matrix2PlotOrigin <- matrix2Plot <- plateMatrix[[plateName]][[colname]]
+    if(colname %in% c("PF_MISMATCH_RATE", "PCT_ADAPTER", "MEDIAN_5PRIME_BIAS",
+                      "MEDIAN_3PRIME_BIAS", "PERCENT_DUPLICATION")){
+      ## non-log scale
+      med_matrix2Plot <- median(matrix2Plot, na.rm=TRUE)
+      range_colour <- sort(c(0, 2*med_matrix2Plot)) ## in case for negative values
+      p1 <- heatmapPlate(matrix2PlotOrigin, log10 = FALSE, center = TRUE,
+                         title=paste(plateName, colname, sep=": "),
+                         colors="RdYlGn")
+    }else{
+      ## log-scale
+      stopifnot(all(matrix2Plot >= 0)) ## It has to be positive to log
+      matrix2Plot[matrix2Plot==0] <- min(0.25 * matrix2Plot[matrix2Plot >0],
+                                         na.rm = TRUE)
+      matrix2Plot <- log10(matrix2Plot)
+      med_matrix2Plot <- median(matrix2Plot, na.rm=TRUE)
+      range_colour <- c(med_matrix2Plot-log10(2), med_matrix2Plot+log10(2))
+      p1 <- heatmapPlate(matrix2PlotOrigin, log10=TRUE, center = TRUE,
+                       title=paste(plateName, colname, sep=": "), 
+                       colors="RdYlGn")
+    }
+    
+    ## To make the scatter plot have the same colourscale as heatmap
+    ## There are two options:
+    ## 1. fake the data into cd2 with minimal and maximal colourrange.
+    ##    Certainly it's not elegent.
+    # cd2 <- data.frame(PF_READS=c(-1, -1, c(plateMatrix[[plateName]]$PF_READS)),
+    #                   nGenesDetected=c(-1,-1, c(plateMatrix[[plateName]]$nGenesDetected)),
+    #                   metric=c(range_colour, c(matrix2Plot)),
+    #                   metricOriginal=c(range_colour, c(plateMatrix[[plateName]][[colname]]))
+    #                   )
+    ## color by metric, plot value by metricOriginal
+    ## 2. use the cmin and cmax in scatter plot. The colour of points is right,
+    ##   but the color bar is wrong.
+    ##   Anyway we only use the color bar from heatmap.
+    ## I use option 2.
+    cd2 <- data.frame(PF_READS=c(plateMatrix[[plateName]]$PF_READS),
+                      nGenesDetected=c(plateMatrix[[plateName]]$nGenesDetected),
+                      matrix2Plot=c(matrix2Plot),
+                      matrix2PlotOrigin=c(matrix2PlotOrigin),
+                      position=apply(expand.grid(rownames(matrix2PlotOrigin),
+                                                 colnames(matrix2PlotOrigin)), 
+                                     1, paste, collapse=": ")
+                      )
+    if(colname == "PF_READS_ALIGNED"){
+      cd2 <- transform(cd2, nGenesDetected=nGenesDetected/PF_READS)
+    }
+    if(colname %in% c("PF_MISMATCH_RATE", "PCT_ADAPTER", "MEDIAN_5PRIME_BIAS",
+                      "MEDIAN_3PRIME_BIAS", "PERCENT_DUPLICATION")){
+      p2 <- plot_ly(data = cd2, x = ~PF_READS, y = ~nGenesDetected,
+                    color = ~matrix2Plot, text=~position,
+                    type="scatter", mode = 'markers', colors="RdYlGn",
+                    marker=list(cmin=range_colour[1], cmax=range_colour[2])) %>% 
+              layout(xaxis=list(type="log"),
+                     yaxis=list(title="# of Genes Detected")) %>%
+              hide_colorbar() 
+      p3 <- plot_ly(data = cd2, x = ~PF_READS, y = ~matrix2PlotOrigin,
+                  color = ~matrix2Plot, text=~position,
+                  type="scatter", mode = 'markers', colors="RdYlGn",
+                  marker=list(cmin=range_colour[1], cmax=range_colour[2])) %>%
+            layout(xaxis=list(type="log"), yaxis=list(title=colname))%>%
+            hide_colorbar()
+    }else{
+      p2 <- plot_ly(data = cd2, x = ~PF_READS, y = ~nGenesDetected, 
+                  color = ~matrix2Plot, text=~position,
+                  type="scatter", mode = 'markers', colors="RdYlGn",
+                  marker=list(cmin=range_colour[1], cmax=range_colour[2])) %>%
+              layout(xaxis=list(type="log"),
+                     yaxis=list(type="log", title="# of Genes Detected")) %>%
+              hide_colorbar()
+      p3 <- plot_ly(data = cd2, x = ~PF_READS, y = ~matrix2PlotOrigin,
+                  color = ~matrix2Plot, text=~position,
+                  type="scatter", mode = 'markers', colors="RdYlGn", 
+                  marker=list(cmin=range_colour[1], cmax=range_colour[2])) %>%
+            layout(xaxis=list(type="log"),
+                   yaxis=list(type="log", title=colname)) %>%
+        hide_colorbar()
+    }
+    l[[paste(plateName, colname, sep=": ")]] <- 
+      as_widget(subplot(p1, p2, p3, nrows=1, titleX=TRUE, titleY=TRUE) %>%
+                    layout(showlegend = FALSE))
+  }
+}
+l
+```
 
 ### SessionInfo
 ```{r, echo=FALSE}

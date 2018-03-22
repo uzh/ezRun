@@ -31,7 +31,7 @@ ezBamSeqLengths = function(bamFile){
 }
 
 ezSortIndexBam = function(inBam, bam, ram=2, removeBam=TRUE, cores=2,
-                          method=c("sambamba", "samtools", "picard")){
+                          method=c("samtools", "sambamba", "picard")){
   method <- match.arg(method)
   
   maxMem = paste0(as.integer(floor(ram * 0.7/cores*1000)), "M") 
