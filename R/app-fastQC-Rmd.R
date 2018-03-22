@@ -505,37 +505,26 @@ heatmapPlate <- function(x, title="unnamed", center=TRUE, log10=TRUE, ...){
     x <- log10(x)
     if(isTRUE(center)){
       medianX <- median(x, na.rm = TRUE)
-      p <- plot_ly(z=x, x=colnames(x),
-                   y=rownames(x), type="heatmap",
-                   zmin=medianX-log10(2),
-                   zmax=medianX+log10(2),
+      p <- plot_ly(z=x, x=colnames(x), y=rownames(x), type="heatmap",
+                   zmin=medianX-log10(2), zmax=medianX+log10(2),
                    hoverinfo="text", 
                    text=matrix(paste0("10^", format(x, digits=3), "=", 
                                       10^x), ncol=ncol(x)),
-                   #width = 500*(1 + sqrt(5))/2, height = 500,
                    ...)
     }else{
-      p <- plot_ly(z=x, x=colnames(x),
-                   y=rownames(x), type="heatmap",
+      p <- plot_ly(z=x, x=colnames(x), y=rownames(x), type="heatmap",
                    hoverinfo="text", 
                    text=matrix(paste0("10^", format(x, digits=3), "=", 
                                       10^x), ncol=ncol(x)),
-                   #width = 500*(1 + sqrt(5))/2, height = 500, 
                    ...)
     }
   }else{
     if(isTRUE(center)){
       medianX <- median(x, na.rm = TRUE)
-      p <- plot_ly(z=x, x=colnames(x),
-                   y=rownames(x), type="heatmap",
-                   zmin=medianX/2, zmax=medianX*2,
-                   #width = 500*(1 + sqrt(5))/2, height = 500, 
-                   ...)
+      p <- plot_ly(z=x, x=colnames(x), y=rownames(x), type="heatmap",
+                   zmin=0, zmax=medianX*2, ...)
     }else{
-      p <- plot_ly(z=x, x=colnames(x),
-                   y=rownames(x), type="heatmap",
-                   #width = 500*(1 + sqrt(5))/2, height = 500, 
-                   ...)
+      p <- plot_ly(z=x, x=colnames(x), y=rownames(x), type="heatmap", ...)
     }
   }
   
