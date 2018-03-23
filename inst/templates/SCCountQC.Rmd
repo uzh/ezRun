@@ -135,7 +135,10 @@ if(!is.na(plateMatrix)){
     for(colname in names(plateMatrix[[plateName]])){
       p <- heatmapPlate(plateMatrix[[plateName]][[colname]],
                         title=paste(plateName, colname, sep=": "),
-                        center=TRUE, log10=TRUE)
+                        center=TRUE, log10=TRUE,
+                        width = 500*(1 + sqrt(5))/2, height = 500)
+      ## tagList ignores chunk optiosn for figrue size.
+      ## control the size in plotly.
       l[[paste(plateName, colname, sep=": ")]] <- as_widget(p)
     }
   }
@@ -226,6 +229,9 @@ p2
 ```
 
 ### Picard Metrics
+A overview of scRNA-Seq QC metrics from Picard over the plate. 
+For the detais of the metrics, please refer to 
+https://broadinstitute.github.io/picard/picard-metric-definitions.html
 
 ```{r picard setup, echo=FALSE}
 cd <- data.frame(colData(sceAllCells), check.names = FALSE)
