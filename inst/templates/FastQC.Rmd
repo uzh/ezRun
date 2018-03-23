@@ -132,7 +132,7 @@ Otherwise, the platelayout is not shown.
 The heatmap values are in $log10$ scale.
 The colorScale ranges from half of median value to twice of median value.
 
-```{r plate layout, echo=FALSE, message=FALSE, warning=FALSE}
+```{r plate layout, fig.width=8, fig.height=5, echo=FALSE, message=FALSE, warning=FALSE}
 plateMatrix <- plateStatistics(dataset)
 if(!is.na(plateMatrix)){
   l <- htmltools::tagList()
@@ -141,7 +141,8 @@ if(!is.na(plateMatrix)){
     for(colname in names(plateMatrix[[plateName]])){
       p <- heatmapPlate(plateMatrix[[plateName]][[colname]], 
                         title=paste(plateName, colname, sep=": "),
-                        center=TRUE, log10=TRUE)
+                        center=TRUE, log10=TRUE,
+                        width = 500*(1 + sqrt(5))/2, height = 500)
       l[[paste(plateName, colname, sep=": ")]] <- as_widget(p)
     }
   }

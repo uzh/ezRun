@@ -17,6 +17,7 @@ require(plotly)
 require(scater)
 require(ezRun)
 require(DT)
+require(htmltools)
 
 # debug
 # sce <- readRDS("/export/local/scratch/gtan/p2497-SCCountQC/20171222.A-SiCSeq_SCs_P5_SCCountQC/sce.rds")
@@ -74,7 +75,7 @@ datasetAllCells <- data.frame(colData(sceAllCells),
 
 Interactive plot showing the read counts vs the number of expressed genes for all cells. Each dot is a cell.
 
-```{r, fig.width=8, fig.height=5, echo=FALSE, message=FALSE, warning=FALSE}
+```{r genes detected in cells, fig.width=8, fig.height=5, echo=FALSE, message=FALSE, warning=FALSE}
 xax <- list(
   title = "Read counts (million)",
   zeroline = FALSE
@@ -93,7 +94,7 @@ plot_ly(data=cell_info, x=~lib_size, y=~expr_genes,
 
 Histograms of read counts, number of expressed genes and proportion of reads assigned to mitochondrial genes for all cells
 
-```{r, fig.width=10, fig.height=5, echo=FALSE, message=FALSE, warning=FALSE}
+```{r QC metrics on the cells, fig.width=10, fig.height=5, echo=FALSE, message=FALSE, warning=FALSE}
 par(mfrow=c(1,3), mar=c(5.1, 4.1, 0.1, 0.1))
 hist(cell_info$lib_size, xlab="Read counts (million)", main="",
      breaks=20, col="deepskyblue3", ylab="Number of cells")
@@ -107,7 +108,7 @@ hist(cell_info$perc_mito, xlab="Mitochondrial proportion (%)",
 
 Percentage of total counts assigned to the top 50 most highly-abundant genes. For each gene, each bar represents the percentage assigned to that gene for a single cell, while the circle represents the average across all cells.
 
-```{r, fig.width=6, fig.height=6, echo=FALSE, message=FALSE, warning=FALSE}
+```{r top 50 genes, fig.width=6, fig.height=6, echo=FALSE, message=FALSE, warning=FALSE}
 plotQC(sceFixName, type = "highest-expression", n=50)
 ```
 
@@ -115,7 +116,7 @@ plotQC(sceFixName, type = "highest-expression", n=50)
 
 Number of cells with expression for a gene against mean expression level.
 
-```{r, fig.width=8, fig.height=6, echo=FALSE, message=FALSE, warning=FALSE}
+```{r expression metrics, fig.width=8, fig.height=6, echo=FALSE, message=FALSE, warning=FALSE}
 plotQC(sceFixName, type = "exprs-freq-vs-mean")
 ```
 
@@ -134,7 +135,10 @@ if(!is.na(plateMatrix)){
     for(colname in names(plateMatrix[[plateName]])){
       p <- heatmapPlate(plateMatrix[[plateName]][[colname]],
                         title=paste(plateName, colname, sep=": "),
-                        center=TRUE, log10=TRUE)
+                        center=TRUE, log10=TRUE,
+                        width = 500*(1 + sqrt(5))/2, height = 500)
+      ## tagList ignores chunk optiosn for figrue size.
+      ## control the size in plotly.
       l[[paste(plateName, colname, sep=": ")]] <- as_widget(p)
     }
   }
@@ -147,8 +151,7 @@ if(!is.na(plateMatrix)){
 
 ```{r gene detection rates, fig.width=8, fig.height=8, echo=FALSE, message=FALSE, warning=FALSE}
 scePC = sce
-rowData(scePC) = NULL #rowData(sce)[ , c("gene_name", "type", "biotypes", "gc", "width")]
-#rownames(scePC) = rownames(sce)
+rowData(scePC) = NULL
 scePC = scePC[seqAnno[rownames(scePC), "biotypes"] == "protein_coding", ]
 widthOffset = 200
 logWidthBreaks = c(9.5, 10.5, 11.5)
@@ -161,7 +164,6 @@ lwClasses = ezCut(logWidth, breaks = logWidthBreaks)
 gcClasses = ezCut(seqAnno[rownames(scePC), "gc"], gcBreaks)
 geneBins = tapply((1:nrow(scePC)), list(logWidth=lwClasses, gc=gcClasses), identity)
 
-  
 fracPresentByGene = rowMeans(assays(scePC)$counts > param$minReadsPerGene)
 fracPresentBinned = ezMatrix(0, rows=rownames(geneBins), cols=colnames(geneBins))
 for (i in 1:length(geneBins)){
@@ -225,6 +227,9 @@ p2
 ```
 
 ### Picard Metrics
+A overview of scRNA-Seq QC metrics from Picard over the plate. 
+For the detais of the metrics, please refer to 
+https://broadinstitute.github.io/picard/picard-metric-definitions.html
 
 ```{r picard setup, echo=FALSE}
 cd <- data.frame(colData(sceAllCells), check.names = FALSE)
@@ -239,14 +244,15 @@ plateMatrix <- plateStatistics(cd,
                                          "PCT_MRNA_BASES", "MEDIAN_CV_COVERAGE",
                                          "MEDIAN_5PRIME_BIAS", "MEDIAN_3PRIME_BIAS",
                                          "PERCENT_DUPLICATION"))
+metricsNonLog <- c("PF_MISMATCH_RATE", "PCT_ADAPTER", "MEDIAN_5PRIME_BIAS",
+                   "MEDIAN_3PRIME_BIAS", "PERCENT_DUPLICATION")
 plateName <- names(plateMatrix)[1]
 l <- htmltools::tagList()
 for(plateName in names(plateMatrix)){
   for(colname in setdiff(names(plateMatrix[[plateName]]), 
                          c("PF_READS", "nGenesDetected"))){
     matrix2PlotOrigin <- matrix2Plot <- plateMatrix[[plateName]][[colname]]
-    if(colname %in% c("PF_MISMATCH_RATE", "PCT_ADAPTER", "MEDIAN_5PRIME_BIAS",
-                      "MEDIAN_3PRIME_BIAS", "PERCENT_DUPLICATION")){
+    if(colname %in% metricsNonLog){
       ## non-log scale
       med_matrix2Plot <- median(matrix2Plot, na.rm=TRUE)
       range_colour <- sort(c(0, 2*med_matrix2Plot)) ## in case for negative values
@@ -291,36 +297,30 @@ for(plateName in names(plateMatrix)){
     if(colname == "PF_READS_ALIGNED"){
       cd2 <- transform(cd2, nGenesDetected=nGenesDetected/PF_READS)
     }
-    if(colname %in% c("PF_MISMATCH_RATE", "PCT_ADAPTER", "MEDIAN_5PRIME_BIAS",
-                      "MEDIAN_3PRIME_BIAS", "PERCENT_DUPLICATION")){
-      p2 <- plot_ly(data = cd2, x = ~PF_READS, y = ~nGenesDetected,
+    p2 <- plot_ly(data = cd2, x = ~PF_READS, y = ~nGenesDetected,
                     color = ~matrix2Plot, text=~position,
                     type="scatter", mode = 'markers', colors="RdYlGn",
-                    marker=list(cmin=range_colour[1], cmax=range_colour[2])) %>% 
-              layout(xaxis=list(type="log"),
-                     yaxis=list(title="# of Genes Detected")) %>%
-              hide_colorbar() 
-      p3 <- plot_ly(data = cd2, x = ~PF_READS, y = ~matrix2PlotOrigin,
+                    marker=list(cmin=range_colour[1], cmax=range_colour[2])) %>%
+            hide_colorbar() 
+    p3 <- plot_ly(data = cd2, x = ~PF_READS, y = ~matrix2PlotOrigin,
                   color = ~matrix2Plot, text=~position,
                   type="scatter", mode = 'markers', colors="RdYlGn",
                   marker=list(cmin=range_colour[1], cmax=range_colour[2])) %>%
-            layout(xaxis=list(type="log"), yaxis=list(title=colname))%>%
             hide_colorbar()
-    }else{
-      p2 <- plot_ly(data = cd2, x = ~PF_READS, y = ~nGenesDetected, 
-                  color = ~matrix2Plot, text=~position,
-                  type="scatter", mode = 'markers', colors="RdYlGn",
-                  marker=list(cmin=range_colour[1], cmax=range_colour[2])) %>%
+    
+    if(colname %in% metricsNonLog){
+      p2 <- p2 %>%
               layout(xaxis=list(type="log"),
-                     yaxis=list(type="log", title="# of Genes Detected")) %>%
-              hide_colorbar()
-      p3 <- plot_ly(data = cd2, x = ~PF_READS, y = ~matrix2PlotOrigin,
-                  color = ~matrix2Plot, text=~position,
-                  type="scatter", mode = 'markers', colors="RdYlGn", 
-                  marker=list(cmin=range_colour[1], cmax=range_colour[2])) %>%
+                     yaxis=list(title="# of Genes Detected"))
+      p3 <- p3 %>%
+              layout(xaxis=list(type="log"), yaxis=list(title=colname))
+    }else{
+      p2 <- p2 %>%
+              layout(xaxis=list(type="log"),
+                     yaxis=list(type="log", title="# of Genes Detected"))
+      p3 <- p3 %>%
             layout(xaxis=list(type="log"),
-                   yaxis=list(type="log", title=colname)) %>%
-        hide_colorbar()
+                   yaxis=list(type="log", title=colname))
     }
     l[[paste(plateName, colname, sep=": ")]] <- 
       as_widget(subplot(p1, p2, p3, nrows=1, titleX=TRUE, titleY=TRUE) %>%
