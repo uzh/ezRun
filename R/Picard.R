@@ -15,7 +15,7 @@ CollectAlignmentSummaryMetrics <- function(inBams, fastaFn,
   
   outputFns <- tempfile(pattern=inBams,
                        fileext=".CollectAlignmentSummaryMetrics")
-  cmd <- paste("java", 
+  cmd <- paste("java -Xmx3G", 
                "-jar", Sys.getenv("Picard_jar"),
                "CollectAlignmentSummaryMetrics",
                paste0("R=", fastaFn),
@@ -81,8 +81,7 @@ CollectRnaSeqMetrics <- function(inBams, gtfFn, featAnnoFn,
   ## CollectRnaSeqMetrics
   outputFns <- tempfile(pattern=inBams,
                         fileext=".CollectRnaSeqMetrics")
-  cmd <- paste("java",
-               "-jar", Sys.getenv("Picard_jar"), 
+  cmd <- paste("java -Xmx3G", "-jar", Sys.getenv("Picard_jar"),
                "CollectRnaSeqMetrics",
                paste0("I=", inBams),
                paste0("O=", outputFns),
@@ -139,8 +138,8 @@ DuplicationMetrics <- function(inBams, mc.cores=ezThreads()){
   on.exit(file.remove(ouputBams), add=TRUE)
   outputFns <- tempfile(pattern=inBams, fileext=".markedDupMetrics")
   
-  cmd <- paste("java -XX:ParallelGCThreads=4 -jar", Sys.getenv("Picard_jar"),
-               "MarkDuplicates",
+  cmd <- paste("java -XX:ParallelGCThreads=4 -Xmx3G -jar",
+               Sys.getenv("Picard_jar"), "MarkDuplicates",
                paste0("I=", inBams),
                paste0("O=", ouputBams),
                paste0("M=", outputFns),
