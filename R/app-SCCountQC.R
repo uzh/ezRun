@@ -31,7 +31,7 @@ ezMethodSCCountQC = function(input=NA, output=NA, param=NA,
   sce <- loadSCCountDataset(input, param)
   
   inBam <- getBamLocally(input$getFullPaths("BAM"))
-  on.exit(file.remove(file.path(reportCwd, c(inBam, paste(inBam, ".bai")))), 
+  on.exit(file.remove(file.path(reportCwd, c(inBam, paste0(inBam, ".bai")))), 
                       add = TRUE)
   
   ## STAR log
@@ -43,7 +43,7 @@ ezMethodSCCountQC = function(input=NA, output=NA, param=NA,
   ## 3' and 5' bias
   minCount <- 20
   minTxLength <- 1e3
-  maxGenes <- 500
+  maxGenes <- 1e3
   maxTxs <- 1e3
   ### Choose the most abundant genes/txs
   if(metadata(sce)$featureLevel == "gene"){
@@ -51,7 +51,8 @@ ezMethodSCCountQC = function(input=NA, output=NA, param=NA,
                              maxGenes))
     #useGeneIDs <- rownames(sce)[(rowSums(assays(sce)$counts > minCount) >= 1)]
     useTxIDs <- strsplit(rowData(sce)$transcript_id[rownames(sce) %in% useGeneIDs], "; ")
-    useTxIDs <- unlist(useTxIDs)
+    useTxIDs <- sapply(useTxIDs, "[", 1)
+    #useTxIDs <- unlist(useTxIDs)
   }else{
     #useTxIDs <- rownames(sce)[(rowSums(assays(sce)$counts > minCount) >= 1)]
     useTxIDs <- names(head(sort(rowSums(assays(sce)$counts), decreasing=TRUE),
@@ -130,7 +131,7 @@ txEndBias <- function(param, inBam, width=100L, minTxLength=NULL,
   countsAll <- countsAll[rownames(counts5), ]
   
   widthsTx <- getTranscriptGcAndWidth(param)
-  widthsTx <- widthsTx$width[rownames(counts5)]
+  widthsTx <- widthsTx$width[rownames(countsAll)]
   bias5 <- (counts5 / width) / (countsAll / widthsTx)
   bias3 <- (counts3 / width) / (countsAll / widthsTx)
   
