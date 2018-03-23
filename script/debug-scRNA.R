@@ -402,3 +402,70 @@ input[['CellDataset']] = 'p2497/HiSeq4000_20171222_RUN420_o3705_fixedRG/fq_datas
 #debug(ezMethodSingleCellSTAR)
 EzAppSCCounts$new()$run(input=input, output=output, param=param)
 
+
+# p2214 SCCounts from fastqs
+library(ezRun)
+setEnvironments("star")
+setEnvironments("flexbar")
+setEnvironments("trimmomatic")
+setEnvironments("python2")
+setEnvironments("samtools")
+setwd("/export/local/scratch/gtan/p2214-SCCounts")
+param = list()
+param[['cores']] = '4'
+param[['ram']] = '50'
+param[['scratch']] = '500'
+param[['node']] = ''
+param[['process_mode']] = 'SAMPLE'
+param[['refBuild']] = 'Homo_sapiens/Ensembl/GRCh38.p10/Annotation/Release_91-2018-02-26'
+param[['paired']] = 'true'
+param[['strandMode']] = 'both'
+param[['refFeatureFile']] = 'genes.gtf'
+param[['mapMethod']] = 'STAR'
+param[['mapOptions']] = '--outFilterType BySJout --outFilterMatchNmin 30 --outFilterMismatchNmax 10 --outFilterMismatchNoverLmax 0.05 --alignSJDBoverhangMin 1 --alignSJoverhangMin 8 --alignIntronMax 1000000 --alignMatesGapMax 1000000 --outFilterMultimapNmax 50 --chimSegmentMin 15 --chimJunctionOverhangMin 15 --chimScoreMin 15 --chimScoreSeparation 10 --outSAMstrandField intronMotif'
+param[['getChimericJunctions']] = 'false'
+param[['trimAdapter']] = 'true'
+param[['trimLeft']] = '4'
+param[['trimRight']] = '0'
+param[['minTailQuality']] = '10'
+param[['minAvgQuality']] = '20'
+param[['minReadLength']] = '20'
+param[['featureLevel']] = 'gene'
+param[['gtfFeatureType']] = 'exon'
+param[['allowMultiOverlap']] = 'true'
+param[['countPrimaryAlignmentsOnly']] = 'true'
+param[['minFeatureOverlap']] = '10'
+param[['minMapQuality']] = '1'
+param[['keepMultiHits']] = 'true'
+param[['transcriptTypes']] = 'protein_coding,rRNA,tRNA,Mt_rRNA,Mt_tRNA'
+param[['specialOptions']] = ''
+param[['mail']] = 'ge.tan@fgcz.ethz.ch'
+param[['dataRoot']] = '/srv/gstore/projects'
+param[['resultDir']] = 'p2214/SCCountsApp_24762_2018-02-20--21-32-42'
+output = list()
+output[['Name']] = 'plate_2 '
+output[['Species']] = 'Homoe sapiens'
+output[['refBuild']] = 'Homo_sapiens/Ensembl/GRCh38.p10/Annotation/Release_91-2018-02-26'
+output[['paired']] = 'true'
+output[['refFeatureFile']] = 'genes.gtf'
+output[['transcriptTypes']] = 'protein_coding,rRNA,tRNA,Mt_rRNA,Mt_tRNA'
+output[['CellDataset [File]']] = 'p2214/SCCountsApp_24762_2018-02-20--21-32-42/plate_2-dataset.tsv'
+output[['CountMatrix [File]']] = 'p2214/SCCountsApp_24762_2018-02-20--21-32-42/plate_2-counts.txt'
+output[['Stats [File]']] = 'p2497/SCCountsApp_24762_2018-02-20--21-32-42/plate_2-stats.txt'
+output[['CellCyclePhase [File]']] = 'p2497/SCCountsApp_24762_2018-02-20--21-32-42/plate_2-CellCyclePhase.txt'
+output[['BAM [File]']] = 'p2497/SCCountsApp_24762_2018-02-20--21-32-42/plate_2.bam'
+output[['BAI [File]']] = 'p2497/SCCountsApp_24762_2018-02-20--21-32-42/plate_2.bam.bai'
+output[['PreprocessingLog [File]']] = 'p2497/SCCountsApp_24762_2018-02-20--21-32-42/plate_2_preprocessing.log'
+output[['STARLog [File]']] = 'p2497/SCCountsApp_24762_2018-02-20--21-32-42/plate_2_STAR.log'
+input = list()
+input[['Name']] = 'plate_2'
+#input[['Read1']] = 'p2214/HiSeq4000_20171222_RUN420_o3705_fixedRG/20171222.A-SiCSeq_SCs_P5_unmapped.bam'
+#input[['Read1']] = 'p2497/HiSeq4000_20171222_RUN420_o3705_fixedRG/20171222.A-SiCSeq_SCs_P5_subset.bam'
+#input[['Read Count']] = '312016990'
+input[['Species']] = 'Homoe sapiens'
+input[['CellDataset']] = 'p2214/HiSeq4000_20180309_RUN428_o4166/dataset.tsv'
+#input[['CellDataset']] = 'dataset.tsv'
+#debug(ezMethodSingleCellSTAR)
+debug(ezMethodSCCounts)
+EzAppSCCounts$new()$run(input=input, output=output, param=param)
+
