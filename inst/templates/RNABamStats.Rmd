@@ -231,7 +231,7 @@ if (length(resultList[[1]][["genebody_coverage"]]) != 0){ ## TODO this could be 
 
 ```{r countQC, echo=FALSE, message=FALSE, warning=FALSE, results='asis'}
 geneCounts = resultList[[1]][["geneCounts"]]
-if (!is.null(geneCounts)){
+if (!is.null(geneCounts) && !is.null(param$skipCountQc) && !param$skipCountQc){
     counts = ezMatrix(0, rows=names(geneCounts), cols=names(resultList))
     for (i in 1:length(resultList)){
       counts[ ,i] = resultList[[i]][["geneCounts"]][rownames(counts)]
