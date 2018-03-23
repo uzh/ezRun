@@ -214,10 +214,9 @@ plateMatrix <- plateStatistics(cd,
                                          "PF_MISMATCH_RATE", "PCT_ADAPTER",
                                          "PCT_MRNA_BASES", "MEDIAN_CV_COVERAGE",
                                          "MEDIAN_5PRIME_BIAS", "MEDIAN_3PRIME_BIAS",
-                                         "PERCENT_DUPLICATION", "bias5", "bias3"))
+                                         "PERCENT_DUPLICATION"))
 metricsNonLog <- c("PF_MISMATCH_RATE", "PCT_ADAPTER", "MEDIAN_5PRIME_BIAS",
-                   "MEDIAN_3PRIME_BIAS", "PERCENT_DUPLICATION",
-                   "bias5", "bias3")
+                   "MEDIAN_3PRIME_BIAS", "PERCENT_DUPLICATION")
 plateName <- names(plateMatrix)[1]
 l <- htmltools::tagList()
 for(plateName in names(plateMatrix)){

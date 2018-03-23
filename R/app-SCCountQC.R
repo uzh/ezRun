@@ -40,7 +40,7 @@ ezMethodSCCountQC = function(input=NA, output=NA, param=NA,
   rownames(mlog) <- trimws(mlog[,1])
   metadata(sce)$mlog <- mlog
   
-  ## 3' and 5' bias
+  ## 3' and 5' bias: not in use currently
   minCount <- 20
   minTxLength <- 1e3
   maxGenes <- 1e3
@@ -59,10 +59,10 @@ ezMethodSCCountQC = function(input=NA, output=NA, param=NA,
                            maxTxs))
   }
  
-  primeBias <- txEndBias(param, inBam=inBam, minTxLength=minTxLength,
-                         useTxIDs=useTxIDs, maxTxs=maxTxs)
-  colData(sce)$bias5 <- primeBias$bias5[colnames(sce)]
-  colData(sce)$bias3 <- primeBias$bias3[colnames(sce)]
+  #primeBias <- txEndBias(param, inBam=inBam, minTxLength=minTxLength,
+  #                       useTxIDs=useTxIDs, maxTxs=maxTxs)
+  #colData(sce)$bias5 <- primeBias$bias5[colnames(sce)]
+  #colData(sce)$bias3 <- primeBias$bias3[colnames(sce)]
   
   ## Picard metrics
   bamRGFns <- splitBamByRG(inBam, mc.cores=param$cores)
