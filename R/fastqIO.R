@@ -68,7 +68,7 @@ fastqs2bam <- function(fastqFns, fastq2Fns=NULL, readGroupNames=NULL,
     stopifnot(length(fastqFns) == length(readGroupNames))
   }
   
-  cmd <- paste("java -Djava.io.tmpdir=. -jar", 
+  cmd <- paste("java -Xmx4G -Djava.io.tmpdir=. -jar", 
                Sys.getenv("Picard_jar"), "FastqToSam",
                paste0("F1=", fastqFns)
                )
