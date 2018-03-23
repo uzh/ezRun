@@ -17,6 +17,7 @@ require(plotly)
 require(scater)
 require(ezRun)
 require(DT)
+require(htmltools)
 
 # debug
 # sce <- readRDS("/export/local/scratch/gtan/p2497-SCCountQC/20171222.A-SiCSeq_SCs_P5_SCCountQC/sce.rds")
@@ -239,14 +240,15 @@ plateMatrix <- plateStatistics(cd,
                                          "PCT_MRNA_BASES", "MEDIAN_CV_COVERAGE",
                                          "MEDIAN_5PRIME_BIAS", "MEDIAN_3PRIME_BIAS",
                                          "PERCENT_DUPLICATION"))
+metricsNonLog <- c("PF_MISMATCH_RATE", "PCT_ADAPTER", "MEDIAN_5PRIME_BIAS",
+                   "MEDIAN_3PRIME_BIAS", "PERCENT_DUPLICATION")
 plateName <- names(plateMatrix)[1]
 l <- htmltools::tagList()
 for(plateName in names(plateMatrix)){
   for(colname in setdiff(names(plateMatrix[[plateName]]), 
                          c("PF_READS", "nGenesDetected"))){
     matrix2PlotOrigin <- matrix2Plot <- plateMatrix[[plateName]][[colname]]
-    if(colname %in% c("PF_MISMATCH_RATE", "PCT_ADAPTER", "MEDIAN_5PRIME_BIAS",
-                      "MEDIAN_3PRIME_BIAS", "PERCENT_DUPLICATION")){
+    if(colname %in% metricsNonLog){
       ## non-log scale
       med_matrix2Plot <- median(matrix2Plot, na.rm=TRUE)
       range_colour <- sort(c(0, 2*med_matrix2Plot)) ## in case for negative values
@@ -291,36 +293,30 @@ for(plateName in names(plateMatrix)){
     if(colname == "PF_READS_ALIGNED"){
       cd2 <- transform(cd2, nGenesDetected=nGenesDetected/PF_READS)
     }
-    if(colname %in% c("PF_MISMATCH_RATE", "PCT_ADAPTER", "MEDIAN_5PRIME_BIAS",
-                      "MEDIAN_3PRIME_BIAS", "PERCENT_DUPLICATION")){
-      p2 <- plot_ly(data = cd2, x = ~PF_READS, y = ~nGenesDetected,
+    p2 <- plot_ly(data = cd2, x = ~PF_READS, y = ~nGenesDetected,
                     color = ~matrix2Plot, text=~position,
                     type="scatter", mode = 'markers', colors="RdYlGn",
-                    marker=list(cmin=range_colour[1], cmax=range_colour[2])) %>% 
-              layout(xaxis=list(type="log"),
-                     yaxis=list(title="# of Genes Detected")) %>%
-              hide_colorbar() 
-      p3 <- plot_ly(data = cd2, x = ~PF_READS, y = ~matrix2PlotOrigin,
+                    marker=list(cmin=range_colour[1], cmax=range_colour[2])) %>%
+            hide_colorbar() 
+    p3 <- plot_ly(data = cd2, x = ~PF_READS, y = ~matrix2PlotOrigin,
                   color = ~matrix2Plot, text=~position,
                   type="scatter", mode = 'markers', colors="RdYlGn",
                   marker=list(cmin=range_colour[1], cmax=range_colour[2])) %>%
-            layout(xaxis=list(type="log"), yaxis=list(title=colname))%>%
             hide_colorbar()
-    }else{
-      p2 <- plot_ly(data = cd2, x = ~PF_READS, y = ~nGenesDetected, 
-                  color = ~matrix2Plot, text=~position,
-                  type="scatter", mode = 'markers', colors="RdYlGn",
-                  marker=list(cmin=range_colour[1], cmax=range_colour[2])) %>%
+    
+    if(colname %in% metricsNonLog){
+      p2 <- p2 %>%
               layout(xaxis=list(type="log"),
-                     yaxis=list(type="log", title="# of Genes Detected")) %>%
-              hide_colorbar()
-      p3 <- plot_ly(data = cd2, x = ~PF_READS, y = ~matrix2PlotOrigin,
-                  color = ~matrix2Plot, text=~position,
-                  type="scatter", mode = 'markers', colors="RdYlGn", 
-                  marker=list(cmin=range_colour[1], cmax=range_colour[2])) %>%
+                     yaxis=list(title="# of Genes Detected"))
+      p3 <- p3 %>%
+              layout(xaxis=list(type="log"), yaxis=list(title=colname))
+    }else{
+      p2 <- p2 %>%
+              layout(xaxis=list(type="log"),
+                     yaxis=list(type="log", title="# of Genes Detected"))
+      p3 <- p3 %>%
             layout(xaxis=list(type="log"),
-                   yaxis=list(type="log", title=colname)) %>%
-        hide_colorbar()
+                   yaxis=list(type="log", title=colname))
     }
     l[[paste(plateName, colname, sep=": ")]] <- 
       as_widget(subplot(p1, p2, p3, nrows=1, titleX=TRUE, titleY=TRUE) %>%
