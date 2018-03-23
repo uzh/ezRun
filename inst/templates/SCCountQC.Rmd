@@ -197,35 +197,6 @@ ezHeatmap(gcWidthScoresRel[ ,order(colSums(assays(scePC)$counts > 3))], lim=c(-2
 
 ```
 
-### Prime Bias
-```{r metrics, echo=FALSE}
-metricsDT <- colData(sce)[, (tail(grep("\\[File\\]", colnames(colData(sce))), 1)+1):ncol(colData(sce))]
-datatable(data.frame(metricsDT, check.names = FALSE), filter = 'top',
-          caption="scRNASeq QC Metrics")
-```
-
-```{r 5 prime bias, echo=FALSE, eval=FALSE}
-x <- list(
-  title = "Prime bias"
-)
-
-p <- plot_ly(alpha = 0.6) %>%
-  add_histogram(x = ~colData(sce)$`bias5`, name="5 prime bias") %>%
-  add_histogram(x = ~colData(sce)$`bias3`, name="3 prime bias") %>%
-  layout(barmode = "overlay", title="Mean prime bias",
-         xaxis=x)
-
-p
-
-p2 <- plot_ly(alpha = 0.6) %>%
-  add_histogram(x = ~colData(sce)$`MEDIAN_5PRIME_BIAS`, name="5 prime bias") %>%
-  add_histogram(x = ~colData(sce)$`MEDIAN_3PRIME_BIAS`, name="3 prime bias") %>%
-  layout(barmode = "overlay", title="Median prime bias: Picard",
-         xaxis=x)
-p2
-
-```
-
 ### Picard Metrics
 A overview of scRNA-Seq QC metrics from Picard over the plate. 
 For the detais of the metrics, please refer to 
@@ -243,9 +214,10 @@ plateMatrix <- plateStatistics(cd,
                                          "PF_MISMATCH_RATE", "PCT_ADAPTER",
                                          "PCT_MRNA_BASES", "MEDIAN_CV_COVERAGE",
                                          "MEDIAN_5PRIME_BIAS", "MEDIAN_3PRIME_BIAS",
-                                         "PERCENT_DUPLICATION"))
+                                         "PERCENT_DUPLICATION", "bias5", "bias3"))
 metricsNonLog <- c("PF_MISMATCH_RATE", "PCT_ADAPTER", "MEDIAN_5PRIME_BIAS",
-                   "MEDIAN_3PRIME_BIAS", "PERCENT_DUPLICATION")
+                   "MEDIAN_3PRIME_BIAS", "PERCENT_DUPLICATION",
+                   "bias5", "bias3")
 plateName <- names(plateMatrix)[1]
 l <- htmltools::tagList()
 for(plateName in names(plateMatrix)){
@@ -295,7 +267,7 @@ for(plateName in names(plateMatrix)){
                                      1, paste, collapse=": ")
                       )
     if(colname == "PF_READS_ALIGNED"){
-      cd2 <- transform(cd2, nGenesDetected=nGenesDetected/PF_READS)
+      cd2 <- transform(cd2, matrix2PlotOrigin=matrix2PlotOrigin/PF_READS)
     }
     p2 <- plot_ly(data = cd2, x = ~PF_READS, y = ~nGenesDetected,
                     color = ~matrix2Plot, text=~position,
@@ -307,17 +279,13 @@ for(plateName in names(plateMatrix)){
                   type="scatter", mode = 'markers', colors="RdYlGn",
                   marker=list(cmin=range_colour[1], cmax=range_colour[2])) %>%
             hide_colorbar()
-    
-    if(colname %in% metricsNonLog){
-      p2 <- p2 %>%
+    p2 <- p2 %>%
               layout(xaxis=list(type="log"),
-                     yaxis=list(title="# of Genes Detected"))
+                     yaxis=list(type="log", title="# of Genes Detected"))
+    if(colname %in% metricsNonLog){
       p3 <- p3 %>%
               layout(xaxis=list(type="log"), yaxis=list(title=colname))
     }else{
-      p2 <- p2 %>%
-              layout(xaxis=list(type="log"),
-                     yaxis=list(type="log", title="# of Genes Detected"))
       p3 <- p3 %>%
             layout(xaxis=list(type="log"),
                    yaxis=list(type="log", title=colname))
@@ -328,6 +296,34 @@ for(plateName in names(plateMatrix)){
   }
 }
 l
+```
+
+### Picard Metrics Summary
+```{r metrics, echo=FALSE}
+metricsDT <- colData(sce)[, (tail(grep("\\[File\\]", colnames(colData(sce))), 1)+1):ncol(colData(sce))]
+datatable(data.frame(metricsDT, check.names = FALSE), filter = 'top',
+          caption="scRNASeq QC Metrics")
+```
+
+```{r 5 prime bias, echo=FALSE, eval=FALSE}
+x <- list(
+  title = "Prime bias"
+)
+
+p <- plot_ly(alpha = 0.6) %>%
+  add_histogram(x = ~colData(sce)$`bias5`, name="5 prime bias") %>%
+  add_histogram(x = ~colData(sce)$`bias3`, name="3 prime bias") %>%
+  layout(barmode = "overlay", title="Mean prime bias",
+         xaxis=x)
+
+p
+
+p2 <- plot_ly(alpha = 0.6) %>%
+  add_histogram(x = ~colData(sce)$`MEDIAN_5PRIME_BIAS`, name="5 prime bias") %>%
+  add_histogram(x = ~colData(sce)$`MEDIAN_3PRIME_BIAS`, name="3 prime bias") %>%
+  layout(barmode = "overlay", title="Median prime bias: Picard",
+         xaxis=x)
+p2
 ```
 
 ### SessionInfo
