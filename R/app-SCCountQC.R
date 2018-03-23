@@ -43,13 +43,19 @@ ezMethodSCCountQC = function(input=NA, output=NA, param=NA,
   ## 3' and 5' bias
   minCount <- 20
   minTxLength <- 1e3
-  maxTxs <- 2e3
+  maxGenes <- 500
+  maxTxs <- 1e3
+  ### Choose the most abundant genes/txs
   if(metadata(sce)$featureLevel == "gene"){
-    useGeneIDs <- rownames(sce)[(rowSums(assays(sce)$counts > minCount) >= 1)]
+    useGeneIDs <- names(head(sort(rowSums(assays(sce)$counts), decreasing=TRUE),
+                             maxGenes))
+    #useGeneIDs <- rownames(sce)[(rowSums(assays(sce)$counts > minCount) >= 1)]
     useTxIDs <- strsplit(rowData(sce)$transcript_id[rownames(sce) %in% useGeneIDs], "; ")
     useTxIDs <- unlist(useTxIDs)
   }else{
-    useTxIDs <- rownames(sce)[(rowSums(assays(sce)$counts > minCount) >= 1)]
+    #useTxIDs <- rownames(sce)[(rowSums(assays(sce)$counts > minCount) >= 1)]
+    useTxIDs <- names(head(sort(rowSums(assays(sce)$counts), decreasing=TRUE),
+                           maxTxs))
   }
  
   primeBias <- txEndBias(param, inBam=inBam, minTxLength=minTxLength,
