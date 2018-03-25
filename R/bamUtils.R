@@ -196,3 +196,17 @@ splitBamByRG <- function(inBam, mc.cores=ezThreads()){
   
   return(bamFns)
 }
+
+mergeBamAlignments <- function(alignedBamFn, unmappedBamFn,
+                               outputBamFn, fastaFn){
+  setEnvironments("picard")
+  ## Use . as tmp dir. Big bam generates big tmp files.
+  cmd <- paste("java -Djava.io.tmpdir=. -jar", 
+               Sys.getenv("Picard_jar"), "MergeBamAlignment",
+               paste0("ALIGNED=", alignedBamFn), 
+               paste0("UNMAPPED=", unmappedBamFn),
+               paste0("O=", outputBamFn),
+               paste0("R=", fastaFn)
+  )
+  ezSystem(cmd)
+}

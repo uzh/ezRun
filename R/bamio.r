@@ -540,7 +540,6 @@ getBamMultiMatching = function(param, bamFile, nReads=NULL){
 }
 
 getBamLocally = function(src, toSam=FALSE){
-
   if (normalizePath(dirname(src)) %in% c(".", normalizePath(getwd()))){
     return(src)
   }
@@ -557,19 +556,4 @@ getBamLocally = function(src, toSam=FALSE){
               to=paste0(target, ".bai"))
   }
   return(target)
-}
-
-mergeBamAlignments <- function(alignedBamFn, unmappedBamFn,
-                               outputBamFn, fastaFn){
-  setEnvironments("picard")
-  
-  ## Use . as tmp dir. Big bam generates big tmp files.
-  cmd <- paste("java -Djava.io.tmpdir=. -jar", 
-               Sys.getenv("Picard_jar"), "MergeBamAlignment",
-               paste0("ALIGNED=", alignedBamFn), 
-               paste0("UNMAPPED=", unmappedBamFn),
-               paste0("O=", outputBamFn),
-               paste0("R=", fastaFn)
-  )
-  ezSystem(cmd)
 }
