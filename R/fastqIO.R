@@ -83,7 +83,7 @@ fastqs2bam <- function(fastqFns, fastq2Fns=NULL, readGroupNames=NULL,
                paste0("PLATFORM=", platform),
                "SEQUENCING_CENTER=FGCZ")
   
-  ezMclapply(cmd, ezSystem, mc.cores = mc.cores)
+  ezMclapply(cmd, ezSystem, mc.preschedule=FALSE, mc.cores = mc.cores)
   
   ## picard tools merge
   cmd <- paste("java -Djava.io.tmpdir=. -jar", 
@@ -110,7 +110,7 @@ bam2fastq <- function(bamFn, OUTPUT_PER_RG=TRUE, OUTPUT_DIR=".",
     ## Put them in a tempdir and move to OUTPUT_DIR later
     tempDIR <- paste("SamtoFastqTempDir", Sys.getpid(), sep="-")
     dir.create(tempDIR)
-    on.exit(file.remove(tempDIR), add = TRUE)
+    on.exit(unlink(tempDIR, recursive=TRUE), add = TRUE)
     cmd <- paste("java -Djava.io.tmpdir=. -jar", 
                  Sys.getenv("Picard_jar"), "SamToFastq",
                  paste0("I=", bamFn),
@@ -120,9 +120,13 @@ bam2fastq <- function(bamFn, OUTPUT_PER_RG=TRUE, OUTPUT_DIR=".",
    ezSystem(cmd)
    fastqFns <- list.files(path=tempDIR, pattern="_1\\.fastq$")
    fromFns <- file.path(tempDIR, fastqFns)
-   toFns <- file.path(OUTPUT_DIR, sub("_1", "_R1", fastqFns))
-   
+   toFns <- file.path(OUTPUT_DIR, sub("_1\\.fastq$", "_R1.fastq", fastqFns))
    file.rename(from=fromFns, to=toFns)
+   if(isTRUE(paired)){
+     file.rename(from=sub("_1\\.fastq$", "_2.fastq", fromFns), 
+                 to=sub("_R1\\.fastq$", "_R2.fastq", toFns)
+                 )
+   }
    return(invisible(toFns))
   }else{
     cmd <- paste("java -Djava.io.tmpdir=. -jar", 
@@ -146,7 +150,7 @@ ezMethodBam2Fastq <- function(input=NA, output=NA, param=NA,
     output$setColumn("Read1", paste0(getwd(), "/", output$getNames(),
                                      "_R1.fastq"))
     if (param$paired){
-      output$setColumn("Read2", paste0(getwd(), "/", input$getNames(), 
+      output$setColumn("Read2", paste0(getwd(), "/", output$getNames(), 
                                        "_R2.fastq"))
     } else {
       if ("Read2" %in% input$colNames)
@@ -178,7 +182,7 @@ ezMethodBam2Fastq <- function(input=NA, output=NA, param=NA,
               fastq2Fns=ifelse(isTRUE(param$paired), output$getFullPaths("Read2"),
                                NULL),
               paired=param$paired)
-    output$setColumn("Read Count", 
+    output$setColumn("Read Count",
                      sapply(output$getColumn("Read1"), fastq.geometry)[1, ])
   }
   return(output)
