@@ -412,7 +412,7 @@ setEnvironments("python2")
 setEnvironments("samtools")
 setwd("/export/local/scratch/gtan/p2214-SCCounts")
 param = list()
-param[['cores']] = '4'
+param[['cores']] = '8'
 param[['ram']] = '50'
 param[['scratch']] = '500'
 param[['node']] = ''
@@ -463,9 +463,8 @@ input[['Name']] = 'plate_2'
 #input[['Read1']] = 'p2497/HiSeq4000_20171222_RUN420_o3705_fixedRG/20171222.A-SiCSeq_SCs_P5_subset.bam'
 #input[['Read Count']] = '312016990'
 input[['Species']] = 'Homoe sapiens'
-input[['CellDataset']] = 'p2214/HiSeq4000_20180309_RUN428_o4166/dataset.tsv'
-#input[['CellDataset']] = 'dataset.tsv'
-#debug(ezMethodSingleCellSTAR)
-debug(ezMethodSCCounts)
+input[['CellDataset']] = 'p2214/HiSeq4000_20180309_RUN428_o4166_GeTesting3Samples/dataset.tsv'
+debug(ezMethodSingleCellSTAR)
+#debug(ezMethodSCCounts)
 EzAppSCCounts$new()$run(input=input, output=output, param=param)
 

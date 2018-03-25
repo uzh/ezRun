@@ -179,7 +179,7 @@ ezMethodBam2Fastq <- function(input=NA, output=NA, param=NA,
     bam2fastq(bamFn=input$getFullPaths("Read1"),
               OUTPUT_PER_RG=FALSE,
               fastqFns=output$getColumn("Read1"),
-              fastq2Fns=ifelse(isTRUE(param$paired), output$getFullPaths("Read2"),
+              fastq2Fns=ifelse(isTRUE(param$paired), output$getColumn("Read2"),
                                NULL),
               paired=param$paired)
     output$setColumn("Read Count",

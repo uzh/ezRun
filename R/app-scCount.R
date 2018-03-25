@@ -193,6 +193,13 @@ ezMethodSCCounts = function(input=NA, output=NA, param=NA,
                readGroupNames=metainput$getNames(),
                bamFn=tempUBam, mc.cores=param$cores)
     inputBam$setColumn("Read1", tempUBam)
+    
+    tempCellDataset <- tempfile(pattern="cellDataset", tmpdir=getwd(),
+                                fileext=".tsv")
+    file.copy(from=input$getFullPaths("CellDataset"),
+              to=tempCellDataset)
+    on.exit(file.remove(tempCellDataset), add=TRUE)
+    inputBam$setColumn("CellDataset", tempCellDataset)
     inputBam$dataRoot <- NULL
   }
   
@@ -243,7 +250,7 @@ ezMethodSCCounts = function(input=NA, output=NA, param=NA,
          stop("unsupported mapMethod: ", param$mapMethod)
   )
 
-  mappingApp$run(input=inputuBam, output=output, param=bamParam)
+  mappingApp$run(input=inputBam, output=output, param=bamParam)
   
   ## Prepare the input for featurecounts
   featurecountsInput = output$copy()
