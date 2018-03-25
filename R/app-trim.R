@@ -140,6 +140,8 @@ ezMethodTrim = function(input=NA, output=NA, param=NA){
         "unpaired-R1.fastq",
         r2TmpFile,
         "unpaired-R2.fastq")
+        on.exit(file.remove(c("unpaired-R1.fastq", "unpaired-R2.fastq")),
+                add=TRUE)
     } else {
       method = "SE"
       readOpts = paste(
