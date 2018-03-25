@@ -69,12 +69,12 @@ ezMethodSingleCellSTAR = function(input=NA, output=NA, param=NA){
     
     if (param$paired){
       fastqs2bam(fastqFns=trimmedInput$getFullPaths("Read1"),
-                 fastq2Fns=ifelse(isTRUE(param$paired), 
-                                  trimmedInput$getFullPaths("Read2"), NULL),
+                 fastq2Fns=trimmedInput$getFullPaths("Read2"),
                  readGroupNames=trimmedInput$getNames(),
                  bamFn=trimmedBamFn, mc.cores=param$cores)
       file.remove(c(trimmedInput$getFullPaths("Read1"),
-                    trimmedInput$getFullPaths("Read2")))
+                    trimmedInput$getFullPaths("Read2"))
+                  )
     }else{
       fastqs2bam(fastqFns=trimmedInput$getFullPaths("Read1"),
                  readGroupNames=trimmedInput$getNames(),
