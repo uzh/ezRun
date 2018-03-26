@@ -174,34 +174,9 @@ EzAppSCCounts <-
 
 ezMethodSCCounts = function(input=NA, output=NA, param=NA,
                             htmlFile="00index.html"){
-  inputBam <- input$copy()
+  #inputBam <- input$copy()
   metainput = EzDataset(file=input$getFullPaths("CellDataset"),
                         dataRoot=param$dataRoot)
-  
-  if(!"Read1" %in% input$colNames){
-    ## input is fasta files in CellDataset.tsv
-    tempUBam <- tempfile(pattern="uBam", tmpdir=getwd(), fileext=".bam")
-    on.exit(file.remove(tempUBam), add=TRUE)
-    
-    if(isTRUE(param$paired)){
-      fastq2Fns <-  metainput$getFullPaths("Read2")
-    }else{
-      fastq2Fns <- NULL
-    }
-    fastqs2bam(fastqFns=metainput$getFullPaths("Read1"),
-               fastq2Fns=fastq2Fns,
-               readGroupNames=metainput$getNames(),
-               bamFn=tempUBam, mc.cores=param$cores)
-    inputBam$setColumn("Read1", tempUBam)
-    
-    tempCellDataset <- tempfile(pattern="cellDataset", tmpdir=getwd(),
-                                fileext=".tsv")
-    file.copy(from=input$getFullPaths("CellDataset"),
-              to=tempCellDataset)
-    on.exit(file.remove(tempCellDataset), add=TRUE)
-    inputBam$setColumn("CellDataset", tempCellDataset)
-    inputBam$dataRoot <- NULL
-  }
   
   cellMeta = metainput$meta[ , !metainput$columnHasTag("File")]
   cellMeta[["BAM [File]"]] = output$getColumn("BAM")
@@ -250,7 +225,7 @@ ezMethodSCCounts = function(input=NA, output=NA, param=NA,
          stop("unsupported mapMethod: ", param$mapMethod)
   )
 
-  mappingApp$run(input=inputBam, output=output, param=bamParam)
+  mappingApp$run(input=input, output=output, param=bamParam)
   
   ## Prepare the input for featurecounts
   featurecountsInput = output$copy()

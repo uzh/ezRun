@@ -31,68 +31,64 @@ ezMethodSingleCellSTAR = function(input=NA, output=NA, param=NA){
   
   refDir = getSTARReference(param)
   bamFile = output$getColumn("BAM")
-  if(!is.null(param$randomSleep)){
-    if(param$randomSleep){
-      randomNumber = runif(1, min = 0, max = 1)
-      if(randomNumber <= 1/3) {
-        cat('Wait 15m \n')
-        Sys.sleep( 900) 
-      } else if(randomNumber > 1/3 & randomNumber <= 2/3) {
-        cat('Wait 30m \n')
-        Sys.sleep( 1800)
-      }
-    }
-  }
   
-  if(input$readType() == "bam"){
+  isSingleBam <- !is.na(input$readType()) && input$readType() == "bam"
+  if(isSingleBam){
+    ## Read 1 is uBam
     fastqInput <- ezMethodBam2Fastq(input = input, param = param,
                                     OUTPUT_PER_RG=TRUE)
-    trimmedInput <- ezMethodTrim(input = fastqInput, param = param)
     
-    ## Merge and clean prepross logs
-    preprocessLogFns <- paste0(trimmedInput$getNames(), "_preprocessing.log")
-    preprocessLogs <- lapply(preprocessLogFns, readLines)
-    writeLines(unlist(preprocessLogs),
-               con=paste0(input$getNames(), "_preprocessing.log"))
-    file.remove(preprocessLogFns)
+  }else{
+    ## The read data is in CellDataset and input is fastq files
+    fastqInput <- EzDataset(file=input$getFullPaths("CellDataset"),
+                            dataRoot=DEFAULT_DATA_ROOT)
+  }
+  
+  trimmedInput <- ezMethodTrim(input = fastqInput, param = param)
     
-    # Clean converted fastqs
+  ## Merge and clean prepross logs
+  preprocessLogFns <- paste0(trimmedInput$getNames(), "_preprocessing.log")
+  preprocessLogs <- lapply(preprocessLogFns, readLines)
+  writeLines(unlist(preprocessLogs),
+             con=paste0(input$getNames(), "_preprocessing.log"))
+  file.remove(preprocessLogFns)
+    
+  # Clean converted fastqs
+  if(isSingleBam){
     file.remove(fastqInput$getFullPaths("Read1"))
     if (param$paired){
       file.remove(fastqInput$getFullPaths("Read2"))
     }
-    
-    ## fastq to bam
-    trimmedBamFn <- tempfile(pattern = "trimmedBam", tmpdir=getwd(),
-                             fileext = ".bam")
-    on.exit(file.remove(trimmedBamFn), add = TRUE)
-    
-    if (param$paired){
-      fastqs2bam(fastqFns=trimmedInput$getFullPaths("Read1"),
-                 fastq2Fns=trimmedInput$getFullPaths("Read2"),
-                 readGroupNames=trimmedInput$getNames(),
-                 bamFn=trimmedBamFn, mc.cores=param$cores)
-      file.remove(c(trimmedInput$getFullPaths("Read1"),
-                    trimmedInput$getFullPaths("Read2"))
-                  )
-    }else{
-      fastqs2bam(fastqFns=trimmedInput$getFullPaths("Read1"),
-                 readGroupNames=trimmedInput$getNames(),
-                 bamFn=trimmedBamFn, mc.cores=param$cores)
-      file.remove(trimmedInput$getFullPaths("Read1"))
-    }
-    ## We can concatenate the fastqs for the aligner
-    ## But it will takes more space. So we delete and convert here.
-    
-    inputTrimmed <- input$copy()
-    inputTrimmed$setColumn("Read1", trimmedBamFn)
-    inputTrimmed$dataRoot <- NULL
-    alignerInput <- ezMethodBam2Fastq(input=inputTrimmed, param = param,
-                                      OUTPUT_PER_RG=FALSE)
-    trimmedInput <- alignerInput$copy()
-  }else{
-    trimmedInput <- ezMethodTrim(input = input, param = param)
   }
+    
+  ## fastq to bam
+  trimmedBamFn <- tempfile(pattern = "trimmedBam", tmpdir=getwd(),
+                           fileext = ".bam")
+  on.exit(file.remove(trimmedBamFn), add = TRUE)
+    
+  if (param$paired){
+    fastqs2bam(fastqFns=trimmedInput$getFullPaths("Read1"),
+               fastq2Fns=trimmedInput$getFullPaths("Read2"),
+               readGroupNames=trimmedInput$getNames(),
+               bamFn=trimmedBamFn, mc.cores=param$cores)
+    file.remove(c(trimmedInput$getFullPaths("Read1"),
+                  trimmedInput$getFullPaths("Read2"))
+                )
+  }else{
+    fastqs2bam(fastqFns=trimmedInput$getFullPaths("Read1"),
+               readGroupNames=trimmedInput$getNames(),
+               bamFn=trimmedBamFn, mc.cores=param$cores)
+    file.remove(trimmedInput$getFullPaths("Read1"))
+  }
+  ## We can concatenate the fastqs for the aligner
+  ## But it will takes more space. So we delete and convert here.
+    
+  inputTrimmed <- input$copy()
+  inputTrimmed$setColumn("Read1", trimmedBamFn)
+  inputTrimmed$dataRoot <- NULL
+  alignerInput <- ezMethodBam2Fastq(input=inputTrimmed, param = param,
+                                    OUTPUT_PER_RG=FALSE)
+    
   if(param$cmdOptions == "")
     param$cmdOptions <- "--outFilterType BySJout --outFilterMatchNmin 30 --outFilterMismatchNmax 10 --outFilterMismatchNoverLmax 0.05 --alignSJDBoverhangMin 1 --alignSJoverhangMin 8 --alignIntronMax 1000000 --alignMatesGapMax 1000000  --outFilterMultimapNmax 50 --chimSegmentMin 15 --chimJunctionOverhangMin 15 --chimScoreMin 15 --chimScoreSeparation 10 --outSAMstrandField intronMotif --outSAMattributes All"
   
@@ -100,17 +96,17 @@ ezMethodSingleCellSTAR = function(input=NA, output=NA, param=NA){
     param$cmdOptions = paste(param$cmdOptions, "--outSAMattributes All")
   }
   cmd = paste("STAR", " --genomeDir", refDir,  "--sjdbOverhang 150", 
-              "--readFilesIn", trimmedInput$getColumn("Read1"), 
-              if(param$paired) trimmedInput$getColumn("Read2"),
+              "--readFilesIn", alignerInput$getColumn("Read1"), 
+              if(param$paired) alignerInput$getColumn("Read2"),
               "--twopassMode", ifelse(param$twopassMode, "Basic", "None"),
               "--runThreadN", ezThreads(), param$cmdOptions, 
               "--outStd BAM_Unsorted --outSAMtype BAM Unsorted",
               ">  Aligned.out.bam")## writes the output file Aligned.out.bam
   ##"|", "samtools", "view -S -b -", " >", "Aligned.out.bam")
   ezSystem(cmd)
-  file.remove(trimmedInput$getColumn("Read1"))
+  file.remove(alignerInput$getColumn("Read1"))
   if(param$paired)
-    file.remove(trimmedInput$getColumn("Read2"))
+    file.remove(alignerInput$getColumn("Read2"))
   
   on.exit(file.remove(c("Log.progress.out", "Log.out", 
                         "Log.std.out")), add=TRUE) ## clean star log files
@@ -118,16 +114,15 @@ ezMethodSingleCellSTAR = function(input=NA, output=NA, param=NA){
                  recursive = TRUE, force = TRUE), add=TRUE)
   
   ## Merge unmapped and mapped bam to recover the tags
-  if(input$readType() == "bam"){
-    mergeBamAlignments(alignedBamFn="Aligned.out.bam",
-                       unmappedBamFn=inputTrimmed$getFullPaths("Read1"),
-                       outputBamFn="Aligned.out.merged.bam",
-                       fastaFn=param$ezRef@refFastaFile)
-    file.remove("Aligned.out.bam")
-    file.rename(from="Aligned.out.merged.bam", to="Aligned.out.bam")
-  }
   
-  nSortThreads = min(ezThreads(), 8)
+  mergeBamAlignments(alignedBamFn="Aligned.out.bam",
+                     unmappedBamFn=inputTrimmed$getFullPaths("Read1"),
+                     outputBamFn="Aligned.out.merged.bam",
+                     fastaFn=param$ezRef@refFastaFile)
+  file.remove("Aligned.out.bam")
+  file.rename(from="Aligned.out.merged.bam", to="Aligned.out.bam")
+  
+  nSortThreads = min(param$cores, 8)
   ## if the index is loaded in shared memory we have to use only 10% of the scheduled RAM
   if (grepl("--genomeLoad LoadAndKeep", param$cmdOptions)){
     sortRam = param$ram / 10
