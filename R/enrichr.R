@@ -214,21 +214,26 @@ enrichrEnrich <- function(userListId, libNames = getEnrichrLibNames(), connectio
             # libName may be bound after the loop is done rather than immediately. In that case, all
             # results will be saved under the same libName. To avoid that, we have to extract the
             # libName here.
+            saveRDS(x, file=paste0("enrichr-done-", ezTime(), "-debug.rds"))
             libName <- sub('^.+backgroundType=([^&]+).*$', '\\1', x$url)
             success[[libName]] <<- tryCatch(
               parseResp(x),
-              error = function(e) { failure[[libName]] <<- paste("Response parsing failure with", e) }
+              error = function(e) {
+                saveRDS(e, file=paste0("enrichr-error-", ezTime(), "-debug.rds"))
+                failure[[libName]] <<- paste("Response parsing failure with", e) }
             )
           },
           # In case of a failure, curl returns only the error message that does not contain the URL,
           # so we have no way to determine which request failed. So, we'll just append the message to
           # the end of the list.
-          fail = function(x) { k <- length(failure) + 1; failure[[k]] <<- x }
+          fail = function(x) {
+            saveRDS(x, file=paste0("enrichr-fail-", ezTime(), "-debug.rds"))
+            k <- length(failure) + 1; failure[[k]] <<- x }
         )
     }
     multi_run(pool = pool)
   }
-
+  ezSystem("rm enrich-*-debug.rds")
   list(success = success, failure = failure)
 }
 
