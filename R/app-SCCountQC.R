@@ -72,6 +72,7 @@ ezMethodSCCountQC = function(input=NA, output=NA, param=NA,
   message("Start CollectAlignmentSummaryMetrics", date())
   alnMetrics <- CollectAlignmentSummaryMetrics(inBams=bamRGFns,
                                                fastaFn=param$ezRef['refFastaFile'],
+                                               paired=param$paired,
                                                metricLevel="SAMPLE",
                                                mc.cores=param$cores)
   colData(sce) <- as(data.frame(colData(sce), alnMetrics[colnames(sce), ],
