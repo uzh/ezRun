@@ -410,7 +410,7 @@ setEnvironments("flexbar")
 setEnvironments("trimmomatic")
 setEnvironments("python2")
 setEnvironments("samtools")
-setwd("/export/local/scratch/gtan/p2214-SCCounts-2")
+setwd("/export/local/scratch/gtan/p2214-SCCounts")
 param = list()
 param[['cores']] = '8'
 param[['ram']] = '50'
@@ -465,7 +465,7 @@ input[['Name']] = 'plate_2'
 input[['Species']] = 'Homoe sapiens'
 input[['CellDataset']] = 'p2214/HiSeq4000_20180309_RUN428_o4166_GeTesting3Samples/dataset.tsv'
 #input[['CellDataset']] = 'p2214/HiSeq4000_20180309_RUN428_o4166/dataset.tsv'
-#debug(ezMethodSingleCellSTAR)
+debug(ezMethodSingleCellSTAR)
 #debug(ezMethodSCCounts)
 EzAppSCCounts$new()$run(input=input, output=output, param=param)
 
