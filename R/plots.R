@@ -326,7 +326,12 @@ ezVolcano <- function(log2Ratio, pValue, yType=c("p-value", "FDR"),
                 title=main, font=ftitle,
                 legend=l, margin=m)
   }else{
-    p <- ggplot(toPlot, aes(x, y)) + geom_point(aes(col=types), alpha =0.3) +
+    if(!is.null(labelGenes)){
+      alpha <- 0.5
+    }else{
+      alpha <- 1
+    }
+    p <- ggplot(toPlot, aes(x, y)) + geom_point(aes(col=types), alpha =alpha) +
       scale_color_manual(values=typesColours) + 
       scale_x_continuous(limits=xlim) + scale_y_continuous(limits=ylim)+
       theme_bw() + xlab("log2 ratio") + ylab(paste0("-log10(", yType, ")"))+
