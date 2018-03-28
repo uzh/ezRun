@@ -5,7 +5,7 @@
 # The terms are available here: http://www.gnu.org/licenses/gpl.html
 # www.fgcz.ch
 
-CollectAlignmentSummaryMetrics <- function(inBams, fastaFn,
+CollectAlignmentSummaryMetrics <- function(inBams, fastaFn, paired=FALSE,
                                            metricLevel=c("ALL_READS", "SAMPLE",
                                                          "LIBRARY", "READ_GROUP"),
                                            mc.cores=ezThreads()){
@@ -15,6 +15,7 @@ CollectAlignmentSummaryMetrics <- function(inBams, fastaFn,
   
   outputFns <- tempfile(pattern=inBams,
                        fileext=".CollectAlignmentSummaryMetrics")
+  ## TODO: do check the ADAPTER_SEQUENCES option
   cmd <- paste("java -Xmx3G", 
                "-jar", Sys.getenv("Picard_jar"),
                "CollectAlignmentSummaryMetrics",
@@ -29,6 +30,9 @@ CollectAlignmentSummaryMetrics <- function(inBams, fastaFn,
   metrics <- lapply(outputFns, ezRead.table, comment.char="#", row.names=NULL)
   metrics <- do.call(rbind, metrics)
   metrics <- metrics[ ,!colAlls(is.na(metrics))] ## Remove the NA columns of nameColumns
+  if (paired){
+    metrics = metrics[ metrics$CATEGORY == "PAIR", ]
+  }
   rownames(metrics) = names(inBams)
   # nameColumns <- c("SAMPLE", "LIBRARY", "READ_GROUP")
   # indexName <- intersect(colnames(metrics), nameColumns)
