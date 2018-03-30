@@ -137,10 +137,8 @@ CollectRnaSeqMetrics <- function(inBams, gtfFn, featAnnoFn,
 DuplicationMetrics <- function(inBams, mc.cores=ezThreads()){
   setEnvironments("picard")
   
-  ouputBams <- tempfile(pattern=inBams, tmpdir=".", 
-                        fileext=".markedDupbam")
-  on.exit(file.remove(ouputBams), add=TRUE)
-  outputFns <- tempfile(pattern=inBams, fileext=".markedDupMetrics")
+  ouputBams <- sub(".bam$", paste0("-", seq_along(inBams), "-markedDup.bam"), basename(inBams))
+  outputFns <- sub('bam$', "metrics", outputBams)
   
   cmd <- paste("java -XX:ParallelGCThreads=4 -Xmx3G -jar",
                Sys.getenv("Picard_jar"), "MarkDuplicates",
@@ -159,5 +157,6 @@ DuplicationMetrics <- function(inBams, mc.cores=ezThreads()){
   # indexName <- intersect(colnames(metrics), nameColumns)
   # rownames(metrics) <- metrics[ ,indexName]
   # metrics[[indexName]] <- NULL
+  file.remove(ouputBams, outputFns)
   return(metrics)
 }
