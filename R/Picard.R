@@ -157,6 +157,6 @@ DuplicationMetrics <- function(inBams, mc.cores=ezThreads()){
   # indexName <- intersect(colnames(metrics), nameColumns)
   # rownames(metrics) <- metrics[ ,indexName]
   # metrics[[indexName]] <- NULL
-  file.remove(ouputBams, outputFns)
+  file.remove(ouputBams, outputFns) ## only remove on success so theat se an debg
   return(metrics)
 }
