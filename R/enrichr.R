@@ -233,7 +233,7 @@ enrichrEnrich <- function(userListId, libNames = getEnrichrLibNames(), connectio
     }
     multi_run(pool = pool)
   }
-  ezSystem("rm enrich-*-debug.rds")
+  ezSystem("rm -f enrich-*-debug.rds")
   list(success = success, failure = failure)
 }
 
