@@ -137,19 +137,19 @@ CollectRnaSeqMetrics <- function(inBams, gtfFn, featAnnoFn,
 DuplicationMetrics <- function(inBams, mc.cores=ezThreads()){
   setEnvironments("picard")
   
-  ouputBams <- sub(".bam$", paste0("-", seq_along(inBams), "-markedDup.bam"), basename(inBams))
+  outputBams <- sub(".bam$", paste0("-", seq_along(inBams), "-markedDup.bam"), basename(inBams))
   outputFns <- sub('bam$', "metrics", outputBams)
   
   cmd <- paste("java -XX:ParallelGCThreads=4 -Xmx3G -jar",
                Sys.getenv("Picard_jar"), "MarkDuplicates",
                paste0("I=", inBams),
-               paste0("O=", ouputBams),
+               paste0("O=", outputBams),
                paste0("M=", outputFns),
                "> /dev/null"
                )
   ezMclapply(cmd, ezSystem, mc.preschedule=FALSE, mc.cores=mc.cores)
   
-  metrics <- lapply(outputFns, ezRead.table, comment.char="#", row.names=NULL)
+  metrics <- lapply(outputFns, ezRead.table, comment.char="#", row.names=NULL, blank.lines.skip=TRUE, nrows=1)
   metrics <- do.call(rbind, metrics)
   rownames(metrics) = names(inBams)
   # metrics <- metrics[ ,!colAlls(is.na(metrics))] ## Remove the NA columns of nameColumns
@@ -157,6 +157,6 @@ DuplicationMetrics <- function(inBams, mc.cores=ezThreads()){
   # indexName <- intersect(colnames(metrics), nameColumns)
   # rownames(metrics) <- metrics[ ,indexName]
   # metrics[[indexName]] <- NULL
-  file.remove(ouputBams, outputFns) ## only remove on success so theat se an debg
+  file.remove(outputBams, outputFns) ## only remove on success so theat se an debg
   return(metrics)
 }
