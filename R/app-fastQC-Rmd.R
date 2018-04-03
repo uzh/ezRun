@@ -10,27 +10,36 @@ ezMethodFastQC = function(input=NA, output=NA, param=NA,
                           htmlFile="00index.html"){
   require(rmarkdown)
   setwdNew(basename(output$getColumn("Report")))
+  
+  # Preprocessing
+  if(input$readType() == "bam"){
+    stopifnot(input$getLength() == 1L) ## We only support one uBam now.
+    fastqInput <- ezMethodBam2Fastq(input=input, param=param,
+                                    OUTPUT_PER_RG=TRUE)
+    input <- fastqInput$copy()
+  }
   dataset = input$meta
   samples = rownames(dataset)
+  
   files = c()
   for (sm in samples){
     files[paste0(sm, "_R1")] = input$getFullPaths("Read1")[sm]
     if (!is.null(dataset$Read2)){
-      files[paste0(sm, "_R2")] = input$getFullPaths("Read2")[sm]    
+      files[paste0(sm, "_R2")] = input$getFullPaths("Read2")[sm]
     }
   }
   nFiles = length(files)
   
   ## guess the names of the report directories that will be creatd by fastqc
-  reportDirs = sub(".fastq.gz", "_fastqc", basename(files))
-  reportDirs = sub(".fq.gz", "_fastqc", reportDirs)
-  reportDirs = sub(".bam", "_fastqc", reportDirs)
+  reportDirs = sub("\\.fastq(\\.gz)*$", "_fastqc", basename(files))
+  reportDirs = sub("\\.fq(\\.gz)*$", "_fastqc", reportDirs)
+  reportDirs = sub("\\.bam$", "_fastqc", reportDirs)
   stopifnot(!duplicated(reportDirs))
   filesUse = files[!file.exists(reportDirs)]
   if (length(filesUse) > 0){
-    cmd = paste("fastqc", "--extract -o . -t", min(ezThreads(), 8), "-a", FASTQC_ADAPTERS,
-                param$cmdOptions,
-                paste(filesUse, collapse=" "),
+    cmd = paste("fastqc", "--extract -o . -t", min(ezThreads(), 8), 
+                "-a", FASTQC_ADAPTERS,
+                param$cmdOptions, paste(filesUse, collapse=" "),
                 "> fastqc.out", "2> fastqc.err")
     result = ezSystem(cmd)
   }
@@ -106,9 +115,11 @@ ezMethodFastQC = function(input=NA, output=NA, param=NA,
     #                     smy[[2]])
     #   tbl = ezMatrix("", rows=rowNames, cols=colNames)
     # }
-    href = paste0(reportDirs[i], "/fastqc_report.html#M", 0:(ncol(tbl)-1))[colnames(tbl) %in% smy[[2]]]
+    href = paste0(reportDirs[i], "/fastqc_report.html#M", 
+                  0:(ncol(tbl)-1))[colnames(tbl) %in% smy[[2]]]
     img = paste0(reportDirs[i], 	"/Icons/", statusToPng[smy[[1]]])
-    tbl[i, colnames(tbl) %in% smy[[2]]] = paste0("<a href=", href, "><img src=", img, "></a>")
+    tbl[i, colnames(tbl) %in% smy[[2]]] = paste0("<a href=", href, 
+                                                 "><img src=", img, "></a>")
   }
   colnames(tbl) <- ifelse(colnames(tbl) %in% names(plotPages),
                           paste0("<a href=", plotPages[colnames(tbl)], 
@@ -118,7 +129,7 @@ ezMethodFastQC = function(input=NA, output=NA, param=NA,
   
   ans4Report[["Fastqc quality measures"]] <- tbl
   
-  qualMatrixList = ezMclapply(files, getQualityMatrix, mc.cores=ezThreads())
+  qualMatrixList = ezMclapply(files, getQualityMatrix, mc.cores=param$cores)
   ans4Report[["Per Base Read Quality"]] <- qualMatrixList
   
   ## debug
@@ -128,7 +139,12 @@ ezMethodFastQC = function(input=NA, output=NA, param=NA,
   rmarkdown::render(input="FastQC.Rmd", envir = new.env(),
                     output_dir=".", output_file=htmlFile, quiet=TRUE)
   
-  ezSystem(paste("rm -rf ", paste0(reportDirs, ".zip", collapse=" ")))
+  ## Cleaning
+  if(input$readType() == "bam"){
+    file.remove(files)
+  }
+  unlink(paste0(reportDirs, ".zip"), recursive = TRUE)
+  
   return("Success")
 }
 
@@ -385,9 +401,6 @@ getQualityMatrix <- function(fn){
   ## This implementation is faster than the FastqStreamer.
   require(ShortRead)
   require(Biostrings)
-  #require(GenomicFiles)
-  #require(Rsamtools)
-  #require(GenomicAlignments)
   nReads <- 3e5
   
   if(grepl("\\.bam$", fn)){
@@ -409,7 +422,8 @@ getQualityMatrix <- function(fn){
     ezSystem(cmd)
     tempFastqFn <- paste(Sys.getpid(), "temp.fastq", sep="-")
     on.exit(file.remove(tempFastqFn), add=TRUE)
-    bam2fastq(bamFns=tempBamFn, fastqFns=tempFastqFn, paired=FALSE)
+    bam2fastq(bamFn=tempBamFn, OUTPUT_PER_RG=FALSE,
+              fastqFns=tempFastqFn, paired=FALSE)
     reads <- readFastq(tempFastqFn)
   }else{
     f <- FastqSampler(fn, nReads) ## we sample no more than 300k reads.
