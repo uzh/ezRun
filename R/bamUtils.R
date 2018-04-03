@@ -182,17 +182,30 @@ bam2bw <- function(file,
 
 splitBamByRG <- function(inBam, mc.cores=ezThreads()){
   setEnvironments("samtools")
-  require(Rsamtools)
-  header <- scanBamHeader(inBam)
-  readGroupNames <- header[[inBam]]$text[names(header[[inBam]]$text) == "@RG"]
-  readGroupNames <- sub("ID:", "", sapply(readGroupNames, "[", 1))
+  # The following Rsamtools requires mapped Bam file.
+  # require(Rsamtools)
+  # header <- scanBamHeader(inBam)
+  # readGroupNames <- header[[inBam]]$text[names(header[[inBam]]$text) == "@RG"]
+  # readGroupNames <- sub("ID:", "", sapply(readGroupNames, "[", 1))
+  cwd <- getwd()
+  inBam <- normalizePath(inBam)
+  
+  # This is more general approach for uBam and mapped Bam.
+  tempDIR <- file.path(cwd, paste("samtools-split", Sys.getpid(), sep="-"))
+  setwdNew(tempDIR)
   
   cmd <- paste("samtools split -@", mc.cores, "-f %!", inBam)
   ezSystem(cmd)
   
+  setwd(cwd)
+  
+  readGroupNames <- list.files(path=tempDIR)
   bamFns <- paste0(readGroupNames, ".bam")
-  file.rename(from=readGroupNames, to=bamFns)
+  file.rename(from=file.path(tempDIR, readGroupNames), to=bamFns)
   names(bamFns) = readGroupNames
+  
+  # Clearning
+  unlink(tempDIR, recursive=TRUE)
   
   return(bamFns)
 }
