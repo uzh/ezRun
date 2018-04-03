@@ -29,6 +29,7 @@
 \examples{
   \dontrun{
     inBam <- "/srv/gstore/projects/p2497/SCCountsApp_24762_2018-02-20--21-32-42/20171222.A-SiCSeq_SCs_P5.bam"
-    splitBamByRG(inBam)
+    inBam <- "/scratch/gtan/p2497-SCCountQC/20171222.A-SiCSeq_SCs_P5_subset.bam"
+    splitBamByRG(inBam, mc.cores=8L)
   }
 }
