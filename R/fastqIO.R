@@ -116,7 +116,7 @@ bam2fastq <- function(bamFn, OUTPUT_PER_RG=TRUE, OUTPUT_DIR=".",
                  paste0("I=", bamFn),
                  paste0("OUTPUT_DIR=", tempDIR),
                  "OUTPUT_PER_RG=true RG_TAG=ID"
-    )
+                 )
     ezSystem(cmd)
     fastqFns <- list.files(path=tempDIR, pattern="_1\\.fastq$")
     fromFns <- file.path(tempDIR, fastqFns)
@@ -125,9 +125,10 @@ bam2fastq <- function(bamFn, OUTPUT_PER_RG=TRUE, OUTPUT_DIR=".",
     if(isTRUE(paired)){
       file.rename(from=sub("_1\\.fastq$", "_2.fastq", fromFns), 
                   to=sub("_R1\\.fastq$", "_R2.fastq", toFns)
-      )
+                  )
     }
     return(invisible(toFns))
+    ## This is not much slower than splitBambyRG and SamToFastq in parallel
   }else{
     cmd <- paste("java -Djava.io.tmpdir=. -jar", 
                  Sys.getenv("Picard_jar"), "SamToFastq",
