@@ -11,7 +11,8 @@ ezMethodFastqScreen = function(input=NA, output=NA, param=NA,
   inputRaw <- input$copy()
   # Preprocessing
   if(input$readType() == "bam"){
-    fastqInput <- ezMethodBam2Fastq(input = input, param = param)
+    fastqInput <- ezMethodBam2Fastq(input = input, param = param,
+                                    OUTPUT_PER_RG=TRUE)
     input <- ezMethodTrim(input = fastqInput, param = param)
     inputRaw <- fastqInput
   }else{
