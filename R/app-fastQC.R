@@ -270,23 +270,29 @@ plotQualityMatrixAsHeatmapGG2 = function(qualMatrixList, isR2=FALSE,
                     at=at, labels=as.character(at^2))
     plotList[[nm]][["Avg Qual Colors"]] <- p
     
-    result = ezMatrix(0, dim=dim(qualMatrixList[[idx[1]]]))
+    #result = ezMatrix(0, dim=dim(qualMatrixList[[idx[1]]]))
+    result = ezMatrix(0, dim=apply(sapply(qualMatrixList[idx], dim),1, max))
     resultCount = result
     for(i in idx){
       qm = qualMatrixList[[i]]
-      if (any(dim(qm) > dim(result))){
-        oldResult = result
-        result = ezMatrix(0, dim=dim(qm))
-        result[1:nrow(oldResult), 1:ncol(oldResult)] = oldResult
-        oldResultCount = resultCount
-        resultCount = ezMatrix(0, dim=dim(qm))
-        resultCount[1:nrow(oldResultCount), 1:ncol(oldResultCount)] = oldResultCount
-      }
+      # if (any(dim(qm) > dim(result))){
+      #   oldResult = result
+      #   result = ezMatrix(0, dim=dim(qm))
+      #   result[1:nrow(oldResult), 1:ncol(oldResult)] = oldResult
+      #   oldResultCount = resultCount
+      #   resultCount = ezMatrix(0, dim=dim(qm))
+      #   resultCount[1:nrow(oldResultCount), 1:ncol(oldResultCount)] = oldResultCount
+      # }
       result[1:nrow(qm), 1:ncol(qm)] = result[1:nrow(qm), 1:ncol(qm)] + qm
       resultCount[1:nrow(qm), 1:ncol(qm)] = resultCount[1:nrow(qm), 1:ncol(qm)] + 1
     }
     result = result / resultCount
-    avgQual = signif(prop.table(result,2) * 100, digits=3)
+    #result[is.nan(result)] <- 0
+    ## The ahrd way to deal with NaN in result
+    result <- sweep(result, MARGIN=2, 
+                    STATS=colSums(result, na.rm=TRUE), FUN="/")
+    #avgQual = signif(prop.table(result, 2) * 100, digits=3)
+    avgQual = signif(result * 100, digits=3)
     p = plotQualityHeatmapGG2(result=sqrt(avgQual), 
                               colorRange=c(minPercent, maxPercent), 
                               colors=colorsGray, 
@@ -304,8 +310,9 @@ plotQualityMatrixAsHeatmapGG2 = function(qualMatrixList, isR2=FALSE,
     
     for(sampleName in names(qualMatrixList[idx])){
       qm = qualMatrixList[[sampleName]]
-      diffResult = signif(prop.table(qm,2)*100, digits=3) - avgQual[1:nrow(qm), 
-                                                                    1:ncol(qm)]
+      qm <- sweep(qm, MARGIN=2, 
+                  STATS=colSums(qm, na.rm=TRUE), FUN="/")
+      diffResult = signif(qm*100, digits=3) - avgQual[1:nrow(qm), 1:ncol(qm)]
       p = plotQualityHeatmapGG2(diffResult, colorRange=c(minDiff, maxDiff),
                                 colors=getBlueRedScale(), 
                                 main=paste("diffReadsQuality", sampleName, 
