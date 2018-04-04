@@ -66,7 +66,7 @@ ezMethodMacs2 = function(input=NA, output=NA, param=NA){
       bdgSorted = "sorted.bdg"
       ezSystem(paste("bedSort", paste0(output$getNames(), "_FE.bdg"), bdgSorted))
       cmd = paste("bedGraphToBigWig", bdgSorted, param$ezRef@refChromSizesFile,
-                  paste0(output$getNames(), ".bw"))
+                  paste0(output$getNames(), "_processed.bw"))
       ezSystem(cmd)
       ezSystem("rm *.bdg")
     } else {
