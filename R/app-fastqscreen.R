@@ -11,6 +11,7 @@ ezMethodFastqScreen = function(input=NA, output=NA, param=NA,
   inputRaw <- input$copy()
   # Preprocessing
   if(input$readType() == "bam"){
+    stopifnot(input$getLength() == 1L) ## We only support one uBam now.
     fastqInput <- ezMethodBam2Fastq(input = input, param = param,
                                     OUTPUT_PER_RG=TRUE)
     input <- ezMethodTrim(input = fastqInput, param = param)
@@ -85,6 +86,10 @@ ezMethodFastqScreen = function(input=NA, output=NA, param=NA,
   file.remove(input$getFullPaths("Read1"))
   if(param$paired)
     file.remove(input$getFullPaths("Read2"))
+  
+  # debug
+ # save(fastqData_ppData, fastqData_rawData, speciesPercentageTop, krakenResult,
+ #      dataset, param, rRNA_strandInfo, file="fastqscreen.rda")
   
   #create report
   setwdNew(basename(output$getColumn("Report")))
