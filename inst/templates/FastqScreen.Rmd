@@ -13,6 +13,13 @@ output:
 knitr::opts_chunk$set(echo = TRUE)
 require(knitr)
 require(kableExtra)
+require(plotly)
+
+## debug
+#title: "`r paste('FastQ Screen:', param$name)`"
+#require(ezRun)
+#load("/scratch/gtan/p2000-SCFastqScreen/fastqscreen.rda")
+debug <- FALSE
 ```
 Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
 
@@ -25,8 +32,43 @@ fastqDataAdapters=fastqData_rawData
 
 
 ### FastqScreen Mapping Rates Overview
+```{r overview plotly, fig.height=3.5, fig.width=min(max(7, 7+(nrow(dataset)-20)*0.2), 30), echo=FALSE}
+# Mapping rate
+p <- plot_ly(x=names(fastqData$MappingRate),
+             y=fastqData$MappingRate,
+             type="bar") %>%
+  layout(title = "Overall MappingRate",
+         yaxis = list(title = "MappedReads in %", range = c(0,100)))
+p
 
-```{r overview, echo=FALSE, results='hide', warning=FALSE, message=FALSE, fig.width=min(max(7,7+(nrow(dataset)-20)*0.3), 30)}
+# MappingRateAdapters
+p <- plot_ly(x=names(fastqDataAdapters$MappingRate),
+             y=fastqDataAdapters$MappingRate,
+             type="bar") %>%
+  layout(title = "MappingRate to Adapters without trimming",
+         yaxis = list(title = "MappedReads in %", range = c(0,100)))
+p
+
+# Reads
+p <- plot_ly(x=names(fastqData$Reads), y=fastqData$Reads/1e3, type="bar") %>%
+  layout(title = "ProcessedReads",
+         yaxis = list(title = "#Reads in K"))
+p
+
+# rRNA Mapping
+rRNA_mappingRate = as.data.frame(rRNA_strandInfo/(param[['nReads']]/100))
+rRNA_mappingRate$sample <- rownames(rRNA_mappingRate)
+p <- plot_ly(rRNA_mappingRate, x=~sample, y=~Sense, 
+             type="bar", name="sense") %>%
+    add_trace(y = ~Antisense, name = "antisense") %>%
+  layout(title = "rRNA Silva Mapping",
+         yaxis = list(title = "rRNA-Mapping-Rate in %"),
+         xaxis = list(title = ""),
+         barmode = 'stack')
+p
+```
+
+```{r overview, echo=FALSE, results='hide', warning=FALSE, message=FALSE, fig.width=min(max(7,7+(nrow(dataset)-20)*0.3), 30), eval=FALSE}
 # MappingRate
 par(mar=c(10.1, 4.1, 4.1, 2.1))
     bplt = barplot(fastqData$MappingRate, las=2, ylim=c(0,100), ylab="MappedReads in %", main="Overall MappingRate", col="royalblue3",
@@ -72,7 +114,7 @@ par(mar=c(10.1, 4.1, 4.1, 2.1))
 
 ### FastqScreen Mapping Per Sample
 
-```{r FastqScreenPerSample, echo=FALSE, results='hide', warning=FALSE, message=FALSE}
+```{r FastqScreenPerSample, echo=FALSE, results='hide', warning=FALSE, message=FALSE, eval=!debug}
 for (nm in rownames(dataset)){
   par(mar=c(10.1, 4.1, 4.1, 2.1))
   x = fastqData$CommonResults[[nm]]
@@ -89,7 +131,7 @@ for (nm in rownames(dataset)){
 
 ### Mapping to RefSeq mRNA Per Sample
 
-```{r mRNAPerSample, echo=FALSE, results='hide', warning=FALSE, message=FALSE}
+```{r mRNAPerSample, echo=FALSE, results='hide', warning=FALSE, message=FALSE, eval=!debug}
 for (nm in rownames(dataset)){
       par(mar=c(10.1, 4.1, 4.1, 2.1))
       x = speciesPercentageTop[[nm]]
@@ -106,7 +148,7 @@ for (nm in rownames(dataset)){
 
 Abundances above 5% are truncated.
 
-```{r KrakenPerSample, echo=FALSE, results='hide', warning=FALSE, message=FALSE}
+```{r KrakenPerSample, echo=FALSE, results='hide', warning=FALSE, message=FALSE, eval=!debug}
 for (i in c(1:length(krakenResult))){
       par(mar=c(15.1, 4.1, 4.1, 2.1))
         bplot = barplot(krakenResult[[i]]$readPercentage, names.arg = krakenResult[[i]]$name, col = 'royalblue3', 
@@ -116,7 +158,7 @@ for (i in c(1:length(krakenResult))){
 
 ### Virus Check
 
-```{r virus, echo=FALSE, results='hide', warning=FALSE, message=FALSE}
+```{r virus, echo=FALSE, results='hide', warning=FALSE, message=FALSE, eval=!debug}
 if(param[['virusCheck']]){
   for (nm in rownames(dataset)){ 
     par(mar=c(18.1, 7.1, 2.1, 2.1))
