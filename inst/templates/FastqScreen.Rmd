@@ -32,13 +32,15 @@ fastqDataAdapters=fastqData_rawData
 
 
 ### FastqScreen Mapping Rates Overview
-```{r overview plotly, fig.height=3.5, fig.width=min(max(7, 7+(nrow(dataset)-20)*0.2), 30), echo=FALSE}
+```{r overview plotly, fig.height=7, fig.width=min(max(7, 7+(nrow(dataset)-20)*0.2), 30), echo=FALSE}
+m <- list(l = 80, r = 80, b = 200, t = 100, pad = 0) # more margin space
 # Mapping rate
 p <- plot_ly(x=names(fastqData$MappingRate),
              y=fastqData$MappingRate,
              type="bar") %>%
   layout(title = "Overall MappingRate",
-         yaxis = list(title = "MappedReads in %", range = c(0,100)))
+         yaxis = list(title = "MappedReads in %", range = c(0,100)),
+         margin = m)
 p
 
 # MappingRateAdapters
@@ -46,13 +48,15 @@ p <- plot_ly(x=names(fastqDataAdapters$MappingRate),
              y=fastqDataAdapters$MappingRate,
              type="bar") %>%
   layout(title = "MappingRate to Adapters without trimming",
-         yaxis = list(title = "MappedReads in %", range = c(0,100)))
+         yaxis = list(title = "MappedReads in %", range = c(0,100)),
+         margin = m)
 p
 
 # Reads
 p <- plot_ly(x=names(fastqData$Reads), y=fastqData$Reads/1e3, type="bar") %>%
   layout(title = "ProcessedReads",
-         yaxis = list(title = "#Reads in K"))
+         yaxis = list(title = "#Reads in K"),
+         margin = m)
 p
 
 # rRNA Mapping
@@ -64,7 +68,7 @@ p <- plot_ly(rRNA_mappingRate, x=~sample, y=~Sense,
   layout(title = "rRNA Silva Mapping",
          yaxis = list(title = "rRNA-Mapping-Rate in %"),
          xaxis = list(title = ""),
-         barmode = 'stack')
+         barmode = 'stack', margin = m)
 p
 ```
 
