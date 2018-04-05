@@ -58,7 +58,7 @@ kable(makeCountResultSummary(param, se), row.names=TRUE,
                 position = "left")
 ```
 
-### Result Summary
+### Result summary
 ```{r summary, echo=FALSE}
 settings = character()
 settings["Number of features:"] = nrow(se)
@@ -99,7 +99,7 @@ deResult$saveToFile(basename(output$getColumn("Live Report")))
 
 ### Inspection of significant genes
 
-#### Between-group Comparison
+#### Between-group comparison
 
 ```{r make scatter data, echo=FALSE}
 scatterData <- makeTestScatterData(param, se)
@@ -325,7 +325,7 @@ if (!ezIsSpecified(param$grouping2)){ ## TODO: we no longer use pairing, we now 
 }
 ```
 
-### Clustering of Significant Features
+### Clustering of significant features
 ```{r cluster setup, echo=FALSE, eval=!debug}
 use = rowData(se)$pValue < param$pValueHighlightThresh & 
     abs(rowData(se)$log2Ratio) > param$log2RatioHighlightThresh & rowData(se)$usedInTest
@@ -345,7 +345,7 @@ knitr::kable(as.data.frame(settings), format="html",
                   position = "left")
 ```
 
-#### Cluster Plot
+#### Cluster plot
 ```{r javascript, echo=FALSE, results='asis', eval=!debug}
 jsFile = system.file("extdata/enrichr.js", package="ezRun", mustWork=TRUE)
 invisible(file.copy(from=jsFile, to=basename(jsFile), overwrite=TRUE))
@@ -490,7 +490,7 @@ if (doGo(param, seqAnno)){
 }
 ```
 
-### GO Enrichment Analysis (goseq)
+### GO enrichment analysis (goseq)
 Maximum number of terms displayed: `r param$maxNumberGroupsDisplayed`.
 
 ```{r goseq compute, echo=FALSE, message=FALSE, warning=FALSE, eval=!debug}
@@ -778,7 +778,7 @@ if(all(c("gc", "width") %in% colnames(x))){
 }
 ```
 
-### Input Dataset
+### Input dataset
 ```{r input, echo=FALSE}
 dataset <- data.frame(colData(se), check.names=FALSE, stringsAsFactors=FALSE)
 ezInteractiveTableRmd(values=dataset, digits=4)
