@@ -208,7 +208,7 @@ plot_ly(toPlot, x=~samples,
   )
 plot_ly(toPlot, x=~samples, y=~presentCounts, type="bar",
         text=~percentages, textposition = 'auto') %>%
-  layout(title="Genomic Features with Reads above threshold",
+  layout(title="Genomic features with reads above threshold",
          yaxis = list(title = "Counts"),
          margin = m
   )
