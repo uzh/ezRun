@@ -378,6 +378,9 @@ getSTARReference = function(param){
       stop("refFeatureFile not defined")
     }
     refDir = sub(".gtf$", "_STARIndex", param$ezRef["refFeatureFile"])
+    if (ezIsSpecified(param$spikeInSet)){
+      refDir = paste(refDir, param$spikeInSet, sep="_")
+    }
   }
   
   lockFile = file.path(refDir, "lock")
@@ -408,10 +411,23 @@ getSTARReference = function(param){
   }
   
   job = ezJobStart("STAR genome build")
-  cmd = paste("STAR", "--runMode genomeGenerate --genomeDir", refDir, binOpt,
-              "--limitGenomeGenerateRAM", format(param$ram * 1e9, scientific=FALSE),
-              "--genomeFastaFiles", param$ezRef["refFastaFile"], 
-              "--sjdbGTFfile", param$ezRef["refFeatureFile"], "--sjdbOverhang 150", "--runThreadN", ezThreads())
+  if (ezIsSpecified(param$spikeInSet)){
+    spikeInFasta = paste0(SPIKEINS_ROOT, "/", param$spikeInSet, "/", param$spikeInSet, ".fa")
+    spikeInGtf = paste0(SPIKEINS_ROOT, "/", param$spikeInSet, "/", param$spikeInSet, ".gtf")
+    gtfFile = file.path(refDir, "genesAndSpikes.gtf")
+    ezSystem(paste("cp", param$ezRef["refFeatureFile"], gtfFile))
+    ezSystem(paste("cat", spikeInGtf, ">>", gtfFile))
+    cmd = paste("STAR", "--runMode genomeGenerate --genomeDir", refDir, binOpt,
+                "--limitGenomeGenerateRAM", format(param$ram * 1e9, scientific=FALSE),
+                "--genomeFastaFiles", param$ezRef["refFastaFile"], spikeInFasta,
+                "--sjdbGTFfile", gtfFile, "--sjdbOverhang 150", "--runThreadN", ezThreads())
+  } else {
+    cmd = paste("STAR", "--runMode genomeGenerate --genomeDir", refDir, binOpt,
+                "--limitGenomeGenerateRAM", format(param$ram * 1e9, scientific=FALSE),
+                "--genomeFastaFiles", param$ezRef["refFastaFile"], 
+                "--sjdbGTFfile", param$ezRef["refFeatureFile"], "--sjdbOverhang 150", "--runThreadN", ezThreads())
+    
+  }
   ezSystem(cmd)
   file.remove(lockFile)
   ezWriteElapsed(job, "done")
