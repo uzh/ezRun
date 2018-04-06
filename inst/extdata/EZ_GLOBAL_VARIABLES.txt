@@ -9,8 +9,10 @@ IGV_TEMPLATE_FILE=""
 
 DEFAULT_DATA_ROOT="/srv/gstore/projects"
 GENOMES_ROOT="/srv/GT/reference:/srv/GT/reference-archive"
+SPIKEINS_ROOT="/srv/GT/databases"
 REF_HOST="https://fgcz-gstore.uzh.ch/reference"
 PROJECT_BASE_URL="https://fgcz-gstore.uzh.ch/projects"
+
 
 ## Databases
 NCPRO_ANNOTATION_DIR="/srv/GT/databases/ncPRO-seq/ncPRO-seq.v1.6.3_mirBase21"

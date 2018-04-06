@@ -10,11 +10,12 @@
 ##' @title Makes a minimal single end dataset
 ##' @description Makes a minimal single end dataset by combining the arguments to a data.frame.
 ##' You have to switch directory to the root of the data store first.
-##' @param fqDir a character specifying the path to the directory holding the fastq files. The path must be relative to the DATA_ROOT
+##' @param fqDir a character specifying the path to the directory holding the fastq files. The paths stored in the dataset will be relative to the dataRoot
 ##' @param species a character specifying the species name.
 ##' @param adapter1 a character representing the adapter sequence.
 ##' @param adapter2 a character representing the second adapter sequence in the case of a paired end dataset.
 ##' @param strandMode a character specifying the strand mode for the dataset.
+##' @param dataRoot a string specifying the root directory of the data
 ##' @template roxygen-template
 ##' @return Returns a data.frame containing the provided information.
 ##' @examples
@@ -23,10 +24,15 @@
 ##' ds = makeMinimalSingleEndReadDataset(fqDir, species)
 ##' ds2 = makeMinimalPairedEndReadDataset(fqDir, species)
 makeMinimalSingleEndReadDataset = function(fqDir, species="", adapter1="GATCGGAAGAGCACACGTCTGAACTCCAGTCAC",
-                                       strandMode="both", readCount=NULL){
+                                       strandMode="both", readCount=NULL, dataRoot=DEFAULT_DATA_ROOT){
+  if (!grepl("/$", dataRoot)){
+    dataRoot = paste0(dataRoot, "/")
+  }
   gzFiles = list.files(fqDir, ".gz$", full.names=TRUE)
-  samples = sub(".*-", "", sub(".fastq.gz", "", gzFiles))
-  ds = data.frame("Read1 [File]"=gzFiles, row.names=samples, stringsAsFactors=FALSE, check.names=FALSE)
+  samples = sub(".*-", "", sub(".fastq.gz", "", basename(gzFiles)))
+  stopifnot(!duplicated(samples))
+  ds = data.frame("Read1 [File]"=sub(dataRoot, "", gzFiles),
+                  row.names=samples, stringsAsFactors=FALSE, check.names=FALSE)
   ds$Species = species
   ds$Adapter1 = adapter1
   ds$strandMode = strandMode
@@ -41,13 +47,17 @@ makeMinimalSingleEndReadDataset = function(fqDir, species="", adapter1="GATCGGAA
 
 ##' @describeIn makeMinimalSingleEndReadDataset Does the same for paired end reads.
 makeMinimalPairedEndReadDataset = function(fqDir, species="", adapter1="GATCGGAAGAGCACACGTCTGAACTCCAGTCAC", adapter2="AGATCGGAAGAGCGTCGTGTAGGGAAAGAGTGT",
-                                       strandMode="both", readCount=NULL, readTypeSuffix=c("-R1.fastq.gz", "-R2.fastq.gz")){
+                                       strandMode="both", readCount=NULL, readTypeSuffix=c("-R1.fastq.gz", "-R2.fastq.gz"),
+                                       dataRoot=DEFAULT_DATA_ROOT){
+  if (!grepl("/$", dataRoot)){
+    dataRoot = paste0(dataRoot, "/")
+  }
   gzFiles = list.files(fqDir, readTypeSuffix[1], full.names=TRUE)
-  samples = sub(readTypeSuffix[1], "", gzFiles)
-  ds = data.frame("Read1 [File]"=gzFiles, row.names=samples, stringsAsFactors=FALSE, check.names=FALSE)
+  samples = sub(readTypeSuffix[1], "", basename(gzFiles))
+  ds = data.frame("Read1 [File]"=sub(dataRoot, "", gzFiles), row.names=samples, stringsAsFactors=FALSE, check.names=FALSE)
   r2Files = sub(readTypeSuffix[1], readTypeSuffix[2], gzFiles)
   stopifnot(file.exists(r2Files))
-  ds$"Read2 [File]" = r2Files
+  ds$"Read2 [File]" = sub(dataRoot, "", r2Files)
   ds$Adapter1 = adapter1
   ds$Adapter2 = adapter2
   ds$strandMode = strandMode
