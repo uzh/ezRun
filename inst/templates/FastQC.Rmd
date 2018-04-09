@@ -60,7 +60,7 @@ The color scale corresponds to the percentage of reads at each reads quality.
 ```{r avgQualColors, fig.width=16, fig.height=2, echo=FALSE, results='hide', warning=FALSE, message=FALSE}
 qualMatrixList <- ans4Report[["Per Base Read Quality"]]
 plotList <- plotQualityMatrixAsHeatmapGG2(qualMatrixList, 
-                                          isR2=grepl("_R2", names(qualMatrixList)))
+                                          isR2=grepl("_R2$", names(qualMatrixList)))
 isPaired <- any(grepl("_R2", names(qualMatrixList)))
 # To plot in the order of R1, R2 in row
 library(grid)
