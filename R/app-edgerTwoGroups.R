@@ -19,7 +19,7 @@ ezMethodEdger = function(input=NA, output=NA, param=NA, htmlFile="00index.html")
     param$grouping2 = input$getColumn(param$grouping2)
   }
   
-  rawData = loadCountDatasetSE(input, param)
+  rawData = loadCountDataset(input, param)
   if (isError(rawData)){
     writeErrorReport(htmlFile, param=param, error=rawData$error)
     return("Error")

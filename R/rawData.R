@@ -100,14 +100,6 @@ renameSamples = function(rawData, samplesNew){
 ##' sig = getSignal(rawData)
 ## TODOEXAMPLE: get example with proper return and improve description.
 getSignal = function(rawData){
-  if (rawData$isLog){
-    return(2^rawData$signal)
-  } else {
-    return(rawData$signal)
-  }
-}
-
-getSignalSE = function(rawData){
   if (metadata(rawData)$isLog){
     return(2^assays(rawData)$signal)
   } else {
