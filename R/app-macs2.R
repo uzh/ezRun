@@ -38,9 +38,9 @@ ezMethodMacs2 = function(input=NA, output=NA, param=NA){
   }
   
   if(param$mode == "ChIP-seq"){
-    ## --extsize: extend reads in 5'->3' direction to fix-sized fragments.
+    ## --extsize: extend reads in 5'->3' direction to fix-sized fragments when model building is deactivated.
     ## This size is taken from sushi app.
-    if(!grepl("--extsize", opt)){
+    if(grepl("--nomodel", opt) && !grepl("--extsize", opt)){
       opt <- paste(opt, "--extsize 147")
     }
     bamFile <- input$getFullPaths("BAM")
@@ -109,13 +109,12 @@ ezMethodMacs2 = function(input=NA, output=NA, param=NA){
     file.rename(from=paste0(output$getNames(),"_peaks.narrowPeak"),
                 to=peakBedFile)
   }
+  peakSeqFile = basename(output$getColumn("PeakSequences"))
   cmd = paste("bedtools", " getfasta -fi", param$ezRef["refFastaFile"],
-              " -bed ", peakBedFile, " -name -fo ",
-              basename(output$getColumn("PeakSequences"))
-              )
+              " -bed ", peakBedFile, " -name -fo ",peakSeqFile)
   ezSystem(cmd)
   peakXlsFile <- basename(output$getColumn("CalledPeaks"))
-  annotatePeaks(peakXlsFile, param)
+  annotatePeaks(peakXlsFile, peakSeqFile, param)
   return("Success")
 }
 
@@ -143,10 +142,13 @@ EzAppMacs2 <-
 ##' @template output-template
 ##' @param param a list of parameters to extract the \code{ezRef@@refFeatureFile} and the \code{ezRef@@refAnnotationFile} from.
 ##' @template roxygen-template
-annotatePeaks = function(peakFile, param) {
+annotatePeaks = function(peakFile, peakSeqFile, param) {
   require(rtracklayer)
   require(GenomicRanges)
   require(ChIPpeakAnno)
+  require(Biostrings)
+  require(ShortRead)
+  
   data = ezRead.table(peakFile, comment.char = "#", row.names = NULL)
   if (nrow(data) == 0){
     return(NULL)
@@ -174,9 +176,13 @@ annotatePeaks = function(peakFile, param) {
                                         multiple=FALSE,
                                         FeatureLocForDistance='TSS')
   annotatedPeaks = as.data.frame(annotatedPeaks)
-  annotatedPeaks = annotatedPeaks[ , c("peak", "strand", "feature",
+  annotatedPeaks = annotatedPeaks[ , c("peak", "feature", "feature_strand",
                                        "start_position", "end_position", 
                                        "insideFeature", "distancetoFeature")]
+  colnames(annotatedPeaks) = c("peak", "feature", "feature_strand",
+                               "feature_start", "feature_end", 
+                               "insideFeature", "distancetoFeature")
+  
   annotatedPeaks = merge(data, annotatedPeaks,by.x='name', by.y='peak', all.x=T)
   localAnnotation <- ezFeatureAnnotation(param, dataFeatureType="gene")
   localAnnotation = unique(localAnnotation[, grep('^gene_id$|^description$|name$|symbol$|^type$',colnames(localAnnotation),ignore.case=TRUE)])
@@ -187,7 +193,11 @@ annotatePeaks = function(peakFile, param) {
   annotatedPeaks = annotatedPeaks[order(annotatedPeaks$"-log10(pvalue)", 
                                         decreasing=T), ]
   colnames(annotatedPeaks) = gsub('-log10','_-log10', colnames(annotatedPeaks))
-  ezWrite.table(annotatedPeaks, peakFile, row.names=F)
+  seqs = readDNAStringSet(peakSeqFile)
+  dustyScores = data.frame(ID = names(seqs), dustyScore_peakSequence = dustyScore(seqs), stringsAsFactors = F)
+  annotatedPeaks = merge(annotatedPeaks, dustyScores, by.x = 'name', by.y = 'ID', all.x = TRUE)
+  annotatedPeaks = annotatedPeaks[!duplicated(annotatedPeaks$name),]
+  ezWrite.table(annotatedPeaks, peakFile, row.names = F)
 }
 
 ### import Macs2's BED6+4 file: narrowPeak or broadPeak
