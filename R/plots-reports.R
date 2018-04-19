@@ -21,7 +21,7 @@
 addQcScatterPlots = function(doc, param, design, conds, rawData, signalCond, isPresentCond, types=NULL){
   samples = rownames(design)
   nConds = length(unique(conds))
-  signal = getSignalSE(rawData)
+  signal = getSignal(rawData)
   signal[signal <= 0] = NA
   isPresent = ezPresentFlags(signal, presentFlag=assays(rawData)$presentFlag, 
                              param=param, isLog=metadata(rawData)$isLog)
@@ -116,7 +116,7 @@ countQcScatterPlots = function(param, design, conds, rawData, signalCond,
                                isPresentCond, types=NULL){
   samples = rownames(design)
   nConds = length(unique(conds))
-  signal = getSignalSE(rawData)
+  signal = getSignal(rawData)
   signal[signal <= 0] = NA
   isPresent = ezPresentFlags(signal, presentFlag=assays(rawData)$presentFlag, 
                              param=param, isLog=metadata(rawData)$isLog)
