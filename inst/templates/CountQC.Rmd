@@ -15,8 +15,7 @@ Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
 #title: "`r paste('Analysis:', ifelse(grepl('bam', param$name, ignore.case = TRUE), sub('$', '_Count_QC', param$name), param$name))`"
 # title: "debug title"
 
-knitr::opts_chunk$set(echo = TRUE)
-## This report requires the object rawData, output
+## This report requires the object rawData
 require(knitr)
 require(kableExtra)
 require(SummarizedExperiment)
@@ -24,29 +23,24 @@ require(wesanderson)
 require(WGCNA)
 require(plotly)
 require(matrixStats)
+require(reshape2)
 ```
 
 ```{r prepare data countQC, include=FALSE}
-## debug:
+## start of debug
 # require(ezRun)
-# load("/srv/GT/analysis/gtan/debug/p1536-CountQC/testCountQC.rda")
-# output <- NULL
-debug <- FALSE
+# rawData <- readRDS("/scratch/gtan/p2179-CountQC/Count_QC/rawData.rds")
+# debug <- FALSE
 ## end of debug
 
-
+output <- metadata(rawData)$output
 param <- metadata(rawData)$param
 seqAnno <- data.frame(rowData(rawData), row.names=rownames(rawData),
                       check.names = FALSE, stringsAsFactors=FALSE)
-if (is.null(assays(rawData)$signal)){
-  assays(rawData)$signal = ezNorm(assays(rawData)$counts,
-                                  presentFlag=assays(rawData)$presentFlag,
-                                  method=param$normMethod)
-}
 dataset <- data.frame(colData(rawData), 
                       row.names=colnames(rawData), check.names = FALSE,
                       stringsAsFactors=FALSE)
-metadata(rawData)$analysis <- "Count_QC"
+
 
 types = data.frame(row.names=rownames(seqAnno))
 for (nm in setdiff(na.omit(unique(seqAnno$type)), "")){
@@ -70,7 +64,7 @@ if (nSamples < 2){
 ```
 
 ```{r prepare signal, include=FALSE}
-signal = shiftZeros(getSignalSE(rawData), param$minSignal)
+signal = shiftZeros(getSignal(rawData), param$minSignal)
 presentFlag = assays(rawData)$presentFlag
 signalRange = range(signal, na.rm=TRUE)
 log2Signal = log2(signal)
@@ -182,7 +176,7 @@ for(each in dataFiles){
 ```
 
 ### Count Statistics
-```{r count statistics, echo=FALSE, fig.width=min(7+(nSamples-10)*0.3, 30), eval=!debug}
+```{r count statistics, echo=FALSE, fig.width=min(7+(nSamples-10)*0.3, 30)}
 totalCounts = signif(colSums(assays(rawData)$counts) / 1e6, digits=3)
 presentCounts = colSums(isPresent)
 names(totalCounts) = samples
@@ -362,24 +356,13 @@ if(nSamples > 3){
     
     #clusterPng = "cluster-heatmap.png"
     clusterColors = c("red", "yellow", "orange", "green", "blue", "cyan")
-      
-    #clusterResult = clusterResults(xNormed[use, ],
-    #                               nClusters=length(clusterColors),
-    #                               clusterColors=clusterColors)
-    #plotCmd = expression({
-    #    clusterHeatmap(xNormed[use, ], param, clusterResult, 
-    #                   file=clusterPng, margins=c(18, 9),
-    #                   colColors=sampleColors, 
-    #                   lim=c(-param$logColorRange, param$logColorRange),
-    #                   doClusterColumns=TRUE)
-    #  })
-    #eval(plotCmd)
     clusterResult <-
       clusterPheatmap(xNormed[use, ], design, param, clusterColors,
                       lim=c(-param$logColorRange, param$logColorRange),
                       doClusterColumns=TRUE)
     
     xTmp = data.frame(Cluster=clusterResult$clusterNumbers)
+    xTmp$gene_name = seqAnno[rownames(xTmp), "gene_name"]
     xTmp[ ,1] = clusterResult$clusterColors[xTmp[,1]]
     xTmp = xTmp[order(xTmp$Cluster), ,drop=FALSE]
     ezWrite.table(xTmp, file="cluster-heatmap-clusterMembers.txt")
@@ -444,6 +427,14 @@ if(file.exists(clusterPdf)){
 ```{r go cluster table link, echo=FALSE, results='asis', eval=!debug}
 if (file.exists("goClusterTable.html")){
   cat(paste0("[GO cluster tables](", "goClusterTable.html", ")"), "\n")
+  cat("\n")
+}
+```
+
+```{r cluster heatmap members, echo=FALSE, results="asis", eval=!debug}
+if(file.exists("cluster-heatmap-clusterMembers.txt")){
+  cat(paste0("[Heatmap cluster members](", "cluster-heatmap-clusterMembers.txt", ")"), 
+      "\n")
   cat("\n")
 }
 ```

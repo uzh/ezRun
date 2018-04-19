@@ -6,10 +6,9 @@
 # www.fgcz.ch
 
 
-ezMethodCountQC = function(input=NA, output=NA, param=NA, 
+ezMethodCountQC = function(input=NA, output=NA, param=NA,
                            htmlFile="00index.html"){
   dataset = input$meta
-  setwdNew(basename(output$getColumn("Report")))
   if (param$useFactorsAsSampleName){
     dataset$Name = rownames(dataset)
     rownames(dataset) = addReplicate(apply(ezDesignFromDataset(dataset), 1, 
@@ -20,14 +19,26 @@ ezMethodCountQC = function(input=NA, output=NA, param=NA,
   }
   input$meta = dataset
   
-  rawData = loadCountDatasetSE(input, param)
+  rawData = loadCountDataset(input, param)
   if (isError(rawData)){
     writeErrorReport(htmlFile, param=param, error=rawData$error)
     return("Error")
   }
   
+  ## signal by normMethod
+  if(is.null(assays(rawData)$signal)){
+    assays(rawData)$signal = ezNorm(assays(rawData)$counts,
+                                    presentFlag=assays(rawData)$presentFlag,
+                                    method=param$normMethod)
+  }
+  
+  metadata(rawData)$analysis <- "Count_QC"
+  metadata(rawData)$output <- output
+  
+  setwdNew(basename(output$getColumn("Report")))
+  
   ## debug
-  #save(rawData, output, file="testCountQC.rda")
+  #saveRDS(rawData, file="rawData.rds")
   
   ## Copy the style files and templates
   styleFiles <- file.path(system.file("templates", package="ezRun"),
