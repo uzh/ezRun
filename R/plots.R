@@ -339,7 +339,7 @@ ezVolcano <- function(log2Ratio, pValue, yType=c("p-value", "FDR"),
       theme(plot.title=element_text(hjust=0.5), legend.title=element_blank())
     if(!is.null(labelGenes)){
       stopifnot(!is.null(toPlot$names))
-      p <- p + geom_label_repel(data=dplyr::filter(toPlot, names%in% labelGenes),
+      p <- p + geom_text_repel(data=dplyr::filter(toPlot, names%in% labelGenes),
                                 aes(label=names), fontface = 'bold.italic',
                                 #box.padding = 0.35, 
                                 #point.padding = 0.5, #size=7,

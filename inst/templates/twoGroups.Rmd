@@ -603,7 +603,7 @@ for(onto in names(enrichResult)){
     }else{
         enrichResultReduced <- enrichResult
         enrichResultReduced[[onto]][[sig]]@result$Description <- substr(enrichResultReduced[[onto]][[sig]]@result$Description, 1, 30)
-      enrichMap(enrichResultReduced[[onto]][[sig]], n=50, main=paste(onto, sig))
+      suppressWarnings(enrichMap(enrichResultReduced[[onto]][[sig]], n=50, main=paste(onto, sig))) ## enrichMap gives warning somehow. Suppress for less confusion.
       resFn <- paste(onto, sig, "hypergeometric.txt", sep="_")
       write.table(enrichResult[[onto]][[sig]], file=resFn,
                   quote=FALSE, col.names = TRUE, row.names = FALSE, sep = "\t")
@@ -662,7 +662,8 @@ if (doGo(param, seqAnno)){
 if(exists("enrichResultGSEA")){
 for(onto in names(enrichResultGSEA)){
   if(is.null(enrichResultGSEA[[onto]]) || nrow(enrichResultGSEA[[onto]]@result) == 0L){
-      next
+    cat("No significant gene set.\n")
+    next
   }else{
     p <- dotplot(enrichResultGSEA[[onto]], showCategory=20, title=onto)
     print(p)
@@ -680,9 +681,10 @@ for(onto in names(enrichResultGSEA)){
 if(exists("enrichResultGSEA")){
   for(onto in names(enrichResultGSEA)){
     if(is.null(enrichResultGSEA[[onto]]) || nrow(enrichResultGSEA[[onto]]@result) == 0L){
+      cat("No significant gene set.\n")
       next
     }else{
-      enrichMap(enrichResultGSEA[[onto]], n=50, main=onto)
+      suppressWarnings(enrichMap(enrichResultGSEA[[onto]], n=50, main=onto))
     }
   }
 }
@@ -693,6 +695,7 @@ if(exists("enrichResultGSEA")){
 if(exists("enrichResultGSEA")){
   for(onto in names(enrichResultGSEA)){
     if(is.null(enrichResultGSEA[[onto]]) || nrow(enrichResultGSEA[[onto]]@result) == 0L){
+      cat("No significant gene set.\n")
       next
     }else{
       ## By default it plots gene id instead of gene name.
