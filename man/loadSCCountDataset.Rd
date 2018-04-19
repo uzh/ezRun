@@ -49,7 +49,7 @@
 }
 
 \seealso{
-  \code{\link{loadCountDatasetSE}}  
+  \code{\link{loadCountDataset}}
 }
 \examples{
   \dontrun{

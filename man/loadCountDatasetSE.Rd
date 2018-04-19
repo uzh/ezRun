@@ -1,5 +1,5 @@
-\name{loadCountDatasetSE}
-\alias{loadCountDatasetSE}
+\name{loadCountDataset}
+\alias{loadCountDataset}
 \title{
   Loads the count dataset
 }
@@ -8,7 +8,7 @@
   \code{SummarizedExperiment} object.
 }
 \usage{
-  loadCountDatasetSE(input, param)
+  loadCountDataset(input, param)
 }
 
 \arguments{
@@ -55,7 +55,7 @@
     param <- ezParam(list(dataRoot="/srv/gstore/projects",
                           refBuild="Homo_sapiens/Ensembl/GRCh38.p10/Annotation/Release_89-2017-05-31"))
     input <- EzDataset$new(file=file, dataRoot=param$dataRoot)
-    countsSE1 <- loadCountDatasetSE(input, param)
+    countsSE1 <- loadCountDataset(input, param)
     
   }
 }

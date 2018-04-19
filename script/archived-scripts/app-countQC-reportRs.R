@@ -63,7 +63,7 @@ runNgsCountQC = function(htmlFile="00index.html",
     return("Success")
   }
   
-  signal = shiftZeros(getSignalSE(rawData), param$minSignal)
+  signal = shiftZeros(getSignal(rawData), param$minSignal)
   presentFlag = assays(rawData)$presentFlag
   signalRange = range(signal, na.rm=TRUE)
   log2Signal = log2(signal)
