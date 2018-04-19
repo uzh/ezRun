@@ -11,7 +11,7 @@ ezMethodMEME = function(input=NA, output=NA, param=NA){
   db = param$motifDB
   sampleName = input$getNames()
   if(param$filterPeaks){
-    param$relPos = c('upstream','overlapStart')
+    param$relPos = c('upstream','overlapStart', 'inside', 'includeFeature')
     peaks = ezRead.table(input$getFullPaths("CalledPeaks"), row.names = NULL)
     peaks = peaks[abs(peaks$distancetoFeature) <=  param$distance, ]
     peaks = peaks[peaks$insideFeature %in%  param$relPos,]
