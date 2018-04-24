@@ -362,6 +362,9 @@ getGeneTable <- function(pdxr, param){
                                     abs(results[[log2column]]) > param$minExonLog2Ratio,
                                   results$groupID, sum, na.rm = TRUE)[genetable$gene_id]
   genetable$meanRawCount = round(tapply(results$exonBaseMean, results$groupID, sum)[genetable$gene_id],3)
+  genetable = genetable[genetable$exon_changes > 0, ]
+  ####TODO: get ExonLog2FC only for significant exons with realistic log2FC calculation (pseudo count +10), only exon longer than >50nt
+  ####Filter based on ExonLog2FC  
   genetable$max_ExonLog2FC = round(tapply(results[[log2column]], results$groupID, 
                                           function(x){
                                             idx = which.max(abs(x))
@@ -377,7 +380,7 @@ getGeneTable <- function(pdxr, param){
   genetable = genetable[order(genetable$fdr),]
   ezWrite.table(genetable, file=paste0("result--", param$comparison, "--DEXSeqGeneResult.txt"), head="gene_id")
   require(DT)
-  geneTableSel = genetable[!is.na(genetable$fdr) & genetable$fdr < param$fdr, ]
+  geneTableSel = genetable[!is.na(genetable$fdr) & genetable$fdr < param$fdr & abs(genetable$max_ExonLog2FC) > param$minExonLog2Ratio, ]
   x = datatable(geneTableSel, escape = F,rownames = FALSE, filter = 'bottom',extensions = c('ColReorder','Buttons'),
                 caption = paste('Candidates DEXSeq:',param$comparison, sep=''),
                 options = list(
