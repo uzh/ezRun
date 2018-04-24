@@ -46,7 +46,7 @@ ezMethodHomerDiffPeaks = function(input=NA, output=NA, param=NA,
   localSamFiles <- sub('.bam$', '.sam', localBamFiles)
 
     for (i in 1:length(localBamFiles)){
-     cmd <- paste('samtools view -h', localBamFiles[i], '>', localSamFiles[i])
+      cmd <- paste('samtools view -h', localBamFiles[i], '>', localSamFiles[i])
      ezSystem(cmd)
   }
   
@@ -85,6 +85,7 @@ ezMethodHomerDiffPeaks = function(input=NA, output=NA, param=NA,
     file.remove("tss.txt")
   }
   
+  file.remove(localSamFiles)
   unlink(names(localBamFiles), recursive=TRUE) ## clean the tag directory
   
   return("Success")
