@@ -64,8 +64,6 @@ ezMethodSingleCellSTAR = function(input=NA, output=NA, param=NA){
   ## fastq to bam
   trimmedBamFn <- tempfile(pattern = "trimmedBam", tmpdir=getwd(),
                            fileext = ".bam")
-  on.exit(file.remove(trimmedBamFn), add = TRUE)
-    
   if (param$paired){
     fastqs2bam(fastqFns=trimmedInput$getFullPaths("Read1"),
                fastq2Fns=trimmedInput$getFullPaths("Read2"),
@@ -121,6 +119,7 @@ ezMethodSingleCellSTAR = function(input=NA, output=NA, param=NA){
                      fastaFn=param$ezRef@refFastaFile)
   file.remove("Aligned.out.bam")
   file.rename(from="Aligned.out.merged.bam", to="Aligned.out.bam")
+  file.remove(trimmedBamFn)
   
   nSortThreads = min(param$cores, 8)
   ## if the index is loaded in shared memory we have to use only 10% of the scheduled RAM
@@ -171,5 +170,6 @@ ezMethodSingleCellSTAR = function(input=NA, output=NA, param=NA){
                  sessionUrl = paste(PROJECT_BASE_URL, 
                                     output$getColumn("IGV Session"), sep="/"))
   }
+
   return("Success")
 }
