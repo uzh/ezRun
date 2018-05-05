@@ -467,15 +467,22 @@ if (doGo(param, seqAnno)){
         resMerged <- NA
         if (!is.null(genesToUse) && length(genesToUse) > 3 && param$doPrecomputeEnrichr) {
           resList = runEnrichr(genesToUse, maxResult = maxResultsPerLibrary)
-          resList = lapply(names(resList), function(nm){return(cbind("Gene-set library"=nm, resList[[nm]][, c(2:5, 7:10)]))}) ## add the name as a first column
+          resList = lapply(names(resList), 
+                           function(nm){return(cbind("Gene-set library"=nm, 
+                                                     resList[[nm]][, c(2:5, 7:10)]))}) ## add the name as a first column
           if (length(resList) > 0) {
             resMerged = do.call("rbind", resList)
             resMerged <- resMerged[order(-resMerged[,5]), ]
-            resMerged[, c(3,6:8)] <- apply(resMerged[, c(3,6:8)], 2, sprintf, fmt = "%0.2e")
-            resMerged[, c(4,5)] <- apply(resMerged[, c(4,5)], 2, sprintf, fmt = "%0.3f")
+            resMerged[, c(3,6:8)] <- apply(resMerged[, c(3,6:8)], 2, sprintf,
+                                           fmt = "%0.2e")
+            resMerged[, c(4,5)] <- apply(resMerged[, c(4,5)], 2, sprintf, 
+                                         fmt="%0.3f")
             enrichrTablePath <- paste0("enrichrTable_", row, ".html")
-            ezInteractiveTable(resMerged, tableLink=enrichrTablePath, title=paste("Enrichr report for ", row))
-            enrichrLinks[row, "Precomputed"] = as.html(ezLink(link = enrichrTablePath, label = "Report", target = "_blank"))
+            ezInteractiveTable(resMerged, tableLink=enrichrTablePath,
+                               title=paste("Enrichr report for ", row))
+            enrichrLinks[row, "Precomputed"] = as.html(ezLink(link=enrichrTablePath,
+                                                              label="Report",
+                                                              target="_blank"))
           } else {
             enrichrLinks[row, "Precomputed"] = "No significant results"
           }
@@ -603,7 +610,10 @@ for(onto in names(enrichResult)){
     }else{
         enrichResultReduced <- enrichResult
         enrichResultReduced[[onto]][[sig]]@result$Description <- substr(enrichResultReduced[[onto]][[sig]]@result$Description, 1, 30)
-      suppressWarnings(enrichMap(enrichResultReduced[[onto]][[sig]], n=50, main=paste(onto, sig))) ## enrichMap gives warning somehow. Suppress for less confusion.
+      p <- suppressWarnings(emapplot(enrichResultReduced[[onto]][[sig]],
+                                     showCategory=50, main=paste(onto, sig)))
+      print(p)
+      ## enrichMap gives warning somehow. Suppress for less confusion.
       resFn <- paste(onto, sig, "hypergeometric.txt", sep="_")
       write.table(enrichResult[[onto]][[sig]], file=resFn,
                   quote=FALSE, col.names = TRUE, row.names = FALSE, sep = "\t")
@@ -629,9 +639,10 @@ for(onto in names(enrichResult)){
       resultToPlot$geneID <- resultToPlot$geneName
       enrichResultToPlot@result <- resultToPlot
       
-      cnetplot(enrichResultToPlot,
-             foldChange=setNames(rowData(se)$log2Ratio, rowData(se)$gene_name),
-             main=paste(onto, sig))
+      p <- cnetplot(enrichResultToPlot,
+                    foldChange=setNames(rowData(se)$log2Ratio, rowData(se)$gene_name),
+                    main=paste(onto, sig))
+      print(p)
     }
   }
 }
@@ -684,7 +695,9 @@ if(exists("enrichResultGSEA")){
       cat("No significant gene set.\n")
       next
     }else{
-      suppressWarnings(enrichMap(enrichResultGSEA[[onto]], n=50, main=onto))
+      p <- suppressWarnings(emapplot(enrichResultGSEA[[onto]], showCategory=50,
+                                     main=onto))
+      print(p)
     }
   }
 }
