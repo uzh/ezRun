@@ -38,7 +38,6 @@ ezMethodCountQC = function(input=NA, output=NA, param=NA,
   setwdNew(basename(output$getColumn("Report")))
   
   ## debug
-  debug = FALSE
   #saveRDS(rawData, file="rawData.rds")
   
   ## Copy the style files and templates
