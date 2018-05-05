@@ -96,6 +96,10 @@ ezMethodBowtie2 = function(input=NA, output=NA, param=NA){
               "2>", paste0(sampleName,"_bowtie2.log"), "|", 
               "samtools", "view -S -b -", " > bowtie.bam")
   ezSystem(cmd)
+  file.remove(trimmedInput$getColumn("Read1"))
+  if(param$paired)
+    file.remove(trimmedInput$getColumn("Read2"))
+  
   if (!is.null(param$markDuplicates) && param$markDuplicates){
     ezSortIndexBam("bowtie.bam", "sorted.bam", ram=param$ram, removeBam=TRUE,
                    cores=param$cores)

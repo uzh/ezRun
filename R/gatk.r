@@ -21,7 +21,7 @@
   vcfReport = basename(output$"VCF Report [File]")
   
   
-  cmd = paste0("java -Xmx8g -Djava.io.tmpdir=. -jar ", "$Picard_jar", 
+  cmd = paste0("java -Xmx8g -Djava.io.tmpdir=. -jar ", Sys.getenv("Picard_jar"), 
                " AddOrReplaceReadGroups ",
               " TMP_DIR=. MAX_RECORDS_IN_RAM=2000000", " I=", inputBam,
               " O=", "tmp.bam", ' SORT_ORDER=coordinate',
@@ -30,7 +30,7 @@
               " > addreplace.out")
   ezSystem(cmd)
   ezSystem(paste("samtools", "index", "tmp.bam"))
-  cmd = paste0("java -Xmx8g -Djava.io.tmpdir=. -jar ", "$Picard_jar", 
+  cmd = paste0("java -Xmx8g -Djava.io.tmpdir=. -jar ", Sys.getenv("Picard_jar"), 
                " ReorderSam ",
               " TMP_DIR=. MAX_RECORDS_IN_RAM=2000000", " I=", "tmp.bam",
               " O=", "ordered.bam",
@@ -38,7 +38,7 @@
               " VERBOSITY=WARNING",
               " > reorder.out")
   ezSystem(cmd)
-  cmd = paste0("java -Xmx8g -Djava.io.tmpdir=. -jar ", "$Picard_jar", 
+  cmd = paste0("java -Xmx8g -Djava.io.tmpdir=. -jar ", Sys.getenv("Picard_jar"), 
                " MarkDuplicates",
               " TMP_DIR=. MAX_RECORDS_IN_RAM=2000000", " I=", "ordered.bam",
               " O=", localBam,

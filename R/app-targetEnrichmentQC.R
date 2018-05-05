@@ -27,6 +27,7 @@ EzAppTeqc <-
   )
 
 ezMethodTeqc = function(input=NA, output=NA, param=NA){
+  require(TEQC)
   require(GenomicAlignments)
   param[['build']] = unique(input$meta[['build']])
   setwdNew(basename(output$getColumn("Report")))
@@ -129,7 +130,9 @@ runTEQC = function(file, allExons, param){
   targetsfile = param$designFile
   genomeSize = sum(as.numeric(system(paste("samtools","view -H",file,"|grep @SQ|cut -f 3|sed 's/LN://'"),intern = T)))
   reads=TEQC::get.reads(file, filetype="bam")
-  targets=TEQC::get.targets(targetsfile, skip=grep("^track", readLines(targetsfile, n=200)))
+  skip = grep("^track", readLines(targetsfile, n=200))
+  if (length(skip) == 0) skip = 0
+  targets=TEQC::get.targets(targetsfile, skip=skip)
   
   TEQC::TEQCreport(sampleName=sampleName,
                    CovUniformityPlot = param$covUniformityPlot, CovTargetLengthPlot = param$covTargetLengthPlot, duplicatesPlot=param$duplicatesPlot,#CovGCPlot = T,

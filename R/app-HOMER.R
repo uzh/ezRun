@@ -43,8 +43,14 @@ ezMethodHomerDiffPeaks = function(input=NA, output=NA, param=NA,
   
   bamFiles <- input$getFullPaths("BAM")
   localBamFiles <- sapply(bamFiles, getBamLocally)
+  localSamFiles <- sub('.bam$', '.sam', localBamFiles)
+
+    for (i in 1:length(localBamFiles)){
+      cmd <- paste('samtools view -h', localBamFiles[i], '>', localSamFiles[i])
+     ezSystem(cmd)
+  }
   
-  mcmapply(makeTagDirectory, inBam=localBamFiles, 
+  mcmapply(makeTagDirectory, inBam=localSamFiles, 
            outputDir=names(localBamFiles),
            MoreArgs=list(genome=param$refBuildHOMER),
            mc.cores=param$cores)
@@ -79,6 +85,7 @@ ezMethodHomerDiffPeaks = function(input=NA, output=NA, param=NA,
     file.remove("tss.txt")
   }
   
+  file.remove(localSamFiles)
   unlink(names(localBamFiles), recursive=TRUE) ## clean the tag directory
   
   return("Success")

@@ -33,7 +33,7 @@ ezMethodGatkRnaHaplotyper = function(input=NA, output=NA, param=NA, htmlFile="00
       ezSystem(paste("cp", bf, "local.bam"))
       ezSystem(paste("cp", paste0(bf, ".bai"), "local.bam.bai"))
     }
-    cmd = paste0(javaCall, " -jar ", "$Picard_jar", " AddOrReplaceReadGroups",
+    cmd = paste0(javaCall, " -jar ", Sys.getenv("Picard_jar"), " AddOrReplaceReadGroups",
                  " TMP_DIR=. MAX_RECORDS_IN_RAM=2000000", " I=", "local.bam",
                  " O=withRg.bam SORT_ORDER=coordinate",
                  " RGID=RGID_", sampleName, " RGPL=illumina RGSM=", sampleName, " RGLB=RGLB_", sampleName, " RGPU=RGPU_", sampleName,
@@ -42,7 +42,7 @@ ezMethodGatkRnaHaplotyper = function(input=NA, output=NA, param=NA, htmlFile="00
     ezSystem(cmd)
     file.remove("local.bam")
     
-    cmd = paste0(javaCall, " -jar ", "$Picard_jar", " MarkDuplicates ",
+    cmd = paste0(javaCall, " -jar ", Sys.getenv("Picard_jar"), " MarkDuplicates ",
                  " TMP_DIR=. MAX_RECORDS_IN_RAM=2000000", " I=", "withRg.bam",
                  " O=", "dedup.bam",
                  " REMOVE_DUPLICATES=false", ## do not remove, do only mark

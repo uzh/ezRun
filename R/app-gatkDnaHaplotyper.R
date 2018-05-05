@@ -16,7 +16,7 @@ ezMethodGatkDnaHaplotyper = function(input=NA, output=NA, param=NA){
   genomeSeq = param$ezRef["refFastaFile"]
   sampleName = names(bamFile)
   if(param$addReadGroup){
-    cmd = paste0(javaCall, " -jar ", "$Picard_jar", " AddOrReplaceReadGroups",
+    cmd = paste0(javaCall, " -jar ", Sys.getenv("Picard_jar"), " AddOrReplaceReadGroups",
                " TMP_DIR=. MAX_RECORDS_IN_RAM=2000000", " I=local.bam",
                " O=withRg.bam SORT_ORDER=coordinate",
                " RGID=RGID_", sampleName, " RGPL=illumina RGSM=", sampleName, " RGLB=RGLB_", sampleName, " RGPU=RGPU_", sampleName,
@@ -26,7 +26,7 @@ ezMethodGatkDnaHaplotyper = function(input=NA, output=NA, param=NA){
   }
   
   if(param$markDuplicates){
-    cmd = paste0(javaCall, " -jar ", "$Picard_jar", " MarkDuplicates ",
+    cmd = paste0(javaCall, " -jar ", Sys.getenv("Picard_jar"), " MarkDuplicates ",
                  " TMP_DIR=. MAX_RECORDS_IN_RAM=2000000", " I=withRg.bam",
                  " O=dedup.bam",
                  " REMOVE_DUPLICATES=false",

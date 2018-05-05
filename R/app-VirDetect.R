@@ -9,7 +9,7 @@ ezMethodVirDetect = function(input=NA, output=NA, param=NA,
                              htmlFile="00index.html"){
   require(Rsamtools)
   sampleName = input$getNames() ##first parameter pass to rmarkdown::render
-  stopifnot((param$paired))
+#  stopifnot((param$paired))
 #  start_path = getwd()
   setwdNew(sampleName)
   
@@ -22,19 +22,31 @@ ezMethodVirDetect = function(input=NA, output=NA, param=NA,
                         " --rg LB:RGLB_", sampleName," --rg PL:illumina",
                         " --rg PU:RGPU_", sampleName)
   cmd = paste("bowtie2", param$cmdOptionsHost, defOpt, readGroupOpt,
-              "-x", "/srv/GT/reference/Homo_sapiens/Ensembl/GRCh38.p10/Sequence/BOWTIE2Index/genome", 
-              "-1", trimmedInput$getColumn("Read1"),
-              "-2", trimmedInput$getColumn("Read2"),
-              "2>", "bowtie2.log", "|", "samtools", "view -S -b -", 
+              "-x", "/srv/GT/reference/Homo_sapiens/Ensembl/GRCh38.p10/Sequence/BOWTIE2Index/genome")
+  if(param$paired){
+    cmd = paste(cmd, "-1", trimmedInput$getColumn("Read1"),
+              "-2", trimmedInput$getColumn("Read2"))
+  } else {
+    cmd = paste(cmd, "-U", trimmedInput$getColumn("Read1"))
+  }
+  cmd = paste(cmd, "2>", "bowtie2.log", "|", "samtools", "view -S -b -", 
               " > human.bam")
   ezSystem(cmd)
-  cmd = "samtools view -b -f 12 -F 256 human.bam > human.both_unmapped.bam"
+  if(param$paired){
+    cmd = "samtools view -b -f 12 -F 256 human.bam > human.both_unmapped.bam"
+  } else {
+  cmd = "samtools view -b -f 4 -F 256 human.bam > human.both_unmapped.bam"
+  }
   ezSystem(cmd)
   sortBam("human.both_unmapped.bam", "human.both_unmapped.sorted", byQname=TRUE,
           maxMemory=10240)
   #cmd = "samtools sort -n -m 10G human.both_unmapped.bam human.both_unmapped.sorted"
   #ezSystem(cmd)
-  cmd = "bedtools bamtofastq -i human.both_unmapped.sorted.bam -fq tr_human_removed_R1.fastq -fq2 tr_human_removed_R2.fastq"
+  if(param$paired){
+    cmd = "bedtools bamtofastq -i human.both_unmapped.sorted.bam -fq tr_human_removed_R1.fastq -fq2 tr_human_removed_R2.fastq"
+  } else {
+    cmd = "bedtools bamtofastq -i human.both_unmapped.sorted.bam -fq tr_human_removed_R1.fastq"
+  }
   ezSystem(cmd) 
   
   ## align filtered reads to the selected host genome, get read pairs, in which both reads were unmapped
@@ -42,31 +54,51 @@ ezMethodVirDetect = function(input=NA, output=NA, param=NA,
   paramHost$refBuild <- param$hostBuild
   paramHost$ezRef <- EzRef(paramHost)
   host = getBowtie2Reference(paramHost)
-  cmd = paste("bowtie2", param$cmdOptionsHost, defOpt, readGroupOpt,
-              "-x", host, "-1 tr_human_removed_R1.fastq",
+  cmd = paste("bowtie2", param$cmdOptionsHost, defOpt, readGroupOpt,"-x", host)
+  if(param$paired){
+    cmd = paste(cmd, "-1 tr_human_removed_R1.fastq",
               "-2 tr_human_removed_R2.fastq",
               "2>>", "bowtie2.log", "|", "samtools", "view -S -b -", 
               " > host.bam")
+  } else {
+    cmd = paste(cmd, "-U tr_human_removed_R1.fastq",
+                "2>>", "bowtie2.log", "|", "samtools", "view -S -b -", 
+                " > host.bam")
+  }
   ezSystem(cmd)
-  cmd = "samtools view -b -f 12 -F 256 host.bam > host.both_unmapped.bam"
+  if(param$paired){
+    cmd = "samtools view -b -f 12 -F 256 host.bam > host.both_unmapped.bam"
+  } else {
+    cmd = "samtools view -b -f 4 -F 256 host.bam > host.both_unmapped.bam"
+  }
   ezSystem(cmd)
   sortBam("host.both_unmapped.bam", "host.both_unmapped.sorted", byQname=TRUE,
           maxMemory=10240)
   #cmd = "samtools sort -n -m 10G host.both_unmapped.bam host.both_unmapped.sorted"
   #ezSystem(cmd)
-  cmd = "bedtools bamtofastq -i host.both_unmapped.sorted.bam -fq tr_host_removed_R1.fastq -fq2 tr_host_removed_R2.fastq"
+  if(param$paired){
+    cmd = "bedtools bamtofastq -i host.both_unmapped.sorted.bam -fq tr_host_removed_R1.fastq -fq2 tr_host_removed_R2.fastq"
+  } else {
+    cmd = "bedtools bamtofastq -i host.both_unmapped.sorted.bam -fq tr_host_removed_R1.fastq"
+  }
   ezSystem(cmd)
-  
   ## align filtered reads to the viral reference database, get sorted bam file and idex, output idxstats into a text file
   paramVirom <- param
   paramVirom$refBuild <- param$virBuild
   paramVirom$ezRef <- EzRef(paramVirom)
   vir = getBowtie2Reference(paramVirom)
   cmd = paste("bowtie2", param$cmdOptions, defOpt, readGroupOpt,
-              "-x", vir, "-1 tr_host_removed_R1.fastq", 
+              "-x", vir)
+  if(param$paired){
+    cmd = paste(cmd, "-1 tr_host_removed_R1.fastq", 
               "-2 tr_host_removed_R2.fastq",
               "2>>", "bowtie2.log", "|", "samtools", "view -S -b -", 
               " > virome.bam")
+  } else {
+    cmd = paste(cmd, "-U tr_host_removed_R1.fastq",
+                "2>>", "bowtie2.log", "|", "samtools", "view -S -b -", 
+                " > virome.bam")
+ }
   ezSystem(cmd)
   ezSortIndexBam("virome.bam", "virome.sorted.bam", ram=param$ram, 
                  removeBam=TRUE, cores=ezThreads())
