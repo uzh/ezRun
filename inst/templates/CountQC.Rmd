@@ -253,12 +253,12 @@ ezCorrelationPlot(zValuesNormaled, cond=conds, condLabels=conds,
 if (nSamples > 3){
   cat("#### Sample clustering", "\n")
   ## colour for dendrogram objects
-  paletteList <- list("Cavalcanti" = wes_palette("Cavalcanti"),
+  paletteList <- list("Cavalcanti" = wes_palette("Cavalcanti1"),
                       "Moonrise1" = wes_palette("Moonrise1"),
-                      "Darjeeling" = wes_palette("Darjeeling"),
+                      "Darjeeling" = wes_palette("Darjeeling1"),
                       "Royal1" = wes_palette("Royal1"),
-                      "FantasticFox" = wes_palette("FantasticFox"),
-                      "Chevalier" = wes_palette("Chevalier"),
+                      "FantasticFox" = wes_palette("FantasticFox1"),
+                      "Chevalier" = wes_palette("Chevalier1"),
                       'Moonrise2' = wes_palette("Moonrise2"))
   colList = list()
   for (j in 1:ncol(design)) {
