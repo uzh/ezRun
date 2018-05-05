@@ -30,7 +30,7 @@ require(reshape2)
 ## start of debug
 # require(ezRun)
 # rawData <- readRDS("/scratch/gtan/p2179-CountQC/Count_QC/rawData.rds")
-# debug <- FALSE
+debug <- FALSE
 ## end of debug
 
 output <- metadata(rawData)$output
