@@ -661,7 +661,7 @@ if(exists("enrichResult")){
 ```
 
 ### Gene set enrichment analysis
-```{r gsea compute, echo=FALSE, message=FALSE, eval=!debug}
+```{r gsea compute, echo=FALSE, message=FALSE, eval=!debug, warning=FALSE}
 if (doGo(param, seqAnno)){
   enrichResultGSEA <- ezGSEA(param, se)
   resFns <- c()
