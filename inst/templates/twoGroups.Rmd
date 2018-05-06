@@ -625,7 +625,7 @@ for(onto in names(enrichResult)){
 ```
 
 #### cnetplot
-```{r cnetplot gsea, echo=FALSE, fig.width=14, fig.height=14, eval=!debug}
+```{r cnetplot gsea, echo=FALSE, fig.width=14, fig.height=14, eval=FALSE}
 if(exists("enrichResult")){
 for(onto in names(enrichResult)){
   for(sig in names(enrichResult[[1]])){
@@ -704,7 +704,7 @@ if(exists("enrichResultGSEA")){
 ```
 
 #### cnetplot
-```{r cnetplot, echo=FALSE, fig.width=14, fig.height=14, eval=!debug}
+```{r cnetplot, echo=FALSE, fig.width=14, fig.height=14, eval=FALSE}
 if(exists("enrichResultGSEA")){
   for(onto in names(enrichResultGSEA)){
     if(is.null(enrichResultGSEA[[onto]]) || nrow(enrichResultGSEA[[onto]]@result) == 0L){
