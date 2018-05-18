@@ -39,7 +39,8 @@ EzAppRnaBamStats <-
                                         dupRadar=ezFrame(Type="logical",	DefaultValue="TRUE",	Description="run dupradar"),
                                     fragSizeMax=ezFrame(Type="integer",  DefaultValue=500,	Description="maximum fragment size to plot in fragment size distribution"),
                                     writeIgvSessionLink=ezFrame(Type="logical", DefaultValue="TRUE", Description="should an IGV link be generated"),
-                                    ignoreDup=ezFrame(Type="logical", DefaultValue="NA", Description="should marked duplicates be ignored?"))
+                                    ignoreDup=ezFrame(Type="logical", DefaultValue="NA", Description="should marked duplicates be ignored?"),
+                                    skipCountQc=ezFrame(Type="logical", DefaultValue=FALSE, Description="should we skip the count QC as part of the report"))
                 }
               )
   )
