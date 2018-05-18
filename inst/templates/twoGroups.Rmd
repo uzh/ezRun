@@ -638,7 +638,7 @@ if(exists("enrichResult")){
 ```
 
 #### enrichMap
-```{r enrichMap gsea, echo=FALSE, fig.width=14, fig.height=14, eval=!debug}
+```{r enrichMap gsea, echo=FALSE, fig.width=14, fig.height=14, eval=FALSE}
 if(exists("enrichResult")){
 for(onto in names(enrichResult)){
   for(sig in names(enrichResult[[1]])){
@@ -662,7 +662,7 @@ for(onto in names(enrichResult)){
 ```
 
 #### cnetplot
-```{r cnetplot gsea, echo=FALSE, fig.width=14, fig.height=14, eval=!debug}
+```{r cnetplot gsea, echo=FALSE, fig.width=14, fig.height=14, eval=FALSE}
 if(exists("enrichResult")){
 for(onto in names(enrichResult)){
   for(sig in names(enrichResult[[1]])){
@@ -725,7 +725,7 @@ for(onto in names(enrichResultGSEA)){
 ```
 
 #### enrichMap
-```{r enrichMap, echo=FALSE, eval=!debug, fig.width=14, fig.height=14}
+```{r enrichMap, echo=FALSE, fig.width=14, fig.height=14, eval=FALSE}
 if(exists("enrichResultGSEA")){
   for(onto in names(enrichResultGSEA)){
     if(is.null(enrichResultGSEA[[onto]]) || nrow(enrichResultGSEA[[onto]]@result) == 0L){
@@ -741,7 +741,7 @@ if(exists("enrichResultGSEA")){
 ```
 
 #### cnetplot
-```{r cnetplot, echo=FALSE, eval=!debug, fig.width=14, fig.height=14}
+```{r cnetplot, echo=FALSE, fig.width=14, fig.height=14, eval=FALSE}
 if(exists("enrichResultGSEA")){
   for(onto in names(enrichResultGSEA)){
     if(is.null(enrichResultGSEA[[onto]]) || nrow(enrichResultGSEA[[onto]]@result) == 0L){
@@ -755,9 +755,10 @@ if(exists("enrichResultGSEA")){
       resultToPlot$core_enrichment <- resultToPlot$geneName
       enrichResultToPlot@result <- resultToPlot
       
-      cnetplot(enrichResultToPlot,
+      p <- cnetplot(enrichResultToPlot,
              foldChange=setNames(rowData(se)$log2Ratio, rowData(se)$gene_name),
              main=onto)
+      print(p)
     }
   }
 }
