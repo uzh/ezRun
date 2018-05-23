@@ -276,40 +276,44 @@ ezMethodSingleCellFeatureCounts <- function(input=NA, output=NA, param=NA){
     }
     
     countResult = featureCounts(localBamFile, annot.inbuilt=NULL,
-                                          annot.ext=gtfFile, isGTFAnnotationFile=TRUE,
-                                          GTF.featureType=param$gtfFeatureType,
-                                          GTF.attrType=switch(param$featureLevel,
-                                                              "gene"="gene_id",
-                                                              "transcript"="transcript_id",
-                                                              "isoform"="transcript_id",
-                                                              stop("unsupported feature level: ", param$featureLevel)),
-                                          useMetaFeatures=param$useMetaFeatures,
-                                          allowMultiOverlap=param$allowMultiOverlap,
-                                          isPairedEnd=param$paired, 
-                                          requireBothEndsMapped=FALSE,
-                                          checkFragLength=FALSE,minFragLength=50,
-                                          maxFragLength=600,
-                                          nthreads=param$cores, 
-                                          strandSpecific=switch(param$strandMode, "both"=0, "sense"=1, "antisense"=2, stop("unsupported strand mode: ", param$strandMode)),
-                                          minMQS=param$minMapQuality,
-                                          readExtension5=0,readExtension3=0,read2pos=NULL,
-                                          minOverlap=param$minFeatureOverlap,
-                                          ignoreDup=param$ignoreDup,
-                                          splitOnly=FALSE,
-                                          countMultiMappingReads=param$keepMultiHits,
-                                          fraction=param$keepMultiHits & !param$countPrimaryAlignmentsOnly,
-                                          primaryOnly=param$countPrimaryAlignmentsOnly,
-                                          countChimericFragments=TRUE,chrAliases=NULL,
-                                          reportReads=NULL,
-                                          byReadGroup=ifelse(hasRG, TRUE, FALSE))
+                                annot.ext=gtfFile, isGTFAnnotationFile=TRUE,
+                                GTF.featureType=param$gtfFeatureType,
+                                GTF.attrType=switch(param$featureLevel,
+                                                    "gene"="gene_id",
+                                                    "transcript"="transcript_id",
+                                                    "isoform"="transcript_id",
+                                                    stop("unsupported feature level: ", param$featureLevel)),
+                                useMetaFeatures=param$useMetaFeatures,
+                                allowMultiOverlap=param$allowMultiOverlap,
+                                isPairedEnd=param$paired, 
+                                requireBothEndsMapped=FALSE,
+                                checkFragLength=FALSE,minFragLength=50,
+                                maxFragLength=600,
+                                nthreads=param$cores,
+                                strandSpecific=switch(param$strandMode, "both"=0, "sense"=1, "antisense"=2, stop("unsupported strand mode: ", param$strandMode)),
+                                minMQS=param$minMapQuality,
+                                readExtension5=0,readExtension3=0,read2pos=NULL,
+                                minOverlap=param$minFeatureOverlap,
+                                ignoreDup=param$ignoreDup,
+                                splitOnly=FALSE,
+                                countMultiMappingReads=param$keepMultiHits,
+                                fraction=param$keepMultiHits & !param$countPrimaryAlignmentsOnly,
+                                primaryOnly=param$countPrimaryAlignmentsOnly,
+                                countChimericFragments=TRUE,chrAliases=NULL,
+                                reportReads=NULL,
+                                byReadGroup=ifelse(hasRG, TRUE, FALSE))
   }
   
   ## The count matrix from featurecounts has colnames messed up
   ## recover them here
   countsFixed <- countResult$counts
-  colnames(countsFixed) <- sub(paste0(make.names(localBamFile), "."), "", 
+  colnames(countsFixed) <- sub(paste0(make.names(localBamFile), "."), "",
                                colnames(countsFixed))
-  tagsRG <- sub("ID:", "", 
+  colnames(countsFixed) <- sub(paste0(make.names(normalizePath(localBamFile)), "."), "",
+                               colnames(countsFixed))
+  colnames(countsFixed) <- sub(paste0(make.names(basename(localBamFile)), "."), "",
+                               colnames(countsFixed))
+  tagsRG <- sub("ID:", "",
                 sapply(bamHeaders[[1]]$text[names(bamHeaders[[1]]$text) == "@RG"], "[", 1))
   ## RG starts with numbers will have X after make.names
   ## But featureCounts doesn't have this X.
