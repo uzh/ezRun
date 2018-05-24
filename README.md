@@ -21,7 +21,7 @@ packages <- c("testthat", "knitr", "gage", "goseq", "ChIPpeakAnno",
               "GOstats", "annotate", "bitops", "edgeR", "limma", "S4Vectors",
               "VariantAnnotation", "rmarkdown", "plotly", "scran",
               "ReporteRsjars", "data.table", "kableExtra", "htmlwidgets",
-              "RSelenium", "webshot", "clusterProfiler", "dupRadar",
+              "webshot", "clusterProfiler", "dupRadar",
               "taxize", "SingleCellExperiment", "SummarizedExperiment",
               "scater")
 packages <- setdiff(packages, rownames(installed.packages()))
