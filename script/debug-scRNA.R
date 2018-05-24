@@ -338,14 +338,14 @@ output[['CellCyclePhase [File]']] = 'scRNA-p2277/scCount/NEG-CellCyclePhase.txt'
 output[['CellDataset [File]']] = 'scRNA-p2277/scCount/NEG-dataset.txt'
 EzAppSCCounts$new()$run(input=input, output=output, param=param)
 
-# p2497 SCCounts
+# p2497 SCCounts from uBam
+setwd("/export/local/scratch/gtan/p2497-SCCounts")
 library(ezRun)
 setEnvironments("star")
 setEnvironments("flexbar")
 setEnvironments("trimmomatic")
 setEnvironments("python2")
 setEnvironments("samtools")
-setwd("/export/local/scratch/gtan/p2497-SCCounts")
 param = list()
 param[['cores']] = '8'
 param[['ram']] = '50'
@@ -394,12 +394,80 @@ output[['PreprocessingLog [File]']] = 'p2497/SCCountsApp_24762_2018-02-20--21-32
 output[['STARLog [File]']] = 'p2497/SCCountsApp_24762_2018-02-20--21-32-42/20171222.A-SiCSeq_SCs_P5_STAR.log'
 input = list()
 input[['Name']] = '20171222.A-SiCSeq_SCs_P5'
-input[['Read1']] = 'p2497/HiSeq4000_20171222_RUN420_o3705_fixedRG/20171222.A-SiCSeq_SCs_P5_unmapped.bam'
-#input[['Read1']] = 'p2497/HiSeq4000_20171222_RUN420_o3705_fixedRG/20171222.A-SiCSeq_SCs_P5_subset.bam'
+#input[['Read1']] = 'p2497/HiSeq4000_20171222_RUN420_o3705_fixedRG/20171222.A-SiCSeq_SCs_P5_unmapped.bam'
+input[['Read1']] = 'p2497/HiSeq4000_20171222_RUN420_o3705_fixedRG/20171222.A-SiCSeq_SCs_P5_subset.bam'
 input[['Read Count']] = '312016990'
 input[['Species']] = 'Mus musculus (house mouse)'
 input[['CellDataset']] = 'p2497/HiSeq4000_20171222_RUN420_o3705_fixedRG/fq_dataset.tsv'
 #debug(ezMethodSingleCellSTAR)
+debug(ezMethodSingleCellFeatureCounts)
+EzAppSCCounts$new()$run(input=input, output=output, param=param)
+
+# p2497 SCCounts from uBam, second example
+library(ezRun)
+setwd("/export/local/scratch/gtan/p2497-SCCounts")
+setEnvironments("star")
+setEnvironments("flexbar")
+setEnvironments("trimmomatic")
+setEnvironments("python2")
+setEnvironments("samtools")
+param = list()
+param[['cores']] = '8'
+param[['ram']] = '50'
+param[['scratch']] = '500'
+param[['node']] = ''
+param[['process_mode']] = 'SAMPLE'
+param[['refBuild']] = 'Mus_musculus/Ensembl/GRCm38.p5/Annotation/Release_91-2018-02-26'
+param[['paired']] = 'false'
+param[['strandMode']] = 'both'
+param[['refFeatureFile']] = 'genes.gtf'
+param[['spikeInSet']] = ''
+param[['mapMethod']] = 'STAR'
+param[['mapOptions']] = '--outFilterType BySJout --outFilterMatchNmin 30 --outFilterMismatchNmax 10 --outFilterMismatchNoverLmax 0.05 --alignSJDBoverhangMin 1 --alignSJoverhangMin 8 --alignIntronMax 1000000 --alignMatesGapMax 1000000  --outFilterMultimapNmax 50 --chimSegmentMin 15 --chimJunctionOverhangMin 15 --chimScoreMin 15 --chimScoreSeparation 10 --outSAMstrandField intronMotif'
+param[['getChimericJunctions']] = 'false'
+param[['trimAdapter']] = 'true'
+param[['trimLeft']] = '0'
+param[['trimRight']] = '0'
+param[['minTailQuality']] = '10'
+param[['minAvgQuality']] = '10'
+param[['minReadLength']] = '20'
+param[['featureLevel']] = 'gene'
+param[['gtfFeatureType']] = 'exon'
+param[['allowMultiOverlap']] = 'true'
+param[['countPrimaryAlignmentsOnly']] = 'true'
+param[['minFeatureOverlap']] = '10'
+param[['minMapQuality']] = '1'
+param[['keepMultiHits']] = 'true'
+param[['transcriptTypes']] = 'protein_coding,rRNA,tRNA,Mt_rRNA,Mt_tRNA'
+param[['specialOptions']] = ''
+param[['mail']] = 'ge.tan@fgcz.ethz.ch'
+param[['dataRoot']] = '/srv/gstore/projects'
+param[['resultDir']] = 'p2497/SCCountsApp_26718_2018-05-23--11-47-01'
+output = list()
+output[['Name']] = 'P60_2'
+output[['Species']] = ''
+output[['refBuild']] = 'Mus_musculus/Ensembl/GRCm38.p5/Annotation/Release_91-2018-02-26'
+output[['paired']] = 'false'
+output[['featureLevel']] = 'gene'
+output[['refFeatureFile']] = 'genes.gtf'
+output[['transcriptTypes']] = 'protein_coding,rRNA,tRNA,Mt_rRNA,Mt_tRNA'
+output[['CellDataset [File]']] = 'p2497/SCCountsApp_26718_2018-05-23--11-47-01/P60_2-dataset.tsv'
+output[['CountMatrix [File]']] = 'p2497/SCCountsApp_26718_2018-05-23--11-47-01/P60_2-counts.txt'
+output[['Stats [File]']] = 'p2497/SCCountsApp_26718_2018-05-23--11-47-01/P60_2-stats.txt'
+output[['CellCyclePhase [File]']] = 'p2497/SCCountsApp_26718_2018-05-23--11-47-01/P60_2-CellCyclePhase.txt'
+output[['BAM [File]']] = 'p2497/SCCountsApp_26718_2018-05-23--11-47-01/P60_2.bam'
+output[['BAI [File]']] = 'p2497/SCCountsApp_26718_2018-05-23--11-47-01/P60_2.bam.bai'
+output[['PreprocessingLog [File]']] = 'p2497/SCCountsApp_26718_2018-05-23--11-47-01/P60_2_preprocessing.log'
+output[['STARLog [File]']] = 'p2497/SCCountsApp_26718_2018-05-23--11-47-01/P60_2_STAR.log'
+input = list()
+input[['Name']] = 'P60_2'
+#input[['Read1']] = 'p2497/HiSeq4000_20180518_RUN456_o4446/P60_2_unmapped.bam'
+# samtools view -s 0.01 -b /srv/gstore/projects/p2497/HiSeq4000_20180518_RUN456_o4446/P60_2_unmapped.bam > P60_2_subset.bam
+input[['Read1']] = 'p2497/HiSeq4000_20180518_RUN456_o4446/P60_2_subset.bam'
+input[['Read Count']] = '318102190'
+input[['Species']] = ''
+input[['CellDataset']] = 'p2497/HiSeq4000_20180518_RUN456_o4446/scFastq_dataset.tsv'
+#debug(ezMethodSingleCellFeatureCounts)
 EzAppSCCounts$new()$run(input=input, output=output, param=param)
 
 
