@@ -337,7 +337,7 @@ EzApp <-
                   "Executes actions on exit of an application. This includes links to the output and possibly sending an e-mail."
                   text=.self$outputLinks(output, param)
                   resultName = switch(param$process_mode,
-                                      SAMPLE=names(output)[1],
+                                      SAMPLE=output$getNames()[1],
                                       DATASET=param$name)
                   subject=paste(appName, resultName, 'done.', sep=' ')
                   .self$exitMail(text, subject, param)
