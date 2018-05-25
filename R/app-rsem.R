@@ -7,6 +7,8 @@
 
 
 ezMethodRSEM = function(input=NA, output=NA, param=NA){
+  require(readr)
+  require(dplyr)
   
   sampleName = input$getNames()
   ref = getRSEMReference(param)
@@ -41,20 +43,32 @@ ezMethodRSEM = function(input=NA, output=NA, param=NA){
                 ref, sampleName, "2> rsem.stderr", "> rsem.stdout")
   }
   ezSystem(cmd)
+  
+  file.remove(trimmedInput$getColumn("Read1"))
+  if(param$paired)
+    file.remove(trimmedInput$getColumn("Read2"))
+  
+  file.remove(c("rsem.stderr", "rsem.stdout"))
   if (!is.null(param$keepBam) && param$keepBam){
     localBam = paste0(sampleName, ".genome.bam")
     bamFile = basename(output$getColumn("BAM"))
     ezSortIndexBam(localBam, bamFile, ram = param$ram, min(param$cores, 8))
   }
   
-  transcriptResult = ezRead.table(paste0(sampleName, ".isoforms.results"), header=TRUE)
+  #transcriptResult = ezRead.table(paste0(sampleName, ".isoforms.results"), header=TRUE)
+  transcriptResult <- read_tsv(paste0(sampleName, ".isoforms.results"))
   if (ezIsSpecified(param$transcriptFasta)){
-    result = transcriptResult[ , c("gene_id", "length")]
-    colnames(result) = c("gene_id", "width")
+    #result = transcriptResult[ , c("transcript_id", "gene_id", "length")]
+    result <- select(transcriptResult, "transcript_id", "gene_id", "length")
+    #colnames(result) = c("gene_id", "width")
   } else {
-    result = ezRead.table(param$ezRef["refAnnotationFile"], colClasses="character")
-    stopifnot(rownames(transcriptResult) %in% rownames(result))
-    result = result[rownames(transcriptResult) , intersect(colnames(result), c("gene_id", "width", "gc")), drop=FALSE]
+    #result = ezRead.table(param$ezRef["refAnnotationFile"], colClasses="character")
+    result <- read_tsv(param$ezRef["refAnnotationFile"])
+    stopifnot(all(transcriptResult$transcript_id %in% result$transcript_id))
+    #stopifnot(rownames(transcriptResult) %in% rownames(result))
+    result <- result[match(transcriptResult$transcript_id, result$transcript_id),
+                     intersect(colnames(result),
+                               c("transcript_id", "gene_id", "width", "gc"))]
   }
   result$transcriptCount = transcriptResult$expected_count
   #   result$transcriptExpression = transcriptResult$TPM /1e6 * sum(transcriptResult$expected_count)
@@ -67,7 +81,7 @@ ezMethodRSEM = function(input=NA, output=NA, param=NA){
     result$TPM_PosteriorEstimate = transcriptResult$pme_TPM
     result$FPKM_PosteriorEstimate = transcriptResult$pme_FPKM
   }
-  ezWrite.table(result, file=basename(output$getColumn("Count")))
+  write_tsv(result, path=basename(output$getColumn("Count")))
   return("Success")
 }
 
