@@ -1,4 +1,4 @@
-setwd("/misc/GT/analysis/gtan/debug/p1688-RSEM")
+setwd("/scratch/gtan/debug/p1688-RSEM")
 Sys.setenv("PATH"=paste("/usr/local/ngseq/packages/Dev/jdk/8/bin:/usr/local/ngseq/packages/QC/Flexbar/3.0.3/bin:/usr/local/ngseq/packages/Aligner/RSEM/1.3.0/bin:/usr/local/ngseq/packages/Aligner/STAR/2.5.3a/bin:/usr/local/ngseq/packages/Aligner/Bowtie2/2.3.2/bin:/usr/local/ngseq/packages/Aligner/Bowtie/1.1.2/bin:/usr/local/ngseq/packages/Tools/samtools/1.3.1/bin", Sys.getenv("PATH"), sep=":"))
 Sys.setenv("Trimmomatic_jar"="/usr/local/ngseq/packages/QC/Trimmomatic/0.36/trimmomatic-0.36.jar")
 
@@ -49,5 +49,6 @@ input[['Read2']] = 'p1688/GSE61141-fastq/GSE61141-fastq/s28A24Veh_2.fastq.gz'
 input[['Species']] = 'Homo sapiens (human)'
 input[['strandMode']] = 'unstranded'
 input[['Read Count']] = '6575082'
+#debug(ezMethodRSEM)
 EzAppRSEM$new()$run(input=input, output=output, param=param)
 
