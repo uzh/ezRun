@@ -214,12 +214,77 @@ mergeBamAlignments <- function(alignedBamFn, unmappedBamFn,
                                outputBamFn, fastaFn){
   setEnvironments("picard")
   ## Use . as tmp dir. Big bam generates big tmp files.
-  cmd <- paste("java -Djava.io.tmpdir=. -jar", 
+  cmd <- paste("java -Djava.io.tmpdir=. -jar",
                Sys.getenv("Picard_jar"), "MergeBamAlignment",
-               paste0("ALIGNED=", alignedBamFn), 
+               paste0("ALIGNED=", alignedBamFn),
                paste0("UNMAPPED=", unmappedBamFn),
                paste0("O=", outputBamFn),
                paste0("R=", fastaFn)
   )
   ezSystem(cmd)
+}
+
+posSpecErrorBam <- function(bamGA, genome){
+  require(GenomicAlignments)
+  require(stringr)
+  nMaxReads <- 100000
+  
+  what <- c("cigar", "seq", "rname", "pos")
+  stopifnot(all(what %in% colnames(mcols(bamGA))))
+  
+  hasGap <- grepl("N|I|D", mcols(bamGA)$cigar)
+  readLength <- mcols(bamGA)$qwidth
+  genomeLengths <- setNames(width(genome), names(genome))
+  
+  isOutOfRange <- start(bamGA) + readLength - 1 > genomeLengths[as.character(seqnames(bamGA))] | 
+    start(bamGA) < readLength
+  ## this is very conservative; needed because there might be clipped bases in the beginning
+  if (any(isOutOfRange)){
+    ezWrite("#reads out of range: ", sum(isOutOfRange))
+    idx = which(isOutOfRange)
+    idx = idx[1:min(10, length(idx))]
+    badAlignments = data.frame(pos=start(bamGA)[idx],
+                               cigar=mcols(bamGA)$cigar[idx],
+                               width=readLength[idx])
+    print(badAlignments)
+  }
+  
+  indexKeep <- which(!hasGap & !isOutOfRange)
+  if (length(indexKeep) > nMaxReads){
+    indexKeep <- sample(indexKeep, size=nMaxReads, replace=FALSE)
+  }
+  ezWrite("#alignments: ", length(bamGA),
+          " #valid alignments: ", sum(!hasGap & !isOutOfRange),
+          " #used:", length(indexKeep))
+  if (length(indexKeep) == 0){
+    return(NULL)
+  }
+  
+  ## adjust the start POS according to H and/or S
+  tempCigar = str_extract(mcols(bamGA)$cigar, "^(\\d+H)?(\\d+S)?\\d+M")
+  ## get the number of H at the beginning
+  clipCigar = str_extract(tempCigar, "^\\d+H")
+  noOfH = as.integer(sub("H", "", clipCigar))
+  noOfH[is.na(noOfH)] = 0
+  ## get the number of S at the beginning
+  clipCigar = str_extract(tempCigar, "\\d+S")
+  noOfS = as.integer(sub("S", "", clipCigar))
+  noOfS[is.na(noOfS)] = 0
+  nBeginClipped = noOfH + noOfS
+  bam$pos = bam$pos - nBeginClipped
+  
+}
+
+### Create the MD tag for BAM file and replace matches with "=" in seq
+calmdBam <- function(bamFns, genomeFn, mc.cores=4L){
+  setEnvironments("samtools")
+  mdBamFns <- sub("\\.bam$", "_md.bam", bamFns)
+  stopifnot(!file.exists(mdBamFns))
+  cmds <- paste("samtools calmd -b -e", bamFns, genomeFn, ">", mdBamFns)
+  ezMclapply(cmds, ezSystem, mc.preschedule = FALSE, mc.cores=mc.cores)
+  
+  cmds <- paste("samtools index", mdBamFns)
+  ezMclapply(cmds, ezSystem, mc.preschedule = FALSE, mc.cores=mc.cores)
+  
+  return(mdBamFns)
 }
