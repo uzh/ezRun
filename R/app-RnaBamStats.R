@@ -198,7 +198,6 @@ ezPosSpecErrorRate = function(bam, ReferenceGenome, nMaxReads=100000){
   require("Hmisc", warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
   ## remove the reads containing the gaps, insertions, deletions
   hasGap = grepl("N|I|D", bam$cigar)
-  #readLength = nchar(as.character(bam$seq))
   readLength <- width(bam$seq)
   isOutOfRange = bam$pos + readLength - 1 > length(ReferenceGenome) | bam$pos < readLength ## this is very conservative; needed because there might be clipped bases in the beginning
   if (any(isOutOfRange)){
@@ -206,14 +205,17 @@ ezPosSpecErrorRate = function(bam, ReferenceGenome, nMaxReads=100000){
     ezWrite("last pos: ", length(ReferenceGenome))
     idx = which(isOutOfRange)
     idx = idx[1:min(10, length(idx))]
-    badAlignments = data.frame(pos=bam$pos[idx], cigar=bam$cigar[idx], start=bam$pos[idx], width=readLength[idx])
+    badAlignments = data.frame(pos=bam$pos[idx], cigar=bam$cigar[idx], 
+                               start=bam$pos[idx], width=readLength[idx])
     print(badAlignments)
   }
   indexKeep = which(!hasGap & !isOutOfRange)
   if (length(indexKeep) > nMaxReads){
     indexKeep = sample(indexKeep, size=nMaxReads, replace=FALSE)
   }
-  ezWrite("#alignments: ", length(bam$cigar), " #valid alignments: ", sum(!hasGap & !isOutOfRange), "#used:", length(indexKeep))
+  ezWrite("#alignments: ", length(bam$cigar),
+          " #valid alignments: ", sum(!hasGap & !isOutOfRange), 
+          " #used:", length(indexKeep))
   if (length(indexKeep) == 0){
     return(NULL)
   }
@@ -817,3 +819,4 @@ getDupRateFromBam <- function(bamFile, param=NULL, gtfFn,
                         paired=paired, threads=threads)
   return(dm)
 }
+

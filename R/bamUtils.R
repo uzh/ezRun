@@ -227,29 +227,34 @@ mergeBamAlignments <- function(alignedBamFn, unmappedBamFn,
 posSpecErrorBam <- function(bamGA, genome){
   require(GenomicAlignments)
   require(stringr)
+  require(GenomicRanges)
+  require(Hmisc)
+  require(BSgenome)
+  
   nMaxReads <- 100000
   
-  what <- c("cigar", "seq", "rname", "pos")
+  what <- c("qname", "seq")
   stopifnot(all(what %in% colnames(mcols(bamGA))))
   
-  hasGap <- grepl("N|I|D", mcols(bamGA)$cigar)
-  readLength <- mcols(bamGA)$qwidth
+  hasGap <- grepl("I|D|N", cigar(bamGA))
+  readLength <- qwidth(bamGA)
   genomeLengths <- setNames(width(genome), names(genome))
   
-  isOutOfRange <- start(bamGA) + readLength - 1 > genomeLengths[as.character(seqnames(bamGA))] | 
-    start(bamGA) < readLength
-  ## this is very conservative; needed because there might be clipped bases in the beginning
+  isOutOfRange <- start(bamGA) + readLength - 1 > genomeLengths[as.character(seqnames(bamGA))] |
+   start(bamGA) < readLength
+  # this is very conservative; needed because there might be clipped bases in the beginning
   if (any(isOutOfRange)){
     ezWrite("#reads out of range: ", sum(isOutOfRange))
     idx = which(isOutOfRange)
     idx = idx[1:min(10, length(idx))]
     badAlignments = data.frame(pos=start(bamGA)[idx],
-                               cigar=mcols(bamGA)$cigar[idx],
+                               cigar=cigar(bamGA)[idx],
                                width=readLength[idx])
     print(badAlignments)
   }
   
   indexKeep <- which(!hasGap & !isOutOfRange)
+  # indexKeep <- which(!hasGap)
   if (length(indexKeep) > nMaxReads){
     indexKeep <- sample(indexKeep, size=nMaxReads, replace=FALSE)
   }
@@ -259,20 +264,95 @@ posSpecErrorBam <- function(bamGA, genome){
   if (length(indexKeep) == 0){
     return(NULL)
   }
+  bamGA <- bamGA[indexKeep]
+  bamGR <- granges(bamGA) ##used to record the actual mapped coordinates of seq
   
   ## adjust the start POS according to H and/or S
-  tempCigar = str_extract(mcols(bamGA)$cigar, "^(\\d+H)?(\\d+S)?\\d+M")
+  tempCigar = str_extract(cigar(bamGA), "^(\\d+H)?(\\d+S)?\\d+M")
   ## get the number of H at the beginning
-  clipCigar = str_extract(tempCigar, "^\\d+H")
-  noOfH = as.integer(sub("H", "", clipCigar))
-  noOfH[is.na(noOfH)] = 0
+  noOfH <- explodeCigarOpLengths(tempCigar, ops="H")
+  stopifnot(!any(lengths(noOfH) > 1))
+  noOfH[lengths(noOfH) == 0] <- 0
+  noOfH <- as.integer(noOfH)
+
   ## get the number of S at the beginning
-  clipCigar = str_extract(tempCigar, "\\d+S")
-  noOfS = as.integer(sub("S", "", clipCigar))
-  noOfS[is.na(noOfS)] = 0
+  noOfS <- explodeCigarOpLengths(tempCigar, ops="S")
+  stopifnot(!any(lengths(noOfS) > 1))
+  noOfS[lengths(noOfS) == 0] <- 0
+  noOfS <- as.integer(noOfS)
   nBeginClipped = noOfH + noOfS
-  bam$pos = bam$pos - nBeginClipped
+  start(bamGR) = start(bamGR) - nBeginClipped
   
+  ## add X to the begin and end of SEQ
+  Xbegin = makeNstr("X", noOfH)
+  tempCigar = str_extract(cigar(bamGA), "\\d+[^HS](\\d+S)?(\\d+H)?$")
+  noOfH <- explodeCigarOpLengths(tempCigar, ops="H")
+  stopifnot(!any(lengths(noOfH) > 1))
+  noOfH[lengths(noOfH) == 0] <- 0
+  noOfH <- as.integer(noOfH)
+  
+  Xend = makeNstr("X", noOfH)
+  noOfS <- explodeCigarOpLengths(tempCigar, ops="S")
+  stopifnot(!any(lengths(noOfS) > 1))
+  noOfS[lengths(noOfS) == 0] <- 0
+  noOfS <- as.integer(noOfS)
+  nEndClipped = noOfH + noOfS
+  mcols(bamGR)$seq = paste0(Xbegin, mcols(bamGA)$seq, Xend)
+  end(bamGR) <- end(bamGR) + nEndClipped
+  
+  seqChar = strsplit(mcols(bamGR)$seq, "")
+  readLength <- lengths(seqChar)
+  ## build the reference views object
+  maxLength = quantile(readLength, 0.95)
+  if (maxLength < max(readLength)){
+    readLength[readLength > maxLength] = maxLength
+    seqChar = mapply(function(x, l){x[1:l]}, seqChar, readLength)
+    bamGR <- resize(bamGR, width=readLength, fix="start")
+  }
+  
+  # referenceChar <- genome[bamGR]
+  referenceChar <- getSeq(genome, bamGR)
+  stopifnot(all(width(referenceChar) == width(bamGR))) # check the position change is wright
+  referenceChar = strsplit(as.character(referenceChar), "")
+  
+  # assuming we have unique read length and set it to the maximal read length here.
+  nEndTrimmed = maxLength - readLength
+  trimmedMatrix = mapply(function(readLength, nEndTrimmed){
+                           rep(c(FALSE, TRUE), c(readLength, nEndTrimmed))}, 
+                         readLength, nEndTrimmed, SIMPLIFY=FALSE)
+  ## build a clippedMatrix to record the clipped character
+  nNormal = readLength - nBeginClipped - nEndClipped
+  # clippedMatrix = mapply(function(nBeginClipped, nNormal, nEndClipped, nEndTrimmed){
+  #                          rep(c(TRUE, FALSE, TRUE, FALSE), 
+  #                              c(nBeginClipped, nNormal, nEndClipped, nEndTrimmed))}, 
+  #                        nBeginClipped, nNormal, nEndClipped, nEndTrimmed, SIMPLIFY=FALSE)
+  clippedMatrixNoTrim = mapply(function(nBeginClipped, nNormal, nEndClipped){
+    rep(c(TRUE, FALSE, TRUE),
+        c(nBeginClipped, nNormal, nEndClipped))}, 
+    nBeginClipped, nNormal, nEndClipped, SIMPLIFY=FALSE)
+  
+  matchMatrix = mapply("==", referenceChar, seqChar, SIMPLIFY=FALSE)
+  
+  indexNeg = as.logical(strand(bamGA) == "-")
+  clippedMatrix[indexNeg] = lapply(clippedMatrix[indexNeg], rev)
+  matchMatrix[indexNeg] = lapply(matchMatrix[indexNeg], rev)
+  
+  clippedMatrix = mapply(function(clippedMatrixNoTrim, nEndTrimmed){
+    c(clippedMatrixNoTrim, rep(FALSE, nEndTrimmed))}, 
+    clippedMatrixNoTrim, nEndTrimmed, SIMPLIFY=FALSE)
+  
+  matchMatrix = sapply(matchMatrix, function(x){x[1:maxLength]})
+  clippedMatrix = matrix(unlist(clippedMatrix), ncol=length(clippedMatrix))
+  clippedRate = rowMeans(clippedMatrix, na.rm=TRUE)
+  trimmedMatrix = matrix(unlist(trimmedMatrix), ncol=length(trimmedMatrix))
+  trimmedRate = rowMeans(trimmedMatrix, na.rm=TRUE)
+  matchMatrix[clippedMatrix] = NA
+  errorRate = 1 - rowMeans(matchMatrix, na.rm=TRUE)
+  names(errorRate) = 1:nrow(matchMatrix)
+  names(clippedRate) = 1:nrow(matchMatrix)
+  names(trimmedRate) = 1:nrow(matchMatrix)
+  return(list(trimmedRate=trimmedRate, clippedRate=clippedRate, 
+              errorRate=errorRate))
 }
 
 ### Create the MD tag for BAM file and replace matches with "=" in seq
