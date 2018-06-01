@@ -334,7 +334,7 @@ posSpecErrorBam <- function(bamGA, genome){
   matchMatrix = mapply("==", referenceChar, seqChar, SIMPLIFY=FALSE)
   
   indexNeg = as.logical(strand(bamGA) == "-")
-  clippedMatrix[indexNeg] = lapply(clippedMatrix[indexNeg], rev)
+  clippedMatrixNoTrim[indexNeg] = lapply(clippedMatrixNoTrim[indexNeg], rev)
   matchMatrix[indexNeg] = lapply(matchMatrix[indexNeg], rev)
   
   clippedMatrix = mapply(function(clippedMatrixNoTrim, nEndTrimmed){
