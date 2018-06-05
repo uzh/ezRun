@@ -224,13 +224,14 @@ mergeBamAlignments <- function(alignedBamFn, unmappedBamFn,
   ezSystem(cmd)
 }
 
-posSpecErrorBam <- function(bamGA, genome){
+posSpecErrorBam <- function(bamGA, genomeFn){
   require(GenomicAlignments)
   require(stringr)
   require(GenomicRanges)
   require(Hmisc)
   require(BSgenome)
   require(Biostrings)
+  require(Rsamtools)
   
   nMaxReads <- 100000
   
@@ -239,7 +240,8 @@ posSpecErrorBam <- function(bamGA, genome){
   
   hasGap <- grepl("I|D|N", cigar(bamGA))
   readLength <- qwidth(bamGA)
-  genomeLengths <- setNames(width(genome), names(genome))
+  genomeFnIndixe <- FaFile(genomeFn)
+  genomeLengths <- seqlengths(genomeFnIndixe)
   
   isOutOfRange <- start(bamGA) + readLength - 1 > genomeLengths[as.character(seqnames(bamGA))] |
    start(bamGA) < readLength
@@ -315,7 +317,7 @@ posSpecErrorBam <- function(bamGA, genome){
   }
   
   # referenceChar <- genome[bamGR]
-  referenceChar <- getSeq(genome, bamGR)
+  referenceChar <- getSeq(genomeFnIndixe, bamGR)
   stopifnot(all(width(referenceChar) == width(bamGR))) # check the position change is wright
   referenceChar = strsplit(as.character(referenceChar), "")
   
@@ -363,7 +365,8 @@ calmdBam <- function(bamFns, mdBamFns=sub("\\.bam$", "_md.bam", bamFns),
   
   indicesExist <- file.exists(mdBamFns)
   if(any(indicesExist)){
-    warning("Some md Bam files already exist!", mdBamFns[indicesExist])
+    warning("Some md Bam files already exist!", 
+            paste(mdBamFns[indicesExist], collapse=" "))
     cmdsCalmd <- cmdsCalmd[!indicesExist]
     cmdsIndex <- cmdsIndex[!indicesExist]
   }
