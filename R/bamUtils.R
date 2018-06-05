@@ -374,3 +374,17 @@ calmdBam <- function(bamFns, mdBamFns=sub("\\.bam$", "_md.bam", bamFns),
   ezMclapply(cmdsIndex, ezSystem, mc.preschedule = FALSE, mc.cores=mc.cores)
   return(mdBamFns)
 }
+
+### position specific error with md bam
+posSpecErrorMDBam <- function(bamGA){
+  require(Biostrings)
+  hasIndel = grepl("I|D", cigar(bamGA))
+  bamGA <- bamGA[!hasIndel]
+  
+  seqs <- mcols(bamGA)$seq
+  negStrand <- strand(bamGA) == "-"
+  seqs[negStrand] <- reverseComplement(seqs[negStrand])
+  consensusCount <- consensusMatrix(seqs)
+  errorRate <- 1 - consensusCount["-", ]/colSums(consensusCount)
+  return(errorRate)
+}
