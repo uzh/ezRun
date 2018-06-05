@@ -230,6 +230,7 @@ posSpecErrorBam <- function(bamGA, genome){
   require(GenomicRanges)
   require(Hmisc)
   require(BSgenome)
+  require(Biostrings)
   
   nMaxReads <- 100000
   
@@ -283,26 +284,29 @@ posSpecErrorBam <- function(bamGA, genome){
   nBeginClipped = noOfH + noOfS
   start(bamGR) = start(bamGR) - nBeginClipped
   
-  ## add X to the begin and end of SEQ
-  Xbegin = makeNstr("X", noOfH)
+  ## add - to the begin and end of SEQ for revComplement
+  Xbegin = makeNstr("-", noOfH)
   tempCigar = str_extract(cigar(bamGA), "\\d+[^HS](\\d+S)?(\\d+H)?$")
   noOfH <- explodeCigarOpLengths(tempCigar, ops="H")
   stopifnot(!any(lengths(noOfH) > 1))
   noOfH[lengths(noOfH) == 0] <- 0
   noOfH <- as.integer(noOfH)
   
-  Xend = makeNstr("X", noOfH)
+  Xend = makeNstr("-", noOfH)
   noOfS <- explodeCigarOpLengths(tempCigar, ops="S")
   stopifnot(!any(lengths(noOfS) > 1))
   noOfS[lengths(noOfS) == 0] <- 0
   noOfS <- as.integer(noOfS)
   nEndClipped = noOfH + noOfS
-  mcols(bamGR)$seq = paste0(Xbegin, mcols(bamGA)$seq, Xend)
+  mcols(bamGR)$seq = DNAStringSet(paste0(Xbegin, mcols(bamGA)$seq, Xend))
   end(bamGR) <- end(bamGR) + nEndClipped
   
-  seqChar = strsplit(mcols(bamGR)$seq, "")
+  indexNeg = as.logical(strand(bamGA) == "-")
+  mcols(bamGR)$seq[indexNeg] <- reverseComplement(mcols(bamGR)$seq[indexNeg])
+  
+  seqChar = strsplit(as.character(mcols(bamGR)$seq), "")
   readLength <- lengths(seqChar)
-  ## build the reference views object
+  
   maxLength = quantile(readLength, 0.95)
   if (maxLength < max(readLength)){
     readLength[readLength > maxLength] = maxLength
@@ -322,10 +326,6 @@ posSpecErrorBam <- function(bamGA, genome){
                          readLength, nEndTrimmed, SIMPLIFY=FALSE)
   ## build a clippedMatrix to record the clipped character
   nNormal = readLength - nBeginClipped - nEndClipped
-  # clippedMatrix = mapply(function(nBeginClipped, nNormal, nEndClipped, nEndTrimmed){
-  #                          rep(c(TRUE, FALSE, TRUE, FALSE), 
-  #                              c(nBeginClipped, nNormal, nEndClipped, nEndTrimmed))}, 
-  #                        nBeginClipped, nNormal, nEndClipped, nEndTrimmed, SIMPLIFY=FALSE)
   clippedMatrixNoTrim = mapply(function(nBeginClipped, nNormal, nEndClipped){
     rep(c(TRUE, FALSE, TRUE),
         c(nBeginClipped, nNormal, nEndClipped))}, 
@@ -333,10 +333,7 @@ posSpecErrorBam <- function(bamGA, genome){
   
   matchMatrix = mapply("==", referenceChar, seqChar, SIMPLIFY=FALSE)
   
-  indexNeg = as.logical(strand(bamGA) == "-")
   clippedMatrixNoTrim[indexNeg] = lapply(clippedMatrixNoTrim[indexNeg], rev)
-  matchMatrix[indexNeg] = lapply(matchMatrix[indexNeg], rev)
-  
   clippedMatrix = mapply(function(clippedMatrixNoTrim, nEndTrimmed){
     c(clippedMatrixNoTrim, rep(FALSE, nEndTrimmed))}, 
     clippedMatrixNoTrim, nEndTrimmed, SIMPLIFY=FALSE)
