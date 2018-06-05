@@ -353,15 +353,21 @@ posSpecErrorBam <- function(bamGA, genome){
 }
 
 ### Create the MD tag for BAM file and replace matches with "=" in seq
-calmdBam <- function(bamFns, genomeFn, mc.cores=4L){
+calmdBam <- function(bamFns, mdBamFns=sub("\\.bam$", "_md.bam", bamFns),
+                     genomeFn, mc.cores=4L){
   setEnvironments("samtools")
-  mdBamFns <- sub("\\.bam$", "_md.bam", bamFns)
-  stopifnot(!file.exists(mdBamFns))
-  cmds <- paste("samtools calmd -b -e", bamFns, genomeFn, ">", mdBamFns)
-  ezMclapply(cmds, ezSystem, mc.preschedule = FALSE, mc.cores=mc.cores)
+  stopifnot(length(bamFns) == length(mdBamFns))
   
-  cmds <- paste("samtools index", mdBamFns)
-  ezMclapply(cmds, ezSystem, mc.preschedule = FALSE, mc.cores=mc.cores)
+  cmdsCalmd <- paste("samtools calmd -b -e", bamFns, genomeFn, ">", mdBamFns)
+  cmdsIndex <- paste("samtools index", mdBamFns)
   
+  indicesExist <- file.exists(mdBamFns)
+  if(any(indicesExist)){
+    warning("Some md Bam files already exist!", mdBamFns[indicesExist])
+    cmdsCalmd <- cmdsCalmd[!indicesExist]
+    cmdsIndex <- cmdsIndex[!indicesExist]
+  }
+  ezMclapply(cmdsCalmd, ezSystem, mc.preschedule = FALSE, mc.cores=mc.cores)
+  ezMclapply(cmdsIndex, ezSystem, mc.preschedule = FALSE, mc.cores=mc.cores)
   return(mdBamFns)
 }
