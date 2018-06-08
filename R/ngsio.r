@@ -170,6 +170,11 @@ loadSCCountDataset <- function(input, param){
                                  width=seqAnno$width)$correctedCounts
   }
   
+  ## Make better name for report later.
+  if(length(input$getNames()) == 1L){
+    param$name <- paste(param$name, input$getNames())
+  }
+  
   sce <- SingleCellExperiment(assays=list(counts=countMatrix,
                                           presentFlag=countMatrix > sigThresh),
                               rowRanges=seqAnno, colData=cellDataSet,
