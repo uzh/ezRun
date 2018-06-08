@@ -185,6 +185,7 @@ getKallistoReference = function(param){
       seqAnno = ezFeatureAnnotation(param$ezRef@refAnnotationFile,
                                     dataFeatureType="transcript")
       transcriptsUse = rownames(seqAnno)[seqAnno$type %in% param$transcriptTypes]
+      transcriptsUse <- intersect(transcriptsUse, names(transcripts))
       transcripts <- transcripts[unique(transcriptsUse)]
     }
     writeXStringSet(transcripts, pathTranscripts)
