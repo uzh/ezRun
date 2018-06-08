@@ -57,5 +57,13 @@
                readGroupNames=sub("\\\.(fastq|fq)(\\\.gz){0,1}$", "", 
                                   basename(fastqFns)),
                bamFn="20171011.A-C1_HT_24H_unmapped.bam")
+    
+    ## Make uBAM from cell dataset.tsv
+    input <- EzDataset(file="/srv/gstore/projects/p2488/HiSeq4000_20180209_RUN424_o3954/scFastq_dataset.tsv", 
+                       dataRoot="/srv/gstore/projects")
+    fastqs2bam(fastqFns=input$getFullPaths("Read1"),
+               readGroupNames=input$getNames(),
+               bamFn="20180209.B-single_cell_hippo_neurons_E1_1_unmapped.bam",
+               mc.cores = 4)
   }
 }
