@@ -469,7 +469,7 @@ getTranscriptSequences = function(param=NULL, genomeFn=NULL, featureFn=NULL){
     featureFn <- param$ezRef["refFeatureFile"]
   }
   txdb = makeTxDbFromGFF(featureFn,
-                         dataSource="FGCZ", taxonomyId = "10090")
+                         dataSource="FGCZ", taxonomyId = NA)
   # organism=organism, chrominfo=NULL)
   exonRgList = exonsBy(txdb, by="tx", use.names=TRUE)
   genomeFasta = FaFile(genomeFn)
