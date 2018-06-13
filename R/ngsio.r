@@ -127,67 +127,80 @@ loadCountDataset <- function(input, param){
 loadSCCountDataset <- function(input, param){
   require(SingleCellExperiment)
   require(SummarizedExperiment)
+  require(DropletUtils)
   
   if(length(input$getNames()) > 1L)
     stop("Currently we only support one bam file per dataset.")
   
-  countMatrix <- as.matrix(ezRead.table(input$getFullPaths("CountMatrix")))
-  cellDataSet <- ezRead.table(input$getFullPaths("CellDataset"))
-  
-  ## TODO: this is a temporary solution to fix the discrepency of sample names
-  if(!setequal(colnames(countMatrix), rownames(cellDataSet))){
-    ## fix the colnames in countMatrix
-    ## It's only possible if sample names are part of fastq file names
-    matches <- lapply(rownames(cellDataSet), grep, colnames(countMatrix), 
-                      fixed=TRUE, value=FALSE)
-    stopifnot(all(lengths(matches) <= 1L)) ## stop when mutiple matches happen
-    cellDataSet = cellDataSet[sapply(matches, length) == 1, ]
-    matches <- sapply(rownames(cellDataSet), grep, colnames(countMatrix), 
-                      fixed=TRUE, value=FALSE)
-    colnames(countMatrix)[unlist(matches)] = names(matches)
-    ## TODO this is a temporary solution to support cells with zero reads
-  }
-  ## Reorder the countMatrix columns
-  ## This should be unnecessary if we retain the order of RG when creating unmapped bam
-  countMatrix <- countMatrix[ , rownames(cellDataSet)]
-  
-  dataFeatureLevel <- unique(input$getColumn("featureLevel"))
-  stopifnot(length(dataFeatureLevel) == 1)
-  
-  seqAnnoDF <- ezFeatureAnnotation(param, rownames(countMatrix), 
-                                   dataFeatureLevel)
-  seqAnno <- makeGRangesFromDataFrame(seqAnnoDF, keep.extra.columns=TRUE)
-  seqAnno$featWidth <- seqAnnoDF$width
-  
-  if (param$useSigThresh){
-    sigThresh <- param$sigThresh
-  } else {
-    sigThresh <- 0
+  ## Make better name for report later.
+  if(length(input$getNames()) == 1L){
+    param$name <- paste(param$name, input$getNames())
   }
   
-  if (ezIsSpecified(param$correctBias) && param$correctBias){
-    countMatrix <- ezCorrectBias(countMatrix, gc = seqAnno$gc, 
-                                 width=seqAnno$width)$correctedCounts
+  if(param$scProtocol == "smart-Seq2"){
+    countMatrix <- as.matrix(ezRead.table(input$getFullPaths("CountMatrix")))
+    cellDataSet <- ezRead.table(input$getFullPaths("CellDataset"))
+    
+    ## TODO: this is a temporary solution to fix the discrepency of sample names
+    if(!setequal(colnames(countMatrix), rownames(cellDataSet))){
+      ## fix the colnames in countMatrix
+      ## It's only possible if sample names are part of fastq file names
+      matches <- lapply(rownames(cellDataSet), grep, colnames(countMatrix), 
+                        fixed=TRUE, value=FALSE)
+      stopifnot(all(lengths(matches) <= 1L)) ## stop when mutiple matches happen
+      cellDataSet = cellDataSet[sapply(matches, length) == 1, ]
+      matches <- sapply(rownames(cellDataSet), grep, colnames(countMatrix), 
+                        fixed=TRUE, value=FALSE)
+      colnames(countMatrix)[unlist(matches)] = names(matches)
+      ## TODO this is a temporary solution to support cells with zero reads
+    }
+    ## Reorder the countMatrix columns
+    ## This should be unnecessary if we retain the order of RG when creating unmapped bam
+    countMatrix <- countMatrix[ , rownames(cellDataSet)]
+    
+    dataFeatureLevel <- unique(input$getColumn("featureLevel"))
+    stopifnot(length(dataFeatureLevel) == 1)
+    
+    seqAnnoDF <- ezFeatureAnnotation(param, rownames(countMatrix), 
+                                     dataFeatureLevel)
+    seqAnno <- makeGRangesFromDataFrame(seqAnnoDF, keep.extra.columns=TRUE)
+    seqAnno$featWidth <- seqAnnoDF$width
+    
+    if (param$useSigThresh){
+      sigThresh <- param$sigThresh
+    } else {
+      sigThresh <- 0
+    }
+    
+    if (ezIsSpecified(param$correctBias) && param$correctBias){
+      countMatrix <- ezCorrectBias(countMatrix, gc = seqAnno$gc, 
+                                   width=seqAnno$width)$correctedCounts
+    }
+    
+    sce <- SingleCellExperiment(assays=list(counts=countMatrix,
+                                            presentFlag=countMatrix > sigThresh),
+                                rowRanges=seqAnno, colData=cellDataSet,
+                                metadata=list(isLog=FALSE, 
+                                              featureLevel=dataFeatureLevel,
+                                              type="Counts", param=param))
+    if (ezIsSpecified(param$transcriptTypes)){
+      use = seqAnno$type %in% param$transcriptTypes
+    } else {
+      use = TRUE
+    }
+    sce <- sce[use, ]
+    
+    if (dataFeatureLevel == "isoform" && param$featureLevel == "gene"){
+      sce <- aggregateCountsByGeneSE(sce)
+    }
+    assays(sce)$rpkm <- getRpkmSE(sce)
+    assays(sce)$tpm <- getTpmSE(sce)
+  }else if(param$scProtocol == "10x"){
+    sce <- read10xCounts(dirname(input$getFullPaths("CountMatrix")))
+    metadata(sce)$param <- param
+  }else{
+    stop("Unsupported single cell protocol!")
   }
-  
-  sce <- SingleCellExperiment(assays=list(counts=countMatrix,
-                                          presentFlag=countMatrix > sigThresh),
-                              rowRanges=seqAnno, colData=cellDataSet,
-                              metadata=list(isLog=FALSE, 
-                                            featureLevel=dataFeatureLevel,
-                                            type="Counts", param=param))
-  if (ezIsSpecified(param$transcriptTypes)){
-    use = seqAnno$type %in% param$transcriptTypes
-  } else {
-    use = TRUE
-  }
-  sce <- sce[use, ]
-  
-  if (dataFeatureLevel == "isoform" && param$featureLevel == "gene"){
-    sce <- aggregateCountsByGeneSE(sce)
-  }
-  assays(sce)$rpkm <- getRpkmSE(sce)
-  assays(sce)$tpm <- getTpmSE(sce)
   
   return(sce)
 }
