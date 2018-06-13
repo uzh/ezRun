@@ -112,13 +112,17 @@ plot_ly(data=cell_info, x=~lib_size, y=~expr_genes,
 Histograms of read counts, number of expressed genes and proportion of reads assigned to mitochondrial genes for all cells
 
 ```{r QC metrics on the cells, fig.width=10, fig.height=5, echo=FALSE, message=FALSE, warning=FALSE}
-par(mfrow=c(1,3), mar=c(5.1, 4.1, 0.1, 0.1))
-hist(cell_info$lib_size, xlab="Read counts (million)", main="",
-     breaks=20, col="deepskyblue3", ylab="Number of cells")
-hist(cell_info$expr_genes, xlab="Number of expressed genes", main="",
-     breaks=20, col="deepskyblue3", ylab="Number of cells")
-hist(cell_info$perc_mito, xlab="Mitochondrial proportion (%)",
-     ylab="Number of cells", breaks=20, main="", col="deepskyblue3")
+yax <- list(
+  title = "Number of cells"
+)
+p1 <- plot_ly(data=cell_info, x=~lib_size) %>%
+  layout(xaxis = list(title="Read counts (million)"), yaxis = yax)
+p2 <- plot_ly(data=cell_info, x=~expr_genes) %>%
+  layout(xaxis = list(title="Number of expressed genes"), yaxis = yax)
+p3 <- plot_ly(data=cell_info, x=~perc_mito) %>%
+  layout(xaxis = list(title="Mitochondrial proportion (%)"), yaxis = yax)
+subplot(p1, p2, p3, titleX=TRUE, titleY=TRUE, nrows=1) %>%
+  layout(showlegend = FALSE)
 ```
 
 ### Reads on top 50 genes
