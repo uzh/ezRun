@@ -18,24 +18,35 @@ require(scater)
 require(ezRun)
 require(DT)
 require(htmltools)
+require(dplyr)
+require(Matrix) # sparse matrix
+require(MASS)
 
 # debug
+# title:  "`r metadata(sce)$param$name`"
 # sce <- readRDS("/export/local/scratch/gtan/p2497-SCCountQC/20171222.A-SiCSeq_SCs_P5_SCCountQC/sce.rds")
+# sce <- readRDS("/export/local/scratch/gtan/dev/p2497-SCCountQC/sce.rds")
+
+param <- metadata(sce)$param
+
+if(param$scProtocol == "10x"){
+  rowData(sce) <- rename(data.frame(rowData(sce),
+                                    check.names=FALSE, stringsAsFactors=FALSE),
+                         gene_id=ID, gene_name=Symbol)
+}
 
 sceAllCells <- sce
 
-param <- metadata(sce)$param
-mlog <- metadata(sce)$mlog
-
-param$minReadsPerCell = 1e4
-param$minReadsPerGene = 3
-param$minGenesDetected = 400 ## we should also filter genes that do not have param$minReadsPerGene for at least param$minGenesDetected
-
-sce <- sce[, colSums(assays(sce)$counts) >= param$minReadsPerCell]
-sce <- sce[, colSums(assays(sce)$counts >= param$minReadsPerGene) >= param$minGenesDetected]
+# param$minReadsPerCell = 1e4
+# param$minReadsPerGene = 3
+# param$minGenesDetected = 400 ## we should also filter genes that do not have param$minReadsPerGene for at least param$minGenesDetected
+# 
+# sce <- sce[, colSums(assays(sce)$counts) >= param$minReadsPerCell]
+# sce <- sce[, colSums(assays(sce)$counts >= param$minReadsPerGene) >= param$minGenesDetected]
 
 seqAnno <- data.frame(rowData(sce), row.names=rownames(sce),
                       check.names = FALSE, stringsAsFactors=FALSE)
+
 mito <- rownames(seqAnno)[grepl("^mt-", seqAnno$gene_name)]
 x <- assays(sce)$counts
 cell_info <- data.frame(row.names = colnames(x),
@@ -48,13 +59,19 @@ sceFixName <- sce
 rownames(sceFixName) <- make.unique(rowData(sceFixName)$gene_name)
 is.mito <- grepl("^mt-", rownames(sceFixName))
 sceFixName <- calculateQCMetrics(sceFixName, feature_controls=list(Mt=is.mito))
-libsize.drop <- isOutlier(sceFixName$total_counts, nmads=5, type="lower", log=TRUE)
-feature.drop <- isOutlier(sceFixName$total_features, nmads=5, type="lower", log=TRUE)
-sceFixName <- sceFixName[,!(libsize.drop | feature.drop )]
+if(param$scProtocol == "smart-Seq2"){
+  libsize.drop <- isOutlier(sceFixName$total_counts, nmads=5, type="lower",
+                            log=TRUE)
+  feature.drop <- isOutlier(sceFixName$total_features, nmads=5, type="lower",
+                            log=TRUE)
+  sceFixName <- sceFixName[,!(libsize.drop | feature.drop )]
+}
 
 ## datasetAllCells for section "Heatmap of reads per cell on the plate"
-datasetAllCells <- data.frame(colData(sceAllCells),
-                              check.names = FALSE, stringsAsFactors=FALSE)
+if(param$scProtocol == "smart-Seq2"){
+  datasetAllCells <- data.frame(colData(sceAllCells),
+                                check.names = FALSE, stringsAsFactors=FALSE)
+}
 ```
 
 ## CountQC_Result {.tabset}
@@ -62,14 +79,14 @@ datasetAllCells <- data.frame(colData(sceAllCells),
 ### Overview
 
 * **Total Number of Cells:** `r ncol(sceAllCells)`
-* **Number of cells removed:**  `r ncol(sceAllCells)-ncol(sce)`
-  + cells with less than `r param$minReadsPerCell` reads aligned 
-  + cells with less than `r param$minGenesDetected` genes that have at least `r param$minReadsPerGene` reads
-* **Cells used:** `r ncol(sce)`
-* **Median Genes per Cell** = `r as.integer(median(cell_info$expr_genes))`
+<!-- * **Number of cells removed:**  `r ncol(sceAllCells)-ncol(sce)` -->
+<!--   + cells with less than `r param$minReadsPerCell` reads aligned  -->
+<!--   + cells with less than `r param$minGenesDetected` genes that have at least `r param$minReadsPerGene` reads -->
+<!-- * **Cells used:** `r ncol(sce)` -->
+* **Median Genes per Cell** = `r median(cell_info$expr_genes)`
 * **Median Reads per Cell** = `r round(median(cell_info$lib_size*1e6),0)`
-* Number of input reads = `r mlog["Number of input reads",2]`
-* % of reads mapped to multiple loci = `r mlog["% of reads mapped to multiple loci",2]`
+* Number of input reads = `r ifelse(is.null(metadata(sce)$mlog), NA, metadata(sce)$mlog["Number of input reads",2])`
+* % of reads mapped to multiple loci = `r ifelse(is.null(metadata(sce)$mlog), NA, metadata(sce)$mlog["% of reads mapped to multiple loci",2])`
 
 ### #Genes detected in cells
 
@@ -122,9 +139,12 @@ plotQC(sceFixName, type = "exprs-freq-vs-mean")
 
 ### Heatmap of reads per cell on the plate
 
-Sequenced reads on the plate layout.The heatmap values are in $log10$ scale. The colorScale ranges from half of median value to twice of median value.
+Sequenced reads on the plate layout.The heatmap values are in $log10$ scale.
+The colorScale ranges from half of median value to twice of median value.
 
-```{r plate layout, echo=FALSE, message=FALSE, warning=FALSE}
+This is only available for plate based single cell protocol.
+
+```{r plate layout, echo=FALSE, message=FALSE, warning=FALSE, eval=param$scProtocol=="smart-Seq2"}
 plateMatrix <- plateStatistics(datasetAllCells)
 
 if(!is.na(plateMatrix)){
@@ -149,7 +169,9 @@ if(!is.na(plateMatrix)){
 
 ### Gene Detection Rates
 
-```{r gene detection rates, fig.width=8, fig.height=8, echo=FALSE, message=FALSE, warning=FALSE}
+This is only available for full length single cell protocol.
+
+```{r gene detection rates, fig.width=8, fig.height=8, echo=FALSE, message=FALSE, warning=FALSE, eval=param$scProtocol=="smart-Seq2"}
 scePC = sce
 rowData(scePC) = NULL
 scePC = scePC[seqAnno[rownames(scePC), "biotypes"] == "protein_coding", ]
@@ -202,12 +224,14 @@ A overview of scRNA-Seq QC metrics from Picard over the plate.
 For the detais of the metrics, please refer to 
 https://broadinstitute.github.io/picard/picard-metric-definitions.html
 
-```{r picard setup, echo=FALSE}
+This is only available for plate based single cell protocol.
+
+```{r picard setup, echo=FALSE, eval=param$scProtocol=="smart-Seq2"}
 cd <- data.frame(colData(sceAllCells), check.names = FALSE)
 cd$nGenesDetected <- colSums(assays(sceAllCells)$counts > 3)
 ```
 
-```{r picard plot, echo=FALSE, fig.width=20, fig.height=6}
+```{r picard plot, echo=FALSE, fig.width=20, fig.height=6, eval=param$scProtocol=="smart-Seq2"}
 plateMatrix <- plateStatistics(cd, 
                                colname=c("PF_READS", "nGenesDetected",
                                          "PCT_RIBOSOMAL_BASES", "PF_READS_ALIGNED",
@@ -298,7 +322,10 @@ l
 ```
 
 ### Picard Metrics Summary
-```{r metrics, echo=FALSE}
+
+This is only available for plate based single cell protocol.
+
+```{r metrics, echo=FALSE, eval=param$scProtocol=="smart-Seq2"}
 metricsDT <- colData(sce)[, (tail(grep("\\[File\\]", colnames(colData(sce))), 1)+1):ncol(colData(sce))]
 datatable(data.frame(metricsDT, check.names = FALSE), filter = 'top',
           caption="scRNASeq QC Metrics")
@@ -323,6 +350,27 @@ p2 <- plot_ly(alpha = 0.6) %>%
   layout(barmode = "overlay", title="Median prime bias: Picard",
          xaxis=x)
 p2
+```
+
+### Data availability
+
+**Expression matrix**
+
+The raw count matrix is available here:
+
+```{r raw count matrix, echo=FALSE, results='asis', eval=TRUE}
+rawCount <- as.matrix(assays(sce)$counts)
+if(param$scProtocol == "smart-Seq2"){
+  colnames(rawCount) <- colData(sce)$Name
+}else if(param$scProtocol == "10x"){
+  colnames(rawCount) <- colData(sce)$Barcode
+}
+ezWrite.table(rawCount, file="rawCount.txt", sep="\t")
+zip("rawCount.zip", files="rawCount.txt")
+
+cat("\n")
+cat(paste0("[", "rawCount.zip", "](", "rawCount.zip", ")"))
+cat("\n")
 ```
 
 ### SessionInfo
