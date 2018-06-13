@@ -309,10 +309,10 @@ ezMethodSingleCellFeatureCounts <- function(input=NA, output=NA, param=NA){
   countsFixed <- countResult$counts
   #colnames(countsFixed) <- sub(paste0(make.names(localBamFile), "."), "",
   #                             colnames(countsFixed))
-  #colnames(countsFixed) <- sub(paste0(make.names(normalizePath(localBamFile)), "."), "",
+  colnames(countsFixed) <- sub(paste0(make.names(normalizePath(localBamFile)), "."), "",
+                               colnames(countsFixed), fixed=TRUE)
+  #colnames(countsFixed) <- sub(paste0(".*", make.names(basename(localBamFile)), "\\."), "",
   #                             colnames(countsFixed))
-  colnames(countsFixed) <- sub(paste0(".*", make.names(basename(localBamFile)), "\\."), "",
-                               colnames(countsFixed))
   tagsRG <- sub("ID:", "",
                 sapply(bamHeaders[[1]]$text[names(bamHeaders[[1]]$text) == "@RG"], "[", 1))
   ## RG starts with numbers will have X after make.names
