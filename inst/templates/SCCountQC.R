@@ -1,5 +1,5 @@
+## smart-Seq2 single cell
 setwd("/export/local/scratch/gtan/p2497-SCCountQC")
-
 library(ezRun)
 param = list()
 param[['cores']] = '8'
@@ -47,6 +47,7 @@ input[['featureLevel']] = 'gene'
 #debug(ezMethodSCCountQC)
 #debug(txEndBias)
 #debug(trimTxGtf)
+debug(loadSCCountDataset)
 EzAppSCCountQC$new()$run(input=input, output=output, param=param)
 
-
+## 10x single cell
