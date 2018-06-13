@@ -188,3 +188,10 @@ ezMethodBam2Fastq <- function(input=NA, output=NA, param=NA,
   }
   return(output)
 }
+
+
+countReadsInFastq = function(fastqFiles){
+  require(Biostrings)
+  nReads <- sapply(fastqFiles, fastq.geometry)[1, ]
+  return(nReads)
+}
