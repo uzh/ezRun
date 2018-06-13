@@ -5,31 +5,6 @@
 # The terms are available here: http://www.gnu.org/licenses/gpl.html
 # www.fgcz.ch
 
-
-##' @title Loads the count dataset
-##' @description Loads the count dataset with the given input.
-##' @template input-template
-##' @param param a list of parameters:
-##' \itemize{
-##'   \item{dataRoot}{ the root directory of the files.}
-##'   \item{expressionName}{ if specified, this will be used as the column name...}
-##'   \item{knownExpressionNames}{ ...or otherwise known expression names that occur in the dataset will be used.}
-##'   \item{ezRef@@refBuild}{ if specified, the sequence annotation will be extracted from \code{ezFeatureAnnotation()}.}
-##'   \item{useTranscriptType}{ if specified, only the defined transcript type will be used.}
-##'   \item{sigThresh}{ the threshold...}
-##'   \item{useSigThresh}{ ...and whether it should be used.}
-##'   \item{featureLevel}{ if equal to "gene" and the feature level of the dataset to "isoform", the rawdata will be passed to \code{aggregateCountsByGene()} before returning it.}
-##' }
-##' @template roxygen-template
-##' @return Returns a list of raw data.
-##' @seealso \code{\link{ezFeatureAnnotation}}
-##' @seealso \code{\link{aggregateCountsByGene}}
-##' @examples
-##' param = ezParam()
-##' param$dataRoot = system.file(package="ezRun", mustWork = TRUE)
-##' file = system.file("extdata/yeast_10k_STAR_counts/dataset.tsv", package="ezRun", mustWork = TRUE)
-##' input = EzDataset$new(file=file, dataRoot=param$dataRoot)
-##' cds = loadCountDataset(input, param)
 loadCountDataset <- function(input, param){
   require(tools)
   require(SummarizedExperiment)
@@ -318,24 +293,6 @@ removeReadsFromFastq = function(fqFiles, readIds, fqOutFiles=NULL, doGzip=TRUE){
   return(fqOutFiles)
 }
 
-##' @title Counts reads in FastQ files
-##' @description Counts reads in FastQ files and returns the amount for each file.
-##' @param fastqFiles a character vector representing file paths to FastQ files.
-##' @template roxygen-template
-##' @return Returns a named numeric vector
-##' @examples 
-##' file = system.file("extdata/yeast_10k/dataset.tsv", package="ezRun", mustWork = TRUE)
-##' param = list()
-##' param$dataRoot = system.file(package="ezRun", mustWork = TRUE)
-##' input = EzDataset$new(file=file, dataRoot=param$dataRoot)
-##' fqFiles = input$getFullPaths("Read1")
-##' result = countReadsInFastq(fqFiles)
-countReadsInFastq = function(fastqFiles){
-  require(Biostrings)
-  nReads <- sapply(fastqFiles, fastq.geometry)[1, ]
-  return(nReads)
-}
-
 .pairFastqReads = function(fqFile1, fqFile2, fqOut1, fqOut2, overwrite=FALSE,  doGzip=FALSE){
   require("ShortRead", warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
   for (fn in c(fqOut1, fqOut2)){
@@ -615,4 +572,27 @@ countReadsInFastq = function(fastqFiles){
   }
   close(fqs)
   return(lengthCounts)
+}
+
+writeSCMM <- function(x, file){
+  require(Matrix)
+  require(readr)
+  
+  stopifnot(grepl("\\.mtx$", file))
+  
+  write_lines(rownames(x), path=sub("\\.mtx$", ".rowNames", file))
+  write_lines(colnames(x), path=sub("\\.mtx$", ".colNames", file))
+
+  writeMM(Matrix(x), file=file)
+  
+  invisible(file)
+}
+
+readSCMM <- function(file){
+  require(Matrix)
+  require(readr)
+  ans <- as.matrix(readMM(file))
+  colnames(ans) <- read_lines(sub("\\.mtx$", ".colNames", file))
+  rownames(ans) <- read_lines(sub("\\.mtx$", ".rowNames", file))
+  return(ans)
 }
