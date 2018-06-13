@@ -28,75 +28,83 @@ ezMethodSCCountQC = function(input=NA, output=NA, param=NA,
   on.exit(setwd(cwd), add=TRUE)
   reportCwd <- getwd()
   
+  scProtocol <- ifelse("STARLog" %in% input$colNames, "smart-Seq2", "10x")
+  param$scProtocol <- scProtocol
+  
   sce <- loadSCCountDataset(input, param)
   
   inBam <- getBamLocally(input$getFullPaths("BAM"))
   on.exit(file.remove(file.path(reportCwd, c(inBam, paste0(inBam, ".bai")))), 
                       add = TRUE)
   
-  ## STAR log
-  mlog <- read.table(input$getFullPaths("STARLog"), sep="|", 
-                     as.is = TRUE, quote = "\"", fill=T)
-  rownames(mlog) <- trimws(mlog[,1])
-  metadata(sce)$mlog <- mlog
+  ## STAR log: available for smart-seq2, not for 10x
+  
+  if(param$scProtocol == "smart-Seq2"){
+    mlog <- read.table(input$getFullPaths("STARLog"), sep="|", 
+                       as.is = TRUE, quote = "\"", fill=T)
+    rownames(mlog) <- trimws(mlog[,1])
+    metadata(sce)$mlog <- mlog
+  }
   
   ## 3' and 5' bias: not in use currently
-  minCount <- 20
-  minTxLength <- 1e3
-  maxGenes <- 1e3
-  maxTxs <- 1e3
-  ### Choose the most abundant genes/txs
-  if(metadata(sce)$featureLevel == "gene"){
-    useGeneIDs <- names(head(sort(rowSums(assays(sce)$counts), decreasing=TRUE),
-                             maxGenes))
-    #useGeneIDs <- rownames(sce)[(rowSums(assays(sce)$counts > minCount) >= 1)]
-    useTxIDs <- strsplit(rowData(sce)$transcript_id[rownames(sce) %in% useGeneIDs], "; ")
-    useTxIDs <- sapply(useTxIDs, "[", 1)
-    #useTxIDs <- unlist(useTxIDs)
-  }else{
-    #useTxIDs <- rownames(sce)[(rowSums(assays(sce)$counts > minCount) >= 1)]
-    useTxIDs <- names(head(sort(rowSums(assays(sce)$counts), decreasing=TRUE),
-                           maxTxs))
-  }
- 
+  # minCount <- 20
+  # minTxLength <- 1e3
+  # maxGenes <- 1e3
+  # maxTxs <- 1e3
+  # ### Choose the most abundant genes/txs
+  # if(metadata(sce)$featureLevel == "gene"){
+  #   useGeneIDs <- names(head(sort(rowSums(assays(sce)$counts), decreasing=TRUE),
+  #                            maxGenes))
+  #   #useGeneIDs <- rownames(sce)[(rowSums(assays(sce)$counts > minCount) >= 1)]
+  #   useTxIDs <- strsplit(rowData(sce)$transcript_id[rownames(sce) %in% useGeneIDs], "; ")
+  #   useTxIDs <- sapply(useTxIDs, "[", 1)
+  #   #useTxIDs <- unlist(useTxIDs)
+  # }else{
+  #   #useTxIDs <- rownames(sce)[(rowSums(assays(sce)$counts > minCount) >= 1)]
+  #   useTxIDs <- names(head(sort(rowSums(assays(sce)$counts), decreasing=TRUE),
+  #                          maxTxs))
+  # }
   #primeBias <- txEndBias(param, inBam=inBam, minTxLength=minTxLength,
   #                       useTxIDs=useTxIDs, maxTxs=maxTxs)
   #colData(sce)$bias5 <- primeBias$bias5[colnames(sce)]
   #colData(sce)$bias3 <- primeBias$bias3[colnames(sce)]
   
   ## Picard metrics
-  bamRGFns <- splitBamByRG(inBam, mc.cores=param$cores)
-  on.exit(file.remove(file.path(reportCwd, bamRGFns)), add = TRUE)
+  if(param$scProtocol == "smart-Seq2"){
+    bamRGFns <- splitBamByRG(inBam, mc.cores=param$cores)
+    on.exit(file.remove(file.path(reportCwd, bamRGFns)), add = TRUE)
+    
+    ### CollectAlignmentSummaryMetrics
+    message("Start CollectAlignmentSummaryMetrics", date())
+    alnMetrics <- CollectAlignmentSummaryMetrics(inBams=bamRGFns,
+                                                 fastaFn=param$ezRef['refFastaFile'],
+                                                 paired=param$paired,
+                                                 metricLevel="SAMPLE",
+                                                 mc.cores=param$cores)
+    colData(sce) <- as(data.frame(colData(sce), alnMetrics[colnames(sce), ],
+                                  check.names = FALSE, stringsAsFactors = FALSE),
+                       "DataFrame")
+    
+    ### CollectRnaSeqMetrics
+    message("Start CollectRnaSeqMetrics", date())
+    rnaSeqMetrics <- CollectRnaSeqMetrics(inBams=bamRGFns,
+                                          gtfFn=param$ezRef['refFeatureFile'],
+                                          featAnnoFn=param$ezRef['refAnnotationFile'],
+                                          strandMode=param$strandMode,
+                                          metricLevel="SAMPLE",
+                                          mc.cores=param$cores)
+    colData(sce) <- as(data.frame(colData(sce), rnaSeqMetrics[colnames(sce), ],
+                                  check.names = FALSE, stringsAsFactors = FALSE),
+                       "DataFrame")
+    
+    ### DuplicationMetrics
+    message("Start DuplicationMetrics", date())
+    dupMetrics <- DuplicationMetrics(inBams=bamRGFns, mc.cores=param$cores)
+    colData(sce) <- as(data.frame(colData(sce), dupMetrics[colnames(sce), ],
+                                  check.names = FALSE, stringsAsFactors = FALSE),
+                       "DataFrame")
+  }
 
-  ### CollectAlignmentSummaryMetrics
-  message("Start CollectAlignmentSummaryMetrics", date())
-  alnMetrics <- CollectAlignmentSummaryMetrics(inBams=bamRGFns,
-                                               fastaFn=param$ezRef['refFastaFile'],
-                                               paired=param$paired,
-                                               metricLevel="SAMPLE",
-                                               mc.cores=param$cores)
-  colData(sce) <- as(data.frame(colData(sce), alnMetrics[colnames(sce), ],
-                                check.names = FALSE, stringsAsFactors = FALSE),
-                     "DataFrame")
-  
-  ### CollectRnaSeqMetrics
-  message("Start CollectRnaSeqMetrics", date())
-  rnaSeqMetrics <- CollectRnaSeqMetrics(inBams=bamRGFns,
-                                        gtfFn=param$ezRef['refFeatureFile'],
-                                        featAnnoFn=param$ezRef['refAnnotationFile'],
-                                        strandMode=param$strandMode,
-                                        metricLevel="SAMPLE",
-                                        mc.cores=param$cores)
-  colData(sce) <- as(data.frame(colData(sce), rnaSeqMetrics[colnames(sce), ],
-                                check.names = FALSE, stringsAsFactors = FALSE),
-                     "DataFrame")
-  
-  ### DuplicationMetrics
-  message("Start DuplicationMetrics", date())
-  dupMetrics <- DuplicationMetrics(inBams=bamRGFns, mc.cores=param$cores)
-  colData(sce) <- as(data.frame(colData(sce), dupMetrics[colnames(sce), ],
-                                check.names = FALSE, stringsAsFactors = FALSE),
-                     "DataFrame")
   ## debug
   saveRDS(sce, file="sce.rds")
   
