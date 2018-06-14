@@ -103,7 +103,9 @@ loadSCCountDataset <- function(input, param){
   require(SingleCellExperiment)
   require(SummarizedExperiment)
   require(DropletUtils)
-  
+  require(tools)
+  require(Matrix)
+
   if(length(input$getNames()) > 1L)
     stop("Currently we only support one bam file per dataset.")
   
@@ -113,7 +115,12 @@ loadSCCountDataset <- function(input, param){
   }
   
   if(param$scProtocol == "smart-Seq2"){
-    countMatrix <- as.matrix(ezRead.table(input$getFullPaths("CountMatrix")))
+    countMatrixFn <- input$getFullPaths("CountMatrix")
+    if(file_ext(countMatrixFn) == "mtx"){
+      countMatrix <- readSCMM(countMatrixFn)
+    }else if(file_ext(countMatrixFn) == "txt"){
+      countMatrix <- Matrix(as.matrix(ezRead.table(countMatrixFn)))
+    }
     cellDataSet <- ezRead.table(input$getFullPaths("CellDataset"))
     
     ## TODO: this is a temporary solution to fix the discrepency of sample names
@@ -591,7 +598,8 @@ writeSCMM <- function(x, file){
 readSCMM <- function(file){
   require(Matrix)
   require(readr)
-  ans <- as.matrix(readMM(file))
+  ans <- readMM(file)
+  ans <- as(ans, "dgCMatrix")
   colnames(ans) <- read_lines(sub("\\.mtx$", ".colNames", file))
   rownames(ans) <- read_lines(sub("\\.mtx$", ".rowNames", file))
   return(ans)
