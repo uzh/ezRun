@@ -49,9 +49,9 @@ seqAnno <- data.frame(rowData(sce), row.names=rownames(sce),
 mito <- rownames(seqAnno)[grepl("^mt-", seqAnno$gene_name)]
 x <- assays(sce)$counts
 cell_info <- data.frame(row.names = colnames(x),
-                        lib_size=colSums(x)/1e6, 
-                        expr_genes = colSums(x>0), 
-                        perc_mito=colSums(x[mito,])*100/colSums(x))
+                        lib_size=Matrix::colSums(x)/1e6, 
+                        expr_genes = Matrix::colSums(x>0), 
+                        perc_mito=Matrix::colSums(x[mito,])*100/Matrix::colSums(x))
 
 ## sceFixName for section "Reads on top 50 genes" and "Expression metrics"
 sceFixName <- sce
@@ -213,11 +213,11 @@ for (i in 1:nrow(binCombs)){
 
 gcWidthScoresRel = log2((gcWidthScores + 0.01) / rowMeans(gcWidthScores))
 
-ezHeatmap(gcWidthScores[ ,order(colSums(assays(scePC)$counts) > 3)], lim=c(0, 0.2), Rowv = FALSE, Colv = FALSE, main="", colors=gray((1:256)/256), labCol="",
+ezHeatmap(gcWidthScores[ ,order(Matrix::colSums(assays(scePC)$counts) > 3)], lim=c(0, 0.2), Rowv = FALSE, Colv = FALSE, main="", colors=gray((1:256)/256), labCol="",
           cexRow=1, cexCol=1, key.xlab="detection rate", key.title="", xlab="cells", ylab="bins", margins=c(8,8))
 
 
-ezHeatmap(gcWidthScoresRel[ ,order(colSums(assays(scePC)$counts > 3))], lim=c(-2, 2), Rowv = TRUE, Colv = FALSE, main="", colors=getBlueRedScale(), labCol = "",
+ezHeatmap(gcWidthScoresRel[ ,order(Matrix::colSums(assays(scePC)$counts > 3))], lim=c(-2, 2), Rowv = TRUE, Colv = FALSE, main="", colors=getBlueRedScale(), labCol = "",
           cexRow=1, cexCol=1, key.xlab="detection bias", key.title="", xlab="cells", ylab="bins", margins=c(8,16))
 
 ```
@@ -231,7 +231,7 @@ This is only available for plate based single cell protocol.
 
 ```{r picard setup, echo=FALSE, eval=param$scProtocol=="smart-Seq2"}
 cd <- data.frame(colData(sceAllCells), check.names = FALSE)
-cd$nGenesDetected <- colSums(assays(sceAllCells)$counts > 3)
+cd$nGenesDetected <- Matrix::colSums(assays(sceAllCells)$counts > 3)
 ```
 
 ```{r picard plot, echo=FALSE, fig.width=20, fig.height=6, eval=param$scProtocol=="smart-Seq2"}
