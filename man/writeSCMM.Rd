@@ -26,7 +26,7 @@
 \value{
   Invisible \code{file} for \code{writeSCMM}.
   
-  \code{matrix} of the gene cell count matrix for \code{readSCMM}.
+  \code{dgCMatrix} of the gene cell count matrix for \code{readSCMM}.
 }
 \author{
   Ge Tan
@@ -38,5 +38,4 @@
   file <- tempfile(pattern = "countMatrix", fileext = ".mtx")
   writeSCMM(x, file)
   x2 <- readSCMM(file)
-  stopifnot(identical(x, x2))
 }
