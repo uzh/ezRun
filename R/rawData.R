@@ -173,29 +173,7 @@ getRpkmSE = function(rawData){
   return(rpkm)
 }
 
-
-##' @title Gets the tpm measurement
-##' @description Gets the transcripts per million measurement.
-##' @template rawData-template
-##' @template roxygen-template
-##' @return Returns the tpm measurement.
 getTpm = function(rawData) {
-  if (!is.null(rawData$tpm)){
-    return(rawData$tpm)
-  }
-  if (is.null(rawData$seqAnno$width)){
-    return(NULL)
-  }
-  tpm = rawData$counts
-  for (i in 1:ncol(tpm)){
-    rpk = (rawData$counts[,i] * 1e3) /(rawData$seqAnno$width)
-    scalingFactor = sum(rpk)/1e6
-    tpm[, i] = rpk / scalingFactor
-  }
-  return(tpm)
-}
-
-getTpmSE = function(rawData) {
   if (!is.null(assays(rawData)$tpm)){
     return(assays(rawData)$tpm)
   }

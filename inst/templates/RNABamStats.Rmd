@@ -252,7 +252,7 @@ if (!is.null(geneCounts) && !is.null(param$skipCountQc) && !param$skipCountQc){
     }
     rawData <- rawData[use, ]
     assays(rawData)$rpkm = getRpkmSE(rawData)
-    assays(rawData)$tpm = getTpmSE(rawData)
+    assays(rawData)$tpm = getTpm(rawData)
     
     if (is.null(param$normMethod)){
       param$normMethod = "logMean"
