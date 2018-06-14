@@ -1,5 +1,5 @@
 ## smart-Seq2 single cell
-setwd("/export/local/scratch/gtan/p2497-SCCountQC")
+setwd("/export/local/scratch/gtan/dev/p2497-SCCountQC")
 library(ezRun)
 param = list()
 param[['cores']] = '8'
@@ -30,7 +30,7 @@ input[['paired']] = 'false'
 input[['refFeatureFile']] = 'genes.gtf'
 input[['transcriptTypes']] = 'protein_coding,rRNA,tRNA,Mt_rRNA,Mt_tRNA'
 input[['CellDataset']] = 'p2497/SCCountsApp_24762_2018-02-20--21-32-42/20171222.A-SiCSeq_SCs_P5-dataset.tsv'
-input[['CountMatrix']] = 'p2497/SCCountsApp_24762_2018-02-20--21-32-42/20171222.A-SiCSeq_SCs_P5-counts.txt'
+input[['CountMatrix']] = 'p2497/SCCountsApp_24762_2018-02-20--21-32-42/20171222.A-SiCSeq_SCs_P5-counts.mtx'
 input[['Stats']] = 'p2497/SCCountsApp_24762_2018-02-20--21-32-42/20171222.A-SiCSeq_SCs_P5-stats.txt'
 input[['CellCyclePhase']] = 'p2497/SCCountsApp_24762_2018-02-20--21-32-42/20171222.A-SiCSeq_SCs_P5-CellCyclePhase.txt'
 input[['BAM']] = 'p2497/SCCountsApp_24762_2018-02-20--21-32-42/20171222.A-SiCSeq_SCs_P5.bam'
@@ -44,10 +44,10 @@ input[['featureLevel']] = 'gene'
 #output = EzDataset$new(meta=output, dataRoot=param$dataRoot)
 
 #sce <- loadSCCountDataset(input, param)
-#debug(ezMethodSCCountQC)
+debug(ezMethodSCCountQC)
 #debug(txEndBias)
-#debug(trimTxGtf)
-debug(loadSCCountDataset)
+#debug(getRpkmSE)
+#debug(loadSCCountDataset)
 EzAppSCCountQC$new()$run(input=input, output=output, param=param)
 
 ## 10x single cell

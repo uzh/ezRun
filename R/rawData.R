@@ -150,6 +150,7 @@ getRpkm = function(rawData){
 }
 
 getRpkmSE = function(rawData){
+  require(Matrix)
   #edgeR::rpkm.default
   #edgeR::cpm.default
   if (!is.null(assays(rawData)$rpkm)){
@@ -163,7 +164,7 @@ getRpkmSE = function(rawData){
       rowData(rawData)$width <- rowData(rawData)$featWidth
     }
   }
-  libSize = colSums(assays(rawData)$counts)
+  libSize = Matrix::colSums(assays(rawData)$counts)
   rpkm = assays(rawData)$counts
   for (i in 1:ncol(rpkm)){
     rpkm[, i] = (assays(rawData)$counts[,i] * 1e9) /(rowData(rawData)$width * libSize[i])
