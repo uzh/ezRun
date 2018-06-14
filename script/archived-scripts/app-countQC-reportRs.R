@@ -139,7 +139,7 @@ runNgsCountQC = function(htmlFile="00index.html",
     ezWrite.table(getRpkmSE(rawData), file=rpkmFile, head="Feature ID", digits=4) 
     
     tpmFile = paste0(ezValidFilename(param$name), "-tpm.txt")
-    ezWrite.table(getTpmSE(rawData), file=tpmFile, head="Feature ID", digits=4)
+    ezWrite.table(getTpm(rawData), file=tpmFile, head="Feature ID", digits=4)
     
     dataFiles = c(countFile, signalFile, rpkmFile, tpmFile)
     titles[["Data Files"]] = "Data Files"
