@@ -339,7 +339,7 @@ output[['CellDataset [File]']] = 'scRNA-p2277/scCount/NEG-dataset.txt'
 EzAppSCCounts$new()$run(input=input, output=output, param=param)
 
 # p2497 SCCounts from uBam
-setwd("/export/local/scratch/gtan/p2497-SCCounts")
+setwd("/export/local/scratch/gtan/dev/p2497-SCCounts")
 library(ezRun)
 setEnvironments("star")
 setEnvironments("flexbar")
@@ -385,7 +385,7 @@ output[['paired']] = 'false'
 output[['refFeatureFile']] = 'genes.gtf'
 output[['transcriptTypes']] = 'protein_coding,rRNA,tRNA,Mt_rRNA,Mt_tRNA'
 output[['CellDataset [File]']] = 'p2497/SCCountsApp_24762_2018-02-20--21-32-42/20171222.A-SiCSeq_SCs_P5-dataset.tsv'
-output[['CountMatrix [File]']] = 'p2497/SCCountsApp_24762_2018-02-20--21-32-42/20171222.A-SiCSeq_SCs_P5-counts.txt'
+output[['CountMatrix [File]']] = 'p2497/SCCountsApp_24762_2018-02-20--21-32-42/20171222.A-SiCSeq_SCs_P5-counts.mtx'
 output[['Stats [File]']] = 'p2497/SCCountsApp_24762_2018-02-20--21-32-42/20171222.A-SiCSeq_SCs_P5-stats.txt'
 output[['CellCyclePhase [File]']] = 'p2497/SCCountsApp_24762_2018-02-20--21-32-42/20171222.A-SiCSeq_SCs_P5-CellCyclePhase.txt'
 output[['BAM [File]']] = 'p2497/SCCountsApp_24762_2018-02-20--21-32-42/20171222.A-SiCSeq_SCs_P5.bam'
@@ -400,12 +400,12 @@ input[['Read Count']] = '312016990'
 input[['Species']] = 'Mus musculus (house mouse)'
 input[['CellDataset']] = 'p2497/HiSeq4000_20171222_RUN420_o3705_fixedRG/fq_dataset.tsv'
 #debug(ezMethodSingleCellSTAR)
-debug(ezMethodSingleCellFeatureCounts)
+#debug(ezMethodSingleCellFeatureCounts)
 EzAppSCCounts$new()$run(input=input, output=output, param=param)
 
 # p2497 SCCounts from uBam, second example
 library(ezRun)
-setwd("/export/local/scratch/gtan/p2497-SCCounts")
+setwd("/export/local/scratch/gtan/dev/p2497-SCCounts")
 setEnvironments("star")
 setEnvironments("flexbar")
 setEnvironments("trimmomatic")
@@ -452,7 +452,7 @@ output[['featureLevel']] = 'gene'
 output[['refFeatureFile']] = 'genes.gtf'
 output[['transcriptTypes']] = 'protein_coding,rRNA,tRNA,Mt_rRNA,Mt_tRNA'
 output[['CellDataset [File]']] = 'p2497/SCCountsApp_26718_2018-05-23--11-47-01/P60_2-dataset.tsv'
-output[['CountMatrix [File]']] = 'p2497/SCCountsApp_26718_2018-05-23--11-47-01/P60_2-counts.txt'
+output[['CountMatrix [File]']] = 'p2497/SCCountsApp_26718_2018-05-23--11-47-01/P60_2-counts.mtx'
 output[['Stats [File]']] = 'p2497/SCCountsApp_26718_2018-05-23--11-47-01/P60_2-stats.txt'
 output[['CellCyclePhase [File]']] = 'p2497/SCCountsApp_26718_2018-05-23--11-47-01/P60_2-CellCyclePhase.txt'
 output[['BAM [File]']] = 'p2497/SCCountsApp_26718_2018-05-23--11-47-01/P60_2.bam'

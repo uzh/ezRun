@@ -307,8 +307,6 @@ ezMethodSingleCellFeatureCounts <- function(input=NA, output=NA, param=NA){
   ## The count matrix from featurecounts has colnames messed up
   ## recover them here
   countsFixed <- countResult$counts
-  #colnames(countsFixed) <- sub(paste0(make.names(localBamFile), "."), "",
-  #                             colnames(countsFixed))
   colnames(countsFixed) <- sub(paste0(make.names(normalizePath(localBamFile)), "."), "",
                                colnames(countsFixed), fixed=TRUE)
   #colnames(countsFixed) <- sub(paste0(".*", make.names(basename(localBamFile)), "\\."), "",
@@ -324,8 +322,9 @@ ezMethodSingleCellFeatureCounts <- function(input=NA, output=NA, param=NA){
   colnames(countsFixed) <- fixNameMapping[colnames(countsFixed)]
   
   ## wirteMM doesn't hold the colnames and rownames in mtx
-  ezWrite.table(countsFixed, head=paste0(param$featureLevel, "_id"),
-                file=outputFile)
+  # ezWrite.table(countsFixed, head=paste0(param$featureLevel, "_id"),
+  #               file=outputFile)
+  writeSCMM(countsFixed, file=outputFile)
   ezWrite.table(countResult$stat, file=statFile, row.names=FALSE)
   
   # Determine cell cycle phases. The training data is only available for Hsap and Mmus Ensembl
