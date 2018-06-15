@@ -105,7 +105,8 @@ ezMethodTrim = function(input=NA, output=NA, param=NA){
     if (!is.null(param$onlyAdapterFromDataset) && param$onlyAdapterFromDataset){
       writeXStringSet(adapters, adaptFile)
     } else {
-      ezSystem(paste("cp", TRIMMOMATIC_ADAPTERS, adaptFile))
+      file.copy(from=TRIMMOMATIC_ADAPTERS,
+                to=adaptFile)
       writeXStringSet(adapters, adaptFile, append=TRUE)
     }
     on.exit(file.remove(adaptFile), add=TRUE)
@@ -253,9 +254,7 @@ copyReadsLocally = function(input, param){
   for (rds in reads){
     readFileIn = input$getFullPaths(rds)
     
-    #ezSystem(paste("cp -n", readFileIn, "."))
     file.copy(from=readFileIn, to=".")
-    ## cp will fail when readFileIn is already local.
     
     input$setColumn(rds, basename(readFileIn))
     # if (Sys.info()["user"] == "trxcopy") { ## only run the check for the user trxcopy!!!
