@@ -36,27 +36,23 @@ if(param$scProtocol == "10x"){
                          gene_id=ID, gene_name=Symbol)
 }
 
-sceAllCells <- sce
-
+## ----------------------------------------------
+## scater sce
 param$minReadsPerCell = 1e4
-# param$minReadsPerGene = 5
+param$minReadsPerGene = 5
 # param$minGenesDetected = 400 ## we should also filter genes that do not have param$minReadsPerGene for at least param$minGenesDetected
 
-sce <- sce[, Matrix::colSums(assays(sce)$counts) >= param$minReadsPerCell]
-# sce <- sce[, colSums(assays(sce)$counts >= param$minReadsPerGene) >= param$minGenesDetected]
+sceScater <- sce[ , Matrix::colSums(assays(sce)$counts) >= param$minReadsPerCell]
 
-seqAnno <- data.frame(rowData(sce), row.names=rownames(sce),
-                      check.names = FALSE, stringsAsFactors=FALSE)
-
-mito <- rownames(seqAnno)[grepl("^mt-", seqAnno$gene_name)]
-x <- assays(sce)$counts
+mito <- rownames(sceScater)[grepl("^mt-", rowData(sceScater)$gene_name)]
+x <- assays(sceScater)$counts
 cell_info <- data.frame(row.names = colnames(x),
                         lib_size=Matrix::colSums(x)/1e6, 
                         expr_genes = Matrix::colSums(x>0), 
                         perc_mito=Matrix::colSums(x[mito,])*100/Matrix::colSums(x))
 
 ## sceFixName for section "Reads on top 50 genes" and "Expression metrics"
-sceFixName <- sce
+sceFixName <- sceScater
 rownames(sceFixName) <- make.unique(rowData(sceFixName)$gene_name)
 is.mito <- grepl("^mt-", rownames(sceFixName))
 sceFixName <- calculateQCMetrics(sceFixName, feature_controls=list(Mt=is.mito))
@@ -71,7 +67,7 @@ if(param$scProtocol == "smart-Seq2"){
 ## ----------------------------------------------
 ## datasetAllCells for section "Heatmap of reads per cell on the plate"
 if(param$scProtocol == "smart-Seq2"){
-  datasetAllCells <- data.frame(colData(sceAllCells),
+  datasetAllCells <- data.frame(colData(sce),
                                 check.names = FALSE, stringsAsFactors=FALSE)
 }
 
@@ -85,7 +81,7 @@ if(param$scProtocol == "smart-Seq2"){
 
 ## ----------------------------------------------
 ## SeuratObject fro Seurat section
-sceSeurat <- sceAllCells
+sceSeurat <- sce
 rownames(sceSeurat) <- make.unique(rowData(sceSeurat)$gene_name)
 min_genes=500 ## Input parameter
 countsSeurat <- assays(sceSeurat)$counts
@@ -112,8 +108,8 @@ if(param$scProtocol == "smart-Seq2"){
 
 ### Overview
 
-* **Total Number of Cells:** `r ncol(sceAllCells)`
-<!-- * **Number of cells removed:**  `r ncol(sceAllCells)-ncol(sce)` -->
+* **Total Number of Cells:** `r ncol(sce)`
+<!-- * **Number of cells removed:**  `r ncol(sce)-ncol(sceScater)` -->
 <!--   + cells with less than `r param$minReadsPerCell` reads aligned  -->
 <!--   + cells with less than `r param$minGenesDetected` genes that have at least `r param$minReadsPerGene` reads -->
 <!-- * **Cells used:** `r ncol(sce)` -->
@@ -211,42 +207,46 @@ This is only available for full length single cell protocol.
 
 ```{r gene detection rates, fig.width=8, fig.height=8, echo=FALSE, message=FALSE, warning=FALSE, eval=evalPicard}
 scePC = sce
-rowData(scePC) = NULL
-scePC = scePC[seqAnno[rownames(scePC), "biotypes"] == "protein_coding", ]
+scePC = scePC[rowData(scePC)$biotypes == "protein_coding", ]
 widthOffset = 200
 logWidthBreaks = c(9.5, 10.5, 11.5)
 gcBreaks = c(0.42, 0.48, 0.53, 0.57, 0.62)
 refWidthBin = "(9.5 - 10.5]" 
 refGcBin = "(0.53 - 0.57]"
   ## define the gene strata
-logWidth = log2(seqAnno[rownames(scePC), "featWidth"] + widthOffset)
+logWidth = log2(rowData(scePC)$featWidth + widthOffset)
 lwClasses = ezCut(logWidth, breaks = logWidthBreaks)
-gcClasses = ezCut(seqAnno[rownames(scePC), "gc"], gcBreaks)
+gcClasses = ezCut(rowData(scePC)$gc, gcBreaks)
 geneBins = tapply((1:nrow(scePC)), list(logWidth=lwClasses, gc=gcClasses), identity)
 
-fracPresentByGene = rowMeans(assays(scePC)$counts > param$minReadsPerGene)
+fracPresentByGene = Matrix::rowMeans(assays(scePC)$counts > param$minReadsPerGene)
 fracPresentBinned = ezMatrix(0, rows=rownames(geneBins), cols=colnames(geneBins))
 for (i in 1:length(geneBins)){
   fracPresentBinned[i] = mean(fracPresentByGene[geneBins[[i]]])
 }
 
-ezHeatmap(fracPresentBinned[nrow(fracPresentBinned):1, ], lim=c(0, 0.2), Rowv = FALSE, Colv = FALSE, main="", colors=gray((1:256)/256),
-          cexRow=1, cexCol=1, key.xlab="detection rate", key.title="", xlab="GC", ylab="log2 gene length", margins=c(8,8))
+ezHeatmap(fracPresentBinned[nrow(fracPresentBinned):1, ], lim=c(0, 0.2),
+          Rowv = FALSE, Colv = FALSE, main="", colors=gray((1:256)/256),
+          cexRow=1, cexCol=1, key.xlab="detection rate", key.title="",
+          xlab="GC", ylab="log2 gene length", margins=c(8,8))
 
 
-ezHeatmap(log2((fracPresentBinned[nrow(fracPresentBinned):1, ] + 1e-3) / fracPresentBinned[refWidthBin, refGcBin]), lim=c(-2, 2), Rowv = FALSE, Colv = FALSE, main="",
+ezHeatmap(log2((fracPresentBinned[nrow(fracPresentBinned):1, ] + 1e-3) / 
+                 fracPresentBinned[refWidthBin, refGcBin]), lim=c(-2, 2),
+          Rowv = FALSE, Colv = FALSE, main="",
           colors=getBlueRedScale(),
-          cexRow=1, cexCol=1, key.xlab="detection rate", key.title="", xlab="GC", ylab="log2 gene length", margins=c(8,8))
-
+          cexRow=1, cexCol=1, key.xlab="detection rate", key.title="",
+          xlab="GC", ylab="log2 gene length", margins=c(8,8))
 
 binCombs = expand.grid(logWidth=rownames(geneBins), gc=colnames(geneBins))
-gcWidthScores = ezMatrix(NA, rows=paste(binCombs$logWidth, binCombs$gc), cols=colnames(scePC))
+gcWidthScores = ezMatrix(NA, rows=paste(binCombs$logWidth, binCombs$gc), 
+                         cols=colnames(scePC))
 for (i in 1:nrow(binCombs)){
   idx = geneBins[[binCombs$logWidth[i], binCombs$gc[i]]]
   gcWidthScores[paste(binCombs$logWidth[i], binCombs$gc[i]), ] = colMeans(assays(scePC)$counts[idx, , drop=FALSE] > param$minReadsPerGene)
 }
 
-gcWidthScoresRel = log2((gcWidthScores + 0.01) / rowMeans(gcWidthScores))
+gcWidthScoresRel = log2((gcWidthScores + 0.01) / Matrix::rowMeans(gcWidthScores))
 
 ezHeatmap(gcWidthScores[ ,order(Matrix::colSums(assays(scePC)$counts) > 3)], lim=c(0, 0.2), Rowv = FALSE, Colv = FALSE, main="", colors=gray((1:256)/256), labCol="",
           cexRow=1, cexCol=1, key.xlab="detection rate", key.title="", xlab="cells", ylab="bins", margins=c(8,8))
@@ -265,8 +265,8 @@ https://broadinstitute.github.io/picard/picard-metric-definitions.html
 This is only available for plate based single cell protocol.
 
 ```{r picard setup, echo=FALSE, eval=evalPicard}
-cd <- data.frame(colData(sceAllCells), check.names = FALSE)
-cd$nGenesDetected <- Matrix::colSums(assays(sceAllCells)$counts > 3)
+cd <- data.frame(colData(sce), check.names = FALSE)
+cd$nGenesDetected <- Matrix::colSums(assays(sce)$counts > 3)
 ```
 
 ```{r picard plot, echo=FALSE, fig.width=20, fig.height=6, eval=evalPicard}
