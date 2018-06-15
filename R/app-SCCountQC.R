@@ -14,7 +14,8 @@ EzAppSCCountQC <-
                   "Initializes the application using its specific defaults."
                   runMethod <<- ezMethodSCCountQC
                   name <<- "EzAppSCCountQC"
-                  #appDefaults <<- rbind(runGO=ezFrame(Type="logical", DefaultValue=TRUE, Description="whether to run the GO analysis"))
+                  appDefaults <<- rbind(min_genes=ezFrame(Type="numeric", DefaultValue=500, Description="Minimal number of genes for Seurat filtering"),
+                                        min_counts=ezFrame(Type="numeric", DefaultValue=5e4, Description="Minimal counts for Seurat filtering"))
                 }
               )
   )

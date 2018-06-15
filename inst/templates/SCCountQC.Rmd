@@ -83,11 +83,9 @@ if(param$scProtocol == "smart-Seq2"){
 ## SeuratObject fro Seurat section
 sceSeurat <- sce
 rownames(sceSeurat) <- make.unique(rowData(sceSeurat)$gene_name)
-min_genes=500 ## Input parameter
 countsSeurat <- assays(sceSeurat)$counts
 if(param$scProtocol == "smart-Seq2"){
-  thr=50000 ## Input parameter
-  countsSeurat <- countsSeurat[ ,Matrix::colSums(countsSeurat) > thr]
+  countsSeurat <- countsSeurat[ ,Matrix::colSums(countsSeurat) > param$min_counts]
 }
 
 scData <- CreateSeuratObject(raw.data = countsSeurat, min.cells = 5,
@@ -400,7 +398,7 @@ VlnPlot(object = scData, features.plot = c("nGene", "nUMI", "percent.mito"),
 ```{r seurat filter and normalize, echo=FALSE}
 scData <- FilterCells(object = scData, 
                       subset.names = c("nGene", "percent.mito"),
-                      low.thresholds = c(min_genes, -Inf), 
+                      low.thresholds = c(param$min_genes, -Inf), 
                       high.thresholds = c(Inf, 0.25))
 scData <- NormalizeData(object = scData, normalization.method = "LogNormalize",
                         scale.factor = scalingFactorSeurat)
