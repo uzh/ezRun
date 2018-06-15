@@ -20,11 +20,13 @@ require(DT)
 require(htmltools)
 require(dplyr)
 require(Matrix) # sparse matrix
+require(Seurat)
 
-# debug
+## ----------------------------------------------
+## debug
 # title:  "`r metadata(sce)$param$name`"
-# sce <- readRDS("/export/local/scratch/gtan/p2497-SCCountQC/20171222.A-SiCSeq_SCs_P5_SCCountQC/sce.rds")
-# sce <- readRDS("/export/local/scratch/gtan/dev/p2497-SCCountQC/sce.rds")
+# sce <- readRDS("/export/local/scratch/gtan/dev/p2497-SCCountQC/20171222.A-SiCSeq_SCs_P5_SCCountQC/sce.rds")
+# sce <- readRDS("/srv/gstore/projects/p2497/SCCountQC_24763_2018-03-23--22-14-43/20171222.A-SiCSeq_SCs_P5_SCCountQC/sce.rds")
 
 param <- metadata(sce)$param
 
@@ -36,11 +38,11 @@ if(param$scProtocol == "10x"){
 
 sceAllCells <- sce
 
-# param$minReadsPerCell = 1e4
-# param$minReadsPerGene = 3
+param$minReadsPerCell = 1e4
+# param$minReadsPerGene = 5
 # param$minGenesDetected = 400 ## we should also filter genes that do not have param$minReadsPerGene for at least param$minGenesDetected
-# 
-# sce <- sce[, colSums(assays(sce)$counts) >= param$minReadsPerCell]
+
+sce <- sce[, Matrix::colSums(assays(sce)$counts) >= param$minReadsPerCell]
 # sce <- sce[, colSums(assays(sce)$counts >= param$minReadsPerGene) >= param$minGenesDetected]
 
 seqAnno <- data.frame(rowData(sce), row.names=rownames(sce),
@@ -66,10 +68,43 @@ if(param$scProtocol == "smart-Seq2"){
   sceFixName <- sceFixName[,!(libsize.drop | feature.drop )]
 }
 
+## ----------------------------------------------
 ## datasetAllCells for section "Heatmap of reads per cell on the plate"
 if(param$scProtocol == "smart-Seq2"){
   datasetAllCells <- data.frame(colData(sceAllCells),
                                 check.names = FALSE, stringsAsFactors=FALSE)
+}
+
+## ----------------------------------------------
+## picard metrics
+if(param$scProtocol == "smart-Seq2"){
+  evalPicard <- TRUE
+}else if(param$scProtocol == "10x"){
+  evalPicard <- FALSE
+}
+
+## ----------------------------------------------
+## SeuratObject fro Seurat section
+sceSeurat <- sceAllCells
+rownames(sceSeurat) <- make.unique(rowData(sceSeurat)$gene_name)
+min_genes=500 ## Input parameter
+countsSeurat <- assays(sceSeurat)$counts
+if(param$scProtocol == "smart-Seq2"){
+  thr=50000 ## Input parameter
+  countsSeurat <- countsSeurat[ ,Matrix::colSums(countsSeurat) > thr]
+}
+
+scData <- CreateSeuratObject(raw.data = countsSeurat, min.cells = 5,
+                             project = param$name)
+mito.genes <- grep(pattern = "^mt-", x = rownames(x = scData@data),
+                   value = TRUE)
+percent.mito <- Matrix::colSums(scData@raw.data[mito.genes, ])/ Matrix::colSums(scData@raw.data)
+scData <- AddMetaData(object = scData, metadata = percent.mito, 
+                      col.name = "percent.mito")
+if(param$scProtocol == "smart-Seq2"){
+  scalingFactorSeurat <- 1e5
+}else if(param$scProtocol == "10x"){
+  scalingFactorSeurat <- 1e4
 }
 ```
 
@@ -174,7 +209,7 @@ if(!is.na(plateMatrix)){
 
 This is only available for full length single cell protocol.
 
-```{r gene detection rates, fig.width=8, fig.height=8, echo=FALSE, message=FALSE, warning=FALSE, eval=param$scProtocol=="smart-Seq2"}
+```{r gene detection rates, fig.width=8, fig.height=8, echo=FALSE, message=FALSE, warning=FALSE, eval=evalPicard}
 scePC = sce
 rowData(scePC) = NULL
 scePC = scePC[seqAnno[rownames(scePC), "biotypes"] == "protein_coding", ]
@@ -229,12 +264,12 @@ https://broadinstitute.github.io/picard/picard-metric-definitions.html
 
 This is only available for plate based single cell protocol.
 
-```{r picard setup, echo=FALSE, eval=param$scProtocol=="smart-Seq2"}
+```{r picard setup, echo=FALSE, eval=evalPicard}
 cd <- data.frame(colData(sceAllCells), check.names = FALSE)
 cd$nGenesDetected <- Matrix::colSums(assays(sceAllCells)$counts > 3)
 ```
 
-```{r picard plot, echo=FALSE, fig.width=20, fig.height=6, eval=param$scProtocol=="smart-Seq2"}
+```{r picard plot, echo=FALSE, fig.width=20, fig.height=6, eval=evalPicard}
 plateMatrix <- plateStatistics(cd, 
                                colname=c("PF_READS", "nGenesDetected",
                                          "PCT_RIBOSOMAL_BASES", "PF_READS_ALIGNED",
@@ -328,7 +363,7 @@ l
 
 This is only available for plate based single cell protocol.
 
-```{r metrics, echo=FALSE, eval=param$scProtocol=="smart-Seq2"}
+```{r metrics, echo=FALSE, eval=evalPicard}
 metricsDT <- colData(sce)[, (tail(grep("\\[File\\]", colnames(colData(sce))), 1)+1):ncol(colData(sce))]
 datatable(data.frame(metricsDT, check.names = FALSE), filter = 'top',
           caption="scRNASeq QC Metrics")
@@ -353,6 +388,54 @@ p2 <- plot_ly(alpha = 0.6) %>%
   layout(barmode = "overlay", title="Median prime bias: Picard",
          xaxis=x)
 p2
+```
+
+### Seurat
+
+```{r VlnPlot, echo=FALSE}
+VlnPlot(object = scData, features.plot = c("nGene", "nUMI", "percent.mito"),
+        nCol = 3)
+```
+
+```{r seurat filter and normalize, echo=FALSE}
+scData <- FilterCells(object = scData, 
+                      subset.names = c("nGene", "percent.mito"),
+                      low.thresholds = c(min_genes, -Inf), 
+                      high.thresholds = c(Inf, 0.25))
+scData <- NormalizeData(object = scData, normalization.method = "LogNormalize",
+                        scale.factor = scalingFactorSeurat)
+```
+
+```{r seurat variable gene, echo=FALSE}
+scData <- FindVariableGenes(object=scData)
+```
+
+The number of variable genes: `r length(x = scData@var.genes)`.
+
+```{r scale and PCA calculation, echo=FALSE, message=FALSE, results='hide'}
+scData <- ScaleData(object = scData, vars.to.regress = c("nUMI","percent.mito"))
+scData <- RunPCA(object = scData, pc.genes = scData@var.genes,
+                 do.print = TRUE, pcs.print = 1:5,
+                 genes.print = 5)
+scData <- ProjectPCA(object = scData, do.print = FALSE)
+```
+
+```{r plot PCA, echo=FALSE, fig.width=10, fig.height=15}
+VizPCA(object = scData, pcs.use = 1:6)
+```
+
+```{r PCHeatmap, echo=FALSE, fig.width=10, fig.height=30}
+PCHeatmap(object=scData, pc.use=1:20, cells.use=500, do.balanced=TRUE, 
+    label.columns=FALSE, use.full=FALSE)
+```
+
+```{r JackStraw, echo=FALSE, fig.width=10, fig.height=15, warning=FALSE}
+scData <- JackStraw(object=scData, num.replicate=100, display.progress=FALSE)
+JackStrawPlot(object=scData, PCs = 1:12)
+```
+
+```{r PCElbowPlot, echo=FALSE}
+PCElbowPlot(object=scData)
 ```
 
 ### Data availability
