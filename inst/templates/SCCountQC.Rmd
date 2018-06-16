@@ -241,7 +241,7 @@ gcWidthScores = ezMatrix(NA, rows=paste(binCombs$logWidth, binCombs$gc),
                          cols=colnames(scePC))
 for (i in 1:nrow(binCombs)){
   idx = geneBins[[binCombs$logWidth[i], binCombs$gc[i]]]
-  gcWidthScores[paste(binCombs$logWidth[i], binCombs$gc[i]), ] = colMeans(assays(scePC)$counts[idx, , drop=FALSE] > param$minReadsPerGene)
+  gcWidthScores[paste(binCombs$logWidth[i], binCombs$gc[i]), ] = Matrix::colMeans(assays(scePC)$counts[idx, , drop=FALSE] > param$minReadsPerGene)
 }
 
 gcWidthScoresRel = log2((gcWidthScores + 0.01) / Matrix::rowMeans(gcWidthScores))
