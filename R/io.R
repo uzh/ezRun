@@ -150,20 +150,21 @@ ezWrite.table = function(values, file=file, head="Identifier", row.names=TRUE, c
 ##' table = data.frame(a=c(1.11, 2:100), b=201:300)
 ##' ezInteractiveTable(table, tableLink)
 ezInteractiveTable = function(values, tableLink, digits=NULL, colNames=colnames(values), title="", format=NULL, envir=parent.frame()){
+  require(DT, quietly=TRUE)
+  require(htmltools, quietly=TRUE)
   if (!is.null(digits)){
     for (i in 1:ncol(values)) {
-      hasDecimals = suppressWarnings({as.integer(values[ ,i]) != values[ ,i]})
-      #hasDecimals[is.na(hasDecimals)] = FALSE
-      if (any(hasDecimals) & all(!is.na(hasDecimals))){
+      if(typeof(values[ ,i]) == "double"){
         values[ ,i] = signif(values[ ,i], digits=digits)
       }
     }
     captionText = paste("Numeric values are rounded to", digits, "digits.")
-    caption = htmltools::tags$caption(htmltools::h1(title), htmltools::p(captionText))
+    caption = htmltools::tags$caption(htmltools::h1(title), 
+                                      htmltools::p(captionText))
   } else {
     caption = htmltools::tags$caption(htmltools::h1(title))
   }
-  interactiveTable = DT::datatable(values, 
+  interactiveTable = datatable(values, 
                                    extensions=c("Buttons"), filter="top", caption=caption, colnames=colNames,
                                    options=list(dom = 'Bfrtip', buttons = c('colvis','copy', 'csv', 'excel', 'pdf', 'print'), pageLength=25, autoWidth=TRUE)
                                    )
@@ -171,7 +172,7 @@ ezInteractiveTable = function(values, tableLink, digits=NULL, colNames=colnames(
     currEnv = environment()
     interactiveTable = eval(format, envir=c(envir, currEnv))
   }
-  DT::saveWidget(interactiveTable, tableLink)
+  saveWidget(interactiveTable, tableLink)
 }
 
 ##' @title Generates an interactive table
@@ -195,9 +196,7 @@ ezInteractiveTableRmd = function(values, digits=NULL,
   require(htmltools, quietly=TRUE)
   if (!is.null(digits)){
     for (i in 1:ncol(values)) {
-      hasDecimals = suppressWarnings({as.integer(values[ ,i]) != values[ ,i]})
-      hasDecimals[is.na(hasDecimals)] = FALSE
-      if (any(hasDecimals)  & all(!is.na(hasDecimals))){
+      if(typeof(values[ ,i]) == "double"){
         values[ ,i] = signif(values[ ,i], digits=digits)
       }
     }
