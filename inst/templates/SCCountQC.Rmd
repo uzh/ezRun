@@ -26,7 +26,7 @@ require(Seurat)
 ## debug
 # title:  "`r metadata(sce)$param$name`"
 # sce <- readRDS("/export/local/scratch/gtan/dev/p2497-SCCountQC/20171222.A-SiCSeq_SCs_P5_SCCountQC/sce.rds")
-# sce <- readRDS("/srv/gstore/projects/p2497/SCCountQC_24763_2018-03-23--22-14-43/20171222.A-SiCSeq_SCs_P5_SCCountQC/sce.rds")
+# sce <- readRDS("/srv/gstore/projects/p2497/SCCountQC_27327_2018-06-17--00-09-24/20171222.A-SiCSeq_SCs_P5_SCCountQC/sce.rds")
 
 param <- metadata(sce)$param
 
@@ -427,9 +427,9 @@ PCHeatmap(object=scData, pc.use=1:20, cells.use=500, do.balanced=TRUE,
     label.columns=FALSE, use.full=FALSE)
 ```
 
-```{r JackStraw, echo=FALSE, fig.width=10, fig.height=15, warning=FALSE}
+```{r JackStraw, echo=FALSE, fig.width=10, fig.height=25, warning=FALSE}
 scData <- JackStraw(object=scData, num.replicate=100, display.progress=FALSE)
-JackStrawPlot(object=scData, PCs = 1:12)
+JackStrawPlot(object=scData, PCs = 1:20)
 ```
 
 ```{r PCElbowPlot, echo=FALSE}
@@ -440,7 +440,7 @@ PCElbowPlot(object=scData)
 
 **Expression matrix**
 
-The raw count matrix is available here:
+The raw count matrix and tpm are available here:
 
 ```{r raw count matrix, echo=FALSE, results='asis', eval=TRUE}
 rawCount <- as.matrix(assays(sce)$counts)
@@ -457,6 +457,18 @@ zip("rawCount.zip", files="rawCount.txt")
 cat("\n")
 cat(paste0("[", "rawCount.zip", "](", "rawCount.zip", ")"))
 cat("\n")
+
+tpm <- as.matrix(getTpm(sce))
+ezWrite.table(tpm, file="tpm.txt",
+              head=paste0(param$featureLevel, "_id"),
+              sep="\t")
+zip("tpm.zip", files="tpm.txt")
+
+cat("\n")
+cat(paste0("[", "tpm.zip", "](", "tpm.zip", ")"))
+cat("\n")
+
+file.remove(c("tpm.txt", "rawCount.txt"))
 ```
 
 ### SessionInfo
