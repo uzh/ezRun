@@ -33,7 +33,7 @@ runQoRTs <- function(input, output, param){
   }
   
   #Merge Junctions and create new GFF which includes Novel Junctions
-  cmd = paste(javaCall, 'mergeNovelSplices  --minCount', param$minCount, '.', 'decoderFile.txt', gtfFile, '.')
+  cmd = paste(javaCall, 'mergeNovelSplices  --minCount', param$minCount, '--stranded .', 'decoderFile.txt', gtfFile, '.')
   ezSystem(cmd)
   
   return('success')
