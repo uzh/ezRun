@@ -26,8 +26,13 @@ runQoRTs <- function(input, output, param){
   #Get Junctions per Sample
   for (i in c(1:length(bamFiles))){
     setwdNew(samples[i])
-    cmd = paste(javaCall, 'QC --stranded --maxReadLength', param$maxReadLength, '--runFunctions writeKnownSplices,writeNovelSplices,writeSpliceExon',
+    if(param$paired){
+      cmd = paste(javaCall, 'QC --stranded --maxReadLength', param$maxReadLength, '--runFunctions writeKnownSplices,writeNovelSplices,writeSpliceExon',
                 bamFiles[i], gtfFile, '.')
+    } else {
+      cmd = paste(javaCall, 'QC --stranded --singleEnded --maxReadLength', param$maxReadLength, '--runFunctions writeKnownSplices,writeNovelSplices,writeSpliceExon',
+                  bamFiles[i], gtfFile, '.')
+    }
     ezSystem(cmd)
     setwd('..')
   }
