@@ -231,7 +231,7 @@ enrichrEnrich <- function(userListId, libNames = getEnrichrLibNames(), connectio
             k <- length(failure) + 1; failure[[k]] <<- x }
         )
     }
-    multi_run(pool = pool)
+    multi_run(pool = pool, timeout=300)
   }
   ezSystem("rm -f enrich-*-debug.rds")
   list(success = success, failure = failure)

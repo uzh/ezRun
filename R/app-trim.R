@@ -301,17 +301,17 @@ ezMethodSubsampleReads = function(input=NA, output=NA, param=NA){
   } else {
     nReads <- as.integer(1/param$subsampleReads * totalReads)
   }
-  set.seed(123L);
   for(i in 1:length(input$getFullPaths("Read1"))){
     fR1 <- FastqSampler(input$getFullPaths("Read1")[i], n=nReads[i])
+    set.seed(123L);
     writeFastq(ShortRead::yield(fR1),
                file=output$getColumn("Read1")[i], 
                compress=grepl("\\.gz$", output$getColumn("Read1")[i]))
     close(fR1)
     output$setColumn("Read Count", nReads[i])
     if (param$paired){
-      set.seed(123L);
       fR2 <- FastqSampler(input$getFullPaths("Read2")[i], n=nReads[i])
+      set.seed(123L);
       writeFastq(ShortRead::yield(fR2),
                  file=output$getColumn("Read2")[i],
                  compress=grepl("\\.gz$", output$getColumn("Read2")[i]))
