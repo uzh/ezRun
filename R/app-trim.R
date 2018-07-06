@@ -280,6 +280,7 @@ copyReadsLocally = function(input, param){
 ### ezMethodSubsampleReads: subsample fastq
 ###
 ezMethodSubsampleReads = function(input=NA, output=NA, param=NA){
+  nYield=1e5
   require(ShortRead)
   if (!is(output, "EzDataset")){
     output = input$copy()
