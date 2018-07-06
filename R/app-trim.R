@@ -302,20 +302,34 @@ ezMethodSubsampleReads = function(input=NA, output=NA, param=NA){
     nReads <- as.integer(1/param$subsampleReads * totalReads)
   }
   for(i in 1:length(input$getFullPaths("Read1"))){
-    fR1 <- FastqSampler(input$getFullPaths("Read1")[i], n=nReads[i])
-    set.seed(123L);
-    writeFastq(ShortRead::yield(fR1),
-               file=output$getColumn("Read1")[i], 
-               compress=grepl("\\.gz$", output$getColumn("Read1")[i]))
-    close(fR1)
-    output$setColumn("Read Count", nReads[i])
+    idxMaster = sample.int(size=nReads[i], n=totalReads[i])
+    fullFile = input$getFullPaths("Read1")[i]
+    subFile = output$getColumn("Read1")[i]
+    idx = idxMaster
+    fqs <- FastqStreamer(fullFile, n=nYield)
+    while(length(x <- yield(fqs))){
+      use = idx <= length(x)
+      writeFastq(x[idx[use]], file=sub(".gz$", "", subFile), mode="a", full=F, compress=F)
+      idx = idx[!use] - length(x)
+    }
+    close(fqs)
+    if (grepl(".gz$", subFile)){
+      ezSystem(paste("pigz -p 2 ", sub(".gz$", "", subFile)))
+    }
     if (param$paired){
-      fR2 <- FastqSampler(input$getFullPaths("Read2")[i], n=nReads[i])
-      set.seed(123L);
-      writeFastq(ShortRead::yield(fR2),
-                 file=output$getColumn("Read2")[i],
-                 compress=grepl("\\.gz$", output$getColumn("Read2")[i]))
-      close(fR2)
+      fullFile = input$getFullPaths("Read2")[i]
+      subFile = output$getColumn("Read2")[i]
+      idx = idxMaster
+      fqs <- FastqStreamer(fullFile, n=nYield)
+      while(length(x <- yield(fqs))){
+        use = idx <= length(x)
+        writeFastq(x[idx[use]], file=sub(".gz$", "", subFile), mode="a", full=F, compress=F)
+        idx = idx[!use] - length(x)
+      }
+      close(fqs)
+      if (grepl(".gz$", subFile)){
+        ezSystem(paste("pigz -p 2 ", sub(".gz$", "", subFile)))
+      }
     }
   }
   return(output)
