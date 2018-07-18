@@ -6,6 +6,10 @@
 # www.fgcz.ch
 
 ezMethodCNVnator = function(input=NA, output=NA, param=NA){
+  ezSystem('source /usr/local/ngseq/stow/root_v6.12.06/bin/thisroot.sh')
+  ezSystem('export YEPPPLIBDIR=/usr/local/ngseq/src/yeppp-1.0.0/binaries/linux/x86_64')
+  ezSystem('export LD_LIBRARY_PATH=$YEPPPLIBDIR:$LD_LIBRARY_PATH')
+  
   bamFile <- input$getFullPaths("BAM")
   cmd = paste(CNVNATOR, '-root out.root -unique -tree', bamFile)
   ezSystem(cmd)
