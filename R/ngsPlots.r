@@ -77,6 +77,39 @@ ezMdsPlot = function(signal, sampleColors, main){
   par(bg = 'white')
 }
 
+ezMdsGG2 <- function(signal, design, ndim=2, main="MDS plot"){
+  require(edgeR)
+  require(plotly)
+  require(ggrepel)
+  if(ndim != 2){
+    stop("ggplot2 only produces 2D plot")
+  }
+  
+  y = DGEList(counts=signal, group=colnames(signal))
+  mds = plotMDS(y, plot=FALSE, ndim=ndim)
+  toPlot <- data.frame(samples=colnames(signal),
+                       design,
+                       stringsAsFactors = FALSE)
+  mdsOut <- mds$cmdscale.out
+  colnames(mdsOut) <- c("Leading logFC dim1", "Leading logFC dim2")
+  toPlot <- cbind(toPlot, mdsOut)
+  if(ncol(design) > 1L){
+    p <- ggplot(toPlot, aes(`Leading logFC dim1`, `Leading logFC dim2`)) +
+      geom_point(aes_string(colour=colnames(design)[1],
+                            shape =colnames(design)[2]),
+                 size = 3) + 
+      geom_text_repel(aes(label=samples)) +
+      theme_bw() + ggtitle(main)
+  }else{
+    p <- ggplot(toPlot, aes(`Leading logFC dim1`, `Leading logFC dim2`)) +
+      geom_point(aes_string(colour=colnames(design)[1]),
+                 size = 3) + 
+      geom_text_repel(aes(label=samples)) +
+      theme_bw() + ggtitle(main)
+  }
+  p
+}
+
 ezMdsPlotly <- function(signal, design, ndim=c(3,2), main){
   require("edgeR")
   require(plotly)
