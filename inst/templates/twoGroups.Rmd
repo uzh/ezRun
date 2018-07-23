@@ -396,8 +396,11 @@ if (sum(use) > param$minGenesForClustering){
   xCentered = logSignal[use , ]
   if (!is.null(param$useRefGroupAsBaseline) && param$useRefGroupAsBaseline){
     xCentered = xCentered - rowMeans(xCentered[ , param$grouping == param$refGroup])
+    xCentered = sweep(xCentered, MARGIN=1, 
+                      rowMeans(xCentered[ , param$grouping == param$refGroup]),
+                      FUN="-")
   } else {
-    xCentered = xCentered - rowMeans(xCentered)
+    xCentered = sweep(xCentered, MARGIN=1, rowMeans(xCentered), FUN="-")
   }
   xCentered = xCentered[, order(param$grouping)]
   sampleColors = getSampleColors(param$grouping)[order(param$grouping)]
