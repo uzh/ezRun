@@ -446,7 +446,7 @@ DEXSeqCounting <- function(input = input, output = output, param = param){
     sCountfileExt <- param$countfile_ext
   ### # call counting routine
   ramPerJob = round((param[['ram']]*1000)/param[['cores']] * 0.25) ## keep a reserve of 25% RAM ... for samtools being greedhy and the Dexseq python script
-  vCountFiles <- ezMclapply(bamFiles, runCountSingleBam, sGffFile, sCountfileExt, param$strandMode, param$paired, ramPerJob, mc.cores = param[['cores']])
+  vCountFiles <- ezMclapply(bamFiles, runCountSingleBam, sGffFile, sCountfileExt, param$strandMode, param$paired, ramPerJob, param$bgExpression, mc.cores = param[['cores']])
 
   return("Success")
 }
@@ -481,7 +481,7 @@ convertGtfToGff <- function(psGtfFile, psGffFile) {
 
 #' Run counts for a single BAM file
 #'
-runCountSingleBam <- function(psBamFile, psGffFile, psCountfileExt, strandMode, Paired, ramPerJob){
+runCountSingleBam <- function(psBamFile, psGffFile, psCountfileExt, strandMode, Paired, ramPerJob, bgExpression){
   if(Paired){
     # samCmd = paste("samtools", "sort -n" , psBamFile, "-m", paste0(ramPerJob,"M"), "-O SAM")
     stopifnot(psBamFile != basename(psBamFile))
@@ -505,6 +505,9 @@ runCountSingleBam <- function(psBamFile, psGffFile, psCountfileExt, strandMode, 
 
   sPyCountCmd <- paste(samCmd, "|", cmd, psGffFile, "-", sCountBaseFn, "2>", paste0(sCountBaseFn, ".err"))
   ezSystem(sPyCountCmd)
+  myCounts = ezRead.table(sCountBaseFn, row.names = NULL, header = F)
+  myCounts[,2] = myCounts[,2] + bgExpression
+  ezWrite.table(myCounts, sCountBaseFn, col.names = F, row.names = F)
   return(file.path(getwd(), sCountBaseFn))
 }
 
