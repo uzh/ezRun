@@ -81,7 +81,7 @@ ezFeatureAnnotation = function(param, ids=NULL,
     seqAnno$biotypes <- "protein_coding"
   }
   if(!all(minimalCols %in% colnames(seqAnno))){
-    stop(minimalCols[!minimalCols %in% colnames(seqAnno)], 
+    stop(paste(minimalCols[!minimalCols %in% colnames(seqAnno)], collapse="; "),
          " must exist in annotation file!")
   }
   return(seqAnno)
