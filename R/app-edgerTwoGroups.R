@@ -6,7 +6,8 @@
 # www.fgcz.ch
 
 
-ezMethodEdger = function(input=NA, output=NA, param=NA, htmlFile="00index.html"){
+ezMethodEdger = function(input=NA, output=NA, param=NA,
+                         htmlFile="00index.html"){
   cwd <- getwd()
   setwdNew(basename(output$getColumn("Report")))
   on.exit(setwd(cwd))
@@ -36,7 +37,7 @@ ezMethodEdger = function(input=NA, output=NA, param=NA, htmlFile="00index.html")
                           c("fgcz.css", "twoGroups.Rmd",
                             "fgcz_header.html", "banner.png"))
   file.copy(from=styleFiles, to=".", overwrite=TRUE)
-  rmarkdown::render(input="twoGroups.Rmd", envir = new.env(),
+  rmarkdown::render(input="twoGroups.Rmd", envir=new.env(),
                     output_dir=".", output_file=htmlFile, quiet=TRUE)
   
   #writeNgsTwoGroupReport(deResult, output, htmlFile)

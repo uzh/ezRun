@@ -86,7 +86,8 @@ twoGroupCountComparison = function(rawData){
   isSample = param$grouping == param$sampleGroup
   isRef = param$grouping == param$refGroup
   ## compute which probes are present
-  isPresent = ezPresentFlags(x, presentFlag=presentFlag, param=param, isLog=FALSE)
+  isPresent = ezPresentFlags(x, presentFlag=presentFlag, param=param,
+                             isLog=FALSE)
   useProbe = rep(FALSE, nrow(x))
   useProbe[rowMeans(isPresent[, isRef, drop=FALSE]) >= 0.5] = TRUE
   useProbe[rowMeans(isPresent[, isSample, drop=FALSE]) >= 0.5] = TRUE
@@ -97,7 +98,7 @@ twoGroupCountComparison = function(rawData){
                deseq2 = runDeseq2(round(x), param$sampleGroup, param$refGroup, 
                                   param$grouping, grouping2=param$grouping2, 
                                   isPresent=useProbe,
-                                  cooksCutoff = ezIsSpecified(param$cooksCutoff) && param$cooksCutoff),
+                                  cooksCutoff=ezIsSpecified(param$cooksCutoff) && param$cooksCutoff),
                exactTest = runEdger(round(x), param$sampleGroup, param$refGroup,
                                     param$grouping, param$normMethod,
                                     priorCount=param$backgroundExpression),
