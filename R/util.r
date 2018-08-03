@@ -323,10 +323,8 @@ ezMatrix <- function(x, rows=NULL, cols=NULL, dim=NULL){
 ##' @examples
 ##' x = ezScaleColumns(matrix(1:20, 5), 1:4)
 ezScaleColumns = function(x, scaling){
-  for (i in 1:length(scaling)){
-    x[,i] <- x[ ,i] * scaling[i]
-  }
-  return(x)
+  ans <- sweep(x, MARGIN=2, STATS=scaling, FUN="*")
+  return(ans)
 }
 
 ##' @title Scales columns of a matrix to median
