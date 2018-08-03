@@ -94,7 +94,7 @@ loadCountDataset <- function(input, param){
     rawData = aggregateCountsByGeneSE(rawData)
   }
   
-  assays(rawData)$rpkm = getRpkmSE(rawData)
+  assays(rawData)$rpkm = getRpkm(rawData)
   assays(rawData)$tpm = getTpm(rawData)
   return(rawData)
 }
@@ -175,7 +175,7 @@ loadSCCountDataset <- function(input, param){
     if (dataFeatureLevel == "isoform" && param$featureLevel == "gene"){
       sce <- aggregateCountsByGeneSE(sce)
     }
-    assays(sce)$rpkm <- getRpkmSE(sce)
+    assays(sce)$rpkm <- getRpkm(sce)
     assays(sce)$tpm <- getTpm(sce)
   }else if(param$scProtocol == "10x"){
     sce <- read10xCounts(dirname(input$getFullPaths("CountMatrix")))

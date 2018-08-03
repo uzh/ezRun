@@ -532,7 +532,7 @@ addResultFileSE = function(doc, param, se, useInOutput=TRUE,
     colnames(yy) = paste(colnames(yy), "[normalized count]")
     y = cbind(y, yy)
   }
-  yy = getRpkmSE(se)
+  yy = getRpkm(se)
   if (!is.null(yy)){
     colnames(yy) = paste(colnames(yy), "[FPKM]")
     y = cbind(y, yy)
@@ -576,7 +576,7 @@ makeResultFile = function(param, se, useInOutput=TRUE,
     colnames(yy) = paste(colnames(yy), "[normalized count]")
     y = cbind(y, yy)
   }
-  yy = getRpkmSE(se)
+  yy = getRpkm(se)
   if (!is.null(yy)){
     colnames(yy) = paste(colnames(yy), "[FPKM]")
     y = cbind(y, yy)

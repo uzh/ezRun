@@ -136,7 +136,7 @@ runNgsCountQC = function(htmlFile="00index.html",
                        title=paste("Showing the top", nRows, "genes with the highest expression"))
     
     rpkmFile = paste0(ezValidFilename(param$name), "-rpkm.txt")
-    ezWrite.table(getRpkmSE(rawData), file=rpkmFile, head="Feature ID", digits=4) 
+    ezWrite.table(getRpkm(rawData), file=rpkmFile, head="Feature ID", digits=4) 
     
     tpmFile = paste0(ezValidFilename(param$name), "-tpm.txt")
     ezWrite.table(getTpm(rawData), file=tpmFile, head="Feature ID", digits=4)

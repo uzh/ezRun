@@ -46,7 +46,7 @@ input[['featureLevel']] = 'gene'
 #sce <- loadSCCountDataset(input, param)
 debug(ezMethodSCCountQC)
 #debug(txEndBias)
-#debug(getRpkmSE)
+#debug(getRpkm)
 #debug(loadSCCountDataset)
 EzAppSCCountQC$new()$run(input=input, output=output, param=param)
 

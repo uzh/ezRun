@@ -132,24 +132,6 @@ getLog2Signal = function(rawData){
 ##' rpkm = getRpkm(rawData)
 ## TODOEXAMPLE: get example with proper return
 getRpkm = function(rawData){
-  #edgeR::rpkm.default
-  #edgeR::cpm.default
-  if (!is.null(rawData$rpkm)){
-    return(rawData$rpkm)
-  }
-  if (is.null(rawData$seqAnno$width)){
-    return(NULL)
-  }
-  libSize = colSums(rawData$counts)
-  rpkm = rawData$counts
-  for (i in 1:ncol(rpkm)){
-    rpkm[, i] = (rawData$counts[,i] * 1e9) /(rawData$seqAnno$width * libSize[i])
-    #rpkm[, i] = rawData$counts[,i] /(libSize[i]* 1e6) /(rawData$seqAnno$width / 1e3)
-  }
-  return(rpkm)
-}
-
-getRpkmSE = function(rawData){
   require(Matrix)
   #edgeR::rpkm.default
   #edgeR::cpm.default
