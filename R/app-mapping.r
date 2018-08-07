@@ -310,7 +310,7 @@ ezMethodSTAR = function(input=NA, output=NA, param=NA){
               if(param$paired) trimmedInput$getColumn("Read2"),
               "--twopassMode", ifelse(param$twopassMode, "Basic", "None"),
               "--runThreadN", ezThreads(), param$cmdOptions, 
-              "--outStd BAM_Unsorted --outSAMtype BAM Unsorted",
+              "--outStd BAM_Unsorted --outSAMtype BAM Unsorted", "--outSAMattrRGline", paste0("ID:", trimmedInput$getNames()),
               ">  Aligned.out.bam")## writes the output file Aligned.out.bam
   ##"|", "samtools", "view -S -b -", " >", "Aligned.out.bam")
   ezSystem(cmd)
