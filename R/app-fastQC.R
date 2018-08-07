@@ -212,7 +212,7 @@ plotReadCountToLibConc = function(dataset, colname){
                  text=rownames(dataset)) %>%
            add_markers() %>%
            add_text(textposition = "top right") %>%
-           layout(showlegend = FALSE)
+          plotly::layout(showlegend = FALSE)
         a <- list(
           x = max(dataset$'Read Count'),
           y = max(dataset[[colname]]),
@@ -221,7 +221,7 @@ plotReadCountToLibConc = function(dataset, colname){
           yref = "y",
           showarrow = FALSE
         )
-        p <- p %>% layout(
+        p <- p %>% plotly::layout(
           shapes=list(type='line', line=list(dash="dash"),
                       x0=xmin, x1=xmax,
                       y0=p_abline(xmin, slope, intercept), 
@@ -549,8 +549,8 @@ heatmapPlate <- function(x, title="unnamed", center=TRUE, log10=TRUE, ...){
     }
   }
   
-  p <- p %>% layout(xaxis=list(autotick = FALSE, dtick=1),
-                    yaxis=list(autorange = "reversed"),
-                    title=title)
+  p <- p %>% plotly::layout(xaxis=list(autotick = FALSE, dtick=1),
+                            yaxis=list(autorange = "reversed"),
+                            title=title)
   p
 }
