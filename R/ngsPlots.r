@@ -134,10 +134,10 @@ ezMdsPlotly <- function(signal, design, ndim=c(3,2), main){
                  text=toPlot$samples) %>%
       add_markers() %>% 
       add_text(textposition = "top right", showlegend=FALSE) %>%
-      layout(title=main,
-             scene = list(xaxis = list(title = 'Leading logFC dim1'),
-                          yaxis = list(title = 'Leading logFC dim2'),
-                          zaxis = list(title = 'Leading logFC dim3')))
+      plotly::layout(title=main, 
+                     scene=list(xaxis=list(title = 'Leading logFC dim1'),
+                                yaxis = list(title = 'Leading logFC dim2'),
+                                zaxis = list(title = 'Leading logFC dim3')))
   }else if(ndim ==2){
     colnames(mdsOut) <- c("Leading logFC dim1", "Leading logFC dim2")
     toPlot <- cbind(toPlot, mdsOut)
@@ -161,9 +161,9 @@ ezMdsPlotly <- function(signal, design, ndim=c(3,2), main){
       #               ) %>%
       # Showing the text all mess up the coloring with symbols
       #add_text(textposition = "top center", showlegend=FALSE) %>%
-      layout(title=main,
-             xaxis = list(title = 'Leading logFC dim1'),
-             yaxis = list(title = 'Leading logFC dim2'))
+      plotly::layout(title=main,
+                     xaxis = list(title = 'Leading logFC dim1'),
+                     yaxis = list(title = 'Leading logFC dim2'))
   }else{
     stop("We only support 3D or 2D mds plot.")
   }

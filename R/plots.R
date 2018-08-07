@@ -314,17 +314,17 @@ ezVolcano <- function(log2Ratio, pValue, yType=c("p-value", "FDR"),
       t = 110,
       pad = 0
     )
-    p <- layout(p, 
-                xaxis=list(title="log2 ratio", 
-                           titlefont=ftitle,
-                           tickfont=ftick,
-                           range=c(xlim[1]-0.1, xlim[2]+0.1)),
-                yaxis=list(title=paste0("-log10(", yType, ")"),
-                           titlefont=ftitle,
-                           tickfont=ftick,
-                           range=c(ylim[1], ylim[2]+0.1)),
-                title=main, font=ftitle,
-                legend=l, margin=m)
+    p <- plotly::layout(p, 
+                        xaxis=list(title="log2 ratio", 
+                                   titlefont=ftitle,
+                                   tickfont=ftick,
+                                   range=c(xlim[1]-0.1, xlim[2]+0.1)),
+                        yaxis=list(title=paste0("-log10(", yType, ")"),
+                                   titlefont=ftitle,
+                                   tickfont=ftick,
+                                   range=c(ylim[1], ylim[2]+0.1)),
+                        title=main, font=ftitle,
+                        legend=l, margin=m)
   }else{
     if(!is.null(labelGenes)){
       alpha <- 0.5
@@ -618,7 +618,7 @@ ezXYScatter.2 = function(xVec, yVec, absentColor="gray", shrink=FALSE,
     line[["line"]] <- list(color = "blue", dash="dash")
     lines <- c(lines, list(line))
     
-    p <- p %>% layout(shapes=lines)
+    p <- p %>% plotly::layout(shapes=lines)
     l <- list(font = list(size = 20))
     ftitle <- list(size=20)
     ftick <- list(size=20)
@@ -630,14 +630,14 @@ ezXYScatter.2 = function(xVec, yVec, absentColor="gray", shrink=FALSE,
       pad = 0
     )
     # with log10 scales
-    p <- layout(p, xaxis=list(type="log", title=xlab, 
-                              titlefont=ftitle,
-                              tickfont=ftick),
-                yaxis=list(type="log", title=ylab,
-                           titlefont=ftitle,
-                           tickfont=ftick),
-                title=main, font=ftitle,
-                legend=l, margin=m)
+    p <- plotly::layout(p, xaxis=list(type="log", title=xlab, 
+                                      titlefont=ftitle,
+                                      tickfont=ftick),
+                        yaxis=list(type="log", title=ylab,
+                                   titlefont=ftitle,
+                                   tickfont=ftick),
+                        title=main, font=ftitle,
+                        legend=l, margin=m)
   }else{
     ## Reorder the points in the data.frame
     ## ggplot2 plots in the native order
