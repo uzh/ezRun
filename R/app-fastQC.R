@@ -38,7 +38,7 @@ ezMethodFastQC = function(input=NA, output=NA, param=NA,
   filesUse = files[!file.exists(reportDirs)]
   if (length(filesUse) > 0){
     cmd = paste("fastqc", "--extract -o . -t", min(param$cores, 8),
-                "-a", FASTQC_ADAPTERS,
+                "-a", FASTQC_ADAPTERS, "--kmers 7",
                 param$cmdOptions, paste(filesUse, collapse=" "),
                 "> fastqc.out", "2> fastqc.err")
     result = ezSystem(cmd)
