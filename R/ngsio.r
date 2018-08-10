@@ -67,6 +67,7 @@ loadCountDataset <- function(input, param){
     sigThresh = 0
   }
   
+  
   if (ezIsSpecified(param$correctBias) && param$correctBias){
     ## output will be floating point, but we don't round; input might already be floating point
     signal = ezCorrectBias(signal, gc=seqAnno$gc,
