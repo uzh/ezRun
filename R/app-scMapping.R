@@ -49,9 +49,10 @@ ezMethodSingleCellSTAR = function(input=NA, output=NA, param=NA){
   ## Merge and clean prepross logs
   preprocessLogFns <- paste0(trimmedInput$getNames(), "_preprocessing.log")
   preprocessLogs <- lapply(preprocessLogFns, readLines)
+  file.remove(preprocessLogFns)
   writeLines(unlist(preprocessLogs),
              con=paste0(input$getNames(), "_preprocessing.log"))
-  file.remove(preprocessLogFns)
+  
     
   # Clean converted fastqs
   if(isSingleBam){
