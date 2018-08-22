@@ -180,7 +180,8 @@ loadSCCountDataset <- function(input, param){
     assays(sce)$rpkm <- getRpkm(sce)
     assays(sce)$tpm <- getTpm(sce)
   }else if(param$scProtocol == "10x"){
-    sce <- read10xCounts(dirname(input$getFullPaths("CountMatrix")))
+    sce <- read10xCounts(dirname(input$getFullPaths("CountMatrix")),
+                         col.names=TRUE)
     metadata(sce)$param <- param
   }else{
     stop("Unsupported single cell protocol!")
