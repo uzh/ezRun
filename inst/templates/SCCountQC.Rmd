@@ -469,8 +469,9 @@ if(param$scProtocol != "10x"){
   cat("\n")
   cat(paste0("[", "tpm.zip", "](", "tpm.zip", ")"))
   cat("\n")
+  invisible(file.remove(c("tpm.txt")))
 }
-file.remove(c("tpm.txt", "rawCount.txt"))
+invisible(file.remove(c("rawCount.txt")))
 ```
 
 ### SessionInfo
