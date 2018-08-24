@@ -459,8 +459,6 @@ cat(paste0("[", "rawCount.zip", "](", "rawCount.zip", ")"))
 cat("\n")
 
 if(param$scProtocol != "10x"){
-  ## TODO: fix the CellRanger app to use standard reference annotation parameter
-  ## Then enable it for 10x dataset
   tpm <- as.matrix(getTpm(sce))
   ezWrite.table(tpm, file="tpm.txt",
                 head=paste0(param$featureLevel, "_id"),
