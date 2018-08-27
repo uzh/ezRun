@@ -211,7 +211,8 @@ splitBamByRG <- function(inBam, mc.cores=ezThreads()){
 }
 
 mergeBamAlignments <- function(alignedBamFn, unmappedBamFn,
-                               outputBamFn, fastaFn){
+                               outputBamFn, fastaFn,
+                               keepUnmapped=FALSE){
   setEnvironments("picard")
   ## Use . as tmp dir. Big bam generates big tmp files.
   cmd <- paste("java -Djava.io.tmpdir=. -jar",
@@ -222,6 +223,17 @@ mergeBamAlignments <- function(alignedBamFn, unmappedBamFn,
                paste0("R=", fastaFn)
   )
   ezSystem(cmd)
+  if(!keepUnmapped){
+    setEnvironments("samtools")
+    tempBam <- tempfile(pattern="noUnmapped", tmpdir = ".",
+                        fileext = ".bam")
+    cmd <- paste("samtools view -F 4", outputBamFn, ">",
+                 tempBam)
+    ezSystem(cmd)
+    file.remove(outputBamFn)
+    file.rename(from=tempBam, to=outputBamFn)
+  }
+  invisible(outputBamFn)
 }
 
 posSpecErrorBam <- function(bamGA, genomeFn){

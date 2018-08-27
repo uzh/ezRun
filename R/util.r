@@ -741,7 +741,7 @@ setEnvironments <- function(tool, envir=parent.frame()){
                   "picard"=expression({Sys.setenv("PATH"=paste("/usr/local/ngseq/packages/Dev/jdk/8/bin", Sys.getenv("PATH"), sep=":")); Sys.setenv("Picard_jar"="/usr/local/ngseq/packages/Tools/Picard/2.18.0/picard.jar")}),
                   "trimmomatic"=expression({Sys.setenv("PATH"=paste("/usr/local/ngseq/packages/Dev/jdk/8/bin", Sys.getenv("PATH"), sep=":")); Sys.setenv("Trimmomatic_jar"="/usr/local/ngseq/packages/QC/Trimmomatic/0.36/trimmomatic-0.36.jar")}),
                   "phantomjs"=expression({Sys.setenv("PATH"=paste("/usr/local/ngseq/packages/Dev/PhantomJS/2.1.1/bin", Sys.getenv("PATH"), sep=":"))}),
-                  "samtools"=expression({Sys.setenv("PATH"=paste("/usr/local/ngseq/packages/Tools/samtools/1.5/bin", Sys.getenv("PATH"), sep=":"))}),
+                  "samtools"=expression({Sys.setenv("PATH"=paste("/usr/local/ngseq/packages/Tools/samtools/1.9/bin", Sys.getenv("PATH"), sep=":"))}),
                   "bamutil"=expression({Sys.setenv("PATH"=paste("/usr/local/ngseq/packages/Tools/BamUtil/1.0.14/bin", Sys.getenv("PATH"), sep=":"))}),
                   "star"=expression({Sys.setenv("PATH"=paste("/usr/local/ngseq/packages/Aligner/STAR/2.5.4b/bin", Sys.getenv("PATH"), sep=":"))}),
                   "bwa"=expression({Sys.setenv("PATH"=paste("/usr/local/ngseq/packages/Aligner/BWA/0.7.15/bin", Sys.getenv("PATH"), sep=":"))}),
