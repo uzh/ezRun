@@ -146,8 +146,13 @@ runDeseq2MultiGroup = function(x, sampleGroup, refGroup, grouping, grouping2=NUL
     colData = data.frame(grouping=as.factor(grouping), row.names=colnames(x))
     dds = DESeq2::DESeqDataSetFromMatrix(countData=x, colData=colData, design= ~ grouping)
   } else {
+    if (ezTagListFromNames(grouping2) == "Factor") {
     colData = data.frame(grouping=as.factor(grouping), grouping2=as.factor(grouping2), row.names=colnames(x))
     dds = DESeq2::DESeqDataSetFromMatrix(countData=x, colData=colData, design= ~ grouping + grouping2)
+    } else if (ezTagListFromNames(grouping2) == "Numeric") {
+      colData = data.frame(grouping=as.factor(grouping), grouping2=as.numeric(grouping2), row.names=colnames(x))
+      dds = DESeq2::DESeqDataSetFromMatrix(countData=x, colData=colData, design= ~ grouping + grouping2)
+    }
   }
   dds = DESeq2::DESeq(dds, quiet=FALSE)
   res = DESeq2::results(dds, contrast=c("grouping", sampleGroup, refGroup), cooksCutoff=FALSE)
@@ -171,7 +176,11 @@ runEdgerGlmMultiGroup = function(x, refGroup, grouping, normMethod, grouping2=NU
     design = model.matrix( ~ groupFactor)
     #colnames(design) = c("Intercept", "Grouping")
   } else {
-    design = model.matrix( ~ groupFactor + factor(grouping2))
+    if (ezTagListFromNames(grouping2) == "Factor") {
+      design = model.matrix( ~ groupFactor + factor(grouping2))
+    } else if (ezTagListFromNames(grouping2) == "Numeric") {
+      design = model.matrix( ~ groupFactor + as.numeric(grouping2))
+    }
   }
   
   ## dispersion estimation
