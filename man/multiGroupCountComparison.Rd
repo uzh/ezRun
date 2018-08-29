@@ -19,7 +19,7 @@ runEdgerGlmMultiGroup(x, refGroup, grouping, normMethod, grouping2 = NULL)
 \itemize{
   \item{testMethod}{ defines the method to run: deseq2, exactTest, glm, sam or limma. Defaults to glm.}
   \item{grouping}{ a character specifying the grouping.}
-  \item{grouping2}{ a character vector specifying a secondary factor.}
+  \item{grouping2}{ a character vector specifying a secondary factor or numeric co-variate.}
   \item{refGroup}{ a character specifying the reference group.}
   \item{normMethod}{ a character specifying the normalization method for the edger and glm test methods.}
 }}
