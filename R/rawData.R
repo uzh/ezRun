@@ -133,8 +133,8 @@ getLog2Signal = function(rawData){
 ## TODOEXAMPLE: get example with proper return
 getRpkm = function(rawData){
   require(Matrix)
-  #edgeR::rpkm.default
-  #edgeR::cpm.default
+  require(SummarizedExperiment)
+  
   if (!is.null(assays(rawData)$rpkm)){
     return(assays(rawData)$rpkm)
   }
@@ -147,11 +147,12 @@ getRpkm = function(rawData){
     }
   }
   libSize = Matrix::colSums(assays(rawData)$counts)
-  rpkm = assays(rawData)$counts
-  for (i in 1:ncol(rpkm)){
-    rpkm[, i] = (assays(rawData)$counts[,i] * 1e9) /(rowData(rawData)$width * libSize[i])
-    #rpkm[, i] = rawData$counts[,i] /(libSize[i]* 1e6) /(rawData$seqAnno$width / 1e3)
-  }
+  # rpkm <- edgeR::rpkm(assays(rawData)$counts, gene.length=rowData(rawData)$width,
+  #                     normalized.lib.sizes=FALSE, log=FALSE, prior.count=0)
+  # Didn't test whether edgeR::rpkm works on sparse matrxi from single cell
+  rpkm <- sweep(assays(rawData)$counts * 1e9, MARGIN=1,
+                STATS=rowData(rawData)$width, FUN="/")
+  rpkm <- sweep(rpkm, MARGIN=2, STATS=libSize, FUN="/")
   return(rpkm)
 }
 
