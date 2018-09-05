@@ -40,7 +40,7 @@ return(list(rawDataSummaryTable=rawDataSummaryTable, rawDataSummaryTableTitle=ra
 ##' @description Converts Sushi dataset into Mothur input.
 ##' @param  taxaFileName, mothur taxonomy file.
 ##' @return Returns the .groups and .fasta files
-datasetToMothur <- function(sushiInputDataset, param){
+mixedDatasetToMothur <- function(sushiInputDataset, param){
 for (i in (1:nrow(sushiInputDataset))) {
 filePathInDatset <- paste0(param$dataRoot,"/",sushiInputDataset$`Read1 [File]`[i])
 techID <- sushiInputDataset$`Technology [Factor]`[i]
@@ -60,6 +60,19 @@ writeFasta(fastqFile,'Illumina.fasta', mode = 'a')
 }
 }
 
+IlluminaDatasetToMothur <- function(sushiInputDataset, param){
+  for (i in (1:nrow(sushiInputDataset))) {
+    filePathInDatset <- paste0(param$dataRoot,"/",sushiInputDataset$`Read1 [File]`[i])
+    groupID <- rownames(sushiInputDataset)[i]
+    fastqFile <- readFastq(filePathInDatset)
+    x=data.frame(fastqFile@id)
+    readID <- data.frame(apply(x,1,function(y) unlist(strsplit(y," "))[[1]]))
+    groupFile <- data.frame(apply(readID,1,function(y) gsub(":","_",y)))
+    groupFile$group <- groupID
+      write.table(groupFile, 'Illumina.groups', row.names = FALSE, quote = FALSE, col.names = FALSE, append = TRUE, sep = "\t")
+      writeFasta(fastqFile,'Illumina.fasta', mode = 'a')
+  }
+}
 ###################################################################
 # Functional Genomics Center Zurich
 # This code is distributed under the terms of the GNU General
