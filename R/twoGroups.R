@@ -202,9 +202,9 @@ runDeseq2 = function(x, sampleGroup, refGroup, grouping, grouping2=NULL, isPrese
   
   ## run the analysis
   if (ezIsSpecified(grouping2)){
-    if (ezTagListFromNames(grouping2) == "Factor") {
+    if (ezTagListFromNames(grouping2Header) == "Factor") {
       grouping2 <- as.factor(grouping2)
-    } else if (ezTagListFromNames(grouping2) == "Numeric") {
+    } else if (ezTagListFromNames(grouping2Header) == "Numeric") {
       grouping2 <- as.numeric(grouping2)
     } else {
       stop("Column header of grouping2 must have the tag [Factor] or [Numeric]")
@@ -282,9 +282,9 @@ runGlm = function(x, sampleGroup, refGroup, grouping, normMethod, grouping2=NULL
   cds = calcNormFactors(cds, method=normMethod)
   groupFactor = factor(grouping, levels = c(refGroup, sampleGroup))
   if (ezIsSpecified(grouping2)){
-    if (ezTagListFromNames(grouping2) == "Factor") {
+    if (ezTagListFromNames(grouping2Header) == "Factor") {
       grouping2 <- as.factor(grouping2)
-    } else if (ezTagListFromNames(grouping2) == "Numeric") {
+    } else if (ezTagListFromNames(grouping2Header) == "Numeric") {
       grouping2 <- as.numeric(grouping2)
     } else {
       stop("Column header of grouping2 must have the tag [Factor] or [Numeric]")
