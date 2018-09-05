@@ -152,6 +152,8 @@ runDeseq2MultiGroup = function(x, sampleGroup, refGroup, grouping, grouping2=NUL
     } else if (ezTagListFromNames(grouping2) == "Numeric") {
       colData = data.frame(grouping=as.factor(grouping), grouping2=as.numeric(grouping2), row.names=colnames(x))
       dds = DESeq2::DESeqDataSetFromMatrix(countData=x, colData=colData, design= ~ grouping + grouping2)
+    } else {
+      stop("Column header of grouping2 must have the tag [Factor] or [Numeric]")
     }
   }
   dds = DESeq2::DESeq(dds, quiet=FALSE)
@@ -180,6 +182,8 @@ runEdgerGlmMultiGroup = function(x, refGroup, grouping, normMethod, grouping2=NU
       design = model.matrix( ~ groupFactor + factor(grouping2))
     } else if (ezTagListFromNames(grouping2) == "Numeric") {
       design = model.matrix( ~ groupFactor + as.numeric(grouping2))
+    } else {
+      stop("Column header of grouping2 must have the tag [Factor] or [Numeric]")
     }
   }
   
