@@ -18,7 +18,7 @@ ezMethodMothurDataCleanIllumina = function(input=NA, output=NA, param=NA,
   library(scales)
   dataset = input$meta
   ### read fastq files and prepare inputs for Mothur
-  datasetToMothur(dataset,param)
+  IlluminaDatasetToMothur(dataset,param)
   
   projNum <- dirname(param$resultDir)
   
