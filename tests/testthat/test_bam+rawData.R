@@ -65,9 +65,3 @@ test_that("Tests getSignal() and getLog2Signal() from rawData.R", {
 test_that("Tests getRpkm() and getTpm() from rawData.R", {
   ## TODOP: get rawData with proper seqAnno to test these.
 })
-
-test_that("Tests selectFeatures() from rawData.R", {
-  keep = "YFR014C"
-  selected = selectFeatures(rawData, keep)
-  expect_equal(length(selected$counts), 4)
-})

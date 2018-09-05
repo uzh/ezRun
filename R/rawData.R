@@ -61,6 +61,7 @@ getRpkm = function(rawData){
 }
 
 getTpm = function(rawData) {
+  
   if (!is.null(assays(rawData)$tpm)){
     return(assays(rawData)$tpm)
   }
@@ -187,39 +188,4 @@ aggregateCountsByGeneSE <- function(rawData){
                   param=param)
   )
   return(newRawData)
-}
-
-## a feature will typically be a gene, isoform, or a microarray probe
-## all matrices/data.frames in rawData must have rownames!
-##' @title Selects features from raw data
-##' @description Selects features from raw data by looking at "signal" (if specified) or "counts" from \code{rawData}.
-##' @template rawData-template
-##' @param keep a character vector specifying which signals or counts to keep.
-##' @template roxygen-template
-##' @return Returns the selected raw data.
-##' @examples
-##' param = ezParam()
-##' param$dataRoot = system.file(package="ezRun", mustWork = TRUE)
-##' file = system.file("extdata/yeast_10k_STAR_counts/dataset.tsv", package="ezRun", mustWork = TRUE)
-##' input = EzDataset$new(file=file, dataRoot=param$dataRoot)
-##' rawData = loadCountDataset(input, param)
-##' keep = "YFR014C"
-##' rd2 = selectFeatures(rawData, keep)
-selectFeatures = function(rawData, keep){
-  
-  if (!is.null(rawData$signal)){
-    stopifnot(keep %in% rownames(rawData$signal))
-    idx = match(keep, rownames(rawData$signal))
-  } else {
-    stopifnot(keep %in% rownames(rawData$counts))
-    idx = match(keep, rownames(rawData$counts))
-  }
-  for (nm in names(rawData)){
-    if (is.matrix(rawData[[nm]]) || is.data.frame(rawData[[nm]])){
-      if (all(keep %in% rownames(rawData[[nm]]))){
-        rawData[[nm]] = rawData[[nm]][idx, , drop=FALSE]      
-      }
-    }
-  }
-  return(rawData)
 }
