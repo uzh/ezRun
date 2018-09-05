@@ -3,28 +3,35 @@
 \name{getRpkm}
 \alias{getRpkm}
 \title{Gets the rpkm measurement}
+\description{
+  Gets the rpkm measurement from \code{SummarizedExperiment} or 
+  \code{SingleCellExperiment} object.
+}
+
 \usage{
-getRpkm(rawData)
+  getRpkm(rawData)
 }
 \arguments{
-\item{rawData}{a list of raw data obtained from \code{loadCountDataset()}.}
+  \item{rawData}{
+    \code{SummarizedExperiment} or \code{SingleCellExperiment} object.
+  }
 }
 \value{
-Returns the rpkm measurement.
+  Returns the \code{matrix} of rpkm measurement.
 }
-\description{
-Gets the rpkm measurement.
-}
-\examples{
-param = ezParam()
-param$dataRoot = system.file(package="ezRun", mustWork = TRUE)
-file = system.file("extdata/yeast_10k_STAR_counts/dataset.tsv", package="ezRun", mustWork = TRUE)
-input = EzDataset$new(file=file, dataRoot=param$dataRoot)
-rawData = loadCountDataset(input, param)
-rpkm = getRpkm(rawData)
+\seealso{
+  \code{\link{getTpm}}
 }
 \author{
-Rehrauer, Hubert
-
-Schmid, Peter
+  Ge Tan
+}
+\examples{
+  \dontrun{
+    file <- "/srv/gstore/projects/p1688/CountQC_20201_2017-08-15--20-52-44/input_dataset.tsv"
+    param <- ezParam(list(dataRoot="/srv/gstore/projects",
+                          refBuild="Homo_sapiens/Ensembl/GRCh38.p10/Annotation/Release_89-2017-05-31"))
+    input <- EzDataset$new(file=file, dataRoot=param$dataRoot)
+    rawData <- loadCountDataset(input, param)
+    getRpkm(rawData)
+  }
 }
