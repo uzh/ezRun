@@ -32,8 +32,8 @@ ezMethodMothurDataCleanIllumina = function(input=NA, output=NA, param=NA,
   ezSystem(cmdMothurIllumina)
   ### extract region
   summaryOfAlign <- read.delim('Illumina.good.unique.summary', stringsAsFactors = FALSE, header = T)
-  regionStartCoord <- quantile(caz$end, probs = seq(0, 1, 0.025))["2.5%"]
-  regionEndCoord <- quantile(caz$end, probs = seq(0, 1, 0.025))["97.5%"]
+  regionStartCoord <- quantile(summaryOfAlign$end, probs = seq(0, 1, 0.025))["2.5%"]
+  regionEndCoord <- quantile(summaryOfAlign$end, probs = seq(0, 1, 0.025))["97.5%"]
   
   ### update batch file Illumina with parameters and run mothur: step 2, precluster and remove non-bacterial reads
   updateBatchCmdIllumina <- paste0("sed -e s/\"CUTOFF\"/", param$cutOff, "/g",
