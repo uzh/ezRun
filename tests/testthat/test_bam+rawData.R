@@ -58,21 +58,6 @@ test_that("Tests countReadsInFastq() from ngsio.r", {
   expect_identical(names(counted), fqFiles)
 })
 
-test_that("Tests mergeRawData() from rawData.R", {
-  rawData1 = loadCountDataset(input$copy()$subset(1), param)
-  rawData2 = loadCountDataset(input$copy()$subset(2), param)
-  merged = mergeRawData(rawData1, rawData2)
-  expect_is(merged, "list")
-  expect_identical(merged$dataset, input$meta[1:2, ])
-})
-
-test_that("Tests selectSamples() from rawData.R", {
-  selected = selectSamples(rawData, c("wt_1","wt_2"))
-  expect_is(selected, "list")
-  expect_identical(selected$dataset, input$subset(1:2)$meta)
-  expect_equal(nrow(selected$dataset), 2)
-})
-
 test_that("Tests getSignal() and getLog2Signal() from rawData.R", {
   ## TODOP: get rawData with signal to test these.
 })

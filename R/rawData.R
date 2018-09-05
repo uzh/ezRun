@@ -5,87 +5,6 @@
 # The terms are available here: http://www.gnu.org/licenses/gpl.html
 # www.fgcz.ch
 
-
-##' @title Merges raw data
-##' @description Merges raw data by combining two lists of raw data into one.
-##' @param rawData1 a list of raw data. This is the main dataset where the information from the second gets added to.
-##' @param rawData2 the second list of raw data. Both are obtained from \code{loadCountDataset()}.
-##' @template roxygen-template
-##' @return Returns a list containing the merged raw data.
-##' @examples
-##' param = ezParam()
-##' param$dataRoot = system.file(package="ezRun", mustWork = TRUE)
-##' file = system.file("extdata/yeast_10k_STAR_counts/dataset.tsv", package="ezRun", mustWork = TRUE)
-##' input = EzDataset$new(file=file, dataRoot=param$dataRoot)
-##' rawData1 = loadCountDataset(input$subset(1), param)
-##' rawData2 = loadCountDataset(input$subset(2), param)
-##' rdm = mergeRawData(rawData1, rawData2)
-mergeRawData = function(rawData1, rawData2){
-  for (nm in names(rawData1)){
-    if (is.matrix(rawData1[[nm]]) || is.data.frame(rawData1[[nm]])){
-      if (setequal(rownames(rawData1[[nm]]), rownames(rawData2[[nm]]))){
-        rawData1[[nm]] = cbind(rawData1[[nm]], rawData2[[nm]][rownames(rawData1[[nm]]), ,drop=FALSE])
-      } else {
-        if (setequal(colnames(rawData1[[nm]]), colnames(rawData2[[nm]]))){
-          rawData1[[nm]] = rbind(rawData1[[nm]], rawData2[[nm]][ , colnames(rawData1[[nm]]), drop=FALSE])
-        }
-      }
-    }
-  }
-  return(rawData1)
-}
-
-## a sample can figure as a  colum name (e.g. signal) and as a rowname (e.g. dataset)
-##' @title Select samples from raw data
-##' @description Select samples from raw data by specifying either the signal names or the sample names.
-##' @template rawData-template
-##' @param samples a character vector specifying which samples to select.
-##' @template roxygen-template
-##' @return Returns a list of the selected samples.
-##' @examples
-##' param = ezParam()
-##' param$dataRoot = system.file(package="ezRun", mustWork = TRUE)
-##' file = system.file("extdata/yeast_10k_STAR_counts/dataset.tsv", package="ezRun", mustWork = TRUE)
-##' input = EzDataset$new(file=file, dataRoot=param$dataRoot)
-##' rawData = loadCountDataset(input, param)
-##' rd2 = selectSamples(rawData, c("wt_1","wt_2"))
-selectSamples = function(rawData, samples){
-  if (!is.null(rawData$signal)){
-    stopifnot(samples %in% colnames(rawData$signal))
-  } else {
-    stopifnot(samples %in% colnames(rawData$counts))
-  }
-  for (nm in names(rawData)){
-    if (is.matrix(rawData[[nm]]) || is.data.frame(rawData[[nm]])){
-      if (all(samples %in% colnames(rawData[[nm]]))){
-        rawData[[nm]] = rawData[[nm]][, samples, drop=FALSE]
-      }
-      if (all(samples %in% rownames(rawData[[nm]]))){
-        rawData[[nm]] = rawData[[nm]][samples, , drop=FALSE]
-      }
-    }
-  }
-  return(rawData)
-}
-
-
-renameSamples = function(rawData, samplesNew){
-  samplesOld = rownames(rawData$dataset)
-  stopifnot(length(samplesOld) == length(samplesNew))
-  for (nm in names(rawData)){
-    if (is.matrix(rawData[[nm]]) || is.data.frame(rawData[[nm]])){
-      if (all(samplesOld %in% colnames(rawData[[nm]]))){
-        colnames(rawData[[nm]]) = samplesNew
-      }
-      if (all(samplesOld %in% rownames(rawData[[nm]]))){
-        rownames(rawData[[nm]]) = samplesNew
-      }
-    }
-  }
-  return(rawData)
-}
-
-
 ##' @title Gets the signal
 ##' @description Gets the signal from raw data and modifies it if necessary due to logarithm.
 ##' @template rawData-template
@@ -107,7 +26,6 @@ getSignal = function(rawData){
   }
 }
 
-
 ##' @describeIn getSignal Does the same but returns the log2 instead.
 getLog2Signal = function(rawData){
   if (rawData$isLog){
@@ -117,20 +35,6 @@ getLog2Signal = function(rawData){
   }
 }
 
-
-##' @title Gets the rpkm measurement
-##' @description Gets the rpkm measurement.
-##' @template rawData-template
-##' @template roxygen-template
-##' @return Returns the rpkm measurement.
-##' @examples
-##' param = ezParam()
-##' param$dataRoot = system.file(package="ezRun", mustWork = TRUE)
-##' file = system.file("extdata/yeast_10k_STAR_counts/dataset.tsv", package="ezRun", mustWork = TRUE)
-##' input = EzDataset$new(file=file, dataRoot=param$dataRoot)
-##' rawData = loadCountDataset(input, param)
-##' rpkm = getRpkm(rawData)
-## TODOEXAMPLE: get example with proper return
 getRpkm = function(rawData){
   require(Matrix)
   require(SummarizedExperiment)
