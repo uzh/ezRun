@@ -202,10 +202,12 @@ runDeseq2 = function(x, sampleGroup, refGroup, grouping, grouping2=NULL, isPrese
   
   ## run the analysis
   if (ezIsSpecified(grouping2)){
-    if (!is.numeric(grouping2)){
-      grouping2 = as.factor(grouping2)
+    if (ezTagListFromNames(grouping2) == "Factor") {
+      grouping2 <- as.factor(grouping2)
+    } else if (ezTagListFromNames(grouping2) == "Numeric") {
+      grouping2 <- as.numeric(grouping2)
     } else {
-      message("using numeric secondary factor")
+      stop("Column header of grouping2 must have the tag [Factor] or [Numeric]")
     }
     colData = data.frame(grouping=as.factor(grouping), grouping2=grouping2, row.names=colnames(x))
     dds = DESeq2::DESeqDataSetFromMatrix(countData=x, colData=colData, design= ~ grouping + grouping2)
@@ -280,7 +282,14 @@ runGlm = function(x, sampleGroup, refGroup, grouping, normMethod, grouping2=NULL
   cds = calcNormFactors(cds, method=normMethod)
   groupFactor = factor(grouping, levels = c(refGroup, sampleGroup))
   if (ezIsSpecified(grouping2)){
-    design = model.matrix( ~ groupFactor + factor(grouping2[isSample|isRef]))
+    if (ezTagListFromNames(grouping2) == "Factor") {
+      grouping2 <- as.factor(grouping2)
+    } else if (ezTagListFromNames(grouping2) == "Numeric") {
+      grouping2 <- as.numeric(grouping2)
+    } else {
+      stop("Column header of grouping2 must have the tag [Factor] or [Numeric]")
+    }
+    design = model.matrix( ~ groupFactor + grouping2[isSample|isRef])
     colnames(design) = c("Intercept", "Grouping", paste("Grouping2", 1:(ncol(design)-2), sep="_"))
   } else {
     design = model.matrix( ~ groupFactor)
