@@ -17,6 +17,8 @@ ezMethodEdger = function(input=NA, output=NA, param=NA,
   input = cleanupTwoGroupsInput(input, param)
   param$grouping = input$getColumn(param$grouping)
   if (ezIsSpecified(param$grouping2) && length(param$grouping2) == 1){
+    rawDataTemp = loadCountDataset(input, param)
+    grouping2Header <- grep(param$grouping2, colData(rawDataTemp), value = T)
     param$grouping2 = input$getColumn(param$grouping2)
   }
   
