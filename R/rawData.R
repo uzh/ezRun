@@ -73,15 +73,12 @@ getTpm = function(rawData) {
       rowData(rawData)$width <- rowData(rawData)$featWidth
     }
   }
-  tpm = assays(rawData)$counts
-  for (i in 1:ncol(tpm)){
-    rpk = (assays(rawData)$counts[,i] * 1e3) /(rowData(rawData)$width)
-    scalingFactor = sum(rpk)/1e6
-    tpm[, i] = rpk / scalingFactor
-  }
+  tpm <- sweep(assays(rawData)$counts * 1e3, MARGIN=1,
+               STATS=rowData(rawData)$width, FUN="/")
+  tpm <- sweep(tpm * 1e6, MARGIN=2, STATS=Matrix::colSums(tpm),
+               FUN="/")
   return(tpm)
 }
-
 
 ##' @title Aggregates counts by gene
 ##' @description Aggregates counts by gene.

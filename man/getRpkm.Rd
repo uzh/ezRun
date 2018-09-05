@@ -2,14 +2,16 @@
 % Please edit documentation in R/rawData.R
 \name{getRpkm}
 \alias{getRpkm}
-\title{Gets the rpkm measurement}
+\alias{getTpm}
+\title{Gets the rpkm and tpm measurement}
 \description{
-  Gets the rpkm measurement from \code{SummarizedExperiment} or 
+  Gets the rpkm and tpm measurement from \code{SummarizedExperiment} or 
   \code{SingleCellExperiment} object.
 }
 
 \usage{
   getRpkm(rawData)
+  getTpm(rawData)
 }
 \arguments{
   \item{rawData}{
@@ -17,13 +19,13 @@
   }
 }
 \value{
-  Returns the \code{matrix} of rpkm measurement.
-}
-\seealso{
-  \code{\link{getTpm}}
+  Returns the \code{matrix} of rpkm or tpm measurement.
 }
 \author{
   Ge Tan
+}
+\reference{
+  \url{}
 }
 \examples{
   \dontrun{
@@ -33,5 +35,6 @@
     input <- EzDataset$new(file=file, dataRoot=param$dataRoot)
     rawData <- loadCountDataset(input, param)
     getRpkm(rawData)
+    getTpm(rawData)
   }
 }
