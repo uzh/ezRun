@@ -3,30 +3,23 @@
 \name{aggregateCountsByGene}
 \alias{aggregateCountsByGene}
 \title{Aggregates counts by gene}
+\description{
+  Aggregates counts from isoform level to gene level.
+}
+
 \usage{
-aggregateCountsByGene(param, rawData)
+  aggregateCountsByGene(rawData)
 }
 \arguments{
-\item{param}{a list of parameters:
-\itemize{
-  \item{geneColumnSet}{ a character naming the columns.}
-  \item{sigThresh}{ the threshold...}
-  \item{useSigThresh}{ ...and whether it should be used.}
-}}
-
-\item{rawData}{a list of raw data obtained from \code{loadCountDataset()}.}
+  \item{rawData}{\code{SummarizedExperiment} obtained from \code{loadCountDataset()} or 
+    \code{loadSCCountDataset()}.}
 }
 \value{
-Returns the aggregates raw data.
-}
-\description{
-Aggregates counts by gene.
+  \code{SummarizedExperiment} object with counts on gene level.
 }
 \seealso{
-\code{\link{getGeneMapping}}
+  \code{\link{getGeneMapping}}
 }
 \author{
-Rehrauer, Hubert
-
-Schmid, Peter
+  Ge Tan
 }
