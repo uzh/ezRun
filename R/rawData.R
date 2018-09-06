@@ -58,18 +58,6 @@ getTpm = function(rawData) {
   return(tpm)
 }
 
-##' @title Aggregates counts by gene
-##' @description Aggregates counts by gene.
-##' @param param a list of parameters:
-##' \itemize{
-##'   \item{geneColumnSet}{ a character naming the columns.}
-##'   \item{sigThresh}{ the threshold...}
-##'   \item{useSigThresh}{ ...and whether it should be used.}
-##' }
-##' @template rawData-template
-##' @template roxygen-template
-##' @seealso \code{\link{getGeneMapping}}
-##' @return Returns the aggregates raw data.
 aggregateCountsByGene <- function(rawData){
   require(SummarizedExperiment)
   param <- metadata(rawData)$param
