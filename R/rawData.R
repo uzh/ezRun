@@ -26,15 +26,6 @@ getSignal = function(rawData){
   }
 }
 
-##' @describeIn getSignal Does the same but returns the log2 instead.
-getLog2Signal = function(rawData){
-  if (rawData$isLog){
-    return(rawData$signal)
-  } else {
-    return(log2(rawData$signal))
-  }
-}
-
 getRpkm = function(rawData){
   require(Matrix)
   require(SummarizedExperiment)

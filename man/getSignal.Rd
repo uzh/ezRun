@@ -2,12 +2,9 @@
 % Please edit documentation in R/rawData.R
 \name{getSignal}
 \alias{getSignal}
-\alias{getLog2Signal}
 \title{Gets the signal}
 \usage{
 getSignal(rawData)
-
-getLog2Signal(rawData)
 }
 \arguments{
 \item{rawData}{a list of raw data obtained from \code{loadCountDataset()}.}
@@ -18,11 +15,6 @@ Returns the signal.
 \description{
 Gets the signal from raw data and modifies it if necessary due to logarithm.
 }
-\section{Functions}{
-\itemize{
-\item \code{getLog2Signal}: Does the same but returns the log2 instead.
-}}
-
 \examples{
 param = ezParam()
 param$dataRoot = system.file(package="ezRun", mustWork = TRUE)
