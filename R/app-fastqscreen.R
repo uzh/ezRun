@@ -348,3 +348,57 @@ collectBowtie2Output <- function(param, countFiles, readCount, virusResult = F){
   }
   return(speciesPercentageTop)
 }
+
+makeScatterplot = function(dataset, colname1, colname2){
+  if(colname1 %in% colnames(dataset) && colname2 %in% colnames(dataset) && nrow(dataset) > 1){
+    if(!all(dataset[[colname1]]==0) && !any(is.na(dataset[[colname1]])) && !all(dataset[[colname2]]==0) && !any(is.na(dataset[[colname2]]))){
+      ## LibCon column can all be 0 or NA. Then don't plot.
+      dataset = dataset[order(dataset[[colname1]],decreasing = T),]
+      corResult = cor.test(dataset[[colname1]],dataset[[colname2]],
+                           method = 'spearman')
+      regressionResult = lm(dataset[[colname2]]~dataset[[colname1]])
+      label1 = sub(' \\[.*','',colname1)
+      label2 = sub(' \\[.*','',colname2)
+      
+      ## plotly
+      require(plotly)
+      #a function to calculate your abline
+      xmin <- min(dataset[[colname1]]) - 5
+      xmax <- max(dataset[[colname1]]) + 5
+      intercept <- regressionResult$coefficients[1]
+      slope <- regressionResult$coefficients[2]
+      p_abline <- function(x, a, b){
+        y <- a * x + b
+        return(y)
+      }
+      
+      p <- plot_ly(x=dataset[[colname1]], y=dataset[[colname2]], 
+                   text=rownames(dataset)) %>%
+        add_markers() %>%
+        add_text(textposition = "top right") %>%
+        plotly::layout(showlegend = FALSE)
+      a <- list(
+        x = max(dataset[[colname1]]),
+        y = max(dataset[[colname2]]),
+        text = paste0("r=", round(corResult$estimate, 2)),
+        xref = "x",
+        yref = "y",
+        showarrow = FALSE
+      )
+      p <- p %>% plotly::layout(
+        shapes=list(type='line', line=list(dash="dash"),
+                    x0=xmin, x1=xmax,
+                    y0=p_abline(xmin, slope, intercept), 
+                    y1=p_abline(xmax, slope, intercept)),
+        annotations = a,
+        title= paste(label1, 'vs', label2), yaxis = list(title = label2),
+        xaxis = list(title = colname1)
+      )
+      return(p)
+    }
+  }
+}
+
+#dataset = ezRun::ezRead.table('/srv/gstore/projects/p2821/NovaSeq_20180829_NOV17_o4694/dataset.tsv')
+#makeScatterplot(dataset, colname1 ='RIN [Factor]', colname2='Read Count')
+#makeScatterplot(dataset, colname1 ='RIN [Factor]', colname2='LibConc_100_800bp [Characteristic]')

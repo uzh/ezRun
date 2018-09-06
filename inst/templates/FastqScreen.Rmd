@@ -32,7 +32,7 @@ fastqDataAdapters=fastqData_rawData
 
 
 ### FastqScreen Mapping Rates Overview
-```{r overview plotly, fig.height=7, fig.width=min(max(7, 7+(nrow(dataset)-20)*0.2), 30), echo=FALSE}
+```{r overview plotly, fig.height=7, fig.width=min(max(7, 7+(nrow(dataset)-20)*0.2), 30), echo=FALSE, warning=FALSE, message=FALSE}
 m <- list(l = 80, r = 80, b = 200, t = 100, pad = 0) # more margin space
 # Mapping rate
 p <- plot_ly(x=names(fastqData$MappingRate),
@@ -177,6 +177,46 @@ if(param[['virusCheck']]){
 }
 ```
 
+
+### RIN
+
+#### RIN vs Read Count
+```{r rin1, echo=FALSE, message=FALSE, warning=FALSE}
+if (nrow(dataset) > 1){
+  rinCol <- colnames(dataset)[grep('RIN', colnames(dataset))]
+  if(length(rinCol) == 1){
+    a <- makeScatterplot(dataset, colname1 = rinCol, colname2='Read Count')
+    a
+    }
+}
+```
+
+#### RIN vs LibConc
+```{r rin2, echo=FALSE, message=FALSE, warning=FALSE}
+if (nrow(dataset) > 1){
+  rinCol <- colnames(dataset)[grep('RIN', colnames(dataset))]
+  if(length(rinCol) == 1){
+    libQuant <- colnames(dataset)[grep('LibConc_100_800bp', colnames(dataset))]  
+    if(length(libQuant) == 1){
+      b <- makeScatterplot(dataset, colname1 = rinCol, colname2=libQuant)
+      b
+    }
+  }
+}
+```
+
+#### RIN vs rRNA content
+```{r rin3, echo=FALSE, message=FALSE, warning=FALSE}
+if (nrow(dataset) > 1){
+  rinCol <- colnames(dataset)[grep('RIN', colnames(dataset))]
+  if(length(rinCol) == 1){
+    dataset[['rRNA_Content']] <- rRNA_mappingRate$Sense + rRNA_mappingRate$Antisense
+    c <- makeScatterplot(dataset, colname1 = rinCol, colname2='rRNA_Content')
+    c
+  }
+}
+```
+
 ### Settings
 ```{r setting, echo=FALSE}
 getAppVer <- function(appName) { sub("^.+/([^/]+)$", "\\1", Sys.getenv(appName)) }
@@ -192,7 +232,6 @@ kable(as.data.frame(settings), col.names=NA, row.names=TRUE, format="html") %>%
   kable_styling(bootstrap_options = "striped", full_width = F,
                 position = "left")
 ```
-
 
 ### Input Dataset
 ```{r, echo=FALSE, message=FALSE}
