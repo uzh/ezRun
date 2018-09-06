@@ -26,7 +26,7 @@
         \item{transcriptTypes}{ if specified, only the defined transcript type will be used.}
         \item{sigThresh}{ the threshold...}
         \item{useSigThresh}{ ...and whether it should be used.}
-        \item{featureLevel}{ if equal to "gene" and the feature level of the dataset to "isoform", the rawdata will be passed to \code{aggregateCountsByGeneSE()} before returning it.}
+        \item{featureLevel}{ if equal to "gene" and the feature level of the dataset to "isoform", the rawdata will be passed to \code{aggregateCountsByGene()} before returning it.}
       }
   }
 }
