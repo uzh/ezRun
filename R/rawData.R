@@ -5,19 +5,6 @@
 # The terms are available here: http://www.gnu.org/licenses/gpl.html
 # www.fgcz.ch
 
-##' @title Gets the signal
-##' @description Gets the signal from raw data and modifies it if necessary due to logarithm.
-##' @template rawData-template
-##' @template roxygen-template
-##' @return Returns the signal.
-##' @examples
-##' param = ezParam()
-##' param$dataRoot = system.file(package="ezRun", mustWork = TRUE)
-##' file = system.file("extdata/yeast_10k_STAR_counts/dataset.tsv", package="ezRun", mustWork = TRUE)
-##' input = EzDataset$new(file=file, dataRoot=param$dataRoot)
-##' rawData = loadCountDataset(input, param)
-##' sig = getSignal(rawData)
-## TODOEXAMPLE: get example with proper return and improve description.
 getSignal = function(rawData){
   if (metadata(rawData)$isLog){
     return(2^assays(rawData)$signal)
@@ -83,59 +70,7 @@ getTpm = function(rawData) {
 ##' @template roxygen-template
 ##' @seealso \code{\link{getGeneMapping}}
 ##' @return Returns the aggregates raw data.
-aggregateCountsByGene = function(param, rawData){
-  
-  genes = getGeneMapping(param, rawData$seqAnno)
-  
-  if (is.null(genes)){
-    return(list(error=paste("gene summaries requested but not gene column available. did you specify the build?<br>column names tried:<br>",
-                            paste(param$geneColumnSet, collapse="<br>"))))
-  }
-  seqAnnoNew = data.frame(row.names=na.omit(unique(genes)))
-  #   commonCols = intersect(c("gene_id", "type", "seqid", "strand", "GO BP", "GO MF", "GO CC"), 
-  #                          colnames(rawData$seqAnno))
-  for (nm in colnames(rawData$seqAnno)){
-    seqAnnoNew[[nm]] = tapply(rawData$seqAnno[[nm]], genes, 
-                              ezCollapse, empty.rm=TRUE, uniqueOnly=TRUE, na.rm=TRUE)[rownames(seqAnnoNew)]
-  }
-  ## special merging for special columns
-  if (!is.null(rawData$seqAnno$start)){
-    gStart = tapply(as.integer(sub(";.*", "", rawData$seqAnno$start)), genes, min)
-    seqAnnoNew$start = gStart[rownames(seqAnnoNew)]
-  }
-  if (!is.null(rawData$seqAnno$end)){
-    gEnd = tapply(as.integer(sub(".*;", "", rawData$seqAnno$end)), genes, max)
-    seqAnnoNew$end = gEnd[rownames(seqAnnoNew)]
-  }
-  if (!is.null(rawData$seqAnno$width)){
-    seqAnnoNew$width = tapply(rawData$seqAnno$width, genes, mean)[rownames(seqAnnoNew)]
-  }
-  if (!is.null(rawData$seqAnno$gc)){
-    seqAnnoNew$gc = tapply(as.numeric(rawData$seqAnno$gc), genes, mean)[rownames(seqAnnoNew)]
-  }
-  rawData$seqAnno = seqAnnoNew
-  if (rawData$isLog){
-    stop("not supported")
-  }
-  for (nm in c("counts", "countsStart", "countsEnd", "rpkm")){
-    if (!is.null(rawData[[nm]])){
-      rawData[[nm]] = as.matrix(averageRows(rawData[[nm]], genes, func=sum))[rownames(seqAnnoNew), ]
-    }
-  }
-  if (!is.null(rawData[["presentFlag"]])){
-    if (param$useSigThresh){
-      rawData[["presentFlag"]] = rawData[["counts"]] > param$sigThresh
-    } else {
-      rawData[["presentFlag"]] = rawData[["counts"]] > 0     
-    }
-  }
-  
-  rawData$signal = NULL
-  rawData$featureLevel = "gene"
-  return(rawData)
-}
-
-aggregateCountsByGeneSE <- function(rawData){
+aggregateCountsByGene <- function(rawData){
   require(SummarizedExperiment)
   param <- metadata(rawData)$param
   seqAnno <- data.frame(rowData(rawData), row.names=rownames(rawData),

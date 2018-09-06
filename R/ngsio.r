@@ -93,7 +93,7 @@ loadCountDataset <- function(input, param){
   rawData <- rawData[use, ]
   
   if (dataFeatureLevel == "isoform" && param$featureLevel == "gene"){
-    rawData = aggregateCountsByGeneSE(rawData)
+    rawData = aggregateCountsByGene(rawData)
   }
   
   assays(rawData)$rpkm = getRpkm(rawData)
@@ -175,7 +175,7 @@ loadSCCountDataset <- function(input, param){
     sce <- sce[use, ]
     
     if (dataFeatureLevel == "isoform" && param$featureLevel == "gene"){
-      sce <- aggregateCountsByGeneSE(sce)
+      sce <- aggregateCountsByGene(sce)
     }
     assays(sce)$rpkm <- getRpkm(sce)
     assays(sce)$tpm <- getTpm(sce)
