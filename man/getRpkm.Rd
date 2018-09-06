@@ -3,15 +3,17 @@
 \name{getRpkm}
 \alias{getRpkm}
 \alias{getTpm}
-\title{Gets the rpkm and tpm measurement}
+\alias{getSignal}
+\title{Gets measurements from rawData}
 \description{
-  Gets the rpkm and tpm measurement from \code{SummarizedExperiment} or 
+  Gets the rpkm, tpm or signal measurement from \code{SummarizedExperiment} or 
   \code{SingleCellExperiment} object.
 }
 
 \usage{
   getRpkm(rawData)
   getTpm(rawData)
+  getSignal(rawData)
 }
 \arguments{
   \item{rawData}{
@@ -19,13 +21,13 @@
   }
 }
 \value{
-  Returns the \code{matrix} of rpkm or tpm measurement.
+  Returns the \code{matrix} of rpkm, tpm or signal measurement.
 }
 \author{
   Ge Tan
 }
 \reference{
-  \url{}
+  \url{https://www.rna-seqblog.com/rpkm-fpkm-and-tpm-clearly-explained/}
 }
 \examples{
   \dontrun{
@@ -36,5 +38,6 @@
     rawData <- loadCountDataset(input, param)
     getRpkm(rawData)
     getTpm(rawData)
+    getSignal(rawData)
   }
 }
