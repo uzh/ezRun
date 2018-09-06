@@ -35,17 +35,6 @@ test_that("Tests getBamMultiMatching() from bamio.r", {
   expect_identical(names(multi), as.character(0:(length(multi)-1)))
 })
 
-test_that("Tests loadCountDataset() from ngsio.r", {
-  expect_is(rawData, "list")
-  expect_identical(rawData$dataset, input$meta)
-  expect_is(rawData$counts, "matrix")
-  expect_is(rawData$isLog, "logical")
-  expect_is(rawData$presentFlag, "matrix")
-  expect_is(rawData$seqAnno, "data.frame")
-  expect_is(rawData$featureLevel, "character")
-  expect_is(rawData$type, "character")
-  expect_is(rawData$countName, "character")
-})
 
 test_that("Tests countReadsInFastq() from ngsio.r", {
   file2 = system.file("extdata/yeast_10k/dataset.tsv", package="ezRun", mustWork = TRUE)
@@ -58,10 +47,3 @@ test_that("Tests countReadsInFastq() from ngsio.r", {
   expect_identical(names(counted), fqFiles)
 })
 
-test_that("Tests getSignal() and getLog2Signal() from rawData.R", {
-  ## TODOP: get rawData with signal to test these.
-})
-
-test_that("Tests getRpkm() and getTpm() from rawData.R", {
-  ## TODOP: get rawData with proper seqAnno to test these.
-})
