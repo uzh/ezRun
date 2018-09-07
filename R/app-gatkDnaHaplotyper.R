@@ -51,6 +51,9 @@ ezMethodGatkDnaHaplotyper = function(input=NA, output=NA, param=NA){
     ezSystem(paste("samtools", "index", "withRg.bam"))
   }
   
+  if(param$targetFile != ''){
+    param$targetFile = file.path(TARGET_ENRICHMENT_DESIGN_DIR, param$targetFile)
+  }
   
   #BaseRecalibration is done only if known sites are available
   if(param$knownSitesAvailable){
@@ -67,7 +70,6 @@ ezMethodGatkDnaHaplotyper = function(input=NA, output=NA, param=NA){
               "-nct", param$cores)
   
   if(param$targetFile != ''){
-    param$targetFile = file.path(TARGET_ENRICHMENT_DESIGN_DIR, param$targetFile)
     cmd = paste(cmd,
                 "-L", param$targetFile)
   }

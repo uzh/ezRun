@@ -185,7 +185,8 @@ if(param[['virusCheck']]){
 if (nrow(dataset) > 1){
   rinCol <- colnames(dataset)[grep('RIN', colnames(dataset))]
   if(length(rinCol) == 1){
-    a <- makeScatterplot(dataset, colname1 = rinCol, colname2='Read Count')
+    dataset[[rinCol]] <- as.numeric(dataset[[rinCol]])
+    a <- makeScatterplot(dataset, colname1 = rinCol, colname2 = 'Read Count')
     a
     }
 }
@@ -198,7 +199,7 @@ if (nrow(dataset) > 1){
   if(length(rinCol) == 1){
     libQuant <- colnames(dataset)[grep('LibConc_100_800bp', colnames(dataset))]  
     if(length(libQuant) == 1){
-      b <- makeScatterplot(dataset, colname1 = rinCol, colname2=libQuant)
+      b <- makeScatterplot(dataset, colname1 = rinCol, colname2 = libQuant)
       b
     }
   }
@@ -211,7 +212,7 @@ if (nrow(dataset) > 1){
   rinCol <- colnames(dataset)[grep('RIN', colnames(dataset))]
   if(length(rinCol) == 1){
     dataset[['rRNA_Content']] <- rRNA_mappingRate$Sense + rRNA_mappingRate$Antisense
-    c <- makeScatterplot(dataset, colname1 = rinCol, colname2='rRNA_Content')
+    c <- makeScatterplot(dataset, colname1 = rinCol, colname2 = 'rRNA_Content')
     c
   }
 }
