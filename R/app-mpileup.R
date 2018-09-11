@@ -75,9 +75,8 @@ ezMethodMpileup = function(input=NA, output=NA, param=NA){
   }, mc.cores=nBamsInParallel, mc.preschedule=FALSE)
   
   ########### run mpileup/call/filter
-  mpileupCmd = paste("samtools", "mpileup",
+  mpileupCmd = paste("bcftools", "mpileup",
                      "-f", param$ezRef["refFastaFile"],
-                     "--VCF",
                      param$mpileupOptions,
                      ifelse(param$region == "", "", paste("--region", param$region)),
                      paste(bamFilesClean, collapse=" "))
