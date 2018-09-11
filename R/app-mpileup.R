@@ -75,13 +75,13 @@ ezMethodMpileup = function(input=NA, output=NA, param=NA){
   }, mc.cores=nBamsInParallel, mc.preschedule=FALSE)
   
   ########### run mpileup/call/filter
-  mpileupCmd = paste("bcftools", "mpileup",
+  mpileupCmd = paste("bcftools", "mpileup","-Ou",
                      "-f", param$ezRef["refFastaFile"],
                      param$mpileupOptions,
                      ifelse(param$region == "", "", paste("--region", param$region)),
                      paste(bamFilesClean, collapse=" "))
   callCmd = paste("bcftools", "call",
-                  "--output-type z",
+                  "-Ou",
                   param$callOptions,
                   "-") ## read from stdin
   filterCmd = paste("bcftools", "filter",
