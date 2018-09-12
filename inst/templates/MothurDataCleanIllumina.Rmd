@@ -70,7 +70,7 @@ kable(lengthDeduppedSummaryTableIllumina, row.names=TRUE,
 
 ```{r mapIll, echo=FALSE}
 kable(mappedAndHomopFilteredSummaryTableIllumina, row.names=TRUE, 
-      col.names=colnames(preClusteredAndChimeraFilteredSummaryTablePacbio), format="html",caption =titleMappedAndHomopFilteredSummaryTableIllumina) %>%
+      col.names=colnames(preClusteredAndChimeraFilteredIllumina), format="html",caption =titleMappedAndHomopFilteredSummaryTableIllumina) %>%
   kable_styling(bootstrap_options = "striped", full_width = F,
                 position = "left")
 ```
