@@ -28,6 +28,8 @@ annotateCNVs = function(file, param){
   gtfFile = param$ezRef@refFeatureFile
   gtf = rtracklayer::import(gtfFile)
   idx = gtf$type == 'gene' & gtf$source == 'protein_coding'
+  idx_exon = gtf$type == 'exon' & gtf$source == 'protein_coding'
+  gtf_exon = gtf[idx_exon]
   gtf = gtf[idx]
   
   data = ezRead.table(file, header = F, row.names = NULL)
@@ -50,9 +52,15 @@ annotateCNVs = function(file, param){
   featureInCNVs  <- splitAsList(mcols(gtf)[['gene_id']][queryHits(olaps)], f1)
   genesInCNVs  <- splitAsList(mcols(gtf)[['gene_name']][queryHits(olaps)], f1)
   
+  olaps = findOverlaps(gtf_exon, segmentRanges)
+  f1 <- factor(subjectHits(olaps),
+               levels=seq_len(subjectLength(olaps)))
+  exonsInCNVs  <- splitAsList(mcols(gtf_exon)[['exon_id']][queryHits(olaps)], f1)
+  
   data = cbind(data, pos)
   data[['FeaturesInCnv']] = unlist(sapply(as.vector(featureInCNVs),paste, collapse=','))
   data[['GenesInCnv']] = unlist(sapply(as.vector(genesInCNVs),paste, collapse=','))
+  data[['ExonsInCnv']] = unlist(sapply(as.vector(exonsInCNVs),paste, collapse=','))
   
   data = data[data$FeaturesInCnv != '', ]
   ezWrite.table(data, sub('.txt','_CNV.txt',file), row.names = F)
