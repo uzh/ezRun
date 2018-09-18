@@ -227,7 +227,7 @@ mergeBamAlignments <- function(alignedBamFn, unmappedBamFn,
     setEnvironments("samtools")
     tempBam <- tempfile(pattern="noUnmapped", tmpdir = ".",
                         fileext = ".bam")
-    cmd <- paste("samtools view -F 4", outputBamFn, ">",
+    cmd <- paste("samtools view -F 4 -h", outputBamFn, ">",
                  tempBam)
     ezSystem(cmd)
     file.remove(outputBamFn)
