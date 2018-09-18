@@ -52,6 +52,8 @@ fastq2bam <- function(fastqFn, refFn, bamFn, fastqI1Fn=NULL, fastqI2Fn=NULL){
 ### convert fastq files into a bam file, with read group tags
 fastqs2bam <- function(fastqFns, fastq2Fns=NULL, readGroupNames=NULL,
                        bamFn, platform="illumina", mc.cores=ezThreads()){
+  require(Biostrings)
+  
   if(!isTRUE(isValidEnvironments("picard"))){
     setEnvironments("picard")
   }
@@ -68,6 +70,10 @@ fastqs2bam <- function(fastqFns, fastq2Fns=NULL, readGroupNames=NULL,
     stopifnot(length(fastqFns) == length(readGroupNames))
   }
   
+  emptyFastqs <- countReadsInFastq(fastqFns) == 0L
+  ## tempty fastq files fail in the picard tool of FastqToSam and MergeSamFiles
+  ## Convert and merge the non-empty fastqs first and alter the header of merged bam file
+    
   cmd <- paste("java -Xmx4G -Djava.io.tmpdir=. -jar", 
                Sys.getenv("Picard_jar"), "FastqToSam",
                paste0("F1=", fastqFns)
@@ -83,16 +89,46 @@ fastqs2bam <- function(fastqFns, fastq2Fns=NULL, readGroupNames=NULL,
                paste0("PLATFORM=", platform),
                "SEQUENCING_CENTER=FGCZ")
   
-  ezMclapply(cmd, ezSystem, mc.preschedule=FALSE, mc.cores = mc.cores)
+  ezMclapply(cmd[!emptyFastqs], ezSystem, mc.preschedule=FALSE,
+             mc.cores = mc.cores)
   
   ## picard tools merge
   cmd <- paste("java -Djava.io.tmpdir=. -jar", 
                Sys.getenv("Picard_jar"), "MergeSamFiles",
-               paste0("I=", paste0(sampleBasenames, ".bam"), collapse=" "),
+               paste0("I=", paste0(sampleBasenames, ".bam")[!emptyFastqs],
+                      collapse=" "),
                paste0("O=", bamFn),
                "USE_THREADING=true", "SORT_ORDER=queryname")
   ezSystem(cmd)
   file.remove(paste0(sampleBasenames, ".bam"))
+  
+  if(any(emptyFastqs)){
+    tempHeaderFn <- tempfile(pattern="nonEmpty1", tmpdir=getwd(),
+                             fileext=".header")
+    cmd <- paste("samtools view -H", bamFn, ">", tempHeaderFn)
+    ezSystem(cmd)
+    
+    extraHeaders <- paste("@RG",
+                          paste0("ID:", readGroupNames[emptyFastqs]),
+                          paste0("SM:", readGroupNames[emptyFastqs]),
+                          paste0("LB:", readGroupNames[emptyFastqs]),
+                          paste0("PL:", platform),
+                          "CN:FGCZ",
+                          paste0("DT:", format(Sys.time(), "%Y-%m-%dT%H:%M:%S+00:00"),
+                                 sep="\t")
+    )
+    con <- file(tempHeaderFn, open="a")
+    writeLines(extraHeaders, con=con)
+    close(con)
+    
+    bamReheaderFn <- tempfile(pattern="reheader", tmpdir=getwd(),
+                              fileext = ".bam")
+    cmd <- paste("samtools reheader", tempHeaderFn, bamFn, ">", bamReheaderFn)
+    ezSystem(cmd)
+    
+    file.remove(bamFn)
+    file.rename(from=bamReheaderFn, to=bamFn)
+  }
   
   invisible(bamFn)
 }
@@ -184,7 +220,7 @@ ezMethodBam2Fastq <- function(input=NA, output=NA, param=NA,
                                NULL),
               paired=param$paired)
     output$setColumn("Read Count",
-                     sapply(output$getColumn("Read1"), fastq.geometry)[1, ])
+                     countReadsInFastq(output$getColumn("Read1")))
   }
   return(output)
 }
