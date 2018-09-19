@@ -44,7 +44,8 @@ param$minReadsPerGene = 5
 
 sceScater <- sce[ , Matrix::colSums(assays(sce)$counts) >= param$minReadsPerCell]
 
-mito <- rownames(sceScater)[grepl("^mt-", rowData(sceScater)$gene_name)]
+mito <- rownames(sceScater)[grepl("^mt-", rowData(sceScater)$gene_name,
+                                  ignore.case = TRUE)]
 x <- assays(sceScater)$counts
 cell_info <- data.frame(row.names = colnames(x),
                         lib_size=Matrix::colSums(x)/1e6, 
@@ -54,7 +55,7 @@ cell_info <- data.frame(row.names = colnames(x),
 ## sceFixName for section "Reads on top 50 genes" and "Expression metrics"
 sceFixName <- sceScater
 rownames(sceFixName) <- make.unique(rowData(sceFixName)$gene_name)
-is.mito <- grepl("^mt-", rownames(sceFixName))
+is.mito <- grepl("^mt-", rownames(sceFixName), ignore.case = TRUE)
 sceFixName <- calculateQCMetrics(sceFixName, feature_controls=list(Mt=is.mito))
 if(param$scProtocol == "smart-Seq2"){
   libsize.drop <- isOutlier(sceFixName$total_counts, nmads=5, type="lower",
@@ -91,7 +92,7 @@ if(param$scProtocol == "smart-Seq2"){
 scData <- CreateSeuratObject(raw.data = countsSeurat, min.cells = 5,
                              project = param$name)
 mito.genes <- grep(pattern = "^mt-", x = rownames(x = scData@data),
-                   value = TRUE)
+                   value = TRUE, ignore.case = TRUE)
 percent.mito <- Matrix::colSums(scData@raw.data[mito.genes, ])/ Matrix::colSums(scData@raw.data)
 scData <- AddMetaData(object = scData, metadata = percent.mito, 
                       col.name = "percent.mito")
