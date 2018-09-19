@@ -633,6 +633,10 @@ if(exists("enrichResult")){
         p <- dotplot(enrichResultReduced[[onto]][[sig]], showCategory=20,
                      title=paste(onto, sig))
         print(p)
+        resFn <- paste(onto, sig, "hypergeometric.txt", sep="_")
+        write.table(enrichResult[[onto]][[sig]], file=resFn,
+                    quote=FALSE, col.names = TRUE, row.names = FALSE, sep = "\t")
+        resFns <- append(resFns, resFn)
       }
     }
   }
@@ -654,10 +658,6 @@ for(onto in names(enrichResult)){
                                      showCategory=50, main=paste(onto, sig)))
       print(p)
       ## enrichMap gives warning somehow. Suppress for less confusion.
-      resFn <- paste(onto, sig, "hypergeometric.txt", sep="_")
-      write.table(enrichResult[[onto]][[sig]], file=resFn,
-                  quote=FALSE, col.names = TRUE, row.names = FALSE, sep = "\t")
-      resFns <- append(resFns, resFn)
     }
   }
 }
