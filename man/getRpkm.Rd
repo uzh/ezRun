@@ -2,29 +2,42 @@
 % Please edit documentation in R/rawData.R
 \name{getRpkm}
 \alias{getRpkm}
-\title{Gets the rpkm measurement}
+\alias{getTpm}
+\alias{getSignal}
+\title{Gets measurements from rawData}
+\description{
+  Gets the rpkm, tpm or signal measurement from \code{SummarizedExperiment} or 
+  \code{SingleCellExperiment} object.
+}
+
 \usage{
-getRpkm(rawData)
+  getRpkm(rawData)
+  getTpm(rawData)
+  getSignal(rawData)
 }
 \arguments{
-\item{rawData}{a list of raw data obtained from \code{loadCountDataset()}.}
+  \item{rawData}{
+    \code{SummarizedExperiment} or \code{SingleCellExperiment} object.
+  }
 }
 \value{
-Returns the rpkm measurement.
-}
-\description{
-Gets the rpkm measurement.
-}
-\examples{
-param = ezParam()
-param$dataRoot = system.file(package="ezRun", mustWork = TRUE)
-file = system.file("extdata/yeast_10k_STAR_counts/dataset.tsv", package="ezRun", mustWork = TRUE)
-input = EzDataset$new(file=file, dataRoot=param$dataRoot)
-rawData = loadCountDataset(input, param)
-rpkm = getRpkm(rawData)
+  Returns the \code{matrix} of rpkm, tpm or signal measurement.
 }
 \author{
-Rehrauer, Hubert
-
-Schmid, Peter
+  Ge Tan
+}
+\reference{
+  \url{https://www.rna-seqblog.com/rpkm-fpkm-and-tpm-clearly-explained/}
+}
+\examples{
+  \dontrun{
+    file <- "/srv/gstore/projects/p1688/CountQC_20201_2017-08-15--20-52-44/input_dataset.tsv"
+    param <- ezParam(list(dataRoot="/srv/gstore/projects",
+                          refBuild="Homo_sapiens/Ensembl/GRCh38.p10/Annotation/Release_89-2017-05-31"))
+    input <- EzDataset$new(file=file, dataRoot=param$dataRoot)
+    rawData <- loadCountDataset(input, param)
+    getRpkm(rawData)
+    getTpm(rawData)
+    getSignal(rawData)
+  }
 }
