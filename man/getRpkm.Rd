@@ -26,7 +26,7 @@
 \author{
   Ge Tan
 }
-\reference{
+\references{
   \url{https://www.rna-seqblog.com/rpkm-fpkm-and-tpm-clearly-explained/}
 }
 \examples{
