@@ -494,7 +494,7 @@ plateStatistics <- function(dataset,
         return(NA)
       }
       plateRow <- str_extract(platePos, "[[:alpha:]]")
-      plateCol <- str_extract(platePos, "\\d+")
+      plateCol <- as.numeric(str_extract(platePos, "\\d+"))
       ans[[names(datasetByPlate)[i]]] <- list()
       for(oneCol in colname){
         ##always the entire plate should be shown which is either 8x12 or 16x24 ....
