@@ -35,14 +35,23 @@ ezParam = function(userParam=list(), globalDefaults=getGlobalDefaults(), appDefa
   unknownParams = setdiff(names(userParam), rownames(defaults))
   sapply(unknownParams, function(x){message("unknown param: ", x)})
   for (nm in rownames(defaults)){
-    value = ifelse(!is.null(userParam[[nm]]), userParam[[nm]], defaults[nm, "DefaultValue"])
-    userParam[[nm]] = switch(defaults[nm, "Type"],
-                         integer=as.integer(value),                         
-                         numeric=as.numeric(value),
-                         character=as.character(value),
-                         charVector=unlist(strsplit(value, ",", fixed=TRUE)),
-                         logical=as.logical(value),
-                         stop("unsupported type: ", defaults[nm, "Type"]))
+    if(!is.null(userParam[[nm]])){
+      value <- userParam[[nm]]
+    }else{
+      value <- defaults[nm, "DefaultValue"]
+    }
+    if(length(value) > 1){
+      ## param has been propossed by ezParam() once already
+      userParam[[nm]] <- value
+    }else{
+      userParam[[nm]] = switch(defaults[nm, "Type"],
+                               integer=as.integer(value),                         
+                               numeric=as.numeric(value),
+                               character=as.character(value),
+                               charVector=unlist(strsplit(value, ",", fixed=TRUE)),
+                               logical=as.logical(value),
+                               stop("unsupported type: ", defaults[nm, "Type"]))
+    }
   }
   ## avoid special characters in any option
   lapply(userParam, function(optString){
