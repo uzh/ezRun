@@ -27,32 +27,42 @@
 ##' globalDefaultTypedParams$ram
 ##' parseOptions("a=5 b='foo with space' c=foo")
 ## current implementation: every param needs a default value
-ezParam = function(userParam=list(), globalDefaults=getGlobalDefaults(), appDefaults=ezFrame()){
+ezParam = function(userParam=list(), globalDefaults=getGlobalDefaults(),
+                   appDefaults=ezFrame()){
 
   specialParam = parseOptions(userParam$specialOptions)
   userParam[names(specialParam)] = specialParam
-  defaults = rbind(globalDefaults[setdiff(rownames(globalDefaults), rownames(appDefaults)), ], appDefaults)
+  defaults = rbind(globalDefaults[setdiff(rownames(globalDefaults), 
+                                          rownames(appDefaults)), ], 
+                   appDefaults)
   unknownParams = setdiff(names(userParam), rownames(defaults))
   sapply(unknownParams, function(x){message("unknown param: ", x)})
   for (nm in rownames(defaults)){
     if(!is.null(userParam[[nm]])){
       value <- userParam[[nm]]
+      # check param has been propossed by ezParam() once already
+      if(is.null(userParam$isParsed) || !userParam$isParsed){
+        value <- switch(defaults[nm, "Type"],
+                        integer=as.integer(value),                         
+                        numeric=as.numeric(value),
+                        character=as.character(value),
+                        charVector=unlist(strsplit(value, ",", fixed=TRUE)),
+                        logical=as.logical(value),
+                        stop("unsupported type: ", defaults[nm, "Type"]))
+      }
     }else{
       value <- defaults[nm, "DefaultValue"]
+      value <- switch(defaults[nm, "Type"],
+                      integer=as.integer(value),                         
+                      numeric=as.numeric(value),
+                      character=as.character(value),
+                      charVector=unlist(strsplit(value, ",", fixed=TRUE)),
+                      logical=as.logical(value),
+                      stop("unsupported type: ", defaults[nm, "Type"]))
     }
-    if(length(value) > 1){
-      ## param has been propossed by ezParam() once already
-      userParam[[nm]] <- value
-    }else{
-      userParam[[nm]] = switch(defaults[nm, "Type"],
-                               integer=as.integer(value),                         
-                               numeric=as.numeric(value),
-                               character=as.character(value),
-                               charVector=unlist(strsplit(value, ",", fixed=TRUE)),
-                               logical=as.logical(value),
-                               stop("unsupported type: ", defaults[nm, "Type"]))
-    }
+    userParam[[nm]] <- value
   }
+  
   ## avoid special characters in any option
   lapply(userParam, function(optString){
     if (class(optString) == "character" && any(grepl("[;\\{}$%#!*]", optString))){
@@ -60,11 +70,13 @@ ezParam = function(userParam=list(), globalDefaults=getGlobalDefaults(), appDefa
     }
   })
   
-  
   # we build the ezRef object from hints in the general parameters
   if (is.null(userParam$ezRef)){
     userParam$ezRef = EzRef(userParam)
   }
+  
+  userParam$isParsed <- TRUE
+  
   return(userParam)
 }
 
