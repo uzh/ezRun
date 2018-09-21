@@ -44,8 +44,8 @@ param$minReadsPerGene = 5
 
 sceScater <- sce[ , Matrix::colSums(assays(sce)$counts) >= param$minReadsPerCell]
 
-mito <- rownames(sceScater)[grepl("^mt-", rowData(sceScater)$gene_name,
-                                  ignore.case = TRUE)]
+mito <- rownames(sce[seqnames(rowRanges(sce)) %in% c("chrM", "MT")])
+
 x <- assays(sceScater)$counts
 cell_info <- data.frame(row.names = colnames(x),
                         lib_size=Matrix::colSums(x)/1e6, 
@@ -55,7 +55,8 @@ cell_info <- data.frame(row.names = colnames(x),
 ## sceFixName for section "Reads on top 50 genes" and "Expression metrics"
 sceFixName <- sceScater
 rownames(sceFixName) <- make.unique(rowData(sceFixName)$gene_name)
-is.mito <- grepl("^mt-", rownames(sceFixName), ignore.case = TRUE)
+is.mito <- as.logical(seqnames(rowRanges(sceFixName)) %in% c("chrM", "MT"))
+
 sceFixName <- calculateQCMetrics(sceFixName, feature_controls=list(Mt=is.mito))
 if(param$scProtocol == "smart-Seq2"){
   libsize.drop <- isOutlier(sceFixName$total_counts, nmads=5, type="lower",
