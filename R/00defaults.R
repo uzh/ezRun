@@ -32,27 +32,35 @@ ezParam = function(userParam=list(), globalDefaults=getGlobalDefaults(),
 
   specialParam = parseOptions(userParam$specialOptions)
   userParam[names(specialParam)] = specialParam
-  defaults = rbind(globalDefaults[setdiff(rownames(globalDefaults), rownames(appDefaults)), ], appDefaults)
+  defaults = rbind(globalDefaults[setdiff(rownames(globalDefaults), 
+                                          rownames(appDefaults)), ], 
+                   appDefaults)
   unknownParams = setdiff(names(userParam), rownames(defaults))
   sapply(unknownParams, function(x){message("unknown param: ", x)})
   for (nm in rownames(defaults)){
     if(!is.null(userParam[[nm]])){
       value <- userParam[[nm]]
+      # check param has been propossed by ezParam() once already
+      if(is.null(userParam$isParsed) || !userParam$isParsed){
+        value <- switch(defaults[nm, "Type"],
+                        integer=as.integer(value),                         
+                        numeric=as.numeric(value),
+                        character=as.character(value),
+                        charVector=unlist(strsplit(value, ",", fixed=TRUE)),
+                        logical=as.logical(value),
+                        stop("unsupported type: ", defaults[nm, "Type"]))
+      }
     }else{
       value <- defaults[nm, "DefaultValue"]
+      value <- switch(defaults[nm, "Type"],
+                      integer=as.integer(value),                         
+                      numeric=as.numeric(value),
+                      character=as.character(value),
+                      charVector=unlist(strsplit(value, ",", fixed=TRUE)),
+                      logical=as.logical(value),
+                      stop("unsupported type: ", defaults[nm, "Type"]))
     }
-    if(is.null(userParam$isParsed) || !userParam$isParsed){
-      userParam[[nm]] = switch(defaults[nm, "Type"],
-                               integer=as.integer(value),                         
-                               numeric=as.numeric(value),
-                               character=as.character(value),
-                               charVector=unlist(strsplit(value, ",", fixed=TRUE)),
-                               logical=as.logical(value),
-                               stop("unsupported type: ", defaults[nm, "Type"]))
-    }else{
-      ## param has been propossed by ezParam() once already
-      userParam[[nm]] <- value
-    }
+    userParam[[nm]] <- value
   }
   
   ## avoid special characters in any option

@@ -129,3 +129,4 @@ seqNames	charVector		should analyse be restricted to certain chromosomes/contigs
 #flexbarOpt # trinity
 #prinseqOpt # trinity
 #trinityOpt
+isParsed	logical	FALSE	the param has been parsed by EzParam() once already?
