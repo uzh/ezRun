@@ -47,13 +47,32 @@
 }
 
 \seealso{
-%% ~~objects to See Also as \code{\link{help}}, ~~~
+  \code{\link{loadSCCountDataset}}
 }
 \examples{
   \dontrun{
-    file <- "/srv/gstore/projects/p1688/CountQC_20201_2017-08-15--20-52-44/input_dataset.tsv"
+    ## gene-level counts; gene-level return
+    file <- "/srv/gstore/projects/p2828/CountQC_28750_2018-08-13--15-38-33/input_dataset.tsv"
     param <- ezParam(list(dataRoot="/srv/gstore/projects",
-                          refBuild="Homo_sapiens/Ensembl/GRCh38.p10/Annotation/Release_89-2017-05-31"))
+                          refBuild="Homo_sapiens/Ensembl/GRCh38.p10/Annotation/Release_91-2018-02-26"))
+    input <- EzDataset$new(file=file, dataRoot=param$dataRoot)
+    rawData <- loadCountDataset(input, param)
+    
+    ## isoform-level counts; gene-level return
+    file <- "/srv/gstore/projects/p2828/CountQC_29754_2018-09-24--15-15-29/input_dataset.tsv"
+    param <- ezParam(list(dataRoot="/srv/gstore/projects",
+                          refBuild="Homo_sapiens/Ensembl/GRCh38.p10/Annotation/Release_91-2018-02-26",
+                          featureLevel="gene",
+                          expressionName=""))
+    input <- EzDataset$new(file=file, dataRoot=param$dataRoot)
+    rawData <- loadCountDataset(input, param)
+    
+    ## isoform-level counts; isoform-level return
+    file <- "/srv/gstore/projects/p2828/CountQC_29754_2018-09-24--15-15-29/input_dataset.tsv"
+    param <- ezParam(list(dataRoot="/srv/gstore/projects",
+                          refBuild="Homo_sapiens/Ensembl/GRCh38.p10/Annotation/Release_91-2018-02-26",
+                          featureLevel="isoform",
+                          expressionName=""))
     input <- EzDataset$new(file=file, dataRoot=param$dataRoot)
     rawData <- loadCountDataset(input, param)
   }

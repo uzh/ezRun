@@ -8,58 +8,64 @@
 loadCountDataset <- function(input, param){
   require(tools)
   require(SummarizedExperiment)
-  
+  require(readr)
+  require(dplyr)
+  require(readr)
   files = input$getFullPaths("Count")
   
-  suffix = unique(toupper(file_ext(files)))
-  if (length(suffix) > 1){
-    return(list(error=paste("different file suffixes not supported: <br>",
-                            paste(files, collapse="<br>"))))
-  }
-  x = ezRead.table(files[1])
-  if (ezIsSpecified(param$expressionName)){
-    columnName = param$expressionName
-  } else {
-    columnName = intersect(param$knownExpressionNames, colnames(x))[1]
-  }
-  if (!columnName %in% colnames(x)){
-    return(list(error=paste0("Specified column name not found in data!<br>columnName: '", columnName, "'\n",
-                             "<br>Available column names:<br>\n",
-                             paste0("'", colnames(x), "'", collapse="<br>"),
-                             "<br>Set the option columnName to one of the names above!")))
-  }
   dataFeatureLevel = unique(input$getColumn("featureLevel"))
   stopifnot(length(dataFeatureLevel) == 1)
   
-  if (ezIsSpecified(param$ezRef@refBuild)){
-    seqAnno = ezFeatureAnnotation(param, rownames(x), dataFeatureLevel)
+  x1 <- read_tsv(files[1])
+  
+  if (ezIsSpecified(param$expressionName)){
+    columnName = param$expressionName
   } else {
-    seqAnno = x[ , intersect(c("type", "gene_name", "gene_id", "transcript_id", 
-                               "Description", "GO BP", "GO MF", "GO CC", "gc", 
-                               "width"), colnames(x)), drop=FALSE]
-    seqAnno[[switch(dataFeatureLevel,
-                    "isoform"="transcript_id",
-                    "transcript"="transcript_id",
-                    "smRNA"="smRNA_id",
-                    gene="gene_id")]] <- rownames(x)
+    columnName = intersect(param$knownExpressionNames, colnames(x1))[1]
+  }
+  if (!columnName %in% colnames(x1)){
+    return(list(error=paste0("Specified column name not found in data!<br>columnName: '", columnName, "'\n",
+                             "<br>Available column names:<br>\n",
+                             paste0("'", colnames(x1), "'", collapse="<br>"),
+                             "<br>Set the option columnName to one of the names above!")))
+  }
+  identifier <- colnames(x1)[1]
+  
+  x <- mapply(function(x, y){
+    message("loading file: ", x)
+    tempTibble <- read_tsv(x, progress=FALSE) %>%
+      select(identifier, columnName) %>%
+      rename(!! y := columnName)
+  }, files, names(files), SIMPLIFY=FALSE)
+  
+  x <- Reduce(function(x,y){left_join(x, y, by=identifier)}, x)
+  
+  if(dataFeatureLevel == "isoform" && param$featureLevel == "gene"){
+    ## aggregate from isoform to gene level
+    seqAnnoDFData <- ezFeatureAnnotation(param, pull(x[identifier]), 
+                                         dataFeatureLevel)
+    stopifnot(identical(seqAnnoDFData$transcript_id, x[[identifier]]))
+    
+    x$gene_id <- seqAnnoDFData$gene_id
+    x <- select(x, -identifier) %>% group_by(gene_id) %>% 
+      summarise_all(funs(sum))
+  }
+  signal <- as.matrix(x[ ,-1])
+  rownames(signal) <- pull(x[ ,1])
+  
+  seqAnnoDFFeature <- ezFeatureAnnotation(param, rownames(signal),
+                                          param$featureLevel)
+  
+  stopifnot(identical(rownames(seqAnnoDFFeature), rownames(signal)))
+  
+  if (ezIsSpecified(param$correctBias) && param$correctBias){
+    ## output will be floating point, but we don't round; input might already be floating point
+    signal = ezCorrectBias(signal, gc=seqAnnoDFFeature$gc,
+                           width=seqAnnoDFFeature$featWidth)$correctedCounts
   }
   
-  signal = ezMatrix(0, rows=rownames(seqAnno), cols=names(files))
-  
-  for (i in 1:length(files)){
-    message("loading file: ", files[i])
-    x = ezRead.table(files[i], strip.white = FALSE)
-    if(!setequal(rownames(x), rownames(seqAnno))){
-      if (all( rownames(seqAnno) %in% rownames(x))){
-        warning("inconsistent ID set")
-      } else {
-        stop("later arrays have IDs not present in the first array")
-      }
-    }
-    y = x[rownames(seqAnno), columnName]
-    y[is.na(y)] = 0
-    signal[ , i] = y
-  }
+  seqAnno <- makeGRangesFromDataFrame(seqAnnoDFFeature, keep.extra.columns=TRUE)
+  seqAnno$featWidth <- seqAnnoDFFeature$width
   
   if (param$useSigThresh){
     sigThresh = param$sigThresh
@@ -67,20 +73,13 @@ loadCountDataset <- function(input, param){
     sigThresh = 0
   }
   
-  
-  if (ezIsSpecified(param$correctBias) && param$correctBias){
-    ## output will be floating point, but we don't round; input might already be floating point
-    signal = ezCorrectBias(signal, gc=seqAnno$gc,
-                           width=seqAnno$width)$correctedCounts
-  }
-  
   ## assays: counts, presentFlag, RPKM, TPM, (signal)
   ## rowData, colData
   ## meta: isLog, featureLevel, type, countName, param
   rawData <- SummarizedExperiment(
     assays=SimpleList(counts=signal, presentFlag=signal > sigThresh),
-    rowData=seqAnno, colData=input$meta,
-    metadata=list(isLog=FALSE, featureLevel=dataFeatureLevel,
+    rowRanges=seqAnno, colData=input$meta,
+    metadata=list(isLog=FALSE, featureLevel=param$featureLevel,
                   type="Counts", countName=columnName,
                   param=param)
     )
@@ -91,11 +90,7 @@ loadCountDataset <- function(input, param){
     use = TRUE
   }
   rawData <- rawData[use, ]
-  
-  if (dataFeatureLevel == "isoform" && param$featureLevel == "gene"){
-    rawData = aggregateCountsByGene(rawData)
-  }
-  
+
   assays(rawData)$rpkm = getRpkm(rawData)
   assays(rawData)$tpm = getTpm(rawData)
   return(rawData)
