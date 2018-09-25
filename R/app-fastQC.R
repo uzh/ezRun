@@ -12,7 +12,8 @@ ezMethodFastQC = function(input=NA, output=NA, param=NA,
   setwdNew(basename(output$getColumn("Report")))
   
   # Preprocessing
-  if(input$readType() == "bam"){
+  isUBam <- input$readType() == "bam"
+  if(isTRUE(isUBam)){
     stopifnot(input$getLength() == 1L) ## We only support one uBam now.
     fastqInput <- ezMethodBam2Fastq(input=input, param=param,
                                     OUTPUT_PER_RG=TRUE)
@@ -140,7 +141,7 @@ ezMethodFastQC = function(input=NA, output=NA, param=NA,
                     output_dir=".", output_file=htmlFile, quiet=TRUE)
   
   ## Cleaning
-  if(input$readType() == "bam"){
+  if(isTRUE(isUBam)){
     file.remove(files)
   }
   unlink(paste0(reportDirs, ".zip"), recursive = TRUE)
