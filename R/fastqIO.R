@@ -139,9 +139,10 @@ bam2fastq <- function(bamFn, OUTPUT_PER_RG=TRUE, OUTPUT_DIR=".",
                       fastqFns=sub("(\\.bam|\\.sam)$", "_R1.fastq", bamFn),
                       fastq2Fns=sub("(\\.bam|\\.sam)$", "_R2.fastq", bamFn)){
   setEnvironments("picard")
-  stopifnot(length(bamFn) == 1L)
   
   if(isTRUE(OUTPUT_PER_RG)){
+    ## When OUTPUT_PER_RG is TRUE, we only process one uBam each time.
+    stopifnot(length(bamFn) == 1L)
     ## I don't want to parse the bam header to get RG IDs
     ## Put them in a tempdir and move to OUTPUT_DIR later
     tempDIR <- paste("SamtoFastqTempDir", Sys.getpid(), sep="-")
@@ -172,7 +173,7 @@ bam2fastq <- function(bamFn, OUTPUT_PER_RG=TRUE, OUTPUT_DIR=".",
                  paste0("FASTQ=", fastqFns))
     if(isTRUE(paired))
       cmd <- paste(cmd, paste0("SECOND_END_FASTQ=", fastq2Fns))
-    ezSystem(cmd)
+    lapply(cmd, ezSystem)
     return(invisible(fastqFns))
   }
 }

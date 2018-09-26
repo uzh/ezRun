@@ -760,7 +760,7 @@ setEnvironments <- function(tool, envir=parent.frame()){
                   "r"=expression({Sys.setenv("PATH"=paste("/usr/local/ngseq/packages/Dev/R/3.5.0/bin", Sys.getenv("PATH"), sep=":"))}),
                   "ataqv"=expression({Sys.setenv("PATH"=paste("/usr/local/ngseq/packages/Tools/ataqv/1.0.0/bin", Sys.getenv("PATH"), sep=":"))}),
                   "ucsc"=expression({Sys.setenv("PATH"=paste("/usr/local/ngseq/packages/Tools/UCSC/349/bin", Sys.getenv("PATH"), sep=":"))}),
-                  "fastqc"=expression({Sys.setenv("PATH"=paste("/usr/local/ngseq/packages/QC/FastQC/0.11.5", Sys.getenv("PATH"), sep=":"))}),
+                  "fastqc"=expression({Sys.setenv("PATH"=paste("/usr/local/ngseq/packages/QC/FastQC/0.11.7", Sys.getenv("PATH"), sep=":"))}),
                   stop("unsupported tool: ", tool)
     )
     eval(cmd, envir=envir)

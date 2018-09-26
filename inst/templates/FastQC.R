@@ -89,7 +89,7 @@ output = list()
 output[['Name']] = 'FastQC_Result'
 output[['Report [File]']] = 'p2438/Fastqc_18564_2017-06-07--14-06-33/FastQC_Result'
 output[['Html [Link]']] = 'p2438/Fastqc_18564_2017-06-07--14-06-33/FastQC_Result/00index.html'
-#input = '/srv/gstore/projects/p2000/SingleCellUnmappedBam/dataset.tsv'
-input = 'dataset.tsv'
+input = '/srv/gstore/projects/p2000/SingleCellUnmappedBam/dataset.tsv'
+#input = 'dataset.tsv'
 debug(ezMethodFastQC)
 EzAppFastqc$new()$run(input=input, output=output, param=param)

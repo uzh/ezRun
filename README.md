@@ -25,7 +25,7 @@ packages <- c("testthat", "knitr", "gage", "goseq", "ChIPpeakAnno",
               "taxize", "SingleCellExperiment", "SummarizedExperiment",
               "scater", "DropletUtils")
 packages <- setdiff(packages, rownames(installed.packages()))
-biocLite(packages)
+BiocManager::install(packages)
 ```
 
 ## Dependencies of external software

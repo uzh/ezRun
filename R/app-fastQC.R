@@ -12,10 +12,17 @@ ezMethodFastQC = function(input=NA, output=NA, param=NA,
   setwdNew(basename(output$getColumn("Report")))
   
   # Preprocessing
-  if(input$readType() == "bam"){
-    stopifnot(input$getLength() == 1L) ## We only support one uBam now.
-    fastqInput <- ezMethodBam2Fastq(input=input, param=param,
-                                    OUTPUT_PER_RG=TRUE)
+  isUBam <- input$readType() == "bam"
+  if(isTRUE(isUBam)){
+    if(isTRUE(param$perLibrary)){
+      fastqInput <- ezMethodBam2Fastq(input=input, param=param,
+                                      OUTPUT_PER_RG=FALSE)
+    }else{
+      ## We only support one uBam when it's per cell mode
+      stopifnot(input$getLength() == 1L)
+      fastqInput <- ezMethodBam2Fastq(input=input, param=param,
+                                      OUTPUT_PER_RG=TRUE)
+    }
     input <- fastqInput$copy()
   }
   dataset = input$meta
@@ -140,7 +147,7 @@ ezMethodFastQC = function(input=NA, output=NA, param=NA,
                     output_dir=".", output_file=htmlFile, quiet=TRUE)
   
   ## Cleaning
-  if(input$readType() == "bam"){
+  if(isTRUE(isUBam)){
     file.remove(files)
   }
   unlink(paste0(reportDirs, ".zip"), recursive = TRUE)
@@ -171,6 +178,8 @@ EzAppFastqc <-
                   "Initializes the application using its specific defaults."
                   runMethod <<- ezMethodFastQC
                   name <<- "EzAppFastqc"
+                  appDefaults <<- rbind(perLibrary=ezFrame(Type="logical",  DefaultValue=TRUE,  Description="Run FastQC per library or per cell for single cell experiment")
+                  )
                 }
               )
   )
