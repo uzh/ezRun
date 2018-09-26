@@ -14,9 +14,15 @@ ezMethodFastQC = function(input=NA, output=NA, param=NA,
   # Preprocessing
   isUBam <- input$readType() == "bam"
   if(isTRUE(isUBam)){
-    stopifnot(input$getLength() == 1L) ## We only support one uBam now.
-    fastqInput <- ezMethodBam2Fastq(input=input, param=param,
-                                    OUTPUT_PER_RG=TRUE)
+    if(isTRUE(param$perLibrary)){
+      fastqInput <- ezMethodBam2Fastq(input=input, param=param,
+                                      OUTPUT_PER_RG=FALSE)
+    }else{
+      ## We only support one uBam when it's per cell mode
+      stopifnot(input$getLength() == 1L)
+      fastqInput <- ezMethodBam2Fastq(input=input, param=param,
+                                      OUTPUT_PER_RG=TRUE)
+    }
     input <- fastqInput$copy()
   }
   dataset = input$meta
@@ -172,6 +178,8 @@ EzAppFastqc <-
                   "Initializes the application using its specific defaults."
                   runMethod <<- ezMethodFastQC
                   name <<- "EzAppFastqc"
+                  appDefaults <<- rbind(perLibrary=ezFrame(Type="logical",  DefaultValue=TRUE,  Description="Run FastQC per library or per cell for single cell experiment")
+                  )
                 }
               )
   )
