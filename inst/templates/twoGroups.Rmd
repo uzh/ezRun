@@ -33,9 +33,9 @@ debug <- FALSE
 require(knitr)
 require(kableExtra)
 require(SummarizedExperiment)
+require(plotly)
 require(webshot)
 require(htmlwidgets)
-setEnvironments("phantomjs")
 ```
 
 ```{r prepare data, include=FALSE}
@@ -45,7 +45,7 @@ param <- metadata(se)$param
 seqAnno <- data.frame(rowData(se), row.names=rownames(se),
                       check.names = FALSE, stringsAsFactors=FALSE)
 ## In some cases, such as p2710, there are millions of features, then we have to adjust some analyses below.
-hasMassiveFeats <- nrow(seqAnno) >= 200e3 
+hasMassiveFeats <- nrow(seqAnno) >= 200e3
 ```
 
 Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
@@ -132,36 +132,38 @@ Subsequent plots highlight significant genes in <span style="color:red">red</spa
 
 [Interactive table of significant genes](`r resultFile$resultHtml`)
 
-```{r scatter comparison, echo=FALSE, message=FALSE, eval=!debug}
-if (isTRUE(isTwoGroup)){
+```{r scatter comparison, echo=FALSE, message=FALSE, fig.width=9, fig.width=7, eval=!debug}
+if(isTRUE(isTwoGroup)){
   ## scatter plot
   sampleValues = 2^groupMeans[ , param$sampleGroup]
   refValues = 2^groupMeans[ , param$refGroup]
   scatterPng <- paste0(param$comparison, "-scatter.png")
-  if(isTRUE(hasMassiveFeats)){
-    p_scatter <- ezXYScatter.2(xVec=refValues, yVec=sampleValues,
-                               isPresent=rowData(se)$usedInTest, 
-                               types=types, names=rowData(se)$gene_name,
-                               xlab=param$refGroup, ylab=param$sampleGroup,
-                               main="Comparison of average expression",
-                               mode="ggplot2")
-    ggsave(filename=scatterPng, plot=p_scatter, device="png",
-           width=9, height=7)
-  }else{
+  scatterPdf <- sub("png$", "pdf", scatterPng)
+  p_scatter <- ezXYScatter.2(xVec=refValues, yVec=sampleValues,
+                             isPresent=rowData(se)$usedInTest, 
+                             types=types, names=rowData(se)$gene_name,
+                             xlab=param$refGroup, ylab=param$sampleGroup,
+                             main="Comparison of average expression",
+                             mode="ggplot2")
+  
+  print(p_scatter)
+  
+  ggsave(filename=scatterPdf, plot=p_scatter, device="pdf",
+         width=9, height=7)
+  
+  if(!isTRUE(hasMassiveFeats)){
     p_scatter <- ezXYScatter.2(xVec=refValues, yVec=sampleValues,
                                isPresent=rowData(se)$usedInTest, 
                                types=types, names=rowData(se)$gene_name,
                                xlab=param$refGroup, ylab=param$sampleGroup,
                                main="Comparison of average expression",
                                mode="plotly")
-    scatterPdf <- sub("png$", "pdf", scatterPng)
-    export(p_scatter, file=scatterPng)
-    export(p_scatter, file=scatterPdf)
+    #  plotly::orca(p_scatter, file=scatterPng, width=900, height=700)
+    #  plotly::orca(p_scatter, file=scatterPdf)
+    # orca is not working well with headless server. system call left orphan orca process.
     scatterHtml <- paste0(param$comparison, "-scatter.html")
     saveWidget(as_widget(p_scatter), scatterHtml)
   }
-  ### To make legend more visible on non-retinal display
-  include_graphics(scatterPng)
 }
 ```
 
@@ -175,33 +177,32 @@ if (isTRUE(isTwoGroup)){
 }
 ```
 
-```{r volcano p-value, echo=FALSE, message=FALSE, warning=FALSE, eval=!debug}
+```{r volcano p-value, echo=FALSE, message=FALSE, warning=FALSE, fig.width=9, fig.width=7, eval=!debug}
 if (isTRUE(isTwoGroup)){
   ## volcano plot with p-value
   volcanoPng <- paste0(param$comparison, "-volcano.png")
-  if(isTRUE(hasMassiveFeats)){
-    p_volcano <- ezVolcano(log2Ratio=rowData(se)$log2Ratio, 
+  volcanoPdf <- sub("png$", "pdf", volcanoPng)
+  p_volcano <- ezVolcano(log2Ratio=rowData(se)$log2Ratio, 
                            pValue=rowData(se)$pValue, yType="p-value",
                            isPresent=rowData(se)$usedInTest, types=types,
                            names=rowData(se)$gene_name,
                            main=param$comparison,
                            mode="ggplot2")
-    ggsave(filename=volcanoPng, plot=p_volcano, device="png",
-           width=9, height=7)
-  }else{
+  
+  print(p_volcano)
+  
+  ggsave(filename=volcanoPdf, plot=p_volcano, device="pdf",
+         width=9, height=7)
+  if(!isTRUE(hasMassiveFeats)){
     p_volcano <- ezVolcano(log2Ratio=rowData(se)$log2Ratio, 
                            pValue=rowData(se)$pValue, yType="p-value",
                            isPresent=rowData(se)$usedInTest, types=types,
                            names=rowData(se)$gene_name,
                            main=param$comparison,
                            mode="plotly")
-    volcanoPdf <- sub("png$", "pdf", volcanoPng)
-    export(p_volcano, file=volcanoPng)
-    export(p_volcano, file=volcanoPdf)
     volcanoHtml <- paste0(param$comparison, "-volcano.html")
     saveWidget(as_widget(p_volcano), volcanoHtml)
   }
-  include_graphics(volcanoPng)
 }
 ```
 
@@ -231,32 +232,33 @@ if (!isTRUE(isTwoGroup)){
 ```
 
 ### Inspection of significant genes (Advanced plots)
-```{r volcano FDR, echo=FALSE, warning=FALSE, eval=!debug}
+```{r volcano FDR, echo=FALSE, message=FALSE, fig.width=9, fig.width=7, eval=!debug}
 if(isTRUE(isTwoGroup)){
   ## warning=FALSE because FDR contains NA. Shall we make them always 1?
   ## volcano plot with FDR
   volcanoFDRPng <- paste0(param$comparison, "-FDR-volcano.png")
-  if(isTRUE(hasMassiveFeats)){
-    p_volcano <- ezVolcano(log2Ratio=rowData(se)$log2Ratio, 
+  volcanoFDRPdf <- sub("png$", "pdf", volcanoFDRPng)
+  p_volcano <- ezVolcano(log2Ratio=rowData(se)$log2Ratio, 
                          pValue=rowData(se)$fdr, yType="FDR",
                          isPresent=rowData(se)$usedInTest, types=types,
                          names=rowData(se)$gene_name,
                          main=param$comparison,
                          mode="ggplot2")
-  }else{
+  print(p_volcano)
+  
+  ggsave(filename=volcanoFDRPdf, plot=p_volcano, device="pdf",
+         width=9, height=7)
+  
+  if(!isTRUE(hasMassiveFeats)){
     p_volcano <- ezVolcano(log2Ratio=rowData(se)$log2Ratio, 
-                         pValue=rowData(se)$fdr, yType="FDR",
-                         isPresent=rowData(se)$usedInTest, types=types,
-                         names=rowData(se)$gene_name,
-                         main=param$comparison,
-                         mode="plotly")
-    volcanoFDRPdf <- sub("png$", "pdf", volcanoFDRPng)
-    export(p_volcano, file=volcanoFDRPng)
-    export(p_volcano, file=volcanoFDRPdf)
+                           pValue=rowData(se)$fdr, yType="FDR",
+                           isPresent=rowData(se)$usedInTest, types=types,
+                           names=rowData(se)$gene_name,
+                           main=param$comparison,
+                           mode="plotly")
     volcanoFDRHtml <- paste0(param$comparison, "-FDR-volcano.html")
     saveWidget(as_widget(p_volcano), volcanoFDRHtml)
   }
-  include_graphics(volcanoFDRPng)
 }
 ```
 

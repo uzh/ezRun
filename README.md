@@ -29,6 +29,5 @@ BiocManager::install(packages)
 ```
 
 ## Dependencies of external software
-* phantomjs
-* bwa, bowtie, bowtie2, STAR, picard, sambamba
+* bwa, bowtie, bowtie2, STAR, picard, sambamba, samtools
 * lsof
