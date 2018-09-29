@@ -27,6 +27,7 @@ require(Seurat)
 # title:  "`r metadata(sce)$param$name`"
 # sce <- readRDS("/export/local/scratch/gtan/dev/p2497-SCCountQC/20171222.A-SiCSeq_SCs_P5_SCCountQC/sce.rds")
 # sce <- readRDS("/srv/gstore/projects/p2497/SCCountQC_27327_2018-06-17--00-09-24/20171222.A-SiCSeq_SCs_P5_SCCountQC/sce.rds")
+#sce <- readRDS("/scratch/gtan/debug/quickDebug/sce.rds")
 
 param <- metadata(sce)$param
 
@@ -395,8 +396,8 @@ p2
 ### Seurat
 
 ```{r VlnPlot, echo=FALSE}
-VlnPlot(object = scData, features.plot = c("nGene", "nUMI", "percent.mito"),
-        nCol = 3)
+VlnPlot(object=scData, features.plot = c("nGene", "nUMI", "percent.mito"),
+        nCol=3, x.lab.rot=ifelse(nchar(scData@project.name) > 20, TRUE, FALSE))
 ```
 
 ```{r seurat filter and normalize, echo=FALSE}
@@ -431,9 +432,10 @@ PCHeatmap(object=scData, pc.use=1:20, cells.use=500, do.balanced=TRUE,
     label.columns=FALSE, use.full=FALSE)
 ```
 
-```{r JackStraw, echo=FALSE, fig.width=10, fig.height=25, warning=FALSE}
-scData <- JackStraw(object=scData, num.replicate=100, display.progress=FALSE)
-JackStrawPlot(object=scData, PCs = 1:20)
+```{r JackStraw, echo=FALSE, fig.width=10, fig.height=25}
+scData <- JackStraw(object=scData, num.replicate=100, display.progress=FALSE,
+                    do.par=TRUE, num.cores=param$cores)
+suppressWarnings(JackStrawPlot(object=scData, PCs = 1:20))
 ```
 
 ```{r PCElbowPlot, echo=FALSE}

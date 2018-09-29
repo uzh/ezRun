@@ -11,8 +11,18 @@ ezMethodCellRanger = function(input=NA, output=NA, param=NA){
   sampleName = input$getNames()
   sampleDir = input$getFullPaths("RawDataDir")
   
+  refDir <- dirname(param$ezRef["refFeatureFile"])
+  refDirs <- list.files(path=refDir, pattern="^10X_Ref", full.names = TRUE)
+  if(length(refDirs) == 0){
+    stop("No 10X_Ref folder found in", refDir)
+  }
+  if(length(refDirs) > 1){
+    warning("Multiple 10X_Ref folders in ", refDir)
+  }
+  refDir <- refDirs[1]
+  
   cmd = paste(CELLRANGER,"count", paste0("--id=", sampleName),
-              paste0("--transcriptome=", file.path(REFERENCES_10X_DIR, param$reference)),
+              paste0("--transcriptome=", refDir),
               paste0("--fastqs=", sampleDir),
               paste0("--sample=", sampleName),
               paste0("--localmem=",param$ram),
