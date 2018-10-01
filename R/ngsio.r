@@ -111,6 +111,9 @@ loadSCCountDataset <- function(input, param){
     param$name <- paste(param$name, input$getNames())
   }
   
+  dataFeatureLevel <- unique(input$getColumn("featureLevel"))
+  stopifnot(length(dataFeatureLevel) == 1)
+  
   if(param$scProtocol == "smart-Seq2"){
     countMatrixFn <- input$getFullPaths("CountMatrix")
     if(file_ext(countMatrixFn) == "mtx"){
@@ -137,10 +140,7 @@ loadSCCountDataset <- function(input, param){
     ## This should be unnecessary if we retain the order of RG when creating unmapped bam
     countMatrix <- countMatrix[ , rownames(cellDataSet)]
     
-    dataFeatureLevel <- unique(input$getColumn("featureLevel"))
-    stopifnot(length(dataFeatureLevel) == 1)
-    
-    seqAnnoDF <- ezFeatureAnnotation(param, rownames(countMatrix), 
+    seqAnnoDF <- ezFeatureAnnotation(param, rownames(countMatrix),
                                      dataFeatureLevel)
     seqAnno <- makeGRangesFromDataFrame(seqAnnoDF, keep.extra.columns=TRUE)
     seqAnno$featWidth <- seqAnnoDF$width
@@ -162,25 +162,33 @@ loadSCCountDataset <- function(input, param){
                                 metadata=list(isLog=FALSE, 
                                               featureLevel=dataFeatureLevel,
                                               type="Counts", param=param))
-    if (ezIsSpecified(param$transcriptTypes)){
-      use = seqAnno$type %in% param$transcriptTypes
-    } else {
-      use = TRUE
-    }
-    sce <- sce[use, ]
-    
-    if (dataFeatureLevel == "isoform" && param$featureLevel == "gene"){
-      sce <- aggregateCountsByGene(sce)
-    }
-    assays(sce)$rpkm <- getRpkm(sce)
-    assays(sce)$tpm <- getTpm(sce)
   }else if(param$scProtocol == "10x"){
-    sce <- read10xCounts(dirname(input$getFullPaths("CountMatrix")),
-                         col.names=TRUE)
+    countMatrixFn <- list.file(path=input$getFullPaths("CountMatrix"),
+                               pattern="\\.mtx$", full.names=TRUE)
+    sce <- read10xCounts(dirname(countMatrixFn), col.names=TRUE)
+    seqAnnoDF <- ezFeatureAnnotation(param, rownames(sce),
+                                     dataFeatureLevel)
+    seqAnno <- makeGRangesFromDataFrame(seqAnnoDF, keep.extra.columns=TRUE)
+    seqAnno$featWidth <- seqAnnoDF$width
+    rowRanges(sce) <- seqAnno
     metadata(sce)$param <- param
   }else{
     stop("Unsupported single cell protocol!")
   }
+  
+  if (ezIsSpecified(param$transcriptTypes)){
+    use = seqAnno$type %in% param$transcriptTypes
+  } else {
+    use = TRUE
+  }
+  sce <- sce[use, ]
+  
+  if (dataFeatureLevel == "isoform" && param$featureLevel == "gene"){
+    sce <- aggregateCountsByGene(sce)
+  }
+  
+  assays(sce)$rpkm <- getRpkm(sce)
+  assays(sce)$tpm <- getTpm(sce)
   
   return(sce)
 }
