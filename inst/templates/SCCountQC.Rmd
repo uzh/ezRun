@@ -27,8 +27,9 @@ require(Seurat)
 # title:  "`r metadata(sce)$param$name`"
 # sce <- readRDS("/export/local/scratch/gtan/dev/p2497-SCCountQC/20171222.A-SiCSeq_SCs_P5_SCCountQC/sce.rds")
 # sce <- readRDS("/srv/gstore/projects/p2497/SCCountQC_27327_2018-06-17--00-09-24/20171222.A-SiCSeq_SCs_P5_SCCountQC/sce.rds")
-# sce <- readRDS("/scratch/gtan/debug/quickDebug/SCCountQC_30041_2018-10-01--11-04-37_B9P9_NPCHP11_NDd5_temp35187/B9P9_NPCHP11_NDd5_SCCountQC/sce.rds")
+# sce <- readRDS("/srv/gstore/projects/p2886/SCCountQC_30041_2018-10-01--14-24-05/B9P9_NPCHP13_SCCountQC/sce.rds")
 
+debug <- FALSE
 param <- metadata(sce)$param
 ```
 
@@ -125,7 +126,7 @@ if(param$scProtocol == "smart-Seq2"){
 
 Interactive plot showing the read counts vs the number of expressed genes for all cells. Each dot is a cell.
 
-```{r genes detected in cells, fig.width=8, fig.height=5, echo=FALSE, message=FALSE, warning=FALSE}
+```{r genes detected in cells, fig.width=8, fig.height=5, echo=FALSE, message=FALSE, warning=FALSE, eval=!debug}
 xax <- list(
   title = "Read counts (million)",
   zeroline = FALSE
@@ -144,7 +145,7 @@ plot_ly(data=cell_info, x=~lib_size, y=~expr_genes,
 
 Histograms of read counts, number of expressed genes and proportion of reads assigned to mitochondrial genes for all cells
 
-```{r QC metrics on the cells, fig.width=10, fig.height=5, echo=FALSE, message=FALSE, warning=FALSE}
+```{r QC metrics on the cells, fig.width=10, fig.height=5, echo=FALSE, message=FALSE, warning=FALSE, eval=!debug}
 yax <- list(
   title = "Number of cells"
 )
@@ -162,7 +163,7 @@ subplot(p1, p2, p3, titleX=TRUE, titleY=TRUE, nrows=1) %>%
 
 Percentage of total counts assigned to the top 50 most highly-abundant genes. For each gene, each bar represents the percentage assigned to that gene for a single cell, while the circle represents the average across all cells.
 
-```{r top 50 genes, fig.width=6, fig.height=6, echo=FALSE, message=FALSE, warning=FALSE}
+```{r top 50 genes, fig.width=6, fig.height=6, echo=FALSE, message=FALSE, warning=FALSE, eval=!debug}
 plotQC(sceFixName, type = "highest-expression", n=50)
 ```
 
@@ -170,7 +171,7 @@ plotQC(sceFixName, type = "highest-expression", n=50)
 
 Number of cells with expression for a gene against mean expression level.
 
-```{r expression metrics, fig.width=8, fig.height=6, echo=FALSE, message=FALSE, warning=FALSE}
+```{r expression metrics, fig.width=8, fig.height=6, echo=FALSE, message=FALSE, warning=FALSE, eval=!debug}
 plotQC(sceFixName, type = "exprs-freq-vs-mean")
 ```
 
@@ -181,7 +182,7 @@ The colorScale ranges from half of median value to twice of median value.
 
 This is only available for plate based single cell protocol.
 
-```{r plate layout, echo=FALSE, message=FALSE, warning=FALSE, eval=param$scProtocol=="smart-Seq2"}
+```{r plate layout, echo=FALSE, message=FALSE, warning=FALSE, eval=param$scProtocol=="smart-Seq2" && !debug}
 plateMatrix <- plateStatistics(datasetAllCells)
 
 if(!is.na(plateMatrix)){
@@ -208,7 +209,7 @@ if(!is.na(plateMatrix)){
 
 This is only available for full length single cell protocol.
 
-```{r gene detection rates, fig.width=8, fig.height=8, echo=FALSE, message=FALSE, warning=FALSE, eval=evalPicard}
+```{r gene detection rates, fig.width=8, fig.height=8, echo=FALSE, message=FALSE, warning=FALSE, eval=evalPicard && !debug}
 scePC = sce
 scePC = scePC[rowData(scePC)$biotypes == "protein_coding", ]
 widthOffset = 200
@@ -267,12 +268,12 @@ https://broadinstitute.github.io/picard/picard-metric-definitions.html
 
 This is only available for plate based single cell protocol.
 
-```{r picard setup, echo=FALSE, eval=evalPicard}
+```{r picard setup, echo=FALSE, eval=evalPicard && !debug}
 cd <- data.frame(colData(sce), check.names = FALSE)
 cd$nGenesDetected <- Matrix::colSums(assays(sce)$counts > 3)
 ```
 
-```{r picard plot, echo=FALSE, fig.width=20, fig.height=6, eval=evalPicard}
+```{r picard plot, echo=FALSE, fig.width=20, fig.height=6, eval=evalPicard && !debug}
 plateMatrix <- plateStatistics(cd, 
                                colname=c("PF_READS", "nGenesDetected",
                                          "PCT_RIBOSOMAL_BASES", "PF_READS_ALIGNED",
@@ -366,7 +367,7 @@ l
 
 This is only available for plate based single cell protocol.
 
-```{r metrics, echo=FALSE, eval=evalPicard}
+```{r metrics, echo=FALSE, eval=evalPicard && !debug}
 metricsDT <- colData(sce)[, (tail(grep("\\[File\\]", colnames(colData(sce))), 1)+1):ncol(colData(sce))]
 datatable(data.frame(metricsDT, check.names = FALSE), filter = 'top',
           caption="scRNASeq QC Metrics")
@@ -395,12 +396,13 @@ p2
 
 ### Seurat
 
-```{r VlnPlot, echo=FALSE}
+```{r VlnPlot, echo=FALSE, fig.width=10, fig.height=ifelse(nchar(scData@project.name) > 20, 10, 7), eval=!debug}
 VlnPlot(object=scData, features.plot = c("nGene", "nUMI", "percent.mito"),
-        nCol=3, x.lab.rot=ifelse(nchar(scData@project.name) > 20, TRUE, FALSE))
+        nCol=3, 
+        x.lab.rot=ifelse(nchar(scData@project.name) > 20, TRUE, FALSE))
 ```
 
-```{r seurat filter and normalize, echo=FALSE}
+```{r seurat filter and normalize, echo=FALSE, eval=!debug}
 scData <- FilterCells(object = scData, 
                       subset.names = c("nGene", "percent.mito"),
                       low.thresholds = c(param$min_genes, -Inf), 
@@ -409,13 +411,13 @@ scData <- NormalizeData(object = scData, normalization.method = "LogNormalize",
                         scale.factor = scalingFactorSeurat)
 ```
 
-```{r seurat variable gene, echo=FALSE}
+```{r seurat variable gene, echo=FALSE, eval=!debug}
 scData <- FindVariableGenes(object=scData)
 ```
 
 The number of variable genes: `r length(x = scData@var.genes)`.
 
-```{r scale and PCA calculation, echo=FALSE, message=FALSE, results='hide'}
+```{r scale and PCA calculation, echo=FALSE, message=FALSE, results='hide', eval=!debug}
 scData <- ScaleData(object = scData, vars.to.regress = c("nUMI","percent.mito"))
 scData <- RunPCA(object = scData, pc.genes = scData@var.genes,
                  do.print = TRUE, pcs.print = 1:5,
@@ -423,22 +425,22 @@ scData <- RunPCA(object = scData, pc.genes = scData@var.genes,
 scData <- ProjectPCA(object = scData, do.print = FALSE)
 ```
 
-```{r plot PCA, echo=FALSE, fig.width=10, fig.height=15}
+```{r plot PCA, echo=FALSE, fig.width=10, fig.height=15, eval=!debug}
 VizPCA(object = scData, pcs.use = 1:6)
 ```
 
-```{r PCHeatmap, echo=FALSE, fig.width=10, fig.height=30}
+```{r PCHeatmap, echo=FALSE, fig.width=10, fig.height=30, eval=!debug}
 PCHeatmap(object=scData, pc.use=1:20, cells.use=500, do.balanced=TRUE, 
     label.columns=FALSE, use.full=FALSE)
 ```
 
-```{r JackStraw, echo=FALSE, fig.width=10, fig.height=25}
+```{r JackStraw, echo=FALSE, fig.width=10, fig.height=25, eval=!debug}
 scData <- JackStraw(object=scData, num.replicate=100, display.progress=FALSE,
                     do.par=TRUE, num.cores=param$cores)
 suppressWarnings(JackStrawPlot(object=scData, PCs = 1:20))
 ```
 
-```{r PCElbowPlot, echo=FALSE}
+```{r PCElbowPlot, echo=FALSE, eval=!debug}
 PCElbowPlot(object=scData)
 ```
 
@@ -448,7 +450,7 @@ PCElbowPlot(object=scData)
 
 The raw count matrix and tpm are available here:
 
-```{r raw count matrix, echo=FALSE, results='asis', eval=TRUE}
+```{r raw count matrix, echo=FALSE, results='asis', eval=!debug}
 rawCount <- as.matrix(assays(sce)$counts)
 if(param$scProtocol == "smart-Seq2"){
   colnames(rawCount) <- colData(sce)$Name
