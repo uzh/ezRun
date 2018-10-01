@@ -55,7 +55,7 @@ cell_info <- data.frame(row.names = colnames(x),
 sceFixName <- sceScater
 rownames(sceFixName) <- uniquifyFeatureNames(ID=rowData(sceFixName)$gene_id,
                                              names=rowData(sceFixName)$gene_name)
-is.mito <- as.logical(seqnames(rowRanges(sceFixName)) %in% c("chrM", "MT"))
+is.mito <- as.character(seqnames(rowRanges(sceFixName))) %in% c("chrM", "MT")
 
 sceFixName <- calculateQCMetrics(sceFixName, feature_controls=list(Mt=is.mito))
 if(param$scProtocol == "smart-Seq2"){
