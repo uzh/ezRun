@@ -40,27 +40,16 @@ ezParam = function(userParam=list(), globalDefaults=getGlobalDefaults(),
   for (nm in rownames(defaults)){
     if(!is.null(userParam[[nm]])){
       value <- userParam[[nm]]
-      # check param has been propossed by ezParam() once already
-      if(is.null(userParam$isParsed) || !userParam$isParsed){
-        value <- switch(defaults[nm, "Type"],
-                        integer=as.integer(value),                         
-                        numeric=as.numeric(value),
-                        character=as.character(value),
-                        charVector=unlist(strsplit(value, ",", fixed=TRUE)),
-                        logical=as.logical(value),
-                        stop("unsupported type: ", defaults[nm, "Type"]))
-      }
-    }else{
+    } else {
       value <- defaults[nm, "DefaultValue"]
-      value <- switch(defaults[nm, "Type"],
-                      integer=as.integer(value),                         
-                      numeric=as.numeric(value),
-                      character=as.character(value),
-                      charVector=unlist(strsplit(value, ",", fixed=TRUE)),
-                      logical=as.logical(value),
-                      stop("unsupported type: ", defaults[nm, "Type"]))
     }
-    userParam[[nm]] <- value
+    userParam[[nm]] <- switch(defaults[nm, "Type"],
+                              integer=as.integer(value),                         
+                              numeric=as.numeric(value),
+                              character=as.character(value),
+                              charVector=if (length(value) > 1) value else unlist(strsplit(value, ",", fixed=TRUE)),
+                              logical=as.logical(value),
+                              stop("unsupported type: ", defaults[nm, "Type"]))
   }
   
   ## avoid special characters in any option
@@ -74,8 +63,6 @@ ezParam = function(userParam=list(), globalDefaults=getGlobalDefaults(),
   if (is.null(userParam$ezRef)){
     userParam$ezRef = EzRef(userParam)
   }
-  
-  userParam$isParsed <- TRUE
   
   return(userParam)
 }
