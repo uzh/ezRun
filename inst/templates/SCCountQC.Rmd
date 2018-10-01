@@ -27,15 +27,9 @@ require(Seurat)
 # title:  "`r metadata(sce)$param$name`"
 # sce <- readRDS("/export/local/scratch/gtan/dev/p2497-SCCountQC/20171222.A-SiCSeq_SCs_P5_SCCountQC/sce.rds")
 # sce <- readRDS("/srv/gstore/projects/p2497/SCCountQC_27327_2018-06-17--00-09-24/20171222.A-SiCSeq_SCs_P5_SCCountQC/sce.rds")
-#sce <- readRDS("/scratch/gtan/debug/quickDebug/sce.rds")
+# sce <- readRDS("/scratch/gtan/debug/quickDebug/SCCountQC_30041_2018-10-01--11-04-37_B9P9_NPCHP11_NDd5_temp35187/B9P9_NPCHP11_NDd5_SCCountQC/sce.rds")
 
 param <- metadata(sce)$param
-
-if(param$scProtocol == "10x"){
-  rowData(sce) <- rename(data.frame(rowData(sce),
-                                    check.names=FALSE, stringsAsFactors=FALSE),
-                         gene_id=ID, gene_name=Symbol)
-}
 
 ## ----------------------------------------------
 ## scater sce
