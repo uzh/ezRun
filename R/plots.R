@@ -296,7 +296,7 @@ ezVolcano <- function(log2Ratio, pValue, yType=c("p-value", "FDR"),
                  // d.points is an array of objects which, in this case,
                  // is length 1 since the click is tied to 1 point.
                  var pt = d.points[0];
-                 var genecardUrl = 'http://www.ihop-net.org/UniPub/iHOP/index.html?field=synonym&ncbi_tax_id=0&search=';
+                 var genecardUrl = 'https://www.ncbi.nlm.nih.gov/gene/?term=';
                  var url = genecardUrl.concat(pt.data.text[pt.pointNumber]);
                  // DISCLAIMER: this won't work from RStudio
                  window.open(url);
@@ -577,7 +577,7 @@ ezXYScatter.2 = function(xVec, yVec, absentColor="gray", shrink=FALSE,
                  // d.points is an array of objects which, in this case,
                  // is length 1 since the click is tied to 1 point.
                  var pt = d.points[0];
-                 var genecardUrl = 'http://www.ihop-net.org/UniPub/iHOP/index.html?field=synonym&ncbi_tax_id=0&search=';
+                 var genecardUrl = 'https://www.ncbi.nlm.nih.gov/gene/?term=';
                  var url = genecardUrl.concat(pt.data.text[pt.pointNumber]);
                  // DISCLAIMER: this won't work from RStudio
                  window.open(url);
