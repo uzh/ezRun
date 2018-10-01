@@ -30,7 +30,9 @@ require(Seurat)
 # sce <- readRDS("/scratch/gtan/debug/quickDebug/SCCountQC_30041_2018-10-01--11-04-37_B9P9_NPCHP11_NDd5_temp35187/B9P9_NPCHP11_NDd5_SCCountQC/sce.rds")
 
 param <- metadata(sce)$param
+```
 
+```{r scater, include=FALSE}
 ## ----------------------------------------------
 ## scater sce
 param$minReadsPerCell = 1e4
@@ -39,14 +41,16 @@ param$minReadsPerGene = 5
 
 sceScater <- sce[ , Matrix::colSums(assays(sce)$counts) >= param$minReadsPerCell]
 
-mito <- rownames(sce[seqnames(rowRanges(sce)) %in% c("chrM", "MT")])
+mito <- rownames(sce[as.character(seqnames(rowRanges(sce))) %in% c("chrM", "MT")])
 
 x <- assays(sceScater)$counts
 cell_info <- data.frame(row.names = colnames(x),
                         lib_size=Matrix::colSums(x)/1e6, 
                         expr_genes = Matrix::colSums(x>0), 
                         perc_mito=Matrix::colSums(x[mito,])*100/Matrix::colSums(x))
+```
 
+```{r fixName, include=FALSE}
 ## sceFixName for section "Reads on top 50 genes" and "Expression metrics"
 sceFixName <- sceScater
 rownames(sceFixName) <- uniquifyFeatureNames(ID=rowData(sceFixName)$gene_id,
@@ -76,7 +80,9 @@ if(param$scProtocol == "smart-Seq2"){
 }else if(param$scProtocol == "10x"){
   evalPicard <- FALSE
 }
+```
 
+```{r seurat setup, include=FALSE}
 ## ----------------------------------------------
 ## SeuratObject fro Seurat section
 sceSeurat <- sce
