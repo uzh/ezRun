@@ -48,5 +48,5 @@ input[['featureLevel']] = 'gene'
 # param <- ezParam(param)
 # param$scProtocol <- ifelse("STARLog" %in% input$colNames, "smart-Seq2", "10x")
 # sce <- loadSCCountDataset(input, param)
-debug(ezMethodSCReport)
+#debug(ezMethodSCReport)
 EzAppSCReport$new()$run(input=input, output=output, param=param)
