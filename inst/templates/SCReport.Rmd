@@ -1,5 +1,5 @@
 ---
-title:  "`r metadata(sce)$param$name`"
+title:  "test"
 author: "Functional Genomics Center Zurich"
 output: 
   html_document:
@@ -13,15 +13,46 @@ Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
 
 ```{r setup, include=FALSE}
 require(ezRun)
+require(Seurat)
 ## ----------------------------------------------
 ## debug
 # title:  "`r metadata(sce)$param$name`"
-# sce <- readRDS("/export/local/scratch/gtan/dev/p2497-SCCountQC/20171222.A-SiCSeq_SCs_P5_SCCountQC/sce.rds")
-# sce <- readRDS("/srv/gstore/projects/p2497/SCCountQC_27327_2018-06-17--00-09-24/20171222.A-SiCSeq_SCs_P5_SCCountQC/sce.rds")
-# sce <- readRDS("/scratch/gtan/debug/quickDebug/sce.rds")
+sce <- readRDS("/scratch/gtan/dev/SCReports-p2284/AVM_17_08_2018_SCCountQC/sce.rds")
+scData <- readRDS("/scratch/gtan/dev/SCReports-p2284/AVM_17_08_2018_SCCountQC/scData.rds")
 
 debug <- FALSE
 param <- metadata(sce)$param
+```
+
+## Clustering Results {.tabset}
+
+### Cell clustering tSNE
+
+This analysis was done with the R package Seurat. The distance metric which drives the clustering analysis is based on Principal Component Analysis.  In the plot below each dot is a cell.
+We eliminated the genes that are expressed in < 5 cells. We eliminated the cells that have < `r param$min_genes` genes detected, or > `r param$max_genes` genes.
+
+```{r tSNE, echo=FALSE, message=FALSE}
+TSNEPlot(object=scData)
+```
+
+Number of cells in each cluster (`r names(summary(scData@ident))`, respectively):
+
+`r summary(scData@ident)`
+
+### Control of the cell clustering
+
+```{r FeaturePlot, echo=FALSE, message=FALSE}
+FeaturePlot(object = scData, features.plot = "nGene", 
+            reduction.use = "tsne", no.legend = FALSE)
+FeaturePlot(object = scData, features.plot = "nUMI", 
+            reduction.use = "tsne", no.legend = FALSE)
+```
+
+
+
+### Seurat parameters
+```{r, echo=FALSE}
+PrintFindClustersParams(object = scData)
 ```
 
 ### SessionInfo

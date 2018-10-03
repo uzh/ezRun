@@ -1,4 +1,5 @@
 ## p2284 10x
+setwd("/scratch/gtan/SCReports-p2284")
 library(ezRun)
 param = list()
 param[['cores']] = '8'
@@ -17,6 +18,7 @@ param[['transcriptTypes']] = ''
 param[['min_genes']] = '500'
 param[['max_genes']] = '3000'
 param[['min_counts']] = '50000'
+param[['pcs']] = '14'
 param[['specialOptions']] = ''
 param[['mail']] = 'ge.tan@fgcz.ethz.ch'
 param[['dataRoot']] = '/srv/gstore/projects'
@@ -42,10 +44,9 @@ input[['refBuild']] = 'Homo_sapiens/Ensembl/GRCh38.p10/Annotation/Release_91-201
 input[['refFeatureFile']] = 'genes.gtf'
 input[['featureLevel']] = 'gene'
 
-input = EzDataset$new(meta=input, dataRoot=param$dataRoot)
-param <- ezParam(param)
-param$scProtocol <- ifelse("STARLog" %in% input$colNames, "smart-Seq2", "10x")
-
-sce <- loadSCCountDataset(input, param)
-
-# EzAppSCReport$new()$run(input=input, output=output, param=param)
+# input = EzDataset$new(meta=input, dataRoot=param$dataRoot)
+# param <- ezParam(param)
+# param$scProtocol <- ifelse("STARLog" %in% input$colNames, "smart-Seq2", "10x")
+# sce <- loadSCCountDataset(input, param)
+debug(ezMethodSCReport)
+EzAppSCReport$new()$run(input=input, output=output, param=param)

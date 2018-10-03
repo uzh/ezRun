@@ -16,7 +16,8 @@ EzAppSCReport <-
                   name <<- "EzAppSCReport"
                   appDefaults <<- rbind(min_genes=ezFrame(Type="numeric", DefaultValue=500, Description="Minimal number of genes for Seurat filtering"),
                                         max_genes=ezFrame(Type="numeric", DefaultValue=3000, Description="Minimal number of genes for Seurat filtering"),
-                                        min_counts=ezFrame(Type="numeric", DefaultValue=5e4, Description="Minimal counts of smart-Seq2 for Seurat filtering"))
+                                        min_counts=ezFrame(Type="numeric", DefaultValue=5e4, Description="Minimal counts of smart-Seq2 for Seurat filtering"),
+                                        pcs=ezFrame(Type="numeric", DefaultValue=10, Description="The maximal dimensions to use for reduction"))
                 }
               )
   )
@@ -31,51 +32,67 @@ ezMethodSCReport = function(input=NA, output=NA, param=NA,
   param$scProtocol <- ifelse("STARLog" %in% input$colNames, "smart-Seq2", "10x")
   
   sce <- loadSCCountDataset(input, param)
+  scData <- seuratPreProcess(sce)
+  
   ## debug
   saveRDS(sce, file="sce.rds")
+  saveRDS(scData, file="scData.rds")
   
   
 }
 
-seuratProcess <- function(sce){
+seuratPreProcess <- function(sce){
+  ## parameters to tune: param$min_counts; param$max_genes; param$min_genes
+  ##                     param$pcs
+  
   require(Seurat)
+  require(scater)
+  sceSeurat <- sce
+  param <- metadata(sceSeurat)$param
   
-  scData <- CreateSeuratObject(raw.data = cts, min.cells = 5, project = paste0("10X_",project))
-  mito.genes <- grep(pattern = "^MT-", x = rownames(x = scData@data), value = TRUE)
-  percent.mito <- Matrix::colSums(scData@raw.data[mito.genes, ])/Matrix::colSums(scData@raw.data)
-  scData <- AddMetaData(object = scData, metadata = percent.mito, col.name = "percent.mito")
-  VlnPlot(object=scData, features.plot=c("nGene", "nUMI", "percent.mito"),
-          nCol=3, x.lab.rot=ifelse(nchar(scData@project.name) > 20, TRUE, FALSE))
-  scData <- FilterCells(object = scData, subset.names = c("nGene", "percent.mito"), 
-                        low.thresholds = c(min_genes, -Inf), high.thresholds = c(max_genes, 0.25))
-  scData <- NormalizeData(object = scData, normalization.method = "LogNormalize", 
-                          scale.factor = 10000)
-  #mm = as.matrix(scData@raw.data)
-  #ezWrite.table(mm, "/srv/GT/analysis/p2497/10x_o4048_read_counts.txt")
-  #mm = as.matrix(scData@data)
-  #ezWrite.table(mm, "/srv/GT/analysis/p2497/10x_o4048_norm_counts.txt")
+  rownames(sceSeurat) <- uniquifyFeatureNames(ID=rowData(sceSeurat)$gene_id,
+                                              names=rowData(sceSeurat)$gene_name)
+  countsSeurat <- assays(sce)$counts
+  if(param$scProtocol == "smart-Seq2"){
+    countsSeurat <- countsSeurat[ ,Matrix::colSums(countsSeurat) > param$min_counts]
+  }
   
-  scData <- FindVariableGenes(object = scData, mean.function = ExpMean, dispersion.function = LogVMR, 
-                              x.low.cutoff = 0.0125, x.high.cutoff = 3, y.cutoff = 0.5)
-  scData <- FindVariableGenes(object = scData)
-  length(x = scData@var.genes)
-  scData <- ScaleData(object = scData, vars.to.regress = c("nUMI", "percent.mito"))
-  scData <- RunPCA(object = scData, pc.genes = scData@var.genes, do.print = TRUE, pcs.print = 1:5, 
+  scData <- CreateSeuratObject(raw.data = countsSeurat, min.cells = 5,
+                               project = param$name)
+  mito.genes <- grep(pattern = "^mt-", x = rownames(x = scData@data),
+                     value = TRUE, ignore.case = TRUE)
+  percent.mito <- Matrix::colSums(scData@raw.data[mito.genes, ]) / Matrix::colSums(scData@raw.data)
+  scData <- AddMetaData(object = scData, metadata = percent.mito,
+                        col.name = "percent.mito")
+  if(param$scProtocol == "smart-Seq2"){
+    scalingFactorSeurat <- 1e5
+  }else if(param$scProtocol == "10x"){
+    scalingFactorSeurat <- 1e4
+  }
+  
+  scData <- FilterCells(object = scData,
+                        subset.names = c("nGene", "percent.mito"),
+                        low.thresholds = c(param$min_genes, -Inf), 
+                        high.thresholds = c(param$max_genes, 0.25))
+  scData <- NormalizeData(object = scData, normalization.method = "LogNormalize",
+                          scale.factor = scalingFactorSeurat)
+  scData <- FindVariableGenes(object = scData, do.plot = FALSE)
+  scData <- ScaleData(object = scData,
+                      vars.to.regress = c("nUMI", "percent.mito"))
+  scData <- RunPCA(object = scData, pc.genes = scData@var.genes,
+                   do.print = FALSE, pcs.print = 1:5,
                    genes.print = 5)
-  PrintPCA(object = scData, pcs.print = 1:5, genes.print = 5, use.full = FALSE)
-  VizPCA(object = scData, pcs.use = 1:2)
-  PCAPlot(object = scData, dim.1 = 1, dim.2 = 2)
   scData <- ProjectPCA(object = scData, do.print = FALSE)
-  PCHeatmap(object = scData, pc.use = 1:16, cells.use = 500, do.balanced = TRUE, label.columns = FALSE, use.full = FALSE)
-  scData <- JackStraw(object = scData, num.replicate = 100)
-  JackStrawPlot(object = scData, PCs = 1:20)
-  PCElbowPlot(object = scData)
-  scData <- FindClusters(object = scData, reduction.type = "pca", dims.use = 1:14, 
-                         resolution = 0.6, print.output = 0, save.SNN = TRUE, force.recalc=TRUE)
-  PrintFindClustersParams(object = scData)
-  set.seed(10);
-  scData <- RunTSNE(object = scData, dims.use = 1:14, do.fast = TRUE, perplexity = 30)
+  scData <- JackStraw(object=scData, num.replicate=100, display.progress=FALSE,
+                      do.par=TRUE, num.cores=param$cores)
   
-  
+  scData <- FindClusters(object=scData, reduction.type="pca",
+                         dims.use = 1:param$pcs,
+                         resolution = 0.6, print.output = 0, save.SNN=TRUE,
+                         force.recalc=TRUE)
+  set.seed(10)
+  scData <- RunTSNE(object = scData, dims.use = 1:param$pcs, do.fast = TRUE, 
+                    perplexity = 30)
+  return(scData)
 }
 
