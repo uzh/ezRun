@@ -18,10 +18,18 @@ require(Seurat)
 ## debug
 # title:  "`r metadata(sce)$param$name`"
 sce <- readRDS("/scratch/gtan/dev/SCReports-p2284/AVM_17_08_2018_SCCountQC/sce.rds")
-scData <- readRDS("/scratch/gtan/dev/SCReports-p2284/AVM_17_08_2018_SCCountQC/scData.rds")
-
+## end of debug
 debug <- FALSE
+
+scData <- metadata(sce)$scData
 param <- metadata(sce)$param
+```
+
+```{r pos markers, echo=FALSE}
+markers <- FindAllMarkers(object=scData, only.pos=TRUE,
+                              return.thresh = 0.05)
+posMarkersFn <- "pos_markers.tsv"
+ezWrite.table(markers, posMarkersFn)
 ```
 
 ## Clustering Results {.tabset}
@@ -31,7 +39,7 @@ param <- metadata(sce)$param
 This analysis was done with the R package Seurat. The distance metric which drives the clustering analysis is based on Principal Component Analysis.  In the plot below each dot is a cell.
 We eliminated the genes that are expressed in < 5 cells. We eliminated the cells that have < `r param$min_genes` genes detected, or > `r param$max_genes` genes.
 
-```{r tSNE, echo=FALSE, message=FALSE}
+```{r tSNE, echo=FALSE}
 TSNEPlot(object=scData)
 ```
 
@@ -41,14 +49,32 @@ Number of cells in each cluster (`r names(summary(scData@ident))`, respectively)
 
 ### Control of the cell clustering
 
-```{r FeaturePlot, echo=FALSE, message=FALSE}
+```{r FeaturePlot, echo=FALSE}
 FeaturePlot(object = scData, features.plot = "nGene", 
             reduction.use = "tsne", no.legend = FALSE)
 FeaturePlot(object = scData, features.plot = "nUMI", 
             reduction.use = "tsne", no.legend = FALSE)
 ```
 
+### Table with top cluster markers
 
+List of all positive cluster markers can be accessed [here](`r posMarkersFn`).
+
+```{r markers table, echo=FALSE}
+cm <- markers[ ,c("gene","cluster","avg_logFC","p_val_adj")]
+cm <- cm[which(cm$p_val_adj<0.01 & abs(cm$avg_logFC)>0.5), ]
+rownames(cm) <- NULL
+caption ="Expression differences of cluster marker genes."
+# datatable(cm, options = list(pageLength = 10), 
+#                   rownames = FALSE,
+#                   escape = FALSE,
+#                   caption = htmltools::tags$caption(
+#                     style = 'caption-side: bottom; text-align: center;',
+#                     'Table: ', htmltools::em(caption)
+#                     )
+#             )
+ezInteractiveTableRmd(cm, digits=3, title=caption)
+```
 
 ### Seurat parameters
 ```{r, echo=FALSE}
