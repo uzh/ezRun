@@ -331,7 +331,8 @@ ezVolcano <- function(log2Ratio, pValue, yType=c("p-value", "FDR"),
     }else{
       alpha <- 1
     }
-    p <- ggplot(toPlot, aes(x, y)) + geom_point(aes(col=types), alpha =alpha) +
+    p <- ggplot(toPlot, aes(x, y)) +
+      geom_point(size=1, aes(col=types), alpha =alpha) +
       scale_color_manual(values=typesColours) + 
       scale_x_continuous(limits=xlim) + scale_y_continuous(limits=ylim)+
       theme_bw() + xlab("log2 ratio") + ylab(paste0("-log10(", yType, ")"))+
@@ -643,7 +644,7 @@ ezXYScatter.2 = function(xVec, yVec, absentColor="gray", shrink=FALSE,
     ## ggplot2 plots in the native order
     toPlot <- toPlot[order(match(toPlot$types, 
                                  c("Absent", "Present", colnames(types)))), ]
-    p <- ggplot(toPlot, aes(x, y)) + geom_point(aes(col=types)) +
+    p <- ggplot(toPlot, aes(x, y)) + geom_point(size=1, aes(col=types)) +
       scale_color_manual(values=typesColours) +
       scale_x_log10() + scale_y_log10() +
       theme_bw() + xlab(xlab) + ylab(ylab) + 

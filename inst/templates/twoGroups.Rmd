@@ -26,9 +26,8 @@ knitr::opts_chunk$set(echo = TRUE)
 # output[['Live Report [Link]']] = 'http://fgcz-shiny.uzh.ch/fgcz_exploreDEG_app/?data=p2497/DESeq2_22056_orange--over--rest_2017-11-01--10-42-27/orange--over--rest/result-orange--over--rest-gxzhakauugzk-EzResult.RData'
 # output[['Report [File]']] = 'p2497/DESeq2_22056_orange--over--rest_2017-11-01--10-42-27/orange--over--rest'
 # output = EzDataset$new(meta=output, dataRoot=param$dataRoot)
-debug <- FALSE
 ## end of debug
-
+debug <- FALSE
 
 require(knitr)
 require(kableExtra)
@@ -182,7 +181,7 @@ if (isTRUE(isTwoGroup)){
   ## volcano plot with p-value
   volcanoPng <- paste0(param$comparison, "-volcano.png")
   volcanoPdf <- sub("png$", "pdf", volcanoPng)
-  p_volcano <- ezVolcano(log2Ratio=rowData(se)$log2Ratio, 
+  p_volcano <- ezVolcano(log2Ratio=rowData(se)$log2Ratio,
                            pValue=rowData(se)$pValue, yType="p-value",
                            isPresent=rowData(se)$usedInTest, types=types,
                            names=rowData(se)$gene_name,
@@ -238,12 +237,12 @@ if(isTRUE(isTwoGroup)){
   ## volcano plot with FDR
   volcanoFDRPng <- paste0(param$comparison, "-FDR-volcano.png")
   volcanoFDRPdf <- sub("png$", "pdf", volcanoFDRPng)
-  p_volcano <- ezVolcano(log2Ratio=rowData(se)$log2Ratio, 
+  suppressWarnings(p_volcano <- ezVolcano(log2Ratio=rowData(se)$log2Ratio,
                          pValue=rowData(se)$fdr, yType="FDR",
                          isPresent=rowData(se)$usedInTest, types=types,
                          names=rowData(se)$gene_name,
                          main=param$comparison,
-                         mode="ggplot2")
+                         mode="ggplot2"))
   print(p_volcano)
   
   ggsave(filename=volcanoFDRPdf, plot=p_volcano, device="pdf",
