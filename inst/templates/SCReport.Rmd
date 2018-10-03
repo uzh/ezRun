@@ -14,6 +14,7 @@ Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
 ```{r setup, include=FALSE}
 require(ezRun)
 require(Seurat)
+require(dplyr)
 ## ----------------------------------------------
 ## debug
 # title:  "`r metadata(sce)$param$name`"
@@ -61,19 +62,32 @@ FeaturePlot(object = scData, features.plot = "nUMI",
 List of all positive cluster markers can be accessed [here](`r posMarkersFn`).
 
 ```{r markers table, echo=FALSE}
-cm <- markers[ ,c("gene","cluster","avg_logFC","p_val_adj")]
-cm <- cm[which(cm$p_val_adj<0.01 & abs(cm$avg_logFC)>0.5), ]
+cm <- markers[which(markers$p_val_adj<0.01 & abs(markers$avg_logFC)>0.5),
+              c("gene","cluster","avg_logFC","p_val_adj")]
 rownames(cm) <- NULL
 caption ="Expression differences of cluster marker genes."
-# datatable(cm, options = list(pageLength = 10), 
-#                   rownames = FALSE,
-#                   escape = FALSE,
-#                   caption = htmltools::tags$caption(
-#                     style = 'caption-side: bottom; text-align: center;',
-#                     'Table: ', htmltools::em(caption)
-#                     )
-#             )
-ezInteractiveTableRmd(cm, digits=3, title=caption)
+ezInteractiveTableRmd(cm, digits=4, title=caption)
+```
+
+### Visualizations of top cluster markers
+
+```{r top cluster markers, fig.width=4, fig.height=3, echo=FALSE}
+some_markers <- cm$gene[1:100]
+for(i in 1:length(some_markers)){
+  plot(VlnPlot(object = scData, some_markers[i], do.return=TRUE))
+  FeaturePlot(object = scData, features.plot = some_markers[i],
+              cols.use = c("gray", "red"),
+              reduction.use = "tsne", no.legend = FALSE)
+}
+```
+
+### Heatmap of cluster marker genes
+Max 10 marker genes are shown for each cluster. 
+
+```{r heatmap, fig.width=10, fig.height=20, echo=FALSE}
+top10 <- markers %>% group_by(cluster) %>% top_n(10, avg_logFC)
+DoHeatmap(object = scData, genes.use = top10$gene, slim.col.label = TRUE,
+          remove.key=TRUE)
 ```
 
 ### Seurat parameters
