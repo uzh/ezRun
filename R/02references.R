@@ -150,7 +150,7 @@ setMethod("buildRefDir", "EzRef", function(.Object, genomeFile, genesFile,
   #dir.create(.Object@refChromDir) ## by default do not generate the chromosome dir -- TODO: check if this directory is indeed needed;
   if (!is.null(.Object@refAnnotationVersion)){
     ezSystem(paste("cd", file.path(.Object@refBuildDir, "Annotation"), 
-                   "; rm -f Genes; ", "ln -s",
+                   "; rm -rf Genes; ", "ln -s",
                    file.path(.Object@refAnnotationVersion, "Genes"), "Genes"))
   }
   
