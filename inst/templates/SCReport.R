@@ -1,5 +1,5 @@
 ## p2284 10x
-setwd("/scratch/gtan/SCReports-p2284")
+setwd("/scratch/gtan/dev/SCReports-p2284")
 library(ezRun)
 param = list()
 param[['cores']] = '8'

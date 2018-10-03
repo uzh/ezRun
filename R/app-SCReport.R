@@ -33,11 +33,10 @@ ezMethodSCReport = function(input=NA, output=NA, param=NA,
   
   sce <- loadSCCountDataset(input, param)
   scData <- seuratPreProcess(sce)
+  metadata(sce)$scData <- scData
   
   ## debug
   saveRDS(sce, file="sce.rds")
-  saveRDS(scData, file="scData.rds")
-  
   
 }
 
@@ -52,7 +51,7 @@ seuratPreProcess <- function(sce){
   
   rownames(sceSeurat) <- uniquifyFeatureNames(ID=rowData(sceSeurat)$gene_id,
                                               names=rowData(sceSeurat)$gene_name)
-  countsSeurat <- assays(sce)$counts
+  countsSeurat <- assays(sceSeurat)$counts
   if(param$scProtocol == "smart-Seq2"){
     countsSeurat <- countsSeurat[ ,Matrix::colSums(countsSeurat) > param$min_counts]
   }
