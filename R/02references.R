@@ -145,6 +145,8 @@ setMethod("buildRefDir", "EzRef", function(.Object, genomeFile, genesFile,
   
   gtfPath = dirname(.Object@refFeatureFile)
   fastaPath = dirname(.Object@refFastaFile)
+  print(file.path(gtfPath, "features.gtf"))
+  print(fastaPath)
   dir.create(gtfPath, recursive=T)
   dir.create(fastaPath, recursive=T)
   #dir.create(.Object@refChromDir) ## by default do not generate the chromosome dir -- TODO: check if this directory is indeed needed;
@@ -153,8 +155,7 @@ setMethod("buildRefDir", "EzRef", function(.Object, genomeFile, genesFile,
                    "; rm -rf Genes; ", "ln -s",
                    file.path(.Object@refAnnotationVersion, "Genes"), "Genes"))
   }
-  print(file.path(gtfPath, "features.gtf"))
-  print(fastaPath)
+
   ## fasta
   genome <- readBStringSet(genomeFile) #BString for lower cased softmasked repeats
   ### remove everything after chr id
