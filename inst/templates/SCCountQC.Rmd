@@ -99,7 +99,7 @@ scData <- CreateSeuratObject(raw.data = countsSeurat, min.cells = 5,
 mito.genes <- grep(pattern = "^mt-", x = rownames(x = scData@data),
                    value = TRUE, ignore.case = TRUE)
 percent.mito <- Matrix::colSums(scData@raw.data[mito.genes, ])/ Matrix::colSums(scData@raw.data)
-scData <- AddMetaData(object = scData, metadata = percent.mito, 
+scData <- AddMetaData(object = scData, metadata = percent.mito,
                       col.name = "percent.mito")
 if(param$scProtocol == "smart-Seq2"){
   scalingFactorSeurat <- 1e5
@@ -403,7 +403,7 @@ VlnPlot(object=scData, features.plot = c("nGene", "nUMI", "percent.mito"),
 ```
 
 ```{r seurat filter and normalize, echo=FALSE, eval=!debug}
-scData <- FilterCells(object = scData, 
+scData <- FilterCells(object = scData,
                       subset.names = c("nGene", "percent.mito"),
                       low.thresholds = c(param$min_genes, -Inf), 
                       high.thresholds = c(Inf, 0.25))
@@ -422,11 +422,12 @@ scData <- ScaleData(object = scData, vars.to.regress = c("nUMI","percent.mito"))
 scData <- RunPCA(object = scData, pc.genes = scData@var.genes,
                  do.print = TRUE, pcs.print = 1:5,
                  genes.print = 5)
-scData <- ProjectPCA(object = scData, do.print = FALSE)
+scData <- ProjectPCA(object = scData, do.print=FALSE)
 ```
 
 ```{r plot PCA, echo=FALSE, fig.width=10, fig.height=15, eval=!debug}
 VizPCA(object = scData, pcs.use = 1:6)
+PCAPlot(object = scData, dim.1 = 1, dim.2 = 2)
 ```
 
 ```{r PCHeatmap, echo=FALSE, fig.width=10, fig.height=30, eval=!debug}

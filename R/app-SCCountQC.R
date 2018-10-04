@@ -15,7 +15,7 @@ EzAppSCCountQC <-
                   runMethod <<- ezMethodSCCountQC
                   name <<- "EzAppSCCountQC"
                   appDefaults <<- rbind(min_genes=ezFrame(Type="numeric", DefaultValue=500, Description="Minimal number of genes for Seurat filtering"),
-                                        min_counts=ezFrame(Type="numeric", DefaultValue=5e4, Description="Minimal counts for Seurat filtering"))
+                                        min_counts=ezFrame(Type="numeric", DefaultValue=5e4, Description="Minimal counts of smart-Seq2 for Seurat filtering"))
                 }
               )
   )
@@ -29,8 +29,7 @@ ezMethodSCCountQC = function(input=NA, output=NA, param=NA,
   on.exit(setwd(cwd), add=TRUE)
   reportCwd <- getwd()
   
-  scProtocol <- ifelse("STARLog" %in% input$colNames, "smart-Seq2", "10x")
-  param$scProtocol <- scProtocol
+  param$scProtocol <- ifelse("STARLog" %in% input$colNames, "smart-Seq2", "10x")
   
   sce <- loadSCCountDataset(input, param)
   

@@ -1,0 +1,129 @@
+---
+title:  "`r metadata(sce)$param$name`"
+author: "Functional Genomics Center Zurich"
+output: 
+  html_document:
+    self_contained: false
+    includes:
+      in_header: fgcz_header.html
+    css: fgcz.css
+---
+
+Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
+
+```{r setup, include=FALSE}
+require(ezRun)
+require(Seurat)
+require(dplyr)
+## ----------------------------------------------
+## debug
+# title:  "`r metadata(sce)$param$name`"
+# sce <- readRDS("/scratch/gtan/dev/SCReports-p2284/AVM_17_08_2018_SCCountQC/sce.rds")
+## end of debug
+debug <- FALSE
+
+scData <- metadata(sce)$scData
+param <- metadata(sce)$param
+```
+
+```{r pos markers, echo=FALSE}
+markers <- FindAllMarkers(object=scData, only.pos=TRUE,
+                              return.thresh = 0.05)
+posMarkersFn <- "pos_markers.tsv"
+ezWrite.table(markers, posMarkersFn)
+```
+
+## Clustering Results {.tabset}
+
+### Cell clustering tSNE
+
+This analysis was done with the R package Seurat. The distance metric which drives the clustering analysis is based on Principal Component Analysis.  In the plot below each dot is a cell.
+We eliminated the genes that are expressed in < 5 cells. We eliminated the cells that have < `r param$min_genes` genes detected, or > `r param$max_genes` genes.
+
+```{r tSNE, echo=FALSE}
+TSNEPlot(object=scData)
+```
+
+Number of cells in each cluster (`r names(summary(scData@ident))`, respectively):
+
+`r summary(scData@ident)`
+
+### Control of the cell clustering
+
+```{r FeaturePlot, echo=FALSE}
+FeaturePlot(object = scData, features.plot = "nGene", 
+            reduction.use = "tsne", no.legend = FALSE)
+FeaturePlot(object = scData, features.plot = "nUMI", 
+            reduction.use = "tsne", no.legend = FALSE)
+```
+
+### Table with top cluster markers
+
+List of all positive cluster markers can be accessed [here](`r posMarkersFn`).
+
+```{r markers table, echo=FALSE}
+cm <- markers[which(markers$p_val_adj<0.01 & abs(markers$avg_logFC)>0.5),
+              c("gene","cluster","avg_logFC","p_val_adj")]
+rownames(cm) <- NULL
+caption ="Expression differences of cluster marker genes."
+ezInteractiveTableRmd(cm, digits=4, title=caption)
+```
+
+### Visualizations of top cluster markers
+
+```{r top cluster markers, fig.width=4, fig.height=3, echo=FALSE}
+some_markers <- cm$gene[1:100]
+for(i in 1:length(some_markers)){
+  plot(VlnPlot(object = scData, some_markers[i], do.return=TRUE))
+  FeaturePlot(object = scData, features.plot = some_markers[i],
+              cols.use = c("gray", "red"),
+              reduction.use = "tsne", no.legend = FALSE)
+}
+```
+
+### Heatmap of cluster marker genes
+Max 10 marker genes are shown for each cluster. 
+
+```{r heatmap, fig.width=10, fig.height=20, echo=FALSE}
+top10 <- markers %>% group_by(cluster) %>% top_n(10, avg_logFC)
+DoHeatmap(object = scData, genes.use = top10$gene, slim.col.label = TRUE,
+          remove.key=TRUE)
+```
+
+### Expression of selected genes
+
+Each dot is a cell. On the right-hand plot, the color corresponds to the gene expression levels. 
+
+```{r selected markers, fig.width=4, fig.height=3, echo=FALSE, results='asis'}
+if(length(param$markersToCheck) >0){
+  all_m = list()
+  for(i in 1:length(param$markersToCheck)){
+    cat(paste("####", names(param$markersToCheck)[i]))
+    cat("\n")
+    check_markers <- param$markersToCheck[[i]]
+    check_markers <- rownames(scData@data)[toupper(rownames(scData@data)) %in%
+                                             toupper(check_markers)]
+    all_m[[i]] <- check_markers
+    if(length(check_markers) == 0)
+      next
+    for(j in 1:length(check_markers)){
+      plot(VlnPlot(object = scData, check_markers[j], do.return=TRUE))
+      FeaturePlot(object = scData, features.plot = check_markers[j],
+                  cols.use = c("gray", "red"),
+                  reduction.use = "tsne", no.legend = FALSE)
+    }
+    cat("\n")
+  }
+}
+
+```
+
+### Seurat parameters
+```{r, echo=FALSE}
+PrintFindClustersParams(object = scData)
+```
+
+### SessionInfo
+```{r, echo=FALSE}
+sessionInfo()
+```
