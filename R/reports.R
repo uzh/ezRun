@@ -563,6 +563,7 @@ makeResultFile = function(param, se, useInOutput=TRUE,
   se <- se[useInOutput, ]
   y = data.frame(rowData(se), row.names=rownames(se),
                  stringsAsFactors=FALSE, check.names=FALSE)
+  y <- cbind(y, as.data.frame(granges(rowRanges(se))))
   y$"isPresent" = y$isPresentProbe
   y$isPresentProbe <- NULL
   y$"log2 Ratio" = y$log2Ratio
