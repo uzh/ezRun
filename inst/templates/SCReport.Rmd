@@ -1,5 +1,5 @@
 ---
-title:  "test"
+title:  "`r metadata(sce)$param$name`"
 author: "Functional Genomics Center Zurich"
 output: 
   html_document:
@@ -18,7 +18,7 @@ require(dplyr)
 ## ----------------------------------------------
 ## debug
 # title:  "`r metadata(sce)$param$name`"
-sce <- readRDS("/scratch/gtan/dev/SCReports-p2284/AVM_17_08_2018_SCCountQC/sce.rds")
+# sce <- readRDS("/scratch/gtan/dev/SCReports-p2284/AVM_17_08_2018_SCCountQC/sce.rds")
 ## end of debug
 debug <- FALSE
 
@@ -99,6 +99,7 @@ if(length(param$markersToCheck) >0){
   all_m = list()
   for(i in 1:length(param$markersToCheck)){
     cat(paste("####", names(param$markersToCheck)[i]))
+    cat("\n")
     check_markers <- param$markersToCheck[[i]]
     check_markers <- rownames(scData@data)[toupper(rownames(scData@data)) %in%
                                              toupper(check_markers)]
