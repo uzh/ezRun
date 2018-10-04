@@ -159,7 +159,8 @@ setMethod("buildRefDir", "EzRef", function(.Object, genomeFile, genesFile,
   ### remove everything after chr id
   names(genome) = sub(" .*", "", names(genome))
   writeXStringSet(genome, .Object@refFastaFile)
-  
+  print(file.path(gtfPath, "features.gtf"))
+  print(fastaPath)
   ## 2 GTF files: 
   ### features.gtf
   gtf <- import(genesFile)
