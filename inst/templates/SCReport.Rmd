@@ -15,6 +15,9 @@ Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
 require(ezRun)
 require(Seurat)
 require(dplyr)
+require(tibble)
+require(kableExtra)
+require(fastICA)
 ## ----------------------------------------------
 ## debug
 # title:  "`r metadata(sce)$param$name`"
@@ -40,13 +43,36 @@ ezWrite.table(markers, posMarkersFn)
 This analysis was done with the R package Seurat. The distance metric which drives the clustering analysis is based on Principal Component Analysis.  In the plot below each dot is a cell.
 We eliminated the genes that are expressed in < 5 cells. We eliminated the cells that have < `r param$min_genes` genes detected, or > `r param$max_genes` genes.
 
-```{r tSNE, echo=FALSE}
+```{r tSNE, echo=FALSE, results='asis'}
 TSNEPlot(object=scData)
+
+kable(tibble(Cluster=names(summary(scData@ident)),
+             "# of cells"=summary(scData@ident)),
+      row.names=FALSE, format="html",
+      caption="Number of cells in each cluster") %>%
+  kable_styling(bootstrap_options = "striped", full_width = F,
+                position = "float_right")
 ```
 
-Number of cells in each cluster (`r names(summary(scData@ident))`, respectively):
+```{r gene mean per cluster, echo=FALSE}
+tr_cnts <- expm1(scData@data)
+geneMeans <- rowsum(as.matrix(t(tr_cnts)), group=scData@ident)
+geneMeans <- sweep(geneMeans, 1, 
+                   STATS=table(scData@ident)[rownames(geneMeans)], FUN="/")
+geneMeans <- log1p(t(geneMeans))
+colnames(geneMeans) <- paste("cluster", colnames(geneMeans), sep="_")
+geneMeanPerClusterFn <- "gene_means_per_cluster.txt"
+ezWrite.table(geneMeans, geneMeanPerClusterFn)
 
-`r summary(scData@ident)`
+geneMeans <- Matrix::rowMeans(tr_cnts)
+geneMeans <- log1p(geneMeans)
+geneMeansFn <- "gene_means.txt"
+ezWrite.table(geneMeans, geneMeansFn)
+```
+
+[`r geneMeanPerClusterFn`](`r geneMeanPerClusterFn`)
+
+[`r geneMeansFn`](`r geneMeansFn`)
 
 ### Control of the cell clustering
 
@@ -98,24 +124,43 @@ Each dot is a cell. On the right-hand plot, the color corresponds to the gene ex
 if(length(param$markersToCheck) >0){
   all_m = list()
   for(i in 1:length(param$markersToCheck)){
+    cat("\n")
     cat(paste("####", names(param$markersToCheck)[i]))
     cat("\n")
     check_markers <- param$markersToCheck[[i]]
     check_markers <- rownames(scData@data)[toupper(rownames(scData@data)) %in%
                                              toupper(check_markers)]
     all_m[[i]] <- check_markers
-    if(length(check_markers) == 0)
-      next
-    for(j in 1:length(check_markers)){
-      plot(VlnPlot(object = scData, check_markers[j], do.return=TRUE))
-      FeaturePlot(object = scData, features.plot = check_markers[j],
-                  cols.use = c("gray", "red"),
-                  reduction.use = "tsne", no.legend = FALSE)
+    if(length(check_markers) > 0){
+      for(j in 1:length(check_markers)){
+        plot(VlnPlot(object = scData, check_markers[j], do.return=TRUE))
+        FeaturePlot(object = scData, features.plot = check_markers[j],
+                    cols.use = c("gray", "red"),
+                    reduction.use = "tsne", no.legend = FALSE)
+      }
     }
     cat("\n")
   }
 }
 
+```
+
+### Pseudotime
+
+```{r pseudo time, echo=FALSE, fig.width=8, fig.height=5}
+cd <- as.matrix(scData@data)
+set.seed(10) 
+a <- fastICA(cd, 2, alg.typ = "deflation", fun = "logcosh", 
+             alpha = 1, method = "C", row.norm = FALSE, maxit = 200, 
+             tol = 0.0001, verbose = FALSE)
+toPlot <- tibble(X=scData@dr$tsne@cell.embeddings[colnames(cd),1],
+                 Y=scData@dr$tsne@cell.embeddings[colnames(cd),2],
+                 pseudotime=a$A[1,])
+p <- ggplot(toPlot, aes(X, Y)) + 
+  geom_point(shape=21, size=5, colour = "black", aes(fill=pseudotime)) +
+  scale_fill_gradient(low="yellow", high="blue") +
+  xlab("") + ylab("") 
+print(p)
 ```
 
 ### Seurat parameters
