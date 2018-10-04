@@ -145,8 +145,6 @@ setMethod("buildRefDir", "EzRef", function(.Object, genomeFile, genesFile,
   
   gtfPath = dirname(.Object@refFeatureFile)
   fastaPath = dirname(.Object@refFastaFile)
-  print(file.path(gtfPath, "features.gtf"))
-  print(fastaPath)
   dir.create(gtfPath, recursive=T)
   dir.create(fastaPath, recursive=T)
   #dir.create(.Object@refChromDir) ## by default do not generate the chromosome dir -- TODO: check if this directory is indeed needed;
@@ -164,7 +162,10 @@ setMethod("buildRefDir", "EzRef", function(.Object, genomeFile, genesFile,
 
   ## 2 GTF files: 
   ### features.gtf
+  print(c(file.path(gtfPath, "features.gtf")))
+  print(c(fastaPath))
   gtf <- import(genesFile)
+  print(c("test"))
   #### some controls over gtf
   if(is.null(gtf$gene_biotype)){
     if(is.null(gtf$gene_type)){
