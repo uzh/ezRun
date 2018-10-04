@@ -90,6 +90,33 @@ DoHeatmap(object = scData, genes.use = top10$gene, slim.col.label = TRUE,
           remove.key=TRUE)
 ```
 
+### Expression of selected genes
+
+Each dot is a cell. On the right-hand plot, the color corresponds to the gene expression levels. 
+
+```{r selected markers, fig.width=4, fig.height=3, echo=FALSE, results='asis'}
+if(length(param$markersToCheck) >0){
+  all_m = list()
+  for(i in 1:length(param$markersToCheck)){
+    cat(paste("####", names(param$markersToCheck)[i]))
+    check_markers <- param$markersToCheck[[i]]
+    check_markers <- rownames(scData@data)[toupper(rownames(scData@data)) %in%
+                                             toupper(check_markers)]
+    all_m[[i]] <- check_markers
+    if(length(check_markers) == 0)
+      next
+    for(j in 1:length(check_markers)){
+      plot(VlnPlot(object = scData, check_markers[j], do.return=TRUE))
+      FeaturePlot(object = scData, features.plot = check_markers[j],
+                  cols.use = c("gray", "red"),
+                  reduction.use = "tsne", no.legend = FALSE)
+    }
+    cat("\n")
+  }
+}
+
+```
+
 ### Seurat parameters
 ```{r, echo=FALSE}
 PrintFindClustersParams(object = scData)
