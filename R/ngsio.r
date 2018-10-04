@@ -49,6 +49,7 @@ loadCountDataset <- function(input, param){
     x$gene_id <- seqAnnoDFData$gene_id
     x <- select(x, -identifier) %>% group_by(gene_id) %>% 
       summarise_all(funs(sum))
+    ## TODO: consider using rowsum()
   }
   signal <- as.matrix(x[ ,-1])
   rownames(signal) <- pull(x[ ,1])
