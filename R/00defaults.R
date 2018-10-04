@@ -48,6 +48,7 @@ ezParam = function(userParam=list(), globalDefaults=getGlobalDefaults(),
                               numeric=as.numeric(value),
                               character=as.character(value),
                               charVector=if (length(value) > 1) value else unlist(strsplit(value, ",", fixed=TRUE)),
+                              charList=if (length(value) > 1) value else parseListOptions(value),
                               logical=as.logical(value),
                               stop("unsupported type: ", defaults[nm, "Type"]))
   }
@@ -73,6 +74,18 @@ getGlobalDefaults = function(){
   } else {
     ezRead.table(system.file("extdata/EZ_PARAM_DEFAULTS.txt", package="ezRun", mustWork = TRUE), comment.char="#")  
   }
+}
+
+# 'DC-like=Lgals3,Napsa B;cells=Cd79a,Ly6d;' to a named list
+parseListOptions <- function(optString){
+  params <- strsplit(optString, ";")[[1]]
+  paramsList <- list()
+  param <- params[1]
+  for(param in params){
+    param=strsplit(param, "=")[[1]]
+    paramsList[[param[1]]] <- strsplit(param[2], ",")[[1]]
+  }
+  return(paramsList)
 }
 
 ##' @describeIn ezParam Used to parse additional options specified in \code{userParam$specialOptions}.

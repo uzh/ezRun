@@ -17,7 +17,8 @@ EzAppSCReport <-
                   appDefaults <<- rbind(min_genes=ezFrame(Type="numeric", DefaultValue=500, Description="Minimal number of genes for Seurat filtering"),
                                         max_genes=ezFrame(Type="numeric", DefaultValue=3000, Description="Minimal number of genes for Seurat filtering"),
                                         min_counts=ezFrame(Type="numeric", DefaultValue=5e4, Description="Minimal counts of smart-Seq2 for Seurat filtering"),
-                                        pcs=ezFrame(Type="numeric", DefaultValue=10, Description="The maximal dimensions to use for reduction"))
+                                        pcs=ezFrame(Type="numeric", DefaultValue=10, Description="The maximal dimensions to use for reduction"),
+                                        markersToCheck=ezFrame(Type="charList", DefaultValue="", Description="The markers to check"))
                 }
               )
   )
@@ -38,6 +39,15 @@ ezMethodSCReport = function(input=NA, output=NA, param=NA,
   ## debug
   saveRDS(sce, file="sce.rds")
   
+  ## Copy the style files and templates
+  styleFiles <- file.path(system.file("templates", package="ezRun"),
+                          c("fgcz.css", "SCReport.Rmd",
+                            "fgcz_header.html", "banner.png"))
+  file.copy(from=styleFiles, to=".", overwrite=TRUE)
+  rmarkdown::render(input="SCReport.Rmd", envir = new.env(),
+                    output_dir=".", output_file=htmlFile, quiet=TRUE)
+  
+  return("Success")
 }
 
 seuratPreProcess <- function(sce){
