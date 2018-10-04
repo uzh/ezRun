@@ -1,5 +1,5 @@
 ---
-title:  "test"
+title:  "`r metadata(sce)$param$name`"
 author: "Functional Genomics Center Zurich"
 output: 
   html_document:
@@ -20,7 +20,7 @@ require(kableExtra)
 ## ----------------------------------------------
 ## debug
 # title:  "`r metadata(sce)$param$name`"
-sce <- readRDS("/scratch/gtan/dev/SCReports-p2284/AVM_17_08_2018_SCCountQC/sce.rds")
+# sce <- readRDS("/scratch/gtan/dev/SCReports-p2284/AVM_17_08_2018_SCCountQC/sce.rds")
 ## end of debug
 debug <- FALSE
 
@@ -42,17 +42,15 @@ ezWrite.table(markers, posMarkersFn)
 This analysis was done with the R package Seurat. The distance metric which drives the clustering analysis is based on Principal Component Analysis.  In the plot below each dot is a cell.
 We eliminated the genes that are expressed in < 5 cells. We eliminated the cells that have < `r param$min_genes` genes detected, or > `r param$max_genes` genes.
 
-```{r tSNE, echo=FALSE}
+```{r tSNE, echo=FALSE, results='asis'}
 TSNEPlot(object=scData)
-```
 
-```{r cluster summary, echo=FALSE, results='asis'}
 kable(tibble(Cluster=names(summary(scData@ident)),
              "# of cells"=summary(scData@ident)),
       row.names=FALSE, format="html",
       caption="Number of cells in each cluster") %>%
   kable_styling(bootstrap_options = "striped", full_width = F,
-                position = "right")
+                position = "float_right")
 ```
 
 ```{r gene mean per cluster, echo=FALSE}
@@ -71,9 +69,9 @@ geneMeansFn <- "gene_means.txt"
 ezWrite.table(geneMeans, geneMeansFn)
 ```
 
-[Gene means per cluster](`r geneMeanPerClusterFn`)
+[`r geneMeanPerClusterFn`](`r geneMeanPerClusterFn`)
 
-[Gene means ](`r geneMeansFn`)
+[`r geneMeansFn`](`r geneMeansFn`)
 
 ### Control of the cell clustering
 
@@ -125,19 +123,20 @@ Each dot is a cell. On the right-hand plot, the color corresponds to the gene ex
 if(length(param$markersToCheck) >0){
   all_m = list()
   for(i in 1:length(param$markersToCheck)){
+    cat("\n")
     cat(paste("####", names(param$markersToCheck)[i]))
     cat("\n")
     check_markers <- param$markersToCheck[[i]]
     check_markers <- rownames(scData@data)[toupper(rownames(scData@data)) %in%
                                              toupper(check_markers)]
     all_m[[i]] <- check_markers
-    if(length(check_markers) == 0)
-      next
-    for(j in 1:length(check_markers)){
-      plot(VlnPlot(object = scData, check_markers[j], do.return=TRUE))
-      FeaturePlot(object = scData, features.plot = check_markers[j],
-                  cols.use = c("gray", "red"),
-                  reduction.use = "tsne", no.legend = FALSE)
+    if(length(check_markers) > 0){
+      for(j in 1:length(check_markers)){
+        plot(VlnPlot(object = scData, check_markers[j], do.return=TRUE))
+        FeaturePlot(object = scData, features.plot = check_markers[j],
+                    cols.use = c("gray", "red"),
+                    reduction.use = "tsne", no.legend = FALSE)
+      }
     }
     cat("\n")
   }
