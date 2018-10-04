@@ -153,14 +153,14 @@ setMethod("buildRefDir", "EzRef", function(.Object, genomeFile, genesFile,
                    "; rm -rf Genes; ", "ln -s",
                    file.path(.Object@refAnnotationVersion, "Genes"), "Genes"))
   }
-  
+  print(file.path(gtfPath, "features.gtf"))
+  print(fastaPath)
   ## fasta
   genome <- readBStringSet(genomeFile) #BString for lower cased softmasked repeats
   ### remove everything after chr id
   names(genome) = sub(" .*", "", names(genome))
   writeXStringSet(genome, .Object@refFastaFile)
-  print(file.path(gtfPath, "features.gtf"))
-  print(fastaPath)
+
   ## 2 GTF files: 
   ### features.gtf
   gtf <- import(genesFile)
