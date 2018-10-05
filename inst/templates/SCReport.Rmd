@@ -37,6 +37,19 @@ posMarkersFn <- "pos_markers.tsv"
 ezWrite.table(markers, posMarkersFn)
 ```
 
+```{r fastICA, echo=FALSE}
+cd <- as.matrix(scData@data)
+set.seed(10)
+a <- fastICA(cd, 2, alg.typ = "deflation", fun = "logcosh", 
+             alpha = 1, method = "C", row.norm = FALSE, maxit = 200, 
+             tol = 0.0001, verbose = FALSE)
+tSNE_data <- tibble(X=scData@dr$tsne@cell.embeddings[colnames(cd),1],
+                    Y=scData@dr$tsne@cell.embeddings[colnames(cd),2],
+                    cells=rownames(scData@dr$tsne@cell.embeddings),
+                    cluster=scData@ident,
+                    pseudotime=a$A[1,])
+```
+
 ## Clustering Results {.tabset}
 
 ### Cell clustering tSNE
@@ -147,21 +160,17 @@ if(length(param$markersToCheck) >0){
 ```
 
 ### Pseudotime
-
-```{r pseudo time, echo=FALSE, fig.width=8, fig.height=5}
-cd <- as.matrix(scData@data)
-set.seed(10) 
-a <- fastICA(cd, 2, alg.typ = "deflation", fun = "logcosh", 
-             alpha = 1, method = "C", row.norm = FALSE, maxit = 200, 
-             tol = 0.0001, verbose = FALSE)
-toPlot <- tibble(X=scData@dr$tsne@cell.embeddings[colnames(cd),1],
-                 Y=scData@dr$tsne@cell.embeddings[colnames(cd),2],
-                 pseudotime=a$A[1,])
-p <- ggplot(toPlot, aes(X, Y)) + 
+```{r pseudo time plot, echo=FALSE, fig.width=8, fig.height=5}
+p <- ggplot(tSNE_data, aes(X, Y)) + 
   geom_point(shape=21, size=5, colour = "black", aes(fill=pseudotime)) +
   scale_fill_gradient(low="yellow", high="blue") +
-  xlab("") + ylab("") 
+  xlab("") + ylab("")
 print(p)
+```
+
+### Interactive explorer
+```{r make shiny data, echo=FALSE}
+save(scData, tSNE_data, file=basename(output$getColumn("Live Report")))
 ```
 
 ### Seurat parameters
