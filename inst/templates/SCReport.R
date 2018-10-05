@@ -29,6 +29,7 @@ output[['Species']] = 'Homo sapiens (human)'
 output[['refBuild']] = 'Homo_sapiens/Ensembl/GRCh38.p10/Annotation/Release_91-2018-02-26'
 output[['refFeatureFile']] = 'genes.gtf'
 output[['Static Report [Link]']] = 'p2284/SCCountQC_28929_2018-08-22--19-38-16/AVM_17_08_2018_SCCountQC/00index.html'
+output[['Live Report [Link]']] = 'p2284/SCCountQC_28929_2018-08-22--19-38-16/AVM_17_08_2018_SCCountQC/'
 output[['Report [File]']] = 'p2284/SCCountQC_28929_2018-08-22--19-38-16/AVM_17_08_2018_SCCountQC'
 input = list()
 input[['Name']] = 'AVM_17_08_2018'

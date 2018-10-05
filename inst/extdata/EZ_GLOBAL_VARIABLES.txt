@@ -35,6 +35,7 @@ INDEX_BUILD_TIMEOUT=180
 SHINY_EXPLORE_COUNTS="http://fgcz-shiny.uzh.ch/fgcz_exploreCountQC_app/"
 SHINY_EXPLORE_DE="http://fgcz-shiny.uzh.ch/fgcz_exploreDEG_app/"
 SHINY_SCATER="http://fgcz-shiny.uzh.ch/fgcz_scater_app/"
+SHINY_EXPLORE_SC="http://fgcz-176.uzh.ch/shiny/fgcz_exploreSC_app/"
 
 ## Enrichr
 ENRICHR_BASE_URL="https://amp.pharm.mssm.edu/Enrichr"
