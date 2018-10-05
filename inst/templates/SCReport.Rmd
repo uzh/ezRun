@@ -18,6 +18,7 @@ require(dplyr)
 require(tibble)
 require(kableExtra)
 require(fastICA)
+require(Matrix)
 ## ----------------------------------------------
 ## debug
 # title:  "`r metadata(sce)$param$name`"
@@ -56,8 +57,8 @@ kable(tibble(Cluster=names(summary(scData@ident)),
 
 ```{r gene mean per cluster, echo=FALSE}
 tr_cnts <- expm1(scData@data)
-geneMeans <- rowsum(as.matrix(t(tr_cnts)), group=scData@ident)
-geneMeans <- sweep(geneMeans, 1, 
+geneMeans <- rowsum(t(as.matrix(tr_cnts)), group=scData@ident)
+geneMeans <- sweep(geneMeans, 1,
                    STATS=table(scData@ident)[rownames(geneMeans)], FUN="/")
 geneMeans <- log1p(t(geneMeans))
 colnames(geneMeans) <- paste("cluster", colnames(geneMeans), sep="_")
