@@ -1,16 +1,17 @@
 ## p2284 10x
 setwd("/scratch/gtan/dev/SCReports-p2284")
+
 library(ezRun)
 param = list()
-param[['cores']] = '8'
-param[['ram']] = '100'
-param[['scratch']] = '200'
+param[['cores']] = '4'
+param[['ram']] = '8'
+param[['scratch']] = '10'
 param[['node']] = ''
 param[['process_mode']] = 'SAMPLE'
 param[['name']] = 'SCReport'
+param[['refBuild']] = 'Homo_sapiens/Ensembl/GRCh38.p10/Annotation/Release_91-2018-02-26'
 param[['paired']] = 'false'
 param[['strandMode']] = 'both'
-param[['refBuild']] = 'Homo_sapiens/Ensembl/GRCh38.p10/Annotation/Release_91-2018-02-26'
 param[['refFeatureFile']] = 'genes.gtf'
 param[['featureLevel']] = 'gene'
 param[['transcriptTypes']] = ''
@@ -22,15 +23,15 @@ param[['markersToCheck']] = 'Zhengs lists=Psat1,Phgdh,Psph,Dnmt1,Dnmt3a,Hdac9,Vw
 param[['specialOptions']] = ''
 param[['mail']] = 'ge.tan@fgcz.ethz.ch'
 param[['dataRoot']] = '/srv/gstore/projects'
-param[['resultDir']] = 'p2284/SCCountQC_28929_2018-08-22--19-38-16'
+param[['resultDir']] = 'p2284/SCReport_28929_2018-10-05--22-01-26'
 output = list()
 output[['Name']] = 'AVM_17_08_2018'
 output[['Species']] = 'Homo sapiens (human)'
 output[['refBuild']] = 'Homo_sapiens/Ensembl/GRCh38.p10/Annotation/Release_91-2018-02-26'
 output[['refFeatureFile']] = 'genes.gtf'
-output[['Static Report [Link]']] = 'p2284/SCCountQC_28929_2018-08-22--19-38-16/AVM_17_08_2018_SCCountQC/00index.html'
-output[['Live Report [Link]']] = 'p2284/SCCountQC_28929_2018-08-22--19-38-16/AVM_17_08_2018_SCCountQC/'
-output[['Report [File]']] = 'p2284/SCCountQC_28929_2018-08-22--19-38-16/AVM_17_08_2018_SCCountQC'
+output[['Static Report [Link]']] = 'p2284/SCReport_28929_2018-10-05--22-01-26/AVM_17_08_2018_SCReport/00index.html'
+output[['Live Report [Link]']] = 'http://fgcz-176.uzh.ch/shiny/fgcz_exploreSC_app/?data=p2284/SCReport_28929_2018-10-05--22-01-26/AVM_17_08_2018_SCReport/SCReport-butvkxmjqqvu.rds'
+output[['Report [File]']] = 'p2284/SCReport_28929_2018-10-05--22-01-26/AVM_17_08_2018_SCReport'
 input = list()
 input[['Name']] = 'AVM_17_08_2018'
 input[['ResultDir']] = 'p2284/CellRangerCount_28912_NS214_o4718_2018-08-20--11-24-01/AVM_17_08_2018'
@@ -38,10 +39,10 @@ input[['Report']] = 'p2284/CellRangerCount_28912_NS214_o4718_2018-08-20--11-24-0
 input[['BAM']] = 'p2284/CellRangerCount_28912_NS214_o4718_2018-08-20--11-24-01/AVM_17_08_2018/outs/possorted_genome_bam.bam'
 input[['BAI']] = 'p2284/CellRangerCount_28912_NS214_o4718_2018-08-20--11-24-01/AVM_17_08_2018/outs/possorted_genome_bam.bam.bai'
 input[['Species']] = 'Homo sapiens (human)'
+input[['refBuild']] = 'Homo_sapiens/Ensembl/GRCh38.p10/Annotation/Release_91-2018-02-26'
 input[['CountMatrix']] = 'p2284/CellRangerCount_28912_NS214_o4718_2018-08-20--11-24-01/AVM_17_08_2018/outs/filtered_gene_bc_matrices'
 input[['Sample Id']] = 'bfs_183566'
 input[['Order Id']] = '4718'
-input[['refBuild']] = 'Homo_sapiens/Ensembl/GRCh38.p10/Annotation/Release_91-2018-02-26'
 input[['refFeatureFile']] = 'genes.gtf'
 input[['featureLevel']] = 'gene'
 
