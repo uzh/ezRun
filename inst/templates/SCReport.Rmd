@@ -170,7 +170,8 @@ print(p)
 
 ### Interactive explorer
 ```{r make shiny data, echo=FALSE}
-save(scData, tSNE_data, file=basename(output$getColumn("Live Report")))
+saveRDS(list(scData=scData, tSNE_data=tSNE_data),
+        file=basename(output$getColumn("Live Report")))
 ```
 
 ### Seurat parameters
