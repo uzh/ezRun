@@ -209,7 +209,7 @@ if(!is.na(plateMatrix)){
 
 This is only available for full length single cell protocol.
 
-```{r gene detection rates, fig.width=8, fig.height=8, echo=FALSE, message=FALSE, warning=FALSE, eval=evalPicard && !debug}
+```{r gene detection rates, fig.width=8, fig.height=8, echo=FALSE, message=FALSE, warning=FALSE, eval=!debug}
 scePC = sce
 scePC = scePC[rowData(scePC)$biotypes == "protein_coding", ]
 widthOffset = 200
