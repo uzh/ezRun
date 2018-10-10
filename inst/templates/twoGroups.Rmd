@@ -231,18 +231,18 @@ if (!isTRUE(isTwoGroup)){
 ```
 
 ### Inspection of significant genes (Advanced plots)
-```{r volcano FDR, echo=FALSE, message=FALSE, fig.width=9, fig.width=7, eval=!debug}
+```{r volcano FDR, echo=FALSE, message=FALSE, fig.width=9, fig.width=7, eval=!debug, warning=FALSE}
 if(isTRUE(isTwoGroup)){
   ## warning=FALSE because FDR contains NA. Shall we make them always 1?
   ## volcano plot with FDR
   volcanoFDRPng <- paste0(param$comparison, "-FDR-volcano.png")
   volcanoFDRPdf <- sub("png$", "pdf", volcanoFDRPng)
-  suppressWarnings(p_volcano <- ezVolcano(log2Ratio=rowData(se)$log2Ratio,
+  p_volcano <- ezVolcano(log2Ratio=rowData(se)$log2Ratio,
                          pValue=rowData(se)$fdr, yType="FDR",
                          isPresent=rowData(se)$usedInTest, types=types,
                          names=rowData(se)$gene_name,
                          main=param$comparison,
-                         mode="ggplot2"))
+                         mode="ggplot2")
   print(p_volcano)
   
   ggsave(filename=volcanoFDRPdf, plot=p_volcano, device="pdf",
