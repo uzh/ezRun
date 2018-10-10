@@ -793,13 +793,13 @@ and the total number of genes in that category.
 
 ```{r bias, echo=FALSE, eval=TRUE}
 x = rowData(se)[rowData(se)$usedInTest, ]
-if(all(c("gc", "width") %in% colnames(x))){
+if(all(c("gc", "featWidth") %in% colnames(x))){
   gcThresh = quantile(x$gc, c(0.05, 0.95))
-  widthThresh = quantile(x$width, c(0.05, 0.95))
+  widthThresh = quantile(x$featWidth, c(0.05, 0.95))
   biasTable <- data.frame("low GC"=x$gc < gcThresh[1],
                           "high GC"=x$gc > gcThresh[2],
-                          "short genes"= x$width < widthThresh[1],
-                          "long genes"=x$width > widthThresh[2],
+                          "short genes"= x$featWidth < widthThresh[1],
+                          "long genes"=x$featWidth > widthThresh[2],
                           check.names=FALSE)
   isUp <- x$pValue < param$pValueHighlightThresh & 
           x$log2Ratio > param$log2RatioHighlightThresh

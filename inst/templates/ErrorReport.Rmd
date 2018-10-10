@@ -1,0 +1,15 @@
+---
+title:  "`r paste('Error:', param$name)`"
+author: "Functional Genomics Center Zurich"
+output: 
+  html_document:
+    self_contained: false
+    includes:
+      in_header: fgcz_header.html
+    css: fgcz.css
+---
+
+# Error message
+```{r error, echo=FALSE}
+error
+```

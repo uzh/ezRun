@@ -66,7 +66,6 @@ loadCountDataset <- function(input, param){
   }
   
   seqAnno <- makeGRangesFromDataFrame(seqAnnoDFFeature, keep.extra.columns=TRUE)
-  seqAnno$featWidth <- seqAnnoDFFeature$width
   
   if (param$useSigThresh){
     sigThresh = param$sigThresh
@@ -144,7 +143,6 @@ loadSCCountDataset <- function(input, param){
     seqAnnoDF <- ezFeatureAnnotation(param, rownames(countMatrix),
                                      dataFeatureLevel)
     seqAnno <- makeGRangesFromDataFrame(seqAnnoDF, keep.extra.columns=TRUE)
-    seqAnno$featWidth <- seqAnnoDF$width
     
     if (param$useSigThresh){
       sigThresh <- param$sigThresh
@@ -154,7 +152,7 @@ loadSCCountDataset <- function(input, param){
     
     if (ezIsSpecified(param$correctBias) && param$correctBias){
       countMatrix <- ezCorrectBias(countMatrix, gc = seqAnno$gc, 
-                                   width=seqAnno$width)$correctedCounts
+                                   width=seqAnno$featWidth)$correctedCounts
     }
     
     sce <- SingleCellExperiment(assays=list(counts=countMatrix,
@@ -171,7 +169,6 @@ loadSCCountDataset <- function(input, param){
     seqAnnoDF <- ezFeatureAnnotation(param, rownames(sce),
                                      dataFeatureLevel)
     seqAnno <- makeGRangesFromDataFrame(seqAnnoDF, keep.extra.columns=TRUE)
-    seqAnno$featWidth <- seqAnnoDF$width
     rowRanges(sce) <- seqAnno
     metadata(sce)$param <- param
   }else{

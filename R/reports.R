@@ -158,13 +158,16 @@ addDataset = function(doc, dataset, param){
 ##' param = ezParam()
 ##' htmlFile = "example.html"
 ##' writeErrorReport(htmlFile, param)
-writeErrorReport = function(htmlFile, param=param, error="Unknown Error"){
-  doc = openBsdocReport(title=paste("Error:", param$name))
-  addTitle(doc, "Error message", level=2)
-  for (i in 1:length(error)){
-    addParagraph(doc, error[i])
-  }
-  closeBsdocReport(doc, htmlFile)
+
+writeErrorReport <- function(htmlFile, param=param, error="Unknown Error"){
+  
+  ## Copy the style files and templates
+  styleFiles <- file.path(system.file("templates", package="ezRun"),
+                          c("fgcz.css", "ErrorReport.Rmd",
+                            "fgcz_header.html", "banner.png"))
+  file.copy(from=styleFiles, to=".", overwrite=TRUE)
+  rmarkdown::render(input="ErrorReport.Rmd", envir=new.env(),
+                    output_dir=".", output_file=htmlFile, quiet=TRUE)
 }
 
 ##' @title Adds text links
@@ -487,8 +490,8 @@ addResultFile = function(doc, param, result, rawData, useInOutput=TRUE,
     y = cbind(y, yy)
   }
   y = y[order(y$fdr, y$pValue), ]
-  if (!is.null(y$width)){
-    y$width = as.integer(y$width)
+  if (!is.null(y$featWidth)){
+    y$featWidth = as.integer(y$featWidth)
   }
   if (!is.null(y$gc)){
     y$gc = as.numeric(y$gc)
@@ -538,9 +541,9 @@ addResultFileSE = function(doc, param, se, useInOutput=TRUE,
     y = cbind(y, yy)
   }
   y = y[order(y$fdr, y$pValue), ]
-   if (!is.null(y$width)){
+   if (!is.null(y$featWidth)){
      ## This is to round the with after averaging the transcript lengths
-     y$width = as.integer(y$width)
+     y$featWidth = as.integer(y$featWidth)
   }
 
   ezWrite.table(y, file=file, head="Identifier", digits=4)
@@ -583,9 +586,9 @@ makeResultFile = function(param, se, useInOutput=TRUE,
     y = cbind(y, yy)
   }
   y = y[order(y$fdr, y$pValue), ]
-  if (!is.null(y$width)){
+  if (!is.null(y$featWidth)){
     ### This is to round the with after averaging the transcript lengths
-    y$width = as.integer(y$width)
+    y$featWidth = as.integer(y$featWidth)
   }
   
   ezWrite.table(y, file=file, digits=4, row.names=FALSE)
@@ -598,7 +601,7 @@ makeResultFile = function(param, se, useInOutput=TRUE,
   }
   
   ## Interactive gene tables
-  useInInteractiveTable = c("gene_name", "type", "description", "width", "gc", 
+  useInInteractiveTable = c("gene_name", "type", "description", "featWidth", "gc", 
                             "isPresent", "log2 Ratio", "pValue", "fdr")
   useInInteractiveTable = intersect(useInInteractiveTable, colnames(y))
   tableLink = sub(".txt", "-viewTopSignificantGenes.html", file)
@@ -683,48 +686,3 @@ addJavaScriptIgvStarter = function(htmlFile, projectId, doc){
                      "}")
   addJavascript(doc, text=javaScript)
 }
-
-##' @title Adds a table
-##' @description Adds a table to a bsdoc object.
-##' @template doc-template
-##' @templateVar object table
-##' @param x a matrix or data.frame to paste a table from.
-##' @param bgcolors a matrix specifying the background colors.
-##' @param valign a character specifying where to align the table elements vertically. Use either "top", "middle" or "bottom".
-##' @param border an integer specifying the border width.
-##' @param head a character specifying the contents of the upper-left corner of the table.
-##' @template roxygen-template
-##' @seealso \code{\link[ReporteRs]{addFlexTable}}
-##' @examples
-##' x = matrix(1:25,5)
-##' rownames(x) = letters[1:5]
-##' colnames(x) = LETTERS[1:5]
-##' html = openBsdocReport()
-##' ezAddTable(html, x, head="Example", bgcolors="red")
-##' closeBsdocReport(html, "example.html")
-ezAddTable = function(doc, x, bgcolors=NULL, valign="middle", border=1, head=""){
-  bodyCells = cellProperties(border.width=border, vertical.align=valign)
-  table = FlexTable(x, header.columns = FALSE, body.cell.props=bodyCells,
-                    header.cell.props=cellProperties(border.width = border))
-  if (!is.null(bgcolors)){
-    table = setFlexTableBackgroundColors(table, j=1:ncol(x), colors=bgcolors)
-  }
-  table = addHeaderRow(table, colnames(x))
-  addFlexTable(doc, table)
-}
-
-# ## NOTEP: used once in gage-reports.R, but that needs to be refactored anyway.
-# ##' @describeIn ezAddTable Does the same with a white font and returning the table instead of adding it to the document.
-# ezAddTableWhite = function(x, bgcolors=NULL, valign="middle", border=1, head=""){
-#   if (is.null(bgcolors)){
-#     bgcolors = matrix("#ffffff", nrow=nrow(x), ncol=ncol(x))
-#   }
-#   ##x = cbind(rownames(x),x)
-#   x = as.html(pot(paste('<font color="white">', x, '</font>')))
-#   bodyCells = cellProperties(border.width=border, vertical.align=valign)
-#   table = FlexTable(x, header.columns = FALSE, body.cell.props=bodyCells,
-#                     header.cell.props=cellProperties(border.width = border))
-#   table = setFlexTableBackgroundColors(table, j=1:ncol(x), colors=bgcolors)
-#   table = addHeaderRow(table, colnames(x))
-#   return(table)
-# }

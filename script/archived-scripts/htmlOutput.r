@@ -376,9 +376,9 @@ writeQcScatterPlots = function(html, param, design, conds,
   } else {
     gcTypes = NULL
   }
-  if (!is.null(rawData$seqAnno$width)){
-    widthTypes = data.frame("width < 500nt"=as.numeric(rawData$seqAnno$width) < 500, 
-                            "width > 5000nt"=as.numeric(rawData$seqAnno$width) > 5000,
+  if (!is.null(rawData$seqAnno$featWidth)){
+    widthTypes = data.frame("width < 500nt"=as.numeric(rawData$seqAnno$featWidth) < 500, 
+                            "width > 5000nt"=as.numeric(rawData$seqAnno$featWidth) > 5000,
                             check.names=FALSE)
   } else {
     widthTypes = NULL
