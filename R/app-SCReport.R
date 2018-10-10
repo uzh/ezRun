@@ -18,6 +18,7 @@ EzAppSCReport <-
                                         max_genes=ezFrame(Type="numeric", DefaultValue=3000, Description="Minimal number of genes for Seurat filtering"),
                                         min_counts=ezFrame(Type="numeric", DefaultValue=5e4, Description="Minimal counts of smart-Seq2 for Seurat filtering"),
                                         pcs=ezFrame(Type="numeric", DefaultValue=10, Description="The maximal dimensions to use for reduction"),
+                                        resolution=ezFrame(Type="numeric", DefaultValue=0.8, Description="Value of the resolution parameter, use a value above (below) 1.0 if you want to obtain a larger (smaller) number of communities."),
                                         markersToCheck=ezFrame(Type="charList", DefaultValue="", Description="The markers to check"))
                 }
               )
@@ -97,8 +98,8 @@ seuratPreProcess <- function(sce){
   
   scData <- FindClusters(object=scData, reduction.type="pca",
                          dims.use = 1:param$pcs,
-                         resolution = 0.6, print.output = 0, save.SNN=TRUE,
-                         force.recalc=TRUE)
+                         resolution = param$resolution, print.output = 0, 
+                         save.SNN=TRUE, force.recalc=TRUE)
   set.seed(10)
   scData <- RunTSNE(object = scData, dims.use = 1:param$pcs, do.fast = TRUE, 
                     perplexity = 30)
