@@ -140,7 +140,7 @@ txEndBias <- function(param, inBam, width=100L, minTxLength=NULL,
   countsAll <- countsAll[rownames(counts5), ]
   
   widthsTx <- getTranscriptGcAndWidth(param)
-  widthsTx <- widthsTx$width[rownames(countsAll)]
+  widthsTx <- widthsTx$featWidth[rownames(countsAll)]
   bias5 <- (counts5 / width) / (countsAll / widthsTx)
   bias3 <- (counts3 / width) / (countsAll / widthsTx)
   

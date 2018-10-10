@@ -20,20 +20,10 @@ getRpkm = function(rawData){
   if (!is.null(assays(rawData)$rpkm)){
     return(assays(rawData)$rpkm)
   }
-  if (is.null(rowData(rawData)$width)){
-    if(is.null(rowData(rawData)$featWidth)){
-      warning("The `width` is not available in annotation.")
-      return(NULL)
-    }else{
-      rowData(rawData)$width <- rowData(rawData)$featWidth
-    }
-  }
   libSize = Matrix::colSums(assays(rawData)$counts)
-  # rpkm <- edgeR::rpkm(assays(rawData)$counts, gene.length=rowData(rawData)$width,
-  #                     normalized.lib.sizes=FALSE, log=FALSE, prior.count=0)
   # Didn't test whether edgeR::rpkm works on sparse matrxi from single cell
   rpkm <- sweep(assays(rawData)$counts * 1e9, MARGIN=1,
-                STATS=rowData(rawData)$width, FUN="/")
+                STATS=rowData(rawData)$featWidth, FUN="/")
   rpkm <- sweep(rpkm, MARGIN=2, STATS=libSize, FUN="/")
   return(rpkm)
 }
@@ -43,16 +33,8 @@ getTpm = function(rawData) {
   if (!is.null(assays(rawData)$tpm)){
     return(assays(rawData)$tpm)
   }
-  if (is.null(rowData(rawData)$width)){
-    if(is.null(rowData(rawData)$featWidth)){
-      warning("The `width` is not available in annotation.")
-      return(NULL)
-    }else{
-      rowData(rawData)$width <- rowData(rawData)$featWidth
-    }
-  }
   tpm <- sweep(assays(rawData)$counts * 1e3, MARGIN=1,
-               STATS=rowData(rawData)$width, FUN="/")
+               STATS=rowData(rawData)$featWidth, FUN="/")
   tpm <- sweep(tpm * 1e6, MARGIN=2, STATS=Matrix::colSums(tpm),
                FUN="/")
   return(tpm)

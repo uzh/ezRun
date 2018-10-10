@@ -71,7 +71,7 @@ ezFeatureAnnotation = function(param, ids=NULL,
   }
   minimalCols <- c("gene_id", "transcript_id", "gene_name", "type", "strand",
                    "seqid", "biotypes", "description", "start", "end",
-                   "gc", "width", "GO BP", "GO MF", "GO CC")
+                   "gc", "featWidth", "GO BP", "GO MF", "GO CC")
   if(!"type" %in% colnames(seqAnno) || all(seqAnno$type == "")){
     message("Assigning type with protein coding.")
     seqAnno$type <- "protein_coding"
@@ -111,7 +111,6 @@ makeFeatAnnoEnsembl <- function(featureFile,
   require(data.table)
   
   featAnnoFile <- sub(".gtf", "_annotation_byTranscript.txt", featureFile)
-  featAnnoFileCompat <- sub(".gtf", "_annotation.txt", featureFile)
   featAnnoGeneFile <- sub(".gtf", "_annotation_byGene.txt", featureFile)
   
   feature <- import(featureFile)
@@ -137,7 +136,7 @@ makeFeatAnnoEnsembl <- function(featureFile,
   ## Example: ENST00000399012 can be on chrX and chrY.
   ## Ensembl only keeps the ones on chrX.
   
-  ## Calculate gc and width
+  ## Calculate gc and featWidth
   gw <- getTranscriptGcAndWidth(genomeFn=genomeFile,
                                 featureFn=featureFile)
   featAnno <- data.table(transcript_id=transcripts$transcript_id,
@@ -150,10 +149,10 @@ makeFeatAnnoEnsembl <- function(featureFile,
                          end=end(transcripts),
                          biotypes=transcripts$gene_biotype,
                          gc=gw$gc[transcripts$transcript_id],
-                         width=gw$width[transcripts$transcript_id]
+                         featWidth=gw$featWidth[transcripts$transcript_id]
                         )
   ## The numeric columns should not have NAs.
-  stopifnot(!any(is.na(featAnno[ ,.(start, end, gc, width)])))
+  stopifnot(!any(is.na(featAnno[ ,.(start, end, gc, featWidth)])))
   
   ## Group the biotype into more general groups
   stopifnot(all(featAnno$biotypes %in% listBiotypes("all")))
@@ -275,7 +274,6 @@ makeFeatAnnoEnsembl <- function(featureFile,
   cwd <- getwd()
   ### For compatibility, create _annotation.txt symlink
   setwd(dirname(featAnnoFile))
-  file.symlink(basename(featAnnoFile), basename(featAnnoFileCompat))
   setwd(cwd)
   
   ## make annotation at gene level
@@ -308,11 +306,11 @@ aggregateGoAnnotation = function(seqAnno, genes, goColumns=c("GO BP", "GO CC", "
 aggregateFeatAnno <- function(featAnno){
   ## featAnno is the content of *_annotation.txt
   ## it's expected to contain the columns: transcript_id, gene_id, gene_name, 
-  ## type, strand, seqid, start, end, biotypes, description, gc, width, GO BP,
+  ## type, strand, seqid, start, end, biotypes, description, gc, featWidth, GO BP,
   ## GO MF, GO CC
   features <- c("gene_id", "transcript_id", "gene_name", "type", "strand", 
                 "seqid", "start", "end", "biotypes", "description", "gc", 
-                "width", "GO BP", "GO MF", "GO CC", 
+                "featWidth", "GO BP", "GO MF", "GO CC", 
                 ## below is for compatibility with old _annotation.txt
                 "gene_source", "transcript_name", "hgnc_symbol", "orignal type",
                 "uniprot", "Short_description", "Curator_summary", "GO",
@@ -333,14 +331,15 @@ aggregateFeatAnno <- function(featAnno){
                                    uniqueOnly=TRUE, na.rm=TRUE),
                             by=.(gene_id), 
                             .SDcols = setdiff(features, c("gene_id", "start", 
-                                                          "end", "gc", "width",
+                                                          "end", "gc", "featWidth",
                                                           goColumns))]
   ## Aggregate the numeric columns
-  if (all(c("start", "end", "gc", "width") %in% colnames(featAnno))){
+  if (all(c("start", "end", "gc", "featWidth") %in% colnames(featAnno))){
     featAnnoGeneNumeric <- featAnno[ , .(start=min(start),
                                          end=max(end),
                                          gc=signif(mean(gc), digits = 4),
-                                         width=signif(mean(width), digits = 4)),
+                                         featWidth=signif(mean(featWidth), 
+                                                          digits = 4)),
                                      by=.(gene_id)
                                      ]
     featAnnoGene <- merge(featAnnoGene, featAnnoGeneNumeric)

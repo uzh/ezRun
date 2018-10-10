@@ -60,7 +60,7 @@ test_that("Tests more functions from gff.r", {
   expect_is(transcriptSequences, "DNAStringSet")
   gcAndWidth = getTranscriptGcAndWidth(param)
   expect_is(gcAndWidth$gc, "numeric")
-  expect_is(gcAndWidth$width, "integer")
+  expect_is(gcAndWidth$featWidth, "integer")
   ensemblTypes = getEnsemblTypes(gtf)
   expect_is(ensemblTypes, "character")
 })
