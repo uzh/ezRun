@@ -5,24 +5,6 @@
 # The terms are available here: http://www.gnu.org/licenses/gpl.html
 # www.fgcz.ch
 
-
-##' @title Gets the sequence annotation
-##' @description Gets the sequence annotation from annotation (gtf or gff) and sequence (fasta) information.
-##' Sequence annotation files are on the isoform level. If the analysis is to be done at the gene level, the annotation for
-##' the isoforms is aggregated.
-##' @param param the parameters to load the annotation and sequence files from and possibly write to.
-##' @param ids a character vector containing the gene ID's to return.
-##' @param dataFeatureType either \code{"isoform"} or \code{"gene"}.
-##' @template roxygen-template
-##' @return Returns a data.frame containing information about the genes in an easily readable way.
-##' @examples
-##' param = ezParam()
-##' param$ezRef["refFeatureFile"] = system.file("extdata/genes.gtf", package="ezRun", mustWork=TRUE)
-##' param$ezRef["refFastaFile"] = system.file("extdata/genome.fa", package="ezRun", mustWork=TRUE)
-##' annoFile = system.file("extdata/genes_annotation.txt", package="ezRun", mustWork=TRUE)
-##' param$ezRef["refAnnotationFile"] = annoFile
-##' seqAnno = writeAnnotationFromGtf(param)
-##' seqAnno2 = ezFeatureAnnotation(param, rownames(seqAnno), dataFeatureType="gene")
 ezFeatureAnnotation = function(param, ids=NULL,
                                dataFeatureType=c("gene", "transcript", 
                                                  "isoform")){
@@ -71,7 +53,12 @@ ezFeatureAnnotation = function(param, ids=NULL,
   }
   minimalCols <- c("gene_id", "transcript_id", "gene_name", "type", "strand",
                    "seqid", "biotypes", "description", "start", "end",
-                   "gc", "width", "GO BP", "GO MF", "GO CC")
+                   "gc", "featWidth", "GO BP", "GO MF", "GO CC")
+  if(!"featWidth" %in% colnames(seqAnno) && "width" %in% colnames(seqAnno)){
+    # For back compatibility
+    seqAnno$featWidth <- seqAnno$width
+    seqAnno$width <- NULL
+  }
   if(!"type" %in% colnames(seqAnno) || all(seqAnno$type == "")){
     message("Assigning type with protein coding.")
     seqAnno$type <- "protein_coding"
@@ -111,7 +98,6 @@ makeFeatAnnoEnsembl <- function(featureFile,
   require(data.table)
   
   featAnnoFile <- sub(".gtf", "_annotation_byTranscript.txt", featureFile)
-  featAnnoFileCompat <- sub(".gtf", "_annotation.txt", featureFile)
   featAnnoGeneFile <- sub(".gtf", "_annotation_byGene.txt", featureFile)
   
   feature <- import(featureFile)
@@ -137,7 +123,7 @@ makeFeatAnnoEnsembl <- function(featureFile,
   ## Example: ENST00000399012 can be on chrX and chrY.
   ## Ensembl only keeps the ones on chrX.
   
-  ## Calculate gc and width
+  ## Calculate gc and featWidth
   gw <- getTranscriptGcAndWidth(genomeFn=genomeFile,
                                 featureFn=featureFile)
   featAnno <- data.table(transcript_id=transcripts$transcript_id,
@@ -150,10 +136,10 @@ makeFeatAnnoEnsembl <- function(featureFile,
                          end=end(transcripts),
                          biotypes=transcripts$gene_biotype,
                          gc=gw$gc[transcripts$transcript_id],
-                         width=gw$width[transcripts$transcript_id]
+                         featWidth=gw$featWidth[transcripts$transcript_id]
                         )
   ## The numeric columns should not have NAs.
-  stopifnot(!any(is.na(featAnno[ ,.(start, end, gc, width)])))
+  stopifnot(!any(is.na(featAnno[ ,.(start, end, gc, featWidth)])))
   
   ## Group the biotype into more general groups
   stopifnot(all(featAnno$biotypes %in% listBiotypes("all")))
@@ -275,7 +261,6 @@ makeFeatAnnoEnsembl <- function(featureFile,
   cwd <- getwd()
   ### For compatibility, create _annotation.txt symlink
   setwd(dirname(featAnnoFile))
-  file.symlink(basename(featAnnoFile), basename(featAnnoFileCompat))
   setwd(cwd)
   
   ## make annotation at gene level
@@ -308,11 +293,11 @@ aggregateGoAnnotation = function(seqAnno, genes, goColumns=c("GO BP", "GO CC", "
 aggregateFeatAnno <- function(featAnno){
   ## featAnno is the content of *_annotation.txt
   ## it's expected to contain the columns: transcript_id, gene_id, gene_name, 
-  ## type, strand, seqid, start, end, biotypes, description, gc, width, GO BP,
+  ## type, strand, seqid, start, end, biotypes, description, gc, featWidth, GO BP,
   ## GO MF, GO CC
   features <- c("gene_id", "transcript_id", "gene_name", "type", "strand", 
                 "seqid", "start", "end", "biotypes", "description", "gc", 
-                "width", "GO BP", "GO MF", "GO CC", 
+                "featWidth", "GO BP", "GO MF", "GO CC", 
                 ## below is for compatibility with old _annotation.txt
                 "gene_source", "transcript_name", "hgnc_symbol", "orignal type",
                 "uniprot", "Short_description", "Curator_summary", "GO",
@@ -333,14 +318,15 @@ aggregateFeatAnno <- function(featAnno){
                                    uniqueOnly=TRUE, na.rm=TRUE),
                             by=.(gene_id), 
                             .SDcols = setdiff(features, c("gene_id", "start", 
-                                                          "end", "gc", "width",
+                                                          "end", "gc", "featWidth",
                                                           goColumns))]
   ## Aggregate the numeric columns
-  if (all(c("start", "end", "gc", "width") %in% colnames(featAnno))){
+  if (all(c("start", "end", "gc", "featWidth") %in% colnames(featAnno))){
     featAnnoGeneNumeric <- featAnno[ , .(start=min(start),
                                          end=max(end),
                                          gc=signif(mean(gc), digits = 4),
-                                         width=signif(mean(width), digits = 4)),
+                                         featWidth=signif(mean(featWidth), 
+                                                          digits = 4)),
                                      by=.(gene_id)
                                      ]
     featAnnoGene <- merge(featAnnoGene, featAnnoGeneNumeric)

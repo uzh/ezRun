@@ -36,9 +36,9 @@ addQcScatterPlots = function(doc, param, design, conds, rawData, signalCond, isP
   } else {
     gcTypes = NULL
   }
-  if (!is.null(rowData(rawData)$width)){
-    widthTypes = data.frame("width < 500nt"=as.numeric(rowData(rawData)$width) < 500, 
-                            "width > 5000nt"=as.numeric(rowData(rawData)$width) > 5000,
+  if (!is.null(rowData(rawData)$featWidth)){
+    widthTypes = data.frame("width < 500nt"=as.numeric(rowData(rawData)$featWidth) < 500, 
+                            "width > 5000nt"=as.numeric(rowData(rawData)$featWidth) > 5000,
                             check.names=FALSE)
   } else {
     widthTypes = NULL
@@ -128,9 +128,9 @@ countQcScatterPlots = function(param, design, conds, rawData, signalCond,
   } else {
     gcTypes = NULL
   }
-  if (!is.null(rowData(rawData)$width)){
-    widthTypes = data.frame("width < 500nt"=as.numeric(rowData(rawData)$width) < 500, 
-                            "width > 5000nt"=as.numeric(rowData(rawData)$width) > 5000,
+  if (!is.null(rowData(rawData)$featWidth)){
+    widthTypes = data.frame("width < 500nt"=as.numeric(rowData(rawData)$featWidth) < 500, 
+                            "width > 5000nt"=as.numeric(rowData(rawData)$featWidth) > 5000,
                             check.names=FALSE)
   } else {
     widthTypes = NULL

@@ -39,8 +39,6 @@ ezMethodEdger = function(input=NA, output=NA, param=NA,
   file.copy(from=styleFiles, to=".", overwrite=TRUE)
   rmarkdown::render(input="twoGroups.Rmd", envir=new.env(),
                     output_dir=".", output_file=htmlFile, quiet=TRUE)
-  
-  #writeNgsTwoGroupReport(deResult, output, htmlFile)
   return("Success")
 }
 
