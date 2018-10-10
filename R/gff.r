@@ -595,7 +595,7 @@ getTranscriptGcAndWidth = function(param=NULL, genomeFn=NULL, featureFn=NULL){
   data <- data[ , lapply(.SD, sum), by=.(tx)]
   ans <- list(gc=signif(setNames(data[ , gcCount/txWidth], data[ ,tx]),
                         digits=4),
-              width=setNames(data[ , txWidth], data[ ,tx]))
+              featWidth=setNames(data[ , txWidth], data[ ,tx]))
   return(ans)
 }
 

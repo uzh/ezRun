@@ -105,8 +105,8 @@ runNgsCountQC = function(htmlFile="00index.html",
     if (!is.null(seqAnno)){
       combined = cbind(seqAnno[rownames(combined), ,drop=FALSE], combined)
     }
-    if (!is.null(combined$width)){
-      combined$width = as.integer(combined$width)
+    if (!is.null(combined$featWidth)){
+      combined$featWidth = as.integer(combined$featWidth)
     }
     countFile = paste0(ezValidFilename(param$name), "-raw-count.txt")
     ezWrite.table(assays(rawData)$counts, file=countFile, 
@@ -126,7 +126,7 @@ runNgsCountQC = function(htmlFile="00index.html",
     topGenes = unique(as.character(topGenesPerSample))
     
     combined = combined[order(combined$"Maximum signal", decreasing = TRUE), , drop=FALSE]
-    useInInteractiveTable = c("seqid", "gene_name", "Maximum signal", "Mean signal", "description", "width", "gc")
+    useInInteractiveTable = c("seqid", "gene_name", "Maximum signal", "Mean signal", "description", "featWidth", "gc")
     useInInteractiveTable = intersect(useInInteractiveTable, colnames(combined))
     tableLink = sub(".txt", "-viewHighExpressionGenes.html", signalFile)
     combinedTopGenes = combined[which(rownames(combined) %in% topGenes),] ## select top genes

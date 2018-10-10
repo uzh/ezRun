@@ -487,8 +487,8 @@ addResultFile = function(doc, param, result, rawData, useInOutput=TRUE,
     y = cbind(y, yy)
   }
   y = y[order(y$fdr, y$pValue), ]
-  if (!is.null(y$width)){
-    y$width = as.integer(y$width)
+  if (!is.null(y$featWidth)){
+    y$featWidth = as.integer(y$featWidth)
   }
   if (!is.null(y$gc)){
     y$gc = as.numeric(y$gc)
@@ -538,9 +538,9 @@ addResultFileSE = function(doc, param, se, useInOutput=TRUE,
     y = cbind(y, yy)
   }
   y = y[order(y$fdr, y$pValue), ]
-   if (!is.null(y$width)){
+   if (!is.null(y$featWidth)){
      ## This is to round the with after averaging the transcript lengths
-     y$width = as.integer(y$width)
+     y$featWidth = as.integer(y$featWidth)
   }
 
   ezWrite.table(y, file=file, head="Identifier", digits=4)
@@ -583,9 +583,9 @@ makeResultFile = function(param, se, useInOutput=TRUE,
     y = cbind(y, yy)
   }
   y = y[order(y$fdr, y$pValue), ]
-  if (!is.null(y$width)){
+  if (!is.null(y$featWidth)){
     ### This is to round the with after averaging the transcript lengths
-    y$width = as.integer(y$width)
+    y$featWidth = as.integer(y$featWidth)
   }
   
   ezWrite.table(y, file=file, digits=4, row.names=FALSE)
@@ -598,7 +598,7 @@ makeResultFile = function(param, se, useInOutput=TRUE,
   }
   
   ## Interactive gene tables
-  useInInteractiveTable = c("gene_name", "type", "description", "width", "gc", 
+  useInInteractiveTable = c("gene_name", "type", "description", "featWidth", "gc", 
                             "isPresent", "log2 Ratio", "pValue", "fdr")
   useInInteractiveTable = intersect(useInInteractiveTable, colnames(y))
   tableLink = sub(".txt", "-viewTopSignificantGenes.html", file)

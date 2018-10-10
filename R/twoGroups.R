@@ -118,7 +118,7 @@ twoGroupCountComparison = function(rawData){
   pValue[is.na(pValue)] = 1
   
   if (!is.null(param$runGfold) && param$runGfold && 
-      !is.null(rowData(rawData)$width) && !is.null(rowData(rawData)$gene_name)){
+      !is.null(rowData(rawData)$featWidth) && !is.null(rowData(rawData)$gene_name)){
     rowData(rawData)$gfold <- runGfold(rawData, colData(rawData)$sf, 
                                        isSample, isRef)
   }
@@ -151,7 +151,7 @@ runGfold = function(rawData, scalingFactors, isSample, isRef){
     if (is.null(gene_name)) gene_name = "NA"
     gfoldData = data.frame(gene_name=gene_name, 
                            count=assays(rawData)$counts[, sampleName], 
-                           rowData(rawData)$width, 
+                           rowData(rawData)$featWidth,
                            assays(rawData)$rpkm[, sampleName], 
                            row.names=rownames(assays(rawData)$counts), 
                            check.names=FALSE, stringsAsFactors=FALSE)
