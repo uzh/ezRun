@@ -5,24 +5,6 @@
 # The terms are available here: http://www.gnu.org/licenses/gpl.html
 # www.fgcz.ch
 
-
-##' @title Gets the sequence annotation
-##' @description Gets the sequence annotation from annotation (gtf or gff) and sequence (fasta) information.
-##' Sequence annotation files are on the isoform level. If the analysis is to be done at the gene level, the annotation for
-##' the isoforms is aggregated.
-##' @param param the parameters to load the annotation and sequence files from and possibly write to.
-##' @param ids a character vector containing the gene ID's to return.
-##' @param dataFeatureType either \code{"isoform"} or \code{"gene"}.
-##' @template roxygen-template
-##' @return Returns a data.frame containing information about the genes in an easily readable way.
-##' @examples
-##' param = ezParam()
-##' param$ezRef["refFeatureFile"] = system.file("extdata/genes.gtf", package="ezRun", mustWork=TRUE)
-##' param$ezRef["refFastaFile"] = system.file("extdata/genome.fa", package="ezRun", mustWork=TRUE)
-##' annoFile = system.file("extdata/genes_annotation.txt", package="ezRun", mustWork=TRUE)
-##' param$ezRef["refAnnotationFile"] = annoFile
-##' seqAnno = writeAnnotationFromGtf(param)
-##' seqAnno2 = ezFeatureAnnotation(param, rownames(seqAnno), dataFeatureType="gene")
 ezFeatureAnnotation = function(param, ids=NULL,
                                dataFeatureType=c("gene", "transcript", 
                                                  "isoform")){
@@ -72,6 +54,11 @@ ezFeatureAnnotation = function(param, ids=NULL,
   minimalCols <- c("gene_id", "transcript_id", "gene_name", "type", "strand",
                    "seqid", "biotypes", "description", "start", "end",
                    "gc", "featWidth", "GO BP", "GO MF", "GO CC")
+  if(!"featWidth" %in% colnames(seqAnno) && "width" %in% colnames(seqAnno)){
+    # For back compatibility
+    seqAnno$featWidth <- seqAnno$width
+    seqAnno$width <- NULL
+  }
   if(!"type" %in% colnames(seqAnno) || all(seqAnno$type == "")){
     message("Assigning type with protein coding.")
     seqAnno$type <- "protein_coding"
