@@ -158,13 +158,16 @@ addDataset = function(doc, dataset, param){
 ##' param = ezParam()
 ##' htmlFile = "example.html"
 ##' writeErrorReport(htmlFile, param)
-writeErrorReport = function(htmlFile, param=param, error="Unknown Error"){
-  doc = openBsdocReport(title=paste("Error:", param$name))
-  addTitle(doc, "Error message", level=2)
-  for (i in 1:length(error)){
-    addParagraph(doc, error[i])
-  }
-  closeBsdocReport(doc, htmlFile)
+
+writeErrorReport <- function(htmlFile, param=param, error="Unknown Error"){
+  
+  ## Copy the style files and templates
+  styleFiles <- file.path(system.file("templates", package="ezRun"),
+                          c("fgcz.css", "ErrorReport.Rmd",
+                            "fgcz_header.html", "banner.png"))
+  file.copy(from=styleFiles, to=".", overwrite=TRUE)
+  rmarkdown::render(input="ErrorReport.Rmd", envir=new.env(),
+                    output_dir=".", output_file=htmlFile, quiet=TRUE)
 }
 
 ##' @title Adds text links
