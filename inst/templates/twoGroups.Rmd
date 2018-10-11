@@ -80,8 +80,12 @@ knitr::kable(makeSignificantCounts(se), row.names=TRUE,  format="html") %>%
                 position = "left")
 ```
 
-Full result table for opening with a spreadsheet program 
-(e.g. Excel: when opening with Excel, make sure that the Gene symbols are loaded into a column formatted as 'text' that prevents conversion of the symbols to dates).
+Full result table in tabular text for opening with a spreadsheet program (e.g. Excel).
+
+When opening with Excel, do make sure that the Gene symbols are loaded into a column formatted as 'text' that prevents
+conversion of the symbols to dates). See
+
+(https://www.genenames.org/help/importing-gene-symbol-data-into-excel-correctly)
 
 ```{r result live report, echo=FALSE, message=FALSE, eval=TRUE}
 resultFile <- makeResultFile(param, se)
