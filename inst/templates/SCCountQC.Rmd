@@ -7,6 +7,8 @@ output:
     includes:
       in_header: fgcz_header.html
     css: fgcz.css
+editor_options: 
+  chunk_output_type: console
 ---
 
 Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
@@ -21,6 +23,7 @@ require(htmltools)
 require(dplyr)
 require(Matrix) # sparse matrix
 require(Seurat)
+require(pheatmap)
 
 ## ----------------------------------------------
 ## debug
@@ -209,7 +212,7 @@ if(!is.na(plateMatrix)){
 
 This is only available for full length single cell protocol.
 
-```{r gene detection rates, fig.width=8, fig.height=8, echo=FALSE, message=FALSE, warning=FALSE, eval=!debug}
+```{r gene detection rates gc vs width, fig.width=7, fig.height=7, echo=FALSE, message=FALSE, eval=!debug}
 scePC = sce
 scePC = scePC[rowData(scePC)$biotypes == "protein_coding", ]
 widthOffset = 200
@@ -234,13 +237,15 @@ ezHeatmap(fracPresentBinned[nrow(fracPresentBinned):1, ], lim=c(0, 0.2),
           cexRow=1, cexCol=1, key.xlab="detection rate", key.title="",
           xlab="GC", ylab="log2 gene length", margins=c(8,8))
 
-
 ezHeatmap(log2((fracPresentBinned[nrow(fracPresentBinned):1, ] + 1e-3) / 
                  fracPresentBinned[refWidthBin, refGcBin]), lim=c(-2, 2),
           Rowv = FALSE, Colv = FALSE, main="",
           colors=getBlueRedScale(),
           cexRow=1, cexCol=1, key.xlab="detection rate", key.title="",
           xlab="GC", ylab="log2 gene length", margins=c(8,8))
+```
+
+```{r gene detection rates cells vs gcwidth, fig.width=14, fig.height=7, echo=FALSE, message=FALSE, eval=!debug}
 
 binCombs = expand.grid(logWidth=rownames(geneBins), gc=colnames(geneBins))
 gcWidthScores = ezMatrix(NA, rows=paste(binCombs$logWidth, binCombs$gc), 
@@ -249,15 +254,38 @@ for (i in 1:nrow(binCombs)){
   idx = geneBins[[binCombs$logWidth[i], binCombs$gc[i]]]
   gcWidthScores[paste(binCombs$logWidth[i], binCombs$gc[i]), ] = Matrix::colMeans(assays(scePC)$counts[idx, , drop=FALSE] > param$minReadsPerGene)
 }
-
 gcWidthScoresRel = log2((gcWidthScores + 0.01) / Matrix::rowMeans(gcWidthScores))
 
-ezHeatmap(gcWidthScores[ ,order(Matrix::colSums(assays(scePC)$counts) > 3)], lim=c(0, 0.2), Rowv = FALSE, Colv = FALSE, main="", colors=gray((1:256)/256), labCol="",
-          cexRow=1, cexCol=1, key.xlab="detection rate", key.title="", xlab="cells", ylab="bins", margins=c(8,8))
-
-
-ezHeatmap(gcWidthScoresRel[ ,order(Matrix::colSums(assays(scePC)$counts > 3))], lim=c(-2, 2), Rowv = TRUE, Colv = FALSE, main="", colors=getBlueRedScale(), labCol = "",
-          cexRow=1, cexCol=1, key.xlab="detection bias", key.title="", xlab="cells", ylab="bins", margins=c(8,16))
+gcWidthScoresRanged <- shrinkToRange(gcWidthScores, c(0, 0.2))
+pheatmap(gcWidthScoresRanged[ ,order(Matrix::colSums(assays(scePC)$counts) > 3)],
+         scale="none",
+         legend_breaks = c(0, 0.05, 0.1, 0.15, 0.2),
+         legend_labels = c("0", "0.05", "0.1", "0.15", "detection bias\n0.2"),
+         color = colorRampPalette(c("black", "white"))(100),
+         breaks=seq(from=0, to=0.2, length.out=101),
+         cluster_rows=FALSE, cluster_cols=FALSE,
+         show_rownames=TRUE, show_colnames = FALSE,
+         main="Detection bias of cells over width and gc"
+         )
+# ezHeatmap(gcWidthScores[ ,order(Matrix::colSums(assays(scePC)$counts) > 3)], 
+#           lim=c(0, 0.2), Rowv = FALSE, Colv = FALSE, main="", colors=gray((1:256)/256), 
+#           labCol="", cexRow=1, cexCol=1, key.xlab="detection rate", 
+#           key.title="", xlab="cells", ylab="bins", margins=c(8,8))
+gcWidthScoresRelRanged <- shrinkToRange(gcWidthScoresRel, c(-2, 2))
+pheatmap(gcWidthScoresRelRanged[ ,order(Matrix::colSums(assays(scePC)$counts > 3))],
+         scale="none",
+         legend_breaks = c(-2, -1, 0, 1, 2),
+         legend_labels = c("-2", "-1", "0", "1", "detection bias\n2"),
+         color = colorRampPalette(c("blue", "white", "red"))(100),
+         breaks=seq(from=-2, to=2, length.out=101),
+         cluster_rows=TRUE, cluster_cols=FALSE,
+         show_rownames=TRUE, show_colnames = FALSE,
+         main="Relative detection bias of cells over width and gc"
+         )
+# ezHeatmap(gcWidthScoresRel[ ,order(Matrix::colSums(assays(scePC)$counts > 3))], 
+#           lim=c(-2, 2), Rowv = TRUE, Colv = FALSE, main="", colors=getBlueRedScale(), 
+#           labCol = "", cexRow=1, cexCol=1, key.xlab="detection bias", 
+#           key.title="", xlab="cells", ylab="bins", margins=c(8,16))
 
 ```
 
