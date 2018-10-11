@@ -18,6 +18,9 @@ EzAppSCReport <-
                                         max_genes=ezFrame(Type="numeric", DefaultValue=3000, Description="Minimal number of genes for Seurat filtering"),
                                         min_counts=ezFrame(Type="numeric", DefaultValue=5e4, Description="Minimal counts of smart-Seq2 for Seurat filtering"),
                                         pcs=ezFrame(Type="numeric", DefaultValue=10, Description="The maximal dimensions to use for reduction"),
+                                        x.low.cutoff=ezFrame(Type="numeric", DefaultValue=0.1, Description="Bottom cutoff on x-axis for identifying variable genes"),
+                                        x.high.cutoff=ezFrame(Type="numeric", DefaultValue=8, Description="Top cutoff on x-axis for identifying variable genes"),
+                                        y.cutoff=ezFrame(Type="numeric", DefaultValue=1, Description="Bottom cutoff on y-axis for identifying variable genes"),
                                         resolution=ezFrame(Type="numeric", DefaultValue=0.8, Description="Value of the resolution parameter, use a value above (below) 1.0 if you want to obtain a larger (smaller) number of communities."),
                                         markersToCheck=ezFrame(Type="charList", DefaultValue="", Description="The markers to check"))
                 }
@@ -86,7 +89,10 @@ seuratPreProcess <- function(sce){
                         high.thresholds = c(param$max_genes, 0.25))
   scData <- NormalizeData(object = scData, normalization.method = "LogNormalize",
                           scale.factor = scalingFactorSeurat)
-  scData <- FindVariableGenes(object = scData, do.plot = FALSE)
+  scData <- FindVariableGenes(object = scData, do.plot = FALSE,
+                              x.low.cutoff=param$x.low.cutoff,
+                              x.high.cutoff=param$x.high.cutoff,
+                              y.cutoff=param$y.cutoff)
   scData <- ScaleData(object = scData,
                       vars.to.regress = c("nUMI", "percent.mito"))
   scData <- RunPCA(object = scData, pc.genes = scData@var.genes,
