@@ -23,6 +23,7 @@ require(Matrix)
 ## debug
 # title:  "`r metadata(sce)$param$name`"
 # sce <- readRDS("/scratch/gtan/dev/SCReports-p2284/AVM_17_08_2018_SCCountQC/sce.rds")
+# sce <- readRDS("/scratch/gtan/debug/quickDebug/sce.rds")
 ## end of debug
 debug <- FALSE
 
@@ -32,9 +33,14 @@ param <- metadata(sce)$param
 
 ```{r pos markers, echo=FALSE}
 markers <- FindAllMarkers(object=scData, only.pos=TRUE,
-                              return.thresh = 0.05)
+                          return.thresh = 0.05)
 posMarkersFn <- "pos_markers.tsv"
 ezWrite.table(markers, posMarkersFn)
+
+## Significant markers
+cm <- markers[which(markers$p_val_adj<0.01 & abs(markers$avg_logFC)>0.5),
+              c("gene","cluster","avg_logFC","p_val_adj")]
+rownames(cm) <- NULL
 ```
 
 ```{r fastICA, echo=FALSE}
@@ -102,9 +108,6 @@ FeaturePlot(object = scData, features.plot = "nUMI",
 List of all positive cluster markers can be accessed [here](`r posMarkersFn`).
 
 ```{r markers table, echo=FALSE}
-cm <- markers[which(markers$p_val_adj<0.01 & abs(markers$avg_logFC)>0.5),
-              c("gene","cluster","avg_logFC","p_val_adj")]
-rownames(cm) <- NULL
 caption ="Expression differences of cluster marker genes."
 ezInteractiveTableRmd(cm, digits=4, title=caption)
 ```
@@ -112,7 +115,7 @@ ezInteractiveTableRmd(cm, digits=4, title=caption)
 ### Visualizations of top cluster markers
 
 ```{r top cluster markers, fig.width=4, fig.height=3, echo=FALSE}
-some_markers <- cm$gene[1:100]
+some_markers <- head(cm$gene, 100)
 for(i in 1:length(some_markers)){
   plot(VlnPlot(object = scData, some_markers[i], do.return=TRUE))
   FeaturePlot(object = scData, features.plot = some_markers[i],
