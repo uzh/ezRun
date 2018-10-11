@@ -160,7 +160,7 @@ if(length(param$markersToCheck) >0){
 ```
 
 ### Pseudotime
-```{r pseudo time plot, echo=FALSE, fig.width=8, fig.height=5}
+```{r pseudo time plot, echo=FALSE, fig.width=8, fig.height=5, eval=param$runPseudoTime}
 p <- ggplot(tSNE_data, aes(X, Y)) + 
   geom_point(shape=21, size=5, colour = "black", aes(fill=pseudotime)) +
   scale_fill_gradient(low="yellow", high="blue") +
