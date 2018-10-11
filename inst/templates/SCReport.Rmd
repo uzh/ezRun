@@ -115,7 +115,7 @@ ezInteractiveTableRmd(cm, digits=4, title=caption)
 ### Visualizations of top cluster markers
 
 ```{r top cluster markers, fig.width=4, fig.height=3, echo=FALSE}
-some_markers <- head(cm$gene, 100)
+some_markers <- head(arrange(cm, p_val_adj) %>% select(gene) %>% pull(), 100)
 for(i in 1:length(some_markers)){
   plot(VlnPlot(object = scData, some_markers[i], do.return=TRUE))
   FeaturePlot(object = scData, features.plot = some_markers[i],
