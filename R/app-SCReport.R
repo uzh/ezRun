@@ -22,7 +22,8 @@ EzAppSCReport <-
                                         x.high.cutoff=ezFrame(Type="numeric", DefaultValue=8, Description="Top cutoff on x-axis for identifying variable genes"),
                                         y.cutoff=ezFrame(Type="numeric", DefaultValue=1, Description="Bottom cutoff on y-axis for identifying variable genes"),
                                         resolution=ezFrame(Type="numeric", DefaultValue=0.8, Description="Value of the resolution parameter, use a value above (below) 1.0 if you want to obtain a larger (smaller) number of communities."),
-                                        markersToCheck=ezFrame(Type="charList", DefaultValue="", Description="The markers to check"))
+                                        markersToCheck=ezFrame(Type="charList", DefaultValue="", Description="The markers to check"),
+                                        runPseudoTime=ezFrame(Type="logical", DefaultValue=FALSE, Description="Run PseudoTime for single cell data?"))
                 }
               )
   )
