@@ -12,6 +12,7 @@ output:
 Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
 
 ```{r setup, include=FALSE}
+# input for this report: sce, output
 require(ezRun)
 require(Seurat)
 require(dplyr)
@@ -176,6 +177,7 @@ print(p)
 saveRDS(list(scData=scData, tSNE_data=tSNE_data),
         file=basename(output$getColumn("Live Report")))
 ```
+[Shiny explorer](`r output$getColumn("Live Report")`)
 
 ### Seurat parameters
 ```{r, echo=FALSE}

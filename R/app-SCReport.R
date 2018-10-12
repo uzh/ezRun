@@ -36,7 +36,7 @@ ezMethodSCReport = function(input=NA, output=NA, param=NA,
   reportCwd <- getwd()
   
   param$scProtocol <- ifelse("STARLog" %in% input$colNames, "smart-Seq2", "10x")
-  param$name <- paste(input$getNames(), param$name, sep=":")
+  param$name <- paste(input$getNames(), param$name, sep=": ")
   sce <- loadSCCountDataset(input, param)
   scData <- seuratPreProcess(sce)
   metadata(sce)$scData <- scData
