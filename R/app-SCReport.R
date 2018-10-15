@@ -18,6 +18,7 @@ EzAppSCReport <-
                                         max_genes=ezFrame(Type="numeric", DefaultValue=3000, Description="Minimal number of genes for Seurat filtering"),
                                         min_counts=ezFrame(Type="numeric", DefaultValue=5e4, Description="Minimal counts of smart-Seq2 for Seurat filtering"),
                                         pcs=ezFrame(Type="numeric", DefaultValue=10, Description="The maximal dimensions to use for reduction"),
+                                        pcGenes=ezFrame(Type="charVec", DefaultValue="", Description="The genes used in supvervised clustering"),
                                         x.low.cutoff=ezFrame(Type="numeric", DefaultValue=0.1, Description="Bottom cutoff on x-axis for identifying variable genes"),
                                         x.high.cutoff=ezFrame(Type="numeric", DefaultValue=8, Description="Top cutoff on x-axis for identifying variable genes"),
                                         y.cutoff=ezFrame(Type="numeric", DefaultValue=1, Description="Bottom cutoff on y-axis for identifying variable genes"),
@@ -73,7 +74,7 @@ seuratPreProcess <- function(sce){
   
   scData <- CreateSeuratObject(raw.data = countsSeurat, min.cells = 5,
                                project = param$name)
-  mito.genes <- grep(pattern = "^mt-", x = rownames(x = scData@data),
+  mito.genes <- grep(pattern = "^mt-", x = rownames(scData@data),
                      value = TRUE, ignore.case = TRUE)
   percent.mito <- Matrix::colSums(scData@raw.data[mito.genes, ]) / Matrix::colSums(scData@raw.data)
   scData <- AddMetaData(object = scData, metadata = percent.mito,
@@ -96,7 +97,17 @@ seuratPreProcess <- function(sce){
                               y.cutoff=param$y.cutoff)
   scData <- ScaleData(object = scData,
                       vars.to.regress = c("nUMI", "percent.mito"))
-  scData <- RunPCA(object = scData, pc.genes = scData@var.genes,
+  if(ezIsSpecified(param$pcGenes)){
+    indicesMatch <- match(toupper(param$pcGenes), rownames(scData@data))
+    if(any(is.na(indicesMatch))){
+      warning("The following genes don't exist: ", 
+              paste(param$pcGenes[is.na(indicesMatch)], collapse = ","))
+    }
+    pc.genes <- rownames(scData@data)[which(indicesMatch)]
+  }else{
+    pc.genes <- scData@var.genes
+  }
+  scData <- RunPCA(object = scData, pc.genes = pc.genes,
                    do.print = FALSE, pcs.print = 1:5,
                    genes.print = 5)
   scData <- ProjectPCA(object = scData, do.print = FALSE)
