@@ -39,8 +39,7 @@ ezMethodSCReport = function(input=NA, output=NA, param=NA,
   param$scProtocol <- ifelse("STARLog" %in% input$colNames, "smart-Seq2", "10x")
   param$name <- paste(input$getNames(), param$name, sep=": ")
   sce <- loadSCCountDataset(input, param)
-  scData <- seuratPreProcess(sce)
-  metadata(sce)$scData <- scData
+  sce <- seuratPreProcess(sce)
   
   ## debug
   saveRDS(sce, file="sce.rds")
@@ -62,12 +61,11 @@ seuratPreProcess <- function(sce){
   
   require(Seurat)
   require(scater)
-  sceSeurat <- sce
-  param <- metadata(sceSeurat)$param
+  param <- metadata(sce)$param
   
-  rownames(sceSeurat) <- uniquifyFeatureNames(ID=rowData(sceSeurat)$gene_id,
-                                              names=rowData(sceSeurat)$gene_name)
-  countsSeurat <- assays(sceSeurat)$counts
+  rownames(sce) <- uniquifyFeatureNames(ID=rowData(sce)$gene_id,
+                                        names=rowData(sce)$gene_name)
+  countsSeurat <- assays(sce)$counts
   if(param$scProtocol == "smart-Seq2"){
     countsSeurat <- countsSeurat[ ,Matrix::colSums(countsSeurat) > param$min_counts]
   }
@@ -104,6 +102,7 @@ seuratPreProcess <- function(sce){
               paste(param$pcGenes[is.na(indicesMatch)], collapse = ","))
     }
     pc.genes <- rownames(scData@data)[which(indicesMatch)]
+    metadata(sce)[["pc.genes"]] <- pc.genes
   }else{
     pc.genes <- scData@var.genes
   }
@@ -121,6 +120,8 @@ seuratPreProcess <- function(sce){
   set.seed(10)
   scData <- RunTSNE(object = scData, dims.use = 1:param$pcs, do.fast = TRUE, 
                     perplexity = 30)
-  return(scData)
+  metadata(sce)$scData <- scData
+  
+  return(sce)
 }
 

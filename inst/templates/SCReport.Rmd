@@ -75,6 +75,14 @@ kable(tibble(Cluster=names(summary(scData@ident)),
                 position = "float_right")
 ```
 
+```{r pc.genes, echo=FALSE}
+if(ezIsSpecified(param$pcGenes)){
+  cat("Selected genes for clustering:\n")
+  metadata(sce)[["pc.genes"]]
+  cat("\n")
+}
+```
+
 ```{r gene mean per cluster, echo=FALSE}
 tr_cnts <- expm1(scData@data)
 geneMeans <- rowsum(t(as.matrix(tr_cnts)), group=scData@ident)
