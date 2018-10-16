@@ -59,6 +59,10 @@ ezFeatureAnnotation = function(param, ids=NULL,
     seqAnno$featWidth <- seqAnno$width
     seqAnno$width <- NULL
   }
+  if(!"description" %in% colnames(seqAnno) || all(seqAnno$description == "")){
+    message("Assigning description with gene_id.")
+    seqAnno$description <- seqAnno$gene_id
+  }
   if(!"type" %in% colnames(seqAnno) || all(seqAnno$type == "")){
     message("Assigning type with protein coding.")
     seqAnno$type <- "protein_coding"
