@@ -31,7 +31,7 @@ ezMethodFastQC = function(input=NA, output=NA, param=NA,
   files = c()
   for (sm in samples){
     files[paste0(sm, "_R1")] = input$getFullPaths("Read1")[sm]
-    if (!is.null(dataset$Read2)){
+    if(isTRUE(param$paired)){
       files[paste0(sm, "_R2")] = input$getFullPaths("Read2")[sm]
     }
   }
