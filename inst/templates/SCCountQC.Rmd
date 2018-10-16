@@ -459,8 +459,9 @@ PCAPlot(object = scData, dim.1 = 1, dim.2 = 2)
 ```
 
 ```{r PCHeatmap, echo=FALSE, fig.width=10, fig.height=30, eval=!debug}
-PCHeatmap(object=scData, pc.use=1:20, cells.use=500, do.balanced=TRUE, 
-    label.columns=FALSE, use.full=FALSE)
+PCHeatmap(object=scData, pc.use=1:20,
+          cells.use=min(c(500, ncol(scData@raw.data))),
+          do.balanced=TRUE, label.columns=FALSE, use.full=FALSE)
 ```
 
 ```{r JackStraw, echo=FALSE, fig.width=10, fig.height=25, eval=!debug}
