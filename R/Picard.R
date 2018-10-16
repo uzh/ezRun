@@ -137,7 +137,8 @@ CollectRnaSeqMetrics <- function(inBams, gtfFn, featAnnoFn,
 DuplicationMetrics <- function(inBams, mc.cores=ezThreads()){
   setEnvironments("picard")
   
-  outputBams <- sub(".bam$", paste0("-", seq_along(inBams), "-markedDup.bam"), basename(inBams))
+  outputBams <- paste0(sub(".bam$", "", basename(inBams)),
+                       "-", seq_along(inBams), "-markedDup.bam")
   outputFns <- sub('bam$', "metrics", outputBams)
   
   cmd <- paste("java -XX:ParallelGCThreads=4 -Xmx3G -jar",
