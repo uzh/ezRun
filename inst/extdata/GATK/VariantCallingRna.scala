@@ -128,6 +128,7 @@ class VariantCallingRna extends QScript with Logging {
 				this.RGPU = lib.libraryId
 				this.RGSM = lib.sampleId
 				this.isIntermediate = true
+				this.javaMemoryLimit = adjMemoryLimit
 			}
 			add(addRG)
 
@@ -144,6 +145,7 @@ class VariantCallingRna extends QScript with Logging {
 				this.input_file :+= lib.fileDedup
 				this.out = lib.fileSplit
 				this.unsafe = ValidationExclusion.TYPE.ALLOW_N_CIGAR_READS
+				this.javaMemoryLimit = adjMemoryLimit
 			}
 			add(splitNCigarReads)
 
@@ -156,6 +158,7 @@ class VariantCallingRna extends QScript with Logging {
 				this.out = lib.fileMqFix
 				this.reassign_mapping_quality_from = 255
 				this.reassign_mapping_quality_to = 60
+				this.javaMemoryLimit = adjMemoryLimit
 			}
 			add(mqFix)
 		}
