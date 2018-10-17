@@ -210,8 +210,6 @@ if(!is.na(plateMatrix)){
 
 ### Gene Detection Rates
 
-This is only available for full length single cell protocol.
-
 ```{r gene detection rates gc vs width, fig.width=7, fig.height=7, echo=FALSE, message=FALSE, eval=!debug}
 scePC = sce
 scePC = scePC[rowData(scePC)$biotypes == "protein_coding", ]
