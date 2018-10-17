@@ -96,7 +96,8 @@ CollectRnaSeqMetrics <- function(inBams, gtfFn, featAnnoFn,
                paste0("METRIC_ACCUMULATION_LEVEL=", metricLevel),
                "> /dev/null"
                )
-  ezMclapply(cmd, ezSystem, mc.preschedule=FALSE, mc.cores=mc.cores)
+  ezMclapply(cmd, ezSystem, mc.preschedule=FALSE, mc.cores=mc.cores/2)
+  ## To save memory
   
   for(outputFn in outputFns){
     ## Remove the stuff after HISTOGRAM
