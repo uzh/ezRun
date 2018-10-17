@@ -93,8 +93,9 @@ seuratPreProcess <- function(sce){
                               x.low.cutoff=param$x.low.cutoff,
                               x.high.cutoff=param$x.high.cutoff,
                               y.cutoff=param$y.cutoff)
-  scData <- ScaleData(object = scData,
-                      vars.to.regress = c("nUMI", "percent.mito"))
+  scData <- ScaleData(object = scData, do.par=TRUE,
+                      vars.to.regress = c("nUMI", "percent.mito"),
+                      num.cores=param$cores)
   if(ezIsSpecified(param$pcGenes)){
     indicesMatch <- match(toupper(param$pcGenes), rownames(scData@data))
     if(any(is.na(indicesMatch))){

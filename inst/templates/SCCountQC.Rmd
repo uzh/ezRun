@@ -446,7 +446,8 @@ scData <- FindVariableGenes(object=scData)
 The number of variable genes: `r length(x = scData@var.genes)`.
 
 ```{r scale and PCA calculation, echo=FALSE, message=FALSE, results='hide', eval=!debug}
-scData <- ScaleData(object = scData, vars.to.regress = c("nUMI","percent.mito"))
+scData <- ScaleData(object = scData, vars.to.regress = c("nUMI","percent.mito"),
+                    do.par=TRUE, num.cores=param$cores)
 scData <- RunPCA(object = scData, pc.genes = scData@var.genes,
                  do.print = TRUE, pcs.print = 1:5,
                  genes.print = 5)
