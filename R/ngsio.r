@@ -108,7 +108,7 @@ loadSCCountDataset <- function(input, param){
   
   ## Make better name for report later.
   if(length(input$getNames()) == 1L){
-    param$name <- paste(param$name, input$getNames(), ": ")
+    param$name <- paste(param$name, input$getNames(), sep=": ")
   }
   
   dataFeatureLevel <- unique(input$getColumn("featureLevel"))
