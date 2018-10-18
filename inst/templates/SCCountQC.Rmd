@@ -450,7 +450,7 @@ scData <- RunPCA(object = scData, pc.genes = scData@var.genes,
 scData <- ProjectPCA(object = scData, do.print=FALSE)
 ```
 
-```{r plot PCA, echo=FALSE, fig.width=10, fig.height=15, eval=doSeurat && !debug}
+```{r plot viz PCA, echo=FALSE, fig.width=10, fig.height=15, eval=doSeurat && !debug}
 VizPCA(object = scData, pcs.use = 1:6)
 ```
 
