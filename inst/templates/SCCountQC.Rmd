@@ -32,41 +32,44 @@ require(pheatmap)
 # sce <- readRDS("/srv/gstore/projects/p2284/SCCountQC_28929_2018-10-17--16-03-58/AVM_17_08_2018_SCCountQC/sce.rds")
 # sce <- readRDS("/scratch/gtan/debug/quickDebug/sce.rds")
 
+## convention:
+## by default the fixed genenames are use
+
 debug <- FALSE
 param <- metadata(sce)$param
+isMito <- toupper(as.character(seqnames(rowRanges(sce)))) %in% toupper(c("chrM", "MT"))
+sceFixName = sce
+rownames(sceFixName) <- uniquifyFeatureNames(ID=rowData(sceFixName)$gene_id,
+                                             names=rowData(sceFixName)$gene_name)
+cts <- assays(sceFixName)$counts
+useCell = Matrix::colSums(cts) >= param$minReadsPerCell & 
+  Matrix::colSums(cts >= param$minReadsPerGene) > param$minGenesPerCell
+sceFilt = sceFixName[ , useCell]
+ctsFilt <- assays(sceFilt)$counts
+
 ```
 
 ```{r scater, include=FALSE}
 ## ----------------------------------------------
 ## scater sce
-# param$minGenesDetected = 400 ## we should also filter genes that do not have param$minReadsPerGene for at least param$minGenesDetected
 
-sceScater <- sce[ , Matrix::colSums(assays(sce)$counts) >= param$minReadsPerCell]
 
-mito <- rownames(sce[as.character(seqnames(rowRanges(sce))) %in% c("chrM", "MT")])
-
-x <- assays(sceScater)$counts
-cell_info <- data.frame(row.names=colnames(x),
-                        lib_size=Matrix::colSums(x)/1e6,
-                        expr_genes = Matrix::colSums(x>0),
-                        perc_mito=Matrix::colSums(x[mito, , drop=FALSE])*100 / Matrix::colSums(x))
+cell_info <- data.frame(row.names=colnames(ctsFilt),
+                        lib_size=Matrix::colSums(ctsFilt)/1e6,
+                        expr_genes = Matrix::colSums(ctsFilt >= param$minReadsPerCell),
+                        perc_mito=Matrix::colSums(ctsFilt[isMito, , drop=FALSE])*100 / Matrix::colSums(ctsFilt))
 ```
 
 ```{r fixName, include=FALSE}
 ## sceFixName for section "Reads on top 50 genes" and "Expression metrics"
-sceFixName <- sceScater
-rownames(sceFixName) <- uniquifyFeatureNames(ID=rowData(sceFixName)$gene_id,
-                                             names=rowData(sceFixName)$gene_name)
-is.mito <- as.character(seqnames(rowRanges(sceFixName))) %in% c("chrM", "MT")
 
-sceFixName <- calculateQCMetrics(sceFixName, feature_controls=list(Mt=is.mito))
-if(param$scProtocol == "smart-Seq2"){
-  libsize.drop <- isOutlier(sceFixName$total_counts, nmads=5, type="lower",
-                            log=TRUE)
-  feature.drop <- isOutlier(sceFixName$total_features, nmads=5, type="lower",
-                            log=TRUE)
-  sceFixName <- sceFixName[,!(libsize.drop | feature.drop )]
-}
+# if(param$scProtocol == "smart-Seq2"){  ## TODO - why only for smart-Seq2???
+#   libsize.drop <- isOutlier(sceFilt$total_counts, nmads=5, type="lower",
+#                             log=TRUE)
+#   feature.drop <- isOutlier(sceFilt$total_features, nmads=5, type="lower",
+#                             log=TRUE)
+#   sceFixName <- sceFixName[,!(libsize.drop | feature.drop )]
+# }
 
 ## ----------------------------------------------
 ## datasetAllCells for section "Heatmap of reads per cell on the plate"
@@ -77,31 +80,20 @@ if(param$scProtocol == "smart-Seq2"){
 
 ## ----------------------------------------------
 ## picard metrics
-if(param$scProtocol == "smart-Seq2"){
-  evalPicard <- TRUE
-}else if(param$scProtocol == "10x"){
-  evalPicard <- FALSE
-}
+
+evalPicard = switch (param$scProtocol,
+  "smart-Seq2" = TRUE,
+  "10x"=FALSE,
+  NA
+)
 ```
 
 ```{r seurat setup, include=FALSE}
 ## ----------------------------------------------
 ## SeuratObject fro Seurat section
-sceSeurat <- sce
-rownames(sceSeurat) <- uniquifyFeatureNames(ID=rowData(sceSeurat)$gene_id,
-                                            names=rowData(sceSeurat)$gene_name)
-countsSeurat <- assays(sceSeurat)$counts
-if(param$scProtocol == "smart-Seq2"){
-  countsSeurat <- countsSeurat[ ,Matrix::colSums(countsSeurat) > param$min_counts]
-}
 
-scData <- CreateSeuratObject(raw.data = countsSeurat, min.cells = 5,
-                             project = param$name)
-mito.genes <- grep(pattern = "^mt-", x = rownames(x = scData@data),
-                   value = TRUE, ignore.case = TRUE)
-percent.mito <- Matrix::colSums(scData@raw.data[mito.genes, ])/ Matrix::colSums(scData@raw.data)
-scData <- AddMetaData(object = scData, metadata = percent.mito,
-                      col.name = "percent.mito")
+scData <- CreateSeuratObject(raw.data = ctsFilt, min.cells = 5,
+                             project = param$name, meta.data = cell_info)
 if(param$scProtocol == "smart-Seq2"){
   scalingFactorSeurat <- 1e5
 }else if(param$scProtocol == "10x"){
@@ -114,15 +106,14 @@ if(param$scProtocol == "smart-Seq2"){
 ### Overview
 
 * Total Number of Cells: `r ncol(sce)`
-* Number of cells removed:  `r ncol(sce)-ncol(sceScater)`
+* Number of cells removed:  `r ncol(sce)-ncol(sceFilt)`
   + cells with less than `r param$minReadsPerCell` reads aligned
-* Cells used in Scater : `r ncol(sceScater)`
+  + cells with less than `r param$minGenesDetected` genes that have at least `r param$minReadsPerGene` reads
 * Median Genes per Cell = `r median(cell_info$expr_genes)`
 * Median Reads per Cell = `r round(median(cell_info$lib_size*1e6),0)`
 * Number of input reads = `r ifelse(is.null(metadata(sce)$mlog), NA, metadata(sce)$mlog["Number of input reads",2])`
 * % of reads mapped to multiple loci = `r ifelse(is.null(metadata(sce)$mlog), NA, metadata(sce)$mlog["% of reads mapped to multiple loci",2])`
   
-<!-- + cells with less than `r param$minGenesDetected` genes that have at least `r param$minReadsPerGene` reads -->
 
 ### #Genes detected in cells
 
@@ -422,7 +413,7 @@ p2
 ### Seurat
 
 ```{r VlnPlot, echo=FALSE, fig.width=10, fig.height=ifelse(nchar(scData@project.name) > 20, 10, 7), eval=!debug}
-VlnPlot(object=scData, features.plot = c("nGene", "nUMI", "percent.mito"),
+VlnPlot(object=scData, features.plot = c("nGene", "nUMI", "perc_mito"),
         nCol=3, 
         x.lab.rot=ifelse(nchar(scData@project.name) > 20, TRUE, FALSE))
 ```
@@ -503,6 +494,7 @@ cat(paste0("[", "rawCount.zip", "](", "rawCount.zip", ")"))
 cat("\n")
 
 if(param$scProtocol != "10x"){
+  ## TODO TPM does not make sense for 3'-tagging data
   tpm <- as.matrix(getTpm(sce))
   ezWrite.table(tpm, file="tpm.txt",
                 head=paste0(param$featureLevel, "_id"),
