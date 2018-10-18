@@ -15,7 +15,7 @@ EzAppSCCountQC <-
                   runMethod <<- ezMethodSCCountQC
                   name <<- "EzAppSCCountQC"
                   appDefaults <<- rbind(minReadsPerCell=ezFrame(Type="numeric", DefaultValue=1e4, Description="Minimal number of reads per cell for Scater filtering"),
-                                        minReadsPerGene=ezFrame(Type="numeric", DefaultValue=5, Description="Minimal number of reads per cell for Scater filtering"),
+                                        minReadsPerGene=ezFrame(Type="numeric", DefaultValue=5, Description="Minimal number of reads per gene to be expressed"),
                                         min_genes=ezFrame(Type="numeric", DefaultValue=500, Description="Minimal number of genes per cell for Seurat filtering"),
                                         min_counts=ezFrame(Type="numeric", DefaultValue=5e4, Description="Minimal counts per cell on smart-Seq2 for Seurat filtering"))
                 }
