@@ -29,7 +29,7 @@ require(pheatmap)
 ## debug
 # title:  "`r metadata(sce)$param$name`"
 # sce <- readRDS("/export/local/scratch/gtan/dev/p2497-SCCountQC/20171222.A-SiCSeq_SCs_P5_SCCountQC/sce.rds")
-# sce <- readRDS("/srv/gstore/projects/p2497/SCCountQC_27327_2018-06-17--00-09-24/20171222.A-SiCSeq_SCs_P5_SCCountQC/sce.rds")
+# sce <- readRDS("/srv/gstore/projects/p2284/SCCountQC_28929_2018-10-17--16-03-58/AVM_17_08_2018_SCCountQC/sce.rds")
 # sce <- readRDS("/scratch/gtan/debug/quickDebug/sce.rds")
 
 debug <- FALSE
@@ -39,8 +39,6 @@ param <- metadata(sce)$param
 ```{r scater, include=FALSE}
 ## ----------------------------------------------
 ## scater sce
-param$minReadsPerCell = 1e4
-param$minReadsPerGene = 5
 # param$minGenesDetected = 400 ## we should also filter genes that do not have param$minReadsPerGene for at least param$minGenesDetected
 
 sceScater <- sce[ , Matrix::colSums(assays(sce)$counts) >= param$minReadsPerCell]
@@ -116,10 +114,10 @@ if(param$scProtocol == "smart-Seq2"){
 ### Overview
 
 * **Total Number of Cells:** `r ncol(sce)`
-<!-- * **Number of cells removed:**  `r ncol(sce)-ncol(sceScater)` -->
-<!--   + cells with less than `r param$minReadsPerCell` reads aligned  -->
-<!--   + cells with less than `r param$minGenesDetected` genes that have at least `r param$minReadsPerGene` reads -->
-<!-- * **Cells used:** `r ncol(sce)` -->
+* **Number of cells removed:**  `r ncol(sce)-ncol(sceScater)`
+  + cells with less than `r param$minReadsPerCell` reads aligned
+  + cells with less than `r param$minGenesDetected` genes that have at least `r param$minReadsPerGene` reads
+* **Cells used:** `r ncol(sceScater)`
 * **Median Genes per Cell** = `r median(cell_info$expr_genes)`
 * **Median Reads per Cell** = `r round(median(cell_info$lib_size*1e6),0)`
 * Number of input reads = `r ifelse(is.null(metadata(sce)$mlog), NA, metadata(sce)$mlog["Number of input reads",2])`
