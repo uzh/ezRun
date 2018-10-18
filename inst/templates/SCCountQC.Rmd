@@ -434,6 +434,14 @@ scData <- FilterCells(object = scData,
                       high.thresholds = c(Inf, 0.25))
 scData <- NormalizeData(object = scData, normalization.method = "LogNormalize",
                         scale.factor = scalingFactorSeurat)
+
+if(ncol(scData@data) <= 10){
+  ## if there is less than 10 cells left, don't do following seurat because of error
+  doSeurat <- FALSE
+  message("Less than 10 cells after Seurat filtering. The donwstream Seurat analysis is aborted.")
+}else{
+  doSeurat <- TRUE
+}
 ```
 
 ```{r seurat variable gene, echo=FALSE, eval=!debug}
@@ -442,7 +450,7 @@ scData <- FindVariableGenes(object=scData)
 
 The number of variable genes: `r length(x = scData@var.genes)`.
 
-```{r scale and PCA calculation, echo=FALSE, message=FALSE, results='hide', eval=!debug}
+```{r scale and PCA calculation, echo=FALSE, message=FALSE, results='hide', eval=doSeurat && !debug}
 scData <- ScaleData(object = scData, vars.to.regress = c("nUMI","percent.mito"),
                     do.par=TRUE, num.cores=param$cores)
 scData <- RunPCA(object = scData, pc.genes = scData@var.genes,
@@ -451,24 +459,24 @@ scData <- RunPCA(object = scData, pc.genes = scData@var.genes,
 scData <- ProjectPCA(object = scData, do.print=FALSE)
 ```
 
-```{r plot PCA, echo=FALSE, fig.width=10, fig.height=15, eval=!debug}
+```{r plot PCA, echo=FALSE, fig.width=10, fig.height=15, eval=doSeurat && !debug}
 VizPCA(object = scData, pcs.use = 1:6)
 PCAPlot(object = scData, dim.1 = 1, dim.2 = 2)
 ```
 
-```{r PCHeatmap, echo=FALSE, fig.width=10, fig.height=30, eval=!debug}
+```{r PCHeatmap, echo=FALSE, fig.width=10, fig.height=30, eval=doSeurat && !debug}
 PCHeatmap(object=scData, pc.use=1:20,
-          cells.use=min(c(500, ncol(scData@raw.data))),
+          cells.use=min(c(500, ncol(scData@data))),
           do.balanced=TRUE, label.columns=FALSE, use.full=FALSE)
 ```
 
-```{r JackStraw, echo=FALSE, fig.width=10, fig.height=25, eval=!debug}
+```{r JackStraw, echo=FALSE, fig.width=10, fig.height=25, eval=doSeurat&& !debug}
 scData <- JackStraw(object=scData, num.replicate=100, display.progress=FALSE,
                     do.par=TRUE, num.cores=param$cores)
 suppressWarnings(JackStrawPlot(object=scData, PCs = 1:20))
 ```
 
-```{r PCElbowPlot, echo=FALSE, eval=!debug}
+```{r PCElbowPlot, echo=FALSE, eval=doSeurat && !debug}
 PCElbowPlot(object=scData)
 ```
 
