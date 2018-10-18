@@ -452,6 +452,9 @@ scData <- ProjectPCA(object = scData, do.print=FALSE)
 
 ```{r plot PCA, echo=FALSE, fig.width=10, fig.height=15, eval=doSeurat && !debug}
 VizPCA(object = scData, pcs.use = 1:6)
+```
+
+```{r plot PCA, echo=FALSE, fig.width=7, fig.height=7, eval=doSeurat && !debug}
 PCAPlot(object = scData, dim.1 = 1, dim.2 = 2)
 ```
 
