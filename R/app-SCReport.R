@@ -14,8 +14,8 @@ EzAppSCReport <-
                   "Initializes the application using its specific defaults."
                   runMethod <<- ezMethodSCReport
                   name <<- "EzAppSCReport"
-                  appDefaults <<- rbind(min_genes=ezFrame(Type="numeric", DefaultValue=500, Description="Minimal number of genes for Seurat filtering"),
-                                        max_genes=ezFrame(Type="numeric", DefaultValue=3000, Description="Minimal number of genes for Seurat filtering"),
+                  appDefaults <<- rbind(min_genes=ezFrame(Type="numeric", DefaultValue=500, Description="Minimal number of genes per cell for Seurat filtering"),
+                                        max_genes=ezFrame(Type="numeric", DefaultValue=3000, Description="Maximal number of genes per cell for Seurat filtering"),
                                         min_counts=ezFrame(Type="numeric", DefaultValue=5e4, Description="Minimal counts of smart-Seq2 for Seurat filtering"),
                                         pcs=ezFrame(Type="numeric", DefaultValue=10, Description="The maximal dimensions to use for reduction"),
                                         pcGenes=ezFrame(Type="charVector", DefaultValue="", Description="The genes used in supvervised clustering"),

@@ -114,8 +114,7 @@ if(param$scProtocol == "smart-Seq2"){
 ### Overview
 
 * Total Number of Cells: `r ncol(sce)`
-* Number of cells removed:  `r ncol(sce)-ncol(sceScater)`
-  + cells with less than `r param$minReadsPerCell` reads aligned
+* Number of cells (with less than `r param$minReadsPerCell` reads aligned) removed:  `r ncol(sce)-ncol(sceScater)`
 * Cells used in Scater : `r ncol(sceScater)`
 * Median Genes per Cell = `r median(cell_info$expr_genes)`
 * Median Reads per Cell = `r round(median(cell_info$lib_size*1e6),0)`
@@ -461,6 +460,9 @@ scData <- ProjectPCA(object = scData, do.print=FALSE)
 
 ```{r plot PCA, echo=FALSE, fig.width=10, fig.height=15, eval=doSeurat && !debug}
 VizPCA(object = scData, pcs.use = 1:6)
+```
+
+```{r plot PCA, echo=FALSE, fig.width=7, fig.height=7, eval=doSeurat && !debug}
 PCAPlot(object = scData, dim.1 = 1, dim.2 = 2)
 ```
 
