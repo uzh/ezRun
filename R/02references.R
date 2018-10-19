@@ -150,7 +150,7 @@ setMethod("buildRefDir", "EzRef", function(.Object, genomeFile, genesFile,
   #dir.create(.Object@refChromDir) ## by default do not generate the chromosome dir -- TODO: check if this directory is indeed needed;
   if (!is.null(.Object@refAnnotationVersion)){
     ezSystem(paste("cd", file.path(.Object@refBuildDir, "Annotation"), 
-                   "; rm -rf Genes; ", "ln -s",
+                   "; rm -f Genes; ", "ln -s",
                    file.path(.Object@refAnnotationVersion, "Genes"), "Genes"))
   }
 
@@ -162,10 +162,7 @@ setMethod("buildRefDir", "EzRef", function(.Object, genomeFile, genesFile,
 
   ## 2 GTF files: 
   ### features.gtf
-  print(c(file.path(gtfPath, "features.gtf")))
-  print(c(fastaPath))
   gtf <- import(genesFile)
-  print(c("test"))
   #### some controls over gtf
   if(is.null(gtf$gene_biotype)){
     if(is.null(gtf$gene_type)){
