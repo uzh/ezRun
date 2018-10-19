@@ -73,6 +73,16 @@ IlluminaDatasetToMothur <- function(sushiInputDataset, param){
       writeFasta(fastqFile,'Illumina.fasta', mode = 'a')
   }
 }
+
+prepareFilesLocallyForMothur <- function(sushiInputDataset, param){
+  for (i in (1:nrow(sushiInputDataset))) {
+    nameInDataset <- sushiInputDataset$Name
+    file1PathInDatset <- paste0(param$dataRoot,"/",sushiInputDataset$`Read1 [File]`[i])
+    file2PathInDatset <- paste0(param$dataRoot,"/",sushiInputDataset$`Read2 [File]`[i])
+    initialTable <- cbind(nameInDataset,file1PathInDatset,file2PathInDatset)
+    write.table(initialTable, 'Illumina.files', row.names = FALSE, quote = FALSE, col.names = FALSE, append = TRUE, sep = "\t")
+  }
+}
 ###################################################################
 # Functional Genomics Center Zurich
 # This code is distributed under the terms of the GNU General
