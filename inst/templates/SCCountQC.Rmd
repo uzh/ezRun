@@ -46,18 +46,16 @@ useCell = Matrix::colSums(cts) >= param$minReadsPerCell &
   Matrix::colSums(cts >= param$minReadsPerGene) > param$minGenesPerCell
 sceFilt = sceFixName[ , useCell]
 ctsFilt <- assays(sceFilt)$counts
-
 ```
 
 ```{r scater, include=FALSE}
 ## ----------------------------------------------
 ## scater sce
-
-
 cell_info <- data.frame(row.names=colnames(ctsFilt),
                         lib_size=Matrix::colSums(ctsFilt)/1e6,
-                        expr_genes = Matrix::colSums(ctsFilt >= param$minReadsPerCell),
+                        expr_genes = Matrix::colSums(ctsFilt >= param$minReadsPerGene),
                         perc_mito=Matrix::colSums(ctsFilt[isMito, , drop=FALSE])*100 / Matrix::colSums(ctsFilt))
+sceFixName <- calculateQCMetrics(sceFixName, feature_controls=list(Mt=isMito))
 ```
 
 ```{r fixName, include=FALSE}
@@ -99,6 +97,7 @@ if(param$scProtocol == "smart-Seq2"){
 }else if(param$scProtocol == "10x"){
   scalingFactorSeurat <- 1e4
 }
+
 ```
 
 ## CountQC_Result {.tabset}
