@@ -79,8 +79,8 @@ prepareFilesLocallyForMothur <- function(sushiInputDataset, param){
     nameInDataset <- rownames(sushiInputDataset)[i]
     file1PathInDatset <- paste0(param$dataRoot,"/",sushiInputDataset$`Read1 [File]`[i])
     file2PathInDatset <- paste0(param$dataRoot,"/",sushiInputDataset$`Read2 [File]`[i])
-    initialTable <- cbind(nameInDataset,file1PathInDatset,file2PathInDatset)
-    write.table(initialTable, 'Illumina.files', row.names = FALSE, quote = FALSE, col.names = FALSE, append = TRUE, sep = "\t")
+#   initialTable <- cbind(nameInDataset,file1PathInDatset,file2PathInDatset)
+#    write.table(initialTable, 'Illumina.files', row.names = FALSE, quote = FALSE, col.names = FALSE, append = TRUE, sep = "\t")
     k=0
     for (file in c(file1PathInDatset,file2PathInDatset)){
       k=k+1
