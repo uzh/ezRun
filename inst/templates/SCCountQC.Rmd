@@ -89,9 +89,10 @@ evalPicard = switch (param$scProtocol,
 ```{r seurat setup, include=FALSE}
 ## ----------------------------------------------
 ## SeuratObject fro Seurat section
-
+cell_info_scater <- cell_info
+cell_info_scater$perc_mito <- cell_info_scater$perc_mito/100
 scData <- CreateSeuratObject(raw.data = ctsFilt, min.cells = 5,
-                             project = param$name, meta.data = cell_info)
+                             project = param$name, meta.data=cell_info_scater)
 if(param$scProtocol == "smart-Seq2"){
   scalingFactorSeurat <- 1e5
 }else if(param$scProtocol == "10x"){
@@ -106,8 +107,8 @@ if(param$scProtocol == "smart-Seq2"){
 
 * Total Number of Cells: `r ncol(sce)`
 * Number of cells removed:  `r ncol(sce)-ncol(sceFilt)`
-  + cells with less than `r param$minReadsPerCell` reads aligned
-  + cells with less than `r param$minGenesDetected` genes that have at least `r param$minReadsPerGene` reads
+    + cells with less than `r param$minReadsPerCell` reads aligned
+    + cells with less than `r param$minGenesDetected` genes that have at least `r param$minReadsPerGene` reads
 * Median Genes per Cell = `r median(cell_info$expr_genes)`
 * Median Reads per Cell = `r round(median(cell_info$lib_size*1e6),0)`
 * Number of input reads = `r ifelse(is.null(metadata(sce)$mlog), NA, metadata(sce)$mlog["Number of input reads",2])`
@@ -419,7 +420,7 @@ VlnPlot(object=scData, features.plot = c("nGene", "nUMI", "perc_mito"),
 
 ```{r seurat filter and normalize, echo=FALSE, eval=!debug}
 scData <- FilterCells(object = scData,
-                      subset.names = c("nGene", "percent.mito"),
+                      subset.names = c("nGene", "perc_mito"),
                       low.thresholds = c(param$minGenesPerCell, -Inf), 
                       high.thresholds = c(Inf, 0.25))
 scData <- NormalizeData(object = scData, normalization.method = "LogNormalize",
@@ -441,7 +442,7 @@ scData <- FindVariableGenes(object=scData)
 The number of variable genes: `r length(x = scData@var.genes)`.
 
 ```{r scale and PCA calculation, echo=FALSE, message=FALSE, results='hide', eval=doSeurat && !debug}
-scData <- ScaleData(object = scData, vars.to.regress = c("nUMI","percent.mito"),
+scData <- ScaleData(object = scData, vars.to.regress = c("nUMI","perc_mito"),
                     do.par=TRUE, num.cores=param$cores)
 scData <- RunPCA(object = scData, pc.genes = scData@var.genes,
                  do.print = TRUE, pcs.print = 1:5,
