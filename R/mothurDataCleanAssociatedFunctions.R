@@ -81,6 +81,10 @@ prepareFilesLocallyForMothur <- function(sushiInputDataset, param){
     file2PathInDatset <- paste0(param$dataRoot,"/",sushiInputDataset$`Read2 [File]`[i])
     initialTable <- cbind(nameInDataset,file1PathInDatset,file2PathInDatset)
     write.table(initialTable, 'Illumina.files', row.names = FALSE, quote = FALSE, col.names = FALSE, append = TRUE, sep = "\t")
+    for (file in c(file1PathInDatset,file2PathInDatset)){
+      cpCmd <- paste0("cp ", file, "./")
+    ezSystem(cpCmd)
+  }
   }
 }
 ###################################################################
