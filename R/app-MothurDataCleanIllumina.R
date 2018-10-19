@@ -22,8 +22,7 @@ ezMethodMothurDataCleanIllumina = function(input=NA, output=NA, param=NA,
   projNum <- dirname(param$resultDir)
   
   ### cp silva reference locally
-  cpSilvaRefCmd <- paste0("cp /srv/GT/databases/silva/silva.bacteria.forMothur.fasta 
-                          silva.bacteria.fasta")
+  cpSilvaRefCmd <- "cp /srv/GT/databases/silva/silva.bacteria.forMothur.fasta silva.bacteria.fasta"
   ezSystem(cpSilvaRefCmd)
   
   ### update batch file Illumina with parameters and run mothur: step 1, identify region
