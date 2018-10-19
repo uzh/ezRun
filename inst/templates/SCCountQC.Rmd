@@ -420,7 +420,7 @@ VlnPlot(object=scData, features.plot = c("nGene", "nUMI", "perc_mito"),
 ```{r seurat filter and normalize, echo=FALSE, eval=!debug}
 scData <- FilterCells(object = scData,
                       subset.names = c("nGene", "percent.mito"),
-                      low.thresholds = c(param$min_genes, -Inf), 
+                      low.thresholds = c(param$minGenesPerCell, -Inf), 
                       high.thresholds = c(Inf, 0.25))
 scData <- NormalizeData(object = scData, normalization.method = "LogNormalize",
                         scale.factor = scalingFactorSeurat)
