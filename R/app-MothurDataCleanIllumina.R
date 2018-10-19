@@ -18,9 +18,12 @@ ezMethodMothurDataCleanIllumina = function(input=NA, output=NA, param=NA,
   library(scales)
   dataset = input$meta
   ### read fastq files and prepare inputs for Mothur
-  IlluminaDatasetToMothur(dataset,param)
-  
+  prepareFilesLocallyForMothur(dataset,param)
   projNum <- dirname(param$resultDir)
+  
+  ### cp silva reference locally
+  cpSilvaRefCmd <- paste0("cp /srv/GT/databases/silva/silva.bacteria.forMothur.fasta ./")
+  ezSystem(cpSilvaRefCmd)
   
   ### update batch file Illumina with parameters and run mothur: step 1, identify region
   updateBatchCmdIllumina <- paste0("sed -e s/\"MIN_LEN\"/", param$minLen_Illumina, "/g",
