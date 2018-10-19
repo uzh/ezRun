@@ -76,7 +76,7 @@ IlluminaDatasetToMothur <- function(sushiInputDataset, param){
 
 prepareFilesLocallyForMothur <- function(sushiInputDataset, param){
   for (i in (1:nrow(sushiInputDataset))) {
-    nameInDataset <- sushiInputDataset$Name[i]
+    nameInDataset <- rownames(sushiInputDataset)[i]
     file1PathInDatset <- paste0(param$dataRoot,"/",sushiInputDataset$`Read1 [File]`[i])
     file2PathInDatset <- paste0(param$dataRoot,"/",sushiInputDataset$`Read2 [File]`[i])
     initialTable <- cbind(nameInDataset,file1PathInDatset,file2PathInDatset)
