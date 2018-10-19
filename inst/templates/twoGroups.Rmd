@@ -399,6 +399,11 @@ cat(paste0("<SCRIPT language=\"JavaScript\" SRC=\"", basename(jsFile), "\"></SCR
 logSignal = log2(assays(se)$xNorm + param$backgroundExpression)
 if (sum(use) > param$minGenesForClustering){
   xCentered = logSignal[use , ]
+  if(param$onlyCompGroupsHeatmap){
+    columnsToSubset <- param$grouping %in% c(param$refGroup, param$sampleGroup)
+    param$grouping <- param$grouping[columnsToSubset]
+    xCentered <- xCentered[ , columnsToSubset]
+  }
   if (!is.null(param$useRefGroupAsBaseline) && param$useRefGroupAsBaseline){
     xCentered = xCentered - rowMeans(xCentered[ , param$grouping == param$refGroup])
     xCentered = sweep(xCentered, MARGIN=1, 
