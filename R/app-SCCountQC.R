@@ -34,10 +34,6 @@ ezMethodSCCountQC = function(input=NA, output=NA, param=NA,
   
   sce <- loadSCCountDataset(input, param)
   
-  inBam <- getBamLocally(input$getFullPaths("BAM"))
-  on.exit(file.remove(file.path(reportCwd, c(inBam, paste0(inBam, ".bai")))), 
-                      add = TRUE)
-  
   ## STAR log: available for smart-seq2, not for 10x
   
   if(param$scProtocol == "smart-Seq2"){
@@ -45,6 +41,11 @@ ezMethodSCCountQC = function(input=NA, output=NA, param=NA,
                        as.is = TRUE, quote = "\"", fill=T)
     rownames(mlog) <- trimws(mlog[,1])
     metadata(sce)$mlog <- mlog
+    
+    inBam <- getBamLocally(input$getFullPaths("BAM"))
+    on.exit(file.remove(file.path(reportCwd, c(inBam, paste0(inBam, ".bai")))), 
+            add = TRUE)
+    
   }
   
   ## 3' and 5' bias: not in use currently
