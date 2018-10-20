@@ -106,7 +106,6 @@ ezMethodSCCountQC = function(input=NA, output=NA, param=NA,
                        "DataFrame")
   }
 
-  ## debug
   saveRDS(sce, file="sce.rds")
   
   ## Copy the style files and templates
