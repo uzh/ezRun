@@ -39,7 +39,17 @@ debug <- FALSE
 doSeurat <- FALSE
 
 param <- metadata(sce)$param
+## ----------------------------------------------
+## picard metrics
+evalPicard = switch (param$scProtocol,
+  "smart-Seq2" = TRUE,
+  "10x"=FALSE,
+  NA
+)
+
 isMito <- toupper(as.character(seqnames(rowRanges(sce)))) %in% toupper(c("chrM", "MT"))
+
+## sceFixName for section "Reads on top 50 genes" and "Expression metrics"
 sceFixName = sce
 rownames(sceFixName) <- uniquifyFeatureNames(ID=rowData(sceFixName)$gene_id,
                                              names=rowData(sceFixName)$gene_name)
@@ -48,21 +58,22 @@ useCell = Matrix::colSums(cts) >= param$minReadsPerCell &
   Matrix::colSums(cts >= param$minReadsPerGene) > param$minGenesPerCell
 sceFilt = sceFixName[ , useCell]
 ctsFilt <- assays(sceFilt)$counts
-```
 
-```{r scater, include=FALSE}
-## ----------------------------------------------
 ## scater sce
 cell_info <- data.frame(row.names=colnames(ctsFilt),
                         lib_size=Matrix::colSums(ctsFilt)/1e6,
                         expr_genes = Matrix::colSums(ctsFilt >= param$minReadsPerGene),
                         perc_mito=Matrix::colSums(ctsFilt[isMito, , drop=FALSE])*100 / Matrix::colSums(ctsFilt))
 sceFixName <- calculateQCMetrics(sceFixName, feature_controls=list(Mt=isMito))
+
+## datasetAllCells for section "Heatmap of reads per cell on the plate"
+if(param$scProtocol == "smart-Seq2"){
+  datasetAllCells <- data.frame(colData(sce),
+                                check.names = FALSE, stringsAsFactors=FALSE)
+}
 ```
 
-```{r fixName, include=FALSE}
-## sceFixName for section "Reads on top 50 genes" and "Expression metrics"
-
+```{r , include=FALSE}
 # if(param$scProtocol == "smart-Seq2"){  ## TODO - why only for smart-Seq2???
 #   libsize.drop <- isOutlier(sceFilt$total_counts, nmads=5, type="lower",
 #                             log=TRUE)
@@ -70,22 +81,6 @@ sceFixName <- calculateQCMetrics(sceFixName, feature_controls=list(Mt=isMito))
 #                             log=TRUE)
 #   sceFixName <- sceFixName[,!(libsize.drop | feature.drop )]
 # }
-
-## ----------------------------------------------
-## datasetAllCells for section "Heatmap of reads per cell on the plate"
-if(param$scProtocol == "smart-Seq2"){
-  datasetAllCells <- data.frame(colData(sce),
-                                check.names = FALSE, stringsAsFactors=FALSE)
-}
-
-## ----------------------------------------------
-## picard metrics
-
-evalPicard = switch (param$scProtocol,
-  "smart-Seq2" = TRUE,
-  "10x"=FALSE,
-  NA
-)
 ```
 
 ```{r seurat setup, eval=FALSE}
@@ -100,7 +95,6 @@ if(param$scProtocol == "smart-Seq2"){
 }else if(param$scProtocol == "10x"){
   scalingFactorSeurat <- 1e4
 }
-
 ```
 
 ## CountQC_Result {.tabset}
