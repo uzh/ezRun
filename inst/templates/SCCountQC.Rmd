@@ -88,13 +88,13 @@ evalPicard = switch (param$scProtocol,
 )
 ```
 
-```{r seurat setup, include=FALSE}
+```{r seurat setup, eval=FALSE}
 ## ----------------------------------------------
 ## SeuratObject fro Seurat section
-cell_info_scater <- cell_info
-cell_info_scater$perc_mito <- cell_info_scater$perc_mito/100
+cell_info_seurat <- cell_info
+cell_info_seurat$perc_mito <- cell_info_seurat$perc_mito/100
 scData <- CreateSeuratObject(raw.data = ctsFilt, min.cells = 5,
-                             project = param$name, meta.data=cell_info_scater)
+                             project = param$name, meta.data=cell_info_seurat)
 if(param$scProtocol == "smart-Seq2"){
   scalingFactorSeurat <- 1e5
 }else if(param$scProtocol == "10x"){
