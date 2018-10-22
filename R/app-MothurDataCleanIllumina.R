@@ -51,12 +51,13 @@ ezMethodMothurDataCleanIllumina = function(input=NA, output=NA, param=NA,
   
   
   ## Define input for rmd file
-   rawIllumina <- ezRead.table("Illumina.summary")
-  lengthDeduppedIllumina <- ezRead.table("Illumina.good.unique.summary")
-  mappedAndHomopFilteredIllumina <- ezRead.table("Illumina.good.unique.good.summary")
-  chimeraIllumina <- read.delim("Illumina.good.unique.good.filter.unique.precluster.denovo.vsearch.chimeras", header = FALSE)
-  preClusteredAndChimeraFilteredIllumina <- ezRead.table("Illumina.good.unique.good.filter.unique.precluster.pick.summary")
-  preClusteredAndChimeraCountIllumina <- ezRead.table("Illumina.good.unique.good.filter.unique.precluster.denovo.vsearch.pick.count_table")
+  rawIllumina <- ezRead.table("Illumina.summary")
+  deduppedIllumina <- ezRead.table("Illumina.unique.summary")
+  lengthAndHomopFilteredIllumina <- ezRead.table("Illumina.unique.good.summary")
+  mappedFilteredIllumina <- ezRead.table("Illumina.unique.good.good.good.summary")
+  chimeraIllumina <- read.delim("Illumina.unique.good.good.good.filter.unique.precluster.denovo.vsearch.chimeras", header = FALSE)
+  preClusteredAndChimeraFilteredIllumina <- ezRead.table("Illumina.unique.good.good.good.filter.unique.precluster.pick.summary")
+  preClusteredAndChimeraCountIllumina <- ezRead.table("Illumina.unique.good.good.good.filter.unique.precluster.denovo.vsearch.pick.count_table")
   
   ## Copy the style files and templates
   styleFiles <- file.path(system.file("templates", package="ezRun"),
