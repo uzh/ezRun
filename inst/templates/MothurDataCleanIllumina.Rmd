@@ -60,8 +60,8 @@ kable(rawSummaryTableIllumina, row.names=TRUE,
 
 ### Reads filtered by length and duplication
 ```{r filtIll, echo=FALSE}
-kable(lengthDeduppedSummaryTableIllumina, row.names=TRUE, 
-      col.names=colnames(lengthDeduppedSummaryTableIllumina), format="html",caption =titleLengthDeduppedSummaryTableIllumina) %>%
+kable(deduppedSummary, row.names=TRUE, 
+      col.names=colnames(deduppedSummary), format="html",caption =titleDeduppedSummaryTable) %>%
   kable_styling(bootstrap_options = "striped", full_width = F,
                 position = "left")
 ```
@@ -69,16 +69,16 @@ kable(lengthDeduppedSummaryTableIllumina, row.names=TRUE,
 ### Reads filtered by mapping coordinates and Homopolymers
 
 ```{r mapIll, echo=FALSE}
-kable(mappedAndHomopFilteredSummaryTableIllumina, row.names=TRUE, 
-      col.names=colnames(mappedAndHomopFilteredSummaryTableIllumina), format="html",caption =titleMappedAndHomopFilteredSummaryTableIllumina) %>%
+kable(lengthAndHomopFilteredSummary, row.names=TRUE, 
+      col.names=colnames(lengthAndHomopFilteredSummary), format="html",caption =titleLengthAndHomopFilteredSummaryTable) %>%
   kable_styling(bootstrap_options = "striped", full_width = F,
                 position = "left")
 ```
 
 ### Reads preclusterd and filtered for chimeras
 ```{r precIll, echo=FALSE}
-kable(preClusteredAndChimeraFilteredSummaryTableIllumina, row.names=TRUE, 
-      col.names=colnames(preClusteredAndChimeraFilteredSummaryTableIllumina), format="html", caption = titlePreClusteredAndChimeraFilteredSummaryTableIllumina) %>%
+kable(preClusteredAndChimeraFilteredSummary, row.names=TRUE, 
+      col.names=colnames(preClusteredAndChimeraFilteredSummary), format="html", caption = titlePreClusteredAndChimeraFilteredSummaryTable) %>%
   kable_styling(bootstrap_options = "striped", full_width = F,
                 position = "left")
 plot(chimeraIlluminaPlot)
