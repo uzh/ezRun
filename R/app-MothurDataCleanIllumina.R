@@ -44,7 +44,8 @@ ezMethodMothurDataCleanIllumina = function(input=NA, output=NA, param=NA,
                                    " -e s/\"START_COORD\"/", regionStartCoord, "/g",
                                    " -e s/\"END_COORD\"/", regionEndCoord, "/g",
                                    " -e s/\"Mothur\"/\"Illumina\"/g ",
-                                   MOTHUR_DATA_CLEAN_BATCH_TEMPLATE_STEP2, " >", MOTHUR_DATA_CLEAN_BATCH_ILLUMINA_STEP2)
+                                   MOTHUR_DATA_CLEAN_BATCH_TEMPLATE_STEP2,
+                                   " >", MOTHUR_DATA_CLEAN_BATCH_ILLUMINA_STEP2)
   ezSystem(updateBatchCmdIllumina)
   cmdMothurIllumina = paste(MOTHUR_EXE,MOTHUR_DATA_CLEAN_BATCH_ILLUMINA_STEP2)
   ezSystem(cmdMothurIllumina)
