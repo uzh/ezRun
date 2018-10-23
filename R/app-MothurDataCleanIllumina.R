@@ -34,7 +34,7 @@ ezMethodMothurDataCleanIllumina = function(input=NA, output=NA, param=NA,
   cmdMothurIllumina = paste(MOTHUR_EXE,MOTHUR_DATA_CLEAN_BATCH_ILLUMINA_STEP1)
   ezSystem(cmdMothurIllumina)
   ### extract region
-  summaryOfAlign <- read.delim('Illumina.good.unique.summary', stringsAsFactors = FALSE, header = T)
+  summaryOfAlign <- read.delim('Illumina.unique.good.good.good.summary', stringsAsFactors = FALSE, header = T)
   regionStartCoord <- quantile(summaryOfAlign$start, probs = seq(0, 1, 0.025))["5%"]
   regionEndCoord <- quantile(summaryOfAlign$end, probs = seq(0, 1, 0.025))["95%"]
   
