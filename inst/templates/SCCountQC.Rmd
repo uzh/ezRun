@@ -36,7 +36,6 @@ require(pheatmap)
 ## by default the fixed genenames are use
 
 debug <- FALSE
-doSeurat <- FALSE
 
 param <- metadata(sce)$param
 ## ----------------------------------------------
@@ -406,15 +405,15 @@ p2 <- plot_ly(alpha = 0.6) %>%
 p2
 ```
 
-<!-- ### Seurat -->
+### Seurat
 
-```{r VlnPlot, echo=FALSE, fig.width=10, fig.height=ifelse(nchar(scData@project.name) > 20, 10, 7), eval=doSeurat && !debug}
+```{r VlnPlot, echo=FALSE, fig.width=10, fig.height=ifelse(nchar(scData@project.name) > 20, 10, 7), eval=!debug}
 VlnPlot(object=scData, features.plot = c("nGene", "nUMI", "perc_mito"),
         nCol=3, 
         x.lab.rot=ifelse(nchar(scData@project.name) > 20, TRUE, FALSE))
 ```
 
-```{r seurat filter and normalize, echo=FALSE, eval=doSeurat && !debug}
+```{r seurat filter and normalize, echo=FALSE, eval=!debug}
 scData <- FilterCells(object = scData,
                       subset.names = c("nGene", "perc_mito"),
                       low.thresholds = c(param$minGenesPerCell, -Inf), 
