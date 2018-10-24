@@ -14,9 +14,9 @@ EzAppSCReport <-
                   "Initializes the application using its specific defaults."
                   runMethod <<- ezMethodSCReport
                   name <<- "EzAppSCReport"
-                  appDefaults <<- rbind(min_genes=ezFrame(Type="numeric", DefaultValue=500, Description="Minimal number of genes per cell for Seurat filtering"),
-                                        max_genes=ezFrame(Type="numeric", DefaultValue=3000, Description="Maximal number of genes per cell for Seurat filtering"),
-                                        min_counts=ezFrame(Type="numeric", DefaultValue=5e4, Description="Minimal counts of smart-Seq2 for Seurat filtering"),
+                  appDefaults <<- rbind(minGenesPerCell=ezFrame(Type="numeric", DefaultValue=500, Description="Minimal number of genes per cell for Seurat filtering"),
+                                        maxGenesPerCell=ezFrame(Type="numeric", DefaultValue=3000, Description="Maximal number of genes per cell for Seurat filtering"),
+                                        minReadsPerCell=ezFrame(Type="numeric", DefaultValue=5e4, Description="Minimal reads per cell of smart-Seq2 for Seurat filtering"),
                                         pcs=ezFrame(Type="numeric", DefaultValue=10, Description="The maximal dimensions to use for reduction"),
                                         pcGenes=ezFrame(Type="charVector", DefaultValue="", Description="The genes used in supvervised clustering"),
                                         x.low.cutoff=ezFrame(Type="numeric", DefaultValue=0.1, Description="Bottom cutoff on x-axis for identifying variable genes"),
@@ -56,8 +56,8 @@ ezMethodSCReport = function(input=NA, output=NA, param=NA,
 }
 
 seuratPreProcess <- function(sce){
-  ## parameters to tune: param$min_counts; param$max_genes; param$min_genes
-  ##                     param$pcs
+  ## parameters to tune: param$minReadsPerCell; param$maxGenesPerCell; param$minGenesPerCell
+  ##                     param$pcs, param$pcGenes
   
   require(Seurat)
   require(scater)
@@ -67,16 +67,20 @@ seuratPreProcess <- function(sce){
                                         names=rowData(sce)$gene_name)
   countsSeurat <- assays(sce)$counts
   if(param$scProtocol == "smart-Seq2"){
-    countsSeurat <- countsSeurat[ ,Matrix::colSums(countsSeurat) > param$min_counts]
+    countsSeurat <- countsSeurat[ ,Matrix::colSums(countsSeurat) > param$minReadsPerCell]
   }
   
+  isMito <- toupper(as.character(seqnames(rowRanges(sce)))) %in% toupper(c("chrM", "MT"))
+  cell_info <- data.frame(row.names=colnames(countsSeurat),
+                          lib_size=Matrix::colSums(countsSeurat)/1e6,
+                          expr_genes = Matrix::colSums(countsSeurat >= param$minReadsPerGene),
+                          perc_mito=Matrix::colSums(countsSeurat[isMito, , drop=FALSE])*100 / Matrix::colSums(countsSeurat))
+  cell_info_seurat <- cell_info
+  cell_info_seurat$perc_mito <- cell_info_seurat$perc_mito/100
+  
   scData <- CreateSeuratObject(raw.data = countsSeurat, min.cells = 5,
-                               project = param$name)
-  mito.genes <- grep(pattern = "^mt-", x = rownames(scData@data),
-                     value = TRUE, ignore.case = TRUE)
-  percent.mito <- Matrix::colSums(scData@raw.data[mito.genes, ]) / Matrix::colSums(scData@raw.data)
-  scData <- AddMetaData(object = scData, metadata = percent.mito,
-                        col.name = "percent.mito")
+                               project = param$name,
+                               meta.data=cell_info_seurat)
   if(param$scProtocol == "smart-Seq2"){
     scalingFactorSeurat <- 1e5
   }else if(param$scProtocol == "10x"){
@@ -84,9 +88,9 @@ seuratPreProcess <- function(sce){
   }
   
   scData <- FilterCells(object = scData,
-                        subset.names = c("nGene", "percent.mito"),
-                        low.thresholds = c(param$min_genes, -Inf), 
-                        high.thresholds = c(param$max_genes, 0.25))
+                        subset.names = c("nGene", "perc_mito"),
+                        low.thresholds = c(param$minGenesPerCell, -Inf), 
+                        high.thresholds = c(param$maxGenesPerCell, 0.25))
   scData <- NormalizeData(object = scData, normalization.method = "LogNormalize",
                           scale.factor = scalingFactorSeurat)
   scData <- FindVariableGenes(object = scData, do.plot = FALSE,
@@ -94,7 +98,7 @@ seuratPreProcess <- function(sce){
                               x.high.cutoff=param$x.high.cutoff,
                               y.cutoff=param$y.cutoff)
   scData <- ScaleData(object = scData, do.par=TRUE,
-                      vars.to.regress = c("nUMI", "percent.mito"),
+                      vars.to.regress = c("nUMI", "perc_mito"),
                       num.cores=param$cores)
   if(ezIsSpecified(param$pcGenes)){
     indicesMatch <- match(toupper(param$pcGenes), rownames(scData@data))
