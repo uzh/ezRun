@@ -7,6 +7,8 @@ output:
     includes:
       in_header: fgcz_header.html
     css: fgcz.css
+editor_options: 
+  chunk_output_type: console
 ---
 
 Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
@@ -23,13 +25,21 @@ require(Matrix)
 ## ----------------------------------------------
 ## debug
 # title:  "`r metadata(sce)$param$name`"
-# sce <- readRDS("/scratch/gtan/dev/SCReports-p2284/AVM_17_08_2018_SCCountQC/sce.rds")
+# sce <- readRDS("/scratch/gtan/dev/SCReports-p2284/AVM_17_08_2018_SCReport/sce.rds")
+# sce <- readRDS("/srv/gstore/projects/p2284/SCReport_28929_2018-10-18--10-06-03/AVM_17_08_2018_SCReport/sce.rds")
 # sce <- readRDS("/scratch/gtan/debug/quickDebug/sce.rds")
 ## end of debug
 debug <- FALSE
 
 scData <- metadata(sce)$scData
 param <- metadata(sce)$param
+output <- metadata(sce)$output
+```
+
+```{r javascript, echo=FALSE, results='asis'}
+jsFile = system.file("extdata/enrichr.js", package="ezRun", mustWork=TRUE)
+invisible(file.copy(from=jsFile, to=basename(jsFile), overwrite=TRUE))
+cat(paste0("<SCRIPT language=\"JavaScript\" SRC=\"", basename(jsFile), "\"></SCRIPT>"))
 ```
 
 ```{r pos markers, echo=FALSE}
@@ -39,8 +49,8 @@ posMarkersFn <- "pos_markers.tsv"
 ezWrite.table(markers, posMarkersFn)
 
 ## Significant markers
-cm <- markers[which(markers$p_val_adj<0.01 & abs(markers$avg_logFC)>0.5),
-              c("gene","cluster","avg_logFC","p_val_adj")]
+cm <- markers[#which(markers$p_val_adj<0.05),
+              , c("gene","cluster","avg_logFC","p_val_adj")]
 rownames(cm) <- NULL
 ```
 
@@ -62,7 +72,7 @@ tSNE_data <- tibble(X=scData@dr$tsne@cell.embeddings[colnames(cd),1],
 ### Cell clustering tSNE
 
 This analysis was done with the R package Seurat. The distance metric which drives the clustering analysis is based on Principal Component Analysis.  In the plot below each dot is a cell.
-We eliminated the genes that are expressed in < 5 cells. We eliminated the cells that have < `r param$min_genes` genes detected, or > `r param$max_genes` genes.
+We eliminated the genes that are expressed in < 5 cells. We eliminated the cells that have < `r param$minGenesPerCell` genes detected, or > `r param$maxGenesPerCell` genes.
 
 ```{r tSNE, echo=FALSE, results='asis'}
 TSNEPlot(object=scData)
@@ -105,25 +115,39 @@ ezWrite.table(geneMeans, geneMeansFn)
 
 ### Control of the cell clustering
 
-```{r FeaturePlot, echo=FALSE}
+```{r FeaturePlot, echo=FALSE, eval=!debug}
 FeaturePlot(object = scData, features.plot = "nGene", 
             reduction.use = "tsne", no.legend = FALSE)
 FeaturePlot(object = scData, features.plot = "nUMI", 
             reduction.use = "tsne", no.legend = FALSE)
 ```
 
-### Table with top cluster markers
-
+### Top cluster markers
 List of all positive cluster markers can be accessed [here](`r posMarkersFn`).
 
+```{r enrichr markers, echo=FALSE, results='asis'}
+if(doEnrichr(param)){
+  genesPerCluster <- split(markers$gene, markers$cluster)
+  jsCall = paste0('enrich({list: "', sapply(genesPerCluster, paste, collapse="\\n"), '", popup: true});')
+  enrichrCalls <- paste0("<a href='javascript:void(0)' onClick='", jsCall, 
+                         "'>Analyse at Enrichr website</a>")
+  enrichrTable <- tibble(Cluster=names(genesPerCluster),
+                         "# of markers"=lengths(genesPerCluster),
+                         "Enrichr link"=enrichrCalls)
+  kable(enrichrTable, format="html", escape=FALSE,
+        caption="Geneset enrichment") %>%
+    kable_styling("striped", full_width = F, position = "left")
+}
+```
+
 ```{r markers table, echo=FALSE}
-caption ="Expression differences of cluster marker genes."
+caption ="Expression differences of cluster marker genes (p_val_adj < 0.05)"
 ezInteractiveTableRmd(cm, digits=4, title=caption)
 ```
 
 ### Visualizations of top cluster markers
 
-```{r top cluster markers, fig.width=4, fig.height=3, echo=FALSE}
+```{r top cluster markers, fig.width=4, fig.height=3, echo=FALSE, eval=!debug}
 some_markers <- head(arrange(cm, p_val_adj) %>% select(gene) %>% pull(), 100)
 for(i in 1:length(some_markers)){
   plot(VlnPlot(object = scData, some_markers[i], do.return=TRUE))
@@ -136,7 +160,7 @@ for(i in 1:length(some_markers)){
 ### Heatmap of cluster marker genes
 Max 10 marker genes are shown for each cluster. 
 
-```{r heatmap, fig.width=10, fig.height=20, echo=FALSE}
+```{r heatmap, fig.width=10, fig.height=20, echo=FALSE, eval=!debug}
 top10 <- markers %>% group_by(cluster) %>% top_n(10, avg_logFC)
 DoHeatmap(object = scData, genes.use = top10$gene, slim.col.label = TRUE,
           remove.key=TRUE)
@@ -146,7 +170,7 @@ DoHeatmap(object = scData, genes.use = top10$gene, slim.col.label = TRUE,
 
 Each dot is a cell. On the right-hand plot, the color corresponds to the gene expression levels. 
 
-```{r selected markers, fig.width=4, fig.height=3, echo=FALSE, results='asis'}
+```{r selected markers, fig.width=4, fig.height=3, echo=FALSE, results='asis', eval=!debug}
 if(length(param$markersToCheck) >0){
   all_m = list()
   for(i in 1:length(param$markersToCheck)){
@@ -172,7 +196,7 @@ if(length(param$markersToCheck) >0){
 ```
 
 ### Pseudotime
-```{r pseudo time plot, echo=FALSE, fig.width=8, fig.height=5, eval=param$runPseudoTime}
+```{r pseudo time plot, echo=FALSE, fig.width=8, fig.height=5, eval=param$runPseudoTime, eval=!debug}
 p <- ggplot(tSNE_data, aes(X, Y)) + 
   geom_point(shape=21, size=5, colour = "black", aes(fill=pseudotime)) +
   scale_fill_gradient(low="yellow", high="blue") +
