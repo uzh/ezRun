@@ -14,7 +14,8 @@ EzAppSCReport <-
                   "Initializes the application using its specific defaults."
                   runMethod <<- ezMethodSCReport
                   name <<- "EzAppSCReport"
-                  appDefaults <<- rbind(minGenesPerCell=ezFrame(Type="numeric", DefaultValue=500, Description="Minimal number of genes per cell for Seurat filtering"),
+                  appDefaults <<- rbind(minReadsPerGene=ezFrame(Type="numeric", DefaultValue=3, Description="Minimal number of reads per gene to be expressed"),
+                                        minGenesPerCell=ezFrame(Type="numeric", DefaultValue=500, Description="Minimal number of genes per cell for Seurat filtering"),
                                         maxGenesPerCell=ezFrame(Type="numeric", DefaultValue=3000, Description="Maximal number of genes per cell for Seurat filtering"),
                                         minReadsPerCell=ezFrame(Type="numeric", DefaultValue=5e4, Description="Minimal reads per cell of smart-Seq2 for Seurat filtering"),
                                         pcs=ezFrame(Type="numeric", DefaultValue=10, Description="The maximal dimensions to use for reduction"),
@@ -39,6 +40,8 @@ ezMethodSCReport = function(input=NA, output=NA, param=NA,
   param$scProtocol <- ifelse("STARLog" %in% input$colNames, "smart-Seq2", "10x")
   
   sce <- loadSCCountDataset(input, param)
+  metadata(sce)$output <- output
+  
   sce <- seuratPreProcess(sce)
   
   ## debug
