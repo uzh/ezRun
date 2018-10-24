@@ -58,27 +58,34 @@ kable(rawSummaryTableIllumina, row.names=TRUE,
                 position = "left")
 ```
 
-### Reads filtered by length and duplication
+### Reads filtered by duplication
 ```{r filtIll, echo=FALSE}
-kable(deduppedSummary, row.names=TRUE, 
-      col.names=colnames(deduppedSummary), format="html",caption =titleDeduppedSummaryTable) %>%
+kable(deduppedSummaryTable, row.names=TRUE, 
+      col.names=colnames(deduppedSummaryTable), format="html",caption =titleDeduppedSummaryTable) %>%
   kable_styling(bootstrap_options = "striped", full_width = F,
                 position = "left")
 ```
 
-### Reads filtered by mapping coordinates and Homopolymers
-
+### Reads filtered by length  and Homopolymers
 ```{r mapIll, echo=FALSE}
-kable(lengthAndHomopFilteredSummary, row.names=TRUE, 
-      col.names=colnames(lengthAndHomopFilteredSummary), format="html",caption =titleLengthAndHomopFilteredSummaryTable) %>%
+kable(lengthAndHomopFilteredSummaryTable, row.names=TRUE, 
+      col.names=colnames(lengthAndHomopFilteredSummaryTable), format="html",caption =titleLengthAndHomopFilteredSummaryTable) %>%
+  kable_styling(bootstrap_options = "striped", full_width = F,
+                position = "left")
+```
+
+### Reads filtered by mapping to the Silva database
+```{r mapIll, echo=FALSE}
+kable(mappedFilteredSummaryTable, row.names=TRUE, 
+      col.names=colnames(mappedFilteredSummaryTable), format="html",caption =titleMappedFilteredSummaryTable) %>%
   kable_styling(bootstrap_options = "striped", full_width = F,
                 position = "left")
 ```
 
 ### Reads preclusterd and filtered for chimeras
 ```{r precIll, echo=FALSE}
-kable(preClusteredAndChimeraFilteredSummary, row.names=TRUE, 
-      col.names=colnames(preClusteredAndChimeraFilteredSummary), format="html", caption = titlePreClusteredAndChimeraFilteredSummaryTable) %>%
+kable(preClusteredAndChimeraFilteredSummaryTable, row.names=TRUE, 
+      col.names=colnames(preClusteredAndChimeraFilteredSummaryTable), format="html", caption = titlePreClusteredAndChimeraFilteredSummaryTable) %>%
   kable_styling(bootstrap_options = "striped", full_width = F,
                 position = "left")
 plot(chimeraIlluminaPlot)

@@ -13,7 +13,7 @@
 
 createSummaryTable <- function(summary){
 numUniqReads <- nrow(summary)
-rawDataSummaryTableTitle <- paste("Numer of unique sequences =",numUniqReads , sep = " ")
+rawDataSummaryTableTitle <- paste("Number of unique sequences =",numUniqReads , sep = " ")
 part2 <- vector()
 part1 <- apply(subset(summary,select=start:polymer),2,function(x)quantile(x, probs = c(0, 0.025,0.25, 0.5, 0.75, 0.975,1)))
 k=1
