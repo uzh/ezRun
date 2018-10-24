@@ -15,9 +15,10 @@ param[['strandMode']] = 'both'
 param[['refFeatureFile']] = 'genes.gtf'
 param[['featureLevel']] = 'gene'
 param[['transcriptTypes']] = ''
-param[['min_genes']] = '500'
-param[['max_genes']] = '3000'
-param[['min_counts']] = '50000'
+param[['minReadsPerGene']] = '3'
+param[['minGenesPerCell']] = '500'
+param[['maxGenesPerCell']] = '3000'
+param[['minReadsPerCell']] = '50000'
 param[['pcs']] = '14'
 param[['markersToCheck']] = 'Zhengs lists=Psat1,Phgdh,Psph,Dnmt1,Dnmt3a,Hdac9,Vwf,Selp,Kdr,Ramp3,Slc6a6,Car4,Car8,Ankrd37,Rgcc,Podoxl,Tmem176a,Tmem176b,Lrg1,Esm1,Dll4,CD36,Lamb1,Apold1,Cxcl12,Lpl,Mb,Slc26a10,Hba-a1,Hba-a2B cells;=Cd79a,Ly6d,Cd79b,H2-DMb2,H2-Ob,Fcmr,Ccr7,Bank1,Cd55,Ms4a1;'
 param[['specialOptions']] = ''
@@ -50,5 +51,5 @@ input[['featureLevel']] = 'gene'
 # param <- ezParam(param)
 # param$scProtocol <- ifelse("STARLog" %in% input$colNames, "smart-Seq2", "10x")
 # sce <- loadSCCountDataset(input, param)
-#debug(ezMethodSCReport)
+# debug(seuratPreProcess)
 EzAppSCReport$new()$run(input=input, output=output, param=param)
