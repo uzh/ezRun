@@ -508,10 +508,11 @@ if (doGo(param, seqAnno)){
       regulatedGenes$downGenes = na.omit(unique(seqAnno[isDown, "gene_name"]))
       regulatedGenes$bothGenes = union(regulatedGenes$upGenes, regulatedGenes$downGenes)
       
-      enrichrLinks = ezMatrix("", rows=names(regulatedGenes), cols=c("External", "Precomputed"))
+      enrichrLinks = ezMatrix("", rows=names(regulatedGenes), cols=c("Number of Genes", "External", "Precomputed"))
       maxResultsPerLibrary = 5
       for (row in rownames(enrichrLinks)){
         genesToUse = regulatedGenes[[row]]
+        enrichrLinks[row, "Number of Genes"] = length(genesToUse)
         jsCall = paste0('enrich({list: "', paste(genesToUse, collapse="\\n"), '", popup: true});')
         enrichrLinks[row, "External"] = as.html(pot(paste0("<a href='javascript:void(0)' onClick='", jsCall, "'>Analyse at Enrichr website</a>")))
         resMerged <- NA
@@ -540,6 +541,17 @@ if (doGo(param, seqAnno)){
           enrichrLinks[row, "Precomputed"] = "Not run (too few genes)"
         }
       }
+      settings = character()
+      if (!is.null(param$pValueHighlightThresh)){
+        settings["P-value threshold:"] = paste("p <=", param$pValThreshGO)
+      }
+      if (!is.null(param$log2RatioHighlightThresh)){
+        settings["Log ratio threshold:"] = paste("log ratio >=", param$log2RatioThreshGO)
+      }
+      kable(as.data.frame(settings), format="html", 
+                   col.names="Number", row.names=TRUE) %>%
+        kable_styling(bootstrap_options = "striped", full_width = F,
+                  position = "left")
       kable(enrichrLinks, escape=FALSE, row.names=TRUE, format = "html") %>%
         kable_styling(bootstrap_options = "striped",
                     full_width = F, position = "left")
@@ -789,13 +801,17 @@ if(exists("enrichResultGSEA")){
 ```
 
 ### Technical bias
-The tests below indicate whether up or down-regulated genes are associated 
-with the genes having either extreme GC content or extreme gene length.
+We define 4 gene sets 
 
-If there is a significant association, some of the significant genes are potentially false positives 
+* high GC: the 5% of the genes with the highest GC content
+* low GC: the 5% of the genes with the lowest GC content
+* long genes: the 5% of the genes with the biggest length
+* short genes: the 5% of the genes with the smalles length
+
+And we test if the up- or down-regulated genes are associated with one of those gene sets. If there is a significant association, some of the significant genes are potentially false positives 
 due to a technical bias.
 
-Tests that show a significant association (p-value below 1e-3) are highlighted in red.
+Tests where the association p-value is below 0.001 are highlighted in red.
 The column "overlapping/total genes" shows the number of overlapping genes
 and the total number of genes in that category.
 
@@ -824,8 +840,11 @@ if(all(c("gc", "featWidth") %in% colnames(x))){
     testName = paste(tests$bias[i], " -- ", tests$sig[i])
     myBias = biasTable[[tests$bias[i]]]
     mySig = sigTable[[tests$sig[i]]]
-    if(!any(mySig)) mySig[1] = TRUE
-    res.fisher <- fisher.test(myBias, mySig, alternative="greater")
+    if(any(mySig)){
+      res.fisher <- fisher.test(myBias, mySig, alternative="greater")
+    } else {
+      res.fisher = list(estimate=NA, p.value=NA)
+    }
     testTable[testName, "overlapping/total genes"] = paste(sum(myBias & mySig), sum(myBias), sep="/")
     testTable[testName, "odds ratio"] = res.fisher$estimate
     testTable[testName, "p-value"] = res.fisher$p.value
@@ -836,7 +855,7 @@ if(all(c("gc", "featWidth") %in% colnames(x))){
                            sum(isDown), "down-regulated genes")) %>%
        kable_styling(bootstrap_options = "striped", full_width = F, 
                      position = "left")
-  isSig <- testTable$`p-value` <= 1e-3
+  isSig <- testTable$`p-value` < 1e-3
   if(any(isSig)){
     t <- t %>% 
       row_spec(which(isSig), bold = T, color = "white", background = "#D7261E")
