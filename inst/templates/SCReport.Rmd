@@ -49,8 +49,7 @@ posMarkersFn <- "pos_markers.tsv"
 ezWrite.table(markers, posMarkersFn)
 
 ## Significant markers
-cm <- markers[#which(markers$p_val_adj<0.05),
-              , c("gene","cluster","avg_logFC","p_val_adj")]
+cm <- markers[ ,c("gene","cluster","avg_logFC","p_val_adj")]
 rownames(cm) <- NULL
 ```
 
@@ -141,7 +140,7 @@ if(doEnrichr(param)){
 ```
 
 ```{r markers table, echo=FALSE}
-caption ="Expression differences of cluster marker genes (p_val_adj < 0.05)"
+caption ="Expression differences of cluster marker genes"
 ezInteractiveTableRmd(cm, digits=4, title=caption)
 ```
 

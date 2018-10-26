@@ -82,7 +82,7 @@ if(param$scProtocol == "smart-Seq2"){
 # }
 ```
 
-```{r seurat setup, eval=FALSE}
+```{r seurat setup, eval=TRUE}
 ## ----------------------------------------------
 ## SeuratObject fro Seurat section
 cell_info_seurat <- cell_info
