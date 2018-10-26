@@ -468,6 +468,11 @@ plateStatistics <- function(dataset,
     warning("No column ", colname[!colsExist], " in dataset!")
     colname <- colname[colsExist]
   }
+  colsNumeric <- sapply(dataset[, colname, drop=FALSE], is, "numeric")
+  if(any(!colsNumeric)){
+    warning("The column ", colname[!colsNumeric], " is non-numeric.")
+    colname <- colname[colsNumeric]
+  }
   colsNA <- is.na(colSums(dataset[, colname, drop=FALSE]))
   if(any(colsNA)){
     message("The column ", colname[colsNA], " has NA!")
