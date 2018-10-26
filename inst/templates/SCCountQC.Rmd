@@ -285,7 +285,7 @@ cd$nGenesDetected <- Matrix::colSums(assays(sce)$counts > 3)
 ```
 
 ```{r picard plot, echo=FALSE, fig.width=20, fig.height=6, eval=evalPicard && !debug}
-plateMatrix <- plateStatistics(cd, 
+plateMatrix <- plateStatistics(cd,
                                colname=c("PF_READS", "nGenesDetected",
                                          "PCT_RIBOSOMAL_BASES", "PF_READS_ALIGNED",
                                          "PF_MISMATCH_RATE", "PCT_ADAPTER",
