@@ -197,7 +197,8 @@ if(length(param$markersToCheck) >0){
 ### Pseudotime
 ```{r pseudo time plot, echo=FALSE, fig.width=8, fig.height=5, eval=param$runPseudoTime, eval=!debug}
 p <- ggplot(tSNE_data, aes(X, Y)) + 
-  geom_point(shape=21, size=5, colour = "black", aes(fill=pseudotime)) +
+  geom_point(shape=21, size=5, colour = "black",
+             aes(fill=pseudotime), alpha=0.7) +
   scale_fill_gradient(low="yellow", high="blue") +
   xlab("") + ylab("")
 print(p)
