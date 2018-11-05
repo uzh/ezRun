@@ -1,0 +1,126 @@
+---
+title: "`r paste('DNA-Seq QC Report:', param$name)`"
+author: "Functional Genomics Center Zurich"
+output: 
+  html_document:
+    self_contained: false
+    includes:
+      in_header: fgcz_header.html
+    css: fgcz.css
+---
+Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
+
+```{r setup DnaQC, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+## This report requires the object resultList, dataset, param
+require(knitr)
+require(kableExtra)
+```
+
+```{r prepare data RNABamStats, include=FALSE}
+## debug:
+#require(ezRun)
+#load("/home/gtan/analysis/gtan/p2438-RNABamStats/resultList.RData")
+#load("/home/gtan/analysis/gtan/p2438-RNABamStats/dataParam.rda")
+## end of debug
+
+conds = ezConditionsFromDataset(dataset, param=param)
+samples = rownames(dataset)
+sampleColors = getSampleColors(conds, samples)
+bamFiles = dataset$BAM
+```
+
+```{r igv link, include=FALSE}
+if (param$writeIgvSessionLink){
+#     titles[["Genome Browser"]] = "Genome Browser"
+#     addTitle(doc, titles[[length(titles)]], 2, id=titles[[length(titles)]]) ## NOTEP: igv links are not yet added to the report.
+  if (length(bamFiles) > 4){
+    idx = which(!duplicated(conds))
+    idx = idx[1:min(4, length(idx))]
+  } else {
+    idx = 1:length(bamFiles)
+  }
+  for (each in idx){
+    writeIgvSession(genome=getIgvGenome(param), refBuild=param$ezRef["refBuild"],
+                    file=basename(sub(".bam", "-igv.xml", bamFiles[each])),
+                    bamUrls=paste(PROJECT_BASE_URL, bamFiles[each], sep="/"))
+    writeIgvJnlp(jnlpFile=basename(sub(".bam", "-igv.jnlp", bamFiles[each])),
+                 projectId=param$projectId,
+                 sessionUrl=paste(PROJECT_BASE_URL, sub(".bam", "-igv.xml", 
+                                                        bamFiles[each]), 
+                                  sep="/"))
+  }
+}
+```
+
+## DNA_QC_Statistics {.tabset}
+
+<!-- ### Read Alignment Statistics -->
+
+### Multi-Matching Reported in Bam File
+The plot holds for each sample the number of reads in Millions 
+that have X matches in the target and are reported in the file.
+
+```{r multi-matching data, echo=FALSE}
+mmValues = integer()
+for (sm in samples){
+  mmValues = union(mmValues, as.integer(names(resultList[[sm]]$multiMatchInFileTable)))
+}
+mmCounts = ezMatrix(0, rows=samples, cols=sort(mmValues))
+for (sm in samples){
+  mm = resultList[[sm]]$multiMatchInFileTable
+  mmCounts[sm, names(mm)] = mm
+}
+```
+
+```{r multi-matching plot, echo=FALSE, message=FALSE, fig.height=7, fig.width=min(max(7, 7+(nrow(mmCounts)-20)*0.3), 30)}
+alignmentCountBarPlot(mmCounts, relative=FALSE,
+                      file="multiMatchInFile-barplot.txt")
+alignmentCountBarPlot(mmCounts, relative=TRUE)
+```
+
+```{r multi-matching export, echo=FALSE}
+txtFile <- "read-alignment-statistics.txt"
+ezWrite.table(mmCounts, file=txtFile, head="Sample")
+```
+[`r txtFile`](`r txtFile`)
+
+### InsertSize
+
+```{r insert, results='asis', echo = FALSE}
+plots <- list.files(".","fragmentSize_.*png$")
+   for(i in 1:length(plots)){
+      filename <- plots[i]
+      cat("![](",filename,")")
+   }
+```
+
+### Library Complexity
+
+```{r complexity, results='asis', echo = FALSE}
+plots <- list.files(".","libComplexity_.*png$")
+   for(i in 1:length(plots)){
+      filename <- plots[i]
+      cat("![](",filename,")")
+   }
+```
+
+### Qualimap
+
+[Multi-Sample Report](qualimap_MultiSample/multisampleBamQcReport.html)
+
+#### Per Sample Reports
+
+```{r qualimap, echo=FALSE}
+require(DT)
+qualimapResults = data.frame(SampleName = samples, ReportLink = file.path(samples, 'qualimapReport.html'), stringsAsFactors = F)
+qualimapResults$ReportLink =  paste0('<a href="',qualimapResults$ReportLink,'">',qualimapResults$ReportLink,'</a>') 
+datatable(qualimapResults, escape = F,
+                                caption='', colnames=colnames(qualimapResults),
+                                options=list(dom = 'Bfrtip', pageLength=25, autoWidth=TRUE))
+```
+
+### Input Dataset
+```{r, echo=FALSE, message=FALSE}
+ezInteractiveTableRmd(dataset)
+```
