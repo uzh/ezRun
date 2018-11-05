@@ -37,10 +37,11 @@ computeDnaBamStats <- function(input, htmlFile, param, resultList=NULL){
       png(paste0('fragmentSize_',sm,'.png'),width = 600, height = 500, res = 90)
         fragSizeDist(files[sm], sm)
       dev.off()
+    
+      png(paste0('libComplexity_',sm,'.png'),width = 600, height = 500, res = 90)
+      ezLibComplexity(readsDupFreq(files[sm]), main = paste(sm, 'Library Complexity'))
+      dev.off()
     }
-    png(paste0('libComplexity_',sm,'.png'),width = 600, height = 500, res = 90)
-    ezLibComplexity(readsDupFreq(files[sm]), main = paste(sm, 'Library Complexity'))
-    dev.off()
     
     #run Qualimap SingleSample
     cmd = paste('unset DISPLAY; qualimap bamqc -bam', files[sm], '-c -nt', param[['cores']], ' --java-mem-size=', paste0(param[['ram']],'G'), '-outdir', sm)
