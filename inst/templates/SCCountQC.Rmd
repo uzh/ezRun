@@ -103,7 +103,7 @@ if(param$scProtocol == "smart-Seq2"){
 * Total Number of Cells: `r ncol(sce)`
 * Number of cells removed:  `r ncol(sce)-ncol(sceFilt)`
     + cells with less than `r param$minReadsPerCell` reads aligned
-    + cells with less than `r param$minGenesDetected` genes that have at least `r param$minReadsPerGene` reads
+    + cells with less than `r param$minGenesPerCell` genes that have at least `r param$minReadsPerGene` reads
 * Median Genes per Cell = `r median(cell_info$expr_genes)`
 * Median Reads per Cell = `r round(median(cell_info$lib_size*1e6),0)`
 * Number of input reads = `r ifelse(is.null(metadata(sce)$mlog), NA, metadata(sce)$mlog["Number of input reads",2])`
