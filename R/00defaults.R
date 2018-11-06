@@ -83,7 +83,7 @@ parseListOptions <- function(optString){
   param <- params[1]
   for(param in params){
     param=strsplit(param, "=")[[1]]
-    paramsList[[param[1]]] <- strsplit(param[2], ",")[[1]]
+    paramsList[[param[1]]] <- trimws(strsplit(param[2], ",")[[1]])
   }
   return(paramsList)
 }
