@@ -109,9 +109,17 @@ plots <- list.files(".","libComplexity_.*png$")
 
 [Multi-Sample Report](qualimap_MultiSample/multisampleBamQcReport.html)
 
+```{r stats, results='asis', echo = FALSE}
+plots <- list.files(".","QualiMapStats_.*png$")
+   for(i in 1:length(plots)){
+      filename <- plots[i]
+      cat("![](",filename,")")
+   }
+```
+
 #### Per Sample Reports
 
-```{r qualimap, echo=FALSE}
+```{r qualimap, results='asis', message=FALSE, echo=FALSE}
 require(DT)
 qualimapResults = data.frame(SampleName = samples, ReportLink = file.path(samples, 'qualimapReport.html'), stringsAsFactors = F)
 qualimapResults$ReportLink =  paste0('<a href="',qualimapResults$ReportLink,'">',qualimapResults$ReportLink,'</a>') 

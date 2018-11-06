@@ -23,6 +23,7 @@ computeDnaBamStats <- function(input, htmlFile, param, resultList=NULL){
   require("GenomicAlignments")
   require("S4Vectors")
   require("ATACseqQC")
+  require("XML")
   environment(ezLibComplexity) <- asNamespace('ATACseqQC')
   samples <- input$getNames()
   files <- input$getFullPaths("BAM")
@@ -44,13 +45,23 @@ computeDnaBamStats <- function(input, htmlFile, param, resultList=NULL){
     }
     
     #run Qualimap SingleSample
-    cmd = paste('unset DISPLAY; qualimap bamqc -bam', files[sm], '-c -nt', param[['cores']], ' --java-mem-size=', paste0(param[['ram']],'G'), '-outdir', sm)
-    system(cmd)
+    cmd = paste('unset DISPLAY; qualimap bamqc -bam', files[sm], '-c -nt', param[['cores']], paste0('--java-mem-size=',param[['ram']],'G'), '-outdir', sm)
+    ezSystem(cmd)
   }
   #run Qualimap Multisample
   ezWrite.table(data.frame(SampleName = samples, Folder = samples),'sampleKey.txt', row.names = FALSE, col.names = FALSE)
   cmd = paste('unset DISPLAY; qualimap multi-bamqc -d sampleKey.txt -outdir qualimap_MultiSample')
-  system(cmd)
+  ezSystem(cmd)
+  
+  qmFile = 'qualimap_MultiSample/multisampleBamQcReport.html'
+  res <- xmlParse(qmFile, isHTML = TRUE)
+  sampleSummary <- readHTMLTable(res)[[3]]
+  for (j in 2:length(sampleSummary)){
+    png(paste0('QualiMapStats_', names(sampleSummary)[j], '.png'))
+    barplot(as.numeric(sampleSummary[[j]]), names.arg = sampleSummary[[1]], 
+            col = 'royalblue', main = names(sampleSummary)[j])
+    dev.off()
+  }
   
   ## Copy the style files and templates
   styleFiles <- file.path(system.file("templates", package="ezRun"),
