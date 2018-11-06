@@ -434,7 +434,7 @@ if(ncol(scData@data) <= 10){
 scData <- FindVariableGenes(object=scData)
 ```
 
-<!-- The number of variable genes: `r length(x = scData@var.genes)`. -->
+The number of variable genes: `r length(x = scData@var.genes)`.
 
 ```{r scale and PCA calculation, echo=FALSE, message=FALSE, results='hide', eval=doSeurat && !debug}
 scData <- ScaleData(object = scData, vars.to.regress = c("nUMI","perc_mito"),
