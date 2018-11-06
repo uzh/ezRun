@@ -14,8 +14,7 @@ EzAppSCReport <-
                   "Initializes the application using its specific defaults."
                   runMethod <<- ezMethodSCReport
                   name <<- "EzAppSCReport"
-                  appDefaults <<- rbind(minReadsPerGene=ezFrame(Type="numeric", DefaultValue=3, Description="Minimal number of reads per gene to be expressed"),
-                                        minGenesPerCell=ezFrame(Type="numeric", DefaultValue=500, Description="Minimal number of genes per cell for Seurat filtering"),
+                  appDefaults <<- rbind(minGenesPerCell=ezFrame(Type="numeric", DefaultValue=500, Description="Minimal number of genes per cell for Seurat filtering"),
                                         maxGenesPerCell=ezFrame(Type="numeric", DefaultValue=3000, Description="Maximal number of genes per cell for Seurat filtering"),
                                         minReadsPerCell=ezFrame(Type="numeric", DefaultValue=5e4, Description="Minimal reads per cell of smart-Seq2 for Seurat filtering"),
                                         pcs=ezFrame(Type="numeric", DefaultValue=10, Description="The maximal dimensions to use for reduction"),
@@ -72,18 +71,14 @@ seuratPreProcess <- function(sce){
   if(param$scProtocol == "smart-Seq2"){
     countsSeurat <- countsSeurat[ ,Matrix::colSums(countsSeurat) > param$minReadsPerCell]
   }
-  
-  isMito <- toupper(as.character(seqnames(rowRanges(sce)))) %in% toupper(c("chrM", "MT"))
-  cell_info <- data.frame(row.names=colnames(countsSeurat),
-                          lib_size=Matrix::colSums(countsSeurat)/1e6,
-                          expr_genes = Matrix::colSums(countsSeurat >= param$minReadsPerGene),
-                          perc_mito=Matrix::colSums(countsSeurat[isMito, , drop=FALSE])*100 / Matrix::colSums(countsSeurat))
-  cell_info_seurat <- cell_info
-  cell_info_seurat$perc_mito <- cell_info_seurat$perc_mito/100
-  
   scData <- CreateSeuratObject(raw.data = countsSeurat, min.cells = 5,
-                               project = param$name,
-                               meta.data=cell_info_seurat)
+                               project = param$name)
+  mito.genes <- grep(pattern = "^MT-", x = rownames(x = scData@data), 
+                     value = TRUE, ignore.case=TRUE)
+  perc_mito <- Matrix::colSums(scData@raw.data[mito.genes, ])/Matrix::colSums(scData@raw.data)
+  scData <- AddMetaData(object = scData, metadata = perc_mito,
+                        col.name = "perc_mito")
+  
   if(param$scProtocol == "smart-Seq2"){
     scalingFactorSeurat <- 1e5
   }else if(param$scProtocol == "10x"){
