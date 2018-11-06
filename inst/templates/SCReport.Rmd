@@ -26,7 +26,7 @@ require(Matrix)
 ## debug
 # title:  "`r metadata(sce)$param$name`"
 # sce <- readRDS("/scratch/gtan/dev/SCReports-p2284/AVM_17_08_2018_SCReport/sce.rds")
-# sce <- readRDS("/srv/gstore/projects/p2284/SCReport_28929_2018-10-18--10-06-03/AVM_17_08_2018_SCReport/sce.rds")
+# sce <- readRDS("/srv/gstore/projects/p2284/SCReport_28929_2018-11-06--12-08-51/AVM_17_08_2018_SCReport/sce.rds")
 # sce <- readRDS("/scratch/gtan/debug/quickDebug/sce.rds")
 ## end of debug
 debug <- FALSE
@@ -211,8 +211,14 @@ saveRDS(list(scData=scData, tSNE_data=tSNE_data),
 ```
 [Shiny explorer](`r output$getColumn("Live Report")`)
 
-### Seurat parameters
-```{r, echo=FALSE}
+### Parameters
+```{r report parameters, echo=FALSE}
+param[c("minGenesPerCell", "maxGenesPerCell", "minReadsPerCell", "pcs",
+        "pcGenes", "x.low.cutoff", "x.high.cutoff", "y.cutoff",
+        "resolution", "markersToCheck")]
+```
+
+```{r seurat parameters, echo=FALSE}
 PrintFindClustersParams(object = scData)
 ```
 
