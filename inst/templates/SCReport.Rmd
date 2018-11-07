@@ -214,7 +214,7 @@ saveRDS(list(scData=scData, tSNE_data=tSNE_data),
 ### Parameters
 ```{r report parameters, echo=FALSE}
 param[c("minGenesPerCell", "maxGenesPerCell", "minReadsPerCell", "pcs",
-        "pcGenes", "x.low.cutoff", "x.high.cutoff", "y.cutoff",
+        "pcGenes", "x.low.cutoff", "x.high.cutoff", "y.cutoff", "vars.to.regress",
         "resolution", "markersToCheck")]
 ```
 
