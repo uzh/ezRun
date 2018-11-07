@@ -22,6 +22,7 @@ EzAppSCReport <-
                                         x.low.cutoff=ezFrame(Type="numeric", DefaultValue=0.1, Description="Bottom cutoff on x-axis for identifying variable genes"),
                                         x.high.cutoff=ezFrame(Type="numeric", DefaultValue=8, Description="Top cutoff on x-axis for identifying variable genes"),
                                         y.cutoff=ezFrame(Type="numeric", DefaultValue=1, Description="Bottom cutoff on y-axis for identifying variable genes"),
+                                        vars.to.regress=ezFrame(Type="charVector", DefaultValue="nUMI,perc_mito", Description="Variables to regress out"),
                                         resolution=ezFrame(Type="numeric", DefaultValue=0.8, Description="Value of the resolution parameter, use a value above (below) 1.0 if you want to obtain a larger (smaller) number of communities."),
                                         markersToShow=ezFrame(Type="numeric", DefaultValue=10, Description="The markers to show in the heatmap of cluster marker genes"),
                                         markersToCheck=ezFrame(Type="charList", DefaultValue="", Description="The markers to check"),
@@ -97,7 +98,7 @@ seuratPreProcess <- function(sce){
                               x.high.cutoff=param$x.high.cutoff,
                               y.cutoff=param$y.cutoff)
   scData <- ScaleData(object = scData, do.par=TRUE,
-                      vars.to.regress = c("nUMI", "perc_mito"),
+                      vars.to.regress = param$vars.to.regress,
                       num.cores=param$cores)
   if(ezIsSpecified(param$pcGenes)){
     indicesMatch <- match(toupper(param$pcGenes), rownames(scData@data))
