@@ -159,8 +159,8 @@ for(i in 1:length(some_markers)){
 ### Heatmap of cluster marker genes
 Max 10 marker genes are shown for each cluster. 
 
-```{r heatmap, fig.width=10, fig.height=20, echo=FALSE, eval=!debug}
-top10 <- markers %>% group_by(cluster) %>% top_n(10, avg_logFC)
+```{r heatmap, fig.width=10, fig.height=param$markersToShow*1.5, echo=FALSE, eval=!debug}
+top10 <- markers %>% group_by(cluster) %>% top_n(param$markersToShow, avg_logFC)
 DoHeatmap(object = scData, genes.use = top10$gene, slim.col.label = TRUE,
           remove.key=TRUE)
 ```
