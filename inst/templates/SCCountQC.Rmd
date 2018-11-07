@@ -152,7 +152,7 @@ subplot(p1, p2, p3, titleX=TRUE, titleY=TRUE, nrows=1) %>%
 Percentage of total counts assigned to the top 50 most highly-abundant genes. For each gene, each bar represents the percentage assigned to that gene for a single cell, while the circle represents the average across all cells.
 
 ```{r top 50 genes, fig.width=6, fig.height=6, echo=FALSE, message=FALSE, warning=FALSE, eval=!debug}
-plotQC(sceFixName, type = "highest-expression", n=50)
+plotHighestExprs(sceFixName, n=50)
 ```
 
 ### Expression metrics
@@ -160,7 +160,7 @@ plotQC(sceFixName, type = "highest-expression", n=50)
 Number of cells with expression for a gene against mean expression level.
 
 ```{r expression metrics, fig.width=8, fig.height=6, echo=FALSE, message=FALSE, warning=FALSE, eval=!debug}
-plotQC(sceFixName, type = "exprs-freq-vs-mean")
+plotExprsFreqVsMean(sceFixName)
 ```
 
 ### Heatmap of reads per cell on the plate
