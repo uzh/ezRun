@@ -4,7 +4,7 @@ setwd("/scratch/gtan/debug/CellRanger-p2886")
 library(ezRun)
 param = list()
 param[['cores']] = '8'
-param[['ram']] = '32'
+param[['ram']] = '40'
 param[['scratch']] = '100'
 param[['node']] = ''
 param[['process_mode']] = 'SAMPLE'
@@ -51,3 +51,55 @@ input[['Read1']] = 'p2886/NovaSeq_20180914_NOV19_o4775/B9P9_NPCHP11_NDd5/B9P9_NP
 input[['Read Count']] = '194401199'
 debug(ezMethodCellRanger)
 EzAppCellRanger$new()$run(input=input, output=output, param=param)
+
+## p2284
+setwd("/scratch/gtan/dev/cellranger-2884")
+library(ezRun)
+param = list()
+param[['cores']] = '8'
+param[['ram']] = '32'
+param[['scratch']] = '100'
+param[['node']] = ''
+param[['process_mode']] = 'SAMPLE'
+param[['name']] = 'CellRangerCount_NS223_o480'
+param[['refBuild']] = 'Homo_sapiens/Ensembl/GRCh38.p10/Annotation/Release_91-2018-02-26'
+param[['refFeatureFile']] = 'genes.gtf'
+param[['specialOptions']] = ''
+param[['mail']] = ''
+param[['dataRoot']] = '/srv/gstore/projects'
+param[['resultDir']] = 'p2284/CellRangerCount_29702_2018-09-20--10-32-49'
+output = list()
+output[['Name']] = 'Recurrent_GBM_04092018'
+output[['ResultDir [File]']] = 'p2284/CellRangerCount_29702_2018-09-20--10-32-49/Recurrent_GBM_04092018'
+output[['Report [Link]']] = 'p2284/CellRangerCount_29702_2018-09-20--10-32-49/Recurrent_GBM_04092018/outs/web_summary.html'
+output[['BAM [File]']] = 'p2284/CellRangerCount_29702_2018-09-20--10-32-49/Recurrent_GBM_04092018/outs/possorted_genome_bam.bam'
+output[['BAI [File]']] = 'p2284/CellRangerCount_29702_2018-09-20--10-32-49/Recurrent_GBM_04092018/outs/possorted_genome_bam.bam.bai'
+output[['Species']] = 'Homo sapiens (human)'
+output[['reference']] = '10X_Ref_Human_GRCh38.p10_20180305_Release_91'
+output[['CountMatrix [File]']] = 'p2284/CellRangerCount_29702_2018-09-20--10-32-49/Recurrent_GBM_04092018/outs/filtered_gene_bc_matrices/10X_Ref_Human_GRCh38.p10_20180305_Release_91/matrix.mtx'
+output[['Sample Id [B-Fabric]']] = 'bfs_184413'
+output[['Order Id [B-Fabric]']] = '4801'
+input = list()
+input[['Name']] = 'Recurrent_GBM_04092018'
+input[['Condition']] = ''
+input[['Species']] = 'Homo sapiens (human)'
+input[['FragmentSize']] = '0'
+input[['SampleConc']] = '1'
+input[['Tube']] = 'p2284_4801/2'
+input[['Sample Id']] = 'bfs_184413'
+input[['PlatePosition']] = 'D1'
+input[['LibConc_100_800bp']] = '30.8'
+input[['LibConc_qPCR']] = '0'
+input[['RIN']] = '0'
+input[['Adapter1']] = 'NA'
+input[['Adapter2']] = 'NA'
+input[['strandMode']] = 'NA'
+input[['LibraryPrepKit']] = '10X Genomics Single Cell'
+input[['EnrichmentMethod']] = 'None'
+input[['InputAmount']] = 'NA'
+input[['Order Id']] = '4801'
+input[['RawDataDir']] = 'p2284/NovaSeq_20181010_NOV28_o4801/Recurrent_GBM_04092018,p2284/NextSeq500_20180919_NS223_o4801/Recurrent_GBM_04092018'
+input[['Read1']] = 'p2284/NovaSeq_20181010_NOV28_o4801/Recurrent_GBM_04092018/Recurrent_GBM_04092018_S1_L001_R2_001.fastq.gz,p2284/NextSeq500_20180919_NS223_o4801/Recurrent_GBM_04092018/Recurrent_GBM_04092018_S4_L001_R2_001.fastq.gz'
+debug(ezMethodCellRanger)
+EzAppCellRanger$new()$run(input=input, output=output, param=param)
+
