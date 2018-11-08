@@ -9,7 +9,8 @@
 ezMethodCellRanger = function(input=NA, output=NA, param=NA){
   opt = param$cmdOptions
   sampleName = input$getNames()
-  sampleDir = input$getFullPaths("RawDataDir")
+  sampleDirs = strsplit(input$getColumn("RawDataDir"), ",")[[sampleName]]
+  sampleDirs <- file.path(input$dataRoot, sampleDirs)
   
   refDir <- dirname(param$ezRef["refFeatureFile"])
   refDirs <- list.files(path=refDir, pattern="^10X_Ref", full.names = TRUE)
@@ -20,6 +21,23 @@ ezMethodCellRanger = function(input=NA, output=NA, param=NA){
     warning("Multiple 10X_Ref folders in ", refDir)
   }
   refDir <- refDirs[1]
+  
+  if(length(sampleDirs) == 1L){
+    ## Not merged sample dataset
+    sampleDir <- sampleDirs[1]
+  }else{
+    ## Merged sample dataset
+    ## soft link to a temp dir
+    sampleDir <- file.path(getwd(), paste0("CellRangerDataDir-", Sys.getpid()))
+    dir.create(sampleDir)
+    on.exit(unlink(sampleDir, recursive=TRUE), add=TRUE)
+    for(eachSampleDir in sampleDirs){
+      res <- file.symlink(from=list.files(path=eachSampleDir,
+                                          pattern=sampleName, full.names=TRUE),
+                          to=sampleDir)
+      stopifnot(all(res))
+    }
+  }
   
   cmd = paste(CELLRANGER,"count", paste0("--id=", sampleName),
               paste0("--transcriptome=", refDir),
