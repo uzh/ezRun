@@ -55,7 +55,7 @@ computeDnaBamStats <- function(input, htmlFile, param, resultList=NULL){
   
   qmFile = 'qualimap_MultiSample/multisampleBamQcReport.html'
   res <- xmlParse(qmFile, isHTML = TRUE)
-  sampleSummary <- readHTMLTable(res)[[3]]
+  sampleSummary <- readHTMLTable(res, which = 3, as.data.frame = FALSE)
   for (j in 2:length(sampleSummary)){
     png(paste0('QualiMapStats_', names(sampleSummary)[j], '.png'))
     barplot(as.numeric(sampleSummary[[j]]), names.arg = sampleSummary[[1]], 
