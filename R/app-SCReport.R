@@ -45,7 +45,6 @@ ezMethodSCReport = function(input=NA, output=NA, param=NA,
   
   sce <- seuratPreProcess(sce)
   
-  ## debug
   saveRDS(sce, file="sce.rds")
   
   ## Copy the style files and templates
@@ -81,11 +80,10 @@ seuratPreProcess <- function(sce){
   scData <- AddMetaData(object = scData, metadata = perc_mito,
                         col.name = "perc_mito")
   
-  if(param$scProtocol == "smart-Seq2"){
-    scalingFactorSeurat <- 1e5
-  }else if(param$scProtocol == "10x"){
-    scalingFactorSeurat <- 1e4
-  }
+  scalingFactorSeurat <- switch(param$scProtocol,
+                                "smart-Seq2"=1e5,
+                                "10x"=1e4,
+                                stop("Unknown single cell protocol."))
   
   scData <- FilterCells(object = scData,
                         subset.names = c("nGene", "perc_mito"),
