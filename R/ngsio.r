@@ -103,12 +103,15 @@ loadSCCountDataset <- function(input, param){
   require(tools)
   require(Matrix)
 
-  if(length(input$getNames()) > 1L)
-    stop("Currently we only support one bam file per dataset.")
-  
-  ## Make better name for report later.
-  if(length(input$getNames()) == 1L){
-    param$name <- paste(param$name, input$getNames(), sep=": ")
+  if(length(input$getNames()) > 1L){
+    ## Recursively load and combine sce
+    sce <- SingleCellExperiment::cbind(loadSCCountDataset(input$subset(input$getNames()[1]), param),
+                                       loadSCCountDataset(input$subset(input$getNames()[-1]), param))
+    return(sce)
+  }
+
+  if(any(grepl("___", input$getNames()))){
+    stop("___ is not allowed in sample name.")
   }
   
   dataFeatureLevel <- unique(input$getColumn("featureLevel"))
@@ -122,7 +125,7 @@ loadSCCountDataset <- function(input, param){
       countMatrix <- Matrix(as.matrix(ezRead.table(countMatrixFn)))
     }
     cellDataSet <- ezRead.table(input$getFullPaths("CellDataset"))
-    
+
     ## TODO: this is a temporary solution to fix the discrepency of sample names
     if(!setequal(colnames(countMatrix), rownames(cellDataSet))){
       ## fix the colnames in countMatrix
@@ -188,6 +191,7 @@ loadSCCountDataset <- function(input, param){
   
   assays(sce)$rpkm <- getRpkm(sce)
   assays(sce)$tpm <- getTpm(sce)
+  colnames(sce) <- paste(input$getNames(), colnames(sce), sep="___")
   
   return(sce)
 }
