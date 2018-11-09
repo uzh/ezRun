@@ -42,7 +42,9 @@ ezMethodSCReport = function(input=NA, output=NA, param=NA,
   
   sce <- loadSCCountDataset(input, param)
   metadata(sce)$output <- output
-  
+  metadata(sce)$param$name <- paste(metadata(sce)$param$name,
+                                    paste(input$getNames(), collapse=","),
+                                    sep=": ")
   sce <- seuratPreProcess(sce)
   
   saveRDS(sce, file="sce.rds")
@@ -66,15 +68,16 @@ seuratPreProcess <- function(sce){
   require(scater)
   param <- metadata(sce)$param
   
-  rownames(sce) <- uniquifyFeatureNames(ID=rowData(sce)$gene_id,
-                                        names=rowData(sce)$gene_name)
-  countsSeurat <- assays(sce)$counts
   if(param$scProtocol == "smart-Seq2"){
-    countsSeurat <- countsSeurat[ ,Matrix::colSums(countsSeurat) > param$minReadsPerCell]
+    sce <- sce[ ,Matrix::colSums(assays(sce)$counts) > param$minReadsPerCell]
   }
-  scData <- CreateSeuratObject(raw.data = countsSeurat, min.cells = 5,
-                               project = param$name)
-  mito.genes <- grep(pattern = "^MT-", x = rownames(x = scData@data), 
+  cell_info <- data.frame(colData(sce),
+                          Plate=sub("___.*$", "", colnames(sce)),
+                          check.names = FALSE)
+  scData <- CreateSeuratObject(raw.data=assays(sce)$counts, min.cells=5,
+                               project=param$name,
+                               meta.data=cell_info)
+  mito.genes <- grep(pattern = "^MT-", x = rownames(x = scData@data),
                      value = TRUE, ignore.case=TRUE)
   perc_mito <- Matrix::colSums(scData@raw.data[mito.genes, ])/Matrix::colSums(scData@raw.data)
   scData <- AddMetaData(object = scData, metadata = perc_mito,

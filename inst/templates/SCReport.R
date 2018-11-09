@@ -109,3 +109,55 @@ input[['refFeatureFile']] = 'genes.gtf'
 input[['featureLevel']] = 'gene'
 #debug(seuratPreProcess)
 EzAppSCReport$new()$run(input=input, output=output, param=param)
+
+## p2284 o4866 10X multi plates/runs
+setwd("/scratch/gtan/dev/SCReports-p2284")
+library(ezRun)
+param = list()
+param[['cores']] = '4'
+param[['ram']] = '8'
+param[['scratch']] = '10'
+param[['node']] = ''
+param[['process_mode']] = 'DATASET'
+param[['samples']] = 'AVM_sample_26092018'
+param[['name']] = 'SCReport'
+param[['refBuild']] = 'Homo_sapiens/Ensembl/GRCh38.p10/Annotation/Release_91-2018-02-26'
+param[['paired']] = 'false'
+param[['strandMode']] = 'both'
+param[['refFeatureFile']] = 'genes.gtf'
+param[['featureLevel']] = 'gene'
+param[['transcriptTypes']] = ''
+param[['minGenesPerCell']] = '500'
+param[['maxGenesPerCell']] = '3000'
+param[['minReadsPerCell']] = '50000'
+param[['pcs']] = '20'
+param[['pcGenes']] = ''
+param[['x.low.cutoff']] = '0.0125'
+param[['x.high.cutoff']] = '3'
+param[['y.cutoff']] = '0.5'
+param[['vars.to.regress']] = 'nUMI,perc_mito'
+param[['resolution']] = '0.4'
+param[['markersToShow']] = '10'
+param[['markersToCheck']] = ''
+param[['runPseudoTime']] = 'true'
+param[['specialOptions']] = ''
+param[['mail']] = 'ge.tan@fgcz.ethz.ch'
+param[['dataRoot']] = '/srv/gstore/projects'
+param[['resultDir']] = 'p2284/SCReport_30486_AVM_sample_26092018_2018-11-07--15-36-46'
+output = list()
+output[['Name']] = 'AVM_sample_26092018'
+output[['Species']] = 'Homo sapiens (human)'
+output[['refBuild']] = 'Homo_sapiens/Ensembl/GRCh38.p10/Annotation/Release_91-2018-02-26'
+output[['refFeatureFile']] = 'genes.gtf'
+output[['Static Report [Link]']] = 'p2284/SCReport_30486_AVM_sample_26092018_2018-11-07--15-36-46/AVM_sample_26092018_SCReport/00index.html'
+output[['Live Report [Link]']] = 'http://fgcz-shiny.uzh.ch/fgcz_exploreSingleCell_app/?data=p2284/SCReport_30486_AVM_sample_26092018_2018-11-07--15-36-46/AVM_sample_26092018_SCReport/SCReport-avzlqrgakgyf.rds'
+output[['Report [File]']] = 'p2284/SCReport_30486_AVM_sample_26092018_2018-11-07--15-36-46/AVM_sample_26092018_SCReport'
+input = "/srv/gstore/projects/p2284/CellRangerCount_30477_NOV28_o4866_2018-10-11--09-10-56/dataset.tsv"
+
+# input <- EzDataset$new(file=input, dataRoot=param$dataRoot)
+# param <- ezParam(param)
+# param$scProtocol <- "10x"
+# debug(loadSCCountDataset)
+# sce <- loadSCCountDataset(input, param)
+# debug(seuratPreProcess)
+EzAppSCReport$new()$run(input=input, output=output, param=param)
