@@ -83,51 +83,54 @@
     sce <- loadSCCountDataset(input, param)
     
     ## 10x
-library(ezRun)
-param = list()
-param[['cores']] = '8'
-param[['ram']] = '100'
-param[['scratch']] = '200'
-param[['node']] = ''
-param[['process_mode']] = 'SAMPLE'
-param[['name']] = 'SCCount_QC'
-param[['refBuild']] = 'Homo_sapiens/Ensembl/GRCh38.p10/Annotation/Release_91-2018-02-26'
-param[['refFeatureFile']] = 'genes.gtf'
-param[['paired']] = 'false'
-param[['strandMode']] = 'both'
-param[['featureLevel']] = 'gene'
-param[['transcriptTypes']] = ''
-param[['min_genes']] = '500'
-param[['min_counts']] = '10000'
-param[['specialOptions']] = ''
-param[['mail']] = 'ge.tan@fgcz.ethz.ch'
-param[['dataRoot']] = '/srv/gstore/projects'
-param[['resultDir']] = 'p2886/SCCountQC_29562_2018-09-28--14-43-58'
-output = list()
-output[['Name']] = 'B9P9_NPCHP11_NDd5'
-output[['Species']] = 'Homo sapiens (human)'
-output[['refBuild']] = ''
-output[['Static Report [Link]']] = 'p2886/SCCountQC_29562_2018-09-28--14-43-58/B9P9_NPCHP11_NDd5_SCCountQC/00index.html'
-output[['Report [File]']] = 'p2886/SCCountQC_29562_2018-09-28--14-43-58/B9P9_NPCHP11_NDd5_SCCountQC'
-input = list()
-input[['Name']] = 'B9P9_NPCHP11_NDd5'
-input[['ResultDir']] = 'p2886/CellRangerCount_29556_NOV19_o4775_2018-09-16--08-18-12/B9P9_NPCHP11_NDd5'
-input[['Report']] = 'p2886/CellRangerCount_29556_NOV19_o4775_2018-09-16--08-18-12/B9P9_NPCHP11_NDd5/outs/web_summary.html'
-input[['BAM']] = 'p2886/CellRangerCount_29556_NOV19_o4775_2018-09-16--08-18-12/B9P9_NPCHP11_NDd5/outs/possorted_genome_bam.bam'
-input[['BAI']] = 'p2886/CellRangerCount_29556_NOV19_o4775_2018-09-16--08-18-12/B9P9_NPCHP11_NDd5/outs/possorted_genome_bam.bam.bai'
-input[['Species']] = 'Homo sapiens (human)'
-input[['reference']] = '10X_Ref_Human_GRCh38.p10_20180305_Release_91'
-input[['refBuild']] = 'Homo_sapiens/Ensembl/GRCh38.p10/Annotation/Release_91-2018-02-26'
-input[['refFeatureFile']] = 'genes.gtf'
-input[['featureLevel']] = 'gene'
-input[['CountMatrix']] = 'p2886/CellRangerCount_29556_NOV19_o4775_2018-09-16--08-18-12/B9P9_NPCHP11_NDd5/outs/filtered_gene_bc_matrices/10X_Ref_Human_GRCh38.p10_20180305_Release_91/matrix.mtx'
-input[['Sample Id']] = 'bfs_184126'
-input[['Order Id']] = '4775'
-input = EzDataset$new(meta=input, dataRoot=param$dataRoot)
-param <- ezParam(param)
-param$scProtocol <- "10x"
-output = EzDataset$new(meta=output, dataRoot=param$dataRoot)
-    
-sce <- loadSCCountDataset(input, param)
+    library(ezRun)
+    param = list()
+    param[['cores']] = '8'
+    param[['ram']] = '100'
+    param[['scratch']] = '200'
+    param[['node']] = ''
+    param[['process_mode']] = 'SAMPLE'
+    param[['samples']] = 'AVM_sample_26092018,Sample_28092018'
+    param[['name']] = 'SCCount_QC'
+    param[['refBuild']] = 'Homo_sapiens/Ensembl/GRCh38.p10/Annotation/Release_91-2018-02-26'
+    param[['paired']] = 'false'
+    param[['strandMode']] = 'both'
+    param[['refFeatureFile']] = 'genes.gtf'
+    param[['featureLevel']] = 'gene'
+    param[['transcriptTypes']] = ''
+    param[['minReadsPerCell']] = '1'
+    param[['minReadsPerGene']] = '1'
+    param[['minGenesPerCell']] = '1'
+    param[['specialOptions']] = ''
+    param[['mail']] = 'ge.tan@fgcz.ethz.ch'
+    param[['dataRoot']] = '/srv/gstore/projects'
+    param[['resultDir']] = 'p2284/SCCountQC_30486_2018-11-07--14-32-21'
+    output = list()
+    output[['Name']] = 'Sample_28092018'
+    output[['Species']] = 'Homo sapiens (human)'
+    output[['refBuild']] = 'Homo_sapiens/Ensembl/GRCh38.p10/Annotation/Release_91-2018-02-26'
+    output[['refFeatureFile']] = 'genes.gtf'
+    output[['Static Report [Link]']] = 'p2284/SCCountQC_30486_2018-11-07--14-32-21/Sample_28092018_SCCountQC/00index.html'
+    output[['seuratOnline [Link]']] = 'http://fgcz-shiny.uzh.ch/fgcz_seuratOnline_app/?data=p2284/SCCountQC_30486_2018-11-07--14-32-21/Sample_28092018_SCCountQC/sce.rds'
+    output[['Report [File]']] = 'p2284/SCCountQC_30486_2018-11-07--14-32-21/Sample_28092018_SCCountQC'
+    input = list()
+    input[['Name']] = 'Sample_28092018'
+    input[['ResultDir']] = 'p2284/CellRangerCount_30477_NOV28_o4866_2018-10-11--09-10-56/Sample_28092018'
+    input[['Report']] = 'p2284/CellRangerCount_30477_NOV28_o4866_2018-10-11--09-10-56/Sample_28092018/outs/web_summary.html'
+    input[['BAM']] = 'p2284/CellRangerCount_30477_NOV28_o4866_2018-10-11--09-10-56/Sample_28092018/outs/possorted_genome_bam.bam'
+    input[['BAI']] = 'p2284/CellRangerCount_30477_NOV28_o4866_2018-10-11--09-10-56/Sample_28092018/outs/possorted_genome_bam.bam.bai'
+    input[['Species']] = 'Homo sapiens (human)'
+    input[['refBuild']] = 'Homo_sapiens/Ensembl/GRCh38.p10/Annotation/Release_91-2018-02-26'
+    input[['refFeatureFile']] = 'genes.gtf'
+    input[['featureLevel']] = 'gene'
+    input[['CountMatrix']] = 'p2284/CellRangerCount_30477_NOV28_o4866_2018-10-11--09-10-56/Sample_28092018/outs/filtered_gene_bc_matrices'
+    input[['Sample Id']] = 'bfs_185587'
+    input[['Order Id']] = '4866'
+    input = EzDataset$new(meta=input, dataRoot=param$dataRoot)
+    param <- ezParam(param)
+    param$scProtocol <- "10x"
+    output = EzDataset$new(meta=output, dataRoot=param$dataRoot)
+        
+    sce <- loadSCCountDataset(input, param)
   }
 }

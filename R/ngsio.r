@@ -104,11 +104,11 @@ loadSCCountDataset <- function(input, param){
   require(Matrix)
 
   if(length(input$getNames()) > 1L)
-    stop("Currently we only support one bam file per dataset.")
+    stop("Currently we only support one sample per dataset.")
   
   ## Make better name for report later.
   if(length(input$getNames()) == 1L){
-    param$name <- paste(param$name, input$getNames(), sep=": ")
+    param$name <- paste(param$name, input$getNames())
   }
   
   dataFeatureLevel <- unique(input$getColumn("featureLevel"))
