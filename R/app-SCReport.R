@@ -43,7 +43,7 @@ ezMethodSCReport = function(input=NA, output=NA, param=NA,
   sce <- loadSCCountDataset(input, param)
   metadata(sce)$output <- output
   metadata(sce)$param$name <- paste(metadata(sce)$param$name,
-                                    paste(input$getNames(), collapse=","),
+                                    paste(input$getNames(), collapse=", "),
                                     sep=": ")
   sce <- seuratPreProcess(sce)
   
