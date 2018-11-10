@@ -522,23 +522,6 @@ getBWAReference = function(param){
                    param$ezRef["refIndex"])
   ## check the ref
   lockFile = file.path(dirname(refPath), "lock")
-  if (!file.exists(dirname(refPath))){
-    ## no lock file and no refFiles, so we build the reference
-    dir.create(dirname(refPath))
-    ezWrite(Sys.info(), con=lockFile)
-    wd = getwd()
-    setwd(dirname(refPath))
-    
-    fastaFile = param$ezRef["refFastaFile"]
-    #job = ezJobStart("bwa index")
-    ezSystem(paste("ln -s", fastaFile, "."))
-    cmd = paste("bwa", "index", "-a", "bwtsw", basename(fastaFile))
-    ezSystem(cmd)
-    #ezWriteElapsed(job, "done")
-    setwd(wd)
-    file.remove(lockFile)
-  }
-  stopifnot(file.exists(dirname(refPath)))
   i = 0
   while(file.exists(lockFile) && i < INDEX_BUILD_TIMEOUT){
     ### somebody else builds and we wait
@@ -548,9 +531,24 @@ getBWAReference = function(param){
   if (file.exists(lockFile)){
     stop(paste("reference building still in progress after", INDEX_BUILD_TIMEOUT, "min"))
   }
+  if (!file.exists(dirname(refPath))){
+    ## no lock file and no refFiles, so we build the reference
+    dir.create(dirname(refPath))
+    ezWrite(Sys.info(), con=lockFile)
+    wd = getwd()
+    setwd(dirname(refPath))
+    
+    fastaFile = param$ezRef["refFastaFile"]
+    file.symlink(from=fastaFile, to=".")
+    cmd = paste("bwa", "index", "-a", "bwtsw", basename(fastaFile))
+    ezSystem(cmd)
+    setwd(wd)
+    file.remove(lockFile)
+  }
+  stopifnot(file.exists(dirname(refPath)))
   if (!file.exists(paste0(refPath, ".sa"))){
     stop(paste("sa index not found for:", refPath))
-  }  
+  }
   return(refPath)
 }
 
