@@ -67,6 +67,8 @@ seuratPreProcess <- function(sce){
   require(Seurat)
   require(scater)
   param <- metadata(sce)$param
+  rownames(sce) <- uniquifyFeatureNames(ID=rowData(sce)$gene_id,
+                                        names=rowData(sce)$gene_name)
   
   if(param$scProtocol == "smart-Seq2"){
     sce <- sce[ ,Matrix::colSums(assays(sce)$counts) > param$minReadsPerCell]
