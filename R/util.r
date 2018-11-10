@@ -744,7 +744,7 @@ setEnvironments <- function(tool, envir=parent.frame()){
                   "samtools"=expression({Sys.setenv("PATH"=paste("/usr/local/ngseq/packages/Tools/samtools/1.9/bin", Sys.getenv("PATH"), sep=":"))}),
                   "bamutil"=expression({Sys.setenv("PATH"=paste("/usr/local/ngseq/packages/Tools/BamUtil/1.0.14/bin", Sys.getenv("PATH"), sep=":"))}),
                   "star"=expression({Sys.setenv("PATH"=paste("/usr/local/ngseq/packages/Aligner/STAR/2.5.4b/bin", Sys.getenv("PATH"), sep=":"))}),
-                  "bwa"=expression({Sys.setenv("PATH"=paste("/usr/local/ngseq/packages/Aligner/BWA/0.7.15/bin", Sys.getenv("PATH"), sep=":"))}),
+                  "bwa"=expression({Sys.setenv("PATH"=paste("/usr/local/ngseq/packages/Aligner/BWA/0.7.17/bin", Sys.getenv("PATH"), sep=":"))}),
                   "flexbar"=expression({Sys.setenv("PATH"=paste("/usr/local/ngseq/packages/QC/Flexbar/3.0.3/bin", Sys.getenv("PATH"), sep=":"))}),
                   "bowtie2"=expression({Sys.setenv("PATH"=paste("/usr/local/ngseq/packages/Aligner/Bowtie2/2.3.2/bin", Sys.getenv("PATH"), sep=":"))}),
                   "bowtie"=expression({Sys.setenv("PATH"=paste("/usr/local/ngseq/packages/Aligner/Bowtie/1.2.1.1/bin", Sys.getenv("PATH"), sep=":"))}),
