@@ -485,12 +485,15 @@ ezMethodBWA = function(input=NA, output=NA, param=NA){
       cmd = paste("bwa", param$algorithm, param$cmdOptions, "-t", param$cores,
                   refIdx, trimmedInput$getColumn("Read2"), ">", "read2.sai", "2> bwa.log")
       ezSystem(cmd)
-      cmd = paste("bwa", "sampe", refIdx, "read1.sai", "read2.sai", trimmedInput$getColumn("Read1"), trimmedInput$getColumn("Read2"), "2> bwa.log", "|",
-                  "samtools", "view -S -b -", " > aligned.bam", "2> bwa.log")
+      cmd = paste("bwa", "sampe", refIdx, "read1.sai", "read2.sai", 
+                  trimmedInput$getColumn("Read1"), trimmedInput$getColumn("Read2"),
+                  "2> bwa.log", "|",
+                  "samtools", "view -S -b -", " > aligned.bam")
       ezSystem(cmd)
     } else {
-      cmd = paste("bwa", "samse", refIdx, "read1.sai", trimmedInput$getColumn("Read1"), "|",
-                  "samtools", "view -S -b -", " > aligned.bam", "2> bwa.log")
+      cmd = paste("bwa", "samse", refIdx, "read1.sai", 
+                  trimmedInput$getColumn("Read1"), "2> bwa.log", "|",
+                  "samtools", "view -S -b -", " > aligned.bam")
       ezSystem(cmd)
     }
   } else {
@@ -498,18 +501,25 @@ ezMethodBWA = function(input=NA, output=NA, param=NA){
       stop("paired is not supported for algorithm bwasw")
     }
     cmd = paste("bwa", param$algorithm, param$cmdOptions, "-t", param$cores,
-                refIdx, trimmedInput$getColumn("Read1"), if(param$paired) trimmedInput$getColumn("Read2"),
-                "|", "samtools", "view -S -b -", " > aligned.bam", "2> bwa.log")
+                refIdx, trimmedInput$getColumn("Read1"),
+                if(param$paired) trimmedInput$getColumn("Read2"),
+                "2> bwa.log", "|", "samtools", "view -S -b -", " > aligned.bam")
     ezSystem(cmd)
   }
+  file.remove(trimmedInput$getColumn("Read1"))
+  if(param$paired)
+    file.remove(trimmedInput$getColumn("Read2"))
+  
   ezSortIndexBam("aligned.bam", basename(bamFile), ram=param$ram, removeBam=TRUE,
                  cores=param$cores)
   
   ## write an igv link
   if (param$writeIgvSessionLink){ 
-    writeIgvSession(genome = getIgvGenome(param), refBuild=param$ezRef["refBuild"], file=basename(output$getColumn("IGV Session")),
+    writeIgvSession(genome = getIgvGenome(param), refBuild=param$ezRef["refBuild"], 
+                    file=basename(output$getColumn("IGV Session")),
                     bamUrls = paste(PROJECT_BASE_URL, bamFile, sep="/") )
-    writeIgvJnlp(jnlpFile=basename(output$getColumn("IGV Starter")), projectId = sub("\\/.*", "", bamFile),
+    writeIgvJnlp(jnlpFile=basename(output$getColumn("IGV Starter")),
+                 projectId = sub("\\/.*", "", bamFile),
                  sessionUrl = paste(PROJECT_BASE_URL, output$getColumn("IGV Session"), sep="/"))
   }
   return("Success")
