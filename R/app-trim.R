@@ -149,7 +149,7 @@ ezMethodTrim = function(input=NA, output=NA, param=NA){
         input$getFullPaths("Read1"), r1TmpFile)
     }
     cmd = paste("java -Djava.io.tmpdir=. -jar", Sys.getenv("Trimmomatic_jar"), method,
-                "-threads", min(ezThreads(), 8), "-phred33", ## hardcode phred33 quality encoding
+                "-threads", min(param$cores, 8), "-phred33", ## hardcode phred33 quality encoding
                 #"-trimlog", paste0(input$getNames(), "-trimmomatic.log"),
                 readOpts, trimAdaptOpt, tailQualOpt, minAvgQualOpt,
                 #               paste("HEADCROP", param$trimLeft, sep=":"),
@@ -186,7 +186,7 @@ ezMethodTrim = function(input=NA, output=NA, param=NA){
       minReadLengthOpt = ""
     }
     cmd = paste("flexbar",
-                "--threads", min(ezThreads(), 8),
+                "--threads", min(param$cores, 8),
                 "-r", r1TmpFile,
                 pairedOpt,
                 "-u", 20, ##### max uncalled bases
