@@ -26,7 +26,7 @@ require(Matrix)
 ## debug
 # title:  "`r metadata(sce)$param$name`"
 # sce <- readRDS("/scratch/gtan/dev/SCReports-p2284/AVM_17_08_2018_SCReport/sce.rds")
-# sce <- readRDS("/srv/gstore/projects/p2284/SCReport_28929_2018-11-06--12-08-51/AVM_17_08_2018_SCReport/sce.rds")
+# sce <- readRDS("/srv/gstore/projects/p2284/SCReport_30969_2018-11-07--15-44-11/Metastasis_17102018_SCReport/sce.rds")
 # sce <- readRDS("/scratch/gtan/debug/quickDebug/sce.rds")
 ## end of debug
 debug <- FALSE
@@ -54,16 +54,24 @@ rownames(cm) <- NULL
 ```
 
 ```{r fastICA, echo=FALSE}
-cd <- as.matrix(scData@data)
-set.seed(10)
-a <- fastICA(cd, 2, alg.typ = "deflation", fun = "logcosh", 
-             alpha = 1, method = "C", row.norm = FALSE, maxit = 200, 
-             tol = 0.0001, verbose = FALSE)
-tSNE_data <- tibble(X=scData@dr$tsne@cell.embeddings[colnames(cd),1],
-                    Y=scData@dr$tsne@cell.embeddings[colnames(cd),2],
-                    cells=rownames(scData@dr$tsne@cell.embeddings),
-                    cluster=scData@ident,
-                    pseudotime=a$A[1,])
+tSNE_data <- as_tibble(scData@dr$tsne@cell.embeddings,
+                       rownames="cells")
+tSNE_data <- rename(tSNE_data, X=`tSNE_1`, Y=`tSNE_2`)
+tSNE_data$cluster <- scData@ident
+
+if(param$runPseudoTime){
+  cd <- as.matrix(scData@data)
+  set.seed(10)
+  a <- fastICA(cd, 2, alg.typ = "deflation", fun = "logcosh",
+               alpha = 1, method = "C", row.norm = FALSE, maxit = 200,
+               tol = 0.0001, verbose = FALSE)
+  tSNE_data$pseudotime <- a$A[1,]
+}
+# tSNE_data <- tibble(X=scData@dr$tsne@cell.embeddings[colnames(cd),"tSNE_1"],
+#                     Y=scData@dr$tsne@cell.embeddings[colnames(cd),"tSNE_2"],
+#                     cells=rownames(scData@dr$tsne@cell.embeddings),
+#                     cluster=scData@ident,
+#                     pseudotime=a$A[1,])
 ```
 
 ## Clustering Results {.tabset}
