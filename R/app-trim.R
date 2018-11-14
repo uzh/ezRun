@@ -118,9 +118,16 @@ ezMethodTrim = function(input=NA, output=NA, param=NA){
   }
   
   if (param$minTailQuality > 0){
-    tailQualOpt = paste("SLIDINGWINDOW", param$trimQualWindowWidth, param$minTailQuality, sep=":")
+    tailQualOpt = paste("SLIDINGWINDOW", param$trimQualWindowWidth,
+                        param$minTailQuality, sep=":")
   } else {
     tailQualOpt = ""
+  }
+  
+  if(param$minLeadingQuality >0){
+    leadingQualOpt <- paste("LEADING", param$minLeadingQuality, sep=":")
+  }else{
+    leadingQualOpt <- ""
   }
   
   if (param$minAvgQuality > 0){
@@ -148,12 +155,11 @@ ezMethodTrim = function(input=NA, output=NA, param=NA){
       readOpts = paste(
         input$getFullPaths("Read1"), r1TmpFile)
     }
-    cmd = paste("java -Djava.io.tmpdir=. -jar", Sys.getenv("Trimmomatic_jar"), method,
-                "-threads", min(param$cores, 8), "-phred33", ## hardcode phred33 quality encoding
-                #"-trimlog", paste0(input$getNames(), "-trimmomatic.log"),
-                readOpts, trimAdaptOpt, tailQualOpt, minAvgQualOpt,
-                #               paste("HEADCROP", param$trimLeft, sep=":"),
-                #               paste("CROP", param$trimRight, sep=":"),
+    cmd = paste("java -Djava.io.tmpdir=. -jar",
+                Sys.getenv("Trimmomatic_jar"), method,
+                ## hardcode phred33 quality encoding
+                "-threads", min(param$cores, 8), "-phred33",
+                readOpts, trimAdaptOpt, tailQualOpt, leadingQualOpt, minAvgQualOpt,
                 paste("MINLEN", param$minReadLength, sep=":"),
                 "> trimmomatic.out 2> trimmomatic.err")
     on.exit(file.remove(c("trimmomatic.out", "trimmomatic.err")), add=TRUE)
