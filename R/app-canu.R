@@ -9,8 +9,8 @@
 ezMethodCanu = function(input=NA, output=NA, param=NA, htmlFile="00index.html"){
   opt = param$cmdOptions
   sampleName = input$getNames()
-  SMRT_Path = input$getFullPaths("Reads")
-  SMRT_File = basename(input$getColumn("Reads"))
+  SMRT_Path = input$getFullPaths("Read1")
+  SMRT_File = basename(input$getColumn("Read1"))
   ezSystem(paste("cp -r", SMRT_Path, "."))
   ezSystem(paste("mkdir", "smrt_input"))
   ezSystem(paste("tar -zxf", SMRT_File, "--strip-components=4 -C smrt_input"))
