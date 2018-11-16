@@ -38,6 +38,10 @@ ezMethodSCReport = function(input=NA, output=NA, param=NA,
   on.exit(setwd(cwd), add=TRUE)
   reportCwd <- getwd()
   
+  ## subset the selected sample names
+  samples <- strsplit(param$samples, ",")[[1]]
+  input <- input$subset(samples)
+  
   param$scProtocol <- ifelse("STARLog" %in% input$colNames, "smart-Seq2", "10x")
   
   sce <- loadSCCountDataset(input, param)
