@@ -14,7 +14,8 @@ EzAppSCReport <-
                   "Initializes the application using its specific defaults."
                   runMethod <<- ezMethodSCReport
                   name <<- "EzAppSCReport"
-                  appDefaults <<- rbind(minGenesPerCell=ezFrame(Type="numeric", DefaultValue=500, Description="Minimal number of genes per cell for Seurat filtering"),
+                  appDefaults <<- rbind(minCellsPerGene=ezFrame(Type="numeric", DefaultValue=5, Description="Minimum number of cells per gene for creating Seurat object"),
+                                        minGenesPerCell=ezFrame(Type="numeric", DefaultValue=500, Description="Minimal number of genes per cell for Seurat filtering"),
                                         maxGenesPerCell=ezFrame(Type="numeric", DefaultValue=3000, Description="Maximal number of genes per cell for Seurat filtering"),
                                         minReadsPerCell=ezFrame(Type="numeric", DefaultValue=5e4, Description="Minimal reads per cell of smart-Seq2 for Seurat filtering"),
                                         pcs=ezFrame(Type="numeric", DefaultValue=10, Description="The maximal dimensions to use for reduction"),
@@ -65,7 +66,8 @@ ezMethodSCReport = function(input=NA, output=NA, param=NA,
 }
 
 seuratPreProcess <- function(sce){
-  ## parameters to tune: param$minReadsPerCell; param$maxGenesPerCell; param$minGenesPerCell
+  ## parameters to tune: param$minCellsPerGene;
+  ##                     param$minReadsPerCell; param$maxGenesPerCell; param$minGenesPerCell
   ##                     param$pcs, param$pcGenes
   
   require(Seurat)
@@ -80,7 +82,8 @@ seuratPreProcess <- function(sce){
   cell_info <- data.frame(colData(sce),
                           Plate=sub("___.*$", "", colnames(sce)),
                           check.names = FALSE)
-  scData <- CreateSeuratObject(raw.data=assays(sce)$counts, min.cells=5,
+  scData <- CreateSeuratObject(raw.data=assays(sce)$counts,
+                               min.cells=param$minCellsPerGene,
                                project=param$name,
                                meta.data=cell_info)
   mito.genes <- grep(pattern = "^MT-", x = rownames(x = scData@data),
