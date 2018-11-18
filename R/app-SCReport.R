@@ -17,7 +17,7 @@ EzAppSCReport <-
                   appDefaults <<- rbind(minCellsPerGene=ezFrame(Type="numeric", DefaultValue=5, Description="Minimum number of cells per gene for creating Seurat object"),
                                         minGenesPerCell=ezFrame(Type="numeric", DefaultValue=500, Description="Minimal number of genes per cell for Seurat filtering"),
                                         maxGenesPerCell=ezFrame(Type="numeric", DefaultValue=3000, Description="Maximal number of genes per cell for Seurat filtering"),
-                                        maxMitoFraction=ezFrame(Type="numeric", DefaultValue=0.25, Description="Maximal fraction of mitochondrial reads"),
+                                        maxMitoFraction=ezFrame(Type="numeric", DefaultValue=0.25, Description="Maximal fraction of mitochondrial reads per cell for Seurat filtering"),
                                         minReadsPerCell=ezFrame(Type="numeric", DefaultValue=5e4, Description="Minimal reads per cell of smart-Seq2 for Seurat filtering"),
                                         pcs=ezFrame(Type="numeric", DefaultValue=10, Description="The maximal dimensions to use for reduction"),
                                         pcGenes=ezFrame(Type="charVector", DefaultValue="", Description="The genes used in supvervised clustering"),
