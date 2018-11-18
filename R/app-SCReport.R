@@ -17,6 +17,7 @@ EzAppSCReport <-
                   appDefaults <<- rbind(minCellsPerGene=ezFrame(Type="numeric", DefaultValue=5, Description="Minimum number of cells per gene for creating Seurat object"),
                                         minGenesPerCell=ezFrame(Type="numeric", DefaultValue=500, Description="Minimal number of genes per cell for Seurat filtering"),
                                         maxGenesPerCell=ezFrame(Type="numeric", DefaultValue=3000, Description="Maximal number of genes per cell for Seurat filtering"),
+                                        maxMitoFraction=ezFrame(Type="numeric", DefaultValue=0.25, Description="Maximal fraction of mitochondrial reads"),
                                         minReadsPerCell=ezFrame(Type="numeric", DefaultValue=5e4, Description="Minimal reads per cell of smart-Seq2 for Seurat filtering"),
                                         pcs=ezFrame(Type="numeric", DefaultValue=10, Description="The maximal dimensions to use for reduction"),
                                         pcGenes=ezFrame(Type="charVector", DefaultValue="", Description="The genes used in supvervised clustering"),
@@ -67,7 +68,8 @@ ezMethodSCReport = function(input=NA, output=NA, param=NA,
 
 seuratPreProcess <- function(sce){
   ## parameters to tune: param$minCellsPerGene;
-  ##                     param$minReadsPerCell; param$maxGenesPerCell; param$minGenesPerCell
+  ##                     param$maxGenesPerCell; param$minGenesPerCell; param$maxMitoFraction
+  ##                     param$minReadsPerCell; 
   ##                     param$pcs, param$pcGenes
   
   require(Seurat)
@@ -100,7 +102,7 @@ seuratPreProcess <- function(sce){
   scData <- FilterCells(object = scData,
                         subset.names = c("nGene", "perc_mito"),
                         low.thresholds = c(param$minGenesPerCell, -Inf), 
-                        high.thresholds = c(param$maxGenesPerCell, 0.25))
+                        high.thresholds = c(param$maxGenesPerCell, param$maxMitoFraction))
   scData <- NormalizeData(object = scData, normalization.method = "LogNormalize",
                           scale.factor = scalingFactorSeurat)
   scData <- FindVariableGenes(object = scData, do.plot = FALSE,

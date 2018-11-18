@@ -79,7 +79,7 @@ if(param$runPseudoTime){
 ### Cell clustering tSNE
 
 This analysis was done with the R package Seurat. The distance metric which drives the clustering analysis is based on Principal Component Analysis.  In the plot below each dot is a cell.
-We eliminated the genes that are expressed in < 5 cells. We eliminated the cells that have < `r param$minGenesPerCell` genes detected, or > `r param$maxGenesPerCell` genes.
+We eliminated the genes that are expressed in < `r param$minCellsPerGene` cells. We eliminated the cells that have < `r param$minGenesPerCell` genes detected, or > `r param$maxGenesPerCell` genes.
 
 ```{r tSNE, echo=FALSE, results='asis'}
 # Coloured by plate/run if available
