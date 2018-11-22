@@ -129,6 +129,12 @@ ezMethodTrim = function(input=NA, output=NA, param=NA){
   }else{
     leadingQualOpt <- ""
   }
+
+    if(param$minTrailingQuality >0){
+    trailingQualOpt <- paste("TRAILING", param$minTrailingQuality, sep=":")
+  }else{
+    trailingQualOpt <- ""
+  }
   
   if (param$minAvgQuality > 0){
     minAvgQualOpt = paste("AVGQUAL", param$minAvgQuality, sep=":")
@@ -159,7 +165,7 @@ ezMethodTrim = function(input=NA, output=NA, param=NA){
                 Sys.getenv("Trimmomatic_jar"), method,
                 ## hardcode phred33 quality encoding
                 "-threads", min(param$cores, 8), "-phred33",
-                readOpts, trimAdaptOpt, tailQualOpt, leadingQualOpt, minAvgQualOpt,
+                readOpts, trimAdaptOpt, tailQualOpt, leadingQualOpt, trailingQualOpt, minAvgQualOpt,
                 paste("MINLEN", param$minReadLength, sep=":"),
                 "> trimmomatic.out 2> trimmomatic.err")
     on.exit(file.remove(c("trimmomatic.out", "trimmomatic.err")), add=TRUE)
