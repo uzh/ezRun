@@ -54,6 +54,8 @@ MOTHUR_DATA_CLEAN_BATCH_TEMPLATE_STEP2 = "/usr/local/ngseq/opt/mothurSingleEndCl
 MOTHUR_DATA_CLEAN_BATCH_TEMPLATE = "/usr/local/ngseq/opt/mothurSingleEndCleanAppTemplate.batch"
 MOTHUR_DATA_CLEAN_BATCH_ILLUMINA_STEP1 = "mothurSingleEndCleanAppIllumina_s1.batch"
 MOTHUR_DATA_CLEAN_BATCH_ILLUMINA_STEP2 = "mothurSingleEndCleanAppIllumina_s2.batch"
+MOTHUR_DATA_CLEAN_BATCH_STEP1 = "mothurGenericInputBatch_s1.batch"
+MOTHUR_DATA_CLEAN_BATCH_STEP2 = "mothurGenericInputBatch_s2.batch"
 
 MOTHUR_DATA_CLEAN_BATCH_PACBIO = "mothurSingleEndCleanAppPacBio.batch"
 MOTHUR_ERROR_ESTIMATE_AND_CLUSTER_BATCH_TEMPLATE_ILL = "/usr/local/ngseq/opt/mothurSingleEndErrorEstimateAndClusterAppTemplateIllumina.batch"
