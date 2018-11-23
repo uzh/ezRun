@@ -51,9 +51,9 @@ ezMethodMothurDataCleanBatch = function(input=NA, output=NA, param=NA,
   ### extract region
   summaryFileToExtractRegion <- paste(sampleName,"unique.good.good.summary", sep = ".")
   summaryOfAlign <- read.delim(summaryFileToExtractRegion, stringsAsFactors = FALSE, header = T)
-  regionStartCoord <- quantile(summaryOfAlign$start, probs = seq(0, 1, 0.025))["5%"]
-  regionEndCoord <- quantile(summaryOfAlign$end, probs = seq(0, 1, 0.025))["95%"]
-  
+  regionStartCoord <- quantile(summaryOfAlign$start, probs = seq(0, 1, 0.025))["95%"]
+  regionEndCoord <- quantile(summaryOfAlign$end, probs = seq(0, 1, 0.025))["5%"]
+
   ### update batch file Illumina with parameters and run mothur: step 2, precluster and remove non-bacterial reads
   updateBatchCmd_step2 <- paste0("sed -e s/\"CUTOFF\"/", param$cutOff, "/g",
                                    " -e s/\"DIFFS\"/", param$diffs, "/g",
@@ -69,19 +69,19 @@ ezMethodMothurDataCleanBatch = function(input=NA, output=NA, param=NA,
   oldCountFileName <- paste(sampleName,
                             "unique.good.good.good.filter.unique.precluster.denovo.vsearch.pick.pick.count_table",
                             sep = ".")
-  newCountFileName <- output$CountTable
+  newCountFileName <- output$getColumn("CountTable")
   renameCountFileCmd <- ezSystem(paste("mv",oldCountFileName,newCountFileName))
     
   oldClusterFileName <- paste(sampleName,
                               "unique.good.good.good.filter.unique.precluster.pick.pick.fasta",
                               sep = ".")
-  newClusterFileName <- output$PreClusteredFastaFile
+  newClusterFileName <- output$getColumn("PreClusteredFastaFile") 
   renameCLusterFileCmd <-  ezSystem(paste("mv",oldClusterFileName,newClusterFileName))
     
   oldTaxonomyFileName <- paste(sampleName,
                                "unique.good.good.good.filter.unique.precluster.pick.pds.wang.pick.taxonomy",
                                sep = ".")
-  newTaxonomyFileName <- output$TaxonomyFile
+  newTaxonomyFileName <- output$getColumn("TaxonomyFile") 
   renameTaxonomyFileCmd <-  ezSystem(paste("mv",oldTaxonomyFileName,newTaxonomyFileName))
   
 }
