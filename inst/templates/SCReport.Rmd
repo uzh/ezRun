@@ -27,7 +27,7 @@ require(readr)
 ## debug
 # title:  "`r metadata(sce)$param$name`"
 # sce <- readRDS("/scratch/gtan/dev/SCReports-p2284/AVM_17_08_2018_SCReport/sce.rds")
-# sce <- readRDS("/srv/gstore/projects/p2284/SCReport_30969_2018-11-07--15-44-11/Metastasis_17102018_SCReport/sce.rds")
+# sce <- readRDS("/srv/gstore/projects/p2326/SCReport_26601_2018-11-23--11-47-41/SCReport/sce.rds")
 # sce <- readRDS("/scratch/gtan/debug/quickDebug/sce.rds")
 ## end of debug
 debug <- FALSE
@@ -63,7 +63,7 @@ if(param$all2allMarkers){
   all2allMarkers <- mcmapply(FindMarkers, as.integer(clusterCombs[1, ]), 
                              as.integer(clusterCombs[2, ]),
                              MoreArgs = list(object=scData,
-                                             only.pos=TRUE),
+                                             only.pos=FALSE),
                              mc.preschedule=FALSE,
                              mc.cores=param$cores,
                              SIMPLIFY=FALSE)
@@ -163,7 +163,7 @@ if(doEnrichr(param)){
                          "# of markers"=lengths(genesPerCluster),
                          "Enrichr link"=enrichrCalls)
   kable(enrichrTable, format="html", escape=FALSE,
-        caption=paste0("GeneSet enrichment: gens with pvalue <= ", pvalue_allMarkers)) %>%
+        caption=paste0("GeneSet enrichment: genes with pvalue ", pvalue_allMarkers)) %>%
     kable_styling("striped", full_width = F, position = "left")
 }
 ```
@@ -173,23 +173,41 @@ caption ="Expression differences of cluster marker genes"
 ezInteractiveTableRmd(cm, digits=4, title=caption)
 ```
 
+```{r section all2all, echo=FALSE, results='asis'}
+if(doEnrichr(param) && param$all2allMarkers){
+  cat("#### All clusters against all clusters comparison")
+  cat("\n")
+}
+```
+
 ```{r enrichr all2all markers, echo=FALSE, results='asis'}
 if(doEnrichr(param) && param$all2allMarkers){
   for(comparison in names(all2allMarkers)){
     write_tsv(as_tibble(all2allMarkers[[comparison]], rownames="Gene"),
               path=paste0(comparison, ".tsv"))
   }
-  genesPerCluster <- lapply(all2allMarkers, rownames)
-  jsCall = paste0('enrich({list: "', sapply(genesPerCluster, paste, collapse="\\n"), '", popup: true});')
-  enrichrCalls <- paste0("<a href='javascript:void(0)' onClick='", jsCall, 
+  genesAllPerCluster <- lapply(all2allMarkers, rownames)
+  genesUpPerCluster <- lapply(all2allMarkers, function(x){rownames(x)[x$avg_logFC > 0]})
+  genesDownPerCluster <- lapply(all2allMarkers, function(x){rownames(x)[x$avg_logFC < 0]})
+  
+  jsCall_all = paste0('enrich({list: "', sapply(genesAllPerCluster, paste, collapse="\\n"), '", popup: true});')
+  jsCall_up = paste0('enrich({list: "', sapply(genesUpPerCluster, paste, collapse="\\n"), '", popup: true});')
+  jsCall_down = paste0('enrich({list: "', sapply(genesDownPerCluster, paste, collapse="\\n"), '", popup: true});')
+  
+  enrichrCalls_all <- paste0("<a href='javascript:void(0)' onClick='", jsCall_all,
                          "'>Analyse at Enrichr website</a>")
-  enrichrTable <- tibble(Comparison=names(genesPerCluster),
-                         "# of markers"=lengths(genesPerCluster),
-                         "Enrichr link"=enrichrCalls,
-                         "List of markers"=text_spec(paste0(names(all2allMarkers), ".tsv"),
-                                                     link=paste0(names(all2allMarkers), ".tsv")))
+  enrichrCalls_up <- paste0("<a href='javascript:void(0)' onClick='", jsCall_up,
+                         "'>Analyse at Enrichr website</a>")
+  enrichrCalls_down <- paste0("<a href='javascript:void(0)' onClick='", jsCall_down,
+                         "'>Analyse at Enrichr website</a>")
+  enrichrTable <- tibble(Comparison=names(all2allMarkers),
+                         "# of differentially expressed genes"=lengths(genesAllPerCluster),
+                         "Enrichr link: all significant genes"=enrichrCalls_all,
+                         "Enrichr link: up-regulated genes"=enrichrCalls_up,
+                         "Enrichr link: down-regulated genes"=enrichrCalls_down,
+                         "List of differentially expressed genes"=text_spec(paste0(names(all2allMarkers), ".tsv"), link=paste0(names(all2allMarkers), ".tsv")))
   kable(enrichrTable, format="html", escape=FALSE,
-        caption=paste0("GeneSet enrichment: gens with pvalue <= ", pvalue_all2allMarkers)) %>%
+        caption=paste0("GeneSet enrichment: genes with pvalue ", pvalue_all2allMarkers)) %>%
     kable_styling("striped", full_width = F, position = "left")
 }
 ```
