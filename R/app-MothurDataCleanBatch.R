@@ -26,11 +26,20 @@ ezMethodMothurDataCleanBatch = function(input=NA, output=NA, param=NA,
   cpSilvaRefCmd <- "cp /srv/GT/databases/silva/silva.bacteria.forMothur.fasta silva.bacteria.fasta"
   ezSystem(cpSilvaRefCmd)
   
+  
+  ### are reads paired? should they be joined? 
+  if(param$paired){
+    contigString = "###make.contigs" 
+  }else{
+    contigString = "###make" 
+  }
+    
   ### update batch file Illumina with parameters and run mothur: step 1, identify region
   updateBatchCmd <- paste0("sed -e s/\"MIN_LEN\"/", param$minLen, "/g",
                                    " -e s/\"MAX_LEN\"/", param$maxLen, "/g",
                                    " -e s/\"Mothur\"/", sampleName,"/g",
-                                   MOTHUR_DATA_CLEAN_BATCH_TEMPLATE_STEP1, " >", MOTHUR_DATA_CLEAN_BATCH_STEP1)
+                                   " -e s/\"###make\"/", contigString,"/g",
+                           MOTHUR_DATA_CLEAN_BATCH_TEMPLATE_STEP1, " >", MOTHUR_DATA_CLEAN_BATCH_STEP1)
   ezSystem(updateBatchCmd)
   cmdMothur = paste(MOTHUR_EXE,MOTHUR_DATA_CLEAN_BATCH_STEP1)
   ezSystem(cmdMothur)

@@ -11,17 +11,22 @@ ezMethodSpades = function(input=NA, output=NA, param=NA, htmlFile="00index.html"
   sampleName = input$getNames()
   ##stopifnot((param$paired))
   trimmedInput = ezMethodTrim(input = input, param = param)
+  if (param$gneomeType == "pacbioSmrtCell"){
+    basicOpts <- paste(param$spadesBasicOpt, "--meta")
+  } else {
+    basicOpts <- param$spadesBasicOpt
+  }
   if (param$paired){
     read1 = trimmedInput$getColumn("Read1")
     read2 = trimmedInput$getColumn("Read2")
     readOpt = paste("-1", read1, "-2", read2)
-    cmd = paste("spades.py", readOpt, param$spadesBasicOpt,
+    cmd = paste("spades.py", readOpt, basicOpts,
                 param$spadesPipeOpt, "-m", param$ram, "-o", "spades", '-t', ezThreads(), opt, "1> ", paste0(sampleName,"_spades.log"))
     ezSystem(cmd)
   } else {
     read1 = trimmedInput$getColumn("Read1")
     readOpt = paste("-s", read1)
-    cmd = paste("spades.py", readOpt, param$spadesBasicOpt,
+    cmd = paste("spades.py", readOpt, basicOpts,
                 param$spadesPipeOpt, "-m", param$ram, "-o", "spades", '-t', ezThreads(), opt, "1> ", paste0(sampleName,"_spades.log"))
     ezSystem(cmd)
   }
