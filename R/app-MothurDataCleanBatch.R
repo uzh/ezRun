@@ -17,23 +17,28 @@ ezMethodMothurDataCleanBatch = function(input=NA, output=NA, param=NA,
   require(ggplot2)
   library(scales)
   dataset = input$meta
-  sampleName <- dataset$name 
+  sampleName = input$getNames() 
   ### read fastq files and prepare inputs for Mothur
-  prepareFilesLocallyForMothur(dataset,param)
-  projNum <- dirname(param$resultDir)
+  ### are reads paired? should they be joined? 
+  file1PathInDatset <- input$getFullPaths("Read1")
+  cpCmd <- paste0("gunzip -c ", file1PathInDatset, "  > ", sampleName,".R1",".fastq")
+  ezSystem(cpCmd)
+  if(param$paired){
+    contigString = "###make.contigs" 
+    file2PathInDatset <- input$getFullPaths("Read2")
+    cpCmd2 <- paste0("gunzip -c ", file2PathInDatset, "  > ", sampleName,".R2",".fastq")
+    ezSystem(cpCmd2)
+  }else{
+    contigString = "###make" 
+  }
+    projNum <- dirname(param$resultDir)
   
   ### cp silva reference locally
   cpSilvaRefCmd <- "cp /srv/GT/databases/silva/silva.bacteria.forMothur.fasta silva.bacteria.fasta"
   ezSystem(cpSilvaRefCmd)
   
   
-  ### are reads paired? should they be joined? 
-  if(param$paired){
-    contigString = "###make.contigs" 
-  }else{
-    contigString = "###make" 
-  }
-    
+
   ### update batch file Illumina with parameters and run mothur: step 1, identify region
   updateBatchCmd <- paste0("sed -e s/\"MIN_LEN\"/", param$minLen, "/g",
                                    " -e s/\"MAX_LEN\"/", param$maxLen, "/g",
