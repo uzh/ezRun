@@ -69,19 +69,19 @@ ezMethodMothurDataCleanBatch = function(input=NA, output=NA, param=NA,
   oldCountFileName <- paste(sampleName,
                             "unique.good.good.good.filter.unique.precluster.denovo.vsearch.pick.pick.count_table",
                             sep = ".")
-  newCountFileName <- output$getColumn("CountTable")
+  newCountFileName <- basename(output$getColumn("CountTable"))
   renameCountFileCmd <- ezSystem(paste("mv",oldCountFileName,newCountFileName))
     
   oldClusterFileName <- paste(sampleName,
                               "unique.good.good.good.filter.unique.precluster.pick.pick.fasta",
                               sep = ".")
-  newClusterFileName <- output$getColumn("PreClusteredFastaFile") 
+  newClusterFileName <- basename(output$getColumn("PreClusteredFastaFile"))
   renameCLusterFileCmd <-  ezSystem(paste("mv",oldClusterFileName,newClusterFileName))
     
   oldTaxonomyFileName <- paste(sampleName,
                                "unique.good.good.good.filter.unique.precluster.pick.pds.wang.pick.taxonomy",
                                sep = ".")
-  newTaxonomyFileName <- output$getColumn("TaxonomyFile") 
+  newTaxonomyFileName <- basename(output$getColumn("TaxonomyFile"))
   renameTaxonomyFileCmd <-  ezSystem(paste("mv",oldTaxonomyFileName,newTaxonomyFileName))
   
 }
