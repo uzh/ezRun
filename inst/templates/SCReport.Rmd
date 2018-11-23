@@ -22,6 +22,7 @@ require(tibble)
 require(kableExtra)
 require(fastICA)
 require(Matrix)
+require(readr)
 ## ----------------------------------------------
 ## debug
 # title:  "`r metadata(sce)$param$name`"
@@ -34,6 +35,9 @@ debug <- FALSE
 scData <- metadata(sce)$scData
 param <- metadata(sce)$param
 output <- metadata(sce)$output
+
+pvalue_allMarkers <- 0.05
+pvalue_all2allMarkers <- 0.01
 ```
 
 ```{r javascript, echo=FALSE, results='asis'}
@@ -44,13 +48,30 @@ cat(paste0("<SCRIPT language=\"JavaScript\" SRC=\"", basename(jsFile), "\"></SCR
 
 ```{r pos markers, echo=FALSE}
 markers <- FindAllMarkers(object=scData, only.pos=TRUE,
-                          return.thresh = 0.05)
+                          return.thresh = pvalue_allMarkers)
 posMarkersFn <- "pos_markers.tsv"
 ezWrite.table(markers, posMarkersFn)
 
 ## Significant markers
 cm <- markers[ ,c("gene","cluster","avg_logFC","p_val_adj")]
 rownames(cm) <- NULL
+```
+
+```{r pos markers all2all, echo=FALSE}
+if(param$all2allMarkers){
+  clusterCombs <- combn(levels(scData@ident), m=2)
+  all2allMarkers <- mcmapply(FindMarkers, as.integer(clusterCombs[1, ]), 
+                             as.integer(clusterCombs[2, ]),
+                             MoreArgs = list(object=scData,
+                                             only.pos=TRUE),
+                             mc.preschedule=FALSE,
+                             mc.cores=param$cores,
+                             SIMPLIFY=FALSE)
+  all2allMarkers <- lapply(all2allMarkers, function(x){
+    x[x$p_val <= pvalue_all2allMarkers, ]
+  })
+  names(all2allMarkers) <- apply(clusterCombs, 2, paste, collapse="vs")
+}
 ```
 
 ```{r fastICA, echo=FALSE}
@@ -67,11 +88,6 @@ if(param$runPseudoTime){
                tol = 0.0001, verbose = FALSE)
   tSNE_data$pseudotime <- a$A[1,]
 }
-# tSNE_data <- tibble(X=scData@dr$tsne@cell.embeddings[colnames(cd),"tSNE_1"],
-#                     Y=scData@dr$tsne@cell.embeddings[colnames(cd),"tSNE_2"],
-#                     cells=rownames(scData@dr$tsne@cell.embeddings),
-#                     cluster=scData@ident,
-#                     pseudotime=a$A[1,])
 ```
 
 ## Clustering Results {.tabset}
@@ -147,7 +163,7 @@ if(doEnrichr(param)){
                          "# of markers"=lengths(genesPerCluster),
                          "Enrichr link"=enrichrCalls)
   kable(enrichrTable, format="html", escape=FALSE,
-        caption="Geneset enrichment") %>%
+        caption=paste0("GeneSet enrichment: gens with pvalue <= ", pvalue_allMarkers)) %>%
     kable_styling("striped", full_width = F, position = "left")
 }
 ```
@@ -155,6 +171,27 @@ if(doEnrichr(param)){
 ```{r markers table, echo=FALSE}
 caption ="Expression differences of cluster marker genes"
 ezInteractiveTableRmd(cm, digits=4, title=caption)
+```
+
+```{r enrichr all2all markers, echo=FALSE, results='asis'}
+if(doEnrichr(param) && param$all2allMarkers){
+  for(comparison in names(all2allMarkers)){
+    write_tsv(as_tibble(all2allMarkers[[comparison]], rownames="Gene"),
+              path=paste0(comparison, ".tsv"))
+  }
+  genesPerCluster <- lapply(all2allMarkers, rownames)
+  jsCall = paste0('enrich({list: "', sapply(genesPerCluster, paste, collapse="\\n"), '", popup: true});')
+  enrichrCalls <- paste0("<a href='javascript:void(0)' onClick='", jsCall, 
+                         "'>Analyse at Enrichr website</a>")
+  enrichrTable <- tibble(Comparison=names(genesPerCluster),
+                         "# of markers"=lengths(genesPerCluster),
+                         "Enrichr link"=enrichrCalls,
+                         "List of markers"=text_spec(paste0(names(all2allMarkers), ".tsv"),
+                                                     link=paste0(names(all2allMarkers), ".tsv")))
+  kable(enrichrTable, format="html", escape=FALSE,
+        caption=paste0("GeneSet enrichment: gens with pvalue <= ", pvalue_all2allMarkers)) %>%
+    kable_styling("striped", full_width = F, position = "left")
+}
 ```
 
 ### Visualizations of top cluster markers
