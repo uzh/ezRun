@@ -24,6 +24,7 @@
 ##'   \item{subsampleReads}{ an integer specifying how many subsamples there are. This will call \code{ezMethodSubsampleReads()} if > 1.}
 ##'   \item{trimAdapter}{ a logical specifying whether to use a trim adapter.}
 ##'   \item{minTailQuality}{ an integer specifying the minimal tail quality to accept. Only used if > 0.}
+##'   \item{minTrailingQuality}{ an integer specifying the minimal trailing quality to accept. Only used if > 0.}
 ##'   \item{minAvgQuality}{ an integer specifying the minimal average quality to accept. Only used if > 0.}
 ##'   \item{minReadLength}{ an integer specifying the minimal read length to accept.}
 ##'   \item{dataRoot}{ a character specifying the path of the data root to get the full column paths from.}
