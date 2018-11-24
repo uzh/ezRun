@@ -31,19 +31,25 @@ ezMethodMothurDataCleanBatch = function(input=NA, output=NA, param=NA,
   }else{
     contigString = "###make" 
   }
-    projNum <- dirname(param$resultDir)
+  
+  ### is there at least a mock sample for the error estimate? The error estimates for the Non-mock samples will be ignored downstream
+  if(param$Mock){
+    mockString = "seq.error" 
+  }else{
+    mockString = "###seq.error" 
+  }
+  ###
+  projNum <- dirname(param$resultDir)
   
   ### cp silva reference locally
   cpSilvaRefCmd <- "cp /srv/GT/databases/silva/silva.bacteria.forMothur.fasta silva.bacteria.fasta"
   ezSystem(cpSilvaRefCmd)
   
-  
-
-  ### update batch file Illumina with parameters and run mothur: step 1, identify region
+  ### update batch file  with parameters and run mothur: step 1, identify region
   updateBatchCmd <- paste0("sed -e s/\"MIN_LEN\"/", param$minLen, "/g",
                                    " -e s/\"MAX_LEN\"/", param$maxLen, "/g",
                                    " -e s/\"Mothur\"/", sampleName,"/g",
-                                   " -e s/\"###make\"/", contigString,"/g ",
+                                   " -e s/\"###make\"/", contigString,"/g",
                            MOTHUR_DATA_CLEAN_BATCH_TEMPLATE_STEP1, " >", MOTHUR_DATA_CLEAN_BATCH_STEP1)
   ezSystem(updateBatchCmd)
   cmdMothur = paste(MOTHUR_EXE,MOTHUR_DATA_CLEAN_BATCH_STEP1)
@@ -54,36 +60,66 @@ ezMethodMothurDataCleanBatch = function(input=NA, output=NA, param=NA,
   regionStartCoord <- quantile(summaryOfAlign$start, probs = seq(0, 1, 0.025))["95%"]
   regionEndCoord <- quantile(summaryOfAlign$end, probs = seq(0, 1, 0.025))["5%"]
 
-  ### update batch file Illumina with parameters and run mothur: step 2, precluster and remove non-bacterial reads
-  updateBatchCmd_step2 <- paste0("sed -e s/\"CUTOFF\"/", param$cutOff, "/g",
+  ### update batch file  with parameters and run mothur: step 2, precluster and remove non-bacterial reads
+  updateBatchCmd_step2_3 <- paste0("sed -e s/\"CUTOFF_TAXON\"/", param$cutOffTaxonomy, "/g",
+                                   " -e s/\"CUTOFF_CLUST\"/", param$cutOffCluster, "/g",
                                    " -e s/\"DIFFS\"/", param$diffs, "/g",
                                    " -e s/\"START_COORD\"/", regionStartCoord, "/g",
                                    " -e s/\"END_COORD\"/", regionEndCoord, "/g",
                                    " -e s/\"Mothur\"/" ,sampleName, "/g ",
-                                   MOTHUR_DATA_CLEAN_BATCH_TEMPLATE_STEP2,
-                                   " >", MOTHUR_DATA_CLEAN_BATCH_STEP2)
-  ezSystem(updateBatchCmd_step2)
-  cmdMothur_step2= paste(MOTHUR_EXE,MOTHUR_DATA_CLEAN_BATCH_STEP2)
-  ezSystem(cmdMothur_step2)
-  ## rename files 
-  oldCountFileName <- paste(sampleName,
+                                   MOTHUR_DATA_CLEAN_BATCH_TEMPLATE_STEP2_3,
+                                   " >", MOTHUR_DATA_CLEAN_BATCH_STEP2_3)
+  ezSystem(updateBatchCmd_step2_3)
+  cmdMothur_step2_3= paste(MOTHUR_EXE,MOTHUR_DATA_CLEAN_BATCH_STEP2_3)
+  ezSystem(cmdMothur_step2_3)
+  
+  ### update batch file  with parameters and run mothur: step 3, precluster and remove non-bacterial reads
+  
+  
+  ## rename files
+  oldReadsToCountFileName <- paste(sampleName,
                             "unique.good.good.good.filter.unique.precluster.denovo.vsearch.pick.pick.count_table",
                             sep = ".")
-  newCountFileName <- basename(output$getColumn("CountTable"))
-  renameCountFileCmd <- ezSystem(paste("mv",oldCountFileName,newCountFileName))
-    
-  oldClusterFileName <- paste(sampleName,
+  newReadsToCountFileName <- basename(output$getColumn("ReadsCountTable"))
+  ezSystem(paste("mv",oldReadsToCountFileName,newReadsToCountFileName))
+  #
+  oldPreclusterFileName <- paste(sampleName,
                               "unique.good.good.good.filter.unique.precluster.pick.pick.fasta",
                               sep = ".")
-  newClusterFileName <- basename(output$getColumn("PreClusteredFastaFile"))
-  renameCLusterFileCmd <-  ezSystem(paste("mv",oldClusterFileName,newClusterFileName))
-    
-  oldTaxonomyFileName <- paste(sampleName,
+  newPreclusterFileName <- basename(output$getColumn("PreClusteredFastaFile"))
+  ezSystem(paste("mv",oldPreclusterFileName,newPreclusterFileName))
+  # 
+  oldReadsToTaxonomyFileName <- paste(sampleName,
                                "unique.good.good.good.filter.unique.precluster.pick.pds.wang.pick.taxonomy",
                                sep = ".")
-  newTaxonomyFileName <- basename(output$getColumn("TaxonomyFile"))
-  renameTaxonomyFileCmd <-  ezSystem(paste("mv",oldTaxonomyFileName,newTaxonomyFileName))
-  
+  newReadsToTaxonomyFileName <- basename(output$getColumn("ReadsTaxonomyFile"))
+  ezSystem(paste("mv",oldReadsToTaxonomyFileName,newReadsToTaxonomyFileName))
+  #
+  oldOTUsToCountFileName <- paste(sampleName,
+                            "unique.good.good.good.filter.unique.precluster.pick.pick.opti_mcc.shared",
+                            sep = ".")
+  newOTUsToCountFileName <- basename(output$getColumn("OTUsCountTable"))
+  ezSystem(paste("mv",oldOTUsToCountFileName,newOTUsToCountFileName))
+  #
+  oldOTUsToTaxFileName <- paste(sampleName,
+                                  "unique.good.good.good.filter.unique.precluster.pick.pick.opti_mcc",
+                                  params$cutOffCluster, "cons.taxonomy",
+                                  sep = ".")
+  newOTUsToTaxFileName <- basename(output$getColumn("OTUsToTaxonomyFile"))
+  ezSystem(paste("mv",oldOTUsToTaxFileName,newOTUsToTaxFileName))
+  #
+  oldErrFile <- paste(sampleName,
+                                "unique.good.good.good.filter.unique.precluster.pick.pick.error.count",
+                                sep = ".")
+  newErrFile <- basename(output$getColumn("ErrorFile"))
+  ezSystem(paste("mv",oldErrFile,newErrFile))
+  #
+  oldStepConvFile <- paste(sampleName,
+                      "unique.good.good.good.filter.unique.precluster.pick.pick.opti_mcc.steps",
+                      sep = ".")
+  newStepConvFile <- basename(output$getColumn("stepConvergence"))
+  ezSystem(paste("mv",oldStepConvFile,newStepConvFile))
+  #
 }
 
 ##' @template app-template
@@ -99,10 +135,12 @@ EzAppMothurDataCleanBatch <-
                   "Initializes the application using its specific defaults."
                   runMethod <<- ezMethodMothurDataCleanBatch
                   name <<- "EzAppMothurDataCleanBatch"
-                  appDefaults <<- rbind(cutOff = ezFrame(Type="integer",  DefaultValue="80",Description="Cut-off for taxonomy assignment"),
+                  appDefaults <<- rbind(cutOffTaxonomy = ezFrame(Type="integer",  DefaultValue="80",Description="Cut-off for taxonomy assignment"),
                                         diffs= ezFrame(Type="integer",  DefaultValue="2",Description="Differences allowed in the pre.cluster step.Should be 1 every 100 bases"),
                                         minLen = ezFrame(Type="integer",  DefaultValue="290",Description="Min length"),     
-                                        maxLen= ezFrame(Type="integer",  DefaultValue="330",Description="Max length")
+                                        maxLen= ezFrame(Type="integer",  DefaultValue="330",Description="Max length"),
+                                        cutOffCluster = ezFrame(Type="numeric",  DefaultValue="0.03",Description="Cut-off for OTU clustering."),
+                                        referenceFasta = ezFrame(Type="character",  DefaultValue="",Description="Mock reference seqeuences.")
                   )
                 }
               )
