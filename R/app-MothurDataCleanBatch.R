@@ -81,7 +81,8 @@ ezMethodMothurDataCleanBatch = function(input=NA, output=NA, param=NA,
                                    " -e s/\"DIFFS\"/", param$diffs, "/g",
                                    " -e s/\"START_COORD\"/", regionStartCoord, "/g",
                                    " -e s/\"END_COORD\"/", regionEndCoord, "/g",
-                                   " -e s/\"Mothur\"/" ,sampleName, "/g ",
+                                   " -e s/\"Mothur\"/" ,sampleName, "/g",
+                                   " -e s/\"###seq.error\"/", mockString,"/g ",
                                    MOTHUR_DATA_CLEAN_BATCH_TEMPLATE_STEP2_3,
                                    " >", MOTHUR_DATA_CLEAN_BATCH_STEP2_3)
   ezSystem(updateBatchCmd_step2_3)
@@ -92,49 +93,49 @@ ezMethodMothurDataCleanBatch = function(input=NA, output=NA, param=NA,
   
   
   ## rename files
+  #1) 
   oldReadsToCountFileName <- paste(sampleName,
-                            "unique.good.good.good.filter.unique.precluster.denovo.vsearch.pick.pick.count_table",
-                            sep = ".")
+                                   "unique.good.good.good.filter.unique.precluster.denovo.vsearch.pick.pick.count_table",
+                                   sep = ".")
   newReadsToCountFileName <- basename(output$getColumn("ReadsCountTable"))
   ezSystem(paste("mv",oldReadsToCountFileName,newReadsToCountFileName))
-  #
+  #2) 
   oldPreclusterFileName <- paste(sampleName,
-                              "unique.good.good.good.filter.unique.precluster.pick.pick.fasta",
-                              sep = ".")
+                                 "unique.good.good.good.filter.unique.precluster.pick.pick.fasta",
+                                 sep = ".")
   newPreclusterFileName <- basename(output$getColumn("PreClusteredFastaFile"))
   ezSystem(paste("mv",oldPreclusterFileName,newPreclusterFileName))
-  # 
+  #3) 
   oldReadsToTaxonomyFileName <- paste(sampleName,
-                               "unique.good.good.good.filter.unique.precluster.pick.pds.wang.pick.taxonomy",
-                               sep = ".")
+                                      "unique.good.good.good.filter.unique.precluster.pick.pds.wang.pick.taxonomy",
+                                      sep = ".")
   newReadsToTaxonomyFileName <- basename(output$getColumn("ReadsTaxonomyFile"))
   ezSystem(paste("mv",oldReadsToTaxonomyFileName,newReadsToTaxonomyFileName))
-  #
+  #4) 
   oldOTUsToCountFileName <- paste(sampleName,
-                            "unique.good.good.good.filter.unique.precluster.pick.pick.opti_mcc.shared",
-                            sep = ".")
+                                  "unique.good.good.good.filter.unique.precluster.pick.pick.opti_mcc.shared",
+                                  sep = ".")
   newOTUsToCountFileName <- basename(output$getColumn("OTUsCountTable"))
   ezSystem(paste("mv",oldOTUsToCountFileName,newOTUsToCountFileName))
-  #
+  #5) 
   oldOTUsToTaxFileName <- paste(sampleName,
-                                  "unique.good.good.good.filter.unique.precluster.pick.pick.opti_mcc",
-                                  params$cutOffCluster, "cons.taxonomy",
-                                  sep = ".")
+                                "unique.good.good.good.filter.unique.precluster.pick.pick.opti_mcc",
+                                params$cutOffCluster, "cons.taxonomy",
+                                sep = ".")
   newOTUsToTaxFileName <- basename(output$getColumn("OTUsToTaxonomyFile"))
   ezSystem(paste("mv",oldOTUsToTaxFileName,newOTUsToTaxFileName))
-  #
+  #6) 
   oldErrFile <- paste(sampleName,
-                                "unique.good.good.good.filter.unique.precluster.pick.pick.error.count",
-                                sep = ".")
+                      "unique.good.good.good.filter.unique.precluster.pick.pick.error.count",
+                      sep = ".")
   newErrFile <- basename(output$getColumn("ErrorFile"))
   ezSystem(paste("mv",oldErrFile,newErrFile))
-  #
+  #7) 
   oldStepConvFile <- paste(sampleName,
-                      "unique.good.good.good.filter.unique.precluster.pick.pick.opti_mcc.steps",
-                      sep = ".")
+                           "unique.good.good.good.filter.unique.precluster.pick.pick.opti_mcc.steps",
+                           sep = ".")
   newStepConvFile <- basename(output$getColumn("stepConvergence"))
   ezSystem(paste("mv",oldStepConvFile,newStepConvFile))
-  #
 }
 
 ##' @template app-template
