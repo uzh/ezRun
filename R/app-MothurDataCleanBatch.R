@@ -34,7 +34,8 @@ ezMethodMothurDataCleanBatch = function(input=NA, output=NA, param=NA,
     contigString = "###make"
     singleReadFileName <- paste0(sampleName,".R1")
     fastqFileToRead <- readDNAStringSet(paste0(singleReadFileName,".fastq"),format = "fastq")
-    groupFile <- data.frame(names(fastqFileToRead),singleReadFileName, stringsAsFactors = F)
+    groupFile <- data.frame(paste(names(fastqFileToRead), collapse = "_"),
+                                  singleReadFileName, stringsAsFactors = F)
     groupFileName <- paste0(sampleName,".R1.groups")
     write.table(groupFile,groupFileName, col.names = F, row.names = F, quote = F)
     fastaOutName <- paste0(singleReadFileName,".fasta")
