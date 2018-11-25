@@ -28,8 +28,19 @@ ezMethodMothurDataCleanBatch = function(input=NA, output=NA, param=NA,
     file2PathInDatset <- input$getFullPaths("Read2")
     cpCmd2 <- paste0("gunzip -c ", file2PathInDatset, "  > ", sampleName,".R2",".fastq")
     ezSystem(cpCmd2)
+    initialFastaSuffix = "trim.contigs.fasta"
+    initialGroupSuffix = "contigs.groups"
   }else{
-    contigString = "###make" 
+    contigString = "###make"
+    singleReadFileName <- paste0(sampleName,".R1")
+    fastqFileToRead <- readDNAStringSet(paste0(singleReadFileName,".fastq"),format = "fastq")
+    groupFile <- data.frame(names(fastqFileToRead),singleReadFileName, stringsAsFactors = F)
+    groupFileName <- paste0(sampleName,"R1.groups")
+    write.table(groupFile,groupFileName, col.names = F, row.names = F, quote = F)
+    fastaOutName <- paste0(singleReadFileName,".fasta")
+    fastaFileToWrite <- writeXStringSet(fastqFileToRead, fastaOutName)
+    initialFastaSuffix = "R1.fasta"
+    initialGroupSuffix = "R1.groups"
   }
   
   ### is there at least a mock sample for the error estimate? The error estimates for the Non-mock samples will be ignored downstream
@@ -48,9 +59,12 @@ ezMethodMothurDataCleanBatch = function(input=NA, output=NA, param=NA,
   ### update batch file  with parameters and run mothur: step 1, identify region
   updateBatchCmd <- paste0("sed -e s/\"MIN_LEN\"/", param$minLen, "/g",
                                    " -e s/\"MAX_LEN\"/", param$maxLen, "/g",
+                                   " -e s/\"INITIAL_SUFFIX_FASTA\"/", initialFastaSuffix, "/g",
+                                   " -e s/\"INITIAL_SUFFIX_GROUPS\"/", initialGroupSuffix, "/g",
                                    " -e s/\"Mothur\"/", sampleName,"/g",
                                    " -e s/\"###make\"/", contigString,"/g ",
-                           MOTHUR_DATA_CLEAN_BATCH_TEMPLATE_STEP1, " >", MOTHUR_DATA_CLEAN_BATCH_STEP1)
+                           MOTHUR_DATA_CLEAN_BATCH_TEMPLATE_STEP1, " >",
+                           MOTHUR_DATA_CLEAN_BATCH_STEP1)
   ezSystem(updateBatchCmd)
   cmdMothur = paste(MOTHUR_EXE,MOTHUR_DATA_CLEAN_BATCH_STEP1)
   ezSystem(cmdMothur)
