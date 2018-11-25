@@ -49,7 +49,7 @@ ezMethodMothurDataCleanBatch = function(input=NA, output=NA, param=NA,
   updateBatchCmd <- paste0("sed -e s/\"MIN_LEN\"/", param$minLen, "/g",
                                    " -e s/\"MAX_LEN\"/", param$maxLen, "/g",
                                    " -e s/\"Mothur\"/", sampleName,"/g",
-                                   " -e s/\"###make\"/", contigString,"/g",
+                                   " -e s/\"###make\"/", contigString,"/g ",
                            MOTHUR_DATA_CLEAN_BATCH_TEMPLATE_STEP1, " >", MOTHUR_DATA_CLEAN_BATCH_STEP1)
   ezSystem(updateBatchCmd)
   cmdMothur = paste(MOTHUR_EXE,MOTHUR_DATA_CLEAN_BATCH_STEP1)
