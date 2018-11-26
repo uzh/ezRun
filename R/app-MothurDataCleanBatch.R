@@ -75,7 +75,7 @@ ezMethodMothurDataCleanBatch = function(input=NA, output=NA, param=NA,
   regionStartCoord <- quantile(summaryOfAlign$start, probs = seq(0, 1, 0.025))["95%"]
   regionEndCoord <- quantile(summaryOfAlign$end, probs = seq(0, 1, 0.025))["5%"]
 
-  ### update batch file  with parameters and run mothur: step 2, precluster and remove non-bacterial reads
+  ### update batch file  with parameters and run mothur: step 2 and, precluster, remove non-bacterial reads and generate final cluster
   updateBatchCmd_step2_3 <- paste0("sed -e s/\"CUTOFF_TAXON\"/", param$cutOffTaxonomy, "/g",
                                    " -e s/\"CUTOFF_CLUST\"/", param$cutOffCluster, "/g",
                                    " -e s/\"DIFFS\"/", param$diffs, "/g",
@@ -89,10 +89,7 @@ ezMethodMothurDataCleanBatch = function(input=NA, output=NA, param=NA,
   cmdMothur_step2_3= paste(MOTHUR_EXE,MOTHUR_DATA_CLEAN_BATCH_STEP2_3)
   ezSystem(cmdMothur_step2_3)
   
-  ### update batch file  with parameters and run mothur: step 3, precluster and remove non-bacterial reads
-  
-  
-  ## rename files
+  ## rename output files
   #1) 
   oldReadsToCountFileName <- paste(sampleName,
                                    "unique.good.good.good.filter.unique.precluster.denovo.vsearch.pick.pick.count_table",
