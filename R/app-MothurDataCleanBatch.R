@@ -134,7 +134,7 @@ ezMethodMothurDataCleanBatch = function(input=NA, output=NA, param=NA,
   #7) 
   oldOTUsToTaxFileName <- paste(sampleName,
                                 "unique.good.good.good.filter.unique.precluster.pick.pick.opti_mcc",
-                                params$cutOffCluster, "cons.taxonomy",
+                                param$cutOffCluster, "cons.taxonomy",
                                 sep = ".")
   newOTUsToTaxFileName <- basename(output$getColumn("OTUsToTaxonomyFile"))
   ezSystem(paste("mv",oldOTUsToTaxFileName,newOTUsToTaxFileName))

@@ -24,11 +24,13 @@ library(dplyr)
     }
 uparseTemplScript <- USEARCH_TEMPLATE_SCRIPT
 uparseToBeExec <- paste0("uparse.",sampleName,".sh")
-
-updateTemplateScript <- paste0("sed -e s/\"SAMPLE_NAME\"/", sampleName, "/g",
+##update template
+updateTemplateScriptCmd <- paste0("sed -e s/\"SAMPLE_NAME\"/", sampleName, "/g",
                                "sed -e s/\"MAX_EE\"/", param$fastqErrorMax, "/g ",
                                uparseTemplScript, " >",
                                uparseToBeExec)
+ezSystem(updateTemplateScriptCmd)
+## run script
 uparseCmd <- paste("bash",uparseToBeExec)
 ezSystem(uparseCmd)
 
