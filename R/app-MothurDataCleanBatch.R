@@ -46,7 +46,7 @@ ezMethodMothurDataCleanBatch = function(input=NA, output=NA, param=NA,
   
   ### is there at least a mock sample for the error estimate? The error estimates for the Non-mock samples will be ignored downstream
   if(param$mockSample){
-    if (dataset$`Mock [Factor]` == "Yes") {
+    if (input$getColumn("Mock") == "Yes") {
     copyRefCmd <- paste("cp", param$referenceFasta,"./", sep = " ")
     ezSystem(copyRefCmd)
     mockString = "seq.error" 
