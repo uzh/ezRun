@@ -114,25 +114,26 @@ ezMethodMothurDataCleanBatch = function(input=NA, output=NA, param=NA,
                                   sep = ".")
   newOTUsToCountFileName <- basename(output$getColumn("OTUsCountTable"))
   ezSystem(paste("mv",oldOTUsToCountFileName,newOTUsToCountFileName))
+
   #5) 
+  oldErrFile <- paste(sampleName,
+                      "unique.good.good.good.filter.unique.precluster.pick.pick.error.count",
+                      sep = ".")
+  newErrFile <- basename(output$getColumn("ErrorFile"))
+  ezSystem(paste("mv",oldErrFile,newErrFile))
+  #6) 
+  oldStepConvFile <- paste(sampleName,
+                           "unique.good.good.good.filter.unique.precluster.pick.pick.opti_mcc.steps",
+                           sep = ".")
+  newStepConvFile <- basename(output$getColumn("stepConvergence"))
+  ezSystem(paste("mv",oldStepConvFile,newStepConvFile))
+  #7) 
   oldOTUsToTaxFileName <- paste(sampleName,
                                 "unique.good.good.good.filter.unique.precluster.pick.pick.opti_mcc",
                                 params$cutOffCluster, "cons.taxonomy",
                                 sep = ".")
   newOTUsToTaxFileName <- basename(output$getColumn("OTUsToTaxonomyFile"))
   ezSystem(paste("mv",oldOTUsToTaxFileName,newOTUsToTaxFileName))
-  #6) 
-  oldErrFile <- paste(sampleName,
-                      "unique.good.good.good.filter.unique.precluster.pick.pick.error.count",
-                      sep = ".")
-  newErrFile <- basename(output$getColumn("ErrorFile"))
-  ezSystem(paste("mv",oldErrFile,newErrFile))
-  #7) 
-  oldStepConvFile <- paste(sampleName,
-                           "unique.good.good.good.filter.unique.precluster.pick.pick.opti_mcc.steps",
-                           sep = ".")
-  newStepConvFile <- basename(output$getColumn("stepConvergence"))
-  ezSystem(paste("mv",oldStepConvFile,newStepConvFile))
 }
 
 ##' @template app-template
