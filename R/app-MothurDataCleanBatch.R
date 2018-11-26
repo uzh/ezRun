@@ -46,12 +46,19 @@ ezMethodMothurDataCleanBatch = function(input=NA, output=NA, param=NA,
   
   ### is there at least a mock sample for the error estimate? The error estimates for the Non-mock samples will be ignored downstream
   if(param$mockSample){
+    if (dataset$`Mock [Factor]` == "Yes") {
     copyRefCmd <- paste("cp", param$referenceFasta,"./", sep = " ")
     ezSystem(copyRefCmd)
     mockString = "seq.error" 
     refString = param$referenceFasta
+    }else{
+    mockString = "###seq.error"  
+    oldErrFile <- "mockErrorFileNotForDownstreamAnalysis.txt"
+    write("There is no relevant info in this file",oldErrFile)
+    newErrFile <- basename(output$getColumn("ErrorFile"))
+    }
   }else{
-    mockString = "###seq.error" 
+    mockString = "###seq.error"
   }
   ###
   projNum <- dirname(param$resultDir)
@@ -120,10 +127,6 @@ ezMethodMothurDataCleanBatch = function(input=NA, output=NA, param=NA,
   ezSystem(paste("mv",oldOTUsToCountFileName,newOTUsToCountFileName))
 
   #5) 
-  oldErrFile <- paste(sampleName,
-                      "unique.good.good.good.filter.unique.precluster.pick.pick.error.count",
-                      sep = ".")
-  newErrFile <- basename(output$getColumn("ErrorFile"))
   ezSystem(paste("mv",oldErrFile,newErrFile))
   #6) 
   oldStepConvFile <- paste(sampleName,
