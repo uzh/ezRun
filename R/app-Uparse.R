@@ -85,7 +85,7 @@ createAppropriateRows <- function(inputTaxTable){
 
 ### compact everything 
 formattedRows <- apply(otuTaxonomyRawOnlyBact,1,createAppropriateRows)
-formattedDF <- data.frame(t(listOfFormattedRows), stringsAsFactors = F)
+formattedDF <- data.frame(t(formattedRows), stringsAsFactors = F)
 colnames(formattedDF) <- c("OTU","Taxonomy")
 OTUsToKeep <- colnames(phyloseqAppFormatOtuAbundTable)[
   colnames(phyloseqAppFormatOtuAbundTable)%in%formattedDF$OTU]
