@@ -64,6 +64,7 @@ minSignal	integer	1	numbers below that value will be given random small numbers
 minAvgQuality	integer	10	the min average quality for a read to be used
 minTailQuality	integer	0	the min average quality of the quality filter window below which tails are trimmed
 minLeadingQuality	integer	0	Cut bases off the start of a read, if below a threshold quality
+minTrailingQuality	integer	0	Cut bases off the end of a read, if below a threshold quality.
 qualityFilterWindow	integer	4	the width of bases across which qualities are averaged
 subsampleReads	integer	1	if set to n; take every n-th reads
 trimLeft	integer	0	fixed trimming at the left (5'-end)
