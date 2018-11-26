@@ -46,7 +46,10 @@ ezMethodMothurDataCleanBatch = function(input=NA, output=NA, param=NA,
   
   ### is there at least a mock sample for the error estimate? The error estimates for the Non-mock samples will be ignored downstream
   if(param$mockSample){
+    copyRefCmd <- paste("cp", param$referenceFasta,"./", sep = " ")
+    ezSystem(copyRefCmd)
     mockString = "seq.error" 
+    refString = param$referenceFasta
   }else{
     mockString = "###seq.error" 
   }
@@ -77,6 +80,7 @@ ezMethodMothurDataCleanBatch = function(input=NA, output=NA, param=NA,
 
   ### update batch file  with parameters and run mothur: step 2 and, precluster, remove non-bacterial reads and generate final cluster
   updateBatchCmd_step2_3 <- paste0("sed -e s/\"CUTOFF_TAXON\"/", param$cutOffTaxonomy, "/g",
+                                   " -e s/\"REFERENCE\"/", basename(param$referenceFasta), "/g",
                                    " -e s/\"CUTOFF_CLUST\"/", param$cutOffCluster, "/g",
                                    " -e s/\"DIFFS\"/", param$diffs, "/g",
                                    " -e s/\"START_COORD\"/", regionStartCoord, "/g",
