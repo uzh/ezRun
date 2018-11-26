@@ -30,6 +30,7 @@ updateTemplateScript <- paste0("sed -e s/\"SAMPLE_NAME\"/", sampleName, "/g",
                                uparseTemplScript, " >",
                                uparseToBeExec)
 uparseCmd <- paste("bash",uparseToBeExec)
+ezSystem(uparseCmd)
 
 ### 1 OTU abundance table 
 inputTabFile <- paste0(sampleName,".OTU.tab.txt")
