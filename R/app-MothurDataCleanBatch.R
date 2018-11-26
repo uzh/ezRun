@@ -51,6 +51,10 @@ ezMethodMothurDataCleanBatch = function(input=NA, output=NA, param=NA,
     ezSystem(copyRefCmd)
     mockString = "seq.error" 
     refString = param$referenceFasta
+    oldErrFile <- paste(sampleName,
+                        "unique.good.good.good.filter.unique.precluster.pick.pick.error.count",
+                        sep = ".")
+    newErrFile <- basename(output$getColumn("ErrorFile"))
     }else{
     mockString = "###seq.error"  
     oldErrFile <- "mockErrorFileNotForDownstreamAnalysis.txt"
