@@ -54,12 +54,10 @@ ezMethodMothurDataCleanBatch = function(input=NA, output=NA, param=NA,
     oldErrFile <- paste(sampleName,
                         "unique.good.good.good.filter.unique.precluster.pick.pick.error.count",
                         sep = ".")
-    newErrFile <- basename(output$getColumn("ErrorFile"))
     }else{
     mockString = "###seq.error"  
     oldErrFile <- "mockErrorFileNotForDownstreamAnalysis.txt"
     write("There is no relevant info in this file",oldErrFile)
-    newErrFile <- basename(output$getColumn("ErrorFile"))
     }
   }else{
     mockString = "###seq.error"
@@ -131,6 +129,7 @@ ezMethodMothurDataCleanBatch = function(input=NA, output=NA, param=NA,
   ezSystem(paste("mv",oldOTUsToCountFileName,newOTUsToCountFileName))
 
   #5) 
+  newErrFile <- basename(output$getColumn("ErrorFile"))
   ezSystem(paste("mv",oldErrFile,newErrFile))
   #6) 
   oldStepConvFile <- paste(sampleName,
