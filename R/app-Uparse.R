@@ -95,8 +95,8 @@ OTUsTotAbund <- apply(phyloseqAppFormatOtuAbundTable[,OTUsToKeep],2,sum)
 finalOtuTaxon$Size <- OTUsTotAbund
 
 ## sort final files 
-newOtuAbundFile <- basename(output$getColumn("OtuAbundFile"))
-newTaxAbundFile <- basename(output$getColumn("TaxAbundFile"))
+newOtuAbundFile <- basename(output$getColumn("OTUsCountTable"))
+newTaxAbundFile <- basename(output$getColumn("OTUsToTaxonomyFile"))
 write.table(finalOtuAbundTable,newOtuAbundFile,row.names = F, col.names = T, quote = F)
 write.table(finalOtuTaxon,newTaxAbundFile,row.names = F, col.names = T, quote = F)
 }
