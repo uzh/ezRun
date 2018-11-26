@@ -91,7 +91,7 @@ OTUsToKeep <- colnames(phyloseqAppFormatOtuAbundTable)[
   colnames(phyloseqAppFormatOtuAbundTable)%in%formattedDF$OTU]
 finalOtuAbundTable <- phyloseqAppFormatOtuAbundTable[,c("Group", "label","numOtus",OTUsToKeep)]
 finalOtuTaxon <- formattedDF[formattedDF$OTU%in%OTUsToKeep,]
-OTUsTotAbund <- apply(finalOtuAbundTable,2,sum)
+OTUsTotAbund <- apply(phyloseqAppFormatOtuAbundTable[,OTUsToKeep],2,sum)
 finalOtuTaxon$Size <- OTUsTotAbund
 
 ## sort final files 
