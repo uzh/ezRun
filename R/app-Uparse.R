@@ -15,7 +15,7 @@ library(dplyr)
 
   sampleName = input$getNames()
   file1PathInDatset <- input$getFullPaths("Read1")
-  cpCmd1 <- paste0("gunzip -c ", file2PathInDatset, "  > ", sampleName,"_R1",".fastq")
+  cpCmd1 <- paste0("gunzip -c ", file1PathInDatset, "  > ", sampleName,"_R1",".fastq")
   ezSystem(cpCmd1)  
   if(param$paired){
     file2PathInDatset <- input$getFullPaths("Read2")
