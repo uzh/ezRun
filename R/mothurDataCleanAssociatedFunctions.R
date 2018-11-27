@@ -11,7 +11,7 @@
 ##' @param  summary, ezTable from mothur summary files.
 ##' @return Returns a data.frame.
 
-createSummaryTable <- function(summary){
+createSummaryTable <- function(summary, title){
 numUniqReads <- nrow(summary)
 rawDataSummaryTableTitle <- paste("Number of unique sequences =",numUniqReads , sep = " ")
 part2 <- vector()
@@ -25,7 +25,12 @@ for (i in c(2.5,25,50,75,97.5,100)) {
 part2 <- data.frame(numSeqs=part2)
 rawDataSummaryTable <- round(cbind(part1,data.frame(part2)), digits = 0)
 rownames(rawDataSummaryTable) <- c("Mininmun","2.5%-tile","25%-tile","Median","75%-tile","97.5%-tile","Maximum")
-return(list(rawDataSummaryTable=rawDataSummaryTable, rawDataSummaryTableTitle=rawDataSummaryTableTitle))
+rawTable <-  tableGrob(rawDataSummaryTable)
+title <- textGrob("Title",gp=gpar(fontsize=20))
+padding <- unit(5,"mm")
+table <- gtable_add_rows(rawTable,heights = grobHeight(title) + padding,pos = 0)
+table <- gtable_add_grob(table,title,1, 1, 1, ncol(table))
+return(table)
 }
 
 ###################################################################
