@@ -55,5 +55,5 @@ Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
 
 ### Summary of the raw reads
 ```{r sumIll, echo=FALSE}
-grid.arrange(grobs = rawSummaryTable, nrow=2)
+grid.arrange(grobs = rawSummaryTable, nrow=rowsInPlotGrid)
 ```
