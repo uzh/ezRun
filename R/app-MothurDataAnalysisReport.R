@@ -28,7 +28,7 @@ ezMethodMothurDataAnalysisReport = function(input=NA, output=NA, param=NA,
   ChimeraPlot <- input$getFullPaths("ChimeraPlot")
   PreClusteredAndChimeraSummary <- input$getFullPaths("PreClusteredAndChimeraSummary")
   stepConvergence <- input$getFullPaths("stepConvergence")
-  
+  nRowsGrid <- param$rowsInPlotGrid
   
   ## Copy the style files and templates
   styleFiles <- file.path(system.file("templates", package="ezRun"),
@@ -52,6 +52,11 @@ EzAppMothurDataAnalysisReport <-
                   "Initializes the application using its specific defaults."
                   runMethod <<- ezMethodMothurDataAnalysisReport
                   name <<- "EzAppMothurDataAnalysisReport"
+                  appDefaults <<- rbind(rowsInPlotGrid = ezFrame(Type="integer",
+                                                                DefaultValue="2",
+                                                                Description="Rows to arrange plots")
+                                        
+                  )
                 }
               )
   )
