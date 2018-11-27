@@ -103,47 +103,70 @@ ezMethodMothurDataCleanBatch = function(input=NA, output=NA, param=NA,
   ezSystem(cmdMothur_step2_3)
   
   ## rename output files
+  ## Files needed for the report 
   #1) 
-  oldReadsToCountFileName <- paste(sampleName,
-                                   "unique.good.good.good.filter.unique.precluster.denovo.vsearch.pick.pick.count_table",
+  oldRawSummary <- paste(sampleName,"summary",
                                    sep = ".")
-  newReadsToCountFileName <- basename(output$getColumn("ReadsCountTable"))
-  ezSystem(paste("mv",oldReadsToCountFileName,newReadsToCountFileName))
+  newRawSummary <- basename(output$getColumn("RawDataSummary"))
+  ezSystem(paste("mv",oldRawSummary,newRawSummary))
+  
   #2) 
-  oldPreclusterFileName <- paste(sampleName,
-                                 "unique.good.good.good.filter.unique.precluster.pick.pick.fasta",
+  oldDeduppedFileName <- paste(sampleName,"unique.summary",
                                  sep = ".")
-  newPreclusterFileName <- basename(output$getColumn("PreClusteredFastaFile"))
-  ezSystem(paste("mv",oldPreclusterFileName,newPreclusterFileName))
+  newDeduppedFileName <- basename(output$getColumn("DeduppedSummary"))
+  ezSystem(paste("mv",oldDeduppedFileName,newDeduppedFileName))
+  
   #3) 
-  oldReadsToTaxonomyFileName <- paste(sampleName,
-                                      "unique.good.good.good.filter.unique.precluster.pick.pds.wang.pick.taxonomy",
+  oldLengthAndHomopFilteredFileName <- paste(sampleName,"unique.good.summary",
                                       sep = ".")
-  newReadsToTaxonomyFileName <- basename(output$getColumn("ReadsTaxonomyFile"))
-  ezSystem(paste("mv",oldReadsToTaxonomyFileName,newReadsToTaxonomyFileName))
+  newLengthAndHomopFilteredFileName <- basename(output$getColumn("LenAndHomopSummary"))
+  ezSystem(paste("mv",oldLengthAndHomopFilteredFileName,newLengthAndHomopFilteredFileName))
+  
   #4) 
-  oldOTUsToCountFileName <- paste(sampleName,
-                                  "unique.good.good.good.filter.unique.precluster.pick.pick.opti_mcc.shared",
-                                  sep = ".")
-  newOTUsToCountFileName <- basename(output$getColumn("OTUsCountTable"))
-  ezSystem(paste("mv",oldOTUsToCountFileName,newOTUsToCountFileName))
-
+  oldMappedFilteredFileName <- paste(sampleName,"unique.good.good.good.summary",
+                                             sep = ".")
+  newMappedFilteredFileName <- basename(output$getColumn("MapFiltSummary"))
+  ezSystem(paste("mv",oldMappedFilteredFileName,newMappedFilteredFileName))
+  
   #5) 
+  oldChimeraPlotFileName <- paste(sampleName,
+                                     "unique.good.good.good.filter.unique.precluster.denovo.vsearch.chimeras",
+                                     sep = ".")
+  newChimeraPlotFileName <- basename(output$getColumn("ChimeraPlot"))
+  ezSystem(paste("mv",oldChimeraPlotFileName,newChimeraPlotFileName))
+  
+  #6) 
+  oldPreClusteredAndChimeraFileName <- paste(sampleName,
+                                  "unique.good.good.good.filter.unique.precluster.pick.summary",
+                                  sep = ".")
+  newPreClusteredAndChimeraFileName <- basename(output$getColumn("PreClusteredAndChimeraSummary"))
+  ezSystem(paste("mv",oldPreClusteredAndChimeraFileName,newPreClusteredAndChimeraFileName))
+  
+  #7) 
   newErrFile <- basename(output$getColumn("ErrorFile"))
   ezSystem(paste("mv",oldErrFile,newErrFile))
-  #6) 
+  #8) 
   oldStepConvFile <- paste(sampleName,
                            "unique.good.good.good.filter.unique.precluster.pick.pick.opti_mcc.steps",
                            sep = ".")
   newStepConvFile <- basename(output$getColumn("stepConvergence"))
   ezSystem(paste("mv",oldStepConvFile,newStepConvFile))
-  #7) 
+  
+  ### Files needed for Phyloseq
+  #9)  
   oldOTUsToTaxFileName <- paste(sampleName,
                                 "unique.good.good.good.filter.unique.precluster.pick.pick.opti_mcc",
                                 param$cutOffCluster, "cons.taxonomy",
                                 sep = ".")
   newOTUsToTaxFileName <- basename(output$getColumn("OTUsToTaxonomyFile"))
   ezSystem(paste("mv",oldOTUsToTaxFileName,newOTUsToTaxFileName))
+  
+  #10)
+  oldOTUsToCountFileName <- paste(sampleName,
+                                  "unique.good.good.good.filter.unique.precluster.pick.pick.opti_mcc.shared",
+                                  sep = ".")
+  newOTUsToCountFileName <- basename(output$getColumn("OTUsCountTable"))
+  ezSystem(paste("mv",oldOTUsToCountFileName,newOTUsToCountFileName))
 }
 
 ##' @template app-template
