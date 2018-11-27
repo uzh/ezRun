@@ -52,11 +52,6 @@ EzAppMothurDataAnalysisReport <-
                   "Initializes the application using its specific defaults."
                   runMethod <<- ezMethodMothurDataAnalysisReport
                   name <<- "EzAppMothurDataAnalysisReport"
-                  appDefaults <<- rbind(RepresentativeOTUs = ezFrame(Type="integer",
-                                                         DefaultValue="80",
-                                                         Description="Number of representative OTUs")
-                                   
-                  )
                 }
               )
   )
