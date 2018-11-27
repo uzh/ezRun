@@ -6,9 +6,9 @@
 # www.fgcz.ch
 
 
-ezMethodMegahit = function(input=NA, output=NA, param=NA, 
-                          htmlFile="00index.html"){
-  ### de novo metagenome assemby with Megahit, gene prediction with prodigal and annotation with diamond
+ezMethodMetaspades = function(input=NA, output=NA, param=NA, 
+                           htmlFile="00index.html"){
+### de novo metagenome assemby with Metaspades, gene prediction with prodigal and annotation with diamond
   
   library(plyr)
   library(dplyr)
@@ -28,26 +28,26 @@ ezMethodMegahit = function(input=NA, output=NA, param=NA,
     inputString <- paste("-1", fastqName1Trimmed, "-2", fastqName2Trimmed)
     pairedString="YES"
   } else {
-    inputString <- paste("-r",fastqName1Trimmed)
+    inputString <- paste("-s",fastqName1Trimmed)
     pairedString="NO"
   }
-  megahitTemplScript <- MEGAHIT_TEMPLATE_SCRIPT
-  megahitToBeExec <- paste0("megahit.",sampleName,".sh")
+  metaspadesTemplScript <- MEGASPADES_TEMPLATE_SCRIPT
+  metaspadesToBeExec <- paste0("metaspades.",sampleName,".sh")
   ##update template
   updateTemplateScriptCmd <- paste0("sed -e s/\"SAMPLE_NAME\"/", sampleName, "/g",
                                     " -e s/\"INPUT_FILE_STRING\"/", inputString, "/g ",
                                     " -e s/\"KMER_LIST\"/", param$kmerList, "/g ",
                                     " -e s/\"ARE_READ_PAIRED\"/", pairedString, "/g ",
-                                    megahitTemplScript, " >",
-                                    megahitToBeExec)
+                                    metaspadesTemplScript, " >",
+                                    metaspadesToBeExec)
   ezSystem(updateTemplateScriptCmd)
   ## run script
-  megahitCmd <- paste("bash",megahitToBeExec)
-  ezSystem(megahitCmd)
+  metaspadestCmd <- paste("bash",metaspadesToBeExec)
+  ezSystem(metaspadestCmd)
   
   ## rename output files
   #1) 
-  oldContigFile <- "megahitResults/final.contigs.fa"
+  oldContigFile <- "metaspadesResults/contigs.fasta"
   newContigFile <- basename(output$getColumn("contigFile"))
   ezSystem(paste("mv",oldContigFile,newContigFile))
   #2) 
@@ -61,28 +61,27 @@ ezMethodMegahit = function(input=NA, output=NA, param=NA,
 }
 
 ##' @template app-template
-##' @templateVar method ezMethodMegahit()
+##' @templateVar method ezMethodMetaspades()
 ##' @templateVar htmlArg )
 ##' @description Use this reference class to run 
-EzAppMegahit <-
-  setRefClass("EzAppMegahit",
+EzAppMetaspades <-
+  setRefClass("EzAppMetaspades",
               contains = "EzApp",
               methods = list(
                 initialize = function()
                 {
                   "Initializes the application using its specific defaults."
-                  runMethod <<- ezMethodMegahit
-                  name <<- "EzAppMegahit"
+                  runMethod <<- ezMethodMetaspades
+                  name <<- "EzAppMetaspades"
                   appDefaults <<- rbind(megahitKmerList = ezFrame(Type="character",
-                                                                DefaultValue="69,79,89",
-                                                                Description="Comma-separated list of k-mer for the assembly."),
+                                                                  DefaultValue="69,79,89",
+                                                                  Description="Comma-separated list of k-mer for the assembly."),
                                         diamondEvalue = ezFrame(Type="numeric",
-                                                                  DefaultValue="0.05",
-                                                                  Description="Blast e-value cut-off."),
+                                                                DefaultValue="0.05",
+                                                                Description="Blast e-value cut-off."),
                                         diamondMaxSeqs = ezFrame(Type="integer",
-                                                                DefaultValue="30",
-                                                                Description="Blast maximum number of sequences to report.")
-                                        
+                                                                 DefaultValue="30",
+                                                                 Description="Blast maximum number of sequences to report.")
                                         
                   )
                 }
