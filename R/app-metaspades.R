@@ -25,7 +25,7 @@ ezMethodMetaspades = function(input=NA, output=NA, param=NA,
     fastqName2Trimmed  <- paste0(sampleName,".R2.trimmed.fastq")
     cpCmd2 <- paste0("gunzip -c ", file2PathInDatset, "  > ", fastqName2)
     ezSystem(cpCmd2)
-    inputString <- paste("-1", fastqName1Trimmed, "-2", fastqName2Trimmed)
+    inputString <- paste("\"-1", fastqName1Trimmed, "-2", fastqName2Trimmed,"\"")
     pairedString="YES"
   } else {
     inputString <- paste("-s",fastqName1Trimmed)
