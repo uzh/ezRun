@@ -28,8 +28,8 @@ rawSummaryTable <- list()
 titleRawSummaryTable <- list()
 for (RawData in RawDataSummary){
 nameRawFile <- basename(RawData)
-rawSummaryTable[[RawData]] <- tableGrob(createSummaryTable(nameRawFile)$rawDataSummaryTable)
-titleRawSummaryTable[[RawData]] <- createSummaryTable(RawData)$rawDataSummaryTableTitle
+rawSummaryTable[[RawData]] <- tableGrob(createSummaryTable(nameRawFile)$rawDataSummaryTable,
+                                        name=createSummaryTable(RawData)$rawDataSummaryTableTitle)
 }
 # deduppedSummary <- createSummaryTable(dedupped)
 # deduppedSummaryTable <- deduppedSummary$rawDataSummaryTable
