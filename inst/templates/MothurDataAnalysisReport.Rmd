@@ -1,0 +1,59 @@
+---
+title: "`r paste('Mothur data analysis report')`"
+author: "Functional Genomics Center Zurich"
+output: 
+  html_document:
+    self_contained: false
+    includes:
+      in_header: fgcz_header.html
+    css: fgcz.css
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+## This report requires output files form the DataAnalysis App
+
+require(knitr)
+require(kableExtra)
+require(SummarizedExperiment)
+require(webshot)
+require(htmlwidgets)
+debug <- FALSE
+setEnvironments("phantomjs")
+```
+
+```{r prepare data, include=FALSE}
+### rawDataSummary
+rawSummaryTable <- list()
+titleRawSummaryTable <- list()
+for (RawData in RawDataSummary){
+rawSummaryTable[[RawData]] <- tableGrob(createSummaryTable(RawData)$rawDataSummaryTable)
+titleRawSummaryTable[[RawData]] <- createSummaryTable(RawData)$rawDataSummaryTableTitle
+}
+# deduppedSummary <- createSummaryTable(dedupped)
+# deduppedSummaryTable <- deduppedSummary$rawDataSummaryTable
+# titleDeduppedSummaryTable<- deduppedSummary$rawDataSummaryTableTitle
+# 
+# lengthAndHomopFilteredSummary <- createSummaryTable(lengthAndHomopFiltered)
+# lengthAndHomopFilteredSummaryTable <- lengthAndHomopFilteredSummary$rawDataSummaryTable
+# titleLengthAndHomopFilteredSummaryTable <- lengthAndHomopFilteredSummary$rawDataSummaryTableTitle
+# 
+# mappedFilteredSummary <- createSummaryTable(mappedFiltered)
+# mappedFilteredSummaryTable <- mappedFilteredSummary$rawDataSummaryTable
+# titleMappedFilteredSummaryTable <- mappedFilteredSummary$rawDataSummaryTableTitle
+# 
+# preClusteredAndChimeraFilteredSummary <- createSummaryTable(preClusteredAndChimeraFiltered)
+# preClusteredAndChimeraFilteredSummaryTable <- preClusteredAndChimeraFilteredSummary$rawDataSummaryTable
+# titlePreClusteredAndChimeraFilteredSummaryTable <- preClusteredAndChimeraFilteredSummary$rawDataSummaryTableTitle
+# 
+# chimeraPlot <- chimeraSummaryPlot(chimera)
+```
+
+Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
+
+## Data pre-processing {.tabset}
+
+### Summary of the raw reads
+```{r sumIll, echo=FALSE}
+grid.arrange(grobs = rawSummaryTable, nrow=2)
+```
