@@ -22,6 +22,7 @@ ezMethodMothurDataAnalysisReport = function(input=NA, output=NA, param=NA,
   
   ## Define input for rmd file
   RawDataSummary <- input$getFullPaths("RawDataSummary")
+  lapply(RawDataSummary, function(x) ezSystem(paste("cp",basename(x),"./")))
   DeduppedSummary <- input$getFullPaths("DeduppedSummary")
   LenAndHomopSummary <- input$getFullPaths("LenAndHomopSummary")
   MapFiltSummary <- input$getFullPaths("MapFiltSummary")
