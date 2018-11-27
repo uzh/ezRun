@@ -28,7 +28,7 @@ rownames(rawDataSummaryTable) <- c("Mininmun","2.5%-tile","25%-tile","Median","7
 rawTable <-  tableGrob(rawDataSummaryTable)
 grobTitle <- textGrob(title,gp=gpar(fontsize=20))
 padding <- unit(5,"mm")
-table <- gtable_add_rows(rawTable,heights = grobHeight(title) + padding,pos = 0)
+table <- gtable_add_rows(rawTable,heights = grobHeight(grobTitle) + padding,pos = 0)
 table <- gtable_add_grob(table,grobTitle,1, 1, 1, ncol(table))
 return(table)
 }
