@@ -18,6 +18,7 @@ ezMethodMothurDataAnalysisReport = function(input=NA, output=NA, param=NA,
   library(scales)
   require(gridExtra)
   require(grid)
+  library(gtable)
   dataset = input$meta
 
   
