@@ -17,11 +17,13 @@ ezMethodMothurDataAnalysisReport = function(input=NA, output=NA, param=NA,
   require(ggplot2)
   library(scales)
   require(gridExtra)
+  require(grid)
   dataset = input$meta
 
   
   ## Define input for rmd file
   RawDataSummary <- input$getFullPaths("RawDataSummary")
+  fileNames <- input$getNames()
   lapply(RawDataSummary, function(x) ezSystem(paste("cp",x,"./")))
   DeduppedSummary <- input$getFullPaths("DeduppedSummary")
   LenAndHomopSummary <- input$getFullPaths("LenAndHomopSummary")
