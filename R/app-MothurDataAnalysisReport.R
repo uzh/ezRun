@@ -32,7 +32,7 @@ ezMethodMothurDataAnalysisReport = function(input=NA, output=NA, param=NA,
   ChimeraPlot <- input$getFullPaths("ChimeraPlot")
   PreClusteredAndChimeraSummary <- input$getFullPaths("PreClusteredAndChimeraSummary")
   stepConvergence <- input$getFullPaths("stepConvergence")
-  nRowsGrid <- round(sqrt(length(RawDataSummary)),0)
+  nRowsGrid <- length(RawDataSummary)
   
   ## Copy the style files and templates
   styleFiles <- file.path(system.file("templates", package="ezRun"),
