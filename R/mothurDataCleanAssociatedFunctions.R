@@ -29,7 +29,7 @@ rawTable <-  tableGrob(rawDataSummaryTable)
 grobTitle <- textGrob(title,gp=gpar(fontsize=20))
 padding <- unit(5,"mm")
 table <- gtable_add_rows(rawTable,heights = grobHeight(title) + padding,pos = 0)
-table <- gtable_add_grob(table,title,1, 1, 1, ncol(table))
+table <- gtable_add_grob(table,grobTitle,1, 1, 1, ncol(table))
 return(table)
 }
 
