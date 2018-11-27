@@ -27,7 +27,8 @@ setEnvironments("phantomjs")
 rawSummaryTable <- list()
 titleRawSummaryTable <- list()
 for (RawData in RawDataSummary){
-rawSummaryTable[[RawData]] <- tableGrob(createSummaryTable(RawData)$rawDataSummaryTable)
+nameRawFile <- basename(RawData)
+rawSummaryTable[[RawData]] <- tableGrob(createSummaryTable(nameRawFile)$rawDataSummaryTable)
 titleRawSummaryTable[[RawData]] <- createSummaryTable(RawData)$rawDataSummaryTableTitle
 }
 # deduppedSummary <- createSummaryTable(dedupped)

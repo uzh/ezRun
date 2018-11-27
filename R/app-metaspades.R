@@ -36,7 +36,7 @@ ezMethodMetaspades = function(input=NA, output=NA, param=NA,
   ##update template
   updateTemplateScriptCmd <- paste0("sed -e s/\"SAMPLE_NAME\"/", sampleName, "/g",
                                     " -e s/\"INPUT_FILE_STRING\"/", inputString, "/g ",
-                                    " -e s/\"KMER_LIST\"/", param$kmerList, "/g ",
+                                    " -e s/\"KMER_LIST\"/", param$metaspadesKmerList, "/g ",
                                     " -e s/\"ARE_READ_PAIRED\"/", pairedString, "/g ",
                                     metaspadesTemplScript, " >",
                                     metaspadesToBeExec)
@@ -73,7 +73,7 @@ EzAppMetaspades <-
                   "Initializes the application using its specific defaults."
                   runMethod <<- ezMethodMetaspades
                   name <<- "EzAppMetaspades"
-                  appDefaults <<- rbind(megahitKmerList = ezFrame(Type="character",
+                  appDefaults <<- rbind(metaspadesKmerList = ezFrame(Type="character",
                                                                   DefaultValue="69,79,89",
                                                                   Description="Comma-separated list of k-mer for the assembly."),
                                         diamondEvalue = ezFrame(Type="numeric",

@@ -36,7 +36,7 @@ ezMethodMegahit = function(input=NA, output=NA, param=NA,
   ##update template
   updateTemplateScriptCmd <- paste0("sed -e s/\"SAMPLE_NAME\"/", sampleName, "/g",
                                     " -e s/\"INPUT_FILE_STRING\"/", inputString, "/g ",
-                                    " -e s/\"KMER_LIST\"/", param$kmerList, "/g ",
+                                    " -e s/\"KMER_LIST\"/", param$megahitKmerList, "/g ",
                                     " -e s/\"ARE_READ_PAIRED\"/", pairedString, "/g ",
                                     megahitTemplScript, " >",
                                     megahitToBeExec)
