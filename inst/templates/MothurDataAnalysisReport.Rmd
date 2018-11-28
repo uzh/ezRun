@@ -18,53 +18,108 @@ require(kableExtra)
 require(SummarizedExperiment)
 require(webshot)
 require(htmlwidgets)
+library(cowplot)
 debug <- FALSE
 setEnvironments("phantomjs")
 ```
 
 ```{r prepare data, include=FALSE}
-### rawDataSummary
-rawSummaryTable <- list()
-multiTableHeader <- vector()
-k=0
-for (RawData in RawDataSummary){
-  k=k+1
-  nameRawFile <- basename(RawData)
-  tableTitle <- gsub(".rawSumm.txt","",nameRawFile)
-  rawFileDF <- read.delim(nameRawFile, header = T, stringsAsFactors = F)
-  rawSummaryTable[[RawData]] <- as.matrix(createSummaryTable(rawFileDF))
-  multiTableHeader[tableTitle] <- "6"
-}
+### raw data summary tables
+summaryTablesToReport <- grep("Summary",names(listOfListAllFiles), value = T) 
+summaryTablesToReport <- listOfListAllFiles[summaryTablesToReport]
 
-# deduppedSummary <- createSummaryTable(dedupped)
-# deduppedSummaryTable <- deduppedSummary$rawDataSummaryTable
-# titleDeduppedSummaryTable<- deduppedSummary$rawDataSummaryTableTitle
-# 
-# lengthAndHomopFilteredSummary <- createSummaryTable(lengthAndHomopFiltered)
-# lengthAndHomopFilteredSummaryTable <- lengthAndHomopFilteredSummary$rawDataSummaryTable
-# titleLengthAndHomopFilteredSummaryTable <- lengthAndHomopFilteredSummary$rawDataSummaryTableTitle
-# 
-# mappedFilteredSummary <- createSummaryTable(mappedFiltered)
-# mappedFilteredSummaryTable <- mappedFilteredSummary$rawDataSummaryTable
-# titleMappedFilteredSummaryTable <- mappedFilteredSummary$rawDataSummaryTableTitle
-# 
-# preClusteredAndChimeraFilteredSummary <- createSummaryTable(preClusteredAndChimeraFiltered)
-# preClusteredAndChimeraFilteredSummaryTable <- preClusteredAndChimeraFilteredSummary$rawDataSummaryTable
-# titlePreClusteredAndChimeraFilteredSummaryTable <- preClusteredAndChimeraFilteredSummary$rawDataSummaryTableTitle
-# 
-# chimeraPlot <- chimeraSummaryPlot(chimera)
+finalListOfSummaryTables <- imap(summaryTablesToReport,function(x,y)
+  createSummaryTableForKableExtra(x))
+
+### stepsData
+convStepTable <- createStepConvTableForKableExtra(listOfListAllFiles["stepConvergence"])
+
+### OTU saturation plots
+otuSaturPlot <- imap(listOfListAllFiles["OTUsCountTable"],function(x,y) otuSaturationPlot(x))
+
+### OTU saturation table 
+otuSaturationTable<- createSaturationTableForKableExtra(listOfListAllFiles["OTUsCountTable"])
+
+### Chimera plot
+chimeraPlots <- imap(listOfListAllFiles["ChimeraPlot"],function(x,y) chimeraSummaryPlot(x))
 ```
 
 Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
 
 ## Data pre-processing {.tabset}
 
+
+  #ChimeraPlot <- input$getFullPaths("ChimeraPlot")
+  
+
 ### Summary of the raw reads
 ```{r sumIll, echo=FALSE}
-ktables <- do.call(cbind, rawSummaryTable)
-kable(ktables, escape=TRUE, row.names=FALSE, format="html",
+
+kable(finalListOfSummaryTables[["RawDataSummary"]]$mergedTable, escape=TRUE, row.names=FALSE, format="html",
       caption="Summary of raw sequences.") %>%
   kable_styling(bootstrap_options = c("striped", "bordered"),
                 full_width = F, position = "left") %>%
-  add_header_above(multiTableHeader)
+  add_header_above(finalListOfSummaryTables[[RawDataSummary$aboveHeader]])
+```
+
+### Summary of the deduplicated reads
+```{r sumIll, echo=FALSE}
+
+kable(finalListOfSummaryTables[["DeduppedSummary"]]$mergedTable, escape=TRUE, row.names=FALSE, format="html",
+      caption="Summary of raw sequences.") %>%
+  kable_styling(bootstrap_options = c("striped", "bordered"),
+                full_width = F, position = "left") %>%
+  add_header_above(finalListOfSummaryTables[[DeduppedSummary$aboveHeader]])
+```
+
+### Summary of the reads filtered by length and homopolymers
+```{r sumIll, echo=FALSE}
+
+kable(finalListOfSummaryTables[["LenAndHomopSummary"]]$mergedTable, escape=TRUE, row.names=FALSE, format="html",
+      caption="Summary of raw sequences.") %>%
+  kable_styling(bootstrap_options = c("striped", "bordered"),
+                full_width = F, position = "left") %>%
+  add_header_above(finalListOfSummaryTables[[LenAndHomopSummary$aboveHeader]])
+```
+
+### Summary of the  reads filtered by mapping
+```{r sumIll, echo=FALSE}
+
+kable(finalListOfSummaryTables[["MapFiltSummary"]]$mergedTable, escape=TRUE, row.names=FALSE, format="html",
+      caption="Summary of raw sequences.") %>%
+  kable_styling(bootstrap_options = c("striped", "bordered"),
+                full_width = F, position = "left") %>%
+  add_header_above(finalListOfSummaryTables[[MapFiltSummary$aboveHeader]])
+```
+
+### Summary of the reads preclustered and filtered for chimeras
+```{r sumIll, echo=FALSE}
+
+kable(finalListOfSummaryTables[["PreClusteredAndChimeraSummary"]]$mergedTable, escape=TRUE, row.names=FALSE, format="html",
+      caption="Summary of raw sequences.") %>%
+  kable_styling(bootstrap_options = c("striped", "bordered"),
+                full_width = F, position = "left") %>%
+  add_header_above(finalListOfSummaryTables[[PreClusteredAndChimeraSummary$aboveHeader]])
+
+plot_grid(chimeraPlots,labels = names(chimeraPlots), nrow = 2)
+```
+
+### OTUs convergence summary
+```{r sumIll, echo=FALSE}
+
+kable(convStepTable$mergedTable, escape=TRUE, row.names=FALSE, format="html",
+      caption="Convergence summary") %>%
+  kable_styling(bootstrap_options = c("striped", "bordered"),
+                full_width = F, position = "left") %>%
+  add_header_above(finalListOfSummaryTables[[stepConvergence$aboveHeader]])
+```
+
+### OTUs saturation tables and plots
+```{r sumIll, echo=FALSE}
+kable(otuSaturationTable$mergedTable, escape=TRUE, row.names=FALSE, format="html",
+      caption="Percentage of total sequences represented by increasing numbers of OTUs") %>%
+  kable_styling(bootstrap_options = c("striped", "bordered"),
+                full_width = F, position = "left") %>%
+  add_header_above(otuSaturationTable$aboveHeader)
+plot_grid(otuSaturPlot,labels = names(otuSaturPlot), nrow = 2)
 ```
