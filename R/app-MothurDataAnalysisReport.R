@@ -19,21 +19,34 @@ ezMethodMothurDataAnalysisReport = function(input=NA, output=NA, param=NA,
   require(gridExtra)
   require(grid)
   library(gtable)
+  library(purrr)
   dataset = input$meta
-
-  
-  ## Define input for rmd file
-  RawDataSummary <- input$getFullPaths("RawDataSummary")
+  allColumns <-  colnames(dataset)
   fileNames <- input$getNames()
-  lapply(RawDataSummary, function(x) ezSystem(paste("cp",x,"./")))
-  DeduppedSummary <- input$getFullPaths("DeduppedSummary")
-  LenAndHomopSummary <- input$getFullPaths("LenAndHomopSummary")
-  MapFiltSummary <- input$getFullPaths("MapFiltSummary")
-  ChimeraPlot <- input$getFullPaths("ChimeraPlot")
-  PreClusteredAndChimeraSummary <- input$getFullPaths("PreClusteredAndChimeraSummary")
-  stepConvergence <- input$getFullPaths("stepConvergence")
-  nRowsGrid <- length(RawDataSummary)
+  ## Copy all files locally
+  copyLoopOverFiles <- function(x){ 
+     relevantColumn <- input$getFullPaths(x)
+     lapply(relevantColumn, function(y) ezSystem(paste("cp",y,"./")))
+     return(relevantColumn)
+  }
+  listOfListAllFiles <- imap(allColumns,function(x,y) copyLoopOverFiles(x))
   
+  ## Create list of summary files for tables
+  
+  
+  # RawDataSummary <- input$getFullPaths("RawDataSummary")
+  # lapply(RawDataSummary, function(x) ezSystem(paste("cp",x,"./")))
+  
+#  DeduppedSummary <- input$getFullPaths("DeduppedSummary")
+#  LenAndHomopSummary <- input$getFullPaths("LenAndHomopSummary")
+  # MapFiltSummary <- input$getFullPaths("MapFiltSummary")
+  
+  #ChimeraPlot <- input$getFullPaths("ChimeraPlot")
+  
+#  PreClusteredAndChimeraSummary <- input$getFullPaths("PreClusteredAndChimeraSummary")
+  
+#  stepConvergence <- input$getFullPaths("stepConvergence")
+
   ## Copy the style files and templates
   styleFiles <- file.path(system.file("templates", package="ezRun"),
                           c("fgcz.css", "MothurDataAnalysisReport.Rmd",
