@@ -47,7 +47,7 @@ Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
 kable(finalListOfSummaryTables["RawDataSummary"]$mergedTable, escape=TRUE, row.names=FALSE, format="html",
       caption="Summary of raw sequences.") %>%
   kable_styling(bootstrap_options = c("striped", "bordered"),
-                full_width = F, position = "left") %>%
+                full_width = F, position = "float-right") %>%
   add_header_above(finalListOfSummaryTables["RawDataSummary"]$aboveHeader)
 ```
 
