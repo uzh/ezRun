@@ -26,13 +26,13 @@ finalListOfSummaryTables <- imap(summaryTablesToReport,function(x,y)
   createSummaryTableForKableExtra(x))
 
 ### stepsData
-convStepTableToReport <- imap(listOfListAllFiles["stepConvergence"]$stepConvergence, function(x,y) createStepConvTableForKableExtra(x))
+convStepTableToReport <- imap(listOfListAllFiles["stepConvergence"], function(x,y) createStepConvTableForKableExtra(x))
 
 ### OTU saturation plots
 otuSaturPlotToReport <- sapply(listOfListAllFiles["OTUsCountTable"]$OTUsCountTable,createSaturationPlotsForReport)
 
 ### OTU saturation table 
-otuSaturationTableToReport <- imap(listOfListAllFiles["OTUsCountTable"]$OTUsCountTable, function(x,y) createSaturationTableForKableExtra(x)) 
+otuSaturationTableToReport <- imap(listOfListAllFiles["OTUsCountTable"], function(x,y) createSaturationTableForKableExtra(x)) 
 
 ### Chimera plot
 chimeraPlotsToReport <- sapply(listOfListAllFiles["ChimeraPlot"]$ChimeraPlot,createChimeraSummaryPlotsForReport)
@@ -47,8 +47,10 @@ Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
 kable(finalListOfSummaryTables["RawDataSummary"]$RawDataSummary$mergedTable, escape=TRUE, row.names=FALSE, format="html",
       caption="Summary of raw sequences.") %>%
   kable_styling(bootstrap_options = c("striped", "bordered"),
-                full_width = F, position = "float_right") %>%
-  add_header_above(finalListOfSummaryTables["RawDataSummary"]$RawDataSummary$aboveHeader)
+                full_width = F) %>%
+  group_rows(index = finalListOfSummaryTables["RawDataSummary"]$RawDataSummary$aboveHeader) %>%
+  scroll_box(width = "100%", height = "200px")
+#  add_header_above(finalListOfSummaryTables["RawDataSummary"]$RawDataSummary$aboveHeader)
 ```
 
 ### Summary of the deduplicated reads
