@@ -47,9 +47,9 @@ Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
 kable(finalListOfSummaryTables["RawDataSummary"]$RawDataSummary$mergedTable, escape=TRUE, row.names=FALSE, format="html",
       caption="Summary of raw sequences.") %>%
   kable_styling(bootstrap_options = c("striped", "bordered"),
-                full_width = F) %>%
+                full_width = T) %>%
   group_rows(index = finalListOfSummaryTables["RawDataSummary"]$RawDataSummary$aboveHeader) %>%
-  scroll_box(width = "100%", height = "200px")
+  scroll_box(width = "100%", height = "600px")
 #  add_header_above(finalListOfSummaryTables["RawDataSummary"]$RawDataSummary$aboveHeader)
 ```
 
@@ -87,7 +87,7 @@ kable(finalListOfSummaryTables["PreClusteredAndChimeraSummary"]$mergedTable, esc
   kable_styling(bootstrap_options = c("striped", "bordered"),
                 full_width = F, position = "left") %>%
   add_header_above(finalListOfSummaryTables["PreClusteredAndChimeraSummary"]$aboveHeader)
-grid.arrange(grobs=chimeraPlotsToReport)
+grid.arrange(grobs=chimeraPlotsToReport, nrow=length(chimeraPlotsToReport))
 #plot_grid(plotlist = chimeraPlotsToReport,labels = plotLabels, nrow = #length(chimeraPlotsToReport))
 ```
 
