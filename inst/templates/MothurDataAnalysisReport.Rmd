@@ -87,7 +87,7 @@ kable(finalListOfSummaryTables["PreClusteredAndChimeraSummary"]$mergedTable, esc
   kable_styling(bootstrap_options = c("striped", "bordered"),
                 full_width = F, position = "left") %>%
   add_header_above(finalListOfSummaryTables["PreClusteredAndChimeraSummary"]$aboveHeader)
-grid.arrange(chimeraPlotsToReport)
+grid.arrange(grobs=chimeraPlotsToReport)
 #plot_grid(plotlist = chimeraPlotsToReport,labels = plotLabels, nrow = #length(chimeraPlotsToReport))
 ```
 
