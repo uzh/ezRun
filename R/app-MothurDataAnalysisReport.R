@@ -27,7 +27,7 @@ ezMethodMothurDataAnalysisReport = function(input=NA, output=NA, param=NA,
   fileNames <- input$getNames()
   ## Copy all files locally
   copyLoopOverFiles <- function(x){ 
-    y <- paste(DEMO_DATA_ROOT,x)
+    y <- file.path(DEMO_DATA_ROOT,x)
      ezSystem(paste("cp",y,"./"))
   }
   lapply(as.list(allColumns),copyLoopOverFiles)
