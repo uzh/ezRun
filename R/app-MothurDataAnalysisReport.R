@@ -21,8 +21,9 @@ ezMethodMothurDataAnalysisReport = function(input=NA, output=NA, param=NA,
   library(gtable)
   library(purrr)
   dataset = input$meta
-  allColumns <-  vector(input$getColumn(), mode = "list")
-  names(allColumns) <- input$getColumn()
+  relevantColumns <- gsub(" \\[File\\]","",grep("File",colnames(dataset), value = T))
+  colnames(dataset) <-  gsub(" \\[File\\]","",colnames(dataset))
+  allColumns <- dataset[,relevantColumns]
   fileNames <- input$getNames()
   ## Copy all files locally
   copyLoopOverFiles <- function(x){ 
@@ -30,7 +31,7 @@ ezMethodMothurDataAnalysisReport = function(input=NA, output=NA, param=NA,
      lapply(relevantColumn, function(y) ezSystem(paste("cp",y,"./")))
      return(relevantColumn)
   }
-  listOfListAllFiles <- imap(allColumns,function(x,y) copyLoopOverFiles(x))
+  listOfListAllFiles <- imap(as.list(allColumns),function(x,y) copyLoopOverFiles(x))
   
   ## Create list of summary files for tables
   
