@@ -163,9 +163,9 @@ createSummaryTableForKableExtra <- function(x) {
     tableTitle <- unlist(strsplit(nameRawFile,"\\."))[1]
     rawFileDF <- ezRead.table(nameRawFile)
     rawSummaryTable[[file]] <- as.matrix(createSummaryTable(rawFileDF))
-    multiTableHeader[tableTitle] <- "6"
+    multiTableHeader[tableTitle] <- "7"
   }
-  ktables <- do.call(cbind, rawSummaryTable)
+  ktables <- do.call(rbind, rawSummaryTable)
   return(list(mergedTable = ktables, aboveHeader = multiTableHeader))
 }
  
@@ -187,11 +187,13 @@ createStepConvTableForKableExtra <- function(x) {
   multiTableHeader <- vector()
   for (file in x){
     nameRawFile <- basename(file)
-    tableTitle <- unlist(strsplit(nameRawFile,"\\."))[1]
     rawSummaryTable[[file]] <- convStepTable(nameRawFile)
-    multiTableHeader[tableTitle] <- "6"
   }
   finNumRows <- max(sapply(rawSummaryTable, nrow))
+  for (file in x){
+    tableTitle <- unlist(strsplit(nameRawFile,"\\."))[1]
+    multiTableHeader[tableTitle] <- finNumRows
+  }
   fillEmptyDF <- function(inDF,totRows){
     ncols <- ncol(inDF)
     presRows <- nrow(inDF)
@@ -224,7 +226,7 @@ createSaturationTableForKableExtra <- function(x) {
     nameRawFile <- basename(file)
     tableTitle <- unlist(strsplit(nameRawFile,"\\."))[1]
     rawSummaryTable[[file]] <- as.matrix(otuSaturationTable(nameRawFile))
-    multiTableHeader[tableTitle] <- "7"
+    multiTableHeader[tableTitle] <- "10"
   }
   ktables <- do.call(rbind, rawSummaryTable)
   return(list(mergedTable = ktables, aboveHeader = multiTableHeader))
