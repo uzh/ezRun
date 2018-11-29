@@ -55,9 +55,9 @@ ezMethodMegahit = function(input=NA, output=NA, param=NA,
   newProdigalFile <- basename(output$getColumn("prodigalPredictionFile"))
   ezSystem(paste("mv",oldProdigalFile,newProdigalFile))
   #3) 
-  oldDiamAnnFile <- "annotatedProteins.tsv"
-  newDiamAnnFile <- basename(output$getColumn("diamondAnnotationFile"))
-  ezSystem(paste("mv",oldDiamAnnFile,newDiamAnnFile))
+  oldIPSAnnFile <- "interProScanOut.gff3"
+  newIPSAnnFile <- basename(output$getColumn("diamondAnnotationFile"))
+  ezSystem(paste("mv",oldIPSAnnFile,newIPSAnnFile))
 }
 
 ##' @template app-template
