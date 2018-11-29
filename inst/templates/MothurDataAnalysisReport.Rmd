@@ -44,11 +44,11 @@ Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
 
 ### Summary of the raw reads
 ```{r RawDataSummary, echo=FALSE}
-kable(finalListOfSummaryTables["RawDataSummary"]$mergedTable, escape=TRUE, row.names=FALSE, format="html",
+kable(finalListOfSummaryTables["RawDataSummary"]$RawDataSummary$mergedTable, escape=TRUE, row.names=FALSE, format="html",
       caption="Summary of raw sequences.") %>%
   kable_styling(bootstrap_options = c("striped", "bordered"),
                 full_width = F, position = "float_right") %>%
-  add_header_above(finalListOfSummaryTables["RawDataSummary"]$aboveHeader)
+  add_header_above(finalListOfSummaryTables["RawDataSummary"]$RawDataSummary$aboveHeader)
 ```
 
 ### Summary of the deduplicated reads
@@ -85,7 +85,7 @@ kable(finalListOfSummaryTables["PreClusteredAndChimeraSummary"]$mergedTable, esc
   kable_styling(bootstrap_options = c("striped", "bordered"),
                 full_width = F, position = "left") %>%
   add_header_above(finalListOfSummaryTables["PreClusteredAndChimeraSummary"]$aboveHeader)
-plot_grid(plotlist = chimeraPlotsToReport,labels = plotLabels, nrow = 2)
+plot_grid(plotlist = chimeraPlotsToReport,labels = plotLabels, nrow = length(chimeraPlotsToReport))
 ```
 
 ### OTUs convergence summary

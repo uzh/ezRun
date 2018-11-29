@@ -78,11 +78,10 @@
     dfFinal = data.frame()
     for (i in 1:ncol(cumSumTransform))
     { dfTemp <-  data.frame(abundances = cumSumTransform[,colnames(cumSumTransform)[i]])
-      dfTemp$group <- as.factor(colnames(cumSumTransform)[i])
       dfTemp$xAx <- seq_along(1:nrow(dfTemp))
       dfFinal <- rbind(dfFinal,dfTemp)
       }
-    saturationPlot <- ggplot(dfFinal, aes(x=xAx,y=abundances, group = group,  colour = group)) + geom_line()
+    saturationPlot <- ggplot(dfFinal, aes(x=xAx,y=abundances)) + geom_line()
     return(saturationPlot)
   }
   
