@@ -108,5 +108,5 @@ kable(otuSaturationTableToReport$mergedTable, escape=TRUE, row.names=FALSE, form
                 full_width = F, position = "left") %>%
   add_header_above(otuSaturationTableToReport$aboveHeader)
 #plot_grid(plotlist = otuSaturPlotToReport,labels = plotLabels, nrow = 2)
-grid.arrange(otuSaturPlotToReport)
+grid.arrange(grobs=otuSaturPlotToReport)
 ```
