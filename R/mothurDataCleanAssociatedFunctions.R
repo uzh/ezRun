@@ -247,7 +247,6 @@ createSaturationPlotsForReport <- function(x) {
   otuSatPlot <- list()
   for (file in x){
     nameRawFile <- basename(file)
-    tableTitle <- unlist(strsplit(nameRawFile,"\\."))[1]
     otuSatPlot[[file]] <- as.matrix(otuSaturationPlot(nameRawFile))
   }
   return(otuSatPlot)
@@ -269,8 +268,8 @@ createChimeraSummaryPlotsForReport <- function(x) {
   chimPlot <- list()
   for (file in x){
     nameRawFile <- basename(file)
-    tableTitle <- unlist(strsplit(nameRawFile,"\\."))[1]
-    chimPlot[[file]] <- as.matrix(chimeraSummaryPlot(nameRawFile))
+    rawFileDF <- ezRead.table(nameRawFile)
+    chimPlot[[file]] <- as.matrix(chimeraSummaryPlot(rawFileDF))
   }
   return(chimPlot)
 }
