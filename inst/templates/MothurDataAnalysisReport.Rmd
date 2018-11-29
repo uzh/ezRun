@@ -35,7 +35,7 @@ finalListOfSummaryTables <- imap(summaryTablesToReport,function(x,y)
 convStepTableToReport <- imap(listOfListAllFiles["stepConvergence"], function(x,y) createStepConvTableForKableExtra(x))
 
 ### OTU saturation plots
-otuSaturPlotToReport <- imap(listOfListAllFiles["OTUsCountTable"][[1]],function(x,y) createSaturationPlotsForReport(x))
+otuSaturPlotToReport <- imap(listOfListAllFiles["OTUsCountTable"],function(x,y) createSaturationPlotsForReport(x))
 
 ### OTU saturation table 
 otuSaturationTableToReport <- imap(listOfListAllFiles["OTUsCountTable"], function(x,y) createSaturationTableForKableExtra(x)) 
