@@ -154,17 +154,15 @@ chimeraSummaryPlot <- function(chimeraFile){
 
 ##' @title Merges summary tables for Kable_extra output 
 ##' @description Merges summary tables for Kable_extra output 
-##' @param  list of files for which to create the combined table
+##' @param  x list of files for which to create the combined table
 ##' @return Returns a ktable and the above header
 createSummaryTableForKableExtra <- function(x) {
   rawSummaryTable <- list()
   multiTableHeader <- vector()
-  k=0
   for (file in x){
-    k=k+1
     nameRawFile <- basename(file)
     tableTitle <- unlist(strsplit(nameRawFile,"\\."))[1]
-    rawFileDF <- read.delim(nameRawFile, header = T, stringsAsFactors = F)
+    rawFileDF <- ezRead.table(nameRawFile)
     rawSummaryTable[[file]] <- as.matrix(createSummaryTable(rawFileDF))
     multiTableHeader[tableTitle] <- "6"
   }
@@ -183,18 +181,15 @@ createSummaryTableForKableExtra <- function(x) {
 
 ##' @title Creates step convergence table for Kable_extra output 
 ##' @description Merges summary tables for Kable_extra output 
-##' @param  list of files for which to create the combined table
+##' @param  x list of files for which to create the combined table
 ##' @return Returns a ktable and the above header
 createStepConvTableForKableExtra <- function(x) {
   rawSummaryTable <- list()
   multiTableHeader <- vector()
-  k=0
   for (file in x){
-    k=k+1
     nameRawFile <- basename(file)
     tableTitle <- unlist(strsplit(nameRawFile,"\\."))[1]
-    rawFileDF <- read.delim(nameRawFile, header = T, stringsAsFactors = F)
-    rawSummaryTable[[file]] <- as.matrix(convStepTable(rawFileDF))
+    rawSummaryTable[[file]] <- as.matrix(convStepTable(nameRawFile))
     multiTableHeader[tableTitle] <- "6"
   }
   ktables <- do.call(cbind, rawSummaryTable)
@@ -211,20 +206,18 @@ createStepConvTableForKableExtra <- function(x) {
 
 ##' @title Creates saturation  convergence table for Kable_extra output 
 ##' @description Merges summary tables for Kable_extra output 
-##' @param  list of mothur shared files for which to create the combined table
+##' @param  x list of mothur shared files for which to create the combined table
 ##' @return Returns a ktable and the above header
 createSaturationTableForKableExtra <- function(x) {
   rawSummaryTable <- list()
   multiTableHeader <- vector()
-  k=0
   for (file in x){
-    k=k+1
     nameRawFile <- basename(file)
     tableTitle <- unlist(strsplit(nameRawFile,"\\."))[1]
-    rawFileDF <- read.delim(nameRawFile, header = T, stringsAsFactors = F)
-    rawSummaryTable[[file]] <- as.matrix(otuSaturationTable(rawFileDF))
+    rawSummaryTable[[file]] <- as.matrix(otuSaturationTable(nameRawFile))
     multiTableHeader[tableTitle] <- "3"
   }
   ktables <- do.call(cbind, rawSummaryTable)
   return(list(mergedTable = ktables, aboveHeader = multiTableHeader))
 }
+
