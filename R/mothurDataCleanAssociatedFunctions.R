@@ -268,7 +268,7 @@ createChimeraSummaryPlotsForReport <- function(x) {
   chimPlot <- list()
   for (file in x){
     nameRawFile <- basename(file)
-    rawFileDF <- ezRead.table(nameRawFile)
+    rawFileDF <- read.delim(nameRawFile)
     chimPlot[[file]] <- as.matrix(chimeraSummaryPlot(rawFileDF))
   }
   return(chimPlot)
