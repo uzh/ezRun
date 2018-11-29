@@ -20,6 +20,13 @@ ezMethodMothurDataAnalysisReport = function(input=NA, output=NA, param=NA,
   require(grid)
   library(gtable)
   library(purrr)
+  require(knitr)
+  require(kableExtra)
+  require(SummarizedExperiment)
+  require(webshot)
+  require(htmlwidgets)
+  library(cowplot)
+  
   dataset = input$meta
   relevantColumns <- gsub(" \\[File\\]","",grep("File",colnames(dataset), value = T))
   colnames(dataset) <-  gsub(" \\[File\\]","",colnames(dataset))

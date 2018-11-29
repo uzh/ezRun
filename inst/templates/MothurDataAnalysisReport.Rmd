@@ -13,12 +13,6 @@ output:
 knitr::opts_chunk$set(echo = TRUE)
 ## This report requires output files form the DataAnalysis App
 
-require(knitr)
-require(kableExtra)
-require(SummarizedExperiment)
-require(webshot)
-require(htmlwidgets)
-library(cowplot)
 debug <- FALSE
 setEnvironments("phantomjs")
 ```
@@ -35,7 +29,7 @@ finalListOfSummaryTables <- imap(summaryTablesToReport,function(x,y)
 convStepTableToReport <- imap(listOfListAllFiles["stepConvergence"], function(x,y) createStepConvTableForKableExtra(x))
 
 ### OTU saturation plots
-otuSaturPlotToReport <- sapply(listOfListAllFiles["OTUsCountTable"]$OTUsCountTable,createSaturationPlotsForReport(x))
+otuSaturPlotToReport <- sapply(listOfListAllFiles["OTUsCountTable"]$OTUsCountTable,createSaturationPlotsForReport)
 
 ### OTU saturation table 
 otuSaturationTableToReport <- imap(listOfListAllFiles["OTUsCountTable"], function(x,y) createSaturationTableForKableExtra(x)) 
