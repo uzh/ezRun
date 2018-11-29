@@ -45,10 +45,12 @@
   ##' @return Returns a table
   convStepTable <- function(convStepFile){
     stepTable <- read.table(convStepFile,stringsAsFactors = FALSE, sep = "\t", header = TRUE)
+   # stepTable<- ezRead.table(convStepFile)
     colnames(stepTable) <- c(colnames(stepTable)[2:length(colnames(stepTable))],"dum")
     stepTable$iteration <- rownames(stepTable)
     colToKeep <- c("iteration","num_otus","sensitivity","specificity","fdr","accuracy")
     stepTable <- stepTable[,colToKeep]
+    stepTable$iteration <- as.integer(stepTable$iteration)
     return(stepTable)
   }
   
@@ -111,6 +113,8 @@
       ldply(lapply(seq(from = 20, to = 200, by = 20),function(x) y[x]/y[nrow(cumSumTransform)]*100)))
     finalSaturationTable <- data.frame(matrix(unlist(tempList), nrow=10, byrow=F),stringsAsFactors=FALSE)
     finalSaturationTable <- data.frame(cbind(seq(from = 20, to = 200, by = 20),finalSaturationTable))
-    colnames(finalSaturationTable) <- c("num OTUs",names(tempList))
-    return(finalSaturationTable)
+    colnames(finalSaturationTable) <- c("numOTUs","PercOTUsCovered")
+    finalSaturationTableDF <- data.frame(PercOTUsCovered = finalSaturationTable$PercOTUsCovered, stringsAsFactors = F)
+    rownames(finalSaturationTableDF) <- finalSaturationTable$numOTUs
+    return(finalSaturationTableDF)
   }

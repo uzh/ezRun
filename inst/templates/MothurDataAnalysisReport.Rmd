@@ -32,16 +32,16 @@ finalListOfSummaryTables <- imap(summaryTablesToReport,function(x,y)
   createSummaryTableForKableExtra(x))
 
 ### stepsData
-convStepTable <- createStepConvTableForKableExtra(listOfListAllFiles["stepConvergence"])
+convStepTableToReport <- imap(listOfListAllFiles["stepConvergence"], function(x,y) createStepConvTableForKableExtra(x))
 
 ### OTU saturation plots
-otuSaturPlot <- imap(listOfListAllFiles["OTUsCountTable"],function(x,y) otuSaturationPlot(x))
+otuSaturPlotToReport <- imap(listOfListAllFiles["OTUsCountTable"],function(x,y) otuSaturationPlot(x))
 
 ### OTU saturation table 
-otuSaturationTable<- createSaturationTableForKableExtra(listOfListAllFiles["OTUsCountTable"])
+otuSaturationTableToReport <- imap(listOfListAllFiles["OTUsCountTable"], function(x,y) createSaturationTableForKableExtra(x)) 
 
 ### Chimera plot
-chimeraPlots <- imap(listOfListAllFiles["ChimeraPlot"],function(x,y) chimeraSummaryPlot(x))
+chimeraPlotsToReport <- imap(listOfListAllFiles["ChimeraPlot"],function(x,y) chimeraSummaryPlot(x))
 ```
 
 Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
@@ -101,25 +101,25 @@ kable(finalListOfSummaryTables[["PreClusteredAndChimeraSummary"]]$mergedTable, e
                 full_width = F, position = "left") %>%
   add_header_above(finalListOfSummaryTables[[PreClusteredAndChimeraSummary$aboveHeader]])
 
-plot_grid(chimeraPlots,labels = names(chimeraPlots), nrow = 2)
+plot_grid(chimeraPlotsToReport,labels = names(chimeraPlotsToReport), nrow = 2)
 ```
 
 ### OTUs convergence summary
 ```{r stepConvergence, echo=FALSE}
 
-kable(convStepTable$mergedTable, escape=TRUE, row.names=FALSE, format="html",
+kable(convStepTableToReport$mergedTable, escape=TRUE, row.names=FALSE, format="html",
       caption="Convergence summary") %>%
   kable_styling(bootstrap_options = c("striped", "bordered"),
                 full_width = F, position = "left") %>%
-  add_header_above(finalListOfSummaryTables[[stepConvergence$aboveHeader]])
+  add_header_above(finalListOfSummaryTables[[convStepTableToReport$aboveHeader]])
 ```
 
 ### OTUs saturation tables and plots
 ```{r otuSaturPlot, echo=FALSE}
-kable(otuSaturationTable$mergedTable, escape=TRUE, row.names=FALSE, format="html",
+kable(otuSaturationTableToReport$mergedTable, escape=TRUE, row.names=FALSE, format="html",
       caption="Percentage of total sequences represented by increasing numbers of OTUs") %>%
   kable_styling(bootstrap_options = c("striped", "bordered"),
                 full_width = F, position = "left") %>%
-  add_header_above(otuSaturationTable$aboveHeader)
-plot_grid(otuSaturPlot,labels = names(otuSaturPlot), nrow = 2)
+  add_header_above(otuSaturationTableToReport$aboveHeader)
+plot_grid(otuSaturPlotToReport,labels = names(otuSaturPlotToReport), nrow = 2)
 ```
