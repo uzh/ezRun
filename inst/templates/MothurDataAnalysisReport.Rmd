@@ -87,7 +87,8 @@ kable(finalListOfSummaryTables["PreClusteredAndChimeraSummary"]$mergedTable, esc
   kable_styling(bootstrap_options = c("striped", "bordered"),
                 full_width = F, position = "left") %>%
   add_header_above(finalListOfSummaryTables["PreClusteredAndChimeraSummary"]$aboveHeader)
-plot_grid(plotlist = chimeraPlotsToReport,labels = plotLabels, nrow = length(chimeraPlotsToReport))
+grid.arrange(chimeraPlotsToReport)
+#plot_grid(plotlist = chimeraPlotsToReport,labels = plotLabels, nrow = #length(chimeraPlotsToReport))
 ```
 
 ### OTUs convergence summary
@@ -106,5 +107,6 @@ kable(otuSaturationTableToReport$mergedTable, escape=TRUE, row.names=FALSE, form
   kable_styling(bootstrap_options = c("striped", "bordered"),
                 full_width = F, position = "left") %>%
   add_header_above(otuSaturationTableToReport$aboveHeader)
-plot_grid(plotlist = otuSaturPlotToReport,labels = plotLabels, nrow = 2)
+#plot_grid(plotlist = otuSaturPlotToReport,labels = plotLabels, nrow = 2)
+grid.arrange(otuSaturPlotToReport)
 ```
