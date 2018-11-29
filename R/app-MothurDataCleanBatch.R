@@ -151,7 +151,7 @@ ezMethodMothurDataCleanBatch = function(input=NA, output=NA, param=NA,
   oldStepConvFile <- paste(sampleName,
                            "unique.good.good.good.filter.unique.precluster.pick.pick.opti_mcc.steps",
                            sep = ".")
-  newStepConvFile <- basename(output$getColumn("stepConvergenceSummary"))
+  newStepConvFile <- basename(output$getColumn("stepConvergence"))
   ezSystem(paste("mv",oldStepConvFile,newStepConvFile))
   
   ### Files needed for Phyloseq
