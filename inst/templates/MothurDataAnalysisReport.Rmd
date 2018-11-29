@@ -69,7 +69,7 @@ kable(finalListOfSummaryTables["DeduppedSummary"]$mergedTable, escape=TRUE, row.
       caption="Summary of raw sequences.") %>%
   kable_styling(bootstrap_options = c("striped", "bordered"),
                 full_width = F, position = "left") %>%
-  add_header_above(finalListOfSummaryTables[["DeduppedSummary"]]$aboveHeader)
+  add_header_above(finalListOfSummaryTables["DeduppedSummary"]$aboveHeader)
 ```
 
 ### Summary of the reads filtered by length and homopolymers
