@@ -35,13 +35,13 @@ finalListOfSummaryTables <- imap(summaryTablesToReport,function(x,y)
 convStepTableToReport <- imap(listOfListAllFiles["stepConvergence"], function(x,y) createStepConvTableForKableExtra(x))
 
 ### OTU saturation plots
-otuSaturPlotToReport <- imap(listOfListAllFiles["OTUsCountTable"],function(x,y) otuSaturationPlot(x))
+otuSaturPlotToReport <- imap(listOfListAllFiles["OTUsCountTable"][[1]],function(x,y) createSaturationPlotsForReport(x))
 
 ### OTU saturation table 
 otuSaturationTableToReport <- imap(listOfListAllFiles["OTUsCountTable"], function(x,y) createSaturationTableForKableExtra(x)) 
 
 ### Chimera plot
-chimeraPlotsToReport <- imap(listOfListAllFiles["ChimeraPlot"],function(x,y) chimeraSummaryPlot(x))
+chimeraPlotsToReport <- imap(listOfListAllFiles["ChimeraPlot"],function(x,y) createChimeraSummaryPlotsForReport(x))
 ```
 
 Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
