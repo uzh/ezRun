@@ -53,7 +53,7 @@ Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
   
 
 ### Summary of the raw reads
-```{r sumIll, echo=FALSE}
+```{r RawDataSummary, echo=FALSE}
 
 kable(finalListOfSummaryTables[["RawDataSummary"]]$mergedTable, escape=TRUE, row.names=FALSE, format="html",
       caption="Summary of raw sequences.") %>%
@@ -63,7 +63,7 @@ kable(finalListOfSummaryTables[["RawDataSummary"]]$mergedTable, escape=TRUE, row
 ```
 
 ### Summary of the deduplicated reads
-```{r sumIll, echo=FALSE}
+```{r DeduppedSummary, echo=FALSE}
 
 kable(finalListOfSummaryTables[["DeduppedSummary"]]$mergedTable, escape=TRUE, row.names=FALSE, format="html",
       caption="Summary of raw sequences.") %>%
@@ -73,7 +73,7 @@ kable(finalListOfSummaryTables[["DeduppedSummary"]]$mergedTable, escape=TRUE, ro
 ```
 
 ### Summary of the reads filtered by length and homopolymers
-```{r sumIll, echo=FALSE}
+```{r LenAndHomopSummary, echo=FALSE}
 
 kable(finalListOfSummaryTables[["LenAndHomopSummary"]]$mergedTable, escape=TRUE, row.names=FALSE, format="html",
       caption="Summary of raw sequences.") %>%
@@ -83,7 +83,7 @@ kable(finalListOfSummaryTables[["LenAndHomopSummary"]]$mergedTable, escape=TRUE,
 ```
 
 ### Summary of the  reads filtered by mapping
-```{r sumIll, echo=FALSE}
+```{r MapFiltSummary, echo=FALSE}
 
 kable(finalListOfSummaryTables[["MapFiltSummary"]]$mergedTable, escape=TRUE, row.names=FALSE, format="html",
       caption="Summary of raw sequences.") %>%
@@ -93,7 +93,7 @@ kable(finalListOfSummaryTables[["MapFiltSummary"]]$mergedTable, escape=TRUE, row
 ```
 
 ### Summary of the reads preclustered and filtered for chimeras
-```{r sumIll, echo=FALSE}
+```{r PreClusteredAndChimeraSummary, echo=FALSE}
 
 kable(finalListOfSummaryTables[["PreClusteredAndChimeraSummary"]]$mergedTable, escape=TRUE, row.names=FALSE, format="html",
       caption="Summary of raw sequences.") %>%
@@ -105,7 +105,7 @@ plot_grid(chimeraPlots,labels = names(chimeraPlots), nrow = 2)
 ```
 
 ### OTUs convergence summary
-```{r sumIll, echo=FALSE}
+```{r stepConvergence, echo=FALSE}
 
 kable(convStepTable$mergedTable, escape=TRUE, row.names=FALSE, format="html",
       caption="Convergence summary") %>%
@@ -115,7 +115,7 @@ kable(convStepTable$mergedTable, escape=TRUE, row.names=FALSE, format="html",
 ```
 
 ### OTUs saturation tables and plots
-```{r sumIll, echo=FALSE}
+```{r otuSaturPlot, echo=FALSE}
 kable(otuSaturationTable$mergedTable, escape=TRUE, row.names=FALSE, format="html",
       caption="Percentage of total sequences represented by increasing numbers of OTUs") %>%
   kable_styling(bootstrap_options = c("striped", "bordered"),

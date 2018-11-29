@@ -30,7 +30,7 @@ ezMethodMothurDataAnalysisReport = function(input=NA, output=NA, param=NA,
     y <- file.path(DEMO_DATA_ROOT,x)
      ezSystem(paste("cp",y,"./"))
   }
-  lapply(as.list(allColumns),copyLoopOverFiles)
+  lapply(allColumns,copyLoopOverFiles)
   listOfListAllFiles <- as.list(allColumns)
   
   ## Create list of summary files for tables
@@ -71,11 +71,6 @@ EzAppMothurDataAnalysisReport <-
                   "Initializes the application using its specific defaults."
                   runMethod <<- ezMethodMothurDataAnalysisReport
                   name <<- "EzAppMothurDataAnalysisReport"
-                  appDefaults <<- rbind(rowsInPlotGrid = ezFrame(Type="integer",
-                                                                DefaultValue="2",
-                                                                Description="Rows to arrange plots")
-                                        
-                  )
                 }
               )
   )
