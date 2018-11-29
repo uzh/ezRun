@@ -59,17 +59,17 @@ kable(finalListOfSummaryTables["RawDataSummary"]$mergedTable, escape=TRUE, row.n
       caption="Summary of raw sequences.") %>%
   kable_styling(bootstrap_options = c("striped", "bordered"),
                 full_width = F, position = "left") %>%
-  add_header_above(finalListOfSummaryTables[[RawDataSummary$aboveHeader]])
+  add_header_above(finalListOfSummaryTables["RawDataSummary"]$aboveHeader)
 ```
 
 ### Summary of the deduplicated reads
 ```{r DeduppedSummary, echo=FALSE}
 
-kable(finalListOfSummaryTables["DeduppedSummary"]$mergedTable, escape=TRUE, row.names=FALSE, format="html",
+kable(finalListOfSummaryTables[["DeduppedSummary"]]$mergedTable, escape=TRUE, row.names=FALSE, format="html",
       caption="Summary of raw sequences.") %>%
   kable_styling(bootstrap_options = c("striped", "bordered"),
                 full_width = F, position = "left") %>%
-  add_header_above(finalListOfSummaryTables[[DeduppedSummary$aboveHeader]])
+  add_header_above(finalListOfSummaryTables[["DeduppedSummary"]]$aboveHeader)
 ```
 
 ### Summary of the reads filtered by length and homopolymers
