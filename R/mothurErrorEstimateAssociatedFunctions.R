@@ -82,10 +82,7 @@
       dfTemp$xAx <- seq_along(1:nrow(dfTemp))
       dfFinal <- rbind(dfFinal,dfTemp)
       }
-    titleText <- "OTUs saturation"
-    saturationPlot <- ggplot(dfFinal, aes(x=xAx,y=abundances, group = group,  colour = group)) + geom_line() +
-    labs(title=titleText, x = "Number of OTUs", y = "Total sequences") + 
-    theme(plot.title=element_text(size=15, face="bold",hjust=0.5))
+    saturationPlot <- ggplot(dfFinal, aes(x=xAx,y=abundances, group = group,  colour = group)) + geom_line()
     return(saturationPlot)
   }
   
