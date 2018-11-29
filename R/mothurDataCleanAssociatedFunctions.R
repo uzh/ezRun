@@ -224,7 +224,7 @@ createSaturationTableForKableExtra <- function(x) {
     nameRawFile <- basename(file)
     tableTitle <- unlist(strsplit(nameRawFile,"\\."))[1]
     rawSummaryTable[[file]] <- as.matrix(otuSaturationTable(nameRawFile))
-    multiTableHeader[tableTitle] <- "1"
+    multiTableHeader[tableTitle] <- "7"
   }
   ktables <- do.call(cbind, rawSummaryTable)
   return(list(mergedTable = ktables, aboveHeader = multiTableHeader))
