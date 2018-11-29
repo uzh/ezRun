@@ -48,10 +48,6 @@ Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
 
 ## Data pre-processing {.tabset}
 
-
-  #ChimeraPlot <- input$getFullPaths("ChimeraPlot")
-  
-
 ### Summary of the raw reads
 ```{r RawDataSummary, echo=FALSE}
 
@@ -121,5 +117,6 @@ kable(otuSaturationTableToReport$mergedTable, escape=TRUE, row.names=FALSE, form
   kable_styling(bootstrap_options = c("striped", "bordered"),
                 full_width = F, position = "left") %>%
   add_header_above(otuSaturationTableToReport$aboveHeader)
+
 plot_grid(otuSaturPlotToReport,labels = names(otuSaturPlotToReport), nrow = 2)
 ```
