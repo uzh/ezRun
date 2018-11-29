@@ -231,3 +231,46 @@ createSaturationTableForKableExtra <- function(x) {
   return(list(mergedTable = ktables, aboveHeader = multiTableHeader))
 }
 
+###################################################################
+# Functional Genomics Center Zurich
+# This code is distributed under the terms of the GNU General
+# Public License Version 3, June 2007.
+# The terms are available here: http://www.gnu.org/licenses/gpl.html
+# www.fgcz.ch
+
+
+##' @title Creates saturation  plots for report
+##' @description Creates saturation  plots for report  
+##' @param  x list of mothur shared files for which to create the plots
+##' @return Returns a list of plots
+createSaturationPlotsForReport <- function(x) {
+  otuSatPlot <- list()
+  for (file in x){
+    nameRawFile <- basename(file)
+    tableTitle <- unlist(strsplit(nameRawFile,"\\."))[1]
+    otuSatPlot[[file]] <- as.matrix(otuSaturationPlot(nameRawFile))
+  }
+  return(otuSatPlot)
+}
+
+###################################################################
+# Functional Genomics Center Zurich
+# This code is distributed under the terms of the GNU General
+# Public License Version 3, June 2007.
+# The terms are available here: http://www.gnu.org/licenses/gpl.html
+# www.fgcz.ch
+
+
+##' @title Creates chimera  plots for report
+##' @description Creates chimera  plots for report  
+##' @param  x list of mothur shared files for which to create the plots
+##' @return Returns a list of plots
+createChimeraSummaryPlotsForReport <- function(x) {
+  chimPlot <- list()
+  for (file in x){
+    nameRawFile <- basename(file)
+    tableTitle <- unlist(strsplit(nameRawFile,"\\."))[1]
+    chimPlot[[file]] <- as.matrix(chimeraSummaryPlot(nameRawFile))
+  }
+  return(chimPlot)
+}
