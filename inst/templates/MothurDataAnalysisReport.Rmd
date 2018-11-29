@@ -26,13 +26,13 @@ finalListOfSummaryTables <- imap(summaryTablesToReport,function(x,y)
   createSummaryTableForKableExtra(x))
 
 ### stepsData
-convStepTableToReport <- imap(listOfListAllFiles["stepConvergence"], function(x,y) createStepConvTableForKableExtra(x))
+convStepTableToReport <- imap(listOfListAllFiles["stepConvergence"]$stepConvergence, function(x,y) createStepConvTableForKableExtra(x))
 
 ### OTU saturation plots
 otuSaturPlotToReport <- sapply(listOfListAllFiles["OTUsCountTable"]$OTUsCountTable,createSaturationPlotsForReport)
 
 ### OTU saturation table 
-otuSaturationTableToReport <- imap(listOfListAllFiles["OTUsCountTable"], function(x,y) createSaturationTableForKableExtra(x)) 
+otuSaturationTableToReport <- imap(listOfListAllFiles["OTUsCountTable"]$OTUsCountTable, function(x,y) createSaturationTableForKableExtra(x)) 
 
 ### Chimera plot
 chimeraPlotsToReport <- sapply(listOfListAllFiles["ChimeraPlot"]$ChimeraPlot,createChimeraSummaryPlotsForReport)
