@@ -21,7 +21,8 @@ ezMethodMothurDataAnalysisReport = function(input=NA, output=NA, param=NA,
   library(gtable)
   library(purrr)
   dataset = input$meta
-  allColumns <-  input$getColumn()
+  allColumns <-  vector(input$getColumn(), mode = "list")
+  names(allColumns) <- input$getColumn()
   fileNames <- input$getNames()
   ## Copy all files locally
   copyLoopOverFiles <- function(x){ 
