@@ -139,8 +139,7 @@ chimeraSummaryPlot <- function(chimeraFile){
     geom_bar(position = position_stack(),width = 1, stat = "identity") + 
     geom_text(aes(label = pct), position = position_stack(vjust = 0.5),  size = 5)
       pieVersion <- bp + coord_polar("y", start=0)
-  finalVersionChimeraPlot <- pieVersion +  labs(title=titleText, y="") + 
-    theme(plot.title=element_text(size=15, face="bold",hjust=0.5))
+  finalVersionChimeraPlot <- pieVersion
   return(finalVersionChimeraPlot)
 }
 
@@ -245,9 +244,11 @@ createSaturationTableForKableExtra <- function(x) {
 ##' @return Returns a list of plots
 createSaturationPlotsForReport <- function(x) {
   otuSatPlot <- list()
+  k=0
   for (file in x){
+    k=k+1
     nameRawFile <- basename(file)
-    otuSatPlot[[file]] <- otuSaturationPlot(nameRawFile)
+    otuSatPlot[[k]] <- otuSaturationPlot(nameRawFile)
   }
   return(otuSatPlot)
 }
@@ -266,10 +267,12 @@ createSaturationPlotsForReport <- function(x) {
 ##' @return Returns a list of plots
 createChimeraSummaryPlotsForReport <- function(x) {
   chimPlot <- list()
+  k=0
   for (file in x){
+    k=k+1
     nameRawFile <- basename(file)
-    rawFileDF <- read.delim(nameRawFile)
-    chimPlot[[file]] <- chimeraSummaryPlot(rawFileDF)
+    rawFileDF <- read.delim(nameRawFile, header = F)
+    chimPlot[[k]] <- chimeraSummaryPlot(rawFileDF)
   }
   return(chimPlot)
 }
