@@ -89,7 +89,8 @@ kable(finalListOfSummaryTables["PreClusteredAndChimeraSummary"]$PreClusteredAndC
 ```
 
 ```{r, out.width = "100%", echo=FALSE}
-grid.arrange(grobs=chimeraPlotsToReport,ncol=1)
+grid.arrange(grobs=chimeraPlotsToReport,ncol=1, 
+             widths=unit(c(10), c("in")))
 ```
 
 ### OTUs convergence summary
