@@ -150,7 +150,7 @@ chimeraSummaryPlot <- function(x){
   dat_text <- data.frame(label = pct)
   fullChimeraDF <- do.call("rbind",listOfChimDF)
   bp <- ggplot(fullChimeraDF, aes(x=Type,Freq, fill=Type)) 
-  facetSampleBar <- bp + facet_wrap(vars(Sample)) + geom_bar(stat = "identity",  position = 'dodge') 
+  facetSampleBar <- bp + facet_wrap(vars(Sample), ncol = 2) + geom_bar(stat = "identity",  position = 'dodge') 
   finalVersionChimeraPlot  <- facetSampleBar +   theme(axis.text.x=element_blank()) +
     geom_text(aes(y = Freq + 500, label = paste0(pct, '%')),
               position = position_dodge(width = .9),size = 3)
@@ -193,7 +193,7 @@ otuSaturationPlot <- function(x){
   }
   fullSaturaDF <- do.call("rbind",dfFinal)
   saturationPlot <- ggplot(fullSaturaDF, aes(x=numberOTUs,y=abundance)) + geom_line(colour = "red") +
-    facet_wrap(vars(Sample))
+    facet_wrap(vars(Sample), ncol = 2)
   return(saturationPlot)
 }
 
