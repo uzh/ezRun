@@ -88,7 +88,7 @@ kable(finalListOfSummaryTables["PreClusteredAndChimeraSummary"]$PreClusteredAndC
   scroll_box(width = "100%", height = "600px")
 ```
 
-```{r, out.width = 100%, echo=FALSE}
+```{r, out.width = "100%", echo=FALSE}
 grid.arrange(grobs=chimeraPlotsToReport,ncol=2)
 ```
 
@@ -110,6 +110,6 @@ kable(otuSaturationTableToReport["OTUsCountTable"]$OTUsCountTable$mergedTable, e
   scroll_box(width = "100%", height = "600px")
 ```
 
-```{r, out.width = 100%, echo=FALSE}
+```{r, out.width = "100%", echo=FALSE}
 grid.arrange(grobs=otuSaturPlotToReport,ncol=2)
 ```
