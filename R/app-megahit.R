@@ -56,8 +56,12 @@ ezMethodMegahit = function(input=NA, output=NA, param=NA,
   ezSystem(paste("mv",oldProdigalFile,newProdigalFile))
   #3) 
   oldIPSAnnFile <- "interProScanOut.gff3"
-  newIPSAnnFile <- basename(output$getColumn("diamondAnnotationFile"))
+  newIPSAnnFile <- basename(output$getColumn("interproscanFile"))
   ezSystem(paste("mv",oldIPSAnnFile,newIPSAnnFile))
+  #4) 
+  oldKrakenLablesFile <- "interProScanOut.gff3"
+  newKrakenLablesFile <- basename(output$getColumn("krakenLabelsFile"))
+  ezSystem(paste("mv",oldKrakenLablesFile,newKrakenLablesFile))
 }
 
 ##' @template app-template
@@ -76,6 +80,7 @@ EzAppMegahit <-
                   appDefaults <<- rbind(megahitKmerList = ezFrame(Type="character",
                                                                 DefaultValue="69,79,89",
                                                                 Description="Comma-separated list of k-mer for the assembly."),
+                                        ### TO DO: allow diamond option
                                         diamondEvalue = ezFrame(Type="numeric",
                                                                   DefaultValue="0.05",
                                                                   Description="Blast e-value cut-off."),
