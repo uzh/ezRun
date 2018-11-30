@@ -110,6 +110,6 @@ kable(otuSaturationTableToReport["OTUsCountTable"]$OTUsCountTable$mergedTable, e
   scroll_box(width = "100%", height = "600px")
 ```
 
-```{r, out.width = "100%", echo=FALSE}
-grid.arrange(grobs=otuSaturPlotToReport,ncol=2)
+```{r,echo=FALSE, out.width="100%"}
+  plot(otuSaturPlotToReport)
 ```
