@@ -111,5 +111,5 @@ kable(otuSaturationTableToReport["OTUsCountTable"]$OTUsCountTable$mergedTable, e
 ```
 
 ```{r, out.width = "100%", echo=FALSE}
-grid.arrange(grobs=otuSaturPlotToReport,ncol=2)
+grid.arrange(grobs=otuSaturPlotToReport,ncol=1)
 ```
