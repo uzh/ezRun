@@ -70,7 +70,7 @@ ezMethodGenericPhyloSeqAnalysis = function(input=NA, output=NA, param=NA,
   pruneLevel <- param$representativeOTUs
   
   ### Samples
-  designMatrix <- data.frame(Name = rownames(dataset),
+  designMatrix <- data.frame(row.names  = rownames(dataset),
                              Group = dataset[,c("Group [Factor]")],
                              stringsAsFactors = FALSE)
   sampleObject<- phyloSeqSample(designMatrix)
