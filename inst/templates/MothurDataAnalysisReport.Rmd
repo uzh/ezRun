@@ -36,7 +36,7 @@ otuSaturPlotToReport <- sapply(listOfListAllFiles["OTUsCountTable"]$OTUsCountTab
 otuSaturationTableToReport <- imap(listOfListAllFiles["OTUsCountTable"], function(x,y) createSaturationTableForKableExtra(x)) 
 
 ### Chimera plot
-chimeraPlotsToReport <- sapply(listOfListAllFiles["ChimeraPlot"]$ChimeraPlot,createChimeraSummaryPlotsForReport)
+chimeraPlotsToReport <- createChimeraSummaryPlotsForReport(listOfListAllFiles["ChimeraPlot"]$ChimeraPlot)
 ```
 
 Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
