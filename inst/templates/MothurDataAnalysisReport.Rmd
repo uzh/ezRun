@@ -89,7 +89,7 @@ kable(finalListOfSummaryTables["PreClusteredAndChimeraSummary"]$PreClusteredAndC
 ```
 
 ```{r, out.width = "100%", echo=FALSE}
-grid.arrange(grobs=chimeraPlotsToReport,ncol=2)
+grid.arrange(grobs=chimeraPlotsToReport,ncol=1)
 ```
 
 ### OTUs convergence summary
@@ -111,5 +111,5 @@ kable(otuSaturationTableToReport["OTUsCountTable"]$OTUsCountTable$mergedTable, e
 ```
 
 ```{r, out.width = "100%", echo=FALSE}
-grid.arrange(grobs=otuSaturPlotToReport,ncol=1)
+grid.arrange(grobs=otuSaturPlotToReport,ncol=2)
 ```
