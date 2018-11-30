@@ -1,0 +1,137 @@
+---
+title: "`r paste('Mothur Data Clean')`"
+author: "Functional Genomics Center Zurich"
+output: 
+  html_document:
+    self_contained: false
+    includes:
+      in_header: fgcz_header.html
+    css: fgcz.css
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+## This report requires summary files form mothur
+
+require(knitr)
+require(kableExtra)
+require(SummarizedExperiment)
+require(webshot)
+require(htmlwidgets)
+debug <- FALSE
+setEnvironments("phantomjs")
+```
+
+```{r prepAbund, include=FALSE}
+### create plots: 1. abundance
+illAbPlot <- plot_bar(physeqFullObject, "Group", "Abundance", "Phylum") + geom_bar(aes(color=Phylum, fill=Phylum), stat="identity", position="stack")
+```
+
+```{r prepOrd, include=FALSE}
+### create plots: 2. ordination
+illOrd <- ordinate(physeqFullObject, "NMDS", "bray")
+plotOrdTaxaIll = plot_ordination(physeqFullObject, illOrd, type="taxa", color="Phylum") + facet_wrap(~Phylum, 3) + ggtitle("Taxa ordination")
+plotOrdSamplesIll = plot_ordination(physeqFullObject, illOrd, type="samples", color="Group") 
+plotOrdSamplesIll = plotOrdSamplesIll + geom_polygon(aes(fill=Group)) + geom_point(size=5) + ggtitle("Sample ordination")
+```
+
+```{r prepRich, include=FALSE}
+### create plots: 3. richness 
+plotRichIll <- plot_richness(physeqFullObject, x="Group", measures=c("Simpson", "Shannon"), color="Group")
+```
+
+```{r prepTree, include=FALSE}
+### create plots: 4. tree
+plotTreeIll <- plot_tree(physeqFullObject , ladderize="left", color="Group")
+```
+
+```{r prepHeat, include=FALSE}
+### create plots:5. heatmap
+plotHeatmapIll <- plot_heatmap(physeqFullObject, taxa.label="Phylum")
+```
+
+```{r prepDeSeq, include=FALSE}
+### 6: compare groups
+deseqResults <- phyloSeqToDeseq2_tableAndPlots(physeqFullObject)
+```
+
+Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
+
+## Data pre-processing {.tabset}
+
+### Abundance barplots
+#### PacBio
+```{r abundPB, echo=FALSE}
+plot(pbAbPlot)
+```
+
+#### Illumina
+```{r abundIll, echo=FALSE}
+plot(illAbPlot)
+```
+
+### Ordination plots
+<!-- #### PacBio
+```{r ordPB, echo=FALSE}
+plot(plotOrdSamplesPB)
+```
+-->
+#### Illumina
+```{r ordIll, echo=FALSE}
+plot(plotOrdTaxaIll)
+```
+
+### Richness plots
+#### PacBio
+```{r richPB, echo=FALSE}
+plot(plotRichPB)
+```
+
+#### Illumina
+```{r richIll, echo=FALSE}
+plot(plotRichIll)
+```
+
+### Tree plots
+#### PacBio
+```{r treePB, echo=FALSE}
+plot(plotTreePB)
+```
+
+#### Illumina
+
+```{r treeIll, echo=FALSE}
+plot(plotTreeIll)
+```
+
+### Heatmaps
+#### PacBio
+```{r heatPB, echo=FALSE}
+plot(plotHeatmapIll)
+```
+
+#### Illumina
+```{r heatIll, echo=FALSE}
+plot(plotHeatmapIll)
+```
+
+### Two-goups comparison
+#### Volcano plot
+```{r volcano, echo=FALSE}
+plot(deseqResults$vPlot)
+```
+
+#### Log-fold changes 
+```{r logfold, echo=FALSE}
+plot(deseqResults$logPlot)
+```
+
+#### Summary table
+```{r table, echo=FALSE}
+plot(deseqResults$table)
+```
+
+### SessionInfo
+```{r, echo=FALSE}
+sessionInfo()
+```
