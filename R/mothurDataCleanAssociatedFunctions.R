@@ -203,7 +203,7 @@ createStepConvTableForKableExtra <- function(x) {
     return(as.matrix(boundDF))
   }
   rawSummaryTableFilled <- lapply(rawSummaryTable,function(x)fillEmptyDF(x,totRows = finNumRows))
-  ktables <- do.call(cbind, rawSummaryTableFilled)
+  ktables <- do.call(rbind, rawSummaryTableFilled)
   return(list(mergedTable = ktables, aboveHeader = multiTableHeader))
 }
 
