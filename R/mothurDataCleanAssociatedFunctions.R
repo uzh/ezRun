@@ -126,6 +126,8 @@ writeOTUgzFileForVamps <- function(sharedFile, taxaFile){
 ##' @description Summarizes chimera rates from chimera file 
 ##' @param  chimerFile ezTable from  mothur chimera file.
 ##' @return Returns a pie chart plot.
+##' 
+
 chimeraSummaryPlot <- function(chimeraFile){
   BL <- sum(chimeraFile[chimeraFile$V18 == "?",]$V13)
   chim <- sum(chimeraFile[chimeraFile$V18 == "Y",]$V13)
@@ -277,5 +279,6 @@ createChimeraSummaryPlotsForReport <- function(x) {
     rawFileDF <- read.delim(nameRawFile, header = F)
     chimPlot[[k]] <- chimeraSummaryPlot(rawFileDF)
   }
-  return(chimPlot)
+  finalChimPlot <- plot_grid(plotlist = chimPlot, nrow = NULL)
+  return(finalChimPlot)
 }
