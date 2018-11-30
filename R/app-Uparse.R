@@ -97,8 +97,8 @@ finalOtuTaxon$Size <- OTUsTotAbund
 ## sort final files 
 newOtuAbundFile <- basename(output$getColumn("OTUsCountTable"))
 newTaxAbundFile <- basename(output$getColumn("OTUsToTaxonomyFile"))
-write.table(finalOtuAbundTable,newOtuAbundFile,row.names = F, col.names = T, quote = F)
-write.table(finalOtuTaxon,newTaxAbundFile,row.names = F, col.names = T, quote = F)
+write.table(finalOtuAbundTable,newOtuAbundFile,row.names = F, col.names = T, quote = F,sep = "\t")
+write.table(finalOtuTaxon,newTaxAbundFile,row.names = F, col.names = T, quote = F,sep = "\t")
 }
 
 ##' @template app-template
