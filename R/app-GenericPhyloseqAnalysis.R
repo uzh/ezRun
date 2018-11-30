@@ -40,14 +40,15 @@ ezMethodGenericPhyloSeqAnalysis = function(input=NA, output=NA, param=NA,
     k=k+1
     rawFile <- basename(file)
     OTUsCount[[k]] <- read.delim(rawFile, header = T,stringsAsFactors = FALSE,check.names = FALSE)
-    colnames(OTUsCount[[k]]) <- gsub("Otu[0-9]",paste0(fileNames[k],"_Otu"),colnames(OTUsCount[[k]]))
-    relCols <- grep("Otu[0-9]",colnames(OTUsCount[[k]]),value = T)
+    relCols <- grep("Otu[0-9]",colnames(OTUsCount[[k]]))
+    colnames(OTUsCount[[k]])[relCols] <- 
+      paste(fileNames[k],colnames(OTUsCount[[k]][relCols]),sep = "_")
     OTUsCountNoLabel[[k]] <- as.matrix(OTUsCount[[k]][,relCols])
-    Group[k] <- OTUsCount[[k]]$Group
+    Group[k] <- fileNames[k]
   }
   
   fullOTUCountTable <- cbind(Group,data.frame(do.call("adiag",OTUsCountNoLabel),
-                                              stringsAsFactors = F))
+                                              stringsAsFactors = F, check.names = F))
   ### create phyloseq OTU object
   otuObject <- phyloSeqOTU(fullOTUCountTable)
   
