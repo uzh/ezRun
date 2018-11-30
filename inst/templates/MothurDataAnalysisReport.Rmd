@@ -100,10 +100,10 @@ kable(convStepTableToReport["stepConvergenceSummary"]$stepConvergenceSummary$mer
 
 ### OTUs saturation tables and plots
 ```{r otuSaturPlot, echo=FALSE}
-kable(finalListOfSummaryTables["OTUsCountTable"]$OTUsCountTable$mergedTable, escape=TRUE, row.names=FALSE, format="html") %>%
+kable(otuSaturationTableToReport["OTUsCountTable"]$OTUsCountTable$mergedTable, escape=TRUE, row.names=FALSE, format="html") %>%
   kable_styling(bootstrap_options = c("striped", "bordered"),
                 full_width = T) %>%
-  group_rows(index = finalListOfSummaryTables["OTUsCountTable"]$OTUsCountTable$aboveHeader) %>%
+  group_rows(index = otuSaturationTableToReport["OTUsCountTable"]$OTUsCountTable$aboveHeader) %>%
   scroll_box(width = "100%", height = "600px")
 grid.arrange(grobs=otuSaturPlotToReport)
 ```
