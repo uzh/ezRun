@@ -191,6 +191,7 @@ createStepConvTableForKableExtra <- function(x) {
   }
   finNumRows <- max(sapply(rawSummaryTable, nrow))
   for (file in x){
+    nameRawFile <- basename(file)
     tableTitle <- unlist(strsplit(nameRawFile,"\\."))[1]
     multiTableHeader[tableTitle] <- finNumRows
   }
