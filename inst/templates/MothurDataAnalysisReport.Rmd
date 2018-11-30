@@ -91,10 +91,10 @@ grid.arrange(grobs=chimeraPlotsToReport)
 
 ### OTUs convergence summary
 ```{r stepConvergence, echo=FALSE}
-kable(finalListOfSummaryTables["stepConvergenceSummary"]$stepConvergenceSummary$mergedTable, escape=TRUE, row.names=FALSE, format="html") %>%
+kable(convStepTableToReport["stepConvergenceSummary"]$stepConvergenceSummary$mergedTable, escape=TRUE, row.names=FALSE, format="html") %>%
   kable_styling(bootstrap_options = c("striped", "bordered"),
                 full_width = T) %>%
-  group_rows(index = finalListOfSummaryTables["stepConvergenceSummary"]$stepConvergenceSummary$aboveHeader) %>%
+  group_rows(index = convStepTableToReport["stepConvergenceSummary"]$stepConvergenceSummary$aboveHeader) %>%
   scroll_box(width = "100%", height = "600px")
 ```
 
