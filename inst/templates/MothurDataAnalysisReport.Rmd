@@ -19,7 +19,8 @@ setEnvironments("phantomjs")
 
 ```{r prepare data, include=FALSE}
 ### raw data summary tables
-summaryTablesToReport <- grep("Summary",names(listOfListAllFiles), value = T) 
+summaryTablesToReport <- grep("Summary",names(listOfListAllFiles), value = T)
+summaryTablesToReport <- grep("stepConvergence", summaryTablesToReport, invert = T, value = T)
 summaryTablesToReport <- listOfListAllFiles[summaryTablesToReport]
 
 finalListOfSummaryTables <- imap(summaryTablesToReport,function(x,y)
