@@ -30,13 +30,13 @@ finalListOfSummaryTables <- imap(summaryTablesToReport,function(x,y)
 convStepTableToReport <- imap(listOfListAllFiles["stepConvergenceSummary"], function(x,y) createStepConvTableForKableExtra(x))
 
 ### OTU saturation plots
-otuSaturPlotToReport <- sapply(listOfListAllFiles["OTUsCountTable"]$OTUsCountTable,createSaturationPlotsForReport)
+otuSaturPlotToReport <- otuSaturationPlot(listOfListAllFiles["OTUsCountTable"]$OTUsCountTable)
 
 ### OTU saturation table 
 otuSaturationTableToReport <- imap(listOfListAllFiles["OTUsCountTable"], function(x,y) createSaturationTableForKableExtra(x)) 
 
 ### Chimera plot
-chimeraPlotsToReport <- createChimeraSummaryPlotsForReport(listOfListAllFiles["ChimeraPlot"]$ChimeraPlot)
+chimeraPlotsToReport <- chimeraSummaryPlot(listOfListAllFiles["ChimeraPlot"]$ChimeraPlot)
 ```
 
 Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
@@ -88,12 +88,8 @@ kable(finalListOfSummaryTables["PreClusteredAndChimeraSummary"]$PreClusteredAndC
   scroll_box(width = "100%", height = "600px")
 ```
 
-```{r,echo=FALSE, out.width='.49\\linewidth', fig.show='hold',fig.align='center'}
-#for (chimPlot in chimeraPlotsToReport){
+```{r,echo=FALSE, out.width="100%"}
   plot(chimeraPlotsToReport)
-#}
-#grid.arrange(grobs=chimeraPlotsToReport,ncol=1, 
-#             widths=unit(c(10), c("in")))
 ```
 
 ### OTUs convergence summary

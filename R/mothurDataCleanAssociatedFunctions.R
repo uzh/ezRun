@@ -128,21 +128,73 @@ writeOTUgzFileForVamps <- function(sharedFile, taxaFile){
 ##' @return Returns a pie chart plot.
 ##' 
 
-chimeraSummaryPlot <- function(chimeraFile){
+chimeraSummaryPlot <- function(x){
+  k=0
+  pct <- vector()
+  listOfChimDF <- list()
+  for (file in x){
+    k=k+1
+    nameRawFile <- basename(file)
+    plotLables <- gsub(".chimPlot.txt","",nameRawFile)
+    chimeraFile <- read.delim(nameRawFile, header = F)
   BL <- sum(chimeraFile[chimeraFile$V18 == "?",]$V13)
   chim <- sum(chimeraFile[chimeraFile$V18 == "Y",]$V13)
   noChim <- sum(chimeraFile[chimeraFile$V18 == "N",]$V13)
   chimeraDF <- data.frame(rbind(chim,noChim,BL),stringsAsFactors = FALSE)
   colnames(chimeraDF) = "Freq"
   chimeraDF$Type  = as.factor(c("Chimeric","Not chimeric","Borderline"))
-  pct <- round(chimeraDF$Freq/sum(chimeraDF$Freq)*100,2)
-  titleText <- "Chimeric sequences in the sample"
-  bp <- ggplot(chimeraDF, aes(x="", y=Freq, fill=Type)) + 
-    geom_bar(position = position_stack(),width = 1, stat = "identity") + 
-    geom_text(aes(label = pct), position = position_stack(vjust = 0.5),  size = 5)
-      pieVersion <- bp + coord_polar("y", start=0)
-  finalVersionChimeraPlot <- pieVersion
+  chimeraDF$pct  = round(chimeraDF$Freq/sum(chimeraDF$Freq)*100,2)
+  chimeraDF$Sample <- plotLables
+  listOfChimDF[[k]] <- chimeraDF
+  }
+  dat_text <- data.frame(label = pct)
+  fullChimeraDF <- do.call("rbind",listOfChimDF)
+  bp <- ggplot(fullChimeraDF, aes(x=Type,Freq, fill=Type)) 
+  facetSampleBar <- bp + facet_wrap(vars(Sample)) + geom_bar(stat = "identity",  position = 'dodge') 
+  finalVersionChimeraPlot  <- facetSampleBar +   theme(axis.text.x=element_blank()) +
+    geom_text(aes(y = Freq + 500, label = paste0(pct, '%')),
+              position = position_dodge(width = .9),size = 3)
   return(finalVersionChimeraPlot)
+}
+
+###################################################################
+# Functional Genomics Center Zurich
+# This code is distributed under the terms of the GNU General
+# Public License Version 3, June 2007.
+# The terms are available here: http://www.gnu.org/licenses/gpl.html
+# www.fgcz.ch
+
+
+##' @title OTUs saturation plot
+##' @description HOw many OTUs do we really have?
+##' @param  sharedFile, mothur shared abundance  file.
+##' @return Returns a table
+otuSaturationPlot <- function(x){
+  k=0
+  dfFinal <- list()
+  for (file in x){
+    k=k+1
+    nameRawFile <- basename(file)
+    plotLables <- gsub("tep.OTUsToCount.txt","",nameRawFile)
+    sharedFile <- read.table(nameRawFile, stringsAsFactors = FALSE, sep = "\t", header = TRUE)
+  sharedAbund <- t(sharedFile)
+  totOtus <- sharedAbund[rownames(sharedAbund) == "numOtus",]
+  rowToKeep <- grepl("^Otu.*$",rownames(sharedAbund))
+  sharedAbundDF <- data.frame(data.matrix(data.frame(sharedAbund[rowToKeep,], stringsAsFactors = FALSE)))
+  colnames(sharedAbundDF) <- sharedAbund[rownames(sharedAbund) == "Group",]
+  cumSumTransform <- data.frame(apply(sharedAbundDF,2,cumsum))
+  dfFinal[[k]] = data.frame()
+  for (i in 1:ncol(cumSumTransform))
+  { dfTemp <-  data.frame(abundance = cumSumTransform[,colnames(cumSumTransform)[i]])
+  dfTemp$numberOTUs <- seq_along(1:nrow(dfTemp))
+  dfTemp$Sample <- plotLables
+  dfFinal[[k]] <- rbind(dfFinal[[k]],dfTemp)
+  }
+  }
+  fullSaturaDF <- do.call("rbind",dfFinal)
+  saturationPlot <- ggplot(fullSaturaDF, aes(x=numberOTUs,y=abundance)) + geom_line(colour = "red") +
+    facet_wrap(vars(Sample))
+  return(saturationPlot)
 }
 
 ###################################################################
@@ -233,52 +285,4 @@ createSaturationTableForKableExtra <- function(x) {
   }
   ktables <- do.call(rbind, rawSummaryTable)
   return(list(mergedTable = ktables, aboveHeader = multiTableHeader))
-}
-
-###################################################################
-# Functional Genomics Center Zurich
-# This code is distributed under the terms of the GNU General
-# Public License Version 3, June 2007.
-# The terms are available here: http://www.gnu.org/licenses/gpl.html
-# www.fgcz.ch
-
-
-##' @title Creates saturation  plots for report
-##' @description Creates saturation  plots for report  
-##' @param  x list of mothur shared files for which to create the plots
-##' @return Returns a list of plots
-createSaturationPlotsForReport <- function(x) {
-  otuSatPlot <- list()
-  k=0
-  for (file in x){
-    k=k+1
-    nameRawFile <- basename(file)
-    otuSatPlot[[k]] <- otuSaturationPlot(nameRawFile)
-  }
-  return(otuSatPlot)
-}
-
-###################################################################
-# Functional Genomics Center Zurich
-# This code is distributed under the terms of the GNU General
-# Public License Version 3, June 2007.
-# The terms are available here: http://www.gnu.org/licenses/gpl.html
-# www.fgcz.ch
-
-
-##' @title Creates chimera  plots for report
-##' @description Creates chimera  plots for report  
-##' @param  x list of mothur shared files for which to create the plots
-##' @return Returns a list of plots
-createChimeraSummaryPlotsForReport <- function(x) {
-  chimPlot <- list()
-  k=0
-  for (file in x){
-    k=k+1
-    nameRawFile <- basename(file)
-    rawFileDF <- read.delim(nameRawFile, header = F)
-    chimPlot[[k]] <- chimeraSummaryPlot(rawFileDF)
-  }
-  finalChimPlot <- plot_grid(plotlist = chimPlot, nrow = NULL)
-  return(finalChimPlot)
 }
