@@ -16,6 +16,7 @@ ezMethodGenericPhyloSeqAnalysis = function(input=NA, output=NA, param=NA,
   require(ggplot2)
   require(DESeq2)
   library(Matrix)
+  library(magic)
   dataset = input$meta
   fileNames <- input$getNames()
   ### Analyzes results with phyloseq: preparing objects to be processed in the Rmd file
