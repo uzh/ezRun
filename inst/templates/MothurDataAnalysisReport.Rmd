@@ -88,10 +88,8 @@ kable(finalListOfSummaryTables["PreClusteredAndChimeraSummary"]$PreClusteredAndC
   scroll_box(width = "100%", height = "600px")
 ```
 
-```{r, fig.width = 11}
-grid.arrange(grobs=chimeraPlotsToReport,ncol=3,
-             widths=unit(c(3.66,3.66,3.66), c("in","in")),
-             heights=unit(c(2,2), c("in","in")))
+```{r, out.width = 100%}
+grid.arrange(grobs=chimeraPlotsToReport,ncol=2)
 ```
 
 ### OTUs convergence summary
@@ -112,8 +110,6 @@ kable(otuSaturationTableToReport["OTUsCountTable"]$OTUsCountTable$mergedTable, e
   scroll_box(width = "100%", height = "600px")
 ```
 
-```{r, fig.width = 11}
-grid.arrange(grobs=otuSaturPlotToReport,ncol=3,
-             widths=unit(c(3.66,3.66,3.66), c("in","in")),
-             heights=unit(c(2,2), c("in","in")))
+```{r, out.width = 100%}
+grid.arrange(grobs=otuSaturPlotToReport,ncol=2)
 ```
