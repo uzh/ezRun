@@ -90,7 +90,7 @@ kable(finalListOfSummaryTables["PreClusteredAndChimeraSummary"]$PreClusteredAndC
 
 ```{r,echo=FALSE, out.width='.49\\linewidth', fig.show='hold',fig.align='center'}
 #for (chimPlot in chimeraPlotsToReport){
-  plot(finalChimPlot)
+  plot(chimeraPlotsToReport)
 #}
 #grid.arrange(grobs=chimeraPlotsToReport,ncol=1, 
 #             widths=unit(c(10), c("in")))
