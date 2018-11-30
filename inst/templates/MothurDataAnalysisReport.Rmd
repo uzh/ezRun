@@ -107,5 +107,5 @@ kable(otuSaturationTableToReport["OTUsCountTable"]$OTUsCountTable$mergedTable, e
   scroll_box(width = "100%", height = "600px")
 grid.arrange(grobs=otuSaturPlotToReport,ncol=2,
              widths=unit(c(4,4), c("in","in")),
-             heights=unit(c(4,4), c("in","in")))
+             heights=unit(c(4,4,4), c("in","in","in")))
 ```
