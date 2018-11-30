@@ -80,7 +80,7 @@ kable(finalListOfSummaryTables["MapFiltSummary"]$MapFiltSummary$mergedTable, esc
 ```
 
 ### Summary of the reads preclustered and filtered for chimeras
-```{r PreClusteredAndChimeraSummary, echo=FALSE}
+```{r PreClusteredAndChimeraSummary, echo=FALSE,run = FALSE}
 kable(finalListOfSummaryTables["PreClusteredAndChimeraSummary"]$PreClusteredAndChimeraSummary$mergedTable, escape=TRUE, row.names=FALSE, format="html") %>%
   kable_styling(bootstrap_options = c("striped", "bordered"),
                 full_width = T) %>%
@@ -88,7 +88,7 @@ kable(finalListOfSummaryTables["PreClusteredAndChimeraSummary"]$PreClusteredAndC
   scroll_box(width = "100%", height = "600px")
 ```
 
-```{r, out.width = "80%", echo=FALSE}
+```{r,echo=FALSE, out.width='.49\\linewidth', fig.show='hold',fig.align='center'}
 for (chimPlot in chimeraPlotsToReport){
   plot(chimPlot)
 }
@@ -106,7 +106,7 @@ kable(convStepTableToReport["stepConvergenceSummary"]$stepConvergenceSummary$mer
 ```
 
 ### OTUs saturation tables and plots
-```{r otuSaturPlot, echo=FALSE}
+```{r otuSaturPlot, echo=FALSE, run = FALSE}
 kable(otuSaturationTableToReport["OTUsCountTable"]$OTUsCountTable$mergedTable, escape=TRUE, row.names=FALSE, format="html") %>%
   kable_styling(bootstrap_options = c("striped", "bordered"),
                 full_width = T) %>%
