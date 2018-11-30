@@ -15,17 +15,54 @@ ezMethodGenericPhyloSeqAnalysis = function(input=NA, output=NA, param=NA,
   require(ape)
   require(ggplot2)
   require(DESeq2)
+  library(Matrix)
   dataset = input$meta
-  
+  fileNames <- input$getNames()
   ### Analyzes results with phyloseq: preparing objects to be processed in the Rmd file
   
-  ### OTUs
-  copyOTUTable <- ezSystem(paste("cp", input$getFullPaths("OTUsCountTable"),"./", sep = " "))
-  otuObject <- phyloSeqOTU(basename(input$getFullPaths("OTUsCountTable")))
+  relevantColumns <- c("OTUsCountTable","OTUsToTaxonomyFile")
+  colnames(dataset) <-  gsub(" \\[File\\]","",colnames(dataset))
+  allColumns <- dataset[,relevantColumns]
+  ## Copy all files locally
+  copyLoopOverFiles <- function(x){ 
+    lapply(x,function(x) ezSystem(paste("cp",file.path(DEMO_DATA_ROOT,x),"./")))
+  }
+  listOfListAllFiles <- as.list(allColumns)
+  lapply(listOfListAllFiles,copyLoopOverFiles)
   
-  ### taxonomy
-  copytaxaTable <- ezSystem(paste("cp", input$getFullPaths("OTUsToTaxonomy"),"./", sep = " "))
-  taxaObject <- phyloSeqTaxa(basename(input$getFullPaths("OTUsToTaxonomy")))
+  ### merge all count files into one file
+  k=0
+  OTUsCount <- list()
+  OTUsCountNoLabel <- list()
+  Group <- vector()
+    for (file in listOfListAllFiles["OTUsCountTable"]$OTUsCountTable){
+    k=k+1
+    rawFile <- basename(file)
+    OTUsCount[[k]] <- read.delim(rawFile, header = T,stringsAsFactors = FALSE)
+    colnames(OTUsCount[[k]]) <- gsub("Otu[0-9]",paste0(fileNames[k],"_Otu"),colnames(OTUsCount[[k]]))
+    relCols <- grep("Otu[0-9]",colnames(OTUsCount[[k]]),value = T)
+    OTUsCountNoLabel[[k]] <- as.matrix(OTUsCount[[k]][,relCols])
+    Group[k] <- OTUsCount[[k]]$Group
+  }
+  
+  fullOTUCountTable <- cbind(Group,data.frame(do.call("adiag",OTUsCountNoLabel),
+                                              stringsAsFactors = F))
+  ### create phyloseq OTU object
+  otuObject <- phyloSeqOTU(fullOTUCountTable)
+  
+  ### merge all taxa files into one file  
+  k=0
+  OTUsToTaxonomyDF <- list()
+  for (file in listOfListAllFiles["OTUsToTaxonomyFile"]$OTUsToTaxonomyFile){
+    k=k+1
+    rawFile <- basename(file)
+    OTUsToTaxonomyDF[[k]] <- read.delim(rawFile, header = T,stringsAsFactors = FALSE)
+    OTUsToTaxonomyDF[[k]]$OTU <- paste(fileNames[k],OTUsToTaxonomyDF[[k]]$OTU,sep = "_")
+  }
+  fullTaxaTable <- do.call("rbind",OTUsToTaxonomyDF)
+
+  ### create phyloseq taxa object
+  taxaObject <- phyloSeqTaxa(fullTaxaTable)
 
   ### pruning level
   pruneLevel <- param$representativeOTUs

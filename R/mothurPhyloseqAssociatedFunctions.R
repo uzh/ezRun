@@ -9,14 +9,13 @@
 
 ##' @title Phyloseq OTU object
 ##' @description Create Phyloseq OTU object mothur OTU files.
-##' @param  otuFileName, mothur shared clustered OTU  files.
+##' @param  a data frame in the format of mothur shared clustered OTU  files.
 ##' @return Returns a Phyloseq OTU object.
 
-phyloSeqOTU <- function(otuFileName){
-otuFile <- read.table(otuFileName, sep = "\t", stringsAsFactors = FALSE, header = TRUE)
-rownames(otuFile) <- otuFile$Group
-colToDrop <- c("label","Group","numOtus")
-otuFile1 <- as.matrix(otuFile[,!names(otuFile)%in%colToDrop])
+phyloSeqOTU <- function(otuDF){
+rownames(otuDF) <- otuDF$Group
+colToDrop <- c("Group")
+otuFile1 <- as.matrix(otuDF[,!names(otuDF)%in%colToDrop])
 otuObject <- otu_table(otuFile1, taxa_are_rows = FALSE)
 return(otuObject)
 }
@@ -31,14 +30,13 @@ return(otuObject)
 
 ##' @title Phyloseq Taxa object
 ##' @description Create Phyloseq taxa object from mothur taxonomy files.
-##' @param  taxaFileName, mothur taxonomy file.
+##' @param  taxaDB, a DF in the format of mothur taxonomy file.
 ##' @return Returns a Phyloseq Taxa object.
 
-phyloSeqTaxa <- function(taxaFileName){
-taxaFile <- read.table(taxaFileName, sep = "\t", stringsAsFactors = FALSE, header = TRUE)
-tempList <- lapply(taxaFile$Taxonomy,function(y) unlist(strsplit(y,";")))
+phyloSeqTaxa <- function(taxaDB){
+tempList <- lapply(taxaDB$Taxonomy,function(y) unlist(strsplit(y,";")))
 taxaMatrix <- as.matrix(ldply(tempList))
-rownames(taxaMatrix) <- taxaFile$OTU
+rownames(taxaMatrix) <- taxaDB$OTU
 colnames(taxaMatrix) <- c("Domain","Phylum","Class","Order","Family","Genus","Species")[1:(ncol(taxaMatrix))]
 taxaObject <- tax_table(taxaMatrix)
 return(taxaObject)
