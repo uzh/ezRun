@@ -39,7 +39,7 @@ ezMethodGenericPhyloSeqAnalysis = function(input=NA, output=NA, param=NA,
     for (file in listOfListAllFiles["OTUsCountTable"]$OTUsCountTable){
     k=k+1
     rawFile <- basename(file)
-    OTUsCount[[k]] <- read.delim(rawFile, header = T,stringsAsFactors = FALSE)
+    OTUsCount[[k]] <- read.delim(rawFile, header = T,stringsAsFactors = FALSE,check.names = FALSE)
     colnames(OTUsCount[[k]]) <- gsub("Otu[0-9]",paste0(fileNames[k],"_Otu"),colnames(OTUsCount[[k]]))
     relCols <- grep("Otu[0-9]",colnames(OTUsCount[[k]]),value = T)
     OTUsCountNoLabel[[k]] <- as.matrix(OTUsCount[[k]][,relCols])
