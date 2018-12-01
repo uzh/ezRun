@@ -28,6 +28,8 @@ ezMethodMothurDataAnalysisReport = function(input=NA, output=NA, param=NA,
   require(htmlwidgets)
   library(cowplot)
   
+  ## Create list of summary files for tables
+  
   dataset = input$meta
   relevantColumns <- gsub(" \\[File\\]","",grep("File",colnames(dataset), value = T))
   colnames(dataset) <-  gsub(" \\[File\\]","",colnames(dataset))
@@ -39,23 +41,7 @@ ezMethodMothurDataAnalysisReport = function(input=NA, output=NA, param=NA,
   }
   listOfListAllFiles <- as.list(allColumns)
   lapply(listOfListAllFiles,copyLoopOverFiles)
-  
-  
-  ## Create list of summary files for tables
-  
-  
-  # RawDataSummary <- input$getFullPaths("RawDataSummary")
-  # lapply(RawDataSummary, function(x) ezSystem(paste("cp",x,"./")))
-  
-#  DeduppedSummary <- input$getFullPaths("DeduppedSummary")
-#  LenAndHomopSummary <- input$getFullPaths("LenAndHomopSummary")
-  # MapFiltSummary <- input$getFullPaths("MapFiltSummary")
-  
-  #ChimeraPlot <- input$getFullPaths("ChimeraPlot")
-  
-#  PreClusteredAndChimeraSummary <- input$getFullPaths("PreClusteredAndChimeraSummary")
-  
-#  stepConvergence <- input$getFullPaths("stepConvergence")
+
 
   ## Copy the style files and templates
   styleFiles <- file.path(system.file("templates", package="ezRun"),

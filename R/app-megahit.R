@@ -45,6 +45,61 @@ ezMethodMegahit = function(input=NA, output=NA, param=NA,
   megahitCmd <- paste("bash",megahitToBeExec)
   ezSystem(megahitCmd)
   
+  ## create OTUcount and OTUtax files for phyloseq
+  ##OTU count
+  covFile <- ezRead.table("mockCommShotgun.cov.txt")
+  DF1 <- t(data.frame(t(covFile)["Median_fold",], stringsAsFactors = F))
+  OTUsCountTable <- data.frame(Group="test", DF1, stringsAsFactors = F)
+
+
+  ##OTU tax
+  OTUsTaxAbun <- data.frame(t(subset(OTUsCountTable,select=-c(Group))), 
+                             stringsAsFactors = F)
+  colnames(OTUsTaxAbun) <- "Size"
+  
+  krakLab <- read.delim("kraken.labels", header = F, stringsAsFactors = F)
+  formatKrakenRows <- function(x){
+  t <- paste(unlist(strsplit(x,";"))[3:9], 
+             collapse = ";")
+  t1 <- unlist(strsplit(t," "))[1]
+               return(t1)
+  }
+  taxonomyCol <- data.frame(ldply(lapply(krakLab$V2,formatKrakenRows))$V1,
+                            stringsAsFactors = F)
+  rownames(taxonomyCol) <- krakLab$V1
+  colnames(taxonomyCol) <- "Taxonomy"
+  
+     formatTaxFields <- function(x){
+       taxOut <- vector()
+       taxOut[1] <- "Bacteria"
+      taxClassif <- unlist(strsplit(x,";"))
+      for (k in 2:7){
+        isDomThere <- taxClassif[k]
+        if (is.na(isDomThere)){
+          k1=k-1
+          alreadyUnclassified <- grep(taxClassif[k1],"unclassified")
+          if (length(alreadyUnclassified) > 0 ) {
+            taxOut[k] <- taxOut[k1]
+          } else{
+            taxOut[k] <- paste(taxClassif[k1],"unclassified",sep = "_")
+          }
+        }else {
+          taxOut[k]  <- taxClassif[k]
+        }
+      }
+      return(paste(taxOut, collapse = ";"))
+     }
+      
+  taxonomyCol$Taxonomy <-  sapply(taxonomyCol$Taxonomy,formatTaxFields, USE.NAMES = F)
+  finalOTUTaxTable <- merge(OTUsTaxAbun,taxonomyCol,by="row.names")
+  colnames(finalOTUTaxTable)[1] <- "OTU"
+  colsToKeep <- finalOTUTaxTable$OTU
+  finalOTUCountTable <- OTUsCountTable[,c("Group",colsToKeep)]
+  ## write final tables ready for phyloseq
+  write.table(finalOTUTaxTable, "tempTaxaFile.txt",sep = "\t",
+              col.names = T, row.names = F, quote = F)
+  write.table(finalOTUCountTable, "tempCountFile.txt",sep = "\t",
+              col.names = T, row.names = F, quote = F)
   ## rename output files
   #1) 
   oldContigFile <- "megahitResults/final.contigs.fa"
@@ -59,9 +114,13 @@ ezMethodMegahit = function(input=NA, output=NA, param=NA,
   newIPSAnnFile <- basename(output$getColumn("interproscanFile"))
   ezSystem(paste("mv",oldIPSAnnFile,newIPSAnnFile))
   #4) 
-  oldKrakenLablesFile <- "interProScanOut.gff3"
-  newKrakenLablesFile <- basename(output$getColumn("krakenLabelsFile"))
-  ezSystem(paste("mv",oldKrakenLablesFile,newKrakenLablesFile))
+  oldTaxaFile <- "tempTaxaFile.txt"
+  newTaxaFile <- basename(output$getColumn("OTUsToTaxonomyFile"))
+  ezSystem(paste("mv",oldTaxaFile,newTaxaFile))
+  #5) 
+  oldCountFile <- "tempCountFile.txt"
+  newCountFile <- basename(output$getColumn("OTUsCountTable"))
+  ezSystem(paste("mv",oldCountFile,newCountFile))
 }
 
 ##' @template app-template
