@@ -55,10 +55,9 @@ return(taxaObject)
 ##' @param  path to the tsv desing file 
 ##' @return Returns a Phyloseq Taxa object.
 phyloSeqSample <- function(sampleFileName){
-#sampleFile <- ezRead.table(sampleFileName)
   sampleFile <- sampleFileName
-colToKeep <- grep("Factor",colnames(sampleFile))
-colnames(sampleFile) <- sub('\\s\\[Factor\\]',"",colnames(sampleFile))
+#colToKeep <- grep("Factor",colnames(sampleFile))
+#colnames(sampleFile) <- sub('\\s\\[Factor\\]',"",colnames(sampleFile))
 sampleObject <- sample_data(sampleFile)
 return(sampleObject)
 }
@@ -76,16 +75,17 @@ return(sampleObject)
 ##' @param  phyloseqObj, a phyloseq object.
 ##' @return Returns a  filtered Phyloseq  object.
 phyloSeqPreprocess <- function(phyloseqObj){
+  GPfr <- phyloseqObj
   ## Standardize abundances to the median sequencing depth
-  total = median(sample_sums(phyloseqObj))
-  standf = function(x, t=total) round(t * (x / sum(x)))
-  gps = transform_sample_counts(phyloseqObj, standf)
-  ## transformed to relative abundance and filtered by abundance
-  GPr  = transform_sample_counts(gps, function(x) x / sum(x) )
-  GPfr = filter_taxa(GPr, function(x) mean(x) > 1e-5, TRUE)
+ # total = median(sample_sums(phyloseqObj))
+ # standf = function(x, t=total) round(t * (x / sum(x)))
+#  gps = transform_sample_counts(phyloseqObj, standf)
+#  ## transformed to relative abundance and filtered by abundance
+#  GPr  = transform_sample_counts(gps, function(x) x / sum(x) )
+#  GPfr = filter_taxa(GPr, function(x) mean(x) > 1e-5, TRUE)
   filteredPhyloseqObj = filter_taxa(GPfr, function(x) sum(x > 3*1e-5) > (0.2*length(x)), TRUE)
   filteredPhyloseqObj = subset_taxa(filteredPhyloseqObj, Domain=="Bacteria")
-  filteredPhyloseqObj = subset_taxa(gps, Domain=="Bacteria")
+ # filteredPhyloseqObj = subset_taxa(GPfr, Domain=="Bacteria")
   return(filteredPhyloseqObj)
 }
 
@@ -220,4 +220,72 @@ phyloSeqCommunityComp <- function(physeq){
   finalVersion <- bp +  labs(title=titleText, y="") + 
     theme(plot.title=element_text(size=15, face="bold",hjust=0.5))
   return(finalVersion)
+}
+
+###################################################################
+# Functional Genomics Center Zurich
+# This code is distributed under the terms of the GNU General
+# Public License Version 3, June 2007.
+# The terms are available here: http://www.gnu.org/licenses/gpl.html
+# www.fgcz.ch
+
+
+##' @title  Alternative pca plot for phyloseq abundnce-taxonimy matrix  
+##' @description Alternative pca plot for phyloseq abundnce-taxonimy matrix  
+##' @param  phySeq,rank a phyloseq otu object and the number or top ranked categpries
+##' @return Returns an MDS   plot.
+##' 
+### PCA plot function
+pcaForPhylotseqPlot <- function(input,groups){
+  ## calculate MDS values
+  input <- t(input)
+  mds = plotMDS(log2(input+10), plot=FALSE, ndim=2)
+  ggg <- data.frame(comp1 = mds$cmdscale.out[,1] ,comp2 = mds$cmdscale.out[,2], group = groups)
+  
+  ## calculate var explained
+  s <- svd(input-rowMeans(input))
+  cc <- s$d^2/sum(s$d^2)
+  PC1varExpl <- round(cc[1],4)*100
+  PC2varExpl <- round(cc[2],4)*100
+  xAxisLabel <- paste0("PC1 (", PC1varExpl,"% explained var.)")
+  yAxisLabel <- paste0("PC2 (", PC2varExpl ,"% explained var.)")
+  
+  ## plot
+  g <- ggplot(ggg, aes(comp1,comp2, group = group)) + geom_point(aes(colour = group),size =3)
+  g <- g + xlab(xAxisLabel) + ylab(yAxisLabel)
+  plot(g)
+}
+
+###################################################################
+# Functional Genomics Center Zurich
+# This code is distributed under the terms of the GNU General
+# Public License Version 3, June 2007.
+# The terms are available here: http://www.gnu.org/licenses/gpl.html
+# www.fgcz.ch
+
+
+##' @title  Alternative heatmap plot for phyloseq abundnce-taxonimy matrix  
+##' @description Alternative heatmap plot for phyloseq abundnce-taxonimy matrix  
+##' @param   a phyloseq object and the rank to summarize
+##' @return Returns a stacked bar  plot.
+##' 
+### PCA plot function
+heatmapForPhylotseqPlot <- function(phyloseqOtuObj){
+  plot_heatmap <- function() {
+    ## clust funct
+  distCor <- function(x) {as.dist(1-cor(x))}
+  zClust <- function(x, scale="row", zlim=c(-3,3), method="average") {
+    if (scale=="row") z <- t(scale(t(x)))
+    if (scale=="col") z <- scale(x)
+    z <- pmin(pmax(z, zlim[1]), zlim[2])
+    hcl_row <- hclust(distCor(t(z)), method=method)
+    hcl_col <- hclust(distCor(z), method=method)
+    return(list(data=z, hcl_r=hcl_row,hcl_c=hcl_col, Rowv=as.dendrogram(hcl_row), Colv=as.dendrogram(hcl_col)))
+  }
+  z <- zClust(t(phyloseqOtuObj))
+  cols <- colorRampPalette(brewer.pal(10, "RdBu"))(256)
+  ## heatmap
+    heatmap.2(z$data,dendrogram=c("both"),Rowv=z$Rowv,Colv=z$Colv,col=rev(cols), 
+              trace='none',density.info=c("none"))
+  }
 }

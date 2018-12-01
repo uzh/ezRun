@@ -24,33 +24,48 @@ setEnvironments("phantomjs")
 
 ```{r prepAbund, include=FALSE}
 ### create plots: 1. abundance
-illAbPlot <- plot_bar(physeqFullObject, "Group", "Abundance", "Phylum") + geom_bar(aes(color=Phylum, fill=Phylum), stat="identity", position="stack")
+abundPlot <- plot_bar(physeqFullObject, "Group", "Abundance", "Phylum") + geom_bar(aes(color=Phylum, fill=Phylum), stat="identity", position="stack")
 ```
 
-```{r prepOrd, include=FALSE}
+```{r prepOrdTaxa, include=FALSE}
+### create plots: 2. ordination by taxa 
+ordinateDS <- ordinate(physeqFullObject, "NMDS", "bray")
+plotOrdTaxa = plot_ordination(physeqFullObject, ordinateDS, type="taxa", color="Phylum") + facet_wrap(~Phylum, 3) + ggtitle("Taxa ordination")
+```
+
+```{r prepOrdSamples, include=FALSE, eval = isGroupThere}
 ### create plots: 2. ordination
-illOrd <- ordinate(physeqFullObject, "NMDS", "bray")
-plotOrdTaxaIll = plot_ordination(physeqFullObject, illOrd, type="taxa", color="Phylum") + facet_wrap(~Phylum, 3) + ggtitle("Taxa ordination")
-plotOrdSamplesIll = plot_ordination(physeqFullObject, illOrd, type="samples", color="Group") 
-plotOrdSamplesIll = plotOrdSamplesIll + geom_polygon(aes(fill=Group)) + geom_point(size=5) + ggtitle("Sample ordination")
+inputData <- physeqFullObject@otu_table@.Data
+inputGroup <- physeqFullObject@sam_data$Group
+plotOrdSamples =  pcaForPhylotseqPlot(inputData,inputGroup) + ggtitle("Sample ordination")
 ```
 
 ```{r prepRich, include=FALSE}
 ### create plots: 3. richness 
-plotRichIll <- plot_richness(physeqFullObject, x="Group", measures=c("Simpson", "Shannon"), color="Group")
+if (isGroupThere) {
+plotRichness <- plot_richness(physeqFullObject, x="Group", measures=c("Simpson", "Shannon"), color="Group")
+}else{
+plotRichness <- plot_richness(physeqFullObject, measures=c("Simpson", "Shannon"))
+}
 ```
 
 ```{r prepTree, include=FALSE}
 ### create plots: 4. tree
-plotTreeIll <- plot_tree(physeqFullObject , ladderize="left", color="Group")
+if (isGroupThere) {
+plotTree <- plot_tree(physeqFullObject , ladderize="left", color="Group")
+}else{
+plotTree <- plot_tree(physeqFullObject , ladderize="left")
+}
 ```
 
 ```{r prepHeat, include=FALSE}
 ### create plots:5. heatmap
-plotHeatmapIll <- plot_heatmap(physeqFullObject, taxa.label="Phylum")
+inputData <- physeqFullObject@otu_table@.Data
+plotHeatmap <- heatmapForPhylotseqPlot(inputData)
 ```
 
-```{r prepDeSeq, include=FALSE}
+
+```{r prepDeSeq, include=FALSE, eval = isGroupThere}
 ### 6: compare groups
 deseqResults <- phyloSeqToDeseq2_tableAndPlots(physeqFullObject)
 ```
@@ -60,74 +75,46 @@ Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
 ## Data pre-processing {.tabset}
 
 ### Abundance barplots
-#### PacBio
-```{r abundPB, echo=FALSE}
-plot(pbAbPlot)
-```
-
 #### Illumina
-```{r abundIll, echo=FALSE}
-plot(illAbPlot)
+```{r abund, echo=FALSE}
+plot(abundPlot)
 ```
 
 ### Ordination plots
-<!-- #### PacBio
-```{r ordPB, echo=FALSE}
-plot(plotOrdSamplesPB)
-```
--->
-#### Illumina
-```{r ordIll, echo=FALSE}
-plot(plotOrdTaxaIll)
+```{r ordin, echo=FALSE}
+plot(plotOrdTaxa)
 ```
 
+```{r ordin, echo=FALSE, eval = isGroupThere}
+plot(plotOrdSamples)
+```
 ### Richness plots
-#### PacBio
 ```{r richPB, echo=FALSE}
-plot(plotRichPB)
+plot(plotRichness)
 ```
-
-#### Illumina
-```{r richIll, echo=FALSE}
-plot(plotRichIll)
-```
-
 ### Tree plots
-#### PacBio
 ```{r treePB, echo=FALSE}
-plot(plotTreePB)
-```
-
-#### Illumina
-
-```{r treeIll, echo=FALSE}
-plot(plotTreeIll)
+plot(plotTree)
 ```
 
 ### Heatmaps
-#### PacBio
 ```{r heatPB, echo=FALSE}
-plot(plotHeatmapIll)
-```
-
-#### Illumina
-```{r heatIll, echo=FALSE}
-plot(plotHeatmapIll)
+plotHeatmap()
 ```
 
 ### Two-goups comparison
 #### Volcano plot
-```{r volcano, echo=FALSE}
+```{r volcano, echo=FALSE,eval = isGroupThere}
 plot(deseqResults$vPlot)
 ```
 
 #### Log-fold changes 
-```{r logfold, echo=FALSE}
+```{r logfold, echo=FALSE,eval = isGroupThere}
 plot(deseqResults$logPlot)
 ```
 
 #### Summary table
-```{r table, echo=FALSE}
+```{r table, echo=FALSE,eval = isGroupThere}
 plot(deseqResults$table)
 ```
 
