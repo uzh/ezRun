@@ -125,7 +125,8 @@ phyloSeqToDeseq2_tableAndPlots <- function(phyloseqObj){
   addTaxa$Significance <- factor(addTaxa$Significance, levels = rev(levels(addTaxa$Significance)))
   ### log2fold plot
   title <- "Abundance changes between the groups"
-  plotLogFoldVsTaxon <- ggplot(addTaxa, aes(x=Genus, y=log2FoldChange, color=Phylum)) + geom_point(size=3) + 
+  plotLogFoldVsTaxon <- ggplot(addTaxa, aes(x=Genus, y=log2FoldChange, color=Phylum)) + 
+    geom_point(size=3) + 
     theme(axis.text.x = element_text(angle = -90, hjust = 0, vjust=0.5)) +
     geom_hline(aes(yintercept=1),color="red") + geom_text(aes(1,1,label = 1, vjust = -1), color = "red", size =3) + 
     geom_hline(aes(yintercept=-1),color="red") + geom_text(aes(1,-1,label = -1, vjust = 1), color = "red", size =3)
@@ -134,7 +135,8 @@ phyloSeqToDeseq2_tableAndPlots <- function(phyloseqObj){
   title <- "Volcano plot (padj  = 0.05)"
   volcanoPlot <- ggplot(addTaxa, aes(y=-log10(pvalue), x=log2FoldChange)) +
     geom_point(aes(shape=Significance, color=Phylum),size=3) 
-  volcanoPlot <- volcanoPlot + labs(title=title) + theme(plot.title=element_text(size=15, face="bold",hjust=0.5))
+  volcanoPlot <- volcanoPlot + labs(title=title) + 
+    theme(plot.title=element_text(size=15, face="bold",hjust=0.5))
   ### Diff.expr. pie chart
   OTUsToPlot <- na.omit(addTaxaOut[addTaxaOut$padj < 0.05,])
   tableTaxa <- data.frame(table(droplevels(OTUsToPlot[,"Genus"])))

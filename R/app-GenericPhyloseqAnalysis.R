@@ -28,6 +28,7 @@ ezMethodGenericPhyloSeqAnalysis = function(input=NA, output=NA, param=NA,
   
   relevantColumns <- c("OTUsCountTable","OTUsToTaxonomyFile")
   colnames(dataset) <-  gsub(" \\[File\\]","",colnames(dataset))
+  colnames(dataset) <-  gsub(" \\[Factor\\]","",colnames(dataset))
   allColumns <- dataset[,relevantColumns]
   ## Copy all files locally
   copyLoopOverFiles <- function(x){ 
