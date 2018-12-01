@@ -17,8 +17,10 @@ ezMethodGenericPhyloSeqAnalysis = function(input=NA, output=NA, param=NA,
   require(DESeq2)
   library(Matrix)
   library(magic)
+  library(ape)
   dataset = input$meta
   fileNames <- input$getNames()
+  isGroupThere <- param$Group
   ### Analyzes results with phyloseq: preparing objects to be processed in the Rmd file
   
   relevantColumns <- c("OTUsCountTable","OTUsToTaxonomyFile")
@@ -31,56 +33,58 @@ ezMethodGenericPhyloSeqAnalysis = function(input=NA, output=NA, param=NA,
   listOfListAllFiles <- as.list(allColumns)
   lapply(listOfListAllFiles,copyLoopOverFiles)
   
-  ### merge all count files into one file
+### create list of phyloseq OTU object
+
   k=0
   OTUsCount <- list()
   OTUsCountNoLabel <- list()
+  otuObject <-list()
   Group <- vector()
     for (file in listOfListAllFiles["OTUsCountTable"]$OTUsCountTable){
     k=k+1
     rawFile <- basename(file)
     OTUsCount[[k]] <- read.delim(rawFile, header = T,stringsAsFactors = FALSE,check.names = FALSE)
     relCols <- grep("Otu[0-9]",colnames(OTUsCount[[k]]))
-    colnames(OTUsCount[[k]])[relCols] <- 
-      paste(fileNames[k],colnames(OTUsCount[[k]][relCols]),sep = "_")
     OTUsCountNoLabel[[k]] <- as.matrix(OTUsCount[[k]][,relCols])
     Group[k] <- fileNames[k]
-  }
-  
-  fullOTUCountTable <- cbind(Group,data.frame(do.call("adiag",OTUsCountNoLabel),
-                                              stringsAsFactors = F, check.names = F))
-  ### create phyloseq OTU object
-  otuObject <- phyloSeqOTU(fullOTUCountTable)
-  
-  ### merge all taxa files into one file  
+    otuObject[[k]] <- phyloSeqOTU(data.frame(Group = Group[k],OTUsCountNoLabel[[k]],
+                                             check.names = F))
+}
+
+  ### create list of phyloseq taxa object  
   k=0
   OTUsToTaxonomyDF <- list()
+  taxaObject <- list()
   for (file in listOfListAllFiles["OTUsToTaxonomyFile"]$OTUsToTaxonomyFile){
     k=k+1
     rawFile <- basename(file)
     OTUsToTaxonomyDF[[k]] <- read.delim(rawFile, header = T,stringsAsFactors = FALSE)
-    OTUsToTaxonomyDF[[k]]$OTU <- paste(fileNames[k],OTUsToTaxonomyDF[[k]]$OTU,sep = "_")
-  }
-  fullTaxaTable <- do.call("rbind",OTUsToTaxonomyDF)
+    taxaObject[[k]] <- phyloSeqTaxa(OTUsToTaxonomyDF[[k]])
+    }
+  
+  ###
+  phyObjList <- mapply(phyloseq,otuObject, taxaObject)
+  fullPhySeqObj <- Reduce(function(x, y) merge_phyloseq(x, y), phyObjList)
+ 
+   ### Add sample object eventually with Group
+ if (isGroupThere) {
+   designMatrix <- data.frame(row.names  = rownames(dataset),
+                             Group = as.factor(dataset[,c("Group [Factor]")]),
+                             stringsAsFactors = FALSE)
+  sampleObject <- sample_data(designMatrix)
+  physeqObjectNoTree = merge_phyloseq(fullPhySeqObj,sampleObject)
+ }else{
+   physeqObjectNoTree = fullPhySeqObj
+ }
 
-  ### create phyloseq taxa object
-  taxaObject <- phyloSeqTaxa(fullTaxaTable)
-
-  ### pruning level
   pruneLevel <- param$representativeOTUs
   
-  ### Samples
-  designMatrix <- data.frame(row.names  = rownames(dataset),
-                             Group = dataset[,c("Group [Factor]")],
-                             stringsAsFactors = FALSE)
-  sampleObject<- phyloSeqSample(designMatrix)
-
   ### create, add trees, preprocess and prune phyloseq object 
-  physeqObjectNoTree = phyloseq(otuObject, taxaObject,sampleObject)
   treeObject = rtree(ntaxa(physeqObjectNoTree), rooted=TRUE, tip.label=taxa_names(physeqObjectNoTree))
   physeqFullObject <- merge_phyloseq(physeqObjectNoTree,treeObject)
   physeqFullObject <- phyloSeqPreprocess(physeqFullObject)
-  physeqFullObject <- prune_taxa(taxa_names(physeqFullObject)[1:pruneLevel], physeqFullObject)
+  myTaxa = names(sort(taxa_sums(physeqFullObject), decreasing = TRUE)[1:pruneLevel])
+  physeqFullObject <- prune_taxa(myTaxa,physeqFullObject)
 
   ## Copy the style files and templates
   styleFiles <- file.path(system.file("templates", package="ezRun"),

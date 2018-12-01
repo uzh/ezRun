@@ -44,8 +44,9 @@ ezMethodMegahit = function(input=NA, output=NA, param=NA,
   ## run script
   megahitCmd <- paste("bash",megahitToBeExec)
   ezSystem(megahitCmd)
+  ### megahit complete
   
-  ## create OTUcount and OTUtax files for phyloseq
+  ## format output  OTUcount and OTUtax files for phyloseq
   ##OTU count
   covFile <- ezRead.table("mockCommShotgun.cov.txt")
   DF1 <- t(data.frame(t(covFile)["Median_fold",], stringsAsFactors = F))
