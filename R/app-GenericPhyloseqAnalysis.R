@@ -69,7 +69,7 @@ ezMethodGenericPhyloSeqAnalysis = function(input=NA, output=NA, param=NA,
    ### Add sample object eventually with Group
  if (isGroupThere) {
    designMatrix <- data.frame(row.names  = rownames(dataset),
-                             Group = as.factor(dataset[,c("Group [Factor]")]),
+                             Group = as.factor(dataset[,c("Group")]),
                              stringsAsFactors = FALSE)
   sampleObject <- sample_data(designMatrix)
   physeqObjectNoTree = merge_phyloseq(fullPhySeqObj,sampleObject)
