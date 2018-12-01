@@ -12,14 +12,12 @@ output:
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ## This report requires summary files form mothur
-
-require(knitr)
-require(kableExtra)
-require(SummarizedExperiment)
-require(webshot)
-require(htmlwidgets)
 debug <- FALSE
 setEnvironments("phantomjs")
+```
+
+```{r}
+isGroupThere <- param$Group
 ```
 
 ```{r prepAbund, include=FALSE}
@@ -27,14 +25,14 @@ setEnvironments("phantomjs")
 abundPlot <- plot_bar(physeqFullObject, "Group", "Abundance", "Phylum") + geom_bar(aes(color=Phylum, fill=Phylum), stat="identity", position="stack")
 ```
 
-```{r prepOrdTaxa, include=FALSE, eval = isGroupThere}
+```{r prepOrdTaxa, include=FALSE, eval=isGroupThere}
 ### create plots: 2. ordination by taxa 
 ordinateDS <- ordinate(physeqFullObject, "NMDS", "bray")
 plotOrdTaxa = plot_ordination(physeqFullObject, ordinateDS, type="taxa", color="Phylum") + facet_wrap(~Phylum, 3) + ggtitle("Taxa ordination")
 ```
 
 ```{r prepOrdSamples, include=FALSE, eval = isGroupThere}
-### create plots: 2. ordination
+### create plots: 2. ordination by samlpe
 inputData <- physeqFullObject@otu_table@.Data
 inputGroup <- physeqFullObject@sam_data$Group
 plotOrdSamples =  pcaForPhylotseqPlot(inputData,inputGroup) + ggtitle("Sample ordination")
