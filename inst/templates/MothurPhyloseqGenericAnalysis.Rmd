@@ -27,7 +27,7 @@ setEnvironments("phantomjs")
 abundPlot <- plot_bar(physeqFullObject, "Group", "Abundance", "Phylum") + geom_bar(aes(color=Phylum, fill=Phylum), stat="identity", position="stack")
 ```
 
-```{r prepOrdTaxa, include=FALSE}
+```{r prepOrdTaxa, include=FALSE, eval = isGroupThere}
 ### create plots: 2. ordination by taxa 
 ordinateDS <- ordinate(physeqFullObject, "NMDS", "bray")
 plotOrdTaxa = plot_ordination(physeqFullObject, ordinateDS, type="taxa", color="Phylum") + facet_wrap(~Phylum, 3) + ggtitle("Taxa ordination")
@@ -84,14 +84,15 @@ plot(abundPlot)
 ```{r ordinTaxa, echo=FALSE}
 plot(plotOrdTaxa)
 ```
-
 ```{r ordinSamples, echo=FALSE, eval = isGroupThere}
 plot(plotOrdSamples)
 ```
+
 ### Richness plots
 ```{r richPB, echo=FALSE}
 plot(plotRichness)
 ```
+
 ### Tree plots
 ```{r treePB, echo=FALSE}
 plot(plotTree)
