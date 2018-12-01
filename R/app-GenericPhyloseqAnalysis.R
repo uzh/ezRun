@@ -18,6 +18,7 @@ ezMethodGenericPhyloSeqAnalysis = function(input=NA, output=NA, param=NA,
   library(Matrix)
   library(magic)
   library(ape)
+  library(limma)
   dataset = input$meta
   fileNames <- as.vector(input$getNames())
   isGroupThere <- param$Group
