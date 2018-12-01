@@ -21,6 +21,12 @@ ezMethodGenericPhyloSeqAnalysis = function(input=NA, output=NA, param=NA,
   library(limma)
   library(RColorBrewer)
   library(gplots)
+  require(knitr)
+  require(kableExtra)
+  require(SummarizedExperiment)
+  require(webshot)
+  require(htmlwidgets)
+  
   dataset = input$meta
   fileNames <- as.vector(input$getNames())
   isGroupThere <- param$Group
