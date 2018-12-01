@@ -81,7 +81,7 @@ plot(abundPlot)
 ```
 
 ### Ordination plots
-```{r ordinTaxa, echo=FALSE}
+```{r ordinTaxa, echo=FALSE,eval = isGroupThere}
 plot(plotOrdTaxa)
 ```
 ```{r ordinSamples, echo=FALSE, eval = isGroupThere}
