@@ -81,11 +81,11 @@ plot(abundPlot)
 ```
 
 ### Ordination plots
-```{r ordin, echo=FALSE}
+```{r ordinTaxa, echo=FALSE}
 plot(plotOrdTaxa)
 ```
 
-```{r ordin, echo=FALSE, eval = isGroupThere}
+```{r ordinSamples, echo=FALSE, eval = isGroupThere}
 plot(plotOrdSamples)
 ```
 ### Richness plots

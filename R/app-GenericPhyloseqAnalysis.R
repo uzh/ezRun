@@ -19,7 +19,7 @@ ezMethodGenericPhyloSeqAnalysis = function(input=NA, output=NA, param=NA,
   library(magic)
   library(ape)
   dataset = input$meta
-  fileNames <- input$getNames()
+  fileNames <- as.vector(input$getNames())
   isGroupThere <- param$Group
   ### Analyzes results with phyloseq: preparing objects to be processed in the Rmd file
   
@@ -44,7 +44,7 @@ ezMethodGenericPhyloSeqAnalysis = function(input=NA, output=NA, param=NA,
     k=k+1
     rawFile <- basename(file)
     OTUsCount[[k]] <- read.delim(rawFile, header = T,stringsAsFactors = FALSE,check.names = FALSE)
-    relCols <- grep("Otu[0-9]",colnames(OTUsCount[[k]]))
+    relCols <- grep("Group",colnames(OTUsCount[[k]]),invert = T)
     OTUsCountNoLabel[[k]] <- as.matrix(OTUsCount[[k]][,relCols])
     Group[k] <- fileNames[k]
     otuObject[[k]] <- phyloSeqOTU(data.frame(Group = Group[k],OTUsCountNoLabel[[k]],
