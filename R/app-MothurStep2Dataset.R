@@ -26,6 +26,7 @@ ezMethodMothurStep2Dataset = function(input=NA, output=NA, param=NA,
   ezSystem(paste("cat",groupFiles,"> merged.align"))
 
   ### is there at least a mock sample for the error estimate? The error estimates for the Non-mock samples will be ignored downstream
+  ## TODO : fix this properly
   if(param$mockSample){
     if (input$getColumn("Mock") == "Yes") {
       copyRefCmd <- paste("cp", param$referenceFasta,"./", sep = " ")
@@ -107,7 +108,7 @@ ezMethodMothurStep2Dataset = function(input=NA, output=NA, param=NA,
 ##' @templateVar method ezMethodMothurStep2Dataset()
 ##' @templateVar htmlArg )
 ##' @description Use this reference class to run 
-EzAppMothurStep2Dataset<-
+EzAppMothurStep2Dataset <-
   setRefClass("EzAppMothurStep2Dataset",
               contains = "EzApp",
               methods = list(
