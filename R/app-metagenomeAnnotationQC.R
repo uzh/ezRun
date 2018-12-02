@@ -65,6 +65,15 @@ ezMethodMetagenomeAnnotationQC = function(input=NA, output=NA, param=NA,
   topN[[column]] <- gsub("\"","",topN[[column]])
   return(topN)
   }
+  
+  ## Copy the style files and templates
+  styleFiles <- file.path(system.file("templates", package="ezRun"),
+                          c("fgcz.css", "MetagenomeAnnotation.Rmd", 
+                            "fgcz_header.html", "banner.png"))
+  file.copy(from=styleFiles, to=".", overwrite=TRUE)
+  rmarkdown::render(input="MetagenomeAnnotation.Rmd", envir = new.env(),
+                    output_dir=".", output_file=htmlFile, quiet=TRUE)
+  
 }
 ##' @template app-template
 ##' @templateVar method ezMethodMetagenomeAnnotationQC()
