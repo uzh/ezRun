@@ -11,13 +11,14 @@ ezMethodMetaquast = function(input=NA, output=NA, param=NA, htmlFile="00index.ht
     ## copy everything locally 
     ## refs
    copyLoopOverFiles <- function(x){ 
-    lapply(x,function(x) ezSystem(paste("cp",x,"./")))
+    sapply(x,function(x) ezSystem(paste("cp",x,"./")))
    }
    refListFile <-  param$fileWithListOfRefs
-   refList = as.list(read.delim(refListFile))
-    lapply(refList,copyLoopOverFiles)
-    localrefListFile <- basename(refListFile)
-    refListToParse <- paste(basename(refList),collapse = ",")
+   refList = read.delim(refListFile, stringsAsFactors = F, header = F)
+   colnames(refList) <- "refList"
+    sapply(refList$refList,copyLoopOverFiles)
+    localrefListFile <- basename(refList$refList)
+    refListToParse <- paste(basename(refList$refList),collapse = ",")
     ## draft
     draft = input$getFullPaths("contigFile")
     localDraft <- basename(draft)
