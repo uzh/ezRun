@@ -28,12 +28,10 @@ ezMethodMetagenomeAnnotationQC = function(input=NA, output=NA, param=NA,
   ## get input files
   prodigalGffFile <- input$getFullPaths("prodigalPredictionFile")
   IPSGffFile <- input$getFullPaths("interproscanFile")
-  krakenFile <- input$getFullPaths("krakenLabelsFile")
-  
+
   ezSystem(paste("cp", prodigalGffFile, basename(prodigalGffFile)))
   ezSystem(paste("cp", IPSGffFile, basename(IPSGffFile)))
-  ezSystem(paste("cp", krakenFile, basename(krakenFile)))
-  
+
   prodigalGffImport <- import.gff(prodigalGffFile)
   prodigalSummaryDF <- data.frame(mcols(prodigalGffImport), stringsAsFactors = F)
   prodigalSummaryDF$gc_cont <- as.numeric(prodigalSummaryDF$gc_cont)
