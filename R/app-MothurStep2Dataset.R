@@ -17,7 +17,7 @@ ezMethodMothurStep2Dataset = function(input=NA, output=NA, param=NA,
   require(ggplot2)
   library(scales)
   dataset = input$meta
-  sampleName = input$getNames() 
+  sampleName = "merged"
   
   ### Merge align and group files from Mothur
   alignFiles <- input$getFullPaths("alignedFile")
@@ -47,10 +47,26 @@ ezMethodMothurStep2Dataset = function(input=NA, output=NA, param=NA,
     mockString = "###seq.error"
   }
   ###
+  ### update batch file  with parameters and run mothur: step 2 and, precluster, remove non-bacterial reads and generate final cluster
+  updateBatchCmd_step2<- paste0("sed  -e s/\"Mothur\"/" ,sampleName, "/g ",
+                                file.path(METAGENOMICS_ROOT,FINAL_MOTHUR_WORKFLOW_TEMPLATE_STEP2), 
+                                " >",
+                                FINAL_MOTHUR_WORKFLOW_TEMPLATE_STEP2)
+  ezSystem(updateBatchCmd_step2)
+  cmdMothur_step2= paste(MOTHUR_EXE,FINAL_MOTHUR_WORKFLOW_TEMPLATE_STEP2)
+  ezSystem(cmdMothur_step2)
+  
+  ### extract region
+  summaryFileToExtractRegion <- paste(sampleName,"summary", sep = ".")
+  summaryOfAlign <- read.delim(summaryFileToExtractRegion, stringsAsFactors = FALSE, header = T)
+  regionStartCoord <- quantile(summaryOfAlign$start, probs = seq(0, 1, 0.025))["95%"]
+  regionEndCoord <- quantile(summaryOfAlign$end, probs = seq(0, 1, 0.025))["5%"]
   
   ### update batch file  with parameters and run mothur: step 2 and, precluster, remove non-bacterial reads and generate final cluster
   updateBatchCmd_step3 <- paste0("sed -e s/\"CUTOFF_TAXON\"/", param$cutOffTaxonomy, "/g",
-                                   " -e s/\"REFERENCE\"/", basename(param$referenceFasta), "/g",
+                                 " -e s/\"START_COORD\"/", regionStartCoord, "/g",
+                                 " -e s/\"END_COORD\"/", regionEndCoord, "/g",
+                                 " -e s/\"REFERENCE\"/", basename(param$referenceFasta), "/g",
                                    " -e s/\"CUTOFF_CLUST\"/", param$cutOffCluster, "/g",
                                    " -e s/\"DIFFS\"/", param$diffs, "/g",
                                    " -e s/\"Mothur\"/" ,sampleName, "/g",
@@ -63,6 +79,12 @@ ezMethodMothurStep2Dataset = function(input=NA, output=NA, param=NA,
   
   ## rename output files
   ## Files needed for the report 
+  #4) 
+  oldMappedFilteredFileName <- paste(sampleName,"good.summary",
+                                     sep = ".")
+  newMappedFilteredFileName <- basename(output$getColumn("MapFiltSummary"))
+  ezSystem(paste("mv",oldMappedFilteredFileName,newMappedFilteredFileName))
+  
   #5) 
   oldChimeraPlotFileName <- paste(sampleName,
                                   "merged.filter.unique.precluster.denovo.vsearch.chimeras",

@@ -89,6 +89,14 @@ deseqResults <- phyloSeqToDeseq2_tableAndPlots(physeqFullObject)
 Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
 
 ## Data pre-processing {.tabset}
+### Mothur data analysis: summary of the  reads filtered by mapping
+```{r MapFiltSummary, echo=FALSE}
+kable(finalListOfSummaryTables["MapFiltSummary"]$MapFiltSummary$mergedTable, escape=TRUE, row.names=FALSE, format="html") %>%
+  kable_styling(bootstrap_options = c("striped", "bordered"),
+                full_width = T) %>%
+  group_rows(index = finalListOfSummaryTables["MapFiltSummary"]$MapFiltSummary$aboveHeader) %>%
+  scroll_box(width = "100%", height = "600px")
+```
 
 ### Mothur data analysis: summary of the reads preclustered and filtered for chimeras
 ```{r,echo=FALSE, out.width="100%"}
