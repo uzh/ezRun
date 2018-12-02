@@ -55,10 +55,10 @@ ezMethodMothurStep2Dataset = function(input=NA, output=NA, param=NA,
                                    " -e s/\"DIFFS\"/", param$diffs, "/g",
                                    " -e s/\"Mothur\"/" ,sampleName, "/g",
                                    " -e s/\"###seq.error\"/", mockString,"/g ",
-                                   FINAL_MOTHUR_WORKFLOW_TEMPLATE_STEP3,
-                                   " >", FINAL_MOTHUR_WORKFLOW_STEP3)
+                                 file.path(METAGENOMICS_ROOT,FINAL_MOTHUR_WORKFLOW_TEMPLATE_STEP3),
+                                   " >", FINAL_MOTHUR_WORKFLOW_TEMPLATE_STEP3)
   ezSystem(updateBatchCmd_step3)
-  cmdMothur_step2_3= paste(MOTHUR_EXE,FINAL_MOTHUR_WORKFLOW_STEP3)
+  cmdMothur_step2_3= paste(MOTHUR_EXE,FINAL_MOTHUR_WORKFLOW_TEMPLATE_STEP3)
   ezSystem(cmdMothur_step3)
   
   ## rename output files
