@@ -82,7 +82,8 @@ EzAppMetagenomeAnnotationQC<-
                   runMethod <<- ezMethodMetagenomeAnnotationQC
                   name <<- "EzAppMetagenomeAnnotationQC"
                   appDefaults <<- rbind(cutOffTaxonomy = ezFrame(Type="integer",  DefaultValue="80",Description="Cut-off for taxonomy assignment")
-                }
+                  )
+                  }
               )
   )
 
