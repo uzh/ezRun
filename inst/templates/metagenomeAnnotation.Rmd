@@ -1,0 +1,105 @@
+---
+title: "`r paste('Shotgun metagenomics analysis report')`"
+author: "Functional Genomics Center Zurich"
+output: 
+  html_document:
+    self_contained: false
+    includes:
+      in_header: fgcz_header.html
+    css: fgcz.css
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+## This report requires output files form a shotgun metagenomics App (e.g., Megahit)
+
+debug <- FALSE
+setEnvironments("phantomjs")
+```
+
+```{r prepare data, include=FALSE}
+##Prodigal
+### summary  plots : score, gc_cont abd confidence
+summaryScorePlot <- ggplot(prodigalSummaryDF,aes(x=score)) + geom_histogram(binwidth=10) +  facet_grid(rows = vars(start_type), cols = vars(partial),labeller = label_both)
+
+subsetDataToPartial00 <- prodigalSummaryDF[prodigalSummaryDF$partial =="00" 
+                                           & (prodigalSummaryDF$start_type == "ATG"|
+                                                prodigalSummaryDF$start_type == "GTG"),]
+summaryConfPlot <- ggplot(subsetDataToPartial00,aes(x=conf)) + geom_histogram(binwidth=5) +  facet_grid(rows = vars(start_type), cols = vars(partial),labeller = label_both)
+
+summaryGcContPlot <- ggplot(subsetDataToPartial00,aes(x=gc_cont)) + geom_histogram(binwidth=0.005) +  facet_grid(rows = vars(start_type), cols = vars(partial),labeller = label_both)
+
+### summary rbs_spacer hist
+summaryRBSSpacePlot <- ggplot(subsetDataToPartial00,aes(x=rbs_spacer)) + geom_bar() +  facet_grid(rows = vars(start_type), cols = vars(partial), labeller = label_both) +theme(axis.text.x = element_text(angle = 90, hjust = 1))
+### summary rbs_motif hist
+summaryRBSMotifPlot <- ggplot(subsetDataToPartial00,aes(x=rbs_motif)) + geom_bar() +  facet_grid(rows = vars(start_type), cols = vars(partial), labeller = label_both) +ggplot(subsetDataToPartial00,aes(x=rbs_spacer)) + geom_bar() +  facet_grid(rows = vars(start_type), cols = vars(partial), labeller = label_both) +theme(axis.text.x = element_text(angle = 90, hjust = 1))
+
+
+## Inteproscan
+### summary  plots : matching score 
+summaryMatchScorePlot <- ggplot(IPSGffSummaryDF,aes(x=-log(score))) + geom_histogram(binwidth = 5) 
+
+### topNcateg plots: tables
+DFforSummProtFamilies <- extractTopN(IPSGffSummaryDF,"description",numberOfTopNCategories)
+DFforSummProtGO <- extractTopN(IPSGffSummaryDF,"GOterm",numberOfTopNCategories)
+## Add GO decsription
+GOdesc <- sapply(DFforSummProtGO$GOterm,function(x)Term(GOTERM)[names(Term(GOTERM))%in%x], USE.NAMES = F)
+DFforSummProtGO$GOterm <- paste(DFforSummProtGO$GOterm,GOdesc)
+## expand palette colour to numberOfTopNCategories
+getPalette = colorRampPalette(brewer.pal(9, "Set1"))
+expandedPalette <- getPalette(numberOfTopNCategories)
+## generate plots
+summaryFamilyPlot <- ggplot(DFforSummProtFamilies,aes(x=reorder(description, -abundance),y=abundance, fill = description)) 
+summaryFamilyPlot <- summaryFamilyPlot + geom_bar(stat = "Identity")+theme(axis.text.x = element_blank(), axis.title.x = element_blank()) + scale_color_manual(expandedPalette)
+
+summaryGOPlot <- ggplot(DFforSummProtGO,aes(x=reorder(GOterm, -abundance),y=abundance, fill = GOterm)) 
+summaryGOPlot <- summaryGOPlot + geom_bar(stat = "Identity")+theme(axis.text.x = element_blank(), axis.title.x = element_blank()) + scale_color_manual(expandedPalette)
+```
+
+
+Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
+
+## Data pre-processing {.tabset}
+
+### Prodigal gene prediction
+#### Summary score plot
+```{r summaryScorePlot, echo=FALSE, out.width="100%"}
+plot(summaryScorePlot)
+```
+
+#### Summary confidence plot
+```{r summaryConfPlot, echo=FALSE}
+plot(summaryConfPlot)
+```
+
+#### Summary GC-content plot
+```{r summaryGcContPlot, echo=FALSE, out.width="100%"}
+plot(summaryGcContPlot)
+```
+
+#### Summary rbs-spacer plot
+```{r summaryRBSSpacePlot, echo=FALSE, out.width="100%"}
+plot(summaryRBSSpacePlot)
+```
+
+#### Summary rbs-motif plot
+```{r summaryRBSMotifPlot, echo=FALSE, out.width="100%"}
+plot(summaryRBSMotifPlot)
+```
+
+
+### Interproscan annotation
+#### Summary of matched proteins score
+```{r summaryMatchScorePlot, echo=FALSE,out.width="100%"}
+plot(summaryMatchScorePlot)
+```
+
+#### Most represented  protein families
+```{r summaryFamilyPlot, echo=FALSE,out.width="100%"}
+plot(summaryFamilyPlot)
+```
+
+#### Most represented  GO terms families
+```{r summaryGOPlot, echo=FALSE,out.width="100%"}
+plot(summaryGOPlot)
+```
