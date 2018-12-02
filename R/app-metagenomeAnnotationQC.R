@@ -22,6 +22,7 @@ ezMethodMetagenomeAnnotationQC = function(input=NA, output=NA, param=NA,
   require(ggplot2)
   library(scales)
   library(RColorBrewer)
+  library(GO.db)
   dataset = input$meta
   sampleName = input$getNames() 
   numberOfTopNCategories = param$numberOfTopNCategories
