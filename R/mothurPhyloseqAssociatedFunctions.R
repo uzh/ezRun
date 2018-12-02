@@ -291,3 +291,50 @@ heatmapForPhylotseqPlot <- function(phyloseqOtuObj){
               trace='none',density.info=c("none"))
   }
 }
+
+
+###################################################################
+# Functional Genomics Center Zurich
+# This code is distributed under the terms of the GNU General
+# Public License Version 3, June 2007.
+# The terms are available here: http://www.gnu.org/licenses/gpl.html
+# www.fgcz.ch
+
+
+##' @title Phyloseq OTU object
+##' @description Create Phyloseq OTU object mothur OTU files.
+##' @param  a data frame in the format of mothur shared clustered OTU  files.
+##' @return Returns a Phyloseq OTU object.
+
+phyloSeqOTUFromFile <- function(otuFile){
+  otuDF <- read.delim(otuFile, header = T,stringsAsFactors = F)
+  rownames(otuDF) <- otuDF$Group
+  colToDrop <- c("Group","label","numOTUs")
+  otuFile1 <- as.matrix(otuDF[,!names(otuDF)%in%colToDrop])
+  otuObject <- otu_table(otuFile1, taxa_are_rows = FALSE)
+  return(otuObject)
+}
+
+###################################################################
+# Functional Genomics Center Zurich
+# This code is distributed under the terms of the GNU General
+# Public License Version 3, June 2007.
+# The terms are available here: http://www.gnu.org/licenses/gpl.html
+# www.fgcz.ch
+
+
+##' @title Phyloseq Taxa object
+##' @description Create Phyloseq taxa object from mothur taxonomy files.
+##' @param  taxaDB, a DF in the format of mothur taxonomy file.
+##' @return Returns a Phyloseq Taxa object.
+
+phyloSeqTaxaFromFile  <- function(taxaFile){
+  taxaDB <- read.delim(taxaFile, header = T,stringsAsFactors = F)
+  tempList <- lapply(taxaDB$Taxonomy,function(y) unlist(strsplit(y,";")))
+  taxaMatrix <- as.matrix(ldply(tempList))
+  rownames(taxaMatrix) <- taxaDB$OTU
+  colnames(taxaMatrix) <- c("Domain","Phylum","Class","Order","Family","Genus","Species")[1:(ncol(taxaMatrix))]
+  taxaObject <- tax_table(taxaMatrix)
+  return(taxaObject)
+}
+
