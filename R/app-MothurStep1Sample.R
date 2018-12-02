@@ -81,23 +81,7 @@ ezMethodMothurStep1Sample = function(input=NA, output=NA, param=NA,
   ezSystem(updateBatchCmd1)
   cmdMothur1 = paste(MOTHUR_EXE,FINAL_MOTHUR_WORKFLOW_TEMPLATE_STEP1)
   ezSystem(cmdMothur1)
-  ### extract region
-  summaryFileToExtractRegion <- paste(sampleName,"unique.good.summary", sep = ".")
-  summaryOfAlign <- read.delim(summaryFileToExtractRegion, stringsAsFactors = FALSE, header = T)
-  regionStartCoord <- quantile(summaryOfAlign$start, probs = seq(0, 1, 0.025))["95%"]
-  regionEndCoord <- quantile(summaryOfAlign$end, probs = seq(0, 1, 0.025))["5%"]
-  
-  ### update batch file  with parameters and run mothur: step 2 and, precluster, remove non-bacterial reads and generate final cluster
-  updateBatchCmd_step2<- paste0("sed -e s/\"START_COORD\"/", regionStartCoord, "/g",
-                                   " -e s/\"END_COORD\"/", regionEndCoord, "/g",
-                                   " -e s/\"Mothur\"/" ,sampleName, "/g ",
-                                file.path(METAGENOMICS_ROOT,FINAL_MOTHUR_WORKFLOW_TEMPLATE_STEP2), 
-                                " >",
-                                FINAL_MOTHUR_WORKFLOW_TEMPLATE_STEP2)
-  ezSystem(updateBatchCmd_step2)
-  cmdMothur_step2= paste(MOTHUR_EXE,FINAL_MOTHUR_WORKFLOW_TEMPLATE_STEP2)
-  ezSystem(cmdMothur_step2)
-  
+ 
   
   ## rename output files
   ## Files needed for the report 
@@ -119,14 +103,10 @@ ezMethodMothurStep1Sample = function(input=NA, output=NA, param=NA,
   newLengthAndHomopFilteredFileName <- basename(output$getColumn("LenAndHomopSummary"))
   ezSystem(paste("mv",oldLengthAndHomopFilteredFileName,newLengthAndHomopFilteredFileName))
   
-  #4) 
-  oldMappedFilteredFileName <- paste(sampleName,"unique.good.good.summary",
-                                     sep = ".")
-  newMappedFilteredFileName <- basename(output$getColumn("MapFiltSummary"))
-  ezSystem(paste("mv",oldMappedFilteredFileName,newMappedFilteredFileName))
+
   ## file needed for the second step 
   #5) 
-  oldMappedFilteredFileName <- paste(sampleName,"unique.good.good.align",
+  oldMappedFilteredFileName <- paste(sampleName,"unique.good.align",
                                      sep = ".")
   newMappedFilteredFileName <- basename(output$getColumn("alignedFile"))
   ezSystem(paste("mv",oldMappedFilteredFileName,newMappedFilteredFileName))

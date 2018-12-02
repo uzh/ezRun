@@ -57,12 +57,3 @@ kable(finalListOfSummaryTables["LenAndHomopSummary"]$LenAndHomopSummary$mergedTa
   group_rows(index = finalListOfSummaryTables["LenAndHomopSummary"]$LenAndHomopSummary$aboveHeader) %>%
   scroll_box(width = "100%", height = "600px")
 ```
-
-### Summary of the  reads filtered by mapping
-```{r MapFiltSummary, echo=FALSE}
-kable(finalListOfSummaryTables["MapFiltSummary"]$MapFiltSummary$mergedTable, escape=TRUE, row.names=FALSE, format="html") %>%
-  kable_styling(bootstrap_options = c("striped", "bordered"),
-                full_width = T) %>%
-  group_rows(index = finalListOfSummaryTables["MapFiltSummary"]$MapFiltSummary$aboveHeader) %>%
-  scroll_box(width = "100%", height = "600px")
-```
