@@ -50,12 +50,12 @@ getPalette = colorRampPalette(brewer.pal(9, "Set1"))
 expandedPalette <- getPalette(numberOfTopNCategories)
 ## generate plots
 summaryFamilyPlot <- ggplot(DFforSummProtFamilies,aes(x=reorder(description, -abundance),y=abundance, fill = description)) 
-summaryFamilyPlot <- summaryFamilyPlot + geom_bar(stat = "Identity")+theme(axis.text.x = element_blank(), axis.title.x = element_blank(), legend.position = "bottom") + scale_color_manual(expandedPalette)
+summaryFamilyPlot <- summaryFamilyPlot + geom_bar(stat = "Identity")+theme(axis.text.x = element_blank(), axis.title.x = element_blank(), legend.position = "bottom",legend.text = element_text(size =6)) + scale_color_manual(expandedPalette)
 summaryFamilyPlot <- summaryFamilyPlot + guides(fill=guide_legend(ncol=2, byrow=F))
 
 
 summaryGOPlot <- ggplot(DFforSummProtGO,aes(x=reorder(GOterm, -abundance),y=abundance, fill = GOterm)) 
-summaryGOPlot <- summaryGOPlot + geom_bar(stat = "Identity")+theme(axis.text.x = element_blank(), axis.title.x = element_blank(),legend.position = "bottom") + scale_color_manual(expandedPalette)
+summaryGOPlot <- summaryGOPlot + geom_bar(stat = "Identity")+theme(axis.text.x = element_blank(), axis.title.x = element_blank(),legend.position = "bottom",legend.text = element_text(size =6)) + scale_color_manual(expandedPalette)
 summaryGOPlot <- summaryGOPlot +  guides(fill=guide_legend(ncol=2, byrow=F))
 ```
 
