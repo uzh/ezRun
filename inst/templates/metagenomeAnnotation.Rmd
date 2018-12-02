@@ -32,7 +32,7 @@ summaryGcContPlot <- ggplot(subsetDataToPartial00,aes(x=gc_cont)) + geom_histogr
 ### summary rbs_spacer hist
 summaryRBSSpacePlot <- ggplot(subsetDataToPartial00,aes(x=rbs_spacer)) + geom_bar() +  facet_grid(rows = vars(start_type), cols = vars(partial), labeller = label_both) +theme(axis.text.x = element_text(angle = 90, hjust = 1))
 ### summary rbs_motif hist
-summaryRBSMotifPlot <- ggplot(subsetDataToPartial00,aes(x=rbs_motif)) + geom_bar() +  facet_grid(rows = vars(start_type), cols = vars(partial), labeller = label_both) +ggplot(subsetDataToPartial00,aes(x=rbs_spacer)) + geom_bar() +  facet_grid(rows = vars(start_type), cols = vars(partial), labeller = label_both) +theme(axis.text.x = element_text(angle = 90, hjust = 1))
+summaryRBSMotifPlot <- ggplot(subsetDataToPartial00,aes(x=rbs_motif)) + geom_bar() +  facet_grid(rows = vars(start_type), cols = vars(partial), labeller = label_both) + theme(axis.text.x = element_text(angle = 90, hjust = 1))
 
 
 ## Inteproscan
