@@ -8,10 +8,26 @@
 
 ezMethodMetaquast = function(input=NA, output=NA, param=NA, htmlFile="00index.html"){
   sampleName = input$getNames()
-  draft = input$getFullPaths("Draft")
-    refList = param$fileWithListOfRefs
-      cmd = paste("quast", "--references-list", ref, "-o", sampleName, 
-                  '-t', ezThreads(), draft, "1> ", paste0(sampleName,"_quast.log"))
+    ## copy everything locally 
+    ## refs
+   copyLoopOverFiles <- function(x){ 
+    lapply(x,function(x) ezSystem(paste("cp",x,"./")))
+   }
+   refListFile <-  param$fileWithListOfRefs
+   refList = as.list(read.delim(refListFile))
+    lapply(refList,copyLoopOverFiles)
+    localrefListFile <- basename(refListFile)
+    ezSystem(paste("cp",refListFile,localrefListFile))
+    
+    ## draft
+    draft = input$getFullPaths("contigFile")
+    localDraft <- basename(draft)
+    ezSystem(paste("cp",draft,basename(draft)))
+    
+    localRefs 
+    
+      cmd = paste("quast", "--references-list", refList, "-o", sampleName, 
+                  '-t', ezThreads(), localDraft, "1> ", paste0(sampleName,"_quast.log"))
   ezSystem(cmd)
   return("Success")
 }
