@@ -24,9 +24,7 @@ ezMethodMetaquast = function(input=NA, output=NA, param=NA, htmlFile="00index.ht
     localDraft <- basename(draft)
     ezSystem(paste("cp",draft,basename(draft)))
     
-    localRefs 
-    
-      cmd = paste("quast", "--references-list", refList, "-o", sampleName, 
+      cmd = paste("quast", "--references-list", localrefListFile, "-o", sampleName, 
                   '-t', ezThreads(), localDraft, "1> ", paste0(sampleName,"_quast.log"))
   ezSystem(cmd)
   return("Success")
