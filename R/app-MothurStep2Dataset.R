@@ -22,10 +22,10 @@ ezMethodMothurStep2Dataset = function(input=NA, output=NA, param=NA,
   ### Merge align and group files from Mothur
   alignFiles <- input$getFullPaths("alignedFile")
   catStringAl <- paste(alignFiles,collapse = " ")
-  ezSystem(paste("cat",catStringAl,"> merged.group"))
+  ezSystem(paste("cat",catStringAl,"> merged.align"))
   groupFiles <- input$getFullPaths("groupFile")
   catStringGr <- paste(groupFiles,collapse = " ")
-  ezSystem(paste("cat",catStringGr,"> merged.align"))
+  ezSystem(paste("cat",catStringGr,"> merged.group"))
 
   ### is there at least a mock sample for the error estimate? The error estimates for the Non-mock samples will be ignored downstream
   ## TODO : fix this properly
