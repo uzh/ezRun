@@ -79,7 +79,7 @@ ezMethodMothurStep1Sample = function(input=NA, output=NA, param=NA,
                            " >",
                            FINAL_MOTHUR_WORKFLOW_TEMPLATE_STEP1)
   ezSystem(updateBatchCmd1)
-  cmdMothur1 = paste(MOTHUR_EXE,FINAL_MOTHUR_WORKFLOW_TEMPLATE_STEP2)
+  cmdMothur1 = paste(MOTHUR_EXE,FINAL_MOTHUR_WORKFLOW_TEMPLATE_STEP1)
   ezSystem(cmdMothur1)
   ### extract region
   summaryFileToExtractRegion <- paste(sampleName,"unique.good.summary", sep = ".")
