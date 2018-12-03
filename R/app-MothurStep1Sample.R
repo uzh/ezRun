@@ -115,6 +115,7 @@ ezMethodMothurStep1Sample = function(input=NA, output=NA, param=NA,
                                      sep = ".")
   newMappedFilteredFileName <- basename(output$getColumn("groupFile"))
   ezSystem(paste("mv",oldMappedFilteredFileName,newMappedFilteredFileName))
+
 }
 
 ##' @template app-template
