@@ -25,6 +25,8 @@ summaryTablesToReport <- listOfListAllFiles[summaryTablesToReport]
 
 finalListOfSummaryTables <- imap(summaryTablesToReport,function(x,y)
   createSummaryTableForKableExtra(x))
+
+
 ```
 
 Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
@@ -33,27 +35,18 @@ Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
 
 ### Summary of the raw reads
 ```{r RawDataSummary, echo=FALSE}
-kable(finalListOfSummaryTables["RawDataSummary"]$RawDataSummary$mergedTable, escape=TRUE, row.names=FALSE, format="html") %>%
-  kable_styling(bootstrap_options = c("striped", "bordered"),
-                full_width = T) %>%
-  group_rows(index = finalListOfSummaryTables["RawDataSummary"]$RawDataSummary$aboveHeader) %>%
-  scroll_box(width = "100%", height = "600px")
+RDSplot <- plotFromMothurSumm(finalListOfSummaryTables["RawDataSummary"])
+plot(RDSplot)
 ```
 
 ### Summary of the deduplicated reads
 ```{r DeduppedSummary, echo=FALSE}
-kable(finalListOfSummaryTables["DeduppedSummary"]$DeduppedSummary$mergedTable, escape=TRUE, row.names=FALSE, format="html") %>%
-  kable_styling(bootstrap_options = c("striped", "bordered"),
-                full_width = T) %>%
-  group_rows(index = finalListOfSummaryTables["DeduppedSummary"]$DeduppedSummary$aboveHeader) %>%
-  scroll_box(width = "100%", height = "600px")
+DDplot <- plotFromMothurSumm(finalListOfSummaryTables["DeduppedSummary"])
+plot(DDplot)
 ```
 
 ### Summary of the reads filtered by length and homopolymers
 ```{r LenAndHomopSummary, echo=FALSE}
-kable(finalListOfSummaryTables["LenAndHomopSummary"]$LenAndHomopSummary$mergedTable, escape=TRUE, row.names=FALSE, format="html") %>%
-  kable_styling(bootstrap_options = c("striped", "bordered"),
-                full_width = T) %>%
-  group_rows(index = finalListOfSummaryTables["LenAndHomopSummary"]$LenAndHomopSummary$aboveHeader) %>%
-  scroll_box(width = "100%", height = "600px")
+LHplot <- plotFromMothurSumm(finalListOfSummaryTables["LenAndHomopSummary"])
+plot(LHplot)
 ```
