@@ -40,6 +40,15 @@ getTpm = function(rawData) {
   return(tpm)
 }
 
+getCpm <- function(rawData){
+  if (!is.null(assays(rawData)$cpm)){
+    return(assays(rawData)$cpm)
+  }
+  require(edgeR)
+  ans <- cpm(assays(rawData)$counts, normalized.lib.sizes=FALSE)
+  return(ans)
+}
+
 aggregateCountsByGene <- function(rawData){
   require(SummarizedExperiment)
   param <- metadata(rawData)$param
