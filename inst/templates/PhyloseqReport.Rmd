@@ -102,7 +102,8 @@ plot(plotTree)
 ```
 
 ### Heatmaps
-```{r heat, echo=FALSE}
+```{r heat, echo=FALSE,out.width="100%"}
+graphics.off()
 plotHeatmap()
 ```
 
