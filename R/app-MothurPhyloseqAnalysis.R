@@ -29,9 +29,9 @@ ezMethodMothurPhyloSeqAnalysis = function(input=NA, output=NA, param=NA,
   if (param$group){
   designMatrix <- ezRead.table(input$getFullPaths("sampleDescriptionFile"))
   sampleObject <- sample_data(designMatrix)
-  physeqPacBioNoTree = phyloseq(otuObject, taxaObject, sampleObject)
+  physeqObjectNoTree = phyloseq(otuObject, taxaObject, sampleObject)
   }else{
-    physeqPacBioNoTree = phyloseq(otuObject, taxaObject)
+    physeqObjectNoTree = phyloseq(otuObject, taxaObject)
   }
   ##prune OTUS
   pruneLevel <- param$representativeOTUs
