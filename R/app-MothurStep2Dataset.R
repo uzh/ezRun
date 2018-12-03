@@ -87,14 +87,14 @@ ezMethodMothurStep2Dataset = function(input=NA, output=NA, param=NA,
   
   #5) 
   oldChimeraPlotFileName <- paste(sampleName,
-                                  "filter.unique.precluster.denovo.vsearch.chimeras",
+                                  "good.filter.unique.precluster.denovo.vsearch.chimeras",
                                   sep = ".")
   newChimeraPlotFileName <- basename(output$getColumn("ChimeraPlot"))
   ezSystem(paste("mv",oldChimeraPlotFileName,newChimeraPlotFileName))
   
   #6) 
   oldPreClusteredAndChimeraFileName <- paste(sampleName,
-                                             "filter.unique.precluster.pick.summary",
+                                             "good.filter.unique.precluster.pick.summary",
                                              sep = ".")
   newPreClusteredAndChimeraFileName <- basename(output$getColumn("PreClusteredAndChimeraSummary"))
   ezSystem(paste("mv",oldPreClusteredAndChimeraFileName,newPreClusteredAndChimeraFileName))
@@ -106,7 +106,7 @@ ezMethodMothurStep2Dataset = function(input=NA, output=NA, param=NA,
   }
   #8) 
   oldStepConvFile <- paste(sampleName,
-                           "filter.unique.precluster.pick.pick.opti_mcc.steps",
+                           "good.filter.unique.precluster.pick.pick.opti_mcc.steps",
                            sep = ".")
   newStepConvFile <- basename(output$getColumn("stepConvergenceSummary"))
   ezSystem(paste("mv",oldStepConvFile,newStepConvFile))
@@ -114,7 +114,7 @@ ezMethodMothurStep2Dataset = function(input=NA, output=NA, param=NA,
   ### Files needed for Phyloseq
   #9)  
   oldOTUsToTaxFileName <- paste(sampleName,
-                                "filter.unique.precluster.pick.pick.opti_mcc",
+                                "good.filter.unique.precluster.pick.pick.opti_mcc",
                                 param$cutOffCluster, "cons.taxonomy",
                                 sep = ".")
   newOTUsToTaxFileName <- basename(output$getColumn("OTUsToTaxonomyFile"))
@@ -122,7 +122,7 @@ ezMethodMothurStep2Dataset = function(input=NA, output=NA, param=NA,
   
   #10)
   oldOTUsToCountFileName <- paste(sampleName,
-                                  "filter.unique.precluster.pick.pick.opti_mcc.shared",
+                                  "good.filter.unique.precluster.pick.pick.opti_mcc.shared",
                                   sep = ".")
   newOTUsToCountFileName <- basename(output$getColumn("OTUsCountTable"))
   ezSystem(paste("mv",oldOTUsToCountFileName,newOTUsToCountFileName))

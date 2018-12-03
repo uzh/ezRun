@@ -52,11 +52,12 @@ ezMethodMothurStep2DatasetReport = function(input=NA, output=NA, param=NA,
   physeqFullObject <- prune_taxa(myTaxa,physeqFullObject)
   
   ## Copy the style files and templates
+    RmarkdownFile <- "MothurStep2DatasetReport.Rmd"
   styleFiles <- file.path(system.file("templates", package="ezRun"),
-                          c("fgcz.css", "MothurStep2DatasetReport.Rmd", 
+                          c("fgcz.css", RmarkdownFile, 
                             "fgcz_header.html", "banner.png"))
   file.copy(from=styleFiles, to=".", overwrite=TRUE)
-  rmarkdown::render(input="MothurStep2DatasetReport.Rmd", envir = new.env(),
+  rmarkdown::render(input=RmarkdownFile, envir = new.env(),
                     output_dir=".", output_file=htmlFile, quiet=TRUE)
 }
 ##' @template app-template
