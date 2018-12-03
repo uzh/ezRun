@@ -276,7 +276,7 @@ pcaForPhylotseqPlot <- function(input,groups){
 ##' @param   a phyloseq object and the rank to summarize
 ##' @return Returns a stacked bar  plot.
 ##' 
-### PCA plot function
+### Heatmap function
 heatmapForPhylotseqPlot <- function(phyloseqOtuObj){
   plot_heatmap <- function() {
     ## clust funct
