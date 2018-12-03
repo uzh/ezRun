@@ -92,17 +92,17 @@ plot(plotOrdSamples)
 ```
 
 ### Richness plots
-```{r richPB, echo=FALSE,out.width="100%"}
+```{r rich, echo=FALSE,out.width="100%"}
 plot(plotRichness)
 ```
 
 ### Tree plots
-```{r treePB, echo=FALSE,out.width="100%"}
+```{r tree, echo=FALSE,out.width="100%"}
 plot(plotTree)
 ```
 
 ### Heatmaps
-```{r heatPB, echo=FALSE}
+```{r heat, echo=FALSE,fig.width=6,fig.height=6}
 plotHeatmap()
 ```
 
