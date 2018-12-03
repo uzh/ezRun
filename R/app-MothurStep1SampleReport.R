@@ -33,7 +33,7 @@ ezMethodMothurStep1SampleReport = function(input=NA, output=NA, param=NA,
   relevantColumns <- gsub(" \\[File\\]","",grep("File",colnames(dataset), value = T))
   colnames(dataset) <-  gsub(" \\[File\\]","",colnames(dataset))
   allColumns <- dataset[,relevantColumns]
-  plotLabels <- input$getNames()
+    plotLabels <- input$getNames()
   ## Copy all files locally
   copyLoopOverFiles <- function(x){ 
     lapply(x,function(x) ezSystem(paste("cp",file.path(DEMO_DATA_ROOT,x),"./")))
@@ -41,6 +41,29 @@ ezMethodMothurStep1SampleReport = function(input=NA, output=NA, param=NA,
   listOfListAllFiles <- as.list(allColumns)
   lapply(listOfListAllFiles,copyLoopOverFiles)
   
+  ### function to generate plost from mothur kabled summary tables
+  plotFromMothurSumm <- function(x){
+    tableDF <-x$RawDataSummary$mergedTable
+    sampleInfo <- x$RawDataSummary$aboveHeader
+    xAxis <- rownames(tableDF)
+    tableDF <- data.frame(tableDF, stringsAsFactors = F)
+    sampleIDs <- names(finalListOfSummaryTables["RawDataSummary"]$RawDataSummary$aboveHeader)
+    sampleNameList<- list()
+    for (k in 1:length(sampleInfo)) {
+      cc <- sampleInfo[k]
+      sampleNameList[[k]] <- rep(names(cc),as.numeric(cc))
+    } 
+    colWithSampleNames <- as.factor(unlist(sampleNameList))
+    DFforPlot <- data.frame(percentile = xAxis, length=tableDF$nbases, 
+                            ambigs=tableDF$ambigs,
+                            homopol=tableDF$polymer, numSeqs=as.factor(tableDF$numSeqs),
+                            sample=colWithSampleNames, stringsAsFactors = F)
+    caz <- melt(DFforPlot)
+    plot <- ggplot(caz, aes(x=reorder(percentile, value), y=value, color=variable))+
+      geom_point() + facet_wrap(vars(sample),ncol = 2) + 
+      theme(axis.text.x = element_text(angle = 90, hjust = 1), axis.title.x = element_blank())
+    return(plot)
+  }
   
   ## Copy the style files and templates
   styleFiles <- file.path(system.file("templates", package="ezRun"),
