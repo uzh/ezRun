@@ -39,23 +39,14 @@ ezSystem(uparseCmd)
 
 ### 1 OTU abundance table 
 inputTabFile <- "all.OTU.tab.txt"
-otuTabRaw <- read.delim(inputTabFile, header = T, stringsAsFactors = F, 
+otuTabRaw <- ezRead.table(inputTabFile, header = T, stringsAsFactors = F, 
                         check.names = F)
-colnames(otuTabRaw)[1] = "OTUid"
-otuTabRaw <- data.frame(t(otuTabRaw), stringsAsFactors = F, 
+phyloseqAppFormatOtuAbundTable <- data.frame(t(otuTabRaw), stringsAsFactors = F, 
                         check.names = F, check.rows = F)
-colnames(otuTabRaw) <- otuTabRaw[1,]
-otuTabRaw <- otuTabRaw[-1,]
-namesForRows <- rownames(otuTabRaw)
-nOTUS <- ncol(otuTabRaw)
-otuTabTransf <- data.frame(apply(otuTabRaw,2,as.numeric),check.names = F, check.rows = F)
-rownames(otuTabTransf) <- namesForRows
-otuTabTransf["sample"] <- factor(ldply(strsplit(rownames(otuTabTransf),"\\."),function(x) x[[1]])$V1)
-colsToKeep <- grep("Zotu",colnames(otuTabTransf), value = T)
-phyloseqAppFormatOtuAbundTable <- aggregate(otuTabTransf[,colsToKeep],by=list(otuTabTransf$sample),sum)
-names(phyloseqAppFormatOtuAbundTable)[1] <- "Group"
+nOTUS <- ncol(phyloseqAppFormatOtuAbundTable)
 phyloseqAppFormatOtuAbundTable$label <- "0.03"
 phyloseqAppFormatOtuAbundTable$numOtus <- nOTUS
+phyloseqAppFormatOtuAbundTable$Group <- rownames(phyloseqAppFormatOtuAbundTable)
 
 ### 2 OTU-taxonomy table 
 inputTaxFile <- paste0("all.OTU.taxonomy.txt")
