@@ -29,7 +29,7 @@ if (isGroupThere) {
 ```{r prepOrdTaxa, include=FALSE, eval=isGroupThere}
 ### create plots: 2. ordination by taxa 
 ordinateDS <- ordinate(physeqFullObject, "NMDS", "bray")
-plotOrdTaxa = plot_ordination(physeqFullObject, ordinateDS, type="taxa", color="Phylum") + facet_wrap(~Phylum, 3) + ggtitle("Taxa ordination")
+plotOrdTaxa = plot_ordination(physeqFullObject, ordinateDS, type="taxa", color="Phylum") + facet_wrap(~Phylum, 3) + ggtitle("Taxa ordination") + theme(legend.position = "none")
 ```
 
 ```{r prepOrdSamples, include=FALSE, eval=isGroupThere}
@@ -73,6 +73,7 @@ Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
 
 ## Phyloseq report {.tabset}
 ### Abundance barplots
+#### If samples are grouped, the plot below is more informative
 ```{r abund, echo=FALSE,out.width="100%"}
 plot(abundPlot)
 ```
@@ -91,17 +92,17 @@ plot(plotOrdSamples)
 ```
 
 ### Richness plots
-```{r richPB, echo=FALSE}
+```{r richPB, echo=FALSE,out.width="100%"}
 plot(plotRichness)
 ```
 
 ### Tree plots
-```{r treePB, echo=FALSE}
+```{r treePB, echo=FALSE,out.width="100%"}
 plot(plotTree)
 ```
 
 ### Heatmaps
-```{r heatPB, echo=FALSE}
+```{r heatPB, echo=FALSE,out.width="100%"}
 plotHeatmap()
 ```
 
