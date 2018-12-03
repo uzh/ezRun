@@ -18,6 +18,7 @@ ezMethodMothurPhyloSeqAnalysis = function(input=NA, output=NA, param=NA,
   library(limma)
   library(RColorBrewer)
   library(gplots)
+  require(kableExtra)
   dataset = input$meta
   isGroupThere = param$group
 ### Analyzes results with phyloseq: preparing objects to be processed in the Rmd file
