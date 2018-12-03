@@ -17,7 +17,7 @@ ezMethodMothurPhyloSeqAnalysis = function(input=NA, output=NA, param=NA,
   require(DESeq2)
   library(limma)
   dataset = input$meta
-  isGroupThere = param$Group
+  isGroupThere = param$group
 ### Analyzes results with phyloseq: preparing objects to be processed in the Rmd file
 
 ### OTUs
