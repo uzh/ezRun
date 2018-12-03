@@ -14,18 +14,21 @@ library(plyr)
 library(dplyr)
 
   sampleName = input$getNames()
+  sampleNameString = paste("dum", paste(sampleName, collapse = " "))
   file1PathInDatset <- input$getFullPaths("Read1")
-  cpCmd1 <- paste0("gunzip -c ", file1PathInDatset, "  > ", sampleName,"_R1",".fastq")
+  for (k in 1:length(sampleName)){
+    cpCmd1 <- paste0("gunzip -c ", file1PathInDatset[k], "  > ", sampleName[k],"_R1",".fastq")
   ezSystem(cpCmd1)  
   if(param$paired){
     file2PathInDatset <- input$getFullPaths("Read2")
-    cpCmd2 <- paste0("gunzip -c ", file2PathInDatset, "  > ", sampleName,"_R2",".fastq")
+    cpCmd2 <- paste0("gunzip -c ", file2PathInDatset[k], "  > ", sampleName[k],"_R2",".fastq")
     ezSystem(cpCmd2)
-    }
+  }
+  }
 uparseTemplScript <- USEARCH_TEMPLATE_SCRIPT
-uparseToBeExec <- paste0("uparse.",sampleName,".sh")
+uparseToBeExec <- "uparse.sh"
 ##update template
-updateTemplateScriptCmd <- paste0("sed -e s/\"SAMPLE_NAME\"/", sampleName, "/g",
+updateTemplateScriptCmd <- paste0("sed -e s/\"SAMPLE_NAME\"/", sampleNameString, "/g",
                                " -e s/\"MAX_EE\"/", param$fastqErrorMax, "/g ",
                                uparseTemplScript, " >",
                                uparseToBeExec)
@@ -35,7 +38,7 @@ uparseCmd <- paste("bash",uparseToBeExec)
 ezSystem(uparseCmd)
 
 ### 1 OTU abundance table 
-inputTabFile <- paste0(sampleName,".OTU.tab.txt")
+inputTabFile <- paste0("all.OTU.tab.txt")
 otuTabRaw <- read.delim(inputTabFile, header = T, stringsAsFactors = F)
 colnames(otuTabRaw)[1] = "OTUid"
 otuTabRaw <- data.frame(t(otuTabRaw), stringsAsFactors = F)
@@ -53,7 +56,7 @@ phyloseqAppFormatOtuAbundTable$label <- "0.03"
 phyloseqAppFormatOtuAbundTable$numOtus <- nOTUS
 
 ### 2 OTU-taxonomy table 
-inputTaxFile <- paste0(sampleName,".OTU.taxonomy.txt")
+inputTaxFile <- paste0("all.OTU.taxonomy.txt")
 otuTaxonomyRaw <- read.delim(inputTaxFile, header = F, stringsAsFactors = F)
 otuTaxonomyRaw <- otuTaxonomyRaw[,1:2]
 names(otuTaxonomyRaw) <- c("OTU","Taxonomy")
