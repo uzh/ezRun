@@ -26,13 +26,18 @@ ezMethodMothurPhyloSeqAnalysis = function(input=NA, output=NA, param=NA,
   taxaObject <- phyloSeqTaxaFromFile(input$getFullPaths("OTUsToTaxonomyFile"))
   
   ### Add sample object (TODO, derive it from step1)
-  designMatrix <- ezRead.table("/srv/GT/analysis/course_sushi/public/projects/p2000/MetagenomicsCourseTestData/designMatrix.tsv")
+  if (param$group){
+  designMatrix <- ezRead.table(input$getFullPaths("Group"))
   sampleObject <- sample_data(designMatrix)
+  physeqPacBioNoTree = phyloseq(otuObject, taxaObject, sampleObject)
+  }else{
+    physeqPacBioNoTree = phyloseq(otuObject, taxaObject)
+  }
   ##prune OTUS
   pruneLevel <- param$representativeOTUs
 
 ### create, add trees, preprocess and prune phyloseq object 
-  physeqPacBioNoTree = phyloseq(otuObject, taxaObject, sampleObject)
+
   treeObject = rtree(ntaxa(physeqObjectNoTree), rooted=TRUE, tip.label=taxa_names(physeqObjectNoTree))
   physeqFullObject <- merge_phyloseq(physeqObjectNoTree,treeObject)
   physeqFullObject <- phyloSeqPreprocess(physeqFullObject)

@@ -107,7 +107,7 @@ write.table(finalOtuTaxon,newTaxAbundFile,row.names = F, col.names = T, quote = 
 
 ## eventual design Matrix 
 if (param$Group){
-designMatrix <- data.frame(Name = sampleName,Group=input$getColumns("Group"), 
+designMatrix <- data.frame(Name = sampleName,Group=input$getColumn("Group"), 
                            check.names = F)
 designMatrixFile <-  basename(output$getColumn("sampleFile"))
 write.table(designMatrix,designMatrixFile,row.names = F, col.names = T, quote = F,sep = "\t")
