@@ -106,6 +106,10 @@ ezMethodMegahit = function(input=NA, output=NA, param=NA,
   oldContigFile <- "megahitResults/final.contigs.fa"
   newContigFile <- basename(output$getColumn("contigFile"))
   ezSystem(paste("mv",oldContigFile,newContigFile))
+  #1)binned
+  oldContigFile <- "binnedContigs.fasta"
+  newContigFile <- basename(output$getColumn("binnedContigsFile"))
+  ezSystem(paste("mv",oldContigFile,newContigFile))
   #2) 
   oldProdigalFile <- "prodigalAnnotation.gff"
   newProdigalFile <- basename(output$getColumn("prodigalPredictionFile"))
