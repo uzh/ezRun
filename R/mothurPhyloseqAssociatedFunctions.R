@@ -276,7 +276,7 @@ pcaForPhylotseqPlot <- function(input,groups){
 ##' @param   a phyloseq object and the rank to summarize
 ##' @return Returns a stacked bar  plot.
 ##' 
-### PCA plot function
+### Heatmap function
 heatmapForPhylotseqPlot <- function(phyloseqOtuObj){
   plot_heatmap <- function() {
     ## clust funct
@@ -294,7 +294,7 @@ heatmapForPhylotseqPlot <- function(phyloseqOtuObj){
   ## heatmap
     heatmap.2(z$data,dendrogram=c("both"),Rowv=z$Rowv,Colv=z$Colv,col=rev(cols), 
               trace='none',density.info=c("none"),keysize = 0.8, 
-              labRow=NA,cexCol = 1, margin=c(15,10))
+              labRow=NA,cexCol = 1)
   }
 }
 
