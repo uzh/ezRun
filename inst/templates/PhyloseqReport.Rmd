@@ -27,7 +27,7 @@ ordinateDS <- ordinate(physeqFullObject, "NMDS", "bray")
 plotOrdTaxa = plot_ordination(physeqFullObject, ordinateDS, type="taxa", color="Phylum") + facet_wrap(~Phylum, 3) + ggtitle("Taxa ordination")
 ```
 
-```{r prepOrdSamples, include=FALSE, eval = isGroupThere}
+```{r prepOrdSamples, include=FALSE, eval=isGroupThere}
 ### create plots: 2. ordination by samlpe
 inputData <- physeqFullObject@otu_table@.Data
 inputGroup <- physeqFullObject@sam_data$Group
@@ -59,7 +59,7 @@ plotHeatmap <- heatmapForPhylotseqPlot(inputData)
 ```
 
 
-```{r prepDeSeq, include=FALSE, eval = isGroupThere}
+```{r prepDeSeq, include=FALSE, eval=isGroupThere}
 ### 6: compare groups
 deseqResults <- phyloSeqToDeseq2_tableAndPlots(physeqFullObject)
 ```
@@ -74,12 +74,12 @@ plot(abundPlot)
 
 ### Ordination plots
 #### Ordination by taxa
-```{r ordinTaxa, echo=FALSE,eval = isGroupThere}
+```{r ordinTaxa, echo=FALSE,eval=isGroupThere}
 plot(plotOrdTaxa)
 ```
 
 #### Ordination by samples
-```{r ordinSamples, echo=FALSE, eval = isGroupThere}
+```{r ordinSamples, echo=FALSE, eval=isGroupThere}
 plot(plotOrdSamples)
 ```
 
@@ -100,17 +100,17 @@ plotHeatmap()
 
 ### Two-goups comparison
 #### Volcano plot
-```{r volcano, echo=FALSE,eval = isGroupThere}
+```{r volcano, echo=FALSE,eval=isGroupThere}
 plot(deseqResults$vPlot)
 ```
 
 #### Log-fold changes 
-```{r logfold, echo=FALSE,eval = isGroupThere}
+```{r logfold, echo=FALSE,eval=isGroupThere}
 plot(deseqResults$logPlot)
 ```
 
 #### Summary table
-```{r table, echo=FALSE,eval = isGroupThere}
+```{r table, echo=FALSE,eval=isGroupThere}
 plot(deseqResults$table)
 ```
 
