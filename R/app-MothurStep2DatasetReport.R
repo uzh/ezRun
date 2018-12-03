@@ -76,7 +76,8 @@ EzAppMothurStep2DatasetReport <-
                   "Initializes the application using its specific defaults."
                   runMethod <<- ezMethodMothurStep2DatasetReport
                   name <<- "EzAppMothurStep2DatasetReport"
-                  appDefaults <<- rbind(representativeOTUs = ezFrame(Type="numeric",  DefaultValue="",Description="Number of core OTUs for the samples.")
+                  appDefaults <<- rbind(representativeOTUs = ezFrame(Type="numeric",  DefaultValue="",Description="Number of core OTUs for the samples."),
+                                        group = ezFrame(Type="logical",  DefaultValue="true",Description="Experiment with groups.")
                   )
                 }
               )
