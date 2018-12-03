@@ -33,9 +33,9 @@ ezMethodMothurStep2DatasetReport = function(input=NA, output=NA, param=NA,
   ### Further report on Mothur pipeline and analysis of the  results with phyloseq
   
   ### create phyloseq OTU object
-  otuObject <- phyloSeqOTUFromFile(basename(input$getFullPaths("OTUsCountTable")))
+  otuObject <- phyloSeqOTUFromFile(input$getFullPaths("OTUsCountTable"))
   ### create phyloseq Taxa object
-  taxaObject <- phyloSeqTaxaFromFile(basename(input$getFullPaths("OTUsToTaxonomyFile")))
+  taxaObject <- phyloSeqTaxaFromFile(input$getFullPaths("OTUsToTaxonomyFile"))
   
   ### Add sample object (TODO, derive it from step1)
   designMatrix <- ezRead.table("/srv/GT/analysis/course_sushi/public/projects/p2000/MetagenomicsCourseTestData/designMatrix.tsv")
