@@ -6,7 +6,7 @@
 # www.fgcz.ch
 
 
-ezMethodMothurPhyloSeqAnalysis = function(input=NA, output=NA, param=NA, 
+ezMethodPhyloSeqAnalysis = function(input=NA, output=NA, param=NA, 
                           htmlFile="00index.html"){
   require(rmarkdown)
   require(ShortRead)
@@ -59,18 +59,18 @@ ezMethodMothurPhyloSeqAnalysis = function(input=NA, output=NA, param=NA,
                     output_dir=".", output_file=htmlFile, quiet=TRUE)
 }
 ##' @template app-template
-##' @templateVar method ezMethodMothurPhyloSeqAnalysis()
+##' @templateVar method ezMethodPhyloSeqAnalysis()
 ##' @templateVar htmlArg )
 ##' @description Use this reference class to run 
-EzAppMothurPhyloSeqAnalysis <-
-  setRefClass("EzAppMothurPhyloSeqAnalysis",
+EzAppPhyloSeqAnalysis <-
+  setRefClass("EzAppPhyloSeqAnalysis",
               contains = "EzApp",
               methods = list(
                 initialize = function()
                 {
                   "Initializes the application using its specific defaults."
-                  runMethod <<- ezMethodMothurPhyloSeqAnalysis
-                  name <<- "EzAppMothurPhyloSeqAnalysis"
+                  runMethod <<- ezMethodPhyloSeqAnalysis
+                  name <<- "EzAppPhyloSeqAnalysis"
                   appDefaults <<- rbind(representativeOTUs = ezFrame(Type="numeric",  DefaultValue="",Description="Number of core OTUs for  samples."),
                                         group = ezFrame(Type="logical",  DefaultValue="true",Description="Experiment with groups.")
                   )
