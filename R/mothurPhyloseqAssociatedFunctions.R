@@ -110,6 +110,10 @@ phyloSeqToDeseq2_tableAndPlots <- function(phyloseqObj){
   res = results(DEseqPhyRes, cooksCutoff = FALSE)
   addTaxa <- cbind(data.frame(res),t(otu_table(phyloseqObjNoMock)), tax_table(phyloseqObjNoMock))
   addTaxaOut <- cbind(data.frame(res),t(otu_table(phyloseqObjNoMock)), tax_table(phyloseqObjNoMock))
+  addTaxaOut <- addTaxaOut[order(addTaxaOut$padj),]
+  addTaxaOut <- head(addTaxaOut,20)
+  colsToKeep <- grep("baseMean|lfcSE", colnames(addTaxaOut), invert = T)
+  addTaxaOut <- addTaxaOut[,colsToKeep]
   ## sort and prepare fpr plot
   x = tapply(addTaxa$log2FoldChange, addTaxa$Phylum, function(x) max(x))
   x = sort(x, TRUE)
@@ -130,13 +134,14 @@ phyloSeqToDeseq2_tableAndPlots <- function(phyloseqObj){
     theme(axis.text.x = element_text(angle = -90, hjust = 0, vjust=0.5)) +
     geom_hline(aes(yintercept=1),color="red") + geom_text(aes(1,1,label = 1, vjust = -1), color = "red", size =3) + 
     geom_hline(aes(yintercept=-1),color="red") + geom_text(aes(1,-1,label = -1, vjust = 1), color = "red", size =3)
-  plotLogFoldVsTaxon <- plotLogFoldVsTaxon + labs(title=title) + theme(plot.title=element_text(size=15, face="bold",hjust=0.5))
+  plotLogFoldVsTaxon <- plotLogFoldVsTaxon + labs(title=title) + 
+    theme(plot.title=element_text(size=10, face="bold",hjust=0.5))
   ### volcano plot
   title <- "Volcano plot (padj  = 0.05)"
   volcanoPlot <- ggplot(addTaxa, aes(y=-log10(pvalue), x=log2FoldChange)) +
     geom_point(aes(shape=Significance, color=Phylum),size=3) 
   volcanoPlot <- volcanoPlot + labs(title=title) + 
-    theme(plot.title=element_text(size=15, face="bold",hjust=0.5))
+    theme(plot.title=element_text(size=10, face="bold",hjust=0.5))
   ### Diff.expr. pie chart
   OTUsToPlot <- na.omit(addTaxaOut[addTaxaOut$padj < 0.05,])
   tableTaxa <- data.frame(table(droplevels(OTUsToPlot[,"Genus"])))
@@ -148,7 +153,7 @@ phyloSeqToDeseq2_tableAndPlots <- function(phyloseqObj){
     geom_bar(position = position_stack(),width = 1, stat = "identity") 
   pieVersion <- bp + coord_polar("y", start=0)
   finalVersionPie <- pieVersion +  labs(title=titleText, y="") + 
-    theme(plot.title=element_text(size=15, face="bold",hjust=0.5))
+    theme(plot.title=element_text(size=10, face="bold",hjust=0.5))
   return(list(logPlot=plotLogFoldVsTaxon,vPlot=volcanoPlot,pieChart=finalVersionPie,table=addTaxaOut))
 }
 
@@ -288,7 +293,7 @@ heatmapForPhylotseqPlot <- function(phyloseqOtuObj){
   cols <- colorRampPalette(brewer.pal(10, "RdBu"))(256)
   ## heatmap
     heatmap.2(z$data,dendrogram=c("both"),Rowv=z$Rowv,Colv=z$Colv,col=rev(cols), 
-              trace='none',density.info=c("none"), labRow=NA,cexCol = 7)
+              trace='none',density.info=c("none"), labRow=NA,cexCol = 0.5)
   }
 }
 
