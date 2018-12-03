@@ -40,16 +40,21 @@ chimeraPlotsToReport <- chimeraSummaryPlot(listOfListAllFiles["ChimeraPlot"]$Chi
 
 ```{r prepAbund, include=FALSE}
 ### create plots: 1. abundance
-abundPlot <- plot_bar(physeqFullObject, "Group", "Abundance", "Phylum") + geom_bar(aes(color=Phylum, fill=Phylum), stat="identity", position="stack")
+abundPlot <- plot_bar(physeqFullObject, fill="Phylum") + geom_bar(aes(color=Phylum, fill=Phylum), stat="identity", position="stack")
+if (isGroupThere) {
+  abundPlotGroup <- plot_bar(physeqFullObject, "Order", fill="Phylum", facet_grid=~Group) +
+    geom_bar(aes(color=Phylum, fill=Phylum), stat="identity", position="stack") +
+    theme(axis.title.x = element_blank(),axis.text.x =  element_blank())
+}
 ```
 
 ```{r prepOrdTaxa, include=FALSE, eval=isGroupThere}
 ### create plots: 2. ordination by taxa 
 ordinateDS <- ordinate(physeqFullObject, "NMDS", "bray")
-plotOrdTaxa = plot_ordination(physeqFullObject, ordinateDS, type="taxa", color="Phylum") + facet_wrap(~Phylum, 3) + ggtitle("Taxa ordination")
+plotOrdTaxa = plot_ordination(physeqFullObject, ordinateDS, type="taxa", color="Phylum") + facet_wrap(~Phylum, 3) + ggtitle("Taxa ordination") + theme(legend.position = "none")
 ```
 
-```{r prepOrdSamples, include=FALSE, eval = isGroupThere}
+```{r prepOrdSamples, include=FALSE, eval=isGroupThere}
 ### create plots: 2. ordination by samlpe
 inputData <- physeqFullObject@otu_table@.Data
 inputGroup <- physeqFullObject@sam_data$Group
@@ -74,14 +79,16 @@ plotTree <- plot_tree(physeqFullObject , ladderize="left")
 }
 ```
 
-```{r prepHeat, include=FALSE}
+```{r prepHeat, include=FALSE, eval=isGroupThere}
 ### create plots:5. heatmap
-inputData <- physeqFullObject@otu_table@.Data
-plotHeatmap <- heatmapForPhylotseqPlot(inputData)
+#TODO: marigns too large
+#inputData <- physeqFullObject@otu_table@.Data
+#plotHeatmap <- heatmapForPhylotseqPlot(inputData)
+plotHeatmap <- plot_heatmap(physeqFullObject, taxa.label="Phylum")
 ```
 
 
-```{r prepDeSeq, include=FALSE, eval = isGroupThere}
+```{r prepDeSeq, include=FALSE, eval=isGroupThere}
 ### 6: compare groups
 deseqResults <- phyloSeqToDeseq2_tableAndPlots(physeqFullObject)
 ```
@@ -118,50 +125,58 @@ kable(convStepTableToReport["stepConvergenceSummary"]$stepConvergenceSummary$mer
 ```
 
 ### Phyloseq analysis: abundance barplots
+#### If samples are grouped, the second plot is more informative
 ```{r abund, echo=FALSE,out.width="100%"}
 plot(abundPlot)
 ```
 
-### Phyloseq analysis: ordination plots
-#### Ordination by taxa
+```{r abundGroup, echo=FALSE,out.width="100%",eval=isGroupThere}
+plot(abundPlotGroup)
+```
+
+### Phyloseq analysis: clustering (ordination) plots
 ```{r ordinTaxa, echo=FALSE,eval=isGroupThere,out.width="100%"}
 plot(plotOrdTaxa)
 ```
 
-#### Ordination by samples
 ```{r ordinSamples, echo=FALSE, eval=isGroupThere,out.width="100%"}
 plot(plotOrdSamples)
 ```
 
 ### Phyloseq analysis: richness plots
-```{r richPB, echo=FALSE,out.width="100%"}
+```{r rich, echo=FALSE,out.width="100%"}
 plot(plotRichness)
 ```
 
 ### Phyloseq analysis: tree plots
-```{r treePB, echo=FALSE,out.width="100%"}
+```{r tree, echo=FALSE,out.width="100%"}
 plot(plotTree)
 ```
 
 ### Phyloseq analysis: heatmaps
-```{r heatPB, echo=FALSE,out.width="100%"}
-plotHeatmap()
+```{r heat, echo=FALSE,out.width="100%",eval=isGroupThere}
+plot(plotHeatmap)
 ```
 
 ### Phyloseq analysis: two-goups comparison
-#### Volcano plot
 ```{r volcano, echo=FALSE,eval=isGroupThere,out.width="100%"}
 plot(deseqResults$vPlot)
 ```
 
-#### Log-fold changes 
 ```{r logfold, echo=FALSE,eval=isGroupThere,out.width="100%"}
 plot(deseqResults$logPlot)
 ```
 
-#### Summary table
-```{r table, echo=FALSE,eval=isGroupThere,out.width="100%"}
-plot(deseqResults$table)
+```{r diffAbunGen, echo=FALSE,eval=isGroupThere,out.width="100%"}
+plot(deseqResults$pieChart)
+```
+
+#### DESeq analysis: summary table (top 20 differentially expressed organisms)
+```{r deSeqTable, echo=FALSE,eval=isGroupThere,out.width="100%"}
+kable(deseqResults$table, escape=TRUE, row.names=FALSE, format="html") %>%
+  kable_styling(bootstrap_options = c("striped", "bordered"),
+                full_width = T) %>%
+  scroll_box(width = "100%", height = "600px")
 ```
 
 ### SessionInfo
