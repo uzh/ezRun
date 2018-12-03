@@ -14,7 +14,7 @@ library(plyr)
 library(dplyr)
 
   sampleName = input$getNames()
-  sampleNameString = paste("dum", paste(sampleName, collapse = " "))
+  sampleNameString = paste("\"dum", paste(sampleName, collapse = " "),"\"")
   file1PathInDatset <- input$getFullPaths("Read1")
   for (k in 1:length(sampleName)){
     cpCmd1 <- paste0("gunzip -c ", file1PathInDatset[k], "  > ", sampleName[k],"_R1",".fastq")
@@ -28,7 +28,7 @@ library(dplyr)
 uparseTemplScript <- USEARCH_TEMPLATE_SCRIPT
 uparseToBeExec <- "uparse.sh"
 ##update template
-updateTemplateScriptCmd <- paste0("sed -e s/\"SAMPLE_NAME\"/", sampleNameString, "/g",
+updateTemplateScriptCmd <- paste0("sed -e s/\"SAMPLE_LIST\"/", sampleNameString, "/g",
                                " -e s/\"MAX_EE\"/", param$fastqErrorMax, "/g ",
                                uparseTemplScript, " >",
                                uparseToBeExec)
