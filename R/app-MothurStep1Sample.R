@@ -21,15 +21,16 @@ ezMethodMothurStep1Sample = function(input=NA, output=NA, param=NA,
   ### read fastq files and prepare inputs for Mothur
   ### are reads paired? should they be joined? 
   file1PathInDatset <- input$getFullPaths("Read1")
-  cpCmd <- paste0("gunzip -c ", file1PathInDatset, "  > ", sampleName,".R1",".fastq")
+  unzipped1 <- paste0(sampleName,".R1.fastq")
+  cpCmd <- paste0("gunzip -c ", file1PathInDatset, "  > ", unzipped1)
   ezSystem(cpCmd)
   if(param$paired){
     contigString = "make" 
     file2PathInDatset <- input$getFullPaths("Read2")
-    cpCmd2 <- paste0("gunzip -c ", file2PathInDatset, "  > ", sampleName,".R2",".fastq")
+    unzipped2 <- paste0(sampleName,".R2.fastq")
+    cpCmd2 <- paste0("gunzip -c ", file2PathInDatset, "  > ", unzipped2)
     ezSystem(cpCmd2)
-    filesNameMothur <- cbind(input$getNames(),basename(file1PathInDatset),
-                             basename(file2PathInDatset))
+    filesNameMothur <- cbind(input$getNames(),unzipped1,unzipped2)
     filesNameMothurFile <- paste(sampleName,"files",sep = ".")
     write.table(filesNameMothur,filesNameMothurFile,row.names = F,col.names = F, quote = F)
     initialFastaSuffix = "trim.contigs.fasta"
