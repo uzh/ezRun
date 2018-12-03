@@ -64,7 +64,7 @@ ezMethodMothurStep1SampleReport = function(input=NA, output=NA, param=NA,
       theme(axis.text.x = element_text(angle = 90, hjust = 1), axis.title.x = element_blank())
     finalPlot <- plot + scale_x_discrete(breaks=quantile(as.numeric(as.character(caz$numSeqs)),
                                                          probs = seq(0, 1, 0.05), type=1))
-    return(plot)
+    return(finalPlot)
   }
   
   ## Copy the style files and templates
