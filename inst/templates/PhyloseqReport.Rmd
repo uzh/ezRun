@@ -103,7 +103,6 @@ plot(plotTree)
 
 ### Heatmaps
 ```{r heat, echo=FALSE,out.width="100%"}
-dev.off()
 plotHeatmap()
 ```
 
