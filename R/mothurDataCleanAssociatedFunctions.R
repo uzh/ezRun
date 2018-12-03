@@ -129,29 +129,21 @@ writeOTUgzFileForVamps <- function(sharedFile, taxaFile){
 ##' 
 
 chimeraSummaryPlot <- function(x){
-  k=0
-  pct <- vector()
-  listOfChimDF <- list()
-  for (file in x){
-    k=k+1
     nameRawFile <- basename(file)
     plotLables <- gsub(".chimPlot.txt","",nameRawFile)
     chimeraFile <- read.delim(nameRawFile, header = F)
-  BL <- sum(chimeraFile[chimeraFile$V18 == "?",]$V13)
-  chim <- sum(chimeraFile[chimeraFile$V18 == "Y",]$V13)
-  noChim <- sum(chimeraFile[chimeraFile$V18 == "N",]$V13)
+  BL <-  table(chimeraFile$V18)["?"]
+  chim <- table(chimeraFile$V18)["Y"]
+  noChim <- table(chimeraFile$V18)["N"]
   chimeraDF <- data.frame(rbind(chim,noChim,BL),stringsAsFactors = FALSE)
   colnames(chimeraDF) = "Freq"
+  chimeraDF[is.na(chimeraDF$Freq),]= 0
   chimeraDF$Type  = as.factor(c("Chimeric","Not chimeric","Borderline"))
   chimeraDF$pct  = round(chimeraDF$Freq/sum(chimeraDF$Freq)*100,2)
-  chimeraDF$Sample <- plotLables
-  listOfChimDF[[k]] <- chimeraDF
-  }
-  dat_text <- data.frame(label = pct)
-  fullChimeraDF <- do.call("rbind",listOfChimDF)
-  bp <- ggplot(fullChimeraDF, aes(x=Type,Freq, fill=Type)) 
-  facetSampleBar <- bp + facet_wrap(vars(Sample), ncol = 2) + geom_bar(stat = "identity",  position = 'dodge') 
-  finalVersionChimeraPlot  <- facetSampleBar +   theme(axis.text.x=element_blank()) +
+  bp <- ggplot(chimeraDF, aes(x=Type,Freq, fill=Type)) 
+  facetSampleBar <- bp  + geom_bar(stat = "identity",  position = 'dodge') 
+  finalVersionChimeraPlot  <- facetSampleBar +   
+    theme(axis.title.x=element_blank()) +
     geom_text(aes(y = Freq + 500, label = paste0(pct, '%')),
               position = position_dodge(width = .9),size = 3)
   return(finalVersionChimeraPlot)
@@ -168,26 +160,26 @@ chimeraSummaryPlot <- function(x){
 ##' @title OTUs saturation plot
 ##' @description HOw many OTUs do we really have?
 ##' @param  sharedFile, mothur shared abundance  file.
-##' @return Returns a table
+##' @return Returns a grid of plots
 otuSaturationPlot <- function(x){
-  k=0
-  dfFinal <- list()
-  for (file in x){
-    k=k+1
-    nameRawFile <- basename(file)
-    plotLables <- gsub("tep.OTUsToCount.txt","",nameRawFile)
+    nameRawFile <- basename(x)
     sharedFile <- read.table(nameRawFile, stringsAsFactors = FALSE, sep = "\t", header = TRUE)
-  sharedAbund <- t(sharedFile)
+   k=0
+   dfFinal <- list()
+   for (sample in sharedFile$Group){
+     k=k+1
+     tempDF <- sharedFile[sharedFile$Group == sample,]
+    sharedAbund <- t(tempDF)
   totOtus <- sharedAbund[rownames(sharedAbund) == "numOtus",]
   rowToKeep <- grepl("^Otu.*$",rownames(sharedAbund))
   sharedAbundDF <- data.frame(data.matrix(data.frame(sharedAbund[rowToKeep,], stringsAsFactors = FALSE)))
   colnames(sharedAbundDF) <- sharedAbund[rownames(sharedAbund) == "Group",]
   cumSumTransform <- data.frame(apply(sharedAbundDF,2,cumsum))
   dfFinal[[k]] = data.frame()
-  for (i in 1:ncol(cumSumTransform))
-  { dfTemp <-  data.frame(abundance = cumSumTransform[,colnames(cumSumTransform)[i]])
+  for (i in 1:ncol(cumSumTransform)){
+  dfTemp <-  data.frame(abundance = cumSumTransform[,colnames(cumSumTransform)[i]])
   dfTemp$numberOTUs <- seq_along(1:nrow(dfTemp))
-  dfTemp$Sample <- plotLables
+  dfTemp$Sample <- sample
   dfFinal[[k]] <- rbind(dfFinal[[k]],dfTemp)
   }
   }
