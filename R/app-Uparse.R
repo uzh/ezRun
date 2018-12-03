@@ -38,7 +38,7 @@ uparseCmd <- paste("bash",uparseToBeExec)
 ezSystem(uparseCmd)
 
 ### 1 OTU abundance table 
-inputTabFile <- paste0("all.OTU.tab.txt")
+inputTabFile <- "all.OTU.tab.txt"
 otuTabRaw <- read.delim(inputTabFile, header = T, stringsAsFactors = F, 
                         check.names = F)
 colnames(otuTabRaw)[1] = "OTUid"
@@ -50,7 +50,7 @@ namesForRows <- rownames(otuTabRaw)
 nOTUS <- ncol(otuTabRaw)
 otuTabTransf <- data.frame(apply(otuTabRaw,2,as.numeric),check.names = F, check.rows = F)
 rownames(otuTabTransf) <- namesForRows
-otuTabTransf["sample"] <- factor(ldply(strsplit(rownames(otuTabTransf),"_"),function(x) x[[1]])$V1)
+otuTabTransf["sample"] <- factor(ldply(strsplit(rownames(otuTabTransf),"\\."),function(x) x[[1]])$V1)
 colsToKeep <- grep("Zotu",colnames(otuTabTransf), value = T)
 phyloseqAppFormatOtuAbundTable <- aggregate(otuTabTransf[,colsToKeep],by=list(otuTabTransf$sample),sum)
 names(phyloseqAppFormatOtuAbundTable)[1] <- "Group"
