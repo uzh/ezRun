@@ -14,7 +14,7 @@ library(plyr)
 library(dplyr)
 
   sampleName = input$getNames()
-  sampleNameString = paste("\"dum", paste(sampleName, collapse = " "),"\"")
+  sampleNameString = paste("\"", paste(sampleName, collapse = " "),"\"")
   file1PathInDatset <- input$getFullPaths("Read1")
   for (k in 1:length(sampleName)){
     cpCmd1 <- paste0("gunzip -c ", file1PathInDatset[k], "  > ", sampleName[k],"_R1",".fastq")
