@@ -129,7 +129,7 @@ writeOTUgzFileForVamps <- function(sharedFile, taxaFile){
 ##' 
 
 chimeraSummaryPlot <- function(x){
-    nameRawFile <- basename(file)
+    nameRawFile <- basename(x)
     plotLables <- gsub(".chimPlot.txt","",nameRawFile)
     chimeraFile <- read.delim(nameRawFile, header = F)
   BL <-  table(chimeraFile$V18)["?"]
