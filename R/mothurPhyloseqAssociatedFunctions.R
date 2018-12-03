@@ -287,14 +287,15 @@ heatmapForPhylotseqPlot <- function(phyloseqOtuObj){
     z <- pmin(pmax(z, zlim[1]), zlim[2])
     hcl_row <- hclust(distCor(t(z)), method=method)
     hcl_col <- hclust(distCor(z), method=method)
-    return(list(data=z, hcl_r=hcl_row,hcl_c=hcl_col, Rowv=as.dendrogram(hcl_row), Colv=as.dendrogram(hcl_col)))
+    return(list(data=z, hcl_r=hcl_row,hcl_c=hcl_col, 
+                Rowv=as.dendrogram(hcl_row), Colv=as.dendrogram(hcl_col)))
   }
   z <- zClust(t(phyloseqOtuObj))
   cols <- colorRampPalette(brewer.pal(10, "RdBu"))(256)
   ## heatmap
     heatmap.2(z$data,dendrogram=c("both"),Rowv=z$Rowv,Colv=z$Colv,col=rev(cols), 
-              trace='none',density.info=c("none"),keysize = 0.8, 
-              labRow=NA,cexCol = 1)
+              trace='none',density.info=c("none"), 
+              labRow=NA)
   }
 }
 

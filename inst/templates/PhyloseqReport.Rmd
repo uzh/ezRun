@@ -102,7 +102,7 @@ plot(plotTree)
 ```
 
 ### Heatmaps
-```{r heat, echo=FALSE,eval=FALSE}
+```{r heat, echo=FALSE}
 plotHeatmap()
 ```
 
@@ -119,7 +119,7 @@ plot(deseqResults$logPlot)
 plot(deseqResults$pieChart)
 ```
 
-#### Summary table (top 50 differentially expressed organisms)
+#### Summary table (top 20 differentially expressed organisms)
 ```{r deSeqTable, echo=FALSE,eval=isGroupThere,out.width="100%"}
 kable(deseqResults$table, escape=TRUE, row.names=FALSE, format="html") %>%
   kable_styling(bootstrap_options = c("striped", "bordered"),
