@@ -27,7 +27,7 @@ ezMethodMothurPhyloSeqAnalysis = function(input=NA, output=NA, param=NA,
   
   ### Add sample object (TODO, derive it from step1)
   if (param$group){
-  designMatrix <- ezRead.table(input$getFullPaths("Group"))
+  designMatrix <- ezRead.table(input$getFullPaths("sampleDescriptionFile"))
   sampleObject <- sample_data(designMatrix)
   physeqPacBioNoTree = phyloseq(otuObject, taxaObject, sampleObject)
   }else{

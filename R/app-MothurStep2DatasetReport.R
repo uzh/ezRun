@@ -29,7 +29,6 @@ ezMethodMothurStep2DatasetReport = function(input=NA, output=NA, param=NA,
   
   dataset = input$meta
   fileNames <- as.vector(input$getNames())
-  isGroupThere <- param$Group
   ### Further report on Mothur pipeline and analysis of the  results with phyloseq
   
   ### create phyloseq OTU object
@@ -39,7 +38,7 @@ ezMethodMothurStep2DatasetReport = function(input=NA, output=NA, param=NA,
   
   ### Add sample object (TODO, derive it from step1)
   if (param$group){
-    designMatrix <- ezRead.table(input$getFullPaths("Group"))
+    designMatrix <- ezRead.table(input$getFullPaths("sampleDescriptionFile"))
     sampleObject <- sample_data(designMatrix)
     physeqPacBioNoTree = phyloseq(otuObject, taxaObject, sampleObject)
   }else{
@@ -56,7 +55,7 @@ ezMethodMothurStep2DatasetReport = function(input=NA, output=NA, param=NA,
   physeqFullObject <- prune_taxa(myTaxa,physeqFullObject)
   
   ## Copy the style files and templates
-    RmarkdownFile <- "MothurStep2DatasetReport.Rmd"
+  RmarkdownFile <- "MothurStep2DatasetReport.Rmd"
   styleFiles <- file.path(system.file("templates", package="ezRun"),
                           c("fgcz.css", RmarkdownFile, 
                             "fgcz_header.html", "banner.png"))
