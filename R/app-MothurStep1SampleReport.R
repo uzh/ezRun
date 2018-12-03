@@ -45,9 +45,9 @@ ezMethodMothurStep1SampleReport = function(input=NA, output=NA, param=NA,
   plotFromMothurSumm <- function(x){
     tableDF <-x$RawDataSummary$mergedTable
     sampleInfo <- x$RawDataSummary$aboveHeader
+    sampleIDs <- names(x$RawDataSummary$aboveHeader)
     xAxis <- rownames(tableDF)
     tableDF <- data.frame(tableDF, stringsAsFactors = F)
-    sampleIDs <- names(finalListOfSummaryTables["RawDataSummary"]$RawDataSummary$aboveHeader)
     sampleNameList<- list()
     for (k in 1:length(sampleInfo)) {
       cc <- sampleInfo[k]
