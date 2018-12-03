@@ -28,6 +28,10 @@ ezMethodMothurStep1Sample = function(input=NA, output=NA, param=NA,
     file2PathInDatset <- input$getFullPaths("Read2")
     cpCmd2 <- paste0("gunzip -c ", file2PathInDatset, "  > ", sampleName,".R2",".fastq")
     ezSystem(cpCmd2)
+    filesNameMothur <- cbind(input$getNames(),basename(file1PathInDatset),
+                             basename(file2PathInDatset))
+    filesNameMothurFile <- paste(sampleName,"files",sep = ".")
+    write.table(filesNameMothur,filesNameMothurFile,row.names = F,col.names = F, quote = F)
     initialFastaSuffix = "trim.contigs.fasta"
     initialGroupSuffix = "contigs.groups"
   }else{
