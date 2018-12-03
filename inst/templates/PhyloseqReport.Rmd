@@ -113,9 +113,17 @@ plot(deseqResults$vPlot)
 plot(deseqResults$logPlot)
 ```
 
+#### Differentially abundant genera
+```{r diffAbunGen, echo=FALSE,eval=isGroupThere,out.width="100%"}
+plot(deseqResults$pieChart)
+```
+
 #### Summary table
-```{r table, echo=FALSE,eval=isGroupThere,out.width="100%"}
-plot(deseqResults$table)
+```{r deSeqTable, echo=FALSE,eval=isGroupThere,out.width="100%"}
+kable(deseqResults$table, escape=TRUE, row.names=FALSE, format="html") %>%
+  kable_styling(bootstrap_options = c("striped", "bordered"),
+                full_width = T) %>%
+  scroll_box(width = "100%", height = "600px")
 ```
 
 ### SessionInfo
