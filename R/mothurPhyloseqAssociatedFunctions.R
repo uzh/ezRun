@@ -295,7 +295,7 @@ heatmapForPhylotseqPlot <- function(phyloseqOtuObj){
   ## heatmap
     heatmap.2(z$data,dendrogram=c("both"),Rowv=z$Rowv,Colv=z$Colv,col=rev(cols), 
               trace='none',density.info=c("none"),keysize = 0.8, 
-              labRow=NA,cexCol = 1)
+              labRow=NA,cexCol = 1, margin=c(4,4))
   }
 }
 

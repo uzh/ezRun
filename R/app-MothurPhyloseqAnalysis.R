@@ -71,7 +71,8 @@ EzAppMothurPhyloSeqAnalysis <-
                   "Initializes the application using its specific defaults."
                   runMethod <<- ezMethodMothurPhyloSeqAnalysis
                   name <<- "EzAppMothurPhyloSeqAnalysis"
-                  appDefaults <<- rbind(representativeOTUs = ezFrame(Type="numeric",  DefaultValue="",Description="Number of core OTUs for  samples.")
+                  appDefaults <<- rbind(representativeOTUs = ezFrame(Type="numeric",  DefaultValue="",Description="Number of core OTUs for  samples."),
+                                        group = ezFrame(Type="logical",  DefaultValue="true",Description="Experiment with groups.")
                   )
                 }
               )
