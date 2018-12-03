@@ -89,7 +89,9 @@ EzAppMetagenomeAnnotationQC<-
                   "Initializes the application using its specific defaults."
                   runMethod <<- ezMethodMetagenomeAnnotationQC
                   name <<- "EzAppMetagenomeAnnotationQC"
-                  appDefaults <<- rbind(cutOffTaxonomy = ezFrame(Type="integer",  DefaultValue="80",Description="Cut-off for taxonomy assignment")
+                  appDefaults <<- rbind(numberOfTopNCategories = ezFrame(Type="integer",  DefaultValue="20",
+                                                                         Description="How many top N GO and 
+                                                                         prot families.")
                   )
                   }
               )
