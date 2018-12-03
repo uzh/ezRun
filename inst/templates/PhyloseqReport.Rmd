@@ -18,7 +18,11 @@ setEnvironments("phantomjs")
 
 ```{r prepAbund, include=FALSE}
 ### create plots: 1. abundance
+if (isGroupThere) {
 abundPlot <- plot_bar(physeqFullObject, x="Group", fill="Phylum") + geom_bar(aes(color=Phylum, fill=Phylum), stat="identity", position="stack")
+}else{
+  abundPlot <- plot_bar(physeqFullObject, fill="Phylum") + geom_bar(aes(color=Phylum, fill=Phylum), stat="identity", position="stack")
+}
 ```
 
 ```{r prepOrdTaxa, include=FALSE, eval=isGroupThere}
