@@ -118,49 +118,49 @@ kable(convStepTableToReport["stepConvergenceSummary"]$stepConvergenceSummary$mer
 ```
 
 ### Phyloseq analysis: abundance barplots
-```{r abund, echo=FALSE}
+```{r abund, echo=FALSE,out.width="100%"}
 plot(abundPlot)
 ```
 
 ### Phyloseq analysis: ordination plots
 #### Ordination by taxa
-```{r ordinTaxa, echo=FALSE,eval = isGroupThere}
+```{r ordinTaxa, echo=FALSE,eval=isGroupThere,out.width="100%"}
 plot(plotOrdTaxa)
 ```
 
 #### Ordination by samples
-```{r ordinSamples, echo=FALSE, eval = isGroupThere}
+```{r ordinSamples, echo=FALSE, eval=isGroupThere,out.width="100%"}
 plot(plotOrdSamples)
 ```
 
 ### Phyloseq analysis: richness plots
-```{r richPB, echo=FALSE}
+```{r richPB, echo=FALSE,out.width="100%"}
 plot(plotRichness)
 ```
 
 ### Phyloseq analysis: tree plots
-```{r treePB, echo=FALSE}
+```{r treePB, echo=FALSE,out.width="100%"}
 plot(plotTree)
 ```
 
 ### Phyloseq analysis: heatmaps
-```{r heatPB, echo=FALSE}
+```{r heatPB, echo=FALSE,out.width="100%"}
 plotHeatmap()
 ```
 
 ### Phyloseq analysis: two-goups comparison
 #### Volcano plot
-```{r volcano, echo=FALSE,eval = isGroupThere}
+```{r volcano, echo=FALSE,eval=isGroupThere,out.width="100%"}
 plot(deseqResults$vPlot)
 ```
 
 #### Log-fold changes 
-```{r logfold, echo=FALSE,eval = isGroupThere}
+```{r logfold, echo=FALSE,eval=isGroupThere,out.width="100%"}
 plot(deseqResults$logPlot)
 ```
 
 #### Summary table
-```{r table, echo=FALSE,eval = isGroupThere}
+```{r table, echo=FALSE,eval=isGroupThere,out.width="100%"}
 plot(deseqResults$table)
 ```
 

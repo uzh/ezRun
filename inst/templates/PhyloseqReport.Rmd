@@ -18,7 +18,7 @@ setEnvironments("phantomjs")
 
 ```{r prepAbund, include=FALSE}
 ### create plots: 1. abundance
-abundPlot <- plot_bar(physeqFullObject, "Group", "Abundance", "Phylum") + geom_bar(aes(color=Phylum, fill=Phylum), stat="identity", position="stack")
+abundPlot <- plot_bar(physeqFullObject, x="Group", fill="Phylum") + geom_bar(aes(color=Phylum, fill=Phylum), stat="identity", position="stack")
 ```
 
 ```{r prepOrdTaxa, include=FALSE, eval=isGroupThere}
@@ -68,18 +68,18 @@ Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
 
 ## Phyloseq report {.tabset}
 ### Abundance barplots
-```{r abund, echo=FALSE}
+```{r abund, echo=FALSE,out.width="100%"}
 plot(abundPlot)
 ```
 
 ### Ordination plots
 #### Ordination by taxa
-```{r ordinTaxa, echo=FALSE,eval=isGroupThere}
+```{r ordinTaxa, echo=FALSE,eval=isGroupThere,out.width="100%"}
 plot(plotOrdTaxa)
 ```
 
 #### Ordination by samples
-```{r ordinSamples, echo=FALSE, eval=isGroupThere}
+```{r ordinSamples, echo=FALSE, eval=isGroupThere,out.width="100%"}
 plot(plotOrdSamples)
 ```
 
@@ -100,17 +100,17 @@ plotHeatmap()
 
 ### Two-goups comparison
 #### Volcano plot
-```{r volcano, echo=FALSE,eval=isGroupThere}
+```{r volcano, echo=FALSE,eval=isGroupThere,out.width="100%"}
 plot(deseqResults$vPlot)
 ```
 
 #### Log-fold changes 
-```{r logfold, echo=FALSE,eval=isGroupThere}
+```{r logfold, echo=FALSE,eval=isGroupThere,out.width="100%"}
 plot(deseqResults$logPlot)
 ```
 
 #### Summary table
-```{r table, echo=FALSE,eval=isGroupThere}
+```{r table, echo=FALSE,eval=isGroupThere,out.width="100%"}
 plot(deseqResults$table)
 ```
 
