@@ -119,7 +119,7 @@ kable(convStepTableToReport["stepConvergenceSummary"]$stepConvergenceSummary$mer
   scroll_box(width = "100%", height = "600px")
 ```
 
-### Mothur data analysis: OTUs saturation tables and plots
+### Mothur data analysis: OTUs saturation plots
 ```{r,echo=FALSE, out.width="100%"}
   plot(otuSaturPlotToReport)
 ```
@@ -148,14 +148,14 @@ plot(plotOrdSamples)
 plot(plotRichness)
 ```
 
-### Phyloseq analysis: tree plots
-```{r tree, echo=FALSE,out.width="100%"}
+```{r tree, echo=FALSE,out.width="100%", eval=FALSE}
 plot(plotTree)
 ```
 
 ### Phyloseq analysis: heatmaps
 ```{r heat, echo=FALSE,out.width="100%",eval=isGroupThere}
-plot(plotHeatmap)
+#plot(plotHeatmap)
+plot_heatmap()
 ```
 
 ### Phyloseq analysis: two-goups comparison
