@@ -39,9 +39,9 @@ ezMethodMothurStep2DatasetReport = function(input=NA, output=NA, param=NA,
   if (param$group){
     designMatrix <- ezRead.table(input$getFullPaths("sampleDescriptionFile"))
     sampleObject <- sample_data(designMatrix)
-    physeqNoTree = phyloseq(otuObject, taxaObject, sampleObject)
+    physeqObjectNoTree = phyloseq(otuObject, taxaObject, sampleObject)
   }else{
-    physeqNoTree = phyloseq(otuObject, taxaObject)
+    physeqObjectNoTree = phyloseq(otuObject, taxaObject)
   }
   ##prune OTUS
   pruneLevel <- param$representativeOTUs
