@@ -29,7 +29,19 @@ ezMethodMothurStep2DatasetReport = function(input=NA, output=NA, param=NA,
   
   dataset = input$meta
   ### Further report on Mothur pipeline and analysis of the  results with phyloseq
+  ## Set up data from the Mothur step 2 QC
+  relevantColumns <- gsub(" \\[File\\]","",grep("File",colnames(dataset), value = T))
+  colnames(dataset) <-  gsub(" \\[File\\]","",colnames(dataset))
+  allColumns <- dataset[,relevantColumns]
+  plotLabels <- input$getNames()
+  ## Copy all files locally
+  copyLoopOverFiles <- function(x){ 
+    lapply(x,function(x) ezSystem(paste("cp",file.path(DEMO_DATA_ROOT,x),"./")))
+  }
+  listOfListAllFiles <- as.list(allColumns)
+  lapply(listOfListAllFiles,copyLoopOverFiles)
   
+  ## Set up data for phyloseq
   ### create phyloseq OTU object
   otuObject <- phyloSeqOTUFromFile(input$getFullPaths("OTUsCountTable"))
   ### create phyloseq Taxa object
