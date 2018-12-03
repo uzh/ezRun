@@ -26,6 +26,7 @@ ezMethodMothurStep2DatasetReport = function(input=NA, output=NA, param=NA,
   require(SummarizedExperiment)
   require(webshot)
   require(htmlwidgets)
+  library(purrr)
   
   dataset = input$meta
   ### Further report on Mothur pipeline and analysis of the  results with phyloseq
