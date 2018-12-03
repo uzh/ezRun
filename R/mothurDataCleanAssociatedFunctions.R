@@ -145,7 +145,7 @@ chimeraSummaryPlot <- function(x){
   finalVersionChimeraPlot  <- facetSampleBar +   
     theme(axis.title.x=element_blank()) +
     geom_text(aes(y = Freq + 500, label = paste0(pct, '%')),
-              position = position_dodge(width = .9),size = 3)
+              position = position_dodge(width = .9),size = 5)
   return(finalVersionChimeraPlot)
 }
 
