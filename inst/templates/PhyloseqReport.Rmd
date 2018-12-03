@@ -62,7 +62,7 @@ plotTree <- plot_tree(physeqFullObject , ladderize="left")
 #TODO: marigns too large
 #inputData <- physeqFullObject@otu_table@.Data
 #plotHeatmap <- heatmapForPhylotseqPlot(inputData)
-plotHeatmap <- plot_heatmap(physeqFullObject, taxa.label="Class")
+plotHeatmap <- plot_heatmap(physeqFullObject, taxa.label="Phylum")
 ```
 
 
