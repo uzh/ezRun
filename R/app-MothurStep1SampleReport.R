@@ -61,7 +61,7 @@ ezMethodMothurStep1SampleReport = function(input=NA, output=NA, param=NA,
     caz <- melt(DFforPlot)
     plot <- ggplot(caz, aes(x=reorder(numSeqs, value), y=value, color=variable))+
       geom_point() + facet_wrap(vars(sample),ncol = 2) + 
-      theme(axis.text.x = element_text(angle = 90, hjust = 1, size =10), axis.title.x = element_blank())
+      theme(axis.text.x = element_text(angle = 90, hjust = 1, size =8), axis.title.x = element_blank())
     finalPlot <- plot + scale_x_discrete(breaks=quantile(as.numeric(as.character(caz$numSeqs)),
                                                          probs = seq(0, 1, 0.05), type=1))
     return(finalPlot)
