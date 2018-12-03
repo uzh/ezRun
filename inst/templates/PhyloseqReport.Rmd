@@ -77,7 +77,7 @@ Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
 plot(abundPlot)
 ```
 
-```{r abund, echo=FALSE,out.width="100%",eval=isGroupThere}
+```{r abundGroup, echo=FALSE,out.width="100%",eval=isGroupThere}
 plot(abundPlotGroup)
 ```
 
