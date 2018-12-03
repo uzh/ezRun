@@ -36,7 +36,7 @@ ezMethodMothurStep2Dataset = function(input=NA, output=NA, param=NA,
       mockString = "seq.error" 
       refString = param$referenceFasta
       oldErrFile <- paste(sampleName,
-                          "unique.good.good.good.filter.unique.precluster.pick.pick.error.count",
+                          "good.filter.unique.precluster.pick.error.count",
                           sep = ".")
     }else{
       mockString = "###seq.error"  
