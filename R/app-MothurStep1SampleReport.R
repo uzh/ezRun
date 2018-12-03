@@ -18,7 +18,6 @@ ezMethodMothurStep1SampleReport = function(input=NA, output=NA, param=NA,
   library(scales)
   require(gridExtra)
   require(grid)
-  require(gridExtra)
   library(gtable)
   library(purrr)
   require(knitr)
