@@ -28,8 +28,7 @@ require(pheatmap)
 ## ----------------------------------------------
 ## debug
 # title:  "`r metadata(sce)$param$name`"
-# sce <- readRDS("/export/local/scratch/gtan/dev/p2497-SCCountQC/20171222.A-SiCSeq_SCs_P5_SCCountQC/sce.rds")
-# sce <- readRDS("/srv/gstore/projects/p2284/SCCountQC_28929_2018-10-17--16-03-58/AVM_17_08_2018_SCCountQC/sce.rds")
+# sce <- readRDS("/srv/gstore/projects/p2284/SCCountQC_31781_2018-12-02--20-33-16/cSDH_intermediate_membrane_SCCountQC/sce.rds")
 # sce <- readRDS("/scratch/gtan/debug/quickDebug/sce.rds")
 
 ## convention:
@@ -476,6 +475,7 @@ PCElbowPlot(object=scData)
 The raw count matrix and tpm are available here:
 
 ```{r raw count matrix, echo=FALSE, results='asis', eval=!debug}
+# Raw counts
 rawCount <- as.matrix(assays(sce)$counts)
 if(param$scProtocol == "smart-Seq2"){
   colnames(rawCount) <- colData(sce)$Name
@@ -491,6 +491,7 @@ cat("\n")
 cat(paste0("[", "rawCount.zip", "](", "rawCount.zip", ")"))
 cat("\n")
 
+# TPM
 if(param$scProtocol != "10x"){
   ## TODO TPM does not make sense for 3'-tagging data
   tpm <- as.matrix(getTpm(sce))
@@ -504,6 +505,18 @@ if(param$scProtocol != "10x"){
   invisible(file.remove(c("tpm.txt")))
 }
 invisible(file.remove(c("rawCount.txt")))
+
+# CPM
+cpm <- as.matrix(getCpm(sce))
+ezWrite.table(tpm, file="cpm.txt",
+              head=paste0(param$featureLevel, "_id"),
+              sep="\t")
+zip("cpm.zip", files="cpm.txt")
+cat("\n")
+cat(paste0("[", "cpm.zip", "](", "cpm.zip", ")"))
+cat("\n")
+invisible(file.remove(c("cpm.txt")))
+
 ```
 
 ### SessionInfo
