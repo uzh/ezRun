@@ -128,7 +128,7 @@ ezMethodMothurStep2Dataset = function(input=NA, output=NA, param=NA,
   ezSystem(paste("mv",oldOTUsToCountFileName,newOTUsToCountFileName))
   ## eventual design Matrix 
   if (param$Group){
-    designMatrix <- data.frame(Name = sampleName,Group=input$getColumn("Group"), 
+    designMatrix <- data.frame(Name = input$getNames(),Group=input$getColumn("Group"), 
                                check.names = F)
     designMatrixFile <-  basename(output$getColumn("sampleDescriptionFile"))
     write.table(designMatrix,designMatrixFile,row.names = F, col.names = T, quote = F,sep = "\t")

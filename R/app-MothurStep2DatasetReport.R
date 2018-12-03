@@ -28,7 +28,6 @@ ezMethodMothurStep2DatasetReport = function(input=NA, output=NA, param=NA,
   require(htmlwidgets)
   
   dataset = input$meta
-  fileNames <- as.vector(input$getNames())
   ### Further report on Mothur pipeline and analysis of the  results with phyloseq
   
   ### create phyloseq OTU object
