@@ -103,22 +103,19 @@ plotHeatmap()
 ```
 
 ### Two-goups comparison
-#### Volcano plot
 ```{r volcano, echo=FALSE,eval=isGroupThere,out.width="100%"}
 plot(deseqResults$vPlot)
 ```
 
-#### Log-fold changes 
 ```{r logfold, echo=FALSE,eval=isGroupThere,out.width="100%"}
 plot(deseqResults$logPlot)
 ```
 
-#### Differentially abundant genera
 ```{r diffAbunGen, echo=FALSE,eval=isGroupThere,out.width="100%"}
 plot(deseqResults$pieChart)
 ```
 
-#### Summary table
+#### Summary table (top 50 differentially expressed organisms)
 ```{r deSeqTable, echo=FALSE,eval=isGroupThere,out.width="100%"}
 kable(deseqResults$table, escape=TRUE, row.names=FALSE, format="html") %>%
   kable_styling(bootstrap_options = c("striped", "bordered"),
