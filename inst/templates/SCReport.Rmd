@@ -140,7 +140,9 @@ ezWrite.table(geneMeans, geneMeansFn)
 ```
 
 [`r geneMeanPerClusterFn`](`r geneMeanPerClusterFn`)
+
 [`r geneMeansFn`](`r geneMeansFn`)
+
 [`r tSNEFn`](`r tSNEFn`)
 
 ### Control of the cell clustering
