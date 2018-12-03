@@ -39,14 +39,16 @@ ezSystem(uparseCmd)
 
 ### 1 OTU abundance table 
 inputTabFile <- paste0("all.OTU.tab.txt")
-otuTabRaw <- read.delim(inputTabFile, header = T, stringsAsFactors = F, check.names = F)
+otuTabRaw <- read.delim(inputTabFile, header = T, stringsAsFactors = F, 
+                        check.names = F,check.rows = F)
 colnames(otuTabRaw)[1] = "OTUid"
-otuTabRaw <- data.frame(t(otuTabRaw), stringsAsFactors = F)
+otuTabRaw <- data.frame(t(otuTabRaw), stringsAsFactors = F, 
+                        check.names = F, check.rows = F)
 colnames(otuTabRaw) <- otuTabRaw[1,]
 otuTabRaw <- otuTabRaw[-1,]
 namesForRows <- rownames(otuTabRaw)
 nOTUS <- ncol(otuTabRaw)
-otuTabTransf <- data.frame(apply(otuTabRaw,2,as.numeric))
+otuTabTransf <- data.frame(apply(otuTabRaw,2,as.numeric),check.names = F, check.rows = F)
 rownames(otuTabTransf) <- namesForRows
 otuTabTransf["sample"] <- factor(ldply(strsplit(rownames(otuTabTransf),"_"),function(x) x[[1]])$V1)
 colsToKeep <- grep("Zotu",colnames(otuTabTransf), value = T)
@@ -102,6 +104,15 @@ newOtuAbundFile <- basename(output$getColumn("OTUsCountTable"))
 newTaxAbundFile <- basename(output$getColumn("OTUsToTaxonomyFile"))
 write.table(finalOtuAbundTable,newOtuAbundFile,row.names = F, col.names = T, quote = F,sep = "\t")
 write.table(finalOtuTaxon,newTaxAbundFile,row.names = F, col.names = T, quote = F,sep = "\t")
+
+## eventual design Matrix 
+if (param$Group){
+designMatrix <- data.frame(Name = sampleName,Group=input$getColumns("Group"), 
+                           check.names = F)
+designMatrixFile <-  basename(output$getColumn("sampleFile"))
+write.table(designMatrix,designMatrixFile,row.names = F, col.names = T, quote = F,sep = "\t")
+}
+
 }
 
 ##' @template app-template
