@@ -29,6 +29,7 @@ ezMethodMothurStep2DatasetReport = function(input=NA, output=NA, param=NA,
   library(purrr)
   
   dataset = input$meta
+  isGroupThere = param$group
   ### Further report on Mothur pipeline and analysis of the  results with phyloseq
   ## Set up data from the Mothur step 2 QC
   relevantColumns <- gsub(" \\[File\\]","",grep("File",colnames(dataset), value = T))
@@ -49,7 +50,7 @@ ezMethodMothurStep2DatasetReport = function(input=NA, output=NA, param=NA,
   taxaObject <- phyloSeqTaxaFromFile(input$getFullPaths("OTUsToTaxonomyFile"))
   
   ### Add sample object (TODO, derive it from step1)
-  if (param$group){
+  if (isGroupThere){
     designMatrix <- ezRead.table(input$getFullPaths("sampleDescriptionFile"))
     sampleObject <- sample_data(designMatrix)
     physeqObjectNoTree = phyloseq(otuObject, taxaObject, sampleObject)
