@@ -10,9 +10,8 @@ output:
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
-## This report requires output files form a shotgun metagenomics App (e.g., Megahit)
-
+knitr::opts_chunk$set(echo = TRUE,warning=FALSE, message=FALSE)
+## This report requires summary files form mothur
 debug <- FALSE
 setEnvironments("phantomjs")
 ```
