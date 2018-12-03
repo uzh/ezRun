@@ -307,7 +307,7 @@ heatmapForPhylotseqPlot <- function(phyloseqOtuObj){
 ##' @return Returns a Phyloseq OTU object.
 
 phyloSeqOTUFromFile <- function(otuFile){
-  otuDF <- read.delim(otuFile, header = T,stringsAsFactors = F)
+  otuDF <- read.delim(otuFile, header = T,stringsAsFactors = F, check.names = F)
   rownames(otuDF) <- otuDF$Group
   colToDrop <- c("Group","label","numOTUs")
   otuFile1 <- as.matrix(otuDF[,!names(otuDF)%in%colToDrop])
