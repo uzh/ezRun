@@ -88,6 +88,8 @@ if(param$runPseudoTime){
                tol = 0.0001, verbose = FALSE)
   tSNE_data$pseudotime <- a$A[1,]
 }
+tSNEFn <- "tSNE_data.tsv"
+write_tsv(tSNE_data, path=tSNEFn)
 ```
 
 ## Clustering Results {.tabset}
@@ -138,8 +140,8 @@ ezWrite.table(geneMeans, geneMeansFn)
 ```
 
 [`r geneMeanPerClusterFn`](`r geneMeanPerClusterFn`)
-
 [`r geneMeansFn`](`r geneMeansFn`)
+[`r tSNEFn`](`r tSNEFn`)
 
 ### Control of the cell clustering
 
