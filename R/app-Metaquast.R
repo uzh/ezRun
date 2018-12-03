@@ -20,12 +20,14 @@ ezMethodMetaquast = function(input=NA, output=NA, param=NA, htmlFile="00index.ht
     localrefListFile <- basename(refList$refList)
     refListToParse <- paste(basename(refList$refList),collapse = ",")
     ## draft
-    draft = input$getFullPaths("contigFile")
-    localDraft <- basename(draft)
-    ezSystem(paste("cp",draft,basename(draft)))
-    
+    draftList = input$getFullPaths("contigFile")
+    for (draft in draft){
+      localDraft <- basename(draft)
+      ezSystem(paste("cp",draft,basename(draft)))
+    }
+    sampleNameList <- paste(draftList,collapse = ",")
       cmd = paste("metaquast.py", "-R", refListToParse, "-o", sampleName, 
-                  '-t', ezThreads(), localDraft, "1> ", paste0(sampleName,"_quast.log"))
+                  '-t', ezThreads(), draftList, "1> ", "metaQuast.log")
   ezSystem(cmd)
   return("Success")
 }
