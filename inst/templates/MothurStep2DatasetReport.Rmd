@@ -1,5 +1,5 @@
 ---
-title: "`r paste('Mothur Data Clean')`"
+title: "`r paste('Mothur data analysis report: chimeras, clustering, and phyloseq analysis')`"
 author: "Functional Genomics Center Zurich"
 output: 
   html_document:
