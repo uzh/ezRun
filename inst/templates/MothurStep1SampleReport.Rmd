@@ -32,19 +32,19 @@ Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
 ## Data pre-processing {.tabset}
 
 ### Summary of the raw reads
-```{r RawDataSummary, echo=FALSE}
-RDSplot <- plotFromMothurSumm(finalListOfSummaryTables["RawDataSummary"])
+```{r RawDataSummary, echo=FALSE,out.width="100%"}
+RDSplot <- plotFromMothurSumm(finalListOfSummaryTables["RawDataSummary"]$RawDataSummary)
 plot(RDSplot)
 ```
 
 ### Summary of the deduplicated reads
-```{r DeduppedSummary, echo=FALSE}
-DDplot <- plotFromMothurSumm(finalListOfSummaryTables["DeduppedSummary"])
+```{r DeduppedSummary, echo=FALSE, out.width="100%"}
+DDplot <- plotFromMothurSumm(finalListOfSummaryTables["DeduppedSummary"]$DeduppedSummary)
 plot(DDplot)
 ```
 
 ### Summary of the reads filtered by length and homopolymers
-```{r LenAndHomopSummary, echo=FALSE}
-LHplot <- plotFromMothurSumm(finalListOfSummaryTables["LenAndHomopSummary"])
+```{r LenAndHomopSummary, echo=FALSE,out.width="100%"}
+LHplot <- plotFromMothurSumm(finalListOfSummaryTables["LenAndHomopSummary"]$LenAndHomopSummary)
 plot(LHplot)
 ```

@@ -43,12 +43,12 @@ ezMethodMothurStep1SampleReport = function(input=NA, output=NA, param=NA,
   
   ### function to generate plost from mothur kabled summary tables
   plotFromMothurSumm <- function(x){
-    tableDF <-x$RawDataSummary$mergedTable
-    sampleInfo <- x$RawDataSummary$aboveHeader
-    sampleIDs <- names(x$RawDataSummary$aboveHeader)
+    tableDF <-x$mergedTable
+    sampleInfo <- x$aboveHeader
+    sampleIDs <- names(x$aboveHeader)
     xAxis <- rownames(tableDF)
     tableDF <- data.frame(tableDF, stringsAsFactors = F)
-    sampleNameList<- list()
+    sampleNameList <- list()
     for (k in 1:length(sampleInfo)) {
       cc <- sampleInfo[k]
       sampleNameList[[k]] <- rep(names(cc),as.numeric(cc))
@@ -59,7 +59,7 @@ ezMethodMothurStep1SampleReport = function(input=NA, output=NA, param=NA,
                             homopol=tableDF$polymer, numSeqs=as.factor(tableDF$numSeqs),
                             sample=colWithSampleNames, stringsAsFactors = F)
     caz <- melt(DFforPlot)
-    plot <- ggplot(caz, aes(x=reorder(percentile, value), y=value, color=variable))+
+    plot <- ggplot(caz, aes(x=reorder(numSeqs, value), y=value, color=variable))+
       geom_point() + facet_wrap(vars(sample),ncol = 2) + 
       theme(axis.text.x = element_text(angle = 90, hjust = 1), axis.title.x = element_blank())
     return(plot)
