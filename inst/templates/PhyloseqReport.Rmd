@@ -1,5 +1,5 @@
 ---
-title: "`r paste('Mothur Data Clean')`"
+title: "`r paste('Analysis of 16S data: phyloseq report')`"
 author: "Functional Genomics Center Zurich"
 output: 
   html_document:
@@ -76,13 +76,11 @@ Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
 plot(abundPlot)
 ```
 
-### Ordination plots
-#### Ordination by taxa
+### Clustering (ordination) plots
 ```{r ordinTaxa, echo=FALSE,eval=isGroupThere,out.width="100%"}
 plot(plotOrdTaxa)
 ```
 
-#### Ordination by samples
 ```{r ordinSamples, echo=FALSE, eval=isGroupThere,out.width="100%"}
 plot(plotOrdSamples)
 ```
