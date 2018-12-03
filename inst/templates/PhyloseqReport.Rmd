@@ -98,14 +98,14 @@ plot(plotOrdSamples)
 plot(plotRichness)
 ```
 
-### Tree plots
-```{r tree, echo=FALSE,out.width="100%"}
+```{r tree, echo=FALSE,out.width="100%", eval=FALSE}
 plot(plotTree)
 ```
 
 ### Heatmaps
 ```{r heat, echo=FALSE,out.width="100%",eval=isGroupThere}
-plot(plotHeatmap)
+#plot(plotHeatmap)
+plot_heatmap()
 ```
 
 ### Two-goups comparison
