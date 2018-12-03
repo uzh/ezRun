@@ -60,8 +60,7 @@ EzAppMothurPhyloSeqAnalysis <-
                   "Initializes the application using its specific defaults."
                   runMethod <<- ezMethodMothurPhyloSeqAnalysis
                   name <<- "EzAppMothurPhyloSeqAnalysis"
-                  appDefaults <<- rbind(RepresentativeOTUs = ezFrame(Type="numeric",  DefaultValue="",Description="Number of core OTUs for  samples."),
-                                        illuminaRepresentativeOTUs = ezFrame(Type="character",  DefaultValue="",Description="Number of core OTUs for Illumina samples.")
+                  appDefaults <<- rbind(RepresentativeOTUs = ezFrame(Type="numeric",  DefaultValue="",Description="Number of core OTUs for  samples.")
                   )
                 }
               )

@@ -39,7 +39,7 @@ ezSystem(uparseCmd)
 
 ### 1 OTU abundance table 
 inputTabFile <- paste0("all.OTU.tab.txt")
-otuTabRaw <- read.delim(inputTabFile, header = T, stringsAsFactors = F)
+otuTabRaw <- read.delim(inputTabFile, header = T, stringsAsFactors = F, check.names = F)
 colnames(otuTabRaw)[1] = "OTUid"
 otuTabRaw <- data.frame(t(otuTabRaw), stringsAsFactors = F)
 colnames(otuTabRaw) <- otuTabRaw[1,]
