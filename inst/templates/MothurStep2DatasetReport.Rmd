@@ -154,8 +154,11 @@ plot(plotTree)
 
 ### Phyloseq analysis: heatmaps
 ```{r heat, echo=FALSE,out.width="100%",eval=isGroupThere}
+## if alternativenot fixed, use phyloseq method
+plot_heatmap(physeqFullObject, sample.label="Group")
 #plot(plotHeatmap)
-plot_heatmap()
+#show_heatmap <- heatmapForPhylotseqPlot(physeqFullObject@otu_table@.Data)
+#show_heatmap()
 ```
 
 ### Phyloseq analysis: two-goups comparison
