@@ -14,9 +14,8 @@ EzAppSCRNAVelocity <-
                   "Initializes the application using its specific defaults."
                   runMethod <<- ezMethodSCRNAVelocity
                   name <<- "EzAppSCRNAVelocity"
-                #   appDefaults <<- rbind(minReadsPerCell=ezFrame(Type="numeric", DefaultValue=1500, Description="Filter cells with less reads counted on genes"),
-                #                         minReadsPerGene=ezFrame(Type="numeric", DefaultValue=3, Description="Minimal number of reads per gene to be expressed"),
-                #                         minGenesPerCell=ezFrame(Type="numeric", DefaultValue=500, Description="Filter cells with less genes expressed"))
+                  appDefaults <<- rbind(markersToCheck=ezFrame(Type="charVector", DefaultValue="", Description="The markers to check")
+                                        )
                 }
               )
   )
@@ -30,8 +29,6 @@ ezMethodSCRNAVelocity <- function(input=NA, output=NA, param=NA,
   
   reportCwd <- getwd()
   
-  param$scProtocol <- ifelse("STARLog" %in% input$colNames, "smart-Seq2", "10x")
-  
   if(param$scProtocol == "smart-Seq2"){
     bams <- splitBamByRG(input$getFullPath("BAM"),
                          mc.cores=min(param$cores, 8L))
@@ -40,8 +37,10 @@ ezMethodSCRNAVelocity <- function(input=NA, output=NA, param=NA,
                  param$ezRef['refFeatureFile'])
     ezSystem(cmd)
     file.remove(bams)
-  }else{
+  }else if(param$scProtocol == "10X"){
     stop("Not implemented yet!")
+  }else{
+    stop("Unsupported single cell protocol.")
   }
   
   # gene-relative model
@@ -63,4 +62,13 @@ ezMethodSCRNAVelocity <- function(input=NA, output=NA, param=NA,
                     scResults$tSNE_data[ ,c("X", "Y")])
   emb <- as.matrix(emb)
   
+  ## Copy the style files and templates
+  styleFiles <- file.path(system.file("templates", package="ezRun"),
+                          c("fgcz.css", "SCRNAVelocity.Rmd",
+                            "fgcz_header.html", "banner.png"))
+  file.copy(from=styleFiles, to=".", overwrite=TRUE)
+  rmarkdown::render(input="SCRNAVelocity.Rmd", envir = new.env(),
+                    output_dir=".", output_file=htmlFile, quiet=TRUE)
+  
+  return("Success")
 }
