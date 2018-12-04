@@ -61,8 +61,7 @@ plotTree <- plot_tree(physeqFullObject , ladderize="left")
 ### create plots:5. heatmap
 #TODO: marigns too large
 inputData <- physeqFullObject@otu_table@.Data
-#plotHeatmap <- heatmapForPhylotseqPlot(inputData)
-showHeatmap <- plot_heatmap(inputData taxa.label="Phylum")
+showHeatmap <- heatmapForPhyloseqPlot(inputData)
 
 ### create plots:5. pheatmap
 ## add colours 
