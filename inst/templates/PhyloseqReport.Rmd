@@ -62,7 +62,7 @@ plotTree <- plot_tree(physeqFullObject , ladderize="left")
 #TODO: marigns too large
 #inputData <- physeqFullObject@otu_table@.Data
 #plotHeatmap <- heatmapForPhylotseqPlot(inputData)
-plotHeatmap <- plot_heatmap(physeqFullObject, taxa.label="Phylum")
+showHeatmap <- plot_heatmap(physeqFullObject, taxa.label="Phylum")
 ```
 
 
@@ -104,11 +104,12 @@ plot(plotTree)
 
 ### Heatmaps
 ```{r heat, echo=FALSE,out.width="100%",eval=isGroupThere}
-## if alternativenot fixed, use phyloseq method
-#plot_heatmap(physeqFullObject, sample.label="Group")
-#plot(plotHeatmap)
-show_heatmap <- expression({heatmapForPhylotseqPlot(physeqFullObject@otu_table@.Data)})
-eval(show_heatmap)
+  ## if alternativenot fixed, use phyloseq method
+  #plot_heatmap(physeqFullObject, sample.label="Group")
+  #plot(plotHeatmap)
+  #show_heatmap <- expression({heatmapForPhylotseqPlot(physeqFullObject@otu_table@.Data)})
+  #eval(show_heatmap)
+show_heatmap()
 ```
 
 ### Two-goups comparison
