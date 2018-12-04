@@ -9,64 +9,47 @@
 ezMethodMetagenomeAnnotationQC = function(input=NA, output=NA, param=NA, 
                                         htmlFile="00index.html"){
   
-  library(Biostrings)
+  library(purrr)
   library(rtracklayer)
-  library(cowplot)
-  library(kableExtra)
-  library(plyr)
-  library(dplyr)
-  require(rmarkdown)
-  require(ShortRead)
-  require(phyloseq)
-  require(ape)
-  require(ggplot2)
-  library(scales)
-  library(RColorBrewer)
-  library(GO.db)
   dataset = input$meta
-  sampleName = input$getNames() 
+  sampleNames = input$getNames() 
   numberOfTopNCategories = param$numberOfTopNCategories
-  ## get input files
-  prodigalGffFile <- input$getFullPaths("prodigalPredictionFile")
-  IPSGffFile <- input$getFullPaths("interproscanFile")
-
-  ezSystem(paste("cp", prodigalGffFile, basename(prodigalGffFile)))
-  ezSystem(paste("cp", IPSGffFile, basename(IPSGffFile)))
-
-  prodigalGffImport <- import.gff(prodigalGffFile)
-  prodigalSummaryDF <- data.frame(mcols(prodigalGffImport), stringsAsFactors = F)
-  prodigalSummaryDF$gc_cont <- as.numeric(prodigalSummaryDF$gc_cont)
-  prodigalSummaryDF$conf <- as.numeric(prodigalSummaryDF$conf)
   
-  IPSGffImport <- import.gff(IPSGffFile)
-  description <- mcols(IPSGffImport)$signature_desc
-  description[sapply(description,function(x) length(x)==0)] <- "NA"
-  description <- sapply(description,function(x)x[1])
-  ontology <- mcols(IPSGffImport)$Ontology_term
-  ontology[sapply(ontology,function(x) length(x)==0)] <- "NA" 
-  ontology <- sapply(ontology,function(x)x[1])
-  IPSGffSummaryDF <- data.frame(score = as.numeric(mcols(IPSGffImport)$score),
-                                description = description, 
-                                GOterm = ontology,
-                                   type = mcols(IPSGffImport)$type,
-                                stringsAsFactors = F)
-  IPSGffSummaryDF <- IPSGffSummaryDF[IPSGffSummaryDF$type == "protein_match",
-                                     c("score","description","GOterm")]
-  ## extract N entries with top frequency 
-  extractTopN <- function(DF,column,N){
-    col <- vector()
-    tabNoNa <- DF[DF[[column]] != "NA",]
-    tab <- table(tabNoNa[[column]])
-  tab_s <- sort(tab)                                           
-  col <- data.frame(tail(names(tab_s), N), stringsAsFactors = F)
-  colnames(col) <- column
-  topN <- data.frame(cbind(col, abundance = tail(as.data.frame(tab_s)$Freq, N)),
-                     stringsAsFactors = F)
-  topN <- topN[order(topN$abundance), ]
-  topN[[column]] <- gsub("\"","",topN[[column]])
-  return(topN)
+  
+  dataset = input$meta
+  colnames(dataset) <-  gsub(" \\[File\\]","",colnames(dataset))
+  allColumns <- dataset[,c("prodigalPredictionFile","interproscanFile")]
+  plotLabels <- input$getNames()
+  ## Copy all files locally
+  copyLoopOverFiles <- function(x){ 
+    lapply(x,function(x) ezSystem(paste("cp",file.path(DEMO_DATA_ROOT,x),"./")))
+  }
+  lapply(listOfListAllFiles,copyLoopOverFiles)
+  
+  listOfListAllFiles <- as.list(allColumns)
+  namedList <- lapply(listOfListAllFiles,function(x){y=as.list(x);names(y)=sampleNames;return(y)})
+  
+  ## construct final lists
+  ## prodigal
+  k=0
+  prodigalList <- list()
+  for (file in namedList$prodigalPredictionFile){
+    k=k+1
+    method <- sampleNames[k]
+    prodigalList[[method]] <-  prodigalFileReport(file,method)
   }
   
+  ## IPS
+  k=0
+  interproscanList <- list()
+  for (file in namedList$interproscanFile){
+    k=k+1
+    method <- sampleNames[k]
+    interproscanList[[k]]  <-  interproscanFileReport(file,numberOfTopNCategories,method)
+  }
+  interproscanListForWrap <- mapply(function(x,y) rbind(x,y),interproscanList[[1]],interproscanList[[2]])
+  
+
   setwdNew(basename(output$getColumn("Report")))
   ## Copy the style files and templates
   styleFiles <- file.path(system.file("templates", package="ezRun"),
