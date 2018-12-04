@@ -56,17 +56,9 @@ ezMethodSCRNAVelocity <- function(input=NA, output=NA, param=NA,
   
   scResults <- readRDS(file.path(input$getFullPaths("Report"),
                                  basename(input$getColumn("Live Report"))))
-  cell.colorsPalette <- setNames(gg_color_hue(length(levels(scResults$tSNE_data$cluster))),
-                                 levels(scResults$tSNE_data$cluster))
-  cell.colors <- cell.colorsPalette[scResults$tSNE_data$cluster]
-  names(cell.colors) <- sub(".*___", "", scResults$tSNE_data$cells)
-  
-  emb <- data.frame(row.names=sub(".*___", "", scResults$tSNE_data$cells),
-                    scResults$tSNE_data[ ,c("X", "Y")])
-  emb <- as.matrix(emb)
   
   ## save object for report
-  ans <- list(ldat=ldat, emb=emb, param=param)
+  ans <- list(ldat=ldat, tSNE_data=scResults$tSNE_data, param=param)
   saveRDS(ans, file="ans.rds")
   
   ## Copy the style files and templates
