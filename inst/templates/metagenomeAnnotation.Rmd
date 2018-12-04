@@ -72,7 +72,7 @@ plot(summaryRBSSpacePlotList[["megahit"]])
 ```
 
 ```{r summaryRBSSpacePlotListMetaspades, echo=FALSE, fig.cap="Metaspades"}
-plot(summaryRBSSpacePlotList[["Metaspades"]])
+plot(summaryRBSSpacePlotList[["metaspades"]])
 ```
 
 ```{r summaryRBSMotifPlotListMH, echo=FALSE, fig.cap="megahit"}
@@ -87,6 +87,10 @@ plot(summaryRBSMotifPlotList[["metaspades"]])
 #### Summary of matched proteins score
 ```{r summaryMatchScorePlot, echo=FALSE,out.width="70%"}
 plot(summaryFamilyPlot)
+```
+
+#### Summary of functional annotation
+```{r summaryMatchScorePlot, echo=FALSE,out.width="70%"}
 plot(summaryGOPlot)
 plot(summaryMatchScorePlot)
 ```
