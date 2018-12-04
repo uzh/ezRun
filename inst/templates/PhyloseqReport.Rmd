@@ -10,7 +10,7 @@ output:
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE,warning=FALSE, message=FALSE)
+knitr::opts_chunk$set(echo = TRUE,warning=FALSE, message=FALSE, out.width = "60%")
 ## This report requires summary files form mothur
 debug <- FALSE
 setEnvironments("phantomjs")
@@ -73,52 +73,52 @@ Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
 ## Phyloseq report {.tabset}
 ### Abundance barplots
 #### If samples are grouped, the second plot  is more informative
-```{r abund, echo=FALSE,out.width="100%"}
+```{r abund, echo=FALSE}
 plot(abundPlot)
 ```
 
-```{r abundGroup, echo=FALSE,out.width="100%",eval=isGroupThere}
+```{r abundGroup, echo=FALSE,eval=isGroupThere}
 plot(abundPlotGroup)
 ```
 
 ### Clustering (ordination) plots
-```{r ordinTaxa, echo=FALSE,eval=isGroupThere,out.width="100%"}
+```{r ordinTaxa, echo=FALSE,eval=isGroupThere}
 plot(plotOrdTaxa)
 ```
 
-```{r ordinSamples, echo=FALSE, eval=isGroupThere,out.width="100%"}
+```{r ordinSamples, echo=FALSE, eval=isGroupThere}
 plot(plotOrdSamples)
 ```
 
 ### Richness plots
-```{r rich, echo=FALSE,out.width="100%"}
+```{r rich, echo=FALSE}
 plot(plotRichness)
 ```
 
-```{r tree, echo=FALSE,out.width="100%", eval=FALSE}
+```{r tree, echo=FALSE, eval=FALSE}
 plot(plotTree)
 ```
 
 ### Heatmaps
-```{r heat, echo=FALSE,out.width="100%",eval=isGroupThere}
+```{r heat, echo=FALSE,eval=isGroupThere}
 show_pHeatmap()
 ```
 
 ### Two-goups comparison
-```{r volcano, echo=FALSE,eval=isGroupThere,out.width="100%"}
+```{r volcano, echo=FALSE,eval=isGroupThere}
 plot(deseqResults$vPlot)
 ```
 
-```{r logfold, echo=FALSE,eval=isGroupThere,out.width="100%"}
+```{r logfold, echo=FALSE,eval=isGroupThere}
 plot(deseqResults$logPlot)
 ```
 
-```{r diffAbunGen, echo=FALSE,eval=isGroupThere,out.width="100%"}
+```{r diffAbunGen, echo=FALSE,eval=isGroupThere}
 plot(deseqResults$pieChart)
 ```
 
 #### Summary table (top 20 differentially expressed organisms)
-```{r deSeqTable, echo=FALSE,eval=isGroupThere,out.width="100%"}
+```{r deSeqTable, echo=FALSE,eval=isGroupThere}
 kable(deseqResults$table, escape=TRUE, row.names=FALSE, format="html") %>%
   kable_styling(bootstrap_options = c("striped", "bordered"),
                 full_width = T) %>%
