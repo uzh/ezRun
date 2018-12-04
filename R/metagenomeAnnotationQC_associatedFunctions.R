@@ -110,7 +110,7 @@ summaryConfPlot <- function(x){
   }
 
 summaryGcContPlot <- function(x){
-  ggplot(x,aes(x=gc_cont)) + geom_histogram(binwidth=0.001) +  
+  p <- ggplot(x,aes(x=gc_cont)) + geom_histogram(binwidth=0.001) +  
     facet_grid(rows = vars(start_type), cols = vars(partial),labeller = label_both) + labs(title="Summary of the GC-content")
   return(p)
 }
