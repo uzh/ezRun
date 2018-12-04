@@ -16,16 +16,6 @@ debug <- FALSE
 setEnvironments("phantomjs")
 ```
 
-```{r prepare data, include=FALSE}
-### raw data summary tables
-summaryTablesToReport <- grep("Summary",names(listOfListAllFiles), value = T)
-summaryTablesToReport <- grep("stepConvergence", summaryTablesToReport, invert = T, value = T)
-summaryTablesToReport <- listOfListAllFiles[summaryTablesToReport]
-
-finalListOfSummaryTables <- imap(summaryTablesToReport,function(x,y)
-  createSummaryTableForKableExtra(x))
-```
-
 Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
 
 ## Data pre-processing {.tabset}

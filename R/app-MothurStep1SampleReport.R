@@ -67,6 +67,17 @@ ezMethodMothurStep1SampleReport = function(input=NA, output=NA, param=NA,
     return(finalPlot)
   }
   
+  
+  ### prepare files for Rmd 
+  summaryTablesToReport <- grep("Summary",names(listOfListAllFiles), value = T)
+  summaryTablesToReport <- grep("stepConvergence", summaryTablesToReport, invert = T, value = T)
+  summaryTablesToReport <- listOfListAllFiles[summaryTablesToReport]
+  
+  finalListOfSummaryTables <- imap(summaryTablesToReport,function(x,y)
+    createSummaryTableForKableExtra(x))
+  ## All files ready
+  
+  ## create final output dir
   setwdNew(basename(output$getColumn("Report")))
   ## Copy the style files and templates
   styleFiles <- file.path(system.file("templates", package="ezRun"),
