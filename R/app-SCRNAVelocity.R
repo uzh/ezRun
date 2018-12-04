@@ -29,6 +29,8 @@ ezMethodSCRNAVelocity <- function(input=NA, output=NA, param=NA,
   
   reportCwd <- getwd()
   
+  param$name <- paste(param$name, input$getNames(), sep=": ")
+  
   if(param$scProtocol == "smart-Seq2"){
     bams <- splitBamByRG(input$getFullPath("BAM"),
                          mc.cores=min(param$cores, 8L))
@@ -61,6 +63,10 @@ ezMethodSCRNAVelocity <- function(input=NA, output=NA, param=NA,
   emb <- data.frame(row.names=sub(".*___", "", scResults$tSNE_data$cells),
                     scResults$tSNE_data[ ,c("X", "Y")])
   emb <- as.matrix(emb)
+  
+  ## save object for report
+  ans <- list(ldat=ldat, emb=emb, param=param)
+  saveRDS(ans, file="ans.rds")
   
   ## Copy the style files and templates
   styleFiles <- file.path(system.file("templates", package="ezRun"),

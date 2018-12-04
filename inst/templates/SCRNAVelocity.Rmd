@@ -14,9 +14,12 @@ editor_options:
 Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
 
 ```{r setup, include=FALSE}
-## input for this report: ldat, emb
+## input for this report: ldat, emb, param
 knitr::opts_chunk$set(echo = TRUE)
 require(velocyto.R)
+
+ldat <- ans$ldat
+emb <- ans$emb
 fit.quantile <- 0.05
 ```
 
