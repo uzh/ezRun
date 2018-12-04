@@ -162,9 +162,12 @@ getPalette = colorRampPalette(brewer.pal(9, "Set1"))
 expandedPalette <- getPalette(numberOfTopNCategories)
 summaryGOPlot <- ggplot(DFforSummProtGO,aes(x=reorder(GOterm, -abundance),y=abundance, fill = GOterm)) 
 summaryGOPlot <- summaryGOPlot + geom_bar(stat = "Identity")+
-  theme(axis.text.x = element_blank(), axis.title.x = element_blank(),legend.position = "bottom",legend.text = element_text(size =7)) + scale_color_manual(expandedPalette)
+  theme(axis.text.x = element_blank(), axis.title.x = element_blank(),
+        legend.position = "bottom",legend.text = element_text(size =7)) + 
+  scale_color_manual(expandedPalette)
 p <- summaryGOPlot  +
-  labs(title="Most represented GO terms") + facet_grid(cols = vars(method))
+  labs(title="Most represented GO terms") + facet_grid(cols = vars(method)) +
+  guides(fill=guide_legend(ncol=4, byrow=F,title.position = "top"))
   return(p)
 }
 
