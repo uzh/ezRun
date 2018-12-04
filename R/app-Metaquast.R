@@ -7,7 +7,7 @@
 
 
 ezMethodMetaquast = function(input=NA, output=NA, param=NA, htmlFile="00index.html"){
-  sampleName = input$getNames()
+  outFileName = param$Name
     ## copy everything locally 
     ## refs
    copyLoopOverFiles <- function(x){ 
@@ -30,8 +30,10 @@ ezMethodMetaquast = function(input=NA, output=NA, param=NA, htmlFile="00index.ht
       localBin[k] <- basename(binList[k])
       ezSystem(paste("cp",binList[k],localBin[k]))
     }
-    sampleNameList <- paste(localDraft,localBin,collapse = ",")
-      cmd = paste("metaquast.py", "-R", refListToParse, "-o", sampleName, 
+    localDraftCollapsed <- paste(localDraft,collapse = " ")
+    localBinCollapsed <- paste(localBin,collapse = " ")
+    sampleNameList <- paste(localDraftCollapsed,localDraftCollapsed)
+      cmd = paste("metaquast.py", "-R", refListToParse, "-o", outFileName, 
                   '-t', ezThreads(), sampleNameList, "1> ", "metaQuast.log")
   ezSystem(cmd)
   return("Success")

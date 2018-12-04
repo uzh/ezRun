@@ -121,8 +121,6 @@ ezMethodMothurStep2DatasetReport = function(input=NA, output=NA, param=NA,
     plotTree <- plot_tree(physeqFullObject , ladderize="left")
   }
   
-  ### create plots:5. pheatmap
-  show_pHeatmap <- heatmapForPhylotseqPlotPheatmap(inputData,designMatrix)
   
   ### 6: compare groups
   deseqResults <- phyloSeqToDeseq2_tableAndPlots(physeqFullObject)
