@@ -80,11 +80,8 @@ plotTree <- plot_tree(physeqFullObject , ladderize="left")
 ```
 
 ```{r prepHeat, include=FALSE, eval=isGroupThere}
-### create plots:5. heatmap
-#TODO: marigns too large
-#inputData <- physeqFullObject@otu_table@.Data
-#plotHeatmap <- heatmapForPhylotseqPlot(inputData)
-plotHeatmap <- plot_heatmap(physeqFullObject, taxa.label="Phylum")
+### create plots:5. pheatmap
+show_pHeatmap <- heatmapForPhylotseqPlotPheatmap(inputData,designMatrix)
 ```
 
 
@@ -152,13 +149,9 @@ plot(plotRichness)
 plot(plotTree)
 ```
 
-### Phyloseq analysis: heatmaps
+### Heatmaps
 ```{r heat, echo=FALSE,out.width="100%",eval=isGroupThere}
-## if alternativenot fixed, use phyloseq method
-plot_heatmap(physeqFullObject, sample.label="Group")
-#plot(plotHeatmap)
-#show_heatmap <- heatmapForPhylotseqPlot(physeqFullObject@otu_table@.Data)
-#show_heatmap()
+show_pHeatmap()
 ```
 
 ### Phyloseq analysis: two-goups comparison
