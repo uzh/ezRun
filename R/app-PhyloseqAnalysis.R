@@ -20,6 +20,7 @@ ezMethodPhyloSeqAnalysis = function(input=NA, output=NA, param=NA,
   library(gplots)
   require(kableExtra)
   require(knitr)
+  library(pheatmap)
   
   dataset = input$meta
   isGroupThere = param$group
