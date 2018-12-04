@@ -278,7 +278,7 @@ pcaForPhylotseqPlot <- function(input,groups){
 ##' 
 ### Heatmap function
 heatmapForPhylotseqPlot <- function(phyloseqOtuObj){
-#  plot_heatmap <- function() {
+  plot_heatmap <- function() {
     ## clust funct
   distCor <- function(x) {as.dist(1-cor(x))}
   zClust <- function(x, scale="row", zlim=c(-3,3), method="average") {
@@ -296,7 +296,7 @@ heatmapForPhylotseqPlot <- function(phyloseqOtuObj){
     heatmap.2(z$data,dendrogram=c("col"),Rowv=FALSE,Colv=z$Colv,col=rev(cols), 
               trace='none',density.info=c("none"),keysize = 0.8, 
               labRow=NA,cexCol = 1)
-#  }
+  }
 }
 
 
@@ -345,3 +345,40 @@ phyloSeqTaxaFromFile  <- function(taxaFile){
   return(taxaObject)
 }
 
+###################################################################
+# Functional Genomics Center Zurich
+# This code is distributed under the terms of the GNU General
+# Public License Version 3, June 2007.
+# The terms are available here: http://www.gnu.org/licenses/gpl.html
+# www.fgcz.ch
+
+
+##' @title  Alternative heatmap with pheatmap plot for phyloseq abundnce-taxonimy matrix  
+##' @description Alternative heatmap plot for phyloseq abundnce-taxonimy matrix  
+##' @param   a phyloseq object and the rank to summarize
+##' @return Returns a stacked bar  plot.
+##' 
+### Heatmap function
+heatmapForPhylotseqPlotPheatmap <- function(phyloseqOtuObj){
+    plot_heatmapPheatmap <- function() {
+  ## clust funct
+  distCor <- function(x) {as.dist(1-cor(x))}
+  zClust <- function(x, scale="row", zlim=c(-3,3), method="average") {
+    if (scale=="row") z <- t(scale(t(x)))
+    if (scale=="col") z <- scale(x)
+    z <- pmin(pmax(z, zlim[1]), zlim[2])
+    hcl_row <- hclust(distCor(t(z)), method=method)
+    hcl_col <- hclust(distCor(z), method=method)
+    return(list(data=z, hcl_r=hcl_row,hcl_c=hcl_col, 
+                Rowv=as.dendrogram(hcl_row), Colv=as.dendrogram(hcl_col)))
+  }
+  z <- zClust(t(phyloseqOtuObj))
+  cols <- colorRampPalette(brewer.pal(10, "RdBu"))(256)
+  ## heatmap
+  pheatmap(z$data,show_rownames = FALSE,
+           show_colnames     = TRUE,
+           annotation_col    = mat_col,
+           annotation_colors = mat_colors,
+           cluster_rows = TRUE,  scale="column", method = "average")
+   }
+}
