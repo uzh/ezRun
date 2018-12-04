@@ -75,7 +75,8 @@ plot(summaryRBSSpacePlotList[["megahit"]])
 plot(summaryRBSSpacePlotList[["metaspades"]])
 ```
 
-```{r summaryRBSMotifPlotListMH, echo=FALSE, fig.cap="megahit"}
+### Prodigal gene prediction:Summary motif plot
+```{r summaryRBSMotifPlotListMH, echo=FALSE, fig.cap="Megahit"}
 plot(summaryRBSMotifPlotList[["megahit"]])
 ```
 
