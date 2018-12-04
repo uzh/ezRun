@@ -74,10 +74,8 @@ Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
 ### Abundance barplots
 #### If samples are grouped, the second plot  is more informative
 ```{r abund, echo=FALSE}
+par(mfrow=c(1,2), las=1)
 plot(abundPlot)
-```
-
-```{r abundGroup, echo=FALSE,eval=isGroupThere}
 plot(abundPlotGroup)
 ```
 
