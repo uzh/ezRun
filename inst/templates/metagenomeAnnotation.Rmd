@@ -41,7 +41,7 @@ Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
 
 ## Data pre-processing {.tabset}
 
-### Prodigal gene prediction:Summary score plot
+### Prodigal gene prediction:summary score
 ```{r summaryScorePlotMegahit, echo=FALSE, fig.cap="Megahit"}
 plot(summaryScorePlotList[["megahit"]])
 ```
@@ -50,6 +50,7 @@ plot(summaryScorePlotList[["megahit"]])
 plot(summaryScorePlotList[["metaspades"]])
 ```
 
+### Prodigal gene prediction: confidence and GC_content
 ```{r summaryConfPlotListMegahit, echo=FALSE, fig.cap="Megahit"}
 plot(summaryConfPlotList[["megahit"]])
 ```
@@ -59,14 +60,14 @@ plot(summaryConfPlotList[["metaspades"]])
 ```
 
 ```{r summaryGcContPlotListtMegahit, echo=FALSE, fig.cap="Megahit"}
-plot(summaryConfPlotList[["megahit"]])
+plot(summaryGcContPlotList[["megahit"]])
 ```
 
 ```{r summaryGcContPlotListMetaspades, echo=FALSE, fig.cap="Metaspades"}
 plot(summaryGcContPlotList[["metaspades"]])
 ```
 
-### Prodigal gene prediction:Summary spacer plot
+### Prodigal gene prediction: RBS spacer
 ```{r summaryRBSSpacePlotListMegahit, echo=FALSE, fig.cap="Megahit"}
 plot(summaryRBSSpacePlotList[["megahit"]])
 ```
@@ -75,7 +76,7 @@ plot(summaryRBSSpacePlotList[["megahit"]])
 plot(summaryRBSSpacePlotList[["metaspades"]])
 ```
 
-### Prodigal gene prediction:Summary motif plot
+### Prodigal gene prediction: RBS motif
 ```{r summaryRBSMotifPlotListMH, echo=FALSE, fig.cap="Megahit"}
 plot(summaryRBSMotifPlotList[["megahit"]])
 ```
@@ -91,7 +92,7 @@ plot(summaryFamilyPlot)
 ```
 
 #### Summary of functional annotation
-```{r summaryMatchScorePlot, echo=FALSE,out.width="70%"}
+```{r summaryFuncPlot, echo=FALSE,out.width="70%"}
 plot(summaryGOPlot)
 plot(summaryMatchScorePlot)
 ```
