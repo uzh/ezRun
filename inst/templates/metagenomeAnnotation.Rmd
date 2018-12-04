@@ -24,7 +24,7 @@ summaryConfPlotList <- lapply(prodigalList, function(x)summaryConfPlot(x$subsetD
 
 summaryGcContPlotList <- lapply(prodigalList, function(x)summaryGcContPlot(x$subsetDataToPartial00))
 
-summaryRBSSpacePlotList <- lapply(prodigalList, function(x)summaryRBSSpacePlo(x$subsetDataToPartial00))
+summaryRBSSpacePlotList <- lapply(prodigalList, function(x)summaryRBSSpacePlot(x$subsetDataToPartial00))
   
 summaryRBSMotifPlotList <- lapply(prodigalList, function(x)summaryRBSMotif(x$subsetDataToPartial00))
 
