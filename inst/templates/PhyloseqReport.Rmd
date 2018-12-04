@@ -65,7 +65,7 @@ showHeatmap <- heatmapForPhyloseqPlot(inputData)
 
 ### create plots:5. pheatmap
 ## add colours 
-#show_pHeatmap <- plot_heatmapPheatmap(physeqFullObject@otu_table@.Data)
+show_pHeatmap <- plot_heatmap_Pheatmap(inputData)
 ```
 
 
@@ -112,8 +112,8 @@ plot(plotTree)
   #plot(plotHeatmap)
   #show_heatmap <- expression({heatmapForPhylotseqPlot(physeqFullObject@otu_table@.Data)})
   #eval(show_heatmap)
-showHeatmap()
-#show_pHeatmap()
+#showHeatmap()
+show_pHeatmap()
 # pheatmap
 ```
 
