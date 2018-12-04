@@ -36,5 +36,3 @@ param <- ezParam(param)
 
 EzAppSCRNAVelocity$new()$run(input=input, output=output, param=param)
 
-
-
