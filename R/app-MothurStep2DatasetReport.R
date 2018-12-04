@@ -67,6 +67,68 @@ ezMethodMothurStep2DatasetReport = function(input=NA, output=NA, param=NA,
   myTaxa = names(sort(taxa_sums(physeqFullObject), decreasing = TRUE)[1:pruneLevel])
   physeqFullObject <- prune_taxa(myTaxa,physeqFullObject)
   
+  ####### prepare files for Rmd
+  ### raw data summary tables
+  summaryTablesToReport <- grep("Summary",names(listOfListAllFiles), value = T)
+  summaryTablesToReport <- grep("stepConvergence", summaryTablesToReport, invert = T, value = T)
+  summaryTablesToReport <- listOfListAllFiles[summaryTablesToReport]
+  
+  finalListOfSummaryTables <- imap(summaryTablesToReport,function(x,y)
+    createSummaryTableForKableExtra(x))
+  
+  ### stepsData
+  convStepTableToReport <- imap(listOfListAllFiles["stepConvergenceSummary"], function(x,y) createStepConvTableForKableExtra(x))
+  
+  ### OTU saturation plots
+  otuSaturPlotToReport <- otuSaturationPlot(listOfListAllFiles["OTUsCountTable"]$OTUsCountTable)
+  
+  ### OTU saturation table 
+  otuSaturationTableToReport <- imap(listOfListAllFiles["OTUsCountTable"], function(x,y) createSaturationTableForKableExtra(x)) 
+  
+  ### Chimera plot
+  chimeraPlotsToReport <- chimeraSummaryPlot(listOfListAllFiles["ChimeraPlot"]$ChimeraPlot)
+
+  ### create plots: 1. abundance
+  abundPlot <- plot_bar(physeqFullObject, fill="Phylum") + geom_bar(aes(color=Phylum, fill=Phylum), 
+                                                                    stat="identity", position="stack")
+  if (isGroupThere) {
+    abundPlotGroup <- plot_bar(physeqFullObject, "Order", fill="Phylum", facet_grid=~Group) +
+      geom_bar(aes(color=Phylum, fill=Phylum), stat="identity", position="stack") +
+      theme(axis.title.x = element_blank(),axis.text.x =  element_blank())
+  }
+  
+  ### create plots: 2. ordination by taxa 
+  ordinateDS <- ordinate(physeqFullObject, "NMDS", "bray")
+  plotOrdTaxa = plot_ordination(physeqFullObject, ordinateDS, type="taxa", color="Phylum") + 
+    facet_wrap(~Phylum, 3) + ggtitle("Taxa ordination") + theme(legend.position = "none")
+  
+  ### create plots: 2. ordination by samlpe
+  inputData <- physeqFullObject@otu_table@.Data
+  inputGroup <- physeqFullObject@sam_data$Group
+  plotOrdSamples =  pcaForPhylotseqPlot(inputData,inputGroup) + ggtitle("Sample ordination")
+  
+  ### create plots: 3. richness 
+  if (isGroupThere) {
+    plotRichness <- plot_richness(physeqFullObject, x="Group", measures=c("Simpson", "Shannon"), color="Group")
+  }else{
+    plotRichness <- plot_richness(physeqFullObject, measures=c("Simpson", "Shannon"))
+  }
+  
+    ### create plots: 4. tree
+  if (isGroupThere) {
+    plotTree <- plot_tree(physeqFullObject , ladderize="left", color="Group")
+  }else{
+    plotTree <- plot_tree(physeqFullObject , ladderize="left")
+  }
+  
+  ### create plots:5. pheatmap
+  show_pHeatmap <- heatmapForPhylotseqPlotPheatmap(inputData,designMatrix)
+  
+  ### 6: compare groups
+  deseqResults <- phyloSeqToDeseq2_tableAndPlots(physeqFullObject)
+  ## All files ready
+
+  ###### create final output dir
   setwdNew(basename(output$getColumn("Report")))
   ## Copy the style files and templates
   RmarkdownFile <- "MothurStep2DatasetReport.Rmd"
