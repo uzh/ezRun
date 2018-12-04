@@ -36,8 +36,8 @@ ezMethodSCRNAVelocity <- function(input=NA, output=NA, param=NA,
     bams <- splitBamByRG(input$getFullPaths("BAM"),
                          mc.cores=min(param$cores, 8L))
     # run velocyto
-    cmd <- paste("velocyto run_smartseq2", paste(bams, collapse=" "),
-                 param$ezRef['refFeatureFile'])
+      cmd <- paste("velocyto run_smartseq2 -v", paste(bams, collapse=" "),
+                   param$ezRef['refFeatureFile'])
     ezSystem(cmd)
     file.remove(bams)
   }else if(param$scProtocol == "10X"){
@@ -54,7 +54,7 @@ ezMethodSCRNAVelocity <- function(input=NA, output=NA, param=NA,
     x
   })
   
-  scResults <- readRDS(file.path(input$getFullPath("Report"),
+  scResults <- readRDS(file.path(input$getFullPaths("Report"),
                                  basename(input$getColumn("Live Report"))))
   cell.colorsPalette <- setNames(gg_color_hue(length(levels(scResults$tSNE_data$cluster))),
                                  levels(scResults$tSNE_data$cluster))

@@ -3,8 +3,8 @@ setwd("/scratch/gtan/dev/RNAVelocity-p2838")
 
 library(ezRun)
 param = list()
-param[['cores']] = '16'
-param[['ram']] = '32'
+param[['cores']] = '12'
+param[['ram']] = '24'
 param[['scratch']] = '150'
 param[['node']] = ''
 param[['process_mode']] = 'SAMPLE'
@@ -21,7 +21,7 @@ input = list()
 input[['Name']] = 'NCC_Trpv5_Tomato_sc_A01'
 input[['refBuild']] = 'Mus_musculus/Ensembl/GRCm38.p5/Annotation/Release_91-2018-02-26'
 input[['refFeatureFile']] = 'genes.gtf'
-input[['Live Report [Link]']] = 'p2838/SCReport_31393_2018-11-18--17-12-56/SCReport/00index.html'
+input[['Live Report [Link]']] = 'http://fgcz-shiny.uzh.ch/fgcz_exploreSingleCell_app/?data=p2838/SCReport_31393_2018-11-18--17-12-56/SCReport/SCReport-cinggfxwqcul.rds'
 input[['Report [File]']] = 'p2838/SCReport_31393_2018-11-18--17-12-56/SCReport'
 input[['BAM']] = 'p2838/SCCountsApp_28469_2018-11-14--08-58-02/NCC_Trpv5_Tomato_sc_A01.bam'
 
