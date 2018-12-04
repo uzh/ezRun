@@ -14,7 +14,8 @@ EzAppSCRNAVelocity <-
                   "Initializes the application using its specific defaults."
                   runMethod <<- ezMethodSCRNAVelocity
                   name <<- "EzAppSCRNAVelocity"
-                  appDefaults <<- rbind(markersToCheck=ezFrame(Type="charVector", DefaultValue="", Description="The markers to check")
+                  appDefaults <<- rbind(markersToCheck=ezFrame(Type="charVector", DefaultValue="", Description="The markers to check"),
+                                        scProtocol=ezFrame(Type="character", DefaultValue="", Description="Which single cell protocol?")
                                         )
                 }
               )
@@ -32,7 +33,7 @@ ezMethodSCRNAVelocity <- function(input=NA, output=NA, param=NA,
   param$name <- paste(param$name, input$getNames(), sep=": ")
   
   if(param$scProtocol == "smart-Seq2"){
-    bams <- splitBamByRG(input$getFullPath("BAM"),
+    bams <- splitBamByRG(input$getFullPaths("BAM"),
                          mc.cores=min(param$cores, 8L))
     # run velocyto
     cmd <- paste("velocyto run_smartseq2", paste(bams, collapse=" "),
