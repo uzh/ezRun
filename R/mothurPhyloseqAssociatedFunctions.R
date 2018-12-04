@@ -373,7 +373,11 @@ heatmapForPhylotseqPlotPheatmap <- function(phyloseqOtuObj){
                 Rowv=as.dendrogram(hcl_row), Colv=as.dendrogram(hcl_col)))
   }
   z <- zClust(t(phyloseqOtuObj))
-  cols <- colorRampPalette(brewer.pal(10, "RdBu"))(256)
+  groups <- sapply(colnames(z$data), function(x)unlist(strsplit(x,"_"))[1])
+  mat_col <- data.frame(group = groups)
+  rownames(mat_col) <- colnames(z$data)
+  mat_colors <- list(group = brewer.pal(9, "Set1"))
+  names(mat_colors$group) <- unique(groups)
   ## heatmap
   pheatmap(z$data,show_rownames = FALSE,
            show_colnames     = TRUE,
