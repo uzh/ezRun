@@ -24,8 +24,9 @@ ezMethodMetagenomeAnnotationQC = function(input=NA, output=NA, param=NA,
   copyLoopOverFiles <- function(x){ 
     lapply(x,function(x) ezSystem(paste("cp",file.path(DEMO_DATA_ROOT,x),"./")))
   }
-  listOfListAllFiles <- as.list(allColumns)
-  lapply(listOfListAllFiles,copyLoopOverFiles)
+  listOfListAllFilesTemp <- as.list(allColumns)
+  lapply(listOfListAllFilesTemp,copyLoopOverFiles)
+  listOfListAllFiles <- as.list(data.frame(apply(allColumns,2,basename),stringsAsFactors = F))
   namedList <- lapply(listOfListAllFiles,function(x){y=as.list(x);names(y)=sampleNames;return(y)})
   
   ## construct final lists
