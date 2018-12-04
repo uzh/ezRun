@@ -105,10 +105,10 @@ plot(plotTree)
 ### Heatmaps
 ```{r heat, echo=FALSE,out.width="100%",eval=isGroupThere}
 ## if alternativenot fixed, use phyloseq method
-plot_heatmap(physeqFullObject, sample.label="Group")
+#plot_heatmap(physeqFullObject, sample.label="Group")
 #plot(plotHeatmap)
-#show_heatmap <- heatmapForPhylotseqPlot(physeqFullObject@otu_table@.Data)
-#show_heatmap()
+show_heatmap <- expression({heatmapForPhylotseqPlot(physeqFullObject@otu_table@.Data)})
+eval(show_heatmap)
 ```
 
 ### Two-goups comparison
