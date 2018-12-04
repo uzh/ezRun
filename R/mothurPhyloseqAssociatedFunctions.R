@@ -277,7 +277,7 @@ pcaForPhylotseqPlot <- function(input,groups){
 ##' @return Returns a stacked bar  plot.
 ##' 
 ### Heatmap function
-heatmapForPhylotseqPlot <- function(phyloseqOtuObj){
+heatmapForPhyloseqPlot <- function(phyloseqOtuObj){
   plot_heatmap <- function() {
     ## clust funct
   distCor <- function(x) {as.dist(1-cor(x))}
@@ -360,7 +360,7 @@ phyloSeqTaxaFromFile  <- function(taxaFile){
 ##' 
 ### Heatmap function
 heatmapForPhylotseqPlotPheatmap <- function(phyloseqOtuObj){
-    plot_heatmapPheatmap <- function() {
+    plot_heatmap_Pheatmap <- function() {
   ## clust funct
   distCor <- function(x) {as.dist(1-cor(x))}
   zClust <- function(x, scale="row", zlim=c(-3,3), method="average") {
