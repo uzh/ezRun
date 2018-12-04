@@ -16,6 +16,11 @@ Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
 ```{r setup, include=FALSE}
 ## input for this report: ldat, emb, param, cell.colorsPalette
 knitr::opts_chunk$set(echo = TRUE)
+
+# debug
+ans <- readRDS("/export/local/scratch/gtan/dev/RNAVelocity-p2838/SCRNAVelocity/ans1.rds")
+# end of debug
+
 require(velocyto.R)
 
 ldat <- ans$ldat
