@@ -26,7 +26,7 @@ summaryGcContPlotList <- lapply(prodigalList, function(x)summaryGcContPlot(x$sub
 
 summaryRBSSpacePlotList <- lapply(prodigalList, function(x)summaryRBSSpacePlot(x$subsetDataToPartial00))
   
-summaryRBSMotifPlotList <- lapply(prodigalList, function(x)summaryRBSMotif(x$subsetDataToPartial00))
+summaryRBSMotifPlotList <- lapply(prodigalList, function(x)summaryRBSMotifPlot(x$subsetDataToPartial00))
 
 
 ## Inteproscan
