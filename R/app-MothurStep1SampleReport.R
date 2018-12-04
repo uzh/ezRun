@@ -67,6 +67,7 @@ ezMethodMothurStep1SampleReport = function(input=NA, output=NA, param=NA,
     return(finalPlot)
   }
   
+  setwdNew(basename(output$getColumn("Report")))
   ## Copy the style files and templates
   styleFiles <- file.path(system.file("templates", package="ezRun"),
                           c("fgcz.css", "MothurStep1SampleReport.Rmd",

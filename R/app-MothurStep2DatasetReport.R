@@ -67,6 +67,7 @@ ezMethodMothurStep2DatasetReport = function(input=NA, output=NA, param=NA,
   myTaxa = names(sort(taxa_sums(physeqFullObject), decreasing = TRUE)[1:pruneLevel])
   physeqFullObject <- prune_taxa(myTaxa,physeqFullObject)
   
+  setwdNew(basename(output$getColumn("Report")))
   ## Copy the style files and templates
   RmarkdownFile <- "MothurStep2DatasetReport.Rmd"
   styleFiles <- file.path(system.file("templates", package="ezRun"),

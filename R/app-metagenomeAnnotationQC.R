@@ -67,6 +67,7 @@ ezMethodMetagenomeAnnotationQC = function(input=NA, output=NA, param=NA,
   return(topN)
   }
   
+  setwdNew(basename(output$getColumn("Report")))
   ## Copy the style files and templates
   styleFiles <- file.path(system.file("templates", package="ezRun"),
                           c("fgcz.css", "metagenomeAnnotation.Rmd", 
