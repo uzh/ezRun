@@ -10,7 +10,7 @@ output:
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE,warning=FALSE, message=FALSE)
+knitr::opts_chunk$set(echo = TRUE,warning=FALSE, message=FALSE, out.width = "49%")
 ## This report requires summary files form mothur
 debug <- FALSE
 setEnvironments("phantomjs")
@@ -103,7 +103,7 @@ kable(finalListOfSummaryTables["MapFiltSummary"]$MapFiltSummary$mergedTable, esc
 ```
 
 ### Mothur data analysis: summary of the reads preclustered and filtered for chimeras
-```{r,echo=FALSE, out.width="100%"}
+```{r,echo=FALSE, out.width="60%"}
   plot(chimeraPlotsToReport)
 ```
 
@@ -117,31 +117,27 @@ kable(convStepTableToReport["stepConvergenceSummary"]$stepConvergenceSummary$mer
 ```
 
 ### Mothur data analysis: OTUs saturation plots
-```{r,echo=FALSE, out.width="100%"}
+```{r,echo=FALSE, out.width="60%"}
   plot(otuSaturPlotToReport)
 ```
 
 ### Phyloseq analysis: abundance barplots
 #### If samples are grouped, the second plot is more informative
-```{r abund, echo=FALSE,out.width="100%"}
+```{r abund, echo=FALSE}
+par(mfrow=c(1,2), las=1)
 plot(abundPlot)
-```
-
-```{r abundGroup, echo=FALSE,out.width="100%",eval=isGroupThere}
 plot(abundPlotGroup)
 ```
 
 ### Phyloseq analysis: clustering (ordination) plots
-```{r ordinTaxa, echo=FALSE,eval=isGroupThere,out.width="100%"}
+```{r ordinTaxa, echo=FALSE,eval=isGroupThere}
+par(mfrow=c(1,2), las=1)
 plot(plotOrdTaxa)
-```
-
-```{r ordinSamples, echo=FALSE, eval=isGroupThere,out.width="100%"}
 plot(plotOrdSamples)
 ```
 
 ### Phyloseq analysis: richness plots
-```{r rich, echo=FALSE,out.width="100%"}
+```{r rich, echo=FALSE,out.width="60%"}
 plot(plotRichness)
 ```
 
@@ -150,20 +146,15 @@ plot(plotTree)
 ```
 
 ### Heatmaps
-```{r heat, echo=FALSE,out.width="100%",eval=isGroupThere}
+```{r heat, echo=FALSE,out.width="60%",eval=isGroupThere}
 show_pHeatmap()
 ```
 
 ### Phyloseq analysis: two-goups comparison
-```{r volcano, echo=FALSE,eval=isGroupThere,out.width="100%"}
+```{r volcano, echo=FALSE,eval=isGroupThere, out.width="33%"}
+par(mfrow=c(1,3), las=1)
 plot(deseqResults$vPlot)
-```
-
-```{r logfold, echo=FALSE,eval=isGroupThere,out.width="100%"}
 plot(deseqResults$logPlot)
-```
-
-```{r diffAbunGen, echo=FALSE,eval=isGroupThere,out.width="100%"}
 plot(deseqResults$pieChart)
 ```
 
