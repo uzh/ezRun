@@ -60,13 +60,13 @@ plotTree <- plot_tree(physeqFullObject , ladderize="left")
 ```{r prepHeat, include=FALSE, eval=isGroupThere}
 ### create plots:5. heatmap
 #TODO: marigns too large
-#inputData <- physeqFullObject@otu_table@.Data
+inputData <- physeqFullObject@otu_table@.Data
 #plotHeatmap <- heatmapForPhylotseqPlot(inputData)
-showHeatmap <- plot_heatmap(physeqFullObject@otu_table@.Data, taxa.label="Phylum")
+showHeatmap <- plot_heatmap(inputData taxa.label="Phylum")
 
 ### create plots:5. pheatmap
 ## add colours 
-show_pHeatmap <- plot_heatmapPheatmap(physeqFullObject@otu_table@.Data)
+#show_pHeatmap <- plot_heatmapPheatmap(physeqFullObject@otu_table@.Data)
 ```
 
 
@@ -114,7 +114,7 @@ plot(plotTree)
   #show_heatmap <- expression({heatmapForPhylotseqPlot(physeqFullObject@otu_table@.Data)})
   #eval(show_heatmap)
 showHeatmap()
-show_pHeatmap()
+#show_pHeatmap()
 # pheatmap
 ```
 
