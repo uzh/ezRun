@@ -65,7 +65,7 @@ showHeatmap <- heatmapForPhyloseqPlot(inputData)
 
 ### create plots:5. pheatmap
 ## add colours 
-show_pHeatmap <- heatmapForPhylotseqPlotPheatmap(inputData)
+show_pHeatmap <- heatmapForPhylotseqPlotPheatmap(inputData,designMatrix)
 ```
 
 
