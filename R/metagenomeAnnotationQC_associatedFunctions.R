@@ -103,7 +103,7 @@ return(p)
 }
 
 summaryConfPlot <- function(x){
-  p <-  ggplot(x,aes(x=conf,fill=method)) + geom_histogram(binwidth=5) +  
+  p <-  ggplot(x,aes(x=conf,fill=method)) + geom_histogram(binwidth=5, position = "dodge") +  
     facet_grid(rows = vars(start_type), cols = vars(partial),labeller = label_both)+ 
     labs(title="Summary of the gene prediction confidence")
   return(p)

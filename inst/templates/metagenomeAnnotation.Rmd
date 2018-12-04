@@ -56,14 +56,8 @@ plot(summaryRBSMotifPlotList)
 
 ### Interproscan annotation
 #### Summary of matched proteins score and functional annotation
-```{r summaryMatchScorePlot, echo=FALSE,out.width="33%"}
+```{r summaryMatchScorePlot, echo=FALSE,out.width="100%"}
 plot(summaryFamilyPlot)
-plot(summaryGOPlot)
-plot(summaryMatchScorePlot)
-```
-
-#### Summary of functional annotation
-```{r summaryFuncPlot, echo=FALSE, out.width="70%", eval = FALSE}
 plot(summaryGOPlot)
 plot(summaryMatchScorePlot)
 ```
