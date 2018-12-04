@@ -10,7 +10,7 @@ output:
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE,warning=FALSE, message=FALSE, out.width = "33%")
+knitr::opts_chunk$set(echo = TRUE,warning=FALSE, message=FALSE, out.width = "49%")
 ## This report requires summary files form mothur
 debug <- FALSE
 setEnvironments("phantomjs")
@@ -18,49 +18,22 @@ setEnvironments("phantomjs")
 
 ```{r prepare data, include=FALSE}
 ##Prodigal
-### summary  plots : score, gc_cont abd confidence
-summaryScorePlot <- ggplot(prodigalSummaryDF,aes(x=score)) + geom_histogram(binwidth=10) +  facet_grid(rows = vars(start_type), cols = vars(partial)) + labs(title="Summary of the gene prediction scores")
+summaryScorePlotList <- lapply(prodigalList, function(x)summaryScorePlot(x$fullSumm))
 
-subsetDataToPartial00 <- prodigalSummaryDF[prodigalSummaryDF$partial =="00" 
-                                           & (prodigalSummaryDF$start_type == "ATG"|
-                                                prodigalSummaryDF$start_type == "GTG"),]
-summaryConfPlot <- ggplot(subsetDataToPartial00,aes(x=conf)) + geom_histogram(binwidth=5) +  facet_grid(rows = vars(start_type), cols = vars(partial),labeller = label_both)+ labs(title="Summary of the gene prediction confidence")
+summaryConfPlotList <- lapply(prodigalList, function(x)summaryConfPlot(x$subsetDataToPartial00))
 
-summaryGcContPlot <- ggplot(subsetDataToPartial00,aes(x=gc_cont)) + geom_histogram(binwidth=0.001) +  facet_grid(rows = vars(start_type), cols = vars(partial),labeller = label_both) + labs(title="Summary of the GC-content")
+summaryGcContPlotList <- lapply(prodigalList, function(x)summaryGcContPlot(x$subsetDataToPartial00))
 
-### summary rbs_spacer hist
-summaryRBSSpacePlot <- ggplot(subsetDataToPartial00,aes(x=rbs_spacer)) + geom_bar() +  facet_grid(rows = vars(start_type), cols = vars(partial), labeller = label_both) +theme(axis.text.x = element_text(angle = 90, hjust = 1)) + 
-  labs(title="RBS-spacer distribution")
-### summary rbs_motif hist
-summaryRBSMotifPlot <- ggplot(subsetDataToPartial00,aes(x=rbs_motif)) + geom_bar() +  facet_grid(rows = vars(start_type), cols = vars(partial), labeller = label_both) + theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
-  labs(title="RBS-motif distribution")
+summaryRBSSpacePlotList <- lapply(prodigalList, function(x)summaryRBSSpacePlo(x$subsetDataToPartial00))
+  
+summaryRBSMotifPlotList <- lapply(prodigalList, function(x)summaryRBSMotif(x$subsetDataToPartial00))
 
 
 ## Inteproscan
 ### summary  plots : matching score 
-summaryMatchScorePlot <- ggplot(IPSGffSummaryDF,aes(x=-log(score))) + geom_histogram(binwidth = 5) +
-  labs(title="Summary of protein match score")
-
-### topNcateg plots: tables
-DFforSummProtFamilies <- extractTopN(IPSGffSummaryDF,"description",numberOfTopNCategories)
-DFforSummProtGO <- extractTopN(IPSGffSummaryDF,"GOterm",numberOfTopNCategories)
-## Add GO decsription
-GOdesc <- sapply(DFforSummProtGO$GOterm,function(x)Term(GOTERM)[names(Term(GOTERM))%in%x], USE.NAMES = F)
-DFforSummProtGO$GOterm <- paste(DFforSummProtGO$GOterm,GOdesc)
-## expand palette colour to numberOfTopNCategories
-getPalette = colorRampPalette(brewer.pal(9, "Set1"))
-expandedPalette <- getPalette(numberOfTopNCategories)
-## generate plots
-summaryFamilyPlot <- ggplot(DFforSummProtFamilies,aes(x=reorder(description, -abundance),y=abundance, fill = description)) 
-summaryFamilyPlot <- summaryFamilyPlot + geom_bar(stat = "Identity")+theme(axis.text.x = element_blank(), axis.title.x = element_blank(), legend.position = "bottom",legend.text = element_text(size =7)) + scale_color_manual(expandedPalette)
-summaryFamilyPlot <- summaryFamilyPlot + guides(fill=guide_legend(ncol=2, byrow=F,title.position = "top"))  +
-  labs(title="Most represented  protein families")
-
-
-summaryGOPlot <- ggplot(DFforSummProtGO,aes(x=reorder(GOterm, -abundance),y=abundance, fill = GOterm)) 
-summaryGOPlot <- summaryGOPlot + geom_bar(stat = "Identity")+theme(axis.text.x = element_blank(), axis.title.x = element_blank(),legend.position = "bottom",legend.text = element_text(size =7)) + scale_color_manual(expandedPalette)
-summaryGOPlot <- summaryGOPlot +  guides(fill=guide_legend(ncol=2, byrow=F,title.position = "top"))  +
-  labs(title="Most represented GO terms")
+summaryMatchScorePlot <-   summaryMatchScorePlot(interproscanListForWrap$summDF)
+summaryFamilyPlot <- summaryFamilyPlot(interproscanListForWrap$topN_desc, numberOfTopNCategories)
+summaryGOPlot <- summaryGOPlot(interproscanListForWrap$topN_GO, numberOfTopNCategories)
 ```
 
 
@@ -68,21 +41,51 @@ Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
 
 ## Data pre-processing {.tabset}
 
-### Prodigal gene prediction
-#### Summary score plot
-```{r summaryScorePlot, echo=FALSE}
-par(mfrow=c(1,3), las=1)
-plot(summaryScorePlot)
-plot(summaryConfPlot)
-plot(summaryGcContPlot)
-plot(summaryRBSSpacePlot)
-plot(summaryRBSMotifPlot)
+### Prodigal gene prediction:Summary score plot
+```{r summaryScorePlotMegahit, echo=FALSE, fig.cap="Megahit"}
+plot(summaryScorePlotList[["megahit"]])
+```
+
+```{r summaryScorePlotMetaspades, echo=FALSE, fig.cap="Metaspades"}
+plot(summaryScorePlotList[["metaspades"]])
+```
+
+```{r summaryConfPlotListMegahit, echo=FALSE, fig.cap="Megahit"}
+plot(summaryConfPlotList[["megahit"]])
+```
+
+```{r summaryConfPlotListMetaspades, echo=FALSE, fig.cap="Metaspades"}
+plot(summaryConfPlotList[["metaspades"]])
+```
+
+```{r summaryGcContPlotListtMegahit, echo=FALSE, fig.cap="Megahit"}
+plot(summaryConfPlotList[["megahit"]])
+```
+
+```{r summaryGcContPlotListMetaspades, echo=FALSE, fig.cap="Metaspades"}
+plot(summaryGcContPlotList[["metaspades"]])
+```
+
+### Prodigal gene prediction:Summary spacer plot
+```{r summaryRBSSpacePlotListMegahit, echo=FALSE, fig.cap="Megahit"}
+plot(summaryRBSSpacePlotList[["megahit"]])
+```
+
+```{r summaryRBSSpacePlotListMetaspades, echo=FALSE, fig.cap="Metaspades"}
+plot(summaryRBSSpacePlotList[["Metaspades"]])
+```
+
+```{r summaryRBSMotifPlotListMH, echo=FALSE, fig.cap="megahit"}
+plot(summaryRBSMotifPlotList[["megahit"]])
+```
+
+```{r summaryRBSMotifPlotListMS, echo=FALSE, fig.cap="Metaspades"}
+plot(summaryRBSMotifPlotList[["metaspades"]])
 ```
 
 ### Interproscan annotation
 #### Summary of matched proteins score
-```{r summaryMatchScorePlot, echo=FALSE,out.width="33%"}
-par(mfrow=c(1,2), las=1)
+```{r summaryMatchScorePlot, echo=FALSE,out.width="70%"}
 plot(summaryFamilyPlot)
 plot(summaryGOPlot)
 plot(summaryMatchScorePlot)
