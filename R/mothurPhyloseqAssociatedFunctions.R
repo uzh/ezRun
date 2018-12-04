@@ -359,7 +359,7 @@ phyloSeqTaxaFromFile  <- function(taxaFile){
 ##' @return Returns a stacked bar  plot.
 ##' 
 ### Heatmap function
-heatmapForPhylotseqPlotPheatmap <- function(phyloseqOtuObj){
+heatmapForPhylotseqPlotPheatmap <- function(phyloseqOtuObj, matrix){
     plot_heatmap_Pheatmap <- function() {
   ## clust funct
   distCor <- function(x) {as.dist(1-cor(x))}
@@ -373,9 +373,8 @@ heatmapForPhylotseqPlotPheatmap <- function(phyloseqOtuObj){
                 Rowv=as.dendrogram(hcl_row), Colv=as.dendrogram(hcl_col)))
   }
   z <- zClust(t(phyloseqOtuObj))
-  groups <- sapply(colnames(z$data), function(x)unlist(strsplit(x,"_"))[1])
-  mat_col <- data.frame(group = groups)
-  rownames(mat_col) <- colnames(z$data)
+  mat_col <- matrix
+  cols <- nlevels(as.factor(matrix$Group))
   mat_colors <- list(group = brewer.pal(9, "Set1"))
   names(mat_colors$group) <- unique(groups)
   ## heatmap
