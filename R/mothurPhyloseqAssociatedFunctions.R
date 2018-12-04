@@ -375,8 +375,8 @@ heatmapForPhylotseqPlotPheatmap <- function(phyloseqOtuObj, matrix){
   z <- zClust(t(phyloseqOtuObj))
   mat_col <- matrix
   ncols <- nlevels(as.factor(matrix$Group))
-  mat_colors <- list(matrix$Group = brewer.pal(ncols, "Set1"))
-  names(mat_colors$group) <- unique(groups)
+  mat_colors <- list(group = brewer.pal(ncols, "Set1"))
+  names(mat_colors$group) <- unique(Group)
   ## heatmap
   pheatmap(z$data,show_rownames = FALSE,
            show_colnames     = TRUE,
