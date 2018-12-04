@@ -278,7 +278,7 @@ pcaForPhylotseqPlot <- function(input,groups){
 ##' 
 ### Heatmap function
 heatmapForPhylotseqPlot <- function(phyloseqOtuObj){
-  plot_heatmap <- function() {
+#  plot_heatmap <- function() {
     ## clust funct
   distCor <- function(x) {as.dist(1-cor(x))}
   zClust <- function(x, scale="row", zlim=c(-3,3), method="average") {
@@ -296,7 +296,7 @@ heatmapForPhylotseqPlot <- function(phyloseqOtuObj){
     heatmap.2(z$data,dendrogram=c("col"),Rowv=FALSE,Colv=z$Colv,col=rev(cols), 
               trace='none',density.info=c("none"),keysize = 0.8, 
               labRow=NA,cexCol = 1)
-  }
+#  }
 }
 
 
