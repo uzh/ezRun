@@ -117,7 +117,7 @@ summaryGcContPlot <- function(x){
 
 ### summary rbs_spacer hist
 summaryRBSSpacePlot <-  function(x){
-  p<- ggplot(subsetDataToPartial00,aes(x=rbs_spacer)) + geom_bar() +  
+  p<- ggplot(x,aes(x=rbs_spacer)) + geom_bar() +  
     facet_grid(rows = vars(start_type), cols = vars(partial), labeller = label_both) +
     theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
     labs(title="RBS-spacer distribution")
@@ -125,7 +125,7 @@ summaryRBSSpacePlot <-  function(x){
 }
 ### summary rbs_motif hist
 summaryRBSMotifPlot <- function(x){
-  p<- ggplot(subsetDataToPartial00,aes(x=rbs_motif)) + 
+  p<- ggplot(x,aes(x=rbs_motif)) + 
     geom_bar() +  facet_grid(rows = vars(start_type), cols = vars(partial), labeller = label_both) + 
     theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
   labs(title="RBS-motif distribution")
