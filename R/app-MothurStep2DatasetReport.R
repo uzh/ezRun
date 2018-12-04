@@ -27,6 +27,7 @@ ezMethodMothurStep2DatasetReport = function(input=NA, output=NA, param=NA,
   require(webshot)
   require(htmlwidgets)
   library(purrr)
+  library(pheatmap)
   
   dataset = input$meta
   isGroupThere = param$group
