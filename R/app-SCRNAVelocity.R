@@ -33,15 +33,28 @@ ezMethodSCRNAVelocity <- function(input=NA, output=NA, param=NA,
   param$name <- paste(param$name, input$getNames(), sep=": ")
   
   if(param$scProtocol == "smart-Seq2"){
-    bams <- splitBamByRG(input$getFullPaths("BAM"),
-                         mc.cores=min(param$cores, 8L))
+    bamFn <- list.files(path=input$getFullPaths("ResultDir"),
+                        pattern="\\.bam$", full.names = TRUE)
+    stopifnot(length(bamFn) == 1L)
+    
+    bams <- splitBamByRG(bamFn, mc.cores=min(param$cores, 8L))
     # run velocyto
-      cmd <- paste("velocyto run_smartseq2 -v", paste(bams, collapse=" "),
-                   param$ezRef['refFeatureFile'])
+    cmd <- paste("velocyto run_smartseq2 -v", paste(bams, collapse=" "),
+                 param$ezRef['refFeatureFile'])
     ezSystem(cmd)
     file.remove(bams)
   }else if(param$scProtocol == "10X"){
     stop("Not implemented yet!")
+    cellRangerDir <- input$getFullPaths("ResultDir")
+    file.copy(from=cellRangerDir, to=basename(cellRangerDir),
+              recursive = TRUE)
+    # run velocyto
+    cmd <- paste("velocyto run10x --samtools-threads 8 --samtools-memory 512 -v",
+                 basename(cellRangerDir), param$ezRef['refFeatureFile'])
+    ezSystem(cmd)
+    file.copy(from=file.path(basename(cellRangerDir), "velocyto"),
+              to="velocyto")
+    unlink(basename(cellRangerDir), recursive = TRUE)
   }else{
     stop("Unsupported single cell protocol.")
   }
