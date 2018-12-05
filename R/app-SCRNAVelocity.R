@@ -45,14 +45,14 @@ ezMethodSCRNAVelocity <- function(input=NA, output=NA, param=NA,
     file.remove(bams)
   }else if(param$scProtocol == "10X"){
     cellRangerDir <- input$getFullPaths("ResultDir")
-    file.copy(from=cellRangerDir, to=basename(cellRangerDir),
+    file.copy(from=cellRangerDir, to=".",
               recursive = TRUE)
     # run velocyto
     cmd <- paste("velocyto run10x --samtools-threads 8 --samtools-memory 512 -v",
                  basename(cellRangerDir), param$ezRef['refFeatureFile'])
     ezSystem(cmd)
     file.copy(from=file.path(basename(cellRangerDir), "velocyto"),
-              to="velocyto")
+              to=".")
     unlink(basename(cellRangerDir), recursive = TRUE)
   }else{
     stop("Unsupported single cell protocol.")
