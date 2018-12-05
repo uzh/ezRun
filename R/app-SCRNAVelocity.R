@@ -52,7 +52,7 @@ ezMethodSCRNAVelocity <- function(input=NA, output=NA, param=NA,
                  basename(cellRangerDir), param$ezRef['refFeatureFile'])
     ezSystem(cmd)
     file.copy(from=file.path(basename(cellRangerDir), "velocyto"),
-              to=".")
+              to=".", recursive = TRUE)
     unlink(basename(cellRangerDir), recursive = TRUE)
   }else{
     stop("Unsupported single cell protocol.")
