@@ -42,7 +42,7 @@ Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
 ## Data pre-processing {.tabset}
 
 ### Prodigal gene prediction:summary score
-```{r summaryScorePlotMegahit, echo=FALSE}
+```{r summaryScorePlotMegahit, echo=FALSE,out.width="100%"}
 plot(summaryScorePlotList)
 ```
 
@@ -55,8 +55,11 @@ plot(summaryRBSMotifPlotList)
 ```
 
 ### Interproscan annotation:  proteins match scores and functional annotation
-```{r summaryMatchScorePlot, echo=FALSE,out.width="100%", fig.height=4}
+```{r summaryMatchScorePlot, echo=FALSE,out.width="80%", fig.height=4}
 plot(summaryMatchScorePlot)
+```
+
+```{r summaryGOFam, echo=FALSE,out.width="100%", fig.height=4}
 plot(summaryFamilyPlot)
 plot(summaryGOPlot)
 ```
