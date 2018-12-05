@@ -35,6 +35,11 @@ EzAppSCCounts <-
 ezMethodSCCounts = function(input=NA, output=NA, param=NA,
                             htmlFile="00index.html"){
   #inputBam <- input$copy()
+  
+  cwd <- getwd()
+  setwdNew(basename(output$getColumn("ResultDir")))
+  on.exit(setwd(cwd), add=TRUE)
+  
   metainput = EzDataset(file=input$getFullPaths("CellDataset"),
                         dataRoot=param$dataRoot)
   
