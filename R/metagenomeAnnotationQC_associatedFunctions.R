@@ -167,7 +167,8 @@ withThemes <- basicPlot + geom_bar(stat = "Identity", position = "dodge") +
         legend.position = "right",legend.text = element_text(size =10)) 
 p <- withThemes  +scale_color_manual(expandedPalette) +
   labs(title="Most represented GO terms") +
-  guides(fill=guide_legend(ncol=1, byrow=F,title.position = "top"))+ coord_flip()
+  guides(fill=guide_legend(ncol=1, byrow=F,title.position = "top"))+
+  aes(stringr::str_wrap(GOterm,20)) + ylab(NULL) + coord_flip()
   return(p)
 }
 ### topNcateg plots: protein family
@@ -182,7 +183,8 @@ summaryFamilyPlot <- function(x,numberOfTopNCategories){
           legend.position = "right",legend.text = element_text(size =10)) 
   p <- withThemes  +scale_color_manual(expandedPalette) +
     labs(title="Most represented  protein families") +
-    guides(fill=guide_legend(ncol=1, byrow=F,title.position = "top"))+ coord_flip()
+    guides(fill=guide_legend(ncol=1, byrow=F,title.position = "top"))+
+    aes(stringr::str_wrap(description,20)) + ylab(NULL) + coord_flip()
   
 return(p)
 }
