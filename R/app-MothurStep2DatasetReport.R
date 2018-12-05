@@ -89,14 +89,11 @@ ezMethodMothurStep2DatasetReport = function(input=NA, output=NA, param=NA,
   chimeraPlotsToReport <- chimeraSummaryPlot(listOfListAllFiles["ChimeraPlot"]$ChimeraPlot)
 
   ### create plots: 1. abundance
-  abundPlot <- plot_bar(physeqFullObject, fill="Phylum") + geom_bar(aes(color=Phylum, fill=Phylum), 
-                                                                    stat="identity", position="stack")
+  abundPlot <- plot_bar(physeqFullObject, fill="Genus") + geom_bar(aes(fill=Genus), stat="identity", position="stack")
   if (isGroupThere) {
-    abundPlotGroup <- plot_bar(physeqFullObject, "Order", fill="Phylum", facet_grid=~Group) +
-      geom_bar(aes(color=Phylum, fill=Phylum), stat="identity", position="stack") +
-      theme(axis.title.x = element_blank(),axis.text.x =  element_blank())
+    abundPlotGroup <- plot_bar(physeqFullObject, "Species", fill="Genus", facet_grid=~Group) + geom_bar(aes(fill=Genus), stat="identity", position="stack")
   }
-  
+
   ### create plots: 2. ordination by taxa 
   ordinateDS <- ordinate(physeqFullObject, "NMDS", "bray")
   plotOrdTaxa = plot_ordination(physeqFullObject, ordinateDS, type="taxa", color="Phylum") + 
