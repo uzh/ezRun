@@ -19,6 +19,8 @@ knitr::opts_chunk$set(echo = TRUE)
 
 require(ezRun)
 require(velocyto.R)
+require(Matrix)
+
 # debug
 # title: "`r ans$param$name`"
 # ans <- readRDS("/export/local/scratch/gtan/dev/RNAVelocity-p2838/SCRNAVelocity/ans1.rds")
@@ -69,7 +71,7 @@ length(intersect(intersect(rownames(emat), rownames(nmat)), rownames(smat)))
 ```
 
 ```{r gene filtering plot, echo=FALSE}
-hist(log10(rowSums(ldat$spliced)+1), col='wheat',
+hist(log10(Matrix::rowSums(ldat$spliced)+1), col='wheat',
      xlab='log10[ number of reads + 1]',
      main='number of reads per gene')
 ```
