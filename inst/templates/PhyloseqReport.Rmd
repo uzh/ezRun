@@ -20,7 +20,7 @@ setEnvironments("phantomjs")
 ### create plots: 1. abundance
 abundPlot <- plot_bar(physeqFullObject, fill="Phylum") + geom_bar(aes(color=Phylum, fill=Phylum), stat="identity", position="stack")
 if (isGroupThere) {
-  abundPlotGroup <- plot_bar(physeqFullObject, "Genus", fill="Phylum", facet_grid=~Group) +
+  abundPlotGroup <- plot_bar(physeqFullObject, fill="Genus", facet_grid=~Group) +
     geom_bar(aes(color=Phylum, fill=Phylum), stat="identity", position="stack") +
     theme(axis.title.x = element_text(angle = 90, hjust = 1),axis.text.x =  element_blank())
 }
