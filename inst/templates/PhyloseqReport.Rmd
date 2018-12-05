@@ -21,8 +21,6 @@ setEnvironments("phantomjs")
 abundPlot <- plot_bar(physeqFullObject, fill="Genus") + geom_bar(aes(fill=Genus), stat="identity", position="stack")
 if (isGroupThere) {
   abundPlotGroup <- plot_bar(physeqFullObject, "Species", fill="Genus", facet_grid=~Group) + geom_bar(aes(fill=Genus), stat="identity", position="stack")
- #   geom_bar(aes(color=Phylum, fill=Phylum), stat="identity", position="stack") +
-  #  theme(axis.title.x = element_blank(),axis.text.x =  element_blank())
 }
 ```
 
@@ -76,7 +74,9 @@ Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
 ```{r abund, echo=FALSE}
 par(mfrow=c(1,2), las=1)
 plot(abundPlot)
+if (isGroupThere) {
 plot(abundPlotGroup)
+}
 ```
 
 ### Clustering (ordination) plots
