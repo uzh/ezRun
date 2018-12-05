@@ -164,7 +164,7 @@ expandedPalette <- getPalette(numberOfTopNCategories)
 basicPlot <- ggplot(DFforSummProtGO,aes(x=reorder(GOterm, -abundance),y=abundance, fill = method)) 
 withThemes <- basicPlot + geom_bar(stat = "Identity", position = "dodge") +
   theme(axis.title = element_blank(),axis.text.x = element_text(angle = 90, hjust = 1),
-        axis.text.y= element_text(size =6),
+        axis.text.y= element_text(size =5),
         legend.position = "right",legend.text = element_text(size =10)) 
 p <- withThemes  +scale_color_manual(expandedPalette) +
   labs(title="Most represented GO terms") +
