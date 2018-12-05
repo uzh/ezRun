@@ -163,12 +163,13 @@ getPalette = colorRampPalette(brewer.pal(9, "Set1"))
 expandedPalette <- getPalette(numberOfTopNCategories)
 basicPlot <- ggplot(DFforSummProtGO,aes(x=reorder(GOterm, -abundance),y=abundance, fill = method)) 
 withThemes <- basicPlot + geom_bar(stat = "Identity", position = "dodge") +
-  theme(axis.title.x = element_blank(),axis.text.x = element_text(angle = 90, hjust = 1),
+  theme(axis.title = element_blank(),axis.text.x = element_text(angle = 90, hjust = 1),
+        axis.text.y= element_text(size =8),
         legend.position = "right",legend.text = element_text(size =10)) 
 p <- withThemes  +scale_color_manual(expandedPalette) +
   labs(title="Most represented GO terms") +
   guides(fill=guide_legend(ncol=1, byrow=F,title.position = "top"))+
-  aes(stringr::str_wrap(GOterm,20)) + ylab(NULL) + coord_flip()
+  aes(stringr::str_wrap(GOterm,30)) + ylab(NULL) + coord_flip()
   return(p)
 }
 ### topNcateg plots: protein family
@@ -179,12 +180,13 @@ summaryFamilyPlot <- function(x,numberOfTopNCategories){
   expandedPalette <- getPalette(numberOfTopNCategories)
   basicPlot <- ggplot(DFforSummProtFamilies,aes(x=reorder(description, -abundance),y=abundance, fill = method)) 
   withThemes <- basicPlot + geom_bar(stat = "Identity", position = "dodge") +
-    theme(axis.title.x = element_blank(),axis.text.x = element_text(angle = 90, hjust = 1),
+    theme(axis.title = element_blank(),axis.text.x = element_text(angle = 90, hjust = 1),
+          axis.text.y= element_text(size =8),
           legend.position = "right",legend.text = element_text(size =10)) 
   p <- withThemes  +scale_color_manual(expandedPalette) +
     labs(title="Most represented  protein families") +
     guides(fill=guide_legend(ncol=1, byrow=F,title.position = "top"))+
-    aes(stringr::str_wrap(description,20)) + ylab(NULL) + coord_flip()
+    aes(stringr::str_wrap(description,30)) + ylab(NULL) + coord_flip()
   
 return(p)
 }
