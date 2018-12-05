@@ -155,6 +155,14 @@ summaryMatchScorePlot <- function(x){
 ### topNcateg plots: GO
 summaryGOPlot <- function(x,numberOfTopNCategories){
   DFforSummProtGO <- x
+  nEntries <- nrow(DFforSummProtGO)
+  if (nEntries < 25){
+    yLabelSize = 5
+  }else if (nEntries > 25 & nEntries <31) {
+    yLabelSize = 4
+  }else if ( nEntries >31){
+    yLabelSize = 3
+  }
 GOdesc <- sapply(DFforSummProtGO$GOterm,
                  function(x)Term(GOTERM)[names(Term(GOTERM))%in%x], USE.NAMES = F)
 DFforSummProtGO$GOterm <- paste(DFforSummProtGO$GOterm,GOdesc)
@@ -164,7 +172,7 @@ expandedPalette <- getPalette(numberOfTopNCategories)
 basicPlot <- ggplot(DFforSummProtGO,aes(x=reorder(GOterm, -abundance),y=abundance, fill = method)) 
 withThemes <- basicPlot + geom_bar(stat = "Identity", position = "dodge") +
   theme(axis.title = element_blank(),axis.text.x = element_text(angle = 90, hjust = 1),
-        axis.text.y= element_text(size =5),
+        axis.text.y= element_text(size =yLabelSize),
         legend.position = "right",legend.text = element_text(size =10)) 
 p <- withThemes  +scale_color_manual(expandedPalette) +
   labs(title="Most represented GO terms") +
@@ -175,13 +183,21 @@ p <- withThemes  +scale_color_manual(expandedPalette) +
 ### topNcateg plots: protein family
 summaryFamilyPlot <- function(x,numberOfTopNCategories){
   DFforSummProtFamilies <- x
+  nEntries <- nrow(DFforSummProtFamilies)
+  if (nEntries < 25){
+    yLabelSize = 5
+  }else if (nEntries > 25 & nEntries <31) {
+    yLabelSize = 4
+  }else if ( nEntries >31){
+    yLabelSize = 3
+  }
   ## expand palette colour to numberOfTopNCategories
   getPalette = colorRampPalette(brewer.pal(9, "Set1"))
   expandedPalette <- getPalette(numberOfTopNCategories)
   basicPlot <- ggplot(DFforSummProtFamilies,aes(x=reorder(description, -abundance),y=abundance, fill = method)) 
   withThemes <- basicPlot + geom_bar(stat = "Identity", position = "dodge") +
     theme(axis.title = element_blank(),axis.text.x = element_text(angle = 90, hjust = 1),
-          axis.text.y= element_text(size =6),
+          axis.text.y= element_text(size =yLabelSize),
           legend.position = "right",legend.text = element_text(size =10)) 
   p <- withThemes  +scale_color_manual(expandedPalette) +
     labs(title="Most represented  protein families") +
