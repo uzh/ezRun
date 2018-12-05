@@ -22,15 +22,14 @@ abundPlot <- plot_bar(physeqFullObject, fill="Phylum") + geom_bar(aes(color=Phyl
 if (isGroupThere) {
   abundPlotGroup <- plot_bar(physeqFullObject, "Genus", fill="Phylum", facet_grid=~Group) +
     geom_bar(aes(color=Phylum, fill=Phylum), stat="identity", position="stack") +
-    theme(axis.title.x = element_blank(),axis.text.x =  element_blank())
+    theme(axis.title.x = element_text(angle = 90, hjust = 1),axis.text.x =  element_blank())
 }
 ```
 
 ```{r prepOrdTaxa, include=FALSE, eval=isGroupThere}
 ### create plots: 2. ordination by taxa 
 ordinateDS <- ordinate(physeqFullObject, "NMDS", "bray")
-#plotOrdTaxa = plot_ordination(physeqFullObject, ordinateDS, type="taxa", color="Phylum") + facet_wrap(~Phylum, 3) + ggtitle("Taxa #ordination") + theme(legend.position = "none") 
-plotOrdTaxa = plot_ordination(physeqFullObject, ordinateDS, type="biplot") + facet_grid(rows=vars(Genus), cols=vars(Group)) + ggtitle("Taxa ordination") + theme(legend.position = "none") 
+plotOrdTaxa = plot_ordination(physeqFullObject, ordinateDS, type="taxa", color="Phylum") + facet_wrap(~Phylum, 3) + ggtitle("Taxa ordination") + theme(legend.position = "none") 
 ```
 
 ```{r prepOrdSamples, include=FALSE, eval=isGroupThere}
