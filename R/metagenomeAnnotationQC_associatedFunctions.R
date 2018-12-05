@@ -96,28 +96,28 @@ IPSGffSummaryDF_topN_desc$method <- meth
 ##' @return Returns ggplots
 
 summaryScorePlot <- function(x){
-p <-  ggplot(x,aes(x=score)) + geom_histogram(binwidth=10) +  
+p <-  ggplot(x,aes(x=score,fill=method)) + geom_histogram(binwidth=10) +  
   facet_grid(rows = vars(start_type), cols = vars(partial)) + 
   labs(title="Summary of the gene prediction scores")
 return(p)
 }
 
 summaryConfPlot <- function(x){
-  p <-  ggplot(x,aes(x=conf)) + geom_histogram(binwidth=5) +  
+  p <-  ggplot(x,aes(x=conf,fill=method)) + geom_histogram(binwidth=5, position = "dodge") +  
     facet_grid(rows = vars(start_type), cols = vars(partial),labeller = label_both)+ 
     labs(title="Summary of the gene prediction confidence")
   return(p)
   }
 
 summaryGcContPlot <- function(x){
-  p <- ggplot(x,aes(x=gc_cont)) + geom_histogram(binwidth=0.001) +  
+  p <- ggplot(x,aes(x=gc_cont,fill=method)) + geom_histogram(binwidth=0.001) +  
     facet_grid(rows = vars(start_type), cols = vars(partial),labeller = label_both) + labs(title="Summary of the GC-content")
   return(p)
 }
 
 ### summary rbs_spacer hist
 summaryRBSSpacePlot <-  function(x){
-  p<- ggplot(x,aes(x=rbs_spacer)) + geom_bar() +  
+  p<- ggplot(x,aes(x=rbs_spacer,fill=method)) + geom_bar(position = "dodge") +  
     facet_grid(rows = vars(start_type), cols = vars(partial), labeller = label_both) +
     theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
     labs(title="RBS-spacer distribution")
@@ -125,8 +125,8 @@ summaryRBSSpacePlot <-  function(x){
 }
 ### summary rbs_motif hist
 summaryRBSMotifPlot <- function(x){
-  p<- ggplot(x,aes(x=rbs_motif)) + 
-    geom_bar() +  facet_grid(rows = vars(start_type), cols = vars(partial), labeller = label_both) + 
+  p<- ggplot(x,aes(x=rbs_motif,fill=method)) + 
+    geom_bar(position = "dodge") +  facet_grid(rows = vars(start_type), cols = vars(partial), labeller = label_both) + 
     theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
   labs(title="RBS-motif distribution")
   return(p)
@@ -147,39 +147,47 @@ summaryRBSMotifPlot <- function(x){
 ##' @return Returns ggplots
 
 summaryMatchScorePlot <- function(x){
-  p<- ggplot(x,aes(x=-log(score))) + geom_histogram(binwidth = 5) +
-  labs(title="Summary of protein match score") + facet_grid(cols = vars(method))
+  p<- ggplot(x,aes(x=-log(score),fill=method)) + geom_histogram(binwidth = 1) +
+  labs(title="Summary of protein match score") 
   return(p)
 }
 
 ### topNcateg plots: GO
 summaryGOPlot <- function(x,numberOfTopNCategories){
   DFforSummProtGO <- x
-GOdesc <- sapply(DFforSummProtGO$GOterm,function(x)Term(GOTERM)[names(Term(GOTERM))%in%DFforSummProtGO], USE.NAMES = F)
+GOdesc <- sapply(DFforSummProtGO$GOterm,
+                 function(x)Term(GOTERM)[names(Term(GOTERM))%in%x], USE.NAMES = F)
 DFforSummProtGO$GOterm <- paste(DFforSummProtGO$GOterm,GOdesc)
 ## expand palette colour to numberOfTopNCategories
 getPalette = colorRampPalette(brewer.pal(9, "Set1"))
 expandedPalette <- getPalette(numberOfTopNCategories)
-summaryGOPlot <- ggplot(DFforSummProtGO,aes(x=reorder(GOterm, -abundance),y=abundance, fill = GOterm)) 
-summaryGOPlot <- summaryGOPlot + geom_bar(stat = "Identity")+
-  theme(axis.text.x = element_blank(), axis.title.x = element_blank(),legend.position = "bottom",legend.text = element_text(size =7)) + scale_color_manual(expandedPalette)
-p <- summaryGOPlot  +
-  labs(title="Most represented GO terms") + facet_grid(cols = vars(method))
+basicPlot <- ggplot(DFforSummProtGO,aes(x=reorder(GOterm, -abundance),y=abundance, fill = method)) 
+withThemes <- basicPlot + geom_bar(stat = "Identity", position = "dodge") +
+  theme(axis.title = element_blank(),axis.text.x = element_text(angle = 90, hjust = 1),
+        axis.text.y= element_text(size =5),
+        legend.position = "right",legend.text = element_text(size =10)) 
+p <- withThemes  +scale_color_manual(expandedPalette) +
+  labs(title="Most represented GO terms") +
+  guides(fill=guide_legend(ncol=1, byrow=F,title.position = "top"))+
+  aes(stringr::str_wrap(GOterm,30)) + ylab(NULL) + coord_flip()
   return(p)
 }
-
 ### topNcateg plots: protein family
 summaryFamilyPlot <- function(x,numberOfTopNCategories){
   DFforSummProtFamilies <- x
   ## expand palette colour to numberOfTopNCategories
   getPalette = colorRampPalette(brewer.pal(9, "Set1"))
   expandedPalette <- getPalette(numberOfTopNCategories)
-  init <- ggplot(DFforSummProtFamilies,aes(x=reorder(description, -abundance),y=abundance, fill = description)) 
-  init <- init + geom_bar(stat = "Identity")+theme(axis.text.x = element_blank(), axis.title.x = element_blank(), 
-                                                   legend.position = "bottom",legend.text = element_text(size =7)) + 
-    scale_color_manual(expandedPalette)
-p <- init + guides(fill=guide_legend(ncol=2, byrow=F,title.position = "top"))  +
-  labs(title="Most represented  protein families")+ facet_grid( cols = vars(method))
+  basicPlot <- ggplot(DFforSummProtFamilies,aes(x=reorder(description, -abundance),y=abundance, fill = method)) 
+  withThemes <- basicPlot + geom_bar(stat = "Identity", position = "dodge") +
+    theme(axis.title = element_blank(),axis.text.x = element_text(angle = 90, hjust = 1),
+          axis.text.y= element_text(size =6),
+          legend.position = "right",legend.text = element_text(size =10)) 
+  p <- withThemes  +scale_color_manual(expandedPalette) +
+    labs(title="Most represented  protein families") +
+    guides(fill=guide_legend(ncol=1, byrow=F,title.position = "top"))+
+    aes(stringr::str_wrap(description,30)) + ylab(NULL) + coord_flip()
+  
 return(p)
 }
 

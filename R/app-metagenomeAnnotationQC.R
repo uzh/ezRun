@@ -35,13 +35,18 @@ ezMethodMetagenomeAnnotationQC = function(input=NA, output=NA, param=NA,
   ## construct final lists
   ## prodigal
   k=0
-  prodigalList <- list()
+  fullSumm <- list()
+  subsetDataToPartial00 <-list()
   for (file in namedList$prodigalPredictionFile){
     k=k+1
     method <- sampleNames[k]
-    prodigalList[[method]] <-  prodigalFileReport(file,method)
+    fullSumm[[method]] <-  prodigalFileReport(file,method)$fullSumm
+    subsetDataToPartial00[[method]] <- prodigalFileReport(file,method)$subsetDataToPartial00
   }
-  
+
+  fullSummPlot <-  do.call("rbind",fullSumm)
+  subsetDataToPartial00Plot <- do.call("rbind",subsetDataToPartial00)
+
   ## IPS
   k=0
   interproscanList <- list()
