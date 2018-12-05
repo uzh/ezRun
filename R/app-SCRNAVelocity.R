@@ -44,7 +44,6 @@ ezMethodSCRNAVelocity <- function(input=NA, output=NA, param=NA,
     ezSystem(cmd)
     file.remove(bams)
   }else if(param$scProtocol == "10X"){
-    stop("Not implemented yet!")
     cellRangerDir <- input$getFullPaths("ResultDir")
     file.copy(from=cellRangerDir, to=basename(cellRangerDir),
               recursive = TRUE)
