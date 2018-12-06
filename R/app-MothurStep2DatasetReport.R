@@ -113,8 +113,8 @@ ezMethodMothurStep2DatasetReport = function(input=NA, output=NA, param=NA,
   }
   
   ### create plots: 4. raref
-  taxDF <- data.frame(physeqObjectNoTree@tax_table@.Data, stringsAsFactors = F)
-  otuDF <- data.frame(physeqObjectNoTree@otu_table@.Data, stringsAsFactors = F)
+  taxDF <- data.frame(physeqFullObject@tax_table@.Data, stringsAsFactors = F)
+  otuDF <- data.frame(physeqFullObject@otu_table@.Data, stringsAsFactors = F)
   specList <- list()
   for (taxon in colnames(taxDF)){
     genusOTUs <- rownames(taxDF)[grep("unclass",taxDF[[taxon]], invert = T)]
@@ -122,11 +122,9 @@ ezMethodMothurStep2DatasetReport = function(input=NA, output=NA, param=NA,
       specDF <- otuDF[,genusOTUs]
       specDF$Group <- as.factor(rownames(specDF))
       specDF$Taxon <- as.factor(taxon)
-      specList[[taxon]] <- specDF
+      rarefPlot[[k]] <- otuSaturationPlot(specDF,"table")
     }
   }
-  finalSpecList <- do.call("rbind",specList)
-  rarefPlot <- otuSaturationPlot(finalSpecList,"table")
 
     ### create plots: 4. tree
   if (isGroupThere) {

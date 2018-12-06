@@ -78,7 +78,10 @@ plot(plotTree)
 
 ### Phyloseq analysis:rarefaction plots
 ```{r raref, echo=FALSE}
-plot(rarefPlot)
+par(mfrow=c(1,2), las=1)
+for (RarPlot in rarefPlot){
+plot(RarPlot)
+}
 ```
 
 ### Heatmaps
