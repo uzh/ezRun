@@ -169,7 +169,7 @@ otuSaturationPlot <- function(x,type){
   sharedFile = x
    }
      k=0 
-   dfFinal <- list()
+     dfGroup <- list()
    for (sample in levels(sharedFile$Group)){
      k=k+1
      tempDF <- sharedFile[sharedFile$Group == sample,]
@@ -184,7 +184,7 @@ otuSaturationPlot <- function(x,type){
   dfTemp <-  data.frame(abundance = cumSumTransform[,colnames(cumSumTransform)[j]])
   dfTemp$numberOTUs <- seq_along(1:nrow(dfTemp))
   dfTemp$Sample <- sample
-  dfGroup[[k]] <- rbind(dfFinal[[k]],dfTemp)
+  dfGroup[[k]] <- rbind(dfGroup[[k]],dfTemp)
   }
    }
   fullSaturaDF <- do.call("rbind",dfGroup)
