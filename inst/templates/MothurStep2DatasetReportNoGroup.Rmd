@@ -64,7 +64,7 @@ plot(plotRichness)
 ```
 
 ### Phyloseq analysis:rarefaction plots
-```{r raref, echo=FALSE, eval=FALSE}
+```{r raref, echo=FALSE}
 plot(rarefPlot)
 ```
 

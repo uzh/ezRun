@@ -76,6 +76,11 @@ plot(plotRichness)
 plot(plotTree)
 ```
 
+### Phyloseq analysis:rarefaction plots
+```{r raref, echo=FALSE}
+plot(rarefPlot)
+```
+
 ### Heatmaps
 ```{r heat, echo=FALSE,out.width="60%",eval=isGroupThere}
 show_pHeatmap()
