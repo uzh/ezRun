@@ -85,7 +85,7 @@ plot(RarPlot)
 ```
 
 ### Heatmaps
-```{r heat, echo=FALSE,out.width="60%"}
+```{r heat, echo=FALSE,out.width="100%"}
 show_pHeatmap()
 ```
 
