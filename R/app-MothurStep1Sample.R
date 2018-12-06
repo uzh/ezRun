@@ -40,7 +40,7 @@ ezMethodMothurStep1Sample = function(input=NA, output=NA, param=NA,
     singleReadFileName <- paste0(sampleName,".R1")
     fastqFileToRead <- readDNAStringSet(paste0(singleReadFileName,".fastq"),format = "fastq")
     readNames <- ldply(strsplit(names(fastqFileToRead)," "), function(x)x[1])$V1
-    groupFile <- data.frame(readNames, singleReadFileName, stringsAsFactors = F)
+    groupFile <- data.frame(readNames, sampleName, stringsAsFactors = F)
     groupFileName <- paste0(sampleName,".R1.groups")
     write.table(groupFile,groupFileName, col.names = F, row.names = F, quote = F)
     fastaOutName <- paste0(singleReadFileName,".fasta")

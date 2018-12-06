@@ -32,8 +32,8 @@ ezMethodPhyloSeqAnalysis = function(input=NA, output=NA, param=NA,
   ### create phyloseq Taxa object
   taxaObject <- phyloSeqTaxaFromFile(input$getFullPaths("OTUsToTaxonomyFile"))
   
-  ### Add sample object (TODO, derive it from step1)
-  if (param$group){
+  ### Eventual groups
+  if (isGroupThere){
   designMatrix <- ezRead.table(input$getFullPaths("sampleDescriptionFile"))
   sampleObject <- sample_data(designMatrix)
   physeqObjectNoTree = phyloseq(otuObject, taxaObject, sampleObject)
@@ -52,13 +52,18 @@ ezMethodPhyloSeqAnalysis = function(input=NA, output=NA, param=NA,
   physeqFullObject <- prune_taxa(myTaxa,physeqFullObject)
   
   setwdNew(basename(output$getColumn("Report")))
-
+  
+  if (isGroupThere){
+    markdownFile <- "PhyloseqReport.Rmd"
+  }else{
+    markdownFile <- "PhyloseqReportNoGroup.Rmd"
+  }
   ## Copy the style files and templates
   styleFiles <- file.path(system.file("templates", package="ezRun"),
-                          c("fgcz.css", "PhyloseqReport.Rmd", 
+                          c("fgcz.css", markdownFile, 
                             "fgcz_header.html", "banner.png"))
   file.copy(from=styleFiles, to=".", overwrite=TRUE)
-  rmarkdown::render(input="PhyloseqReport.Rmd", envir = new.env(),
+  rmarkdown::render(input=markdownFile, envir = new.env(),
                     output_dir=".", output_file=htmlFile, quiet=TRUE)
 }
 ##' @template app-template

@@ -20,9 +20,7 @@ setEnvironments("phantomjs")
 ### create plots: 1. abundance
 abundPlot <- plot_bar(physeqFullObject, fill="Genus") + geom_bar(aes(fill=Genus), stat="identity", position="stack")
 if (isGroupThere) {
-  abundPlotGroup <- plot_bar(physeqFullObject, "Species", fill="Genus", facet_grid=~Group) + geom_bar(aes(fill=Genus), stat="identity", position="stack")
- #   geom_bar(aes(color=Phylum, fill=Phylum), stat="identity", position="stack") +
-  #  theme(axis.title.x = element_blank(),axis.text.x =  element_blank())
+  abundPlotGroup <- plot_bar(physeqFullObject, "Species", fill="Genus", facet_grid=~Group) + geom_bar(aes(fill=Genus), stat="identity", position="stack")  +theme(axis.text.x = element_blank())
 }
 ```
 
@@ -57,6 +55,23 @@ plotTree <- plot_tree(physeqFullObject , ladderize="left")
 }
 ```
 
+```{r prepRaref, include=FALSE}
+### create plots: 4. tree
+  taxDF <- data.frame(physeqObjectNoTree@tax_table@.Data, stringsAsFactors = F)
+  otuDF <- data.frame(physeqObjectNoTree@otu_table@.Data, stringsAsFactors = F)
+  specList <- list()
+  rarefPlot <- list()
+  for (taxon in colnames(taxDF)){
+    genusOTUs <- rownames(taxDF)[grep("unclass",taxDF[[taxon]], invert = T)]
+    if (length(genusOTUs) >0){
+      specDF <- otuDF[,genusOTUs]
+      specDF$Group <- as.factor(rownames(specDF))
+      specDF$Taxon <- as.factor(taxon)
+      rarefPlot[[taxon]] <- otuSaturationPlot(specDF,"table")
+    }
+  }
+```
+
 ```{r prepHeat, include=FALSE, eval=isGroupThere}
 ### create plots:5. pheatmap
 show_pHeatmap <- heatmapForPhylotseqPlotPheatmap(inputData,designMatrix)
@@ -76,7 +91,9 @@ Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
 ```{r abund, echo=FALSE}
 par(mfrow=c(1,2), las=1)
 plot(abundPlot)
+if (isGroupThere) {
 plot(abundPlotGroup)
+}
 ```
 
 ### Clustering (ordination) plots
@@ -95,8 +112,16 @@ plot(plotRichness)
 plot(plotTree)
 ```
 
+### Rarefaction plots
+```{r raref, echo=FALSE}
+par(mfrow=c(1,2), las=1)
+for (RarPlot in rarefPlot){
+plot(RarPlot)
+}
+```
+
 ### Heatmaps
-```{r heat, echo=FALSE,eval=isGroupThere,out.width="60%"}
+```{r heat, echo=FALSE,eval=isGroupThere,out.width="100%"}
 show_pHeatmap()
 ```
 
