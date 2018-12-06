@@ -159,33 +159,45 @@ chimeraSummaryPlot <- function(x){
 
 ##' @title OTUs saturation plot
 ##' @description HOw many OTUs do we really have?
-##' @param  sharedFile, mothur shared abundance  file.
+##' @param  x, mothur shared abundance  file or already read-in table (dep on sec. param).
 ##' @return Returns a grid of plots
-otuSaturationPlot <- function(x){
+otuSaturationPlot <- function(x,type){
+  if (type == "file"){
     nameRawFile <- basename(x)
     sharedFile <- read.table(nameRawFile, stringsAsFactors = FALSE, sep = "\t", header = TRUE)
-   k=0
+}else if (type == "table") {
+  sharedFile = x
+   }
+     k=0 
+     i=0
    dfFinal <- list()
-   for (sample in sharedFile$Group){
+   for (tax in levels(sharedFile$Taxon)){
+     i=i+1
+     dfGroup <- list()
+   for (sample in levels(sharedFile$Group)){
      k=k+1
      tempDF <- sharedFile[sharedFile$Group == sample,]
     sharedAbund <- t(tempDF)
   totOtus <- sharedAbund[rownames(sharedAbund) == "numOtus",]
-  rowToKeep <- grepl("^Otu.*$",rownames(sharedAbund))
+  rowToKeep <- grepl("tu[0-9]",rownames(sharedAbund))
   sharedAbundDF <- data.frame(data.matrix(data.frame(sharedAbund[rowToKeep,], stringsAsFactors = FALSE)))
   colnames(sharedAbundDF) <- sharedAbund[rownames(sharedAbund) == "Group",]
   cumSumTransform <- data.frame(apply(sharedAbundDF,2,cumsum))
   dfFinal[[k]] = data.frame()
-  for (i in 1:ncol(cumSumTransform)){
-  dfTemp <-  data.frame(abundance = cumSumTransform[,colnames(cumSumTransform)[i]])
+  for (j in 1:ncol(cumSumTransform)){
+  dfTemp <-  data.frame(abundance = cumSumTransform[,colnames(cumSumTransform)[j]])
   dfTemp$numberOTUs <- seq_along(1:nrow(dfTemp))
   dfTemp$Sample <- sample
-  dfFinal[[k]] <- rbind(dfFinal[[k]],dfTemp)
+  dfGroup[[k]] <- rbind(dfFinal[[k]],dfTemp)
   }
-  }
+   }
+  dfFinalTemp <- do.call("rbind",dfGroup)
+  dfFinalTemp$Taxon <- tax
+  dfFinal[[i]] <- dfFinalTemp
+   }
   fullSaturaDF <- do.call("rbind",dfFinal)
   saturationPlot <- ggplot(fullSaturaDF, aes(x=numberOTUs,y=abundance)) + geom_line(colour = "red") +
-    facet_wrap(vars(Sample), ncol = 2)
+    facet_grid(rows = vars(Sample), cols = vars(Taxon))
   return(saturationPlot)
 }
 
