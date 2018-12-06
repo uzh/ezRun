@@ -34,8 +34,8 @@ plotTree <- plot_tree(physeqFullObject , ladderize="left")
 ```{r prepRaref, include=FALSE}
 ### create plots: 4. tree
 rarefPlot <- list()
-  taxDF <- data.frame(physeqFullObject@tax_table@.Data, stringsAsFactors = F)
-  otuDF <- data.frame(physeqFullObject@otu_table@.Data, stringsAsFactors = F)
+  taxDF <- data.frame(physeqObjectNoTree@tax_table@.Data, stringsAsFactors = F)
+  otuDF <- data.frame(physeqObjectNoTree@otu_table@.Data, stringsAsFactors = F)
   specList <- list()
   for (taxon in colnames(taxDF)){
     genusOTUs <- rownames(taxDF)[grep("unclass",taxDF[[taxon]], invert = T)]
