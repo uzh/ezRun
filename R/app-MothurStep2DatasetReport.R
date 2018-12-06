@@ -113,8 +113,8 @@ ezMethodMothurStep2DatasetReport = function(input=NA, output=NA, param=NA,
   }
   
   ### create plots: 4. raref
-  taxDF <- data.frame(physeqFullObject@tax_table@.Data, stringsAsFactors = F)
-  otuDF <- data.frame(physeqFullObject@otu_table@.Data, stringsAsFactors = F)
+  taxDF <- data.frame(physeqObjectNoTree@tax_table@.Data, stringsAsFactors = F)
+  otuDF <- data.frame(physeqObjectNoTree@otu_table@.Data, stringsAsFactors = F)
   specList <- list()
   rarefPlot <- list()
   for (taxon in colnames(taxDF)){
