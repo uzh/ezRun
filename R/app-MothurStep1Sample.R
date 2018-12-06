@@ -45,8 +45,8 @@ ezMethodMothurStep1Sample = function(input=NA, output=NA, param=NA,
     write.table(groupFile,groupFileName, col.names = F, row.names = F, quote = F)
     fastaOutName <- paste0(singleReadFileName,".fasta")
     fastaFileToWrite <- writeXStringSet(fastqFileToRead, fastaOutName)
-    initialFastaSuffix = "R1.fasta"
-    initialGroupSuffix = "R1.groups"
+    initialFastaSuffix = "fasta"
+    initialGroupSuffix = "groups"
   }
   
   ### is there at least a mock sample for the error estimate? The error estimates for the Non-mock samples will be ignored downstream
