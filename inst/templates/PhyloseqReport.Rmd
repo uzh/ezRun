@@ -57,20 +57,19 @@ plotTree <- plot_tree(physeqFullObject , ladderize="left")
 
 ```{r prepRaref, include=FALSE}
 ### create plots: 4. tree
-taxDF <- data.frame(physeqObjectNoTree@tax_table@.Data, stringsAsFactors = F)
-otuDF <- data.frame(physeqObjectNoTree@otu_table@.Data, stringsAsFactors = F)
-specList <- list()
-for (taxon in colnames(taxDF)){
-genusOTUs <- rownames(taxDF)[grep("unclass",taxDF[[taxon]], invert = T)]
-if (length(genusOTUs) >0){
-specDF <- otuDF[,genusOTUs]
-specDF$Group <- as.factor(rownames(specDF))
-specDF$Taxon <- as.factor(taxon)
-specList[[taxon]] <- specDF
-}
-}
-finalSpecList <- do.call("rbind",specList)
-rarefPlot <- otuSaturationPlot(finalSpecList,"table")
+  taxDF <- data.frame(physeqFullObject@tax_table@.Data, stringsAsFactors = F)
+  otuDF <- data.frame(physeqFullObject@otu_table@.Data, stringsAsFactors = F)
+  specList <- list()
+  rarefPlot <- list()
+  for (taxon in colnames(taxDF)){
+    genusOTUs <- rownames(taxDF)[grep("unclass",taxDF[[taxon]], invert = T)]
+    if (length(genusOTUs) >0){
+      specDF <- otuDF[,genusOTUs]
+      specDF$Group <- as.factor(rownames(specDF))
+      specDF$Taxon <- as.factor(taxon)
+      rarefPlot[[k]] <- otuSaturationPlot(specDF,"table")
+    }
+  }
 ```
 
 ```{r prepHeat, include=FALSE, eval=isGroupThere}
@@ -115,7 +114,10 @@ plot(plotTree)
 
 ### Rarefaction plots
 ```{r raref, echo=FALSE}
-plot(rarefPlot)
+par(mfrow=c(1,2), las=1)
+for (RarPlot in rarefPlot){
+plot(RarPlot)
+}
 ```
 
 ### Heatmaps
