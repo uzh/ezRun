@@ -91,7 +91,10 @@ ezMethodMothurStep2DatasetReport = function(input=NA, output=NA, param=NA,
   ### create plots: 1. abundance
   abundPlot <- plot_bar(physeqFullObject, fill="Genus") + geom_bar(aes(fill=Genus), stat="identity", position="stack")
   if (isGroupThere) {
-    abundPlotGroup <- plot_bar(physeqFullObject, "Genus", fill="Genus", facet_grid=~Group) + geom_bar(aes(fill=Genus), stat="identity", position="stack")
+    abundPlotGroup <- plot_bar(physeqFullObject, "Genus", 
+                               fill="Genus", facet_grid=~Group) +
+      geom_bar(aes(fill=Genus), stat="identity", position="stack") +
+      theme(axis.text.x = element_blank())
   }
 
   ### create plots: 2. ordination by taxa 
