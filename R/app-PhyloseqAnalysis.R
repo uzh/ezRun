@@ -23,7 +23,7 @@ ezMethodPhyloSeqAnalysis = function(input=NA, output=NA, param=NA,
   library(pheatmap)
   
   dataset = input$meta
-  isGroupThere = param$group
+  isGroupThere = nlevels(input$getColum("Group")) > 1
 ### Analyzes results with phyloseq: preparing objects to be processed in the Rmd file
 
 ### OTUs
