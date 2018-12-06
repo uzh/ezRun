@@ -169,11 +169,7 @@ otuSaturationPlot <- function(x,type){
   sharedFile = x
    }
      k=0 
-     i=0
    dfFinal <- list()
-   for (tax in levels(sharedFile$Taxon)){
-     i=i+1
-     dfGroup <- list()
    for (sample in levels(sharedFile$Group)){
      k=k+1
      tempDF <- sharedFile[sharedFile$Group == sample,]
@@ -191,13 +187,9 @@ otuSaturationPlot <- function(x,type){
   dfGroup[[k]] <- rbind(dfFinal[[k]],dfTemp)
   }
    }
-  dfFinalTemp <- do.call("rbind",dfGroup)
-  dfFinalTemp$Taxon <- tax
-  dfFinal[[i]] <- dfFinalTemp
-   }
-  fullSaturaDF <- do.call("rbind",dfFinal)
+  fullSaturaDF <- do.call("rbind",dfGroup)
   saturationPlot <- ggplot(fullSaturaDF, aes(x=numberOTUs,y=abundance)) + geom_line(colour = "red") +
-    facet_grid(rows = vars(Sample), cols = vars(Taxon))
+    facet_grid(rows = vars(Sample))
   return(saturationPlot)
 }
 
