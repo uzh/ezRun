@@ -32,6 +32,10 @@ ezMethodSCRNAVelocity <- function(input=NA, output=NA, param=NA,
   
   param$name <- paste(param$name, input$getNames(), sep=": ")
   
+  pythonPATH <- Sys.getenv("PYTHONPATH")
+  Sys.setenv("PYTHONPATH"="")
+  on.exit(Sys.setenv("PYTHONPATH"=pythonPATH), add=TRUE)
+  
   if(param$scProtocol == "smart-Seq2"){
     bamFn <- list.files(path=input$getFullPaths("ResultDir"),
                         pattern="\\.bam$", full.names = TRUE)
@@ -51,6 +55,7 @@ ezMethodSCRNAVelocity <- function(input=NA, output=NA, param=NA,
     cmd <- paste("velocyto run10x --samtools-threads 8 --samtools-memory 512 -v",
                  basename(cellRangerDir), param$ezRef['refFeatureFile'])
     ezSystem(cmd)
+    
     file.copy(from=file.path(basename(cellRangerDir), "velocyto"),
               to=".", recursive = TRUE)
     unlink(basename(cellRangerDir), recursive = TRUE)
