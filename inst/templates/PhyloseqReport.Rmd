@@ -121,7 +121,7 @@ plot(RarPlot)
 ```
 
 ### Heatmaps
-```{r heat, echo=FALSE,eval=isGroupThere,out.width="60%"}
+```{r heat, echo=FALSE,eval=isGroupThere,out.width="100%"}
 show_pHeatmap()
 ```
 
