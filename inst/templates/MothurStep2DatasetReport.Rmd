@@ -17,8 +17,8 @@ setEnvironments("phantomjs")
 ```
 
 ```{r heatmap, include=FALSE}
-  ### create plots:5. pheatmap
-  show_pHeatmap <- heatmapForPhylotseqPlotPheatmap(inputData,designMatrix)
+### create plots:5. pheatmap
+show_pHeatmap <- heatmapForPhylotseqPlotPheatmap(inputData,designMatrix)
 ```
 
 Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
