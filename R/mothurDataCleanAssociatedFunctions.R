@@ -170,7 +170,7 @@ otuSaturationPlot <- function(x,type){
    }
      k=0 
      dfGroup <- list()
-   for (sample in levels(sharedFile$Group)){
+   for (sample in sharedFile$Group){
      k=k+1
      tempDF <- sharedFile[sharedFile$Group == sample,]
     sharedAbund <- t(tempDF)
