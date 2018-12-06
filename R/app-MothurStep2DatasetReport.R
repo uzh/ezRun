@@ -30,7 +30,7 @@ ezMethodMothurStep2DatasetReport = function(input=NA, output=NA, param=NA,
   library(pheatmap)
   
   dataset = input$meta
-  isGroupThere = param$Group
+  isGroupThere = param$group
   ### Further report on Mothur pipeline and analysis of the  results with phyloseq
   ## Set up data from the Mothur step 2 QC
   relevantColumns <- gsub(" \\[File\\]","",grep("File",colnames(dataset), value = T))
