@@ -21,13 +21,6 @@ setEnvironments("phantomjs")
 abundPlot <- plot_bar(physeqFullObject, fill="Genus") + geom_bar(aes(fill=Genus), stat="identity", position="stack")
 ```
 
-```{r prepOrdTaxa, include=FALSE}
-### create plots: 2. ordination by taxa 
-ordinateDS <- ordinate(physeqFullObject, "NMDS", "bray")
-plotOrdTaxa = plot_ordination(physeqFullObject, ordinateDS, type="taxa", color="Phylum") + facet_wrap(~Phylum, 3) + ggtitle("Taxa ordination") + theme(legend.position = "none") 
-```
-
-
 ```{r prepRich, include=FALSE}
 ### create plots: 3. richness 
 plotRichness <- plot_richness(physeqFullObject, measures=c("Simpson", "Shannon"))
