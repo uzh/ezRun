@@ -16,7 +16,7 @@ debug <- FALSE
 setEnvironments("phantomjs")
 ```
 
-```{r setup, include=FALSE}
+```{r heatmap, include=FALSE}
   ### create plots:5. pheatmap
   show_pHeatmap <- heatmapForPhylotseqPlotPheatmap(inputData,designMatrix)
 ```
