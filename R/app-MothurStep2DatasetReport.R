@@ -80,7 +80,7 @@ ezMethodMothurStep2DatasetReport = function(input=NA, output=NA, param=NA,
   convStepTableToReport <- imap(listOfListAllFiles["stepConvergenceSummary"], function(x,y) createStepConvTableForKableExtra(x))
   
   ### OTU saturation plots
-  otuSaturPlotToReport <- otuSaturationPlot(listOfListAllFiles["OTUsCountTable"]$OTUsCountTable)
+  otuSaturPlotToReport <- otuSaturationPlot(listOfListAllFiles["OTUsCountTable"]$OTUsCountTable,"file")
   
   ### OTU saturation table 
   otuSaturationTableToReport <- imap(listOfListAllFiles["OTUsCountTable"], function(x,y) createSaturationTableForKableExtra(x)) 
@@ -91,14 +91,18 @@ ezMethodMothurStep2DatasetReport = function(input=NA, output=NA, param=NA,
   ### create plots: 1. abundance
   abundPlot <- plot_bar(physeqFullObject, fill="Genus") + geom_bar(aes(fill=Genus), stat="identity", position="stack")
   if (isGroupThere) {
-    abundPlotGroup <- plot_bar(physeqFullObject, "Species", fill="Genus", facet_grid=~Group) + geom_bar(aes(fill=Genus), stat="identity", position="stack")
+    abundPlotGroup <- plot_bar(physeqFullObject, "Genus", 
+                               fill="Genus", facet_grid=~Group) +
+      geom_bar(aes(fill=Genus), stat="identity", position="stack") +
+      theme(axis.text.x = element_blank())
   }
 
   ### create plots: 2. ordination by taxa 
-  ordinateDS <- ordinate(physeqFullObject, "NMDS", "bray")
+  if (isGroupThere) {
+    ordinateDS <- ordinate(physeqFullObject, "NMDS", "bray")
   plotOrdTaxa = plot_ordination(physeqFullObject, ordinateDS, type="taxa", color="Phylum") + 
     facet_wrap(~Phylum, 3) + ggtitle("Taxa ordination") + theme(legend.position = "none")
-  
+  }
   ### create plots: 2. ordination by samlpe
   inputData <- physeqFullObject@otu_table@.Data
   inputGroup <- physeqFullObject@sam_data$Group
@@ -111,6 +115,21 @@ ezMethodMothurStep2DatasetReport = function(input=NA, output=NA, param=NA,
     plotRichness <- plot_richness(physeqFullObject, measures=c("Simpson", "Shannon"))
   }
   
+  ### create plots: 4. raref
+  taxDF <- data.frame(physeqObjectNoTree@tax_table@.Data, stringsAsFactors = F)
+  otuDF <- data.frame(physeqObjectNoTree@otu_table@.Data, stringsAsFactors = F)
+  specList <- list()
+  rarefPlot <- list()
+  for (taxon in colnames(taxDF)){
+    genusOTUs <- rownames(taxDF)[grep("unclass",taxDF[[taxon]], invert = T)]
+    if (length(genusOTUs) >0){
+      specDF <- otuDF[,genusOTUs]
+      specDF$Group <- as.factor(rownames(specDF))
+      specDF$Taxon <- as.factor(taxon)
+      rarefPlot[[taxon]] <- otuSaturationPlot(specDF,"table")
+    }
+  }
+
     ### create plots: 4. tree
   if (isGroupThere) {
     plotTree <- plot_tree(physeqFullObject , ladderize="left", color="Group")
@@ -125,6 +144,11 @@ ezMethodMothurStep2DatasetReport = function(input=NA, output=NA, param=NA,
 
   ###### create final output dir
   setwdNew(basename(output$getColumn("Report")))
+  if (isGroupThere){
+    markdownFile <- "MothurStep2DatasetReport.Rmd"
+  }else{
+    markdownFile <- "MothurStep2DatasetReportNoGroup.Rmd"
+  }
   ## Copy the style files and templates
   RmarkdownFile <- "MothurStep2DatasetReport.Rmd"
   styleFiles <- file.path(system.file("templates", package="ezRun"),
