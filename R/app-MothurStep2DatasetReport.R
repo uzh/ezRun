@@ -123,7 +123,7 @@ ezMethodMothurStep2DatasetReport = function(input=NA, output=NA, param=NA,
       specDF <- otuDF[,genusOTUs]
       specDF$Group <- as.factor(rownames(specDF))
       specDF$Taxon <- as.factor(taxon)
-      rarefPlot[[k]] <- otuSaturationPlot(specDF,"table")
+      rarefPlot[[taxon]] <- otuSaturationPlot(specDF,"table")
     }
   }
 
