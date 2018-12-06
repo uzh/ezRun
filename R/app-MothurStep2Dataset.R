@@ -59,8 +59,8 @@ ezMethodMothurStep2Dataset = function(input=NA, output=NA, param=NA,
   ### extract region
   summaryFileToExtractRegion <- paste(sampleName,"summary", sep = ".")
   summaryOfAlign <- read.delim(summaryFileToExtractRegion, stringsAsFactors = FALSE, header = T)
-  regionStartCoord <- quantile(summaryOfAlign$start, probs = seq(0, 1, 0.025))["95%"]
-  regionEndCoord <- quantile(summaryOfAlign$end, probs = seq(0, 1, 0.025))["5%"]
+  regionStartCoord <- round(quantile(summaryOfAlign$start, probs = seq(0, 1, 0.025))["95%"],0)
+  regionEndCoord <- round(quantile(summaryOfAlign$end, probs = seq(0, 1, 0.025))["5%"],0)
   
   ### update batch file  with parameters and run mothur: step 2 and, precluster, remove non-bacterial reads and generate final cluster
   updateBatchCmd_step3 <- paste0("sed -e s/\"CUTOFF_TAXON\"/", param$cutOffTaxonomy, "/g",
