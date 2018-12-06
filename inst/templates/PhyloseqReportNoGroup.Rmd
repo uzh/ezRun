@@ -33,6 +33,7 @@ plotTree <- plot_tree(physeqFullObject , ladderize="left")
 
 ```{r prepRaref, include=FALSE}
 ### create plots: 4. tree
+rarefPlot <- list()
   taxDF <- data.frame(physeqFullObject@tax_table@.Data, stringsAsFactors = F)
   otuDF <- data.frame(physeqFullObject@otu_table@.Data, stringsAsFactors = F)
   specList <- list()
@@ -42,7 +43,7 @@ plotTree <- plot_tree(physeqFullObject , ladderize="left")
       specDF <- otuDF[,genusOTUs]
       specDF$Group <- as.factor(rownames(specDF))
       specDF$Taxon <- as.factor(taxon)
-      rarefPlot[[k]] <- otuSaturationPlot(specDF,"table")
+      rarefPlot[[taxon]] <- otuSaturationPlot(specDF,"table")
     }
   }
 ```
