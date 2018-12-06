@@ -116,6 +116,7 @@ ezMethodMothurStep2DatasetReport = function(input=NA, output=NA, param=NA,
   taxDF <- data.frame(physeqFullObject@tax_table@.Data, stringsAsFactors = F)
   otuDF <- data.frame(physeqFullObject@otu_table@.Data, stringsAsFactors = F)
   specList <- list()
+  rarefPlot <- list()
   for (taxon in colnames(taxDF)){
     genusOTUs <- rownames(taxDF)[grep("unclass",taxDF[[taxon]], invert = T)]
     if (length(genusOTUs) >0){
