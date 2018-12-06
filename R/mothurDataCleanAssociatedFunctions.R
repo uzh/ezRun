@@ -179,7 +179,7 @@ otuSaturationPlot <- function(x,type){
   sharedAbundDF <- data.frame(data.matrix(data.frame(sharedAbund[rowToKeep,], stringsAsFactors = FALSE)))
   colnames(sharedAbundDF) <- sharedAbund[rownames(sharedAbund) == "Group",]
   cumSumTransform <- data.frame(apply(sharedAbundDF,2,cumsum))
-  dfFinal[[k]] = data.frame()
+  dfGroup[[k]] = data.frame()
   for (j in 1:ncol(cumSumTransform)){
   dfTemp <-  data.frame(abundance = cumSumTransform[,colnames(cumSumTransform)[j]])
   dfTemp$numberOTUs <- seq_along(1:nrow(dfTemp))
