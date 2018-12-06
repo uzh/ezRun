@@ -32,8 +32,8 @@ ezMethodPhyloSeqAnalysis = function(input=NA, output=NA, param=NA,
   ### create phyloseq Taxa object
   taxaObject <- phyloSeqTaxaFromFile(input$getFullPaths("OTUsToTaxonomyFile"))
   
-  ### Add sample object (TODO, derive it from step1)
-  if (param$group){
+  ### Eventual groups
+  if (isGroupThere){
   designMatrix <- ezRead.table(input$getFullPaths("sampleDescriptionFile"))
   sampleObject <- sample_data(designMatrix)
   physeqObjectNoTree = phyloseq(otuObject, taxaObject, sampleObject)

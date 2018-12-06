@@ -80,7 +80,7 @@ ezMethodMothurStep2DatasetReport = function(input=NA, output=NA, param=NA,
   convStepTableToReport <- imap(listOfListAllFiles["stepConvergenceSummary"], function(x,y) createStepConvTableForKableExtra(x))
   
   ### OTU saturation plots
-  otuSaturPlotToReport <- otuSaturationPlot(listOfListAllFiles["OTUsCountTable"]$OTUsCountTable)
+  otuSaturPlotToReport <- otuSaturationPlot(listOfListAllFiles["OTUsCountTable"]$OTUsCountTable,"file")
   
   ### OTU saturation table 
   otuSaturationTableToReport <- imap(listOfListAllFiles["OTUsCountTable"], function(x,y) createSaturationTableForKableExtra(x)) 
@@ -111,6 +111,22 @@ ezMethodMothurStep2DatasetReport = function(input=NA, output=NA, param=NA,
     plotRichness <- plot_richness(physeqFullObject, measures=c("Simpson", "Shannon"))
   }
   
+  ### create plots: 4. raref
+  taxDF <- data.frame(physeqObjectNoTree@tax_table@.Data, stringsAsFactors = F)
+  otuDF <- data.frame(physeqObjectNoTree@otu_table@.Data, stringsAsFactors = F)
+  specList <- list()
+  for (taxon in colnames(taxDF)){
+    genusOTUs <- rownames(taxDF)[grep("unclass",taxDF[[taxon]], invert = T)]
+    if (length(genusOTUs) >0){
+      specDF <- otuDF[,genusOTUs]
+      specDF$Group <- as.factor(rownames(specDF))
+      specDF$Taxon <- as.factor(taxon)
+      specList[[taxon]] <- specDF
+    }
+  }
+  finalSpecList <- do.call("rbind",specList)
+  rarefPlot <- otuSaturationPlot(finalSpecList,"table")
+
     ### create plots: 4. tree
   if (isGroupThere) {
     plotTree <- plot_tree(physeqFullObject , ladderize="left", color="Group")
