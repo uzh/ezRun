@@ -95,10 +95,11 @@ ezMethodMothurStep2DatasetReport = function(input=NA, output=NA, param=NA,
   }
 
   ### create plots: 2. ordination by taxa 
-  ordinateDS <- ordinate(physeqFullObject, "NMDS", "bray")
+  if (isGroupThere) {
+    ordinateDS <- ordinate(physeqFullObject, "NMDS", "bray")
   plotOrdTaxa = plot_ordination(physeqFullObject, ordinateDS, type="taxa", color="Phylum") + 
     facet_wrap(~Phylum, 3) + ggtitle("Taxa ordination") + theme(legend.position = "none")
-  
+  }
   ### create plots: 2. ordination by samlpe
   inputData <- physeqFullObject@otu_table@.Data
   inputGroup <- physeqFullObject@sam_data$Group
