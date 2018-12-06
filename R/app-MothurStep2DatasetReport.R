@@ -141,6 +141,11 @@ ezMethodMothurStep2DatasetReport = function(input=NA, output=NA, param=NA,
 
   ###### create final output dir
   setwdNew(basename(output$getColumn("Report")))
+  if (isGroupThere){
+    markdownFile <- "MothurStep2DatasetReport.Rmd"
+  }else{
+    markdownFile <- "MothurStep2DatasetReportNoGroup.Rmd"
+  }
   ## Copy the style files and templates
   RmarkdownFile <- "MothurStep2DatasetReport.Rmd"
   styleFiles <- file.path(system.file("templates", package="ezRun"),

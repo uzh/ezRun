@@ -71,7 +71,7 @@ plot(plotRichness)
 ```
 
 ### Rarefaction plots
-```{r raref, echo=FALSE, eval=FALSE}
+```{r raref, echo=FALSE}
 plot(rarefPlot)
 ```
 
