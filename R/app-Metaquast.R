@@ -13,8 +13,9 @@ ezMethodMetaquast = function(input=NA, output=NA, param=NA, htmlFile="00index.ht
    copyLoopOverFiles <- function(x){ 
     sapply(x,function(x) ezSystem(paste("cp",x,"./")))
    }
+   isThereRef <- param$isThereRef
    refListFile <-  param$fileWithListOfRefs
-   if (length(refListFile)>0) {
+   if (isThereRef) {
    refList = read.delim(refListFile, stringsAsFactors = F, header = F)
    colnames(refList) <- "refList"
     sapply(refList$refList,copyLoopOverFiles)
@@ -35,7 +36,7 @@ ezMethodMetaquast = function(input=NA, output=NA, param=NA, htmlFile="00index.ht
     localDraftCollapsed <- paste(localDraft,collapse = " ")
     localBinCollapsed <- paste(localBin,collapse = " ")
     sampleNameList <- paste(localDraftCollapsed,localDraftCollapsed)
-    if (length(refListFile)>0) {
+    if (isThereRef) {
       cmd = paste("metaquast.py", "-R", refListToParse, "-o", outFileName, 
                   '-t', ezThreads(), sampleNameList, "1> ", "metaQuast.log")
     }else{
