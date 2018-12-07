@@ -14,11 +14,13 @@ ezMethodMetaquast = function(input=NA, output=NA, param=NA, htmlFile="00index.ht
     sapply(x,function(x) ezSystem(paste("cp",x,"./")))
    }
    refListFile <-  param$fileWithListOfRefs
+   if (length(refListFile)>0) {
    refList = read.delim(refListFile, stringsAsFactors = F, header = F)
    colnames(refList) <- "refList"
     sapply(refList$refList,copyLoopOverFiles)
     localrefListFile <- basename(refList$refList)
     refListToParse <- paste(basename(refList$refList),collapse = ",")
+   }
     ## draft
     draftList = input$getFullPaths("contigFile")
     binList = input$getFullPaths("binnedContigsFile")
@@ -33,8 +35,13 @@ ezMethodMetaquast = function(input=NA, output=NA, param=NA, htmlFile="00index.ht
     localDraftCollapsed <- paste(localDraft,collapse = " ")
     localBinCollapsed <- paste(localBin,collapse = " ")
     sampleNameList <- paste(localDraftCollapsed,localDraftCollapsed)
+    if (length(refListFile)>0) {
       cmd = paste("metaquast.py", "-R", refListToParse, "-o", outFileName, 
                   '-t', ezThreads(), sampleNameList, "1> ", "metaQuast.log")
+    }else{
+      cmd = paste("metaquast.py", "-o", outFileName, 
+                  '-t', ezThreads(), sampleNameList, "1> ", "metaQuast.log")
+    }
   ezSystem(cmd)
   return("Success")
 }
