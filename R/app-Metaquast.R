@@ -35,7 +35,7 @@ ezMethodMetaquast = function(input=NA, output=NA, param=NA, htmlFile="00index.ht
     }
     localDraftCollapsed <- paste(localDraft,collapse = " ")
     localBinCollapsed <- paste(localBin,collapse = " ")
-    sampleNameList <- paste(localDraftCollapsed,localDraftCollapsed)
+    sampleNameList <- paste(localDraftCollapsed,localBinCollapsed)
     if (isThereRef) {
       cmd = paste("metaquast.py", "-R", refListToParse, "-o", outFileName, 
                   '-t', ezThreads(), sampleNameList, "1> ", "metaQuast.log")
