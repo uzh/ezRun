@@ -57,6 +57,7 @@ ezMethodMothurStep2DatasetReport = function(input=NA, output=NA, param=NA,
   }else{
     physeqObjectNoTree = phyloseq(otuObject, taxaObject)
   }
+  
   ##prune OTUS
   pruneLevel <- param$representativeOTUs
   
