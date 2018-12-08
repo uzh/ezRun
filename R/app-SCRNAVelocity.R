@@ -73,9 +73,11 @@ ezMethodSCRNAVelocity <- function(input=NA, output=NA, param=NA,
   
   scResults <- readRDS(file.path(input$getFullPaths("Report"),
                                  basename(input$getColumn("Live Report"))))
+  cell.dist <- as.dist(1-armaCor(t(scResults$scData@dr$pca@cell.embeddings)))
   
   ## save object for report
-  ans <- list(ldat=ldat, tSNE_data=scResults$tSNE_data, param=param)
+  ans <- list(ldat=ldat, tSNE_data=scResults$tSNE_data, 
+              cell.dist=cell.dist, param=param)
   saveRDS(ans, file="ans.rds")
   
   ## Copy the style files and templates
