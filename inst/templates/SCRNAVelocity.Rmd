@@ -49,6 +49,8 @@ if(param$scProtocol == "smart-Seq2"){
   kCells <- 5
   cell.cex <- 1
   arrow.scale <- 3
+  show.grid.flow <- FALSE
+  grid.n <- 20
 }else if(param$scProtocol == "10X"){
   emat_cutoff <- 0.5
   nmat_cutoff <- 0.05
@@ -57,6 +59,8 @@ if(param$scProtocol == "smart-Seq2"){
   kCells <- 20
   cell.cex <- 0.8
   arrow.scale <- 5
+  show.grid.flow <- TRUE
+  grid.n <- 40
 }else{
   stop("Unsupported single cell protocol!")
 }
@@ -137,7 +141,9 @@ We visualize the velocities by projecting observed and extrapolated cells onto t
 ```{r velocity 1 PCA, echo=FALSE, message=FALSE, results='hide', fig.width=14, fig.height=14}
 pca.velocity.plot(rvel.qf, nPcs=5, plot.cols=2,
                   cell.colors=ac(cell.colors, alpha=0.7),
-                  cex=1.2, pcount=0.1, pc.multipliers=c(1,-1,-1,-1,-1))
+                  cex=1.2, pcount=0.1, pc.multipliers=c(1,-1,-1,-1,-1),
+                  show.grid.flow=TRUE, min.grid.cell.mass=0.5,
+                  grid.n=grid.n, arrow.lwd=2)
 ```
 
 #### Fitting of individual genes
@@ -168,6 +174,16 @@ show.velocity.on.embedding.cor(emb, rvel.qf, n=100, scale='sqrt',
                                               alpha=cell.alpha),
                                cex=cell.cex, arrow.scale=arrow.scale,
                                arrow.lwd=1)
+legend("topleft", legend=names(cell.colorsPalette),
+       pch=19, col=cell.colorsPalette)
+
+show.velocity.on.embedding.cor(emb, rvel.qf, n=100, scale='sqrt',
+                               cell.colors=ac(cell.colors,
+                                              alpha=cell.alpha),
+                               cex=cell.cex, arrow.scale=arrow.scale,
+                               show.grid.flow=TRUE,
+                               min.grid.cell.mass=0.5, grid.n=grid.n,
+                               arrow.lwd=2)
 legend("topleft", legend=names(cell.colorsPalette),
        pch=19, col=cell.colorsPalette)
 ```
@@ -213,7 +229,9 @@ We visualize the velocities by projecting observed and extrapolated cells onto t
 if(!is.null(smat)){
 pca.velocity.plot(rvel, nPcs=5, plot.cols=2, 
                   cell.colors=ac(cell.colors,alpha=0.7),
-                  cex=1.2, pcount=0.1, pc.multipliers=c(1,-1,1,1,1))
+                  cex=1.2, pcount=0.1, pc.multipliers=c(1,-1,1,1,1),
+                  show.grid.flow=TRUE, min.grid.cell.mass=0.5,
+                  grid.n=grid.n, arrow.lwd=2)
 }
 ```
 
@@ -248,6 +266,15 @@ show.velocity.on.embedding.cor(emb, rvel, n=100, scale='sqrt',
                                               alpha=cell.alpha),
                                cex=cell.cex, arrow.scale=arrow.scale,
                                arrow.lwd=1)
+legend("topleft", legend=names(cell.colorsPalette),
+       pch=19, col=cell.colorsPalette)
+
+show.velocity.on.embedding.cor(emb, rvel, n=100, scale='sqrt',
+                               cell.colors=ac(cell.colors,
+                                              alpha=cell.alpha),
+                               cex=cell.cex, arrow.scale=arrow.scale,
+                               show.grid.flow=TRUE, min.grid.cell.mass=0.5,
+                               grid.n=grid.n, arrow.lwd=2)
 legend("topleft", legend=names(cell.colorsPalette),
        pch=19, col=cell.colorsPalette)
 }
@@ -291,7 +318,9 @@ rvel1 <- gene.relative.velocity.estimates(emat, nmat, deltaT=1,
 ```{r velocity 3 PCA, echo=FALSE, results='hide', message=FALSE, fig.width=14, fig.height=14}
 pca.velocity.plot(rvel1, nPcs=5, plot.cols=2, 
                   cell.colors=ac(cell.colors,alpha=0.7),
-                  cex=1.2, pcount=0.1, pc.multipliers=c(1,-1,1,1,1))
+                  cex=1.2, pcount=0.1, pc.multipliers=c(1,-1,1,1,1),
+                  show.grid.flow=TRUE, min.grid.cell.mass=0.5,
+                  grid.n=grid.n, arrow.lwd=2)
 ```
 
 #### Fitting of individual genes
@@ -322,6 +351,16 @@ show.velocity.on.embedding.cor(emb, rvel1, n=100, scale='sqrt',
                                               alpha=cell.alpha),
                                cex=cell.cex, arrow.scale=arrow.scale,
                                arrow.lwd=1)
+legend("topleft", legend=names(cell.colorsPalette),
+       pch=19, col=cell.colorsPalette)
+
+show.velocity.on.embedding.cor(emb, rvel1, n=100, scale='sqrt',
+                               cell.colors=ac(cell.colors,
+                                              alpha=cell.alpha),
+                               cex=cell.cex, arrow.scale=arrow.scale,
+                               show.grid.flow=TRUE,
+                               min.grid.cell.mass=0.5, grid.n=grid.n,
+                               arrow.lwd=2)
 legend("topleft", legend=names(cell.colorsPalette),
        pch=19, col=cell.colorsPalette)
 ```
