@@ -23,11 +23,13 @@ require(Matrix)
 
 # debug
 # title: "`r ans$param$name`"
+# 10X
 # ans <- readRDS("/export/local/scratch/gtan/dev/RNAVelocity-p2284/SCReport_SCRNAVelocity/ans.rds")
 # end of debug
 
 ldat <- ans$ldat
 tSNE_data <- ans$tSNE_data
+cell.dist <- ans$cell.dist
 param <- ans$param
 
 cell.colorsPalette <- setNames(gg_color_hue(length(levels(tSNE_data$cluster))),
@@ -44,26 +46,24 @@ if(param$scProtocol == "smart-Seq2"){
   nmat_cutoff <- 1
   smat_cutoff <- 0.5
   fit.quantile <- 0.05
+  kCells <- 5
+  cell.cex <- 1
+  arrow.scale <- 3
 }else if(param$scProtocol == "10X"){
   emat_cutoff <- 0.5
   nmat_cutoff <- 0.05
-  smat_cutoff <- 0.5
+  smat_cutoff <- 0.005
   fit.quantile <- 0.02
+  kCells <- 20
+  cell.cex <- 0.8
+  arrow.scale <- 5
 }else{
   stop("Unsupported single cell protocol!")
 }
-
-arrow.scale=3
-cell.alpha=0.7
-cell.cex=1
+cell.alpha <- 0.7
 ```
 
-## RNA Velocity Results {.tabset}
-
-### Gene filtering
-Spliced expression magnitude distribution across genes:
-
-```{r gene filtering, echo=FALSE, results='markup'}
+```{r gene filtering processing, echo=FALSE}
 # exonic read (spliced) expression matrix
 emat <- ldat$spliced
 # intronic read (unspliced) expression matrix
@@ -80,6 +80,13 @@ if(param$scProtocol == "10X"){
   }
 }
 
+# restrict to cells that from filtering upstream
+emat <- emat[ , rownames(emb)]
+nmat <- nmat[ , rownames(emb)]
+if(!is.null(smat)){
+  smat <- smat[ , rownames(emb)]
+}
+
 # filter expression matrices based on some minimum max-cluster averages
 emat <- filter.genes.by.cluster.expression(emat, cell.colors,
                                            min.max.cluster.average = emat_cutoff)
@@ -89,14 +96,20 @@ if(!is.null(smat)){
   smat <- filter.genes.by.cluster.expression(smat, cell.colors,
                                              min.max.cluster.average = smat_cutoff)
 }
+```
 
+## RNA Velocity Results {.tabset}
+
+### Gene filtering
+Spliced expression magnitude distribution across genes:
+
+```{r gene filtering output, echo=FALSE, results='markup'}
 cat("The numner of genes after filtering from exonic (spliced) and intronic (unspliced) reads: \n")
 length(intersect(rownames(emat), rownames(nmat)))
 if(!is.null(smat)){
   cat("The numner of genes after filtering from exonic (spliced), intronic (unspliced) reads and spanning (intron+exon) reads: \n")
   length(intersect(intersect(rownames(emat), rownames(nmat)), rownames(smat)))
 }
-
 ```
 
 ```{r gene filtering plot, echo=FALSE}
@@ -114,7 +127,8 @@ Using min/max quantile fit, in which case gene-specific offsets do not require s
 
 ```{r velocity 1 estimate, echo=FALSE, message=FALSE, results='hide'}
 rvel.qf <- gene.relative.velocity.estimates(emat, nmat, deltaT=1,
-                                            kCells=5,
+                                            kCells=kCells,
+                                            cell.dist=cell.dist,
                                             fit.quantile=fit.quantile)
 ```
 
@@ -134,7 +148,8 @@ Show the fitting of individual genes if given.
 if(ezIsSpecified(param$markersToCheck)){
   for(theGene in param$markersToCheck){
     ## Some of the genes may not be available.
-    try(gene.relative.velocity.estimates(emat,nmat, kCells = 5,
+    try(gene.relative.velocity.estimates(emat,nmat, kCells = kCells,
+                                         cell.dist=cell.dist,
                                          fit.quantile=fit.quantile,
                                          old.fit=rvel.qf,
                                          show.gene=theGene,
@@ -185,7 +200,8 @@ This variant is not available for 10X data.
 ```{r velocity 2 estimate, echo=FALSE, message=FALSE, results='hide'}
 if(!is.null(smat)){
   rvel <- gene.relative.velocity.estimates(emat,nmat,smat=smat,
-                                           kCells=5,
+                                           kCells=kCells,
+                                           cell.dist=cell.dist,
                                            fit.quantile=fit.quantile,
                                            diagonal.quantiles=TRUE)
 }
@@ -210,7 +226,8 @@ if(!is.null(smat)){
 if(ezIsSpecified(param$markersToCheck)){
   for(theGene in param$markersToCheck){
     ## Some of the genes may not be available.
-    try(gene.relative.velocity.estimates(emat,nmat, kCells = 5,
+    try(gene.relative.velocity.estimates(emat,nmat, kCells = kCells,
+                                         cell.dist=cell.dist,
                                          fit.quantile=fit.quantile,
                                          old.fit=rvel,
                                          show.gene=theGene,
@@ -260,11 +277,13 @@ legend("topleft",legend=names(cell.colorsPalette),
 ```
 
 ### Velocity estimates variant 3
-Here we calculate the most basic version of velocity estimates, using relative gamma fit, without cell kNN smoothing (i.e. actual single-cell velocity):
+Here we calculate the most basic version of velocity estimates, using relative gamma fit, without cell kNN smoothing (i.e. actual single-cell velocity).
+This is not suitable for 10X data.
 
 ```{r velocity 3 estimate, echo=FALSE, results='hide', message=FALSE}
 rvel1 <- gene.relative.velocity.estimates(emat, nmat, deltaT=1,
                                           deltaT2=1, kCells=1,
+                                          cell.dist=cell.dist,
                                           fit.quantile=fit.quantile)
 
 ```
@@ -283,7 +302,8 @@ Show the fitting of individual genes if given.
 if(ezIsSpecified(param$markersToCheck)){
   for(theGene in param$markersToCheck){
     ## Some of the genes may not be available.
-    try(gene.relative.velocity.estimates(emat,nmat, kCells = 5,
+    try(gene.relative.velocity.estimates(emat,nmat, kCells = 1,
+                                         cell.dist=cell.dist,
                                          fit.quantile=fit.quantile,
                                          old.fit=rvel1,
                                          show.gene=theGene,
