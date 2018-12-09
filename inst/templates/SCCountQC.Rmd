@@ -475,7 +475,7 @@ PCElbowPlot(object=scData)
 
 The raw count matrix and tpm are available here:
 
-```{r raw count matrix, echo=FALSE, results='asis', eval=!debug}
+```{r raw count matrix, echo=FALSE, results='asis', message=FALSE, eval=!debug}
 # Raw counts
 rawCount <- as.matrix(assays(sce)$counts)
 if(param$scProtocol == "smart-Seq2"){

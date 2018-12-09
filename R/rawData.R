@@ -44,7 +44,7 @@ getCpm <- function(rawData){
   if (!is.null(assays(rawData)$cpm)){
     return(assays(rawData)$cpm)
   }
-  require(edgeR)
+  require(edgeR, quietly=TRUE)
   ans <- cpm(assays(rawData)$counts, normalized.lib.sizes=FALSE)
   return(ans)
 }
