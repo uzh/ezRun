@@ -25,6 +25,7 @@ require(Matrix)
 # title: "`r ans$param$name`"
 # 10X
 # ans <- readRDS("/export/local/scratch/gtan/dev/RNAVelocity-p2284/SCReport_SCRNAVelocity/ans.rds")
+# ans <- readRDS("/scratch/gtan/dev/quickdev/ans.rds")
 # end of debug
 
 ldat <- ans$ldat
@@ -35,11 +36,13 @@ param <- ans$param
 cell.colorsPalette <- setNames(gg_color_hue(length(levels(tSNE_data$cluster))),
                                levels(tSNE_data$cluster))
 cell.colors <- cell.colorsPalette[tSNE_data$cluster]
-names(cell.colors) <- sub(".*___", "", tSNE_data$cells)
 
+## Remove plate/run name
+names(cell.colors) <- sub(".*___", "", tSNE_data$cells)
 emb <- data.frame(row.names=sub(".*___", "", tSNE_data$cells),
                   tSNE_data[ ,c("X", "Y")])
 emb <- as.matrix(emb)
+dimnames(cell.dist) <- sub(".*___", "", dimnames(cell.dist))
 
 if(param$scProtocol == "smart-Seq2"){
   emat_cutoff <- 5
