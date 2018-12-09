@@ -73,10 +73,18 @@ ezMethodSCRNAVelocity <- function(input=NA, output=NA, param=NA,
   
   scResults <- readRDS(file.path(input$getFullPaths("Report"),
                                  basename(input$getColumn("Live Report"))))
-  cell.dist <- as.dist(1-armaCor(t(scResults$scData@dr$pca@cell.embeddings)))
+  tSNE_data <- scResults$tSNE_data
+  cell.dist <- 1-armaCor(t(scResults$scData@dr$pca@cell.embeddings))
+  
+  ## Remove plate/run name
+  tSNE_data$cells <- sub(".*___", "", tSNE_data$cells)
+  rownames(cell.dist) <- colnames(cell.dist) <- sub(".*___", "", 
+                                                    colnames(cell.dist))
+  
+  cell.dist <- as.dist(cell.dist)
   
   ## save object for report
-  ans <- list(ldat=ldat, tSNE_data=scResults$tSNE_data, 
+  ans <- list(ldat=ldat, tSNE_data=tSNE_data, 
               cell.dist=cell.dist, param=param)
   saveRDS(ans, file="ans.rds")
   
