@@ -90,6 +90,8 @@ conversion of the symbols to dates). See
 ```{r result live report, echo=FALSE, message=FALSE, eval=TRUE}
 resultFile <- makeResultFile(param, se)
 
+makeWebgestaltFiles(param, resultFile$resultFile)
+
 ezWrite.table(colData(se)[, "sf", drop=FALSE],
               file="scalingfactors.txt", head="Name", digits=4)
 
