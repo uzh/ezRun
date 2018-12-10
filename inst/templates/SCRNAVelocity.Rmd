@@ -107,19 +107,19 @@ if(!is.null(smat)){
 ### Gene filtering
 Spliced expression magnitude distribution across genes:
 
-```{r gene filtering output, echo=FALSE, results='markup'}
-cat("The numner of genes after filtering from exonic (spliced) and intronic (unspliced) reads: \n")
-length(intersect(rownames(emat), rownames(nmat)))
-if(!is.null(smat)){
-  cat("The numner of genes after filtering from exonic (spliced), intronic (unspliced) reads and spanning (intron+exon) reads: \n")
-  length(intersect(intersect(rownames(emat), rownames(nmat)), rownames(smat)))
-}
-```
-
 ```{r gene filtering plot, echo=FALSE}
 hist(log10(Matrix::rowSums(ldat$spliced)+1), col='wheat',
      xlab='log10[ number of reads + 1]',
      main='number of reads per gene')
+```
+
+```{r gene filtering output, echo=FALSE, results='markup'}
+cat("The numner of genes after filtering by required minimum average expression count for exonic (spliced) and intronic (unspliced) reads: \n")
+length(intersect(rownames(emat), rownames(nmat)))
+if(!is.null(smat)){
+  cat("The numner of genes after filtering by required minimum average expression count for exonic (spliced), intronic (unspliced) reads and spanning (intron+exon) reads: \n")
+  length(intersect(intersect(rownames(emat), rownames(nmat)), rownames(smat)))
+}
 ```
 
 ### Velocity estimates variant 1
