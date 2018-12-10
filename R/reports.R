@@ -614,6 +614,36 @@ makeResultFile = function(param, se, useInOutput=TRUE,
   return(ans)
 }
 
+
+makeWebgestaltFiles <- function(param, resultFile){
+    fileNames = list()
+    result = ezRead.table(resultFile)
+    setwdNew('Webgestalt')
+    comparison = sub('.txt', '', sub('result--', '', basename(resultFile)))
+    background = rownames(result[result$isPresent, ])
+    ezWrite.table(background, paste0('ORA_BG_Webgestalt_',comparison, '.txt') ,row.names = FALSE, col.names = FALSE)
+    
+    GSEA = cbind(rownames(result[result$isPresent, ]), result[result$isPresent, 'log2 Ratio'])
+    ezWrite.table(GSEA, paste0('GSEA_Input_Webgestalt_',comparison, '.rnk') ,row.names = FALSE, col.names = FALSE)
+    
+    ORA_Up = rownames(result[result$isPresent & result$pValue < param[['pValueHighlightThresh']] & result[['log2 Ratio']] >= param[['log2RatioHighlightThresh']], ])
+    if(length(ORA_Up) > 0){
+        ezWrite.table(ORA_Up, paste0('ORA_Up_Webgestalt_', comparison, '.txt') ,row.names = FALSE, col.names = FALSE)
+    }
+    
+    ORA_Both = rownames(result[result$isPresent & result$pValue < param[['pValueHighlightThresh']] & abs(result[['log2 Ratio']]) >= param[['log2RatioHighlightThresh']], ])
+    if(length(ORA_Both) > 0){
+        ezWrite.table(ORA_Up, paste0('ORA_Both_Webgestalt_', comparison, '.txt') ,row.names = FALSE, col.names = FALSE)
+    }
+    
+    ORA_Down = rownames(result[result$isPresent & result$pValue < param[['pValueHighlightThresh']] & result[['log2 Ratio']] <= (-1*param[['log2RatioHighlightThresh']]), ])
+    if(length(ORA_Down) > 0){
+        ezWrite.table(ORA_Down, paste0('ORA_Down_Webgestalt_', comparison, '.txt') ,row.names = FALSE, col.names = FALSE)
+    }
+    setwd('..')
+    return('success')
+}
+
 ############################################################
 ### probably not needed:
 
