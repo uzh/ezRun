@@ -633,7 +633,7 @@ makeWebgestaltFiles <- function(param, resultFile){
     
     ORA_Both = rownames(result[result$isPresent & result$pValue < param[['pValueHighlightThresh']] & abs(result[['log2 Ratio']]) >= param[['log2RatioHighlightThresh']], ])
     if(length(ORA_Both) > 0){
-        ezWrite.table(ORA_Up, paste0('ORA_Both_Webgestalt_', comparison, '.txt') ,row.names = FALSE, col.names = FALSE)
+        ezWrite.table(ORA_Both, paste0('ORA_Both_Webgestalt_', comparison, '.txt') ,row.names = FALSE, col.names = FALSE)
     }
     
     ORA_Down = rownames(result[result$isPresent & result$pValue < param[['pValueHighlightThresh']] & result[['log2 Ratio']] <= (-1*param[['log2RatioHighlightThresh']]), ])
