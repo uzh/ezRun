@@ -26,6 +26,8 @@ packages <- c("testthat", "knitr", "gage", "goseq", "ChIPpeakAnno",
               "scater", "DropletUtils")
 packages <- setdiff(packages, rownames(installed.packages()))
 BiocManager::install(packages)
+
+install_github("velocyto-team/velocyto.R")
 ```
 
 ## Dependencies of external software
