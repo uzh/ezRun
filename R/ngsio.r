@@ -16,7 +16,7 @@ loadCountDataset <- function(input, param){
   dataFeatureLevel = unique(input$getColumn("featureLevel"))
   stopifnot(length(dataFeatureLevel) == 1)
   
-  x1 <- read_tsv(files[1])
+  x1 <- read_tsv(files[1], guess_max=1e6)
   
   if (ezIsSpecified(param$expressionName)){
     columnName = param$expressionName
@@ -33,7 +33,7 @@ loadCountDataset <- function(input, param){
   
   x <- mapply(function(x, y){
     message("loading file: ", x)
-    tempTibble <- read_tsv(x, progress=FALSE) %>%
+    tempTibble <- read_tsv(x, progress=FALSE, guess_max=1e6) %>%
       select(identifier, columnName) %>%
       rename(!! y := columnName)
   }, files, names(files), SIMPLIFY=FALSE)
@@ -53,10 +53,33 @@ loadCountDataset <- function(input, param){
   }
   signal <- as.matrix(x[ ,-1])
   rownames(signal) <- pull(x[ ,1])
-  
-  seqAnnoDFFeature <- ezFeatureAnnotation(param, rownames(signal),
-                                          param$featureLevel)
-  
+
+  if(ezIsSpecified(param$ezRef@refBuild)){
+    seqAnnoDFFeature <- ezFeatureAnnotation(param, rownames(signal),
+                                            param$featureLevel)
+  }else{
+    seqAnnoDFFeature <- data.frame(row.names = rownames(signal),
+                                   gene_id=rownames(signal),
+                                   transcript_id=rownames(signal),
+                                   gene_name=rownames(signal),
+                                   type="protein_coding",
+                                   strand="*",
+                                   seqid=NA,
+                                   biotypes="protein_coding",
+                                   description=rownames(signal),
+                                   start=NA, end=NA, gc=NA, featWidth=NA,
+                                   "GO BP"="", "GO CC"="", "GO MF"="")
+    x1 <- rename(x1, gene_id=GeneID, seqid=Chr, start=Start, end=End,
+                 strand=Strand)
+    colsInData <- intersect(colnames(seqAnnoDFFeature), colnames(x1))
+    if(length(colsInData) > 0){
+      seqAnnoDFFeature[ ,colsInData] <- x1[ ,colsInData]
+    }
+    if(!all(seqAnnoDFFeature$strand %in% c("+", "-", "*"))){
+      wrongStrands <- ! seqAnnoDFFeature$strand %in% c("+", "-", "*")
+      seqAnnoDFFeature$strand[wrongStrands] <- "*"
+    }
+  }
   stopifnot(identical(rownames(seqAnnoDFFeature), rownames(signal)))
   
   if (ezIsSpecified(param$correctBias) && param$correctBias){
