@@ -44,8 +44,9 @@ getCpm <- function(rawData){
   if (!is.null(assays(rawData)$cpm)){
     return(assays(rawData)$cpm)
   }
-  require(edgeR, quietly=TRUE)
-  ans <- cpm(assays(rawData)$counts, normalized.lib.sizes=FALSE)
+  ans <- sweep(assays(rawData)$counts*1e6, MARGIN=2, 
+               STATS=Matrix::colSums(assays(rawData)$counts),
+               FUN="/")
   return(ans)
 }
 
