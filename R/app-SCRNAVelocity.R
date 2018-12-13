@@ -82,6 +82,11 @@ ezMethodSCRNAVelocity <- function(input=NA, output=NA, param=NA,
                                                     colnames(cell.dist))
   
   cell.dist <- as.dist(cell.dist)
+  if(param$scProtocol == "smart-Seq2"){
+    # Use Pearson linear correlation distance on all genes (log scale) to 
+    # find k closest cells for the SMART-seq2 datasets
+    cell.dist <- NULL
+  }
   
   ## save object for report
   ans <- list(ldat=ldat, tSNE_data=tSNE_data, 
