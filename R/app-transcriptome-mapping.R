@@ -55,7 +55,7 @@ getBowtie2TranscriptomeReference = function(param){
     require(GenomicFeatures)
 
     txdb = makeTxDbFromGFF(param$ezRef@refFeatureFile,
-                           dataSource="FGCZ", taxonomyId = "2759")# organism=organism, chrominfo=NULL) ## taxonomy id is for eukariots
+                           dataSource="FGCZ", taxonomyId = 2759)# organism=organism, chrominfo=NULL) ## taxonomy id is for eukariots
     genomeFa = Rsamtools::FaFile(param$ezRef@refFastaFile)
     
     trSeqFile = file.path(getwd(), "transcriptSeq.fa")
