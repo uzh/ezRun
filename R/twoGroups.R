@@ -183,13 +183,16 @@ runGfold = function(rawData, scalingFactors, isSample, isRef){
 }
 
 ##' @describeIn twoGroupCountComparison Runs the Deseq2 test method.
-runDeseq2 = function(x, sampleGroup, refGroup, grouping, grouping2=NULL, isPresent=NULL, cooksCutoff=FALSE){
+runDeseq2 = function(x, sampleGroup, refGroup, grouping, grouping2=NULL, 
+                     isPresent=NULL, cooksCutoff=FALSE){
+  require(DESeq2)
   ## get size factors -- grouping2 not needed
-  colData = data.frame(grouping=as.factor(grouping), row.names=colnames(x))
-  dds = DESeq2::DESeqDataSetFromMatrix(countData=x, colData=colData, design= ~ grouping)
-  dds = DESeq2::estimateSizeFactors(dds, controlGenes=isPresent)
+  colData = data.frame(grouping=as.factor(grouping), 
+                       row.names=colnames(x))
+  dds = DESeqDataSetFromMatrix(countData=x, colData=colData, 
+                               design= ~ grouping)
+  dds = estimateSizeFactors(dds, controlGenes=isPresent)
   sf = 1/dds@colData$sizeFactor
-
   
   ## remove the samples that do not participate in the comparison
   isSample = grouping == sampleGroup
@@ -202,23 +205,28 @@ runDeseq2 = function(x, sampleGroup, refGroup, grouping, grouping2=NULL, isPrese
   
   ## run the analysis
   if (ezIsSpecified(grouping2)){
-    colData = data.frame(grouping=as.factor(grouping), grouping2=grouping2, row.names=colnames(x))
-    dds = DESeq2::DESeqDataSetFromMatrix(countData=x, colData=colData, design= ~ grouping + grouping2)
+    colData = data.frame(grouping=as.factor(grouping), grouping2=grouping2, 
+                         row.names=colnames(x))
+    dds = DESeqDataSetFromMatrix(countData=x, colData=colData, 
+                                 design= ~ grouping + grouping2)
   } else {
     colData = data.frame(grouping=as.factor(grouping), row.names=colnames(x))
-    dds = DESeq2::DESeqDataSetFromMatrix(countData=x, colData=colData, design= ~ grouping)
+    dds = DESeqDataSetFromMatrix(countData=x, colData=colData,
+                                 design= ~ grouping)
   }
-  dds = DESeq2::estimateSizeFactors(dds, controlGenes=isPresent)
-  dds = DESeq2::DESeq(dds, quiet=FALSE, minReplicatesForReplace=Inf)
-  res = DESeq2::results(dds, contrast=c("grouping", sampleGroup, refGroup), cooksCutoff=cooksCutoff)
+  dds = estimateSizeFactors(dds, controlGenes=isPresent)
+  dds = DESeq(dds, quiet=FALSE, minReplicatesForReplace=Inf)
+  res = results(dds, contrast=c("grouping", sampleGroup, refGroup),
+                cooksCutoff=cooksCutoff)
   res = as.list(res)
   res$sf = sf
   return(res)
 }
 
 ##' @describeIn twoGroupCountComparison Runs the EdgeR test method.
-runEdger = function(x, sampleGroup, refGroup, grouping, normMethod, priorCount=0.125){
-  require("edgeR", warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
+runEdger = function(x, sampleGroup, refGroup, grouping, normMethod, 
+                    priorCount=0.125){
+  require("edgeR")
   cds = DGEList(counts=x, group=grouping)
   cds = calcNormFactors(cds, method=normMethod)
   sf = 1/(cds$samples$norm.factors * cds$samples$lib.size)
@@ -250,7 +258,7 @@ runEdger = function(x, sampleGroup, refGroup, grouping, normMethod, priorCount=0
 ##' @describeIn twoGroupCountComparison Runs the Glm test method.
 runGlm = function(x, sampleGroup, refGroup, grouping, normMethod, grouping2=NULL,
                   priorCount=0.125, deTest=c("QL", "LR")){
-  require("edgeR", warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
+  require("edgeR")
   
   ## differential expression test by quasi-likelihood (QL) F-test or 
   ## likelihood ratio test.
@@ -276,7 +284,8 @@ runGlm = function(x, sampleGroup, refGroup, grouping, normMethod, grouping2=NULL
   groupFactor = factor(grouping, levels = c(refGroup, sampleGroup))
   if (ezIsSpecified(grouping2)){
     design = model.matrix( ~ groupFactor + grouping2[isSample|isRef])
-    colnames(design) = c("Intercept", "Grouping", paste("Grouping2", 1:(ncol(design)-2), sep="_"))
+    colnames(design) = c("Intercept", "Grouping", 
+                         paste("Grouping2", 1:(ncol(design)-2), sep="_"))
   } else {
     design = model.matrix( ~ groupFactor)
     colnames(design) = c("Intercept", "Grouping")
