@@ -26,7 +26,7 @@ ezMethodTranscriptCoverage = function(input=NA, output=NA, param=NA){
 
   ### compute the coverage
   txdb = makeTxDbFromGFF(param$ezRef@refFeatureFile,
-                         dataSource="FGCZ", taxonomyId = "2759")# organism=organism, chrominfo=NULL)
+                         dataSource="FGCZ", taxonomyId = 2759)# organism=organism, chrominfo=NULL)
   tisPos = getTranslationInitiationSite(txdb)
   
   profileList = getTranscriptProfiles(bamFile, param)
