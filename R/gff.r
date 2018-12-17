@@ -564,6 +564,7 @@ getTranscriptGcAndWidth = function(param=NULL, genomeFn=NULL, featureFn=NULL){
   require(GenomicRanges)
   require(stringr)
   require(Rsamtools)
+  require(rtracklayer)
   
   if(!is.null(param)){
     genomeFn <- param$ezRef["refFastaFile"]
@@ -573,24 +574,14 @@ getTranscriptGcAndWidth = function(param=NULL, genomeFn=NULL, featureFn=NULL){
   if (!file.exists(genomeFasta)){
     return(NULL)
   }
-  #genomeSeq = readDNAStringSet(genomeFasta)
-  #names(genomeSeq) = sub(" .*", "", names(genomeSeq))
-  gff <- fread(featureFn, header=FALSE, sep="\t")
-  gff <- gff[V3=="exon", .(chr=V1, start=V4, end=V5, strand=V7, attribute=V9)]
-  exonsByTx <- GRanges(seqnames=gff$chr,
-                       ranges=IRanges(start=gff$start,
-                                      end=gff$end),
-                       strand=gff$strand)
-  transcripts <- ezGffAttributeField(gff$attribute,
-                                     field="transcript_id", 
-                                     attrsep="; *", valuesep=" ")
-  #exonsByTx <- genomeSeq[exonsByTx] ## This can results in error of XString
-  #                                     object of length 2^31 or more
-  exonsByTx <- getSeq(FaFile(genomeFasta), exonsByTx) 
+  gff <- import(featureFn)
+  exons <- gff[gff$type == "exon"]
+  transcripts <- exons$transcript_id
+  exons <- getSeq(FaFile(genomeFasta), exons)
   # FaFile can deal with spaces witin header name.
   # ">chr1 test1" can be subset by chr1 GRanges.
-  gcCount <- letterFrequency(exonsByTx, letters="GC", as.prob = FALSE)[ ,"G|C"]
-  txWidth <- width(exonsByTx)
+  gcCount <- letterFrequency(exons, letters="GC", as.prob = FALSE)[ ,"G|C"]
+  txWidth <- width(exons)
   data <- data.table(tx=transcripts, txWidth=txWidth, gcCount=gcCount)
   data <- data[ , lapply(.SD, sum), by=.(tx)]
   ans <- list(gc=signif(setNames(data[ , gcCount/txWidth], data[ ,tx]),
