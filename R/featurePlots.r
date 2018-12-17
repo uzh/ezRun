@@ -38,7 +38,7 @@ plotLocusCoverageProfile = function(gRanges, bamFiles, gtfFile=NULL,
   require(GenomicRanges)
   require(S4Vectors)
   if (!is.null(gtfFile)){
-    txdb = makeTxDbFromGFF(gtfFile, dataSource="FGCZ", taxonomyId = "1") #96061234")
+    txdb = makeTxDbFromGFF(gtfFile, dataSource="FGCZ", taxonomyId = 1) #96061234")
     #saveDb(txdb, "tx.db")
     #txdb = loadDb("tx.db")
   } else {
@@ -92,7 +92,7 @@ plotLocusAverageCoverageProfile = function(gRanges, bamFiles, grouping=NULL, gtf
   require(GenomicFeatures)
   require(GenomicRanges)
   if (!is.null(gtfFile)){
-    txdb = makeTxDbFromGFF(gtfFile, dataSource="FGCZ", taxonomyId = "1") #96061234")
+    txdb = makeTxDbFromGFF(gtfFile, dataSource="FGCZ", taxonomyId = 1) #96061234")
     #saveDb(txdb, "tx.db")
     #txdb = loadDb("tx.db")
   } else {
