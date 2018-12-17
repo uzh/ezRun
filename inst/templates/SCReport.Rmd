@@ -97,7 +97,7 @@ write_tsv(tSNE_data, path=tSNEFn)
 ### Cell clustering tSNE
 
 This analysis was done with the R package Seurat. The distance metric which drives the clustering analysis is based on Principal Component Analysis.  In the plot below each dot is a cell.
-We eliminated the genes that are expressed in < `r param$minCellsPerGene` cells. We eliminated the cells that have < `r param$minGenesPerCell` genes detected, or > `r param$maxGenesPerCell` genes.
+We eliminated the genes that are expressed in < `r param$minCellsPerGene` cells. We eliminated the cells that have < `r param$minGenesPerCell` genes detected, or > `r param$maxGenesPerCell` genes. We have `r sum(summary(scData@ident))` cells left in total.
 
 ```{r tSNE, echo=FALSE, results='asis'}
 # Coloured by plate/run if available
