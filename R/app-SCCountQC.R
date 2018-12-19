@@ -33,6 +33,9 @@ ezMethodSCCountQC = function(input=NA, output=NA, param=NA,
   param$scProtocol <- ifelse("STARLog" %in% input$colNames, "smart-Seq2", "10x")
   
   sce <- loadSCCountDataset(input, param)
+  metadata(sce)$param$name <- paste(metadata(sce)$param$name,
+                                    paste(input$getNames(), collapse=", "),
+                                    sep=": ")
   
   ## STAR log: available for smart-seq2, not for 10x
   
