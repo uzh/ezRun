@@ -189,7 +189,7 @@ loadSCCountDataset <- function(input, param){
                                               type="Counts", param=param))
   }else if(param$scProtocol == "10x"){
     countMatrixFn <- list.files(path=input$getFullPaths("CountMatrix"),
-                                pattern="\\.mtx$", recursive=TRUE, 
+                                pattern="\\.mtx(\\.gz)*$", recursive=TRUE, 
                                 full.names=TRUE)
     sce <- read10xCounts(dirname(countMatrixFn), col.names=TRUE)
     seqAnnoDF <- ezFeatureAnnotation(param, rownames(sce),
