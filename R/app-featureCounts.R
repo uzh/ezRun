@@ -189,7 +189,11 @@ EzAppSingleCellFeatureCounts <-
                                                      Description="the number of bases downstream of TSS"),
                           upstreamFlanking=ezFrame(Type="integer",
                                                    DefaultValue="250",
-                                                   Description="the number of bases upstream of TSS"))
+                                                   Description="the number of bases upstream of TSS"),
+                          controlSeqs=ezFrame(Type="charVector",
+                                              DefaultValue="",
+                                              Description="control sequences to add")
+                          )
                 }
               )
   )
@@ -256,9 +260,9 @@ ezMethodSingleCellFeatureCounts <- function(input=NA, output=NA, param=NA){
                                           chrAliases=NULL,reportReads=NULL,
                                           byReadGroup=ifelse(hasRG, TRUE, FALSE))
   }else{
+    gtfFile = paste(Sys.getpid(), "genes.gtf", sep="-")
+    on.exit(file.remove(gtfFile), add=TRUE)
     if (ezIsSpecified(param$transcriptTypes)){
-      gtfFile = paste(Sys.getpid(), "genes.gtf", sep="-")
-      on.exit(file.remove(gtfFile), add=TRUE)
       seqAnno = ezFeatureAnnotation(param$ezRef@refAnnotationFile,
                                     dataFeatureType="transcript")
       transcriptsUse = rownames(seqAnno)[seqAnno$type %in% param$transcriptTypes]
@@ -272,7 +276,51 @@ ezMethodSingleCellFeatureCounts <- function(input=NA, output=NA, param=NA){
       write.table(gtf, gtfFile, quote=FALSE, sep="\t", 
                   row.names=FALSE, col.names=FALSE)
     } else {
-      gtfFile = param$ezRef@refFeatureFile
+      file.copy(from=param$ezRef@refFeatureFile, to=gtfFile)
+    }
+    
+    if(ezIsSpecified(param$controlSeqs)){
+      ## control sequences
+      genomesRoot <- strsplit(GENOMES_ROOT, ":")[[1]]
+      controlSeqsFn <- file.path(genomesRoot, "controlSeqs.fa")
+      controlSeqsFn <- head(controlSeqsFn[file.exists(controlSeqsFn)], 1)
+      controlSeqs <- readDNAStringSet(controlSeqsFn)
+      names(controlSeqs) <- sub(" .*$", "", names(controlSeqs))
+      controlSeqs <- controlSeqs[param$controlSeqs]
+      txids <- rep(paste0("Transcript_",names(controlSeqs)), each=4)
+      txids[seq(1, length(txids), by=4)] <- NA
+      transcript_biotype <- rep("protein_coding", length(txids))
+      transcript_biotype[seq(1, length(transcript_biotype), by=4)] <- NA
+      mcols=DataFrame(source="NCBI", 
+                      type=rep(c("gene", "transcript",
+                                 "exon", "CDS"), length(controlSeqs)),
+                      score=NA, phase=rep(c(NA, NA, NA, 0), length(controlSeqs)),
+                      gene_id=rep(paste0("Gene_",names(controlSeqs)),
+                                  each=4),
+                      gene_version=NA,
+                      gene_name=rep(names(controlSeqs), each=4),
+                      gene_source="NCBI",
+                      gene_biotype="protein_coding",
+                      havana_gene=NA, havana_gene_version=NA,
+                      transcript_id=txids, transcript_version=NA,
+                      transcript_name=txids, transcript_source=NA,
+                      transcript_biotype=transcript_biotype,
+                      havana_transcript=NA,
+                      havana_transcript_version=NA,
+                      tag=NA, transcript_support_level=NA,
+                      exon_number=NA, exon_id=NA, exon_version=NA,
+                      ccds_id=NA, protein_id=NA, protein_version=NA
+      )
+      extraGR <- GRanges(seqnames=rep(names(controlSeqs), each=4),
+                         ranges=IRanges(start=1,
+                                        end=rep(width(controlSeqs), each=4)),
+                         strand="+")
+      mcols(extraGR) <- mcols
+      gtfExtraFn <- tempfile(pattern="extraSeqs", tmpdir=getwd(),
+                             fileext = ".gtf")
+      on.exit(file.remove(gtfExtraFn), add=TRUE)
+      export.gff2(extraGR, con=gtfExtraFn)
+      ezSystem(paste("cat", gtfExtraFn, ">>", gtfFile))
     }
     
     countResult = featureCounts(localBamFile, annot.inbuilt=NULL,

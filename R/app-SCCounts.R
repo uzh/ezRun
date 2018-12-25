@@ -23,6 +23,9 @@ EzAppSCCounts <-
                                         mapOptions=ezFrame(Type="character",
                                                            DefaultValue="",
                                                            Description="options passed to the mapper"),
+                                        controlSeqs=ezFrame(Type="charVector",
+                                                            DefaultValue="",
+                                                            Description="control sequences to add"),
                                         writeIgvSessionLink=ezFrame(Type="logical",
                                                                     DefaultValue=FALSE,
                                                                     Description="whether to write IGV session links.")
