@@ -15,12 +15,27 @@ EzAppSingleCellSTAR <-
                   "Initializes the application using its specific defaults."
                   runMethod <<- ezMethodSingleCellSTAR
                   name <<- "EzAppSingleCellSTAR"
-                  appDefaults <<- rbind(getJunctions=ezFrame(Type="logical",  DefaultValue="FALSE",	Description="should junctions be returned"),
-                                        writeIgvSessionLink=ezFrame(Type="logical", DefaultValue="TRUE", Description="should an IGV link be generated"),
-                                        markDuplicates=ezFrame(Type="logical", DefaultValue="FALSE", Description="should duplicates be marked with picard"),
-                                        checkStrandness=ezFrame(Type="logical", DefaultValue="TRUE", Description="should strandness be checked"),
-                                        randomSleep=ezFrame(Type="logical",  DefaultValue="FALSE",  Description="should there be a random sleep to avoid to much network traffic when loading the STAR index"),
-                                        twopassMode=ezFrame(Type="logical", DefaultValue="FALSE", Description="1-pass mapping or basic 2-pass mapping")
+                  appDefaults <<- rbind(getJunctions=ezFrame(Type="logical",
+                                                             DefaultValue="FALSE",
+                                                             Description="should junctions be returned"),
+                                        writeIgvSessionLink=ezFrame(Type="logical",
+                                                                    DefaultValue="TRUE",
+                                                                    Description="should an IGV link be generated"),
+                                        markDuplicates=ezFrame(Type="logical", 
+                                                               DefaultValue="FALSE", 
+                                                               Description="should duplicates be marked with picard"),
+                                        checkStrandness=ezFrame(Type="logical", 
+                                                                DefaultValue="TRUE", 
+                                                                Description="should strandness be checked"),
+                                        randomSleep=ezFrame(Type="logical",  
+                                                            DefaultValue="FALSE",
+                                                            Description="should there be a random sleep to avoid to much network traffic when loading the STAR index"),
+                                        twopassMode=ezFrame(Type="logical",
+                                                            DefaultValue="FALSE",
+                                                            Description="1-pass mapping or basic 2-pass mapping"),
+                                        controlSeqs=ezFrame(Type="charVector",
+                                                            DefaultValue="",
+                                                            Description="control sequences to add")
                   )
                 }
               )
@@ -45,7 +60,7 @@ ezMethodSingleCellSTAR = function(input=NA, output=NA, param=NA){
   }
   
   trimmedInput <- ezMethodTrim(input = fastqInput, param = param)
-    
+  
   ## Merge and clean prepross logs
   preprocessLogFns <- paste0(trimmedInput$getNames(), "_preprocessing.log")
   preprocessLogs <- lapply(preprocessLogFns, readLines)
@@ -94,11 +109,43 @@ ezMethodSingleCellSTAR = function(input=NA, output=NA, param=NA){
   if (!grepl("outSAMattributes", param$cmdOptions)){
     param$cmdOptions = paste(param$cmdOptions, "--outSAMattributes All")
   }
+  
+  genomeFn <- param$ezRef@refFastaFile
+  
+  if(ezIsSpecified(param$controlSeqs)){
+    ## control sequences
+    genomesRoot <- strsplit(GENOMES_ROOT, ":")[[1]]
+    controlSeqsFn <- file.path(genomesRoot, "controlSeqs.fa")
+    controlSeqsFn <- head(controlSeqsFn[file.exists(controlSeqsFn)], 1)
+    controlSeqs <- readDNAStringSet(controlSeqsFn)
+    names(controlSeqs) <- sub(" .*$", "", names(controlSeqs))
+    controlSeqsLocalFn <- tempfile(pattern="controlSeqs", tmpdir=getwd(),
+                                   fileext = ".fa")
+    writeXStringSet(controlSeqs[param$controlSeqs], filepath=controlSeqsLocalFn)
+    on.exit(file.remove(controlSeqsLocalFn), add = TRUE)
+    
+    genomeLocalFn <- tempfile(pattern="genome", tmpdir=getwd(),
+                              fileext = ".fa")
+    file.copy(from=genomeFn, to=genomeLocalFn)
+    writeXStringSet(controlSeqs[param$controlSeqs], filepath=genomeLocalFn,
+                    append=TRUE)
+    dictFile = sub(".fa$", ".dict", genomeLocalFn)
+    cmd = paste("java -Djava.io.tmpdir=. ", " -jar", 
+                Sys.getenv("Picard_jar"), "CreateSequenceDictionary",
+                paste0("R=", genomeLocalFn), paste0("O=", dictFile))
+    ezSystem(cmd)
+    
+    genomeFn <- genomeLocalFn
+    on.exit(file.remove(c(genomeLocalFn, dictFile)), add=TRUE)
+  }
+  
   cmd = paste("STAR", " --genomeDir", refDir,  "--sjdbOverhang 150", 
               "--readFilesIn", alignerInput$getColumn("Read1"), 
               if(param$paired) alignerInput$getColumn("Read2"),
               "--twopassMode", ifelse(param$twopassMode, "Basic", "None"),
-              "--runThreadN", ezThreads(), param$cmdOptions, 
+              if(ezIsSpecified(param$controlSeqs))
+                paste("--genomeFastaFiles", controlSeqsLocalFn),
+              "--runThreadN", param$cores, param$cmdOptions,
               "--outStd BAM_Unsorted --outSAMtype BAM Unsorted",
               ">  Aligned.out.bam")## writes the output file Aligned.out.bam
   ##"|", "samtools", "view -S -b -", " >", "Aligned.out.bam")
@@ -117,7 +164,7 @@ ezMethodSingleCellSTAR = function(input=NA, output=NA, param=NA){
   mergeBamAlignments(alignedBamFn="Aligned.out.bam",
                      unmappedBamFn=inputTrimmed$getFullPaths("Read1"),
                      outputBamFn="Aligned.out.merged.bam",
-                     fastaFn=param$ezRef@refFastaFile)
+                     fastaFn=genomeFn)
   file.remove("Aligned.out.bam")
   file.rename(from="Aligned.out.merged.bam", to="Aligned.out.bam")
   file.remove(trimmedBamFn)
