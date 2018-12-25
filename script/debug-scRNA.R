@@ -255,14 +255,15 @@ output[['Stats [File]']] = 'scRNA-p2277/FeatureCounts/NEG-stats.txt'
 output[['CellCyclePhase [File]']] = 'scRNA-p2277/FeatureCounts/NEG-CellCyclePhase.txt'
 EzAppSingleCellFeatureCounts$new()$run(input=input, output=output, param=param)
 
-## EzAppSCCounts
-setwd("/scratch/gtan/scRNA-p2277/scCount-test")
+## EzAppSCCounts: smart-seq2 with smaller one uBam
+setwd("/scratch/gtan/dev/scRNA-p2277")
 library(ezRun)
 setEnvironments("star")
 setEnvironments("flexbar")
 setEnvironments("trimmomatic")
 setEnvironments("python2")
 setEnvironments("samtools")
+setEnvironments("picard")
 param = list()
 param[['cores']] = '8'
 param[['ram']] = '40'
@@ -281,9 +282,11 @@ param[['trimRight']] = '0'
 param[['minTailQuality']] = '10'
 param[['minAvgQuality']] = '10'
 param[['minReadLength']] = '20'
+param[['controlSeqs']] = 'TdTomato_55420622,Cre_NC_005856.1'
+param[['transcriptTypes']] = 'protein_coding,rRNA,tRNA,Mt_rRNA,Mt_tRNA'
 param[['specialOptions']] = ''
 param[['mail']] = 'ge.tan@fgcz.ethz.ch'
-param[['dataRoot']] = '/scratch/gtan'
+param[['dataRoot']] = '/scratch/gtan/dev'
 param[['resultDir']] = 'scRNA-p2277/scCount'
 output = list()
 output[['Species']] = 'Mus musculus'
@@ -299,15 +302,17 @@ input[['Name']] = 'A2B5'
 input[['Read1']] = 'scRNA-p2277/HiSeq4000_20170822_RUN376_o3645/A2B5_unmapped_part.bam'
 input[['CellDataset']] = 'scRNA-p2277/HiSeq4000_20170822_RUN376_o3645/A2B5-dataset.tsv'
 output[['Name']] = 'A2B5'
+output[['ResultDir']] = 'scRNA-p2277/scCount'
 output[['BAM [File]']] = 'scRNA-p2277/scCount/A2B5.bam'
 output[['BAI [File]']] = 'scRNA-p2277/scCount/A2B5.bam.bai'
 output[['PreprocessingLog [File]']] = 'scRNA-p2277/scCount/A2B5_preprocessing.log'
 output[['STARLog [File]']] = 'scRNA-p2277/scCount/A2B5_STAR.log'
-output[['CountMatrix [File]']] = 'scRNA-p2277/scCount/A2B5-counts.txt'
+output[['CountMatrix [File]']] = 'scRNA-p2277/scCount/A2B5-counts.mtx'
 output[['Stats [File]']] = 'scRNA-p2277/scCount/A2B5-stats.txt'
 output[['CellCyclePhase [File]']] = 'scRNA-p2277/scCount/A2B5-CellCyclePhase.txt'
 output[['CellDataset [File]']] = 'scRNA-p2277/scCount/A2B5-dataset.txt'
-debug(ezMethodSingleCellSTAR)
+# debug(ezMethodSingleCellSTAR)
+# debug(ezMethodSingleCellFeatureCounts)
 EzAppSCCounts$new()$run(input=input, output=output, param=param)
 ## Auto
 input[['Name']] = 'Auto'
