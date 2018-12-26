@@ -271,12 +271,12 @@ https://broadinstitute.github.io/picard/picard-metric-definitions.html
 
 This is only available for plate based single cell protocol.
 
-```{r picard setup, echo=FALSE, eval=evalPicard && !debug}
+```{r picard setup, echo=FALSE, eval=evalPicard && !debug && !param$hasControlSeqs}
 cd <- data.frame(colData(sce), check.names = FALSE)
 cd$nGenesDetected <- Matrix::colSums(assays(sce)$counts > 3)
 ```
 
-```{r picard plot, echo=FALSE, fig.width=20, fig.height=6, eval=evalPicard && !debug}
+```{r picard plot, echo=FALSE, fig.width=20, fig.height=6, eval=evalPicard && !debug && !param$hasControlSeqs}
 plateMatrix <- plateStatistics(cd,
                                colname=c("PF_READS", "nGenesDetected",
                                          "PCT_RIBOSOMAL_BASES", "PF_READS_ALIGNED",
@@ -370,7 +370,7 @@ l
 
 This is only available for plate based single cell protocol.
 
-```{r metrics, echo=FALSE, eval=evalPicard && !debug}
+```{r metrics, echo=FALSE, eval=evalPicard && !debug && !param$hasControlSeqs}
 metricsDT <- colData(sce)[, (tail(grep("\\[File\\]", colnames(colData(sce))), 1)+1):ncol(colData(sce))]
 datatable(data.frame(metricsDT, check.names = FALSE), filter = 'top',
           caption="scRNASeq QC Metrics")
