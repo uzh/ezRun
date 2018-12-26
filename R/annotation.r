@@ -9,6 +9,9 @@ ezFeatureAnnotation = function(param, ids=NULL,
                                dataFeatureType=c("gene", "transcript", 
                                                  "isoform")){
   require(data.table)
+  require(rtracklayer)
+  require(tibble)
+  require(readr)
   dataFeatureType <- match.arg(dataFeatureType)
   if(is.list(param)){
     featAnnoFn <- param$ezRef["refAnnotationFile"]
@@ -48,9 +51,6 @@ ezFeatureAnnotation = function(param, ids=NULL,
   }else{
     stop("Only support dataFeatureType in 'transcript', 'isoform', 'gene'")
   }
-  if(!is.null(ids)){
-    seqAnno <- seqAnno[ids, , drop=FALSE]
-  }
   minimalCols <- c("gene_id", "transcript_id", "gene_name", "type", "strand",
                    "seqid", "biotypes", "description", "start", "end",
                    "gc", "featWidth", "GO BP", "GO MF", "GO CC")
@@ -75,17 +75,33 @@ ezFeatureAnnotation = function(param, ids=NULL,
     stop(paste(minimalCols[!minimalCols %in% colnames(seqAnno)], collapse="; "),
          " must exist in annotation file!")
   }
-  return(seqAnno)
-}
-
-##' @describeIn ezFeatureAnnotation Gets the annotation from a .gtf file and transforms it into a tab-separated tabular .txt file.
-writeAnnotationFromGtf = function(param, featureFile=param$ezRef@refFeatureFile, featAnnoFile=param$ezRef@refAnnotationFile){
-  gtf = ezLoadFeatures(param, featureFile=featureFile)
-  gtf = gtf[gtf$type == "exon", ]
-  seqAnno = transcriptAnnoFromGtf(gtf, attributes=c("gene_name"))
-  trProps = getTranscriptGcAndWidth(param)
-  seqAnno$gc = trProps$gc[rownames(seqAnno)]
-  ezWrite.table(seqAnno, file=featAnnoFile)
+  if(!is.null(ids)){
+    if(all(ids %in% rownames(seqAnno))){
+      seqAnno <- seqAnno[ids, , drop=FALSE]
+    }else{
+      extraIds <- setdiff(ids, rownames(seqAnno))
+      extraIds <- sub("^(Gene|Transcript)_", "", extraIds)
+      # there is control sequences added.
+      extraGR <- maekExtraControlSeqGR(extraIds)
+      extraSeqs <- getControlSeqs(extraIds)
+      gtfExtraFn <- tempfile(fileext = ".gtf")
+      export.gff2(extraGR, con=gtfExtraFn)
+      controlSeqsTempFn <- tempfile(fileext = ".fa")
+      writeXStringSet(getControlSeqs(extraIds),
+                      filepath=controlSeqsTempFn)
+      extraMart <- tibble("Transcript stable ID"=unique(extraGR$transcript_id),
+                          "Gene description"=NA, "GO term accession"=NA,
+                          "GO domain"=NA)
+      biomartFile <- tempfile(fileext = ".mart")
+      write_tsv(extraMart, path=biomartFile)
+      
+      featAnnoExtra <- makeFeatAnnoEnsembl(featureFile=gtfExtraFn,
+                                           genomeFile=controlSeqsTempFn,
+                                           biomartFile=biomartFile)
+      featAnnoExtra <- featAnnoExtra[[dataFeatureType]]
+      seqAnno <-  rbind(seqAnno, featAnnoExtra)[ids, , drop=FALSE]
+    }
+  }
   return(seqAnno)
 }
 
@@ -271,7 +287,7 @@ makeFeatAnnoEnsembl <- function(featureFile,
   featAnnoGene <- aggregateFeatAnno(featAnno)
   ezWrite.table(featAnnoGene, file=featAnnoGeneFile, row.names=FALSE)
   
-  invisible(featAnno)
+  invisible(list("transcript"=featAnno, "gene"=featAnnoGene))
 }
 
 ##' @describeIn ezFeatureAnnotation Aggregates the Go annotation.
@@ -428,14 +444,36 @@ getBlacklistedRegions <- function(refBuild=c("hg38", "hg19", "mm10", "mm9",
   return(bedGR)
 }
 
-### Make interval list file
-makeIntervalList <- function(param=NULL, gtfFn, fastaFn,
-                             outputFn="output.intervalList"){
-  require(Biostrings)
-  if(!is.null(param)){
-    gtfFn <- param$ezRef['refFeatureFile']
-    fastaFn <- param$ezRef['refFastaFile']
-  }
-  
+maekExtraControlSeqGR <- function(ids=NULL){
+  controlSeqs <- getControlSeqs(ids)
+  txids <- rep(paste0("Transcript_",names(controlSeqs)), each=4)
+  txids[seq(1, length(txids), by=4)] <- NA
+  transcript_biotype <- rep("protein_coding", length(txids))
+  transcript_biotype[seq(1, length(transcript_biotype), by=4)] <- NA
+  mcols=DataFrame(source="NCBI", 
+                  type=rep(c("gene", "transcript",
+                             "exon", "CDS"), length(controlSeqs)),
+                  score=NA, phase=rep(c(NA, NA, NA, 0), length(controlSeqs)),
+                  gene_id=rep(paste0("Gene_",names(controlSeqs)),
+                              each=4),
+                  gene_version=NA,
+                  gene_name=rep(names(controlSeqs), each=4),
+                  gene_source="NCBI",
+                  gene_biotype="protein_coding",
+                  havana_gene=NA, havana_gene_version=NA,
+                  transcript_id=txids, transcript_version=NA,
+                  transcript_name=txids, transcript_source=NA,
+                  transcript_biotype=transcript_biotype,
+                  havana_transcript=NA,
+                  havana_transcript_version=NA,
+                  tag=NA, transcript_support_level=NA,
+                  exon_number=NA, exon_id=NA, exon_version=NA,
+                  ccds_id=NA, protein_id=NA, protein_version=NA
+  )
+  extraGR <- GRanges(seqnames=rep(names(controlSeqs), each=4),
+                     ranges=IRanges(start=1,
+                                    end=rep(width(controlSeqs), each=4)),
+                     strand="+")
+  mcols(extraGR) <- mcols
+  return(extraGR)
 }
-

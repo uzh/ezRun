@@ -281,41 +281,7 @@ ezMethodSingleCellFeatureCounts <- function(input=NA, output=NA, param=NA){
     
     if(ezIsSpecified(param$controlSeqs)){
       ## control sequences
-      genomesRoot <- strsplit(GENOMES_ROOT, ":")[[1]]
-      controlSeqsFn <- file.path(genomesRoot, "controlSeqs.fa")
-      controlSeqsFn <- head(controlSeqsFn[file.exists(controlSeqsFn)], 1)
-      controlSeqs <- readDNAStringSet(controlSeqsFn)
-      names(controlSeqs) <- sub(" .*$", "", names(controlSeqs))
-      controlSeqs <- controlSeqs[param$controlSeqs]
-      txids <- rep(paste0("Transcript_",names(controlSeqs)), each=4)
-      txids[seq(1, length(txids), by=4)] <- NA
-      transcript_biotype <- rep("protein_coding", length(txids))
-      transcript_biotype[seq(1, length(transcript_biotype), by=4)] <- NA
-      mcols=DataFrame(source="NCBI", 
-                      type=rep(c("gene", "transcript",
-                                 "exon", "CDS"), length(controlSeqs)),
-                      score=NA, phase=rep(c(NA, NA, NA, 0), length(controlSeqs)),
-                      gene_id=rep(paste0("Gene_",names(controlSeqs)),
-                                  each=4),
-                      gene_version=NA,
-                      gene_name=rep(names(controlSeqs), each=4),
-                      gene_source="NCBI",
-                      gene_biotype="protein_coding",
-                      havana_gene=NA, havana_gene_version=NA,
-                      transcript_id=txids, transcript_version=NA,
-                      transcript_name=txids, transcript_source=NA,
-                      transcript_biotype=transcript_biotype,
-                      havana_transcript=NA,
-                      havana_transcript_version=NA,
-                      tag=NA, transcript_support_level=NA,
-                      exon_number=NA, exon_id=NA, exon_version=NA,
-                      ccds_id=NA, protein_id=NA, protein_version=NA
-      )
-      extraGR <- GRanges(seqnames=rep(names(controlSeqs), each=4),
-                         ranges=IRanges(start=1,
-                                        end=rep(width(controlSeqs), each=4)),
-                         strand="+")
-      mcols(extraGR) <- mcols
+      extraGR <- maekExtraControlSeqGR(param$controlSeqs)
       gtfExtraFn <- tempfile(pattern="extraSeqs", tmpdir=getwd(),
                              fileext = ".gtf")
       on.exit(file.remove(gtfExtraFn), add=TRUE)
