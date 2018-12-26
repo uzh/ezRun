@@ -24,21 +24,20 @@ EzAppSCCountQC <-
 ezMethodSCCountQC = function(input=NA, output=NA, param=NA, 
                              htmlFile="00index.html"){
   require(S4Vectors)
-  
+  require(SummarizedExperiment)
   cwd <- getwd()
   setwdNew(basename(output$getColumn("Report")))
   on.exit(setwd(cwd), add=TRUE)
   reportCwd <- getwd()
   
+  ## STAR log: available for smart-seq2, not for 10x
   param$scProtocol <- ifelse("STARLog" %in% input$colNames, "smart-Seq2", "10x")
   
   sce <- loadSCCountDataset(input, param)
   metadata(sce)$param$name <- paste(metadata(sce)$param$name,
                                     paste(input$getNames(), collapse=", "),
                                     sep=": ")
-  
-  ## STAR log: available for smart-seq2, not for 10x
-  
+  param <- metadata(sce)$param
   if(param$scProtocol == "smart-Seq2"){
     mlog <- read.table(input$getFullPaths("STARLog"), sep="|", 
                        as.is = TRUE, quote = "\"", fill=T)
@@ -48,7 +47,12 @@ ezMethodSCCountQC = function(input=NA, output=NA, param=NA,
     inBam <- getBamLocally(input$getFullPaths("BAM"))
     on.exit(file.remove(file.path(reportCwd, c(inBam, paste0(inBam, ".bai")))), 
             add = TRUE)
-    
+  }
+  if(all(levels(seqnames(rowRanges(sce))) %in%
+         seqnames(seqinfo(FaFile(param$ezRef['refFastaFile']))))){
+    param$hasControlSeqs <- FALSE
+  }else{
+    param$hasControlSeqs <- TRUE
   }
   
   ## 3' and 5' bias: not in use currently
@@ -75,7 +79,7 @@ ezMethodSCCountQC = function(input=NA, output=NA, param=NA,
   #colData(sce)$bias3 <- primeBias$bias3[colnames(sce)]
   
   ## Picard metrics
-  if(param$scProtocol == "smart-Seq2"){
+  if(param$scProtocol == "smart-Seq2" && !param$hasControlSeqs){
     bamRGFns <- splitBamByRG(inBam, mc.cores=param$cores)
     on.exit(file.remove(file.path(reportCwd, bamRGFns)), add = TRUE)
     
@@ -109,7 +113,7 @@ ezMethodSCCountQC = function(input=NA, output=NA, param=NA,
                                   check.names = FALSE, stringsAsFactors = FALSE),
                        "DataFrame")
   }
-
+  metadata(sce)$param <- param
   saveRDS(sce, file="sce.rds")
   
   ## Copy the style files and templates
