@@ -114,20 +114,15 @@ ezMethodSingleCellSTAR = function(input=NA, output=NA, param=NA){
   
   if(ezIsSpecified(param$controlSeqs)){
     ## control sequences
-    genomesRoot <- strsplit(GENOMES_ROOT, ":")[[1]]
-    controlSeqsFn <- file.path(genomesRoot, "controlSeqs.fa")
-    controlSeqsFn <- head(controlSeqsFn[file.exists(controlSeqsFn)], 1)
-    controlSeqs <- readDNAStringSet(controlSeqsFn)
-    names(controlSeqs) <- sub(" .*$", "", names(controlSeqs))
     controlSeqsLocalFn <- tempfile(pattern="controlSeqs", tmpdir=getwd(),
                                    fileext = ".fa")
-    writeXStringSet(controlSeqs[param$controlSeqs], filepath=controlSeqsLocalFn)
+    writeXStringSet(getControlSeqs(param$controlSeqs), filepath=controlSeqsLocalFn)
     on.exit(file.remove(controlSeqsLocalFn), add = TRUE)
     
     genomeLocalFn <- tempfile(pattern="genome", tmpdir=getwd(),
                               fileext = ".fa")
     file.copy(from=genomeFn, to=genomeLocalFn)
-    writeXStringSet(controlSeqs[param$controlSeqs], filepath=genomeLocalFn,
+    writeXStringSet(getControlSeqs(param$controlSeqs), filepath=genomeLocalFn,
                     append=TRUE)
     dictFile = sub(".fa$", ".dict", genomeLocalFn)
     cmd = paste("java -Djava.io.tmpdir=. ", " -jar", 

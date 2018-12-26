@@ -327,3 +327,16 @@ setMethod("buildIgvGenome", "EzRef", function(.Object){
   setwd(cd)
   unlink(filesToZip)
 })
+
+getControlSeqs <- function(ids=NULL){
+  genomesRoot <- strsplit(GENOMES_ROOT, ":")[[1]]
+  controlSeqsFn <- file.path(genomesRoot, "controlSeqs.fa")
+  controlSeqsFn <- head(controlSeqsFn[file.exists(controlSeqsFn)], 1)
+  controlSeqs <- readDNAStringSet(controlSeqsFn)
+  names(controlSeqs) <- sub(" .*$", "", names(controlSeqs))
+  if(!is.null(ids)){
+    controlSeqs <- controlSeqs[ids]
+  }
+  return(controlSeqs)
+}
+
