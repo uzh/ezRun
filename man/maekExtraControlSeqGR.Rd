@@ -1,5 +1,5 @@
-\name{maekExtraControlSeqGR}
-\alias{maekExtraControlSeqGR}
+\name{makeExtraControlSeqGR}
+\alias{makeExtraControlSeqGR}
 \alias{getControlSeqs}
 \title{
   Functions for control sequences
@@ -8,7 +8,7 @@
   Fetch the control sequences and build a \code{GRanges} object from it.
 }
 \usage{
-  maekExtraControlSeqGR(ids = NULL)
+  makeExtraControlSeqGR(ids = NULL)
   getControlSeqs(ids = NULL)
 }
 \arguments{
@@ -21,13 +21,13 @@
 }
 \value{
   A \code{DNAStringSet} object from \code{getControlSeqs} and
-  a \code{GRanges} obejct from \code{maekExtraControlSeqGR}
+  a \code{GRanges} obejct from \code{makeExtraControlSeqGR}
 }
 \author{
   Ge Tan
 }
 
 \examples{
-  maekExtraControlSeqGR()
+  makeExtraControlSeqGR()
   getControlSeqs()
 }
