@@ -170,21 +170,14 @@ loadSCCountDataset <- function(input, param){
                                      dataFeatureLevel)
     seqAnno <- makeGRangesFromDataFrame(seqAnnoDF, keep.extra.columns=TRUE)
     
-    if (param$useSigThresh){
-      sigThresh <- param$sigThresh
-    } else {
-      sigThresh <- 0
-    }
-    
     if (ezIsSpecified(param$correctBias) && param$correctBias){
       countMatrix <- ezCorrectBias(countMatrix, gc = seqAnno$gc, 
                                    width=seqAnno$featWidth)$correctedCounts
     }
     
-    sce <- SingleCellExperiment(assays=list(counts=countMatrix,
-                                            presentFlag=countMatrix > sigThresh),
+    sce <- SingleCellExperiment(assays=list(counts=countMatrix),
                                 rowRanges=seqAnno, colData=cellDataSet,
-                                metadata=list(isLog=FALSE, 
+                                metadata=list(isLog=FALSE,
                                               featureLevel=dataFeatureLevel,
                                               type="Counts", param=param))
   }else if(param$scProtocol == "10x"){
@@ -212,8 +205,6 @@ loadSCCountDataset <- function(input, param){
     sce <- aggregateCountsByGene(sce)
   }
   
-  assays(sce)$rpkm <- getRpkm(sce)
-  assays(sce)$tpm <- getTpm(sce)
   colnames(sce) <- paste(input$getNames(), colnames(sce), sep="___")
   
   return(sce)
