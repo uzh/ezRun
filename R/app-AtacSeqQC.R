@@ -15,8 +15,7 @@ ezMethodATACSeqQC <- function(input, output, param, htmlFile="00index.html"){
   setwdNew(basename(output$getColumn("Report")))
   ###TODO: process in parallel, add more plots from ATACseqQC package and remove hardcoding parameters, create multisample TSS LinePlot
   drawHeatmaps = T
-  ctcfPeakFile = param$ctcfPeakFile
-  ctcf =  read.table(ctcfPeakFile, sep = '\t', stringsAsFactors = F, skip=1, header = F)
+  
   #1. Get BAM-Files:
   bamFiles = input$getFullPaths("BAM")
   bamFileList = as.list(bamFiles)
@@ -32,15 +31,18 @@ ezMethodATACSeqQC <- function(input, output, param, htmlFile="00index.html"){
                          strand = Rle(df_gtf$strand),
                          ranges = IRanges(df_gtf$start-2000,df_gtf$start+2000))
   
-  ctcf  = ctcf[ctcf$V5=='+', ]
-  ctcf$V2  = gsub('chr','',ctcf$V2)
-  ctcf = ctcf[nchar(ctcf$V2) <3,]
-  ctcf = ctcf[1:10000,]
-  ctcf = data.frame(chrom=ctcf$V2,start=ctcf$V3,end=ctcf$V4, strand=ctcf$V5)
-  ctcf.regions <- GRanges(seqnames = Rle(ctcf$chrom),
+  if(param$ctcfPeakFile != ''){
+    ctcfPeakFile = param$ctcfPeakFile
+    ctcf =  read.table(ctcfPeakFile, sep = '\t', stringsAsFactors = F, skip=1, header = F)
+    ctcf  = ctcf[ctcf$V5=='+', ]
+    ctcf$V2  = gsub('chr','',ctcf$V2)
+    ctcf = ctcf[nchar(ctcf$V2) <3,]
+    ctcf = ctcf[1:10000,]
+    ctcf = data.frame(chrom=ctcf$V2,start=ctcf$V3,end=ctcf$V4, strand=ctcf$V5)
+    ctcf.regions <- GRanges(seqnames = Rle(ctcf$chrom),
                           strand = Rle(ctcf$strand),
                           ranges = IRanges(ctcf$start-2000,ctcf$end+2000))
-  
+}
   
   multiScoreMatrixList = list()
   multiScoreMatrixListCTCF = list()
@@ -73,7 +75,7 @@ ezMethodATACSeqQC <- function(input, output, param, htmlFile="00index.html"){
         par(mar=c(5.1,4.1,4.1,2.1))
         plotMeta(x, xcoords = c(-2000, 2000),xlab='TSS',main=samples[i], profile.names=names(multiScoreMatrixList[[i]]), lwd=3)
       dev.off()
-      
+    if(param$ctcfPeakFile != ''){  
     multiScoreMatrixListCTCF[[i]] = list()
     multiScoreMatrixListCTCF[[i]][[1]] = ScoreMatrixBin(readsByFragmentLength[[1]], windows = ctcf.regions, bin.num = 50, type = 'bam')
     multiScoreMatrixListCTCF[[i]][[2]] = ScoreMatrixBin(readsByFragmentLength[[2]], windows = ctcf.regions, bin.num = 50, type = 'bam')
@@ -94,10 +96,12 @@ ezMethodATACSeqQC <- function(input, output, param, htmlFile="00index.html"){
     par(mar=c(5.1,4.1,4.1,2.1))
       plotMeta(x, xcoords = c(-2000, 2000),xlab='CTCF-Motif',main=samples[i], profile.names=names(multiScoreMatrixListCTCF[[i]]), lwd=3)
     dev.off()
+    }
   }
   
   if(length(samples)>1){
     for (j in 1:3){
+        if(param$ctcfPeakFile != ''){
       myList = list()
       for (k in 1:length(samples)){
         myList[[k]] = multiScoreMatrixListCTCF[[k]][[j]]
@@ -108,7 +112,7 @@ ezMethodATACSeqQC <- function(input, output, param, htmlFile="00index.html"){
                main=paste('MultiSample CTCF',names(multiScoreMatrixListCTCF[[1]])[j]), 
                profile.names=samples, lwd=3)
       dev.off()
-      
+        }
       myList = list()
       for (k in 1:length(samples)){
         myList[[k]] = multiScoreMatrixList[[k]][[j]]
