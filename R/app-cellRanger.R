@@ -12,16 +12,6 @@ ezMethodCellRanger = function(input=NA, output=NA, param=NA){
   sampleDirs = strsplit(input$getColumn("RawDataDir"), ",")[[sampleName]]
   sampleDirs <- file.path(input$dataRoot, sampleDirs)
   
-  refDir <- dirname(param$ezRef["refFeatureFile"])
-  refDirs <- list.files(path=refDir, pattern="^10X_Ref", full.names = TRUE)
-  if(length(refDirs) == 0){
-    stop("No 10X_Ref folder found in", refDir)
-  }
-  if(length(refDirs) > 1){
-    warning("Multiple 10X_Ref folders in ", refDir)
-  }
-  refDir <- refDirs[1]
-  
   if(length(sampleDirs) == 1L){
     ## Not merged sample dataset
     sampleDir <- sampleDirs[1]
@@ -39,6 +29,8 @@ ezMethodCellRanger = function(input=NA, output=NA, param=NA){
     }
   }
   
+  refDir <- getCellRangerReference(param)
+  
   cmd = paste(CELLRANGER,"count", paste0("--id=", sampleName),
               paste0("--transcriptome=", refDir),
               paste0("--fastqs=", sampleDir),
@@ -49,7 +41,61 @@ ezMethodCellRanger = function(input=NA, output=NA, param=NA){
     cmd = paste(cmd, opt)
   }
   ezSystem(cmd)
+  
+  if(ezIsSpecified(param$controlSeqs)){
+    unlink(refDir, recursive = TRUE)
+  }
+  
   return("Success")
+}
+
+
+getCellRangerReference <- function(param){
+  if(ezIsSpecified(param$controlSeqs)){
+    require(Biostrings)
+    require(rtracklayer)
+    ## make reference genome
+    genomeLocalFn <- tempfile(pattern="genome", tmpdir=getwd(),
+                              fileext = ".fa")
+    file.copy(from=param$ezRef@refFastaFile, to=genomeLocalFn)
+    writeXStringSet(getControlSeqs(param$controlSeqs), filepath=genomeLocalFn,
+                    append=TRUE)
+    on.exit(file.remove(genomeLocalFn, add=TRUE))
+    
+    ## make gtf
+    gtfFile <- tempfile(pattern="genes", tmpdir=getwd(),
+                        fileext = ".gtf")
+    on.exit(file.remove(gtfFile, add=TRUE))
+    
+    file.copy(from=param$ezRef@refFeatureFile, to=gtfFile)
+    extraGR <- makeExtraControlSeqGR(param$controlSeqs)
+    gtfExtraFn <- tempfile(pattern="extraSeqs", tmpdir=getwd(),
+                           fileext = ".gtf")
+    on.exit(file.remove(gtfExtraFn), add=TRUE)
+    export.gff2(extraGR, con=gtfExtraFn)
+    ezSystem(paste("cat", gtfExtraFn, ">>", gtfFile))
+    
+    ## build the index
+    refDir <- file.path(getwd(), "10X_customised_Ref")
+    cmd <- paste(CELLRANGER, "mkref",
+                 paste0("--genome=", basename(refDir)),
+                 paste0("--fasta=", genomeLocalFn),
+                 paste0("--genes=", gtfFile),
+                 paste0("--nthreads=", param$cores))
+    ezSystem(cmd)
+  }else{
+    ## TODO: automate the reference building
+    refDir <- dirname(param$ezRef["refFeatureFile"])
+    refDirs <- list.files(path=refDir, pattern="^10X_Ref", full.names = TRUE)
+    if(length(refDirs) == 0){
+      stop("No 10X_Ref folder found in", refDir)
+    }
+    if(length(refDirs) > 1){
+      warning("Multiple 10X_Ref folders in ", refDir)
+    }
+    refDir <- refDirs[1]
+  }
+  return(refDir)
 }
 
 ##' @author Opitz, Lennart
@@ -65,6 +111,9 @@ EzAppCellRanger <-
                   "Initializes the application using its specific defaults."
                   runMethod <<- ezMethodCellRanger
                   name <<- "EzAppCellRanger"
+                  appDefaults <<- rbind(controlSeqs=ezFrame(Type="charVector",
+                                                            DefaultValue="",
+                                                            Description="control sequences to add"))
                 }
               )
   )
