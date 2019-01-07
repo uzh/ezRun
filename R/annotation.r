@@ -82,7 +82,7 @@ ezFeatureAnnotation = function(param, ids=NULL,
       extraIds <- setdiff(ids, rownames(seqAnno))
       extraIds <- sub("^(Gene|Transcript)_", "", extraIds)
       # there is control sequences added.
-      extraGR <- maekExtraControlSeqGR(extraIds)
+      extraGR <- makeExtraControlSeqGR(extraIds)
       extraSeqs <- getControlSeqs(extraIds)
       gtfExtraFn <- tempfile(fileext = ".gtf")
       export.gff2(extraGR, con=gtfExtraFn)
