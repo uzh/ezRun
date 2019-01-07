@@ -25,6 +25,9 @@ ezMethodSCCountQC = function(input=NA, output=NA, param=NA,
                              htmlFile="00index.html"){
   require(S4Vectors)
   require(SummarizedExperiment)
+  require(Rsamtools)
+  require(GenomeInfoDb)
+  
   cwd <- getwd()
   setwdNew(basename(output$getColumn("Report")))
   on.exit(setwd(cwd), add=TRUE)
