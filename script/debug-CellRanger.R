@@ -103,3 +103,58 @@ input[['Read1']] = 'p2284/NovaSeq_20181010_NOV28_o4801/Recurrent_GBM_04092018/Re
 debug(ezMethodCellRanger)
 EzAppCellRanger$new()$run(input=input, output=output, param=param)
 
+# p2529 with control sequences
+setwd("/scratch/gtan/dev/cellranger-p2529")
+library(ezRun)
+param = list()
+param[['cores']] = '8'
+param[['ram']] = '40'
+param[['scratch']] = '200'
+param[['node']] = ''
+param[['process_mode']] = 'SAMPLE'
+param[['samples']] = 'FAPS30_all_E1'
+param[['name']] = 'CellRangerCount'
+param[['refBuild']] = 'Mus_musculus/Ensembl/GRCm38.p5/Annotation/Release_91-2018-02-26'
+param[['refFeatureFile']] = 'genes.gtf'
+param[['featureLevel']] = 'gene'
+param[['controlSeqs']] = 'GFP'
+param[['specialOptions']] = ''
+param[['mail']] = 'ge.tan@fgcz.ethz.ch'
+param[['dataRoot']] = '/srv/gstore/projects'
+param[['resultDir']] = 'p2529/CellRangerCount_25013_2019-01-07--12-51-55'
+output = list()
+output[['Name']] = 'FAPS30_all_E1'
+output[['ResultDir [File]']] = 'p2529/CellRangerCount_25013_2019-01-07--12-51-55/FAPS30_all_E1'
+output[['Report [Link]']] = 'p2529/CellRangerCount_25013_2019-01-07--12-51-55/FAPS30_all_E1/outs/web_summary.html'
+output[['BAM [Link]']] = 'p2529/CellRangerCount_25013_2019-01-07--12-51-55/FAPS30_all_E1/outs/possorted_genome_bam.bam'
+output[['BAI [Link]']] = 'p2529/CellRangerCount_25013_2019-01-07--12-51-55/FAPS30_all_E1/outs/possorted_genome_bam.bam.bai'
+output[['Species']] = 'Mus musculus (house mouse)'
+output[['refBuild']] = 'Mus_musculus/Ensembl/GRCm38.p5/Annotation/Release_91-2018-02-26'
+output[['refFeatureFile']] = 'genes.gtf'
+output[['featureLevel']] = 'gene'
+output[['CountMatrix [Link]']] = 'p2529/CellRangerCount_25013_2019-01-07--12-51-55/FAPS30_all_E1/outs/filtered_feature_bc_matrix'
+output[['Sample Id [B-Fabric]']] = 'bfs_170597'
+output[['Order Id [B-Fabric]']] = '4021'
+input = list()
+input[['Name']] = 'FAPS30_all_E1'
+input[['Condition']] = ''
+input[['Species']] = 'Mus musculus (house mouse)'
+input[['FragmentSize']] = '0'
+input[['SampleConc']] = '1'
+input[['Tube']] = 'p2529_4021/1'
+input[['Sample Id']] = 'bfs_170597'
+input[['PlatePosition']] = ''
+input[['LibConc_100_800bp']] = '70'
+input[['LibConc_qPCR']] = '0'
+input[['Adapter1']] = 'NA'
+input[['Adapter2']] = 'NA'
+input[['strandMode']] = 'NA'
+input[['LibraryPrepKit']] = '10X Genomics Single Cell'
+input[['EnrichmentMethod']] = 'None'
+input[['InputAmount']] = 'NA'
+input[['Order Id']] = '4021'
+input[['RawDataDir']] = 'p2529/HiSeq2500_20180227_RR121_o4021/FAPS30_all_E1'
+debug(getCellRangerReference)
+debug(ezMethodCellRanger)
+EzAppCellRanger$new()$run(input=input, output=output, param=param)
+
