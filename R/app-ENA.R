@@ -7,7 +7,7 @@ ezMethodGetEnaData <- function(input=NA, output=NA, param=NA){
     fastqInfo[['Name']] = ''
     fastqInfo[['ReadCount']] = 0
     fastqInfo[['Species']] = ''
-    setwdNew(input$meta$Name)
+    setwdNew(rownames(input$meta))
     
     for (i in 1:nrow(fastqInfo)){
         #download ERR xml File
@@ -49,7 +49,7 @@ ezMethodGetEnaData <- function(input=NA, output=NA, param=NA){
         }
         ezSystem(cmd)
     }
-    myPath = output$meta[['dataPath']]
+    myPath = output$meta[['ENA Result [File]']]
     dataset <- createDataset(fastqInfo, myPath, paired = paired)
     
     if(length(dataset$Name) == length(unique(dataset$Name))){
