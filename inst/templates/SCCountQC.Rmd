@@ -470,11 +470,11 @@ The raw count matrix and tpm are available here:
 ```{r raw count matrix, echo=FALSE, results='asis', message=FALSE, eval=!debug}
 # Raw counts
 rawCount <- as.matrix(assays(sce)$counts)
-if(param$scProtocol == "smart-Seq2"){
-  colnames(rawCount) <- colData(sce)$Name
-}else if(param$scProtocol == "10x"){
-  colnames(rawCount) <- colData(sce)$Barcode
-}
+# if(param$scProtocol == "smart-Seq2"){
+#   colnames(rawCount) <- colnames(assays(sce)$counts)
+# }else if(param$scProtocol == "10x"){
+#   colnames(rawCount) <- colData(sce)$Barcode
+# }
 rawCount <- as_tibble(rawCount, rownames=paste0(param$featureLevel, "_id"))
 rawCount <- bind_cols(gene_name=rowData(sce)$gene_name, rawCount)
 write_tsv(rawCount, path="rawCount.txt")
@@ -485,14 +485,13 @@ cat("\n")
 invisible(file.remove(c("rawCount.txt")))
 
 # TPM
-if(param$scProtocol != "10x"){
-  ## TODO TPM does not make sense for 3'-tagging data
+# if(param$scProtocol != "10x"){
   tpm <- as.matrix(getTpm(sce))
-  if(param$scProtocol == "smart-Seq2"){
-    colnames(tpm) <- colData(sce)$Name
-  }else if(param$scProtocol == "10x"){
-    colnames(tpm) <- colData(sce)$Barcode
-  }
+  # if(param$scProtocol == "smart-Seq2"){
+  #   colnames(tpm) <- colData(sce)$Name
+  # }else if(param$scProtocol == "10x"){
+  #   colnames(tpm) <- colData(sce)$Barcode
+  # }
   tpm <- as_tibble(tpm, rownames=paste0(param$featureLevel, "_id"))
   tpm <- bind_cols(gene_name=rowData(sce)$gene_name, tpm)
   write_tsv(tpm, path="tpm.txt")
@@ -501,15 +500,15 @@ if(param$scProtocol != "10x"){
   cat(paste0("[", "tpm.zip", "](", "tpm.zip", ")"))
   cat("\n")
   invisible(file.remove(c("tpm.txt")))
-}
+# }
 
 # CPM
 cpm <- as.matrix(getCpm(sce))
-if(param$scProtocol == "smart-Seq2"){
-  colnames(cpm) <- colData(sce)$Name
-}else if(param$scProtocol == "10x"){
-  colnames(cpm) <- colData(sce)$Barcode
-}
+# if(param$scProtocol == "smart-Seq2"){
+#   colnames(cpm) <- colData(sce)$Name
+# }else if(param$scProtocol == "10x"){
+#   colnames(cpm) <- colData(sce)$Barcode
+# }
 cpm <- as_tibble(cpm, rownames=paste0(param$featureLevel, "_id"))
 cpm <- bind_cols(gene_name=rowData(sce)$gene_name, cpm)
 write_tsv(cpm, path="cpm.txt")

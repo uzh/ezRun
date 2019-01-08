@@ -36,7 +36,7 @@ getTpm <- function(rawData){
   if(is(rawData, "SingleCellExperiment")){
     # scater's implementation seems to be faster.
     require(scater)
-    if(ezIsSpecified(metadata(rawData)$param$scProtocol)){
+    if(!ezIsSpecified(metadata(rawData)$param$scProtocol)){
       stop("scProtocol must be specified in param.")
     }
     if(metadata(rawData)$param$scProtocol == "10x"){
