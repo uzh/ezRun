@@ -6,8 +6,8 @@ param[['cores']] = '4'
 param[['ram']] = '30'
 param[['scratch']] = '50'
 param[['node']] = ''
-param[['process_mode']] = 'SAMPLE'
-param[['samples']] = 'FAPS4_all'
+param[['process_mode']] = 'DATASET'
+param[['samples']] = c('FAPS4_all', 'FAPS30_all_E1')
 param[['name']] = 'SCReport'
 param[['refBuild']] = 'Mus_musculus/Ensembl/GRCm38.p5/Annotation/Release_91-2018-02-26'
 param[['paired']] = 'false'
@@ -42,8 +42,12 @@ output[['refBuild']] = 'Mus_musculus/Ensembl/GRCm38.p5/Annotation/Release_91-201
 output[['refFeatureFile']] = 'genes.gtf'
 output[['Static Report [Link]']] = 'p2529/SCReport_32851_FAPS4_all_2019-01-08--10-47-27/FAPS4_all_SCReport/00index.html'
 output[['Live Report [Link]']] = 'http://fgcz-shiny.uzh.ch/fgcz_exploreSingleCell_app/?data=p2529/SCReport_32851_FAPS4_all_2019-01-08--10-47-27/FAPS4_all_SCReport/SCReport-emituitwiiek.rds'
-output[['Report [File]']] = 'p2529/SCReport_32851_FAPS4_all_2019-01-08--10-47-27/FAPS4_all_SCReport'
+output[['Report [File]']] = 'p2529/SCReport_32851_FAPS4_all_2019-01-08--10-47-27/FAPS4_all_SCReportMerging'
 output[['ResultDir [Link]']] = 'p2529/CellRangerCount_25012_2019-01-07--16-20-19/FAPS4_all'
 input <- "/scratch/gtan/dev/SCReportMerging-p2529/SCReport_FAPS4_FAPS30.tsv"
+
 # input = EzDataset$new(file=input, dataRoot=param$dataRoot)
+# output <- EzDataset$new(meta=output, dataRoot=param$dataRoot)
+# param <- ezParam(param, )
+debug(ezMethodSCReportMerging)
 EzAppSCReportMerging$new()$run(input=input, output=output, param=param)

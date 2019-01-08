@@ -12,7 +12,7 @@ EzAppSCReportMerging <-
                 initialize = function()
                 {
                   "Initializes the application using its specific defaults."
-                  runMethod <<- ezMethodSCReportMering
+                  runMethod <<- ezMethodSCReportMerging
                   name <<- "EzAppSCReportMerging"
                   appDefaults <<- rbind(minCellsPerGene=ezFrame(Type="numeric", 
                                                                 DefaultValue=5, 
@@ -61,13 +61,20 @@ EzAppSCReportMerging <-
                                                               Description="Run PseudoTime for single cell data?"),
                                         all2allMarkers=ezFrame(Type="logical", 
                                                                DefaultValue=FALSE, 
-                                                               Description="Run all against all cluster comparisons?"))
+                                                               Description="Run all against all cluster comparisons?"),
+                                        batchCorrection=ezFrame(Type="logical", 
+                                                                DefaultValue=TRUE,
+                                                                Description="Run CCA batch correction?"))
                 }
               )
   )
 
-ezMethodSCReport = function(input=NA, output=NA, param=NA, 
+ezMethodSCReportMerging = function(input=NA, output=NA, param=NA, 
                             htmlFile="00index.html"){
+  if(input$getLength() != 2L){
+    stop("It only works for merging two samples at once!")
+  }
+  
   cwd <- getwd()
   setwdNew(basename(output$getColumn("Report")))
   on.exit(setwd(cwd), add=TRUE)
@@ -77,5 +84,11 @@ ezMethodSCReport = function(input=NA, output=NA, param=NA,
   samples <- param$samples
   input <- input$subset(samples)
   
+  sce1 <- readRDS(file.path(input$getFullPaths("Report"), "sce.rds")[1])
+  sce2 <- readRDS(file.path(input$getFullPaths("Report"), "sce.rds")[2])
+  
+  ## Merge samples without batch correction
+  scData1 <- metadata(sce1)$scDat
+  scData2 <- metadata(sce2)$scData
   
 }
