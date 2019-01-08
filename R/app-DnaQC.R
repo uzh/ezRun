@@ -45,11 +45,25 @@ computeDnaBamStats <- function(input, htmlFile, param, resultList=NULL){
     }
     
     #run Qualimap SingleSample
-    cmd = paste('unset DISPLAY; qualimap bamqc -bam', files[sm], '-c -nt', param[['cores']], paste0('--java-mem-size=',param[['ram']],'G'), '-outdir', sm)
+    cmd = paste('unset DISPLAY; qualimap bamqc -bam', files[sm], '-c -nt', param[['cores']], paste0('--java-mem-size=', param[['ram']],'G'), '-outdir', sm)
     ezSystem(cmd)
+    
+    ##Extract Duplication Rate, InDel Rate:
+    qmFile = file.path(sm, 'genome_results.txt')
+    #qmFile = '/srv/gstore/projects/p1001/DNAQC_31169_2018-11-06--11-58-53/DNA_QC_Statistics/OBV_35/genome_results.txt'
+    all_data = readLines(qmFile)
+    resultList[[sm]]$dupRate = as.numeric(sub('\\%', '', sub('^.*duplication rate = ', '', all_data[grep('duplication rate', all_data)])))
+    resultList[[sm]]$errorRate = as.numeric(gsub('^.*general error rate = ', '', all_data[grep('general error rate', all_data)]))
+    resultList[[sm]]$insertRate = as.numeric(sub('\\%', '', sub('mapped reads with insertion percentage = ', '', all_data[grep('mapped reads with insertion percentage', all_data)])))
+    resultList[[sm]]$delRate = as.numeric(sub('\\%', '',sub('mapped reads with deletion percentage = ', '', all_data[grep('mapped reads with deletion percentage', all_data)])))
+    resultList[[sm]]$avgCoverage = as.numeric(sub('X', '', sub('mean coverageData = ', '', all_data[grep('mean coverageData', all_data)])))
+    resultList[[sm]]$mappingRate = 100* as.numeric(gsub(',', '', sub('number of reads = ', '', all_data[grep('number of reads', all_data)])))/dataset[sm, "Read Count"]
+    
+    ###TODO: add mappingQuality, GC content, insert size
+    #####add duplicate rate plot to lib complexity (calc. optical duplicates with picard)
   }
   #run Qualimap Multisample
-  ezWrite.table(data.frame(SampleName = samples, Folder = samples),'sampleKey.txt', row.names = FALSE, col.names = FALSE)
+  ezWrite.table(data.frame(SampleName = samples, Folder = samples), 'sampleKey.txt', row.names = FALSE, col.names = FALSE)
   cmd = paste('unset DISPLAY; qualimap multi-bamqc -d sampleKey.txt -outdir qualimap_MultiSample')
   ezSystem(cmd)
   
