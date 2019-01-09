@@ -7,7 +7,7 @@
 
 
 ezMethodDeseq2 = function(input=NA, output=NA, param=NA, htmlFile="00index.html"){
-  if (ezIsSpecified(param$samples) && param$samples){
+  if (ezIsSpecified(param$samples)){
     input = input$subset(param$samples)
   }
   if (!is.null(param$markOutliers) && param$markOutliers){
