@@ -337,9 +337,9 @@ getStatsFromBam = function(param, bamFile, sm, gff=NULL, repeatsGff=NULL,
   trUse = colSums(sampledTranscriptCov) > 0
   sampledTranscriptCov = sampledTranscriptCov[ , trUse, drop=FALSE]
   trLength = transcriptLengthTotal[trUse]
-  lengthClasses = ezCut(trLength, breaks=c(399, 999, 4000), 
-                        labels=c("less than 400nt", "400 to 1000nt", 
-                                 "1000 to 4000nt", "above 4000nt"))
+  lengthClasses = ezCut(trLength, breaks=c(399, 1000, 1200, 4000), 
+                        labels=c("less than 400nt", "400 to 999nt", 
+                                 "1000 to 1200nt", "1201 to 4000", "above 4000nt"))
   genebody_coverage = list()
   for (lc in levels(lengthClasses)){
     isInLc = lengthClasses == lc
