@@ -521,6 +521,7 @@ plateStatistics <- function(dataset,
     }
     return(ans)
   }else{
+    warning("PlatePosition [Characteristic] information is not available!")
     return(NA)
   }
 }
