@@ -67,7 +67,6 @@ computeDnaBamStats <- function(input, htmlFile, param, resultList=NULL){
     resultList[[sm]]$delRate = as.numeric(sub('\\%', '',sub('mapped reads with deletion percentage = ', '', all_data[grep('mapped reads with deletion percentage', all_data)])))
     resultList[[sm]]$avgCoverage = as.numeric(sub('X', '', sub('mean coverageData = ', '', all_data[grep('mean coverageData', all_data)])))
     resultList[[sm]]$mappingRate = 100* as.numeric(gsub(',', '', sub('number of reads = ', '', all_data[grep('number of reads', all_data)])))/dataset[sm, "Read Count"]
-    }
     ###TODO: add mappingQuality, GC content, insert size
     #####add duplicate rate plot to lib complexity (calc. optical duplicates with picard)
   }
