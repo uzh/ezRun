@@ -59,14 +59,18 @@ computeDnaBamStats <- function(input, htmlFile, param, resultList=NULL){
         numReads = as.numeric(gsub(',','',sub('\\%', '', sub('^.*number of reads = ', '', all_data[grep('number of reads', all_data)]))))/2 
     }
     if(length(resultList[[sm]]$dupRate) == 0){
-        resultList[[sm]]$dupRate = as.numeric(gsub(',','',sub('\\%', '', sub('^.*number of duplicated reads \\(flagged\\) = ', '', all_data[grep('number of duplicated reads', all_data)]))))/numReads
+        dupReads = as.numeric(gsub(',','',sub('\\%', '', sub('^.*number of duplicated reads \\(flagged\\) = ', '', all_data[grep('number of duplicated reads', all_data)]))))
+        if(param$paired){
+            dupReads = dupReads/2
+        }
+        resultList[[sm]]$dupRate = dupReads/numReads
         resultList[[sm]]$dupRate = resultList[[sm]]$dupRate*100
     }
     resultList[[sm]]$errorRate = as.numeric(gsub('^.*general error rate = ', '', all_data[grep('general error rate', all_data)]))
     resultList[[sm]]$insertRate = as.numeric(sub('\\%', '', sub('mapped reads with insertion percentage = ', '', all_data[grep('mapped reads with insertion percentage', all_data)])))
     resultList[[sm]]$delRate = as.numeric(sub('\\%', '',sub('mapped reads with deletion percentage = ', '', all_data[grep('mapped reads with deletion percentage', all_data)])))
     resultList[[sm]]$avgCoverage = as.numeric(sub('X', '', sub('mean coverageData = ', '', all_data[grep('mean coverageData', all_data)])))
-    resultList[[sm]]$mappingRate = 100* as.numeric(gsub(',', '', sub('number of reads = ', '', all_data[grep('number of reads', all_data)])))/dataset[sm, "Read Count"]
+    resultList[[sm]]$mappingRate = 100* numReads/dataset[sm, "Read Count"]
     ###TODO: add mappingQuality, GC content, insert size
     #####add duplicate rate plot to lib complexity (calc. optical duplicates with picard)
   }
