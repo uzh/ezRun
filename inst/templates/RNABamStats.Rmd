@@ -172,7 +172,7 @@ if (!is.null(resultList[[1]][["TranscriptsCovered"]])){
 ```
 
 ```{r genebody coverage legend, echo=FALSE, fig.width=3, fig.height=0.25*(length(samples)+1L), results='asis'}
-if (length(resultList[[1]][["genebody_coverage"]]) != 0){ ## TODO this could be done better by searching alls results for a valide genebody_coverage element
+if (length(resultList[[1]][["genebody_coverage"]]) != 0){ ## TODO this could be done better by searching alls results for a valid genebody_coverage element
   cat("####", "Genebody coverage plot\n")
   plotCmd = expression({
     ezLegend(legend=samples, fill=sampleColors[samples], title="Sample Colors")
@@ -182,18 +182,15 @@ if (length(resultList[[1]][["genebody_coverage"]]) != 0){ ## TODO this could be 
 ```
 
 ```{r genebody coverage, echo=FALSE, results='asis'}
-if (length(resultList[[1]][["genebody_coverage"]]) != 0){ ## TODO this could be done better by searching alls results for a valide genebody_coverage element
+if (length(resultList[[1]][["genebody_coverage"]]) != 0){ ## TODO this could be done better by searching alls results for a valid genebody_coverage element
     minYlim = 0 #min(sapply(resultList, function(item){min(item[["genebody_coverage"]])}))
     maxYlim = 0.08 ## this means we allow at most 10-fold enrichment at a percentile #max(sapply(resultList, function(item){max(item[["genebody_coverage"]])}))
     gbcTemplate = resultList[[1]][["genebody_coverage"]]
     pngMatrix = ezMatrix("", rows=names(gbcTemplate),
                          cols=names(gbcTemplate[[1]]))
     #pngLinks = character()
-    for (rn in rownames(pngMatrix)){
-      for (cn in colnames(pngMatrix)){
-        ## skip all cases that are not medium expressed and skip all cases that are not above 4000 or 400-1000
-        if (!grepl("medium", cn)) next
-        if (grepl("less", rn) | grepl("1000 to", rn)) next
+    for (rn in c("less than 400nt", "1000 to 1200nt")){ # rownames(pngMatrix)){
+      for (cn in "medium expressed"){ #} colnames(pngMatrix)){
         pngMatrix[rn, cn] = ezValidFilename(paste0("genebody_coverage_", rn, "_", cn, ".png"))
         covValues = ezMatrix(0, cols=0:100, rows=samples)
         for (sm in samples){

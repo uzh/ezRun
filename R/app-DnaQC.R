@@ -53,12 +53,24 @@ computeDnaBamStats <- function(input, htmlFile, param, resultList=NULL){
     #qmFile = '/srv/gstore/projects/p1001/DNAQC_31169_2018-11-06--11-58-53/DNA_QC_Statistics/OBV_35/genome_results.txt'
     all_data = readLines(qmFile)
     resultList[[sm]]$dupRate = as.numeric(sub('\\%', '', sub('^.*duplication rate = ', '', all_data[grep('duplication rate', all_data)])))
+    if(!param$paired){
+        numReads = as.numeric(gsub(',','',sub('\\%', '', sub('^.*number of reads = ', '', all_data[grep('number of reads', all_data)]))))
+    } else {
+        numReads = as.numeric(gsub(',','',sub('\\%', '', sub('^.*number of reads = ', '', all_data[grep('number of reads', all_data)]))))/2 
+    }
+    if(length(resultList[[sm]]$dupRate) == 0){
+        dupReads = as.numeric(gsub(',','',sub('\\%', '', sub('^.*number of duplicated reads \\(flagged\\) = ', '', all_data[grep('number of duplicated reads', all_data)]))))
+        if(param$paired){
+            dupReads = dupReads/2
+        }
+        resultList[[sm]]$dupRate = dupReads/numReads
+        resultList[[sm]]$dupRate = resultList[[sm]]$dupRate*100
+    }
     resultList[[sm]]$errorRate = as.numeric(gsub('^.*general error rate = ', '', all_data[grep('general error rate', all_data)]))
     resultList[[sm]]$insertRate = as.numeric(sub('\\%', '', sub('mapped reads with insertion percentage = ', '', all_data[grep('mapped reads with insertion percentage', all_data)])))
     resultList[[sm]]$delRate = as.numeric(sub('\\%', '',sub('mapped reads with deletion percentage = ', '', all_data[grep('mapped reads with deletion percentage', all_data)])))
     resultList[[sm]]$avgCoverage = as.numeric(sub('X', '', sub('mean coverageData = ', '', all_data[grep('mean coverageData', all_data)])))
-    resultList[[sm]]$mappingRate = 100* as.numeric(gsub(',', '', sub('number of reads = ', '', all_data[grep('number of reads', all_data)])))/dataset[sm, "Read Count"]
-    
+    resultList[[sm]]$mappingRate = 100* numReads/dataset[sm, "Read Count"]
     ###TODO: add mappingQuality, GC content, insert size
     #####add duplicate rate plot to lib complexity (calc. optical duplicates with picard)
   }
