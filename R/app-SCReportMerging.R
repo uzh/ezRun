@@ -62,9 +62,15 @@ EzAppSCReportMerging <-
                                         all2allMarkers=ezFrame(Type="logical", 
                                                                DefaultValue=FALSE, 
                                                                Description="Run all against all cluster comparisons?"),
-                                        batchCorrection=ezFrame(Type="logical", 
-                                                                DefaultValue=TRUE,
-                                                                Description="Run CCA batch correction?"))
+                                        batchCorrection=ezFrame(Type="character", 
+                                                                DefaultValue="None",
+                                                                Description="Which batch correction method to use?"),
+                                        chosenClusters1=ezFrame(Type="charVector", 
+                                                                DefaultValue="",
+                                                                Description="Clusters to choose to merge in sample 1"),
+                                        chosenClusters2=ezFrame(Type="charVector", 
+                                                                DefaultValue="",
+                                                                Description="Clusters to choose to merge in sample 2"))
                 }
               )
   )
@@ -87,8 +93,10 @@ ezMethodSCReportMerging = function(input=NA, output=NA, param=NA,
   sce1 <- readRDS(file.path(input$getFullPaths("Report"), "sce.rds")[1])
   sce2 <- readRDS(file.path(input$getFullPaths("Report"), "sce.rds")[2])
   
+  sce <- list(sce1=sce1, sce2=sce2)
+  
   ## Merge samples without batch correction
-  scData1 <- metadata(sce1)$scDat
-  scData2 <- metadata(sce2)$scData
+  # scData1 <- metadata(sce1)$scData
+  # scData2 <- metadata(sce2)$scData
   
 }
