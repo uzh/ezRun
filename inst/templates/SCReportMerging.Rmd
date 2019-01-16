@@ -1,0 +1,37 @@
+---
+title:  "`r metadata(sce)$param$name`"
+author: "Functional Genomics Center Zurich"
+output: 
+  html_document:
+    self_contained: false
+    includes:
+      in_header: fgcz_header.html
+    css: fgcz.css
+editor_options: 
+  chunk_output_type: console
+---
+
+Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
+
+```{r setup, include=FALSE}
+# input for this report: sce1 and sce2
+require(cowplot)
+```
+
+## Clustering results of merged samples {.tabset}
+
+### Cell clustering without correction
+
+```{r tSNE, echo=FALSE, results='asis'}
+sce_cbind <- S4Vectors::cbind(sce1, sce2)
+sce_cbind <- seuratPreProcess(sce_cbind)
+
+p1 <- TSNEPlot(object=metadata(sce_cbind)$scData, group.by="Plate",
+               do.return = TRUE, do.label = TRUE)
+p2 <- TSNEPlot(object=metadata(sce_cbind)$scData,
+               do.return = TRUE, do.label = TRUE)
+p <- plot_grid(p1, p2)
+
+# Coloured by plate/run if available
+TSNEPlot(object=scData, group.by="Plate")
+```
