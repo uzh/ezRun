@@ -30,7 +30,7 @@ require(readr)
 ## debug
 # title:  "`r metadata(sce)$param$name`"
 # sce <- readRDS("/srv/gstore/projects/p2446/SCCountQC_32261_2018-12-12--21-58-56/GBM_SC_1_plate1_SCCountQC/sce.rds")
-# sce <- readRDS("/scratch/gtan/debug/quickDebug/sce.rds")
+ # sce <- readRDS("/scratch/gtan/debug/quickDebug/sce.rds")
 
 ## convention:
 ## by default the fixed genenames are use
@@ -301,7 +301,7 @@ for(plateName in names(plateMatrix)){
                          colors="RdYlGn")
     }else{
       ## log-scale
-      stopifnot(all(matrix2Plot >= 0)) ## It has to be positive to log
+      stopifnot(all(matrix2Plot >= 0, na.rm = TRUE)) ## It has to be positive to log
       matrix2Plot[matrix2Plot==0] <- min(0.25 * matrix2Plot[matrix2Plot >0],
                                          na.rm = TRUE)
       matrix2Plot <- log10(matrix2Plot)
