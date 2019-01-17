@@ -15,7 +15,7 @@ EzAppSCReportMerging <-
                   runMethod <<- ezMethodSCReportMerging
                   name <<- "EzAppSCReportMerging"
                   appDefaults <<- rbind(resolution=ezFrame(Type="numeric", 
-                                                           DefaultValue=0.8, 
+                                                           DefaultValue="", 
                                                            Description="Value of the resolution parameter, use a value above (below) 1.0 if you want to obtain a larger (smaller) number of communities."),
                                         markersToShow=ezFrame(Type="numeric", 
                                                               DefaultValue=10, 
@@ -60,10 +60,17 @@ ezMethodSCReportMerging = function(input=NA, output=NA, param=NA,
   sce1 <- readRDS(file.path(input$getFullPaths("Report"), "sce.rds")[1])
   sce2 <- readRDS(file.path(input$getFullPaths("Report"), "sce.rds")[2])
   
-  sce <- list(sce1=sce1, sce2=sce2)
-  
-  ## Merge samples without batch correction
-  # scData1 <- metadata(sce1)$scData
-  # scData2 <- metadata(sce2)$scData
+  if(ezIsSpecified(param$chosenClusters1)){
+    chosenCells1 <- names(metadata(sce1)$scData@ident)[metadata(sce1)$scData@ident %in% 
+                                                         param$chosenClusters1]
+    sce1 <- sce1[, chosenCells1]
+  }
+  if(ezIsSpecified(param$chosenClusters2)){
+    chosenCells2 <- names(metadata(sce2)$scData@ident)[metadata(sce2)$scData@ident %in% 
+                                                         param$chosenClusters2]
+    sce2 <- sce2[, chosenCells2]
+  }
+  ans <- list(sce1=sce1, sce2=sce2, param=param)
+  saveRDS(ans, file="ans.rds")
   
 }
