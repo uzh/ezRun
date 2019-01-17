@@ -1,5 +1,5 @@
 ---
-title:  "`r metadata(sce)$param$name`"
+title:  "SCReport of merged samples"
 author: "Functional Genomics Center Zurich"
 output: 
   html_document:
@@ -14,24 +14,69 @@ editor_options:
 Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
 
 ```{r setup, include=FALSE}
-# input for this report: sce1 and sce2
 require(cowplot)
+# input for this report: sce1, sce2, param
+# ans <- readRDS("/scratch/gtan/dev/SCReportMerging-p2529/FAPS4_all_SCReportMerging/ans.rds")
+# sce1 <- ans$sce1
+# sce2 <- ans$sce2
+# param <- ans$param
+
+sce1URL <- "https://fgcz-gstore.uzh.ch/projects/p2529/SCReport_32851_FAPS4_2019-01-08--13-45-45/FAPS4_all_SCReport/00index.html"
+sce2URL <- "https://fgcz-gstore.uzh.ch/projects/p2529/SCReport_32850_2019-01-08--11-03-03/FAPS30_all_E1_SCReport/00index.html"
+param <- list()
+param$chosenClusters1 <- c()
+param$chosenClusters2 <- as.character(c(0,1,2,3,4,5,6,8,9))
+param$resolution <- 0.3
+
+sce1 <- readRDS(file.path("/srv/gstore",
+                          sub("https://fgcz-gstore.uzh.ch/", "", dirname(sce1URL), 
+                              fixed=TRUE), "sce.rds"))
+sce2 <- readRDS(file.path("/srv/gstore",
+                          sub("https://fgcz-gstore.uzh.ch/", "", dirname(sce2URL), 
+                              fixed=TRUE), "sce.rds"))
+if(ezIsSpecified(param$chosenClusters1)){
+  chosenCells1 <- names(metadata(sce1)$scData@ident)[metadata(sce1)$scData@ident %in% 
+                                                       param$chosenClusters1]
+  sce1 <- sce1[, chosenCells1]
+}
+if(ezIsSpecified(param$chosenClusters2)){
+  chosenCells2 <- names(metadata(sce2)$scData@ident)[metadata(sce2)$scData@ident %in% 
+                                                       param$chosenClusters2]
+  sce2 <- sce2[, chosenCells2]
+}
 ```
 
 ## Clustering results of merged samples {.tabset}
 
-### Cell clustering without correction
+## Cell clustering without correction
 
-```{r tSNE, echo=FALSE, results='asis'}
+```{r tSNE no correction, echo=FALSE}
 sce_cbind <- S4Vectors::cbind(sce1, sce2)
+metadata(sce_cbind)$param$resolution <- param$resolution
 sce_cbind <- seuratPreProcess(sce_cbind)
-
-p1 <- TSNEPlot(object=metadata(sce_cbind)$scData, group.by="Plate",
+scData <- metadata(sce_cbind)$scData
+p1 <- TSNEPlot(object=scData, group.by="Plate",
                do.return = TRUE, do.label = TRUE)
-p2 <- TSNEPlot(object=metadata(sce_cbind)$scData,
+p2 <- TSNEPlot(object=scData,
                do.return = TRUE, do.label = TRUE)
 p <- plot_grid(p1, p2)
-
-# Coloured by plate/run if available
-TSNEPlot(object=scData, group.by="Plate")
+p
 ```
+
+## Control of the cell clustering
+
+```{r control cell clustering, echo=FALSE}
+FeaturePlot(object = scData, features.plot = "nGene", 
+            reduction.use = "tsne", no.legend = FALSE)
+FeaturePlot(object = scData, features.plot = "nUMI", 
+            reduction.use = "tsne", no.legend = FALSE)
+```
+
+## Identify conserved cell type markers
+
+```{r conserved markers, echo=FALSE}
+markers <- FindConservedMarkers(scData, ident.1 = 0, grouping.var = "Plate",
+                                print.bar = FALSE)
+head(markers)
+```
+
