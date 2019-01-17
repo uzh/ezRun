@@ -24,12 +24,9 @@ require(Seurat)
 require(kableExtra)
 # input for this report: sce1URL, sce2URL, param
 
-sce1URL <- "https://fgcz-gstore.uzh.ch/projects/p2529/SCReport_32851_FAPS4_2019-01-08--13-45-45/FAPS4_all_SCReport/00index.html"
-sce2URL <- "https://fgcz-gstore.uzh.ch/projects/p2529/SCReport_32850_2019-01-08--11-03-03/FAPS30_all_E1_SCReport/00index.html"
-# param <- list()
-# param$chosenClusters1 <- c()
-# param$chosenClusters2 <- as.character(c(0,1,2,3,4,5,6,8,9))
-# param$resolution <- 0.3
+# sce1URL <- "https://fgcz-gstore.uzh.ch/projects/p2529/SCReport_32851_FAPS4_2019-01-08--13-45-45/FAPS4_all_SCReport/00index.html"
+# sce2URL <- "https://fgcz-gstore.uzh.ch/projects/p2529/SCReport_32850_2019-01-08--11-03-03/FAPS30_all_E1_SCReport/00index.html"
+# param <- readRDS("param.rds")
 
 sce1 <- readRDS(file.path("/srv/gstore",
                           sub("https://fgcz-gstore.uzh.ch/", "", dirname(sce1URL), 
@@ -37,12 +34,12 @@ sce1 <- readRDS(file.path("/srv/gstore",
 sce2 <- readRDS(file.path("/srv/gstore",
                           sub("https://fgcz-gstore.uzh.ch/", "", dirname(sce2URL), 
                               fixed=TRUE), "sce.rds"))
-param <- metadata(sce1)$param
-param$chosenClusters1 <- c()
-param$chosenClusters2 <- as.character(c(0,1,2,3,4,5,6,8,9))
-param$resolution <- 0.3
-param$cc <- 20
-param$batchCorrection <- "None"
+# param <- metadata(sce1)$param
+# param$chosenClusters1 <- c()
+# param$chosenClusters2 <- as.character(c(0,1,2,3,4,5,6,8,9))
+# param$resolution <- 0.3
+# param$cc <- 20
+# param$batchCorrection <- "None"
 
 if(ezIsSpecified(param$chosenClusters1)){
   chosenCells1 <- names(metadata(sce1)$scData@ident)[metadata(sce1)$scData@ident %in% 
