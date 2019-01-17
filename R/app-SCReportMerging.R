@@ -52,6 +52,14 @@ ezMethodSCReportMerging = function(input=NA, output=NA, param=NA,
   sce2URL <- input$getColumn("Report")[2]
   saveRDS(param, file = "param.rds")
   
+  ## Copy the style files and templates
+  styleFiles <- file.path(system.file("templates", package="ezRun"),
+                          c("fgcz.css", "SCReportMerging.Rmd",
+                            "fgcz_header.html", "banner.png"))
+  file.copy(from=styleFiles, to=".", overwrite=TRUE)
+  rmarkdown::render(input="SCReportMerging.Rmd", envir = new.env(),
+                    output_dir=".", output_file=htmlFile, quiet=TRUE)
+  return("Success")
   # sce1 <- readRDS(file.path(input$getFullPaths("Report"), "sce.rds")[1])
   # sce2 <- readRDS(file.path(input$getFullPaths("Report"), "sce.rds")[2])
   # 
@@ -67,5 +75,4 @@ ezMethodSCReportMerging = function(input=NA, output=NA, param=NA,
   # }
   # ans <- list(sce1=sce1, sce2=sce2, param=param)
   # saveRDS(ans, file="ans.rds")
-  
 }
