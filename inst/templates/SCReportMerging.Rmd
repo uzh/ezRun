@@ -14,7 +14,15 @@ editor_options:
 Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
 
 ```{r setup, include=FALSE}
+require(SummarizedExperiment)
+require(ezRun)
 require(cowplot)
+require(tibble)
+require(dplyr)
+require(readr)
+require(Seurat)
+require(kableExtra)
+
 # input for this report: sce1, sce2, param
 # ans <- readRDS("/scratch/gtan/dev/SCReportMerging-p2529/FAPS4_all_SCReportMerging/ans.rds")
 # sce1 <- ans$sce1
@@ -23,10 +31,10 @@ require(cowplot)
 
 sce1URL <- "https://fgcz-gstore.uzh.ch/projects/p2529/SCReport_32851_FAPS4_2019-01-08--13-45-45/FAPS4_all_SCReport/00index.html"
 sce2URL <- "https://fgcz-gstore.uzh.ch/projects/p2529/SCReport_32850_2019-01-08--11-03-03/FAPS30_all_E1_SCReport/00index.html"
-param <- list()
-param$chosenClusters1 <- c()
-param$chosenClusters2 <- as.character(c(0,1,2,3,4,5,6,8,9))
-param$resolution <- 0.3
+# param <- list()
+# param$chosenClusters1 <- c()
+# param$chosenClusters2 <- as.character(c(0,1,2,3,4,5,6,8,9))
+# param$resolution <- 0.3
 
 sce1 <- readRDS(file.path("/srv/gstore",
                           sub("https://fgcz-gstore.uzh.ch/", "", dirname(sce1URL), 
@@ -34,6 +42,12 @@ sce1 <- readRDS(file.path("/srv/gstore",
 sce2 <- readRDS(file.path("/srv/gstore",
                           sub("https://fgcz-gstore.uzh.ch/", "", dirname(sce2URL), 
                               fixed=TRUE), "sce.rds"))
+param <- metadata(sce1)$param
+param$chosenClusters1 <- c()
+param$chosenClusters2 <- as.character(c(0,1,2,3,4,5,6,8,9))
+param$resolution <- 0.3
+param$batchCorrection <- "None"
+
 if(ezIsSpecified(param$chosenClusters1)){
   chosenCells1 <- names(metadata(sce1)$scData@ident)[metadata(sce1)$scData@ident %in% 
                                                        param$chosenClusters1]
@@ -55,12 +69,23 @@ sce_cbind <- S4Vectors::cbind(sce1, sce2)
 metadata(sce_cbind)$param$resolution <- param$resolution
 sce_cbind <- seuratPreProcess(sce_cbind)
 scData <- metadata(sce_cbind)$scData
+
+# This is to avoid error in SplitDotPlotGG
+# It uses _ to separate the ident
+scData@meta.data$Plate <- sub("_.*$", "", scData@meta.data$Plate)
+
 p1 <- TSNEPlot(object=scData, group.by="Plate",
                do.return = TRUE, do.label = TRUE)
 p2 <- TSNEPlot(object=scData,
                do.return = TRUE, do.label = TRUE)
 p <- plot_grid(p1, p2)
 p
+```
+
+## Cell clustering with CCA correction
+
+```{r CCA, echo=FALSE}
+
 ```
 
 ## Control of the cell clustering
@@ -72,11 +97,69 @@ FeaturePlot(object = scData, features.plot = "nUMI",
             reduction.use = "tsne", no.legend = FALSE)
 ```
 
-## Identify conserved cell type markers
+## Conserved cell type markers
 
-```{r conserved markers, echo=FALSE}
-markers <- FindConservedMarkers(scData, ident.1 = 0, grouping.var = "Plate",
-                                print.bar = FALSE)
-head(markers)
+```{r conserved markers, echo=FALSE, warning=FALSE}
+markers <- list()
+for(eachCluster in levels(scData@ident)){
+   markersEach <- FindConservedMarkers(scData, ident.1=eachCluster, 
+                                       grouping.var="Plate",
+                                       print.bar=FALSE, only.pos=TRUE)
+  markers[[eachCluster]] <- as_tibble(markersEach, rownames="gene")
+}
+markers <- bind_rows(markers, .id="cluster")
+
+posConservedMarkersFn <- "pos_conserved_markers.tsv"
+write_tsv(markers, path=posConservedMarkersFn)
 ```
+
+List of all positive conserved cell type markers can be accessed [here](`r posConservedMarkersFn`).
+
+```{r enrichr markers, echo=FALSE, results='asis'}
+if(doEnrichr(param)){
+  genesPerCluster <- split(markers$gene, markers$cluster)
+  jsCall = paste0('enrich({list: "', sapply(genesPerCluster, paste, collapse="\\n"), '", popup: true});')
+  enrichrCalls <- paste0("<a href='javascript:void(0)' onClick='", jsCall, 
+                         "'>Analyse at Enrichr website</a>")
+  enrichrTable <- tibble(Cluster=names(genesPerCluster),
+                         "# of markers"=lengths(genesPerCluster),
+                         "Enrichr link"=enrichrCalls)
+  kable(enrichrTable, format="html", escape=FALSE,
+        caption=paste0("GeneSet enrichment analysis: conserved marker genes")) %>%
+    kable_styling("striped", full_width = F, position = "left")
+}
+```
+
+
+```{r markers table, echo=FALSE}
+caption ="Conserved cell type markers"
+ezInteractiveTableRmd(markers, digits=4, title=caption)
+```
+
+## Visualisation of conserved markers
+Top 30 conserved cell type markers are shown.
+
+```{r conserved markers SplitDotPlotGG, echo=FALSE}
+markers.to.plot <- head(dplyr::arrange(markers, minimump_p_val) %>% 
+                          dplyr::select(gene) %>% pull(), 30)
+for(i in 1:length(markers.to.plot)){
+  plot(VlnPlot(object = scData, markers.to.plot[i], do.return=TRUE))
+  FeaturePlot(object = scData, features.plot = markers.to.plot[i],
+              cols.use = c("gray", "red"),
+              reduction.use = "tsne", no.legend = FALSE)
+}
+```
+
+```{r visulisatio conserved markers, echo=FALSE, fig.width=8, fig.height=length(unique(scData@ident)) * length(unique(scData@meta.data$Plate))*0.4}
+sdp <- SplitDotPlotGG(scData, genes.plot = markers.to.plot,
+                      cols.use = c("blue", "red"), x.lab.rot = T,
+                      plot.legend = T, dot.scale = 8, do.return = T,
+                      grouping.var = "Plate")
+```
+
+## Differential expressed genes
+Identify differential expressed genes across conditions.
+
+
+
 
