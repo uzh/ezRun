@@ -22,11 +22,7 @@ require(dplyr)
 require(readr)
 require(Seurat)
 require(kableExtra)
-# input for this report: sce1, sce2, param
-# ans <- readRDS("/scratch/gtan/dev/SCReportMerging-p2529/FAPS4_all_SCReportMerging/ans.rds")
-# sce1 <- ans$sce1
-# sce2 <- ans$sce2
-# param <- ans$param
+# input for this report: sce1URL, sce2URL, param
 
 sce1URL <- "https://fgcz-gstore.uzh.ch/projects/p2529/SCReport_32851_FAPS4_2019-01-08--13-45-45/FAPS4_all_SCReport/00index.html"
 sce2URL <- "https://fgcz-gstore.uzh.ch/projects/p2529/SCReport_32850_2019-01-08--11-03-03/FAPS30_all_E1_SCReport/00index.html"
@@ -81,7 +77,7 @@ sce_cbind <- seuratPreProcess(sce_cbind)
 scData.None <- metadata(sce_cbind)$scData
 ```
 
-```{tSNE no correction plot, echo=FALSE, fig.width=10}
+```{tSNE no correction plot, echo=FALSE}
 p1 <- TSNEPlot(object=scData.None, group.by="Plate",
                do.return = TRUE, do.label = TRUE)
 p1
@@ -104,7 +100,7 @@ p2
                        genes.use=genes.use, num.cc=30)
 ```
 
-```{r CCA plot, echo=FALSE}
+```{r CCA plot, echo=FALSE, message=FALSE}
 p1 <- DimPlot(object=scData.CCA, reduction.use="cca", group.by="Plate",
               pt.size=0.5, do.return=TRUE)
 p1
@@ -113,10 +109,9 @@ p2 <- VlnPlot(object=scData.CCA, features.plot="CC1", group.by="Plate",
 p2
 p3 <- MetageneBicorPlot(scData.CCA, grouping.var="Plate", dims.eval=1:30, 
                         display.progress=FALSE)
-p3
 ```
 
-```{r align CCA subspace, echo=FALSE}
+```{r align CCA subspace, echo=FALSE, message=FALSE}
 scData.CCA <- AlignSubspace(scData.CCA, reduction.type="cca",
                             grouping.var="Plate", dims.align=1:param$cc)
 ```
@@ -140,7 +135,7 @@ scData.CCA <- FindClusters(object=scData.CCA,
                            resolution=param$resolution)
 ```
 
-```{tSNE no correction plot, echo=FALSE, fig.width=10}
+```{tSNE CCA correction plot, echo=FALSE}
 p1 <- TSNEPlot(object=scData.CCA, group.by="Plate",
                do.return=TRUE, do.label=TRUE)
 p1
@@ -232,3 +227,17 @@ sdp <- SplitDotPlotGG(scData, genes.plot = markers.to.plot,
 ### Differential expressed genes
 Identify differential expressed genes across conditions.
 
+### Parameters
+```{r report parameters, echo=FALSE}
+param[c("batchCorrection", "cc", "resolution",
+        "chosenClusters1", "chosenClusters2")]
+```
+
+```{r seurat parameters, echo=FALSE}
+PrintFindClustersParams(object = scData)
+```
+
+### SessionInfo
+```{r, echo=FALSE}
+sessionInfo()
+```

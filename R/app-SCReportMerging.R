@@ -17,25 +17,16 @@ EzAppSCReportMerging <-
                   appDefaults <<- rbind(resolution=ezFrame(Type="numeric", 
                                                            DefaultValue="", 
                                                            Description="Value of the resolution parameter, use a value above (below) 1.0 if you want to obtain a larger (smaller) number of communities."),
-                                        markersToShow=ezFrame(Type="numeric", 
-                                                              DefaultValue=10, 
-                                                              Description="The markers to show in the heatmap of cluster marker genes"),
-                                        markersToCheck=ezFrame(Type="charList", 
-                                                               DefaultValue="", 
-                                                               Description="The markers to check"),
-                                        runPseudoTime=ezFrame(Type="logical", 
-                                                              DefaultValue=FALSE, 
-                                                              Description="Run PseudoTime for single cell data?"),
-                                        all2allMarkers=ezFrame(Type="logical", 
-                                                               DefaultValue=FALSE, 
-                                                               Description="Run all against all cluster comparisons?"),
                                         batchCorrection=ezFrame(Type="character", 
-                                                                DefaultValue="None",
-                                                                Description="Which batch correction method to use?"),
-                                        chosenClusters1=ezFrame(Type="charVector", 
+                                                                DefaultValue="CCA",
+                                                                Description="Which batch correction method to use? None or CCA"),
+                                        cc=ezFrame(Type="numeric",
+                                                   DefaultValue=20,
+                                                   Description="The number of CC for CCA analysis"),
+                                        chosenClusters1=ezFrame(Type="charVector",
                                                                 DefaultValue="",
                                                                 Description="Clusters to choose to merge in sample 1"),
-                                        chosenClusters2=ezFrame(Type="charVector", 
+                                        chosenClusters2=ezFrame(Type="charVector",
                                                                 DefaultValue="",
                                                                 Description="Clusters to choose to merge in sample 2"))
                 }
@@ -57,20 +48,24 @@ ezMethodSCReportMerging = function(input=NA, output=NA, param=NA,
   samples <- param$samples
   input <- input$subset(samples)
   
-  sce1 <- readRDS(file.path(input$getFullPaths("Report"), "sce.rds")[1])
-  sce2 <- readRDS(file.path(input$getFullPaths("Report"), "sce.rds")[2])
+  sce1URL <- input$getColumn("Report")[1]
+  sce2URL <- input$getColumn("Report")[2]
+  saveRDS(param, file = "param.rds")
   
-  if(ezIsSpecified(param$chosenClusters1)){
-    chosenCells1 <- names(metadata(sce1)$scData@ident)[metadata(sce1)$scData@ident %in% 
-                                                         param$chosenClusters1]
-    sce1 <- sce1[, chosenCells1]
-  }
-  if(ezIsSpecified(param$chosenClusters2)){
-    chosenCells2 <- names(metadata(sce2)$scData@ident)[metadata(sce2)$scData@ident %in% 
-                                                         param$chosenClusters2]
-    sce2 <- sce2[, chosenCells2]
-  }
-  ans <- list(sce1=sce1, sce2=sce2, param=param)
-  saveRDS(ans, file="ans.rds")
+  # sce1 <- readRDS(file.path(input$getFullPaths("Report"), "sce.rds")[1])
+  # sce2 <- readRDS(file.path(input$getFullPaths("Report"), "sce.rds")[2])
+  # 
+  # if(ezIsSpecified(param$chosenClusters1)){
+  #   chosenCells1 <- names(metadata(sce1)$scData@ident)[metadata(sce1)$scData@ident %in% 
+  #                                                        param$chosenClusters1]
+  #   sce1 <- sce1[, chosenCells1]
+  # }
+  # if(ezIsSpecified(param$chosenClusters2)){
+  #   chosenCells2 <- names(metadata(sce2)$scData@ident)[metadata(sce2)$scData@ident %in% 
+  #                                                        param$chosenClusters2]
+  #   sce2 <- sce2[, chosenCells2]
+  # }
+  # ans <- list(sce1=sce1, sce2=sce2, param=param)
+  # saveRDS(ans, file="ans.rds")
   
 }
