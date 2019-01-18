@@ -87,6 +87,8 @@ ncpro = function(input, dataset, param=NULL){
   readCounts = data.frame(row.names=samples)
   if (!is.null(dataset$"Read Count") && is.numeric(dataset$"Read Count") && all(dataset$"Read Count" > 0)){
     readCounts$untrimmed = dataset[samples, "Read Count"]    
+  } else {
+    readCounts$untrimmed = countReadsInFastq(fqFiles[samples])
   }
   readCounts$remaining = countReadsInFastq(trimmedFastqFiles)
   ezWrite.table(readCounts, "trimCounts.txt")
