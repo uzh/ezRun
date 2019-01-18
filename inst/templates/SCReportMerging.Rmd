@@ -23,10 +23,9 @@ require(readr)
 require(Seurat)
 require(kableExtra)
 # input for this report: sce1URL, sce2URL, param
-
-# sce1URL <- "https://fgcz-gstore.uzh.ch/projects/p2529/SCReport_32851_FAPS4_2019-01-08--13-45-45/FAPS4_all_SCReport/00index.html"
-# sce2URL <- "https://fgcz-gstore.uzh.ch/projects/p2529/SCReport_32850_2019-01-08--11-03-03/FAPS30_all_E1_SCReport/00index.html"
 # param <- readRDS("param.rds")
+sce1URL <- "https://fgcz-gstore.uzh.ch/projects/p2529/SCReport_32851_FAPS4_2019-01-08--13-45-45/FAPS4_all_SCReport/00index.html"
+sce2URL <- "https://fgcz-gstore.uzh.ch/projects/p2529/SCReport_32850_2019-01-08--11-03-03/FAPS30_all_E1_SCReport/00index.html"
 
 sce1 <- readRDS(file.path("/srv/gstore",
                           sub("https://fgcz-gstore.uzh.ch/", "", dirname(sce1URL), 
@@ -34,12 +33,12 @@ sce1 <- readRDS(file.path("/srv/gstore",
 sce2 <- readRDS(file.path("/srv/gstore",
                           sub("https://fgcz-gstore.uzh.ch/", "", dirname(sce2URL), 
                               fixed=TRUE), "sce.rds"))
-# param <- metadata(sce1)$param
-# param$chosenClusters1 <- c()
-# param$chosenClusters2 <- as.character(c(0,1,2,3,4,5,6,8,9))
-# param$resolution <- 0.3
-# param$cc <- 20
-# param$batchCorrection <- "None"
+param <- metadata(sce1)$param
+param$chosenClusters1 <- ""
+param$chosenClusters2 <- as.character(c(0,1,2,3,4,5,6,8,9))
+param$resolution <- 0.3
+param$cc <- 20
+param$batchCorrection <- "CCA"
 
 if(ezIsSpecified(param$chosenClusters1)){
   chosenCells1 <- names(metadata(sce1)$scData@ident)[metadata(sce1)$scData@ident %in% 
@@ -74,18 +73,23 @@ sce_cbind <- seuratPreProcess(sce_cbind)
 scData.None <- metadata(sce_cbind)$scData
 ```
 
-```{tSNE no correction plot, echo=FALSE}
-p1 <- TSNEPlot(object=scData.None, group.by="Plate",
-               do.return = TRUE, do.label = TRUE)
-p1
-p2 <- TSNEPlot(object=scData.None,
-               do.return = TRUE, do.label = TRUE)
-p2
+```{r tSNE no correction plot, echo=FALSE}
+TSNEPlot(object=scData.None, group.by="Plate",
+         do.return = TRUE, do.label = TRUE)
+TSNEPlot(object=scData.None,
+         do.return = TRUE, do.label = TRUE)
+
+kable(tibble(Cluster=names(summary(scData.None@ident)),
+             "# of cells"=summary(scData.None@ident)),
+      row.names=FALSE, format="html",
+      caption="Number of cells in each cluster") %>%
+  kable_styling(bootstrap_options = "striped", full_width = F,
+                position = "float_right")
 ```
 
 ### Cell clustering with CCA correction
 
-```{r run CCA, echo=FALSE}
+```{r run CCA, echo=FALSE, message=FALSE}
   g.1 <- head(rownames(metadata(sce1)$scData@hvg.info), 1000)
   g.2 <- head(rownames(metadata(sce2)$scData@hvg.info), 1000)
   
@@ -97,6 +101,8 @@ p2
                        genes.use=genes.use, num.cc=30)
 ```
 
+Visualize results of CCA plot CC1 versus CC2 and look at a violin plot.
+
 ```{r CCA plot, echo=FALSE, message=FALSE}
 p1 <- DimPlot(object=scData.CCA, reduction.use="cca", group.by="Plate",
               pt.size=0.5, do.return=TRUE)
@@ -104,6 +110,12 @@ p1
 p2 <- VlnPlot(object=scData.CCA, features.plot="CC1", group.by="Plate",
               do.return=TRUE)
 p2
+```
+
+MetageneBicorPlot examines a measure of correlation strength for each CC and
+find that this statistic generally saturates after a reasonable number of CCs.
+
+```{r CCA MetageneBicorPlot, echo=FALSE, message=FALSE}
 p3 <- MetageneBicorPlot(scData.CCA, grouping.var="Plate", dims.eval=1:30, 
                         display.progress=FALSE)
 ```
@@ -112,6 +124,8 @@ p3 <- MetageneBicorPlot(scData.CCA, grouping.var="Plate", dims.eval=1:30,
 scData.CCA <- AlignSubspace(scData.CCA, reduction.type="cca",
                             grouping.var="Plate", dims.align=1:param$cc)
 ```
+
+We can visualize the aligned CCA and perform an integrated analysis.
 
 ```{r aligned CCA plot, echo=FALSE}
 p1 <- VlnPlot(object=scData.CCA, features.plot = "ACC1",
@@ -132,13 +146,20 @@ scData.CCA <- FindClusters(object=scData.CCA,
                            resolution=param$resolution)
 ```
 
-```{tSNE CCA correction plot, echo=FALSE}
-p1 <- TSNEPlot(object=scData.CCA, group.by="Plate",
-               do.return=TRUE, do.label=TRUE)
-p1
-p2 <- TSNEPlot(object=scData.CCA,
-               do.return=TRUE, do.label=TRUE)
-p2
+Visualization on t-SNE plot
+
+```{r tSNE CCA correction plot, echo=FALSE}
+TSNEPlot(object=scData.CCA, group.by="Plate",
+         do.return=TRUE, do.label=TRUE)
+TSNEPlot(object=scData.CCA,
+         do.return=TRUE, do.label=TRUE)
+
+kable(tibble(Cluster=names(summary(scData.CCA@ident)),
+             "# of cells"=summary(scData.CCA@ident)),
+      row.names=FALSE, format="html",
+      caption="Number of cells in each cluster") %>%
+  kable_styling(bootstrap_options = "striped", full_width = F,
+                position = "float_right")
 ```
 
 ```{r select correction, echo=FALSE}
@@ -150,6 +171,8 @@ if(param$batchCorrection == "None"){
 # This is to avoid error in SplitDotPlotGG
 # It uses _ to separate the ident
 scData@meta.data$Plate <- sub("_.*$", "", scData@meta.data$Plate)
+# scData@meta.data$Plate <- factor(scData@meta.data$Plate,
+#                                  levels=unique(scData@meta.data$Plate))
 ```
 
 ### Control of the cell clustering
@@ -223,6 +246,80 @@ sdp <- SplitDotPlotGG(scData, genes.plot = markers.to.plot,
 
 ### Differential expressed genes
 Identify differential expressed genes across conditions.
+
+```{r diff expressed genes, echo=FALSE, results='asis', warning=FALSE}
+scData@meta.data$cluster.plate <- paste0(scData@ident, "_",
+                                         scData@meta.data$Plate)
+scData <- StashIdent(scData, save.name = "cluster")
+scData <- SetAllIdent(scData, id = "cluster.plate")
+uniquePlates <- unique(scData@meta.data$Plate)
+
+diffGenes <- list()
+for(eachCluster in sort(unique(scData@meta.data$cluster))){
+  markersEach <- FindMarkers(scData, ident.1=paste0(eachCluster, "_", uniquePlates[1]),
+                             ident.2=paste0(eachCluster, "_", uniquePlates[2]),
+                             print.bar=FALSE)
+  diffGenes[[eachCluster]] <- as_tibble(markersEach, rownames="gene")
+  
+  cat("\n")
+  cat("#### Top 10 differential expressed genes from cluster ", eachCluster)
+  cat("\n")
+  
+  FeatureHeatmap(scData, features.plot=head(rownames(markersEach), 10), 
+                 group.by="Plate", pt.size=0.25, key.position="top",
+                 max.exp=3)
+  cat("\n")
+}
+diffGenes <- bind_rows(diffGenes, .id="cluster")
+diffGenesFn <- "diffExpGenesPerCluster.tsv"
+write_tsv(diffGenes, path=diffGenesFn)
+```
+
+```{r diff genes table, echo=FALSE}
+caption ="Differential expressed genes per cluster"
+ezInteractiveTableRmd(diffGenes, title=caption)
+```
+
+List of differential expressed genes per cluster can be accessed [here](`r diffGenesFn`).
+
+The comparison is `r paste(uniquePlates, collapse=" vs ")`.
+
+### Data availability
+```{r save, echo=FALSE}
+scDataFn <- "scData.rds"
+saveRDS(scData, file=scDataFn)
+```
+
+```{r gene mean per cluster, echo=FALSE}
+tr_cnts <- expm1(scData@data)
+geneMeans <- rowsum(t(as.matrix(tr_cnts)), group=scData@ident)
+geneMeans <- sweep(geneMeans, 1,
+                   STATS=table(scData@ident)[rownames(geneMeans)], FUN="/")
+geneMeans <- log1p(t(geneMeans))
+colnames(geneMeans) <- paste("cluster", colnames(geneMeans), sep="_")
+geneMeanPerClusterFn <- "gene_means_per_cluster.txt"
+ezWrite.table(geneMeans, geneMeanPerClusterFn)
+
+geneMeans <- Matrix::rowMeans(tr_cnts)
+geneMeans <- log1p(geneMeans)
+geneMeansFn <- "gene_means.txt"
+ezWrite.table(geneMeans, geneMeansFn)
+
+tSNE_data <- as_tibble(scData@dr$tsne@cell.embeddings,
+                       rownames="cells")
+tSNE_data <- dplyr::rename(tSNE_data, X=`tSNE_1`, Y=`tSNE_2`)
+tSNE_data$cluster <- scData@ident
+tSNEFn <- "tSNE_data.tsv"
+write_tsv(tSNE_data, path=tSNEFn)
+```
+
+[`r geneMeanPerClusterFn`](`r geneMeanPerClusterFn`)
+
+[`r geneMeansFn`](`r geneMeansFn`)
+
+[`r tSNEFn`](`r tSNEFn`)
+
+The final Seurat object after merging is [here](`r scDataFn`).
 
 ### Parameters
 ```{r report parameters, echo=FALSE}
