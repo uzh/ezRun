@@ -88,7 +88,7 @@ twoGroupCountComparison = function(rawData){
   ## compute which probes are present
   isPresent = ezPresentFlags(x, presentFlag=presentFlag, param=param,
                              isLog=FALSE)
-  useProbe = rep(FALSE, nrow(x))
+  useProbe = logical(nrow(x))
   useProbe[rowMeans(isPresent[, isRef, drop=FALSE]) >= 0.5] = TRUE
   useProbe[rowMeans(isPresent[, isSample, drop=FALSE]) >= 0.5] = TRUE
   rowData(rawData)$isPresentProbe <- useProbe
