@@ -15,7 +15,7 @@ EzAppSCReportMerging <-
                   runMethod <<- ezMethodSCReportMerging
                   name <<- "EzAppSCReportMerging"
                   appDefaults <<- rbind(resolution=ezFrame(Type="numeric", 
-                                                           DefaultValue="", 
+                                                           DefaultValue=0.6, 
                                                            Description="Value of the resolution parameter, use a value above (below) 1.0 if you want to obtain a larger (smaller) number of communities."),
                                         batchCorrection=ezFrame(Type="character", 
                                                                 DefaultValue="CCA",
