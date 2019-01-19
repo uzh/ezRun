@@ -38,5 +38,5 @@ input <- "/scratch/gtan/dev/SCReportMerging-p2529/SCReport_FAPS4_FAPS30.tsv"
 # input = EzDataset$new(file=input, dataRoot=param$dataRoot)
 # output <- EzDataset$new(meta=output, dataRoot=param$dataRoot)
 # param <- ezParam(param)
-debug(ezMethodSCReportMerging)
+#debug(ezMethodSCReportMerging)
 EzAppSCReportMerging$new()$run(input=input, output=output, param=param)
