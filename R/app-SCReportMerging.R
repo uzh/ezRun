@@ -48,8 +48,8 @@ ezMethodSCReportMerging = function(input=NA, output=NA, param=NA,
   samples <- param$samples
   input <- input$subset(samples)
   
-  sce1URL <- input$getColumn("Report")[1]
-  sce2URL <- input$getColumn("Report")[2]
+  sce1URL <- input$getColumn("Static Report")[1]
+  sce2URL <- input$getColumn("Static Report")[2]
   saveRDS(param, file = "param.rds")
   
   ## Copy the style files and templates
