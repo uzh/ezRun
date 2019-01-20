@@ -105,7 +105,7 @@ if(length(unique(scData@meta.data$Plate)) >= 2){
   TSNEPlot(object=scData, group.by="Plate")
 }
 # Coloured by cluster
-TSNEPlot(object=scData)
+TSNEPlot(object=scData, do.label=TRUE)
 
 kable(tibble(Cluster=names(summary(scData@ident)),
              "# of cells"=summary(scData@ident)),
