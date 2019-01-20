@@ -23,7 +23,6 @@ require(readr)
 require(Seurat)
 require(kableExtra)
 # input for this report: sce1URL, sce2URL, param
-# param <- readRDS("/export/local/scratch/gtan/dev/SCReportMerging-p2529/FAPS4_all_SCReportMerging/param.rds")
 # param <- list()
 # param$dataRoot <- "/srv/gstore/projects"
 # sce1URL <- "https://fgcz-sushi.uzh.ch/projects/p2529/SCReport_31782_schulthess_10_GM_2018-12-03--13-05-13/SCReport/00index.html"
@@ -41,7 +40,7 @@ sce2 <- readRDS(file.path(param$dataRoot,
 # param$chosenClusters2 <- ""
 # param$resolution <- 0.6
 # param$cc <- 20
-# param$batchCorrection <- "CCA"
+# param$batchCorrection <- "None"
 
 if(ezIsSpecified(param$chosenClusters1)){
   chosenCells1 <- names(metadata(sce1)$scData@ident)[metadata(sce1)$scData@ident %in% 
@@ -71,7 +70,7 @@ cat(paste0("<SCRIPT language=\"JavaScript\" SRC=\"", basename(jsFile), "\"></SCR
 ### Cell clustering without correction
 
 ```{r tSNE no correction, include=FALSE}
-sce_cbind <- S4Vectors::cbind(sce1, sce2)
+sce_cbind <- SingleCellExperiment::cbind(sce1, sce2)
 metadata(sce_cbind)$param$resolution <- param$resolution
 sce_cbind <- seuratPreProcess(sce_cbind)
 scData.None <- metadata(sce_cbind)$scData
