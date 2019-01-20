@@ -76,9 +76,9 @@ scData.None <- metadata(sce_cbind)$scData
 
 ```{r tSNE no correction plot, echo=FALSE}
 TSNEPlot(object=scData.None, group.by="Plate",
-         do.return = TRUE, do.label = TRUE)
+         do.return=TRUE)
 TSNEPlot(object=scData.None,
-         do.return = TRUE, do.label = TRUE)
+         do.return=TRUE, do.label=TRUE)
 
 kable(tibble(Cluster=names(summary(scData.None@ident)),
              "# of cells"=summary(scData.None@ident)),
