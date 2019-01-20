@@ -287,8 +287,10 @@ The comparison is `r paste(uniquePlates, collapse=" vs ")`.
 
 ### Data availability
 ```{r save, echo=FALSE}
-scDataFn <- "scData.rds"
-saveRDS(scData, file=scDataFn)
+metadata(sce_cbind)$scData <- scData
+
+sceFn <- "sce.rds"
+saveRDS(sce_cbind, file=sceFn)
 ```
 
 ```{r gene mean per cluster, echo=FALSE}
@@ -320,7 +322,7 @@ write_tsv(tSNE_data, path=tSNEFn)
 
 [`r tSNEFn`](`r tSNEFn`)
 
-The final Seurat object after merging is [here](`r scDataFn`).
+The SingleCellExperiment object with final Seurat object after merging is [here](`r sceFn`).
 
 ### Parameters
 ```{r report parameters, echo=FALSE}
