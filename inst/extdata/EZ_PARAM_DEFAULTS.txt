@@ -132,3 +132,5 @@ seqNames	charVector		should analyse be restricted to certain chromosomes/contigs
 #prinseqOpt # trinity
 #trinityOpt
 isParsed	logical	FALSE	the param has been parsed by EzParam() once already?
+#SingleCell mode
+scProtocol	character		scProtocol
