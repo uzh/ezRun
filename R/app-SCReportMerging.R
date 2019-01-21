@@ -41,6 +41,10 @@ EzAppSCReportMerging <-
 
 ezMethodSCReportMerging = function(input=NA, output=NA, param=NA, 
                             htmlFile="00index.html"){
+  ## subset the selected sample names
+  samples <- param$samples
+  input <- input$subset(samples)
+  
   if(input$getLength() != 2L){
     stop("It only works for merging two samples at once!")
   }
@@ -49,10 +53,6 @@ ezMethodSCReportMerging = function(input=NA, output=NA, param=NA,
   setwdNew(basename(output$getColumn("Report")))
   on.exit(setwd(cwd), add=TRUE)
   reportCwd <- getwd()
-  
-  ## subset the selected sample names
-  samples <- param$samples
-  input <- input$subset(samples)
   
   sce1URL <- input$getColumn("Static Report")[1]
   sce2URL <- input$getColumn("Static Report")[2]
