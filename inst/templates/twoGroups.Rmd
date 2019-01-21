@@ -15,17 +15,6 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ## debug
 #title: "`r paste('Two groups analysis:', param$comparison)`"
-# library(ezRun)
-# load("/srv/gstore/projects/p2578/EdgeR_22305_healthy_P--over--US_2017-11-10--21-50-06/P--over--US/result-P--over--US-mpjeuntzmnfa-EzResult.RData")
-# deResult = EzResult(se=se)
-# output = list()
-# output[['Name']] = 'orange--over--rest'
-# output[['Species']] = ''
-# output[['refBuild']] = 'Mus_musculus/Ensembl/GRCm38.PatchesSkipped/Annotation/Version-2015-06-25'
-# output[['Static Report [Link]']] = 'p2497/DESeq2_22056_orange--over--rest_2017-11-01--10-42-27/orange--over--rest/00index.html'
-# output[['Live Report [Link]']] = 'http://fgcz-shiny.uzh.ch/fgcz_exploreDEG_app/?data=p2497/DESeq2_22056_orange--over--rest_2017-11-01--10-42-27/orange--over--rest/result-orange--over--rest-gxzhakauugzk-EzResult.RData'
-# output[['Report [File]']] = 'p2497/DESeq2_22056_orange--over--rest_2017-11-01--10-42-27/orange--over--rest'
-# output = EzDataset$new(meta=output, dataRoot=param$dataRoot)
 ## end of debug
 debug <- FALSE
 
