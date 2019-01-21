@@ -23,15 +23,13 @@ require(readr)
 require(Seurat)
 require(kableExtra)
 # input for this report: sce1URL, sce2URL, param
-# param <- list()
-# param$dataRoot <- "/srv/gstore/projects"
 # sce1URL <- "https://fgcz-sushi.uzh.ch/projects/p2529/SCReport_31782_schulthess_10_GM_2018-12-03--13-05-13/SCReport/00index.html"
 # sce2URL <- "https://fgcz-sushi.uzh.ch/projects/p2529/SCReport_31782_2018-12-03--13-21-55/SCReport/00index.html"
 
-sce1 <- readRDS(file.path(param$dataRoot,
+sce1 <- readRDS(file.path("/srv/gstore/projects",
                           sub("https://fgcz-(gstore|sushi).uzh.ch/projects", "",
                               dirname(sce1URL)), "sce.rds"))
-sce2 <- readRDS(file.path(param$dataRoot,
+sce2 <- readRDS(file.path("/srv/gstore/projects",
                           sub("https://fgcz-(gstore|sushi).uzh.ch/projects", "",
                               dirname(sce2URL)), "sce.rds"))
 # to test
@@ -173,7 +171,7 @@ if(param$batchCorrection == "None"){
 }
 # This is to avoid error in SplitDotPlotGG
 # It uses _ to separate the ident
-scData@meta.data$Plate <- sub("_.*$", "", scData@meta.data$Plate)
+scData@meta.data$Plate <- gsub("_", ".", scData@meta.data$Plate)
 # scData@meta.data$Plate <- factor(scData@meta.data$Plate,
 #                                  levels=unique(scData@meta.data$Plate))
 ```
@@ -192,10 +190,14 @@ FeaturePlot(object = scData, features.plot = "nUMI",
 ```{r conserved markers, echo=FALSE, warning=FALSE}
 markers <- list()
 for(eachCluster in levels(scData@ident)){
-   markersEach <- FindConservedMarkers(scData, ident.1=eachCluster, 
+   markersEach <- try(FindConservedMarkers(scData, ident.1=eachCluster, 
                                        grouping.var="Plate",
-                                       print.bar=FALSE, only.pos=TRUE)
-  markers[[eachCluster]] <- as_tibble(markersEach, rownames="gene")
+                                       print.bar=FALSE, only.pos=TRUE),
+                      silent=TRUE)
+   ## to skip some groups with few cells
+   if(class(markersEach) != "try-error"){
+     markers[[eachCluster]] <- as_tibble(markersEach, rownames="gene")
+   }
 }
 markers <- bind_rows(markers, .id="cluster")
 
@@ -258,20 +260,23 @@ scData <- SetAllIdent(scData, id = "cluster.plate")
 uniquePlates <- unique(scData@meta.data$Plate)
 
 diffGenes <- list()
-for(eachCluster in sort(unique(scData@meta.data$cluster))){
-  markersEach <- FindMarkers(scData, ident.1=paste0(eachCluster, "_", uniquePlates[1]),
-                             ident.2=paste0(eachCluster, "_", uniquePlates[2]),
-                             print.bar=FALSE)
-  diffGenes[[eachCluster]] <- as_tibble(markersEach, rownames="gene")
+for(eachCluster in gtools::mixedsort(unique(scData@meta.data$cluster))){
+  markersEach <- try(FindMarkers(scData, ident.1=paste0(eachCluster, "_", uniquePlates[1]),
+                                 ident.2=paste0(eachCluster, "_", uniquePlates[2]),
+                                 print.bar=FALSE), silent=TRUE)
+  ## to skip some groups with few cells
+  if(class(markersEach) != "try-error"){
+    diffGenes[[eachCluster]] <- as_tibble(markersEach, rownames="gene")
+    
+    cat("\n")
+    cat("#### Top 10 differential expressed genes from cluster ", eachCluster)
+    cat("\n")
   
-  cat("\n")
-  cat("#### Top 10 differential expressed genes from cluster ", eachCluster)
-  cat("\n")
-  
-  FeatureHeatmap(scData, features.plot=head(rownames(markersEach), 10), 
-                 group.by="Plate", pt.size=0.25, key.position="top",
-                 max.exp=3)
-  cat("\n")
+    FeatureHeatmap(scData, features.plot=head(rownames(markersEach), 10),
+                   group.by="Plate", pt.size=0.25, key.position="top",
+                   max.exp=3)
+    cat("\n")
+  }
 }
 diffGenes <- bind_rows(diffGenes, .id="cluster")
 diffGenesFn <- "diffExpGenesPerCluster.tsv"
