@@ -204,7 +204,7 @@ rownames(cm) <- NULL
 
 List of all positive cluster markers can be accessed [here](`r posMarkersFn`).
 
-```{r enrichr markers, echo=FALSE, results='asis'}
+```{r enrichr markers all, echo=FALSE, results='asis'}
 if(doEnrichr(param)){
   genesPerCluster <- split(markers$gene, markers$cluster)
   jsCall = paste0('enrich({list: "', sapply(genesPerCluster, paste, collapse="\\n"), '", popup: true});')
@@ -324,7 +324,7 @@ write_tsv(markers, path=posConservedMarkersFn)
 
 List of all positive conserved cell type markers can be accessed [here](`r posConservedMarkersFn`).
 
-```{r enrichr markers, echo=FALSE, results='asis'}
+```{r enrichr markers conserved, echo=FALSE, results='asis'}
 if(doEnrichr(param)){
   genesPerCluster <- split(markers$gene, markers$cluster)
   jsCall = paste0('enrich({list: "', sapply(genesPerCluster, paste, collapse="\\n"), '", popup: true});')
