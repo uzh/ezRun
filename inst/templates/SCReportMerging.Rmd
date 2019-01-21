@@ -219,7 +219,7 @@ if(doEnrichr(param)){
 }
 ```
 
-```{r markers table, echo=FALSE}
+```{r markers table all, echo=FALSE}
 caption ="Expression differences of cluster marker genes"
 ezInteractiveTableRmd(cm, digits=4, title=caption)
 ```
@@ -340,7 +340,7 @@ if(doEnrichr(param)){
 ```
 
 
-```{r markers table, echo=FALSE}
+```{r markers table conserved, echo=FALSE}
 caption ="Conserved cell type markers"
 ezInteractiveTableRmd(markers, title=caption)
 ```
