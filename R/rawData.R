@@ -17,35 +17,37 @@ getRpkm <- function(rawData){
   require(Matrix)
   require(SummarizedExperiment)
   require(SingleCellExperiment)
-  if(is(rawData, "SingleCellExperiment")){
-    require(scater)
-    rpkm <- calculateFPKM(rawData, effective_length=rowData(rawData)$featWidth)
-  }else{
+  # if(is(rawData, "SingleCellExperiment")){
+  #   require(scater)
+  #   rpkm <- calculateFPKM(rawData, effective_length=rowData(rawData)$featWidth)
+  # }else{
     # for bulk, but also valid for single cell
+  # scater implementation fails when no counts from one cell
     libSize <- Matrix::colSums(assays(rawData)$counts)
     rpkm <- sweep(assays(rawData)$counts * 1e9, MARGIN=1,
                   STATS=rowData(rawData)$featWidth, FUN="/")
     rpkm <- sweep(rpkm, MARGIN=2, STATS=libSize, FUN="/")
-  }
+  # }
   return(rpkm)
 }
 
 getTpm <- function(rawData){
   require(SummarizedExperiment)
   require(SingleCellExperiment)
-  if(is(rawData, "SingleCellExperiment")){
-    # scater's implementation seems to be faster.
+  # if(is(rawData, "SingleCellExperiment")){
+  #   # scater's implementation seems to be faster.   
+  #   if(!ezIsSpecified(metadata(rawData)$param$scProtocol)){
+  #     stop("scProtocol must be specified in param.")
+  #   }
+  if(metadata(rawData)$param$scProtocol == "10x"){
     require(scater)
-    if(!ezIsSpecified(metadata(rawData)$param$scProtocol)){
-      stop("scProtocol must be specified in param.")
-    }
-    if(metadata(rawData)$param$scProtocol == "10x"){
-      tpm <- calculateTPM(rawData, effective_length=NULL)
-    }else if(metadata(rawData)$param$scProtocol == "smart-Seq2"){
-      tpm <- calculateTPM(rawData, effective_length=rowData(rawData)$featWidth)
-    }
+    tpm <- calculateTPM(rawData, effective_length=NULL)
+    # }else if(metadata(rawData)$param$scProtocol == "smart-Seq2"){
+    #   tpm <- calculateTPM(rawData, effective_length=rowData(rawData)$featWidth)
+    # }
   }else{
     # for bulk, but also valid for single cell
+    # scater implementation fails when no counts from one cell
     tpm <- sweep(assays(rawData)$counts * 1e3, MARGIN=1,
                  STATS=rowData(rawData)$featWidth, FUN="/")
     tpm <- sweep(tpm * 1e6, MARGIN=2, STATS=Matrix::colSums(tpm),
@@ -57,17 +59,17 @@ getTpm <- function(rawData){
 getCpm <- function(rawData){
   require(SummarizedExperiment)
   require(SingleCellExperiment)
-  if(is(rawData, "SingleCellExperiment")){
-    # scater's implementation seems to be faster.
-    require(scater)
-    ans <- calculateCPM(rawData, exprs_values = "counts",
-                        use_size_factors = TRUE)
-  }else{
+  # if(is(rawData, "SingleCellExperiment")){
+  #   # scater's implementation seems to be faster.
+  #   require(scater)
+  #   ans <- calculateCPM(rawData, exprs_values = "counts",
+  #                       use_size_factors = TRUE)
+  # }else{
     # for bulk, but also valid for single cell
     ans <- sweep(assays(rawData)$counts*1e6, MARGIN=2, 
                  STATS=Matrix::colSums(assays(rawData)$counts),
                  FUN="/")
-  }
+  # }
   return(ans)
 }
 
