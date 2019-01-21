@@ -28,7 +28,13 @@ EzAppSCReportMerging <-
                                                                 Description="Clusters to choose to merge in sample 1"),
                                         chosenClusters2=ezFrame(Type="charVector",
                                                                 DefaultValue="",
-                                                                Description="Clusters to choose to merge in sample 2"))
+                                                                Description="Clusters to choose to merge in sample 2"),
+                                        all2allMarkers=ezFrame(Type="logical",
+                                                               DefaultValue=FALSE, 
+                                                               Description="Run all against all cluster comparisons?"),
+                                        markersToShow=ezFrame(Type="numeric", 
+                                                              DefaultValue=10, 
+                                                              Description="The markers to show in the heatmap of cluster marker genes"))
                 }
               )
   )
