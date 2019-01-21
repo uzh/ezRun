@@ -23,7 +23,7 @@ require(readr)
 require(Seurat)
 require(kableExtra)
 # input for this report: sce1URL, sce2URL, param
-# sce1URL <- "https://fgcz-sushi.uzh.ch/projects/p2326/SCReport_31783_sample1_3days_v-run_2018-12-03--16-22-12/SCReport/00index.html"
+# sce1URL <- "https://fgcz-sushi.uzh.ch/projects/p2326/SCReport_31783_sample2_2wks_v_run_2018-12-03--15-14-48/SCReport/00index.html"
 # sce2URL <- "https://fgcz-sushi.uzh.ch/projects/p2326/SCReport_31783_2018-12-17--16-21-45/sample3_sedentary_SCReport/00index.html"
 
 sce1 <- readRDS(file.path("/srv/gstore/projects",
@@ -281,7 +281,7 @@ if(doEnrichr(param) && param$all2allMarkers){
 
 ### Visualizations of top cluster markers
 
-```{r top cluster markers, fig.width=4, fig.height=3, echo=FALSE, eval=!debug}
+```{r top cluster markers, fig.width=4, fig.height=3, echo=FALSE}
 some_markers <- head(dplyr::arrange(cm, p_val_adj) %>% select(gene) %>% pull(), 
                      100)
 for(i in 1:length(some_markers)){
@@ -295,7 +295,7 @@ for(i in 1:length(some_markers)){
 ### Heatmap of cluster marker genes
 Max `r param$markersToShow` marker genes are shown for each cluster. 
 
-```{r heatmap, fig.width=10, fig.height=param$markersToShow*1.5, echo=FALSE, eval=!debug}
+```{r heatmap, fig.width=10, fig.height=param$markersToShow*1.5, echo=FALSE}
 top10 <- markers %>% group_by(cluster) %>% top_n(param$markersToShow, avg_logFC)
 DoHeatmap(object = scData, genes.use = top10$gene, slim.col.label = TRUE,
           remove.key=TRUE)
