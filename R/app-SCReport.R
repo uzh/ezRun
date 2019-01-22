@@ -170,8 +170,10 @@ seuratPreProcess <- function(sce){
                          dims.use = 1:param$pcs,
                          resolution = param$resolution, print.output = 0, 
                          save.SNN=TRUE, force.recalc=TRUE)
-  scData <- RunTSNE(object=scData, dims.use=1:param$pcs, tsne.method="Rtsne",
-                    perplexity=perplexityTsne, num_threads=param$cores)
+  scData <- RunTSNE(object=scData, reduction.use = "pca",
+                    dims.use=1:param$pcs, tsne.method="Rtsne",
+                    perplexity=ifelse(length(scData@ident) > 384, 30, 10),
+                    num_threads=param$cores)
   metadata(sce)$scData <- scData
   
   return(sce)

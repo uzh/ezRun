@@ -23,8 +23,8 @@ require(readr)
 require(Seurat)
 require(kableExtra)
 # input for this report: sce1URL, sce2URL, param
-# sce1URL <- "https://fgcz-sushi.uzh.ch/projects/p2326/SCReport_31783_sample2_2wks_v_run_2018-12-03--15-14-48/SCReport/00index.html"
-# sce2URL <- "https://fgcz-sushi.uzh.ch/projects/p2326/SCReport_31783_2018-12-17--16-21-45/sample3_sedentary_SCReport/00index.html"
+# sce1URL <- "https://fgcz-sushi.uzh.ch/projects/p2979/SCReport_32596_2019-01-14--20-57-38/Epilepsy_13122018_SCReport/00index.html"
+# sce2URL <- "https://fgcz-sushi.uzh.ch/projects/p2979/SCReport_32645_2018-12-21--21-25-59/Epilepsy_26112018_SCReport/00index.html"
 
 sce1 <- readRDS(file.path("/srv/gstore/projects",
                           sub("https://fgcz-(gstore|sushi).uzh.ch/projects", "",
@@ -57,7 +57,6 @@ if(ezIsSpecified(param$chosenClusters2)){
   metadata(sce2)$scData <- SubsetData(metadata(sce2)$scData,
                                       ident.use=param$chosenClusters2)
 }
-
 ```
 
 ```{r javascript, echo=FALSE, results='asis'}
@@ -103,6 +102,8 @@ genes.use <- intersect(genes.use, rownames(metadata(sce2)$scData@scale.data))
 scData.CCA <- RunCCA(metadata(sce1)$scData, 
                      metadata(sce2)$scData,
                      genes.use=genes.use, num.cc=30)
+rm(sce1, sce2)
+gc()
 ```
 
 Visualize results of CCA plot CC1 versus CC2 and look at a violin plot.
@@ -142,10 +143,11 @@ p2
 
 ```{r integrated analysis on CCA, echo=FALSE}
 scData.CCA <- RunTSNE(object=scData.CCA, reduction.use="cca.aligned",
-                      dims.use=1:param$cc, do.fast=TRUE)
-scData.CCA <- FindClusters(object=scData.CCA,
-                           reduction.type="cca.aligned", dims.use=1:param$cc,
-                           save.SNN=TRUE,
+                      dims.use=1:param$cc, tsne.method="Rtsne",
+                      perplexity=ifelse(length(scData.CCA@ident) > 384, 30, 10),
+                      num_threads=param$cores)
+scData.CCA <- FindClusters(object=scData.CCA, reduction.type="cca.aligned",
+                           dims.use=1:param$cc, save.SNN=TRUE,
                            force.recalc=TRUE, print.output=FALSE,
                            resolution=param$resolution)
 ```
@@ -172,6 +174,9 @@ if(param$batchCorrection == "None"){
 }else if(param$batchCorrection == "CCA"){
   scData <- scData.CCA
 }
+rm(scData.CCA, scData.None)
+gc()
+
 # This is to avoid error in SplitDotPlotGG
 # It uses _ to separate the ident
 scData@meta.data$Plate <- gsub("_", ".", scData@meta.data$Plate)
