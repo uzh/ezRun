@@ -131,7 +131,10 @@ seuratPreProcess <- function(sce){
                                 "smart-Seq2"=1e5,
                                 "10x"=1e4,
                                 stop("Unknown single cell protocol."))
-  
+  perplexityTsne <- switch(param$scProtocol,
+                           "smart-Seq2"=10,
+                           "10x"=30,
+                           stop("Unknown single cell protocol."))
   scData <- FilterCells(object = scData,
                         subset.names = c("nGene", "perc_mito"),
                         low.thresholds = c(param$minGenesPerCell, -Inf), 
@@ -156,9 +159,9 @@ seuratPreProcess <- function(sce){
   }else{
     pc.genes <- scData@var.genes
   }
-  scData <- RunPCA(object = scData, pc.genes = pc.genes,
-                   do.print = FALSE, pcs.print = 1:5,
-                   genes.print = 5)
+  scData <- RunPCA(object=scData, pc.genes=pc.genes, pcs.compute=20,
+                   do.print=FALSE, pcs.print=1:5,
+                   genes.print=5)
   scData <- ProjectPCA(object = scData, do.print = FALSE)
   scData <- JackStraw(object=scData, num.replicate=100, display.progress=FALSE,
                       do.par=TRUE, num.cores=param$cores)
@@ -167,9 +170,8 @@ seuratPreProcess <- function(sce){
                          dims.use = 1:param$pcs,
                          resolution = param$resolution, print.output = 0, 
                          save.SNN=TRUE, force.recalc=TRUE)
-  set.seed(10)
-  scData <- RunTSNE(object = scData, dims.use = 1:param$pcs, do.fast = TRUE, 
-                    perplexity = 30)
+  scData <- RunTSNE(object=scData, dims.use=1:param$pcs, tsne.method="Rtsne",
+                    perplexity=perplexityTsne, num_threads=param$cores)
   metadata(sce)$scData <- scData
   
   return(sce)
