@@ -369,7 +369,7 @@ sdp <- SplitDotPlotGG(scData, genes.plot = markers.to.plot,
 ### Differential expressed genes
 Identify differential expressed genes across conditions.
 
-```{r diff expressed genes, echo=FALSE, results='asis', warning=FALSE}
+```{r diff expressed genes, echo=FALSE, results='asis', warning=FALSE, fig.width=7, fig.height=10}
 scData@meta.data$cluster.plate <- paste0(scData@ident, "_",
                                          scData@meta.data$Plate)
 scData <- StashIdent(scData, save.name = "cluster")
