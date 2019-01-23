@@ -101,7 +101,11 @@ genes.use <- intersect(genes.use, rownames(metadata(sce1)$scData@scale.data))
 genes.use <- intersect(genes.use, rownames(metadata(sce2)$scData@scale.data))
 scData.CCA <- RunCCA(metadata(sce1)$scData, 
                      metadata(sce2)$scData,
-                     genes.use=genes.use, num.cc=30)
+                     genes.use=genes.use, num.cc=30,
+                     scale.factor=getSeuratScalingFactor(param$scProtocol))
+```
+
+```{r, echo=FALSE}
 rm(sce1, sce2)
 gc()
 ```
@@ -174,9 +178,6 @@ if(param$batchCorrection == "None"){
 }else if(param$batchCorrection == "CCA"){
   scData <- scData.CCA
 }
-rm(scData.CCA, scData.None)
-gc()
-
 # This is to avoid error in SplitDotPlotGG
 # It uses _ to separate the ident
 scData@meta.data$Plate <- gsub("_", ".", scData@meta.data$Plate)
@@ -184,6 +185,10 @@ scData@meta.data$Plate <- gsub("_", ".", scData@meta.data$Plate)
 #                                  levels=unique(scData@meta.data$Plate))
 ```
 
+```{r, echo=FALSE}
+rm(scData.CCA, scData.None)
+gc()
+```
 ### Control of the cell clustering
 
 ```{r control cell clustering, echo=FALSE}

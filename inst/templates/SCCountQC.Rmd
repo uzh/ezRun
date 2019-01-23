@@ -89,11 +89,6 @@ cell_info_seurat <- cell_info
 cell_info_seurat$perc_mito <- cell_info_seurat$perc_mito/100
 scData <- CreateSeuratObject(raw.data = ctsFilt, min.cells = 5,
                              project = param$name, meta.data=cell_info_seurat)
-if(param$scProtocol == "smart-Seq2"){
-  scalingFactorSeurat <- 1e5
-}else if(param$scProtocol == "10x"){
-  scalingFactorSeurat <- 1e4
-}
 ```
 
 ## CountQC_Result {.tabset}
@@ -410,8 +405,8 @@ scData <- FilterCells(object = scData,
                       subset.names = c("nGene", "perc_mito"),
                       low.thresholds = c(param$minGenesPerCell, -Inf), 
                       high.thresholds = c(Inf, 0.25))
-scData <- NormalizeData(object = scData, normalization.method = "LogNormalize",
-                        scale.factor = scalingFactorSeurat)
+scData <- NormalizeData(object=scData, normalization.method="LogNormalize",
+                        scale.factor=getSeuratScalingFactor(param$scProtocol))
 
 if(ncol(scData@data) <= 10){
   ## if there is less than 10 cells left, don't do following seurat because of error

@@ -14,7 +14,8 @@ EzAppSCReportMerging <-
                   "Initializes the application using its specific defaults."
                   runMethod <<- ezMethodSCReportMerging
                   name <<- "EzAppSCReportMerging"
-                  appDefaults <<- rbind(resolution=ezFrame(Type="numeric", 
+                  appDefaults <<- rbind(scProtocol=ezFrame(Type="character", DefaultValue="", Description="Which single cell protocol?"),
+                                        resolution=ezFrame(Type="numeric", 
                                                            DefaultValue=0.6, 
                                                            Description="Value of the resolution parameter, use a value above (below) 1.0 if you want to obtain a larger (smaller) number of communities."),
                                         batchCorrection=ezFrame(Type="character", 
