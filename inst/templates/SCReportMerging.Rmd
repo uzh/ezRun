@@ -36,7 +36,7 @@ sce2 <- readRDS(file.path("/srv/gstore/projects",
 # param <- metadata(sce1)$param
 # param$chosenClusters1 <- ""
 # param$chosenClusters2 <- ""
-# param$resolution <- 0.6
+# param$resolution <- 0.5
 # param$cc <- 20
 # param$batchCorrection <- "None"
 
@@ -81,9 +81,19 @@ TSNEPlot(object=scData.None, group.by="Plate",
          do.return=TRUE)
 TSNEPlot(object=scData.None,
          do.return=TRUE, do.label=TRUE)
+toTable <- tibble(Cluster=names(summary(scData.None@ident)),
+                  "# of cells"=summary(scData.None@ident))
+cellCountsByPlate <- t(sapply(split(scData.None@meta.data$Plate, 
+                                    scData.None@ident), table))
+cellPercByPlate <- sweep(cellCountsByPlate, 2, colSums(cellCountsByPlate), "/")
+colnames(cellPercByPlate) <- paste0(colnames(cellPercByPlate), "_fraction")
+toTable <- left_join(toTable, 
+                     as_tibble(cellCountsByPlate, rownames="Cluster"),
+                     by="Cluster") %>%
+  left_join(as_tibble(cellPercByPlate, rownames="Cluster"), by="Cluster")
+## TODO: add fisher test?
 
-kable(tibble(Cluster=names(summary(scData.None@ident)),
-             "# of cells"=summary(scData.None@ident)),
+kable(toTable,
       row.names=FALSE, format="html",
       caption="Number of cells in each cluster") %>%
   kable_styling(bootstrap_options = "striped", full_width = F,
@@ -164,8 +174,19 @@ TSNEPlot(object=scData.CCA, group.by="Plate",
 TSNEPlot(object=scData.CCA,
          do.return=TRUE, do.label=TRUE)
 
-kable(tibble(Cluster=names(summary(scData.CCA@ident)),
-             "# of cells"=summary(scData.CCA@ident)),
+toTable <- tibble(Cluster=names(summary(scData.CCA@ident)),
+                  "# of cells"=summary(scData.CCA@ident))
+cellCountsByPlate <- t(sapply(split(scData.CCA@meta.data$Plate, 
+                                    scData.CCA@ident), table))
+cellPercByPlate <- sweep(cellCountsByPlate, 2, colSums(cellCountsByPlate), "/")
+colnames(cellPercByPlate) <- paste0(colnames(cellPercByPlate), "_fraction")
+toTable <- left_join(toTable, 
+                     as_tibble(cellCountsByPlate, rownames="Cluster"),
+                     by="Cluster") %>%
+  left_join(as_tibble(cellPercByPlate, rownames="Cluster"), by="Cluster")
+## TODO: add fisher test?
+
+kable(toTable,
       row.names=FALSE, format="html",
       caption="Number of cells in each cluster") %>%
   kable_styling(bootstrap_options = "striped", full_width = F,
