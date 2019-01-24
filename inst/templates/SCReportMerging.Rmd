@@ -162,8 +162,8 @@ scData.CCA <- RunTSNE(object=scData.CCA, reduction.use="cca.aligned",
                       perplexity=ifelse(length(scData.CCA@ident) > 384, 30, 10),
                       num_threads=param$cores)
 scData.CCA <- FindClusters(object=scData.CCA, reduction.type="cca.aligned",
-                           dims.use=1:param$cc, save.SNN=FALSE,
-                           force.recalc=TRUE, print.output=FALSE,
+                           dims.use=1:param$cc, save.SNN=TRUE,
+                           force.recalc=FALSE, print.output=FALSE,
                            resolution=param$resolution)
 ```
 

@@ -71,7 +71,7 @@ seuratPreProcess <- function(sce){
   scData <- FindClusters(object=scData, reduction.type="pca",
                          dims.use = 1:param$pcs,
                          resolution = param$resolution, print.output = 0, 
-                         save.SNN=FALSE, force.recalc=TRUE)
+                         save.SNN=TRUE, force.recalc=FALSE)
   scData <- RunTSNE(object=scData, reduction.use = "pca",
                     dims.use=1:param$pcs, tsne.method="Rtsne",
                     perplexity=ifelse(length(scData@ident) > 384, 30, 10),
