@@ -130,6 +130,19 @@ runTEQC = function(file, allExons, param){
   targetsfile = param$designFile
   genomeSize = sum(as.numeric(system(paste("samtools","view -H",file,"|grep @SQ|cut -f 3|sed 's/LN://'"),intern = T)))
   reads=TEQC::get.reads(file, filetype="bam")
+  if(param$paired){
+    reads <- reads2pairs(reads)
+    if(param$removeDuplicates){
+        ID.nondups <- names(unique(reads))
+        reads <- reads[names(reads) %in% ID.nondups,,drop=T]
+    }
+  } else {
+      if(param$removeDuplicates){
+          reads <- unique(reads)  
+      } 
+  }
+  
+  
   skip = grep("^track", readLines(targetsfile, n=200))
   if (length(skip) == 0) skip = 0
   targets=TEQC::get.targets(targetsfile, skip=skip)
