@@ -348,6 +348,8 @@ for(eachCluster in levels(scData@ident)){
      markers[[eachCluster]] <- as_tibble(markersEach, rownames="gene")
    }
 }
+## some of the cluster have no significant conserved markers
+markers <- markers[sapply(markers, nrow) != 0L] 
 markers <- bind_rows(markers, .id="cluster")
 
 posConservedMarkersFn <- "pos_conserved_markers.tsv"
