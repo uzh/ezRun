@@ -271,7 +271,7 @@ if(param$all2allMarkers){
                              MoreArgs = list(object=scData,
                                              only.pos=FALSE),
                              mc.preschedule=FALSE,
-                             mc.cores=param$cores,
+                             mc.cores=min(4L, param$cores),
                              SIMPLIFY=FALSE)
   all2allMarkers <- lapply(all2allMarkers, function(x){
     x[x$p_val <= pvalue_all2allMarkers, ]
