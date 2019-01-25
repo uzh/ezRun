@@ -66,7 +66,7 @@ seuratPreProcess <- function(sce){
                    genes.print=5)
   scData <- ProjectPCA(object = scData, do.print = FALSE)
   scData <- JackStraw(object=scData, num.replicate=100, display.progress=FALSE,
-                      do.par=TRUE, num.cores=param$cores)
+                      do.par=TRUE, num.cores=min(4L, param$cores))
   
   scData <- FindClusters(object=scData, reduction.type="pca",
                          dims.use = 1:param$pcs,
