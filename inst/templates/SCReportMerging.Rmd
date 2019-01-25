@@ -115,7 +115,7 @@ scData.CCA <- RunCCA(metadata(sce1)$scData,
                      scale.factor=getSeuratScalingFactor(param$scProtocol))
 ```
 
-```{r, echo=FALSE}
+```{r, include=FALSE}
 rm(sce1, sce2)
 gc()
 ```
@@ -172,9 +172,10 @@ Visualization on t-SNE plot
 ```{r tSNE CCA correction plot, echo=FALSE}
 p1 <- TSNEPlot(object=scData.CCA, group.by="Plate",
                do.return=TRUE)
+p1
 p2 <- TSNEPlot(object=scData.CCA,
                do.return=TRUE, do.label=TRUE)
-
+p2
 toTable <- tibble(Cluster=names(summary(scData.CCA@ident)),
                   "# of cells"=summary(scData.CCA@ident))
 cellCountsByPlate <- t(sapply(split(scData.CCA@meta.data$Plate, 
@@ -207,7 +208,7 @@ scData@meta.data$Plate <- gsub("_", ".", scData@meta.data$Plate)
 #                                  levels=unique(scData@meta.data$Plate))
 ```
 
-```{r, echo=FALSE}
+```{r, include=FALSE}
 rm(scData.CCA, scData.None)
 gc()
 ```
