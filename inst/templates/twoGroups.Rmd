@@ -849,9 +849,10 @@ if(all(c("gc", "featWidth") %in% colnames(x))) {
             kable_styling(bootstrap_options = "striped", full_width = F, 
                           position = "left")
         isSig <- testTable$`p-value` < 1e-3
-        if(any(isSig)){
+        if(any(isSig, na.rm = TRUE)){
             t <- t %>% 
-                row_spec(which(isSig), bold = T, color = "white", background = "#D7261E")
+                row_spec(which(isSig), bold = T, color = "white",
+                         background = "#D7261E")
         }
         t
     }
