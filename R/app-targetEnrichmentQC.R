@@ -52,7 +52,7 @@ ezMethodTeqc = function(input=NA, output=NA, param=NA){
   allExons <- as(allExons, "GRanges")
   
   #Create one Report per Sample:
-  destDirs = ezMclapply(jobList, runTEQC, allExons, param, mc.cores=ezThreads())
+  destDirs = ezMclapply(jobList, runTEQC, allExons, param, mc.cores = param$cores)
   
   #Create MultiSampleReport:
   destDirs = unlist(destDirs)
@@ -151,6 +151,8 @@ runTEQC = function(file, allExons, param){
   skip = grep("^track", readLines(targetsfile, n=200))
   if (length(skip) == 0) skip = 0
   targets=TEQC::get.targets(targetsfile, skip=skip)
+  #clean reads from mappings to unsupported chromosomes
+  reads <- keepSeqlevels(reads, levels(seqnames(targets)), pruning.mode="coarse")
   
   TEQC::TEQCreport(sampleName=sampleName,
                    CovUniformityPlot = param$covUniformityPlot, CovTargetLengthPlot = param$covTargetLengthPlot, duplicatesPlot=param$duplicatesPlot,#CovGCPlot = T,
