@@ -292,7 +292,7 @@ for(i in nrPseudoT){
        pch=16, asp = 1, main=i)
   lines(SlingshotDataSet(sceSlingshot), lwd=2)
 }
-
+## Trajectory
 if(length(levels(sceSlingshot$ident)) >= 10){
   colors <- colorRampPalette(brewer.pal(9,'Set1'))(length(levels(sceSlingshot$ident)))
 }else{
@@ -302,6 +302,13 @@ plot(reducedDim(sceSlingshot, type="TSNE"),
      col = colors[sceSlingshot$ident], 
      pch=16, asp = 1, main="Trajectory reconstruction")
 lines(SlingshotDataSet(sceSlingshot), lwd=2, type = 'lineages')
+
+##  smooth curves
+crv1 <- getCurves(SlingshotDataSet(sceSlingshot))
+plot(reducedDim(sceSlingshot, type="TSNE"),
+     col = colors[sceSlingshot$ident], asp = 1, pch = 16,
+     main="Smooth curve")
+lines(crv1, lwd = 3)
 ```
 
 #### fastICA
