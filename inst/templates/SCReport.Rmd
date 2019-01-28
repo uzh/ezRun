@@ -23,11 +23,14 @@ require(kableExtra)
 require(fastICA)
 require(Matrix)
 require(readr)
+require(slingshot)
+require(RColorBrewer)
+require(SummarizedExperiment)
 ## ----------------------------------------------
 ## debug
 # title:  "`r metadata(sce)$param$name`"
 # sce <- readRDS("/scratch/gtan/dev/SCReports-p2284/AVM_17_08_2018_SCReport/sce.rds")
-# sce <- readRDS("/srv/gstore/projects/p2838/SCReport_32064_2018-12-06--10-28-48/SCReport/sce.rds")
+# sce <- readRDS("/srv/gstore/projects/p2838/SCReport_32064_2019-01-28--16-12-45/NCC_Trpv5_Tomato_sc_A01_SCReport/sce.rds")
 # sce <- readRDS("/scratch/gtan/debug/quickDebug/sce.rds")
 ## end of debug
 debug <- FALSE
@@ -268,8 +271,41 @@ if(length(param$markersToCheck) >0){
 
 ```
 
-### Pseudotime
-```{r pseudo time plot, echo=FALSE, fig.width=8, fig.height=5, eval=param$runPseudoTime && !debug}
+### Trajectory reconstruction and pseudotime inference
+
+#### Slingshot
+Slingshot is a cluster based ineage reconstruction and pseudotime inference approach.
+Here, we use reduced-dimensional space of tSNE derived above and cell clustering produced by gaussian mixture modeling, instead of cell clustering done by Seurat.
+More details is available at [here](https://www.bioconductor.org/packages/devel/bioc/vignettes/slingshot/inst/doc/slingshot.html).
+
+```{r slingshot compute, echo=FALSE, message=FALSE, eval=param$runPseudoTime & !debug}
+sceSlingshot <- Convert(from = scData, to = "sce")
+
+sceSlingshot <- slingshot(sceSlingshot, clusterLabels = 'ident',
+                          reducedDim = 'TSNE')
+colors <- colorRampPalette(brewer.pal(11,'Spectral')[-6])(100)
+nrPseudoT <- grep("slingPseudotime_\\d+", colnames(colData(sceSlingshot)),
+                  value=TRUE)
+for(i in nrPseudoT){
+  plot(reducedDim(sceSlingshot, type="TSNE"),
+       col=colors[cut(sceSlingshot[[i]], breaks=100)],
+       pch=16, asp = 1, main=i)
+  lines(SlingshotDataSet(sceSlingshot), lwd=2)
+}
+
+if(length(levels(sceSlingshot$ident)) >= 10){
+  colors <- colorRampPalette(brewer.pal(9,'Set1'))(length(levels(sceSlingshot$ident)))
+}else{
+  colors <- brewer.pal(9,'Set1')
+}
+plot(reducedDim(sceSlingshot, type="TSNE"), 
+     col = colors[sceSlingshot$ident], 
+     pch=16, asp = 1, main="Trajectory reconstruction")
+lines(SlingshotDataSet(sceSlingshot), lwd=2, type = 'lineages')
+```
+
+#### fastICA
+```{r fastICA plot, echo=FALSE, fig.width=8, fig.height=5, eval=param$runPseudoTime && !debug}
 p <- ggplot(tSNE_data, aes(X, Y)) + 
   geom_point(shape=21, size=5, colour = "black",
              aes(fill=pseudotime), alpha=0.7) +
