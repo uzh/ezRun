@@ -27,7 +27,7 @@ require(readr)
 ## debug
 # title:  "`r metadata(sce)$param$name`"
 # sce <- readRDS("/scratch/gtan/dev/SCReports-p2284/AVM_17_08_2018_SCReport/sce.rds")
-# sce <- readRDS("/srv/gstore/projects/p2326/SCReport_26601_2018-11-23--11-47-41/SCReport/sce.rds")
+# sce <- readRDS("/srv/gstore/projects/p2838/SCReport_32064_2018-12-06--10-28-48/SCReport/sce.rds")
 # sce <- readRDS("/scratch/gtan/debug/quickDebug/sce.rds")
 ## end of debug
 debug <- FALSE
@@ -65,7 +65,7 @@ if(param$all2allMarkers){
                              MoreArgs = list(object=scData,
                                              only.pos=FALSE),
                              mc.preschedule=FALSE,
-                             mc.cores=param$cores,
+                             mc.cores=min(4L, param$cores),
                              SIMPLIFY=FALSE)
   all2allMarkers <- lapply(all2allMarkers, function(x){
     x[x$p_val <= pvalue_all2allMarkers, ]
@@ -150,7 +150,9 @@ ezWrite.table(geneMeans, geneMeansFn)
 ```{r FeaturePlot, echo=FALSE, eval=!debug}
 FeaturePlot(object = scData, features.plot = "nGene", 
             reduction.use = "tsne", no.legend = FALSE)
-FeaturePlot(object = scData, features.plot = "nUMI", 
+FeaturePlot(object = scData, features.plot = "nUMI",
+            reduction.use = "tsne", no.legend = FALSE)
+FeaturePlot(object = scData, features.plot = "perc_mito",
             reduction.use = "tsne", no.legend = FALSE)
 ```
 
@@ -278,6 +280,7 @@ print(p)
 
 ### Interactive explorer
 ```{r make shiny data, echo=FALSE}
+scData@scale.data <- NULL
 saveRDS(list(scData=scData, tSNE_data=tSNE_data),
         file=basename(output$getColumn("Live Report")))
 ```
