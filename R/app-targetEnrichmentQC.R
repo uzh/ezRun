@@ -49,6 +49,7 @@ ezMethodTeqc = function(input=NA, output=NA, param=NA){
   ir <- IRanges(start = gtf_df$start, end = gtf_df$end)
   allExons <- RangedData(ranges = ir, space = gtf_df$seqnames, gene_id = gtf_df$gene_id, gene_name = gtf_df$gene_name, 
                          orientation = as.character(gtf_df$strand),typ = gtf_df$type)
+  allExons <- as(allExons, "GRanges")
   
   #Create one Report per Sample:
   destDirs = ezMclapply(jobList, runTEQC, allExons, param, mc.cores=ezThreads())
