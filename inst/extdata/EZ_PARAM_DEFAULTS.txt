@@ -92,7 +92,7 @@ useFactorsAsSampleName	logical	FALSE	should sample names be replaced with the ca
 refGroup	character		the reference group in a comparison
 sampleGroup	character		the sample group in a comparison
 removeOtherGroups	logical	FALSE	should only the samples that are in the groups to be compared be kept and other samples should be removed
-removeDuplicates	logical	FALSE	should duplicates be removed in TeqcApp
+removeDuplicates	logical	TRUE	should duplicates be removed in TeqcApp
 ## functional analysis
 goseqMethod	character	Wallenius	method for the goseq analysis
 includeGoParentAnnotation	logical	FALSE	if the genes annotated to the parent should be also counted to the current GO category
