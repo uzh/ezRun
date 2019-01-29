@@ -29,6 +29,7 @@ EzAppTeqc <-
 
 ezMethodTeqc = function(input=NA, output=NA, param=NA){
   require(TEQC)
+  library(chromstaR)
   require(GenomicAlignments)
   param[['build']] = unique(input$meta[['build']])
   setwdNew(basename(output$getColumn("Report")))
@@ -134,25 +135,30 @@ runTEQC = function(file, allExons, param){
   destDir = paste0("report_", sampleName)
   targetsfile = param$designFile
   genomeSize = sum(as.numeric(system(paste("samtools","view -H",file,"|grep @SQ|cut -f 3|sed 's/LN://'"),intern = T)))
-  reads=TEQC::get.reads(file, filetype = "bam")
-  if(param$paired){
-    reads <- reads2pairs(reads)$readpairs
-    if(param$removeDuplicates){
-        ID.nondups <- names(unique(reads))
-        reads <- reads[names(reads) %in% ID.nondups,,drop = TRUE]
-    }
-  } else {
-      if(param$removeDuplicates){
-          reads <- unique(reads)  
-      } 
-  }
   
   
+  reads <- readBamFileAsGRanges(file, chromosomes=NULL, pairedEndReads = param$paired, 
+                                   max.fragment.width = 1000, min.mapq = 10, remove.duplicate.reads = param$removeDuplicates)
+  
+#  reads=TEQC::get.reads(file, filetype = "bam")
+#  if(param$paired){
+#    reads <- reads2pairs(reads)$readpairs
+#    if(param$removeDuplicates){
+#        ID.nondups <- names(unique(reads))
+#        reads <- reads[names(reads) %in% ID.nondups,,drop = TRUE]
+#    }
+#  } else {
+#      if(param$removeDuplicates){
+#          reads <- unique(reads)  
+#      } 
+#  }
   skip = grep("^track", readLines(targetsfile, n=200))
   if (length(skip) == 0) skip = 0
   targets=TEQC::get.targets(targetsfile, skip=skip)
   #clean reads from mappings to unsupported chromosomes
   reads <- keepSeqlevels(reads, levels(seqnames(targets)), pruning.mode="coarse")
+  seqlevels(reads) = as.character(unique(seqnames(reads)))
+  strand(reads) = '*'
   
   TEQC::TEQCreport(sampleName=sampleName,
                    CovUniformityPlot = param$covUniformityPlot, CovTargetLengthPlot = param$covTargetLengthPlot, duplicatesPlot=param$duplicatesPlot,#CovGCPlot = T,
