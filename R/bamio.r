@@ -199,7 +199,9 @@ ezReadGappedAlignments = function(bamFile, seqname=NULL, start=NULL, end=NULL, s
                                   isFirstMateRead=NA, isSecondMateRead=NA, 
                                   isUnmappedQuery=FALSE, isProperPair=NA,
                                   isSecondaryAlignment = NA,
-                                  minMapQuality=0, keepMultiHits=TRUE){
+                                  minMapQuality=0, 
+                                  tagFilter=list(),
+                                  keepMultiHits=TRUE){
   ## initialize the parameters for scanBam
   require(Rsamtools)
   require(GenomicAlignments)
@@ -209,7 +211,7 @@ ezReadGappedAlignments = function(bamFile, seqname=NULL, start=NULL, end=NULL, s
   if (!keepMultiHits){
     tag = union(tag, c("NH", "IH"))
   }
-  param = ScanBamParam(what=what, tag=tag)
+  param = ScanBamParam(what=what, tag=tag, tagFilter = tagFilter)
   
   ### build and set the flag filter
   isMinusStrand = switch(strand, "-"=TRUE, "+"=FALSE, NA)
