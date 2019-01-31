@@ -108,7 +108,9 @@ twoGroupCountComparison = function(rawData){
                             priorCount=param$backgroundExpression,
                             deTest=param$deTest),
                limma = runLimma(x, param$sampleGroup, param$refGroup, 
-                                param$grouping, grouping2=param$grouping2),
+                                param$grouping, grouping2=param$grouping2,
+                                priorCount=param$priorCount,
+                                modelMethod=param$modelMethod),
                stop("unsupported testMethod: ", param$testMethod)
   )
   rowData(rawData)$log2Ratio <- res$log2FoldChange
@@ -325,5 +327,62 @@ runGlm = function(x, sampleGroup, refGroup, grouping, normMethod, grouping2=NULL
   #res$groupMeans = cbind(apply(cds$count[ , grouping == sampleGroup, drop=FALSE], 1, mean), apply(cds$count[ , grouping == refGroup, drop=FALSE], 1, mean))
   #colnames(res$groupMeans) = c(sampleGroup, refGroup)
   #rownames(res$groupMeans) = rownames(cds$count)
+  return(res)
+}
+
+runLimma = function(x, sampleGroup, refGroup, grouping, grouping2=NULL,
+                    priorCount=3, modelMethod=c("limma-trend", "voom")){
+  require(limma)
+  require(edgeR)
+  
+  modelMethod <- match.arg(modelMethod)
+
+  cds <- DGEList(counts=x)
+  cds <- calcNormFactors(cds)
+  
+  sf = 1/(cds$samples$norm.factors * cds$samples$lib.size)
+  sf = sf / ezGeomean(sf)
+  
+  ## run analysis and especially dispersion estimates only on subset of the data
+  isSample = grouping == sampleGroup
+  isRef = grouping == refGroup
+  grouping = grouping[isSample|isRef]
+  if(ezIsSpecified(grouping2)){
+    grouping2 <- grouping2[isSample|isRef]
+  }
+  
+  x2 = x[ ,isSample|isRef]
+  cds = DGEList(counts=x2, group=grouping)
+  cds = calcNormFactors(cds)
+  
+  groupFactor = factor(grouping, levels = c(refGroup, sampleGroup))
+  design = model.matrix( ~ groupFactor)
+  
+  if(modelMethod == "limma-trend"){
+    logCPM <- cpm(cds, log=TRUE, prior.count=prior.count)
+    if(ezIsSpecified(grouping2)){
+      corfit <- duplicateCorrelation(logCPM, design, block=grouping2)
+      fit <- lmFit(logCPM, design, block=grouping2, correlation=corfit$consensus)
+    }else{
+      fit <- lmFit(logCPM, design)
+    }
+    fit <- eBayes(fit, trend=TRUE)
+    topDT <- topTable(fit, num=Inf, coef=ncol(design))
+  }else if(modelMethod == "voom"){
+    v <- voom(cds, design, plot=FALSE)
+    if(ezIsSpecified(grouping2)){
+      corfit <- duplicateCorrelation(v, design, block=grouping2)
+      fit <- lmFit(v, design, block=grouping2, correlation=corfit$consensus)
+    }else{
+      fit <- lmFit(v, design)
+    }
+    fit <- eBayes(fit)
+    topDT <- topTable(fit, num=Inf, coef=ncol(design))
+  }
+  res = list()
+  res$id = rownames(res)
+  res$log2FoldChange = res$logFC
+  res$pval = res$P.Value
+  res$sf = sf
   return(res)
 }
