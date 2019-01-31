@@ -359,7 +359,7 @@ runLimma = function(x, sampleGroup, refGroup, grouping, grouping2=NULL,
   design = model.matrix( ~ groupFactor)
   
   if(modelMethod == "limma-trend"){
-    logCPM <- cpm(cds, log=TRUE, prior.count=prior.count)
+    logCPM <- cpm(cds, log=TRUE, prior.count=priorCount)
     if(ezIsSpecified(grouping2)){
       corfit <- duplicateCorrelation(logCPM, design, block=grouping2)
       fit <- lmFit(logCPM, design, block=grouping2, correlation=corfit$consensus)
