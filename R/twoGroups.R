@@ -380,9 +380,9 @@ runLimma = function(x, sampleGroup, refGroup, grouping, grouping2=NULL,
     topDT <- topTable(fit, num=Inf, coef=ncol(design))
   }
   res = list()
-  res$id = rownames(res)
-  res$log2FoldChange = res$logFC
-  res$pval = res$P.Value
+  res$id = rownames(topDT)
+  res$log2FoldChange = topDT$logFC
+  res$pval = topDT$P.Value
   res$sf = sf
   return(res)
 }
