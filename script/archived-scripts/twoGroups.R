@@ -239,3 +239,22 @@ writeNgsTwoGroupReport = function(deResult, output,
   addParagraph(doc, pot("advanced Plots", hyperlink = "advancedPlots.html"))
   closeBsdocReport(doc, htmlFile, titles)
 }
+
+
+twoGrouplsRoast = function(param, testResult, seqAnno){
+  job = ezJobStart("twoGroupsRoast")
+  require("GOstats", warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
+  require("annotate", warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
+  
+  if (param$featureLevel != "gene"){
+    stop("only feature level: gene is supported")
+  }
+  ontologies = c("BP", "MF", "CC")
+  #goResults = list()
+  #for (onto in ontologies){
+  goResults = ezMclapply(ontologies, function(onto){
+    gene2goList = goStringsToList(seqAnno[[paste("GO", onto)]], listNames=rownames(seqAnno))[presentGenes]
+    if (param$includeGoParentAnnotation){
+    }
+  })
+}
