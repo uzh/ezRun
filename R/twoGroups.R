@@ -75,7 +75,7 @@ twoGroupCountComparison = function(rawData){
   metadata(rawData)$method <- param$testMethod
   
   if (ezIsSpecified(param$grouping2)){
-    if (param$testMethod %in% c("glm", "sam","deseq2")){
+    if (param$testMethod %in% c("glm", "limma","deseq2")){
       metadata(rawData)$method <- paste(metadata(rawData)$method, 
                                         "using secondary factor")
     } else {
