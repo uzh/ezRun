@@ -28,6 +28,7 @@ ezMethodGetEnaData <- function(input=NA, output=NA, param=NA){
         sampleAttributes <- sampleAttributes[grep('ENA',sampleAttributes$TAG, invert = TRUE),]
         
         if(!is.null(nrow(sampleAttributes))){
+            if(nrow(sampleAttributes) > 0){
             if (i == 1){
                 for (j in 1:nrow(sampleAttributes)){
                     fastqInfo[[as.character(sampleAttributes[j, 1])]] = '-'
@@ -37,6 +38,7 @@ ezMethodGetEnaData <- function(input=NA, output=NA, param=NA){
                         fastqInfo[[as.character(sampleAttributes[j, 1])]][i] = as.character(sampleAttributes[j,2])
                     }
                 }
+            }
         }
         
         if(grepl(';',fastqInfo$fastq_ftp[i])) {
@@ -59,6 +61,7 @@ ezMethodGetEnaData <- function(input=NA, output=NA, param=NA){
         sampleNames = unique(dataset$Name)
         for (j in 1:length(sampleNames)){
             files_R1 <- basename(dataset[['Read1 [File]']][dataset[['Name']] == sampleNames[j]])
+            sampleNames[j] = gsub('\\/', '_', gsub(' ', '_', sampleNames[j]))
             pooledR1_File <- paste0(sampleNames[j],'_R1.fastq')
             ezSystem(paste('touch', pooledR1_File))
             for (k in 1:length(files_R1)){
