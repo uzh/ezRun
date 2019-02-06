@@ -52,6 +52,9 @@ ezMethodCellRanger = function(input=NA, output=NA, param=NA){
 
 getCellRangerReference <- function(param){
   if(ezIsSpecified(param$controlSeqs)){
+    if(param$scMode == "SN"){
+      stop("Single-nuclei with extra control sequences is not implemented yet!")
+    }
     require(Biostrings)
     require(rtracklayer)
     ## make reference genome
@@ -86,7 +89,16 @@ getCellRangerReference <- function(param){
   }else{
     ## TODO: automate the reference building
     refDir <- dirname(param$ezRef["refFeatureFile"])
-    refDirs <- list.files(path=refDir, pattern="^10X_Ref", full.names = TRUE)
+    
+    refDirsSC <- list.files(path=refDir, pattern="^10X_Ref", full.names = TRUE)
+    refDirsSN <- list.files(path=refDir, pattern="^10X_Ref.*_premRNA_", 
+                            full.names = TRUE)
+    if(param$scMode == "SN"){
+      refDirs <- setdiff(refDirsSC, refDirsSN)
+    }else if(param$scMode == "SC"){
+      refDirs <- refDirsSN
+    }
+    
     if(length(refDirs) == 0){
       stop("No 10X_Ref folder found in", refDir)
     }
@@ -113,7 +125,10 @@ EzAppCellRanger <-
                   name <<- "EzAppCellRanger"
                   appDefaults <<- rbind(controlSeqs=ezFrame(Type="charVector",
                                                             DefaultValue="",
-                                                            Description="control sequences to add"))
+                                                            Description="control sequences to add"),
+                                        scMode=ezFrame(Type="character",
+                                                       DefaultValue="SC",
+                                                       Description="Single cell or single nuclei?"))
                 }
               )
   )
