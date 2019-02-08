@@ -93,9 +93,9 @@ getCellRangerReference <- function(param){
     refDirsSC <- list.files(path=refDir, pattern="^10X_Ref", full.names = TRUE)
     refDirsSN <- list.files(path=refDir, pattern="^10X_Ref.*_premRNA_", 
                             full.names = TRUE)
-    if(param$scMode == "SN"){
+    if(param$scMode == "SC"){
       refDirs <- setdiff(refDirsSC, refDirsSN)
-    }else if(param$scMode == "SC"){
+    }else if(param$scMode == "SN"){
       refDirs <- refDirsSN
     }
     
