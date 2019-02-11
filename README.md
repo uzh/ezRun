@@ -23,7 +23,7 @@ packages <- c("testthat", "knitr", "gage", "goseq", "ChIPpeakAnno",
               "ReporteRsjars", "data.table", "kableExtra", "htmlwidgets",
               "webshot", "clusterProfiler", "dupRadar",
               "taxize", "SingleCellExperiment", "SummarizedExperiment",
-              "scater", "DropletUtils")
+              "scater", "DropletUtils", "shiny")
 packages <- setdiff(packages, rownames(installed.packages()))
 BiocManager::install(packages)
 
