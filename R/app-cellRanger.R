@@ -35,8 +35,9 @@ ezMethodCellRanger = function(input=NA, output=NA, param=NA){
               paste0("--transcriptome=", refDir),
               paste0("--fastqs=", sampleDir),
               paste0("--sample=", sampleName),
-              paste0("--localmem=",param$ram),
-              paste0("--localcores=",param$cores))
+              paste0("--localmem=", param$ram),
+              paste0("--localcores=", param$cores),
+              paste0("--chemistry=", param$chemistry))
   if(opt!=''){
     cmd = paste(cmd, opt)
   }
@@ -128,7 +129,10 @@ EzAppCellRanger <-
                                                             Description="control sequences to add"),
                                         scMode=ezFrame(Type="character",
                                                        DefaultValue="SC",
-                                                       Description="Single cell or single nuclei?"))
+                                                       Description="Single cell or single nuclei?"),
+                                        chemistry=ezFrame(Type="character",
+                                                          DefaultValue="auto",
+                                                          Description="Assay configuration."))
                 }
               )
   )
