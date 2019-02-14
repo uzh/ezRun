@@ -159,7 +159,7 @@ p2
 ```{r integrated analysis on CCA, echo=FALSE}
 scData.CCA <- RunTSNE(object=scData.CCA, reduction.use="cca.aligned",
                       dims.use=1:param$cc, tsne.method="Rtsne",
-                      perplexity=ifelse(length(scData.CCA@ident) > 384, 30, 10),
+                      perplexity=ifelse(length(scData.CCA@ident) > 200, 30, 10),
                       num_threads=param$cores)
 scData.CCA <- FindClusters(object=scData.CCA, reduction.type="cca.aligned",
                            dims.use=1:param$cc, save.SNN=TRUE,
