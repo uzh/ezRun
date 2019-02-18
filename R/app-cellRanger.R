@@ -12,23 +12,23 @@ ezMethodCellRanger = function(input=NA, output=NA, param=NA){
   sampleDirs = strsplit(input$getColumn("RawDataDir"), ",")[[sampleName]]
   sampleDirs <- file.path(input$dataRoot, sampleDirs)
   
-  if(length(sampleDirs) == 1L){
-    ## Not merged sample dataset
-    sampleDir <- sampleDirs[1]
-  }else{
-    ## Merged sample dataset
-    ## soft link to a temp dir
-    sampleDir <- file.path(getwd(), paste0("CellRangerDataDir-", Sys.getpid()))
-    dir.create(sampleDir)
-    on.exit(unlink(sampleDir, recursive=TRUE), add=TRUE)
-    for(eachSampleDir in sampleDirs){
-      res <- file.symlink(from=list.files(path=eachSampleDir,
-                                          pattern=sampleName, full.names=TRUE),
-                          to=sampleDir)
-      stopifnot(all(res))
-    }
-  }
-  
+  # if(length(sampleDirs) == 1L){
+  #   ## Not merged sample dataset
+  #   sampleDir <- sampleDirs[1]
+  # }else{
+  #   ## Merged sample dataset
+  #   ## soft link to a temp dir
+  #   sampleDir <- file.path(getwd(), paste0("CellRangerDataDir-", Sys.getpid()))
+  #   dir.create(sampleDir)
+  #   on.exit(unlink(sampleDir, recursive=TRUE), add=TRUE)
+  #   for(eachSampleDir in sampleDirs){
+  #     res <- file.symlink(from=list.files(path=eachSampleDir,
+  #                                         pattern=sampleName, full.names=TRUE),
+  #                         to=sampleDir)
+  #     stopifnot(all(res))
+  #   }
+  # }
+  sampleDir <- paste(sampleDirs, collapse=",")
   refDir <- getCellRangerReference(param)
   
   cmd = paste(CELLRANGER,"count", paste0("--id=", sampleName),
