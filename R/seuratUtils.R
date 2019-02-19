@@ -33,10 +33,6 @@ seuratPreProcess <- function(sce){
   scData <- AddMetaData(object = scData, metadata = perc_mito,
                         col.name = "perc_mito")
   
-  perplexityTsne <- switch(param$scProtocol,
-                           "smart-Seq2"=10,
-                           "10x"=30,
-                           stop("Unknown single cell protocol."))
   scData <- FilterCells(object = scData,
                         subset.names = c("nGene", "perc_mito"),
                         low.thresholds = c(param$minGenesPerCell, -Inf), 

@@ -90,14 +90,12 @@ getCellRangerReference <- function(param){
   }else{
     ## TODO: automate the reference building
     refDir <- dirname(param$ezRef["refFeatureFile"])
-    
-    refDirsSC <- list.files(path=refDir, pattern="^10X_Ref", full.names = TRUE)
-    refDirsSN <- list.files(path=refDir, pattern="^10X_Ref.*_premRNA_", 
-                            full.names = TRUE)
     if(param$scMode == "SC"){
-      refDirs <- setdiff(refDirsSC, refDirsSN)
+      refDirs <- list.files(path=refDir, pattern="^10X_Ref.*_GEX_", 
+                            full.names = TRUE)
     }else if(param$scMode == "SN"){
-      refDirs <- refDirsSN
+      refDirs <- list.files(path=refDir, pattern="^10X_Ref.*_premRNA_", 
+                            full.names = TRUE)
     }
     
     if(length(refDirs) == 0){
@@ -110,6 +108,11 @@ getCellRangerReference <- function(param){
   }
   return(refDir)
 }
+
+## Make 10X reference
+### VDJ 
+#### /usr/local/ngseq/opt/cellranger-3.0.1/cellranger mkvdjref --genome=10X_Ref_Mouse_VDJ_GRCm38.p5_20192019_Release_91 --fasta=../../../Sequence/WholeGenomeFasta/genome.fa --genes=genes.gtf
+
 
 ##' @author Opitz, Lennart
 ##' @template app-template
