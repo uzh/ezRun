@@ -88,6 +88,7 @@ if(param$scProtocol == "smart-Seq2"){
 cell_info_seurat <- cell_info
 cell_info_seurat$perc_mito <- cell_info_seurat$perc_mito/100
 scData <- CreateSeuratObject(raw.data = ctsFilt, min.cells = 5,
+                             min.genes=1,
                              project = param$name, meta.data=cell_info_seurat)
 ```
 
