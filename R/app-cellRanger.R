@@ -11,33 +11,25 @@ ezMethodCellRanger = function(input=NA, output=NA, param=NA){
   sampleName = input$getNames()
   sampleDirs = strsplit(input$getColumn("RawDataDir"), ",")[[sampleName]]
   sampleDirs <- file.path(input$dataRoot, sampleDirs)
-  
-  # if(length(sampleDirs) == 1L){
-  #   ## Not merged sample dataset
-  #   sampleDir <- sampleDirs[1]
-  # }else{
-  #   ## Merged sample dataset
-  #   ## soft link to a temp dir
-  #   sampleDir <- file.path(getwd(), paste0("CellRangerDataDir-", Sys.getpid()))
-  #   dir.create(sampleDir)
-  #   on.exit(unlink(sampleDir, recursive=TRUE), add=TRUE)
-  #   for(eachSampleDir in sampleDirs){
-  #     res <- file.symlink(from=list.files(path=eachSampleDir,
-  #                                         pattern=sampleName, full.names=TRUE),
-  #                         to=sampleDir)
-  #     stopifnot(all(res))
-  #   }
-  # }
   sampleDir <- paste(sampleDirs, collapse=",")
   refDir <- getCellRangerReference(param)
+  if(param$TenXLibrary == "GEX"){
+    cmd <- paste(CELLRANGER, "count", paste0("--id=", sampleName),
+                 paste0("--transcriptome=", refDir),
+                 paste0("--fastqs=", sampleDir),
+                 paste0("--sample=", sampleName),
+                 paste0("--localmem=", param$ram),
+                 paste0("--localcores=", param$cores),
+                 paste0("--chemistry=", param$chemistry))
+  }else if(param$TenXLibrary == "VDJ"){
+    cmd <- paste(CELLRANGER, "vdj", paste0("--id=", sampleName),
+                 paste0("--reference=", refDir),
+                 paste0("--fastqs=", sampleDir),
+                 paste0("--sample=", sampleName),
+                 paste0("--localmem=", param$ram),
+                 paste0("--localcores=", param$cores))
+  }
   
-  cmd = paste(CELLRANGER,"count", paste0("--id=", sampleName),
-              paste0("--transcriptome=", refDir),
-              paste0("--fastqs=", sampleDir),
-              paste0("--sample=", sampleName),
-              paste0("--localmem=", param$ram),
-              paste0("--localcores=", param$cores),
-              paste0("--chemistry=", param$chemistry))
   if(opt!=''){
     cmd = paste(cmd, opt)
   }
@@ -53,6 +45,9 @@ ezMethodCellRanger = function(input=NA, output=NA, param=NA){
 
 getCellRangerReference <- function(param){
   if(ezIsSpecified(param$controlSeqs)){
+    if(param$TenXLibrary == "VDJ"){
+      stop("VDJ library with extra control sequences is not implemented yet!")
+    }
     if(param$scMode == "SN"){
       stop("Single-nuclei with extra control sequences is not implemented yet!")
     }
@@ -90,12 +85,19 @@ getCellRangerReference <- function(param){
   }else{
     ## TODO: automate the reference building
     refDir <- dirname(param$ezRef["refFeatureFile"])
-    if(param$scMode == "SC"){
-      refDirs <- list.files(path=refDir, pattern="^10X_Ref.*_GEX_", 
+    if(param$TenXLibrary == "VDJ"){
+      refDirs <- list.files(path=refDir, pattern="^10X_Ref.*_VDJ_", 
                             full.names = TRUE)
-    }else if(param$scMode == "SN"){
-      refDirs <- list.files(path=refDir, pattern="^10X_Ref.*_premRNA_", 
-                            full.names = TRUE)
+    }else if(param$TenXLibrary == "GEX"){
+      if(param$scMode == "SC"){
+        refDirs <- list.files(path=refDir, pattern="^10X_Ref.*_GEX_", 
+                              full.names = TRUE)
+      }else if(param$scMode == "SN"){
+        refDirs <- list.files(path=refDir, pattern="^10X_Ref.*_premRNA_", 
+                              full.names = TRUE)
+      }
+    }else{
+      stop("Unsupported 10X library: ", param$TenXLibrary)
     }
     
     if(length(refDirs) == 0){
@@ -127,15 +129,18 @@ EzAppCellRanger <-
                   "Initializes the application using its specific defaults."
                   runMethod <<- ezMethodCellRanger
                   name <<- "EzAppCellRanger"
-                  appDefaults <<- rbind(controlSeqs=ezFrame(Type="charVector",
-                                                            DefaultValue="",
-                                                            Description="control sequences to add"),
+                  appDefaults <<- rbind(TenXLibrary=ezFrame(Type="charVector",
+                                                            DefaultValue="GEX",
+                                                            Description="Which 10X library? GEX or VDJ."),
                                         scMode=ezFrame(Type="character",
                                                        DefaultValue="SC",
                                                        Description="Single cell or single nuclei?"),
                                         chemistry=ezFrame(Type="character",
                                                           DefaultValue="auto",
-                                                          Description="Assay configuration."))
+                                                          Description="Assay configuration."),
+                                        controlSeqs=ezFrame(Type="charVector",
+                                                            DefaultValue="",
+                                                            Description="control sequences to add"))
                 }
               )
   )
