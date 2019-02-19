@@ -25,6 +25,7 @@ seuratPreProcess <- function(sce){
                           check.names = FALSE)
   scData <- CreateSeuratObject(raw.data=assays(sce)$counts,
                                min.cells=param$minCellsPerGene,
+                               min.genes=1,
                                project=param$name,
                                meta.data=cell_info)
   mito.genes <- grep(pattern = "^MT-", x = rownames(x = scData@data),
