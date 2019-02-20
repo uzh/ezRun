@@ -7,7 +7,6 @@
 
 ##ToD: --localmem, --localcores, use opt-Parameters
 ezMethodCellRanger = function(input=NA, output=NA, param=NA){
-  opt = param$cmdOptions
   sampleName = input$getNames()
   sampleDirs = strsplit(input$getColumn("RawDataDir"), ",")[[sampleName]]
   sampleDirs <- file.path(input$dataRoot, sampleDirs)
@@ -30,9 +29,10 @@ ezMethodCellRanger = function(input=NA, output=NA, param=NA){
                  paste0("--localcores=", param$cores))
   }
   
-  if(opt!=''){
-    cmd = paste(cmd, opt)
+  if(ezIsSpecified(param$cmdOptions)){
+    cmd = paste(cmd, param$cmdOptions)
   }
+  
   ezSystem(cmd)
   
   if(ezIsSpecified(param$controlSeqs)){
