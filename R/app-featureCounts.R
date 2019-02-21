@@ -202,6 +202,8 @@ ezMethodSingleCellFeatureCounts <- function(input=NA, output=NA, param=NA){
   require(GenomicRanges)
   require(Rsubread)
   require(rtracklayer)
+  require(tibble)
+  require(readr)
   
   bamFile = input$getFullPaths("BAM")
   localBamFile = getBamLocally(bamFile)
@@ -351,11 +353,10 @@ ezMethodSingleCellFeatureCounts <- function(input=NA, output=NA, param=NA){
                                     package = "scran", mustWork=TRUE))
   }
   if (!is.null(trainData)) {
-    cellCycleData = scran::cyclone(countResult$counts, trainData)
-    cellPhase = data.frame(Name = colnames(countResult$counts),
-                           Phase = cellCycleData$phases)
-    write.table(cellPhase, file = basename(output$getColumn('CellCyclePhase')),
-                quote = F, sep = "\t", row.names = F)
+    cellCycleData = scran::cyclone(countsFixed, trainData)
+    cellPhase <- tibble(Name = colnames(countsFixed),
+                        Phase = cellCycleData$phases)
+    write_tsv(cellPhase, path=basename(output$getColumn('CellCyclePhase')))
   }
   
   return("Success")
