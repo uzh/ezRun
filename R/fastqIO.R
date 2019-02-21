@@ -199,7 +199,7 @@ ezMethodBam2Fastq <- function(input=NA, output=NA, param=NA,
     allFastqFns <- bam2fastq(bamFn=input$getFullPaths("Read1"),
                              OUTPUT_PER_RG=TRUE, OUTPUT_DIR=getwd(),
                              paired=param$paired)
-    fastqsToRemove <- allFastqFns[!output$getColumn("Read1") %in%
+    fastqsToRemove <- allFastqFns[!basename(output$getColumn("Read1")) %in%
                                     basename(allFastqFns)]
     ## When we want only subset of the cells to keep
     file.remove(fastqsToRemove)
