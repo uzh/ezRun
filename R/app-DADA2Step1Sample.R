@@ -20,8 +20,8 @@ ezMethodDADA2Step1Sample = function(input=NA, output=NA, param=NA,
     file2PathInDataset <- input$getFullPaths("Read2")
   }
   minLen <- param$minLen
-  minLen <- param$maxLen
-  DADA2mainSeqTabObj <- DADA2CreateSeqTab(sampleName,maxLen,minLen,paired)
+  maxLen <- param$maxLen
+  DADA2mainSeqTabObj <- DADA2CreateSeqTab(sampleName,maxLen,minLen,param$paired)
   
   ## rename output files
   ## Files needed for the report 
