@@ -70,7 +70,7 @@ ezMethodMothurStep1Sample = function(input=NA, output=NA, param=NA,
   ###
 
   ### cp silva reference locally
-  cpSilvaRefCmd <- "cp /srv/GT/databases/silva/silva.bacteria.forMothur.fasta silva.bacteria.fasta"
+  cpSilvaRefCmd <- paste("gunzip -c ",SILVA_DB, "> silva.bacteria.fasta")
   ezSystem(cpSilvaRefCmd)
   
   ### update batch file  with parameters and run mothur: step 1, identify region

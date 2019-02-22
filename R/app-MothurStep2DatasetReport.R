@@ -151,12 +151,11 @@ ezMethodMothurStep2DatasetReport = function(input=NA, output=NA, param=NA,
     markdownFile <- "MothurStep2DatasetReportNoGroup.Rmd"
   }
   ## Copy the style files and templates
-  RmarkdownFile <- "MothurStep2DatasetReport.Rmd"
   styleFiles <- file.path(system.file("templates", package="ezRun"),
-                          c("fgcz.css", RmarkdownFile, 
+                          c("fgcz.css", markdownFile, 
                             "fgcz_header.html", "banner.png"))
   file.copy(from=styleFiles, to=".", overwrite=TRUE)
-  rmarkdown::render(input=RmarkdownFile, envir = new.env(),
+  rmarkdown::render(input=markdownFile, envir = new.env(),
                     output_dir=".", output_file=htmlFile, quiet=TRUE)
 }
 ##' @template app-template
