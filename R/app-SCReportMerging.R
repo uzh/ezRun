@@ -46,8 +46,8 @@ ezMethodSCReportMerging = function(input=NA, output=NA, param=NA,
   samples <- param$samples
   input <- input$subset(samples)
   
-  if(input$getLength() != 2L){
-    stop("It only works for merging two samples at once!")
+  if(input$getLength() > 3L){
+    stop("It only works for merging less than 3 samples at once!")
   }
   
   cwd <- getwd()
@@ -55,8 +55,10 @@ ezMethodSCReportMerging = function(input=NA, output=NA, param=NA,
   on.exit(setwd(cwd), add=TRUE)
   reportCwd <- getwd()
   
-  sce1URL <- input$getColumn("Static Report")[1]
-  sce2URL <- input$getColumn("Static Report")[2]
+  # sce1URL <- input$getColumn("Static Report")[1]
+  # sce2URL <- input$getColumn("Static Report")[2]
+  sceURLs <- input$getColumn("Static Report")
+  
   saveRDS(param, file = "param.rds")
   
   ## Copy the style files and templates
