@@ -192,8 +192,13 @@ if(doEnrichr(param) && param$all2allMarkers){
 ```{r enrichr all2all markers, echo=FALSE, results='asis'}
 if(doEnrichr(param) && param$all2allMarkers){
   for(comparison in names(all2allMarkers)){
-    write_tsv(as_tibble(all2allMarkers[[comparison]], rownames="Gene"),
+    if(nrow(all2allMarkers[[comparison]]) > 0){
+      write_tsv(as_tibble(all2allMarkers[[comparison]], rownames="Gene"),
               path=paste0(comparison, ".tsv"))
+    }else{
+      write_tsv(as_tibble(all2allMarkers[[comparison]]),
+              path=paste0(comparison, ".tsv"))
+    }
   }
   genesAllPerCluster <- lapply(all2allMarkers, rownames)
   genesUpPerCluster <- lapply(all2allMarkers, function(x){rownames(x)[x$avg_logFC > 0]})
