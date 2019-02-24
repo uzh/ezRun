@@ -55,6 +55,9 @@ ezMethodSCReportMerging = function(input=NA, output=NA, param=NA,
   on.exit(setwd(cwd), add=TRUE)
   reportCwd <- getwd()
   
+  param$name <- paste(param$name, paste(input$getNames(), collapse=", "),
+                      sep=": ")
+  
   # sce1URL <- input$getColumn("Static Report")[1]
   # sce2URL <- input$getColumn("Static Report")[2]
   sceURLs <- input$getColumn("Static Report")
