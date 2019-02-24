@@ -190,7 +190,7 @@ legend("topleft", legend=names(cell.colorsPalette),
 
 #### Cell trajectory modeling
 A similar function can be used to model central trajectories by directed diffusion on embedding.
-This is disable on 10X data.
+This is disabled on 10X data.
 
 ```{r velocity 1 tragectory, echo=FALSE, message=FALSE, results='hide', eval=TRUE, fig.width=10, fig.height=8}
 if(param$scProtocol != "10X"){
@@ -282,7 +282,7 @@ legend("topleft", legend=names(cell.colorsPalette),
 
 #### Cell trajectory modeling
 A similar function can be used to model central trajectories by directed diffusion on embedding.
-This is disable on 10X data.
+This is disabled on 10X data.
 
 ```{r velocity 2 tragectory, echo=FALSE, message=FALSE, results='hide', eval=TRUE, fig.width=10, fig.height=8}
 if(!is.null(smat)){
@@ -367,7 +367,7 @@ legend("topleft", legend=names(cell.colorsPalette),
 
 #### Cell trajectory modeling
 A similar function can be used to model central trajectories by directed diffusion on embedding.
-This is disable on 10X data.
+This is disabled on 10X data.
 
 ```{r velocity 3 tragectory, echo=FALSE, message=FALSE, results='hide', eval=TRUE, fig.width=10, fig.height=8}
 if(param$scProtocol != "10X"){
