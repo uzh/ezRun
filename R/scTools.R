@@ -5,16 +5,14 @@
 # The terms are available here: http://www.gnu.org/licenses/gpl.html
 # www.fgcz.ch
 
-getCellCycle <- function(counts, refBuild=c("Homo_sapiens/Ensembl",
-                                            "Mus_musculus/Ensembl")){
+getCellCycle <- function(counts, refBuild){
   require(scran)
   # The training data is only available for Hsap and Mmus Ensembl
-  refBuild <- match.arg(refBuild)
   
-  if (startsWith(param$refBuild, "Homo_sapiens/Ensembl")) {
+  if (startsWith(refBuild, "Homo_sapiens/Ensembl")) {
     trainData = readRDS(system.file("exdata", "human_cycle_markers.rds", 
                                     package = "scran", mustWork=TRUE))
-  } else if (startsWith(param$refBuild, "Mus_musculus/Ensembl")) {
+  } else if (startsWith(refBuild, "Mus_musculus/Ensembl")) {
     trainData = readRDS(system.file("exdata", "mouse_cycle_markers.rds", 
                                     package = "scran", mustWork=TRUE))
   }
