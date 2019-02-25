@@ -343,21 +343,9 @@ ezMethodSingleCellFeatureCounts <- function(input=NA, output=NA, param=NA){
   writeSCMM(countsFixed, file=outputFile)
   ezWrite.table(countResult$stat, file=statFile, row.names=FALSE)
   
-  # Determine cell cycle phases. The training data is only available for Hsap and Mmus Ensembl
-  trainData = NULL
-  if (startsWith(param$refBuild, "Homo_sapiens/Ensembl")) {
-    trainData = readRDS(system.file("exdata", "human_cycle_markers.rds", 
-                                    package = "scran", mustWork=TRUE))
-  } else if (startsWith(param$refBuild, "Mus_musculus/Ensembl")) {
-    trainData = readRDS(system.file("exdata", "mouse_cycle_markers.rds", 
-                                    package = "scran", mustWork=TRUE))
-  }
-  if (!is.null(trainData)) {
-    cellCycleData = scran::cyclone(countsFixed, trainData)
-    cellPhase <- tibble(Name = colnames(countsFixed),
-                        Phase = cellCycleData$phases)
+  if(param$refBuild %in% c("Homo_sapiens/Ensembl", "Mus_musculus/Ensembl")){
+    cellPhase <- getCellCycle(countsFixed, param$refBuild)
     write_tsv(cellPhase, path=basename(output$getColumn('CellCyclePhase')))
   }
-  
   return("Success")
 }
