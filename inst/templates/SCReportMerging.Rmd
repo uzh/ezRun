@@ -46,27 +46,14 @@ pvalue_allMarkers <- 0.05
 pvalue_all2allMarkers <- 0.01
 nrSamples <- length(sceList)
 
-# TODO: sub clusters for more samples
-if(ezIsSpecified(param$chosenClusters1)){
-  chosenCells1 <- names(metadata(sceList[[1]])$scData@ident)[metadata(sceList[[1]])$scData@ident %in% 
-                                                               param$chosenClusters1]
-  sceList[[1]] <- sceList[[1]][, chosenCells1]
-  metadata(sceList[[1]])$scData <- SubsetData(metadata(sceList[[1]])$scData,
-                                      ident.use=param$chosenClusters1)
-}
-if(ezIsSpecified(param$chosenClusters2)){
-  chosenCells2 <- names(metadata(sceList[[2]])$scData@ident)[metadata(sceList[[2]])$scData@ident %in% 
-                                                               param$chosenClusters2]
-  sceList[[2]] <- sceList[[2]][, chosenCells2]
-  metadata(sceList[[2]])$scData <- SubsetData(metadata(sceList[[2]])$scData,
-                                              ident.use=param$chosenClusters2)
-}
-if(ezIsSpecified(param$chosenClusters3)){
-  chosenCells3 <- names(metadata(sceList[[3]])$scData@ident)[metadata(sceList[[3]])$scData@ident %in% 
-                                                               param$chosenClusters3]
-  sceList[[3]] <- sceList[[3]][, chosenCells3]
-  metadata(sceList[[3]])$scData <- SubsetData(metadata(sceList[[3]])$scData,
-                                              ident.use=param$chosenClusters3)
+if(ezIsSpecified(param$chosenClusters)){
+  for(eachCluster in names(param$chosenClusters)){
+    chosenCells <- names(metadata(sceList[[eachCluster]])$scData@ident)[metadata(sceList[[eachCluser]])$scData@ident %in% param$chosenClusters[[eachCluster]]]
+    sceList[[eachCluster]] <- sceList[[eachCluster]][, chosenCells]
+    metadata(sceList[[eachCluster]])$scData <-
+      SubsetData(metadata(sceList[[eachCluster]])$scData,
+                 ident.use=param$chosenClusters1)
+  }
 }
 ```
 
