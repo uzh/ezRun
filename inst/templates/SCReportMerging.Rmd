@@ -33,6 +33,7 @@ sceList <- lapply(file.path("/srv/gstore/projects",
                           sub("https://fgcz-(gstore|sushi).uzh.ch/projects", "",
                               dirname(sceURLs)), "sce.rds"),
                   readRDS)
+names(sceList) <- names(sceURLs)
 
 # to test
 # param <- metadata(sceList[[1]])$param
