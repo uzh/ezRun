@@ -49,7 +49,7 @@ nrSamples <- length(sceList)
 
 if(ezIsSpecified(param$chosenClusters)){
   for(eachCluster in names(param$chosenClusters)){
-    chosenCells <- names(metadata(sceList[[eachCluster]])$scData@ident)[metadata(sceList[[eachCluser]])$scData@ident %in% param$chosenClusters[[eachCluster]]]
+    chosenCells <- names(metadata(sceList[[eachCluster]])$scData@ident)[metadata(sceList[[eachCluster]])$scData@ident %in% param$chosenClusters[[eachCluster]]]
     sceList[[eachCluster]] <- sceList[[eachCluster]][, chosenCells]
     metadata(sceList[[eachCluster]])$scData <-
       SubsetData(metadata(sceList[[eachCluster]])$scData,
