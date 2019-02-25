@@ -24,12 +24,9 @@ EzAppSCReportMerging <-
                                         cc=ezFrame(Type="numeric",
                                                    DefaultValue=20,
                                                    Description="The number of CC for CCA analysis"),
-                                        chosenClusters1=ezFrame(Type="charVector",
-                                                                DefaultValue="",
-                                                                Description="Clusters to choose to merge in sample 1"),
-                                        chosenClusters2=ezFrame(Type="charVector",
-                                                                DefaultValue="",
-                                                                Description="Clusters to choose to merge in sample 2"),
+                                        chosenClusters=ezFrame(Type="charList",
+                                                               DefaultValue="",
+                                                               Description="The clusters to choose from each sample.In the format of sample1=cluster1,cluster2;sample2=cluster1,cluster2."),
                                         all2allMarkers=ezFrame(Type="logical",
                                                                DefaultValue=FALSE, 
                                                                Description="Run all against all cluster comparisons?"),
@@ -58,8 +55,6 @@ ezMethodSCReportMerging = function(input=NA, output=NA, param=NA,
   param$name <- paste(param$name, paste(input$getNames(), collapse=", "),
                       sep=": ")
   
-  # sce1URL <- input$getColumn("Static Report")[1]
-  # sce2URL <- input$getColumn("Static Report")[2]
   sceURLs <- input$getColumn("Static Report")
   
   saveRDS(param, file = "param.rds")
