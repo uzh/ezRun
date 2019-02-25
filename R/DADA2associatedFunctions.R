@@ -12,9 +12,9 @@
 ##' @param  a fastq or pairs of ffastq files .
 ##' @return Returns a DADA2 seqtab object.
 
-DADA2CreateSeqTab <- function(sampleName,maxLen,minLen,file1PathInDataset,
-                              file2PathInDataset){
-  if(!missing(file2PathInDataset)){
+DADA2CreateSeqTab <- function(sampleName,maxLen,file1PathInDataset,
+                              minLen,file2PathInDataset){
+  if(!missing(file2PathInDataset) & !missing(minLen)){
   fnFs <- file1PathInDataset
   fnRs <- file2PathInDataset
   filtFs <- paste("filt",sampleName,"R1.fastq.gz", sep = ".")
