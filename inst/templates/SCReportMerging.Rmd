@@ -48,18 +48,25 @@ nrSamples <- length(sceList)
 
 # TODO: sub clusters for more samples
 if(ezIsSpecified(param$chosenClusters1)){
-  chosenCells1 <- names(metadata(sce1)$scData@ident)[metadata(sce1)$scData@ident %in% 
-                                                       param$chosenClusters1]
-  sce1 <- sce1[, chosenCells1]
-  metadata(sce1)$scData <- SubsetData(metadata(sce1)$scData,
+  chosenCells1 <- names(metadata(sceList[[1]])$scData@ident)[metadata(sceList[[1]])$scData@ident %in% 
+                                                               param$chosenClusters1]
+  sceList[[1]] <- sceList[[1]][, chosenCells1]
+  metadata(sceList[[1]])$scData <- SubsetData(metadata(sceList[[1]])$scData,
                                       ident.use=param$chosenClusters1)
 }
 if(ezIsSpecified(param$chosenClusters2)){
-  chosenCells2 <- names(metadata(sce2)$scData@ident)[metadata(sce2)$scData@ident %in% 
-                                                       param$chosenClusters2]
-  sce2 <- sce2[, chosenCells2]
-  metadata(sce2)$scData <- SubsetData(metadata(sce2)$scData,
-                                      ident.use=param$chosenClusters2)
+  chosenCells2 <- names(metadata(sceList[[2]])$scData@ident)[metadata(sceList[[2]])$scData@ident %in% 
+                                                               param$chosenClusters2]
+  sceList[[2]] <- sceList[[2]][, chosenCells2]
+  metadata(sceList[[2]])$scData <- SubsetData(metadata(sceList[[2]])$scData,
+                                              ident.use=param$chosenClusters2)
+}
+if(ezIsSpecified(param$chosenClusters3)){
+  chosenCells3 <- names(metadata(sceList[[3]])$scData@ident)[metadata(sceList[[3]])$scData@ident %in% 
+                                                               param$chosenClusters3]
+  sceList[[3]] <- sceList[[3]][, chosenCells3]
+  metadata(sceList[[3]])$scData <- SubsetData(metadata(sceList[[3]])$scData,
+                                              ident.use=param$chosenClusters3)
 }
 ```
 
