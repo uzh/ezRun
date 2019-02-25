@@ -40,7 +40,8 @@ ezMethodCellRanger = function(input=NA, output=NA, param=NA){
   }
   
   if(param$TenXLibrary == "GEX" &&
-     param$refBuild %in% c("Homo_sapiens/Ensembl", "Mus_musculus/Ensembl")){
+     (startsWith(param$refBuild, "Homo_sapiens/Ensembl") || 
+      startsWith(param$refBuild, "Mus_musculus/Ensembl"))){
     require(DropletUtils)
     countMatrixFn <- list.files(path=sampleName,
                                 pattern="\\.mtx(\\.gz)*$", recursive=TRUE,
