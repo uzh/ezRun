@@ -6,6 +6,10 @@ An R meta-package for the analysis of Next Generation Sequencing data
 ```R
 devtools::install_github("uzh/ezRun")
 ```
+## Dependencies of Python packages
+```Python
+pip3 install velocyto
+```
 
 ## Dependencies of R/Bioconductor packages
 ```R
