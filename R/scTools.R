@@ -7,6 +7,7 @@
 
 getCellCycle <- function(counts, refBuild){
   require(scran)
+  require(tibble)
   # The training data is only available for Hsap and Mmus Ensembl
   
   if (startsWith(refBuild, "Homo_sapiens/Ensembl")) {
