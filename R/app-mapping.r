@@ -332,7 +332,7 @@ ezMethodSTAR = function(input=NA, output=NA, param=NA){
     ezSortIndexBam("Aligned.out.bam", "sorted.bam", ram=sortRam, removeBam=TRUE, 
                    cores=nSortThreads)
     dupBam(inBam="sorted.bam", outBam=basename(bamFile),
-           operation="mark", cores=param$cores)
+           operation="mark", program="picard", cores=param$cores)
     file.remove("sorted.bam")
   } else {
     ezSortIndexBam("Aligned.out.bam", basename(bamFile), ram=sortRam, 
