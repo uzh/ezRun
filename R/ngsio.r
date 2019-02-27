@@ -149,7 +149,7 @@ loadSCCountDataset <- function(input, param){
     }
     cellDataSet <- ezRead.table(input$getFullPaths("CellDataset"))
     cellCycle <- ezRead.table(input$getFullPaths("CellCyclePhase"))
-    cellDataSet$CellCycle <- cellCycle[rownames(cellDataSet), ]
+    cellDataSet$CellCycle <- cellCycle[rownames(cellDataSet), "Phase"]
     
     ## TODO: this is a temporary solution to fix the discrepency of sample names
     if(!setequal(colnames(countMatrix), rownames(cellDataSet))){
@@ -187,6 +187,13 @@ loadSCCountDataset <- function(input, param){
                                 pattern="\\.mtx(\\.gz)*$", recursive=TRUE, 
                                 full.names=TRUE)
     sce <- read10xCounts(dirname(countMatrixFn), col.names=TRUE)
+    cellCycleFn <- list.files(path=input$getFullPaths("CountMatrix"),
+                              pattern="CellCyclePhase\\.txt$", recursive=TRUE,
+                              full.names=TRUE)
+    if(length(cellCycleFn) == 1){
+      cellCycle <- ezRead.table(cellCycleFn)
+      colData(sce)$CellCycle <- cellCycle[colnames(sce), "Phase"]
+    }
     seqAnnoDF <- ezFeatureAnnotation(param, rownames(sce),
                                      dataFeatureLevel)
     seqAnno <- makeGRangesFromDataFrame(seqAnnoDF, keep.extra.columns=TRUE)
