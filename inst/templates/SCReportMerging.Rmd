@@ -25,9 +25,9 @@ require(kableExtra)
 # input for this report: sceURLs, param
 # sce1URL <- "https://fgcz-sushi.uzh.ch/projects/p2284/SCReport_31302_2019-01-25--20-51-21/Recurrent_GBM_04092018_SCReport/00index.html"
 # sce2URL <- "https://fgcz-sushi.uzh.ch/projects/p2979/SCReport_32645_2018-12-21--21-25-59/Epilepsy_26112018_SCReport/00index.html"
-# sceURLs <- c("https://fgcz-sushi.uzh.ch/projects/p2326/SCReport_31783_sample1_3days_v-run_2018-12-03--16-22-12/SCReport/00index.html",
-#              "https://fgcz-sushi.uzh.ch/projects/p2326/SCReport_31783_sample2_2wks_v_run_2018-12-03--15-14-48/SCReport/00index.html",
-#              "https://fgcz-sushi.uzh.ch/projects/p2326/SCReport_31783_2018-12-17--16-21-45/sample3_sedentary_SCReport/00index.html")
+# sceURLs <- c("sample13days"="https://fgcz-sushi.uzh.ch/projects/p2326/SCReport_31783_sample1_3days_v-run_2018-12-03--16-22-12/SCReport/00index.html",
+#              "sample22wks"="https://fgcz-sushi.uzh.ch/projects/p2326/SCReport_31783_sample2_2wks_v_run_2018-12-03--15-14-48/SCReport/00index.html",
+#              "sample3sedentary"="https://fgcz-sushi.uzh.ch/projects/p2326/SCReport_31783_2018-12-17--16-21-45/sample3_sedentary_SCReport/00index.html")
 
 sceList <- lapply(file.path("/srv/gstore/projects",
                           sub("https://fgcz-(gstore|sushi).uzh.ch/projects", "",
@@ -37,8 +37,6 @@ names(sceList) <- names(sceURLs)
 
 # to test
 # param <- metadata(sceList[[1]])$param
-# param$chosenClusters1 <- ""
-# param$chosenClusters2 <- ""
 # param$resolution <- 0.5
 # param$cc <- 20
 # param$batchCorrection <- "CCA"
@@ -48,12 +46,12 @@ pvalue_all2allMarkers <- 0.01
 nrSamples <- length(sceList)
 
 if(ezIsSpecified(param$chosenClusters)){
-  for(eachCluster in names(param$chosenClusters)){
-    chosenCells <- names(metadata(sceList[[eachCluster]])$scData@ident)[metadata(sceList[[eachCluster]])$scData@ident %in% param$chosenClusters[[eachCluster]]]
-    sceList[[eachCluster]] <- sceList[[eachCluster]][, chosenCells]
-    metadata(sceList[[eachCluster]])$scData <-
-      SubsetData(metadata(sceList[[eachCluster]])$scData,
-                 ident.use=param$chosenClusters1)
+  for(eachSample in names(param$chosenClusters)){
+    chosenCells <- names(metadata(sceList[[eachSample]])$scData@ident)[metadata(sceList[[eachSample]])$scData@ident %in% param$chosenClusters[[eachSample]]]
+    sceList[[eachSample]] <- sceList[[eachSample]][, chosenCells]
+    metadata(sceList[[eachSample]])$scData <-
+      SubsetData(metadata(sceList[[eachSample]])$scData,
+                 ident.use=param$chosenClusters[[eachSample]])
   }
 }
 ```
