@@ -148,7 +148,9 @@ loadSCCountDataset <- function(input, param){
       countMatrix <- Matrix(as.matrix(ezRead.table(countMatrixFn)))
     }
     cellDataSet <- ezRead.table(input$getFullPaths("CellDataset"))
-
+    cellCycle <- ezRead.table(input$getFullPaths("CellCyclePhase"))
+    cellDataSet$CellCycle <- cellCycle[rownames(cellDataSet), ]
+    
     ## TODO: this is a temporary solution to fix the discrepency of sample names
     if(!setequal(colnames(countMatrix), rownames(cellDataSet))){
       ## fix the colnames in countMatrix
