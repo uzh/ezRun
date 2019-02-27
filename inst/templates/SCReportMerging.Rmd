@@ -223,6 +223,10 @@ FeaturePlot(object = scData, features.plot = "nUMI",
             reduction.use = "tsne", no.legend = FALSE)
 FeaturePlot(object = scData, features.plot = "perc_mito",
             reduction.use = "tsne", no.legend = FALSE)
+if(!is.null(scData@meta.data$CellCycle) && 
+   !any(is.na(scData@meta.data$CellCycle))){
+  TSNEPlot(object=scData, group.by="CellCycle", plot.title="Cell cycle phase")
+}
 ```
 
 
