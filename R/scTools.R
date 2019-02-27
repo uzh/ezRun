@@ -9,16 +9,25 @@ getCellCycle <- function(counts, refBuild){
   require(scran)
   require(tibble)
   # The training data is only available for Hsap and Mmus Ensembl
-  
-  if (startsWith(refBuild, "Homo_sapiens/Ensembl")) {
-    trainData = readRDS(system.file("exdata", "human_cycle_markers.rds", 
-                                    package = "scran", mustWork=TRUE))
-  } else if (startsWith(refBuild, "Mus_musculus/Ensembl")) {
-    trainData = readRDS(system.file("exdata", "mouse_cycle_markers.rds", 
-                                    package = "scran", mustWork=TRUE))
+  if(startsWith(refBuild, "Homo_sapiens/Ensembl")){
+    species <- "human"
+    hasTrainData <- TRUE
+  }else if(startsWith(refBuild, "Mus_musculus/Ensembl")){
+    species <- "mouse"
+    hasTrainData <- TRUE
+  }else{
+    hasTrainData <- FALSE
   }
-  cellCycleData <- cyclone(counts, trainData)
-  cellPhase <- tibble(Name = colnames(counts),
-                      Phase = cellCycleData$phases)
+  if(isTRUE(hasTrainData)){
+    trainData <- readRDS(system.file("exdata",
+                                     paste0(species, "_cycle_markers.rds"), 
+                                     package = "scran", mustWork=TRUE))
+    cellCycleData <- cyclone(counts, trainData)
+    cellPhase <- tibble(Name = colnames(counts),
+                        Phase = cellCycleData$phases)
+  }else{
+    cellPhase <- tibble(Name = colnames(counts),
+                        Phase = NA)
+  }
   return(cellPhase)
 }

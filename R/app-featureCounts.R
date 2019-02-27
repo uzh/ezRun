@@ -343,10 +343,8 @@ ezMethodSingleCellFeatureCounts <- function(input=NA, output=NA, param=NA){
   writeSCMM(countsFixed, file=outputFile)
   ezWrite.table(countResult$stat, file=statFile, row.names=FALSE)
   
-  if(startsWith(param$refBuild, "Homo_sapiens/Ensembl") || 
-     startsWith(param$refBuild, "Mus_musculus/Ensembl")){
-    cellPhase <- getCellCycle(countsFixed, param$refBuild)
-    write_tsv(cellPhase, path=basename(output$getColumn('CellCyclePhase')))
-  }
+  cellPhase <- getCellCycle(countsFixed, param$refBuild)
+  write_tsv(cellPhase, path=basename(output$getColumn('CellCyclePhase')))
+  
   return("Success")
 }
