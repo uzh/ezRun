@@ -8,7 +8,7 @@ devtools::install_github("uzh/ezRun")
 ```
 ## Dependencies of Python packages
 ```Python
-pip3 install velocyto
+pip3 install velocyto magic-impute
 ```
 
 ## Dependencies of R/Bioconductor packages
@@ -28,7 +28,8 @@ packages <- c("testthat", "knitr", "gage", "goseq", "ChIPpeakAnno",
               "webshot", "clusterProfiler", "dupRadar", "pheatmap",
               "taxize", "SingleCellExperiment", "SummarizedExperiment",
               "scater", "DropletUtils", "shiny", "heatmaply", "readxl",
-              "readr", "dplyr", "shinycssloaders", "shinyjs", "slingshot")
+              "readr", "dplyr", "shinycssloaders", "shinyjs", "slingshot",
+              "Rmagic")
 packages <- setdiff(packages, rownames(installed.packages()))
 BiocManager::install(packages)
 
