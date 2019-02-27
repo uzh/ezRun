@@ -30,7 +30,7 @@ require(SummarizedExperiment)
 ## debug
 # title:  "`r metadata(sce)$param$name`"
 # sce <- readRDS("/scratch/gtan/dev/SCReports-p2284/AVM_17_08_2018_SCReport/sce.rds")
-# sce <- readRDS("/srv/gstore/projects/p2838/SCReport_32064_2019-01-28--16-12-45/NCC_Trpv5_Tomato_sc_A01_SCReport/sce.rds")
+# sce <- readRDS("/srv/gstore/projects/p2838/SCReport_34239_2019-02-19--21-11-44//NCC_Trpv5_Tomato_sc_A01_SCReport/sce.rds")
 # sce <- readRDS("/scratch/gtan/debug/quickDebug/sce.rds")
 ## end of debug
 debug <- FALSE
@@ -302,22 +302,31 @@ for(i in nrPseudoT){
   lines(SlingshotDataSet(sceSlingshot), lwd=2)
 }
 ## Trajectory
-if(length(levels(sceSlingshot$ident)) >= 10){
-  colors <- colorRampPalette(brewer.pal(9,'Set1'))(length(levels(sceSlingshot$ident)))
-}else{
-  colors <- brewer.pal(9,'Set1')
-}
+cell.colorsPalette <- setNames(gg_color_hue(length(levels(sceSlingshot$ident))),
+                               levels(sceSlingshot$ident))
+# cell.colors <- cell.colorsPalette[tSNE_data$cluster]
+# names(cell.colors) <- tSNE_data$cells
+
+# if(length(levels(sceSlingshot$ident)) >= 10){
+#   colors <- colorRampPalette(brewer.pal(9,'Set1'))(length(levels(sceSlingshot$ident)))
+# }else{
+#   colors <- brewer.pal(9,'Set1')
+# }
 plot(reducedDim(sceSlingshot, type="TSNE"), 
-     col = colors[sceSlingshot$ident], 
+     col = cell.colorsPalette[sceSlingshot$ident], 
      pch=16, asp = 1, main="Trajectory reconstruction")
 lines(SlingshotDataSet(sceSlingshot), lwd=2, type = 'lineages')
+legend("topleft", legend=names(cell.colorsPalette),
+       pch=19, col=cell.colorsPalette)
 
 ##  smooth curves
 crv1 <- getCurves(SlingshotDataSet(sceSlingshot))
 plot(reducedDim(sceSlingshot, type="TSNE"),
-     col = colors[sceSlingshot$ident], asp = 1, pch = 16,
+     col = cell.colorsPalette[sceSlingshot$ident], asp = 1, pch = 16,
      main="Smooth curve")
 lines(crv1, lwd = 3)
+legend("topleft", legend=names(cell.colorsPalette),
+       pch=19, col=cell.colorsPalette)
 ```
 
 #### fastICA
