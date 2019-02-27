@@ -39,9 +39,7 @@ ezMethodCellRanger = function(input=NA, output=NA, param=NA){
     unlink(refDir, recursive = TRUE)
   }
   
-  if(param$TenXLibrary == "GEX" &&
-     (startsWith(param$refBuild, "Homo_sapiens/Ensembl") || 
-      startsWith(param$refBuild, "Mus_musculus/Ensembl"))){
+  if(param$TenXLibrary == "GEX"){
     require(DropletUtils)
     countMatrixFn <- list.files(path=sampleName,
                                 pattern="\\.mtx(\\.gz)*$", recursive=TRUE,
@@ -51,7 +49,6 @@ ezMethodCellRanger = function(input=NA, output=NA, param=NA){
     write_tsv(cellPhase,
               path=file.path(dirname(countMatrixFn), "CellCyclePhase.txt"))
   }
-  
   return("Success")
 }
 
