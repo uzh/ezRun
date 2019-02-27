@@ -221,6 +221,8 @@ FeaturePlot(object = scData, features.plot = "nGene",
             reduction.use = "tsne", no.legend = FALSE)
 FeaturePlot(object = scData, features.plot = "nUMI", 
             reduction.use = "tsne", no.legend = FALSE)
+FeaturePlot(object = scData, features.plot = "perc_mito",
+            reduction.use = "tsne", no.legend = FALSE)
 ```
 
 
