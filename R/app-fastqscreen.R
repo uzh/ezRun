@@ -10,6 +10,7 @@ ezMethodFastqScreen = function(input=NA, output=NA, param=NA,
                                htmlFile="00index.html"){
   inputRaw <- input$copy()
   # Preprocessing
+  param$trimAdapter = TRUE
   if(input$readType() == "bam"){
     stopifnot(input$getLength() == 1L) ## We only support one uBam now.
     fastqInput <- ezMethodBam2Fastq(input = input, param = param,
