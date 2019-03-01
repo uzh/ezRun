@@ -74,8 +74,8 @@ ezMethodSCReport = function(input=NA, output=NA, param=NA,
   reportCwd <- getwd()
   
   ## subset the selected sample names
-  samples <- param$samples
-  input <- input$subset(samples)
+  # samples <- param$samples
+  # input <- input$subset(samples)
   
   param$scProtocol <- ifelse("STARLog" %in% input$colNames, "smart-Seq2", "10x")
   
