@@ -75,18 +75,10 @@ return(sampleObject)
 ##' @param  phyloseqObj, a phyloseq object.
 ##' @return Returns a  filtered Phyloseq  object.
 phyloSeqPreprocess <- function(phyloseqObj){
-  GPfr <- phyloseqObj
-  ## Standardize abundances to the median sequencing depth
- # total = median(sample_sums(phyloseqObj))
- # standf = function(x, t=total) round(t * (x / sum(x)))
-#  gps = transform_sample_counts(phyloseqObj, standf)
-#  ## transformed to relative abundance and filtered by abundance
-#  GPr  = transform_sample_counts(gps, function(x) x / sum(x) )
-#  GPfr = filter_taxa(GPr, function(x) mean(x) > 1e-5, TRUE)
-  filteredPhyloseqObj = filter_taxa(GPfr, function(x) sum(x > 3*1e-5) > (0.2*length(x)), TRUE)
-  filteredPhyloseqObj = subset_taxa(filteredPhyloseqObj, Domain=="Bacteria")
- # filteredPhyloseqObj = subset_taxa(GPfr, Domain=="Bacteria")
-  return(filteredPhyloseqObj)
+  ### OTU abundance filter 
+  transformedPhyloseqObj  <- transform_sample_counts(phyloseqObj, function(otu) otu/sum(otu))
+  ###
+  return(transformedPhyloseqObj)
 }
 
 ###################################################################
