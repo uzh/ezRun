@@ -26,6 +26,15 @@ require(readr)
 require(slingshot)
 require(RColorBrewer)
 require(SummarizedExperiment)
+require(tibble)
+require(reticulate)
+if(!grepl("^3", py_config()$version)){
+  use_python("/usr/local/ngseq/packages/Dev/Python/3.6.8/bin/python3")
+  Sys.setenv("LD_LIBRARY_PATH"=paste("/usr/local/ngseq/packages/Dev/Python/3.6.8/lib/",
+                                     Sys.getenv("LD_LIBRARY_PATH"), sep=":"))
+}
+library(Rmagic) ## This has to be loaded after setting correct python
+
 ## ----------------------------------------------
 ## debug
 # title:  "`r metadata(sce)$param$name`"
@@ -346,6 +355,37 @@ saveRDS(list(scData=scData, tSNE_data=tSNE_data),
         file=basename(output$getColumn("Live Report")))
 ```
 [Shiny explorer](`r output$getColumn("Live Report")`)
+
+### MAGIC
+Markov Affinity-based Graph Imputation of Cells (MAGIC) is an algorithm for 
+denoising high-dimensional data most commonly applied to single-cell 
+RNA sequencing data. 
+MAGIC learns the manifold data, using the resultant graph to smooth the features 
+and restore the structure of the data.
+
+See more details at https://github.com/KrishnaswamyLab/MAGIC.
+
+```{r magic, echo=FALSE, results='hide'}
+magic_data <- magic(t(scData@data), genes="all_genes",
+                    t="auto", seed=10)
+magicDataFn <- "magic_data.tsv"
+write_tsv(as_tibble(t(as.data.frame(magic_data)), rownames="gene_name"),
+          path=magicDataFn)
+magicDataFn <- R.utils::gzip(magicDataFn)
+```
+
+Smoothed data is available at [`r magicDataFn`](`r magicDataFn`).
+
+After loading `r magicDataFn` into R, 
+to visualise the gene-gene relationships after MAGIC,
+use the code below to show genes of interest, 
+for example, "Pvalb", "Slc12a3" and "Aqp2" here.
+
+```{r magic plot, echo=TRUE, eval=FALSE}
+ggplot(magic_data) +
+  geom_point(aes(Pvalb, Slc12a3, color=Aqp2)) +
+  scale_color_viridis(option="B")
+```
 
 ### Parameters
 ```{r report parameters, echo=FALSE}
