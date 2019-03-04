@@ -36,7 +36,7 @@ DADA2CreateSeqTab <- function(sampleName,maxLen,file1PathInDataset,
   }else{
     fnFs <- file1PathInDataset
     filtFs <- paste("filt",sampleName,"R1.fastq.gz", sep = ".")
-    out <- filterAndTrim(fnFs, filtFs, truncLen=maxLen,
+    out <- filterAndTrim(fnFs, filtFs, truncLen=minLen,
                          maxN=0, maxEE=1, truncQ=11, rm.phix=TRUE,
                          compress=TRUE, multithread=TRUE)
     errF <- learnErrors(filtFs, multithread=TRUE)
