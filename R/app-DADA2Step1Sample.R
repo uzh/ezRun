@@ -24,7 +24,7 @@ ezMethodDADA2Step1Sample = function(input=NA, output=NA, param=NA,
   DADA2mainSeqTabObj <- DADA2CreateSeqTab(sampleName,maxLen,file1PathInDataset,
                                           minLen,file2PathInDataset)
   }else{
-    DADA2mainSeqTabObj <- DADA2CreateSeqTab(sampleName,maxLen,file1PathInDataset)
+    DADA2mainSeqTabObj <- DADA2CreateSeqTab(sampleName,maxLen,file1PathInDataset,minLen)
   }
   
   ## rename output files
