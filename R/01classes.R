@@ -427,7 +427,7 @@ cleanForFreeDiskSpace <- function(param){
   
   freeSpace = getGigabyteFree(".")
   i = 0
-  while(getGigabyteFree(".") < param$scratch & i < 60){
+  while(getGigabyteFree(".") < param$scratch & i < 200){
     if(getGigabyteTotal(".") > 1024){
       ## For big nodes with more than 1TB scratch, only clean for trxcopy
       message("Clean for trxcopy!")
@@ -436,7 +436,7 @@ cleanForFreeDiskSpace <- function(param){
       message("Clean for all users!")
       cleanOldestDir(dirPath="/scratch", user=NULL)
     }
-    Sys.sleep(10)
+    Sys.sleep(5)
     i = i + 1
   }
   if (getGigabyteFree(".") < param$scratch){
