@@ -366,7 +366,7 @@ and restore the structure of the data.
 See more details at https://github.com/KrishnaswamyLab/MAGIC.
 
 ```{r magic, echo=FALSE, results='hide'}
-magic_data <- magic(t(scData@data), genes="all_genes",
+magic_data <- magic(Matrix::t(scData@data), genes="all_genes",
                     t="auto", seed=10)
 magicDataFn <- "magic_data.tsv"
 write_tsv(as_tibble(t(as.data.frame(magic_data)), rownames="gene_name"),
