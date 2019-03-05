@@ -40,14 +40,31 @@ ezMethodCellRanger = function(input=NA, output=NA, param=NA){
   }
   
   if(param$TenXLibrary == "GEX"){
-    require(DropletUtils)
-    countMatrixFn <- list.files(path=sampleName,
+    #require(DropletUtils)
+    require(Matrix)
+    require(readr)
+    countMatrixFn <- list.files(path= file.path(sampleName, 'outs/filtered_feature_bc_matrix'),
                                 pattern="\\.mtx(\\.gz)*$", recursive=TRUE,
                                 full.names=TRUE)
-    sce <- read10xCounts(dirname(countMatrixFn), col.names=TRUE)
-    cellPhase <- getCellCycle(sce, param$refBuild)
+    #sce <- read10xCounts(dirname(countMatrixFn), col.names=TRUE)
+
+    matrix_dir = dirname(countMatrixFn)
+    barcode.path <- file.path(matrix_dir, "barcodes.tsv.gz")
+    features.path <- file.path(matrix_dir, "features.tsv.gz")
+    matrix.path <- file.path(matrix_dir, "matrix.mtx.gz")
+    mat <- readMM(file = matrix.path)
+    feature.names = read.delim(features.path, 
+                               header = FALSE,
+                               stringsAsFactors = FALSE)
+    barcode.names = read.delim(barcode.path, 
+                               header = FALSE,
+                               stringsAsFactors = FALSE)
+    colnames(mat) = barcode.names$V1
+    rownames(mat) = feature.names$V1
+    
+    cellPhase <- getCellCycle(mat, param$refBuild)
     write_tsv(cellPhase,
-              path=file.path(dirname(countMatrixFn), "CellCyclePhase.txt"))
+              path=file.path(matrix_dir, "CellCyclePhase.txt"))
   }
   return("Success")
 }
