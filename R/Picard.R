@@ -85,7 +85,7 @@ CollectRnaSeqMetrics <- function(inBams, gtfFn, featAnnoFn,
   ## CollectRnaSeqMetrics
   outputFns <- tempfile(pattern=inBams,
                         fileext=".CollectRnaSeqMetrics")
-  cmd <- paste("java -Xmx3G", "-jar", Sys.getenv("Picard_jar"),
+  cmd <- paste("java -Xmx10G", "-jar", Sys.getenv("Picard_jar"),
                "CollectRnaSeqMetrics",
                paste0("I=", inBams),
                paste0("O=", outputFns),
