@@ -88,7 +88,6 @@ ezMethodSCCountQC = function(input=NA, output=NA, param=NA,
   ## Picard metrics
   if(param$scProtocol == "smart-Seq2" && !param$hasControlSeqs){
     bamRGFns <- splitBamByRG(inBam, mc.cores=param$cores)
-    on.exit(file.remove(file.path(reportCwd, bamRGFns)), add = TRUE)
     
     ### CollectAlignmentSummaryMetrics
     message("Start CollectAlignmentSummaryMetrics", date())
@@ -119,6 +118,8 @@ ezMethodSCCountQC = function(input=NA, output=NA, param=NA,
     colData(sce) <- as(data.frame(colData(sce), dupMetrics[colnames(sce), ],
                                   check.names = FALSE, stringsAsFactors = FALSE),
                        "DataFrame")
+    
+    file.remove(file.path(reportCwd, bamRGFns))
   }
   metadata(sce)$param <- param
   saveRDS(sce, file="sce.rds")
