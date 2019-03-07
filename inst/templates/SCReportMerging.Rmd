@@ -68,7 +68,9 @@ cat(paste0("<SCRIPT language=\"JavaScript\" SRC=\"", basename(jsFile), "\"></SCR
 
 ```{r tSNE no correction, include=FALSE}
 sce_cbind <- Reduce(SingleCellExperiment::cbind, sceList)
-metadata(sce_cbind)$param$resolution <- param$resolution
+newParams <- c("minGenesPerCell", "maxGenesPerCell", "x.low.cutoff",
+               "x.high.cutoff", "y.cutoff", "pcs", "resolution")
+metadata(sce_cbind)$param[newParams] <- param[newParams]
 sce_cbind <- seuratPreProcess(sce_cbind)
 scData.None <- metadata(sce_cbind)$scData
 ```
