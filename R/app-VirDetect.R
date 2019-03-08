@@ -163,6 +163,8 @@ ezMethodVirDetect = function(input=NA, output=NA, param=NA,
   rmarkdown::render(input="VirDetect.Rmd", envir = new.env(),
                     output_dir=".", output_file=htmlFile, quiet=TRUE)
   return("Success")
+
+  ezSystem("rm -f *.csv")
 }
 
 ##' @template app-template
@@ -183,4 +185,3 @@ EzAppVirDetect <-
               )
 )
 
-ezSystem("rm -f *.csv")
