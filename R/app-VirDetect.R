@@ -133,6 +133,8 @@ ezMethodVirDetect = function(input=NA, output=NA, param=NA,
         	sub[i,8]<-sum(cov$V6!=0)
         	sub[i,9]<-sum(cov$V6!=0)/len*100
         	sub[i,10]<-sum(cov$V6)/len
+		system(paste0("rm ", chr, ".bam"))
+		system(paste0("rm ", chr, ".bam.bai"))
   	}
 	sub<-sub[order(sub$V10, decreasing=TRUE), ]
   	out<-sub[, c(1,6,7,2,3,8,9,10)]
@@ -180,3 +182,5 @@ EzAppVirDetect <-
                 }
               )
 )
+
+ezSystem("rm -f *.csv")
