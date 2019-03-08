@@ -162,6 +162,9 @@ ezMethodVirDetect = function(input=NA, output=NA, param=NA,
                 minReadCount=param$minReadCount)
   rmarkdown::render(input="VirDetect.Rmd", envir = new.env(),
                     output_dir=".", output_file=htmlFile, quiet=TRUE)
+  cdir <- "."
+  csv.files <- file.path(cdir, "*.csv")
+  system(paste0("rm ", csv.files))
   return("Success")
 }
 
