@@ -64,7 +64,7 @@ ezMethodCellRanger = function(input=NA, output=NA, param=NA){
     # 
     cellPhase <- getCellCycle(sce, param$refBuild)
     write_tsv(cellPhase,
-              path=file.path(matrix_dir, "CellCyclePhase.txt"))
+              path=file.path(dirname(countMatrixFn), "CellCyclePhase.txt"))
   }
   return("Success")
 }
