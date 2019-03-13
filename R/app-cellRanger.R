@@ -47,21 +47,7 @@ ezMethodCellRanger = function(input=NA, output=NA, param=NA){
                                 pattern="\\.mtx(\\.gz)*$", recursive=TRUE,
                                 full.names=TRUE)
     sce <- read10xCounts(dirname(countMatrixFn), col.names=TRUE)
-
-    # matrix_dir = dirname(countMatrixFn)
-    # barcode.path <- file.path(matrix_dir, "barcodes.tsv.gz")
-    # features.path <- file.path(matrix_dir, "features.tsv.gz")
-    # matrix.path <- file.path(matrix_dir, "matrix.mtx.gz")
-    # mat <- readMM(file = matrix.path)
-    # feature.names = read.delim(features.path, 
-    #                            header = FALSE,
-    #                            stringsAsFactors = FALSE)
-    # barcode.names = read.delim(barcode.path, 
-    #                            header = FALSE,
-    #                            stringsAsFactors = FALSE)
-    # colnames(mat) = barcode.names$V1
-    # rownames(mat) = feature.names$V1
-    # 
+    
     cellPhase <- getCellCycle(sce, param$refBuild)
     write_tsv(cellPhase,
               path=file.path(dirname(countMatrixFn), "CellCyclePhase.txt"))
