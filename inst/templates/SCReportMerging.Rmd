@@ -100,7 +100,7 @@ kable(toTable,
 ```
 
 ```{r tSNE no correction facet, echo=FALSE, fig.width=14}
-p1 + facet_grid(~ident)
+p1 + facet_wrap(~ident, ncol=2)
 ```
 
 ### Cell clustering with CCA correction
@@ -202,7 +202,7 @@ kable(toTable,
 ```
 
 ```{r tSNE CCA correction facet, echo=FALSE, fig.width=14}
-p1 + facet_grid(~ident)
+p1 + facet_wrap(~ident, ncol=2)
 ```
 
 ```{r select correction, echo=FALSE}
