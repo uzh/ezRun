@@ -157,6 +157,12 @@ ezWrite.table(geneMeans, geneMeansFn)
 
 [`r tSNEFn`](`r tSNEFn`)
 
+#### UMAP plot (beta)
+
+```{r UMAP, echo=FALSE}
+DimPlot(scData, reduction.use="umap", do.label=TRUE)
+```
+
 ### Control of the cell clustering
 
 ```{r FeaturePlot, echo=FALSE, eval=!debug}
