@@ -471,7 +471,7 @@ convertGtfToGff <- function(psGtfFile, psGffFile) {
   ezSystem(paste('grep protein_coding', basename(psGtfFile), '>protein_coding_genes.gtf'))
   sPyConvCmd <- paste(
     "python",
-    file.path(system.file(package = "DEXSeq", "python_scripts"), "dexseq_prepare_annotation.py"),
+    file.path(system.file(package = "DEXSeq", "python_scripts"), "dexseq_prepare_annotation.py -r no"),
     'protein_coding_genes.gtf',
     psGffFile)
   ezSystem(sPyConvCmd)
