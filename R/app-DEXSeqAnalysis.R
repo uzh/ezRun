@@ -191,7 +191,7 @@ writeDEXSeqReport <- function(dataset, dexResult, htmlFile="00index.html", sResu
   name <- param$name
   ### # extract DEXSeqResults object
   dxd <- dexResult$dxd
-  dxr <- DEXSeq::DEXSeqResults(dxd,independentFiltering = TRUE)
+  dxr <- DEXSeq::DEXSeqResults(dxd)#,independentFiltering = TRUE)
 
   ### # put the results into a different subdirectory
   sCurWd <- getwd()
