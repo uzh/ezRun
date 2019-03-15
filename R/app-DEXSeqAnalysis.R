@@ -202,11 +202,6 @@ writeDEXSeqReport <- function(dataset, dexResult, htmlFile="00index.html", sResu
   resultObjFile = paste0("result--", param$comparison, "--", ezRandomString(length=12), "--EzDEXSeqResult.rds")
   saveRDS(resultObj,file=resultObjFile)
 
-  ### # write tsv file from results
-  sResultFile <- paste0("result--", param$comparison, "--", "DEXSeqResult.txt")
-  dxr$transcripts = sapply(dxr$transcripts, function(trList){paste(trList, collapse="; ")})
-  write.table(dxr, file = sResultFile, quote = FALSE, sep = "\t")
-
   ### # if parameters about biomart are specified, use them
   if (ezIsSpecified(param$bio_mart) &
       ezIsSpecified(param$mart_dataset) &
@@ -221,6 +216,12 @@ writeDEXSeqReport <- function(dataset, dexResult, htmlFile="00index.html", sResu
     DEXSeq::DEXSeqHTML(dxr, path = param$dexseq_report_path, file = param$dexseq_report_file, FDR = param$fdr,
                        BPPARAM = BPPARAM)
   }
+  
+  ### # write tsv file from results
+  sResultFile <- paste0("result--", param$comparison, "--", "DEXSeqResult.txt")
+  dxr$transcripts = sapply(dxr$transcripts, function(trList){paste(trList, collapse="; ")})
+  write.table(dxr, file = sResultFile, quote = FALSE, sep = "\t")
+  
   geneTableInfo = getGeneTable(pdxr = dxr, param = param)
   candidateReportFile = geneTableInfo[['candidateReportFile']]
 
