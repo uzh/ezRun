@@ -50,7 +50,7 @@ seuratPreProcess <- function(sce){
   if(ezIsSpecified(param$pcGenes)){
     indicesMatch <- match(toupper(param$pcGenes), rownames(scData@data))
     if(any(is.na(indicesMatch))){
-      warning("The following genes don't exist: ", 
+      stop("The following genes don't exist: ", 
               paste(param$pcGenes[is.na(indicesMatch)], collapse = ","))
     }
     pc.genes <- rownames(scData@data)[which(indicesMatch)]
