@@ -191,7 +191,7 @@ writeDEXSeqReport <- function(dataset, dexResult, htmlFile="00index.html", sResu
   name <- param$name
   ### # extract DEXSeqResults object
   dxd <- dexResult$dxd
-  dxr <- DEXSeq::DEXSeqResults(dxd,independentFiltering = TRUE)
+  dxr <- DEXSeq::DEXSeqResults(dxd)#,independentFiltering = TRUE)
 
   ### # put the results into a different subdirectory
   sCurWd <- getwd()
@@ -201,11 +201,6 @@ writeDEXSeqReport <- function(dataset, dexResult, htmlFile="00index.html", sResu
   resultObj = list(dxd = dxd, param=param)
   resultObjFile = paste0("result--", param$comparison, "--", ezRandomString(length=12), "--EzDEXSeqResult.rds")
   saveRDS(resultObj,file=resultObjFile)
-
-  ### # write tsv file from results
-  sResultFile <- paste0("result--", param$comparison, "--", "DEXSeqResult.txt")
-  dxr$transcripts = sapply(dxr$transcripts, function(trList){paste(trList, collapse="; ")})
-  write.table(dxr, file = sResultFile, quote = FALSE, sep = "\t")
 
   ### # if parameters about biomart are specified, use them
   if (ezIsSpecified(param$bio_mart) &
@@ -221,6 +216,12 @@ writeDEXSeqReport <- function(dataset, dexResult, htmlFile="00index.html", sResu
     DEXSeq::DEXSeqHTML(dxr, path = param$dexseq_report_path, file = param$dexseq_report_file, FDR = param$fdr,
                        BPPARAM = BPPARAM)
   }
+  
+  ### # write tsv file from results
+  sResultFile <- paste0("result--", param$comparison, "--", "DEXSeqResult.txt")
+  dxr$transcripts = sapply(dxr$transcripts, function(trList){paste(trList, collapse="; ")})
+  write.table(dxr, file = sResultFile, quote = FALSE, sep = "\t")
+  
   geneTableInfo = getGeneTable(pdxr = dxr, param = param)
   candidateReportFile = geneTableInfo[['candidateReportFile']]
 
@@ -471,7 +472,7 @@ convertGtfToGff <- function(psGtfFile, psGffFile) {
   ezSystem(paste('grep protein_coding', basename(psGtfFile), '>protein_coding_genes.gtf'))
   sPyConvCmd <- paste(
     "python",
-    file.path(system.file(package = "DEXSeq", "python_scripts"), "dexseq_prepare_annotation.py"),
+    file.path(system.file(package = "DEXSeq", "python_scripts"), "dexseq_prepare_annotation.py -r no"),
     'protein_coding_genes.gtf',
     psGffFile)
   ezSystem(sPyConvCmd)
