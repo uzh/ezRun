@@ -21,7 +21,6 @@ seuratPreProcess <- function(sce){
   param <- metadata(sce)$param
   rownames(sce) <- uniquifyFeatureNames(ID=rowData(sce)$gene_id,
                                         names=rowData(sce)$gene_name)
-  
   if(param$scProtocol == "smart-Seq2"){
     sce <- sce[ ,Matrix::colSums(assays(sce)$counts) > param$minReadsPerCell]
   }
@@ -86,9 +85,9 @@ seuratClustering <- function(scData, param){
                     dims.use=1:param$pcs, tsne.method="Rtsne",
                     perplexity=ifelse(length(scData@ident) > 200, 30, 10),
                     num_threads=param$cores)
-  scData <- RunUMAP(object=scData, reduction.use = "pca",
+  try(scData <- RunUMAP(object=scData, reduction.use = "pca",
                     dims.use=1:param$pcs,
-                    n_neighbors=ifelse(length(scData@ident) > 200, 30, 10))
+                    n_neighbors=ifelse(length(scData@ident) > 200, 30, 10)))
   return(scData)
 }
 
