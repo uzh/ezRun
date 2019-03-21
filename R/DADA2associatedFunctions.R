@@ -12,7 +12,7 @@
 ##' @param  a fastq or pairs of ffastq files .
 ##' @return Returns a DADA2 seqtab object.
 
-DADA2CreateSeqTab <- function(sampleName,minLen,file1PathInDataset,
+DADA2CreateSeqTab <- function(sampleName,minLen,concat,file1PathInDataset,
                               file2PathInDataset){
   if(!missing(file2PathInDataset)){
   fnFs <- file1PathInDataset
@@ -31,7 +31,8 @@ DADA2CreateSeqTab <- function(sampleName,minLen,file1PathInDataset,
   dadaFs <- dada(derepFs, err=errF, multithread=TRUE)
   dadaRs <- dada(derepRs, err=errR, multithread=TRUE)
   
-  mergers <- mergePairs(dadaFs, derepFs, dadaRs, derepRs, verbose=TRUE)
+  mergers <- mergePairs(dadaFs, derepFs, dadaRs, derepRs, verbose=TRUE, 
+                        justConcatenate = concat)
   seqtab <- makeSequenceTable(mergers)
   }else{
     fnFs <- file1PathInDataset
