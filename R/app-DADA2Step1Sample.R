@@ -21,7 +21,7 @@ ezMethodDADA2Step1Sample = function(input=NA, output=NA, param=NA,
   file1PathInDataset <- input$getFullPaths("Read1")
   if(isPaired){
     file2PathInDataset <- input$getFullPaths("Read2")
-  DADA2mainSeqTabObj <- DADA2CreateSeqTab(sampleName,minLen,overlap,file1PathInDataset,
+  DADA2mainSeqTabObj <- DADA2CreateSeqTab(sampleName,minLen,concat,file1PathInDataset,
                                           file2PathInDataset)
   }else{
     DADA2mainSeqTabObj <- DADA2CreateSeqTab(sampleName,minLen,file1PathInDataset)
