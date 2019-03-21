@@ -64,7 +64,7 @@ DADA2CreateSeqTab <- function(sampleName,minLen,file1PathInDataset,
 ##' 
 DADA2mergeSeqTabs <- function(listOfSeqTabsFiles, database){
   listOfSeqTabs <- lapply(listOfSeqTabsFiles,readRDS)
-  fullTableOfOTUs <- mergeSequenceTables(tables= listOfSeqTabs)
+  fullTableOfOTUs <- mergeSequenceTables(tables=listOfSeqTabs)
 fullTableOfOTUsNoChim <- removeBimeraDenovo(fullTableOfOTUs, method="consensus", multithread=TRUE)
 taxa <- assignTaxonomy(fullTableOfOTUsNoChim,database, multithread=TRUE)
 return(list(fullTableOfOTUsNoChimObj=fullTableOfOTUsNoChim,taxaObj=taxa))

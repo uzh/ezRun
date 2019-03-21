@@ -9,13 +9,7 @@
 ezMethodDADA2Step2Dataset = function(input=NA, output=NA, param=NA, 
                                       htmlFile="00index.html"){
   
-  require(rmarkdown)
-  require(ShortRead)
-  require(phyloseq)
-  require(plyr)
-  require(ape)
-  require(ggplot2)
-  library(scales)
+  require(dada2)
   dataset = input$meta
   sampleName = "merged"
   databaseParam <- param$database
@@ -35,15 +29,7 @@ ezMethodDADA2Step2Dataset = function(input=NA, output=NA, param=NA,
   colsToKeep <- c("Name",grep("Factor",colnames(dataset), value = T))
   designMatrix <- dataset[,colsToKeep]
   colnames(designMatrix) <- gsub(" \\[Factor\\]","",colnames(designMatrix))
-  
-  ### create Phyloseq object
-  OTUobj <- otu_table(mergeDADA2Obj$fullTableOfOTUsNoChimObj,
-                      taxa_are_rows=FALSE)
-  taxaObj <- tax_table(mergeDADA2Obj$taxaObj)
-  sampleObj <- sample_data(designMatrix)
-  phyloseqObj <- phyloseq(OTUobj,taxaObj,sampleObj)
-  
-  
+
   ##  output files
 
   ### Files needed for Phyloseq
@@ -56,10 +42,11 @@ ezMethodDADA2Step2Dataset = function(input=NA, output=NA, param=NA,
   write.table(mergeDADA2Obj$fullTableOfOTUsNoChimObj,newOTUsToCountFileName,
               row.names = F, col.names = T, quote = F,sep = "\t")
   ## design Matrix 
+  if (param$group){
     designMatrixFile <-  basename(output$getColumn("sampleDescriptionFile"))
     write.table(designMatrix,designMatrixFile,row.names = F, col.names = T, quote = F,sep = "\t")
 }
-
+}
 ##' @template app-template
 ##' @templateVar method ezMethodDADA2Step2Dataset()
 ##' @templateVar htmlArg )
