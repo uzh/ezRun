@@ -15,6 +15,12 @@ Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
 
 ```{r setup, include=FALSE}
 # input for this report: sce, output
+require(reticulate)
+if(!grepl("^3", py_config()$version)){
+  use_python("/usr/local/ngseq/packages/Dev/Python/3.6.8/bin/python3")
+  Sys.setenv("LD_LIBRARY_PATH"=paste("/usr/local/ngseq/packages/Dev/Python/3.6.8/lib/",
+                                     Sys.getenv("LD_LIBRARY_PATH"), sep=":"))
+}
 require(ezRun)
 require(Seurat)
 require(dplyr)
@@ -27,12 +33,6 @@ require(slingshot)
 require(RColorBrewer)
 require(SummarizedExperiment)
 require(tibble)
-require(reticulate)
-if(!grepl("^3", py_config()$version)){
-  use_python("/usr/local/ngseq/packages/Dev/Python/3.6.8/bin/python3")
-  Sys.setenv("LD_LIBRARY_PATH"=paste("/usr/local/ngseq/packages/Dev/Python/3.6.8/lib/",
-                                     Sys.getenv("LD_LIBRARY_PATH"), sep=":"))
-}
 library(Rmagic) ## This has to be loaded after setting correct python
 
 ## ----------------------------------------------
@@ -62,7 +62,7 @@ cat(paste0("<SCRIPT language=\"JavaScript\" SRC=\"", basename(jsFile), "\"></SCR
 markers <- FindAllMarkers(object=scData, only.pos=TRUE,
                           return.thresh = pvalue_allMarkers)
 posMarkersFn <- "pos_markers.tsv"
-ezWrite.table(markers, posMarkersFn)
+write_tsv(as_tibble(markers), path=posMarkersFn)
 
 ## Significant markers
 cm <- markers[ ,c("gene","cluster","avg_logFC","p_val_adj")]
