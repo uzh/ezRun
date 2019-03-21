@@ -22,7 +22,7 @@ ezMethodDADA2Step1Sample = function(input=NA, output=NA, param=NA,
   if(isPaired){
     file2PathInDataset <- input$getFullPaths("Read2")
   DADA2mainSeqTabObj <- DADA2CreateSeqTab(sampleName,maxLen,file1PathInDataset,
-                                          minLen,file2PathInDataset)
+                                          file2PathInDataset)
   }else{
     DADA2mainSeqTabObj <- DADA2CreateSeqTab(sampleName,maxLen,file1PathInDataset,minLen)
   }
