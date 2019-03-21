@@ -14,6 +14,12 @@ editor_options:
 Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
 
 ```{r setup, include=FALSE}
+require(reticulate)
+if(!grepl("^3", py_config()$version)){
+  use_python("/usr/local/ngseq/packages/Dev/Python/3.6.8/bin/python3")
+  Sys.setenv("LD_LIBRARY_PATH"=paste("/usr/local/ngseq/packages/Dev/Python/3.6.8/lib/",
+                                     Sys.getenv("LD_LIBRARY_PATH"), sep=":"))
+}
 require(SummarizedExperiment)
 require(ezRun)
 require(cowplot)
@@ -35,9 +41,9 @@ names(sceList) <- names(sceURLs)
 
 # to test
 # param <- metadata(sceList[[1]])$param
-# param$resolution <- 0.5
+# param$resolution <- 0.6
 # param$cc <- 20
-# param$batchCorrection <- "CCA"
+# param$batchCorrection <- "None"
 
 pvalue_allMarkers <- 0.05
 pvalue_all2allMarkers <- 0.01
@@ -66,11 +72,13 @@ cat(paste0("<SCRIPT language=\"JavaScript\" SRC=\"", basename(jsFile), "\"></SCR
 
 ```{r tSNE no correction, include=FALSE}
 sce_cbind <- Reduce(SingleCellExperiment::cbind, sceList)
-newParams <- c("minGenesPerCell", "maxGenesPerCell", "x.low.cutoff",
-               "x.high.cutoff", "y.cutoff", "pcs", "resolution")
-metadata(sce_cbind)$param[newParams] <- param[newParams]
-sce_cbind <- seuratPreProcess(sce_cbind)
-scData.None <- metadata(sce_cbind)$scData
+scData_Merge <- Reduce(MergeSeurat, lapply(sceList, function(x){metadata(x)$scData}))
+scData_Merge@project.name <- param$name
+# newParams <- c("x.low.cutoff", "x.high.cutoff", "y.cutoff", "pcs", "resolution")
+# metadata(sce_cbind)$param[newParams] <- param[newParams]
+# sce_cbind <- seuratPreProcess(sce_cbind)
+# scData.None <- metadata(sce_cbind)$scData
+scData.None <- seuratClustering(scData_Merge, param)
 ```
 
 ```{r tSNE no correction plot, echo=FALSE}
@@ -170,7 +178,7 @@ scData.CCA <- RunTSNE(object=scData.CCA, reduction.use="cca.aligned",
 scData.CCA <- FindClusters(object=scData.CCA, reduction.type="cca.aligned",
                            dims.use=1:param$cc, save.SNN=TRUE,
                            force.recalc=FALSE, print.output=FALSE,
-                           resolution=param$resolution)
+                           resolution=param$resolutionCCA)
 ```
 
 Visualization on t-SNE plot
@@ -220,6 +228,7 @@ scData@meta.data$Plate <- gsub("_", ".", scData@meta.data$Plate)
 rm(scData.CCA, scData.None)
 gc()
 ```
+
 ### Control of the cell clustering
 
 ```{r control cell clustering, echo=FALSE}
@@ -242,7 +251,7 @@ if(!is.null(scData@meta.data$CellCycle) &&
 markers <- FindAllMarkers(object=scData, only.pos=TRUE,
                           return.thresh = pvalue_allMarkers)
 posMarkersFn <- "pos_markers.tsv"
-ezWrite.table(markers, posMarkersFn)
+write_tsv(as_tibble(markers), posMarkersFn)
 
 ## Significant markers
 cm <- markers[ ,c("gene","cluster","avg_logFC","p_val_adj")]
@@ -513,7 +522,9 @@ The SingleCellExperiment object with final Seurat object after merging is [here]
 
 ### Parameters
 ```{r report parameters, echo=FALSE}
-param[c("batchCorrection", "cc", "resolution", "chosenClusters")]
+param[c("x.low.cutoff", "x.high.cutoff", "y.cutoff", "pcs", "resolution",
+        "batchCorrection", "cc", "resolutionCCA",
+        "chosenClusters")]
 ```
 
 ```{r seurat parameters, echo=FALSE}
