@@ -62,10 +62,10 @@ DADA2CreateSeqTab <- function(sampleName,minLen,file1PathInDataset,
 ##' @param  a list of  DADA2 seqTables.
 ##' @return Returns a merged and annotated DADA2 seqtab object, without chimeras and chimera stats.
 ##' 
-DADA2mergeSeqTabs <- function(listOfSeqTabsFiles){
+DADA2mergeSeqTabs <- function(listOfSeqTabsFiles, database){
   listOfSeqTabs <- lapply(listOfSeqTabsFiles,readRDS)
   fullTableOfOTUs <- mergeSequenceTables(tables= listOfSeqTabs)
 fullTableOfOTUsNoChim <- removeBimeraDenovo(fullTableOfOTUs, method="consensus", multithread=TRUE)
-taxa <- assignTaxonomy(fullTableOfOTUsNoChim,SILVA_DB_DADA2, multithread=TRUE)
+taxa <- assignTaxonomy(fullTableOfOTUsNoChim,database, multithread=TRUE)
 return(list(fullTableOfOTUsNoChimObj=fullTableOfOTUsNoChim,taxaObj=taxa))
 }
