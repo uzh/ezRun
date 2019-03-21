@@ -15,12 +15,13 @@ ezMethodDADA2Step1Sample = function(input=NA, output=NA, param=NA,
   sampleName = input$getNames() 
   minLen <- param$minLen
   isPaired <- param$paired
+  concat <- param$concatenateReads
   ### read fastq files and prepare inputs for DADA2
   ### are reads paired? should they be joined? 
   file1PathInDataset <- input$getFullPaths("Read1")
   if(isPaired){
     file2PathInDataset <- input$getFullPaths("Read2")
-  DADA2mainSeqTabObj <- DADA2CreateSeqTab(sampleName,minLen,file1PathInDataset,
+  DADA2mainSeqTabObj <- DADA2CreateSeqTab(sampleName,minLen,overlap,file1PathInDataset,
                                           file2PathInDataset)
   }else{
     DADA2mainSeqTabObj <- DADA2CreateSeqTab(sampleName,minLen,file1PathInDataset)
