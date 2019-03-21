@@ -13,7 +13,6 @@ ezMethodDADA2Step1Sample = function(input=NA, output=NA, param=NA,
   require(purrr)
   dataset = input$meta
   sampleName = input$getNames() 
-  minLen <- param$minLen
   maxLen <- param$maxLen
   isPaired <- param$paired
   ### read fastq files and prepare inputs for DADA2
@@ -24,7 +23,7 @@ ezMethodDADA2Step1Sample = function(input=NA, output=NA, param=NA,
   DADA2mainSeqTabObj <- DADA2CreateSeqTab(sampleName,maxLen,file1PathInDataset,
                                           file2PathInDataset)
   }else{
-    DADA2mainSeqTabObj <- DADA2CreateSeqTab(sampleName,maxLen,file1PathInDataset,minLen)
+    DADA2mainSeqTabObj <- DADA2CreateSeqTab(sampleName,maxLen,file1PathInDataset)
   }
   
   ## rename output files

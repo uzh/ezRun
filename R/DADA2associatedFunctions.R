@@ -14,7 +14,7 @@
 
 DADA2CreateSeqTab <- function(sampleName,maxLen,file1PathInDataset,
                               file2PathInDataset){
-  if(!missing(file2PathInDataset) & !missing(minLen)){
+  if(!missing(file2PathInDataset)){
   fnFs <- file1PathInDataset
   fnRs <- file2PathInDataset
   filtFs <- paste("filt",sampleName,"R1.fastq.gz", sep = ".")
