@@ -62,7 +62,7 @@ cat(paste0("<SCRIPT language=\"JavaScript\" SRC=\"", basename(jsFile), "\"></SCR
 markers <- FindAllMarkers(object=scData, only.pos=TRUE,
                           return.thresh = pvalue_allMarkers)
 posMarkersFn <- "pos_markers.tsv"
-ezWrite.table(markers, posMarkersFn)
+write_tsv(as_tibble(markers), path=posMarkersFn)
 
 ## Significant markers
 cm <- markers[ ,c("gene","cluster","avg_logFC","p_val_adj")]

@@ -23,11 +23,9 @@ require(readr)
 require(Seurat)
 require(kableExtra)
 # input for this report: sceURLs, param
-# sce1URL <- "https://fgcz-sushi.uzh.ch/projects/p2284/SCReport_31302_2019-01-25--20-51-21/Recurrent_GBM_04092018_SCReport/00index.html"
-# sce2URL <- "https://fgcz-sushi.uzh.ch/projects/p2979/SCReport_32645_2018-12-21--21-25-59/Epilepsy_26112018_SCReport/00index.html"
-# sceURLs <- c("sample13days"="https://fgcz-sushi.uzh.ch/projects/p2326/SCReport_31783_sample1_3days_v-run_2018-12-03--16-22-12/SCReport/00index.html",
-#              "sample22wks"="https://fgcz-sushi.uzh.ch/projects/p2326/SCReport_31783_sample2_2wks_v_run_2018-12-03--15-14-48/SCReport/00index.html",
-#              "sample3sedentary"="https://fgcz-sushi.uzh.ch/projects/p2326/SCReport_31783_2018-12-17--16-21-45/sample3_sedentary_SCReport/00index.html")
+# sceURLs <- c("sample13days"="https://fgcz-sushi.uzh.ch/projects/p2326/SCReport_3days_2019-03-06--16-24-38/sample1_3days_v-run_SCReport/00index.html",
+#              "sample22wks"="https://fgcz-sushi.uzh.ch/projects/p2326/SCReport_2wks_2019-03-06--23-38-34/sample2_2wks_v_run_SCReport/00index.html",
+#              "sample3sedentary"="https://fgcz-sushi.uzh.ch/projects/p2326/SCReport_sedentary_2019-03-06--23-40-36/sample3_sedentary_SCReport/00index.html")
 
 sceList <- lapply(file.path("/srv/gstore/projects",
                           sub("https://fgcz-(gstore|sushi).uzh.ch/projects", "",

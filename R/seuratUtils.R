@@ -45,6 +45,14 @@ seuratPreProcess <- function(sce){
                         high.thresholds = c(param$maxGenesPerCell, param$maxMitoFraction))
   scData <- NormalizeData(object=scData, normalization.method="LogNormalize",
                           scale.factor=getSeuratScalingFactor(param$scProtocol))
+  scData <- seuratClustering(scData, param)
+  
+  metadata(sce)$scData <- scData
+  
+  return(sce)
+}
+
+seuratClustering <- function(scData, param){
   scData <- FindVariableGenes(object = scData, do.plot = FALSE,
                               x.low.cutoff=param$x.low.cutoff,
                               x.high.cutoff=param$x.high.cutoff,
@@ -56,7 +64,7 @@ seuratPreProcess <- function(sce){
     indicesMatch <- match(toupper(param$pcGenes), rownames(scData@data))
     if(any(is.na(indicesMatch))){
       stop("The following genes don't exist: ", 
-              paste(param$pcGenes[is.na(indicesMatch)], collapse = ","))
+           paste(param$pcGenes[is.na(indicesMatch)], collapse = ","))
     }
     pc.genes <- rownames(scData@data)[which(indicesMatch)]
     metadata(sce)[["pc.genes"]] <- pc.genes
@@ -81,9 +89,7 @@ seuratPreProcess <- function(sce){
   scData <- RunUMAP(object=scData, reduction.use = "pca",
                     dims.use=1:param$pcs,
                     n_neighbors=ifelse(length(scData@ident) > 200, 30, 10))
-  metadata(sce)$scData <- scData
-  
-  return(sce)
+  return(scData)
 }
 
 getSeuratScalingFactor <- function(x=c("10x", "smart-Seq2")){
