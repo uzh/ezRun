@@ -23,8 +23,8 @@ DADA2CreateSeqTab <- function(sampleName,minLen,file1PathInDataset,
   out <- filterAndTrim(fnFs, filtFs, fnRs, filtRs, truncLen=c(minLen,minLen),
                        maxN=0, maxEE=c(2,2), truncQ=2, rm.phix=TRUE,
                        compress=TRUE, multithread=TRUE)
-  errF <- learnErrors(filtFs, multithread=TRUE)
-  errR <- learnErrors(filtRs, multithread=TRUE)
+  errF <- learnErrors(filtFs, errorEstimationFunction = noqualErrfun, multithread=TRUE)
+  errR <- learnErrors(filtRs, errorEstimationFunction = noqualErrfun, multithread=TRUE)
   derepFs <- derepFastq(filtFs, verbose=TRUE)
   derepRs <- derepFastq(filtRs, verbose=TRUE)
   
@@ -39,7 +39,7 @@ DADA2CreateSeqTab <- function(sampleName,minLen,file1PathInDataset,
     out <- filterAndTrim(fnFs, filtFs, truncLen=minLen,
                          maxN=0, maxEE=1, truncQ=11, rm.phix=TRUE,
                          compress=TRUE, multithread=TRUE)
-    errF <- learnErrors(filtFs, multithread=TRUE)
+    errF <- learnErrors(filtFs,errorEstimationFunction = noqualErrfun, multithread=TRUE)
     derepFs <- derepFastq(filtFs, verbose=TRUE)
     dadaFs <- dada(derepFs, err=errF, multithread=TRUE)
     seqtab <- makeSequenceTable(dadaFs)
