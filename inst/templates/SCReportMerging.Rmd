@@ -14,6 +14,12 @@ editor_options:
 Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
 
 ```{r setup, include=FALSE}
+require(reticulate)
+if(!grepl("^3", py_config()$version)){
+  use_python("/usr/local/ngseq/packages/Dev/Python/3.6.8/bin/python3")
+  Sys.setenv("LD_LIBRARY_PATH"=paste("/usr/local/ngseq/packages/Dev/Python/3.6.8/lib/",
+                                     Sys.getenv("LD_LIBRARY_PATH"), sep=":"))
+}
 require(SummarizedExperiment)
 require(ezRun)
 require(cowplot)
@@ -23,11 +29,9 @@ require(readr)
 require(Seurat)
 require(kableExtra)
 # input for this report: sceURLs, param
-# sce1URL <- "https://fgcz-sushi.uzh.ch/projects/p2284/SCReport_31302_2019-01-25--20-51-21/Recurrent_GBM_04092018_SCReport/00index.html"
-# sce2URL <- "https://fgcz-sushi.uzh.ch/projects/p2979/SCReport_32645_2018-12-21--21-25-59/Epilepsy_26112018_SCReport/00index.html"
-# sceURLs <- c("sample13days"="https://fgcz-sushi.uzh.ch/projects/p2326/SCReport_31783_sample1_3days_v-run_2018-12-03--16-22-12/SCReport/00index.html",
-#              "sample22wks"="https://fgcz-sushi.uzh.ch/projects/p2326/SCReport_31783_sample2_2wks_v_run_2018-12-03--15-14-48/SCReport/00index.html",
-#              "sample3sedentary"="https://fgcz-sushi.uzh.ch/projects/p2326/SCReport_31783_2018-12-17--16-21-45/sample3_sedentary_SCReport/00index.html")
+# sceURLs <- c("sample13days"="https://fgcz-sushi.uzh.ch/projects/p2326/SCReport_3days_2019-03-06--16-24-38/sample1_3days_v-run_SCReport/00index.html",
+#              "sample22wks"="https://fgcz-sushi.uzh.ch/projects/p2326/SCReport_2wks_2019-03-06--23-38-34/sample2_2wks_v_run_SCReport/00index.html",
+#              "sample3sedentary"="https://fgcz-sushi.uzh.ch/projects/p2326/SCReport_sedentary_2019-03-06--23-40-36/sample3_sedentary_SCReport/00index.html")
 
 sceList <- lapply(file.path("/srv/gstore/projects",
                           sub("https://fgcz-(gstore|sushi).uzh.ch/projects", "",
@@ -37,9 +41,9 @@ names(sceList) <- names(sceURLs)
 
 # to test
 # param <- metadata(sceList[[1]])$param
-# param$resolution <- 0.5
+# param$resolution <- 0.6
 # param$cc <- 20
-# param$batchCorrection <- "CCA"
+# param$batchCorrection <- "None"
 
 pvalue_allMarkers <- 0.05
 pvalue_all2allMarkers <- 0.01
@@ -68,11 +72,13 @@ cat(paste0("<SCRIPT language=\"JavaScript\" SRC=\"", basename(jsFile), "\"></SCR
 
 ```{r tSNE no correction, include=FALSE}
 sce_cbind <- Reduce(SingleCellExperiment::cbind, sceList)
-newParams <- c("minGenesPerCell", "maxGenesPerCell", "x.low.cutoff",
-               "x.high.cutoff", "y.cutoff", "pcs", "resolution")
-metadata(sce_cbind)$param[newParams] <- param[newParams]
-sce_cbind <- seuratPreProcess(sce_cbind)
-scData.None <- metadata(sce_cbind)$scData
+scData_Merge <- Reduce(MergeSeurat, lapply(sceList, function(x){metadata(x)$scData}))
+scData_Merge@project.name <- param$name
+# newParams <- c("x.low.cutoff", "x.high.cutoff", "y.cutoff", "pcs", "resolution")
+# metadata(sce_cbind)$param[newParams] <- param[newParams]
+# sce_cbind <- seuratPreProcess(sce_cbind)
+# scData.None <- metadata(sce_cbind)$scData
+scData.None <- seuratClustering(scData_Merge, param)
 ```
 
 ```{r tSNE no correction plot, echo=FALSE}
@@ -172,7 +178,7 @@ scData.CCA <- RunTSNE(object=scData.CCA, reduction.use="cca.aligned",
 scData.CCA <- FindClusters(object=scData.CCA, reduction.type="cca.aligned",
                            dims.use=1:param$cc, save.SNN=TRUE,
                            force.recalc=FALSE, print.output=FALSE,
-                           resolution=param$resolution)
+                           resolution=param$resolutionCCA)
 ```
 
 Visualization on t-SNE plot
@@ -222,6 +228,7 @@ scData@meta.data$Plate <- gsub("_", ".", scData@meta.data$Plate)
 rm(scData.CCA, scData.None)
 gc()
 ```
+
 ### Control of the cell clustering
 
 ```{r control cell clustering, echo=FALSE}
@@ -244,7 +251,7 @@ if(!is.null(scData@meta.data$CellCycle) &&
 markers <- FindAllMarkers(object=scData, only.pos=TRUE,
                           return.thresh = pvalue_allMarkers)
 posMarkersFn <- "pos_markers.tsv"
-ezWrite.table(markers, posMarkersFn)
+write_tsv(as_tibble(markers), posMarkersFn)
 
 ## Significant markers
 cm <- markers[ ,c("gene","cluster","avg_logFC","p_val_adj")]
@@ -515,7 +522,9 @@ The SingleCellExperiment object with final Seurat object after merging is [here]
 
 ### Parameters
 ```{r report parameters, echo=FALSE}
-param[c("batchCorrection", "cc", "resolution", "chosenClusters")]
+param[c("x.low.cutoff", "x.high.cutoff", "y.cutoff", "pcs", "resolution",
+        "batchCorrection", "cc", "resolutionCCA",
+        "chosenClusters")]
 ```
 
 ```{r seurat parameters, echo=FALSE}
