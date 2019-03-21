@@ -13,14 +13,14 @@
 ##' @return Returns a DADA2 seqtab object.
 
 DADA2CreateSeqTab <- function(sampleName,maxLen,file1PathInDataset,
-                              minLen,file2PathInDataset){
+                              file2PathInDataset){
   if(!missing(file2PathInDataset) & !missing(minLen)){
   fnFs <- file1PathInDataset
   fnRs <- file2PathInDataset
   filtFs <- paste("filt",sampleName,"R1.fastq.gz", sep = ".")
   filtRs <- paste("filt",sampleName,"R2.fastq.gz", sep = ".")
   
-  out <- filterAndTrim(fnFs, filtFs, fnRs, filtRs, truncLen=c(maxLen,minLen),
+  out <- filterAndTrim(fnFs, filtFs, fnRs, filtRs, truncLen=c(maxLen,maxLen),
                        maxN=0, maxEE=c(2,2), truncQ=2, rm.phix=TRUE,
                        compress=TRUE, multithread=TRUE)
   errF <- learnErrors(filtFs, multithread=TRUE)
@@ -36,7 +36,7 @@ DADA2CreateSeqTab <- function(sampleName,maxLen,file1PathInDataset,
   }else{
     fnFs <- file1PathInDataset
     filtFs <- paste("filt",sampleName,"R1.fastq.gz", sep = ".")
-    out <- filterAndTrim(fnFs, filtFs, truncLen=minLen,
+    out <- filterAndTrim(fnFs, filtFs, truncLen=maxLen,
                          maxN=0, maxEE=1, truncQ=11, rm.phix=TRUE,
                          compress=TRUE, multithread=TRUE)
     errF <- learnErrors(filtFs, multithread=TRUE)
