@@ -13,17 +13,17 @@ ezMethodDADA2Step1Sample = function(input=NA, output=NA, param=NA,
   require(purrr)
   dataset = input$meta
   sampleName = input$getNames() 
-  maxLen <- param$maxLen
+  minLen <- param$minLen
   isPaired <- param$paired
   ### read fastq files and prepare inputs for DADA2
   ### are reads paired? should they be joined? 
   file1PathInDataset <- input$getFullPaths("Read1")
   if(isPaired){
     file2PathInDataset <- input$getFullPaths("Read2")
-  DADA2mainSeqTabObj <- DADA2CreateSeqTab(sampleName,maxLen,file1PathInDataset,
+  DADA2mainSeqTabObj <- DADA2CreateSeqTab(sampleName,minLen,file1PathInDataset,
                                           file2PathInDataset)
   }else{
-    DADA2mainSeqTabObj <- DADA2CreateSeqTab(sampleName,maxLen,file1PathInDataset)
+    DADA2mainSeqTabObj <- DADA2CreateSeqTab(sampleName,minLen,file1PathInDataset)
   }
   
   ## rename output files
@@ -46,7 +46,7 @@ EzAppDADA2Step1Sample <-
                   "Initializes the application using its specific defaults."
                   runMethod <<- ezMethodDADA2Step1Sample
                   name <<- "EzAppDADA2Step1Sample"
-                  appDefaults <<- rbind(maxLen= ezFrame(Type="integer",  DefaultValue="300",Description="Max length")
+                  appDefaults <<- rbind(minLen= ezFrame(Type="integer",  DefaultValue="150",Description="Min length")
                   )
                 }
               )
