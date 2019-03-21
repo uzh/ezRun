@@ -47,8 +47,7 @@ EzAppDADA2Step1Sample <-
                   "Initializes the application using its specific defaults."
                   runMethod <<- ezMethodDADA2Step1Sample
                   name <<- "EzAppDADA2Step1Sample"
-                  appDefaults <<- rbind(minLen = ezFrame(Type="integer",  DefaultValue="290",Description="Min length"),     
-                                        maxLen= ezFrame(Type="integer",  DefaultValue="330",Description="Max length")
+                  appDefaults <<- rbind(maxLen= ezFrame(Type="integer",  DefaultValue="300",Description="Max length")
                   )
                 }
               )
