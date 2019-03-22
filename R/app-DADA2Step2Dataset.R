@@ -35,11 +35,18 @@ ezMethodDADA2Step2Dataset = function(input=NA, output=NA, param=NA,
   ### Files needed for Phyloseq
   # taxonomy
   newOTUsToTaxFileName <- basename(output$getColumn("OTUsToTaxonomyFile"))
-  write.table(mergeDADA2Obj$taxaObj,newOTUsToTaxFileName,
+  taxaOTUs <- data.frame(mergeDADA2Obj$taxaObj, stringsAsFactors = F)
+  taxaOTUs$OTU <- paste0("OTU",seq(1:nrow(taxaOTUs)))
+  rownames(taxaOTUs) <- NULL
+  write.table(taxaOTUs,newOTUsToTaxFileName,
               row.names = F, col.names = T, quote = F,sep = "\t")
   # OTU count
   newOTUsToCountFileName <- basename(output$getColumn("OTUsCountTable"))
-  write.table(mergeDADA2Obj$fullTableOfOTUsNoChimObj,newOTUsToCountFileName,
+  countOTUs <- data.frame(mergeDADA2Obj$fullTableOfOTUsNoChimObj, stringsAsFactors = F)
+  colnames(countOTUs) <- paste0("OTU",seq(1:ncol(countOTUs)))
+  countOTUs$sample <- rownames(countOTUs)
+  rownames(countOTUs) <- NULL
+  write.table(countOTUs,newOTUsToCountFileName,
               row.names = F, col.names = T, quote = F,sep = "\t")
   ## design Matrix 
   if (param$group){
