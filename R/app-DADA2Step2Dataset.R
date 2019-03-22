@@ -14,11 +14,11 @@ ezMethodDADA2Step2Dataset = function(input=NA, output=NA, param=NA,
   sampleName = "merged"
   databaseParam <- param$database
   if (databaseParam == "silva") {
-    database <- "SILVA_DB_DADA2"
+    database <- SILVA_DB_DADA2
   } else if (databaseParam == "RDP") {
-    database <- "RDP_DB_DADA2"
+    database <- RDP_DB_DADA2
   }  else if (databaseParam == "greenGenes") {
-    database <- "GREENGENES_DB_DADA2"
+    database <- GREENGENES_DB_DADA2
   }
   ### create a merged object, remove chimeras and assign taxa 
   RfilesWithSeqTabs <- input$getFullPaths("RObjectWithSeqTab")
