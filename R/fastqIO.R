@@ -103,7 +103,7 @@ fastqs2bam <- function(fastqFns, fastq2Fns=NULL, readGroupNames=NULL,
   file.remove(paste0(sampleBasenames, ".bam"))
   
   if(any(emptyFastqs)){
-    tempHeaderFn <- tempfile(pattern="nonEmpty1", tmpdir=getwd(),
+    tempHeaderFn <- tempfile(pattern="nonEmpty", tmpdir=getwd(),
                              fileext=".header")
     cmd <- paste("samtools view -H", bamFn, ">", tempHeaderFn)
     ezSystem(cmd)
@@ -114,9 +114,8 @@ fastqs2bam <- function(fastqFns, fastq2Fns=NULL, readGroupNames=NULL,
                           paste0("LB:", readGroupNames[emptyFastqs]),
                           paste0("PL:", platform),
                           "CN:FGCZ",
-                          paste0("DT:", format(Sys.time(), "%Y-%m-%dT%H:%M:%S+00:00"),
-                                 sep="\t")
-    )
+                          paste0("DT:", format(Sys.time(), "%Y-%m-%dT%H:%M:%S+00:00")),
+                          sep="\t")
     con <- file(tempHeaderFn, open="a")
     writeLines(extraHeaders, con=con)
     close(con)
