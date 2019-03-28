@@ -474,6 +474,9 @@ cleanOldestDir <- function(dirPath, user=NULL){
   
   ## Don't clean smrt* , pacbio stuff
   allDirs <- grep("(smrt|pacbio)", allDirs, invert = TRUE, value=TRUE)
+
+  ## Don't clean rstudio folders
+  allDirs <- grep("rstudio$", allDirs, invert = TRUE, value=TRUE)
   
   ## Don't clean **.GT folder; created by grid engine
   allDirs <- grep("GT$", allDirs, invert = TRUE, value=TRUE)
