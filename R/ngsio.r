@@ -147,7 +147,8 @@ loadSCCountDataset <- function(input, param){
     }else if(file_ext(countMatrixFn) == "txt"){
       countMatrix <- Matrix(as.matrix(ezRead.table(countMatrixFn)))
     }
-    cellDataSet <- ezRead.table(input$getFullPaths("CellDataset"))
+    cellDataSet <- ezRead.table(sub("-counts\\.mtx$", "-dataset.tsv",
+                                    countMatrixFn))
     
     cellCycleFn <- sub("-counts\\.mtx$", "-CellCyclePhase.txt",
                        countMatrixFn)
