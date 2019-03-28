@@ -14,7 +14,7 @@ EzAppSCReportMerging <-
                   "Initializes the application using its specific defaults."
                   runMethod <<- ezMethodSCReportMerging
                   name <<- "EzAppSCReportMerging"
-                  appDefaults <<- rbind(scProtocol=ezFrame(Type="character", DefaultValue="", Description="Which single cell protocol?"),
+                  appDefaults <<- rbind(scProtocol=ezFrame(Type="character", DefaultValue="10X", Description="Which single cell protocol?"),
                                         x.low.cutoff=ezFrame(Type="numeric", 
                                                              DefaultValue=0.0125, 
                                                              Description="Bottom cutoff on x-axis for identifying variable genes"),

@@ -14,7 +14,8 @@ EzAppSCCountQC <-
                   "Initializes the application using its specific defaults."
                   runMethod <<- ezMethodSCCountQC
                   name <<- "EzAppSCCountQC"
-                  appDefaults <<- rbind(minReadsPerCell=ezFrame(Type="numeric", DefaultValue=1500, Description="Filter cells with less reads counted on genes"),
+                  appDefaults <<- rbind(scProtocol=ezFrame(Type="character", DefaultValue="10X", Description="Which single cell protocol?"),
+                                        minReadsPerCell=ezFrame(Type="numeric", DefaultValue=1500, Description="Filter cells with less reads counted on genes"),
                                         minReadsPerGene=ezFrame(Type="numeric", DefaultValue=3, Description="Minimal number of reads per gene to be expressed"),
                                         minGenesPerCell=ezFrame(Type="numeric", DefaultValue=500, Description="Filter cells with less genes expressed"))
                 }
@@ -33,9 +34,6 @@ ezMethodSCCountQC = function(input=NA, output=NA, param=NA,
   on.exit(setwd(cwd), add=TRUE)
   reportCwd <- getwd()
   
-  ## STAR log: available for smart-seq2, not for 10x
-  param$scProtocol <- ifelse("STARLog" %in% input$colNames, "smart-Seq2", "10x")
-  
   sce <- loadSCCountDataset(input, param)
   
   ## SCCountQC always process one plate/sample once; remove the plate name
@@ -46,12 +44,14 @@ ezMethodSCCountQC = function(input=NA, output=NA, param=NA,
                                     sep=": ")
   param <- metadata(sce)$param
   if(param$scProtocol == "smart-Seq2"){
-    mlog <- read.table(input$getFullPaths("STARLog"), sep="|", 
-                       as.is = TRUE, quote = "\"", fill=T)
+    mlog <- read.table(sub("-counts\\.mtx$", "_STAR.log", 
+                           input$getFullPath("CountMatrix")),
+                       sep="|", as.is = TRUE, quote = "\"", fill=T)
     rownames(mlog) <- trimws(mlog[,1])
     metadata(sce)$mlog <- mlog
     
-    inBam <- getBamLocally(input$getFullPaths("BAM"))
+    inBam <- getBamLocally(sub("-counts\\.mtx$", ".bam",
+                               input$getFullPath("CountMatrix")))
     on.exit(file.remove(file.path(reportCwd, c(inBam, paste0(inBam, ".bai")))), 
             add = TRUE)
   }
