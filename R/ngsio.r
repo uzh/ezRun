@@ -207,7 +207,6 @@ loadSCCountDataset <- function(input, param){
     seqAnno <- makeGRangesFromDataFrame(seqAnnoDF, keep.extra.columns=TRUE)
     rowRanges(sce) <- seqAnno
     metadata(sce)$param <- param
-    colnames(sce) <- paste(input$getNames(), colnames(sce), sep="___") ## unique cell names when merging two samples
   }else{
     stop("Unsupported single cell protocol!")
   }
@@ -222,6 +221,8 @@ loadSCCountDataset <- function(input, param){
   if (dataFeatureLevel == "isoform" && param$featureLevel == "gene"){
     sce <- aggregateCountsByGene(sce)
   }
+  ## unique cell names when merging two samples
+  colnames(sce) <- paste(input$getNames(), colnames(sce), sep="___")
   
   return(sce)
 }
