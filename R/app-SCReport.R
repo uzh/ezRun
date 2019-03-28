@@ -14,7 +14,8 @@ EzAppSCReport <-
                   "Initializes the application using its specific defaults."
                   runMethod <<- ezMethodSCReport
                   name <<- "EzAppSCReport"
-                  appDefaults <<- rbind(minCellsPerGene=ezFrame(Type="numeric", 
+                  appDefaults <<- rbind(scProtocol=ezFrame(Type="character", DefaultValue="10X", Description="Which single cell protocol?"),
+                                        minCellsPerGene=ezFrame(Type="numeric", 
                                                                 DefaultValue=5, 
                                                                 Description="Minimum number of cells per gene for creating Seurat object"),
                                         minGenesPerCell=ezFrame(Type="numeric", 
@@ -76,8 +77,6 @@ ezMethodSCReport = function(input=NA, output=NA, param=NA,
   ## subset the selected sample names
   # samples <- param$samples
   # input <- input$subset(samples)
-  
-  param$scProtocol <- ifelse("STARLog" %in% input$colNames, "smart-Seq2", "10x")
   
   sce <- loadSCCountDataset(input, param)
   metadata(sce)$output <- output

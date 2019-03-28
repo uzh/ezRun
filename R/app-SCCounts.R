@@ -47,14 +47,22 @@ ezMethodSCCounts = function(input=NA, output=NA, param=NA,
                         dataRoot=param$dataRoot)
   
   cellMeta = metainput$meta[ , !metainput$columnHasTag("File")]
-  cellMeta[["BAM [File]"]] = output$getColumn("BAM")
-  cellMeta[["BAI [File]"]] = output$getColumn("BAI")
-  cellMeta[["STARLog [File]"]] = output$getColumn("STARLog")
-  cellMeta[["PreprocessingLog [File]"]] = output$getColumn("PreprocessingLog")
   cellMeta[['CountMatrix [File]']] = output$getColumn("CountMatrix")
-  cellMeta[['Stats [File]']] = output$getColumn("Stats")
-  cellMeta[['CellCyclePhase [File]']] = output$getColumn("Stats")
-  ezWrite.table(cellMeta, file=basename(output$getColumn('CellDataset')),
+  cellMeta[["BAM [File]"]] = sub("-counts\\.mtx$", ".bam",
+                                 cellMeta[['CountMatrix [File]']])
+  cellMeta[["BAI [File]"]] = sub("-counts\\.mtx$", ".bai",
+                                 cellMeta[['CountMatrix [File]']])
+  cellMeta[["STARLog [File]"]] = sub("-counts\\.mtx$", "_STAR.log",
+                                     cellMeta[['CountMatrix [File]']])
+  cellMeta[["PreprocessingLog [File]"]] = sub("-counts\\.mtx$", "_preprocessing.log",
+                                              cellMeta[['CountMatrix [File]']])
+  cellMeta[['Stats [File]']] = sub("-counts\\.mtx$", "_stats.txt",
+                                   cellMeta[['CountMatrix [File]']])
+  cellMeta[['CellCyclePhase [File]']] = sub("-counts\\.mtx$", "-CellCyclePhase.txt",
+                                            cellMeta[['CountMatrix [File]']])
+  ezWrite.table(cellMeta, 
+                file=basename(sub("-counts\\.mtx$", "-dataset.tsv",
+                                  cellMeta[['CountMatrix [File]']])),
                 head='Name')
   
   bamParam = param
