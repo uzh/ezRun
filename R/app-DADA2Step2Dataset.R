@@ -9,22 +9,16 @@
 ezMethodDADA2Step2Dataset = function(input=NA, output=NA, param=NA, 
                                       htmlFile="00index.html"){
   
-  require(rmarkdown)
-  require(ShortRead)
-  require(phyloseq)
-  require(plyr)
-  require(ape)
-  require(ggplot2)
-  library(scales)
+  require(dada2)
   dataset = input$meta
   sampleName = "merged"
   databaseParam <- param$database
   if (databaseParam == "silva") {
-    database <- "SILVA_DB_DADA2"
+    database <- SILVA_DB_DADA2
   } else if (databaseParam == "RDP") {
-    database <- "RDP_DB_DADA2"
+    database <- RDP_DB_DADA2
   }  else if (databaseParam == "greenGenes") {
-    database <- "GREENGENES_DB_DADA2"
+    database <- GREENGENES_DB_DADA2
   }
   ### create a merged object, remove chimeras and assign taxa 
   RfilesWithSeqTabs <- input$getFullPaths("RObjectWithSeqTab")
@@ -35,31 +29,31 @@ ezMethodDADA2Step2Dataset = function(input=NA, output=NA, param=NA,
   colsToKeep <- c("Name",grep("Factor",colnames(dataset), value = T))
   designMatrix <- dataset[,colsToKeep]
   colnames(designMatrix) <- gsub(" \\[Factor\\]","",colnames(designMatrix))
-  
-  ### create Phyloseq object
-  OTUobj <- otu_table(mergeDADA2Obj$fullTableOfOTUsNoChimObj,
-                      taxa_are_rows=FALSE)
-  taxaObj <- tax_table(mergeDADA2Obj$taxaObj)
-  sampleObj <- sample_data(designMatrix)
-  phyloseqObj <- phyloseq(OTUobj,taxaObj,sampleObj)
-  
-  
+
   ##  output files
 
   ### Files needed for Phyloseq
   # taxonomy
   newOTUsToTaxFileName <- basename(output$getColumn("OTUsToTaxonomyFile"))
-  write.table(mergeDADA2Obj$taxaObj,newOTUsToTaxFileName,
+  taxaOTUs <- data.frame(mergeDADA2Obj$taxaObj, stringsAsFactors = F)
+  taxaOTUs$OTU <- paste0("OTU",seq(1:nrow(taxaOTUs)))
+  rownames(taxaOTUs) <- NULL
+  write.table(taxaOTUs,newOTUsToTaxFileName,
               row.names = F, col.names = T, quote = F,sep = "\t")
   # OTU count
   newOTUsToCountFileName <- basename(output$getColumn("OTUsCountTable"))
-  write.table(mergeDADA2Obj$fullTableOfOTUsNoChimObj,newOTUsToCountFileName,
+  countOTUs <- data.frame(mergeDADA2Obj$fullTableOfOTUsNoChimObj, stringsAsFactors = F)
+  colnames(countOTUs) <- paste0("OTU",seq(1:ncol(countOTUs)))
+  countOTUs$sample <- rownames(countOTUs)
+  rownames(countOTUs) <- NULL
+  write.table(countOTUs,newOTUsToCountFileName,
               row.names = F, col.names = T, quote = F,sep = "\t")
   ## design Matrix 
+  if (param$group){
     designMatrixFile <-  basename(output$getColumn("sampleDescriptionFile"))
     write.table(designMatrix,designMatrixFile,row.names = F, col.names = T, quote = F,sep = "\t")
 }
-
+}
 ##' @template app-template
 ##' @templateVar method ezMethodDADA2Step2Dataset()
 ##' @templateVar htmlArg )

@@ -291,7 +291,7 @@ if(length(param$markersToCheck) >0){
 
 ### Trajectory reconstruction and pseudotime inference
 
-#### Slingshot
+#### Slingshot (Beta)
 Slingshot is a cluster based ineage reconstruction and pseudotime inference approach.
 Here, we use reduced-dimensional space of tSNE derived above and cell clustering produced by gaussian mixture modeling, instead of cell clustering done by Seurat.
 More details is available at [here](https://www.bioconductor.org/packages/devel/bioc/vignettes/slingshot/inst/doc/slingshot.html).
