@@ -10,8 +10,9 @@ ezMethodCellRanger = function(input=NA, output=NA, param=NA){
   sampleDirs = strsplit(input$getColumn("RawDataDir"), ",")[[sampleName]]
   sampleDirs <- file.path(input$dataRoot, sampleDirs)
   sampleDir <- paste(sampleDirs, collapse=",")
-  refDir <- getCellRangerReference(param)
+  
   if(param$TenXLibrary == "GEX"){
+    refDir <- getCellRangerGEXReference(param)
     cmd <- paste(CELLRANGER, "count", paste0("--id=", sampleName),
                  paste0("--transcriptome=", refDir),
                  paste0("--fastqs=", sampleDir),
@@ -20,6 +21,7 @@ ezMethodCellRanger = function(input=NA, output=NA, param=NA){
                  paste0("--localcores=", param$cores),
                  paste0("--chemistry=", param$chemistry))
   }else if(param$TenXLibrary == "VDJ"){
+    refDir <- getCellRangerVDJReference(param)
     cmd <- paste(CELLRANGER, "vdj", paste0("--id=", sampleName),
                  paste0("--reference=", refDir),
                  paste0("--fastqs=", sampleDir),
@@ -192,6 +194,7 @@ getCellRangerVDJReference <- function(param){
   return(refDir)
 }
 
+## not used any more
 getCellRangerReference <- function(param){
   if(ezIsSpecified(param$controlSeqs)){
     if(param$TenXLibrary == "VDJ"){
