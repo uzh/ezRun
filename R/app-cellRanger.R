@@ -5,7 +5,6 @@
 # The terms are available here: http://www.gnu.org/licenses/gpl.html
 # www.fgcz.ch
 
-##ToD: --localmem, --localcores, use opt-Parameters
 ezMethodCellRanger = function(input=NA, output=NA, param=NA){
   sampleName = input$getNames()
   sampleDirs = strsplit(input$getColumn("RawDataDir"), ",")[[sampleName]]
