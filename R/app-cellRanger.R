@@ -132,12 +132,10 @@ getCellRangerGEXReference <- function(param){
     ezSystem(paste("cat", gtfExtraFn, ">>", gtfFile))
   }
   if(param$scMode == "SN"){
-    gtfFile2 <- sub("\\.gtf$", "premRNA.gtf", gtfFile)
-    cmd <- paste("awk 'BEGIN{FS=\"\t\"; OFS=\"\t\"} $3 == \"transcript\"{ $3=\"exon\"; print}'",
-                 gtfFile, ">", gtfFile2)
-    ezSystem(cmd)
-    file.remove(gtfFile)
-    gtfFile <- gtfFile2
+    gtf <- import(gtfFile)
+    gtf <- gtf[gtf$type == "transcript"]
+    gtf$type <- "exon"
+    export.gff2(gtf, gtfFile)
   }
   
   cmd <- paste(CELLRANGER, "mkref",
@@ -148,6 +146,49 @@ getCellRangerGEXReference <- function(param){
   ezSystem(cmd)
   
   file.remove(gtfFile)
+  
+  return(refDir)
+}
+
+getCellRangerVDJReference <- function(param){
+  require(Biostrings)
+  require(rtracklayer)
+  cwd <- getwd()
+  on.exit(setwd(cwd), add=TRUE)
+  
+  refDir = sub("\\.gtf$", "_10XVDJ_Index",
+               param$ezRef["refFeatureFile"])
+  
+  lockFile = paste0(refDir, ".lock")
+  i = 0
+  while(file.exists(lockFile) && i < INDEX_BUILD_TIMEOUT){
+    ### somebody else builds and we wait
+    Sys.sleep(60)
+    i = i + 1
+  }
+  if (file.exists(lockFile)){
+    stop(paste("reference building still in progress after", 
+               INDEX_BUILD_TIMEOUT, "min"))
+  }
+  ## there is no lock file
+  if (file.exists(refDir)){
+    ## we assume the index is built and complete
+    return(refDir)
+  }
+  
+  ## we have to build the reference
+  setwd(dirname(refDir))
+  ezWrite(Sys.info(), con=lockFile)
+  on.exit(file.remove(lockFile), add=TRUE)
+  
+  job = ezJobStart("10X CellRanger build")
+  
+  cmd <- paste(CELLRANGER, "mkvdjref",
+               paste0("--genome=", basename(refDir)),
+               paste0("--fasta=", param$ezRef@refFastaFile),
+               paste0("--genes=", param$ezRef@refFeatureFile),
+               paste0("--nthreads=", param$cores))
+  ezSystem(cmd)
   
   return(refDir)
 }
@@ -219,11 +260,6 @@ getCellRangerReference <- function(param){
   }
   return(refDir)
 }
-
-## Make 10X reference
-### VDJ 
-#### /usr/local/ngseq/opt/cellranger-3.0.1/cellranger mkvdjref --genome=10X_Ref_Mouse_VDJ_GRCm38.p5_20192019_Release_91 --fasta=../../../Sequence/WholeGenomeFasta/genome.fa --genes=genes.gtf
-
 
 ##' @author Opitz, Lennart
 ##' @template app-template
