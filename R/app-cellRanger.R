@@ -69,8 +69,13 @@ getCellRangerGEXReference <- function(param){
     }else{
       cellRangerBase <- ""
     }
-    refDir = sub("\\.gtf$", paste0("_10XGEX_", cellRangerBase, "_Index"),
-                 param$ezRef["refFeatureFile"])
+    if(param$scMode == "SN"){
+      refDir = sub("\\.gtf$", paste0("_10XGEX_SN_", cellRangerBase, "_Index"),
+                   param$ezRef["refFeatureFile"])
+    }else if(param$scMode == "SC"){
+      refDir = sub("\\.gtf$", paste0("_10XGEX_SC_", cellRangerBase, "_Index"),
+                   param$ezRef["refFeatureFile"])
+    }
   }
   
   lockFile = paste0(refDir, ".lock")
@@ -112,7 +117,6 @@ getCellRangerGEXReference <- function(param){
   ## make gtf
   gtfFile <- tempfile(pattern="genes", tmpdir=getwd(),
                       fileext = ".gtf")
-  on.exit(file.remove(gtfFile), add=TRUE)
   if(ezIsSpecified(param$transcriptTypes)){
     export.gff2(gtfByTxTypes(param, param$transcriptTypes),
                 con=gtfFile)
@@ -127,6 +131,13 @@ getCellRangerGEXReference <- function(param){
     export.gff2(extraGR, con=gtfExtraFn)
     ezSystem(paste("cat", gtfExtraFn, ">>", gtfFile))
   }
+  if(param$scMode == "SN"){
+    gtfFile2 <- sub("\\.gtf$", "premRNA.gtf", gtfFile)
+    cmd <- paste("awk 'BEGIN{FS=\"\t\"; OFS=\"\t\"} $3 == \"transcript\"{ $3=\"exon\"; print}'",
+                 gtfFile, ">", gtfFile2)
+    file.remove(gtfFile)
+    gtfFile <- gtfFile2
+  }
   
   cmd <- paste(CELLRANGER, "mkref",
                paste0("--genome=", basename(refDir)),
@@ -134,6 +145,8 @@ getCellRangerGEXReference <- function(param){
                paste0("--genes=", gtfFile),
                paste0("--nthreads=", param$cores))
   ezSystem(cmd)
+  
+  file.remove(gtfFile)
   
   return(refDir)
 }
