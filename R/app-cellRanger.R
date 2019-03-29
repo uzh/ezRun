@@ -54,6 +54,89 @@ ezMethodCellRanger = function(input=NA, output=NA, param=NA){
   return("Success")
 }
 
+getCellRangerGEXReference <- function(param){
+  require(Biostrings)
+  require(rtracklayer)
+  cwd <- getwd()
+  on.exit(setwd(cwd), add=TRUE)
+  
+  if(ezIsSpecified(param$controlSeqs)){
+    refDir = file.path(getwd(), "10X_customised_Ref")
+  }else{
+    if(ezIsSpecified(param$transcriptTypes)){
+      cellRangerBase <- paste(sort(param$transcriptTypes), collapse="-")
+      ## This is a combination of transcript types to use.
+    }else{
+      cellRangerBase <- ""
+    }
+    refDir = sub("\\.gtf$", paste0("_10XGEX_", cellRangerBase, "_Index"),
+                 param$ezRef["refFeatureFile"])
+  }
+  
+  lockFile = paste0(refDir, ".lock")
+  i = 0
+  while(file.exists(lockFile) && i < INDEX_BUILD_TIMEOUT){
+    ### somebody else builds and we wait
+    Sys.sleep(60)
+    i = i + 1
+  }
+  if (file.exists(lockFile)){
+    stop(paste("reference building still in progress after", 
+               INDEX_BUILD_TIMEOUT, "min"))
+  }
+  ## there is no lock file
+  if (file.exists(refDir)){
+    ## we assume the index is built and complete
+    return(refDir)
+  }
+  
+  ## we have to build the reference
+  setwd(dirname(refDir))
+  ezWrite(Sys.info(), con=lockFile)
+  on.exit(file.remove(lockFile), add=TRUE)
+  
+  job = ezJobStart("10X CellRanger build")
+  
+  if(ezIsSpecified(param$controlSeqs)){
+    ## make reference genome
+    genomeLocalFn <- tempfile(pattern="genome", tmpdir=getwd(),
+                              fileext = ".fa")
+    file.copy(from=param$ezRef@refFastaFile, to=genomeLocalFn)
+    writeXStringSet(getControlSeqs(param$controlSeqs), filepath=genomeLocalFn,
+                    append=TRUE)
+    on.exit(file.remove(genomeLocalFn, add=TRUE))
+  }else{
+    genomeLocalFn <- param$ezRef@refFastaFile
+  }
+  
+  ## make gtf
+  gtfFile <- tempfile(pattern="genes", tmpdir=getwd(),
+                      fileext = ".gtf")
+  on.exit(file.remove(gtfFile), add=TRUE)
+  if(ezIsSpecified(param$transcriptTypes)){
+    export.gff2(gtfByTxTypes(param, param$transcriptTypes),
+                con=gtfFile)
+  }else{
+    file.copy(from=param$ezRef@refFeatureFile, to=gtfFile)
+  }
+  if(ezIsSpecified(param$controlSeqs)){
+    extraGR <- makeExtraControlSeqGR(param$controlSeqs)
+    gtfExtraFn <- tempfile(pattern="extraSeqs", tmpdir=getwd(),
+                           fileext = ".gtf")
+    on.exit(file.remove(gtfExtraFn), add=TRUE)
+    export.gff2(extraGR, con=gtfExtraFn)
+    ezSystem(paste("cat", gtfExtraFn, ">>", gtfFile))
+  }
+  
+  cmd <- paste(CELLRANGER, "mkref",
+               paste0("--genome=", basename(refDir)),
+               paste0("--fasta=", genomeLocalFn),
+               paste0("--genes=", gtfFile),
+               paste0("--nthreads=", param$cores))
+  ezSystem(cmd)
+  
+  return(refDir)
+}
 
 getCellRangerReference <- function(param){
   if(ezIsSpecified(param$controlSeqs)){
