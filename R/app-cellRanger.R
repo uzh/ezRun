@@ -186,8 +186,7 @@ getCellRangerVDJReference <- function(param){
   cmd <- paste(CELLRANGER, "mkvdjref",
                paste0("--genome=", basename(refDir)),
                paste0("--fasta=", param$ezRef@refFastaFile),
-               paste0("--genes=", param$ezRef@refFeatureFile),
-               paste0("--nthreads=", param$cores))
+               paste0("--genes=", param$ezRef@refFeatureFile))
   ezSystem(cmd)
   
   return(refDir)
