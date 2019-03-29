@@ -147,9 +147,16 @@ loadSCCountDataset <- function(input, param){
     }else if(file_ext(countMatrixFn) == "txt"){
       countMatrix <- Matrix(as.matrix(ezRead.table(countMatrixFn)))
     }
-    cellDataSet <- ezRead.table(input$getFullPaths("CellDataset"))
-    cellCycle <- ezRead.table(input$getFullPaths("CellCyclePhase"))
-    cellDataSet$CellCycle <- cellCycle[rownames(cellDataSet), "Phase"]
+    cellDataSet <- ezRead.table(sub("-counts\\.mtx$", "-dataset.tsv",
+                                    countMatrixFn))
+    
+    cellCycleFn <- sub("-counts\\.mtx$", "-CellCyclePhase.txt",
+                       countMatrixFn)
+    if(file.exists(cellCycleFn)){
+      ## TODO: remove this test as CellCyclePhase file should always exist
+      cellCycle <- ezRead.table(cellCycleFn)
+      cellDataSet$CellCycle <- cellCycle[rownames(cellDataSet), "Phase"]
+    }
     
     ## TODO: this is a temporary solution to fix the discrepency of sample names
     if(!setequal(colnames(countMatrix), rownames(cellDataSet))){
@@ -191,6 +198,7 @@ loadSCCountDataset <- function(input, param){
                               pattern="CellCyclePhase\\.txt$", recursive=TRUE,
                               full.names=TRUE)
     if(length(cellCycleFn) == 1){
+      ## TODO: remove this test as CellCyclePhase file should always exist
       cellCycle <- ezRead.table(cellCycleFn)
       colData(sce)$CellCycle <- cellCycle[colnames(sce), "Phase"]
     }
@@ -213,7 +221,7 @@ loadSCCountDataset <- function(input, param){
   if (dataFeatureLevel == "isoform" && param$featureLevel == "gene"){
     sce <- aggregateCountsByGene(sce)
   }
-  
+  ## unique cell names when merging two samples
   colnames(sce) <- paste(input$getNames(), colnames(sce), sep="___")
   
   return(sce)

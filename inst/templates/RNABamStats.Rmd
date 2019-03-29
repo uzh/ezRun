@@ -188,8 +188,9 @@ if (length(resultList[[1]][["genebody_coverage"]]) != 0){ ## TODO this could be 
     gbcTemplate = resultList[[1]][["genebody_coverage"]]
     pngMatrix = ezMatrix("", rows=names(gbcTemplate),
                          cols=names(gbcTemplate[[1]]))
+    regions = intersect(c("less than 400nt", "1000 to 1200nt"), rownames(pngMatrix))
     #pngLinks = character()
-    for (rn in c("less than 400nt", "1000 to 1200nt")){ # rownames(pngMatrix)){
+    for (rn in regions){ # rownames(pngMatrix)){
       for (cn in "medium expressed"){ #} colnames(pngMatrix)){
         pngMatrix[rn, cn] = ezValidFilename(paste0("genebody_coverage_", rn, "_", cn, ".png"))
         covValues = ezMatrix(0, cols=0:100, rows=samples)
