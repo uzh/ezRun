@@ -135,6 +135,7 @@ getCellRangerGEXReference <- function(param){
     gtfFile2 <- sub("\\.gtf$", "premRNA.gtf", gtfFile)
     cmd <- paste("awk 'BEGIN{FS=\"\t\"; OFS=\"\t\"} $3 == \"transcript\"{ $3=\"exon\"; print}'",
                  gtfFile, ">", gtfFile2)
+    ezSystem(cmd)
     file.remove(gtfFile)
     gtfFile <- gtfFile2
   }
