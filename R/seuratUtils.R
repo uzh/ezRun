@@ -91,10 +91,10 @@ seuratClustering <- function(scData, param){
   return(scData)
 }
 
-getSeuratScalingFactor <- function(x=c("10x", "smart-Seq2")){
+getSeuratScalingFactor <- function(x=c("10X", "smart-Seq2")){
   x <- match.arg(x)
   ans <- switch(x,
                 "smart-Seq2"=1e5,
-                "10x"=1e4)
+                "10X"=1e4)
   return(ans)
 }
