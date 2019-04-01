@@ -443,7 +443,7 @@ getBlacklistedRegions <- function(refBuild=c("hg38", "hg19", "mm10", "mm9",
   }
   return(bedGR)
 }
-
+ 
 makeExtraControlSeqGR <- function(ids=NULL){
   controlSeqs <- getControlSeqs(ids)
   txids <- rep(paste0("Transcript_",names(controlSeqs)), each=4)
