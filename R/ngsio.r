@@ -189,7 +189,7 @@ loadSCCountDataset <- function(input, param){
                                 metadata=list(isLog=FALSE,
                                               featureLevel=dataFeatureLevel,
                                               type="Counts", param=param))
-  }else if(param$scProtocol == "10x"){
+  }else if(param$scProtocol == "10X"){
     countMatrixFn <- list.files(path=input$getFullPaths("CountMatrix"),
                                 pattern="\\.mtx(\\.gz)*$", recursive=TRUE, 
                                 full.names=TRUE)
