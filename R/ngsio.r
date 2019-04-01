@@ -197,7 +197,7 @@ loadSCCountDataset <- function(input, param){
     cellCycleFn <- list.files(path=input$getFullPaths("CountMatrix"),
                               pattern="CellCyclePhase\\.txt$", recursive=TRUE,
                               full.names=TRUE)
-    if(length(cellCycleFn) == 1){
+    if(length(cellCycleFn) == 1){ 
       ## TODO: remove this test as CellCyclePhase file should always exist
       cellCycle <- ezRead.table(cellCycleFn)
       colData(sce)$CellCycle <- cellCycle[colnames(sce), "Phase"]
