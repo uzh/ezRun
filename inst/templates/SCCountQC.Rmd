@@ -42,7 +42,7 @@ param <- metadata(sce)$param
 ## picard metrics
 evalPicard = switch (param$scProtocol,
   "smart-Seq2" = TRUE,
-  "10x"=FALSE,
+  "10X"=FALSE,
   NA
 )
 
