@@ -98,3 +98,26 @@ getSeuratScalingFactor <- function(x=c("10X", "smart-Seq2")){
                 "10X"=1e4)
   return(ans)
 }
+
+cellTable <- function(scData){
+  require(tidyverse)
+  toTable <- tibble(Cluster=names(summary(scData@ident)),
+                    "# of cells"=summary(scData@ident))
+  cellCountsByPlate <- tibble(Plate=scData@meta.data$Plate,
+                              Cluster=as.character(scData@ident)) %>%
+    group_by(Plate, Cluster) %>% summarise(n()) %>%
+    spread(Plate, `n()`, fill=0)
+  cellPercByPlate <- select(cellCountsByPlate, -Cluster) %>%
+    as.matrix()
+  rownames(cellPercByPlate) <- cellCountsByPlate$Cluster
+  cellPercByPlate <- sweep(cellPercByPlate, 2, colSums(cellPercByPlate), "/")
+  colnames(cellPercByPlate) <- paste0(colnames(cellPercByPlate), "_fraction")
+  toTable <- left_join(toTable, cellCountsByPlate, by="Cluster") %>%
+    left_join(as_tibble(cellPercByPlate, rownames="Cluster"), by="Cluster")
+  ## TODO: add fisher test?
+  toTable <- bind_rows(toTable,
+                       bind_cols("Cluster"="Total", 
+                                 summarise_at(toTable, setdiff(colnames(toTable), "Cluster"),
+                                              sum)))
+  return(toTable)
+}

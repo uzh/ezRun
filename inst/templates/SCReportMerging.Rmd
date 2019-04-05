@@ -81,24 +81,8 @@ p1 <- TSNEPlot(object=scData.None, group.by="Plate", do.return=TRUE)
 p1
 p2 <- TSNEPlot(object=scData.None, do.return=TRUE, do.label=TRUE)
 p2
-toTable <- tibble(Cluster=names(summary(scData.None@ident)),
-                  "# of cells"=summary(scData.None@ident))
-cellCountsByPlate <- tibble(Plate=scData.None@meta.data$Plate,
-                            Cluster=as.character(scData.None@ident)) %>%
-  group_by(Plate, Cluster) %>% summarise(n()) %>%
-  spread(Plate, `n()`, fill=0)
-cellPercByPlate <- select(cellCountsByPlate, -Cluster) %>%
-  as.matrix()
-rownames(cellPercByPlate) <- cellCountsByPlate$Cluster
-cellPercByPlate <- sweep(cellPercByPlate, 2, colSums(cellPercByPlate), "/")
-colnames(cellPercByPlate) <- paste0(colnames(cellPercByPlate), "_fraction")
-toTable <- left_join(toTable, cellCountsByPlate, by="Cluster") %>%
-  left_join(as_tibble(cellPercByPlate, rownames="Cluster"), by="Cluster")
+toTable <- cellTable(scData.None)
 ## TODO: add fisher test?
-toTable <- bind_rows(toTable,
-                     bind_cols("Cluster"="Total", 
-                               summarise_at(toTable, setdiff(colnames(toTable), "Cluster"),
-                                            sum)))
 kable(toTable,
       row.names=FALSE, format="html",
       caption="Number of cells in each cluster") %>%
@@ -189,18 +173,9 @@ p1 <- TSNEPlot(object=scData.CCA, group.by="Plate", do.return=TRUE)
 p1
 p2 <- TSNEPlot(object=scData.CCA, do.return=TRUE, do.label=TRUE)
 p2
-toTable <- tibble(Cluster=names(summary(scData.CCA@ident)),
-                  "# of cells"=summary(scData.CCA@ident))
-cellCountsByPlate <- t(sapply(split(scData.CCA@meta.data$Plate, 
-                                    scData.CCA@ident), table))
-cellPercByPlate <- sweep(cellCountsByPlate, 2, colSums(cellCountsByPlate), "/")
-colnames(cellPercByPlate) <- paste0(colnames(cellPercByPlate), "_fraction")
-toTable <- left_join(toTable, 
-                     as_tibble(cellCountsByPlate, rownames="Cluster"),
-                     by="Cluster") %>%
-  left_join(as_tibble(cellPercByPlate, rownames="Cluster"), by="Cluster")
-## TODO: add fisher test?
 
+toTable <- cellTable(scData.CCA)
+## TODO: add fisher test?
 kable(toTable,
       row.names=FALSE, format="html",
       caption="Number of cells in each cluster") %>%
@@ -369,7 +344,7 @@ for(eachCluster in levels(scData@ident)){
                                        print.bar=FALSE, only.pos=TRUE),
                       silent=TRUE)
    ## to skip some groups with few cells
-   if(class(markersEach) != "try-error"){
+   if(class(markersEach) != "try-error" && nrow(markersEach) > 0){
      markers[[eachCluster]] <- as_tibble(markersEach, rownames="gene")
    }
 }
