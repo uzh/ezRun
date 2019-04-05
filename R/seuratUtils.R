@@ -10,12 +10,6 @@ seuratPreProcess <- function(sce){
   ##                     param$maxGenesPerCell; param$minGenesPerCell; param$maxMitoFraction
   ##                     param$minReadsPerCell; 
   ##                     param$pcs, param$pcGenes
-  require(reticulate)
-  if(!grepl("^3", py_config()$version)){
-    use_python("/usr/local/ngseq/packages/Dev/Python/3.6.8/bin/python3")
-    Sys.setenv("LD_LIBRARY_PATH"=paste("/usr/local/ngseq/packages/Dev/Python/3.6.8/lib/",
-                                       Sys.getenv("LD_LIBRARY_PATH"), sep=":"))
-  }
   require(Seurat)
   require(scater)
   param <- metadata(sce)$param
@@ -85,9 +79,9 @@ seuratClustering <- function(scData, param){
                     dims.use=1:param$pcs, tsne.method="Rtsne",
                     perplexity=ifelse(length(scData@ident) > 200, 30, 10),
                     num_threads=param$cores)
-  try(scData <- RunUMAP(object=scData, reduction.use = "pca",
+  scData <- RunUMAP(object=scData, reduction.use = "pca",
                     dims.use=1:param$pcs,
-                    n_neighbors=ifelse(length(scData@ident) > 200, 30, 10)))
+                    n_neighbors=ifelse(length(scData@ident) > 200, 30, 10))
   return(scData)
 }
 
