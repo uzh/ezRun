@@ -3,7 +3,7 @@ title: "GO Cluster tables"
 author: "Functional Genomics Center Zurich"
 output: 
   html_document:
-    self_contained: false
+    self_contained: true
     includes:
       in_header: fgcz_header.html
     css: fgcz.css
