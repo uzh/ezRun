@@ -361,6 +361,7 @@ List of all positive conserved cell type markers can be accessed [here](`r posCo
 ```{r enrichr markers conserved, echo=FALSE, results='asis'}
 if(doEnrichr(param)){
   genesPerCluster <- split(markers$gene, markers$cluster)
+  genesPerCluster <- genesPerCluster[gtools::mixedorder(names(genesPerCluster))]
   jsCall = paste0('enrich({list: "', sapply(genesPerCluster, paste, collapse="\\n"), '", popup: true});')
   enrichrCalls <- paste0("<a href='javascript:void(0)' onClick='", jsCall, 
                          "'>Analyse at Enrichr website</a>")
