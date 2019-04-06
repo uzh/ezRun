@@ -76,7 +76,7 @@ scData_Merge@project.name <- param$name
 scData.None <- seuratClustering(scData_Merge, param)
 ```
 
-```{r tSNE no correction plot, echo=FALSE}
+```{r tSNE no correction plot, echo=FALSE, message=FALSE}
 p1 <- TSNEPlot(object=scData.None, group.by="Plate", do.return=TRUE)
 p1
 p2 <- TSNEPlot(object=scData.None, do.return=TRUE, do.label=TRUE)
@@ -168,7 +168,7 @@ scData.CCA <- FindClusters(object=scData.CCA, reduction.type="cca.aligned",
 
 Visualization on t-SNE plot
 
-```{r tSNE CCA correction plot, echo=FALSE}
+```{r tSNE CCA correction plot, echo=FALSE, message=FALSE}
 p1 <- TSNEPlot(object=scData.CCA, group.by="Plate", do.return=TRUE)
 p1
 p2 <- TSNEPlot(object=scData.CCA, do.return=TRUE, do.label=TRUE)
