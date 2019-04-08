@@ -213,10 +213,8 @@ loadSCCountDataset <- function(input, param){
   
   if (ezIsSpecified(param$transcriptTypes)){
     use = seqAnno$type %in% param$transcriptTypes
-  } else {
-    use = TRUE
+    sce <- sce[use, ]
   }
-  sce <- sce[use, ]
   
   if (dataFeatureLevel == "isoform" && param$featureLevel == "gene"){
     sce <- aggregateCountsByGene(sce)
