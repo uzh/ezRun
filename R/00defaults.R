@@ -6,6 +6,7 @@
 # www.fgcz.ch
 
 
+
 ##' @title Build parameter object
 ##' @description Parameters can be specified in the global defaults, app-specific defaults and user-given.
 ##' If a parameter is specified in multiple places, the user parameters override the app defaults which again
