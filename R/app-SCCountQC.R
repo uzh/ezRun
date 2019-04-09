@@ -45,13 +45,13 @@ ezMethodSCCountQC = function(input=NA, output=NA, param=NA,
   param <- metadata(sce)$param
   if(param$scProtocol == "smart-Seq2"){
     mlog <- read.table(sub("-counts\\.mtx$", "_STAR.log", 
-                           input$getFullPath("CountMatrix")),
+                           input$getFullPaths("CountMatrix")),
                        sep="|", as.is = TRUE, quote = "\"", fill=T)
     rownames(mlog) <- trimws(mlog[,1])
     metadata(sce)$mlog <- mlog
     
     inBam <- getBamLocally(sub("-counts\\.mtx$", ".bam",
-                               input$getFullPath("CountMatrix")))
+                               input$getFullPaths("CountMatrix")))
     on.exit(file.remove(file.path(reportCwd, c(inBam, paste0(inBam, ".bai")))), 
             add = TRUE)
   }
