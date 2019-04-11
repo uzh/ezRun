@@ -3,7 +3,7 @@ title: "`r paste('FASTQC:', plotPage)`"
 author: "Functional Genomics Center Zurich"
 output:
   html_document:
-    self_contained: true
+    self_contained: false
     includes:
       in_header: fgcz_header.html
     css: fgcz.css
