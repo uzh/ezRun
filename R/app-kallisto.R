@@ -67,7 +67,6 @@ ezMethodKallisto = function(input=NA, output=NA, param=NA){
   ezSystem(paste("mv", pathRunInfo, basename(output$getColumn("runInfo"))))
   if (!is.null(param$pseudobam) && param$pseudobam){
     fnBam = basename(output$getColumn("BAM"))
-    ezSystem(paste("mv", pathPseudobam, fnBam))
     ezSortIndexBam(pathPseudobam, fnBam, ram=param$ram, cores=min(param$cores, 8))
   }
 
