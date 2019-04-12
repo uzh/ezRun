@@ -27,7 +27,7 @@ require(slingshot)
 require(RColorBrewer)
 require(SummarizedExperiment)
 require(tibble)
-library(Rmagic) ## This has to be loaded after setting correct python
+require(Rmagic) ## This has to be loaded after setting correct python
 
 ## ----------------------------------------------
 ## debug
@@ -345,11 +345,10 @@ legend("topleft", legend=names(cell.colorsPalette),
 
 #### fastICA
 ```{r fastICA plot, echo=FALSE, fig.width=8, fig.height=5, eval=param$runPseudoTime && !debug}
-p <- ggplot(tSNE_data, aes(X, Y)) + 
+p <- ggplot(tSNE_data, aes(tSNE_1, tSNE_2)) + 
   geom_point(shape=21, size=5, colour = "black",
              aes(fill=pseudotime), alpha=0.7) +
-  scale_fill_gradient(low="yellow", high="blue") +
-  xlab("") + ylab("")
+  scale_fill_gradient(low="yellow", high="blue")
 print(p)
 ```
 
