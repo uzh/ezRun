@@ -26,8 +26,10 @@ seuratPreProcess <- function(sce){
                                min.genes=1,
                                project=param$name,
                                meta.data=cell_info)
-  mito.genes <- grep(pattern = "^MT-", x = rownames(x = scData@data),
-                     value = TRUE, ignore.case=TRUE)
+  mito.genes <- rownames(sce)[toupper(as.character(seqnames(rowRanges(sce)))) %in% 
+                                toupper(c("chrM", "MT"))]
+  mito.genes <- intersect(mito.genes, rownames(scData@data))
+  
   perc_mito <- Matrix::colSums(scData@raw.data[mito.genes, ])/Matrix::colSums(scData@raw.data)
   scData <- AddMetaData(object = scData, metadata = perc_mito,
                         col.name = "perc_mito")
