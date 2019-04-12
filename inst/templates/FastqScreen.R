@@ -37,7 +37,6 @@ setwd("/scratch/gtan/p2000-SCFastqScreen")
 setEnvironments("trimmomatic")
 setEnvironments("flexbar")
 setEnvironments("fastq_screen")
-setEnvironments("bowtie2")
 param = list()
 param[['cores']] = '8'
 param[['ram']] = '40'

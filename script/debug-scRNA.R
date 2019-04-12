@@ -350,7 +350,6 @@ setEnvironments("star")
 setEnvironments("flexbar")
 setEnvironments("trimmomatic")
 setEnvironments("python2")
-setEnvironments("samtools")
 param = list()
 param[['cores']] = '8'
 param[['ram']] = '50'
