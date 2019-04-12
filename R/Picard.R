@@ -49,9 +49,7 @@ CollectRnaSeqMetrics <- function(inBams, gtfFn, featAnnoFn,
                                  ){
   require(matrixStats)
   setEnvironments("UCSC")
-  setEnvironments("samtools")
   setEnvironments("picard")
-  
   strandMode <- match.arg(strandMode)
   metricLevel <- match.arg(metricLevel)
   

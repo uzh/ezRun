@@ -92,7 +92,6 @@ dupBam <- function(inBam, outBam, operation=c("mark", "remove"),
   
   
   if(program == "sambamba"){
-    setEnvironments("sambamba")
     cmd <- paste("sambamba markdup -t", cores, "-l 9 --tmpdir=.",
                  ifelse(operation=="mark", "", "-r"), inBam, outBam)
     ezSystem(cmd)
@@ -126,9 +125,6 @@ dupBam <- function(inBam, outBam, operation=c("mark", "remove"),
 ### Filter bam by removing chrs, low mapQ
 filteroutBam <- function(inBam, outBam, cores=ezThreads(), chrs=NULL, mapQ=NULL){
   require(Rsamtools)
-  
-  setEnvironments("samtools")
-  
   cmd <- paste("samtools view -b", "-@", cores, "-o", outBam)
   
   if(!is.null(mapQ)){
@@ -181,7 +177,6 @@ bam2bw <- function(file,
 }
 
 splitBamByRG <- function(inBam, mc.cores=ezThreads()){
-  setEnvironments("samtools")
   # The following Rsamtools requires mapped Bam file.
   # require(Rsamtools)
   # header <- scanBamHeader(inBam)
@@ -224,7 +219,6 @@ mergeBamAlignments <- function(alignedBamFn, unmappedBamFn,
   )
   ezSystem(cmd)
   if(!keepUnmapped){
-    setEnvironments("samtools")
     tempBam <- tempfile(pattern="noUnmapped", tmpdir = ".",
                         fileext = ".bam")
     cmd <- paste("samtools view -F 4 -h -b", outputBamFn, ">",
@@ -369,7 +363,6 @@ posSpecErrorBam <- function(bamGA, genomeFn){
 ### Create the MD tag for BAM file and replace matches with "=" in seq
 calmdBam <- function(bamFns, mdBamFns=sub("\\.bam$", "_md.bam", bamFns),
                      genomeFn, mc.cores=4L){
-  setEnvironments("samtools")
   stopifnot(length(bamFns) == length(mdBamFns))
   
   cmdsCalmd <- paste("samtools calmd -b -e", bamFns, genomeFn, ">", mdBamFns)
