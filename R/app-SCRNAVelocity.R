@@ -32,9 +32,9 @@ ezMethodSCRNAVelocity <- function(input=NA, output=NA, param=NA,
   
   param$name <- paste(param$name, input$getNames(), sep=": ")
   
-  pythonPATH <- Sys.getenv("PYTHONPATH")
-  Sys.setenv("PYTHONPATH"="")
-  on.exit(Sys.setenv("PYTHONPATH"=pythonPATH), add=TRUE)
+  # pythonPATH <- Sys.getenv("PYTHONPATH")
+  # Sys.setenv("PYTHONPATH"="")
+  # on.exit(Sys.setenv("PYTHONPATH"=pythonPATH), add=TRUE)
   
   if(param$scProtocol == "smart-Seq2"){
     bamFn <- list.files(path=input$getFullPaths("ResultDir"),
