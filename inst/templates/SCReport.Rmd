@@ -355,7 +355,6 @@ print(p)
 ### Interactive explorer
 ```{r make shiny data, echo=FALSE}
 scData@scale.data <- NULL
-tSNE_data <- rename(tSNE_data, X=`tSNE_1`, Y=`tSNE_2`) # temporary fix for shiny app
 saveRDS(list(scData=scData, tSNE_data=tSNE_data),
         file=basename(output$getColumn("Live Report")))
 ```
