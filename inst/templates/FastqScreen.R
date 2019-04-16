@@ -34,7 +34,6 @@ EzAppFastqScreen$new()$run(input=input, output=output, param=param)
 # p2000 single cell unmapped bam
 library(ezRun)
 setwd("/scratch/gtan/p2000-SCFastqScreen")
-setEnvironments("trimmomatic")
 setEnvironments("flexbar")
 setEnvironments("fastq_screen")
 param = list()
