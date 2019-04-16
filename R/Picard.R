@@ -11,14 +11,12 @@ CollectAlignmentSummaryMetrics <- function(inBams, fastaFn, paired=FALSE,
                                            mc.cores=ezThreads()){
   require(matrixStats)
   metricLevel <- match.arg(metricLevel)
-  setEnvironments("picard")
   
   outputFns <- tempfile(pattern=inBams,
                        fileext=".CollectAlignmentSummaryMetrics")
   ## TODO: do check the ADAPTER_SEQUENCES option
-  cmd <- paste("java -Xmx3G", 
-               "-jar", Sys.getenv("Picard_jar"),
-               "CollectAlignmentSummaryMetrics",
+  cmd <- paste(preparePicard(),
+               "-Xmx3G CollectAlignmentSummaryMetrics",
                paste0("R=", fastaFn),
                paste0("I=", inBams),
                paste0("O=", outputFns),
@@ -49,7 +47,6 @@ CollectRnaSeqMetrics <- function(inBams, gtfFn, featAnnoFn,
                                  ){
   require(matrixStats)
   setEnvironments("UCSC")
-  setEnvironments("picard")
   strandMode <- match.arg(strandMode)
   metricLevel <- match.arg(metricLevel)
   
@@ -83,8 +80,7 @@ CollectRnaSeqMetrics <- function(inBams, gtfFn, featAnnoFn,
   ## CollectRnaSeqMetrics
   outputFns <- tempfile(pattern=inBams,
                         fileext=".CollectRnaSeqMetrics")
-  cmd <- paste("java -Xmx10G", "-jar", Sys.getenv("Picard_jar"),
-               "CollectRnaSeqMetrics",
+  cmd <- paste(preparePicard(), "-Xmx10G CollectRnaSeqMetrics",
                paste0("I=", inBams),
                paste0("O=", outputFns),
                paste0("REF_FLAT=", refFlatFn),
@@ -134,14 +130,11 @@ CollectRnaSeqMetrics <- function(inBams, gtfFn, featAnnoFn,
 }
 
 DuplicationMetrics <- function(inBams, mc.cores=ezThreads()){
-  setEnvironments("picard")
-  
   outputBams <- paste0(sub(".bam$", "", basename(inBams)),
                        "-", seq_along(inBams), "-markedDup.bam")
   outputFns <- sub('bam$', "metrics", outputBams)
   
-  cmd <- paste("java -XX:ParallelGCThreads=4 -Xmx3G -jar",
-               Sys.getenv("Picard_jar"), "MarkDuplicates",
+  cmd <- paste(preparePicard(), "-XX:ParallelGCThreads=4 -Xmx3G MarkDuplicates",
                paste0("I=", inBams),
                paste0("O=", outputBams),
                paste0("M=", outputFns),

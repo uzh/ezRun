@@ -773,8 +773,7 @@ getJunctionPlotsFromBam = function(bamFile, param){
 
 getDupRateFromBam <- function(bamFile, param=NULL, gtfFn, 
                               stranded=c("both", "sense", "antisense"), 
-                              paired=FALSE, #dupremover=c("picard", "bamutil"),
-                              threads=1){
+                              paired=FALSE, threads=1){
   if(!is.null(param)){
     gtfFn <- param$ezRef@refFeatureFile
     stranded <- param$strandMode
@@ -782,8 +781,6 @@ getDupRateFromBam <- function(bamFile, param=NULL, gtfFn,
     threads <- ceiling(param$cores / 2)
   }
   require(dupRadar)
-  #dupremover <- match.arg(dupremover)
-  #setEnvironments(dupremover)
   
   ## Make the duplicates in bamFile
   inputBam <- paste(Sys.getpid(), basename(bamFile), sep="-")
@@ -795,19 +792,7 @@ getDupRateFromBam <- function(bamFile, param=NULL, gtfFn,
   bamDuprmFn <- gsub("\\.bam$", "_duprm.bam", inputBam)
   # bamutilLogFn <- paste0(bamDuprmFn, ".log") # bamutil
   on.exit(file.remove(c(inputBam, bamDuprmFn)))#, picardMetricsFn, bamutilLogFn)))
-  # 
-  # if(dupremover == "bamutil"){
-  #   dupremoverDir <- dirname(Sys.which("bam"))
-  # }else if(dupremover == "picard"){
-  #   dupremoverDir <- dirname(Sys.getenv("Picard_jar"))
-  #   ## when modue load Tools/Picard.
-  # }
   
-  # bamDuprm <- markDuplicates(dupremover=dupremover,
-  #                            bam=inputBam,
-  #                            out=bamDuprmFn,
-  #                            path=dupremoverDir,
-  #                            rminput=FALSE)
   dupBam(inBam=inputBam, outBam=bamDuprmFn, operation="mark",
          cores=threads)
   ## Duplication rate analysis
