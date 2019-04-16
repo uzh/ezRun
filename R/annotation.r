@@ -193,7 +193,7 @@ makeFeatAnnoEnsembl <- function(featureFile,
                             c("Ensembl Transcript ID", "Description",
                               "GO Term Accession", "GO domain"))
   if(!is.null(biomartFile)){
-    message("Use local biomart file!")
+    message("Using local biomart file!")
     ### Use the downloaded biomartFile when availble
     stopifnot(file.exists(biomartFile))
     require(readr)
