@@ -125,8 +125,7 @@ ezMethodSingleCellSTAR = function(input=NA, output=NA, param=NA){
     writeXStringSet(getControlSeqs(param$controlSeqs), filepath=genomeLocalFn,
                     append=TRUE)
     dictFile = sub(".fa$", ".dict", genomeLocalFn)
-    cmd = paste("java -Djava.io.tmpdir=. ", " -jar", 
-                Sys.getenv("Picard_jar"), "CreateSequenceDictionary",
+    cmd = paste(preparePicard(), "-Djava.io.tmpdir=. CreateSequenceDictionary",
                 paste0("R=", genomeLocalFn), paste0("O=", dictFile))
     ezSystem(cmd)
     

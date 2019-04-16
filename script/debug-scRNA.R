@@ -263,7 +263,6 @@ setEnvironments("flexbar")
 setEnvironments("trimmomatic")
 setEnvironments("python2")
 setEnvironments("samtools")
-setEnvironments("picard")
 param = list()
 param[['cores']] = '8'
 param[['ram']] = '40'

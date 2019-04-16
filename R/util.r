@@ -704,8 +704,6 @@ ezSplitLongText = function(text, nSplit=180){
 isValidEnvironments <- function(tool){
   tool <- tolower(tool)
   ans <- switch(tool,
-                "picard"=Sys.getenv("Picard_jar") != "" && 
-                           Sys.which("java") != "",
                 "trimmomatic"=Sys.getenv("Trimmomatic_jar") != "" && 
                                 Sys.which("java") != "",
                 "phantomjs"=Sys.which("phantomjs") != "",
@@ -738,7 +736,6 @@ setEnvironments <- function(tool, envir=parent.frame()){
   tool <- tolower(tool)
   if(!isTRUE(isValidEnvironments(tool))){
     cmd <- switch(tool,
-                  "picard"=expression({Sys.setenv("PATH"=paste("/usr/local/ngseq/packages/Dev/jdk/8/bin", Sys.getenv("PATH"), sep=":")); Sys.setenv("Picard_jar"="/usr/local/ngseq/packages/Tools/Picard/2.18.0/picard.jar")}),
                   "trimmomatic"=expression({Sys.setenv("PATH"=paste("/usr/local/ngseq/packages/Dev/jdk/8/bin", Sys.getenv("PATH"), sep=":")); Sys.setenv("Trimmomatic_jar"="/usr/local/ngseq/packages/QC/Trimmomatic/0.36/trimmomatic-0.36.jar")}),
                   "phantomjs"=expression({Sys.setenv("PATH"=paste("/usr/local/ngseq/packages/Dev/PhantomJS/2.1.1/bin", Sys.getenv("PATH"), sep=":"))}),
                   "samtools"=expression({Sys.setenv("PATH"=paste("/usr/local/ngseq/packages/Tools/samtools/1.9/bin", Sys.getenv("PATH"), sep=":"))}),
@@ -764,6 +761,17 @@ setEnvironments <- function(tool, envir=parent.frame()){
                   stop("unsupported tool: ", tool)
     )
     eval(cmd, envir=envir)
+  }
+}
+
+preparePicard <- function(){
+  if(Sys.which("picard") != ""){
+    return("picard")
+  }else if(Sys.getenv("Picard_jar") != ""){
+    return(paste("java -Djava.io.tmpdir=. ", " -jar", 
+                 Sys.getenv("Picard_jar")))
+  }else{
+    stop("Cannot find proper picard installed!")
   }
 }
 

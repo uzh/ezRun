@@ -53,10 +53,6 @@ fastq2bam <- function(fastqFn, refFn, bamFn, fastqI1Fn=NULL, fastqI2Fn=NULL){
 fastqs2bam <- function(fastqFns, fastq2Fns=NULL, readGroupNames=NULL,
                        bamFn, platform="illumina", mc.cores=ezThreads()){
   require(Biostrings)
-  
-  if(!isTRUE(isValidEnvironments("picard"))){
-    setEnvironments("picard")
-  }
   paired <- FALSE
   if(!is.null(fastq2Fns)){
     stopifnot(length(fastqFns) == length(fastq2Fns))
@@ -74,8 +70,7 @@ fastqs2bam <- function(fastqFns, fastq2Fns=NULL, readGroupNames=NULL,
   ## tempty fastq files fail in the picard tool of FastqToSam and MergeSamFiles
   ## Convert and merge the non-empty fastqs first and alter the header of merged bam file
     
-  cmd <- paste("java -Xmx4G -Djava.io.tmpdir=. -jar", 
-               Sys.getenv("Picard_jar"), "FastqToSam",
+  cmd <- paste(preparePicard(), "-Xmx4G -Djava.io.tmpdir=. FastqToSam",
                paste0("F1=", fastqFns)
                )
   if(isTRUE(paired)){
@@ -93,8 +88,7 @@ fastqs2bam <- function(fastqFns, fastq2Fns=NULL, readGroupNames=NULL,
              mc.cores = mc.cores)
   
   ## picard tools merge
-  cmd <- paste("java -Djava.io.tmpdir=. -jar", 
-               Sys.getenv("Picard_jar"), "MergeSamFiles",
+  cmd <- paste(preparePicard(), "-Djava.io.tmpdir=. MergeSamFiles",
                paste0("I=", paste0(sampleBasenames, ".bam")[!emptyFastqs],
                       collapse=" "),
                paste0("O=", bamFn),
@@ -137,8 +131,6 @@ bam2fastq <- function(bamFn, OUTPUT_PER_RG=TRUE, OUTPUT_DIR=".",
                       paired=FALSE,
                       fastqFns=sub("(\\.bam|\\.sam)$", "_R1.fastq", bamFn),
                       fastq2Fns=sub("(\\.bam|\\.sam)$", "_R2.fastq", bamFn)){
-  setEnvironments("picard")
-  
   if(isTRUE(OUTPUT_PER_RG)){
     ## When OUTPUT_PER_RG is TRUE, we only process one uBam each time.
     stopifnot(length(bamFn) == 1L)
@@ -147,8 +139,7 @@ bam2fastq <- function(bamFn, OUTPUT_PER_RG=TRUE, OUTPUT_DIR=".",
     tempDIR <- paste("SamtoFastqTempDir", Sys.getpid(), sep="-")
     dir.create(tempDIR)
     on.exit(unlink(tempDIR, recursive=TRUE), add = TRUE)
-    cmd <- paste("java -Djava.io.tmpdir=. -jar", 
-                 Sys.getenv("Picard_jar"), "SamToFastq",
+    cmd <- paste(preparePicard(), "-Djava.io.tmpdir=. SamToFastq",
                  paste0("I=", bamFn),
                  paste0("OUTPUT_DIR=", tempDIR),
                  "OUTPUT_PER_RG=true RG_TAG=ID"
@@ -166,8 +157,7 @@ bam2fastq <- function(bamFn, OUTPUT_PER_RG=TRUE, OUTPUT_DIR=".",
     return(invisible(toFns))
     ## This is not much slower than splitBambyRG and SamToFastq in parallel
   }else{
-    cmd <- paste("java -Djava.io.tmpdir=. -jar", 
-                 Sys.getenv("Picard_jar"), "SamToFastq",
+    cmd <- paste(preparePicard(), "-Djava.io.tmpdir=. SamToFastq",
                  paste0("I=", bamFn),
                  paste0("FASTQ=", fastqFns))
     if(isTRUE(paired))

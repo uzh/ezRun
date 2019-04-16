@@ -197,8 +197,7 @@ setMethod("buildRefDir", "EzRef", function(.Object, genomeFile, genesFile,
   if (file.exists(dictFile)){
     file.remove(dictFile)
   }
-  cmd = paste("java -Djava.io.tmpdir=. ", " -jar", 
-              Sys.getenv("Picard_jar"), "CreateSequenceDictionary",
+  cmd = paste(preparePicard(), "-Djava.io.tmpdir=. CreateSequenceDictionary",
               paste0("R=", .Object@refFastaFile), paste0("O=", dictFile))
   ezSystem(cmd)
 })

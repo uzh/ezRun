@@ -51,14 +51,12 @@ ezSortIndexBam = function(inBam, bam, ram=2, removeBam=TRUE, cores=2,
     cmd = paste(method, "index", bam)
     ezSystem(cmd)
   }else{
-    cmd <- paste("java -Djava.io.tmpdir=. -jar", 
-                 Sys.getenv("Picard_jar"), "SortSam",
+    cmd <- paste(preparePicard(), "-Djava.io.tmpdir=. SortSam",
                  paste0("I=", inBam),
                  paste0("O=", bam),
                  "SORT_ORDER=coordinate")
     ezSystem(cmd)
-    cmd <- paste("java -Djava.io.tmpdir=. -jar", 
-                 Sys.getenv("Picard_jar"), "BuildBamIndex",
+    cmd <- paste(preparePicard(), "-Djava.io.tmpdir=. BuildBamIndex",
                  paste0("I=", bam),
                  paste0("OUTPUT=", bam, ".bai")
                  )
