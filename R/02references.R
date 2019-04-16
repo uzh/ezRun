@@ -236,7 +236,7 @@ listBiotypes <- function(select=c("genes", "protein_coding", "long_noncoding",
            "ncrna_host", "non_coding", "processed_transcript", 
            "retained_intron", "sense_intronic", "sense_overlapping",
            "3prime_overlapping_ncRNA", "bidirectional_promoter_lncRNA",
-           "macro_lncRNA")
+           "macro_lncRNA", "lncRNA")
   shnc <- c("miRNA", "misc_RNA", "piRNA",
             "Mt_rRNA", "Mt_tRNA", "ncRNA", "pre_miRNA", 
             "RNase_MRP_RNA", "RNase_P_RNA", "rRNA",
