@@ -93,7 +93,6 @@ ezMethodHomerDiffPeaks = function(input=NA, output=NA, param=NA,
 
 makeTagDirectory <- function(inBam, outputDir, genome=NULL, checkGC=FALSE,
                              isAntisense=FALSE, strandedPaired=FALSE){
-  setEnvironments("HOMER")
   cmd <- paste("makeTagDirectory", outputDir, paste(inBam, collapse=" "),
                "-format sam")
   if(!is.null(genome)){

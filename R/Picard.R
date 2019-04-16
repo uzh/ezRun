@@ -46,7 +46,6 @@ CollectRnaSeqMetrics <- function(inBams, gtfFn, featAnnoFn,
                                  mc.cores=ezThreads()
                                  ){
   require(matrixStats)
-  setEnvironments("UCSC")
   strandMode <- match.arg(strandMode)
   metricLevel <- match.arg(metricLevel)
   
