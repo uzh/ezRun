@@ -37,5 +37,5 @@ install_github("velocyto-team/velocyto.R")
 ```
 
 ## Dependencies of external software
-* bwa, bowtie, bowtie2, STAR, picard, sambamba, samtools
+* bwa, bowtie, bowtie2, STAR, picard, sambamba, samtools, igvtools
 * lsof
