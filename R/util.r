@@ -751,7 +751,7 @@ prepareTrimmomatic <- function(){
   if(Sys.which("trimmomatic") != ""){
     return("trimmomatic")
   }else if(Sys.getenv("Trimmomatic_jar") != ""){
-    return(paste("java -jar", Sys.getenv("Trimmomatic_jar")))
+    return(paste("java -jar -Djava.io.tmpdir=.", Sys.getenv("Trimmomatic_jar")))
   }else{
     stop("Cannot find proper trimmomatic installed!")
   }
