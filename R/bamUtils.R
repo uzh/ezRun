@@ -101,7 +101,7 @@ dupBam <- function(inBam, outBam, operation=c("mark", "remove"),
     metricFn <- tempfile()
     tempMarkedBam <- tempfile(pattern="tempMarkedBam", tmpdir=".",
                               fileext = ".bam")
-    cmd <- paste(preparePicard(), "-Djava.io.tmpdir=. MarkDuplicates",
+    cmd <- paste(preparePicard(), "MarkDuplicates",
                  paste0("I=", inBam),
                  paste0("O=", outBam),
                  paste0("M=", metricFn),
@@ -202,7 +202,7 @@ mergeBamAlignments <- function(alignedBamFn, unmappedBamFn,
                                outputBamFn, fastaFn,
                                keepUnmapped=FALSE){
   ## Use . as tmp dir. Big bam generates big tmp files.
-  cmd <- paste(preparePicard(), "-Djava.io.tmpdir=. MergeBamAlignment",
+  cmd <- paste(preparePicard(), "MergeBamAlignment",
                paste0("ALIGNED=", alignedBamFn),
                paste0("UNMAPPED=", unmappedBamFn),
                paste0("O=", outputBamFn),

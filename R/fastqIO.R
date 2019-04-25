@@ -70,7 +70,7 @@ fastqs2bam <- function(fastqFns, fastq2Fns=NULL, readGroupNames=NULL,
   ## tempty fastq files fail in the picard tool of FastqToSam and MergeSamFiles
   ## Convert and merge the non-empty fastqs first and alter the header of merged bam file
     
-  cmd <- paste(preparePicard(), "-Xmx4G -Djava.io.tmpdir=. FastqToSam",
+  cmd <- paste(preparePicard(), "-Xmx4G FastqToSam",
                paste0("F1=", fastqFns)
                )
   if(isTRUE(paired)){
@@ -88,7 +88,7 @@ fastqs2bam <- function(fastqFns, fastq2Fns=NULL, readGroupNames=NULL,
              mc.cores = mc.cores)
   
   ## picard tools merge
-  cmd <- paste(preparePicard(), "-Djava.io.tmpdir=. MergeSamFiles",
+  cmd <- paste(preparePicard(), "MergeSamFiles",
                paste0("I=", paste0(sampleBasenames, ".bam")[!emptyFastqs],
                       collapse=" "),
                paste0("O=", bamFn),
@@ -139,7 +139,7 @@ bam2fastq <- function(bamFn, OUTPUT_PER_RG=TRUE, OUTPUT_DIR=".",
     tempDIR <- paste("SamtoFastqTempDir", Sys.getpid(), sep="-")
     dir.create(tempDIR)
     on.exit(unlink(tempDIR, recursive=TRUE), add = TRUE)
-    cmd <- paste(preparePicard(), "-Djava.io.tmpdir=. SamToFastq",
+    cmd <- paste(preparePicard(), "SamToFastq",
                  paste0("I=", bamFn),
                  paste0("OUTPUT_DIR=", tempDIR),
                  "OUTPUT_PER_RG=true RG_TAG=ID"
@@ -157,7 +157,7 @@ bam2fastq <- function(bamFn, OUTPUT_PER_RG=TRUE, OUTPUT_DIR=".",
     return(invisible(toFns))
     ## This is not much slower than splitBambyRG and SamToFastq in parallel
   }else{
-    cmd <- paste(preparePicard(), "-Djava.io.tmpdir=. SamToFastq",
+    cmd <- paste(preparePicard(), "SamToFastq",
                  paste0("I=", bamFn),
                  paste0("FASTQ=", fastqFns))
     if(isTRUE(paired))
