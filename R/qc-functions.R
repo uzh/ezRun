@@ -1,7 +1,33 @@
-## identify the GC content and gene-length associated bias in RNA-seq data
+## 
+
+
+
 
 # minReadsPerGene=3 <- is needed so that it works for iSeq runs
-computeBias = function(dsFile, dsName=NULL, param=NULL, qcSummaryDir="/srv/GT/analysis/p2220/RNA-seq-bias-results", refBuildMap=getRefBuildMap(), minReadsPerSample=30000,
+
+#' compute and plot the GC content and gene-length associated bias in RNA-seq data
+#'
+#' @param dsFile 
+#' @param dsName 
+#' @param param 
+#' @param qcSummaryDir 
+#' @param refBuildMap 
+#' @param minReadsPerSample 
+#' @param maxReadsPerSample 
+#' @param minReadsPerGene 
+#' @param minPresentFraction 
+#'
+#' @return
+#' @export
+#'
+#' @examples
+#' ## needs the following modules loaded module add Tools/samtools QC/Trimmomatic QC/Flexbar Aligner/kallisto
+#' options(error=recover)
+#' require(ezRun)
+#' dsFile = "/srv/gstore/projects/p3082/ISeq_20190425_iSeq35_o5404_DataDelivery/dataset.tsv"
+#' ezComputeBias(dsFile)
+
+ezComputeBias = function(dsFile, dsName=NULL, param=NULL, qcSummaryDir="/srv/GT/analysis/p2220/RNA-seq-bias-results", refBuildMap=getRefBuildMap(), minReadsPerSample=30000,
                        maxReadsPerSample=5e6,
                        minReadsPerGene=3, minPresentFraction=0.2){
   
