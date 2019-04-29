@@ -301,7 +301,9 @@ Slingshot is a cluster based ineage reconstruction and pseudotime inference appr
 Here, we use reduced-dimensional space of tSNE derived above and cell clustering produced by gaussian mixture modeling, instead of cell clustering done by Seurat.
 More details is available at [here](https://www.bioconductor.org/packages/devel/bioc/vignettes/slingshot/inst/doc/slingshot.html).
 
-```{r slingshot compute, echo=FALSE, message=FALSE, eval=param$runPseudoTime & !debug}
+Slingshot is disabled for now due to an issue of `rgl` package.
+
+```{r slingshot compute, echo=FALSE, message=FALSE, eval=FALSE}
 sceSlingshot <- Convert(from = scData, to = "sce")
 
 sceSlingshot <- slingshot::slingshot(sceSlingshot, clusterLabels = 'ident',
