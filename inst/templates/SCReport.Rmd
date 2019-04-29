@@ -15,19 +15,19 @@ Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
 
 ```{r setup, include=FALSE}
 # input for this report: sce, output
-require(ezRun)
-require(Seurat)
-require(dplyr)
-require(tibble)
-require(kableExtra)
-require(fastICA)
-require(Matrix)
-require(readr)
-require(slingshot)
-require(RColorBrewer)
-require(SummarizedExperiment)
-require(tibble)
-require(Rmagic) ## This has to be loaded after setting correct python
+library(ezRun)
+library(Seurat)
+library(dplyr)
+library(tibble)
+library(kableExtra)
+library(fastICA)
+library(Matrix)
+library(readr)
+library(slingshot)
+library(RColorBrewer)
+library(SummarizedExperiment)
+library(tibble)
+library(Rmagic) ## This has to be loaded after setting correct python
 
 ## ----------------------------------------------
 ## debug
@@ -304,8 +304,8 @@ More details is available at [here](https://www.bioconductor.org/packages/devel/
 ```{r slingshot compute, echo=FALSE, message=FALSE, eval=param$runPseudoTime & !debug}
 sceSlingshot <- Convert(from = scData, to = "sce")
 
-sceSlingshot <- slingshot(sceSlingshot, clusterLabels = 'ident',
-                          reducedDim = 'TSNE')
+sceSlingshot <- slingshot::slingshot(sceSlingshot, clusterLabels = 'ident',
+                                     reducedDim = 'TSNE')
 colors <- colorRampPalette(brewer.pal(11,'Spectral')[-6])(100)
 nrPseudoT <- grep("slingPseudotime_\\d+", colnames(colData(sceSlingshot)),
                   value=TRUE)
