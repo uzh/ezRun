@@ -74,15 +74,15 @@ seuratClustering <- function(scData, param){
                       do.par=TRUE, num.cores=min(4L, param$cores))
   
   scData <- FindClusters(object=scData, reduction.type="pca",
-                         dims.use = 1:param$pcs,
+                         dims.use = 1:min(param$pcs, length(pc.genes)-1),
                          resolution = param$resolution, print.output = 0, 
                          save.SNN=TRUE, force.recalc=FALSE)
   scData <- RunTSNE(object=scData, reduction.use = "pca",
-                    dims.use=1:param$pcs, tsne.method="Rtsne",
+                    dims.use=1:min(param$pcs, length(pc.genes)-1), tsne.method="Rtsne",
                     perplexity=ifelse(length(scData@ident) > 200, 30, 10),
                     num_threads=param$cores)
   scData <- RunUMAP(object=scData, reduction.use = "pca",
-                    dims.use=1:param$pcs,
+                    dims.use=1:min(param$pcs, length(pc.genes)-1),
                     n_neighbors=ifelse(length(scData@ident) > 200, 30, 10))
   return(scData)
 }
