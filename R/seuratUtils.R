@@ -56,12 +56,13 @@ seuratClustering <- function(scData, param){
                       vars.to.regress = param$vars.to.regress,
                       num.cores=param$cores)
   if(ezIsSpecified(param$pcGenes)){
-    indicesMatch <- match(toupper(param$pcGenes), rownames(scData@data))
+    indicesMatch <- match(toupper(param$pcGenes),
+                          toupper(rownames(scData@data)))
     if(any(is.na(indicesMatch))){
       stop("The following genes don't exist: ", 
            paste(param$pcGenes[is.na(indicesMatch)], collapse = ","))
     }
-    pc.genes <- rownames(scData@data)[which(indicesMatch)]
+    pc.genes <- rownames(scData@data)[indicesMatch]
     metadata(sce)[["pc.genes"]] <- pc.genes
   }else{
     pc.genes <- scData@var.genes
