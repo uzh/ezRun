@@ -63,7 +63,6 @@ seuratClustering <- function(scData, param){
            paste(param$pcGenes[is.na(indicesMatch)], collapse = ","))
     }
     pc.genes <- rownames(scData@data)[indicesMatch]
-    metadata(sce)[["pc.genes"]] <- pc.genes
   }else{
     pc.genes <- scData@var.genes
   }
