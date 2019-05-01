@@ -129,7 +129,7 @@ kable(tibble(Cluster=names(summary(scData@ident)),
 ```{r pc.genes, echo=FALSE}
 if(ezIsSpecified(param$pcGenes)){
   cat("Selected genes for clustering:\n")
-  metadata(sce)[["pc.genes"]]
+  metadata(sce)$param[["pc.genes"]]
   cat("\n")
 }
 ```
