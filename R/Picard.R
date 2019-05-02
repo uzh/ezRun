@@ -16,7 +16,7 @@ CollectAlignmentSummaryMetrics <- function(inBams, fastaFn, paired=FALSE,
                        fileext=".CollectAlignmentSummaryMetrics")
   ## TODO: do check the ADAPTER_SEQUENCES option
   cmd <- paste(preparePicard(),
-               "-Xmx3G CollectAlignmentSummaryMetrics",
+               "CollectAlignmentSummaryMetrics",
                paste0("R=", fastaFn),
                paste0("I=", inBams),
                paste0("O=", outputFns),
@@ -79,7 +79,7 @@ CollectRnaSeqMetrics <- function(inBams, gtfFn, featAnnoFn,
   ## CollectRnaSeqMetrics
   outputFns <- tempfile(pattern=inBams,
                         fileext=".CollectRnaSeqMetrics")
-  cmd <- paste(preparePicard(), "-Xmx10G CollectRnaSeqMetrics",
+  cmd <- paste(preparePicard(), "CollectRnaSeqMetrics",
                paste0("I=", inBams),
                paste0("O=", outputFns),
                paste0("REF_FLAT=", refFlatFn),
@@ -133,7 +133,7 @@ DuplicationMetrics <- function(inBams, mc.cores=ezThreads()){
                        "-", seq_along(inBams), "-markedDup.bam")
   outputFns <- sub('bam$', "metrics", outputBams)
   
-  cmd <- paste(preparePicard(), "-XX:ParallelGCThreads=4 -Xmx3G MarkDuplicates",
+  cmd <- paste(preparePicard(), "MarkDuplicates",
                paste0("I=", inBams),
                paste0("O=", outputBams),
                paste0("M=", outputFns),
@@ -141,14 +141,10 @@ DuplicationMetrics <- function(inBams, mc.cores=ezThreads()){
                )
   ezMclapply(cmd, ezSystem, mc.preschedule=FALSE, mc.cores=mc.cores)
   
-  metrics <- lapply(outputFns, ezRead.table, comment.char="#", row.names=NULL, blank.lines.skip=TRUE, nrows=1)
+  metrics <- lapply(outputFns, ezRead.table, comment.char="#", row.names=NULL, 
+                    blank.lines.skip=TRUE, nrows=1)
   metrics <- do.call(rbind, metrics)
   rownames(metrics) = names(inBams)
-  # metrics <- metrics[ ,!colAlls(is.na(metrics))] ## Remove the NA columns of nameColumns
-  # nameColumns <- c("SAMPLE", "LIBRARY", "READ_GROUP")
-  # indexName <- intersect(colnames(metrics), nameColumns)
-  # rownames(metrics) <- metrics[ ,indexName]
-  # metrics[[indexName]] <- NULL
   file.remove(outputBams, outputFns) ## only remove on success so theat se an debg
   return(metrics)
 }
