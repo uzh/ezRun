@@ -741,7 +741,7 @@ preparePicard <- function(){
   if(Sys.which("picard") != ""){
     return("picard")
   }else if(Sys.getenv("Picard_jar") != ""){
-    return(paste("java -jar -Djava.io.tmpdir=. -Xmx4G", Sys.getenv("Picard_jar")))
+    return(paste("java -jar -Djava.io.tmpdir=. -Xmx10G ", Sys.getenv("Picard_jar")))
   }else{
     stop("Cannot find proper picard installed!")
   }
