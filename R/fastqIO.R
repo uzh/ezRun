@@ -70,7 +70,7 @@ fastqs2bam <- function(fastqFns, fastq2Fns=NULL, readGroupNames=NULL,
   ## tempty fastq files fail in the picard tool of FastqToSam and MergeSamFiles
   ## Convert and merge the non-empty fastqs first and alter the header of merged bam file
     
-  cmd <- paste(preparePicard(), "-Xmx4G FastqToSam",
+  cmd <- paste(preparePicard(), "FastqToSam",
                paste0("F1=", fastqFns)
                )
   if(isTRUE(paired)){
