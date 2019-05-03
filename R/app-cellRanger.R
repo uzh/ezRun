@@ -10,10 +10,11 @@ ezMethodCellRanger = function(input=NA, output=NA, param=NA){
   sampleDirs = strsplit(input$getColumn("RawDataDir"), ",")[[sampleName]]
   sampleDirs <- file.path(input$dataRoot, sampleDirs)
   sampleDir <- paste(sampleDirs, collapse=",")
+  cellRangerFolder = paste0(sampleName, "-cellRanger")
   
   if(param$TenXLibrary == "GEX"){
     refDir <- getCellRangerGEXReference(param)
-    cmd <- paste(CELLRANGER, "count", paste0("--id=", sampleName),
+    cmd <- paste(CELLRANGER, "count", paste0("--id=", cellRangerFolder),
                  paste0("--transcriptome=", refDir),
                  paste0("--fastqs=", sampleDir),
                  paste0("--sample=", sampleName),
@@ -22,7 +23,7 @@ ezMethodCellRanger = function(input=NA, output=NA, param=NA){
                  paste0("--chemistry=", param$chemistry))
   }else if(param$TenXLibrary == "VDJ"){
     refDir <- getCellRangerVDJReference(param)
-    cmd <- paste(CELLRANGER, "vdj", paste0("--id=", sampleName),
+    cmd <- paste(CELLRANGER, "vdj", paste0("--id=", cellRangerFolder),
                  paste0("--reference=", refDir),
                  paste0("--fastqs=", sampleDir),
                  paste0("--sample=", sampleName),
@@ -35,6 +36,7 @@ ezMethodCellRanger = function(input=NA, output=NA, param=NA){
   }
   
   ezSystem(cmd)
+  ezSystem(paste("mv ", file.path(cellRangerFolder, "outs"),  sampleName))
   
   if(ezIsSpecified(param$controlSeqs)){
     unlink(refDir, recursive = TRUE)
@@ -44,7 +46,7 @@ ezMethodCellRanger = function(input=NA, output=NA, param=NA){
     require(DropletUtils)
     require(Matrix)
     require(readr)
-    countMatrixFn <- list.files(path=file.path(sampleName, 'outs/filtered_feature_bc_matrix'),
+    countMatrixFn <- list.files(path=file.path(sampleName, 'filtered_feature_bc_matrix'),
                                 pattern="\\.mtx(\\.gz)*$", recursive=TRUE,
                                 full.names=TRUE)
     sce <- read10xCounts(dirname(countMatrixFn), col.names=TRUE)
