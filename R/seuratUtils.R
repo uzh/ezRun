@@ -81,9 +81,10 @@ seuratClustering <- function(scData, param){
                     dims.use=1:min(param$pcs, length(pc.genes)-1), tsne.method="Rtsne",
                     perplexity=ifelse(length(scData@ident) > 200, 30, 10),
                     num_threads=param$cores)
-  scData <- RunUMAP(object=scData, reduction.use = "pca",
-                    dims.use=1:min(param$pcs, length(pc.genes)-1),
-                    n_neighbors=ifelse(length(scData@ident) > 200, 30, 10))
+  try(scData <- RunUMAP(object=scData, reduction.use = "pca",
+                        dims.use=1:min(param$pcs, length(pc.genes)-1),
+                        n_neighbors=ifelse(length(scData@ident) > 200, 30, 10)),
+      silent=TRUE)
   return(scData)
 }
 
