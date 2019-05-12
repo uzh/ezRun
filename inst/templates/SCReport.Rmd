@@ -16,7 +16,7 @@ Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
 ```{r setup, include=FALSE}
 # input for this report: sce, output
 library(ezRun)
-library(Seurat)
+library(Seurat2)
 library(dplyr)
 library(tibble)
 library(kableExtra)

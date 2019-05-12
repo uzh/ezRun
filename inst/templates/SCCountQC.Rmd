@@ -22,7 +22,7 @@ require(DT)
 require(htmltools)
 require(dplyr)
 require(Matrix) # sparse matrix
-require(Seurat)
+require(Seurat2)
 require(pheatmap)
 require(readr)
 
