@@ -29,7 +29,8 @@ packages <- c("testthat", "knitr", "gage", "goseq", "ChIPpeakAnno",
               "taxize", "SingleCellExperiment", "SummarizedExperiment",
               "scater", "DropletUtils", "shiny", "heatmaply", "readxl",
               "readr", "dplyr", "shinycssloaders", "shinyjs", "slingshot",
-              "Rmagic", "reticulate", "viridis", "Seurat", "tidyverse")
+              "Rmagic", "reticulate", "viridis", "Seurat", "tidyverse",
+              "httr", "jsonlite", "xml2")
 packages <- setdiff(packages, rownames(installed.packages()))
 BiocManager::install(packages)
 

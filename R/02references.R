@@ -339,3 +339,63 @@ getControlSeqs <- function(ids=NULL){
   return(controlSeqs)
 }
 
+makeBiomartFile <- function(gtf){
+  require(httr)
+  require(jsonlite)
+  require(xml2)
+  require(tibble)
+  require(dplyr)
+  require(GO.db)
+  
+  server <- "http://rest.ensembl.org"
+  
+  txids <- unique(na.omit(gtf$transcript_id))
+  tb0 <- tibble("Transcript stable ID"=txids)
+  
+  ## txid, GO ID
+  goList <- list()
+  for(txid in txids){
+    ext <- paste0("/xrefs/id/", txid, "?external_db=GO;all_levels=0;object_type=transcript")
+    r <- GET(paste0(server, ext), content_type("application/json"))
+    ans_go <- fromJSON(toJSON(httr::content(r))) ## GO.db masks content
+    goList[[txid]] <- unique(na.omit(unlist(ans_go$primary_id)))
+  }
+  tb1 <- stack(goList)
+  tb1 <- as_tibble(tb1) %>% mutate(ind=as.character(ind)) %>% 
+    rename("Transcript stable ID"=ind,
+           "GO term accession"=values) 
+    
+  
+  ## txid, gene name
+  tb2 <- mcols(gtf)[ ,c("gene_name", "transcript_id")]
+  tb2 <- as_tibble(tb2) %>% filter(!is.na(transcript_id)) %>%
+    rename("Transcript stable ID"=transcript_id, "Gene description"=gene_name)
+  
+  ## GO ID, GO domain
+  # uniqueGOIDs <- unique(tb1$`GO term accession`)
+  # goDomain <- setNames(character(length(uniqueGOIDs)), uniqueGOIDs)
+  # for(goid in uniqueGOIDs){
+  #   ext <- paste0("/ontology/id/", goid, "?")
+  #   r <- GET(paste(server, ext, sep = ""), content_type("application/json"))
+  #   ans_go <- fromJSON(toJSON(httr::content(r)))
+  #   goDomain[goid] <- ans_go$namespace
+  # }
+  # tb3 <- tibble(`GO term accession`=names(goDomain),
+  #               `GO domain`=goDomain)
+  # Information from Ensembl REST is not consistent. Some GO IDs are missing.
+  tb3 <- AnnotationDbi::select(GO.db, columns=c("GOID", "ONTOLOGY"),
+                               keys=unique(tb1$`GO term accession`),
+                               keytype="GOID")
+  tb3 <- as_tibble(tb3) %>% mutate(ONTOLOGY=c("BP"="biological_process",
+                                              "MF"="molecular_function",
+                                              "CC"="cellular_component")[ONTOLOGY])
+  tb3 <- rename(tb3, "GO term accession"=GOID, "GO domain"=ONTOLOGY)
+  
+  tb <- left_join(left_join(left_join(tb0, tb1), tb2), tb3)
+  tb <- dplyr:: select(tb, `Transcript stable ID`, `Gene description`,
+                       `GO term accession`, `GO domain`)
+  tb <- mutate(tb, `GO term accession`=ifelse(is.na(`GO domain`), NA,
+                                              `GO term accession`))
+  return(tb)
+}
+
