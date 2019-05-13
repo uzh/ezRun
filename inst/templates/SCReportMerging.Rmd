@@ -20,7 +20,7 @@ library(cowplot)
 library(tibble)
 library(dplyr)
 library(readr)
-library(Seurat2)
+library(Seurat)
 library(kableExtra)
 library(tidyr)
 # input for this report: sceURLs, param
