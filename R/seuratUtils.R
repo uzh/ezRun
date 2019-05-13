@@ -10,7 +10,7 @@ seuratPreProcess <- function(sce){
   ##                     param$maxGenesPerCell; param$minGenesPerCell; param$maxMitoFraction
   ##                     param$minReadsPerCell; 
   ##                     param$pcs, param$pcGenes
-  require(Seurat2)
+  require(Seurat)
   require(scater)
   param <- metadata(sce)$param
   rownames(sce) <- uniquifyFeatureNames(ID=rowData(sce)$gene_id,
