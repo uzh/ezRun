@@ -7,6 +7,8 @@ output:
     includes:
       in_header: fgcz_header.html
     css: fgcz.css
+editor_options: 
+  chunk_output_type: console
 ---
 
 ```{r setup, include=FALSE}
