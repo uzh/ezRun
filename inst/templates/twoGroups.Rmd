@@ -89,6 +89,20 @@ liveReportLink = output$getColumn("Live Report")
 deResult$saveToFile(basename(output$getColumn("Live Report")))
 
 makeWebgestaltFiles(param, resultFile$resultFile)
+if(param$runGSEA){
+  gseaFiles = list.files('Webgestalt', pattern = '^GSEA_Input', full.names = TRUE)
+  for (i in 1:length(gseaFiles)){
+    runWebgestaltGSEA(param, gseaFiles[i])
+  }
+  ##Keep only interactive html report & zip archive:
+  ezSystem('mv Webgestalt/GSEA_Results/*/*.html Webgestalt/GSEA_Results')
+  ezSystem('mv Webgestalt/GSEA_Results/*/*.zip Webgestalt/GSEA_Results')
+  ezSystem('rm -Rf Webgestalt/GSEA_Results/Project*')
+}
+ezSystem('zip Webgestalt/InputFiles_GSEA.zip Webgestalt/*.rnk')
+ezSystem('rm Webgestalt/*.rnk')
+ezSystem('zip Webgestalt/InputFiles_ORA.zip Webgestalt/*.txt')
+ezSystem('rm Webgestalt/*.txt')
 ```
 
 [`r resultFile$resultZip`](`r resultFile$resultZip`)

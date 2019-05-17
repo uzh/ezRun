@@ -364,7 +364,10 @@ if(nSamples > 3){
     cat("\n")
     
     #clusterPng = "cluster-heatmap.png"
-    clusterColors = c("red", "yellow", "orange", "green", "blue", "cyan")
+    if(param$nSampleClusters > 6){
+        param$nSampleClusters = 6
+    }
+    clusterColors = c("red", "yellow", "orange", "blue", "cyan", "green")[1:param$nSampleClusters]
     clusterResult <-
       clusterPheatmap(xNormed[use, ], design, param, clusterColors,
                       lim=c(-param$logColorRange, param$logColorRange),
