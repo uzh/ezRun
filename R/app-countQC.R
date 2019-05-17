@@ -63,7 +63,8 @@ EzAppCountQC <-
                   "Initializes the application using its specific defaults."
                   runMethod <<- ezMethodCountQC
                   name <<- "EzAppCountQC"
-                  appDefaults <<- rbind(runGO=ezFrame(Type="logical", DefaultValue=TRUE, Description="whether to run the GO analysis"))
+                  appDefaults <<- rbind(runGO=ezFrame(Type="logical", DefaultValue=TRUE, Description="whether to run the GO analysis"),
+                                        nSampleClusters=ezFrame(Type="numeric", DefaultValue=6, Description="Number of SampleClusters, max value 6"))
                 }
               )
   )
