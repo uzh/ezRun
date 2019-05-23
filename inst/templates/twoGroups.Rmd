@@ -65,7 +65,7 @@ knitr::kable(as.data.frame(settings), format="html",
 ```
 
 #### Number of significants by p-value and fold-change
-```{r gene table, echo=FALSE}
+```{r gene table, echo=FALSE, message=FALSE}
 knitr::kable(makeSignificantCounts(se), row.names=TRUE,  format="html") %>%
   kable_styling(bootstrap_options = "striped", full_width = F, 
                 position = "left")
@@ -78,7 +78,7 @@ conversion of the symbols to dates). See
 
 (https://www.genenames.org/help/importing-gene-symbol-data-into-excel-correctly)
 
-```{r result live report, echo=FALSE, message=FALSE, eval=TRUE}
+```{r result live report, echo=FALSE, message=FALSE, eval=TRUE, warning=FALSE, cache=FALSE}
 resultFile <- makeResultFile(param, se)
 
 ezWrite.table(colData(se)[, "sf", drop=FALSE],
@@ -87,22 +87,6 @@ ezWrite.table(colData(se)[, "sf", drop=FALSE],
 liveReportLink = output$getColumn("Live Report")
 
 deResult$saveToFile(basename(output$getColumn("Live Report")))
-
-makeWebgestaltFiles(param, resultFile$resultFile)
-if(param$runGSEA){
-  gseaFiles = list.files('Webgestalt', pattern = '^GSEA_Input', full.names = TRUE)
-  for (i in 1:length(gseaFiles)){
-    runWebgestaltGSEA(param, gseaFiles[i])
-  }
-  ##Keep only interactive html report & zip archive:
-  ezSystem('mv Webgestalt/GSEA_Results/*/*.html Webgestalt/GSEA_Results')
-  ezSystem('mv Webgestalt/GSEA_Results/*/*.zip Webgestalt/GSEA_Results')
-  ezSystem('rm -Rf Webgestalt/GSEA_Results/Project*')
-}
-ezSystem('zip Webgestalt/InputFiles_GSEA.zip Webgestalt/*.rnk')
-ezSystem('rm Webgestalt/*.rnk')
-ezSystem('zip Webgestalt/InputFiles_ORA.zip Webgestalt/*.txt')
-ezSystem('rm Webgestalt/*.txt')
 ```
 
 [`r resultFile$resultZip`](`r resultFile$resultZip`)
@@ -810,6 +794,24 @@ if(exists("enrichResultGSEA")){
 
 #### Webgestalt
 [InputFiles](./Webgestalt) for [Webgestalt](http://www.webgestalt.org/)
+
+```{r webgestalt, eval=TRUE, echo=FALSE, error=FALSE, message=FALSE, warning=FALSE, cache=FALSE, comment=NA}
+makeWebgestaltFiles(param, resultFile$resultFile)
+if(param$runGSEA){
+  gseaFiles = list.files('Webgestalt', pattern = '^GSEA_Input_log2FC', full.names = TRUE)
+  for (i in 1:length(gseaFiles)){
+    res = runWebgestaltGSEA(param, gseaFiles[i])
+  }
+  ##Keep only interactive html report & zip archive:
+  ezSystem('mv Webgestalt/GSEA_Results/*/*.html Webgestalt/GSEA_Results')
+  ezSystem('mv Webgestalt/GSEA_Results/*/*.zip Webgestalt/GSEA_Results')
+  ezSystem('find Webgestalt/GSEA_Results -maxdepth 1 -mindepth 1 -type d -exec rm -Rf {} \\;')
+}
+ezSystem('zip Webgestalt/InputFiles_GSEA.zip Webgestalt/*.rnk')
+ezSystem('rm Webgestalt/*.rnk')
+ezSystem('zip Webgestalt/InputFiles_ORA.zip Webgestalt/*.txt')
+ezSystem('rm Webgestalt/*.txt')
+```
 
 ### Technical bias
 We define 4 gene sets 

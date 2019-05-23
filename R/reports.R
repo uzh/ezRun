@@ -678,6 +678,7 @@ runWebgestaltGSEA <- function(param, rnkFile){
                                   isOutput = TRUE, outputDirectory = outputDirectory, projectName = projectName, nThreads = param$cores)
     } 
   }
+  return('success')
 }
 
 ############################################################
