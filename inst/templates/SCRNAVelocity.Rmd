@@ -37,8 +37,15 @@ cell.colorsPalette <- setNames(gg_color_hue(length(levels(tSNE_data$cluster))),
                                levels(tSNE_data$cluster))
 cell.colors <- cell.colorsPalette[tSNE_data$cluster]
 names(cell.colors) <- tSNE_data$cells
-emb <- data.frame(row.names=tSNE_data$cells,
+if("X" %in% colnames(tSNE_data)){
+  ## TODO: back compativility n 20190414. Remove in the future
+  emb <- data.frame(row.names=tSNE_data$cells,
                   tSNE_data[ ,c("X", "Y")])
+}else{
+  emb <- data.frame(row.names=tSNE_data$cells,
+                  tSNE_data[ ,c("tSNE_1", "tSNE_2")])
+}
+
 emb <- as.matrix(emb)
 
 if(param$scProtocol == "smart-Seq2"){

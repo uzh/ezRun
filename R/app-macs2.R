@@ -51,7 +51,7 @@ ezMethodMacs2 = function(input=NA, output=NA, param=NA){
     
     if (isTRUE(param$useControl)){
       if(!any(grepl("Control", input$colNames, ignore.case = TRUE)))
-        stop("Control is not available when paramter useControl is true.")
+        stop("The parameter 'useControl' is 'true' but no column named 'Control [File]' is available.")
       
       cmd = paste("macs2", "callpeak -t", outBam,
                   "-c", input$getFullPaths("Control"),

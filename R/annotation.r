@@ -193,7 +193,7 @@ makeFeatAnnoEnsembl <- function(featureFile,
                             c("Ensembl Transcript ID", "Description",
                               "GO Term Accession", "GO domain"))
   if(!is.null(biomartFile)){
-    message("Use local biomart file!")
+    message("Using local biomart file!")
     ### Use the downloaded biomartFile when availble
     stopifnot(file.exists(biomartFile))
     require(readr)
@@ -443,7 +443,7 @@ getBlacklistedRegions <- function(refBuild=c("hg38", "hg19", "mm10", "mm9",
   }
   return(bedGR)
 }
-
+ 
 makeExtraControlSeqGR <- function(ids=NULL){
   controlSeqs <- getControlSeqs(ids)
   txids <- rep(paste0("Transcript_",names(controlSeqs)), each=4)

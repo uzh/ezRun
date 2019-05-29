@@ -621,10 +621,21 @@ makeWebgestaltFiles <- function(param, resultFile){
     setwdNew('Webgestalt')
     comparison = sub('.txt', '', sub('result--', '', basename(resultFile)))
     background = rownames(result[result$isPresent, ])
-    ezWrite.table(background, paste0('ORA_BG_Webgestalt_',comparison, '.txt') ,row.names = FALSE, col.names = FALSE)
+    ezWrite.table(background, paste0('ORA_BG_Webgestalt_',comparison, '.txt'), row.names = FALSE, col.names = FALSE)
     
     GSEA = cbind(rownames(result[result$isPresent, ]), result[result$isPresent, 'log2 Ratio'])
-    ezWrite.table(GSEA, paste0('GSEA_Input_Webgestalt_',comparison, '.rnk') ,row.names = FALSE, col.names = FALSE)
+    ezWrite.table(GSEA, paste0('GSEA_Input_log2FC_Webgestalt_',comparison, '.rnk'), row.names = FALSE, col.names = FALSE)
+    
+    GSEA_pVal = cbind(rownames(result[result$isPresent, ]), result[result$isPresent, 'pValue'])
+    ezWrite.table(GSEA_pVal, paste0('GSEA_Input_pVal_Webgestalt_',comparison, '.rnk'), row.names = FALSE, col.names = FALSE)
+    
+    resultUp = result[result[['log2 Ratio']] >= 0, ]
+    GSEA_up = cbind(rownames(resultUp[resultUp$isPresent, ]), resultUp[resultUp$isPresent, 'pValue'])
+    ezWrite.table(GSEA_up, paste0('GSEA_Input_pVal_Up_Webgestalt_',comparison, '.rnk'), row.names = FALSE, col.names = FALSE)
+    
+    resultDown = result[result[['log2 Ratio']] < 0, ]
+    GSEA_down = cbind(rownames(resultDown[resultDown$isPresent, ]), resultDown[resultDown$isPresent, 'pValue'])
+    ezWrite.table(GSEA_down, paste0('GSEA_Input_pVal_Down_Webgestalt_',comparison, '.rnk'), row.names = FALSE, col.names = FALSE)
     
     ORA_Up = rownames(result[result$isPresent & result$pValue < param[['pValueHighlightThresh']] & result[['log2 Ratio']] >= param[['log2RatioHighlightThresh']], ])
     if(length(ORA_Up) > 0){
@@ -642,6 +653,32 @@ makeWebgestaltFiles <- function(param, resultFile){
     }
     setwd('..')
     return('success')
+}
+
+runWebgestaltGSEA <- function(param, rnkFile){
+  require(WebGestaltR)
+  outputDirectory <- file.path(getwd(), 'Webgestalt/GSEA_Results')
+  system(paste('mkdir -p', outputDirectory))
+  speciesName = limma::strsplit2(param$ezRef['refBuild'],'/')[1]
+  organism = paste0(tolower(substr(speciesName,1,1)), sub('.*_', '' ,speciesName))
+  myEnrichDatabases = c('geneontology_Biological_Process_noRedundant',
+                        'geneontology_Cellular_Component_noRedundant',
+                        'geneontology_Molecular_Function_noRedundant',
+                        'pathway_KEGG',
+                        'pathway_Panther',
+                        'pathway_Reactome',
+                        'pathway_Wikipathway')
+  myEnrichDatabases = intersect(listGeneSet(organism = organism)$name, myEnrichDatabases)
+  if(length(intersect(organism, listOrganism())) == 1){
+    for (i in 1:length(myEnrichDatabases)){
+      projectName = paste(myEnrichDatabases[i], sub('^GSEA_Input_', '', sub('.rnk', '', basename(rnkFile))), sep = '_')
+      enrichResult <- WebGestaltR(enrichMethod = "GSEA", organism = organism,
+                                  enrichDatabase = myEnrichDatabases[i], interestGeneFile = rnkFile,
+                                  interestGeneType = "ensembl_gene_id", collapseMethod = "mean",reportNum = 30, fdrThr = 0.1, topThr = 30,
+                                  isOutput = TRUE, outputDirectory = outputDirectory, projectName = projectName, nThreads = param$cores)
+    } 
+  }
+  return('success')
 }
 
 ############################################################

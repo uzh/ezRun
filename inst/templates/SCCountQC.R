@@ -74,7 +74,7 @@ input[['BAI']] = 'p2497/CellRangerCount_26591_2018-05-11--14-23-14/Mouse_p60_1/p
 input[['CountMatrix']] = 'p2497/CellRangerCount_26591_2018-05-11--14-23-14/Mouse_p60_1/outs/filtered_gene_bc_matrices/10X_Ref_Mouse_GRCm38.p5_20180305_Release_91/matrix.mtx'
 input[['featureLevel']] = 'gene'
 
-scProtocol <- ifelse("STARLog" %in% input$colNames, "smart-Seq2", "10x")
+scProtocol <- ifelse("STARLog" %in% input$colNames, "smart-Seq2", "10X")
 param$scProtocol <- scProtocol
 
 input = EzDataset$new(meta=input, dataRoot=param$dataRoot)

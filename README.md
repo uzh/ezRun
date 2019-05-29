@@ -29,7 +29,8 @@ packages <- c("testthat", "knitr", "gage", "goseq", "ChIPpeakAnno",
               "taxize", "SingleCellExperiment", "SummarizedExperiment",
               "scater", "DropletUtils", "shiny", "heatmaply", "readxl",
               "readr", "dplyr", "shinycssloaders", "shinyjs", "slingshot",
-              "Rmagic", "reticulate", "viridis")
+              "Rmagic", "reticulate", "viridis", "Seurat", "tidyverse",
+              "httr", "jsonlite", "xml2")
 packages <- setdiff(packages, rownames(installed.packages()))
 BiocManager::install(packages)
 
@@ -37,5 +38,5 @@ install_github("velocyto-team/velocyto.R")
 ```
 
 ## Dependencies of external software
-* bwa, bowtie, bowtie2, STAR, picard, sambamba, samtools
+* bwa, bowtie, bowtie2, STAR, picard, sambamba, samtools, igvtools
 * lsof

@@ -48,7 +48,7 @@ ezMethodKallisto = function(input=NA, output=NA, param=NA){
   pathAbundance.h5 = file.path(param$outputDir, "abundance.h5")
   pathAbundance.tsv = file.path(param$outputDir, "abundance.tsv")
   pathRunInfo = file.path(param$outputDir, "run_info.json")
-  pathPseudobam = file.path(param$outputDir, "pseudo.bam")
+  pathPseudobam = file.path(param$outputDir, "pseudoalignments.bam")
 
   cmd = paste(
       "kallisto",
@@ -56,7 +56,7 @@ ezMethodKallisto = function(input=NA, output=NA, param=NA){
       opt,
       pathFastqFiles,
       "2> kallisto.stderr",
-      iftrue(param$pseudobam, paste("| samtools view -b - > ", pathPseudobam), " > kallisto.stdout")
+      " > kallisto.stdout"
   )
   ezSystem(cmd)
 
@@ -67,8 +67,7 @@ ezMethodKallisto = function(input=NA, output=NA, param=NA){
   ezSystem(paste("mv", pathRunInfo, basename(output$getColumn("runInfo"))))
   if (!is.null(param$pseudobam) && param$pseudobam){
     fnBam = basename(output$getColumn("BAM"))
-    ezSystem(paste("mv", pathPseudobam, fnBam))
-    ezSystem(paste("samtools index ", fnBam))
+    ezSortIndexBam(pathPseudobam, fnBam, ram=param$ram, cores=min(param$cores, 8))
   }
 
   return("Success")

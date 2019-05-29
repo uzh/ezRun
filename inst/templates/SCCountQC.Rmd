@@ -42,7 +42,7 @@ param <- metadata(sce)$param
 ## picard metrics
 evalPicard = switch (param$scProtocol,
   "smart-Seq2" = TRUE,
-  "10x"=FALSE,
+  "10X"=FALSE,
   NA
 )
 
@@ -143,17 +143,23 @@ subplot(p1, p2, p3, titleX=TRUE, titleY=TRUE, nrows=1) %>%
   layout(showlegend = FALSE)
 ```
 
-### Reads on top 50 genes
+### Most expressed features
 
-Percentage of total counts assigned to the top 50 most highly-abundant genes. For each gene, each bar represents the percentage assigned to that gene for a single cell, while the circle represents the average across all cells.
+Percentage of total counts assigned to the top 50 (by default) most-expressed features. Each row in the plot below corresponds to a gene, and each bar corresponds to the expression of a gene in a single cell. The circle indicates the median expression of each gene, with which genes are sorted.
+
+We expect to see the "usual suspects", i.e., mitochondrial genes, actin, ribosomal protein, MALAT1. A few spike-in transcripts may also be present here, though if all of the spike-ins are in the top 50, it suggests that too much spike-in RNA was added. A large number of pseudo-genes or predicted genes may indicate problems with alignment.
+
+The feature control is mitochondrial gene.
 
 ```{r top 50 genes, fig.width=6, fig.height=6, echo=FALSE, message=FALSE, warning=FALSE, eval=!debug}
 plotHighestExprs(sceFixName, n=50)
 ```
 
-### Expression metrics
+### Frequency of expression as a function of the mean
 
-Number of cells with expression for a gene against mean expression level.
+The frequency of expression (i.e., number of cells with non-zero expression) against the mean. These two metrics should be positively correlated with each other for most genes.
+
+Outliers from the trend may warrant further investigation. For example, alignment errors for pseudo-genes of highly-expressed genes will result in features with low means that are expressed in all cells. Conversely, PCR amplification biases (or the presence of rare populations) may result in genes with very high means that are expressed in very few cells.
 
 ```{r expression metrics, fig.width=8, fig.height=6, echo=FALSE, message=FALSE, warning=FALSE, eval=!debug}
 plotExprsFreqVsMean(sceFixName)
