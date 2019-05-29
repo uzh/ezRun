@@ -15,18 +15,18 @@ Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
 
 ```{r setup, include=FALSE}
 # input for this report: sce, output
-require(ezRun)
-require(Seurat)
-require(dplyr)
-require(tibble)
-require(kableExtra)
-require(fastICA)
-require(Matrix)
-require(readr)
-require(slingshot)
-require(RColorBrewer)
-require(SummarizedExperiment)
-require(tibble)
+library(ezRun)
+library(Seurat)
+library(dplyr)
+library(tibble)
+library(kableExtra)
+library(fastICA)
+library(Matrix)
+library(readr)
+# library(slingshot)
+library(RColorBrewer)
+library(SummarizedExperiment)
+library(tibble)
 library(Rmagic) ## This has to be loaded after setting correct python
 
 ## ----------------------------------------------
@@ -80,12 +80,17 @@ if(param$all2allMarkers){
 }
 ```
 
-```{r fastICA, echo=FALSE}
-tSNE_data <- as_tibble(scData@dr$tsne@cell.embeddings,
-                       rownames="cells")
-tSNE_data <- rename(tSNE_data, X=`tSNE_1`, Y=`tSNE_2`)
+```{r, echo=FALSE}
+coordinatesData <- scData@dr$tsne@cell.embeddings
+if(!is.null(scData@dr$umap)){
+  ## TODO: remove the condition if umap is always computed
+  coordinatesData <- cbind(coordinatesData, scData@dr$umap@cell.embeddings)
+}
+tSNE_data <- as_tibble(coordinatesData, rownames="cells")
 tSNE_data$cluster <- scData@ident
+```
 
+```{r fastICA, echo=FALSE}
 if(param$runPseudoTime){
   cd <- as.matrix(scData@data)
   set.seed(10)
@@ -94,7 +99,7 @@ if(param$runPseudoTime){
                tol = 0.0001, verbose = FALSE)
   tSNE_data$pseudotime <- a$A[1,]
 }
-tSNEFn <- "tSNE_data.tsv"
+tSNEFn <- "coordinates_data.tsv"
 write_tsv(tSNE_data, path=tSNEFn)
 ```
 
@@ -124,7 +129,7 @@ kable(tibble(Cluster=names(summary(scData@ident)),
 ```{r pc.genes, echo=FALSE}
 if(ezIsSpecified(param$pcGenes)){
   cat("Selected genes for clustering:\n")
-  metadata(sce)[["pc.genes"]]
+  metadata(sce)$param[["pc.genes"]]
   cat("\n")
 }
 ```
@@ -294,13 +299,15 @@ if(length(param$markersToCheck) >0){
 #### Slingshot (Beta)
 Slingshot is a cluster based ineage reconstruction and pseudotime inference approach.
 Here, we use reduced-dimensional space of tSNE derived above and cell clustering produced by gaussian mixture modeling, instead of cell clustering done by Seurat.
-More details is available at [here](https://www.bioconductor.org/packages/devel/bioc/vignettes/slingshot/inst/doc/slingshot.html).
+More details is available at [here](https://bioconductor.org/packages/devel/bioc/vignettes/slingshot/inst/doc/vignette.html).
 
-```{r slingshot compute, echo=FALSE, message=FALSE, eval=param$runPseudoTime & !debug}
+Slingshot is disabled for now due to an issue of `rgl` package.
+
+```{r slingshot compute, echo=FALSE, message=FALSE, eval=FALSE}
 sceSlingshot <- Convert(from = scData, to = "sce")
 
-sceSlingshot <- slingshot(sceSlingshot, clusterLabels = 'ident',
-                          reducedDim = 'TSNE')
+sceSlingshot <- slingshot::slingshot(sceSlingshot, clusterLabels = 'ident',
+                                     reducedDim = 'TSNE')
 colors <- colorRampPalette(brewer.pal(11,'Spectral')[-6])(100)
 nrPseudoT <- grep("slingPseudotime_\\d+", colnames(colData(sceSlingshot)),
                   value=TRUE)
@@ -340,11 +347,10 @@ legend("topleft", legend=names(cell.colorsPalette),
 
 #### fastICA
 ```{r fastICA plot, echo=FALSE, fig.width=8, fig.height=5, eval=param$runPseudoTime && !debug}
-p <- ggplot(tSNE_data, aes(X, Y)) + 
+p <- ggplot(tSNE_data, aes(tSNE_1, tSNE_2)) + 
   geom_point(shape=21, size=5, colour = "black",
              aes(fill=pseudotime), alpha=0.7) +
-  scale_fill_gradient(low="yellow", high="blue") +
-  xlab("") + ylab("")
+  scale_fill_gradient(low="yellow", high="blue")
 print(p)
 ```
 

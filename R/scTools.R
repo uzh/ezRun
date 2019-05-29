@@ -8,6 +8,7 @@
 getCellCycle <- function(counts, refBuild){
   require(scran)
   require(tibble)
+  require(dplyr)
   # The training data is only available for Hsap and Mmus Ensembl
   if(startsWith(refBuild, "Homo_sapiens/Ensembl")){
     species <- "human"
@@ -25,6 +26,7 @@ getCellCycle <- function(counts, refBuild){
     cellCycleData <- cyclone(counts, trainData)
     cellPhase <- tibble(Name = colnames(counts),
                         Phase = cellCycleData$phases)
+    cellPhase <- bind_cols(cellPhase, cellCycleData$scores)
   }else{
     cellPhase <- tibble(Name = colnames(counts),
                         Phase = NA)

@@ -47,6 +47,7 @@ logColorRange	numeric	4	the log2 range in the heatmap; is always extended to be 
 topGeneSize	integer	100	number of high variance genes to consider in gene clustering
 maxGenesForClustering	integer	2000	use at most that many genes in hierarchical tree gene clustering in the QC reports.
 minGenesForClustering	integer	30	minimum number of genes needed for a clustering
+nSampleClusters	integer	6	number of sample clusters in CountQC (max 6)
 showGeneClusterLabels	logical	FALSE	should gene labels be drawn on the clustering heatmap
 highVarThreshold	numeric	0.5	for the heatmap showing the most varying genes; only genes where the standard deviation of the log2 values exceeds the thresholds are used
 pValueHighlightThresh	numeric	0.01	only probes with a p-value below are highlighted in the plots
@@ -103,6 +104,7 @@ pValThreshFisher	numeric	1e-4	only GO categories with a p-value below will be sh
 minCountFisher	integer	3	only GO categories that have at least this many genes are searched for overrepresented genes
 maxNumberGroupsDisplayed	integer	40	the maximum number of GO groups to show in the HTML tables
 doPrecomputeEnrichr	logical	TRUE	should enrichr results be precomputed
+runGSEA	logical	FALSE	whether GSEA using WebGestalt should be precomputed
 MSigDBPath	character	/misc/GT/databases/MSigDB	
 MSigDB	character	c2.cp	
 MSigDBhtml	character	http://www.broadinstitute.org/gsea/msigdb/cards	
@@ -119,6 +121,7 @@ KEGGxml	character	/misc/GT/databases/KEGG/xml
 GAGEanalysis	logical	FALSE	
 genesets	character	kg.sigmet,kg.dise,msigdb	
 goSlim	logical	FALSE	should GO categories translated into GO SLIM categories
+runWebgestalt	logical	FALSE	run Webgestalt GSEA
 ## feature handling
 transcriptTypes	charVector		if analysis should be restricted to certain types of transcripts; requires the annotation column "type" in the annotation file
 addPromoters	logical	FALSE	add promoters on the fly as features to the gtf file

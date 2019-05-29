@@ -92,21 +92,16 @@ dupBam <- function(inBam, outBam, operation=c("mark", "remove"),
   
   
   if(program == "sambamba"){
-    setEnvironments("sambamba")
     cmd <- paste("sambamba markdup -t", cores, "-l 9 --tmpdir=.",
                  ifelse(operation=="mark", "", "-r"), inBam, outBam)
     ezSystem(cmd)
   }else{
-    setEnvironments("picard")
     tempBam <- tempfile(pattern="tempBam", tmpdir=".", fileext = ".bam")
-    #ezSortIndexBam(inBam=inBam, bam=tempBam, removeBam=FALSE,
-    #               method="picard")
     
     metricFn <- tempfile()
     tempMarkedBam <- tempfile(pattern="tempMarkedBam", tmpdir=".",
                               fileext = ".bam")
-    cmd <- paste("java -Djava.io.tmpdir=. -jar", 
-                 Sys.getenv("Picard_jar"), "MarkDuplicates",
+    cmd <- paste(preparePicard(), "MarkDuplicates",
                  paste0("I=", inBam),
                  paste0("O=", outBam),
                  paste0("M=", metricFn),
@@ -114,9 +109,6 @@ dupBam <- function(inBam, outBam, operation=c("mark", "remove"),
                         ifelse(operation=="mark", "false", "true")),
                  "> /dev/null")
     ezSystem(cmd)
-    #file.remove(c(tempBam, paste0(tempBam, ".bai")))
-    
-    #ezSortIndexBam(inBam=tempMarkedBam, bam=outBam, removeBam=TRUE)
     ezSystem(paste("samtools", "index", outBam))
   }
   
@@ -126,9 +118,6 @@ dupBam <- function(inBam, outBam, operation=c("mark", "remove"),
 ### Filter bam by removing chrs, low mapQ
 filteroutBam <- function(inBam, outBam, cores=ezThreads(), chrs=NULL, mapQ=NULL){
   require(Rsamtools)
-  
-  setEnvironments("samtools")
-  
   cmd <- paste("samtools view -b", "-@", cores, "-o", outBam)
   
   if(!is.null(mapQ)){
@@ -181,7 +170,6 @@ bam2bw <- function(file,
 }
 
 splitBamByRG <- function(inBam, mc.cores=ezThreads()){
-  setEnvironments("samtools")
   # The following Rsamtools requires mapped Bam file.
   # require(Rsamtools)
   # header <- scanBamHeader(inBam)
@@ -213,10 +201,8 @@ splitBamByRG <- function(inBam, mc.cores=ezThreads()){
 mergeBamAlignments <- function(alignedBamFn, unmappedBamFn,
                                outputBamFn, fastaFn,
                                keepUnmapped=FALSE){
-  setEnvironments("picard")
   ## Use . as tmp dir. Big bam generates big tmp files.
-  cmd <- paste("java -Djava.io.tmpdir=. -jar",
-               Sys.getenv("Picard_jar"), "MergeBamAlignment",
+  cmd <- paste(preparePicard(), "MergeBamAlignment",
                paste0("ALIGNED=", alignedBamFn),
                paste0("UNMAPPED=", unmappedBamFn),
                paste0("O=", outputBamFn),
@@ -224,7 +210,6 @@ mergeBamAlignments <- function(alignedBamFn, unmappedBamFn,
   )
   ezSystem(cmd)
   if(!keepUnmapped){
-    setEnvironments("samtools")
     tempBam <- tempfile(pattern="noUnmapped", tmpdir = ".",
                         fileext = ".bam")
     cmd <- paste("samtools view -F 4 -h -b", outputBamFn, ">",
@@ -369,7 +354,6 @@ posSpecErrorBam <- function(bamGA, genomeFn){
 ### Create the MD tag for BAM file and replace matches with "=" in seq
 calmdBam <- function(bamFns, mdBamFns=sub("\\.bam$", "_md.bam", bamFns),
                      genomeFn, mc.cores=4L){
-  setEnvironments("samtools")
   stopifnot(length(bamFns) == length(mdBamFns))
   
   cmdsCalmd <- paste("samtools calmd -b -e", bamFns, genomeFn, ">", mdBamFns)

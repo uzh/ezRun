@@ -1,5 +1,4 @@
 Sys.setenv("PATH"=paste("/usr/local/ngseq/bin/", "/usr/local/ngseq/packages/Dev/jdk/8/bin", "/usr/local/ngseq/packages/QC/Flexbar/3.0.3/bin", "/usr/local/ngseq/packages/Aligner/Bowtie2/2.3.2/bin", "/usr/local/ngseq/packages/Tools/samtools/1.5/bin", Sys.getenv("PATH"), sep=":"))
-Sys.setenv("Trimmomatic_jar"="/usr/local/ngseq/packages/QC/Trimmomatic/0.36/trimmomatic-0.36.jar")
 
 setwd("/srv/GT/analysis/gtan/debug/p2150-VirDetect")
 library(ezRun)

@@ -37,33 +37,44 @@ EzAppSCCounts <-
 
 ezMethodSCCounts = function(input=NA, output=NA, param=NA,
                             htmlFile="00index.html"){
-  #inputBam <- input$copy()
+  require(readr)
+  require(tibble)
   
   cwd <- getwd()
   setwdNew(basename(output$getColumn("ResultDir")))
   on.exit(setwd(cwd), add=TRUE)
+  
+  metaFixed <- output$meta
+  metaFixed[["CellDataset [File]"]] <- sub("-counts\\.mtx$", "-dataset.tsv",
+                                           output$getColumn("CountMatrix"))
+  metaFixed[["BAM [File]"]] <- sub("-counts\\.mtx$", ".bam",
+                                   output$getColumn("CountMatrix"))
+  metaFixed[["BAI [File]"]] <- sub("-counts\\.mtx$", ".bai",
+                                   output$getColumn("CountMatrix"))
+  metaFixed[["STARLog [File]"]] <- sub("-counts\\.mtx$", "_STAR.log",
+                                       output$getColumn("CountMatrix"))
+  metaFixed[["PreprocessingLog [File]"]] = sub("-counts\\.mtx$", "_preprocessing.log",
+                                               output$getColumn("CountMatrix"))
+  metaFixed[['Stats [File]']] = sub("-counts\\.mtx$", "_stats.txt",
+                                    output$getColumn("CountMatrix"))
+  metaFixed[['CellCyclePhase [File]']] = sub("-counts\\.mtx$", "-CellCyclePhase.txt",
+                                             output$getColumn("CountMatrix"))
+  output <- EzDataset(meta=metaFixed, dataRoot=param$dataRoot)
   
   metainput = EzDataset(file=input$getFullPaths("CellDataset"),
                         dataRoot=param$dataRoot)
   
   cellMeta = metainput$meta[ , !metainput$columnHasTag("File")]
   cellMeta[['CountMatrix [File]']] = output$getColumn("CountMatrix")
-  cellMeta[["BAM [File]"]] = sub("-counts\\.mtx$", ".bam",
-                                 cellMeta[['CountMatrix [File]']])
-  cellMeta[["BAI [File]"]] = sub("-counts\\.mtx$", ".bai",
-                                 cellMeta[['CountMatrix [File]']])
-  cellMeta[["STARLog [File]"]] = sub("-counts\\.mtx$", "_STAR.log",
-                                     cellMeta[['CountMatrix [File]']])
-  cellMeta[["PreprocessingLog [File]"]] = sub("-counts\\.mtx$", "_preprocessing.log",
-                                              cellMeta[['CountMatrix [File]']])
-  cellMeta[['Stats [File]']] = sub("-counts\\.mtx$", "_stats.txt",
-                                   cellMeta[['CountMatrix [File]']])
-  cellMeta[['CellCyclePhase [File]']] = sub("-counts\\.mtx$", "-CellCyclePhase.txt",
-                                            cellMeta[['CountMatrix [File]']])
-  ezWrite.table(cellMeta, 
-                file=basename(sub("-counts\\.mtx$", "-dataset.tsv",
-                                  cellMeta[['CountMatrix [File]']])),
-                head='Name')
+  cellMeta[["BAM [File]"]] = output$getColumn("BAM")
+  cellMeta[["BAI [File]"]] = output$getColumn("BAI")
+  cellMeta[["STARLog [File]"]] = output$getColumn("STARLog")
+  cellMeta[["PreprocessingLog [File]"]] = output$getColumn("PreprocessingLog")
+  cellMeta[['Stats [File]']] = output$getColumn("Stats")
+  cellMeta[['CellCyclePhase [File]']] = output$getColumn("CellCyclePhase")
+  
+  write_tsv(as_tibble(cellMeta, rownames="Name"),
+            path=basename(output$getColumn('CellDataset')))
   
   bamParam = param
   #bamParam$mail = "" Let's send several emails during SCCounts. It's a long computation.

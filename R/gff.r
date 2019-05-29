@@ -715,3 +715,18 @@ trimGRanges <- function(x, width=100, start=TRUE){
   return(sort(xTrim)) ## Let's return always coordinate sorted GRanges.
 }
 
+# param = list()
+# param[['refBuild']] = 'Mus_musculus/Ensembl/GRCm38.p5/Annotation/Release_91-2018-02-26'
+# param[['refFeatureFile']] = 'genes.gtf'
+# param <- ezParam(param)
+# gtf <- gtfByTxTypes(param, transcriptTypes=c("protein_coding", "rRNA", "tRNA", "Mt_rRNA", "Mt_tRNA"))
+gtfByTxTypes <- function(param, transcriptTypes=c("protein_coding", "rRNA")){
+  require(rtracklayer)
+  gtf <- import(param$ezRef@refFeatureFile)
+  seqAnno <- ezFeatureAnnotation(param$ezRef@refAnnotationFile,
+                                 dataFeatureType="gene")
+  
+  genesUse <- seqAnno[seqAnno$type %in% transcriptTypes, "gene_id"]
+  gtf <- gtf[gtf$gene_id %in% genesUse]
+  return(gtf)
+}

@@ -5,15 +5,16 @@
 # The terms are available here: http://www.gnu.org/licenses/gpl.html
 # www.fgcz.ch
 
-##ToD: --localmem, --localcores, use opt-Parameters
 ezMethodCellRanger = function(input=NA, output=NA, param=NA){
   sampleName = input$getNames()
   sampleDirs = strsplit(input$getColumn("RawDataDir"), ",")[[sampleName]]
   sampleDirs <- file.path(input$dataRoot, sampleDirs)
   sampleDir <- paste(sampleDirs, collapse=",")
-  refDir <- getCellRangerReference(param)
+  cellRangerFolder = paste0(sampleName, "-cellRanger")
+  
   if(param$TenXLibrary == "GEX"){
-    cmd <- paste(CELLRANGER, "count", paste0("--id=", sampleName),
+    refDir <- getCellRangerGEXReference(param)
+    cmd <- paste(CELLRANGER, "count", paste0("--id=", cellRangerFolder),
                  paste0("--transcriptome=", refDir),
                  paste0("--fastqs=", sampleDir),
                  paste0("--sample=", sampleName),
@@ -21,7 +22,8 @@ ezMethodCellRanger = function(input=NA, output=NA, param=NA){
                  paste0("--localcores=", param$cores),
                  paste0("--chemistry=", param$chemistry))
   }else if(param$TenXLibrary == "VDJ"){
-    cmd <- paste(CELLRANGER, "vdj", paste0("--id=", sampleName),
+    refDir <- getCellRangerVDJReference(param)
+    cmd <- paste(CELLRANGER, "vdj", paste0("--id=", cellRangerFolder),
                  paste0("--reference=", refDir),
                  paste0("--fastqs=", sampleDir),
                  paste0("--sample=", sampleName),
@@ -34,6 +36,7 @@ ezMethodCellRanger = function(input=NA, output=NA, param=NA){
   }
   
   ezSystem(cmd)
+  ezSystem(paste("mv ", file.path(cellRangerFolder, "outs"),  sampleName))
   
   if(ezIsSpecified(param$controlSeqs)){
     unlink(refDir, recursive = TRUE)
@@ -43,7 +46,7 @@ ezMethodCellRanger = function(input=NA, output=NA, param=NA){
     require(DropletUtils)
     require(Matrix)
     require(readr)
-    countMatrixFn <- list.files(path=file.path(sampleName, 'outs/filtered_feature_bc_matrix'),
+    countMatrixFn <- list.files(path=file.path(sampleName, 'filtered_feature_bc_matrix'),
                                 pattern="\\.mtx(\\.gz)*$", recursive=TRUE,
                                 full.names=TRUE)
     sce <- read10xCounts(dirname(countMatrixFn), col.names=TRUE)
@@ -55,7 +58,145 @@ ezMethodCellRanger = function(input=NA, output=NA, param=NA){
   return("Success")
 }
 
+getCellRangerGEXReference <- function(param){
+  require(Biostrings)
+  require(rtracklayer)
+  cwd <- getwd()
+  on.exit(setwd(cwd), add=TRUE)
+  
+  if(ezIsSpecified(param$controlSeqs)){
+    refDir = file.path(getwd(), "10X_customised_Ref")
+  }else{
+    if(ezIsSpecified(param$transcriptTypes)){
+      cellRangerBase <- paste(sort(param$transcriptTypes), collapse="-")
+      ## This is a combination of transcript types to use.
+    }else{
+      cellRangerBase <- ""
+    }
+    if(param$scMode == "SN"){
+      refDir = sub("\\.gtf$", paste0("_10XGEX_SN_", cellRangerBase, "_Index"),
+                   param$ezRef["refFeatureFile"])
+    }else if(param$scMode == "SC"){
+      refDir = sub("\\.gtf$", paste0("_10XGEX_SC_", cellRangerBase, "_Index"),
+                   param$ezRef["refFeatureFile"])
+    }
+  }
+  
+  lockFile = paste0(refDir, ".lock")
+  i = 0
+  while(file.exists(lockFile) && i < INDEX_BUILD_TIMEOUT){
+    ### somebody else builds and we wait
+    Sys.sleep(60)
+    i = i + 1
+  }
+  if (file.exists(lockFile)){
+    stop(paste("reference building still in progress after", 
+               INDEX_BUILD_TIMEOUT, "min"))
+  }
+  ## there is no lock file
+  if (file.exists(refDir)){
+    ## we assume the index is built and complete
+    return(refDir)
+  }
+  
+  ## we have to build the reference
+  setwd(dirname(refDir))
+  ezWrite(Sys.info(), con=lockFile)
+  on.exit(file.remove(lockFile), add=TRUE)
+  
+  job = ezJobStart("10X CellRanger build")
+  
+  if(ezIsSpecified(param$controlSeqs)){
+    ## make reference genome
+    genomeLocalFn <- tempfile(pattern="genome", tmpdir=getwd(),
+                              fileext = ".fa")
+    file.copy(from=param$ezRef@refFastaFile, to=genomeLocalFn)
+    writeXStringSet(getControlSeqs(param$controlSeqs), filepath=genomeLocalFn,
+                    append=TRUE)
+    on.exit(file.remove(genomeLocalFn, add=TRUE))
+  }else{
+    genomeLocalFn <- param$ezRef@refFastaFile
+  }
+  
+  ## make gtf
+  gtfFile <- tempfile(pattern="genes", tmpdir=getwd(),
+                      fileext = ".gtf")
+  if(ezIsSpecified(param$transcriptTypes)){
+    export.gff2(gtfByTxTypes(param, param$transcriptTypes),
+                con=gtfFile)
+  }else{
+    file.copy(from=param$ezRef@refFeatureFile, to=gtfFile)
+  }
+  if(ezIsSpecified(param$controlSeqs)){
+    extraGR <- makeExtraControlSeqGR(param$controlSeqs)
+    gtfExtraFn <- tempfile(pattern="extraSeqs", tmpdir=getwd(),
+                           fileext = ".gtf")
+    on.exit(file.remove(gtfExtraFn), add=TRUE)
+    export.gff2(extraGR, con=gtfExtraFn)
+    ezSystem(paste("cat", gtfExtraFn, ">>", gtfFile))
+  }
+  if(param$scMode == "SN"){
+    gtf <- import(gtfFile)
+    gtf <- gtf[gtf$type == "transcript"]
+    gtf$type <- "exon"
+    export.gff2(gtf, gtfFile)
+  }
+  
+  cmd <- paste(CELLRANGER, "mkref",
+               paste0("--genome=", basename(refDir)),
+               paste0("--fasta=", genomeLocalFn),
+               paste0("--genes=", gtfFile),
+               paste0("--nthreads=", param$cores))
+  ezSystem(cmd)
+  
+  file.remove(gtfFile)
+  
+  return(refDir)
+}
 
+getCellRangerVDJReference <- function(param){
+  require(Biostrings)
+  require(rtracklayer)
+  cwd <- getwd()
+  on.exit(setwd(cwd), add=TRUE)
+  
+  refDir = sub("\\.gtf$", "_10XVDJ_Index",
+               param$ezRef["refFeatureFile"])
+  
+  lockFile = paste0(refDir, ".lock")
+  i = 0
+  while(file.exists(lockFile) && i < INDEX_BUILD_TIMEOUT){
+    ### somebody else builds and we wait
+    Sys.sleep(60)
+    i = i + 1
+  }
+  if (file.exists(lockFile)){
+    stop(paste("reference building still in progress after", 
+               INDEX_BUILD_TIMEOUT, "min"))
+  }
+  ## there is no lock file
+  if (file.exists(refDir)){
+    ## we assume the index is built and complete
+    return(refDir)
+  }
+  
+  ## we have to build the reference
+  setwd(dirname(refDir))
+  ezWrite(Sys.info(), con=lockFile)
+  on.exit(file.remove(lockFile), add=TRUE)
+  
+  job = ezJobStart("10X CellRanger build")
+  
+  cmd <- paste(CELLRANGER, "mkvdjref",
+               paste0("--genome=", basename(refDir)),
+               paste0("--fasta=", param$ezRef@refFastaFile),
+               paste0("--genes=", param$ezRef@refFeatureFile))
+  ezSystem(cmd)
+  
+  return(refDir)
+}
+
+## not used any more
 getCellRangerReference <- function(param){
   if(ezIsSpecified(param$controlSeqs)){
     if(param$TenXLibrary == "VDJ"){
@@ -123,11 +264,6 @@ getCellRangerReference <- function(param){
   }
   return(refDir)
 }
-
-## Make 10X reference
-### VDJ 
-#### /usr/local/ngseq/opt/cellranger-3.0.1/cellranger mkvdjref --genome=10X_Ref_Mouse_VDJ_GRCm38.p5_20192019_Release_91 --fasta=../../../Sequence/WholeGenomeFasta/genome.fa --genes=genes.gtf
-
 
 ##' @author Opitz, Lennart
 ##' @template app-template
