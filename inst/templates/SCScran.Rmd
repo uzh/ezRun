@@ -1,0 +1,157 @@
+---
+title:  "test"
+author: "Functional Genomics Center Zurich"
+output: 
+  html_document:
+    self_contained: false
+    includes:
+      in_header: fgcz_header.html
+    css: fgcz.css
+editor_options: 
+  chunk_output_type: console
+---
+
+Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
+
+```{r setup, include=FALSE}
+# input for this report: sce
+library(DropletUtils)
+library(scater)
+library(ezRun)
+library(BiocSingular)
+library(scran)
+library(ggplot2)
+library(cowplot)
+library(tibble)
+library(dplyr)
+library(tidyr)
+## debug
+# title:  "`r metadata(sce)$param$name`"
+sce <- readRDS("/scratch/gtan/dev/SCScran-p2860/wt_4_F_SCran/sce.rds")
+debug <- FALSE
+```
+This clustering report is largely based on Bioconductor packages [scran](https://bioconductor.org/packages/release/bioc/html/scran.html), [scater](https://bioconductor.org/packages/release/bioc/html/scater.html).
+
+## Clustering results {.tabset}
+
+### Preprocessing
+
+#### Quality control on the cells
+
+There are `r ncol(sce)` cells in total.
+
+Low-quality cells need to be removed to ensure that technical effects do not distort downstream analysis results. We use several quality control (QC) metrics:
+
+  * The library size is defined as the total sum of counts across all features, i.e., genes and spike-in transcripts.
+  * The number of expressed features in each cell is defined as the number of features with non-zero counts for that cell.
+  * The proportion of reads mapped to genes in the mitochondrial genome.
+
+```{r QC, echo=FALSE, cache=TRUE}
+rownames(sce) <- uniquifyFeatureNames(rowData(sce)$gene_id,
+                                      rowData(sce)$gene_name)
+# Quality control on the cells
+sce <- calculateQCMetrics(sce, feature_controls=list(
+  Mito=BiocGenerics::which(seqnames(rowRanges(sce)) %in% c("M", "chrM", "MT"))))
+  
+high.mito <- isOutlier(sce$pct_counts_Mito, nmads=3, type="higher")
+low.lib <- isOutlier(sce$log10_total_counts, type="lower", nmad=3)
+low.genes <- isOutlier(sce$log10_total_features_by_counts, type="lower", nmad=3)
+sce <- sce[ ,!(high.mito|low.lib|low.genes)]
+```
+
+`r sum(high.mito|low.lib|low.genes)` cells were removed due to low library sizes, 
+total number of expressed features or large mitochondrial proportions.
+
+#### Normalizing for cell-specific biases
+
+Read counts are subject to differences in capture efficiency and sequencing depth between cells (Stegle, Teichmann, and Marioni 2015). Normalization is required to eliminate these cell-specific biases prior to downstream quantitative analyses. This is often done by assuming that most genes are not differentially expressed (DE) between cells. Any systematic difference in count size across the non-DE majority of genes between two cells is assumed to represent bias and is removed by scaling. More specifically, “size factors” are calculated that represent the extent to which counts should be scaled in each library.
+
+We apply the deconvolution method to compute size factors for all cells (Lun, Bach, and Marioni 2016).
+
+```{r normalize1, echo=FALSE, cache=TRUE}
+if(metadata(sce)$param$scProtocol == "10X"){
+  set.seed(1000)
+  clusters <- quickCluster(sce, use.ranks=FALSE, BSPARAM=IrlbaParam())
+  table(clusters)
+  sce <- computeSumFactors(sce, min.mean=0.1, cluster=clusters)
+}else if(metadata(sce)$param$scProtocol == "Smart-seq2"){
+  sce <- computeSumFactors(sce)
+}else{
+  stop("Unsupported single cell protocol!")
+}
+sce <- normalize(sce)
+```
+
+The correlation of size factors against library sizes.
+
+```{r normalize2, echo=FALSE}
+toPlot <- tibble("Library sizes"=sce$total_counts, 
+                 "Size factors"=sizeFactors(sce))
+p <- ggplot(toPlot) + aes(`Library sizes`, `Size factors`) + geom_point() +
+  scale_x_log10() + scale_y_log10() + 
+  background_grid(major = "xy", minor = "none")
+p
+```
+
+#### Modelling the mean-variance trend
+
+```{r mean-variance1, echo=FALSE, cache=TRUE}
+new.trend <- makeTechTrend(x=sce)
+fit <- trendVar(sce, use.spikes=FALSE, loess.args=list(span=0.05))
+```
+
+The modelling of mean-variance trend is shown below. 
+The MeanTrend represents the mean-dependent trend fitted to the variances.
+The Poisson-based trend serves as a lower bound for the variances of the endogenous genes.
+
+```{r mean-variance2, echo=FALSE}
+toPlot <- tibble(Mean=fit$mean, Variance=fit$var)
+toPlot2 <- tibble(Mean=seq(min(fit$mean), max(fit$mean), length.out=101)) %>%
+  mutate(MeanTrend=fit$trend(Mean), PoissonTrend=new.trend(Mean)) %>%
+  gather(key="Trend", value="value", -Mean)
+p <- ggplot(toPlot) + aes(Mean, Variance) + geom_point() +
+  geom_line(aes(Mean, value, colour=Trend), data=toPlot2) +
+  background_grid(major = "xy", minor = "none")
+p
+```
+
+We decompose the variance for each gene using the Poisson-based trend, and examine the genes with the highest biological components.
+
+```{r mean-variance3, echo=FALSE}
+fit$trend <- new.trend # overwrite trend.
+dec <- decomposeVar(fit=fit) # use per-gene variance estimates in 'fit'.
+top.dec <- dec[order(dec$bio, decreasing=TRUE),] 
+plotExpression(sce, features=rownames(top.dec)[1:10]) +
+  ggtitle("Top 10 genes with the largest biological components")
+```
+
+#### Dimensionality reduction
+
+```{r dim reduction1, echo=FALSE}
+set.seed(1000)
+sce <- denoisePCA(sce, technical=new.trend, BSPARAM=IrlbaParam())
+```
+
+The number of principal componentes to use: `r ncol(reducedDim(sce, "PCA"))`
+
+```{r dim reduction2, echo=FALSE}
+toPlot <- tibble(PC=seq_len(length(attr(reducedDim(sce), "percentVar"))),
+                 "Proportion of variance explained"=attr(reducedDim(sce), "percentVar"))
+p <- ggplot(toPlot) + aes(PC, `Proportion of variance explained`) + 
+  geom_point() + 
+  geom_vline(xintercept = ncol(reducedDim(sce, "PCA")), colour="red") +
+  background_grid(major = "xy", minor = "none")
+p
+```
+
+```{r dim reduction3, echo=FALSE}
+p <- plotPCA(sce, ncomponents=3, colour_by="log10_total_counts")
+p
+p <- plotPCA(sce, ncomponents=3, colour_by="log10_total_features_by_counts")
+p
+```
+
+### SessionInfo
+```{r, echo=FALSE}
+sessionInfo()
+```
