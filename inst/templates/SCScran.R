@@ -2,7 +2,7 @@
 setwd("/scratch/gtan/dev/SCScran-p2860")
 library(ezRun)
 param = list()
-param[['cores']] = '8'
+param[['cores']] = '1'
 param[['ram']] = '30'
 param[['scratch']] = '50'
 param[['node']] = ''
@@ -14,13 +14,15 @@ param[['paired']] = 'false'
 param[['strandMode']] = 'both'
 param[['refFeatureFile']] = 'genes.gtf'
 param[['featureLevel']] = 'gene'
+
 param[['transcriptTypes']] = 'protein_coding'
 param[['scProtocol']] = '10X'
 param[['snnK']] = '15'
-param[['visMethod']] = 'tSNE'
+param[['visMethod']] = 'TSNE'
 param[['knownMarkers']] = ''
 param[['runPseudoTime']] = 'true'
 param[['all2allMarkers']] = 'true'
+
 param[['specialOptions']] = ''
 param[['mail']] = 'ge.tan@fgcz.ethz.ch'
 param[['dataRoot']] = '/srv/gstore/projects'
@@ -47,5 +49,3 @@ input[['featureLevel']] = 'gene'
 input[['CountMatrix']] = 'p2860/CellRangerCount_33994_2019-05-22--11-02-46/wt_4_F/filtered_feature_bc_matrix'
 debug(ezMethodSCScran)
 EzAppSCScran$new()$run(input=input, output=output, param=param)
-
-

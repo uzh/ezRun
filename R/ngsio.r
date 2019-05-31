@@ -222,6 +222,8 @@ loadSCCountDataset <- function(input, param){
   ## unique cell names when merging two samples
   colnames(sce) <- paste(input$getNames(), colnames(sce), sep="___")
   
+  colData(sce)$Batch <- input$getNames()
+  
   return(sce)
 }
 

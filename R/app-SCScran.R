@@ -14,9 +14,17 @@ EzAppSCScran <-
                   "Initializes the application using its specific defaults."
                   runMethod <<- ezMethodSCScran
                   name <<- "EzAppSCScran"
-                  appDefaults <<- rbind(scProtocol=ezFrame(Type="character", DefaultValue="10X", Description="Which single cell protocol? 10X or Smart-seq2."),
-                                        snnK=ezFrame(Type="integer", DefaultValue=10, Description="An integer scalar specifying the number of nearest neighbors to consider during graph construction. Larger value, more fined clusters. Used in 10X."),
-                                        visMethod=ezFrame(Type="character", DefaultValue="tSNE", Description="Which visualisation method? TSNE, UMAP or DiffusionMap."))
+                  appDefaults <<- rbind(scProtocol=ezFrame(Type="character", DefaultValue="10X", 
+                                                           Description="Which single cell protocol? 10X or Smart-seq2."),
+                                        snnK=ezFrame(Type="integer", DefaultValue=10, 
+                                                     Description="An integer scalar specifying the number of nearest neighbors to consider during graph construction. Larger value, more fined clusters. Used in 10X."),
+                                        visMethod=ezFrame(Type="character", DefaultValue="tSNE", 
+                                                          Description="Which visualisation method? TSNE, UMAP or DiffusionMap."),
+                                        knownMarkers=ezFrame(Type="character", DefaultValue="", 
+                                                             Description="Known markers to plot."),
+                                        runPseudoTime=ezFrame(Type="logical", 
+                                                              DefaultValue=FALSE,
+                                                              Description="Run PseudoTime for single cell data?"))
                 }
                 )
               )
