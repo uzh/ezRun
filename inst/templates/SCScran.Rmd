@@ -51,7 +51,7 @@ Low-quality cells need to be removed to ensure that technical effects do not dis
   * The number of expressed features in each cell is defined as the number of features with non-zero counts for that cell.
   * The proportion of reads mapped to genes in the mitochondrial genome.
 
-```{r QC, echo=FALSE, cache=TRUE}
+```{r QC, echo=FALSE, cache=debug}
 rownames(sce) <- uniquifyFeatureNames(rowData(sce)$gene_id,
                                       rowData(sce)$gene_name)
 # Quality control on the cells
@@ -81,7 +81,7 @@ Read counts are subject to differences in capture efficiency and sequencing dept
 
 We apply the deconvolution method to compute size factors for all cells (Lun, Bach, and Marioni 2016).
 
-```{r normalize1, echo=FALSE, cache=TRUE}
+```{r normalize1, echo=FALSE, cache=debug}
 if(metadata(sce)$param$scProtocol == "10X"){
   set.seed(1000)
   clusters <- quickCluster(sce, use.ranks=FALSE, BSPARAM=IrlbaParam())
@@ -97,7 +97,7 @@ sce <- normalize(sce)
 
 The correlation of size factors against library sizes.
 
-```{r normalize2, echo=FALSE, cache=TRUE}
+```{r normalize2, echo=FALSE, cache=debug}
 toPlot <- tibble("Library sizes"=sce$total_counts, 
                  "Size factors"=sizeFactors(sce))
 p <- ggplot(toPlot) + aes(`Library sizes`, `Size factors`) + geom_point() +
@@ -108,7 +108,7 @@ p
 
 #### Modelling the mean-variance trend
 
-```{r mean-variance1, echo=FALSE, cache=TRUE}
+```{r mean-variance1, echo=FALSE, cache=debug}
 new.trend <- makeTechTrend(x=sce)
 fit <- trendVar(sce, use.spikes=FALSE, loess.args=list(span=0.05))
 ```
@@ -130,7 +130,7 @@ p
 
 We decompose the variance for each gene using the Poisson-based trend, and examine the genes with the highest biological components.
 
-```{r mean-variance3, echo=FALSE, cache=TRUE}
+```{r mean-variance3, echo=FALSE, cache=debug}
 fit$trend <- new.trend # overwrite trend.
 dec <- decomposeVar(fit=fit) # use per-gene variance estimates in 'fit'.
 top.dec <- dec[order(dec$bio, decreasing=TRUE),] 
@@ -150,7 +150,7 @@ If this is the case, this process should be represented by one or more of the ea
 In contrast, random technical noise affects each gene independently and will be represented by later PCs. 
 The `denoisePCA()` function removes later PCs until the total discarded variance is equal to the sum of technical components for all genes used in the PCA.
 
-```{r dim reduction1, echo=FALSE, cache=TRUE}
+```{r dim reduction1, echo=FALSE, cache=debug}
 set.seed(1000)
 sce <- denoisePCA(sce, technical=new.trend, BSPARAM=IrlbaParam())
 ```
@@ -174,7 +174,7 @@ p2 <- plotPCA(sce, ncomponents=3, colour_by="log10_total_features_by_counts")
 p2
 ```
 
-```{r vis in low-dim, echo=FALSE, cache=TRUE}
+```{r vis in low-dim, echo=FALSE, cache=debug}
 set.seed(1000)
 sce <- switch(metadata(sce)$param$visMethod,
               "TSNE"=runTSNE(sce, use_dimred="PCA", 
@@ -242,7 +242,7 @@ kable(tibble(Cluster=names(table(sce$Cluster)),
 
 We only look at upregulated genes in each cluster, as these are more useful for positive identification of cell types in a heterogeneous population.
 
-```{r markers, echo=FALSE, include=FALSE, cache=TRUE}
+```{r markers, echo=FALSE, include=FALSE, cache=debug}
 markers <- findMarkers(sce, clusters=sce$Cluster, direction="up")
 posMarkersDir <- "pos_markers"
 p_pos_cutoff <- 0.05
