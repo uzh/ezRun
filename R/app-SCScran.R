@@ -31,6 +31,7 @@ EzAppSCScran <-
 
 ezMethodSCScran <- function(input=NA, output=NA, param=NA, 
                             htmlFile="00index.html"){
+  require(SummarizedExperiment)
   # SAMPLE mode
   cwd <- getwd()
   setwdNew(basename(output$getColumn("Report")))
