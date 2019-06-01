@@ -47,5 +47,5 @@ input[['refBuild']] = 'Mus_musculus/Ensembl/GRCm38.p5/Annotation/Release_91-2018
 input[['refFeatureFile']] = 'genes.gtf'
 input[['featureLevel']] = 'gene'
 input[['CountMatrix']] = 'p2860/CellRangerCount_33994_2019-05-22--11-02-46/wt_4_F/filtered_feature_bc_matrix'
-debug(ezMethodSCScran)
+# debug(ezMethodSCScran)
 EzAppSCScran$new()$run(input=input, output=output, param=param)

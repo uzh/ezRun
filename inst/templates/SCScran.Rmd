@@ -56,7 +56,7 @@ rownames(sce) <- uniquifyFeatureNames(rowData(sce)$gene_id,
                                       rowData(sce)$gene_name)
 # Quality control on the cells
 sce <- calculateQCMetrics(sce, feature_controls=list(
-  Mito=BiocGenerics::which(seqnames(rowRanges(sce)) %in% c("M", "chrM", "MT"))))
+  Mito=which(as.character(seqnames(rowRanges(sce))) %in% c("M", "chrM", "MT"))))
   
 high.mito <- isOutlier(sce$pct_counts_Mito, nmads=3, type="higher")
 low.lib <- isOutlier(sce$log10_total_counts, type="lower", nmad=3)
@@ -187,7 +187,7 @@ sce <- switch(metadata(sce)$param$visMethod,
 ### QC on low-dimensional space
 
 ```{r QC on low dimen, echo=FALSE}
-if(metadata(sce)$param$visMethod == "tSNE"){
+if(metadata(sce)$param$visMethod == "TSNE"){
   p <- plotTSNE(sce, colour_by="pct_counts_Mito")
   print(p)
   p <- plotTSNE(sce, colour_by="log10_total_features_by_counts")
@@ -195,6 +195,15 @@ if(metadata(sce)$param$visMethod == "tSNE"){
   p <- plotTSNE(sce, colour_by="log10_total_counts")
   print(p)
   p <- plotTSNE(sce, colour_by="CellCycle")
+  print(p)
+}else if(metadata(sce)$param$visMethod == "UMAP"){
+  p <- plotUMAP(sce, colour_by="pct_counts_Mito")
+  print(p)
+  p <- plotUMAP(sce, colour_by="log10_total_features_by_counts")
+  print(p)
+  p <- plotUMAP(sce, colour_by="log10_total_counts")
+  print(p)
+  p <- plotUMAP(sce, colour_by="CellCycle")
   print(p)
 }
 ```
@@ -224,9 +233,14 @@ pheatmap(log.ratio, cluster_rows=FALSE, cluster_cols=FALSE,
 ```
 
 ```{r clustering3, echo=FALSE, message=FALSE}
-if(metadata(sce)$param$visMethod=="tSNE"){
-  plotTSNE(sce, colour_by="Cluster", text_by="Cluster") + scale_fill_hue() +
+if(metadata(sce)$param$visMethod=="TSNE"){
+  p <- plotTSNE(sce, colour_by="Cluster", text_by="Cluster") + scale_fill_hue() +
     labs(fill="Cluster")
+  print(p)
+}else if(metadata(sce)$param$visMethod=="UMAP"){
+  p <- plotUMAP(sce, colour_by="Cluster", text_by="Cluster") + scale_fill_hue() +
+    labs(fill="Cluster")
+  print(p)
 }
 
 kable(tibble(Cluster=names(table(sce$Cluster)),
@@ -290,10 +304,17 @@ for(cluster in names(markers)){
   cat("\n")
   markersPerCluster <- head(rownames(markers[[cluster]]), 10)
   for(eachMarker in markersPerCluster){
-    p <- plotTSNE(sce, colour_by=eachMarker) + 
-      scale_fill_gradient(low="gray", high="red") +
-      ggtitle(eachMarker) + labs(fill=eachMarker)
-    print(p)
+    if(metadata(sce)$param$visMethod=="TSNE"){
+      p <- plotTSNE(sce, colour_by=eachMarker) + 
+        scale_fill_gradient(low="gray", high="red") +
+        ggtitle(eachMarker) + labs(fill=eachMarker)
+      print(p)
+    }else if(metadata(sce)$param$visMethod=="UMAP"){
+      p <- plotUMAP(sce, colour_by=eachMarker) + 
+        scale_fill_gradient(low="gray", high="red") +
+        ggtitle(eachMarker) + labs(fill=eachMarker)
+      print(p)
+    }
     p <- plotExpression(sce, features=eachMarker, x="Cluster", colour_by="Cluster") +
       scale_fill_hue() + labs(fill="Cluster")
     print(p)
@@ -302,7 +323,6 @@ for(cluster in names(markers)){
 }
 ```
 
-
 ### Known markers
 
 Plot the expression of known markers if there is any.
@@ -310,10 +330,17 @@ Plot the expression of known markers if there is any.
 ```{r knownMakers, echo=FALSE, fig.width=4, fig.height=3, message=FALSE}
 if(ezIsSpecified(metadata(sce)$knownMarkers)){
   for(eachMarker in metadata(sce)$knownMarkers){
-    p <- plotTSNE(sce, colour_by=eachMarker) + 
-      scale_fill_gradient(low="gray", high="red") +
-      ggtitle(eachMarker) + labs(fill=eachMarker)
-    print(p)
+    if(metadata(sce)$param$visMethod=="TSNE"){
+      p <- plotTSNE(sce, colour_by=eachMarker) + 
+        scale_fill_gradient(low="gray", high="red") +
+        ggtitle(eachMarker) + labs(fill=eachMarker)
+      print(p)
+    }else if(metadata(sce)$param$visMethod=="UMAP"){
+      p <- plotUMAP(sce, colour_by=eachMarker) + 
+        scale_fill_gradient(low="gray", high="red") +
+        ggtitle(eachMarker) + labs(fill=eachMarker)
+      print(p)
+    }
     p <- plotExpression(sce, features=eachMarker, x="Cluster", colour_by="Cluster") +
       scale_fill_hue() + labs(fill="Cluster")
     print(p)
