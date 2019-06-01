@@ -214,7 +214,7 @@ if(metadata(sce)$param$visMethod == "TSNE"){
 
 ```{r clustering1, echo=FALSE}
 if(metadata(sce)$param$scProtocol == "10X"){
-  snn.gr <- buildSNNGraph(sce, use.dimred="PCA")
+  snn.gr <- buildSNNGraph(sce, k=metadata(sce)$param$snnK, use.dimred="PCA")
   clusters <- igraph::cluster_walktrap(snn.gr)
   sce$Cluster <- factor(clusters$membership)
 }else if(metadata(sce)$param$scProtocol == "Smart-seq2"){
@@ -222,8 +222,8 @@ if(metadata(sce)$param$scProtocol == "10X"){
 }
 
 coordinates <- tibble(Cells=colnames(sce),
-                      x=reducedDim(sce, metadata(sce)$param$visMethod)[, 1],
-                      y=reducedDim(sce, metadata(sce)$param$visMethod)[, 2], 
+                      X=reducedDim(sce, metadata(sce)$param$visMethod)[, 1],
+                      Y=reducedDim(sce, metadata(sce)$param$visMethod)[, 2], 
                       Cluster=sce$Cluster)
 ```
 
@@ -370,7 +370,7 @@ colData(sce)$fastICA_pseudotime <- a$A[1,]
 
 ```{r fastICA plot, echo=FALSE, fig.width=8, fig.height=5, eval=metadata(sce)$param$runPseudoTime}
 coordinates$Pseudotime <- colData(sce)$fastICA_pseudotime
-p <- ggplot(coordinates) +  aes(x, y) +
+p <- ggplot(coordinates) +  aes(X, Y) +
   geom_point(shape=21, size=5, colour = "black",
              aes(fill=Pseudotime), alpha=0.7) +
   scale_fill_gradient(low="yellow", high="blue") +
@@ -378,7 +378,6 @@ p <- ggplot(coordinates) +  aes(x, y) +
   ylab(paste(metadata(sce)$param$visMethod, "2"))
 print(p)
 ```
-
 
 ### Interactive explorer
 
