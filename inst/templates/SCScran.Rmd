@@ -34,6 +34,8 @@ library(fastICA)
 # title:  "`r metadata(sce)$param$name`"
 # sce <- readRDS("/scratch/gtan/dev/SCScran-p2860/wt_4_F_SCran/sce.rds")
 debug <- FALSE
+
+output <- metadata(sce)$output
 ```
 This clustering report is largely based on Bioconductor packages [scran](https://bioconductor.org/packages/release/bioc/html/scran.html), [scater](https://bioconductor.org/packages/release/bioc/html/scater.html).
 
@@ -218,6 +220,11 @@ if(metadata(sce)$param$scProtocol == "10X"){
 }else if(metadata(sce)$param$scProtocol == "Smart-seq2"){
   stop("Not implemented yet!")
 }
+
+coordinates <- tibble(Cells=colnames(sce),
+                      x=reducedDim(sce, metadata(sce)$param$visMethod)[, 1],
+                      y=reducedDim(sce, metadata(sce)$param$visMethod)[, 2], 
+                      Cluster=sce$Cluster)
 ```
 
 #### Confirm that clusters are modular.
@@ -362,11 +369,8 @@ colData(sce)$fastICA_pseudotime <- a$A[1,]
 ```
 
 ```{r fastICA plot, echo=FALSE, fig.width=8, fig.height=5, eval=metadata(sce)$param$runPseudoTime}
-toPlot <- tibble(Cells=colnames(sce),
-                 x=reducedDim(sce, metadata(sce)$param$visMethod)[, 1],
-                 y=reducedDim(sce, metadata(sce)$param$visMethod)[, 2], 
-                 Pseudotime=colData(sce)$fastICA_pseudotime)
-p <- ggplot(toPlot) +  aes(x, y) +
+coordinates$Pseudotime <- colData(sce)$fastICA_pseudotime
+p <- ggplot(coordinates) +  aes(x, y) +
   geom_point(shape=21, size=5, colour = "black",
              aes(fill=Pseudotime), alpha=0.7) +
   scale_fill_gradient(low="yellow", high="blue") +
@@ -385,10 +389,33 @@ saveRDS(sce, file=basename(output$getColumn("Live Report")))
 
 ### Data availability
 
-  * Expression
+```{r gene mean, include=FALSE}
+tr_cnts <- expm1(assay(sce, "logcounts"))
+geneMeans <- rowsum(t(as.matrix(tr_cnts)), group=sce$Cluster)
+geneMeans <- sweep(geneMeans, 1,
+                   STATS=table(sce$Cluster)[rownames(geneMeans)], FUN="/")
+geneMeans <- log1p(t(geneMeans))
+colnames(geneMeans) <- paste("Cluster", colnames(geneMeans), sep="_")
+geneMeanPerClusterFn <- "gene_means_per_cluster.txt"
+write_tsv(as_tibble(geneMeans, rownames="gene_name"),
+          path=geneMeanPerClusterFn)
+
+geneMeans <- Matrix::rowMeans(tr_cnts)
+geneMeans <- log1p(geneMeans)
+geneMeansFn <- "gene_means.txt"
+write_tsv(enframe(geneMeans, name="gene_name"), path=geneMeansFn)
+```
+
+```{r coordinates, include=FALSE}
+coordinatesFn <- "coordinates_data.tsv"
+write_tsv(coordinates, path=coordinatesFn)
+```
+
+  * Average gene expression per cluster: [`r geneMeanPerClusterFn`](`r geneMeanPerClusterFn`)
+  * Average gene expression: [`r geneMeansFn`](`r geneMeansFn`)
+  * Coordinates of cells in low dimensional space: [`r coordinatesFn`](`r coordinatesFn`)
   * Positive markers of each cluster: [`r posMarkersDir`](`r posMarkersDir`)
   
-
 ### SessionInfo
 ```{r, echo=FALSE}
 sessionInfo()
