@@ -14,7 +14,7 @@ editor_options:
 Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
 
 ```{r setup, include=FALSE}
-# input for this report: sce, output
+# input for this report: sce
 library(ezRun)
 library(Seurat)
 library(dplyr)
