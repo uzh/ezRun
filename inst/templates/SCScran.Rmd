@@ -212,8 +212,12 @@ if(metadata(sce)$param$visMethod == "TSNE"){
 
 ### Clustering
 
-```{r clustering1, echo=FALSE}
+```{r clustering1, echo=FALSE, results='asis'}
 if(metadata(sce)$param$scProtocol == "10X"){
+  cat("\n")
+  cat("We build a shared nearest neighbour graph (Xu and Su 2015) and use the Walktrap algorithm to identify clusters.")
+  cat("\n")
+  
   snn.gr <- buildSNNGraph(sce, k=metadata(sce)$param$snnK, use.dimred="PCA")
   clusters <- igraph::cluster_walktrap(snn.gr)
   sce$Cluster <- factor(clusters$membership)
@@ -229,15 +233,21 @@ coordinates <- tibble(Cells=colnames(sce),
 
 #### Confirm that clusters are modular.
 
-If most of the clusters are well seperated, there should be few strong off-diagonal entries.
-
-```{r clustering2, echo=FALSE}
-cluster.mod <- clusterModularity(snn.gr, sce$Cluster, get.values=TRUE)
-log.ratio <- log2(cluster.mod$observed/cluster.mod$expected + 1)
-
-pheatmap(log.ratio, cluster_rows=FALSE, cluster_cols=FALSE, 
-    color=colorRampPalette(c("white", "blue"))(100))
+```{r clustering2, echo=FALSE, results='asis'}
+if(metadata(sce)$param$scProtocol == "10X"){
+  cat("\n")
+  cat("We look at the ratio of the observed and expected edge weights to confirm that the clusters are modular. \n")
+  cat("If most of the clusters are well seperated, there should be few strong off-diagonal entries. \n")
+  cat("\n")
+  
+  cluster.mod <- clusterModularity(snn.gr, sce$Cluster, get.values=TRUE)
+  log.ratio <- log2(cluster.mod$observed/cluster.mod$expected + 1)
+  pheatmap(log.ratio, cluster_rows=FALSE, cluster_cols=FALSE, 
+           color=colorRampPalette(c("white", "blue"))(100))
+}
 ```
+
+#### Visualization on low-dimensional space
 
 ```{r clustering3, echo=FALSE, message=FALSE}
 if(metadata(sce)$param$visMethod=="TSNE"){
@@ -304,6 +314,8 @@ ezInteractiveTableRmd(markersList, digits=4, title=caption)
 
 ### Expression of top markers
 
+The top 10 markers from each cluster.
+
 ```{r vis markers, echo=FALSE, results='asis', fig.width=4, fig.height=3, message=FALSE}
 for(cluster in names(markers)){
   cat("\n")
@@ -358,6 +370,12 @@ if(ezIsSpecified(metadata(sce)$knownMarkers)){
 ### Trajectory reconstruction and pseudotime inference
 
 #### fastICA
+
+The `fastICA` performs ndependent Component Analysis (ICA) and Projection Pursuit.
+The algorithm can be used to find the projection pursuit directions. 
+Projection pursuit is a technique for finding 'interesting' directions in multi-dimensional datasets. 
+These projections and are useful for visualizing the dataset and in density estimation and regression. 
+Interesting directions are those which show the least Gaussian distribution, which is what the FastICA algorithm does.
 
 ```{r fastICA, echo=FALSE, message=FALSE, eval=metadata(sce)$param$runPseudoTime}
 cd <- as.matrix(assay(sce, "logcounts"))
