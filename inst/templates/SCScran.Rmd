@@ -1,0 +1,439 @@
+---
+title:  "`r metadata(sce)$param$name`"
+author: "Functional Genomics Center Zurich"
+output: 
+  html_document:
+    self_contained: false
+    includes:
+      in_header: fgcz_header.html
+    css: fgcz.css
+editor_options: 
+  chunk_output_type: console
+---
+
+Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
+
+```{r setup, include=FALSE}
+# input for this report: sce
+library(DropletUtils)
+library(scater)
+library(ezRun)
+library(BiocSingular)
+library(scran)
+library(ggplot2)
+library(cowplot)
+library(tibble)
+library(dplyr)
+library(tidyr)
+library(kableExtra)
+library(pheatmap)
+library(readr)
+library(fastICA)
+
+## debug
+# title:  "`r metadata(sce)$param$name`"
+# sce <- readRDS("/scratch/gtan/dev/SCScran-p2860/wt_4_F_SCran/sce.rds")
+debug <- FALSE
+
+output <- metadata(sce)$output
+```
+This clustering report is largely based on Bioconductor packages [scran](https://bioconductor.org/packages/release/bioc/html/scran.html), [scater](https://bioconductor.org/packages/release/bioc/html/scater.html).
+
+## Clustering results {.tabset}
+
+### Preprocessing
+
+#### Quality control on the cells
+
+There are `r ncol(sce)` cells in total.
+
+Low-quality cells need to be removed to ensure that technical effects do not distort downstream analysis results. We use several quality control (QC) metrics:
+
+  * The library size is defined as the total sum of counts across all features, i.e., genes and spike-in transcripts.
+  * The number of expressed features in each cell is defined as the number of features with non-zero counts for that cell.
+  * The proportion of reads mapped to genes in the mitochondrial genome.
+
+```{r QC, echo=FALSE, cache=debug}
+rownames(sce) <- uniquifyFeatureNames(rowData(sce)$gene_id,
+                                      rowData(sce)$gene_name)
+# Quality control on the cells
+sce <- calculateQCMetrics(sce, feature_controls=list(
+  Mito=which(as.character(seqnames(rowRanges(sce))) %in% c("M", "chrM", "MT"))))
+  
+high.mito <- isOutlier(sce$pct_counts_Mito, nmads=3, type="higher")
+low.lib <- isOutlier(sce$log10_total_counts, type="lower", nmad=3)
+low.genes <- isOutlier(sce$log10_total_features_by_counts, type="lower", nmad=3)
+
+plotColData(sce, y="pct_counts_Mito", x="Batch") +
+  geom_hline(yintercept = attr(high.mito, "thresholds")["higher"], colour="red")
+plotColData(sce, y="log10_total_features_by_counts", x="Batch") +
+  geom_hline(yintercept = attr(low.genes, "thresholds")["lower"], colour="red")
+plotColData(sce, y="log10_total_counts", x="Batch") +
+  geom_hline(yintercept = attr(low.lib, "thresholds")["lower"], colour="red")
+
+sce <- sce[ ,!(high.mito|low.lib|low.genes)]
+```
+
+`r sum(high.mito|low.lib|low.genes)` cells were removed due to low library sizes, 
+total number of expressed features or large mitochondrial proportions.
+
+#### Normalizing for cell-specific biases
+
+Read counts are subject to differences in capture efficiency and sequencing depth between cells (Stegle, Teichmann, and Marioni 2015). Normalization is required to eliminate these cell-specific biases prior to downstream quantitative analyses. This is often done by assuming that most genes are not differentially expressed (DE) between cells. Any systematic difference in count size across the non-DE majority of genes between two cells is assumed to represent bias and is removed by scaling. More specifically, “size factors” are calculated that represent the extent to which counts should be scaled in each library.
+
+We apply the deconvolution method to compute size factors for all cells (Lun, Bach, and Marioni 2016).
+
+```{r normalize1, echo=FALSE, cache=debug}
+if(metadata(sce)$param$scProtocol == "10X"){
+  set.seed(1000)
+  clusters <- quickCluster(sce, use.ranks=FALSE, BSPARAM=IrlbaParam())
+  table(clusters)
+  sce <- computeSumFactors(sce, min.mean=0.1, cluster=clusters)
+}else if(metadata(sce)$param$scProtocol == "Smart-seq2"){
+  sce <- computeSumFactors(sce)
+}else{
+  stop("Unsupported single cell protocol!")
+}
+sce <- normalize(sce)
+```
+
+The correlation of size factors against library sizes.
+
+```{r normalize2, echo=FALSE, cache=debug}
+toPlot <- tibble("Library sizes"=sce$total_counts, 
+                 "Size factors"=sizeFactors(sce))
+p <- ggplot(toPlot) + aes(`Library sizes`, `Size factors`) + geom_point() +
+  scale_x_log10() + scale_y_log10() + 
+  background_grid(major = "xy", minor = "none")
+p
+```
+
+#### Modelling the mean-variance trend
+
+```{r mean-variance1, echo=FALSE, cache=debug}
+new.trend <- makeTechTrend(x=sce)
+fit <- trendVar(sce, use.spikes=FALSE, loess.args=list(span=0.05))
+```
+
+The modelling of mean-variance trend is shown below. 
+The MeanTrend represents the mean-dependent trend fitted to the variances.
+The Poisson-based trend serves as a lower bound for the variances of the endogenous genes.
+
+```{r mean-variance2, echo=FALSE}
+toPlot <- tibble(Mean=fit$mean, Variance=fit$var)
+toPlot2 <- tibble(Mean=seq(min(fit$mean), max(fit$mean), length.out=101)) %>%
+  mutate(MeanTrend=fit$trend(Mean), PoissonTrend=new.trend(Mean)) %>%
+  gather(key="Trend", value="value", -Mean)
+p <- ggplot(toPlot) + aes(Mean, Variance) + geom_point() +
+  geom_line(aes(Mean, value, colour=Trend), data=toPlot2) +
+  background_grid(major = "xy", minor = "none")
+p
+```
+
+We decompose the variance for each gene using the Poisson-based trend, and examine the genes with the highest biological components.
+
+```{r mean-variance3, echo=FALSE, cache=debug}
+fit$trend <- new.trend # overwrite trend.
+dec <- decomposeVar(fit=fit) # use per-gene variance estimates in 'fit'.
+top.dec <- dec[order(dec$bio, decreasing=TRUE),] 
+plotExpression(sce, features=rownames(top.dec)[1:10]) +
+  ggtitle("Top 10 genes with the largest biological components")
+```
+
+#### Dimensionality reduction
+
+Once the technical noise is modelled, we can use principal components analysis (PCA) to remove random technical noise.
+Consider that each cell represents a point in the high-dimensional expression space, where the spread of points represents the total variance.
+PCA identifies axes in this space that capture as much of this variance as possible.
+Each axis is a principal component (PC), where any early PC will explain more of the variance than a later PC.
+
+We assume that biological processes involving co-regulated groups of genes will account for the most variance in the data. 
+If this is the case, this process should be represented by one or more of the earlier PCs. 
+In contrast, random technical noise affects each gene independently and will be represented by later PCs. 
+The `denoisePCA()` function removes later PCs until the total discarded variance is equal to the sum of technical components for all genes used in the PCA.
+
+```{r dim reduction1, echo=FALSE, cache=debug}
+set.seed(1000)
+sce <- denoisePCA(sce, technical=new.trend, BSPARAM=IrlbaParam())
+```
+
+The number of principal componentes to use: `r ncol(reducedDim(sce, "PCA"))`
+
+```{r dim reduction2, echo=FALSE}
+toPlot <- tibble(PC=seq_len(length(attr(reducedDim(sce), "percentVar"))),
+                 "Proportion of variance explained"=attr(reducedDim(sce), "percentVar"))
+p <- ggplot(toPlot) + aes(PC, `Proportion of variance explained`) + 
+  geom_point() + 
+  geom_vline(xintercept = ncol(reducedDim(sce, "PCA")), colour="red") +
+  background_grid(major = "xy", minor = "none")
+p
+```
+
+```{r dim reduction3, echo=FALSE, fig.width=10, fig.height=7}
+p1 <- plotPCA(sce, ncomponents=3, colour_by="log10_total_counts")
+p1
+p2 <- plotPCA(sce, ncomponents=3, colour_by="log10_total_features_by_counts")
+p2
+```
+
+```{r vis in low-dim, echo=FALSE, cache=debug}
+set.seed(1000)
+sce <- switch(metadata(sce)$param$visMethod,
+              "TSNE"=runTSNE(sce, use_dimred="PCA", 
+                             perplexity=ifelse(ncol(sce) > 200, 30, 10)),
+              "UMAP"=runUMAP(sce, use_dimred="PCA"),
+              "DiffusionMap"=runDiffusionMap(sce, use_dimred="PCA")
+              )
+```
+
+### QC on low-dimensional space
+
+```{r QC on low dimen, echo=FALSE}
+if(metadata(sce)$param$visMethod == "TSNE"){
+  p <- plotTSNE(sce, colour_by="pct_counts_Mito")
+  print(p)
+  p <- plotTSNE(sce, colour_by="log10_total_features_by_counts")
+  print(p)
+  p <- plotTSNE(sce, colour_by="log10_total_counts")
+  print(p)
+  p <- plotTSNE(sce, colour_by="CellCycle")
+  print(p)
+}else if(metadata(sce)$param$visMethod == "UMAP"){
+  p <- plotUMAP(sce, colour_by="pct_counts_Mito")
+  print(p)
+  p <- plotUMAP(sce, colour_by="log10_total_features_by_counts")
+  print(p)
+  p <- plotUMAP(sce, colour_by="log10_total_counts")
+  print(p)
+  p <- plotUMAP(sce, colour_by="CellCycle")
+  print(p)
+}
+```
+
+### Clustering
+
+```{r clustering1, echo=FALSE, results='asis'}
+if(metadata(sce)$param$scProtocol == "10X"){
+  cat("\n")
+  cat("We build a shared nearest neighbour graph (Xu and Su 2015) and use the Walktrap algorithm to identify clusters.")
+  cat("\n")
+  
+  snn.gr <- buildSNNGraph(sce, k=metadata(sce)$param$snnK, use.dimred="PCA")
+  clusters <- igraph::cluster_walktrap(snn.gr)
+  sce$Cluster <- factor(clusters$membership)
+}else if(metadata(sce)$param$scProtocol == "Smart-seq2"){
+  stop("Not implemented yet!")
+}
+
+coordinates <- tibble(Cells=colnames(sce),
+                      X=reducedDim(sce, metadata(sce)$param$visMethod)[, 1],
+                      Y=reducedDim(sce, metadata(sce)$param$visMethod)[, 2], 
+                      Cluster=sce$Cluster)
+```
+
+#### Confirm that clusters are modular.
+
+```{r clustering2, echo=FALSE, results='asis'}
+if(metadata(sce)$param$scProtocol == "10X"){
+  cat("\n")
+  cat("We look at the ratio of the observed and expected edge weights to confirm that the clusters are modular. \n")
+  cat("If most of the clusters are well seperated, there should be few strong off-diagonal entries. \n")
+  cat("\n")
+  
+  cluster.mod <- clusterModularity(snn.gr, sce$Cluster, get.values=TRUE)
+  log.ratio <- log2(cluster.mod$observed/cluster.mod$expected + 1)
+  pheatmap(log.ratio, cluster_rows=FALSE, cluster_cols=FALSE, 
+           color=colorRampPalette(c("white", "blue"))(100))
+}
+```
+
+#### Visualization on low-dimensional space
+
+```{r clustering3, echo=FALSE, message=FALSE}
+if(metadata(sce)$param$visMethod=="TSNE"){
+  p <- plotTSNE(sce, colour_by="Cluster", text_by="Cluster") + scale_fill_hue() +
+    labs(fill="Cluster")
+  print(p)
+}else if(metadata(sce)$param$visMethod=="UMAP"){
+  p <- plotUMAP(sce, colour_by="Cluster", text_by="Cluster") + scale_fill_hue() +
+    labs(fill="Cluster")
+  print(p)
+}
+
+kable(tibble(Cluster=names(table(sce$Cluster)),
+             "# of cells"=table(sce$Cluster)),
+      row.names=FALSE, format="html",
+      caption="Number of cells in each cluster") %>%
+  kable_styling(bootstrap_options = "striped", full_width = F,
+                position = "float_right")
+
+```
+
+### Marker genes
+
+We only look at upregulated genes in each cluster, as these are more useful for positive identification of cell types in a heterogeneous population.
+
+```{r markers, echo=FALSE, include=FALSE, cache=debug}
+markers <- findMarkers(sce, clusters=sce$Cluster, direction="up")
+posMarkersDir <- "pos_markers"
+p_pos_cutoff <- 0.05
+dir.create(posMarkersDir)
+markersList <- list()
+for(cluster in names(markers)){
+  markersPerCluster <- as_tibble(markers[[cluster]], rownames="gene_name")
+  write_tsv(markersPerCluster,
+            path=file.path(posMarkersDir, paste0("Cluster", cluster, ".txt")))
+  
+  markersPerCluster <- filter(markersPerCluster, p.value <= p_pos_cutoff,
+                              Top <= 10)
+  markersList[[cluster]] <- markersPerCluster
+}
+lapply(list.files(posMarkersDir, "Cluster", full.names = TRUE), R.utils::gzip,
+       compression=9)
+
+markersList <- bind_rows(markersList, .id="Cluster")
+```
+
+```{r enrichr markers, echo=FALSE, results='asis'}
+if(doEnrichr(metadata(sce)$param)){
+  genesPerCluster <- split(markersList$gene_name, markersList$Cluster)
+  jsCall = paste0('enrich({list: "', sapply(genesPerCluster, paste, collapse="\\n"), '", popup: true});')
+  enrichrCalls <- paste0("<a href='javascript:void(0)' onClick='", jsCall, 
+                         "'>Analyse at Enrichr website</a>")
+  enrichrTable <- tibble(Cluster=names(genesPerCluster),
+                         "# of markers"=lengths(genesPerCluster),
+                         "Enrichr link"=enrichrCalls)
+  kable(enrichrTable, format="html", escape=FALSE,
+        caption=paste0("Genes with rank below 10 and pvalue <", p_pos_cutoff)) %>%
+    kable_styling("striped", full_width = F, position = "left")
+}
+
+caption ="Expression differences of cluster marker genes"
+ezInteractiveTableRmd(markersList, digits=4, title=caption)
+```
+
+### Expression of top markers
+
+The top 10 markers from each cluster.
+
+```{r vis markers, echo=FALSE, results='asis', fig.width=4, fig.height=3, message=FALSE}
+for(cluster in names(markers)){
+  cat("\n")
+  cat("#### Cluster ", cluster, "\n")
+  cat("\n")
+  markersPerCluster <- head(rownames(markers[[cluster]]), 10)
+  for(eachMarker in markersPerCluster){
+    if(metadata(sce)$param$visMethod=="TSNE"){
+      p <- plotTSNE(sce, colour_by=eachMarker) + 
+        scale_fill_gradient(low="gray", high="red") +
+        ggtitle(eachMarker) + labs(fill=eachMarker)
+      print(p)
+    }else if(metadata(sce)$param$visMethod=="UMAP"){
+      p <- plotUMAP(sce, colour_by=eachMarker) + 
+        scale_fill_gradient(low="gray", high="red") +
+        ggtitle(eachMarker) + labs(fill=eachMarker)
+      print(p)
+    }
+    p <- plotExpression(sce, features=eachMarker, x="Cluster", colour_by="Cluster") +
+      scale_fill_hue() + labs(fill="Cluster") + theme(legend.position="none")
+    print(p)
+  }
+  cat("\n")
+}
+```
+
+### Known markers
+
+Plot the expression of known markers if there is any.
+
+```{r knownMakers, echo=FALSE, fig.width=4, fig.height=3, message=FALSE}
+if(ezIsSpecified(metadata(sce)$knownMarkers)){
+  for(eachMarker in metadata(sce)$knownMarkers){
+    if(metadata(sce)$param$visMethod=="TSNE"){
+      p <- plotTSNE(sce, colour_by=eachMarker) + 
+        scale_fill_gradient(low="gray", high="red") +
+        ggtitle(eachMarker) + labs(fill=eachMarker)
+      print(p)
+    }else if(metadata(sce)$param$visMethod=="UMAP"){
+      p <- plotUMAP(sce, colour_by=eachMarker) + 
+        scale_fill_gradient(low="gray", high="red") +
+        ggtitle(eachMarker) + labs(fill=eachMarker)
+      print(p)
+    }
+    p <- plotExpression(sce, features=eachMarker, x="Cluster", colour_by="Cluster") +
+      scale_fill_hue() + labs(fill="Cluster") + theme(legend.position="none")
+    print(p)
+  }
+}
+```
+
+### Trajectory reconstruction and pseudotime inference
+
+#### fastICA
+
+The `fastICA` performs ndependent Component Analysis (ICA) and Projection Pursuit.
+The algorithm can be used to find the projection pursuit directions. 
+Projection pursuit is a technique for finding 'interesting' directions in multi-dimensional datasets. 
+These projections and are useful for visualizing the dataset and in density estimation and regression. 
+Interesting directions are those which show the least Gaussian distribution, which is what the FastICA algorithm does.
+
+```{r fastICA, echo=FALSE, message=FALSE, eval=metadata(sce)$param$runPseudoTime}
+cd <- as.matrix(assay(sce, "logcounts"))
+set.seed(10)
+a <- fastICA(cd, 2, alg.typ = "parallel", fun = "logcosh",
+             alpha = 1, method = "C", row.norm = FALSE, maxit = 200,
+             tol = 0.0001, verbose = FALSE)
+colData(sce)$fastICA_pseudotime <- a$A[1,]
+```
+
+```{r fastICA plot, echo=FALSE, fig.width=8, fig.height=5, eval=metadata(sce)$param$runPseudoTime}
+coordinates$Pseudotime <- colData(sce)$fastICA_pseudotime
+p <- ggplot(coordinates) +  aes(X, Y) +
+  geom_point(shape=21, size=5, colour = "black",
+             aes(fill=Pseudotime), alpha=0.7) +
+  scale_fill_gradient(low="yellow", high="blue") +
+  xlab(paste(metadata(sce)$param$visMethod, "1")) +
+  ylab(paste(metadata(sce)$param$visMethod, "2"))
+print(p)
+```
+
+### Interactive explorer
+
+```{r make shiny data, echo=FALSE}
+saveRDS(sce, file=basename(output$getColumn("Live Report")))
+```
+[Shiny explorer](`r output$getColumn("Live Report")`)
+
+### Data availability
+
+```{r gene mean, include=FALSE}
+tr_cnts <- expm1(assay(sce, "logcounts"))
+geneMeans <- rowsum(t(as.matrix(tr_cnts)), group=sce$Cluster)
+geneMeans <- sweep(geneMeans, 1,
+                   STATS=table(sce$Cluster)[rownames(geneMeans)], FUN="/")
+geneMeans <- log1p(t(geneMeans))
+colnames(geneMeans) <- paste("Cluster", colnames(geneMeans), sep="_")
+geneMeanPerClusterFn <- "gene_means_per_cluster.txt"
+write_tsv(as_tibble(geneMeans, rownames="gene_name"),
+          path=geneMeanPerClusterFn)
+
+geneMeans <- Matrix::rowMeans(tr_cnts)
+geneMeans <- log1p(geneMeans)
+geneMeansFn <- "gene_means.txt"
+write_tsv(enframe(geneMeans, name="gene_name"), path=geneMeansFn)
+```
+
+```{r coordinates, include=FALSE}
+coordinatesFn <- "coordinates_data.tsv"
+write_tsv(coordinates, path=coordinatesFn)
+```
+
+  * Average gene expression per cluster: [`r geneMeanPerClusterFn`](`r geneMeanPerClusterFn`)
+  * Average gene expression: [`r geneMeansFn`](`r geneMeansFn`)
+  * Coordinates of cells in low dimensional space: [`r coordinatesFn`](`r coordinatesFn`)
+  * Positive markers of each cluster: [`r posMarkersDir`](`r posMarkersDir`)
+  
+### SessionInfo
+```{r, echo=FALSE}
+sessionInfo()
+```

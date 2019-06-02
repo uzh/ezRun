@@ -72,7 +72,6 @@ ezMethodSCReport = function(input=NA, output=NA, param=NA,
   cwd <- getwd()
   setwdNew(basename(output$getColumn("Report")))
   on.exit(setwd(cwd), add=TRUE)
-  reportCwd <- getwd()
   
   ## subset the selected sample names
   # samples <- param$samples
