@@ -43,7 +43,7 @@ ezMethodSCScran <- function(input=NA, output=NA, param=NA,
                                     paste(input$getNames(), collapse=", "),
                                     sep=": ")
   # debug
-  saveRDS(sce,  "sce.rds")
+  # saveRDS(sce,  "sce.rds")
   
   ## Copy the style files and templates
   styleFiles <- file.path(system.file("templates", package="ezRun"),
