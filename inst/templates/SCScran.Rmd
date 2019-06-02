@@ -323,7 +323,7 @@ for(cluster in names(markers)){
       print(p)
     }
     p <- plotExpression(sce, features=eachMarker, x="Cluster", colour_by="Cluster") +
-      scale_fill_hue() + labs(fill="Cluster")
+      scale_fill_hue() + labs(fill="Cluster") + theme(legend.position="none")
     print(p)
   }
   cat("\n")
@@ -349,7 +349,7 @@ if(ezIsSpecified(metadata(sce)$knownMarkers)){
       print(p)
     }
     p <- plotExpression(sce, features=eachMarker, x="Cluster", colour_by="Cluster") +
-      scale_fill_hue() + labs(fill="Cluster")
+      scale_fill_hue() + labs(fill="Cluster") + theme(legend.position="none")
     print(p)
   }
 }
