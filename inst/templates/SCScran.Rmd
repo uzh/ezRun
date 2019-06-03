@@ -333,6 +333,11 @@ for(cluster in names(markers)){
         scale_fill_gradient(low="gray", high="red") +
         ggtitle(eachMarker) + labs(fill=eachMarker)
       print(p)
+    }else if(metadata(sce)$param$visMethod=="DiffusionMap"){
+      p <- plotDiffusionMap(sce, colour_by=eachMarker) + 
+        scale_fill_gradient(low="gray", high="red") +
+        ggtitle(eachMarker) + labs(fill=eachMarker)
+      print(p)
     }
     p <- plotExpression(sce, features=eachMarker, x="Cluster", colour_by="Cluster") +
       scale_fill_hue() + labs(fill="Cluster") + theme(legend.position="none")
@@ -347,22 +352,37 @@ for(cluster in names(markers)){
 Plot the expression of known markers if there is any.
 
 ```{r knownMakers, echo=FALSE, fig.width=4, fig.height=3, message=FALSE}
-if(ezIsSpecified(metadata(sce)$knownMarkers)){
-  for(eachMarker in metadata(sce)$knownMarkers){
-    if(metadata(sce)$param$visMethod=="TSNE"){
-      p <- plotTSNE(sce, colour_by=eachMarker) + 
-        scale_fill_gradient(low="gray", high="red") +
-        ggtitle(eachMarker) + labs(fill=eachMarker)
-      print(p)
-    }else if(metadata(sce)$param$visMethod=="UMAP"){
-      p <- plotUMAP(sce, colour_by=eachMarker) + 
-        scale_fill_gradient(low="gray", high="red") +
-        ggtitle(eachMarker) + labs(fill=eachMarker)
-      print(p)
+if(length(metadata(sce)$param$knownMarkers) >0){
+  for(i in 1:length(metadata(sce)$param$knownMarkers)){
+    cat("\n")
+    cat(paste("####", names(metadata(sce)$param$knownMarkers)[i]))
+    cat("\n")
+    check_markers <- metadata(sce)$param$knownMarkers[[i]]
+    if(length(check_markers) > 0){
+      for(j in 1:length(check_markers)){
+        eachMarker <- check_markers[j]
+        if(metadata(sce)$param$visMethod=="TSNE"){
+          p <- plotTSNE(sce, colour_by=eachMarker) + 
+            scale_fill_gradient(low="gray", high="red") +
+            ggtitle(eachMarker) + labs(fill=eachMarker)
+          print(p)
+        }else if(metadata(sce)$param$visMethod=="UMAP"){
+          p <- plotUMAP(sce, colour_by=eachMarker) + 
+            scale_fill_gradient(low="gray", high="red") +
+            ggtitle(eachMarker) + labs(fill=eachMarker)
+          print(p)
+        }else if(metadata(sce)$param$visMethod=="DiffusionMap"){
+          p <- plotDiffusionMap(sce, colour_by=eachMarker) + 
+            scale_fill_gradient(low="gray", high="red") +
+            ggtitle(eachMarker) + labs(fill=eachMarker)
+          print(p)
+        }
+        p <- plotExpression(sce, features=eachMarker, x="Cluster", colour_by="Cluster") +
+          scale_fill_hue() + labs(fill="Cluster") + theme(legend.position="none")
+        print(p)
+      }
     }
-    p <- plotExpression(sce, features=eachMarker, x="Cluster", colour_by="Cluster") +
-      scale_fill_hue() + labs(fill="Cluster") + theme(legend.position="none")
-    print(p)
+    cat("\n")
   }
 }
 ```
