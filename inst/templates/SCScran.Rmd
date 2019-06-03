@@ -358,6 +358,7 @@ if(length(metadata(sce)$param$knownMarkers) >0){
     cat(paste("####", names(metadata(sce)$param$knownMarkers)[i]))
     cat("\n")
     check_markers <- metadata(sce)$param$knownMarkers[[i]]
+    check_markers <- check_markers[check_markers %in% rownames(sce)]
     if(length(check_markers) > 0){
       for(j in 1:length(check_markers)){
         eachMarker <- check_markers[j]
