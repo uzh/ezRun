@@ -48,9 +48,15 @@ EzAppSCReportMerging <-
                                         all2allMarkers=ezFrame(Type="logical",
                                                                DefaultValue=FALSE, 
                                                                Description="Run all against all cluster comparisons?"),
+                                        computeDifferentialExpression=ezFrame(Type="logical",
+                                                               DefaultValue=TRUE, 
+                                                               Description="Compute differential expression between samples"),
                                         markersToShow=ezFrame(Type="numeric", 
                                                               DefaultValue=10, 
-                                                              Description="The markers to show in the heatmap of cluster marker genes"))
+                                                              Description="The markers to show in the heatmap of cluster marker genes"),
+                                        markersToShow=ezFrame(Type="numeric", 
+                                                              DefaultValue=5, 
+                                                              Description="Maximum number of samples to compare"))
                 }
               )
   )
@@ -61,8 +67,8 @@ ezMethodSCReportMerging = function(input=NA, output=NA, param=NA,
   samples <- param$samples
   input <- input$subset(samples)
   
-  if(input$getLength() > 3L){
-    stop("It only works for merging less than 3 samples at once!")
+  if(input$getLength() > param$maxSamplesSupported){
+    stop(paste("It only works for", param$maxSamplesSupported, "at most"))
   }
   
   cwd <- getwd()
