@@ -62,6 +62,7 @@ ezMethodGetEnaData <- function(input=NA, output=NA, param=NA){
         for (j in 1:length(sampleNames)){
             files_R1 <- basename(dataset[['Read1 [File]']][dataset[['Name']] == sampleNames[j]])
             sampleNames[j] = gsub('\\/', '_', gsub(' ', '_', sampleNames[j]))
+            sampleNames[j] = gsub(';', '_', sampleNames[j])
             pooledR1_File <- paste0(sampleNames[j],'_R1.fastq')
             ezSystem(paste('touch', pooledR1_File))
             for (k in 1:length(files_R1)){
