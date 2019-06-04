@@ -54,7 +54,7 @@ EzAppSCReportMerging <-
                                         markersToShow=ezFrame(Type="numeric", 
                                                               DefaultValue=10, 
                                                               Description="The markers to show in the heatmap of cluster marker genes"),
-                                        markersToShow=ezFrame(Type="numeric", 
+                                        maxSamplesSupported=ezFrame(Type="numeric", 
                                                               DefaultValue=5, 
                                                               Description="Maximum number of samples to compare"))
                 }
