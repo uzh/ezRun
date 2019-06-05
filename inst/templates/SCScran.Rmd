@@ -347,11 +347,11 @@ for(cluster in names(markers)){
 }
 ```
 
-### Known markers
+### Known markers on low-dimensional space
 
 Plot the expression of known markers if there is any.
 
-```{r knownMakers, echo=FALSE, fig.width=4, fig.height=3, message=FALSE}
+```{r knownMakers low-dim, echo=FALSE, fig.width=4, fig.height=3, message=FALSE, results='asis'}
 if(length(metadata(sce)$param$knownMarkers) >0){
   for(i in 1:length(metadata(sce)$param$knownMarkers)){
     cat("\n")
@@ -382,6 +382,35 @@ if(length(metadata(sce)$param$knownMarkers) >0){
           scale_fill_hue() + labs(fill="Cluster") + theme(legend.position="none")
         print(p)
       }
+    }else{
+      cat("The input markers don't exist!\n")
+    }
+    cat("\n")
+  }
+}
+```
+
+### Known markers in violin plots
+
+Plot the expression of known markers if there is any.
+
+```{r knownMakers violin, echo=FALSE, fig.width=max(4, 2+0.1*length(unique(sce$Cluster))), fig.height=3, message=FALSE, results='asis'}
+if(length(metadata(sce)$param$knownMarkers) >0){
+  for(i in 1:length(metadata(sce)$param$knownMarkers)){
+    cat("\n")
+    cat(paste("####", names(metadata(sce)$param$knownMarkers)[i]))
+    cat("\n")
+    check_markers <- metadata(sce)$param$knownMarkers[[i]]
+    check_markers <- check_markers[check_markers %in% rownames(sce)]
+    if(length(check_markers) > 0){
+      for(j in 1:length(check_markers)){
+        eachMarker <- check_markers[j]
+        p <- plotExpression(sce, features=eachMarker, x="Cluster", colour_by="Cluster") +
+          scale_fill_hue() + labs(fill="Cluster") + theme(legend.position="none")
+        print(p)
+      }
+    }else{
+      cat("The input markers don't exist!\n")
     }
     cat("\n")
   }
