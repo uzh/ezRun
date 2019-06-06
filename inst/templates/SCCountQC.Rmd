@@ -123,7 +123,7 @@ medianNrGenesPerCell <- numeric(length(proportions))
 for(i in 1:length(proportions)){
   set.seed(100)
   new.counts <- downsampleMatrix(assay(sce, "counts"), prop=proportions[i]/10)
-  medianNrGenesPerCell[i] <- median(colSums(new.counts >= param$minReadsPerGene))
+  medianNrGenesPerCell[i] <- median(Matrix::colSums(new.counts >= param$minReadsPerGene))
 }
 toPlot <- tibble(x=proportions, y=medianNrGenesPerCell)
 xax <- list(
