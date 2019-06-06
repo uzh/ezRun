@@ -122,7 +122,7 @@ proportions <- (1:10)/10
 medianNrGenesPerCell <- numeric(length(proportions))
 for(i in 1:length(proportions)){
   set.seed(100)
-  new.counts <- downsampleMatrix(assay(sce, "counts"), prop=proportions[i]/10)
+  new.counts <- downsampleMatrix(assay(sce, "counts"), prop=proportions[i])
   medianNrGenesPerCell[i] <- median(Matrix::colSums(new.counts >= param$minReadsPerGene))
 }
 toPlot <- tibble(x=proportions, y=medianNrGenesPerCell)
@@ -435,67 +435,67 @@ p2
 
 <!-- ### Seurat -->
 
-```{r VlnPlot, echo=FALSE, fig.width=10, fig.height=ifelse(nchar(scData@project.name) > 20, 10, 7), eval=!debug && FALSE}
-VlnPlot(object=scData, features.plot = c("nGene", "nUMI", "perc_mito"),
-        nCol=3, 
-        x.lab.rot=ifelse(nchar(scData@project.name) > 20, TRUE, FALSE))
-```
+<!-- ```{r VlnPlot, echo=FALSE, fig.width=10, fig.height=ifelse(nchar(scData@project.name) > 20, 10, 7), eval=!debug && FALSE} -->
+<!-- VlnPlot(object=scData, features.plot = c("nGene", "nUMI", "perc_mito"), -->
+<!--         nCol=3,  -->
+<!--         x.lab.rot=ifelse(nchar(scData@project.name) > 20, TRUE, FALSE)) -->
+<!-- ``` -->
 
-```{r seurat filter and normalize, echo=FALSE, eval=!debug && FALSE}
-scData <- FilterCells(object = scData,
-                      subset.names = c("nGene", "perc_mito"),
-                      low.thresholds = c(param$minGenesPerCell, -Inf), 
-                      high.thresholds = c(Inf, 0.25))
-scData <- NormalizeData(object=scData, normalization.method="LogNormalize",
-                        scale.factor=getSeuratScalingFactor(param$scProtocol))
+<!-- ```{r seurat filter and normalize, echo=FALSE, eval=!debug && FALSE} -->
+<!-- scData <- FilterCells(object = scData, -->
+<!--                       subset.names = c("nGene", "perc_mito"), -->
+<!--                       low.thresholds = c(param$minGenesPerCell, -Inf),  -->
+<!--                       high.thresholds = c(Inf, 0.25)) -->
+<!-- scData <- NormalizeData(object=scData, normalization.method="LogNormalize", -->
+<!--                         scale.factor=getSeuratScalingFactor(param$scProtocol)) -->
 
-if(ncol(scData@data) <= 10){
-  ## if there is less than 10 cells left, don't do following seurat because of error
-  doSeurat <- FALSE
-  message("Less than 10 cells after Seurat filtering. The donwstream Seurat analysis is aborted.")
-}else{
-  doSeurat <- TRUE
-}
-```
+<!-- if(ncol(scData@data) <= 10){ -->
+<!--   ## if there is less than 10 cells left, don't do following seurat because of error -->
+<!--   doSeurat <- FALSE -->
+<!--   message("Less than 10 cells after Seurat filtering. The donwstream Seurat analysis is aborted.") -->
+<!-- }else{ -->
+<!--   doSeurat <- TRUE -->
+<!-- } -->
+<!-- ``` -->
 
-```{r seurat variable gene, echo=FALSE, eval=doSeurat && !debug && FALSE}
-scData <- FindVariableGenes(object=scData)
-```
+<!-- ```{r seurat variable gene, echo=FALSE, eval=doSeurat && !debug && FALSE} -->
+<!-- scData <- FindVariableGenes(object=scData) -->
+<!-- ``` -->
 
-The number of variable genes: `r length(x = scData@var.genes)`.
+<!-- The number of variable genes: `r length(x = scData@var.genes)`. -->
 
-```{r scale and PCA calculation, echo=FALSE, message=FALSE, results='hide', eval=doSeurat && !debug && FALSE}
-scData <- ScaleData(object = scData, vars.to.regress = c("nUMI","perc_mito"),
-                    do.par=TRUE, num.cores=param$cores)
-scData <- RunPCA(object = scData, pc.genes = scData@var.genes,
-                 do.print = TRUE, pcs.print = 1:5,
-                 genes.print = 5)
-scData <- ProjectPCA(object = scData, do.print=FALSE)
-```
+<!-- ```{r scale and PCA calculation, echo=FALSE, message=FALSE, results='hide', eval=doSeurat && !debug && FALSE} -->
+<!-- scData <- ScaleData(object = scData, vars.to.regress = c("nUMI","perc_mito"), -->
+<!--                     do.par=TRUE, num.cores=param$cores) -->
+<!-- scData <- RunPCA(object = scData, pc.genes = scData@var.genes, -->
+<!--                  do.print = TRUE, pcs.print = 1:5, -->
+<!--                  genes.print = 5) -->
+<!-- scData <- ProjectPCA(object = scData, do.print=FALSE) -->
+<!-- ``` -->
 
-```{r plot viz PCA, echo=FALSE, fig.width=10, fig.height=15, eval=doSeurat && !debug && FALSE}
-VizPCA(object = scData, pcs.use = 1:6)
-```
+<!-- ```{r plot viz PCA, echo=FALSE, fig.width=10, fig.height=15, eval=doSeurat && !debug && FALSE} -->
+<!-- VizPCA(object = scData, pcs.use = 1:6) -->
+<!-- ``` -->
 
-```{r plot PCA, echo=FALSE, fig.width=7, fig.height=7, eval=doSeurat && !debug && FALSE}
-PCAPlot(object = scData, dim.1 = 1, dim.2 = 2)
-```
+<!-- ```{r plot PCA, echo=FALSE, fig.width=7, fig.height=7, eval=doSeurat && !debug && FALSE} -->
+<!-- PCAPlot(object = scData, dim.1 = 1, dim.2 = 2) -->
+<!-- ``` -->
 
-```{r PCHeatmap, echo=FALSE, fig.width=10, fig.height=30, eval=doSeurat && !debug && FALSE}
-PCHeatmap(object=scData, pc.use=1:20,
-          cells.use=min(c(500, ncol(scData@data))),
-          do.balanced=TRUE, label.columns=FALSE, use.full=FALSE)
-```
+<!-- ```{r PCHeatmap, echo=FALSE, fig.width=10, fig.height=30, eval=doSeurat && !debug && FALSE} -->
+<!-- PCHeatmap(object=scData, pc.use=1:20, -->
+<!--           cells.use=min(c(500, ncol(scData@data))), -->
+<!--           do.balanced=TRUE, label.columns=FALSE, use.full=FALSE) -->
+<!-- ``` -->
 
-```{r JackStraw, echo=FALSE, fig.width=10, fig.height=25, eval=doSeurat&& !debug && FALSE}
-scData <- JackStraw(object=scData, num.replicate=100, display.progress=FALSE,
-                    do.par=TRUE, num.cores=param$cores)
-suppressWarnings(JackStrawPlot(object=scData, PCs = 1:20))
-```
+<!-- ```{r JackStraw, echo=FALSE, fig.width=10, fig.height=25, eval=doSeurat&& !debug && FALSE} -->
+<!-- scData <- JackStraw(object=scData, num.replicate=100, display.progress=FALSE, -->
+<!--                     do.par=TRUE, num.cores=param$cores) -->
+<!-- suppressWarnings(JackStrawPlot(object=scData, PCs = 1:20)) -->
+<!-- ``` -->
 
-```{r PCElbowPlot, echo=FALSE, eval=doSeurat && !debug && FALSE}
-PCElbowPlot(object=scData)
-```
+<!-- ```{r PCElbowPlot, echo=FALSE, eval=doSeurat && !debug && FALSE} -->
+<!-- PCElbowPlot(object=scData) -->
+<!-- ``` -->
 
 ### Data availability
 
