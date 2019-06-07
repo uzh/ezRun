@@ -312,11 +312,11 @@ caption ="Expression differences of cluster marker genes"
 ezInteractiveTableRmd(markersList, digits=4, title=caption)
 ```
 
-### Expression of top markers
+### Top markers on low-dimensional space
 
 The top 10 markers from each cluster.
 
-```{r vis markers, echo=FALSE, results='asis', fig.width=4, fig.height=3, message=FALSE}
+```{r top markers low-dim, echo=FALSE, results='asis', fig.width=4, fig.height=3, message=FALSE}
 for(cluster in names(markers)){
   cat("\n")
   cat("#### Cluster ", cluster, "\n")
@@ -339,13 +339,31 @@ for(cluster in names(markers)){
         ggtitle(eachMarker) + labs(fill=eachMarker)
       print(p)
     }
+  }
+  cat("\n")
+}
+```
+
+### Top markers in violin plots
+
+The top 10 markers from each cluster.
+
+```{r top markers violin, echo=FALSE, fig.width=max(4, 2+0.1*length(unique(sce$Cluster))), fig.height=3, message=FALSE, results='asis'}
+for(cluster in names(markers)){
+  cat("\n")
+  cat("#### Cluster ", cluster, "\n")
+  cat("\n")
+  markersPerCluster <- head(rownames(markers[[cluster]]), 10)
+  for(eachMarker in markersPerCluster){
     p <- plotExpression(sce, features=eachMarker, x="Cluster", colour_by="Cluster") +
       scale_fill_hue() + labs(fill="Cluster") + theme(legend.position="none")
     print(p)
   }
   cat("\n")
 }
+
 ```
+
 
 ### Known markers on low-dimensional space
 
@@ -378,9 +396,6 @@ if(length(metadata(sce)$param$knownMarkers) >0){
             ggtitle(eachMarker) + labs(fill=eachMarker)
           print(p)
         }
-        p <- plotExpression(sce, features=eachMarker, x="Cluster", colour_by="Cluster") +
-          scale_fill_hue() + labs(fill="Cluster") + theme(legend.position="none")
-        print(p)
       }
     }else{
       cat("The input markers don't exist!\n")
