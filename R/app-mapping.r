@@ -307,6 +307,8 @@ ezMethodSTAR = function(input=NA, output=NA, param=NA){
   if (!grepl("outSAMattributes", param$cmdOptions)){
     param$cmdOptions = paste(param$cmdOptions, "--outSAMattributes All")
   }
+  param$cmdOptions = paste(param$cmdOptions, "--genomeLoad LoadAndRemove")
+  
   cmd = paste("STAR", " --genomeDir", refDir,  "--sjdbOverhang 150", 
               "--readFilesIn", trimmedInput$getColumn("Read1"), 
               if(param$paired) trimmedInput$getColumn("Read2"),
@@ -319,12 +321,6 @@ ezMethodSTAR = function(input=NA, output=NA, param=NA){
   ezSystem(cmd)
   
   nSortThreads = min(param$cores, 8)
-  ## if the index is loaded in shared memory we have to use only 10% of the scheduled RAM
-  if (grepl("--genomeLoad LoadAndKeep", param$cmdOptions)){
-    sortRam = param$ram / 10
-  } else {
-    sortRam = param$ram
-  }
 
   file.rename('Log.final.out', to = basename(output$getColumn("STARLog")))
   
