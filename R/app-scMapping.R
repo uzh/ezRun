@@ -169,13 +169,13 @@ ezMethodSingleCellSTAR = function(input=NA, output=NA, param=NA){
   file.rename('Log.final.out', to = basename(output$getColumn("STARLog")))
   
   if (!is.null(param$markDuplicates) && param$markDuplicates){
-    ezSortIndexBam("Aligned.out.bam", "sorted.bam", ram=sortRam, removeBam=TRUE, 
+    ezSortIndexBam("Aligned.out.bam", "sorted.bam", ram=param$ram, removeBam=TRUE, 
                    cores=nSortThreads)
     dupBam(inBam="sorted.bam", outBam=basename(bamFile),
            operation="mark", cores=param$cores)
     file.remove("sorted.bam")
   } else {
-    ezSortIndexBam("Aligned.out.bam", basename(bamFile), ram=sortRam, 
+    ezSortIndexBam("Aligned.out.bam", basename(bamFile), ram=param$ram, 
                    removeBam=TRUE, cores=nSortThreads)
   }
   

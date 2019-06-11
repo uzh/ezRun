@@ -61,7 +61,7 @@ EzAppEdger <-
                                         priorCount=ezFrame(Type="numeric", DefaultValue=10, Description="prior count to be added to shrink the log-fold-changes"),
                                         deTest=ezFrame(Type="character", DefaultValue="QL", Description="edgeR's differential expression test method: QL or LR"),
                                         runGfold=ezFrame(Type="logical", DefaultValue=FALSE, Description="should gfold run"),
-					doPrecomputeEnrichr=ezFrame(Type="logical", DefaultValue=FALSE, Description="should enrichr be precomputed")
+					                              doPrecomputeEnrichr=ezFrame(Type="logical", DefaultValue=FALSE, Description="should enrichr be precomputed")
                                         )
                 }
               )
