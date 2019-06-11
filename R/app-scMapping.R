@@ -109,7 +109,7 @@ ezMethodSingleCellSTAR = function(input=NA, output=NA, param=NA){
   if (!grepl("outSAMattributes", param$cmdOptions)){
     param$cmdOptions = paste(param$cmdOptions, "--outSAMattributes All")
   }
-  param$cmdOptions = paste(param$cmdOptions, "--genomeLoad LoadAndRemove")
+  # param$cmdOptions = paste(param$cmdOptions, "--genomeLoad LoadAndRemove")
   
   genomeFn <- param$ezRef@refFastaFile
   
