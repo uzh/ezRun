@@ -165,17 +165,23 @@ ezMethodSingleCellSTAR = function(input=NA, output=NA, param=NA){
   file.remove(trimmedBamFn)
   
   nSortThreads = min(param$cores, 8)
-
+  ## if the index is loaded in shared memory we have to use only 10% of the scheduled RAM
+  if (grepl("--genomeLoad Load", param$cmdOptions)){
+    sortRam = param$ram / 10
+  } else {
+    sortRam = param$ram
+  }
+  
   file.rename('Log.final.out', to = basename(output$getColumn("STARLog")))
   
   if (!is.null(param$markDuplicates) && param$markDuplicates){
-    ezSortIndexBam("Aligned.out.bam", "sorted.bam", ram=param$ram, removeBam=TRUE, 
+    ezSortIndexBam("Aligned.out.bam", "sorted.bam", ram=sortRam, removeBam=TRUE, 
                    cores=nSortThreads)
     dupBam(inBam="sorted.bam", outBam=basename(bamFile),
            operation="mark", cores=param$cores)
     file.remove("sorted.bam")
   } else {
-    ezSortIndexBam("Aligned.out.bam", basename(bamFile), ram=param$ram, 
+    ezSortIndexBam("Aligned.out.bam", basename(bamFile), ram=sortRam, 
                    removeBam=TRUE, cores=nSortThreads)
   }
   
