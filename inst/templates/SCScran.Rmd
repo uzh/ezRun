@@ -112,7 +112,11 @@ p
 
 ```{r mean-variance1, echo=FALSE, cache=debug}
 new.trend <- makeTechTrend(x=sce)
-fit <- trendVar(sce, use.spikes=FALSE, loess.args=list(span=0.05))
+if(metadata(sce)$param$scProtocol == "10X"){
+  fit <- trendVar(sce, use.spikes=FALSE, loess.args=list(span=0.05))
+}else if(metadata(sce)$param$scProtocol == "Smart-seq2"){
+  fit <- trendVar(sce, use.spikes=FALSE, loess.args=list(span=0.3))
+}
 ```
 
 The modelling of mean-variance trend is shown below. 
@@ -222,7 +226,18 @@ if(metadata(sce)$param$scProtocol == "10X"){
   clusters <- igraph::cluster_walktrap(snn.gr)
   sce$Cluster <- factor(clusters$membership)
 }else if(metadata(sce)$param$scProtocol == "Smart-seq2"){
-  stop("Not implemented yet!")
+  cat("\n")
+  cat("We perform hierarchical clustering on the Euclidean distances between cells, using Ward’s criterion to minimize the total variance within each cluster. This yields a dendrogram that groups together cells with similar expression patterns across the chosen genes.\n")
+  cat("\n")
+  
+  pcs <- reducedDim(sce, "PCA")
+  my.dist <- dist(pcs)
+  my.tree <- hclust(my.dist, method="ward.D2")
+  
+  library(dynamicTreeCut)
+  my.clusters <- unname(cutreeDynamic(my.tree, distM=as.matrix(my.dist), 
+                                      minClusterSize=10, verbose=0))
+  sce$Cluster <- factor(my.clusters)
 }
 
 coordinates <- tibble(Cells=colnames(sce),
@@ -244,6 +259,19 @@ if(metadata(sce)$param$scProtocol == "10X"){
   log.ratio <- log2(cluster.mod$observed/cluster.mod$expected + 1)
   pheatmap(log.ratio, cluster_rows=FALSE, cluster_cols=FALSE, 
            color=colorRampPalette(c("white", "blue"))(100))
+}else if(metadata(sce)$param$scProtocol == "Smart-seq2"){
+  cat("\n")
+  cat("We check the separatedness of the clusters using the silhouette width (Figure 14). Cells with large positive silhouette widths are closer to other cells in the same cluster than to cells in different clusters. Conversely, cells with negative widths are closer to other clusters than to other cells in the cluster to which it was assigned. Each cluster would ideally contain many cells with large positive widths, indicating that it is well-separated from other clusters.\n")
+  cat("\n")
+  
+  library(cluster)
+  clust.col <- scater:::.get_palette("tableau10medium") # hidden scater colours
+  sil <- silhouette(my.clusters, dist = my.dist)
+  sil.cols <- clust.col[ifelse(sil[,3] > 0, sil[,1], sil[,2])]
+  sil.cols <- sil.cols[order(-sil[,1], sil[,3])]
+  plot(sil, main = paste(length(unique(my.clusters)), "clusters"), 
+  border=sil.cols, col=sil.cols, do.col.sort=FALSE) 
+
 }
 ```
 
