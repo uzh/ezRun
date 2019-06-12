@@ -251,18 +251,15 @@ if(metadata(sce)$param$scProtocol == "10X"){
 
 ```{r clustering3, echo=FALSE, message=FALSE}
 if(metadata(sce)$param$visMethod=="TSNE"){
-  p <- plotTSNE(sce, colour_by="Cluster", text_by="Cluster", text_size=4) + 
-    scale_fill_hue() + labs(fill="Cluster")
-  print(p)
+  p <- plotTSNE(sce, colour_by="Cluster", text_by="Cluster", text_size=4)
 }else if(metadata(sce)$param$visMethod=="UMAP"){
-  p <- plotUMAP(sce, colour_by="Cluster", text_by="Cluster", text_size=4) + 
-    scale_fill_hue() + labs(fill="Cluster")
-  print(p)
+  p <- plotUMAP(sce, colour_by="Cluster", text_by="Cluster", text_size=4)
 }else if(metadata(sce)$param$visMethod=="DiffusionMap"){
-  p <- plotDiffusionMap(sce, colour_by="Cluster", text_by="Cluster", text_size=4) +
-    scale_fill_hue() + labs(fill="Cluster")
-  print(p)
+  p <- plotDiffusionMap(sce, colour_by="Cluster", text_by="Cluster",
+                        text_size=4)
 }
+p <- p + scale_fill_hue() + labs(fill="Cluster")
+print(p)
 
 kable(tibble(Cluster=names(table(sce$Cluster)),
              "# of cells"=table(sce$Cluster)),
@@ -328,21 +325,15 @@ for(cluster in names(markers)){
   markersPerCluster <- head(rownames(markers[[cluster]]), 10)
   for(eachMarker in markersPerCluster){
     if(metadata(sce)$param$visMethod=="TSNE"){
-      p <- plotTSNE(sce, colour_by=eachMarker) + 
-        scale_fill_gradient(low="gray", high="red") +
-        ggtitle(eachMarker) + labs(fill=eachMarker)
-      print(p)
+      p <- plotTSNE(sce, colour_by=eachMarker)
     }else if(metadata(sce)$param$visMethod=="UMAP"){
-      p <- plotUMAP(sce, colour_by=eachMarker) + 
-        scale_fill_gradient(low="gray", high="red") +
-        ggtitle(eachMarker) + labs(fill=eachMarker)
-      print(p)
+      p <- plotUMAP(sce, colour_by=eachMarker)
     }else if(metadata(sce)$param$visMethod=="DiffusionMap"){
-      p <- plotDiffusionMap(sce, colour_by=eachMarker) + 
-        scale_fill_gradient(low="gray", high="red") +
-        ggtitle(eachMarker) + labs(fill=eachMarker)
-      print(p)
+      p <- plotDiffusionMap(sce, colour_by=eachMarker)
     }
+    p <- p + scale_fill_gradient(low="gray", high="red") +
+        ggtitle(eachMarker) + labs(fill=eachMarker)
+    print(p)
   }
   cat("\n")
 }
@@ -385,21 +376,15 @@ if(length(metadata(sce)$param$knownMarkers) >0){
       for(j in 1:length(check_markers)){
         eachMarker <- check_markers[j]
         if(metadata(sce)$param$visMethod=="TSNE"){
-          p <- plotTSNE(sce, colour_by=eachMarker) + 
-            scale_fill_gradient(low="gray", high="red") +
-            ggtitle(eachMarker) + labs(fill=eachMarker)
-          print(p)
+          p <- plotTSNE(sce, colour_by=eachMarker)
         }else if(metadata(sce)$param$visMethod=="UMAP"){
-          p <- plotUMAP(sce, colour_by=eachMarker) + 
-            scale_fill_gradient(low="gray", high="red") +
-            ggtitle(eachMarker) + labs(fill=eachMarker)
-          print(p)
+          p <- plotUMAP(sce, colour_by=eachMarker)
         }else if(metadata(sce)$param$visMethod=="DiffusionMap"){
-          p <- plotDiffusionMap(sce, colour_by=eachMarker) + 
-            scale_fill_gradient(low="gray", high="red") +
-            ggtitle(eachMarker) + labs(fill=eachMarker)
-          print(p)
+          p <- plotDiffusionMap(sce, colour_by=eachMarker)
         }
+        p <- p + scale_fill_gradient(low="gray", high="red") +
+            ggtitle(eachMarker) + labs(fill=eachMarker)
+        print(p)
       }
     }else{
       cat("The input markers don't exist!\n")
