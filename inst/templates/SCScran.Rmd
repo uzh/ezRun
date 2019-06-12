@@ -32,7 +32,7 @@ library(fastICA)
 
 ## debug
 # title:  "`r metadata(sce)$param$name`"
-# sce <- readRDS("/scratch/gtan/dev/SCScran-p2860/wt_4_F_SCran/sce.rds")
+# sce <- readRDS("/scratch/gtan/dev/SCScran-p2860/wt_4_F_SCScran/sce-osrmybnkimnx.rds")
 debug <- FALSE
 
 output <- metadata(sce)$output
@@ -231,9 +231,9 @@ coordinates <- tibble(Cells=colnames(sce),
                       Cluster=sce$Cluster)
 ```
 
-#### Confirm that clusters are modular.
+#### Confirm that clusters are modular
 
-```{r clustering2, echo=FALSE, results='asis'}
+```{r clustering2, echo=FALSE, results='asis', fig.width=7, fig.height=8}
 if(metadata(sce)$param$scProtocol == "10X"){
   cat("\n")
   cat("We look at the ratio of the observed and expected edge weights to confirm that the clusters are modular. \n")
@@ -251,12 +251,16 @@ if(metadata(sce)$param$scProtocol == "10X"){
 
 ```{r clustering3, echo=FALSE, message=FALSE}
 if(metadata(sce)$param$visMethod=="TSNE"){
-  p <- plotTSNE(sce, colour_by="Cluster", text_by="Cluster") + scale_fill_hue() +
-    labs(fill="Cluster")
+  p <- plotTSNE(sce, colour_by="Cluster", text_by="Cluster", text_size=4) + 
+    scale_fill_hue() + labs(fill="Cluster")
   print(p)
 }else if(metadata(sce)$param$visMethod=="UMAP"){
-  p <- plotUMAP(sce, colour_by="Cluster", text_by="Cluster") + scale_fill_hue() +
-    labs(fill="Cluster")
+  p <- plotUMAP(sce, colour_by="Cluster", text_by="Cluster", text_size=4) + 
+    scale_fill_hue() + labs(fill="Cluster")
+  print(p)
+}else if(metadata(sce)$param$visMethod=="DiffusionMap"){
+  p <- plotDiffusionMap(sce, colour_by="Cluster", text_by="Cluster", text_size=4) +
+    scale_fill_hue() + labs(fill="Cluster")
   print(p)
 }
 
