@@ -93,3 +93,28 @@ input = '/srv/gstore/projects/p2000/SingleCellUnmappedBam/dataset.tsv'
 #input = 'dataset.tsv'
 debug(ezMethodFastQC)
 EzAppFastqc$new()$run(input=input, output=output, param=param)
+
+# p2914 bulk
+setwd("/scratch/gtan/dev/quickdev")
+library(ezRun)
+param = list()
+param[['cores']] = '8'
+param[['ram']] = '16'
+param[['scratch']] = '100'
+param[['node']] = ''
+param[['process_mode']] = 'DATASET'
+param[['samples']] = ''
+param[['paired']] = 'false'
+param[['perLibrary']] = 'true'
+param[['name']] = 'FastQC_Result'
+param[['cmdOptions']] = ''
+param[['mail']] = 'ngs.qc@fgcz.ethz.ch'
+param[['dataRoot']] = '/srv/gstore/projects'
+param[['resultDir']] = 'p2914/Fastqc_30953_2018-10-26--10-23-44'
+output = list()
+output[['Name']] = 'FastQC_Result'
+output[['Report [File]']] = 'p2914/Fastqc_30953_2018-10-26--10-23-44/FastQC_Result'
+output[['Html [Link]']] = 'p2914/Fastqc_30953_2018-10-26--10-23-44/FastQC_Result/00index.html'
+input = '/srv/gstore/projects/p2914/Fastqc_30953_2018-10-26--10-23-44/input_dataset.tsv'
+EzAppFastqc$new()$run(input=input, output=output, param=param)
+
