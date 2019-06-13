@@ -142,6 +142,8 @@ dec <- decomposeVar(fit=fit) # use per-gene variance estimates in 'fit'.
 top.dec <- dec[order(dec$bio, decreasing=TRUE),] 
 plotExpression(sce, features=rownames(top.dec)[1:10]) +
   ggtitle("Top 10 genes with the largest biological components")
+
+metadata(sce)$dec <- dec
 ```
 
 #### Dimensionality reduction
