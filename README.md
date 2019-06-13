@@ -9,6 +9,7 @@ devtools::install_github("uzh/ezRun")
 ## Dependencies of Python packages
 ```Python
 pip3 install velocyto magic-impute umap-learn
+pip3 install multiqc
 ```
 
 ## Dependencies of R/Bioconductor packages
