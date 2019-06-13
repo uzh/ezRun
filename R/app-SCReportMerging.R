@@ -74,7 +74,6 @@ ezMethodSCReportMerging = function(input=NA, output=NA, param=NA,
   cwd <- getwd()
   setwdNew(basename(output$getColumn("Report")))
   on.exit(setwd(cwd), add=TRUE)
-  reportCwd <- getwd()
   
   param$name <- paste(param$name, paste(input$getNames(), collapse=", "),
                       sep=": ")
