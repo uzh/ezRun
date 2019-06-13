@@ -1,0 +1,34 @@
+---
+title:  "`r param$name`"
+author: "Functional Genomics Center Zurich"
+output: 
+  html_document:
+    self_contained: false
+    includes:
+      in_header: fgcz_header.html
+    css: fgcz.css
+editor_options: 
+  chunk_output_type: console
+---
+
+Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
+
+```{r setup, include=FALSE}
+library(ezRun)
+library(cowplot)
+library(SingleCellExperiment)
+
+## debug
+# input for this report: sceURLs, param
+sceURLs <- c("wt_3_M"="https://fgcz-sushi.uzh.ch/projects/p2860/SCScran_37216_2019-06-08--10-10-39/wt_3_M_SCScran/00index.html",
+             "wt_4_F"="https://fgcz-sushi.uzh.ch/projects/p2860/SCScran_37216_2019-06-08--10-10-39/wt_4_F_SCScran/00index.html")
+
+sceList <- file.path("/srv/gstore/projects",
+                     sub("https://fgcz-(gstore|sushi).uzh.ch/projects/", "",
+                         dirname(sceURLs)))
+sceList <- sapply(sceList, list.files, pattern="sce.*\\.rds", full.names=TRUE)
+sceList <- lapply(sceList, readRDS)
+names(sceList) <- names(sceURLs)
+```
+
+
