@@ -288,7 +288,7 @@ if(metadata(sce)$param$visMethod=="TSNE"){
   p <- plotDiffusionMap(sce, colour_by="Cluster", text_by="Cluster",
                         text_size=4)
 }
-p <- p + scale_fill_hue() + labs(fill="Cluster")
+suppressMessages(p <- p + scale_fill_hue() + labs(fill="Cluster"))
 print(p)
 
 kable(tibble(Cluster=names(table(sce$Cluster)),
@@ -380,8 +380,8 @@ for(cluster in names(markers)){
   cat("\n")
   markersPerCluster <- head(rownames(markers[[cluster]]), 10)
   for(eachMarker in markersPerCluster){
-    p <- plotExpression(sce, features=eachMarker, x="Cluster", colour_by="Cluster") +
-      scale_fill_hue() + labs(fill="Cluster") + theme(legend.position="none")
+    p <- plotExpression(sce, features=eachMarker, x="Cluster", colour_by="Cluster")
+    suppressMessages(p <- p + scale_fill_hue() + labs(fill="Cluster") + theme(legend.position="none"))
     print(p)
   }
   cat("\n")
@@ -439,8 +439,8 @@ if(length(metadata(sce)$param$knownMarkers) >0){
     if(length(check_markers) > 0){
       for(j in 1:length(check_markers)){
         eachMarker <- check_markers[j]
-        p <- plotExpression(sce, features=eachMarker, x="Cluster", colour_by="Cluster") +
-          scale_fill_hue() + labs(fill="Cluster") + theme(legend.position="none")
+        p <- plotExpression(sce, features=eachMarker, x="Cluster", colour_by="Cluster")
+        suppressMessages(p <- p + scale_fill_hue() + labs(fill="Cluster") + theme(legend.position="none"))
         print(p)
       }
     }else{
