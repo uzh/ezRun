@@ -104,11 +104,11 @@ EzDataset <-
                   "Sets the column selected with \\code{name} to \\code{values}. If \\code{values} is \\code{NULL} the column gets removed"
                   idx = match(name, colNames)
                   if (any(is.na(idx))){
-                    #stop("Column not found in dataset: ", paste(name[is.na(idx)], collapse=" "),
-                    #    "\nAvailable columns: ", paste(colNames, collapse=" "))
+                    stop("Column not found in dataset: ", paste(name[is.na(idx)], collapse=" "),
+                       "\nAvailable columns: ", paste(colNames, collapse=" "))
                     meta[[name]] <<- NA
                     colNames <<- sub(" \\[.*", "", base::names(meta))
-                    idx = match(name, colNames)
+                    idx = match(sub(" \\[.*", "", name), colNames)
                   }
                   meta[ ,idx] <<- values
                   if (is.null(values)){
