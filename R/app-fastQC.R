@@ -146,6 +146,9 @@ ezMethodFastQC = function(input=NA, output=NA, param=NA,
   rmarkdown::render(input="FastQC.Rmd", envir = new.env(),
                     output_dir=".", output_file=htmlFile, quiet=TRUE)
   
+  ## generate multiQC report
+  ezSystem("multiqc .")
+  
   ## Cleaning
   if(isTRUE(isUBam)){
     file.remove(files)

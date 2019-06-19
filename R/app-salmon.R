@@ -26,6 +26,9 @@ ezMethodSalmon = function(input=NA, output=NA, param=NA){
     switch(param$strandMode, both = "U", "S"),
     switch(param$strandMode, sense = "F", antisense = "R", "")
   )
+  if(param$strandMode == 'NA'){
+    libType = 'A'
+  }
   trimmedInput = ezMethodTrim(input = input, param = param)
 
   opt = paste(
