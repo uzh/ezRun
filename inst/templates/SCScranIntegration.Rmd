@@ -17,11 +17,13 @@ Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
 library(ezRun)
 library(cowplot)
 library(SingleCellExperiment)
+library(batchelor)
+library(BiocSingular)
 # input for this report: sceURLs, param
 
 ## debug
-sceURLs <- c("wt_3_M"="https://fgcz-sushi.uzh.ch/projects/p2860/SCScran_37216_2019-06-08--10-10-39/wt_3_M_SCScran/00index.html",
-             "wt_4_F"="https://fgcz-sushi.uzh.ch/projects/p2860/SCScran_37216_2019-06-08--10-10-39/wt_4_F_SCScran/00index.html")
+sceURLs <- c("wt_3_M"="https://fgcz-sushi.uzh.ch/projects/p2860/SCScran_37216_2019-06-13--13-43-26/wt_3_M_SCScran/00index.html",
+             "wt_4_F"="https://fgcz-sushi.uzh.ch/projects/p2860/SCScran_37216_2019-06-13--13-43-26/wt_4_F_SCScran/00index.html")
 ## end of debug
 
 sceList <- file.path("/srv/gstore/projects",
@@ -36,13 +38,36 @@ names(sceList) <- names(sceURLs)
 
 ### Clustering of integrated samples
 
-```{r Feature selection across batches, include=FALSE}
-# universe <- intersect(rownames(dec.gse85241), rownames(dec.gse81076))
-# mean.bio <- (dec.gse85241[universe,"bio"] + dec.gse81076[universe,"bio"])/2
-# chosen <- universe[mean.bio > 0]
-# length(chosen)
-
+```{r Feature selection across batches, echo=FALSE}
+decList <- lapply(sceList, function(x){metadata(x)$dec})
+decList <- lapply(decList, function(x){x[order(x$bio, decreasing = TRUE), ]})
+universe <- Reduce(intersect, lapply(decList, rownames))
+bioMatrix <- do.call(cbind, lapply(decList, function(x){x[universe, "bio"]}))
+mean.bio <- rowMeans(bioMatrix)
+chosen <- universe[mean.bio > 0]
 ```
 
+`r length(chosen)` features are selected across samples for correction.
 
+```{r multiBatchNorm, echo=FALSE}
+rescaled <- do.call(batchelor::multiBatchNorm,
+                    lapply(sceList, function(x){x[universe, ]}))
+if(param$batchCorrection == "MNN"){
+  set.seed(100)
+  ## k may need some optimisation
+  mnn.out <- do.call(batchelor::fastMNN,
+                     c(lapply(rescaled, function(x){x[chosen, ]}),
+                       k=20, d=50, BSPARAM=IrlbaParam(deferred=TRUE))
+                     )
+  sce <- mnn.out
+  assay(sce, "original") <- do.call(cbind,
+                                    lapply(rescaled, 
+                                           function(x){assay(x[chosen, ], "logcounts")}))
+}else{
+  
+}
+
+
+
+```
 
