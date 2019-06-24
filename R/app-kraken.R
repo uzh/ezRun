@@ -47,7 +47,7 @@ EzAppKraken <-
                   "Initializes the application using its specific defaults."
                   runMethod <<- ezMethodKraken
                   name <<- "EzAppKraken"
-                  appDefaults <<- rbind(krakenDBOpt = ezFrame(Type="character",  DefaultValue="bacteria",  Description="kraken database options: viruses bacteria. Default is bacteria),
+                  appDefaults <<- rbind(krakenDBOpt = ezFrame(Type="character",  DefaultValue="bacteria",  Description="kraken database options: viruses bacteria. Default is bacteria"),
                                         krakenConfidenceOpt = ezFrame(Type="numeric",  DefaultValue="0.0",  Description="Confidence score threshold (default: 0.0); must be in [0, 1]."),
                                         krakenPhredOpt = ezFrame(Type="integer", DefaultValue="0",  Description="minimum Phred quality, default 0;"))
                 }
