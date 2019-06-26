@@ -185,8 +185,8 @@ p2
 ```{r vis in low-dim, echo=FALSE, cache=debug}
 set.seed(1000)
 sce <- switch(metadata(sce)$param$visMethod,
-              "TSNE"=runTSNE(sce, use_dimred="PCA", 
-                             perplexity=ifelse(ncol(sce) > 200, 30, 10)),
+              "TSNE"=runTSNE(sce, use_dimred="PCA",
+                             perplexity=getPerplexity(ncol(sce))),
               "UMAP"=runUMAP(sce, use_dimred="PCA"),
               "DiffusionMap"=runDiffusionMap(sce, use_dimred="PCA")
               )
