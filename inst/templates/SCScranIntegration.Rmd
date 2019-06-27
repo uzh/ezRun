@@ -19,6 +19,8 @@ library(cowplot)
 library(SingleCellExperiment)
 library(batchelor)
 library(BiocSingular)
+library(scater)
+library(scran)
 # input for this report: sceURLs, param
 
 ## debug
@@ -47,7 +49,7 @@ mean.bio <- rowMeans(bioMatrix)
 chosen <- universe[mean.bio > 0]
 ```
 
-`r length(chosen)` features are selected across samples for correction.
+`r length(chosen)` features are selected across samples for integration and correction.
 
 ```{r multiBatchNorm, echo=FALSE}
 rescaled <- do.call(batchelor::multiBatchNorm,
@@ -60,14 +62,54 @@ if(param$batchCorrection == "MNN"){
                        k=20, d=50, BSPARAM=IrlbaParam(deferred=TRUE))
                      )
   sce <- mnn.out
-  assay(sce, "original") <- do.call(cbind,
-                                    lapply(rescaled, 
+  assay(sce, "counts") <- do.call(cbind,
+                                    lapply(rescaled,
+                                           function(x){assay(x[chosen, ], "counts")}))
+  assay(sce, "logcounts") <- do.call(cbind,
+                                    lapply(rescaled,
                                            function(x){assay(x[chosen, ], "logcounts")}))
 }else{
-  
+  stop("Not implemented yet!")
+  foo <- multiBatchPCA(rescaled[[1]], rescaled[[2]], d=50, BSPARAM=IrlbaParam(deferred=TRUE))
+  sce <- do.call(cbind, lapply(rescaled, function(x){x[chosen, ]}))
 }
-
-
-
 ```
+
+#### Visualization on low-dimensional space
+
+```{r tsne, echo=FALSE}
+# Using irlba to set up the t-SNE, for speed.
+set.seed(100)
+osce <- runPCA(sce, ntop=Inf, BSPARAM=IrlbaParam())
+osce <- runTSNE(osce, use_dimred="PCA")
+ot <- plotTSNE(osce, colour_by="batch") + ggtitle("Original")
+
+# Corrected.
+set.seed(100)
+sce <- runTSNE(sce, use_dimred="corrected")
+ct <- plotTSNE(sce, colour_by="batch") + ggtitle("Corrected")
+
+p1 <- plotTSNE(osce, by_exprs_values="logcounts", colour_by=eachMarker) +
+  scale_fill_gradient(low="gray", high="red") + 
+  ggtitle(eachMarker) + labs(fill=eachMarker)
+p1
+
+p2 <- plotTSNE(sce, by_exprs_values="reconstructed", colour_by=eachMarker) +
+  scale_fill_gradient(low="gray", high="red") +
+  ggtitle(eachMarker) + labs(fill=eachMarker)
+p2
+
+p <- plot_grid(ot, ct, p1, p2, ncol=2)
+save_plot(filename="OriginalVsCorrected.pdf", p, ncol=2, nrow=2,
+          base_height = 7)
+
+
+# p3 <- plotTSNE(sceList[[1]], colour_by=eachMarker) +
+#   scale_fill_gradient(low="gray", high="red") + 
+#   ggtitle(eachMarker) + labs(fill=eachMarker)
+# p3
+
+multiplot(ot, ct, p1, p2, cols=2)
+```
+
 
