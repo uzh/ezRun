@@ -55,7 +55,7 @@ ezMethodGatkRnaHaplotyper = function(input=NA, output=NA, param=NA, htmlFile="00
     file.remove("withRg.bam")
     
     ezSystem(paste("samtools", "index", "dedup.bam"))
-    gatk = paste(javaCall, "-jar", "$GATK_jar")
+    gatk = paste(javaCall, "-jar", Sys.getenv("GATK_jar"))
     cmd = paste(gatk, "-T SplitNCigarReads", "-R", genomeSeq,
                 "-I", "dedup.bam",
                 "-rf ReassignOneMappingQuality -RMQF 255 -RMQT 60 -U ALLOW_N_CIGAR_READS",
@@ -69,7 +69,7 @@ ezMethodGatkRnaHaplotyper = function(input=NA, output=NA, param=NA, htmlFile="00
   }, mc.cores=nBamsInParallel, mc.preschedule=FALSE)
   
   ########### haplotyping
-  haplotyperCall = paste0("java -Djava.io.tmpdir=. -Xmx", param$ram, "g", " -jar ", "$GATK_jar", " -T HaplotypeCaller")
+  haplotyperCall = paste0("java -Djava.io.tmpdir=. -Xmx", param$ram, "g", " -jar ", Sys.getenv("GATK_jar"), " -T HaplotypeCaller")
   cmd = paste(haplotyperCall, "-R", genomeSeq,
               "-nct", param$cores,
               paste("-I", bamFilesClean, collapse=" "),

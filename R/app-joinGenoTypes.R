@@ -41,7 +41,7 @@ runGatkPipeline = function(datasetCase, param=NA){
         fileCmd = paste(fileCmd,paste("--variant", datasetCase[['GVCF [File]']][j], collapse=','))
     }  
     
-    GenotypeGVCF = paste(param$javaCall,"-jar", "$GATK_jar", " -T GenotypeGVCFs")
+    GenotypeGVCF = paste(param$javaCall,"-jar", Sys.getenv("GATK_jar"), " -T GenotypeGVCFs")
     outputFile = paste0(caseName,'.vcf')
     cmd = paste(GenotypeGVCF, "-R", param$genomeSeq,
                 fileCmd,
@@ -56,7 +56,7 @@ runGatkPipeline = function(datasetCase, param=NA){
     ezSystem(paste(cmd,'2>',myLog))
     
     if(param$species == 'Homo_sapiens'){
-        VariantRecalibrator1 = paste(param$javaCall,"-jar", "$GATK_jar", " -T VariantRecalibrator")
+        VariantRecalibrator1 = paste(param$javaCall,"-jar", Sys.getenv("GATK_jar"), " -T VariantRecalibrator")
         hapmapFile = param$knownSites[grep('hapmap_.*vcf.gz$', param$knownSites)]
         h1000G_omniFile = param$knownSites[grep('1000G_omni.*vcf.gz$', param$knownSites)]
         h1000G_phase1File = param$knownSites[grep('1000G_phase1.snps.*vcf.gz$', param$knownSites)]
@@ -83,7 +83,7 @@ runGatkPipeline = function(datasetCase, param=NA){
             ezSystem(paste(cmd,'2>>',myLog))
             
             #Apply RecalibrationOutput for SNPs:
-            VariantRecalibrator2 = paste(param$javaCall,"-jar", "$GATK_jar", "-T ApplyRecalibration")
+            VariantRecalibrator2 = paste(param$javaCall,"-jar", Sys.getenv("GATK_jar"), "-T ApplyRecalibration")
             cmd = paste(VariantRecalibrator2, "-R", param$genomeSeq,
                         "-input", outputFile,
                         "-mode SNP",
@@ -119,7 +119,7 @@ runGatkPipeline = function(datasetCase, param=NA){
                 ezSystem(paste(cmd,'2>>',myLog))
                 
                 #Apply RecalibrationOutput for InDels:
-                VariantRecalibrator2 = paste(param$javaCall,"-jar", "$GATK_jar", "-T ApplyRecalibration")
+                VariantRecalibrator2 = paste(param$javaCall,"-jar", Sys.getenv("GATK_jar"), "-T ApplyRecalibration")
                 cmd = paste(VariantRecalibrator2, "-R", param$genomeSeq,
                             "-input", paste0(caseName,"_recal.SNPs.vcf"),
                             "-mode INDEL",
@@ -139,7 +139,7 @@ runGatkPipeline = function(datasetCase, param=NA){
         }
         #Add ExAc-Annotation:
         ExAcFile = param$knownSites[grep('ExAC.*vcf.gz$', param$knownSites)]
-        VariantAnnotation = paste(param$javaCall,"-jar", "$GATK_jar", "-T VariantAnnotator")
+        VariantAnnotation = paste(param$javaCall,"-jar", Sys.getenv("GATK_jar"), "-T VariantAnnotator")
         cmd = paste(VariantAnnotation, "-R", param$genomeSeq,
                     "--resource:ExAC",  ExAcFile,
                     "-o ",paste0(outputFile, "_annotated.vcf"),
