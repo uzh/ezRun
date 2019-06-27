@@ -6,13 +6,17 @@
 # www.fgcz.ch
 
 
-ezMethodGatkRnaHaplotyper = function(input=NA, output=NA, param=NA, htmlFile="00index.html"){
+ezMethodGatkRnaHaplotyper = function(input=NA, output=NA, param=NA,
+                                     htmlFile="00index.html"){
+  ## subset the selected sample names
+  samples <- param$samples
+  input <- input$subset(samples)
   
   bamDataset = input$meta
   
   reportDir = basename(output$getColumn("Report"))
   htmlFile = basename(output$getColumn("Html"))
-  vcfOutputFile = output$getColumn("VCF [File]") #paste0(param$name, "-haplo.vcf.gz")
+  vcfOutputFile = output$getColumn("VCF")
   
   bamFiles = input$getFullPaths("BAM")
   names(bamFiles) = rownames(bamDataset)
