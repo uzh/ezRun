@@ -33,7 +33,8 @@ ezChromSizesFromVcf = function(vcfFile){
 ##' @template roxygen-template
 ##' @return Returns a filtered VCF file.
 ## TODOEXAMPLE: get working .vcf file
-ezFilterVcf = function(vcfFile, vcfFiltFile, discardMultiAllelic=TRUE, bamDataset=bamDataset, param=NULL){
+ezFilterVcf = function(vcfFile, vcfFiltFile, discardMultiAllelic=TRUE, 
+                       bamDataset=bamDataset, param=NULL){
   vcf = readVcf(vcfFile, genome="genomeDummy")
   genotype = geno(vcf)
   if (discardMultiAllelic){
@@ -54,7 +55,8 @@ ezFilterVcf = function(vcfFile, vcfFiltFile, discardMultiAllelic=TRUE, bamDatase
     genotype[[nm]] = genotype[[nm]][ , rownames(bamDataset)] ## establish the original order
   }
   geno(vcf) = genotype
-  colData(vcf) = DataFrame(Samples=1:ncol(genotype$AD), row.names=colnames(genotype$AD))
+  colData(vcf) = DataFrame(Samples=1:ncol(genotype$AD), 
+                           row.names=colnames(genotype$AD))
   ezWriteVcf(vcf, vcfFiltFile)
 }
 

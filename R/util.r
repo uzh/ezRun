@@ -739,7 +739,7 @@ setEnvironments <- function(tool, envir=parent.frame()){
 
 preparePicard <- function(){
   if(Sys.which("picard") != ""){
-    return("picard")
+    return("picard -Xms1g -Xmx10g -Djava.io.tmpdir=.")
   }else if(Sys.getenv("Picard_jar") != ""){
     return(paste("java -jar -Djava.io.tmpdir=. -Xmx10G ", Sys.getenv("Picard_jar")))
   }else{
@@ -749,11 +749,21 @@ preparePicard <- function(){
 
 prepareTrimmomatic <- function(){
   if(Sys.which("trimmomatic") != ""){
-    return("trimmomatic")
+    return("trimmomatic -Xms1g -Xmx10g -Djava.io.tmpdir=.")
   }else if(Sys.getenv("Trimmomatic_jar") != ""){
     return(paste("java -jar -Djava.io.tmpdir=.", Sys.getenv("Trimmomatic_jar")))
   }else{
     stop("Cannot find proper trimmomatic installed!")
+  }
+}
+
+prepareGATK <- function(){
+  if(Sys.which("gatk") != ""){
+    return("gatk --java-options \"-Xms1g -Xmx10g -Djava.io.tmpdir=.\"")
+  }else if(Sys.getenv("GATK_jar") != ""){
+    return(paste("java -jar -Djava.io.tmpdir=.", Sys.getenv("GATK_jar")))
+  }else{
+    stop("Cannot find proper gatk installed!")
   }
 }
 
