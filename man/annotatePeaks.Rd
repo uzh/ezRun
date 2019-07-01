@@ -4,14 +4,14 @@
 \alias{annotatePeaks}
 \title{Annotates peaks}
 \usage{
-annotatePeaks(input = NA, output = NA, param = NA)
+annotatePeaks(peakFile, peakSeqFile, param)
 }
 \arguments{
+\item{param}{a list of parameters to extract the \code{ezRef@refFeatureFile} and the \code{ezRef@refAnnotationFile} from.}
+
 \item{input}{a list, file path or an object of the class EzDataset containing the input.}
 
 \item{output}{a list, file path or an object of the class EzDataset containing the output information.}
-
-\item{param}{a list of parameters to extract the \code{ezRef@refFeatureFile} and the \code{ezRef@refAnnotationFile} from.}
 }
 \description{
 Annotates peaks and writes them into a separate table.

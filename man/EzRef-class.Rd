@@ -56,7 +56,7 @@ Objects of this class are a collection of references derived from a list of para
 
 \item{\code{refFeatureFile}}{a character specifying the file path to the annotation feature file (.gtf).}
 
-\item{\code{refAnnotationFile}}{a character specifying the file path to the annotation file (.txt).}
+\item{\code{refAnnotationFile}}{a character specifying the file path to the annotation file (.txt). Subsetting species are automatically removed}
 
 \item{\code{refFastaFile}}{a character specifying the file path to the fasta file.}
 
@@ -67,8 +67,8 @@ Objects of this class are a collection of references derived from a list of para
 
 \examples{
 refBuild = "Saccharomyces_cerevisiae/Ensembl/EF4/Annotation/Version-2013-03-18"
-GENOMES_ROOT <<- "./refExample"
-param = ezParam(list(refBuild=refBuild))
+genomesRoot = "./refExample"
+param = ezParam(list(refBuild=refBuild, genomesRoot=genomesRoot))
 gtf = system.file("extdata/genes.gtf", package="ezRun", mustWork = TRUE)
 fp = system.file("extdata/genome.fa", package="ezRun", mustWork = TRUE)
 buildRefDir(param$ezRef, fp, gtf)

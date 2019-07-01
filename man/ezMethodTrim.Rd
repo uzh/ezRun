@@ -2,13 +2,9 @@
 % Please edit documentation in R/app-trim.R
 \name{ezMethodTrim}
 \alias{ezMethodTrim}
-\alias{ezSubsampleFastq}
 \title{Trims input reads}
 \usage{
 ezMethodTrim(input = NA, output = NA, param = NA)
-
-ezSubsampleFastq(full, sub, subsampleFactor = NA, nYield = 1e+05,
-  overwrite = FALSE)
 }
 \arguments{
 \item{input}{a list, file path or an object of the class EzDataset containing the input.}
@@ -21,6 +17,7 @@ ezSubsampleFastq(full, sub, subsampleFactor = NA, nYield = 1e+05,
   \item{subsampleReads}{ an integer specifying how many subsamples there are. This will call \code{ezMethodSubsampleReads()} if > 1.}
   \item{trimAdapter}{ a logical specifying whether to use a trim adapter.}
   \item{minTailQuality}{ an integer specifying the minimal tail quality to accept. Only used if > 0.}
+  \item{minTrailingQuality}{ an integer specifying the minimal trailing quality to accept. Only used if > 0.}
   \item{minAvgQuality}{ an integer specifying the minimal average quality to accept. Only used if > 0.}
   \item{minReadLength}{ an integer specifying the minimal read length to accept.}
   \item{dataRoot}{ a character specifying the path of the data root to get the full column paths from.}
@@ -39,16 +36,6 @@ Trims input reads. The trimming happens in the following order:
   \item{fixed trimming}
 }
 This means if you specify a fixed trimming this comes on top of the adaptive trimming
-}
-\section{Functions}{
-\itemize{
-\item \code{ezSubsampleFastq}: Performs the fastq for the subsamples using the package ShortRead.
-}}
-
-\examples{
- inputFile = system.file(package = "ezRun", "extdata/yeast_10k/wt_1_R1.fastq.gz")
- subsampledFile = "sub_R1.fastq"
- ezSubsampleFastq(inputFile, subsampledFile, subsampleFactor = 5)
 }
 \author{
 Rehrauer, Hubert

@@ -7,7 +7,8 @@
 \usage{
 ezMedianNorm(x, use = NULL, target = NULL, presentFlag = NULL)
 
-ezMedianScalingFactor(x, use = NULL, target = NULL, presentFlag = NULL)
+ezMedianScalingFactor(x, use = NULL, target = NULL,
+  presentFlag = NULL)
 }
 \arguments{
 \item{x}{the matrix to scale.}
