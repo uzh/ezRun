@@ -119,11 +119,11 @@ twoGroupCountComparison = function(rawData){
   pValue = res$pval
   pValue[is.na(pValue)] = 1
   
-  if (!is.null(param$runGfold) && param$runGfold && 
-      !is.null(rowData(rawData)$featWidth) && !is.null(rowData(rawData)$gene_name)){
-    rowData(rawData)$gfold <- runGfold(rawData, colData(rawData)$sf, 
-                                       isSample, isRef)
-  }
+  # if (!is.null(param$runGfold) && param$runGfold && 
+  #     !is.null(rowData(rawData)$featWidth) && !is.null(rowData(rawData)$gene_name)){
+  #   rowData(rawData)$gfold <- runGfold(rawData, colData(rawData)$sf, 
+  #                                      isSample, isRef)
+  # }
   metadata(rawData)$nativeResult <- res
   useProbe[is.na(useProbe)] = FALSE
   fdr = rep(NA, length(pValue))
