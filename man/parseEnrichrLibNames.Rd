@@ -17,6 +17,7 @@ Retrieves Enrichr library names from the specified HTML file and saves it to the
   internal package file (\code{extdata/enrichr_libnames.txt}). Ideally, this method
   would fetch the data from \url{http://amp.pharm.mssm.edu/Enrichr/#stats}. However, the page
   uses an Ajax query to populate the table, so it is empty when you access it with libcurl.
+  Note: this does not modify the file in your source directory but the file in your installed package
 }
 \seealso{
 \code{\link{runEnrichr}}
