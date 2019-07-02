@@ -4,9 +4,10 @@
 \alias{ezSmoothScatter}
 \title{Does smooth scatter plots}
 \usage{
-ezSmoothScatter(x = NULL, y, xlab = NULL, ylab = NULL, nPlotsPerRow = 6,
-  lim = range(x, y, na.rm = TRUE), isPresent = NULL, types = NULL,
-  pch = 16, colors = rainbow(ncol(types)), legendPos = "bottomright",
+ezSmoothScatter(x = NULL, y, xlab = NULL, ylab = NULL,
+  nPlotsPerRow = 6, lim = range(x, y, na.rm = TRUE),
+  isPresent = NULL, types = NULL, pch = 16,
+  colors = rainbow(ncol(types)), legendPos = "bottomright",
   cex.main = 1, cex = 1, ...)
 }
 \arguments{

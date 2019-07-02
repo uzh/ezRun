@@ -6,9 +6,9 @@
 \usage{
 ezScanBam(bamFile, seqname = NULL, start = NULL, end = NULL,
   strand = "*", tag = character(0), what = scanBamWhat(),
-  isFirstMateRead = NA, isSecondMateRead = NA, isUnmappedQuery = FALSE,
-  isProperPair = NA, isSecondaryAlignment = NA, isDuplicate = NA,
-  countOnly = FALSE)
+  isFirstMateRead = NA, isSecondMateRead = NA,
+  isUnmappedQuery = FALSE, isProperPair = NA,
+  isSecondaryAlignment = NA, isDuplicate = NA, countOnly = FALSE)
 }
 \arguments{
 \item{bamFile}{a character representing the bam file path.}

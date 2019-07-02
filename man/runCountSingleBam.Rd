@@ -5,7 +5,7 @@
 \title{Run counts for a single BAM file}
 \usage{
 runCountSingleBam(psBamFile, psGffFile, psCountfileExt, strandMode, Paired,
-  ramPerJob)
+  ramPerJob, bgExpression)
 }
 \description{
 Run counts for a single BAM file

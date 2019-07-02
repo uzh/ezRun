@@ -5,8 +5,8 @@
 \title{Plots a color scale}
 \usage{
 ezColorLegend(colorRange = c(-3, 3), colors = getBlueRedScale(),
-  vertical = TRUE, at = seq(from = colorRange[1], to = colorRange[2], by =
-  by.label), labels = as.character(at), by.label = 0.5)
+  vertical = TRUE, at = seq(from = colorRange[1], to = colorRange[2],
+  by = by.label), labels = as.character(at), by.label = 0.5)
 }
 \arguments{
 \item{colorRange}{two numerics specifying the range to plot to the axis.}
