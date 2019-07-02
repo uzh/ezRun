@@ -118,3 +118,58 @@ cellTable <- function(scData){
                                               sum)))
   return(toTable)
 }
+
+
+update_seuratObjectVersion = function(se) {
+  if(se@metadata$scData@version < 3)
+    metadata(se)$scData = UpdateSeuratObject(metadata(se)$scData)
+  return(se)
+}
+
+seuratStandardWorkflow <- function(scData, param){
+  scData <- ScaleData(object = scData, num.cores=param$cores)
+  scData <- RunPCA(object=scData, npcs = param$npcs)
+  scData <- RunTSNE(object = scData, reduction = "pca", dims = 1:param$npcs, num_threads=param$cores)
+  #try(scData <- RunUMAP(object=scData, reduction = "pca", dims = 1:30, num_threads=param$cores))
+  scData <- FindNeighbors(object = scData, reduction = "pca", dims = 1:param$npcs)
+  scData <- FindClusters(object=scData, resolution = param$resolution)
+  return(scData)
+}  
+  
+cellsProportion <- function(scData){
+  require(tidyverse)
+  toTable <- tibble(Cluster=names(summary(Idents(scData))),
+                    "# of cells"=summary(Idents(scData)))
+  cellCountsByPlate <- tibble(Plate=scData@meta.data$Plate,
+                              Cluster=as.character(Idents(scData))) %>%
+    group_by(Plate, Cluster) %>% summarise(n()) %>%
+    spread(Plate, `n()`, fill=0)
+  cellPercByPlate <- select(cellCountsByPlate, -Cluster) %>%
+    as.matrix()
+  rownames(cellPercByPlate) <- cellCountsByPlate$Cluster
+  cellPercByPlate <- sweep(cellPercByPlate, 2, colSums(cellPercByPlate), "/")
+  colnames(cellPercByPlate) <- paste0(colnames(cellPercByPlate), "_fraction")
+  toTable <- left_join(toTable, cellCountsByPlate, by="Cluster") %>%
+    left_join(as_tibble(cellPercByPlate, rownames="Cluster"), by="Cluster")
+  ## TODO: add fisher test?
+  toTable <- bind_rows(toTable,
+                       bind_cols("Cluster"="Total", 
+                                 summarise_at(toTable, setdiff(colnames(toTable), "Cluster"),
+                                              sum)))
+  return(toTable)
+}
+
+seuratIntegration = function(seurat_objects, param) {
+  #1. Data preprocesing
+  for (i in 1:length(seurat_objects)) {
+    seurat_objects[[i]] <- NormalizeData(seurat_objects[[i]], verbose = FALSE)
+    seurat_objects[[i]] <- FindVariableFeatures(seurat_objects[[i]], selection.method = "vst", nfeatures = 2000, verbose = FALSE)
+  }
+  #2. Data integration
+  #2.1. Find anchors
+  anchors <- FindIntegrationAnchors(object.list = seurat_objects, dims = 1:param$npcs)
+  #2.2. Pass these anchors to the IntegrateData function
+  seurat_integrated <- IntegrateData(anchorset = anchors, dims = 1:param$npcs)
+  
+  return(seurat_integrated)
+}
