@@ -9,6 +9,7 @@
 ezMethodGatkRnaHaplotyper = function(input=NA, output=NA, param=NA,
                                      htmlFile="00index.html"){
   require(Rsamtools)
+  require(VariantAnnotation)
   ## subset the selected sample names
   samples <- param$samples
   input <- input$subset(samples)
@@ -84,7 +85,7 @@ ezMethodGatkRnaHaplotyper = function(input=NA, output=NA, param=NA,
               # "--activeRegionOut", paste0(param$name, "-haplo-activeRegion.bed"),
               # "--max-num-haplotypes-in-population", 4,
               #"--maxReadsInRegionPerSample", "10000",
-              "--sample-ploidy", 2*length(bamFilesClean),
+              "--sample-ploidy", 2,
               "--minimum-mapping-quality 20",
               "--output-mode", "EMIT_VARIANTS_ONLY",   ## does not work: EMIT_ALL_CONFIDENT_SITES
               ">", paste0(param$name, "-haplo.stdout"),
@@ -92,7 +93,6 @@ ezMethodGatkRnaHaplotyper = function(input=NA, output=NA, param=NA,
   ezSystem(cmd)
   
   ## filter the vcf file
-  require("VariantAnnotation")
   ezFilterVcf(vcfFile=vcfFn, 
               basename(vcfOutputFile), discardMultiAllelic=FALSE,
               bamDataset=bamDataset, param=param)
@@ -110,13 +110,16 @@ ezMethodGatkRnaHaplotyper = function(input=NA, output=NA, param=NA,
   gt[genotype$DP < param$vcfCall.minReadDepth] = "lowCov"
   nSamples = nrow(bamDataset)
   
+  titles <- list()
   titles[["IGV"]] = "IGV"
   addTitle(doc, titles[[length(titles)]], 2, id=titles[[length(titles)]])
   writeIgvSession(genome = getIgvGenome(param), 
                   refBuild=param$ezRef["refBuild"], file="igvSession.xml", 
                   vcfUrls = paste(PROJECT_BASE_URL, vcfOutputFile, sep="/") )
-  writeIgvJnlp(jnlpFile="igv.jnlp", projectId = sub("\\/.*", "", output$Report),
-               sessionUrl = paste(PROJECT_BASE_URL, output$Report, 
+  writeIgvJnlp(jnlpFile="igv.jnlp",
+               projectId = sub("\\/.*", "", output$getColumn("Report")),
+               sessionUrl = paste(PROJECT_BASE_URL,
+                                  output$getColumn("Report"),
                                   "igvSession.xml", sep="/"))
   addTxtLinksToReport(doc, "igv.jnlp", mime = "application/x-java-jnlp-file")
   
@@ -127,7 +130,7 @@ ezMethodGatkRnaHaplotyper = function(input=NA, output=NA, param=NA,
   idxMat = ezMatrix(match(gt, c("0/0", "0/1", "1/1")) -2,
                     rows=rownames(gt), cols=colnames(gt))
   d = dist(t(idxMat))
-  hc = hclust(d, method="ward.D2");
+  hc = hclust(d, method="ward.D2")
   hcd = as.dendrogram(hclust(d, method="ward.D2"), hang=-0.1)
   hcd = colorClusterLabels(hcd, sampleColors)
   pngFile = "genotype-cluster.png"

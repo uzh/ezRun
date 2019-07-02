@@ -13,6 +13,7 @@
 ##' @return Returns a names vector of the chromosome sizes.
 ## TODOEXAMPLE: get vcf file with $contig information.
 ezChromSizesFromVcf = function(vcfFile){
+  require(VariantAnnotation)
   vh = scanVcfHeader(vcfFile)
   contigs = header(vh)$contig
   chromSizes = as.integer(contigs[ , "length"])
@@ -35,6 +36,7 @@ ezChromSizesFromVcf = function(vcfFile){
 ## TODOEXAMPLE: get working .vcf file
 ezFilterVcf = function(vcfFile, vcfFiltFile, discardMultiAllelic=TRUE, 
                        bamDataset=bamDataset, param=NULL){
+  require(VariantAnnotation)
   vcf = readVcf(vcfFile, genome="genomeDummy")
   genotype = geno(vcf)
   if (discardMultiAllelic){
