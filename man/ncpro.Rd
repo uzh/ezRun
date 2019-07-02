@@ -14,5 +14,5 @@ ncpro(input, dataset, param = NULL)
 \item{param}{further configuration parameters}
 }
 \description{
-Trimming is done using function trimMirna().
+Trimming is done using ezMethodTrim which is similar to trimMirna().
 }

@@ -8,17 +8,18 @@
 \alias{runGlm}
 \title{Compares the counts of two groups}
 \usage{
-twoGroupCountComparison(rawData, param)
+twoGroupCountComparison(rawData)
 
 runGfold(rawData, scalingFactors, isSample, isRef)
 
 runDeseq2(x, sampleGroup, refGroup, grouping, grouping2 = NULL,
-  isPresent = NULL)
+  isPresent = NULL, cooksCutoff = FALSE)
 
-runEdger(x, sampleGroup, refGroup, grouping, normMethod, priorCount = 0.125)
+runEdger(x, sampleGroup, refGroup, grouping, normMethod,
+  priorCount = 0.125)
 
 runGlm(x, sampleGroup, refGroup, grouping, normMethod, grouping2 = NULL,
-  priorCount = 0.125)
+  priorCount = 0.125, deTest = c("QL", "LR"))
 }
 \arguments{
 \item{rawData}{a list of raw data obtained from \code{loadCountDataset()}.}
