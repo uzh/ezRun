@@ -90,10 +90,18 @@ ezMethodGatkRnaHaplotyper = function(input=NA, output=NA, param=NA,
     ezSystem(cmd)
   }
   
+  #### Variant filtering
+  cmd <- paste(prepareGATK(), "VariantFiltration", "-R", genomeSeq,
+               "-V", vcfFn, "-O", basename(vcfOutputFile),
+               "--cluster-window-size 35 --cluster-size 3",
+               "--filter-name \"my_filter\" --filter-expression \"FS > 30.0 && QD < 2.0\""
+               )
+  ezSystem(cmd)
+  
   ## filter the vcf file
-  ezFilterVcf(vcfFile=vcfFn, 
-              basename(vcfOutputFile), discardMultiAllelic=FALSE,
-              bamDataset=bamDataset, param=param)
+  # ezFilterVcf(vcfFile=vcfFn, 
+  #             basename(vcfOutputFile), discardMultiAllelic=FALSE,
+  #             bamDataset=bamDataset, param=param)
   gc()
   
   ## create an html report
