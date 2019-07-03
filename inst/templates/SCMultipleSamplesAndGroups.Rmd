@@ -1,0 +1,330 @@
+---
+author: "Functional Genomics Center Zurich"
+output: 
+  html_document:
+    self_contained: true
+    includes:
+      in_header: fgcz_header.html
+    css: fgcz.css
+editor_options: 
+  chunk_output_type: console
+---
+
+Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
+
+```{r setup, include=FALSE}
+library(SummarizedExperiment)
+library(ezRun)
+library(cowplot)
+library(readr)
+library(kableExtra)
+library(tidyr)
+library(scales)
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE, knitr.table.format = "html")
+
+# #to test
+# param = readRDS("/scratch/daymegr/SCReportMerging/param.rds")
+# scData_objects = readRDS("/scratch/daymegr/SCReportMerging/scData_ObjectList.rds")
+# scData_noCorrected = scData_objects$scData_noCorrected
+# scData = scData_objects$scData_corrected
+# library("Seurat", lib="/home/daymegr/myRpackages")
+# pvalue_allMarkers <- 0.05
+# library(tibble)
+# library(dplyr)
+# clusters_freq = data.frame(table(scData@meta.data[,c("orig.ident","seurat_clusters")]))
+# small_clusters = unique(as.character(clusters_freq[clusters_freq[,"Freq"] < 10, "seurat_clusters"]))
+# scData_Clustersubset = subset(scData, idents = small_clusters, invert = TRUE)
+```
+
+```{r javascript, results='asis'}
+jsFile = system.file("extdata/enrichr.js", package="ezRun", mustWork=TRUE)
+invisible(file.copy(from=jsFile, to=basename(jsFile), overwrite=TRUE))
+cat(paste0("<SCRIPT language=\"JavaScript\" SRC=\"", basename(jsFile), "\"></SCRIPT>"))
+```
+
+## Clustering results of merged samples {.tabset}
+
+### Cell clustering without correction
+
+Previous to cluster the cells, we performed a log-normalization of each dataset using a size factor of 10,000 molecules for each cell. In each dataset, we next aimed to identify a subset of genes with high variability across cells (i.e, they are highly expressed in some cells, and lowly expressed in others), and therefore represent heterogeneous features to prioritize for downstream analysis. We next standardized expression values for each gene across all cells in order to avoid the results to be dominated by the signal of a few highly-expressed genes. Next, we performed PCA on the scaled data using the previously determined variable features. Taking as a distance metric the previously identified PCs, the cells clusters were then identified using a graph-based clustering approach where the cells are embedded in a graph structure - for example a K-nearest neighbor (KNN) graph, with edges drawn between cells with similar feature expression patterns, and then attempt to partition this graph into highly interconnected ‘communities’. 
+The TSNEs below place similar cells together in low-dimensional space. The left TSNE represents cells according to the sample they belong to. On the right side, the TSNE shows the graph-based clusters determined before. 
+<br/><br/>
+
+```{r tSNE no correction plot}
+DimPlot(scData_noCorrected, reduction = "tsne", group.by = "orig.ident", pt.size = 0.8)
+DimPlot(scData_noCorrected, reduction = "tsne", group.by = "seurat_clusters", label = TRUE, pt.size = 0.7, label.size = 5, repel = TRUE) 
+```
+
+<br/><br/>
+
+##### The number of cells in each cluster and sample is represented in this barplot. It helps to visualize if there are existing biases when analyzing multiple datasets together (i.e. some clusters are mainly composed of cells from only one sample).
+
+<br/>
+
+```{r number of cells in each cluster, fig.align='center', fig.width=10, fig.height=6}
+cellIdents_perSample = FetchData(object = scData_noCorrected, vars = c('ident', 'orig.ident'))
+barplot = ggplot(data=cellIdents_perSample, aes(x=ident, fill=orig.ident)) + geom_bar(stat="Count")
+barplot + labs(x="Cluster", y = "Number of cells", fill = "Sample")
+```
+
+```{r tSNE after integration, results='asis', eval = param$batchCorrection, results='asis'}
+cat("### Cell clustering after the integration")
+cat("\n\n")
+cat("In addition to the previous steps that were carried out, we performed an unsupervised identification of \"anchors\" between pairs of datasets.  These anchors represent two cells (with one cell from each dataset), that we predict to originate from a common biological state. We initiate this process through dimensional reduction using canonical correlation analysis (CCA), aiming to place datasets in a shared low-dimensional space. Following dimensional reduction, we identified the K-nearest neighbors (KNNs) for each cell within its paired dataset, based on the L2-normalized CCV. Finally, we identify mutual nearest neighbors (MNN; pairs of cells, with one from each dataset, that are contained within each other’s neighborhoods). We refer to these pairwise correspondences as \"anchors\". Filtering and scoring anchors) steps were performed to mitigate the effects of any incorrectly identified pairs of cells.")
+cat("\n")
+cat("The TSNEs below place similar cells together in low-dimensional space after the batch correction of the datasets. The left TSNE represents cells according to the sample they belong to. On the right side, the TSNE shows the graph-based clusters determined after performing the correction.")
+cat("\n\n")
+DimPlot(scData, reduction = "tsne", group.by = "orig.ident", pt.size = 0.8)
+DimPlot(scData, reduction = "tsne", group.by = "seurat_clusters", label = TRUE, pt.size = 0.7, label.size = 5, repel = TRUE) 
+```
+
+```{r number of cells in each cluster after correction, eval = param$batchCorrection, , fig.align='center', fig.width=10, fig.height=6, results='asis'}
+cat("\n")
+cat("##### The number of cells in each cluster and sample after the batch correction is represented on this barplot.") 
+cat("\n\n")
+cellIdents_perSample = FetchData(object = scData, vars = c('ident', 'orig.ident'))
+barplot = ggplot(data=cellIdents_perSample, aes(x=ident, fill=orig.ident)) + geom_bar(stat="Count")
+barplot + labs(x="Cluster", y = "Number of cells", fill = "Sample")
+```
+
+### Control of the cell clustering
+
+<br/>
+The plots show commonly used QC metrics that allow to explore and filter the cells. 
+
+1. The number of unique genes detected in each cell (nGene). Low-quality cells or empty droplets will often have very few genes. Cell doublets or multiplets may exhibit a very high gene count.
+2. The total number of molecules detected within a cell (nUMI). It should correlate strongly with unique genes.
+3. The percentage of reads that map to the mitochondrial genome (perc_mito). Low-quality / dying cells often exhibit extensive mitochondrial contamination.
+
+```{r}
+showCellCycle = FALSE
+if(!is.null(scData@meta.data$CellCycle) && !any(is.na(scData@meta.data$CellCycle)))
+  showCellCycle = TRUE
+```
+
+```{r show cell cycle text, eval=showCellCycle, results='asis'}
+cat("Additionally, we can visualize the cell cycle of the cells on the TSNE plot. It may be useful to identify cells with similar expression patterns and that are in the same state.")
+```
+<br/><br/>
+
+```{r control cell clustering}
+FeaturePlot(object = scData, features = "nGene", reduction = "tsne", cols = c("yellow", "red"))
+FeaturePlot(object = scData, features = "nUMI", reduction = "tsne", cols = c("yellow", "red"))
+FeaturePlot(object = scData, features = "perc_mito", reduction = "tsne", cols = c("yellow", "red"))
+if(showCellCycle)
+  DimPlot(scData, reduction = "tsne", group.by = "CellCycle", pt.size = 0.7, plot.title="Cell cycle phase")
+```
+
+
+### Top cluster markers
+
+<br/>
+We found positive markers that defined clusters compared to all other cells via differential expression. The test we used was the Wilcoxon Rank Sum test. Genes with an average, at least 0.25-fold difference (log-scale) between the cells in the tested cluster and the rest of the cells were and an adjusted p-value < 0.05 were declared as significant. 
+<br/><br/>
+
+```{r enrichr markers all, echo=FALSE, eval= doEnrichr(param), results='asis'}
+posMarkers = scData@misc$posMarkers 
+
+  genesPerCluster <- split(posMarkers$gene, posMarkers$cluster)
+  jsCall = paste0('enrich({list: "', sapply(genesPerCluster, paste, collapse="\\n"), '", popup: true});')
+  enrichrCalls <- paste0("<a href='javascript:void(0)' onClick='", jsCall, 
+                         "'>Analyse at Enrichr website</a>")
+  enrichrTable <- tibble(Cluster=names(genesPerCluster),
+                         "# of posMarkers"=lengths(genesPerCluster),
+                         "Enrichr link"=enrichrCalls)
+  kable(enrichrTable, format="html", escape=FALSE,
+        caption=paste0("GeneSet enrichment: genes with pvalue ", pvalue_allMarkers)) %>%
+    kable_styling("striped", full_width = F, position = "left")
+```
+
+```{r markers table all, echo=FALSE}
+caption ="Expression differences of cluster marker genes"
+ezInteractiveTableRmd(scData@misc$posMarkers, digits=4, title=caption)
+```
+
+```{r enrichr all2all markers, eval = doEnrichr(param) && param$all2allMarkers, echo=FALSE, results='asis'}
+ scData@misc$all2allMarkers = all2allMarkers  
+ 
+ for(comparison in names(all2allMarkers)){
+    write_tsv(as_tibble(all2allMarkers[[comparison]], rownames="Gene"),
+              path=paste0(comparison, ".tsv"))
+  }
+  genesAllPerCluster <- lapply(all2allMarkers, rownames)
+  genesUpPerCluster <- lapply(all2allMarkers, function(x){rownames(x)[x$avg_logFC > 0]})
+  genesDownPerCluster <- lapply(all2allMarkers, function(x){rownames(x)[x$avg_logFC < 0]})
+  
+  jsCall_all = paste0('enrich({list: "', sapply(genesAllPerCluster, paste, collapse="\\n"), '", popup: true});')
+  jsCall_up = paste0('enrich({list: "', sapply(genesUpPerCluster, paste, collapse="\\n"), '", popup: true});')
+  jsCall_down = paste0('enrich({list: "', sapply(genesDownPerCluster, paste, collapse="\\n"), '", popup: true});')
+  
+  enrichrCalls_all <- paste0("<a href='javascript:void(0)' onClick='", jsCall_all,
+                         "'>Analyse at Enrichr website</a>")
+  enrichrCalls_up <- paste0("<a href='javascript:void(0)' onClick='", jsCall_up,
+                         "'>Analyse at Enrichr website</a>")
+  enrichrCalls_down <- paste0("<a href='javascript:void(0)' onClick='", jsCall_down,
+                         "'>Analyse at Enrichr website</a>")
+  enrichrTable <- tibble(Comparison=names(all2allMarkers),
+                         "# of differentially expressed genes"=lengths(genesAllPerCluster),
+                         "Enrichr link: all significant genes"=enrichrCalls_all,
+                         "Enrichr link: up-regulated genes"=enrichrCalls_up,
+                         "Enrichr link: down-regulated genes"=enrichrCalls_down,
+                         "List of differentially expressed genes"=text_spec(paste0(names(all2allMarkers), ".tsv"), link=paste0(names(all2allMarkers), ".tsv")))
+  kable(enrichrTable, format="html", escape=FALSE,
+        caption=paste0("GeneSet enrichment: genes with pvalue ", pvalue_all2allMarkers)) %>%
+    kable_styling("striped", full_width = F, position = "left")
+```
+
+### Visualization of cluster markers
+#### The strongest `r param$markersToShow` gene markers (highest logFC) for each cluster are represented on the Ridge and the TSNE plots.
+<br/>
+
+```{r top cluster markers, fig.width=4, fig.height=3, results = 'asis'}
+posMarkers = scData@misc$posMarkers
+top_FC <- posMarkers %>% group_by(cluster) %>% top_n(param$markersToShow, avg_logFC)
+for(cluster in levels(top_FC$cluster)){
+  top_FC_cluster = top_FC[top_FC$cluster == cluster,]
+  cat("\n")
+  cat(paste0("##### Top "), param$markersToShow, ("markers for cluster "), cluster)
+  cat("\n")
+   for(i in 1:nrow(top_FC_cluster)){
+      plot(RidgePlot(object = scData, feature = top_FC_cluster$gene[i])+ NoLegend())
+      plot(FeaturePlot(object = scData, features = top_FC_cluster$gene[i], reduction = "tsne", cols = c("grey", "red")))
+      
+   }
+   cat("\n\n")
+}
+```
+
+### Heatmap of cluster marker genes
+#### Expression heatmap for given cells and features. In this case, we are plotting the top `r param$markersToShow` for each cluster. 
+
+```{r heatmap, fig.width=12, fig.height=param$markersToShow*1.8}
+top_FC <- posMarkers %>% group_by(cluster) %>% top_n(param$markersToShow, avg_logFC)
+DoHeatmap(object = scData, features = top_FC$gene, label = FALSE) + theme(axis.text.y = element_text(size = 8))
+```
+
+### Conserved cell type markers
+
+Identify cell type marker genes that are conserved across conditions. Differential gene expression tests are performed for each group and then, the p-values are combined using meta-analysis methods. 
+
+```{r}
+conservedMarkers = scData@misc$conservedMarkers
+```
+
+```{r enrichr conserved markers, eval = doEnrichr(param), results='asis'}
+  genesPerCluster <- split(conservedMarkers$gene, conservedMarkers$cluster)
+  genesPerCluster <- genesPerCluster[gtools::mixedorder(names(genesPerCluster))]
+  jsCall = paste0('enrich({list: "', sapply(genesPerCluster, paste, collapse="\\n"), '", popup: true});')
+  enrichrCalls <- paste0("<a href='javascript:void(0)' onClick='", jsCall, 
+                         "'>Analyse at Enrichr website</a>")
+  enrichrTable <- tibble(Cluster=names(genesPerCluster),
+                         "# of conservedMarkers"=lengths(genesPerCluster),
+                         "Enrichr link"=enrichrCalls)
+  kable(enrichrTable, format="html", escape=FALSE,
+        caption=paste0("GeneSet enrichment analysis: conserved marker genes")) %>%
+    kable_styling("striped", full_width = F, position = "left")
+```
+
+```{r conserved markers table}
+caption ="Conserved cell type markers"
+ezInteractiveTableRmd(conservedMarkers, title=caption)
+```
+
+### Visualisation of conserved markers
+##### The most significant `r param$markersToShow` conserved markers (lowest p-value) for each cluster are represented on the Ridge and the TSNE plots. 
+<br/>
+
+```{r top conserved markers, fig.width=8, fig.height=3, results='asis'}
+markers.to.plot <- conservedMarkers %>% group_by(cluster) %>% top_n(param$markersToShow, minimump_p_val)
+for(cluster in unique(markers.to.plot$cluster)){
+  markers.to.plot_cluster = markers.to.plot[markers.to.plot$cluster == cluster,]
+  cat("\n")
+  cat(paste0("#### Top "), param$markersToShow, ("conserved markers for cluster "), cluster)
+  cat("\n")
+   for(i in 1:nrow(markers.to.plot_cluster)){
+      rp = RidgePlot(object = scData_Clustersubset, feature = markers.to.plot_cluster$gene[i])+ NoLegend()
+      fp = FeaturePlot(object = scData_Clustersubset, features = markers.to.plot_cluster$gene[i], reduction = "tsne", cols = c("grey", "red"))
+      plot(CombinePlots(list(rp, fp), ncol = 2))
+   }
+  cat("\n\n")
+}
+```
+
+
+##### The DotPlot can be useful for viewing conserved cell type markers across conditions, showing both the expression level and the percentage of cells in a cluster expressing any given gene. Here we plot 3 strong marker genes for each of the clusters.
+
+```{r dot plot conserved cluster markers, fig.width=14, fig.height=1+length(unique(Idents(scData_Clustersubset))) * length(unique(scData_Clustersubset@meta.data$orig.ident))*0.5, fig.align='center'}
+
+nrGroups <- length(unique(scData_Clustersubset@meta.data$orig.ident))
+markers.to.plot <- conservedMarkers %>% group_by(cluster) %>% top_n(3, minimump_p_val)
+DotPlot(scData_Clustersubset, features = unique(markers.to.plot$gene), cols = hue_pal()(nrGroups), dot.scale = 8, do.return = T, split.by = "orig.ident") + theme(axis.text.x = element_text(size = 8)) + RotatedAxis()
+```
+
+### Differential expressed genes
+
+<br/>
+##### After identifying common cell types across conditions, we can look for genes that change in different conditions for cells of the same type. 
+<br/><br/>
+
+```{r diff genes table}
+diffGenes = scData@misc$diffGenes
+caption ="Differential expressed genes per cluster"
+ezInteractiveTableRmd(diffGenes, title=caption)
+```
+
+The comparison is `r paste(scData@meta.data$orig.ident, collapse=" vs ")`.
+
+### Visualisation of differential expressed genes
+
+##### The 5 most significant differentially expressed genes (lowest p-value) for each cluster are represented on the TSNE and Violin plots. Some genes may be dysregulated in all clusters between conditions.
+<br/>
+
+```{r diff genes plots, fig.width=20, fig.height=4, results='asis'}
+diffgenes.to.plot <- diffGenes %>% group_by(cluster) %>% top_n(5, p_val_adj)
+for(cluster in unique(diffgenes.to.plot$cluster)) {
+  diffgenes.to.plot_cluster = diffgenes.to.plot[diffgenes.to.plot$cluster == cluster,]
+  cat("\n")
+  cat(paste0("#### Top 5 differentially expressed genes for cluster "), cluster)
+  cat("\n")
+   for(i in 1:nrow(diffgenes.to.plot_cluster)){
+      fp = FeaturePlot(object = scData_Clustersubset, features =diffgenes.to.plot_cluster$gene[i], reduction = "tsne", split.by = "orig.ident", cols = c("grey", "red"))
+      vp = VlnPlot(scData_Clustersubset, features = diffgenes.to.plot_cluster$gene[i], split.by = "orig.ident", group.by =  "seurat_clusters",  pt.size = 0)
+      plot(CombinePlots(list(fp, vp), ncol = 2))
+   }
+  cat("\n\n")
+}
+```
+
+### Data availability
+
+##### Number and proportions of cells in each cluster and sample
+
+[`r scData@misc$cellsPropPerClusterAndSampleFn`](`r scData@misc$cellsPropPerClusterAndSampleFn`)
+
+##### Mean expression of every gene across the cells in each cluster
+
+[`r scData@misc$geneMeanPerClusterFn`](`r scData@misc$geneMeanPerClusterFn`)
+
+##### Mean expression of every gene across all the cells
+
+[`r scData@misc$geneMeansFn`](`r scData@misc$geneMeansFn`)
+
+##### Coordinates of every cell on the TSNE
+
+[`r scData@misc$tSNEFn`](`r scData@misc$tSNEFn`)
+
+##### The final Seurat object after merging is [here](scData_ObjectList.rds)
+
+### Parameters
+```{r report parameters, echo=FALSE}
+param[c("x.low.cutoff", "x.high.cutoff", "y.cutoff", "pcs", "resolution", "batchCorrection","chosenClusters")]
+```
+
+```{r seurat parameters, echo=FALSE}
+#PrintFindClustersParams(object = scData)
+```
+
+### SessionInfo
+```{r, echo=FALSE}
+sessionInfo()
+```
