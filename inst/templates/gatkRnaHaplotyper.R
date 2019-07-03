@@ -23,6 +23,6 @@ output[['Html [Link]']] = 'p2378/GatkRnaHaplotyper_37795_2019-06-27--14-11-25/GA
 output[['Species']] = 'Homo sapiens (human)'
 output[['refBuild']] = 'Homo_sapiens/Ensembl/GRCh38.p10/Annotation/Release_91-2018-02-26'
 input = '/srv/gstore/projects/p2378/GatkRnaHaplotyper_37795_2019-06-27--14-11-25/input_dataset.tsv'
-debug(ezMethodGatkRnaHaplotyper)
+# debug(ezMethodGatkRnaHaplotyper)
 EzAppGatkRnaHaplotyper$new()$run(input=input, output=output, param=param)
 
