@@ -41,7 +41,7 @@ ezMethodGatkRnaHaplotyper = function(input=NA, output=NA, param=NA,
   
   bamFiles = input$getFullPaths("BAM")
   genomeSeq = param$ezRef["refFastaFile"]
-  nBamsInParallel = min(4, param$cores)
+  nBamsInParallel = min(8, param$cores)
   bamFilesClean = ezMclapply(names(bamFiles), function(sampleName){
     setwdNew(paste(sampleName, "proc", sep="-"))
     bf = bamFiles[sampleName]
