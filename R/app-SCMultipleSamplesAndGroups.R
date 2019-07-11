@@ -44,7 +44,6 @@ ezMethodSCMultipleSamplesAndGroups = function(input=NA, output=NA, param=NA, htm
   library(rlist)
   library(tibble)
   library(dplyr)
-  source("~/workspaceR/ezRun/R/seuratUtils.R") #remove later
   
   ## subset the selected sample names
   samples <- param$samples
