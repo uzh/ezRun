@@ -122,12 +122,14 @@ ezMethodSCMultipleSamplesAndGroups = function(input=NA, output=NA, param=NA, htm
   saveRDS(scData_list, "scData_ObjectList.rds")
   
   ## Copy the style files and templates
-  # styleFiles <- file.path(system.file("templates", package="ezRun"),
-  #                         c("fgcz.css", "SCReportMerging.Rmd",
-  #                           "fgcz_header.html", "banner.png"))
-  #file.copy(from=styleFiles, to=".", overwrite=TRUE)
-  rmarkdown::render(input="/home/daymegr/workspaceR/dayme-scripts/sushi_scripts_mod/SCMultipleSamplesAndGroups.Rmd", envir = new.env(),
-                    output_dir=".", output_file=htmlFile, clean = TRUE, quiet=TRUE)
+  styleFiles <- file.path(system.file("templates", package="ezRun"),
+                          c("fgcz.css", "SCReportMerging.Rmd",
+                            "fgcz_header.html", "banner.png"))
+  file.copy(from=styleFiles, to=".", overwrite=TRUE)
+  rmarkdown::render(input="SCReportMerging.Rmd", envir = new.env(),
+                    output_dir=".", output_file=htmlFile, quiet=TRUE)
+  # rmarkdown::render(input="/home/daymegr/workspaceR/dayme-scripts/sushi_scripts_mod/SCMultipleSamplesAndGroups.Rmd", envir = new.env(),
+  #                   output_dir=".", output_file=htmlFile, clean = TRUE, quiet=TRUE)
   rm(sceList)
   rm(scData)
   
@@ -198,25 +200,6 @@ scData@misc$conservedMarkers = markers
 return(c(scData, scData_Clustersubset))
 }
 
-# diffExpressedGenes = function(scData, scData_Clustersubset) {
-# seurat_clusters = Idents(scData_Clustersubset)
-# conditions = scData_Clustersubset@meta.data$orig.ident
-# scData_Clustersubset@meta.data$cluster.condition = paste0(seurat_clusters, "_", conditions)
-# Idents(scData_Clustersubset) = "cluster.condition"
-# 
-# diffGenes <- tibble()
-# for(eachCluster in levels(seurat_clusters)){
-#   markersEach <-FindMarkers(scData_Clustersubset, ident.1=paste0(eachCluster, "_", unique(conditions[2])), ident.2=paste0(eachCluster, "_", unique(conditions[1])), print.bar=FALSE)
-#   markersEach$gene = rownames(markersEach)
-#   markersEach$cluster = eachCluster
-#   diffGenes <- rbind(diffGenes, markersEach)
-# }
-# 
-# diffGenes = diffGenes[diffGenes$p_val_adj < 0.05, ]
-# scData@misc$diffGenes = diffGenes
-# return(scData)
-# }
-
 diffExpressedGenes = function(scData, scData_Clustersubset) {
   seurat_clusters = Idents(scData_Clustersubset)
   scData_Clustersubset@meta.data$cluster.condition <- paste0(seurat_clusters, "_", scData_Clustersubset@meta.data$orig.ident)
@@ -245,22 +228,6 @@ scData@misc$diffGenes = diffGenes
 return(scData)
 }
 
-
-
-# diffExpressedGenes = function(scData) {
-#   
-#   diffGenes <- tibble()
-#   for(eachCluster in levels(Idents(scData))){
-#     markersEach <-FindMarkers(scData, ident.1=scData@meta.data$orig.ident[1], group.by = "orig.ident", min.cells.group = 10, subset.ident = eachCluster, print.bar=FALSE)
-#     markersEach$gene = rownames(markersEach)
-#     markersEach$cluster = eachCluster
-#     diffGenes <- rbind(diffGenes, markersEach)
-#   }
-#   
-#   diffGenes = diffGenes[diffGenes$p_val_adj < 0.05, ]
-#   scData@misc$diffGenes = diffGenes
-#   return(scData)
-# }
 
 saveExternalFiles = function(scData) {
   propCells_table = cellsProportion(scData)
