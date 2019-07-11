@@ -40,12 +40,11 @@ EzAppSCMultipleSamplesOneGroup <-
   )
 
 ezMethodSCMultipleSamplesOneGroup = function(input=NA, output=NA, param=NA, htmlFile="00index.html") {
-  
+
+  ## TODO: remove the lib specification after upgrade to Seurat v3  
   library("Seurat", lib="/home/daymegr/myRpackages")
   library(rlist)
-  #remove later
-  source("~/workspaceR/ezRun/R/seuratUtils.R")
-  
+
   ## subset the selected sample names
   samples <- param$samples
   input <- input$subset(samples)
