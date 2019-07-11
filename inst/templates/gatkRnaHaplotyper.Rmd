@@ -1,0 +1,62 @@
+---
+title: "`r paste('VCF-Report:', param$name)`"
+author: "Functional Genomics Center Zurich"
+output: 
+  html_document:
+    self_contained: false
+    includes:
+      in_header: fgcz_header.html
+    css: fgcz.css
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+## It needs bamDataset, hcd, and others
+```
+Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
+
+## VCF-Report {.tabset}
+
+### IGV
+IGV link to view variants: [IGV](igv.jnlp).
+
+### Sample Clustering based on Variants
+
+```{r clustering, echo=FALSE, fig.height=7, fig.width=8+max(0, 0.2 * (nSamples-20))}
+plot(hcd, main="Cluster by Genotype", xlab="")
+```
+
+### Variants by Chromosomes
+Genotype colors are: blue - homozygous reference; gray - heterozygous; red - homozygyous variant
+
+```{r, echo=FALSE, height=2+0.3*ncol(gt), width=12}
+for(ch in names(chromSizes)[isRealChrom]){
+      par(mar=c(4.1, 10, 4.1, 2.1))
+      plot(0, 0, type="n", main=paste("Chromsome", ch), xlab="pos", 
+           xlim=c(1, chromSizes[ch]), ylim=c(0, 3*ncol(gt)),
+           axes=FALSE, frame=FALSE, xaxs="i", yaxs="i", ylab="")
+      axis(1)
+      mtext(side = 2, at = seq(1, 3*ncol(gt), by=3), text = colnames(gt), las=2,
+            cex = 1.0, font=2, col=sampleColors)
+      idx = idxList[[ch]]
+      xStart = pos[idx]
+      nm  = colnames(gt)[1]
+      for (i in 1:ncol(gt)){
+        offSet = match(gt[idx ,i], names(snpColors))
+        yTop = (i-1) * 3 + offSet
+        rect(xStart, yTop - 1, xStart+1, yTop, col = snpColors[offSet],
+             border=snpColors[offSet])
+      }
+      abline(h=seq(0, 3*ncol(gt), by=3))
+}
+```
+
+### Input Dataset
+```{r, echo=FALSE, message=FALSE}
+ezInteractiveTableRmd(bamDataset)
+```
+
+### SessionInfo
+```{r, echo=FALSE}
+sessionInfo()
+```
