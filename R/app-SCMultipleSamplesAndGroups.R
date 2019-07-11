@@ -123,10 +123,10 @@ ezMethodSCMultipleSamplesAndGroups = function(input=NA, output=NA, param=NA, htm
   
   ## Copy the style files and templates
   styleFiles <- file.path(system.file("templates", package="ezRun"),
-                          c("fgcz.css", "SCReportMerging.Rmd",
+                          c("fgcz.css", "SCMultipleSamplesAndGroups.Rmd",
                             "fgcz_header.html", "banner.png"))
   file.copy(from=styleFiles, to=".", overwrite=TRUE)
-  rmarkdown::render(input="SCReportMerging.Rmd", envir = new.env(),
+  rmarkdown::render(input="SCMultipleSamplesAndGroups.Rmd", envir = new.env(),
                     output_dir=".", output_file=htmlFile, quiet=TRUE)
   # rmarkdown::render(input="/home/daymegr/workspaceR/dayme-scripts/sushi_scripts_mod/SCMultipleSamplesAndGroups.Rmd", envir = new.env(),
   #                   output_dir=".", output_file=htmlFile, clean = TRUE, quiet=TRUE)
