@@ -40,12 +40,15 @@ ezFilterVcf = function(vcfFile, vcfFiltFile, discardMultiAllelic=TRUE,
   vcf = readVcf(vcfFile, genome="genomeDummy")
   genotype = geno(vcf)
   if (discardMultiAllelic){
-    isMultiAllelic = apply(genotype$AD, 1, function(x){any(sapply(x, length) > 2)})
+    isMultiAllelic = apply(genotype$AD, 1, 
+                           function(x){any(sapply(x, length) > 2)})
     table(isMultiAllelic)
     vcf = vcf[!isMultiAllelic, ]
     genotype = geno(vcf)
   }
-  altCount = apply(genotype$AD, 2, function(x){sapply(x, function(y){if (length(y) == 0) return(NA); return(max(y))})})
+  altCount = apply(genotype$AD, 2, function(x){
+    sapply(x, function(y){if (length(y) == 0) return(NA); return(max(y))})
+    })
   hasHighAltCount = apply(altCount > param$vcfFilt.minAltCount, 1, any)
   vcf = vcf[which(hasHighAltCount), ]
   genotype = geno(vcf)
