@@ -70,9 +70,9 @@ barplot + labs(x="Cluster", y = "Number of cells", fill = "Sample")
 ```{r tSNE after integration, results='asis', eval = param$batchCorrection, results='asis'}
 cat("### Cell clustering after the integration")
 cat("\n\n")
-cat("In addition to the previous steps that were carried out, we performed an unsupervised identification of \"anchors\" between pairs of datasets.  These anchors represent two cells (with one cell from each dataset), that we predict to originate from a common biological state. We initiate this process through dimensional reduction using canonical correlation analysis (CCA), aiming to place datasets in a shared low-dimensional space. Following dimensional reduction, we identified the K-nearest neighbors (KNNs) for each cell within its paired dataset, based on the L2-normalized CCV. Finally, we identify mutual nearest neighbors (MNN; pairs of cells, with one from each dataset, that are contained within each other’s neighborhoods). We refer to these pairwise correspondences as \"anchors\". Filtering and scoring anchors) steps were performed to mitigate the effects of any incorrectly identified pairs of cells.")
+cat("In addition to the previous steps that were carried out, we performed an unsupervised identification of \"anchors\" between pairs of datasets.  These anchors represent two cells (with one cell from each dataset), that we predict to originate from a common biological state. We initiate this process through dimensional reduction using canonical correlation analysis (CCA), aiming to place datasets in a shared low-dimensional space. Following dimensional reduction, we identified the K-nearest neighbors (KNNs) for each cell within its paired dataset, based on the L2-normalized CCV. Finally, we identify mutual nearest neighbors (MNN; pairs of cells, with one from each dataset, that are contained within each other’s neighborhoods). We refer to these pairwise correspondences as \"anchors\". Filtering and scoring anchors steps were performed to mitigate the effects of any incorrectly identified pairs of cells.")
 cat("\n")
-cat("The TSNEs below place similar cells together in low-dimensional space after the batch correction of the datasets. The left TSNE represents cells according to the sample they belong to. On the right side, the TSNE shows the graph-based clusters determined after performing the correction.")
+cat("The TSNEs below place similar cells together in low-dimensional space after the batch correction of the datasets. The left TSNE represents cells according to the sample they belong to and on the right side, the TSNE shows the graph-based clusters determined after performing the correction.")
 cat("\n\n")
 DimPlot(scData, reduction = "tsne", group.by = "orig.ident", pt.size = 0.8)
 DimPlot(scData, reduction = "tsne", group.by = "seurat_clusters", label = TRUE, pt.size = 0.7, label.size = 5, repel = TRUE) 
@@ -89,7 +89,6 @@ barplot + labs(x="Cluster", y = "Number of cells", fill = "Sample")
 
 ### Control of the cell clustering
 
-<br/>
 The plots show commonly used QC metrics that allow to explore and filter the cells. 
 
 1. The number of unique genes detected in each cell (nGene). Low-quality cells or empty droplets will often have very few genes. Cell doublets or multiplets may exhibit a very high gene count.
@@ -118,9 +117,8 @@ if(showCellCycle)
 
 ### Top cluster markers
 
+We found positive markers that defined clusters compared to all other cells via differential expression. The test we used was the Wilcoxon Rank Sum test. Genes with an average, at least 0.25-fold difference (log-scale) between the cells in the tested cluster and the rest of the cells and an adjusted p-value < 0.05 were declared as significant. 
 <br/>
-We found positive markers that defined clusters compared to all other cells via differential expression. The test we used was the Wilcoxon Rank Sum test. Genes with an average, at least 0.25-fold difference (log-scale) between the cells in the tested cluster and the rest of the cells were and an adjusted p-value < 0.05 were declared as significant. 
-<br/><br/>
 
 ```{r enrichr markers all, echo=FALSE, eval= doEnrichr(param), results='asis'}
 posMarkers = scData@misc$posMarkers 
@@ -205,7 +203,7 @@ DoHeatmap(object = scData, features = top_FC$gene, label = FALSE) + theme(axis.t
 
 ### Conserved cell type markers
 
-Identify cell type marker genes that are conserved across conditions. Differential gene expression tests are performed for each group and then, the p-values are combined using meta-analysis methods. 
+##### Identify cell type marker genes that are conserved across conditions. Differential gene expression tests are performed for each group and then, the p-values are combined using meta-analysis methods. 
 
 ```{r}
 conservedMarkers = scData@misc$conservedMarkers
@@ -262,7 +260,7 @@ DotPlot(scData_Clustersubset, features = unique(markers.to.plot$gene), cols = hu
 
 ### Differential expressed genes
 
-<br/>
+
 ##### After identifying common cell types across conditions, we can look for genes that change in different conditions for cells of the same type. 
 <br/><br/>
 
@@ -272,7 +270,7 @@ caption ="Differential expressed genes per cluster"
 ezInteractiveTableRmd(diffGenes, title=caption)
 ```
 
-The comparison is `r paste(scData@meta.data$orig.ident, collapse=" vs ")`.
+The comparison is `r paste(unique(scData@meta.data$orig.ident), collapse=" vs ")`.
 
 ### Visualisation of differential expressed genes
 
