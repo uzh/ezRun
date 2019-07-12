@@ -247,11 +247,11 @@ for(cluster in unique(markers.to.plot$cluster)){
   cat("\n\n")
 }
 ```
-
+<br/>
 
 ##### The DotPlot can be useful for viewing conserved cell type markers across conditions, showing both the expression level and the percentage of cells in a cluster expressing any given gene. Here we plot 3 strong marker genes for each of the clusters.
 
-```{r dot plot conserved cluster markers, fig.width=14, fig.height=1+length(unique(Idents(scData_Clustersubset))) * length(unique(scData_Clustersubset@meta.data$orig.ident))*0.5, fig.align='center'}
+```{r dot plot conserved cluster markers, fig.width=14, fig.height=1+length(unique(Idents(scData_Clustersubset))) * length(unique(scData_Clustersubset@meta.data$orig.ident))*0.2, fig.align='center'}
 
 nrGroups <- length(unique(scData_Clustersubset@meta.data$orig.ident))
 markers.to.plot <- conservedMarkers %>% group_by(cluster) %>% top_n(3, minimump_p_val)
