@@ -68,9 +68,9 @@ barplot + labs(x="Cluster", y = "Number of cells", fill = "Sample")
 ```{r tSNE after integration, results='asis', fig.width=8, fig.height=5, eval = param$batchCorrection}
 cat("### Cell clustering after the integration")
 cat("\n\n")
-cat("In addition to the previous steps that were carried out, we performed an unsupervised identification of \"anchors\" between pairs of datasets.  These anchors represent two cells (with one cell from each dataset), that we predict to originate from a common biological state. We initiate this process through dimensional reduction using canonical correlation analysis (CCA), aiming to place datasets in a shared low-dimensional space. Following dimensional reduction, we identified the K-nearest neighbors (KNNs) for each cell within its paired dataset, based on the L2-normalized CCV. Finally, we identify mutual nearest neighbors (MNN; pairs of cells, with one from each dataset, that are contained within each other’s neighborhoods). We refer to these pairwise correspondences as \"anchors\". Filtering and scoring anchors) steps were performed to mitigate the effects of any incorrectly identified pairs of cells.")
+cat("In addition to the previous steps that were carried out, we performed an unsupervised identification of \"anchors\" between pairs of datasets.  These anchors represent two cells (with one cell from each dataset), that we predict to originate from a common biological state. We initiate this process through dimensional reduction using canonical correlation analysis (CCA), aiming to place datasets in a shared low-dimensional space. Following dimensional reduction, we identified the K-nearest neighbors (KNNs) for each cell within its paired dataset, based on the L2-normalized CCV. Finally, we identify mutual nearest neighbors (MNN; pairs of cells, with one from each dataset, that are contained within each other’s neighborhoods). We refer to these pairwise correspondences as \"anchors\". Filtering and scoring anchors steps were performed to mitigate the effects of any incorrectly identified pairs of cells.")
 cat("\n")
-cat("The TSNEs below place similar cells together in low-dimensional space after the batch correction of the datasets. The left TSNE represents cells according to the sample they belong to. On the right side, the TSNE shows the graph-based clusters determined after performing the correction.")
+cat("The TSNEs below place similar cells together in low-dimensional space after the batch correction of the datasets. The left TSNE represents cells according to the sample they belong to and on the right side, the TSNE shows the graph-based clusters determined after performing the correction.")
 cat("\n\n")
 DimPlot(scData, reduction = "tsne", group.by = "Plate", pt.size = 0.8)
 DimPlot(scData, reduction = "tsne", group.by = "seurat_clusters", label = TRUE, pt.size = 0.7, label.size = 5, repel = TRUE) 
@@ -87,7 +87,6 @@ barplot + labs(x="Cluster", y = "Number of cells", fill = "Sample")
 
 ### Control of the cell clustering
 
-<br/>
 The plots show commonly used QC metrics that allow to explore and filter the cells. 
 
 1. The number of unique genes detected in each cell (nGene). Low-quality cells or empty droplets will often have very few genes. Cell doublets or multiplets may exhibit a very high gene count.
@@ -115,9 +114,8 @@ if(showCellCycle)
 
 ### Top cluster markers
 
+We found positive markers that defined clusters compared to all other cells via differential expression. The test we used was the Wilcoxon Rank Sum test. Genes with an average, at least 0.25-fold difference (log-scale) between the cells in the tested cluster and the rest of the cells and an adjusted p-value < 0.05 were declared as significant. 
 <br/>
-We found positive markers that defined clusters compared to all other cells via differential expression. The test we used was the Wilcoxon Rank Sum test. Genes with an average, at least 0.25-fold difference (log-scale) between the cells in the tested cluster and the rest of the cells were and an adjusted p-value < 0.05 were declared as significant. 
-<br/><br/>
 
 ```{r enrichr markers all, echo=FALSE, eval= doEnrichr(param), results='asis'}
 posMarkers = scData@misc$posMarkers 
@@ -193,7 +191,7 @@ for(cluster in levels(top_FC$cluster)){
 ```
 
 ### Heatmap of cluster marker genes
-#### Expression heatmap for given cells and features. In this case, we are plotting the top `r param$markersToShow` for each cluster. 
+#### Expression heatmap for given cells and features. In this case, we are plotting the top `r param$markersToShow` markers (highest logFC) for each cluster.
  
 ```{r heatmap, fig.width=12, fig.height=param$markersToShow*1.8}
 top_FC <- posMarkers %>% group_by(cluster) %>% top_n(param$markersToShow, avg_logFC)
@@ -222,11 +220,7 @@ DoHeatmap(object = scData, features = top_FC$gene, label = FALSE) + theme(axis.t
 
 ### Parameters
 ```{r report parameters, echo=FALSE}
-param[c("x.low.cutoff", "x.high.cutoff", "y.cutoff", "pcs", "resolution", "batchCorrection","chosenClusters")]
-```
-
-```{r seurat parameters, echo=FALSE}
-#PrintFindClustersParams(object = scData)
+param[c("npcs", "resolution", "batchCorrection","chosenClusters")]
 ```
 
 ### SessionInfo
