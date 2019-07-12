@@ -188,8 +188,11 @@ scData_Clustersubset = subset(scData, idents = small_clusters, invert = TRUE)
 
 markers <- list()
 for(eachCluster in levels(Idents(scData_Clustersubset))){
-  markersEach <- FindConservedMarkers(scData_Clustersubset, ident.1=eachCluster, grouping.var="orig.ident", print.bar=FALSE, only.pos=TRUE)
-  markers[[eachCluster]] <- as_tibble(markersEach, rownames="gene")
+  markersEach <- try(FindConservedMarkers(scData_Clustersubset, ident.1=eachCluster, grouping.var="orig.ident", print.bar=FALSE, only.pos=TRUE,silent=TRUE))
+  ## to skip some groups with few cells
+  if(class(markersEach) != "try-error" && nrow(markersEach) > 0){
+    markers[[eachCluster]] <- as_tibble(markersEach, rownames="gene")
+  }
 }
 ## some of the cluster have no significant conserved markers
 markers <- markers[sapply(markers, nrow) != 0L] 
