@@ -36,7 +36,12 @@ names(sceList) <- names(sceURLs)
 
 # to test
 # param <- metadata(sceList[[1]])$param
+# param$x.low.cutoff <- 0.0125
+# param$x.high.cutoff <- 3
+# param$y.cutoff <- 0.5
 # param$resolution <- 0.6
+# param$resolutionCCA <- 0.6
+# param$pcs <- 20
 # param$cc <- 20
 # param$batchCorrection <- "None"
 
