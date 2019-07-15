@@ -38,7 +38,7 @@ ezMethodCellRangerAggr = function(input=NA, output=NA, param=NA){
   # }
   
   aggr_input <- tibble(library_id=input$getNames(),
-                       molecule_h5=file.path(input$getFullPaths("ResultDir"),
+                       molecule_h5=file.path(dirname(input$getFullPaths("Report")),
                                              "molecule_info.h5")
                        )
   if(any(input$columnHasTag("Factor"))){
