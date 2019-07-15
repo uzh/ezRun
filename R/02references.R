@@ -59,6 +59,7 @@ setMethod("initialize", "EzRef", function(.Object, param=list()){
     .Object@refBuildDir = param$refBuildDir
   } else {
     for (gr in genomesRoot){
+      stopifnot(file.exists(gr))
       rbd = file.path(gr, paste(refFields, collapse="/"))
       if (file.exists(rbd)){
         break
