@@ -213,6 +213,15 @@ if(metadata(sce)$param$visMethod == "TSNE"){
   print(p)
   p <- plotUMAP(sce, colour_by="CellCycle")
   print(p)
+}else if(metadata(sce)$param$visMethod == "DiffusionMap"){
+  p <- plotDiffusionMap(sce, colour_by="pct_counts_Mito")
+  print(p)
+  p <- plotDiffusionMap(sce, colour_by="log10_total_features_by_counts")
+  print(p)
+  p <- plotDiffusionMap(sce, colour_by="log10_total_counts")
+  print(p)
+  p <- plotDiffusionMap(sce, colour_by="CellCycle")
+  print(p)
 }
 ```
 

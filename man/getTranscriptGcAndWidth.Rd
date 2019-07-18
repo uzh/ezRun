@@ -4,7 +4,8 @@
 \alias{getTranscriptGcAndWidth}
 \title{Gets GC proportions and gene widths}
 \usage{
-getTranscriptGcAndWidth(param)
+getTranscriptGcAndWidth(param = NULL, genomeFn = NULL,
+  featureFn = NULL)
 }
 \arguments{
 \item{param}{the parameters to load the annotation and sequence files from.}

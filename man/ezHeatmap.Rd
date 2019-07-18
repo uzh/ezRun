@@ -5,9 +5,10 @@
 \title{Plots a heatmap}
 \usage{
 ezHeatmap(x, lim = c(-4, 4), colors = getBlueRedScale(),
-  dendrogram = "none", margins = c(8, 6), cexCol = 1.1, Rowv = TRUE,
-  Colv = TRUE, labCol = ezSplitLongLabels(colnames(x)),
-  labRow = rownames(x), key = TRUE, ...)
+  dendrogram = "none", margins = c(8, 6), cexCol = 1.1,
+  Rowv = TRUE, Colv = TRUE, labCol = ezSplitLongLabels(colnames(x)),
+  labRow = rownames(x), key = TRUE, lwid = c(1, 4), lhei = c(1, 5),
+  ...)
 }
 \arguments{
 \item{x}{the data to plot.}

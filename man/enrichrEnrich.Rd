@@ -4,7 +4,8 @@
 \alias{enrichrEnrich}
 \title{Enrichment analysis}
 \usage{
-enrichrEnrich(userListId, libNames = getEnrichrLibNames(), connectionN = 10)
+enrichrEnrich(userListId, libNames = getEnrichrLibNames(),
+  connectionN = 10, retryN = 3)
 }
 \arguments{
 \item{userListId}{userListId returned by the Enrichr server via \code{\link{enrichrAddList}}}
@@ -14,6 +15,8 @@ enrichrEnrich(userListId, libNames = getEnrichrLibNames(), connectionN = 10)
  validate the list. If the value is NULL, the function will use the internal list.}
 
 \item{connectionN}{maximum number of concurrent connections to make}
+
+\item{retryN}{total number of times to retry a query if it fails}
 }
 \value{
 \code{list} with two elements: success and failure. The first element is a \code{list}

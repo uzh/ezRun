@@ -11,9 +11,9 @@ clusterResults(x, nClusters = 5, clusterColors = rainbow(nClusters),
 
 clusterHeatmap(x, param, result, file = "cluster-heatmap.png",
   method = "ward.D2", doClusterColumns = FALSE, columnDist = NULL,
-  colColors = NULL, lim = c(-4, 4), cexRow = 1, cexCol = 1.5,
-  labRow = rownames(x), margins = c(14, 9), colors = getBlueRedScale(),
-  maxGenesWithLabel = 50, ...)
+  colColors = NULL, lim = c(-4, 4), lwid = c(1, 4), lhei = c(1, 5),
+  cexRow = 1, cexCol = 1.5, labRow = rownames(x), margins = c(14,
+  9), colors = getBlueRedScale(), maxGenesWithLabel = 50, ...)
 
 goClusterResults(x, param, result, ontologies = c("BP", "MF", "CC"),
   seqAnno = NULL, universeGeneIds = NULL, universeProbeIds = NULL,

@@ -4,7 +4,8 @@
 \alias{addTestScatterPlots}
 \title{Adds test scatter plots}
 \usage{
-addTestScatterPlots(doc, param, x, result, seqAnno, resultFile, types = NULL)
+addTestScatterPlots(doc, param, x, result, seqAnno, resultFile,
+  types = NULL)
 }
 \arguments{
 \item{doc}{an object of the class bsdoc to add the plots.}
