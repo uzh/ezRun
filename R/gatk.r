@@ -11,7 +11,7 @@
   param = fillWithDefaults(param) ## TODOMF: function doesn't exist
   options(cores=param$cores)
   ref = param$ezRef["refFastaFile"]
-  gatk = paste("java -Xmx8g -Djava.io.tmpdir=.", "-jar", "$GATK_jar")
+  gatk = paste("java -Xmx8g -Djava.io.tmpdir=.", "-jar", Sys.getenv("GATK_jar"))
   inputBam = ezFullPaths(param$dataRoot, input$BAM) ## TODO: Refactor when updating function
   localBam = basename(input$BAM)
   realigned = sub(".bam$", ".realigned.bam", localBam)
@@ -78,7 +78,7 @@
 ## calling a haplotype
 
 .gatkHaplotypeCaller = function(bamFile, genomeSeq, knownVariants, vcfOutput){
-  gatk = paste("java -Xmx8g -Djava.io.tmpdir=. ", "-jar", "$GATK_jar")
+  gatk = paste("java -Xmx8g -Djava.io.tmpdir=. ", "-jar", Sys.getenv("GATK_jar"))
   cmd = paste(gatk, "-T HaplotypeCaller", "-R", genomeSeq,
               "-I", bamFile,
               "--dbsnp", knownVariants,

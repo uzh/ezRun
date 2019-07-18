@@ -13,6 +13,7 @@
 ##' @return Returns a names vector of the chromosome sizes.
 ## TODOEXAMPLE: get vcf file with $contig information.
 ezChromSizesFromVcf = function(vcfFile){
+  require(VariantAnnotation)
   vh = scanVcfHeader(vcfFile)
   contigs = header(vh)$contig
   chromSizes = as.integer(contigs[ , "length"])
@@ -33,16 +34,21 @@ ezChromSizesFromVcf = function(vcfFile){
 ##' @template roxygen-template
 ##' @return Returns a filtered VCF file.
 ## TODOEXAMPLE: get working .vcf file
-ezFilterVcf = function(vcfFile, vcfFiltFile, discardMultiAllelic=TRUE, bamDataset=bamDataset, param=NULL){
+ezFilterVcf = function(vcfFile, vcfFiltFile, discardMultiAllelic=TRUE, 
+                       bamDataset=bamDataset, param=NULL){
+  require(VariantAnnotation)
   vcf = readVcf(vcfFile, genome="genomeDummy")
   genotype = geno(vcf)
   if (discardMultiAllelic){
-    isMultiAllelic = apply(genotype$AD, 1, function(x){any(sapply(x, length) > 2)})
+    isMultiAllelic = apply(genotype$AD, 1, 
+                           function(x){any(sapply(x, length) > 2)})
     table(isMultiAllelic)
     vcf = vcf[!isMultiAllelic, ]
     genotype = geno(vcf)
   }
-  altCount = apply(genotype$AD, 2, function(x){sapply(x, function(y){if (length(y) == 0) return(NA); return(max(y))})})
+  altCount = apply(genotype$AD, 2, function(x){
+    sapply(x, function(y){if (length(y) == 0) return(NA); return(max(y))})
+    })
   hasHighAltCount = apply(altCount > param$vcfFilt.minAltCount, 1, any)
   vcf = vcf[which(hasHighAltCount), ]
   genotype = geno(vcf)
@@ -54,7 +60,8 @@ ezFilterVcf = function(vcfFile, vcfFiltFile, discardMultiAllelic=TRUE, bamDatase
     genotype[[nm]] = genotype[[nm]][ , rownames(bamDataset)] ## establish the original order
   }
   geno(vcf) = genotype
-  colData(vcf) = DataFrame(Samples=1:ncol(genotype$AD), row.names=colnames(genotype$AD))
+  colData(vcf) = DataFrame(Samples=1:ncol(genotype$AD), 
+                           row.names=colnames(genotype$AD))
   ezWriteVcf(vcf, vcfFiltFile)
 }
 

@@ -54,7 +54,7 @@ addResp <- enrichrAddList(genes)
 names(addResp)
 # [1] "shortId"    "userListId"
 # This will check all libraries specified in the internal list (extdata/enrichr_libnames.txt)
-res <- enrichrEnrich(genes)
+res <- enrichrEnrich(addResp$userListId)
 # Check if any requests failed
 if (length(res$failure) > 0) {
   cat(length(res$failure), " requests failed")

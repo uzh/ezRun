@@ -31,21 +31,23 @@ ezMethodCellRangerAggr = function(input=NA, output=NA, param=NA){
   samples <- param$samples
   input <- input$subset(samples)
   
-  if(!any(input$columnHasTag("Factor"))){
-    meta <- input$meta
-    meta$`Condition [Factor]` <- input$getNames()
-    input <- EzDataset$new(meta=meta, dataRoot=input$dataRoot)
-  }
+  # if(!any(input$columnHasTag("Factor"))){
+  #   meta <- input$meta
+  #   meta$`Condition [Factor]` <- input$getNames()
+  #   input <- EzDataset$new(meta=meta, dataRoot=input$dataRoot)
+  # }
   
   aggr_input <- tibble(library_id=input$getNames(),
-                       molecule_h5=file.path(input$getFullPaths("ResultDir"),
+                       molecule_h5=file.path(dirname(input$getFullPaths("Report")),
                                              "molecule_info.h5")
                        )
-  aggr_input2 <- as_tibble(input$meta[,input$columnHasTag("Factor"), drop=FALSE],
-                           rownames="library_id")
-  colnames(aggr_input2) <- sub(" \\[.*", "", colnames(aggr_input2))
+  if(any(input$columnHasTag("Factor"))){
+    aggr_input2 <- as_tibble(input$meta[ ,input$columnHasTag("Factor"), drop=FALSE],
+                             rownames="library_id")
+    colnames(aggr_input2) <- sub(" \\[.*", "", colnames(aggr_input2))
+    aggr_input <- left_join(aggr_input, aggr_input2)
+  }
   
-  aggr_input <- left_join(aggr_input, aggr_input2)
   aggr_input_fn <- tempfile(pattern="aggr_input", fileext = ".csv")
   write_csv(aggr_input, path=aggr_input_fn)
   

@@ -18,6 +18,6 @@ by the package \code{DEXSeq}. Input file name and the
 name of the file to be generated are both given as
 function parameters. The conversion is done by a python
 script that is given by the content of \code{DEXSEQ_PREPARE}
-which is either taken as a global variable or from the
-result of function \code{lGetPyScriptPaths}
+which is taken from the result of function
+\code{lGetPyScriptPaths}
 }

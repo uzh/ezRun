@@ -6,7 +6,7 @@
 \alias{getSampleLty}
 \title{Gets the sample colors}
 \usage{
-getSampleColors(conds, colorNames = names(conds), hueStep = 1/50)
+getSampleColors(conds, colorNames = names(conds), hueStep = 0)
 
 getSamplePch(conds, pchNames = names(conds))
 

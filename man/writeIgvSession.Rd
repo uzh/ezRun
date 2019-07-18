@@ -5,18 +5,20 @@
 \alias{getIgvGenome}
 \alias{addIgvSessionLink}
 \alias{writeIgvSessionLink}
-\title{Writes an IGV session}
+\title{Writes a jnlp link to a static html}
 \usage{
-writeIgvSession(genome, refBuild, file = "igvSession.xml", bamUrls = NULL,
-  vcfUrls = NULL, locus = "All")
+writeIgvSession(genome, refBuild, file = "igvSession.xml",
+  bamUrls = NULL, vcfUrls = NULL, locus = "All")
 
 getIgvGenome(param)
 
 addIgvSessionLink(genome, refBuild, bamFiles, doc, locus = "All",
-  label = "Open Integrative Genomics Viewer", baseUrl = PROJECT_BASE_URL)
+  label = "Open Integrative Genomics Viewer",
+  baseUrl = PROJECT_BASE_URL)
 
 writeIgvSessionLink(genome, refBuild, bamFiles, html, locus = "All",
-  label = "Open Integrative Genomics Viewer", baseUrl = PROJECT_BASE_URL)
+  label = "Open Integrative Genomics Viewer",
+  baseUrl = PROJECT_BASE_URL)
 }
 \arguments{
 \item{genome}{a character representing the build name.}
@@ -30,11 +32,19 @@ writeIgvSessionLink(genome, refBuild, bamFiles, html, locus = "All",
 \item{vcfUrls}{a character vector containing VCF file links.}
 
 \item{locus}{a character describing which loci were used.}
+
+\item{html}{a character representing an html address.}
+
+\item{htmlFile}{a character, ending with .html, representing the file path of an html file.}
+
+\item{projectId}{a character representing the project ID.}
 }
 \value{
 Returns a character containing the name of the newly written .xml file.
 }
 \description{
+Writes a jnlp link to a static html. The html can be moved as long as the session xml stays in the same directory.
+
 Writes an IGV session into a separate .xml file
 }
 \section{Functions}{
@@ -59,6 +69,10 @@ writeIgvSession(genome, param$ezRef["refBuild"])
 \code{\link[XML]{addChildren}}
 }
 \author{
+Rehrauer, Hubert
+
+Schmid, Peter
+
 Rehrauer, Hubert
 
 Schmid, Peter

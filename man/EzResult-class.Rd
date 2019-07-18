@@ -5,6 +5,9 @@
 \alias{EzResult-class}
 \alias{EzResult}
 \title{The object that represents a result of an expression analysis}
+\description{
+The object that represents a result of an expression analysis
+}
 \section{Fields}{
 
 \describe{

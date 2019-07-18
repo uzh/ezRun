@@ -7,21 +7,24 @@
 \usage{
 makeMinimalSingleEndReadDataset(fqDir, species = "",
   adapter1 = "GATCGGAAGAGCACACGTCTGAACTCCAGTCAC", strandMode = "both",
-  readCount = NULL)
+  readCount = NULL, dataRoot = DEFAULT_DATA_ROOT)
 
 makeMinimalPairedEndReadDataset(fqDir, species = "",
   adapter1 = "GATCGGAAGAGCACACGTCTGAACTCCAGTCAC",
   adapter2 = "AGATCGGAAGAGCGTCGTGTAGGGAAAGAGTGT", strandMode = "both",
-  readCount = NULL, readTypeSuffix = c("-R1.fastq.gz", "-R2.fastq.gz"))
+  readCount = NULL, readTypeSuffix = c("-R1.fastq.gz", "-R2.fastq.gz"),
+  dataRoot = DEFAULT_DATA_ROOT)
 }
 \arguments{
-\item{fqDir}{a character specifying the path to the directory holding the fastq files. The path must be relative to the DATA_ROOT}
+\item{fqDir}{a character specifying the path to the directory holding the fastq files. The paths stored in the dataset will be relative to the dataRoot}
 
 \item{species}{a character specifying the species name.}
 
 \item{adapter1}{a character representing the adapter sequence.}
 
 \item{strandMode}{a character specifying the strand mode for the dataset.}
+
+\item{dataRoot}{a string specifying the root directory of the data}
 
 \item{adapter2}{a character representing the second adapter sequence in the case of a paired end dataset.}
 }

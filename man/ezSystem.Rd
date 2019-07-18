@@ -4,7 +4,8 @@
 \alias{ezSystem}
 \title{Invokes a system command}
 \usage{
-ezSystem(cmd, echo = TRUE, intern = FALSE, stopOnFailure = !intern, ...)
+ezSystem(cmd, echo = TRUE, intern = FALSE, stopOnFailure = !intern,
+  ...)
 }
 \arguments{
 \item{cmd}{a system command input as a character.}

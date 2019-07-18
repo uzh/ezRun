@@ -4,8 +4,8 @@
 \alias{intHist}
 \title{Shrinks values and plots a histogram}
 \usage{
-intHist(x, range = c(round(min(x, na.rm = TRUE)) - 0.5, round(max(x, na.rm =
-  TRUE)) + 0.5), step = 1, ...)
+intHist(x, range = c(round(min(x, na.rm = TRUE)) - 0.5, round(max(x,
+  na.rm = TRUE)) + 0.5), step = 1, ...)
 }
 \arguments{
 \item{x}{a vector of values to shrink and plot a histogram from.}

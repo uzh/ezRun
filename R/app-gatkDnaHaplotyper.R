@@ -41,7 +41,7 @@ ezMethodGatkDnaHaplotyper = function(input=NA, output=NA, param=NA){
   ezSystem(paste("samtools", "index", "withRg.bam"))
   
   if(param$splitNtrim){
-    gatk = paste(javaCall, "-jar", "$GATK_jar")
+    gatk = paste(javaCall, "-jar", Sys.getenv("GATK_jar"))
     cmd = paste(gatk, "-T SplitNCigarReads", "-R", genomeSeq,
                 "-I", "withRg.bam",
                 "-rf ReassignOneMappingQuality -RMQF 255 -RMQT 60 -U ALLOW_N_CIGAR_READS",
@@ -57,7 +57,7 @@ ezMethodGatkDnaHaplotyper = function(input=NA, output=NA, param=NA){
   
   #BaseRecalibration is done only if known sites are available
   if(param$knownSitesAvailable){
-  baseRecalibration1 = paste(javaCall,"-jar", "$GATK_jar", " -T BaseRecalibrator")
+  baseRecalibration1 = paste(javaCall,"-jar", Sys.getenv("GATK_jar"), " -T BaseRecalibrator")
   #knownSitesCMD = ''
   #for (j in 1:length(knownSites)){
   #  knownSitesCMD = paste(knownSitesCMD,paste("--knownSites", knownSites[j], collapse=','))
@@ -76,7 +76,7 @@ ezMethodGatkDnaHaplotyper = function(input=NA, output=NA, param=NA){
   ezSystem(cmd)
   
   
-  baseRecalibration2 = paste(javaCall,"-jar", "$GATK_jar", " -T PrintReads")
+  baseRecalibration2 = paste(javaCall,"-jar", Sys.getenv("GATK_jar"), " -T PrintReads")
   cmd = paste(baseRecalibration2, "-R", genomeSeq,
               "-I withRg.bam",
               "-BQSR recal.table",
@@ -92,7 +92,7 @@ ezMethodGatkDnaHaplotyper = function(input=NA, output=NA, param=NA){
   }
   ezSystem(paste("samtools", "index", "recal.bam"))
   ########### haplotyping
-  haplotyperCall = paste(javaCall,"-jar", "$GATK_jar", " -T HaplotypeCaller")
+  haplotyperCall = paste(javaCall,"-jar", Sys.getenv("GATK_jar"), " -T HaplotypeCaller")
   outputFile = paste0(sampleName, "-HC_calls.g.vcf")
   cmd = paste(haplotyperCall, "-R", genomeSeq,
               "-I recal.bam",
