@@ -56,10 +56,10 @@ rescaled <- do.call(batchelor::multiBatchNorm,
                     lapply(sceList, function(x){x[universe, ]}))
 if(param$batchCorrection == "MNN"){
   set.seed(100)
-  ## k may need some optimisation
+  ## k, d may need some optimisation
   mnn.out <- do.call(batchelor::fastMNN,
                      c(lapply(rescaled, function(x){x[chosen, ]}),
-                       k=20, d=50, BSPARAM=IrlbaParam(deferred=TRUE))
+                       k=20, d=50, BSPARAM=IrlbaParam(deferred=FALSE))
                      )
   sce <- mnn.out
   assay(sce, "counts") <- do.call(cbind,
@@ -70,8 +70,14 @@ if(param$batchCorrection == "MNN"){
                                            function(x){assay(x[chosen, ], "logcounts")}))
 }else{
   stop("Not implemented yet!")
-  foo <- multiBatchPCA(rescaled[[1]], rescaled[[2]], d=50, BSPARAM=IrlbaParam(deferred=TRUE))
+  set.seed(1000)
+  ## d may need some optimisation
+  pc.all <- do.call(batchelor::multiBatchPCA,
+                    c(lapply(rescaled, function(x){x[chosen, ]}),
+                      d=50, BSPARAM=IrlbaParam(deferred=FALSE)))
+  sce <- SingleCellEx
   sce <- do.call(cbind, lapply(rescaled, function(x){x[chosen, ]}))
+  
 }
 ```
 
@@ -80,7 +86,7 @@ if(param$batchCorrection == "MNN"){
 ```{r tsne, echo=FALSE}
 # Using irlba to set up the t-SNE, for speed.
 set.seed(100)
-osce <- runPCA(sce, ntop=Inf, BSPARAM=IrlbaParam())
+osce <- runPCA(sce, ntop=Inf, BSPARAM=IrlbaParam(deferred=FALSE))
 osce <- runTSNE(osce, use_dimred="PCA")
 ot <- plotTSNE(osce, colour_by="batch") + ggtitle("Original")
 
@@ -89,17 +95,19 @@ set.seed(100)
 sce <- runTSNE(sce, use_dimred="corrected")
 ct <- plotTSNE(sce, colour_by="batch") + ggtitle("Corrected")
 
+eachMarker <- "Opn1mw"
 p1 <- plotTSNE(osce, by_exprs_values="logcounts", colour_by=eachMarker) +
-  scale_fill_gradient(low="gray", high="red") + 
+  scale_fill_gradient(low="gray", high="red") +
   ggtitle(eachMarker) + labs(fill=eachMarker)
 p1
+
 
 p2 <- plotTSNE(sce, by_exprs_values="reconstructed", colour_by=eachMarker) +
   scale_fill_gradient(low="gray", high="red") +
   ggtitle(eachMarker) + labs(fill=eachMarker)
 p2
 
-p <- plot_grid(ot, ct, p1, p2, ncol=2)
+p <- plot_grid(ot, ct)
 save_plot(filename="OriginalVsCorrected.pdf", p, ncol=2, nrow=2,
           base_height = 7)
 
