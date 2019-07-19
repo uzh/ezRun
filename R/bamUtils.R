@@ -72,7 +72,7 @@ atacBamProcess <- function(input=NA, output=NA, param=NA){
 
 ### Make or remove duplicated in bam file
 dupBam <- function(inBam, outBam, operation=c("mark", "remove"),
-                   program=c("sambamba", "picard"),
+                   program=c("picard", "sambamba"),
                    cores=ezThreads()){
   require(Rsamtools)
   
