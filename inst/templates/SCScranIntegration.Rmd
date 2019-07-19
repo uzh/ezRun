@@ -47,47 +47,84 @@ universe <- Reduce(intersect, lapply(decList, rownames))
 bioMatrix <- do.call(cbind, lapply(decList, function(x){x[universe, "bio"]}))
 mean.bio <- rowMeans(bioMatrix)
 chosen <- universe[mean.bio > 0]
-```
-
-`r length(chosen)` features are selected across samples for integration and correction.
-
-```{r multiBatchNorm, echo=FALSE}
 rescaled <- do.call(batchelor::multiBatchNorm,
                     lapply(sceList, function(x){x[universe, ]}))
-if(param$batchCorrection == "MNN"){
-  set.seed(100)
-  ## k, d may need some optimisation
-  mnn.out <- do.call(batchelor::fastMNN,
-                     c(lapply(rescaled, function(x){x[chosen, ]}),
-                       k=20, d=50, BSPARAM=IrlbaParam(deferred=FALSE))
-                     )
-  sce <- mnn.out
-  assay(sce, "counts") <- do.call(cbind,
-                                    lapply(rescaled,
-                                           function(x){assay(x[chosen, ], "counts")}))
-  assay(sce, "logcounts") <- do.call(cbind,
-                                    lapply(rescaled,
-                                           function(x){assay(x[chosen, ], "logcounts")}))
-}else{
-  stop("Not implemented yet!")
-  set.seed(1000)
-  ## d may need some optimisation
-  pc.all <- do.call(batchelor::multiBatchPCA,
-                    c(lapply(rescaled, function(x){x[chosen, ]}),
-                      d=50, BSPARAM=IrlbaParam(deferred=FALSE)))
-  sce <- SingleCellEx
-  sce <- do.call(cbind, lapply(rescaled, function(x){x[chosen, ]}))
-  
-}
 ```
 
-#### Visualization on low-dimensional space
+```{r integration None, echo=FALSE, eval=TRUE}
+# We always do the simple integration. Even just for comparison
+sce <- SingleCellExperiment(assays=list(counts=do.call(cbind, lapply(rescaled, assay, "counts")),
+                                        logcounts=do.call(cbind, lapply(rescaled, assay, "logcounts"))),
+                            rowRanges=rowRanges(rescaled[[1]]),
+                            colData=do.call(rbind, lapply(rescaled, colData)),
+                            metadata=list(param=param,
+                                          log.exprs.offset=metadata(rescaled[[1]])$log.exprs.offset)
+                            )
+new.trend <- makeTechTrend(x=sce)
+if(metadata(sce)$param$scProtocol == "10X"){
+  fit <- trendVar(sce, use.spikes=FALSE, loess.args=list(span=0.05))
+}else if(metadata(sce)$param$scProtocol == "Smart-seq2"){
+  fit <- trendVar(sce, use.spikes=FALSE, loess.args=list(span=0.3))
+}
+fit$trend <- new.trend # overwrite trend.
+dec <- decomposeVar(fit=fit) # use per-gene variance estimates in 'fit'.
+metadata(sce)$dec <- dec
+set.seed(1000)
+sce <- denoisePCA(sce, technical=new.trend, BSPARAM=IrlbaParam())
+set.seed(1000)
+sce <- switch(metadata(sce)$param$visMethod,
+              "TSNE"=runTSNE(sce, use_dimred="PCA",
+                             perplexity=getPerplexity(ncol(sce))),
+              "UMAP"=runUMAP(sce, use_dimred="PCA"),
+              "DiffusionMap"=runDiffusionMap(sce, use_dimred="PCA")
+              )
+## d may need some optimisation
+# pc.all <- do.call(batchelor::multiBatchPCA,
+#                   c(lapply(rescaled, function(x){x[chosen, ]}),
+#                     d=50, BSPARAM=IrlbaParam(deferred=FALSE)))
+# sce <- do.call(cbind, lapply(rescaled, function(x){x[chosen, ]}))
+```
 
-```{r tsne, echo=FALSE}
-# Using irlba to set up the t-SNE, for speed.
+```{r integration MNN, echo=FALSE, eval=param$batchCorrection=="MNN"}
 set.seed(100)
-osce <- runPCA(sce, ntop=Inf, BSPARAM=IrlbaParam(deferred=FALSE))
-osce <- runTSNE(osce, use_dimred="PCA")
+## k, d may need some optimisation
+sce.mnn <- do.call(batchelor::fastMNN,
+                   c(lapply(rescaled, function(x){x[chosen, ]}),
+                     k=20, d=50, BSPARAM=IrlbaParam(deferred=FALSE))
+                   )
+assay(sce.mnn, "counts") <- do.call(cbind,
+                                  lapply(rescaled,
+                                         function(x){assay(x[chosen, ], "counts")}))
+assay(sce.mnn, "logcounts") <- do.call(cbind,
+                                  lapply(rescaled,
+                                         function(x){assay(x[chosen, ], "logcounts")}))
+metadata(sce.mnn)$param <- param
+
+cat(length(chosen), "features are selected across samples for batch correction.\n")
+
+set.seed(1000)
+sce.mnn <- switch(metadata(sce.mnn)$param$visMethod,
+                  "TSNE"=runTSNE(sce.mnn, use_dimred="PCA",
+                                 perplexity=getPerplexity(ncol(sce.mnn))),
+                  "UMAP"=runUMAP(sce.mnn, use_dimred="PCA"),
+                  "DiffusionMap"=runDiffusionMap(sce.mnn, use_dimred="PCA")
+                  )
+```
+
+#### Visualization of integration
+
+```{r vis in low-dim, echo=FALSE}
+if(metadata(sce)$param$visMethod == "TSNE"){
+  p <- plotTSNE(sce, colour_by="batch") + ggtitle("No correction")
+  print(p)
+}else if(metadata(sce)$param$visMethod == "UMAP"){
+  p <- plotUMAP(sce, colour_by="batch") + ggtitle("No correction")
+  print(p)
+}else if(metadata(sce)$param$visMethod == "DiffusionMap"){
+  p <- plotDiffusionMap(sce, colour_by="batch") + ggtitle("No correction")
+  print(p)
+}
+
 ot <- plotTSNE(osce, colour_by="batch") + ggtitle("Original")
 
 # Corrected.
@@ -100,7 +137,6 @@ p1 <- plotTSNE(osce, by_exprs_values="logcounts", colour_by=eachMarker) +
   scale_fill_gradient(low="gray", high="red") +
   ggtitle(eachMarker) + labs(fill=eachMarker)
 p1
-
 
 p2 <- plotTSNE(sce, by_exprs_values="reconstructed", colour_by=eachMarker) +
   scale_fill_gradient(low="gray", high="red") +
