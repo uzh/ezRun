@@ -89,8 +89,7 @@ dupBam <- function(inBam, outBam, operation=c("mark", "remove"),
   }
   
   message("Marking duplicates with ", program)
-  
-  
+
   if(program == "sambamba"){
     cmd <- paste("sambamba markdup -t", cores, "-l 9 --tmpdir=.",
                  ifelse(operation=="mark", "", "-r"), inBam, outBam)
@@ -109,7 +108,7 @@ dupBam <- function(inBam, outBam, operation=c("mark", "remove"),
                         ifelse(operation=="mark", "false", "true")),
                  "> /dev/null")
     ezSystem(cmd)
-    ezSystem(paste("samtools", "index", outBam))
+    indexBam(outBam)
   }
   
   invisible(outBam)
@@ -133,8 +132,7 @@ filteroutBam <- function(inBam, outBam, cores=ezThreads(), chrs=NULL, mapQ=NULL)
   }
   ezSystem(cmd)
   
-  cmd <- paste("samtools index", outBam)
-  ezSystem(cmd)
+  indexBam(outBam)
   
   invisible(outBam)
 }
