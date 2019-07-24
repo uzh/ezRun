@@ -359,8 +359,15 @@ print(p)
 scData@scale.data <- NULL
 saveRDS(list(scData=scData, tSNE_data=tSNE_data),
         file=basename(output$getColumn("Live Report")))
+sce_iSEE = as.SingleCellExperiment(scData)
+saveRDS(sce_iSEE, "sce_iSEE.rds")
 ```
 [Shiny explorer](`r output$getColumn("Live Report")`)
+
+<br>
+
+[iSEE explorer](`r paste0("http://fgcz-shiny.uzh.ch/fgcz_iSEE/?data=",getwd(),"/sce_iSEE.rds")`)
+
 
 ### MAGIC
 Markov Affinity-based Graph Imputation of Cells (MAGIC) is an algorithm for 
