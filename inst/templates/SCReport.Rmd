@@ -28,6 +28,7 @@ library(RColorBrewer)
 library(SummarizedExperiment)
 library(tibble)
 library(Rmagic) ## This has to be loaded after setting correct python
+library(SingleR)
 
 ## ----------------------------------------------
 ## debug
@@ -400,6 +401,49 @@ ggplot(magic_data) +
   scale_color_viridis(option="B")
 ```
 
+```{r}
+organism = NULL
+if(startsWith(param$refBuild, "Homo_sapiens/Ensembl")){
+    organism <- "Human"
+} else if(startsWith(param$refBuild, "Mus_musculus/Ensembl")){
+  organism <- "Mouse"
+}
+```
+
+```{r singler, eval= !is.null(organism), results='hide', message=FALSE}
+unloadNamespace("Seurat") #unload the Seurat v2
+library("Seurat", lib="/home/daymegr/myRpackages") #and load the version 3
+scData_v3 = UpdateSeuratObject(scData)
+
+library(SingleR) #only load SingleR after loading the newest Seurat version
+singler = CreateSinglerObject(as.matrix(GetAssayData(scData_v3, slot = "counts")), annot = NULL, project.name = scData_v3@project.name,
+                              min.genes = 0, technology = "10X", species = organism,
+                              citation = "", normalize.gene.length = F,
+                              variable.genes = "de", fine.tune = T,
+                              do.signatures = F, clusters=scData_v3@active.ident,
+                              do.main.types = T, reduce.file.size=T,
+                              temp.dir = NULL, numCores = param$cores)
+
+singler$seurat = scData_v3
+singler$meta.data$orig.ident = scData_v3@meta.data$Batch
+singler$meta.data$xy = scData_v3@reductions$tsne@cell.embeddings # the tSNE coordinates
+singler$meta.data$clusters = Idents(scData_v3)
+
+#convert the file to use it in the interactive browser
+singler.browser = convertSingleR2Browser(singler)
+saveRDS(singler.browser, 'singler.browser.rds')
+```
+
+```{r singlerbrowser, eval= !is.null(organism), results='asis'}
+cat("### Cell populations")
+cat("\n\n")
+cat("In order to identify cell populations we used SingleR ^[ Aran, Looney, Liu et al. Reference-based analysis of lung single-cell sequencing reveals a transitional profibrotic macrophage. Nature Immunology (2019)], a computational method for unbiased cell type recognition of scRNA-seq. SingleR leverages reference transcriptomic datasets of pure cell types to infer the cell of origin of each of the single cells independently. \n The SingleR browser allows to visualize the cell populations identified in different and easier ways.")
+cat("\n\n")
+
+cat(paste0("[SingleR browser](http://fgcz-shiny.uzh.ch/fgcz_SingleRBrowser_app/?data=" , output$getColumn("Report"), "/singler.browser.rds)"))
+```
+
+
 ### Parameters
 ```{r report parameters, echo=FALSE}
 param[c("minCellsPerGene", "minGenesPerCell", "maxGenesPerCell", "minReadsPerCell", 
@@ -409,7 +453,7 @@ param[c("minCellsPerGene", "minGenesPerCell", "maxGenesPerCell", "minReadsPerCel
 ```
 
 ```{r seurat parameters, echo=FALSE}
-PrintFindClustersParams(object = scData)
+Seurat2::PrintFindClustersParams(object = scData)
 ```
 
 ### SessionInfo
