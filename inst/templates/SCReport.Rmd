@@ -28,7 +28,6 @@ library(RColorBrewer)
 library(SummarizedExperiment)
 library(tibble)
 library(Rmagic) ## This has to be loaded after setting correct python
-library(SingleR)
 
 ## ----------------------------------------------
 ## debug
