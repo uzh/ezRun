@@ -410,19 +410,16 @@ if(startsWith(param$refBuild, "Homo_sapiens/Ensembl")){
 ```
 
 ```{r singler, eval= !is.null(organism), results='hide', message=FALSE}
+unloadNamespace("SingleR") #be sure SingleR is unloaded
+#detach(package:SingleR)
 unloadNamespace("Seurat") #unload the Seurat v2
+#detach(package:Seurat)
 library("Seurat", lib="/home/daymegr/myRpackages") #and load the version 3
 scData_v3 = UpdateSeuratObject(scData)
 
 library(SingleR) #only load SingleR after loading the newest Seurat version
-singler = CreateSinglerObject(as.matrix(GetAssayData(scData_v3, slot = "counts")), annot = NULL, project.name = scData_v3@project.name,
-                              min.genes = 0, technology = "10X", species = organism,
-                              citation = "", normalize.gene.length = F,
-                              variable.genes = "de", fine.tune = T,
-                              do.signatures = F, clusters=scData_v3@active.ident,
-                              do.main.types = T, reduce.file.size=T,
-                              temp.dir = NULL, numCores = param$cores)
-
+singler = CreateSinglerObject(as.matrix(GetAssayData(scData_v3, slot = "counts")), annot = NULL, project.name = "", min.genes = 0, technology = "10X", species = organism, citation = "", normalize.gene.length = F, variable.genes = "de", fine.tune = T, do.signatures = F, clusters=scData_v3@active.ident, do.main.types = T, reduce.file.size=T,temp.dir = NULL, numCores = param$cores)
+                              
 singler$seurat = scData_v3
 singler$meta.data$orig.ident = scData_v3@meta.data$Batch
 singler$meta.data$xy = scData_v3@reductions$tsne@cell.embeddings # the tSNE coordinates
@@ -433,11 +430,13 @@ singler.browser = convertSingleR2Browser(singler)
 saveRDS(singler.browser, 'singler.browser.rds')
 ```
 
-```{r singlerbrowser, eval= !is.null(organism), results='asis'}
+```{r singlerbrowser, eval= !is.null(organism), results='asis', echo=FALSE}
 cat("### Cell populations")
-cat("\n\n")
-cat("In order to identify cell populations we used SingleR ^[ Aran, Looney, Liu et al. Reference-based analysis of lung single-cell sequencing reveals a transitional profibrotic macrophage. Nature Immunology (2019)], a computational method for unbiased cell type recognition of scRNA-seq. SingleR leverages reference transcriptomic datasets of pure cell types to infer the cell of origin of each of the single cells independently. \n The SingleR browser allows to visualize the cell populations identified in different and easier ways.")
-cat("\n\n")
+cat("\n")
+cat("\n")
+cat("In order to identify cell populations we used SingleR [ Aran, Looney, Liu et al. Reference-based analysis of lung single-cell sequencing reveals a transitional profibrotic macrophage. Nature Immunology (2019)], a computational method for unbiased cell type recognition of scRNA-seq. SingleR leverages reference transcriptomic datasets of pure cell types to infer the cell of origin of each of the single cells independently. \n The SingleR browser allows to visualize the cell populations identified in different and easier ways.")
+cat("\n")
+cat("\n")
 
 cat(paste0("[SingleR browser](http://fgcz-shiny.uzh.ch/fgcz_SingleRBrowser_app/?data=" , output$getColumn("Report"), "/singler.browser.rds)"))
 ```
