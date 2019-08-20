@@ -176,6 +176,10 @@ enrichrEnrich <- function(userListId, libNames = getEnrichrLibNames(), connectio
     if ("expired" %in% names(respParsed) && respParsed$expired == T) {
       stop("The server response indicates that the gene set has expired")
     }
+    if (length(respParsed) == 0){
+      saveRDS(respParsed, file=paste0("enrichr-error-response", ezTime(), "-debug.rds"))
+      stop("the length of the parsed response is zero")
+    }
     respParsed <- respParsed[[1]]
     fieldNames <- c("Rank", "Term", "p_value", "z_score", "Combined.Score", "Overlapping.Genes",
                     "Adjusted.p_value", "Old.p_value", "Old.Adjusted.p_value", "nOverlapping.Genes")
