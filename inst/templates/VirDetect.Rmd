@@ -126,7 +126,7 @@ if (exists("sub")){
 			chr=sub$ID[i]
 			common_name=sub$CommonName[i]
 			csv.file<-file.path(wddir, paste0(chr, ".csv"))
-			if (file.exists(csv.file){
+			if (file.exists(csv.file)){
 				cov<-read.table(csv.file, header=FALSE, sep="\t", quote="", stringsAsFactors=FALSE)
 				plot(cov$V5, cov$V6, type="l", col="blue", xlab=common_name, ylab="Depth", cex=0.5)
 			}
