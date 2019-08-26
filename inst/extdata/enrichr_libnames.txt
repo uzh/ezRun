@@ -13,7 +13,7 @@ ARCHS4_Tissues
 BioCarta_2016
 BioPlex_2017
 ChEA_2016
-Chromosome_Location
+Chromosome_Location_hg19
 CORUM
 dbGaP
 Disease_Perturbations_from_GEO_down
@@ -28,9 +28,9 @@ Epigenomics_Roadmap_HM_ChIP-seq
 ESCAPE
 GeneSigDB
 Genome_Browser_PWMs
-GO_Biological_Process_2017b
-GO_Cellular_Component_2017b
-GO_Molecular_Function_2017b
+GO_Biological_Process_2018
+GO_Cellular_Component_2018
+GO_Molecular_Function_2018
 GTEx_Tissue_Sample_Gene_Expression_Profiles_down
 GTEx_Tissue_Sample_Gene_Expression_Profiles_up
 HMDB_Metabolites
