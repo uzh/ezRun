@@ -64,13 +64,15 @@ loadCountDataset <- function(input, param){
                                    gene_name=rownames(signal),
                                    type="protein_coding",
                                    strand="*",
-                                   seqid=NA,
+                                   seqid=1,
                                    biotypes="protein_coding",
                                    description=rownames(signal),
-                                   start=NA, end=NA, gc=NA, featWidth=NA,
+                                   start=1, end=100, gc=NA, featWidth=NA,
                                    "GO BP"="", "GO CC"="", "GO MF"="")
-    x1 <- rename(x1, gene_id=GeneID, seqid=Chr, start=Start, end=End,
+    if(any(colnames(x1) %in% c('GeneID', 'Chr', 'Start', 'End', 'Strand'))){
+      x1 <- rename(x1, gene_id=GeneID, seqid=Chr, start=Start, end=End,
                  strand=Strand)
+    }
     colsInData <- intersect(colnames(seqAnnoDFFeature), colnames(x1))
     if(length(colsInData) > 0){
       seqAnnoDFFeature[ ,colsInData] <- x1[ ,colsInData]
