@@ -42,7 +42,7 @@ ezMethodTeqc = function(input=NA, output=NA, param=NA){
   sGtfFile <- param$ezRef@refFeatureFile
   myGTF <- rtracklayer::import(sGtfFile)
   myGTF <- myGTF[mcols(myGTF)$type=='exon']
-  myGTF <- myGTF[myGTF$gene_biotype=='protein_coding' & myGTF$source =='protein_coding',]
+  myGTF <- myGTF[myGTF$gene_biotype=='protein_coding' & myGTF$transcript_biotype =='protein_coding',]
   
   keepCols = c('seqnames','start','end','strand','type','gene_id','gene_name')
   gtf_df = data.frame(myGTF,stringsAsFactors = FALSE)
@@ -156,6 +156,7 @@ runTEQC = function(file, allExons, param){
   if (length(skip) == 0) skip = 0
   targets=TEQC::get.targets(targetsfile, skip=skip)
   #clean reads from mappings to unsupported chromosomes
+  seqlevels(reads) <- c(levels(seqnames(reads)),as.character(setdiff(seqnames(targets), seqnames(reads))))
   reads <- keepSeqlevels(reads, levels(seqnames(targets)), pruning.mode="coarse")
   seqlevels(reads) = as.character(unique(seqnames(reads)))
   strand(reads) = '*'
