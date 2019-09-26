@@ -57,6 +57,7 @@ if (file.exists(list.file)){
 	list<-read.table(list.file, header=TRUE, stringsAsFactors=FALSE,
                  sep="\t")
 	sub<-list[list$mappedReads>params$minReadCount, ]
+	sub<-na.omit(sub)
 	if (nrow(sub)!=0){
   	library(knitr)
   	kable(sub, row.names=FALSE, caption = "Smmmary table")
@@ -125,8 +126,10 @@ if (exists("sub")){
 			chr=sub$ID[i]
 			common_name=sub$CommonName[i]
 			csv.file<-file.path(wddir, paste0(chr, ".csv"))
-			cov<-read.table(csv.file, header=FALSE, sep="\t", quote="", stringsAsFactors=FALSE)
-			plot(cov$V5, cov$V6, type="l", col="blue", xlab=common_name, ylab="Depth", cex=0.5)
+			if (file.exists(csv.file)){
+				cov<-read.table(csv.file, header=FALSE, sep="\t", quote="", stringsAsFactors=FALSE)
+				plot(cov$V5, cov$V6, type="l", col="blue", xlab=common_name, ylab="Depth", cex=0.5)
+			}
   		}	
 	}else{
                 txt<-paste("No virus detected with more than", params$minReadCount, "reads.")
