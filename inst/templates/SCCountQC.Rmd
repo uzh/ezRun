@@ -196,7 +196,14 @@ The frequency of expression (i.e., number of cells with non-zero expression) aga
 Outliers from the trend may warrant further investigation. For example, alignment errors for pseudo-genes of highly-expressed genes will result in features with low means that are expressed in all cells. Conversely, PCR amplification biases (or the presence of rare populations) may result in genes with very high means that are expressed in very few cells.
 
 ```{r expression metrics, fig.width=8, fig.height=6, echo=FALSE, message=FALSE, warning=FALSE, eval=!debug}
-plotExprsFreqVsMean(sceFixName)
+result = tryCatch({
+    plotExprsFreqVsMean(sceFixName)
+}, warning = function(warning) {
+    cat(paste0("The plot couldn't be calculated beacuse of the following warning: ", warning, " Please, contact a bioinformatician."))
+}, error = function(error) {
+    cat(paste0("The plot couldn't be calculated beacuse of the following error: ", error, " Please, contact a bioinformatician."))
+})
+
 ```
 
 ### Heatmap of reads per cell on the plate

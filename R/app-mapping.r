@@ -105,7 +105,7 @@ ezMethodBowtie2 = function(input=NA, output=NA, param=NA){
     ezSortIndexBam("bowtie.bam", "sorted.bam", ram=param$ram, removeBam=TRUE,
                    cores=param$cores)
     dupBam(inBam="sorted.bam", outBam=basename(bamFile),
-           operation="mark", cores=param$cores)
+           operation="mark", program="picard", cores=param$cores)
     file.remove("sorted.bam")
   }else{
     ezSortIndexBam("bowtie.bam", basename(bamFile), ram=param$ram, 
