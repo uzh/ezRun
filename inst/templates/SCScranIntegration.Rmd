@@ -25,7 +25,9 @@ library(scran)
 
 ## debug
 sceURLs <- c("wt_3_M"="https://fgcz-sushi.uzh.ch/projects/p2860/SCScran_37216_2019-06-13--13-43-26/wt_3_M_SCScran/00index.html",
-             "wt_4_F"="https://fgcz-sushi.uzh.ch/projects/p2860/SCScran_37216_2019-06-13--13-43-26/wt_4_F_SCScran/00index.html")
+             "wt_4_F"="https://fgcz-sushi.uzh.ch/projects/p2860/SCScran_37216_2019-06-13--13-43-26/wt_4_F_SCScran/00index.html",
+             "rd10_1_M"="https://fgcz-sushi.uzh.ch/projects/p2860/SCScran_37216_2019-06-13--13-43-26/rd10_1_M_SCScran/00index.html",
+             "rd10_2_F"="https://fgcz-sushi.uzh.ch/projects/p2860/SCScran_37216_2019-06-13--13-43-26/rd10_2_F_SCScran/00index.html")
 ## end of debug
 
 sceList <- file.path("/srv/gstore/projects",
@@ -53,13 +55,14 @@ rescaled <- do.call(batchelor::multiBatchNorm,
 
 ```{r integration None, echo=FALSE, eval=TRUE}
 # We always do the simple integration. Even just for comparison
-sce <- SingleCellExperiment(assays=list(counts=do.call(cbind, lapply(rescaled, assay, "counts")),
-                                        logcounts=do.call(cbind, lapply(rescaled, assay, "logcounts"))),
-                            rowRanges=rowRanges(rescaled[[1]]),
-                            colData=do.call(rbind, lapply(rescaled, colData)),
-                            metadata=list(param=param,
-                                          log.exprs.offset=metadata(rescaled[[1]])$log.exprs.offset)
-                            )
+sce <- SingleCellExperiment(
+  assays=list(counts=do.call(cbind, lapply(rescaled, assay, "counts")),
+              logcounts=do.call(cbind, lapply(rescaled, assay, "logcounts"))),
+  rowRanges=rowRanges(rescaled[[1]]),
+  colData=do.call(rbind, lapply(rescaled, colData)),
+  metadata=list(param=param,
+                log.exprs.offset=metadata(rescaled[[1]])$log.exprs.offset)
+  )
 new.trend <- makeTechTrend(x=sce)
 if(metadata(sce)$param$scProtocol == "10X"){
   fit <- trendVar(sce, use.spikes=FALSE, loess.args=list(span=0.05))
@@ -90,70 +93,76 @@ set.seed(100)
 ## k, d may need some optimisation
 sce.mnn <- do.call(batchelor::fastMNN,
                    c(lapply(rescaled, function(x){x[chosen, ]}),
-                     k=20, d=50, BSPARAM=IrlbaParam(deferred=FALSE))
+                     k=20, d=50, BSPARAM=IrlbaParam(deferred=FALSE),
+                     BPPARAM=MulticoreParam(workers=4))
                    )
-assay(sce.mnn, "counts") <- do.call(cbind,
-                                  lapply(rescaled,
-                                         function(x){assay(x[chosen, ], "counts")}))
-assay(sce.mnn, "logcounts") <- do.call(cbind,
-                                  lapply(rescaled,
-                                         function(x){assay(x[chosen, ], "logcounts")}))
+assay(sce.mnn, "counts") <-
+  do.call(cbind, lapply(rescaled, function(x){assay(x[chosen, ], "counts")}))
+assay(sce.mnn, "logcounts") <-
+  do.call(cbind, lapply(rescaled, function(x){assay(x[chosen, ], "logcounts")}))
 metadata(sce.mnn)$param <- param
 
 cat(length(chosen), "features are selected across samples for batch correction.\n")
 
 set.seed(1000)
 sce.mnn <- switch(metadata(sce.mnn)$param$visMethod,
-                  "TSNE"=runTSNE(sce.mnn, use_dimred="PCA",
+                  "TSNE"=runTSNE(sce.mnn, use_dimred="corrected",
                                  perplexity=getPerplexity(ncol(sce.mnn))),
-                  "UMAP"=runUMAP(sce.mnn, use_dimred="PCA"),
-                  "DiffusionMap"=runDiffusionMap(sce.mnn, use_dimred="PCA")
+                  "UMAP"=runUMAP(sce.mnn, use_dimred="corrected"),
+                  "DiffusionMap"=runDiffusionMap(sce.mnn, use_dimred="corrected")
                   )
 ```
 
 #### Visualization of integration
 
-```{r vis in low-dim, echo=FALSE}
+```{r vis in low-dim, echo=FALSE, results='asis'}
 if(metadata(sce)$param$visMethod == "TSNE"){
-  p <- plotTSNE(sce, colour_by="batch") + ggtitle("No correction")
+  p <- plotTSNE(sce, colour_by="Batch") + ggtitle("No correction")
   print(p)
 }else if(metadata(sce)$param$visMethod == "UMAP"){
-  p <- plotUMAP(sce, colour_by="batch") + ggtitle("No correction")
+  p <- plotUMAP(sce, colour_by="Batch") + ggtitle("No correction")
   print(p)
 }else if(metadata(sce)$param$visMethod == "DiffusionMap"){
-  p <- plotDiffusionMap(sce, colour_by="batch") + ggtitle("No correction")
+  p <- plotDiffusionMap(sce, colour_by="Batch") + ggtitle("No correction")
   print(p)
 }
 
-ot <- plotTSNE(osce, colour_by="batch") + ggtitle("Original")
+if(param$batchCorrection == "MNN"){
+  # MNN Corrected.
+  set.seed(100)
+  if(param$visMethod == "TSNE"){
+    p <- plotTSNE(sce.mnn, colour_by="batch") + ggtitle("MNN corrected")
+    print(p)
+  }else if(param$visMethod == "UMAP"){
+    p <- plotUMAP(sce.mnn, colour_by="batch") + ggtitle("MNN correction")
+    print(p)
+  }else if(param$visMethod == "DiffusionMap"){
+    p <- plotDiffusionMap(sce.mnn, colour_by="batch") + ggtitle("MNN correction")
+    print(p)
+  }
+}
 
-# Corrected.
-set.seed(100)
-sce <- runTSNE(sce, use_dimred="corrected")
-ct <- plotTSNE(sce, colour_by="batch") + ggtitle("Corrected")
-
-eachMarker <- "Opn1mw"
-p1 <- plotTSNE(osce, by_exprs_values="logcounts", colour_by=eachMarker) +
-  scale_fill_gradient(low="gray", high="red") +
-  ggtitle(eachMarker) + labs(fill=eachMarker)
-p1
-
-p2 <- plotTSNE(sce, by_exprs_values="reconstructed", colour_by=eachMarker) +
-  scale_fill_gradient(low="gray", high="red") +
-  ggtitle(eachMarker) + labs(fill=eachMarker)
-p2
-
-p <- plot_grid(ot, ct)
-save_plot(filename="OriginalVsCorrected.pdf", p, ncol=2, nrow=2,
-          base_height = 7)
-
-
+if(param$batchCorrection == "MNN"){
+  sce <- sce.mnn
+}
+# eachMarker <- "Opn1mw"
+# p1 <- plotTSNE(sce, by_exprs_values="logcounts", colour_by=eachMarker) +
+#   scale_fill_gradient(low="gray", high="red") +
+#   ggtitle(eachMarker) + labs(fill=eachMarker)
+# p1
+# 
+# p2 <- plotTSNE(sce.mnn, by_exprs_values="reconstructed", colour_by=eachMarker) +
+#   scale_fill_gradient(low="gray", high="red") +
+#   ggtitle(eachMarker) + labs(fill=eachMarker)
+# p2
+# 
+# p <- plot_grid(p1, p2)
+# save_plot(filename="OriginalVsCorrected.pdf", p, ncol=2, nrow=2,
+#           base_height = 7)
 # p3 <- plotTSNE(sceList[[1]], colour_by=eachMarker) +
 #   scale_fill_gradient(low="gray", high="red") + 
 #   ggtitle(eachMarker) + labs(fill=eachMarker)
 # p3
-
-multiplot(ot, ct, p1, p2, cols=2)
 ```
 
 
