@@ -10,7 +10,15 @@ ezMethodKallisto = function(input=NA, output=NA, param=NA){
   sampleName = input$getNames()
   ref = getKallistoReference(param)
   refIdx = paste0(ref, ".idx")
-
+  if(!param$paired){
+    if(param$"fragment-length" == 0){
+      param$"fragment-length" = 180
+    }
+    if(param$sd == 0){
+      param$sd = 50
+    }
+  }
+  
   iftrue <- function(p, yes, no = "") {
     if (!is.null(p) && p) { yes } else { no }
   }
