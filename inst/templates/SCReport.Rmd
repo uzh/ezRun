@@ -354,6 +354,7 @@ p <- ggplot(tSNE_data, aes(tSNE_1, tSNE_2)) +
 print(p)
 ```
 
+
 ### Interactive explorer
 ```{r make shiny data, echo=FALSE}
 scData@scale.data <- NULL
@@ -400,7 +401,7 @@ ggplot(magic_data) +
   scale_color_viridis(option="B")
 ```
 
-```{r}
+```{r, echo=FALSE}
 organism = NULL
 if(startsWith(param$refBuild, "Homo_sapiens/Ensembl")){
     organism <- "Human"
@@ -409,7 +410,13 @@ if(startsWith(param$refBuild, "Homo_sapiens/Ensembl")){
 }
 ```
 
-```{r singler, eval= !is.null(organism), results='hide', message=FALSE}
+```{r, echo=FALSE}
+sink("sessionInfo.txt")
+sessionInfo()
+sink()
+```
+
+```{r singler, eval= !is.null(organism), results='hide', echo=FALSE, message=FALSE}
 unloadNamespace("SingleR") #be sure SingleR is unloaded
 #detach(package:SingleR)
 unloadNamespace("Seurat") #unload the Seurat v2
