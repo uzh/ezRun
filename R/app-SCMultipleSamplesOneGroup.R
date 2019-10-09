@@ -113,8 +113,8 @@ ezMethodSCMultipleSamplesOneGroup = function(input=NA, output=NA, param=NA, html
   saveRDS(scData_list, "scData_ObjectList.rds")
   
   # Copy the style files and templates
-  # styleFiles <- file.path(system.file("templates", package="ezRun"), c("fgcz.css", "SCMultipleSamplesOneGroup.Rmd", "fgcz_header.html", "banner.png"))
-  styleFiles <- paste0("/home/daymegr/workspaceR/dayme-scripts/sushi_scripts_mod/", c("fgcz.css", "SCMultipleSamplesOneGroup.Rmd", "fgcz_header.html", "banner.png"))
+   styleFiles <- file.path(system.file("templates", package="ezRun"), c("fgcz.css", "SCMultipleSamplesOneGroup.Rmd", "fgcz_header.html", "banner.png"))
+ # styleFiles <- paste0("/home/daymegr/workspaceR/dayme-scripts/sushi_scripts_mod/", c("fgcz.css", "SCMultipleSamplesOneGroup.Rmd", "fgcz_header.html", "banner.png"))
   file.copy(from=styleFiles, to=".", overwrite=TRUE)
   rmarkdown::render(input="SCMultipleSamplesOneGroup.Rmd", envir = new.env(),
                     output_dir=".", output_file=htmlFile, clean = TRUE, quiet=TRUE)
