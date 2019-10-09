@@ -142,7 +142,7 @@ loadSCCountDataset <- function(input, param){
   dataFeatureLevel <- unique(input$getColumn("featureLevel"))
   stopifnot(length(dataFeatureLevel) == 1)
   
-  if(param$scProtocol == "smart-Seq2"){
+  if(toupper(param$scProtocol) == "SMART-SEQ2"){
     countMatrixFn <- input$getFullPaths("CountMatrix")
     if(file_ext(countMatrixFn) == "mtx"){
       countMatrix <- readSCMM(countMatrixFn)
@@ -191,7 +191,7 @@ loadSCCountDataset <- function(input, param){
                                 metadata=list(isLog=FALSE,
                                               featureLevel=dataFeatureLevel,
                                               type="Counts", param=param))
-  }else if(param$scProtocol == "10X"){
+  }else if(toupper(param$scProtocol) == "10X"){
     countMatrixFn <- list.files(path=input$getFullPaths("CountMatrix"),
                                 pattern="\\.mtx(\\.gz)*$", recursive=TRUE, 
                                 full.names=TRUE)
