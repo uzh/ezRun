@@ -59,8 +59,12 @@ posMarkersFn <- "pos_markers.tsv"
 write_tsv(as_tibble(markers), path=posMarkersFn)
 
 ## Significant markers
-cm <- markers[ ,c("gene","cluster","avg_logFC","p_val_adj")]
-rownames(cm) <- NULL
+if (nrow(markers) >0){
+  cm <- markers[ ,c("gene","cluster","avg_logFC","p_val_adj")]
+  rownames(cm) <- NULL
+} else {
+  cm = markers
+}
 ```
 
 ```{r pos markers all2all, echo=FALSE}
@@ -180,7 +184,7 @@ if(!is.null(scData@meta.data$CellCycle) &&
 ### Top cluster markers
 List of all positive cluster markers can be accessed [here](`r posMarkersFn`).
 
-```{r enrichr markers, echo=FALSE, results='asis'}
+```{r enrichr markers, echo=FALSE, results='asis', eval=nrow(markers) >0}
 if(doEnrichr(param)){
   genesPerCluster <- split(markers$gene, markers$cluster)
   jsCall = paste0('enrich({list: "', sapply(genesPerCluster, paste, collapse="\\n"), '", popup: true});')
@@ -195,7 +199,7 @@ if(doEnrichr(param)){
 }
 ```
 
-```{r markers table, echo=FALSE}
+```{r markers table, echo=FALSE, eval=nrow(cm) > 0}
 caption ="Expression differences of cluster marker genes"
 ezInteractiveTableRmd(cm, digits=4, title=caption)
 ```
@@ -246,7 +250,7 @@ if(doEnrichr(param) && param$all2allMarkers){
 
 ### Visualizations of top cluster markers
 
-```{r top cluster markers, fig.width=4, fig.height=3, echo=FALSE, eval=!debug}
+```{r top cluster markers, fig.width=4, fig.height=3, echo=FALSE, eval=!debug && nrow(cm) > 0}
 some_markers <- head(arrange(cm, p_val_adj) %>% select(gene) %>% pull(), 100)
 for(i in 1:length(some_markers)){
   plot(VlnPlot(object = scData, some_markers[i], do.return=TRUE))
@@ -259,7 +263,7 @@ for(i in 1:length(some_markers)){
 ### Heatmap of cluster marker genes
 Max `r param$markersToShow` marker genes are shown for each cluster. 
 
-```{r heatmap, fig.width=10, fig.height=param$markersToShow*1.5, echo=FALSE, eval=!debug}
+```{r heatmap, fig.width=10, fig.height=param$markersToShow*1.5, echo=FALSE, eval=!debug & nrow(markers) > 0}
 top10 <- markers %>% group_by(cluster) %>% top_n(param$markersToShow, avg_logFC)
 DoHeatmap(object = scData, genes.use = top10$gene, slim.col.label = TRUE,
           remove.key=TRUE)
