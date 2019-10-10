@@ -195,18 +195,16 @@ ezMethodBam2Fastq <- function(input=NA, output=NA, param=NA,
     file.remove(sub("_R1\\.fastq$", "_R2.fastq", fastqsToRemove))
   }else{
     if (!is(output, "EzDataset")){
-      output = input$copy()
-      output$setColumn("Read1", paste0(getwd(), "/", input$getNames(), 
-                                       "-R1.fastq"))
+      outputMeta <- input$meta
+      outputMeta$`Read1` <- paste0(getwd(), "/", rownames(outputMeta), 
+                                   "-R1.fastq")
       if (param$paired){
-        output$setColumn("Read2", paste0(getwd(), "/", input$getNames(), 
-                                         "-R2.fastq"))
+        outputMeta$`Read2` <- paste0(getwd(), "/", rownames(outputMeta), 
+                                     "-R2.fastq")
       } else {
-        if ("Read2" %in% input$colNames){
-          output$setColumn("Read2", NULL)
-        }
+        outputMeta$`Read2` <- NULL
       }
-      output$dataRoot = NULL
+      output <- EzDataset(meta=outputMeta, dataRoot=NULL)
     }
     bam2fastq(bamFn=input$getFullPaths("Read1"),
               OUTPUT_PER_RG=FALSE,
@@ -219,7 +217,6 @@ ezMethodBam2Fastq <- function(input=NA, output=NA, param=NA,
   }
   return(output)
 }
-
 
 countReadsInFastq = function(fastqFiles){
   require(Biostrings)
