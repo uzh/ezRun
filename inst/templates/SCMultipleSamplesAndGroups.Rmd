@@ -270,8 +270,6 @@ caption ="Differential expressed genes per cluster"
 ezInteractiveTableRmd(diffGenes, title=caption)
 ```
 
-The comparison is `r paste(unique(scData@meta.data$orig.ident), collapse=" vs ")`.
-
 ### Visualisation of differential expressed genes
 
 ##### The 5 most significant differentially expressed genes (lowest p-value) for each cluster are represented on the TSNE and Violin plots. Some genes may be dysregulated in all clusters between conditions.
