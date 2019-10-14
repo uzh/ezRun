@@ -13,7 +13,7 @@
 ##' @return Returns a DADA2 seqtab object.
 
 DADA2CreateSeqTab <- function(sampleName,minLen=0,concat=NULL,file1PathInDataset,
-                              file2PathInDataset=NULL){
+                              file2PathInDataset=NULL,database){
   if(!missing(file2PathInDataset)){
   fnFs <- file1PathInDataset
   fnRs <- file2PathInDataset
