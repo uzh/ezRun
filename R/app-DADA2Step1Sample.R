@@ -25,15 +25,19 @@ ezMethodDADA2Step1Sample = function(input=NA, output=NA, param=NA,
   isPaired <- param$paired
   concat <- param$concatenateReads
   ### read fastq files and prepare inputs for DADA2
-  ### are reads paired? should they be joined? 
+  ### if reads are paired, they are first joined. The DADA2 inbulit joining works only 
+  ### if there is only one V-region (almost never the case)
   file1PathInDataset <- input$getFullPaths("Read1")
   if(isPaired){
     file2PathInDataset <- input$getFullPaths("Read2")
-  DADA2mainSeqTabObj <- DADA2CreateSeqTab(sampleName = sampleName,
+    fastqJoin="/usr/local/ngseq/src/ea-utils.1.1.2-686/fastq-join"
+    fastqJoinCmd <- paste(fastqJoin, file1PathInDataset,
+                          file2PathInDataset, "-o temp.")
+    ezSystem(fastqJoinCmd)
+    joinedFile <- "temp.joined"
+    DADA2mainSeqTabObj <- DADA2CreateSeqTab(sampleName = sampleName,
                                           minLen = minLen,
-                                          concat = concat,
-                                          file1PathInDataset = file1PathInDataset,
-                                          file2PathInDataset = file2PathInDataset,
+                                          file1PathInDataset = joinedFile,
                                           database)
   }else{
     DADA2mainSeqTabObj <- DADA2CreateSeqTab(sampleName= sampleName,
@@ -59,7 +63,7 @@ ezMethodDADA2Step1Sample = function(input=NA, output=NA, param=NA,
   write.table(countOTUs,newOTUsToCountFileName,
               row.names = F, col.names = T, quote = F,sep = "\t")
   ## design Matrix 
-  if (param$group){
+  if (param$Group){
     designMatrixFile <-  basename(output$getColumn("sampleDescriptionFile"))
     write.table(designMatrix,designMatrixFile,row.names = F, col.names = T, quote = F,sep = "\t")
   }
