@@ -34,6 +34,9 @@ DADA2CreateSeqTab <- function(sampleName,minLen=0,concat=NULL,file1PathInDataset
   mergers <- mergePairs(dadaFs, derepFs, dadaRs, derepRs, verbose=TRUE, 
                         justConcatenate = concat)
   seqtab <- makeSequenceTable(mergers)
+  fullTableOfOTUsNoChim <- removeBimeraDenovo(seqtab, method="consensus", multithread=TRUE)
+  taxa <- assignTaxonomy(fullTableOfOTUsNoChim,database, multithread=TRUE)
+  rownames(fullTableOfOTUsNoChim) <- sampleName
   }else{
     fnFs <- file1PathInDataset
     filtFs <- paste("filt",sampleName,"R1.fastq.gz", sep = ".")
