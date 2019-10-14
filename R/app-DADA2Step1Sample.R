@@ -33,11 +33,13 @@ ezMethodDADA2Step1Sample = function(input=NA, output=NA, param=NA,
                                           minLen = minLen,
                                           concat = concat,
                                           file1PathInDataset = file1PathInDataset,
-                                          file2PathInDataset = file2PathInDataset)
+                                          file2PathInDataset = file2PathInDataset,
+                                          database)
   }else{
     DADA2mainSeqTabObj <- DADA2CreateSeqTab(sampleName= sampleName,
                                             minLen = minLen,
-                                            file1PathInDataset = file1PathInDataset)
+                                            file1PathInDataset = file1PathInDataset,
+                                            database)
   }
   
   ## rename output files
