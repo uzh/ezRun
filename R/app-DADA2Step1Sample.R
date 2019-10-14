@@ -43,10 +43,26 @@ ezMethodDADA2Step1Sample = function(input=NA, output=NA, param=NA,
   }
   
   ## rename output files
-  ## Files needed for the report 
-  #1) 
-  DADA2mainSeqTabObjFileName <- basename(output$getColumn("RObjectWithSeqTab"))
-  saveRDS(DADA2mainSeqTabObj,DADA2mainSeqTabObjFileName)
+  # taxonomy
+  newOTUsToTaxFileName <- basename(output$getColumn("OTUsToTaxonomyFile"))
+  taxaOTUs <- data.frame(DADA2mainSeqTabObj$taxaObj, stringsAsFactors = F)
+  taxaOTUs$OTU <- paste0("OTU",seq(1:nrow(taxaOTUs)))
+  rownames(taxaOTUs) <- NULL
+  write.table(taxaOTUs,newOTUsToTaxFileName,
+              row.names = F, col.names = T, quote = F,sep = "\t")
+  # OTU count
+  newOTUsToCountFileName <- basename(output$getColumn("OTUsCountTable"))
+  countOTUs <- data.frame(DADA2mainSeqTabObj$fullTableOfOTUsNoChimObj, stringsAsFactors = F)
+  colnames(countOTUs) <- paste0("OTU",seq(1:ncol(countOTUs)))
+  countOTUs$sample <- rownames(countOTUs)
+  rownames(countOTUs) <- NULL
+  write.table(countOTUs,newOTUsToCountFileName,
+              row.names = F, col.names = T, quote = F,sep = "\t")
+  ## design Matrix 
+  if (param$group){
+    designMatrixFile <-  basename(output$getColumn("sampleDescriptionFile"))
+    write.table(designMatrix,designMatrixFile,row.names = F, col.names = T, quote = F,sep = "\t")
+  }
 }
 
 ##' @template app-template
