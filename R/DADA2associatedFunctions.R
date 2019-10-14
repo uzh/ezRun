@@ -44,9 +44,11 @@ DADA2CreateSeqTab <- function(sampleName,minLen=0,concat=NULL,file1PathInDataset
     derepFs <- derepFastq(filtFs, verbose=TRUE)
     dadaFs <- dada(derepFs, err=errF, multithread=TRUE)
     seqtab <- makeSequenceTable(dadaFs)
+    fullTableOfOTUsNoChim <- removeBimeraDenovo(seqtab, method="consensus", multithread=TRUE)
+    taxa <- assignTaxonomy(fullTableOfOTUsNoChim,database, multithread=TRUE)
+    rownames(fullTableOfOTUsNoChim) <- sampleName
   }
-  rownames(seqtab) <- sampleName
-  return(seqtab)
+  return(list(fullTableOfOTUsNoChimObj=fullTableOfOTUsNoChim,taxaObj=taxa))
 }
 
 
