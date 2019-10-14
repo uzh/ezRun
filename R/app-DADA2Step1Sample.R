@@ -13,6 +13,14 @@ ezMethodDADA2Step1Sample = function(input=NA, output=NA, param=NA,
   require(purrr)
   dataset = input$meta
   sampleName = input$getNames() 
+  databaseParam <- param$database
+  if (databaseParam == "silva") {
+    database <- SILVA_DB_DADA2
+  } else if (databaseParam == "RDP") {
+    database <- RDP_DB_DADA2
+  }  else if (databaseParam == "greenGenes") {
+    database <- GREENGENES_DB_DADA2
+  }
   minLen <- param$minLen
   isPaired <- param$paired
   concat <- param$concatenateReads
