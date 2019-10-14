@@ -34,7 +34,7 @@ ezMethodDADA2Step1Sample = function(input=NA, output=NA, param=NA,
     fastqJoinCmd <- paste(fastqJoin, file1PathInDataset,
                           file2PathInDataset, "-o temp.")
     ezSystem(fastqJoinCmd)
-    joinedFile <- readFile = file.path(getwd(),"temp.join")
+    joinedFile <- file.path(getwd(),"temp.join")
     DADA2mainSeqTabObj <- DADA2CreateSeqTab(sampleName = sampleName,
                                           minLen = minLen,
                                           file1PathInDataset = joinedFile,
