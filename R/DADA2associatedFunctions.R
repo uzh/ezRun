@@ -17,8 +17,8 @@ DADA2CreateSeqTab <- function(sampleName,minLen=0,concat=NULL,file1PathInDataset
   if(!missing(file2PathInDataset)){
   fnFs <- file1PathInDataset
   fnRs <- file2PathInDataset
-  filtFs <- paste("filt",sampleName,"R1.fastq.gz", sep = ".")
-  filtRs <- paste("filt",sampleName,"R2.fastq.gz", sep = ".")
+  filtFs <- "filt.R1.fastq.gz"
+  filtRs <- "filt.R2.fastq.gz"
   
   out <- filterAndTrim(fnFs, filtFs, fnRs, filtRs, truncLen=c(minLen,minLen),
                        maxN=0, maxEE=c(2,2), truncQ=2, rm.phix=TRUE,
@@ -39,7 +39,7 @@ DADA2CreateSeqTab <- function(sampleName,minLen=0,concat=NULL,file1PathInDataset
   rownames(fullTableOfOTUsNoChim) <- sampleName
   }else{
     fnFs <- file1PathInDataset
-    filtFs <- paste("filt",sampleName,"R1.fastq.gz", sep = ".")
+    filtFs <- "filt.R1.fastq.gz"
     out <- filterAndTrim(fnFs, filtFs, truncLen=minLen,
                          maxN=0, maxEE=1, truncQ=11, rm.phix=TRUE,
                          compress=TRUE, multithread=TRUE)
