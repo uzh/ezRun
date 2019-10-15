@@ -11,6 +11,7 @@ ezMethodDADA2Step1Sample = function(input=NA, output=NA, param=NA,
   
   require(dada2)
   require(purrr)
+  require(phyloseq)
   dataset = input$meta
   sampleNames = input$getNames() 
   databaseParam <- param$database
@@ -70,10 +71,26 @@ ezMethodDADA2Step1Sample = function(input=NA, output=NA, param=NA,
   write.table(countOTUs,newOTUsToCountFileName,
               row.names = F, col.names = T, quote = F,sep = "\t")
   ## design Matrix 
-  if (param$Group){
+  if (param$group){
+    factorCols <- grep("Factor",colnames(dataset))
+    designMatrix <- dataset[,factorCols]
+    colnames(designMatrix) <- gsub(" \\[Factor\\]","",colnames(designMatrix))
     designMatrixFile <-  basename(output$getColumn("sampleDescriptionFile"))
     write.table(designMatrix,designMatrixFile,row.names = F, col.names = T, quote = F,sep = "\t")
   }
+  
+  ## create phyloseqObject
+  phyloseqObjectRdata <-  basename(output$getColumn("RObjectPhyloseq"))
+  if (param$group){
+  phyloseqObject <- phyloseq(otu_table(DADA2mainSeqTabObj$fullTableOfOTUsNoChimObj, taxa_are_rows=FALSE), 
+                 sample_data(designMatrix), 
+                 tax_table(DADA2mainSeqTabObj$taxaObj))
+  }else{
+  phyloseqObject <- phyloseq(otu_table(DADA2mainSeqTabObj$fullTableOfOTUsNoChimObj, taxa_are_rows=FALSE), 
+                               tax_table(DADA2mainSeqTabObj$taxaObj))
+  }
+  phyloseqObjectRdata <- saveRDS(phyloseqObject)
+  
 }
 
 ##' @template app-template
