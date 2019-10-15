@@ -73,8 +73,8 @@ ezMethodDADA2Step1Sample = function(input=NA, output=NA, param=NA,
   ## design Matrix 
   if (param$group){
     factorCols <- grep("Factor",colnames(dataset))
-    designMatrix <- dataset[,factorCols]
-    colnames(designMatrix) <- gsub(" \\[Factor\\]","",colnames(designMatrix))
+    designMatrix <- data.frame(dataset[,factorCols])
+    colnames(designMatrix) <- gsub(" \\[Factor\\]","",colnames(dataset)[factorCols])
     designMatrixFile <-  basename(output$getColumn("sampleDescriptionFile"))
     write.table(designMatrix,designMatrixFile,row.names = F, col.names = T, quote = F,sep = "\t")
   }
