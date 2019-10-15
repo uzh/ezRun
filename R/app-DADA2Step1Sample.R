@@ -89,7 +89,7 @@ ezMethodDADA2Step1Sample = function(input=NA, output=NA, param=NA,
   phyloseqObject <- phyloseq(otu_table(DADA2mainSeqTabObj$fullTableOfOTUsNoChimObj, taxa_are_rows=FALSE), 
                                tax_table(DADA2mainSeqTabObj$taxaObj))
   }
-  phyloseqObjectRdata <- saveRDS(phyloseqObject)
+  saveRDS(phyloseqObject,phyloseqObjectRdata)
   
 }
 
