@@ -32,7 +32,7 @@ ezMethodDADA2Step1Sample = function(input=NA, output=NA, param=NA,
     file2PathInDataset <- input$getFullPaths("Read2")
     fastqJoin="/usr/local/ngseq/src/ea-utils.1.1.2-686/fastq-join"
 
-    fastqJoin <- function(x,y,z){
+    fastqJoinFun <- function(x,y,z){
     joinedFileName <- paste0(z, ".temp.")
     fastqJoinCmd <- paste(fastqJoin, x,y, "-o", joinedFileName)
     ezSystem(fastqJoinCmd)
@@ -40,7 +40,7 @@ ezMethodDADA2Step1Sample = function(input=NA, output=NA, param=NA,
     joinedFile <- file.path(getwd(),joinedFileName)
     return(joinedFile)
     }
-    listOfJoinedFiles <- mapply(fastqJoin,file1PathInDataset,file2PathInDataset,
+    listOfJoinedFiles <- mapply(fastqJoinFun,file1PathInDataset,file2PathInDataset,
                                 sampleNames)
     DADA2mainSeqTabObj <- DADA2CreateSeqTab(sampleNames = sampleNames,
                                           minLen = minLen,
