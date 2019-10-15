@@ -12,7 +12,7 @@
 ##' @param  a fastq or pairs of ffastq files .
 ##' @return Returns a DADA2 seqtab object.
 
-DADA2CreateSeqTab <- function(sampleName,minLen=0,concat=NULL,file1PathInDataset,
+DADA2CreateSeqTab <- function(sampleNames,minLen=0,concat=NULL,file1PathInDataset,
                               file2PathInDataset=NULL,database){
   if(!missing(file2PathInDataset)){
   fnFs <- file1PathInDataset
@@ -36,10 +36,11 @@ DADA2CreateSeqTab <- function(sampleName,minLen=0,concat=NULL,file1PathInDataset
   seqtab <- makeSequenceTable(mergers)
   fullTableOfOTUsNoChim <- removeBimeraDenovo(seqtab, method="consensus", multithread=TRUE)
   taxa <- assignTaxonomy(fullTableOfOTUsNoChim,database, multithread=TRUE)
-  rownames(fullTableOfOTUsNoChim) <- sampleName
+  rownames(fullTableOfOTUsNoChim) <- sampleNames
   }else{
     fnFs <- file1PathInDataset
-    filtFs <- "filt.R1.fastq.gz"
+    filtFs <- paste0(sampleNames,".filt.R1.fastq.gz")
+    names(filtFs) <- sampleNames
     out <- filterAndTrim(fnFs, filtFs, truncLen=minLen,
                          maxN=0, maxEE=1, truncQ=11, rm.phix=TRUE,
                          compress=TRUE, multithread=TRUE)
@@ -49,7 +50,7 @@ DADA2CreateSeqTab <- function(sampleName,minLen=0,concat=NULL,file1PathInDataset
     seqtab <- makeSequenceTable(dadaFs)
     fullTableOfOTUsNoChim <- removeBimeraDenovo(seqtab, method="consensus", multithread=TRUE)
     taxa <- assignTaxonomy(fullTableOfOTUsNoChim,database, multithread=TRUE)
-    rownames(fullTableOfOTUsNoChim) <- sampleName
+    rownames(fullTableOfOTUsNoChim) <- sampleNames
   }
   return(list(fullTableOfOTUsNoChimObj=fullTableOfOTUsNoChim,taxaObj=taxa))
 }
