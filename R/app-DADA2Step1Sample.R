@@ -12,7 +12,7 @@ ezMethodDADA2Step1Sample = function(input=NA, output=NA, param=NA,
   require(dada2)
   require(purrr)
   dataset = input$meta
-  sampleName = input$getNames() 
+  sampleNames = input$getNames() 
   databaseParam <- param$database
   if (databaseParam == "silva") {
     database <- SILVA_DB_DADA2
@@ -31,16 +31,23 @@ ezMethodDADA2Step1Sample = function(input=NA, output=NA, param=NA,
   if(isPaired){
     file2PathInDataset <- input$getFullPaths("Read2")
     fastqJoin="/usr/local/ngseq/src/ea-utils.1.1.2-686/fastq-join"
-    fastqJoinCmd <- paste(fastqJoin, file1PathInDataset,
-                          file2PathInDataset, "-o temp.")
+
+    fastqJoin <- function(x,y,z){
+    joinedFileName <- paste0(z, ".temp.")
+    fastqJoinCmd <- paste(fastqJoin, x,y, "-o", joinedFileName)
     ezSystem(fastqJoinCmd)
-    joinedFile <- file.path(getwd(),"temp.join")
-    DADA2mainSeqTabObj <- DADA2CreateSeqTab(sampleName = sampleName,
+    joinedFileName <- paste0(joinedFileName,"join")
+    joinedFile <- file.path(getwd(),joinedFileName)
+    return(joinedFile)
+    }
+    listOfJoinedFiles <- mapply(fastqJoin,file1PathInDataset,file2PathInDataset,
+                                sampleNames)
+    DADA2mainSeqTabObj <- DADA2CreateSeqTab(sampleNames = sampleNames,
                                           minLen = minLen,
-                                          file1PathInDataset = joinedFile,
+                                          file1PathInDataset = listOfJoinedFiles,
                                           database)
   }else{
-    DADA2mainSeqTabObj <- DADA2CreateSeqTab(sampleName= sampleName,
+    DADA2mainSeqTabObj <- DADA2CreateSeqTab(sampleNames= sampleNames,
                                             minLen = minLen,
                                             file1PathInDataset = file1PathInDataset,
                                             database)
