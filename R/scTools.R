@@ -33,3 +33,7 @@ getCellCycle <- function(counts, refBuild){
   }
   return(cellPhase)
 }
+
+getPerplexity <- function(n){
+  ifelse(n > 200, 30, 10)
+}

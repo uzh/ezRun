@@ -185,8 +185,8 @@ p2
 ```{r vis in low-dim, echo=FALSE, cache=debug}
 set.seed(1000)
 sce <- switch(metadata(sce)$param$visMethod,
-              "TSNE"=runTSNE(sce, use_dimred="PCA", 
-                             perplexity=ifelse(ncol(sce) > 200, 30, 10)),
+              "TSNE"=runTSNE(sce, use_dimred="PCA",
+                             perplexity=getPerplexity(ncol(sce))),
               "UMAP"=runUMAP(sce, use_dimred="PCA"),
               "DiffusionMap"=runDiffusionMap(sce, use_dimred="PCA")
               )
@@ -259,7 +259,7 @@ coordinates <- tibble(Cells=colnames(sce),
 
 #### Confirm that clusters are modular
 
-```{r clustering2, echo=FALSE, results='asis', fig.width=7, fig.height=8}
+```{r clustering2, echo=FALSE, results='asis', fig.width=7, fig.height=7}
 if(metadata(sce)$param$scProtocol == "10X"){
   cat("\n")
   cat("We look at the ratio of the observed and expected edge weights to confirm that the clusters are modular. \n")
