@@ -76,7 +76,7 @@ return(sampleObject)
 ##' @return Returns a  filtered Phyloseq  object.
 phyloSeqPreprocess <- function(phyloseqObj){
   ### OTU abundance filter 
-filtered <- filter_taxa(phyloseqObj, function(x) sum(x > 2) > (0.1*length(x)), TRUE)
+filtered <- filter_taxa(phyloseqObj, function(x) sum(x > 3) > (0.2*length(x)), TRUE)
   return(filtered)
 }
 
@@ -99,12 +99,13 @@ phyloSeqToDeseq2_tableAndPlots <- function(phyloseqObj){
   phyloseq_to_deseq2 = phyloseq_to_deseq2(phyloseqObjNoMock, ~ group)
   DEseqPhyRes <- DESeq(phyloseq_to_deseq2, test="Wald", fitType="parametric")
   res = results(DEseqPhyRes, cooksCutoff = FALSE)
-  addTaxa <- cbind(data.frame(res),t(otu_table(phyloseqObjNoMock)), tax_table(phyloseqObjNoMock))
   addTaxaOut <- cbind(data.frame(res),t(otu_table(phyloseqObjNoMock)), tax_table(phyloseqObjNoMock))
+  addTaxaOut <- addTaxaOut[!is.na(addTaxaOut$Kingdom),]
+  addTaxaOut <- addTaxaOut[addTaxaOut$Kingdom == "Bacteria",]
   addTaxaOut <- addTaxaOut[order(addTaxaOut$padj),]
   addTaxaOut <- head(addTaxaOut,20)
   colsToKeep <- grep("baseMean|lfcSE", colnames(addTaxaOut), invert = T)
-  addTaxaOut <- addTaxaOut[,colsToKeep]
+  addTaxa <- addTaxaOut[,colsToKeep]
   ## sort and prepare fpr plot
   x = tapply(addTaxa$log2FoldChange, addTaxa$Phylum, function(x) max(x))
   x = sort(x, TRUE)
@@ -123,23 +124,24 @@ phyloSeqToDeseq2_tableAndPlots <- function(phyloseqObj){
   plotLogFoldVsTaxon <- ggplot(addTaxa, aes(x=Genus, y=log2FoldChange, color=Phylum)) + 
     geom_point(size=3) + 
     theme(axis.text.x = element_text(angle = -90, hjust = 0, vjust=0.5)) +
-    geom_hline(aes(yintercept=1),color="red") + geom_text(aes(1,1,label = 1, vjust = -1), color = "red", size =3) + 
-    geom_hline(aes(yintercept=-1),color="red") + geom_text(aes(1,-1,label = -1, vjust = 1), color = "red", size =3)
+    geom_hline(aes(yintercept=1),color="blue")  + 
+    geom_hline(aes(yintercept=-1),color="blue") 
   plotLogFoldVsTaxon <- plotLogFoldVsTaxon + labs(title=title) + 
     theme(plot.title=element_text(size=10, face="bold",hjust=0.5))
   ### volcano plot
-  title <- "Volcano plot (padj  = 0.05)"
+  title <- "Volcano plot (threshold  = 0.05)"
   volcanoPlot <- ggplot(addTaxa, aes(y=-log10(pvalue), x=log2FoldChange)) +
     geom_point(aes(shape=Significance, color=Phylum),size=3) 
   volcanoPlot <- volcanoPlot + labs(title=title) + 
     theme(plot.title=element_text(size=10, face="bold",hjust=0.5))
+  volcanoPlot <- volcanoPlot + geom_hline(yintercept=1.3, color="blue")
   ### Diff.expr. pie chart
-  OTUsToPlot <- na.omit(addTaxaOut[addTaxaOut$padj < 0.05,])
+  OTUsToPlot <- addTaxaOut 
   tableTaxa <- data.frame(table(droplevels(OTUsToPlot[,"Genus"])))
   colnames(tableTaxa)[1] <- "Genus"
   pct <- round(tableTaxa$Freq/sum(tableTaxa$Freq)*100,2)
   pct = paste0(pct,"%")
-  titleText = "Differentially abundant genera"
+  titleText = "Top-20 different Genera"
   bp <- ggplot(tableTaxa, aes(x="", y=Freq, fill=Genus)) + 
     geom_bar(position = position_stack(),width = 1, stat = "identity") 
   pieVersion <- bp + coord_polar("y", start=0)
