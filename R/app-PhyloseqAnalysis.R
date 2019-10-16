@@ -35,8 +35,8 @@ ezMethodPhyloSeqAnalysis = function(input=NA, output=NA, param=NA,
 
 ### create, add trees, preprocess and prune phyloseq object 
 
-  #treeObject = rtree(ntaxa(physeqObjectNoTree), rooted=TRUE, tip.label=taxa_names(physeqObjectNoTree))
-  #physeqFullObject <- merge_phyloseq(physeqObjectNoTree,treeObject)
+  treeObject = rtree(ntaxa(physeqObjectNoTree), rooted=TRUE, tip.label=taxa_names(physeqObjectNoTree))
+  physeqFullObject <- merge_phyloseq(physeqObjectNoTree,treeObject)
   #physeqFullObject <- phyloSeqPreprocess(physeqFullObject)
   #myTaxa = names(sort(taxa_sums(physeqFullObject), decreasing = TRUE)[1:pruneLevel])
   #physeqFullObject <- prune_taxa(myTaxa,physeqFullObject)
