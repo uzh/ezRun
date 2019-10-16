@@ -12,41 +12,21 @@
 ##' @param  a fastq or pairs of ffastq files .
 ##' @return Returns a DADA2 seqtab object.
 
-DADA2CreateSeqTab <- function(sampleName,minLen=0,concat=NULL,file1PathInDataset,
-                              file2PathInDataset=NULL){
-  if(!missing(file2PathInDataset)){
-  fnFs <- file1PathInDataset
-  fnRs <- file2PathInDataset
-  filtFs <- paste("filt",sampleName,"R1.fastq.gz", sep = ".")
-  filtRs <- paste("filt",sampleName,"R2.fastq.gz", sep = ".")
-  
-  out <- filterAndTrim(fnFs, filtFs, fnRs, filtRs, truncLen=c(minLen,minLen),
-                       maxN=0, maxEE=c(2,2), truncQ=2, rm.phix=TRUE,
-                       compress=TRUE, multithread=TRUE)
-  errF <- learnErrors(filtFs, errorEstimationFunction = noqualErrfun, multithread=TRUE)
-  errR <- learnErrors(filtRs, errorEstimationFunction = noqualErrfun, multithread=TRUE)
-  derepFs <- derepFastq(filtFs, verbose=TRUE)
-  derepRs <- derepFastq(filtRs, verbose=TRUE)
-  
-  dadaFs <- dada(derepFs, err=errF, multithread=TRUE)
-  dadaRs <- dada(derepRs, err=errR, multithread=TRUE)
-  
-  mergers <- mergePairs(dadaFs, derepFs, dadaRs, derepRs, verbose=TRUE, 
-                        justConcatenate = concat)
-  seqtab <- makeSequenceTable(mergers)
-  }else{
+DADA2CreateSeqTab <- function(sampleNames,minLen=0,file1PathInDataset,database){
     fnFs <- file1PathInDataset
-    filtFs <- paste("filt",sampleName,"R1.fastq.gz", sep = ".")
+    filtFs <- paste0(sampleNames,".filt.R1.fastq.gz")
+    names(filtFs) <- sampleNames
     out <- filterAndTrim(fnFs, filtFs, truncLen=minLen,
                          maxN=0, maxEE=1, truncQ=11, rm.phix=TRUE,
                          compress=TRUE, multithread=TRUE)
     errF <- learnErrors(filtFs,errorEstimationFunction = noqualErrfun, multithread=TRUE)
-    derepFs <- derepFastq(filtFs, verbose=TRUE)
+    derepFs <- derepFastq(filtFs, verbose=FALSE)
     dadaFs <- dada(derepFs, err=errF, multithread=TRUE)
     seqtab <- makeSequenceTable(dadaFs)
-  }
-  rownames(seqtab) <- sampleName
-  return(seqtab)
+    fullTableOfOTUsNoChim <- removeBimeraDenovo(seqtab, method="consensus", multithread=TRUE)
+    taxa <- assignTaxonomy(fullTableOfOTUsNoChim,database, multithread=TRUE)
+    rownames(fullTableOfOTUsNoChim) <- sampleNames
+  return(list(fullTableOfOTUsNoChimObj=fullTableOfOTUsNoChim,taxaObj=taxa))
 }
 
 

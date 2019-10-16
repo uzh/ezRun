@@ -11,32 +11,87 @@ ezMethodDADA2Step1Sample = function(input=NA, output=NA, param=NA,
   
   require(dada2)
   require(purrr)
+  require(phyloseq)
   dataset = input$meta
-  sampleName = input$getNames() 
+  sampleNames = input$getNames() 
+  databaseParam <- param$database
+  if (databaseParam == "silva") {
+    database <- SILVA_DB_DADA2
+  } else if (databaseParam == "RDP") {
+    database <- RDP_DB_DADA2
+  }  else if (databaseParam == "greenGenes") {
+    database <- GREENGENES_DB_DADA2
+  }
   minLen <- param$minLen
   isPaired <- param$paired
   concat <- param$concatenateReads
   ### read fastq files and prepare inputs for DADA2
-  ### are reads paired? should they be joined? 
+  ### if reads are paired, they are first joined. The DADA2 inbulit joining works only 
+  ### if there is only one V-region (almost never the case)
   file1PathInDataset <- input$getFullPaths("Read1")
   if(isPaired){
     file2PathInDataset <- input$getFullPaths("Read2")
-  DADA2mainSeqTabObj <- DADA2CreateSeqTab(sampleName = sampleName,
+    fastqJoin="/usr/local/ngseq/src/ea-utils.1.1.2-686/fastq-join"
+
+    fastqJoinFun <- function(x,y,z){
+    joinedFileName <- paste0(z, ".temp.")
+    fastqJoinCmd <- paste(fastqJoin, x,y, "-o", joinedFileName)
+    ezSystem(fastqJoinCmd)
+    joinedFileName <- paste0(joinedFileName,"join")
+    joinedFile <- file.path(getwd(),joinedFileName)
+    return(joinedFile)
+    }
+    listOfJoinedFiles <- mapply(fastqJoinFun,file1PathInDataset,file2PathInDataset,
+                                sampleNames)
+    DADA2mainSeqTabObj <- DADA2CreateSeqTab(sampleNames = sampleNames,
                                           minLen = minLen,
-                                          concat = concat,
-                                          file1PathInDataset = file1PathInDataset,
-                                          file2PathInDataset = file2PathInDataset)
+                                          file1PathInDataset = listOfJoinedFiles,
+                                          database)
   }else{
-    DADA2mainSeqTabObj <- DADA2CreateSeqTab(sampleName= sampleName,
+    DADA2mainSeqTabObj <- DADA2CreateSeqTab(sampleNames= sampleNames,
                                             minLen = minLen,
-                                            file1PathInDataset = file1PathInDataset)
+                                            file1PathInDataset = file1PathInDataset,
+                                            database)
   }
   
   ## rename output files
-  ## Files needed for the report 
-  #1) 
-  DADA2mainSeqTabObjFileName <- basename(output$getColumn("RObjectWithSeqTab"))
-  saveRDS(DADA2mainSeqTabObj,DADA2mainSeqTabObjFileName)
+  # taxonomy
+  newOTUsToTaxFileName <- basename(output$getColumn("OTUsToTaxonomyFile"))
+  taxaOTUs <- data.frame(DADA2mainSeqTabObj$taxaObj, stringsAsFactors = F)
+  taxaOTUs$OTU <- paste0("OTU",seq(1:nrow(taxaOTUs)))
+  rownames(taxaOTUs) <- NULL
+  write.table(taxaOTUs,newOTUsToTaxFileName,
+              row.names = F, col.names = T, quote = F,sep = "\t")
+  # OTU count
+  newOTUsToCountFileName <- basename(output$getColumn("OTUsCountTable"))
+  countOTUs <- data.frame(DADA2mainSeqTabObj$fullTableOfOTUsNoChimObj, stringsAsFactors = F)
+  colnames(countOTUs) <- paste0("OTU",seq(1:ncol(countOTUs)))
+  countOTUs$sample <- rownames(countOTUs)
+  rownames(countOTUs) <- NULL
+  write.table(countOTUs,newOTUsToCountFileName,
+              row.names = F, col.names = T, quote = F,sep = "\t")
+  ## design Matrix 
+  if (param$group){
+    factorCols <- grep("Factor",colnames(dataset))
+    designMatrix <- data.frame(dataset[,factorCols])
+    colnames(designMatrix) <- gsub(" \\[Factor\\]","",colnames(dataset)[factorCols])
+    rownames(designMatrix) <- rownames(dataset)
+    designMatrixFile <-  basename(output$getColumn("sampleDescriptionFile"))
+    write.table(designMatrix,designMatrixFile,row.names = F, col.names = T, quote = F,sep = "\t")
+  }
+  
+  ## create phyloseqObject
+  phyloseqObjectRdata <-  basename(output$getColumn("RObjectPhyloseq"))
+  if (param$group){
+  phyloseqObject <- phyloseq(otu_table(DADA2mainSeqTabObj$fullTableOfOTUsNoChimObj, taxa_are_rows=FALSE), 
+                 sample_data(designMatrix), 
+                 tax_table(DADA2mainSeqTabObj$taxaObj))
+  }else{
+  phyloseqObject <- phyloseq(otu_table(DADA2mainSeqTabObj$fullTableOfOTUsNoChimObj, taxa_are_rows=FALSE), 
+                               tax_table(DADA2mainSeqTabObj$taxaObj))
+  }
+  saveRDS(phyloseqObject,phyloseqObjectRdata)
+  
 }
 
 ##' @template app-template

@@ -76,9 +76,8 @@ return(sampleObject)
 ##' @return Returns a  filtered Phyloseq  object.
 phyloSeqPreprocess <- function(phyloseqObj){
   ### OTU abundance filter 
-  transformedPhyloseqObj  <- transform_sample_counts(phyloseqObj, function(otu) otu/sum(otu))
-  ###
-  return(transformedPhyloseqObj)
+filtered <- filter_taxa(phyloseqObj, function(x) sum(x > 2) > (0.1*length(x)), TRUE)
+  return(filtered)
 }
 
 ###################################################################
@@ -96,8 +95,8 @@ phyloSeqPreprocess <- function(phyloseqObj){
 phyloSeqToDeseq2_tableAndPlots <- function(phyloseqObj){
   ## Convert to Deseq obj and analyze
   ## to do: add selector for group and test
-  phyloseqObjNoMock <- prune_samples(sample_data(phyloseqObj)$Group != "Mock", phyloseqObj)
-  phyloseq_to_deseq2 = phyloseq_to_deseq2(phyloseqObjNoMock, ~ Group)
+  phyloseqObjNoMock <- prune_samples(sample_data(phyloseqObj)$group != "Mock", phyloseqObj)
+  phyloseq_to_deseq2 = phyloseq_to_deseq2(phyloseqObjNoMock, ~ group)
   DEseqPhyRes <- DESeq(phyloseq_to_deseq2, test="Wald", fitType="parametric")
   res = results(DEseqPhyRes, cooksCutoff = FALSE)
   addTaxa <- cbind(data.frame(res),t(otu_table(phyloseqObjNoMock)), tax_table(phyloseqObjNoMock))
@@ -308,7 +307,7 @@ heatmapForPhyloseqPlot <- function(phyloseqOtuObj){
 phyloSeqOTUFromFile <- function(otuFile){
   otuDF <- read.delim(otuFile, header = T,stringsAsFactors = F, check.names = F)
   rownames(otuDF) <- otuDF$Group
-  colToDrop <- c("Group","label","numOTUs")
+  colToDrop <- c("Group","label","numOtus")
   otuFile1 <- as.matrix(otuDF[,!names(otuDF)%in%colToDrop])
   otuObject <- otu_table(otuFile1, taxa_are_rows = FALSE)
   return(otuObject)
@@ -376,4 +375,42 @@ heatmapForPhylotseqPlotPheatmap <- function(phyloseqOtuObj, matrix){
            annotation_colors = mat_colors,
            cluster_rows = TRUE,  scale="column", method = "average")
    }
+}
+
+###################################################################
+# Functional Genomics Center Zurich
+# This code is distributed under the terms of the GNU General
+# Public License Version 3, June 2007.
+# The terms are available here: http://www.gnu.org/licenses/gpl.html
+# www.fgcz.ch
+
+
+##' @title OTUs saturation plot
+##' @description HOw many OTUs do we really have?
+##' @param  x, mothur shared abundance  file or already read-in table (dep on sec. param).
+##' @return Returns a grid of plots
+otuSaturationPlot <- function(x){
+  sharedFile <- x
+  k=0 
+  dfGroup <- list()
+  for (sample in rownames(sharedFile) ){
+    k=k+1
+    tempDF <- sharedFile[rownames(sharedFile) == sample,]
+    sharedAbund <- t(tempDF)
+    sharedAbundDF <- data.frame(data.matrix(data.frame(sharedAbund, stringsAsFactors = FALSE)))
+    cumSumTransform <- data.frame(apply(sharedAbundDF,2,cumsum))
+    dfGroup[[k]] = data.frame()
+    for (j in 1:ncol(cumSumTransform)){
+      dfTemp <-  data.frame(abundance = cumSumTransform[,colnames(cumSumTransform)[j]])
+      dfTemp$numberOTUs <- seq_along(1:nrow(dfTemp))
+      dfTemp$Sample <- as.factor(sample)
+      dfGroup[[k]] <- rbind(dfGroup[[k]],dfTemp)
+    }
+  }
+  
+  fullSaturaDF <- do.call("rbind",dfGroup)
+  N <- round(sqrt(nlevels(fullSaturaDF$Sample)),0)
+  saturationPlot <- ggplot(fullSaturaDF, aes(x=numberOTUs,y=abundance)) + geom_line(colour = "red") +
+    facet_wrap(vars(Sample),N)
+  return(saturationPlot)
 }

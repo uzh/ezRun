@@ -176,40 +176,7 @@ writeFasta(fastqFile,'Illumina.fasta', mode = 'a')
   }
   
 
-  ###################################################################
-  # Functional Genomics Center Zurich
-  # This code is distributed under the terms of the GNU General
-  # Public License Version 3, June 2007.
-  # The terms are available here: http://www.gnu.org/licenses/gpl.html
-  # www.fgcz.ch
-  
-  
-  ##' @title OTUs saturation 
-  ##' @description HOw many OTUs do we really have?
-  ##' @param  sharedFile, mothur shared abundance  file.
-  ##' @return Returns a table
-  otuSaturationPlot <- function(sharedFile){
-    sharedAbund <- read.table(sharedFile, stringsAsFactors = FALSE, sep = "\t", header = TRUE)
-    sharedAbund <- t(sharedAbund)
-    totOtus <- sharedAbund[rownames(sharedAbund) == "numOtus",]
-    rowToKeep <- grepl("^Otu.*$",rownames(sharedAbund))
-    sharedAbundDF <- data.frame(data.matrix(data.frame(sharedAbund[rowToKeep,], stringsAsFactors = FALSE)))
-    colnames(sharedAbundDF) <- sharedAbund[rownames(sharedAbund) == "Group",]
-    cumSumTransform <- data.frame(apply(sharedAbundDF,2,cumsum))
-    dfFinal = data.frame()
-    for (i in 1:ncol(cumSumTransform))
-    { dfTemp <-  data.frame(abundances = cumSumTransform[,colnames(cumSumTransform)[i]])
-      dfTemp$sample <- as.factor(colnames(cumSumTransform)[i])
-      dfTemp$xAx <- seq_along(1:nrow(dfTemp))
-      dfFinal <- rbind(dfFinal,dfTemp)
-      }
-    titleText <- "OTU saturation"
-    saturationPlot <- ggplot(dfFinal, aes(x=xAx,y=abundances, group = group,  colour = group)) + geom_line() +
-    labs(title=titleText) + 
-    theme(plot.title=element_text(size=15, face="bold",hjust=0.5))
-    return(saturationPlot)
-  }
-  
+ 
   ###################################################################
   # Functional Genomics Center Zurich
   # This code is distributed under the terms of the GNU General
