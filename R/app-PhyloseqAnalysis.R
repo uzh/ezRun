@@ -40,7 +40,6 @@ ezMethodPhyloSeqAnalysis = function(input=NA, output=NA, param=NA,
   #physeqFullObject <- phyloSeqPreprocess(physeqFullObject)
   #myTaxa = names(sort(taxa_sums(physeqFullObject), decreasing = TRUE)[1:pruneLevel])
   #physeqFullObject <- prune_taxa(myTaxa,physeqFullObject)
-  physeqFullObject <- physeqObjectNoTree
   setwdNew(basename(output$getColumn("Report")))
   
   if (isGroupThere){
