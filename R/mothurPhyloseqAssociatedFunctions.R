@@ -100,10 +100,9 @@ phyloSeqToDeseq2_tableAndPlots <- function(phyloseqObj){
   DEseqPhyRes <- DESeq(phyloseq_to_deseq2, test="Wald", fitType="parametric")
   res = results(DEseqPhyRes, cooksCutoff = FALSE)
   addTaxaOut <- cbind(data.frame(res),t(otu_table(phyloseqObjNoMock)), tax_table(phyloseqObjNoMock))
-  addTaxaOut <- addTaxaOut[!is.na(addTaxaOut$Kingdom),]
+  addTaxaOut <- addTaxaOut[!is.na(addTaxaOut$Kingdom) & !is.na(addTaxaOut$padj),]
   addTaxaOut <- addTaxaOut[addTaxaOut$Kingdom == "Bacteria",]
   addTaxaOut <- addTaxaOut[order(addTaxaOut$padj),]
-  addTaxaOut <- head(addTaxaOut,20)
   colsToKeep <- grep("baseMean|lfcSE", colnames(addTaxaOut), invert = T)
   addTaxa <- addTaxaOut[,colsToKeep]
   ## sort and prepare fpr plot
@@ -114,14 +113,13 @@ phyloSeqToDeseq2_tableAndPlots <- function(phyloseqObj){
   x = tapply(addTaxa$log2FoldChange, addTaxa$Genus, function(x) max(x))
   x = sort(x, TRUE)
   addTaxa$Genus = factor(as.character(addTaxa$Genus), levels=names(x))
-  addTaxa <- na.omit(addTaxa)
   addTaxa$Significance <- "Significant"
   addTaxa[addTaxa$padj > 0.05,]$Significance <- "nonSignificant"
   addTaxa$Significance <- as.factor(addTaxa$Significance)
   addTaxa$Significance <- factor(addTaxa$Significance, levels = rev(levels(addTaxa$Significance)))
   ### log2fold plot
   title <- "Abundance changes between the groups"
-  plotLogFoldVsTaxon <- ggplot(addTaxa, aes(x=Genus, y=log2FoldChange, color=Phylum)) + 
+  plotLogFoldVsTaxon <- ggplot(addTaxa, aes(x=Phylum, y=log2FoldChange, color=Phylum)) + 
     geom_point(size=3) + 
     theme(axis.text.x = element_text(angle = -90, hjust = 0, vjust=0.5)) +
     geom_hline(aes(yintercept=1),color="blue")  + 
@@ -137,12 +135,12 @@ phyloSeqToDeseq2_tableAndPlots <- function(phyloseqObj){
   volcanoPlot <- volcanoPlot + geom_hline(yintercept=1.3, color="blue")
   ### Diff.expr. pie chart
   OTUsToPlot <- addTaxaOut 
-  tableTaxa <- data.frame(table(droplevels(OTUsToPlot[,"Genus"])))
-  colnames(tableTaxa)[1] <- "Genus"
+  tableTaxa <- data.frame(table(droplevels(OTUsToPlot[,"Phylum"])))
+  colnames(tableTaxa)[1] <- "Phylum"
   pct <- round(tableTaxa$Freq/sum(tableTaxa$Freq)*100,2)
   pct = paste0(pct,"%")
-  titleText = "Top-20 different Genera"
-  bp <- ggplot(tableTaxa, aes(x="", y=Freq, fill=Genus)) + 
+  titleText = "Top-ranked different Phyla"
+  bp <- ggplot(tableTaxa, aes(x="", y=Freq, fill=Phylum)) + 
     geom_bar(position = position_stack(),width = 1, stat = "identity") 
   pieVersion <- bp + coord_polar("y", start=0)
   finalVersionPie <- pieVersion +  labs(title=titleText, y="") + 
