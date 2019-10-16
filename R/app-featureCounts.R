@@ -287,6 +287,12 @@ ezMethodSingleCellFeatureCounts <- function(input=NA, output=NA, param=NA){
                                                  names(fixNameMapping)[indexStartNumber])
   colnames(countsFixed) <- fixNameMapping[colnames(countsFixed)]
   
+  ## To fix another bug introduced by featureCounts: first RG is the filename
+  stopifnot(sum(is.na(colnames(countsFixed))) <= 1)
+  if(any(is.na(colnames(countsFixed)))){
+    colnames(countsFixed)[is.na(colnames(countsFixed))] <- head(sort(tagsRG))[1]
+  }
+  
   ## wirteMM doesn't hold the colnames and rownames in mtx
   # ezWrite.table(countsFixed, head=paste0(param$featureLevel, "_id"),
   #               file=outputFile)

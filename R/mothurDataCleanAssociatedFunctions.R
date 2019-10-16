@@ -149,49 +149,7 @@ chimeraSummaryPlot <- function(x){
   return(finalVersionChimeraPlot)
 }
 
-###################################################################
-# Functional Genomics Center Zurich
-# This code is distributed under the terms of the GNU General
-# Public License Version 3, June 2007.
-# The terms are available here: http://www.gnu.org/licenses/gpl.html
-# www.fgcz.ch
 
-
-##' @title OTUs saturation plot
-##' @description HOw many OTUs do we really have?
-##' @param  x, mothur shared abundance  file or already read-in table (dep on sec. param).
-##' @return Returns a grid of plots
-otuSaturationPlot <- function(x,type){
-  if (type == "file"){
-    nameRawFile <- basename(x)
-    sharedFile <- read.table(nameRawFile, stringsAsFactors = FALSE, sep = "\t", header = TRUE)
-}else if (type == "table") {
-  sharedFile = x
-   }
-     k=0 
-     dfGroup <- list()
-   for (sample in sharedFile$Group){
-     k=k+1
-     tempDF <- sharedFile[sharedFile$Group == sample,]
-    sharedAbund <- t(tempDF)
-  totOtus <- sharedAbund[rownames(sharedAbund) == "numOtus",]
-  rowToKeep <- grepl("tu[0-9]",rownames(sharedAbund))
-  sharedAbundDF <- data.frame(data.matrix(data.frame(sharedAbund[rowToKeep,], stringsAsFactors = FALSE)))
-  colnames(sharedAbundDF) <- sharedAbund[rownames(sharedAbund) == "Group",]
-  cumSumTransform <- data.frame(apply(sharedAbundDF,2,cumsum))
-  dfGroup[[k]] = data.frame()
-  for (j in 1:ncol(cumSumTransform)){
-  dfTemp <-  data.frame(abundance = cumSumTransform[,colnames(cumSumTransform)[j]])
-  dfTemp$numberOTUs <- seq_along(1:nrow(dfTemp))
-  dfTemp$Sample <- sample
-  dfGroup[[k]] <- rbind(dfGroup[[k]],dfTemp)
-  }
-   }
-  fullSaturaDF <- do.call("rbind",dfGroup)
-  saturationPlot <- ggplot(fullSaturaDF, aes(x=numberOTUs,y=abundance)) + geom_line(colour = "red") +
-    facet_grid(rows = vars(Sample))
-  return(saturationPlot)
-}
 
 ###################################################################
 # Functional Genomics Center Zurich
