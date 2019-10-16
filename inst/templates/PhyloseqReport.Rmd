@@ -20,7 +20,7 @@ setEnvironments("phantomjs")
 ### create plots: 1. abundance
 abundPlot <- plot_bar(physeqFullObject, fill="Genus") + geom_bar(aes(fill=Genus), stat="identity", position="stack")
 if (isGroupThere) {
-  abundPlotGroup <- plot_bar(physeqFullObject, "Species", fill="Genus", facet_grid=~Group) + geom_bar(aes(fill=Genus), stat="identity", position="stack")  +theme(axis.text.x = element_blank())
+  abundPlotGroup <- plot_bar(physeqFullObject, "Species", fill="Genus", facet_grid=~group) + geom_bar(aes(fill=Genus), stat="identity", position="stack")  +theme(axis.text.x = element_blank())
 }
 ```
 
@@ -33,14 +33,14 @@ plotOrdTaxa = plot_ordination(physeqFullObject, ordinateDS, type="taxa", color="
 ```{r prepOrdSamples, include=FALSE, eval=isGroupThere}
 ### create plots: 2. ordination by samlpe
 inputData <- physeqFullObject@otu_table@.Data
-inputGroup <- physeqFullObject@sam_data$Group
+inputGroup <- physeqFullObject@sam_data$group
 plotOrdSamples =  pcaForPhylotseqPlot(inputData,inputGroup) + ggtitle("Sample ordination")
 ```
 
 ```{r prepRich, include=FALSE}
 ### create plots: 3. richness 
 if (isGroupThere) {
-plotRichness <- plot_richness(physeqFullObject, x="Group", measures=c("Simpson", "Shannon"), color="Group")
+plotRichness <- plot_richness(physeqFullObject, x="group", measures=c("Simpson", "Shannon"), color="group")
 }else{
 plotRichness <- plot_richness(physeqFullObject, measures=c("Simpson", "Shannon"))
 }
@@ -49,7 +49,7 @@ plotRichness <- plot_richness(physeqFullObject, measures=c("Simpson", "Shannon")
 ```{r prepTree, include=FALSE}
 ### create plots: 4. tree
 if (isGroupThere) {
-plotTree <- plot_tree(physeqFullObject , ladderize="left", color="Group")
+plotTree <- plot_tree(physeqFullObject , ladderize="left", color="group")
 }else{
 plotTree <- plot_tree(physeqFullObject , ladderize="left")
 }
