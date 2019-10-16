@@ -16,11 +16,11 @@ ezMethodDADA2Step1Sample = function(input=NA, output=NA, param=NA,
   sampleNames = input$getNames() 
   databaseParam <- param$database
   if (databaseParam == "silva") {
-    database <- SILVA_DB_DADA2
+    database <- SILVA_DB
   } else if (databaseParam == "RDP") {
-    database <- RDP_DB_DADA2
+    database <- RDP_DB
   }  else if (databaseParam == "greenGenes") {
-    database <- GREENGENES_DB_DADA2
+    database <- GREENGENES_DB
   }
   minLen <- param$minLen
   isPaired <- param$paired
