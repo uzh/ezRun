@@ -1,0 +1,168 @@
+---
+title:  "`r param$name`"
+author: "Functional Genomics Center Zurich"
+output: 
+  html_document:
+    self_contained: false
+    includes:
+      in_header: fgcz_header.html
+    css: fgcz.css
+editor_options: 
+  chunk_output_type: console
+---
+
+Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
+
+```{r setup, include=FALSE}
+library(ezRun)
+library(cowplot)
+library(SingleCellExperiment)
+library(batchelor)
+library(BiocSingular)
+library(scater)
+library(scran)
+# input for this report: sceURLs, param
+
+## debug
+sceURLs <- c("wt_3_M"="https://fgcz-sushi.uzh.ch/projects/p2860/SCScran_37216_2019-06-13--13-43-26/wt_3_M_SCScran/00index.html",
+             "wt_4_F"="https://fgcz-sushi.uzh.ch/projects/p2860/SCScran_37216_2019-06-13--13-43-26/wt_4_F_SCScran/00index.html",
+             "rd10_1_M"="https://fgcz-sushi.uzh.ch/projects/p2860/SCScran_37216_2019-06-13--13-43-26/rd10_1_M_SCScran/00index.html",
+             "rd10_2_F"="https://fgcz-sushi.uzh.ch/projects/p2860/SCScran_37216_2019-06-13--13-43-26/rd10_2_F_SCScran/00index.html")
+## end of debug
+
+sceList <- file.path("/srv/gstore/projects",
+                     sub("https://fgcz-(gstore|sushi).uzh.ch/projects/", "",
+                         dirname(sceURLs)))
+sceList <- sapply(sceList, list.files, pattern="sce.*\\.rds", full.names=TRUE)
+sceList <- lapply(sceList, readRDS)
+names(sceList) <- names(sceURLs)
+```
+
+## Integration analysis {.tabset}
+
+### Clustering of integrated samples
+
+```{r Feature selection across batches, echo=FALSE}
+decList <- lapply(sceList, function(x){metadata(x)$dec})
+decList <- lapply(decList, function(x){x[order(x$bio, decreasing = TRUE), ]})
+universe <- Reduce(intersect, lapply(decList, rownames))
+bioMatrix <- do.call(cbind, lapply(decList, function(x){x[universe, "bio"]}))
+mean.bio <- rowMeans(bioMatrix)
+chosen <- universe[mean.bio > 0]
+rescaled <- do.call(batchelor::multiBatchNorm,
+                    lapply(sceList, function(x){x[universe, ]}))
+```
+
+```{r integration None, echo=FALSE, eval=TRUE}
+# We always do the simple integration. Even just for comparison
+sce <- SingleCellExperiment(
+  assays=list(counts=do.call(cbind, lapply(rescaled, assay, "counts")),
+              logcounts=do.call(cbind, lapply(rescaled, assay, "logcounts"))),
+  rowRanges=rowRanges(rescaled[[1]]),
+  colData=do.call(rbind, lapply(rescaled, colData)),
+  metadata=list(param=param,
+                log.exprs.offset=metadata(rescaled[[1]])$log.exprs.offset)
+  )
+new.trend <- makeTechTrend(x=sce)
+if(metadata(sce)$param$scProtocol == "10X"){
+  fit <- trendVar(sce, use.spikes=FALSE, loess.args=list(span=0.05))
+}else if(metadata(sce)$param$scProtocol == "Smart-seq2"){
+  fit <- trendVar(sce, use.spikes=FALSE, loess.args=list(span=0.3))
+}
+fit$trend <- new.trend # overwrite trend.
+dec <- decomposeVar(fit=fit) # use per-gene variance estimates in 'fit'.
+metadata(sce)$dec <- dec
+set.seed(1000)
+sce <- denoisePCA(sce, technical=new.trend, BSPARAM=IrlbaParam())
+set.seed(1000)
+sce <- switch(metadata(sce)$param$visMethod,
+              "TSNE"=runTSNE(sce, use_dimred="PCA",
+                             perplexity=getPerplexity(ncol(sce))),
+              "UMAP"=runUMAP(sce, use_dimred="PCA"),
+              "DiffusionMap"=runDiffusionMap(sce, use_dimred="PCA")
+              )
+## d may need some optimisation
+# pc.all <- do.call(batchelor::multiBatchPCA,
+#                   c(lapply(rescaled, function(x){x[chosen, ]}),
+#                     d=50, BSPARAM=IrlbaParam(deferred=FALSE)))
+# sce <- do.call(cbind, lapply(rescaled, function(x){x[chosen, ]}))
+```
+
+```{r integration MNN, echo=FALSE, eval=param$batchCorrection=="MNN"}
+set.seed(100)
+## k, d may need some optimisation
+sce.mnn <- do.call(batchelor::fastMNN,
+                   c(lapply(rescaled, function(x){x[chosen, ]}),
+                     k=20, d=50, BSPARAM=IrlbaParam(deferred=FALSE),
+                     BPPARAM=MulticoreParam(workers=4))
+                   )
+assay(sce.mnn, "counts") <-
+  do.call(cbind, lapply(rescaled, function(x){assay(x[chosen, ], "counts")}))
+assay(sce.mnn, "logcounts") <-
+  do.call(cbind, lapply(rescaled, function(x){assay(x[chosen, ], "logcounts")}))
+metadata(sce.mnn)$param <- param
+
+cat(length(chosen), "features are selected across samples for batch correction.\n")
+
+set.seed(1000)
+sce.mnn <- switch(metadata(sce.mnn)$param$visMethod,
+                  "TSNE"=runTSNE(sce.mnn, use_dimred="corrected",
+                                 perplexity=getPerplexity(ncol(sce.mnn))),
+                  "UMAP"=runUMAP(sce.mnn, use_dimred="corrected"),
+                  "DiffusionMap"=runDiffusionMap(sce.mnn, use_dimred="corrected")
+                  )
+```
+
+#### Visualization of integration
+
+```{r vis in low-dim, echo=FALSE, results='asis'}
+if(metadata(sce)$param$visMethod == "TSNE"){
+  p <- plotTSNE(sce, colour_by="Batch") + ggtitle("No correction")
+  print(p)
+}else if(metadata(sce)$param$visMethod == "UMAP"){
+  p <- plotUMAP(sce, colour_by="Batch") + ggtitle("No correction")
+  print(p)
+}else if(metadata(sce)$param$visMethod == "DiffusionMap"){
+  p <- plotDiffusionMap(sce, colour_by="Batch") + ggtitle("No correction")
+  print(p)
+}
+
+if(param$batchCorrection == "MNN"){
+  # MNN Corrected.
+  set.seed(100)
+  if(param$visMethod == "TSNE"){
+    p <- plotTSNE(sce.mnn, colour_by="batch") + ggtitle("MNN corrected")
+    print(p)
+  }else if(param$visMethod == "UMAP"){
+    p <- plotUMAP(sce.mnn, colour_by="batch") + ggtitle("MNN correction")
+    print(p)
+  }else if(param$visMethod == "DiffusionMap"){
+    p <- plotDiffusionMap(sce.mnn, colour_by="batch") + ggtitle("MNN correction")
+    print(p)
+  }
+}
+
+if(param$batchCorrection == "MNN"){
+  sce <- sce.mnn
+}
+# eachMarker <- "Opn1mw"
+# p1 <- plotTSNE(sce, by_exprs_values="logcounts", colour_by=eachMarker) +
+#   scale_fill_gradient(low="gray", high="red") +
+#   ggtitle(eachMarker) + labs(fill=eachMarker)
+# p1
+# 
+# p2 <- plotTSNE(sce.mnn, by_exprs_values="reconstructed", colour_by=eachMarker) +
+#   scale_fill_gradient(low="gray", high="red") +
+#   ggtitle(eachMarker) + labs(fill=eachMarker)
+# p2
+# 
+# p <- plot_grid(p1, p2)
+# save_plot(filename="OriginalVsCorrected.pdf", p, ncol=2, nrow=2,
+#           base_height = 7)
+# p3 <- plotTSNE(sceList[[1]], colour_by=eachMarker) +
+#   scale_fill_gradient(low="gray", high="red") + 
+#   ggtitle(eachMarker) + labs(fill=eachMarker)
+# p3
+```
+
+
