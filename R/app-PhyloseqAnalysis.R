@@ -26,20 +26,10 @@ ezMethodPhyloSeqAnalysis = function(input=NA, output=NA, param=NA,
   isGroupThere = param$group
 ### Analyzes results with phyloseq: preparing objects to be processed in the Rmd file
 
-### OTUs
-  ### create phyloseq OTU object
-  otuObject <- phyloSeqOTUFromFile(input$getFullPaths("OTUsCountTable"))
-  ### create phyloseq Taxa object
-  taxaObject <- phyloSeqTaxaFromFile(input$getFullPaths("OTUsToTaxonomyFile"))
-  
-  ### Eventual groups
-  if (isGroupThere){
-  designMatrix <- ezRead.table(input$getFullPaths("sampleDescriptionFile"))
-  sampleObject <- sample_data(designMatrix)
-  physeqObjectNoTree = phyloseq(otuObject, taxaObject, sampleObject)
-  }else{
-    physeqObjectNoTree = phyloseq(otuObject, taxaObject)
-  }
+### load phyloseq object
+  physeqObjectRData <- input$getFullPaths("RObjectPhyloseq")
+  physeqObjectNoTree <- readRDS(physeqObjectRData)
+
   ##prune OTUS
   pruneLevel <- param$representativeOTUs
 
