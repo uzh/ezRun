@@ -234,9 +234,18 @@ phyloSeqCommunityComp <- function(physeq){
 ##' @return Returns an MDS   plot.
 ##' 
 ### PCA plot function
-pcaForPhylotseqPlot <- function(input,groups){
+pcaForPhyloseqPlot <- function(phySeqObject,type){
   ## calculate MDS values
-  input <- t(input)
+  if (type =="samples") {
+    input <- t(phySeqObject@otu_table@.Data)
+    groups <- phySeqObject@sam_data$group
+  }else if (type =="taxa"){
+    input <- phySeqObject@otu_table@.Data
+    groups <- as.vector(phySeqObject@tax_table@.Data)
+  } else {
+    stop("type must be either samples or taxa")
+  }
+
   mds = plotMDS(log2(input+10), plot=FALSE, ndim=2)
   ggg <- data.frame(comp1 = mds$cmdscale.out[,1] ,comp2 = mds$cmdscale.out[,2], group = groups)
   
@@ -413,4 +422,173 @@ otuSaturationPlot <- function(x){
   saturationPlot <- ggplot(fullSaturaDF, aes(x=numberOTUs,y=abundance)) + geom_line(colour = "red") +
     facet_wrap(vars(Sample),N)
   return(saturationPlot)
+}
+
+###################################################################
+# Functional Genomics Center Zurich
+# This code is distributed under the terms of the GNU General
+# Public License Version 3, June 2007.
+# The terms are available here: http://www.gnu.org/licenses/gpl.html
+# www.fgcz.ch
+
+
+##' @title modified phyloseq barplot
+##' @description Removed stacks border
+##' @param  physeqFullObject (phyloseq object)
+##' @return A ggplot
+plotBarMod <- function(xx, x, y, fill = NULL, title = NULL, facet_grid = NULL) 
+{
+ mdf = psmelt(xx)
+ mdf$relSampleFract <- 0
+ mdf$relGroupFract <- 0
+ for (sample in unique(mdf$Sample)){
+   tot <- sum(mdf[mdf$Sample == sample,]$Abundance)
+ mdf[mdf$Sample == sample,]$relSampleFract <- mdf[mdf$Sample == sample,]$Abundance/tot
+ }
+ for (g in levels(mdf$group)){
+   tot <- sum(mdf[mdf$group == g,]$Abundance)
+   mdf[mdf$group == g,]$relGroupFract <-  mdf[mdf$group == g,]$Abundance/tot
+ }
+ 
+ p = ggplot(mdf, aes_string(x = x, y = y, fill = fill))
+ p = p + geom_bar(stat = "identity", position = "stack")
+   p = p + theme(axis.text.x = element_text(angle = -90, hjust = 0))
+ if (!is.null(facet_grid)) {
+     p <- p + facet_grid(facet_grid)
+   }
+   if (!is.null(title)) {
+      p <- p + ggtitle(title)
+}
+return(p)
+}
+
+###################################################################
+# Functional Genomics Center Zurich
+# This code is distributed under the terms of the GNU General
+# Public License Version 3, June 2007.
+# The terms are available here: http://www.gnu.org/licenses/gpl.html
+# www.fgcz.ch
+
+##' @title Rank-specific abundance plot
+##' @description Abundance distribution for a specific rank
+##' @param  physeqFullObject (phyloseq object),x (rank)
+##' @return Returns a ggplot
+abundPlot <- function(rank,physeqFullObject,xAes,yAes) {
+  naRmoved <- subsetTaxMod(physeqFullObject, rank)
+  naRmovedTrimmed <- subsetRankTop10(naRmoved, rank,10)
+  p <- plotBarMod(naRmovedTrimmed, fill=rank,x=xAes,y=yAes) 
+  return(p)
+}
+
+###################################################################
+# Functional Genomics Center Zurich
+# This code is distributed under the terms of the GNU General
+# Public License Version 3, June 2007.
+# The terms are available here: http://www.gnu.org/licenses/gpl.html
+# www.fgcz.ch
+
+##' @title Modifed subset taxa
+##' @description Removes NA for a specific rank for better plotting
+##' @param  physeqFullObject (phyloseq object),x (rank)
+##' @return Returns a filtered phyloseqobj
+subsetTaxMod <- function (physeq, x) 
+{
+  if (is.null(tax_table(physeq))) {
+    cat("Nothing subset. No taxonomyTable in physeq.\n")
+    return(physeq)
+  }
+  else {
+    oldMA <- as(tax_table(physeq), "matrix")
+    oldDF <- data.frame(oldMA)
+    newDF <- data.frame(oldDF[!is.na(oldDF[[x]]),])
+    colnames(newDF) <- attr(physeq@tax_table@.Data, "dimnames")[[2]]
+    newMA <- as(newDF, "matrix")
+    if (inherits(physeq, "taxonomyTable")) {
+      return(tax_table(newMA))
+    }
+    else {
+      tax_table(physeq) <- tax_table(newMA)
+      return(physeq)
+    }
+  }
+}
+
+###################################################################
+# Functional Genomics Center Zurich
+# This code is distributed under the terms of the GNU General
+# Public License Version 3, June 2007.
+# The terms are available here: http://www.gnu.org/licenses/gpl.html
+# www.fgcz.ch
+
+##' @title Rank-specific tax-based ordination plot
+##' @description ordination plot for a specific rank
+##' @param  fullObject (phyloseq object),x (rank)
+##' @return Returns a ggplot
+ordPlot <- function(rank,fullObject,type) {
+  tax_table(fullObject) <- tax_table(fullObject)[,rank]
+  naRmoved <- subsetTaxMod(fullObject,rank)
+  naRmovedTrimmed <- subsetRankTopN(naRmoved, rank,10)
+  p <- pcaForPhyloseqPlot(naRmovedTrimmed,type)
+  p <- p + theme(legend.position = "none") 
+  return(p)
+}
+
+###################################################################
+# Functional Genomics Center Zurich
+# This code is distributed under the terms of the GNU General
+# Public License Version 3, June 2007.
+# The terms are available here: http://www.gnu.org/licenses/gpl.html
+# www.fgcz.ch
+
+##' @title Select only top10 rank
+##' @description subset taxa to retain only top10 renks. Useful for plotting
+##' @param  physeqFullObject (phyloseq object),x (rank)
+##' @return A subsetted phyloseq object
+subsetRankTopN <- function(physeqFullObject,rank,N){
+phylAsum = tapply(taxa_sums(physeqFullObject), tax_table(physeqFullObject)[, rank], sum, na.rm=TRUE)
+topN = names(sort(phylAsum, TRUE))[1:N]
+physeqFullObjectTrimmed = prune_taxa((tax_table(physeqFullObject)[, rank] %in% topN), physeqFullObject)
+return(physeqFullObjectTrimmed)
+}
+
+###################################################################
+# Functional Genomics Center Zurich
+# This code is distributed under the terms of the GNU General
+# Public License Version 3, June 2007.
+# The terms are available here: http://www.gnu.org/licenses/gpl.html
+# www.fgcz.ch
+
+##' @title Modified phyloseq richness plot 
+##' @description Modified richness plot to include box plots statistical comparison when groups are present
+##' @param  physeqFullObject (phyloseq object)
+##' @return A ggplot
+groupModRichPlot <- function(physeq, x, color = NULL, shape = NULL, 
+          title = NULL, scales = "free_y", nrow = 1, shsi = NULL, 
+          measures = c("Shannon"), sortby = NULL) 
+{
+  erDF = estimate_richness(physeq, split = TRUE, measures = measures)
+  measures = colnames(erDF)
+  ses = colnames(erDF)[grep("^se\\.", colnames(erDF))]
+  measures = measures[!measures %in% ses]
+  if (!is.null(sample_data(physeq, errorIfNULL = FALSE))) {
+    DF <- data.frame(erDF, sample_data(physeq))
+  }
+  else {
+    DF <- data.frame(erDF)
+  }
+  if (!"samples" %in% colnames(DF)) {
+    DF$samples <- sample_names(physeq)
+  }
+  if (!is.null(x)) {
+    if (x %in% c("sample", "samples", "sample_names", "sample.names")) {
+      x <- "samples"
+    }
+  }
+  else {
+    x <- "samples"
+  }
+  mdf = reshape2::melt(DF, measure.vars = measures)
+  p <- ggplot(mdf,aes(mdf[[x]],value))+ geom_boxplot() +stat_compare_means(method = "wilcox.test",hjust = -0.5, vjust = -1) +
+    xlab(x)
+  return(p)
 }
