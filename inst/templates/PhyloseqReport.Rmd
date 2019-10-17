@@ -18,59 +18,34 @@ setEnvironments("phantomjs")
 
 ```{r prepAbund, include=FALSE}
 ### create plots: 1. abundance
-abundPlot <- plot_bar(physeqFullObject, fill="Genus") + geom_bar(aes(fill=Genus), stat="identity", position="stack")
+abundPlotList <- list()
+taxRanksVec <- attr(physeqFullObject@tax_table@.Data,"dimnames")[[2]]
+taxRanks <- setNames(as.list(taxRanksVec),taxRanksVec)
+abundPlotList <- lapply(taxRanks,abundPlot,physeqFullObject=physeqFullObject,xAes="Sample",y="relSampleFract")
+
 if (isGroupThere) {
-  abundPlotGroup <- plot_bar(physeqFullObject, "Genus", fill="Genus", facet_grid=~group) + geom_bar(aes(fill=Genus), stat="identity", position="stack")  +theme(axis.text.x = element_blank())
+  abundPlotListGroup <- lapply(taxRanks,abundPlot,physeqFullObject=physeqFullObject,xAes="group",y="relGroupFract")
 }
 ```
 
 ```{r prepOrdTaxa, include=FALSE, eval=isGroupThere}
-### create plots: 2. ordination by taxa 
-ordinateDS <- ordinate(physeqFullObject, "NMDS", "bray")
-plotOrdTaxa = plot_ordination(physeqFullObject, ordinateDS, type="taxa", color="Phylum") + facet_wrap(~Phylum, 3) + ggtitle("Taxa ordination") + theme(legend.position = "none") 
+### create plots: 2. ordination by taxa
+ordPlotSampleList <- lapply(taxRanks,ordPlot,physeqFullObject=physeqFullObject, type="samples")
 ```
 
 ```{r prepOrdSamples, include=FALSE, eval=isGroupThere}
 ### create plots: 2. ordination by samlpe
-inputData <- physeqFullObject@otu_table@.Data
-inputGroup <- physeqFullObject@sam_data$group
-plotOrdSamples =  pcaForPhylotseqPlot(inputData,inputGroup) + ggtitle("Sample ordination")
+ordPlotSampleList <- lapply(taxRanks,ordPlot,physeqFullObject=physeqFullObject, type="taxa")
 ```
 
 ```{r prepRich, include=FALSE}
 ### create plots: 3. richness 
+plotRichnessBySample <- plot_richness(physeqFullObject, measures=c("Shannon"))
 if (isGroupThere) {
-plotRichness <- plot_richness(physeqFullObject, x="group", measures=c("Simpson", "Shannon"), color="group")
-}else{
-plotRichness <- plot_richness(physeqFullObject, measures=c("Simpson", "Shannon"))
+plotRichnessByGroup <- groupModRichPlot(physeqFullObject, x="group", measures=c("Shannon"))
 }
 ```
 
-```{r prepTree, include=FALSE}
-### create plots: 4. tree
-if (isGroupThere) {
-plotTree <- plot_tree(physeqFullObject , ladderize="left", color="group")
-}else{
-plotTree <- plot_tree(physeqFullObject , ladderize="left")
-}
-```
-
-```{r prepRaref, include=FALSE}
-### create plots: 4. tree
-  taxDF <- data.frame(physeqObjectNoTree@tax_table@.Data, stringsAsFactors = F)
-  otuDF <- data.frame(physeqObjectNoTree@otu_table@.Data, stringsAsFactors = F)
-  specList <- list()
-  rarefPlot <- list()
-  for (taxon in colnames(taxDF)){
-    genusOTUs <- rownames(taxDF)[grep("unclass",taxDF[[taxon]], invert = T)]
-    if (length(genusOTUs) >0){
-      specDF <- otuDF[,genusOTUs]
-      specDF$Group <- as.factor(rownames(specDF))
-      specDF$Taxon <- as.factor(taxon)
-      rarefPlot[[taxon]] <- otuSaturationPlot(specDF)
-    }
-  }
-```
 
 ```{r prepHeat, include=FALSE, eval=isGroupThere}
 ### create plots:5. pheatmap
