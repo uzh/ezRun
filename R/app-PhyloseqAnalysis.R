@@ -25,12 +25,19 @@ ezMethodPhyloSeqAnalysis = function(input=NA, output=NA, param=NA,
   
   dataset = input$meta
   isGroupThere = param$group
+  rank = param$taxonomicRank
 ### Analyzes results with phyloseq: preparing objects to be processed in the Rmd file
 
 ### load phyloseq object
   physeqObjectRData <- input$getFullPaths("RObjectPhyloseq")
   physeqObjectNoTree <- readRDS(physeqObjectRData)
-
+  
+### check how many cols sample data has; if only one, add a second otherwise the plot funciton is buggy
+  N <- ncol(sample_data(physeqObjectNoTree))
+  if (N==1) {
+   areThereMultVar <- FALSE
+    sample_data(physeqObjectNoTree)[,"dummy"] <- sample_data(physeqObjectNoTree)[,1]  
+   }
   ##prune OTUS
   pruneLevel <- param$representativeOTUs
 
