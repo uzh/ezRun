@@ -537,7 +537,7 @@ subsetTaxMod <- function (physeq, x)
 ##' @return Returns a ggplot
 ordPlot <- function(rank,fullObject,type,areThereMultVar) {
   if (type=="taxa"){
-    if (all(is.na(tax_table(physeqFullObject)[,rank]))){
+    if (all(is.na(tax_table(fullObject)[,rank]))){
     naRmovedTrimmedOrd <- ordinate(fullObject, "NMDS", "bray")
     p1 = plot_ordination(fullObject, naRmovedTrimmedOrd, type = "taxa")    
     }else{
