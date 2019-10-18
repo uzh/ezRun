@@ -1,0 +1,293 @@
+---
+title:  "test"
+author: "Functional Genomics Center Zurich"
+output: 
+  html_document:
+    self_contained: false
+    includes:
+      in_header: fgcz_header.html
+    css: fgcz.css
+editor_options: 
+  chunk_output_type: console
+---
+
+Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
+
+```{r setup, include=FALSE}
+# input for this report: sce
+library(ezRun)
+library(cowplot)
+library(dplyr)
+library(tibble)
+library(kableExtra)
+library(fastICA)
+library(Matrix)
+library(readr)
+library(RColorBrewer)
+library(SingleCellExperiment)
+library(tibble)
+library(scater)
+library(Seurat, lib.loc="/home/gtan/R-library-Seurat3")
+
+## ----------------------------------------------
+## debug
+# title:  "`r metadata(sce)$param$name`"
+sce <- readRDS("/scratch/gtan/dev/p2886-Reza-SCSeurat/Sample_1_17_08_2018_SCSeurat/sce.rds")
+## end of debug
+debug <- FALSE
+
+## Prepare data
+param <- metadata(sce)$param
+input <- metadata(sce)$input
+output <- metadata(sce)$output
+rownames(sce) <- uniquifyFeatureNames(rowData(sce)$gene_id,
+                                      rowData(sce)$gene_name)
+scData <- CreateSeuratObject(counts=assay(sce, "counts"),
+                             project=paste(input$getNames(), collapse=", "),
+                             min.cells=param$minCellsPerGene,
+                             min.features=0,
+                             meta.data=as.data.frame(colData(sce)))
+pvalue_allMarkers <- 0.01
+pvalue_all2allMarkers <- 0.01
+```
+
+```{r javascript, echo=FALSE, results='asis'}
+jsFile = system.file("extdata/enrichr.js", package="ezRun", mustWork=TRUE)
+invisible(file.copy(from=jsFile, to=basename(jsFile), overwrite=TRUE))
+cat(paste0("<SCRIPT language=\"JavaScript\" SRC=\"", basename(jsFile), "\"></SCRIPT>"))
+```
+
+This clustering report is largely based on R package [Seurat](https://satijalab.org/seurat/).
+
+## Clustering Results {.tabset}
+
+### Preprocessing
+
+#### Quality control on the cells
+
+There are `r ncol(sce)` cells in total.
+
+Seurat allows you to easily explore QC metrics and filter cells based on any user-defined criteria. A few QC metrics [commonly used](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4758103/) by the community include
+  
+  * The number of unique genes detected in each cell.
+        Low-quality cells or empty droplets will often have very few genes
+        Cell doublets or multiplets may exhibit an aberrantly high gene count
+  * Similarly, the total number of molecules detected within a cell (correlates strongly with unique genes)
+  * The percentage of reads that map to the mitochondrial genome
+    * Low-quality / dying cells often exhibit extensive mitochondrial contamination
+
+```{r QC, echo=FALSE}
+mitoPattern <- ifelse(length(grep("^MT-", rownames(scData))) > 0, "^MT-", "^mt-")
+scData[["percent.mt"]] <- PercentageFeatureSet(scData, pattern = mitoPattern)
+p <- VlnPlot(scData, features="nFeature_RNA") + theme(legend.position = "none") +
+    geom_hline(yintercept=param$minGenesPerCell, colour="red") +
+    geom_hline(yintercept=param$maxGenesPerCell, colour="red")
+p
+
+p <- VlnPlot(scData, features="nCount_RNA") + theme(legend.position = "none")
+p
+
+p <- VlnPlot(scData, features="percent.mt") + theme(legend.position = "none") +
+    geom_hline(yintercept=param$maxMitoPercent, colour="red")
+p
+
+scData <- subset(scData, subset = nFeature_RNA > param$minGenesPerCell & 
+                   nFeature_RNA < param$maxGenesPerCell & 
+                   percent.mt < param$maxMitoPercent)
+```
+
+Here, we filtered cells that have unique feature counts over `r param$maxGenesPerCell` or less than `r param$minGenesPerCell`.
+We filtered cells that have more than `r param$maxMitoPercent`% mitochondrial counts.
+In total, `r ncol(sce) - ncol(scData)` cells were removed and `r ncol(scData)` cells were kept.
+
+#### Normalizing the data
+
+After removing unwanted cells from the dataset, the next step is to normalize the data.
+By default, we employ a global-scaling normalization method "LogNormalize" that normalizes the feature expression measurements for each cell by the total expression, multiplies this by a scale factor (`r getSeuratScalingFactor(param$scProtocol)` here), and log-transforms the result with natural log.
+
+```{r normalize1, echo=FALSE}
+scData <- NormalizeData(scData, normalization.method="LogNormalize",
+                        scale.factor=getSeuratScalingFactor(param$scProtocol))
+```
+
+#### Identification of highly variable features (feature selection)
+
+We next calculate a subset of features that exhibit high cell-to-cell variation in the dataset (i.e, they are highly expressed in some cells, and lowly expressed in others).
+Focusing on these genes in downstream analysis helps to highlight biological signal in single-cell datasets.
+
+The procedure in Seurat3 is described in detail [here](https://www.biorxiv.org/content/early/2018/11/02/460147.full.pdf), and improves on previous versions by directly modeling the mean-variance relationship inherent in single-cell data, and is implemented in the `FindVariableFeatures` function.
+By default, we return 2,000 features per dataset. These will be used in downstream analysis, like PCA.
+
+```{r HVG, echo=FALSE, warning=FALSE, message=FALSE, fig.width=15, fig.height=7}
+scData <- FindVariableFeatures(scData, selection.method="vst",
+                               nfeatures=2000)
+top10 <- head(VariableFeatures(scData), 10)
+p1 <- VariableFeaturePlot(scData)
+p2 <- LabelPoints(plot=p1, points=top10, repel=TRUE)
+p <- plot_grid(p1, p2, labels="AUTO")
+p
+```
+
+#### Scaling the data
+
+Next, we apply a linear transformation ("scaling") that is a standard pre-processing step prior to dimensional reduction techniques like PCA. 
+The `ScaleData` function:
+
+  * Shifts the expression of each gene, so that the mean expression across cells is 0
+  * Scales the expression of each gene, so that the variance across cells is 1
+    * This step gives equal weight in downstream analyses, so that highly-expressed genes do not dominate
+
+```{r scale, echo=FALSE, message=FALSE}
+all.genes <- rownames(scData)
+if(ezIsSpecified(param$vars.to.regress)){
+  scData <- ScaleData(scData, features=all.genes,
+                      vars.to.regress=param$vars.to.regress)
+}else{
+  scData <- ScaleData(scData, features=all.genes)
+}
+```
+
+#### Perform linear dimensional reduction
+
+Next we perform PCA on the scaled data. 
+By default, only the previously determined variable features are used as input.
+
+```{r PCA, echo=FALSE}
+scData <- RunPCA(scData)
+```
+
+#### Determine the 'dimensionality' of the dataset
+
+To overcome the extensive technical noise in any single feature for scRNA-seq data, Seurat clusters cells based on their PCA scores, with each PC essentially representing a 'metafeature' that combines information across a correlated feature set.
+The top principal components therefore represent a robust compression of the dataset.
+
+In [Macosko et al](http://www.cell.com/abstract/S0092-8674(15)00549-8), we implemented a resampling test inspired by the JackStraw procedure. 
+We randomly permute a subset of the data (1% by default) and rerun PCA, constructing a 'null distribution' of feature scores, and repeat this procedure.
+We identify 'significant' PCs as those who have a strong enrichment of low p-value features.
+
+The `JackStrawPlot` function provides a visualization tool for comparing the distribution of p-values for each PC with a uniform distribution (dashed line).
+'Significant' PCs will show a strong enrichment of features with low p-values (solid curve above the dashed line).
+
+```{r PCA JackStrawPlot, echo=FALSE, warning=FALSE}
+scData <- JackStraw(scData, num.replicate = 100)
+scData <- ScoreJackStraw(scData, dims = 1:20)
+p <- JackStrawPlot(scData, dims = 1:20)
+p
+```
+
+An alternative heuristic method generates an 'Elbow plot': a ranking of principle components based on the percentage of variance explained by each one (`ElbowPlot` function).
+
+```{r PCA ElbowPlot, echo=FALSE}
+p <- ElbowPlot(scData, ndims=50)
+p
+```
+
+#### Cluster the cells
+
+Seurat v3 applies a graph-based clustering approach, building upon initial strategies in [Macosko et al](http://www.cell.com/abstract/S0092-8674(15)00549-8).
+Importantly, the distance metric which drives the clustering analysis (based on previously identified PCs) remains the same.
+However, our approach to partioning the cellular distance matrix into clusters has dramatically improved.
+Our approach was heavily inspired by recent manuscripts which applied graph-based clustering approaches to scRNA-seq data [SNN-Cliq, Xu and Su, Bioinformatics, 2015](http://bioinformatics.oxfordjournals.org/content/early/2015/02/10/bioinformatics.btv088.abstract) and CyTOF data [PhenoGraph, Levine et al., Cell, 2015](http://www.ncbi.nlm.nih.gov/pubmed/26095251). 
+Briefly, these methods embed cells in a graph structure - for example a K-nearest neighbor (KNN) graph, with edges drawn between cells with similar feature expression patterns, and then attempt to partition this graph into highly interconnected 'quasi-cliques' or 'communities'.
+
+As in PhenoGraph, we first construct a KNN graph based on the euclidean distance in PCA space, and refine the edge weights between any two cells based on the shared overlap in their local neighborhoods (Jaccard similarity).
+This step is performed using the `FindNeighbors` function, and takes as input the previously defined dimensionality of the dataset (first `r param$pcs` PCs).
+
+```{r Cluster, echo=FALSE}
+scData <- FindNeighbors(scData, dims=1:param$pcs)
+scData <- FindClusters(scData, resolution=param$resolution)
+```
+
+#### Run non-linear dimensional reduction (UMAP/tSNE)
+
+Seurat offers several non-linear dimensional reduction techniques, such as tSNE and UMAP, to visualize and explore these datasets.
+The goal of these algorithms is to learn the underlying manifold of the data in order to place similar cells together in low-dimensional space.
+Cells within the graph-based clusters determined above should co-localize on these dimension reduction plots.
+As input to the UMAP and tSNE, we suggest using the same PCs as input to the clustering analysis.
+
+```{r run UMAP TSNE, echo=FALSE, message=FALSE, warning=FALSE}
+scData <- RunUMAP(scData, dims = 1:param$pcs,
+                  n.neighbors=getPerplexity(ncol(scData)))
+scData <- RunTSNE(scData, dims = 1:param$pcs,
+                  perplexity=getPerplexity(ncol(scData)))
+```
+
+### QC on low-dimensional space
+
+#### UMAP
+```{r QC on UMAP, echo=FALSE}
+FeaturePlot(object=scData, features="nFeature_RNA",
+            reduction="umap")
+FeaturePlot(object=scData, features="nCount_RNA",
+            reduction="umap")
+FeaturePlot(object=scData, features="percent.mt",
+            reduction="umap")
+DimPlot(scData, reduction="umap", group.by="CellCycle") + ggtitle("Cell cycle phase")
+```
+
+#### TSNE
+```{r QC on TSNE, echo=FALSE}
+FeaturePlot(object=scData, features="nFeature_RNA",
+            reduction="tsne")
+FeaturePlot(object=scData, features="nCount_RNA",
+            reduction="tsne")
+FeaturePlot(object=scData, features="percent.mt",
+            reduction="tsne")
+DimPlot(scData, reduction="tsne", group.by="CellCycle") + ggtitle("Cell cycle phase")
+```
+
+### Clustering
+
+```{r clustering plot, echo=FALSE, results="asis", fig.width=16, fig.height=7}
+p1 <- DimPlot(scData, reduction = "umap", label=TRUE)
+p2 <- DimPlot(scData, reduction = "tsne", label=TRUE)
+p <- plot_grid(p1, p2, labels="AUTO", ncol=2)
+p
+
+kable(tibble(Cluster=names(summary(Idents(scData))),
+             "# of cells"=summary(Idents(scData))),
+      row.names=FALSE, format="html",
+      caption="Number of cells in each cluster") %>%
+  kable_styling(bootstrap_options = "striped", full_width = F,
+                position = "float_right")
+```
+
+### Marker genes
+
+We only look at upregulated genes in each cluster, as these are more useful for positive identification of cell types in a heterogeneous population.
+The minimal fraction in either two populations is 0.25. The minimal logFC is 0.25.
+The minimal pvalue is `r pvalue_allMarkers`.
+
+```{r pos markers, include=FALSE}
+markers <- FindAllMarkers(scData, only.pos=TRUE, min.pct=0.25,
+                          logfc.threshold=0.25, return.thresh=pvalue_allMarkers)
+posMarkersFn <- "pos_markers.tsv"
+write_tsv(as_tibble(markers, rownames="id"), path=posMarkersFn)
+```
+
+```{r pos markers enrichr, echo=FALSE, results='asis'}
+if(doEnrichr(param)){
+  genesPerCluster <- split(markers$gene, markers$cluster)
+  jsCall = paste0('enrich({list: "', sapply(genesPerCluster, paste, collapse="\\n"), '", popup: true});')
+  enrichrCalls <- paste0("<a href='javascript:void(0)' onClick='", jsCall, 
+                         "'>Analyse at Enrichr website</a>")
+  enrichrTable <- tibble(Cluster=names(genesPerCluster),
+                         "# of markers"=lengths(genesPerCluster),
+                         "Enrichr link"=enrichrCalls)
+  kable(enrichrTable, format="html", escape=FALSE,
+        caption=paste0("GeneSet enrichment: genes with pvalue ", pvalue_allMarkers)) %>%
+    kable_styling("striped", full_width = F, position = "left")
+}
+```
+
+
+### Data availability
+
+```{r data, echo=FALSE}
+saveRDS(scData, file = "scData.rds")
+```
+
+### SessionInfo
+```{r, echo=FALSE}
+sessionInfo()
+```
