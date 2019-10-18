@@ -48,6 +48,6 @@ input[['featureLevel']] = 'gene'
 # input = EzDataset$new(meta=input, dataRoot=param$dataRoot)
 # param <- ezParam(param)
 # sce <- loadSCCountDataset(input, param)
-debug(ezMethodSCSeurat)
+# debug(ezMethodSCSeurat)
 EzAppSCSeurat$new()$run(input=input, output=output, param=param)
 

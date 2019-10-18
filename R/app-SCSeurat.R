@@ -66,7 +66,7 @@ ezMethodSCSeurat = function(input=NA, output=NA, param=NA,
   metadata(sce)$param$name <- paste(metadata(sce)$param$name,
                                     paste(input$getNames(), collapse=", "),
                                     sep=": ")
-  saveRDS(sce, file = "sce.rds")
+  # saveRDS(sce, file = "sce.rds")
   
   ## Copy the style files and templates
   styleFiles <- file.path(system.file("templates", package="ezRun"),

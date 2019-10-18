@@ -192,8 +192,8 @@ ezInteractiveTable = function(values, tableLink, digits=NULL, colNames=colnames(
 ezInteractiveTableRmd = function(values, digits=NULL, 
                                  colNames=colnames(values), title="", 
                                  format=NULL, envir=parent.frame()){
-  require(DT, quietly=TRUE)
-  require(htmltools, quietly=TRUE)
+  suppressMessages(require(DT, quietly=TRUE))
+  suppressMessages(require(htmltools, quietly=TRUE))
   if (!is.null(digits)){
     for (i in 1:ncol(values)) {
       if(typeof(values[ ,i]) == "double"){
