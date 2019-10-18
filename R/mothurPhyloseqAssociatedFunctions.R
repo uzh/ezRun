@@ -74,10 +74,13 @@ return(sampleObject)
 ##' @description Preprocesses a phyloseq object.
 ##' @param  phyloseqObj, a phyloseq object.
 ##' @return Returns a  filtered Phyloseq  object.
-phyloSeqPreprocess <- function(phyloseqObj){
-  ### OTU abundance filter 
-filtered <- filter_taxa(phyloseqObj, function(x) sum(x > 3) > (0.2*length(x)), TRUE)
-  return(filtered)
+phyloSeqPreprocess <- function(phyloseqObj,rawCount,sampleFraction){
+  ### First remove taxa not seen at least 5 time in at least 30 % of the samples
+filteredTaxa <- filter_taxa(phyloseqObj, function(x) sum(x > rawCount) > (sampleFraction*length(x)), TRUE)
+  ### then remove samples which have zero observations
+samplesToKeep <- which(apply(otu_table(filteredTaxa),1,sum)>0)
+filteredTaxaAndSamples <- prune_samples(names(samplesToKeep),filteredTaxa)
+  return(filteredTaxaAndSamples)
 }
 
 ###################################################################

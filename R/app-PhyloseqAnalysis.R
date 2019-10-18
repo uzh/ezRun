@@ -26,6 +26,8 @@ ezMethodPhyloSeqAnalysis = function(input=NA, output=NA, param=NA,
   dataset = input$meta
   isGroupThere = param$group
   rank = param$taxonomicRank
+  rawCount = param$rawCount
+  sampleFraction = param$sampleFraction
 ### Analyzes results with phyloseq: preparing objects to be processed in the Rmd file
 
 ### load phyloseq object
@@ -38,16 +40,11 @@ ezMethodPhyloSeqAnalysis = function(input=NA, output=NA, param=NA,
    areThereMultVar <- FALSE
     sample_data(physeqObjectNoTree)[,"dummy"] <- sample_data(physeqObjectNoTree)[,1]  
    }
-  ##prune OTUS
-  pruneLevel <- param$representativeOTUs
 
-### create, add trees, preprocess and prune phyloseq object 
-
-  treeObject = rtree(ntaxa(physeqObjectNoTree), rooted=TRUE, tip.label=taxa_names(physeqObjectNoTree))
-  physeqFullObject <- merge_phyloseq(physeqObjectNoTree,treeObject)
-  #physeqFullObject <- phyloSeqPreprocess(physeqFullObject)
-  #myTaxa = names(sort(taxa_sums(physeqFullObject), decreasing = TRUE)[1:pruneLevel])
-  #physeqFullObject <- prune_taxa(myTaxa,physeqFullObject)
+### Filtering step
+  physeqFullObject <- phyloSeqPreprocess(physeqObjectNoTree,rawCount,sampleFraction)
+  
+### run report  
   setwdNew(basename(output$getColumn("Report")))
   
   if (isGroupThere){
