@@ -30,12 +30,12 @@ if (isGroupThere) {
 
 ```{r prepOrdTaxa, include=FALSE, eval=isGroupThere}
 ### create plots: 2. ordination by taxa
-ordPlotTaxa <- ordPlot(rank,physeqFullObject=physeqFullObject, type="taxa")
+ordPlotTaxa <- ordPlot(rank,physeqFullObject, type="taxa")
 ```
 
 ```{r prepOrdSamples, include=FALSE, eval=isGroupThere}
 ### create plots: 2. ordination by samlpe
-ordPlotSample<- ordPlot(rank,physeqFullObject=physeqFullObject, type="samples")
+ordPlotSample<- ordPlot(rank,physeqFullObject, type="samples")
 ```
 
 ```{r prepRich, include=FALSE}
