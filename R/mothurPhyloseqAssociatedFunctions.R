@@ -75,7 +75,7 @@ return(sampleObject)
 ##' @param  phyloseqObj, a phyloseq object.
 ##' @return Returns a  filtered Phyloseq  object.
 phyloSeqPreprocess <- function(phyloseqObj,rawCount,sampleFraction){
-  ### First remove taxa not seen at least 5 time in at least 30 % of the samples
+  ### First remove taxa not seen at least rowCount times in at least sampleFraction of the samples
 filteredTaxa <- filter_taxa(phyloseqObj, function(x) sum(x > rawCount) > (sampleFraction*length(x)), TRUE)
   ### then remove samples which have zero observations
 samplesToKeep <- which(apply(otu_table(filteredTaxa),1,sum)>0)
@@ -481,11 +481,14 @@ return(p)
 ##' @return Returns a ggplot
 abundPlot <- function(rank,physeqFullObject,xAes,yAes) {
   naRmoved <- subsetTaxMod(physeqFullObject, rank)
+  if (naRmoved == "nothing") {
+    return("nothing")
+  }else{
   naRmovedTrimmed <- subsetRankTopN(naRmoved, rank,10)
   p <- plotBarMod(naRmovedTrimmed, fill=rank,x=xAes,y=yAes) 
   return(p)
 }
-
+}
 ###################################################################
 # Functional Genomics Center Zurich
 # This code is distributed under the terms of the GNU General
@@ -502,20 +505,22 @@ subsetTaxMod <- function (physeq, x)
   if (is.null(tax_table(physeq))) {
     cat("Nothing subset. No taxonomyTable in physeq.\n")
     return(physeq)
-  }
-  else {
+  } else {
     oldMA <- as(tax_table(physeq), "matrix")
     oldDF <- data.frame(oldMA)
     newDF <- data.frame(oldDF[!is.na(oldDF[[x]]),])
+    if(nrow(newDF) == 0){
+      return("nothing")
+    } else{
     colnames(newDF) <- attr(physeq@tax_table@.Data, "dimnames")[[2]]
     newMA <- as(newDF, "matrix")
     if (inherits(physeq, "taxonomyTable")) {
       return(tax_table(newMA))
-    }
-    else {
+    } else {
       tax_table(physeq) <- tax_table(newMA)
       return(physeq)
     }
+  }
   }
 }
 

@@ -21,10 +21,24 @@ setEnvironments("phantomjs")
 abundPlotList <- list()
 taxRanksVec <- attr(physeqFullObject@tax_table@.Data,"dimnames")[[2]]
 taxRanks <- setNames(as.list(taxRanksVec),taxRanksVec)
-abundPlotList <- lapply(taxRanks,abundPlot,physeqFullObject=physeqFullObject,xAes="Sample",y="relSampleFract")
+for (rank  in taxRanks){
+  temp <- abundPlot(rank,physeqFullObject,xAes="Sample",y="relSampleFract")
+  if (temp == "nothing") {
+    next
+  } else {
+abundPlotList[[rank]] <- abundPlot(rank,physeqFullObject,xAes="Sample",y="relSampleFract")
+  }
+}
 
 if (isGroupThere) {
-  abundPlotListGroup <- lapply(taxRanks,abundPlot,physeqFullObject=physeqFullObject,xAes="group",y="relGroupFract")
+  for (rank  in taxRanks){
+    temp <- abundPlot(rank,physeqFullObject,xAes="Sample",y="relGroupFract")
+    if (temp == "nothing") {
+          next
+  } else {
+abundPlotListGroup[[rank]] <- abundPlot(rank,physeqFullObject,xAes="Sample",y="relGroupFract")
+  }
+  }
 }
 ```
 
