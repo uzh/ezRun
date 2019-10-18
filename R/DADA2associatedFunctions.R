@@ -12,11 +12,11 @@
 ##' @param  a fastq or pairs of ffastq files .
 ##' @return Returns a DADA2 seqtab object.
 
-DADA2CreateSeqTab <- function(sampleNames,minLen=0,file1PathInDataset,database){
+DADA2CreateSeqTab <- function(sampleNames,maxLen=0,file1PathInDataset,database){
     fnFs <- file1PathInDataset
     filtFs <- paste0(sampleNames,".filt.R1.fastq.gz")
     names(filtFs) <- sampleNames
-    out <- filterAndTrim(fnFs, filtFs, truncLen=minLen,
+    out <- filterAndTrim(fnFs, filtFs, truncLen=maxLen,
                          maxN=0, maxEE=1, truncQ=11, rm.phix=TRUE,
                          compress=TRUE, multithread=TRUE)
     errF <- learnErrors(filtFs,errorEstimationFunction = noqualErrfun, multithread=TRUE)

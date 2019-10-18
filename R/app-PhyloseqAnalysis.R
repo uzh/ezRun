@@ -21,25 +21,30 @@ ezMethodPhyloSeqAnalysis = function(input=NA, output=NA, param=NA,
   require(kableExtra)
   require(knitr)
   library(pheatmap)
+  library(ggpubr)
   
   dataset = input$meta
   isGroupThere = param$group
+  rank = param$taxonomicRank
+  rawCount = param$rawCount
+  sampleFraction = as.numeric(param$sampleFraction)
 ### Analyzes results with phyloseq: preparing objects to be processed in the Rmd file
 
 ### load phyloseq object
   physeqObjectRData <- input$getFullPaths("RObjectPhyloseq")
   physeqObjectNoTree <- readRDS(physeqObjectRData)
+  
+### check how many cols sample data has; if only one, add a second otherwise the plot funciton is buggy
+  N <- ncol(sample_data(physeqObjectNoTree))
+  if (N==1) {
+   areThereMultVar <- FALSE
+    sample_data(physeqObjectNoTree)[,"dummy"] <- sample_data(physeqObjectNoTree)[,1]  
+   }
 
-  ##prune OTUS
-  pruneLevel <- param$representativeOTUs
-
-### create, add trees, preprocess and prune phyloseq object 
-
-  treeObject = rtree(ntaxa(physeqObjectNoTree), rooted=TRUE, tip.label=taxa_names(physeqObjectNoTree))
-  physeqFullObject <- merge_phyloseq(physeqObjectNoTree,treeObject)
-  #physeqFullObject <- phyloSeqPreprocess(physeqFullObject)
-  #myTaxa = names(sort(taxa_sums(physeqFullObject), decreasing = TRUE)[1:pruneLevel])
-  #physeqFullObject <- prune_taxa(myTaxa,physeqFullObject)
+### Filtering step
+  physeqFullObject <- phyloSeqPreprocess(physeqObjectNoTree,rawCount,sampleFraction)
+  
+### run report  
   setwdNew(basename(output$getColumn("Report")))
   
   if (isGroupThere){
