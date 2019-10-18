@@ -24,7 +24,7 @@ taxRanksVec <- attr(physeqFullObject@tax_table@.Data,"dimnames")[[2]]
 taxRanks <- setNames(as.list(taxRanksVec),taxRanksVec)
 for (rank  in taxRanks){
   temp <- abundPlot(rank,physeqFullObject,xAes="Sample",y="relSampleFract")
-  if (temp$stop=TRUE) {
+  if (temp$stop==TRUE) {
     next
   } else {
 abundPlotList[[rank]] <- temp$abPlot
@@ -34,7 +34,7 @@ abundPlotList[[rank]] <- temp$abPlot
 if (isGroupThere) {
 for (rank  in taxRanks){
   temp <- abundPlot(rank,physeqFullObject,xAes="Sample",y="relGroupFract")
-  if (temp$stop=TRUE) {
+  if (temp$stop==TRUE) {
     next
   } else {
 abundGroupList[[rank]] <- temp$abPlot
