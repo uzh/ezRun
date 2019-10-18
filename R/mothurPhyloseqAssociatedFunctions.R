@@ -478,7 +478,7 @@ return(p)
 ##' @return Returns a ggplot
 abundPlot <- function(rank,physeqFullObject,xAes,yAes) {
   naRmoved <- subsetTaxMod(physeqFullObject, rank)
-  naRmovedTrimmed <- subsetRankTop10(naRmoved, rank,10)
+  naRmovedTrimmed <- subsetRankTopN(naRmoved, rank,10)
   p <- plotBarMod(naRmovedTrimmed, fill=rank,x=xAes,y=yAes) 
   return(p)
 }
