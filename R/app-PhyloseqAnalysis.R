@@ -27,7 +27,7 @@ ezMethodPhyloSeqAnalysis = function(input=NA, output=NA, param=NA,
   isGroupThere = param$group
   rank = param$taxonomicRank
   rawCount = param$rawCount
-  sampleFraction = param$sampleFraction
+  sampleFraction = as.numeric(param$sampleFraction)
 ### Analyzes results with phyloseq: preparing objects to be processed in the Rmd file
 
 ### load phyloseq object
