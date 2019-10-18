@@ -33,7 +33,7 @@ ezMethodDADA2Step1Sample = function(input=NA, output=NA, param=NA,
   } else {
     stop("Currently from RDP and greenGenes we bacterial databases.")
   }
-  minLen <- param$minLen
+  maxLen <- param$maxLen
   isPaired <- param$paired
   concat <- param$concatenateReads
   ### read fastq files and prepare inputs for DADA2
