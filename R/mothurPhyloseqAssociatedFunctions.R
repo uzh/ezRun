@@ -481,12 +481,12 @@ return(p)
 ##' @return Returns a ggplot
 abundPlot <- function(rank,physeqFullObject,xAes,yAes) {
   naRmoved <- subsetTaxMod(physeqFullObject, rank)
-  if (naRmoved == "nothing") {
-    return("nothing")
+  if (naRmoved$toStop == TRUE) {
+    return(list(abPlot=NULL,stop=TRUE))
   }else{
   naRmovedTrimmed <- subsetRankTopN(naRmoved, rank,10)
   p <- plotBarMod(naRmovedTrimmed, fill=rank,x=xAes,y=yAes) 
-  return(p)
+  return(list(abPlot=p,stop=FALSE))
 }
 }
 ###################################################################
@@ -510,7 +510,7 @@ subsetTaxMod <- function (physeq, x)
     oldDF <- data.frame(oldMA)
     newDF <- data.frame(oldDF[!is.na(oldDF[[x]]),])
     if(nrow(newDF) == 0){
-      return("nothing")
+      return(list(pObj=physeq,toStop=TRUE))
     } else{
     colnames(newDF) <- attr(physeq@tax_table@.Data, "dimnames")[[2]]
     newMA <- as(newDF, "matrix")
@@ -518,7 +518,7 @@ subsetTaxMod <- function (physeq, x)
       return(tax_table(newMA))
     } else {
       tax_table(physeq) <- tax_table(newMA)
-      return(physeq)
+      return(list(pObj=physeq,toStop=FALSE))
     }
   }
   }
