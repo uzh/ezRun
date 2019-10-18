@@ -33,7 +33,7 @@ output[['Species']] = 'Homo sapiens (human)'
 output[['refBuild']] = 'Homo_sapiens/Ensembl/GRCh38.p10/Annotation/Release_91-2018-02-26'
 output[['refFeatureFile']] = 'genes.gtf'
 output[['Static Report [Link]']] = 'p2284/SCSeurat_28929_2018-10-05--22-01-26/Sample_1_17_08_2018_SCReport/00index.html'
-output[['Live Report [Link]']] = 'http://fgcz-176.uzh.ch/shiny/fgcz_exploreSC_app/?data=p2284/SCReport_28929_2018-10-05--22-01-26/AVM_17_08_2018_SCReport/SCSeurat-butvkxmjqqvu.rds'
+output[['Live Report [Link]']] = 'http://fgcz-176.uzh.ch/shiny/fgcz_exploreSCSeurat_app/?data=p2284/SCReport_28929_2018-10-05--22-01-26/AVM_17_08_2018_SCReport/SCSeurat-butvkxmjqqvu.rds'
 output[['Report [File]']] = 'p2284/SCSeurat_28929_2018-10-05--22-01-26/Sample_1_17_08_2018_SCSeurat'
 input = list()
 input[['Name']] = 'Sample_1'
