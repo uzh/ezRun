@@ -537,17 +537,22 @@ subsetTaxMod <- function (physeq, x)
 ##' @return Returns a ggplot
 ordPlot <- function(rank,fullObject,type,areThereMultVar) {
   if (type=="taxa"){
-  naRmovedTrimmed <- subsetRankTopN(fullObject, rank,10)
-  naRmovedTrimmedOrd <- ordinate(naRmovedTrimmed, "NMDS", "bray")
-  p1 = plot_ordination(naRmovedTrimmed, naRmovedTrimmedOrd, type="taxa", color=rank)
+    if (all(is.na(tax_table(physeqFullObject)[,rank]))){
+    naRmovedTrimmedOrd <- ordinate(fullObject, "NMDS", "bray")
+    p1 = plot_ordination(fullObject, naRmovedTrimmedOrd, type = "taxa")    
+    }else{
+    naRmovedTrimmed <- subsetRankTopN(fullObject, rank,10)
+    naRmovedTrimmedOrd <- ordinate(naRmovedTrimmed, "NMDS", "bray")
+    p1 = plot_ordination(naRmovedTrimmed, naRmovedTrimmedOrd, type = "taxa", color=rank)
+    }
   }else if (type=="samples") {
     GP.ord <- ordinate(fullObject, "NMDS", "bray")
     gr1 <- colnames(sample_data(fullObject))[1]
     if (areThereMultVar){
     gr2 <- colnames(sample_data(fullObject))[2]
-    p1 = plot_ordination(GP1, GP.ord, type="taxa", color=gr1,shape=gr2)
+    p1 = plot_ordination(fullObject, GP.ord, type="samples", color=gr1,shape=gr2)
     }else{
-    p1 = plot_ordination(GP1, GP.ord, type="taxa", color=gr1)
+    p1 = plot_ordination(fullObject, GP.ord, type="samples", color=gr1)
     }
   } else{
     stop("type must be either samples or taxa")
