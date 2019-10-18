@@ -20,7 +20,7 @@ ezMethodDADA2Step1Sample = function(input=NA, output=NA, param=NA,
     if (kingdomParam == "Bacteria"){
     database <- SILVA_BACTERIA_DADA2
     }else if (kingdomParam == "Archea"){
-    database <- SILVA_ARACHAEA_DADA2
+    database <- SILVA_ARCHAEA_DADA2
     }else if (kingdomParam == "Eukaryota"){
     database <- SILVA_EUKARYOTA_DADA2
     }else if (kingdomParam == "All"){
