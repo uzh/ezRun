@@ -15,14 +15,25 @@ ezMethodDADA2Step1Sample = function(input=NA, output=NA, param=NA,
   dataset = input$meta
   sampleNames = input$getNames() 
   databaseParam <- param$database
+  kingdomParam <- param$kingdom
   if (databaseParam == "silva") {
-    database <- SILVA_DB
-  } else if (databaseParam == "RDP") {
+    if (kingdomParam == "Bacteria"){
+    database <- SILVA_BACTERIA_DADA2
+    }else if (kingdomParam == "Archea"){
+    database <- SILVA_ARCHAEA_DADA2
+    }else if (kingdomParam == "Eukaryota"){
+    database <- SILVA_EUKARYOTA_DADA2
+    }else if (kingdomParam == "All"){
+      database <- SILVA_ALL_DADA2    
+    }
+  } else if (databaseParam == "RDP" & kingdomParam == "Bacteria" ) {
     database <- RDP_DB
-  }  else if (databaseParam == "greenGenes") {
+  } else if (databaseParam == "greenGenes" & kingdomParam == "Bacteria") {
     database <- GREENGENES_DB
+  } else {
+    stop("Currently from RDP and greenGenes we bacterial databases.")
   }
-  minLen <- param$minLen
+  maxLen <- param$maxLen
   isPaired <- param$paired
   concat <- param$concatenateReads
   ### read fastq files and prepare inputs for DADA2
@@ -44,12 +55,12 @@ ezMethodDADA2Step1Sample = function(input=NA, output=NA, param=NA,
     listOfJoinedFiles <- mapply(fastqJoinFun,file1PathInDataset,file2PathInDataset,
                                 sampleNames)
     DADA2mainSeqTabObj <- DADA2CreateSeqTab(sampleNames = sampleNames,
-                                          minLen = minLen,
+                                          maxLen = maxLen,
                                           file1PathInDataset = listOfJoinedFiles,
                                           database)
   }else{
     DADA2mainSeqTabObj <- DADA2CreateSeqTab(sampleNames= sampleNames,
-                                            minLen = minLen,
+                                            maxLen = maxLen,
                                             file1PathInDataset = file1PathInDataset,
                                             database)
   }
@@ -76,8 +87,6 @@ ezMethodDADA2Step1Sample = function(input=NA, output=NA, param=NA,
     designMatrix <- data.frame(dataset[,factorCols])
     colnames(designMatrix) <- gsub(" \\[Factor\\]","",colnames(dataset)[factorCols])
     rownames(designMatrix) <- rownames(dataset)
-    designMatrixFile <-  basename(output$getColumn("sampleDescriptionFile"))
-    write.table(designMatrix,designMatrixFile,row.names = F, col.names = T, quote = F,sep = "\t")
   }
   
   ## create phyloseqObject
