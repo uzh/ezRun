@@ -484,7 +484,7 @@ abundPlot <- function(rank,physeqFullObject,xAes,yAes) {
   if (naRmoved$toStop == TRUE) {
     return(list(abPlot=NULL,stop=TRUE))
   }else{
-  naRmovedTrimmed <- subsetRankTopN(naRmoved, rank,10)
+  naRmovedTrimmed <- subsetRankTopN(naRmoved$pObj, rank,10)
   p <- plotBarMod(naRmovedTrimmed, fill=rank,x=xAes,y=yAes) 
   return(list(abPlot=p,stop=FALSE))
 }
