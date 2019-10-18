@@ -15,7 +15,7 @@ ezMethodDADA2Step1Sample = function(input=NA, output=NA, param=NA,
   dataset = input$meta
   sampleNames = input$getNames() 
   databaseParam <- param$database
-  kingdomParam <- param$Kingdom
+  kingdomParam <- param$kingdom
   if (databaseParam == "silva") {
     if (kingdomParam == "Bacteria"){
     database <- SILVA_BACTERIA_DADA2
