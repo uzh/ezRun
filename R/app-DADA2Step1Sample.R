@@ -15,12 +15,23 @@ ezMethodDADA2Step1Sample = function(input=NA, output=NA, param=NA,
   dataset = input$meta
   sampleNames = input$getNames() 
   databaseParam <- param$database
+  kingdomParam <- param$Kingdom
   if (databaseParam == "silva") {
-    database <- SILVA_DB
-  } else if (databaseParam == "RDP") {
+    if (kingdomParam == "Bacteria")
+    database <- SILVA_BACTERIA_DADA2
+    }else if (kingdomParam == "Archea"){
+    database <- SILVA_ARACHAEA_DADA2
+    }else if (kingdomParam == "Eukaryota"){
+    database <- SILVA_EUKARYOTA_DADA2
+    }else if (kingdomParam == "All"){
+      database <- SILVA_ALL_DADA2    
+    }
+  } else if (databaseParam == "RDP" & kingdomParam == "Bacteria" ) {
     database <- RDP_DB
-  }  else if (databaseParam == "greenGenes") {
+  }  else if (databaseParam == "greenGenes" & kingdomParam == "Bacteria") {
     database <- GREENGENES_DB
+  } else {
+    stop("Currently from RDP and greenGenes we bacterial databases.")
   }
   minLen <- param$minLen
   isPaired <- param$paired
