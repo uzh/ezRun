@@ -1,5 +1,5 @@
 ---
-title:  "test"
+title:  "`r metadata(sce)$param$name`"
 author: "Functional Genomics Center Zurich"
 output: 
   html_document:
@@ -32,7 +32,8 @@ library(Seurat, lib.loc="/home/gtan/R-library-Seurat3")
 ## ----------------------------------------------
 ## debug
 # title:  "`r metadata(sce)$param$name`"
-sce <- readRDS("/scratch/gtan/dev/p2886-Reza-SCSeurat/Sample_1_17_08_2018_SCSeurat/sce.rds")
+# sce <- readRDS("/scratch/gtan/dev/p2886-Reza-SCSeurat/Sample_1_17_08_2018_SCSeurat/sce.rds")
+# sce <- sce[ ,sample.int(ncol(sce), round(ncol(sce)/10))]
 ## end of debug
 debug <- FALSE
 
@@ -285,7 +286,7 @@ if(doEnrichr(param)){
 }
 ```
 
-```{r markers table, echo=FALSE, eval=nrow(cm) > 0}
+```{r markers table, echo=FALSE}
 caption ="Expression differences of cluster marker genes"
 ezInteractiveTableRmd(markers, digits=4, title=caption)
 ```
@@ -360,7 +361,7 @@ if(doEnrichr(param) && param$all2allMarkers){
 
 The top 10 markers from each cluster.
 
-```{r top cluster markers, fig.width=4, fig.height=3, echo=FALSE}
+```{r top cluster markers, echo=FALSE, results='asis', fig.width=4, fig.height=3, message=FALSE}
 eachCluster <- 0
 for(eachCluster in unique(markers$cluster)){
   cat("\n")
@@ -372,9 +373,12 @@ for(eachCluster in unique(markers$cluster)){
   markersPerCluster <- head(markersPerCluster, 10)
   eachMarker <- markersPerCluster[1]
   for(eachMarker in markersPerCluster){
-    VlnPlot(object = scData, features=eachMarker)  + theme(legend.position = "none")
-    FeaturePlot(object=scData, features=eachMarker, reduction="umap")
-    FeaturePlot(object=scData, features=eachMarker, reduction="tsne")
+    p <- VlnPlot(object = scData, features=eachMarker)  + theme(legend.position = "none")
+    print(p)
+    p <- FeaturePlot(object=scData, features=eachMarker, reduction="umap")
+    print(p)
+    p <- FeaturePlot(object=scData, features=eachMarker, reduction="tsne")
+    print(p)
   }
   cat("\n")
 }
@@ -383,7 +387,7 @@ for(eachCluster in unique(markers$cluster)){
 ### Heatmap of cluster marker genes
 Max `r param$markersToShow` marker genes are shown for each cluster. 
 
-```{r heatmap, fig.width=10, fig.height=param$markersToShow*1.5, echo=FALSE, eval=!debug & nrow(markers) > 0}
+```{r heatmap, fig.width=10, fig.height=param$markersToShow*1.5, echo=FALSE, eval=nrow(markers) > 0}
 top10 <- markers %>% group_by(cluster) %>% top_n(param$markersToShow, avg_logFC)
 DoHeatmap(scData, features = top10$gene) + NoLegend()
 ```
@@ -392,7 +396,7 @@ DoHeatmap(scData, features = top10$gene) + NoLegend()
 
 Each dot is a cell. On the right-hand plot, the color corresponds to the gene expression levels. 
 
-```{r selected markers, fig.width=4, fig.height=3, echo=FALSE, results='asis', eval=!debug}
+```{r selected markers, fig.width=4, fig.height=3, echo=FALSE, results='asis'}
 if(length(param$knownMarkers) >0){
   for(i in 1:length(param$knownMarkers)){
     cat("\n")
@@ -403,10 +407,15 @@ if(length(param$knownMarkers) >0){
                                         toupper(check_markers)]
     if(length(check_markers) > 0){
       for(j in 1:length(check_markers)){
-        VlnPlot(object = scData, features=check_markers[j])  + 
+        p <- VlnPlot(object = scData, features=check_markers[j])  + 
           theme(legend.position = "none")
-        FeaturePlot(object=scData, features=check_markers[j], reduction="umap")
-        FeaturePlot(object=scData, features=check_markers[j], reduction="tsne")
+        print(p)
+        
+        p <- FeaturePlot(object=scData, features=check_markers[j], reduction="umap")
+        print(p)
+        
+        p <- FeaturePlot(object=scData, features=check_markers[j], reduction="tsne")
+        print(p)
       }
     }
     cat("\n")
@@ -489,17 +498,11 @@ coordinatesFn <- "coordinates_data.tsv"
 write_tsv(coordinates, path=coordinatesFn)
 ```
 
-```{r save scData, echo=FALSE}
-saveRDS(scData, file = "scData.rds")
-```
-
   * Average gene expression per cluster: [`r geneMeanPerClusterFn`](`r geneMeanPerClusterFn`)
   * Average gene expression: [`r geneMeansFn`](`r geneMeansFn`)
   * Positive markers of all clusters: [`r posMarkersFn`](`r posMarkersFn`)
   * Differential genes of pairwise comparisons of all clusters (when enabled): [`r all2allDEFn`](`r all2allDEFn`)
   * Coordinates of cells in low dimensional space: [`r coordinatesFn`](`r coordinatesFn`)
-  * Final Seurat object: [`r basename(output$getColumn("Live Report")`](`r basename(output$getColumn("Live Report")`)
-
 
 ### SessionInfo
 ```{r, echo=FALSE}
