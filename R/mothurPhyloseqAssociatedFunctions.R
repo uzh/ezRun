@@ -535,7 +535,7 @@ subsetTaxMod <- function (physeq, x)
 ##' @description ordination plot for a specific rank
 ##' @param  fullObject (phyloseq object),x (rank)
 ##' @return Returns a ggplot
-ordPlot <- function(rank,fullObject,type) {
+ordPlot <- function(rank,fullObject,type,areThereMultVar) {
   if (type=="taxa"){
   naRmovedTrimmed <- subsetRankTopN(fullObject, rank,10)
   naRmovedTrimmedOrd <- ordinate(naRmovedTrimmed, "NMDS", "bray")

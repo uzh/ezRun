@@ -44,14 +44,14 @@ abundGroupList[[rank]] <- temp$abPlot
 isAbundPlot <- !length(abundPlotList) == FALSE | !length(abundGroupList) == FALSE
 ```
 
-```{r prepOrdTaxa, include=FALSE, eval=isGroupThere}
+```{r prepOrdTaxa, include=FALSE}
 ### create plots: 2. ordination by taxa
-ordPlotTaxa <- ordPlot(rank,physeqFullObject, type="taxa")
+ordPlotTaxa <- ordPlot(rank,physeqFullObject, type="taxa",areThereMultVar)
 ```
 
 ```{r prepOrdSamples, include=FALSE, eval=isGroupThere}
 ### create plots: 2. ordination by samlpe
-ordPlotSample<- ordPlot(rank,physeqFullObject, type="samples")
+ordPlotSample<- ordPlot(rank,physeqFullObject, type="samples",areThereMultVar)
 ```
 
 ```{r prepRich, include=FALSE}
