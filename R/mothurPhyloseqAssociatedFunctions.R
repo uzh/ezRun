@@ -92,7 +92,7 @@ filtered <- filter_taxa(phyloseqObj, function(x) sum(x > 3) > (0.2*length(x)), T
 ##' @description Comaprison of metagenomics communities from files stored as a phyloseq object.
 ##' @param  phyloseqObj, a phyloseq object.
 ##' @return Returns a list of tables and plots.
-phyloSeqToDeseq2_tableAndPlots <- function(phyloseqObj){
+phyloSeqToDeseq2_tableAndPlots <- function(phyloseqObj,rank){
   ## Convert to Deseq obj and analyze
   ## to do: add selector for group and test
   phyloseqObjNoMock <- prune_samples(sample_data(phyloseqObj)$group != "Mock", phyloseqObj)
@@ -106,9 +106,9 @@ phyloSeqToDeseq2_tableAndPlots <- function(phyloseqObj){
   colsToKeep <- grep("baseMean|lfcSE", colnames(addTaxaOut), invert = T)
   addTaxa <- addTaxaOut[,colsToKeep]
   ## sort and prepare fpr plot
-  x = tapply(addTaxa$log2FoldChange, addTaxa$Phylum, function(x) max(x))
+  x = tapply(addTaxa$log2FoldChange, addTaxa[[rank]], function(x) max(x))
   x = sort(x, TRUE)
-  addTaxa$Phylum = factor(as.character(addTaxa$Phylum), levels=names(x))
+  addTaxa$Phylum = factor(as.character(addTaxa[[rank]]), levels=names(x))
   # Genus order
   x = tapply(addTaxa$log2FoldChange, addTaxa$Genus, function(x) max(x))
   x = sort(x, TRUE)
@@ -119,7 +119,7 @@ phyloSeqToDeseq2_tableAndPlots <- function(phyloseqObj){
   addTaxa$Significance <- factor(addTaxa$Significance, levels = rev(levels(addTaxa$Significance)))
   ### log2fold plot
   title <- "Abundance changes between the groups"
-  plotLogFoldVsTaxon <- ggplot(addTaxa, aes(x=Phylum, y=log2FoldChange, color=Phylum)) + 
+  plotLogFoldVsTaxon <- ggplot(addTaxa, aes(x=tableTaxa[[rank]], y=log2FoldChange, color=tableTaxa[[rank]])) + 
     geom_point(size=3) + 
     theme(axis.text.x = element_text(angle = -90, hjust = 0, vjust=0.5)) +
     geom_hline(aes(yintercept=1),color="blue")  + 
@@ -129,18 +129,18 @@ phyloSeqToDeseq2_tableAndPlots <- function(phyloseqObj){
   ### volcano plot
   title <- "Volcano plot (threshold  = 0.05)"
   volcanoPlot <- ggplot(addTaxa, aes(y=-log10(pvalue), x=log2FoldChange)) +
-    geom_point(aes(shape=Significance, color=Phylum),size=3) 
+    geom_point(aes(shape=Significance, color=tableTaxa[[rank]]),size=3) 
   volcanoPlot <- volcanoPlot + labs(title=title) + 
     theme(plot.title=element_text(size=10, face="bold",hjust=0.5))
   volcanoPlot <- volcanoPlot + geom_hline(yintercept=1.3, color="blue")
   ### Diff.expr. pie chart
   OTUsToPlot <- addTaxaOut 
-  tableTaxa <- data.frame(table(droplevels(OTUsToPlot[,"Phylum"])))
-  colnames(tableTaxa)[1] <- "Phylum"
+  tableTaxa <- data.frame(table(droplevels(OTUsToPlot[,rank])))
+  colnames(tableTaxa)[1] <- rank
   pct <- round(tableTaxa$Freq/sum(tableTaxa$Freq)*100,2)
   pct = paste0(pct,"%")
-  titleText = "Top-ranked different Phyla"
-  bp <- ggplot(tableTaxa, aes(x="", y=Freq, fill=Phylum)) + 
+  titleText = paste("Top-ranked different taxa (",rank,")")
+  bp <- ggplot(tableTaxa, aes(x="", y=Freq, fill=tableTaxa[[rank]])) + 
     geom_bar(position = position_stack(),width = 1, stat = "identity") 
   pieVersion <- bp + coord_polar("y", start=0)
   finalVersionPie <- pieVersion +  labs(title=titleText, y="") + 
@@ -277,7 +277,8 @@ pcaForPhyloseqPlot <- function(phySeqObject,type){
 ##' @return Returns a stacked bar  plot.
 ##' 
 ### Heatmap function
-heatmapForPhyloseqPlot <- function(phyloseqOtuObj){
+heatmapForPhyloseqPlot <- function(phySeqObject){
+  input <- phySeqObject@otu_table@.Data
   plot_heatmap <- function() {
     ## clust funct
   distCor <- function(x) {as.dist(1-cor(x))}
@@ -359,30 +360,32 @@ phyloSeqTaxaFromFile  <- function(taxaFile){
 ##' @return Returns a stacked bar  plot.
 ##' 
 ### Heatmap function
-heatmapForPhylotseqPlotPheatmap <- function(phyloseqOtuObj, matrix){
-    plot_heatmap_Pheatmap <- function() {
-  ## clust funct
-  distCor <- function(x) {as.dist(1-cor(x))}
-  zClust <- function(x, scale="row", zlim=c(-3,3), method="average") {
-    if (scale=="row") z <- t(scale(t(x)))
-    if (scale=="col") z <- scale(x)
-    z <- pmin(pmax(z, zlim[1]), zlim[2])
-    hcl_row <- hclust(distCor(t(z)), method=method)
-    hcl_col <- hclust(distCor(z), method=method)
-    return(list(data=z, hcl_r=hcl_row,hcl_c=hcl_col, 
-                Rowv=as.dendrogram(hcl_row), Colv=as.dendrogram(hcl_col)))
+heatmapForPhylotseqPlotPheatmap <- function(phyloseqOtuObj,areThereMultVar){
+  input <- t(phyloseqOtuObj@otu_table@.Data)
+  input <- input[apply(input,1,sum)>0,]
+  plot_heatmap_Pheatmap <- function() {
+  gr1 <- colnames(sample_data(phyloseqOtuObj))[1]
+  gr2 <- colnames(sample_data(phyloseqOtuObj))[2]
+  nColsGr1 <- nlevels(sample_data(phyloseqOtuObj)@.Data[[1]])
+  nColsGr2 <- nlevels(sample_data(phyloseqOtuObj)@.Data[[2]])
+  pal1 <- colorRampPalette(brewer.pal(10, "RdBu"))(nColsGr1)
+  names(pal1) <- levels(sample_data(phyloseqOtuObj)@.Data[[1]])
+  pal2 <- colorRampPalette(brewer.pal(10, "RdBu"))(nColsGr2)
+  names(pal2) <- levels(sample_data(phyloseqOtuObj)@.Data[[2]])
+  mat_colors <- list(pal1,pal2)
+  names(mat_colors) <- c(gr1,gr2)
+  mat_col <- data.frame(sample_data(phyloseqOtuObj))
+  if (!areThereMultVar){
+    mat_colors <- mat_colors[[1]]
+    names(mat_colors) <- c(gr1)
+    mat_col <- data.frame(sample_data(phyloseqOtuObj)[,gr1])
   }
-  z <- zClust(t(phyloseqOtuObj))
-  mat_col <- matrix
-  ncols <- min(3,nlevels(as.factor(mat_col$Group)))
-  mat_colors <- list(group = c("red","blue"))
-  names(mat_colors$group) <- unique(mat_col$Group)
   ## heatmap
-  pheatmap(z$data,show_rownames = FALSE,
+  pheatmap(input,show_rownames = FALSE,
            show_colnames     = TRUE,
            annotation_col    = mat_col,
            annotation_colors = mat_colors,
-           cluster_rows = TRUE,  scale="column", method = "average")
+           cluster_rows = TRUE,  scale="row", method = "average")
    }
 }
 
@@ -525,12 +528,23 @@ subsetTaxMod <- function (physeq, x)
 ##' @param  fullObject (phyloseq object),x (rank)
 ##' @return Returns a ggplot
 ordPlot <- function(rank,fullObject,type) {
-  tax_table(fullObject) <- tax_table(fullObject)[,rank]
-  naRmoved <- subsetTaxMod(fullObject,rank)
-  naRmovedTrimmed <- subsetRankTopN(naRmoved, rank,10)
-  p <- pcaForPhyloseqPlot(naRmovedTrimmed,type)
-  p <- p + theme(legend.position = "none") 
-  return(p)
+  if (type="taxa"){
+  naRmovedTrimmed <- subsetRankTopN(fullObject, rank,10)
+  naRmovedTrimmedOrd <- ordinate(naRmovedTrimmed, "NMDS", "bray")
+  p1 = plot_ordination(naRmovedTrimmed, naRmovedTrimmedOrd, type="taxa", color=rank)
+  }else if (type="samples") {
+    GP.ord <- ordinate(fullObject, "NMDS", "bray")
+    gr1 <- colnames(sample_data(fullObject))[1]
+    if (areThereMultVar){
+    gr2 <- colnames(sample_data(fullObject))[2]
+    p1 = plot_ordination(GP1, GP.ord, type="taxa", color=gr1,shape=gr2)
+    }else{
+    p1 = plot_ordination(GP1, GP.ord, type="taxa", color=gr1)
+    }
+  } else{
+    stop("type must be either samples or taxa")
+  }
+  return(p1)
 }
 
 ###################################################################

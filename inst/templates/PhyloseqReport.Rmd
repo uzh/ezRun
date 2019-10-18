@@ -30,12 +30,12 @@ if (isGroupThere) {
 
 ```{r prepOrdTaxa, include=FALSE, eval=isGroupThere}
 ### create plots: 2. ordination by taxa
-ordPlotSampleList <- lapply(taxRanks,ordPlot,physeqFullObject=physeqFullObject, type="samples")
+ordPlotTaxa <- ordPlot(rank,physeqFullObject=physeqFullObject, type="taxa")
 ```
 
 ```{r prepOrdSamples, include=FALSE, eval=isGroupThere}
 ### create plots: 2. ordination by samlpe
-ordPlotSampleList <- lapply(taxRanks,ordPlot,physeqFullObject=physeqFullObject, type="taxa")
+ordPlotSample<- ordPlot(rank,physeqFullObject=physeqFullObject, type="samples")
 ```
 
 ```{r prepRich, include=FALSE}
@@ -49,7 +49,7 @@ plotRichnessByGroup <- groupModRichPlot(physeqFullObject, x="group", measures=c(
 
 ```{r prepHeat, include=FALSE, eval=isGroupThere}
 ### create plots:5. pheatmap
-show_pHeatmap <- heatmapForPhylotseqPlotPheatmap(inputData,designMatrix)
+show_pHeatmap <- heatmapForPhylotseqPlotPheatmap(physeqFullObject,areThereMultVar)
 ```
 
 
@@ -65,30 +65,31 @@ Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
 #### If samples are grouped, the second plot  is more informative
 ```{r abund, echo=FALSE}
 par(mfrow=c(1,2), las=1)
-plot(abundPlot)
+plot(abundPlotList[[rank]])
 if (isGroupThere) {
-plot(abundPlotGroup)
+plot(abundPlotListGroup[[rank]])
 }
 ```
 
 ### Clustering (ordination) plots
-```{r ordinTaxa, echo=FALSE,eval=isGroupThere}
+```{r ordinTaxa, echo=FALSE}
 par(mfrow=c(1,2), las=1)
-plot(plotOrdTaxa)
-plot(plotOrdSamples)
+plot(ordPlotTaxa)
+if (isGroupThere) {
+plot(ordPlotSample)
+}
 ```
 
 ### Richness plots
 ```{r rich, echo=FALSE,out.width="60%"}
-plot(plotRichness)
-```
-
-```{r tree, echo=FALSE, eval=FALSE}
-plot(plotTree)
+plot(plotRichnessBySample)
+if (isGroupThere) {
+  plot(plotRichnessByGroup)
+}
 ```
 
 ### Rarefaction plots
-```{r raref, echo=FALSE}
+```{r raref, echo=FALSE, eval=FALSE}
 par(mfrow=c(1,2), las=1)
 for (RarPlot in rarefPlot){
 plot(RarPlot)
