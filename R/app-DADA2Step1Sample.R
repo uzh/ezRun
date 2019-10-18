@@ -55,12 +55,12 @@ ezMethodDADA2Step1Sample = function(input=NA, output=NA, param=NA,
     listOfJoinedFiles <- mapply(fastqJoinFun,file1PathInDataset,file2PathInDataset,
                                 sampleNames)
     DADA2mainSeqTabObj <- DADA2CreateSeqTab(sampleNames = sampleNames,
-                                          minLen = minLen,
+                                          maxLen = maxLen,
                                           file1PathInDataset = listOfJoinedFiles,
                                           database)
   }else{
     DADA2mainSeqTabObj <- DADA2CreateSeqTab(sampleNames= sampleNames,
-                                            minLen = minLen,
+                                            maxLen = maxLen,
                                             file1PathInDataset = file1PathInDataset,
                                             database)
   }
