@@ -39,6 +39,7 @@ SHINY_SCATER="http://fgcz-shiny.uzh.ch/fgcz_scater_app/"
 SHINY_EXPLORE_SC="http://fgcz-shiny.uzh.ch/fgcz_exploreSingleCell_app/"
 SHINY_SEURAT_ONLINE="http://fgcz-shiny.uzh.ch/fgcz_seuratOnline_app/"
 SHINY_EXPLORE_Scran="http://fgcz-shiny.uzh.ch/fgcz_exploreScran_app/"
+SHINY_EXPLORE_SCSEURAT="http://fgcz-shiny.uzh.ch/fgcz_exploreSeurat_app/"
 
 ## Enrichr
 ENRICHR_BASE_URL="https://amp.pharm.mssm.edu/Enrichr"
