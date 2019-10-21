@@ -20,6 +20,8 @@ setEnvironments("phantomjs")
 ### create plots: 1. abundance
 abundPlotSampleList <- list()
 abundPlotGroupList <- list()
+abundPlotSampleListUnfilt <- list()
+abundPlotGroupListUnfilt <- list()
 taxRanksVec <- attr(physeqFullObject@tax_table@.Data,"dimnames")[[2]]
 taxRanks <- setNames(as.list(taxRanksVec),taxRanksVec)
 for (rank  in taxRanks){
