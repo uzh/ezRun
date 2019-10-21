@@ -110,7 +110,11 @@ phyloSeqToDeseq2_tableAndPlots <- function(phyloseqObj,rank){
   addTaxaOut <- addTaxaOut[order(addTaxaOut$padj),]
   colsToKeep <- grep("baseMean|lfcSE", colnames(addTaxaOut), invert = T)
   addTaxa <- addTaxaOut[,colsToKeep]
-  tableToReport <- addTaxa[1:20,]
+  ## select fields to report in the table
+  colsToRemove <- rownames(sample_data(phyloseqObjNoMock))
+  colsToReport <- grep(colsToRemove,colsToKeep,invert = T)
+  tableToReport <- addTaxa[1:20,colsToReport]
+  ##
   addTaxa$Significance <- "Significant"
   addTaxa[addTaxa$padj > 0.05,]$Significance <- "nonSignificant"
   addTaxa$Significance <- as.factor(addTaxa$Significance)
@@ -135,7 +139,7 @@ phyloSeqToDeseq2_tableAndPlots <- function(phyloseqObj,rank){
     theme(plot.title=element_text(size=10, face="bold",hjust=0.5))
   volcanoPlot <- volcanoPlot + geom_hline(yintercept=1.3, color="blue") + labs(color=rank)
   ### Diff.expr. pie chart
-  OTUsToPlot <- addTaxa
+  OTUsToPlot <- addTaxa[addTaxa$Significance == "Significant",]
   isAllNa <- all(names(table(OTUsToPlot[[rank]])) == "NA")
   if (isAllNa){
     isAllNaMsg <- paste("No differentially abundant  OTUs are annotated to the rank",rank, ". No pie chart to plot.")
@@ -152,7 +156,7 @@ phyloSeqToDeseq2_tableAndPlots <- function(phyloseqObj,rank){
     geom_bar(position = position_stack(),width = 1, stat = "identity") 
   pieVersion <- bp + coord_polar("y", start=0)
   finalVersionPie <- pieVersion +  labs(title=titleText, y="") + 
-    theme(plot.title=element_text(size=10, face="bold",hjust=0.5)) + labs(color=rank)
+    theme(plot.title=element_text(size=10, face="bold",hjust=0.5)) + labs(fill=rank)
   }
   return(list(logPlot=plotLogFoldVsTaxon,vPlot=volcanoPlot,pieChart=finalVersionPie,tableToReport=tableToReport,
               isAllNaMsg=isAllNaMsg,isAllNa=isAllNa))
@@ -340,9 +344,9 @@ heatmapForPhylotseqPlotPheatmap <- function(phyloseqOtuObj,areThereMultVar){
   gr2 <- colnames(sample_data(phyloseqOtuObj))[2]
   nColsGr1 <- nlevels(sample_data(phyloseqOtuObj)@.Data[[1]])
   nColsGr2 <- nlevels(sample_data(phyloseqOtuObj)@.Data[[2]])
-  pal1 <- colorRampPalette(brewer.pal(10, "RdBu"))(nColsGr1)
+  pal1 <- colorRampPalette(brewer.pal(11, "PiYG"))(nColsGr1)
   names(pal1) <- levels(sample_data(phyloseqOtuObj)@.Data[[1]])
-  pal2 <- colorRampPalette(brewer.pal(10, "RdBu"))(nColsGr2)
+  pal2 <- colorRampPalette(brewer.pal(11, "RdYlGn"))(nColsGr2)
   names(pal2) <- levels(sample_data(phyloseqOtuObj)@.Data[[2]])
   mat_colors <- list(pal1,pal2)
   names(mat_colors) <- c(gr1,gr2)
@@ -567,8 +571,7 @@ groupModRichPlot <- function(physeq, x, color = NULL, shape = NULL,
   measures = measures[!measures %in% ses]
   if (!is.null(sample_data(physeq, errorIfNULL = FALSE))) {
     DF <- data.frame(erDF, sample_data(physeq))
-  }
-  else {
+  }else {
     DF <- data.frame(erDF)
   }
   if (!"samples" %in% colnames(DF)) {
@@ -578,12 +581,12 @@ groupModRichPlot <- function(physeq, x, color = NULL, shape = NULL,
     if (x %in% c("sample", "samples", "sample_names", "sample.names")) {
       x <- "samples"
     }
-  }
-  else {
+  }else {
     x <- "samples"
   }
   mdf = reshape2::melt(DF, measure.vars = measures)
-  p <- ggplot(mdf,aes(mdf[[x]],value))+ geom_boxplot() +stat_compare_means(method = "wilcox.test",hjust = -0.5, vjust = -1) +
+  p <- ggplot(mdf,aes(mdf[[x]],value))+ geom_boxplot() +
+    stat_compare_means(method = "wilcox.test",hjust = -0.5, vjust = -0.5) +
     xlab(x)
   return(p)
 }

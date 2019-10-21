@@ -59,6 +59,7 @@ ezMethodPhyloSeqAnalysis = function(input=NA, output=NA, param=NA,
   file.copy(from=styleFiles, to=".", overwrite=TRUE)
   rmarkdown::render(input=markdownFile, envir = new.env(),
                     output_dir=".", output_file=htmlFile, quiet=TRUE)
+  return("Success")
 }
 ##' @template app-template
 ##' @templateVar method ezMethodPhyloSeqAnalysis()
