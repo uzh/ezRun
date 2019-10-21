@@ -15,7 +15,7 @@ seuratPreProcess <- function(sce){
   param <- metadata(sce)$param
   rownames(sce) <- uniquifyFeatureNames(ID=rowData(sce)$gene_id,
                                         names=rowData(sce)$gene_name)
-  if(param$scProtocol == "smart-Seq2"){
+  if(toupper(param$scProtocol) == "SMART-SEQ2"){
     sce <- sce[ ,Matrix::colSums(assays(sce)$counts) > param$minReadsPerCell]
   }
   cell_info <- data.frame(colData(sce),
@@ -89,11 +89,10 @@ seuratClustering <- function(scData, param){
 }
 
 getSeuratScalingFactor <- function(x){
+  x <- toupper(x)
   ans <- switch(x,
-                "smart-Seq2"=1e5,
-                "Smart-Seq2"=1e5,
-                "10X"=1e4,
-                "10x"=1e4)
+                "SMART-SEQ2"=1e5,
+                "10X"=1e4)
   return(ans)
 }
 
