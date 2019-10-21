@@ -13,7 +13,7 @@ EzAppSCSeurat <-
                 {
                   "Initializes the application using its specific defaults."
                   runMethod <<- ezMethodSCSeurat
-                  name <<- "EzAppSCReport"
+                  name <<- "EzAppSCSeurat"
                   appDefaults <<- rbind(scProtocol=ezFrame(Type="character", DefaultValue="10x", Description="Which single cell protocol?"),
                                         minCellsPerGene=ezFrame(Type="numeric", 
                                                                 DefaultValue=3, 
