@@ -64,9 +64,9 @@ sce <- SingleCellExperiment(
                 log.exprs.offset=metadata(rescaled[[1]])$log.exprs.offset)
   )
 new.trend <- makeTechTrend(x=sce)
-if(metadata(sce)$param$scProtocol == "10X"){
+if(toupper(metadata(sce)$param$scProtocol) == "10X"){
   fit <- trendVar(sce, use.spikes=FALSE, loess.args=list(span=0.05))
-}else if(metadata(sce)$param$scProtocol == "Smart-seq2"){
+}else if(toupper(metadata(sce)$param$scProtocol) == "SMART-SEQ2"){
   fit <- trendVar(sce, use.spikes=FALSE, loess.args=list(span=0.3))
 }
 fit$trend <- new.trend # overwrite trend.
