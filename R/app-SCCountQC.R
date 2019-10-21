@@ -42,7 +42,7 @@ ezMethodSCCountQC = function(input=NA, output=NA, param=NA,
                                     paste(input$getNames(), collapse=", "),
                                     sep=": ")
   param <- metadata(sce)$param
-  if(param$scProtocol == "smart-Seq2"){
+  if(toupper(param$scProtocol) == "SMART-SEQ2"){
     mlog <- read.table(sub("-counts\\.mtx$", "_STAR.log", 
                            input$getFullPaths("CountMatrix")),
                        sep="|", as.is = TRUE, quote = "\"", fill=T)

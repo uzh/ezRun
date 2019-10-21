@@ -36,7 +36,7 @@ ezMethodSCRNAVelocity <- function(input=NA, output=NA, param=NA,
   # Sys.setenv("PYTHONPATH"="")
   # on.exit(Sys.setenv("PYTHONPATH"=pythonPATH), add=TRUE)
   
-  if(param$scProtocol == "smart-Seq2"){
+  if(toupper(param$scProtocol) == "SMART-SEQ2"){
     bamFn <- list.files(path=input$getFullPaths("ResultDir"),
                         pattern="\\.bam$", full.names = TRUE)
     stopifnot(length(bamFn) == 1L)
@@ -47,7 +47,7 @@ ezMethodSCRNAVelocity <- function(input=NA, output=NA, param=NA,
                  param$ezRef['refFeatureFile'])
     ezSystem(cmd)
     file.remove(bams)
-  }else if(param$scProtocol == "10X"){
+  }else if(toupper(param$scProtocol) == "10X"){
     cellRangerDir <- input$getFullPaths("ResultDir")
     file.copy(from=cellRangerDir, to=".",
               recursive = TRUE)
@@ -82,7 +82,7 @@ ezMethodSCRNAVelocity <- function(input=NA, output=NA, param=NA,
                                                     colnames(cell.dist))
   
   cell.dist <- as.dist(cell.dist)
-  if(param$scProtocol == "smart-Seq2"){
+  if(toupper(param$scProtocol) == "SMART-SEQ2"){
     # Use Pearson linear correlation distance on all genes (log scale) to 
     # find k closest cells for the SMART-seq2 datasets
     cell.dist <- NULL

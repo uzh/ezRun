@@ -48,7 +48,7 @@ if("X" %in% colnames(tSNE_data)){
 
 emb <- as.matrix(emb)
 
-if(param$scProtocol == "smart-Seq2"){
+if(toupper(param$scProtocol) == "SMART-SEQ2"){
   emat_cutoff <- 5
   nmat_cutoff <- 1
   smat_cutoff <- 0.5
@@ -58,7 +58,7 @@ if(param$scProtocol == "smart-Seq2"){
   arrow.scale <- 3
   show.grid.flow <- FALSE
   grid.n <- 20
-}else if(param$scProtocol == "10X"){
+}else if(toupper(param$scProtocol) == "10X"){
   emat_cutoff <- 0.5
   nmat_cutoff <- 0.05
   smat_cutoff <- 0.005
@@ -83,7 +83,7 @@ nmat <- ldat$unspliced
 smat <- ldat$spanning
 
 # Fix the barcode for 10X data
-if(param$scProtocol == "10X"){
+if(toupper(param$scProtocol) == "10X"){
   colnames(emat) <- sub("x$", "-1", colnames(emat))
   colnames(nmat) <- sub("x$", "-1", colnames(nmat))
   if(!is.null(smat)){
@@ -200,7 +200,7 @@ A similar function can be used to model central trajectories by directed diffusi
 This is disabled on 10X data.
 
 ```{r velocity 1 tragectory, echo=FALSE, message=FALSE, results='hide', eval=TRUE, fig.width=10, fig.height=8}
-if(param$scProtocol != "10X"){
+if(toupper(param$scProtocol) != "10X"){
 x <- show.velocity.on.embedding.eu(emb, rvel.qf, n=40, scale='sqrt',
                                    cell.colors=ac(cell.colors,
                                                   alpha=cell.alpha),
@@ -293,7 +293,7 @@ This is disabled on 10X data.
 
 ```{r velocity 2 tragectory, echo=FALSE, message=FALSE, results='hide', eval=TRUE, fig.width=10, fig.height=8}
 if(!is.null(smat)){
-  if(param$scProtocol != "10X"){
+  if(toupper(param$scProtocol) != "10X"){
 x <- show.velocity.on.embedding.eu(emb, rvel, n=40, scale='sqrt',
                                    cell.colors=ac(cell.colors,
                                                   alpha=cell.alpha),
@@ -377,7 +377,7 @@ A similar function can be used to model central trajectories by directed diffusi
 This is disabled on 10X data.
 
 ```{r velocity 3 tragectory, echo=FALSE, message=FALSE, results='hide', eval=TRUE, fig.width=10, fig.height=8}
-if(param$scProtocol != "10X"){
+if(toupper(param$scProtocol) != "10X"){
 x <- show.velocity.on.embedding.eu(emb, rvel1, n=40, scale='sqrt',
                                    cell.colors=ac(cell.colors,
                                                   alpha=cell.alpha),
