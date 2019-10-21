@@ -41,7 +41,7 @@ abundPlotSampleListUnfilt[[rankNames]] <- tempAbundPlotUnfilt$abPlot
 
 if (isGroupThere) {
 for (rankNames  in taxRanks){
-  groupAes <- colnames(sample_data(phyloseqOtuObj))[1]
+  groupAes <- colnames(sample_data(physeqObjectNoTreeUnfilt))[1]
   tempAbundPlotUnfilt <-  abundPlot(rankNames,physeqObjectNoTreeUnfilt,xAes=groupAes,y="relGroupFract")
   tempAbundPlotFilt <- abundPlot(rankNames,physeqFullObject,xAes=groupAes,y="relGroupFract")
   
