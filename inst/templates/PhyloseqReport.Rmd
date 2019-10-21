@@ -100,7 +100,7 @@ Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
 ```{r abund, echo=FALSE}
 par(mfrow=c(2,2), las=1)
 if (isAbundPlotSample) {
-plot(abundPlotList[[rank]])
+plot(abundPlotSampleList[[rank]])
 }else{
   message <- paste("After filtering, no taxa remaining wih a", rank,"annotaton. Nothing to show.")
   printf(message)
@@ -115,7 +115,7 @@ plot(abundPlotSampleListUnfilt[[rank]])
 
 if (isGroupThere) {
   if (isAbundPlotGroup) {
-plot(abundGroupList[[rank]])
+plot(abundPlotGroupList[[rank]])
   }else{
     message <- paste("After filtering, no taxa remaining wih a", rank,"annotaton. Nothing to show.")
   printf(message)  
