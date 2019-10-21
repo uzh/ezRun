@@ -100,7 +100,7 @@ ezMethodDADA2Step1Sample = function(input=NA, output=NA, param=NA,
                                tax_table(DADA2mainSeqTabObj$taxaObj))
   }
   saveRDS(phyloseqObject,phyloseqObjectRdata)
-  
+  return("Success")
 }
 
 ##' @template app-template

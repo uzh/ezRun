@@ -30,12 +30,15 @@ for (rankNames  in taxRanks){
   if (tempAbundPlotFilt$stop==TRUE) {
     next
   } else {
-abundPlotSampleList[[rankNames]] <- tempAbundPlotFilt$abPlot 
+    percentFrac <- sampleFraction*100
+    plotTitle <- paste("Community composition in each sample at the rank", rank, "for the filtered dataset.\n Only taxa observed at least",rawCount, " times in at least", percentFrac,"% of the samples are kept.")
+abundPlotSampleList[[rankNames]] <- tempAbundPlotFilt$abPlot  +ggtitle(plotTitle)
   }
     if (tempAbundPlotUnfilt$stop==TRUE) {
     next
   } else {
-abundPlotSampleListUnfilt[[rankNames]] <- tempAbundPlotUnfilt$abPlot
+plotTitle <- paste("Community composition at the rank", rank, "for the unfiltered dataset.")
+abundPlotSampleListUnfilt[[rankNames]] <- tempAbundPlotUnfilt$abPlot+ggtitle(plotTitle)
   }
 }
 
@@ -48,12 +51,14 @@ for (rankNames  in taxRanks){
   if (tempAbundPlotFilt$stop==TRUE) {
     next
   } else {
-abundPlotGroupList[[rankNames]] <- tempAbundPlotFilt$abPlot
+  plotTitle <- paste("Community composition in each group at the rank", rank, "for the filtered dataset.\n Only taxa observed at least",rawCount, " times in at least", percentFrac,"% of the samples are kept.")
+abundPlotGroupList[[rankNames]] <- tempAbundPlotFilt$abPlot+ggtitle(plotTitle)
   }
     if (tempAbundPlotUnfilt$stop==TRUE) {
     next
   } else {
-abundPlotGroupListUnfilt[[rankNames]] <- tempAbundPlotUnfilt$abPlot
+plotTitle <- paste("Community composition in each group at the rank", rank, "for the unfiltered dataset.")
+abundPlotGroupListUnfilt[[rankNames]] <- tempAbundPlotUnfilt$abPlot+ggtitle(plotTitle)
   }
 }
 }
@@ -65,18 +70,22 @@ isAbundPlotGroupUnfilt <-!length(abundPlotGroupListUnfilt) == FALSE
 
 ```{r prepOrdTaxa, include=FALSE}
 ### create plots: 2. ordination by taxa
-ordPlotTaxa <- ordPlot(rank,physeqFullObject,"taxa")
+plotTitle <- "Clustering of the taxa."
+ordPlotTaxa <- ordPlot(rank,physeqFullObject,"taxa")+ggtitle(plotTitle)
 ```
 
 ```{r prepOrdSamples, include=FALSE, eval=isGroupThere}
 ### create plots: 2. ordination by samlpe
-ordPlotSample<- ordPlot(rank,physeqFullObject,"samples",areThereMultVar)
+plotTitle <- "Clustering of the samples."
+ordPlotSample<- ordPlot(rank,physeqFullObject,"samples",areThereMultVar)+ggtitle(plotTitle)
 ```
 
 ```{r prepRich, include=FALSE}
 ### create plots: 3. richness. Here we use only the unfiltered dataset.
+plotTitle <- "Estimate of the community's richness the samples."
 plotRichnessBySample <- plot_richness(physeqObjectNoTreeUnfilt, measures=c("Shannon"))
 if (isGroupThere) {
+  plotTitle <- "Boxplots of the community's richness in the groups."
 plotRichnessByGroup <- groupModRichPlot(physeqObjectNoTreeUnfilt, x="group", measures=c("Shannon"))
 }
 ```
@@ -97,7 +106,6 @@ Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
 
 ## Phyloseq report {.tabset}
 ### Abundance barplots
-#### If samples are grouped, the second plot  is more informative
 ```{r abund, echo=FALSE}
 par(mfrow=c(2,2), las=1)
 if (isAbundPlotSample) {
@@ -163,7 +171,7 @@ show_pHeatmap()
 ```
 
 ### Two-goups comparison
-```{r volcano, echo=FALSE,eval=isGroupThere, out.width="33%"}
+```{r volcano, echo=FALSE,eval=isGroupThere, out.width="49%"}
 par(mfrow=c(1,3), las=1)
 plot(deseqResults$vPlot)
 plot(deseqResults$logPlot)
