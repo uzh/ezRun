@@ -32,17 +32,17 @@ ezMethodPhyloSeqAnalysis = function(input=NA, output=NA, param=NA,
 
 ### load phyloseq object
   physeqObjectRData <- input$getFullPaths("RObjectPhyloseq")
-  physeqObjectNoTree <- readRDS(physeqObjectRData)
+  physeqObjectNoTreeUnfilt <- readRDS(physeqObjectRData)
   
 ### check how many cols sample data has; if only one, add a second otherwise the plot funciton is buggy
-  N <- ncol(sample_data(physeqObjectNoTree))
+  N <- ncol(sample_data(physeqObjectNoTreeUnfilt))
   if (N==1) {
    areThereMultVar <- FALSE
-    sample_data(physeqObjectNoTree)[,"dummy"] <- sample_data(physeqObjectNoTree)[,1]  
+    sample_data(physeqObjectNoTreeUnfilt)[,"dummy"] <- sample_data(physeqObjectNoTreeUnfilt)[,1]  
    }
 
 ### Filtering step
-  physeqFullObject <- phyloSeqPreprocess(physeqObjectNoTree,rawCount,sampleFraction)
+  physeqFullObject <- phyloSeqPreprocess(physeqObjectNoTreeUnfilt,rawCount,sampleFraction)
   
 ### run report  
   setwdNew(basename(output$getColumn("Report")))
