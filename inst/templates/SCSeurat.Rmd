@@ -92,9 +92,10 @@ p <- VlnPlot(scData, features="percent.mt") + theme(legend.position = "none") +
     geom_hline(yintercept=param$maxMitoPercent, colour="red")
 p
 
-scData <- subset(scData, subset = nFeature_RNA > param$minGenesPerCell & 
-                   nFeature_RNA < param$maxGenesPerCell & 
-                   percent.mt < param$maxMitoPercent)
+cellsToKeep <- scData$nFeature_RNA > param$minGenesPerCell & 
+  scData$nFeature_RNA < param$maxGenesPerCell & 
+  scData$percent.mt < param$maxMitoPercent
+scData <- scData[ ,cellsToKeep]
 ```
 
 Here, we filtered cells that have unique feature counts over `r param$maxGenesPerCell` or less than `r param$minGenesPerCell`.
