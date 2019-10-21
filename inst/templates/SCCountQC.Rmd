@@ -42,14 +42,14 @@ debug <- FALSE
 param <- metadata(sce)$param
 ## ----------------------------------------------
 ## picard metrics
-evalPicard = switch (param$scProtocol,
-  "smart-Seq2" = TRUE,
+evalPicard = switch (toupper(param$scProtocol),
+  "SMART-SEQ2" = TRUE,
   "10X"=FALSE,
   NA
 )
 
-param$minReadsPerGene <- switch(param$scProtocol,
-                                "smart-Seq2"=3,
+param$minReadsPerGene <- switch(toupper(param$scProtocol),
+                                "SMART-SEQ2"=3,
                                 "10X"=1)
 
 isMito <- toupper(as.character(seqnames(rowRanges(sce)))) %in% 
@@ -73,7 +73,7 @@ cell_info <- data.frame(row.names=colnames(ctsFilt),
 sceFixName <- calculateQCMetrics(sceFixName, feature_controls=list(Mt=isMito))
 
 ## datasetAllCells for section "Heatmap of reads per cell on the plate"
-if(param$scProtocol == "smart-Seq2"){
+if(toupper(param$scProtocol) == "SMART-SEQ2"){
   datasetAllCells <- data.frame(colData(sce),
                                 check.names = FALSE, stringsAsFactors=FALSE)
 }
@@ -213,7 +213,7 @@ The colorScale ranges from half of median value to twice of median value.
 
 This is only available for plate based single cell protocol.
 
-```{r plate layout, echo=FALSE, message=FALSE, warning=FALSE, eval=param$scProtocol=="smart-Seq2" && !debug}
+```{r plate layout, echo=FALSE, message=FALSE, warning=FALSE, eval=toupper(param$scProtocol)=="SMART-SEQ2" && !debug}
 plateMatrix <- plateStatistics(datasetAllCells)
 
 if(!is.na(plateMatrix)){
