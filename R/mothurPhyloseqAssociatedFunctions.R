@@ -108,11 +108,11 @@ phyloSeqToDeseq2_tableAndPlots <- function(phyloseqObj,rank){
   addTaxaOut <- cbind(data.frame(res),otuObj,taxObj)
   addTaxaOut <- addTaxaOut[!is.na(addTaxaOut$Kingdom) & !is.na(addTaxaOut$padj),]
   addTaxaOut <- addTaxaOut[order(addTaxaOut$padj),]
-  colsToKeep <- grep("baseMean|lfcSE", colnames(addTaxaOut), invert = T)
+  colsToKeep <- grep("baseMean|lfcSE", colnames(addTaxaOut), invert = T, value = T)
   addTaxa <- addTaxaOut[,colsToKeep]
   ## select fields to report in the table
   colsToRemove <- rownames(sample_data(phyloseqObjNoMock))
-  colsToReport <- grep(colsToRemove,colsToKeep,invert = T)
+  colsToReport <- !colsToKeep%in%colsToRemove
   tableToReport <- addTaxa[1:20,colsToReport]
   ##
   addTaxa$Significance <- "Significant"
