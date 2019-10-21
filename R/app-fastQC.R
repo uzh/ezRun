@@ -28,6 +28,15 @@ ezMethodFastQC = function(input=NA, output=NA, param=NA,
   dataset = input$meta
   samples = rownames(dataset)
   
+  if(sum(dataset$`Read Count`) > 1e9){
+    doSubsample <- TRUE # subsample to 1Mio reads
+    input <- ezMethodSubsampleFastq(input=input, param=param)
+    dataset = input$meta
+  }else{
+    doSubsample <- FALSE
+  }
+  
+  
   files = c()
   for (sm in samples){
     files[paste0(sm, "_R1")] = input$getFullPaths("Read1")[sm]
@@ -150,7 +159,7 @@ ezMethodFastQC = function(input=NA, output=NA, param=NA,
   ezSystem("multiqc .")
   
   ## Cleaning
-  if(isTRUE(isUBam)){
+  if(isTRUE(isUBam) || isTRUE(doSubsample)){
     file.remove(files)
   }
   unlink(paste0(reportDirs, ".zip"), recursive = TRUE)
