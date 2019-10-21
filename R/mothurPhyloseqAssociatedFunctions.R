@@ -379,7 +379,7 @@ heatmapForPhylotseqPlotPheatmap <- function(phyloseqOtuObj,areThereMultVar){
   names(mat_colors) <- c(gr1,gr2)
   mat_col <- data.frame(sample_data(phyloseqOtuObj))
   if (!areThereMultVar){
-    mat_colors <- mat_colors[[1]]
+    mat_colors <- mat_colors[gr1]
     mat_col <- data.frame(sample_data(phyloseqOtuObj)[,gr1])
   }
   ## heatmap
