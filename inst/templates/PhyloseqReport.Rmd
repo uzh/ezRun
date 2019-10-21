@@ -31,7 +31,7 @@ for (rankNames  in taxRanks){
     next
   } else {
     percentFrac <- sampleFraction*100
-    plotTitle <- paste("Community composition in each sample at the rank", rank, "for the filtered dataset.\n Only taxa observed at least",rawCount, " times in at least", percentFrac,"% of the samples are kept.")
+    plotTitle <- paste("Community composition in each sample\nat the rank", rank, "for the filtered dataset.\nOnly taxa observed at least",rawCount, " times\nin at least", percentFrac,"% of the samples are kept.")
 abundPlotSampleList[[rankNames]] <- tempAbundPlotFilt$abPlot  +ggtitle(plotTitle)
   }
     if (tempAbundPlotUnfilt$stop==TRUE) {
@@ -51,7 +51,7 @@ for (rankNames  in taxRanks){
   if (tempAbundPlotFilt$stop==TRUE) {
     next
   } else {
-  plotTitle <- paste("Community composition in each group at the rank", rank, "for the filtered dataset.\n Only taxa observed at least",rawCount, " times in at least", percentFrac,"% of the samples are kept.")
+  plotTitle <- paste("Community composition in each group\nat the rank", rank, "for the filtered dataset.\n Only taxa observed at least",rawCount, " times\nin at least", percentFrac,"% of the samples are kept.")
 abundPlotGroupList[[rankNames]] <- tempAbundPlotFilt$abPlot+ggtitle(plotTitle)
   }
     if (tempAbundPlotUnfilt$stop==TRUE) {
@@ -83,10 +83,12 @@ ordPlotSample<- ordPlot(rank,physeqFullObject,"samples",areThereMultVar)+ggtitle
 ```{r prepRich, include=FALSE}
 ### create plots: 3. richness. Here we use only the unfiltered dataset.
 plotTitle <- "Estimate of the community's richness the samples."
-plotRichnessBySample <- plot_richness(physeqObjectNoTreeUnfilt, measures=c("Shannon"))
+plotRichnessBySample <- plot_richness(physeqObjectNoTreeUnfilt, measures=c("Shannon")) +
+  ggtitle(plotTitle)
 if (isGroupThere) {
   plotTitle <- "Boxplots of the community's richness in the groups."
-plotRichnessByGroup <- groupModRichPlot(physeqObjectNoTreeUnfilt, x="group", measures=c("Shannon"))
+plotRichnessByGroup <- groupModRichPlot(physeqObjectNoTreeUnfilt, x="group", measures=c("Shannon")) +
+  ggtitle(plotTitle)
 }
 ```
 
