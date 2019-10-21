@@ -223,3 +223,42 @@ countReadsInFastq = function(fastqFiles){
   nReads <- sapply(fastqFiles, fastq.geometry)[1, ]
   return(nReads)
 }
+
+ezMethodSubsampleFastq <- function(input=NA, output=NA, param=NA, n=1e6){
+  require(ShortRead)
+  ## if output is not an EzDataset, set it!
+  if (!is(output, "EzDataset")){
+    output = input$copy()
+    output$setColumn("Read1", paste0(getwd(), "/", input$getNames(), "-subsample-R1.fastq"))
+    if (param$paired){
+      output$setColumn("Read2", paste0(getwd(), "/", input$getNames(), "-subsample-R2.fastq"))
+    } else {
+      if ("Read2" %in% input$colNames){
+        output$setColumn("Read2", NULL)
+      }
+    }
+    output$dataRoot = NULL
+  }
+  
+  dataset = input$meta
+  samples = rownames(dataset)
+  for (sm in samples){
+    fl <- input$getFullPaths("Read1")[sm]
+    f1 <- FastqSampler(fl, n=n, ordered=TRUE)
+    set.seed(123L)
+    p1 <- yield(f1)
+    close(f1)
+    writeFastq(p1, file=output$getColumn("Read1")[sm])
+    if(param$paired){
+      fl <- input$getFullPaths("Read2")[sm]
+      f1 <- FastqSampler(fl, n=n, ordered=TRUE)
+      set.seed(123L)
+      p1 <- yield(f1)
+      close(f1)
+      writeFastq(p1, file=output$getColumn("Read2")[sm])
+    }
+  }
+  return(output)
+}
+
+
