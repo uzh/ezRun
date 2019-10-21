@@ -14,7 +14,7 @@ EzAppSCReport <-
                   "Initializes the application using its specific defaults."
                   runMethod <<- ezMethodSCReport
                   name <<- "EzAppSCReport"
-                  appDefaults <<- rbind(scProtocol=ezFrame(Type="character", DefaultValue="10x", Description="Which single cell protocol?"),
+                  appDefaults <<- rbind(scProtocol=ezFrame(Type="character", DefaultValue="10X", Description="Which single cell protocol?"),
                                         minCellsPerGene=ezFrame(Type="numeric", 
                                                                 DefaultValue=5, 
                                                                 Description="Minimum number of cells per gene for creating Seurat object"),
@@ -29,7 +29,7 @@ EzAppSCReport <-
                                                                 Description="Maximal fraction of mitochondrial reads per cell for Seurat filtering"),
                                         minReadsPerCell=ezFrame(Type="numeric", 
                                                                 DefaultValue=5e4, 
-                                                                Description="Minimal reads per cell of Smart-Seq2 for Seurat filtering"),
+                                                                Description="Minimal reads per cell of smart-Seq2 for Seurat filtering"),
                                         pcs=ezFrame(Type="numeric", 
                                                     DefaultValue=20,
                                                     Description="The maximal dimensions to use for reduction"),
