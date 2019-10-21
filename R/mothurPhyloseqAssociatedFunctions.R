@@ -138,7 +138,9 @@ phyloSeqToDeseq2_tableAndPlots <- function(phyloseqObj,rank){
   isAllNa <- all(names(table(OTUsToPlot[[rank]])) == "NA")
   if (isAllNa){
     isAllNaMsg <- paste("No annotated",rank, ". Nothing to plot.")
+    finalVersionPie <- NULL
   } else {
+    isAllNaMsg <- NULL
   OTUsToPlot[[rank]]  <- as.factor(OTUsToPlot[[rank]])
   tableTaxa <- data.frame(table(droplevels(OTUsToPlot[,rank])))
   colnames(tableTaxa)[1] <- rank
