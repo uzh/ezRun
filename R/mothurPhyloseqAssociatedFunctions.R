@@ -102,53 +102,57 @@ phyloSeqToDeseq2_tableAndPlots <- function(phyloseqObj,rank){
   phyloseq_to_deseq2 = phyloseq_to_deseq2(phyloseqObjNoMock, ~ group)
   DEseqPhyRes <- DESeq(phyloseq_to_deseq2, test="Wald", fitType="parametric")
   res = results(DEseqPhyRes, cooksCutoff = FALSE)
-  addTaxaOut <- cbind(data.frame(res),t(otu_table(phyloseqObjNoMock)), tax_table(phyloseqObjNoMock))
+  otuObj <- data.frame(t(otu_table(phyloseqObjNoMock)@.Data), check.names = F, stringsAsFactors = F)
+  taxObj <-  data.frame(tax_table(phyloseqObjNoMock)@.Data, check.names = F,stringsAsFactors = F)
+  taxObj[is.na(taxObj)] = "NA"
+  addTaxaOut <- cbind(data.frame(res),otuObj,taxObj)
   addTaxaOut <- addTaxaOut[!is.na(addTaxaOut$Kingdom) & !is.na(addTaxaOut$padj),]
-  addTaxaOut <- addTaxaOut[addTaxaOut$Kingdom == "Bacteria",]
   addTaxaOut <- addTaxaOut[order(addTaxaOut$padj),]
   colsToKeep <- grep("baseMean|lfcSE", colnames(addTaxaOut), invert = T)
   addTaxa <- addTaxaOut[,colsToKeep]
-  ## sort and prepare fpr plot
-  x = tapply(addTaxa$log2FoldChange, addTaxa[[rank]], function(x) max(x))
-  x = sort(x, TRUE)
-  addTaxa$Phylum = factor(as.character(addTaxa[[rank]]), levels=names(x))
-  # Genus order
-  x = tapply(addTaxa$log2FoldChange, addTaxa$Genus, function(x) max(x))
-  x = sort(x, TRUE)
-  addTaxa$Genus = factor(as.character(addTaxa$Genus), levels=names(x))
   addTaxa$Significance <- "Significant"
   addTaxa[addTaxa$padj > 0.05,]$Significance <- "nonSignificant"
   addTaxa$Significance <- as.factor(addTaxa$Significance)
   addTaxa$Significance <- factor(addTaxa$Significance, levels = rev(levels(addTaxa$Significance)))
+  ## sort and prepare fpr plot
+  x = tapply(addTaxa$log2FoldChange, addTaxa[[rank]], function(x) max(x))
+  x = sort(x, TRUE)
   ### log2fold plot
   title <- "Abundance changes between the groups"
-  plotLogFoldVsTaxon <- ggplot(addTaxa, aes(x=tableTaxa[[rank]], y=log2FoldChange, color=tableTaxa[[rank]])) + 
+  plotLogFoldVsTaxon <- ggplot(addTaxa, aes(x=addTaxa[["Kingdom"]], y=log2FoldChange, color=addTaxa[[rank]])) + 
     geom_point(size=3) + 
-    theme(axis.text.x = element_text(angle = -90, hjust = 0, vjust=0.5)) +
+    theme(axis.text.x = element_text(angle = -90, hjust = 0, vjust=0.5), axis.title.x = element_blank()) +
     geom_hline(aes(yintercept=1),color="blue")  + 
     geom_hline(aes(yintercept=-1),color="blue") 
   plotLogFoldVsTaxon <- plotLogFoldVsTaxon + labs(title=title) + 
-    theme(plot.title=element_text(size=10, face="bold",hjust=0.5))
+    theme(plot.title=element_text(size=10, face="bold",hjust=0.5)) + labs(color=rank)
   ### volcano plot
-  title <- "Volcano plot (threshold  = 0.05)"
+  title <- "Volcano plot (p-value threshold  = 0.05)"
   volcanoPlot <- ggplot(addTaxa, aes(y=-log10(pvalue), x=log2FoldChange)) +
-    geom_point(aes(shape=Significance, color=tableTaxa[[rank]]),size=3) 
+    geom_point(aes(shape=Significance, color=addTaxa[[rank]]),size=3) 
   volcanoPlot <- volcanoPlot + labs(title=title) + 
     theme(plot.title=element_text(size=10, face="bold",hjust=0.5))
-  volcanoPlot <- volcanoPlot + geom_hline(yintercept=1.3, color="blue")
+  volcanoPlot <- volcanoPlot + geom_hline(yintercept=1.3, color="blue") + labs(color=rank)
   ### Diff.expr. pie chart
-  OTUsToPlot <- addTaxaOut 
+  OTUsToPlot <- addTaxa
+  isAllNa <- all(names(table(OTUsToPlot[[rank]])) == "NA")
+  if (isAllNa){
+    isAllNaMsg <- paste("No annotated",rank, ". Nothing to plot.")
+  } else {
+  OTUsToPlot[[rank]]  <- as.factor(OTUsToPlot[[rank]])
   tableTaxa <- data.frame(table(droplevels(OTUsToPlot[,rank])))
   colnames(tableTaxa)[1] <- rank
   pct <- round(tableTaxa$Freq/sum(tableTaxa$Freq)*100,2)
   pct = paste0(pct,"%")
-  titleText = paste("Top-ranked different taxa (",rank,")")
+  titleText = paste("Top-ranked different taxa")
   bp <- ggplot(tableTaxa, aes(x="", y=Freq, fill=tableTaxa[[rank]])) + 
     geom_bar(position = position_stack(),width = 1, stat = "identity") 
   pieVersion <- bp + coord_polar("y", start=0)
   finalVersionPie <- pieVersion +  labs(title=titleText, y="") + 
-    theme(plot.title=element_text(size=10, face="bold",hjust=0.5))
-  return(list(logPlot=plotLogFoldVsTaxon,vPlot=volcanoPlot,pieChart=finalVersionPie,table=addTaxaOut))
+    theme(plot.title=element_text(size=10, face="bold",hjust=0.5)) + labs(color=rank)
+  }
+  return(list(logPlot=plotLogFoldVsTaxon,vPlot=volcanoPlot,pieChart=finalVersionPie,table=addTaxaOut,
+              isAllNaMsg=isAllNaMsg,isAllNa=isAllNa))
 }
 
 ###################################################################
