@@ -24,35 +24,35 @@ abundPlotSampleListUnfilt <- list()
 abundPlotGroupListUnfilt <- list()
 taxRanksVec <- attr(physeqFullObject@tax_table@.Data,"dimnames")[[2]]
 taxRanks <- setNames(as.list(taxRanksVec),taxRanksVec)
-for (rank  in taxRanks){
-  tempAbundPlotUnfilt <-  abundPlot(rank,physeqObjectNoTreeUnfilt,xAes="Sample",y="relSampleFract")
-  tempAbundPlotFilt <- abundPlot(rank,physeqFullObject,xAes="Sample",y="relSampleFract")
+for (rankNames  in taxRanks){
+  tempAbundPlotUnfilt <-  abundPlot(rankNames,physeqObjectNoTreeUnfilt,xAes="Sample",y="relSampleFract")
+  tempAbundPlotFilt <- abundPlot(rankNames,physeqFullObject,xAes="Sample",y="relSampleFract")
   if (tempAbundPlotFilt$stop==TRUE) {
     next
   } else {
-abundPlotSampleList[[rank]] <- tempAbundPlotFilt$abPlot 
+abundPlotSampleList[[rankNames]] <- tempAbundPlotFilt$abPlot 
   }
     if (tempAbundPlotUnfilt$stop==TRUE) {
     next
   } else {
-abundPlotSampleListUnfilt[[rank]] <- tempAbundPlotUnfilt$abPlot
+abundPlotSampleListUnfilt[[rankNames]] <- tempAbundPlotUnfilt$abPlot
   }
 }
 
 if (isGroupThere) {
-for (rank  in taxRanks){
-  tempAbundPlotUnfilt <-  abundPlot(rank,physeqObjectNoTreeUnfilt,xAes="Sample",y="relGroupFract")
-  tempAbundPlotFilt <- abundPlot(rank,physeqFullObject,xAes="Sample",y="relGroupFract")
+for (rankNames  in taxRanks){
+  tempAbundPlotUnfilt <-  abundPlot(rankNames,physeqObjectNoTreeUnfilt,xAes="Group",y="relGroupFract")
+  tempAbundPlotFilt <- abundPlot(rankNames,physeqFullObject,xAes="Group",y="relGroupFract")
   
   if (tempAbundPlotFilt$stop==TRUE) {
     next
   } else {
-abundPlotGroupList[[rank]] <- tempAbundPlotFilt$abPlot
+abundPlotGroupList[[rankNames]] <- tempAbundPlotFilt$abPlot
   }
     if (tempAbundPlotUnfilt$stop==TRUE) {
     next
   } else {
-abundPlotGroupListUnfilt[[rank]] <- tempAbundPlotUnfilt$abPlot
+abundPlotGroupListUnfilt[[rankNames]] <- tempAbundPlotUnfilt$abPlot
   }
 }
 }
@@ -157,7 +157,7 @@ plot(RarPlot)
 ```
 
 ### Heatmaps
-```{r heat, echo=FALSE,eval=isGroupThere,out.width="100%"}
+```{r heat, echo=FALSE,eval=isGroupThere,out.width="66%"}
 show_pHeatmap()
 ```
 
@@ -173,9 +173,9 @@ plot(deseqResults$pieChart)
 }
 ```
 
-#### Summary table (top 20 differentially expressed organisms)
+#### Summary table (top 20 differentially abundant OTUs)
 ```{r deSeqTable, echo=FALSE,eval=isGroupThere}
-kable(deseqResults$table, escape=TRUE, row.names=FALSE, format="html") %>%
+kable(deseqResults$tableToReport, escape=TRUE, row.names=FALSE, format="html") %>%
   kable_styling(bootstrap_options = c("striped", "bordered"),
                 full_width = T) %>%
   scroll_box(width = "100%", height = "600px")

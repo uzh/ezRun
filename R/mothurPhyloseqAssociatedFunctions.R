@@ -110,6 +110,7 @@ phyloSeqToDeseq2_tableAndPlots <- function(phyloseqObj,rank){
   addTaxaOut <- addTaxaOut[order(addTaxaOut$padj),]
   colsToKeep <- grep("baseMean|lfcSE", colnames(addTaxaOut), invert = T)
   addTaxa <- addTaxaOut[,colsToKeep]
+  tableToReport <- addTaxa[1:20,]
   addTaxa$Significance <- "Significant"
   addTaxa[addTaxa$padj > 0.05,]$Significance <- "nonSignificant"
   addTaxa$Significance <- as.factor(addTaxa$Significance)
@@ -137,7 +138,7 @@ phyloSeqToDeseq2_tableAndPlots <- function(phyloseqObj,rank){
   OTUsToPlot <- addTaxa
   isAllNa <- all(names(table(OTUsToPlot[[rank]])) == "NA")
   if (isAllNa){
-    isAllNaMsg <- paste("No annotated",rank, ". Nothing to plot.")
+    isAllNaMsg <- paste("No differentially abundant  OTUs are annotated to the rank",rank, ". No pie chart to plot.")
     finalVersionPie <- NULL
   } else {
     isAllNaMsg <- NULL
@@ -146,14 +147,14 @@ phyloSeqToDeseq2_tableAndPlots <- function(phyloseqObj,rank){
   colnames(tableTaxa)[1] <- rank
   pct <- round(tableTaxa$Freq/sum(tableTaxa$Freq)*100,2)
   pct = paste0(pct,"%")
-  titleText = paste("Top-ranked different taxa")
+  titleText = paste("Distribution of differentially abundant taxa at rank", rank,".")
   bp <- ggplot(tableTaxa, aes(x="", y=Freq, fill=tableTaxa[[rank]])) + 
     geom_bar(position = position_stack(),width = 1, stat = "identity") 
   pieVersion <- bp + coord_polar("y", start=0)
   finalVersionPie <- pieVersion +  labs(title=titleText, y="") + 
     theme(plot.title=element_text(size=10, face="bold",hjust=0.5)) + labs(color=rank)
   }
-  return(list(logPlot=plotLogFoldVsTaxon,vPlot=volcanoPlot,pieChart=finalVersionPie,table=addTaxaOut,
+  return(list(logPlot=plotLogFoldVsTaxon,vPlot=volcanoPlot,pieChart=finalVersionPie,tableToReport=tableToReport,
               isAllNaMsg=isAllNaMsg,isAllNa=isAllNa))
 }
 
@@ -271,44 +272,6 @@ pcaForPhyloseqPlot <- function(phySeqObject,type){
   g <- g + xlab(xAxisLabel) + ylab(yAxisLabel)
   plot(g)
 }
-
-###################################################################
-# Functional Genomics Center Zurich
-# This code is distributed under the terms of the GNU General
-# Public License Version 3, June 2007.
-# The terms are available here: http://www.gnu.org/licenses/gpl.html
-# www.fgcz.ch
-
-
-##' @title  Alternative heatmap plot for phyloseq abundnce-taxonimy matrix  
-##' @description Alternative heatmap plot for phyloseq abundnce-taxonimy matrix  
-##' @param   a phyloseq object and the rank to summarize
-##' @return Returns a stacked bar  plot.
-##' 
-### Heatmap function
-heatmapForPhyloseqPlot <- function(phySeqObject){
-  input <- phySeqObject@otu_table@.Data
-  plot_heatmap <- function() {
-    ## clust funct
-  distCor <- function(x) {as.dist(1-cor(x))}
-  zClust <- function(x, scale="row", zlim=c(-3,3), method="average") {
-    if (scale=="row") z <- t(scale(t(x)))
-    if (scale=="col") z <- scale(x)
-    z <- pmin(pmax(z, zlim[1]), zlim[2])
-    hcl_row <- hclust(distCor(t(z)), method=method)
-    hcl_col <- hclust(distCor(z), method=method)
-    return(list(data=z, hcl_r=hcl_row,hcl_c=hcl_col, 
-                Rowv=as.dendrogram(hcl_row), Colv=as.dendrogram(hcl_col)))
-  }
-  z <- zClust(t(phyloseqOtuObj))
-  cols <- colorRampPalette(brewer.pal(10, "RdBu"))(256)
-  ## heatmap
-    heatmap.2(z$data,dendrogram=c("col"),Rowv=FALSE,Colv=z$Colv,col=rev(cols), 
-              trace='none',density.info=c("none"),keysize = 0.8, 
-              labRow=NA,cexCol = 1)
-  }
-}
-
 
 ###################################################################
 # Functional Genomics Center Zurich
