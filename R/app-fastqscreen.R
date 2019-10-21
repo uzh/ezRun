@@ -8,6 +8,9 @@
 
 ezMethodFastqScreen = function(input=NA, output=NA, param=NA,
                                htmlFile="00index.html"){
+  if(sum(input$meta$`Read Count`) > 1e9){
+    input <- ezMethodSubsampleFastq(input=input, param=param)
+  }
   inputRaw <- input$copy()
   # Preprocessing
   param$trimAdapter = TRUE
