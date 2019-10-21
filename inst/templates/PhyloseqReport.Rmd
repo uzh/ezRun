@@ -103,13 +103,13 @@ if (isAbundPlotSample) {
 plot(abundPlotSampleList[[rank]])
 }else{
   message <- paste("After filtering, no taxa remaining wih a", rank,"annotaton. Nothing to show.")
-  printf(message)
+  format(message)
 }
 if (isAbundPlotSampleUnfilt) {
 plot(abundPlotSampleListUnfilt[[rank]])
 }else{
   message <- paste("No taxa annotated at the", rank,"level Nothing to show.")
-  printf(message)
+  format(message)
 }
 
 
@@ -118,13 +118,13 @@ if (isGroupThere) {
 plot(abundPlotGroupList[[rank]])
   }else{
     message <- paste("After filtering, no taxa remaining wih a", rank,"annotaton. Nothing to show.")
-  printf(message)  
+  format(message)  
   }
   if (isAbundPlotGroupUnfilt) {
 plot(abundPlotGroupListUnfilt[[rank]])
 }else{
   message <- paste("No taxa annotated at the", rank,"level Nothing to show.")
-  printf(message)
+  format(message)
 }
 
 }
@@ -167,7 +167,7 @@ par(mfrow=c(1,3), las=1)
 plot(deseqResults$vPlot)
 plot(deseqResults$logPlot)
 if (deseqResults$isAllNa) {
-  printf(deseqResults$isAllNaMsg)
+  format(deseqResults$isAllNaMsg)
 } else {
 plot(deseqResults$pieChart)
 }
