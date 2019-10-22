@@ -414,22 +414,27 @@ otuSaturationPlot <- function(x){
 ##' @description Removed stacks border
 ##' @param  physeqFullObject (phyloseq object)
 ##' @return A ggplot
-plotBarMod <- function(xx, x, y, fill = NULL, title = NULL, facet_grid = NULL) 
+plotBarMod <- function(xx, x, fill = NULL, title = NULL, facet_grid = NULL) 
 {
  mdf = psmelt(xx)
- mdf$relSampleFract <- 0
- mdf$relGroupFract <- 0
+ if (x=="S"){
+   xAxisVar ="Sample"
+ mdf$relFract <- 0
  for (sample in unique(mdf$Sample)){
    tot <- sum(mdf[mdf$Sample == sample,]$Abundance)
- mdf[mdf$Sample == sample,]$relSampleFract <- mdf[mdf$Sample == sample,]$Abundance/tot
+ mdf[mdf$Sample == sample,]$relFract <- mdf[mdf$Sample == sample,]$Abundance/tot
  }
+ }else if (x=="G") { 
+   xAxisVar ="group"
+   mdf$relFract <- 0
  for (g in levels(mdf$group)){
    tot <- sum(mdf[mdf$group == g,]$Abundance)
-   mdf[mdf$group == g,]$relGroupFract <-  mdf[mdf$group == g,]$Abundance/tot
+   mdf[mdf$group == g,]$relFract <-  mdf[mdf$group == g,]$Abundance/tot
  }
- 
- p = ggplot(mdf, aes_string(x = x, y = y, fill = fill))
- p = p + geom_bar(stat = "identity", position = "stack")
+ }
+ p = ggplot(mdf, aes(x=mdf[[xAxisVar]], 
+                     y=relFract, fill = fill))
+ p = p + geom_bar(stat = "identity", position = "stack") + xlab(xAxisVar) + ylab("relative fraction")
    p = p + theme(axis.text.x = element_text(angle = -90, hjust = 0))
  if (!is.null(facet_grid)) {
      p <- p + facet_grid(facet_grid)
@@ -451,13 +456,13 @@ return(p)
 ##' @description Abundance distribution for a specific rank
 ##' @param  physeqFullObject (phyloseq object),x (rank)
 ##' @return Returns a ggplot
-abundPlot <- function(rank,physeqFullObject,xAes,yAes) {
+abundPlot <- function(rank,physeqFullObject,xAesLogic) {
   naRmoved <- subsetTaxMod(physeqFullObject, rank)
   if (naRmoved$toStop == TRUE) {
     return(list(abPlot=NULL,stop=TRUE))
   }else{
   naRmovedTrimmed <- subsetRankTopN(naRmoved$pObj, rank,10)
-  p <- plotBarMod(naRmovedTrimmed, fill=rank,x=xAes,y=yAes) 
+  p <- plotBarMod(naRmovedTrimmed, fill=rank,x=xAesLogic) 
   return(list(abPlot=p,stop=FALSE))
 }
 }
