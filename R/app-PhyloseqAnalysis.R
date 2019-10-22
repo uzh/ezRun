@@ -22,6 +22,7 @@ ezMethodPhyloSeqAnalysis = function(input=NA, output=NA, param=NA,
   require(knitr)
   library(pheatmap)
   library(ggpubr)
+  library(xfun)
   
   dataset = input$meta
   isGroupThere = param$group
