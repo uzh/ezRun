@@ -114,12 +114,6 @@ plotRichnessByGroup <- groupModRichPlot(physeqObjectNoTreeUnfilt, x="group", mea
 show_pHeatmap <- heatmapForPhylotseqPlotPheatmap(physeqFullObject,areThereMultVar)
 ```
 
-
-```{r prepDeSeq, include=FALSE, eval=isGroupThere}
-### 6: compare groups
-deseqResults <- phyloSeqToDeseq2_tableAndPlots(physeqFullObject,rank)
-```
-
 Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
 
 ## Phyloseq report {.tabset}

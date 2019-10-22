@@ -43,7 +43,10 @@ ezMethodPhyloSeqAnalysis = function(input=NA, output=NA, param=NA,
 
 ### Filtering step
   physeqFullObject <- phyloSeqPreprocess(physeqObjectNoTreeUnfilt,rawCount,sampleFraction)
-
+### run deseq part as we need the output
+  if (isGroupThere){
+    deseqResults <- phyloSeqToDeseq2_tableAndPlots(physeqFullObject,rank)
+  }
 ### run report  
   setwdNew(basename(output$getColumn("Report")))
   
@@ -57,7 +60,7 @@ ezMethodPhyloSeqAnalysis = function(input=NA, output=NA, param=NA,
                           c("fgcz.css", markdownFile, 
                             "fgcz_header.html", "banner.png"))
   file.copy(from=styleFiles, to=".", overwrite=TRUE)
-  rmarkdown::render(input=markdownFile, envir = new.env(), clean = FALSE,
+  rmarkdown::render(input=markdownFile, envir = new.env(),
                     output_dir=".", output_file=htmlFile, quiet=TRUE)
   
 ### save table
