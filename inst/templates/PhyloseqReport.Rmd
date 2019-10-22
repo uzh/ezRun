@@ -18,6 +18,7 @@ setEnvironments("phantomjs")
 
 ```{r prepAbund, include=FALSE}
 ### create plots: 1. abundance
+
 abundPlotSampleList <- list()
 abundPlotGroupList <- list()
 abundPlotSampleListUnfilt <- list()
@@ -30,8 +31,7 @@ isAbundPlotGroupUnfilt <- list()
 taxRanksVec <- attr(physeqFullObject@tax_table@.Data,"dimnames")[[2]]
 taxRanks <- setNames(as.list(taxRanksVec),taxRanksVec)
 for (rankNames  in taxRanks){
-  tempAbundPlotUnfilt <-  abundPlot(rankNames,physeqObjectNoTreeUnfilt,xAes="Sample",y="relSampleFract")
-  tempAbundPlotFilt <- abundPlot(rankNames,physeqFullObject,xAes="Sample",y="relSampleFract")
+  tempAbundPlotFilt <- abundPlot(rankNames,physeqFullObject,xAesLogic="S")
   if (tempAbundPlotFilt$stop==TRUE) {
     isAbundPlotSample[[rankNames]] <- FALSE
     next
@@ -41,6 +41,10 @@ for (rankNames  in taxRanks){
     plotTitle <- paste("Community composition in each sample\nat the rank", rank, "for the filtered dataset.\nOnly taxa observed at least",rawCount, " times\nin at least", percentFrac,"% of the samples are kept.")
 abundPlotSampleList[[rankNames]] <- tempAbundPlotFilt$abPlot  +ggtitle(plotTitle)
   }
+}
+
+for (rankNames  in taxRanks){
+tempAbundPlotUnfilt <-  abundPlot(rankNames,physeqObjectNoTreeUnfilt,xAesLogic="S")
     if (tempAbundPlotUnfilt$stop==TRUE) {
       isAbundPlotSampleUnfilt[[rankNames]] <- FALSE
     next
@@ -54,8 +58,7 @@ abundPlotSampleListUnfilt[[rankNames]] <- tempAbundPlotUnfilt$abPlot+ggtitle(plo
 if (isGroupThere) {
 for (rankNames  in taxRanks){
   groupAes <- colnames(sample_data(physeqObjectNoTreeUnfilt))[1]
-  tempAbundPlotUnfilt <-  abundPlot(rankNames,physeqObjectNoTreeUnfilt,xAes=groupAes,y="relGroupFract")
-  tempAbundPlotFilt <- abundPlot(rankNames,physeqFullObject,xAes=groupAes,y="relGroupFract")
+  tempAbundPlotFilt <- abundPlot(rankNames,physeqFullObject,xAesLogic="G")
   
   if (tempAbundPlotFilt$stop==TRUE) {
     isAbundPlotGroup[[rankNames]] <- FALSE
@@ -65,6 +68,10 @@ for (rankNames  in taxRanks){
   plotTitle <- paste("Community composition in each group\nat the rank", rank, "for the filtered dataset.\n Only taxa observed at least",rawCount, " times\nin at least", percentFrac,"% of the samples are kept.")
 abundPlotGroupList[[rankNames]] <- tempAbundPlotFilt$abPlot+ggtitle(plotTitle)
   }
+}
+  
+  for (rankNames  in taxRanks){
+      tempAbundPlotUnfilt <-  abundPlot(rankNames,physeqObjectNoTreeUnfilt,xAesLogic="G")
     if (tempAbundPlotUnfilt$stop==TRUE) {
       isAbundPlotGroupUnfilt[[rankNames]] <- FALSE 
     next
