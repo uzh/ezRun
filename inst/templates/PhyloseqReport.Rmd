@@ -118,6 +118,7 @@ show_pHeatmap <- heatmapForPhylotseqPlotPheatmap(physeqFullObject,areThereMultVa
 ### run deseq part as we need the output
   if (isGroupThere){
     deseqResults <- phyloSeqToDeseq2_tableAndPlots(physeqFullObject,rank)
+      diffAbundTableName <- "diffAbundanceTable.txt"
   }
 ```
 Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
@@ -203,7 +204,6 @@ plot(deseqResults$pieChart)
 #### Summary table (top 20 differentially abundant OTUs)
 ```{r deSeqTableZip, echo=FALSE,eval=isGroupThere}
 ### save table
-  diffAbundTableName <- basename(output$getColumn("abundanceTable"))
   write.table(deseqResults$tableToReport,diffAbundTableName,
               row.names = F, col.names = T, quote = F,sep = "\t")
     zipFile <- sub(file_ext(diffAbundTableName), "zip", diffAbundTableName)
