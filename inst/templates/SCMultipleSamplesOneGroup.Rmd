@@ -24,12 +24,13 @@ library(tidyr)
 knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE, knitr.table.format = "html")
 
 
-# to test
-# param = readRDS("/srv/gstore/projects/p3051/SCMultipleSamplesOneGroup_37449_2019-07-16--12-20-34/SCReportMerging/param.rds")
-# scData_objects = readRDS("/srv/gstore/projects/p3051/SCMultipleSamplesOneGroup_37449_2019-07-16--12-20-34/SCReportMerging/scData_ObjectList.rds")
+#to test
+# param = readRDS("/srv/gstore/projects/p2979/SCMultipleSamplesOneGroup_40181_2019-10-09--17-06-26/SCReportMerging/param.rds")
+# scData_objects = readRDS("/srv/gstore/projects/p2979/SCMultipleSamplesOneGroup_40181_2019-10-09--17-06-26/SCReportMerging/scData_ObjectList.rds")
 # scData_noCorrected = scData_objects$scData_noCorrected
 # scData = scData_objects$scData_corrected
 # library("Seurat", lib="/home/daymegr/myRpackages")
+# library(ggplot2)
 # pvalue_allMarkers <- 0.05
 ```
 
@@ -197,6 +198,13 @@ for(cluster in levels(top_FC$cluster)){
 top_FC <- posMarkers %>% group_by(cluster) %>% top_n(param$markersToShow, avg_logFC)
 DoHeatmap(object = scData, features = top_FC$gene, label = FALSE) + theme(axis.text.y = element_text(size = 8))
 ```
+
+### Interactive explorer
+
+<br>
+
+[iSEE explorer](`r paste0("http://fgcz-shiny.uzh.ch/fgcz_iSEE/?data=",param$resultDir,"/SCReportMerging/sce_iSEE.rds")`)
+
 
 ### Data availability
 
