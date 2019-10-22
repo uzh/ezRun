@@ -57,7 +57,7 @@ ezMethodPhyloSeqAnalysis = function(input=NA, output=NA, param=NA,
                           c("fgcz.css", markdownFile, 
                             "fgcz_header.html", "banner.png"))
   file.copy(from=styleFiles, to=".", overwrite=TRUE)
-  rmarkdown::render(input=markdownFile, envir = new.env(),
+  rmarkdown::render(input=markdownFile, envir = new.env(), clean = FALSE,
                     output_dir=".", output_file=htmlFile, quiet=TRUE)
   
 ### save table

@@ -135,7 +135,7 @@ plot(abundPlotSampleList[[rank]])
 if (isAbundPlotSampleUnfilt[[rank]]) {
 plot(abundPlotSampleListUnfilt[[rank]])
 }else{
-  message <- paste("No taxa annotated at the", rank,"level Nothing to show.")
+  message <- paste("No taxa annotated at the", rank,"level. Nothing to show.")
   format(message)
 }
 
@@ -150,7 +150,7 @@ plot(abundPlotGroupList[[rank]])
   if (isAbundPlotGroupUnfilt[[rank]]) {
 plot(abundPlotGroupListUnfilt[[rank]])
 }else{
-  message <- paste("No taxa annotated at the", rank,"level Nothing to show.")
+  message <- paste("No taxa annotated at the", rank,"level. Nothing to show.")
   format(message)
 }
 
