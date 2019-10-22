@@ -159,7 +159,7 @@ phyloSeqToDeseq2_tableAndPlots <- function(phyloseqObj,rank){
     theme(plot.title=element_text(size=10, face="bold",hjust=0.5)) + labs(fill=rank)
   }
   return(list(logPlot=plotLogFoldVsTaxon,vPlot=volcanoPlot,pieChart=finalVersionPie,tableToReport=tableToReport,
-              isAllNaMsg=isAllNaMsg,isAllNa=isAllNa))
+              fullTable=addTaxa,isAllNaMsg=isAllNaMsg,isAllNa=isAllNa))
 }
 
 ###################################################################
