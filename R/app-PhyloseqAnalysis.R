@@ -43,10 +43,7 @@ ezMethodPhyloSeqAnalysis = function(input=NA, output=NA, param=NA,
 
 ### Filtering step
   physeqFullObject <- phyloSeqPreprocess(physeqObjectNoTreeUnfilt,rawCount,sampleFraction)
-### run deseq part as we need the output
-  if (isGroupThere){
-    deseqResults <- phyloSeqToDeseq2_tableAndPlots(physeqFullObject,rank)
-  }
+
 ### run report  
   setwdNew(basename(output$getColumn("Report")))
   
@@ -63,10 +60,6 @@ ezMethodPhyloSeqAnalysis = function(input=NA, output=NA, param=NA,
   rmarkdown::render(input=markdownFile, envir = new.env(),
                     output_dir=".", output_file=htmlFile, quiet=TRUE)
   
-### save table
-  diffAbundTableName <- basename(output$getColumn("abundanceTable"))
-  write.table(deseqResults$tableToReport,diffAbundTableName,
-              row.names = F, col.names = T, quote = F,sep = "\t")
   return("Success")
 }
 ##' @template app-template
