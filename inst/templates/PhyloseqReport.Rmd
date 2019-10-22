@@ -39,7 +39,7 @@ for (rankNames  in taxRanks){
     isAbundPlotSample[[rankNames]] <- TRUE
     percentFrac <- sampleFraction*100
     plotTitle <- paste("Community composition in each sample\nat the rank", rank, "for the filtered dataset.\nOnly taxa observed at least",rawCount, " times\nin at least", percentFrac,"% of the samples are kept.")
-abundPlotSampleList[[rankNames]] <- tempAbundPlotFilt$abPlot  +ggtitle(plotTitle)
+sampleToPlot <- tempAbundPlotFilt$abPlot  +ggtitle(plotTitle)
   }
 }
 
@@ -51,7 +51,7 @@ tempAbundPlotUnfilt <-  abundPlot(rankNames,physeqObjectNoTreeUnfilt,xAesLogic="
   } else {
     isAbundPlotSampleUnfilt[[rankNames]] <- TRUE
 plotTitle <- paste("Community composition at the rank", rank, "for the unfiltered dataset.")
-abundPlotSampleListUnfilt[[rankNames]] <- tempAbundPlotUnfilt$abPlot+ggtitle(plotTitle)
+sampleUnfiltToPlot <- tempAbundPlotUnfilt$abPlot+ggtitle(plotTitle)
   }
 }
 
@@ -66,7 +66,7 @@ for (rankNames  in taxRanks){
   } else {
     isAbundPlotGroup[[rankNames]] <- TRUE
   plotTitle <- paste("Community composition in each group\nat the rank", rank, "for the filtered dataset.\n Only taxa observed at least",rawCount, " times\nin at least", percentFrac,"% of the samples are kept.")
-abundPlotGroupList[[rankNames]] <- tempAbundPlotFilt$abPlot+ggtitle(plotTitle)
+groupToPlot <- tempAbundPlotFilt$abPlot+ggtitle(plotTitle)
   }
 }
   
@@ -78,7 +78,7 @@ abundPlotGroupList[[rankNames]] <- tempAbundPlotFilt$abPlot+ggtitle(plotTitle)
   } else {
     isAbundPlotGroupUnfilt[[rankNames]] <- TRUE
 plotTitle <- paste("Community composition in each group at the rank", rank, "for the unfiltered dataset.")
-abundPlotGroupListUnfilt[[rankNames]] <- tempAbundPlotUnfilt$abPlot+ggtitle(plotTitle)
+groupUnfiltToPlot <- tempAbundPlotUnfilt$abPlot+ggtitle(plotTitle)
   }
 }
 }
@@ -127,30 +127,30 @@ Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
 ```{r abund, echo=FALSE}
 par(mfrow=c(2,2), las=1)
 if (isAbundPlotSample[[rank]]) {
-plot(abundPlotSampleList[[rank]])
+plot(sampleToPlot)
 }else{
   message <- paste("After filtering, no taxa remaining wih a", rank,"annotaton. Nothing to show.")
   format(message)
 }
 if (isAbundPlotSampleUnfilt[[rank]]) {
-plot(abundPlotSampleListUnfilt[[rank]])
+plot(sampleUnfiltToPlot)
 }else{
-  message <- paste("No taxa annotated at the", rank,"level Nothing to show.")
+  message <- paste("No taxa annotated at the", rank,"level. Nothing to show.")
   format(message)
 }
 
 
 if (isGroupThere) {
   if (isAbundPlotGroup[[rank]]) {
-plot(abundPlotGroupList[[rank]])
+plot(groupToPlot)
   }else{
     message <- paste("After filtering, no taxa remaining wih a", rank,"annotaton. Nothing to show.")
   format(message)  
   }
   if (isAbundPlotGroupUnfilt[[rank]]) {
-plot(abundPlotGroupListUnfilt[[rank]])
+plot(groupUnfiltToPlot)
 }else{
-  message <- paste("No taxa annotated at the", rank,"level Nothing to show.")
+  message <- paste("No taxa annotated at the", rank,"level. Nothing to show.")
   format(message)
 }
 
