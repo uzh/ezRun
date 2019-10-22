@@ -207,10 +207,10 @@ plot(deseqResults$pieChart)
   write.table(deseqResults$fullTable,diffAbundTableName,
               row.names = F, col.names = T, quote = F,sep = "\t")
     zipFile <- sub(file_ext(diffAbundTableName), "zip", diffAbundTableName)
-    zip(zipfile, files=diffAbundTableName)
+    zip(zipFile, files=diffAbundTableName)
 ```
 
-[`r zipfile`](`r zipfile`)
+[`r zipFile`](`r zipFile`)
 
 ```{r deSeqTable, echo=FALSE,eval=isGroupThere}
 kable(deseqResults$tableToReport, escape=TRUE, row.names=FALSE, format="html") %>%
