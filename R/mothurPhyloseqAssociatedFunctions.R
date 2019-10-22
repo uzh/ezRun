@@ -434,7 +434,7 @@ plotBarMod <- function(xx, x, fill = NULL, title = NULL, facet_grid = NULL)
  }
  p = ggplot(mdf, aes(x=mdf[[xAxisVar]],y=relFract, fill = mdf[[fill]]))
  p = p + geom_bar(stat = "identity", position = "stack") + xlab(xAxisVar) +
-   ylab("relative fraction") + labs(fill = rank)
+   ylab("relative fraction") + labs(fill = fill)
    p = p + theme(axis.text.x = element_text(angle = -90, hjust = 0))
  if (!is.null(facet_grid)) {
      p <- p + facet_grid(facet_grid)
