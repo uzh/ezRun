@@ -22,21 +22,30 @@ abundPlotSampleList <- list()
 abundPlotGroupList <- list()
 abundPlotSampleListUnfilt <- list()
 abundPlotGroupListUnfilt <- list()
+isAbundPlotSample <- list()
+isAbundPlotGroup <-list()
+isAbundPlotSampleUnfilt <- list()
+isAbundPlotGroupUnfilt <- list()
+
 taxRanksVec <- attr(physeqFullObject@tax_table@.Data,"dimnames")[[2]]
 taxRanks <- setNames(as.list(taxRanksVec),taxRanksVec)
 for (rankNames  in taxRanks){
   tempAbundPlotUnfilt <-  abundPlot(rankNames,physeqObjectNoTreeUnfilt,xAes="Sample",y="relSampleFract")
   tempAbundPlotFilt <- abundPlot(rankNames,physeqFullObject,xAes="Sample",y="relSampleFract")
   if (tempAbundPlotFilt$stop==TRUE) {
+    isAbundPlotSample[[rankNames]] <- FALSE
     next
   } else {
+    isAbundPlotSample[[rankNames]] <- TRUE
     percentFrac <- sampleFraction*100
     plotTitle <- paste("Community composition in each sample\nat the rank", rank, "for the filtered dataset.\nOnly taxa observed at least",rawCount, " times\nin at least", percentFrac,"% of the samples are kept.")
 abundPlotSampleList[[rankNames]] <- tempAbundPlotFilt$abPlot  +ggtitle(plotTitle)
   }
     if (tempAbundPlotUnfilt$stop==TRUE) {
+      isAbundPlotSampleUnfilt[[rankNames]] <- FALSE
     next
   } else {
+    isAbundPlotSampleUnfilt[[rankNames]] <- TRUE
 plotTitle <- paste("Community composition at the rank", rank, "for the unfiltered dataset.")
 abundPlotSampleListUnfilt[[rankNames]] <- tempAbundPlotUnfilt$abPlot+ggtitle(plotTitle)
   }
@@ -49,23 +58,23 @@ for (rankNames  in taxRanks){
   tempAbundPlotFilt <- abundPlot(rankNames,physeqFullObject,xAes=groupAes,y="relGroupFract")
   
   if (tempAbundPlotFilt$stop==TRUE) {
+    isAbundPlotGroup[[rankNames]] <- FALSE
     next
   } else {
+    isAbundPlotGroup[[rankNames]] <- TRUE
   plotTitle <- paste("Community composition in each group\nat the rank", rank, "for the filtered dataset.\n Only taxa observed at least",rawCount, " times\nin at least", percentFrac,"% of the samples are kept.")
 abundPlotGroupList[[rankNames]] <- tempAbundPlotFilt$abPlot+ggtitle(plotTitle)
   }
     if (tempAbundPlotUnfilt$stop==TRUE) {
+      isAbundPlotGroupUnfilt[[rankNames]] <- FALSE 
     next
   } else {
+    isAbundPlotGroupUnfilt[[rankNames]] <- TRUE
 plotTitle <- paste("Community composition in each group at the rank", rank, "for the unfiltered dataset.")
 abundPlotGroupListUnfilt[[rankNames]] <- tempAbundPlotUnfilt$abPlot+ggtitle(plotTitle)
   }
 }
 }
-isAbundPlotSample <- !length(abundPlotSampleList) == FALSE  
-isAbundPlotGroup <-!length(abundPlotGroupList) == FALSE
-isAbundPlotSampleUnfilt <- !length(abundPlotSampleListUnfilt) == FALSE  
-isAbundPlotGroupUnfilt <-!length(abundPlotGroupListUnfilt) == FALSE
 ```
 
 ```{r prepOrdTaxa, include=FALSE}
@@ -110,13 +119,13 @@ Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
 ### Abundance barplots
 ```{r abund, echo=FALSE}
 par(mfrow=c(2,2), las=1)
-if (isAbundPlotSample) {
+if (isAbundPlotSample[[rank]]) {
 plot(abundPlotSampleList[[rank]])
 }else{
   message <- paste("After filtering, no taxa remaining wih a", rank,"annotaton. Nothing to show.")
   format(message)
 }
-if (isAbundPlotSampleUnfilt) {
+if (isAbundPlotSampleUnfilt[[rank]]) {
 plot(abundPlotSampleListUnfilt[[rank]])
 }else{
   message <- paste("No taxa annotated at the", rank,"level Nothing to show.")
@@ -125,13 +134,13 @@ plot(abundPlotSampleListUnfilt[[rank]])
 
 
 if (isGroupThere) {
-  if (isAbundPlotGroup) {
+  if (isAbundPlotGroup[[rank]]) {
 plot(abundPlotGroupList[[rank]])
   }else{
     message <- paste("After filtering, no taxa remaining wih a", rank,"annotaton. Nothing to show.")
   format(message)  
   }
-  if (isAbundPlotGroupUnfilt) {
+  if (isAbundPlotGroupUnfilt[[rank]]) {
 plot(abundPlotGroupListUnfilt[[rank]])
 }else{
   message <- paste("No taxa annotated at the", rank,"level Nothing to show.")
