@@ -111,6 +111,7 @@ ezMethodSCMultipleSamplesOneGroup = function(input=NA, output=NA, param=NA, html
   scData_list = list.append(scData_list, scData_noCorrected = scData_noCorrected) #this list will contain the non-corrected object and also the corrected object when calculated
   
   saveRDS(scData_list, "scData_ObjectList.rds")
+  saveRDS(as.SingleCellExperiment(scData), "sce_iSEE.rds")
   
   # Copy the style files and templates
    styleFiles <- file.path(system.file("templates", package="ezRun"), c("fgcz.css", "SCMultipleSamplesOneGroup.Rmd", "fgcz_header.html", "banner.png"))
