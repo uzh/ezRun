@@ -432,9 +432,9 @@ plotBarMod <- function(xx, x, fill = NULL, title = NULL, facet_grid = NULL)
    mdf[mdf$group == g,]$relFract <-  mdf[mdf$group == g,]$Abundance/tot
  }
  }
- p = ggplot(mdf, aes(x=mdf[[xAxisVar]], 
-                     y=relFract, fill = fill))
- p = p + geom_bar(stat = "identity", position = "stack") + xlab(xAxisVar) + ylab("relative fraction")
+ p = ggplot(mdf, aes(x=mdf[[xAxisVar]],y=relFract, fill = mdf[[fill]]))
+ p = p + geom_bar(stat = "identity", position = "stack") + xlab(xAxisVar) +
+   ylab("relative fraction") + labs(fill = rank)
    p = p + theme(axis.text.x = element_text(angle = -90, hjust = 0))
  if (!is.null(facet_grid)) {
      p <- p + facet_grid(facet_grid)
