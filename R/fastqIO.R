@@ -229,9 +229,9 @@ ezMethodSubsampleFastq <- function(input=NA, output=NA, param=NA, n=1e6){
   ## if output is not an EzDataset, set it!
   if (!is(output, "EzDataset")){
     output = input$copy()
-    output$setColumn("Read1", paste0(getwd(), "/", input$getNames(), "-subsample-R1.fastq"))
+    output$setColumn("Read1", paste0(getwd(), "/", input$getNames(), "-subsample-R1.fastq.gz"))
     if (param$paired){
-      output$setColumn("Read2", paste0(getwd(), "/", input$getNames(), "-subsample-R2.fastq"))
+      output$setColumn("Read2", paste0(getwd(), "/", input$getNames(), "-subsample-R2.fastq.gz"))
     } else {
       if ("Read2" %in% input$colNames){
         output$setColumn("Read2", NULL)
