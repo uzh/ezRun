@@ -445,21 +445,21 @@ if(param$runPseudoTime){
 }
 ```
 
-```{r fastICA plot, echo=FALSE, fig.width=8, fig.height=5, eval=metadata(sce)$param$runPseudoTime}
+```{r fastICA plot, echo=FALSE, fig.width=8, fig.height=5, eval=param$runPseudoTime}
 if(param$runPseudoTime){
   coordinates <- left_join(coordinates, 
                            enframe(scData$fastICA_pseudotime, name="Cells",
                                    value="fastICA_pseudotime"))
   p <- ggplot(coordinates) +  aes(UMAP_1, UMAP_2) +
     geom_point(shape=21, size=5, colour = "black",
-               aes(fill=Pseudotime), alpha=0.7) +
+               aes(fill=fastICA_pseudotime), alpha=0.7) +
     scale_fill_gradient(low="yellow", high="blue") +
     xlab("UMAP_1") + ylab("UMAP_2")
   p
   
   p <- ggplot(coordinates) +  aes(tSNE_1, tSNE_2) +
     geom_point(shape=21, size=5, colour = "black",
-               aes(fill=Pseudotime), alpha=0.7) +
+               aes(fill=fastICA_pseudotime), alpha=0.7) +
     scale_fill_gradient(low="yellow", high="blue") +
     xlab("tSNE_2") + ylab("tSNE_2")
   p
