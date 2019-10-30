@@ -23,18 +23,18 @@ library(scales)
 knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE, knitr.table.format = "html")
 
 # #to test
-param = readRDS("/srv/gstore/projects/p2979/SCMultipleSamplesAndGroups_40213_2019-10-10--14-31-21/SCReportMerging/param.rds")
-scData_objects = readRDS("/srv/gstore/projects/p2979/SCMultipleSamplesAndGroups_40213_2019-10-10--14-31-21/SCReportMerging/scData_ObjectList.rds")
-scData_noCorrected = scData_objects$scData_noCorrected
-scData = scData_objects$scData_corrected
-library("Seurat", lib="/home/daymegr/myRpackages")
-library(ggplot2)
-pvalue_allMarkers <- 0.05
-library(tibble)
-library(dplyr)
-clusters_freq = data.frame(table(scData@meta.data[,c("orig.ident","seurat_clusters")]))
-small_clusters = unique(as.character(clusters_freq[clusters_freq[,"Freq"] < 10, "seurat_clusters"]))
-scData_Clustersubset = subset(scData, idents = small_clusters, invert = TRUE)
+# param = readRDS("/srv/gstore/projects/p2979/SCMultipleSamplesAndGroups_40213_2019-10-10--14-31-21/SCReportMerging/param.rds")
+# scData_objects = readRDS("/srv/gstore/projects/p2979/SCMultipleSamplesAndGroups_40213_2019-10-10--14-31-21/SCReportMerging/scData_ObjectList.rds")
+# scData_noCorrected = scData_objects$scData_noCorrected
+# scData = scData_objects$scData_corrected
+# library("Seurat", lib="/home/daymegr/myRpackages")
+# library(ggplot2)
+# pvalue_allMarkers <- 0.05
+# library(tibble)
+# library(dplyr)
+# clusters_freq = data.frame(table(scData@meta.data[,c("orig.ident","seurat_clusters")]))
+# small_clusters = unique(as.character(clusters_freq[clusters_freq[,"Freq"] < 10, "seurat_clusters"]))
+# scData_Clustersubset = subset(scData, idents = small_clusters, invert = TRUE)
 ```
 
 ```{r javascript, results='asis'}
