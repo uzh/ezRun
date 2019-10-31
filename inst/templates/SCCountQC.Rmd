@@ -203,7 +203,7 @@ result = tryCatch({
 }, error = function(error) {
     cat(paste0("The plot couldn't be calculated beacuse of the following error: ", error, " Please, contact a bioinformatician."))
 })
-
+result
 ```
 
 ### Heatmap of reads per cell on the plate
@@ -283,7 +283,7 @@ for (i in 1:nrow(binCombs)){
 gcWidthScoresRel = log2((gcWidthScores + 0.01) / Matrix::rowMeans(gcWidthScores+ 0.01))
 
 gcWidthScoresRanged <- shrinkToRange(gcWidthScores, c(0, 0.2))
-pheatmap(gcWidthScoresRanged[ ,order(Matrix::colSums(assays(scePC)$counts) > 3)],
+pheatmap(gcWidthScoresRanged[ ,order(Matrix::colSums(assays(scePC)$counts > 3))],
          scale="none",
          legend_breaks = c(0, 0.05, 0.1, 0.15, 0.2),
          legend_labels = c("0", "0.05", "0.1", "0.15", "detection bias\n0.2"),
