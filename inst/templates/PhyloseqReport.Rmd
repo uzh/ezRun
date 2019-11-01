@@ -181,7 +181,7 @@ if (isGroupThere) {
 ```
 
 ### Rarefaction plots
-```{r raref, echo=FALSE, eval=FALSE}
+```{r raref, echo=FALSE}
 par(mfrow=c(3,3), las=1)
 for (rankNames  in taxRanks){
 rarefPlot(physeqFullObject,rankNames,N)
