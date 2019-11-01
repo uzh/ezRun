@@ -595,3 +595,23 @@ groupModRichPlot <- function(physeq, x, color = NULL, shape = NULL,
     xlab(x)
   return(p)
 }
+
+###################################################################
+# Functional Genomics Center Zurich
+# This code is distributed under the terms of the GNU General
+# Public License Version 3, June 2007.
+# The terms are available here: http://www.gnu.org/licenses/gpl.html
+# www.fgcz.ch
+
+##' @title Rarefaction plot
+##' @description Plot rarefaction curves at the different ranks
+##' @param  physeqFullObject (phyloseq object),x (rank)
+##' @return A rarefaction plot
+rarefPlot <- function(physeqFullObject,rank,N){
+  subsetted <- subsetRankTopN(physeqFullObject,rank,N)
+  taxTable <- otu_table(subsetted)
+  p1.pryr %<a-% {
+  rarecurve(taxTable,step = 100)
+  }
+  return(p1.pryr)
+}

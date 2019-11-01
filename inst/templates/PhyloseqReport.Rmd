@@ -108,6 +108,10 @@ plotRichnessByGroup <- groupModRichPlot(physeqObjectNoTreeUnfilt, x="group", mea
 }
 ```
 
+```{r prepRaref, include=FALSE}
+### rarefaction: 3. richness. Here we use only the unfiltered dataset.
+plotTitle <- paste("Rarefaction plots based on the selection of the most abundant", N, "ranks")
+```
 
 ```{r prepHeat, include=FALSE, eval=isGroupThere}
 ### create plots:5. pheatmap
@@ -178,10 +182,11 @@ if (isGroupThere) {
 
 ### Rarefaction plots
 ```{r raref, echo=FALSE, eval=FALSE}
-par(mfrow=c(1,2), las=1)
-for (RarPlot in rarefPlot){
-plot(RarPlot)
+par(mfrow=c(3,3), las=1)
+for (rankNames  in taxRanks){
+rarefPlot(physeqFullObject,rankNames,N)
 }
+
 ```
 
 ### Heatmaps

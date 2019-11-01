@@ -23,12 +23,14 @@ ezMethodPhyloSeqAnalysis = function(input=NA, output=NA, param=NA,
   library(pheatmap)
   library(ggpubr)
   library(xfun)
+  library(vegan)
   
   dataset = input$meta
   isGroupThere = param$group
   rank = param$taxonomicRank
   rawCount = param$rawCount
   sampleFraction = as.numeric(param$sampleFraction)
+  N=15
 ### Analyzes results with phyloseq: preparing objects to be processed in the Rmd file
 
 ### load phyloseq object
