@@ -24,7 +24,7 @@ DADA2CreateSeqTab <- function(sampleNames,maxLen=0,file1PathInDataset,database){
     dadaFs <- dada(derepFs, err=errF, multithread=TRUE)
     seqtab <- makeSequenceTable(dadaFs)
     fullTableOfOTUsNoChim <- removeBimeraDenovo(seqtab, method="consensus", multithread=TRUE)
-    taxa <- assignTaxonomy(fullTableOfOTUsNoChim,database, multithread=TRUE)
+    taxa <- assignTaxonomy(fullTableOfOTUsNoChim,database, multithread=FALSE)
     rownames(fullTableOfOTUsNoChim) <- sampleNames
   return(list(fullTableOfOTUsNoChimObj=fullTableOfOTUsNoChim,taxaObj=taxa))
 }
