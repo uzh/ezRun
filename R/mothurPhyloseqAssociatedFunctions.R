@@ -376,29 +376,19 @@ heatmapForPhylotseqPlotPheatmap <- function(phyloseqOtuObj,areThereMultVar){
 ##' @description HOw many OTUs do we really have?
 ##' @param  x, mothur shared abundance  file or already read-in table (dep on sec. param).
 ##' @return Returns a grid of plots
-otuSaturationPlot <- function(x){
-  sharedFile <- x
-  k=0 
-  dfGroup <- list()
-  for (sample in rownames(sharedFile) ){
-    k=k+1
-    tempDF <- sharedFile[rownames(sharedFile) == sample,]
-    sharedAbund <- t(tempDF)
-    sharedAbundDF <- data.frame(data.matrix(data.frame(sharedAbund, stringsAsFactors = FALSE)))
-    cumSumTransform <- data.frame(apply(sharedAbundDF,2,cumsum))
-    dfGroup[[k]] = data.frame()
-    for (j in 1:ncol(cumSumTransform)){
-      dfTemp <-  data.frame(abundance = cumSumTransform[,colnames(cumSumTransform)[j]])
-      dfTemp$numberOTUs <- seq_along(1:nrow(dfTemp))
-      dfTemp$Sample <- as.factor(sample)
-      dfGroup[[k]] <- rbind(dfGroup[[k]],dfTemp)
-    }
-  }
-  
-  fullSaturaDF <- do.call("rbind",dfGroup)
-  N <- round(sqrt(nlevels(fullSaturaDF$Sample)),0)
-  saturationPlot <- ggplot(fullSaturaDF, aes(x=numberOTUs,y=abundance)) + geom_line(colour = "red") +
-    facet_wrap(vars(Sample),N)
+rarefactionPlot <- function(physeqFullObject){
+  abundTable <- t(otu_table(physeqFullObject)@.Data)
+  bb <- iNEXT(abundTable, q=0, datatype="abundance")
+  fortifiedObj <- fortify(bb, type=2) 
+  fortifiedObjPoint <- fortifiedObj[which(fortifiedObj$method=="observed"),]
+  fortifiedObjLine <- fortifiedObj[which(fortifiedObj$method!="observed"),]
+  fortifiedObjLine$method <- factor(fortifiedObjLine$method, 
+                           c("interpolated", "extrapolated"),
+                           c("interpolation", "extrapolation"))
+  saturationPlot <- ggplot(fortifiedObj, aes(x=x, y=y, colour=site)) + 
+    geom_point(aes(shape=site), size=4, data=fortifiedObjPoint) + scale_shape_manual(values=rep(seq(1,23),3)) +
+    geom_line(aes(linetype=method), lwd=1, data=fortifiedObjLine) + guides(shape = guide_legend(nrow = 12))
+  saturationPlot <- saturationPlot + labs(x="Number of OTUs", y="Estimated completeness") 
   return(saturationPlot)
 }
 
@@ -456,12 +446,12 @@ return(p)
 ##' @description Abundance distribution for a specific rank
 ##' @param  physeqFullObject (phyloseq object),x (rank)
 ##' @return Returns a ggplot
-abundPlot <- function(rank,physeqFullObject,xAesLogic) {
+abundPlot <- function(rank,physeqFullObject,xAesLogic,numTopRanks) {
   naRmoved <- subsetTaxMod(physeqFullObject, rank)
   if (naRmoved$toStop == TRUE) {
     return(list(abPlot=NULL,stop=TRUE))
   }else{
-  naRmovedTrimmed <- subsetRankTopN(naRmoved$pObj, rank,10)
+  naRmovedTrimmed <- subsetRankTopN(naRmoved$pObj, rank,numTopRanks)
   p <- plotBarMod(naRmovedTrimmed, fill=rank,x=xAesLogic) 
   return(list(abPlot=p,stop=FALSE))
 }
@@ -512,13 +502,13 @@ subsetTaxMod <- function (physeq, x)
 ##' @description ordination plot for a specific rank
 ##' @param  fullObject (phyloseq object),x (rank)
 ##' @return Returns a ggplot
-ordPlot <- function(rank,fullObject,type,areThereMultVar) {
+ordPlot <- function(rank,fullObject,type,areThereMultVar,numTopRanks) {
   if (type=="taxa"){
     if (all(is.na(tax_table(fullObject)[,rank]))){
     naRmovedTrimmedOrd <- ordinate(fullObject, "NMDS", "bray")
     p1 = plot_ordination(fullObject, naRmovedTrimmedOrd, type = "taxa")    
     }else{
-    naRmovedTrimmed <- subsetRankTopN(fullObject, rank,10)
+    naRmovedTrimmed <- subsetRankTopN(fullObject, rank,numTopRanks)
     naRmovedTrimmedOrd <- ordinate(naRmovedTrimmed, "NMDS", "bray")
     p1 = plot_ordination(naRmovedTrimmed, naRmovedTrimmedOrd, type = "taxa", color=rank)
     }
@@ -596,22 +586,3 @@ groupModRichPlot <- function(physeq, x, color = NULL, shape = NULL,
   return(p)
 }
 
-###################################################################
-# Functional Genomics Center Zurich
-# This code is distributed under the terms of the GNU General
-# Public License Version 3, June 2007.
-# The terms are available here: http://www.gnu.org/licenses/gpl.html
-# www.fgcz.ch
-
-##' @title Rarefaction plot
-##' @description Plot rarefaction curves at the different ranks
-##' @param  physeqFullObject (phyloseq object),x (rank)
-##' @return A rarefaction plot
-rarefPlot <- function(physeqFullObject,rank,N){
-  subsetted <- subsetRankTopN(physeqFullObject,rank,N)
-  taxTable <- otu_table(subsetted)
-  p1.pryr %<a-% {
-  rarecurve(taxTable,step = 100)
-  }
-  return(p1.pryr)
-}
