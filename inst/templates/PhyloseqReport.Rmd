@@ -31,7 +31,7 @@ isAbundPlotGroupUnfilt <- list()
 taxRanksVec <- attr(physeqFullObject@tax_table@.Data,"dimnames")[[2]]
 taxRanks <- setNames(as.list(taxRanksVec),taxRanksVec)
 for (rankNames  in taxRanks){
-  tempAbundPlotFilt <- abundPlot(rankNames,physeqFullObject,xAesLogic="S")
+  tempAbundPlotFilt <- abundPlot(rankNames,physeqFullObject,xAesLogic="S",numTopRanks)
   if (tempAbundPlotFilt$stop==TRUE) {
     isAbundPlotSample[[rankNames]] <- FALSE
     next
@@ -39,26 +39,28 @@ for (rankNames  in taxRanks){
     isAbundPlotSample[[rankNames]] <- TRUE
     percentFrac <- sampleFraction*100
     plotTitle <- paste("Community composition in each sample\nat the rank", rank, "for the filtered dataset.\nOnly taxa observed at least",rawCount, " times\nin at least", percentFrac,"% of the samples are kept.")
-abundPlotSampleList[[rankNames]] <- tempAbundPlotFilt$abPlot  +ggtitle(plotTitle)
+abundPlotSampleList[[rankNames]] <- tempAbundPlotFilt$abPlot +labs(title=plotTitle) + 
+    theme(plot.title=element_text(size=12,hjust=0.5))
   }
 }
 
 for (rankNames  in taxRanks){
-tempAbundPlotUnfilt <-  abundPlot(rankNames,physeqObjectNoTreeUnfilt,xAesLogic="S")
+tempAbundPlotUnfilt <-  abundPlot(rankNames,physeqObjectNoTreeUnfilt,xAesLogic="S",numTopRanks)
     if (tempAbundPlotUnfilt$stop==TRUE) {
       isAbundPlotSampleUnfilt[[rankNames]] <- FALSE
     next
   } else {
     isAbundPlotSampleUnfilt[[rankNames]] <- TRUE
 plotTitle <- paste("Community composition at the rank", rank, "for the unfiltered dataset.")
-abundPlotSampleListUnfilt[[rankNames]] <- tempAbundPlotUnfilt$abPlot+ggtitle(plotTitle)
+abundPlotSampleListUnfilt[[rankNames]] <- tempAbundPlotUnfilt$abPlot+labs(title=plotTitle) + 
+    theme(plot.title=element_text(size=12,hjust=0.5))
   }
 }
 
 if (isGroupThere) {
 for (rankNames  in taxRanks){
   groupAes <- colnames(sample_data(physeqObjectNoTreeUnfilt))[1]
-  tempAbundPlotFilt <- abundPlot(rankNames,physeqFullObject,xAesLogic="G")
+  tempAbundPlotFilt <- abundPlot(rankNames,physeqFullObject,xAesLogic="G",numTopRanks)
   
   if (tempAbundPlotFilt$stop==TRUE) {
     isAbundPlotGroup[[rankNames]] <- FALSE
@@ -66,19 +68,21 @@ for (rankNames  in taxRanks){
   } else {
     isAbundPlotGroup[[rankNames]] <- TRUE
   plotTitle <- paste("Community composition in each group\nat the rank", rank, "for the filtered dataset.\n Only taxa observed at least",rawCount, " times\nin at least", percentFrac,"% of the samples are kept.")
-abundPlotGroupList[[rankNames]] <- tempAbundPlotFilt$abPlot+ggtitle(plotTitle)
+abundPlotGroupList[[rankNames]] <- tempAbundPlotFilt$abPlot +labs(title=plotTitle) + 
+    theme(plot.title=element_text(size=12,hjust=0.5))
   }
 }
   
   for (rankNames  in taxRanks){
-      tempAbundPlotUnfilt <-  abundPlot(rankNames,physeqObjectNoTreeUnfilt,xAesLogic="G")
+      tempAbundPlotUnfilt <-  abundPlot(rankNames,physeqObjectNoTreeUnfilt,xAesLogic="G",numTopRanks)
     if (tempAbundPlotUnfilt$stop==TRUE) {
       isAbundPlotGroupUnfilt[[rankNames]] <- FALSE 
     next
   } else {
     isAbundPlotGroupUnfilt[[rankNames]] <- TRUE
-plotTitle <- paste("Community composition in each group at the rank", rank, "for the unfiltered dataset.")
-abundPlotGroupListUnfilt[[rankNames]] <- tempAbundPlotUnfilt$abPlot+ggtitle(plotTitle)
+plotTitle <- paste("Community composition in each group at the rank", rank, "\nfor the unfiltered dataset.")
+abundPlotGroupListUnfilt[[rankNames]] <- tempAbundPlotUnfilt$abPlot +labs(title=plotTitle) + 
+    theme(plot.title=element_text(size=12,hjust=0.5))
   }
 }
 }
@@ -87,13 +91,17 @@ abundPlotGroupListUnfilt[[rankNames]] <- tempAbundPlotUnfilt$abPlot+ggtitle(plot
 ```{r prepOrdTaxa, include=FALSE}
 ### create plots: 2. ordination by taxa
 plotTitle <- "Clustering of the taxa."
-ordPlotTaxa <- ordPlot(rank,physeqFullObject,"taxa")+ggtitle(plotTitle)
+ordPlotTaxa <- ordPlot(rank,physeqFullObject,"taxa",areThereMultVar,numTopRanks)+
+  labs(title=plotTitle) + 
+  theme(plot.title=element_text(size=12,hjust=0.5))
 ```
 
 ```{r prepOrdSamples, include=FALSE, eval=isGroupThere}
 ### create plots: 2. ordination by samlpe
 plotTitle <- "Clustering of the samples."
-ordPlotSample<- ordPlot(rank,physeqFullObject,"samples",areThereMultVar)+ggtitle(plotTitle)
+ordPlotSample<- ordPlot(rank,physeqFullObject,"samples",areThereMultVar,numTopRanks)+
+  labs(title=plotTitle) + 
+  theme(plot.title=element_text(size=12,hjust=0.5))
 ```
 
 ```{r prepRich, include=FALSE}
@@ -103,14 +111,16 @@ plotRichnessBySample <- plot_richness(physeqObjectNoTreeUnfilt, measures=c("Shan
   ggtitle(plotTitle)
 if (isGroupThere) {
   plotTitle <- "Boxplots of the community's richness in the groups."
-plotRichnessByGroup <- groupModRichPlot(physeqObjectNoTreeUnfilt, x="group", measures=c("Shannon")) +
-  ggtitle(plotTitle)
+plotRichnessByGroup <- groupModRichPlot(physeqObjectNoTreeUnfilt, x="group",measures=c("Shannon"))+labs(title=plotTitle) + 
+    theme(plot.title=element_text(size=12,hjust=0.5))
 }
 ```
 
 ```{r prepRaref, include=FALSE}
-### rarefaction: 3. richness. Here we use only the unfiltered dataset.
-plotTitle <- paste("Rarefaction plots based on the selection of the most abundant", N, "ranks")
+### rarefaction: 3. rarefaction/saturation plots.
+plotTitle <- paste("Rarefaction plots based on the\nselection of the most abundant", numTopRanks, "ranks")
+rarefPlot <- rarefactionPlot(physeqFullObject) +labs(title=plotTitle) + 
+    theme(plot.title=element_text(size=12,hjust=0.5))
 ```
 
 ```{r prepHeat, include=FALSE, eval=isGroupThere}
@@ -181,12 +191,8 @@ if (isGroupThere) {
 ```
 
 ### Rarefaction plots
-```{r raref, echo=FALSE}
-par(mfrow=c(3,3), las=1)
-for (rankNames  in taxRanks){
-rarefPlot(physeqFullObject,rankNames,N)
-}
-
+```{r raref, echo=FALSE,out.width="66%"}
+plot(rarefPlot)
 ```
 
 ### Heatmaps
