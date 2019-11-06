@@ -73,6 +73,21 @@ computeDnaBamStats <- function(input, htmlFile, param, resultList=NULL){
     resultList[[sm]]$mappingRate = 100* numReads/dataset[sm, "Read Count"]
     ###TODO: add mappingQuality, GC content, insert size
     #####add duplicate rate plot to lib complexity (calc. optical duplicates with picard)
+    metricFn = paste0(sm,'_picardDupReport.txt')
+    cmd <- paste(preparePicard(), "MarkDuplicates",
+                 paste0("I=", files[sm]),
+                 paste0("O=", "toDelete.bam"),
+                 paste0("M=", metricFn),
+                 paste0("REMOVE_DUPLICATES=mark"),
+                 paste0("OPTICAL_DUPLICATE_PIXEL_DISTANCE=",param$pixelDist),
+                 "> /dev/null")
+    ezSystem(cmd)
+    ezSystem('rm toDelete.bam')
+    metricFn = 'OBV_35_picardDupReport.txt'
+    duplicateStats = read.table(metricFn, skip = 6, nrows = 1, header = TRUE)
+    resultList[[sm]]$allDuplicates = duplicateStats$READ_PAIR_DUPLICATES
+    resultList[[sm]]$optDuplicates = duplicateStats$READ_PAIR_OPTICAL_DUPLICATES
+    resultList[[sm]]$readPairs = duplicateStats$READ_PAIRS_EXAMINED
   }
   #run Qualimap Multisample
   ezWrite.table(data.frame(SampleName = samples, Folder = samples), 'sampleKey.txt', row.names = FALSE, col.names = FALSE)
