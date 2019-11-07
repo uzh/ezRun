@@ -24,7 +24,6 @@ ezMethodPhyloSeqAnalysis = function(input=NA, output=NA, param=NA,
   library(ggpubr)
   library(xfun)
   library(vegan)
-  library(pryr)
   library(iNEXT)
   
   dataset = input$meta
