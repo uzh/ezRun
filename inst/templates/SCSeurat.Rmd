@@ -27,7 +27,7 @@ library(SingleCellExperiment)
 library(tibble)
 library(scater)
 library(dplyr)
-library(Seurat, lib.loc="/home/gtan/R-library-Seurat3")
+library(Seurat)
 
 ## ----------------------------------------------
 ## debug
