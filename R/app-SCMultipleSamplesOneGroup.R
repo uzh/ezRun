@@ -42,7 +42,7 @@ EzAppSCMultipleSamplesOneGroup <-
 ezMethodSCMultipleSamplesOneGroup = function(input=NA, output=NA, param=NA, htmlFile="00index.html") {
 
   ## TODO: remove the lib specification after upgrade to Seurat v3  
-  library("Seurat", lib="/home/daymegr/myRpackages")
+  library("Seurat")
   library(rlist)
 
   ## subset the selected sample names
@@ -125,51 +125,6 @@ ezMethodSCMultipleSamplesOneGroup = function(input=NA, output=NA, param=NA, html
   return("Success")
   
 }
-
-cellClustNoCorrection = function(sceList, param) {
-  scData = Reduce(merge, lapply(sceList, function(x){metadata(x)$scData}))
-  scData@project.name <- param$name
-  scData <- NormalizeData(object = scData)
-  scData <- FindVariableFeatures(object = scData)
-  scData <- seuratStandardWorkflow(scData, param)
-  return(scData)
-}
-
-cellClustWithCorrection = function (sceList, param) {
-  seurat_objects = lapply(sceList, function(se) {metadata(se)$scData})
-  scData = seuratIntegration(seurat_objects, param)
-  # switch to integrated assay for downstream analyses
-  DefaultAssay(scData) <- "integrated"
-  # Run the standard workflow for visualization and clustering
-  scData = seuratStandardWorkflow(scData, param)
-  return(scData)
-}
-
-posClusterMarkers = function(scData, pvalue_allMarkers) {
-  markers <- FindAllMarkers(object=scData, only.pos=TRUE, return.thresh = pvalue_allMarkers)
-  ## Significant markers
-  cm <- markers[ ,c("gene","cluster","avg_logFC","p_val_adj")]
-  rownames(cm) <- NULL
-  scData@misc$posMarkers = cm
-  return(scData)
-}
-
-all2all = function(scData, pvalue_all2allMarkers, param) {
-  clusterCombs <- combn(levels(Idents(scData)), m=2)
-  all2allMarkers <- mcmapply(FindMarkers, as.integer(clusterCombs[1, ]), as.integer(clusterCombs[2, ]),
-                             MoreArgs = list(object=scData,only.pos=FALSE),
-                             mc.preschedule=FALSE,
-                             mc.cores=min(4L, param$cores),
-                             SIMPLIFY=FALSE)
-  all2allMarkers <- lapply(all2allMarkers, function(x){
-    x[x$p_val <= pvalue_all2allMarkers, ]
-  })
-  names(all2allMarkers) <- apply(clusterCombs, 2, paste, collapse="vs")
-  scData@misc$all2allMarkers = all2allMarkers
-  return(scData)
-}
-
-
 
 saveExternalFiles = function(scData) {
   propCells_table = cellsProportion(scData)
