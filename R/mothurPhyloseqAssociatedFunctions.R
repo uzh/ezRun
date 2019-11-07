@@ -130,13 +130,13 @@ phyloSeqToDeseq2_tableAndPlots <- function(phyloseqObj,rank){
     geom_hline(aes(yintercept=1),color="blue")  + 
     geom_hline(aes(yintercept=-1),color="blue") 
   plotLogFoldVsTaxon <- plotLogFoldVsTaxon + labs(title=title) + 
-    theme(plot.title=element_text(size=10, face="bold",hjust=0.5)) + labs(color=rank)
+    theme(plot.title=element_text(size=10,hjust=0.5)) + labs(color=rank)
   ### volcano plot
   title <- "Volcano plot (p-value threshold  = 0.05)"
   volcanoPlot <- ggplot(addTaxa, aes(y=-log10(pvalue), x=log2FoldChange)) +
     geom_point(aes(shape=Significance, color=addTaxa[[rank]]),size=3) 
   volcanoPlot <- volcanoPlot + labs(title=title) + 
-    theme(plot.title=element_text(size=10, face="bold",hjust=0.5))
+    theme(plot.title=element_text(size=10,hjust=0.5))
   volcanoPlot <- volcanoPlot + geom_hline(yintercept=1.3, color="blue") + labs(color=rank)
   ### Diff.expr. pie chart
   OTUsToPlot <- addTaxa[addTaxa$Significance == "Significant",]
@@ -156,7 +156,7 @@ phyloSeqToDeseq2_tableAndPlots <- function(phyloseqObj,rank){
     geom_bar(position = position_stack(),width = 1, stat = "identity") 
   pieVersion <- bp + coord_polar("y", start=0)
   finalVersionPie <- pieVersion +  labs(title=titleText, y="") + 
-    theme(plot.title=element_text(size=10, face="bold",hjust=0.5)) + labs(fill=rank)
+    theme(plot.title=element_text(size=10,hjust=0.5)) + labs(fill=rank)
   }
   return(list(logPlot=plotLogFoldVsTaxon,vPlot=volcanoPlot,pieChart=finalVersionPie,tableToReport=tableToReport,
               fullTable=addTaxa,isAllNaMsg=isAllNaMsg,isAllNa=isAllNa))
@@ -194,7 +194,7 @@ phyloSeqDivPlotAndPercUnclassified <- function(taxaFileName, rank){
     scale_fill_manual(values=colRain)
   pieVersion <- bp + coord_polar("y", start=0)
   finalVersion <- pieVersion +  labs(title=titleText, subtitle=subtitleText, y="") + 
-    theme(legend.position="none",plot.title=element_text(size=15, face="bold",hjust=0.5),  
+    theme(legend.position="none",plot.title=element_text(size=15,hjust=0.5),  
           plot.subtitle=element_text(size=10, face="bold",hjust=0.5))
   return(finalVersion)
 }
