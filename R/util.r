@@ -806,4 +806,12 @@ ezCbind = function(...){
   do.call(cbind, x)
 }
 
-
+prepareRmdLib <- function(){
+  ## Link the rmarkdownLib
+  file.copy(from=list.files("rmarkdownLib", full.names = TRUE),
+            to="/srv/GT/reference/rmarkdownLib",
+            recursive=TRUE, overwrite=FALSE)
+  unlink("rmarkdownLib", recursive = TRUE)
+  file.symlink(from = "/srv/GT/reference/rmarkdownLib",
+               to = "rmarkdownLib")
+}
