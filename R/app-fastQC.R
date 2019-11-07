@@ -158,6 +158,14 @@ ezMethodFastQC = function(input=NA, output=NA, param=NA,
   rmarkdown::render(input="FastQC.Rmd", envir = new.env(),
                     output_dir=".", output_file=htmlFile, quiet=TRUE)
   
+  ## Link the rmarkdownLib
+  file.copy(from=list.files("rmarkdownLib", full.names = TRUE),
+            to="/srv/GT/reference/rmarkdownLib",
+            recursive=TRUE, overwrite=FALSE)
+  unlink("rmarkdownLib", recursive = TRUE)
+  file.symlink(from = "/srv/GT/reference/rmarkdownLib",
+               to = "rmarkdownLib")
+  
   ## generate multiQC report
   ezSystem("multiqc .")
   
