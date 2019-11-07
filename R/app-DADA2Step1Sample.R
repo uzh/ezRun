@@ -87,6 +87,9 @@ ezMethodDADA2Step1Sample = function(input=NA, output=NA, param=NA,
     designMatrix <- data.frame(dataset[,factorCols])
     colnames(designMatrix) <- gsub(" \\[Factor\\]","",colnames(dataset)[factorCols])
     rownames(designMatrix) <- rownames(dataset)
+    newdesignMatrixFileName <- basename(output$getColumn("OTUsDesignMatrix"))
+    write.table(designMatrix,newdesignMatrixFileName,
+                row.names = F, col.names = T, quote = F,sep = "\t")
   }
   
   ## create phyloseqObject
