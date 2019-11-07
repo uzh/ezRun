@@ -130,13 +130,13 @@ phyloSeqToDeseq2_tableAndPlots <- function(phyloseqObj,rank){
     geom_hline(aes(yintercept=1),color="blue")  + 
     geom_hline(aes(yintercept=-1),color="blue") 
   plotLogFoldVsTaxon <- plotLogFoldVsTaxon + labs(title=title) + 
-    theme(plot.title=element_text(size=10, face="bold",hjust=0.5)) + labs(color=rank)
+    theme(plot.title=element_text(size=10,hjust=0.5)) + labs(color=rank)
   ### volcano plot
   title <- "Volcano plot (p-value threshold  = 0.05)"
   volcanoPlot <- ggplot(addTaxa, aes(y=-log10(pvalue), x=log2FoldChange)) +
     geom_point(aes(shape=Significance, color=addTaxa[[rank]]),size=3) 
   volcanoPlot <- volcanoPlot + labs(title=title) + 
-    theme(plot.title=element_text(size=10, face="bold",hjust=0.5))
+    theme(plot.title=element_text(size=10,hjust=0.5))
   volcanoPlot <- volcanoPlot + geom_hline(yintercept=1.3, color="blue") + labs(color=rank)
   ### Diff.expr. pie chart
   OTUsToPlot <- addTaxa[addTaxa$Significance == "Significant",]
@@ -156,7 +156,7 @@ phyloSeqToDeseq2_tableAndPlots <- function(phyloseqObj,rank){
     geom_bar(position = position_stack(),width = 1, stat = "identity") 
   pieVersion <- bp + coord_polar("y", start=0)
   finalVersionPie <- pieVersion +  labs(title=titleText, y="") + 
-    theme(plot.title=element_text(size=10, face="bold",hjust=0.5)) + labs(fill=rank)
+    theme(plot.title=element_text(size=10,hjust=0.5)) + labs(fill=rank)
   }
   return(list(logPlot=plotLogFoldVsTaxon,vPlot=volcanoPlot,pieChart=finalVersionPie,tableToReport=tableToReport,
               fullTable=addTaxa,isAllNaMsg=isAllNaMsg,isAllNa=isAllNa))
@@ -194,7 +194,7 @@ phyloSeqDivPlotAndPercUnclassified <- function(taxaFileName, rank){
     scale_fill_manual(values=colRain)
   pieVersion <- bp + coord_polar("y", start=0)
   finalVersion <- pieVersion +  labs(title=titleText, subtitle=subtitleText, y="") + 
-    theme(legend.position="none",plot.title=element_text(size=15, face="bold",hjust=0.5),  
+    theme(legend.position="none",plot.title=element_text(size=15,hjust=0.5),  
           plot.subtitle=element_text(size=10, face="bold",hjust=0.5))
   return(finalVersion)
 }
@@ -376,29 +376,19 @@ heatmapForPhylotseqPlotPheatmap <- function(phyloseqOtuObj,areThereMultVar){
 ##' @description HOw many OTUs do we really have?
 ##' @param  x, mothur shared abundance  file or already read-in table (dep on sec. param).
 ##' @return Returns a grid of plots
-otuSaturationPlot <- function(x){
-  sharedFile <- x
-  k=0 
-  dfGroup <- list()
-  for (sample in rownames(sharedFile) ){
-    k=k+1
-    tempDF <- sharedFile[rownames(sharedFile) == sample,]
-    sharedAbund <- t(tempDF)
-    sharedAbundDF <- data.frame(data.matrix(data.frame(sharedAbund, stringsAsFactors = FALSE)))
-    cumSumTransform <- data.frame(apply(sharedAbundDF,2,cumsum))
-    dfGroup[[k]] = data.frame()
-    for (j in 1:ncol(cumSumTransform)){
-      dfTemp <-  data.frame(abundance = cumSumTransform[,colnames(cumSumTransform)[j]])
-      dfTemp$numberOTUs <- seq_along(1:nrow(dfTemp))
-      dfTemp$Sample <- as.factor(sample)
-      dfGroup[[k]] <- rbind(dfGroup[[k]],dfTemp)
-    }
-  }
-  
-  fullSaturaDF <- do.call("rbind",dfGroup)
-  N <- round(sqrt(nlevels(fullSaturaDF$Sample)),0)
-  saturationPlot <- ggplot(fullSaturaDF, aes(x=numberOTUs,y=abundance)) + geom_line(colour = "red") +
-    facet_wrap(vars(Sample),N)
+rarefactionPlot <- function(physeqFullObject){
+  abundTable <- t(otu_table(physeqFullObject)@.Data)
+  bb <- iNEXT(abundTable, q=0, datatype="abundance")
+  fortifiedObj <- fortify(bb, type=2) 
+  fortifiedObjPoint <- fortifiedObj[which(fortifiedObj$method=="observed"),]
+  fortifiedObjLine <- fortifiedObj[which(fortifiedObj$method!="observed"),]
+  fortifiedObjLine$method <- factor(fortifiedObjLine$method, 
+                           c("interpolated", "extrapolated"),
+                           c("interpolation", "extrapolation"))
+  saturationPlot <- ggplot(fortifiedObj, aes(x=x, y=y, colour=site)) + 
+    geom_point(aes(shape=site), size=4, data=fortifiedObjPoint) + scale_shape_manual(values=rep(seq(1,23),3)) +
+    geom_line(aes(linetype=method), lwd=1, data=fortifiedObjLine) + guides(shape = guide_legend(nrow = 12))
+  saturationPlot <- saturationPlot + labs(x="Number of OTUs", y="Estimated completeness") 
   return(saturationPlot)
 }
 
@@ -456,12 +446,12 @@ return(p)
 ##' @description Abundance distribution for a specific rank
 ##' @param  physeqFullObject (phyloseq object),x (rank)
 ##' @return Returns a ggplot
-abundPlot <- function(rank,physeqFullObject,xAesLogic) {
+abundPlot <- function(rank,physeqFullObject,xAesLogic,numTopRanks) {
   naRmoved <- subsetTaxMod(physeqFullObject, rank)
   if (naRmoved$toStop == TRUE) {
     return(list(abPlot=NULL,stop=TRUE))
   }else{
-  naRmovedTrimmed <- subsetRankTopN(naRmoved$pObj, rank,10)
+  naRmovedTrimmed <- subsetRankTopN(naRmoved$pObj, rank,numTopRanks)
   p <- plotBarMod(naRmovedTrimmed, fill=rank,x=xAesLogic) 
   return(list(abPlot=p,stop=FALSE))
 }
@@ -512,13 +502,13 @@ subsetTaxMod <- function (physeq, x)
 ##' @description ordination plot for a specific rank
 ##' @param  fullObject (phyloseq object),x (rank)
 ##' @return Returns a ggplot
-ordPlot <- function(rank,fullObject,type,areThereMultVar) {
+ordPlot <- function(rank,fullObject,type,areThereMultVar,numTopRanks) {
   if (type=="taxa"){
     if (all(is.na(tax_table(fullObject)[,rank]))){
     naRmovedTrimmedOrd <- ordinate(fullObject, "NMDS", "bray")
     p1 = plot_ordination(fullObject, naRmovedTrimmedOrd, type = "taxa")    
     }else{
-    naRmovedTrimmed <- subsetRankTopN(fullObject, rank,10)
+    naRmovedTrimmed <- subsetRankTopN(fullObject, rank,numTopRanks)
     naRmovedTrimmedOrd <- ordinate(naRmovedTrimmed, "NMDS", "bray")
     p1 = plot_ordination(naRmovedTrimmed, naRmovedTrimmedOrd, type = "taxa", color=rank)
     }
@@ -595,3 +585,4 @@ groupModRichPlot <- function(physeq, x, color = NULL, shape = NULL,
     xlab(x)
   return(p)
 }
+
