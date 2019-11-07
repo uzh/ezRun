@@ -95,7 +95,7 @@ input = '/srv/gstore/projects/p2000/SingleCellUnmappedBam/dataset.tsv'
 debug(ezMethodFastQC)
 EzAppFastqc$new()$run(input=input, output=output, param=param)
 
-# p2914 bulk
+# p3221 RNA-seq
 setwd("/scratch/gtan/dev/quickdev")
 library(ezRun)
 param = list()
@@ -109,13 +109,13 @@ param[['paired']] = 'false'
 param[['perLibrary']] = 'true'
 param[['name']] = 'FastQC_Result'
 param[['cmdOptions']] = ''
-param[['mail']] = 'ngs.qc@fgcz.ethz.ch'
+param[['mail']] = 'ge.tan@fgcz.ethz.ch'
 param[['dataRoot']] = '/srv/gstore/projects'
-param[['resultDir']] = 'p2914/Fastqc_30953_2018-10-26--10-23-44'
+param[['resultDir']] = 'p3221/Fastqc_40422_2019-10-17--09-45-22'
 output = list()
 output[['Name']] = 'FastQC_Result'
-output[['Report [File]']] = 'p2914/Fastqc_30953_2018-10-26--10-23-44/FastQC_Result'
-output[['Html [Link]']] = 'p2914/Fastqc_30953_2018-10-26--10-23-44/FastQC_Result/00index.html'
-input = '/srv/gstore/projects/p2914/Fastqc_30953_2018-10-26--10-23-44/input_dataset.tsv'
+output[['Report [File]']] = 'p3221/Fastqc_40422_2019-10-17--09-45-22/FastQC_Result'
+output[['Html [Link]']] = 'p3221/Fastqc_40422_2019-10-17--09-45-22/FastQC_Result/00index.html'
+output[['MultiQC [Link]']] = 'p3221/Fastqc_40422_2019-10-17--09-45-22/FastQC_Result/multiqc_report.html'
+input = '/srv/gstore/projects/p3221/Fastqc_40422_2019-10-17--09-45-22/input_dataset.tsv'
 EzAppFastqc$new()$run(input=input, output=output, param=param)
-
