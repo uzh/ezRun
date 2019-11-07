@@ -43,6 +43,8 @@ ezMethodPhyloSeqAnalysis = function(input=NA, output=NA, param=NA,
   if (N==1) {
    areThereMultVar <- FALSE
     sample_data(physeqObjectNoTreeUnfilt)[,"dummy"] <- sample_data(physeqObjectNoTreeUnfilt)[,1]  
+  } else {
+    areThereMultVar <- TRUE
    }
 
 ### Filtering step
