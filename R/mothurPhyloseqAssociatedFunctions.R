@@ -107,13 +107,15 @@ phyloSeqToDeseq2_tableAndPlots <- function(phyloseqObj,rank){
   taxObj[is.na(taxObj)] = "NA"
   addTaxaOut <- cbind(data.frame(res),otuObj,taxObj)
   addTaxaOut <- addTaxaOut[!is.na(addTaxaOut$Kingdom) & !is.na(addTaxaOut$padj),]
+  addTaxaOut$id <- paste0("otu",seq(1,nrows(addTaxaOut)))
   addTaxaOut <- addTaxaOut[order(addTaxaOut$padj),]
-  colsToKeep <- grep("baseMean|lfcSE", colnames(addTaxaOut), invert = T, value = T)
+  colsToKeep <- c("id",grep("baseMean|lfcSE", colnames(addTaxaOut), invert = T, value = T))
   addTaxa <- addTaxaOut[,colsToKeep]
   ## select fields to report in the table
   colsToRemove <- rownames(sample_data(phyloseqObjNoMock))
   colsToReport <- !colsToKeep%in%colsToRemove
   tableToReport <- addTaxa[1:20,colsToReport]
+  
   ##
   addTaxa$Significance <- "Significant"
   addTaxa[addTaxa$padj > 0.05,]$Significance <- "nonSignificant"
@@ -125,7 +127,7 @@ phyloSeqToDeseq2_tableAndPlots <- function(phyloseqObj,rank){
   ### log2fold plot
   title <- "Abundance changes between the groups"
   plotLogFoldVsTaxon <- ggplot(addTaxa, aes(x=addTaxa[["Kingdom"]], y=log2FoldChange, color=addTaxa[[rank]])) + 
-    geom_point(size=3) + 
+    geom_violin() + geom_point(size=3)
     theme(axis.text.x = element_text(angle = -90, hjust = 0, vjust=0.5), axis.title.x = element_blank()) +
     geom_hline(aes(yintercept=1),color="blue")  + 
     geom_hline(aes(yintercept=-1),color="blue") 
