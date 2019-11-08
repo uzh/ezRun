@@ -261,6 +261,7 @@ getRefBuildMap = function(){
     "Mus musculus (house mouse)" = "Mus_musculus/Ensembl/GRCm38.p5/Annotation/Release_91-2018-02-26",
     "Homo sapiens (human)"="Homo_sapiens/Ensembl/GRCh38.p10/Annotation/Release_91-2018-02-26",
     "human"="Homo_sapiens/Ensembl/GRCh38.p10/Annotation/Release_91-2018-02-26",
+    "homo"="Homo_sapiens/Ensembl/GRCh38.p10/Annotation/Release_91-2018-02-26",
     "Equus caballus (horse)"="Equus_caballus/Ensembl/EquCab2/Annotation/Release_89-2017-06-07",
     "Canis familiaris"="Canis_familiaris/Ensembl/CanFam3.1/Annotation/Release_89-2017-06-07",
     "Oryctolagus cuniculus (rabbit)"="Oryctolagus_cuniculus/Ensembl/OryCun2.0/Annotation/Release_89-2017-06-08",
