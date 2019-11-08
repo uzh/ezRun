@@ -242,7 +242,7 @@ makeFeatAnnoEnsembl <- function(featureFile,
   }
   
   if(!all(featAnno$transcript_id %in% mapping$ensembl_transcript_id)){
-    stop("Some transcript ids don't exist in biomart file!")
+    warning("Some transcript ids don't exist in biomart file!") #Normal for GENCODE
   }
   
   ### description
