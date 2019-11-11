@@ -12,16 +12,28 @@
 ##' @param  a fastq or pairs of ffastq files .
 ##' @return Returns a DADA2 seqtab object.
 
-DADA2CreateSeqTab <- function(sampleNames,maxLen=0,file1PathInDataset,database){
+DADA2CreateSeqTab <- function(sampleNames,maxLen=0,file1PathInDataset,database,seqTech,maxExpErr){
     fnFs <- file1PathInDataset
     filtFs <- paste0(sampleNames,".filt.R1.fastq.gz")
     names(filtFs) <- sampleNames
     out <- filterAndTrim(fnFs, filtFs, truncLen=maxLen,
-                         maxN=0, maxEE=1, truncQ=11, rm.phix=TRUE,
+                         maxN=0, maxEE=maxExpErr, truncQ=2, rm.phix=TRUE,
                          compress=TRUE, multithread=TRUE)
-    errF <- learnErrors(filtFs,errorEstimationFunction = noqualErrfun, multithread=TRUE)
+    if (seqTech == "pacbio") {
+    errF <-  learnErrors(drp, BAND_SIZE=32, multithread=TRUE, 
+                         errorEstimationFunction=dada2:::PacBioErrfun)
+    } else {
+    errF <- learnErrors(filtFs, multithread=TRUE)
+    }
     derepFs <- derepFastq(filtFs, verbose=FALSE)
-    dadaFs <- dada(derepFs, err=errF, multithread=TRUE)
+    if (seqTech == "454" | seqTech == "ionTorrent"){
+      dadaFs <- dada(derepFs, err=errF, multithread=TRUE,
+                     HOMOPOLYMER_GAP_PENALTY=-1, BAND_SIZE=32)
+    }else if (seqTech == "pacbio") {
+      dadaFs <- dada(derepFs, err=errF, multithread=TRUE, BAND_SIZE=32)
+    }else {
+      dadaFs <- dada(derepFs, err=errF, multithread=TRUE)
+    }
     seqtab <- makeSequenceTable(dadaFs)
     fullTableOfOTUsNoChim <- removeBimeraDenovo(seqtab, method="consensus", multithread=TRUE)
     taxa <- assignTaxonomy(fullTableOfOTUsNoChim,database, multithread=FALSE)
