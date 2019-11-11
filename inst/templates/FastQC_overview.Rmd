@@ -4,6 +4,7 @@ author: "Functional Genomics Center Zurich"
 output:
   html_document:
     self_contained: false
+    lib_dir: rmarkdownLib
     includes:
       in_header: fgcz_header.html
     css: fgcz.css
