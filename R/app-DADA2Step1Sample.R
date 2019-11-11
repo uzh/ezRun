@@ -16,6 +16,8 @@ ezMethodDADA2Step1Sample = function(input=NA, output=NA, param=NA,
   sampleNames = input$getNames() 
   databaseParam <- param$database
   kingdomParam <- param$kingdom
+  seqTech <- param$technology
+  maxExpErr <- param$maxExpError
   if (databaseParam == "silva") {
     if (kingdomParam == "Bacteria"){
     database <- SILVA_BACTERIA_DADA2
@@ -57,12 +59,12 @@ ezMethodDADA2Step1Sample = function(input=NA, output=NA, param=NA,
     DADA2mainSeqTabObj <- DADA2CreateSeqTab(sampleNames = sampleNames,
                                           maxLen = maxLen,
                                           file1PathInDataset = listOfJoinedFiles,
-                                          database)
+                                          database,seqTech,maxExpErr)
   }else{
     DADA2mainSeqTabObj <- DADA2CreateSeqTab(sampleNames= sampleNames,
                                             maxLen = maxLen,
                                             file1PathInDataset = file1PathInDataset,
-                                            database)
+                                            database,seqTech,maxExpErr)
   }
   
   ## rename output files
@@ -87,6 +89,9 @@ ezMethodDADA2Step1Sample = function(input=NA, output=NA, param=NA,
     designMatrix <- data.frame(dataset[,factorCols])
     colnames(designMatrix) <- gsub(" \\[Factor\\]","",colnames(dataset)[factorCols])
     rownames(designMatrix) <- rownames(dataset)
+    newdesignMatrixFileName <- basename(output$getColumn("OTUsDesignMatrix"))
+    write.table(designMatrix,newdesignMatrixFileName,
+                row.names = F, col.names = T, quote = F,sep = "\t")
   }
   
   ## create phyloseqObject
