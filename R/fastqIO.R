@@ -229,9 +229,11 @@ ezMethodSubsampleFastq <- function(input=NA, output=NA, param=NA, n=1e6){
   ## if output is not an EzDataset, set it!
   if (!is(output, "EzDataset")){
     output = input$copy()
-    output$setColumn("Read1", paste0(getwd(), "/", input$getNames(), "-subsample-R1.fastq.gz"))
+    output$setColumn("Read1", paste0(getwd(), "/", input$getNames(), 
+                                     "-subsample-R1.fastq.gz"))
     if (param$paired){
-      output$setColumn("Read2", paste0(getwd(), "/", input$getNames(), "-subsample-R2.fastq.gz"))
+      output$setColumn("Read2", paste0(getwd(), "/", input$getNames(),
+                                       "-subsample-R2.fastq.gz"))
     } else {
       if ("Read2" %in% input$colNames){
         output$setColumn("Read2", NULL)
@@ -242,7 +244,7 @@ ezMethodSubsampleFastq <- function(input=NA, output=NA, param=NA, n=1e6){
   
   dataset = input$meta
   samples = rownames(dataset)
-  for (sm in samples){
+  mclapply(samples, function(sm, input, output, param){
     fl <- input$getFullPaths("Read1")[sm]
     f1 <- FastqSampler(fl, n=n, ordered=TRUE)
     set.seed(123L)
@@ -257,8 +259,6 @@ ezMethodSubsampleFastq <- function(input=NA, output=NA, param=NA, n=1e6){
       close(f1)
       writeFastq(p1, file=output$getColumn("Read2")[sm])
     }
-  }
+  }, input=input, output=output, param=param, mc.cores=min(4L, param$cores))
   return(output)
 }
-
-

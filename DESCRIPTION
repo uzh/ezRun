@@ -12,7 +12,7 @@ Depends:
     stats,methods,utils,data.table,Biostrings,GenomicRanges
 Imports:
 Suggests:
-    testthat, knitr, gage, goseq, ChIPpeakAnno, DESeq2, TEQC, htSeqTools,
+    testthat, knitr, gage, goseq, ChIPpeakAnno, DESeq2, TEQC,
     pathview, reshape2, vsn, Rsubread, preprocessCore, wesanderson,
     RCurl, caTools, matrixStats, Repitools, DT, htmltools, biomaRt,
     RColorBrewer, WGCNA, plyr, pvclust, parallel, Biostrings,

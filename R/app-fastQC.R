@@ -108,7 +108,10 @@ ezMethodFastQC = function(input=NA, output=NA, param=NA,
   
   ## Each sample can have different number of reports.
   ## Especially per tile sequence quality
-  nrReports <- sapply(reportDirs, function(x){smy = ezRead.table(file.path(x, "summary.txt"), row.names=NULL, header=FALSE);nrow(smy)})
+  nrReports <- sapply(reportDirs, 
+                      function(x){smy = ezRead.table(file.path(x, "summary.txt"), 
+                                                     row.names=NULL, header=FALSE);
+                      nrow(smy)})
   i <- which.max(nrReports)
   smy = ezRead.table(file.path(reportDirs[i], "summary.txt"), 
                      row.names=NULL, header=FALSE)
@@ -154,6 +157,8 @@ ezMethodFastQC = function(input=NA, output=NA, param=NA,
   ## generate the main reports
   rmarkdown::render(input="FastQC.Rmd", envir = new.env(),
                     output_dir=".", output_file=htmlFile, quiet=TRUE)
+  
+  prepareRmdLib()
   
   ## generate multiQC report
   ezSystem("multiqc .")

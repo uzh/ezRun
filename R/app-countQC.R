@@ -48,6 +48,8 @@ ezMethodCountQC = function(input=NA, output=NA, param=NA,
   rmarkdown::render(input="CountQC.Rmd", envir = new.env(),
                     output_dir=".", output_file=htmlFile, quiet=TRUE)
   
+  prepareRmdLib()
+  
   return("Success")
 }
 

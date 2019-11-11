@@ -128,11 +128,12 @@ update_seuratObjectVersion = function(se) {
 
 seuratStandardWorkflow <- function(scData, param){
   scData <- ScaleData(object = scData, num.cores=param$cores)
-  scData <- RunPCA(object=scData, npcs = param$npcs)
+  scData <- RunPCA(object=scData, npcs = param$npcs, features=param$pcGenes)
   scData <- RunTSNE(object = scData, reduction = "pca", dims = 1:param$npcs, num_threads=param$cores)
-  #try(scData <- RunUMAP(object=scData, reduction = "pca", dims = 1:30, num_threads=param$cores))
+  scData <- RunUMAP(object=scData, reduction = "pca", dims = 1:param$npcs, num_threads=param$cores)
   scData <- FindNeighbors(object = scData, reduction = "pca", dims = 1:param$npcs)
-  scData <- FindClusters(object=scData, resolution = param$resolution)
+  scData <- FindClusters(object=scData, resolution = seq(from = 0.1, to = 1, by = 0.1))  #calculate clusters for a set of resolutions
+  Idents(scData) <- scData@meta.data[,paste0("RNA_snn_res.", param$resolution)]  #but keep as the current clusters the ones obtained with the resolution set by the user
   return(scData)
 }  
   
@@ -172,4 +173,75 @@ seuratIntegration = function(seurat_objects, param) {
   seurat_integrated <- IntegrateData(anchorset = anchors, dims = 1:param$npcs)
   
   return(seurat_integrated)
+}
+
+
+buildSeuratObject <- function(sce){
+  require(Seurat)
+  require(scater)
+  param <- metadata(sce)$param
+  rownames(sce) <- uniquifyFeatureNames(ID=rowData(sce)$gene_id,
+                                        names=rowData(sce)$gene_name)
+  if(toupper(param$scProtocol) == "SMART-SEQ2"){
+    sce <- sce[ ,Matrix::colSums(assays(sce)$counts) > param$minReadsPerCell]
+  }
+  cell_info <- data.frame(colData(sce),
+                          Plate=sub("___.*$", "", colnames(sce)),
+                          check.names = FALSE)
+  scData <- CreateSeuratObject(counts=assays(sce)$counts,
+                               project=param$name,
+                               meta.data=cell_info)
+  return(scData)
+}
+
+seuratClusteringV3 <- function(scData, param) {
+  scData <- NormalizeData(object=scData, scale.factor=getSeuratScalingFactor(param$scProtocol))
+  scData <- FindVariableFeatures(object = scData)
+  # Run the standard workflow for visualization and clustering
+  scData <- seuratStandardWorkflow(scData, param)
+  
+  return(scData)
+}
+
+cellClustNoCorrection = function(sceList, param) {
+  scData = Reduce(merge, lapply(sceList, function(x){metadata(x)$scData}))
+  scData@project.name <- param$name
+  scData <- NormalizeData(object = scData)
+  scData <- FindVariableFeatures(object = scData)
+  scData <- seuratStandardWorkflow(scData, param)
+  return(scData)
+}
+
+cellClustWithCorrection = function (sceList, param) {
+  seurat_objects = lapply(sceList, function(se) {metadata(se)$scData})
+  scData = seuratIntegration(seurat_objects, param)
+  # switch to integrated assay for downstream analyses
+  DefaultAssay(scData) <- "integrated"
+  # Run the standard workflow for visualization and clustering
+  scData = seuratStandardWorkflow(scData, param)
+  return(scData)
+}
+
+posClusterMarkers = function(scData, pvalue_allMarkers) {
+  markers <- FindAllMarkers(object=scData, only.pos=TRUE, return.thresh = pvalue_allMarkers)
+  ## Significant markers
+  cm <- markers[ ,c("gene","cluster","avg_logFC","p_val_adj")]
+  rownames(cm) <- NULL
+  scData@misc$posMarkers = cm
+  return(scData)
+}
+
+all2all = function(scData, pvalue_all2allMarkers, param) {
+  clusterCombs <- combn(levels(Idents(scData)), m=2)
+  all2allMarkers <- mcmapply(FindMarkers, as.integer(clusterCombs[1, ]), as.integer(clusterCombs[2, ]),
+                             MoreArgs = list(object=scData,only.pos=FALSE),
+                             mc.preschedule=FALSE,
+                             mc.cores=min(4L, param$cores),
+                             SIMPLIFY=FALSE)
+  all2allMarkers <- lapply(all2allMarkers, function(x){
+    x[x$p_val <= pvalue_all2allMarkers, ]
+  })
+  names(all2allMarkers) <- apply(clusterCombs, 2, paste, collapse="vs")
+  scData@misc$all2allMarkers = all2allMarkers
+  return(scData)
 }

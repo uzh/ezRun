@@ -54,7 +54,7 @@ EzAppSCSeurat <-
 
 ezMethodSCSeurat = function(input=NA, output=NA, param=NA, 
                             htmlFile="00index.html"){
-  require(Seurat, lib.loc="/home/gtan/R-library-Seurat3")
+  require(Seurat)
   
   cwd <- getwd()
   setwdNew(basename(output$getColumn("Report")))
