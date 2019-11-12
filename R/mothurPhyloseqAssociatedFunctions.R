@@ -12,12 +12,13 @@
 ##' @param  a data frame in the format of mothur shared clustered OTU  files.
 ##' @return Returns a Phyloseq OTU object.
 
-phyloSeqOTU <- function(otuDF){
-rownames(otuDF) <- otuDF$Group
-colToDrop <- c("Group")
-otuFile1 <- as.matrix(otuDF[,!names(otuDF)%in%colToDrop])
-otuObject <- otu_table(otuFile1, taxa_are_rows = FALSE)
-return(otuObject)
+phyloSeqOTUFromFile <- function(otuFile){
+  otuDF <- read.delim(otuFile, header = T,stringsAsFactors = F, check.names = F)
+  rownames(otuDF) <- otuDF$Group
+  colToDrop <- c("Group","label","numOtus")
+  otuFile1 <- as.matrix(otuDF[,!names(otuDF)%in%colToDrop])
+  otuObject <- otu_table(otuFile1, taxa_are_rows = FALSE)
+  return(otuObject)
 }
 
 ###################################################################
@@ -33,13 +34,14 @@ return(otuObject)
 ##' @param  taxaDB, a DF in the format of mothur taxonomy file.
 ##' @return Returns a Phyloseq Taxa object.
 
-phyloSeqTaxa <- function(taxaDB){
-tempList <- lapply(taxaDB$Taxonomy,function(y) unlist(strsplit(y,";")))
-taxaMatrix <- as.matrix(ldply(tempList))
-rownames(taxaMatrix) <- taxaDB$OTU
-colnames(taxaMatrix) <- c("Domain","Phylum","Class","Order","Family","Genus","Species")[1:(ncol(taxaMatrix))]
-taxaObject <- tax_table(taxaMatrix)
-return(taxaObject)
+phyloSeqTaxaFromFile  <- function(taxaFile){
+  taxaDB <- read.delim(taxaFile, header = T,stringsAsFactors = F)
+  tempList <- lapply(taxaDB$Taxonomy,function(y) unlist(strsplit(y,";")))
+  taxaMatrix <- as.matrix(ldply(tempList))
+  rownames(taxaMatrix) <- taxaDB$OTU
+  colnames(taxaMatrix) <- c("Kingdom","Phylum","Class","Order","Family","Genus","Species")[1:(ncol(taxaMatrix))]
+  taxaObject <- tax_table(taxaMatrix)
+  return(taxaObject)
 }
 
 ###################################################################
@@ -284,50 +286,7 @@ pcaForPhyloseqPlot <- function(phySeqObject,type,group){
   plot(g)
 }
 
-###################################################################
-# Functional Genomics Center Zurich
-# This code is distributed under the terms of the GNU General
-# Public License Version 3, June 2007.
-# The terms are available here: http://www.gnu.org/licenses/gpl.html
-# www.fgcz.ch
 
-
-##' @title Phyloseq OTU object
-##' @description Create Phyloseq OTU object mothur OTU files.
-##' @param  a data frame in the format of mothur shared clustered OTU  files.
-##' @return Returns a Phyloseq OTU object.
-
-phyloSeqOTUFromFile <- function(otuFile){
-  otuDF <- read.delim(otuFile, header = T,stringsAsFactors = F, check.names = F)
-  rownames(otuDF) <- otuDF$Group
-  colToDrop <- c("Group","label","numOtus")
-  otuFile1 <- as.matrix(otuDF[,!names(otuDF)%in%colToDrop])
-  otuObject <- otu_table(otuFile1, taxa_are_rows = FALSE)
-  return(otuObject)
-}
-
-###################################################################
-# Functional Genomics Center Zurich
-# This code is distributed under the terms of the GNU General
-# Public License Version 3, June 2007.
-# The terms are available here: http://www.gnu.org/licenses/gpl.html
-# www.fgcz.ch
-
-
-##' @title Phyloseq Taxa object
-##' @description Create Phyloseq taxa object from mothur taxonomy files.
-##' @param  taxaDB, a DF in the format of mothur taxonomy file.
-##' @return Returns a Phyloseq Taxa object.
-
-phyloSeqTaxaFromFile  <- function(taxaFile){
-  taxaDB <- read.delim(taxaFile, header = T,stringsAsFactors = F)
-  tempList <- lapply(taxaDB$Taxonomy,function(y) unlist(strsplit(y,";")))
-  taxaMatrix <- as.matrix(ldply(tempList))
-  rownames(taxaMatrix) <- taxaDB$OTU
-  colnames(taxaMatrix) <- c("Domain","Phylum","Class","Order","Family","Genus","Species")[1:(ncol(taxaMatrix))]
-  taxaObject <- tax_table(taxaMatrix)
-  return(taxaObject)
-}
 
 ###################################################################
 # Functional Genomics Center Zurich
@@ -389,10 +348,15 @@ heatmapForPhylotseqPlotPheatmap <- function(phyloseqOtuObj,areThereMultVar,isGro
 ##' @description HOw many OTUs do we really have?
 ##' @param  x, mothur shared abundance  file or already read-in table (dep on sec. param).
 ##' @return Returns a grid of plots
-rarefactionPlot <- function(physeqFullObject){
+rarefactionPlot <- function(physeqFullObject, type){
+  if (type == 1){
+    yLabel <- "Community saturation"
+  }else{
+    yLabel <- "Community rarefaction"
+  }
   abundTable <- t(otu_table(physeqFullObject)@.Data)
   bb <- iNEXT(abundTable, q=0, datatype="abundance")
-  fortifiedObj <- fortify(bb, type=2) 
+  fortifiedObj <- fortify(bb, type=type) 
   fortifiedObjPoint <- fortifiedObj[which(fortifiedObj$method=="observed"),]
   fortifiedObjLine <- fortifiedObj[which(fortifiedObj$method!="observed"),]
   fortifiedObjLine$method <- factor(fortifiedObjLine$method, 
@@ -400,9 +364,9 @@ rarefactionPlot <- function(physeqFullObject){
                            c("interpolation", "extrapolation"))
   saturationPlot <- ggplot(fortifiedObj, aes(x=x, y=y, colour=site)) + 
     geom_point(aes(shape=site), size=4, data=fortifiedObjPoint) + scale_shape_manual(values=rep(seq(1,23),3)) +
-    geom_line(aes(linetype=method), lwd=1, data=fortifiedObjLine) + guides(shape = guide_legend(nrow = 12))
+    geom_line(aes(linetype=method), lwd=1, data=fortifiedObjLine) +  guides(shape = guide_legend(nrow = 6), linetype= guide_legend(nrow = 2))
   saturationPlot <- saturationPlot + labs(x="Number of OTUs", 
-                                          y="Estimated completeness", 
+                                          y=yLabel, 
                                           shape="Samples", colour="Samples",
                                           linetype="Method")
   return(saturationPlot)
