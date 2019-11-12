@@ -18,6 +18,10 @@ ezMethodDADA2Step1Sample = function(input=NA, output=NA, param=NA,
   kingdomParam <- param$kingdom
   seqTech <- param$technology
   maxExpErr <- param$maxExpError
+  maxLen <- as.numeric(param$maxLen)
+  isPaired <- param$paired
+  concat <- param$concatenateReads
+  
   if (databaseParam == "silva") {
     if (kingdomParam == "Bacteria"){
     database <- SILVA_BACTERIA_DADA2
@@ -35,9 +39,6 @@ ezMethodDADA2Step1Sample = function(input=NA, output=NA, param=NA,
   } else {
     stop("Currently from RDP and greenGenes we bacterial databases.")
   }
-  maxLen <- as.numeric(param$maxLen)
-  isPaired <- param$paired
-  concat <- param$concatenateReads
   ### read fastq files and prepare inputs for DADA2
   ### if reads are paired, they are first joined. The DADA2 inbulit joining works only 
   ### if there is only one V-region (almost never the case)
