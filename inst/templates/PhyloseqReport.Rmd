@@ -118,8 +118,11 @@ plotRichnessByGroup <- groupModRichPlot(physeqObjectNoTreeUnfilt, x=group,measur
 
 ```{r prepRaref, include=FALSE}
 ### rarefaction: 3. rarefaction/saturation plots.
-plotTitle <- paste("Rarefaction plots based on the\nselection of the most abundant", numTopRanks, "ranks")
-rarefPlot <- rarefactionPlot(physeqFullObject) +labs(title=plotTitle) + 
+plotTitle_1 <- paste("Rarefaction plots based on the\nselection of the most abundant", numTopRanks, "ranks")
+plotTitle_2 <- paste("Saturation plots based on the\nselection of the most abundant", numTopRanks, "ranks")
+rarefPlot_1 <- rarefactionPlot(physeqFullObject,1) +labs(title=plotTitle_1) + 
+    theme(plot.title=element_text(size=11,hjust=0.5))
+rarefPlot_2 <- rarefactionPlot(physeqFullObject,2) +labs(title=plotTitle_2) + 
     theme(plot.title=element_text(size=11,hjust=0.5))
 ```
 
@@ -192,8 +195,10 @@ if (isGroupThere) {
 ```
 
 ### Rarefaction plots
-```{r raref, echo=FALSE,out.width="75%"}
-plot(rarefPlot)
+```{r raref, echo=FALSE}
+par(mfrow=c(1,2), las=1)
+plot(rarefPlot_1)
+plot(rarefPlot_2)
 ```
 
 ### Heatmaps
