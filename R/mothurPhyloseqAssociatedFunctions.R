@@ -365,6 +365,7 @@ rarefactionPlot <- function(physeqFullObject, type){
   saturationPlot <- ggplot(fortifiedObj, aes(x=x, y=y, colour=site)) + 
     geom_point(aes(shape=site), size=4, data=fortifiedObjPoint) + scale_shape_manual(values=rep(seq(1,23),3)) +
     geom_line(aes(linetype=method), lwd=1, data=fortifiedObjLine) +  guides(shape = guide_legend(nrow = 6), linetype= guide_legend(nrow = 2))
+  saturationPlot <- saturationPlot + theme(legend.position = "bottom")
   saturationPlot <- saturationPlot + labs(x="Number of OTUs", 
                                           y=yLabel, 
                                           shape="Samples", colour="Samples",
