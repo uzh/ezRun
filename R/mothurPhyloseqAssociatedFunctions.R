@@ -505,7 +505,7 @@ ordPlot <- function(rank,fullObject,type,areThereMultVar,numTopRanks,isGroupTher
      p1 = plot_ordination(fullObject, GP.ord, type="samples", color=gr1)
      }
     }  else {
-      p1 = plot_ordination(fullObject, GP.ord, type="samples")  
+      p1 = plot_ordination(fullObject, GP.ord, type="samples") + geom_point(size=5)
     }
   } else{
     stop("type must be either samples or taxa")
