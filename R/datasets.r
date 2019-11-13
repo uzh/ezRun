@@ -177,73 +177,140 @@ addReplicate = function(x, sep="_", repLabels=1:length(x)){
 ##' dataRoot = system.file("./inst", package = "ezRun", mustWork = TRUE)
 ##' newDsDir = "./scratch"
 ##' ezCombineReadDatasets(ds1, ds2, dataRoot, newDsDir)
-ezCombineReadDatasets = function(ds1, ds2, dataRoot="/srv/gstore/projects", newDsDir=NULL){
-  rowDs1 = rownames(ds1)
-  rowDs2 = rownames(ds2)
-  commonCols = intersect(colnames(ds1), colnames(ds2))
-  ds1[ , setdiff(colnames(ds2), commonCols)] = NA
-  ds2[ , setdiff(colnames(ds1), commonCols)] = NA
-  rowdiff1 = setdiff(rowDs1, rowDs2)
-  rowdiff2 = setdiff(rowDs2, rowDs1)
+ezCombineReadDatasets = function(..., dataRoot="/srv/gstore/projects",
+                                 newDsDir=NULL){
+  require(dplyr)
+  stopifnot(!is.null(newDsDir))
+  dir.create(newDsDir, recursive = TRUE)
   
-  # create new dataset starting with the rows in ds1 and adding those only found in ds2 and set the right rownames
-  dsNew = rbind(ds1, ds2[rowdiff2, colnames(ds1)])
-  rownames(dsNew) = c(rowDs1, rowdiff2)
-  rowDsNew = rownames(dsNew)
+  ds <- bind_rows(...)
+  dsNew <- NULL
+  isPaired <- "Read2 [File]" %in% colnames(ds)
+  uniqNames <- names(which(table(ds$Name) == 1L))
+  dupNames <- unique(ds$Name[duplicated(ds$Name)])
   
-  # adjust the read count and set the directory
-  dsNew$"Read Count" = NA
-  cwd = getwd()
-  on.exit(setwd(cwd))
-  setwdNew(newDsDir)
-  
-  # loop through rows of dsNew to apply the merging
-  for (nm in rowDsNew){
-    read2IsNull.Ds1 = is.null(ds1[nm, "Read2 [File]"])
-    read2IsNull.Ds2 = is.null(ds2[nm, "Read2 [File]"])
-    if (nm %in% rowDs1 && !(nm %in% rowDs2)){
-      # nm is in ds1, but not in ds2
-      dsNew[nm, "Read Count"] = ds1[nm, "Read Count"]
-      fileRead1 = file.path(dataRoot, ds1[nm, "Read1 [File]"])
-      ezSystem(paste("cp", fileRead1, "."))
-      dsNew[nm, "Read1 [File]"] = file.path(newDsDir, basename(fileRead1))
-      if (!read2IsNull.Ds1){
-        fileRead2 = file.path(dataRoot, ds1[nm, "Read2 [File]"])
-        ezSystem(paste("cp", fileRead2, "."))
-        dsNew[nm, "Read2 [File]"] = file.path(newDsDir, basename(fileRead2))
-      }
+  ## uniqNames: copy to the destination
+  if(length(uniqNames) > 0L){
+    message("Copying files without merging.")
+    dsUniq <- filter(ds, Name %in% uniqNames)
+    dsUniqNew <- mutate(dsUniq,
+                        `Read1 [File]`=file.path(newDsDir,
+                                                 basename(`Read1 [File]`)))
+    file.copy(from=file.path(dataRoot, dsUniq$`Read1 [File]`),
+              to=dsUniqNew$`Read1 [File]`)
+    if(isPaired){
+      dsUniqNew <- mutate(dsUniqNew, 
+                          `Read2 [File]`=file.path(newDsDir, 
+                                                   basename(`Read2 [File]`)))
+      file.copy(from=file.path(dataRoot, dsUniq$`Read2 [File]`),
+                to=dsUniqNew$`Read2 [File]`)
     }
-    if (nm %in% rowDs2 && !(nm %in% rowDs1)){
-      # nm is in ds2, but not in ds1
-      dsNew[nm, "Read Count"] = ds2[nm, "Read Count"]
-      fileRead1 = file.path(dataRoot, ds2[nm, "Read1 [File]"])
-      ezSystem(paste("cp", fileRead1, "."))
-      dsNew[nm, "Read1 [File]"] = file.path(newDsDir, basename(fileRead1))
-      if (!read2IsNull.Ds2){
-        fileRead2 = file.path(dataRoot, ds2[nm, "Read2 [File]"])
-        ezSystem(paste("cp", fileRead2, "."))
-        dsNew[nm, "Read2 [File]"] = file.path(newDsDir, basename(fileRead2))
-      }
-    }
-    if (nm %in% rowDs2 && nm %in% rowDs1){
-      # nm is in ds1 and ds2, thus they need to be merged. there should be no other case.
-      dsNew[nm, "Read Count"] = ds1[nm, "Read Count"] + ds2[nm, "Read Count"]
-      fileRead1.1 = file.path(dataRoot, ds1[nm, "Read1 [File]"])
-      fileRead1.2 = file.path(dataRoot, ds2[nm, "Read1 [File]"])
-      fileMerged = paste0("combined-", nm, "_R1.fastq.gz")
-      cmd = paste("gunzip -c", fileRead1.1, fileRead1.2, "|", "pigz -p4 --best >", fileMerged)
+    dsNew <- dsUniqNew
+  }
+  
+  ## dupNames: merge to the destination
+  if(length(dupNames) > 0L){
+    message("Merging files.")
+    dsDupList <- list()
+    dupName <- dupNames[1]
+    for(dupName in dupNames){
+      dsDup <- filter(ds, Name == dupName)
+      dsDupNew <- head(dsDup, 1) %>%
+        mutate(`Read1 [File]`=file.path(newDsDir, paste0("combined-", dupName, "_R1.fastq.gz")))
+      dsDupNew$`Read Count` <- sum(dsDup$`Read Count`)
+      cmd <- paste("gunzip -c", 
+                   paste(file.path(dataRoot, dsDup$`Read1 [File]`), 
+                         collapse=" "),
+                   "| pigz -p8 --best >",
+                   dsDupNew$`Read1 [File]`)
       ezSystem(cmd)
-      dsNew[nm, "Read1 [File]"] = file.path(newDsDir, fileMerged)
-      if (!read2IsNull.Ds1 && !read2IsNull.Ds2){
-        # Read2 exists in both datasets and needs to be merged as well
-        fileRead2.1 = file.path(dataRoot, ds1[nm, "Read2 [File]"])
-        fileRead2.2 = file.path(dataRoot, ds2[nm, "Read2 [File]"])
-        fileMerged = paste0("combined-", nm, "_R2.fastq.gz")
-        cmd = paste("gunzip -c", fileRead2.1, fileRead2.2, "|", "pigz -p4 --best >", fileMerged)
+      if(isPaired){
+        dsDupNew <- mutate(dsDupNew,
+                           `Read2 [File]`=file.path(newDsDir, paste0("combined-", dupName, "_R2.fastq.gz")))
+        cmd <- paste("gunzip -c", 
+                     paste(file.path(dataRoot, dsDup$`Read2 [File]`), 
+                           collapse=" "),
+                     "| pigz -p8 --best >",
+                     dsDupNew$`Read2 [File]`)
         ezSystem(cmd)
-        dsNew[nm, "Read2 [File]"] = file.path(newDsDir, fileMerged)
       }
+      dsDupList[[dupName]] <- dsDupNew
+    }
+    dsDupNew <- bind_rows(dsDupList)
+    if(!is.null(dsNew)){
+      dsNew <- bind_rows(dsNew, dsDupNew)
+    }else{
+      dsNew <- dsDupNew
     }
   }
   return(dsNew)
+  
+  # rowDs1 = rownames(ds1)
+  # rowDs2 = rownames(ds2)
+  # commonCols = intersect(colnames(ds1), colnames(ds2))
+  # ds1[ , setdiff(colnames(ds2), commonCols)] = NA
+  # ds2[ , setdiff(colnames(ds1), commonCols)] = NA
+  # rowdiff1 = setdiff(rowDs1, rowDs2)
+  # rowdiff2 = setdiff(rowDs2, rowDs1)
+  # 
+  # # create new dataset starting with the rows in ds1 and adding those only found in ds2 and set the right rownames
+  # dsNew = rbind(ds1, ds2[rowdiff2, colnames(ds1)])
+  # rownames(dsNew) = c(rowDs1, rowdiff2)
+  # rowDsNew = rownames(dsNew)
+  # 
+  # # adjust the read count and set the directory
+  # dsNew$"Read Count" = NA
+  # cwd = getwd()
+  # on.exit(setwd(cwd))
+  # setwdNew(newDsDir)
+  # 
+  # # loop through rows of dsNew to apply the merging
+  # for (nm in rowDsNew){
+  #   read2IsNull.Ds1 = is.null(ds1[nm, "Read2 [File]"])
+  #   read2IsNull.Ds2 = is.null(ds2[nm, "Read2 [File]"])
+  #   if (nm %in% rowDs1 && !(nm %in% rowDs2)){
+  #     # nm is in ds1, but not in ds2
+  #     dsNew[nm, "Read Count"] = ds1[nm, "Read Count"]
+  #     fileRead1 = file.path(dataRoot, ds1[nm, "Read1 [File]"])
+  #     ezSystem(paste("cp", fileRead1, "."))
+  #     dsNew[nm, "Read1 [File]"] = file.path(newDsDir, basename(fileRead1))
+  #     if (!read2IsNull.Ds1){
+  #       fileRead2 = file.path(dataRoot, ds1[nm, "Read2 [File]"])
+  #       ezSystem(paste("cp", fileRead2, "."))
+  #       dsNew[nm, "Read2 [File]"] = file.path(newDsDir, basename(fileRead2))
+  #     }
+  #   }
+  #   if (nm %in% rowDs2 && !(nm %in% rowDs1)){
+  #     # nm is in ds2, but not in ds1
+  #     dsNew[nm, "Read Count"] = ds2[nm, "Read Count"]
+  #     fileRead1 = file.path(dataRoot, ds2[nm, "Read1 [File]"])
+  #     ezSystem(paste("cp", fileRead1, "."))
+  #     dsNew[nm, "Read1 [File]"] = file.path(newDsDir, basename(fileRead1))
+  #     if (!read2IsNull.Ds2){
+  #       fileRead2 = file.path(dataRoot, ds2[nm, "Read2 [File]"])
+  #       ezSystem(paste("cp", fileRead2, "."))
+  #       dsNew[nm, "Read2 [File]"] = file.path(newDsDir, basename(fileRead2))
+  #     }
+  #   }
+  #   if (nm %in% rowDs2 && nm %in% rowDs1){
+  #     # nm is in ds1 and ds2, thus they need to be merged. there should be no other case.
+  #     dsNew[nm, "Read Count"] = ds1[nm, "Read Count"] + ds2[nm, "Read Count"]
+  #     fileRead1.1 = file.path(dataRoot, ds1[nm, "Read1 [File]"])
+  #     fileRead1.2 = file.path(dataRoot, ds2[nm, "Read1 [File]"])
+  #     fileMerged = paste0("combined-", nm, "_R1.fastq.gz")
+  #     cmd = paste("gunzip -c", fileRead1.1, fileRead1.2, "|", "pigz -p4 --best >", fileMerged)
+  #     ezSystem(cmd)
+  #     dsNew[nm, "Read1 [File]"] = file.path(newDsDir, fileMerged)
+  #     if (!read2IsNull.Ds1 && !read2IsNull.Ds2){
+  #       # Read2 exists in both datasets and needs to be merged as well
+  #       fileRead2.1 = file.path(dataRoot, ds1[nm, "Read2 [File]"])
+  #       fileRead2.2 = file.path(dataRoot, ds2[nm, "Read2 [File]"])
+  #       fileMerged = paste0("combined-", nm, "_R2.fastq.gz")
+  #       cmd = paste("gunzip -c", fileRead2.1, fileRead2.2, "|", "pigz -p4 --best >", fileMerged)
+  #       ezSystem(cmd)
+  #       dsNew[nm, "Read2 [File]"] = file.path(newDsDir, fileMerged)
+  #     }
+  #   }
+  # }
+  # return(dsNew)
 }
