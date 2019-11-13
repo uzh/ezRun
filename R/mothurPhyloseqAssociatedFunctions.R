@@ -140,6 +140,7 @@ phyloSeqToDeseq2_tableAndPlots <- function(phyloseqObj,rank,group,sampleGroup,re
     geom_hline(aes(yintercept=-1),color="blue") 
   plotLogFoldVsTaxon <- plotLogFoldVsTaxon + labs(title=title) + 
     theme(plot.title=element_text(size=10,hjust=0.5)) + labs(color=rank)
+  plotLogFoldVsTaxon <- plotLogFoldVsTaxon +guides(color = guide_legend(nrow = 10))
   ### volcano plot
   title <- "Volcano plot (p-value threshold  = 0.05)"
   volcanoPlot <- ggplot(addTaxa, aes(y=-log10(pvalue), x=log2FoldChange)) +
@@ -502,10 +503,10 @@ ordPlot <- function(rank,fullObject,type,areThereMultVar,numTopRanks,isGroupTher
      gr2 <- colnames(sample_data(fullObject))[2]
      p1 = plot_ordination(fullObject, GP.ord, type="samples", color=gr1,shape=gr2)
      }else{
-     p1 = plot_ordination(fullObject, GP.ord, type="samples", color=gr1)
+     p1 = plot_ordination(fullObject, GP.ord, type="samples", color=gr1) + geom_point(size=6)
      }
     }  else {
-      p1 = plot_ordination(fullObject, GP.ord, type="samples") + geom_point(size=5)
+      p1 = plot_ordination(fullObject, GP.ord, type="samples") + geom_point(size=6)
     }
   } else{
     stop("type must be either samples or taxa")
