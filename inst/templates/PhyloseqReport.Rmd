@@ -38,7 +38,7 @@ for (rankNames  in taxRanks){
   } else {
     isAbundPlotSample[[rankNames]] <- TRUE
     percentFrac <- sampleFraction*100
-    plotTitle <- paste("Community composition in each sample at the rank", rankNames, "for the filtered dataset.\n Only taxa observed at least",rawCount, " times in at least", percentFrac,"% of the samples are kept.")
+    plotTitle <- paste("Community composition in each sample\nat the rank", rankNames, "for the filtered dataset. Only taxa observed at least",rawCount, "\ntimes in at least", percentFrac,"% of the samples are kept.")
 abundPlotSampleList[[rankNames]] <- tempAbundPlotFilt$abPlot +labs(title=plotTitle) + 
     theme(plot.title=element_text(size=11,hjust=0.5))
   }
@@ -51,7 +51,7 @@ tempAbundPlotUnfilt <-  abundPlot(rankNames,physeqObjectNoTreeUnfilt,xAesLogic="
     next
   } else {
     isAbundPlotSampleUnfilt[[rankNames]] <- TRUE
-plotTitle <- paste("Community composition at the rank", rankNames, "for the unfiltered dataset.")
+plotTitle <- paste("Community composition at the rank", rankNames, "\nfor the unfiltered dataset.")
 abundPlotSampleListUnfilt[[rankNames]] <- tempAbundPlotUnfilt$abPlot+labs(title=plotTitle) + 
     theme(plot.title=element_text(size=11,hjust=0.5))
   }
@@ -67,7 +67,7 @@ for (rankNames  in taxRanks){
     next
   } else {
     isAbundPlotGroup[[rankNames]] <- TRUE
-  plotTitle <- paste("Community composition in each group at the rank", rankNames, "for the filtered dataset.\n  Only taxa observed at least",rawCount, " times in at least", percentFrac,"% of the samples are kept.")
+  plotTitle <- paste("Community composition in each group\nat the rank", rankNames, "for the filtered dataset. Only taxa observed at least",rawCount, "\ntimes in at least", percentFrac,"% of the samples are kept.")
 abundPlotGroupList[[rankNames]] <- tempAbundPlotFilt$abPlot +labs(title=plotTitle) + 
     theme(plot.title=element_text(size=11,hjust=0.5))
   }
