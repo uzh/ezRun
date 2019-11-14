@@ -505,6 +505,12 @@ write_tsv(coordinates, path=coordinatesFn)
   * Differential genes of pairwise comparisons of all clusters (when enabled): [`r all2allDEFn`](`r all2allDEFn`)
   * Coordinates of cells in low dimensional space: [`r coordinatesFn`](`r coordinatesFn`)
 
+### Parameters
+```{r, echo=FALSE}
+param[c("minCellsPerGene", "minGenesPerCell", "maxGenesPerCell", "maxMitoPercent", 
+        "pcs", "vars.to.regress", "resolution", "markersToShow")]
+```
+
 ### SessionInfo
 ```{r, echo=FALSE}
 sessionInfo()
