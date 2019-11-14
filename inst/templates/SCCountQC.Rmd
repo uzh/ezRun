@@ -67,7 +67,7 @@ ctsFilt <- assays(sceFilt)$counts
 
 ## scater sce
 cell_info <- data.frame(row.names=colnames(ctsFilt),
-                        lib_size=Matrix::colSums(ctsFilt)/1e6,
+                        lib_size=Matrix::colSums(ctsFilt)/1e3,
                         expr_genes = Matrix::colSums(ctsFilt >= param$minReadsPerGene),
                         perc_mito=Matrix::colSums(ctsFilt[isMito, , drop=FALSE])*100 / Matrix::colSums(ctsFilt))
 sceFixName <- calculateQCMetrics(sceFixName, feature_controls=list(Mt=isMito))
@@ -88,7 +88,7 @@ if(toupper(param$scProtocol) == "SMART-SEQ2"){
     + cells with less than `r param$minReadsPerCell` reads aligned
     + cells with less than `r param$minGenesPerCell` genes that have at least `r param$minReadsPerGene` reads
 * Median Genes per Cell = `r median(cell_info$expr_genes)`
-* Median Reads per Cell = `r round(median(cell_info$lib_size*1e6),0)`
+* Median Reads per Cell = `r round(median(cell_info$lib_size*1e3),0)`
 * Number of input reads = `r ifelse(is.null(metadata(sce)$mlog), NA, metadata(sce)$mlog["Number of input reads",2])`
 * % of reads mapped to multiple loci = `r ifelse(is.null(metadata(sce)$mlog), NA, metadata(sce)$mlog["% of reads mapped to multiple loci",2])`
 
@@ -126,7 +126,7 @@ Interactive plot showing the read counts vs the number of expressed genes for al
 
 ```{r genes detected in cells, fig.width=8, fig.height=5, echo=FALSE, message=FALSE, warning=FALSE, eval=!debug}
 xax <- list(
-  title = "Read counts (million)",
+  title = "Read counts (thousands)",
   zeroline = FALSE
 )
 yax <- list(
@@ -148,7 +148,7 @@ yax <- list(
   title = "Number of cells"
 )
 p1 <- plot_ly(data=cell_info, x=~lib_size) %>%
-  layout(xaxis = list(title="Read counts (million)"), yaxis = yax)
+  layout(xaxis = list(title="Read counts (thousands)"), yaxis = yax)
 p2 <- plot_ly(data=cell_info, x=~expr_genes) %>%
   layout(xaxis = list(title="Number of expressed genes"), yaxis = yax)
 p3 <- plot_ly(data=cell_info, x=~perc_mito) %>%
