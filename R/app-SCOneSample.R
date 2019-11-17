@@ -5,15 +5,15 @@
 # The terms are available here: http://www.gnu.org/licenses/gpl.html
 # www.fgcz.ch
 
-EzAppSCGoldStandard <-
-  setRefClass("EzAppSCGoldStandard",
+EzAppSCOneSample <-
+  setRefClass("EzAppSCOneSample",
               contains = "EzApp",
               methods = list(
                 initialize = function()
                 {
                   "Initializes the application using its specific defaults."
-                  runMethod <<- ezMethodSCGoldStandard
-                  name <<- "EzAppSCGoldStandard"
+                  runMethod <<- ezMethodSCOneSample
+                  name <<- "EzAppSCOneSample"
                   appDefaults <<- rbind(scProtocol=ezFrame(Type="character", DefaultValue="10X", Description="Which single cell protocol?"),
                                         minReadsPerCell=ezFrame(Type="numeric", 
                                                                 DefaultValue=5e4, 
@@ -27,9 +27,6 @@ EzAppSCGoldStandard <-
                                         resolution=ezFrame(Type="numeric", 
                                                            DefaultValue=0.5,
                                                            Description="Value of the resolution parameter, use a value above (below) 1.0 if you want to obtain a larger (smaller) number of communities."),
-                                        runTrajectory=ezFrame(Type="logical", 
-                                                              DefaultValue=FALSE,
-                                                              Description="Run PseudoTime for single cell data?"),
                                         all2allMarkers=ezFrame(Type="logical", 
                                                                DefaultValue=FALSE, 
                                                                Description="Run all against all cluster comparisons?"),
@@ -38,13 +35,14 @@ EzAppSCGoldStandard <-
                                                                 Description="A gene will be kept if it is expressed in at least this percentage of cells"),
                                         nmad=ezFrame(Type="numeric", 
                                                      DefaultValue=3, 
-                                                     Description="Median absolute deviation (MAD) from the median value of each metric across all cells")
+                                                     Description="Median absolute deviation (MAD) from the median value of each metric across all cells"),
+                                        species=ezFrame(Type="character", DefaultValue="Human", Description="Organism")
                                         )
                 }
               )
   )
 
-ezMethodSCGoldStandard <- function(input=NA, output=NA, param=NA, 
+ezMethodSCOneSample <- function(input=NA, output=NA, param=NA, 
                              htmlFile="00index.html"){
   cwd <- getwd()
   setwdNew(basename(output$getColumn("Report")))
@@ -61,7 +59,7 @@ ezMethodSCGoldStandard <- function(input=NA, output=NA, param=NA,
                                     paste(input$getNames(), collapse=", "),
                                     sep=": ")
   
-  sce_list <- filterCellsAndGenes(sce)
+  sce_list <- filterCellsAndGenes(sce, param)
   scData <- buildSeuratObject(sce_list$sce)
   scData <- seuratClusteringV3(scData, param)
   #positive cluster markers
@@ -80,19 +78,21 @@ ezMethodSCGoldStandard <- function(input=NA, output=NA, param=NA,
   metadata(sce_list$sce)$scData = scData
   sce_list$sce <- findDoublets(sce_list$sce)
   
-  saveRDS(sce, "sce.rds")
+  sce_iSEE = as.SingleCellExperiment(scData)
+  saveRDS(sce_iSEE, "sce_iSEE.rds")
+  saveRDS(sce_list$sce, "sce.rds")
   ## Copy the style files and templates
   styleFiles <- file.path(system.file("templates", package="ezRun"),
-                          c("fgcz.css", "SCGoldStandard.Rmd",
+                          c("fgcz.css", "SCOneSample.Rmd",
                             "fgcz_header.html", "banner.png"))
   file.copy(from=styleFiles, to=".", overwrite=TRUE)
-  rmarkdown::render(input="SCGoldStandard.Rmd", envir = new.env(),
+  rmarkdown::render(input="SCOneSample.Rmd", envir = new.env(),
                     output_dir=".", output_file=htmlFile, quiet=TRUE)
 
   return("Success")
 }
 
-filterCellsAndGenes <- function(sce) {
+filterCellsAndGenes <- function(sce, param) {
   #browser()
   require(scater)
   require(Matrix)
@@ -140,8 +140,9 @@ cellsLabelsWithAUC <- function(scData, param) {
   if (species == "other")
     return(NULL)
   tissue <- param$tissue
-  all_cell_markers <- read.table("~/all_cell_markers.txt", sep = "\t", header = TRUE)
-  filtered_cell_markers <- all_cell_markers[all_cell_markers$speciesType == species & all_cell_markers$tissueType == tissue, ]
+  tissue = unlist(strsplit(tissue, ","))
+  all_cell_markers <- read.table("/srv/GT/databases/all_cell_markers.txt", sep = "\t", header = TRUE)
+  filtered_cell_markers <- all_cell_markers[all_cell_markers$speciesType == species & all_cell_markers$tissueType %in% tissue, ]
   expressionMatrix <- GetAssayData(scData, slot = "counts")
   geneSets <- createGeneSets(filtered_cell_markers)
   cells_rankings <- AUCell_buildRankings(expressionMatrix, plotStats=FALSE)
