@@ -216,21 +216,13 @@ ezInteractiveTableRmd(scData@misc$posMarkers, digits=4, title=caption)
 ### Cells annotation
 
 <br/>
-The most challenging task in scRNA-seq data analysis is the interpretation of the results. Once we have obtained a set of clusters we want to determine what biological state is represented by each of them. To do this, we suggest the following 3 different approaches explained below. 
+The most challenging task in scRNA-seq data analysis is the interpretation of the results. Once we have obtained a set of clusters we want to determine what biological state is represented by each of them. To do this, we have implemmented 3 different approaches which are explained below. However, these methods should be complemented with the biological knowledge from the researcher.
 
-#### Using reference data
-
-This approach consists in comparing the single-cell expression profiles with previously annotated reference datasets. Labels can then be assigned to each cell in our uncharacterized test dataset based on the most similar reference sample(s). To do this, we use the SingleR method (Aran et al. 2019) for cell type annotation. This method assigns labels to cells based on the reference samples with the highest Spearman rank correlations and thus can be considered a rank-based variant of k-nearest-neighbor classification. To reduce noise, SingleR identifies marker genes between pairs of labels and computes the correlation using only those markers. It also performs a fine-tuning step for each cell where the calculation of the correlations is repeated with just the marker genes for the top-scoring labels. This aims to resolve any ambiguity between those labels by removing noise from irrelevant markers for other labels. 
-SingleR contains several built-in reference datasets, mostly assembled from bulk RNA-seq or microarray data of sorted cell types. These built-in references are often good enough for most applications, provided that they contain the cell types that are expected in the test population. 
-
-```{r singler, eval= (param$species != "other"), results='asis', echo=FALSE, message=FALSE}
-cat("\n")
-cat(paste0("SingleR can be used through this shiny app: [SingleR browser](http://fgcz-shiny.uzh.ch/fgcz_SingleRBrowser_app/?data=" , output$getColumn("Report"), "/singler.browser.rds)"))
-```
+<br/>
 
 #### Using cluster markers
 
-Another strategy for annotation is to perform a gene set enrichment analysis on the marker genes defining each cluster. This identifies the pathways and processes that are (relatively) active in each cluster based on the upregulation of the associated genes compared to other clusters. For this, we use the tool Enrichr. 
+This approach consists in performing a gene set enrichment analysis on the marker genes defining each cluster. This identifies the pathways and processes that are (relatively) active in each cluster based on the upregulation of the associated genes compared to other clusters. For this, we use the tool Enrichr. 
 
 ```{r enrichr markers, echo=FALSE, results='asis'}
 posMarkers = scData@misc$posMarkers 
@@ -278,6 +270,20 @@ posMarkers = scData@misc$posMarkers
         caption=paste0("GeneSet enrichment: genes with pvalue ", pvalue_all2allMarkers)) %>%
     kable_styling("striped", full_width = F, position = "left")
 ```
+
+<br/>
+
+#### Using reference data
+
+Another strategy for annotation is to compare the single-cell expression profiles with previously annotated reference datasets. Labels can then be assigned to each cell in our uncharacterized test dataset based on the most similar reference sample(s). To do this, we use the SingleR method (Aran et al. 2019) for cell type annotation. This method assigns labels to cells based on the reference samples with the highest Spearman rank correlations and thus can be considered a rank-based variant of k-nearest-neighbor classification. To reduce noise, SingleR identifies marker genes between pairs of labels and computes the correlation using only those markers. It also performs a fine-tuning step for each cell where the calculation of the correlations is repeated with just the marker genes for the top-scoring labels. This aims to resolve any ambiguity between those labels by removing noise from irrelevant markers for other labels. 
+SingleR contains several built-in reference datasets, mostly assembled from bulk RNA-seq or microarray data of sorted cell types. These built-in references are often good enough for most applications, provided that they contain the cell types that are expected in the test population. 
+
+```{r singler, eval= (param$species != "other"), results='asis', echo=FALSE, message=FALSE}
+cat("\n")
+cat(paste0("SingleR can be used through this shiny app: [SingleR browser](http://fgcz-shiny.uzh.ch/fgcz_SingleRBrowser_app/?data=" , output$getColumn("Report"), "/singler.browser.rds)"))
+```
+
+<br/>
 
 #### Using gene sets
 
@@ -328,7 +334,7 @@ AUCell_plotTSNE(tSNE=cellsTsne, exprMat=expressionMatrix, cellsAUC=cells_AUC)
 The iSEE (Interactive SummarizedExperiment Explorer) explorer provides a general visual interface for exploring single cell data. iSEE allows users to simultaneously visualize multiple aspects of a given data set, including experimental data, metadata, and analysis results. Dynamic linking and point selection facilitate the flexible exploration of interactions between different data aspects.
  [Rue-Albrecht K, Marini F, Soneson C, Lun ATL (2018). “iSEE: Interactive SummarizedExperiment Explorer.” F1000Research, 7, 741. doi: 10.12688/f1000research.14966.1.]
 
-The iSEE shiny app can be accessed through this link [iSEE explorer](`r paste0("http://fgcz-shiny.uzh.ch/fgcz_iSEE/?data=",output$getColumn("Report"),"/sce.rds")`)
+The iSEE shiny app can be accessed through this link [iSEE explorer](`r paste0("http://fgcz-shiny.uzh.ch/fgcz_iSEE/?data=",output$getColumn("Report"),"/sce_iSEE.rds")`)
 
 
 ### Data availability
