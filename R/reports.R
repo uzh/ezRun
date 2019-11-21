@@ -626,16 +626,8 @@ makeWebgestaltFiles <- function(param, resultFile){
     GSEA = cbind(rownames(result[result$isPresent, ]), result[result$isPresent, 'log2 Ratio'])
     ezWrite.table(GSEA, paste0('GSEA_Input_log2FC_Webgestalt_',comparison, '.rnk'), row.names = FALSE, col.names = FALSE)
     
-    GSEA_pVal = cbind(rownames(result[result$isPresent, ]), result[result$isPresent, 'pValue'])
+    GSEA_pVal = cbind(rownames(result[result$isPresent, ]), sign(result[result$isPresent, 'log2 Ratio']) * -log10(result[result$isPresent, 'pValue']))
     ezWrite.table(GSEA_pVal, paste0('GSEA_Input_pVal_Webgestalt_',comparison, '.rnk'), row.names = FALSE, col.names = FALSE)
-    
-    resultUp = result[result[['log2 Ratio']] >= 0, ]
-    GSEA_up = cbind(rownames(resultUp[resultUp$isPresent, ]), resultUp[resultUp$isPresent, 'pValue'])
-    ezWrite.table(GSEA_up, paste0('GSEA_Input_pVal_Up_Webgestalt_',comparison, '.rnk'), row.names = FALSE, col.names = FALSE)
-    
-    resultDown = result[result[['log2 Ratio']] < 0, ]
-    GSEA_down = cbind(rownames(resultDown[resultDown$isPresent, ]), resultDown[resultDown$isPresent, 'pValue'])
-    ezWrite.table(GSEA_down, paste0('GSEA_Input_pVal_Down_Webgestalt_',comparison, '.rnk'), row.names = FALSE, col.names = FALSE)
     
     ORA_Up = rownames(result[result$isPresent & result$pValue < param[['pValueHighlightThresh']] & result[['log2 Ratio']] >= param[['log2RatioHighlightThresh']], ])
     if(length(ORA_Up) > 0){
