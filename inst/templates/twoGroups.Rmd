@@ -799,7 +799,7 @@ if(exists("enrichResultGSEA")){
 ```{r webgestalt, eval=TRUE, echo=FALSE, error=FALSE, message=FALSE, warning=FALSE, cache=FALSE, comment=NA}
 makeWebgestaltFiles(param, resultFile$resultFile)
 if(param$runGSEA){
-  gseaFiles = list.files('Webgestalt', pattern = '^GSEA_Input_log2FC', full.names = TRUE)
+  gseaFiles = list.files('Webgestalt', pattern = '^GSEA_Input', full.names = TRUE)
   for (i in 1:length(gseaFiles)){
     res = runWebgestaltGSEA(param, gseaFiles[i])
   }
