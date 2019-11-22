@@ -33,6 +33,7 @@ ezMethodSGSeq = function(input=NA, output=NA, param=NA){
             add=TRUE)
   }
   
+## create R object  
   sampleName = input$getNames()
   inputBamDataFrame <- data.frame(sample_name=sampleName,file_bam=bamFile, stringsAsFactors = FALSE)
   sampleInfoComplete <- getBamInfo(inputBamDataFrame)
@@ -46,7 +47,25 @@ ezMethodSGSeq = function(input=NA, output=NA, param=NA){
   sgfc_ucscV <- analyzeVariants(sgfc_ucscF)
   outRdataFile <- basename(output$getColumn("SgSeqRDataFile"))
   save(sgfc_ucscF,sgfc_ucscV, file = outRdataFile)
-  }
+  
+## create freq and count file 
+  ### get var freqs
+  varFreq <- data.frame(freq = variantFreq(sgfc_ucscV), stringsAsFactors = FALSE)
+  outVarFreq <- basename(output$getColumn("SgSeqVarFreqFile"))
+  write.table(varFreq, outVarFreq, col.names = TRUE, row.names = FALSE, quote = FALSE)
+  
+  ### get counts
+  varCounts <- getSGVariantCounts(rowRanges(sgfc_ucscV), sample_info = sampleInfoComplete)
+  countValues <- counts(varCounts)
+  vid <- variantID(varCounts)
+  eid <- eventID(varCounts)
+  inputForDexSeq <- data.frame(paste(eid,vid,sep = ":"), countValues, stringsAsFactors = FALSE)
+  outVarFreq <- basename(output$getColumn("SgSeqCountFile"))
+  write.table(inputForDexSeq, outVarFreq, row.names = FALSE,
+              col.names = FALSE, quote = FALSE, sep = "\t")
+}
+
+
 
 ##' @template app-template
 ##' @templateVar method ezMethodSGSeq(input=NA, output=NA, param=NA)
