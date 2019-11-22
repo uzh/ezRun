@@ -491,7 +491,6 @@ if (file.exists("goClusterTable.html")){
 ```{r enrichr, echo=FALSE, message=FALSE, eval=!debug}
 if (doGo(param, seqAnno)){
     if (doEnrichr(param)){
-      require(ReporteRs)
       isSig = rowData(se)$pValue < param$pValThreshGO & rowData(se)$usedInTest
       isUp = rowData(se)$log2Ratio > param$log2RatioThreshGO & isSig
       isDown = rowData(se)$log2Ratio < -param$log2RatioThreshGO & isSig
@@ -506,7 +505,7 @@ if (doGo(param, seqAnno)){
         genesToUse = regulatedGenes[[row]]
         enrichrLinks[row, "Number of Genes"] = length(genesToUse)
         jsCall = paste0('enrich({list: "', paste(genesToUse, collapse="\\n"), '", popup: true});')
-        enrichrLinks[row, "External"] = as.html(pot(paste0("<a href='javascript:void(0)' onClick='", jsCall, "'>Analyse at Enrichr website</a>")))
+        enrichrLinks[row, "External"] = paste0("<a href='javascript:void(0)' onClick='", jsCall, "'>Analyse at Enrichr website</a>")
         resMerged <- NA
         if (!is.null(genesToUse) && length(genesToUse) > 3 && param$doPrecomputeEnrichr) {
           resList = runEnrichr(genesToUse, maxResult = maxResultsPerLibrary)
@@ -523,9 +522,9 @@ if (doGo(param, seqAnno)){
             enrichrTablePath <- paste0("enrichrTable_", row, ".html")
             ezInteractiveTable(resMerged, tableLink=enrichrTablePath,
                                title=paste("Enrichr report for ", row))
-            enrichrLinks[row, "Precomputed"] = as.html(ezLink(link=enrichrTablePath,
-                                                              label="Report",
-                                                              target="_blank"))
+            enrichrLinks[row, "Precomputed"] = ezLink(link=enrichrTablePath,
+                                                      label="Report",
+                                                      target="_blank")
           } else {
             enrichrLinks[row, "Precomputed"] = "No significant results"
           }

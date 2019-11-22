@@ -66,7 +66,6 @@ ezGrid = function(x, header.columns = FALSE,  valign = "top", ...){
 ##' ezImageFileLink(plotCmd)
 ezImageFileLink = function(plotCmd, file=NULL, name="imagePlot", plotType="plot", mouseOverText="my mouse over",
                            addPdfLink=TRUE, width=480, height=480, ppi=72, envir=parent.frame()){
-  require(ReporteRs, quietly = TRUE)
   if (is.null(file)){
     file = paste0(name, "-", plotType, ".png")
   }
@@ -206,8 +205,6 @@ newWindowLink = function(linkName, txtName=NULL){
   }
   jsCall = paste0('popup({linkName: "', linkName, '"});')
   return(pot(paste0("<a href='javascript:void(0)' onClick='", jsCall, "'>", title, "</a>")))
-  # jsCall = paste0("javascript:window.open('", linkName, "','", title, "','width=1200,height=900')")
-  # return(pot(paste0('<a href="', jsCall, '">', title, '</a>')))
 }
 
 ezLink = function(link, label=link, target="", type=""){
@@ -219,22 +216,8 @@ ezLink = function(link, label=link, target="", type=""){
     linkTag = paste0(linkTag, " type='", type, "'")
   }  
   linkTag = paste0(linkTag, ">")
-  pot(paste0(linkTag, label, "</a>"))
+  paste0(linkTag, label, "</a>")
 }
-
-# ## enhancement of links with targets and type;
-# ## but see ezLink
-# ezPot = function(value="", format=textProperties(), hyperlink, footnote, linkTarget="", linkType=""){
-#   if (linkTarget != "" || linkType != ""){
-#     value=paste0("<a href='", hyperlink, "' target='", linkTarget, "' type='", linkType, "'>", value, "</a>")
-#     pot(value, format=format, footnote=footnote)
-#     ## in this case the order of the tags is <span><a>label</a></span>
-#   } else {
-#     pot(value, format=format, hyperlink = hyperlink, footnote=footnote)
-#     ## in this case the order of the tags is <a><span>label</span></a>
-#   }
-# }
-
 
 ##' @title Adds a summary of the count result
 ##' @description Adds a summary of the count result to a bsdoc object.
