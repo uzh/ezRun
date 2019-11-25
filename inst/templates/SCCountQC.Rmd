@@ -31,11 +31,7 @@ library(tibble)
 ## ----------------------------------------------
 ## debug
 # title:  "`r metadata(sce)$param$name`"
-# sce <- readRDS("/srv/gstore/projects/p2446/SCCountQC_32261_2018-12-12--21-58-56/GBM_SC_1_plate1_SCCountQC/sce.rds")
- # sce <- readRDS("/scratch/gtan/debug/quickDebug/sce.rds")
-# sce <- readRDS("/srv/gstore/projects/p2838/SCCountQC_32064_2019-01-09--11-48-55/NCC_Trpv5_Tomato_sc_A01_SCCountQC/sce.rds")
-## convention:
-## by default the fixed genenames are use
+# sce <- readRDS("/srv/gstore/projects/p2488/SCCountQC_41384_2019-11-17--14-42-12/iCount_mESC_plate_2_20191028BJ_SCCountQC/sce.rds")
 
 debug <- FALSE
 
@@ -55,21 +51,17 @@ param$minReadsPerGene <- switch(toupper(param$scProtocol),
 isMito <- toupper(as.character(seqnames(rowRanges(sce)))) %in% 
   toupper(c("chrM", "MT", "M"))
 
-## sceFixName for section "Reads on top 50 genes" and "Expression metrics"
+## sceFixName for section "Reads on top 50 genes"
 sceFixName = sce
 rownames(sceFixName) <- uniquifyFeatureNames(ID=rowData(sceFixName)$gene_id,
                                              names=rowData(sceFixName)$gene_name)
 cts <- assays(sceFixName)$counts
-useCell = Matrix::colSums(cts) >= param$minReadsPerCell & 
-  Matrix::colSums(cts >= param$minReadsPerGene) > param$minGenesPerCell
-sceFilt = sceFixName[ , useCell]
-ctsFilt <- assays(sceFilt)$counts
 
 ## scater sce
-cell_info <- data.frame(row.names=colnames(ctsFilt),
-                        lib_size=Matrix::colSums(ctsFilt)/1e3,
-                        expr_genes = Matrix::colSums(ctsFilt >= param$minReadsPerGene),
-                        perc_mito=Matrix::colSums(ctsFilt[isMito, , drop=FALSE])*100 / Matrix::colSums(ctsFilt))
+cell_info <- data.frame(row.names=colnames(cts),
+                        lib_size=Matrix::colSums(cts)/1e3,
+                        expr_genes = Matrix::colSums(cts >= param$minReadsPerGene),
+                        perc_mito=Matrix::colSums(cts[isMito, , drop=FALSE])*100 / Matrix::colSums(cts))
 sceFixName <- calculateQCMetrics(sceFixName, feature_controls=list(Mt=isMito))
 
 ## datasetAllCells for section "Heatmap of reads per cell on the plate"
@@ -84,9 +76,6 @@ if(toupper(param$scProtocol) == "SMART-SEQ2"){
 ### Overview
 
 * Total Number of Cells: `r ncol(sce)`
-* Number of cells removed:  `r ncol(sce)-ncol(sceFilt)`
-    + cells with less than `r param$minReadsPerCell` reads aligned
-    + cells with less than `r param$minGenesPerCell` genes that have at least `r param$minReadsPerGene` reads
 * Median Genes per Cell = `r median(cell_info$expr_genes)`
 * Median Reads per Cell = `r round(median(cell_info$lib_size*1e3),0)`
 * Number of input reads = `r ifelse(is.null(metadata(sce)$mlog), NA, metadata(sce)$mlog["Number of input reads",2])`
@@ -166,24 +155,7 @@ We expect to see the "usual suspects", i.e., mitochondrial genes, actin, ribosom
 The feature control is mitochondrial gene.
 
 ```{r top 50 genes, fig.width=6, fig.height=6, echo=FALSE, message=FALSE, warning=FALSE, eval=!debug}
-plotHighestExprs(sceFixName, n=50)
-```
-
-### Frequency of expression as a function of the mean
-
-The frequency of expression (i.e., number of cells with non-zero expression) against the mean. These two metrics should be positively correlated with each other for most genes.
-
-Outliers from the trend may warrant further investigation. For example, alignment errors for pseudo-genes of highly-expressed genes will result in features with low means that are expressed in all cells. Conversely, PCR amplification biases (or the presence of rare populations) may result in genes with very high means that are expressed in very few cells.
-
-```{r expression metrics, fig.width=8, fig.height=6, echo=FALSE, message=FALSE, warning=FALSE, eval=!debug}
-result = tryCatch({
-    plotExprsFreqVsMean(sceFixName)
-}, warning = function(warning) {
-    cat(paste0("The plot couldn't be calculated beacuse of the following warning: ", warning, " Please, contact a bioinformatician."))
-}, error = function(error) {
-    cat(paste0("The plot couldn't be calculated beacuse of the following error: ", error, " Please, contact a bioinformatician."))
-})
-result
+plotHighestExprs(sceFixName, n=50, exprs_values = "counts")
 ```
 
 ### Heatmap of reads per cell on the plate
