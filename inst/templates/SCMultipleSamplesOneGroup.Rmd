@@ -14,6 +14,7 @@ Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
 
 ```{r setup, include=FALSE}
 library(SummarizedExperiment)
+library(ggplot2)
 library(ezRun)
 library(cowplot)
 library(tibble)
