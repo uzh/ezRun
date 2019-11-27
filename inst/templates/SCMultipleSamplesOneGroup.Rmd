@@ -51,7 +51,7 @@ The TSNEs below place similar cells together in low-dimensional space. The left 
 
 ```{r tSNE no correction plot, fig.width=8, fig.height=5}
 DimPlot(scData_noCorrected, reduction = "tsne", group.by = "Plate", pt.size = 0.8)
-DimPlot(scData_noCorrected, reduction = "tsne", group.by = "seurat_clusters", label = TRUE, pt.size = 0.7, label.size = 5, repel = TRUE) 
+DimPlot(scData_noCorrected, reduction = "tsne", label = TRUE, pt.size = 0.7, label.size = 5, repel = TRUE) 
 ```
 
 <br/><br/>
@@ -75,7 +75,7 @@ cat("\n")
 cat("The TSNEs below place similar cells together in low-dimensional space after the batch correction of the datasets. The left TSNE represents cells according to the sample they belong to and on the right side, the TSNE shows the graph-based clusters determined after performing the correction.")
 cat("\n\n")
 DimPlot(scData, reduction = "tsne", group.by = "Plate", pt.size = 0.8)
-DimPlot(scData, reduction = "tsne", group.by = "seurat_clusters", label = TRUE, pt.size = 0.7, label.size = 5, repel = TRUE) 
+DimPlot(scData, reduction = "tsne", label = TRUE, pt.size = 0.7, label.size = 5, repel = TRUE) 
 ```
 
 ```{r number of cells in each cluster after correction, eval = param$batchCorrection, fig.width=10, fig.height=6, fig.align='center', results='asis'}
