@@ -44,6 +44,7 @@ ezMethodSCMultipleSamplesOneGroup = function(input=NA, output=NA, param=NA, html
   ## TODO: remove the lib specification after upgrade to Seurat v3  
   library("Seurat")
   library(rlist)
+  library(tibble)
 
   ## subset the selected sample names
   samples <- param$samples
