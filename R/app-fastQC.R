@@ -136,7 +136,7 @@ ezMethodFastQC = function(input=NA, output=NA, param=NA,
     # }
     href = paste0(reportDirs[i], "/fastqc_report.html#M", 
                   0:(ncol(tbl)-1))[colnames(tbl) %in% smy[[2]]]
-    img = paste0(reportDirs[i], 	"/Icons/", statusToPng[smy[[1]]])
+    img = paste0(reportDirs[1], 	"/Icons/", statusToPng[smy[[1]]]) ##
     tbl[i, colnames(tbl) %in% smy[[2]]] = paste0("<a href=", href, 
                                                  "><img src=", img, "></a>")
   }
