@@ -4,8 +4,12 @@
 \alias{transcriptAnnoFromGtf}
 \title{Gets the transcript annotation}
 \usage{
-transcriptAnnoFromGtf(gtf, id = gtf$transcript_id, types = "exon",
-  attributes = NULL)
+transcriptAnnoFromGtf(
+  gtf,
+  id = gtf$transcript_id,
+  types = "exon",
+  attributes = NULL
+)
 }
 \arguments{
 \item{gtf}{an annotation data.frame of the gtf format.}

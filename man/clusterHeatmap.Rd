@@ -6,18 +6,45 @@
 \alias{goClusterResults}
 \title{Plots the cluster heatmap}
 \usage{
-clusterResults(x, nClusters = 5, clusterColors = rainbow(nClusters),
-  d = NULL, method = "ward.D2")
+clusterResults(
+  x,
+  nClusters = 5,
+  clusterColors = rainbow(nClusters),
+  d = NULL,
+  method = "ward.D2"
+)
 
-clusterHeatmap(x, param, result, file = "cluster-heatmap.png",
-  method = "ward.D2", doClusterColumns = FALSE, columnDist = NULL,
-  colColors = NULL, lim = c(-4, 4), lwid = c(1, 4), lhei = c(1, 5),
-  cexRow = 1, cexCol = 1.5, labRow = rownames(x), margins = c(14,
-  9), colors = getBlueRedScale(), maxGenesWithLabel = 50, ...)
+clusterHeatmap(
+  x,
+  param,
+  result,
+  file = "cluster-heatmap.png",
+  method = "ward.D2",
+  doClusterColumns = FALSE,
+  columnDist = NULL,
+  colColors = NULL,
+  lim = c(-4, 4),
+  lwid = c(1, 4),
+  lhei = c(1, 5),
+  cexRow = 1,
+  cexCol = 1.5,
+  labRow = rownames(x),
+  margins = c(14, 9),
+  colors = getBlueRedScale(),
+  maxGenesWithLabel = 50,
+  ...
+)
 
-goClusterResults(x, param, result, ontologies = c("BP", "MF", "CC"),
-  seqAnno = NULL, universeGeneIds = NULL, universeProbeIds = NULL,
-  keggOrganism = NA)
+goClusterResults(
+  x,
+  param,
+  result,
+  ontologies = c("BP", "MF", "CC"),
+  seqAnno = NULL,
+  universeGeneIds = NULL,
+  universeProbeIds = NULL,
+  keggOrganism = NA
+)
 }
 \arguments{
 \item{x}{the data to plot.}

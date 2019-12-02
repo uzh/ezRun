@@ -10,8 +10,12 @@ addSignificantCounts(doc, result, pThresh = c(0.1, 0.05, 1/10^(2:5)))
 
 getSignificantCountsTable(result, pThresh = 1/10^(1:5), genes = NULL)
 
-getSignificantFoldChangeCountsTable(result, pThresh = 1/10^(1:5),
-  fcThresh = c(1, 1.5, 2, 3, 4, 8, 10), genes = NULL)
+getSignificantFoldChangeCountsTable(
+  result,
+  pThresh = 1/10^(1:5),
+  fcThresh = c(1, 1.5, 2, 3, 4, 8, 10),
+  genes = NULL
+)
 }
 \arguments{
 \item{doc}{an object of the class bsdoc to add the table.}

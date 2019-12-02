@@ -5,12 +5,23 @@
 \alias{ezGoseq}
 \title{Performs the GO analysis for two groups}
 \usage{
-twoGroupsGO(param, testResult, seqAnno, normalizedAvgSignal = NULL,
-  method = "Wallenius")
+twoGroupsGO(
+  param,
+  testResult,
+  seqAnno,
+  normalizedAvgSignal = NULL,
+  method = "Wallenius"
+)
 
-ezGoseq(param, selectedGenes, allGenes, gene2goList = NULL,
-  method = c("Wallenius", "Sampling", "Hypergeometric"), onto = NULL,
-  normalizedAvgSignal = NULL)
+ezGoseq(
+  param,
+  selectedGenes,
+  allGenes,
+  gene2goList = NULL,
+  method = c("Wallenius", "Sampling", "Hypergeometric"),
+  onto = NULL,
+  normalizedAvgSignal = NULL
+)
 }
 \arguments{
 \item{param}{a list of parameters:
