@@ -7,18 +7,36 @@
 \alias{writeIgvSessionLink}
 \title{Writes a jnlp link to a static html}
 \usage{
-writeIgvSession(genome, refBuild, file = "igvSession.xml",
-  bamUrls = NULL, vcfUrls = NULL, locus = "All")
+writeIgvSession(
+  genome,
+  refBuild,
+  file = "igvSession.xml",
+  bamUrls = NULL,
+  vcfUrls = NULL,
+  locus = "All"
+)
 
 getIgvGenome(param)
 
-addIgvSessionLink(genome, refBuild, bamFiles, doc, locus = "All",
+addIgvSessionLink(
+  genome,
+  refBuild,
+  bamFiles,
+  doc,
+  locus = "All",
   label = "Open Integrative Genomics Viewer",
-  baseUrl = PROJECT_BASE_URL)
+  baseUrl = PROJECT_BASE_URL
+)
 
-writeIgvSessionLink(genome, refBuild, bamFiles, html, locus = "All",
+writeIgvSessionLink(
+  genome,
+  refBuild,
+  bamFiles,
+  html,
+  locus = "All",
   label = "Open Integrative Genomics Viewer",
-  baseUrl = PROJECT_BASE_URL)
+  baseUrl = PROJECT_BASE_URL
+)
 }
 \arguments{
 \item{genome}{a character representing the build name.}

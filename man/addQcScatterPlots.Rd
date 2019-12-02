@@ -4,8 +4,16 @@
 \alias{addQcScatterPlots}
 \title{Adds QC scatter plots}
 \usage{
-addQcScatterPlots(doc, param, design, conds, rawData, signalCond,
-  isPresentCond, types = NULL)
+addQcScatterPlots(
+  doc,
+  param,
+  design,
+  conds,
+  rawData,
+  signalCond,
+  isPresentCond,
+  types = NULL
+)
 }
 \arguments{
 \item{doc}{an object of the class bsdoc to add the plots.}
