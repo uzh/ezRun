@@ -16,6 +16,17 @@ debug <- FALSE
 setEnvironments("phantomjs")
 ```
 
+```{r prepQC, include=FALSE}
+filtStepPlot <- ggplot(QCChimeraObject$filtStep,aes(x=fStep,y=Freq, group=sample))
+filtStepPlot <- filtStepPlot + geom_line(aes(color=sample)) + geom_point(aes(color=sample))
+filtStepPlot <- filtStepPlot + xlab("Filtering Step") + ylab("Read Count") + 
+  theme(axis.text.x = element_text(angle = 270))
+```
+
+```{r prepChimera, include=FALSE}
+chimPlot <- chimeraSummaryPlot(QCChimeraObject$chimera)
+```
+
 ```{r prepAbund, include=FALSE}
 ### create plots: 1. abundance
 
@@ -87,6 +98,10 @@ abundPlotGroupListUnfilt[[rankNames]] <- tempAbundPlotUnfilt$abPlot +labs(title=
 }
 ```
 
+```{r prepAbundTable, include=FALSE}
+top20taxaWithPerc <- communityPercSummTable(physeqFullObject,rank)
+```
+
 ```{r prepOrdTaxa, include=FALSE}
 ### create plots: 2. ordination by taxa
 plotTitle <- "Clustering of the taxa."
@@ -117,19 +132,30 @@ plotRichnessByGroup <- groupModRichPlot(physeqObjectNoTreeUnfilt, x="group",meas
 
 ```{r prepRaref, include=FALSE}
 ### rarefaction: 3. rarefaction/saturation plots.
-plotTitle <- paste("Rarefaction plots based on the\nselection of the most abundant", numTopRanks, "ranks")
-rarefPlot <- rarefactionPlot(physeqFullObject) +labs(title=plotTitle) + 
+plotTitle_1 <- paste("Rarefaction plots based on the\nselection of the most abundant", numTopRanks, "ranks")
+plotTitle_2 <- paste("Saturation plots based on the\nselection of the most abundant", numTopRanks, "ranks")
+rarefPlot_1 <- rarefactionPlot(physeqFullObject,1) +labs(title=plotTitle_1) + 
+    theme(plot.title=element_text(size=11,hjust=0.5))
+rarefPlot_2 <- rarefactionPlot(physeqFullObject,2) +labs(title=plotTitle_2) + 
     theme(plot.title=element_text(size=11,hjust=0.5))
 ```
 
 ```{r prepHeat, include=FALSE}
 ### create plots:5. pheatmap
-show_pHeatmap <- heatmapForPhylotseqPlotPheatmap(physeqFullObject,areThereMultVar,isGroupThere)
+show_pHeatmap <- heatmapForPhylotseqPlotPheatmap(physeqFullObject,areThereMultVar,
+                                                 isGroupThere,rank)
 ```
 
 Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
 
 ## Phyloseq report {.tabset}
+### QC and chimera report
+```{r QCChim, echo=FALSE}
+par(mfrow=c(1,2), las=1)
+plot(filtStepPlot)
+plot(chimPlot)
+```
+
 ### Abundance barplots
 ```{r abund, echo=FALSE}
 par(mfrow=c(2,2), las=1)
@@ -164,8 +190,16 @@ plot(abundPlotGroupListUnfilt[[rank]])
 }
 ```
 
+#### Percentage of most abundant taxa
+```{r percMostAbundTaxa, echo=FALSE}
+kable(top20taxaWithPerc, escape=TRUE, row.names=TRUE, format="html") %>%
+  kable_styling(bootstrap_options = c("striped", "bordered"),
+                full_width = T) %>%
+  scroll_box(width = "60%", height = "600px")
+```
+
 ### Clustering (ordination) plots
-```{r ordinTaxa, echo=FALSE, }
+```{r ordinTaxa, echo=FALSE}
 par(mfrow=c(1,2), las=1)
 plot(ordPlotTaxa)
 plot(ordPlotSample)
@@ -181,8 +215,10 @@ if (isGroupThere) {
 ```
 
 ### Rarefaction plots
-```{r raref, echo=FALSE,out.width="66%"}
-plot(rarefPlot)
+```{r raref, echo=FALSE,out.width="49%"}
+par(mfrow=c(2,1), las=1)
+plot(rarefPlot_1)
+plot(rarefPlot_2)
 ```
 
 ### Heatmaps

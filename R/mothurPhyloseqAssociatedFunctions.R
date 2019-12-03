@@ -302,9 +302,16 @@ pcaForPhyloseqPlot <- function(phySeqObject,type,group){
 ##' @return Returns a stacked bar  plot.
 ##' 
 ### Heatmap function
-heatmapForPhylotseqPlotPheatmap <- function(phyloseqOtuObj,areThereMultVar,isGroupThere){
-  input <- t(phyloseqOtuObj@otu_table@.Data)
-  input <- input[apply(input,1,sum)>0,]
+heatmapForPhylotseqPlotPheatmap <- function(phyloseqOtuObj,areThereMultVar,isGroupThere,rank){
+  input <- data.frame(t(phyloseqOtuObj@otu_table@.Data))
+  taxDF <- data.frame(phyloseqOtuObj@tax_table@.Data)
+  input$rank <- taxDF[[rank]]
+  colToAggregate <- grep("rank",colnames(input), value = T,invert = T)
+  dd <- aggregate(x = input[colToAggregate],by = list(input$rank),sum)
+  rownames(dd) <- dd$Group.1
+  dd <-  subset(dd, select = -c(Group.1))
+  dd <- dd[apply(dd,1,sd)>0,]
+  input <- dd
   plot_heatmap_Pheatmap <- function() {
     if (isGroupThere){
   gr1 <- colnames(sample_data(phyloseqOtuObj))[1]
@@ -323,13 +330,14 @@ heatmapForPhylotseqPlotPheatmap <- function(phyloseqOtuObj,areThereMultVar,isGro
     mat_col <- data.frame(sample_data(phyloseqOtuObj)[,gr1])
   }
   ## heatmap
-  pheatmap(input,show_rownames = FALSE,
+  pheatmap(input,show_rownames = TRUE,
            show_colnames     = TRUE,
            annotation_col    = mat_col,
            annotation_colors = mat_colors,
            cluster_rows = TRUE,  scale="row", method = "average")
     } else {
-      pheatmap(input,show_rownames = FALSE,
+
+      pheatmap(input,show_rownames = TRUE,
                show_colnames     = TRUE,
                cluster_rows = TRUE,  scale="row", method = "average")
    }
@@ -585,4 +593,57 @@ groupModRichPlot <- function(physeq, x, color = NULL, shape = NULL,
 ##' @return A plot.grid
 add_centered_title <- function(p, text){
   grid.arrange(p, ncol = 1, top = text)
+}
+
+###################################################################
+# Functional Genomics Center Zurich
+# This code is distributed under the terms of the GNU General
+# Public License Version 3, June 2007.
+# The terms are available here: http://www.gnu.org/licenses/gpl.html
+# www.fgcz.ch
+
+##' @title Summary plot of chimeras
+##' @description Generate chimera plot from chimera file
+##' @param  a data.frame
+##' @return A ggplot
+chimeraSummaryPlot <- function(chimeraDF){
+bp <- ggplot(chimeraDF, aes(x=Type,Freq, fill=Type)) 
+facetSampleBar <- bp  + geom_bar(stat = "identity",  position = 'dodge') 
+finalVersionChimeraPlot  <- facetSampleBar +   
+  theme(axis.title.x=element_blank(), axis.text.x=element_blank()) 
+finalVersionChimeraPlot <- finalVersionChimeraPlot +
+  geom_text(aes(y = Freq + 500, label = paste0(pct, '%')),
+            position = position_dodge(width = .9),size = 3)
+finalVersionChimeraPlot <- finalVersionChimeraPlot + facet_wrap(vars(sample))
+finalVersionChimeraPlot <- finalVersionChimeraPlot + ylab("Count")
+return(finalVersionChimeraPlot)
+}
+
+###################################################################
+# Functional Genomics Center Zurich
+# This code is distributed under the terms of the GNU General
+# Public License Version 3, June 2007.
+# The terms are available here: http://www.gnu.org/licenses/gpl.html
+# www.fgcz.ch
+
+##' @title Summary of community composition
+##' @description It calculates the percentages of the organisms in the community
+##' @param  a phyloseq object
+##' @return A data.frame
+
+communityPercSummTable <- function(phyloseqOtuObj,rank) {
+  input <- data.frame(t(phyloseqOtuObj@otu_table@.Data))
+  taxDF <- data.frame(phyloseqOtuObj@tax_table@.Data)
+  input$rank <- taxDF[[rank]]
+  colToAggregate <- grep("rank",colnames(input), value = T,invert = T)
+  aggrDF <- aggregate(x = input[colToAggregate],by = list(input$rank),sum)
+  rownames(aggrDF) <- aggrDF$Group.1
+  aggrDF <-  subset(aggrDF, select = -c(Group.1))
+  aggrDF <- aggrDF[apply(aggrDF,1,sd)>0,]
+  percTable <- apply(aggrDF,2,function(y)sapply(y,function(x) round(x/sum(y)*100,2)))
+  percTable <- data.frame(percTable)
+  percTable$meanPc <- apply(percTable,1,mean)
+  percTable <- percTable[order(percTable$meanPc, decreasing = T),]
+  percTableToShow <- head(subset(percTable,  select = -c(meanPc)),20)
+  return(percTableToShow)
 }
