@@ -68,6 +68,39 @@ ezMethodDADA2Step1Sample = function(input=NA, output=NA, param=NA,
                                             database,seqTech,maxExpErr)
   }
   
+  ## create ans save QC and chimera summary file 
+  ###QC
+  filterSteps <- c("noFilter","lengthQualFilt","denoised")
+  getN <- function(x) sum(getUniques(x))
+  fStep <- list()
+  countFilt1 <- DADA2mainSeqTabObj$out[,dimnames(DADA2mainSeqTabObj$out)[[2]]=="reads.in"]
+    countFilt2 <- DADA2mainSeqTabObj$out[,dimnames(DADA2mainSeqTabObj$out)[[2]]=="reads.out"]
+  fStep[[1]] <- data.frame(Freq=countFilt1,
+                           sample=sampleNames,
+                           fStep=filterSteps[1])
+  fStep[[2]] <- data.frame(Freq=countFilt2,
+                           sample=sampleNames,
+                           fStep=filterSteps[2])
+  fStep[[3]] <- data.frame(Freq=sapply(DADA2mainSeqTabObj$dadaObj, getN),
+                           sample=sampleNames,
+                           fStep=filterSteps[3])
+  DFforQCPlot <- do.call("rbind",fStep)
+  ### Chimera
+  totFilt <- sapply(DADA2mainSeqTabObj$dadaObj, getN)
+  totNoChim <- rowSums(DADA2mainSeqTabObj$fullTableOfOTUsNoChimObj)
+  totChim <- totFilt-totNoChim
+  nonChimPct <- round(totNoChim/totFilt*100,2)
+  chimPct <- round(totChim/totFilt*100,2)
+  noChimList <- data.frame(Freq =totNoChim,
+                         sample=sampleNames,Type="Not chimeric",pct=nonChimPct)
+  chimList <- data.frame(Freq =totChim,
+                         sample=sampleNames,Type="Chimeric",pct=chimPct)
+  DFforChimeraPlot <- rbind(noChimList,chimList)
+  QCChimeraObject <- list(chimera=DFforChimeraPlot,filtStep=DFforQCPlot)  
+  ### save
+  QCChimeraObjectRdata <-  basename(output$getColumn("RObjectQCChimera"))
+  saveRDS(QCChimeraObject,QCChimeraObjectRdata)
+  
   ## rename output files
   # taxonomy
   newOTUsToTaxFileName <- basename(output$getColumn("OTUsToTaxonomyFile"))
@@ -94,6 +127,7 @@ ezMethodDADA2Step1Sample = function(input=NA, output=NA, param=NA,
     write.table(designMatrix,newdesignMatrixFileName,
                 row.names = F, col.names = T, quote = F,sep = "\t")
   }
+
   
   ## create phyloseqObject
   phyloseqObjectRdata <-  basename(output$getColumn("RObjectPhyloseq"))
