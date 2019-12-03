@@ -54,5 +54,5 @@
   file <- system.file("extdata", "ex1.bam", package="Rsamtools", 
                       mustWork=TRUE)
   destination <- tempfile(pattern="test-", fileext=".bw")
-  bam2bw(file, destination, paired=FALSE, method="deepTools")
+  bam2bw(file, destination, paired=FALSE, method="Bioconductor")
 }

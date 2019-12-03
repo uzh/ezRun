@@ -4,9 +4,16 @@
 \alias{ezCorrelationPlot}
 \title{Does a correlation plot}
 \usage{
-ezCorrelationPlot(z, cond = NULL, condOrder = NULL,
-  main = "Correlation", labels = NULL, condLabels = NULL,
-  plotLabels = nrow(z) < 100, colors = NULL)
+ezCorrelationPlot(
+  z,
+  cond = NULL,
+  condOrder = NULL,
+  main = "Correlation",
+  labels = NULL,
+  condLabels = NULL,
+  plotLabels = nrow(z) < 100,
+  colors = NULL
+)
 }
 \arguments{
 \item{z}{the data to plot.}

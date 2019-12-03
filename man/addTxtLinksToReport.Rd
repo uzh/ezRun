@@ -5,8 +5,12 @@
 \alias{newWindowLink}
 \title{Adds text links}
 \usage{
-addTxtLinksToReport(doc, txtNames, doZip = FALSE, mime = ifelse(doZip,
-  "application/zip", "application/text"))
+addTxtLinksToReport(
+  doc,
+  txtNames,
+  doZip = FALSE,
+  mime = ifelse(doZip, "application/zip", "application/text")
+)
 
 newWindowLink(linkName, txtName = NULL)
 }
