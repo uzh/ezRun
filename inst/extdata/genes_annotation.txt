@@ -1,4 +1,4 @@
-Identifier	gene_id	seqid	strand	start	end	width	gene_name	gc
+Identifier	gene_id	seqid	strand	start	end	featWidth	gene_name	gc
 YAL069W	YAL069W	I	+	335	649	315	YAL069W	0.4349
 YAL068W-A	YAL068W-A	I	+	538	792	255	YAL068W-A	0.3529
 YAL068C	YAL068C	I	-	1807	2169	363	PAU8	0.4959
