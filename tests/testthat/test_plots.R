@@ -27,7 +27,7 @@ test_that("Tests ezColorLegend() and ezLegend()", {
 
 test_that("Tests ezVolcano()", {
   ret = ezVolcano(log2Ratio=1:100, pValue=rep(10^(-4:5), each=10),
-                  pch=16, isPresent=1:50, types=types, colors=rainbow(ncol(types)), legendPos="bottomleft")
+                  isPresent=1:50, types=types, colors=rainbow(ncol(types)))#, pch=16, legendPos="bottomleft")
   expect_is(ret, "list")
   expect_is(ret$x, "numeric")
 })
