@@ -20,7 +20,7 @@ DADA2CreateSeqTab <- function(sampleNames,maxLen=0,file1PathInDataset,database,s
                          maxN=0, maxEE=maxExpErr, truncQ=2, rm.phix=TRUE,
                          compress=TRUE, multithread=TRUE)
     if (seqTech == "pacbio") {
-    errF <-  learnErrors(drp, BAND_SIZE=32, multithread=TRUE, 
+    errF <-  learnErrors(filtFs, BAND_SIZE=32, multithread=TRUE, 
                          errorEstimationFunction=dada2:::PacBioErrfun)
     } else {
     errF <- learnErrors(filtFs, multithread=TRUE)
@@ -38,7 +38,8 @@ DADA2CreateSeqTab <- function(sampleNames,maxLen=0,file1PathInDataset,database,s
     fullTableOfOTUsNoChim <- removeBimeraDenovo(seqtab, method="consensus", multithread=TRUE)
     taxa <- assignTaxonomy(fullTableOfOTUsNoChim,database, multithread=FALSE)
     rownames(fullTableOfOTUsNoChim) <- sampleNames
-  return(list(fullTableOfOTUsNoChimObj=fullTableOfOTUsNoChim,taxaObj=taxa))
+  return(list(fullTableOfOTUsNoChimObj=fullTableOfOTUsNoChim,
+              taxaObj=taxa,outFilt=out,dadaObj=dadaFs))
 }
 
 
