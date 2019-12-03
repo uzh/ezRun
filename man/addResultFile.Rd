@@ -4,8 +4,14 @@
 \alias{addResultFile}
 \title{Adds a result file}
 \usage{
-addResultFile(doc, param, result, rawData, useInOutput = TRUE,
-  file = paste0("result--", param$comparison, ".txt"))
+addResultFile(
+  doc,
+  param,
+  result,
+  rawData,
+  useInOutput = TRUE,
+  file = paste0("result--", param$comparison, ".txt")
+)
 }
 \arguments{
 \item{doc}{an object of the class bsdoc to add the result.}
