@@ -16,9 +16,11 @@ ezMethodMothurStep1Sample = function(input=NA, output=NA, param=NA,
   require(ape)
   require(ggplot2)
   library(scales)
+  library(Biostrings)
   dataset = input$meta
   sampleNames = input$getNames() 
   isPaired <- param$paired
+  mockSample = param$referenceFasta != ""
   ### read fastq files and prepare inputs for Mothur
   ### File preparation: are reads paired? should they be joined? 
   file1PathInDataset <- input$getFullPaths("Read1")
@@ -27,12 +29,14 @@ ezMethodMothurStep1Sample = function(input=NA, output=NA, param=NA,
     fastqJoin="/usr/local/ngseq/src/ea-utils.1.1.2-686/fastq-join"
     
     fastqJoinFun <- function(x,y,z){
-      joinedFileName <- paste0(z, ".temp.")
+      joinedFileName <- paste0(z, ".")
       fastqJoinCmd <- paste(fastqJoin, x,y, "-o", joinedFileName)
       ezSystem(fastqJoinCmd)
       joinedFileName <- paste0(joinedFileName,"join")
       joinedFile <- file.path(getwd(),joinedFileName)
-      return(joinedFile)
+      outFileName <- paste0(z,".fastq")
+      ezSystem(paste("mv ",joinedFileName,outFileName))
+      return(outFileName)
     }
     listOfJoinedFiles <- mapply(fastqJoinFun,file1PathInDataset,file2PathInDataset,
                                 sampleNames)
@@ -58,33 +62,23 @@ ezMethodMothurStep1Sample = function(input=NA, output=NA, param=NA,
     fastaFileToWrite <- writeXStringSet(fastqFileToRead, fastaOutName,append=TRUE)
     }
   
-  # ### TODO: is there at least a mock sample for the error estimate? The error estimates for the Non-mock samples will be ignored downstream
-  # if(param$mockSample){
-  #   if (input$getColumn("Mock") == "Yes") {
-  #     copyRefCmd <- paste("cp", param$referenceFasta,"./", sep = " ")
-  #     ezSystem(copyRefCmd)
-  #     mockString = "seq.error" 
-  #     refString = param$referenceFasta
-  #     oldErrFile <- paste(sampleName,
-  #                         "unique.good.good.good.filter.unique.precluster.pick.pick.error.count",
-  #                         sep = ".")
-  #   }else{
-  #     mockString = "###seq.error"  
-  #     oldErrFile <- "mockErrorFileNotForDownstreamAnalysis.txt"
+  # is there at least a mock sample for the error estimate? The error estimates for the Non-mock samples will be ignored downstream
+  mockString = "###seq.error" 
+#  if(mockSample){
+#       copyRefCmd <- paste("cp", param$referenceFasta,"./", sep = " ")
+#       ezSystem(copyRefCmd)
+#       mockString = "seq.error" 
+#       refString = param$referenceFasta
+ #      }
   #     write("There is no relevant info in this file",oldErrFile)
-  #   }
-  # }else{
-  #   mockString = "###seq.error"
-  # }
-  # ###
+###
 
   ### cp silva reference locally
   cpSilvaRefCmd <- paste("gunzip -c ",SILVA_DB_MOTHUR, " > silva.bacteria.fasta")
   ezSystem(cpSilvaRefCmd)
   
   ### update batch file  with parameters and run mothur: step 1, identify region
-  updateBatchCmd1 <- paste0("sed -e s/\"MIN_LEN\"/", param$minLen, "/g",
-                           " -e s/\"MAX_LEN\"/", param$maxLen, "/g",
+  updateBatchCmd1 <- paste0("sed -e s/\"###seq.error\"/", mockString, "/g",
                            " -e s/\"CUTOFF_TAXON\"/", param$cutOffTaxonomy, "/g",
                            " -e s/\"CUTOFF_CLUST\"/", param$cutOffCluster, "/g",
                            " -e s/\"DIFFS\"/", param$diffs, "/g ",
@@ -94,6 +88,28 @@ ezMethodMothurStep1Sample = function(input=NA, output=NA, param=NA,
   ezSystem(updateBatchCmd1)
   cmdMothur1 = paste(MOTHUR_EXE,UNIFIED_MOTHUR_WORKFLOW)
   ezSystem(cmdMothur1)
+  ## create ans save QC and chimera summary file 
+  groupFile="Mothur.groups"
+  ### filter steps
+  fastaFiles <- c("Mothur.fasta","Mothur.good.fasta","Mothur.good.unique.fasta",
+                  "merged.align",
+                  "merged.good.align",
+                  "merged.good.filter.unique.fasta")
+                  
+  filterSteps <- c("noFilter","lengthAndHomopPreAlign","deduplication","aligned",
+                   "lengthAndHomopPostAlign","dedupPostEndTrimming")
+  listOfFilteredSummaries <- mapply(countAndAssignSeqsFromFasta,fastaFiles,
+                                    filterSteps,groupFile=groupFile,
+                                    SIMPLIFY = FALSE)
+  DFforQCPlot <- do.call("rbind",listOfFilteredSummaries)
+  ### chimera
+  chimFile="merged.good.filter.unique.precluster.denovo.vsearch.chimeras"
+  DFforChimeraPlot <- chimeraSummaryTable(chimFile,groupFile)
+  QCChimeraObject <- list(chimera=DFforChimeraPlot,filtStep=DFforQCPlot)  
+  ### save
+  QCChimeraObjectRdata <-  basename(output$getColumn("RObjectQCChimera"))
+  saveRDS(QCChimeraObject,QCChimeraObjectRdata)
+  
   ## create phyloseq object
   # OTU count
   newOTUsToCountFileName <- basename(output$getColumn("OTUsCountTable"))

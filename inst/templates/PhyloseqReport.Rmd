@@ -16,6 +16,15 @@ debug <- FALSE
 setEnvironments("phantomjs")
 ```
 
+```{r prepQC, include=FALSE}
+filtStepPlot <- ggplot(QCChimeraObject$filtStep,aes(x=fStep,y=Freq, group=sample)) + geom_line(aes(color=sample)) + geom_point(aes(color=sample)) + xlab("Filtering Step") + ylab("Read Count")
+```
+
+```{r prepChimera, include=FALSE}
+chimPlot <- chimeraSummaryPlot(QCChimeraObject$chimera)
+```
+
+
 ```{r prepAbund, include=FALSE}
 ### create plots: 1. abundance
 
@@ -88,6 +97,10 @@ abundPlotGroupListUnfilt[[rankNames]] <- tempAbundPlotUnfilt$abPlot +labs(title=
 }
 ```
 
+```{r prepAbundTable, include=FALSE}
+top20taxaWithPerc <- communityPercSummTable(physeqFullObject,rank)
+```
+
 ```{r prepOrdTaxa, include=FALSE}
 ### create plots: 2. ordination by taxa
 plotTitle <- "Clustering of the taxa."
@@ -128,7 +141,8 @@ rarefPlot_2 <- rarefactionPlot(physeqFullObject,2) +labs(title=plotTitle_2) +
 
 ```{r prepHeat, include=FALSE}
 ### create plots:5. pheatmap
-show_pHeatmap <- heatmapForPhylotseqPlotPheatmap(physeqFullObject,areThereMultVar,isGroupThere)
+show_pHeatmap <- heatmapForPhylotseqPlotPheatmap(physeqFullObject,areThereMultVar,
+                                                 isGroupThere,rank)
 ```
 
 ```{r prepDeseq, include=FALSE}
@@ -142,6 +156,13 @@ show_pHeatmap <- heatmapForPhylotseqPlotPheatmap(physeqFullObject,areThereMultVa
 Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
 
 ## Phyloseq report {.tabset}
+### QC and chimera report
+```{r QCChim, echo=FALSE}
+par(mfrow=c(1,2), las=1)
+plot(filtStepPlot)
+plot(chimPlot)
+```
+
 ### Abundance barplots
 ```{r abund, echo=FALSE}
 par(mfrow=c(2,2), las=1)
@@ -174,6 +195,14 @@ plot(abundPlotGroupListUnfilt[[rank]])
 }
 
 }
+```
+
+#### Percentage of most abundant taxa
+```{r percMostAbundTaxa, echo=FALSE}
+kable(top20taxaWithPerc, escape=TRUE, row.names=FALSE, format="html") %>%
+  kable_styling(bootstrap_options = c("striped", "bordered"),
+                full_width = T) %>%
+  scroll_box(width = "60%", height = "600px")
 ```
 
 ### Clustering (ordination) plots
@@ -229,7 +258,7 @@ zip(zipFile, files=diffAbundTableName)
 
 #### Summary table (top 20 differentially abundant OTUs)
 ```{r deSeqTopTableShow, echo=FALSE}
-kable(deseqResults$tableToReport, escape=TRUE, row.names=FALSE, format="html") %>%
+kable(deseqResults$tableToReport, escape=TRUE, row.names=TRUE, format="html") %>%
   kable_styling(bootstrap_options = c("striped", "bordered"),
                 full_width = T) %>%
   scroll_box(width = "100%", height = "600px")
