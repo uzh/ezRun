@@ -14,9 +14,7 @@ EzAppSCCountQC <-
                   "Initializes the application using its specific defaults."
                   runMethod <<- ezMethodSCCountQC
                   name <<- "EzAppSCCountQC"
-                  appDefaults <<- rbind(scProtocol=ezFrame(Type="character", DefaultValue="10X", Description="Which single cell protocol?"),
-                                        minReadsPerCell=ezFrame(Type="numeric", DefaultValue=1500, Description="Filter cells with less reads counted on genes"),
-                                        minGenesPerCell=ezFrame(Type="numeric", DefaultValue=500, Description="Filter cells with less genes expressed"))
+                  appDefaults <<- rbind(scProtocol=ezFrame(Type="character", DefaultValue="10X", Description="Which single cell protocol?"))
                 }
               )
   )
