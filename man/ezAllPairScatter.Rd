@@ -4,10 +4,21 @@
 \alias{ezAllPairScatter}
 \title{Does scatter plots of all pairs}
 \usage{
-ezAllPairScatter(x, main = "", shrink = FALSE, xylab = NULL,
-  lim = range(x, na.rm = TRUE), isPresent = NULL, types = NULL,
-  pch = 16, colors = rainbow(ncol(types)), legendPos = "bottomright",
-  cex.main = 1, cex = 1, ...)
+ezAllPairScatter(
+  x,
+  main = "",
+  shrink = FALSE,
+  xylab = NULL,
+  lim = range(x, na.rm = TRUE),
+  isPresent = NULL,
+  types = NULL,
+  pch = 16,
+  colors = rainbow(ncol(types)),
+  legendPos = "bottomright",
+  cex.main = 1,
+  cex = 1,
+  ...
+)
 }
 \arguments{
 \item{x}{a matrix containing the data to plot.}

@@ -4,8 +4,14 @@
 \alias{DADA2CreateSeqTab}
 \title{Main DADA2 workflow (sample-wise)}
 \usage{
-DADA2CreateSeqTab(sampleName, minLen = 0, concat = NULL,
-  file1PathInDataset, file2PathInDataset = NULL)
+DADA2CreateSeqTab(
+  sampleNames,
+  maxLen = 0,
+  file1PathInDataset,
+  database,
+  seqTech,
+  maxExpErr
+)
 }
 \arguments{
 \item{a}{fastq or pairs of ffastq files .}
