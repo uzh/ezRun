@@ -45,6 +45,7 @@ ezMethodSCMultipleSamplesOneGroup = function(input=NA, output=NA, param=NA, html
   library("Seurat")
   library(rlist)
   library(tibble)
+  library(readr)
 
   ## subset the selected sample names
   samples <- param$samples
