@@ -14,24 +14,25 @@ editor_options:
 Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
 
 ```{r setup, include=FALSE}
-require(SummarizedExperiment)
-require(plotly)
-require(scater)
-require(ezRun)
-require(DT)
-require(htmltools)
-require(dplyr)
-require(Matrix) # sparse matrix
-require(Seurat)
-require(pheatmap)
-require(readr)
+library(SummarizedExperiment)
+library(plotly)
+library(scater)
+library(ezRun)
+library(DT)
+library(htmltools)
+library(dplyr)
+library(Matrix)
+library(Seurat)
+library(pheatmap)
+library(readr)
 library(DropletUtils)
 library(tibble)
+library(cowplot)
 
 ## ----------------------------------------------
 ## debug
 # title:  "`r metadata(sce)$param$name`"
-# sce <- readRDS("/srv/gstore/projects/p2488/SCCountQC_41384_2019-11-17--14-42-12/iCount_mESC_plate_2_20191028BJ_SCCountQC/sce.rds")
+# sce <- readRDS("/srv/gstore/projects/p3271/SCCountQC_41088_2019-11-12--14-43-47/1834_SCCountQC/sce.rds")
 
 debug <- FALSE
 
@@ -55,14 +56,11 @@ isMito <- toupper(as.character(seqnames(rowRanges(sce)))) %in%
 sceFixName = sce
 rownames(sceFixName) <- uniquifyFeatureNames(ID=rowData(sceFixName)$gene_id,
                                              names=rowData(sceFixName)$gene_name)
-cts <- assays(sceFixName)$counts
 
-## scater sce
-cell_info <- data.frame(row.names=colnames(cts),
-                        lib_size=Matrix::colSums(cts)/1e3,
-                        expr_genes = Matrix::colSums(cts >= param$minReadsPerGene),
-                        perc_mito=Matrix::colSums(cts[isMito, , drop=FALSE])*100 / Matrix::colSums(cts))
-sceFixName <- calculateQCMetrics(sceFixName, feature_controls=list(Mt=isMito))
+sceFixName <- addPerCellQC(sceFixName, subsets=list(Mito=isMito),
+                           detection.limit=param$minReadsPerGene-1)
+sceFixName <- addPerFeatureQC(sceFixName,
+                              detection_limit=param$minReadsPerGene-1)
 
 ## datasetAllCells for section "Heatmap of reads per cell on the plate"
 if(toupper(param$scProtocol) == "SMART-SEQ2"){
@@ -76,10 +74,10 @@ if(toupper(param$scProtocol) == "SMART-SEQ2"){
 ### Overview
 
 * Total Number of Cells: `r ncol(sce)`
-* Median Genes per Cell = `r median(cell_info$expr_genes)`
-* Median Reads per Cell = `r round(median(cell_info$lib_size*1e3),0)`
-* Number of input reads = `r ifelse(is.null(metadata(sce)$mlog), NA, metadata(sce)$mlog["Number of input reads",2])`
-* % of reads mapped to multiple loci = `r ifelse(is.null(metadata(sce)$mlog), NA, metadata(sce)$mlog["% of reads mapped to multiple loci",2])`
+* Median Genes per Cell = `r median(sceFixName$detected)`
+* Median Reads per Cell = `r format(median(sceFixName$sum), scientific=FALSE)`
+* Number of input reads (Smart-Seq2 only) = `r ifelse(is.null(metadata(sce)$mlog), NA, metadata(sce)$mlog["Number of input reads",2])`
+* % of reads mapped to multiple loci (Smart-Seq2 only) = `r ifelse(is.null(metadata(sce)$mlog), NA, metadata(sce)$mlog["% of reads mapped to multiple loci",2])`
 
 ### Saturation
 
@@ -109,23 +107,24 @@ plot_ly(data=toPlot, x=~x, y=~y, type = 'scatter', mode = 'lines') %>%
          xaxis = xax, yaxis = yax)
 ```
 
-### #Genes detected in cells
+### Diagnostic plots of cells
 
-Interactive plot showing the read counts vs the number of expressed genes for all cells. Each dot is a cell.
+Interactive plot showing the read counts vs the number of expressed genes and mitochondial content for all cells. Each dot is a cell.
 
-```{r genes detected in cells, fig.width=8, fig.height=5, echo=FALSE, message=FALSE, warning=FALSE, eval=!debug}
-xax <- list(
-  title = "Read counts (thousands)",
-  zeroline = FALSE
-)
-yax <- list(
-  title = "Number of expressed genes",
-  zeroline = FALSE
-)
-plot_ly(data=cell_info, x=~lib_size, y=~expr_genes, 
-        text=rownames(cell_info),
-        marker = list(color="deepskyblue3"), type='scatter') %>% 
-  layout(xaxis = xax, yaxis = yax)
+```{r genes detected in cells, fig.width=10, fig.height=5, echo=FALSE, message=FALSE, warning=FALSE, eval=!debug}
+p1 <- plotColData(sceFixName, x = "sum", y="detected", colour_by="Batch") +
+  xlab("Read count") + ylab("Number of expressed genes") +
+  theme_minimal_grid()
+p1 <- ggplotly(p1)
+
+p2 <- plotColData(sceFixName, x = "sum", y="subsets_Mito_percent", 
+                 colour_by="Batch") +
+  xlab("Read count") + ylab("Mitochondrial percent") +
+  theme_minimal_grid()
+p2 <- ggplotly(p2)
+
+subplot(p1, p2, titleX=TRUE, titleY=TRUE, nrows=1) %>%
+  layout(showlegend = FALSE)
 ```
 
 ### QC metrics on the cells
@@ -136,17 +135,29 @@ Histograms of read counts, number of expressed genes and proportion of reads ass
 yax <- list(
   title = "Number of cells"
 )
-p1 <- plot_ly(data=cell_info, x=~lib_size) %>%
+p1 <- plot_ly(data=data.frame(colData(sceFixName), check.names = FALSE),
+              x=~sum) %>%
   layout(xaxis = list(title="Read counts (thousands)"), yaxis = yax)
-p2 <- plot_ly(data=cell_info, x=~expr_genes) %>%
+p2 <- plot_ly(data=data.frame(colData(sceFixName), check.names = FALSE),
+              x=~detected) %>%
   layout(xaxis = list(title="Number of expressed genes"), yaxis = yax)
-p3 <- plot_ly(data=cell_info, x=~perc_mito) %>%
+p3 <- plot_ly(data=data.frame(colData(sceFixName), check.names = FALSE),
+              x=~subsets_Mito_percent) %>%
   layout(xaxis = list(title="Mitochondrial proportion (%)"), yaxis = yax)
 subplot(p1, p2, p3, titleX=TRUE, titleY=TRUE, nrows=1) %>%
   layout(showlegend = FALSE)
+
+p1 <- plotColData(sceFixName, y="sum", x="Batch") +
+  ylab("Library size") + theme_minimal_grid()
+p2 <- plotColData(sceFixName, y="detected", x="Batch") +
+  ylab("Number of expressed genes") + theme_minimal_grid()
+p3 <- plotColData(sceFixName, y="subsets_Mito_percent", x="Batch") +
+   ylab("Mitochondrial percent") + theme_minimal_grid()
+p <- plot_grid(p1, p2, p3, ncol=3)
+print(p)
 ```
 
-### Most expressed features
+### Highly expressed features
 
 Percentage of total counts assigned to the top 50 (by default) most-expressed features. Each row in the plot below corresponds to a gene, and each bar corresponds to the expression of a gene in a single cell. The circle indicates the median expression of each gene, with which genes are sorted.
 
