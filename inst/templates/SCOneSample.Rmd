@@ -171,9 +171,7 @@ barplot = ggplot(data=cellIdents_perSample, aes(x=ident, fill=orig.ident)) + geo
 barplot + labs(x="Cluster", y = "Number of cells", fill = "Sample")
 ```
 
-### Clusters assesment
-
-#### Resolution
+### Clusters resolution assesment
 
 One of the most important parameters when clustering is k, the number of nearest neighbors used to construct the graph. This controls the resolution of the clustering where higher k yields a more inter-connected graph and broader clusters. Users can experiment with different values of k to obtain a satisfactory resolution. We recommend increasing the resolution when a rare population is expected. 
 Below, it is shown a clustering tree that helps us to visualize the relationships between clusters at a range of resolutions. Each cluster forms a node in the tree and edges are constructed by considering the cells in a cluster at a lower resolution that end up in a cluster at the next highest resolution. By connecting clusters in this way, we can see how clusters are related to each other, which are clearly distinct and which are unstable. 
@@ -190,6 +188,19 @@ clust_seurat <- scData@meta.data %>%
 colData(sce) <- cbind(colData(sce), DataFrame(clust_seurat))
 clustree::clustree(sce, prefix = "RNA_snn_res.")
 ```
+
+### QC on TSNE plot
+
+```{r QC on TSNE, echo=FALSE}
+FeaturePlot(object = scData, features = "detected", reduction = "tsne")
+FeaturePlot(object = scData, features = "sum", reduction = "tsne")
+FeaturePlot(object = scData, features = "subsets_Mito_percent", reduction = "tsne")
+if(!is.null(scData@meta.data$CellCycle) && 
+   !any(is.na(scData@meta.data$CellCycle))){
+  TSNEPlot(object=scData, group.by="CellCycle", plot.title="Cell cycle phase")
+}
+```
+
 
 #### Doublet detection
 
@@ -299,7 +310,7 @@ colnames(assignmentTable)[2] <- "geneSet"
 
 ```
 
-```{r assigments heatmap, eval= (param$species != "other"), results='asis',fig.align='center', fig.width=6, fig.height=6}
+```{r assigments heatmap, eval= (param$species != "other"), results='asis',fig.align='center', fig.width=10, fig.height=6}
 cat("We can explore the cell assignment results using different plots. Below, we show a heatmap with the cell type each cell was assigned to. Gray color represents the successful assignment of the cell to the cell type and black non-assignment. Cell types with no cells assigned are not shown.")
 cat("\n\n")
 assignmentMat <- table(assignmentTable[,"geneSet"], assignmentTable[,"cell"])
