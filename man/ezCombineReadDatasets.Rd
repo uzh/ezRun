@@ -4,17 +4,16 @@
 \alias{ezCombineReadDatasets}
 \title{Combine the reads from two datasets in a single dataset}
 \usage{
-ezCombineReadDatasets(ds1, ds2, dataRoot = "/srv/gstore/projects",
-  newDsDir = NULL)
+ezCombineReadDatasets(..., dataRoot = "/srv/gstore/projects", newDsDir = NULL)
 }
 \arguments{
-\item{ds1}{a data.frame from the meta field of an EzDataset.}
-
-\item{ds2}{a data.frame from the meta field of an EzDataset.}
-
 \item{dataRoot}{a character specifying the file root of the datasets.}
 
 \item{newDsDir}{a character specifying the directory to save the new dataset in.}
+
+\item{ds1}{a data.frame from the meta field of an EzDataset.}
+
+\item{ds2}{a data.frame from the meta field of an EzDataset.}
 }
 \description{
 Takes the union of the samples in both input datasets and generates a new dataset.

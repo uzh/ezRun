@@ -232,7 +232,7 @@ listBiotypes <- function(select=c("genes", "protein_coding", "long_noncoding",
                   "Mt_tRNA_pseudogene", "rRNA_pseudogene", 
                   "scRNA_pseudogene", "snRNA_pseudogene",
                   "snoRNA_pseudogene", "tRNA_pseudogene",
-                  "IG_D_pseudogene")
+                  "IG_D_pseudogene", "transposable_element")
   lnc <- c("3prime_overlapping_ncrna", "ambiguous_orf", "antisense", "antisense_RNA" ,"lincRNA", 
            "ncrna_host", "non_coding", "processed_transcript", 
            "retained_intron", "sense_intronic", "sense_overlapping",

@@ -7,8 +7,8 @@ param$ezRef@refAnnotationFile = "anno.txt"
 param$ezRef@refChromSizesFile = "example.txt"
 fp = "/srv/GT/reference/Saccharomyces_cerevisiae/Ensembl/EF4/Sequence/WholeGenomeFasta/genome.fa"
 param$ezRef@refFastaFile = fp
-seqAnno = writeAnnotationFromGtf(param)
 gtf = ezLoadFeatures(param, gtfFile)
+seqAnno = transcriptAnnoFromGtf(gtf = gtf)
 
 test_that("Tests functions in annotation.r", {
   featureAnno = ezFeatureAnnotation(param, rownames(seqAnno), "gene")

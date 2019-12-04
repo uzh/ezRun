@@ -42,7 +42,7 @@ test_that("Tests countReadsInFastq() from ngsio.r", {
   fqFiles = input2$getFullPaths("Read1")
   names(fqFiles) = NULL
   counted = countReadsInFastq(fqFiles)
-  expect_is(counted, "numeric")
+  expect_is(counted, "integer")
   expect_identical(length(counted), nrow(input2$meta))
   expect_identical(names(counted), fqFiles)
 })

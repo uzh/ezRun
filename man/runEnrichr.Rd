@@ -4,8 +4,15 @@
 \alias{runEnrichr}
 \title{Run Enrichr}
 \usage{
-runEnrichr(genes, minScore = 12, maxAdjP = 0.01, minOverlapGenes = 3,
-  softFilter = F, maxResult = NA, connectionN = 10)
+runEnrichr(
+  genes,
+  minScore = 12,
+  maxAdjP = 0.01,
+  minOverlapGenes = 3,
+  softFilter = F,
+  maxResult = NA,
+  connectionN = 10
+)
 }
 \arguments{
 \item{genes}{A list or vector containing gene names}

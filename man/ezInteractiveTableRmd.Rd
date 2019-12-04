@@ -4,9 +4,14 @@
 \alias{ezInteractiveTableRmd}
 \title{Generates an interactive table}
 \usage{
-ezInteractiveTableRmd(values, digits = NULL,
-  colNames = colnames(values), title = "", format = NULL,
-  envir = parent.frame())
+ezInteractiveTableRmd(
+  values,
+  digits = NULL,
+  colNames = colnames(values),
+  title = "",
+  format = NULL,
+  envir = parent.frame()
+)
 }
 \arguments{
 \item{values}{a data.frame or table to create an interactive table from.}
