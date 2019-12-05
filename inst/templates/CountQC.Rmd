@@ -30,7 +30,7 @@ require(reshape2)
 ```{r prepare data countQC, include=FALSE}
 ## start of debug
 # require(ezRun)
- rawData <- readRDS("/scratch/test_count_QC/p2223/Count_QC/rawData.rds")
+# rawData <- readRDS("/scratch/test_count_QC/p2223/Count_QC/rawData.rds")
 debug <- FALSE
 ## end of debug
 
