@@ -4,7 +4,12 @@
 \alias{heatmapForPhylotseqPlotPheatmap}
 \title{Alternative heatmap with pheatmap plot for phyloseq abundnce-taxonimy matrix}
 \usage{
-heatmapForPhylotseqPlotPheatmap(phyloseqOtuObj, areThereMultVar, isGroupThere)
+heatmapForPhylotseqPlotPheatmap(
+  phyloseqOtuObj,
+  areThereMultVar,
+  isGroupThere,
+  rank
+)
 }
 \arguments{
 \item{a}{phyloseq object and the rank to summarize}
