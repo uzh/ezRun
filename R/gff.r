@@ -155,13 +155,8 @@ ezReadGff = function(gffFile, nrows=-1){
   
   # fread is much faster than read.table.
   # human genes.gtf, read.table: 97.124 seconds. fread: 5.976 seconds
-  # gff = read.table(gffFile, sep="\t", as.is=TRUE, quote="",
-  #                 header=FALSE, comment.char="#", nrows = nrows,
-  #                 colClasses=c("character", "character", "character", "integer", "integer",
-  #                              "character", "character", "character", "character"))
-  # colnames(gff) = c("seqid", "source", "type", "start", "end",
-  #                  "score", "strand", "phase", "attributes")
   stopifnot(!any(is.na(gff$start)), !any(is.na(gff$end)))
+  
   return(gff)
 }
 
@@ -309,36 +304,6 @@ gffGroupToRanges = function(gtf, grouping, skipTransSpliced=FALSE){
   return(gffToRanges(gtfGrouped))
 }
 
-##' @title Adds transcripts from exons to the annotation
-##' @description Adds transcripts from exons to the annotation using a gtf or gff data.frame.
-##' @param gff the annotation data.frame to get transcripts from.
-##' @template roxygen-template
-##' @return Returns an annotation data.frame with transcripts added to it.
-##' @examples
-##' param = ezParam()
-##' gtf = ezLoadFeatures(param, system.file("extdata/genes.gtf", package="ezRun", mustWork=TRUE))
-##' gtf2 = addTranscriptsToGffExons(gtf)
-addTranscriptsToGffExons = function(gff){
-  
-  gffExon = gff[gff$type == "exon", ]
-  if (is.null(gffExon$transcript_id)){
-    gffExon$transcript_id = ezGffAttributeField(gffExon$attributes, field="transcript_id", attrsep="; *", valuesep=" ")
-  }
-  gffExon$id = paste(gffExon$transcript_id, gffExon$seqid, gffExon$strand)
-  gffTranscript = gffExon[!duplicated(gffExon$id), ]
-  trStart = by(gffExon$start, gffExon$id, min)
-  trEnd = by(gffExon$end, gffExon$id, max)
-  gffTranscript$start = trStart[gffTranscript$id]
-  gffTranscript$end = trEnd[gffTranscript$id]
-  gffTranscript$type = "transcript"
-  gffTranscript$transcript_id = NULL
-  gffTranscript$id = NULL
-  gffExon$transcript_id = NULL
-  gffExon$id = NULL
-  gffAll = rbind(gffTranscript, gffExon, gff[gff$type != "exon", ])
-  return(gffAll)
-}
-
 ##' @title Gets the exon numbers
 ##' @description Gets the exon numbers of an annotation data.frame of the gtf or gff format.
 ##' @param gtf the annotation data.frame to get transcripts from.
@@ -426,7 +391,6 @@ writePresplicedGtf <- function (param, featureFile=param$ezRef["refFeatureFile"]
   ezWriteGff(gtfBoth, file=gtfBothFile)
 }
 
-
 getTranscriptSequences = function(param=NULL, genomeFn=NULL, featureFn=NULL){
   require(GenomicFeatures)
   require(Rsamtools)
@@ -436,7 +400,6 @@ getTranscriptSequences = function(param=NULL, genomeFn=NULL, featureFn=NULL){
   }
   txdb = makeTxDbFromGFF(featureFn,
                          dataSource="FGCZ", taxonomyId = NA)
-  # organism=organism, chrominfo=NULL)
   exonRgList = exonsBy(txdb, by="tx", use.names=TRUE)
   genomeFasta = FaFile(genomeFn)
   trSeqs = extractTranscriptSeqs(genomeFasta, exonRgList)

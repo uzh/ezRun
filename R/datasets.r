@@ -159,24 +159,9 @@ addReplicate = function(x, sep="_", repLabels=1:length(x)){
   paste(x, repLabels[repId], sep=sep)
 }
 
-##' @title Combine the reads from two datasets in a single dataset
-##' @description Takes the union of the samples in both input datasets and generates a new dataset.
-##' @param ds1 a data.frame from the meta field of an EzDataset.
-##' @param ds2 a data.frame from the meta field of an EzDataset.
-##' @param dataRoot a character specifying the file root of the datasets.
-##' @param newDsDir a character specifying the directory to save the new dataset in.
-##' @template roxygen-template
-##' @details 
-##' If a sample is present in both datasets, the read files are concatenated and a new file is written.
-##' If a sample is present in only one dataset it is simply copied
-##' The Read Count column must be present and is updated if two files are combined.
-##' A new dataset is written.
-##' @examples 
-##' ds1 = ezRead.table(system.file("extdata/yeast_10k/dataset.tsv", package = "ezRun", mustWork = TRUE))
-##' ds2 = ds1
-##' dataRoot = system.file("./inst", package = "ezRun", mustWork = TRUE)
-##' newDsDir = "./scratch"
-##' ezCombineReadDatasets(ds1, ds2, dataRoot, newDsDir)
+### -----------------------------------------------------------------
+### Combine fastqs from multiple sequencing runs
+###
 ezCombineReadDatasets = function(..., dataRoot="/srv/gstore/projects",
                                  newDsDir=NULL){
   require(dplyr)
@@ -244,73 +229,4 @@ ezCombineReadDatasets = function(..., dataRoot="/srv/gstore/projects",
     }
   }
   return(dsNew)
-  
-  # rowDs1 = rownames(ds1)
-  # rowDs2 = rownames(ds2)
-  # commonCols = intersect(colnames(ds1), colnames(ds2))
-  # ds1[ , setdiff(colnames(ds2), commonCols)] = NA
-  # ds2[ , setdiff(colnames(ds1), commonCols)] = NA
-  # rowdiff1 = setdiff(rowDs1, rowDs2)
-  # rowdiff2 = setdiff(rowDs2, rowDs1)
-  # 
-  # # create new dataset starting with the rows in ds1 and adding those only found in ds2 and set the right rownames
-  # dsNew = rbind(ds1, ds2[rowdiff2, colnames(ds1)])
-  # rownames(dsNew) = c(rowDs1, rowdiff2)
-  # rowDsNew = rownames(dsNew)
-  # 
-  # # adjust the read count and set the directory
-  # dsNew$"Read Count" = NA
-  # cwd = getwd()
-  # on.exit(setwd(cwd))
-  # setwdNew(newDsDir)
-  # 
-  # # loop through rows of dsNew to apply the merging
-  # for (nm in rowDsNew){
-  #   read2IsNull.Ds1 = is.null(ds1[nm, "Read2 [File]"])
-  #   read2IsNull.Ds2 = is.null(ds2[nm, "Read2 [File]"])
-  #   if (nm %in% rowDs1 && !(nm %in% rowDs2)){
-  #     # nm is in ds1, but not in ds2
-  #     dsNew[nm, "Read Count"] = ds1[nm, "Read Count"]
-  #     fileRead1 = file.path(dataRoot, ds1[nm, "Read1 [File]"])
-  #     ezSystem(paste("cp", fileRead1, "."))
-  #     dsNew[nm, "Read1 [File]"] = file.path(newDsDir, basename(fileRead1))
-  #     if (!read2IsNull.Ds1){
-  #       fileRead2 = file.path(dataRoot, ds1[nm, "Read2 [File]"])
-  #       ezSystem(paste("cp", fileRead2, "."))
-  #       dsNew[nm, "Read2 [File]"] = file.path(newDsDir, basename(fileRead2))
-  #     }
-  #   }
-  #   if (nm %in% rowDs2 && !(nm %in% rowDs1)){
-  #     # nm is in ds2, but not in ds1
-  #     dsNew[nm, "Read Count"] = ds2[nm, "Read Count"]
-  #     fileRead1 = file.path(dataRoot, ds2[nm, "Read1 [File]"])
-  #     ezSystem(paste("cp", fileRead1, "."))
-  #     dsNew[nm, "Read1 [File]"] = file.path(newDsDir, basename(fileRead1))
-  #     if (!read2IsNull.Ds2){
-  #       fileRead2 = file.path(dataRoot, ds2[nm, "Read2 [File]"])
-  #       ezSystem(paste("cp", fileRead2, "."))
-  #       dsNew[nm, "Read2 [File]"] = file.path(newDsDir, basename(fileRead2))
-  #     }
-  #   }
-  #   if (nm %in% rowDs2 && nm %in% rowDs1){
-  #     # nm is in ds1 and ds2, thus they need to be merged. there should be no other case.
-  #     dsNew[nm, "Read Count"] = ds1[nm, "Read Count"] + ds2[nm, "Read Count"]
-  #     fileRead1.1 = file.path(dataRoot, ds1[nm, "Read1 [File]"])
-  #     fileRead1.2 = file.path(dataRoot, ds2[nm, "Read1 [File]"])
-  #     fileMerged = paste0("combined-", nm, "_R1.fastq.gz")
-  #     cmd = paste("gunzip -c", fileRead1.1, fileRead1.2, "|", "pigz -p4 --best >", fileMerged)
-  #     ezSystem(cmd)
-  #     dsNew[nm, "Read1 [File]"] = file.path(newDsDir, fileMerged)
-  #     if (!read2IsNull.Ds1 && !read2IsNull.Ds2){
-  #       # Read2 exists in both datasets and needs to be merged as well
-  #       fileRead2.1 = file.path(dataRoot, ds1[nm, "Read2 [File]"])
-  #       fileRead2.2 = file.path(dataRoot, ds2[nm, "Read2 [File]"])
-  #       fileMerged = paste0("combined-", nm, "_R2.fastq.gz")
-  #       cmd = paste("gunzip -c", fileRead2.1, fileRead2.2, "|", "pigz -p4 --best >", fileMerged)
-  #       ezSystem(cmd)
-  #       dsNew[nm, "Read2 [File]"] = file.path(newDsDir, fileMerged)
-  #     }
-  #   }
-  # }
-  # return(dsNew)
 }
