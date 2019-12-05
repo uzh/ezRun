@@ -1,22 +1,24 @@
 context("Test annotation and gtf: annotation.r; gff.r; go-analysis.R; ngsReferenceFiles.r")
 
-param = ezParam()
-gtfFile = system.file("extdata/genes.gtf", package="ezRun", mustWork=TRUE)
-param$ezRef@refFeatureFile = system.file("extdata/genes.gtf", package="ezRun", mustWork=TRUE)
-param$ezRef@refAnnotationFile = "anno.txt"
-param$ezRef@refChromSizesFile = "example.txt"
-fp = "/srv/GT/reference/Saccharomyces_cerevisiae/Ensembl/EF4/Sequence/WholeGenomeFasta/genome.fa"
-param$ezRef@refFastaFile = fp
-gtf = ezLoadFeatures(param, gtfFile)
-seqAnno = transcriptAnnoFromGtf(gtf = gtf)
+library(rtracklayer)
+param <- list()
+param[['refBuild']] <- 'Saccharomyces_cerevisiae/Ensembl/R64/Annotation/Release_98-2019-12-03'
+param[['refFeatureFile']] <- 'genes.gtf'
+param <- ezParam(param)
+gtf <- import(param$ezRef@refFeatureFile)
 
 test_that("Tests functions in annotation.r", {
-  featureAnno = ezFeatureAnnotation(param, rownames(seqAnno), "gene")
+  txAnno <- ezFeatureAnnotation(param, dataFeatureType="transcript")
+  geneAnno <- ezFeatureAnnotation(param, dataFeatureType="gene")
   expect_is(seqAnno, "data.frame")
-  expect_identical(names(seqAnno), names(featureAnno))
-  geneMapping = getGeneMapping(param, seqAnno)
-  expect_is(geneMapping, "array")
-  hasMapping = hasGeneMapping(param, seqAnno)
+  expect_setequal(rownames(geneAnno), gtf$gene_id)
+  expect_setequal(rownames(txAnno), na.omit(gtf$transcript_id))
+  
+  geneMapping <- getGeneMapping(param, txAnno)
+  expect_setequal(geneMapping, gtf$gene_id)
+  expect_setequal(names(geneMapping), na.omit(gtf$transcript_id))
+  
+  hasMapping <- hasGeneMapping(param, txAnno)
   expect_true(hasMapping)
 })
 
