@@ -31,3 +31,33 @@ transcriptAnnoFromGtf = function(gtf, id=gtf$transcript_id, types="exon", attrib
   }
   return(seqAnno)
 }
+
+##' @title Adds transcripts from exons to the annotation
+##' @description Adds transcripts from exons to the annotation using a gtf or gff data.frame.
+##' @param gff the annotation data.frame to get transcripts from.
+##' @template roxygen-template
+##' @return Returns an annotation data.frame with transcripts added to it.
+##' @examples
+##' param = ezParam()
+##' gtf = ezLoadFeatures(param, system.file("extdata/genes.gtf", package="ezRun", mustWork=TRUE))
+##' gtf2 = addTranscriptsToGffExons(gtf)
+addTranscriptsToGffExons = function(gff){
+  
+  gffExon = gff[gff$type == "exon", ]
+  if (is.null(gffExon$transcript_id)){
+    gffExon$transcript_id = ezGffAttributeField(gffExon$attributes, field="transcript_id", attrsep="; *", valuesep=" ")
+  }
+  gffExon$id = paste(gffExon$transcript_id, gffExon$seqid, gffExon$strand)
+  gffTranscript = gffExon[!duplicated(gffExon$id), ]
+  trStart = by(gffExon$start, gffExon$id, min)
+  trEnd = by(gffExon$end, gffExon$id, max)
+  gffTranscript$start = trStart[gffTranscript$id]
+  gffTranscript$end = trEnd[gffTranscript$id]
+  gffTranscript$type = "transcript"
+  gffTranscript$transcript_id = NULL
+  gffTranscript$id = NULL
+  gffExon$transcript_id = NULL
+  gffExon$id = NULL
+  gffAll = rbind(gffTranscript, gffExon, gff[gff$type != "exon", ])
+  return(gffAll)
+}
