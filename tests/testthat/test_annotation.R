@@ -8,11 +8,11 @@ param <- ezParam(param)
 gtfGR <- import(param$ezRef@refFeatureFile)
 gtfDF <- ezReadGff(param$ezRef@refFeatureFile)
 gtf <- ezLoadFeatures(param, param$ezRef@refFeatureFile)
+txAnno <- ezFeatureAnnotation(param, dataFeatureType="transcript")
 
 test_that("Tests functions in annotation.r", {
-  txAnno <- ezFeatureAnnotation(param, dataFeatureType="transcript")
   geneAnno <- ezFeatureAnnotation(param, dataFeatureType="gene")
-  expect_is(seqAnno, "data.frame")
+  expect_is(txAnno, "data.frame")
   expect_setequal(rownames(geneAnno), gtfGR$gene_id)
   expect_setequal(rownames(txAnno), na.omit(gtfGR$transcript_id))
   
