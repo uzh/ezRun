@@ -328,7 +328,11 @@ setMethod("buildIgvGenome", "EzRef", function(.Object){
   unlink(filesToZip)
 })
 
+### -----------------------------------------------------------------
+### Fetch the control sequences from https://fgcz-gstore.uzh.ch/reference/controlSeqs.fa
+### 
 getControlSeqs <- function(ids=NULL){
+  require(Biostrings)
   genomesRoot <- strsplit(GENOMES_ROOT, ":")[[1]]
   controlSeqsFn <- file.path(genomesRoot, "controlSeqs.fa")
   controlSeqsFn <- head(controlSeqsFn[file.exists(controlSeqsFn)], 1)
