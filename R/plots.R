@@ -9,16 +9,19 @@
 ##' @description creates colors palette from the RColorBrewer package. By default, it uses palette name="Paired".
 ##' @author Miquel Anglada Girotto
 ##' @param n <integer> Number of different colors in the palette, minimum 3, maximum depending on palette.
+##' @param alpha <numeric> Value from [0,1] to tune color opacity. By default, 1 gives maximum opacity.
 ##' @examples 
 ##' n = 2
 ##' plot(1:8, col = brewPalette(n), cex=5, pch=16)
-##' n = 8
-##' plot(1:8, col = brewPalette(n), cex=5, pch=16)
+##' n = 12
+##' plot(1:n, col = brewPalette(n), cex=5, pch=16)
+##' n = 8; alpha = 0.75
+##' plot(1:100,sample(1:100), col=brewPalette(n,alpha), cex=5, pch=16)
 ##' n = 'this is not numeric'
 ##' plot(1:8, col = brewPalette(n), cex=5, pch=16) # should result in warning
 ##' n = -1
 ##' plot(1:8, col = brewPalette(n), cex=5, pch=16) # should result in warning
-brewPalette = function(n){
+brewPalette = function(n, alpha=1){
   require(RColorBrewer)
   
   # warnings
@@ -31,12 +34,16 @@ brewPalette = function(n){
   }
   
   # create palette
-  if(n<3){
-    colrs = brewer.pal(3,name="Paired")[n:3]
-  }else{
+  if(n==1){
+    colrs = brewer.pal(3,name="Paired")[1]
+  }else if(n==2){
+    colrs = brewer.pal(3,name="Paired")[2:3]
+  }else if(n<=12){
     colrs = brewer.pal(n,name="Paired")
+  }else{
+    colrs = colorRampPalette(brewer.pal(12,name="Paired"))(n)
   }
-  return(colrs)
+  return(adjustcolor(colrs,alpha.f = alpha))
 }
 
 ##' @title Gets the sample colors
@@ -449,7 +456,7 @@ ezSmoothScatter <- function(x=NULL, y, xlab=NULL, ylab=NULL, nPlotsPerRow=6,
 ##' ezXYScatter(x, y, isPresent=isPresent)
 ezScatter <- function(x=NULL, y, xlab=NULL, ylab=NULL, nPlotsPerRow=6, shrink=FALSE,
                       lim=range(x, y, na.rm=TRUE), isPresent=NULL,
-                      types=NULL, pch=16, colors=brewPalette(ncol(types)), legendPos="bottomright", 
+                      types=NULL, pch=16, colors=brewPalette(ncol(types), alpha = 1), legendPos="bottomright", 
                       cex.main=1.0, cex=1, ...){
   
   y = as.matrix(y)
@@ -512,7 +519,7 @@ ezScatter <- function(x=NULL, y, xlab=NULL, ylab=NULL, nPlotsPerRow=6, shrink=FA
 ##' @describeIn ezScatter Does the XY scatter plot.
 ezXYScatter = function(xVec, yVec, absentColor="gray", shrink=FALSE, frame=TRUE, axes=TRUE,
                               xlim=range(xVec, yVec, na.rm=TRUE), ylim=xlim, isPresent=NULL,
-                              types=NULL, pch=16, colors=brewPalette(ncol(types)), legendPos="bottomright", ...){
+                              types=NULL, pch=16, colors=brewPalette(ncol(types), alpha = 1), legendPos="bottomright", ...){
   par(pty="s")
   if (shrink){
     xVec = shrinkToRange(xVec, xlim)
@@ -701,7 +708,7 @@ ezXYScatter.2 = function(xVec, yVec, absentColor="gray", shrink=FALSE,
 ##' ezAllPairScatter(x=matrix(1:10,5))
 ezAllPairScatter = function(x, main="", shrink=FALSE, xylab=NULL,
                             lim=range(x, na.rm=TRUE), isPresent=NULL,
-                            types=NULL, pch=16, colors=brewPalette(ncol(types)), legendPos="bottomright",
+                            types=NULL, pch=16, colors=brewPalette(ncol(types), alpha = 1), legendPos="bottomright",
                             cex.main=1.0, cex=1, ...){
   nItems = ncol(x)
   if (is.null(xylab)){
@@ -736,7 +743,7 @@ ezAllPairScatter = function(x, main="", shrink=FALSE, xylab=NULL,
     ezXYScatter(x[ ,1], x[, 2], xlim=lim, ylim=lim, shrink=shrink, xlab=xylab[1], ylab=xylab[2],
                        isPresent=isPresent, types=types, pch=pch, colors=colors, legendPos=legendPos, ...)
   }
-  #mtext(main, line=1)
+  mtext(main, outer=TRUE, cex=1.2, line=0)
 }
 
 ##' @title Does a correlation plot

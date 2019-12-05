@@ -29,7 +29,7 @@ yeastCommonDiffExprParam = function(){
   param[['runGO']] = 'true'
   param[['expressionName']] = ''
   param[['specialOptions']] = ''
-  param[['mail']] = 'amiquel@ethz.ch'
+  param[['mail']] = ''
   param[['comparison']] = 'mut--over--wt'
   param[['name']] = 'mut--over--wt'
   param[['dataRoot']] = system.file(package="ezRun", mustWork = TRUE)
@@ -68,7 +68,7 @@ test_that("edger_withgo", {
 })
 
 test_that("count_QC", {
-  #skipLong()
+  skipLong()
   ezSystem("rm -fr /scratch/test_count_QC/*")
   setwdNew("/scratch/test_count_QC")
   param = yeastCommonDiffExprParam()
