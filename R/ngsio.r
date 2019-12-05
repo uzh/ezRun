@@ -33,7 +33,9 @@ loadCountDataset <- function(input, param){
   
   x <- mapply(function(x, y){
     message("loading file: ", x)
-    tempTibble <- read_tsv(x, progress=FALSE, guess_max=1e6) %>%
+    tempTibble <- read_tsv(x, progress=FALSE, guess_max=1e6)
+    #stopifnot(setequal(pull(tempTibble[1]), pull(x1[1])))
+    tempTibble %>%
       dplyr::select(identifier, columnName) %>%
       dplyr::rename("id":= 1, !! y := columnName)
   }, files, names(files), SIMPLIFY=FALSE)

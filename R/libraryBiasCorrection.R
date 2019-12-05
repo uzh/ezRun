@@ -24,9 +24,12 @@ ezCorrectBias = function(counts, gc, width,
   useForNorm = gc >= gcCore[1] & gc <= gcCore[2] & logWidth >= widthCore[1] & logWidth <= widthCore[2]
   useForNorm = useForNorm & apply(counts > minCount, 1, mean) > minPresFraction
   
-  geoMeans = exp(apply(log(counts[useForNorm, ] + minCount), 2, mean)) ## this is dodgy!!!
-  scalingFactors = exp(mean(log(geoMeans))) / geoMeans 
   
+  require(DESeq2)
+  dds = DESeqDataSetFromMatrix(countData=round(counts), colData=data.frame(names=colnames(counts)), ~ names)
+  dds = estimateSizeFactors(dds, controlGenes=useForNorm)
+  scalingFactors = 1/dds@colData$sizeFactor
+
   logCountNorm = log(sweep(counts, 2, scalingFactors, FUN="*"))
   
   medLogCount = apply(logCountNorm, 1, median)
