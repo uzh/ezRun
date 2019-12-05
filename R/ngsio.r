@@ -29,25 +29,24 @@ loadCountDataset <- function(input, param){
                              paste0("'", colnames(x1), "'", collapse="<br>"),
                              "<br>Set the option columnName to one of the names above!")))
   }
-  identifier <- colnames(x1)[1]
+  identifier <- 1 #colnames(x1)[1]
   
   x <- mapply(function(x, y){
     message("loading file: ", x)
     tempTibble <- read_tsv(x, progress=FALSE, guess_max=1e6) %>%
       dplyr::select(identifier, columnName) %>%
-      dplyr::rename(!! y := columnName)
+      dplyr::rename("id":= 1, !! y := columnName)
   }, files, names(files), SIMPLIFY=FALSE)
-  
-  x <- Reduce(function(x,y){left_join(x, y, by=identifier)}, x)
+  x <- Reduce(function(x,y){left_join(x, y, by="id")}, x)
   
   if(dataFeatureLevel == "isoform" && param$featureLevel == "gene"){
     ## aggregate from isoform to gene level
-    seqAnnoDFData <- ezFeatureAnnotation(param, pull(x[identifier]), 
+    seqAnnoDFData <- ezFeatureAnnotation(param, pull(x["id"]), 
                                          dataFeatureLevel)
     stopifnot(identical(seqAnnoDFData$transcript_id, x[[identifier]]))
     
     x$gene_id <- seqAnnoDFData$gene_id
-    x <- select(x, -identifier) %>% group_by(gene_id) %>% 
+    x <- select(x, -id) %>% group_by(gene_id) %>% 
       summarise_all(funs(sum))
     ## TODO: consider using rowsum()
   }
