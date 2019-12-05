@@ -66,23 +66,22 @@ ezGrid = function(x, header.columns = FALSE,  valign = "top", ...){
 ##' ezImageFileLink(plotCmd)
 ezImageFileLink = function(plotCmd, file=NULL, name="imagePlot", plotType="plot", mouseOverText="my mouse over",
                            addPdfLink=TRUE, width=480, height=480, ppi=72, envir=parent.frame()){
-  require(ReporteRs)
   if (is.null(file)){
     file = paste0(name, "-", plotType, ".png")
   }
   png(file, width=width, height=height)
   eval(plotCmd, envir=envir)
   dev.off()
+  imgFilePot = paste0("<span><img src='", file, "' title='", mouseOverText, "'/></span>")
   if (addPdfLink) {
     pdfName = sub(".png$", ".pdf", file)
     pdf(file=pdfName, width=width/ppi, height=height/ppi)
     eval(plotCmd, envir=envir)
     dev.off()
-    imgFilePot = pot(paste("<img src='", file, "' title='", mouseOverText, "'/>"), hyperlink = pdfName)
+    imgFilePot = paste0("<a href='", pdfName, "'>", imgFilePot, "</a>")
   } else {
-    imgFilePot = pot(paste("<img src='", file, "' title='", mouseOverText, "'/>"))
   }
-  return(as.html(imgFilePot))
+  return(imgFilePot)
 }
 
 ## currently not possible to use from old report opener:
