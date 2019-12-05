@@ -291,7 +291,8 @@ makeFeatAnnoEnsembl <- function(featureFile,
 }
 
 ##' @describeIn ezFeatureAnnotation Aggregates the Go annotation.
-aggregateGoAnnotation = function(seqAnno, genes, goColumns=c("GO BP", "GO CC", "GO MF")){
+aggregateGoAnnotation = function(seqAnno, genes,
+                                 goColumns=c("GO BP", "GO CC", "GO MF")){
   if (setequal(genes, rownames(seqAnno))){
     return(seqAnno)
   }
@@ -444,6 +445,9 @@ getBlacklistedRegions <- function(refBuild=c("hg38", "hg19", "mm10", "mm9",
   return(bedGR)
 }
  
+### -----------------------------------------------------------------
+### Functions for control sequences
+###
 makeExtraControlSeqGR <- function(ids=NULL){
   controlSeqs <- getControlSeqs(ids)
   txids <- rep(paste0("Transcript_",names(controlSeqs)), each=4)
