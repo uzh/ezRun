@@ -282,10 +282,6 @@ plotCmd = expression({
     axis(1, at=at*ncol(xx), labels = at)
     legend("top", c("used", "not expressed"), col=c("blue", "darkorange"), pch=20, cex=1)
 })
-#includeHtml <- ezImageFileLink(plotCmd, 
-#                               file=paste0(param$comparison, "-pValueHist.png"), 
-#                               width=800)
-#cat(includeHtml)
 eval(plotCmd)
 ```
 
@@ -416,10 +412,6 @@ if (sum(use) > param$minGenesForClustering){
                    lim=c(-param$logColorRange, param$logColorRange))
   })
   eval(plotCmd)
-  #clusterLink = ezImageFileLink(plotCmd, file=clusterPng, 
-  #                              width=max(800, 400 + 10 * ncol(xCentered)), 
-  #                              height=1000) # HEATMAP
-  #cat(clusterLink)
   pdf(clusterPdf, width=max(8,4+0.1*ncol(se)), height=10)
   eval(plotCmd)
   dev.off()
