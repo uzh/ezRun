@@ -18,6 +18,9 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ## debug
 #title: "`r paste('Two groups analysis:', param$comparison)`"
+#load("/srv/gstore/projects/p2378/EdgeR_33526_MEP--over--AVG_2019-01-30--09-29-18/MEP--over--AVG/result-MEP--over--AVG-exisqviqjjth-EzResult.RData")
+#deResult = EzResult(param=param, rawData=rawData, se=se)
+#param <- deResult$param
 ## end of debug
 debug <- FALSE
 
@@ -35,6 +38,9 @@ param <- metadata(se)$param
 #param$doPrecomputeEnrichr <- FALSE
 seqAnno <- data.frame(rowData(se), row.names=rownames(se),
                       check.names = FALSE, stringsAsFactors=FALSE)
+
+dataset <- data.frame(colData(se), check.names=FALSE, stringsAsFactors=FALSE)
+design = ezDesignFromDataset(dataset, param)
 ## In some cases, such as p2710, there are millions of features, then we have to adjust some analyses below.
 hasMassiveFeats <- nrow(seqAnno) >= 200e3
 ```
@@ -406,14 +412,18 @@ if (sum(use) > param$minGenesForClustering){
   }
   xCentered = xCentered[, order(param$grouping)]
   sampleColors = getSampleColors(param$grouping)[order(param$grouping)]
+  
   clusterPng = "cluster-heatmap.png"
   clusterPdf = "cluster-heatmap.pdf"
-  clusterColors = c("red", "yellow", "orange", "green", "blue", "cyan")
-  clusterResult = clusterResults(xCentered, nClusters=6, clusterColors=clusterColors)
+  
+  nClusters=6
+  clusterColors = hcl.colors(nClusters, palette = "BluGrn")
+  clusterResult = clusterResults(xCentered, nClusters=nClusters, clusterColors=clusterColors)
+  
   plotCmd = expression({
-    clusterHeatmap(xCentered, param, clusterResult, file=NULL,
-                   colColors=sampleColors, 
-                   lim=c(-param$logColorRange, param$logColorRange))
+    clusterPheatmap(xCentered, design, param, clusterColors,
+                      lim=c(-param$logColorRange, param$logColorRange),
+                      doClusterColumns=FALSE, sampleColors=sampleColors, showDesignComb = FALSE)
   })
   eval(plotCmd)
 
@@ -880,7 +890,6 @@ if(all(c("gc", "featWidth") %in% colnames(x))) {
 
 ### Input dataset
 ```{r input, echo=FALSE}
-dataset <- data.frame(colData(se), check.names=FALSE, stringsAsFactors=FALSE)
 ezInteractiveTableRmd(values=dataset, digits=4)
 ```
 
