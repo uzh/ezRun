@@ -95,8 +95,8 @@ cleanGenomeFiles = function(genomeFile, genesFile){
   genome = readDNAStringSet(genomeFile)
   names(genome) = sub(" .*", "", names(genome))
   gtf <- import(genesFile)
-  use = seqnames(gtf) %in% names(genome)
+  use <- S4Vectors::`%in%`(seqnames(gtf), names(genome))
   stopifnot(any(use))
-  gtf = gtf[use]
+  gtf <- gtf[use]
   return(list(genomeSeq=genome, gtf=gtf))
 }

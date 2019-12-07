@@ -26,7 +26,7 @@ yeastCommonDiffExprParam = function(){
   param[['grouping']] = 'Genotype'
   param[['sampleGroup']] = 'mut'
   param[['refGroup']] = 'wt'
-  param[['runGO']] = 'true'
+  param[['runGO']] = 'false'
   param[['expressionName']] = ''
   param[['specialOptions']] = ''
   param[['mail']] = ''
@@ -72,6 +72,7 @@ test_that("count_QC", {
   ezSystem("rm -fr /scratch/test_count_QC/*")
   setwdNew("/scratch/test_count_QC")
   param = yeastCommonDiffExprParam()
+  #param$refAnnotationFile = file=system.file("extdata/genes_annotation.txt", package="ezRun", mustWork = TRUE)
   input = EzDataset$new(file=system.file("extdata/yeast_10k_STAR_counts/dataset.tsv", package="ezRun", mustWork = TRUE),
                         dataRoot=param$dataRoot)
   output = EzDataset$new(file=system.file("extdata/yeast_10k_STAR_counts_edger/dataset.tsv", package="ezRun", mustWork = TRUE),

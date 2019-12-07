@@ -5,9 +5,18 @@
 \alias{.ezMergeLeftRightAlignments}
 \title{Reads paired alignments from bam}
 \usage{
-ezReadPairedAlignments(bamFile, seqname = NULL, start = NULL,
-  end = NULL, strand = "*", tag = c("NH"), keepUnpaired = "both",
-  fillGap = "N", minMapQuality = 0, keepMultiHits = TRUE)
+ezReadPairedAlignments(
+  bamFile,
+  seqname = NULL,
+  start = NULL,
+  end = NULL,
+  strand = "*",
+  tag = c("NH"),
+  keepUnpaired = "both",
+  fillGap = "N",
+  minMapQuality = 0,
+  keepMultiHits = TRUE
+)
 
 .ezMergeLeftRightAlignments(gaLeft, gaRight, fillGap = "N")
 }

@@ -10,10 +10,10 @@ getCellCycle <- function(counts, refBuild){
   require(tibble)
   require(dplyr)
   # The training data is only available for Hsap and Mmus Ensembl
-  if(startsWith(refBuild, "Homo_sapiens/Ensembl")){
+  if(startsWith(refBuild, "Homo_sapiens")){
     species <- "human"
     hasTrainData <- TRUE
-  }else if(startsWith(refBuild, "Mus_musculus/Ensembl")){
+  }else if(startsWith(refBuild, "Mus_musculus")){
     species <- "mouse"
     hasTrainData <- TRUE
   }else{

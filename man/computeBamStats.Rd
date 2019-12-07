@@ -17,14 +17,27 @@ getPosErrorFromBam(bamFile, param)
 
 ezPosSpecErrorRate(bam, ReferenceGenome, nMaxReads = 1e+05)
 
-getStatsFromBam(param, bamFile, sm, gff = NULL, repeatsGff = NULL,
-  nReads = NA)
+getStatsFromBam(param, bamFile, sm, gff = NULL, repeatsGff = NULL, nReads = NA)
 
-getStatsFromBamParallel(seqLengths, param, bamFile, sm, gff = NULL,
-  repeatsGff = NULL, mc.cores = ezThreads(), nReads = NA)
+getStatsFromBamParallel(
+  seqLengths,
+  param,
+  bamFile,
+  sm,
+  gff = NULL,
+  repeatsGff = NULL,
+  mc.cores = ezThreads(),
+  nReads = NA
+)
 
-getStatsFromBamSingleChrom(chrom, param, bamFile, sm, gff = NULL,
-  repeatsGff = NULL)
+getStatsFromBamSingleChrom(
+  chrom,
+  param,
+  bamFile,
+  sm,
+  gff = NULL,
+  repeatsGff = NULL
+)
 
 getTargetTypeCounts(param, gff, rr, seqid = NULL, repeatsGff = NULL)
 
