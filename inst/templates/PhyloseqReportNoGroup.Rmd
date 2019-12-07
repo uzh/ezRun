@@ -132,11 +132,12 @@ plotRichnessByGroup <- groupModRichPlot(physeqObjectNoTreeUnfilt, x="group",meas
 
 ```{r prepRaref, include=FALSE}
 ### rarefaction: 3. rarefaction/saturation plots.
+abundTableRar <- t(otu_table(physeqFullObject)@.Data)
 plotTitle_1 <- paste("Rarefaction plots based on the\nselection of the most abundant", numTopRanks, "ranks")
 plotTitle_2 <- paste("Saturation plots based on the\nselection of the most abundant", numTopRanks, "ranks")
-rarefPlot_1 <- rarefactionPlot(physeqFullObject,1) +labs(title=plotTitle_1) + 
+rarefPlot_1 <- rarefactionPlot(abundTableRar,1) +labs(title=plotTitle_1) + 
     theme(plot.title=element_text(size=11,hjust=0.5))
-rarefPlot_2 <- rarefactionPlot(physeqFullObject,2) +labs(title=plotTitle_2) + 
+rarefPlot_2 <- rarefactionPlot(abundTableRar,2) +labs(title=plotTitle_2) + 
     theme(plot.title=element_text(size=11,hjust=0.5))
 ```
 
