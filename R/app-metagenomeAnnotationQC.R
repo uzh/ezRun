@@ -21,7 +21,7 @@ ezMethodMetagenomeAnnotationQC = function(input=NA, output=NA, param=NA,
   
   dataset = input$meta
   colnames(dataset) <-  gsub(" \\[File\\]","",colnames(dataset))
-  allColumns <- dataset[,c("prodigalPredictionFile","interproscanFile")]
+  allColumns <- dataset[,c("prodigalPredictionFile","interproscanFile","binSummaryFile")]
   plotLabels <- input$getNames()
   ## Copy all files locally
   copyLoopOverFiles <- function(x){ 
@@ -30,7 +30,9 @@ ezMethodMetagenomeAnnotationQC = function(input=NA, output=NA, param=NA,
   listOfListAllFilesTemp <- as.list(allColumns)
   lapply(listOfListAllFilesTemp,copyLoopOverFiles)
   listOfListAllFiles <- as.list(data.frame(apply(allColumns,2,basename),stringsAsFactors = F))
-  namedList <- lapply(listOfListAllFiles,function(x){y=as.list(x);names(y)=sampleNames;return(y)})
+  namedList <- lapply(listOfListAllFiles,function(x){
+    y=as.list(x);names(y)=sampleNames;return(y)
+    })
   
   ## construct final lists
   ## prodigal
@@ -57,7 +59,11 @@ ezMethodMetagenomeAnnotationQC = function(input=NA, output=NA, param=NA,
   }
   interproscanListForWrap <- mapply(function(x,y) rbind(x,y),interproscanList[[1]],interproscanList[[2]])
   
-
+  ## summary bins
+  mergedSummaryBinDFList <- lapply(namedList$binSummaryFile,mergeSummaryBinFiles)
+  mergedSummaryBinDF <- do.call("rbind",mergedSummaryBinDFList)
+  
+  ##
   setwdNew(basename(output$getColumn("Report")))
   ## Copy the style files and templates
   styleFiles <- file.path(system.file("templates", package="ezRun"),

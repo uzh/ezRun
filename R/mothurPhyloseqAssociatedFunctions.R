@@ -303,7 +303,7 @@ pcaForPhyloseqPlot <- function(phySeqObject,type,group){
 ##' 
 ### Heatmap function
 heatmapForPhylotseqPlotPheatmap <- function(phyloseqOtuObj,areThereMultVar,isGroupThere,rank){
-  input <- data.frame(t(phyloseqOtuObj@otu_table@.Data))
+  input <- data.frame(t(phyloseqOtuObj@otu_table@.Data), check.names = F)
   taxDF <- data.frame(phyloseqOtuObj@tax_table@.Data)
   input$rank <- taxDF[[rank]]
   colToAggregate <- grep("rank",colnames(input), value = T,invert = T)
@@ -316,15 +316,18 @@ heatmapForPhylotseqPlotPheatmap <- function(phyloseqOtuObj,areThereMultVar,isGro
     if (isGroupThere){
   gr1 <- colnames(sample_data(phyloseqOtuObj))[1]
   gr2 <- colnames(sample_data(phyloseqOtuObj))[2]
-  nColsGr1 <- nlevels(sample_data(phyloseqOtuObj)@.Data[[1]])
-  nColsGr2 <- nlevels(sample_data(phyloseqOtuObj)@.Data[[2]])
+  fact1 <- as.factor(sample_data(phyloseqOtuObj)@.Data[[1]])
+  fact2 <- as.factor(sample_data(phyloseqOtuObj)@.Data[[2]])
+  nColsGr1 <- nlevels(fact1)
+  nColsGr2 <- nlevels(as.factor(sample_data(phyloseqOtuObj)@.Data[[2]]))
   pal1 <- colorRampPalette(brewer.pal(11, "Blues"))(nColsGr1)
-  names(pal1) <- levels(sample_data(phyloseqOtuObj)@.Data[[1]])
+  names(pal1) <- levels(fact1)
   pal2 <- colorRampPalette(brewer.pal(11, "RdYlGn"))(nColsGr2)
-  names(pal2) <- levels(sample_data(phyloseqOtuObj)@.Data[[2]])
+  names(pal2) <- levels(fact2)
   mat_colors <- list(pal1,pal2)
   names(mat_colors) <- c(gr1,gr2)
-  mat_col <- data.frame(sample_data(phyloseqOtuObj))
+  mat_col_temp <- data.frame(sample_data(phyloseqOtuObj))
+  mat_col <- data.frame(lapply(mat_col_temp,as.factor), row.names = rownames(mat_col_temp))
   if (!areThereMultVar){
     mat_colors <- mat_colors[gr1]
     mat_col <- data.frame(sample_data(phyloseqOtuObj)[,gr1])
@@ -356,14 +359,13 @@ heatmapForPhylotseqPlotPheatmap <- function(phyloseqOtuObj,areThereMultVar,isGro
 ##' @description HOw many OTUs do we really have?
 ##' @param  x, mothur shared abundance  file or already read-in table (dep on sec. param).
 ##' @return Returns a grid of plots
-rarefactionPlot <- function(physeqFullObject, type){
+rarefactionPlot <- function(adundDF, type){
   if (type == 1){
     yLabel <- "Community saturation"
   }else{
     yLabel <- "Community rarefaction"
   }
-  abundTable <- t(otu_table(physeqFullObject)@.Data)
-  bb <- iNEXT(abundTable, q=0, datatype="abundance")
+  bb <- iNEXT(adundDF, q=0, datatype="abundance")
   fortifiedObj <- fortify(bb, type=type) 
   fortifiedObjPoint <- fortifiedObj[which(fortifiedObj$method=="observed"),]
   fortifiedObjLine <- fortifiedObj[which(fortifiedObj$method!="observed"),]
@@ -371,8 +373,10 @@ rarefactionPlot <- function(physeqFullObject, type){
                            c("interpolated", "extrapolated"),
                            c("interpolation", "extrapolation"))
   saturationPlot <- ggplot(fortifiedObj, aes(x=x, y=y, colour=site)) + 
-    geom_point(aes(shape=site), size=4, data=fortifiedObjPoint) + scale_shape_manual(values=rep(seq(1,23),3)) +
-    geom_line(aes(linetype=method), lwd=1, data=fortifiedObjLine) +  guides(shape = guide_legend(nrow = 6), linetype= guide_legend(nrow = 2))
+    geom_point(aes(shape=site), size=4, data=fortifiedObjPoint) + 
+    scale_shape_manual(values=rep(seq(1,23),3)) +
+    geom_line(aes(linetype=method), lwd=1, data=fortifiedObjLine) +  
+    guides(shape = guide_legend(nrow = 6), linetype= guide_legend(nrow = 2))
   saturationPlot <- saturationPlot + labs(x="Number of OTUs", 
                                           y=yLabel, 
                                           shape="Samples", colour="Samples",
