@@ -17,6 +17,7 @@ ezMethodMetagenomeAnnotationQC = function(input=NA, output=NA, param=NA,
   dataset = input$meta
   sampleNames = input$getNames() 
   numberOfTopNCategories = param$numberOfTopNCategories
+  isGroupThere = param$grouping != ""
   
   
   dataset = input$meta
@@ -25,9 +26,11 @@ ezMethodMetagenomeAnnotationQC = function(input=NA, output=NA, param=NA,
   plotLabels <- input$getNames()
   ## Copy all files locally
   copyLoopOverFiles <- function(x){ 
-    lapply(x,function(x) ezSystem(paste("cp",file.path(DEMO_DATA_ROOT,x),"./")))
+    lapply(x,function(x) ezSystem(paste("cp",x,"./")))
   }
-  listOfListAllFilesTemp <- as.list(allColumns)
+  listOfListAllFilesTemp <- as.list(input$getFullPaths("prodigalPredictionFile"),
+  input$getFullPaths("interproscanFile"),
+  input$getFullPaths("binSummaryFile"))
   lapply(listOfListAllFilesTemp,copyLoopOverFiles)
   listOfListAllFiles <- as.list(data.frame(apply(allColumns,2,basename),stringsAsFactors = F))
   namedList <- lapply(listOfListAllFiles,function(x){

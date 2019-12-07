@@ -54,7 +54,11 @@ lengthBinSummPlot<- ggplot(mergedSummaryBinDF, aes(x=ID, y=log(length), color=bi
   scale_color_discrete(brewer.pal(9, "RdYlGn"),guide=guide_legend(title="bin ID")) +
   theme(axis.text.x = element_blank())
 ## abundance Heatmap
-showSummaryHeatmap <- summaryHeatmap(binBasedAbundTable)
+if (isGroupThere) {
+showSummaryHeatmap <- summaryHeatmap(binBasedAbundTable, isGroupThere, dataset=dataset)
+}else{
+showSummaryHeatmap <- summaryHeatmap(binBasedAbundTable, isGroupThere) 
+}
 
 ## rarefaction
 plotTitle_1 <- paste("Rarefaction plots")
