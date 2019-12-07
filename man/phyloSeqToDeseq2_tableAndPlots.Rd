@@ -4,7 +4,7 @@
 \alias{phyloSeqToDeseq2_tableAndPlots}
 \title{Differential abundance analysis between groups}
 \usage{
-phyloSeqToDeseq2_tableAndPlots(phyloseqObj)
+phyloSeqToDeseq2_tableAndPlots(phyloseqObj, rank, group, sampleGroup, refGroup)
 }
 \arguments{
 \item{phyloseqObj, }{a phyloseq object.}

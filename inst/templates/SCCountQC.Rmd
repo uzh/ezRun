@@ -14,28 +14,25 @@ editor_options:
 Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
 
 ```{r setup, include=FALSE}
-require(SummarizedExperiment)
-require(plotly)
-require(scater)
-require(ezRun)
-require(DT)
-require(htmltools)
-require(dplyr)
-require(Matrix) # sparse matrix
-require(Seurat)
-require(pheatmap)
-require(readr)
+library(SummarizedExperiment)
+library(plotly)
+library(scater)
+library(ezRun)
+library(DT)
+library(htmltools)
+library(dplyr)
+library(Matrix)
+library(Seurat)
+library(pheatmap)
+library(readr)
 library(DropletUtils)
 library(tibble)
+library(cowplot)
 
 ## ----------------------------------------------
 ## debug
 # title:  "`r metadata(sce)$param$name`"
-# sce <- readRDS("/srv/gstore/projects/p2446/SCCountQC_32261_2018-12-12--21-58-56/GBM_SC_1_plate1_SCCountQC/sce.rds")
- # sce <- readRDS("/scratch/gtan/debug/quickDebug/sce.rds")
-# sce <- readRDS("/srv/gstore/projects/p2838/SCCountQC_32064_2019-01-09--11-48-55/NCC_Trpv5_Tomato_sc_A01_SCCountQC/sce.rds")
-## convention:
-## by default the fixed genenames are use
+# sce <- readRDS("/srv/gstore/projects/p3271/SCCountQC_41088_2019-11-12--14-43-47/1834_SCCountQC/sce.rds")
 
 debug <- FALSE
 
@@ -55,22 +52,15 @@ param$minReadsPerGene <- switch(toupper(param$scProtocol),
 isMito <- toupper(as.character(seqnames(rowRanges(sce)))) %in% 
   toupper(c("chrM", "MT", "M"))
 
-## sceFixName for section "Reads on top 50 genes" and "Expression metrics"
+## sceFixName for section "Reads on top 50 genes"
 sceFixName = sce
 rownames(sceFixName) <- uniquifyFeatureNames(ID=rowData(sceFixName)$gene_id,
                                              names=rowData(sceFixName)$gene_name)
-cts <- assays(sceFixName)$counts
-useCell = Matrix::colSums(cts) >= param$minReadsPerCell & 
-  Matrix::colSums(cts >= param$minReadsPerGene) > param$minGenesPerCell
-sceFilt = sceFixName[ , useCell]
-ctsFilt <- assays(sceFilt)$counts
 
-## scater sce
-cell_info <- data.frame(row.names=colnames(ctsFilt),
-                        lib_size=Matrix::colSums(ctsFilt)/1e6,
-                        expr_genes = Matrix::colSums(ctsFilt >= param$minReadsPerGene),
-                        perc_mito=Matrix::colSums(ctsFilt[isMito, , drop=FALSE])*100 / Matrix::colSums(ctsFilt))
-sceFixName <- calculateQCMetrics(sceFixName, feature_controls=list(Mt=isMito))
+sceFixName <- addPerCellQC(sceFixName, subsets=list(Mito=isMito),
+                           detection.limit=param$minReadsPerGene-1)
+sceFixName <- addPerFeatureQC(sceFixName,
+                              detection_limit=param$minReadsPerGene-1)
 
 ## datasetAllCells for section "Heatmap of reads per cell on the plate"
 if(toupper(param$scProtocol) == "SMART-SEQ2"){
@@ -79,38 +69,15 @@ if(toupper(param$scProtocol) == "SMART-SEQ2"){
 }
 ```
 
-```{r , include=FALSE}
-# if(param$scProtocol == "smart-Seq2"){  ## TODO - why only for smart-Seq2???
-#   libsize.drop <- isOutlier(sceFilt$total_counts, nmads=5, type="lower",
-#                             log=TRUE)
-#   feature.drop <- isOutlier(sceFilt$total_features, nmads=5, type="lower",
-#                             log=TRUE)
-#   sceFixName <- sceFixName[,!(libsize.drop | feature.drop )]
-# }
-```
-
-```{r seurat setup, include=FALSE}
-## ----------------------------------------------
-## SeuratObject fro Seurat section
-cell_info_seurat <- cell_info
-cell_info_seurat$perc_mito <- cell_info_seurat$perc_mito/100
-scData <- CreateSeuratObject(raw.data = ctsFilt, min.cells = 5,
-                             min.genes=1,
-                             project = param$name, meta.data=cell_info_seurat)
-```
-
 ## CountQC_Result {.tabset}
 
 ### Overview
 
 * Total Number of Cells: `r ncol(sce)`
-* Number of cells removed:  `r ncol(sce)-ncol(sceFilt)`
-    + cells with less than `r param$minReadsPerCell` reads aligned
-    + cells with less than `r param$minGenesPerCell` genes that have at least `r param$minReadsPerGene` reads
-* Median Genes per Cell = `r median(cell_info$expr_genes)`
-* Median Reads per Cell = `r round(median(cell_info$lib_size*1e6),0)`
-* Number of input reads = `r ifelse(is.null(metadata(sce)$mlog), NA, metadata(sce)$mlog["Number of input reads",2])`
-* % of reads mapped to multiple loci = `r ifelse(is.null(metadata(sce)$mlog), NA, metadata(sce)$mlog["% of reads mapped to multiple loci",2])`
+* Median Genes per Cell = `r median(sceFixName$detected)`
+* Median Reads per Cell = `r format(median(sceFixName$sum), scientific=FALSE)`
+* Number of input reads (Smart-Seq2 only) = `r ifelse(is.null(metadata(sce)$mlog), NA, metadata(sce)$mlog["Number of input reads",2])`
+* % of reads mapped to multiple loci (Smart-Seq2 only) = `r ifelse(is.null(metadata(sce)$mlog), NA, metadata(sce)$mlog["% of reads mapped to multiple loci",2])`
 
 ### Saturation
 
@@ -140,23 +107,24 @@ plot_ly(data=toPlot, x=~x, y=~y, type = 'scatter', mode = 'lines') %>%
          xaxis = xax, yaxis = yax)
 ```
 
-### #Genes detected in cells
+### Diagnostic plots of cells
 
-Interactive plot showing the read counts vs the number of expressed genes for all cells. Each dot is a cell.
+Interactive plot showing the read counts vs the number of expressed genes and mitochondial content for all cells. Each dot is a cell.
 
-```{r genes detected in cells, fig.width=8, fig.height=5, echo=FALSE, message=FALSE, warning=FALSE, eval=!debug}
-xax <- list(
-  title = "Read counts (million)",
-  zeroline = FALSE
-)
-yax <- list(
-  title = "Number of expressed genes",
-  zeroline = FALSE
-)
-plot_ly(data=cell_info, x=~lib_size, y=~expr_genes, 
-        text=rownames(cell_info),
-        marker = list(color="deepskyblue3"), type='scatter') %>% 
-  layout(xaxis = xax, yaxis = yax)
+```{r genes detected in cells, fig.width=10, fig.height=5, echo=FALSE, message=FALSE, warning=FALSE, eval=!debug}
+p1 <- plotColData(sceFixName, x = "sum", y="detected", colour_by="Batch") +
+  xlab("Read count") + ylab("Number of expressed genes") +
+  theme_minimal_grid()
+p1 <- ggplotly(p1)
+
+p2 <- plotColData(sceFixName, x = "sum", y="subsets_Mito_percent", 
+                 colour_by="Batch") +
+  xlab("Read count") + ylab("Mitochondrial percent") +
+  theme_minimal_grid()
+p2 <- ggplotly(p2)
+
+subplot(p1, p2, titleX=TRUE, titleY=TRUE, nrows=1) %>%
+  layout(showlegend = FALSE)
 ```
 
 ### QC metrics on the cells
@@ -167,17 +135,29 @@ Histograms of read counts, number of expressed genes and proportion of reads ass
 yax <- list(
   title = "Number of cells"
 )
-p1 <- plot_ly(data=cell_info, x=~lib_size) %>%
-  layout(xaxis = list(title="Read counts (million)"), yaxis = yax)
-p2 <- plot_ly(data=cell_info, x=~expr_genes) %>%
+p1 <- plot_ly(data=data.frame(colData(sceFixName), check.names = FALSE),
+              x=~sum) %>%
+  layout(xaxis = list(title="Read counts (thousands)"), yaxis = yax)
+p2 <- plot_ly(data=data.frame(colData(sceFixName), check.names = FALSE),
+              x=~detected) %>%
   layout(xaxis = list(title="Number of expressed genes"), yaxis = yax)
-p3 <- plot_ly(data=cell_info, x=~perc_mito) %>%
+p3 <- plot_ly(data=data.frame(colData(sceFixName), check.names = FALSE),
+              x=~subsets_Mito_percent) %>%
   layout(xaxis = list(title="Mitochondrial proportion (%)"), yaxis = yax)
 subplot(p1, p2, p3, titleX=TRUE, titleY=TRUE, nrows=1) %>%
   layout(showlegend = FALSE)
+
+p1 <- plotColData(sceFixName, y="sum", x="Batch") +
+  ylab("Library size") + theme_minimal_grid()
+p2 <- plotColData(sceFixName, y="detected", x="Batch") +
+  ylab("Number of expressed genes") + theme_minimal_grid()
+p3 <- plotColData(sceFixName, y="subsets_Mito_percent", x="Batch") +
+   ylab("Mitochondrial percent") + theme_minimal_grid()
+p <- plot_grid(p1, p2, p3, ncol=3)
+print(p)
 ```
 
-### Most expressed features
+### Highly expressed features
 
 Percentage of total counts assigned to the top 50 (by default) most-expressed features. Each row in the plot below corresponds to a gene, and each bar corresponds to the expression of a gene in a single cell. The circle indicates the median expression of each gene, with which genes are sorted.
 
@@ -186,24 +166,7 @@ We expect to see the "usual suspects", i.e., mitochondrial genes, actin, ribosom
 The feature control is mitochondrial gene.
 
 ```{r top 50 genes, fig.width=6, fig.height=6, echo=FALSE, message=FALSE, warning=FALSE, eval=!debug}
-plotHighestExprs(sceFixName, n=50)
-```
-
-### Frequency of expression as a function of the mean
-
-The frequency of expression (i.e., number of cells with non-zero expression) against the mean. These two metrics should be positively correlated with each other for most genes.
-
-Outliers from the trend may warrant further investigation. For example, alignment errors for pseudo-genes of highly-expressed genes will result in features with low means that are expressed in all cells. Conversely, PCR amplification biases (or the presence of rare populations) may result in genes with very high means that are expressed in very few cells.
-
-```{r expression metrics, fig.width=8, fig.height=6, echo=FALSE, message=FALSE, warning=FALSE, eval=!debug}
-result = tryCatch({
-    plotExprsFreqVsMean(sceFixName)
-}, warning = function(warning) {
-    cat(paste0("The plot couldn't be calculated beacuse of the following warning: ", warning, " Please, contact a bioinformatician."))
-}, error = function(error) {
-    cat(paste0("The plot couldn't be calculated beacuse of the following error: ", error, " Please, contact a bioinformatician."))
-})
-result
+plotHighestExprs(sceFixName, n=50, exprs_values = "counts")
 ```
 
 ### Heatmap of reads per cell on the plate
@@ -439,70 +402,6 @@ p2 <- plot_ly(alpha = 0.6) %>%
          xaxis=x)
 p2
 ```
-
-<!-- ### Seurat -->
-
-<!-- ```{r VlnPlot, echo=FALSE, fig.width=10, fig.height=ifelse(nchar(scData@project.name) > 20, 10, 7), eval=!debug && FALSE} -->
-<!-- VlnPlot(object=scData, features.plot = c("nGene", "nUMI", "perc_mito"), -->
-<!--         nCol=3,  -->
-<!--         x.lab.rot=ifelse(nchar(scData@project.name) > 20, TRUE, FALSE)) -->
-<!-- ``` -->
-
-<!-- ```{r seurat filter and normalize, echo=FALSE, eval=!debug && FALSE} -->
-<!-- scData <- FilterCells(object = scData, -->
-<!--                       subset.names = c("nGene", "perc_mito"), -->
-<!--                       low.thresholds = c(param$minGenesPerCell, -Inf),  -->
-<!--                       high.thresholds = c(Inf, 0.25)) -->
-<!-- scData <- NormalizeData(object=scData, normalization.method="LogNormalize", -->
-<!--                         scale.factor=getSeuratScalingFactor(param$scProtocol)) -->
-
-<!-- if(ncol(scData@data) <= 10){ -->
-<!--   ## if there is less than 10 cells left, don't do following seurat because of error -->
-<!--   doSeurat <- FALSE -->
-<!--   message("Less than 10 cells after Seurat filtering. The donwstream Seurat analysis is aborted.") -->
-<!-- }else{ -->
-<!--   doSeurat <- TRUE -->
-<!-- } -->
-<!-- ``` -->
-
-<!-- ```{r seurat variable gene, echo=FALSE, eval=doSeurat && !debug && FALSE} -->
-<!-- scData <- FindVariableGenes(object=scData) -->
-<!-- ``` -->
-
-<!-- The number of variable genes: `r length(x = scData@var.genes)`. -->
-
-<!-- ```{r scale and PCA calculation, echo=FALSE, message=FALSE, results='hide', eval=doSeurat && !debug && FALSE} -->
-<!-- scData <- ScaleData(object = scData, vars.to.regress = c("nUMI","perc_mito"), -->
-<!--                     do.par=TRUE, num.cores=param$cores) -->
-<!-- scData <- RunPCA(object = scData, pc.genes = scData@var.genes, -->
-<!--                  do.print = TRUE, pcs.print = 1:5, -->
-<!--                  genes.print = 5) -->
-<!-- scData <- ProjectPCA(object = scData, do.print=FALSE) -->
-<!-- ``` -->
-
-<!-- ```{r plot viz PCA, echo=FALSE, fig.width=10, fig.height=15, eval=doSeurat && !debug && FALSE} -->
-<!-- VizPCA(object = scData, pcs.use = 1:6) -->
-<!-- ``` -->
-
-<!-- ```{r plot PCA, echo=FALSE, fig.width=7, fig.height=7, eval=doSeurat && !debug && FALSE} -->
-<!-- PCAPlot(object = scData, dim.1 = 1, dim.2 = 2) -->
-<!-- ``` -->
-
-<!-- ```{r PCHeatmap, echo=FALSE, fig.width=10, fig.height=30, eval=doSeurat && !debug && FALSE} -->
-<!-- PCHeatmap(object=scData, pc.use=1:20, -->
-<!--           cells.use=min(c(500, ncol(scData@data))), -->
-<!--           do.balanced=TRUE, label.columns=FALSE, use.full=FALSE) -->
-<!-- ``` -->
-
-<!-- ```{r JackStraw, echo=FALSE, fig.width=10, fig.height=25, eval=doSeurat&& !debug && FALSE} -->
-<!-- scData <- JackStraw(object=scData, num.replicate=100, display.progress=FALSE, -->
-<!--                     do.par=TRUE, num.cores=param$cores) -->
-<!-- suppressWarnings(JackStrawPlot(object=scData, PCs = 1:20)) -->
-<!-- ``` -->
-
-<!-- ```{r PCElbowPlot, echo=FALSE, eval=doSeurat && !debug && FALSE} -->
-<!-- PCElbowPlot(object=scData) -->
-<!-- ``` -->
 
 ### Data availability
 

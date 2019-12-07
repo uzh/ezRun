@@ -56,9 +56,6 @@ ezMethodChipStats = function(input=NA, output=NA, param=NA, htmlFile="00index.ht
   titles[["TSS-Heatmap"]] = "TSS-Heatmap"
   addTitle(doc, titles[[length(titles)]], 2, id=titles[[length(titles)]])
   addFlexTable(doc, ezGrid(pngLinkList$TSSLink))
-#   titles[["CpG-Density-Plot"]] = "CpG-Density-Plot"
-#   addTitle(doc, titles[[length(titles)]], 2, id=titles[[length(titles)]]) ## TODO: fix MakeCpGDensityPlot() first
-#   addFlexTable(doc, ezGrid(pngLinkList$densityLink))
   
   enrichmentFiles = list.files(path = '.', pattern='EnrichedCoverage.txt') ## REFAC list.files()
   enrichmentData = list()
@@ -133,7 +130,6 @@ Create_ChIP_QCPlots_ind = function(file, param, maxX=20, gff=gff, name='', range
     warning("cannot compute fragmentSize for single-end bam files")
   }
   pngLinkList$enrichmentLink = MakeEnrichmentPlot(myBam, param$paired, param$estimatedFragmentSize)
-  # pngLinkList$densityLink = MakeCpGDensityPlot(myBam, param$paired, param$refBuild, param$estimatedFragmentSize)
   pngLinkList$startPosLink = StartPosTableFunction(myBam, maxX)
   CoverageVarFunction(myBam)
   pngLinkList$TSSLink = createTSSPlot(myBam, gff, param$flank, name='', range)
@@ -155,7 +151,6 @@ readBam = function(file,isPaired=F){
   } else {
     system('echo option isPaired=F \n')  
     bam = readGAlignments(file)
-    #bam = readGAlignmentsFromBam(file, use.names=T)
   }
   sample.name = rev(strsplit2(file,'/'))[1]
   sample.name = gsub('.bam$', '', sample.name)

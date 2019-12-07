@@ -4,8 +4,13 @@
 \alias{plotLocusCoverageProfile}
 \title{Title}
 \usage{
-plotLocusCoverageProfile(gRanges, bamFiles, gtfFile = NULL,
-  height = 10, width = 20)
+plotLocusCoverageProfile(
+  gRanges,
+  bamFiles,
+  gtfFile = NULL,
+  height = 10,
+  width = 20
+)
 }
 \arguments{
 \item{gRanges}{}
@@ -17,6 +22,9 @@ plotLocusCoverageProfile(gRanges, bamFiles, gtfFile = NULL,
 \item{height}{}
 
 \item{width}{}
+}
+\value{
+
 }
 \description{
 Title
