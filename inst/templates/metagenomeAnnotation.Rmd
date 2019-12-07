@@ -34,12 +34,65 @@ summaryRBSMotifPlotList <- summaryRBSMotifPlot(subsetDataToPartial00Plot)
 summaryMatchScorePlot <-   summaryMatchScorePlot(interproscanListForWrap$summDF)
 summaryFamilyPlot <- summaryFamilyPlot(interproscanListForWrap$topN_desc, numberOfTopNCategories)
 summaryGOPlot <- summaryGOPlot(interproscanListForWrap$topN_GO, numberOfTopNCategories)
+
+## Binning
+binBasedAbundTable <- createAbundTable(mergedSummaryBinDF)
+### histogrm binning count
+histBinSummPlot <- ggplot(mergedSummaryBinDF, aes(x=binID)) + geom_bar(fill="blue") + facet_grid(vars(sample)) + coord_flip()
+
+###  binning coverage
+coverageBinSummPlot <- ggplot(mergedSummaryBinDF, aes(x=ID, y=coverage, color=binID)) +
+  geom_point() + 
+  facet_grid(vars(sample)) + 
+  scale_color_discrete(brewer.pal(9, "RdYlGn"),guide=guide_legend(title="bin ID")) +
+  theme(axis.text.x = element_blank())
+
+### binning length
+lengthBinSummPlot<- ggplot(mergedSummaryBinDF, aes(x=ID, y=log(length), color=binID)) +
+  geom_point() + 
+  facet_grid(vars(sample)) + 
+  scale_color_discrete(brewer.pal(9, "RdYlGn"),guide=guide_legend(title="bin ID")) +
+  theme(axis.text.x = element_blank())
+## abundance Heatmap
+showSummaryHeatmap <- summaryHeatmap(binBasedAbundTable)
+
+## rarefaction
+plotTitle_1 <- paste("Rarefaction plots")
+plotTitle_2 <- paste("Saturation plots")
+rarefPlot_1 <- rarefactionPlot(binBasedAbundTable,1) +labs(title=plotTitle_1) + 
+    theme(plot.title=element_text(size=11,hjust=0.5))
+rarefPlot_2 <- rarefactionPlot(binBasedAbundTable,2) +labs(title=plotTitle_2) + 
+    theme(plot.title=element_text(size=11,hjust=0.5))
 ```
 
 
 Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
 
 ## Data pre-processing {.tabset}
+
+### Binning summary: size
+```{r binnSummarySize, echo=FALSE,out.width="100%"}
+plot(histBinSummPlot)
+```
+
+### Binning summary: coverage and contig length
+```{r binnSummaryCovLen, echo=FALSE,out.width="100%"}
+par(mfrow=c(2,1), las=1)
+plot(coverageBinSummPlot)
+plot(lengthBinSummPlot)
+```
+
+### Rarefaction curves
+```{r rarefCurves, echo=FALSE,out.width="100%"}
+par(mfrow=c(2,1), las=1)
+plot(rarefPlot_1)
+plot(rarefPlot_2)
+```
+
+### Abundance heatmap
+```{r binnSummarySize, echo=FALSE,out.width="100%"}
+showSummaryHeatmap()
+```
 
 ### Prodigal gene prediction:summary score
 ```{r summaryScorePlotMegahit, echo=FALSE,out.width="100%"}
