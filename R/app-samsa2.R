@@ -53,7 +53,7 @@ EzAppSamsa2 <-
                   "Initializes the application using its specific defaults."
                   runMethod <<- ezMethodSamsa2
                   name <<- "EzAppSamsa2"
-                  appDefaults <<- rbind(useSubsystemDB = ezFrame(Type="logic",
+                  appDefaults <<- rbind(useSubsystemDB = ezFrame(Type="logical",
                                                                      DefaultValue="RefSeq",
                                                                      Description="database")
                                         
