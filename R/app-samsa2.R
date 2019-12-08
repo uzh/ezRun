@@ -36,7 +36,7 @@ ezMethodSamsa2 = function(input=NA, output=NA, param=NA,
   
   ## place output files
   oldAnnFile <- list.files("step_4_output",pattern = "RefSeq_annotated")
-  newAnnFile <- basename(output$getColumn("annotationFile"))
+  newAnnFile <- basename(output$getColumn("annotationFileRefSeq"))
   ezSystem(paste("mv",oldAnnFile,newAnnFile))
 }
 
