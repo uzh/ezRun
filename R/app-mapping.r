@@ -422,7 +422,7 @@ getSTARReference = function(param){
   }
 
   genomeLength = sum(fai$LENGTH)
-  indexNBasesOpt = paste("--genomeSAindexNbases", min(14, floor(log2(genomeLength)/2 - 1)))
+  indexNBasesOpt = paste("--genomeSAindexNbases", min(13, floor(log2(genomeLength)/2 - 1)))
   
   job = ezJobStart("STAR genome build")
   if (ezIsSpecified(param$spikeInSet)){
@@ -434,12 +434,12 @@ getSTARReference = function(param){
     cmd = paste("STAR", "--runMode genomeGenerate --genomeDir", refDir, binOpt, indexNBasesOpt,
                 "--limitGenomeGenerateRAM", format(param$ram * 1e9, scientific=FALSE),
                 "--genomeFastaFiles", param$ezRef["refFastaFile"], spikeInFasta,
-                "--sjdbGTFfile", gtfFile, "--sjdbOverhang 150", "--runThreadN", param$cores)
+                "--sjdbGTFfile", gtfFile, "--sjdbOverhang 150", "--runThreadN", param$cores, '--genomeSAsparseD 2')
   } else {
     cmd = paste("STAR", "--runMode genomeGenerate --genomeDir", refDir, binOpt, indexNBasesOpt,
                 "--limitGenomeGenerateRAM", format(param$ram * 1e9, scientific=FALSE),
                 "--genomeFastaFiles", param$ezRef["refFastaFile"], 
-                "--sjdbGTFfile", param$ezRef["refFeatureFile"], "--sjdbOverhang 150", "--runThreadN", param$cores)
+                "--sjdbGTFfile", param$ezRef["refFeatureFile"], "--sjdbOverhang 150", "--runThreadN", param$cores, '--genomeSAsparseD 2')
     
   }
   ezSystem(cmd)
