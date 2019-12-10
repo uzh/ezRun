@@ -129,7 +129,7 @@ knitr::kable(as.data.frame(settings), format="html",
                   position = "left")
 ```
 
-Subsequent plots highlight significant genes in <span style="color:red">red</span>.
+Subsequent plots highlight significant genes in <span style="color:#A6CEE3FF">blue</span>.
 
 [Interactive table of significant genes](`r resultFile$resultHtml`)
 
@@ -169,13 +169,13 @@ if(isTRUE(isTwoGroup)){
 ```
 
 ```{r scatter comparison link, echo=FALSE, results='asis', eval=!debug}
-if (isTRUE(isTwoGroup)){
-  if(!isTRUE(hasMassiveFeats)){
-    cat(paste0("[Plot in pdf](", scatterPdf, ")"), "\n")
-    cat("\n")
-    cat(paste0("[Interactive comparison plot (64-bit Chrome or Safari is recommended for best performance!)](", scatterHtml, ")"), "\n")
-  }
-}
+# if (isTRUE(isTwoGroup)){
+#   if(!isTRUE(hasMassiveFeats)){
+#     cat(paste0("[Plot in pdf](", scatterPdf, ")"), "\n")
+#     cat("\n")
+#     cat(paste0("[Interactive comparison plot (64-bit Chrome or Safari is recommended for best performance!)](", scatterHtml, ")"), "\n")
+#   }
+# }
 ```
 
 ```{r volcano p-value, echo=FALSE, message=FALSE, warning=FALSE, fig.width=9, fig.width=7, eval=!debug}
@@ -208,13 +208,13 @@ if (isTRUE(isTwoGroup)){
 ```
 
 ```{r volcano p-value link , echo=FALSE, results='asis', eval=!debug}
-if (isTRUE(isTwoGroup)){
-  if(!isTRUE(hasMassiveFeats)){
-    cat(paste0("[Plot in pdf](", volcanoPdf, ")"), "\n")
-    cat("\n")
-    cat(paste0("[Interactive comparison plot (64-bit Chrome or Safari is recommended for best performance!)](", volcanoHtml, ")"), "\n")
-  }
-}
+# if (isTRUE(isTwoGroup)){
+#   if(!isTRUE(hasMassiveFeats)){
+#     cat(paste0("[Plot in pdf](", volcanoPdf, ")"), "\n")
+#     cat("\n")
+#     cat(paste0("[Interactive comparison plot (64-bit Chrome or Safari is recommended for best performance!)](", volcanoHtml, ")"), "\n")
+#   }
+# }
 ```
 
 ```{r scatter all pairs, echo=FALSE, results='asis', message=FALSE, eval=!debug}
@@ -264,13 +264,13 @@ if(isTRUE(isTwoGroup)){
 ```
 
 ```{r volcano FDR link, echo=FALSE, results='asis', eval=!debug}
-if(isTRUE(isTwoGroup)){
-  if(!isTRUE(hasMassiveFeats)){
-    cat(paste0("[Plot in pdf](", volcanoFDRPdf, ")"), "\n")
-    cat("\n")
-    cat(paste0("[Interactive comparison plot (64-bit Chrome or Safari is recommended for best performance!)](", volcanoFDRHtml, ")"), "\n")
-  }
-}
+# if(isTRUE(isTwoGroup)){
+#   if(!isTRUE(hasMassiveFeats)){
+#     cat(paste0("[Plot in pdf](", volcanoFDRPdf, ")"), "\n")
+#     cat("\n")
+#     cat(paste0("[Interactive comparison plot (64-bit Chrome or Safari is recommended for best performance!)](", volcanoFDRHtml, ")"), "\n")
+#   }
+# }
 ```
 
 ```{r pvalue hist, echo=FALSE, results='asis', eval=!debug}
@@ -295,7 +295,7 @@ plotCmd = expression({
 eval(plotCmd)
 ```
 
-```{r intra group, echo=FALSE, results='asis', eval=!debug}
+```{r intra group, echo=FALSE, results='asis', eval=!debug, message=FALSE}
 theRange = 2^(range(logSignal, na.rm=TRUE))
 x <- logSignal
 if(ncol(x) <= 100){
@@ -479,10 +479,10 @@ if (sum(use) > param$minGenesForClustering){
 ```
 
 ```{r cluster plot link , echo=FALSE, results='asis', eval=!debug && !hasMassiveFeats}
-if (sum(use) > param$minGenesForClustering){
-  cat(paste0("[Plot in pdf](", clusterPdf, ")"), "\n")
-  cat("\n")
-}
+# if (sum(use) > param$minGenesForClustering){
+#   cat(paste0("[Plot in pdf](", clusterPdf, ")"), "\n")
+#   cat("\n")
+# }
 ```
 
 ```{r go cluster table link, echo=FALSE, results='asis', eval=!debug && !hasMassiveFeats}
