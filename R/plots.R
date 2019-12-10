@@ -257,7 +257,7 @@ ezLegend = function(legend="", fill=NULL, title="Legend"){
 ### ezVolcano
 ezVolcano <- function(log2Ratio, pValue, yType=c("p-value", "FDR"),
                       xlim=NULL, ylim=NULL, isPresent=NULL, names=NULL,
-                      types=NULL, colors=(ncol(types)),
+                      types=NULL, colors=brewPalette(ncol(types)),
                       main=NULL, labelGenes=NULL,
                       mode=c("plotly", "ggplot2")){
   require(plotly)
@@ -554,7 +554,7 @@ ezXYScatter.2 = function(xVec, yVec, absentColor="gray", shrink=FALSE,
                          xlim=range(xVec, yVec, na.rm=TRUE), ylim=xlim,
                          isPresent=NULL, names=NULL,
                          types=NULL,
-                         colors=rainbow(ncol(types)),
+                         colors=brewPalette(ncol(types)),
                          main=NULL, xlab=NULL, ylab=NULL,
                          labelGenes=NULL, mode=c("plotly", "ggplot2")){
   require(plotly)
