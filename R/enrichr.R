@@ -294,7 +294,7 @@ filterEnrichrResults <- function(resList, maxP = 1, maxPAdj = 1, maxZ = 0, minCo
 ##' @author Roman Briskine
 getEnrichrLibNames <- function() {
   file <- system.file(file.path("extdata", "enrichr_libnames.txt"), package = "ezRun", mustWork = T)
-  scan(file, character(), quiet = T)
+  scan(file, character(), quiet = T, comment.char="#")
 }
 
 
