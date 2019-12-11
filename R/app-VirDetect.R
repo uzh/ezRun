@@ -109,6 +109,7 @@ ezMethodVirDetect = function(input=NA, output=NA, param=NA,
   
   ## collect summary statistics and save in a summary table, collect per base coverage of each mapped viral genomes and save in individual csv files
   idx<-read.table("virome.idxstats.txt", header=FALSE, stringsAsFactors=FALSE, colClasses = c("character", "integer", "integer", "integer"))
+  #colnames(idx) = c("sequence_id", "sequence length", "mapped reads", "unmapped reads")
   sub<-idx[idx$V3>0, ]
   csvFile = sub(".fa$", ".csv", paramVirom$ezRef["refFastaFile"])
   names<-read.csv(csvFile, quote="", stringsAsFactors=FALSE, header=FALSE, colClasses = "character")
