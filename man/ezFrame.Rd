@@ -4,8 +4,13 @@
 \alias{ezFrame}
 \title{Wrapper for data.frame suitable for data processing rather than stastistical modelling}
 \usage{
-ezFrame(..., row.names = NULL, check.rows = TRUE,
-  check.names = FALSE, stringsAsFactors = FALSE)
+ezFrame(
+  ...,
+  row.names = NULL,
+  check.rows = TRUE,
+  check.names = FALSE,
+  stringsAsFactors = FALSE
+)
 }
 \arguments{
 \item{...}{additional arguments to be passed to \code{data.frame()}.}

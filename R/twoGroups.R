@@ -106,7 +106,8 @@ twoGroupCountComparison = function(rawData){
                             param$grouping, param$normMethod, 
                             grouping2=param$grouping2,
                             priorCount=param$backgroundExpression,
-                            deTest=param$deTest),
+                            deTest=param$deTest,
+                            robust=ezIsSpecified(param$robust) && param$robust),
                limma = runLimma(x, param$sampleGroup, param$refGroup, 
                                 param$grouping, grouping2=param$grouping2,
                                 priorCount=param$priorCount,
@@ -259,15 +260,13 @@ runEdger = function(x, sampleGroup, refGroup, grouping, normMethod,
 
 ##' @describeIn twoGroupCountComparison Runs the Glm test method.
 runGlm = function(x, sampleGroup, refGroup, grouping, normMethod, grouping2=NULL,
-                  priorCount=0.125, deTest=c("QL", "LR")){
+                  priorCount=0.125, deTest=c("QL", "LR"), robust=FALSE){
   require("edgeR")
   
   ## differential expression test by quasi-likelihood (QL) F-test or 
   ## likelihood ratio test.
   ## QL as default.
   deTest <- match.arg(deTest)
-  
-  robust = ezIsSpecified(param$robust) && param$robust
 
   ## get the scaling factors for the entire data set
   cds = DGEList(counts=x, group=grouping)

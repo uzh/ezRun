@@ -16,7 +16,6 @@
 ##' @return Returns a flex table containing the GO information of the cluster result.
 
 goClusterTableRmd = function(param, clusterResult, seqAnno){
-  require(ReporteRs)
   ontologies = names(clusterResult$GO)
   ktables = list()
   linkTable = ezMatrix("", rows = 1:clusterResult$nClusters, cols = ontologies)
@@ -25,7 +24,8 @@ goClusterTableRmd = function(param, clusterResult, seqAnno){
     genesToUse = rownames(seqAnno) %in% names(clusterResult$clusterNumbers)[clusterResult$clusterNumbers==i]
     genesList = paste(seqAnno$gene_name[genesToUse], collapse="\\n")
     jsCall = paste0('enrich({list: "', genesList, '", popup: true});')
-    enrichrTable[i, 1] = as.html(pot(paste0("<a href='javascript:void(0)' onClick='", jsCall, "'>Enrichr</a>")))
+    enrichrTable[i, 1] = paste0("<a href='javascript:void(0)' onClick='", jsCall, 
+                                "'>Enrichr</a>")
     ## Prepare the table for kable
     ktableCluster <- list()
     for (onto in ontologies){
@@ -38,7 +38,7 @@ goClusterTableRmd = function(param, clusterResult, seqAnno){
       linkTable[i, onto] = paste0("Cluster-", onto, "-", i, ".html")
       ezInteractiveTable(goFrame, tableLink=linkTable[i, onto], digits=3,
                          title=paste("GO categories of cluster", i, "and ontology", onto))
-      linkTable[i, onto] = as.html(ezLink(linkTable[i, onto], target="_blank"))
+      linkTable[i, onto] = ezLink(linkTable[i, onto], target="_blank")
       goFrame$Term = substr(goFrame$Term, 1, 30)
     }
     ## This is some ugly code to append some "" cell, so they can used in kable
@@ -72,7 +72,8 @@ revigoUpDownTables <- function(param, goResult){
       }
       revigoLinks[row, col] = paste0('http://revigo.irb.hr/?inputGoList=',
                                      paste(rownames(goSubResult), goSubResult[,'Pvalue'], collapse='%0D%0A'))
-      revigoLinks[row, col] = as.html(pot("ReViGO", hyperlink = revigoLinks[row, col]))
+      revigoLinks[row, col] <- kableExtra::text_spec("ReViGO", format="html", 
+                                                     link = revigoLinks[row, col])
     }
   }
   return(t(revigoLinks))
@@ -80,12 +81,9 @@ revigoUpDownTables <- function(param, goResult){
 
 ##' @describeIn addGoUpDownResult Gets the GO up-down tables.
 goUpDownTables = function(param, goResult){
-  require(ReporteRs)
-  #goTable = ezMatrix("", rows="Cats", cols=names(goResult))
   goTable <- list()
   ktables = list("enrichUp"=goTable, "enrichDown"=goTable, "enrichBoth"=goTable)
   txtFiles = character() ## TODO make a list of list; similar to resultList
-  ## txtList = list("enrichUp"=list(), "enrichBoth"=list(), "enrichDown"=list())
   linkTable = ezMatrix("", rows = names(goResult), 
                        cols = c("enrichUp", "enrichDown", "enrichBoth"))
   for (onto in names(goResult)){ ## BP, MF , CC
@@ -102,7 +100,6 @@ goUpDownTables = function(param, goResult){
         }
         txtFile = ezValidFilename(paste0(name, ".txt"), replace="-")
         txtFiles <- append(txtFiles, txtFile)
-        # txtList[[sub]][[onto]] = ezValidFilename(paste0(name, ".txt"), replace="-")
         ezWrite.table(xSub, file=txtFile, row.names=FALSE)
       }
       goFrame = .getGoTermsAsTd(xSub, param$pValThreshFisher,
@@ -115,9 +112,8 @@ goUpDownTables = function(param, goResult){
       ezInteractiveTable(goFrame, tableLink=linkTable[onto, sub], digits=3,
                          title=paste(sub("enrich", "", sub), 
                                      "enriched GO categories of ontology", onto))
-      linkTable[onto, sub] = as.html(ezLink(linkTable[onto, sub], 
-                                            target = "_blank"))
-      #goFrame$Term = substr(goFrame$Term, 1, 30)
+      linkTable[onto, sub] = ezLink(linkTable[onto, sub], 
+                                            target = "_blank")
     }
   }
   for(sub in names(ktables)){
@@ -130,7 +126,6 @@ goUpDownTables = function(param, goResult){
                              )
     ktables[[sub]] <- do.call(cbind, ktables[[sub]])
   }
-  #nameMap = c("BP"="Biological Proc. (BP)", "MF"="Molecular Func. (MF)", "CC"="Cellular Comp. (CC)")
   return(list(ktables=ktables, txtFiles=txtFiles, linkTable=linkTable))
 }
 

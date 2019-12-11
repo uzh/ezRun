@@ -4,9 +4,18 @@
 \alias{ezRead.table}
 \title{Modified version of read.table}
 \usage{
-ezRead.table(file, header = TRUE, sep = "\\t", as.is = TRUE,
-  row.names = 1, quote = "", skip = 0, comment.char = "",
-  check.names = FALSE, ...)
+ezRead.table(
+  file,
+  header = TRUE,
+  sep = "\\t",
+  as.is = TRUE,
+  row.names = 1,
+  quote = "",
+  skip = 0,
+  comment.char = "",
+  check.names = FALSE,
+  ...
+)
 }
 \arguments{
 \item{file}{the name of the file to read the data from.}
