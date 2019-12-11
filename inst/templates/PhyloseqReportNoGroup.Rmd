@@ -19,7 +19,7 @@ setEnvironments("phantomjs")
 ```{r prepQC, include=FALSE}
 filtStepPlot <- ggplot(QCChimeraObject$filtStep,aes(x=fStep,y=Freq, group=sample))
 filtStepPlot <- filtStepPlot + geom_line(aes(color=sample)) + geom_point(aes(color=sample))
-filtStepPlot <- filtStepPlot + xlab("Filtering Step") + ylab("Read Count") + 
+filtStepPlot <- filtStepPlot + xlab("Filtering Step") + ylab("Read Count") +
   theme(axis.text.x = element_text(angle = 270))
 ```
 
@@ -71,7 +71,7 @@ abundPlotSampleListUnfilt[[rankNames]] <- tempAbundPlotUnfilt$abPlot +labs(title
 if (isGroupThere) {
 for (rankNames  in taxRanks){
   groupAes <- colnames(sample_data(physeqObjectNoTreeUnfilt))[1]
-  tempAbundPlotFilt <- abundPlot(rankNames,physeqFullObject,xAesLogic="G",numTopRanks)
+  tempAbundPlotFilt <- abundPlot(rankNames,physeqFullObject,xAesLogic="G",numTopRanks,group)
   
   if (tempAbundPlotFilt$stop==TRUE) {
     isAbundPlotGroup[[rankNames]] <- FALSE
@@ -85,7 +85,7 @@ abundPlotGroupList[[rankNames]] <- tempAbundPlotFilt$abPlot +labs(title=plotTitl
 }
   
   for (rankNames  in taxRanks){
-      tempAbundPlotUnfilt <-  abundPlot(rankNames,physeqObjectNoTreeUnfilt,xAesLogic="G",numTopRanks)
+      tempAbundPlotUnfilt <-  abundPlot(rankNames,physeqObjectNoTreeUnfilt,xAesLogic="G",numTopRanks,group)
     if (tempAbundPlotUnfilt$stop==TRUE) {
       isAbundPlotGroupUnfilt[[rankNames]] <- FALSE 
     next
@@ -193,10 +193,7 @@ plot(abundPlotGroupListUnfilt[[rank]])
 
 #### Percentage of most abundant taxa
 ```{r percMostAbundTaxa, echo=FALSE}
-kable(top20taxaWithPerc, escape=TRUE, row.names=TRUE, format="html") %>%
-  kable_styling(bootstrap_options = c("striped", "bordered"),
-                full_width = T) %>%
-  scroll_box(width = "60%", height = "600px")
+DT::datatable(top20taxaWithPerc)
 ```
 
 ### Clustering (ordination) plots
