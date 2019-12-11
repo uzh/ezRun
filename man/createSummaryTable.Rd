@@ -10,8 +10,6 @@ createSummaryTable(summary)
 createSummaryTable(summary)
 }
 \arguments{
-\item{summary, }{mothur summary files.}
-
 \item{summary, }{ezTable from mothur summary files.}
 }
 \value{

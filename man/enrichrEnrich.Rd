@@ -4,8 +4,12 @@
 \alias{enrichrEnrich}
 \title{Enrichment analysis}
 \usage{
-enrichrEnrich(userListId, libNames = getEnrichrLibNames(),
-  connectionN = 10, retryN = 3)
+enrichrEnrich(
+  userListId,
+  libNames = getEnrichrLibNames(),
+  connectionN = 10,
+  retryN = 3
+)
 }
 \arguments{
 \item{userListId}{userListId returned by the Enrichr server via \code{\link{enrichrAddList}}}

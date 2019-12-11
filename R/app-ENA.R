@@ -44,10 +44,10 @@ ezMethodGetEnaData <- function(input=NA, output=NA, param=NA){
         if(grepl(';',fastqInfo$fastq_ftp[i])) {
             paired = TRUE
             fastqList <- strsplit(fastqInfo$fastq_ftp[i],';')
-            cmd = paste0('wget ',fastqList[[1]][1],'; wget ', fastqList[[1]][2])
+            cmd = paste0('wget -t 0 ',fastqList[[1]][1],'; wget -t 0 ', fastqList[[1]][2])
         } else {
             paired = FALSE
-            cmd = paste0('wget ',fastqInfo$fastq_ftp[i])
+            cmd = paste0('wget -t 0 ',fastqInfo$fastq_ftp[i])
         }
         ezSystem(cmd)
     }

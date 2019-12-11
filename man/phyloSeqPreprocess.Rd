@@ -4,7 +4,7 @@
 \alias{phyloSeqPreprocess}
 \title{Phyloseq preprocess}
 \usage{
-phyloSeqPreprocess(phyloseqObj)
+phyloSeqPreprocess(phyloseqObj, rawCount, sampleFraction)
 }
 \arguments{
 \item{phyloseqObj, }{a phyloseq object.}

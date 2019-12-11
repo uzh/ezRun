@@ -4,8 +4,12 @@
 \alias{getRangeValues}
 \title{Gets the values of genomic ranges}
 \usage{
-getRangeValues(cov, targetRanges,
-  doRev = as.character(strand(targetRanges)) == "-", asMatrix = TRUE)
+getRangeValues(
+  cov,
+  targetRanges,
+  doRev = as.character(strand(targetRanges)) == "-",
+  asMatrix = TRUE
+)
 }
 \arguments{
 \item{cov}{an object of the class RleList.}

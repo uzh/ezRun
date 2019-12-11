@@ -48,7 +48,8 @@ ezMethodCellRangerAggr = function(input=NA, output=NA, param=NA){
     aggr_input <- left_join(aggr_input, aggr_input2)
   }
   
-  aggr_input_fn <- tempfile(pattern="aggr_input", fileext = ".csv")
+  aggr_input_fn <- tempfile(pattern="aggr_input", tmpdir=getwd(),
+                            fileext = ".csv")
   write_csv(aggr_input, path=aggr_input_fn)
   
   cellRangerFolder = paste0(param$name, "-cellRanger")
