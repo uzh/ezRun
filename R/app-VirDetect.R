@@ -100,7 +100,7 @@ ezMethodVirDetect = function(input=NA, output=NA, param=NA,
                 " > virome.bam")
  }
   ezSystem(cmd)
-  ezSortIndexBam("virome.bam", "virome.sorted.bam", ram=param$ram, 
+  ezSortIndexBam("virome.bam", "virome.sorted.bam", ram=param$ram *0.7,  ## put additional safety margin in
                  removeBam=TRUE, cores=ezThreads())
   cmd = "samtools idxstats virome.sorted.bam > virome.idxstats.txt"
   ezSystem(cmd)
@@ -108,10 +108,10 @@ ezMethodVirDetect = function(input=NA, output=NA, param=NA,
   bamFile <- "virome.sorted.bam"
   
   ## collect summary statistics and save in a summary table, collect per base coverage of each mapped viral genomes and save in individual csv files
-  idx<-read.table("virome.idxstats.txt", header=FALSE, stringsAsFactors=FALSE)
+  idx<-read.table("virome.idxstats.txt", header=FALSE, stringsAsFactors=FALSE, colClasses = c("character", "integer", "integer", "integer"))
   sub<-idx[idx$V3>0, ]
   csvFile = sub(".fa$", ".csv", paramVirom$ezRef["refFastaFile"])
-  names<-read.csv(csvFile, quote="", stringsAsFactors=FALSE, header=FALSE)
+  names<-read.csv(csvFile, quote="", stringsAsFactors=FALSE, header=FALSE, colClasses = "character")
   sub<-merge(sub, names, by="V1")
   if (nrow(sub)!=0){
   	for(i in 1:nrow(sub)) {
@@ -123,18 +123,18 @@ ezMethodVirDetect = function(input=NA, output=NA, param=NA,
         	csv.file<-paste0(chr, ".csv")
         	write.table(temp.df, file=bed.file, quote=FALSE, col.names=FALSE, 
         	            row.names=FALSE, sep="\t")
-		system(paste0("samtools view -b ", bamFile, " ",
+        	ezSystem(paste0("samtools view -b ", bamFile, " ",
                               chr, " > ", chr, ".bam"))
-                system(paste0("samtools index ", chr, ".bam"))
-        	system(paste0("bedtools coverage -a ", bed.file, 
+        	ezSystem(paste0("samtools index ", chr, ".bam"))
+        	ezSystem(paste0("bedtools coverage -a ", bed.file, 
         	              " -b ", chr, ".bam", " -d > ", csv.file))
         	cov<-read.table(csv.file, header=FALSE, sep="\t", quote="",
         	                stringsAsFactors=FALSE)
         	sub[i,8]<-sum(cov$V6!=0)
         	sub[i,9]<-sum(cov$V6!=0)/len*100
         	sub[i,10]<-sum(cov$V6)/len
-		system(paste0("rm ", chr, ".bam"))
-		system(paste0("rm ", chr, ".bam.bai"))
+        	ezSystem(paste0("rm ", chr, ".bam"))
+        	ezSystem(paste0("rm ", chr, ".bam.bai"))
   	}
 	sub<-sub[order(sub$V10, decreasing=TRUE), ]
   	out<-sub[, c(1,6,7,2,3,8,9,10)]
@@ -154,7 +154,7 @@ ezMethodVirDetect = function(input=NA, output=NA, param=NA,
   ##html file  
   #setwd(start_path)
   htmlFile = output$getColumn("OutReport")
-  styleFiles <- file.path(system.file("templates", package="ezRun"),
+  styleFiles <- file.path(ezSystem.file("templates", package="ezRun"),
                           c("fgcz.css", "VirDetect.Rmd",
                             "fgcz_header.html", "banner.png"))
   file.copy(from=styleFiles, to=".", overwrite=TRUE)
@@ -164,7 +164,7 @@ ezMethodVirDetect = function(input=NA, output=NA, param=NA,
                     output_dir=".", output_file=htmlFile, quiet=TRUE)
   cdir <- "."
   csv.files <- file.path(cdir, "*.csv")
-  system(paste0("rm ", csv.files))
+  ezSystem(paste0("rm ", csv.files))
   return("Success")
 }
 
