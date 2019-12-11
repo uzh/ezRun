@@ -17,7 +17,9 @@ setEnvironments("phantomjs")
 ```
 
 ```{r prepQC, include=FALSE}
-filtStepPlot <- ggplot(QCChimeraObject$filtStep,aes(x=fStep,y=Freq, group=sample)) + geom_line(aes(color=sample)) + geom_point(aes(color=sample)) + xlab("Filtering Step") + ylab("Read Count")
+filtStepPlot <- ggplot(QCChimeraObject$filtStep,aes(x=fStep,y=Freq, group=sample)) + geom_line(aes(color=sample)) + geom_point(aes(color=sample)) 
+filtStepPlot <- filtStepPlot + xlab("Filtering Step") + ylab("Read Count") +
+  theme(axis.text.x = element_text(angle = 270))
 ```
 
 ```{r prepChimera, include=FALSE}
