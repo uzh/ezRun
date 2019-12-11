@@ -25,7 +25,7 @@ ezMethodMetagenomeAnnotationQC = function(input=NA, output=NA, param=NA,
   sampleNames = input$getNames() 
   numberOfTopNCategories = param$numberOfTopNCategories
   isGroupThere = param$grouping != ""
-  group = param$group
+  group = param$grouping
   sampleGroup = param$sampleGroup
   refGroup = param$refGroup
   
