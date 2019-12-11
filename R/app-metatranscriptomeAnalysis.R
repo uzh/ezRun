@@ -8,37 +8,51 @@
 
 ezMethodMetatranscriptomeAnalysis = function(input=NA, output=NA, param=NA, 
                                           htmlFile="00index.html"){
-  
+
   library(purrr)
   library(rtracklayer)
   library(ggplot2)
   library(RColorBrewer)
   library(GO.db)
+  library(stringi)
+  library(DESeq2)
+  library(plyr)
+  library(pheatmap)
+  library(dplyr)
+  library(tidyr)
+  library(ggpubr)
+  library(gridExtra)
+  
   dataset = input$meta
   sampleNames = input$getNames() 
   numberOfTopNCategories = param$numberOfTopNCategories
-  
-  
-  dataset = input$meta
+  isGroupThere = param$grouping != ""
+  group = param$grouping
+  sampleGroup = param$sampleGroup
+  refGroup = param$refGroup
+
   colnames(dataset) <-  gsub(" \\[File\\]","",colnames(dataset))
-  annotationFiles <- input$getFullPaths("annotationFile")
-  plotLabels <- input$getNames()
+  annotationFiles <- input$getFullPaths("annotationFileRefSeq")
+  sampleNames <- input$getNames()
 
   ## Merge annotation files 
-  listOfAnnotatedAbundTableOrg <- lapply(annotationFiles,convertDiamondAnnotationToAbund,
-                                         feature="organism")
-  listOfAnnotatedAbundTableFunc <- lapply(annotationFiles,convertDiamondAnnotationToAbund,
-                                         feature="function")
-  orgDFforHeatmap <- listOfAbundMerge(listOfAnnotatedAbundTableOrg,plotLabels)
-  orgDFforHeatmap <- listOfAbundMerge(listOfAnnotatedAbundTableFunc,plotLabels)
+  names(annotationFiles) <- sampleNames
+  listOfAnnotatedAbundTable <- lapply(annotationFiles,convertDiamondAnnotationToAbund)
+  listOfAnnotatedAbundTableOrg <- lapply(listOfAnnotatedAbundTable,
+                                         function(x) x[["orgAbundDF"]])
+  listOfAnnotatedAbundTableFunc <-lapply(listOfAnnotatedAbundTable,
+                                         function(x) x[["funcAbundDF"]])
+  orgDFforHeatmap <- listOfAbundMerge(listOfAnnotatedAbundTableOrg,sampleNames)
+  funcDFforHeatmap <- listOfAbundMerge(listOfAnnotatedAbundTableFunc,sampleNames)
+  
   ##
   setwdNew(basename(output$getColumn("Report")))
   ## Copy the style files and templates
   styleFiles <- file.path(system.file("templates", package="ezRun"),
-                          c("fgcz.css", "metagenomeAnnotation.Rmd", 
+                          c("fgcz.css", "metatranscriptomicsAnalysis.Rmd", 
                             "fgcz_header.html", "banner.png"))
   file.copy(from=styleFiles, to=".", overwrite=TRUE)
-  rmarkdown::render(input="metagenomeAnnotation.Rmd", envir = new.env(),
+  rmarkdown::render(input="metatranscriptomicsAnalysis.Rmd", envir = new.env(),
                     output_dir=".", output_file=htmlFile, quiet=TRUE)
   
 }
