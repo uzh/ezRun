@@ -48,13 +48,7 @@ ezMethodMetaspades = function(input=NA, output=NA, param=NA,
 
   ## place output files
   #1) contigs
- 
-  isDotFasta <- file.exists("metaspadesResults/contigs.fasta")
-  if (isDotFasta){
-   oldContigFile <- "metaspadesResults/contigs.fasta"
-  }else{
-    oldContigFile <- "metaspadesResults/contigs.fa"
-  }
+  oldContigFile <- "metaspadesResults/contigs.fasta"
   newContigFile <- basename(output$getColumn("contigFile"))
   ezSystem(paste("cp",oldContigFile,newContigFile))
   #2) 

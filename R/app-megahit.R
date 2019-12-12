@@ -49,7 +49,7 @@ ezMethodMegahit = function(input=NA, output=NA, param=NA,
   ### megahit completes
   ## place output files
   #1) contigs
-  oldContigFile <- list.files("megahitResults",pattern = "contigs.fa")
+  oldContigFile <- "megahitResults/final.contigs.fa"
   
   newContigFile <- basename(output$getColumn("contigFile"))
   ezSystem(paste("cp",oldContigFile,newContigFile))
