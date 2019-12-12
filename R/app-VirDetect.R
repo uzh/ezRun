@@ -127,14 +127,22 @@ ezMethodVirDetect = function(input=NA, output=NA, param=NA,
         	ezSystem(paste0("samtools view -b ", bamFile, " ",
                               chr, " > ", chr, ".bam"))
         	ezSystem(paste0("samtools index ", chr, ".bam"))
-        	ezSystem(paste0("samtools depth -a -d 5000", chr, ".bam"))
+		subsam<-1
+		if (sub[i, 3] > 80000){
+			subsam<- sub[i, 3]/8000
+			ezSystem(paste0("samtools view -b -O BAM -o ", chr, ".subsam.bam", " -s ", subsam, " ", chr, ".bam"))
+                	ezSystem(paste0("samtools index ", chr, ".subsam.bam"))
+			ezSystem(paste0("mv ",  chr, ".subsam.bam", " ", chr, ".bam"))
+			ezSystem(paste0("mv ",  chr, ".subsam.bam.bai", " ", chr, ".bam.bai"))
+		}
+        	ezSystem(paste0("samtools depth -a ", chr, ".bam"))
         	#ezSystem(paste0("bedtools coverage -a ", bed.file, 
         	              " -b ", chr, ".bam", " -d > ", csv.file))
         	cov<-read.table(csv.file, header=FALSE, sep="\t", quote="",
         	                stringsAsFactors=FALSE)
         	sub[i,8]<-sum(cov$V3!=0)
         	sub[i,9]<-sum(cov$V3!=0)/len*100
-        	sub[i,10]<-sum(cov$V3)/len
+        	sub[i,10]<-sum(cov$V3)/len/subsam
         	ezSystem(paste0("rm ", chr, ".bam"))
         	ezSystem(paste0("rm ", chr, ".bam.bai"))
   	}
