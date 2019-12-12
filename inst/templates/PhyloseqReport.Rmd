@@ -225,9 +225,9 @@ if (isGroupThere) {
 
 ### Rarefaction plots
 ```{r raref, echo=FALSE}
-par(mfrow=c(1,2), las=1)
+#par(mfrow=c(1,2), las=1)
 plot(rarefPlot_1)
-plot(rarefPlot_2)
+#plot(rarefPlot_2)
 ```
 
 ### Heatmaps
