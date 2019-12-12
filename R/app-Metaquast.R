@@ -16,11 +16,8 @@ ezMethodMetaquast = function(input=NA, output=NA, param=NA, htmlFile="00index.ht
    isThereRef <- param$isThereRef
    refListFile <-  param$fileWithListOfRefs
    if (isThereRef) {
-   refList = read.delim(refListFile, stringsAsFactors = F, header = F)
-   colnames(refList) <- "refList"
-    sapply(refList$refList,copyLoopOverFiles)
-    localrefListFile <- basename(refList$refList)
-    refListToParse <- paste(basename(refList$refList),collapse = ",")
+     localRef <- basename(refListFile)
+     ezSystem(paste("cp",refListFile,localRef))
    }
     ## draft
     draftList = input$getFullPaths("contigFile")
@@ -32,7 +29,7 @@ ezMethodMetaquast = function(input=NA, output=NA, param=NA, htmlFile="00index.ht
     localDraftCollapsed <- paste(localDraft,collapse = " ")
     sampleNameList <- localDraftCollapsed
     if (isThereRef) {
-      cmd = paste("metaquast.py", "-R", refListToParse, "-o", outFileName, 
+      cmd = paste("metaquast.py", "-R", localRef, "-o", outFileName, 
                   '-t', ezThreads(), sampleNameList, "1> ", "metaQuast.log")
     }else{
       cmd = paste("metaquast.py", "-o", outFileName, 
