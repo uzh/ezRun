@@ -147,10 +147,8 @@ plot(lengthBinSummPlot)
 ```
 
 ### Rarefaction curves
-```{r rarefCurves, echo=FALSE,out.width="49%"}
-par(mfrow=c(1,2), las=1)
+```{r rarefCurves, echo=FALSE,out.width="66%"}
 plot(rarefPlot_1)
-plot(rarefPlot_2)
 ```
 
 ### Organism abundance heatmap

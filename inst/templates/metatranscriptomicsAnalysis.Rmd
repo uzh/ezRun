@@ -47,14 +47,14 @@ boxBarPlotFuncData <-  orgFuncHeatmaptoBoxPlotPrep(funcDFforHeatmap,
                                                  dataset,group,N=10)
 boxPlotOrg <- ggplot(boxBarPlotOrgData,aes(x=boxBarPlotOrgData[[group]],
                                            y=abund,fill=boxBarPlotFuncData[[group]]))+
-  geom_boxplot()+stat_compare_means(size=3) +
+  geom_boxplot()+stat_compare_means(size=2) +
   facet_wrap(vars(ID)) + labs(fill=group) + 
-  theme(axis.title.x = element_blank(),strip.text.x = element_text(size = 3))
+  theme(axis.title.x = element_blank(),strip.text.x = element_text(size = 4.5))
 boxPlotFunc <- ggplot(boxBarPlotFuncData,aes(x=boxBarPlotFuncData[[group]],
                                            y=abund,fill=boxBarPlotFuncData[[group]]))+
-  geom_boxplot()+stat_compare_means(size=3) +
+  geom_boxplot()+stat_compare_means(size=2) +
   facet_wrap(vars(ID)) + labs(fill=group) + 
-  theme(axis.title.x = element_blank(),strip.text.x = element_text(size = 3))
+  theme(axis.title.x = element_blank(),strip.text.x = element_text(size = 4.5))
 barPlotOrg <- ggplot(boxBarPlotOrgData,aes(x=sample,y=abund,fill=ID))+
   geom_bar(stat="identity")   
 barPlotFunc <- ggplot(boxBarPlotFuncData,aes(x=sample,y=abund,fill=ID))+
