@@ -47,7 +47,8 @@ ezMethodMetaspades = function(input=NA, output=NA, param=NA,
   ezSystem(metaspadesToBeExecCmd)
 
   ## place output files
-  #1) 
+  #1) contigs
+ 
   isDotFasta <- file.exists("metaspadesResults/contigs.fasta")
   if (isDotFasta){
    oldContigFile <- "metaspadesResults/contigs.fasta"
