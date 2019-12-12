@@ -122,10 +122,8 @@ ezMethodVirDetect = function(input=NA, output=NA, param=NA,
         	temp.df<-data.frame(c1=c(chr), c2=c("0"), c3=c(len), c4=c(common_name))
         	#bed.file<-paste0(chr, ".bed")
         	csv.file<-paste0(chr, ".csv")
-        	#write.table(temp.df, file=bed.file, quote=FALSE, col.names=FALSE, 
-        	            row.names=FALSE, sep="\t")
-        	ezSystem(paste0("samtools view -b ", bamFile, " ",
-                              chr, " > ", chr, ".bam"))
+        	#write.table(temp.df, file=bed.file, quote=FALSE, col.names=FALSE, row.names=FALSE, sep="\t")
+        	ezSystem(paste0("samtools view -b ", bamFile, " ", chr, " > ", chr, ".bam"))
         	ezSystem(paste0("samtools index ", chr, ".bam"))
 		subsam<-1
 		if (sub[i, 3] > 80000){
@@ -136,10 +134,8 @@ ezMethodVirDetect = function(input=NA, output=NA, param=NA,
 			ezSystem(paste0("mv ",  chr, ".subsam.bam.bai", " ", chr, ".bam.bai"))
 		}
         	ezSystem(paste0("samtools depth -a ", chr, ".bam"))
-        	#ezSystem(paste0("bedtools coverage -a ", bed.file, 
-        	              " -b ", chr, ".bam", " -d > ", csv.file))
-        	cov<-read.table(csv.file, header=FALSE, sep="\t", quote="",
-        	                stringsAsFactors=FALSE)
+        	#ezSystem(paste0("bedtools coverage -a ", bed.file, " -b ", chr, ".bam", " -d > ", csv.file))
+        	cov<-read.table(csv.file, header=FALSE, sep="\t", quote="", stringsAsFactors=FALSE)
         	sub[i,8]<-sum(cov$V3!=0)
         	sub[i,9]<-sum(cov$V3!=0)/len*100
         	sub[i,10]<-sum(cov$V3)/len/subsam
@@ -168,10 +164,8 @@ ezMethodVirDetect = function(input=NA, output=NA, param=NA,
                           c("fgcz.css", "VirDetect.Rmd",
                             "fgcz_header.html", "banner.png"))
   file.copy(from=styleFiles, to=".", overwrite=TRUE)
-  params = list(sample=sampleName,
-                minReadCount=param$minReadCount)
-  rmarkdown::render(input="VirDetect.Rmd", envir = new.env(),
-                    output_dir=".", output_file=htmlFile, quiet=TRUE)
+  params = list(sample=sampleName, minReadCount=param$minReadCount)
+  rmarkdown::render(input="VirDetect.Rmd", envir = new.env(), output_dir=".", output_file=htmlFile, quiet=TRUE)
   cdir <- "."
   csv.files <- file.path(cdir, "*.csv")
   ezSystem(paste0("rm ", csv.files))
