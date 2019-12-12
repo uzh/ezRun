@@ -26,7 +26,7 @@ getCellCycle <- function(counts, refBuild){
     cellCycleData <- cyclone(counts, trainData)
     cellPhase <- tibble(Name = colnames(counts),
                         Phase = cellCycleData$phases)
-    cellPhase <- bind_cols(cellPhase, cellCycleData[,grep("scores", colnames(cellCycleData))])
+    cellPhase <- bind_cols(cellPhase, cellCycleData$scores)
   }else{
     cellPhase <- tibble(Name = colnames(counts),
                         Phase = NA)
