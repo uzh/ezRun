@@ -204,6 +204,9 @@ loadSCCountDataset <- function(input, param){
       ## TODO: remove this test as CellCyclePhase file should always exist
       cellCycle <- ezRead.table(cellCycleFn)
       colData(sce)$CellCycle <- cellCycle[colnames(sce), "Phase"]
+      colData(sce)$CellCycleG1 <- cellCycle[colnames(sce), "G1"]
+      colData(sce)$CellCycleS <- cellCycle[colnames(sce), "S"]
+      colData(sce)$CellCycleG1 <- cellCycle[colnames(sce), "G2M"]
     }
     seqAnnoDF <- ezFeatureAnnotation(param, rownames(sce),
                                      dataFeatureLevel)
