@@ -44,6 +44,7 @@ heatmapDescPlot <- summaryHeatmap(descTermMatrixForHeatmap,
                                      isGroupThere, 
                                      dataset=dataset, 
                                      numberOfTopNCategories)
+if (areThereRepl){
 diffTableGOTerms <- metagMetatrDifferentialAnalysis_tableAndPlots(GOTermMatrixForDiffExpr,
                                                                   dataset,
                                                                   group,sampleGroup,refGroup,
@@ -54,6 +55,7 @@ diffTableFunc <- metagMetatrDifferentialAnalysis_tableAndPlots(descTermMatrixFor
                                                                group,sampleGroup,refGroup,
                                                                N=numberOfTopNCategories,
                                                                mode="function")
+}
 }else{
 heatmapGOPlot <- summaryHeatmap(GOTermMatrixForHeatmap, 
                                      isGroupThere,
@@ -177,7 +179,7 @@ plot(summaryMatchScorePlot)
 ### Interproscan annotation:  GO annotation
 ```{r summaryGO, echo=FALSE,out.width="70%"}
 heatmapGOPlot()
-if (isGroupThere){
+if (areThereRepl){
 DT::datatable(diffTableGOTerms)
 }
 ```
@@ -185,7 +187,7 @@ DT::datatable(diffTableGOTerms)
 ### Interproscan annotation:  functional annotation
 ```{r summaryFunct, echo=FALSE,out.width="70%"}
 heatmapDescPlot()
-if (isGroupThere){
+if (areThereRepl){
 DT::datatable(diffTableFunc)
 }
 ```

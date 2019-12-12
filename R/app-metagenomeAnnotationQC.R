@@ -28,7 +28,7 @@ ezMethodMetagenomeAnnotationQC = function(input=NA, output=NA, param=NA,
   group = param$grouping
   sampleGroup = param$sampleGroup
   refGroup = param$refGroup
-  
+  areThereRepl  <- nrow(dataset) > 3
     colnames(dataset) <-  gsub(" \\[File\\]","",colnames(dataset))
   allColumns <- dataset[,c("prodigalPredictionFile","interproscanFile","binSummaryFile")]
   plotLabels <- input$getNames()
