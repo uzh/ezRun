@@ -120,20 +120,21 @@ ezMethodVirDetect = function(input=NA, output=NA, param=NA,
         	len=sub[i, 2]
         	common_name=sub[i, 6]
         	temp.df<-data.frame(c1=c(chr), c2=c("0"), c3=c(len), c4=c(common_name))
-        	bed.file<-paste0(chr, ".bed")
+        	#bed.file<-paste0(chr, ".bed")
         	csv.file<-paste0(chr, ".csv")
-        	write.table(temp.df, file=bed.file, quote=FALSE, col.names=FALSE, 
+        	#write.table(temp.df, file=bed.file, quote=FALSE, col.names=FALSE, 
         	            row.names=FALSE, sep="\t")
         	ezSystem(paste0("samtools view -b ", bamFile, " ",
                               chr, " > ", chr, ".bam"))
         	ezSystem(paste0("samtools index ", chr, ".bam"))
-        	ezSystem(paste0("bedtools coverage -a ", bed.file, 
+        	ezSystem(paste0("samtools depth -a -d 1000", chr, ".bam"))
+        	#ezSystem(paste0("bedtools coverage -a ", bed.file, 
         	              " -b ", chr, ".bam", " -d > ", csv.file))
         	cov<-read.table(csv.file, header=FALSE, sep="\t", quote="",
         	                stringsAsFactors=FALSE)
-        	sub[i,8]<-sum(cov$V6!=0)
-        	sub[i,9]<-sum(cov$V6!=0)/len*100
-        	sub[i,10]<-sum(cov$V6)/len
+        	sub[i,8]<-sum(cov$V3!=0)
+        	sub[i,9]<-sum(cov$V3!=0)/len*100
+        	sub[i,10]<-sum(cov$V3)/len
         	ezSystem(paste0("rm ", chr, ".bam"))
         	ezSystem(paste0("rm ", chr, ".bam.bai"))
   	}
