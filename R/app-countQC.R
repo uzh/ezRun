@@ -14,9 +14,6 @@ ezMethodCountQC = function(input=NA, output=NA, param=NA,
     rownames(dataset) = addReplicate(apply(ezDesignFromDataset(dataset), 1, 
                                            paste, collapse="_"))
   }
-  if (!is.null(param$removeOutliers) && param$removeOutliers && !is.null(dataset$Outlier)){
-    dataset = dataset[toupper(dataset$Outlier) %in% c("", "NO", '""', "FALSE") == TRUE, ]
-  }
   input$meta = dataset
   
   rawData = loadCountDataset(input, param)
