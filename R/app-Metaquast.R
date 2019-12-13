@@ -20,7 +20,7 @@ ezMethodMetaquast = function(input=NA, output=NA, param=NA, htmlFile="00index.ht
     listOfRef <- readDNAStringSet(refFile)
     listOfRefNames <- vector()
     for (fileName in names(listOfRef)) {
-      writeXStringSet(listOfRef[[fileName]],paste0(fileName,".fasta"))
+      writeXStringSet(listOfRef[fileName],paste0(fileName,".fasta"))
       listOfRefNames[fileName] <- paste0(fileName,".fasta")
     }
     listOfRefToParse <- paste(listOfRefNames, collapse = ",")
