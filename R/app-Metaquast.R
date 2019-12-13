@@ -7,6 +7,7 @@
 
 
 ezMethodMetaquast = function(input=NA, output=NA, param=NA, htmlFile="00index.html"){
+  library(Biostrings)
   outFileName = param$Name
     ## copy everything locally 
     ## refs
@@ -14,10 +15,15 @@ ezMethodMetaquast = function(input=NA, output=NA, param=NA, htmlFile="00index.ht
     sapply(x,function(x) ezSystem(paste("cp",x,"./")))
    }
    isThereRef <- param$isThereRef
-   refListFile <-  param$fileWithListOfRefs
+   refFile <-  param$fileWithListOfRefs
    if (isThereRef) {
-     localRef <- basename(refListFile)
-     ezSystem(paste("cp",refListFile,localRef))
+    listOfRef <- readDNAStringSet(refFile)
+    listOfRefNames <- vector()
+    for (fileName in names(listOfRef)) {
+  #    writeXStringSet(refFile[[fileName]],paste0(fileName,".fasta"))
+      listOfRefNames[fileName] <- paste0(fileName,".fasta")
+    }
+    listOfRefToParse <- paste(listOfRefNames, collapse = ",")
    }
     ## draft
     draftList = input$getFullPaths("contigFile")
@@ -29,7 +35,7 @@ ezMethodMetaquast = function(input=NA, output=NA, param=NA, htmlFile="00index.ht
     localDraftCollapsed <- paste(localDraft,collapse = " ")
     sampleNameList <- localDraftCollapsed
     if (isThereRef) {
-      cmd = paste("metaquast.py", "-R", localRef, "-o", outFileName, 
+      cmd = paste("metaquast.py", "-R", listOfRefToParse, "-o", outFileName, 
                   '-t', ezThreads(), sampleNameList, "1> ", "metaQuast.log")
     }else{
       cmd = paste("metaquast.py", "-o", outFileName, 
