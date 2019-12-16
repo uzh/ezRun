@@ -42,31 +42,6 @@ delete_e = function(data.dir){
   print('Done!')
 }
 
-##' keep only core files
-##' 
-##' 
-
-keepOnlyCoreFiles = function(data.dir){
-  # list files in output.dir
-  dirFiles = list.files(data.dir,full.names = TRUE, recursive = FALSE)
-  coreResultsFile = grep(pattern='*CORE_RESULTS*',dirFiles,value = TRUE)
-  
-  if(length(coreResultsFile)>0){
-    # identify the folder with the CORE_RESULTS and not the .tgz
-    toRemove = dirFiles != coreResultsFile
-    # remove the rest of the files and folders
-    unlink(dirFiles[toRemove],recursive=TRUE)
-    
-    # uncompress .tgz
-    untar(tarfile = coreResultsFile, exdir = data.dir)
-    
-    # remove .tgz
-    file.remove(coreResultsFile)
-  }else{
-    print('No CORE_RESULTS found; probably they had already been extracted.')
-  }
-}
-
 ##
 ## check dependencies
 ##
