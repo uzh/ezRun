@@ -10,9 +10,6 @@ ezMethodDeseq2 = function(input=NA, output=NA, param=NA, htmlFile="00index.html"
   if (ezIsSpecified(param$samples)){
     input = input$subset(param$samples)
   }
-  if (!is.null(param$markOutliers) && param$markOutliers){
-    stop("DESeq2 does not support marking outliers because marked outliers would still be used in dispersion estimates")
-  }
   cwd <- getwd()
   setwdNew(basename(output$getColumn("Report")))
   on.exit(setwd(cwd))
@@ -36,16 +33,7 @@ ezMethodDeseq2 = function(input=NA, output=NA, param=NA, htmlFile="00index.html"
     return("Error")
   }
   
-  ## Copy the style files and templates
-  styleFiles <- file.path(system.file("templates", package="ezRun"),
-                          c("fgcz.css", "twoGroups.Rmd",
-                            "fgcz_header.html", "banner.png"))
-  file.copy(from=styleFiles, to=".", overwrite=TRUE)
-  rmarkdown::render(input="twoGroups.Rmd", envir = new.env(),
-                    output_dir=".", output_file=htmlFile, quiet=TRUE)
-  
-  prepareRmdLib()
-  
+  makeRmdReport(output=output, param=param, deResult=deResult, rmdFile="twoGroups.Rmd")
   return("Success")
 }
 
