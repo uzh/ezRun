@@ -806,7 +806,7 @@ ezCbind = function(...){
   do.call(cbind, x)
 }
 
-makeRmdReport = function(..., rmdFile=''){
+makeRmdReport = function(..., htmlFile="00index.html", rmdFile=''){
   varList = list(...)
   for (nm in names(varList)){
     saveRDS(varList[[nm]], file=paste0(nm, ".rds"))
