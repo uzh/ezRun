@@ -9,18 +9,34 @@ EzAppExceRptReport =
   setRefClass( "EzAppExceRptReport",
                contains = "EzApp",
                methods = list(
-                 initiallize = function()
+                 initialize = function()
                  {
                    "Initializes the application using its specific defaults."
                    runMethod <<- ezMethodExceRptReport
                    name <<- "EzAppExceRptReport"
+                   appDefaults <<- rbind(name=ezFrame(Type="character",  DefaultValue="smallRNA_exceRpt",  Description=""))
                  }
                )
                
   )
 
 ezMethodExceRptReport = function(input=NA, output=NA, param=NA){
- ## input is the "CORE_RESULTS" folder. 
+  ## folder containing the files resulting from running EzAppExceRpt
+  excerpt_results = getwd()
+  ## processed_output is the new folder that will be created "processed_output", within the same folder
+  processed_output = paste(excerpt_results,'processed_output',sep='/')
+  ## process samples: get plots as objects and create .txt 
+  plots = processSamplesInDir(data.dir = excerpt_results, output.dir = processed_output, getPlotsObjects=TRUE)
+  ## list files generated
+  dataFiles = list.files(processed_output,pattern = '*.txt')
+  ## 
+  cwd <- getwd()
+  reportDir = paste0(param[['name']],'_report')
+  dir.create(reportDir)
+  ezSystem(paste0('mv processed_output ',reportDir,'/'))
+  setwdNew(reportDir)
+  makeRmdReport(plots=plots,dataFiles=dataFiles,rmdFile = "excerpt.Rmd")
+  setwdNew(cwd)
 }
 
 
@@ -60,7 +76,7 @@ loadDependencies = function(){
 ##
 ## Main function to read and plot exceRpt output in a given directory
 ##
-processSamplesInDir = function(data.dir, processed_output.dir=data.dir, scriptDir="~/Dropbox/Work/YALE/exRNA/exceRpt", getPlotsObjects=FALSE){
+processSamplesInDir = function(data.dir, output.dir=data.dir, scriptDir="~/Dropbox/Work/YALE/exRNA/exceRpt", getPlotsObjects=FALSE){
   
   ## Load required dependencies
   loadDependencies()
@@ -69,7 +85,16 @@ processSamplesInDir = function(data.dir, processed_output.dir=data.dir, scriptDi
   delete_e(data.dir)
   
   ## create output dir
-  dir.create(processed_output.dir)
+  if(dir.exists(output.dir)){
+    # erase
+    unlink(output.dir,recursive=TRUE)
+    # create
+    dir.create(output.dir)
+    
+  }else{
+    # create
+    dir.create(output.dir)
+  }
   
   ##  Look for samples to merge
   printMessage(c("Searching for valid exceRpt pipeline output in ",data.dir))
