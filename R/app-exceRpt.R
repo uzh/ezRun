@@ -9,60 +9,66 @@ EzAppExceRpt =
   setRefClass( "EzAppExceRpt",
                contains = "EzApp",
                methods = list(
-                 initiallize = function()
-                 {
+                 initialize = function(){
                    "Initializes the application using its specific defaults."
                    runMethod <<- ezMethodExceRpt
                    name <<- "EzAppExceRpt"
-                   appDefaults <<- ezFrame(
-                     EXE_DIR   = '/export/local/miquel/exceRpt',
-                     resultDir = '.',
+                   appDefaults <<- rbind(
+                     EXE_DIR = ezFrame(Type="character", DefaultValue='/export/local/miquel/exceRpt', Description="Path to smallRNA makefile"),
+
+                     ADAPTER_SEQ = ezFrame(Type="character", DefaultValue='guessKnown', Description="'gessKnown'|'none'|<String>"),
+                     SAMPLE_NAME = ezFrame(Type="character", DefaultValue='NULL', Description="<String>"),
+                     MAIN_ORGANISM_GENOME_ID = ezFrame(Type="character", DefaultValue='hg38', Description="'hg38'|'hg19'|'mm10'"),
+                     CALIBRATOR_LIBRARY = ezFrame(Type="character", DefaultValue='NULL', Description="<Path>, path to a directory containing bowtie2 index of calibrator oligos used for QC or normalisation."),
+                     CALIBRATOR_TRIM5p = ezFrame(Type="character", DefaultValue='0', Description="<int>"),
+                     CALIBRATOR_TRIM3p = ezFrame(Type="character", DefaultValue='0', Description="<int>"),
+                     ENDOGENOUS_LIB_PRIORITY = ezFrame(Type="character", DefaultValue='miRNA,tRNA,piRNA,gencode,circRNA', Description="<comma,separated,list,no,spaces>"),
                      
-                     ADAPTER_SEQ = 'guessKnown',
-                     SAMPLE_NAME = 'NULL',
-                     MAIN_ORGANISM_GENOME_ID = 'hg38',
-                     CALIBRATOR_LIBRARY = 'NULL',
-                     CALIBRATOR_TRIM5p = 0,
-                     CALIBRATOR_TRIM3p = 0,
-                     ENDOGENOUS_LIB_PRIORITY = 'miRNA,tRNA,piRNA,gencode,circRNA',
+                     TRIM_N_BASES_5p = ezFrame(Type="character", DefaultValue='0', Description="<int>"),
+                     TRIM_N_BASES_3p = ezFrame(Type="character", DefaultValue='0', Description="<int>"),
+                     RANDOM_BARCODE_LENGTH = ezFrame(Type="character", DefaultValue='0', Description="<int>"),
+                     RANDOM_BARCODE_LOCATION = ezFrame(Type="character", DefaultValue="'-5p -3p'", Description="'-5p -3p'/'-5p'/'-3p'"),
+                     KEEP_RANDOM_BARCODE_STATS = ezFrame(Type="character", DefaultValue='false', Description="'false'|'true'"),
+                     DOWNSAMPLE_RNA_READS = ezFrame(Type="character", DefaultValue='NULL', Description="<int>"),
+                     MAP_EXOGENOUS = ezFrame(Type="character", DefaultValue='off', Description="'off'|'miRNA'|'on'"),
                      
-                     TRIM_N_BASES_5p = '0',
-                     TRIM_N_BASES_3p = '0',
-                     RANDOM_BARCODE_LENGTH = 0,
-                     RANDOM_BARCODE_LOCATION = "'-5p -3p'",
-                     KEEP_RANDOM_BARCODE_STATS = 'false',
-                     DOWNSAMPLE_RNA_READS = 'NULL',
-                     MAP_EXOGENOUS = 'off',
+                     ram = ezFrame(Type="character", DefaultValue='16G', Description="Maximum amount of RAM."),
+                     cores = ezFrame(Type="character", DefaultValue='4', Description="Number of threads."),
+                     JAVA_RAM = ezFrame(Type="character", DefaultValue='10G', Description="RAM amount allocated for Java."),
+                     REMOVE_LARGE_INTERMEDIATE_FILES = ezFrame(Type="character", DefaultValue='false', Description="'false'|'true'"),
                      
-                     MAX_RAM = '16G',
-                     N_THREADS = 4,
-                     JAVA_RAM = '10G',
-                     REMOVE_LARGE_INTERMEDIATE_FILES = 'false',
-                     
-                     MIN_READ_LENGTH = 18,
-                     QFILTER_MIN_QUAL = 20,
-                     QFILTER_MIN_READ_FRAC = 80,
-                     STAR_alignEndsType = 'Local',
-                     STAR_outFilterMatchNmin = 18,
-                     STAR_outFilterMatchNminOverLread = 0.9,
-                     STAR_outFilterMismatchNmax = 1,
-                     MAX_MISMATCHES_EXOGENOUS = 0
-                   )
+                     MIN_READ_LENGTH = ezFrame(Type="character", DefaultValue='18', Description="Filter out reads not achieving minimum length."),
+                     QFILTER_MIN_QUAL = ezFrame(Type="character", DefaultValue='20', Description="Filter out reads not achieving minimum read quality."),
+                     QFILTER_MIN_READ_FRAC = ezFrame(Type="character", DefaultValue='80', Description=""),
+                     STAR_alignEndsType = ezFrame(Type="character", DefaultValue='Local', Description="'Local'|'EndToEnd'"),
+                     STAR_outFilterMatchNmin = ezFrame(Type="character", DefaultValue='18', Description=""),
+                     STAR_outFilterMatchNminOverLread = ezFrame(Type="character", DefaultValue='0.9', Description=""),
+                     STAR_outFilterMismatchNmax = ezFrame(Type="character", DefaultValue='1', Description=""),
+                     MAX_MISMATCHES_EXOGENOUS = ezFrame(Type="character", DefaultValue='0', Description=""))
                  }
                )
                
   )
 
 ezMethodExceRpt = function(input=NA, output=NA, param=NA){
-  # initialize method defaults
-  #readFile = input$getFullPaths("Read1") # input file path
-  readFile = '/export/local/miquel/exceRpt/ExampleData/testData_human.fastq.gz'
   
+  # init variables
+  readFile = input$getFullPaths("Read1") # input file path
+
+  outputDir = output$getColumn("excerpt")
+  if(!dir.exists(outputDir)){dir.create(outputDir)}
+  
+  ## create sample name if not specified
+  if(param[['SAMPLE_NAME']]=='NULL'){
+    param[['SAMPLE_NAME']] = gsub('.gz','',gsub('.fastq','',gsub('.*/','',readFile)))
+  }
+  
+  # create command to run exceRpt_smallRNA
   cmd = paste0('make -f ',param[['EXE_DIR']],'/exceRpt_smallRNA ', # makefile to execute
                
   ## required options
   'INPUT_FILE_PATH=',readFile,' ',    # <Path>
-  'OUTPUT_DIR=',param[['resultDir']],'/output ',                    # <Path>
+  'OUTPUT_DIR=',outputDir,' ',                    # <Path>
   
   'EXE_DIR=',param[['EXE_DIR']],' ',       # <Path>
   
@@ -85,8 +91,8 @@ ezMethodExceRpt = function(input=NA, output=NA, param=NA){
   'MAP_EXOGENOUS=',param[['MAP_EXOGENOUS']],' ',                         # 'off'|'miRNA'|'on'
   
   ## Hardware-specific options
-  'MAX_RAM=',param[['MAX_RAM']],' ',                                                 # <String>
-  'N_THREADS=',param[['N_THREADS']],' ',                                             # <int>
+  'MAX_RAM=',paste0(param[['ram']],'G'),' ',                                                 # <String>
+  'N_THREADS=',param[['cores']],' ',                                             # <int>
   'JAVA_RAM=',param[['JAVA_RAM']],' ',                                               # <String>
   'REMOVE_LARGE_INTERMEDIATE_FILES=',param[['REMOVE_LARGE_INTERMEDIATE_FILES']],' ', # 'false'|'true'
   
@@ -105,6 +111,30 @@ ezMethodExceRpt = function(input=NA, output=NA, param=NA){
   
   ## Function to delete all files in OUTPUT_DIR that are not in CORE_RESULTS; remove unnecessary
   ## data to create report.
-  keepOnlyCoreFiles(param[['resultDir']])
+  keepOnlyCoreFiles(outputDir)
 }
 
+##' keep only core files
+##' 
+##' 
+
+keepOnlyCoreFiles = function(data.dir){
+  # list files in output.dir
+  dirFiles = list.files(data.dir,full.names = TRUE, recursive = FALSE)
+  coreResultsFile = grep(pattern='*CORE_RESULTS*',dirFiles,value = TRUE)
+  
+  if(length(coreResultsFile)>0){
+    # identify the folder with the CORE_RESULTS and not the .tgz
+    toRemove = dirFiles != coreResultsFile
+    # remove the rest of the files and folders
+    unlink(dirFiles[toRemove],recursive=TRUE)
+    
+    # uncompress .tgz
+    untar(tarfile = coreResultsFile, exdir = data.dir)
+    
+    # remove .tgz
+    file.remove(coreResultsFile)
+  }else{
+    print('No CORE_RESULTS found; probably they had already been extracted.')
+  }
+}
