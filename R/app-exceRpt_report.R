@@ -872,7 +872,6 @@ PlotData = function(sampleIDs, output.dir, sampleGroups=NA, minPercent_exogenous
   ##
   ## Create list where to save plots that can be returned
   ##
-  
   plotsList = list()
   
   ##
@@ -880,8 +879,7 @@ PlotData = function(sampleIDs, output.dir, sampleGroups=NA, minPercent_exogenous
   ##
   printMessage("Creating QC plots")
   pdf(paste(output.dir,"exceRpt_DiagnosticPlots.pdf",sep="/"), height=10, width=20)
-  #tiff(paste(output.dir,"DiagnosticPlots.tiff",sep="/"))
-  
+
   
   if(ncol(read.lengths) > 1){
     printMessage("Plotting read-length distributions")
@@ -891,12 +889,15 @@ PlotData = function(sampleIDs, output.dir, sampleGroups=NA, minPercent_exogenous
     tmp = melt(read.lengths); colnames(tmp) = c("sample","length","count")
     if(is.data.frame(sampleGroups)){ tmp$sampleGroup = sampleGroups[match(tmp$sample, sampleGroups$sampleID), 2] }
     maxX = min(c(100,max(tmp$length)))
-    p = ggplot(tmp, aes(x=length, y=count, colour=sample)) +geom_line(alpha=0.75) +xlab("read length (nt)") +ylab("# reads") +ggtitle("read-length distributions: raw read count") +scale_x_continuous(limits=c(15,maxX), minor_breaks=1:maxX, breaks=seq(15,maxX,by=5))
+    p = ggplot(tmp, aes(x=length, y=count, color=sample)) + geom_line(alpha=1) +
+        xlab("read length (nt)") + ylab("# reads") + 
+        ggtitle("read-length distributions: raw read count")+
+        scale_x_continuous(limits=c(15,maxX), minor_breaks=1:maxX, breaks=seq(15,maxX,by=5))+
+        scale_colour_manual(values=getSampleColors(tmp$sample))
     if(nrow(read.lengths) > 30){ p = p +guides(colour=FALSE) }
     if(is.data.frame(sampleGroups)){ p = p +facet_wrap(~sampleGroup,ncol=1)}
     print(p)
-    #ggplot(tmp, aes(x=as.factor(length), y=count)) +geom_violin()
-    #ggplot(tmp, aes(x=as.factor(length), y=count)) +geom_boxplot()
+
     
     # save
     plotsList[["read-length distributions: raw read count"]] = p
@@ -907,7 +908,8 @@ PlotData = function(sampleIDs, output.dir, sampleGroups=NA, minPercent_exogenous
     tmp = melt(t(apply(read.lengths, 1, function(row){ row/sum(row) }))); colnames(tmp) = c("sample","length","fraction")
     if(is.data.frame(sampleGroups)){ tmp$sampleGroup = sampleGroups[match(tmp$sample, sampleGroups$sampleID), 2] }
     maxX = min(c(100,max(tmp$length)))
-    p = ggplot(tmp, aes(x=length, y=fraction, colour=sample)) +geom_line(alpha=0.75) +xlab("read length (nt)") +ylab("fraction of reads") +ggtitle("read-length distributions: normalised read fraction") +scale_x_continuous(limits=c(15,maxX), minor_breaks=1:maxX, breaks=seq(15,maxX,by=5))
+    p = ggplot(tmp, aes(x=length, y=fraction, colour=sample)) +geom_line(alpha=1) +xlab("read length (nt)") +ylab("fraction of reads") +ggtitle("read-length distributions: normalised read fraction") +scale_x_continuous(limits=c(15,maxX), minor_breaks=1:maxX, breaks=seq(15,maxX,by=5))+
+      scale_colour_manual(values=getSampleColors(tmp$sample))
     if(nrow(read.lengths) > 30){ p = p +guides(colour=FALSE) }
     if(is.data.frame(sampleGroups)){ p = p +facet_wrap(~sampleGroup,ncol=1)}
     print(p)
@@ -930,21 +932,22 @@ PlotData = function(sampleIDs, output.dir, sampleGroups=NA, minPercent_exogenous
   tmp$category[tmp$category == 1] = "fast"
   tmp$category[tmp$category == 2] = "normal"
   tmp$category[tmp$category == 3] = "slow"
-  tmp$colour[tmp$colour == 1] = "red"
-  tmp$colour[tmp$colour == 2] = "green"
-  tmp$colour[tmp$colour == 3] = "blue"
+  tmp$colour = getSampleColors(tmp$colour)
   tmp$runDuration_minutes = tmp$runDuration_seconds/60
   tmp$runDuration_hours = tmp$runDuration_minutes/60
-  p = ggplot(tmp, aes(x=sampleID,y=runDuration_hours,fill=colour)) +geom_bar(stat="identity") +facet_grid(~category,scales="free_x",space="free_x") +guides(fill=FALSE) +theme(axis.text.x=element_text(angle=60, hjust=1.0, vjust=1)) +ggtitle("Duration of exceRpt run for each sample") +ylab("Run duration (hours)")
+  p = ggplot(tmp, aes(x=sampleID,y=runDuration_hours)) + geom_bar(stat="identity",fill=tmp$colour) +
+      facet_grid(~category,scales="free_x",space="free_x") +guides(fill=FALSE) +
+      theme(axis.text.x=element_text(angle=60, hjust=1.0, vjust=1)) +
+      ggtitle("Duration of exceRpt run for each sample") +ylab("Run duration (hours)")
   print(p)
-  
   # save
   plotsList[["Duration of exceRpt run for each sample"]] = p
   
   if(is.data.frame(sampleGroups)){ tmp$sampleGroup = sampleGroups[match(tmp$sampleID, sampleGroups$sampleID), 2] }
-  # ORIGINAL:   p = ggplot(tmp, aes(x=inputReadCount,y=runDuration_hours,colour=colour)) +geom_point(size=5) +guides(colour=FALSE) +scale_y_log10(limits=c(0.1,10^ceiling(log10(max(tmp$runDuration_hours)))), breaks=c(0.1,1,10^seq(0:ceiling(log10(max(tmp$runDuration_hours)))))) +scale_x_log10(limits=c(min(c(100000,10^floor(log10(min(tmp$inputReadCount+1))))),10^ceiling(log10(max(tmp$inputReadCount)))), breaks=10^seq(min(c(100000,floor(log10(min(tmp$inputReadCount+1))))),ceiling(log10(max(tmp$inputReadCount))))) +ggtitle("Duration of exceRpt run per sequencing yield") +ylab("Run duration (hours)") +xlab("Total number of reads input")
-  p = ggplot(tmp, aes(x=inputReadCount,y=runDuration_hours,colour=colour)) +geom_point(size=5) +guides(colour=FALSE) +scale_x_log10(limits=c(min(c(100000,10^floor(log10(min(tmp$inputReadCount+1))))),10^ceiling(log10(max(tmp$inputReadCount)))), breaks=10^seq(min(c(100000,floor(log10(min(tmp$inputReadCount+1))))),ceiling(log10(max(tmp$inputReadCount))))) +ggtitle("Duration of exceRpt run per sequencing yield") +ylab("Run duration (hours)") +xlab("Total number of reads input")
-  #if(is.data.frame(sampleGroups)){ p = p +facet_wrap(~sampleGroup,ncol=1)}
+  p = ggplot(tmp, aes(x=inputReadCount,y=runDuration_hours,colour=colour)) + geom_point(size=5) + guides(colour=FALSE) +
+      scale_x_log10(limits=c(min(c(100000,10^floor(log10(min(tmp$inputReadCount+1))))),10^ceiling(log10(max(tmp$inputReadCount)))), breaks=10^seq(min(c(100000,floor(log10(min(tmp$inputReadCount+1))))),ceiling(log10(max(tmp$inputReadCount))))) +
+      ggtitle("Duration of exceRpt run per sequencing yield") + ylab("Run duration (hours)") + xlab("Total number of reads input") + 
+      scale_colour_manual(values=tmp$colour)
   print(p)
   
   # save
@@ -1038,14 +1041,18 @@ PlotData = function(sampleIDs, output.dir, sampleGroups=NA, minPercent_exogenous
   printMessage("Plotting QC result")
   toplot = as.data.frame(qc.results)
   toplot$Sample = factor(rownames(toplot), levels=rownames(mapping.stats)[sampleOrder])
-  p = ggplot(toplot, aes(x=TranscriptomeReads, y=TranscriptomeGenomeRatio))
+  p = ggplot(toplot, aes(x=TranscriptomeReads, y=TranscriptomeGenomeRatio)) +
+      geom_text(label=toplot$Sample,hjust = 0,nudge_x = 0.02, nudge_y = 0.02, colour='black') +
+      scale_colour_manual(values=getSampleColors(toplot$Sample))
   if(is.data.frame(sampleGroups)){ 
     toplot$sampleGroup = sampleGroups[match(toplot$Sample, sampleGroups$sampleID), 2] 
-    p = ggplot(toplot, aes(x=TranscriptomeReads, y=TranscriptomeGenomeRatio, colour=sampleGroup))
+    p = ggplot(toplot, aes(x=TranscriptomeReads, y=TranscriptomeGenomeRatio, colour=sampleGroup)) +
+      geom_text(label=toplot$Sample,hjust = 0, nudge_x = 0.02, nudge_y = 0.02, colour='black') +
+      scale_colour_manual(values=getSampleColors(toplot$sampleGroup))
   }
   minX = floor(log10(min(toplot$TranscriptomeReads)+0.001))
   maxX = ceiling(log10(max(toplot$TranscriptomeReads)+0.001))
-  p = p +scale_x_log10(breaks=10^c(minX:maxX)) +coord_cartesian(xlim=c(10^(minX),10^(maxX)),ylim=c(0,1)) +geom_vline(xintercept=100000,col="red",alpha=0.5) +geom_hline(yintercept=0.5,col="red",alpha=0.5) +annotate("rect",xmin=0,xmax=Inf,ymin=-1,ymax=0.5,alpha=0.2,fill="red") +annotate("rect",xmin=0,xmax=100000,ymin=-1,ymax=1.1,alpha=0.2,fill="red") +ylab("# transcriptome reads / # genome reads") +xlab("# transcriptome reads (log10)") +ggtitle("QC result: overall")
+  p = p + scale_x_log10(breaks=10^c(minX:maxX)) +coord_cartesian(xlim=c(10^(minX),10^(maxX)),ylim=c(0,1)) +geom_vline(xintercept=100000,col="red",alpha=0.5) +geom_hline(yintercept=0.5,col="red",alpha=0.5) +annotate("rect",xmin=0,xmax=Inf,ymin=-1,ymax=0.5,alpha=0.2,fill="red") +annotate("rect",xmin=0,xmax=100000,ymin=-1,ymax=1.1,alpha=0.2,fill="red") +ylab("# transcriptome reads / # genome reads") +xlab("# transcriptome reads (log10)") +ggtitle("QC result: overall")
   
   print(p+geom_point(size=4))
   
@@ -1053,10 +1060,11 @@ PlotData = function(sampleIDs, output.dir, sampleGroups=NA, minPercent_exogenous
   plotsList[["QC result: overall"]] = p + geom_point(size=4)
   
   if(is.data.frame(sampleGroups)){
-    print(p +facet_wrap(~sampleGroup) +theme(legend.position="none") +geom_point(size=2)) 
+    print(p + facet_wrap(~sampleGroup) + theme(legend.position="none") +geom_point(size=2)) 
     
     # save
-    plotsList[["QC result: overall"]] = p +facet_wrap(~sampleGroup) +theme(legend.position="none") +geom_point(size=2)
+    plotsList[["QC result: overall"]] = p +facet_wrap(~sampleGroup) +theme(legend.position="none") +
+                                        geom_point(size=2)
     
   }
   
@@ -1075,11 +1083,12 @@ PlotData = function(sampleIDs, output.dir, sampleGroups=NA, minPercent_exogenous
   tmp.pass=tmp.mat[,4] >= 0.5;  tmp.mat[tmp.pass,4] = "pass"; tmp.mat[!tmp.pass,4] = "fail"
   
   toplot=cbind(melt(tmp.mat), Actual=melt(qc.results)[,3]); colnames(toplot)[1:3]=c("Sample","Stage","Value")
-  #toplot$Stage = with(toplot, factor(Stage, levels = rev(levels(Stage))))
   toplot$Sample = factor(as.character(toplot$Sample), levels=rownames(mapping.stats)[sampleOrder])
   if(is.data.frame(sampleGroups)){ toplot$sampleGroup = sampleGroups[match(toplot$Sample, sampleGroups$sampleID), 2] }
-  p = ggplot(toplot, aes(y=Sample, x=Stage, fill=Value, label=Actual)) +scale_fill_manual(values=c("fail"="red","pass"="palegreen","1"="lightgrey")) +geom_label() +theme(plot.background=element_rect(fill="white"),panel.background=element_rect(fill=rgb(0.97,0.97,0.97)), axis.text.x=element_text(angle=20, hjust=1, vjust=1), legend.position="none") +ggtitle("QC result: per-sample results") +xlab("") +ylab("")
-  #if(is.data.frame(sampleGroups)){ p = p +facet_wrap(~sampleGroup, scales="free_y", ncol=1)}
+  p = ggplot(toplot, aes(y=Sample, x=Stage, fill=Value, label=Actual)) +
+      scale_fill_manual(values=c("fail"="red","pass"="palegreen","1"="lightgrey")) +
+      geom_label() +theme(plot.background=element_rect(fill="white"),panel.background=element_rect(fill=rgb(0.97,0.97,0.97)), axis.text.x=element_text(angle=20, hjust=1, vjust=1)) +
+      ggtitle("QC result: per-sample results") +xlab("") +ylab("")
   print(p)
   
   # save
@@ -1134,7 +1143,10 @@ PlotData = function(sampleIDs, output.dir, sampleGroups=NA, minPercent_exogenous
   tmp = melt(as.matrix(sampleTotals))
   colnames(tmp) = c("biotype","sampleID","readCount")
   if(is.data.frame(sampleGroups)){ tmp$sampleGroup = sampleGroups[match(tmp$sampleID, sampleGroups$sampleID), 2] }
-  p = ggplot(na.omit(tmp), aes(y=readCount,x=biotype, colour=biotype)) +geom_hline(aes(yintercept=1),linetype="dashed") +geom_boxplot() +scale_y_log10(breaks=c(0.01,0.1,1,10,100,1000,10000,100000,1000000,10000000,100000000)) +guides(colour=FALSE) +coord_flip() +ggtitle("Biotypes: distributions, raw read-counts")
+  p = ggplot(na.omit(tmp), aes(y=readCount,x=biotype, colour=biotype)) +geom_hline(aes(yintercept=1),linetype="dashed") +
+      geom_boxplot() +scale_y_log10(breaks=c(0.01,0.1,1,10,100,1000,10000,100000,1000000,10000000,100000000)) +
+      guides(colour=FALSE) +coord_flip() +ggtitle("Biotypes: distributions, raw read-counts")+
+      scale_color_manual(values = getSampleColors(tmp$biotype))
   if(is.data.frame(sampleGroups)){ p = p +facet_grid(~sampleGroup, scales="free_x")}
   print(p)
   
@@ -1149,7 +1161,8 @@ PlotData = function(sampleIDs, output.dir, sampleGroups=NA, minPercent_exogenous
   tmp = melt(as.matrix(apply(sampleTotals, 2, function(col){ col*1000000/sum(col) })))
   colnames(tmp) = c("biotype","sampleID","readPerMillion")
   if(is.data.frame(sampleGroups)){ tmp$sampleGroup = sampleGroups[match(tmp$sampleID, sampleGroups$sampleID), 2] }
-  p = ggplot(na.omit(tmp), aes(y=readPerMillion,x=biotype, colour=biotype)) +geom_hline(aes(yintercept=1),linetype="dashed") +geom_boxplot() +scale_y_log10(breaks=c(0.01,0.1,1,10,100,1000,10000,100000,1000000,10000000,100000000)) +guides(colour=FALSE) +coord_flip() +ggtitle("Biotypes: distributions, normalised")
+  p = ggplot(na.omit(tmp), aes(y=readPerMillion,x=biotype, colour=biotype)) +geom_hline(aes(yintercept=1),linetype="dashed") +geom_boxplot() +scale_y_log10(breaks=c(0.01,0.1,1,10,100,1000,10000,100000,1000000,10000000,100000000)) +guides(colour=FALSE) +coord_flip() +ggtitle("Biotypes: distributions, normalised")+
+    scale_color_manual(values = getSampleColors(tmp$biotype))
   if(is.data.frame(sampleGroups)){ p = p +facet_grid(~sampleGroup, scales="free_x")}
   print(p)
   
@@ -1167,7 +1180,6 @@ PlotData = function(sampleIDs, output.dir, sampleGroups=NA, minPercent_exogenous
   
   tmp = as.matrix(rbind(tmp[1:N, , drop=F], other=colSums(tmp[-c(1:N), , drop=F])))
   tmp = melt(rbind(tmp, unmapped=1000000-colSums(tmp)))
-  #tmp = melt(tmp)
   colnames(tmp) = c("biotype","sampleID","readsPerMillion")
   if(is.data.frame(sampleGroups)){ tmp$sampleGroup = sampleGroups[match(tmp$sampleID, sampleGroups$sampleID), 2] }
   p = ggplot(na.omit(tmp), aes(y=readsPerMillion,x=sampleID,fill=biotype)) +geom_bar(stat="identity") +scale_fill_brewer(palette = "Paired") +theme(axis.text.x=element_text(angle=50, hjust=1.0, vjust=1)) +ggtitle("Biotypes: per-sample, normalised") +ylab("reads per million reads used for alignment") +xlab("") +ylim(limits=c(0,1E6)) #+scale_fill_discrete(rich.colors(10))
@@ -1178,7 +1190,6 @@ PlotData = function(sampleIDs, output.dir, sampleGroups=NA, minPercent_exogenous
   plotsList[["Biotypes: per-sample, normalised"]] = p
   
   ## plot top N biotypes for each sample as a barplot - normalised to MAPPED reads
-  #N = 7
   tmp = as.matrix(apply(sampleTotals, 2, function(col){ col*1000000/sum(col) }))
   tmp = tmp[biotypeOrder, , drop=F]
   tmp = as.matrix(rbind(tmp[1:N, , drop=F], other=colSums(tmp[-c(1:N), , drop=F])))
@@ -1199,7 +1210,11 @@ PlotData = function(sampleIDs, output.dir, sampleGroups=NA, minPercent_exogenous
     tmp = melt(exprs.miRNA)
     colnames(tmp) = c("miRNA","sample","abundance")
     if(is.data.frame(sampleGroups)){ tmp$sampleGroup = sampleGroups[match(tmp$sample, sampleGroups$sampleID), 2] }
-    p = ggplot(tmp, aes(y=abundance, x=sample, colour=sample)) +geom_violin() +geom_boxplot(alpha=0.2) +ylab("Read count") +ggtitle("miRNA abundance distributions (raw counts)") +scale_y_log10() +guides(colour=FALSE)
+    p = ggplot(tmp, aes(y=abundance, x=sample, colour=sample)) +
+        geom_violin() +
+        geom_boxplot(alpha=0.2) +ylab("Read count") +ggtitle("miRNA abundance distributions (raw counts)") +
+        scale_y_log10() +guides(colour=FALSE) +
+        scale_color_manual(values = setNames(getSampleColors(tmp$sample),tmp$sample))
     if(ncol(exprs.miRNA) < 30){ 
       p = p +theme(axis.text.x=element_text(angle=50, hjust=1.0, vjust=1))
     }else{
@@ -1211,7 +1226,8 @@ PlotData = function(sampleIDs, output.dir, sampleGroups=NA, minPercent_exogenous
     # save
     plotsList[["miRNA abundance distributions (raw counts)"]] = p
     
-    p = ggplot(tmp, aes(x=abundance, colour=sample)) +geom_density() +xlab("Read count") +ggtitle("miRNA abundance distributions (raw counts)") +scale_x_log10()
+    p = ggplot(tmp, aes(x=abundance, colour=sample)) +geom_density() +xlab("Read count") +ggtitle("miRNA abundance distributions (raw counts)") +scale_x_log10()+
+        scale_color_manual(values = setNames(getSampleColors(tmp$sample),tmp$sample))
     if(ncol(exprs.miRNA.rpm) > 30){ p = p +guides(colour=FALSE) }
     if(is.data.frame(sampleGroups)){ p = p +facet_grid(~sampleGroup)}
     print(p)
@@ -1222,7 +1238,12 @@ PlotData = function(sampleIDs, output.dir, sampleGroups=NA, minPercent_exogenous
     tmp = melt(exprs.miRNA.rpm)
     colnames(tmp) = c("miRNA","sample","abundance")
     if(is.data.frame(sampleGroups)){ tmp$sampleGroup = sampleGroups[match(tmp$sample, sampleGroups$sampleID), 2] }
-    p = ggplot(tmp, aes(y=abundance, x=sample, colour=sample)) +geom_violin() +geom_boxplot(alpha=0.2) +ylab("Reads per million (RPM)") +ggtitle("miRNA abundance distributions (RPM)") +theme(axis.ticks = element_blank(), axis.text.x = element_blank()) +scale_y_log10() +guides(colour=FALSE)
+    p = ggplot(tmp, aes(y=abundance, x=sample, colour=sample)) +geom_violin() +
+        geom_boxplot(alpha=0.2) +ylab("Reads per million (RPM)") +
+        ggtitle("miRNA abundance distributions (RPM)") +
+        theme(axis.ticks = element_blank(), axis.text.x = element_blank()) +
+        scale_y_log10() +guides(colour=FALSE)+
+        scale_color_manual(values = setNames(getSampleColors(tmp$sample),tmp$sample))
     if(ncol(exprs.miRNA.rpm) < 30){ 
       p = p +theme(axis.text.x=element_text(angle=50, hjust=1.0, vjust=1))
     }else{
@@ -1234,7 +1255,9 @@ PlotData = function(sampleIDs, output.dir, sampleGroups=NA, minPercent_exogenous
     # save
     plotsList[["miRNA abundance distributions (RPM)"]] = p
     
-    p = ggplot(tmp, aes(x=abundance, colour=sample)) +geom_density() +xlab("Reads per million (RPM)") +ggtitle("miRNA abundance distributions (RPM)") +scale_x_log10()
+    p = ggplot(tmp, aes(x=abundance, colour=sample)) +geom_density() +
+        xlab("Reads per million (RPM)") +ggtitle("miRNA abundance distributions (RPM)") +scale_x_log10()+
+        scale_color_manual(values = setNames(getSampleColors(tmp$sample),tmp$sample))
     if(ncol(exprs.miRNA.rpm) > 30){ p = p +guides(colour=FALSE) }
     if(is.data.frame(sampleGroups)){ p = p +facet_grid(~sampleGroup)}
     print(p)
@@ -1246,7 +1269,7 @@ PlotData = function(sampleIDs, output.dir, sampleGroups=NA, minPercent_exogenous
   
   
   ##
-  ## Finally, plot exogenous if there are any
+  ## Finally, plot exogenous if there are any (not used by default)
   ##
   
   ##! Save plots below!
