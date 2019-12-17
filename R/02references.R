@@ -164,6 +164,7 @@ setMethod("buildRefDir", "EzRef", function(.Object, genomeFile, genesFile,
   ## 2 GTF files: 
   ### features.gtf
   gtf <- import(genesFile)
+  
   #### some controls over gtf
   if(is.null(gtf$gene_biotype)){
     if(is.null(gtf$gene_type)){
