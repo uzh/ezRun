@@ -5,6 +5,7 @@
 # The terms are available here: http://www.gnu.org/licenses/gpl.html
 # www.fgcz.ch
 
+
 EzAppExceRpt =
   setRefClass( "EzAppExceRpt",
                contains = "EzApp",
@@ -14,8 +15,16 @@ EzAppExceRpt =
                    runMethod <<- ezMethodExceRpt
                    name <<- "EzAppExceRpt"
                    appDefaults <<- rbind(
-                     EXE_DIR = ezFrame(Type="character", DefaultValue='/export/local/miquel/exceRpt', Description="Path to smallRNA makefile"),
-
+                     EXE_DIR = ezFrame(Type="character", DefaultValue='/usr/local/ngseq/packages/Tools/exceRpt/4.6.3', Description="Path to smallRNA makefile"),
+                     
+                     FASTX_CLIP_EXE=ezFrame(Type="character", DefaultValue='/usr/local/ngseq/bin/fastx_clipper', Description="Path to binary"),
+                     FASTX_FILTER_EXE=ezFrame(Type="character", DefaultValue='/usr/local/ngseq/bin/fastq_quality_filter', Description="Path to binary"),
+                     BOWTIE2_EXE=ezFrame(Type="character", DefaultValue='/usr/local/ngseq/packages/Aligner/Bowtie2/2.3.2/bin/bowtie2', Description="Path to binary"),
+                     SAMTOOLS_EXE=ezFrame(Type="character", DefaultValue='/usr/local/ngseq/packages/Tools/samtools/1.8/bin/samtools', Description="Path to binary"),
+                     JAVA_EXE=ezFrame(Type="character", DefaultValue='/usr/local/ngseq/packages/Dev/jdk/8/bin/java', Description="Path to binary"),
+                     FASTQC_EXE=ezFrame(Type="character", DefaultValue="'/usr/local/ngseq/packages/Dev/jdk/8/bin/java -classpath /usr/local/ngseq/packages/QC/FastQC/0.11.7:/usr/local/ngseq/packages/QC/FastQC/0.11.7/sam-1.103.jar:/usr/local/ngseq/packages/QC/FastQC/0.11.7/jbzip2-0.9.jar'", Description="Paths to java and fastqc binaries"),
+                     STAR_EXE=ezFrame(Type="character", DefaultValue='/usr/local/ngseq/packages/Aligner/STAR/2.5.2b/bin/STAR', Description="Path to binary"),
+                     
                      ADAPTER_SEQ = ezFrame(Type="character", DefaultValue='guessKnown', Description="'gessKnown'|'none'|<String>"),
                      SAMPLE_NAME = ezFrame(Type="character", DefaultValue='NULL', Description="<String>"),
                      MAIN_ORGANISM_GENOME_ID = ezFrame(Type="character", DefaultValue='hg38', Description="'hg38'|'hg19'|'mm10'"),
@@ -64,54 +73,71 @@ ezMethodExceRpt = function(input=NA, output=NA, param=NA){
   }
   
   # create command to run exceRpt_smallRNA
-  cmd = paste0('make -f ',param[['EXE_DIR']],'/exceRpt_smallRNA ', # makefile to execute
-               
-  ## required options
-  'INPUT_FILE_PATH=',readFile,' ',    # <Path>
-  'OUTPUT_DIR=',outputDir,' ',                    # <Path>
-  
-  'EXE_DIR=',param[['EXE_DIR']],' ',       # <Path>
-  
-  ## main analysis options
-  'ADAPTER_SEQ=',param[['ADAPTER_SEQ']],' ',                         # 'gessKnown'|'none'|<String>
-  'SAMPLE_NAME=',param[['SAMPLE_NAME']],' ',                         # <String>
-  'MAIN_ORGANISM_GENOME_ID=',param[['MAIN_ORGANISM_GENOME_ID']],' ', # 'hg38'|'hg19'|'mm10'
-  'CALIBRATOR_LIBRARY=',param[['CALIBRATOR_LIBRARY']],' ',           # <Path>, path to a bowtie2 index of calibrator oligos used for QC or normalisation
-  'CALIBRATOR_TRIM5p=',param[['CALIBRATOR_TRIM5p']],' ',             # <int>
-  'CALIBRATOR_TRIM3p=',param[['CALIBRATOR_TRIM3p']],' ',             # <int>
-  'ENDOGENOUS_LIB_PRIORITY=',param[['ENDOGENOUS_LIB_PRIORITY']],' ', # <comma,separated,list,no,spaces>
-  
-  ## additional analysis options
-  'TRIM_N_BASES_5p=',param[['TRIM_N_BASES_5p']],' ',                     # <int>
-  'TRIM_N_BASES_3p=',param[['TRIM_N_BASES_3p']],' ',                     # <int>
-  'RANDOM_BARCODE_LENGTH=',param[['RANDOM_BARCODE_LENGTH']],' ',         # <int>
-  'RANDOM_BARCODE_LOCATION=',param[['RANDOM_BARCODE_LOCATION']],' ',     # '-5p -3p'/'-5p'/'-3p'
-  'KEEP_RANDOM_BARCODE_STATS=',param[['KEEP_RANDOM_BARCODE_STATS']],' ', # 'false'|'true'
-  'DOWNSAMPLE_RNA_READS=',param[['DOWNSAMPLE_RNA_READS']],' ',           # <int>
-  'MAP_EXOGENOUS=',param[['MAP_EXOGENOUS']],' ',                         # 'off'|'miRNA'|'on'
-  
-  ## Hardware-specific options
-  'MAX_RAM=',paste0(param[['ram']],'G'),' ',                                                 # <String>
-  'N_THREADS=',param[['cores']],' ',                                             # <int>
-  'JAVA_RAM=',param[['JAVA_RAM']],' ',                                               # <String>
-  'REMOVE_LARGE_INTERMEDIATE_FILES=',param[['REMOVE_LARGE_INTERMEDIATE_FILES']],' ', # 'false'|'true'
-  
-  ## Alignment QC options
-  'MIN_READ_LENGTH=',param[['MIN_READ_LENGTH']],' ',                                   # <int>
-  'QFILTER_MIN_QUAL=',param[['QFILTER_MIN_QUAL']],' ',                                 # <int>
-  'QFILTER_MIN_READ_FRAC=',param[['QFILTER_MIN_READ_FRAC']],' ',                       # <double>
-  'STAR_alignEndsType=',param[['STAR_alignEndsType']],' ',                             # 'Local'|'EndToEnd'
-  'STAR_outFilterMatchNmin=',param[['STAR_outFilterMatchNmin']],' ',                   # <int>
-  'STAR_outFilterMatchNminOverLread=',param[['STAR_outFilterMatchNminOverLread']],' ', # <double>
-  'STAR_outFilterMismatchNmax=',param[['STAR_outFilterMismatchNmax']],' ',             # <int>
-  'MAX_MISMATCHES_EXOGENOUS=',param[['MAX_MISMATCHES_EXOGENOUS']]                      # <int>
-  )
+  cmd = pasteCmd(param=param)
 
   ezSystem(cmd)
   
   ## Function to delete all files in OUTPUT_DIR that are not in CORE_RESULTS; remove unnecessary
   ## data to create report.
   keepOnlyCoreFiles(outputDir)
+}
+
+##' paste shell command
+##' 
+
+pasteCmd(param){
+  cmd = paste0('make -f ',param[['EXE_DIR']],'/exceRpt_smallRNA ', # makefile to execute
+         
+         ## required options
+         'INPUT_FILE_PATH=',readFile,' ',    # <Path>
+         'OUTPUT_DIR=',outputDir,' ',                    # <Path>
+         
+         'EXE_DIR=',param[['EXE_DIR']],' ',       # <Path>
+         
+         ## paths to our modules
+         'FASTX_CLIP_EXE=',param[['FASTX_CLIP_EXE']],' ',
+         'FASTX_FILTER_EXE=',param[['FASTX_FILTER_EXE']],' ',
+         'BOWTIE2_EXE=',param[['BOWTIE2_EXE']],' ',
+         'SAMTOOLS_EXE=',param[['SAMTOOLS_EXE']],' ',
+         'JAVA_EXE=',param[['JAVA_EXE']],' ',
+         'FASTQC_EXE=',param[['FASTQC_EXE']],' ',
+         'STAR_EXE=',param[['STAR_EXE']],' ',
+         
+         ## main analysis options
+         'ADAPTER_SEQ=',param[['ADAPTER_SEQ']],' ',                         # 'gessKnown'|'none'|<String>
+         'SAMPLE_NAME=',param[['SAMPLE_NAME']],' ',                         # <String>
+         'MAIN_ORGANISM_GENOME_ID=',param[['MAIN_ORGANISM_GENOME_ID']],' ', # 'hg38'|'hg19'|'mm10'
+         'CALIBRATOR_LIBRARY=',param[['CALIBRATOR_LIBRARY']],' ',           # <Path>, path to a bowtie2 index of calibrator oligos used for QC or normalisation
+         'CALIBRATOR_TRIM5p=',param[['CALIBRATOR_TRIM5p']],' ',             # <int>
+         'CALIBRATOR_TRIM3p=',param[['CALIBRATOR_TRIM3p']],' ',             # <int>
+         'ENDOGENOUS_LIB_PRIORITY=',param[['ENDOGENOUS_LIB_PRIORITY']],' ', # <comma,separated,list,no,spaces>
+         
+         ## additional analysis options
+         'TRIM_N_BASES_5p=',param[['TRIM_N_BASES_5p']],' ',                     # <int>
+         'TRIM_N_BASES_3p=',param[['TRIM_N_BASES_3p']],' ',                     # <int>
+         'RANDOM_BARCODE_LENGTH=',param[['RANDOM_BARCODE_LENGTH']],' ',         # <int>
+         'RANDOM_BARCODE_LOCATION=',param[['RANDOM_BARCODE_LOCATION']],' ',     # '-5p -3p'/'-5p'/'-3p'
+         'KEEP_RANDOM_BARCODE_STATS=',param[['KEEP_RANDOM_BARCODE_STATS']],' ', # 'false'|'true'
+         'DOWNSAMPLE_RNA_READS=',param[['DOWNSAMPLE_RNA_READS']],' ',           # <int>
+         'MAP_EXOGENOUS=',param[['MAP_EXOGENOUS']],' ',                         # 'off'|'miRNA'|'on'
+         
+         ## Hardware-specific options
+         'MAX_RAM=',paste0(param[['ram']],'G'),' ',                                                 # <String>
+         'N_THREADS=',param[['cores']],' ',                                             # <int>
+         'JAVA_RAM=',param[['JAVA_RAM']],' ',                                               # <String>
+         'REMOVE_LARGE_INTERMEDIATE_FILES=',param[['REMOVE_LARGE_INTERMEDIATE_FILES']],' ', # 'false'|'true'
+         
+         ## Alignment QC options
+         'MIN_READ_LENGTH=',param[['MIN_READ_LENGTH']],' ',                                   # <int>
+         'QFILTER_MIN_QUAL=',param[['QFILTER_MIN_QUAL']],' ',                                 # <int>
+         'QFILTER_MIN_READ_FRAC=',param[['QFILTER_MIN_READ_FRAC']],' ',                       # <double>
+         'STAR_alignEndsType=',param[['STAR_alignEndsType']],' ',                             # 'Local'|'EndToEnd'
+         'STAR_outFilterMatchNmin=',param[['STAR_outFilterMatchNmin']],' ',                   # <int>
+         'STAR_outFilterMatchNminOverLread=',param[['STAR_outFilterMatchNminOverLread']],' ', # <double>
+         'STAR_outFilterMismatchNmax=',param[['STAR_outFilterMismatchNmax']],' ',             # <int>
+         'MAX_MISMATCHES_EXOGENOUS=',param[['MAX_MISMATCHES_EXOGENOUS']]                      # <int>
+  )
+  return(cmd)
 }
 
 ##' keep only core files
