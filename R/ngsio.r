@@ -206,7 +206,7 @@ loadSCCountDataset <- function(input, param){
       colData(sce)$CellCycle <- cellCycle[colnames(sce), "Phase"]
       colData(sce)$CellCycleG1 <- cellCycle[colnames(sce), "G1"]
       colData(sce)$CellCycleS <- cellCycle[colnames(sce), "S"]
-      colData(sce)$CellCycleG1 <- cellCycle[colnames(sce), "G2M"]
+      colData(sce)$CellCycleG2M <- cellCycle[colnames(sce), "G2M"]
     }
     seqAnnoDF <- ezFeatureAnnotation(param, rownames(sce),
                                      dataFeatureLevel)
