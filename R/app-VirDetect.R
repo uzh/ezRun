@@ -104,11 +104,13 @@ ezMethodVirDetect = function(input=NA, output=NA, param=NA,
                  removeBam=TRUE, cores=ezThreads())
   cmd = "samtools idxstats virome.sorted.bam > virome.idxstats.txt"
   ezSystem(cmd)
-  
+  #cmd = "samtools depth -d 0 virome.sorted.bam > virome.depth.txt"  
+  #ezSystem(cmd)
   bamFile <- "virome.sorted.bam"
   
   ## collect summary statistics and save in a summary table, collect per base coverage of each mapped viral genomes and save in individual csv files
   idx<-read.table("virome.idxstats.txt", header=FALSE, stringsAsFactors=FALSE, colClasses = c("character", "integer", "integer", "integer"))
+  #depth<-read.table("virome.depth.txt", header=FALSE, stringsAsFactors=FALSE, colClasses = c("character", "integer", "integer"))
   #colnames(idx) = c("sequence_id", "sequence length", "mapped reads", "unmapped reads")
   sub<-idx[idx$V3>0, ]
   csvFile = sub(".fa$", ".csv", paramVirom$ezRef["refFastaFile"])
@@ -120,9 +122,9 @@ ezMethodVirDetect = function(input=NA, output=NA, param=NA,
       len=sub[i, 2]
       common_name=sub[i, 6]
       temp.df<-data.frame(c1=c(chr), c2=c("0"), c3=c(len), c4=c(common_name))
-      #bed.file<-paste0(chr, ".bed")
+      bed.file<-paste0(chr, ".bed")
       csv.file<-paste0(chr, ".csv")
-      #write.table(temp.df, file=bed.file, quote=FALSE, col.names=FALSE, row.names=FALSE, sep="\t")
+      write.table(temp.df, file=bed.file, quote=FALSE, col.names=FALSE, row.names=FALSE, sep="\t")
       ezSystem(paste0("samtools view -b ", bamFile, " ", chr, " > ", chr, ".bam"))
       ezSystem(paste0("samtools index ", chr, ".bam"))
       subsam<-1
@@ -133,12 +135,12 @@ ezMethodVirDetect = function(input=NA, output=NA, param=NA,
         ezSystem(paste0("mv ",  chr, ".subsam.bam", " ", chr, ".bam"))
         ezSystem(paste0("mv ",  chr, ".subsam.bam.bai", " ", chr, ".bam.bai"))
       }
-      ezSystem(paste0("samtools depth -a -d 0 ", chr, ".bam > ", csv.file))
-      #ezSystem(paste0("bedtools coverage -a ", bed.file, " -b ", chr, ".bam", " -d > ", csv.file))
+      #ezSystem(paste0("samtools depth -a -d 0 ", chr, ".bam > ", csv.file))
+      ezSystem(paste0("bedtools coverage -a ", bed.file, " -b ", chr, ".bam", " -d > ", csv.file))
       cov<-read.table(csv.file, header=FALSE, sep="\t", quote="", stringsAsFactors=FALSE)
-      sub[i,8]<-sum(cov$V3!=0)
-      sub[i,9]<-sum(cov$V3!=0)/len*100
-      sub[i,10]<-sum(cov$V3)/len/subsam
+      sub[i,8]<-sum(cov$V6!=0)
+      sub[i,9]<-sum(cov$V6!=0)/len*100
+      sub[i,10]<-sum(cov$V6)/len/subsam
       ezSystem(paste0("rm ", chr, ".bam"))
       ezSystem(paste0("rm ", chr, ".bam.bai"))
     }
