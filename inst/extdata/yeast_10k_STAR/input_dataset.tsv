@@ -1,5 +1,5 @@
 Name	Genotype [Factor]	Read1 [File]	Read2 [File]	Read Count	strandMode	Species	Enrichment Kit	Adapter1	Adapter2
-wt_1	wt	extdata/yeast_10k/wt_1_R1.fastq.gz	extdata/yeast_10k/wt_1_R2.fastq.gz	9794	sense	S. cerevisiae	poly-A	GATCGGAAGAGCACACGTCTGAACTCCAGTCAC	AGATCGGAAGAGCGTCGTGTAGGGAAAGAGTGT
-wt_2	wt	extdata/yeast_10k/wt_2_R1.fastq.gz	extdata/yeast_10k/wt_2_R2.fastq.gz	9998	sense	S. cerevisiae	poly-A	GATCGGAAGAGCACACGTCTGAACTCCAGTCAC	AGATCGGAAGAGCGTCGTGTAGGGAAAGAGTGT
-mut_1	mut	extdata/yeast_10k/mut_1_R1.fastq.gz	extdata/yeast_10k/mut_1_R2.fastq.gz	9788	sense	S. cerevisiae	poly-A	GATCGGAAGAGCACACGTCTGAACTCCAGTCAC	AGATCGGAAGAGCGTCGTGTAGGGAAAGAGTGT
-mut_2	mut	extdata/yeast_10k/mut_2_R1.fastq.gz	extdata/yeast_10k/mut_2_R2.fastq.gz	9862	sense	S. cerevisiae	poly-A	GATCGGAAGAGCACACGTCTGAACTCCAGTCAC	AGATCGGAAGAGCGTCGTGTAGGGAAAGAGTGT
+wt_1	wt	p1001/yeast_10k/wt_1_R1.fastq.gz	p1001/yeast_10k/wt_1_R2.fastq.gz	9794	sense	S. cerevisiae	poly-A	GATCGGAAGAGCACACGTCTGAACTCCAGTCAC	AGATCGGAAGAGCGTCGTGTAGGGAAAGAGTGT
+wt_2	wt	p1001/yeast_10k/wt_2_R1.fastq.gz	p1001/yeast_10k/wt_2_R2.fastq.gz	9998	sense	S. cerevisiae	poly-A	GATCGGAAGAGCACACGTCTGAACTCCAGTCAC	AGATCGGAAGAGCGTCGTGTAGGGAAAGAGTGT
+mut_1	mut	p1001/yeast_10k/mut_1_R1.fastq.gz	p1001/yeast_10k/mut_1_R2.fastq.gz	9788	sense	S. cerevisiae	poly-A	GATCGGAAGAGCACACGTCTGAACTCCAGTCAC	AGATCGGAAGAGCGTCGTGTAGGGAAAGAGTGT
+mut_2	mut	p1001/yeast_10k/mut_2_R1.fastq.gz	p1001/yeast_10k/mut_2_R2.fastq.gz	9862	sense	S. cerevisiae	poly-A	GATCGGAAGAGCACACGTCTGAACTCCAGTCAC	AGATCGGAAGAGCGTCGTGTAGGGAAAGAGTGT
