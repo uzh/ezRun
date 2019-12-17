@@ -175,13 +175,14 @@ setMethod("buildRefDir", "EzRef", function(.Object, genomeFile, genesFile,
       gtf$gene_type <- NULL
     }
   }
+  #### GENCODE.gtf: remove the version number from gene_id, transcript_id but keep additional information if available, e.g. ENST00000429181.6_PAR_Y -> ENST00000429181_PAR_Y
+  gtf$gene_id <- sub("\\.[0-9]*", "", gtf$gene_id)
+  gtf$transcript_id <- sub("\\.[0-9]*", "", gtf$transcript_id)
+
   if(is.null(gtf$gene_name)){
     message("gene_name is not available in gtf. Assigning gene_id.")
     gtf$gene_name <- gtf$gene_id
   }
-  #### GENCODE.gtf: remove the version number from gene_id, transcript_id but keep additional information if available, e.g. ENST00000429181.6_PAR_Y -> ENST00000429181_PAR_Y
-  gtf$gene_id <- sub("\\.[0-9]*", "", gtf$gene_id)
-  gtf$transcript_id <- sub("\\.[0-9]*", "", gtf$transcript_id)
   
   export(gtf, con=file.path(gtfPath, "features.gtf"))
   ### genes.gtf
