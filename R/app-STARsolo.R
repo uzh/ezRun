@@ -34,25 +34,33 @@
 
 
 ezMethodSTARsolo = function(input=NA, output=NA, param=NA){
+    refDir = getSTARReference(param)
     sampleName = input$getNames()
     sampleDirs = strsplit(input$getColumn("RawDataDir"), ",")[[sampleName]]
     sampleDirs <- file.path(input$dataRoot, sampleDirs)
-    sampleDir <- paste(sampleDirs, collapse=",")
+    sampleDir <- paste(sampleDirs, collapse=" ")
     STARsoloFolder = paste0(sampleName, "-STARsolo")
     
-    cmd = paste(STARsoloPath,
-                # STARsolo parameters
+    ## Define 
+    cDNAfragmentSequence.fastq.gz = 
+    CellBarcodeUMIsequence.fastq.gz = 
+    
+    cmd = paste(STARbin,
+                ## STAR parameters
                 paste0('--genomeDir ',refDir),
-                paste0('--readFilesIn ',cDNAfragmentSequence.fastq.gz,' ',CellBarcodeUMIsequence.fastq.gz),
-                paste0('--soloType',)
+                paste0('--readFilesIn ',),
                 
-                # general parameters
-                paste0('--')  
-      
-    )
+                ## STARsolo parameters
+                paste0('--soloType ',param[['barcodeType']]),
+                paste0('--soloCBWhitelist',param[['barcodeWhitelist']]),
+                paste0('--soloCBstart ',param[['soloCBstart']]),
+                paste0('--soloCBlen ',param[['soloCBlen']]),
+                paste0('--soloUMIstart ',param[['soloUMIstart']]),
+                paste0('--soloUMIlen ',param[['soloUMIlen']]),
 
-
-
+                ## run parameters
+                paste0('--runThreadN ',param[['cores']])
+              )
 }
 
 
