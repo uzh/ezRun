@@ -1,6 +1,6 @@
-<jnlp spec="6.0+" codebase="http://www.broadinstitute.org/igv/projects/current">
+<jnlp spec="6.0+" codebase="https://data.broadinstitute.org/igv/projects/current">
 <information> <title>IGV 2.3</title> <vendor>The Broad Institute</vendor> 
-  <homepage href="http://www.broadinstitute.org/igv"/>
+  <homepage href="http://software.broadinstitute.org/software/igv/"/>
   <description>IGV Software</description>
   <description kind="short">IGV</description>
   <icon href="IGV_64.png"/>
@@ -23,7 +23,7 @@
   <property name="development" value="false"/>
 </resources>
 <application-desc  main-class="org.broad.igv.ui.Main">
-  <argument>--genomeServerURL=http://fgcz-gstore.uzh.ch/reference/igv_genomes.txt</argument>
-  <argument>--dataServerURL=http://fgcz-gstore.uzh.ch/list_registries/p1001</argument>
-  <argument>http://fgcz-gstore.uzh.ch/projects/p1001/Map_STAR_5750_2015-09-28--15-53-50/wt_1-igv.xml</argument>
+  <argument>--genomeServerURL=https://fgcz-gstore.uzh.ch/reference/igv_genomes.txt</argument>
+  <argument>--dataServerURL=https://fgcz-gstore.uzh.ch/list_registries/p1001</argument>
+  <argument>https://fgcz-gstore.uzh.ch/projects/p1001/STAR_5750_2019-12-17--08-59-21/wt_1-igv.xml</argument>
 </application-desc> </jnlp>

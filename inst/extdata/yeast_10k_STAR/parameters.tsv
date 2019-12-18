@@ -1,18 +1,22 @@
+sushi_app	STARApp
 cores	8
-ram	40
+ram	30
 scratch	100
-node	""
+node	fgcz-c-042,fgcz-c-046,fgcz-c-048,fgcz-c-056,fgcz-c-063,fgcz-c-065,fgcz-h-004,fgcz-h-006,fgcz-h-007,fgcz-h-008,fgcz-h-009,fgcz-h-010,fgcz-h-011,fgcz-h-012,fgcz-h-013,fgcz-h-014,fgcz-h-015,fgcz-h-016,fgcz-h-017,fgcz-h-018
 process_mode	SAMPLE
-refBuild	Saccharomyces_cerevisiae/Ensembl/EF4/Annotation/Version-2013-03-18
+samples	wt_1,wt_2,mut_1,mut_2
+refBuild	Saccharomyces_cerevisiae/Ensembl/R64/Annotation/Release_98-2019-12-03
 paired	true
 strandMode	sense
 refFeatureFile	genes.gtf
-cmdOptions	--outFilterType BySJout --outFilterMatchNmin 30 --outFilterMismatchNmax 10 --outFilterMismatchNoverLmax 0.05 --alignSJDBoverhangMin 1 --alignSJoverhangMin 8 --alignIntronMax 1000000 --alignMatesGapMax 1000000  --outFilterMultimapNmax 50 --chimSegmentMin 15 --chimJunctionOverhangMin 15 --chimScoreMin 15 --chimScoreSeparation 10 --outSAMstrandField intronMotif
-getChimericJunctions	false
-trimAdapter	false
+cmdOptions	--outFilterType BySJout --outFilterMatchNmin 30 --outFilterMismatchNmax 10 --outFilterMismatchNoverLmax 0.05 --outMultimapperOrder Random --alignSJDBoverhangMin 1 --alignSJoverhangMin 8 --alignIntronMax 100000 --alignMatesGapMax 100000  --outFilterMultimapNmax 50 --chimSegmentMin 15 --chimJunctionOverhangMin 15 --chimScoreMin 15 --chimScoreSeparation 10 --outSAMstrandField intronMotif --alignEndsProtrude 3 ConcordantPair
+getJunctions	false
+twopassMode	false
+trimAdapter	true
 trimLeft	0
 trimRight	0
 minTailQuality	0
+minTrailingQuality	10
 minAvgQuality	10
 minReadLength	20
 specialOptions	""
