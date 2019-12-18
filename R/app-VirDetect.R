@@ -162,7 +162,7 @@ ezMethodVirDetect = function(input=NA, output=NA, param=NA,
   ##html file  
   #setwd(start_path)
   htmlFile = output$getColumn("OutReport")
-  styleFiles <- file.path(ezSystem.file("templates", package="ezRun"),
+  styleFiles <- file.path(system.file("templates", package="ezRun"),
                           c("fgcz.css", "VirDetect.Rmd",
                             "fgcz_header.html", "banner.png"))
   file.copy(from=styleFiles, to=".", overwrite=TRUE)
