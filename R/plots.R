@@ -5,7 +5,7 @@
 # The terms are available here: http://www.gnu.org/licenses/gpl.html
 # www.fgcz.ch
 
-##' @title brewPalette 
+##' @title Gets n colors from Brewer palette. 
 ##' @description creates colors palette from the RColorBrewer package. By default, it uses palette name="Paired".
 ##' @author Miquel Anglada Girotto
 ##' @param n <integer> Number of different colors in the palette, minimum 3, maximum depending on palette.
