@@ -1,0 +1,7 @@
+Job runs on fgcz-c-046
+at /scratch/CountQC_42329_2019-12-17--15-00-27_temp8181
+loading EZ_GLOBAL_VARIABLES  from: /usr/local/ngseq/opt/EZ_GLOBAL_VARIABLES.txt
+Starting	EzAppCountQC	Count_QC		CountQC_42329_2019-12-17--15-00-27_temp8181	2019-12-17 15:01:11
+Finished	EzAppCountQC	Count_QC		CountQC_42329_2019-12-17--15-00-27_temp8181	2019-12-17 15:03:44
+[1] "Success"
+__SCRIPT END__
