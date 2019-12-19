@@ -5,6 +5,9 @@ context("differential expression apps with example data")
 
 cwd = getwd()
 
+testScratchDir = "/srv/GT/analysis/ezRunTestScratch"
+
+
 skipLong = function(){
   if (Sys.getenv("RUN_LONG_TEST") == "TRUE"){
     return()
@@ -72,8 +75,9 @@ test_that("edger_withgo", {
 
 test_that("count_QC", {
   skipLong()
-  ezSystem("rm -fr /scratch/test_count_QC/*")
-  setwdNew("/scratch/test_count_QC")
+  testDir = file.path(testScratchDir, "countqc")
+  unlink(testDir)
+  setwdNew(testDir)
   param = yeastCommonDiffExprParam()
   #param$refAnnotationFile = file=system.file("extdata/genes_annotation.txt", package="ezRun", mustWork = TRUE)
   input = EzDataset$new(file=system.file("extdata/yeast_10k_STAR_counts/dataset.tsv", package="ezRun", mustWork = TRUE),
