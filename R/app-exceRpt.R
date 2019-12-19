@@ -66,17 +66,15 @@ ezMethodExceRpt = function(input=NA, output=NA, param=NA){
   param[['ADAPTER_SEQ']] = input$getColumn('Adapter1')
   stopifnot(length(param[['ADAPTER_SEQ']]) == 1)
   
-  outputDir = output$getColumn("excerpt")
+  outputDir = basename(output$getColumn("excerpt"))
   if(!dir.exists(outputDir)){dir.create(outputDir)}
   
   ## objects from sushi form
-  if(param[['SAMPLE_NAME']]=='NULL'){
-    param[['SAMPLE_NAME']] = gsub('.gz','',gsub('.fastq','',gsub('.*/','',readFile)))
-  }
+  param[['SAMPLE_NAME']]= input$getNames()
   param[['refBuild']] = gsub('.*/','',param[['refBuild']])
   
   ## create command to run exceRpt_smallRNA
-  cmd = pasteCmd(param=param)
+  cmd = pasteCmd(param=param, readFile, outputDir)
 
   ezSystem(cmd)
   
@@ -88,7 +86,7 @@ ezMethodExceRpt = function(input=NA, output=NA, param=NA){
 ##' paste shell command
 ##' 
 
-pasteCmd=function(param,readFile,outputDir){
+pasteCmd=function(param, readFile, outputDir){
   cmd = paste(
         ## makefile to execute
         paste0('make -f ',param[['EXE_DIR']],'/exceRpt_smallRNA'),

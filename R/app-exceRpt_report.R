@@ -21,22 +21,15 @@ EzAppExceRptReport =
   )
 
 ezMethodExceRptReport = function(input=NA, output=NA, param=NA){
-  ## folder containing the files resulting from running EzAppExceRpt
-  excerpt_results = getwd()
-  ## processed_output is the new folder that will be created "processed_output", within the same folder
-  processed_output = paste(excerpt_results,'processed_output',sep='/')
-  ## process samples: get plots as objects and create .txt 
-  plots = processSamplesInDir(data.dir = excerpt_results, output.dir = processed_output, getPlotsObjects=TRUE)
+  
+  setwdNew(basename(output$getColumn("Report")))
+  
+  plots = processSamples(sampleDirs = input$getFullpaths("excerpt"), output.dir = "processed_output", getPlotsObjects=TRUE)
+  #plots = processSamplesInDir(data.dir = excerpt_results, output.dir = processed_output, getPlotsObjects=TRUE)
   ## list files generated
   dataFiles = list.files(processed_output,pattern = '*.txt')
   ## 
-  cwd <- getwd()
-  reportDir = paste0(param[['name']],'_report')
-  dir.create(reportDir)
-  ezSystem(paste0('mv processed_output ',reportDir,'/'))
-  setwdNew(reportDir)
   makeRmdReport(plots=plots,dataFiles=dataFiles,rmdFile = "excerpt.Rmd")
-  setwdNew(cwd)
 }
 
 
