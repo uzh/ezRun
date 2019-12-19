@@ -132,6 +132,8 @@ countQcScatterPlots = function(param, design, conds, rawData, signalCond,
     widthTypes = data.frame("width < 500nt"=as.numeric(rowData(rawData)$featWidth) < 500, 
                             "width > 5000nt"=as.numeric(rowData(rawData)$featWidth) > 5000,
                             check.names=FALSE)
+    widthColors = brewPalette(12, alpha=1)[c(7,6)]
+    
   } else {
     widthTypes = NULL
   }
@@ -163,7 +165,7 @@ countQcScatterPlots = function(param, design, conds, rawData, signalCond,
     if (!is.null(widthTypes)){
       plotCmd = expression({
         ezAllPairScatter(signalCond, main="color by width", 
-                         isPresent=isPresentCond, types=widthTypes)
+                         isPresent=isPresentCond, types=widthTypes, colors = widthColors)
       })
       imgLinks["width"] = ezImageFileLink(plotCmd, file="allPairs-scatter-byWidth.png",
                                           width=min(max(ncol(signalCond) * 200, 400), 2000),
@@ -204,7 +206,7 @@ countQcScatterPlots = function(param, design, conds, rawData, signalCond,
         if (!is.null(widthTypes)){
           pngName = ezValidFilename(paste0(condName, "-ByWidthScatter.png"))
           plotCmd = expression({
-            ezScatter(y=signal[ ,idx], isPresent=isPresent[ ,idx], types=widthTypes, lim=signalRange, xlab=paste("Avg of", cond), ylab=NULL)
+            ezScatter(y=signal[ ,idx], isPresent=isPresent[ ,idx], types=widthTypes, lim=signalRange, xlab=paste("Avg of", cond), ylab=NULL, colors=widthColors)
           })
           imgLinks["width"] = ezImageFileLink(plotCmd, file=pngName,
                                               width=min(nPlots, 6) * 300,

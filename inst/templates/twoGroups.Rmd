@@ -14,10 +14,15 @@ editor_options:
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-## This report requires objects: output, deResult, param
+output = readRDS("output.rds")
+deResult = readRDS("deResult.rds")
+param =readRDS("param.rds")
 
 ## debug
 #title: "`r paste('Two groups analysis:', param$comparison)`"
+#load("/srv/gstore/projects/p2378/EdgeR_33526_MEP--over--AVG_2019-01-30--09-29-18/MEP--over--AVG/result-MEP--over--AVG-exisqviqjjth-EzResult.RData")
+#deResult = EzResult(param=param, rawData=rawData, se=se)
+#param <- deResult$param
 ## end of debug
 debug <- FALSE
 
@@ -35,6 +40,9 @@ param <- metadata(se)$param
 #param$doPrecomputeEnrichr <- FALSE
 seqAnno <- data.frame(rowData(se), row.names=rownames(se),
                       check.names = FALSE, stringsAsFactors=FALSE)
+
+dataset <- data.frame(colData(se), check.names=FALSE, stringsAsFactors=FALSE)
+design = ezDesignFromDataset(dataset, param)
 ## In some cases, such as p2710, there are millions of features, then we have to adjust some analyses below.
 hasMassiveFeats <- nrow(seqAnno) >= 200e3
 ```
@@ -123,7 +131,7 @@ knitr::kable(as.data.frame(settings), format="html",
                   position = "left")
 ```
 
-Subsequent plots highlight significant genes in <span style="color:red">red</span>.
+Subsequent plots highlight significant genes in <span style="color:#A6CEE3FF">blue</span>.
 
 [Interactive table of significant genes](`r resultFile$resultHtml`)
 
@@ -163,13 +171,13 @@ if(isTRUE(isTwoGroup)){
 ```
 
 ```{r scatter comparison link, echo=FALSE, results='asis', eval=!debug}
-if (isTRUE(isTwoGroup)){
-  if(!isTRUE(hasMassiveFeats)){
-    cat(paste0("[Plot in pdf](", scatterPdf, ")"), "\n")
-    cat("\n")
-    cat(paste0("[Interactive comparison plot (64-bit Chrome or Safari is recommended for best performance!)](", scatterHtml, ")"), "\n")
-  }
-}
+# if (isTRUE(isTwoGroup)){
+#   if(!isTRUE(hasMassiveFeats)){
+#     cat(paste0("[Plot in pdf](", scatterPdf, ")"), "\n")
+#     cat("\n")
+#     cat(paste0("[Interactive comparison plot (64-bit Chrome or Safari is recommended for best performance!)](", scatterHtml, ")"), "\n")
+#   }
+# }
 ```
 
 ```{r volcano p-value, echo=FALSE, message=FALSE, warning=FALSE, fig.width=9, fig.width=7, eval=!debug}
@@ -202,13 +210,13 @@ if (isTRUE(isTwoGroup)){
 ```
 
 ```{r volcano p-value link , echo=FALSE, results='asis', eval=!debug}
-if (isTRUE(isTwoGroup)){
-  if(!isTRUE(hasMassiveFeats)){
-    cat(paste0("[Plot in pdf](", volcanoPdf, ")"), "\n")
-    cat("\n")
-    cat(paste0("[Interactive comparison plot (64-bit Chrome or Safari is recommended for best performance!)](", volcanoHtml, ")"), "\n")
-  }
-}
+# if (isTRUE(isTwoGroup)){
+#   if(!isTRUE(hasMassiveFeats)){
+#     cat(paste0("[Plot in pdf](", volcanoPdf, ")"), "\n")
+#     cat("\n")
+#     cat(paste0("[Interactive comparison plot (64-bit Chrome or Safari is recommended for best performance!)](", volcanoHtml, ")"), "\n")
+#   }
+# }
 ```
 
 ```{r scatter all pairs, echo=FALSE, results='asis', message=FALSE, eval=!debug}
@@ -258,13 +266,13 @@ if(isTRUE(isTwoGroup)){
 ```
 
 ```{r volcano FDR link, echo=FALSE, results='asis', eval=!debug}
-if(isTRUE(isTwoGroup)){
-  if(!isTRUE(hasMassiveFeats)){
-    cat(paste0("[Plot in pdf](", volcanoFDRPdf, ")"), "\n")
-    cat("\n")
-    cat(paste0("[Interactive comparison plot (64-bit Chrome or Safari is recommended for best performance!)](", volcanoFDRHtml, ")"), "\n")
-  }
-}
+# if(isTRUE(isTwoGroup)){
+#   if(!isTRUE(hasMassiveFeats)){
+#     cat(paste0("[Plot in pdf](", volcanoFDRPdf, ")"), "\n")
+#     cat("\n")
+#     cat(paste0("[Interactive comparison plot (64-bit Chrome or Safari is recommended for best performance!)](", volcanoFDRHtml, ")"), "\n")
+#   }
+# }
 ```
 
 ```{r pvalue hist, echo=FALSE, results='asis', eval=!debug}
@@ -285,7 +293,7 @@ plotCmd = expression({
 eval(plotCmd)
 ```
 
-```{r intra group, echo=FALSE, results='asis', eval=!debug}
+```{r intra group, echo=FALSE, results='asis', eval=!debug, message=FALSE}
 theRange = 2^(range(logSignal, na.rm=TRUE))
 x <- logSignal
 if(ncol(x) <= 100){
@@ -402,20 +410,23 @@ if (sum(use) > param$minGenesForClustering){
   }
   xCentered = xCentered[, order(param$grouping)]
   sampleColors = getSampleColors(param$grouping)[order(param$grouping)]
+  
   clusterPng = "cluster-heatmap.png"
   clusterPdf = "cluster-heatmap.pdf"
-  clusterColors = c("red", "yellow", "orange", "green", "blue", "cyan")
-  clusterResult = clusterResults(xCentered, nClusters=6, clusterColors=clusterColors)
+  
+  nClusters=6
+  clusterColors = hcl.colors(nClusters, palette = "BluGrn")
+  clusterResult = clusterResults(xCentered, nClusters=nClusters, clusterColors=clusterColors)
+  
+  design = design[,c(param$groupingName,setdiff(colnames(design),param$groupingName))]
+  
   plotCmd = expression({
-    clusterHeatmap(xCentered, param, clusterResult, file=NULL,
-                   colColors=sampleColors, 
-                   lim=c(-param$logColorRange, param$logColorRange))
+    clusterPheatmap(xCentered, design, param, clusterColors,
+                      lim=c(-param$logColorRange, param$logColorRange),
+                      doClusterColumns=FALSE, sampleColors=sampleColors)
   })
   eval(plotCmd)
-  pdf(clusterPdf, width=max(8,4+0.1*ncol(se)), height=10)
-  eval(plotCmd)
-  dev.off()
-  
+
   if (doGo(param, seqAnno)){
     clusterResult = goClusterResults(xCentered, param, clusterResult, seqAnno=seqAnno, universeProbeIds=rownames(seqAnno)[rowData(se)$isPresentProbe])
   }
@@ -466,10 +477,10 @@ if (sum(use) > param$minGenesForClustering){
 ```
 
 ```{r cluster plot link , echo=FALSE, results='asis', eval=!debug && !hasMassiveFeats}
-if (sum(use) > param$minGenesForClustering){
-  cat(paste0("[Plot in pdf](", clusterPdf, ")"), "\n")
-  cat("\n")
-}
+# if (sum(use) > param$minGenesForClustering){
+#   cat(paste0("[Plot in pdf](", clusterPdf, ")"), "\n")
+#   cat("\n")
+# }
 ```
 
 ```{r go cluster table link, echo=FALSE, results='asis', eval=!debug && !hasMassiveFeats}
@@ -879,7 +890,6 @@ if(all(c("gc", "featWidth") %in% colnames(x))) {
 
 ### Input dataset
 ```{r input, echo=FALSE}
-dataset <- data.frame(colData(se), check.names=FALSE, stringsAsFactors=FALSE)
 ezInteractiveTableRmd(values=dataset, digits=4)
 ```
 

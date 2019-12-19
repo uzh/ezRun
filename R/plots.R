@@ -5,6 +5,46 @@
 # The terms are available here: http://www.gnu.org/licenses/gpl.html
 # www.fgcz.ch
 
+##' @title Gets n colors from Brewer palette. 
+##' @description creates colors palette from the RColorBrewer package. By default, it uses palette name="Paired".
+##' @author Miquel Anglada Girotto
+##' @param n <integer> Number of different colors in the palette, minimum 3, maximum depending on palette.
+##' @param alpha <numeric> Value from [0,1] to tune color opacity. By default, 1 gives maximum opacity.
+##' @examples 
+##' n = 2
+##' plot(1:8, col = brewPalette(n), cex=5, pch=16)
+##' n = 12
+##' plot(1:n, col = brewPalette(n), cex=5, pch=16)
+##' n = 8; alpha = 0.75
+##' plot(1:100,sample(1:100), col=brewPalette(n,alpha), cex=5, pch=16)
+##' n = 'this is not numeric'
+##' plot(1:8, col = brewPalette(n), cex=5, pch=16) # should result in warning
+##' n = -1
+##' plot(1:8, col = brewPalette(n), cex=5, pch=16) # should result in warning
+brewPalette = function(n, alpha=1){
+  require(RColorBrewer)
+  
+  # warnings
+  if(!is.numeric(n)){
+    warning("n must be of class numeric.")
+    return()
+  }else if(n<0){
+    warning("n must be larger than 0.")
+    return()
+  }
+  
+  # create palette
+  if(n==1){
+    colrs = brewer.pal(3,name="Paired")[1]
+  }else if(n==2){
+    colrs = brewer.pal(3,name="Paired")[2:3]
+  }else if(n<=12){
+    colrs = brewer.pal(n,name="Paired")
+  }else{
+    colrs = colorRampPalette(brewer.pal(12,name="Paired"))(n)
+  }
+  return(adjustcolor(colrs,alpha.f = alpha))
+}
 
 ##' @title Gets the sample colors
 ##' @description Gets the sample colors from the experimental conditions.
@@ -18,31 +58,18 @@
 ##' file = system.file("extdata/yeast_10k/dataset.tsv", package="ezRun", mustWork = TRUE)
 ##' ds = EzDataset$new(file=file, dataRoot=NULL)
 ##' cond = ezConditionsFromDataset(ds$meta)
+##' cond = c(a1="a", a2="a", b1="b", b2="b")
 ##' getSampleColors(cond)
 ##' getSamplePch(cond)
 ##' getSampleLty(cond)
-getSampleColors = function(conds, colorNames=names(conds), hueStep = 0){
+getSampleColors = function(conds, colorNames=names(conds)){
 
 	condSet = unique(conds)
-	hueDelta = 1 / length(condSet)
-	hue = (match(conds, condSet) - 1) * hueDelta
-	vs = rep(1, length(conds))
-	for (cond in condSet){
-		idx = which(cond == conds)
-		if (length(idx) <= 4){
-		  vs[idx] = seq.int(from=1, by=-0.1, length.out=length(idx))
-		}
-		# else {
-		#   vs[idx] = seq.int(from=1, to=0.2, length.out=length(idx))
-		# }
-		if ((length(idx)+2) * hueStep > hueDelta){
-			hueStep = hueDelta / (length(idx)+2)
-		}
-  	hue[idx] = hue[idx] + 0:(length(idx)-1) * hueStep
-	}
-	result = hsv(hue, vs, vs)
-	names(result) = colorNames
-	return(result)
+	conColors = brewPalette(length(condSet))
+	sampleColors = conColors[match(conds, condSet)]
+	names(sampleColors) = colorNames
+	return(sampleColors)
+	
 }
 
 ##' @describeIn getSampleColors Gets the sample pch from the experimental conditions.
@@ -230,7 +257,7 @@ ezLegend = function(legend="", fill=NULL, title="Legend"){
 ### ezVolcano
 ezVolcano <- function(log2Ratio, pValue, yType=c("p-value", "FDR"),
                       xlim=NULL, ylim=NULL, isPresent=NULL, names=NULL,
-                      types=NULL, colors=rainbow(ncol(types)),
+                      types=NULL, colors=brewPalette(ncol(types)),
                       main=NULL, labelGenes=NULL,
                       mode=c("plotly", "ggplot2")){
   require(plotly)
@@ -367,7 +394,7 @@ ezVolcano <- function(log2Ratio, pValue, yType=c("p-value", "FDR"),
 ##' ezSmoothScatter(y=data.frame(a=1:10, b=21:30, c=41:50))
 ezSmoothScatter <- function(x=NULL, y, xlab=NULL, ylab=NULL, nPlotsPerRow=6,
                             lim=range(x, y, na.rm=TRUE), isPresent=NULL,
-                            types=NULL, pch=16, colors=rainbow(ncol(types)), legendPos="bottomright",
+                            types=NULL, pch=16, colors=(ncol(types)), legendPos="bottomright",
                             cex.main=1.0, cex=1, ...){
   y = as.matrix(y)
   if (is.null(ylab)){
@@ -378,7 +405,7 @@ ezSmoothScatter <- function(x=NULL, y, xlab=NULL, ylab=NULL, nPlotsPerRow=6,
   if (ncol(y) == 2 & is.null(x)){
     par(cex.main=cex.main, cex=cex)
     smoothScatter(log2(y[ ,1]), log2(y[ ,2]), xlim=log2(lim), ylim=log2(lim),
-                   xlab=ylab[1], ylab=ylab[2], ...)
+                   xlab=ylab[1], ylab=ylab[2], col=colors, ...)
     abline(0, 1, col="blue")
     return()
   }
@@ -415,6 +442,7 @@ ezSmoothScatter <- function(x=NULL, y, xlab=NULL, ylab=NULL, nPlotsPerRow=6,
   }
 }
 
+
 ##' @title Does scatter plots
 ##' @description Does scatter plots.
 ##' @inheritParams ezSmoothScatter
@@ -428,7 +456,7 @@ ezSmoothScatter <- function(x=NULL, y, xlab=NULL, ylab=NULL, nPlotsPerRow=6,
 ##' ezXYScatter(x, y, isPresent=isPresent)
 ezScatter <- function(x=NULL, y, xlab=NULL, ylab=NULL, nPlotsPerRow=6, shrink=FALSE,
                       lim=range(x, y, na.rm=TRUE), isPresent=NULL,
-                      types=NULL, pch=16, colors=rainbow(ncol(types)), legendPos="bottomright", 
+                      types=NULL, pch=16, colors=brewPalette(ncol(types), alpha = 1), legendPos="bottomright", 
                       cex.main=1.0, cex=1, ...){
   
   y = as.matrix(y)
@@ -491,7 +519,7 @@ ezScatter <- function(x=NULL, y, xlab=NULL, ylab=NULL, nPlotsPerRow=6, shrink=FA
 ##' @describeIn ezScatter Does the XY scatter plot.
 ezXYScatter = function(xVec, yVec, absentColor="gray", shrink=FALSE, frame=TRUE, axes=TRUE,
                               xlim=range(xVec, yVec, na.rm=TRUE), ylim=xlim, isPresent=NULL,
-                              types=NULL, pch=16, colors=rainbow(ncol(types)), legendPos="bottomright", ...){
+                              types=NULL, pch=16, colors=brewPalette(ncol(types), alpha = 1), legendPos="bottomright", ...){
   par(pty="s")
   if (shrink){
     xVec = shrinkToRange(xVec, xlim)
@@ -526,7 +554,7 @@ ezXYScatter.2 = function(xVec, yVec, absentColor="gray", shrink=FALSE,
                          xlim=range(xVec, yVec, na.rm=TRUE), ylim=xlim,
                          isPresent=NULL, names=NULL,
                          types=NULL,
-                         colors=rainbow(ncol(types)),
+                         colors=brewPalette(ncol(types)),
                          main=NULL, xlab=NULL, ylab=NULL,
                          labelGenes=NULL, mode=c("plotly", "ggplot2")){
   require(plotly)
@@ -680,7 +708,7 @@ ezXYScatter.2 = function(xVec, yVec, absentColor="gray", shrink=FALSE,
 ##' ezAllPairScatter(x=matrix(1:10,5))
 ezAllPairScatter = function(x, main="", shrink=FALSE, xylab=NULL,
                             lim=range(x, na.rm=TRUE), isPresent=NULL,
-                            types=NULL, pch=16, colors=rainbow(ncol(types)), legendPos="bottomright",
+                            types=NULL, pch=16, colors=brewPalette(ncol(types), alpha = 1), legendPos="bottomright",
                             cex.main=1.0, cex=1, ...){
   nItems = ncol(x)
   if (is.null(xylab)){
@@ -715,7 +743,7 @@ ezAllPairScatter = function(x, main="", shrink=FALSE, xylab=NULL,
     ezXYScatter(x[ ,1], x[, 2], xlim=lim, ylim=lim, shrink=shrink, xlab=xylab[1], ylab=xylab[2],
                        isPresent=isPresent, types=types, pch=pch, colors=colors, legendPos=legendPos, ...)
   }
-  #mtext(main, line=1)
+  mtext(main, outer=TRUE, cex=1.2, line=0)
 }
 
 ##' @title Does a correlation plot
@@ -772,7 +800,7 @@ ezCorrelationPlot = function(z, cond=NULL, condOrder=NULL, main="Correlation",
       idx[ condOrder[i] == cond] <- i
     }
     if (is.null(colors)){
-      condCol = rainbow(length(condOrder))
+      condCol = brewPalette(length(condOrder))
       colors = condCol[idx]
     }
     idxOrdered <- order(idx)

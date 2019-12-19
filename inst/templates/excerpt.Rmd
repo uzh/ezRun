@@ -1,0 +1,101 @@
+---
+title: "`r paste('Analysis:', ifelse(grepl('bam', param$name, ignore.case = TRUE), sub('$', '_exceRpt', param$name), param$name))`"
+author: "Functional Genomics Center Zurich"
+output: 
+  html_document:
+    self_contained: false
+    lib_dir: rmarkdownLib
+    includes:
+      in_header: fgcz_header.html
+    css: fgcz.css
+---
+
+Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`.
+
+```{r debug, include=FALSE, message=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+dataFiles = readRDS("dataFiles.rds")
+plots = readRDS("plots.rds")
+
+# ## start of debug
+# # require(ezRun)
+# data.dir = "/export/local/scratch/test_exceRpt/testData_human"
+# output.dir = paste(data.dir,'processed_output',sep='/')
+# dataFiles = list.files(output.dir,pattern = '*.txt')
+# plots = processSamplesInDir(data.dir = data.dir,output.dir = processed_output, getPlotsObjects=TRUE)
+# ## end of debug
+```
+
+## exceRpt_Result ([article](https://www.sciencedirect.com/science/article/pii/S2405471219300742)) {.tabset}
+
+### Data Files
+The data files are in tabular text format and can also be opened with a spreadsheet program (e.g. Excel).
+
+When opening with Excel, do make sure that the Gene symbols are loaded into a column formatted as 'text' that prevents
+conversion of the symbols to dates). See
+
+(https://www.genenames.org/help/importing-gene-symbol-data-into-excel-correctly)
+
+```{r add data files link, echo=FALSE, results='asis', message=FALSE}
+for(each in dataFiles){
+    cat("\n")
+    cat(paste0("[", each, "](./processed_output/", each, ")"))
+    cat("\n")
+}
+```
+
+### Read-length distributions
+```{r read-length vs counts, echo=FALSE, message=FALSE, warning=FALSE}
+## raw
+plots$`read-length distributions: raw read count`
+## RPM
+plots$`read-length distributions: normalised read fraction`
+```
+
+### Fractions of aligned reads
+```{r fractions of aligned reads, echo=FALSE, message=FALSE, warning=FALSE}
+## normalized by total input reads
+plots$`fraction aligned reads (normalised by # input reads)`
+## normalized by adapter-clipped reads
+plots$`fraction aligned reads (normalised by # adapter-clipped reads)`
+## normalized by non-contaminant reads
+plots$`fraction aligned reads (normalised by # non-contaminant reads)`
+```
+
+### QC result (ERCC's)
+The NIH Extracellular RNA Communication Consortium (ERCC) base their QC metrics on the number of transcriptome reads and the ratio of RNA-annotated reads to the genome reads. The horizontal and vertical lines define QC threshold minima. Therefore, good-quality samples should appear at the upper-right grey area.
+
+```{r QC ERCC, echo=FALSE, message=FALSE, warning=FALSE}
+## overall
+plots$`QC result: overall`
+## per sample
+plots$`QC result: per-sample results`
+```
+
+### Biotypes
+Reads distributions for the different types of RNA.
+
+```{r biotypes, echo=FALSE, message=FALSE, warning=FALSE}
+## raw
+plots$`Biotypes: distributions, raw read-counts`
+## RPM
+plots$`Biotypes: distributions, normalised`
+## per sample
+plots$`Biotypes: per-sample, normalised`
+```
+
+### miRNA abundance distribution
+```{r miRNA abundance, echo=FALSE, message=FALSE, warning=FALSE}
+## raw
+plots$`miRNA abundance distributions (raw counts)`
+## RPM
+plots$`miRNA abundance distributions (RPM)`
+```
+
+### SessionInfo
+```{r, echo=FALSE}
+sessionInfo()
+```
+
+
+

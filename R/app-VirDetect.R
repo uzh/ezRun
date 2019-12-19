@@ -129,14 +129,14 @@ ezMethodVirDetect = function(input=NA, output=NA, param=NA,
       ezSystem(paste0("samtools index ", chr, ".bam"))
       subsam<-1
       if (sub[i, 3] > 1000000){
-        subsam<- sub[i, 3]/100000
+        subsam<- 1000000/sub[i, 3]
         ezSystem(paste0("samtools view -b -O BAM -o ", chr, ".subsam.bam", " -s ", subsam, " ", chr, ".bam"))
         ezSystem(paste0("samtools index ", chr, ".subsam.bam"))
         ezSystem(paste0("mv ",  chr, ".subsam.bam", " ", chr, ".bam"))
         ezSystem(paste0("mv ",  chr, ".subsam.bam.bai", " ", chr, ".bam.bai"))
       }
       #ezSystem(paste0("samtools depth -a -d 0 ", chr, ".bam > ", csv.file))
-      ezSystem(paste0("bedtools coverage -a ", bed.file, " -b ", chr, ".bam", " -d > ", csv.file))
+      ezSystem(paste0("bedtools coverage -sorted -a ", bed.file, " -b ", chr, ".bam", " -d > ", csv.file))
       cov<-read.table(csv.file, header=FALSE, sep="\t", quote="", stringsAsFactors=FALSE)
       sub[i,8]<-sum(cov$V6!=0)
       sub[i,9]<-sum(cov$V6!=0)/len*100
@@ -162,7 +162,7 @@ ezMethodVirDetect = function(input=NA, output=NA, param=NA,
   ##html file  
   #setwd(start_path)
   htmlFile = output$getColumn("OutReport")
-  styleFiles <- file.path(ezSystem.file("templates", package="ezRun"),
+  styleFiles <- file.path(system.file("templates", package="ezRun"),
                           c("fgcz.css", "VirDetect.Rmd",
                             "fgcz_header.html", "banner.png"))
   file.copy(from=styleFiles, to=".", overwrite=TRUE)

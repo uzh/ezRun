@@ -701,7 +701,8 @@ clusterPheatmap <- function(x, design, param,
                             method="ward.D2", doClusterColumns=FALSE,
                             colors=getBlueRedScale(),
                             colColors=NULL, lim=c(-4, 4),
-                            maxGenesWithLabel=50){
+                            maxGenesWithLabel=50,
+                            sampleColors=NULL){
   require(pheatmap)
   nClusters <- length(clusterColors)
   
@@ -728,13 +729,15 @@ clusterPheatmap <- function(x, design, param,
   }else{
     colDendro <- FALSE
   }
-  ann_colors <- list(Clusters=setNames(clusterColors, levels(clusters)))
+  
+  ann_colors <- list(Clusters=setNames(clusterColors, levels(clusters)), Condition=setNames(unique(sampleColors), unique(design[[1]])))
+  
   p <- pheatmap(x, color=colors, clustering_method=method,
            breaks=seq(from=lim[1], to=lim[2], length.out=257),
            scale="none", cluster_rows=clusterInfo$tree_row,
            cluster_cols=colDendro,
            show_rownames=isShowRowNames,
-           annotation_col=design, annotation_row=annotation_row,
+           annotation_col = design, annotation_row=annotation_row,
            annotation_colors = ann_colors)
   
   ans <- list(nClusters=nClusters, clusterNumbers=clusters,
