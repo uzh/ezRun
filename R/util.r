@@ -806,7 +806,7 @@ ezCbind = function(...){
   do.call(cbind, x)
 }
 
-makeRmdReport = function(..., htmlFile="00index.html", rmdFile=''){
+makeRmdReport = function(..., htmlFile="00index.html", rmdFile='', linkLibs=TRUE){
   varList = list(...)
   for (nm in names(varList)){
     saveRDS(varList[[nm]], file=paste0(nm, ".rds"))
@@ -818,7 +818,9 @@ makeRmdReport = function(..., htmlFile="00index.html", rmdFile=''){
   file.copy(from=styleFiles, to=".", overwrite=TRUE)
   rmarkdown::render(input=rmdFile, envir = new.env(),
                     output_dir=".", output_file=htmlFile, quiet=TRUE)
-  prepareRmdLib()
+  if (linkLibs){
+    prepareRmdLib()
+  }
 }
 
 prepareRmdLib <- function(){
