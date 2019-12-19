@@ -33,8 +33,6 @@ bamFiles = dataset$BAM
 
 ```{r igv link, include=FALSE}
 if (param$writeIgvSessionLink){
-#     titles[["Genome Browser"]] = "Genome Browser"
-#     addTitle(doc, titles[[length(titles)]], 2, id=titles[[length(titles)]]) ## NOTEP: igv links are not yet added to the report.
   if (length(bamFiles) > 4){
     idx = which(!duplicated(conds))
     idx = idx[1:min(4, length(idx))]
@@ -190,7 +188,6 @@ if (length(resultList[[1]][["genebody_coverage"]]) != 0){ ## TODO this could be 
     pngMatrix = ezMatrix("", rows=names(gbcTemplate),
                          cols=names(gbcTemplate[[1]]))
     regions = intersect(c("less than 400nt", "1000 to 1200nt"), rownames(pngMatrix))
-    #pngLinks = character()
     for (rn in regions){ # rownames(pngMatrix)){
       for (cn in "medium expressed"){ #} colnames(pngMatrix)){
         pngMatrix[rn, cn] = ezValidFilename(paste0("genebody_coverage_", rn, "_", cn, ".png"))
@@ -308,7 +305,6 @@ if(!is.null(resultList[[1]][["Junction"]])){
 if (!is.null(resultList[[1]][["Junction"]])){
   cat("###", "Junction plots\n")
   for (sm in samples){
-    #pngLinks = character()
     cat("\n")
     cat("####", sm, "\n")
     for (nm in names(resultList[[sm]][["Junction"]])){
@@ -341,7 +337,6 @@ if(!is.null(resultList[[1]]$fragSizeHist)){
   cat("###", "Length distribution of fragments for paired reads\n")
   for (sm in samples){
     fsh = resultList[[sm]]$fragSizeHist
-    #pngFiles[sm] = paste0(sm, "-fragSizeHist.png")
     ezWrite.table(cbind(Length=fsh$mids, Count=fsh$counts),
                   file=paste0(sm, "-fragSizeHist.txt"), row.names=FALSE)
     plotCmd = expression({
@@ -350,7 +345,6 @@ if(!is.null(resultList[[1]]$fragSizeHist)){
     })
     try({
       eval(plotCmd)
-      #pngFiles[sm] = ezImageFileLink(plotCmd, file=pngFiles[sm], width=600)
     })
   }
 }
@@ -360,7 +354,6 @@ if(!is.null(resultList[[1]]$fragSizeHist)){
 ```{r Histogram of aligned segments per read, echo=FALSE, results='asis'}
 for (sm in samples){
   fsh = resultList[[sm]]$segmentCountHist
-  #pngFiles[sm] = paste0(sm, "-segmentCountHist.png")
   ezWrite.table(cbind(Length=fsh$mids, Count=fsh$counts),
                 file=paste0(sm, "-segmentCountHist.txt"), row.names=FALSE)
     
@@ -369,7 +362,6 @@ for (sm in samples){
          main=paste(sm, "-- Histogram of Segments per Alignment"))
   })
   try({
-    #pngFiles[sm] = ezImageFileLink(plotCmd, file=pngFiles[sm], width=600)
     eval(plotCmd)
   })
 }
@@ -387,7 +379,6 @@ if (!is.null(resultList[[1]][["ErrorRates"]])){
           plotPosSpecificErrorRate(errorRate, png=pngFile, main=paste(sm, nm))
         })
         eval(plotCmd)
-        #pngLinks[nm] = ezImageFileLink(plotCmd, file=pngFile, width=1600)
       }
     }
   }
@@ -399,7 +390,6 @@ if (!is.null(resultList[[1]][["TranscriptsCovered"]])){
   cat("###", "The fraction of isoform length covered\n")
   for (sm in samples){
     tlc = resultList[[sm]][["TranscriptsCovered"]]
-    #pngFiles[sm] = paste0(sm, "-transcriptsCovered.png")
     ezWrite.table(cbind(Percents=tlc$mids, Count=tlc$counts),
                   file=paste0(sm, "-transcriptsCovered.txt"), row.names=FALSE)
     plotCmd = expression({
@@ -407,10 +397,7 @@ if (!is.null(resultList[[1]][["TranscriptsCovered"]])){
       names(cts) = tlc$mids
       barplot(cts, xlab="% length covered", main=paste(sm, "-- Isoforms Covered Histogram"), ylab="number of isoforms")
     })
-    #pngLinks[sm] = ezImageFileLink(plotCmd, file=pngFiles[sm], width=600)
     eval(plotCmd)
-    #plotBySamples[[sm]] = c(plotBySamples[[sm]], pngLinks[sm])
-    #plotByStatistics[["The fraction of isoform length covered"]] = c(plotByStatistics[["The fraction of isoform length covered"]], pngLinks[sm])
   }
 }
 ```

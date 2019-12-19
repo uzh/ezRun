@@ -5,15 +5,25 @@
 \alias{makeMinimalPairedEndReadDataset}
 \title{Makes a minimal single end dataset}
 \usage{
-makeMinimalSingleEndReadDataset(fqDir, species = "",
-  adapter1 = "GATCGGAAGAGCACACGTCTGAACTCCAGTCAC", strandMode = "both",
-  readCount = NULL, dataRoot = DEFAULT_DATA_ROOT)
-
-makeMinimalPairedEndReadDataset(fqDir, species = "",
+makeMinimalSingleEndReadDataset(
+  fqDir,
+  species = "",
   adapter1 = "GATCGGAAGAGCACACGTCTGAACTCCAGTCAC",
-  adapter2 = "AGATCGGAAGAGCGTCGTGTAGGGAAAGAGTGT", strandMode = "both",
-  readCount = NULL, readTypeSuffix = c("-R1.fastq.gz", "-R2.fastq.gz"),
-  dataRoot = DEFAULT_DATA_ROOT)
+  strandMode = "both",
+  readCount = NULL,
+  dataRoot = DEFAULT_DATA_ROOT
+)
+
+makeMinimalPairedEndReadDataset(
+  fqDir,
+  species = "",
+  adapter1 = "GATCGGAAGAGCACACGTCTGAACTCCAGTCAC",
+  adapter2 = "AGATCGGAAGAGCGTCGTGTAGGGAAAGAGTGT",
+  strandMode = "both",
+  readCount = NULL,
+  readTypeSuffix = c("-R1.fastq.gz", "-R2.fastq.gz"),
+  dataRoot = DEFAULT_DATA_ROOT
+)
 }
 \arguments{
 \item{fqDir}{a character specifying the path to the directory holding the fastq files. The paths stored in the dataset will be relative to the dataRoot}

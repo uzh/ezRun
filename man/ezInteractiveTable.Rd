@@ -4,9 +4,15 @@
 \alias{ezInteractiveTable}
 \title{Saves an interactive table}
 \usage{
-ezInteractiveTable(values, tableLink, digits = NULL,
-  colNames = colnames(values), title = "", format = NULL,
-  envir = parent.frame())
+ezInteractiveTable(
+  values,
+  tableLink,
+  digits = NULL,
+  colNames = colnames(values),
+  title = "",
+  format = NULL,
+  envir = parent.frame()
+)
 }
 \arguments{
 \item{values}{a data.frame or table to create an interactive table from.}

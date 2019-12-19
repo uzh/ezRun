@@ -7,6 +7,7 @@
 
 
 ezMethodMetaquast = function(input=NA, output=NA, param=NA, htmlFile="00index.html"){
+  library(Biostrings)
   outFileName = param$Name
     ## copy everything locally 
     ## refs
@@ -14,30 +15,27 @@ ezMethodMetaquast = function(input=NA, output=NA, param=NA, htmlFile="00index.ht
     sapply(x,function(x) ezSystem(paste("cp",x,"./")))
    }
    isThereRef <- param$isThereRef
-   refListFile <-  param$fileWithListOfRefs
+   refFile <-  param$fileWithListOfRefs
    if (isThereRef) {
-   refList = read.delim(refListFile, stringsAsFactors = F, header = F)
-   colnames(refList) <- "refList"
-    sapply(refList$refList,copyLoopOverFiles)
-    localrefListFile <- basename(refList$refList)
-    refListToParse <- paste(basename(refList$refList),collapse = ",")
+    listOfRef <- readDNAStringSet(refFile)
+    listOfRefNames <- vector()
+    for (fileName in names(listOfRef)) {
+      writeXStringSet(listOfRef[fileName],paste0(fileName,".fasta"))
+      listOfRefNames[fileName] <- paste0(fileName,".fasta")
+    }
+    listOfRefToParse <- paste(listOfRefNames, collapse = ",")
    }
     ## draft
     draftList = input$getFullPaths("contigFile")
-    binList = input$getFullPaths("binnedContigsFile")
     localDraft <- vector()
-    localBin <- vector()
     for (k in 1:length(draftList)){
       localDraft[k] <- basename(draftList[k])
       ezSystem(paste("cp",draftList[k],localDraft[k]))
-      localBin[k] <- basename(binList[k])
-      ezSystem(paste("cp",binList[k],localBin[k]))
     }
     localDraftCollapsed <- paste(localDraft,collapse = " ")
-    localBinCollapsed <- paste(localBin,collapse = " ")
-    sampleNameList <- paste(localDraftCollapsed,localBinCollapsed)
+    sampleNameList <- localDraftCollapsed
     if (isThereRef) {
-      cmd = paste("metaquast.py", "-R", refListToParse, "-o", outFileName, 
+      cmd = paste("metaquast.py", "-R", listOfRefToParse, "-o", outFileName, 
                   '-t', ezThreads(), sampleNameList, "1> ", "metaQuast.log")
     }else{
       cmd = paste("metaquast.py", "-o", outFileName, 

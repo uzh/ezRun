@@ -4,8 +4,7 @@
 \alias{ezCollapse}
 \title{Collapses a vector in a single character}
 \usage{
-ezCollapse(x, sep = "; ", na.rm = FALSE, empty.rm = FALSE,
-  uniqueOnly = FALSE)
+ezCollapse(x, sep = "; ", na.rm = FALSE, empty.rm = FALSE, uniqueOnly = FALSE)
 }
 \arguments{
 \item{x}{a vector, matrix or list.}
