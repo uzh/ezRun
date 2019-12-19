@@ -27,7 +27,7 @@ EzAppExceRpt =
                      
                      ADAPTER_SEQ = ezFrame(Type="character", DefaultValue='guessKnown', Description="'gessKnown'|'none'|<String>"),
                      SAMPLE_NAME = ezFrame(Type="character", DefaultValue='NULL', Description="<String>"),
-                     MAIN_ORGANISM_GENOME_ID = ezFrame(Type="character", DefaultValue='hg38', Description="'hg38'|'hg19'|'mm10'"),
+                     refBuild = ezFrame(Type="character", DefaultValue='Homo_sapiens/UCSC/hg38', Description="'Mus_musculus/UCSC/mm10', 'Homo_sapiens/UCSC/hg38'"),
                      CALIBRATOR_LIBRARY = ezFrame(Type="character", DefaultValue='NULL', Description="<Path>, path to a directory containing bowtie2 index of calibrator oligos used for QC or normalisation."),
                      CALIBRATOR_TRIM5p = ezFrame(Type="character", DefaultValue='0', Description="<int>"),
                      CALIBRATOR_TRIM3p = ezFrame(Type="character", DefaultValue='0', Description="<int>"),
@@ -44,7 +44,7 @@ EzAppExceRpt =
                      ram = ezFrame(Type="character", DefaultValue='16G', Description="Maximum amount of RAM."),
                      cores = ezFrame(Type="character", DefaultValue='4', Description="Number of threads."),
                      JAVA_RAM = ezFrame(Type="character", DefaultValue='10G', Description="RAM amount allocated for Java."),
-                     REMOVE_LARGE_INTERMEDIATE_FILES = ezFrame(Type="character", DefaultValue='false', Description="'false'|'true'"),
+                     REMOVE_LARGE_INTERMEDIATE_FILES = ezFrame(Type="character", DefaultValue='true', Description="'false'|'true'"),
                      
                      MIN_READ_LENGTH = ezFrame(Type="character", DefaultValue='18', Description="Filter out reads not achieving minimum length."),
                      QFILTER_MIN_QUAL = ezFrame(Type="character", DefaultValue='20', Description="Filter out reads not achieving minimum read quality."),
@@ -53,26 +53,29 @@ EzAppExceRpt =
                      STAR_outFilterMatchNmin = ezFrame(Type="character", DefaultValue='18', Description=""),
                      STAR_outFilterMatchNminOverLread = ezFrame(Type="character", DefaultValue='0.9', Description=""),
                      STAR_outFilterMismatchNmax = ezFrame(Type="character", DefaultValue='1', Description=""),
-                     MAX_MISMATCHES_EXOGENOUS = ezFrame(Type="character", DefaultValue='0', Description=""))
+                     MAX_MISMATCHES_EXOGENOUS = ezFrame(Type="character", DefaultValue='0', Description="")
+                     )
                  }
                )
                
   )
 
 ezMethodExceRpt = function(input=NA, output=NA, param=NA){
-  
-  # init variables
+  ## objects from dataset information
   readFile = input$getFullPaths("Read1") # input file path
-
+  param[['ADAPTER_SEQ']] = input$getColumn('Adapter1')
+  stopifnot(length(param[['ADAPTER_SEQ']]) == 1)
+  
   outputDir = output$getColumn("excerpt")
   if(!dir.exists(outputDir)){dir.create(outputDir)}
   
-  ## create sample name if not specified
+  ## objects from sushi form
   if(param[['SAMPLE_NAME']]=='NULL'){
     param[['SAMPLE_NAME']] = gsub('.gz','',gsub('.fastq','',gsub('.*/','',readFile)))
   }
+  param[['refBuild']] = gsub('.*/','',param[['refBuild']])
   
-  # create command to run exceRpt_smallRNA
+  ## create command to run exceRpt_smallRNA
   cmd = pasteCmd(param=param)
 
   ezSystem(cmd)
@@ -86,56 +89,58 @@ ezMethodExceRpt = function(input=NA, output=NA, param=NA){
 ##' 
 
 pasteCmd(param){
-  cmd = paste0('make -f ',param[['EXE_DIR']],'/exceRpt_smallRNA ', # makefile to execute
+  cmd = paste(
+        ## makefile to execute
+        paste0('make -f ',param[['EXE_DIR']],'/exceRpt_smallRNA'),
          
-         ## required options
-         'INPUT_FILE_PATH=',readFile,' ',    # <Path>
-         'OUTPUT_DIR=',outputDir,' ',                    # <Path>
-         
-         'EXE_DIR=',param[['EXE_DIR']],' ',       # <Path>
-         
-         ## paths to our modules
-         'FASTX_CLIP_EXE=',param[['FASTX_CLIP_EXE']],' ',
-         'FASTX_FILTER_EXE=',param[['FASTX_FILTER_EXE']],' ',
-         'BOWTIE2_EXE=',param[['BOWTIE2_EXE']],' ',
-         'SAMTOOLS_EXE=',param[['SAMTOOLS_EXE']],' ',
-         'JAVA_EXE=',param[['JAVA_EXE']],' ',
-         'FASTQC_EXE=',param[['FASTQC_EXE']],' ',
-         'STAR_EXE=',param[['STAR_EXE']],' ',
-         
-         ## main analysis options
-         'ADAPTER_SEQ=',param[['ADAPTER_SEQ']],' ',                         # 'gessKnown'|'none'|<String>
-         'SAMPLE_NAME=',param[['SAMPLE_NAME']],' ',                         # <String>
-         'MAIN_ORGANISM_GENOME_ID=',param[['MAIN_ORGANISM_GENOME_ID']],' ', # 'hg38'|'hg19'|'mm10'
-         'CALIBRATOR_LIBRARY=',param[['CALIBRATOR_LIBRARY']],' ',           # <Path>, path to a bowtie2 index of calibrator oligos used for QC or normalisation
-         'CALIBRATOR_TRIM5p=',param[['CALIBRATOR_TRIM5p']],' ',             # <int>
-         'CALIBRATOR_TRIM3p=',param[['CALIBRATOR_TRIM3p']],' ',             # <int>
-         'ENDOGENOUS_LIB_PRIORITY=',param[['ENDOGENOUS_LIB_PRIORITY']],' ', # <comma,separated,list,no,spaces>
-         
-         ## additional analysis options
-         'TRIM_N_BASES_5p=',param[['TRIM_N_BASES_5p']],' ',                     # <int>
-         'TRIM_N_BASES_3p=',param[['TRIM_N_BASES_3p']],' ',                     # <int>
-         'RANDOM_BARCODE_LENGTH=',param[['RANDOM_BARCODE_LENGTH']],' ',         # <int>
-         'RANDOM_BARCODE_LOCATION=',param[['RANDOM_BARCODE_LOCATION']],' ',     # '-5p -3p'/'-5p'/'-3p'
-         'KEEP_RANDOM_BARCODE_STATS=',param[['KEEP_RANDOM_BARCODE_STATS']],' ', # 'false'|'true'
-         'DOWNSAMPLE_RNA_READS=',param[['DOWNSAMPLE_RNA_READS']],' ',           # <int>
-         'MAP_EXOGENOUS=',param[['MAP_EXOGENOUS']],' ',                         # 'off'|'miRNA'|'on'
-         
-         ## Hardware-specific options
-         'MAX_RAM=',paste0(param[['ram']],'G'),' ',                                                 # <String>
-         'N_THREADS=',param[['cores']],' ',                                             # <int>
-         'JAVA_RAM=',param[['JAVA_RAM']],' ',                                               # <String>
-         'REMOVE_LARGE_INTERMEDIATE_FILES=',param[['REMOVE_LARGE_INTERMEDIATE_FILES']],' ', # 'false'|'true'
-         
-         ## Alignment QC options
-         'MIN_READ_LENGTH=',param[['MIN_READ_LENGTH']],' ',                                   # <int>
-         'QFILTER_MIN_QUAL=',param[['QFILTER_MIN_QUAL']],' ',                                 # <int>
-         'QFILTER_MIN_READ_FRAC=',param[['QFILTER_MIN_READ_FRAC']],' ',                       # <double>
-         'STAR_alignEndsType=',param[['STAR_alignEndsType']],' ',                             # 'Local'|'EndToEnd'
-         'STAR_outFilterMatchNmin=',param[['STAR_outFilterMatchNmin']],' ',                   # <int>
-         'STAR_outFilterMatchNminOverLread=',param[['STAR_outFilterMatchNminOverLread']],' ', # <double>
-         'STAR_outFilterMismatchNmax=',param[['STAR_outFilterMismatchNmax']],' ',             # <int>
-         'MAX_MISMATCHES_EXOGENOUS=',param[['MAX_MISMATCHES_EXOGENOUS']]                      # <int>
+        ## required options
+        paste0('INPUT_FILE_PATH=',readFile),   
+        paste0('OUTPUT_DIR=',outputDir),                   
+        
+        paste0('EXE_DIR=',param[['EXE_DIR']]),
+        
+        ## paths to our modules
+        paste0('FASTX_CLIP_EXE=',param[['FASTX_CLIP_EXE']]),
+        paste0('FASTX_FILTER_EXE=',param[['FASTX_FILTER_EXE']]),
+        paste0('BOWTIE2_EXE=',param[['BOWTIE2_EXE']]),
+        paste0('SAMTOOLS_EXE=',param[['SAMTOOLS_EXE']]),
+        paste0('JAVA_EXE=',param[['JAVA_EXE']]),
+        paste0('FASTQC_EXE=',param[['FASTQC_EXE']]),
+        paste0('STAR_EXE=',param[['STAR_EXE']]),
+        
+        ## main analysis options
+        paste0('ADAPTER_SEQ=',param[['ADAPTER_SEQ']]),                         
+        paste0('SAMPLE_NAME=',param[['SAMPLE_NAME']]),                        
+        paste0('MAIN_ORGANISM_GENOME_ID=',param[['refBuild']]),
+        paste0('CALIBRATOR_LIBRARY=',param[['CALIBRATOR_LIBRARY']]),           
+        paste0('CALIBRATOR_TRIM5p=',param[['CALIBRATOR_TRIM5p']]),             
+        paste0('CALIBRATOR_TRIM3p=',param[['CALIBRATOR_TRIM3p']]),           
+        paste0('ENDOGENOUS_LIB_PRIORITY=',param[['ENDOGENOUS_LIB_PRIORITY']]),
+        
+        ## additional analysis options
+        paste0('TRIM_N_BASES_5p=',param[['TRIM_N_BASES_5p']]),                    
+        paste0('TRIM_N_BASES_3p=',param[['TRIM_N_BASES_3p']]),                     
+        paste0('RANDOM_BARCODE_LENGTH=',param[['RANDOM_BARCODE_LENGTH']]),         
+        paste0('RANDOM_BARCODE_LOCATION=',param[['RANDOM_BARCODE_LOCATION']]),     
+        paste0('KEEP_RANDOM_BARCODE_STATS=',param[['KEEP_RANDOM_BARCODE_STATS']]),
+        paste0('DOWNSAMPLE_RNA_READS=',param[['DOWNSAMPLE_RNA_READS']]),         
+        paste0('MAP_EXOGENOUS=',param[['MAP_EXOGENOUS']]),                        
+        
+        ## Hardware-specific options
+        paste0('MAX_RAM=',paste0(param[['ram']],'G')),                                                 
+        paste0('N_THREADS=',param[['cores']]),                                             
+        paste0('JAVA_RAM=',param[['JAVA_RAM']]),                                               
+        paste0('REMOVE_LARGE_INTERMEDIATE_FILES=',param[['REMOVE_LARGE_INTERMEDIATE_FILES']]),
+        
+        ## Alignment QC options
+        paste0('MIN_READ_LENGTH=',param[['MIN_READ_LENGTH']]),                                   
+        paste0('QFILTER_MIN_QUAL=',param[['QFILTER_MIN_QUAL']]),                                 
+        paste0('QFILTER_MIN_READ_FRAC=',param[['QFILTER_MIN_READ_FRAC']]),                      
+        paste0('STAR_alignEndsType=',param[['STAR_alignEndsType']]),                            
+        paste0('STAR_outFilterMatchNmin=',param[['STAR_outFilterMatchNmin']]),                   
+        paste0('STAR_outFilterMatchNminOverLread=',param[['STAR_outFilterMatchNminOverLread']]), 
+        paste0('STAR_outFilterMismatchNmax=',param[['STAR_outFilterMismatchNmax']]),            
+        paste0('MAX_MISMATCHES_EXOGENOUS=',param[['MAX_MISMATCHES_EXOGENOUS']])                     
   )
   return(cmd)
 }
