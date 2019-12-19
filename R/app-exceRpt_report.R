@@ -5,6 +5,9 @@
 # The terms are available here: http://www.gnu.org/licenses/gpl.html
 # www.fgcz.ch
 
+##' @title 
+##' @description Use this reference class to run
+##' @author Miquel Anglada Girotto
 EzAppExceRptReport =
   setRefClass( "EzAppExceRptReport",
                contains = "EzApp",
@@ -14,46 +17,46 @@ EzAppExceRptReport =
                    "Initializes the application using its specific defaults."
                    runMethod <<- ezMethodExceRptReport
                    name <<- "EzAppExceRptReport"
-                   appDefaults <<- rbind(name=ezFrame(Type="character",  DefaultValue="smallRNA_exceRpt",  Description=""))
+                   appDefaults <<- rbind(name=ezFrame(Type="character",  DefaultValue="Excerpt_Report",  Description=""))
                  }
                )
                
   )
 
+##' @title 
+##' @description Use this reference class to run
+##' @author Miquel Anglada Girotto
 ezMethodExceRptReport = function(input=NA, output=NA, param=NA){
-  
+  ## set report's working directory
   setwdNew(basename(output$getColumn("Report")))
   
-  plots = processSamples(sampleDirs = input$getFullpaths("excerpt"), output.dir = "processed_output", getPlotsObjects=TRUE)
-  #plots = processSamplesInDir(data.dir = excerpt_results, output.dir = processed_output, getPlotsObjects=TRUE)
+  ## Process output
+  processedOutputDir = "processed_output"
+  plots = processSamples(samplePaths = input$getFullPaths("excerpt"), outputDir = processedOutputDir, getPlotsObjects=TRUE)
+
   ## list files generated
-  dataFiles = list.files(processed_output,pattern = '*.txt')
-  ## 
-  makeRmdReport(plots=plots,dataFiles=dataFiles,rmdFile = "excerpt.Rmd")
+  dataFiles = list.files(processedOutputDir, pattern = '*.txt')
+  
+  ## Create report
+  makeRmdReport(plots=plots, dataFiles=dataFiles, rmdFile = "excerpt.Rmd")
 }
 
 
 
-##' Functions to create report.
+## Functions to create report.
 
-delete_e = function(data.dir){
-  # get file names
-  dirFiles = {}
-  for(d in data.dir){
-    dirFiles=list.files(d, pattern = '*stats',recursive = TRUE, full.names = TRUE)
-  }
-  # delete -e :
-  for (stats_file in dirFiles){
-    f = readLines(stats_file)
-    f = gsub('-e ','',f)
-    writeLines(f,stats_file)
-  }
-  print('Done!')
+##' @title 
+##' @description Use this reference class to run
+##' @author Miquel Anglada Girotto
+delete_e = function(linesRead){
+  f = gsub('-e ','',linesRead)
+  return(f)
 }
 
-##
-## check dependencies
-##
+
+##' @title 
+##' @description Use this reference class to run
+##' @author Miquel Anglada Girotto
 loadDependencies = function(){
   ## load
   require(plyr)
@@ -66,288 +69,18 @@ loadDependencies = function(){
   require(scales)
 }
 
-##
-## Main function to read and plot exceRpt output in a given directory
-##
-processSamplesInDir = function(data.dir, output.dir=data.dir, scriptDir="~/Dropbox/Work/YALE/exRNA/exceRpt", getPlotsObjects=FALSE){
-  
-  ## Load required dependencies
-  loadDependencies()
-  
-  ## delete -e from .stats (they do not appear in the ExampleData, but they do when I ran the program)
-  delete_e(data.dir)
-  
-  ## create output dir
-  if(dir.exists(output.dir)){
-    # erase
-    unlink(output.dir,recursive=TRUE)
-    # create
-    dir.create(output.dir)
-    
-  }else{
-    # create
-    dir.create(output.dir)
-  }
-  
-  ##  Look for samples to merge
-  printMessage(c("Searching for valid exceRpt pipeline output in ",data.dir))
-  # if (length(data.dir)>1){
-  #   unique(unlist(sapply(data.dir,function(x){SearchForSampleData(x,"")})))
-  # }
-  samplePathList = unique(unlist(sapply(data.dir,function(x){SearchForSampleData(x,"")})))
-  
-  ## get sample names and remove duplicates:
-  sampleIDs = sapply(samplePathList, function(path){ tmp=unlist(strsplit(path,"/")); tmp[length(tmp)] })
-  samplePathList = samplePathList[!duplicated(sampleIDs)]
-  
-  ## -- Kill script if we do not have any samples to process
-  NumberOfCompatibleSamples = length(samplePathList)
-  stopifnot(NumberOfCompatibleSamples > 0)
-  printMessage(c("Found ",NumberOfCompatibleSamples," valid samples"))
-  
-  ## reads, normalises, and saves individual sample results
-  sampleIDs = readData(samplePathList, output.dir)
-  
-  ## do we have sample groups?
-  sampleGroups = data.frame(sampleID=sampleIDs, sampleGroup=rep("noGroup",length(sampleIDs)),stringsAsFactors=F)
-  if("exceRpt_sampleGroupDefinitions.txt" %in% dir(output.dir)){
-    ## read new groups
-    groups.tmp = read.table(paste(output.dir,"/exceRpt_sampleGroupDefinitions.txt",sep=""), stringsAsFactors=F,header=T)
-    ## remove samples that are not present in this sample set
-    groups.tmp = groups.tmp[groups.tmp$sampleID %in% sampleGroups$sampleID, ]
-    ## apply new sample groups to these samples
-    sampleGroups[match(groups.tmp$sampleID, sampleGroups$sampleID), ]$sampleGroup = groups.tmp$sampleGroup
-    ## write the table back in case there are unassigned / new samples
-    write.table(sampleGroups, file=paste(output.dir,"/exceRpt_sampleGroupDefinitions.txt",sep=""), sep="\t",row.names=F,col.names=T,quote=F)
-  }else{
-    # if not, write a template
-    write.table(sampleGroups, file=paste(output.dir,"/exceRpt_sampleGroupDefinitions.txt",sep=""), sep="\t",row.names=F,col.names=T,quote=F)
-  }
-  ## if there's only one sample group, don't bother
-  if(length(unique(sampleGroups$sampleGroup))==1){
-    sampleGroups = NA
-  }
-  
-  ## plot the data
-  #PlotData(sampleIDs, output.dir, taxonomyPath=paste(scriptDir,"/NCBI_Taxonomy.RData",sep=""), sampleGroups)
-  plotsList = PlotData(sampleIDs, output.dir, sampleGroups)
-  if(getPlotsObjects==TRUE){return(plotsList)}
-  
-  ## output warnings
-  w = warnings()
-  if(!is.null(w)){
-    printMessage("Warning messages:")
-    print(w)
-  }
-}
 
-
-##
-## Function to recursively search a given directory for pipeline output
-##
-SearchForSampleData = function(base.dir, directory=""){
-  to.return = NULL
-  dir.use = paste(base.dir, directory, sep = "/")
-  subdirs = dir(dir.use)
-  if(length(subdirs) > 0){
-    i.stats = grep("\\.stats$", subdirs, perl=T)
-    i.zip = grep("\\.zip$", subdirs, perl=T)
-    i.tar = grep("\\.tgz$|\\.tar.gz$", subdirs, perl=T)
-    
-    ## handle decompressed pipeline output
-    if(length(i.stats) > 0){
-      tmp = gsub("\\.stats$","",subdirs[i.stats])
-      to.return = c(to.return, paste(dir.use,tmp,sep="/"))
-    }
-    
-    ## handle zipped pipeline output
-    if(length(i.zip) > 0){
-      for(x in i.zip){
-        tmp.contents = unzip(paste(dir.use,subdirs[x],sep="/"), list=T)[,1]
-        if(length(grep("\\.stats$", tmp.contents, perl=T)) > 0){
-          try(unzip(paste(dir.use,subdirs[x],sep="/"), exdir=gsub("\\.zip","",file_path_as_absolute(paste(dir.use,subdirs[x],sep="/"))), overwrite=FALSE), silent=T)
-          to.return = c(to.return, paste(dir.use,gsub("\\.zip$","",subdirs[x]),sep="/",gsub("\\.stats$","",tmp.contents[grep("\\.stats$", tmp.contents)])))
-        }
-      }
-    }
-    
-    ## handle [tar] gzipped pipeline output
-    if(length(i.tar) > 0){
-      for(x in i.tar){
-        tmp.dir = paste(dir.use,subdirs[x],sep="/")
-        tmp.contents = untar(tmp.dir, list=T, tar="tar")
-        if(length(grep("\\.stats$", tmp.contents, perl=T)) > 0){
-          try(untar(tmp.dir, exdir=gsub("\\.tgz$|\\.tar.gz$","",file_path_as_absolute(tmp.dir)), tar="tar"), silent=T)
-          to.return = c(to.return, paste(dir.use, gsub("\\.tgz$|\\.tar.gz$","",subdirs[x]), gsub("\\.stats$","",tmp.contents[grep("\\.stats$", tmp.contents)]),sep="/"))
-        }
-      }
-    }
-    
-    ## handle unknown directories
-    i.known = c(i.stats,i.zip,i.tar)
-    if(length(i.known) == 0){		# there are no .stats, .zip, or .tgz/.tar.gz files in the directory!
-      i.unknown = 1:length(subdirs)
-    }else{
-      i.unknown = (1:length(subdirs))[-i.known]
-    }
-    
-    if(length(i.unknown) > 0){
-      for(x in subdirs[i.unknown]){
-        to.return = c(to.return, SearchForSampleData(dir.use, x))
-      }
-    }
-    
-    return(unique(to.return))
-  }
-}
-
-
-##
-## Prints the given message with a timestamp
-##
+##' @title 
+##' @description Use this reference class to run
+##' @author Miquel Anglada Girotto
 printMessage = function(message=""){
   cat(as.character(Sys.time()),":  ",paste(message,sep=""),"\n",sep="")
 }
 
 
-##
-## Plots a taxonomy tree with a given set of weights
-##
-plotTree = function(rEG, taxonomyInfo, counts_uniq, counts_cum, title="", what){
-  
-  ## node parameters
-  nNodes = length(nodes(rEG))
-  nA <- list()
-  nA$shape = rep("circle",nNodes)
-  nA$fixedSize<-rep(FALSE, nNodes)
-  nA$height <- nA$width <- rescale(sqrt(counts_cum/10), to=c(0.25,7))
-  nA$color <- rep(rgb(0,0,0,0.25),nNodes)
-  nA$style <- rep("bold", nNodes)
-  if(what == "exogenousRibosomal"){
-    nA$fillcolor <- sapply(counts_uniq*10, function(val){ if(val>100){val=100}; rgb(100-val,100,100-val,maxColorValue=100)})
-  }else{
-    nA$fillcolor <- sapply(counts_uniq*10, function(val){ if(val>100){val=100}; rgb(100-val,100-val,100,maxColorValue=100)})
-  }
-  
-  newNodeIDs = sapply(taxonomyInfo[match(as.numeric(nodes(rEG)), taxonomyInfo$ID), ]$name, function(id){ newID=unlist(strsplit(id," ")); if(length(newID) == 1){id}else{paste(newID[1], "\n", paste(newID[-1],collapse=" "), sep="") }})
-  nA$label <- paste(newNodeIDs,"\n",round(counts_cum*10)/10,"%",sep="")
-  nA <- lapply(nA, function(x) { names(x) <- nodes(rEG); x})
-  
-  ## edge parameters
-  eA <- list(arrowsize=rep(0.1,length(names(rEG@edgeData))), arrowhead=rep("none",length(names(rEG@edgeData))))
-  eA <- lapply(eA, function(x) { names(x) <- names(rEG@edgeData); x})
-  
-  ## layout the graph
-  tmp = layoutGraph(rEG, nodeAttrs=nA, edgeAttrs=eA)
-  
-  ## hack to make sure the node labels are visible!
-  sizes = rescale(tmp@renderInfo@nodes$rWidth, to=c(0.2,1.5))
-  names(sizes) = nodes(rEG)
-  nodeRenderInfo(tmp) <- list(cex=sizes)
-  
-  graphRenderInfo(tmp) <- list(main=title)
-  
-  ## plot the graph
-  renderGraph(tmp)
-}
-
-
-##
-## Plot exogenous genomes
-##
-plotExogenousTaxonomyTrees = function(counts, cumcounts, what, output.dir, taxonomyInfo, fontScale=2, sampleGroups=NA, minPercent=0.5){
-  
-  
-  # counts = exprs.exogenousGenomes_specific
-  # cumcounts = exprs.exogenousGenomes_cumulative
-  # taxonomyInfo = taxonomyInfo.exogenous_genomes
-  # 
-  # counts = exprs.exogenousRibosomal_specific
-  # cumcounts = exprs.exogenousRibosomal_cumulative
-  # taxonomyInfo = taxonomyInfo.exogenous_rRNA
-  
-  ## add direct count to the cumulative counts matrix
-  cumcounts = cumcounts+counts
-  
-  #counts.norm = t(t(counts*100)/colSums(counts))
-  counts.norm = apply(counts, 2, function(col){ col*100/sum(col) })
-  cumcounts.norm = apply(cumcounts, 2, function(col){ col*100/col[1] })
-  dim(counts)
-  
-  ## remove nodes with < 0.1% of all reads
-  #minPercent = 1
-  keepRows = which(apply(counts.norm, 1, max) >= minPercent)
-  keepRows = sort(unique(c(keepRows, which(apply(cumcounts.norm, 1, max) >= minPercent))))
-  
-  # use only paths through the tree that capture above a certain fraction of reads
-  counts = counts[keepRows, , drop=F]
-  cumcounts = cumcounts[keepRows, , drop=F]
-  nrow(counts)
-  #data_uniq = counts.norm[keepRows, , drop=F]
-  #data_cum = cumcounts.norm[keepRows, , drop=F]
-  #nrow(data_cum)
-  
-  ## Re-scale the node percentages after trimming branches to make the numbers make more sense - shouldn't make much diff to the cumcounts
-  data_uniq = apply(counts, 2, function(col){ col*100/sum(col) })
-  data_cum = apply(cumcounts, 2, function(col){ col*100/col[1] })
-  
-  #if("significantDEX" %in% names(combinedSamples)){
-  #  significant = combinedSamples$significantDEX[keepRows]
-  #  foldChange = combinedSamples$foldChange[keepRows]
-  #}
-  
-  ## remove edges with no useable counts (based on minPercent threshold)
-  taxonomyInfo = taxonomyInfo[taxonomyInfo$ID %in% rownames(data_cum), ]
-  
-  ## Build the graph object
-  rEG <<- new("graphNEL", nodes=as.character(taxonomyInfo$ID), edgemode="directed")
-  trim <- function (x) gsub("^\\s+|\\s+$", "", x)
-  apply(taxonomyInfo[-1,], 1, function(row){ 
-    from = trim(as.character(row[4]));
-    if(from %in% taxonomyInfo$ID){ rEG <<- addEdge(trim(as.character(row[4])), trim(as.character(row[3])), rEG, 1) }
-    NULL })
-  
-  
-  data_uniq = data_uniq[match(taxonomyInfo$ID, rownames(data_uniq)), , drop=F]
-  data_cum = data_cum[match(taxonomyInfo$ID, rownames(data_cum)), , drop=F]
-  data_uniq[is.na(data_uniq)] = 0
-  data_cum[is.na(data_cum)] = 0
-  
-  
-  ##
-  ## Write to PDF
-  ##
-  ## plot an average tree over all samples
-  printMessage(c("Plotting a taxonomy tree based on the average of all samples "))
-  pdf(file=paste(output.dir,"/exceRpt_",what,"_TaxonomyTrees_aggregateSamples.pdf",sep=""),height=7,width=15)
-  plotTree(rEG, taxonomyInfo, apply(data_uniq, 1, max), rowMeans(data_cum), what=what)
-  dev.off()
-  
-  ## plot samples individually
-  printMessage(c("Plotting a separate taxonomy tree for each sample"))
-  pdf(file=paste(output.dir,"/exceRpt_",what,"_TaxonomyTrees_perSample.pdf",sep=""), height=7, width=15)
-  for(i in 1:ncol(data_uniq))
-    plotTree(rEG, taxonomyInfo, data_uniq[,i], data_cum[,i], title=paste(colnames(data_uniq)[i]," (total reads: ",cumcounts[1,i],")", sep=""), what=what)
-  dev.off()
-  
-  ## if there are groups of samples
-  if(is.data.frame(sampleGroups)){
-    printMessage(c("Plotting a separate taxonomy tree for each sample-group"))
-    pdf(file=paste(output.dir,"/exceRpt_",what,"_TaxonomyTrees_perGroup.pdf",sep=""), height=7, width=15)
-    for(thisgroup in levels(as.factor(sampleGroups$sampleGroup))){
-      tmpDat_uniq = rowMeans(data_uniq[, match(sampleGroups[sampleGroups$sampleGroup %in% thisgroup, ]$sampleID, colnames(data_uniq)), drop=F])
-      tmpDat_cum = rowMeans(data_cum[, match(sampleGroups[sampleGroups$sampleGroup %in% thisgroup, ]$sampleID, colnames(data_cum)), drop=F])
-      plotTree(rEG, taxonomyInfo, tmpDat_uniq, tmpDat_cum, title=paste(thisgroup,sep=""), what=what)
-    }
-    dev.off()
-  }
-  
-}
-
-
-##
-##
-##
+##' @title 
+##' @description Use this reference class to run
+##' @author Miquel Anglada Girotto
 readData = function(samplePathList, output.dir){
   
   ##
@@ -365,6 +98,7 @@ readData = function(samplePathList, output.dir){
   allIDs.exogenous_genomes = NULL
   taxonomyInfo.exogenous_rRNA = NULL
   taxonomyInfo.exogenous_genomes = NULL
+  
   mapping.stats = matrix(0,nrow=length(samplePathList),ncol=30, dimnames=list(1:length(samplePathList), c("input","successfully_clipped","failed_quality_filter","failed_homopolymer_filter","calibrator","UniVec_contaminants","rRNA","reads_used_for_alignment","genome","miRNA_sense","miRNA_antisense","miRNAprecursor_sense","miRNAprecursor_antisense","tRNA_sense","tRNA_antisense","piRNA_sense","piRNA_antisense","gencode_sense","gencode_antisense","circularRNA_sense","circularRNA_antisense","not_mapped_to_genome_or_libs","repetitiveElements","endogenous_gapped","input_to_exogenous_miRNA","exogenous_miRNA","input_to_exogenous_rRNA","exogenous_rRNA","input_to_exogenous_genomes","exogenous_genomes")))
   qc.results = matrix(0,nrow=length(samplePathList),ncol=5, dimnames=list(1:length(samplePathList), c("InputReads","GenomeReads","TranscriptomeReads","TranscriptomeGenomeRatio","TranscriptomeComplexity")))
   maxReadLength = 10000
@@ -382,7 +116,11 @@ readData = function(samplePathList, output.dir){
     thisSampleID = tmp[length(tmp)]
     
     ## Get timings and check this sample finished successfully
-    tmp.stats = read.table(paste(samplePathList[i],".stats",sep=""), stringsAsFactors=F, fill=T, header=F, sep="\t",skip=0,comment.char="")
+    tmp.stats = readLines(paste(samplePathList[i],".stats",sep=""))
+    tmp.stats = delete_e(tmp.stats)
+    tmp.stats = do.call(rbind,strsplit(tmp.stats,'\t'))
+    tmp.stats = data.frame(tmp.stats,stringsAsFactors = FALSE)
+    tmp.stats[c(1,nrow(tmp.stats)),2] = ""
     x.start = grep("#STATS",tmp.stats[,1])
     x.end = grep("#END OF STATS",tmp.stats[,1])
     if(length(x.start) > 0  &&  length(x.end) > 0){
@@ -400,12 +138,10 @@ readData = function(samplePathList, output.dir){
       ##
       ## Read sample mapping stats
       ##
-      
-      tmp.stats = read.table(paste(samplePathList[i],".stats",sep=""), stringsAsFactors=F, fill=T, header=T, sep="\t",skip=0,row.names = NULL)
+      tmp.stats = tmp.stats[-c(1,2,nrow(tmp.stats)),]
       tmp.stats[tmp.stats[,1] %in% "clipped", 1] = "successfully_clipped"
       mapping.stats[i, match(tmp.stats[,1], colnames(mapping.stats))] = as.numeric(tmp.stats[,2])
       rownames(mapping.stats)[i] = thisSampleID
-      
       
       ##
       ## Read the QC result
@@ -844,9 +580,10 @@ readData = function(samplePathList, output.dir){
   return(rownames(mapping.stats))
 }
 
-##
-##
-##
+
+##' @title 
+##' @description Use this reference class to run
+##' @author Miquel Anglada Girotto
 PlotData = function(sampleIDs, output.dir, sampleGroups=NA, minPercent_exogenousRibosomal=0.5, minPercent_exogenousGenomes=0.5){
   
   load(paste(output.dir, "exceRpt_smallRNAQuants_ReadCounts.RData", sep="/"))
@@ -872,7 +609,7 @@ PlotData = function(sampleIDs, output.dir, sampleGroups=NA, minPercent_exogenous
   ##
   printMessage("Creating QC plots")
   pdf(paste(output.dir,"exceRpt_DiagnosticPlots.pdf",sep="/"), height=10, width=20)
-
+  
   
   if(ncol(read.lengths) > 1){
     printMessage("Plotting read-length distributions")
@@ -883,14 +620,14 @@ PlotData = function(sampleIDs, output.dir, sampleGroups=NA, minPercent_exogenous
     if(is.data.frame(sampleGroups)){ tmp$sampleGroup = sampleGroups[match(tmp$sample, sampleGroups$sampleID), 2] }
     maxX = min(c(100,max(tmp$length)))
     p = ggplot(tmp, aes(x=length, y=count, color=sample)) + geom_line(alpha=1) +
-        xlab("read length (nt)") + ylab("# reads") + 
-        ggtitle("read-length distributions: raw read count")+
-        scale_x_continuous(limits=c(15,maxX), minor_breaks=1:maxX, breaks=seq(15,maxX,by=5))+
-        scale_colour_manual(values=getSampleColors(tmp$sample))
+      xlab("read length (nt)") + ylab("# reads") + 
+      ggtitle("read-length distributions: raw read count")+
+      scale_x_continuous(limits=c(15,maxX), minor_breaks=1:maxX, breaks=seq(15,maxX,by=5))+
+      scale_colour_manual(values=getSampleColors(tmp$sample))
     if(nrow(read.lengths) > 30){ p = p +guides(colour=FALSE) }
     if(is.data.frame(sampleGroups)){ p = p +facet_wrap(~sampleGroup,ncol=1)}
     print(p)
-
+    
     
     # save
     plotsList[["read-length distributions: raw read count"]] = p
@@ -929,18 +666,18 @@ PlotData = function(sampleIDs, output.dir, sampleGroups=NA, minPercent_exogenous
   tmp$runDuration_minutes = tmp$runDuration_seconds/60
   tmp$runDuration_hours = tmp$runDuration_minutes/60
   p = ggplot(tmp, aes(x=sampleID,y=runDuration_hours)) + geom_bar(stat="identity",fill=tmp$colour) +
-      facet_grid(~category,scales="free_x",space="free_x") +guides(fill=FALSE) +
-      theme(axis.text.x=element_text(angle=60, hjust=1.0, vjust=1)) +
-      ggtitle("Duration of exceRpt run for each sample") +ylab("Run duration (hours)")
+    facet_grid(~category,scales="free_x",space="free_x") +guides(fill=FALSE) +
+    theme(axis.text.x=element_text(angle=60, hjust=1.0, vjust=1)) +
+    ggtitle("Duration of exceRpt run for each sample") +ylab("Run duration (hours)")
   print(p)
   # save
   plotsList[["Duration of exceRpt run for each sample"]] = p
   
   if(is.data.frame(sampleGroups)){ tmp$sampleGroup = sampleGroups[match(tmp$sampleID, sampleGroups$sampleID), 2] }
   p = ggplot(tmp, aes(x=inputReadCount,y=runDuration_hours,colour=colour)) + geom_point(size=5) + guides(colour=FALSE) +
-      scale_x_log10(limits=c(min(c(100000,10^floor(log10(min(tmp$inputReadCount+1))))),10^ceiling(log10(max(tmp$inputReadCount)))), breaks=10^seq(min(c(100000,floor(log10(min(tmp$inputReadCount+1))))),ceiling(log10(max(tmp$inputReadCount))))) +
-      ggtitle("Duration of exceRpt run per sequencing yield") + ylab("Run duration (hours)") + xlab("Total number of reads input") + 
-      scale_colour_manual(values=tmp$colour)
+    scale_x_log10(limits=c(min(c(100000,10^floor(log10(min(tmp$inputReadCount+1))))),10^ceiling(log10(max(tmp$inputReadCount)))), breaks=10^seq(min(c(100000,floor(log10(min(tmp$inputReadCount+1))))),ceiling(log10(max(tmp$inputReadCount))))) +
+    ggtitle("Duration of exceRpt run per sequencing yield") + ylab("Run duration (hours)") + xlab("Total number of reads input") + 
+    scale_colour_manual(values=tmp$colour)
   print(p)
   
   # save
@@ -960,12 +697,6 @@ PlotData = function(sampleIDs, output.dir, sampleGroups=NA, minPercent_exogenous
   ##
   ## Plot the rRNA contamination
   ##
-  #par(mfrow=c(1,2))
-  #hist((mapping.stats$UniVec_contaminants / libSizes$all), breaks=seq(0,1,by=0.05), col="grey", border="white", xlim=c(0,1), main="UniVec contaminant signal",xlab="fraction contaminant reads",ylab="# samples")
-  #hist((mapping.stats$rRNA / libSizes$all), breaks=seq(0,1,by=0.05), col="grey", border="white", xlim=c(0,1), main="rRNA signal",xlab="fraction rRNA reads",ylab="# samples")
-  
-  
-  
   mapping.stats.orig = mapping.stats
   mapping.stats = mapping.stats[,-grep("input_to_",colnames(mapping.stats))]
   
@@ -1035,8 +766,8 @@ PlotData = function(sampleIDs, output.dir, sampleGroups=NA, minPercent_exogenous
   toplot = as.data.frame(qc.results)
   toplot$Sample = factor(rownames(toplot), levels=rownames(mapping.stats)[sampleOrder])
   p = ggplot(toplot, aes(x=TranscriptomeReads, y=TranscriptomeGenomeRatio)) +
-      geom_text(label=toplot$Sample,hjust = 0,nudge_x = 0.02, nudge_y = 0.02, colour='black') +
-      scale_colour_manual(values=getSampleColors(toplot$Sample))
+    geom_text(label=toplot$Sample,hjust = 0,nudge_x = 0.02, nudge_y = 0.02, colour='black') +
+    scale_colour_manual(values=getSampleColors(toplot$Sample))
   if(is.data.frame(sampleGroups)){ 
     toplot$sampleGroup = sampleGroups[match(toplot$Sample, sampleGroups$sampleID), 2] 
     p = ggplot(toplot, aes(x=TranscriptomeReads, y=TranscriptomeGenomeRatio, colour=sampleGroup)) +
@@ -1057,7 +788,7 @@ PlotData = function(sampleIDs, output.dir, sampleGroups=NA, minPercent_exogenous
     
     # save
     plotsList[["QC result: overall"]] = p +facet_wrap(~sampleGroup) +theme(legend.position="none") +
-                                        geom_point(size=2)
+      geom_point(size=2)
     
   }
   
@@ -1079,9 +810,9 @@ PlotData = function(sampleIDs, output.dir, sampleGroups=NA, minPercent_exogenous
   toplot$Sample = factor(as.character(toplot$Sample), levels=rownames(mapping.stats)[sampleOrder])
   if(is.data.frame(sampleGroups)){ toplot$sampleGroup = sampleGroups[match(toplot$Sample, sampleGroups$sampleID), 2] }
   p = ggplot(toplot, aes(y=Sample, x=Stage, fill=Value, label=Actual)) +
-      scale_fill_manual(values=c("fail"="red","pass"="palegreen","1"="lightgrey")) +
-      geom_label() +theme(plot.background=element_rect(fill="white"),panel.background=element_rect(fill=rgb(0.97,0.97,0.97)), axis.text.x=element_text(angle=20, hjust=1, vjust=1)) +
-      ggtitle("QC result: per-sample results") +xlab("") +ylab("")
+    scale_fill_manual(values=c("fail"="red","pass"="palegreen","1"="lightgrey")) +
+    geom_label() +theme(plot.background=element_rect(fill="white"),panel.background=element_rect(fill=rgb(0.97,0.97,0.97)), axis.text.x=element_text(angle=20, hjust=1, vjust=1)) +
+    ggtitle("QC result: per-sample results") +xlab("") +ylab("")
   print(p)
   
   # save
@@ -1137,9 +868,9 @@ PlotData = function(sampleIDs, output.dir, sampleGroups=NA, minPercent_exogenous
   colnames(tmp) = c("biotype","sampleID","readCount")
   if(is.data.frame(sampleGroups)){ tmp$sampleGroup = sampleGroups[match(tmp$sampleID, sampleGroups$sampleID), 2] }
   p = ggplot(na.omit(tmp), aes(y=readCount,x=biotype, colour=biotype)) +geom_hline(aes(yintercept=1),linetype="dashed") +
-      geom_boxplot() +scale_y_log10(breaks=c(0.01,0.1,1,10,100,1000,10000,100000,1000000,10000000,100000000)) +
-      guides(colour=FALSE) +coord_flip() +ggtitle("Biotypes: distributions, raw read-counts")+
-      scale_color_manual(values = getSampleColors(tmp$biotype))
+    geom_boxplot() +scale_y_log10(breaks=c(0.01,0.1,1,10,100,1000,10000,100000,1000000,10000000,100000000)) +
+    guides(colour=FALSE) +coord_flip() +ggtitle("Biotypes: distributions, raw read-counts")+
+    scale_color_manual(values = getSampleColors(tmp$biotype))
   if(is.data.frame(sampleGroups)){ p = p +facet_grid(~sampleGroup, scales="free_x")}
   print(p)
   
@@ -1204,10 +935,10 @@ PlotData = function(sampleIDs, output.dir, sampleGroups=NA, minPercent_exogenous
     colnames(tmp) = c("miRNA","sample","abundance")
     if(is.data.frame(sampleGroups)){ tmp$sampleGroup = sampleGroups[match(tmp$sample, sampleGroups$sampleID), 2] }
     p = ggplot(tmp, aes(y=abundance, x=sample, colour=sample)) +
-        geom_violin() +
-        geom_boxplot(alpha=0.2) +ylab("Read count") +ggtitle("miRNA abundance distributions (raw counts)") +
-        scale_y_log10() +guides(colour=FALSE) +
-        scale_color_manual(values = setNames(getSampleColors(tmp$sample),tmp$sample))
+      geom_violin() +
+      geom_boxplot(alpha=0.2) +ylab("Read count") +ggtitle("miRNA abundance distributions (raw counts)") +
+      scale_y_log10() +guides(colour=FALSE) +
+      scale_color_manual(values = setNames(getSampleColors(tmp$sample),tmp$sample))
     if(ncol(exprs.miRNA) < 30){ 
       p = p +theme(axis.text.x=element_text(angle=50, hjust=1.0, vjust=1))
     }else{
@@ -1220,7 +951,7 @@ PlotData = function(sampleIDs, output.dir, sampleGroups=NA, minPercent_exogenous
     plotsList[["miRNA abundance distributions (raw counts)"]] = p
     
     p = ggplot(tmp, aes(x=abundance, colour=sample)) +geom_density() +xlab("Read count") +ggtitle("miRNA abundance distributions (raw counts)") +scale_x_log10()+
-        scale_color_manual(values = setNames(getSampleColors(tmp$sample),tmp$sample))
+      scale_color_manual(values = setNames(getSampleColors(tmp$sample),tmp$sample))
     if(ncol(exprs.miRNA.rpm) > 30){ p = p +guides(colour=FALSE) }
     if(is.data.frame(sampleGroups)){ p = p +facet_grid(~sampleGroup)}
     print(p)
@@ -1232,11 +963,11 @@ PlotData = function(sampleIDs, output.dir, sampleGroups=NA, minPercent_exogenous
     colnames(tmp) = c("miRNA","sample","abundance")
     if(is.data.frame(sampleGroups)){ tmp$sampleGroup = sampleGroups[match(tmp$sample, sampleGroups$sampleID), 2] }
     p = ggplot(tmp, aes(y=abundance, x=sample, colour=sample)) +geom_violin() +
-        geom_boxplot(alpha=0.2) +ylab("Reads per million (RPM)") +
-        ggtitle("miRNA abundance distributions (RPM)") +
-        theme(axis.ticks = element_blank(), axis.text.x = element_blank()) +
-        scale_y_log10() +guides(colour=FALSE)+
-        scale_color_manual(values = setNames(getSampleColors(tmp$sample),tmp$sample))
+      geom_boxplot(alpha=0.2) +ylab("Reads per million (RPM)") +
+      ggtitle("miRNA abundance distributions (RPM)") +
+      theme(axis.ticks = element_blank(), axis.text.x = element_blank()) +
+      scale_y_log10() +guides(colour=FALSE)+
+      scale_color_manual(values = setNames(getSampleColors(tmp$sample),tmp$sample))
     if(ncol(exprs.miRNA.rpm) < 30){ 
       p = p +theme(axis.text.x=element_text(angle=50, hjust=1.0, vjust=1))
     }else{
@@ -1249,8 +980,8 @@ PlotData = function(sampleIDs, output.dir, sampleGroups=NA, minPercent_exogenous
     plotsList[["miRNA abundance distributions (RPM)"]] = p
     
     p = ggplot(tmp, aes(x=abundance, colour=sample)) +geom_density() +
-        xlab("Reads per million (RPM)") +ggtitle("miRNA abundance distributions (RPM)") +scale_x_log10()+
-        scale_color_manual(values = setNames(getSampleColors(tmp$sample),tmp$sample))
+      xlab("Reads per million (RPM)") +ggtitle("miRNA abundance distributions (RPM)") +scale_x_log10()+
+      scale_color_manual(values = setNames(getSampleColors(tmp$sample),tmp$sample))
     if(ncol(exprs.miRNA.rpm) > 30){ p = p +guides(colour=FALSE) }
     if(is.data.frame(sampleGroups)){ p = p +facet_grid(~sampleGroup)}
     print(p)
@@ -1264,9 +995,6 @@ PlotData = function(sampleIDs, output.dir, sampleGroups=NA, minPercent_exogenous
   ##
   ## Finally, plot exogenous if there are any (not used by default)
   ##
-  
-  ##! Save plots below!
-  
   if(nrow(exprs.exogenousGenomes_specific) > 0){
     printMessage("Plotting exogenous counts")
     par(oma=c(20,2,0,0))
@@ -1301,24 +1029,178 @@ PlotData = function(sampleIDs, output.dir, sampleGroups=NA, minPercent_exogenous
   }
   dev.off()
   
-  
-  ##
-  ## Plot exogenous rRNAs if there are any
-  ##
-  if(nrow(exprs.exogenousRibosomal_specific) > 0  &&  ncol(exprs.exogenousRibosomal_specific) > 0){
-    printMessage("Making taxonomy trees using exogenous rRNA counts")
-    plotExogenousTaxonomyTrees(exprs.exogenousRibosomal_specific, exprs.exogenousRibosomal_cumulative, what="exogenousRibosomal", output.dir, taxonomyInfo.exogenous_rRNA, sampleGroups=sampleGroups, minPercent=minPercent_exogenousRibosomal)
-  }
-  
-  
-  ##
-  ## Finally, plot exogenous genomes if there are any
-  ##
-  if(nrow(exprs.exogenousGenomes_specific) > 0  &&  ncol(exprs.exogenousGenomes_specific) > 0){
-    printMessage("Making taxonomy trees using exogenous genomes counts")
-    plotExogenousTaxonomyTrees(exprs.exogenousGenomes_specific, exprs.exogenousGenomes_cumulative, what="exogenousGenomes", output.dir, taxonomyInfo.exogenous_genomes, sampleGroups=sampleGroups, minPercent=minPercent_exogenousGenomes)
-  }
-  
   printMessage("All done!")
   return(plotsList)
 }
+
+
+##' @title 
+##' @description Use this reference class to run
+##' @author Miquel Anglada Girotto
+processSamples = function(samplePaths, outputDir, getPlotsObjects=FALSE){
+  ## Load required dependencies
+  loadDependencies()
+  
+  ## delete -e from .stats (they do not appear in the ExampleData, but they do when I ran the program)
+  #delete_e(samplePaths)
+  
+  ## Get directories containing counts
+  samplePathList = list.dirs(samplePaths,recursive=F)
+  
+  ## create output dir
+  dir.create(outputDir)
+  
+  ## get sample names
+  sampleIDs = sapply(samplePathList, function(path){ tmp=unlist(strsplit(path,"/")); tmp[length(tmp)] })
+  
+  ## reads, normalises, and saves individual sample results
+  sampleIDs = readData(samplePathList = samplePathList, output.dir = outputDir)
+  
+  ## plot the data
+  plotsList = PlotData(sampleIDs, outputDir)
+  if(getPlotsObjects==TRUE){return(plotsList)}
+}
+
+
+## Deprecated below
+
+##' @title 
+##' @description Use this reference class to run
+##' @author Miquel Anglada Girotto
+##
+## Plots a taxonomy tree with a given set of weights
+##
+plotTree = function(rEG, taxonomyInfo, counts_uniq, counts_cum, title="", what){
+
+## node parameters
+nNodes = length(nodes(rEG))
+nA <- list()
+nA$shape = rep("circle",nNodes)
+nA$fixedSize<-rep(FALSE, nNodes)
+nA$height <- nA$width <- rescale(sqrt(counts_cum/10), to=c(0.25,7))
+nA$color <- rep(rgb(0,0,0,0.25),nNodes)
+nA$style <- rep("bold", nNodes)
+if(what == "exogenousRibosomal"){
+  nA$fillcolor <- sapply(counts_uniq*10, function(val){ if(val>100){val=100}; rgb(100-val,100,100-val,maxColorValue=100)})
+}else{
+  nA$fillcolor <- sapply(counts_uniq*10, function(val){ if(val>100){val=100}; rgb(100-val,100-val,100,maxColorValue=100)})
+}
+
+newNodeIDs = sapply(taxonomyInfo[match(as.numeric(nodes(rEG)), taxonomyInfo$ID), ]$name, function(id){ newID=unlist(strsplit(id," ")); if(length(newID) == 1){id}else{paste(newID[1], "\n", paste(newID[-1],collapse=" "), sep="") }})
+nA$label <- paste(newNodeIDs,"\n",round(counts_cum*10)/10,"%",sep="")
+nA <- lapply(nA, function(x) { names(x) <- nodes(rEG); x})
+
+## edge parameters
+eA <- list(arrowsize=rep(0.1,length(names(rEG@edgeData))), arrowhead=rep("none",length(names(rEG@edgeData))))
+eA <- lapply(eA, function(x) { names(x) <- names(rEG@edgeData); x})
+
+## layout the graph
+tmp = layoutGraph(rEG, nodeAttrs=nA, edgeAttrs=eA)
+
+## hack to make sure the node labels are visible!
+sizes = rescale(tmp@renderInfo@nodes$rWidth, to=c(0.2,1.5))
+names(sizes) = nodes(rEG)
+nodeRenderInfo(tmp) <- list(cex=sizes)
+
+graphRenderInfo(tmp) <- list(main=title)
+
+## plot the graph
+renderGraph(tmp)
+}
+
+
+##' @title 
+##' @description Use this reference class to run
+##' @author Miquel Anglada Girotto
+##
+## Plot exogenous genomes
+##
+plotExogenousTaxonomyTrees = function(counts, cumcounts, what, output.dir, taxonomyInfo, fontScale=2, sampleGroups=NA, minPercent=0.5){
+  
+  
+  # counts = exprs.exogenousGenomes_specific
+  # cumcounts = exprs.exogenousGenomes_cumulative
+  # taxonomyInfo = taxonomyInfo.exogenous_genomes
+  # 
+  # counts = exprs.exogenousRibosomal_specific
+  # cumcounts = exprs.exogenousRibosomal_cumulative
+  # taxonomyInfo = taxonomyInfo.exogenous_rRNA
+  
+  ## add direct count to the cumulative counts matrix
+  cumcounts = cumcounts+counts
+  
+  #counts.norm = t(t(counts*100)/colSums(counts))
+  counts.norm = apply(counts, 2, function(col){ col*100/sum(col) })
+  cumcounts.norm = apply(cumcounts, 2, function(col){ col*100/col[1] })
+  dim(counts)
+  
+  ## remove nodes with < 0.1% of all reads
+  #minPercent = 1
+  keepRows = which(apply(counts.norm, 1, max) >= minPercent)
+  keepRows = sort(unique(c(keepRows, which(apply(cumcounts.norm, 1, max) >= minPercent))))
+  
+  # use only paths through the tree that capture above a certain fraction of reads
+  counts = counts[keepRows, , drop=F]
+  cumcounts = cumcounts[keepRows, , drop=F]
+  nrow(counts)
+  #data_uniq = counts.norm[keepRows, , drop=F]
+  #data_cum = cumcounts.norm[keepRows, , drop=F]
+  #nrow(data_cum)
+  
+  ## Re-scale the node percentages after trimming branches to make the numbers make more sense - shouldn't make much diff to the cumcounts
+  data_uniq = apply(counts, 2, function(col){ col*100/sum(col) })
+  data_cum = apply(cumcounts, 2, function(col){ col*100/col[1] })
+  
+  #if("significantDEX" %in% names(combinedSamples)){
+  #  significant = combinedSamples$significantDEX[keepRows]
+  #  foldChange = combinedSamples$foldChange[keepRows]
+  #}
+  
+  ## remove edges with no useable counts (based on minPercent threshold)
+  taxonomyInfo = taxonomyInfo[taxonomyInfo$ID %in% rownames(data_cum), ]
+  
+  ## Build the graph object
+  rEG <<- new("graphNEL", nodes=as.character(taxonomyInfo$ID), edgemode="directed")
+  trim <- function (x) gsub("^\\s+|\\s+$", "", x)
+  apply(taxonomyInfo[-1,], 1, function(row){ 
+    from = trim(as.character(row[4]));
+    if(from %in% taxonomyInfo$ID){ rEG <<- addEdge(trim(as.character(row[4])), trim(as.character(row[3])), rEG, 1) }
+    NULL })
+  
+  
+  data_uniq = data_uniq[match(taxonomyInfo$ID, rownames(data_uniq)), , drop=F]
+  data_cum = data_cum[match(taxonomyInfo$ID, rownames(data_cum)), , drop=F]
+  data_uniq[is.na(data_uniq)] = 0
+  data_cum[is.na(data_cum)] = 0
+  
+  
+  ##
+  ## Write to PDF
+  ##
+  ## plot an average tree over all samples
+  printMessage(c("Plotting a taxonomy tree based on the average of all samples "))
+  pdf(file=paste(output.dir,"/exceRpt_",what,"_TaxonomyTrees_aggregateSamples.pdf",sep=""),height=7,width=15)
+  plotTree(rEG, taxonomyInfo, apply(data_uniq, 1, max), rowMeans(data_cum), what=what)
+  dev.off()
+  
+  ## plot samples individually
+  printMessage(c("Plotting a separate taxonomy tree for each sample"))
+  pdf(file=paste(output.dir,"/exceRpt_",what,"_TaxonomyTrees_perSample.pdf",sep=""), height=7, width=15)
+  for(i in 1:ncol(data_uniq))
+    plotTree(rEG, taxonomyInfo, data_uniq[,i], data_cum[,i], title=paste(colnames(data_uniq)[i]," (total reads: ",cumcounts[1,i],")", sep=""), what=what)
+  dev.off()
+  
+  ## if there are groups of samples
+  if(is.data.frame(sampleGroups)){
+    printMessage(c("Plotting a separate taxonomy tree for each sample-group"))
+    pdf(file=paste(output.dir,"/exceRpt_",what,"_TaxonomyTrees_perGroup.pdf",sep=""), height=7, width=15)
+    for(thisgroup in levels(as.factor(sampleGroups$sampleGroup))){
+      tmpDat_uniq = rowMeans(data_uniq[, match(sampleGroups[sampleGroups$sampleGroup %in% thisgroup, ]$sampleID, colnames(data_uniq)), drop=F])
+      tmpDat_cum = rowMeans(data_cum[, match(sampleGroups[sampleGroups$sampleGroup %in% thisgroup, ]$sampleID, colnames(data_cum)), drop=F])
+      plotTree(rEG, taxonomyInfo, tmpDat_uniq, tmpDat_cum, title=paste(thisgroup,sep=""), what=what)
+    }
+    dev.off()
+  }
+  
+}
+

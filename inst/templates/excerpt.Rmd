@@ -15,7 +15,7 @@ Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`.
 ```{r debug, include=FALSE, message=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 dataFiles = readRDS("dataFiles.rds")
-plots =readRDS("plots.rds")
+plots = readRDS("plots.rds")
 
 # ## start of debug
 # # require(ezRun)
