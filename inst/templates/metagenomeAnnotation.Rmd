@@ -16,7 +16,7 @@ debug <- FALSE
 setEnvironments("phantomjs")
 ```
 
-```{r prepare data, include=FALSE}
+```{r prepProg, include=FALSE}
 ##Prodigal
 summaryScorePlotList <- summaryScorePlot(fullSummPlot)
 
@@ -27,19 +27,136 @@ summaryGcContPlotList <- summaryGcContPlot(subsetDataToPartial00Plot)
 summaryRBSSpacePlotList <- summaryRBSSpacePlot(subsetDataToPartial00Plot)
   
 summaryRBSMotifPlotList <- summaryRBSMotifPlot(subsetDataToPartial00Plot)
+```
 
-
+```{r prepIPS, include=FALSE}
 ## Inteproscan
 ### summary  plots : matching score 
-summaryMatchScorePlot <-   summaryMatchScorePlot(interproscanListForWrap$summDF)
-summaryFamilyPlot <- summaryFamilyPlot(interproscanListForWrap$topN_desc, numberOfTopNCategories)
-summaryGOPlot <- summaryGOPlot(interproscanListForWrap$topN_GO, numberOfTopNCategories)
+summaryMatchScorePlot <-   summaryMatchScorePlot(interproscanListForPlot)
+
+### heatmaps and diff. table 
+if (isGroupThere) {
+heatmapGOPlot <- summaryHeatmap(GOTermMatrixForHeatmap, 
+                                     isGroupThere, 
+                                     dataset=dataset, 
+                                     numberOfTopNCategories)
+heatmapDescPlot <- summaryHeatmap(descTermMatrixForHeatmap, 
+                                     isGroupThere, 
+                                     dataset=dataset, 
+                                     numberOfTopNCategories)
+if (areThereRepl){
+diffTableGOTerms <- metagMetatrDifferentialAnalysis_tableAndPlots(GOTermMatrixForDiffExpr,
+                                                                  dataset,
+                                                                  group,sampleGroup,refGroup,
+                                                                  N=numberOfTopNCategories,
+                                                                  mode="function")
+diffTableFunc <- metagMetatrDifferentialAnalysis_tableAndPlots(descTermMatrixForDiffExpr,
+                                                               dataset,
+                                                               group,sampleGroup,refGroup,
+                                                               N=numberOfTopNCategories,
+                                                               mode="function")
+}
+}else{
+heatmapGOPlot <- summaryHeatmap(GOTermMatrixForHeatmap, 
+                                     isGroupThere,
+                                     numberOfTopNCategories = numberOfTopNCategories) 
+heatmapDescPlot <- summaryHeatmap(descTermMatrixForHeatmap, 
+                                     isGroupThere,
+                                     numberOfTopNCategories = numberOfTopNCategories)
+}
+```
+
+```{r prepBinn, include=FALSE}
+## Binning
+binBasedAbundTable <- createAbundTable(mergedSummaryBinDF)
+### histogrm binning count
+histBinSummPlotList <- lapply(names(mergedSummaryBinDFList),function(z){
+  y <- mergedSummaryBinDFList[[z]]
+  binIDmostAbundOrg <- sapply(levels(y[["binID"]]),function(x){
+    names(sort(table(y[y[["binID"]]==x,]$organism), decreasing = T)[1])
+  })
+   hh <- cbind(data.frame(table(y[["binID"]])),binIDmostAbundOrg)
+   names(hh) <- c("binID","count","mostAbundantOrganism")
+  plotTemp <- ggplot(hh, aes(x=reorder(binID,count), y=count,
+                             fill=stringr::str_wrap(mostAbundantOrganism,30))) +
+    geom_bar(stat = "identity") +
+    labs(fill="Most abundant organism", x = "bin ID", y= "count") +
+    ggtitle(z)
+    plotTemp + theme(legend.text = element_text(size=6), 
+          legend.title = element_text(size=7.5),
+          legend.key.size = unit(0.3, "cm"), axis.title.x = element_text(size = 8),
+          axis.title.y = element_text(size = 8),
+          plot.title = element_text(size=8)) 
+})
+
+###  binning coverage
+coverageBinSummPlot <- ggplot(mergedSummaryBinDF, aes(x=ID, y=log(coverage), color=binID)) +
+  geom_point() + 
+  facet_wrap(vars(sample),nrow = 3) + 
+  scale_color_discrete(brewer.pal(9, "RdYlGn"),guide=guide_legend(title="bin ID")) +
+  theme(axis.text.x = element_blank(), axis.ticks.x = element_blank() )
+
+### binning length
+lengthBinSummPlot<- ggplot(mergedSummaryBinDF, aes(x=ID, y=log(length), color=binID)) +
+  geom_point() + 
+  facet_wrap(vars(sample),nrow = 3) + 
+  scale_color_discrete(brewer.pal(9, "RdYlGn"),guide=guide_legend(title="bin ID")) +
+  theme(axis.text.x = element_blank(), axis.ticks.x = element_blank() )
+```
+
+```{r prepHeatmap, include=FALSE}
+## abundance Heatmap
+if (isGroupThere) {
+orgAbundHeatmap <- summaryHeatmap(binBasedAbundTable, 
+                                     isGroupThere, 
+                                     dataset=dataset, 
+                                     numberOfTopNCategories)
+}else{
+orgAbundHeatmap <- summaryHeatmap(binBasedAbundTable, 
+                                     isGroupThere,
+                                     numberOfTopNCategories = numberOfTopNCategories) 
+}
+```
+
+```{r prepRaref, include=FALSE}
+## rarefaction
+plotTitle_1 <- paste("Rarefaction plots")
+plotTitle_2 <- paste("Saturation plots")
+rarefPlot_1 <- rarefactionPlot(binBasedAbundTable,1) +labs(title=plotTitle_1) + 
+    theme(plot.title=element_text(size=11,hjust=0.5))
+rarefPlot_2 <- rarefactionPlot(binBasedAbundTable,2) +labs(title=plotTitle_2) + 
+    theme(plot.title=element_text(size=11,hjust=0.5))
 ```
 
 
 Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
 
 ## Data pre-processing {.tabset}
+
+### Binning summary: size
+```{r binnSummarySize, echo=FALSE,out.width="100%"}
+plot_grid(plotlist = histBinSummPlotList,ncol = 2)
+```
+
+### Binning summary: coverage 
+```{r binnSummaryCov, echo=FALSE,out.width="100%"}
+plot(coverageBinSummPlot)
+```
+
+### Binning summary:  contig length
+```{r binnSummaryLen, echo=FALSE,out.width="100%"}
+plot(lengthBinSummPlot)
+```
+
+### Rarefaction curves
+```{r rarefCurves, echo=FALSE,out.width="66%"}
+plot(rarefPlot_1)
+```
+
+### Organism abundance heatmap
+```{r abundHeatmap, echo=FALSE,out.width="70%"}
+orgAbundHeatmap()
+```
 
 ### Prodigal gene prediction:summary score
 ```{r summaryScorePlotMegahit, echo=FALSE,out.width="100%"}
@@ -54,12 +171,23 @@ plot(summaryRBSSpacePlotList)
 plot(summaryRBSMotifPlotList)
 ```
 
-### Interproscan annotation:  proteins match scores and functional annotation
+### Interproscan annotation:  proteins match scores 
 ```{r summaryMatchScorePlot, echo=FALSE,out.width="80%", fig.height=4}
 plot(summaryMatchScorePlot)
 ```
 
-```{r summaryGOFam, echo=FALSE,out.width="100%", fig.height=4}
-plot(summaryFamilyPlot)
-plot(summaryGOPlot)
+### Interproscan annotation:  GO annotation
+```{r summaryGO, echo=FALSE,out.width="70%"}
+heatmapGOPlot()
+if (areThereRepl){
+DT::datatable(diffTableGOTerms)
+}
+```
+
+### Interproscan annotation:  functional annotation
+```{r summaryFunct, echo=FALSE,out.width="70%"}
+heatmapDescPlot()
+if (areThereRepl){
+DT::datatable(diffTableFunc)
+}
 ```

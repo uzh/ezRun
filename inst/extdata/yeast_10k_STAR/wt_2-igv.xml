@@ -1,16 +1,16 @@
-<Session genome="EF4" locus="All" version="4">
+<Session genome="R64" locus="All" version="4">
   <Resources>
-    <Resource path="http://fgcz-gstore.uzh.ch/projects/p1001/Map_STAR_5750_2015-09-28--15-53-50/wt_2.bam"/>
-    <Resource path="http://fgcz-gstore.uzh.ch/reference/Saccharomyces_cerevisiae/Ensembl/EF4/Annotation/Version-2013-03-18/Genes/genes.sorted.gtf"/>
+    <Resource path="https://fgcz-gstore.uzh.ch/projects/p1001/STAR_5750_2019-12-17--08-59-21/wt_2.bam"/>
+    <Resource path="https://fgcz-gstore.uzh.ch/reference/Saccharomyces_cerevisiae/Ensembl/R64/Annotation/Release_98-2019-12-03/Genes/genes.sorted.gtf"/>
   </Resources>
   <Panel name="DataPanel">
-    <Track altColor="0,0,178" autoscale="false" color="175,175,175" colorScale="ContinuousColorScale;0.0;156.0;255,255,255;175,175,175" displayMode="COLLAPSED" featureVisibilityWindow="-1" fontSize="10" id="http://fgcz-gstore.uzh.ch/projects/p1001/Map_STAR_5750_2015-09-28--15-53-50/wt_2.bam_coverage" name="wt_2.bam Coverage" showDataRange="true" visible="true">
+    <Track altColor="0,0,178" autoscale="false" color="175,175,175" colorScale="ContinuousColorScale;0.0;156.0;255,255,255;175,175,175" displayMode="COLLAPSED" featureVisibilityWindow="-1" fontSize="10" id="https://fgcz-gstore.uzh.ch/projects/p1001/STAR_5750_2019-12-17--08-59-21/wt_2.bam_coverage" name="wt_2.bam Coverage" showDataRange="true" visible="true">
       <DataRange baseline="0.0" drawBaseline="true" flipAxis="false" maximum="1000.0" minimum="0.0" type="LOG"/>
     </Track>
-    <Track altColor="0,0,178" color="0,0,178" colorOption="READ_STRAND" displayMode="EXPANDED" featureVisibilityWindow="100000" fontSize="10" id="http://fgcz-gstore.uzh.ch/projects/p1001/Map_STAR_5750_2015-09-28--15-53-50/wt_2.bam" name="wt_2.bam" showDataRange="true" sortByTag="" visible="true"/>
+    <Track altColor="0,0,178" color="0,0,178" colorOption="READ_STRAND" displayMode="EXPANDED" featureVisibilityWindow="100000" fontSize="10" id="https://fgcz-gstore.uzh.ch/projects/p1001/STAR_5750_2019-12-17--08-59-21/wt_2.bam" name="wt_2.bam" showDataRange="true" sortByTag="" visible="true"/>
   </Panel>
   <Panel name="FeaturePanel">
-    <Track altColor="0,0,178" autoscale="false" color="0,0,178" colorScale="ContinuousColorScale;0.0;190.0;255,255,255;0,0,178" displayMode="COLLAPSED" featureVisibilityWindow="-1" fontSize="10" id="http://fgcz-gstore.uzh.ch/reference/Saccharomyces_cerevisiae/Ensembl/EF4/Annotation/Version-2013-03-18/Genes/genes.sorted.gtf" name="Gene structure" showDataRange="true" visible="true"/>
+    <Track altColor="0,0,178" autoscale="false" color="0,0,178" colorScale="ContinuousColorScale;0.0;190.0;255,255,255;0,0,178" displayMode="COLLAPSED" featureVisibilityWindow="-1" fontSize="10" id="https://fgcz-gstore.uzh.ch/reference/Saccharomyces_cerevisiae/Ensembl/R64/Annotation/Release_98-2019-12-03/Genes/genes.sorted.gtf" name="Gene structure" showDataRange="true" visible="true"/>
   </Panel>
   <PanelLayout dividerFractions="0.7"/>
 </Session>

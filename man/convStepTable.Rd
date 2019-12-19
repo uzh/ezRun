@@ -11,8 +11,6 @@ convStepTable(convStepFile)
 }
 \arguments{
 \item{convStepFile, }{mothur steps file.}
-
-\item{convStepFile, }{mothur steps file.}
 }
 \value{
 Returns a table

@@ -164,6 +164,7 @@ setMethod("buildRefDir", "EzRef", function(.Object, genomeFile, genesFile,
   ## 2 GTF files: 
   ### features.gtf
   gtf <- import(genesFile)
+  
   #### some controls over gtf
   if(is.null(gtf$gene_biotype)){
     if(is.null(gtf$gene_type)){
@@ -175,13 +176,14 @@ setMethod("buildRefDir", "EzRef", function(.Object, genomeFile, genesFile,
       gtf$gene_type <- NULL
     }
   }
+  #### GENCODE.gtf: remove the version number from gene_id, transcript_id but keep additional information if available, e.g. ENST00000429181.6_PAR_Y -> ENST00000429181_PAR_Y
+  gtf$gene_id <- sub("\\.[0-9]*", "", gtf$gene_id)
+  gtf$transcript_id <- sub("\\.[0-9]*", "", gtf$transcript_id)
+
   if(is.null(gtf$gene_name)){
     message("gene_name is not available in gtf. Assigning gene_id.")
     gtf$gene_name <- gtf$gene_id
   }
-  #### GENCODE.gtf: remove the version number from gene_id, transcript_id but keep additional information if available, e.g. ENST00000429181.6_PAR_Y -> ENST00000429181_PAR_Y
-  gtf$gene_id <- sub("\\.[0-9]*", "", gtf$gene_id)
-  gtf$transcript_id <- sub("\\.[0-9]*", "", gtf$transcript_id)
   
   export(gtf, con=file.path(gtfPath, "features.gtf"))
   ### genes.gtf
@@ -232,7 +234,7 @@ listBiotypes <- function(select=c("genes", "protein_coding", "long_noncoding",
                   "Mt_tRNA_pseudogene", "rRNA_pseudogene", 
                   "scRNA_pseudogene", "snRNA_pseudogene",
                   "snoRNA_pseudogene", "tRNA_pseudogene",
-                  "IG_D_pseudogene")
+                  "IG_D_pseudogene", "transposable_element")
   lnc <- c("3prime_overlapping_ncrna", "ambiguous_orf", "antisense", "antisense_RNA" ,"lincRNA", 
            "ncrna_host", "non_coding", "processed_transcript", 
            "retained_intron", "sense_intronic", "sense_overlapping",
@@ -328,7 +330,11 @@ setMethod("buildIgvGenome", "EzRef", function(.Object){
   unlink(filesToZip)
 })
 
+### -----------------------------------------------------------------
+### Fetch the control sequences from https://fgcz-gstore.uzh.ch/reference/controlSeqs.fa
+### 
 getControlSeqs <- function(ids=NULL){
+  require(Biostrings)
   genomesRoot <- strsplit(GENOMES_ROOT, ":")[[1]]
   controlSeqsFn <- file.path(genomesRoot, "controlSeqs.fa")
   controlSeqsFn <- head(controlSeqsFn[file.exists(controlSeqsFn)], 1)

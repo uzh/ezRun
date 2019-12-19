@@ -5,12 +5,6 @@ m1 = matrix(1:20,5)
 rownames(m1) = letters[1:5]
 colnames(m1) = letters[6:9]
 
-test_that("Tests getSpeciesName() and getKeggId() from gage.r", {
-  name = getSpeciesName(param)
-  expect_is(name, "character")
-  keggId = getKeggId(name, param)
-  expect_is(keggId, "character")
-})
 
 test_that("Tests some functions from igv.r",{
   file = ezIgvTemplateFile()

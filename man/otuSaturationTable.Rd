@@ -11,8 +11,6 @@ otuSaturationTable(sharedFile)
 }
 \arguments{
 \item{sharedFile, }{mothur shared abundance  file.}
-
-\item{sharedFile, }{mothur shared abundance  file.}
 }
 \value{
 Returns a table

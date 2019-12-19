@@ -20,14 +20,17 @@ yeastCommonDiffExprParam = function(){
   param[['scratch']] = '10'
   param[['node']] = ''
   param[['process_mode']] = 'DATASET'
-  param[['refBuild']] = 'Saccharomyces_cerevisiae/Ensembl/EF4/Annotation/Version-2013-03-18'
+  param[['refBuild']] = 'Saccharomyces_cerevisiae/Ensembl/R64/Annotation/Release_98-2019-12-03'
   param[['refFeatureFile']] = 'genes.gtf'
   param[['featureLevel']] = 'gene'
   param[['grouping']] = 'Genotype'
+  param[['grouping2']] = ''
   param[['sampleGroup']] = 'mut'
   param[['refGroup']] = 'wt'
-  param[['runGO']] = 'true'
+  param[['runGO']] = 'false'
+  param[['backgroundExpression']] = '10'
   param[['expressionName']] = ''
+  param[['transcriptTypes']] = 'protein_coding'
   param[['specialOptions']] = ''
   param[['mail']] = ''
   param[['comparison']] = 'mut--over--wt'
@@ -72,9 +75,10 @@ test_that("count_QC", {
   ezSystem("rm -fr /scratch/test_count_QC/*")
   setwdNew("/scratch/test_count_QC")
   param = yeastCommonDiffExprParam()
+  #param$refAnnotationFile = file=system.file("extdata/genes_annotation.txt", package="ezRun", mustWork = TRUE)
   input = EzDataset$new(file=system.file("extdata/yeast_10k_STAR_counts/dataset.tsv", package="ezRun", mustWork = TRUE),
                         dataRoot=param$dataRoot)
-  output = EzDataset$new(file=system.file("extdata/yeast_10k_STAR_counts_edger/dataset.tsv", package="ezRun", mustWork = TRUE),
+  output = EzDataset$new(file=system.file("extdata/yeast_10k_STAR_countqc/dataset.tsv", package="ezRun", mustWork = TRUE),
                          dataRoot=param$dataRoot)
   param[['name']] = 'Count_QC'
   param[['normMethod']] = 'logMean'
