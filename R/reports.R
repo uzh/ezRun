@@ -64,23 +64,21 @@ ezGrid = function(x, header.columns = FALSE,  valign = "top", ...){
 ##'   text(2,1, "my Text")
 ##' })
 ##' ezImageFileLink(plotCmd)
-ezImageFileLink = function(plotCmd, file=NULL, name="imagePlot", plotType="plot",
-                           mouseOverText="my mouse over", addPdfLink=TRUE, 
-                           width=480, height=480, ppi=72, envir=parent.frame()){
+ezImageFileLink = function(plotCmd, file=NULL, name="imagePlot", plotType="plot", mouseOverText="my mouse over",
+                           addPdfLink=TRUE, width=480, height=480, ppi=72, envir=parent.frame()){
   if (is.null(file)){
     file = paste0(name, "-", plotType, ".png")
   }
   png(file, width=width, height=height)
   eval(plotCmd, envir=envir)
   dev.off()
+  imgFilePot = paste0("<span><img src='", file, "' title='", mouseOverText, "'/></span>")
   if (addPdfLink) {
     pdfName = sub(".png$", ".pdf", file)
     pdf(file=pdfName, width=width/ppi, height=height/ppi)
     eval(plotCmd, envir=envir)
     dev.off()
-    imgFilePot = paste0("<a href='", pdfName, "'>", "<img src='", file, "' title='", mouseOverText, "'/>")
-  } else {
-    imgFilePot = paste0("<img src='", file, "' title='", mouseOverText, "'/>")
+    imgFilePot = paste0("<a href='", pdfName, "'>", imgFilePot, "</a>")
   }
   return(imgFilePot)
 }

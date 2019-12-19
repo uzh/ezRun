@@ -14,9 +14,6 @@ ezMethodCountQC = function(input=NA, output=NA, param=NA,
     rownames(dataset) = addReplicate(apply(ezDesignFromDataset(dataset), 1, 
                                            paste, collapse="_"))
   }
-  if (!is.null(param$removeOutliers) && param$removeOutliers && !is.null(dataset$Outlier)){
-    dataset = dataset[toupper(dataset$Outlier) %in% c("", "NO", '""', "FALSE") == TRUE, ]
-  }
   input$meta = dataset
   
   rawData = loadCountDataset(input, param)
@@ -38,7 +35,7 @@ ezMethodCountQC = function(input=NA, output=NA, param=NA,
   setwdNew(basename(output$getColumn("Report")))
   
   ## debug
-  #saveRDS(rawData, file="rawData.rds")
+  # saveRDS(rawData, file="rawData.rds")
   
   ## Copy the style files and templates
   styleFiles <- file.path(system.file("templates", package="ezRun"),
