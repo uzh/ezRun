@@ -88,7 +88,7 @@ ezMethodExceRpt = function(input=NA, output=NA, param=NA){
 ##' paste shell command
 ##' 
 
-pasteCmd=function(param){
+pasteCmd=function(param,readFile,outputDir){
   cmd = paste(
         ## makefile to execute
         paste0('make -f ',param[['EXE_DIR']],'/exceRpt_smallRNA'),
