@@ -1,0 +1,5 @@
+Name	Count [File]	Stats [File]	Species	refBuild	featureLevel	refFeatureFile	strandMode	paired	Read Count	transcriptTypes	Genotype [Factor]
+wt_1	p1001/FeatureCounts_42287_2019-12-17--14-19-08/wt_1.txt	p1001/FeatureCounts_42287_2019-12-17--14-19-08/wt_1-stats.txt	S. cerevisiae	Saccharomyces_cerevisiae/Ensembl/R64/Annotation/Release_98-2019-12-03	gene	genes.gtf	sense	true	9794	protein_coding	wt
+wt_2	p1001/FeatureCounts_42287_2019-12-17--14-19-08/wt_2.txt	p1001/FeatureCounts_42287_2019-12-17--14-19-08/wt_2-stats.txt	S. cerevisiae	Saccharomyces_cerevisiae/Ensembl/R64/Annotation/Release_98-2019-12-03	gene	genes.gtf	sense	true	9998	protein_coding	wt
+mut_1	p1001/FeatureCounts_42287_2019-12-17--14-19-08/mut_1.txt	p1001/FeatureCounts_42287_2019-12-17--14-19-08/mut_1-stats.txt	S. cerevisiae	Saccharomyces_cerevisiae/Ensembl/R64/Annotation/Release_98-2019-12-03	gene	genes.gtf	sense	true	9788	protein_coding	mut
+mut_2	p1001/FeatureCounts_42287_2019-12-17--14-19-08/mut_2.txt	p1001/FeatureCounts_42287_2019-12-17--14-19-08/mut_2-stats.txt	S. cerevisiae	Saccharomyces_cerevisiae/Ensembl/R64/Annotation/Release_98-2019-12-03	gene	genes.gtf	sense	true	9862	protein_coding	mut

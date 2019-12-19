@@ -3,7 +3,7 @@ title: "Using Custom Reference Files"
 date: "`r Sys.Date()`"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{Reference Genome Folders}
+  %\VignetteIndexEntry{Using Custom Reference Files}
   %\VignetteEngine{knitr::rmarkdown}
   \usepackage[utf8]{inputenc}
 ---

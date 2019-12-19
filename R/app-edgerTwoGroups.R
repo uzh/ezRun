@@ -6,8 +6,7 @@
 # www.fgcz.ch
 
 
-ezMethodEdger = function(input=NA, output=NA, param=NA,
-                         htmlFile="00index.html"){
+ezMethodEdger = function(input=NA, output=NA, param=NA){
   cwd <- getwd()
   setwdNew(basename(output$getColumn("Report")))
   on.exit(setwd(cwd))
@@ -15,6 +14,7 @@ ezMethodEdger = function(input=NA, output=NA, param=NA,
   stopifnot(param$sampleGroup != param$refGroup)
   
   input = cleanupTwoGroupsInput(input, param)
+  param$groupingName = param$grouping
   param$grouping = input$getColumn(param$grouping)
   if (ezIsSpecified(param$grouping2) && length(param$grouping2) == 1){
     param$grouping2 = input$getColumn(param$grouping2)
@@ -31,17 +31,9 @@ ezMethodEdger = function(input=NA, output=NA, param=NA,
     writeErrorReport(htmlFile, param=param, error=deResult$error)
     return("Error")
   }
-  
-  ## Copy the style files and templates
-  styleFiles <- file.path(system.file("templates", package="ezRun"),
-                          c("fgcz.css", "twoGroups.Rmd",
-                            "fgcz_header.html", "banner.png"))
-  file.copy(from=styleFiles, to=".", overwrite=TRUE)
-  rmarkdown::render(input="twoGroups.Rmd", envir=new.env(),
-                    output_dir=".", output_file=htmlFile, quiet=TRUE)
-  
-  prepareRmdLib()
-  
+
+  makeRmdReport(output=output, param=param, deResult=deResult, rmdFile="twoGroups.Rmd")
+
   return("Success")
 }
 
