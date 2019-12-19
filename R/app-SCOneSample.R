@@ -24,6 +24,9 @@ EzAppSCOneSample <-
                                         pcGenes=ezFrame(Type="charVector", 
                                                         DefaultValue="", 
                                                         Description="The genes used in supvervised clustering"),
+                                        vars.to.regress=ezFrame(Type="charVector", 
+                                                                DefaultValue="cell_cycle,nUMI,perc_mito", 
+                                                                Description="Variables to regress out"),
                                         resolution=ezFrame(Type="numeric", 
                                                            DefaultValue=0.5,
                                                            Description="Value of the resolution parameter, use a value above (below) 1.0 if you want to obtain a larger (smaller) number of communities."),
@@ -80,7 +83,7 @@ ezMethodSCOneSample <- function(input=NA, output=NA, param=NA,
   
   sce_iSEE = as.SingleCellExperiment(scData)
   saveRDS(sce_iSEE, "sce_iSEE.rds")
-  saveRDS(sce_list$sce, "sce.rds")
+  saveRDS(sce_list, "sce_list.rds")
   ## Copy the style files and templates
   styleFiles <- file.path(system.file("templates", package="ezRun"),
                           c("fgcz.css", "SCOneSample.Rmd",

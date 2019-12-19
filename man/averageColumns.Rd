@@ -4,8 +4,9 @@
 \alias{averageColumns}
 \title{Averages columns together}
 \usage{
-averageColumns(x, by = NULL, func = function(x) {     mean(x, na.rm =
-  TRUE) })
+averageColumns(x, by = NULL, func = function(x) {
+    mean(x, na.rm = TRUE)
+})
 }
 \arguments{
 \item{x}{the matrix whose columns should be averaged.}

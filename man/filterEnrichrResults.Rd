@@ -4,9 +4,16 @@
 \alias{filterEnrichrResults}
 \title{Result filtering}
 \usage{
-filterEnrichrResults(resList, maxP = 1, maxPAdj = 1, maxZ = 0,
-  minCombinedScore = 0, minOverlapGenes = 3, softFilter = F,
-  maxResult = NA)
+filterEnrichrResults(
+  resList,
+  maxP = 1,
+  maxPAdj = 1,
+  maxZ = 0,
+  minCombinedScore = 0,
+  minOverlapGenes = 3,
+  softFilter = F,
+  maxResult = NA
+)
 }
 \arguments{
 \item{resList}{list of results, i.e. \code{success} field in the list returned by \code{\link{enrichrEnrich}}}

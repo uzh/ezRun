@@ -5,11 +5,16 @@
 \alias{removeReadsFromFastq}
 \title{Filters FastQ files by bam}
 \usage{
-filterFastqByBam(fqFiles, bamFile, fqOutFiles = NULL, doGzip = TRUE,
-  keepUnmapped = TRUE, isProperPair = NA)
+filterFastqByBam(
+  fqFiles,
+  bamFile,
+  fqOutFiles = NULL,
+  doGzip = TRUE,
+  keepUnmapped = TRUE,
+  isProperPair = NA
+)
 
-removeReadsFromFastq(fqFiles, readIds, fqOutFiles = NULL,
-  doGzip = TRUE)
+removeReadsFromFastq(fqFiles, readIds, fqOutFiles = NULL, doGzip = TRUE)
 }
 \arguments{
 \item{fqFiles}{a character vector representing file paths to FastQ files.}

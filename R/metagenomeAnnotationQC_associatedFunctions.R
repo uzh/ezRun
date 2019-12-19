@@ -56,7 +56,7 @@ extractTopN <- function(DF,column,N){
   return(topN)
 }
 
-interproscanFileReport <- function(x,N,meth){
+interproscanFileReport <- function(x,meth,N){
 IPSGffImport <- import.gff(x)
 description <- mcols(IPSGffImport)$signature_desc
 description[sapply(description,function(x) length(x)==0)] <- "NA"
@@ -73,12 +73,16 @@ IPSGffSummaryDF <- IPSGffSummaryDF[IPSGffSummaryDF$type == "protein_match",
                                    c("score","description","GOterm")]
 IPSGffSummaryDF_topN_GO <- extractTopN(IPSGffSummaryDF,"GOterm",N)
 IPSGffSummaryDF_topN_desc <- extractTopN(IPSGffSummaryDF,"description",N)
+full_GO <- extractTopN(IPSGffSummaryDF,"GOterm",nrow(IPSGffSummaryDF))
+full_descrip <- extractTopN(IPSGffSummaryDF,"description",nrow(IPSGffSummaryDF))
 IPSGffSummaryDF$method <- meth
 IPSGffSummaryDF_topN_GO$method <- meth
 IPSGffSummaryDF_topN_desc$method <- meth
   return(list(summDF=IPSGffSummaryDF,
               topN_GO=IPSGffSummaryDF_topN_GO,
-              topN_desc=IPSGffSummaryDF_topN_desc))
+              topN_desc=IPSGffSummaryDF_topN_desc,
+              full_GO=full_GO,
+              full_descrip=full_descrip))
 }
 
 
@@ -147,8 +151,9 @@ summaryRBSMotifPlot <- function(x){
 ##' @return Returns ggplots
 
 summaryMatchScorePlot <- function(x){
-  p<- ggplot(x,aes(x=-log(score),fill=method)) + geom_histogram(binwidth = 1) +
-  labs(title="Summary of protein match score") 
+  p<- ggplot(x,aes(x=-log(score), fill=sample)) + geom_histogram(binwidth = 1) +
+    labs(title="Summary of protein match score") + facet_wrap(vars(sample)) +
+    theme(legend.position = "none")
   return(p)
 }
 
@@ -207,5 +212,178 @@ summaryFamilyPlot <- function(x,numberOfTopNCategories){
 return(p)
 }
 
+
+
+###################################################################
+# Functional Genomics Center Zurich
+# This code is distributed under the terms of the GNU General
+# Public License Version 3, June 2007.
+# The terms are available here: http://www.gnu.org/licenses/gpl.html
+# www.fgcz.ch
+
+
+##' @title summaryBins
+##' @description Create summary files for bins
+##' @param  a kraken.labels files and fasta bin files 
+##' @return Returns a DF summarizing bins 
+
+### get input files
+summaryMetagenomeBins <- function(krakenFile,binFiles){
+  taxRanks <- c("Life","Domain","Kingdom","Phylum","Class","Order","Family","Genus","Species")
+  krakenLabels <- read.delim(krakenFile, stringsAsFactors = F, header = F)
+  names(krakenLabels) <- c("contigID","orgName")
+  binIDmapList <- lapply(binFiles,function(x) {
+    y <- readDNAStringSet(x)
+    data.frame(contigID=names(y), 
+               binID=unlist(strsplit(basename(x),"\\."))[2],
+               stringsAsFactors = F)
+               })
+  binIDmap <- do.call("rbind",binIDmapList)
+  taxonSummary <- lapply(krakenLabels$orgName,
+                                 function(x){
+                                   y <- unlist(strsplit(x,";"))
+                                   y <- c(y[1:2],tail(y,7))
+                                   taxLevel <- min(length(y),length(taxRanks))
+                                   orgTemp <- gsub("\\[","",y[length(y)])
+                                   org <- gsub("\\]","",orgTemp)
+                                   return(list(rank=taxRanks[taxLevel], organism=org))}
+                                 )
+  taxonSummaryDF <- ldply(taxonSummary,unlist)
+  krakenLabels$coverage <- sapply(krakenLabels$contigID, function(x){
+    round(as.numeric(unlist(strsplit(x,"cov_"))[2]),2)
+  })
+  krakenLabels$ID <- sapply(krakenLabels$contigID, function(x){
+    unlist(strsplit(x,"_length"))[1]
+  })
+  krakenLabels$length<- sapply(krakenLabels$contigID, function(x){
+    as.numeric(unlist(strsplit(x,"_"))[4])
+  })
+  fullDF <- subset(cbind(krakenLabels,taxonSummaryDF),select=-c(orgName))
+  mergingBinTax <-  merge(fullDF,binIDmap,by="contigID", all=FALSE)
+  finalDF <- subset(mergingBinTax, select=-c(contigID))
+  return(finalDF)
+}
+
+
+###################################################################
+# Functional Genomics Center Zurich
+# This code is distributed under the terms of the GNU General
+# Public License Version 3, June 2007.
+# The terms are available here: http://www.gnu.org/licenses/gpl.html
+# www.fgcz.ch
+
+
+##' @title mergeSummaryBinFile 
+##' @description Merged summary bin files for plots
+##' @param  a list of summary bin files generated from the summaryMetagenomeBins fun
+##' @return Returns a data frame
+  
+mergeSummaryBinFiles <- function(binFile){
+  binDF <- read.delim(binFile, stringsAsFactors = F)
+  binDF$sample <- as.factor(gsub(".binSummaryFile.txt","",binFile))
+  binDF$binID <- as.factor(binDF$binID)
+  return(binDF)
+}
+
+
+###################################################################
+# Functional Genomics Center Zurich
+# This code is distributed under the terms of the GNU General
+# Public License Version 3, June 2007.
+# The terms are available here: http://www.gnu.org/licenses/gpl.html
+# www.fgcz.ch
+
+
+##' @title createAbundTable 
+##' @description It creates abundance table from the organims annotations to bins
+##' @param  the data frame generated by mergeSummaryBinFiles
+##' @return Returns a data frame
+createAbundTable <- function(mergedSummaryBinDF){
+  DFforHeatmap <- list()
+  allSamples <- levels(mergedSummaryBinDF$sample)
+  for (sample in allSamples){
+    sampleSpecDF <- mergedSummaryBinDF[mergedSummaryBinDF$sample == sample,]
+    DFforHeatmapTemp <- data.frame(table(sampleSpecDF$organism))
+    rownames(DFforHeatmapTemp) <- DFforHeatmapTemp$Var1
+    DFforHeatmapTemp <- subset(DFforHeatmapTemp,select=-c(Var1)) 
+    DFforHeatmap[[sample]] <- data.frame(DFforHeatmapTemp)
+  }
+  finaLMergedAbundTable <- listOfAbundMerge(DFforHeatmap,names(DFforHeatmap))
+  return(finaLMergedAbundTable)
+}
+###################################################################
+# Functional Genomics Center Zurich
+# This code is distributed under the terms of the GNU General
+# Public License Version 3, June 2007.
+# The terms are available here: http://www.gnu.org/licenses/gpl.html
+# www.fgcz.ch
+
+
+##' @title makeHeatmapFromSummbinFile 
+##' @description taxa-by-sample heatmap
+##' @param  the data frame generated by mergeSummaryBinFiles
+##' @return Returns a heatmap
+
+summaryHeatmap <- function(mergedBinAbundTable,isGroupThere,
+                           dataset=NULL,numberOfTopNCategories,plotTitle="plotTitle"){
+  plot_heatmap_Pheatmap <- function() {
+    mergedBinAbundTable$sdV <-   apply(mergedBinAbundTable,1,sd)
+    mergedBinAbundTableOrdered <- mergedBinAbundTable[order(mergedBinAbundTable$sdV,
+                                                            decreasing = T),]
+    mergedBinAbundTableNoSdV <- subset(mergedBinAbundTableOrdered, select=-c(sdV))
+    fontsize = 8
+    if (isGroupThere) {
+      mergedBinAbundTableTopNToPlot <- head(mergedBinAbundTableNoSdV,
+                                            numberOfTopNCategories)
+      cellwidth = max(1,25-(nrow(dataset)))
+    } else {
+      mergedBinAbundTableTopN <- head(mergedBinAbundTableNoSdV,
+                                            numberOfTopNCategories)
+      mergedBinAbundTableTopNTran <- data.frame(t(mergedBinAbundTableTopN))
+      rowsToKeep <- which(apply(mergedBinAbundTableTopNTran,1,sd) >0)
+      mergedBinAbundTableTopNTran <- mergedBinAbundTableTopNTran[rowsToKeep,]
+    mergedBinAbundTableTopNToPlot <- mergedBinAbundTableTopNTran
+    cellwidth = max(1,25-(numberOfTopNCategories))
+    }
+
+    if (isGroupThere){
+      gr <- list()
+      nCols <- list()
+      pal <- list()
+         colsToKeep <- grep("Factor",colnames(dataset), value = T)
+      for (col in colsToKeep){
+       factVar <- as.factor(dataset[[col]])
+      gr[[col]] <- gsub(" \\[Factor\\]","",col)
+      nCols[[col]] <- nlevels(factVar)
+      pal[[col]] <- colorRampPalette(brewer.pal(11, "Blues"))(nCols[[col]])
+      names(pal[[col]]) <- levels(factVar)
+      }
+      mat_colors <- pal
+      names(mat_colors) <- gr
+      mat_col <- data.frame(dataset[,colsToKeep], row.names = rownames(dataset))
+      names(mat_col) <- gr
+      ## heatmap
+      pheatmap(mergedBinAbundTableTopNToPlot,show_rownames = TRUE,
+               show_colnames     = TRUE,
+               annotation_col    = mat_col,
+               annotation_colors = mat_colors,
+               cluster_rows = FALSE, 
+               cluster_cols = TRUE, 
+               scale="row", 
+               method = "average",
+               cellwidth=cellwidth,
+               fontsize = fontsize,
+               cellheight = fontsize)
+    } else {
+     pheatmap(mergedBinAbundTableTopNToPlot,show_rownames = FALSE,
+               show_colnames     = TRUE,
+               cluster_rows = TRUE,  
+               scale="row",
+               method = "average",
+               cellwidth=cellwidth,
+               fontsize=fontsize,main=plotTitle)
+    }
+  }
+}
 
 

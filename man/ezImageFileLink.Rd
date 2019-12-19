@@ -4,10 +4,18 @@
 \alias{ezImageFileLink}
 \title{Gets an image link as html}
 \usage{
-ezImageFileLink(plotCmd, file = NULL, name = "imagePlot",
-  plotType = "plot", mouseOverText = "my mouse over",
-  addPdfLink = TRUE, width = 480, height = 480, ppi = 72,
-  envir = parent.frame())
+ezImageFileLink(
+  plotCmd,
+  file = NULL,
+  name = "imagePlot",
+  plotType = "plot",
+  mouseOverText = "my mouse over",
+  addPdfLink = TRUE,
+  width = 480,
+  height = 480,
+  ppi = 72,
+  envir = parent.frame()
+)
 }
 \arguments{
 \item{plotCmd}{an expression of plot commands.}

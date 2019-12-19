@@ -7,8 +7,7 @@
 \usage{
 ezLogmeanNorm(x, use = NULL, target = NULL, presentFlag = NULL)
 
-ezLogmeanScalingFactor(x, use = NULL, target = NULL,
-  presentFlag = NULL)
+ezLogmeanScalingFactor(x, use = NULL, target = NULL, presentFlag = NULL)
 }
 \arguments{
 \item{x}{the matrix to scale.}
