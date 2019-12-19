@@ -20,8 +20,7 @@
 
 \S4method{getOrganism}{EzRef}(.Object)
 
-\S4method{buildRefDir}{EzRef}(.Object, genomeFile, genesFile,
-  genomesRoot = ".")
+\S4method{buildRefDir}{EzRef}(.Object, genomeFile, genesFile, genomesRoot = ".")
 
 \S4method{buildIgvGenome}{EzRef}(.Object)
 }

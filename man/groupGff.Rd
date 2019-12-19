@@ -5,8 +5,12 @@
 \alias{gffGroupToRanges}
 \title{Groups annotation}
 \usage{
-groupGff(gtf, grouping = gtf$Parent, type = "transcript",
-  skipTransSpliced = FALSE)
+groupGff(
+  gtf,
+  grouping = gtf$Parent,
+  type = "transcript",
+  skipTransSpliced = FALSE
+)
 
 gffGroupToRanges(gtf, grouping, skipTransSpliced = FALSE)
 }

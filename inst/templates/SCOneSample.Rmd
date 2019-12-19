@@ -23,12 +23,12 @@ library(NMF)
 knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE, knitr.table.format = "html")
 
 ## ----------------------------------------------
-## debug
+# debug
 # library(SummarizedExperiment)
 # library(scater)
 # library(Seurat)
 # library(AUCell)
-# sce_list <- readRDS("~/workspaceR/ezRun/web_summary.html/sce_list.rds")
+# sce_list <- readRDS("/srv/gstore/projects/p3155/SCOneSample_41976_2019-12-05--17-25-16/Sample_1_20191104_SCReport/sce_list.rds")
 # param = metadata(sce_list$sce)$param
 # pvalue_allMarkers <- 0.05
 # pvalue_all2allMarkers <- 0.01
@@ -87,10 +87,21 @@ A standard approach is to filter cells with a low amount of reads as well as gen
 A summary of the number of cells removed for each QC metric is shown below.
 
 ```{r low quality cells}
-df <- data.frame(sum = colData(sce.unfiltered)$sum, detected=colData(sce.unfiltered)$detected, subsets_Mito_percent = colData(sce.unfiltered)$subsets_Mito_percent, subsets_Ribo_percent=colData(sce.unfiltered)$subsets_Ribo_percent)
-reasons <- quickPerCellQC(df, percent_subsets=c("subsets_Mito_percent", "subsets_Ribo_percent"))
-colSums(as.matrix(reasons))
+num.qc.lib <- sum(sce.unfiltered$qc.lib)
+num.qc.nexprs <- sum(sce.unfiltered$qc.nexprs)
+num.qc.mito <- sum(sce.unfiltered$qc.mito)
+num.qc.ribo <- sum(sce.unfiltered$qc.ribo)
+removed <- sum(sce_list$sce.unfiltered$discard)
+
+kable(tibble("QC metric" =c("Library Size", "Expressed genes", "Mitochondrial genes", "Ribosomal genes", "Total removed", "Cells remaining"),
+             "Number of cells"= c(num.qc.lib, num.qc.nexprs, num.qc.mito, num.qc.ribo, removed, ncol(sce_list$sce))),
+      row.names=FALSE,
+      caption="Number of cells removed") %>%
+  kable_styling(bootstrap_options = "striped", full_width = F,
+                position = "center")
 ```
+
+
 
 <br/>
 
@@ -171,9 +182,7 @@ barplot = ggplot(data=cellIdents_perSample, aes(x=ident, fill=orig.ident)) + geo
 barplot + labs(x="Cluster", y = "Number of cells", fill = "Sample")
 ```
 
-### Clusters assesment
-
-#### Resolution
+### Clusters resolution assesment
 
 One of the most important parameters when clustering is k, the number of nearest neighbors used to construct the graph. This controls the resolution of the clustering where higher k yields a more inter-connected graph and broader clusters. Users can experiment with different values of k to obtain a satisfactory resolution. We recommend increasing the resolution when a rare population is expected. 
 Below, it is shown a clustering tree that helps us to visualize the relationships between clusters at a range of resolutions. Each cluster forms a node in the tree and edges are constructed by considering the cells in a cluster at a lower resolution that end up in a cluster at the next highest resolution. By connecting clusters in this way, we can see how clusters are related to each other, which are clearly distinct and which are unstable. 
@@ -190,6 +199,19 @@ clust_seurat <- scData@meta.data %>%
 colData(sce) <- cbind(colData(sce), DataFrame(clust_seurat))
 clustree::clustree(sce, prefix = "RNA_snn_res.")
 ```
+
+### QC on TSNE plot
+
+```{r QC on TSNE, echo=FALSE}
+FeaturePlot(object = scData, features = "detected", reduction = "tsne")
+FeaturePlot(object = scData, features = "sum", reduction = "tsne")
+FeaturePlot(object = scData, features = "subsets_Mito_percent", reduction = "tsne")
+if(!is.null(scData@meta.data$CellCycle) && 
+   !any(is.na(scData@meta.data$CellCycle))){
+  TSNEPlot(object=scData, group.by="CellCycle", plot.title="Cell cycle phase")
+}
+```
+
 
 #### Doublet detection
 
@@ -299,7 +321,7 @@ colnames(assignmentTable)[2] <- "geneSet"
 
 ```
 
-```{r assigments heatmap, eval= (param$species != "other"), results='asis',fig.align='center', fig.width=6, fig.height=6}
+```{r assigments heatmap, eval= (param$species != "other"), results='asis',fig.align='center', fig.width=10, fig.height=6}
 cat("We can explore the cell assignment results using different plots. Below, we show a heatmap with the cell type each cell was assigned to. Gray color represents the successful assignment of the cell to the cell type and black non-assignment. Cell types with no cells assigned are not shown.")
 cat("\n\n")
 assignmentMat <- table(assignmentTable[,"geneSet"], assignmentTable[,"cell"])
