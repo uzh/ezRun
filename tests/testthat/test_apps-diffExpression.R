@@ -5,6 +5,9 @@ context("differential expression apps with example data")
 
 cwd = getwd()
 
+testScratchDir = "/srv/GT/analysis/ezRunTestScratch"
+
+
 skipLong = function(){
   if (Sys.getenv("RUN_LONG_TEST") == "TRUE"){
     return()
@@ -20,20 +23,24 @@ yeastCommonDiffExprParam = function(){
   param[['scratch']] = '10'
   param[['node']] = ''
   param[['process_mode']] = 'DATASET'
-  param[['refBuild']] = 'Saccharomyces_cerevisiae/Ensembl/EF4/Annotation/Version-2013-03-18'
+  param[['refBuild']] = 'Saccharomyces_cerevisiae/Ensembl/R64/Annotation/Release_98-2019-12-03'
   param[['refFeatureFile']] = 'genes.gtf'
   param[['featureLevel']] = 'gene'
   param[['grouping']] = 'Genotype'
+  param[['grouping2']] = ''
   param[['sampleGroup']] = 'mut'
   param[['refGroup']] = 'wt'
   param[['runGO']] = 'false'
+  param[['backgroundExpression']] = '10'
   param[['expressionName']] = ''
+  param[['transcriptTypes']] = 'protein_coding'
   param[['specialOptions']] = ''
   param[['mail']] = ''
   param[['comparison']] = 'mut--over--wt'
   param[['name']] = 'mut--over--wt'
   param[['dataRoot']] = system.file(package="ezRun", mustWork = TRUE)
   param[['resultDir']] = 'p1001/Count_Result'
+  param$linkHtmlLibDir = '' ## disables linking of libs
   return(param)
 }
 
@@ -69,13 +76,14 @@ test_that("edger_withgo", {
 
 test_that("count_QC", {
   skipLong()
-  ezSystem("rm -fr /scratch/test_count_QC/*")
-  setwdNew("/scratch/test_count_QC")
+  testDir = file.path(testScratchDir, "countqc")
+  unlink(testDir)
+  setwdNew(testDir)
   param = yeastCommonDiffExprParam()
   #param$refAnnotationFile = file=system.file("extdata/genes_annotation.txt", package="ezRun", mustWork = TRUE)
   input = EzDataset$new(file=system.file("extdata/yeast_10k_STAR_counts/dataset.tsv", package="ezRun", mustWork = TRUE),
                         dataRoot=param$dataRoot)
-  output = EzDataset$new(file=system.file("extdata/yeast_10k_STAR_counts_edger/dataset.tsv", package="ezRun", mustWork = TRUE),
+  output = EzDataset$new(file=system.file("extdata/yeast_10k_STAR_countqc/dataset.tsv", package="ezRun", mustWork = TRUE),
                          dataRoot=param$dataRoot)
   param[['name']] = 'Count_QC'
   param[['normMethod']] = 'logMean'
