@@ -82,7 +82,7 @@ ezMethodExceRpt = function(input=NA, output=NA, param=NA){
   
   ## Function to delete all files in OUTPUT_DIR that are not in CORE_RESULTS; remove unnecessary
   ## data to create report.
-  keepOnlyCoreFiles(outputDir)
+  if(param[['REMOVE_LARGE_INTERMEDIATE_FILES']]=='true'){keepOnlyCoreFiles(outputDir)}
 }
 
 ##' paste shell command
