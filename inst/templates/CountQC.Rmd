@@ -30,7 +30,7 @@ require(reshape2)
 ```{r prepare data countQC, include=FALSE}
 ## start of debug
 # require(ezRun)
-# rawData <- readRDS("/scratch/gtan/p2179-CountQC/Count_QC/rawData.rds")
+# rawData <- readRDS("/scratch/test_count_QC/p2223/Count_QC/rawData.rds")
 debug <- FALSE
 ## end of debug
 
@@ -261,40 +261,21 @@ ezCorrelationPlot(zValuesNormaled, cond=conds, condLabels=conds,
 
 ```{r sample clustering, echo=FALSE, fig.height=7, fig.width=min(7 + (nSamples-10)*0.3, 30), results='asis'}
 if (nSamples > 3){
-  cat("#### Sample clustering", "\n")
-  ## colour for dendrogram objects
-  paletteList <- list("Cavalcanti" = wes_palette("Cavalcanti1"),
-                      "Moonrise1" = wes_palette("Moonrise1"),
-                      "Darjeeling" = wes_palette("Darjeeling1"),
-                      "Royal1" = wes_palette("Royal1"),
-                      "FantasticFox" = wes_palette("FantasticFox1"),
-                      "Chevalier" = wes_palette("Chevalier1"),
-                      'Moonrise2' = wes_palette("Moonrise2"))
-  colList = list()
-  for (j in 1:ncol(design)) {
-    gtab <- unique(design[, j])
-    colJ = length(paletteList) - (j %% length(paletteList))
-    cols <- colorRampPalette(paletteList[[colJ]])(length(gtab))
-    names(cols) = gtab
-    colList[[colnames(design)[j]]] = cols
-  }
-  colAnnot <- design
-  for (nm in colnames(colAnnot)){
-    colAnnot[,nm] = colList[[nm]][design[,nm]]
-  }
+
   ## All genes
   d = as.dist(1-cor(x, use="complete.obs"))
   hc <- hclust(d, method="ward.D2")
-  plotDendroAndColors(hc, colAnnot, autoColorHeight=TRUE, hang = -0.1,
+  plotDendroAndColors(hc, sampleColors, autoColorHeight=TRUE, hang = -0.1,
                       main="all present genes")
 
   ## Top genes
   d = as.dist(1-cor(x[topGenes, ], use="complete.obs"))
   hc <- hclust(d, method="ward.D2")
-  plotDendroAndColors(hc, colAnnot, autoColorHeight=TRUE, hang = -0.1,
+  plotDendroAndColors(hc, sampleColors, autoColorHeight=TRUE, hang = -0.1,
                       main=paste("top", length(topGenes), " genes"))
 }
 ```
+
 
 <!--### Correlation/Clustering Plot (Gene-wise)
 #### Sample correlation
@@ -325,13 +306,13 @@ if (nSamples > 3){
   hc <- hclust(d, method="ward.D2")
   #hcd = as.dendrogram(, hang=-0.1)
   #hcd = colorClusterLabels(hcd, sampleColors)
-  plotDendroAndColors(hc, colAnnot, autoColorHeight=TRUE, hang = -0.1,
+  plotDendroAndColors(hc, sampleColors, autoColorHeight=TRUE, hang = -0.1,
                       main="all present genes; gene-wise normalized")
   
   ## Top genes
   d = as.dist(1-cor(xNormed[topGenes, ], use="complete.obs"));
   hc <- hclust(d, method="ward.D2")
-  plotDendroAndColors(hc, colAnnot, autoColorHeight=TRUE, hang = -0.1,
+  plotDendroAndColors(hc, sampleColors, autoColorHeight=TRUE, hang = -0.1,
                       main=paste("top", length(topGenes), 
                                  "genes; gene-wise normalized"))
 }
@@ -368,11 +349,11 @@ if(nSamples > 3){
     if(param$nSampleClusters > 6){
         param$nSampleClusters = 6
     }
-    clusterColors = c("red", "yellow", "orange", "blue", "cyan", "green")[1:param$nSampleClusters]
+    clusterColors = hcl.colors(param$nSampleClusters, palette = "BluGrn")
     clusterResult <-
       clusterPheatmap(xNormed[use, ], design, param, clusterColors,
                       lim=c(-param$logColorRange, param$logColorRange),
-                      doClusterColumns=TRUE)
+                      doClusterColumns=TRUE, sampleColors=sampleColors)
     
     xTmp = data.frame(Cluster=clusterResult$clusterNumbers)
     xTmp$gene_name = seqAnno[rownames(xTmp), "gene_name"]
@@ -458,28 +439,28 @@ if(nSamples > 3){
 }
 ```
 
-```{r MDS plot 3D present, echo=FALSE, message=FALSE, fig.height=7, fig.width=9, eval=TRUE}
+```{r MDS plot 3D present, echo=FALSE, message=FALSE, warning=FALSE, fig.height=7, fig.width=9, eval=TRUE}
 if(nSamples > 3){
   ## 3D scatter plot is strange. The plots are messy when use htmltools::tagList()
   ## subplot doesn't work either.
   ezMdsPlotly(signal=x, design=design, ndim=3,
-              main="mdsPlot_PresentGenes 3D")
+              main="mdsPlot_PresentGenes 3D",sampleColors=sampleColors)
 }
 if(nSamples > 3){
   ezMdsPlotly(signal=x[topGenes,], design=design, ndim=3,
-              main="mdsPlot_TopGenes 3D")
+              main="mdsPlot_TopGenes 3D",sampleColors=sampleColors)
 }
 if(nSamples > 3){
   ezMdsPlotly(signal=x, design=design, ndim=2,
-              main="mdsPlot_PresentGenes 2D")
+              main="mdsPlot_PresentGenes 2D",sampleColors=sampleColors)
 }
 if(nSamples > 3){
   ezMdsPlotly(signal=x[topGenes,], design=design, ndim=2,
-              main="mdsPlot_TopGenes 2D")
+              main="mdsPlot_TopGenes 2D",sampleColors=sampleColors)
 }
 ```
 
-```{r scatter plot, echo=FALSE, results='asis', eval=!debug}
+```{r scatter plot, echo=FALSE, message=FALSE, results='asis', eval=!debug}
 if(nSamples > 3){
   if (param$writeScatterPlots){
     qcScatterFiles = countQcScatterPlots(param, design, conds, rawData,

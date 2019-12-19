@@ -806,6 +806,21 @@ ezCbind = function(...){
   do.call(cbind, x)
 }
 
+makeRmdReport = function(..., htmlFile="00index.html", rmdFile=''){
+  varList = list(...)
+  for (nm in names(varList)){
+    saveRDS(varList[[nm]], file=paste0(nm, ".rds"))
+  }
+  ## Copy the style files and templates
+  styleFiles <- file.path(system.file("templates", package="ezRun"),
+                          c(rmdFile, "fgcz.css",
+                            "fgcz_header.html", "banner.png"))
+  file.copy(from=styleFiles, to=".", overwrite=TRUE)
+  rmarkdown::render(input=rmdFile, envir = new.env(),
+                    output_dir=".", output_file=htmlFile, quiet=TRUE)
+  prepareRmdLib()
+}
+
 prepareRmdLib <- function(){
   ## Link the rmarkdownLib
   file.copy(from=list.files("rmarkdownLib", full.names = TRUE),
