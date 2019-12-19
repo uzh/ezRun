@@ -1,0 +1,205 @@
+Loading required package: data.table
+Loading required package: Biostrings
+Loading required package: BiocGenerics
+Loading required package: parallel
+
+Attaching package: ‘BiocGenerics’
+
+The following objects are masked from ‘package:parallel’:
+
+    clusterApply, clusterApplyLB, clusterCall, clusterEvalQ,
+    clusterExport, clusterMap, parApply, parCapply, parLapply,
+    parLapplyLB, parRapply, parSapply, parSapplyLB
+
+The following objects are masked from ‘package:stats’:
+
+    IQR, mad, sd, var, xtabs
+
+The following objects are masked from ‘package:base’:
+
+    anyDuplicated, append, as.data.frame, basename, cbind, colnames,
+    dirname, do.call, duplicated, eval, evalq, Filter, Find, get, grep,
+    grepl, intersect, is.unsorted, lapply, Map, mapply, match, mget,
+    order, paste, pmax, pmax.int, pmin, pmin.int, Position, rank,
+    rbind, Reduce, rownames, sapply, setdiff, sort, table, tapply,
+    union, unique, unsplit, which, which.max, which.min
+
+Loading required package: S4Vectors
+Loading required package: stats4
+
+Attaching package: ‘S4Vectors’
+
+The following objects are masked from ‘package:data.table’:
+
+    first, second
+
+The following object is masked from ‘package:base’:
+
+    expand.grid
+
+Loading required package: IRanges
+
+Attaching package: ‘IRanges’
+
+The following object is masked from ‘package:data.table’:
+
+    shift
+
+Loading required package: XVector
+
+Attaching package: ‘Biostrings’
+
+The following object is masked from ‘package:base’:
+
+    strsplit
+
+Loading required package: GenomicRanges
+Loading required package: GenomeInfoDb
+unknown param: isLastJob
+Loading required package: tools
+Loading required package: SummarizedExperiment
+Loading required package: Biobase
+Welcome to Bioconductor
+
+    Vignettes contain introductory material; view with
+    'browseVignettes()'. To cite Bioconductor, see
+    'citation("Biobase")', and for packages 'citation("pkgname")'.
+
+Loading required package: DelayedArray
+Loading required package: matrixStats
+
+Attaching package: ‘matrixStats’
+
+The following objects are masked from ‘package:Biobase’:
+
+    anyMissing, rowMedians
+
+Loading required package: BiocParallel
+
+Attaching package: ‘DelayedArray’
+
+The following objects are masked from ‘package:matrixStats’:
+
+    colMaxs, colMins, colRanges, rowMaxs, rowMins, rowRanges
+
+The following objects are masked from ‘package:base’:
+
+    aperm, apply, rowsum
+
+Loading required package: readr
+Loading required package: dplyr
+
+Attaching package: ‘dplyr’
+
+The following object is masked from ‘package:matrixStats’:
+
+    count
+
+The following object is masked from ‘package:Biobase’:
+
+    combine
+
+The following objects are masked from ‘package:GenomicRanges’:
+
+    intersect, setdiff, union
+
+The following object is masked from ‘package:GenomeInfoDb’:
+
+    intersect
+
+The following objects are masked from ‘package:Biostrings’:
+
+    collapse, intersect, setdiff, setequal, union
+
+The following object is masked from ‘package:XVector’:
+
+    slice
+
+The following objects are masked from ‘package:IRanges’:
+
+    collapse, desc, intersect, setdiff, slice, union
+
+The following objects are masked from ‘package:S4Vectors’:
+
+    first, intersect, rename, setdiff, setequal, union
+
+The following objects are masked from ‘package:BiocGenerics’:
+
+    combine, intersect, setdiff, union
+
+The following objects are masked from ‘package:data.table’:
+
+    between, first, last
+
+The following objects are masked from ‘package:stats’:
+
+    filter, lag
+
+The following objects are masked from ‘package:base’:
+
+    intersect, setdiff, setequal, union
+
+Parsed with column specification:
+cols(
+  Identifier = col_character(),
+  matchCounts = col_double()
+)
+loading file: /srv/gstore/projects/p1001/FeatureCounts_42287_2019-12-17--14-19-08/wt_1.txt
+Parsed with column specification:
+cols(
+  Identifier = col_character(),
+  matchCounts = col_double()
+)
+loading file: /srv/gstore/projects/p1001/FeatureCounts_42287_2019-12-17--14-19-08/wt_2.txt
+Parsed with column specification:
+cols(
+  Identifier = col_character(),
+  matchCounts = col_double()
+)
+loading file: /srv/gstore/projects/p1001/FeatureCounts_42287_2019-12-17--14-19-08/mut_1.txt
+Parsed with column specification:
+cols(
+  Identifier = col_character(),
+  matchCounts = col_double()
+)
+loading file: /srv/gstore/projects/p1001/FeatureCounts_42287_2019-12-17--14-19-08/mut_2.txt
+Parsed with column specification:
+cols(
+  Identifier = col_character(),
+  matchCounts = col_double()
+)
+Loading required package: rtracklayer
+Loading required package: tibble
+Using gene level annotation: /srv/GT/reference/Saccharomyces_cerevisiae/Ensembl/R64/Annotation/Release_98-2019-12-03/Genes/genes_annotation_byGene.txt
+Loading required package: Matrix
+
+Attaching package: ‘Matrix’
+
+The following object is masked from ‘package:S4Vectors’:
+
+    expand
+
+Loading required package: SingleCellExperiment
+Loading required package: edgeR
+Loading required package: limma
+
+Attaching package: 'limma'
+
+The following object is masked from 'package:ezRun':
+
+    trimWhiteSpace
+
+The following object is masked from 'package:BiocGenerics':
+
+    plotMA
+
+
+Attaching package: 'edgeR'
+
+The following object is masked from 'package:SingleCellExperiment':
+
+    cpm
+
+Request submitted as # 121715034503S.9047.867 
+Waiting for request to be finished...
+OK
