@@ -16,118 +16,59 @@ ezMethodMegahit = function(input=NA, output=NA, param=NA,
   sampleName = input$getNames()
   file1PathInDatset <- input$getFullPaths("Read1")
   fastqName1 <- paste0(sampleName,".R1.fastq")
-  fastqName1Trimmed  <- paste0(sampleName,".R1.trimmed.fastq") 
   cpCmd1 <- paste0("gunzip -c ", file1PathInDatset, "  > ", fastqName1)
   ezSystem(cpCmd1)  
   if(param$paired){
     file2PathInDatset <- input$getFullPaths("Read2")
     fastqName2 <- paste0(sampleName,".R2.fastq")
-    fastqName2Trimmed  <- paste0(sampleName,".R2.trimmed.fastq")
     cpCmd2 <- paste0("gunzip -c ", file2PathInDatset, "  > ", fastqName2)
     ezSystem(cpCmd2)
-    inputString <- paste("\"-1", fastqName1Trimmed, "-2", fastqName2Trimmed,"\"")
-    pairedString="YES"
+    inputStringAss <- paste("\"-1", fastqName1, "-2", fastqName2,"\"")
+    inputStringBwt2 <- paste("\"-1", fastqName1, "-2", fastqName2,"\"")
   } else {
-    inputString <- paste("-r",fastqName1Trimmed)
-    pairedString="NO"
+    inputStringAss <- paste("-s",fastqName1)
+    inputStringBwt2 <- paste("-U",fastqName1)
   }
-  megahitTemplScript <- MEGAHIT_TEMPLATE_SCRIPT
-  megahitToBeExec <- paste0("megahit.",sampleName,".sh")
+
   ##update template
   updateTemplateScriptCmd <- paste0("sed -e s/\"SAMPLE_NAME\"/", sampleName, "/g",
-                                    " -e s/\"INPUT_FILE_STRING\"/", inputString, "/g ",
+                                    " -e s/\"INPUT_FILE_STRING_BWT\"/", inputStringBwt2, "/g ",
+                                    " -e s/\"INPUT_FILE_STRING_ASS\"/", inputStringAss, "/g ",
                                     " -e s/\"KMER_LIST\"/", param$megahitKmerList, "/g ",
-                                    " -e s/\"ARE_READ_PAIRED\"/", pairedString, "/g ",
-                                    megahitTemplScript, " >",
-                                    megahitToBeExec)
+                                    " -e s/\"NUM_CPU\"/", param$cores, "/g ",
+                                    " -e s/\"ANNOTATION\"/", param$annotation, "/g ",
+                                    " -e s/\"MAXIMUM_SEQS\"/", param$diamondMaxSeqs, "/g ",
+                                    " -e s/\"E_VALUE_CUTOFF\"/", param$diamondEvalue, "/g ",
+                                    file.path(METAGENOMICS_ROOT,MEGAHIT_TEMPLATE_SCRIPT), " >",
+                                    MEGAHIT_TEMPLATE_SCRIPT)
+
   ezSystem(updateTemplateScriptCmd)
   ## run script
-  megahitCmd <- paste("bash",megahitToBeExec)
+  megahitCmd <- paste("bash",MEGAHIT_TEMPLATE_SCRIPT)
   ezSystem(megahitCmd)
-  ### megahit complete
-  
-  ## format output  OTUcount and OTUtax files for phyloseq
-  ##OTU count
-  covFile <- ezRead.table("mockCommShotgun.cov.txt")
-  DF1 <- t(data.frame(t(covFile)["Median_fold",], stringsAsFactors = F))
-  OTUsCountTable <- data.frame(Group="test", DF1, stringsAsFactors = F)
-
-
-  ##OTU tax
-  OTUsTaxAbun <- data.frame(t(subset(OTUsCountTable,select=-c(Group))), 
-                             stringsAsFactors = F)
-  colnames(OTUsTaxAbun) <- "Size"
-  
-  krakLab <- read.delim("kraken.labels", header = F, stringsAsFactors = F)
-  formatKrakenRows <- function(x){
-  t <- paste(unlist(strsplit(x,";"))[3:9], 
-             collapse = ";")
-  t1 <- unlist(strsplit(t," "))[1]
-               return(t1)
-  }
-  taxonomyCol <- data.frame(ldply(lapply(krakLab$V2,formatKrakenRows))$V1,
-                            stringsAsFactors = F)
-  rownames(taxonomyCol) <- krakLab$V1
-  colnames(taxonomyCol) <- "Taxonomy"
-  
-     formatTaxFields <- function(x){
-       taxOut <- vector()
-       taxOut[1] <- "Bacteria"
-      taxClassif <- unlist(strsplit(x,";"))
-      for (k in 2:7){
-        isDomThere <- taxClassif[k]
-        if (is.na(isDomThere)){
-          k1=k-1
-          alreadyUnclassified <- grep(taxClassif[k1],"unclassified")
-          if (length(alreadyUnclassified) > 0 ) {
-            taxOut[k] <- taxOut[k1]
-          } else{
-            taxOut[k] <- paste(taxClassif[k1],"unclassified",sep = "_")
-          }
-        }else {
-          taxOut[k]  <- taxClassif[k]
-        }
-      }
-      return(paste(taxOut, collapse = ";"))
-     }
-      
-  taxonomyCol$Taxonomy <-  sapply(taxonomyCol$Taxonomy,formatTaxFields, USE.NAMES = F)
-  finalOTUTaxTable <- merge(OTUsTaxAbun,taxonomyCol,by="row.names")
-  colnames(finalOTUTaxTable)[1] <- "OTU"
-  colsToKeep <- finalOTUTaxTable$OTU
-  finalOTUCountTable <- OTUsCountTable[,c("Group",colsToKeep)]
-  ## write final tables ready for phyloseq
-  write.table(finalOTUTaxTable, "tempTaxaFile.txt",sep = "\t",
-              col.names = T, row.names = F, quote = F)
-  write.table(finalOTUCountTable, "tempCountFile.txt",sep = "\t",
-              col.names = T, row.names = F, quote = F)
-  ## rename output files
-  #1) 
+  ### megahit completes
+  ## place output files
+  #1) contigs
   oldContigFile <- "megahitResults/final.contigs.fa"
+  
   newContigFile <- basename(output$getColumn("contigFile"))
-  ezSystem(paste("mv",oldContigFile,newContigFile))
-  #1)binned
-  oldContigFile <- "binnedContigs.fasta"
-  newContigFile <- basename(output$getColumn("binnedContigsFile"))
-  ezSystem(paste("mv",oldContigFile,newContigFile))
+  ezSystem(paste("cp",oldContigFile,newContigFile))
   #2) 
   oldProdigalFile <- "prodigalAnnotation.gff"
   newProdigalFile <- basename(output$getColumn("prodigalPredictionFile"))
-  ezSystem(paste("mv",oldProdigalFile,newProdigalFile))
+  ezSystem(paste("cp",oldProdigalFile,newProdigalFile))
   #3) 
   oldIPSAnnFile <- "interProScanOut.gff3"
   newIPSAnnFile <- basename(output$getColumn("interproscanFile"))
-  ezSystem(paste("mv",oldIPSAnnFile,newIPSAnnFile))
-  #4) 
-  oldTaxaFile <- "tempTaxaFile.txt"
-  newTaxaFile <- basename(output$getColumn("OTUsToTaxonomyFile"))
-  ezSystem(paste("mv",oldTaxaFile,newTaxaFile))
-  #5) 
-  oldCountFile <- "tempCountFile.txt"
-  newCountFile <- basename(output$getColumn("OTUsCountTable"))
-  ezSystem(paste("mv",oldCountFile,newCountFile))
+  ezSystem(paste("cp",oldIPSAnnFile,newIPSAnnFile))
+  #4)   
+  krakenFile <- "kraken.labels"
+  binFiles <- list.files("maxbinOut", pattern = "fasta", full.names = T)
+  binSummaryFile <- summaryMetagenomeBins(krakenFile,binFiles)
+  binSummaryFileName <- basename(output$getColumn("binSummaryFile"))
+  write.table(binSummaryFile,binSummaryFileName,
+              row.names = F, col.names = T, quote = F,sep = "\t")
 }
-
 ##' @template app-template
 ##' @templateVar method ezMethodMegahit()
 ##' @templateVar htmlArg )

@@ -5,8 +5,13 @@
 \alias{ezWriteVcf}
 \title{Filters a VCF file and writes it back}
 \usage{
-ezFilterVcf(vcfFile, vcfFiltFile, discardMultiAllelic = TRUE,
-  bamDataset = bamDataset, param = NULL)
+ezFilterVcf(
+  vcfFile,
+  vcfFiltFile,
+  discardMultiAllelic = TRUE,
+  bamDataset = bamDataset,
+  param = NULL
+)
 
 ezWriteVcf(vcf, vcfFiltFile)
 }

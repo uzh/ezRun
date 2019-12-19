@@ -216,18 +216,6 @@ ezMethodSingleCellFeatureCounts <- function(input=NA, output=NA, param=NA){
   if (ezIsSpecified(param$transcriptTypes)){
     export.gff2(gtfByTxTypes(param, param$transcriptTypes),
                 con=gtfFile)
-    # seqAnno = ezFeatureAnnotation(param$ezRef@refAnnotationFile,
-    #                               dataFeatureType="transcript")
-    # transcriptsUse = rownames(seqAnno)[seqAnno$type %in% param$transcriptTypes]
-    # require(data.table)
-    # require(stringr)
-    # gtf <- ezReadGff(param$ezRef@refFeatureFile)
-    # transcripts <- ezGffAttributeField(gtf$attributes,
-    #                                    field="transcript_id", 
-    #                                    attrsep="; *", valuesep=" ")
-    # gtf = gtf[transcripts %in% transcriptsUse, ]
-    # write.table(gtf, gtfFile, quote=FALSE, sep="\t", 
-    #             row.names=FALSE, col.names=FALSE)
   } else {
     file.copy(from=param$ezRef@refFeatureFile, to=gtfFile)
   }

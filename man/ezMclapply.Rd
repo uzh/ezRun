@@ -4,8 +4,15 @@
 \alias{ezMclapply}
 \title{Parallel version of \code{lapply()}}
 \usage{
-ezMclapply(x, FUN, ..., mc.preschedule = TRUE, mc.set.seed = TRUE,
-  mc.silent = FALSE, mc.cores = min(length(x), ezThreads()))
+ezMclapply(
+  x,
+  FUN,
+  ...,
+  mc.preschedule = TRUE,
+  mc.set.seed = TRUE,
+  mc.silent = FALSE,
+  mc.cores = min(length(x), ezThreads())
+)
 }
 \arguments{
 \item{x}{a list to apply the function to.}
