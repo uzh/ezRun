@@ -5,8 +5,14 @@
 \alias{ezGrid}
 \title{Wrapper for \code{FlexTable()}}
 \usage{
-ezFlexTable(x, border = 1, valign = "top", talign = "left",
-  header.columns = FALSE, ...)
+ezFlexTable(
+  x,
+  border = 1,
+  valign = "top",
+  talign = "left",
+  header.columns = FALSE,
+  ...
+)
 
 ezGrid(x, header.columns = FALSE, valign = "top", ...)
 }

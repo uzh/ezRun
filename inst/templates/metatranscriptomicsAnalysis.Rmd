@@ -1,0 +1,137 @@
+---
+title: "`r paste('Metatranscriptomics analysis report')`"
+author: "Functional Genomics Center Zurich"
+output: 
+  html_document:
+    self_contained: false
+    includes:
+      in_header: fgcz_header.html
+    css: fgcz.css
+---
+  
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE,warning=FALSE, message=FALSE, out.width = "49%")
+## This report requires summary files form mothur
+debug <- FALSE
+setEnvironments("phantomjs")
+```
+
+```{r preHeatmaps, include=FALSE}
+## 
+heatmapOrgAbundPlot <- summaryHeatmap(orgDFforHeatmap, 
+                                  isGroupThere, 
+                                  dataset=dataset, 
+                                  numberOfTopNCategories)
+heatmapFuncAbundPlot <- summaryHeatmap(funcDFforHeatmap, 
+                                  isGroupThere, 
+                                  dataset=dataset, 
+                                  numberOfTopNCategories)
+```
+
+```{r preDiffAnalysis, include=FALSE}
+diffTableOrg <- metagMetatrDifferentialAnalysis_tableAndPlots(orgDFforHeatmap,
+                                                              dataset,
+                                                              group,sampleGroup,refGroup,
+                                                              N=numberOfTopNCategories)
+diffTableFunc <- metagMetatrDifferentialAnalysis_tableAndPlots(funcDFforHeatmap,
+                                                               dataset,
+                                                               group,sampleGroup,refGroup,
+                                                               N=numberOfTopNCategories)
+
+```
+
+```{r prepOrgFuncBox, include=FALSE}
+boxBarPlotOrgData <- orgFuncHeatmaptoBoxPlotPrep(orgDFforHeatmap,
+                                               dataset,group,N=10)
+boxBarPlotFuncData <-  orgFuncHeatmaptoBoxPlotPrep(funcDFforHeatmap,
+                                                 dataset,group,N=10)
+boxPlotOrg <- ggplot(boxBarPlotOrgData,aes(x=boxBarPlotOrgData[[group]],
+                                           y=abund,fill=boxBarPlotFuncData[[group]]))+
+  geom_boxplot()+stat_compare_means(size=2) +
+  facet_wrap(vars(ID)) + labs(fill=group) + 
+  theme(axis.title.x = element_blank(),strip.text.x = element_text(size = 4.5))
+boxPlotFunc <- ggplot(boxBarPlotFuncData,aes(x=boxBarPlotFuncData[[group]],
+                                           y=abund,fill=boxBarPlotFuncData[[group]]))+
+  geom_boxplot()+stat_compare_means(size=2) +
+  facet_wrap(vars(ID)) + labs(fill=group) + 
+  theme(axis.title.x = element_blank(),strip.text.x = element_text(size = 4.5))
+barPlotOrg <- ggplot(boxBarPlotOrgData,aes(x=sample,y=abund,fill=ID))+
+  geom_bar(stat="identity")   
+barPlotFunc <- ggplot(boxBarPlotFuncData,aes(x=sample,y=abund,fill=ID))+
+  geom_bar(stat="identity")   
+```
+
+```{r prepOrgFuncHeatmap, include=FALSE}
+listOfOrgFuncHeatmapDF <- lapply(listOfAnnotatedAbundTable,orgFuncHeatmapPrep,
+                                 diffTableFunc=diffTableFunc)
+names(listOfOrgFuncHeatmapDF) <- names(listOfAnnotatedAbundTable)
+
+listOfOrgBasedOrgFuncHeatmap <- lapply(names(listOfOrgFuncHeatmapDF),                                    function(x)summaryHeatmap(data.frame(t(listOfOrgFuncHeatmapDF[[x]])),                                                              FALSE,numberOfTopNCategories=5, plotTitle=x))
+
+listOfOrgBasedOrgFuncHeatmapForGrid <- lapply(listOfOrgBasedOrgFuncHeatmap[c(1,4)], function(x)x()[[4]])
+###
+listOfFuncBasedOrgFuncHeatmap <- lapply(names(listOfOrgFuncHeatmapDF),
+                                    function(x)summaryHeatmap(listOfOrgFuncHeatmapDF[[x]],                                                              FALSE,numberOfTopNCategories=5, plotTitle=x))
+
+listOfFuncBasedOrgFuncHeatmapForGrid <- lapply(listOfFuncBasedOrgFuncHeatmap[c(1,4)], function(x)x()[[4]])
+```
+
+Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
+
+## Data pre-processing {.tabset}
+
+### Abundance-based analysis: heatmap and table
+#### Heatmap
+```{r orgHM, echo=FALSE,out.width="100%"}
+heatmapOrgAbundPlot()
+```
+
+#### Most differentially abundant organisms
+```{r orgDT, echo=FALSE,out.width="100%"}
+DT::datatable(diffTableOrg$tableToReport)
+```
+
+### Abundance-based analysis: barplots and boxplots
+#### Barplot of top organims abundance in the samples 
+```{r barOrg, echo=FALSE,out.width="66%"}
+plot(barPlotOrg)
+```
+
+#### Boxplot of top organims abundance in the samples 
+```{r boxOrg, echo=FALSE,out.width="100%"}
+plot(boxPlotOrg)
+```
+
+
+
+### Function expression-based  analysis: heatmap and table
+#### Heatmap
+```{r funcHM, echo=FALSE,out.width="100%"}
+heatmapFuncAbundPlot()
+```
+
+#### Top differentially expressed functions
+```{r funcDT, echo=FALSE,out.width="100%"}
+DT::datatable(diffTableFunc$tableToReport)
+```
+
+### Function expression-based  analysis: barplots and boxplots
+#### Barplot of top function abundance in the samples 
+```{r barFunc, echo=FALSE,out.width="66%"}
+plot(barPlotFunc)
+```
+
+#### Boxplot of top function abundance in the samples 
+```{r boxFunc, echo=FALSE,out.width="100%"}
+plot(boxPlotFunc)
+```
+
+### Function-based heatmaps in the organisms
+```{r funcOrgFuncSamHM, echo=FALSE,out.width="100%"}
+grid.arrange(arrangeGrob(grobs = listOfFuncBasedOrgFuncHeatmapForGrid, ncol=2))
+```
+
+### Organism-based heatmaps in the functions
+```{r orgOrgFuncSamHM, echo=FALSE,out.width="100%"}
+grid.arrange(arrangeGrob(grobs = listOfOrgBasedOrgFuncHeatmapForGrid, ncol=2))
+```

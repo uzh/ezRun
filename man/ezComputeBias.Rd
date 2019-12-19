@@ -4,11 +4,17 @@
 \alias{ezComputeBias}
 \title{compute and plot the GC content and gene-length associated bias in RNA-seq data}
 \usage{
-ezComputeBias(dsFile, dsName = NULL, param = NULL,
+ezComputeBias(
+  dsFile,
+  dsName = NULL,
+  param = NULL,
   qcSummaryDir = "/srv/GT/analysis/p2220/RNA-seq-bias-results",
-  refBuildMap = getRefBuildMap(), minReadsPerSample = 30000,
-  maxReadsPerSample = 5e+06, minReadsPerGene = 3,
-  minPresentFraction = 0.2)
+  refBuildMap = getRefBuildMap(),
+  minReadsPerSample = 30000,
+  maxReadsPerSample = 5e+06,
+  minReadsPerGene = 3,
+  minPresentFraction = 0.2
+)
 }
 \arguments{
 \item{dsFile}{}
@@ -28,6 +34,9 @@ ezComputeBias(dsFile, dsName = NULL, param = NULL,
 \item{minReadsPerGene}{}
 
 \item{minPresentFraction}{}
+}
+\value{
+
 }
 \description{
 compute and plot the GC content and gene-length associated bias in RNA-seq data

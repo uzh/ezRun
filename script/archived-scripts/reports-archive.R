@@ -42,3 +42,30 @@ ezAddTable = function(doc, x, bgcolors=NULL, valign="middle", border=1, head="")
 #   table = addHeaderRow(table, colnames(x))
 #   return(table)
 # }
+
+##' @title Adds tables of the significant counts
+##' @description Adds tables of the significant counts.
+##' @template doc-template
+##' @templateVar object table
+##' @template result-template
+##' @param pThresh a numeric vector specifying the p-value threshold.
+##' @param genes a character vector containing the gene names.
+##' @param fcThresh a numeric vector specifying the fold change threshold.
+##' @template roxygen-template
+addSignificantCounts = function(doc, result, pThresh=c(0.1, 0.05, 1/10^(2:5))){
+  sigTable = ezFlexTable(getSignificantCountsTable(result, pThresh=pThresh),
+                         header.columns = TRUE, add.rownames = TRUE, talign = "right")
+  sigFcTable = ezFlexTable(getSignificantFoldChangeCountsTable(result, pThresh=pThresh),
+                           header.columns = TRUE, add.rownames = TRUE, talign = "right")
+  tbl = ezGrid(cbind(as.html(sigTable), as.html(sigFcTable)))
+  addFlexTable(doc, tbl)
+}
+
+addSignificantCountsSE = function(doc, se, pThresh=c(0.1, 0.05, 1/10^(2:5))){
+  sigTable = ezFlexTable(getSignificantCountsTableSE(se, pThresh=pThresh),
+                         header.columns = TRUE, add.rownames = TRUE, talign = "right")
+  sigFcTable = ezFlexTable(getSignificantFoldChangeCountsTableSE(se, pThresh=pThresh),
+                           header.columns = TRUE, add.rownames = TRUE, talign = "right")
+  tbl = ezGrid(cbind(as.html(sigTable), as.html(sigFcTable)))
+  addFlexTable(doc, tbl)
+}

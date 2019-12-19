@@ -79,7 +79,6 @@ ezImageFileLink = function(plotCmd, file=NULL, name="imagePlot", plotType="plot"
     eval(plotCmd, envir=envir)
     dev.off()
     imgFilePot = paste0("<a href='", pdfName, "'>", imgFilePot, "</a>")
-  } else {
   }
   return(imgFilePot)
 }
@@ -134,32 +133,15 @@ closeBsdocReport = function(doc, file, titles=NULL){
 ##' @template roxygen-template
 addDataset = function(doc, dataset, param){
   ezWrite.table(dataset, file="input_dataset.tsv", head="Name")
-  # jsFile = system.file("extdata/popup.js", package="ezRun", mustWork=TRUE)
-  # addJavascript(doc, jsFile)
   tableLink = "InputDataset.html"
   ezInteractiveTable(dataset, tableLink=tableLink, title="Input Dataset")
   addParagraph(doc, ezLink(tableLink, "Input Dataset", target="_blank"))
-  # if (ezIsSpecified(param$refBuild)){
-  #   addParagraphpots = c(pots, paste("Reference build:", param$refBuild))
-  # }
-  # addFlexTable(doc, ezGrid(pots))
 }
 
-##' @title Writes an error report
-##' @description Writes an error report to an html file. Also creates the file and closes it.
-##' @template htmlFile-template
-##' @param param a list of parameters to extract the \code{name} from.
-##' @param error a character vector representing the error message(s).
-##' @template roxygen-template
-##' @seealso \code{\link{openBsdocReport}}
-##' @seealso \code{\link{closeBsdocReport}}
-##' @examples
-##' param = ezParam()
-##' htmlFile = "example.html"
-##' writeErrorReport(htmlFile, param)
-
+### -----------------------------------------------------------------
+### create error report with Rmd
+###
 writeErrorReport <- function(htmlFile, param=param, error="Unknown Error"){
-  
   ## Copy the style files and templates
   styleFiles <- file.path(system.file("templates", package="ezRun"),
                           c("fgcz.css", "ErrorReport.Rmd",
@@ -301,33 +283,6 @@ makeCountResultSummary = function(param, se){
     settings["Linear signal threshold:"] = signif(param$sigThresh, digits=4)
   }
   return(as.data.frame(settings))
-}
-
-##' @title Adds tables of the significant counts
-##' @description Adds tables of the significant counts.
-##' @template doc-template
-##' @templateVar object table
-##' @template result-template
-##' @param pThresh a numeric vector specifying the p-value threshold.
-##' @param genes a character vector containing the gene names.
-##' @param fcThresh a numeric vector specifying the fold change threshold.
-##' @template roxygen-template
-addSignificantCounts = function(doc, result, pThresh=c(0.1, 0.05, 1/10^(2:5))){
-  sigTable = ezFlexTable(getSignificantCountsTable(result, pThresh=pThresh),
-                         header.columns = TRUE, add.rownames = TRUE, talign = "right")
-  sigFcTable = ezFlexTable(getSignificantFoldChangeCountsTable(result, pThresh=pThresh),
-                           header.columns = TRUE, add.rownames = TRUE, talign = "right")
-  tbl = ezGrid(cbind(as.html(sigTable), as.html(sigFcTable)))
-  addFlexTable(doc, tbl)
-}
-
-addSignificantCountsSE = function(doc, se, pThresh=c(0.1, 0.05, 1/10^(2:5))){
-  sigTable = ezFlexTable(getSignificantCountsTableSE(se, pThresh=pThresh),
-                         header.columns = TRUE, add.rownames = TRUE, talign = "right")
-  sigFcTable = ezFlexTable(getSignificantFoldChangeCountsTableSE(se, pThresh=pThresh),
-                           header.columns = TRUE, add.rownames = TRUE, talign = "right")
-  tbl = ezGrid(cbind(as.html(sigTable), as.html(sigFcTable)))
-  addFlexTable(doc, tbl)
 }
 
 makeSignificantCounts = function(se, pThresh=c(0.1, 0.05, 1/10^(2:5))){

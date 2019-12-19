@@ -6,8 +6,7 @@
 # www.fgcz.ch
 
 
-ezMethodEdger = function(input=NA, output=NA, param=NA,
-                         htmlFile="00index.html"){
+ezMethodEdger = function(input=NA, output=NA, param=NA){
   cwd <- getwd()
   setwdNew(basename(output$getColumn("Report")))
   on.exit(setwd(cwd))

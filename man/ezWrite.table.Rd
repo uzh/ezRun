@@ -4,9 +4,18 @@
 \alias{ezWrite.table}
 \title{Modified version of write.table}
 \usage{
-ezWrite.table(values, file = file, head = "Identifier",
-  row.names = TRUE, col.names = TRUE, append = FALSE,
-  quote = FALSE, sep = "\\t", na = "NA", digits = NA)
+ezWrite.table(
+  values,
+  file = file,
+  head = "Identifier",
+  row.names = TRUE,
+  col.names = TRUE,
+  append = FALSE,
+  quote = FALSE,
+  sep = "\\t",
+  na = "NA",
+  digits = NA
+)
 }
 \arguments{
 \item{values}{a vector, matrix of data.frame to write a table from.}

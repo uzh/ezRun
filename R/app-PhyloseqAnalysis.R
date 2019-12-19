@@ -45,9 +45,14 @@ ezMethodPhyloSeqAnalysis = function(input=NA, output=NA, param=NA,
   }
 ### Analyzes results with phyloseq: preparing objects to be processed in the Rmd file
 
-### load phyloseq object
+### load  objects
+  ## QC and chimera data
+  QCChimeraObjectRData <- input$getFullPaths("RObjectQCChimera")
+  QCChimeraObject <- readRDS(QCChimeraObjectRData)
+  ## phyloseq object
   physeqObjectRData <- input$getFullPaths("RObjectPhyloseq")
   physeqObjectNoTreeUnfilt <- readRDS(physeqObjectRData)
+  
 
   
 ### check how many cols sample data has; if only one, add a second otherwise the plot funciton is buggy

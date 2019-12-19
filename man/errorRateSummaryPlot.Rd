@@ -11,8 +11,6 @@ errorRateSummaryPlot(errorCountFileName, avReadLen)
 }
 \arguments{
 \item{errorCountFile, }{mothur taxonomy file.}
-
-\item{errorCountFile, }{mothur taxonomy file.}
 }
 \value{
 Returns a number.

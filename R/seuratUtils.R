@@ -127,7 +127,11 @@ update_seuratObjectVersion = function(se) {
 }
 
 seuratStandardWorkflow <- function(scData, param){
-  scData <- ScaleData(object = scData, num.cores=param$cores)
+  if(identical(param$vars.to.regress,"cell_cycle")) {
+    scData@meta.data$CC.Difference <- scData@meta.data$CellCycleS - scData@meta.data$CellCycleG2M
+    param$vars.to.regress <- "CC.Difference"
+  }
+  scData <- ScaleData(object = scData, num.cores=param$cores, vars.to.regress = param$vars.to.regress)
   scData <- RunPCA(object=scData, npcs = param$npcs, features=param$pcGenes)
   scData <- RunTSNE(object = scData, reduction = "pca", dims = 1:param$npcs, num_threads=param$cores)
   scData <- RunUMAP(object=scData, reduction = "pca", dims = 1:param$npcs, num_threads=param$cores)

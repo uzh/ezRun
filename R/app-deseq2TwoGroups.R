@@ -6,7 +6,7 @@
 # www.fgcz.ch
 
 
-ezMethodDeseq2 = function(input=NA, output=NA, param=NA, htmlFile="00index.html"){
+ezMethodDeseq2 = function(input=NA, output=NA, param=NA){
   if (ezIsSpecified(param$samples)){
     input = input$subset(param$samples)
   }

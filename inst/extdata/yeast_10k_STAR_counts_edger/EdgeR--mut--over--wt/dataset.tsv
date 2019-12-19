@@ -1,5 +1,0 @@
-Name	Count [File]	Stats [File]	Species	refBuild	featureLevel	refFeatureFile	strandMode	paired	Read Count	Genotype [Factor]
-wt_1	p1001/Count_FeatureCounts_7981_2015-09-29--16-12-23/wt_1.txt	p1001/Count_FeatureCounts_7981_2015-09-29--16-12-23/wt_1-stats.txt	S. cerevisiae	Saccharomyces_cerevisiae/Ensembl/EF4/Annotation/Version-2013-03-18	gene	genes.gtf	sense	true	9794	wt
-wt_2	p1001/Count_FeatureCounts_7981_2015-09-29--16-12-23/wt_2.txt	p1001/Count_FeatureCounts_7981_2015-09-29--16-12-23/wt_2-stats.txt	S. cerevisiae	Saccharomyces_cerevisiae/Ensembl/EF4/Annotation/Version-2013-03-18	gene	genes.gtf	sense	true	9998	wt
-mut_1	p1001/Count_FeatureCounts_7981_2015-09-29--16-12-23/mut_1.txt	p1001/Count_FeatureCounts_7981_2015-09-29--16-12-23/mut_1-stats.txt	S. cerevisiae	Saccharomyces_cerevisiae/Ensembl/EF4/Annotation/Version-2013-03-18	gene	genes.gtf	sense	true	9788	mut
-mut_2	p1001/Count_FeatureCounts_7981_2015-09-29--16-12-23/mut_2.txt	p1001/Count_FeatureCounts_7981_2015-09-29--16-12-23/mut_2-stats.txt	S. cerevisiae	Saccharomyces_cerevisiae/Ensembl/EF4/Annotation/Version-2013-03-18	gene	genes.gtf	sense	true	9862	mut
