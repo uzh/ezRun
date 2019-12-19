@@ -40,6 +40,7 @@ yeastCommonDiffExprParam = function(){
   param[['name']] = 'mut--over--wt'
   param[['dataRoot']] = system.file(package="ezRun", mustWork = TRUE)
   param[['resultDir']] = 'p1001/Count_Result'
+  param$linkHtmlLibDir = '' ## disables linking of libs
   return(param)
 }
 
