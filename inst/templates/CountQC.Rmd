@@ -1,5 +1,5 @@
 ---
-title: "`r paste('Analysis:', ifelse(grepl('bam', param$name, ignore.case = TRUE), sub('$', '_Count_QC', param$name), param$name))`"
+title: "`r if (exists('reportTitle')) reportTitle else 'SUSHI Report'`"
 author: "Functional Genomics Center Zurich"
 output: 
   html_document:
@@ -28,11 +28,10 @@ require(reshape2)
 ```
 
 ```{r prepare data countQC, include=FALSE}
-## start of debug
-# require(ezRun)
-# rawData <- readRDS("/scratch/test_count_QC/p2223/Count_QC/rawData.rds")
+if (!exists("rawData")){
+  rawData = readRDS("rawData")
+}
 debug <- FALSE
-## end of debug
 
 output <- metadata(rawData)$output
 param <- metadata(rawData)$param
