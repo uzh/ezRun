@@ -29,7 +29,7 @@ require(reshape2)
 
 ```{r prepare data countQC, include=FALSE}
 if (!exists("rawData")){
-  rawData = readRDS("rawData")
+  rawData = readRDS("rawData.rds")
 }
 debug <- FALSE
 
