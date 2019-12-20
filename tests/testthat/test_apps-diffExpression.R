@@ -6,6 +6,7 @@ context("differential expression apps with example data")
 cwd = getwd()
 
 testScratchDir = "/srv/GT/analysis/ezRunTestScratch"
+testScratchDir = "~/tmp/ezRunTestScratch"
 
 
 skipLong = function(){
