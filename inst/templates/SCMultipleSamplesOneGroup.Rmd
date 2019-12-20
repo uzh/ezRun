@@ -107,9 +107,14 @@ cat("Additionally, we can visualize the cell cycle of the cells on the TSNE plot
 <br/><br/>
 
 ```{r control cell clustering}
-FeaturePlot(object = scData, features = "nGene", reduction = "tsne", cols = c("yellow", "red"))
-FeaturePlot(object = scData, features = "nUMI", reduction = "tsne", cols = c("yellow", "red"))
-FeaturePlot(object = scData, features = "perc_mito", reduction = "tsne", cols = c("yellow", "red"))
+qc_features = c("detected", "sum", "subsets_Mito_percent")
+if(!identical(setdiff(qc_features, colnames(scData@meta.data)), character(0)))
+    qc_features = c("nGene", "nUMI", "perc_mito")
+
+FeaturePlot(object = scData, features = qc_features[1], reduction = "tsne", cols = c("yellow", "red"))
+FeaturePlot(object = scData, features = qc_features[2], reduction = "tsne", cols = c("yellow", "red"))
+FeaturePlot(object = scData, features = qc_features[3], reduction = "tsne", cols = c("yellow", "red"))
+
 if(showCellCycle)
   DimPlot(scData, reduction = "tsne", group.by = "CellCycle", pt.size = 0.7, plot.title="Cell cycle phase")
 ```
