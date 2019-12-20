@@ -5,8 +5,8 @@
 # The terms are available here: http://www.gnu.org/licenses/gpl.html
 # www.fgcz.ch
 
-##' @title 
-##' @description Use this reference class to run
+##' @title exceRpt_smallRNA report app
+##' @description Use this reference class to process exceRpt_smallRNA's output after execution and perform a QC.
 ##' @author Miquel Anglada Girotto
 EzAppExceRptReport =
   setRefClass( "EzAppExceRptReport",
@@ -23,8 +23,11 @@ EzAppExceRptReport =
                
   )
 
-##' @title 
-##' @description Use this reference class to run
+##' @title execute exceRpt_smallRNA's output processing.
+##' @description create QC plots and count smallRNAs detected after executing ezMethodExceRpt().
+##' @param input ezDataFrame()
+##' @param output ezDataFrame()
+##' @param param list() environment parameters.
 ##' @author Miquel Anglada Girotto
 ezMethodExceRptReport = function(input=NA, output=NA, param=NA){
   ## set report's working directory
@@ -42,20 +45,39 @@ ezMethodExceRptReport = function(input=NA, output=NA, param=NA){
 }
 
 
-
-## Functions to create report.
-
-##' @title 
-##' @description Use this reference class to run
-##' @author Miquel Anglada Girotto
-delete_e = function(linesRead){
-  f = gsub('-e ','',linesRead)
-  return(f)
+##' @title generate smallRNA counts and QC.
+##' @description Obtain counts and QC plots across all samples.
+##' @param samplePaths <string> vector of all the files that need to be processed together.
+##' @param outputDir <string> directory name where to output generated objects and report after processing.
+##' @param getPlotsObjects <bool> TRUE to output plots as an object.
+##' @author (Rob Kitchen) Miquel Anglada Girotto
+processSamples = function(samplePaths, outputDir, getPlotsObjects=FALSE){
+  ## Load required dependencies
+  loadDependencies()
+  
+  ## delete -e from .stats (they do not appear in the ExampleData, but they do when I ran the program)
+  #delete_e(samplePaths)
+  
+  ## Get directories containing counts
+  samplePathList = list.dirs(samplePaths,recursive=F)
+  
+  ## create output dir
+  dir.create(outputDir)
+  
+  ## get sample names
+  # sampleIDs = sapply(samplePathList, function(path){ tmp=unlist(strsplit(path,"/")); tmp[length(tmp)] })
+  
+  ## reads, normalises, and saves individual sample results
+  sampleIDs = readData(samplePathList = samplePathList, output.dir = outputDir)
+  
+  ## plot the data
+  plotsList = PlotData(sampleIDs, outputDir)
+  if(getPlotsObjects==TRUE){return(plotsList)}
 }
 
 
-##' @title 
-##' @description Use this reference class to run
+##' @title load dependencies
+##' @description load dependencies required within processSamples()
 ##' @author Miquel Anglada Girotto
 loadDependencies = function(){
   ## load
@@ -70,17 +92,9 @@ loadDependencies = function(){
 }
 
 
-##' @title 
-##' @description Use this reference class to run
-##' @author Miquel Anglada Girotto
-printMessage = function(message=""){
-  cat(as.character(Sys.time()),":  ",paste(message,sep=""),"\n",sep="")
-}
-
-
-##' @title 
-##' @description Use this reference class to run
-##' @author Miquel Anglada Girotto
+##' @title Get smallRNA counts and stats
+##' @description Get smallRNA counts and stats to return as final output and make QC plots.
+##' @author (Rob Kitchen) Miquel Anglada Girotto
 readData = function(samplePathList, output.dir){
   
   ##
@@ -581,9 +595,34 @@ readData = function(samplePathList, output.dir){
 }
 
 
-##' @title 
-##' @description Use this reference class to run
+##' @title delete "-e " strings
+##' @description delete "-e " strings in *.stats processed output document to create the required dataframe
+##' @description for downstream processing
+##' @param linesRead <string> vector output from readLines()
 ##' @author Miquel Anglada Girotto
+delete_e = function(linesRead){
+  f = gsub('-e ','',linesRead)
+  return(f)
+}
+
+
+##' @title print info messages
+##' @description to print formatted info messages.
+##' @param message <string>
+##' @author (Rob Kitchen)
+printMessage = function(message=""){
+  cat(as.character(Sys.time()),":  ",paste(message,sep=""),"\n",sep="")
+}
+
+
+##' @title Make QC plots
+##' @description Create QC plots from data obtained through readData()
+##' @param sampleIDs <string> names of the samples obtained through readData()
+##' @param output.dir <string> directory to which output the files to create the report.
+##' @param sampleGroups <string> if any sample groups were defined. Deprecated.
+##' @param minPercent_exogenousRibosomal <double> Not used.
+##' @param minPercent_exogenousGenomes <double> Not used.
+##' @author (Rob Kitchen) Miquel Anglada Girotto
 PlotData = function(sampleIDs, output.dir, sampleGroups=NA, minPercent_exogenousRibosomal=0.5, minPercent_exogenousGenomes=0.5){
   
   load(paste(output.dir, "exceRpt_smallRNAQuants_ReadCounts.RData", sep="/"))
@@ -1034,42 +1073,10 @@ PlotData = function(sampleIDs, output.dir, sampleGroups=NA, minPercent_exogenous
 }
 
 
-##' @title 
-##' @description Use this reference class to run
-##' @author Miquel Anglada Girotto
-processSamples = function(samplePaths, outputDir, getPlotsObjects=FALSE){
-  ## Load required dependencies
-  loadDependencies()
-  
-  ## delete -e from .stats (they do not appear in the ExampleData, but they do when I ran the program)
-  #delete_e(samplePaths)
-  
-  ## Get directories containing counts
-  samplePathList = list.dirs(samplePaths,recursive=F)
-  
-  ## create output dir
-  dir.create(outputDir)
-  
-  ## get sample names
-  sampleIDs = sapply(samplePathList, function(path){ tmp=unlist(strsplit(path,"/")); tmp[length(tmp)] })
-  
-  ## reads, normalises, and saves individual sample results
-  sampleIDs = readData(samplePathList = samplePathList, output.dir = outputDir)
-  
-  ## plot the data
-  plotsList = PlotData(sampleIDs, outputDir)
-  if(getPlotsObjects==TRUE){return(plotsList)}
-}
-
-
-## Deprecated below
-
-##' @title 
-##' @description Use this reference class to run
-##' @author Miquel Anglada Girotto
+## Deprecated below:
 ##
 ## Plots a taxonomy tree with a given set of weights
-##
+## (Rob Kitchen)
 plotTree = function(rEG, taxonomyInfo, counts_uniq, counts_cum, title="", what){
 
 ## node parameters
@@ -1109,12 +1116,9 @@ renderGraph(tmp)
 }
 
 
-##' @title 
-##' @description Use this reference class to run
-##' @author Miquel Anglada Girotto
 ##
 ## Plot exogenous genomes
-##
+## (Rob Kitchen)
 plotExogenousTaxonomyTrees = function(counts, cumcounts, what, output.dir, taxonomyInfo, fontScale=2, sampleGroups=NA, minPercent=0.5){
   
   

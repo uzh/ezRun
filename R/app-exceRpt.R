@@ -5,7 +5,9 @@
 # The terms are available here: http://www.gnu.org/licenses/gpl.html
 # www.fgcz.ch
 
-
+##' @title exceRpt_smallRNA app
+##' @description Use this reference class to run exceRpt_smallRNA parameters.
+##' @author Miquel Anglada Girotto
 EzAppExceRpt =
   setRefClass( "EzAppExceRpt",
                contains = "EzApp",
@@ -36,7 +38,7 @@ EzAppExceRpt =
                      TRIM_N_BASES_5p = ezFrame(Type="character", DefaultValue='0', Description="<int>"),
                      TRIM_N_BASES_3p = ezFrame(Type="character", DefaultValue='0', Description="<int>"),
                      RANDOM_BARCODE_LENGTH = ezFrame(Type="character", DefaultValue='0', Description="<int>"),
-                     RANDOM_BARCODE_LOCATION = ezFrame(Type="character", DefaultValue="'-5p -3p'", Description="'-5p -3p'/'-5p'/'-3p'"),
+                     RANDOM_BARCODE_LOCATION = ezFrame(Type="character", DefaultValue="-5p -3p", Description="'-5p -3p'/'-5p'/'-3p'"),
                      KEEP_RANDOM_BARCODE_STATS = ezFrame(Type="character", DefaultValue='false', Description="'false'|'true'"),
                      DOWNSAMPLE_RNA_READS = ezFrame(Type="character", DefaultValue='NULL', Description="<int>"),
                      MAP_EXOGENOUS = ezFrame(Type="character", DefaultValue='off', Description="'off'|'miRNA'|'on'"),
@@ -60,6 +62,13 @@ EzAppExceRpt =
                
   )
 
+
+##' @title execute exceRpt_smallRNA.
+##' @description R wrapper to execute exceRpt_smallRNA pipeline to count smallRNAs in bulk RNA-seq experiments.
+##' @param input ezDataFrame()
+##' @param output ezDataFrame()
+##' @param param list() exceRpt_smallRNA and environment parameters.
+##' @author Miquel Anglada Girotto
 ezMethodExceRpt = function(input=NA, output=NA, param=NA){
   ## objects from dataset information
   readFile = input$getFullPaths("Read1") # input file path
@@ -83,9 +92,13 @@ ezMethodExceRpt = function(input=NA, output=NA, param=NA){
   if(param[['REMOVE_LARGE_INTERMEDIATE_FILES']]=='true'){keepOnlyCoreFiles(outputDir)}
 }
 
-##' paste shell command
-##' 
 
+##' @title create appropriate command line call.
+##' @description paste character strings to create the adequate shell command to execute exceRpt_smallRNA. 
+##' @param param list() exceRpt_smallRNA parameters.
+##' @param readFile <string> full path of the *.fastq(.gz) input file.
+##' @param outputDir <string> directory in which to save the processed outputs created by exceRpt_smallRNA.
+##' @author Miquel Anglada Girotto
 pasteCmd=function(param, readFile, outputDir){
   cmd = paste(
         ## makefile to execute
@@ -119,7 +132,7 @@ pasteCmd=function(param, readFile, outputDir){
         paste0('TRIM_N_BASES_5p=',param[['TRIM_N_BASES_5p']]),                    
         paste0('TRIM_N_BASES_3p=',param[['TRIM_N_BASES_3p']]),                     
         paste0('RANDOM_BARCODE_LENGTH=',param[['RANDOM_BARCODE_LENGTH']]),         
-        paste0('RANDOM_BARCODE_LOCATION=',param[['RANDOM_BARCODE_LOCATION']]),     
+        paste0('RANDOM_BARCODE_LOCATION=',"'",param[['RANDOM_BARCODE_LOCATION']],"'"),     
         paste0('KEEP_RANDOM_BARCODE_STATS=',param[['KEEP_RANDOM_BARCODE_STATS']]),
         paste0('DOWNSAMPLE_RNA_READS=',param[['DOWNSAMPLE_RNA_READS']]),         
         paste0('MAP_EXOGENOUS=',param[['MAP_EXOGENOUS']]),                        
@@ -143,10 +156,12 @@ pasteCmd=function(param, readFile, outputDir){
   return(cmd)
 }
 
-##' keep only core files
-##' 
-##' 
 
+##' @title keep only files in *CORE_RESULTS* folder
+##' @description to reduce the final output size, this function deletes all files within the "processed_output"
+##' @description directory to keep only the core files required to generate the counts and final report.
+##' @param data.dir <string> directory in which the function will be executed.
+##' @author Miquel Anglada Girotto
 keepOnlyCoreFiles = function(data.dir){
   # list files in output.dir
   dirFiles = list.files(data.dir,full.names = TRUE, recursive = FALSE)
@@ -167,3 +182,4 @@ keepOnlyCoreFiles = function(data.dir){
     print('No CORE_RESULTS found; probably they had already been extracted.')
   }
 }
+
