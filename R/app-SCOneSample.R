@@ -83,7 +83,8 @@ ezMethodSCOneSample <- function(input=NA, output=NA, param=NA,
   
   sce_iSEE = as.SingleCellExperiment(scData)
   saveRDS(sce_iSEE, "sce_iSEE.rds")
-  saveRDS(sce_list, "sce_list.rds")
+  saveRDS(sce_list$sce, "sce.rds")
+  saveRDS(sce_list$sce.unfiltered, "sce.unfiltered.rds")
   ## Copy the style files and templates
   styleFiles <- file.path(system.file("templates", package="ezRun"),
                           c("fgcz.css", "SCOneSample.Rmd",
