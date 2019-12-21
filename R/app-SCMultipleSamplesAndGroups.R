@@ -233,6 +233,7 @@ return(scData)
 
 
 saveExternalFiles = function(scData) {
+  library(tidyverse)
   propCells_table = cellsProportion(scData)
   cellsPropPerClusterAndSampleFn = "cells_proportions.txt"
   scData@misc$cellsPropPerClusterAndSampleFn <- cellsPropPerClusterAndSampleFn
