@@ -131,6 +131,8 @@ seuratStandardWorkflow <- function(scData, param){
     scData@meta.data$CC.Difference <- scData@meta.data$CellCycleS - scData@meta.data$CellCycleG2M
     param$vars.to.regress <- "CC.Difference"
   }
+  if(identical(param$vars.to.regress, character(0)))  #no variables to regress
+    param$vars.to.regress = NULL
   scData <- ScaleData(object = scData, num.cores=param$cores, vars.to.regress = param$vars.to.regress)
   scData <- RunPCA(object=scData, npcs = param$npcs, features=param$pcGenes)
   scData <- RunTSNE(object = scData, reduction = "pca", dims = 1:param$npcs, num_threads=param$cores)
