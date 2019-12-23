@@ -418,7 +418,7 @@ if (sum(use) > param$minGenesForClustering){
   clusterColors = hcl.colors(nClusters, palette = "BluGrn")
   clusterResult = clusterResults(xCentered, nClusters=nClusters, clusterColors=clusterColors)
   
-  design = design[,c(param$groupingName,setdiff(colnames(design),param$groupingName))]
+  design = design[,c(param$groupingName,setdiff(colnames(design),param$groupingName)), drop=FALSE]
   
   plotCmd = expression({
     clusterPheatmap(xCentered, design, param, clusterColors,
