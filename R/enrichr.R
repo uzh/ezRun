@@ -70,11 +70,13 @@ runEnrichr <- function(genes, minScore = 12, maxAdjP = 0.01, minOverlapGenes = 3
     message(res$failure[[1]])
   }
   resFilt <- list()
-  res$success = res$success[sapply(res$success, is.data.frame)]
   if (length(res$success) > 0) {
-    resFilt <- filterEnrichrResults(res$success, minCombinedScore = minScore, maxPAdj = maxAdjP, 
-                                    minOverlapGenes = minOverlapGenes, softFilter = softFilter,
-                                    maxResult = maxResult)
+    res$success = res$success[sapply(res$success, is.data.frame)]
+    if (length(res$success) > 0) {
+      resFilt <- filterEnrichrResults(res$success, minCombinedScore = minScore, maxPAdj = maxAdjP, 
+                                      minOverlapGenes = minOverlapGenes, softFilter = softFilter,
+                                      maxResult = maxResult)
+    }
   }
   resFilt
 }
