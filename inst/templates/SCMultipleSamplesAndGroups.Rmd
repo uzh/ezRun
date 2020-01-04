@@ -262,7 +262,7 @@ for(cluster in unique(markers.to.plot$cluster)){
 
 nrGroups <- length(unique(scData_Clustersubset@meta.data$orig.ident))
 markers.to.plot <- conservedMarkers %>% group_by(cluster) %>% top_n(3, minimump_p_val)
-DotPlot(scData_Clustersubset, features = unique(markers.to.plot$gene), cols = hue_pal()(nrGroups), dot.scale = 8, do.return = T, split.by = "orig.ident") + theme(axis.text.x = element_text(size = 8)) + RotatedAxis()
+DotPlot(scData_Clustersubset, features = unique(markers.to.plot$gene), cols = hue_pal()(nrGroups), dot.scale = 8, split.by = "orig.ident") + theme(axis.text.x = element_text(size = 8)) + RotatedAxis()
 ```
 
 ### Differential expressed genes
