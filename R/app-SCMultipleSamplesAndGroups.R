@@ -40,10 +40,11 @@ EzAppSCMultipleSamplesAndGroups <-
   )
 
 ezMethodSCMultipleSamplesAndGroups = function(input=NA, output=NA, param=NA, htmlFile="00index.html") {
-  library("Seurat", lib="/home/daymegr/myRpackages")
+  library(Seurat)
   library(rlist)
   library(tibble)
   library(dplyr)
+  library(readr)
   
   ## subset the selected sample names
   samples <- param$samples
@@ -233,7 +234,8 @@ return(scData)
 
 
 saveExternalFiles = function(scData) {
-  library(tidyverse)
+  library(readr)
+  
   propCells_table = cellsProportion(scData)
   cellsPropPerClusterAndSampleFn = "cells_proportions.txt"
   scData@misc$cellsPropPerClusterAndSampleFn <- cellsPropPerClusterAndSampleFn
