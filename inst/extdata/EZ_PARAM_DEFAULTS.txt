@@ -140,3 +140,10 @@ isParsed	logical	FALSE	the param has been parsed by EzParam() once already?
 #SingleCell mode
 scProtocol	character		scProtocol
 linkHtmlLibDir	character	/srv/GT/reference/rmarkdownLib	the directory from which the html libraries are linked; leave empty to disable linking
+#NestLink
+maxMismatch	numeric	1	
+minRelBestHitFreq	numeric	0	
+minConsensusScore	numeric	0.9	
+minNanobodyLength	numeric	321	
+minFlycodeLength	numeric	33	
+FCminFreq	numeric	4	
