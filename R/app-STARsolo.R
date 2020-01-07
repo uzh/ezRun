@@ -31,9 +31,11 @@
 #     CB_UMI_Simple   ... (a.k.a. Droplet) one UMI and one Cell Barcode of fixed length in read2, e.g. Drop-seq and 10X Chromium
 #     CB_UMI_Complex  ... one UMI of fixed length, but multiple Cell Barcodes of varying length, as well as adapters sequences are allowed in read2 only, e.g. inDrop.
 
-
-
 ezMethodSTARsolo = function(input=NA, output=NA, param=NA){
+    ## main vars
+    STARbin = "/usr/local/ngseq/packages/Aligner/STAR/2.7.3a/bin/STAR"
+    
+    ## analysis vars
     refDir = getSTARReference(param)
     sampleName = input$getNames()
     sampleDirs = strsplit(input$getColumn("RawDataDir"), ",")[[sampleName]]
@@ -41,7 +43,7 @@ ezMethodSTARsolo = function(input=NA, output=NA, param=NA){
     sampleDir <- paste(sampleDirs, collapse=" ")
     STARsoloFolder = paste0(sampleName, "-STARsolo")
     
-    ## Define 
+    ## Define
     cDNAfragmentSequence.fastq.gz = 
     CellBarcodeUMIsequence.fastq.gz = 
     
