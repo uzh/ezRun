@@ -741,7 +741,7 @@ preparePicard <- function(){
   if(Sys.which("picard") != ""){
     return("picard -Xms1g -Xmx10g -Djava.io.tmpdir=.")
   }else if(Sys.getenv("Picard_jar") != ""){
-    return(paste("java -jar -Djava.io.tmpdir=. -Xmx10G ", Sys.getenv("Picard_jar")))
+    return(paste("java -jar -Djava.io.tmpdir=. -Xmx10G", Sys.getenv("Picard_jar")))
   }else{
     stop("Cannot find proper picard installed!")
   }
@@ -764,6 +764,26 @@ prepareGATK <- function(){
     return(paste("java -jar -Djava.io.tmpdir=.", Sys.getenv("GATK_jar")))
   }else{
     stop("Cannot find proper gatk installed!")
+  }
+}
+
+prepareJavaTools <- function(tool=c("picard", "trimmomatic", "gatk3", "snpeff")){
+  tool <- match.arg(tool)
+  tool_jar <- c("picard"="Picard_jar",
+                "trimmomatic"="Trimmomatic_jar",
+                "gatk3"="GATK_jar",
+                "snpeff"="SnpEff")
+  if(Sys.which(tool) != ""){
+    if(tool == "gatk3"){
+      return("gatk3 --java-options \"-Xms1g -Xmx10g -Djava.io.tmpdir=.\"")
+    }else{
+      return(paste(tool, "-Xms1g -Xmx10g -Djava.io.tmpdir=."))
+    }
+  }else if(Sys.getenv(tool_jar[tool]) != ""){
+    return(paste("java -jar -Xms1g -Xmx10g -Djava.io.tmpdir=.",
+                 Sys.getenv(Sys.getenv(tool_jar[tool]))))
+  }else{
+    stop("Cannot find proper ", tool, " installed!")
   }
 }
 
