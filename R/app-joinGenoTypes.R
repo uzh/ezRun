@@ -23,7 +23,7 @@ ezMethodJoinGenoTypes = function(input=NA, output=NA, param=NA){
     param[['javaCall']] = paste0("java", " -Djava.io.tmpdir=. -Xmx", param$ram/param$mc.cores, "g")
     
     require(parallel)
-    ezMclapply(datasetCaseList,runGatkPipeline, param, mc.cores = param$mc.cores)
+    ezMclapply(datasetCaseList,runGatkPipeline, param, mc.cores = param$cores)
     if(param$recalibrateVariants){
         ezSystem('rm *.tranches *recal* *_annotated.vcf*')
     } else {
