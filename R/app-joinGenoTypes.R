@@ -11,13 +11,13 @@ ezMethodJoinGenoTypes = function(input=NA, output=NA, param=NA){
     dataset[['GVCF [File]']] = input$getFullPaths("GVCF")
     datasetCaseList = split(dataset,input$getColumn(param$grouping))
     if(is.null(param$mc.cores)){
-        param[['mc.cores']] = min(1L, round(param$cores/length(datasetCaseList)))
+        param[['mc.cores']] = max(1L, round(param$cores/length(datasetCaseList)))
     }
     param[['genomeSeq']] = param$ezRef["refFastaFile"]
     param[['species']] = limma::strsplit2(param$ezRef['refBuild'],'/')[1]
     param[['knownSites']] = list.files(param$ezRef["refVariantsDir"],pattern='vcf.gz$',full.names = T) 
     param[['dbsnpFile']] = param$knownSites[grep('dbsnp.*vcf.gz$', param$knownSites)]
-    param[['snpEffConfig']] = file.path(dirname(param$ezRef["refFeatureFile"]),"snpEff/snpEff.config")
+    param[['snpEffConfig']] = file.path(dirname(param$ezRef["refFeatureFile"]), "snpEff/snpEff.config")
     snpEffDB = basename(list.dirs(dirname(param$snpEffConfig))) ####bad Hack
     param[['snpEffDB']] = snpEffDB[grep(param$species, snpEffDB)]
     param[['javaCall']] = paste0("java", " -Djava.io.tmpdir=. -Xmx", param$ram/param$mc.cores, "g")
