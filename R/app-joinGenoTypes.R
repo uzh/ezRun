@@ -11,7 +11,7 @@ ezMethodJoinGenoTypes = function(input=NA, output=NA, param=NA){
     dataset[['GVCF [File]']] = input$getFullPaths("GVCF")
     datasetCaseList = split(dataset,input$getColumn(param$grouping))
     if(is.null(param$mc.cores)){
-        param[['mc.cores']] = 1
+        param[['mc.cores']] = min(1L, round(param$cores/length(datasetCaseList)))
     }
     param[['genomeSeq']] = param$ezRef["refFastaFile"]
     param[['species']] = limma::strsplit2(param$ezRef['refBuild'],'/')[1]
