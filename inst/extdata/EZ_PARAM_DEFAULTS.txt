@@ -147,3 +147,4 @@ minConsensusScore	numeric	0.9
 minNanobodyLength	numeric	321	
 minFlycodeLength	numeric	33	
 FCminFreq	numeric	4	
+markDuplicates	logical	TRUE	
