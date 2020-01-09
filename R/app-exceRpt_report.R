@@ -35,7 +35,13 @@ ezMethodExceRptReport = function(input=NA, output=NA, param=NA){
   
   ## Process output
   processedOutputDir = "processed_output"
-  plots = processSamples(samplePaths = input$getFullPaths("excerpt"), outputDir = processedOutputDir, getPlotsObjects=TRUE)
+  selectedSamples = param[['samples']]
+  
+  samplePaths = input$getFullPaths("excerpt")
+  idx = basename(samplePaths) %in% selectedSamples
+  samplePathsFilt = samplePaths[idx]
+  
+  plots = processSamples(samplePaths = samplePathsFilt, outputDir = processedOutputDir, getPlotsObjects=TRUE)
 
   ## list files generated
   dataFiles = list.files(processedOutputDir, pattern = '*.txt')
@@ -63,9 +69,6 @@ processSamples = function(samplePaths, outputDir, getPlotsObjects=FALSE){
   
   ## create output dir
   dir.create(outputDir)
-  
-  ## get sample names
-  # sampleIDs = sapply(samplePathList, function(path){ tmp=unlist(strsplit(path,"/")); tmp[length(tmp)] })
   
   ## reads, normalises, and saves individual sample results
   sampleIDs = readData(samplePathList = samplePathList, output.dir = outputDir)
