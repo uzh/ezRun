@@ -5,66 +5,233 @@
 # The terms are available here: http://www.gnu.org/licenses/gpl.html
 # www.fgcz.ch
 
-# notes for implementation
-
-## STARsolo run:
-"
-/path/to/STAR --genomeDir /path/to/genome/dir/ \
-              --readFilesIn cDNAfragmentSequence.fastq.gz CellBarcodeUMIsequence.fastq.gz \
-              [...other parameters...] \
-              --soloType ...  \
-              --soloCBwhitelist /path/to/cell/barcode/whitelist
-"
-
-### extra parameters:
-
-# barcode lengths: 
-#   --soloUMIlen 12
-# reads:
-#   Importantly, in the --readFilesIn option, the 1st file has to be cDNA read, and the 2nd file has to be the barcode (cell+UMI) read
-# For multiple lanes, use commas separated lists for Read2 and Read1:
-#   --readFilesIn Read2_Lane1.fastq.gz,Read2_Lane2.fastq.gz,Read2_Lane3.fastq.gz  Read1_Lane1.fastq.gz,Read1_Lane2.fastq.gz,Read1_Lane3.fastq.gz
-# barcode geometry:
-#   --soloCBstart, --soloCBlen, --soloUMIstart, --soloUMIlen
-# type of SCRNA-seq:
-#   string(s): type of single-cell RNA-seq
-#     CB_UMI_Simple   ... (a.k.a. Droplet) one UMI and one Cell Barcode of fixed length in read2, e.g. Drop-seq and 10X Chromium
-#     CB_UMI_Complex  ... one UMI of fixed length, but multiple Cell Barcodes of varying length, as well as adapters sequences are allowed in read2 only, e.g. inDrop.
+ezAppSTARsolo = 
+    setRefClass("ezAppSTARsolo",
+            contains = "EzApp",
+            methods = list(
+                initialize = function()
+                {
+                    "Initializes the application using its specific defaults."
+                    runMethod <<- ezMethodSTARsolo
+                    name <<- "EzAppCellRanger"
+                    appDefaults <<- rbind(controlSeqs=ezFrame(Type="charVector",
+                                                              DefaultValue="",
+                                                              Description="control sequences to add"),
+                                          ## STARsolo parameters
+                                          soloType=ezFrame(Type="character",
+                                                           DefaultValue="CB_UMI_Simple",
+                                                           Description="CB_UMI_Simple (a.k.a. Droplet), CB_UMI_Complex (e.g. Droplet)."),
+                                          chemistry=ezFrame(Type="character",
+                                                           DefaultValue="SC3Pv3",
+                                                           Description="Barcode whitelist. Choose: SC3Pv1, SC3Pv2, SC3Pv3."),
+                                          soloCBstart=ezFrame(Type="character",
+                                                           DefaultValue="1",
+                                                           Description="Cell barcode start base."),
+                                          soloCBlen=ezFrame(Type="character",
+                                                           DefaultValue="16",
+                                                           Description="Cell barcode length."),
+                                          soloUMIstart=ezFrame(Type="character",
+                                                           DefaultValue="17",
+                                                           Description="UMI start base."),
+                                          soloUMIlen=ezFrame(Type="character",
+                                                             DefaultValue="auto",
+                                                             Description="UMI length. 10 if SC3Pv3 not selected, 12 otherwise."),
+                                          soloUMIfiltering=ezFrame(Type="character",
+                                                                   DefaultValue="MultiGeneUMI",
+                                                                   Description="type of UMI filtering.
+                                                                            -               ... basic filtering: remove UMIs with N and homopolymers (similar to CellRanger 2.2.0)
+                                                                            MultiGeneUMI    ... remove lower-count UMIs that map to more than one gene (introduced in CellRanger 3.x.x)"),
+                                          soloCBmatchWLtype=ezFrame(Type="character",
+                                                                    DefaultValue="1MM_multi_pseudocounts",
+                                                                    Description="matching the Cell Barcodes to the WhiteList.
+                                                                                Exact                   only exact matches allowed
+                                                                                1MM                     only one match in whitelist with 1 mismatched base allowed. Allowed CBs have to have at least one read with exact match.
+                                                                                1MM_multi               multiple matches in whitelist with 1 mismatched base allowed, posterior probability calculation is used choose one of the matches.
+                                                                                                        Allowed CBs have to have at least one read with exact match. Similar to CellRanger 2.2.0
+                                                                                1MM_multi_pseudocounts  same as 1MM_Multi, but pseudocounts of 1 are added to all whitelist barcodes.
+                                                                                                        Similar to CellRanger 3.x.x"),
+                                          soloCellFilter=ezFrame(Type="character",
+                                                                 DefaultValue="None",
+                                                                 Description="cell filtering type and parameters
+                                                                        CellRanger2.2   ... simple filtering of CellRanger 2.2, followed by thre numbers: number of expected cells, robust maximum percentile for UMI count, maximum to minimum ratio for UMI count
+                                                                        TopCells        ... only report top cells by UMI count, followed by the excat number of cells
+                                                                        None            ... do not output filtered cells")
+                                          # soloBarcodeReadLength=ezFrame(Type="character",
+                                          #                               DefaultValue="1",
+                                          #                               Description="1 if equal to sum of soloCBlen+soloUMIlen; 0 if not defined, do not check."),
+                                          # soloCBposition=ezFrame(Type="character",
+                                          #                        DefaultValue="-",
+                                          #                        Description="Position of Cell Barcode(s) on the barcode read.
+                                          #                                   Presently only works with --soloType CB_UMI_Complex, and barcodes are assumed to be on Read2.
+                                          #                                   Format for each barcode: startAnchor_startDistance_endAnchor_endDistance
+                                          #                                   start(end)Anchor defines the anchor base for the CB: 
+                                          #                                   0: read start; 1: read end; 2: adapter start; 3: adapter end
+                                          #                                   start(end)Distance is the distance from the CB start(end) to the Anchor base
+                                          #                                   String for different barcodes are separated by space.
+                                          #                                   Example: inDrop (Zilionis et al, Nat. Protocols, 2017):
+                                          #                                   --soloCBposition  0_0_2_-1  3_1_3_8"),
+                                          # soloUMIposition=ezFrame(Type="character",
+                                          #                         DefaultValue="-",
+                                          #                         Description="position of the UMI on the barcode read, same as soloCBposition.
+                                          #                                   Example: inDrop (Zilionis et al, Nat. Protocols, 2017):
+                                          #                                   --soloCBposition  3_9_3_14"),
+                                          # soloAdapterSequence=ezFrame(Type="character",
+                                          #                               DefaultValue="-",
+                                          #                               Description="Adapter sequence to anchor barcodes."),
+                                          # soloAdapterMismatchesNmax=ezFrame(Type="character",
+                                          #                             DefaultValue="1",
+                                          #                             Description="maximum number of mismatches allowed in adapter sequence."),
+                                          # soloStrand=ezFrame(Type="character",
+                                          #                    DefaultValue="Forward",
+                                          #                    Description="strandedness of the solo libraries.
+                                          #                               Unstranded  ... no strand information
+                                          #                               Forward     ... read strand same as the original RNA molecule
+                                          #                               Reverse     ... read strand opposite to the original RNA molecule"),
+                                          # soloFeatures=ezFrame(Type="character",
+                                          #                    DefaultValue="Gene",
+                                          #                    Description="genomic features for which the UMI counts per Cell Barcode are collected.
+                                          #                               Gene            ... genes: reads match the gene transcript
+                                          #                               SJ              ... splice junctions: reported in SJ.out.tab
+                                          #                               GeneFull        ... full genes: count all reads overlapping genes' exons and introns
+                                          #                               Transcript3p   ... quantification of transcript for 3' protocols"),
+                                          # soloUMIdedup=ezFrame(Type="character",
+                                          #                    DefaultValue="1MM_All",
+                                          #                    Description="type of UMI deduplication (collapsing) algorithm.
+                                          #                               1MM_All             ... all UMIs with 1 mismatch distance to each other are collapsed (i.e. counted once)
+                                          #                               1MM_Directional     ... follows the 'directional' method from the UMI-tools by Smith, Heger and Sudbery (Genome Research 2017).
+                                          #                               Exact               ... only exactly matching UMIs are collapsed"),
+                                                            )
+                                                          }
+            )
+)
 
 ezMethodSTARsolo = function(input=NA, output=NA, param=NA){
-    ## main vars
-    STARbin = "/usr/local/ngseq/packages/Aligner/STAR/2.7.3a/bin/STAR"
-    
-    ## analysis vars
-    refDir = getSTARReference(param)
+    # analysis vars
+    ## check if a new index is needed, then create it with CellRanger and the last version of STAR.
+    refDir <- getSTARReference(param)
     sampleName = input$getNames()
     sampleDirs = strsplit(input$getColumn("RawDataDir"), ",")[[sampleName]]
-    sampleDirs <- file.path(input$dataRoot, sampleDirs)
-    sampleDir <- paste(sampleDirs, collapse=" ")
-    STARsoloFolder = paste0(sampleName, "-STARsolo")
+    sampleDirs = file.path(input$dataRoot, sampleDirs)
+    sampleDir = paste(sampleDirs, collapse=" ")
     
-    ## Define
-    cDNAfragmentSequence.fastq.gz = 
-    CellBarcodeUMIsequence.fastq.gz = 
+    # create STARsolo command and build genome index
+    cmd = makeSTARsoloCmd(param, refDir, sampleName, sampleDir)
     
+    # run STARsolo shell command
+    ezSystem(cmd)
+    
+    # filter raw counts with EmptyDrop
+    require(Matrix)
+    require(readr)
+    require(DropletUtils)
+    countMatrixFn = list.files(path=file.path(sampleName),
+                                pattern="\\.mtx(\\.gz)*$", recursive=TRUE,
+                                full.names=TRUE)
+    countMatrixDir = dirname(countMatrixFn)
+    
+    ## Prepare STARsolo output to be processed as CellRanger output
+    ### add "Gene Expression" column to features.tsv
+    featuresFn = paste0(countMatrixDir,'/features.tsv')
+    tmp =  paste0(countMatrixDir,'/tmp.tsv')
+    cmd = paste("awk \'{print $0, \"\tGene Expression\"}\'",featuresFn,">",tmp)
+    ezSystem(cmd)
+    ezSystem(paste("mv",tmp,featuresFn)) # rename tmp into features
+    ### gzip all files
+    ezSystem(paste("gzip",paste0(countMatrixDir,"/*")))
+
+    ## Filter raw STARsolo counts with EmptyDrops
+    sce = read10xCounts(samples = countMatrixDir, col.names = TRUE, version = '3')
+    rawCounts = sce@assays@data@listData$counts
+    ### cell calling
+    called = defaultDrops(rawCounts)
+    ### Data of called cells.
+    countsFiltered = rawCounts[,called]
+    geneID = sce@rowRanges@elementMetadata@listData[["ID"]]
+    geneSymbol = sce@rowRanges@elementMetadata@listData[["Symbol"]]
+    ### save in new directory
+    filteredDir = paste0(sampleName,'/filtered_feature_bc_matrix')
+    write10xCounts(path = filteredDir, x = countsFiltered, gene.id = geneID, gene.symbol = geneSymbol, version = '3')
+    
+    # Get cell cycle from filtered output
+    sce <- read10xCounts(samples = filteredDir, col.names = TRUE, version = '3')
+    cellPhase <- getCellCycle(sce, param$refBuild)
+    write_tsv(cellPhase,
+              path=file.path(filteredDir,
+                "CellCyclePhase.txt"))
+    
+    return("Success")
+}
+# create STARsolo shell command
+makeSTARsoloCmd = function(param, refDir, sampleName, sampleDir){
+    # define binary full path
+    STARbin = "/usr/local/ngseq/packages/Aligner/STAR/2.7.3a/bin/STAR"
+
+    ## decide which chemistry whitelist to take
+    soloCBwhitelist = list(
+        SC3Pv1 = '/usr/local/ngseq/opt/cellranger-3.1.0/cellranger-cs/3.1.0/lib/python/cellranger/barcodes/737K-april-2014_rc.txt',
+        SC3Pv2 = '/usr/local/ngseq/opt/cellranger-3.1.0/cellranger-cs/3.1.0/lib/python/cellranger/barcodes/737K-august-2016.txt',
+        SC3Pv3 = '/usr/local/ngseq/opt/cellranger-3.1.0/cellranger-cs/3.1.0/lib/python/cellranger/barcodes/3M-february-2018.txt'
+    )
+    
+    ## decide soloUMIlen
+    if(param[['soloUMIlen']]=='auto'){
+        if(param[['chemistry']]=='SC3Pv3'){
+            soloUMIlen = '12'
+        }else{
+            soloUMIlen = '10'
+        }
+    }else{
+        soloUMIlen = param[['soloUMIlen']]
+    }
+    
+    ## create readFilesIn
+    ### list files: the names are always the same for standard runs. Only the presence of indexes is optional.
+    fastqfiles = sort(list.files(sampleDir))
+    cDNAfastqs = paste(paste(sampleDir,grep('R2',fastqfiles, value = TRUE),sep='/'), collapse = ',')
+    barcodesfastqs = paste(paste(sampleDir,grep('R1',fastqfiles, value = TRUE),sep='/'), collapse = ',')
+    indexfastqs = paste(paste(sampleDir,grep('_I',fastqfiles,value = TRUE),sep='/'), collapse = ',')
+    
+    readFilesIn = trimws(paste(cDNAfastqs, indexfastqs, barcodesfastqs, collapse = ' ')) # remove last space, incase indexfastqs is empty.
+    
+    ## create readFilesCommand
+    if(unique(gsub('.*\\.','',fastqfiles))=='gz'){
+        readFilesCommand = 'zcat'
+    }else{
+        readFilesCommand = 'cat'
+    }
+    
+    # create output folder for the sample (in CellRanger this was automated)
+    if(!dir.exists(sampleName)){dir.create(sampleName)}
+    
+    # create full STARsolo command
     cmd = paste(STARbin,
-                ## STAR parameters
+                ## STAR general parameters
+                paste0('--runThreadN ',param[['cores']]),
+                paste0('--outFileNamePrefix ',sampleName,'/'),
+                
+                paste0('--readFilesIn ',readFilesIn),
+                paste0('--readFilesCommand ',readFilesCommand),
                 paste0('--genomeDir ',refDir),
-                paste0('--readFilesIn ',),
                 
                 ## STARsolo parameters
-                paste0('--soloType ',param[['barcodeType']]),
-                paste0('--soloCBWhitelist',param[['barcodeWhitelist']]),
+                paste0('--soloType ',param[['soloType']]),
+                paste0('--soloCBwhitelist ',soloCBwhitelist[[param[['chemistry']]]]),
                 paste0('--soloCBstart ',param[['soloCBstart']]),
                 paste0('--soloCBlen ',param[['soloCBlen']]),
                 paste0('--soloUMIstart ',param[['soloUMIstart']]),
-                paste0('--soloUMIlen ',param[['soloUMIlen']]),
+                paste0('--soloUMIlen ',soloUMIlen),
 
-                ## run parameters
-                paste0('--runThreadN ',param[['cores']])
-              )
+                paste0('--soloUMIfiltering ',param[['soloUMIfiltering']]),
+                paste0('--soloCBmatchWLtype ',param[['soloCBmatchWLtype']]),
+                paste0('--soloCellFilter ',param[['soloCellFilter']])
+    )
+    
+    if(ezIsSpecified(param$cmdOptions)){
+        cmd = paste(cmd, param$cmdOptions)
+    }
+    
+    return(cmd)
 }
-
 
 
 
