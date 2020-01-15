@@ -663,7 +663,7 @@ PlotData = function(sampleIDs, output.dir, sampleGroups=NA, minPercent_exogenous
     maxX = min(c(100,max(tmp$length)))
     p = ggplot(tmp, aes(x=length, y=count, color=sample)) + geom_line(alpha=1) +
       xlab("read length (nt)") + ylab("# reads") + 
-      ggtitle("read-length distributions: raw read count")+
+      ggtitle("read-length distributions:\nraw read count")+
       scale_x_continuous(limits=c(15,maxX), minor_breaks=1:maxX, breaks=seq(15,maxX,by=5))+
       scale_colour_manual(values=getSampleColors(tmp$sample))
     if(nrow(read.lengths) > 30){ p = p +guides(colour=FALSE) }
@@ -680,7 +680,7 @@ PlotData = function(sampleIDs, output.dir, sampleGroups=NA, minPercent_exogenous
     tmp = melt(t(apply(read.lengths, 1, function(row){ row/sum(row) }))); colnames(tmp) = c("sample","length","fraction")
     if(is.data.frame(sampleGroups)){ tmp$sampleGroup = sampleGroups[match(tmp$sample, sampleGroups$sampleID), 2] }
     maxX = min(c(100,max(tmp$length)))
-    p = ggplot(tmp, aes(x=length, y=fraction, colour=sample)) +geom_line(alpha=1) +xlab("read length (nt)") +ylab("fraction of reads") +ggtitle("read-length distributions: normalised read fraction") +scale_x_continuous(limits=c(15,maxX), minor_breaks=1:maxX, breaks=seq(15,maxX,by=5))+
+    p = ggplot(tmp, aes(x=length, y=fraction, colour=sample)) +geom_line(alpha=1) +xlab("read length (nt)") +ylab("fraction of reads") +ggtitle("read-length distributions:\nnormalised read fraction") +scale_x_continuous(limits=c(15,maxX), minor_breaks=1:maxX, breaks=seq(15,maxX,by=5))+
       scale_colour_manual(values=getSampleColors(tmp$sample))
     if(nrow(read.lengths) > 30){ p = p +guides(colour=FALSE) }
     if(is.data.frame(sampleGroups)){ p = p +facet_wrap(~sampleGroup,ncol=1)}
@@ -755,7 +755,7 @@ PlotData = function(sampleIDs, output.dir, sampleGroups=NA, minPercent_exogenous
   toplot$Stage = with(toplot, factor(Stage, levels = rev(levels(Stage))))
   toplot$Sample = factor(as.character(toplot$Sample), levels=rownames(mapping.stats)[sampleOrder])
   if(is.data.frame(sampleGroups)){ toplot$sampleGroup = sampleGroups[match(toplot$Sample, sampleGroups$sampleID), 2] }
-  p = ggplot(toplot, aes(x=Sample, y=Stage, group=Sample, fill=ReadFraction, label=sprintf("%1.1f%%",ReadFraction*100))) +geom_tile() +scale_fill_gradient2(low="white",high="yellow",mid="steelblue", midpoint=0.5) +theme(axis.text.x=element_text(angle=40, hjust=1.0, vjust=1)) +ggtitle("fraction aligned reads (normalised by # input reads)")
+  p = ggplot(toplot, aes(x=Sample, y=Stage, group=Sample, fill=ReadFraction, label=sprintf("%1.1f%%",ReadFraction*100))) +geom_tile() +scale_fill_gradient2(low="white",high="yellow",mid="steelblue", midpoint=0.5) +theme(axis.text.x=element_text(angle=40, hjust=1.0, vjust=1)) +ggtitle("fraction aligned reads\n(normalised by # input reads)")
   if(nrow(mapping.stats) < 50){ p = p +geom_text(size=3) }
   if(is.data.frame(sampleGroups)){ p = p +facet_grid(~sampleGroup, scales="free_x",space="free_x")}
   print(p)
@@ -776,7 +776,7 @@ PlotData = function(sampleIDs, output.dir, sampleGroups=NA, minPercent_exogenous
     toplot$Stage = with(toplot, factor(Stage, levels = rev(levels(Stage))))
     toplot$Sample = factor(as.character(toplot$Sample), levels=rownames(mapping.stats)[sampleOrder])
     if(is.data.frame(sampleGroups)){ toplot$sampleGroup = sampleGroups[match(toplot$Sample, sampleGroups$sampleID), 2] }
-    p = ggplot(toplot, aes(x=Sample, y=Stage, group=Sample, fill=ReadFraction, label=sprintf("%1.1f%%",ReadFraction*100))) +geom_tile() +scale_fill_gradient2(low="white",high="yellow",mid="steelblue", midpoint=0.5) +theme(axis.text.x=element_text(angle=40, hjust=1.0, vjust=1)) +ggtitle("fraction aligned reads (normalised by # adapter-clipped reads)")
+    p = ggplot(toplot, aes(x=Sample, y=Stage, group=Sample, fill=ReadFraction, label=sprintf("%1.1f%%",ReadFraction*100))) +geom_tile() +scale_fill_gradient2(low="white",high="yellow",mid="steelblue", midpoint=0.5) +theme(axis.text.x=element_text(angle=40, hjust=1.0, vjust=1)) +ggtitle("fraction aligned reads\n(normalised by # adapter-clipped reads)")
     if(nrow(mapping.stats) < 50){ p = p +geom_text(size=3) }
     if(is.data.frame(sampleGroups)){ p = p +facet_grid(~sampleGroup, scales="free_x",space="free_x")}
     print(p)
@@ -793,7 +793,7 @@ PlotData = function(sampleIDs, output.dir, sampleGroups=NA, minPercent_exogenous
   toplot$Stage = with(toplot, factor(Stage, levels = rev(levels(Stage))))
   toplot$Sample = factor(as.character(toplot$Sample), levels=rownames(mapping.stats)[sampleOrder])
   if(is.data.frame(sampleGroups)){ toplot$sampleGroup = sampleGroups[match(toplot$Sample, sampleGroups$sampleID), 2] }
-  p = ggplot(toplot, aes(x=Sample, y=Stage, group=Sample, fill=ReadFraction, label=sprintf("%1.1f%%",ReadFraction*100))) +geom_tile() +scale_fill_gradient2(low="white",high="yellow",mid="steelblue", midpoint=0.5) +theme(axis.text.x=element_text(angle=40, hjust=1.0, vjust=1)) +ggtitle("fraction aligned reads (normalised by # non-contaminant reads)")
+  p = ggplot(toplot, aes(x=Sample, y=Stage, group=Sample, fill=ReadFraction, label=sprintf("%1.1f%%",ReadFraction*100))) +geom_tile() +scale_fill_gradient2(low="white",high="yellow",mid="steelblue", midpoint=0.5) +theme(axis.text.x=element_text(angle=40, hjust=1.0, vjust=1)) +ggtitle("fraction aligned reads\n(normalised by # non-contaminant reads)")
   if(nrow(mapping.stats) < 50){ p = p +geom_text(size=3) }
   if(is.data.frame(sampleGroups)){ p = p +facet_grid(~sampleGroup, scales="free_x",space="free_x")}
   print(p)
