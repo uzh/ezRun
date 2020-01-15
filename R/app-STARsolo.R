@@ -5,15 +5,15 @@
 # The terms are available here: http://www.gnu.org/licenses/gpl.html
 # www.fgcz.ch
 
-ezAppSTARsolo = 
-    setRefClass("ezAppSTARsolo",
+EzAppSTARsolo = 
+    setRefClass("EzAppSTARsolo",
             contains = "EzApp",
             methods = list(
                 initialize = function()
                 {
                     "Initializes the application using its specific defaults."
                     runMethod <<- ezMethodSTARsolo
-                    name <<- "EzAppCellRanger"
+                    name <<- "EzAppSTARsolo"
                     appDefaults <<- rbind(controlSeqs=ezFrame(Type="charVector",
                                                               DefaultValue="",
                                                               Description="control sequences to add"),
