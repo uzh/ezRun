@@ -399,6 +399,7 @@ if (sum(use) > param$minGenesForClustering){
     columnsToSubset <- param$grouping %in% c(param$refGroup, param$sampleGroup)
     param$grouping <- param$grouping[columnsToSubset]
     xCentered <- xCentered[ , columnsToSubset]
+    design <- design[columnsToSubset,]
   }
   if (!is.null(param$useRefGroupAsBaseline) && param$useRefGroupAsBaseline){
     xCentered = xCentered - rowMeans(xCentered[ , param$grouping == param$refGroup])
