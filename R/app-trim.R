@@ -6,6 +6,161 @@
 # www.fgcz.ch
 
 
+##' @title Trims input reads using fastp (Chen et al. 2018)
+##' @description Trims input reads. The trimming happens in the following order:
+##' \itemize{
+##'   \item{global trimming fron and tail}
+##'   \item{quality window}
+##'   \item{avg quality}
+##'   \item{adapter}
+##'   \item{trim polyG (by default, only for NextSeq and NovaSeq)}
+##'   \item{fixed trimming}
+##'   \item{length filtering}
+##' }
+##' This means if you specify a fixed trimming this comes on top of the adapter trimming
+##' @template input-template
+##' @param output an object of the class EzDataset or NA. If it is NA, it will be copied from the input.
+##' @param param a list of parameters:
+##' \itemize{
+##'   \item{paired}{ a logical specifying whether the samples have paired ends.}
+##'   \item{subsampleReads}{ an integer specifying how many subsamples there are. This will call \code{ezMethodSubsampleReads()} if > 1.}
+##'   \item{nReads}{ an integer specifying how many reads were detected.}
+##'   \item{trimAdapter}{ a logical specifying whether to use a trim adapter.}
+##'   \item{minTailQuality}{ an integer specifying the minimal tail quality to accept. Only used if > 0.}
+##'   \item{minTrailingQuality}{ an integer specifying the minimal trailing quality to accept. Only used if > 0.}
+##'   \item{minAvgQuality}{ an integer specifying the minimal average quality to accept. Only used if > 0.}
+##'   \item{minReadLength}{ an integer specifying the minimal read length to accept.}
+##'   \item{dataRoot}{ a character specifying the path of the data root to get the full column paths from.}
+##' }
+##' @template roxygen-template
+##' @return Returns the output after trimming as an object of the class EzDataset.
+
+ezMethodFastpTrim = function(input=NA, output=NA, param=NA){
+  # Input/Output Preparation
+  ## stop early
+  if (any(grepl("bam$", input$getFullPaths("Read1")))){
+    stop("can not process unmapped bam as input")
+  }
+  ## if output is not an EzDataset, set it!
+  if (!is(output, "EzDataset")){
+    output = input$copy()
+    output$setColumn("Read1", paste0(getwd(), "/", input$getNames(), "-trimmed-R1.fastq"))
+    if (param$paired){
+      output$setColumn("Read2", paste0(getwd(), "/", input$getNames(), "-trimmed-R2.fastq"))
+    } else {
+      if ("Read2" %in% input$colNames){
+        output$setColumn("Read2", NULL)
+      }
+    }
+    output$dataRoot = NULL
+  }
+  ## if there are multiple samples loop through them
+  if (input$getLength() > 1){
+    for (nm in input$getNames()){
+      ezSystem(paste0('touch ', nm, '_preprocessing.log'))
+      ezMethodFastpTrim(input$subset(nm), output$subset(nm), param)
+      ## NOTE: potential risk, temp files might be overwritten
+    }
+    return(output)
+  }
+  
+  ## now we deal only with one sample!
+  
+  ## make a local copy of the dataset and check the md5sum
+  if (!is.null(param$copyReadsLocally) && param$copyReadsLocally){
+    input = copyReadsLocally(input, param)
+  }
+  
+  if (param$subsampleReads > 1 || param$nReads > 0){
+    input = ezMethodSubsampleReads(input=input, param=param)
+    inputRead1 <- input$getFullPaths("Read1")
+    on.exit(file.remove(inputRead1), add=TRUE)
+    if(param$paired){
+      inputRead2 <- input$getFullPaths("Read2")
+      on.exit(file.remove(inputRead2), add=TRUE)
+    }
+  }
+  
+  # Prepare shell command
+  ## binary
+  fastpBin = '/usr/local/ngseq/packages/QC/fastp/0.20.0/bin/fastp'
+  ## input/output file names:
+  r1TmpFile = "trimmed-R1.fastq"
+  if(param$paired){
+    r2TmpFile = "trimmed-R2.fastq"
+    readsInOut = paste('--in1', input$getFullPaths("Read1"),
+                       '--in2', input$getFullPaths("Read2"),
+                       '--out1', r1TmpFile,
+                       '--out2', r2TmpFile)
+  }else{
+    readsInOut = paste('--in1', input$getFullPaths("Read1"),
+                       '--out1', r1TmpFile)
+  }
+  ## adapter trimming options
+  if (param[['trimAdapter']]){
+    # read1
+    if (!is.null(input$meta$Adapter1) && !is.na(input$meta$Adapter1) && input$meta$Adapter1 != ""){
+      adapter1 = DNAStringSet(input$meta$Adapter1)
+      names(adapter1) = "GivenAdapter1"
+    } else {
+      adapter1 = DNAStringSet()
+    }
+    # read2 (if paired)
+    if (param$paired && !is.null(input$meta$Adapter2) && !is.na(input$meta$Adapter2) && input$meta$Adapter2 != ""){
+      adapter2 = DNAStringSet(input$meta$Adapter2)
+      names(adapter2) = "GivenAdapter2"
+    } else {
+      adapter2 = DNAStringSet()
+    }
+    # trim both reads with adapters.fa
+    adaptFile = "adapters.fa"
+    adapters = c(adapter1, adapter2)
+    if(length(adapters)>0){
+      writeXStringSet(adapters, adaptFile)
+      on.exit(file.remove(adaptFile), add=TRUE)
+    }
+    trimAdapt = paste('--adapter_fasta', adaptFile)
+    
+  } else {
+    trimAdapt = "--disable_adapter_trimming"
+  }
+  ## paste command
+  cmd = paste(fastpBin,
+              readsInOut,
+              # general options
+              paste('--thread',param[['cores']]),
+              paste('--reads_to_process',param[['readsToProcess']]),
+              # global trimming
+              paste('--trim_front1',param[['trimLeft']]),
+              paste('--trim_tail1',param[['trimRight']]),
+              # quality-based trimming per read
+              paste("--cut_front", param[['minLeadingQuality']]), # like Trimmomatic's LEADING
+              paste("--cut_right", param[['minTailQuality']]), # like Trimmomatic's SLIDINGWINDOW
+              paste("--cut_tail", param[['minTrailingQuality']]), # like Trimmomatic's TRAILING
+              paste("--average_qual", param[['minAvgQuality']]),
+              # adapter trimming
+              trimAdapt,
+              # read length trimming
+              paste('--max_len1',param[['trimToMaxLength']]),
+              # read length filtering
+              paste('--length_required',param[['minReadLength']]),
+              paste('--length_limit',param[['maxReadLength']])
+  )
+  ## run
+  if(ezIsSpecified(param[['cmdOptions']])){
+    cmd = paste(cmd, param[['cmdOptions']])
+  }
+  ezSystem(cmd)
+  
+  ## rename output
+  ezSystem(paste("mv", r1TmpFile, basename(output$getColumn("Read1"))))
+  if (param$paired){
+    ezSystem(paste("mv", r2TmpFile, basename(output$getColumn("Read2"))))
+  }
+  return(output)
+}
+
+
 ##' @title Trims input reads
 ##' @description Trims input reads. The trimming happens in the following order:
 ##' \itemize{
