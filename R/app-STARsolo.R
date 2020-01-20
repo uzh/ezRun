@@ -114,7 +114,7 @@ ezMethodSTARsolo = function(input=NA, output=NA, param=NA){
     sampleDirs = file.path(input$dataRoot, sampleDirs)
     sampleDir = paste(sampleDirs, collapse=" ")
     
-    # create STARsolo command and build genome index
+    # create STARsolo command
     cmd = makeSTARsoloCmd(param, refDir, sampleName, sampleDir)
     
     # run STARsolo shell command
@@ -124,23 +124,36 @@ ezMethodSTARsolo = function(input=NA, output=NA, param=NA){
     require(Matrix)
     require(readr)
     require(DropletUtils)
-    countMatrixFn = list.files(path=file.path(sampleName),
-                                pattern="\\.mtx(\\.gz)*$", recursive=TRUE,
-                                full.names=TRUE)
-    countMatrixDir = dirname(countMatrixFn)
     
+    outputDir = paste0(sampleName,'/Solo.out/Gene/raw')
+    ## Remove alignments file if not setted differently
+    samFn = paste0(sampleName,'/Aligned.out.sam')
+    if(param[['keepAlignment']]=='True'){
+        # convert to BAM
+        bamFn = paste0(sampleName,'/Aligned.out.bam')
+        #samtoolsBin = '/usr/local/ngseq/bin/samtools'
+        ezSystem(paste('samtools','view','-Sb',samFn,'>',bamFn))
+        # remove .sam
+        ezSystem(paste('rm',samFn))
+        # sort .bam
+        bamFnSorted = paste0(sampleName,'/Aligned.out.sorted.bam') 
+        ezSortIndexBam(bamFn,bamFnSorted)
+    }else{
+        # remove .sam
+        ezSystem(paste('rm',samFn))
+    }
     ## Prepare STARsolo output to be processed as CellRanger output
     ### add "Gene Expression" column to features.tsv
-    featuresFn = paste0(countMatrixDir,'/features.tsv')
-    tmp =  paste0(countMatrixDir,'/tmp.tsv')
+    featuresFn = paste0(outputDir,'/features.tsv')
+    tmp =  paste0(outputDir,'/tmp.tsv')
     cmd = paste("awk \'{print $0, \"\tGene Expression\"}\'",featuresFn,">",tmp)
     ezSystem(cmd)
     ezSystem(paste("mv",tmp,featuresFn)) # rename tmp into features
     ### gzip all files
-    ezSystem(paste("gzip",paste0(countMatrixDir,"/*")))
+    ezSystem(paste("pigz -p 4",paste0(outputDir,"/*")))
 
     ## Filter raw STARsolo counts with EmptyDrops
-    sce = read10xCounts(samples = countMatrixDir, col.names = TRUE, version = '3')
+    sce = read10xCounts(samples = outputDir, col.names = TRUE, version = '3')
     rawCounts = sce@assays@data@listData$counts
     ### cell calling
     called = defaultDrops(rawCounts)
@@ -153,8 +166,11 @@ ezMethodSTARsolo = function(input=NA, output=NA, param=NA){
     write10xCounts(path = filteredDir, x = countsFiltered, gene.id = geneID, gene.symbol = geneSymbol, version = '3')
     
     # Get cell cycle from filtered output
-    sce <- read10xCounts(samples = filteredDir, col.names = TRUE, version = '3')
-    cellPhase <- getCellCycle(sce, param$refBuild)
+    ## generate filtered single cell experiment object
+    sceFilt = SingleCellExperiment(assays = list(counts = countsFiltered))
+    rownames(sceFilt) = geneID
+    ## analyse cell cycle phase
+    cellPhase = getCellCycle(sceFilt, param$refBuild)
     write_tsv(cellPhase,
               path=file.path(filteredDir,
                 "CellCyclePhase.txt"))
