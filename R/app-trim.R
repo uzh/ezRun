@@ -130,6 +130,7 @@ ezMethodFastpTrim = function(input=NA, output=NA, param=NA){
               # general options
               paste('--thread',param[['cores']]),
               paste('--reads_to_process',param[['readsToProcess']]),
+              paste(""),
               # global trimming
               paste('--trim_front1',param[['trimLeft']]),
               paste('--trim_tail1',param[['trimRight']]),
@@ -142,6 +143,9 @@ ezMethodFastpTrim = function(input=NA, output=NA, param=NA){
               trimAdapt,
               # read length trimming
               paste('--max_len1',param[['trimToMaxLength']]),
+              # polyX
+              paste("--disable_trim_poly_g","--trim_poly_x",
+                    "--poly_x_min_len",param[['polyXminLength']]),
               # read length filtering
               paste('--length_required',param[['minReadLength']]),
               paste('--length_limit',param[['maxReadLength']])
@@ -151,6 +155,9 @@ ezMethodFastpTrim = function(input=NA, output=NA, param=NA){
     cmd = paste(cmd, param[['cmdOptions']])
   }
   ezSystem(cmd)
+  
+  ## remove reports
+  ezSystem("rm fastp.json fastp.html")
   
   ## rename output
   ezSystem(paste("mv", r1TmpFile, basename(output$getColumn("Read1"))))
