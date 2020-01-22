@@ -115,22 +115,29 @@ ezMdsPlotly <- function(signal, design, ndim=c(3,2), main, sampleColors=NULL){
   require(plotly)
   y = DGEList(counts=signal, group=colnames(signal))
   mds = plotMDS(y, plot=FALSE, ndim=ndim)
+  factorToPlot = colnames(design)[1]
   toPlot <- data.frame(samples=colnames(signal),
                        design,
+                       sampleColors,
                        stringsAsFactors = FALSE)
   mdsOut <- mds$cmdscale.out
- 
+  
+  # names of color vector need to match the selected design factor
+  pal = toPlot[,c(factorToPlot,"sampleColors")]
+  idxDup = duplicated(pal)
+  pal = pal[!idxDup,]
+  pal = setNames(pal[['sampleColors']],pal[[factorToPlot]])
+    
   if(ndim == 3){
     colnames(mdsOut) <- c("Leading logFC dim1", "Leading logFC dim2", 
                           "Leading logFC dim3")
     toPlot <- cbind(toPlot, mdsOut)
     p <- plot_ly(toPlot, x=~`Leading logFC dim1`, y=~`Leading logFC dim2`, z=~`Leading logFC dim3`,
-                 color=formula(paste0("~", colnames(design)[1])),
+                 color=formula(paste0("~", factorToPlot)),
+                 colors=pal,
                  type='scatter3d',
                  mode='markers+text',
-                 marker=list(color=sampleColors),
-                 text=~samples, textposition = "top right",
-                 textfont=list(color=sampleColors, size=12)) %>%
+                 text=~samples, textposition = "top right")%>%
       plotly::layout(title=main, 
                      scene=list(xaxis=list(title = 'Leading logFC dim1'),
                                 yaxis = list(title = 'Leading logFC dim2'),
@@ -140,21 +147,19 @@ ezMdsPlotly <- function(signal, design, ndim=c(3,2), main, sampleColors=NULL){
     toPlot <- cbind(toPlot, mdsOut)
     if(ncol(design) > 1L){
       p <- plot_ly(toPlot, x=~`Leading logFC dim1`, y=~`Leading logFC dim2`,
-              color=formula(paste0("~", colnames(design)[1])),
+              color = formula(paste0("~", factorToPlot)),
               symbol=formula(paste0("~", colnames(design)[2])),
+              colors = pal,
               type='scatter',
               mode='markers+text',
-              marker=list(color=sampleColors, size=10),
-              text=~samples, textposition = "top right",
-              textfont=list(color=sampleColors, size=12))
+              text=~samples, textposition = "top right")
     }else{
       p <- plot_ly(toPlot, x=~`Leading logFC dim1`, y=~`Leading logFC dim2`,
-                   color=formula(paste0("~", colnames(design)[1])),
+                   color=formula(paste0("~", factorToPlot)),
+                   colors = pal,
                    type='scatter',
                    mode='markers+text',
-                   marker=list(color=sampleColors, size=10),
-                   text=~samples, textposition = "top right",
-                   textfont=list(color=sampleColors, size=12))
+                   text=~samples, textposition = "top right")
     }
     p <- p %>% 
       plotly::layout(title=main,
