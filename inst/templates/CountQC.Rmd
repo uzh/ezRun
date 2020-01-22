@@ -348,9 +348,9 @@ if(nSamples > 3){
     if(param$nSampleClusters > 6){
         param$nSampleClusters = 6
     }
-    clusterColors = hcl.colors(param$nSampleClusters, palette = "BluGrn")
+    clusterColors = hcl.colors(param$nSampleClusters, palette = "Spectral")
     clusterResult <-
-      clusterPheatmap(xNormed[use, ], design, param, clusterColors,
+      clusterPheatmap(xNormed[use, ], design, param, clusterColors=clusterColors,
                       lim=c(-param$logColorRange, param$logColorRange),
                       doClusterColumns=TRUE, sampleColors=sampleColors)
     
