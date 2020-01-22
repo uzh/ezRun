@@ -21,7 +21,7 @@ EzAppSTARsolo =
                                           soloType=ezFrame(Type="character",
                                                            DefaultValue="CB_UMI_Simple",
                                                            Description="CB_UMI_Simple (a.k.a. Droplet), CB_UMI_Complex (e.g. Droplet)."),
-                                          chemistry=ezFrame(Type="character",
+                                          soloCBwhitelist=ezFrame(Type="character",
                                                            DefaultValue="SC3Pv3",
                                                            Description="Barcode whitelist. Choose: SC3Pv1, SC3Pv2, SC3Pv3."),
                                           soloCBstart=ezFrame(Type="character",
@@ -112,10 +112,9 @@ ezMethodSTARsolo = function(input=NA, output=NA, param=NA){
     sampleName = input$getNames()
     sampleDirs = strsplit(input$getColumn("RawDataDir"), ",")[[sampleName]]
     sampleDirs = file.path(input$dataRoot, sampleDirs)
-    sampleDir = paste(sampleDirs, collapse=" ")
-    
+
     # create STARsolo command
-    cmd = makeSTARsoloCmd(param, refDir, sampleName, sampleDir)
+    cmd = makeSTARsoloCmd(param, refDir, sampleName, sampleDirs)
     
     # run STARsolo shell command
     ezSystem(cmd)
@@ -178,7 +177,8 @@ ezMethodSTARsolo = function(input=NA, output=NA, param=NA){
     return("Success")
 }
 # create STARsolo shell command
-makeSTARsoloCmd = function(param, refDir, sampleName, sampleDir){
+makeSTARsoloCmd = function(param, refDir, sampleName, sampleDirs){
+    require('tools')
     # define binary full path
     STARbin = "/usr/local/ngseq/packages/Aligner/STAR/2.7.3a/bin/STAR"
 
@@ -191,7 +191,7 @@ makeSTARsoloCmd = function(param, refDir, sampleName, sampleDir){
     
     ## decide soloUMIlen
     if(param[['soloUMIlen']]=='auto'){
-        if(param[['chemistry']]=='SC3Pv3'){
+        if(param[['soloCBwhitelist']]=='SC3Pv3'){
             soloUMIlen = '12'
         }else{
             soloUMIlen = '10'
@@ -202,15 +202,15 @@ makeSTARsoloCmd = function(param, refDir, sampleName, sampleDir){
     
     ## create readFilesIn
     ### list files: the names are always the same for standard runs. Only the presence of indexes is optional.
-    fastqfiles = sort(list.files(sampleDir))
-    cDNAfastqs = paste(paste(sampleDir,grep('R2',fastqfiles, value = TRUE),sep='/'), collapse = ',')
-    barcodesfastqs = paste(paste(sampleDir,grep('R1',fastqfiles, value = TRUE),sep='/'), collapse = ',')
-    indexfastqs = paste(paste(sampleDir,grep('_I',fastqfiles,value = TRUE),sep='/'), collapse = ',')
+    fastqfiles = sort(list.files(sampleDirs,full.names = TRUE,pattern = '.fastq'))
+    cDNAfastqs = paste(grep('R2',fastqfiles, value = TRUE), collapse = ',')
+    barcodesfastqs = paste(grep('R1',fastqfiles, value = TRUE), collapse = ',')
+    indexfastqs = paste(grep('_I',fastqfiles,value = TRUE), collapse = ',')
     
     readFilesIn = trimws(paste(cDNAfastqs, indexfastqs, barcodesfastqs, collapse = ' ')) # remove last space, incase indexfastqs is empty.
     
     ## create readFilesCommand
-    if(unique(gsub('.*\\.','',fastqfiles))=='gz'){
+    if(unique(file_ext(fastqfiles))=='gz'){
         readFilesCommand = 'zcat'
     }else{
         readFilesCommand = 'cat'
@@ -231,7 +231,7 @@ makeSTARsoloCmd = function(param, refDir, sampleName, sampleDir){
                 
                 ## STARsolo parameters
                 paste0('--soloType ',param[['soloType']]),
-                paste0('--soloCBwhitelist ',soloCBwhitelist[[param[['chemistry']]]]),
+                paste0('--soloCBwhitelist ',soloCBwhitelist[[param[['soloCBwhitelist']]]]),
                 paste0('--soloCBstart ',param[['soloCBstart']]),
                 paste0('--soloCBlen ',param[['soloCBlen']]),
                 paste0('--soloUMIstart ',param[['soloUMIstart']]),
