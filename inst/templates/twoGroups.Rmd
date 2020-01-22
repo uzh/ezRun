@@ -416,7 +416,7 @@ if (sum(use) > param$minGenesForClustering){
   clusterPdf = "cluster-heatmap.pdf"
   
   nClusters=6
-  clusterColors = hcl.colors(nClusters, palette = "BluGrn")
+  clusterColors = hcl.colors(nClusters, palette = "Spectral")
   clusterResult = clusterResults(xCentered, nClusters=nClusters, clusterColors=clusterColors)
   
   design = design[,c(param$groupingName,setdiff(colnames(design),param$groupingName)), drop=FALSE]

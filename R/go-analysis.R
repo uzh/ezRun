@@ -730,7 +730,10 @@ clusterPheatmap <- function(x, design, param,
     colDendro <- FALSE
   }
   
-  ann_colors <- list(Clusters=setNames(clusterColors, levels(clusters)), Condition=setNames(unique(sampleColors), unique(design[[1]])))
+  # define annotation_colors list to avoid default pheatmap colors.
+  ann_colors <- list(setNames(clusterColors, levels(clusters)),
+                     setNames(unique(sampleColors), unique(design[[1]])))
+  names(ann_colors) = c(colnames(annotation_row),colnames(design[1]))
   
   p <- pheatmap(x, color=colors, clustering_method=method,
            breaks=seq(from=lim[1], to=lim[2], length.out=257),
