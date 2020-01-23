@@ -495,7 +495,6 @@ cleanOldestDir <- function(dirPath, user=NULL){
     ## order by ctime
     allInfo <- allInfo[order(allInfo$ctime), ]
     message("Deleting ", rownames(allInfo)[1])
-    Sys.sleep(60)
     unlink(rownames(allInfo)[1], recursive=TRUE, force=TRUE)
   }
 }
