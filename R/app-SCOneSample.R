@@ -156,7 +156,7 @@ cellsLabelsWithAUC <- function(scData, param) {
 
 formatGeneSets <- function(name, geneSets) {
   print(geneSets[grep(name, names(geneSets))])
-  gs <- unlist(strsplit(unname(unlist(geneSets[grep(name, names(geneSets))])), split=","))
+  gs <- unlist(strsplit(unname(unlist(geneSets[grep(name, names(geneSets), fixed=TRUE)])), split=","))
   unique(gsub(" ", "", gs))
 } 
   
