@@ -129,30 +129,30 @@ ezMethodFastpTrim = function(input=NA, output=NA, param=NA){
               readsInOut,
               # general options
               paste('--thread',param[['cores']]),
-              paste('--reads_to_process',param[['readsToProcess']]),
+              paste('--reads_to_process',param[['reads_to_process']]),
               paste(""),
               # global trimming
-              paste('--trim_front1',param[['trimLeft']]),
-              paste('--trim_tail1',param[['trimRight']]),
+              paste('--trim_front1',param[['trim_front']]),
+              paste('--trim_tail1',param[['trim_tail']]),
               # quality-based trimming per read
-              paste("--cut_front", param[['minLeadingQuality']]), # like Trimmomatic's LEADING
-              paste("--cut_right", param[['minTailQuality']]), # like Trimmomatic's SLIDINGWINDOW
-              paste("--cut_tail", param[['minTrailingQuality']]), # like Trimmomatic's TRAILING
-              paste("--average_qual", param[['minAvgQuality']]),
+              paste("--cut_front", param[['cut_front']]), # like Trimmomatic's LEADING
+              paste("--cut_right", param[['cut_right']]), # like Trimmomatic's SLIDINGWINDOW
+              paste("--cut_tail", param[['cut_tail']]), # like Trimmomatic's TRAILING
+              paste("--average_qual", param[['average_qual']]),
               # adapter trimming
               trimAdapt,
               # read length trimming
-              paste('--max_len1',param[['trimToMaxLength']]),
+              paste('--max_len1',param[['max_len1']]),
               # polyX
               paste("--disable_trim_poly_g","--trim_poly_x",
-                    "--poly_x_min_len",param[['polyXminLength']]),
+                    "--poly_x_min_len",param[['poly_x_min_len']]),
               # read length filtering
-              paste('--length_required',param[['minReadLength']]),
-              paste('--length_limit',param[['maxReadLength']])
+              paste('--length_required',param[['length_required']]),
+              paste('--length_limit',param[['length_limit']])
   )
   ## run
-  if(ezIsSpecified(param[['cmdOptions']])){
-    cmd = paste(cmd, param[['cmdOptions']])
+  if(ezIsSpecified(param[['cmdOptionsFastp']])){
+    cmd = paste(cmd, param[['cmdOptionsFastp']])
   }
   ezSystem(cmd)
   
