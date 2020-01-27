@@ -11,7 +11,7 @@ ezMethodTophat = function(input=NA, output=NA, param=NA){
   ref = getBowtie2Reference(param)
   gtf = param$ezRef["refFeatureFile"]
   bamFile = output$getColumn("BAM")
-  trimmedInput = ezMethodTrim(input = input, param = param)
+  trimmedInput = ezMethodFastpTrim(input = input, param = param)
   refBase = sub(".gtf$", "_BOWTIE2Index/transcripts", gtf)
   lockFile = file.path(dirname(refBase), "lock")
   i = 0
@@ -67,7 +67,7 @@ ezMethodTophat = function(input=NA, output=NA, param=NA){
 ##' @templateVar method ezMethodTophat(input=NA, output=NA, param=NA)
 ##' @description Use this reference class to run 
 ##' @seealso \code{\link{getBowtie2Reference}}
-##' @seealso \code{\link{ezMethodTrim}}
+##' @seealso \code{\link{ezMethodFastpTrim}}
 EzAppTophat <-
   setRefClass("EzAppTophat",
               contains = "EzApp",
@@ -86,7 +86,7 @@ ezMethodBowtie2 = function(input=NA, output=NA, param=NA){
   ref = getBowtie2Reference(param)
   bamFile = output$getColumn("BAM")
   sampleName = sub('.bam','',basename(bamFile))
-  trimmedInput = ezMethodTrim(input = input, param = param)
+  trimmedInput = ezMethodFastpTrim(input = input, param = param)
   defOpt = paste("-p", param$cores)
   readGroupOpt = paste0("--rg-id ", sampleName," --rg SM:", sampleName,
                         " --rg LB:RGLB_", sampleName,
@@ -178,7 +178,7 @@ getBowtie2Reference = function(param){
 ##' @templateVar method ezMethodBowtie2(input=NA, output=NA, param=NA)
 ##' @description Use this reference class to run 
 ##' @seealso \code{\link{getBowtie2Reference}}
-##' @seealso \code{\link{ezMethodTrim}}
+##' @seealso \code{\link{ezMethodFastpTrim}}
 EzAppBowtie2 <-
   setRefClass("EzAppBowtie2",
               contains = "EzApp",
@@ -198,7 +198,7 @@ ezMethodBowtie = function(input=NA, output=NA, param=NA){
     
   ref = getBowtieReference(param)
   bamFile = output$getColumn("BAM")  
-  trimmedInput = ezMethodTrim(input = input, param = param)
+  trimmedInput = ezMethodFastpTrim(input = input, param = param)
   defOpt = paste("--chunkmbs 256", "--sam", "-p", param$cores)
   cmd = paste("bowtie", param$cmdOptions, defOpt, 
               ref, trimmedInput$getColumn("Read1"), if(param$paired) trimmedInput$getColumn("Read2"),
@@ -270,7 +270,7 @@ getBowtieReference = function(param){
 ##' @templateVar method ezMethodBowtie(input=NA, output=NA, param=NA)
 ##' @description Use this reference class to run 
 ##' @seealso \code{\link{getBowtieReference}}
-##' @seealso \code{\link{ezMethodTrim}}
+##' @seealso \code{\link{ezMethodFastpTrim}}
 EzAppBowtie <-
   setRefClass("EzAppBowtie",
               contains = "EzApp",
@@ -302,7 +302,7 @@ ezMethodSTAR = function(input=NA, output=NA, param=NA){
     }
   }
   
-  trimmedInput <- ezMethodTrim(input = input, param = param)
+  trimmedInput <- ezMethodFastpTrim(input = input, param = param)
   
   if (!grepl("outSAMattributes", param$cmdOptions)){
     param$cmdOptions = paste(param$cmdOptions, "--outSAMattributes All")
@@ -453,7 +453,7 @@ getSTARReference = function(param){
 ##' @templateVar method ezMethodSTAR(input=NA, output=NA, param=NA)
 ##' @description Use this reference class to run 
 ##' @seealso \code{\link{getSTARReference}}
-##' @seealso \code{\link{ezMethodTrim}}
+##' @seealso \code{\link{ezMethodFastpTrim}}
 EzAppSTAR <- 
   setRefClass("EzAppSTAR",
               contains = "EzApp",
@@ -478,7 +478,7 @@ ezMethodBWA = function(input=NA, output=NA, param=NA){
   
   refIdx = getBWAReference(param)
   bamFile = output$getColumn("BAM")
-  trimmedInput = ezMethodTrim(input = input, param = param)
+  trimmedInput = ezMethodFastpTrim(input = input, param = param)
   if (param$algorithm == "aln"){
     cmd = paste("bwa", param$algorithm, param$cmdOptions, "-t", param$cores,
                 refIdx, trimmedInput$getColumn("Read1"), ">", "read1.sai", "2> bwa.log")
@@ -571,7 +571,7 @@ getBWAReference = function(param){
 ##' @templateVar method ezMethodBWA(input=NA, output=NA, param=NA)
 ##' @description Use this reference class to run 
 ##' @seealso \code{\link{getBWAReference}}
-##' @seealso \code{\link{ezMethodTrim}}
+##' @seealso \code{\link{ezMethodFastpTrim}}
 EzAppBWA <- 
   setRefClass("EzAppBWA",
               contains = "EzApp",
@@ -591,7 +591,7 @@ ezMethodBismark = function(input=NA, output=NA, param=NA){
   ##TODO: create reference if not existing
   ref = dirname(param$ezRef@refFastaFile)
   bamFile = output$getColumn("BAM")
-  trimmedInput = ezMethodTrim(input = input, param = param)
+  trimmedInput = ezMethodFastpTrim(input = input, param = param)
   defOpt = paste("-p", max(2, param$cores/2))  
   if(param$paired){
    cmd = paste("bismark", param$cmdOptions ,

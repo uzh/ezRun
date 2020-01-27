@@ -13,7 +13,7 @@ ezMethodBowtie2Transcriptome = function(input=NA, output=NA, param=NA){
   
   ref = getBowtie2TranscriptomeReference(param)
   bamFile = output$getColumn("trBAM")
-  trimmedInput = ezMethodTrim(input = input, param = param)
+  trimmedInput = ezMethodFastpTrim(input = input, param = param)
   defOpt = paste("-p", ezThreads())
   strandOpt = switch(param$strandMode,
                      sense="--norc",
@@ -90,7 +90,7 @@ getBowtie2TranscriptomeReference = function(param){
 ##' @templateVar method ezMethodBowtie2(input=NA, output=NA, param=NA)
 ##' @description Use this reference class to run 
 ##' @seealso \code{\link{getBowtie2Reference}}
-##' @seealso \code{\link{ezMethodTrim}}
+##' @seealso \code{\link{ezMethodFastpTrim}}
 EzAppBowtie2Transcriptome <-
   setRefClass("EzAppBowtie2Transcriptome",
               contains = "EzApp",
