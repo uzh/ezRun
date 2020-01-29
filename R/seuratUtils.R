@@ -133,10 +133,10 @@ seuratStandardWorkflow <- function(scData, param){
   }
   if(identical(param$vars.to.regress, character(0)))  #no variables to regress
     param$vars.to.regress = NULL
-  scData <- ScaleData(object = scData, num.cores=param$cores, vars.to.regress = param$vars.to.regress)
+  scData <- ScaleData(object = scData, vars.to.regress = param$vars.to.regress)
   scData <- RunPCA(object=scData, npcs = param$npcs, features=param$pcGenes)
   scData <- RunTSNE(object = scData, reduction = "pca", dims = 1:param$npcs, num_threads=param$cores)
-  scData <- RunUMAP(object=scData, reduction = "pca", dims = 1:param$npcs, num_threads=param$cores)
+  scData <- RunUMAP(object=scData, reduction = "pca", dims = 1:param$npcs, n_threads=param$cores)
   scData <- FindNeighbors(object = scData, reduction = "pca", dims = 1:param$npcs)
   scData <- FindClusters(object=scData, resolution = seq(from = 0.1, to = 1, by = 0.1))  #calculate clusters for a set of resolutions
   Idents(scData) <- scData@meta.data[,paste0(DefaultAssay(scData), "_snn_res.", param$resolution)]  #but keep as the current clusters the ones obtained with the resolution set by the user
