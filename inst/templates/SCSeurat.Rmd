@@ -43,6 +43,7 @@ input <- metadata(sce)$input
 output <- metadata(sce)$output
 rownames(sce) <- uniquifyFeatureNames(rowData(sce)$gene_id,
                                       rowData(sce)$gene_name)
+
 scData <- CreateSeuratObject(counts=assay(sce, "counts"),
                              project=paste(input$getNames(), collapse=", "),
                              min.cells=param$minCellsPerGene,
@@ -229,7 +230,12 @@ FeaturePlot(object=scData, features="nCount_RNA",
             reduction="umap")
 FeaturePlot(object=scData, features="percent.mt",
             reduction="umap")
-DimPlot(scData, reduction="umap", group.by="CellCycle") + ggtitle("Cell cycle phase")
+DimPlot(scData, reduction="umap", group.by="CellCycle") +
+  ggtitle("Cell cycle phase")
+FeaturePlot(scData, features="scDblFinder.score", 
+            reduction="umap")
+DimPlot(scData, reduction="umap", group.by="scDblFinder.class") +
+  ggtitle("scDblFinder.class")
 ```
 
 #### TSNE
@@ -240,7 +246,12 @@ FeaturePlot(object=scData, features="nCount_RNA",
             reduction="tsne")
 FeaturePlot(object=scData, features="percent.mt",
             reduction="tsne")
-DimPlot(scData, reduction="tsne", group.by="CellCycle") + ggtitle("Cell cycle phase")
+DimPlot(scData, reduction="tsne", group.by="CellCycle") +
+  ggtitle("Cell cycle phase")
+FeaturePlot(scData, features="scDblFinder.score", 
+            reduction="tsne")
+DimPlot(scData, reduction="tsne", group.by="scDblFinder.class") +
+  ggtitle("scDblFinder.class")
 ```
 
 ### Clustering

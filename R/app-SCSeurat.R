@@ -55,6 +55,7 @@ EzAppSCSeurat <-
 ezMethodSCSeurat = function(input=NA, output=NA, param=NA, 
                             htmlFile="00index.html"){
   require(Seurat)
+  require(scDblFinder)
   
   cwd <- getwd()
   setwdNew(basename(output$getColumn("Report")))
@@ -66,6 +67,10 @@ ezMethodSCSeurat = function(input=NA, output=NA, param=NA,
   metadata(sce)$param$name <- paste(metadata(sce)$param$name,
                                     paste(input$getNames(), collapse=", "),
                                     sep=": ")
+  
+  # Doublet detection
+  sce <- scDblFinder(sce)
+  
   # saveRDS(sce, file = "sce.rds")
   
   ## Copy the style files and templates
