@@ -20,18 +20,21 @@ library(clustree)
 library(kableExtra)
 library(ezRun)
 library(NMF)
+library(pheatmap)
+library(viridis)
 knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE, knitr.table.format = "html")
 
 ## ----------------------------------------------
 # debug
-# library(SummarizedExperiment)
-# library(scater)
-# library(Seurat)
-# library(AUCell)
-# sce_list <- readRDS("/srv/gstore/projects/p3155/SCOneSample_41976_2019-12-05--17-25-16/Sample_1_20191104_SCReport/sce_list.rds")
-# param = metadata(sce_list$sce)$param
-# pvalue_allMarkers <- 0.05
-# pvalue_all2allMarkers <- 0.01
+library(SummarizedExperiment)
+library(scater)
+library(Seurat)
+library(AUCell)
+sce <- readRDS("/srv/gstore/projects/p3155/SCOneSample_42026_2020-01-23--14-43-22/Sample_1_10X_F8_SCReport/sce.rds")
+sce.unfiltered <- readRDS("/srv/gstore/projects/p3155/SCOneSample_42026_2020-01-23--14-43-22/Sample_1_10X_F8_SCReport/sce.unfiltered.rds")
+param = metadata(sce)$param
+pvalue_allMarkers <- 0.05
+pvalue_all2allMarkers <- 0.01
 ## end of debug
 ```
 
@@ -42,9 +45,7 @@ cat(paste0("<SCRIPT language=\"JavaScript\" SRC=\"", basename(jsFile), "\"></SCR
 ```
 
 ```{r}
-sce <- sce_list$sce
 scData <- metadata(sce)$scData
-sce.unfiltered <- sce_list$sce.unfiltered
 output <- metadata(sce)$output
 ```
 
@@ -324,9 +325,13 @@ colnames(assignmentTable)[2] <- "geneSet"
 ```{r assigments heatmap, eval= (param$species != "other"), results='asis',fig.align='center', fig.width=10, fig.height=6}
 cat("We can explore the cell assignment results using different plots. Below, we show a heatmap with the cell type each cell was assigned to. Gray color represents the successful assignment of the cell to the cell type and black non-assignment. Cell types with no cells assigned are not shown.")
 cat("\n\n")
-assignmentMat <- table(assignmentTable[,"geneSet"], assignmentTable[,"cell"])
-miniAssigMat <- assignmentMat[,sample(1:ncol(assignmentMat),100)]
-aheatmap(miniAssigMat, scale="none", color="black", legend=FALSE)
+# assignmentMat <- table(assignmentTable[,"geneSet"], assignmentTable[,"cell"])
+# miniAssigMat <- assignmentMat[,sample(1:ncol(assignmentMat),100)]
+# aheatmap(miniAssigMat, scale="none", color="black", legend=FALSE)
+tras_cells_AUC <- t(assay(cells_AUC))
+full.labels <- colnames(tras_cells_AUC)[max.col(tras_cells_AUC)]
+tab <- table(full.labels, Idents(scData))
+pheatmap(log10(tab+10), color=viridis::viridis(100), silent=TRUE)
 ```
 
 
@@ -347,6 +352,7 @@ expressionMatrix <- GetAssayData(scData, slot = "counts")
 # graphics.off()
 # par("mar")
 # par(mfrow=c(5,3)) 
+filtered_cells_AUC <- cells_AUC[,colSums(assay(cells_AUC))>0]
 AUCell_plotTSNE(tSNE=cellsTsne, exprMat=expressionMatrix, cellsAUC=cells_AUC)
 ```
 
