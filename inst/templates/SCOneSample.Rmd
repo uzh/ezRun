@@ -323,11 +323,8 @@ colnames(assignmentTable)[2] <- "geneSet"
 ```
 
 ```{r assigments heatmap, eval= (param$species != "other"), results='asis',fig.align='center', fig.width=10, fig.height=6}
-cat("We can explore the cell assignment results using different plots. Below, we show a heatmap with the cell type each cell was assigned to. Gray color represents the successful assignment of the cell to the cell type and black non-assignment. Cell types with no cells assigned are not shown.")
+cat("We can explore the cell assignment results using different plots. Below, we show a heatmap that represents the number of cells (in log scale) from each cluster that were assigned to the different cell types. After calculating an AUC score for each cell and cell type, we assign cell type identity by taking the cell type with the top AUC as the label for that cell. Some cell types may be missing because no cells obtained their top AUC score for it.")
 cat("\n\n")
-# assignmentMat <- table(assignmentTable[,"geneSet"], assignmentTable[,"cell"])
-# miniAssigMat <- assignmentMat[,sample(1:ncol(assignmentMat),100)]
-# aheatmap(miniAssigMat, scale="none", color="black", legend=FALSE)
 tras_cells_AUC <- t(assay(cells_AUC))
 full.labels <- colnames(tras_cells_AUC)[max.col(tras_cells_AUC)]
 tab <- table(full.labels, Idents(scData))
