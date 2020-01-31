@@ -63,7 +63,9 @@ ezMethodSCOneSample <- function(input=NA, output=NA, param=NA,
                                     sep=": ")
   
   sce_list <- filterCellsAndGenes(sce, param)
-  scData <- buildSeuratObject(sce_list$sce)
+  sce <- sce_list$sce
+  sce.unfiltered <- sce_list$sce.unfiltered
+  scData <- buildSeuratObject(sce)
   scData <- seuratClusteringV3(scData, param)
   #positive cluster markers
   scData <- posClusterMarkers(scData, pvalue_allMarkers)
@@ -74,17 +76,17 @@ ezMethodSCOneSample <- function(input=NA, output=NA, param=NA,
   if(param$species == "Human" | param$species == "Mouse") {
      cells_AUC = cellsLabelsWithAUC(scData, param)
      cellsLabelsWithSingleR(scData, param)
-     metadata(sce_list$sce)$cells_AUC = cells_AUC
+     metadata(sce)$cells_AUC = cells_AUC
   }
   
   scData = saveExternalFiles(scData)
-  metadata(sce_list$sce)$scData = scData
-  sce_list$sce <- findDoublets(sce_list$sce)
+  metadata(sce)$scData = scData
+  sce <- findDoublets(sce)
   
   sce_iSEE = as.SingleCellExperiment(scData)
   saveRDS(sce_iSEE, "sce_iSEE.rds")
-  saveRDS(sce_list$sce, "sce.rds")
-  saveRDS(sce_list$sce.unfiltered, "sce.unfiltered.rds")
+  saveRDS(sce, "sce.rds")
+  saveRDS(sce.unfiltered, "sce.unfiltered.rds")
   ## Copy the style files and templates
   styleFiles <- file.path(system.file("templates", package="ezRun"),
                           c("fgcz.css", "SCOneSample.Rmd",
