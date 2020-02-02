@@ -26,7 +26,7 @@ knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE, knitr.tabl
 
 ## ----------------------------------------------
 # debug
-# library(SummarizedExperiment)
+# library(SingleCellExperiment)
 # library(scater)
 # library(Seurat)
 # library(AUCell)
@@ -92,10 +92,10 @@ num.qc.lib <- sum(sce.unfiltered$qc.lib)
 num.qc.nexprs <- sum(sce.unfiltered$qc.nexprs)
 num.qc.mito <- sum(sce.unfiltered$qc.mito)
 num.qc.ribo <- sum(sce.unfiltered$qc.ribo)
-removed <- sum(sce_list$sce.unfiltered$discard)
+removed <- sum(sce.unfiltered$discard)
 
 kable(tibble("QC metric" =c("Library Size", "Expressed genes", "Mitochondrial genes", "Ribosomal genes", "Total removed", "Cells remaining"),
-             "Number of cells"= c(num.qc.lib, num.qc.nexprs, num.qc.mito, num.qc.ribo, removed, ncol(sce_list$sce))),
+             "Number of cells"= c(num.qc.lib, num.qc.nexprs, num.qc.mito, num.qc.ribo, removed, ncol(sce))),
       row.names=FALSE,
       caption="Number of cells removed") %>%
   kable_styling(bootstrap_options = "striped", full_width = F,
@@ -328,7 +328,7 @@ cat("\n\n")
 tras_cells_AUC <- t(assay(cells_AUC))
 full.labels <- colnames(tras_cells_AUC)[max.col(tras_cells_AUC)]
 tab <- table(full.labels, Idents(scData))
-pheatmap(log10(tab+10), color=viridis::viridis(100), silent=TRUE)
+print(pheatmap(log10(tab+10), color=viridis::viridis(100), silent=TRUE))
 ```
 
 
