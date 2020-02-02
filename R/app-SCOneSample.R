@@ -218,5 +218,8 @@ saveExternalFiles = function(scData) {
   scData@misc$tSNEFn <- tSNEFn
   write_tsv(tSNE_data, path=tSNEFn)
   
+  posMarkersFn <- "pos_markers.tsv"
+  write_tsv(as_tibble(scData@misc$posMarkers), path=posMarkersFn)
+  
   return(scData)
 }
