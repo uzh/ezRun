@@ -52,7 +52,7 @@ ezMethodTophat = function(input=NA, output=NA, param=NA){
   ## check the strandedness
   bedFile = getReferenceFeaturesBed(param)
   ezSystem(paste("infer_experiment.py", "-r", bedFile, "-i", basename(bamFile), "-s 1000000"))
-
+  
   ## write an igv link
   if (param$writeIgvSessionLink){
     writeIgvSession(genome = getIgvGenome(param), refBuild=param$ezRef["refBuild"], file=basename(output$getColumn("IGV Session")),
@@ -201,7 +201,8 @@ ezMethodBowtie = function(input=NA, output=NA, param=NA){
   trimmedInput = ezMethodTrim(input = input, param = param)
   defOpt = paste("--chunkmbs 256", "--sam", "-p", param$cores)
   cmd = paste("bowtie", param$cmdOptions, defOpt, 
-              ref, trimmedInput$getColumn("Read1"), if(param$paired) trimmedInput$getColumn("Read2"),
+              ref, if(param$paired) "-1", trimmedInput$getColumn("Read1"),
+              if(param$paired) paste("-2", trimmedInput$getColumn("Read2")),
               "2> bowtie.log", "|", "samtools", "view -S -b -", " > bowtie.bam")
   ezSystem(cmd)
   ezSortIndexBam("bowtie.bam", basename(bamFile), ram=param$ram, removeBam=TRUE,
@@ -346,14 +347,10 @@ ezMethodSTAR = function(input=NA, output=NA, param=NA){
     ezSystem(paste("mv Chimeric.out.junction", 
                    basename(output$getColumn("Chimerics"))))
   }
-
+  
   ## check the strandedness
-  if (!is.null(param$checkStrandness) && param$checkStrandness){
-    cat(Sys.getenv("PATH"), "\n")
-    bedFile = getReferenceFeaturesBed(param)
-    ezSystem(paste("infer_experiment.py", "-r", bedFile,
-                   "-i", basename(bamFile), "-s 1000000"))
-  }
+  bedFile = getReferenceFeaturesBed(param)
+  ezSystem(paste("infer_experiment.py", "-r", bedFile, "-i", basename(bamFile), "-s 1000000"))
   
   ## write an igv link
   if (param$writeIgvSessionLink){ 
