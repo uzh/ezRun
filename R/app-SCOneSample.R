@@ -86,7 +86,7 @@ ezMethodSCOneSample <- function(input=NA, output=NA, param=NA,
   #prepare data for iSEE
   sce_iSEE = as.SingleCellExperiment(scData)
   metadata(sce_iSEE)$pos_markers = scData@misc$posMarkers
-  rowData(sce_iSEE)[, c("gene_id", "biotypes", "description")]
+  rowData(sce_iSEE) = rowData(sce)[, c("gene_id", "biotypes", "description")]
   
   saveRDS(sce_iSEE, "sce_iSEE.rds")
   saveRDS(sce, "sce.rds")
