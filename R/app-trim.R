@@ -129,7 +129,6 @@ ezMethodFastpTrim = function(input=NA, output=NA, param=NA){
               readsInOut,
               # general options
               paste('--thread',param[['cores']]),
-              paste('--reads_to_process',param[['reads_to_process']]),
               paste(""),
               # global trimming
               paste('--trim_front1',param[['trim_front']]),
@@ -147,8 +146,7 @@ ezMethodFastpTrim = function(input=NA, output=NA, param=NA){
               paste("--disable_trim_poly_g","--trim_poly_x",
                     "--poly_x_min_len",param[['poly_x_min_len']]),
               # read length filtering
-              paste('--length_required',param[['length_required']]),
-              paste('--length_limit',param[['length_limit']])
+              paste('--length_required',param[['length_required']])
   )
   
   ## run
