@@ -150,14 +150,19 @@ ezMethodFastpTrim = function(input=NA, output=NA, param=NA){
               paste('--length_required',param[['length_required']]),
               paste('--length_limit',param[['length_limit']])
   )
+  
   ## run
   if(ezIsSpecified(param[['cmdOptionsFastp']])){
     cmd = paste(cmd, param[['cmdOptionsFastp']])
   }
-  ezSystem(cmd)
+  ezSystem(paste0(cmd,' 2> fastp.err'))
   
   ## remove reports
   ezSystem("rm fastp.json fastp.html")
+  
+  ## rename log
+  ezSystem(paste0('cat fastp.err >>',input$getNames(),'_preprocessing.log'))
+  on.exit(file.remove("fastp.err"), add=TRUE)
   
   ## rename output
   ezSystem(paste("mv", r1TmpFile, basename(output$getColumn("Read1"))))
