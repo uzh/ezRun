@@ -197,10 +197,10 @@ ezMethodBam2Fastq <- function(input=NA, output=NA, param=NA,
     if (!is(output, "EzDataset")){
       outputMeta <- input$meta
       outputMeta$`Read1` <- paste0(getwd(), "/", rownames(outputMeta), 
-                                   "-R1.fastq")
+                                   "_R1.fastq")
       if (param$paired){
         outputMeta$`Read2` <- paste0(getwd(), "/", rownames(outputMeta), 
-                                     "-R2.fastq")
+                                     "_R2.fastq")
       } else {
         outputMeta$`Read2` <- NULL
       }
@@ -230,10 +230,10 @@ ezMethodSubsampleFastq <- function(input=NA, output=NA, param=NA, n=1e6){
   if (!is(output, "EzDataset")){
     output = input$copy()
     output$setColumn("Read1", paste0(getwd(), "/", input$getNames(), 
-                                     "-subsample-R1.fastq.gz"))
+                                     "-subsample_R1.fastq.gz"))
     if (param$paired){
       output$setColumn("Read2", paste0(getwd(), "/", input$getNames(),
-                                       "-subsample-R2.fastq.gz"))
+                                       "-subsample_R2.fastq.gz"))
     } else {
       if ("Read2" %in% input$colNames){
         output$setColumn("Read2", NULL)

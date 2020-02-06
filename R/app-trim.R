@@ -44,9 +44,9 @@ ezMethodFastpTrim = function(input=NA, output=NA, param=NA){
   ## if output is not an EzDataset, set it!
   if (!is(output, "EzDataset")){
     output = input$copy()
-    output$setColumn("Read1", paste0(getwd(), "/", input$getNames(), "-trimmed-R1.fastq"))
+    output$setColumn("Read1", paste0(getwd(), "/", input$getNames(), "-trimmed_R1.fastq"))
     if (param$paired){
-      output$setColumn("Read2", paste0(getwd(), "/", input$getNames(), "-trimmed-R2.fastq"))
+      output$setColumn("Read2", paste0(getwd(), "/", input$getNames(), "-trimmed_R2.fastq"))
     } else {
       if ("Read2" %in% input$colNames){
         output$setColumn("Read2", NULL)
@@ -85,9 +85,9 @@ ezMethodFastpTrim = function(input=NA, output=NA, param=NA){
   ## binary
   fastpBin = '/usr/local/ngseq/packages/QC/fastp/0.20.0/bin/fastp'
   ## input/output file names:
-  r1TmpFile = "trimmed-R1.fastq"
+  r1TmpFile = "trimmed_R1.fastq"
   if(param$paired){
-    r2TmpFile = "trimmed-R2.fastq"
+    r2TmpFile = "trimmed_R2.fastq"
     readsInOut = paste('--in1', input$getFullPaths("Read1"),
                        '--in2', input$getFullPaths("Read2"),
                        '--out1', r1TmpFile,
@@ -202,9 +202,9 @@ ezMethodTrim = function(input=NA, output=NA, param=NA){
   ## if output is not an EzDataset, set it!
   if (!is(output, "EzDataset")){
     output = input$copy()
-    output$setColumn("Read1", paste0(getwd(), "/", input$getNames(), "-trimmed-R1.fastq"))
+    output$setColumn("Read1", paste0(getwd(), "/", input$getNames(), "-trimmed_R1.fastq"))
     if (param$paired){
-      output$setColumn("Read2", paste0(getwd(), "/", input$getNames(), "-trimmed-R2.fastq"))
+      output$setColumn("Read2", paste0(getwd(), "/", input$getNames(), "-trimmed_R2.fastq"))
     } else {
       if ("Read2" %in% input$colNames){
         output$setColumn("Read2", NULL)
@@ -305,8 +305,8 @@ ezMethodTrim = function(input=NA, output=NA, param=NA){
     minAvgQualOpt = ""
   }
   
-  r1TmpFile = "trimmed-R1.fastq"
-  r2TmpFile = "trimmed-R2.fastq"
+  r1TmpFile = "trimmed_R1.fastq"
+  r2TmpFile = "trimmed_R2.fastq"
   if (any(c(trimAdaptOpt, tailQualOpt, minAvgQualOpt) != "") || param$minReadLength > 0){
     if (param$paired){
       method = "PE"
@@ -314,10 +314,10 @@ ezMethodTrim = function(input=NA, output=NA, param=NA){
         input$getFullPaths("Read1"),
         input$getFullPaths("Read2"),
         r1TmpFile,
-        "unpaired-R1.fastq",
+        "unpaired_R1.fastq",
         r2TmpFile,
-        "unpaired-R2.fastq")
-        on.exit(file.remove(c("unpaired-R1.fastq", "unpaired-R2.fastq")),
+        "unpaired_R2.fastq")
+        on.exit(file.remove(c("unpaired_R1.fastq", "unpaired_R2.fastq")),
                 add=TRUE)
     } else {
       method = "SE"
