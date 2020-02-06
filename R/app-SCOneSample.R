@@ -83,7 +83,11 @@ ezMethodSCOneSample <- function(input=NA, output=NA, param=NA,
   metadata(sce)$scData = scData
   sce <- findDoublets(sce)
   
+  #prepare data for iSEE
   sce_iSEE = as.SingleCellExperiment(scData)
+  metadata(sce_iSEE)$pos_markers = scData@misc$posMarkers
+  rowData(sce_iSEE)[, c("gene_id", "biotypes", "description")]
+  
   saveRDS(sce_iSEE, "sce_iSEE.rds")
   saveRDS(sce, "sce.rds")
   saveRDS(sce.unfiltered, "sce.unfiltered.rds")
