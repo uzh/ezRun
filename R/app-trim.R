@@ -44,9 +44,9 @@ ezMethodFastpTrim = function(input=NA, output=NA, param=NA){
   ## if output is not an EzDataset, set it!
   if (!is(output, "EzDataset")){
     output = input$copy()
-    output$setColumn("Read1", paste0(getwd(), "/", input$getNames(), "-trimmed-R1.fastq"))
+    output$setColumn("Read1", paste0(getwd(), "/", input$getNames(), "-trimmed_R1.fastq"))
     if (param$paired){
-      output$setColumn("Read2", paste0(getwd(), "/", input$getNames(), "-trimmed-R2.fastq"))
+      output$setColumn("Read2", paste0(getwd(), "/", input$getNames(), "-trimmed_R2.fastq"))
     } else {
       if ("Read2" %in% input$colNames){
         output$setColumn("Read2", NULL)
@@ -85,9 +85,9 @@ ezMethodFastpTrim = function(input=NA, output=NA, param=NA){
   ## binary
   fastpBin = '/usr/local/ngseq/packages/QC/fastp/0.20.0/bin/fastp'
   ## input/output file names:
-  r1TmpFile = "trimmed-R1.fastq"
+  r1TmpFile = "trimmed_R1.fastq"
   if(param$paired){
-    r2TmpFile = "trimmed-R2.fastq"
+    r2TmpFile = "trimmed_R2.fastq"
     readsInOut = paste('--in1', input$getFullPaths("Read1"),
                        '--in2', input$getFullPaths("Read2"),
                        '--out1', r1TmpFile,
@@ -129,35 +129,38 @@ ezMethodFastpTrim = function(input=NA, output=NA, param=NA){
               readsInOut,
               # general options
               paste('--thread',param[['cores']]),
-              paste('--reads_to_process',param[['readsToProcess']]),
               paste(""),
               # global trimming
-              paste('--trim_front1',param[['trimLeft']]),
-              paste('--trim_tail1',param[['trimRight']]),
+              paste('--trim_front1',param[['trim_front']]),
+              paste('--trim_tail1',param[['trim_tail']]),
               # quality-based trimming per read
-              paste("--cut_front", param[['minLeadingQuality']]), # like Trimmomatic's LEADING
-              paste("--cut_right", param[['minTailQuality']]), # like Trimmomatic's SLIDINGWINDOW
-              paste("--cut_tail", param[['minTrailingQuality']]), # like Trimmomatic's TRAILING
-              paste("--average_qual", param[['minAvgQuality']]),
+              paste("--cut_front", param[['cut_front']]), # like Trimmomatic's LEADING
+              paste("--cut_right", param[['cut_right']]), # like Trimmomatic's SLIDINGWINDOW
+              paste("--cut_tail", param[['cut_tail']]), # like Trimmomatic's TRAILING
+              paste("--average_qual", param[['average_qual']]),
               # adapter trimming
               trimAdapt,
               # read length trimming
-              paste('--max_len1',param[['trimToMaxLength']]),
+              paste('--max_len1',param[['max_len1']]),
               # polyX
               paste("--disable_trim_poly_g","--trim_poly_x",
-                    "--poly_x_min_len",param[['polyXminLength']]),
+                    "--poly_x_min_len",param[['poly_x_min_len']]),
               # read length filtering
-              paste('--length_required',param[['minReadLength']]),
-              paste('--length_limit',param[['maxReadLength']])
+              paste('--length_required',param[['length_required']])
   )
+  
   ## run
-  if(ezIsSpecified(param[['cmdOptions']])){
-    cmd = paste(cmd, param[['cmdOptions']])
+  if(ezIsSpecified(param[['cmdOptionsFastp']])){
+    cmd = paste(cmd, param[['cmdOptionsFastp']])
   }
-  ezSystem(cmd)
+  ezSystem(paste0(cmd,' 2> fastp.err'))
   
   ## remove reports
   ezSystem("rm fastp.json fastp.html")
+  
+  ## rename log
+  ezSystem(paste0('cat fastp.err >>',input$getNames(),'_preprocessing.log'))
+  on.exit(file.remove("fastp.err"), add=TRUE)
   
   ## rename output
   ezSystem(paste("mv", r1TmpFile, basename(output$getColumn("Read1"))))
@@ -202,9 +205,9 @@ ezMethodTrim = function(input=NA, output=NA, param=NA){
   ## if output is not an EzDataset, set it!
   if (!is(output, "EzDataset")){
     output = input$copy()
-    output$setColumn("Read1", paste0(getwd(), "/", input$getNames(), "-trimmed-R1.fastq"))
+    output$setColumn("Read1", paste0(getwd(), "/", input$getNames(), "-trimmed_R1.fastq"))
     if (param$paired){
-      output$setColumn("Read2", paste0(getwd(), "/", input$getNames(), "-trimmed-R2.fastq"))
+      output$setColumn("Read2", paste0(getwd(), "/", input$getNames(), "-trimmed_R2.fastq"))
     } else {
       if ("Read2" %in% input$colNames){
         output$setColumn("Read2", NULL)
@@ -305,8 +308,8 @@ ezMethodTrim = function(input=NA, output=NA, param=NA){
     minAvgQualOpt = ""
   }
   
-  r1TmpFile = "trimmed-R1.fastq"
-  r2TmpFile = "trimmed-R2.fastq"
+  r1TmpFile = "trimmed_R1.fastq"
+  r2TmpFile = "trimmed_R2.fastq"
   if (any(c(trimAdaptOpt, tailQualOpt, minAvgQualOpt) != "") || param$minReadLength > 0){
     if (param$paired){
       method = "PE"
@@ -314,10 +317,10 @@ ezMethodTrim = function(input=NA, output=NA, param=NA){
         input$getFullPaths("Read1"),
         input$getFullPaths("Read2"),
         r1TmpFile,
-        "unpaired-R1.fastq",
+        "unpaired_R1.fastq",
         r2TmpFile,
-        "unpaired-R2.fastq")
-        on.exit(file.remove(c("unpaired-R1.fastq", "unpaired-R2.fastq")),
+        "unpaired_R2.fastq")
+        on.exit(file.remove(c("unpaired_R1.fastq", "unpaired_R2.fastq")),
                 add=TRUE)
     } else {
       method = "SE"
