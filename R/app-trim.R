@@ -118,6 +118,8 @@ ezMethodFastpTrim = function(input=NA, output=NA, param=NA){
     if(length(adapters)>0){
       writeXStringSet(adapters, adaptFile)
       on.exit(file.remove(adaptFile), add=TRUE)
+    }else{
+      warning("Please, make sure that input_dataset.tsv 'AdapterN' column(s) was filled correspondingly. In case of not having any 'AdapterN' column, please make sure the option 'trimAdapter' is set to 'false' before running our app.")
     }
     trimAdapt = paste('--adapter_fasta', adaptFile)
     
