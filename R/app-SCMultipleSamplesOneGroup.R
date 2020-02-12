@@ -34,7 +34,8 @@ EzAppSCMultipleSamplesOneGroup <-
                                                               Description="The markers to show in the heatmap of cluster marker genes"),
                                         maxSamplesSupported=ezFrame(Type="numeric", 
                                                                     DefaultValue=5, 
-                                                                    Description="Maximum number of samples to compare"))
+                                                                    Description="Maximum number of samples to compare"), 
+                                        species=ezFrame(Type="character", DefaultValue="Human", Description="Organism"))
                 }
               )
   )
@@ -100,6 +101,11 @@ ezMethodSCMultipleSamplesOneGroup = function(input=NA, output=NA, param=NA, html
   #perform all pairwise comparisons to obtain markers
   if(doEnrichr(param) && param$all2allMarkers) 
     scData = all2all(scData, pvalue_all2allMarkers, param)
+  
+  if(param$species == "Human" | param$species == "Mouse") {
+    cells_AUC = cellsLabelsWithAUC(scData, param)
+    scData@misc$cells_AUC = cells_AUC
+  }
   
   scData = saveExternalFiles(scData)
   
