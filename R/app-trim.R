@@ -18,22 +18,6 @@
 ##'   \item{length filtering}
 ##' }
 ##' This means if you specify a fixed trimming this comes on top of the adapter trimming
-##' @template input-template
-##' @param output an object of the class EzDataset or NA. If it is NA, it will be copied from the input.
-##' @param param a list of parameters:
-##' \itemize{
-##'   \item{paired}{ a logical specifying whether the samples have paired ends.}
-##'   \item{subsampleReads}{ an integer specifying how many subsamples there are. This will call \code{ezMethodSubsampleReads()} if > 1.}
-##'   \item{nReads}{ an integer specifying how many reads were detected.}
-##'   \item{trimAdapter}{ a logical specifying whether to use a trim adapter.}
-##'   \item{minTailQuality}{ an integer specifying the minimal tail quality to accept. Only used if > 0.}
-##'   \item{minTrailingQuality}{ an integer specifying the minimal trailing quality to accept. Only used if > 0.}
-##'   \item{minAvgQuality}{ an integer specifying the minimal average quality to accept. Only used if > 0.}
-##'   \item{minReadLength}{ an integer specifying the minimal read length to accept.}
-##'   \item{dataRoot}{ a character specifying the path of the data root to get the full column paths from.}
-##' }
-##' @template roxygen-template
-##' @return Returns the output after trimming as an object of the class EzDataset.
 
 ezMethodFastpTrim = function(input=NA, output=NA, param=NA){
   # Input/Output Preparation
@@ -83,7 +67,7 @@ ezMethodFastpTrim = function(input=NA, output=NA, param=NA){
   
   # Prepare shell command
   ## binary
-  fastpBin = '/usr/local/ngseq/packages/QC/fastp/0.20.0/bin/fastp'
+  fastpBin = 'fastp'
   ## input/output file names:
   r1TmpFile = "trimmed_R1.fastq"
   if(param$paired){
@@ -129,14 +113,13 @@ ezMethodFastpTrim = function(input=NA, output=NA, param=NA){
               readsInOut,
               # general options
               paste('--thread',param[['cores']]),
-              paste(""),
               # global trimming
-              paste('--trim_front1',param[['trim_front']]),
-              paste('--trim_tail1',param[['trim_tail']]),
+              paste('--trim_front1',param[['trim_front1']]),
+              paste('--trim_tail1',param[['trim_tail1']]),
               # quality-based trimming per read
-              paste("--cut_front", param[['cut_front']]), # like Trimmomatic's LEADING
-              paste("--cut_right", param[['cut_right']]), # like Trimmomatic's SLIDINGWINDOW
-              paste("--cut_tail", param[['cut_tail']]), # like Trimmomatic's TRAILING
+              paste(if(param[['cut_front']]) "--cut_front", "--cut_front_window_size", param[['cut_front_window_size']], "--cut_front_mean_quality", param[['cut_front_mean_quality']]), # like Trimmomatic's LEADING
+              paste(if(param[['cut_right']]) "--cut_right", "--cut_right_window_size", param[['cut_right_window_size']], "--cut_right_mean_quality", param[['cut_right_mean_quality']]), # like Trimmomatic's SLIDINGWINDOW
+              paste(if(param[['cut_tail']])"--cut_tail", "--cut_tail_window_size", param[['cut_tail_window_size']], "--cut_tail_mean_quality", param[['cut_tail_mean_quality']]), # like Trimmomatic's TRAILING
               paste("--average_qual", param[['average_qual']]),
               # adapter trimming
               trimAdapt,
@@ -170,6 +153,21 @@ ezMethodFastpTrim = function(input=NA, output=NA, param=NA){
   return(output)
 }
 
+##' @title EzAppExceRpt app
+##' @description Use this reference class to run exceRpt_smallRNA parameters.
+##' @author Miquel Anglada Girotto
+EzAppFastp =
+  setRefClass( "EzAppFastp",
+               contains = "EzApp",
+               methods = list(
+                 initialize = function(){
+                   "Initializes the application using its specific defaults."
+                   runMethod <<- ezMethodFastpTrim
+                   name <<- "EzAppFastp"
+                 }
+               )
+               
+  )
 
 ##' @title Trims input reads
 ##' @description Trims input reads. The trimming happens in the following order:
