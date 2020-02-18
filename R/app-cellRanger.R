@@ -9,6 +9,11 @@ ezMethodCellRanger = function(input=NA, output=NA, param=NA){
   sampleName = input$getNames()
   sampleDirs = strsplit(input$getColumn("RawDataDir"), ",")[[sampleName]]
   sampleDirs <- file.path(input$dataRoot, sampleDirs)
+  if(all(grepl("\\.tar$", sampleDirs))){
+    # This is new .tar folder
+    lapply(sampleDirs, untar)
+    sampleDirs <- sub("\\.tar$", "", basename(sampleDirs))
+  }
   sampleDir <- paste(sampleDirs, collapse=",")
   cellRangerFolder = paste0(sampleName, "-cellRanger")
   
