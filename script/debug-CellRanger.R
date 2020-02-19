@@ -158,3 +158,65 @@ debug(getCellRangerReference)
 debug(ezMethodCellRanger)
 EzAppCellRanger$new()$run(input=input, output=output, param=param)
 
+## p3360 tar
+setwd("/scratch/gtan/debug/quickDebug")
+library(ezRun)
+param = list()
+param[['cores']] = '32'
+param[['ram']] = '40'
+param[['scratch']] = '200'
+param[['node']] = 'fgcz-c-048,fgcz-h-004,fgcz-h-006,fgcz-h-007,fgcz-h-008,fgcz-h-009,fgcz-h-010,fgcz-h-011,fgcz-h-012,fgcz-h-013,fgcz-h-014,fgcz-h-015,fgcz-h-016,fgcz-h-017,fgcz-h-018,fgcz-h-019,fgcz-h-020,fgcz-h-021,fgcz-h-022,fgcz-h-023,fgcz-h-024,fgcz-h-025'
+param[['process_mode']] = 'SAMPLE'
+param[['samples']] = 'RT1,Abx5,C3,CAX6,RT5,Abx6,C7,CAX5'
+param[['name']] = 'CellRangerCount'
+param[['refBuild']] = 'Mus_musculus/GENCODE/GRCm38.p6/Annotation/Release_M23-2019-11-05'
+param[['refFeatureFile']] = 'genes.gtf'
+param[['featureLevel']] = 'gene'
+param[['TenXLibrary']] = 'GEX'
+param[['scMode']] = 'SN'
+param[['chemistry']] = 'auto'
+param[['transcriptTypes']] = 'protein_coding,rRNA,tRNA,Mt_rRNA,Mt_tRNA'
+param[['controlSeqs']] = ''
+param[['cmdOptions']] = ''
+param[['specialOptions']] = ''
+param[['mail']] = 'ge.tan@fgcz.ethz.ch'
+param[['dataRoot']] = '/srv/gstore/projects'
+param[['resultDir']] = 'p3360/CellRangerCount_44147_2020-02-18--17-16-35'
+param[['isLastJob']] = TRUE
+output = list()
+output[['Name']] = 'CAX5'
+output[['Species']] = 'Mus musculus (house mouse)'
+output[['refBuild']] = 'Mus_musculus/GENCODE/GRCm38.p6/Annotation/Release_M23-2019-11-05'
+output[['refFeatureFile']] = 'genes.gtf'
+output[['featureLevel']] = 'gene'
+output[['transcriptTypes']] = 'protein_coding,rRNA,tRNA,Mt_rRNA,Mt_tRNA'
+output[['ResultDir [File]']] = 'p3360/CellRangerCount_44147_2020-02-18--17-16-35/CAX5'
+output[['Report [Link]']] = 'p3360/CellRangerCount_44147_2020-02-18--17-16-35/CAX5/web_summary.html'
+output[['CountMatrix [Link]']] = 'p3360/CellRangerCount_44147_2020-02-18--17-16-35/CAX5/filtered_feature_bc_matrix'
+output[['Sample Id [B-Fabric]']] = 'bfs_213909'
+output[['Order Id [B-Fabric]']] = '6714'
+input = list()
+input[['Name']] = 'CAX5'
+input[['Condition']] = ''
+input[['Species']] = 'Mus musculus (house mouse)'
+input[['FragmentSize']] = '0'
+input[['SampleConc']] = '0'
+input[['Tube']] = 'p3360_6714/8'
+input[['Sample Id']] = 'bfs_213909'
+input[['PlatePosition']] = ''
+input[['LibConc_100_800bp']] = '0'
+input[['LibConc_qPCR']] = '0'
+input[['RIN']] = '0'
+input[['Adapter1']] = 'NA'
+input[['Adapter2']] = 'NA'
+input[['strandMode']] = 'NA'
+input[['LibraryPrepKit']] = '10X Genomics Single Cell, V3.1'
+input[['EnrichmentMethod']] = 'None'
+input[['InputAmount']] = 'NA'
+input[['Order Id']] = '6714'
+input[['PlateName']] = 'p3360_o6714'
+input[['RawDataDir']] = 'p3360/NovaSeq_20200217_NOV321_o6714_DataDelivery/CAX5.tar'
+input[['Read1']] = 'p3360/NovaSeq_20200217_NOV321_o6714_DataDelivery/CAX5/CAX5_S8_L001_R2_001.fastq.gz'
+input[['Read Count']] = '238527372'
+debug(ezMethodCellRanger)
+EzAppCellRanger$new()$run(input=input, output=output, param=param)
