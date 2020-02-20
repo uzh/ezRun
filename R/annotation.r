@@ -285,6 +285,7 @@ makeFeatAnnoEnsembl <- function(featureFile,
   
   ## make annotation at gene level
   featAnnoGene <- aggregateFeatAnno(featAnno)
+  featAnnoGene$strand[!featAnnoGene$strand %in% c("+", "-")] <- "*"
   ezWrite.table(featAnnoGene, file=featAnnoGeneFile, row.names=FALSE)
   
   invisible(list("transcript"=featAnno, "gene"=featAnnoGene))
