@@ -280,7 +280,7 @@ The minimal pvalue is `r pvalue_allMarkers`.
 markers <- FindAllMarkers(scData, only.pos=TRUE, min.pct=0.25,
                           logfc.threshold=0.25, return.thresh=pvalue_allMarkers)
 posMarkersFn <- "pos_markers.tsv"
-write_tsv(as_tibble(markers, rownames="id"), path=posMarkersFn)
+write_tsv(as_tibble(markers), path=posMarkersFn)
 ```
 
 ```{r pos markers enrichr, echo=FALSE, results='asis'}
