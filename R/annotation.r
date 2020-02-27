@@ -371,6 +371,7 @@ aggregateFeatAnno <- function(featAnno){
   ## TODO: in the future, maybe we want to return featAnnoGene as data.table
   featAnnoGene <- as.data.frame(featAnnoGene)
   rownames(featAnnoGene) <- featAnnoGene$gene_id
+  featAnnoGene$strand[!featAnnoGene$strand %in% c("+", "-")] <- "*"
   return(featAnnoGene)
 }
 

@@ -112,13 +112,18 @@ ezMethodFastpTrim = function(input=NA, output=NA, param=NA){
     } else {
       adapter2 = DNAStringSet()
     }
-    # trim both reads with adapters.fa
+    # take only adapter from dataset and ignore the ones from TRIMMOMATIC_ADAPTERS
     adaptFile = "adapters.fa"
     adapters = c(adapter1, adapter2)
-    if(length(adapters)>0){
+    if (!is.null(param$onlyAdapterFromDataset) && param$onlyAdapterFromDataset){
       writeXStringSet(adapters, adaptFile)
-      on.exit(file.remove(adaptFile), add=TRUE)
+    } else {
+      file.copy(from=TRIMMOMATIC_ADAPTERS,
+                to=adaptFile)
+      writeXStringSet(adapters, adaptFile, append=TRUE)
     }
+    on.exit(file.remove(adaptFile), add=TRUE)
+    
     trimAdapt = paste('--adapter_fasta', adaptFile)
     
   } else {
