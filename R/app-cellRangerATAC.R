@@ -56,8 +56,8 @@ ezMethodCellRangerATAC <- function(input=NA, output=NA, param=NA){
   }
   ezSystem(cmd)
   
-  file.rename(file.path(cellRangerFolder, "outs"),  sampleName)
   unlink(sampleDirs, recursive=TRUE)
+  file.rename(file.path(cellRangerFolder, "outs"),  sampleName)
   unlink(cellRangerFolder, recursive=TRUE)
   
   return("Success")
