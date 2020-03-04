@@ -25,6 +25,8 @@ ezMethodDADA2Step1Sample = function(input=NA, output=NA, param=NA,
   if (databaseParam == "silva") {
     if (kingdomParam == "Bacteria"){
     database <- SILVA_BACTERIA_DADA2
+    }else if (kingdomParam == "Bacteria_species"){
+      database <- SILVA_BACTERIA_SPECIES_DADA2
     }else if (kingdomParam == "Archea"){
     database <- SILVA_ARCHAEA_DADA2
     }else if (kingdomParam == "Eukaryota"){
@@ -37,7 +39,7 @@ ezMethodDADA2Step1Sample = function(input=NA, output=NA, param=NA,
   } else if (databaseParam == "greenGenes" & kingdomParam == "Bacteria") {
     database <- GREENGENES_DB
   } else {
-    stop("Currently from RDP and greenGenes we bacterial databases.")
+    stop("Currently from RDP and greenGenes we support only bacterial databases.")
   }
   ### read fastq files and prepare inputs for DADA2
   ### if reads are paired, they are first joined. The DADA2 inbulit joining works only 
