@@ -5,18 +5,18 @@
 # The terms are available here: http://www.gnu.org/licenses/gpl.html
 # www.fgcz.ch
 
-EzAppCellRangerAggr <-
-  setRefClass("EzAppCellRangerAggr",
+EzAppCellRangerATACAggr <-
+  setRefClass("EzAppCellRangerATACAggr",
               contains = "EzApp",
               methods = list(
                 initialize = function()
                 {
                   "Initializes the application using its specific defaults."
-                  runMethod <<- ezMethodCellRangerAggr
-                  name <<- "EzAppCellRangerAggr"
+                  runMethod <<- ezMethodCellRangeATACrAggr
+                  name <<- "EzAppCellRangerATACAggr"
                   appDefaults <<- rbind(normalize=ezFrame(Type="character",
-                                                          DefaultValue="mapped",
-                                                          Description="String specifying how to normalize depth across the input libraries. mapped or none."))
+                                                          DefaultValue="depth",
+                                                          Description="String specifying how to normalize the input libraries. Valid values: depth (default), signal, or none."))
                 }
               )
   )
@@ -32,8 +32,11 @@ ezMethodCellRangerAggr = function(input=NA, output=NA, param=NA){
   input <- input$subset(samples)
   
   aggr_input <- tibble(library_id=input$getNames(),
-                       molecule_h5=file.path(dirname(input$getFullPaths("Report")),
-                                             "molecule_info.h5")
+                       fragments=file.path(dirname(input$getFullPaths("Report")),
+                                           "fragments.tsv.gz"),
+                       cells=file.path(dirname(input$getFullPaths("Report")),
+                                       "singlecell.csv")
+
                        )
   if(any(input$columnHasTag("Factor"))){
     aggr_input2 <- as_tibble(input$meta[ ,input$columnHasTag("Factor"), drop=FALSE],
@@ -48,9 +51,14 @@ ezMethodCellRangerAggr = function(input=NA, output=NA, param=NA){
   
   cellRangerFolder = paste0(param$name, "-cellRanger")
   
+  refDir <- getCellRangerATACReference(param)
+  message("Using the reference: ", refDir)
+  
   cmd <- paste(CELLRANGER, "aggr", paste0("--id=", cellRangerFolder),
                paste0("--csv=", aggr_input_fn),
-               paste0("--normalize=", param$normalize))
+               paste0("--normalize=", param$normalize),
+               paste0("--reference=", refDir))
+  
   ezSystem(cmd)
   
   file.rename(file.path(cellRangerFolder, "outs"),  param$name)
