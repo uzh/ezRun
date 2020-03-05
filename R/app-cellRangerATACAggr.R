@@ -12,7 +12,7 @@ EzAppCellRangerATACAggr <-
                 initialize = function()
                 {
                   "Initializes the application using its specific defaults."
-                  runMethod <<- ezMethodCellRangeATACrAggr
+                  runMethod <<- ezMethodCellRangerATACAggr
                   name <<- "EzAppCellRangerATACAggr"
                   appDefaults <<- rbind(normalize=ezFrame(Type="character",
                                                           DefaultValue="depth",
@@ -21,7 +21,7 @@ EzAppCellRangerATACAggr <-
               )
   )
 
-ezMethodCellRangerAggr = function(input=NA, output=NA, param=NA){
+ezMethodCellRangerATACAggr = function(input=NA, output=NA, param=NA){
   ## dataset mode
   require(tibble)
   require(dplyr)
