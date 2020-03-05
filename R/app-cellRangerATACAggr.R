@@ -54,7 +54,7 @@ ezMethodCellRangerATACAggr = function(input=NA, output=NA, param=NA){
   refDir <- getCellRangerATACReference(param)
   message("Using the reference: ", refDir)
   
-  cmd <- paste(CELLRANGER, "aggr", paste0("--id=", cellRangerFolder),
+  cmd <- paste(CELLRANGERATAC, "aggr", paste0("--id=", cellRangerFolder),
                paste0("--csv=", aggr_input_fn),
                paste0("--normalize=", param$normalize),
                paste0("--reference=", refDir))
