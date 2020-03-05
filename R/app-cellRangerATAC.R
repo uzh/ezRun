@@ -22,7 +22,6 @@ EzAppCellRangerATAC <-
               )
   )
 
-
 ezMethodCellRangerATAC <- function(input=NA, output=NA, param=NA){
   sampleName = input$getNames()
   sampleDirs = strsplit(input$getColumn("RawDataDir"), ",")[[sampleName]]
@@ -35,13 +34,7 @@ ezMethodCellRangerATAC <- function(input=NA, output=NA, param=NA){
   sampleDir <- paste(sampleDirs, collapse=",")
   cellRangerFolder = paste0(sampleName, "-cellRanger")
   
-  refDir <- file.path(param$ezRef["refBuildDir"], "Sequence")
-  refDir <- list.files(refDir, pattern="cellranger-atac", 
-                       full.names=TRUE, recursive=FALSE)
-  if(length(refDir) == 0L){
-    stop("Cell Ranger ATAC compatible genome reference is not available. Please download from https://support.10xgenomics.com/single-cell-atac/software/downloads/latest!")
-  }
-  refDir <- refDir[1]
+  refDir <- getCellRangerATACReference(param)
   message("Using the reference: ", refDir)
   
   cmd <- paste(CELLRANGERATAC, "count", paste0("--id=", cellRangerFolder),
@@ -61,4 +54,15 @@ ezMethodCellRangerATAC <- function(input=NA, output=NA, param=NA){
   unlink(cellRangerFolder, recursive=TRUE)
   
   return("Success")
+}
+
+getCellRangerATACReference <- function(param){
+  refDir <- file.path(param$ezRef["refBuildDir"], "Sequence")
+  refDir <- list.files(refDir, pattern="cellranger-atac", 
+                       full.names=TRUE, recursive=FALSE)
+  if(length(refDir) == 0L){
+    stop("Cell Ranger ATAC compatible genome reference is not available. Please download from https://support.10xgenomics.com/single-cell-atac/software/downloads/latest!")
+  }
+  refDir <- refDir[1]
+  return(refDir)
 }
