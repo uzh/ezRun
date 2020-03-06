@@ -36,7 +36,11 @@ DADA2CreateSeqTab <- function(sampleNames,maxLen=0,file1PathInDataset,database,s
     }
     seqtab <- makeSequenceTable(dadaFs)
     fullTableOfOTUsNoChim <- removeBimeraDenovo(seqtab, method="consensus", multithread=TRUE)
+    if (kingdomParam != "Bacteria_species") {
     taxa <- assignTaxonomy(fullTableOfOTUsNoChim,database, multithread=FALSE)
+    }else{
+      taxa <- assignSpecies(fullTableOfOTUsNoChim,database, multithread=FALSE)
+    }
     rownames(fullTableOfOTUsNoChim) <- sampleNames
   return(list(fullTableOfOTUsNoChimObj=fullTableOfOTUsNoChim,
               taxaObj=taxa,outFilt=out,dadaObj=dadaFs))
