@@ -59,18 +59,17 @@ ezMethodSpaceRanger <- function(input=NA, output=NA, param=NA){
     unlink(refDir, recursive = TRUE)
   }
   
-  if(param$TenXLibrary == "GEX"){
-    require(DropletUtils)
-    require(Matrix)
-    require(readr)
-    countMatrixFn <- list.files(path=file.path(sampleName, 'filtered_feature_bc_matrix'),
-                                pattern="\\.mtx(\\.gz)*$", recursive=TRUE,
-                                full.names=TRUE)
-    sce <- read10xCounts(dirname(countMatrixFn), col.names=TRUE)
+  require(DropletUtils)
+  require(Matrix)
+  require(readr)
+  countMatrixFn <- list.files(path=file.path(sampleName, 'filtered_feature_bc_matrix'),
+                              pattern="\\.mtx(\\.gz)*$", recursive=TRUE,
+                              full.names=TRUE)
+  sce <- read10xCounts(dirname(countMatrixFn), col.names=TRUE)
     
-    cellPhase <- getCellCycle(sce, param$refBuild)
-    write_tsv(cellPhase,
-              path=file.path(dirname(countMatrixFn), "CellCyclePhase.txt"))
-  }
+  cellPhase <- getCellCycle(sce, param$refBuild)
+  write_tsv(cellPhase,
+            path=file.path(dirname(countMatrixFn), "CellCyclePhase.txt"))
+  
   return("Success")
 }
