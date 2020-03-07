@@ -14,7 +14,10 @@ EzAppSpaceRanger <-
                   "Initializes the application using its specific defaults."
                   runMethod <<- ezMethodSpaceRanger
                   name <<- "EzAppSpaceRanger"
-                  appDefaults <<- rbind(controlSeqs=ezFrame(Type="charVector",
+                  appDefaults <<- rbind(scMode=ezFrame(Type="character",
+                                                       DefaultValue="SC",
+                                                       Description="Single cell or single nuclei?"),
+                                        controlSeqs=ezFrame(Type="charVector",
                                                             DefaultValue="",
                                                             Description="control sequences to add"))
                 }
