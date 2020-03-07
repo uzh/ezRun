@@ -62,12 +62,12 @@ ezMethodDADA2Step1Sample = function(input=NA, output=NA, param=NA,
     DADA2mainSeqTabObj <- DADA2CreateSeqTab(sampleNames = sampleNames,
                                           maxLen = maxLen,
                                           file1PathInDataset = listOfJoinedFiles,
-                                          database,seqTech,maxExpErr)
+                                          kingdomParam,database,seqTech,maxExpErr)
   }else{
     DADA2mainSeqTabObj <- DADA2CreateSeqTab(sampleNames= sampleNames,
                                             maxLen = maxLen,
                                             file1PathInDataset = file1PathInDataset,
-                                            database,seqTech,maxExpErr)
+                                            kingdomParam,database,seqTech,maxExpErr)
   }
   
   ## create ans save QC and chimera summary file 

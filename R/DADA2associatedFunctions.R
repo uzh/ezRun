@@ -12,7 +12,8 @@
 ##' @param  a fastq or pairs of ffastq files .
 ##' @return Returns a DADA2 seqtab object.
 
-DADA2CreateSeqTab <- function(sampleNames,maxLen=0,file1PathInDataset,database,seqTech,maxExpErr){
+DADA2CreateSeqTab <- function(sampleNames,maxLen=0,file1PathInDataset,
+                              kingdomParam,database,seqTech,maxExpErr){
     fnFs <- file1PathInDataset
     filtFs <- paste0(sampleNames,".filt.R1.fastq.gz")
     names(filtFs) <- sampleNames
