@@ -48,6 +48,7 @@ ENRICHR_BASE_URL="https://amp.pharm.mssm.edu/Enrichr"
 MEMECHIP="/usr/local/ngseq/stow/meme_4.10.2/bin/meme-chip"
 CELLRANGER="/usr/local/ngseq/opt/cellranger-3.1.0/cellranger"
 CELLRANGERATAC="/usr/local/ngseq/opt/cellranger-atac-1.2.0/cellranger-atac"
+SPACERANGER="/usr/local/ngseq/opt/spaceranger-1.0.0/spaceranger"
 ATACENCODE="/usr/local/ngseq/opt/atac_dnase_pipelines/atac.bds"
 CNVNATOR="/usr/local/ngseq/src/CNVnator_v0.3.3/src/cnvnator"
 
