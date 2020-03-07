@@ -40,7 +40,7 @@ DADA2CreateSeqTab <- function(sampleNames,maxLen=0,file1PathInDataset,
     if (kingdomParam != "Bacteria_species") {
     taxa <- assignTaxonomy(fullTableOfOTUsNoChim,database, multithread=FALSE)
     }else{
-      taxa <- assignSpecies(fullTableOfOTUsNoChim,database, multithread=FALSE)
+      taxa <- assignSpecies(fullTableOfOTUsNoChim,database)
     }
     rownames(fullTableOfOTUsNoChim) <- sampleNames
   return(list(fullTableOfOTUsNoChimObj=fullTableOfOTUsNoChim,
