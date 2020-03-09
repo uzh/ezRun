@@ -106,7 +106,6 @@ filterCellsAndGenes <- function(sce, param) {
   #browser()
   require(scater)
   require(Matrix)
-  library(scDblFinder)
   mito.genes <- grep("^MT-",rowData(sce)$gene_name)
   ribo.genes <- grep("^RP[SL]",rowData(sce)$gene_name)
   
@@ -136,6 +135,7 @@ filterCellsAndGenes <- function(sce, param) {
 }
 
 findDoublets <- function(sce) {
+  require(scDblFinder)
   sce <- scDblFinder(sce)
   scData <- metadata(sce)$scData
   scData@meta.data$scDblFinder.score <- colData(sce)$scDblFinder.score
