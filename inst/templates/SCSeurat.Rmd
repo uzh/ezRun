@@ -280,7 +280,7 @@ The available references are described here https://bioconductor.org/packages/de
 doSingleR <- TRUE
 if(grepl("Homo_sapiens", param$refBuild)){
   hpca.se <- HumanPrimaryCellAtlasData()
-}else grepl("Mus_musculus", param$refBuild){
+}else if(grepl("Mus_musculus", param$refBuild)){
   hpca.se <- MouseRNAseqData()
 }else{
   message("SingleR is not available as the species is not supported yet.")
