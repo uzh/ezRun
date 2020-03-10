@@ -29,7 +29,7 @@ library(scater)
 library(dplyr)
 library(Seurat)
 library(SingleR, lib.loc = "/home/gtan/R-library")
-
+library(plotly)
 ## ----------------------------------------------
 ## debug
 # title:  "`r metadata(sce)$param$name`"
@@ -277,18 +277,27 @@ to annotate cells from a set of reference data.
 The available references are described here https://bioconductor.org/packages/devel/bioc/vignettes/SingleR/inst/doc/SingleR.html#5_available_references.
 
 ```{r run SingleR, echo=FALSE}
-hpca.se <- HumanPrimaryCellAtlasData()
-singler.results <- SingleR(test = GetAssayData(scData), ref = hpca.se, 
+doSingleR <- TRUE
+if(grepl("Homo_sapiens", param$refBuild)){
+  hpca.se <- HumanPrimaryCellAtlasData()
+}else grepl("Mus_musculus", param$refBuild){
+  hpca.se <- MouseRNAseqData()
+}else{
+  message("SingleR is not available as the species is not supported yet.")
+  doSingleR <- FALSE
+}
+if(doSingleR){
+  singler.results <- SingleR(test = GetAssayData(scData), ref = hpca.se, 
                            labels = hpca.se$label.main)
-scData[["SingleR.labels"]] <- singler.results$labels
-cellInfo <- tibble(Cells=colnames(scData), Cluster=Idents(scData),
-                   SingleR.labels=scData$SingleR.labels) %>%
-  left_join(as_tibble(Embeddings(scData, "umap"), rownames="Cells")) %>%
-  left_join(as_tibble(Embeddings(scData, "tsne"), rownames="Cells"))
+  scData[["SingleR.labels"]] <- singler.results$labels
+  cellInfo <- tibble(Cells=colnames(scData), Cluster=Idents(scData),
+                     SingleR.labels=scData$SingleR.labels) %>%
+    left_join(as_tibble(Embeddings(scData, "umap"), rownames="Cells")) %>%
+    left_join(as_tibble(Embeddings(scData, "tsne"), rownames="Cells"))
+}
 ```
 
-```{r plot SingleR, echo=FALSE, fig.width=14}
-library(plotly)
+```{r plot SingleR, echo=FALSE, fig.width=14, eval=doSingleR}
 x <- list(title="UMAP_1", zeroline=FALSE)
 y <- list(title="UMAP_2", zeroline=FALSE)
 p1 <- plot_ly(cellInfo, x = ~UMAP_1, y = ~UMAP_2, color=~SingleR.labels,
