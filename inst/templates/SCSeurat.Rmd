@@ -276,7 +276,7 @@ We use Bioconductor package [SingleR](https://bioconductor.org/packages/devel/bi
 to annotate cells from a set of reference data.
 The available references are described here https://bioconductor.org/packages/devel/bioc/vignettes/SingleR/inst/doc/SingleR.html#5_available_references.
 
-```{r run SingleR, echo=FALSE}
+```{r run SingleR, include=FALSE}
 doSingleR <- TRUE
 if(grepl("Homo_sapiens", param$refBuild)){
   hpca.se <- HumanPrimaryCellAtlasData()
