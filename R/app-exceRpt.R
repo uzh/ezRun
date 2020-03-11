@@ -110,8 +110,6 @@ pasteExcerptCmd=function(readFile, outputDir, param){
         paste0('RANDOM_BARCODE_LOCATION=',"'",param[['RANDOM_BARCODE_LOCATION']],"'"),     
         paste0('KEEP_RANDOM_BARCODE_STATS=',param[['KEEP_RANDOM_BARCODE_STATS']]),
         
-        paste0('DOWNSAMPLE_RNA_READS=',param[['DOWNSAMPLE_RNA_READS']]),         
-        
         ## Alignment options
         paste0('STAR_alignEndsType=',param[['STAR_alignEndsType']]),                            
         paste0('STAR_outFilterMatchNmin=',param[['STAR_outFilterMatchNmin']]),                   
