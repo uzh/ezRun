@@ -112,7 +112,6 @@ filterCellsAndGenes <- function(sce, param) {
   #browser()
   require(scater)
   require(Matrix)
-  library(scDblFinder)
   mito.genes <- grep("^MT-",rowData(sce)$gene_name)
   ribo.genes <- grep("^RP[SL]",rowData(sce)$gene_name)
   
@@ -141,6 +140,7 @@ filterCellsAndGenes <- function(sce, param) {
   return(list(sce.unfiltered=sce.unfiltered, sce = sce))
 }
 
+<<<<<<< HEAD
 # findDoublets <- function(sce) {
 #   sce <- scDblFinder(sce)
 #   scData <- metadata(sce)$scData
@@ -149,6 +149,17 @@ filterCellsAndGenes <- function(sce, param) {
 #   metadata(sce)$scData <- scData
 #   return(sce)
 # }
+=======
+findDoublets <- function(sce) {
+  require(scDblFinder)
+  sce <- scDblFinder(sce)
+  scData <- metadata(sce)$scData
+  scData@meta.data$scDblFinder.score <- colData(sce)$scDblFinder.score
+  scData@meta.data$scDblFinder.class <- colData(sce)$scDblFinder.class
+  metadata(sce)$scData <- scData
+  return(sce)
+}
+>>>>>>> 75e68ef5e28a9ac414f451cddaeea6de0906141e
 
 cellsLabelsWithAUC <- function(scData, param) {
   library(AUCell)
