@@ -18,20 +18,24 @@ Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
 library(dplyr)
 library(clustree)
 library(kableExtra)
-library(ezRun)
 library(NMF)
 library(pheatmap)
 library(viridis)
+library(tidyverse)
+library(cowplot)
+library(scran)
 knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE, knitr.table.format = "html")
 
 ## ----------------------------------------------
-# debug
+#debug
 # library(SingleCellExperiment)
 # library(scater)
 # library(Seurat)
 # library(AUCell)
-# sce <- readRDS("/srv/gstore/projects/p3155/SCOneSample_42026_2020-01-23--14-43-22/Sample_1_10X_F8_SCReport/sce.rds")
-# sce.unfiltered <- readRDS("/srv/gstore/projects/p3155/SCOneSample_42026_2020-01-23--14-43-22/Sample_1_10X_F8_SCReport/sce.unfiltered.rds")
+# library(ezRun, lib.loc = "~/myRpackages")
+# library(HDF5Array)
+#  sce <- loadHDF5SummarizedExperiment("sce_h5")
+#  sce.unfiltered <- readRDS("/srv/gstore/projects/p3155/SCOneSample_42026_2020-01-23--14-43-22/Sample_1_10X_F8_SCReport/sce.unfiltered.rds")
 # param = metadata(sce)$param
 # pvalue_allMarkers <- 0.05
 # pvalue_all2allMarkers <- 0.01
@@ -45,7 +49,6 @@ cat(paste0("<SCRIPT language=\"JavaScript\" SRC=\"", basename(jsFile), "\"></SCR
 ```
 
 ```{r}
-scData <- metadata(sce)$scData
 output <- metadata(sce)$output
 ```
 
@@ -129,8 +132,9 @@ We next aimed to identify a subset of features (i.e. genes) exhibiting high vari
 Next, we apply a linear transformation (‘scaling’) that is a standard pre-processing step before dimensional reduction techniques. With this procedure, the expression of each gene is shifted, so that the mean expression across cells is 0. It also scales the expression of each gene, so that the variance across cells is 1 to avoid the results to be dominated by the signal of a few highly-expressed genes.
 
 ```{r hvg plot, fig.align='center'}
-top10 <- head(VariableFeatures(scData), 10)
-plot_hvg <- VariableFeaturePlot(scData)
+variable <- rowData(sce)[rowData(sce)$vst.variable == TRUE,]
+top10 <- rownames(variable[order(variable$vst.variance.standardized, decreasing=TRUE),][1:10,])
+plot_hvg <- VariableFeaturePlot_mod(sce)
 LabelPoints(plot = plot_hvg, points = top10, repel = TRUE, xnudge=0, ynudge=0)
 ```
 
@@ -141,8 +145,10 @@ LabelPoints(plot = plot_hvg, points = top10, repel = TRUE, xnudge=0, ynudge=0)
 Next, we perform PCA on the scaled data. By default, only the previously determined variable features are used as input but can be defined using the pcGenes argument if you wish to choose a different subset. Seurat clusters cells based on their PCA scores. The top principal components, therefore, represent a robust compression of the dataset. The numbers of PCs that should be retained for downstream analyses typically range from 10 to 50. However, identifying the true dimensionality of a dataset can be challenging, that's why we recommend considering the ‘Elbow plot’ approach. a ranking of principal components based on the percentage of variance explained by each one. The assumption is that each of the top PCs capturing biological signal should explain much more variance than the remaining PCs. Thus, there should be a sharp drop in the percentage of variance explained when we move past the last “biological” PC. This manifests as an elbow in the scree plot, the location of which serves as a natural choice for a number of PCs.
 
 ```{r, fig.align='center'}
-ElbowPlot(scData, ndims = param$npcs)
+plot(metadata(sce)$PCA_stdev, xlab="PC", ylab="Standard Deviation", pch=16)
 ```
+
+
 <br/>
 
 #### Visualization 
@@ -150,7 +156,7 @@ ElbowPlot(scData, ndims = param$npcs)
 Another application of dimensionality reduction is to compress the data into 2 (sometimes 3) dimensions for plotting. The simplest visualization approach is to plot the top 2 PCs in a PCA. 
 
 ```{r, fig.align='center'}
-DimPlot(scData, reduction = "pca")
+plotReducedDim(sce, dimred="PCA", colour_by="seurat_clusters")
 ```
 
 The problem is that PCA is a linear technique, i.e., only variation along a line in high-dimensional space is captured by each PC. As such, it cannot efficiently pack differences in many dimensions into the first 2 PCs. The de facto standard for visualization of scRNA-seq data is the t-stochastic neighbor embedding (t-SNE) method (Van der Maaten and Hinton 2008).  Unlike PCA, it is not restricted to linear transformations, nor is it obliged to accurately represent distances between distance populations. This means that it has much more freedom in how it arranges cells in low-dimensional space, enabling it to separate many distinct clusters in a complex population. 
@@ -167,8 +173,8 @@ In order to find clusters of cells we first built a graph called K-nearest neigh
 We can visualize the distribution of clusters in the TSNE and UMAP plots. However, we should not perform downstream analyses directly on their coordinates. These plots are most useful for checking whether two clusters are actually neighboring subclusters or whether a cluster can be split into further subclusters. 
 
 ```{r}
-DimPlot(scData, reduction = "tsne", label = TRUE, pt.size = 0.7, label.size = 5, repel = TRUE) 
-DimPlot(scData, reduction = "umap", label = TRUE, pt.size = 0.7, label.size = 5, repel = TRUE) 
+plotReducedDim(sce, dimred="TSNE", colour_by="seurat_clusters", text_by="seurat_clusters", text_size=5)
+plotReducedDim(sce, dimred="UMAP", colour_by="seurat_clusters", text_by="seurat_clusters", text_size=5)
 ```
 
 <br/><br/>
@@ -178,8 +184,8 @@ The number of cells in each cluster and sample is represented in this barplot.
 <br/>
 
 ```{r number of cells in each cluster, fig.align='center'}
-cellIdents_perSample = FetchData(object = scData, vars = c('ident', 'orig.ident'))
-barplot = ggplot(data=cellIdents_perSample, aes(x=ident, fill=orig.ident)) + geom_bar(stat="Count")
+cellIdents_perSample <- as.data.frame(colData(sce)[,c('seurat_clusters', 'orig.ident')])
+barplot = ggplot(data=cellIdents_perSample, aes(x=seurat_clusters, fill=orig.ident)) + geom_bar(stat="Count")
 barplot + labs(x="Cluster", y = "Number of cells", fill = "Sample")
 ```
 
@@ -190,26 +196,24 @@ Below, it is shown a clustering tree that helps us to visualize the relationship
 The size of each node is related to the number of cells in each cluster and the color indicates the clustering resolution. Edges are colored according to the number of cells they represent and the transparency shows the incoming node proportion, the number of cells in the edge divided by the number of samples in the node it points to. 
 
 ```{r, fig.align='center', fig.width=6, fig.height=8}
-## Check that cells are in the same order
-stopifnot(all(colnames(sce) == colnames(scData)))
-## Get clustering results from the Seurat object
-clust_seurat <- scData@meta.data %>% 
-  dplyr::select(dplyr::contains("RNA_snn_res."))
+# clustering_results <- as.data.frame(colData(sce)) %>% 
+#   dplyr::select(dplyr::contains("RNA_snn_res."))
 
 ## Add to the sce object
-colData(sce) <- cbind(colData(sce), DataFrame(clust_seurat))
+#colData(sce) <- cbind(colData(sce), DataFrame(clustering_results))
 clustree::clustree(sce, prefix = "RNA_snn_res.")
 ```
 
 ### QC on TSNE plot
 
 ```{r QC on TSNE, echo=FALSE}
-FeaturePlot(object = scData, features = "detected", reduction = "tsne")
-FeaturePlot(object = scData, features = "sum", reduction = "tsne")
-FeaturePlot(object = scData, features = "subsets_Mito_percent", reduction = "tsne")
-if(!is.null(scData@meta.data$CellCycle) && 
-   !any(is.na(scData@meta.data$CellCycle))){
-  TSNEPlot(object=scData, group.by="CellCycle", plot.title="Cell cycle phase")
+plotTSNE(sce, colour_by="detected") + ggtitle("Genes detected")
+plotTSNE(sce, colour_by="sum") + ggtitle("Library size")
+plotTSNE(sce, colour_by="subsets_Mito_percent") + ggtitle("Michondrial percentage")
+
+if(!is.null(colData(sce)$CellCycle) && 
+   !any(is.na(colData(sce)$CellCycle))){
+   plotTSNE(sce, colour_by="CellCycle") + ggtitle("Cell cycle phase")
 }
 ```
 
@@ -219,8 +223,8 @@ if(!is.null(scData@meta.data$CellCycle) &&
 In single-cell RNA sequencing (scRNA-seq) experiments, doublets are artifactual libraries generated from two cells. They typically arise due to errors in cell sorting or capture. Although we don't remove cells that could be doublets, users can visualize on a TSNE a doublet score integrating the ratio in a probability of the cell being a doublet. We recommend interpreting the scores in the context of cluster annotation. All cells from a cluster with a large average doublet score should be considered suspect, and close neighbors of problematic clusters should also be treated with caution. In contrast, a cluster containing a small proportion of high-scoring cells is probably safe provided that any interesting results are not being driven by those cells. 
 
 ```{r doublet tsne}
-FeaturePlot(scData, features = "scDblFinder.score", reduction = "tsne")
-DimPlot(scData, reduction = "tsne", group.by = "scDblFinder.class")
+plotTSNE(sce, colour_by="scDblFinder.score") +  scale_fill_gradient(low="gray", high="blue")+ ggtitle("scDblFinder score") 
+plotTSNE(sce, colour_by="scDblFinder.class") + ggtitle("scDblFinder class")
 ```
 
 ### Top cluster markers
@@ -231,9 +235,9 @@ We found positive markers that defined clusters compared to all other cells via 
 <br/>
 
 ```{r pos markers, echo=FALSE, results='asis'}
-posMarkers = scData@misc$posMarkers 
+posMarkers = read_tsv("pos_markers.tsv")
 caption ="Expression differences of cluster marker genes"
-ezInteractiveTableRmd(scData@misc$posMarkers, digits=4, title=caption)
+ezInteractiveTableRmd(posMarkers, digits=4, title=caption)
 ```
 
 ### Cells annotation
@@ -248,22 +252,21 @@ The most challenging task in scRNA-seq data analysis is the interpretation of th
 This approach consists in performing a gene set enrichment analysis on the marker genes defining each cluster. This identifies the pathways and processes that are (relatively) active in each cluster based on the upregulation of the associated genes compared to other clusters. For this, we use the tool Enrichr. 
 
 ```{r enrichr markers, echo=FALSE, results='asis'}
-posMarkers = scData@misc$posMarkers 
 
-  genesPerCluster <- split(posMarkers$gene, posMarkers$cluster)
-  jsCall = paste0('enrich({list: "', sapply(genesPerCluster, paste, collapse="\\n"), '", popup: true});')
-  enrichrCalls <- paste0("<a href='javascript:void(0)' onClick='", jsCall, 
+genesPerCluster <- split(posMarkers$gene, posMarkers$cluster)
+jsCall = paste0('enrich({list: "', sapply(genesPerCluster, paste, collapse="\\n"), '", popup: true});')
+enrichrCalls <- paste0("<a href='javascript:void(0)' onClick='", jsCall, 
                          "'>Analyse at Enrichr website</a>")
-  enrichrTable <- tibble(Cluster=names(genesPerCluster),
+enrichrTable <- tibble(Cluster=names(genesPerCluster),
                          "# of posMarkers"=lengths(genesPerCluster),
                          "Enrichr link"=enrichrCalls)
-  kable(enrichrTable, format="html", escape=FALSE,
+kable(enrichrTable, format="html", escape=FALSE,
         caption=paste0("GeneSet enrichment: genes with pvalue ", pvalue_allMarkers)) %>%
-    kable_styling("striped", full_width = F, position = "left")
+kable_styling("striped", full_width = F, position = "left")
 ```
 
 ```{r enrichr all2all markers, eval = param$all2allMarkers, echo=FALSE, results='asis'}
- scData@misc$all2allMarkers = all2allMarkers  
+  all2allMarkers = read_tsv("all2allMarkers.tsv")
  
  for(comparison in names(all2allMarkers)){
     write_tsv(as_tibble(all2allMarkers[[comparison]], rownames="Gene"),
@@ -329,12 +332,12 @@ cat("\n\n")
 ```{r assigments heatmap, eval= (param$species != "other"), results='asis',fig.align='center', fig.width=10, fig.height=6}
 tras_cells_AUC <- t(assay(cells_AUC))
 full.labels <- colnames(tras_cells_AUC)[max.col(tras_cells_AUC)]
-tab <- table(full.labels, Idents(scData))
+tab <- table(full.labels, colData(sce)[,"seurat_clusters"])
 print(pheatmap(log10(tab+10), color=viridis::viridis(100), silent=TRUE))
 ```
 
 
-```{r tsne and AUC hist, eval= (param$species != "other"), results='asis'}
+```{r tsne and AUC hist, eval= (param$species != "other"), results='asis', fig.height=5, fig.width=5}
 cat("The plots below show for every cell type:\n")
 cat('\n')
 cat("1) The distribution of the AUC values in the cells. The ideal situation will be a bi-modal distribution, in which most cells in the dataset have a low “AUC” compared to a population of cells with a higher value.  The size of the gene-set will also affect the results. With smaller gene-genes (fewer genes), it is more likely to get cells with AUC = 0. While this is the case of the “perfect markers” it is also easier to get it by chance with small datasets. The vertical bars correspond to several thresholds that could be used to consider a gene-set ‘active’. The thickest vertical line indicates the threshold selected by default: the highest value to reduce the false positives.\n")
@@ -343,16 +346,9 @@ cat("2) The t-SNE can be colored based on the AUC scores. To highlight the clust
 cat('\n')
 cat("3) The last TSNE represents the AUC scores values. The darker a cell is the higher AUC score it obtained, i.e. the cell is more enriched in that cell type.")
 cat('\n')
-cellsTsne <- scData@reductions$tsne@cell.embeddings
-expressionMatrix <- GetAssayData(scData, slot = "counts")
-```
-
-```{r, results='asis', fig.height=5, fig.width=5}
-# graphics.off()
-# par("mar")
-# par(mfrow=c(5,3)) 
+cellsTsne <- reducedDims(sce)$TSNE
 filtered_cells_AUC <- cells_AUC[,colSums(assay(cells_AUC))>0]
-AUCell_plotTSNE(tSNE=cellsTsne, exprMat=expressionMatrix, cellsAUC=cells_AUC)
+AUCell_plotTSNE(tSNE=cellsTsne, exprMat=counts(sce), cellsAUC=cells_AUC)
 ```
 
 ### Interactive explorer
@@ -361,24 +357,34 @@ AUCell_plotTSNE(tSNE=cellsTsne, exprMat=expressionMatrix, cellsAUC=cells_AUC)
 The iSEE (Interactive SummarizedExperiment Explorer) explorer provides a general visual interface for exploring single cell data. iSEE allows users to simultaneously visualize multiple aspects of a given data set, including experimental data, metadata, and analysis results. Dynamic linking and point selection facilitate the flexible exploration of interactions between different data aspects.
  [Rue-Albrecht K, Marini F, Soneson C, Lun ATL (2018). “iSEE: Interactive SummarizedExperiment Explorer.” F1000Research, 7, 741. doi: 10.12688/f1000research.14966.1.]
 
-The iSEE shiny app can be accessed through this link [iSEE explorer](`r paste0("http://fgcz-shiny.uzh.ch/fgcz_iSEE/?data=",output$getColumn("Report"),"/sce_iSEE.rds")`)
+The iSEE shiny app can be accessed through this link [iSEE explorer](`r paste0("http://fgcz-shiny.uzh.ch/fgcz_iSEE/?data=",output$getColumn("Report"),"/sce_h5")`)
 
 
 ### Data availability
 
 ##### Mean expression of every gene across the cells in each cluster
 
-[`r scData@misc$geneMeanPerClusterFn`](`r scData@misc$geneMeanPerClusterFn`)
+[geneMeanPerCluster](gene_means_per_cluster.txt)
 
 ##### Mean expression of every gene across all the cells
 
-[`r scData@misc$geneMeansFn`](`r scData@misc$geneMeansFn`)
+[geneMeans](gene_means.txt)
+
+##### Positive markers of each cluster
+
+[posMarkers](pos_markers.tsv)
+
+```{r, results='asis', eval = param$all2allMarkers}
+cat("##### Differential expressed genes from clusters paired comparisons")
+cat("\n")
+cat("[all2allMarkers](all2allMarkers.tsv)")
+```
 
 ##### Coordinates of every cell on the TSNE
 
-[`r scData@misc$tSNEFn`](`r scData@misc$tSNEFn`)
+[tSNEFn](tSNEFn.txt)
 
-##### The final Single Cell Experiment Object is [here](sce.rds)
+##### The final Single Cell Experiment Object is [here](sce_h5)
 
 ### Parameters
 ```{r report parameters, echo=FALSE}
