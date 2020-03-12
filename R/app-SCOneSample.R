@@ -57,40 +57,46 @@ ezMethodSCOneSample <- function(input=NA, output=NA, param=NA,
   sce <- loadSCCountDataset(input, param)
   pvalue_allMarkers <- 0.05
   pvalue_all2allMarkers <- 0.01
-  metadata(sce)$output <- output
-  metadata(sce)$param$name <- paste(metadata(sce)$param$name,
-                                    paste(input$getNames(), collapse=", "),
-                                    sep=": ")
   
-  sce_list <- filterCellsAndGenes(sce, param)
+  sce_list <- filterCellsAndGenes(sce, param)  #return sce objects filtered and unfiltered to show the QC metrics later in the rmd 
   sce <- sce_list$sce
   sce.unfiltered <- sce_list$sce.unfiltered
-  scData <- buildSeuratObject(sce)
+  scData <- buildSeuratObject(sce)   # the Seurat object is built from the filtered sce object
   scData <- seuratClusteringV3(scData, param)
   #positive cluster markers
-  scData <- posClusterMarkers(scData, pvalue_allMarkers)
+  posMarkers <- posClusterMarkers(scData, pvalue_allMarkers)
   #perform all pairwise comparisons to obtain markers
   if(doEnrichr(param) && param$all2allMarkers) 
-    scData = all2all(scData, pvalue_all2allMarkers, param)
+    all2allMarkers = all2all(scData, pvalue_all2allMarkers, param)
   #cell types annotation is only supported for Human and Mouse at the moment
   if(param$species == "Human" | param$species == "Mouse") {
      cells_AUC = cellsLabelsWithAUC(scData, param)
      cellsLabelsWithSingleR(scData, param)
-     metadata(sce)$cells_AUC = cells_AUC
   }
+  #Doublets prediction
+  sce <- scDblFinder(sce)
+  scData@meta.data$scDblFinder.score <- colData(sce)$scDblFinder.score
+  scData@meta.data$scDblFinder.class <- colData(sce)$scDblFinder.class
   
-  scData = saveExternalFiles(scData)
-  metadata(sce)$scData = scData
-  sce <- findDoublets(sce)
+  #Convert scData to Single Cell experiment Object
+  sce <- as.SingleCellExperiment(scData)
+  metadata(sce)$PCA_stdev <- Reductions(scData, "pca")@stdev   
+  metadata(sce)$cells_AUC = cells_AUC
+  metadata(sce)$output <- output
+  metadata(sce)$param <- param
+  metadata(sce)$param$name <- paste(metadata(sce)$param$name,
+                                    paste(input$getNames(), collapse=", "),
+                                    sep=": ")
   
-  #prepare data for iSEE
-  sce_iSEE = as.SingleCellExperiment(scData)
-  metadata(sce_iSEE)$pos_markers = scData@misc$posMarkers
-  rowData(sce_iSEE) = rowData(sce)[, c("gene_id", "biotypes", "description")]
   
-  saveRDS(sce_iSEE, "sce_iSEE.rds")
-  saveRDS(sce, "sce.rds")
-  saveRDS(sce.unfiltered, "sce.unfiltered.rds")
+  #Save some results in external files 
+  saveExternalFiles(sce, posMarkers, all2allMarkers)
+ # rowData(sce) = rowData(sce)[, c("gene_id", "biotypes", "description")]
+  
+  library(HDF5Array)
+  saveHDF5SummarizedExperiment(sce, dir="sce_h5")
+  
+  
   ## Copy the style files and templates
   styleFiles <- file.path(system.file("templates", package="ezRun"),
                           c("fgcz.css", "SCOneSample.Rmd",
@@ -135,14 +141,14 @@ filterCellsAndGenes <- function(sce, param) {
   return(list(sce.unfiltered=sce.unfiltered, sce = sce))
 }
 
-findDoublets <- function(sce) {
-  sce <- scDblFinder(sce)
-  scData <- metadata(sce)$scData
-  scData@meta.data$scDblFinder.score <- colData(sce)$scDblFinder.score
-  scData@meta.data$scDblFinder.class <- colData(sce)$scDblFinder.class
-  metadata(sce)$scData <- scData
-  return(sce)
-}
+# findDoublets <- function(sce) {
+#   sce <- scDblFinder(sce)
+#   scData <- metadata(sce)$scData
+#   scData@meta.data$scDblFinder.score <- colData(sce)$scDblFinder.score
+#   scData@meta.data$scDblFinder.class <- colData(sce)$scDblFinder.class
+#   metadata(sce)$scData <- scData
+#   return(sce)
+# }
 
 cellsLabelsWithAUC <- function(scData, param) {
   library(AUCell)
@@ -198,32 +204,3 @@ singler.browser = convertSingleR2Browser(singler)
 saveRDS(singler.browser, 'singler.browser.rds')
 }
 
-saveExternalFiles = function(scData) {
-  tr_cnts <- expm1(GetAssayData(scData))
-  geneMeans <- rowsum(t(as.matrix(tr_cnts)), group=Idents(scData))
-  geneMeans <- sweep(geneMeans, 1, STATS=table(Idents(scData))[rownames(geneMeans)], FUN="/")
-  geneMeans <- log1p(t(geneMeans))
-  colnames(geneMeans) <- paste("cluster", colnames(geneMeans), sep="_")
-  geneMeanPerClusterFn = "gene_means_per_cluster.txt"
-  scData@misc$geneMeanPerClusterFn <- geneMeanPerClusterFn
-  ezWrite.table(geneMeans, geneMeanPerClusterFn)
-  
-  geneMeans <- Matrix::rowMeans(tr_cnts)
-  geneMeans <- log1p(geneMeans)
-  geneMeansFn = "gene_means.txt"
-  scData@misc$geneMeansFn <- geneMeansFn
-  ezWrite.table(geneMeans, geneMeansFn)
-  
-  tSNE_data <- as_tibble(scData@reductions$tsne@cell.embeddings,
-                         rownames="cells")
-  tSNE_data <- dplyr::rename(tSNE_data, X=`tSNE_1`, Y=`tSNE_2`)
-  tSNE_data$cluster <- Idents(scData)
-  tSNEFn = "tSNE_data.tsv"
-  scData@misc$tSNEFn <- tSNEFn
-  write_tsv(tSNE_data, path=tSNEFn)
-  
-  posMarkersFn <- "pos_markers.tsv"
-  write_tsv(as_tibble(scData@misc$posMarkers), path=posMarkersFn)
-  
-  return(scData)
-}
