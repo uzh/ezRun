@@ -149,7 +149,7 @@ filterCellsAndGenes <- function(sce, param) {
 #   metadata(sce)$scData <- scData
 #   return(sce)
 # }
-=======
+
 findDoublets <- function(sce) {
   require(scDblFinder)
   sce <- scDblFinder(sce)
