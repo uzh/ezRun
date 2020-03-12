@@ -41,7 +41,6 @@ dataset <- data.frame(colData(rawData),
                       row.names=colnames(rawData), check.names = FALSE,
                       stringsAsFactors=FALSE)
 
-
 types = data.frame(row.names=rownames(seqAnno))
 for (nm in setdiff(na.omit(unique(seqAnno$type)), "")){
   types[[nm]] = seqAnno$type == nm
@@ -350,9 +349,9 @@ if(nSamples > 3){
     }
     clusterColors = hcl.colors(param$nSampleClusters, palette = "Spectral")
     clusterResult <-
-      clusterPheatmap(xNormed[use, ], design, param, clusterColors=clusterColors,
-                      lim=c(-param$logColorRange, param$logColorRange),
-                      doClusterColumns=TRUE, sampleColors=sampleColors)
+      clusterPheatmap(x = xNormed[use, ], design = data.frame(Condition = conds), param = param, clusterColors = clusterColors,
+                      lim = c(-param$logColorRange, param$logColorRange),
+                      doClusterColumns = TRUE, sampleColors = sampleColors)
     
     xTmp = data.frame(Cluster=clusterResult$clusterNumbers)
     xTmp$gene_name = seqAnno[rownames(xTmp), "gene_name"]
