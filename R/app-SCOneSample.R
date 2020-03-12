@@ -140,7 +140,6 @@ filterCellsAndGenes <- function(sce, param) {
   return(list(sce.unfiltered=sce.unfiltered, sce = sce))
 }
 
-<<<<<<< HEAD
 # findDoublets <- function(sce) {
 #   sce <- scDblFinder(sce)
 #   scData <- metadata(sce)$scData
