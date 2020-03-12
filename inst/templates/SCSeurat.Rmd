@@ -28,7 +28,8 @@ library(tibble)
 library(scater)
 library(dplyr)
 library(Seurat)
-
+library(SingleR, lib.loc = "/home/gtan/R-library")
+library(plotly)
 ## ----------------------------------------------
 ## debug
 # title:  "`r metadata(sce)$param$name`"
@@ -270,6 +271,57 @@ kable(tibble(Cluster=names(summary(Idents(scData))),
                 position = "float_right")
 ```
 
+### Cells annotation
+We use Bioconductor package [SingleR](https://bioconductor.org/packages/devel/bioc/html/SingleR.html)
+to annotate cells from a set of reference data.
+The available references are described here https://bioconductor.org/packages/devel/bioc/vignettes/SingleR/inst/doc/SingleR.html#5_available_references.
+
+```{r run SingleR, include=FALSE}
+doSingleR <- TRUE
+if(grepl("Homo_sapiens", param$refBuild)){
+  hpca.se <- HumanPrimaryCellAtlasData()
+}else if(grepl("Mus_musculus", param$refBuild)){
+  hpca.se <- MouseRNAseqData()
+}else{
+  message("SingleR is not available as the species is not supported yet.")
+  doSingleR <- FALSE
+}
+if(doSingleR){
+  singler.results <- SingleR(test = GetAssayData(scData), ref = hpca.se, 
+                           labels = hpca.se$label.main)
+  scData[["SingleR.labels"]] <- singler.results$labels
+  cellInfo <- tibble(Cells=colnames(scData), Cluster=Idents(scData),
+                     SingleR.labels=scData$SingleR.labels) %>%
+    left_join(as_tibble(Embeddings(scData, "umap"), rownames="Cells")) %>%
+    left_join(as_tibble(Embeddings(scData, "tsne"), rownames="Cells"))
+}
+```
+
+```{r plot SingleR, echo=FALSE, fig.width=14, eval=doSingleR}
+x <- list(title="UMAP_1", zeroline=FALSE)
+y <- list(title="UMAP_2", zeroline=FALSE)
+p1 <- plot_ly(cellInfo, x = ~UMAP_1, y = ~UMAP_2, color=~SingleR.labels,
+        text = ~paste("Cluster: ", Cluster, 
+                      "\nCell: ", Cells,
+                      "\nSingleR.labels: ", SingleR.labels),
+        type = 'scatter', mode = "markers", marker=list(size=10, opacity=0.5),
+        colors=colorRampPalette(brewer.pal(12, "Set3"))(length(unique(cellInfo$SingleR.labels)))) %>%
+        layout(xaxis=x, yaxis=y)
+
+x <- list(title="tSNE_1", zeroline=FALSE)
+y <- list(title="tSNE_1", zeroline=FALSE)
+p2 <- plot_ly(cellInfo, x = ~tSNE_1, y = ~tSNE_2, color=~SingleR.labels,
+        text = ~paste("Cluster: ", Cluster, 
+                      "\nCell: ", Cells,
+                      "\nSingleR.labels: ", SingleR.labels),
+        type = 'scatter', mode = "markers", marker=list(size=10, opacity=0.5),
+        showlegend=FALSE,
+        colors=colorRampPalette(brewer.pal(12, "Set3"))(length(unique(cellInfo$SingleR.labels)))) %>%
+        layout(xaxis=x, yaxis=y)
+
+subplot(p1, p2, titleX=TRUE, titleY=TRUE, nrows=1)
+```
+
 ### Marker genes
 
 We only look at upregulated genes in each cluster, as these are more useful for positive identification of cell types in a heterogeneous population.
@@ -280,7 +332,7 @@ The minimal pvalue is `r pvalue_allMarkers`.
 markers <- FindAllMarkers(scData, only.pos=TRUE, min.pct=0.25,
                           logfc.threshold=0.25, return.thresh=pvalue_allMarkers)
 posMarkersFn <- "pos_markers.tsv"
-write_tsv(as_tibble(markers, rownames="id"), path=posMarkersFn)
+write_tsv(as_tibble(markers), path=posMarkersFn)
 ```
 
 ```{r pos markers enrichr, echo=FALSE, results='asis'}

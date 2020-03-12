@@ -39,9 +39,11 @@ ezMethodCellRanger = function(input=NA, output=NA, param=NA){
   if(ezIsSpecified(param$cmdOptions)){
     cmd = paste(cmd, param$cmdOptions)
   }
-  
   ezSystem(cmd)
-  ezSystem(paste("mv ", file.path(cellRangerFolder, "outs"),  sampleName))
+  
+  unlink(basename(sampleDirs), recursive=TRUE)
+  file.rename(file.path(cellRangerFolder, "outs"),  sampleName)
+  unlink(cellRangerFolder, recursive=TRUE)
   
   if(ezIsSpecified(param$controlSeqs)){
     unlink(refDir, recursive = TRUE)
