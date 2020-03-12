@@ -159,7 +159,6 @@ findDoublets <- function(sce) {
   metadata(sce)$scData <- scData
   return(sce)
 }
->>>>>>> 75e68ef5e28a9ac414f451cddaeea6de0906141e
 
 cellsLabelsWithAUC <- function(scData, param) {
   library(AUCell)
