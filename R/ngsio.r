@@ -368,3 +368,31 @@ readSCMM <- function(file){
   rownames(ans) <- read_lines(sub("\\.mtx$", ".rowNames", file))
   return(ans)
 }
+
+saveExternalFiles = function(sce, posMarkers, all2allMarkers) {
+  tr_cnts <- expm1(logcounts(sce))
+  geneMeans <- rowsum(t(as.matrix(tr_cnts)), group=colData(sce)[,"ident"])
+  geneMeans <- sweep(geneMeans, 1, STATS=table(colData(sce)[,"ident"])[rownames(geneMeans)], FUN="/")
+  geneMeans <- log1p(t(geneMeans))
+  colnames(geneMeans) <- paste("cluster", colnames(geneMeans), sep="_")
+  geneMeanPerClusterFn = "gene_means_per_cluster.txt"
+  ezWrite.table(geneMeans, geneMeanPerClusterFn)
+  
+  geneMeans <- Matrix::rowMeans(tr_cnts)
+  geneMeans <- log1p(geneMeans)
+  geneMeansFn = "gene_means.txt"
+  ezWrite.table(geneMeans, geneMeansFn)
+  
+  tSNE_data <- as_tibble(reducedDims(sce)$TSNE,
+                         rownames="cells")
+  tSNE_data <- dplyr::rename(tSNE_data, X=`tSNE_1`, Y=`tSNE_2`)
+  tSNE_data$cluster <- colData(sce)[,"ident"]
+  tSNEFn = "tSNE_data.tsv"
+  write_tsv(tSNE_data, path=tSNEFn)
+  
+  posMarkersFn <- "pos_markers.tsv"
+  write_tsv(posMarkers, path=posMarkersFn)
+  
+  all2allMarkersFn <- "all2allMarkers.tsv"
+  write_tsv(posMarkers, path=posMarkersFn)
+}
