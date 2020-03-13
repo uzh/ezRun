@@ -133,6 +133,9 @@ seuratStandardWorkflow <- function(scData, param){
   }
   if(identical(param$vars.to.regress, character(0)))  #no variables to regress
     param$vars.to.regress = NULL
+  if (identical(param$pcGenes, character(0))) 
+    param$pcGenes <- NULL
+  
   scData <- ScaleData(object = scData, vars.to.regress = param$vars.to.regress)
   scData <- RunPCA(object=scData, npcs = param$npcs, features=param$pcGenes)
   scData <- RunTSNE(object = scData, reduction = "pca", dims = 1:param$npcs, num_threads=param$cores)
