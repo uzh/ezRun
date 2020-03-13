@@ -74,6 +74,7 @@ ezMethodSCOneSample <- function(input=NA, output=NA, param=NA,
      cellsLabelsWithSingleR(scData, param)
   }
   #Doublets prediction
+  require(scDblFinder)
   sce <- scDblFinder(sce)
   scData@meta.data$scDblFinder.score <- colData(sce)$scDblFinder.score
   scData@meta.data$scDblFinder.class <- colData(sce)$scDblFinder.class
@@ -138,25 +139,6 @@ filterCellsAndGenes <- function(sce, param) {
   rowData(sce.unfiltered)$is.expressed <- is.expressed
   
   return(list(sce.unfiltered=sce.unfiltered, sce = sce))
-}
-
-# findDoublets <- function(sce) {
-#   sce <- scDblFinder(sce)
-#   scData <- metadata(sce)$scData
-#   scData@meta.data$scDblFinder.score <- colData(sce)$scDblFinder.score
-#   scData@meta.data$scDblFinder.class <- colData(sce)$scDblFinder.class
-#   metadata(sce)$scData <- scData
-#   return(sce)
-# }
-
-findDoublets <- function(sce) {
-  require(scDblFinder)
-  sce <- scDblFinder(sce)
-  scData <- metadata(sce)$scData
-  scData@meta.data$scDblFinder.score <- colData(sce)$scDblFinder.score
-  scData@meta.data$scDblFinder.class <- colData(sce)$scDblFinder.class
-  metadata(sce)$scData <- scData
-  return(sce)
 }
 
 cellsLabelsWithAUC <- function(scData, param) {
