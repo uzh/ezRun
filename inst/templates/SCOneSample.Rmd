@@ -382,7 +382,7 @@ cat("[all2allMarkers](all2allMarkers.tsv)")
 
 ##### Coordinates of every cell on the TSNE
 
-[tSNEFn](tSNEFn.txt)
+[tSNEF](tSNE_data.tsv)
 
 ##### The final Single Cell Experiment Object is [here](sce_h5)
 
