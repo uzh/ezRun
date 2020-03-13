@@ -50,10 +50,7 @@ ezMethodSCOneSample <- function(input=NA, output=NA, param=NA,
   cwd <- getwd()
   setwdNew(basename(output$getColumn("Report")))
   on.exit(setwd(cwd), add=TRUE)
-  
-  if (identical(param$pcGenes, character(0))) {
-     param$pcGenes <- NULL
-  }
+
   sce <- loadSCCountDataset(input, param)
   pvalue_allMarkers <- 0.05
   pvalue_all2allMarkers <- 0.01
