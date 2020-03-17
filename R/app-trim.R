@@ -25,7 +25,7 @@ ezMethodFastpTrim = function(input=NA, output=NA, param=NA){
   if (any(grepl("bam$", input$getFullPaths("Read1")))){
     stop("cannot process unmapped bam as input")
   }
-  ## if output is not an EzDataset, set it!
+  ## if output is not an EzDataset, set it! (when ezMethodFastpTrim is used inside another app)
   if (!is(output, "EzDataset")){
     output = input$copy()
     output$setColumn("Read1", paste0(getwd(), "/", input$getNames(), "-trimmed_R1.fastq"))
@@ -149,13 +149,22 @@ ezMethodFastpTrim = function(input=NA, output=NA, param=NA){
   ezSystem(paste0('cat fastp.err >>',input$getNames(),'_preprocessing.log'))
   on.exit(file.remove("fastp.err"), add=TRUE)
   
-  ## rename output (consider the case where inputs were compressed)
+  ## rename output .fastqs
   r1TrimmedFileName = gsub(".fastq.*",".fastq",basename(output$getColumn("Read1")))
   ezSystem(paste("mv", r1TmpFile, r1TrimmedFileName))
   if (param$paired){
     r2TrimmedFileName = gsub(".fastq.*",".fastq",basename(output$getColumn("Read2")))
     ezSystem(paste("mv", r2TmpFile, r2TrimmedFileName))
   }
+  
+  ## compress if necessary (only runs when the output dataset contains "Read1")
+  if (grepl(pattern = ".gz",x = basename(output$getColumn("Read1")))){
+    ezSystem(paste("pigz -p 2", r1TrimmedFileName))
+    if (param$paired){
+      ezSystem(paste("pigz -p 2", r2TrimmedFileName))
+    }
+  }
+  
   return(output)
 }
 
