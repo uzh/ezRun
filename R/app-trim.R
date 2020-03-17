@@ -147,7 +147,7 @@ ezMethodFastpTrim = function(input=NA, output=NA, param=NA){
   ezSystem("rm fastp.json fastp.html")
   
   ## rename adapters.fa (standalone) or not (within another app)
-  if(ezIsSpecified(output$getColumn("Adapters"))){
+  if("Adapters" %in% output$colNames){
     renamedAdaptFile = paste0(input$getNames(),"_",adaptFile)
     ezSystem(paste("mv",adaptFile,renamedAdaptFile))
   }else{
