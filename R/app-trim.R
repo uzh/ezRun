@@ -23,7 +23,7 @@ ezMethodFastpTrim = function(input=NA, output=NA, param=NA){
   # Input/Output Preparation
   ## stop early
   if (any(grepl("bam$", input$getFullPaths("Read1")))){
-    stop("can not process unmapped bam as input")
+    stop("cannot process unmapped bam as input")
   }
   ## if output is not an EzDataset, set it!
   if (!is(output, "EzDataset")){
@@ -96,18 +96,17 @@ ezMethodFastpTrim = function(input=NA, output=NA, param=NA){
     } else {
       adapter2 = DNAStringSet()
     }
-    # take only adapter from dataset and ignore the ones from TRIMMOMATIC_ADAPTERS
     adaptFile = "adapters.fa"
     adapters = c(adapter1, adapter2)
     if (!is.null(param$onlyAdapterFromDataset) && param$onlyAdapterFromDataset){
+      # take only adapter from dataset and ignore the ones from TRIMMOMATIC_ADAPTERS
       writeXStringSet(adapters, adaptFile)
     } else {
       file.copy(from=TRIMMOMATIC_ADAPTERS,
                 to=adaptFile)
       writeXStringSet(adapters, adaptFile, append=TRUE)
     }
-    on.exit(file.remove(adaptFile), add=TRUE)
-    
+
     trimAdapt = paste('--adapter_fasta', adaptFile)
     
   } else {
