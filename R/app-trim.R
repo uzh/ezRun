@@ -149,10 +149,12 @@ ezMethodFastpTrim = function(input=NA, output=NA, param=NA){
   ezSystem(paste0('cat fastp.err >>',input$getNames(),'_preprocessing.log'))
   on.exit(file.remove("fastp.err"), add=TRUE)
   
-  ## rename output
-  ezSystem(paste("mv", r1TmpFile, basename(output$getColumn("Read1"))))
+  ## rename output (consider the case where inputs were compressed)
+  r1TrimmedFileName = gsub(".fastq.*",".fastq",basename(output$getColumn("Read1")))
+  ezSystem(paste("mv", r1TmpFile, r1TrimmedFileName))
   if (param$paired){
-    ezSystem(paste("mv", r2TmpFile, basename(output$getColumn("Read2"))))
+    r2TrimmedFileName = gsub(".fastq.*",".fastq",basename(output$getColumn("Read2")))
+    ezSystem(paste("mv", r2TmpFile, r2TrimmedFileName))
   }
   return(output)
 }
