@@ -112,6 +112,7 @@ ezMethodFastpTrim = function(input=NA, output=NA, param=NA){
   } else {
     trimAdapt = "--disable_adapter_trimming"
   }
+
   ## paste command
   cmd = paste(fastpBin,
               readsInOut,
@@ -144,6 +145,14 @@ ezMethodFastpTrim = function(input=NA, output=NA, param=NA){
   
   ## remove reports
   ezSystem("rm fastp.json fastp.html")
+  
+  ## rename adapters.fa (standalone) or not (within another app)
+  if(ezIsSpecified(output$getColumn("Adapters"))){
+    renamedAdaptFile = paste0(input$getNames(),"_",adaptFile)
+    ezSystem(paste("mv",adaptFile,renamedAdaptFile))
+  }else{
+    on.exit(file.remove(adaptFile), add=TRUE)
+  }
   
   ## rename log
   ezSystem(paste0('cat fastp.err >>',input$getNames(),'_preprocessing.log'))
