@@ -1,13 +1,13 @@
 ---
-title: "`r paste('Two groups analysis:', param$comparison)`"
+  title: "`r paste('Two groups analysis:', param$comparison)`"
 author: "Functional Genomics Center Zurich"
 output: 
   html_document:
-    self_contained: false
-    lib_dir: rmarkdownLib
-    includes:
-      in_header: fgcz_header.html
-    css: fgcz.css
+  self_contained: false
+lib_dir: rmarkdownLib
+includes:
+  in_header: fgcz_header.html
+css: fgcz.css
 editor_options: 
   chunk_output_type: console
 ---
@@ -18,12 +18,6 @@ output = readRDS("output.rds")
 deResult = readRDS("deResult.rds")
 param =readRDS("param.rds")
 
-## debug
-#title: "`r paste('Two groups analysis:', param$comparison)`"
-#load("/srv/gstore/projects/p2378/EdgeR_33526_MEP--over--AVG_2019-01-30--09-29-18/MEP--over--AVG/result-MEP--over--AVG-exisqviqjjth-EzResult.RData")
-#deResult = EzResult(param=param, rawData=rawData, se=se)
-#param <- deResult$param
-## end of debug
 debug <- FALSE
 
 require(knitr)
@@ -37,15 +31,17 @@ require(htmlwidgets)
 ```{r prepare data, include=FALSE}
 se <- deResult$se
 param <- metadata(se)$param
-#param$doPrecomputeEnrichr <- FALSE
 seqAnno <- data.frame(rowData(se), row.names=rownames(se),
                       check.names = FALSE, stringsAsFactors=FALSE)
 
 dataset <- data.frame(colData(se), check.names=FALSE, stringsAsFactors=FALSE)
 design = ezDesignFromDataset(dataset, param)
+enrichInput = compileEnrichmentInput(param, se)
 ## In some cases, such as p2710, there are millions of features, then we have to adjust some analyses below.
 hasMassiveFeats <- nrow(seqAnno) >= 200e3
 ```
+
+
 
 Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
 
@@ -69,8 +65,8 @@ if (!is.null(rowData(se)$isPresentProbe)){
 }
 knitr::kable(as.data.frame(settings), format="html", 
              col.names="Number", row.names=TRUE) %>%
-    kable_styling(bootstrap_options = "striped", full_width = F,
-                  position = "left")
+  kable_styling(bootstrap_options = "striped", full_width = F,
+                position = "left")
 ```
 
 #### Number of significants by p-value and fold-change
@@ -121,14 +117,14 @@ if (!is.null(param$pValueHighlightThresh)){
   settings["P-value threshold:"] = paste("p <=", param$pValueHighlightThresh)
 }
 if (!is.null(param$log2RatioHighlightThresh)){
-    settings["Log ratio threshold:"] = paste("log ratio >=", 
-                                             param$log2RatioHighlightThresh)
+  settings["Log ratio threshold:"] = paste("log ratio >=", 
+                                           param$log2RatioHighlightThresh)
 }
 settings["Number of significant genes:"] = sum(types$Significants)
 knitr::kable(as.data.frame(settings), format="html", 
              col.names="Number", row.names=TRUE) %>%
-    kable_styling(bootstrap_options = "striped", full_width = F,
-                  position = "left")
+  kable_styling(bootstrap_options = "striped", full_width = F,
+                position = "left")
 ```
 
 Subsequent plots highlight significant genes in <span style="color:#A6CEE3FF">blue</span>.
@@ -186,11 +182,11 @@ if (isTRUE(isTwoGroup)){
   volcanoPng <- paste0(param$comparison, "-volcano.png")
   volcanoPdf <- sub("png$", "pdf", volcanoPng)
   p_volcano <- ezVolcano(log2Ratio=rowData(se)$log2Ratio,
-                           pValue=rowData(se)$pValue, yType="p-value",
-                           isPresent=rowData(se)$usedInTest, types=types,
-                           names=rowData(se)$gene_name,
-                           main=param$comparison,
-                           mode="ggplot2")
+                         pValue=rowData(se)$pValue, yType="p-value",
+                         isPresent=rowData(se)$usedInTest, types=types,
+                         names=rowData(se)$gene_name,
+                         main=param$comparison,
+                         mode="ggplot2")
   
   print(p_volcano)
   
@@ -223,8 +219,8 @@ if (isTRUE(isTwoGroup)){
 ## All pairs
 if (!isTRUE(isTwoGroup)){
   plotCmd = expression({
-      ezAllPairScatter(x=2^groupMeans, isPresent=rowData(se)$usedInTest, 
-                       types=types)
+    ezAllPairScatter(x=2^groupMeans, isPresent=rowData(se)$usedInTest, 
+                     types=types)
   })
   includeHtml <- ezImageFileLink(plotCmd, file=paste0(param$comparison, "-scatter.png"),
                                  width=min(max(ncol(groupMeans) * 200, 400), 2000),
@@ -277,18 +273,18 @@ if(isTRUE(isTwoGroup)){
 
 ```{r pvalue hist, echo=FALSE, results='asis', eval=!debug}
 plotCmd = expression({
-    myBreaks = seq(0, 1, by=0.002)
-    histUsed = hist(rowData(se)$pValue[rowData(se)$usedInTest], breaks=myBreaks, plot=FALSE)
-    histAbs = hist(rowData(se)$pValue[!rowData(se)$usedInTest], breaks=myBreaks, plot=FALSE)
-    xx = rbind(used=histUsed$counts, absent=histAbs$counts)
-    xx = shrinkToRange(xx, c(0, max(xx["used", ])))
-    barplot(xx, space=0, border=NA, col=c("blue", "darkorange"), 
-            xlab="p-value", ylab="counts", ylim=c(0, max(xx["used", ])),
-            main="p-value histogram")
-    abline(h=sum(rowData(se)$usedInTest)/ncol(xx))
-    at = c(0.01, 0.1, 0.25, 0.5, 0.75, 1)
-    axis(1, at=at*ncol(xx), labels = at)
-    legend("top", c("used", "not expressed"), col=c("blue", "darkorange"), pch=20, cex=1)
+  myBreaks = seq(0, 1, by=0.002)
+  histUsed = hist(rowData(se)$pValue[rowData(se)$usedInTest], breaks=myBreaks, plot=FALSE)
+  histAbs = hist(rowData(se)$pValue[!rowData(se)$usedInTest], breaks=myBreaks, plot=FALSE)
+  xx = rbind(used=histUsed$counts, absent=histAbs$counts)
+  xx = shrinkToRange(xx, c(0, max(xx["used", ])))
+  barplot(xx, space=0, border=NA, col=c("blue", "darkorange"), 
+          xlab="p-value", ylab="counts", ylim=c(0, max(xx["used", ])),
+          main="p-value histogram")
+  abline(h=sum(rowData(se)$usedInTest)/ncol(xx))
+  at = c(0.01, 0.1, 0.25, 0.5, 0.75, 1)
+  axis(1, at=at*ncol(xx), labels = at)
+  legend("top", c("used", "not expressed"), col=c("blue", "darkorange"), pch=20, cex=1)
 })
 eval(plotCmd)
 ```
@@ -297,28 +293,28 @@ eval(plotCmd)
 theRange = 2^(range(logSignal, na.rm=TRUE))
 x <- logSignal
 if(ncol(x) <= 100){
-if (!ezIsSpecified(param$grouping2)){ ## TODO: we no longer use pairing, we now use batch which is more general; however these plots only work if batch is a real pairing
-  for (group in unique(c(param$refGroup, colnames(groupMeans)))){
-    idx = which(group == param$grouping)
-    if (length(idx) > 1){
-      cat("\n")
-      cat(paste("#### Intra-group Comparison:", group), "\n")
-      
-      pngName = paste0(group, "-scatter.png")
-      xlab = paste("Avg of", group)
-      refValues = groupMeans[ , group]
-      plotCmd = expression({
-        ezScatter(x=2^refValues, y=2^x[, idx, drop=FALSE], 
-                  isPresent=assays(se)$isPresent[, idx, drop=FALSE], 
-                  types=types, lim=theRange, xlab=xlab)
-      })
-      includeHtml <- ezImageFileLink(plotCmd, file=pngName, 
-                                     width=min(ncol(as.matrix(x[, idx, drop=FALSE])), 6) * 480,
-                                     height=ceiling(ncol(as.matrix(x[, idx, drop=FALSE]))/6) * 480)
-      # dynamic png with possibly many plots
-      cat(includeHtml)
-      
-      if (ncol(groupMeans) == 2){
+  if (!ezIsSpecified(param$grouping2)){ ## TODO: we no longer use pairing, we now use batch which is more general; however these plots only work if batch is a real pairing
+    for (group in unique(c(param$refGroup, colnames(groupMeans)))){
+      idx = which(group == param$grouping)
+      if (length(idx) > 1){
+        cat("\n")
+        cat(paste("#### Intra-group Comparison:", group), "\n")
+        
+        pngName = paste0(group, "-scatter.png")
+        xlab = paste("Avg of", group)
+        refValues = groupMeans[ , group]
+        plotCmd = expression({
+          ezScatter(x=2^refValues, y=2^x[, idx, drop=FALSE], 
+                    isPresent=assays(se)$isPresent[, idx, drop=FALSE], 
+                    types=types, lim=theRange, xlab=xlab)
+        })
+        includeHtml <- ezImageFileLink(plotCmd, file=pngName, 
+                                       width=min(ncol(as.matrix(x[, idx, drop=FALSE])), 6) * 480,
+                                       height=ceiling(ncol(as.matrix(x[, idx, drop=FALSE]))/6) * 480)
+        # dynamic png with possibly many plots
+        cat(includeHtml)
+        
+        if (ncol(groupMeans) == 2){
           otherGroup = setdiff(colnames(groupMeans), group)
           pngName = paste0(group, "-over-", otherGroup, "-scatter.png")
           xlab = paste("Avg of", otherGroup)
@@ -333,14 +329,14 @@ if (!ezIsSpecified(param$grouping2)){ ## TODO: we no longer use pairing, we now 
                                          height=ceiling(ncol(as.matrix(x[, idx, drop=FALSE]))/6) * 480)
           # dynamic png with possibly many plots
           cat(includeHtml)
+        }
       }
+      cat("\n")
     }
-    cat("\n")
-  }
-}else{
-  cat(paste("Pairs:", param$sampleGroup, "over", param$refGroup), "\n")
-  use = param$grouping %in% c(param$sampleGroup, param$refGroup)
-  if (all(table(param$grouping2[use], param$grouping[use]) == 1)){
+  }else{
+    cat(paste("Pairs:", param$sampleGroup, "over", param$refGroup), "\n")
+    use = param$grouping %in% c(param$sampleGroup, param$refGroup)
+    if (all(table(param$grouping2[use], param$grouping[use]) == 1)){
       groups = paste(param$grouping, param$grouping2, sep="--")
       sampleGroups = sort(unique(groups[param$grouping == param$sampleGroup]))
       refGroups = sort(unique(groups[param$grouping == param$refGroup]))
@@ -358,18 +354,18 @@ if (!ezIsSpecified(param$grouping2)){ ## TODO: we no longer use pairing, we now 
                                      width=min(ncol(as.matrix(sampleValues)), 6) * 400,
                                      height=ceiling(ncol(as.matrix(sampleValues))/6) * 400)
       cat(includeHtml)
+    }
   }
-}
 }
 ```
 
 ### Clustering of significant features
 ```{r cluster setup, echo=FALSE, eval=!debug}
 use = rowData(se)$pValue < param$pValueHighlightThresh & 
-    abs(rowData(se)$log2Ratio) > param$log2RatioHighlightThresh & rowData(se)$usedInTest
+  abs(rowData(se)$log2Ratio) > param$log2RatioHighlightThresh & rowData(se)$usedInTest
 use[is.na(use)] = FALSE
 if (sum(use) > param$maxGenesForClustering){
-    use[use] = rank(rowData(se)$pValue[use], ties.method="max") <= param$maxGenesForClustering
+  use[use] = rank(rowData(se)$pValue[use], ties.method="max") <= param$maxGenesForClustering
 }
 settings = character()
 settings["Significance threshold:"] = param$pValueHighlightThresh
@@ -379,8 +375,8 @@ if (param$log2RatioHighlightThresh > 0){
 settings["Number of significant features:"] = sum(use)
 knitr::kable(as.data.frame(settings), format="html", 
              col.names="Number", row.names=TRUE) %>%
-    kable_styling(bootstrap_options = "striped", full_width = F,
-                  position = "left")
+  kable_styling(bootstrap_options = "striped", full_width = F,
+                position = "left")
 ```
 
 #### Cluster plot
@@ -423,11 +419,11 @@ if (sum(use) > param$minGenesForClustering){
   
   plotCmd = expression({
     clusterPheatmap(xCentered, design, param, clusterColors,
-                      lim=c(-param$logColorRange, param$logColorRange),
-                      doClusterColumns=FALSE, sampleColors=sampleColors)
+                    lim=c(-param$logColorRange, param$logColorRange),
+                    doClusterColumns=FALSE, sampleColors=sampleColors)
   })
   eval(plotCmd)
-
+  
   if (doGo(param, seqAnno)){
     clusterResult = goClusterResults(xCentered, param, clusterResult, seqAnno=seqAnno, universeProbeIds=rownames(seqAnno)[rowData(se)$isPresentProbe])
   }
@@ -441,7 +437,7 @@ if (sum(use) > param$minGenesForClustering){
   if (!is.null(clusterResult$GO)){
     goTables = goClusterTableRmd(param, clusterResult, seqAnno)
     if (doEnrichr(param)){
-        goAndEnrichr = cbind(goTables$linkTable, goTables$enrichrTable)
+      goAndEnrichr = cbind(goTables$linkTable, goTables$enrichrTable)
     } else {
       goAndEnrichr = goTables$linkTable
     }
@@ -494,63 +490,63 @@ if (file.exists("goClusterTable.html")){
 ### Enrichr
 ```{r enrichr, echo=FALSE, message=FALSE, eval=!debug}
 if (doGo(param, seqAnno)){
-    if (doEnrichr(param)){
-      isSig = rowData(se)$pValue < param$pValThreshGO & rowData(se)$usedInTest
-      isUp = rowData(se)$log2Ratio > param$log2RatioThreshGO & isSig
-      isDown = rowData(se)$log2Ratio < -param$log2RatioThreshGO & isSig
-      regulatedGenes = list()
-      regulatedGenes$upGenes = na.omit(unique(seqAnno[isUp, "gene_name"]))
-      regulatedGenes$downGenes = na.omit(unique(seqAnno[isDown, "gene_name"]))
-      regulatedGenes$bothGenes = union(regulatedGenes$upGenes, regulatedGenes$downGenes)
-      
-      enrichrLinks = ezMatrix("", rows=names(regulatedGenes), cols=c("Number of Genes", "External", "Precomputed"))
-      maxResultsPerLibrary = 5
-      for (row in rownames(enrichrLinks)){
-        genesToUse = regulatedGenes[[row]]
-        enrichrLinks[row, "Number of Genes"] = length(genesToUse)
-        jsCall = paste0('enrich({list: "', paste(genesToUse, collapse="\\n"), '", popup: true});')
-        enrichrLinks[row, "External"] = paste0("<a href='javascript:void(0)' onClick='", jsCall, "'>Analyse at Enrichr website</a>")
-        resMerged <- NA
-        if (!is.null(genesToUse) && length(genesToUse) > 3 && param$doPrecomputeEnrichr) {
-          resList = runEnrichr(genesToUse, maxResult = maxResultsPerLibrary)
-          resList = lapply(names(resList), 
-                           function(nm){return(cbind("Gene-set library"=nm, 
-                                                     resList[[nm]][, c(2:5, 7:10)]))}) ## add the name as a first column
-          if (length(resList) > 0) {
-            resMerged = do.call("rbind", resList)
-            resMerged <- resMerged[order(-resMerged[,5]), ]
-            resMerged[, c(3,6:8)] <- apply(resMerged[, c(3,6:8)], 2, sprintf,
-                                           fmt = "%0.2e")
-            resMerged[, c(4,5)] <- apply(resMerged[, c(4,5)], 2, sprintf, 
-                                         fmt="%0.3f")
-            enrichrTablePath <- paste0("enrichrTable_", row, ".html")
-            ezInteractiveTable(resMerged, tableLink=enrichrTablePath,
-                               title=paste("Enrichr report for ", row))
-            enrichrLinks[row, "Precomputed"] = ezLink(link=enrichrTablePath,
-                                                      label="Report",
-                                                      target="_blank")
-          } else {
-            enrichrLinks[row, "Precomputed"] = "No significant results"
-          }
+  if (doEnrichr(param)){
+    isSig = rowData(se)$pValue < param$pValThreshGO & rowData(se)$usedInTest
+    isUp = rowData(se)$log2Ratio > param$log2RatioThreshGO & isSig
+    isDown = rowData(se)$log2Ratio < -param$log2RatioThreshGO & isSig
+    regulatedGenes = list()
+    regulatedGenes$upGenes = na.omit(unique(seqAnno[isUp, "gene_name"]))
+    regulatedGenes$downGenes = na.omit(unique(seqAnno[isDown, "gene_name"]))
+    regulatedGenes$bothGenes = union(regulatedGenes$upGenes, regulatedGenes$downGenes)
+    
+    enrichrLinks = ezMatrix("", rows=names(regulatedGenes), cols=c("Number of Genes", "External", "Precomputed"))
+    maxResultsPerLibrary = 5
+    for (row in rownames(enrichrLinks)){
+      genesToUse = regulatedGenes[[row]]
+      enrichrLinks[row, "Number of Genes"] = length(genesToUse)
+      jsCall = paste0('enrich({list: "', paste(genesToUse, collapse="\\n"), '", popup: true});')
+      enrichrLinks[row, "External"] = paste0("<a href='javascript:void(0)' onClick='", jsCall, "'>Analyse at Enrichr website</a>")
+      resMerged <- NA
+      if (!is.null(genesToUse) && length(genesToUse) > 3 && param$doPrecomputeEnrichr) {
+        resList = runEnrichr(genesToUse, maxResult = maxResultsPerLibrary)
+        resList = lapply(names(resList), 
+                         function(nm){return(cbind("Gene-set library"=nm, 
+                                                   resList[[nm]][, c(2:5, 7:10)]))}) ## add the name as a first column
+        if (length(resList) > 0) {
+          resMerged = do.call("rbind", resList)
+          resMerged <- resMerged[order(-resMerged[,5]), ]
+          resMerged[, c(3,6:8)] <- apply(resMerged[, c(3,6:8)], 2, sprintf,
+                                         fmt = "%0.2e")
+          resMerged[, c(4,5)] <- apply(resMerged[, c(4,5)], 2, sprintf, 
+                                       fmt="%0.3f")
+          enrichrTablePath <- paste0("enrichrTable_", row, ".html")
+          ezInteractiveTable(resMerged, tableLink=enrichrTablePath,
+                             title=paste("Enrichr report for ", row))
+          enrichrLinks[row, "Precomputed"] = ezLink(link=enrichrTablePath,
+                                                    label="Report",
+                                                    target="_blank")
         } else {
-          enrichrLinks[row, "Precomputed"] = "Not run (too few genes)"
+          enrichrLinks[row, "Precomputed"] = "No significant results"
         }
+      } else {
+        enrichrLinks[row, "Precomputed"] = "Not run (too few genes)"
       }
-      settings = character()
-      if (!is.null(param$pValueHighlightThresh)){
-        settings["P-value threshold:"] = paste("p <=", param$pValThreshGO)
-      }
-      if (!is.null(param$log2RatioHighlightThresh)){
-        settings["Log ratio threshold:"] = paste("log ratio >=", param$log2RatioThreshGO)
-      }
-      kable(as.data.frame(settings), format="html", 
-                   col.names="Number", row.names=TRUE) %>%
-        kable_styling(bootstrap_options = "striped", full_width = F,
-                  position = "left")
-      kable(enrichrLinks, escape=FALSE, row.names=TRUE, format = "html") %>%
-        kable_styling(bootstrap_options = "striped",
-                    full_width = F, position = "left")
     }
+    settings = character()
+    if (!is.null(param$pValueHighlightThresh)){
+      settings["P-value threshold:"] = paste("p <=", param$pValThreshGO)
+    }
+    if (!is.null(param$log2RatioHighlightThresh)){
+      settings["Log ratio threshold:"] = paste("log ratio >=", param$log2RatioThreshGO)
+    }
+    kable(as.data.frame(settings), format="html", 
+          col.names="Number", row.names=TRUE) %>%
+      kable_styling(bootstrap_options = "striped", full_width = F,
+                    position = "left")
+    kable(enrichrLinks, escape=FALSE, row.names=TRUE, format = "html") %>%
+      kable_styling(bootstrap_options = "striped",
+                    full_width = F, position = "left")
+  }
 }
 if(!doEnrichr(param)){
   cat("\n")
@@ -564,7 +560,7 @@ Maximum number of terms displayed: `r param$maxNumberGroupsDisplayed`.
 
 ```{r goseq compute, echo=FALSE, message=FALSE, warning=FALSE, eval=!debug}
 if (doGo(param, seqAnno)){
-  goResult <- twoGroupsGOSE(param, se, method=param$goseqMethod)
+  goResult <- twoGroupsGOSE(enrichInput, method=param$goseqMethod)
   goTables <- goUpDownTables(param, goResult)
 }
 ```
@@ -572,8 +568,8 @@ if (doGo(param, seqAnno)){
 ```{r goseq interactive table, echo=FALSE, eval=!debug}
 if (exists("goTables")){
   kable(goTables$linkTable, escape=FALSE, row.names=TRUE, format = "html") %>%
-              kable_styling(bootstrap_options = "striped",
-                            full_width = F, position = "left")
+    kable_styling(bootstrap_options = "striped",
+                  full_width = F, position = "left")
 }
 ```
 
@@ -598,7 +594,7 @@ if (exists("ktables")){
     kable_styling(bootstrap_options = c("striped", "bordered"),
                   full_width = F, position = "left") %>%
     add_header_above(c("Biological Proc. (BP)" = 4, "Molecular Func. (MF)" = 4, 
-                     "Cellular Comp. (CC)" = 4))
+                       "Cellular Comp. (CC)" = 4))
 }
 ```
 
@@ -609,7 +605,7 @@ if (exists("ktables")){
     kable_styling(bootstrap_options = c("striped", "bordered"),
                   full_width = F, position = "left") %>%
     add_header_above(c("Biological Proc. (BP)" = 4, "Molecular Func. (MF)" = 4, 
-                     "Cellular Comp. (CC)" = 4))
+                       "Cellular Comp. (CC)" = 4))
 }
 ```
 
@@ -624,96 +620,77 @@ if (exists("goTables")){
 }
 ```
 
-### ReViGO
-```{r revigo, echo=FALSE, eval=!debug}
-if (exists("goResult")){
-  kable(revigoUpDownTables(param, goResult), escape = FALSE, row.names = TRUE,
-        format="html") %>%
-    kable_styling(bootstrap_options = "striped",
-                  full_width = F, position = "float_left")
-}
-```
 
-### Hypergeometric overrepresentation test
-```{r enricher compute, echo=FALSE, message=FALSE, eval=!debug}
+### Gene set enrichment analysis
+```{r gsea compute, echo=FALSE, message=FALSE, eval=!debug, warning=FALSE}
 if (doGo(param, seqAnno)){
-  enrichResult <- ezEnricher(param, se)
-  resFns <- c() ## Provide download links for these results
+  enrichResultGSEA <- ezGSEA(param, se)
+  resFns <- c()
 }
 ```
 
 #### dotplot
-```{r dotplot gsea, echo=FALSE, message=FALSE, eval=!debug}
-if(exists("enrichResult")){
-  for(onto in names(enrichResult)){
-    for(sig in names(enrichResult[[onto]])){
-      if(is.null(enrichResult[[onto]][[sig]])){
-        next
-      }else{
-        enrichResultReduced <- enrichResult
-        enrichResultReduced[[onto]][[sig]]@result$Description <- substr(enrichResultReduced[[onto]][[sig]]@result$Description, 1, 30)
-        p <- dotplot(enrichResultReduced[[onto]][[sig]], showCategory=20,
-                     title=paste(onto, sig))
-        print(p)
-        resFn <- paste(onto, sig, "hypergeometric.txt", sep="_")
-        write.table(enrichResult[[onto]][[sig]], file=resFn,
-                    quote=FALSE, col.names = TRUE, row.names = FALSE, sep = "\t")
-        resFns <- append(resFns, resFn)
-      }
+```{r dotplot, echo=FALSE, message=FALSE, eval=!debug}
+if(exists("enrichResultGSEA")){
+  for(onto in names(enrichResultGSEA)){
+    if(is.null(enrichResultGSEA[[onto]]) || nrow(enrichResultGSEA[[onto]]@result) == 0L){
+      cat("No significant gene set.\n")
+      next
+    }else{
+      p <- dotplot(enrichResultGSEA[[onto]], showCategory=20, title=onto)
+      print(p)
+      resFn <- paste(onto, "GSEA.txt", sep="_")
+      write.table(enrichResultGSEA[[onto]], file=resFn,
+                  quote=FALSE, col.names = TRUE, row.names = FALSE)
+      resFns <- append(resFns, resFn)
     }
   }
 }
-
 ```
 
-<!-- #### enrichMap -->
-<!-- ```{r enrichMap gsea, echo=FALSE, fig.width=14, fig.height=14, eval=FALSE} -->
-<!-- if(exists("enrichResult")){ -->
-<!-- for(onto in names(enrichResult)){ -->
-<!--   for(sig in names(enrichResult[[1]])){ -->
-<!--     if(is.null(enrichResult[[onto]][[sig]]) || nrow(enrichResult[[onto]][[sig]]@result) == 0L){ -->
-<!--       next -->
-<!--     }else{ -->
-<!--         enrichResultReduced <- enrichResult -->
-<!--         enrichResultReduced[[onto]][[sig]]@result$Description <- substr(enrichResultReduced[[onto]][[sig]]@result$Description, 1, 30) -->
-<!--       p <- suppressWarnings(emapplot(enrichResultReduced[[onto]][[sig]], -->
-<!--                                      showCategory=50, main=paste(onto, sig))) -->
-<!--       print(p) -->
-<!--       ## enrichMap gives warning somehow. Suppress for less confusion. -->
-<!--     } -->
-<!--   } -->
-<!-- } -->
-<!-- } -->
-<!-- ``` -->
+#### enrichMap
+```{r enrichMap, echo=FALSE, fig.width=14, fig.height=14, eval=FALSE}
+if(exists("enrichResultGSEA")){
+  for(onto in names(enrichResultGSEA)){
+    if(is.null(enrichResultGSEA[[onto]]) || nrow(enrichResultGSEA[[onto]]@result) == 0L){
+      cat("No significant gene set.\n")
+      next
+    }else{
+      p <- suppressWarnings(emapplot(enrichResultGSEA[[onto]], showCategory=50,
+                                     main=onto))
+      print(p)
+    }
+  }
+}
+```
 
-<!-- #### cnetplot -->
-<!-- ```{r cnetplot gsea, echo=FALSE, fig.width=14, fig.height=14, eval=FALSE} -->
-<!-- if(exists("enrichResult")){ -->
-<!-- for(onto in names(enrichResult)){ -->
-<!--   for(sig in names(enrichResult[[1]])){ -->
-<!--     if(is.null(enrichResult[[onto]][[sig]]) || nrow(enrichResult[[onto]][[sig]]@result) == 0L){ -->
-<!--       next -->
-<!--     }else{ -->
-<!--       ## By default it plots gene id instead of gene name. -->
-<!--       ## Replace the gene id with name. -->
-<!--       enrichResultToPlot <- enrichResult[[onto]][[sig]] -->
-<!--       resultToPlot <- enrichResultToPlot@result -->
-<!--       resultToPlot$geneID <- resultToPlot$geneName -->
-<!--       enrichResultToPlot@result <- resultToPlot -->
-
-<!--       p <- cnetplot(enrichResultToPlot, -->
-<!--                     foldChange=setNames(rowData(se)$log2Ratio, rowData(se)$gene_name), -->
-<!--                     main=paste(onto, sig)) -->
-<!--       print(p) -->
-<!--     } -->
-<!--   } -->
-<!-- } -->
-<!-- } -->
-<!-- ``` -->
+#### cnetplot
+```{r cnetplot, echo=FALSE, fig.width=14, fig.height=14, eval=FALSE}
+if(exists("enrichResultGSEA")){
+  for(onto in names(enrichResultGSEA)){
+    if(is.null(enrichResultGSEA[[onto]]) || nrow(enrichResultGSEA[[onto]]@result) == 0L){
+      cat("No significant gene set.\n")
+      next
+    }else{
+      ## By default it plots gene id instead of gene name.
+      ## Replace the gene id with name.
+      enrichResultToPlot <- enrichResultGSEA[[onto]]
+      resultToPlot <- enrichResultToPlot@result
+      resultToPlot$core_enrichment <- resultToPlot$geneName
+      enrichResultToPlot@result <- resultToPlot
+      
+      p <- cnetplot(enrichResultToPlot,
+                    foldChange=setNames(rowData(se)$log2Ratio, rowData(se)$gene_name),
+                    main=onto)
+      print(p)
+    }
+  }
+}
+```
 
 #### Result files
-```{r hypergeometric result files, echo=FALSE, results='asis'}
-if(exists("enrichResult")){
+```{r GSEA result files, echo=FALSE, results='asis'}
+if(exists("enrichResultGSEA")){
   for(resFn in resFns){
     cat("\n")
     cat(paste0("[", resFn, "](", resFn, ")"))
@@ -721,84 +698,6 @@ if(exists("enrichResult")){
   }
 }
 ```
-
-### Gene set enrichment analysis
-<!-- ```{r gsea compute, echo=FALSE, message=FALSE, eval=!debug, warning=FALSE} -->
-<!-- if (doGo(param, seqAnno)){ -->
-<!--   enrichResultGSEA <- ezGSEA(param, se) -->
-<!--   resFns <- c() -->
-<!-- } -->
-<!-- ``` -->
-
-<!-- #### dotplot -->
-<!-- ```{r dotplot, echo=FALSE, message=FALSE, eval=!debug} -->
-<!-- if(exists("enrichResultGSEA")){ -->
-<!-- for(onto in names(enrichResultGSEA)){ -->
-<!--   if(is.null(enrichResultGSEA[[onto]]) || nrow(enrichResultGSEA[[onto]]@result) == 0L){ -->
-<!--     cat("No significant gene set.\n") -->
-<!--     next -->
-<!--   }else{ -->
-<!--     p <- dotplot(enrichResultGSEA[[onto]], showCategory=20, title=onto) -->
-<!--     print(p) -->
-<!--     resFn <- paste(onto, "GSEA.txt", sep="_") -->
-<!--     write.table(enrichResultGSEA[[onto]], file=resFn, -->
-<!--                 quote=FALSE, col.names = TRUE, row.names = FALSE) -->
-<!--     resFns <- append(resFns, resFn) -->
-<!--   } -->
-<!-- } -->
-<!-- } -->
-<!-- ``` -->
-
-<!-- #### enrichMap -->
-<!-- ```{r enrichMap, echo=FALSE, fig.width=14, fig.height=14, eval=FALSE} -->
-<!-- if(exists("enrichResultGSEA")){ -->
-<!--   for(onto in names(enrichResultGSEA)){ -->
-<!--     if(is.null(enrichResultGSEA[[onto]]) || nrow(enrichResultGSEA[[onto]]@result) == 0L){ -->
-<!--       cat("No significant gene set.\n") -->
-<!--       next -->
-<!--     }else{ -->
-<!--       p <- suppressWarnings(emapplot(enrichResultGSEA[[onto]], showCategory=50, -->
-<!--                                      main=onto)) -->
-<!--       print(p) -->
-<!--     } -->
-<!--   } -->
-<!-- } -->
-<!-- ``` -->
-
-<!-- #### cnetplot -->
-<!-- ```{r cnetplot, echo=FALSE, fig.width=14, fig.height=14, eval=FALSE} -->
-<!-- if(exists("enrichResultGSEA")){ -->
-<!--   for(onto in names(enrichResultGSEA)){ -->
-<!--     if(is.null(enrichResultGSEA[[onto]]) || nrow(enrichResultGSEA[[onto]]@result) == 0L){ -->
-<!--       cat("No significant gene set.\n") -->
-<!--       next -->
-<!--     }else{ -->
-<!--       ## By default it plots gene id instead of gene name. -->
-<!--       ## Replace the gene id with name. -->
-<!--       enrichResultToPlot <- enrichResultGSEA[[onto]] -->
-<!--       resultToPlot <- enrichResultToPlot@result -->
-<!--       resultToPlot$core_enrichment <- resultToPlot$geneName -->
-<!--       enrichResultToPlot@result <- resultToPlot -->
-
-<!--       p <- cnetplot(enrichResultToPlot, -->
-<!--              foldChange=setNames(rowData(se)$log2Ratio, rowData(se)$gene_name), -->
-<!--              main=onto) -->
-<!--       print(p) -->
-<!--     } -->
-<!--   } -->
-<!-- } -->
-<!-- ``` -->
-
-<!-- #### Result files -->
-<!-- ```{r GSEA result files, echo=FALSE, results='asis'} -->
-<!-- if(exists("enrichResultGSEA")){ -->
-<!--   for(resFn in resFns){ -->
-<!--     cat("\n") -->
-<!--     cat(paste0("[", resFn, "](", resFn, ")")) -->
-<!--     cat("\n") -->
-<!--   } -->
-<!-- } -->
-<!-- ``` -->
 
 #### Webgestalt
 [InputFiles](./Webgestalt) for [Webgestalt](http://www.webgestalt.org/)
@@ -841,51 +740,51 @@ and the total number of genes in that category.
 x = rowData(se)[rowData(se)$usedInTest, ]
 
 if(all(c("gc", "featWidth") %in% colnames(x))) {
-    if(!all(is.na(x$gc)) & !all(is.na(x$featWidth))){
-        gcThresh = quantile(x$gc, c(0.05, 0.95))
-        widthThresh = quantile(x$featWidth, c(0.05, 0.95))
-        biasTable <- data.frame("low GC"=x$gc < gcThresh[1],
-                                "high GC"=x$gc > gcThresh[2],
-                                "short genes"= x$featWidth < widthThresh[1],
-                                "long genes"=x$featWidth > widthThresh[2],
-                                check.names=FALSE)
-        isUp <- x$pValue < param$pValueHighlightThresh & 
-            x$log2Ratio > param$log2RatioHighlightThresh
-        isDown <- x$pValue < param$pValueHighlightThresh & 
-            x$log2Ratio < -param$log2RatioHighlightThresh
-        sigTable <- data.frame("Up-regulation"=isUp,
-                               "Down-regulation"=isDown,
-                               check.names=FALSE)
-        
-        tests = expand.grid(sig=names(sigTable), bias=names(biasTable))
-        testTable = ezFrame("overlapping/total genes"=character(), "odds ratio"=numeric(), "p-value"=numeric())
-        for (i in 1:nrow(tests)){
-            testName = paste(tests$bias[i], " -- ", tests$sig[i])
-            myBias = biasTable[[tests$bias[i]]]
-            mySig = sigTable[[tests$sig[i]]]
-            if(any(mySig)){
-                res.fisher <- fisher.test(myBias, mySig, alternative="greater")
-            } else {
-                res.fisher = list(estimate=NA, p.value=NA)
-            }
-            testTable[testName, "overlapping/total genes"] = paste(sum(myBias & mySig), sum(myBias), sep="/")
-            testTable[testName, "odds ratio"] = res.fisher$estimate
-            testTable[testName, "p-value"] = res.fisher$p.value
-        }
-        t <- kable(format(testTable, digits=3, scientific=-2), "html", 
-                   caption=paste("Association test:",
-                                 sum(isUp), "up-regulated and",
-                                 sum(isDown), "down-regulated genes")) %>%
-            kable_styling(bootstrap_options = "striped", full_width = F, 
-                          position = "left")
-        isSig <- testTable$`p-value` < 1e-3
-        if(any(isSig, na.rm = TRUE)){
-            t <- t %>% 
-                row_spec(which(isSig), bold = T, color = "white",
-                         background = "#D7261E")
-        }
-        t
+  if(!all(is.na(x$gc)) & !all(is.na(x$featWidth))){
+    gcThresh = quantile(x$gc, c(0.05, 0.95))
+    widthThresh = quantile(x$featWidth, c(0.05, 0.95))
+    biasTable <- data.frame("low GC"=x$gc < gcThresh[1],
+                            "high GC"=x$gc > gcThresh[2],
+                            "short genes"= x$featWidth < widthThresh[1],
+                            "long genes"=x$featWidth > widthThresh[2],
+                            check.names=FALSE)
+    isUp <- x$pValue < param$pValueHighlightThresh & 
+      x$log2Ratio > param$log2RatioHighlightThresh
+    isDown <- x$pValue < param$pValueHighlightThresh & 
+      x$log2Ratio < -param$log2RatioHighlightThresh
+    sigTable <- data.frame("Up-regulation"=isUp,
+                           "Down-regulation"=isDown,
+                           check.names=FALSE)
+    
+    tests = expand.grid(sig=names(sigTable), bias=names(biasTable))
+    testTable = ezFrame("overlapping/total genes"=character(), "odds ratio"=numeric(), "p-value"=numeric())
+    for (i in 1:nrow(tests)){
+      testName = paste(tests$bias[i], " -- ", tests$sig[i])
+      myBias = biasTable[[tests$bias[i]]]
+      mySig = sigTable[[tests$sig[i]]]
+      if(any(mySig)){
+        res.fisher <- fisher.test(myBias, mySig, alternative="greater")
+      } else {
+        res.fisher = list(estimate=NA, p.value=NA)
+      }
+      testTable[testName, "overlapping/total genes"] = paste(sum(myBias & mySig), sum(myBias), sep="/")
+      testTable[testName, "odds ratio"] = res.fisher$estimate
+      testTable[testName, "p-value"] = res.fisher$p.value
     }
+    t <- kable(format(testTable, digits=3, scientific=-2), "html", 
+               caption=paste("Association test:",
+                             sum(isUp), "up-regulated and",
+                             sum(isDown), "down-regulated genes")) %>%
+      kable_styling(bootstrap_options = "striped", full_width = F, 
+                    position = "left")
+    isSig <- testTable$`p-value` < 1e-3
+    if(any(isSig, na.rm = TRUE)){
+      t <- t %>% 
+        row_spec(which(isSig), bold = T, color = "white",
+                 background = "#D7261E")
+    }
+    t
+  }
 }
 ```
 
