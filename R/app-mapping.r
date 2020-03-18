@@ -524,7 +524,7 @@ ezMethodBWA = function(input=NA, output=NA, param=NA){
   return("Success")
 }
 
-ezMethodBWATrim = function(input=NA, output=NA, param=NA){ # Perform BWA using Trimmomatic for read pre-processing
+ezMethodBWATrimmomatic = function(input=NA, output=NA, param=NA){ # Perform BWA using Trimmomatic for read pre-processing
 
   refIdx = getBWAReference(param)
   bamFile = output$getColumn("BAM")
@@ -637,15 +637,15 @@ EzAppBWA <-
               )
   )
 
-EzAppBWATrim <- 
-  setRefClass("EzAppBWATrim",
+EzAppBWATrimmomatic <- 
+  setRefClass("EzAppBWATrimmomatic",
               contains = "EzApp",
               methods = list(
                 initialize = function()
                 {
                   "Initializes the application using its specific defaults."
-                  runMethod <<- ezMethodBWA
-                  name <<- "EzAppBWATrim"
+                  runMethod <<- ezMethodBWATrimmomatic
+                  name <<- "EzAppBWATrimmomatic"
                   appDefaults <<- rbind(algorithm=ezFrame(Type="character",  DefaultValue="mem",  Description="bwa's alignment algorithm. One of aln, bwasw, mem."),
                                         writeIgvSessionLink=ezFrame(Type="logical", DefaultValue="TRUE", Description="should an IGV link be generated"))
                 }
