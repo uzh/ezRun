@@ -18,30 +18,14 @@
 ##'   \item{length filtering}
 ##' }
 ##' This means if you specify a fixed trimming this comes on top of the adapter trimming
-##' @template input-template
-##' @param output an object of the class EzDataset or NA. If it is NA, it will be copied from the input.
-##' @param param a list of parameters:
-##' \itemize{
-##'   \item{paired}{ a logical specifying whether the samples have paired ends.}
-##'   \item{subsampleReads}{ an integer specifying how many subsamples there are. This will call \code{ezMethodSubsampleReads()} if > 1.}
-##'   \item{nReads}{ an integer specifying how many reads were detected.}
-##'   \item{trimAdapter}{ a logical specifying whether to use a trim adapter.}
-##'   \item{minTailQuality}{ an integer specifying the minimal tail quality to accept. Only used if > 0.}
-##'   \item{minTrailingQuality}{ an integer specifying the minimal trailing quality to accept. Only used if > 0.}
-##'   \item{minAvgQuality}{ an integer specifying the minimal average quality to accept. Only used if > 0.}
-##'   \item{minReadLength}{ an integer specifying the minimal read length to accept.}
-##'   \item{dataRoot}{ a character specifying the path of the data root to get the full column paths from.}
-##' }
-##' @template roxygen-template
-##' @return Returns the output after trimming as an object of the class EzDataset.
 
 ezMethodFastpTrim = function(input=NA, output=NA, param=NA){
   # Input/Output Preparation
   ## stop early
   if (any(grepl("bam$", input$getFullPaths("Read1")))){
-    stop("can not process unmapped bam as input")
+    stop("cannot process unmapped bam as input")
   }
-  ## if output is not an EzDataset, set it!
+  ## if output is not an EzDataset, set it! (when ezMethodFastpTrim is used inside another app)
   if (!is(output, "EzDataset")){
     output = input$copy()
     output$setColumn("Read1", paste0(getwd(), "/", input$getNames(), "-trimmed_R1.fastq"))
@@ -83,7 +67,7 @@ ezMethodFastpTrim = function(input=NA, output=NA, param=NA){
   
   # Prepare shell command
   ## binary
-  fastpBin = '/usr/local/ngseq/packages/QC/fastp/0.20.0/bin/fastp'
+  fastpBin = 'fastp'
   ## input/output file names:
   r1TmpFile = "trimmed_R1.fastq"
   if(param$paired){
@@ -112,36 +96,35 @@ ezMethodFastpTrim = function(input=NA, output=NA, param=NA){
     } else {
       adapter2 = DNAStringSet()
     }
-    # take only adapter from dataset and ignore the ones from TRIMMOMATIC_ADAPTERS
     adaptFile = "adapters.fa"
     adapters = c(adapter1, adapter2)
     if (!is.null(param$onlyAdapterFromDataset) && param$onlyAdapterFromDataset){
+      # take only adapter from dataset and ignore the ones from TRIMMOMATIC_ADAPTERS
       writeXStringSet(adapters, adaptFile)
     } else {
       file.copy(from=TRIMMOMATIC_ADAPTERS,
                 to=adaptFile)
       writeXStringSet(adapters, adaptFile, append=TRUE)
     }
-    on.exit(file.remove(adaptFile), add=TRUE)
-    
+
     trimAdapt = paste('--adapter_fasta', adaptFile)
     
   } else {
     trimAdapt = "--disable_adapter_trimming"
   }
+
   ## paste command
   cmd = paste(fastpBin,
               readsInOut,
               # general options
               paste('--thread',param[['cores']]),
-              paste(""),
               # global trimming
-              paste('--trim_front1',param[['trim_front']]),
-              paste('--trim_tail1',param[['trim_tail']]),
+              paste('--trim_front1',param[['trim_front1']]),
+              paste('--trim_tail1',param[['trim_tail1']]),
               # quality-based trimming per read
-              paste("--cut_front", param[['cut_front']]), # like Trimmomatic's LEADING
-              paste("--cut_right", param[['cut_right']]), # like Trimmomatic's SLIDINGWINDOW
-              paste("--cut_tail", param[['cut_tail']]), # like Trimmomatic's TRAILING
+              paste(if(param[['cut_front']]) "--cut_front", "--cut_front_window_size", param[['cut_front_window_size']], "--cut_front_mean_quality", param[['cut_front_mean_quality']]), # like Trimmomatic's LEADING
+              paste(if(param[['cut_right']]) "--cut_right", "--cut_right_window_size", param[['cut_right_window_size']], "--cut_right_mean_quality", param[['cut_right_mean_quality']]), # like Trimmomatic's SLIDINGWINDOW
+              paste(if(param[['cut_tail']])"--cut_tail", "--cut_tail_window_size", param[['cut_tail_window_size']], "--cut_tail_mean_quality", param[['cut_tail_mean_quality']]), # like Trimmomatic's TRAILING
               paste("--average_qual", param[['average_qual']]),
               # adapter trimming
               trimAdapt,
@@ -163,18 +146,52 @@ ezMethodFastpTrim = function(input=NA, output=NA, param=NA){
   ## remove reports
   ezSystem("rm fastp.json fastp.html")
   
+  ## rename adapters.fa (standalone) or not (within another app)
+  if("Adapters" %in% output$colNames){
+    renamedAdaptFile = paste0(input$getNames(),"_",adaptFile)
+    ezSystem(paste("mv",adaptFile,renamedAdaptFile))
+  }else{
+    on.exit(file.remove(adaptFile), add=TRUE)
+  }
+  
   ## rename log
   ezSystem(paste0('cat fastp.err >>',input$getNames(),'_preprocessing.log'))
   on.exit(file.remove("fastp.err"), add=TRUE)
   
-  ## rename output
-  ezSystem(paste("mv", r1TmpFile, basename(output$getColumn("Read1"))))
+  ## rename output .fastqs
+  r1TrimmedFileName = gsub(".fastq.*",".fastq",basename(output$getColumn("Read1")))
+  ezSystem(paste("mv", r1TmpFile, r1TrimmedFileName))
   if (param$paired){
-    ezSystem(paste("mv", r2TmpFile, basename(output$getColumn("Read2"))))
+    r2TrimmedFileName = gsub(".fastq.*",".fastq",basename(output$getColumn("Read2")))
+    ezSystem(paste("mv", r2TmpFile, r2TrimmedFileName))
   }
+  
+  ## compress if necessary (only runs when the output dataset contains "Read1")
+  if (grepl(pattern = ".gz",x = basename(output$getColumn("Read1")))){
+    ezSystem(paste("pigz -p 2", r1TrimmedFileName))
+    if (param$paired){
+      ezSystem(paste("pigz -p 2", r2TrimmedFileName))
+    }
+  }
+  
   return(output)
 }
 
+##' @title EzAppFastp app
+##' @description fast read pre-processing.
+##' @author Miquel Anglada Girotto
+EzAppFastp =
+  setRefClass( "EzAppFastp",
+               contains = "EzApp",
+               methods = list(
+                 initialize = function(){
+                   "Initializes the application using its specific defaults."
+                   runMethod <<- ezMethodFastpTrim
+                   name <<- "EzAppFastp"
+                 }
+               )
+               
+  )
 
 ##' @title Trims input reads
 ##' @description Trims input reads. The trimming happens in the following order:

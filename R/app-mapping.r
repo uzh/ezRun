@@ -524,6 +524,59 @@ ezMethodBWA = function(input=NA, output=NA, param=NA){
   return("Success")
 }
 
+ezMethodBWATrimmomatic = function(input=NA, output=NA, param=NA){ # Perform BWA using Trimmomatic for read pre-processing
+
+  refIdx = getBWAReference(param)
+  bamFile = output$getColumn("BAM")
+  trimmedInput = ezMethodTrim(input = input, param = param)
+  if (param$algorithm == "aln"){
+    cmd = paste("bwa", param$algorithm, param$cmdOptions, "-t", param$cores,
+                refIdx, trimmedInput$getColumn("Read1"), ">", "read1.sai", "2> bwa.log")
+    ezSystem(cmd)
+    if (param$paired){
+      cmd = paste("bwa", param$algorithm, param$cmdOptions, "-t", param$cores,
+                  refIdx, trimmedInput$getColumn("Read2"), ">", "read2.sai", "2> bwa.log")
+      ezSystem(cmd)
+      cmd = paste("bwa", "sampe", refIdx, "read1.sai", "read2.sai", 
+                  trimmedInput$getColumn("Read1"), trimmedInput$getColumn("Read2"),
+                  "2> bwa.log", "|",
+                  "samtools", "view -S -b -", " > aligned.bam")
+      ezSystem(cmd)
+    } else {
+      cmd = paste("bwa", "samse", refIdx, "read1.sai", 
+                  trimmedInput$getColumn("Read1"), "2> bwa.log", "|",
+                  "samtools", "view -S -b -", " > aligned.bam")
+      ezSystem(cmd)
+    }
+  } else {
+    if(param$algorithm == "bwasw" && param$paired){
+      stop("paired is not supported for algorithm bwasw")
+    }
+    cmd = paste("bwa", param$algorithm, param$cmdOptions, "-t", param$cores,
+                refIdx, trimmedInput$getColumn("Read1"),
+                if(param$paired) trimmedInput$getColumn("Read2"),
+                "2> bwa.log", "|", "samtools", "view -S -b -", " > aligned.bam")
+    ezSystem(cmd)
+  }
+  file.remove(trimmedInput$getColumn("Read1"))
+  if(param$paired)
+    file.remove(trimmedInput$getColumn("Read2"))
+  
+  ezSortIndexBam("aligned.bam", basename(bamFile), ram=param$ram, removeBam=TRUE,
+                 cores=param$cores)
+  
+  ## write an igv link
+  if (param$writeIgvSessionLink){ 
+    writeIgvSession(genome = getIgvGenome(param), refBuild=param$ezRef["refBuild"], 
+                    file=basename(output$getColumn("IGV Session")),
+                    bamUrls = paste(PROJECT_BASE_URL, bamFile, sep="/") )
+    writeIgvJnlp(jnlpFile=basename(output$getColumn("IGV Starter")),
+                 projectId = sub("\\/.*", "", bamFile),
+                 sessionUrl = paste(PROJECT_BASE_URL, output$getColumn("IGV Session"), sep="/"))
+  }
+  return("Success")
+}
+
 ##' @template getref-template
 ##' @templateVar methodName BWA
 ##' @inheritParams getBowtie2Reference
@@ -578,6 +631,21 @@ EzAppBWA <-
                   "Initializes the application using its specific defaults."
                   runMethod <<- ezMethodBWA
                   name <<- "EzAppBWA"
+                  appDefaults <<- rbind(algorithm=ezFrame(Type="character",  DefaultValue="mem",  Description="bwa's alignment algorithm. One of aln, bwasw, mem."),
+                                        writeIgvSessionLink=ezFrame(Type="logical", DefaultValue="TRUE", Description="should an IGV link be generated"))
+                }
+              )
+  )
+
+EzAppBWATrimmomatic <- 
+  setRefClass("EzAppBWATrimmomatic",
+              contains = "EzApp",
+              methods = list(
+                initialize = function()
+                {
+                  "Initializes the application using its specific defaults."
+                  runMethod <<- ezMethodBWATrimmomatic
+                  name <<- "EzAppBWATrimmomatic"
                   appDefaults <<- rbind(algorithm=ezFrame(Type="character",  DefaultValue="mem",  Description="bwa's alignment algorithm. One of aln, bwasw, mem."),
                                         writeIgvSessionLink=ezFrame(Type="logical", DefaultValue="TRUE", Description="should an IGV link be generated"))
                 }
