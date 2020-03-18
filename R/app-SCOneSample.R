@@ -67,8 +67,8 @@ ezMethodSCOneSample <- function(input=NA, output=NA, param=NA,
     all2allMarkers = all2all(scData, pvalue_all2allMarkers, param)
   #cell types annotation is only supported for Human and Mouse at the moment
   if(param$species == "Human" | param$species == "Mouse") {
-     cells_AUC = cellsLabelsWithAUC(scData, param)
-     cellsLabelsWithSingleR(scData, param)
+     cells_AUC <- cellsLabelsWithAUC(scData, param)
+     singler.results <- cellsLabelsWithSingleR(scData, param)
   }
   #Doublets prediction
   require(scDblFinder)
@@ -79,7 +79,8 @@ ezMethodSCOneSample <- function(input=NA, output=NA, param=NA,
   #Convert scData to Single Cell experiment Object
   sce <- as.SingleCellExperiment(scData)
   metadata(sce)$PCA_stdev <- Reductions(scData, "pca")@stdev   
-  metadata(sce)$cells_AUC = cells_AUC
+  metadata(sce)$cells_AUC <- cells_AUC
+  metadata(sce)$singler.results <- singler.results
   metadata(sce)$output <- output
   metadata(sce)$param <- param
   metadata(sce)$param$name <- paste(metadata(sce)$param$name,
@@ -174,21 +175,20 @@ return(geneSets)
 }
 
 cellsLabelsWithSingleR <- function(scData, param) {
-library(SingleR) 
-singler = CreateSinglerObject(as.matrix(GetAssayData(scData, slot = "counts")), 
-                              annot = NULL, project.name = "", min.genes = 0, 
-                              technology = "10X", species = param$species, citation = "", 
-                              normalize.gene.length = F, variable.genes = "de", fine.tune = T, 
-                              do.signatures = F, clusters=Idents(scData), do.main.types = T, 
-                              reduce.file.size=T,temp.dir = NULL, numCores = param$cores)
-
-singler$seurat = scData
-singler$meta.data$orig.ident = scData@meta.data$Batch
-singler$meta.data$xy = scData@reductions$tsne@cell.embeddings # the tSNE coordinates
-singler$meta.data$clusters = Idents(scData)
-
-#convert the file to use it in the interactive browser
-singler.browser = convertSingleR2Browser(singler)
-saveRDS(singler.browser, 'singler.browser.rds')
+library(SingleR, lib.loc = "/home/gtan/R-library")
+if(grepl("Homo_sapiens", param$refBuild)){
+    hpca.se <- HumanPrimaryCellAtlasData()
+    bp.se <- BlueprintEncodeData()
+    singler.results.single <- SingleR(test = GetAssayData(scData), ref = list(BP=bp.se, HPCA=hpca.se), 
+                               labels = list(bp.se$label.main, hpca.se$label.main), method="single", de.method = "wilcox")
+    singler.results.cluster <- SingleR(test = GetAssayData(scData), ref = list(BP=bp.se, HPCA=hpca.se), 
+                                      labels = list(bp.se$label.main, hpca.se$label.main), method="cluster", clusters=Idents(scData), de.method = "wilcox")
+  }else {
+    hpca.se <- MouseRNAseqData()
+    singler.results.single <- SingleR(test = GetAssayData(scData), ref = hpca.se, labels = hpca.se$label.main)
+    singler.results.cluster <- SingleR(test = GetAssayData(scData), ref = hpca.se, labels = hpca.se$label.main, method="cluster", clusters=Idents(scData))
+  }
+  
+return(list(singler.results.single=singler.results.single, singler.results.cluster=singler.results.cluster))
 }
 
