@@ -62,6 +62,9 @@ paired	logical	FALSE	if data should be analysed as paired-end data
 keepUnpaired	character	both	if unpaired alignments of paired-end reads should be kept
 minSignal	integer	1	numbers below that value will be given random small numbers
 # read handling
+cut_front	logical	FALSE	fastp option move a sliding window from front (5p) to tail, drop the bases in the window if its mean quality < threshold, stop otherwise.
+cut_tail	logical	FALSE	sliding window tail (3p) to front, drop the bases in the window if its mean quality < threshold, stop otherwise.
+cut_right	logical	FALSE	sliding window from front to tail, if meet one window with mean quality < threshold, drop the bases in the window and the right part, and then stop.
 minAvgQuality	integer	10	the min average quality for a read to be used
 minTailQuality	integer	0	the min average quality of the quality filter window below which tails are trimmed
 minLeadingQuality	integer	0	Cut bases off the start of a read, if below a threshold quality
