@@ -121,32 +121,18 @@ compileEnrichmentInput <- function(param, se){
   }
   ans <- list(upGenes=upGenes, downGenes=downGenes, bothGenes=bothGenes,
               presentGenes=presentGenes, 
-              normalizedAvgSignal=normalizedAvgSignal)
+              normalizedAvgSignal=normalizedAvgSignal, seqAnno=seqAnno)
   return(ans)
 }
 
-twoGroupsGOSE = function(param, enrichInput, seqAnno, method="Wallenius"){
+twoGroupsGOSE = function(param, enrichInput, method="Wallenius"){
 
   upGenes <- enrichInput$upGenes
   downGenes <- enrichInput$downGenes
   bothGenes <- enrichInput$bothGenes
   presentGenes <- enrichInput$presentGenes
   normalizedAvgSignal <- enrichInput$normalizedAvgSignal
-  
-  if (param$featureLevel != "gene"){
-    genes = getGeneMapping(param, seqAnno)
-    seqAnno = aggregateGoAnnotation(seqAnno, genes)
-    if (!is.null(normalizedAvgSignal)){ ## if its not an identity mapping
-      normalizedAvgSignal = tapply(normalizedAvgSignal[names(genes)], genes, mean)
-      normalizedAvgSignal = normalizedAvgSignal[rownames(seqAnno)]
-    }
-    if (is.null(genes)){
-      stop("no probe 2 gene mapping found found for ")
-    }
-  } else {
-    genes = rownames(seqAnno)
-    names(genes) = genes
-  }
+  seqAnno = enrichInput$seqAnno
   
   job = ezJobStart("twoGroupsGO")
   require("GOstats", warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
@@ -259,17 +245,6 @@ ezGSEA <- function(param, se){
   geneid2name <- setNames(seqAnno$gene_name, seqAnno$gene_id)
   geneList <- setNames(rowData(se)$log2Ratio, rowData(se)$gene_id)
   geneList <- sort(geneList, decreasing = TRUE)
-  
-  if (param$featureLevel != "gene"){
-    genes = getGeneMapping(param, seqAnno)
-    seqAnno = aggregateGoAnnotation(seqAnno, genes)
-    if (is.null(genes)){
-      stop("no probe 2 gene mapping found found for ")
-    }
-  } else {
-    genes = rownames(seqAnno)
-    names(genes) = genes
-  }
   
   ontologies = c("BP", "MF", "CC")
   
@@ -585,27 +560,11 @@ goClusterResults = function(x, param, result, ontologies=c("BP", "MF", "CC"), se
                             universeGeneIds=NULL, universeProbeIds=NULL, keggOrganism=NA){
   require("GOstats", warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
   require("annotate", warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
-  if (param$featureLevel != "gene"){
-    genes = getGeneMapping(param, seqAnno)
-    if (is.null(genes)){
-      stop("no probe 2 gene mapping found")
-    }
-    seqAnno = aggregateGoAnnotation(seqAnno, genes)
-  } else {
-    genes = rownames(seqAnno)
-    names(genes) = genes
-  }
-  
+
   if (is.null(universeGeneIds)){
     universeGeneIds =na.omit(unique(unlist( genes[universeProbeIds]) ))
   }
-  keggClusterResults = NULL
-  if (!is.na(keggOrganism)){
-    kegg2GenesList = getPathway2GenesList(param, keggOrganism)  ## TODOMF: function does not exist
-    if (all(unlist(kegg2GenesList)) %in% universeGeneIds){
-      keggClusterResults = list()
-    }
-  }
+
   genesByCluster = tapply(genes[rownames(x)], result$clusterNumbers, function(x){na.omit(unique(x))}, simplify=FALSE)
   goClusterResults = ezMclapply(ontologies, function(onto){
     gene2go = goStringsToList(seqAnno[[paste("GO", onto)]], listNames=rownames(seqAnno))[universeGeneIds]
