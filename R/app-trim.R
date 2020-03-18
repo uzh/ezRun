@@ -177,8 +177,8 @@ ezMethodFastpTrim = function(input=NA, output=NA, param=NA){
   return(output)
 }
 
-##' @title EzAppExceRpt app
-##' @description Use this reference class to run exceRpt_smallRNA parameters.
+##' @title EzAppFastp app
+##' @description fast read pre-processing.
 ##' @author Miquel Anglada Girotto
 EzAppFastp =
   setRefClass( "EzAppFastp",
