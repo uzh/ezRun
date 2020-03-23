@@ -23,17 +23,17 @@ library(readr)
 library(kableExtra)
 library(tidyr)
 library(pheatmap)
+library(scater)
 knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE, knitr.table.format = "html")
 
 
 #to test
-# param = readRDS("/srv/gstore/projects/p2979/SCMultipleSamplesOneGroup_40181_2019-10-09--17-06-26/SCReportMerging/param.rds")
-# scData_objects = readRDS("/srv/gstore/projects/p2979/SCMultipleSamplesOneGroup_40181_2019-10-09--17-06-26/SCReportMerging/scData_ObjectList.rds")
-# scData_noCorrected = scData_objects$scData_noCorrected
-# scData = scData_objects$scData_corrected
-# library("Seurat", lib="/home/daymegr/myRpackages")
-# library(ggplot2)
-# pvalue_allMarkers <- 0.05
+library(HDF5Array)
+library(SingleR)
+library(ezRun, lib.loc = "~/myRpackages")
+sce <- loadHDF5SummarizedExperiment("sce_h5")
+param = metadata(sce)$param
+pvalue_allMarkers <- 0.05
 ```
 
 ```{r javascript, results='asis'}
@@ -51,8 +51,13 @@ The TSNEs below place similar cells together in low-dimensional space. The left 
 <br/><br/>
 
 ```{r tSNE no correction plot, fig.width=8, fig.height=5}
-DimPlot(scData_noCorrected, reduction = "tsne", group.by = "Plate", pt.size = 0.8)
-DimPlot(scData_noCorrected, reduction = "tsne", label = TRUE, pt.size = 0.7, label.size = 5, repel = TRUE) 
+if(param$batchCorrection) {
+  reduction_name <- "tsne_noCorrected"
+} else {
+  reduction_name <- "tsne"
+}
+plotReducedDim(sce, dimred =  reduction_name, colour_by = "Plate", pt.size = 0.8)
+plotReducedDim(sce, dimred =  reduction_name, label = TRUE, pt.size = ) 
 ```
 
 <br/><br/>
@@ -62,8 +67,13 @@ DimPlot(scData_noCorrected, reduction = "tsne", label = TRUE, pt.size = 0.7, lab
 <br/>
 
 ```{r number of cells in each cluster, fig.align='center', fig.width=10, fig.height=6}
-cellIdents_perSample = FetchData(object = scData_noCorrected, vars = c('ident', 'Plate'))
-barplot = ggplot(data=cellIdents_perSample, aes(x=ident, fill=Plate)) + geom_bar(stat="Count")
+if(param$batchCorrection) {
+  active_idents <- "ident_noCorrected"
+} else {
+  active_idents <- "ident"
+}
+cellIdents_perSample = FetchData(object = scData, vars = c(active_idents, 'Plate'))
+barplot = ggplot(data=cellIdents_perSample, aes(x=active_idents, fill=Plate)) + geom_bar(stat="Count")
 barplot + labs(x="Cluster", y = "Number of cells", fill = "Sample")
 ```
 
