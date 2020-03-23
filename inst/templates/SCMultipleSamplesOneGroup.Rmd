@@ -15,7 +15,7 @@ Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
 ```{r setup, include=FALSE}
 library(SummarizedExperiment)
 library(ggplot2)
-library(ezRun)
+library(ggridges)
 library(cowplot)
 library(tibble)
 library(dplyr)
@@ -30,6 +30,7 @@ knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE, knitr.tabl
 #to test
 library(HDF5Array)
 library(SingleR)
+library(AUCell)
 library(ezRun, lib.loc = "~/myRpackages")
 sce <- loadHDF5SummarizedExperiment("sce_h5")
 param = metadata(sce)$param
@@ -42,6 +43,10 @@ invisible(file.copy(from=jsFile, to=basename(jsFile), overwrite=TRUE))
 cat(paste0("<SCRIPT language=\"JavaScript\" SRC=\"", basename(jsFile), "\"></SCRIPT>"))
 ```
 
+```{r}
+output <- metadata(sce)$output
+```
+
 ## Clustering results of merged samples {.tabset}
 
 ### Cell clustering without correction
@@ -52,12 +57,12 @@ The TSNEs below place similar cells together in low-dimensional space. The left 
 
 ```{r tSNE no correction plot, fig.width=8, fig.height=5}
 if(param$batchCorrection) {
-  reduction_name <- "tsne_noCorrected"
+  reduction_name <- "TSNE_NOCORRECTED"
 } else {
-  reduction_name <- "tsne"
+  reduction_name <- "TSNE"
 }
-plotReducedDim(sce, dimred =  reduction_name, colour_by = "Plate", pt.size = 0.8)
-plotReducedDim(sce, dimred =  reduction_name, label = TRUE, pt.size = ) 
+plotReducedDim(sce, dimred =  reduction_name, colour_by = "Plate", label_format = c("TSNE_1","TSNE_2"))
+plotReducedDim(sce, dimred =  reduction_name, colour_by = "ident_noCorrected", text_by= "ident_noCorrected", label_format = c("TSNE_1","TSNE_2")) 
 ```
 
 <br/><br/>
@@ -72,8 +77,8 @@ if(param$batchCorrection) {
 } else {
   active_idents <- "ident"
 }
-cellIdents_perSample = FetchData(object = scData, vars = c(active_idents, 'Plate'))
-barplot = ggplot(data=cellIdents_perSample, aes(x=active_idents, fill=Plate)) + geom_bar(stat="Count")
+cellIdents_perSample = data.frame(colData(sce)[,c(active_idents, "Plate")])
+barplot = ggplot(data=cellIdents_perSample, aes(x=cellIdents_perSample[,1], fill=Plate)) + geom_bar(stat="Count")
 barplot + labs(x="Cluster", y = "Number of cells", fill = "Sample")
 ```
 
@@ -85,16 +90,16 @@ cat("In addition to the previous steps that were carried out, we performed an un
 cat("\n")
 cat("The TSNEs below place similar cells together in low-dimensional space after the batch correction of the datasets. The left TSNE represents cells according to the sample they belong to and on the right side, the TSNE shows the graph-based clusters determined after performing the correction.")
 cat("\n\n")
-DimPlot(scData, reduction = "tsne", group.by = "Plate", pt.size = 0.8)
-DimPlot(scData, reduction = "tsne", label = TRUE, pt.size = 0.7, label.size = 5, repel = TRUE) 
+plotReducedDim(sce, dimred="TSNE", colour_by="Plate")
+plotReducedDim(sce, dimred="TSNE", colour_by="ident", text_by="ident", text_size=5)
 ```
 
 ```{r number of cells in each cluster after correction, eval = param$batchCorrection, fig.width=10, fig.height=6, fig.align='center', results='asis'}
 cat("\n")
 cat("##### The number of cells in each cluster and sample after the batch correction is represented on this barplot.") 
 cat("\n\n")
-cellIdents_perSample = FetchData(object = scData, vars = c('ident', 'Plate'))
-barplot = ggplot(data=cellIdents_perSample, aes(x=ident, fill=Plate)) + geom_bar(stat="Count")
+cellIdents_perSample = data.frame(colData(sce)[,c("ident", "Plate")])
+barplot = ggplot(data=cellIdents_perSample, aes(x=cellIdents_perSample[,1], fill=Plate)) + geom_bar(stat="Count")
 barplot + labs(x="Cluster", y = "Number of cells", fill = "Sample")
 ```
 
@@ -108,7 +113,7 @@ The plots show commonly used QC metrics that allow to explore and filter the cel
 
 ```{r}
 showCellCycle = FALSE
-if(!is.null(scData@meta.data$CellCycle) && !any(is.na(scData@meta.data$CellCycle)))
+if(!is.null(colData(sce)$CellCycle) && !any(is.na(colData(sce)$CellCycle)))
   showCellCycle = TRUE
 ```
 
@@ -119,15 +124,15 @@ cat("Additionally, we can visualize the cell cycle of the cells on the TSNE plot
 
 ```{r control cell clustering}
 qc_features = c("detected", "sum", "subsets_Mito_percent")
-if(!identical(setdiff(qc_features, colnames(scData@meta.data)), character(0)))
+if(!identical(setdiff(qc_features, colnames(colData(sce))), character(0)))
     qc_features = c("nGene", "nUMI", "perc_mito")
 
-FeaturePlot(object = scData, features = qc_features[1], reduction = "tsne", cols = c("yellow", "red"))
-FeaturePlot(object = scData, features = qc_features[2], reduction = "tsne", cols = c("yellow", "red"))
-FeaturePlot(object = scData, features = qc_features[3], reduction = "tsne", cols = c("yellow", "red"))
+plotReducedDim(sce, dimred="TSNE", colour_by=qc_features[1])
+plotReducedDim(sce, dimred="TSNE", colour_by=qc_features[2])
+plotReducedDim(sce, dimred="TSNE", colour_by=qc_features[3])
 
 if(showCellCycle)
-  DimPlot(scData, reduction = "tsne", group.by = "CellCycle", pt.size = 0.7, plot.title="Cell cycle phase")
+  plotReducedDim(sce, dimred="TSNE", colour_by="CellCycle")
 ```
 
 ### Top cluster markers
@@ -136,7 +141,7 @@ We found positive markers that defined clusters compared to all other cells via 
 <br/>
 
 ```{r enrichr markers all, echo=FALSE, eval= doEnrichr(param), results='asis'}
-posMarkers = scData@misc$posMarkers 
+posMarkers = read_tsv("pos_markers.tsv")
 
   genesPerCluster <- split(posMarkers$gene, posMarkers$cluster)
   jsCall = paste0('enrich({list: "', sapply(genesPerCluster, paste, collapse="\\n"), '", popup: true});')
@@ -152,11 +157,11 @@ posMarkers = scData@misc$posMarkers
 
 ```{r markers table all, echo=FALSE}
 caption ="Expression differences of cluster marker genes"
-ezInteractiveTableRmd(scData@misc$posMarkers, digits=4, title=caption)
+ezInteractiveTableRmd(posMarkers, digits=4, title=caption)
 ```
 
 ```{r enrichr all2all markers, eval = doEnrichr(param) && param$all2allMarkers, echo=FALSE, results='asis'}
- scData@misc$all2allMarkers = all2allMarkers  
+ all2allMarkers = read_tsv("all2allMarkers.tsv")  
  
  for(comparison in names(all2allMarkers)){
     write_tsv(as_tibble(all2allMarkers[[comparison]], rownames="Gene"),
@@ -192,17 +197,16 @@ ezInteractiveTableRmd(scData@misc$posMarkers, digits=4, title=caption)
 <br/>
 
 ```{r top cluster markers, fig.width=4, fig.height=3, results = 'asis'}
-posMarkers = scData@misc$posMarkers
+posMarkers <- read_tsv("pos_markers.tsv")
 top_FC <- posMarkers %>% group_by(cluster) %>% top_n(param$markersToShow, avg_logFC)
-for(cluster in levels(top_FC$cluster)){
+for(cluster in unique(top_FC$cluster)){
   top_FC_cluster = top_FC[top_FC$cluster == cluster,]
   cat("\n")
   cat(paste0("##### Top "), param$markersToShow, ("markers for cluster "), cluster)
   cat("\n")
    for(i in 1:nrow(top_FC_cluster)){
-      plot(RidgePlot(object = scData, feature = top_FC_cluster$gene[i])+ NoLegend())
-      plot(FeaturePlot(object = scData, features = top_FC_cluster$gene[i], reduction = "tsne", cols = c("grey", "red")))
-      
+      print(RidgePlot.sce(sce, feature = as.character(top_FC_cluster$gene[i])))
+      print(plotReducedDim(sce, dimred="TSNE", colour_by=top_FC_cluster$gene[i]))
    }
    cat("\n\n")
 }
@@ -214,22 +218,25 @@ The most challenging task in scRNA-seq data analysis is the interpretation of th
 We do this using sets of marker genes that are highly expressed in each cell. This does not require matching of individual cells to the expression values of the reference dataset, which is faster and more convenient when only the identities of the markers are available. In this case, we use sets of gene markers for individual cell types taken from the CellMarkers database which contains an accurate resource of cell markers for various cell types in tissues of human and mouse (Zhang X., Lan Y., Xu J., Quan F., Zhao E., Deng C., et al. (2019). CellMarker: a manually curated resource of cell markers in human and mouse. Nucleic Acids Res. 47, D721–d728. 10.1093/nar/gky900). 
 We use the AUCell package (Aibar et al. (2017) SCENIC: single-cell regulatory network inference and clustering. Nature Methods. doi: 10.1038/nmeth.4463) to identify marker sets that are highly expressed in each cell. AUCell uses the “Area Under the Curve” (AUC) to calculate whether a critical subset of the input gene set is enriched within the expressed genes for each cell. The AUC estimates the proportion of genes in the gene-set that are highly expressed in each cell. Cells expressing many genes from the gene-set will have higher AUC values than cells expressing fewer. Finally, it assigns cell type identity to each cell in the test dataset by taking the marker set with the top AUC as the label for that cell.
 
-
-```{r assigments, eval= (param$species != "other"), results='asis'}
+```{r AUC assigments, eval= (param$species != "other"), results='asis'}
+cells_AUC <- metadata(sce)$cells_AUC
+cells_assignment <- AUCell_exploreThresholds(cells_AUC, plotHist=FALSE, assign=TRUE) 
+cellsAssigned <- lapply(cells_assignment, function(x) x$assignment)
+assignmentTable <- reshape2::melt(cellsAssigned, value.name="cell")
+colnames(assignmentTable)[2] <- "geneSet"
 cat("We can explore the cell assignment results using different plots. Below, we show a heatmap that represents the number of cells (in log scale) from each cluster that were assigned to the different cell types. After calculating an AUC score for each cell and cell type, we assign cell type identity by taking the cell type with the top AUC as the label for that cell. Some cell types may be missing because no cells obtained their top AUC score for it.")
 cat("\n\n")
 ```
 <br/>
 
 ```{r assigments heatmap, eval= (param$species != "other"), results='asis',fig.align='center', fig.width=10, fig.height=6}
-cells_AUC <- scData@misc$cells_AUC
 tras_cells_AUC <- t(assay(cells_AUC))
 full.labels <- colnames(tras_cells_AUC)[max.col(tras_cells_AUC)]
-tab <- table(full.labels, Idents(scData))
+tab <- table(full.labels, colData(sce)[,"seurat_clusters"])
 print(pheatmap(log10(tab+10), color=viridis::viridis(100), silent=TRUE))
 ```
 
-```{r tsne and AUC hist, eval= (param$species != "other"), results='asis'}
+```{r tsne and AUC hist res, eval= (param$species != "other"), results='asis'}
 cat("The plots below show for every cell type:\n")
 cat('\n')
 cat("1) The distribution of the AUC values in the cells. The ideal situation will be a bi-modal distribution, in which most cells in the dataset have a low “AUC” compared to a population of cells with a higher value.  The size of the gene-set will also affect the results. With smaller gene-genes (fewer genes), it is more likely to get cells with AUC = 0. While this is the case of the “perfect markers” it is also easier to get it by chance with small datasets. The vertical bars correspond to several thresholds that could be used to consider a gene-set ‘active’. The thickest vertical line indicates the threshold selected by default: the highest value to reduce the false positives.\n")
@@ -238,49 +245,54 @@ cat("2) The t-SNE can be colored based on the AUC scores. To highlight the clust
 cat('\n')
 cat("3) The last TSNE represents the AUC scores values. The darker a cell is the higher AUC score it obtained, i.e. the cell is more enriched in that cell type.")
 cat('\n')
-cellsTsne <- scData@reductions$tsne@cell.embeddings
-expressionMatrix <- GetAssayData(scData, slot = "counts")
+cellsTsne <- reducedDims(sce)$TSNE
+filtered_cells_AUC <- cells_AUC[,colSums(assay(cells_AUC))>0]
 ```
 
-```{r, results='asis', fig.height=5, fig.width=5}
-# graphics.off()
-# par("mar")
-# par(mfrow=c(5,3)) 
-filtered_cells_AUC <- cells_AUC[,colSums(assay(cells_AUC))>0]
-AUCell_plotTSNE(tSNE=cellsTsne, exprMat=expressionMatrix, cellsAUC=cells_AUC)
+```{r tsne and AUC hist, eval= (param$species != "other"), fig.height=5, fig.width=5}
+AUCell_plotTSNE(tSNE=cellsTsne, exprMat=counts(sce), cellsAUC=cells_AUC)
 ```
 
 ### Interactive explorer
 
 <br>
+The iSEE (Interactive SummarizedExperiment Explorer) explorer provides a general visual interface for exploring single cell data. iSEE allows users to simultaneously visualize multiple aspects of a given data set, including experimental data, metadata, and analysis results. Dynamic linking and point selection facilitate the flexible exploration of interactions between different data aspects.
+ [Rue-Albrecht K, Marini F, Soneson C, Lun ATL (2018). “iSEE: Interactive SummarizedExperiment Explorer.” F1000Research, 7, 741. doi: 10.12688/f1000research.14966.1.]
 
-[iSEE explorer](`r paste0("http://fgcz-shiny.uzh.ch/fgcz_iSEE/?data=",param$resultDir,"/SCReportMerging/sce_iSEE.rds")`)
+The iSEE shiny app can be accessed through this link [iSEE explorer](`r paste0("http://fgcz-shiny.uzh.ch/fgcz_iSEE/?data=",output$getColumn("Report"),"/sce_h5")`)
 
 
 ### Data availability
 
-##### Number and proportions of cells in each cluster and sample
-
-[`r scData@misc$cellsPropPerClusterAndSampleFn`](`r scData@misc$cellsPropPerClusterAndSampleFn`)
-
 ##### Mean expression of every gene across the cells in each cluster
 
-[`r scData@misc$geneMeanPerClusterFn`](`r scData@misc$geneMeanPerClusterFn`)
+[geneMeanPerCluster](gene_means_per_cluster.txt)
 
 ##### Mean expression of every gene across all the cells
 
-[`r scData@misc$geneMeansFn`](`r scData@misc$geneMeansFn`)
+[geneMeans](gene_means.txt)
+
+##### Positive markers of each cluster
+
+[posMarkers](pos_markers.tsv)
+
+```{r, results='asis', eval = param$all2allMarkers}
+cat("##### Differential expressed genes from clusters paired comparisons")
+cat("\n")
+cat("[all2allMarkers](all2allMarkers.tsv)")
+```
 
 ##### Coordinates of every cell on the TSNE
 
-[`r scData@misc$tSNEFn`](`r scData@misc$tSNEFn`)
+[tSNE](tSNE_data.tsv)
 
-##### The final Seurat object after merging is [here](scData_ObjectList.rds)
+##### The final Single Cell Experiment Object is [here](sce_h5)
 
 ### Parameters
 ```{r report parameters, echo=FALSE}
 param[c("npcs", "resolution", "batchCorrection","chosenClusters")]
 ```
+
 
 ### SessionInfo
 ```{r, echo=FALSE}
