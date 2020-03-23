@@ -41,8 +41,6 @@ EzAppSCMultipleSamplesOneGroup <-
   )
 
 ezMethodSCMultipleSamplesOneGroup = function(input=NA, output=NA, param=NA, htmlFile="00index.html") {
-
-  ## TODO: remove the lib specification after upgrade to Seurat v3  
   library("Seurat")
   library(rlist)
   library(tibble)
@@ -61,12 +59,7 @@ ezMethodSCMultipleSamplesOneGroup = function(input=NA, output=NA, param=NA, html
   on.exit(setwd(cwd), add=TRUE)
   reportCwd <- getwd()
   
-  param$name <- paste(param$name, paste(input$getNames(), collapse=", "), sep=": ")
-  
   sceURLs <- input$getColumn("Static Report")
-  
-  saveRDS(param, file = "param.rds")
-  
   sceList <- lapply(file.path("/srv/gstore/projects", sub("https://fgcz-(gstore|sushi).uzh.ch/projects", "",dirname(sceURLs)), "sce.rds"),readRDS)
   names(sceList) <- names(sceURLs)
   sceList = lapply(sceList, update_seuratObjectVersion)
@@ -96,30 +89,37 @@ ezMethodSCMultipleSamplesOneGroup = function(input=NA, output=NA, param=NA, html
   }
      
   #positive cluster markers
-  scData = posClusterMarkers(scData, pvalue_allMarkers)
+  posMarkers <- posClusterMarkers(scData, pvalue_allMarkers)
   
   #perform all pairwise comparisons to obtain markers
   if(doEnrichr(param) && param$all2allMarkers) 
-    scData = all2all(scData, pvalue_all2allMarkers, param)
+    all2allMarkers <- all2all(scData, pvalue_all2allMarkers, param)
   
   if(param$species == "Human" | param$species == "Mouse") {
     cells_AUC = cellsLabelsWithAUC(scData, param)
-    scData@misc$cells_AUC = cells_AUC
+    singler.results <- cellsLabelsWithSingleR(scData, param)
   }
   
-  scData = saveExternalFiles(scData)
-  
-  scData_list = list()
   if(param$batchCorrection) {
-    scData_corrected = scData
-    scData_list = list.append(scData_list, scData_corrected = scData_corrected)
-  } else {
-      scData_noCorrected = scData
-  }
-  scData_list = list.append(scData_list, scData_noCorrected = scData_noCorrected) #this list will contain the non-corrected object and also the corrected object when calculated
+    scData@reductions$tsne_noCorrected <- Reductions(scData_noCorrected, "tsne")
+    scData@meta.data$ident_noCorrected <- Idents(scData_noCorrected)
+  } 
   
-  saveRDS(scData_list, "scData_ObjectList.rds")
-  saveRDS(as.SingleCellExperiment(scData), "sce_iSEE.rds")
+  #Convert scData to Single Cell experiment Object
+  sce <- as.SingleCellExperiment(scData)
+  metadata(sce)$cells_AUC <- cells_AUC
+  metadata(sce)$singler.results <- singler.results
+  metadata(sce)$output <- output
+  metadata(sce)$param <- param
+  metadata(sce)$param$name <- paste(param$name, paste(input$getNames(), collapse=", "), sep=": ")
+  
+  #Save some results in external files 
+  saveExternalFiles(sce, posMarkers, all2allMarkers)
+  # rowData(sce) = rowData(sce)[, c("gene_id", "biotypes", "description")]
+  
+  library(HDF5Array)
+  saveHDF5SummarizedExperiment(sce, dir="sce_h5")
+  
   
   # Copy the style files and templates
    styleFiles <- file.path(system.file("templates", package="ezRun"), c("fgcz.css", "SCMultipleSamplesOneGroup.Rmd", "fgcz_header.html", "banner.png"))
