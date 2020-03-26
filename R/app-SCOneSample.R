@@ -62,6 +62,8 @@ ezMethodSCOneSample <- function(input=NA, output=NA, param=NA,
   scData <- seuratClusteringV3(scData, param)
   #positive cluster markers
   posMarkers <- posClusterMarkers(scData, pvalue_allMarkers)
+  #if all2allmarkers are not calculated it will remain NULL
+  all2allMarkers <- NULL
   #perform all pairwise comparisons to obtain markers
   if(doEnrichr(param) && param$all2allMarkers) 
     all2allMarkers = all2all(scData, pvalue_all2allMarkers, param)
@@ -89,7 +91,7 @@ ezMethodSCOneSample <- function(input=NA, output=NA, param=NA,
   
   
   #Save some results in external files 
-  saveExternalFiles(sce, posMarkers, all2allMarkers)
+  saveExternalFiles(sce, list(pos_markers=posMarkers, all2allMarkers=all2allMarkers))
  # rowData(sce) = rowData(sce)[, c("gene_id", "biotypes", "description")]
   
   library(HDF5Array)
@@ -101,6 +103,7 @@ ezMethodSCOneSample <- function(input=NA, output=NA, param=NA,
                           c("fgcz.css", "SCOneSample.Rmd",
                             "fgcz_header.html", "banner.png"))
   file.copy(from=styleFiles, to=".", overwrite=TRUE)
+  while (dev.cur()>1) dev.off()
   rmarkdown::render(input="SCOneSample.Rmd", envir = new.env(),
                     output_dir=".", output_file=htmlFile, quiet=TRUE)
 
