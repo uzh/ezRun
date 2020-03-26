@@ -327,7 +327,7 @@ plotScoreHeatmap(singler.results.cluster, clusters=rownames(singler.results.clus
 
 
 ```{r singler labelsTSNE,  eval= (param$species != "other"), fig.width=12, results='asis'}
-cat("The single cell (left) and cluster (right) annotations are also shown on the TSNEs. Place the mouse over the cells to get information such as their TSNE coordinates, original cluster, the cells name and the label assigned by SingleR. You can also zoom in specific areas of the TSNE by dragging and drop with the mouse.\n")
+cat("The single cell (top) and cluster (bottom) annotations are also shown on the TSNEs. Place the mouse over the cells to get information such as their TSNE coordinates, original cluster, the cells name and the label assigned by SingleR. You can also zoom in specific areas of the TSNE by dragging and drop with the mouse.\n")
 
 cellInfo <- tibble(Cells=colnames(sce), Cluster=colData(sce)[,"ident"],
                      SingleR.labels.cluster=singler.cluster.labels, SingleR.labels.single=singler.single.labels)  %>%
