@@ -127,6 +127,7 @@ update_seuratObjectVersion = function(se) {
 }
 
 seuratStandardWorkflow <- function(scData, param){
+  set.seed(38)
   if(identical(param$vars.to.regress,"cell_cycle")) {
     scData@meta.data$CC.Difference <- scData@meta.data$CellCycleS - scData@meta.data$CellCycleG2M
     param$vars.to.regress <- "CC.Difference"
@@ -234,7 +235,7 @@ cellClustWithCorrection = function (sceList, param) {
   return(scData)
 }
 
-posClusterMarkers = function(scData, pvalue_allMarkers) {
+posClusterMarkers <- function(scData, pvalue_allMarkers) {
   markers <- FindAllMarkers(object=scData, only.pos=TRUE, return.thresh = pvalue_allMarkers)
   ## Significant markers
   cm <- markers[ ,c("gene","cluster","avg_logFC","p_val_adj")]
@@ -242,7 +243,7 @@ posClusterMarkers = function(scData, pvalue_allMarkers) {
   return(cm)
 }
 
-all2all = function(scData, pvalue_all2allMarkers, param) {
+all2all <- function(scData, pvalue_all2allMarkers, param) {
   clusterCombs <- combn(levels(Idents(scData)), m=2)
   all2allMarkers <- mcmapply(FindMarkers, as.integer(clusterCombs[1, ]), as.integer(clusterCombs[2, ]),
                              MoreArgs = list(object=scData,only.pos=FALSE),
@@ -256,4 +257,47 @@ all2all = function(scData, pvalue_all2allMarkers, param) {
   return(all2allMarkers)
 }
 
+conservedMarkers <- function(scData) {
+  markers <- list()
+  for(eachCluster in levels(Idents(scData))){
+    markersEach <- try(FindConservedMarkers(scData, ident.1=eachCluster, grouping.var="orig.ident", print.bar=FALSE, only.pos=TRUE,silent=TRUE))
+    ## to skip some groups with few cells
+    if(class(markersEach) != "try-error" && nrow(markersEach) > 0){
+      markers[[eachCluster]] <- as_tibble(markersEach, rownames="gene")
+    }
+  }
+  ## some of the cluster have no significant conserved markers
+  markers <- markers[sapply(markers, nrow) != 0L] 
+  markers <- bind_rows(markers, .id="cluster")
+  
+  return(markers)
+}
+
+diffExpressedGenes <- function(scData) {
+  seurat_clusters <- Idents(scData)
+  scData@meta.data$cluster.condition <- paste0(seurat_clusters, "_", scData@meta.data$orig.ident)
+  Idents(scData) <- "cluster.condition"
+  conditions <- unique(scData@meta.data$orig.ident)
+  
+  diffGenesFns <- c()
+  conditionsComb <- combn(conditions, m=2)
+  for(i in 1:ncol(conditionsComb)){
+    diffGenes <- list()
+    for(eachCluster in gtools::mixedsort(levels(seurat_clusters))){
+      markersEach <- try(FindMarkers(scData, ident.1=paste0(eachCluster, "_",
+                                                            conditionsComb[2,i]),
+                                     ident.2=paste0(eachCluster, "_", 
+                                                    conditionsComb[1,i]),
+                                     print.bar=FALSE), silent=TRUE)
+      ## to skip some groups with few cells
+      if(class(markersEach) != "try-error"){
+        diffGenes[[eachCluster]] <- as_tibble(markersEach, rownames="gene")
+      }
+    }
+    diffGenes <- bind_rows(diffGenes, .id="cluster")
+  }
+  diffGenes <- diffGenes[diffGenes$p_val_adj < 0.05, ]
+  
+  return(diffGenes)
+}
 
