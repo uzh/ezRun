@@ -46,7 +46,7 @@ ezMethodKallisto = function(input=NA, output=NA, param=NA){
       iftrue(param$pseudobam, "--pseudobam")
   )
 
-  trimmedInput = ezMethodTrim(input = input, param = param)
+  trimmedInput = ezMethodFastpTrim(input = input, param = param)
 
   pathFastqFiles = paste(
       trimmedInput$getColumn("Read1"),
@@ -86,7 +86,7 @@ ezMethodKallisto = function(input=NA, output=NA, param=NA){
 ##' @templateVar method ezMethodKallisto(input=NA, output=NA, param=NA)
 ##' @description Use this reference class to run kallisto
 ##' @seealso \code{\link{getKallistoReference}}
-##' @seealso \code{\link{ezMethodTrim}}
+##' @seealso \code{\link{ezMethodFastpTrim}}
 ##' @author Roman Briskine
 EzAppKallisto <-
   setRefClass("EzAppKallisto",
