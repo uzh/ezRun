@@ -12,7 +12,7 @@ ezMethodTrinity = function(input=NA, output=NA, param=NA, htmlFile="00index.html
     input = input$subset(param$samples)
   }
   
-  trimmedInput = ezMethodTrim(input = input, param = param)
+  trimmedInput = ezMethodFastpTrim(input = input, param = param)
   param$dataRoot = ""
         
   if (param$paired){
@@ -86,7 +86,7 @@ ezMethodTrinity = function(input=NA, output=NA, param=NA, htmlFile="00index.html
 ##' @template app-template
 ##' @templateVar method ezMethodTrinity(input=NA, output=NA, param=NA, htmlFile="00index.html")
 ##' @description Use this reference class to run 
-##' @seealso \code{\link{ezMethodTrim}}
+##' @seealso \code{\link{ezMethodFastpTrim}}
 EzAppTrinity <-
   setRefClass("EzAppTrinity",
               contains = "EzApp",
