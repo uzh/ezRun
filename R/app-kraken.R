@@ -9,7 +9,7 @@
 ezMethodKraken = function(input=NA, output=NA, param=NA, htmlFile="00index.html"){
   opt = param$cmdOptions
   sampleName = input$getNames()
-  trimmedInput = ezMethodTrim(input = input, param = param)
+  trimmedInput = ezMethodFastpTrim(input = input, param = param)
   dbOpt <- param$krakenDBOpt
   conOpt <- param$krakenConfidenceOpt
   phredOpt <- param$krakenPhredOpt
