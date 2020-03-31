@@ -22,7 +22,7 @@ ezMethodRSEM = function(input=NA, output=NA, param=NA){
   opt = paste(opt, "-p", ezThreads(), "--sort-bam-memory-per-thread", samtoolsSortMem, 
               "--ci-memory", ciMemory)
   
-  trimmedInput = ezMethodTrim(input = input, param = param)
+  trimmedInput = ezMethodFastpTrim(input = input, param = param)
   
   strandOpt = switch(param$strandMode,
                      "sense"="--forward-prob 1.0",
@@ -89,7 +89,7 @@ ezMethodRSEM = function(input=NA, output=NA, param=NA){
 ##' @templateVar method ezMethodRSEM(input=NA, output=NA, param=NA)
 ##' @description Use this reference class to run 
 ##' @seealso \code{\link{getRSEMReference}}
-##' @seealso \code{\link{ezMethodTrim}}
+##' @seealso \code{\link{ezMethodFastpTrim}}
 EzAppRSEM <-
   setRefClass("EzAppRSEM",
               contains = "EzApp",
