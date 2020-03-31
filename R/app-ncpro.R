@@ -34,7 +34,7 @@ EzAppNcpro <-
 ## TODO: make sure there's no conflict with input and refactor trimMirna
 ##' Analysis of small RNA sequences using ncpro
 ##' 
-##' Trimming is done using ezMethodTrim which is similar to trimMirna(). 
+##' Trimming is done using ezMethodFastpTrim which is similar to trimMirna(). 
 ##' @param input     list of input configuration
 ##' @param dataset   dataframe with description of input dataset
 ##' @param param     further configuration parameters
@@ -44,15 +44,12 @@ ncpro = function(input, dataset, param=NULL){
   names(fqFiles) = samples
   adapter = unique(dataset$Adapter1)
   stopifnot(length(adapter) == 1)
-  ### # trimming using ezMethodTrim
+  ### # trimming using ezMethodFastpTrim
   # set parameter defaults for trimming, to work similarly to trimMirna
   param[['trimAdapter']]            <-  TRUE
-  param[['minTailQuality']]         <-  20
-  param[['minAvgQuality']]          <-  4
-  param[['minReadLength']]          <-  18
-  refObjTrimResult <- ezMethodTrim(input, output=NA, param)
+  refObjTrimResult <- ezMethodFastpTrim(input, output=NA, param)
   buildName = param$ezRef["refBuildName"]
-  ### # get names of trimmed read files from output of ezMethodTrim
+  ### # get names of trimmed read files from output of ezMethodFastpTrim
   trimmedFastqFiles <- as.vector(refObjTrimResult$meta[,"Read1 [File]"])
   names(trimmedFastqFiles) <- samples
   ncproConfigFile = list.files(paste0(NCPRO_ANNOTATION_DIR,"/config-templates/"), pattern=paste0('-', buildName,'-'), full.names=T)[1]
