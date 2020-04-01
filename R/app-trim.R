@@ -110,6 +110,7 @@ ezMethodFastpTrim = function(input=NA, output=NA, param=NA){
     trimAdapt = paste('--adapter_fasta', adaptFile)
     
   } else {
+    adaptFile = ""
     trimAdapt = "--disable_adapter_trimming"
   }
 
