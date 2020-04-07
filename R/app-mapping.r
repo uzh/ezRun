@@ -690,9 +690,15 @@ ezMethodBismark = function(input=NA, output=NA, param=NA){
   ezSortIndexBam("bismark.bam", basename(bamFile), ram=param$ram, removeBam=TRUE,
                  cores=param$cores)
   mBiasImages = list.files('.',pattern='png$')
-  for (i in 1:length(mBiasImages)){
-    ezSystem(paste('mv ', mBiasImages[i], paste0(names(bamFile),'.M-bias_R',i,'.png')))  
+  if((length(mBiasImages)) > 0){
+    for (i in 1:length(mBiasImages)){
+      ezSystem(paste('mv ', mBiasImages[i], paste0(names(bamFile),'.M-bias_R',i,'.png')))  
+    }
+  } else {
+    ezSystem(paste('touch', paste0(names(bamFile),'.M-bias_R1.png')))
+    ezSystem(paste('touch', paste0(names(bamFile),'.M-bias_R2.png')))
   }
+  
   CpGFile = list.files('.',pattern='^CpG.*txt$')
   cmd = paste("bismark2bedGraph", CpGFile, "-o", names(bamFile))
   ezSystem(cmd)
