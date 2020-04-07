@@ -140,9 +140,12 @@ if(showCellCycle)
 We found positive markers that defined clusters compared to all other cells via differential expression. The test we used was the Wilcoxon Rank Sum test. Genes with an average, at least 0.25-fold difference (log-scale) between the cells in the tested cluster and the rest of the cells and an adjusted p-value < 0.05 were declared as significant. 
 <br/>
 
-```{r enrichr markers all, echo=FALSE, eval= doEnrichr(param), results='asis'}
+```{r}
 posMarkers = read_tsv("pos_markers.tsv")
+```
 
+
+```{r enrichr markers all, echo=FALSE, eval= doEnrichr(param), results='asis'}
   genesPerCluster <- split(posMarkers$gene, posMarkers$cluster)
   jsCall = paste0('enrich({list: "', sapply(genesPerCluster, paste, collapse="\\n"), '", popup: true});')
   enrichrCalls <- paste0("<a href='javascript:void(0)' onClick='", jsCall, 
@@ -197,7 +200,6 @@ ezInteractiveTableRmd(posMarkers, digits=4, title=caption)
 <br/>
 
 ```{r top cluster markers, fig.width=4, fig.height=3, results = 'asis'}
-posMarkers <- read_tsv("pos_markers.tsv")
 top_FC <- posMarkers %>% group_by(cluster) %>% top_n(param$markersToShow, avg_logFC)
 for(cluster in unique(top_FC$cluster)){
   top_FC_cluster = top_FC[top_FC$cluster == cluster,]
