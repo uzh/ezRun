@@ -678,7 +678,7 @@ ezMethodBismark = function(input=NA, output=NA, param=NA){
   if(param$deduplicate){
     cmd = paste("deduplicate_bismark", ifelse(param$paired,"-p","-s"), bamFileNameBismark)
     ezSystem(cmd)
-    bamFileNameBismark = list.files('.',pattern='deduplicated.sam$')
+    bamFileNameBismark = list.files('.',pattern='deduplicated.bam$')
     deduplicationReportFile = list.files('.',pattern='deduplication_report.txt$')
     ezSystem(paste("cat ",deduplicationReportFile,">>",reportFile))
   }
