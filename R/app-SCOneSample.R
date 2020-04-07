@@ -62,7 +62,7 @@ ezMethodSCOneSample <- function(input=NA, output=NA, param=NA,
   scData <- seuratClusteringV3(scData, param)
   #positive cluster markers
   posMarkers <- posClusterMarkers(scData, pvalue_allMarkers)
-  #if all2allmarkers are not calculated it will remain NULL
+  #if all2allmarkers are not calculated it will remain as NULL
   all2allMarkers <- NULL
   #perform all pairwise comparisons to obtain markers
   if(doEnrichr(param) && param$all2allMarkers) 
