@@ -235,10 +235,15 @@ cellClustWithCorrection = function (sceList, param) {
   return(scData)
 }
 
-posClusterMarkers <- function(scData, pvalue_allMarkers) {
-  markers <- FindAllMarkers(object=scData, only.pos=TRUE, return.thresh = pvalue_allMarkers)
+posClusterMarkers <- function(scData, pvalue_allMarkers, batchCorrection) {
+  ##TODO: change Plate for Batch after adding this parameter in the Sushi app 
+  if(batchCorrection) 
+    markers <- FindAllMarkers(object=scData, test.use = "LR", only.pos=TRUE, latent.vars = "Plate", return.thresh = pvalue_allMarkers)
+  else
+    markers <- FindAllMarkers(object=scData, test.use = "wilcox", only.pos=TRUE, return.thresh = pvalue_allMarkers)
   ## Significant markers
   cm <- markers[ ,c("gene","cluster","avg_logFC","p_val_adj")]
+  cm <- markers[markers$p_val_adj < 0.05, ]
   rownames(cm) <- NULL
   return(cm)
 }
