@@ -9,6 +9,7 @@
 ezMethodCountSpacer = function(input=NA, output=NA, param=NA){
   opt = param$cmdOptions
   sampleName = input$getNames()
+  param[['dictPath']] = list.files(file.path('/srv/GT/databases/GEML/sgRNA_Libs/',param[['dictPath']]), pattern = 'csv', full.names = TRUE)
   trimmedInput = ezMethodTrim(input = input, param = param)
   cmd = paste("python", "/usr/local/ngseq/src/countSpacer/count_spacers_LO.py", "-f", trimmedInput$getColumn("Read1"), "-o", 
               paste0(sampleName, "_counts.csv"), "-i", param[['dictPath']], "--keyStart", as.numeric(param[['keyStart']]), "--keyEnd", 
