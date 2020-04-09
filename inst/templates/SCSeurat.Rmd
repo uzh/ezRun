@@ -142,12 +142,20 @@ The `ScaleData` function:
     * This step gives equal weight in downstream analyses, so that highly-expressed genes do not dominate
 
 ```{r scale, echo=FALSE, message=FALSE}
-all.genes <- rownames(scData)
+if("CellCycle" %in% param$vars.to.regress){
+  ## TODO: change gene names for mouse
+  scData <- CellCycleScoring(scData, s.features = cc.genes$s.genes, 
+                             g2m.features = cc.genes$g2m.genes)
+  param$vars.to.regress <- setdiff(append(param$vars.to.regress,
+                                          c("S.Score", "G2M.Score")),
+                                   "CellCycle")
+}
+
 if(ezIsSpecified(param$vars.to.regress)){
-  scData <- ScaleData(scData, features=all.genes,
+  scData <- ScaleData(scData, features=rownames(scData),
                       vars.to.regress=param$vars.to.regress)
 }else{
-  scData <- ScaleData(scData, features=all.genes)
+  scData <- ScaleData(scData, features=rownames(scData))
 }
 ```
 
