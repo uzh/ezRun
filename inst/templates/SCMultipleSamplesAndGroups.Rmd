@@ -14,28 +14,30 @@ Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
 
 ```{r setup, include=FALSE}
 library(SummarizedExperiment)
-library(ezRun)
+library(ggplot2)
+library(ggridges)
 library(cowplot)
+library(tibble)
+library(dplyr)
 library(readr)
 library(kableExtra)
 library(tidyr)
-library(scales)
-library(tidyverse)
+library(pheatmap)
+library(scater)
 knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE, knitr.table.format = "html")
 
-# #to test
-# param = readRDS("/srv/gstore/projects/p2979/SCMultipleSamplesAndGroups_40213_2019-10-10--14-31-21/SCReportMerging/param.rds")
-# scData_objects = readRDS("/srv/gstore/projects/p2979/SCMultipleSamplesAndGroups_40213_2019-10-10--14-31-21/SCReportMerging/scData_ObjectList.rds")
-# scData_noCorrected = scData_objects$scData_noCorrected
-# scData = scData_objects$scData_corrected
-# library("Seurat", lib="/home/daymegr/myRpackages")
-# library(ggplot2)
+#to test
+# library(HDF5Array)
+# library(SingleR)
+# library(AUCell)
+# library(ezRun, lib.loc = "~/myRpackages")
+# sce <- loadHDF5SummarizedExperiment("sce_h5")
+# param = metadata(sce)$param
 # pvalue_allMarkers <- 0.05
-# library(tibble)
-# library(dplyr)
-# clusters_freq = data.frame(table(scData@meta.data[,c("orig.ident","seurat_clusters")]))
-# small_clusters = unique(as.character(clusters_freq[clusters_freq[,"Freq"] < 10, "seurat_clusters"]))
-# scData_Clustersubset = subset(scData, idents = small_clusters, invert = TRUE)
+```
+
+```{r}
+output <- metadata(sce)$output
 ```
 
 ```{r javascript, results='asis'}
@@ -44,49 +46,38 @@ invisible(file.copy(from=jsFile, to=basename(jsFile), overwrite=TRUE))
 cat(paste0("<SCRIPT language=\"JavaScript\" SRC=\"", basename(jsFile), "\"></SCRIPT>"))
 ```
 
-## Clustering results of merged samples {.tabset}
+## Datasets integration {.tabset}
 
-### Cell clustering without correction
+### Common cell types
 
-Previous to cluster the cells, we performed a log-normalization of each dataset using a size factor of 10,000 molecules for each cell. In each dataset, we next aimed to identify a subset of genes with high variability across cells (i.e, they are highly expressed in some cells, and lowly expressed in others), and therefore represent heterogeneous features to prioritize for downstream analysis. We next standardized expression values for each gene across all cells in order to avoid the results to be dominated by the signal of a few highly-expressed genes. Next, we performed PCA on the scaled data using the previously determined variable features. Taking as a distance metric the previously identified PCs, the cells clusters were then identified using a graph-based clustering approach where the cells are embedded in a graph structure - for example a K-nearest neighbor (KNN) graph, with edges drawn between cells with similar feature expression patterns, and then attempt to partition this graph into highly interconnected ‘communities’. 
-The TSNEs below place similar cells together in low-dimensional space. The left TSNE represents cells according to the sample they belong to. On the right side, the TSNE shows the graph-based clusters determined before. 
-<br/><br/>
+Te main goal of dataset integration is to identify shared cell states that are present across different datasets, in case they were collected from different individuals, experimental conditions, technologies, or even species.
+The method used here aims to first identify ‘anchors’ between pairs of datasets. These represent pairwise correspondences between individual cells (one in each dataset), that we hypothesize originate from the same biological state. These ‘anchors’ are then used to harmonize the datasets, or transfer information from one dataset to another. The steps we carried out to find common cell states between datasets are explained below: 
 
-```{r tSNE no correction plot}
-DimPlot(scData_noCorrected, reduction = "tsne", group.by = "orig.ident", pt.size = 0.8)
-DimPlot(scData_noCorrected, reduction = "tsne", group.by = "seurat_clusters", label = TRUE, pt.size = 0.7, label.size = 5, repel = TRUE) 
+1. Data preprocessing and feature selection.
+We first per-formed log-normalization of all datasets, using a size factor of 10,000 molecules for each cell. We next standardized expression values for each gene across all cells (z-score transformation), as is standard prior to running dimensional reduction tools. In each dataset, we next aimed to identify a subset of features (e.g., genes) exhibiting high variability across cells, and therefore represent heterogeneous features to prioritize for downstream analysis. Finally, we prioritized features across multiple experiments by examining the number of datasets in which they were independently identified as highly variable. From this ranked list of features, we took the top 2,000 to use as input for downstream analyses.
+
+2. Dimensionality reduction and identification of ‘anchor’ correspondences between datasets.
+We initiated this process through dimension reduction, aiming to place datasets in a shared low-dimensional space using canonical correlation analysis (CCA) as an initial dimension reduction. Following dimensional reduction, we identified the K-nearest neighbors (KNNs) for each cell within its paired dataset, based on the L2-normalized CCV. Finally, we identify mutual nearest neighbors (MNN; pairs of cells, with one from each dataset, that are contained within each other’s neighborhoods). We refer to these pairwise correspondences as "anchors".
+
+3. Filtering and scoring anchors.
+Incorrect anchor pairs representing cells from distinct biological states can lead to incorrect downstream conclusions. In particular, cells that represent a biological state unique to one dataset should theoretically not participate in anchor pairs, yet in practice, they will do so with low frequency. 
+
+The TSNEs below place similar cells together in low-dimensional space after the integration of the datasets. The first TSNE represents cells according to the sample they belong to, in the second one cells are coloured according to the condition and the third TSNE shows the graph-based common clusters that were found among the datasets.
+
+The presence of visual clusters containing cells from the different datasets provides a comforting illusion that the integration was successful.
+
+
+```{r tSNE after integration}
+plotReducedDim(sce, dimred="TSNE", colour_by="Plate")
+plotReducedDim(sce, dimred="TSNE", colour_by="orig.ident")
+plotReducedDim(sce, dimred="TSNE", colour_by="ident", text_by="ident", text_size=5) 
 ```
 
-<br/>
-
-##### The number of cells in each cluster and sample is represented in this barplot. It helps to visualize if there are existing biases when analyzing multiple datasets together (i.e. some clusters are mainly composed of cells from only one sample).
-
-<br/>
-
-```{r number of cells in each cluster, fig.align='center', fig.width=10, fig.height=6}
-cellIdents_perSample = FetchData(object = scData_noCorrected, vars = c('ident', 'orig.ident'))
-barplot = ggplot(data=cellIdents_perSample, aes(x=ident, fill=orig.ident)) + geom_bar(stat="Count")
-barplot + labs(x="Cluster", y = "Number of cells", fill = "Sample")
-```
-
-```{r tSNE after integration, results='asis', eval = param$batchCorrection, results='asis'}
-cat("### Cell clustering after the integration")
-cat("\n\n")
-cat("In addition to the previous steps that were carried out, we performed an unsupervised identification of \"anchors\" between pairs of datasets.  These anchors represent two cells (with one cell from each dataset), that we predict to originate from a common biological state. We initiate this process through dimensional reduction using canonical correlation analysis (CCA), aiming to place datasets in a shared low-dimensional space. Following dimensional reduction, we identified the K-nearest neighbors (KNNs) for each cell within its paired dataset, based on the L2-normalized CCV. Finally, we identify mutual nearest neighbors (MNN; pairs of cells, with one from each dataset, that are contained within each other’s neighborhoods). We refer to these pairwise correspondences as \"anchors\". Filtering and scoring anchors steps were performed to mitigate the effects of any incorrectly identified pairs of cells.")
-cat("\n")
-cat("The TSNEs below place similar cells together in low-dimensional space after the batch correction of the datasets. The left TSNE represents cells according to the sample they belong to and on the right side, the TSNE shows the graph-based clusters determined after performing the correction.")
-cat("\n\n")
-DimPlot(scData, reduction = "tsne", group.by = "orig.ident", pt.size = 0.8)
-DimPlot(scData, reduction = "tsne", group.by = "seurat_clusters", label = TRUE, pt.size = 0.7, label.size = 5, repel = TRUE) 
-```
-
-```{r number of cells in each cluster after correction, eval = param$batchCorrection, , fig.align='center', fig.width=10, fig.height=6, results='asis'}
-cat("\n")
-cat("##### The number of cells in each cluster and sample after the batch correction is represented on this barplot.") 
-cat("\n\n")
-cellIdents_perSample = FetchData(object = scData, vars = c('ident', 'orig.ident'))
-barplot = ggplot(data=cellIdents_perSample, aes(x=ident, fill=orig.ident)) + geom_bar(stat="Count")
-barplot + labs(x="Cluster", y = "Number of cells", fill = "Sample")
+##### The number of cells in each cluster and sample after the datasets integration is represented on this barplot.
+```{r number of cells in each cluster after integration, fig.align='center', fig.width=10, fig.height=6}
+cellIdents_perSample = data.frame(colData(sce)[,c("ident", "orig.ident")])
+barplot = ggplot(data=cellIdents_perSample, aes(x=cellIdents_perSample[,1], fill=orig.ident)) + geom_bar(stat="Count")
+barplot + labs(x="Cluster", y = "Number of cells", fill = "Condition")
 ```
 
 ### Control of the cell clustering
@@ -99,7 +90,7 @@ The plots show commonly used QC metrics that allow to explore and filter the cel
 
 ```{r}
 showCellCycle = FALSE
-if(!is.null(scData@meta.data$CellCycle) && !any(is.na(scData@meta.data$CellCycle)))
+if(!is.null(colData(sce)$CellCycle) && !any(is.na(colData(sce)$CellCycle)))
   showCellCycle = TRUE
 ```
 
@@ -110,27 +101,61 @@ cat("Additionally, we can visualize the cell cycle of the cells on the TSNE plot
 
 ```{r control cell clustering}
 qc_features = c("detected", "sum", "subsets_Mito_percent")
-if(!identical(setdiff(qc_features, colnames(scData@meta.data)), character(0)))
+if(!identical(setdiff(qc_features, colnames(colData(sce))), character(0)))
     qc_features = c("nGene", "nUMI", "perc_mito")
 
-FeaturePlot(object = scData, features = qc_features[1], reduction = "tsne", cols = c("yellow", "red"))
-FeaturePlot(object = scData, features = qc_features[2], reduction = "tsne", cols = c("yellow", "red"))
-FeaturePlot(object = scData, features = qc_features[3], reduction = "tsne", cols = c("yellow", "red"))
+plotReducedDim(sce, dimred="TSNE", colour_by=qc_features[1])
+plotReducedDim(sce, dimred="TSNE", colour_by=qc_features[2])
+plotReducedDim(sce, dimred="TSNE", colour_by=qc_features[3])
 
 if(showCellCycle)
-  DimPlot(scData, reduction = "tsne", group.by = "CellCycle", pt.size = 0.7, plot.title="Cell cycle phase")
+  plotReducedDim(sce, dimred="TSNE", colour_by="CellCycle")
 ```
 
 
+### Batch effects assesment
+
+Large single-cell RNA sequencing projects usually need to generate data across multiple batches due to logistical constraints. This results in systematic differences in the observed expression in cells from different batches, which we refer to as “batch effects”. Batch effects are problematic as they can be major drivers of heterogeneity in the data, masking the relevant biological differences and complicating interpretation of the results.
+Before we actually perform any calculation of cluster markers or differential expression analysis between conditions, it is worth examining whether there is any batch effect in the datasets.
+
+In this case we used the same normalization approach as when finding common cell types in the different datasets. We next found the 2000 features that exhibited the highest cell-to-cell variation in the datasets (i.e, they are highly expressed in some cells, and lowly expressed in others). The gene expression values across all cells were scaled and then PCA was performed on the scaled data. Finally, the clusters were calculated using the graph KNN. 
+
+The TSNEs and the barplot below can help us to visualize if the clusters are balanced and composed by cells from the different batches. If we see clusters that are comprised of cells from a single batch, this indicates that cells of the same type are artificially separated due to technical differences between batches. In this case, we may also consider that there are cell types that are unique to each batch. If a cluster only contains cells from a single batch, one can always debate whether that is caused by a failure of the correction method or if there is truly a batch-specific subpopulation. 
+
+<br/><br/>
+
+```{r tSNE no correction plot, fig.width=8, fig.height=5}
+plotReducedDim(sce, dimred =  "TSNE_NOCORRECTED", colour_by = "Plate", label_format = c("TSNE_1","TSNE_2"))
+plotReducedDim(sce, dimred =  "TSNE_NOCORRECTED", colour_by = "ident_noCorrected", text_by= "ident_noCorrected", label_format = c("TSNE_1","TSNE_2")) 
+```
+
+<br/>
+
+```{r number of cells in each cluster, fig.align='center', fig.width=10, fig.height=6}
+cellIdents_perSample = data.frame(colData(sce)[,c("ident_noCorrected", "Plate")])
+barplot = ggplot(data=cellIdents_perSample, aes(x=cellIdents_perSample[,1], fill=Plate)) + geom_bar(stat="Count")
+barplot + labs(x="Cluster", y = "Number of cells", fill = "Plate")
+```
+
 ### Top cluster markers
 
-We found positive markers that defined clusters compared to all other cells via differential expression. The test we used was the Wilcoxon Rank Sum test. Genes with an average, at least 0.25-fold difference (log-scale) between the cells in the tested cluster and the rest of the cells and an adjusted p-value < 0.05 were declared as significant. 
+```{r}
+posMarkers = read_tsv("pos_markers.tsv")
+```
+
+
+```{r wilcoxon test, eval=!param$batchCorrection, results='asis'}
+cat("We found positive markers that defined clusters compared to all other cells via differential expression. The test we used was the Wilcoxon Rank Sum test. Genes with an average, at least 0.25-fold difference (log-scale) between the cells in the tested cluster and the rest of the cells and an adjusted p-value < 0.05 were declared as significant.") 
+```
+
+```{r LR test, eval=param$batchCorrection, results='asis'}
+cat("We found positive markers that defined clusters compared to all other cells via differential expression using a logistic regression test and including in the model the donor as the batch effect. Genes with an average, at least 0.25-fold difference (log-scale) between the cells in the tested cluster and the rest of the cells and an adjusted p-value < 0.05 were declared as significant.") 
+```
+
 <br/>
 
 ```{r enrichr markers all, echo=FALSE, eval= doEnrichr(param), results='asis'}
-posMarkers = scData@misc$posMarkers 
-
-  genesPerCluster <- split(posMarkers$gene, posMarkers$cluster)
+genesPerCluster <- split(posMarkers$gene, posMarkers$cluster)
   jsCall = paste0('enrich({list: "', sapply(genesPerCluster, paste, collapse="\\n"), '", popup: true});')
   enrichrCalls <- paste0("<a href='javascript:void(0)' onClick='", jsCall, 
                          "'>Analyse at Enrichr website</a>")
@@ -144,11 +169,11 @@ posMarkers = scData@misc$posMarkers
 
 ```{r markers table all, echo=FALSE}
 caption ="Expression differences of cluster marker genes"
-ezInteractiveTableRmd(scData@misc$posMarkers, digits=4, title=caption)
+ezInteractiveTableRmd(posMarkers, digits=4, title=caption)
 ```
 
 ```{r enrichr all2all markers, eval = doEnrichr(param) && param$all2allMarkers, echo=FALSE, results='asis'}
- scData@misc$all2allMarkers = all2allMarkers  
+ all2allMarkers = read_tsv("all2allMarkers.tsv")  
  
  for(comparison in names(all2allMarkers)){
     write_tsv(as_tibble(all2allMarkers[[comparison]], rownames="Gene"),
@@ -179,41 +204,31 @@ ezInteractiveTableRmd(scData@misc$posMarkers, digits=4, title=caption)
     kable_styling("striped", full_width = F, position = "left")
 ```
 
+
 ### Visualization of cluster markers
 #### The strongest `r param$markersToShow` gene markers (highest logFC) for each cluster are represented on the Ridge and the TSNE plots.
 <br/>
 
 ```{r top cluster markers, fig.width=4, fig.height=3, results = 'asis'}
-posMarkers = scData@misc$posMarkers
 top_FC <- posMarkers %>% group_by(cluster) %>% top_n(param$markersToShow, avg_logFC)
-for(cluster in levels(top_FC$cluster)){
+for(cluster in unique(top_FC$cluster)){
   top_FC_cluster = top_FC[top_FC$cluster == cluster,]
   cat("\n")
   cat(paste0("##### Top "), param$markersToShow, ("markers for cluster "), cluster)
   cat("\n")
    for(i in 1:nrow(top_FC_cluster)){
-      plot(RidgePlot(object = scData, feature = top_FC_cluster$gene[i])+ NoLegend())
-      plot(FeaturePlot(object = scData, features = top_FC_cluster$gene[i], reduction = "tsne", cols = c("grey", "red")))
-      
+      print(RidgePlot.sce(sce, feature = as.character(top_FC_cluster$gene[i])))
+      print(plotReducedDim(sce, dimred="TSNE", colour_by=top_FC_cluster$gene[i]))
    }
    cat("\n\n")
 }
 ```
-
-### Heatmap of cluster marker genes
-#### Expression heatmap for given cells and features. In this case, we are plotting the top `r param$markersToShow` markers (highest logFC) for each cluster. 
-
-```{r heatmap, fig.width=12, fig.height=param$markersToShow*1.8}
-top_FC <- posMarkers %>% group_by(cluster) %>% top_n(param$markersToShow, avg_logFC)
-DoHeatmap(object = scData, features = top_FC$gene, label = FALSE) + theme(axis.text.y = element_text(size = 8))
-```
-
 ### Conserved cell type markers
 
 ##### Identify cell type marker genes that are conserved across conditions. Differential gene expression tests are performed for each group and then, the p-values are combined using meta-analysis methods. 
 
 ```{r}
-conservedMarkers = scData@misc$conservedMarkers
+conservedMarkers <- read_tsv("conserved_markers.tsv")
 ```
 
 ```{r enrichr conserved markers, eval = doEnrichr(param), results='asis'}
@@ -239,7 +254,7 @@ ezInteractiveTableRmd(conservedMarkers, title=caption)
 ##### The most significant `r param$markersToShow` conserved markers (lowest p-value) for each cluster are represented on the Ridge and the TSNE plots. 
 <br/>
 
-```{r top conserved markers, fig.width=8, fig.height=3, results='asis'}
+```{r top conserved markers, fig.width=4, fig.height=3, results='asis'}
 markers.to.plot <- conservedMarkers %>% group_by(cluster) %>% top_n(param$markersToShow, minimump_p_val)
 for(cluster in unique(markers.to.plot$cluster)){
   markers.to.plot_cluster = markers.to.plot[markers.to.plot$cluster == cluster,]
@@ -247,9 +262,8 @@ for(cluster in unique(markers.to.plot$cluster)){
   cat(paste0("#### Top "), param$markersToShow, ("conserved markers for cluster "), cluster)
   cat("\n")
    for(i in 1:nrow(markers.to.plot_cluster)){
-      rp = RidgePlot(object = scData_Clustersubset, feature = markers.to.plot_cluster$gene[i])+ NoLegend()
-      fp = FeaturePlot(object = scData_Clustersubset, features = markers.to.plot_cluster$gene[i], reduction = "tsne", cols = c("grey", "red"))
-      plot(CombinePlots(list(rp, fp), ncol = 2))
+      print(RidgePlot.sce(sce, feature = as.character(markers.to.plot_cluster$gene[i])))
+      print(plotReducedDim(sce, dimred="TSNE", colour_by=markers.to.plot_cluster$gene[i]))
    }
   cat("\n\n")
 }
@@ -258,11 +272,11 @@ for(cluster in unique(markers.to.plot$cluster)){
 
 ##### The DotPlot can be useful for viewing conserved cell type markers across conditions, showing both the expression level and the percentage of cells in a cluster expressing any given gene. Here we plot 3 strong marker genes for each of the clusters.
 
-```{r dot plot conserved cluster markers, fig.width=14, fig.height=1+length(unique(Idents(scData_Clustersubset))) * length(unique(scData_Clustersubset@meta.data$orig.ident))*0.2, fig.align='center'}
+```{r dot plot conserved cluster markers, fig.width=14, fig.height=1+length(unique(sce$orig.ident)) * length(unique(sce$orig.ident))*0.2, fig.align='center'}
 
-nrGroups <- length(unique(scData_Clustersubset@meta.data$orig.ident))
+nrGroups <- length(unique(sce$orig.ident))
 markers.to.plot <- conservedMarkers %>% group_by(cluster) %>% top_n(3, minimump_p_val)
-DotPlot(scData_Clustersubset, features = unique(markers.to.plot$gene), cols = hue_pal()(nrGroups), dot.scale = 8, split.by = "orig.ident") + theme(axis.text.x = element_text(size = 8)) + RotatedAxis()
+plotDots(sce, features = unique(markers.to.plot$gene), group = "orig.ident")
 ```
 
 ### Differential expressed genes
@@ -272,7 +286,7 @@ DotPlot(scData_Clustersubset, features = unique(markers.to.plot$gene), cols = hu
 <br/><br/>
 
 ```{r diff genes table}
-diffGenes = scData@misc$diffGenes
+diffGenes <- read_tsv("differential_genes.tsv")
 caption ="Differential expressed genes per cluster"
 ezInteractiveTableRmd(diffGenes, title=caption)
 ```
@@ -289,11 +303,7 @@ for(cluster in unique(diffgenes.to.plot$cluster)) {
   cat("\n")
   cat(paste0("#### Top 5 differentially expressed genes for cluster "), cluster)
   cat("\n")
-   for(i in 1:nrow(diffgenes.to.plot_cluster)){
-      fp = FeaturePlot(object = scData_Clustersubset, features =diffgenes.to.plot_cluster$gene[i], reduction = "tsne", split.by = "orig.ident", cols = c("grey", "red"))
-      vp = VlnPlot(scData_Clustersubset, features = diffgenes.to.plot_cluster$gene[i], split.by = "orig.ident", group.by =  "seurat_clusters",  pt.size = 0)
-      plot(CombinePlots(list(fp, vp), ncol = 2))
-   }
+  print(plotExpression(sce, diffgenes.to.plot_cluster$gene, x = "ident", colour_by="orig.ident"))
   cat("\n\n")
 }
 ```
@@ -301,37 +311,41 @@ for(cluster in unique(diffgenes.to.plot$cluster)) {
 ### Interactive explorer
 
 <br>
+The iSEE (Interactive SummarizedExperiment Explorer) explorer provides a general visual interface for exploring single cell data. iSEE allows users to simultaneously visualize multiple aspects of a given data set, including experimental data, metadata, and analysis results. Dynamic linking and point selection facilitate the flexible exploration of interactions between different data aspects.
+ [Rue-Albrecht K, Marini F, Soneson C, Lun ATL (2018). “iSEE: Interactive SummarizedExperiment Explorer.” F1000Research, 7, 741. doi: 10.12688/f1000research.14966.1.]
 
-[iSEE explorer](`r paste0("http://fgcz-shiny.uzh.ch/fgcz_iSEE/?data=",param$resultDir,"/SCReportMerging/sce_iSEE.rds")`)
+The iSEE shiny app can be accessed through this link [iSEE explorer](`r paste0("http://fgcz-shiny.uzh.ch/fgcz_iSEE/?data=",output$getColumn("Report"),"/sce_h5")`)
 
 
 ### Data availability
 
-##### Number and proportions of cells in each cluster and sample
-
-[`r scData@misc$cellsPropPerClusterAndSampleFn`](`r scData@misc$cellsPropPerClusterAndSampleFn`)
-
 ##### Mean expression of every gene across the cells in each cluster
 
-[`r scData@misc$geneMeanPerClusterFn`](`r scData@misc$geneMeanPerClusterFn`)
+[geneMeanPerCluster](gene_means_per_cluster.txt)
 
 ##### Mean expression of every gene across all the cells
 
-[`r scData@misc$geneMeansFn`](`r scData@misc$geneMeansFn`)
+[geneMeans](gene_means.txt)
+
+##### Positive markers of each cluster
+
+[posMarkers](pos_markers.tsv)
+
+```{r, results='asis', eval = param$all2allMarkers}
+cat("##### Differential expressed genes from clusters paired comparisons")
+cat("\n")
+cat("[all2allMarkers](all2allMarkers.tsv)")
+```
 
 ##### Coordinates of every cell on the TSNE
 
-[`r scData@misc$tSNEFn`](`r scData@misc$tSNEFn`)
+[tSNE](tSNE_data.tsv)
 
-##### The final Seurat object after merging is [here](scData_ObjectList.rds)
+##### The final Single Cell Experiment Object is [here](sce_h5)
 
 ### Parameters
 ```{r report parameters, echo=FALSE}
 param[c("npcs", "resolution", "batchCorrection","chosenClusters")]
-```
-
-```{r seurat parameters, echo=FALSE}
-#PrintFindClustersParams(object = scData)
 ```
 
 ### SessionInfo

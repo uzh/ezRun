@@ -369,7 +369,7 @@ readSCMM <- function(file){
   return(ans)
 }
 
-saveExternalFiles = function(sce, posMarkers, all2allMarkers) {
+saveExternalFiles = function(sce, ...) {
   tr_cnts <- expm1(logcounts(sce))
   geneMeans <- rowsum(t(as.matrix(tr_cnts)), group=colData(sce)[,"ident"])
   geneMeans <- sweep(geneMeans, 1, STATS=table(colData(sce)[,"ident"])[rownames(geneMeans)], FUN="/")
@@ -390,9 +390,11 @@ saveExternalFiles = function(sce, posMarkers, all2allMarkers) {
   tSNEFn = "tSNE_data.tsv"
   write_tsv(tSNE_data, path=tSNEFn)
   
-  posMarkersFn <- "pos_markers.tsv"
-  write_tsv(posMarkers, path=posMarkersFn)
-  
-  all2allMarkersFn <- "all2allMarkers.tsv"
-  write_tsv(posMarkers, path=posMarkersFn)
+  add_results = list(...)
+  for(i in 1:length(add_results[[1]])) {
+    if(!is.null(add_results[[1]][[i]])) {
+      file_name = names(add_results[[1]][i])
+      write_tsv(add_results[[1]][[i]], path=paste0(file_name, ".tsv"))
+    }
+  }
 }
