@@ -433,7 +433,7 @@ if (sum(use) > param$minGenesForClustering){
   }
   ## append the result file with the cluster colors
   resultLoaded = ezRead.table(resultFile$resultFile)
-  resultLoaded$Cluster = clusterResult$clusterColors[clusterResult$clusterNumbers[rownames(resultLoaded)]]
+  resultLoaded$Cluster = clusterResult$clusterNumbers[clusterResult$clusterNumbers[rownames(resultLoaded)]]
   ezWrite.table(resultLoaded, file=resultFile$resultFile)
   if (param$doZip){
     zipFile(resultFile$resultFile)
@@ -479,6 +479,9 @@ if (sum(use) > param$minGenesForClustering){
 
 ```{r cluster plot link , echo=FALSE, results='asis', eval=!debug && !hasMassiveFeats}
 # if (sum(use) > param$minGenesForClustering){
+#  pdf(clusterPdf, width=max(8,4+0.1*ncol(se)), height=10)
+#  eval(plotCmd)
+#  dev.off()
 #   cat(paste0("[Plot in pdf](", clusterPdf, ")"), "\n")
 #   cat("\n")
 # }

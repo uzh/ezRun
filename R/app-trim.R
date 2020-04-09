@@ -110,6 +110,8 @@ ezMethodFastpTrim = function(input=NA, output=NA, param=NA){
     trimAdapt = paste('--adapter_fasta', adaptFile)
     
   } else {
+    ezSystem('touch adapters.fa')
+    adaptFile = "adapters.fa"
     trimAdapt = "--disable_adapter_trimming"
   }
 
@@ -122,14 +124,15 @@ ezMethodFastpTrim = function(input=NA, output=NA, param=NA){
               paste('--trim_front1',param[['trim_front1']]),
               paste('--trim_tail1',param[['trim_tail1']]),
               # quality-based trimming per read
-              paste(if(param[['cut_front']]) "--cut_front", "--cut_front_window_size", param[['cut_front_window_size']], "--cut_front_mean_quality", param[['cut_front_mean_quality']]), # like Trimmomatic's LEADING
-              paste(if(param[['cut_right']]) "--cut_right", "--cut_right_window_size", param[['cut_right_window_size']], "--cut_right_mean_quality", param[['cut_right_mean_quality']]), # like Trimmomatic's SLIDINGWINDOW
-              paste(if(param[['cut_tail']])"--cut_tail", "--cut_tail_window_size", param[['cut_tail_window_size']], "--cut_tail_mean_quality", param[['cut_tail_mean_quality']]), # like Trimmomatic's TRAILING
+              if(param[['cut_front']]) paste("--cut_front", "--cut_front_window_size", param[['cut_front_window_size']], "--cut_front_mean_quality", param[['cut_front_mean_quality']]), # like Trimmomatic's LEADING
+              if(param[['cut_right']]) paste("--cut_right", "--cut_right_window_size", param[['cut_right_window_size']], "--cut_right_mean_quality", param[['cut_right_mean_quality']]), # like Trimmomatic's SLIDINGWINDOW
+              if(param[['cut_tail']])  paste("--cut_tail", "--cut_tail_window_size", param[['cut_tail_window_size']], "--cut_tail_mean_quality", param[['cut_tail_mean_quality']]), # like Trimmomatic's TRAILING
               paste("--average_qual", param[['average_qual']]),
               # adapter trimming
               trimAdapt,
               # read length trimming
               paste('--max_len1',param[['max_len1']]),
+              paste('--max_len2',param[['max_len2']]),
               # polyX
               paste("--disable_trim_poly_g","--trim_poly_x",
                     "--poly_x_min_len",param[['poly_x_min_len']]),
