@@ -700,7 +700,7 @@ ezMethodBismark = function(input=NA, output=NA, param=NA){
   }
   
   CpGFile = list.files('.',pattern='^CpG.*txt$')
-  cmd = paste("bismark2bedGraph", CpGFile, "-o", names(bamFile))
+  cmd = paste("bismark2bedGraph --scaffolds", CpGFile, "-o", names(bamFile))
   ezSystem(cmd)
   ezSystem(paste('mv ', CpGFile, paste0(names(bamFile),'.CpG_context.txt')))
   
