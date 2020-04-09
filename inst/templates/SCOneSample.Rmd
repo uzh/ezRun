@@ -3,7 +3,7 @@ title:  "`r metadata(sce)$param$name`"
 author: "Functional Genomics Center Zurich"
 output: 
   html_document:
-    self_contained: false
+    self_contained: true
     includes:
       in_header: fgcz_header.html
     css: fgcz.css
@@ -317,17 +317,17 @@ singler.cluster.labels<- singler.results.cluster$labels[match(colData(sce)[,"ide
 all.markers <- metadata(singler.results.cluster)$de.genes
 ```
 
-```{r singler ScoreHeatmap,  eval= (param$species != "other"), fig.width=8, results='asis'}
+```{r singler ScoreHeatmap,  eval= (param$species != "other"), results='asis'}
 cat("The two heatmaps below display the scores for all individual cells (left) and each original cluster (right) across all reference labels, which allows users to inspect the confidence of the predicted labels across the dataset. The bar Labels on the top shows the actual assigned label.\n")
 cat("\n")
-p1 <- plotScoreHeatmap(singler.results.single)
-p1
-p2 <- plotScoreHeatmap(singler.results.cluster, clusters=rownames(singler.results.cluster))
-p2
+#while (dev.cur()>1) dev.off()
+plotScoreHeatmap(singler.results.single)
+plotScoreHeatmap(singler.results.cluster, clusters=rownames(singler.results.cluster))
 ```
 
+
 ```{r singler labelsTSNE,  eval= (param$species != "other"), fig.width=12, results='asis'}
-cat("The single cell (left) and cluster (right) annotations are also shown on the TSNEs. Place the mouse over the cells to get information such as their TSNE coordinates, original cluster, the cells name and the label assigned by SingleR. You can also zoom in specific areas of the TSNE by dragging and drop with the mouse.\n")
+cat("The single cell (top) and cluster (bottom) annotations are also shown on the TSNEs. Place the mouse over the cells to get information such as their TSNE coordinates, original cluster, the cells name and the label assigned by SingleR. You can also zoom in specific areas of the TSNE by dragging and drop with the mouse.\n")
 
 cellInfo <- tibble(Cells=colnames(sce), Cluster=colData(sce)[,"ident"],
                      SingleR.labels.cluster=singler.cluster.labels, SingleR.labels.single=singler.single.labels)  %>%
@@ -439,7 +439,7 @@ cat("[all2allMarkers](all2allMarkers.tsv)")
 
 ##### Coordinates of every cell on the TSNE
 
-[tSNEF](tSNE_data.tsv)
+[tSNE](tSNE_data.tsv)
 
 ##### The final Single Cell Experiment Object is [here](sce_h5)
 

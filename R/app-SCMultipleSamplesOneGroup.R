@@ -114,7 +114,7 @@ ezMethodSCMultipleSamplesOneGroup = function(input=NA, output=NA, param=NA, html
   metadata(sce)$param$name <- paste(param$name, paste(input$getNames(), collapse=", "), sep=": ")
   
   #Save some results in external files 
-  saveExternalFiles(sce, posMarkers, all2allMarkers)
+  saveExternalFiles(sce, list(pos_markers=posMarkers, all2allMarkers=all2allMarkers))
   # rowData(sce) = rowData(sce)[, c("gene_id", "biotypes", "description")]
   
   library(HDF5Array)
@@ -134,37 +134,3 @@ ezMethodSCMultipleSamplesOneGroup = function(input=NA, output=NA, param=NA, html
   
 }
 
-saveExternalFiles = function(scData) {
-  propCells_table = cellsProportion(scData)
-  cellsPropPerClusterAndSampleFn = "cells_proportions.txt"
-  scData@misc$cellsPropPerClusterAndSampleFn <- cellsPropPerClusterAndSampleFn
-  ezWrite.table(propCells_table, cellsPropPerClusterAndSampleFn)
-
-tr_cnts <- expm1(GetAssayData(scData))
-geneMeans <- rowsum(t(as.matrix(tr_cnts)), group=Idents(scData))
-geneMeans <- sweep(geneMeans, 1, STATS=table(Idents(scData))[rownames(geneMeans)], FUN="/")
-geneMeans <- log1p(t(geneMeans))
-colnames(geneMeans) <- paste("cluster", colnames(geneMeans), sep="_")
-geneMeanPerClusterFn = "gene_means_per_cluster.txt"
-scData@misc$geneMeanPerClusterFn <- geneMeanPerClusterFn
-ezWrite.table(geneMeans, geneMeanPerClusterFn)
-
-geneMeans <- Matrix::rowMeans(tr_cnts)
-geneMeans <- log1p(geneMeans)
-geneMeansFn = "gene_means.txt"
-scData@misc$geneMeansFn <- geneMeansFn
-ezWrite.table(geneMeans, geneMeansFn)
-
-tSNE_data <- as_tibble(scData@reductions$tsne@cell.embeddings,
-                       rownames="cells")
-tSNE_data <- dplyr::rename(tSNE_data, X=`tSNE_1`, Y=`tSNE_2`)
-tSNE_data$cluster <- Idents(scData)
-tSNEFn = "tSNE_data.tsv"
-scData@misc$tSNEFn <- tSNEFn
-write_tsv(tSNE_data, path=tSNEFn)
-
-posMarkersFn <- "pos_markers.tsv"
-write_tsv(as_tibble(scData@misc$posMarkers), path=posMarkersFn)
-
-return(scData)
-}
