@@ -42,7 +42,7 @@ ezMethodTeqc = function(input=NA, output=NA, param=NA){
   sGtfFile <- param$ezRef@refFeatureFile
   myGTF <- rtracklayer::import(sGtfFile)
   myGTF <- myGTF[mcols(myGTF)$type=='exon']
-  myGTF <- myGTF[myGTF$gene_biotype=='protein_coding' & myGTF$transcript_biotype =='protein_coding',]
+  myGTF <- myGTF[myGTF$gene_biotype=='protein_coding']
   
   keepCols = c('seqnames','start','end','strand','type','gene_id','gene_name')
   gtf_df = data.frame(myGTF,stringsAsFactors = FALSE)
