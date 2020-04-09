@@ -31,7 +31,7 @@ EzAppSCSeurat <-
                                                     DefaultValue=50,
                                                     Description="The maximal dimensions to use for reduction"),
                                         vars.to.regress=ezFrame(Type="charVector", 
-                                                                DefaultValue="", # nFeature_RNA,nCount_RNA,percent.mt
+                                                                DefaultValue="", # nFeature_RNA,percent.mt,CellCycle
                                                                 Description="Variables to regress out"),
                                         resolution=ezFrame(Type="numeric",
                                                            DefaultValue=0.5,
