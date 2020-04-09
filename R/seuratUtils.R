@@ -48,6 +48,7 @@ seuratPreProcess <- function(sce){
 }
 
 seuratClustering <- function(scData, param){
+  set.seed(38)
   scData <- FindVariableGenes(object = scData, do.plot = FALSE,
                               x.low.cutoff=param$x.low.cutoff,
                               x.high.cutoff=param$x.high.cutoff,
