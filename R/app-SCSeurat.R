@@ -44,10 +44,7 @@ EzAppSCSeurat <-
                                                                Description="The markers to check"),
                                         runPseudoTime=ezFrame(Type="logical", 
                                                               DefaultValue=FALSE,
-                                                              Description="Run PseudoTime for single cell data?"),
-                                        all2allMarkers=ezFrame(Type="logical",
-                                                               DefaultValue=FALSE, 
-                                                               Description="Run all against all cluster comparisons?"))
+                                                              Description="Run PseudoTime for single cell data?"))
                 }
               )
   )
@@ -69,7 +66,9 @@ ezMethodSCSeurat = function(input=NA, output=NA, param=NA,
                                     sep=": ")
   
   # Doublet detection
+  pdf(NULL) ## scDblFinder plots a figure automatically.
   sce <- scDblFinder(sce)
+  dev.off()
   
   # saveRDS(sce, file = "sce.rds")
   
