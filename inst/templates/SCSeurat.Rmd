@@ -305,7 +305,7 @@ if(doSingleR){
 }
 ```
 
-```{r plot SingleR, echo=FALSE, fig.width=14, eval=doSingleR}
+```{r plot SingleR, echo=FALSE, fig.width=8, eval=doSingleR}
 nrOfLabels <- length(unique(cellInfo$SingleR.labels))
 if(nrOfLabels <= 9){
   colsLabels <- brewer.pal(nrOfLabels, "Set1")
