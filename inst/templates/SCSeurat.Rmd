@@ -510,7 +510,6 @@ write_tsv(coordinates, path=coordinatesFn)
   * Average gene expression per cluster: [`r geneMeanPerClusterFn`](`r geneMeanPerClusterFn`)
   * Average gene expression: [`r geneMeansFn`](`r geneMeansFn`)
   * Positive markers of all clusters: [`r posMarkersFn`](`r posMarkersFn`)
-  * Differential genes of pairwise comparisons of all clusters (when enabled): [`r all2allDEFn`](`r all2allDEFn`)
   * Coordinates of cells in low dimensional space: [`r coordinatesFn`](`r coordinatesFn`)
 
 ### Parameters
