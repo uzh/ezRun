@@ -22,13 +22,13 @@ ezMethodEdger = function(input=NA, output=NA, param=NA){
   
   rawData = loadCountDataset(input, param)
   if (isError(rawData)){
-    writeErrorReport(htmlFile, param=param, error=rawData$error)
+    writeErrorReport("00index.html", param=param, error=rawData$error)
     return("Error")
   }
   
   deResult = twoGroupCountComparison(rawData)
   if (isError(deResult)){
-    writeErrorReport(htmlFile, param=param, error=deResult$error)
+    writeErrorReport("00index.html", param=param, error=deResult$error)
     return("Error")
   }
 
