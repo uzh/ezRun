@@ -305,7 +305,7 @@ if(doSingleR){
 }
 ```
 
-```{r plot SingleR, echo=FALSE, fig.width=14, eval=doSingleR}
+```{r plot SingleR, echo=FALSE, fig.width=8, eval=doSingleR}
 nrOfLabels <- length(unique(cellInfo$SingleR.labels))
 if(nrOfLabels <= 9){
   colsLabels <- brewer.pal(nrOfLabels, "Set1")
@@ -331,7 +331,6 @@ p2 <- plot_ly(cellInfo, x = ~tSNE_1, y = ~tSNE_2, color=~SingleR.labels,
         type = 'scatter', mode = "markers", marker=list(size=5, opacity=0.5),
         colors=colsLabels) %>%layout(xaxis=x, yaxis=y)
 p2
-# subplot(p1, p2, titleX=TRUE, titleY=TRUE, nrows=1)
 ```
 
 ### Marker genes
@@ -365,72 +364,6 @@ if(doEnrichr(param)){
 ```{r markers table, echo=FALSE}
 caption ="Expression differences of cluster marker genes"
 ezInteractiveTableRmd(markers, digits=4, title=caption)
-```
-
-```{r section all2all, echo=FALSE, results='asis'}
-if(param$all2allMarkers){
-  cat("#### All clusters against all clusters comparison")
-  cat("\n")
-}
-```
-
-```{r pos markers all2all, echo=FALSE}
-all2allDEFn <- "all2allDE"
-dir.create(all2allDEFn)
-if(param$all2allMarkers){
-  clusterCombs <- combn(levels(Idents(scData)), m=2)
-  all2allMarkers <- mcmapply(FindMarkers, as.integer(clusterCombs[1, ]), 
-                             as.integer(clusterCombs[2, ]),
-                             MoreArgs = list(object=scData,
-                                             only.pos=FALSE),
-                             mc.preschedule=FALSE,
-                             mc.cores=4L,
-                             SIMPLIFY=FALSE)
-  all2allMarkers <- lapply(all2allMarkers, function(x){
-    x[x$p_val <= pvalue_all2allMarkers, ]
-  })
-  names(all2allMarkers) <- apply(clusterCombs, 2, paste, collapse="vs")
-  
-  for(comparison in names(all2allMarkers)){
-    if(nrow(all2allMarkers[[comparison]]) > 0){
-      write_tsv(as_tibble(all2allMarkers[[comparison]], rownames="Gene"),
-                path=file.path(all2allDEFn, paste0(comparison, ".tsv")))
-    }else{
-      write_tsv(as_tibble(all2allMarkers[[comparison]]),
-                path=file.path(all2allDEFn, paste0(comparison, ".tsv")))
-    }
-  }
-  lapply(list.files(all2allDEFn, "Cluster", full.names = TRUE), R.utils::gzip,
-         compression=9)
-}
-```
-
-```{r enrichr all2all markers, echo=FALSE, results='asis'}
-if(doEnrichr(param) && param$all2allMarkers){
-  genesAllPerCluster <- lapply(all2allMarkers, rownames)
-  genesUpPerCluster <- lapply(all2allMarkers, function(x){rownames(x)[x$avg_logFC > 0]})
-  genesDownPerCluster <- lapply(all2allMarkers, function(x){rownames(x)[x$avg_logFC < 0]})
-  
-  jsCall_all = paste0('enrich({list: "', sapply(genesAllPerCluster, paste, collapse="\\n"), '", popup: true});')
-  jsCall_up = paste0('enrich({list: "', sapply(genesUpPerCluster, paste, collapse="\\n"), '", popup: true});')
-  jsCall_down = paste0('enrich({list: "', sapply(genesDownPerCluster, paste, collapse="\\n"), '", popup: true});')
-  
-  enrichrCalls_all <- paste0("<a href='javascript:void(0)' onClick='", jsCall_all,
-                         "'>Analyse at Enrichr website</a>")
-  enrichrCalls_up <- paste0("<a href='javascript:void(0)' onClick='", jsCall_up,
-                         "'>Analyse at Enrichr website</a>")
-  enrichrCalls_down <- paste0("<a href='javascript:void(0)' onClick='", jsCall_down,
-                         "'>Analyse at Enrichr website</a>")
-  enrichrTable <- tibble(Comparison=names(all2allMarkers),
-                         "# of differentially expressed genes"=lengths(genesAllPerCluster),
-                         "Enrichr link: all significant genes"=enrichrCalls_all,
-                         "Enrichr link: up-regulated genes"=enrichrCalls_up,
-                         "Enrichr link: down-regulated genes"=enrichrCalls_down,
-                         "List of differentially expressed genes"=text_spec(paste0(names(all2allMarkers), ".tsv"), link=paste0(names(all2allMarkers), ".tsv")))
-  kable(enrichrTable, format="html", escape=FALSE,
-        caption=paste0("GeneSet enrichment: genes with pvalue ", pvalue_all2allMarkers)) %>%
-    kable_styling("striped", full_width = F, position = "left")
-}
 ```
 
 ### Top cluster markers on low-dimensional space
@@ -577,7 +510,6 @@ write_tsv(coordinates, path=coordinatesFn)
   * Average gene expression per cluster: [`r geneMeanPerClusterFn`](`r geneMeanPerClusterFn`)
   * Average gene expression: [`r geneMeansFn`](`r geneMeansFn`)
   * Positive markers of all clusters: [`r posMarkersFn`](`r posMarkersFn`)
-  * Differential genes of pairwise comparisons of all clusters (when enabled): [`r all2allDEFn`](`r all2allDEFn`)
   * Coordinates of cells in low dimensional space: [`r coordinatesFn`](`r coordinatesFn`)
 
 ### Parameters

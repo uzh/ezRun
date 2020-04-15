@@ -524,7 +524,7 @@ ezMethodBWA = function(input=NA, output=NA, param=NA){
   return("Success")
 }
 
-ezMethodBWATrimmomatic = function(input=NA, output=NA, param=NA){ # Perform BWA using Trimmomatic for read pre-processing
+ezMethodBWATrimmomatic = function(input=NA, output=NA, param=NA){ # Perform BWA using fastp for read pre-processing
 
   refIdx = getBWAReference(param)
   bamFile = output$getColumn("BAM")
