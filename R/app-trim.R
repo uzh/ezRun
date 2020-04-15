@@ -28,9 +28,9 @@ ezMethodFastpTrim = function(input=NA, output=NA, param=NA){
   ## if output is not an EzDataset, set it! (when ezMethodFastpTrim is used inside another app)
   if (!is(output, "EzDataset")){
     output = input$copy()
-    output$setColumn("Read1", paste0(getwd(), "/", input$getNames(), "-trimmed_R1.fastq"))
+    output$setColumn("Read1", paste0(getwd(), "/", input$getNames(), "-trimmed_R1.fastq.gz"))
     if (param$paired){
-      output$setColumn("Read2", paste0(getwd(), "/", input$getNames(), "-trimmed_R2.fastq"))
+      output$setColumn("Read2", paste0(getwd(), "/", input$getNames(), "-trimmed_R2.fastq.gz"))
     } else {
       if ("Read2" %in% input$colNames){
         output$setColumn("Read2", NULL)
@@ -69,9 +69,9 @@ ezMethodFastpTrim = function(input=NA, output=NA, param=NA){
   ## binary
   fastpBin = 'fastp'
   ## input/output file names:
-  r1TmpFile = "trimmed_R1.fastq"
+  r1TmpFile = "trimmed_R1.fastq.gz"
   if(param$paired){
-    r2TmpFile = "trimmed_R2.fastq"
+    r2TmpFile = "trimmed_R2.fastq.gz"
     readsInOut = paste('--in1', input$getFullPaths("Read1"),
                        '--in2', input$getFullPaths("Read2"),
                        '--out1', r1TmpFile,
@@ -136,7 +136,9 @@ ezMethodFastpTrim = function(input=NA, output=NA, param=NA){
               paste("--disable_trim_poly_g","--trim_poly_x",
                     "--poly_x_min_len",param[['poly_x_min_len']]),
               # read length filtering
-              paste('--length_required',param[['length_required']])
+              paste('--length_required',param[['length_required']]),
+              # compression output
+              paste('--compression 4')
   )
   
   ## run
@@ -157,23 +159,12 @@ ezMethodFastpTrim = function(input=NA, output=NA, param=NA){
   }
   
   ## rename log
-  ezSystem(paste0('cat fastp.err >>',input$getNames(),'_preprocessing.log'))
-  on.exit(file.remove("fastp.err"), add=TRUE)
-  
-  ## rename output .fastqs
-  r1TrimmedFileName = gsub(".fastq.*",".fastq",basename(output$getColumn("Read1")))
-  ezSystem(paste("mv", r1TmpFile, r1TrimmedFileName))
+  ezSystem(paste0('mv fastp.err ',input$getNames(),'_preprocessing.log'))
+
+  ## rename trimmed output
+  ezSystem(paste("mv", r1TmpFile, basename(output$getColumn("Read1"))))
   if (param$paired){
-    r2TrimmedFileName = gsub(".fastq.*",".fastq",basename(output$getColumn("Read2")))
-    ezSystem(paste("mv", r2TmpFile, r2TrimmedFileName))
-  }
-  
-  ## compress if necessary (only runs when the output dataset contains "Read1")
-  if (grepl(pattern = ".gz",x = basename(output$getColumn("Read1")))){
-    ezSystem(paste("pigz -p 2", r1TrimmedFileName))
-    if (param$paired){
-      ezSystem(paste("pigz -p 2", r2TrimmedFileName))
-    }
+    ezSystem(paste("mv", r2TmpFile, basename(output$getColumn("Read2"))))
   }
   
   return(output)
