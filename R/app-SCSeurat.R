@@ -31,7 +31,7 @@ EzAppSCSeurat <-
                                                     DefaultValue=50,
                                                     Description="The maximal dimensions to use for reduction"),
                                         vars.to.regress=ezFrame(Type="charVector", 
-                                                                DefaultValue="", # nFeature_RNA,nCount_RNA,percent.mt
+                                                                DefaultValue="", # nFeature_RNA,percent.mt,CellCycle
                                                                 Description="Variables to regress out"),
                                         resolution=ezFrame(Type="numeric",
                                                            DefaultValue=0.5,
@@ -44,10 +44,7 @@ EzAppSCSeurat <-
                                                                Description="The markers to check"),
                                         runPseudoTime=ezFrame(Type="logical", 
                                                               DefaultValue=FALSE,
-                                                              Description="Run PseudoTime for single cell data?"),
-                                        all2allMarkers=ezFrame(Type="logical",
-                                                               DefaultValue=FALSE, 
-                                                               Description="Run all against all cluster comparisons?"))
+                                                              Description="Run PseudoTime for single cell data?"))
                 }
               )
   )
@@ -69,7 +66,9 @@ ezMethodSCSeurat = function(input=NA, output=NA, param=NA,
                                     sep=": ")
   
   # Doublet detection
+  pdf(NULL) ## scDblFinder plots a figure automatically.
   sce <- scDblFinder(sce)
+  dev.off()
   
   # saveRDS(sce, file = "sce.rds")
   
