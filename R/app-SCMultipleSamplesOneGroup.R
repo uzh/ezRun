@@ -22,7 +22,16 @@ EzAppSCMultipleSamplesOneGroup <-
                                                            Description="Value of the resolution parameter, use a value above (below) 1.0 if you want to obtain a larger (smaller) number of communities."),
                                         batchCorrection=ezFrame(Type="logical", 
                                                                 DefaultValue="TRUE",
-                                                                Description="Which batch correction method to use? None or CCA"),
+                                                                Description="Perform batch correction"),
+                                        SCT.regress=ezFrame(Type="character", 
+                                                            DefaultValue="none", 
+                                                            Description="Choose CellCycle to be regressed out when using the SCTransform method if it is a bias."),
+                                        DE.method=ezFrame(Type="charVector", 
+                                                          DefaultValue="wilcox", 
+                                                          Description="Method to be used when calculating gene cluster markers. Use LR if you want to include cell cycle in the regression model."),
+                                        DE.regress=ezFrame(Type="charVector", 
+                                                          DefaultValue="Plate", 
+                                                          Description="Variables to regress out if the test LR is chosen"),
                                         chosenClusters=ezFrame(Type="charList",
                                                                DefaultValue="",
                                                                Description="The clusters to choose from each sample.In the format of sample1=cluster1,cluster2;sample2=cluster1,cluster2."),
@@ -89,7 +98,10 @@ ezMethodSCMultipleSamplesOneGroup = function(input=NA, output=NA, param=NA, html
   }
      
   #positive cluster markers
-  posMarkers <- posClusterMarkers(scData, pvalue_allMarkers)
+  posMarkers <- posClusterMarkers(scData, pvalue_allMarkers, param)
+  
+  #if all2allmarkers are not calculated it will remain as NULL
+  all2allMarkers <- NULL
   
   #perform all pairwise comparisons to obtain markers
   if(doEnrichr(param) && param$all2allMarkers) 
