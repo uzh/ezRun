@@ -13,6 +13,7 @@ editor_options:
 
 Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
 
+
 ```{r setup, include=FALSE}
 # input for this report: sce
 library(dplyr)
@@ -56,7 +57,7 @@ cat(paste0("<SCRIPT language=\"JavaScript\" SRC=\"", basename(jsFile), "\"></SCR
 output <- metadata(sce)$output
 ```
 
-## Preprocessing and downstream analysis {.tabset}
+## Clustering workflow results {.tabset}
 
 ### Quality control
 
@@ -121,6 +122,18 @@ We also excluded genes that are lowly or not expressed in our system, as they do
 table(rowData(sce.unfiltered)$is.expressed)
 ```
 
+### Unwanted sources of variation
+
+The goal of the clustering analysis is to keep the major sources of variation in the dataset that should define the cell types, while restricting the variation due to uninteresting sources (sequencing depth, cell cycle differences, mitochondrial expression, batch effects, etc.). A common practice is to regress out these covariates prior to downstream analyses. Here, we will only asses cell cycle as the main potential source of variation since the method we will later use for normalization and variance stabilization removes the variation due to sequencing depth (total nUMIs per cell). While regressing out the other sources (i.e. mitochondrial abundances) has proved to have a negative impact, leading to increased correlation with covariates and decreased clustering accuracy (Pierre-Luc Germain, Anthony Sonrel, Mark D. Robinson: pipeComp, a general framework for the evaluation of computational pipelines, reveals performant single-cell RNA-seq preprocessing tools. bioRxiv doi: https://doi.org/10.1101/2020.02.02.930578).
+
+In most applications, the cell cycle is a minor factor of variation, secondary to differences between cell types. Any attempt at removal would also need to assume that the cell cycle effect is orthogonal to other biological processes. For example, regression would potentially remove interesting signal if cell cycle activity varied across clusters or conditions, with a prime example being the increased proliferation of activated T cells (Richard, A. C., A. T. L. Lun, W. W. Y. Lau, B. Gottgens, J. C. Marioni, and G. M. Griffiths. 2018. “T cell cytolytic capacity is independent of initial stimulation strength.” Nat. Immunol. 19 (8): 849–58.). We suggest only performing cell cycle adjustment on an as-needed basis in populations with clear cell cycle effects.
+A TSNE can help us to determine whether cell cycle is a major source of variation in our dataset. 
+
+```{r TSNE on cell cycle, fig.align='center'}
+plotTSNE(sce, colour_by="CellCycle") + ggtitle("Cell cycle phase")
+```
+
+
 ### Dimensionality reduction
 
 <br/>
@@ -131,13 +144,16 @@ Dimensionality reduction aims to reduce the number of separate dimensions in the
 
 #### Transforming the data and feature selection
 
-After removing unwanted cells from the dataset, the next step is to normalize the data. By default, we employ a global-scaling normalization method “LogNormalize” that normalizes the feature expression measurements for each cell by the total expression, multiplies this by a scale factor (10,000 by default), and log-transforms the result.
-We next aimed to identify a subset of features (i.e. genes) exhibiting high variability across cells, and therefore represent heterogeneous features to prioritize for downstream analysis. We first applied a variance-stabilizing transformation to correct for the mean-variance relationship that is inherent to single-cell RNA-seq, as first outlined by Mayer, Hafemeister & Bandler et al. By default, we return 2,000 features.
-Next, we apply a linear transformation (‘scaling’) that is a standard pre-processing step before dimensional reduction techniques. With this procedure, the expression of each gene is shifted, so that the mean expression across cells is 0. It also scales the expression of each gene, so that the variance across cells is 1 to avoid the results to be dominated by the signal of a few highly-expressed genes.
+We used the SCtransform method from the Seurat package for normalizing, estimating the variance of the raw filtered data, and identifying the most variable genes. By default, SCtransform accounts for cellular sequencing depth, or nUMIs.
+<br/>
+`r if(identical(param$SCT.regress,"CellCycle")) {
+    "We already checked cell cycle and decided that it does represent a major source of variation in our data, and this may influence clustering. Therefore, we regressed out variation due to cell cycle."
+}`
+As a result, SCTransform ranked the genes by residual variance and returned the 3000 most variant genes.
 
 ```{r hvg plot, fig.align='center'}
-variable <- rowData(sce)[rowData(sce)$vst.variable == TRUE,]
-top10 <- rownames(variable[order(variable$vst.variance.standardized, decreasing=TRUE),][1:10,])
+variable <- rowData(sce)[rowData(sce)$sct.variable == TRUE,]
+top10 <- rownames(variable[order(variable$sct.residual_variance, decreasing=TRUE),][1:10,])
 plot_hvg <- VariableFeaturePlot_mod(sce)
 LabelPoints(plot = plot_hvg, points = top10, repel = TRUE, xnudge=0, ynudge=0)
 ```
@@ -205,20 +221,7 @@ The size of each node is related to the number of cells in each cluster and the 
 
 ## Add to the sce object
 #colData(sce) <- cbind(colData(sce), DataFrame(clustering_results))
-clustree::clustree(sce, prefix = "RNA_snn_res.")
-```
-
-### QC on TSNE plot
-
-```{r QC on TSNE, echo=FALSE}
-plotTSNE(sce, colour_by="detected") + ggtitle("Genes detected")
-plotTSNE(sce, colour_by="sum") + ggtitle("Library size")
-plotTSNE(sce, colour_by="subsets_Mito_percent") + ggtitle("Michondrial percentage")
-
-if(!is.null(colData(sce)$CellCycle) && 
-   !any(is.na(colData(sce)$CellCycle))){
-   plotTSNE(sce, colour_by="CellCycle") + ggtitle("Cell cycle phase")
-}
+clustree::clustree(sce, prefix = "SCT_snn_res.")
 ```
 
 
@@ -233,10 +236,18 @@ plotTSNE(sce, colour_by="scDblFinder.class") + ggtitle("scDblFinder class")
 
 ### Top cluster markers
 
-<br/>
-We found positive markers that defined clusters compared to all other cells via differential expression. The test we used was the Wilcoxon Rank Sum test which assesses separation between the expression distributions of different clusters. Genes with an average, at least 0.25-fold difference (log-scale) between the cells in the tested cluster and the rest of the cells and an adjusted p-value < 0.05 were declared as significant. 
+```{r}
+posMarkers = read_tsv("pos_markers.tsv")
+```
 
-<br/>
+
+```{r wilcoxon test, eval=is.null(param$SCT.regress), results='asis'}
+cat("We found positive markers that defined clusters compared to all other cells via differential expression. The test we used was the Wilcoxon Rank Sum test. Genes with an average, at least 0.25-fold difference (log-scale) between the cells in the tested cluster and the rest of the cells and an adjusted p-value < 0.05 were declared as significant.")
+```
+
+```{r LR test, eval=!is.null(param$SCT.regress), results='asis'}
+cat("We found positive markers that defined clusters compared to all other cells via differential expression using a logistic regression test and including in the model the cell cycle as the batch effect. Genes with an average, at least 0.25-fold difference (log-scale) between the cells in the tested cluster and the rest of the cells and an adjusted p-value < 0.05 were declared as significant.")
+```
 
 ```{r pos markers, echo=FALSE, results='asis'}
 posMarkers = read_tsv("pos_markers.tsv")
