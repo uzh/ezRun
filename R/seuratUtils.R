@@ -129,16 +129,9 @@ update_seuratObjectVersion = function(se) {
 
 seuratStandardWorkflow <- function(scData, param){
   set.seed(38)
-  if(identical(param$vars.to.regress,"cell_cycle")) {
-    scData@meta.data$CC.Difference <- scData@meta.data$CellCycleS - scData@meta.data$CellCycleG2M
-    param$vars.to.regress <- "CC.Difference"
-  }
-  if(identical(param$vars.to.regress, character(0)))  #no variables to regress
-    param$vars.to.regress = NULL
   if (identical(param$pcGenes, character(0))) 
     param$pcGenes <- NULL
   
-  scData <- ScaleData(object = scData, vars.to.regress = param$vars.to.regress)
   scData <- RunPCA(object=scData, npcs = param$npcs, features=param$pcGenes)
   scData <- RunTSNE(object = scData, reduction = "pca", dims = 1:param$npcs, num_threads=param$cores)
   scData <- RunUMAP(object=scData, reduction = "pca", dims = 1:param$npcs, n_threads=param$cores)
@@ -172,22 +165,6 @@ cellsProportion <- function(scData){
   return(toTable)
 }
 
-seuratIntegration = function(seurat_objects, param) {
-  #1. Data preprocesing
-  for (i in 1:length(seurat_objects)) {
-    seurat_objects[[i]] <- NormalizeData(seurat_objects[[i]], verbose = FALSE)
-    seurat_objects[[i]] <- FindVariableFeatures(seurat_objects[[i]], selection.method = "vst", nfeatures = 2000, verbose = FALSE)
-  }
-  #2. Data integration
-  #2.1. Find anchors
-  anchors <- FindIntegrationAnchors(object.list = seurat_objects, dims = 1:param$npcs)
-  #2.2. Pass these anchors to the IntegrateData function
-  seurat_integrated <- IntegrateData(anchorset = anchors, dims = 1:param$npcs)
-  
-  return(seurat_integrated)
-}
-
-
 buildSeuratObject <- function(sce){
   require(Seurat)
   require(scater)
@@ -209,42 +186,67 @@ buildSeuratObject <- function(sce){
 }
 
 seuratClusteringV3 <- function(scData, param) {
-  scData <- NormalizeData(object=scData, scale.factor=getSeuratScalingFactor(param$scProtocol))
-  scData <- FindVariableFeatures(object = scData)
-  # Run the standard workflow for visualization and clustering
+  vars.to.regress <- NULL
+  if(identical("CellCycle", param$SCT.regress))
+    vars.to.regress <- c("CellCycleS", "CellCycleG2M")
+  scData <- SCTransform(scData, vars.to.regress = vars.to.regress, seed.use = 38, verbose = TRUE)
   scData <- seuratStandardWorkflow(scData, param)
-  
   return(scData)
 }
 
-cellClustNoCorrection = function(sceList, param) {
+cellClustNoCorrection <- function(sceList, param) {
+  #Merge all seurat objects
   scData = Reduce(merge, lapply(sceList, function(x){metadata(x)$scData}))
   scData@project.name <- param$name
-  scData <- NormalizeData(object = scData)
-  scData <- FindVariableFeatures(object = scData)
+  # when doing the scaling, normalization and feature slection with SCTransform we will only regress out by cell cycle if specified
+  vars.to.regress <- NULL
+  if(identical("CellCycle", param$SCT.regress))
+    vars.to.regress <- c("CellCycleS", "CellCycleG2M")
+  scData <- SCTransform(scData, vars.to.regress = vars.to.regress, seed.use = 38, verbose = TRUE)
   scData <- seuratStandardWorkflow(scData, param)
   return(scData)
 }
 
-cellClustWithCorrection = function (sceList, param) {
+cellClustWithCorrection <- function (sceList, param) {
   seurat_objects = lapply(sceList, function(se) {metadata(se)$scData})
-  scData = seuratIntegration(seurat_objects, param)
+  
+  # when doing the scaling, normalization and feature slection with SCTransform we will only regress out by cell cycle if specified
+  vars.to.regress <- NULL
+  if(identical("CellCycle", param$SCT.regress))
+    vars.to.regress <- c("CellCycleS", "CellCycleG2M")
+  #1. Data preprocesing
+  for (i in 1:length(seurat_objects)) {
+    seurat_objects[[i]] <- SCTransform(seurat_objects[[i]], vars.to.regress = vars.to.regress, verbose = TRUE)
+  }
+  #2. Data integration
+  #2.1. # Select the most variable features to use for integration
+  integ_features <- SelectIntegrationFeatures(object.list = seurat_objects, nfeatures = 3000) 
+  #2.2. Prepare the SCT list object for integration
+  seurat_objects <- PrepSCTIntegration(object.list = seurat_objects, anchor.features = integ_features)
+  #2.3. Find anchors
+  integ_anchors <- FindIntegrationAnchors(object.list = seurat_objects, normalization.method = "SCT", 
+                                          anchor.features = integ_features, dims = 1:param$npcs)
+  #2.4. Integrate datasets
+  seurat_integrated <- IntegrateData(anchorset = integ_anchors, normalization.method = "SCT", dims = 1:param$npcs)
+
   # switch to integrated assay for downstream analyses
-  DefaultAssay(scData) <- "integrated"
+  DefaultAssay(seurat_integrated) <- "integrated"
   # Run the standard workflow for visualization and clustering
-  scData = seuratStandardWorkflow(scData, param)
-  return(scData)
+  seurat_integrated <- seuratStandardWorkflow(seurat_integrated, param)
+  return(seurat_integrated)
 }
 
-posClusterMarkers <- function(scData, pvalue_allMarkers, batchCorrection) {
-  ##TODO: change Plate for Batch after adding this parameter in the Sushi app 
-  if(batchCorrection) 
-    markers <- FindAllMarkers(object=scData, test.use = "LR", only.pos=TRUE, latent.vars = "Plate", return.thresh = pvalue_allMarkers)
-  else
-    markers <- FindAllMarkers(object=scData, test.use = "wilcox", only.pos=TRUE, return.thresh = pvalue_allMarkers)
+posClusterMarkers <- function(scData, pvalue_allMarkers, param) {
+  vars.to.regress = NULL
+  if(param$name == "SCOneSample" & param$DE.method == "LR") #For the one sample app, we will regress out cell cycle if the test is LR
+    vars.to.regress <- c("CellCycleS", "CellCycleG2M")
+  else if(param$name == "SCReportMerging" & param$DE.method == "LR") #for multiple samples we will regress out either the cell cycle, plate or both if the test is LR
+    vars.to.regress <- param$DE.regress
+  
+  markers <- FindAllMarkers(object=scData, test.use = param$DE.method, only.pos=TRUE, latent.vars = vars.to.regress, return.thresh = pvalue_allMarkers)
   ## Significant markers
   cm <- markers[ ,c("gene","cluster","avg_logFC","p_val_adj")]
-  cm <- markers[markers$p_val_adj < 0.05, ]
+  cm <- cm[cm$p_val_adj < 0.05, ]
   rownames(cm) <- NULL
   return(cm)
 }
