@@ -24,9 +24,12 @@ EzAppSCOneSample <-
                                         pcGenes=ezFrame(Type="charVector", 
                                                         DefaultValue="", 
                                                         Description="The genes used in supvervised clustering"),
-                                        vars.to.regress=ezFrame(Type="charVector", 
-                                                                DefaultValue="cell_cycle,nUMI,perc_mito", 
-                                                                Description="Variables to regress out"),
+                                        SCT.regress=ezFrame(Type="character", 
+                                                           DefaultValue="none", 
+                                                           Description="Choose CellCycle to be regressed out when using the SCTransform method if it is a bias."),
+                                        DE.method=ezFrame(Type="charVector", 
+                                                          DefaultValue="wilcoxon", 
+                                                          Description="Method to be used when calculating gene cluster markers. Use LR if you want to include cell cycle in the regression model."),
                                         resolution=ezFrame(Type="numeric", 
                                                            DefaultValue=0.5,
                                                            Description="Value of the resolution parameter, use a value above (below) 1.0 if you want to obtain a larger (smaller) number of communities."),
@@ -61,7 +64,7 @@ ezMethodSCOneSample <- function(input=NA, output=NA, param=NA,
   scData <- buildSeuratObject(sce)   # the Seurat object is built from the filtered sce object
   scData <- seuratClusteringV3(scData, param)
   #positive cluster markers
-  posMarkers <- posClusterMarkers(scData, pvalue_allMarkers)
+  posMarkers <- posClusterMarkers(scData, pvalue_allMarkers, param)
   #if all2allmarkers are not calculated it will remain as NULL
   all2allMarkers <- NULL
   #perform all pairwise comparisons to obtain markers
