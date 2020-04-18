@@ -25,7 +25,7 @@ EzAppSCMultipleSamplesAndGroups <-
                                                                 Description="Perform batch correction."),
                                         SCT.regress=ezFrame(Type="character", 
                                                             DefaultValue="none", 
-                                                            Description="Choose cell_cycle to be regressed out when using the SCTransform method if it is a bias."),
+                                                            Description="Choose CellCycle to be regressed out when using the SCTransform method if it is a bias."),
                                         DE.method=ezFrame(Type="charVector", 
                                                           DefaultValue="wilcox", 
                                                           Description="Method to be used when calculating gene cluster markers. Use LR if you want to include cell cycle in the regression model."),
