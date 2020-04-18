@@ -22,7 +22,16 @@ EzAppSCMultipleSamplesAndGroups <-
                                                            Description="Value of the resolution parameter, use a value above (below) 1.0 if you want to obtain a larger (smaller) number of communities."),
                                         batchCorrection=ezFrame(Type="logical", 
                                                                 DefaultValue="TRUE",
-                                                                Description="Which batch correction method to use? None or CCA"),
+                                                                Description="Perform batch correction."),
+                                        SCT.regress=ezFrame(Type="character", 
+                                                            DefaultValue="none", 
+                                                            Description="Choose cell_cycle to be regressed out when using the SCTransform method if it is a bias."),
+                                        DE.method=ezFrame(Type="charVector", 
+                                                          DefaultValue="wilcox", 
+                                                          Description="Method to be used when calculating gene cluster markers. Use LR if you want to include cell cycle in the regression model."),
+                                        DE.regress=ezFrame(Type="charVector", 
+                                                           DefaultValue="Plate", 
+                                                           Description="Variables to regress out if the test LR is chosen"),
                                         chosenClusters=ezFrame(Type="charList",
                                                                DefaultValue="",
                                                                Description="The clusters to choose from each sample.In the format of sample1=cluster1,cluster2;sample2=cluster1,cluster2."),
@@ -78,19 +87,18 @@ ezMethodSCMultipleSamplesAndGroups = function(input=NA, output=NA, param=NA, htm
     }
   }
   
-  scData_noCorrected = cellClustNoCorrection(sceList, param)
+  scData_noCorrected <- cellClustNoCorrection(sceList, param)
   scData = scData_noCorrected
   if (param$batchCorrection) {
     scData_corrected = cellClustWithCorrection(sceList, param)
     #in order to compute the markers we switch again to the original assay
     DefaultAssay(scData_corrected) <- "RNA"
-    scData_corrected <- ScaleData(scData_corrected, verbose = FALSE)
     scData <- scData_corrected
     scData@reductions$tsne_noCorrected <- Reductions(scData_noCorrected, "tsne")
     scData@meta.data$ident_noCorrected <- Idents(scData_noCorrected)
   }
   #positive cluster markers
-  posMarkers <- posClusterMarkers(scData, pvalue_allMarkers, param$batchCorrection)
+  posMarkers <- posClusterMarkers(scData, pvalue_allMarkers, param)
   
   #if all2allmarkers are not calculated it will remain as NULL
   all2allMarkers <- NULL
