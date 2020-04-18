@@ -166,10 +166,10 @@ VariableFeaturePlot_mod <- function(sce, cols = c('black', 'red'), pt.size = 1, 
     stop("'cols' must be of length 2")
   }
   hvf.info <- as.data.frame(rowData(sce))
-  colnames(hvf.info) <- gsub(("vst."), "", colnames(hvf.info))
+  colnames(hvf.info) <- gsub(("sct."), "", colnames(hvf.info))
   var.status <- c('no', 'yes')[unlist(x = hvf.info[, "variable"]) + 1]
-  hvf.info <- hvf.info[, c("mean", "variance.standardized")]
-  axis.labels <- c('Average Expression', 'Standardized Variance')
+  hvf.info <- hvf.info[, c("gmean", "residual_variance")]
+  axis.labels <- c('Average Expression', 'Residual Variance')
   
   plot <- SingleCorPlot(
     data = hvf.info,
