@@ -43,7 +43,8 @@ EzAppSCMultipleSamplesAndGroups <-
                                                               Description="The markers to show in the heatmap of cluster marker genes"),
                                         maxSamplesSupported=ezFrame(Type="numeric", 
                                                               DefaultValue=5, 
-                                                              Description="Maximum number of samples to compare"))
+                                                              Description="Maximum number of samples to compare"),
+                                        species=ezFrame(Type="character", DefaultValue="Human", Description="Organism"))
                 }
               )
   )
