@@ -39,9 +39,6 @@ EzAppSCOneSample <-
                                         cellsPercentage=ezFrame(Type="numeric", 
                                                                 DefaultValue=0.05, 
                                                                 Description="A gene will be kept if it is expressed in at least this percentage of cells"),
-                                        nmad=ezFrame(Type="numeric", 
-                                                     DefaultValue=3, 
-                                                     Description="Median absolute deviation (MAD) from the median value of each metric across all cells"),
                                         species=ezFrame(Type="character", DefaultValue="Human", Description="Organism")
                                         )
                 }
