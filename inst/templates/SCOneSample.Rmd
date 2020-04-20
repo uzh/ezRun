@@ -79,7 +79,6 @@ A key assumption here is that the QC metrics are independent of the biological s
 plotColData(sce.unfiltered, x="Batch", y="sum", colour_by="discard") + scale_y_log10() + ggtitle("Total count")
 plotColData(sce.unfiltered, x="Batch", y="detected", colour_by="discard") + scale_y_log10() + ggtitle("Detected features")
 plotColData(sce.unfiltered, x="Batch", y="subsets_Mito_percent", colour_by="discard") + ggtitle("Mito percent")
-plotColData(sce.unfiltered, x="Batch", y="subsets_Mito_percent", colour_by="discard") + ggtitle("Ribo percent")
 ```
 
 It is also worth to plot the proportion of mitochondrial counts against the library size for each cell. The aim is to confirm that there are no cells with both large total counts and large mitochondrial counts, to ensure that we are not inadvertently removing high-quality cells that happen to be highly metabolically active.
@@ -96,14 +95,12 @@ A standard approach is to filter cells with a low amount of reads as well as gen
 A summary of the number of cells removed for each QC metric is shown below.
 
 ```{r low quality cells}
-num.qc.lib <- sum(sce.unfiltered$qc.lib)
-num.qc.nexprs <- sum(sce.unfiltered$qc.nexprs)
-num.qc.mito <- sum(sce.unfiltered$qc.mito)
-num.qc.ribo <- sum(sce.unfiltered$qc.ribo)
+num.qc.lib <- sum(sce.unfiltered$qc.total_counts)
+num.qc.nexprs <- sum(sce.unfiltered$qc.total_features)
 removed <- sum(sce.unfiltered$discard)
 
-kable(tibble("QC metric" =c("Library Size", "Expressed genes", "Mitochondrial genes", "Ribosomal genes", "Total removed", "Cells remaining"),
-             "Number of cells"= c(num.qc.lib, num.qc.nexprs, num.qc.mito, num.qc.ribo, removed, ncol(sce))),
+kable(tibble("QC metric" =c("Library Size", "Expressed genes", "Total removed", "Cells remaining"),
+             "Number of cells"= c(num.qc.lib, num.qc.nexprs, removed, ncol(sce))),
       row.names=FALSE,
       caption="Number of cells removed") %>%
   kable_styling(bootstrap_options = "striped", full_width = F,
