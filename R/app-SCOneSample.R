@@ -58,11 +58,21 @@ ezMethodSCOneSample <- function(input=NA, output=NA, param=NA,
   pvalue_allMarkers <- 0.05
   pvalue_all2allMarkers <- 0.01
   
+  #Doublets prediction and removal
+  require(scDblFinder)
+  sce <- scDblFinder(sce)
+  sce <- sce[,which(sce$scDblFinder.class!="doublet")]
+  # scData@meta.data$scDblFinder.score <- colData(sce)$scDblFinder.score
+  # scData@meta.data$scDblFinder.class <- colData(sce)$scDblFinder.class
+  
+  #Cells and genes filtering
   sce_list <- filterCellsAndGenes(sce, param)  #return sce objects filtered and unfiltered to show the QC metrics later in the rmd 
   sce <- sce_list$sce
   sce.unfiltered <- sce_list$sce.unfiltered
+  
   scData <- buildSeuratObject(sce)   # the Seurat object is built from the filtered sce object
   scData <- seuratClusteringV3(scData, param)
+  
   #positive cluster markers
   posMarkers <- posClusterMarkers(scData, pvalue_allMarkers, param)
   #if all2allmarkers are not calculated it will remain as NULL
@@ -70,16 +80,12 @@ ezMethodSCOneSample <- function(input=NA, output=NA, param=NA,
   #perform all pairwise comparisons to obtain markers
   if(doEnrichr(param) && param$all2allMarkers) 
     all2allMarkers = all2all(scData, pvalue_all2allMarkers, param)
+  
   #cell types annotation is only supported for Human and Mouse at the moment
   if(param$species == "Human" | param$species == "Mouse") {
      cells_AUC <- cellsLabelsWithAUC(scData, param)
      singler.results <- cellsLabelsWithSingleR(scData, param)
   }
-  #Doublets prediction
-  require(scDblFinder)
-  sce <- scDblFinder(sce)
-  scData@meta.data$scDblFinder.score <- colData(sce)$scDblFinder.score
-  scData@meta.data$scDblFinder.class <- colData(sce)$scDblFinder.class
   
   #Convert scData to Single Cell experiment Object
   sce <- as.SingleCellExperiment(scData)
@@ -117,33 +123,82 @@ filterCellsAndGenes <- function(sce, param) {
   #browser()
   require(scater)
   require(Matrix)
+  
+  #Cells filtering
   mito.genes <- grep("^MT-",rowData(sce)$gene_name)
-  ribo.genes <- grep("^RP[SL]",rowData(sce)$gene_name)
-  
-  sce <- addPerCellQC(sce, subsets = list(Mito = mito.genes, Ribo = ribo.genes))
-  
-  qc.lib <- isOutlier(sce$sum, log=TRUE, nmads=param$nmad, type="lower")
-  qc.nexprs <- isOutlier(sce$detected, nmads=param$nmad, log=TRUE, type="lower")
-  qc.mito <- isOutlier(sce$subsets_Mito_percent, nmads=param$nmad, type="higher")
-  qc.ribo <- isOutlier(sce$subsets_Ribo_percent, nmads=param$nmad, type="higher")
-  discard <- qc.lib | qc.nexprs | qc.mito | qc.ribo
-  sce$discard <- discard
-  sce$qc.lib <- qc.lib
-  sce$qc.nexprs <- qc.nexprs
-  sce$qc.mito <- qc.mito
-  sce$qc.ribo <- qc.ribo
-  sce.unfiltered <- sce
-  sce <- sce[,!discard]
-  
+  sce <- addPerCellQC(sce, subsets = list(Mito = mito.genes))
+  sce.unfiltered <- filt.lenient(sce)
+  sce <- sce[,!sce.unfiltered$discard]
+ 
+  #Genes filtering
   num.umis <- 1
   num.cells <- param$cellsPercentage*ncol(sce)     #if we expect at least one rare subpopulation of cells, we should decrease the percentage of cells
   is.expressed <- Matrix::rowSums(counts(sce) >= num.umis) >= num.cells
   sce <- sce[is.expressed,]
-  
   rowData(sce.unfiltered)$is.expressed <- is.expressed
   
   return(list(sce.unfiltered=sce.unfiltered, sce = sce))
 }
+
+add_meta <- function(ds){
+  ds$total_features <- ds$detected
+  ds$log10_total_features <- log10(ds$detected)
+  ds$total_counts <- ds$sum
+  ds$log10_total_counts <- log10(ds$sum+1)
+  ds$featcount_ratio <- ds$log10_total_counts/ds$log10_total_features
+  ds$featcount_dist <- getFeatCountDist(ds)
+  ds$pct_counts_top_50_features <- ds$percent_top_50
+  ds
+}
+
+getFeatCountDist <- function(df, do.plot=FALSE, linear=TRUE){
+  if(is(df,"SingleCellExperiment")) df <- as.data.frame(colData(df))
+  if(linear){
+    mod <- lm(df$log10_total_features~df$log10_total_counts)
+  }else{
+    mod <- loess(df$log10_total_features~df$log10_total_counts)
+  }
+  pred <- predict(mod, newdata=data.frame(log10_total_counts=df$log10_total_counts))
+  df$diff <- df$log10_total_features - pred
+  df$diff
+}
+
+filt.lenient <- function(x){  
+  if(!("featcount_dist" %in% colnames(colData(x)))) x <- add_meta(x)
+  filters <- c( "log10_total_counts:both:5",
+                "log10_total_features:both:5",
+                "pct_counts_top_50_features:both:5",
+                "featcount_dist:both:5")
+  out <- lapply(strsplit(filters,":"), FUN=function(f) {
+    #  browser()
+    which(isOutlier(x[[f[1]]], log=FALSE,nmads=as.numeric(f[3]),type=f[2]))
+    # x[[paste0("qc.", f[1])]] <- isOutlier(x[[f[1]]], log=FALSE,
+    #  nmads=as.numeric(f[3]),
+    #  type=f[2])
+    # which(x[[paste0("qc.", f[1])]])
+  })
+  x$qc.total_counts <- FALSE
+  x$qc.total_counts[out[[1]]] <- TRUE
+  x$qc.total_features <- FALSE
+  x$qc.total_features[out[[2]]] <- TRUE
+  x$qc.pct_counts_top_50_features <- FALSE
+  x$qc.pct_counts_top_50_features[out[[3]]] <- TRUE
+  x$qc.featcount_dist <- FALSE
+  x$qc.featcount_dist[out[[4]]] <- TRUE
+  
+  mtout <- isOutlier(x$subsets_Mito_percent, nmads=3, type="lower" ) | 
+    (isOutlier(x$subsets_Mito_percent, nmads=3, type="higher" ) & x$subsets_Mito_percent > 0.08)
+  out <- c(out, list(mt=which(mtout)))
+  out <- table(unlist(out))
+  out <- as.numeric(names(out)[which(out>=2)])
+  x$discard <- FALSE
+  x$discard[out] <- TRUE
+  return(x)
+}
+
+
+
+
 
 cellsLabelsWithAUC <- function(scData, param) {
   library(AUCell)
