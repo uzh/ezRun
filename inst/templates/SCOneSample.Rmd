@@ -230,11 +230,11 @@ posMarkers = read_tsv("pos_markers.tsv")
 ```
 
 
-```{r wilcoxon test, eval=is.null(param$SCT.regress), results='asis'}
+```{r wilcoxon test, eval=(param$DE.method=="wilcox"), results='asis'}
 cat("We found positive markers that defined clusters compared to all other cells via differential expression. The test we used was the Wilcoxon Rank Sum test. Genes with an average, at least 0.25-fold difference (log-scale) between the cells in the tested cluster and the rest of the cells and an adjusted p-value < 0.05 were declared as significant.")
 ```
 
-```{r LR test, eval=!is.null(param$SCT.regress), results='asis'}
+```{r LR test, eval=(param$DE.method=="LR"), results='asis'}
 cat("We found positive markers that defined clusters compared to all other cells via differential expression using a logistic regression test and including in the model the cell cycle as the batch effect. Genes with an average, at least 0.25-fold difference (log-scale) between the cells in the tested cluster and the rest of the cells and an adjusted p-value < 0.05 were declared as significant.")
 ```
 
@@ -445,7 +445,7 @@ cat("[all2allMarkers](all2allMarkers.tsv)")
 
 ### Parameters
 ```{r report parameters, echo=FALSE}
-param[c("npcs","pcGenes","resolution")]
+param[c("npcs","pcGenes","resolution", "SCT.regress", "DE.method")]
 ```
 
 
