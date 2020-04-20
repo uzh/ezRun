@@ -67,7 +67,9 @@ We use several common QC metrics to identify low-quality cells based on their ex
 
 1. The library size is defined as the total sum of counts across all relevant features for each cell. Cells with small library sizes are of low quality as the RNA has been lost at some point during library preparation.
 2. The number of expressed features in each cell is defined as the number of genes with non-zero counts for that cell. Any cell with very few expressed genes is likely to be of poor quality as the diverse transcript population has not been successfully captured.
-3. The proportions of mitochondrial and ribosomal genes per cell. High proportions are indicative of poor-quality cells (Islam et al. 2014; Ilicic et al. 2016), presumably because of the loss of cytoplasmic RNA from perforated cells.
+3. The percentage of counts assigned to the 50% of most highly expressed genes.
+4. The distance to expected ratio of log10 counts and expressed features.
+5. The proportions of mitochondrial and ribosomal genes per cell. High proportions are indicative of poor-quality cells (Islam et al. 2014; Ilicic et al. 2016), presumably because of the loss of cytoplasmic RNA from perforated cells.
 
 <br/>
 
@@ -91,23 +93,13 @@ plotColData(sce.unfiltered, x="sum", y="subsets_Mito_percent", colour_by="discar
 
 #### Cells filtering
 
-A standard approach is to filter cells with a low amount of reads as well as genes that are present in at least a certain amount of cells. While simple, using fixed thresholds requires knowledge of the experiment and of the experimental protocol. An alternative approach is to use adaptive, data-driven thresholds to identify outlying cells, based on the set of QC metrics just calculated. To obtain an adaptive threshold, we assume that most of the dataset consists of high-quality cells. A cell was considered an outlier for a specific QC metric if its log-transformed library size was more than `r param$nmad` MADs (median absolute deviation) below the median. An outlier for any of these metrics is considered to be of low-quality and discarded. 
-A summary of the number of cells removed for each QC metric is shown below.
+A standard approach is to filter cells with a low amount of reads as well as genes that are present in at least a certain amount of cells. While simple, using fixed thresholds requires knowledge of the experiment and of the experimental protocol. An alternative approach is to use adaptive, data-driven thresholds to identify outlying cells, based on the set of QC metrics just calculated. To obtain an adaptive threshold, we assume that most of the dataset consists of high-quality cells. 
+The filters we applied excluded cells that are outliers on two distributions by at least 5 MADs at both tails, except for the percentage counts of mitochondrial genes where the threshold was > 3 MADs and > 0.08.
+The number of cells retained is marked as TRUE and the ones removed as FALSE.
 
-```{r low quality cells}
-num.qc.lib <- sum(sce.unfiltered$qc.total_counts)
-num.qc.nexprs <- sum(sce.unfiltered$qc.total_features)
-removed <- sum(sce.unfiltered$discard)
-
-kable(tibble("QC metric" =c("Library Size", "Expressed genes", "Total removed", "Cells remaining"),
-             "Number of cells"= c(num.qc.lib, num.qc.nexprs, removed, ncol(sce))),
-      row.names=FALSE,
-      caption="Number of cells removed") %>%
-  kable_styling(bootstrap_options = "striped", full_width = F,
-                position = "center")
+```{r cell filtering}
+table(sce.unfiltered$discard)
 ```
-
-
 
 <br/>
 
@@ -222,14 +214,14 @@ clustree::clustree(sce, prefix = "SCT_snn_res.")
 ```
 
 
-#### Doublet detection
+<!-- #### Doublet detection -->
 
-In single-cell RNA sequencing (scRNA-seq) experiments, doublets are artifactual libraries generated from two cells. They typically arise due to errors in cell sorting or capture. Although we don't remove cells that could be doublets, users can visualize on a TSNE a doublet score integrating the ratio in a probability of the cell being a doublet. We recommend interpreting the scores in the context of cluster annotation. All cells from a cluster with a large average doublet score should be considered suspect, and close neighbors of problematic clusters should also be treated with caution. In contrast, a cluster containing a small proportion of high-scoring cells is probably safe provided that any interesting results are not being driven by those cells. 
+<!-- In single-cell RNA sequencing (scRNA-seq) experiments, doublets are artifactual libraries generated from two cells. They typically arise due to errors in cell sorting or capture. Although we don't remove cells that could be doublets, users can visualize on a TSNE a doublet score integrating the ratio in a probability of the cell being a doublet. We recommend interpreting the scores in the context of cluster annotation. All cells from a cluster with a large average doublet score should be considered suspect, and close neighbors of problematic clusters should also be treated with caution. In contrast, a cluster containing a small proportion of high-scoring cells is probably safe provided that any interesting results are not being driven by those cells.  -->
 
-```{r doublet tsne}
-plotTSNE(sce, colour_by="scDblFinder.score") +  scale_fill_gradient(low="gray", high="blue")+ ggtitle("scDblFinder score") 
-plotTSNE(sce, colour_by="scDblFinder.class") + ggtitle("scDblFinder class")
-```
+<!-- ```{r doublet tsne} -->
+<!-- plotTSNE(sce, colour_by="scDblFinder.score") +  scale_fill_gradient(low="gray", high="blue")+ ggtitle("scDblFinder score")  -->
+<!-- plotTSNE(sce, colour_by="scDblFinder.class") + ggtitle("scDblFinder class") -->
+<!-- ``` -->
 
 ### Top cluster markers
 
