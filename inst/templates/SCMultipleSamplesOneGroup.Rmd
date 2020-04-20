@@ -128,7 +128,7 @@ plotReducedDim(sce, dimred="TSNE", colour_by="ident", text_by="ident", text_size
 ##### The number of cells in each cluster and sample is represented on this barplot.
 ```{r number of cells in each cluster after integration, fig.align='center', fig.width=10, fig.height=6}
 cellIdents_perSample = data.frame(colData(sce)[,c("ident", "Plate")])
-barplot = ggplot(data=cellIdents_perSample, aes(x=cellIdents_perSample[,1], fill=orig.ident)) + geom_bar(stat="Count")
+barplot = ggplot(data=cellIdents_perSample, aes(x=cellIdents_perSample[,1], fill=Plate)) + geom_bar(stat="Count")
 barplot + labs(x="Cluster", y = "Number of cells", fill = "Sample")
 ```
 
