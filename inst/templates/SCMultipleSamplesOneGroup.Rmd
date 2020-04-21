@@ -297,7 +297,7 @@ cat("[all2allMarkers](all2allMarkers.tsv)")
 
 ### Parameters
 ```{r report parameters, echo=FALSE}
-param[c("npcs", "resolution", "batchCorrection","chosenClusters")]
+param[c("npcs", "resolution", "batchCorrection","SCT.regress", "DE.method", "DE.regress")]
 ```
 
 
