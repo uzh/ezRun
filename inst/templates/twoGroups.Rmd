@@ -34,11 +34,6 @@ require(htmlwidgets)
 se = deResult$se
 param = metadata(se)$param
 
-seqAnno = data.frame(rowData(se), row.names=rownames(se),
-                      check.names = FALSE, stringsAsFactors=FALSE)
-## In some cases, such as p2710, there are millions of features, then we have to adjust some analyses below.
-hasMassiveFeats = nrow(seqAnno) >= 200e3
-
 dataset = data.frame(colData(se), check.names=FALSE, stringsAsFactors=FALSE)
 design = ezDesignFromDataset(dataset, param)
 
@@ -52,8 +47,8 @@ isTwoGroup = ncol(groupMeans) == 2 & !is.null(param$sampleGroup) &
 
 # enrichment analyses
 enrichInput = compileEnrichmentInput(param, se)
-
-
+## In some cases, such as p2710, there are millions of features, then we have to adjust some analyses below.
+hasMassiveFeats = nrow(enrichInput$seqAnno) >= 200e3
 ```
 
 Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
@@ -156,9 +151,6 @@ if(isTRUE(isTwoGroup)){
                                xlab=param$refGroup, ylab=param$sampleGroup,
                                main="Comparison of average expression",
                                mode="plotly")
-    #  plotly::orca(p_scatter, file=scatterPng, width=900, height=700)
-    #  plotly::orca(p_scatter, file=scatterPdf)
-    # orca is not working well with headless server. system call left orphan orca process.
     scatterHtml = paste0(param$comparison, "-scatter.html")
     saveWidget(as_widget(p_scatter), scatterHtml)
   }
@@ -394,7 +386,7 @@ if (sum(use) > param$minGenesForClustering){
   eval(plotCmd)
   
   if (doGo(param, seqAnno)){
-    clusterResult = goClusterResults(xCentered, param, clusterResult, seqAnno=seqAnno, universeProbeIds=rownames(seqAnno)[rowData(se)$isPresentProbe])
+    clusterResult = goClusterResults(x = xCentered, param, result = clusterResult, enrichInput)
   }
   ## append the result file with the cluster colors
   resultLoaded = ezRead.table(resultFile$resultFile)
@@ -411,9 +403,6 @@ if (sum(use) > param$minGenesForClustering){
       goAndEnrichr = goTables$linkTable
     }
     bgColors = gsub("FF$", "", clusterResult$clusterColors)
-    ## kable solution
-    #rownames(goAndEnrichr) = paste0('<td bgcolor="', bgColors, 
-    #                                 '">',rownames(goAndEnrichr),'</td>')
     rownames(goAndEnrichr) = paste0('<font color="', bgColors,
                                      '">Cluster ', rownames(goAndEnrichr),
                                      '</font>')
@@ -422,8 +411,6 @@ if (sum(use) > param$minGenesForClustering){
       kable_styling(bootstrap_options = "striped",
                     full_width = F, position = "float_right") %>%
       footnote(general="Cluster font color corresponds to the row colors in the heatmap plot.")
-    ## htmlTable solution
-    #htmlTable(goAndEnrichr, col.rgroup = clusterColors)
   }
 }
 ```

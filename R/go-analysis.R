@@ -556,18 +556,17 @@ clusterPheatmap <- function(x, design, param,
 }
 
 ##' @describeIn clusterHeatmap Applies a GO analysis to the cluster results if GO should be done.
-goClusterResults = function(x, param, result, ontologies=c("BP", "MF", "CC"), seqAnno=NULL,
-                            universeGeneIds=NULL, universeProbeIds=NULL, keggOrganism=NA){
+goClusterResults = function(x, param, result, enrichInput, ontologies=c("BP", "MF", "CC"), keggOrganism=NA){
   require("GOstats", warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
   require("annotate", warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
-
-  if (is.null(universeGeneIds)){
-    universeGeneIds =na.omit(unique(unlist( genes[universeProbeIds]) ))
-  }
-
-  genesByCluster = tapply(genes[rownames(x)], result$clusterNumbers, function(x){na.omit(unique(x))}, simplify=FALSE)
+  
+  seqAnno = enrichInput$seqAnno
+  universeGeneIds = enrichInput$presentGenes
+  idxInClusterResult = universeGeneIds %in% rownames(x)
+  
+  genesByCluster = tapply(universeGeneIds[idxInClusterResult], result$clusterNumbers, function(x){na.omit(unique(x))}, simplify=FALSE)
   goClusterResults = ezMclapply(ontologies, function(onto){
-    gene2go = goStringsToList(seqAnno[[paste("GO", onto)]], listNames=rownames(seqAnno))[universeGeneIds]
+    gene2go = goStringsToList(goStrings = seqAnno[[paste("GO", onto)]], listNames=rownames(seqAnno))[universeGeneIds]
     if (param$includeGoParentAnnotation){
       gene2go = addGoParents(gene2go, onto)
     }
