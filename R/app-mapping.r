@@ -302,7 +302,7 @@ ezMethodSTAR = function(input=NA, output=NA, param=NA){
       }
     }
   }
-  
+
   trimmedInput <- ezMethodFastpTrim(input = input, param = param)
   
   if (!grepl("outSAMattributes", param$cmdOptions)){
@@ -317,7 +317,8 @@ ezMethodSTAR = function(input=NA, output=NA, param=NA){
               "--runThreadN", param$cores, param$cmdOptions, 
               "--outStd BAM_Unsorted --outSAMtype BAM Unsorted",
               "--outSAMattrRGline", paste0("ID:", trimmedInput$getNames()), paste0("SM:", trimmedInput$getNames()),
-              ">  Aligned.out.bam")## writes the output file Aligned.out.bam
+              if( grepl('.gz',trimmedInput$getColumn("Read1")) ) "--readFilesCommand zcat",
+              ">  Aligned.out.bam") ## writes the output file Aligned.out.bam
   ##"|", "samtools", "view -S -b -", " >", "Aligned.out.bam")
   ezSystem(cmd)
   
