@@ -16,7 +16,7 @@ editor_options:
 knitr::opts_chunk$set(echo = TRUE)
 output = readRDS("output.rds")
 deResult = readRDS("deResult.rds")
-param =readRDS("param.rds")
+param = readRDS("param.rds")
 
 debug = FALSE
 
@@ -44,6 +44,11 @@ groupMeans = scatterData$groupMeans
 types = scatterData$types
 isTwoGroup = ncol(groupMeans) == 2 & !is.null(param$sampleGroup) &
  !is.null(param$refGroup)
+
+# clustering
+use = rowData(se)$pValue < param$pValueHighlightThresh & 
+  abs(rowData(se)$log2Ratio) > param$log2RatioHighlightThresh & rowData(se)$usedInTest
+use[is.na(use)] = FALSE
 
 # enrichment analyses
 enrichInput = compileEnrichmentInput(param, se)
@@ -322,9 +327,6 @@ if(ncol(x) <= 100){
 
 ### Clustering of significant features
 ```{r cluster setup, echo=FALSE, eval=!debug}
-use = rowData(se)$pValue < param$pValueHighlightThresh & 
-  abs(rowData(se)$log2Ratio) > param$log2RatioHighlightThresh & rowData(se)$usedInTest
-use[is.na(use)] = FALSE
 if (sum(use) > param$maxGenesForClustering){
   use[use] = rank(rowData(se)$pValue[use], ties.method="max") <= param$maxGenesForClustering
 }
@@ -348,6 +350,7 @@ cat(paste0("<SCRIPT language=\"JavaScript\" SRC=\"", basename(jsFile), "\"></SCR
 ```
 
 ```{r cluster, echo=FALSE, message=FALSE, fig.width=max(8,4+0.15*ncol(se)), fig.height=10, fig.retina=2, warning=FALSE, eval=!debug && !hasMassiveFeats}
+
 ## for clustering we use a moderated logSignal
 logSignal = log2(assays(se)$xNorm + param$backgroundExpression)
 if (sum(use) > param$minGenesForClustering){
@@ -385,7 +388,7 @@ if (sum(use) > param$minGenesForClustering){
   })
   eval(plotCmd)
   
-  if (doGo(param, seqAnno)){
+  if (doGo(param, enrichInput$seqAnno)){
     clusterResult = goClusterResults(x = xCentered, param, result = clusterResult, enrichInput)
   }
   ## append the result file with the cluster colors
@@ -396,7 +399,7 @@ if (sum(use) > param$minGenesForClustering){
     zipFile(resultFile$resultFile)
   }
   if (!is.null(clusterResult$GO)){
-    goTables = goClusterTableRmd(param, clusterResult, seqAnno)
+    goTables = goClusterTableRmd(param, clusterResult, enrichInput$seqAnno)
     if (doEnrichr(param)){
       goAndEnrichr = cbind(goTables$linkTable, goTables$enrichrTable)
     } else {
@@ -416,8 +419,7 @@ if (sum(use) > param$minGenesForClustering){
 ```
 
 ```{r render go cluster, echo=FALSE, results='hide', message=FALSE, warning=FALSE, eval=!debug && !hasMassiveFeats}
-if (sum(use) > param$minGenesForClustering){
-  if (!is.null(clusterResult$GO)){
+if (sum(use) > param$minGenesForClustering && !is.null(clusterResult$GO)){
     ## GO Cluster tables
     file = file.path(system.file("templates", package="ezRun"), 
                       "twoGroups_goClusterTable.Rmd")
@@ -425,7 +427,6 @@ if (sum(use) > param$minGenesForClustering){
     rmarkdown::render(input=basename(file), envir = new.env(),
                       output_dir=".", output_file="goClusterTable.html",
                       quiet=TRUE)
-  }
 }
 ```
 
