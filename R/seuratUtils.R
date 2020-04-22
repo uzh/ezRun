@@ -181,7 +181,7 @@ buildSeuratObject <- function(sce){
                                project=param$name,
                                meta.data=cell_info)
   
-  scData[["RNA"]]@meta.features <- cbind.data.frame(scData[["RNA"]]@meta.features, data.frame(rowData(sce)[, c("gene_id", "biotypes", "description")]))
+  #scData[["RNA"]]@meta.features <- cbind.data.frame(scData[["RNA"]]@meta.features, data.frame(rowData(sce)[, c("gene_id", "biotypes", "description")]))
   return(scData)
 }
 
