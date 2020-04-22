@@ -368,7 +368,7 @@ ezInteractiveTableRmd(markers, digits=4, title=caption)
 
 ### Top cluster markers on low-dimensional space
 
-The top 10 markers from each cluster.
+The top 10 (ranked by logFC) markers from each cluster.
 
 ```{r top cluster markers, echo=FALSE, results='asis', fig.width=4, fig.height=3, message=FALSE}
 eachCluster <- 0
