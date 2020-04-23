@@ -122,6 +122,7 @@ ezMethodSCMultipleSamplesOneGroup = function(input=NA, output=NA, param=NA, html
   if(doEnrichr(param) && param$all2allMarkers) 
     all2allMarkers <- all2all(scData, pvalue_all2allMarkers, param)
   
+  #we do cell type identification using AUCell and SingleR
   if(param$species == "Human" | param$species == "Mouse") {
     cells_AUC = cellsLabelsWithAUC(scData, param)
     singler.results <- cellsLabelsWithSingleR(scData, param)
