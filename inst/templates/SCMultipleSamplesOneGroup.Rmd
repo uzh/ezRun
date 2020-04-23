@@ -24,6 +24,9 @@ library(kableExtra)
 library(tidyr)
 library(pheatmap)
 library(scater)
+library(RColorBrewer)
+library(plotly)
+library(SingleR, lib.loc = "/home/gtan/R-library")
 knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE, knitr.table.format = "html")
 
 
@@ -145,60 +148,15 @@ cat("We found positive markers that defined clusters compared to all other cells
 ```
 
 ```{r LR test, eval=(param$DE.method=="LR"), results='asis'}
-cat(paste0("We found positive markers that defined clusters compared to all other cells via differential expression using a logistic regression test and including in the model the ", param$DE.regress, " as the batch effect. Genes with an average, at least 0.25-fold difference (log-scale) between the cells in the tested cluster and the rest of the cells and an adjusted p-value < 0.05 were declared as significant."))
+cat("We found positive markers that defined clusters compared to all other cells via differential expression using a logistic regression test and including in the model the cell cycle as the batch effect. Genes with an average, at least 0.25-fold difference (log-scale) between the cells in the tested cluster and the rest of the cells and an adjusted p-value < 0.05 were declared as significant.")
 ```
 
-<br/>
-
-```{r enrichr markers all, echo=FALSE, eval= doEnrichr(param), results='asis'}
-genesPerCluster <- split(posMarkers$gene, posMarkers$cluster)
-jsCall = paste0('enrich({list: "', sapply(genesPerCluster, paste, collapse="\\n"), '", popup: true});')
-enrichrCalls <- paste0("<a href='javascript:void(0)' onClick='", jsCall,
-                       "'>Analyse at Enrichr website</a>")
-enrichrTable <- tibble(Cluster=names(genesPerCluster),
-                       "# of posMarkers"=lengths(genesPerCluster),
-                       "Enrichr link"=enrichrCalls)
-kable(enrichrTable, format="html", escape=FALSE,
-      caption=paste0("GeneSet enrichment: genes with pvalue ", pvalue_allMarkers)) %>%
-  kable_styling("striped", full_width = F, position = "left")
-```
-
-```{r markers table all, echo=FALSE}
+```{r pos markers, echo=FALSE, results='asis'}
+posMarkers = read_tsv("pos_markers.tsv")
 caption ="Expression differences of cluster marker genes"
 ezInteractiveTableRmd(posMarkers, digits=4, title=caption)
 ```
 
-```{r enrichr all2all markers, eval = doEnrichr(param) && param$all2allMarkers, echo=FALSE, results='asis'}
-all2allMarkers = read_tsv("all2allMarkers.tsv")
-
-for(comparison in names(all2allMarkers)){
-  write_tsv(as_tibble(all2allMarkers[[comparison]], rownames="Gene"),
-            path=paste0(comparison, ".tsv"))
-}
-genesAllPerCluster <- lapply(all2allMarkers, rownames)
-genesUpPerCluster <- lapply(all2allMarkers, function(x){rownames(x)[x$avg_logFC > 0]})
-genesDownPerCluster <- lapply(all2allMarkers, function(x){rownames(x)[x$avg_logFC < 0]})
-
-jsCall_all = paste0('enrich({list: "', sapply(genesAllPerCluster, paste, collapse="\\n"), '", popup: true});')
-jsCall_up = paste0('enrich({list: "', sapply(genesUpPerCluster, paste, collapse="\\n"), '", popup: true});')
-jsCall_down = paste0('enrich({list: "', sapply(genesDownPerCluster, paste, collapse="\\n"), '", popup: true});')
-
-enrichrCalls_all <- paste0("<a href='javascript:void(0)' onClick='", jsCall_all,
-                           "'>Analyse at Enrichr website</a>")
-enrichrCalls_up <- paste0("<a href='javascript:void(0)' onClick='", jsCall_up,
-                          "'>Analyse at Enrichr website</a>")
-enrichrCalls_down <- paste0("<a href='javascript:void(0)' onClick='", jsCall_down,
-                            "'>Analyse at Enrichr website</a>")
-enrichrTable <- tibble(Comparison=names(all2allMarkers),
-                       "# of differentially expressed genes"=lengths(genesAllPerCluster),
-                       "Enrichr link: all significant genes"=enrichrCalls_all,
-                       "Enrichr link: up-regulated genes"=enrichrCalls_up,
-                       "Enrichr link: down-regulated genes"=enrichrCalls_down,
-                       "List of differentially expressed genes"=text_spec(paste0(names(all2allMarkers), ".tsv"), link=paste0(names(all2allMarkers), ".tsv")))
-kable(enrichrTable, format="html", escape=FALSE,
-      caption=paste0("GeneSet enrichment: genes with pvalue ", pvalue_all2allMarkers)) %>%
-  kable_styling("striped", full_width = F, position = "left")
-```
 
 
 ### Visualization of cluster markers
