@@ -27,9 +27,12 @@ require(SummarizedExperiment)
 require(plotly)
 require(webshot)
 require(htmlwidgets)
+require(enrichplot)
 ```
 
 ```{r prepare data, include=FALSE}
+# here, we prepare the data for this report
+
 # general
 se = deResult$se
 param = metadata(se)$param
@@ -52,6 +55,7 @@ use[is.na(use)] = FALSE
 
 # enrichment analyses
 enrichInput = compileEnrichmentInput(param, se)
+
 ## In some cases, such as p2710, there are millions of features, then we have to adjust some analyses below.
 hasMassiveFeats = nrow(enrichInput$seqAnno) >= 200e3
 ```
@@ -439,14 +443,14 @@ if (file.exists("goClusterTable.html")){
 
 ### Enrichr
 ```{r enrichr, echo=FALSE, message=FALSE, eval=!debug}
-if (doGo(param, seqAnno)){
+if (doGo(param, enrichInput$seqAnno)){
   if (doEnrichr(param)){
     isSig = rowData(se)$pValue < param$pValThreshGO & rowData(se)$usedInTest
     isUp = rowData(se)$log2Ratio > param$log2RatioThreshGO & isSig
     isDown = rowData(se)$log2Ratio < -param$log2RatioThreshGO & isSig
     regulatedGenes = list()
-    regulatedGenes$upGenes = na.omit(unique(seqAnno[isUp, "gene_name"]))
-    regulatedGenes$downGenes = na.omit(unique(seqAnno[isDown, "gene_name"]))
+    regulatedGenes$upGenes = na.omit(unique(enrichInput$seqAnno[isUp, "gene_name"]))
+    regulatedGenes$downGenes = na.omit(unique(enrichInput$seqAnno[isDown, "gene_name"]))
     regulatedGenes$bothGenes = union(regulatedGenes$upGenes, regulatedGenes$downGenes)
     
     enrichrLinks = ezMatrix("", rows=names(regulatedGenes), cols=c("Number of Genes", "External", "Precomputed"))
@@ -509,9 +513,10 @@ if(!doEnrichr(param)){
 Maximum number of terms displayed: `r param$maxNumberGroupsDisplayed`.
 
 ```{r goseq compute, echo=FALSE, message=FALSE, warning=FALSE, eval=!debug}
-if (doGo(param, seqAnno)){
-  goResult = twoGroupsGOSE(enrichInput, method=param$goseqMethod)
+if (doGo(param, enrichInput$seqAnno)){
+  goResult = twoGroupsGOSE(param, enrichInput, se)
   goTables = goUpDownTables(param, goResult)
+  resFns <- c() ## Provide download links for these results
 }
 ```
 
@@ -570,29 +575,24 @@ if (exists("goTables")){
 }
 ```
 
-
-### Gene set enrichment analysis
-```{r gsea compute, echo=FALSE, message=FALSE, eval=!debug, warning=FALSE}
-if (doGo(param, seqAnno)){
-  enrichResultGSEA = ezGSEA(param, se)
-  resFns = c()
-}
-```
-
 #### dotplot
 ```{r dotplot, echo=FALSE, message=FALSE, eval=!debug}
-if(exists("enrichResultGSEA")){
-  for(onto in names(enrichResultGSEA)){
-    if(is.null(enrichResultGSEA[[onto]]) || nrow(enrichResultGSEA[[onto]]@result) == 0L){
+if(exists("goResult")){
+  for(onto in names(goResult)){
+    if(is.null(goResult[[onto]]) || nrow(goResult[[onto]]$enrichBoth) == 0L){
       cat("No significant gene set.\n")
       next
     }else{
-      p = dotplot(enrichResultGSEA[[onto]], showCategory=20, title=onto)
-      print(p)
-      resFn = paste(onto, "GSEA.txt", sep="_")
-      write.table(enrichResultGSEA[[onto]], file=resFn,
-                  quote=FALSE, col.names = TRUE, row.names = FALSE)
-      resFns = append(resFns, resFn)
+      for (enrichType in names(goResult[[onto]])){
+        enrichResult = prepareEnrichResult(goTables$ktablesComplete[[enrichType]][[onto]])
+        p = dotplot(enrichResult, 
+                    showCategory=20, title=paste(onto,enrichType))
+        print(p)
+        resFn = paste(onto, enrichType, "GSEA.txt", sep="_")
+        write.table(goResult[[onto]], file=resFn,
+                    quote=FALSE, col.names = TRUE, row.names = FALSE)
+        resFns = append(resFns, resFn)
+      }
     }
   }
 }
@@ -600,15 +600,17 @@ if(exists("enrichResultGSEA")){
 
 #### enrichMap
 ```{r enrichMap, echo=FALSE, fig.width=14, fig.height=14, eval=FALSE}
-if(exists("enrichResultGSEA")){
-  for(onto in names(enrichResultGSEA)){
-    if(is.null(enrichResultGSEA[[onto]]) || nrow(enrichResultGSEA[[onto]]@result) == 0L){
+if(exists("goResult")){
+  for(onto in names(goResult)){
+    if(is.null(goResult[[onto]]) || nrow(goResult[[onto]]$enrichBoth) == 0L){
       cat("No significant gene set.\n")
       next
     }else{
-      p = suppressWarnings(emapplot(enrichResultGSEA[[onto]], showCategory=50,
-                                     main=onto))
-      print(p)
+      for (enrichType in names(goResult[[onto]])){
+        enrichResult = prepareEnrichResult(goTables$ktablesComplete[[enrichType]][[onto]])
+        p = suppressWarnings(emapplot(enrichResult, showCategory=50,main=onto))
+        print(p)
+      }
     }
   }
 }
@@ -616,40 +618,29 @@ if(exists("enrichResultGSEA")){
 
 #### cnetplot
 ```{r cnetplot, echo=FALSE, fig.width=14, fig.height=14, eval=FALSE}
-if(exists("enrichResultGSEA")){
-  for(onto in names(enrichResultGSEA)){
-    if(is.null(enrichResultGSEA[[onto]]) || nrow(enrichResultGSEA[[onto]]@result) == 0L){
+if(exists("goResult")){
+  for(onto in names(goResult)){
+    if(is.null(goResult[[onto]]) || nrow(goResult[[onto]]$enrichBoth) == 0L){
       cat("No significant gene set.\n")
       next
     }else{
-      ## By default it plots gene id instead of gene name.
-      ## Replace the gene id with name.
-      enrichResultToPlot = enrichResultGSEA[[onto]]
-      resultToPlot = enrichResultToPlot@result
-      resultToPlot$core_enrichment = resultToPlot$geneName
-      enrichResultToPlot@result = resultToPlot
-      
-      p = cnetplot(enrichResultToPlot,
-                    foldChange=setNames(rowData(se)$log2Ratio, rowData(se)$gene_name),
-                    main=onto)
-      print(p)
+      for (enrichType in names(goResult[[onto]])){
+        # use gene names
+        enrichResult = goTables$ktablesComplete[[enrichType]][[onto]]
+        enrichResult$geneID = enrichResult$geneNames
+        enrichResult = prepareEnrichResult(enrichResult)
+        
+        p = cnetplot(enrichResult,
+                     foldChange=setNames(rowData(se)$log2Ratio, rowData(se)$gene_name),
+                     main=onto)
+        print(p)
+      }
     }
   }
 }
 ```
 
-#### Result files
-```{r GSEA result files, echo=FALSE, results='asis'}
-if(exists("enrichResultGSEA")){
-  for(resFn in resFns){
-    cat("\n")
-    cat(paste0("[", resFn, "](", resFn, ")"))
-    cat("\n")
-  }
-}
-```
-
-#### Webgestalt
+### Webgestalt
 [InputFiles](./Webgestalt) for [Webgestalt](http://www.webgestalt.org/)
 
 ```{r webgestalt, include=FALSE}
