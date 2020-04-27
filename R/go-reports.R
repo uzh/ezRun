@@ -145,7 +145,7 @@ goUpDownTables = function(param, goResult){
     message("got no data frame")
     return(ezFrame("Term"=character(0), "ID"=character(0), 
                    "p"=numeric(0), "N"=integer(0), 
-                   "geneID"=character(0), "geneNames"=character(0)))
+                   "geneID"=character(0), "geneNames"=character(0), "fdr"=numeric(0)))
   }
   x = x[x$Count >= minCount & x$Pvalue < pThreshGo, ]
   x = x[order(x$Pvalue), ]
@@ -155,7 +155,7 @@ goUpDownTables = function(param, goResult){
   if (nrow(x) == 0){
     return(ezFrame("Term"=character(0), "ID"=character(0),
                    "p"=numeric(0), "N"=integer(0), 
-                   "geneID"=character(0), "geneNames"=character(0)))
+                   "geneID"=character(0), "geneNames"=character(0), "fdr"=numeric(0)))
   }
   
   if (onto == "CC"){
@@ -190,6 +190,7 @@ goUpDownTables = function(param, goResult){
   terms = character()
   ids = character()
   pValues = numeric()
+  fdr = numeric()
   counts = character()
   geneID = character()
   geneNames = character()
@@ -199,12 +200,13 @@ goUpDownTables = function(param, goResult){
       terms = append(terms, names(childTerms)[childTerms==term])
       ids = append(ids, term)
       pValues = append(pValues, x[term, "Pvalue"])
+      fdr = append(fdr, x[term, "fdr"])
       counts = append(counts, paste(x[term, "Count"], x[term, "Size"], sep="/"))
       geneID = append(geneID, gsub("; ","/",x[term, "Genes"]))
       geneNames = append(geneNames, gsub("; ","/",x[term, "GenesNames"]))
     }
   }
-  return(ezFrame("Term"=terms, "ID"=ids,"p"=pValues, "N"=counts, "geneID"=geneID, "geneNames"=geneNames))
+  return(ezFrame("Term"=terms, "ID"=ids,"p"=pValues, "fdr"=fdr, "N"=counts, "geneID"=geneID, "geneNames"=geneNames))
 }
 
 generateEnrichResult = setClass("enrichResult",
@@ -227,9 +229,8 @@ generateEnrichResult = setClass("enrichResult",
 
 prepareEnrichResult = function(result){
   enrichment = as.data.frame(result)
-  colnames(enrichment)[match(c("Term", "ID", "p", "N","geneID"),colnames(enrichment))] = c("Description", "ID", "pvalue", "GeneRatio","geneID")
+  colnames(enrichment)[match(c("Term", "ID", "fdr", "N","geneID"),colnames(enrichment))] = c("Description", "ID", "p.adjust", "GeneRatio","geneID")
   enrichment$Count = as.numeric(gsub("/.*","",enrichment$GeneRatio))
-  enrichment$p.adjust = p.adjust(enrichment$pvalue, method = 'fdr')
   rownames(enrichment) = enrichment$ID
   enrichment = enrichment[,c("ID","Description","GeneRatio","Count","p.adjust","geneID")]
   enrichment = generateEnrichResult(result = enrichment)

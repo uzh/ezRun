@@ -1,5 +1,5 @@
 ---
-  title: "`r paste('Two groups analysis:', param$comparison)`"
+title: "`r paste('Two groups analysis:', param$comparison)`"
 author: "Functional Genomics Center Zurich"
 output: 
   html_document:
@@ -13,6 +13,7 @@ editor_options:
 ---
 
 ```{r setup, include=FALSE}
+require(knitr)
 knitr::opts_chunk$set(echo = TRUE)
 output = readRDS("output.rds")
 deResult = readRDS("deResult.rds")
@@ -21,7 +22,6 @@ param = readRDS("param.rds")
 debug = FALSE
 
 require(ezRun)
-require(knitr)
 require(kableExtra)
 require(SummarizedExperiment)
 require(plotly)
@@ -509,7 +509,7 @@ if(!doEnrichr(param)){
 }
 ```
 
-### GO enrichment analysis (goseq)
+### GO enrichment analysis (goseq) {.tabset}
 Maximum number of terms displayed: `r param$maxNumberGroupsDisplayed`.
 
 ```{r goseq compute, echo=FALSE, message=FALSE, warning=FALSE, eval=!debug}
@@ -520,6 +520,7 @@ if (doGo(param, enrichInput$seqAnno)){
 }
 ```
 
+#### Tables
 ```{r goseq interactive table, echo=FALSE, eval=!debug}
 if (exists("goTables")){
   kable(goTables$linkTable, escape=FALSE, row.names=TRUE, format = "html") %>%
@@ -564,18 +565,8 @@ if (exists("ktables")){
 }
 ```
 
-#### Result files
-```{r goseq result files, echo=FALSE, results='asis'}
-if (exists("goTables")){
-  for(resFn in goTables$txtFiles){
-    cat("\n")
-    cat(paste0("[", resFn, "](", resFn, ")"))
-    cat("\n")
-  }
-}
-```
-
-#### dotplot
+#### Plots
+##### dotplot
 ```{r dotplot, echo=FALSE, message=FALSE, eval=!debug}
 if(exists("goResult")){
   for(onto in names(goResult)){
@@ -588,8 +579,9 @@ if(exists("goResult")){
         p = dotplot(enrichResult, 
                     showCategory=20, title=paste(onto,enrichType))
         print(p)
+        
         resFn = paste(onto, enrichType, "GSEA.txt", sep="_")
-        write.table(goResult[[onto]], file=resFn,
+        write.table(goResult[[enrichType]][[onto]], file=resFn,
                     quote=FALSE, col.names = TRUE, row.names = FALSE)
         resFns = append(resFns, resFn)
       }
@@ -598,7 +590,7 @@ if(exists("goResult")){
 }
 ```
 
-#### enrichMap
+##### enrichMap
 ```{r enrichMap, echo=FALSE, fig.width=14, fig.height=14, eval=FALSE}
 if(exists("goResult")){
   for(onto in names(goResult)){
@@ -616,7 +608,7 @@ if(exists("goResult")){
 }
 ```
 
-#### cnetplot
+##### cnetplot
 ```{r cnetplot, echo=FALSE, fig.width=14, fig.height=14, eval=FALSE}
 if(exists("goResult")){
   for(onto in names(goResult)){
@@ -636,6 +628,17 @@ if(exists("goResult")){
         print(p)
       }
     }
+  }
+}
+```
+
+#### Result files
+```{r goseq result files, echo=FALSE, results='asis'}
+if (exists("goTables")){
+  for(resFn in goTables$txtFiles){
+    cat("\n")
+    cat(paste0("[", resFn, "](", resFn, ")"))
+    cat("\n")
   }
 }
 ```
