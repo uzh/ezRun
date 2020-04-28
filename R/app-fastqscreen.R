@@ -78,6 +78,10 @@ ezMethodFastqScreen = function(input=NA, output=NA, param=NA,
     countFiles = executeBowtie2CMD_Virus(param, noHit_files)
     speciesPercentageTopVirus = collectBowtie2Output(param, countFiles, 
                                                      readCount, virusResult = T)
+    dir.create('virusCheck')
+    for (i in 1:length(countFiles)){
+      ezSystem(paste('mv', file.path(countFiles[i]), 'virusCheck'))
+    }
   } else {
     speciesPercentageTopVirus = NULL
   }
@@ -98,10 +102,7 @@ ezMethodFastqScreen = function(input=NA, output=NA, param=NA,
   #create report
   setwdNew(basename(output$getColumn("Report")))
   if(param[['virusCheck']]){
-      dir.create('virusCheck')
-      for (i in 1:length(countFiles)){
-        ezSystem(paste('mv', file.path('..',countFiles[i]), 'virusCheck'))
-      }
+      ezSystem(paste('mv', '../virusCheck', '.'))
   }
   ## Copy the style files and templates
   styleFiles <- file.path(system.file("templates", package="ezRun"),
