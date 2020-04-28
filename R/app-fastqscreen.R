@@ -97,7 +97,12 @@ ezMethodFastqScreen = function(input=NA, output=NA, param=NA,
   
   #create report
   setwdNew(basename(output$getColumn("Report")))
-  
+  if(param[['virusCheck']]){
+      dir.create('virusCheck')
+      for (i in 1:length(countFiles)){
+        ezSystem(paste('mv', file.path('..',countFiles[i]), 'virusCheck'))
+      }
+  }
   ## Copy the style files and templates
   styleFiles <- file.path(system.file("templates", package="ezRun"),
                           c("fgcz.css", "FastqScreen.Rmd",
