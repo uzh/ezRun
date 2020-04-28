@@ -28,6 +28,7 @@ require(plotly)
 require(webshot)
 require(htmlwidgets)
 require(enrichplot)
+require(ggpubr)
 ```
 
 ```{r prepare data, include=FALSE}
@@ -403,7 +404,7 @@ if (sum(use) > param$minGenesForClustering){
     zipFile(resultFile$resultFile)
   }
   if (!is.null(clusterResult$GO)){
-    goTables = goClusterTableRmd(param, clusterResult, enrichInput$seqAnno)
+    goTables = goClusterTableRmd(param, clusterResult, seqAnno = enrichInput$seqAnno)
     if (doEnrichr(param)){
       goAndEnrichr = cbind(goTables$linkTable, goTables$enrichrTable)
     } else {
@@ -567,69 +568,84 @@ if (exists("ktables")){
 
 #### Plots
 ##### dotplot
-```{r dotplot, echo=FALSE, message=FALSE, eval=!debug}
+```{r dotplot, echo=FALSE, message=FALSE, fig.width=15, fig.height=10}
+p = list()
+
 if(exists("goResult")){
   for(onto in names(goResult)){
-    if(is.null(goResult[[onto]]) || nrow(goResult[[onto]]$enrichBoth) == 0L){
-      cat("No significant gene set.\n")
-      next
-    }else{
       for (enrichType in names(goResult[[onto]])){
-        enrichResult = prepareEnrichResult(goTables$ktablesComplete[[enrichType]][[onto]])
-        p = dotplot(enrichResult, 
-                    showCategory=20, title=paste(onto,enrichType))
-        print(p)
-        
-        resFn = paste(onto, enrichType, "GSEA.txt", sep="_")
-        write.table(goResult[[enrichType]][[onto]], file=resFn,
-                    quote=FALSE, col.names = TRUE, row.names = FALSE)
-        resFns = append(resFns, resFn)
+        if(is.null(goResult[[onto]]) || nrow(goTables$ktablesComplete[[enrichType]][[onto]]) == 0L){
+          cat("No significant gene set.\n")
+          p[paste0(enrichType,'_',onto)] = list(NULL)
+        }else{
+          enrichResult = goTables$ktablesComplete[[enrichType]][[onto]]
+          enrichResult$Term = substr(enrichResult$Term, start = 1, stop = 20) # don't use the full Terms, some are too large
+          enrichResult = prepareEnrichResult(enrichResult)
+          p[[paste0(enrichType,'_',onto)]] = dotplot(enrichResult, 
+                      showCategory=20, 
+                      title=paste(onto,enrichType))
+          
+          resFn = paste(onto, enrichType, "GSEA.txt", sep="_")
+          write.table(goResult[[enrichType]][[onto]], file=resFn,
+                      quote=FALSE, col.names = TRUE, row.names = FALSE)
+          resFns = append(resFns, resFn)
       }
     }
   }
 }
+
+
+ggarrange(plotlist = p, ncol = 3, nrow = 3)
 ```
 
+
 ##### enrichMap
-```{r enrichMap, echo=FALSE, fig.width=14, fig.height=14, eval=FALSE}
+```{r enrichMap, echo=FALSE, fig.width=15, fig.height=10}
+p = list()
+
 if(exists("goResult")){
   for(onto in names(goResult)){
-    if(is.null(goResult[[onto]]) || nrow(goResult[[onto]]$enrichBoth) == 0L){
-      cat("No significant gene set.\n")
-      next
-    }else{
-      for (enrichType in names(goResult[[onto]])){
-        enrichResult = prepareEnrichResult(goTables$ktablesComplete[[enrichType]][[onto]])
-        p = suppressWarnings(emapplot(enrichResult, showCategory=50,main=onto))
-        print(p)
+    for(enrichType in names(goResult[[onto]]) ){
+      if(is.null(goResult[[onto]]) || nrow(goTables$ktablesComplete[[enrichType]][[onto]]) == 0L){
+        cat("No significant gene set.\n")
+          p[paste0(enrichType,'_',onto)] = list(NULL)
+      }else{
+        enrichResult = goTables$ktablesComplete[[enrichType]][[onto]]
+        enrichResult$Term = substr(enrichResult$Term, start = 1, stop = 20) # don't use the full Terms, some are too large
+        enrichResult = prepareEnrichResult(enrichResult)
+        p[[paste0(enrichType,'_',onto)]] = emapplot(enrichResult, showCategory=50) + ggtitle(paste(onto,enrichType))
       }
+        
     }
   }
 }
+
+ggarrange(plotlist = p, ncol = 3, nrow = 3)
 ```
 
 ##### cnetplot
-```{r cnetplot, echo=FALSE, fig.width=14, fig.height=14, eval=FALSE}
+```{r cnetplot, echo=FALSE, fig.width=15, fig.height=10}
+p=list()
+
 if(exists("goResult")){
   for(onto in names(goResult)){
-    if(is.null(goResult[[onto]]) || nrow(goResult[[onto]]$enrichBoth) == 0L){
-      cat("No significant gene set.\n")
-      next
-    }else{
       for (enrichType in names(goResult[[onto]])){
-        # use gene names
-        enrichResult = goTables$ktablesComplete[[enrichType]][[onto]]
-        enrichResult$geneID = enrichResult$geneNames
-        enrichResult = prepareEnrichResult(enrichResult)
-        
-        p = cnetplot(enrichResult,
-                     foldChange=setNames(rowData(se)$log2Ratio, rowData(se)$gene_name),
-                     main=onto)
-        print(p)
+        if(is.null(goResult[[onto]]) || nrow(goTables$ktablesComplete[[enrichType]][[onto]]) == 0L){
+          cat("No significant gene set.\n")
+          p[paste0(enrichType,'_',onto)] = list(NULL)
+        }else{
+          # use gene names
+          enrichResult = goTables$ktablesComplete[[enrichType]][[onto]]
+          enrichResult$geneID = enrichResult$geneNames
+          enrichResult = prepareEnrichResult(enrichResult)
+          
+          p[[paste0(enrichType,'_',onto)]] = cnetplot(enrichResult,foldChange=setNames(rowData(se)$log2Ratio, rowData(se)$gene_name)) + ggtitle(paste(onto,enrichType)) 
       }
     }
   }
 }
+
+ggarrange(plotlist = p, ncol=3, nrow = 3)
 ```
 
 #### Result files
