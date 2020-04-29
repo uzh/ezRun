@@ -46,8 +46,6 @@ scatterData = makeTestScatterData(param, se)
 logSignal = scatterData$logSignal
 groupMeans = scatterData$groupMeans
 types = scatterData$types
-isTwoGroup = ncol(groupMeans) == 2 & !is.null(param$sampleGroup) &
- !is.null(param$refGroup)
 
 # clustering
 use = rowData(se)$pValue < param$pValueHighlightThresh & 
@@ -136,109 +134,87 @@ Subsequent plots highlight significant genes in <span style="color:#A6CEE3FF">bl
 [Interactive table of significant genes](`r resultFile$resultHtml`)
 
 ```{r scatter comparison, echo=FALSE, message=FALSE, fig.width=9, fig.width=7, eval=!debug}
-if(isTRUE(isTwoGroup)){
-  ## scatter plot
-  sampleValues = 2^groupMeans[ , param$sampleGroup]
-  refValues = 2^groupMeans[ , param$refGroup]
-  scatterPng = paste0(param$comparison, "-scatter.png")
-  scatterPdf = sub("png$", "pdf", scatterPng)
+sampleValues = 2^groupMeans[ , param$sampleGroup]
+refValues = 2^groupMeans[ , param$refGroup]
+scatterPng = paste0(param$comparison, "-scatter.png")
+scatterPdf = sub("png$", "pdf", scatterPng)
+p_scatter = ezXYScatter.2(xVec=refValues, yVec=sampleValues,
+                          isPresent=rowData(se)$usedInTest, 
+                          types=types, names=rowData(se)$gene_name,
+                          xlab=param$refGroup, ylab=param$sampleGroup,
+                          main="Comparison of average expression",
+                          mode="ggplot2")
+
+print(p_scatter)
+
+ggsave(filename=scatterPdf, plot=p_scatter, device="pdf",
+       width=9, height=7)
+
+if(!isTRUE(hasMassiveFeats)){
   p_scatter = ezXYScatter.2(xVec=refValues, yVec=sampleValues,
-                             isPresent=rowData(se)$usedInTest, 
-                             types=types, names=rowData(se)$gene_name,
-                             xlab=param$refGroup, ylab=param$sampleGroup,
-                             main="Comparison of average expression",
-                             mode="ggplot2")
-  
-  print(p_scatter)
-  
-  ggsave(filename=scatterPdf, plot=p_scatter, device="pdf",
-         width=9, height=7)
-  
-  if(!isTRUE(hasMassiveFeats)){
-    p_scatter = ezXYScatter.2(xVec=refValues, yVec=sampleValues,
-                               isPresent=rowData(se)$usedInTest, 
-                               types=types, names=rowData(se)$gene_name,
-                               xlab=param$refGroup, ylab=param$sampleGroup,
-                               main="Comparison of average expression",
-                               mode="plotly")
-    scatterHtml = paste0(param$comparison, "-scatter.html")
-    saveWidget(as_widget(p_scatter), scatterHtml)
-  }
+                            isPresent=rowData(se)$usedInTest, 
+                            types=types, names=rowData(se)$gene_name,
+                            xlab=param$refGroup, ylab=param$sampleGroup,
+                            main="Comparison of average expression",
+                            mode="plotly")
+  scatterHtml = paste0(param$comparison, "-scatter.html")
+  saveWidget(as_widget(p_scatter), scatterHtml)
 }
 ```
 
 ```{r volcano p-value, echo=FALSE, message=FALSE, warning=FALSE, fig.width=9, fig.width=7, eval=!debug}
-if (isTRUE(isTwoGroup)){
-  ## volcano plot with p-value
-  volcanoPng = paste0(param$comparison, "-volcano.png")
-  volcanoPdf = sub("png$", "pdf", volcanoPng)
-  p_volcano = ezVolcano(log2Ratio=rowData(se)$log2Ratio,
-                         pValue=rowData(se)$pValue, yType="p-value",
-                         isPresent=rowData(se)$usedInTest, types=types,
-                         names=rowData(se)$gene_name,
-                         main=param$comparison,
-                         mode="ggplot2")
-  
-  print(p_volcano)
-  
-  ggsave(filename=volcanoPdf, plot=p_volcano, device="pdf",
-         width=9, height=7)
-  if(!isTRUE(hasMassiveFeats)){
-    p_volcano = ezVolcano(log2Ratio=rowData(se)$log2Ratio, 
-                           pValue=rowData(se)$pValue, yType="p-value",
-                           isPresent=rowData(se)$usedInTest, types=types,
-                           names=rowData(se)$gene_name,
-                           main=param$comparison,
-                           mode="plotly")
-    volcanoHtml = paste0(param$comparison, "-volcano.html")
-    saveWidget(as_widget(p_volcano), volcanoHtml)
-  }
-}
-```
+## volcano plot with p-value
+volcanoPng = paste0(param$comparison, "-volcano.png")
+volcanoPdf = sub("png$", "pdf", volcanoPng)
+p_volcano = ezVolcano(log2Ratio=rowData(se)$log2Ratio,
+                      pValue=rowData(se)$pValue, yType="p-value",
+                      isPresent=rowData(se)$usedInTest, types=types,
+                      names=rowData(se)$gene_name,
+                      main=param$comparison,
+                      mode="ggplot2")
 
-```{r scatter all pairs, echo=FALSE, results='asis', message=FALSE, eval=!debug}
-## All pairs
-if (!isTRUE(isTwoGroup)){
-  plotCmd = expression({
-    ezAllPairScatter(x=2^groupMeans, isPresent=rowData(se)$usedInTest, 
-                     types=types)
-  })
-  includeHtml = ezImageFileLink(plotCmd, file=paste0(param$comparison, "-scatter.png"),
-                                 width=min(max(ncol(groupMeans) * 200, 400), 2000),
-                                 height=min(max(ncol(groupMeans) * 200, 400), 2000)) 
-  # dynamic png with possibly many plots
-  cat(includeHtml)
+print(p_volcano)
+
+ggsave(filename=volcanoPdf, plot=p_volcano, device="pdf",
+       width=9, height=7)
+if(!isTRUE(hasMassiveFeats)){
+  p_volcano = ezVolcano(log2Ratio=rowData(se)$log2Ratio, 
+                        pValue=rowData(se)$pValue, yType="p-value",
+                        isPresent=rowData(se)$usedInTest, types=types,
+                        names=rowData(se)$gene_name,
+                        main=param$comparison,
+                        mode="plotly")
+  volcanoHtml = paste0(param$comparison, "-volcano.html")
+  saveWidget(as_widget(p_volcano), volcanoHtml)
 }
 ```
 
 ### Inspection of significant genes (Advanced plots)
 ```{r volcano FDR, echo=FALSE, message=FALSE, fig.width=9, fig.width=7, eval=!debug, warning=FALSE}
-if(isTRUE(isTwoGroup)){
-  ## warning=FALSE because FDR contains NA. Shall we make them always 1?
-  ## volcano plot with FDR
-  volcanoFDRPng = paste0(param$comparison, "-FDR-volcano.png")
-  volcanoFDRPdf = sub("png$", "pdf", volcanoFDRPng)
-  p_volcano = ezVolcano(log2Ratio=rowData(se)$log2Ratio,
-                         pValue=rowData(se)$fdr, yType="FDR",
-                         isPresent=rowData(se)$usedInTest, types=types,
-                         names=rowData(se)$gene_name,
-                         main=param$comparison,
-                         mode="ggplot2")
-  print(p_volcano)
-  
-  ggsave(filename=volcanoFDRPdf, plot=p_volcano, device="pdf",
-         width=9, height=7)
-  
-  if(!isTRUE(hasMassiveFeats)){
-    p_volcano = ezVolcano(log2Ratio=rowData(se)$log2Ratio, 
-                           pValue=rowData(se)$fdr, yType="FDR",
-                           isPresent=rowData(se)$usedInTest, types=types,
-                           names=rowData(se)$gene_name,
-                           main=param$comparison,
-                           mode="plotly")
-    volcanoFDRHtml = paste0(param$comparison, "-FDR-volcano.html")
-    saveWidget(as_widget(p_volcano), volcanoFDRHtml)
-  }
+## warning=FALSE because FDR contains NA. Shall we make them always 1?
+## volcano plot with FDR
+volcanoFDRPng = paste0(param$comparison, "-FDR-volcano.png")
+volcanoFDRPdf = sub("png$", "pdf", volcanoFDRPng)
+p_volcano = ezVolcano(log2Ratio=rowData(se)$log2Ratio,
+                      pValue=rowData(se)$fdr, yType="FDR",
+                      isPresent=rowData(se)$usedInTest, types=types,
+                      names=rowData(se)$gene_name,
+                      main=param$comparison,
+                      mode="ggplot2")
+print(p_volcano)
+
+ggsave(filename=volcanoFDRPdf, plot=p_volcano, device="pdf",
+       width=9, height=7)
+
+if(isFALSE(hasMassiveFeats)){
+  p_volcano = ezVolcano(log2Ratio=rowData(se)$log2Ratio, 
+                        pValue=rowData(se)$fdr, yType="FDR",
+                        isPresent=rowData(se)$usedInTest, types=types,
+                        names=rowData(se)$gene_name,
+                        main=param$comparison,
+                        mode="plotly")
+  volcanoFDRHtml = paste0(param$comparison, "-FDR-volcano.html")
+  saveWidget(as_widget(p_volcano), volcanoFDRHtml)
 }
 ```
 
