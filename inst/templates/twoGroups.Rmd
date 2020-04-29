@@ -46,11 +46,11 @@ scatterData = makeTestScatterData(param, se)
 logSignal = scatterData$logSignal
 groupMeans = scatterData$groupMeans
 types = scatterData$types
+clusterGene = types$Significants
+if (sum(clusterGene) > param$maxGenesForClustering){
+  clusterGene[types$Significants] = rank(rowData(se)$pValue[types$Significants], ties.method="max") <= param$maxGenesForClustering
+}
 
-# clustering
-use = rowData(se)$pValue < param$pValueHighlightThresh & 
-  abs(rowData(se)$log2Ratio) > param$log2RatioHighlightThresh & rowData(se)$usedInTest
-use[is.na(use)] = FALSE
 
 # enrichment analyses
 enrichInput = compileEnrichmentInput(param, se)
@@ -282,13 +282,13 @@ if(ncol(x) <= 100){
     }
   }else{
     cat(paste("Pairs:", param$sampleGroup, "over", param$refGroup), "\n")
-    use = param$grouping %in% c(param$sampleGroup, param$refGroup)
-    if (all(table(param$grouping2[use], param$grouping[use]) == 1)){
+    useSample = param$grouping %in% c(param$sampleGroup, param$refGroup)
+    if (all(table(param$grouping2[useSample], param$grouping[useSample]) == 1)){
       groups = paste(param$grouping, param$grouping2, sep="--")
       sampleGroups = sort(unique(groups[param$grouping == param$sampleGroup]))
       refGroups = sort(unique(groups[param$grouping == param$refGroup]))
-      avgValues = averageColumns(x[ ,use], groups[use], mean)
-      avgPresent= averageColumns(x[ ,use], groups[use], function(x){mean(x) > 0.5})
+      avgValues = averageColumns(x[ ,useSample], groups[useSample], mean)
+      avgPresent= averageColumns(x[ ,useSample], groups[useSample], function(x){mean(x) > 0.5})
       sampleValues = avgValues[ , sampleGroups, drop=FALSE]
       refValues = avgValues[ , refGroups, drop=FALSE]
       samplePresent = avgPresent[ ,sampleGroups, drop=FALSE]
@@ -308,15 +308,12 @@ if(ncol(x) <= 100){
 
 ### Clustering of significant features
 ```{r cluster setup, echo=FALSE, eval=!debug}
-if (sum(use) > param$maxGenesForClustering){
-  use[use] = rank(rowData(se)$pValue[use], ties.method="max") <= param$maxGenesForClustering
-}
 settings = character()
 settings["Significance threshold:"] = param$pValueHighlightThresh
 if (param$log2RatioHighlightThresh > 0){
   settings["log2 Ratio threshold:"] = param$log2RatioHighlightThresh
 }
-settings["Number of significant features:"] = sum(use)
+settings["Number of significant features:"] = sum(clusterGene)
 knitr::kable(as.data.frame(settings), format="html", 
              col.names="Number", row.names=TRUE) %>%
   kable_styling(bootstrap_options = "striped", full_width = F,
@@ -334,8 +331,8 @@ cat(paste0("<SCRIPT language=\"JavaScript\" SRC=\"", basename(jsFile), "\"></SCR
 
 ## for clustering we use a moderated logSignal
 logSignal = log2(assays(se)$xNorm + param$backgroundExpression)
-if (sum(use) > param$minGenesForClustering){
-  xCentered = logSignal[use , ]
+if (sum(clusterGene) > param$minGenesForClustering){
+  xCentered = logSignal[clusterGene , ]
   if(param$onlyCompGroupsHeatmap){
     columnsToSubset = param$grouping %in% c(param$refGroup, param$sampleGroup)
     param$grouping = param$grouping[columnsToSubset]
@@ -400,7 +397,7 @@ if (sum(use) > param$minGenesForClustering){
 ```
 
 ```{r render go cluster, echo=FALSE, results='hide', message=FALSE, warning=FALSE, eval=!debug && !hasMassiveFeats}
-if (sum(use) > param$minGenesForClustering && !is.null(clusterResult$GO)){
+if (sum(clusterGene) > param$minGenesForClustering && !is.null(clusterResult$GO)){
     ## GO Cluster tables
     file = file.path(system.file("templates", package="ezRun"), 
                       "twoGroups_goClusterTable.Rmd")
