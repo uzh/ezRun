@@ -497,7 +497,7 @@ addResultFileSE = function(doc, param, se, useInOutput=TRUE,
   return(list(resultFile=file))
 }
 
-makeResultFile = function(param, se, useInOutput=TRUE,
+makeResultFiles = function(param, se, useInOutput=TRUE,
                           file=paste0("result--", param$comparison, ".txt")){
   require(tools)
   require(DT, quietly=TRUE)

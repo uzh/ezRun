@@ -100,14 +100,14 @@ conversion of the symbols to dates). See
 (https://www.genenames.org/help/importing-gene-symbol-data-into-excel-correctly)
 
 ```{r store result live report, echo=FALSE, message=FALSE, eval=TRUE, warning=FALSE, cache=FALSE}
-resultFile = makeResultFile(param, se)
+resultFiles = makeResultFiles(param, se)
 ezWrite.table(colData(se)[, "sf", drop=FALSE],
               file="scalingfactors.txt", head="Name", digits=4)
 liveReportLink = output$getColumn("Live Report")
 deResult$saveToFile(basename(output$getColumn("Live Report")))
 ```
 
-[`r resultFile$resultZip`](`r resultFile$resultZip`)
+[`r resultFile$resultZip`](`r resultFiles$resultZip`)
 
 [Live Report and Visualizations](`r liveReportLink`)
 
@@ -131,7 +131,7 @@ knitr::kable(as.data.frame(settings), format="html",
 
 Subsequent plots highlight significant genes in <span style="color:#A6CEE3FF">blue</span>.
 
-[Interactive table of significant genes](`r resultFile$resultHtml`)
+[Interactive table of significant genes](`r resultFiles$resultHtml`)
 
 ```{r scatter comparison, echo=FALSE, message=FALSE, fig.width=9, fig.width=7, eval=!debug}
 sampleValues = 2^groupMeans[ , param$sampleGroup]
@@ -370,11 +370,11 @@ if (sum(clusterGene) > param$minGenesForClustering){
     clusterResult = goClusterResults(x = xCentered, param, result = clusterResult, enrichInput)
   }
   ## append the result file with the cluster colors
-  resultLoaded = ezRead.table(resultFile$resultFile)
+  resultLoaded = ezRead.table(resultFiles$resultFile)
   resultLoaded$Cluster = clusterResult$clusterColors[clusterResult$clusterNumbers[rownames(resultLoaded)]]
-  ezWrite.table(resultLoaded, file=resultFile$resultFile)
+  ezWrite.table(resultLoaded, file=resultFiles$resultFile)
   if (param$doZip){
-    zipFile(resultFile$resultFile)
+    zipFile(resultFiles$resultFile)
   }
   if (!is.null(clusterResult$GO)){
     goTables = goClusterTableRmd(param, clusterResult, seqAnno = enrichInput$seqAnno)
@@ -636,7 +636,7 @@ if (exists("goTables")){
 [InputFiles](./Webgestalt) for [Webgestalt](http://www.webgestalt.org/)
 
 ```{r webgestalt, include=FALSE}
-makeWebgestaltFiles(param, resultFile$resultFile)
+makeWebgestaltFiles(param, resultFiles$resultFile)
 if(param$runGSEA){
   gseaFiles = list.files('Webgestalt', pattern = '^GSEA_Input', full.names = TRUE)
   for (i in 1:length(gseaFiles)){
