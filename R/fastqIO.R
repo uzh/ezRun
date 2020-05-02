@@ -196,21 +196,21 @@ ezMethodBam2Fastq <- function(input=NA, output=NA, param=NA,
   }else{
     if (!is(output, "EzDataset")){
       outputMeta <- input$meta
-      outputMeta$`Read1` <- paste0(getwd(), "/", rownames(outputMeta), 
+      outputMeta[['Read1 [File]']] <- paste0(getwd(), "/", rownames(outputMeta), 
                                    "_R1.fastq")
       if (param$paired){
-        outputMeta$`Read2` <- paste0(getwd(), "/", rownames(outputMeta), 
+        outputMeta[['Read2 [File]']] <- paste0(getwd(), "/", rownames(outputMeta), 
                                      "_R2.fastq")
       } else {
-        outputMeta$`Read2` <- NULL
+        outputMeta[['Read2 [File]']] <- NULL
       }
       output <- EzDataset(meta=outputMeta, dataRoot=NULL)
     }
     bam2fastq(bamFn=input$getFullPaths("Read1"),
               OUTPUT_PER_RG=FALSE,
               fastqFns=output$getColumn("Read1"),
-              fastq2Fns=ifelse(isTRUE(param$paired), output$getColumn("Read2"),
-                               NULL),
+              fastq2Fns=ifelse(isTRUE(param$paired), output$getColumn("Read1"),
+                               list(NULL)),
               paired=param$paired)
     output$setColumn("Read Count",
                      countReadsInFastq(output$getColumn("Read1")))
