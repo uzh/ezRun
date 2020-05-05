@@ -9,7 +9,7 @@ ezMethodCountSpacer = function(input=NA, output=NA, param=NA){
   require(Biostrings)
   require(ShortRead)
   require(ggplot2)
-  
+  setwdNew(param[['name']])
   sampleName = input$getNames()
   param[['dictPath']] = list.files(file.path('/srv/GT/databases/GEML/sgRNA_Libs/',param[['dictPath']]), pattern = 'csv', full.names = TRUE)
   dict = ezRead.table(param[['dictPath']], header = FALSE, sep = ',', row.names = NULL)
