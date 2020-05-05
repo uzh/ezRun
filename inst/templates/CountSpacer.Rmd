@@ -52,13 +52,13 @@ p <- ggplot(data, aes(x=group, y=counts))
   h <- h +  ggtitle(paste0(sampleName, '-Histogram 0MM')) + ylab('Number of sgRNAs') + xlab('Log2 count per sgRNA (0MM)')
   print(h)
   
-  plot(sortedCounts, pch = c(15), cex = 0.7, main = paste(sampleName, '- sgCount Overview'), ylab = 'log2(sgRNA Count)')
+  plot(sortedCounts, pch = c(15), cex = 0.7, main = paste(sampleName, '- sgCount Overview'), ylab = 'log2(sgRNA Count)', ylim = c(0, max(max(sortedCounts), 1.05*upperCutOff)))
   abline(h = mean(sortedCounts))
   abline(h = upperCutOff, lty = 2)
   abline(h = lowerCutOff, lty = 2)
   text(length(sortedCounts)*0.05, 1.05*mean(sortedCounts), bquote(mu==.(mu)), cex = 0.8)
-  text(length(sortedCounts)*0.8, 1.05*upperCutOff, paste0('#',up_sgRNAs, ' (',relUp_sgRNA,'%)' ), cex = 0.8)
-  text(length(sortedCounts)*0.15, 0.95*lowerCutOff, paste0('#',down_sgRNAs, ' (',relDown_sgRNA,'%)' ), cex = 0.8)
+  text(length(sortedCounts)*0.8, 1.02*upperCutOff, paste0('#',up_sgRNAs, ' (',relUp_sgRNA,'%)' ), cex = 0.8)
+  text(length(sortedCounts)*0.15, 0.96*lowerCutOff, paste0('#',down_sgRNAs, ' (',relDown_sgRNA,'%)' ), cex = 0.8)
 ```
 
 ### Data availability
