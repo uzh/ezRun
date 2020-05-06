@@ -196,13 +196,15 @@ ezMethodBam2Fastq <- function(input=NA, output=NA, param=NA,
   }else{
     if (!is(output, "EzDataset")){
       outputMeta <- input$meta
-      outputMeta[['Read1 [File]']] <- paste0(getwd(), "/", rownames(outputMeta), 
+      outputMeta[['Read1']] <- paste0(getwd(), "/", rownames(outputMeta), 
                                    "_R1.fastq")
+      outputMeta[['Read1 [File]']] = NULL
       if (param$paired){
-        outputMeta[['Read2 [File]']] <- paste0(getwd(), "/", rownames(outputMeta), 
+        outputMeta[['Read2']] <- paste0(getwd(), "/", rownames(outputMeta), 
                                      "_R2.fastq")
+        outputMeta[['Read2 [File]']] = NULL
       } else {
-        outputMeta[['Read2 [File]']] <- NULL
+        outputMeta[['Read2']] <- NULL
       }
       output <- EzDataset(meta=outputMeta, dataRoot=NULL)
     }

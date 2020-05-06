@@ -1,0 +1,91 @@
+---
+title:  "CountSpacer - `r sampleName`"
+author: "Functional Genomics Center Zurich"
+output: 
+  html_document:
+    self_contained: false
+    includes:
+      in_header: fgcz_header.html
+    css: fgcz.css
+editor_options: 
+  chunk_output_type: console
+---
+
+Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
+
+```{r setup, include=FALSE}
+library(ezRun)
+library(DT)
+library(htmltools)
+library(pheatmap)
+library(ggplot2)
+## ----------------------------------------------
+## debug
+# title:  "`r metadata(sce)$param$name`"
+# sce <- readRDS("/srv/gstore/projects/p3271/SCCountQC_41088_2019-11-12--14-43-47/1834_SCCountQC/sce.rds")
+
+debug <- FALSE
+
+#param <- metadata(sce)$param
+```
+
+## CountSpacer Result {.tabset}
+
+### Overview
+
+* Total Number of sgRNAs: `r nrow(dict)`
+* Median Reads per sgRNA = `r median(dict$Count_0MM)`
+* Mean Reads per sgRNA = `r mean(dict$Count_0MM)`
+
+### Diagnostic plots
+
+
+```{r plots, fig.width=10, fig.height=10, echo=FALSE, message=FALSE, warning=FALSE, eval=!debug}
+p <- ggplot(data, aes(x=group, y=counts))
+  p <- p + geom_violin(fill="royalblue", alpha= 0.5, trim = FALSE, adjust = 0.5) 
+  p <- p + geom_boxplot(width = 0.1)
+  p <- p +  ggtitle(paste0(sampleName, '-ReadCount Distribution')) + ylab('ReadCount per sgRNA')
+  p <- p + theme(plot.title = element_text(size=15, face="bold"), axis.title.x =element_blank(), axis.text.x = element_text(angle=45,hjust=1))
+  print(p)
+
+  h <- ggplot(dict, aes(x=log2(1+Count_0MM))) + geom_histogram(binwidth=0.1)
+  h <- h +  ggtitle(paste0(sampleName, '-Histogram 0MM')) + ylab('Number of sgRNAs') + xlab('Log2 count per sgRNA (0MM)')
+  print(h)
+  
+  plot(sortedCounts, pch = c(15), cex = 0.7, main = paste(sampleName, '- sgCount Overview'), ylab = 'log2(sgRNA Count)', ylim = c(0, max(max(sortedCounts), 1.05*upperCutOff)))
+  abline(h = mean(sortedCounts))
+  abline(h = upperCutOff, lty = 2)
+  abline(h = lowerCutOff, lty = 2)
+  text(length(sortedCounts)*0.05, 1.05*mean(sortedCounts), bquote(mu==.(mu)), cex = 0.8)
+  text(length(sortedCounts)*0.8, 1.02*upperCutOff, paste0('#',up_sgRNAs, ' (',relUp_sgRNA,'%)' ), cex = 0.8)
+  text(length(sortedCounts)*0.15, 0.96*lowerCutOff, paste0('#',down_sgRNAs, ' (',relDown_sgRNA,'%)' ), cex = 0.8)
+```
+
+### Data availability
+
+**Expression matrix**
+
+The raw counts allowing 0 and 1 mismatches are available here:
+
+```{r raw count matrix, echo=FALSE, results='asis', message=FALSE, eval=!debug}
+# Raw counts
+zip("rawCount.zip", files=paste0(sampleName,'-result.txt'))
+cat("\n")
+cat(paste0("[", "rawCount.zip", "](", "rawCount.zip", ")"))
+cat("\n")
+```
+
+### Methods 
+
+LibraryPath: `r param[['dictPath']]`
+
+LeftPattern: `r param[['leftPattern']]`
+
+RightPattern: `r param[['rightPattern']]`
+
+Alignment: bowtie
+
+### SessionInfo
+```{r, echo=FALSE}
+sessionInfo()
+```
