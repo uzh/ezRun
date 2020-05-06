@@ -233,7 +233,7 @@ return(geneSets)
 }
 
 cellsLabelsWithSingleR <- function(scData, param) {
-library(SingleR, lib.loc = "/home/gtan/R-library")
+library(SingleR)
 if(grepl("Homo_sapiens", param$refBuild)){
     hpca.se <- HumanPrimaryCellAtlasData()
     bp.se <- BlueprintEncodeData()
