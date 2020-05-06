@@ -27,7 +27,7 @@ library(cowplot)
 library(scran)
 library(RColorBrewer)
 library(plotly)
-library(SingleR, lib.loc = "/home/gtan/R-library")
+library(SingleR)
 knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE, knitr.table.format = "html")
 
 # ----------------------------------------------
