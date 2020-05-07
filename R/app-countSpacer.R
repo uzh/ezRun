@@ -95,8 +95,8 @@ ezMethodCountSpacer = function(input=NA, output=NA, param=NA){
   targetView[['GeneSymbol']] = tapply(dict2$GeneSymbol, dict2$TargetID, unique)
   targetView[['Count_0MM']] = tapply(dict2$Count_0MM, dict2$TargetID, paste, collapse = ',')
   targetView[['Count_0MM_Sum']] = tapply(dict2$Count_0MM, dict2$TargetID, sum)
-  targetView[['#sgRNAs > 0']] = tapply(dict2$Count_0MM, dict2$TargetID, greaterMin, 0)
-  targetView[['#sgRNAs > lowerCutOff']] = tapply(dict2$Count_0MM, dict2$TargetID, greaterMin, 2^lowerCutOff)
+  targetView[['#sgRNAs > 0']] = tapply(dict2$Count_0MM, dict2$TargetID, .greaterMin, 0)
+  targetView[['#sgRNAs > lowerCutOff']] = tapply(dict2$Count_0MM, dict2$TargetID, .greaterMin, 2^lowerCutOff)
   targetView = targetView[order(targetView[['#sgRNAs > lowerCutOff']]),]
   
   underrepTargets = targetView[targetView[['#sgRNAs > lowerCutOff']] < 2,]
