@@ -78,7 +78,7 @@ cat("\n")
 
 [Underrepresented Targets - htmlFile](underrepresentedTargets.html)
 
-```{r raw count matrix, echo=FALSE, results='asis', message=FALSE, eval=!debug}
+```{r full result, echo=FALSE, results='asis', message=FALSE, eval=!debug}
 # Full result
 zip("fullResult_targetView.zip", files=paste0(sampleName,'-targetBasedResult.txt'))
 cat("\n")
