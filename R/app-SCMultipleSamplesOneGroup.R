@@ -50,11 +50,12 @@ EzAppSCMultipleSamplesOneGroup <-
   )
 
 ezMethodSCMultipleSamplesOneGroup = function(input=NA, output=NA, param=NA, htmlFile="00index.html") {
-  library("Seurat")
+  library(Seurat)
   library(rlist)
   library(tibble)
   library(readr)
-
+  library(HDF5Array)
+  
   ## subset the selected sample names
   samples <- param$samples
   input <- input$subset(samples)
@@ -74,7 +75,6 @@ ezMethodSCMultipleSamplesOneGroup = function(input=NA, output=NA, param=NA, html
   #In case it is in hdf5 format the Seurat object is not stored in the metadata slot, so we have to build it and store it there, since the 
   #clustering functions below work with sce objects and take the seurat object from them.
   if(file.exists(filePath)) {
-     library(HDF5Array)
      sceList <- lapply(filePath,loadHDF5SummarizedExperiment)
      names(sceList) <- names(sceURLs)
      sceList <- lapply(sceList, function(sce) {metadata(sce)$scData <- CreateSeuratObject(counts=counts(sce),meta.data=data.frame(colData(sce)[,2:25])) 
@@ -147,7 +147,6 @@ ezMethodSCMultipleSamplesOneGroup = function(input=NA, output=NA, param=NA, html
   saveExternalFiles(sce, list(pos_markers=posMarkers, all2allMarkers=all2allMarkers))
   # rowData(sce) = rowData(sce)[, c("gene_id", "biotypes", "description")]
   
-  library(HDF5Array)
   saveHDF5SummarizedExperiment(sce, dir="sce_h5")
   
   
