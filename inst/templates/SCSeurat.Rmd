@@ -28,7 +28,7 @@ library(tibble)
 library(scater)
 library(dplyr)
 library(Seurat)
-library(SingleR, lib.loc = "/home/gtan/R-library")
+library(SingleR)
 library(plotly)
 ## ----------------------------------------------
 ## debug

@@ -74,6 +74,17 @@ cat("\n")
 cat(paste0("[", "rawCount.zip", "](", "rawCount.zip", ")"))
 cat("\n")
 ```
+**Target based matrix**
+
+[Underrepresented Targets - htmlFile](underrepresentedTargets.html)
+
+```{r full result, echo=FALSE, results='asis', message=FALSE, eval=!debug}
+# Full result
+zip("fullResult_targetView.zip", files=paste0(sampleName,'-targetBasedResult.txt'))
+cat("\n")
+cat(paste0("[", "fullResult_targetView.zip", "](", "fullResult_targetView.zip", ")"))
+cat("\n")
+```
 
 ### Methods 
 

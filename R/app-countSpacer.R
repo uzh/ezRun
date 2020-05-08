@@ -9,11 +9,13 @@ ezMethodCountSpacer = function(input=NA, output=NA, param=NA){
   require(Biostrings)
   require(ShortRead)
   require(ggplot2)
+  require(htmlwidgets)
+  
   setwdNew(param[['name']])
   sampleName = input$getNames()
   param[['dictPath']] = list.files(file.path('/srv/GT/databases/GEML/sgRNA_Libs/',param[['dictPath']]), pattern = 'csv', full.names = TRUE)
   dict = ezRead.table(param[['dictPath']], header = FALSE, sep = ',', row.names = NULL)
-  colnames(dict) = c('TargetID', 'Sequence', 'GeneSymbol')
+  colnames(dict) = c('TargetID', 'Sequence', 'GeneSymbol', 'isControl')
   dict[['ID']] = paste(dict$TargetID, dict$Sequence, sep = '-')
   trimmedInput = ezMethodTrim(input = input, param = param)
   readFile = trimmedInput$getColumn("Read1")
@@ -88,6 +90,31 @@ ezMethodCountSpacer = function(input=NA, output=NA, param=NA){
   text(length(sortedCounts)*0.15, 0.95*lowerCutOff, paste0('#',down_sgRNAs, ' (',relDown_sgRNA,'%)' ), cex = 0.8)
   dev.off()
   
+  dict2 = dict[order(dict$TargetID), ]
+  dict2 = dict2[!dict2$isControl,]
+  targets = unique(dict2$TargetID)
+  targetView = data.frame(TargetID = targets, stringsAsFactors = FALSE)
+  targetView[['GeneSymbol']] = tapply(dict2$GeneSymbol, dict2$TargetID, unique)
+  targetView[['Count_0MM']] = tapply(dict2$Count_0MM, dict2$TargetID, paste, collapse = ',')
+  targetView[['Count_0MM_Sum']] = tapply(dict2$Count_0MM, dict2$TargetID, sum)
+  targetView[['#sgRNAs > 0']] = tapply(dict2$Count_0MM, dict2$TargetID, .greaterMin, 0)
+  targetView[['#sgRNAs > lowerCutOff']] = tapply(dict2$Count_0MM, dict2$TargetID, .greaterMin, 2^lowerCutOff)
+  targetView = targetView[order(targetView[['#sgRNAs > lowerCutOff']]),]
+  
+  underrepTargets = targetView[targetView[['#sgRNAs > lowerCutOff']] < 2,]
+  if(nrow(underrepTargets) > 0 & nrow(underrepTargets) < 1000){
+    underrepTargets = targetView[targetView[['#sgRNAs > lowerCutOff']] < 2, ]
+    myDT = DT::datatable(underrepTargets, escape = F, rownames = FALSE, filter = 'bottom',
+                         caption = paste(sampleName, '- UnderrepresentedTargets',sep=''),extensions = c('Buttons'),
+                         options = list(initComplete = JS(
+                           "function(settings, json) {",
+                           "$(this.api().table().header()).css({'background-color': '#0000A0', 'color': '#fff'});",
+                           "}"),
+                           dom = c('Bfrtip'),buttons = c('colvis','copy', 'csv', 'excel', 'pdf', 'print'), pageLength=100, autoWidth=TRUE))
+    saveWidget(myDT, 'underrepresentedTargets.html')
+  }
+  ezWrite.table(targetView, paste0(sampleName,'-targetBasedResult.txt') ,row.names = FALSE)
+  
   ## Copy the style files and templates
   styleFiles <- file.path(system.file("templates", package="ezRun"),
                           c("fgcz.css", "CountSpacer.Rmd",
@@ -97,8 +124,9 @@ ezMethodCountSpacer = function(input=NA, output=NA, param=NA){
   rmarkdown::render(input="CountSpacer.Rmd", envir = new.env(),
                     output_dir=".", output_file=htmlFile, quiet=TRUE)
   
-  ###create markdown Report, update ezRun/Sushi
-  remove(reads) 
+  remove(reads)
+  ezSystem('rm *.fastq')
+  ezSystem('pigz --best *.fa')
   return("Success")
 }
 
@@ -132,6 +160,10 @@ twoPatternReadFilter <- function(reads, leftPattern, rightPattern, maxMismatch) 
   myReads <- sread(readFastq(f, ))
   close(f)
   return(myReads)
+}
+
+.greaterMin <- function(n, minVal){
+  return(length(which(n > minVal)))
 }
 
 ##' @author Opitz, Lennart
