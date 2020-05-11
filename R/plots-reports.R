@@ -238,7 +238,9 @@ makeTestScatterData <- function(param, se, types=NULL){
   }
   pThresh = ifelse(is.null(param$pValueHighlightThresh), 1, param$pValueHighlightThresh)
   lrThresh = ifelse(is.null(param$log2RatioHighlightThresh), 0, param$log2RatioHighlightThresh)
-  lrValue = ifelse(is.null(rowData(se)$log2Ratio), rowData(se)$log2Effect, rowData(se)$log2Ratio)
+  lrValue = switch(as.character(is.null(rowData(se)$log2Ratio)),
+                   "TRUE" = rowData(se)$log2Effect,
+                   "FALSE" = rowData(se)$log2Ratio)
   types$Significants = rowData(se)$usedInTest & rowData(se)$pValue <= pThresh & abs(lrValue) >= lrThresh
   
   return(list(logSignal=logSignal, groupMeans=groupMeans, types=types))
