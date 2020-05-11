@@ -12,9 +12,9 @@ output:
 
 ```{r cluster plot, echo=FALSE, fig.width=max(8,4+0.1*ncol(se)), fig.height=10, fig.retina=2, warning=FALSE}
 ## Cluster plot again
-clusterHeatmap(xCentered, param, clusterResult, file=NULL,
-               colColors=sampleColors, 
-               lim=c(-param$logColorRange, param$logColorRange))
+clusterPheatmap(xCentered, design, param, clusterColors,
+                lim=c(-param$logColorRange, param$logColorRange),
+                doClusterColumns=FALSE, sampleColors=sampleColors)
 ```
 
 ```{r cluster table, echo=FALSE}
