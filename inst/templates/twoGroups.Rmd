@@ -34,12 +34,18 @@ require(ggpubr)
 ```{r prepare data, include=FALSE}
 # here, we prepare the data for this report
 
+# report variables
+goTermMaxChar = 20
+goMaxGenesToPlot = 30
+
 # general
 se = deResult$se
 param = metadata(se)$param
 
 dataset = data.frame(colData(se), check.names=FALSE, stringsAsFactors=FALSE)
 design = ezDesignFromDataset(dataset, param)
+
+resultFiles = makeResultFiles(param, se)
 
 # scatter plots
 scatterData = makeTestScatterData(param, se)
@@ -50,7 +56,6 @@ clusterGene = types$Significants
 if (sum(clusterGene) > param$maxGenesForClustering){
   clusterGene[types$Significants] = rank(rowData(se)$pValue[types$Significants], ties.method="max") <= param$maxGenesForClustering
 }
-
 
 # enrichment analyses
 enrichInput = compileEnrichmentInput(param, se)
@@ -100,14 +105,13 @@ conversion of the symbols to dates). See
 (https://www.genenames.org/help/importing-gene-symbol-data-into-excel-correctly)
 
 ```{r store result live report, echo=FALSE, message=FALSE, eval=TRUE, warning=FALSE, cache=FALSE}
-resultFiles = makeResultFiles(param, se)
 ezWrite.table(colData(se)[, "sf", drop=FALSE],
               file="scalingfactors.txt", head="Name", digits=4)
 liveReportLink = output$getColumn("Live Report")
 deResult$saveToFile(basename(output$getColumn("Live Report")))
 ```
 
-[`r resultFile$resultZip`](`r resultFiles$resultZip`)
+[`r resultFiles$resultZip`](`r resultFiles$resultZip`)
 
 [Live Report and Visualizations](`r liveReportLink`)
 
@@ -292,6 +296,7 @@ cat(paste0("<SCRIPT language=\"JavaScript\" SRC=\"", basename(jsFile), "\"></SCR
 
 ## for clustering we use a moderated logSignal
 logSignal = log2(assays(se)$xNorm + param$backgroundExpression)
+
 if (sum(clusterGene) > param$minGenesForClustering){
   xCentered = logSignal[clusterGene , ]
   if(param$onlyCompGroupsHeatmap){
@@ -447,7 +452,7 @@ if(!doEnrichr(param)){
 ### GO enrichment analysis (goseq) {.tabset}
 Maximum number of terms displayed: `r param$maxNumberGroupsDisplayed`.
 
-```{r goseq compute, echo=FALSE, message=FALSE, warning=FALSE, eval=!debug}
+```{r goseq enrichment, echo=FALSE, warning=FALSE, message=FALSE}
 if (doGo(param, enrichInput$seqAnno)){
   goResult = twoGroupsGOSE(param, enrichInput, se)
   goTables = goUpDownTables(param, goResult)
@@ -500,20 +505,23 @@ if (exists("ktables")){
 }
 ```
 
-#### Plots
+#### Plots{.tabset}
 ##### dotplot
-```{r dotplot, echo=FALSE, message=FALSE, fig.width=15, fig.height=10}
+
+Only plotted results with at least a significant gene set (p-value < `r param$pValThreshFisher`). 
+
+```{r dotplot, echo=FALSE, warning=FALSE, message=FALSE, fig.width=15, fig.height=10}
 p = list()
 
 if(exists("goResult")){
   for(onto in names(goResult)){
       for (enrichType in names(goResult[[onto]])){
         if(is.null(goResult[[onto]]) || nrow(goTables$ktablesComplete[[enrichType]][[onto]]) == 0L){
-          cat("No significant gene set.\n")
+          # No significant gene set
           p[paste0(enrichType,'_',onto)] = list(NULL)
         }else{
           enrichResult = goTables$ktablesComplete[[enrichType]][[onto]]
-          enrichResult$Term = substr(enrichResult$Term, start = 1, stop = 20) # don't use the full Terms, some are too large
+          enrichResult$Term = substr(enrichResult$Term, start = 1, stop = goTermMaxChar) # don't use the full Terms, some are too large
           enrichResult = prepareEnrichResult(enrichResult)
           p[[paste0(enrichType,'_',onto)]] = dotplot(enrichResult, 
                       showCategory=20, 
@@ -528,24 +536,26 @@ if(exists("goResult")){
   }
 }
 
-
 ggarrange(plotlist = p, ncol = 3, nrow = 3)
 ```
 
 
 ##### enrichMap
-```{r enrichMap, echo=FALSE, fig.width=15, fig.height=10}
+
+Only plotted results with at least a significant gene set (p-value < `r param$pValThreshFisher`). 
+
+```{r enrichMap, echo=FALSE, warning=FALSE, message=FALSE, fig.width=15, fig.height=10}
 p = list()
 
 if(exists("goResult")){
   for(onto in names(goResult)){
     for(enrichType in names(goResult[[onto]]) ){
       if(is.null(goResult[[onto]]) || nrow(goTables$ktablesComplete[[enrichType]][[onto]]) == 0L){
-        cat("No significant gene set.\n")
+          # No significant gene set
           p[paste0(enrichType,'_',onto)] = list(NULL)
       }else{
         enrichResult = goTables$ktablesComplete[[enrichType]][[onto]]
-        enrichResult$Term = substr(enrichResult$Term, start = 1, stop = 20) # don't use the full Terms, some are too large
+        enrichResult$Term = substr(enrichResult$Term, start = 1, stop = goTermMaxChar) # don't use the full Terms, some are too large
         enrichResult = prepareEnrichResult(enrichResult)
         p[[paste0(enrichType,'_',onto)]] = emapplot(enrichResult, showCategory=50) + ggtitle(paste(onto,enrichType))
       }
@@ -558,14 +568,19 @@ ggarrange(plotlist = p, ncol = 3, nrow = 3)
 ```
 
 ##### cnetplot
-```{r cnetplot, echo=FALSE, fig.width=15, fig.height=10}
+
+Only plotted results with at least a significant gene set (p-value < `r param$pValThreshFisher`). In this case, we do not show *cnetplot*s involving more than `r goMaxGenesToPlot` genes to avoid overplotting.
+
+```{r cnetplot, echo=FALSE, warning=FALSE, message=FALSE, fig.width=15, fig.height=10}
 p=list()
 
 if(exists("goResult")){
   for(onto in names(goResult)){
       for (enrichType in names(goResult[[onto]])){
-        if(is.null(goResult[[onto]]) || nrow(goTables$ktablesComplete[[enrichType]][[onto]]) == 0L){
-          cat("No significant gene set.\n")
+        nTerms = nrow(goTables$ktablesComplete[[enrichType]][[onto]])
+        nTotalGenes = length(unique(unlist(lapply(goTables$ktablesComplete[[enrichType]][[onto]]$geneNames, strsplit, split='/'))))
+        if(is.null(goResult[[onto]]) || nTerms == 0L || nTotalGenes > goMaxGenesToPlot){
+          # No significant gene set or more than 'goMaxGenesToPlot' genes
           p[paste0(enrichType,'_',onto)] = list(NULL)
         }else{
           # use gene names
