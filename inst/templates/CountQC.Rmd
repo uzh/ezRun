@@ -13,9 +13,6 @@ output:
 Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
 
 ```{r setup countQC, include=FALSE}
-#title: "`r paste('Analysis:', ifelse(grepl('bam', param$name, ignore.case = TRUE), sub('$', '_Count_QC', param$name), param$name))`"
-# title: "debug title"
-
 ## This report requires the object rawData
 require(knitr)
 require(kableExtra)
