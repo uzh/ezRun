@@ -11,17 +11,17 @@ loadCountDataset <- function(input, param){
   require(readr)
   require(dplyr)
   require(readr)
-  files = input$getFullPaths("Count")
+  files <- input$getFullPaths("Count")
   
-  dataFeatureLevel = unique(input$getColumn("featureLevel"))
+  dataFeatureLevel <- unique(input$getColumn("featureLevel"))
   stopifnot(length(dataFeatureLevel) == 1)
   
   x1 <- read_tsv(files[1], guess_max=1e6)
   
   if (ezIsSpecified(param$expressionName)){
-    columnName = param$expressionName
+    columnName <- param$expressionName
   } else {
-    columnName = intersect(param$knownExpressionNames, colnames(x1))[1]
+    columnName <- intersect(param$knownExpressionNames, colnames(x1))[1]
   }
   if (!columnName %in% colnames(x1)){
     return(list(error=paste0("Specified column name not found in data!<br>columnName: '", columnName, "'\n",
@@ -29,12 +29,11 @@ loadCountDataset <- function(input, param){
                              paste0("'", colnames(x1), "'", collapse="<br>"),
                              "<br>Set the option columnName to one of the names above!")))
   }
-  identifier <- 1 #colnames(x1)[1]
+  identifier <- 1
   
   x <- mapply(function(x, y){
     message("loading file: ", x)
     tempTibble <- read_tsv(x, progress=FALSE, guess_max=1e6)
-    #stopifnot(setequal(pull(tempTibble[1]), pull(x1[1])))
     tempTibble %>%
       dplyr::select(identifier, columnName) %>%
       dplyr::rename("id":= 1, !! y := columnName)
@@ -52,43 +51,21 @@ loadCountDataset <- function(input, param){
       summarise_all(funs(sum))
     ## TODO: consider using rowsum()
   }
-  signal <- as.matrix(x[ ,-1])
-  rownames(signal) <- pull(x[ ,1])
+  counts <- as.matrix(x[ ,-identifier])
+  rownames(counts) <- x[[identifier]]
 
   if(ezIsSpecified(param$ezRef@refBuild)){
-    seqAnnoDFFeature <- ezFeatureAnnotation(param, rownames(signal),
+    seqAnnoDFFeature <- ezFeatureAnnotation(param, rownames(counts),
                                             param$featureLevel)
   }else{
-    seqAnnoDFFeature <- data.frame(row.names = rownames(signal),
-                                   gene_id=rownames(signal),
-                                   transcript_id=rownames(signal),
-                                   gene_name=rownames(signal),
-                                   type="protein_coding",
-                                   strand="*",
-                                   seqid=1,
-                                   biotypes="protein_coding",
-                                   description=rownames(signal),
-                                   start=1, end=100, gc=NA, featWidth=NA,
-                                   "GO BP"="", "GO CC"="", "GO MF"="")
-    if(any(colnames(x1) %in% c('GeneID', 'Chr', 'Start', 'End', 'Strand'))){
-      x1 <- rename(x1, gene_id=GeneID, seqid=Chr, start=Start, end=End,
-                 strand=Strand)
-    }
-    colsInData <- intersect(colnames(seqAnnoDFFeature), colnames(x1))
-    if(length(colsInData) > 0){
-      seqAnnoDFFeature[ ,colsInData] <- x1[ ,colsInData]
-    }
-    if(!all(seqAnnoDFFeature$strand %in% c("+", "-", "*"))){
-      wrongStrands <- ! seqAnnoDFFeature$strand %in% c("+", "-", "*")
-      seqAnnoDFFeature$strand[wrongStrands] <- "*"
-    }
+    seqAnnoDFFeature <- .makeSeqAnnoFromCounts(x1, identifier)
   }
-  stopifnot(identical(rownames(seqAnnoDFFeature), rownames(signal)))
+  stopifnot(identical(rownames(seqAnnoDFFeature), rownames(counts)))
   
   if (ezIsSpecified(param$correctBias) && param$correctBias){
     ## output will be floating point, but we don't round; input might already be floating point
-    signal = ezCorrectBias(signal, gc=seqAnnoDFFeature$gc,
-                           width=seqAnnoDFFeature$featWidth)$correctedCounts
+    counts <- ezCorrectBias(counts, gc=seqAnnoDFFeature$gc,
+                            width=seqAnnoDFFeature$featWidth)$correctedCounts
   }
   
   seqAnno <- makeGRangesFromDataFrame(seqAnnoDFFeature, keep.extra.columns=TRUE)
@@ -99,11 +76,11 @@ loadCountDataset <- function(input, param){
     sigThresh = 0
   }
   
-  ## assays: counts, presentFlag, RPKM, TPM, (signal)
+  ## assays: counts, presentFlag
   ## rowData, colData
   ## meta: isLog, featureLevel, type, countName, param
   rawData <- SummarizedExperiment(
-    assays=SimpleList(counts=signal, presentFlag=signal > sigThresh),
+    assays=SimpleList(counts=counts, presentFlag=counts > sigThresh),
     rowRanges=seqAnno, colData=input$meta,
     metadata=list(isLog=FALSE, featureLevel=param$featureLevel,
                   type="Counts", countName=columnName,
@@ -117,9 +94,36 @@ loadCountDataset <- function(input, param){
   }
   rawData <- rawData[use, ]
 
-  assays(rawData)$rpkm = getRpkm(rawData)
-  assays(rawData)$tpm = getTpm(rawData)
+  # assays(rawData)$rpkm = getRpkm(rawData)
+  # assays(rawData)$tpm = getTpm(rawData)
   return(rawData)
+}
+
+.makeSeqAnnoFromCounts <- function(x1, identifier){
+  seqAnnoDFFeature <- data.frame(row.names=x1[[identifier]],
+                                 gene_id=x1[[identifier]],
+                                 transcript_id=x1[[identifier]],
+                                 gene_name=x1[[identifier]],
+                                 type="protein_coding",
+                                 strand="*",
+                                 seqid=1,
+                                 biotypes="protein_coding",
+                                 description=x1[[identifier]],
+                                 start=1, end=100, gc=NA, featWidth=NA,
+                                 "GO BP"="", "GO CC"="", "GO MF"="")
+  if(any(colnames(x1) %in% c('GeneID', 'Chr', 'Start', 'End', 'Strand'))){
+    x1 <- rename(x1, gene_id=GeneID, seqid=Chr, start=Start, end=End,
+                 strand=Strand)
+  }
+  colsInData <- intersect(colnames(seqAnnoDFFeature), colnames(x1))
+  if(length(colsInData) > 0){
+    seqAnnoDFFeature[ ,colsInData] <- x1[ ,colsInData]
+  }
+  if(!all(seqAnnoDFFeature$strand %in% c("+", "-", "*"))){
+    wrongStrands <- ! seqAnnoDFFeature$strand %in% c("+", "-", "*")
+    seqAnnoDFFeature$strand[wrongStrands] <- "*"
+  }
+  return(seqAnnoDFFeature)
 }
 
 loadSCCountDataset <- function(input, param){

@@ -34,7 +34,8 @@ ezMethodCountQC = function(input=NA, output=NA, param=NA,
   
   setwdNew(basename(output$getColumn("Report")))
   
-  makeRmdReport(output=output, rawData=rawData, rmdFile="CountQC.Rmd", reportTitle="CountQC")
+  makeRmdReport(output=output, rawData=rawData, rmdFile="CountQC.Rmd", 
+                reportTitle="CountQC")
   
   return("Success")
 }
