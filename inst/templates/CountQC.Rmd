@@ -30,6 +30,13 @@ if (!exists("rawData")){
 }
 debug <- FALSE
 
+## signal by normMethod
+if(is.null(assays(rawData)$signal)){
+  assays(rawData)$signal <- ezNorm(assays(rawData)$counts,
+                                   presentFlag=assays(rawData)$presentFlag,
+                                   method=param$normMethod)
+}
+
 output <- metadata(rawData)$output
 param <- metadata(rawData)$param
 seqAnno <- data.frame(rowData(rawData), row.names=rownames(rawData),

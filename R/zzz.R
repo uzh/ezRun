@@ -6,9 +6,7 @@
 # www.fgcz.ch
 
 .onLoad = function(libname, pkgname){
-
-  EZ_PARAM_DEFAULTS <<- ezRead.table(system.file("extdata/EZ_PARAM_DEFAULTS.txt", 
-                                                 package=pkgname, mustWork = TRUE), comment.char="#")  
+  
 }
 
 if (!exists("EZ_GLOBAL_VARIABLES")){
