@@ -8,32 +8,22 @@
 
 ezMethodCountQC = function(input=NA, output=NA, param=NA,
                            htmlFile="00index.html"){
-  dataset = input$meta
+  dataset <- input$meta
   if (param$useFactorsAsSampleName){
     dataset$Name = rownames(dataset)
     rownames(dataset) = addReplicate(apply(ezDesignFromDataset(dataset), 1, 
                                            paste, collapse="_"))
   }
-  input$meta = dataset
+  input$meta <- dataset
+  rawData <- loadCountDataset(input, param)
   
-  rawData = loadCountDataset(input, param)
   if (isError(rawData)){
     writeErrorReport(htmlFile, param=param, error=rawData$error)
     return("Error")
   }
   
-  ## signal by normMethod
-  if(is.null(assays(rawData)$signal)){
-    assays(rawData)$signal = ezNorm(assays(rawData)$counts,
-                                    presentFlag=assays(rawData)$presentFlag,
-                                    method=param$normMethod)
-  }
-  
-  metadata(rawData)$analysis <- "Count_QC"
   metadata(rawData)$output <- output
-  
   setwdNew(basename(output$getColumn("Report")))
-  
   makeRmdReport(output=output, rawData=rawData, rmdFile="CountQC.Rmd", 
                 reportTitle="CountQC")
   
