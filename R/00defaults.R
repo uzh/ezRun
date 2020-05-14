@@ -70,11 +70,8 @@ ezParam = function(userParam=list(), globalDefaults=getGlobalDefaults(),
 }
 
 getGlobalDefaults = function(){
-  if (exists("EZ_PARAM_DEFAULTS")){
-    return(EZ_PARAM_DEFAULTS)
-  } else {
-    ezRead.table(system.file("extdata/EZ_PARAM_DEFAULTS.txt", package="ezRun", mustWork = TRUE), comment.char="#")  
-  }
+    ezRead.table(system.file("extdata/EZ_PARAM_DEFAULTS.txt", package="ezRun",
+                             mustWork = TRUE), comment.char="#")
 }
 
 # 'DC-like=Lgals3,Napsa B;cells=Cd79a,Ly6d;' to a named list

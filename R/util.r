@@ -129,12 +129,12 @@ interleaveMatricesByColumn = function(x, y, suffixes=c("[Signal]", "[Present]"))
 ##' @examples 
 ##' x = ezNorm(runif(100))
 ezNorm = function(x, method="none", presentFlag=NULL){
-
-  switch(method, "none"=x,
-    "quantile"=ezQuantileNorm(x),
-    "logMean"=ezLogmeanNorm(x, presentFlag=presentFlag),
-		"median"=ezMedianNorm(x, presentFlag=presentFlag),
-    "vsn"=ezVsnNorm(x),
+  switch(method,
+         "none"=x,
+         "quantile"=ezQuantileNorm(x),
+         "logMean"=ezLogmeanNorm(x, presentFlag=presentFlag),
+         "median"=ezMedianNorm(x, presentFlag=presentFlag),
+         "vsn"=ezVsnNorm(x),
     stop("Unsupported normalization method: ", method)
   )
 }
@@ -377,14 +377,13 @@ ezMedianScalingFactor = function(x, use=NULL, target=NULL, presentFlag=NULL){
 ##' m3 = ezLogmeanNorm(m1,target=10)
 ##' m4 = ezLogmeanNorm(m1,use=c(TRUE,FALSE))
 ezLogmeanNorm = function(x, use=NULL, target=NULL, presentFlag=NULL){
-
-	sf = ezLogmeanScalingFactor(x, use=use, target=target, presentFlag=presentFlag)
+	sf <- ezLogmeanScalingFactor(x, use=use, target=target,
+	                             presentFlag=presentFlag)
   return(ezScaleColumns(x, sf))
 }
 
 ##' @describeIn ezLogmeanNorm Calculates the scaling factor for the main function.
 ezLogmeanScalingFactor = function(x, use=NULL, target=NULL, presentFlag=NULL){
-
   x.log <- log(x)
   if (is.null(use)){
     use = rep(TRUE, nrow(x))
@@ -429,7 +428,6 @@ ezGeomean <- function(x, ...){
 ##' m3 = averageColumns(m1,c(4,2,3,1))
 ##' m4 = averageColumns(m1,c(1,1,2,2))
 averageColumns = function(x, by=NULL, func=function(x){mean(x, na.rm=TRUE)}){
-
   cols = sort(unique(by))
   result = ezMatrix(NA, rows=rownames(x), cols=cols)
   for (c in cols){
@@ -826,7 +824,8 @@ ezCbind = function(...){
   do.call(cbind, x)
 }
 
-makeRmdReport = function(..., htmlFile="00index.html", rmdFile='', linkHtmlLibDir=NULL, reportTitle="SUSHI Report"){
+makeRmdReport = function(..., htmlFile="00index.html", rmdFile='',
+                         linkHtmlLibDir=NULL, reportTitle="SUSHI Report"){
   varList = list(...)
   for (nm in names(varList)){
     saveRDS(varList[[nm]], file=paste0(nm, ".rds"))
