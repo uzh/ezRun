@@ -5,12 +5,17 @@
 # The terms are available here: http://www.gnu.org/licenses/gpl.html
 # www.fgcz.ch
 
-getSignal = function(rawData){
-  if (metadata(rawData)$isLog){
-    return(2^assays(rawData)$signal)
-  } else {
-    return(assays(rawData)$signal)
-  }
+getSignal <- function(rawData){
+  # if (metadata(rawData)$isLog){
+  #   return(2^assays(rawData)$signal)
+  # } else {
+  #   return(assays(rawData)$signal)
+  # }
+  require(SummarizedExperiment)
+  signal <- ezNorm(assays(rawData)$counts,
+                   presentFlag=assays(rawData)$presentFlag,
+                   method=metadata(rawData)$param$normMethod)
+  return(signal)
 }
 
 getRpkm <- function(rawData){

@@ -8,6 +8,8 @@ output:
     includes:
       in_header: fgcz_header.html
     css: fgcz.css
+editor_options: 
+  chunk_output_type: console
 ---
 
 Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
@@ -17,65 +19,68 @@ Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
 require(knitr)
 require(kableExtra)
 require(SummarizedExperiment)
-require(wesanderson)
 require(WGCNA)
 require(plotly)
 require(matrixStats)
 require(reshape2)
+library(dplyr)
 ```
 
 ```{r prepare data countQC, include=FALSE}
-if (!exists("rawData")){
-  rawData = readRDS("rawData.rds")
-}
 debug <- FALSE
-
-## signal by normMethod
-if(is.null(assays(rawData)$signal)){
-  assays(rawData)$signal <- ezNorm(assays(rawData)$counts,
-                                   presentFlag=assays(rawData)$presentFlag,
-                                   method=param$normMethod)
+if(!exists("rawData")){
+  rawData <- readRDS("rawData.rds")
+  # ctrl+enter in RStudio set cwd in the Rmd folder.
 }
 
 output <- metadata(rawData)$output
 param <- metadata(rawData)$param
 seqAnno <- data.frame(rowData(rawData), row.names=rownames(rawData),
-                      check.names = FALSE, stringsAsFactors=FALSE)
-dataset <- data.frame(colData(rawData), 
-                      row.names=colnames(rawData), check.names = FALSE,
-                      stringsAsFactors=FALSE)
+                      check.names = FALSE)
+dataset <- data.frame(colData(rawData), row.names=colnames(rawData),
+                      check.names = FALSE)
 
-types = data.frame(row.names=rownames(seqAnno))
+types <- data.frame(row.names=rownames(seqAnno))
 for (nm in setdiff(na.omit(unique(seqAnno$type)), "")){
   types[[nm]] = seqAnno$type == nm
 }
 
-design = ezDesignFromDataset(dataset, param)
-samples = rownames(design)
-nSamples = length(samples)
-conds = ezConditionsFromDesign(design, maxFactors = 2)
-nConds = length(unique(conds))
-sampleColors = getSampleColors(conds)
+metadata(rawData)$design <- ezDesignFromDataset(dataset, param)
+colData(rawData)$conds <- ezConditionsFromDesign(metadata(rawData)$design,
+                                                 maxFactors = 2)
+colData(rawData)$sampleColors <- getSampleColors(colData(rawData)$conds)
 ```
 
 ```{r check enough samples, echo=FALSE, results='asis'}
-if (nSamples < 2){
+if (ncol(rawData) < 2){
   cat("Note: Statistics and Plots are not available for single sample experiments.", "\n")
   cat("Run the report again with multiple samples selected.", "\n")
   knit_exit()
 }
 ```
 
+```{r javascript, echo=FALSE, results='asis', eval=TRUE}
+jsFile = system.file("extdata/enrichr.js", package="ezRun", mustWork=TRUE)
+invisible(file.copy(from=jsFile, to=basename(jsFile), overwrite=TRUE))
+cat(paste0("<SCRIPT language=\"JavaScript\" SRC=\"", basename(jsFile), "\"></SCRIPT>"))
+```
+
+
 ```{r prepare signal, include=FALSE}
-signal = shiftZeros(getSignal(rawData), param$minSignal)
-presentFlag = assays(rawData)$presentFlag
-signalRange = range(signal, na.rm=TRUE)
-log2Signal = log2(signal)
-isPresent = ezPresentFlags(assays(rawData)$counts, presentFlag=presentFlag, 
-                           param=param, isLog=metadata(rawData)$isLog)
-signalCond = 2^averageColumns(log2Signal, by=conds)
-isPresentCond = averageColumns(isPresent, by=conds) >= 0.5
-isPresentStudy <- rowMeans(isPresentCond) >= 0.5
+assays(rawData)$signal <- shiftZeros(ezNorm(assays(rawData)$counts,
+                                            presentFlag=assays(rawData)$presentFlag,
+                                            method=param$normMethod),
+                                     param$minSignal)
+signalRange <- range(assays(rawData)$signal, na.rm=TRUE)
+
+signalCond <- rowsum(t(log2(assays(rawData)$signal)), group=colData(rawData)$conds)
+signalCond <- 2^t(sweep(signalCond, 1,
+                        table(colData(rawData)$conds)[rownames(signalCond)], FUN="/"))
+
+isPresentCond <- rowsum(t(assays(rawData)$presentFlag * 1), group=colData(rawData)$conds)
+isPresentCond <- t(sweep(isPresentCond, 1,
+                         table(colData(rawData)$conds)[rownames(isPresentCond)], FUN="/")) >= 0.5
+rowData(rawData)$isValid <- rowMeans(isPresentCond) >= 0.5
 ```
 
 ## CountQC_Result {.tabset}
@@ -89,7 +94,7 @@ if (param$useSigThresh){
   settings["Linear signal threshold:"] = signif(param$sigThresh, digits=4)
 }
 settings["Feature level:"] = metadata(rawData)$featureLevel
-settings["Number of features:"] = nrow(signal)
+settings["Number of features:"] = nrow(rawData)
 settings["Data Column Used:"] = metadata(rawData)$countName
   
 kable(settings, row.names=TRUE, 
@@ -125,15 +130,23 @@ if(!is.null(assays(rawData)$presentFlag)){
   combined = assays(rawData)$signal
 }
 if(!is.null(seqAnno)){
-  combined = cbind(seqAnno[rownames(combined), ,drop=FALSE], combined)
+  combined = cbind(seqAnno[rownames(combined), , drop=FALSE], combined)
 }
 if(!is.null(combined$featWidth)){
   combined$featWidth = as.integer(combined$featWidth)
 }
-countFile = paste0(ezValidFilename(param$name), "-raw-count.txt")
-ezWrite.table(assays(rawData)$counts, file=countFile, 
-              head="Feature ID", digits=NA)
-signalFile = paste0(ezValidFilename(param$name), "-normalized-signal.txt")
+# Raw counts
+countFile <- paste0(ezValidFilename(param$name), "-raw-count.txt")
+counts <- as_tibble(assays(rawData)$counts, rownames="Feature ID")
+if(!is.null(rowData(rawData)$gene_name)){
+  counts <- left_join(counts,
+                      as_tibble(rowData(rawData)[ ,"gene_name", drop=FALSE],
+                                rownames="Feature ID"))
+  counts <- dplyr::select(counts, "Feature ID", gene_name, everything())
+}
+write_tsv(counts, path=countFile)
+# normalized signal
+signalFile <- paste0(ezValidFilename(param$name), "-normalized-signal.txt")
 ezWrite.table(combined, file=signalFile, head="Feature ID", digits=4)
 
 selectSignals = grepl("Signal", colnames(combined))
@@ -166,16 +179,31 @@ ezInteractiveTable(interactiveTable, tableLink=tableLink, digits=3,
                    title=paste("Showing the top", nRows, 
                                "genes with the highest expression"))
 
-rpkmFile = paste0(ezValidFilename(param$name), "-rpkm.txt")
-ezWrite.table(getRpkm(rawData), file=rpkmFile, head="Feature ID", digits=4) 
-    
-tpmFile = paste0(ezValidFilename(param$name), "-tpm.txt")
-ezWrite.table(getTpm(rawData), file=tpmFile, head="Feature ID", digits=4)
-  
-dataFiles = c(countFile, signalFile, rpkmFile, tpmFile, tableLink)
+rpkmFile <- paste0(ezValidFilename(param$name), "-rpkm.txt")
+rpkm <- as_tibble(getRpkm(rawData), rownames="Feature ID")
+if(!is.null(rowData(rawData)$gene_name)){
+  rpkm <- left_join(rpkm,
+                    as_tibble(rowData(rawData)[ ,"gene_name", drop=FALSE],
+                              rownames="Feature ID"))
+  rpkm <- dplyr::select(rpkm, "Feature ID", gene_name, everything())
+}
+write_tsv(rpkm, path=rpkmFile)
 
+tpmFile <- paste0(ezValidFilename(param$name), "-tpm.txt")
+tpm <- as_tibble(getTpm(rawData), rownames="Feature ID")
+if(!is.null(rowData(rawData)$gene_name)){
+  tpm <- left_join(tpm,
+                   as_tibble(rowData(rawData)[ ,"gene_name", drop=FALSE],
+                             rownames="Feature ID"))
+  tpm <- dplyr::select(tpm, "Feature ID", gene_name, everything())
+}
+write_tsv(tpm, path=tpmFile)
+
+dataFiles <- c(countFile, signalFile, rpkmFile, tpmFile, tableLink)
 if(isTRUE(param$doZip)){
+  dataFiles2Remove <- dataFiles
   dataFiles <- sapply(dataFiles, zipFile)
+  file.remove(dataFiles2Remove)
 }
 ```
 
@@ -188,16 +216,13 @@ for(each in dataFiles){
 ```
 
 ### Count Statistics
-```{r count statistics, echo=FALSE, fig.width=min(7+(nSamples-10)*0.3, 30)}
-totalCounts = signif(colSums(assays(rawData)$counts) / 1e6, digits=3)
-presentCounts = colSums(isPresent)
-names(totalCounts) = samples
-names(presentCounts) = samples
-percentages = paste(signif(100*presentCounts/nrow(isPresent), digits=2), "%")
-toPlot <- data.frame(samples=names(totalCounts),
-                     totalCounts=totalCounts,
-                     presentCounts=presentCounts,
-                     percentages=percentages)
+```{r count statistics, echo=FALSE, fig.width=min(7+(ncol(rawData)-10)*0.3, 30)}
+toPlot <- tibble(samples=colnames(rawData),
+                 totalCounts=signif(colSums(assays(rawData)$counts) / 1e6,
+                                    digits=3),
+                 presentCounts=colSums(assays(rawData)$presentFlag),
+                 percentages=paste(signif(100*presentCounts/nrow(rawData),
+                                          digits=2), "%"))
 m <- list(
   l = 80,
   r = 80,
@@ -223,153 +248,100 @@ plot_ly(toPlot, x=~samples, y=~presentCounts, type="bar",
 ### Correlation/Clustering Plot
 
 ```{r prepare data correlation, include=FALSE}
-assays(rawData)$signal = signal
-
-isValid = isPresentStudy
 if (!is.null(seqAnno$IsControl)){
-  isValid = isValid & !seqAnno$IsControl
+  rowData(rawData)$isValid <- rowData(rawData)$isValid & !seqAnno$IsControl
 }
   
-if(sum(isValid) < 10){
+if(sum(rowData(rawData)$isValid) < 10){
   cat("Not enough valid features for further plots", "\n")
   knit_exit()
 }
 
-x = log2(2^log2Signal[isValid, ] + param$backgroundExpression)
-xNormed = sweep(x, 1 , rowMeans(x))
-xSd <- setNames(rowSds(x, na.rm=TRUE), rownames(x))
-ord = order(xSd, decreasing=TRUE)
-topGenes = ord[1:min(param$topGeneSize, length(ord))]
+rawData <- rawData[rowData(rawData)$isValid, ]
+assays(rawData)$log2signal <- log2(assays(rawData)$signal +
+                                     param$backgroundExpression)
+assays(rawData)$log2signalCentered <- sweep(assays(rawData)$log2signal, 1 ,
+                                            rowMeans(assays(rawData)$log2signal))
+metadata(rawData)$topGenes <- rownames(rawData)[head(order(rowSds(assays(rawData)$log2signal, na.rm=TRUE),
+                                         decreasing = TRUE), param$topGeneSize)]
 ```
 
 #### Sample correlation
 ```{r sample correlation data, include=FALSE}
-## All genes
-zValues = cor(x, use="complete.obs")
-figure.height <- min(max(7, nrow(zValues) * 0.3), 30)
-## Top genes
-zValuesNormaled = cor(x[topGenes, ], use="complete.obs")
+figure.height <- min(max(7, ncol(rawData) * 0.3), 30)
 ```
 
 ```{r plot sample correlation, echo=FALSE, fig.height=figure.height, fig.width=figure.height*1.25}
 ## All genes
-ezCorrelationPlot(zValues, cond=conds, condLabels=conds,
-                  main=paste0("all present genes (", sum(isValid), ")"), 
-                  colors=sampleColors)
+ezCorrelationPlot(cor(assays(rawData)$log2signal, use="complete.obs"),
+                  cond=colData(rawData)$conds, condLabels=colData(rawData)$conds,
+                  main=paste0("all present genes (",
+                              nrow(rawData), ")"), 
+                  colors=colData(rawData)$sampleColors)
+
 ## Top genes
-ezCorrelationPlot(zValuesNormaled, cond=conds, condLabels=conds,
-                  main=paste0("top genes (", length(topGenes), ")"))
+ezCorrelationPlot(cor(assays(rawData)$log2signal[metadata(rawData)$topGenes, ], use="complete.obs"),
+                  cond=colData(rawData)$conds, condLabels=colData(rawData)$conds,
+                  main=paste0("top genes (", length(metadata(rawData)$topGenes), ")"),
+                  colors=colData(rawData)$sampleColors)
 ```
 
-```{r sample clustering, echo=FALSE, fig.height=7, fig.width=min(7 + (nSamples-10)*0.3, 30), results='asis'}
-if (nSamples > 3){
-
+```{r sample clustering, echo=FALSE, fig.height=7, fig.width=min(7 + (ncol(rawData)-10)*0.3, 30), results='asis'}
+if (ncol(rawData) > 3){
   ## All genes
-  d = as.dist(1-cor(x, use="complete.obs"))
+  d <- as.dist(1-cor(assays(rawData)$log2signal, use="complete.obs"))
   hc <- hclust(d, method="ward.D2")
-  plotDendroAndColors(hc, sampleColors, autoColorHeight=TRUE, hang = -0.1,
+  plotDendroAndColors(hc, colData(rawData)$sampleColors, autoColorHeight=TRUE, hang = -0.1,
                       main="all present genes")
 
   ## Top genes
-  d = as.dist(1-cor(x[topGenes, ], use="complete.obs"))
+  d <- as.dist(1-cor(assays(rawData)$log2signal[metadata(rawData)$topGenes, ], use="complete.obs"))
   hc <- hclust(d, method="ward.D2")
-  plotDendroAndColors(hc, sampleColors, autoColorHeight=TRUE, hang = -0.1,
-                      main=paste("top", length(topGenes), " genes"))
+  plotDendroAndColors(hc, colData(rawData)$sampleColors, autoColorHeight=TRUE, hang = -0.1,
+                      main=paste("top", length(metadata(rawData)$topGenes), " genes"))
 }
 ```
 
-
-<!--### Correlation/Clustering Plot (Gene-wise)
-#### Sample correlation
-Gene-wise clustering is not used.
--->
-```{r gene wise sample correlation data, include=FALSE, eval=FALSE}
-## All genes
-zValues = cor(xNormed, use="complete.obs")
-figure.height <- min(max(7, nrow(zValues) * 0.3), 30)
-## Top genes
-zValuesNormaled = cor(xNormed[topGenes,], use="complete.obs")
-```
-
-```{r gene wise sample correlation, echo=FALSE, fig.height=figure.height, fig.width=figure.height*1.25, eval=FALSE}
-## All genes
-ezCorrelationPlot(zValues, cond=conds, condLabels=conds,
-                  main=paste0("all present genes (", sum(isValid), ") gene-wise normalized"))
-## Top genes
-ezCorrelationPlot(zValuesNormaled, cond=conds, condLabels=conds,
-                  main=paste0("top genes (", length(topGenes), ") gene-wise normalized"))
-```
-
-```{r gene wise sample clustering, echo=FALSE, fig.height=7, fig.width=min(7 + (nSamples-10)*0.3, 30), results='asis', eval=FALSE}
-if (nSamples > 3){
-  cat("#### Sample clustering", "\n")
-  ## All genes
-  d <- as.dist(1-cor(xNormed, use="complete.obs"));
-  hc <- hclust(d, method="ward.D2")
-  #hcd = as.dendrogram(, hang=-0.1)
-  #hcd = colorClusterLabels(hcd, sampleColors)
-  plotDendroAndColors(hc, sampleColors, autoColorHeight=TRUE, hang = -0.1,
-                      main="all present genes; gene-wise normalized")
-  
-  ## Top genes
-  d = as.dist(1-cor(xNormed[topGenes, ], use="complete.obs"));
-  hc <- hclust(d, method="ward.D2")
-  plotDendroAndColors(hc, sampleColors, autoColorHeight=TRUE, hang = -0.1,
-                      main=paste("top", length(topGenes), 
-                                 "genes; gene-wise normalized"))
-}
-```
-
-
-```{r javascript, echo=FALSE, results='asis', eval=TRUE}
-jsFile = system.file("extdata/enrichr.js", package="ezRun", mustWork=TRUE)
-invisible(file.copy(from=jsFile, to=basename(jsFile), overwrite=TRUE))
-cat(paste0("<SCRIPT language=\"JavaScript\" SRC=\"", basename(jsFile), "\"></SCRIPT>"))
-```
-
-```{r Clustering of High Variance Features, echo=FALSE, message=FALSE, fig.width=max(8,4+0.15*ncol(xNormed)), fig.height=10, results='asis', eval=!debug}
+```{r Clustering of High Variance Features, echo=FALSE, message=FALSE, fig.width=max(8,4+0.15*ncol(ncol(rawData))), fig.height=10, results='asis', eval=!debug}
 clusterPdf = "cluster-heatmap.pdf"
-if(nSamples > 3){
-  ## gene clustering
-  sdThresh = param$highVarThreshold
-  use = xSd > sdThresh & !rowAnyMissings(x)
-  
-  if (sum(use, na.rm=TRUE) > param$maxGenesForClustering){
-    use[use] = rank(-1 * xSd[use], ties.method="max") <= param$maxGenesForClustering
-    sdThresh = signif(min(xSd[use]), digits=3)
-  }
+if(ncol(rawData) > 3){
+  varFeatures <- rownames(rawData)[head(order(rowSds(assays(rawData)$log2signal),
+                                              decreasing=TRUE),
+                                        param$maxGenesForClustering)]
+  notVarFeatures <- rownames(rawData)[which(rowSds(assays(rawData)$log2signal) <=
+                                              param$highVarThreshold)]
+  varFeatures <- setdiff(varFeatures, notVarFeatures)
+  param$highVarThreshold <- signif(min(rowSds(assays(rawData)$log2signal[varFeatures, ])),
+                                   digits=3)
     
-  if (sum(use, na.rm=TRUE) > param$minGenesForClustering){
+  if(length(varFeatures) > param$minGenesForClustering){
     cat("### Clustering of High Variance Features", "\n")
     cat("\n")
-    cat(paste("Threshold for std. dev. of log2 signal across samples:", sdThresh), "\n")
+    cat(paste("Threshold for std. dev. of log2 signal across samples:",
+              param$highVarThreshold), "\n")
     cat("\n")
-    cat(paste("Number of features with high std. dev.:", sum(use)), "\n")
+    cat(paste("Number of features with high std. dev.:", length(varFeatures)), "\n")
     cat("\n")
-    
-    #clusterPng = "cluster-heatmap.png"
-    if(param$nSampleClusters > 6){
-        param$nSampleClusters = 6
-    }
-    clusterColors = hcl.colors(param$nSampleClusters, palette = "Spectral")
+    clusterColors <- hcl.colors(param$nSampleClusters, palette = "Spectral")
     clusterResult <-
-      clusterPheatmap(x = xNormed[use, ], design = data.frame(Condition = conds), param = param, clusterColors = clusterColors,
+      clusterPheatmap(x=assays(rawData)$log2signalCentered[varFeatures, ], 
+                      design = data.frame(Condition = colData(rawData)$conds),
+                      param = param, clusterColors = clusterColors,
                       lim = c(-param$logColorRange, param$logColorRange),
-                      doClusterColumns = TRUE, sampleColors = sampleColors)
-    
+                      doClusterColumns = TRUE,
+                      sampleColors = colData(rawData)$sampleColors)
     xTmp = data.frame(Cluster=clusterResult$clusterNumbers)
     xTmp$gene_name = seqAnno[rownames(xTmp), "gene_name"]
     xTmp[ ,1] = clusterResult$clusterColors[xTmp[,1]]
     xTmp = xTmp[order(xTmp$Cluster), ,drop=FALSE]
     ezWrite.table(xTmp, file="cluster-heatmap-clusterMembers.txt")
 
-    ## pdf export
-    pdf(clusterPdf, width=max(8,4+0.1*ncol(xNormed)), height=10, onefile=FALSE)
-    plot(clusterResult$pheatmap$gtable)
-    dev.off()
+    cowplot::save_plot(clusterPdf, clusterResult$pheatmap$gtable,
+                       base_height = 10, base_width = max(8,4+0.1*ncol(rawData)))
   
     if (doGo(param, seqAnno)){
-      clusterResult = goClusterResults(xNormed[use, ], param, clusterResult, 
+      clusterResult = goClusterResults(assays(rawData)$log2signalCentered[varFeatures, ],
+                                       param, clusterResult, 
                                        seqAnno=seqAnno,
                                        universeProbeIds=rownames(seqAnno))
     }
@@ -398,8 +370,8 @@ if(nSamples > 3){
 ```
 
 ```{r render go cluster, echo=FALSE, results='hide', message=FALSE, warning=FALSE, eval=!debug}
-if (nSamples > 3){
-  if (sum(use, na.rm=TRUE) > param$minGenesForClustering){
+if (ncol(rawData) > 3){
+  if (length(varFeatures) > param$minGenesForClustering){
     if (!is.null(clusterResult$GO)){
     ## GO Cluster tables
     file <- file.path(system.file("templates", package="ezRun"), 
@@ -435,37 +407,47 @@ if(file.exists("cluster-heatmap-clusterMembers.txt")){
 }
 ```
 
+### MDS Plot
 ```{r MDS section, echo=FALSE, results='asis', message=FALSE, eval=TRUE}
-if(nSamples > 3){
-  cat("### MDS Plot", "\n")
+if(ncol(rawData) <= 3){
+  cat("MDS plot is not possible with fewer than 3 samples. \n")
 }
 ```
 
 ```{r MDS plot 3D present, echo=FALSE, message=FALSE, warning=FALSE, fig.height=7, fig.width=9, eval=TRUE}
-if(nSamples > 3){
+if(ncol(rawData) > 3){
   ## 3D scatter plot is strange. The plots are messy when use htmltools::tagList()
   ## subplot doesn't work either.
-  ezMdsPlotly(signal=x, design=design, ndim=3,
-              main="mdsPlot_PresentGenes 3D",sampleColors=sampleColors)
+  ezMdsPlotly(signal=assays(rawData)$log2signal,
+              design=metadata(rawData)$design,
+              ndim=3, main="mdsPlot_PresentGenes 3D",
+              sampleColors=colData(rawData)$sampleColors)
 }
-if(nSamples > 3){
-  ezMdsPlotly(signal=x[topGenes,], design=design, ndim=3,
-              main="mdsPlot_TopGenes 3D",sampleColors=sampleColors)
+if(ncol(rawData) > 3){
+  ezMdsPlotly(signal=assays(rawData)$log2signal[metadata(rawData)$topGenes, ],
+              design=metadata(rawData)$design, ndim=3,
+              main="mdsPlot_TopGenes 3D",
+              sampleColors=colData(rawData)$sampleColors)
 }
-if(nSamples > 3){
-  ezMdsPlotly(signal=x, design=design, ndim=2,
-              main="mdsPlot_PresentGenes 2D",sampleColors=sampleColors)
+if(ncol(rawData) > 3){
+  ezMdsPlotly(signal=assays(rawData)$log2signal,
+              design=metadata(rawData)$design, ndim=2,
+              main="mdsPlot_PresentGenes 2D",
+              sampleColors=colData(rawData)$sampleColors)
 }
-if(nSamples > 3){
-  ezMdsPlotly(signal=x[topGenes,], design=design, ndim=2,
-              main="mdsPlot_TopGenes 2D",sampleColors=sampleColors)
+if(ncol(rawData) > 3){
+  ezMdsPlotly(signal=assays(rawData)$log2signal[metadata(rawData)$topGenes, ],
+              design=metadata(rawData)$design, ndim=2,
+              main="mdsPlot_TopGenes 2D",
+              sampleColors=colData(rawData)$sampleColors)
 }
 ```
 
 ```{r scatter plot, echo=FALSE, message=FALSE, results='asis', eval=!debug}
-if(nSamples > 3){
+if(ncol(rawData) > 3){
   if (param$writeScatterPlots){
-    qcScatterFiles = countQcScatterPlots(param, design, conds, rawData,
+    qcScatterFiles = countQcScatterPlots(param, metadata(rawData)$design,
+                                         colData(rawData)$conds, rawData,
                                          signalCond, isPresentCond, types=types)
     if(length(qcScatterFiles) > 0){
       cat("### Scatter Plots by Conditions", "\n")
@@ -483,25 +465,13 @@ if(nSamples > 3){
 }
 ```
 
-```{r density plot, echo=FALSE, results='asis', eval=FALSE}
-## Don't run the expression density plot
-if(nSamples > 3){
-  cat("### Expression densities", "\n")
-  cat("Zero or negative counts are not represented by the area!", "\n")
-  cat("\n")
-  plotCmd = expression({
-      #countDensPlot(signal, sampleColors, main="all transcripts", bw=0.7)
-      p = countDensGGPlot(cts=data.frame(signal,stringsAsFactors = F),
-                          colors=sampleColors, alpha=0.4)
-      print(p)
-    })
-  eval(plotCmd)
-}
-```
-
 ### Input Dataset
 ```{r input, echo=FALSE}
 ezInteractiveTableRmd(values=dataset, digits=4)
+```
+
+```{r saveRDS, include=FALSE}
+saveRDS(rawData, "rawData_final.rds")
 ```
 
 ### SessionInfo
