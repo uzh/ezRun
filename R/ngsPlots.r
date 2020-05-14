@@ -77,35 +77,38 @@ ezMdsPlot = function(signal, sampleColors, main){
   par(bg = 'white')
 }
 
-ezMdsGG2 <- function(signal, design, ndim=2, main="MDS plot"){
+ezMdsGG2 <- function(signal, design, ndim=2, main="MDS plot", addLabels=TRUE){
   require(edgeR)
   require(plotly)
   require(ggrepel)
+  require(tibble)
   if(ndim != 2){
     stop("ggplot2 only produces 2D plot")
   }
   
-  y = DGEList(counts=signal, group=colnames(signal))
-  mds = plotMDS(y, plot=FALSE, ndim=ndim)
-  toPlot <- data.frame(samples=colnames(signal),
-                       design,
-                       stringsAsFactors = FALSE)
+  y <- DGEList(counts=signal, group=colnames(signal))
+  mds <- plotMDS(y, plot=FALSE, ndim=ndim)
   mdsOut <- mds$cmdscale.out
   colnames(mdsOut) <- c("Leading logFC dim1", "Leading logFC dim2")
-  toPlot <- cbind(toPlot, mdsOut)
+  toPlot <- as_tibble(design, rownames="samples")
+  toPlot <- dplyr::bind_cols(toPlot, as_tibble(mdsOut))
   if(ncol(design) > 1L){
     p <- ggplot(toPlot, aes(`Leading logFC dim1`, `Leading logFC dim2`)) +
       geom_point(aes_string(colour=colnames(design)[1],
                             shape =colnames(design)[2]),
                  size = 3) + 
-      geom_text_repel(aes(label=samples)) +
-      theme_bw() + ggtitle(main)
+      ggtitle(main) + theme_half_open() + background_grid()
+    if(isTRUE(addLabels)){
+      p <- p + geom_text_repel(aes(label=samples))
+    }
   }else{
     p <- ggplot(toPlot, aes(`Leading logFC dim1`, `Leading logFC dim2`)) +
       geom_point(aes_string(colour=colnames(design)[1]),
-                 size = 3) + 
-      geom_text_repel(aes(label=samples)) +
-      theme_bw() + ggtitle(main)
+                 size = 3) +
+      ggtitle(main) + theme_half_open() + background_grid()
+    if(isTRUE(addLabels)){
+      p <- p + geom_text_repel(aes(label=samples))
+    }
   }
   p
 }
