@@ -1,0 +1,66 @@
+---
+title: "Untitled"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+<!--### Correlation/Clustering Plot (Gene-wise)
+#### Sample correlation
+Gene-wise clustering is not used.
+-->
+```{r gene wise sample correlation data, include=FALSE, eval=FALSE}
+## All genes
+zValues = cor(xNormed, use="complete.obs")
+figure.height <- min(max(7, nrow(zValues) * 0.3), 30)
+## Top genes
+zValuesNormaled = cor(xNormed[topGenes,], use="complete.obs")
+```
+
+```{r gene wise sample correlation, echo=FALSE, fig.height=figure.height, fig.width=figure.height*1.25, eval=FALSE}
+## All genes
+ezCorrelationPlot(zValues, cond=conds, condLabels=conds,
+                  main=paste0("all present genes (", sum(isValid), ") gene-wise normalized"))
+## Top genes
+ezCorrelationPlot(zValuesNormaled, cond=conds, condLabels=conds,
+                  main=paste0("top genes (", length(topGenes), ") gene-wise normalized"))
+```
+
+```{r gene wise sample clustering, echo=FALSE, fig.height=7, fig.width=min(7 + (ncol(rawData)-10)*0.3, 30), results='asis', eval=FALSE}
+if (ncol(rawData) > 3){
+  cat("#### Sample clustering", "\n")
+  ## All genes
+  d <- as.dist(1-cor(xNormed, use="complete.obs"));
+  hc <- hclust(d, method="ward.D2")
+  #hcd = as.dendrogram(, hang=-0.1)
+  #hcd = colorClusterLabels(hcd, sampleColors)
+  plotDendroAndColors(hc, sampleColors, autoColorHeight=TRUE, hang = -0.1,
+                      main="all present genes; gene-wise normalized")
+  
+  ## Top genes
+  d = as.dist(1-cor(xNormed[topGenes, ], use="complete.obs"));
+  hc <- hclust(d, method="ward.D2")
+  plotDendroAndColors(hc, sampleColors, autoColorHeight=TRUE, hang = -0.1,
+                      main=paste("top", length(topGenes), 
+                                 "genes; gene-wise normalized"))
+}
+```
+
+
+```{r density plot, echo=FALSE, results='asis', eval=FALSE}
+## Don't run the expression density plot
+if(ncol(rawData) > 3){
+  cat("### Expression densities", "\n")
+  cat("Zero or negative counts are not represented by the area!", "\n")
+  cat("\n")
+  plotCmd = expression({
+      #countDensPlot(signal, sampleColors, main="all transcripts", bw=0.7)
+      p = countDensGGPlot(cts=data.frame(signal,stringsAsFactors = F),
+                          colors=colData(rawData)$sampleColors, alpha=0.4)
+      print(p)
+    })
+  eval(plotCmd)
+}
+```
