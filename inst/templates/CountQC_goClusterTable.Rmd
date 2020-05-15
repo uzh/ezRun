@@ -31,8 +31,8 @@ stopifnot(length(bgColors) == length(ngroups)) ## The colour and clusters should
 indices <- c(0,cumsum(ngroups))
 for(i in 1:length(ngroups)){
   p <- p %>% 
-    group_rows(paste("Cluster", i), indices[i]+1, indices[i+1],
-               label_row_css = paste("background-color:", bgColors[i], 
+    kableExtra::group_rows(paste("Cluster", i), indices[i]+1, indices[i+1],
+                label_row_css = paste("background-color:", bgColors[i], 
                                      "; color: #fff;"))
 }
 p
