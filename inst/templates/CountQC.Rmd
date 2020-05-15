@@ -24,6 +24,7 @@ require(plotly)
 require(matrixStats)
 require(reshape2)
 library(dplyr)
+library(tibble)
 ```
 
 ```{r prepare data countQC, include=FALSE}
@@ -302,6 +303,8 @@ if (ncol(rawData) > 3){
 }
 ```
 
+### Clustering of High Variance Features
+
 ```{r Clustering of High Variance Features, echo=FALSE, message=FALSE, fig.width=max(8,4+0.15*ncol(ncol(rawData))), fig.height=10, results='asis', eval=!debug}
 clusterPdf = "cluster-heatmap.pdf"
 if(ncol(rawData) > 3){
@@ -315,8 +318,6 @@ if(ncol(rawData) > 3){
                                    digits=3)
     
   if(length(varFeatures) > param$minGenesForClustering){
-    cat("### Clustering of High Variance Features", "\n")
-    cat("\n")
     cat(paste("Threshold for std. dev. of log2 signal across samples:",
               param$highVarThreshold), "\n")
     cat("\n")
@@ -330,11 +331,12 @@ if(ncol(rawData) > 3){
                       lim = c(-param$logColorRange, param$logColorRange),
                       doClusterColumns = TRUE,
                       sampleColors = colData(rawData)$sampleColors)
-    xTmp = data.frame(Cluster=clusterResult$clusterNumbers)
-    xTmp$gene_name = seqAnno[rownames(xTmp), "gene_name"]
-    xTmp[ ,1] = clusterResult$clusterColors[xTmp[,1]]
-    xTmp = xTmp[order(xTmp$Cluster), ,drop=FALSE]
-    ezWrite.table(xTmp, file="cluster-heatmap-clusterMembers.txt")
+
+    xTmp <- enframe(clusterResult$clusterNumbers, "feature_id", value = "Cluster")
+    xTmp <- left_join(xTmp, as_tibble(rowData(rawData)[, "gene_name", drop=FALSE],
+                                      rownames="feature_id"))
+    xTmp <- arrange(xTmp, Cluster)
+    write_tsv(xTmp, file="cluster-heatmap-clusterMembers.txt")
 
     cowplot::save_plot(clusterPdf, clusterResult$pheatmap$gtable,
                        base_height = 10, base_width = max(8,4+0.1*ncol(rawData)))
