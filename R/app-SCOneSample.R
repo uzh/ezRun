@@ -236,11 +236,10 @@ cellsLabelsWithSingleR <- function(scData, param) {
 library(SingleR)
 if(grepl("Homo_sapiens", param$refBuild)){
     hpca.se <- HumanPrimaryCellAtlasData()
-    bp.se <- BlueprintEncodeData()
-    singler.results.single <- SingleR(test = GetAssayData(scData), ref = list(BP=bp.se, HPCA=hpca.se), 
-                               labels = list(bp.se$label.main, hpca.se$label.main), method="single", de.method = "wilcox")
-    singler.results.cluster <- SingleR(test = GetAssayData(scData), ref = list(BP=bp.se, HPCA=hpca.se), 
-                                      labels = list(bp.se$label.main, hpca.se$label.main), method="cluster", clusters=Idents(scData), de.method = "wilcox")
+    singler.results.single <- SingleR(test = GetAssayData(scData), ref = hpca.se, 
+                               labels = hpca.se$label.main, method="single", de.method = "wilcox")
+    singler.results.cluster <- SingleR(test = GetAssayData(scData), ref = hpca.se, 
+                                      labels = hpca.se$label.main, method="cluster", clusters=Idents(scData), de.method = "wilcox")
   }else {
     hpca.se <- MouseRNAseqData()
     singler.results.single <- SingleR(test = GetAssayData(scData), ref = hpca.se, labels = hpca.se$label.main)
