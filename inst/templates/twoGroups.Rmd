@@ -585,7 +585,7 @@ if (exists("goTables")){
 ## TODO: maybe explicit print or tagList method can work.
 if (exists("goTables")){
   ktables <- goTables$ktables
-  kable(ktables[["enrichUp"]], escape=TRUE, row.names=FALSE, format="html",
+  kable(ktables[["enrichUp"]], escape=FALSE, row.names=FALSE, format="html",
         caption="GO categories that are overrepresented among significantly upregulated genes.") %>%
     kable_styling(bootstrap_options = c("striped", "bordered"),
                   full_width = F, position = "left") %>%
@@ -596,7 +596,7 @@ if (exists("goTables")){
 
 ```{r enrichDown, echo=FALSE, eval=!debug}
 if (exists("ktables")){
-  kable(ktables[["enrichDown"]], escape=TRUE, row.names=FALSE, format="html",
+  kable(ktables[["enrichDown"]], escape=FALSE, row.names=FALSE, format="html",
         caption="GO categories that are overrepresented among significantly downregulated genes.") %>%
     kable_styling(bootstrap_options = c("striped", "bordered"),
                   full_width = F, position = "left") %>%
@@ -607,7 +607,7 @@ if (exists("ktables")){
 
 ```{r enrichBoth, echo=FALSE, eval=!debug}
 if (exists("ktables")){
-  kable(ktables[["enrichBoth"]], escape=TRUE, row.names=FALSE, format="html",
+  kable(ktables[["enrichBoth"]], escape=FALSE, row.names=FALSE, format="html",
         caption="GO categories that are overrepresented among all significantly regulated genes.") %>%
     kable_styling(bootstrap_options = c("striped", "bordered"),
                   full_width = F, position = "left") %>%
