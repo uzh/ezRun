@@ -187,7 +187,10 @@ goUpDownTables = function(param, goResult){
     childTerms = getChildTerms(goRoots[i], goIds, goRelatives, indent="", CHILDREN)
     for (term in childTerms){
       terms = append(terms, names(childTerms)[childTerms==term])
-      ids = append(ids, term)
+      numId <- unlist(strsplit(term,":"))[2]
+      termLink <- paste0('http://amigo.geneontology.org/amigo/medial_search?q=GO%3A',numId)
+      termHypLink <- kableExtra::text_spec(term, format="html",link = termLink)
+      ids = append(ids, termHypLink)
       pValues = append(pValues, x[term, "Pvalue"])
       counts = append(counts, paste(x[term, "Count"], x[term, "Size"], sep="/"))
     }
