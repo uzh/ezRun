@@ -35,13 +35,12 @@ ezMethodExceRptReport = function(input=NA, output=NA, param=NA){
   
   ## Process output
   processedOutputDir = "processed_output"
-  selectedSamples = param[['samples']]
+  input <- input$subset(param$samples)
   
-  samplePaths = input$getFullPaths("excerpt")
-  idx = basename(samplePaths) %in% selectedSamples
-  samplePathsFilt = samplePaths[idx]
+  samplePathsFilt =  input$getFullPaths("excerpt")
   
-  plots = processSamples(samplePaths = samplePathsFilt, outputDir = processedOutputDir, getPlotsObjects=TRUE)
+  plots = processSamples(samplePaths = samplePathsFilt, 
+                         outputDir = processedOutputDir, getPlotsObjects=TRUE)
 
   ## list files generated
   dataFiles = list.files(processedOutputDir, pattern = '*.txt')
