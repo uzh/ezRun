@@ -50,7 +50,6 @@ computeDnaBamStats <- function(input, htmlFile, param, resultList=NULL){
     
     ##Extract Duplication Rate, InDel Rate:
     qmFile = file.path(sm, 'genome_results.txt')
-    #qmFile = '/srv/gstore/projects/p1001/DNAQC_31169_2018-11-06--11-58-53/DNA_QC_Statistics/OBV_35/genome_results.txt'
     all_data = readLines(qmFile)
     resultList[[sm]]$dupRate = as.numeric(sub('\\%', '', sub('^.*duplication rate = ', '', all_data[grep('duplication rate', all_data)])))
     if(!param$paired){
@@ -83,7 +82,7 @@ computeDnaBamStats <- function(input, htmlFile, param, resultList=NULL){
                  "> /dev/null")
     ezSystem(cmd)
     ezSystem('rm toDelete.bam')
-    duplicateStats = read.table(metricFn, skip = 6, nrows = 1, header = TRUE)
+    duplicateStats = read.table(metricFn, skip = 6, nrows = 1, header = TRUE, sep = '\t')
     resultList[[sm]]$allDuplicates = duplicateStats$READ_PAIR_DUPLICATES
     resultList[[sm]]$optDuplicates = duplicateStats$READ_PAIR_OPTICAL_DUPLICATES
     resultList[[sm]]$readPairs = duplicateStats$READ_PAIRS_EXAMINED
