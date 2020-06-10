@@ -702,7 +702,7 @@ clusterPheatmap <- function(x, design, param,
                             colors=getBlueRedScale(),
                             colColors=NULL, lim=c(-4, 4),
                             maxGenesWithLabel=50,
-                            sampleColors=NULL){
+                            sampleColors=NULL, ...){
   require(pheatmap)
   nClusters <- length(clusterColors)
   
@@ -720,7 +720,7 @@ clusterPheatmap <- function(x, design, param,
                           breaks=seq(from=lim[1], to=lim[2], length.out=257),
                           scale="none",
                           clustering_callback = callback,
-                          silent=TRUE)
+                          silent=TRUE, ...)
   
   clusters <- as.factor(cutree(clusterInfo$tree_row, nClusters))
   annotation_row = data.frame(Clusters=clusters)
