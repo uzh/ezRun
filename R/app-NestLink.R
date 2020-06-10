@@ -24,7 +24,7 @@ ezMethodNestLink <- function(input=NA, output=NA, param=NA){
 ##' @templateVar method ezMethodNestLink(input=NA, output=NA, param=NA)
 ##' @description Use this reference class to run 
 ##' @seealso \code{\link{getBowtie2Reference}}
-##' @seealso \code{\link{ezMethodTrim}}
+##' @seealso \code{\link{ezMethodFastpTrim}}
 EzAppNestLink <-
     setRefClass("EzAppNestLink",
                 contains = "EzApp",
