@@ -83,7 +83,6 @@ computeDnaBamStats <- function(input, htmlFile, param, resultList=NULL){
                  "> /dev/null")
     ezSystem(cmd)
     ezSystem('rm toDelete.bam')
-    metricFn = 'OBV_35_picardDupReport.txt'
     duplicateStats = read.table(metricFn, skip = 6, nrows = 1, header = TRUE)
     resultList[[sm]]$allDuplicates = duplicateStats$READ_PAIR_DUPLICATES
     resultList[[sm]]$optDuplicates = duplicateStats$READ_PAIR_OPTICAL_DUPLICATES
