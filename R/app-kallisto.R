@@ -46,7 +46,7 @@ ezMethodKallisto = function(input=NA, output=NA, param=NA){
       iftrue(param$pseudobam, "--pseudobam")
   )
 
-  trimmedInput = ezMethodTrim(input = input, param = param)
+  trimmedInput = ezMethodFastpTrim(input = input, param = param)
 
   pathFastqFiles = paste(
       trimmedInput$getColumn("Read1"),
