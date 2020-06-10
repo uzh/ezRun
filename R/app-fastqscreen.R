@@ -18,10 +18,10 @@ ezMethodFastqScreen = function(input=NA, output=NA, param=NA,
     stopifnot(input$getLength() == 1L) ## We only support one uBam now.
     fastqInput <- ezMethodBam2Fastq(input = input, param = param,
                                     OUTPUT_PER_RG=TRUE)
-    input <- ezMethodTrim(input = fastqInput, param = param)
+    input <- ezMethodFastpTrim(input = fastqInput, param = param)
     inputRaw <- fastqInput
   }else{
-    input <- ezMethodTrim(input = input, param = param)
+    input <- ezMethodFastpTrim(input = input, param = param)
   }
   dataset = inputRaw$meta
   # fastqscreen part

@@ -10,7 +10,7 @@ ezMethodSpades = function(input=NA, output=NA, param=NA, htmlFile="00index.html"
   opt = param$cmdOptions
   sampleName = input$getNames()
   ##stopifnot((param$paired))
-  trimmedInput = ezMethodTrim(input = input, param = param)
+  trimmedInput = ezMethodFastpTrim(input = input, param = param)
     basicOpts <- param$spadesBasicOpt
   if (param$paired){
     read1 = trimmedInput$getColumn("Read1")
