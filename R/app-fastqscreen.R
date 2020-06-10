@@ -51,7 +51,7 @@ ezMethodFastqScreen = function(input=NA, output=NA, param=NA,
   resultFiles_ppData = executeFastqscreenCMD(param, confFile = confFile, 
                                              files_ppData)
   fastqData_ppData = collectFastqscreenOutput(files_ppData, resultFiles_ppData)
-  noHit_files = gsub('.fastq$', '.tagged_filter.fastq', files_ppData)
+  noHit_files = gsub('.fastq.gz$', '.tagged_filter.fastq.gz', files_ppData)
   readCount = ezFrame(totalReadCount = integer(length(files_ppData)), 
                       unmappedReadCount = integer(length(files_ppData)),
                       row.names=names(files_ppData))
