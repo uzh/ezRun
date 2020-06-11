@@ -64,8 +64,10 @@ ncpro = function(input, dataset, param=NULL){
   rawDir = file.path(workDir, "rawdata")
   ## link the files to the raw directory
   for (sm in samples){
-    fqFile = paste0(rawDir, "/", sm, ifelse(grepl("gz$", trimmedFastqFiles[sm]), ".fastq.gz", ".fastq"))
-    ezSystem(paste("ln -s", trimmedFastqFiles[sm], fqFile))
+    fqFile = paste0(rawDir, "/", sm, ".fastq")
+    #ezSystem(paste("ln -s", trimmedFastqFiles[sm], fqFile))
+    ezSystem(paste("zcat", trimmedFastqFiles[sm], ">", fqFile))
+    
   }
   # we now specify the absolute path of the index in the config file
   # refIndex = getBowtieReference(param)
