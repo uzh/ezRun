@@ -8,6 +8,8 @@
 
 ezMethodRnaBamStats = function(input=NA, output=NA, param=NA, 
                                htmlFile="00index.html"){
+  ## subset the selected sample names
+  input <- input$subset(param$samples)
   
   setwdNew(basename(output$getColumn("Report")))
   param$featureLevel = "gene"

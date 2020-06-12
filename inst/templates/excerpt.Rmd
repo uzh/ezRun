@@ -1,5 +1,5 @@
 ---
-title: "`r paste('Analysis:', ifelse(grepl('bam', param$name, ignore.case = TRUE), sub('$', '_exceRpt', param$name), param$name))`"
+title: "`r ifelse(exists('param'), paste('Analysis:', ifelse(grepl('bam', param$name, ignore.case = TRUE), sub('$', '_exceRpt', param$name), param$name)), 'exerpt report')`"
 author: "Functional Genomics Center Zurich"
 output: 
   html_document:
@@ -8,12 +8,16 @@ output:
     includes:
       in_header: fgcz_header.html
     css: fgcz.css
+editor_options: 
+  chunk_output_type: console
 ---
 
 Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`.
 
 ```{r debug, include=FALSE, message=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+library(cowplot)
+library(plotly)
 dataFiles = readRDS("dataFiles.rds")
 plots = readRDS("plots.rds")
 
@@ -24,6 +28,7 @@ plots = readRDS("plots.rds")
 # dataFiles = list.files(output.dir,pattern = '*.txt')
 # plots = processSamplesInDir(data.dir = data.dir,output.dir = processed_output, getPlotsObjects=TRUE)
 # ## end of debug
+nSamples <- length(unique(plots$`read-length distributions: raw read count`$data$sample))
 ```
 
 ## exceRpt_Result ([article](https://www.sciencedirect.com/science/article/pii/S2405471219300742)) {.tabset}
@@ -45,15 +50,17 @@ for(each in dataFiles){
 ```
 
 ### Read-length distributions
-```{r read-length vs counts, echo=FALSE, message=FALSE, warning=FALSE}
+```{r read-length vs counts, echo=FALSE, message=FALSE, warning=FALSE, fig.width=10}
 ## raw
-plots$`read-length distributions: raw read count`
+plots$`read-length distributions: raw read count` +
+  theme_half_open() + background_grid(minor="none")
 ## RPM
-plots$`read-length distributions: normalised read fraction`
+plots$`read-length distributions: normalised read fraction` +
+  theme_half_open() + background_grid(minor="none")
 ```
 
 ### Fractions of aligned reads
-```{r fractions of aligned reads, echo=FALSE, message=FALSE, warning=FALSE}
+```{r fractions of aligned reads, echo=FALSE, message=FALSE, warning=FALSE, fig.width= 3+nSamples*0.5, fig.height=8}
 ## normalized by total input reads
 plots$`fraction aligned reads (normalised by # input reads)`
 ## normalized by adapter-clipped reads
@@ -65,9 +72,10 @@ plots$`fraction aligned reads (normalised by # non-contaminant reads)`
 ### QC result (ERCC's)
 The NIH Extracellular RNA Communication Consortium (ERCC) base their QC metrics on the number of transcriptome reads and the ratio of RNA-annotated reads to the genome reads. The horizontal and vertical lines define QC threshold minima. Therefore, good-quality samples should appear at the upper-right grey area.
 
-```{r QC ERCC, echo=FALSE, message=FALSE, warning=FALSE}
+```{r QC ERCC, echo=FALSE, message=FALSE, warning=FALSE, fig.width=8}
 ## overall
-plots$`QC result: overall`
+ggplotly(plots$`QC result: overall` + theme_half_open() + background_grid(minor="none"))
+  
 ## per sample
 plots$`QC result: per-sample results`
 ```
@@ -75,21 +83,25 @@ plots$`QC result: per-sample results`
 ### Biotypes
 Reads distributions for the different types of RNA.
 
-```{r biotypes, echo=FALSE, message=FALSE, warning=FALSE}
+```{r biotypes, echo=FALSE, message=FALSE, warning=FALSE, fig.height=8}
 ## raw
-plots$`Biotypes: distributions, raw read-counts`
+plots$`Biotypes: distributions, raw read-counts` + theme_half_open() + 
+  background_grid(minor="none")
 ## RPM
-plots$`Biotypes: distributions, normalised`
+plots$`Biotypes: distributions, normalised` + theme_half_open() + 
+  background_grid(minor="none")
 ## per sample
-plots$`Biotypes: per-sample, normalised`
+ggplotly(plots$`Biotypes: per-sample, normalised`)
 ```
 
 ### miRNA abundance distribution
-```{r miRNA abundance, echo=FALSE, message=FALSE, warning=FALSE}
+```{r miRNA abundance, echo=FALSE, message=FALSE, warning=FALSE, fig.width=10}
 ## raw
-plots$`miRNA abundance distributions (raw counts)`
+plots$`miRNA abundance distributions (raw counts)` + theme_half_open() + 
+  background_grid(minor="none")
 ## RPM
-plots$`miRNA abundance distributions (RPM)`
+plots$`miRNA abundance distributions (RPM)` + theme_half_open() + 
+  background_grid(minor="none")
 ```
 
 ### SessionInfo

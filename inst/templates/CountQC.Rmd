@@ -305,7 +305,7 @@ if (ncol(rawData) > 3){
 
 ### Clustering of High Variance Features
 
-```{r Clustering of High Variance Features, echo=FALSE, message=FALSE, fig.width=max(8,4+0.15*ncol(ncol(rawData))), fig.height=10, results='asis', eval=!debug}
+```{r Clustering of High Variance Features, echo=FALSE, message=FALSE, fig.width=max(8,4+0.15*ncol(rawData)), fig.height=10, results='asis', eval=!debug}
 clusterPdf = "cluster-heatmap.pdf"
 if(ncol(rawData) > 3){
   varFeatures <- rownames(rawData)[head(order(rowSds(assays(rawData)$log2signal),

@@ -29,7 +29,7 @@ ezMethodSalmon = function(input=NA, output=NA, param=NA){
   if(param$strandMode == 'NA'){
     libType = 'A'
   }
-  trimmedInput = ezMethodTrim(input = input, param = param)
+  trimmedInput = ezMethodFastpTrim(input = input, param = param)
 
   opt = paste(
       "-i", refIdx,
@@ -66,7 +66,7 @@ ezMethodSalmon = function(input=NA, output=NA, param=NA){
 ##' @templateVar method ezMethodSalmon(input=NA, output=NA, param=NA)
 ##' @description Use this reference class to run Salmon
 ##' @seealso \code{\link{getSalmonReference}}
-##' @seealso \code{\link{ezMethodTrim}}
+##' @seealso \code{\link{ezMethodFastpTrim}}
 ##' @author Roman Briskine
 EzAppSalmon <-
   setRefClass("EzAppSalmon",

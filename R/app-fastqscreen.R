@@ -18,10 +18,10 @@ ezMethodFastqScreen = function(input=NA, output=NA, param=NA,
     stopifnot(input$getLength() == 1L) ## We only support one uBam now.
     fastqInput <- ezMethodBam2Fastq(input = input, param = param,
                                     OUTPUT_PER_RG=TRUE)
-    input <- ezMethodTrim(input = fastqInput, param = param)
+    input <- ezMethodFastpTrim(input = fastqInput, param = param)
     inputRaw <- fastqInput
   }else{
-    input <- ezMethodTrim(input = input, param = param)
+    input <- ezMethodFastpTrim(input = input, param = param)
   }
   dataset = inputRaw$meta
   # fastqscreen part
@@ -51,7 +51,7 @@ ezMethodFastqScreen = function(input=NA, output=NA, param=NA,
   resultFiles_ppData = executeFastqscreenCMD(param, confFile = confFile, 
                                              files_ppData)
   fastqData_ppData = collectFastqscreenOutput(files_ppData, resultFiles_ppData)
-  noHit_files = gsub('.fastq$', '.tagged_filter.fastq', files_ppData)
+  noHit_files = gsub('.fastq.gz$', '.tagged_filter.fastq.gz', files_ppData)
   readCount = ezFrame(totalReadCount = integer(length(files_ppData)), 
                       unmappedReadCount = integer(length(files_ppData)),
                       row.names=names(files_ppData))

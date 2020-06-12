@@ -702,7 +702,7 @@ clusterPheatmap <- function(x, design, param,
                             colors=getBlueRedScale(),
                             colColors=NULL, lim=c(-4, 4),
                             maxGenesWithLabel=50,
-                            sampleColors=NULL){
+                            sampleColors=NULL, ...){
   require(pheatmap)
   nClusters <- length(clusterColors)
   
@@ -720,7 +720,7 @@ clusterPheatmap <- function(x, design, param,
                           breaks=seq(from=lim[1], to=lim[2], length.out=257),
                           scale="none",
                           clustering_callback = callback,
-                          silent=TRUE)
+                          silent=TRUE, ...)
   
   clusters <- as.factor(cutree(clusterInfo$tree_row, nClusters))
   annotation_row = data.frame(Clusters=clusters)
@@ -731,9 +731,14 @@ clusterPheatmap <- function(x, design, param,
   }
   
   # define annotation_colors list to avoid default pheatmap colors.
+  if (!is.null(param$grouping) && length(param$grouping) > 1){
+    grouping = param$grouping
+  } else {
+    grouping = design[[1]]
+  }
   ann_colors <- list(setNames(clusterColors, levels(clusters)),
-                     setNames(unique(sampleColors), unique(design[[1]])))
-  names(ann_colors) = c(colnames(annotation_row),colnames(design[1]))
+                     setNames(unique(sampleColors), unique(grouping)))
+  names(ann_colors) = c(colnames(annotation_row), "Grouping")
   
   p <- pheatmap(x, color=colors, clustering_method=method,
            breaks=seq(from=lim[1], to=lim[2], length.out=257),
@@ -741,7 +746,7 @@ clusterPheatmap <- function(x, design, param,
            cluster_cols=colDendro,
            show_rownames=isShowRowNames,
            annotation_col = design, annotation_row=annotation_row,
-           annotation_colors = ann_colors)
+           annotation_colors = ann_colors, ...)
   
   ans <- list(nClusters=nClusters, clusterNumbers=clusters,
               clusterColors=clusterColors, hcl=clusterInfo$tree_row,
