@@ -106,7 +106,6 @@ ncpro = function(input, dataset, param=NULL){
           main="Read Counts after trimming", legend.text=TRUE, col=c("gray30", "gray"))
   dev.off()
   
-  ezSystem(paste("pigz", paste(trimmedFastqFiles, collapse=" ")))
   ezSystem("rm -f data/*bed")
   ezSystem("rm -f data/*tmp")
   ezSystem("rm -f data/*fas")
