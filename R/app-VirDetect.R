@@ -14,7 +14,7 @@ ezMethodVirDetect = function(input=NA, output=NA, param=NA,
   setwdNew(sampleName)
   
   ## trim reads
-  trimmedInput = ezMethodTrim(input = input, param = param)
+  trimmedInput = ezMethodFastpTrim(input = input, param = param)
   
   ## align trimmed reads to human genome, get read pairs, for which both reads were unmapped
   defOpt = paste("-p", ezThreads())

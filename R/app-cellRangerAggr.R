@@ -28,8 +28,7 @@ ezMethodCellRangerAggr = function(input=NA, output=NA, param=NA){
   require(readr)
   
   ## subset the selected sample names
-  samples <- param$samples
-  input <- input$subset(samples)
+  input <- input$subset(param$samples)
   
   aggr_input <- tibble(library_id=input$getNames(),
                        molecule_h5=file.path(dirname(input$getFullPaths("Report")),

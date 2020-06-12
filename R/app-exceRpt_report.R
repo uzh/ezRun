@@ -35,13 +35,12 @@ ezMethodExceRptReport = function(input=NA, output=NA, param=NA){
   
   ## Process output
   processedOutputDir = "processed_output"
-  selectedSamples = param[['samples']]
+  input <- input$subset(param$samples)
   
-  samplePaths = input$getFullPaths("excerpt")
-  idx = basename(samplePaths) %in% selectedSamples
-  samplePathsFilt = samplePaths[idx]
+  samplePathsFilt =  input$getFullPaths("excerpt")
   
-  plots = processSamples(samplePaths = samplePathsFilt, outputDir = processedOutputDir, getPlotsObjects=TRUE)
+  plots = processSamples(samplePaths = samplePathsFilt, 
+                         outputDir = processedOutputDir, getPlotsObjects=TRUE)
 
   ## list files generated
   dataFiles = list.files(processedOutputDir, pattern = '*.txt')
@@ -58,9 +57,15 @@ ezMethodExceRptReport = function(input=NA, output=NA, param=NA){
 ##' @param getPlotsObjects <bool> TRUE to output plots as an object.
 ##' @author (Rob Kitchen) Miquel Anglada Girotto
 processSamples = function(samplePaths, outputDir, getPlotsObjects=FALSE){
-  ## Load required dependencies
-  loadDependencies()
-  
+  require(plyr)
+  require(gplots)
+  require(marray)
+  require(reshape2)
+  require(ggplot2)
+  require(tools)
+  require(Rgraphviz)
+  require(scales)
+
   ## delete -e from .stats (they do not appear in the ExampleData, but they do when I ran the program)
   #delete_e(samplePaths)
   
@@ -77,23 +82,6 @@ processSamples = function(samplePaths, outputDir, getPlotsObjects=FALSE){
   plotsList = PlotData(sampleIDs, outputDir)
   if(getPlotsObjects==TRUE){return(plotsList)}
 }
-
-
-##' @title load dependencies
-##' @description load dependencies required within processSamples()
-##' @author Miquel Anglada Girotto
-loadDependencies = function(){
-  ## load
-  require(plyr)
-  require(gplots)
-  require(marray)
-  require(reshape2)
-  require(ggplot2)
-  require(tools)
-  require(Rgraphviz)
-  require(scales)
-}
-
 
 ##' @title Get smallRNA counts and stats
 ##' @description Get smallRNA counts and stats to return as final output and make QC plots.
