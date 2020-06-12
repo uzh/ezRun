@@ -113,13 +113,12 @@ ezMdsGG2 <- function(signal, design, ndim=2, main="MDS plot", addLabels=TRUE){
   p
 }
 
-ezMdsPlotly <- function(signal, design, ndim=c(3,2), main, sampleColors=NULL){
+ezMdsPlotly <- function(logSignal, design, ndim=c(3,2), main, sampleColors=NULL){
   require("edgeR")
   require(plotly)
-  y = DGEList(counts=signal, group=colnames(signal))
-  mds = plotMDS(y, plot=FALSE, ndim=ndim)
+  mds = plotMDS(logSignal, plot=FALSE, ndim=ndim)
   factorToPlot = colnames(design)[1]
-  toPlot <- data.frame(samples=colnames(signal),
+  toPlot <- data.frame(samples=colnames(logSignal),
                        design,
                        sampleColors,
                        stringsAsFactors = FALSE)
