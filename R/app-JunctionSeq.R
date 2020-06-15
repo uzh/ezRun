@@ -1,6 +1,20 @@
 ###QoRTs/JunctionSeqApp
 ezMethodRunJunctionSeqPipeline <- function(input, output, param, htmlFile="00index.html"){
   setwdNew(param$comparison)
+  
+  condition = make.names(input$getColumn(param$grouping))
+  param$sampleGroup = make.names(param$sampleGroup)
+  param$refGroup = make.names(param$refGroup)
+ 
+   #### if conditions are not specified, then we have to stop here
+  if (is.null(condition))
+    stop(" * No conditions were specified in ezMethodRunJunctionSeqPipeline")
+  
+  ###Count only relevant bam-files
+  samplesUse = condition %in% c(param$sampleGroup, param$refGroup)
+  input = input$subset(samplesUse)
+  condition = factor(condition[samplesUse], levels=c(param$refGroup, param$sampleGroup))
+  
   runQoRTs(input, output, param)
   runJunctionSeq(input, output, param)
   ###TODO: multigroup support, order of levels in dataset (resort dataset by groupname?), usage of flattend gff?? only known SJ, result annotation -> simple report,
@@ -49,6 +63,7 @@ runJunctionSeq <- function(input, output, param, htmlFile="00index.html"){
   require("JunctionSeq")
   samples = input$getNames()
   dataset = input$meta
+  
   gffOutputIncludingNovelJunctions = 'withNovel.forJunctionSeq.gff.gz'
   # including novel junctions
   countFiles <- file.path(samples,"QC.spliceJunctionAndExonCounts.withNovel.forJunctionSeq.txt.gz");
@@ -62,16 +77,19 @@ runJunctionSeq <- function(input, output, param, htmlFile="00index.html"){
                                  analysis.type = "junctionsAndExons")
   
   writeSizeFactors(jscs, file = "sizeFactors.txt")
-  
+  setwdNew('JuncSeq_Result-Files')
   writeCompleteResults(jscs,
-                       outfile.prefix="./JuncSeq_Result-File",
-                       save.jscs = TRUE, 
+                       outfile.prefix="",
+                       save.jscs = FALSE,
+                       save.allGenes = TRUE, save.sigGenes = TRUE,
                        FDR.threshold = as.numeric(param$fdr));
-  
+
+  setwdNew('../finalOutput')
   buildAllPlots(jscs=jscs,
-                outfile.prefix = "./finalOutput",
+                outfile.prefix = "",
                 use.plotting.device = "CairoPNG",
                 FDR.threshold = as.numeric(param$fdr))
+  setwd('..')
   return('sucess')
 }
 
