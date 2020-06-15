@@ -420,25 +420,25 @@ if(ncol(rawData) <= 3){
 if(ncol(rawData) > 3){
   ## 3D scatter plot is strange. The plots are messy when use htmltools::tagList()
   ## subplot doesn't work either.
-  ezMdsPlotly(signal=assays(rawData)$log2signal,
+  ezMdsPlotly(assays(rawData)$log2signal,
               design=metadata(rawData)$design,
               ndim=3, main="mdsPlot_PresentGenes 3D",
               sampleColors=colData(rawData)$sampleColors)
 }
 if(ncol(rawData) > 3){
-  ezMdsPlotly(signal=assays(rawData)$log2signal[metadata(rawData)$topGenes, ],
+  ezMdsPlotly(assays(rawData)$log2signal[metadata(rawData)$topGenes, ],
               design=metadata(rawData)$design, ndim=3,
               main="mdsPlot_TopGenes 3D",
               sampleColors=colData(rawData)$sampleColors)
 }
 if(ncol(rawData) > 3){
-  ezMdsPlotly(signal=assays(rawData)$log2signal,
+  ezMdsPlotly(assays(rawData)$log2signal,
               design=metadata(rawData)$design, ndim=2,
               main="mdsPlot_PresentGenes 2D",
               sampleColors=colData(rawData)$sampleColors)
 }
 if(ncol(rawData) > 3){
-  ezMdsPlotly(signal=assays(rawData)$log2signal[metadata(rawData)$topGenes, ],
+  ezMdsPlotly(assays(rawData)$log2signal[metadata(rawData)$topGenes, ],
               design=metadata(rawData)$design, ndim=2,
               main="mdsPlot_TopGenes 2D",
               sampleColors=colData(rawData)$sampleColors)
