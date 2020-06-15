@@ -113,6 +113,7 @@ ncpro = function(input, dataset, param=NULL){
   ezSystem("rm -f manuals")
   ezSystem("rm -f annotation")
   ezSystem("rm -rf rawdata")
+  ezSystem("rm -f bowtie_results/*sam")
   setwd(jobDir)
 }
 
