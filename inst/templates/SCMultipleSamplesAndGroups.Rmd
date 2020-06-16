@@ -119,14 +119,14 @@ cat("The TSNEs below place similar cells together in low-dimensional space after
 <br/>
 
 ```{r tSNE after clustering}
-plotReducedDim(sce, dimred="TSNE", colour_by="orig.ident")
+plotReducedDim(sce, dimred="TSNE", colour_by="Condition")
 plotReducedDim(sce, dimred="TSNE", colour_by="ident", text_by="ident", text_size=5) 
 ```
 
 ##### The number of cells in each cluster and condition is represented on this barplot.
 ```{r number of cells in each cluster after integration, fig.align='center', fig.width=10, fig.height=6}
-cellIdents_perSample = data.frame(colData(sce)[,c("ident", "orig.ident")])
-barplot = ggplot(data=cellIdents_perSample, aes(x=cellIdents_perSample[,1], fill=orig.ident)) + geom_bar(stat="Count")
+cellIdents_perSample = data.frame(colData(sce)[,c("ident", "Condition")])
+barplot = ggplot(data=cellIdents_perSample, aes(x=cellIdents_perSample[,1], fill=Condition)) + geom_bar(stat="Count")
 barplot + labs(x="Cluster", y = "Number of cells", fill = "Condition")
 ```
 
@@ -266,11 +266,11 @@ for(cluster in unique(markers.to.plot$cluster)){
 
 ##### The DotPlot can be useful for viewing conserved cell type markers across conditions, showing both the expression level and the percentage of cells in a cluster expressing any given gene. Here we plot 3 strong marker genes for each of the clusters.
 
-```{r dot plot conserved cluster markers, fig.width=14, fig.height=1+length(unique(sce$orig.ident)) * length(unique(sce$orig.ident))*0.2, fig.align='center'}
+```{r dot plot conserved cluster markers, fig.width=14, fig.height=1+length(unique(sce$Condition)) * length(unique(sce$Condition))*0.2, fig.align='center'}
 
-nrGroups <- length(unique(sce$orig.ident))
+nrGroups <- length(unique(sce$Condition))
 markers.to.plot <- conservedMarkers %>% group_by(cluster) %>% top_n(3, minimump_p_val)
-plotDots(sce, features = unique(markers.to.plot$gene), group = "orig.ident")
+plotDots(sce, features = unique(markers.to.plot$gene), group = "Condition")
 ```
 
 ### Differential expressed genes
@@ -297,7 +297,7 @@ for(cluster in unique(diffgenes.to.plot$cluster)) {
   cat("\n")
   cat(paste0("#### Top 5 differentially expressed genes for cluster "), cluster)
   cat("\n")
-  print(plotExpression(sce, diffgenes.to.plot_cluster$gene, x = "ident", colour_by="orig.ident"))
+  print(plotExpression(sce, diffgenes.to.plot_cluster$gene, x = "ident", colour_by="Condition"))
   cat("\n\n")
 }
 ```

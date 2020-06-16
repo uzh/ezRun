@@ -55,6 +55,7 @@ ezMethodSCMultipleSamplesAndGroups = function(input=NA, output=NA, param=NA, htm
   library(tibble)
   library(dplyr)
   library(readr)
+  library(HDF5Array)
   
   ## subset the selected sample names
   samples <- param$samples
@@ -77,7 +78,7 @@ ezMethodSCMultipleSamplesAndGroups = function(input=NA, output=NA, param=NA, htm
   if(file.exists(filePath)) {
     sceList <- lapply(filePath,loadHDF5SummarizedExperiment)
     names(sceList) <- names(sceURLs)
-    sceList <- lapply(sceList, function(sce) {metadata(sce)$scData <- CreateSeuratObject(counts=counts(sce),meta.data=data.frame(colData(sce)[,2:25])) 
+    sceList <- lapply(sceList, function(sce) {metadata(sce)$scData <- CreateSeuratObject(counts=counts(sce),meta.data=data.frame(colData(sce)[,c(2:25, which(colnames(colData(sceList[[1]]))%in% "Condition"))])) 
     sce})
     #if it is an rds object it has been likely generated from old reports, so we need to update the seurat version before using the clustering functions below.                                             )
   } else {
@@ -123,7 +124,7 @@ ezMethodSCMultipleSamplesAndGroups = function(input=NA, output=NA, param=NA, htm
     all2allMarkers <- all2all(scData, pvalue_all2allMarkers, param)
   
   #Before calculating the conserved markers and differentially expressed genes across conditions I will discard the clusters that were too small in at least one group
-  clusters_freq <- data.frame(table(scData@meta.data[,c("orig.ident","seurat_clusters")]))
+  clusters_freq <- data.frame(table(scData@meta.data[,c("Condition","seurat_clusters")]))
   small_clusters <- unique(as.character(clusters_freq[clusters_freq[,"Freq"] < 10, "seurat_clusters"]))
   scData <- subset(scData, idents = small_clusters, invert = TRUE)
   
