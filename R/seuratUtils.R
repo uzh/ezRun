@@ -268,7 +268,7 @@ all2all <- function(scData, pvalue_all2allMarkers, param) {
 conservedMarkers <- function(scData) {
   markers <- list()
   for(eachCluster in levels(Idents(scData))){
-    markersEach <- try(FindConservedMarkers(scData, ident.1=eachCluster, grouping.var="orig.ident", print.bar=FALSE, only.pos=TRUE,silent=TRUE))
+    markersEach <- try(FindConservedMarkers(scData, ident.1=eachCluster, grouping.var="Condition", print.bar=FALSE, only.pos=TRUE,silent=TRUE))
     ## to skip some groups with few cells
     if(class(markersEach) != "try-error" && nrow(markersEach) > 0){
       markers[[eachCluster]] <- as_tibble(markersEach, rownames="gene")
@@ -283,9 +283,9 @@ conservedMarkers <- function(scData) {
 
 diffExpressedGenes <- function(scData) {
   seurat_clusters <- Idents(scData)
-  scData@meta.data$cluster.condition <- paste0(seurat_clusters, "_", scData@meta.data$orig.ident)
+  scData@meta.data$cluster.condition <- paste0(seurat_clusters, "_", scData@meta.data$Condition)
   Idents(scData) <- "cluster.condition"
-  conditions <- unique(scData@meta.data$orig.ident)
+  conditions <- unique(scData@meta.data$Condition)
   
   diffGenesFns <- c()
   conditionsComb <- combn(conditions, m=2)
