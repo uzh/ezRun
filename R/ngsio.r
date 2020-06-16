@@ -402,3 +402,134 @@ saveExternalFiles = function(sce, ...) {
     }
   }
 }
+
+ezReadBamFileAsGRanges <- function (bamfile, bamindex = bamfile, chromosomes = NULL, pairedEndReads = FALSE, 
+                                    remove.duplicate.reads = FALSE, min.mapq = 10, max.fragment.width = 1000, 
+                                    blacklist = NULL, what = "mapq"){
+  if (!is.null(blacklist)) {
+    if (!(is.character(blacklist) | is(blacklist, "GRanges"))) {
+      stop("'blacklist' has to be either a bed(.gz) file or a GRanges object")
+    }
+  }
+  bamindex.raw <- sub("\\.bai$", "", bamindex)
+  bamindex <- paste0(bamindex.raw, ".bai")
+  if (!file.exists(bamindex)) {
+    bamindex.own <- Rsamtools::indexBam(bamfile)
+    bamindex <- bamindex.own
+  }
+  chrom.lengths <- GenomeInfoDb::seqlengths(Rsamtools::BamFile(bamfile))
+  chroms.in.data <- names(chrom.lengths)
+  if (is.null(chromosomes)) {
+    chromosomes <- chroms.in.data
+  }
+  chroms2use <- intersect(chromosomes, chroms.in.data)
+  if (length(chroms2use) == 0) {
+    chrstring <- paste0(chromosomes, collapse = ", ")
+    stop("The specified chromosomes ", chrstring, " do not exist in the data.")
+  }
+  diff <- setdiff(chromosomes, chroms.in.data)
+  if (length(diff) > 0) {
+    diffs <- paste0(diff, collapse = ", ")
+    warning(paste0("Not using chromosomes ", diffs, " because they are not in the data."))
+  }
+  gr <- GenomicRanges::GRanges(seqnames = chroms2use, ranges = IRanges(start = rep(1, 
+                                                                                   length(chroms2use)), end = chrom.lengths[chroms2use]))
+  if (!remove.duplicate.reads) {
+    if (pairedEndReads) {
+      data.raw <- GenomicAlignments::readGAlignmentPairs(bamfile, 
+                                                         index = bamindex, param = Rsamtools::ScanBamParam(which = range(gr), 
+                                                                                                           what = what))
+    }
+    else {
+      data.raw <- GenomicAlignments::readGAlignments(bamfile, 
+                                                     index = bamindex, param = Rsamtools::ScanBamParam(which = range(gr), 
+                                                                                                       what = what))
+    }
+  }
+  else {
+    if (pairedEndReads) {
+      data.raw <- GenomicAlignments::readGAlignmentPairs(bamfile, 
+                                                         index = bamindex, param = Rsamtools::ScanBamParam(which = range(gr), 
+                                                                                                           what = what, flag = Rsamtools::scanBamFlag(isDuplicate = FALSE)))
+    }
+    else {
+      data.raw <- GenomicAlignments::readGAlignments(bamfile, 
+                                                     index = bamindex, param = Rsamtools::ScanBamParam(which = range(gr), 
+                                                                                                       what = what, flag = Rsamtools::scanBamFlag(isDuplicate = FALSE)))
+    }
+  }
+  if (length(data.raw) == 0) {
+    if (pairedEndReads) {
+      stop(paste0("No reads imported. Does your file really contain paired end reads? Try with 'pairedEndReads=FALSE'"))
+    }
+    stop(paste0("No reads imported! Check your BAM-file ", 
+                bamfile))
+  }
+  if (pairedEndReads) {
+    data.raw = data.raw[!is.na(seqnames(data.raw))]
+    data <- methods::as(data.raw, "GRanges")
+    if (min.mapq > 0) {
+      mapq.first <- mcols(GenomicAlignments::first(data.raw))$mapq
+      mapq.last <- mcols(GenomicAlignments::last(data.raw))$mapq
+      mapq.mask <- mapq.first >= min.mapq & mapq.last >= 
+        min.mapq
+      if (any(is.na(mapq.mask))) {
+        warning(paste0(bamfile, ": Reads with mapping quality NA (=255 in BAM file) found and removed. Set 'min.mapq=NULL' to keep all reads."))
+      }
+      data <- data[which(mapq.mask)]
+    }
+    data <- data[width(data) <= max.fragment.width]
+    
+  }
+  else {
+    data <- methods::as(data.raw, "GRanges")
+    if (min.mapq > 0) {
+      if (any(is.na(mcols(data)$mapq))) {
+        warning(paste0(bamfile, ": Reads with mapping quality NA (=255 in BAM file) found and removed. Set 'min.mapq=NULL' to keep all reads."))
+        mcols(data)$mapq[is.na(mcols(data)$mapq)] <- -1
+      }
+      data <- data[mcols(data)$mapq >= min.mapq]
+    }
+    data <- data[width(data) <= max.fragment.width]
+    
+  }
+  if (length(data) == 0) {
+    stop("No reads present after filtering. Please lower your 'min.mapq'.")
+  }
+  if (!is.null(blacklist)) {
+    if (is.character(blacklist)) {
+      if (grepl("^chr", seqlevels(data)[1])) {
+        chromosome.format <- "UCSC"
+      }
+      else {
+        chromosome.format <- "NCBI"
+      }
+      black <- readCustomBedFile(blacklist, skip = 0, 
+                                 chromosome.format = chromosome.format)
+    }
+    else if (is(blacklist, "GRanges")) {
+      black <- blacklist
+    }
+    else {
+      stop("'blacklist' has to be either a bed(.gz) file or a GRanges object")
+    }
+    overlaps <- findOverlaps(data, black)
+    idx <- setdiff(1:length(data), S4Vectors::queryHits(overlaps))
+    data <- data[idx]
+  }
+  
+  data <- data[as.vector(seqnames(data)) %in% chroms2use]
+  data <- keepSeqlevels(data, as.character(unique(seqnames(data))))
+  na.seqlevels <- seqlevels(data)[is.na(seqlengths(data))]
+  data <- data[as.vector(seqnames(data)) %in% seqlevels(data)[!is.na(seqlengths(data))]]
+  data <- keepSeqlevels(data, as.character(unique(seqnames(data))))
+  if (length(na.seqlevels) > 0) {
+    warning("Dropped seqlevels because no length information was available: ", 
+            paste0(na.seqlevels, collapse = ", "))
+  }
+  
+  if (length(data) == 0) {
+    stop(paste0("No reads imported!"))
+  }
+  return(data)
+}
