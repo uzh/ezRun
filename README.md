@@ -14,7 +14,7 @@ pip3 install multiqc
 
 ## Dependencies of R/Bioconductor packages
 ```R
-packages <- c("testthat", "knitr", "gage", "goseq", "ChIPpeakAnno", 
+packages <- c("testthat", "knitr", "goseq", "ChIPpeakAnno", 
               "DESeq2", "TEQC", "pathview", "reshape2", 
               "vsn", "Rsubread", "preprocessCore", "wesanderson",
               "RCurl", "caTools", "matrixStats", "Repitools", "DT", 
