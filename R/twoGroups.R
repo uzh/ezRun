@@ -15,6 +15,7 @@
 ##' @template roxygen-template
 ##' @return Returns an object of the class EzDataset that is the modified \code{input}.
 cleanupTwoGroupsInput = function(input, param){
+  dataset = input$meta
   if (param$useFactorsAsSampleName){
     dataset$Name = rownames(dataset)
     rownames(dataset) = addReplicate(apply(ezDesignFromDataset(dataset, param), 1, paste, collapse="_"))
