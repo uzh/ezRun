@@ -16,6 +16,9 @@
 ##' @return Returns an object of the class EzDataset that is the modified \code{input}.
 cleanupTwoGroupsInput = function(input, param){
   dataset = input$meta
+  if (ezIsSpecified(param$samples)){
+    dataset = dataset[rownames(dataset) %in% param$samples, ] ## subset with keeping the original order!
+  }
   if (param$useFactorsAsSampleName){
     dataset$Name = rownames(dataset)
     rownames(dataset) = addReplicate(apply(ezDesignFromDataset(dataset, param), 1, paste, collapse="_"))
