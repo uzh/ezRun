@@ -8,6 +8,7 @@
 
 ezMethodCountQC = function(input=NA, output=NA, param=NA,
                            htmlFile="00index.html"){
+  input <- input$subset(param$samples)
   dataset <- input$meta
   if (param$useFactorsAsSampleName){
     dataset$Name = rownames(dataset)
