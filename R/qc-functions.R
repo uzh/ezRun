@@ -21,7 +21,7 @@
 #' @export
 #'
 #' @examples
-#' ## needs the following modules loaded module add Tools/samtools QC/Trimmomatic QC/Flexbar Aligner/kallisto
+#' ## needs the following modules loaded module add Tools/samtools QC/fastp Aligner/kallisto
 #' options(error=recover)
 #' require(ezRun)
 #' dsFile = "/srv/gstore/projects/p3082/ISeq_20190425_iSeq35_o5404_DataDelivery/dataset.tsv"
