@@ -58,9 +58,9 @@ rownames(sceFixName) <- uniquifyFeatureNames(ID=rowData(sceFixName)$gene_id,
                                              names=rowData(sceFixName)$gene_name)
 
 sceFixName <- addPerCellQC(sceFixName, subsets=list(Mito=isMito),
-                           detection.limit=param$minReadsPerGene-1)
+                           detection_limit=max(param$minReadsPerGene-1, 0))
 sceFixName <- addPerFeatureQC(sceFixName,
-                              detection_limit=param$minReadsPerGene-1)
+                              detection_limit=max(param$minReadsPerGene-1, 0))
 
 ## datasetAllCells for section "Heatmap of reads per cell on the plate"
 if(toupper(param$scProtocol) == "SMART-SEQ2"){
