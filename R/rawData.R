@@ -46,7 +46,7 @@ getTpm <- function(rawData){
   #   }
   if(ezIsSpecified(metadata(rawData)$param$scProtocol) && toupper(metadata(rawData)$param$scProtocol) == "10X"){
     require(scater)
-    tpm <- calculateTPM(rawData, effective_length=NULL)
+    tpm <- calculateTPM(rawData, lengths=NULL)
     # }else if(metadata(rawData)$param$scProtocol == "smart-Seq2"){
     #   tpm <- calculateTPM(rawData, effective_length=rowData(rawData)$featWidth)
     # }
