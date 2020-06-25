@@ -77,7 +77,8 @@ ezMethodSCMultipleSamplesOneGroup = function(input=NA, output=NA, param=NA, html
   if(file.exists(filePath)) {
      sceList <- lapply(filePath,loadHDF5SummarizedExperiment)
      names(sceList) <- names(sceURLs)
-     sceList <- lapply(sceList, function(sce) {metadata(sce)$scData <- CreateSeuratObject(counts=counts(sce),meta.data=data.frame(colData(sce)[,2:25])) 
+     #sceList <- lapply(sceList, function(sce) {metadata(sce)$scData <- CreateSeuratObject(counts=counts(sce),meta.data=data.frame(colData(sce)[,2:25])) 
+     sceList <- lapply(sceList, function(sce) {metadata(sce)$scData <- CreateSeuratObject(counts=counts(sce),meta.data=data.frame(colData(sce))) 
      sce})
   #if it is an rds object it has been likely generated from old reports, so we need to update the seurat version before using the clustering functions below.                                             )
   } else {
