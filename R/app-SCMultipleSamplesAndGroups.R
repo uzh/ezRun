@@ -135,6 +135,9 @@ ezMethodSCMultipleSamplesAndGroups = function(input=NA, output=NA, param=NA, htm
   #differentially expressed genes
   diffGenes <- diffExpressedGenes(scData)
   
+  #we do cell type identification using AUCell and SingleR
+  cells_AUC <- NULL
+  singler.results <- NULL
   if(param$species == "Human" | param$species == "Mouse") {
     cells_AUC = cellsLabelsWithAUC(scData, param)
     singler.results <- cellsLabelsWithSingleR(scData, param)
