@@ -72,21 +72,22 @@ ezMethodSCMultipleSamplesOneGroup = function(input=NA, output=NA, param=NA, html
   #the individual sce objects can be in hdf5 format (for new reports) or in rds format (for old reports)
   sceURLs <- input$getColumn("Static Report")
   filePath <- file.path("/srv/gstore/projects", sub("https://fgcz-(gstore|sushi).uzh.ch/projects", "",dirname(sceURLs)), "sce_h5")
+  names(filePath) <- names(sceURLs)
   #In case it is in hdf5 format the Seurat object is not stored in the metadata slot, so we have to build it and store it there, since the 
   #clustering functions below work with sce objects and take the seurat object from them.
-  if(file.exists(filePath)) {
-     sceList <- lapply(filePath,loadHDF5SummarizedExperiment)
-     names(sceList) <- names(sceURLs)
-     #sceList <- lapply(sceList, function(sce) {metadata(sce)$scData <- CreateSeuratObject(counts=counts(sce),meta.data=data.frame(colData(sce)[,2:25])) 
-     sceList <- lapply(sceList, function(sce) {metadata(sce)$scData <- CreateSeuratObject(counts=counts(sce),meta.data=data.frame(colData(sce))) 
-     sce})
-  #if it is an rds object it has been likely generated from old reports, so we need to update the seurat version before using the clustering functions below.                                             )
-  } else {
-    filePath <- file.path("/srv/gstore/projects", sub("https://fgcz-(gstore|sushi).uzh.ch/projects", "",dirname(sceURLs)), "sce.rds")
-    sceList <- lapply(filePath,readRDS)
-    names(sceList) <- names(sceURLs)
-    sceList = lapply(sceList, update_seuratObjectVersion)
+  
+  sceList <- list()
+  for(file_name in names(filePath)) {
+    if(file.exists(filePath[file_name])) {
+      sce = loadHDF5SummarizedExperiment(filePath[file_name])
+      
+    } else {
+      sce = readRDS(gsub("sce_h5", "sce.rds", filePath[file_name]))
+      sce = update_seuratObjectVersion(sce)
+    }
+    sceList[[file_name]] = sce
   }
+  
   
   
   pvalue_allMarkers <- 0.05
