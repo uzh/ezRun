@@ -125,7 +125,7 @@ filterCellsAndGenes <- function(sce, param) {
   require(Matrix)
   
   #Cells filtering
-  mito.genes <- grep("^MT-",rowData(sce)$gene_name)
+  mito.genes <- grep("^MT-",rowData(sce)$gene_name, ignore.case = TRUE)
   sce <- addPerCellQC(sce, subsets = list(Mito = mito.genes))
   sce.unfiltered <- filt.lenient(sce, param)
   sce <- sce[,!sce.unfiltered$discard]
