@@ -39,6 +39,9 @@ EzAppSCOneSample <-
                                         cellsPercentage=ezFrame(Type="numeric", 
                                                                 DefaultValue=0.05, 
                                                                 Description="A gene will be kept if it is expressed in at least this percentage of cells"),
+                                        nDist=ezFrame(Type="numeric", 
+                                                                DefaultValue=2, 
+                                                                Description="Number of distributions considered in cells QC filtering."),
                                         species=ezFrame(Type="character", DefaultValue="Human", Description="Organism")
                                         )
                 }
@@ -124,7 +127,7 @@ filterCellsAndGenes <- function(sce, param) {
   #Cells filtering
   mito.genes <- grep("^MT-",rowData(sce)$gene_name)
   sce <- addPerCellQC(sce, subsets = list(Mito = mito.genes))
-  sce.unfiltered <- filt.lenient(sce)
+  sce.unfiltered <- filt.lenient(sce, param)
   sce <- sce[,!sce.unfiltered$discard]
  
   #Genes filtering
@@ -160,7 +163,7 @@ getFeatCountDist <- function(df, do.plot=FALSE, linear=TRUE){
   df$diff
 }
 
-filt.lenient <- function(x){  
+filt.lenient <- function(x, param){  
   if(!("featcount_dist" %in% colnames(colData(x)))) x <- add_meta(x)
   filters <- c( "log10_total_counts:both:5",
                 "log10_total_features:both:5",
@@ -187,7 +190,7 @@ filt.lenient <- function(x){
     (isOutlier(x$subsets_Mito_percent, nmads=3, type="higher" ) & x$subsets_Mito_percent > 0.08)
   out <- c(out, list(mt=which(mtout)))
   out <- table(unlist(out))
-  out <- as.numeric(names(out)[which(out>=2)])
+  out <- as.numeric(names(out)[which(out>=param$nDist)])
   x$discard <- FALSE
   x$discard[out] <- TRUE
   return(x)
