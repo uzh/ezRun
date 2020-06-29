@@ -188,6 +188,7 @@ filt.lenient <- function(x, param){
   
   mtout <- isOutlier(x$subsets_Mito_percent, nmads=3, type="lower" ) | 
     (isOutlier(x$subsets_Mito_percent, nmads=3, type="higher" ) & x$subsets_Mito_percent > 0.08)
+  x$qc.mito <- mtout
   out <- c(out, list(mt=which(mtout)))
   out <- table(unlist(out))
   out <- as.numeric(names(out)[which(out>=param$nDist)])
