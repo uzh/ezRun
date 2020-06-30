@@ -1,0 +1,199 @@
+---
+author: "Functional Genomics Center Zurich"
+output: 
+  html_document:
+    self_contained: true
+    includes:
+      in_header: fgcz_header.html
+    css: fgcz.css
+editor_options: 
+  chunk_output_type: console
+---
+
+Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE, knitr.table.format = "html")
+
+#to test
+# library(HDF5Array)
+# library(dyno)
+# library(ezRun, lib.loc = "~/myRpackages")
+# require(tidyverse)
+# sce <- loadHDF5SummarizedExperiment("/srv/gstore/projects/p3125/SCOneSample_46603_2020-06-05--14-16-48/PBMC_fresh_50_SCReport/sce_h5")
+# model = readRDS("/srv/GT/analysis/p3125-Mojca/PBMC_fresh_50_SCTrajectoryInference/model.rds")
+# dyno_dataset = readRDS("/srv/GT/analysis/p3125-Mojca/PBMC_fresh_50_SCTrajectoryInference/dyno_dataset.rds")
+# param = list(start_id="0", end_id='none', start_n="1", end_id="1", TI_method='none', diff_Branch='Slingshot,3', diff_Branch_Point='Slingshot,3')
+
+library(ggplot2)
+expression = dyno_dataset$expression
+clusters=colData(sce)$seurat_clusters
+```
+
+## Trajectory analysis {.tabset}
+
+<br/>
+Cells differentiation was modelled using trajectory inference (TI) methods (also known as pseudemporal ordering methods), which use single-cell profiles from a population in which the cells are at different unknown points in the dynamic process. These methods computationally order the cells along a trajectory topology, which can be linear, bifurcating, or a more complex tree or graph structure. Because TI methods offer an unbiasedand transcriptome-wide understanding of a dynamic process,they allow the objective identification of new subsets of cells, delineation of a differentiation tree, and inference of regulatory interaction responsible for one or more bifurcations.
+
+A key characteristic of TI methods is the selection of prior information that a method requires or can optionally exploit. Prior information can be supplied as a starting cell from which the trajectory will originate, a set of important marker genes, or even a grouping of cells into cell states. Providing prior information to a TI method can be both a blessing and a curse. In one way, prior information can help the method to find the correct trajectory among many, equally likely, alternatives. On the other hand,incorrect or noisy prior information can bias the trajectory towards current knowledge.
+<br/>
+
+### Method selection
+
+<br/>
+As the performance of a method most heavily depends on the topology of the trajectory,the choice of TI method will be primarily influenced by the user’s existing knowledge about the expected topology in the data. We therefore show a set of practical guidelines, which combines the method’s performance, user friendliness and the number of assumptions a user is willing to make about the topology of the trajectory. The guidelines are based on an evaluation study ^[ A comparison of single-cell trajectory inference methods Helena Todorov, Yvan Saeys.Nat Biotech (Apr. 2019) doi:10.1038/s41587-019-0071-9] that compared 45 methods on four aspects:
+
+- Accuracy: How similar is the inferred trajectory to the “true” (or “expected”) trajectory in the data. We used several metrics for this, comparing the cellular ordering and topology, and compared against both real datasets, for which a gold standard is not always so well defined, and synthetic data, which are not necessarily as biologically relevant as real data.
+- Scalability: How long the method takes to run and how much memory it consumes. This mainly depends on the dimensions of the input data, i.e. the number of cells and features.
+- Stability: How stable the results are when rerunning the method with different seeds or slightly different input data.
+- Usability: The quality of the documentation and tutorials, how easy it is to run the method, whether the method is well tested.
+
+This interactive shiny app can help you to explore the results and select an optimal set of methods for your analysis [https://zouter.shinyapps.io/server/]
+
+When choosing a method, it is important to take two further points into account. First, it is important that a trajectory and the downstream results and/or hypotheses originating from it are confirmed by multiple TI methods. This to make sure the model is not biased towards the particular model underlying a  TI method. Second,even if the expected topology is known, it can be beneficial to also try out methods which make the less assumptions about the trajectory topology. When the expected topology is confirmed using such a method, it provides extra evidence to the user’s knowledge of the data. When a more complex topology is produced, this could indicate the presence of a more complex trajectory in the data than was expected by the user.
+
+<br/><br/>
+
+#### Practical guidelines
+![](/srv/GT/TI_guidelines.png){width=1000px}
+
+
+
+### Dimensionality reduction
+
+```{r methods selection, eval=param$TI_method=="none", results='asis'}
+cat("The performance of a method depends on many factors, mainly the dimensions of the data and the kind of trajectory present in the data. Based on this, we selected the 2 most optimal set of methods for the analysis.")
+```
+
+The most common way to visualise a trajectory is to plot it on a dimensionality reduction of the cells.
+The following plots color the cells according to
+
+- Cell ordering. In which every milestone gets a color and the color changes gradually between the milestones.
+- Cell grouping. The cells cluster.
+- Pseudotime. The distance to a particular root milestone.
+<br/><br/>
+
+```{r dim red plots, results='asis', fig.align='center', fig.height=12, fig.width=16}
+for(i in 1:nrow(model)) {
+  cat(paste0("#### ", model[i,]$method_name))
+  current_model = model[i,]$model[[1]]
+  plots <- patchwork::wrap_plots(
+  plot_dimred(current_model) + ggtitle("Cell ordering"),
+  plot_dimred(current_model, grouping = sce$seurat_clusters, color_density = "grouping") + ggtitle("Cell grouping"),
+  plot_dimred(current_model, "pseudotime", pseudotime = calculate_pseudotime(current_model)) + ggtitle("Pseudotime")
+)
+  print(plots)
+  cat("\n")
+}
+```
+
+### Heatmap
+
+We can also plot those features that best explain the main differences over the whole trajectory in a heatmap (by default the best 50 genes are plotted)
+<br/>
+
+```{r heatmap, results='asis', fig.align='center', fig.height=8, fig.width=8}
+for(i in 1:nrow(model)) {
+  cat(paste0("#### ", model[i,]$method_name))
+  current_model = model[i,]$model[[1]]
+  plot = plot_heatmap(
+    current_model,
+    expression_source = expression,
+    grouping = clusters,
+    features_oi = 50)
+    print(plot)
+    cat("\n")
+}
+```
+
+### Differential expression
+
+Different kinds of differential expression on the trajectories were calculated:
+
+- Genes that change anywhere in the trajectory.
+- Genes that change in a specific branch.
+- Genes that change at a branching point.
+
+To find these different kinds of differential expression in a trajectory, we used an algorithm that first defines a particular variable that needs to be predicted (for example, whether a cell is present in a branch or not), and tries to predict this variable based on the expression in different cells. It then ranks each feature based on their predictive capability, and based on this ranking you can select differentially expressed genes.
+Depending on what variable is predicted, you get a different ranking. This simply depends on what kind of features you are interested in.
+<br/><br/>
+
+##### Genes that change anywhere in the trajectory
+<br/>
+
+```{r diff genes,  results='asis', fig.align='center', fig.height=8, fig.width=16}
+plot_list=list()
+for(i in 1:nrow(model)) {
+  current_model = model[i,]$model[[1]]
+  overall_feature_importances <- dynfeature::calculate_overall_feature_importance(current_model, expression_source = expression)
+  features <- overall_feature_importances %>%
+  top_n(40, importance) %>%
+  pull(feature_id)
+  plot = plot_heatmap(
+    current_model,
+    expression_source = expression,
+    features_oi = features) + ggtitle(paste0(model[i,]$method_name, ": Overall important features"))
+   plot_list[[i]] = plot
+}
+ patchwork::wrap_plots(plot_list)
+
+ # cat("\n")
+
+```
+<br/><br/>
+
+##### Genes that change in a specific branch (only calculated if the Branch name was supplied)
+<br/>
+
+```{r diff genes in branch, eval=param$diff_Branch != "none",  results='asis', fig.align='center', fig.height=8, fig.width=8}
+method_name = strsplit(param$diff_Branch, ",")[[1]][1]
+branch = strsplit(param$diff_Branch, ",")[[1]][2]
+current_model = model[which(model$method_name == method_name),]$model[[1]]
+
+branch_feature_importance <- calculate_branch_feature_importance(current_model, expression_source = expression)
+features <- branch_feature_importance %>%
+  filter(to == branch) %>%
+  top_n(20, importance) %>%
+  pull(feature_id)
+plot= plot_heatmap(
+    current_model,
+    expression_source = expression,
+    features_oi = features) + ggtitle(paste0("Important features to branch ", branch))
+plot
+```
+<br/><br/>
+
+##### Genes that change at a branching point (only calculated if the Branch name was supplied)
+<br/>
+
+```{r diff genes branch point, eval=param$diff_Branch_Point!= "none", results='asis', fig.align='center', fig.height=8, fig.width=8}
+method_name = strsplit(param$diff_Branch_Point, ",")[[1]][1]
+branch_point = strsplit(param$diff_Branch_Point, ",")[[1]][2]
+current_model = model[which(model$method_name == method_name),]$model[[1]]
+
+branch_point_feature_importance <- calculate_branching_point_feature_importance(current_model, milestones_oi = branch_point, expression_source = expression)
+
+if(nrow(branch_point_feature_importance) > 0) {
+  features <- branch_point_feature_importance %>% top_n(20, importance) %>% pull(feature_id)
+  plot=plot_heatmap(
+    current_model,
+    expression_source = expression,
+    features_oi = features) + ggtitle(paste0("Important features at branching point ", branch_point))
+  plot
+} else {
+  cat(paste0("The heatmap can't be plot because there were not significant genes for the branching point ", branch_point))
+}
+```
+
+### Data availability
+
+### Parameters
+```{r report parameters, echo=FALSE}
+param[c("start_id", "end_id", "start_n","end_n", "TI_method", "diff_Branch", "diff_Branch_Point")]
+```
+
+
+### SessionInfo
+```{r, echo=FALSE}
+sessionInfo()
+```
