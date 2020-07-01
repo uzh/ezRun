@@ -34,7 +34,7 @@ EzAppSCTrajectoryInference <-
                                                             Description="Method and branch name to extract dysregulated genes from. (For example: Slingshot,3)"),
                                         diff_Branch_Point=ezFrame(Type="character", 
                                                                   DefaultValue='none', 
-                                                                  Description="Method and branching point name to extract dysregulated genes from. (For example: Slingshot,3)")            )
+                                                                  Description="Method and branching point name to extract dysregulated genes from. (For example: Slingshot,3)"))
                 } 
                   )
               )
