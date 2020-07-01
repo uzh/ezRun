@@ -26,6 +26,7 @@ knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE, knitr.tabl
 # param = list(start_id="0", end_id='none', start_n="1", end_id="1", TI_method='none', diff_Branch='Slingshot,3', diff_Branch_Point='Slingshot,3')
 
 library(ggplot2)
+library(readr)
 expression = dyno_dataset$expression
 clusters=colData(sce)$seurat_clusters
 ```
@@ -137,8 +138,7 @@ for(i in 1:nrow(model)) {
 }
  patchwork::wrap_plots(plot_list)
 
- # cat("\n")
-
+write_tsv(overall_feature_importances, "overall_feature_importances.tsv")
 ```
 <br/><br/>
 
@@ -160,6 +160,8 @@ plot= plot_heatmap(
     expression_source = expression,
     features_oi = features) + ggtitle(paste0("Important features to branch ", branch))
 plot
+
+write_tsv(branch_feature_importance, "branch_feature_importance.tsv")
 ```
 <br/><br/>
 
@@ -180,12 +182,25 @@ if(nrow(branch_point_feature_importance) > 0) {
     expression_source = expression,
     features_oi = features) + ggtitle(paste0("Important features at branching point ", branch_point))
   plot
+  write_tsv(branch_point_feature_importance, "branch_point_feature_importance.stv")
 } else {
   cat(paste0("The heatmap can't be plot because there were not significant genes for the branching point ", branch_point))
 }
 ```
 
 ### Data availability
+
+##### Genes that change anywhere in the trajectory
+
+[overall_feature_importances](overall_feature_importances.tsv)
+
+##### Genes that change in a specific branch
+
+[branch_feature_importance](branch_feature_importance.tsv)
+
+##### Genes that change at a branching point
+
+[branch_point_feature_importance](branch_point_feature_importance.tsv)
 
 ### Parameters
 ```{r report parameters, echo=FALSE}
