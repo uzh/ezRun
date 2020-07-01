@@ -95,17 +95,29 @@ plotColData(sce.unfiltered, x="sum", y="subsets_Mito_percent", colour_by="discar
 
 A standard approach is to filter cells with a low amount of reads as well as genes that are present in at least a certain amount of cells. While simple, using fixed thresholds requires knowledge of the experiment and of the experimental protocol. An alternative approach is to use adaptive, data-driven thresholds to identify outlying cells, based on the set of QC metrics just calculated. To obtain an adaptive threshold, we assume that most of the dataset consists of high-quality cells. 
 The filters we applied excluded cells that are outliers on two distributions by at least 5 MADs at both tails, except for the percentage counts of mitochondrial genes where the threshold was > 3 MADs and > 0.08.
-The number of cells retained is marked as TRUE and the ones removed as FALSE.
+The number of cells removed is marked as TRUE and the ones retained as FALSE.
 
-```{r cell filtering}
-table(sce.unfiltered$discard)
+```{r low quality cells}
+num.qc.lib <- sum(sce.unfiltered$qc.total_counts)
+num.qc.nexprs <- sum(sce.unfiltered$qc.total_features)
+num.qc.mito <- sum(sce.unfiltered$qc.mito)
+removed <- sum(sce_list$sce.unfiltered$discard)
+
+kable(tibble("QC metric" =c("Library Size", "Expressed genes", "Mitochondrial genes", "Total removed", "Cells remaining"),
+             "Number of cells"= c(num.qc.lib, num.qc.nexprs, num.qc.mito, removed, ncol(sce_list$sce))),
+      row.names=FALSE,
+      caption="Number of cells removed") %>%
+  kable_styling(bootstrap_options = "striped", full_width = F,
+                position = "center")
 ```
+
+
 
 <br/>
 
 #### Gene filtering
 
-We also excluded genes that are lowly or not expressed in our system, as they do not contribute any information to our experiment and may add noise. In this case, we removed genes that were not expressed in at least `r param$cellsPercentage` percent of the cells. In case one or more rare cell populations are expected we might need to decrease the percentage of cells. The number of genes retained is marked as TRUE and the ones removed as FALSE.
+We also excluded genes that are lowly or not expressed in our system, as they do not contribute any information to our experiment and may add noise. In this case, we removed genes that were not expressed in at least `r param$cellsPercentage` percent of the cells. In case one or more rare cell populations are expected we might need to decrease the percentage of cells. The number of genes removed is marked as TRUE and the ones retained as FALSE.
 
 ```{r gene filtering}
 table(rowData(sce.unfiltered)$is.expressed)
