@@ -293,9 +293,9 @@ diffExpressedGenes <- function(scData) {
     diffGenes <- list()
     for(eachCluster in gtools::mixedsort(levels(seurat_clusters))){
       markersEach <- try(FindMarkers(scData, ident.1=paste0(eachCluster, "_",
-                                                            conditionsComb[2,i]),
+                                                            conditionsComb[1,i]),
                                      ident.2=paste0(eachCluster, "_", 
-                                                    conditionsComb[1,i]),
+                                                    conditionsComb[2,i]),
                                      print.bar=FALSE), silent=TRUE)
       ## to skip some groups with few cells
       if(class(markersEach) != "try-error"){
