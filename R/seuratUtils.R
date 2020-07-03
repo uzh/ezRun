@@ -127,6 +127,13 @@ update_seuratObjectVersion = function(se) {
   return(se)
 }
 
+add_Condition_oldReports <- function(sce) {
+  scData = metadata(sce)$scData
+  scData@meta.data$Condition = sce[,colnames(scData)]$Condition
+  metadata(sce)$scData = scData
+  sce
+}
+
 seuratStandardWorkflow <- function(scData, param){
   set.seed(38)
   if (identical(param$pcGenes, character(0))) 
