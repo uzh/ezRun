@@ -326,7 +326,6 @@ singler.results.single <- metadata(sce)$singler.results$singler.results.single
 singler.results.cluster <- metadata(sce)$singler.results$singler.results.cluster
 singler.single.labels <- singler.results.single$labels
 singler.cluster.labels<- singler.results.cluster$labels[match(colData(sce)[,"ident"], rownames(singler.results.cluster))]
-all.markers <- metadata(singler.results.cluster)$de.genes
 ```
 
 ```{r singler ScoreHeatmap,  eval= (param$species != "other"), results='asis'}
