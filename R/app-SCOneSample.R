@@ -97,6 +97,7 @@ ezMethodSCOneSample <- function(input=NA, output=NA, param=NA,
   singler.results.cluster <- singler.results$singler.results.cluster
   colData(sce)$singler.cluster.labels <- singler.results.cluster$labels[match(colData(sce)[,"ident"], rownames(singler.results.cluster))]
   colData(sce)$singler.single.labels <- singler.results.single$labels
+  metadata(sce)$singler.results <- singler.results
   metadata(sce)$output <- output
   metadata(sce)$param <- param
   metadata(sce)$param$name <- paste(metadata(sce)$param$name,
