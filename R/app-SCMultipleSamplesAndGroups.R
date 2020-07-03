@@ -87,6 +87,7 @@ ezMethodSCMultipleSamplesAndGroups = function(input=NA, output=NA, param=NA, htm
     sceList <- lapply(filePath,readRDS)
     names(sceList) <- names(sceURLs)
     sceList = lapply(sceList, update_seuratObjectVersion)
+    sceList = lapply(sceList,  add_Condition_oldReports)
   }
   
   
