@@ -162,22 +162,15 @@ ezInteractiveTableRmd(posMarkers, digits=4, title=caption)
 
 
 ### Visualization of cluster markers
-#### The strongest `r param$markersToShow` gene markers (highest logFC) for each cluster are represented on the Ridge and the TSNE plots.
+#### The 20 most specific markers (highest difference in the expression in one cluster compared to the rest) are represented on the Ridge and the TSNE plots.
 <br/>
 
 ```{r top cluster markers, fig.width=4, fig.height=3, results = 'asis'}
-top_FC <- posMarkers %>% group_by(cluster) %>% top_n(param$markersToShow, avg_logFC)
-for(cluster in unique(top_FC$cluster)){
-  top_FC_cluster = top_FC[top_FC$cluster == cluster,]
-  cat("\n")
-  cat(paste0("##### Top "), param$markersToShow, ("markers for cluster "), cluster)
-  cat("\n")
-  for(i in 1:nrow(top_FC_cluster)){
-    print(RidgePlot.sce(sce, feature = as.character(top_FC_cluster$gene[i])))
-    print(plotReducedDim(sce, dimred="TSNE", colour_by=top_FC_cluster$gene[i]))
+n_markers <- 20
+for(i in 1:n_markers){
+    print(RidgePlot.sce(sce, feature = as.character(posMarkers$gene[i])))
+    print(plotReducedDim(sce, dimred="TSNE", colour_by=posMarkers$gene[i]))
   }
-  cat("\n\n")
-}
 ```
 ### Cells annotation
 
