@@ -34,13 +34,19 @@ debug <- FALSE
 ### Overview
 
 * Total Number of sgRNAs: `r nrow(dict)`
-* Median Reads per sgRNA = `r median(dict$Count_0MM)`
-* Mean Reads per sgRNA = `r mean(dict$Count_0MM)`
+* Median Reads per sgRNA = `r median(dict$Count)`
+* Mean Reads per sgRNA = `r mean(dict$Count)`
 
 ### Diagnostic plots
 
-
 ```{r plots, fig.width=10, fig.height=10, echo=FALSE, message=FALSE, warning=FALSE, eval=!debug}
+readFilteringStats = unlist(stats)[1:3]/10^6
+barplot(readFilteringStats, main = 'Read Filtering Stats', ylab = 'Reads in [M]', col = c('darkblue', 'royalblue', 'lightblue'))
+
+mappingStats = unlist(stats)[4:length(stats)]
+barplot(mappingStats, las  = 1, main = 'Read Mapping Stats', ylab = 'Reads', col = 'royalblue')
+
+
 p <- ggplot(data, aes(x=group, y=counts))
   p <- p + geom_violin(fill="royalblue", alpha= 0.5, trim = FALSE, adjust = 0.5) 
   p <- p + geom_boxplot(width = 0.1)
@@ -48,8 +54,8 @@ p <- ggplot(data, aes(x=group, y=counts))
   p <- p + theme(plot.title = element_text(size=15, face="bold"), axis.title.x =element_blank(), axis.text.x = element_text(angle=45,hjust=1))
   print(p)
 
-  h <- ggplot(dict, aes(x=log2(1+Count_0MM))) + geom_histogram(binwidth=0.1)
-  h <- h +  ggtitle(paste0(sampleName, '-Histogram 0MM')) + ylab('Number of sgRNAs') + xlab('Log2 count per sgRNA (0MM)')
+  h <- ggplot(dict, aes(x=log2(1+Count))) + geom_histogram(binwidth=0.1)
+  h <- h +  ggtitle(paste0(sampleName, '-Histogram')) + ylab('Number of sgRNAs') + xlab('Log2 count per sgRNA')
   print(h)
   
   plot(sortedCounts, pch = c(15), cex = 0.7, main = paste(sampleName, '- sgCount Overview'), ylab = 'log2(sgRNA Count)', ylim = c(0, max(max(sortedCounts), 1.05*upperCutOff)))
@@ -91,11 +97,11 @@ cat("\n")
 
 LibraryPath: `r param[['dictPath']]`
 
-LeftPattern: `r param[['leftPattern']]`
+LeftPattern: `r sub('\\.', '', param[['leftPattern']])`
 
 RightPattern: `r param[['rightPattern']]`
 
-Alignment: bowtie
+Alignment method: bowtie
 
 ### SessionInfo
 ```{r, echo=FALSE}
