@@ -8,6 +8,7 @@
 
 ezMethodCountQC = function(input=NA, output=NA, param=NA,
                            htmlFile="00index.html"){
+  setwdNew(basename(output$getColumn("Report")))
   input <- input$subset(param$samples)
   dataset <- input$meta
   if (param$useFactorsAsSampleName){
@@ -24,7 +25,6 @@ ezMethodCountQC = function(input=NA, output=NA, param=NA,
   }
   
   metadata(rawData)$output <- output
-  setwdNew(basename(output$getColumn("Report")))
   makeRmdReport(rawData=rawData, rmdFile="CountQC.Rmd", 
                 reportTitle="CountQC")
   
