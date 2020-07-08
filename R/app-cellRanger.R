@@ -19,7 +19,7 @@ ezMethodCellRanger = function(input=NA, output=NA, param=NA){
   
   if(param$TenXLibrary == "GEX"){
     refDir <- getCellRangerGEXReference(param)
-    cmd <- paste(CELLRANGER, "count", paste0("--id=", cellRangerFolder),
+    cmd <- paste("cellranger count", paste0("--id=", cellRangerFolder),
                  paste0("--transcriptome=", refDir),
                  paste0("--fastqs=", sampleDir),
                  paste0("--sample=", sampleName),
@@ -28,7 +28,7 @@ ezMethodCellRanger = function(input=NA, output=NA, param=NA){
                  paste0("--chemistry=", param$chemistry))
   }else if(param$TenXLibrary == "VDJ"){
     refDir <- getCellRangerVDJReference(param)
-    cmd <- paste(CELLRANGER, "vdj", paste0("--id=", cellRangerFolder),
+    cmd <- paste("cellranger vdj", paste0("--id=", cellRangerFolder),
                  paste0("--reference=", refDir),
                  paste0("--fastqs=", sampleDir),
                  paste0("--sample=", sampleName),
@@ -149,7 +149,7 @@ getCellRangerGEXReference <- function(param){
     export.gff2(gtf, gtfFile)
   }
   
-  cmd <- paste(CELLRANGER, "mkref",
+  cmd <- paste("cellranger mkref",
                paste0("--genome=", basename(refDir)),
                paste0("--fasta=", genomeLocalFn),
                paste0("--genes=", gtfFile),
@@ -194,7 +194,7 @@ getCellRangerVDJReference <- function(param){
   
   job = ezJobStart("10X CellRanger build")
   
-  cmd <- paste(CELLRANGER, "mkvdjref",
+  cmd <- paste("cellranger mkvdjref",
                paste0("--genome=", basename(refDir)),
                paste0("--fasta=", param$ezRef@refFastaFile),
                paste0("--genes=", param$ezRef@refFeatureFile))
@@ -237,7 +237,7 @@ getCellRangerReference <- function(param){
     
     ## build the index
     refDir <- file.path(getwd(), "10X_customised_Ref")
-    cmd <- paste(CELLRANGER, "mkref",
+    cmd <- paste("cellranger mkref",
                  paste0("--genome=", basename(refDir)),
                  paste0("--fasta=", genomeLocalFn),
                  paste0("--genes=", gtfFile),
