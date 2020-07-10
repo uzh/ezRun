@@ -5,21 +5,23 @@
 # The terms are available here: http://www.gnu.org/licenses/gpl.html
 # www.fgcz.ch
 
-ezMethodCellRanger = function(input=NA, output=NA, param=NA){
-  sampleName = input$getNames()
-  sampleDirs = strsplit(input$getColumn("RawDataDir"), ",")[[sampleName]]
+ezMethodCellRanger <- function(input=NA, output=NA, param=NA){
+  require(readr)
+  require(tibble)
+  sampleName <- input$getNames()
+  sampleDirs <- strsplit(input$getColumn("RawDataDir"), ",")[[sampleName]]
   sampleDirs <- file.path(input$dataRoot, sampleDirs)
   if(all(grepl("\\.tar$", sampleDirs))){
-    # This is new .tar folder
     lapply(sampleDirs, untar)
     sampleDirs <- sub("\\.tar$", "", basename(sampleDirs))
+    sampleDirs <- normalizePath(sampleDirs)
   }
   sampleDir <- paste(sampleDirs, collapse=",")
-  cellRangerFolder = paste0(sampleName, "-cellRanger")
+  cellRangerFolder <- paste0(sampleName, "-cellRanger")
   
   if(param$TenXLibrary == "GEX"){
     refDir <- getCellRangerGEXReference(param)
-    cmd <- paste(CELLRANGER, "count", paste0("--id=", cellRangerFolder),
+    cmd <- paste("cellranger count", paste0("--id=", cellRangerFolder),
                  paste0("--transcriptome=", refDir),
                  paste0("--fastqs=", sampleDir),
                  paste0("--sample=", sampleName),
@@ -28,12 +30,40 @@ ezMethodCellRanger = function(input=NA, output=NA, param=NA){
                  paste0("--chemistry=", param$chemistry))
   }else if(param$TenXLibrary == "VDJ"){
     refDir <- getCellRangerVDJReference(param)
-    cmd <- paste(CELLRANGER, "vdj", paste0("--id=", cellRangerFolder),
+    cmd <- paste("cellranger vdj", paste0("--id=", cellRangerFolder),
                  paste0("--reference=", refDir),
                  paste0("--fastqs=", sampleDir),
                  paste0("--sample=", sampleName),
                  paste0("--localmem=", param$ram),
                  paste0("--localcores=", param$cores))
+  }else if(param$TenXLibrary == "FeatureBarcoding"){
+    refDir <- getCellRangerGEXReference(param)
+    featureDirs <- strsplit(input$getColumn("FeatureDataDir"), ",")[[sampleName]]
+    featureDirs <- file.path(input$dataRoot, featureDirs)
+    featureRefFn <- file.path(dirname(featureDirs), "feature_ref.csv")
+    stopifnot(any(file.exists(featureRefFn)))
+    featureRefFn <- head(featureRefFn[file.exists(featureRefFn)], 1)
+    
+    if(all(grepl("\\.tar$", featureDirs))){
+      lapply(featureDirs, untar)
+      featureDirs <- sub("\\.tar$", "", basename(featureDirs))
+      featureDirs <- normalizePath(featureDirs)
+    }
+    libraryFn <- tempfile(pattern="library", tmpdir = ".", fileext = ".csv")
+    libraryTb <- tibble(fastqs=c(sampleDirs, featureDirs),
+                        sample=c(rep(sampleName, length(sampleDirs)),
+                                 basename(featureDirs)),
+                        library_type=c(rep("Gene Expression", length(sampleDirs)),
+                                       rep("Antibody Capture", length(featureDirs))))
+    write_csv(libraryTb, libraryFn)
+    
+    cmd <- paste("cellranger count", paste0("--id=", cellRangerFolder),
+                 paste0("--transcriptome=", refDir),
+                 paste0("--libraries=", libraryFn),
+                 paste0("--feature-ref=", featureRefFn),
+                 paste0("--localmem=", param$ram),
+                 paste0("--localcores=", param$cores),
+                 paste0("--chemistry=", param$chemistry))
   }
   
   if(ezIsSpecified(param$cmdOptions)){
@@ -42,6 +72,7 @@ ezMethodCellRanger = function(input=NA, output=NA, param=NA){
   ezSystem(cmd)
   
   unlink(basename(sampleDirs), recursive=TRUE)
+  unlink(basename(featureDirs), recursive=TRUE)
   file.rename(file.path(cellRangerFolder, "outs"),  sampleName)
   unlink(cellRangerFolder, recursive=TRUE)
   
@@ -149,7 +180,7 @@ getCellRangerGEXReference <- function(param){
     export.gff2(gtf, gtfFile)
   }
   
-  cmd <- paste(CELLRANGER, "mkref",
+  cmd <- paste("cellranger mkref",
                paste0("--genome=", basename(refDir)),
                paste0("--fasta=", genomeLocalFn),
                paste0("--genes=", gtfFile),
@@ -194,7 +225,7 @@ getCellRangerVDJReference <- function(param){
   
   job = ezJobStart("10X CellRanger build")
   
-  cmd <- paste(CELLRANGER, "mkvdjref",
+  cmd <- paste("cellranger mkvdjref",
                paste0("--genome=", basename(refDir)),
                paste0("--fasta=", param$ezRef@refFastaFile),
                paste0("--genes=", param$ezRef@refFeatureFile))
@@ -237,7 +268,7 @@ getCellRangerReference <- function(param){
     
     ## build the index
     refDir <- file.path(getwd(), "10X_customised_Ref")
-    cmd <- paste(CELLRANGER, "mkref",
+    cmd <- paste("cellranger mkref",
                  paste0("--genome=", basename(refDir)),
                  paste0("--fasta=", genomeLocalFn),
                  paste0("--genes=", gtfFile),

@@ -273,10 +273,10 @@ runKraken <- function(param, input){
   krakenResult = list()
   for (i in 1:length(r1Files)){
     resultFile = paste0('report_', names(r1Files)[i], '.kraken')
-    cmd = paste('/usr/local/ngseq/src/kraken-1.0/kraken -db', KRAKEN_DB,
+    cmd = paste('kraken -db', KRAKEN_DB,
                 ' --fastq-input', r1Files[i], '--gzip-compressed --threads', param$cores, '>sequences.kraken')
     ezSystem(cmd)
-    cmd = paste('/usr/local/ngseq/src/kraken-1.0/kraken-report -db', KRAKEN_DB, 'sequences.kraken >', resultFile)
+    cmd = paste('kraken-report -db', KRAKEN_DB, 'sequences.kraken >', resultFile)
     ezSystem(cmd)
     ##simple result filtering
     data = ezRead.table(resultFile, stringsAsFactors = F, row.names = NULL)

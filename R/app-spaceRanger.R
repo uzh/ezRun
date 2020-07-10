@@ -37,7 +37,7 @@ ezMethodSpaceRanger <- function(input=NA, output=NA, param=NA){
   spaceRangerFolder <- paste0(sampleName, "-spaceRanger")
 
   refDir <- getCellRangerGEXReference(param)
-  cmd <- paste(SPACERANGER, "count", paste0("--id=", spaceRangerFolder),
+  cmd <- paste("spaceranger count", paste0("--id=", spaceRangerFolder),
                paste0("--transcriptome=", refDir),
                paste0("--fastqs=", sampleDir),
                paste0("--sample=", sampleName),
