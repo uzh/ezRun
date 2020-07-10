@@ -47,7 +47,7 @@ ezMethodCellRangerAggr = function(input=NA, output=NA, param=NA){
   
   cellRangerFolder = paste0(param$name, "-cellRanger")
   
-  cmd <- paste(CELLRANGER, "aggr", paste0("--id=", cellRangerFolder),
+  cmd <- paste("cellranger aggr", paste0("--id=", cellRangerFolder),
                paste0("--csv=", aggr_input_fn),
                paste0("--normalize=", param$normalize))
   ezSystem(cmd)
