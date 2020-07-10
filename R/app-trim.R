@@ -25,12 +25,14 @@ ezMethodFastpTrim = function(input=NA, output=NA, param=NA){
   if (any(grepl("bam$", input$getFullPaths("Read1")))){
     stop("cannot process unmapped bam as input")
   }
+  
+  
   ## if output is not an EzDataset, set it! (when ezMethodFastpTrim is used inside another app)
   if (!is(output, "EzDataset")){
     output = input$copy()
-    output$setColumn("Read1", paste0(getwd(), "/", input$getNames(), "-trimmed_R1.fastq.gz"))
+    output$setColumn("Read1", paste0(getwd(), "/", input$getNames(), "-trimmed_R1.fastq", ifelse(param$gzipTrimmed, ".gz", "")))
     if (param$paired){
-      output$setColumn("Read2", paste0(getwd(), "/", input$getNames(), "-trimmed_R2.fastq.gz"))
+      output$setColumn("Read2", paste0(getwd(), "/", input$getNames(), "-trimmed_R2.fastq", ifelse(param$gzipTrimmed, ".gz", "")))
     } else {
       if ("Read2" %in% input$colNames){
         output$setColumn("Read2", NULL)
@@ -47,6 +49,8 @@ ezMethodFastpTrim = function(input=NA, output=NA, param=NA){
     }
     return(output)
   }
+
+  stopifnot(grepl(".gz$", input$getFullPaths("Read1")) == param$gzipTrimmed)
   
   ## now we deal only with one sample!
   
@@ -163,9 +167,19 @@ ezMethodFastpTrim = function(input=NA, output=NA, param=NA){
   ezSystem(paste0('mv fastp.err ',input$getNames(),'_preprocessing.log'))
 
   ## rename trimmed output
-  ezSystem(paste("mv", r1TmpFile, basename(output$getColumn("Read1"))))
-  if (param$paired){
-    ezSystem(paste("mv", r2TmpFile, basename(output$getColumn("Read2"))))
+  if (param$gzipTrimmed){
+    ezSystem(paste("mv", r1TmpFile, basename(output$getColumn("Read1"))))
+    if (param$paired){
+      ezSystem(paste("mv", r2TmpFile, basename(output$getColumn("Read2"))))
+    }
+  } else {
+    ezSystem(paste("zcat", r1TmpFile, ">", basename(output$getColumn("Read1"))))
+    file.remove(r1TmpFile)
+    if (param$paired){
+      ezSystem(paste("zcat", r2TmpFile, ">", basename(output$getColumn("Read2"))))
+      file.remove(r2TmpFile)
+    }
+    
   }
   
   return(output)
@@ -182,6 +196,9 @@ EzAppFastp =
                    "Initializes the application using its specific defaults."
                    runMethod <<- ezMethodFastpTrim
                    name <<- "EzAppFastp"
+                   appDefaults <<- rbind(gzipTrimmed=ezFrame(Type="logical", DefaultValue=TRUE, Description="whether to return gzipped reads")
+                                         )
+                   
                  }
                )
                
@@ -212,263 +229,263 @@ EzAppFastp =
 ##' }
 ##' @template roxygen-template
 ##' @return Returns the output after trimming as an object of the class EzDataset.
-ezMethodTrim = function(input=NA, output=NA, param=NA){
-  
-  if (any(grepl("bam$", input$getFullPaths("Read1")))){
-    stop("can not process unmapped bam as input")
-  }
-  
-  ## if output is not an EzDataset, set it!
-  if (!is(output, "EzDataset")){
-    output = input$copy()
-    output$setColumn("Read1", paste0(getwd(), "/", input$getNames(), "-trimmed_R1.fastq"))
-    if (param$paired){
-      output$setColumn("Read2", paste0(getwd(), "/", input$getNames(), "-trimmed_R2.fastq"))
-    } else {
-      if ("Read2" %in% input$colNames){
-        output$setColumn("Read2", NULL)
-      }
-    }
-    output$dataRoot = NULL
-  }
-  
-  
-  ## if there are multiple samples loop through them
-  if (input$getLength() > 1){
-    for (nm in input$getNames()){
-      ezSystem(paste0('touch ', nm, '_preprocessing.log'))
-      ezMethodTrim(input$subset(nm), output$subset(nm), param)
-      ## NOTE: potential risk, temp files might be overwritten
-    }
-    return(output)
-  }
-  
-  ## now we deal only with one sample!
-  
-  
-  ## make a local copy of the dataset and check the md5sum
-  if (!is.null(param$copyReadsLocally) && param$copyReadsLocally){
-    input = copyReadsLocally(input, param)
-  }
-  
-  param$trimSeedMismatches = 1
-  param$trimPalindromClipThresh = 20
-  param$trimSimpleClipThresh = 7
-  param$trimMinAdaptLength = 5
-  param$trimKeepBothReads = "true"
-  param$trimQualWindowWidth = 4
-  
-  if (param$subsampleReads > 1 || param$nReads > 0){
-    input = ezMethodSubsampleReads(input=input, param=param)
-    inputRead1 <- input$getFullPaths("Read1")
-    on.exit(file.remove(inputRead1), add=TRUE)
-    if(param$paired){
-      inputRead2 <- input$getFullPaths("Read2")
-      on.exit(file.remove(inputRead2), add=TRUE)
-    }
-  }
-  
-  if (param$trimAdapter){
-    if (!is.null(input$meta$Adapter1) && !is.na(input$meta$Adapter1) && input$meta$Adapter1 != ""){
-      adapter1 = DNAStringSet(input$meta$Adapter1)
-      names(adapter1) = "GivenAdapter1"
-    } else {
-      adapter1 = DNAStringSet()
-    }
-    if (param$paired && !is.null(input$meta$Adapter2) && !is.na(input$meta$Adapter2) && input$meta$Adapter2 != ""){
-      adapter2 = DNAStringSet(input$meta$Adapter2)
-      names(adapter2) = "GivenAdapter2"
-    } else {
-      adapter2 = DNAStringSet()
-    }
-    # take only adapter from dataset and ignore the ones from TRIMMOMATIC_ADAPTERS
-    adaptFile = "adapters.fa"
-    adapters = c(adapter1, adapter2)
-    if (!is.null(param$onlyAdapterFromDataset) && param$onlyAdapterFromDataset){
-      writeXStringSet(adapters, adaptFile)
-    } else {
-      file.copy(from=TRIMMOMATIC_ADAPTERS,
-                to=adaptFile)
-      writeXStringSet(adapters, adaptFile, append=TRUE)
-    }
-    on.exit(file.remove(adaptFile), add=TRUE)
-    
-    trimAdaptOpt =  paste("ILLUMINACLIP", adaptFile, param$trimSeedMismatches, param$trimPalindromClipThresh,
-                          param$trimSimpleClipThresh, param$trimMinAdaptLength, param$trimKeepBothReads, sep=":")
-  } else {
-    trimAdaptOpt = ""
-  }
-  
-  if (param$minTailQuality > 0){
-    tailQualOpt = paste("SLIDINGWINDOW", param$trimQualWindowWidth,
-                        param$minTailQuality, sep=":")
-  } else {
-    tailQualOpt = ""
-  }
-  
-  if(param$minLeadingQuality >0){
-    leadingQualOpt <- paste("LEADING", param$minLeadingQuality, sep=":")
-  }else{
-    leadingQualOpt <- ""
-  }
-
-    if(param$minTrailingQuality >0){
-    trailingQualOpt <- paste("TRAILING", param$minTrailingQuality, sep=":")
-  }else{
-    trailingQualOpt <- ""
-  }
-  
-  if (param$minAvgQuality > 0){
-    minAvgQualOpt = paste("AVGQUAL", param$minAvgQuality, sep=":")
-  } else {
-    minAvgQualOpt = ""
-  }
-  
-  r1TmpFile = "trimmed_R1.fastq"
-  r2TmpFile = "trimmed_R2.fastq"
-  if (any(c(trimAdaptOpt, tailQualOpt, minAvgQualOpt) != "") || param$minReadLength > 0){
-    if (param$paired){
-      method = "PE"
-      readOpts = paste(
-        input$getFullPaths("Read1"),
-        input$getFullPaths("Read2"),
-        r1TmpFile,
-        "unpaired_R1.fastq",
-        r2TmpFile,
-        "unpaired_R2.fastq")
-        on.exit(file.remove(c("unpaired_R1.fastq", "unpaired_R2.fastq")),
-                add=TRUE)
-    } else {
-      method = "SE"
-      readOpts = paste(
-        input$getFullPaths("Read1"), r1TmpFile)
-    }
-    cmd = paste(prepareTrimmomatic(), method,
-                ## hardcode phred33 quality encoding
-                "-threads", min(param$cores, 8), "-phred33",
-                readOpts, trimAdaptOpt, tailQualOpt, leadingQualOpt, trailingQualOpt, minAvgQualOpt,
-                paste("MINLEN", param$minReadLength, sep=":"),
-                "> trimmomatic.out 2> trimmomatic.err")
-    on.exit(file.remove(c("trimmomatic.out", "trimmomatic.err")), add=TRUE)
-    
-    ezSystem(cmd)
-    ## TRIMOMMATIC may throw exception but still return status 0
-    exceptionCount = length(grep("Exception", readLines("trimmomatic.err")))
-    stopifnot(exceptionCount == 0)
-    cmd = paste0('cat trimmomatic.err >>',input$getNames(),'_preprocessing.log')
-    ezSystem(cmd)
-  } else {
-    ezSystem(paste("gunzip -c", input$getFullPaths("Read1"), ">", r1TmpFile))
-    if (param$paired){
-      ezSystem(paste("gunzip -c", input$getFullPaths("Read2"), ">", r2TmpFile))
-    }
-  }
-  
-  ## the flexbar call is done separately because we do want to make sure that fixed trimming is done on top of adapter trimming
-  ## this is needed for STAR to be able to pair the reads properly
-  if (param$trimLeft > 0 || param$trimRight > 0){
-    if (param$paired){
-      pairedOpt = paste("-p", r2TmpFile)
-    } else {
-      pairedOpt = ""
-    }
-    if(param$minReadLength > 0){
-      minReadLengthOpt = paste("--min-read-length", param$minReadLength)
-    }
-    else {
-      minReadLengthOpt = ""
-    }
-    cmd = paste("flexbar",
-                "--threads", min(param$cores, 8),
-                "-r", r1TmpFile,
-                pairedOpt,
-                "-u", 20, ##### max uncalled bases
-                "--pre-trim-left", param$trimLeft,
-                "--pre-trim-right", param$trimRight,
-                minReadLengthOpt,
-                "--target", "flexbar",
-                "> flexbar.out 2> flexbar.err")
-    ezSystem(cmd)
-    on.exit(file.remove(c("flexbar.out", "flexbar.err", "flexbar.log")),
-            add=TRUE)
-    
-    cmd = paste0('cat flexbar.out >>',input$getNames(),'_preprocessing.log')
-    ezSystem(cmd)
-    if (param$paired) {
-      file.remove(r1TmpFile)
-      file.remove(r2TmpFile)
-      r1TmpFile = "flexbar_1.fastq"
-      r2TmpFile = "flexbar_2.fastq"
-    } else {
-      file.remove(r1TmpFile)
-      r1TmpFile = "flexbar.fastq"
-    }
-  }
-  
-  ## filter by max read length
-  if (!is.null(param$maxReadLength) && !is.na(as.integer(param$maxReadLength))){
-    newFile = "lengthTrimmed_R1.fastq"
-    maxLength = as.integer(param$maxReadLength)
-    fqs = FastqStreamer(r1TmpFile, n=1e6)
-    while(length(x <- yield(fqs))){
-      writeFastq(x[width(x) <= maxLength], file = newFile, mode="a", compress=FALSE)
-    }
-    close(fqs)
-    file.remove(r1TmpFile)
-    r1TmpFile = newFile
-    if (param$paired){
-      newFile = "lengthTrimmed_R2.fastq"
-      maxLength = as.integer(param$maxReadLength)
-      fqs = FastqStreamer(r2TmpFile, n=1e6)
-      while(length(x <- yield(fqs))){
-        writeFastq(x[width(x) <= maxLength], file = newFile, mode="a")
-      }
-      close(fqs)
-      file.remove(r2TmpFile)
-      r2TmpFile = newFile
-    }
-  }
-  
-  ezSystem(paste("mv", r1TmpFile, basename(output$getColumn("Read1"))))
-  if (param$paired){
-    ezSystem(paste("mv", r2TmpFile, basename(output$getColumn("Read2"))))
-  }
-  return(output)
-}
-
-
-## copies the read files locally and computes md5 sums
-copyReadsLocally = function(input, param){
-  if (param$paired){
-    reads = c("Read1", "Read2")
-  } else{
-    reads = "Read1"
-  }
-  for (rds in reads){
-    readFileIn = input$getFullPaths(rds)
-    
-    file.copy(from=readFileIn, to=".")
-    
-    input$setColumn(rds, basename(readFileIn))
-    # if (Sys.info()["user"] == "trxcopy") { ## only run the check for the user trxcopy!!!
-    #   md5Local = ezSystem(paste("md5sum", basename(readFileIn)), intern = TRUE)
-    #   md5Local = sub(" .*", "", md5Local)
-    #   md5File = file.path(dirname(readFileIn), "md5.txt")
-    #   md5Remote = NA
-    #   if (file.exists(md5File)){
-    #     md5Set = ezRead.table(md5File)
-    #     md5Remote = md5Set[basename(readFileIn), 1]
-    #   }
-    #   if (is.na(md5Remote)){
-    #     md5Remote = ezSystem(paste("ssh fgcz-s-022 md5sum", readFileIn), intern = TRUE)
-    #     md5Remote = sub(" .*", "", md5Remote)
-    #   }
-    #   stopifnot(md5Local == md5Remote)
-    # }
-  }
-  input$dataRoot = NULL
-  return(input)
-}
+# ezMethodTrim = function(input=NA, output=NA, param=NA){
+#   
+#   if (any(grepl("bam$", input$getFullPaths("Read1")))){
+#     stop("can not process unmapped bam as input")
+#   }
+#   
+#   ## if output is not an EzDataset, set it!
+#   if (!is(output, "EzDataset")){
+#     output = input$copy()
+#     output$setColumn("Read1", paste0(getwd(), "/", input$getNames(), "-trimmed_R1.fastq"))
+#     if (param$paired){
+#       output$setColumn("Read2", paste0(getwd(), "/", input$getNames(), "-trimmed_R2.fastq"))
+#     } else {
+#       if ("Read2" %in% input$colNames){
+#         output$setColumn("Read2", NULL)
+#       }
+#     }
+#     output$dataRoot = NULL
+#   }
+#   
+#   
+#   ## if there are multiple samples loop through them
+#   if (input$getLength() > 1){
+#     for (nm in input$getNames()){
+#       ezSystem(paste0('touch ', nm, '_preprocessing.log'))
+#       ezMethodTrim(input$subset(nm), output$subset(nm), param)
+#       ## NOTE: potential risk, temp files might be overwritten
+#     }
+#     return(output)
+#   }
+#   
+#   ## now we deal only with one sample!
+#   
+#   
+#   ## make a local copy of the dataset and check the md5sum
+#   if (!is.null(param$copyReadsLocally) && param$copyReadsLocally){
+#     input = copyReadsLocally(input, param)
+#   }
+#   
+#   param$trimSeedMismatches = 1
+#   param$trimPalindromClipThresh = 20
+#   param$trimSimpleClipThresh = 7
+#   param$trimMinAdaptLength = 5
+#   param$trimKeepBothReads = "true"
+#   param$trimQualWindowWidth = 4
+#   
+#   if (param$subsampleReads > 1 || param$nReads > 0){
+#     input = ezMethodSubsampleReads(input=input, param=param)
+#     inputRead1 <- input$getFullPaths("Read1")
+#     on.exit(file.remove(inputRead1), add=TRUE)
+#     if(param$paired){
+#       inputRead2 <- input$getFullPaths("Read2")
+#       on.exit(file.remove(inputRead2), add=TRUE)
+#     }
+#   }
+#   
+#   if (param$trimAdapter){
+#     if (!is.null(input$meta$Adapter1) && !is.na(input$meta$Adapter1) && input$meta$Adapter1 != ""){
+#       adapter1 = DNAStringSet(input$meta$Adapter1)
+#       names(adapter1) = "GivenAdapter1"
+#     } else {
+#       adapter1 = DNAStringSet()
+#     }
+#     if (param$paired && !is.null(input$meta$Adapter2) && !is.na(input$meta$Adapter2) && input$meta$Adapter2 != ""){
+#       adapter2 = DNAStringSet(input$meta$Adapter2)
+#       names(adapter2) = "GivenAdapter2"
+#     } else {
+#       adapter2 = DNAStringSet()
+#     }
+#     # take only adapter from dataset and ignore the ones from TRIMMOMATIC_ADAPTERS
+#     adaptFile = "adapters.fa"
+#     adapters = c(adapter1, adapter2)
+#     if (!is.null(param$onlyAdapterFromDataset) && param$onlyAdapterFromDataset){
+#       writeXStringSet(adapters, adaptFile)
+#     } else {
+#       file.copy(from=TRIMMOMATIC_ADAPTERS,
+#                 to=adaptFile)
+#       writeXStringSet(adapters, adaptFile, append=TRUE)
+#     }
+#     on.exit(file.remove(adaptFile), add=TRUE)
+#     
+#     trimAdaptOpt =  paste("ILLUMINACLIP", adaptFile, param$trimSeedMismatches, param$trimPalindromClipThresh,
+#                           param$trimSimpleClipThresh, param$trimMinAdaptLength, param$trimKeepBothReads, sep=":")
+#   } else {
+#     trimAdaptOpt = ""
+#   }
+#   
+#   if (param$minTailQuality > 0){
+#     tailQualOpt = paste("SLIDINGWINDOW", param$trimQualWindowWidth,
+#                         param$minTailQuality, sep=":")
+#   } else {
+#     tailQualOpt = ""
+#   }
+#   
+#   if(param$minLeadingQuality >0){
+#     leadingQualOpt <- paste("LEADING", param$minLeadingQuality, sep=":")
+#   }else{
+#     leadingQualOpt <- ""
+#   }
+# 
+#     if(param$minTrailingQuality >0){
+#     trailingQualOpt <- paste("TRAILING", param$minTrailingQuality, sep=":")
+#   }else{
+#     trailingQualOpt <- ""
+#   }
+#   
+#   if (param$minAvgQuality > 0){
+#     minAvgQualOpt = paste("AVGQUAL", param$minAvgQuality, sep=":")
+#   } else {
+#     minAvgQualOpt = ""
+#   }
+#   
+#   r1TmpFile = "trimmed_R1.fastq"
+#   r2TmpFile = "trimmed_R2.fastq"
+#   if (any(c(trimAdaptOpt, tailQualOpt, minAvgQualOpt) != "") || param$minReadLength > 0){
+#     if (param$paired){
+#       method = "PE"
+#       readOpts = paste(
+#         input$getFullPaths("Read1"),
+#         input$getFullPaths("Read2"),
+#         r1TmpFile,
+#         "unpaired_R1.fastq",
+#         r2TmpFile,
+#         "unpaired_R2.fastq")
+#         on.exit(file.remove(c("unpaired_R1.fastq", "unpaired_R2.fastq")),
+#                 add=TRUE)
+#     } else {
+#       method = "SE"
+#       readOpts = paste(
+#         input$getFullPaths("Read1"), r1TmpFile)
+#     }
+#     cmd = paste(prepareTrimmomatic(), method,
+#                 ## hardcode phred33 quality encoding
+#                 "-threads", min(param$cores, 8), "-phred33",
+#                 readOpts, trimAdaptOpt, tailQualOpt, leadingQualOpt, trailingQualOpt, minAvgQualOpt,
+#                 paste("MINLEN", param$minReadLength, sep=":"),
+#                 "> trimmomatic.out 2> trimmomatic.err")
+#     on.exit(file.remove(c("trimmomatic.out", "trimmomatic.err")), add=TRUE)
+#     
+#     ezSystem(cmd)
+#     ## TRIMOMMATIC may throw exception but still return status 0
+#     exceptionCount = length(grep("Exception", readLines("trimmomatic.err")))
+#     stopifnot(exceptionCount == 0)
+#     cmd = paste0('cat trimmomatic.err >>',input$getNames(),'_preprocessing.log')
+#     ezSystem(cmd)
+#   } else {
+#     ezSystem(paste("gunzip -c", input$getFullPaths("Read1"), ">", r1TmpFile))
+#     if (param$paired){
+#       ezSystem(paste("gunzip -c", input$getFullPaths("Read2"), ">", r2TmpFile))
+#     }
+#   }
+#   
+#   ## the flexbar call is done separately because we do want to make sure that fixed trimming is done on top of adapter trimming
+#   ## this is needed for STAR to be able to pair the reads properly
+#   if (param$trimLeft > 0 || param$trimRight > 0){
+#     if (param$paired){
+#       pairedOpt = paste("-p", r2TmpFile)
+#     } else {
+#       pairedOpt = ""
+#     }
+#     if(param$minReadLength > 0){
+#       minReadLengthOpt = paste("--min-read-length", param$minReadLength)
+#     }
+#     else {
+#       minReadLengthOpt = ""
+#     }
+#     cmd = paste("flexbar",
+#                 "--threads", min(param$cores, 8),
+#                 "-r", r1TmpFile,
+#                 pairedOpt,
+#                 "-u", 20, ##### max uncalled bases
+#                 "--pre-trim-left", param$trimLeft,
+#                 "--pre-trim-right", param$trimRight,
+#                 minReadLengthOpt,
+#                 "--target", "flexbar",
+#                 "> flexbar.out 2> flexbar.err")
+#     ezSystem(cmd)
+#     on.exit(file.remove(c("flexbar.out", "flexbar.err", "flexbar.log")),
+#             add=TRUE)
+#     
+#     cmd = paste0('cat flexbar.out >>',input$getNames(),'_preprocessing.log')
+#     ezSystem(cmd)
+#     if (param$paired) {
+#       file.remove(r1TmpFile)
+#       file.remove(r2TmpFile)
+#       r1TmpFile = "flexbar_1.fastq"
+#       r2TmpFile = "flexbar_2.fastq"
+#     } else {
+#       file.remove(r1TmpFile)
+#       r1TmpFile = "flexbar.fastq"
+#     }
+#   }
+#   
+#   ## filter by max read length
+#   if (!is.null(param$maxReadLength) && !is.na(as.integer(param$maxReadLength))){
+#     newFile = "lengthTrimmed_R1.fastq"
+#     maxLength = as.integer(param$maxReadLength)
+#     fqs = FastqStreamer(r1TmpFile, n=1e6)
+#     while(length(x <- yield(fqs))){
+#       writeFastq(x[width(x) <= maxLength], file = newFile, mode="a", compress=FALSE)
+#     }
+#     close(fqs)
+#     file.remove(r1TmpFile)
+#     r1TmpFile = newFile
+#     if (param$paired){
+#       newFile = "lengthTrimmed_R2.fastq"
+#       maxLength = as.integer(param$maxReadLength)
+#       fqs = FastqStreamer(r2TmpFile, n=1e6)
+#       while(length(x <- yield(fqs))){
+#         writeFastq(x[width(x) <= maxLength], file = newFile, mode="a")
+#       }
+#       close(fqs)
+#       file.remove(r2TmpFile)
+#       r2TmpFile = newFile
+#     }
+#   }
+#   
+#   ezSystem(paste("mv", r1TmpFile, basename(output$getColumn("Read1"))))
+#   if (param$paired){
+#     ezSystem(paste("mv", r2TmpFile, basename(output$getColumn("Read2"))))
+#   }
+#   return(output)
+# }
+# 
+# 
+# ## copies the read files locally and computes md5 sums
+# copyReadsLocally = function(input, param){
+#   if (param$paired){
+#     reads = c("Read1", "Read2")
+#   } else{
+#     reads = "Read1"
+#   }
+#   for (rds in reads){
+#     readFileIn = input$getFullPaths(rds)
+#     
+#     file.copy(from=readFileIn, to=".")
+#     
+#     input$setColumn(rds, basename(readFileIn))
+#     # if (Sys.info()["user"] == "trxcopy") { ## only run the check for the user trxcopy!!!
+#     #   md5Local = ezSystem(paste("md5sum", basename(readFileIn)), intern = TRUE)
+#     #   md5Local = sub(" .*", "", md5Local)
+#     #   md5File = file.path(dirname(readFileIn), "md5.txt")
+#     #   md5Remote = NA
+#     #   if (file.exists(md5File)){
+#     #     md5Set = ezRead.table(md5File)
+#     #     md5Remote = md5Set[basename(readFileIn), 1]
+#     #   }
+#     #   if (is.na(md5Remote)){
+#     #     md5Remote = ezSystem(paste("ssh fgcz-s-022 md5sum", readFileIn), intern = TRUE)
+#     #     md5Remote = sub(" .*", "", md5Remote)
+#     #   }
+#     #   stopifnot(md5Local == md5Remote)
+#     # }
+#   }
+#   input$dataRoot = NULL
+#   return(input)
+# }
 ### -----------------------------------------------------------------
 ### ezMethodSubsampleReads: subsample fastq
 ###
@@ -528,51 +545,3 @@ ezMethodSubsampleReads = function(input=NA, output=NA, param=NA){
   }
   return(output)
 }
-
-##' @describeIn ezMethodTrim Performs the fastq for the subsamples using the package ShortRead.
-##' @examples
-##'  inputFile = system.file(package = "ezRun", "extdata/yeast_10k/wt_1_R1.fastq.gz")
-##'  subsampledFile = "sub_R1.fastq"
-##'  ezSubsampleFastq(inputFile, subsampledFile, subsampleFactor = 5)
-# ezSubsampleFastq = function(full, sub, subsampleFactor=NA, nYield=1e5, overwrite=FALSE){
-#   stopifnot(full != sub)
-#   stopifnot(length(full) == length(sub))
-#   if (any(file.exists(sub))){
-#     filesToRemove = sub[file.exists(sub)]
-#     if (!overwrite){
-#       stop("files do exist: ", filesToRemove)
-#     }
-#     warning("removing first: ", filesToRemove)
-#     file.remove(filesToRemove)
-#   }
-#   require("ShortRead")
-#   nms = names(full)
-#   if (is.null(nms)){
-#     nms = full
-#   }
-#   nReadsVector = integer()
-#   for (i in seq_along(full)){
-#     nReads = 0
-#     fqs = FastqStreamer(full[i], n = nYield)
-#     idx = seq(from=1, to=nYield, by=subsampleFactor)
-#     tmpFile = sub("\\.fastq.*", "_temp.fastq", sub[i])
-#     while(length(x <- yield(fqs))){
-#       if (length(x) >= nYield){
-#         writeFastq(x[idx], file=tmpFile, mode="a", full=F, compress=F)
-#         nReads = nReads + length(idx)
-#       } else {
-#         writeFastq(x[idx[idx<length(x)]], file=tmpFile, mode="a", full=F, compress=F)
-#         nReads = nReads + sum(idx<length(x))
-#       }
-#     }
-#     close(fqs)
-#     nReadsVector[nms[i]] = nReads
-#     if (grepl(".gz$", sub[i])){
-#       ezSystem(paste("pigz -p 2 --best -c", tmpFile, ">", sub[i]))
-#       file.remove(tmpFile)
-#     } else {
-#       file.rename(tmpFile, sub[i])
-#     }
-#   }
-#   return(nReadsVector)
-# }

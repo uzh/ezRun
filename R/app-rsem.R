@@ -22,8 +22,9 @@ ezMethodRSEM = function(input=NA, output=NA, param=NA){
   opt = paste(opt, "-p", ezThreads(), "--sort-bam-memory-per-thread", samtoolsSortMem, 
               "--ci-memory", ciMemory)
   
+  param$gzipTrimmed = FALSE
   trimmedInput = ezMethodFastpTrim(input = input, param = param)
-  
+
   strandOpt = switch(param$strandMode,
                      "sense"="--forward-prob 1.0",
                      "antisense"="--forward-prob 0.0",
