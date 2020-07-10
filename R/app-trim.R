@@ -26,6 +26,10 @@ ezMethodFastpTrim = function(input=NA, output=NA, param=NA){
     stop("cannot process unmapped bam as input")
   }
   
+  if (!ezIsSpecified(param$gzipTrimmed)){
+    param$gzipTrimmed = TRUE
+  }
+  
   
   ## if output is not an EzDataset, set it! (when ezMethodFastpTrim is used inside another app)
   if (!is(output, "EzDataset")){
