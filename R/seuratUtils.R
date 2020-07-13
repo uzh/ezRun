@@ -236,8 +236,6 @@ cellClustWithCorrection <- function (sceList, param) {
   #2.4. Integrate datasets
   seurat_integrated <- IntegrateData(anchorset = integ_anchors, normalization.method = "SCT", dims = 1:param$npcs)
 
-  # switch to integrated assay for downstream analyses
-  DefaultAssay(seurat_integrated) <- "integrated"
   # Run the standard workflow for visualization and clustering
   seurat_integrated <- seuratStandardWorkflow(seurat_integrated, param)
   return(seurat_integrated)
