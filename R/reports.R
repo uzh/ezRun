@@ -533,9 +533,8 @@ makeResultFile = function(param, se, useInOutput=TRUE,
   ans <- list()
   ans$resultFile <- file
   if(isTRUE(param$doZip)){
-    zipFile <- sub(file_ext(file), "zip", file)
-    zip(zipfile=zipFile, files=file)
-    ans$resultZip <- zipFile
+    zippedFile <- sub(file_ext(file), "zip", file)
+    ans$resultZip <- zipFile(file, zippedFile)
   }
   
   ## Interactive gene tables
