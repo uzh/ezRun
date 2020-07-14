@@ -250,11 +250,10 @@ plot(deseqResults$pieChart)
 #### Full table with all the results to download
 ```{r deSeqTableZip, echo=FALSE}
 write.table(deseqResults$fullTable,diffAbundTableName,row.names = F, col.names = T, quote = F,sep = "\t")
-zipFile <- sub(file_ext(diffAbundTableName), "zip", diffAbundTableName)
-zip(zipFile, files=diffAbundTableName)
+zipped = zipFile(diffAbundTableName)
 ```
 
-[`r zipFile`](`r zipFile`)
+[`r zipped`](`r zipped`)
 
 #### Summary table (top 20 differentially abundant OTUs)
 ```{r deSeqTopTableShow, echo=FALSE}
