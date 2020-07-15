@@ -103,14 +103,12 @@ bam2bw(file="A9502US_processed.bam", destination="A9502US_processed_deepTpools.b
 ## MACS2
 ## module load Dev/Python2
 ## module load Tools/MACS2
-## setEnvironments("macs2")
 #debug(atacBamProcess)
 EzAppMacs2$new()$run(input=input, output=output, param=param)
 
 ## HOMER
 ### makeTagDirectory App
 library(ezRun)
-setEnvironments("r")
 setwd("/scratch/gtan/p2578-atacENCODE/HOMER")
 param = list()
 param[['cores']] = '4'

@@ -13,7 +13,6 @@ output:
 knitr::opts_chunk$set(echo = TRUE,warning=FALSE, message=FALSE, out.width = "49%")
 ## This report requires summary files form mothur
 debug <- FALSE
-setEnvironments("phantomjs")
 ```
 
 ```{r setup, include=FALSE}

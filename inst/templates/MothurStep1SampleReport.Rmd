@@ -13,7 +13,6 @@ output:
 knitr::opts_chunk$set(echo = TRUE,warning=FALSE, message=FALSE,out.width="70%")
 ## This report requires summary files form mothur
 debug <- FALSE
-setEnvironments("phantomjs")
 ```
 
 Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`

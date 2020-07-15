@@ -24,8 +24,6 @@ setwd("/scratch/gtan/scRNA")
 fastqFns <- list.files(path="/srv/gstore/projects/p2288/HiSeq2500_20171011_RR99_o3511/dmx",
                        pattern="\\.fastq\\.gz$", full.names=TRUE)
 fastqs2bam(fastqFns, bamFn="20171011.A-C1_HT_24H.bam")
-setEnvironments("flexbar")
-setEnvironments("python2")
 setwd("/scratch/gtan/scRNA")
 param = list()
 param[['cores']] = '8'
@@ -112,8 +110,6 @@ ezWrite.table(countMeta, file="NEG-dataset.tsv", head='Name')
 
 ## STAR
 setwd("/scratch/gtan/scRNA-p2277/STAR")
-setEnvironments("flexbar")
-setEnvironments("python2")
 library(ezRun)
 param = list()
 param[['cores']] = '8'
@@ -251,8 +247,6 @@ EzAppSingleCellFeatureCounts$new()$run(input=input, output=output, param=param)
 ## EzAppSCCounts: smart-seq2 with smaller one uBam
 setwd("/scratch/gtan/dev/scRNA-p2277")
 library(ezRun)
-setEnvironments("flexbar")
-setEnvironments("python2")
 param = list()
 param[['cores']] = '8'
 param[['ram']] = '40'
@@ -335,8 +329,6 @@ EzAppSCCounts$new()$run(input=input, output=output, param=param)
 # p2497 SCCounts from uBam
 setwd("/export/local/scratch/gtan/dev/p2497-SCCounts")
 library(ezRun)
-setEnvironments("flexbar")
-setEnvironments("python2")
 param = list()
 param[['cores']] = '8'
 param[['ram']] = '50'
@@ -397,8 +389,6 @@ EzAppSCCounts$new()$run(input=input, output=output, param=param)
 # p2497 SCCounts from uBam, second example
 library(ezRun)
 setwd("/export/local/scratch/gtan/dev/p2497-SCCounts")
-setEnvironments("flexbar")
-setEnvironments("python2")
 param = list()
 param[['cores']] = '8'
 param[['ram']] = '50'
@@ -461,8 +451,6 @@ EzAppSCCounts$new()$run(input=input, output=output, param=param)
 
 # p2214 SCCounts from fastqs
 library(ezRun)
-setEnvironments("flexbar")
-setEnvironments("python2")
 setwd("/export/local/scratch/gtan/p2214-SCCounts")
 param = list()
 param[['cores']] = '8'

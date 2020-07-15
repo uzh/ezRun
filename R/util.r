@@ -702,15 +702,8 @@ ezSplitLongText = function(text, nSplit=180){
 isValidEnvironments <- function(tool){
   tool <- tolower(tool)
   ans <- switch(tool,
-                "phantomjs"=Sys.which("phantomjs") != "",
-                "flexbar"=Sys.which("flexbar") != "",
-                "python2"=Sys.which("python2") != "",
-                "fastq_screen"=Sys.which("fastq_screen") != "",
                 "conda"=Sys.which("conda") != "",
-                "macs2"=Sys.which("macs2") != "",
-                "r"=Sys.which("R") != "",
                 "ataqv"=Sys.which("ataqv") != "",
-                "fastqc"=Sys.which("fastqc") != "",
                 stop("unsupported tool: ", tool)
                 )
   return(ans)
@@ -720,15 +713,8 @@ setEnvironments <- function(tool, envir=parent.frame()){
   tool <- tolower(tool)
   if(!isTRUE(isValidEnvironments(tool))){
     cmd <- switch(tool,
-                  "phantomjs"=expression({Sys.setenv("PATH"=paste("/usr/local/ngseq/packages/Dev/PhantomJS/2.1.1/bin", Sys.getenv("PATH"), sep=":"))}),
-                  "flexbar"=expression({Sys.setenv("PATH"=paste("/usr/local/ngseq/packages/QC/Flexbar/3.0.3/bin", Sys.getenv("PATH"), sep=":"))}),
-                  "python2"=expression({Sys.setenv("PATH"=paste("/usr/local/ngseq/packages/Dev/Python2/2.7.13/bin", Sys.getenv("PATH"), sep=":"))}),
-                  "fastq_screen"=expression({Sys.setenv("PATH"=paste("/usr/local/ngseq/packages/QC/FastQScreen/0.11.1", Sys.getenv("PATH"), sep=":"))}),
                   "conda"=expression({Sys.setenv("PATH"=paste("/usr/local/ngseq/miniconda3/bin", Sys.getenv("PATH"), sep=":"))}),
-                  "macs2"=expression({Sys.setenv("PATH"=paste("/usr/local/ngseq/packages/Dev/Python2/2.7.13/bin", Sys.getenv("PATH"), sep=":"))}),
-                  "r"=expression({Sys.setenv("PATH"=paste("/usr/local/ngseq/packages/Dev/R/3.5.0/bin", Sys.getenv("PATH"), sep=":"))}),
                   "ataqv"=expression({Sys.setenv("PATH"=paste("/usr/local/ngseq/packages/Tools/ataqv/1.0.0/bin", Sys.getenv("PATH"), sep=":"))}),
-                  "fastqc"=expression({Sys.setenv("PATH"=paste("/usr/local/ngseq/packages/QC/FastQC/0.11.7", Sys.getenv("PATH"), sep=":"))}),
                   stop("unsupported tool: ", tool)
     )
     eval(cmd, envir=envir)
