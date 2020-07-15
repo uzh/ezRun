@@ -73,7 +73,6 @@ EzAppFastqc$new()$run(input=input, output=output, param=param)
 # p2000 single cell bam
 setwd("/scratch/gtan/p2000-SCFastQC")
 library(ezRun)
-setEnvironments("fastqc")
 param = list()
 param[['cores']] = '8'
 param[['ram']] = '16'
