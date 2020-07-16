@@ -11,6 +11,7 @@ ezMethodFastQC_10x <- function(input=NA, output=NA, param=NA,
   require(tidyverse)
   setwdNew(basename(output$getColumn("Report")))
   
+  param$paired <- TRUE
   dataset <- input$meta
   samples <- rownames(dataset)
   sampleDirs <- input$getFullPaths("RawDataDir")
@@ -39,9 +40,7 @@ ezMethodFastQC_10x <- function(input=NA, output=NA, param=NA,
   files = c()
   for (sm in samples){
     files[paste0(sm, "_R1")] = input$getFullPaths("Read1")[sm]
-    if(isTRUE(param$paired)){
-      files[paste0(sm, "_R2")] = input$getFullPaths("Read2")[sm]
-    }
+    files[paste0(sm, "_R2")] = input$getFullPaths("Read2")[sm]
   }
   nFiles = length(files)
   
