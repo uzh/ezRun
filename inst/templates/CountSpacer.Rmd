@@ -75,7 +75,7 @@ The raw counts allowing 0 and 1 mismatches are available here:
 
 ```{r raw count matrix, echo=FALSE, results='asis', message=FALSE, eval=!debug}
 # Raw counts
-zipped = zipFile(files=paste0(sampleName,'-result.txt'))
+zipped = zipFile(paste0(sampleName,'-result.txt'))
 cat("\n")
 cat(paste0("[", zipped, "](", zipped, ")"))
 cat("\n")
