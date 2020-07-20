@@ -12,6 +12,7 @@ ezMethodGatkDnaHaplotyper = function(input=NA, output=NA, param=NA){
   knownSites = list.files(param$ezRef["refVariantsDir"],pattern='vcf.gz$',full.names = T)
   dbsnpFile = knownSites[grep('dbsnp.*vcf.gz$', knownSites)]
   javaCall = paste0("java", " -Djava.io.tmpdir=. -Xmx", param$ram, "g")
+  gatk = file.path(Sys.getenv("GATK"),'gatk')
   
   genomeSeq = param$ezRef["refFastaFile"]
   sampleName = names(bamFile)
@@ -40,16 +41,16 @@ ezMethodGatkDnaHaplotyper = function(input=NA, output=NA, param=NA){
   
   ezSystem(paste("samtools", "index", "withRg.bam"))
   
-  if(param$splitNtrim){
-    gatk = paste(javaCall, "-jar", Sys.getenv("GATK_jar"))
-    cmd = paste(gatk, "-T SplitNCigarReads", "-R", genomeSeq,
-                "-I", "withRg.bam",
-                "-rf ReassignOneMappingQuality -RMQF 255 -RMQT 60 -U ALLOW_N_CIGAR_READS",
-                "-o splitNtrim.bam") 
-    ezSystem(cmd)
-    ezSystem('mv splitNtrim.bam withRg.bam')
-    ezSystem(paste("samtools", "index", "withRg.bam"))
-  }
+# if(param$splitNtrim){
+#    gatk = paste(javaCall, "-jar", Sys.getenv("GATK_jar"))
+#    cmd = paste(gatk, "-T SplitNCigarReads", "-R", genomeSeq,
+#                "-I", "withRg.bam",
+#                "-rf ReassignOneMappingQuality -RMQF 255 -RMQT 60 -U ALLOW_N_CIGAR_READS",
+#                "-o splitNtrim.bam") 
+#    ezSystem(cmd)
+#    ezSystem('mv splitNtrim.bam withRg.bam')
+#    ezSystem(paste("samtools", "index", "withRg.bam"))
+#  }
   
   if(param$targetFile != ''){
     param$targetFile = file.path(TARGET_ENRICHMENT_DESIGN_DIR, param$targetFile)
@@ -57,17 +58,16 @@ ezMethodGatkDnaHaplotyper = function(input=NA, output=NA, param=NA){
   
   #BaseRecalibration is done only if known sites are available
   if(param$knownSitesAvailable){
-  baseRecalibration1 = paste(javaCall,"-jar", Sys.getenv("GATK_jar"), " -T BaseRecalibrator")
+    baseRecalibration = paste(gatk,'BaseRecalibrator')
   #knownSitesCMD = ''
   #for (j in 1:length(knownSites)){
   #  knownSitesCMD = paste(knownSitesCMD,paste("--knownSites", knownSites[j], collapse=','))
   #}
   
-  cmd = paste(baseRecalibration1, "-R", genomeSeq,
+  cmd = paste(baseRecalibration, "-R", genomeSeq,
               "-I withRg.bam",
-              "--knownSites", dbsnpFile,
-              "--out recal.table", 
-              "-nct", param$cores)
+              "--known-sites", dbsnpFile,
+              "--output recal.table")
   
   if(param$targetFile != ''){
     cmd = paste(cmd,
@@ -75,13 +75,11 @@ ezMethodGatkDnaHaplotyper = function(input=NA, output=NA, param=NA){
   }
   ezSystem(cmd)
   
-  
-  baseRecalibration2 = paste(javaCall,"-jar", Sys.getenv("GATK_jar"), " -T PrintReads")
-  cmd = paste(baseRecalibration2, "-R", genomeSeq,
+  ApplyBQSR = paste(gatk,'ApplyBQSR')
+  cmd = paste(ApplyBQSR, "-R", genomeSeq,
               "-I withRg.bam",
-              "-BQSR recal.table",
-              "-o recal.bam",
-              "-nct", param$cores)
+              "--bqsr-recal-file recal.table",
+              "--output recal.bam")
   
   if(param$targetFile != ''){
     cmd = paste(cmd,
@@ -92,13 +90,13 @@ ezMethodGatkDnaHaplotyper = function(input=NA, output=NA, param=NA){
   }
   ezSystem(paste("samtools", "index", "recal.bam"))
   ########### haplotyping
-  haplotyperCall = paste(javaCall,"-jar", Sys.getenv("GATK_jar"), " -T HaplotypeCaller")
+  haplotyperCall = paste(gatk,'HaplotypeCaller')
   outputFile = paste0(sampleName, "-HC_calls.g.vcf")
   cmd = paste(haplotyperCall, "-R", genomeSeq,
               "-I recal.bam",
-              "--emitRefConfidence GVCF",
-              "--max_alternate_alleles 2",
-              "-o", outputFile)
+              "-ERC GVCF",
+              "--max-alternate-alleles 2",
+              "-output", outputFile)
   
   if(param$knownSitesAvailable){
     cmd = paste(cmd,
@@ -117,7 +115,7 @@ ezMethodGatkDnaHaplotyper = function(input=NA, output=NA, param=NA){
               "-ip 100")
   } else {
     cmd = paste(cmd,
-                "-nct", param$cores)
+                "--native-pair-hmm-threads", param$cores)
   }
   ezSystem(cmd)
   ezSystem(paste("bgzip","-c",outputFile, ">",paste0(outputFile,".gz")))
