@@ -137,11 +137,11 @@ runGatkPipeline = function(datasetCase, param=NA){
                 ezSystem(paste('mv', paste0(caseName,"_recal.SNPs.vcf"), outputFile))
             }
         #Add ExAc-Annotation:
-            runExAc = FALSE
+            runExAC = FALSE
             if(runExAC){
-        ExAcFile = param$knownSites[grep('ExAC.*vcf.gz$', param$knownSites)]
-        VariantAnnotation = paste(gatk,'VariantAnnotator')
-        cmd = paste(VariantAnnotation, "-R", param$genomeSeq,
+                ExAcFile = param$knownSites[grep('ExAC.*vcf.gz$', param$knownSites)]
+                VariantAnnotation = paste(gatk,'VariantAnnotator')
+                cmd = paste(VariantAnnotation, "-R", param$genomeSeq,
                     "--variant", outputFile,
                     "--output ",paste0(outputFile, "_annotated.vcf"),
                     "--resource:ExAC",  ExAcFile,
