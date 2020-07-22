@@ -28,6 +28,7 @@ ezMethodFastQC_10x <- function(input=NA, output=NA, param=NA,
   
   dataset$`Read1` <- taredfiles_R1
   dataset$`Read2` <- taredfiles_R2
+  dataset$`Read Count` <- countReadsInFastq(taredfiles_R1)
   input <- EzDataset(meta=dataset, dataRoot=NULL)
   if(sum(input$getColumn("Read Count")) > 1e9){
     doSubsample <- TRUE # subsample to 1Mio reads

@@ -23,6 +23,7 @@ ezMethodFastqScreen_10x <- function(input=NA, output=NA, param=NA,
   taredfiles_R2 <- normalizePath(taredfiles_R2)
   dataset$`Read1` <- taredfiles_R1
   dataset$`Read2` <- taredfiles_R2
+  dataset$`Read Count` <- countReadsInFastq(taredfiles_R1)
   input <- EzDataset(meta=dataset, dataRoot=NULL)
   
   if(sum(input$meta$`Read Count`) > 1e9){
