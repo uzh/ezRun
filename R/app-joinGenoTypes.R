@@ -152,13 +152,12 @@ runGatkPipeline = function(datasetCase, param=NA){
                     "--expression ExAC.AC_Hom")
         if(param$targetFile != ''){
             cmd = paste(cmd, "-L", param$targetFile) }
-        
-        #cmd = '/usr/local/ngseq/packages/Variants/GATK/4.1.8.0/gatk SelectVariants --reference /srv/GT/reference/Homo_sapiens/Ensembl/GRCh37.p13/Sequence/WholeGenomeFasta/genome.fa  -V S5008.vcf --keep-original-ac true --keep-original-dp true --set-filtered-gt-to-nocall true --exclude-filtered true --exclude-non-variants true --remove-unused-alternates true --output test.vcf'
-        ezSystem(paste(cmd,'2>>',myLog))
+            ezSystem(paste(cmd,'2>>',myLog))
             } else {
                 ezSystem(paste('mv', outputFile, paste0(outputFile, "_annotated.vcf")))
             }
-        cmd = paste(param$javaCall, "-jar", "$SnpEff/SnpSift.jar", "dbnsfp -f 1000Gp1_EUR_AF,Uniprot_acc,Interpro_domain,phastCons100way_vertebrate,CADD_phred,Polyphen2_HDIV_pred,Polyphen2_HVAR_pred,SIFT_score,SIFT_pred -v -db /srv/GT/databases/dbNSFP/dbNSFP2.9.txt.gz",paste0(outputFile, "_annotated.vcf"), ">", outputFile)
+        cmd = paste(param$javaCall, "-jar", "$SnpEff/SnpSift.jar", "dbnsfp -f ExAC_AF,ExAC_AC, 1000Gp1_EUR_AF,Uniprot_acc,Interpro_domain,phastCons100way_vertebrate,CADD_phred,Polyphen2_HDIV_pred,Polyphen2_HVAR_pred,SIFT_score,SIFT_pred -v -db /srv/GT/databases/dbNSFP/dbNSFP2.9.txt.gz",paste0(outputFile, "_annotated.vcf"), ">", outputFile)
+        #for hg38 upgrade - dbsfp starting from v4: gnomAD_exomes_AF,M-CAP_score,M-CAP_rankscore,M-CAP_pred,VindijiaNeandertal
         ezSystem(paste(cmd,'2>>',myLog))
     }
     
