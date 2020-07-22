@@ -64,6 +64,7 @@ ezMethodCellRanger <- function(input=NA, output=NA, param=NA){
                  paste0("--localmem=", param$ram),
                  paste0("--localcores=", param$cores),
                  paste0("--chemistry=", param$chemistry))
+    on.exit(unlink(basename(featureDirs), recursive=TRUE), add=TRUE)
   }
   
   if(ezIsSpecified(param$cmdOptions)){
@@ -72,7 +73,6 @@ ezMethodCellRanger <- function(input=NA, output=NA, param=NA){
   ezSystem(cmd)
   
   unlink(basename(sampleDirs), recursive=TRUE)
-  unlink(basename(featureDirs), recursive=TRUE)
   file.rename(file.path(cellRangerFolder, "outs"),  sampleName)
   unlink(cellRangerFolder, recursive=TRUE)
   
