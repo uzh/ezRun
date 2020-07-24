@@ -6,11 +6,19 @@
 # www.fgcz.ch
 ezMethodNestLink <- function(input=NA, output=NA, param=NA){
     require(NestLink)
-    knownNB_data <- read.table(param[['knownNBPath']], sep='\t', header = TRUE, 
+    require(Biostrings)
+    
+    if(grepl('>', readLines(param[['knownNBPath']], n = 1))){
+        knownNB_data <- readDNAStringSet(file)
+        knownNB <- translate(knownNB_data, if.fuzzy.codon = 'solve')
+        param[['knownNB']] <- sapply(knownNB, toString)
+    } else {
+        knownNB_data <- read.table(param[['knownNBPath']], sep = '\t', header = TRUE, 
                                row.names = 1, stringsAsFactors = FALSE)
-    knownNB <- Biostrings::translate(DNAStringSet(knownNB_data$Sequence))
-    names(knownNB) <- rownames(knownNB_data)
-    param[['knownNB']] <- sapply(knownNB, toString)
+        knownNB <- translate(DNAStringSet(knownNB_data$Sequence), if.fuzzy.codon = 'solve')
+        names(knownNB) <- rownames(knownNB_data)
+        param[['knownNB']] <- sapply(knownNB, toString)
+    }
     
     file <- input$getFullPaths("Read1")
     sampleName <- input$getNames()
