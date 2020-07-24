@@ -38,21 +38,6 @@ ezMethodTeqc = function(input=NA, output=NA, param=NA){
   samples = input$getNames()
   jobList = input$getFullPaths("BAM")
   
-  #sGtfFile <- param$ezRef@refFeatureFile
-  #myGTF <- rtracklayer::import(sGtfFile)
-  #myGTF <- myGTF[mcols(myGTF)$type=='exon']
-  #myGTF <- myGTF[myGTF$gene_biotype=='protein_coding']
-  #allExons <- myGTF
-  
-  #keepCols = c('seqnames','start','end','strand','type','gene_id','gene_name')
-  #myGTF[keepCols]
-  #gtf_df = data.frame(myGTF, stringsAsFactors = FALSE)
-  #gtf_df = unique(gtf_df[,keepCols])
-  #ir <- IRanges(start = gtf_df$start, end = gtf_df$end)
-  #allExons <- RangedData(ranges = ir, space = gtf_df$seqnames, gene_id = gtf_df$gene_id, gene_name = gtf_df$gene_name, 
-  #                       orientation = as.character(gtf_df$strand),typ = gtf_df$type)
-  #allExons <- as(allExons, "GRanges")
-  
   #Create one Report per Sample:
   destDirs = ezMclapply(jobList, runTEQC, param, mc.cores = param$cores)
   
@@ -82,36 +67,6 @@ ezMethodTeqc = function(input=NA, output=NA, param=NA){
   titles[["Individual Reports"]] = "Individual Reports"
   addTitle(doc, titles[[length(titles)]], 2, id=titles[[length(titles)]])
   addTxtLinksToReport(doc, paste0(destDirs, '/index.html'))
-  
-  
- # titles[["Gene Coverage"]] = "GeneCoverage"
-#  addTitle(doc, titles[[length(titles)]], 2, id=titles[[length(titles)]])
- # minCov = 20
-#  coverageLinks = paste0(samples,'_coverage_allExons.txt')
-#  covData = list()
-#  minCovData = matrix(data = 0,nrow = 2,ncol = length(coverageLinks))
-#  rownames(minCovData) = c(paste0('>=',minCov,'x'),paste0('<',minCov,'x'))
- # colnames(minCovData) = samples
-#  for(i in 1:length(coverageLinks)){
-#    covData[[i]] = ezRead.table(coverageLinks[i],row.names=NULL)
-#    avgCovPerGene = tapply(covData[[i]]$avgCoverage, INDEX=covData[[i]]$gene_id, mean)
-#    minCovData[,i] = c(sum(avgCovPerGene>=minCov),sum(avgCovPerGene<=minCov))
-    #nReadPerGene = tapply(covData[[i]]$nReads, INDEX=covData[[i]]$gene_id, sum)
-    #minExonCov = tapply(covData[[i]]$avgCoverage, INDEX=covData[[i]]$gene_id, min)
-    #CovSDPerGene = tapply(covData[[i]]$avgCoverage, INDEX=covData[[i]]$gene_id, sd)
-#  }
-  
-  #### Simple Barplot
-#  addParagraph(doc,ezImageFileLink(plotCmd = expression({bp = barplot(minCovData,legend.text = T,
-#                                                                     names.arg = rep('',length(samples)),ylab='#Genes',
-#                                                                     main='Gene Coverage above minCov') 
-#                                                        text(x = bp, y = par("usr")[3] - 1, srt = 45,
-#                                                        adj = 1, labels = colnames(minCovData), xpd = TRUE)}), 
-#                                file='genesAboveMinCov.png', 
-#                                 name="Genes above minCov",
-#                                 mouseOverText = "Genes above minCov"))
-#  addTxtLinksToReport(doc, coverageLinks)
-
   
   titles[["Misc"]] = "Misc"
   addTitle(doc, titles[[length(titles)]], 2, id=titles[[length(titles)]])
