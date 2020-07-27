@@ -9,7 +9,7 @@ ezMethodNestLink <- function(input=NA, output=NA, param=NA){
     require(Biostrings)
     
     if(grepl('>', readLines(param[['knownNBPath']], n = 1))){
-        knownNB_data <- readDNAStringSet(file)
+        knownNB_data <- readDNAStringSet(param[['knownNBPath']])
         knownNB <- translate(knownNB_data, if.fuzzy.codon = 'solve')
         param[['knownNB']] <- sapply(knownNB, toString)
     } else {
