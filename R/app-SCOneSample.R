@@ -133,7 +133,7 @@ filterCellsAndGenes <- function(sce, param) {
   #Cells filtering
   mito.genes <- grep("^MT-",rowData(sce)$gene_name, ignore.case = TRUE)
   sce <- addPerCellQC(sce, subsets = list(Mito = mito.genes))
-  sce.unfiltered <- filt.lenient(sce, param)
+  sce.unfiltered <- filt.default(sce, param)
   sce <- sce[,!sce.unfiltered$discard]
  
   #Genes filtering
@@ -169,37 +169,35 @@ getFeatCountDist <- function(df, do.plot=FALSE, linear=TRUE){
   df$diff
 }
 
-filt.lenient <- function(x, param){  
+filt.default <- function(x, param){  
   if(!("featcount_dist" %in% colnames(colData(x)))) x <- add_meta(x)
-  filters <- c( "log10_total_counts:both:5",
-                "log10_total_features:both:5",
-                "pct_counts_top_50_features:both:5",
+  filters <- c( "log10_total_counts:higher:2.5",
+                "log10_total_counts:lower:5",
+                "log10_total_features:higher:2.5",
+                "log10_total_features:lower:5",
+                "pct_counts_in_top_20_features:both:5",
                 "featcount_dist:both:5")
-  out <- lapply(strsplit(filters,":"), FUN=function(f) {
-    #  browser()
-    which(isOutlier(x[[f[1]]], log=FALSE,nmads=as.numeric(f[3]),type=f[2]))
-    # x[[paste0("qc.", f[1])]] <- isOutlier(x[[f[1]]], log=FALSE,
-    #  nmads=as.numeric(f[3]),
-    #  type=f[2])
-    # which(x[[paste0("qc.", f[1])]])
+  out <- lapply(strsplit(filters,":"), FUN=function(f){
+    which(isOutlier(x[[f[1]]], log=FALSE,
+                    nmads=as.numeric(f[3]), 
+                    type=f[2] ))
   })
   x$qc.total_counts <- FALSE
   x$qc.total_counts[out[[1]]] <- TRUE
   x$qc.total_features <- FALSE
   x$qc.total_features[out[[2]]] <- TRUE
-  x$qc.pct_counts_top_50_features <- FALSE
-  x$qc.pct_counts_top_50_features[out[[3]]] <- TRUE
+  x$qc.pct_counts_top_20_features <- FALSE
+  x$qc.pct_counts_top_20_features[out[[3]]] <- TRUE
   x$qc.featcount_dist <- FALSE
   x$qc.featcount_dist[out[[4]]] <- TRUE
   
-  mtout <- isOutlier(x$subsets_Mito_percent, nmads=3, type="lower" ) | 
-    (isOutlier(x$subsets_Mito_percent, nmads=3, type="higher" ) & x$subsets_Mito_percent > 0.08)
-  x$qc.mito <- mtout
+  mtout <- isOutlier(x$pct_counts_Mt, nmads=3, type="lower" ) | 
+    (isOutlier(x$pct_counts_Mt, nmads=2.5, type="higher" ) & x$pct_counts_Mt > 0.08)
   out <- c(out, list(mt=which(mtout)))
   out <- table(unlist(out))
-  out <- as.numeric(names(out)[which(out>=param$nDist)])
-  x$discard <- FALSE
-  x$discard[out] <- TRUE
+  out <- as.numeric(names(out)[which(out>=times)])
+  if(length(out)>0) x <- x[,-out]
+  x[Matrix::rowSums(counts(x) > 0) >= 10, Matrix::colSums(counts(x) > 0) >= 0]
   return(x)
 }
 
