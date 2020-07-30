@@ -494,6 +494,85 @@ if (file.exists("goClusterTable.html")){
 }
 ```
 
+### MetaCore 
+```{r metacore annotate, echo=FALSE, message=FALSE}
+ah <- AnnotationHub()
+ref <- param$refBuild %>% strsplit(., "/") %>% .[[1]] %>% .[1] %>% gsub("_"," ",.)
+ref.orgdb <- query(ah, c("OrgDb", ref))[[1]]
+orgSymbols <- keys(ref.orgdb, keytype="SYMBOL")
+egr <- select(ref.orgdb, keys=orgSymbols, "ENTREZID", "SYMBOL")
+colnames(egr)[2] <- "entrez_id"
+```
+
+```{r metacore prepare, echo=FALSE, message=FALSE, eval=!debug}
+resultLoaded <- ezRead.table(resultFile$resultFile)
+resultLoaded <- resultLoaded[resultLoaded$pValue < 0.05,]
+resultLoaded <- tibble::rownames_to_column(resultLoaded, "ensembl_gene_id")
+resultLoaded <- dplyr::left_join(resultLoaded, egr, by = c("gene_name"="SYMBOL"))
+resultMetaCore <- dplyr::select(resultLoaded,c("gene_name","ensembl_gene_id","entrez_id","log2 Ratio","pValue","fdr"))
+```
+
+```{r metacore export, echo=FALSE, message=FALSE, eval=TRUE}
+metacoreFile <- list()
+metacoreFile$resultMetaCore <- paste0("MetaCore--",param$comparison,".txt")
+ezWrite.table(resultMetaCore,
+              file=metacoreFile$resultMetaCore, head="Name", digits=4, row.names = F)
+metacoreFile$resultMetaCoreZip <- zipFile(metacoreFile$resultMetaCore)
+```
+
+#### Log Into MetaCore 
+The FGCZ has a subscription to MetaCore, which can be accessed at <https://portal.genego.com>. MetaCore is a powerful pathway and systems analysis tool. It has a curated database of a wide range of molecular pathways and interactions, and provides useful visualisations and statistics based on gene expression fold changes. 
+
+A MetaCore account is first required in order to use the service. This can be obtained by emailing <sequencing@fgcz.ethz.ch>.
+
+#### MetaCore Compatability 
+MetaCore currently has full pathway support for three core species: **Human**; **mouse**, and; **rat**. In addition to this, it can use Entrez IDs as orthologs to analyse a series of non-core species:
+
+- Cow
+- Chimpanzee
+- Dog
+- Zebra fish
+- Chicken
+- Fly
+- Mosquito 
+- Worm
+- Arabadopsis
+- Rice
+- Blast of rice
+- Macaca mulatta
+- Mold
+- Bread mold
+- Candida sphaerica
+- Fission yeast
+- Baker's yeast
+
+#### How To Use MetaCore 
+[Click to Download Expression File for Import into MetaCore](`r metacoreFile$resultMetaCoreZip`)
+
+The file linked above is a version of the differential expression test results formatted for input directly into MetaCore. Download and extract this file, and then upload it into MetaCore. 
+
+The file contains: 
+
+- HGNC gene symbols
+- Ensembl Gene IDs
+- Entrez IDs
+- Log fold changes of the genes
+- Raw *p* values
+- FDR-corrected *p* values 
+
+MetaCore requires only three fields: Gene identifiers; log fold changes, and; *p* values. When uploading the data into MetaCore, be sure to only select the appropriate columns. Generally, these columns would be:
+
+For human, mouse, and rat sequencing data, when uploading, select:
+
+- The Ensembl gene IDs 
+- The log fold change column.
+- Use either the raw *p* values or the FDR values, not both. If you have fewer differentially expressed genes, you may find FDR too aggressive, so may wish to use raw *p* values instead
+- Select `---ignore---` from the drop down for all other columns in the table that are not to be used 
+
+For the other non-core species listed above, use the Entrez IDs instead of the Ensembl gene IDs. 
+
+MetaCore has numerous comprehensive tutorials online, including a useful YouTube page - <https://www.youtube.com/channel/UC5BeExSx8x6L8KL-lGnPfMQ> 
+
 ### Enrichr
 ```{r enrichr, echo=FALSE, message=FALSE, eval=!debug}
 if (doGo(param, seqAnno)){
