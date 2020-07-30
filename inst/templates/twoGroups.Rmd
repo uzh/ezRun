@@ -496,6 +496,7 @@ if (file.exists("goClusterTable.html")){
 
 ### MetaCore 
 ```{r metacore annotate, echo=FALSE, message=FALSE}
+require(AnnotationHub)
 ah <- AnnotationHub()
 ref <- param$refBuild %>% strsplit(., "/") %>% .[[1]] %>% .[1] %>% gsub("_"," ",.)
 ref.orgdb <- query(ah, c("OrgDb", ref))[[1]]
