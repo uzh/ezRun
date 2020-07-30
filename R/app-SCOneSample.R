@@ -86,7 +86,7 @@ ezMethodSCOneSample <- function(input=NA, output=NA, param=NA,
   #cell types annotation is only supported for Human and Mouse at the moment
   if(param$species == "Human" | param$species == "Mouse") {
      cells_AUC <- cellsLabelsWithAUC(scData, param)
-     singler.results <- cellsLabelsWithSingleR(scData, param)
+     singler.results <- cellsLabelsWithSingleR(GetAssayData(scData, "counts"), Idents(scData), param)
   }
   
   #Convert scData to Single Cell experiment Object
@@ -242,18 +242,18 @@ geneSets = GeneSetCollection(geneSets)
 return(geneSets)
 }
 
-cellsLabelsWithSingleR <- function(scData, param) {
+cellsLabelsWithSingleR <- function(counts, current_clusters, param) {
 library(SingleR)
 if(grepl("Homo_sapiens", param$refBuild)){
-    hpca.se <- HumanPrimaryCellAtlasData()
-    singler.results.single <- SingleR(test = GetAssayData(scData), ref = hpca.se, 
-                               labels = hpca.se$label.main, method="single", de.method = "wilcox")
-    singler.results.cluster <- SingleR(test = GetAssayData(scData), ref = hpca.se, 
-                                      labels = hpca.se$label.main, method="cluster", clusters=Idents(scData), de.method = "wilcox")
+    reference <- HumanPrimaryCellAtlasData()
+    singler.results.single <- SingleR(test = counts, ref = reference, 
+                               labels = reference$label.main, method="single", de.method = "wilcox")
+    singler.results.cluster <- SingleR(test = counts, ref = reference, 
+                                      labels = reference$label.main, method="cluster", clusters=current_clusters, de.method = "wilcox")
   }else {
-    hpca.se <- MouseRNAseqData()
-    singler.results.single <- SingleR(test = GetAssayData(scData), ref = hpca.se, labels = hpca.se$label.main)
-    singler.results.cluster <- SingleR(test = GetAssayData(scData), ref = hpca.se, labels = hpca.se$label.main, method="cluster", clusters=Idents(scData))
+    reference <- MouseRNAseqData()
+    singler.results.single <- SingleR(test = counts, ref = reference, labels = reference$label.main)
+    singler.results.cluster <- SingleR(test = counts, ref = reference, labels = reference$label.main, method="cluster", clusters=current_clusters)
   }
   
 return(list(singler.results.single=singler.results.single, singler.results.cluster=singler.results.cluster))
