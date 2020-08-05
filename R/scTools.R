@@ -194,7 +194,7 @@ RidgePlot.sce <- function(sce, feature) {
     feature <- gsub("-", "", feature)
   colnames(data)[1] = feature
   
-  plot <- ggplot(data, aes_string(x = feature, y = "cluster", fill = "cluster")) +
+  plot <- ggplot(data, aes(x = !!feature, y = "cluster", fill = "cluster")) +
     labs(x = "Expression level", y = "Identity", title = feature, fill = NULL) +
     theme_cowplot() +
     theme(plot.title = element_text(hjust = 0.5))+
