@@ -507,10 +507,19 @@ colnames(egr)[2] <- "entrez_id"
 
 ```{r metacore prepare, echo=FALSE, message=FALSE, eval=!debug}
 resultLoaded <- ezRead.table(resultFile$resultFile)
-resultLoaded <- resultLoaded[resultLoaded$pValue < 0.05,]
-resultLoaded <- tibble::rownames_to_column(resultLoaded, "ensembl_gene_id")
-resultLoaded <- dplyr::left_join(resultLoaded, egr, by = c("gene_name"="SYMBOL"))
-resultMetaCore <- dplyr::select(resultLoaded,c("gene_name","ensembl_gene_id","entrez_id","log2 Ratio","pValue","fdr"))
+if(param$featureLevel == 'gene'){
+  resultLoaded <- tibble::rownames_to_column(resultLoaded, "gene_id")
+  resultLoaded <- resultLoaded[resultLoaded$isPresent, ]
+  resultLoaded <- resultLoaded[resultLoaded$pValue <= param$pValThreshGO,]
+  resultLoaded <- dplyr::left_join(resultLoaded, egr, by = c("gene_name"="SYMBOL"))
+  resultMetaCore <- dplyr::select(resultLoaded,c("gene_name", "gene_id", "entrez_id", "log2 Ratio", "pValue", "fdr"))
+} else {
+  resultLoaded <- tibble::rownames_to_column(resultLoaded, "transcript_id")
+  resultLoaded <- resultLoaded[resultLoaded$isPresent, ]
+  resultLoaded <- resultLoaded[resultLoaded$pValue <= param$pValThreshGO,]
+  resultLoaded <- dplyr::left_join(resultLoaded, egr, by = c("gene_name"="SYMBOL"))
+  resultMetaCore <- dplyr::select(resultLoaded,c("transcript_id", "gene_name", "gene_id", "entrez_id", "log2 Ratio", "pValue", "fdr"))
+}
 ```
 
 ```{r metacore export, echo=FALSE, message=FALSE, eval=TRUE}
@@ -537,7 +546,7 @@ MetaCore currently has full pathway support for three core species: **Human**; *
 - Fly
 - Mosquito 
 - Worm
-- Arabadopsis
+- Arabidopsis
 - Rice
 - Blast of rice
 - Macaca mulatta
@@ -554,8 +563,8 @@ The file linked above is a version of the differential expression test results f
 
 The file contains: 
 
-- HGNC gene symbols
-- Ensembl Gene IDs
+- gene symbols
+- Gene IDs
 - Entrez IDs
 - Log fold changes of the genes
 - Raw *p* values
