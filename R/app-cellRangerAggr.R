@@ -29,6 +29,7 @@ ezMethodCellRangerAggr = function(input=NA, output=NA, param=NA){
   
   ## subset the selected sample names
   input <- input$subset(param$samples)
+  sampleName <- input$getNames()
   
   aggr_input <- tibble(library_id=input$getNames(),
                        molecule_h5=file.path(dirname(input$getFullPaths("Report")),
@@ -54,6 +55,19 @@ ezMethodCellRangerAggr = function(input=NA, output=NA, param=NA){
   
   file.rename(file.path(cellRangerFolder, "outs"),  param$name)
   unlink(cellRangerFolder, recursive=TRUE)
+  
+  ## Add cell cycle to the filtered matrix folder by concatenating previous cell cycle results
+  cellcycle_paths <- paste0(dirname(input$getFullPaths("CountMatrix")), "/filtered_feature_bc_matrix/CellCyclePhase.txt")
+  cellPhaseAggr <- read_tsv(cellcycle_paths[1])
+   for(i in 2:length(cellcycle_paths)) {
+     cellPhase <-  read_tsv(cellcycle_paths[i])
+     cellPhase$Name <- gsub(("[1-9]"), i, cellPhase$Name)
+     cellPhaseAggr <- rbind(cellPhaseAggr, cellPhase) 
+   }
+  
+  countMatrixFn <- file.path(cellRangerFolder, 'filtered_feature_bc_matrix')
+  write_tsv(cellPhaseAggr,
+            path="CellRangerAggr_Result/filtered_feature_bc_matrix/CellCyclePhase.txt")
   
   return("Success")
 }
