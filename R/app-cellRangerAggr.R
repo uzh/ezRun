@@ -26,10 +26,10 @@ ezMethodCellRangerAggr = function(input=NA, output=NA, param=NA){
   require(tibble)
   require(dplyr)
   require(readr)
+  require(stringr)
   
   ## subset the selected sample names
   input <- input$subset(param$samples)
-  sampleName <- input$getNames()
   
   aggr_input <- tibble(library_id=input$getNames(),
                        molecule_h5=file.path(dirname(input$getFullPaths("Report")),
@@ -46,7 +46,7 @@ ezMethodCellRangerAggr = function(input=NA, output=NA, param=NA){
                             fileext = ".csv")
   write_csv(aggr_input, path=aggr_input_fn)
   
-  cellRangerFolder = paste0(param$name, "-cellRanger")
+  cellRangerFolder <- paste0(param$name, "-cellRanger")
   
   cmd <- paste("cellranger aggr", paste0("--id=", cellRangerFolder),
                paste0("--csv=", aggr_input_fn),
@@ -57,17 +57,16 @@ ezMethodCellRangerAggr = function(input=NA, output=NA, param=NA){
   unlink(cellRangerFolder, recursive=TRUE)
   
   ## Add cell cycle to the filtered matrix folder by concatenating previous cell cycle results
-  cellcycle_paths <- paste0(dirname(input$getFullPaths("CountMatrix")), "/filtered_feature_bc_matrix/CellCyclePhase.txt")
-  cellPhaseAggr <- read_tsv(cellcycle_paths[1])
-   for(i in 2:length(cellcycle_paths)) {
-     cellPhase <-  read_tsv(cellcycle_paths[i])
-     cellPhase$Name <- gsub(("[1-9]"), i, cellPhase$Name)
-     cellPhaseAggr <- rbind(cellPhaseAggr, cellPhase) 
-   }
-  
-  countMatrixFn <- file.path(cellRangerFolder, 'filtered_feature_bc_matrix')
+  cellcycle_paths <- file.path(input$getFullPaths("CountMatrix"),
+                               "CellCyclePhase.txt")
+  cellPhaseAggr <- lapply(cellcycle_paths, read_tsv) %>%
+    bind_rows(.id="SampleID")
+  cellPhaseAggr <- cellPhaseAggr %>%
+    mutate(Name=str_c(str_replace(Name, "\\d+$", ""), SampleID)) %>%
+    select(-SampleID)
   write_tsv(cellPhaseAggr,
-            path="CellRangerAggr_Result/filtered_feature_bc_matrix/CellCyclePhase.txt")
+            path=file.path(param$name, "filtered_feature_bc_matrix",
+                           "CellCyclePhase.txt"))
   
   return("Success")
 }
