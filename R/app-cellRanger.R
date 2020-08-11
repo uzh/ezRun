@@ -82,7 +82,7 @@ ezMethodCellRanger <- function(input=NA, output=NA, param=NA){
     unlink(refDir, recursive = TRUE)
   }
   
-  if(param$TenXLibrary == "GEX"){
+  if(param$TenXLibrary %in% c("GEX", "FeatureBarcoding")){
     require(DropletUtils)
     require(Matrix)
     require(readr)
