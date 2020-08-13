@@ -138,6 +138,9 @@ ezMethodSCMultipleSamplesOneGroup = function(input=NA, output=NA, param=NA, html
   } 
   
   #Convert scData to Single Cell experiment Object
+  # Use the SCT logcounts for visualization instead of the RNA logcounts.
+  # TODO: save all the assays (RNA, SCT and integrated) in the sce object using the package keshavmot2/scanalysis. The function from Seurat doesn't save everything.
+  DefaultAssay(scData) <- "SCT" 
   sce <- as.SingleCellExperiment(scData)
   metadata(sce)$cells_AUC <- cells_AUC
   metadata(sce)$singler.results <- singler.results
