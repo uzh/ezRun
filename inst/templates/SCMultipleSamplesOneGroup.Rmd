@@ -158,7 +158,7 @@ ezInteractiveTableRmd(pos_markers, digits=4, title=caption)
 
 ### Markers visualization
 
-Here, we use a heatmpa and a dotplot to visualize simultaneously the top 5 markers in each cluster. Be aware that some genes may be in the top markers for different clusters.
+Here, we use a heatmap and a dotplot to visualize simultaneously the top 5 markers in each cluster. Be aware that some genes may be in the top markers for different clusters.
 
 <br/>
 
