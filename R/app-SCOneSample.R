@@ -90,6 +90,9 @@ ezMethodSCOneSample <- function(input=NA, output=NA, param=NA,
   }
   
   #Convert scData to Single Cell experiment Object
+  # Use the SCT logcounts for visualization instead of the RNA logcounts.
+  # TODO: save all the assays (RNA, SCT) in the sce object using the package keshavmot2/scanalysis. The function from Seurat doesn't save everything.
+  DefaultAssay(scData) <- "SCT" 
   sce <- as.SingleCellExperiment(scData)
   metadata(sce)$PCA_stdev <- Reductions(scData, "pca")@stdev   
   metadata(sce)$cells_AUC <- cells_AUC
