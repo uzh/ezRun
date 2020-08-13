@@ -163,10 +163,10 @@ Here, we use a heatmpa and a dotplot to visualize simultaneously the top 5 marke
 <br/>
 
 ```{r heatmap, fig.width=8, fig.height=length(levels(sce$seurat_clusters))*0.5}
-top5 <- pos_markers %>% group_by(cluster) %>% top_n(n = -5, wt = diff_pct)
+top5 <- pos_markers %>% group_by(cluster) %>% top_n(n = 5, wt = diff_pct)
 
 tr_cnts <- expm1(logcounts(sce))
-geneMeans <- rowsum(t(tr_cnts), group=sce$seurat_clusters)
+geneMeans <- rowsum(DelayedArray::t(tr_cnts), group=sce$seurat_clusters)
 geneMeans <- sweep(geneMeans, 1, STATS=table(sce$seurat_clusters)[rownames(geneMeans)], FUN="/")
 geneMeans <- log1p(t(geneMeans))
 colnames(geneMeans) <- paste("cluster", colnames(geneMeans), sep="_")
