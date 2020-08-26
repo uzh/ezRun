@@ -246,6 +246,25 @@ caption ="Expression differences of cluster marker genes"
 ezInteractiveTableRmd(posMarkers, digits=4, title=caption)
 ```
 
+### Markers visualization
+
+Here, we use a heatmap and a dotplot to visualize simultaneously the top 5 markers in each cluster. Be aware that some genes may be in the top markers for different clusters.
+
+<br/>
+
+```{r heatmap, fig.width=8, fig.height=length(levels(sce$seurat_clusters))*0.5}
+top5 <- posMarkers %>% group_by(cluster) %>% top_n(n = 5, wt = diff_pct)
+
+tr_cnts <- expm1(logcounts(sce))
+geneMeans <- rowsum(DelayedArray::t(tr_cnts), group=sce$seurat_clusters)
+geneMeans <- sweep(geneMeans, 1, STATS=table(sce$seurat_clusters)[rownames(geneMeans)], FUN="/")
+geneMeans <- log1p(t(geneMeans))
+colnames(geneMeans) <- paste("cluster", colnames(geneMeans), sep="_")
+pheatmap(geneMeans[unique(top5$gene), ],fontsize_row = 6)
+
+plotDots(sce, features=top5$gene, group="seurat_clusters")
+```
+
 ### Cells annotation
 
 <br/>

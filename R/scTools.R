@@ -192,6 +192,7 @@ RidgePlot.sce <- function(sce, feature) {
   data= data.frame(logcounts(sce)[feature,], cluster = colData(sce)[,"ident"], row.names = colnames(sce))
   if(grepl("-", feature))
     feature <- gsub("-", "", feature)
+  feature <- paste0("gene_", feature)
   colnames(data)[1] = feature
   
   plot <- ggplot(data, aes_string(x = feature, y = "cluster", fill = "cluster")) +
