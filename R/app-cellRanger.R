@@ -8,6 +8,7 @@
 ezMethodCellRanger <- function(input=NA, output=NA, param=NA){
   require(readr)
   require(tibble)
+  require(stringr)
   sampleName <- input$getNames()
   sampleDirs <- strsplit(input$getColumn("RawDataDir"), ",")[[sampleName]]
   sampleDirs <- file.path(input$dataRoot, sampleDirs)
@@ -40,7 +41,8 @@ ezMethodCellRanger <- function(input=NA, output=NA, param=NA){
     refDir <- getCellRangerGEXReference(param)
     featureDirs <- strsplit(input$getColumn("FeatureDataDir"), ",")[[sampleName]]
     featureDirs <- file.path(input$dataRoot, featureDirs)
-    featureRefFn <- file.path(dirname(featureDirs), "feature_ref.csv")
+    featureRefFn <- file.path(dirname(featureDirs),
+                              str_c(sampleName, "feature_ref.csv", sep="_"))
     stopifnot(any(file.exists(featureRefFn)))
     featureRefFn <- head(featureRefFn[file.exists(featureRefFn)], 1)
     
@@ -80,7 +82,7 @@ ezMethodCellRanger <- function(input=NA, output=NA, param=NA){
     unlink(refDir, recursive = TRUE)
   }
   
-  if(param$TenXLibrary == "GEX"){
+  if(param$TenXLibrary %in% c("GEX", "FeatureBarcoding")){
     require(DropletUtils)
     require(Matrix)
     require(readr)

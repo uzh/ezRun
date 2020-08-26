@@ -34,7 +34,7 @@ knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE, knitr.tabl
 # library(SingleR)
 # library(AUCell)
 # library(ezRun, lib.loc = "~/myRpackages")
-# sce <- loadHDF5SummarizedExperiment("sce_h5")
+# sce <- loadHDF5SummarizedExperiment("/srv/gstore/projects/p3125/SCMultipleSamplesOneGroup_48592_2020-08-07--16-55-58/SCReportMerging/sce_h5")
 # param = metadata(sce)$param
 # pvalue_allMarkers <- 0.05
 ```
@@ -137,10 +137,6 @@ barplot + labs(x="Cluster", y = "Number of cells", fill = "Sample")
 
 ### Top cluster markers
 
-```{r}
-posMarkers = read_tsv("pos_markers.tsv")
-```
-
 
 ```{r wilcoxon test, eval=(param$DE.method=="wilcox"), results='asis'}
 cat("We found positive markers that defined clusters compared to all other cells via differential expression. The test we used was the Wilcoxon Rank Sum test. Genes with an average, at least 0.25-fold difference (log-scale) between the cells in the tested cluster and the rest of the cells and an adjusted p-value < 0.05 were declared as significant.")
@@ -154,25 +150,30 @@ cat(paste0("We found positive markers that defined clusters compared to all othe
 
 
 ```{r pos markers, echo=FALSE, results='asis'}
-posMarkers = read_tsv("pos_markers.tsv")
+#pos_markers = read_tsv("/srv/gstore/projects/p3125/SCMultipleSamplesOneGroup_48592_2020-08-07--16-55-58/SCReportMerging/pos_markers.tsv")
+pos_markers = read_tsv("pos_markers.tsv")
 caption ="Expression differences of cluster marker genes"
-ezInteractiveTableRmd(posMarkers, digits=4, title=caption)
+ezInteractiveTableRmd(pos_markers, digits=4, title=caption)
 ```
 
+### Markers visualization
 
+Here, we use a heatmap and a dotplot to visualize simultaneously the top 5 markers in each cluster. Be aware that some genes may be in the top markers for different clusters.
 
-### Visualization of cluster markers
-#### The 20 most specific markers (highest difference in the expression in one cluster compared to the rest) are represented on the Ridge and the TSNE plots.
 <br/>
 
-```{r top cluster markers, fig.width=4, fig.height=3, results = 'asis'}
-n_markers <- 20
-for(i in 1:n_markers){
-    print(RidgePlot.sce(sce, feature = as.character(posMarkers$gene[i])))
-    print(plotReducedDim(sce, dimred="TSNE", colour_by=posMarkers$gene[i]))
-  }
+```{r heatmap, fig.width=8, fig.height=length(levels(sce$seurat_clusters))*0.5}
+top5 <- pos_markers %>% group_by(cluster) %>% top_n(n = 5, wt = diff_pct)
+
+tr_cnts <- expm1(logcounts(sce))
+geneMeans <- rowsum(DelayedArray::t(tr_cnts), group=sce$seurat_clusters)
+geneMeans <- sweep(geneMeans, 1, STATS=table(sce$seurat_clusters)[rownames(geneMeans)], FUN="/")
+geneMeans <- log1p(t(geneMeans))
+colnames(geneMeans) <- paste("cluster", colnames(geneMeans), sep="_")
+pheatmap(geneMeans[unique(top5$gene), ],fontsize_row = 6)
+
+plotDots(sce, features=top5$gene, group="seurat_clusters")
 ```
-### Cells annotation
 
 ### Cells annotation
 
@@ -187,12 +188,12 @@ This approach consists in performing a gene set enrichment analysis on the marke
 
 ```{r enrichr markers, echo=FALSE, results='asis'}
 
-genesPerCluster <- split(posMarkers$gene, posMarkers$cluster)
+genesPerCluster <- split(pos_markers$gene, pos_markers$cluster)
 jsCall = paste0('enrich({list: "', sapply(genesPerCluster, paste, collapse="\\n"), '", popup: true});')
 enrichrCalls <- paste0("<a href='javascript:void(0)' onClick='", jsCall, 
                          "'>Analyse at Enrichr website</a>")
 enrichrTable <- tibble(Cluster=names(genesPerCluster),
-                         "# of posMarkers"=lengths(genesPerCluster),
+                         "# of pos_markers"=lengths(genesPerCluster),
                          "Enrichr link"=enrichrCalls)
 kable(enrichrTable, format="html", escape=FALSE,
         caption=paste0("GeneSet enrichment: genes with pvalue ", pvalue_allMarkers)) %>%
@@ -247,7 +248,7 @@ singler.cluster.labels<- singler.results.cluster$labels[match(colData(sce)[,"ide
 all.markers <- metadata(singler.results.cluster)$de.genes
 ```
 
-```{r singler ScoreHeatmap,  eval= (param$species != "other"), results='asis'}
+```{r singler ScoreHeatmap,  eval= (param$species != "other"), fig.height=length(unique(singler.single.labels))*0.5, fig.width=8, results='asis'}
 cat("The two heatmaps below display the scores for all individual cells (left) and each original cluster (right) across all reference labels, which allows users to inspect the confidence of the predicted labels across the dataset. The bar Labels on the top shows the actual assigned label.\n")
 cat("\n")
 #while (dev.cur()>1) dev.off()
@@ -358,7 +359,7 @@ The iSEE shiny app can be accessed through this link [iSEE explorer](`r paste0("
 
 ##### Positive markers of each cluster
 
-[posMarkers](pos_markers.tsv)
+[pos_markers](pos_markers.tsv)
 
 ```{r, results='asis', eval = param$all2allMarkers}
 cat("##### Differential expressed genes from clusters paired comparisons")

@@ -26,6 +26,7 @@ ezMethodCellRangerAggr = function(input=NA, output=NA, param=NA){
   require(tibble)
   require(dplyr)
   require(readr)
+  require(stringr)
   
   ## subset the selected sample names
   input <- input$subset(param$samples)
@@ -45,7 +46,7 @@ ezMethodCellRangerAggr = function(input=NA, output=NA, param=NA){
                             fileext = ".csv")
   write_csv(aggr_input, path=aggr_input_fn)
   
-  cellRangerFolder = paste0(param$name, "-cellRanger")
+  cellRangerFolder <- paste0(param$name, "-cellRanger")
   
   cmd <- paste("cellranger aggr", paste0("--id=", cellRangerFolder),
                paste0("--csv=", aggr_input_fn),
@@ -54,6 +55,18 @@ ezMethodCellRangerAggr = function(input=NA, output=NA, param=NA){
   
   file.rename(file.path(cellRangerFolder, "outs"),  param$name)
   unlink(cellRangerFolder, recursive=TRUE)
+  
+  ## Add cell cycle to the filtered matrix folder by concatenating previous cell cycle results
+  cellcycle_paths <- file.path(input$getFullPaths("CountMatrix"),
+                               "CellCyclePhase.txt")
+  cellPhaseAggr <- lapply(cellcycle_paths, read_tsv) %>%
+    bind_rows(.id="SampleID")
+  cellPhaseAggr <- cellPhaseAggr %>%
+    mutate(Name=str_c(str_replace(Name, "\\d+$", ""), SampleID)) %>%
+    select(-SampleID)
+  write_tsv(cellPhaseAggr,
+            path=file.path(param$name, "filtered_feature_bc_matrix",
+                           "CellCyclePhase.txt"))
   
   return("Success")
 }
