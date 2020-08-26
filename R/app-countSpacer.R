@@ -21,7 +21,7 @@ ezMethodCountSpacer = function(input=NA, output=NA, param=NA){
   stats = list()
   stats[['rawReads']] = as.numeric(input$meta[['Read Count']])
   
-  trimmedInput = ezMethodTrim(input = input, param = param)
+  trimmedInput = ezMethodFastpTrim(input = input, param = param)
   readFile = trimmedInput$getColumn("Read1")
   stats[['filteredReads']] = as.numeric(ezSystem(paste('cat', readFile, '|wc -l'), intern = TRUE))/4
   
