@@ -23,7 +23,7 @@ ezMethodCountSpacer = function(input=NA, output=NA, param=NA){
   
   trimmedInput = ezMethodFastpTrim(input = input, param = param)
   readFile = trimmedInput$getColumn("Read1")
-  stats[['filteredReads']] = as.numeric(ezSystem(paste('cat', readFile, '|wc -l'), intern = TRUE))/4
+  stats[['filteredReads']] = as.numeric(ezSystem(paste('zcat', readFile, '|wc -l'), intern = TRUE))/4
   
   reads <- .getReadsFromFastq(readFile)
   reads <- twoPatternReadFilter(reads, param$leftPattern, param$rightPattern, param$maxMismatch)
@@ -128,7 +128,7 @@ ezMethodCountSpacer = function(input=NA, output=NA, param=NA){
   
   ezWrite.table(unlist(stats), paste0(sampleName,'-stats.txt'), row.names = TRUE)
   remove(reads)
-  ezSystem('rm *.fastq')
+  ezSystem('rm *.fastq.gz')
   ezSystem('pigz --best *.fa')
   return("Success")
 }
