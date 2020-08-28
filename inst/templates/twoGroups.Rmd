@@ -82,12 +82,7 @@ knitr::kable(makeSignificantCounts(se), row.names=TRUE,  format="html") %>%
                 position = "left")
 ```
 
-Full result table in tabular text for opening with a spreadsheet program (e.g. Excel).
-
-When opening with Excel, do make sure that the Gene symbols are loaded into a column formatted as 'text' that prevents
-conversion of the symbols to dates). See
-
-(https://www.genenames.org/help/importing-gene-symbol-data-into-excel-correctly)
+Full result table in xlsx format for opening with a spreadsheet program (e.g. Excel).
 
 ```{r result live report, echo=FALSE, message=FALSE, eval=TRUE, warning=FALSE, cache=FALSE}
 resultFile <- makeResultFile(param, se)
@@ -438,7 +433,7 @@ if (sum(use) > param$minGenesForClustering){
   ## append the result file with the cluster colors
   resultLoaded <- read_excel(resultFile$resultFile)
   resultLoaded$Cluster <- clusterResult$clusterNumbers[resultLoaded[[1]]]
-  write_xlsx(resultLoaded, file=resultFile$resultFile)
+  write_xlsx(resultLoaded, path=resultFile$resultFile)
   
   if (!is.null(clusterResult$GO)){
     goTables = goClusterTableRmd(param, clusterResult, seqAnno)
@@ -517,7 +512,7 @@ resultMetaCore <- resultLoaded %>% filter(isPresent, pValue <= param$pValThreshG
 
 ```{r metacore export, echo=FALSE, message=FALSE, eval=TRUE}
 metacoreFile <- str_c("MetaCore--",param$comparison,".txt")
-write_tsv(resultMetaCore, file=metacoreFile)
+write_tsv(resultMetaCore, path=metacoreFile)
 ```
 
 #### Log Into MetaCore 
