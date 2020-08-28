@@ -26,12 +26,14 @@ param =readRDS("param.rds")
 ## end of debug
 debug <- FALSE
 
-require(knitr)
-require(kableExtra)
-require(SummarizedExperiment)
-require(plotly)
-require(webshot)
-require(htmlwidgets)
+library(knitr)
+library(kableExtra)
+library(SummarizedExperiment)
+library(plotly)
+library(webshot)
+library(htmlwidgets)
+library(tidyverse)
+library(readxl)
 ```
 
 ```{r prepare data, include=FALSE}
@@ -90,15 +92,15 @@ conversion of the symbols to dates). See
 ```{r result live report, echo=FALSE, message=FALSE, eval=TRUE, warning=FALSE, cache=FALSE}
 resultFile <- makeResultFile(param, se)
 
-ezWrite.table(colData(se)[, "sf", drop=FALSE],
-              file="scalingfactors.txt", head="Name", digits=4)
+write_tsv(as_tibble(colData(se), rownames="Name") %>% select(Name, sf),
+          path="scalingfactors.txt")
 
 liveReportLink = output$getColumn("Live Report")
 
 deResult$saveToFile(basename(output$getColumn("Live Report")))
 ```
 
-[`r resultFile$resultZip`](`r resultFile$resultZip`)
+[`r resultFile$resultFile`](`r resultFile$resultFile`)
 
 [Live Report and Visualizations](`r liveReportLink`)
 
@@ -429,15 +431,15 @@ if (sum(use) > param$minGenesForClustering){
   eval(plotCmd)
 
   if (doGo(param, seqAnno)){
-    clusterResult = goClusterResults(xCentered, param, clusterResult, seqAnno=seqAnno, universeProbeIds=rownames(seqAnno)[rowData(se)$isPresentProbe])
+    clusterResult = goClusterResults(xCentered, param, clusterResult, 
+                                     seqAnno=seqAnno,
+                                     universeProbeIds=rownames(seqAnno)[rowData(se)$isPresentProbe])
   }
   ## append the result file with the cluster colors
-  resultLoaded = ezRead.table(resultFile$resultFile)
-  resultLoaded$Cluster = clusterResult$clusterNumbers[clusterResult$clusterNumbers[rownames(resultLoaded)]]
-  ezWrite.table(resultLoaded, file=resultFile$resultFile)
-  if (param$doZip){
-    zipFile(resultFile$resultFile)
-  }
+  resultLoaded <- read_excel(resultFile$resultFile)
+  resultLoaded$Cluster <- clusterResult$clusterNumbers[resultLoaded[[1]]]
+  write_xlsx(resultLoaded, file=resultFile$resultFile)
+  
   if (!is.null(clusterResult$GO)){
     goTables = goClusterTableRmd(param, clusterResult, seqAnno)
     if (doEnrichr(param)){
@@ -506,28 +508,16 @@ colnames(egr)[2] <- "entrez_id"
 ```
 
 ```{r metacore prepare, echo=FALSE, message=FALSE, eval=!debug}
-resultLoaded <- ezRead.table(resultFile$resultFile)
-if(param$featureLevel == 'gene'){
-  resultLoaded <- tibble::rownames_to_column(resultLoaded, "gene_id")
-  resultLoaded <- resultLoaded[resultLoaded$isPresent, ]
-  resultLoaded <- resultLoaded[resultLoaded$pValue <= param$pValThreshGO,]
-  resultLoaded <- dplyr::left_join(resultLoaded, egr, by = c("gene_name"="SYMBOL"))
-  resultMetaCore <- dplyr::select(resultLoaded,c("gene_name", "gene_id", "entrez_id", "log2 Ratio", "pValue", "fdr"))
-} else {
-  resultLoaded <- tibble::rownames_to_column(resultLoaded, "transcript_id")
-  resultLoaded <- resultLoaded[resultLoaded$isPresent, ]
-  resultLoaded <- resultLoaded[resultLoaded$pValue <= param$pValThreshGO,]
-  resultLoaded <- dplyr::left_join(resultLoaded, egr, by = c("gene_name"="SYMBOL"))
-  resultMetaCore <- dplyr::select(resultLoaded,c("transcript_id", "gene_name", "gene_id", "entrez_id", "log2 Ratio", "pValue", "fdr"))
-}
+resultLoaded <- read_excel(resultFile$resultFile)
+resultMetaCore <- resultLoaded %>% filter(isPresent, pValue <= param$pValThreshGO) %>%
+    dplyr::left_join(egr, by = c("gene_name"="SYMBOL")) %>%
+    dplyr::select(gene_name, gene_id, transcript_id,
+                  entrez_id, "log2 Ratio", pValue, fdr)
 ```
 
 ```{r metacore export, echo=FALSE, message=FALSE, eval=TRUE}
-metacoreFile <- list()
-metacoreFile$resultMetaCore <- paste0("MetaCore--",param$comparison,".txt")
-ezWrite.table(resultMetaCore,
-              file=metacoreFile$resultMetaCore, head="Name", digits=4, row.names = F)
-metacoreFile$resultMetaCoreZip <- zipFile(metacoreFile$resultMetaCore)
+metacoreFile <- str_c("MetaCore--",param$comparison,".txt")
+write_tsv(resultMetaCore, file=metacoreFile)
 ```
 
 #### Log Into MetaCore 
@@ -557,7 +547,7 @@ MetaCore currently has full pathway support for three core species: **Human**; *
 - Baker's yeast
 
 #### How To Use MetaCore 
-[Click to Download Expression File for Import into MetaCore](`r metacoreFile$resultMetaCoreZip`)
+[Click to Download Expression File for Import into MetaCore](`r metacoreFile`)
 
 The file linked above is a version of the differential expression test results formatted for input directly into MetaCore. Download and extract this file, and then upload it into MetaCore. 
 
@@ -907,10 +897,13 @@ if(param$runGSEA){
   ezSystem('mv Webgestalt/GSEA_Results/*/*.zip Webgestalt/GSEA_Results')
   ezSystem('find Webgestalt/GSEA_Results -maxdepth 1 -mindepth 1 -type d -exec rm -Rf {} \\;')
 }
-ezSystem('zip Webgestalt/InputFiles_GSEA.zip Webgestalt/*.rnk')
-ezSystem('rm Webgestalt/*.rnk')
-ezSystem('zip Webgestalt/InputFiles_ORA.zip Webgestalt/*.txt')
-ezSystem('rm Webgestalt/*.txt')
+
+files2Zip <- list.files('Webgestalt', pattern = '^GSEA', full.names = TRUE)
+zip("Webgestalt/InputFiles_GSEA.zip", files2Zip, zip="/usr/bin/zip")
+unlink(files2Zip)
+files2Zip <- list.files('Webgestalt', pattern = '^ORA', full.names = TRUE)
+zip("Webgestalt/InputFiles_ORA.zip", files2Zip, zip="/usr/bin/zip")
+unlink(files2Zip)
 ```
 
 ### Technical bias
