@@ -496,7 +496,7 @@ if (file.exists("goClusterTable.html")){
 require(AnnotationHub)
 ah <- AnnotationHub()
 ref <- param$refBuild %>% strsplit(., "/") %>% .[[1]] %>% .[1] %>% gsub("_"," ",.)
-if(!(ref %in% unique(ah$species))){
+if(!(ref %in% unique(ah$species) | is.na(ref))){
   knitr::knit_exit()
 } else {
   ref.orgdb <- query(ah, c("OrgDb", ref))[[1]]
