@@ -576,7 +576,7 @@ makeWebgestaltFiles <- function(param, resultFile){
               str_c("ORA_Up_Webgestalt_", comparison, ".txt"),
               col_names=FALSE)
     write_tsv(result %>% filter(isPresent, pValue < param[['pValueHighlightThresh']],
-                                `log2 Ratio` <= param[['log2RatioHighlightThresh']]) %>%
+                                `log2 Ratio` <= -1 * param[['log2RatioHighlightThresh']]) %>%
                 dplyr::select(1),
               str_c("ORA_Down_Webgestalt_", comparison, ".txt"),
               col_names=FALSE)
