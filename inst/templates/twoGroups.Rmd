@@ -496,10 +496,14 @@ if (file.exists("goClusterTable.html")){
 require(AnnotationHub)
 ah <- AnnotationHub()
 ref <- param$refBuild %>% strsplit(., "/") %>% .[[1]] %>% .[1] %>% gsub("_"," ",.)
-ref.orgdb <- query(ah, c("OrgDb", ref))[[1]]
-orgSymbols <- keys(ref.orgdb, keytype="SYMBOL")
-egr <- select(ref.orgdb, keys=orgSymbols, "ENTREZID", "SYMBOL")
-colnames(egr)[2] <- "entrez_id"
+if(!(ref %in% unique(ah$species))){
+  knitr::knit_exit()
+} else {
+  ref.orgdb <- query(ah, c("OrgDb", ref))[[1]]
+  orgSymbols <- keys(ref.orgdb, keytype="SYMBOL")
+  egr <- select(ref.orgdb, keys=orgSymbols, "ENTREZID", "SYMBOL")
+  colnames(egr)[2] <- "entrez_id"
+}
 ```
 
 ```{r metacore prepare, echo=FALSE, message=FALSE, eval=!debug}
