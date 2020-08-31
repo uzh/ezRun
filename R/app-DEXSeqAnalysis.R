@@ -36,7 +36,6 @@
 #'
 ezMethodDEXSeqAnalysis <- function(input=NA, output=NA, param=NA){
   require(DEXSeq)
-  require(ReporteRs)
 
   BPPARAM = BiocParallel::MulticoreParam(workers=max(param$cores -1, 1))
   register(BPPARAM) ## register it because exon fold changes does use the default
