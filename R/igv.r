@@ -10,7 +10,7 @@ writeIgvHtml = function(param,
                         output){
   refUrlBase = file.path(REF_HOST, param$ezRef@refBuild)
   fastaUrl = sub("Annotation.*", "Sequence/WholeGenomeFasta/genome.fa", refUrlBase)
-  faiUrl = paste(fastaUrl, ".fai")
+  faiUrl = paste0(fastaUrl, ".fai")
   bamUrl = file.path(PROJECT_BASE_URL, output$getColumn("BAM"))
   baiUrl = file.path(PROJECT_BASE_URL, output$getColumn("BAI"))
   gtfUrl = file.path(refUrlBase, "Genes/transcripts.only.gtf")
