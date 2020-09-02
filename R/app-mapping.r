@@ -355,10 +355,10 @@ ezMethodSTAR = function(input=NA, output=NA, param=NA){
   
   ## write an igv link
   if (param$writeIgvLink){ 
-    if ("IGV" %in% output@colNames){
+    if ("IGV" %in% output$colNames){
       writeIgvHtml(param, output)
     }
-    if( ("IGV Starter" %in% output@colNames)){ ## TODO remove this after
+    if( ("IGV Starter" %in% output$colNames)){ ## TODO remove this after
       writeIgvSession(genome = getIgvGenome(param), refBuild=param$ezRef["refBuild"], file=basename(output$getColumn("IGV Session")),
                       bamUrls = paste(PROJECT_BASE_URL, bamFile, sep="/") )
       writeIgvJnlp(jnlpFile=basename(output$getColumn("IGV Starter")), projectId = sub("\\/.*", "", bamFile),
