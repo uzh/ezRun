@@ -13,8 +13,9 @@ ezMethodCellRanger <- function(input=NA, output=NA, param=NA){
   sampleDirs <- strsplit(input$getColumn("RawDataDir"), ",")[[sampleName]]
   sampleDirs <- file.path(input$dataRoot, sampleDirs)
   if(all(grepl("\\.tar$", sampleDirs))){
-    lapply(sampleDirs, untar)
-    sampleDirs <- sub("\\.tar$", "", basename(sampleDirs))
+    mapply(untar, tarfile=sampleDirs, exdir=basename(dirname(sampleDirs)))
+    sampleDirs <- file.path(basename(dirname(sampleDirs)),
+                            sub("\\.tar$", "", basename(sampleDirs)))
     sampleDirs <- normalizePath(sampleDirs)
   }
   sampleDir <- paste(sampleDirs, collapse=",")

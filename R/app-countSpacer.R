@@ -12,8 +12,8 @@ ezMethodCountSpacer = function(input=NA, output=NA, param=NA){
   require(htmlwidgets)
   require(stringi)
   
-  setwdNew(param[['name']])
   sampleName = input$getNames()
+  setwdNew(sampleName)
   param[['dictPath']] = list.files(file.path('/srv/GT/databases/GEML/sgRNA_Libs/',param[['dictPath']]), pattern = 'csv', full.names = TRUE)
   dict = ezRead.table(param[['dictPath']], header = FALSE, sep = ',', row.names = NULL)
   colnames(dict) = c('TargetID', 'Sequence', 'GeneSymbol', 'isControl')
@@ -21,9 +21,9 @@ ezMethodCountSpacer = function(input=NA, output=NA, param=NA){
   stats = list()
   stats[['rawReads']] = as.numeric(input$meta[['Read Count']])
   
-  trimmedInput = ezMethodTrim(input = input, param = param)
+  trimmedInput = ezMethodFastpTrim(input = input, param = param)
   readFile = trimmedInput$getColumn("Read1")
-  stats[['filteredReads']] = as.numeric(ezSystem(paste('cat', readFile, '|wc -l'), intern = TRUE))/4
+  stats[['filteredReads']] = as.numeric(ezSystem(paste('zcat', readFile, '|wc -l'), intern = TRUE))/4
   
   reads <- .getReadsFromFastq(readFile)
   reads <- twoPatternReadFilter(reads, param$leftPattern, param$rightPattern, param$maxMismatch)
@@ -128,7 +128,7 @@ ezMethodCountSpacer = function(input=NA, output=NA, param=NA){
   
   ezWrite.table(unlist(stats), paste0(sampleName,'-stats.txt'), row.names = TRUE)
   remove(reads)
-  ezSystem('rm *.fastq')
+  ezSystem('rm *.fastq.gz')
   ezSystem('pigz --best *.fa')
   return("Success")
 }
