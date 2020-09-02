@@ -55,7 +55,6 @@ ezMethodBamPreview = function(input=NA, output=NA, param=NA, htmlFile="00index.h
          },
          stop("unsupported mapMethod: ", param$mapMethod)
   )
-  require(ReporteRs)
   for (nm in input$getNames()){
     setwdNew(nm)
     mappingApp$run(input=input$subset(nm), output=bamOutput$subset(nm), param=bamParam) ## TODO: Read Count of the bamOutput should be set by the mapping app.
