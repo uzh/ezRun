@@ -354,15 +354,16 @@ ezMethodSTAR = function(input=NA, output=NA, param=NA){
   ezSystem(paste("infer_experiment.py", "-r", bedFile, "-i", basename(bamFile), "-s 1000000"), stopOnFailure=FALSE)
   
   ## write an igv link
-  if (param$writeIgvSessionLink){ 
-    writeIgvSession(genome = getIgvGenome(param), 
-                    refBuild=param$ezRef["refBuild"], 
-                    file=basename(output$getColumn("IGV Session")),
-                    bamUrls = paste(PROJECT_BASE_URL, bamFile, sep="/") )
-    writeIgvJnlp(jnlpFile=basename(output$getColumn("IGV Starter")), 
-                 projectId = sub("\\/.*", "", bamFile),
-                 sessionUrl = paste(PROJECT_BASE_URL, 
-                                    output$getColumn("IGV Session"), sep="/"))
+  if (param$writeIgvLink){ 
+    if ("IGV" %in% output@colNames){
+      writeIgvHtml(param, output)
+    }
+    if( ("IGV Starter" %in% output@colNames)){ ## TODO remove this after
+      writeIgvSession(genome = getIgvGenome(param), refBuild=param$ezRef["refBuild"], file=basename(output$getColumn("IGV Session")),
+                      bamUrls = paste(PROJECT_BASE_URL, bamFile, sep="/") )
+      writeIgvJnlp(jnlpFile=basename(output$getColumn("IGV Starter")), projectId = sub("\\/.*", "", bamFile),
+                   sessionUrl = paste(PROJECT_BASE_URL, output$getColumn("IGV Session"), sep="/"))
+    }
   }
   return("Success")
 }
@@ -462,7 +463,7 @@ EzAppSTAR <-
                   runMethod <<- ezMethodSTAR
                   name <<- "EzAppSTAR"
                   appDefaults <<- rbind(getJunctions=ezFrame(Type="logical",  DefaultValue="FALSE",	Description="should junctions be returned"),
-                                        writeIgvSessionLink=ezFrame(Type="logical", DefaultValue="TRUE", Description="should an IGV link be generated"),
+                                        writeIgvLink=ezFrame(Type="logical", DefaultValue="TRUE", Description="should an IGV link be generated"),
                                         markDuplicates=ezFrame(Type="logical", DefaultValue="TRUE", Description="should duplicates be marked with picard"),
                                         checkStrandness=ezFrame(Type="logical", DefaultValue="FALSE", Description="should strandness be checked"),
                                         randomSleep=ezFrame(Type="logical",  DefaultValue="FALSE",  Description="should there be a random sleep to avoid to much network traffic when loading the STAR index"),
