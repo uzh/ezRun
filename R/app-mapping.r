@@ -361,8 +361,16 @@ ezMethodSTAR = function(input=NA, output=NA, param=NA){
                    bamUrl = paste(PROJECT_BASE_URL, bamFile, sep="/") )
     }
     if( ("IGV Starter" %in% output@colNames)){ ## TODO remove this after
-      writeIgvSession(genome = getIgvGenome(param), refBuild=param$ezRef["refBuild"], file=basename(output$getColumn("IGV Session")),
-                      bamUrls = paste(PROJECT_BASE_URL, bamFile, sep="/") )
+      writeIgvHtml(param, 
+                   htmlFile = basename(output$getColumn("IGV")),
+                   bamUrl = paste(PROJECT_BASE_URL, bamFile, sep="/"),
+                   baiUrl = paste0(PROJECT_BASE_URL, "/", bamFile, ".bai"),
+                   gftUrl = gftUrl,
+                   bedUrl = bedUrl,
+                   fastaUrl = fastaUrl,
+                   faiUrl = faiUrl,
+                   refBuildName = param$ezRef@refBuild,
+                   sampleName = output$Name)
       writeIgvJnlp(jnlpFile=basename(output$getColumn("IGV Starter")), 
                    projectId = sub("\\/.*", "", bamFile),
                    sessionUrl = paste(PROJECT_BASE_URL, 

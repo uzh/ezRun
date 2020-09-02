@@ -8,10 +8,23 @@
 
 writeIgvHtml = function(param, 
                         htmlFile,
-                        bamUrl){
+                        fastaUrl,
+                        faiUrl,
+                        bamUrl,
+                        baiUrl,
+                        gftUrl,
+                        bedUrl,
+                        refBuildName,
+                        sampleName){
   htmlLines = readLines(system.file("templates/igvTemplate.html", package="ezRun", mustWork = TRUE))
   htmlLines = gsub("FASTA_URL", fastaUrl, htmlLines)
-  htmlLines = gsub("INDEX_URL", indexUrl, htmlLines)
+  htmlLines = gsub("FAI_URL", faiUrl, htmlLines)
+  htmlLines = gsub("BAM_URL", bamUrl, htmlLines)
+  htmlLines = gsub("BAI_URL", baiUrl, htmlLines)
+  htmlLines = gsub("TRANSCRIPT_GTF_URL", gftUrl, htmlLines)
+  htmlLines = gsub("BED_URL", bedUrl, htmlLines)
+  htmlLines = gsub("REF_BUILD_NAME", refBuildName, htmlLines)
+  htmlLines = gsub("SAMPLE_NAME", sampleName, htmlLines)
   writeLines(htmlLines, con=htmlFile)  
 }
 
