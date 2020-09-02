@@ -519,12 +519,45 @@ metacoreFile <- str_c("MetaCore--",param$comparison,".txt")
 write_tsv(resultMetaCore, path=metacoreFile)
 ```
 
-#### Log Into MetaCore 
-The FGCZ has a subscription to MetaCore, which can be accessed at <https://portal.genego.com>. MetaCore is a powerful pathway and systems analysis tool. It has a curated database of a wide range of molecular pathways and interactions, and provides useful visualisations and statistics based on gene expression fold changes. 
+#### Quick Start 
+Using MetaCore requires an account. One can be obtained by emailing <sequencing@fgcz.ethz.ch>.
 
-A MetaCore account is first required in order to use the service. This can be obtained by emailing <sequencing@fgcz.ethz.ch>.
+ 1. [Click to Download Expression File for MetaCore](`r metacoreFile$resultMetaCoreZip`)
+ 
+ 2. [Go to the MetaCore website](https://portal.genego.com)
+ 
+ 3. Upload the Expression File to MetaCore, selecting three columns: Gene ID, p-value, log ratio 
+ 
+ 4. Select `Pathway Maps` from the `One-click Analysis` tab. 
 
-#### MetaCore Compatability 
+***
+
+#### MetaCore 
+MetaCore is a powerful pathway and systems analysis tool. It has a curated database of a wide range of molecular pathways and interactions, and provides useful visualisations and statistics based on gene expression fold changes. 
+
+When uploading the data into MetaCore, select three columns:
+
+* A gene identifier, pick **one** of:
+  + HGNC gene symbols -- `Gene symbol (with aliases)` from the `Type` drop down menu
+  + Ensembl Gene IDs -- `ENSEMBL IDs` 
+  + Entrez Gene IDs -- `EntrezGene (LocusLink) IDs`
+  
+* Log fold changes of the genes -- `log ratio` 
+
+* *P* values, **either**:
+  + Raw *p* values if you have fewer DEGs -- `P-value`
+  + FDR-corrected *p* values if you have more DEGs -- `P-value`
+
+You must ensure that the data type drop-down menu above each column is correct. 
+
+Select `---ignore---` from the drop down for all other columns in the table that are not to be used.
+
+Please refer to the [FGCZ Wiki](https://fgcz-intranet.uzh.ch/tiki-index.php?page=users.sw.metacore) for a more comprehensive guide to using MetaCore.
+
+MetaCore has numerous comprehensive tutorials online, including a useful YouTube page:
+<https://www.youtube.com/watch?v=_J_ViIw9wIM&list=PL2tDZtDsVy5xqUibWp-mfl9xuZP4Bhi-v&index=2>
+
+#### MetaCore Compatibility 
 MetaCore currently has full pathway support for three core species: **Human**; **mouse**, and; **rat**. In addition to this, it can use Entrez IDs as orthologs to analyse a series of non-core species:
 
 - Cow
@@ -537,7 +570,7 @@ MetaCore currently has full pathway support for three core species: **Human**; *
 - Worm
 - Arabidopsis
 - Rice
-- Blast of rice
+- Blast of rice (fungal species)
 - Macaca mulatta
 - Mold
 - Bread mold
@@ -545,32 +578,6 @@ MetaCore currently has full pathway support for three core species: **Human**; *
 - Fission yeast
 - Baker's yeast
 
-#### How To Use MetaCore 
-[Click to Download Expression File for Import into MetaCore](`r metacoreFile`)
-
-The file linked above is a version of the differential expression test results formatted for input directly into MetaCore. Download and extract this file, and then upload it into MetaCore. 
-
-The file contains: 
-
-- gene symbols
-- Gene IDs
-- Entrez IDs
-- Log fold changes of the genes
-- Raw *p* values
-- FDR-corrected *p* values 
-
-MetaCore requires only three fields: Gene identifiers; log fold changes, and; *p* values. When uploading the data into MetaCore, be sure to only select the appropriate columns. Generally, these columns would be:
-
-For human, mouse, and rat sequencing data, when uploading, select:
-
-- The Ensembl gene IDs 
-- The log fold change column.
-- Use either the raw *p* values or the FDR values, not both. If you have fewer differentially expressed genes, you may find FDR too aggressive, so may wish to use raw *p* values instead
-- Select `---ignore---` from the drop down for all other columns in the table that are not to be used 
-
-For the other non-core species listed above, use the Entrez IDs instead of the Ensembl gene IDs. 
-
-MetaCore has numerous comprehensive tutorials online, including a useful YouTube page - <https://www.youtube.com/channel/UC5BeExSx8x6L8KL-lGnPfMQ> 
 
 ### Enrichr
 ```{r enrichr, echo=FALSE, message=FALSE, eval=!debug}
