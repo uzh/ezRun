@@ -522,7 +522,7 @@ write_tsv(resultMetaCore, path=metacoreFile)
 #### Quick Start 
 Using MetaCore requires an account. One can be obtained by emailing <sequencing@fgcz.ethz.ch>.
 
- 1. [Click to Download Expression File for MetaCore](`r metacoreFile$resultMetaCoreZip`)
+ 1. [Click to Download Expression File for MetaCore](`r metacoreFile`)
  
  2. [Go to the MetaCore website](https://portal.genego.com)
  
