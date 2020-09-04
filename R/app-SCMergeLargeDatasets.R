@@ -102,14 +102,16 @@ ezMethodSCMergeLargeDatasets = function(input=NA, output=NA, param=NA, htmlFile=
   if(param$species == "Human" | param$species == "Mouse") 
     singler.results <- cellsLabelsWithSingleR(counts(sce), sce$cluster, param)
   
-  # 
-  # #Convert scData to Single Cell experiment Object
-  # metadata(sce)$cells_AUC <- cells_AUC
+   #Convert scData to Single Cell experiment Object
+   # Use the SCT logcounts for visualization instead of the RNA logcounts.
+   # TODO: save all the assays (RNA, SCT and integrated) in the sce object using the package keshavmot2/scanalysis. The function from Seurat doesn't save everything.
+   DefaultAssay(scData) <- "SCT" 
+   sce <- as.SingleCellExperiment(scData)
    metadata(sce)$singler.results <- singler.results
    metadata(sce)$output <- output
    metadata(sce)$param <- param
    metadata(sce)$param$name <- paste(param$name, paste(input$getNames(), collapse=", "), sep=": ")
-  
+   
    #Save some results in external files 
   saveExternalFiles(sce, list(pos_markers=markers_any))
   saveHDF5SummarizedExperiment(sce, dir="sce_h5")
