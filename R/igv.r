@@ -6,6 +6,31 @@
 # www.fgcz.ch
 
 
+writeIgvHtml = function(param, 
+                        output){
+  refUrlBase = file.path(REF_HOST, param$ezRef@refBuild)
+  fastaUrl = sub("Annotation.*", "Sequence/WholeGenomeFasta/genome.fa", refUrlBase)
+  faiUrl = paste0(fastaUrl, ".fai")
+  bamUrl = file.path(PROJECT_BASE_URL, output$getColumn("BAM"))
+  baiUrl = file.path(PROJECT_BASE_URL, output$getColumn("BAI"))
+  gtfUrl = file.path(refUrlBase, "Genes/transcripts.only.gtf")
+  bedUrl = file.path(refUrlBase, "Genes/genes.bed")
+  refBuildName = param$ezRef@refBuildName
+
+  htmlLines = readLines(system.file("templates/igvTemplate.html", package="ezRun", mustWork = TRUE))
+  htmlLines = gsub("FASTA_URL", fastaUrl, htmlLines)
+  htmlLines = gsub("FAI_URL", faiUrl, htmlLines)
+  htmlLines = gsub("BAM_URL", bamUrl, htmlLines)
+  htmlLines = gsub("BAI_URL", baiUrl, htmlLines)
+  htmlLines = gsub("TRANSCRIPT_GTF_URL", gtfUrl, htmlLines)
+  htmlLines = gsub("BED_URL", bedUrl, htmlLines)
+  htmlLines = gsub("REF_BUILD_NAME", refBuildName, htmlLines)
+  htmlLines = gsub("SAMPLE_NAME", output$getNames(), htmlLines)
+  writeLines(htmlLines, con=basename(output$getColumn("IGV")))  
+}
+
+
+
 ## this works only if the final URL of the session xml is known
 ## it will fail if the directory is moved
 ##' @title Writes a .jnlp file
@@ -35,62 +60,6 @@ ezIgvTemplateFile = function(){
   }
 }
 
-## currently not used
-## this adds a jnlp link to a static html; the html can be moved as long as the session xml stays in the same directory
-##' @title Writes a jnlp link to a static html
-##' @description Writes a jnlp link to a static html. The html can be moved as long as the session xml stays in the same directory.
-##' @template htmlFile-template
-##' @param projectId a character representing the project ID.
-##' @param html a character representing an html address.
-##' @template roxygen-template
-# writeJavaScriptIgvStarter = function(htmlFile, projectId, html){
-#   jnlpLines1 = paste('<jnlp spec="6.0+" codebase="http://data.broadinstitute.org/igv/projects/current">',
-#                     '<information>',
-#                     '<title>IGV 2.3</title>',
-#                     '<vendor>The Broad Institute</vendor>',
-#                     '<homepage href="http://www.broadinstitute.org/igv"/>',
-#                     '<description>IGV Software</description>',
-#                     '<description kind="short">IGV</description>',
-#                     '<icon href="IGV_64.png"/>',
-#                     '<icon kind="splash" href="IGV_64.png"/>',
-#                     '<offline-allowed/>',
-#                     '</information>',
-#                     '<security>',
-#                     '<all-permissions/>',
-#                     '</security>',
-#                     '<update check="background" />', #check="never" policy="never"/>',
-#                     '<resources>',
-#                     '<java version="1.6+" initial-heap-size="256m" max-heap-size="1100m" />',
-#                     '<jar href="igv.jar" download="eager" main="true"/>',
-#                     '<jar href="batik-codec__V1.7.jar" download="eager"/>',
-#                     '<jar href="goby-io-igv__V1.0.jar" download="eager"/>',  
-#                     '<property name="apple.laf.useScreenMenuBar" value="true"/>',
-#                     '<property name="com.apple.mrj.application.growbox.intrudes" value="false"/>',
-#                     '<property name="com.apple.mrj.application.live-resize" value="true"/>',
-#                     '<property name="com.apple.macos.smallTabs" value="true"/>',
-#                     '<property name="http.agent" value="IGV"/>',
-#                     '<property name="development" value="false"/>',
-#                     '</resources>',
-#                     '<application-desc  main-class="org.broad.igv.ui.Main">',
-#                     '<argument>--genomeServerURL=http://fgcz-gstore.uzh.ch/reference/igv_genomes.txt</argument>',
-#                     paste0('<argument>--dataServerURL=', "http://fgcz-gstore.uzh.ch/list_registries/", projectId, '</argument>'),
-#                     '<argument>',
-#                     sep="\n")
-#   jnlpLines2 = paste("</argument>",
-#                     '</application-desc>',
-#                     '</jnlp>',
-#                     sep="\n")
-#   ezWrite("<script>", con=html)
-#   ezWrite("function startIgvFromJnlp(label, locus){", con=html)
-#   ezWrite("var theSession = document.location.href.replace('", htmlFile, "', 'igvSession.xml');", con=html)
-#   ezWrite("var igvLink = 'data:application/x-java-jnlp-file;charset=utf-8,';", con=html)
-#   ezWrite("igvLink += '", RCurl::curlEscape(jnlpLines1), "';", con=html)
-#   ezWrite("igvLink += theSession;", con=html)
-#   ezWrite("igvLink += '", RCurl::curlEscape(jnlpLines2), "';", con=html)
-#   ezWrite("document.write(label.link(igvLink))", con=html)
-#   ezWrite("}", con=html)
-#   ezWrite("</script>", con=html)
-# }
 
 ##' @title Writes an IGV session
 ##' @description Writes an IGV session into a separate .xml file
@@ -172,12 +141,6 @@ getIgvGenome = function(param){
          param$ezRef["refBuildName"])
 }
 
-## currently not used
-##' @describeIn writeIgvSession Adds an IGV session link to an object of the class bsdoc.
-addIgvSessionLink = function(genome, refBuild, bamFiles, doc, locus="All", label="Open Integrative Genomics Viewer", baseUrl=PROJECT_BASE_URL){
-  urls = paste(baseUrl, bamFiles, sep="/")
-  writeIgvSession(genome, refBuild, bamUrls=urls, locus=locus)
-}
 
 ## currently not used
 ##' @describeIn writeIgvSession Writes an IGV session link.

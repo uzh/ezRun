@@ -498,54 +498,52 @@ addResultFileSE = function(doc, param, se, useInOutput=TRUE,
 }
 
 makeResultFile = function(param, se, useInOutput=TRUE,
-                          file=paste0("result--", param$comparison, ".txt")){
+                          file=paste0("result--", param$comparison, ".xlsx")){
   require(tools)
   require(DT, quietly=TRUE)
+  require(tidyverse)
+  require(writexl)
   se <- se[useInOutput, ]
-  y = data.frame(rowData(se), row.names=rownames(se),
-                 stringsAsFactors=FALSE, check.names=FALSE)
-  y <- cbind(y, as.data.frame(granges(rowRanges(se))))
-  y$"isPresent" = y$isPresentProbe
-  y$isPresentProbe <- NULL
-  y$"log2 Ratio" = y$log2Ratio
-  y$log2Ratio <- NULL
-  y$"gfold (log2 Change)" = y$gfold
-  y$gfold <- NULL
-  y$usedInTest <- NULL ## don't output usedInTest.
-  
-  if (!is.null(assays(se)$xNorm)){
-    yy = assays(se)$xNorm
-    colnames(yy) = paste(colnames(yy), "[normalized count]")
-    y = cbind(y, yy)
-  }
-  yy = getRpkm(se)
-  if (!is.null(yy)){
-    colnames(yy) = paste(colnames(yy), "[FPKM]")
-    y = cbind(y, yy)
-  }
-  y = y[order(y$fdr, y$pValue), ]
-  if (!is.null(y$featWidth)){
-    ### This is to round the with after averaging the transcript lengths
-    y$featWidth = as.integer(y$featWidth)
+  y <- data.frame(rowData(se), row.names=rownames(se),
+                 stringsAsFactors=FALSE, check.names=FALSE) %>% as_tibble()
+  y <- bind_cols(y, as_tibble(granges(rowRanges(se))))
+  y <- y %>% rename(isPresent=isPresentProbe,
+                    "log2 Ratio"=log2Ratio) %>%
+    select(-usedInTest)
+  if(has_name(y, "gfold")){
+    y <- y %>% rename("gfold (log2 Change)"=gfold)
   }
   
-  ezWrite.table(y, file=file, digits=4, row.names=FALSE)
+  if("xNorm" %in% names(assays(se))){
+    yy <- assays(se)$xNorm %>% as_tibble()
+    yy <- rename_with(yy, ~str_c(.x, "[normalized count]", sep=" "))
+    y <- bind_cols(y, yy)
+  }
+  
+  yy <- getRpkm(se) %>% as_tibble()
+  yy <- rename_with(yy, ~str_c(.x, "[FPKM]", sep=" "))
+  y <- bind_cols(y, yy)
+  
+  if(has_name(y, "featWidth")){
+    y <- y %>% mutate(featWidth=as.integer(featWidth))
+  }
+  y <- arrange(y, fdr, pValue)
+  write_xlsx(y, path=file)
+  
   ans <- list()
   ans$resultFile <- file
-  if(isTRUE(param$doZip)){
-    zippedFile <- sub(file_ext(file), "zip", file)
-    ans$resultZip <- zipFile(file, zippedFile)
-  }
   
   ## Interactive gene tables
-  useInInteractiveTable = c("gene_name", "type", "description", "featWidth", "gc", 
-                            "isPresent", "log2 Ratio", "pValue", "fdr")
-  useInInteractiveTable = intersect(useInInteractiveTable, colnames(y))
-  tableLink = sub(".txt", "-viewTopSignificantGenes.html", file)
-  tableDT <- ezInteractiveTableRmd(head(y[, useInInteractiveTable, drop=FALSE], 
-                                        param$maxTableRows),
+  useInInteractiveTable <- c("gene_name", "type", "description", "featWidth", "gc", 
+                             "isPresent", "log2 Ratio", "pValue", "fdr")
+  useInInteractiveTable <- intersect(useInInteractiveTable, colnames(y))
+  tableLink <- str_replace(file, "\\.xlsx$", "-viewTopSignificantGenes.html")
+  
+  tableDT <- ezInteractiveTableRmd(select(y, useInInteractiveTable) %>% 
+                                     head(param$maxTableRows),
                                    digits=3,
-                                   title=paste("Showing the", param$maxTableRows, "most significant genes"))
+                                   title=str_c("Showing the", param$maxTableRows,
+                                               "most significant genes", sep=" "))
   DT::saveWidget(tableDT, tableLink)
   ans$resultHtml <- tableLink
   return(ans)
@@ -553,33 +551,40 @@ makeResultFile = function(param, se, useInOutput=TRUE,
 
 
 makeWebgestaltFiles <- function(param, resultFile){
-    fileNames = list()
-    result = ezRead.table(resultFile)
+    require(readxl)
+    require(tidyverse)
+    fileNames <- list()
+    result <- read_excel(resultFile)
     setwdNew('Webgestalt')
-    comparison = sub('.txt', '', sub('result--', '', basename(resultFile)))
-    background = rownames(result[result$isPresent, ])
-    ezWrite.table(background, paste0('ORA_BG_Webgestalt_',comparison, '.txt'), row.names = FALSE, col.names = FALSE)
+    comparison <- basename(resultFile) %>% str_replace("^result--", "") %>%
+      str_replace("\\.xlsx$", "")
     
-    GSEA = cbind(rownames(result[result$isPresent, ]), result[result$isPresent, 'log2 Ratio'])
-    ezWrite.table(GSEA, paste0('GSEA_Input_log2FC_Webgestalt_',comparison, '.rnk'), row.names = FALSE, col.names = FALSE)
-    
-    GSEA_pVal = cbind(rownames(result[result$isPresent, ]), sign(result[result$isPresent, 'log2 Ratio']) * -log10(result[result$isPresent, 'pValue']))
-    ezWrite.table(GSEA_pVal, paste0('GSEA_Input_pVal_Webgestalt_',comparison, '.rnk'), row.names = FALSE, col.names = FALSE)
-    
-    ORA_Up = rownames(result[result$isPresent & result$pValue < param[['pValueHighlightThresh']] & result[['log2 Ratio']] >= param[['log2RatioHighlightThresh']], ])
-    if(length(ORA_Up) > 0){
-        ezWrite.table(ORA_Up, paste0('ORA_Up_Webgestalt_', comparison, '.txt') ,row.names = FALSE, col.names = FALSE)
-    }
-    
-    ORA_Both = rownames(result[result$isPresent & result$pValue < param[['pValueHighlightThresh']] & abs(result[['log2 Ratio']]) >= param[['log2RatioHighlightThresh']], ])
-    if(length(ORA_Both) > 0){
-        ezWrite.table(ORA_Both, paste0('ORA_Both_Webgestalt_', comparison, '.txt') ,row.names = FALSE, col.names = FALSE)
-    }
-    
-    ORA_Down = rownames(result[result$isPresent & result$pValue < param[['pValueHighlightThresh']] & result[['log2 Ratio']] <= (-1*param[['log2RatioHighlightThresh']]), ])
-    if(length(ORA_Down) > 0){
-        ezWrite.table(ORA_Down, paste0('ORA_Down_Webgestalt_', comparison, '.txt') ,row.names = FALSE, col.names = FALSE)
-    }
+    write_tsv(result %>% filter(isPresent) %>% dplyr::select(1),
+              str_c("ORA_BG_Webgestalt_",comparison, ".txt"),
+              col_names = FALSE)
+    write_tsv(result %>% dplyr::select(1, `log2 Ratio`),
+              str_c("GSEA_Input_log2FC_Webgestalt_",comparison, ".txt"),
+              col_names=FALSE)
+    write_tsv(result %>% filter(isPresent) %>% 
+                mutate(GSEA_pVal=sign(`log2 Ratio`) * -log10(pValue)) %>%
+                dplyr::select(1, GSEA_pVal),
+              str_c("GSEA_Input_pVal_Webgestalt_", comparison, ".txt"),
+              col_names = FALSE)
+    write_tsv(result %>% filter(isPresent, pValue < param[['pValueHighlightThresh']],
+                                `log2 Ratio` >= param[['log2RatioHighlightThresh']]) %>%
+                dplyr::select(1),
+              str_c("ORA_Up_Webgestalt_", comparison, ".txt"),
+              col_names=FALSE)
+    write_tsv(result %>% filter(isPresent, pValue < param[['pValueHighlightThresh']],
+                                `log2 Ratio` <= -1 * param[['log2RatioHighlightThresh']]) %>%
+                dplyr::select(1),
+              str_c("ORA_Down_Webgestalt_", comparison, ".txt"),
+              col_names=FALSE)
+    write_tsv(result %>% filter(isPresent, pValue < param[['pValueHighlightThresh']],
+                                abs(`log2 Ratio`) >= param[['log2RatioHighlightThresh']]) %>%
+                dplyr::select(1),
+              str_c("ORA_Both_Webgestalt_", comparison, ".txt"),
+              col_names=FALSE)
     setwd('..')
     return('success')
 }
