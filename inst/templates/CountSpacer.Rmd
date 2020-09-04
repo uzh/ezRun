@@ -95,13 +95,10 @@ cat("\n")
 
 ### Methods 
 
-LibraryPath: `r param[['dictPath']]`
-
-LeftPattern: `r sub('\\.', '', param[['leftPattern']])`
-
-RightPattern: `r param[['rightPattern']]`
-
-Alignment method: bowtie
+* LibraryPath: `r param[['dictPath']]`
+* LeftPattern: `r param[['leftPattern']]`
+* RightPattern: `r param[['rightPattern']]`
+* Alignment method: bowtie
 
 ### SessionInfo
 ```{r, echo=FALSE}

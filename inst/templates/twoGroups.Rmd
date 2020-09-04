@@ -26,12 +26,14 @@ param =readRDS("param.rds")
 ## end of debug
 debug <- FALSE
 
-require(knitr)
-require(kableExtra)
-require(SummarizedExperiment)
-require(plotly)
-require(webshot)
-require(htmlwidgets)
+library(knitr)
+library(kableExtra)
+library(SummarizedExperiment)
+library(plotly)
+library(webshot)
+library(htmlwidgets)
+library(tidyverse)
+library(readxl)
 ```
 
 ```{r prepare data, include=FALSE}
@@ -80,25 +82,20 @@ knitr::kable(makeSignificantCounts(se), row.names=TRUE,  format="html") %>%
                 position = "left")
 ```
 
-Full result table in tabular text for opening with a spreadsheet program (e.g. Excel).
-
-When opening with Excel, do make sure that the Gene symbols are loaded into a column formatted as 'text' that prevents
-conversion of the symbols to dates). See
-
-(https://www.genenames.org/help/importing-gene-symbol-data-into-excel-correctly)
+Full result table in xlsx format for opening with a spreadsheet program (e.g. Excel).
 
 ```{r result live report, echo=FALSE, message=FALSE, eval=TRUE, warning=FALSE, cache=FALSE}
 resultFile <- makeResultFile(param, se)
 
-ezWrite.table(colData(se)[, "sf", drop=FALSE],
-              file="scalingfactors.txt", head="Name", digits=4)
+write_tsv(as_tibble(colData(se), rownames="Name") %>% select(Name, sf),
+          path="scalingfactors.txt")
 
 liveReportLink = output$getColumn("Live Report")
 
 deResult$saveToFile(basename(output$getColumn("Live Report")))
 ```
 
-[`r resultFile$resultZip`](`r resultFile$resultZip`)
+[`r resultFile$resultFile`](`r resultFile$resultFile`)
 
 [Live Report and Visualizations](`r liveReportLink`)
 
@@ -429,15 +426,15 @@ if (sum(use) > param$minGenesForClustering){
   eval(plotCmd)
 
   if (doGo(param, seqAnno)){
-    clusterResult = goClusterResults(xCentered, param, clusterResult, seqAnno=seqAnno, universeProbeIds=rownames(seqAnno)[rowData(se)$isPresentProbe])
+    clusterResult = goClusterResults(xCentered, param, clusterResult, 
+                                     seqAnno=seqAnno,
+                                     universeProbeIds=rownames(seqAnno)[rowData(se)$isPresentProbe])
   }
   ## append the result file with the cluster colors
-  resultLoaded = ezRead.table(resultFile$resultFile)
-  resultLoaded$Cluster = clusterResult$clusterNumbers[clusterResult$clusterNumbers[rownames(resultLoaded)]]
-  ezWrite.table(resultLoaded, file=resultFile$resultFile)
-  if (param$doZip){
-    zipFile(resultFile$resultFile)
-  }
+  resultLoaded <- read_excel(resultFile$resultFile)
+  resultLoaded$Cluster <- clusterResult$clusterNumbers[resultLoaded[[1]]]
+  write_xlsx(resultLoaded, path=resultFile$resultFile)
+  
   if (!is.null(clusterResult$GO)){
     goTables = goClusterTableRmd(param, clusterResult, seqAnno)
     if (doEnrichr(param)){
@@ -499,43 +496,68 @@ if (file.exists("goClusterTable.html")){
 require(AnnotationHub)
 ah <- AnnotationHub()
 ref <- param$refBuild %>% strsplit(., "/") %>% .[[1]] %>% .[1] %>% gsub("_"," ",.)
-ref.orgdb <- query(ah, c("OrgDb", ref))[[1]]
-orgSymbols <- keys(ref.orgdb, keytype="SYMBOL")
-egr <- select(ref.orgdb, keys=orgSymbols, "ENTREZID", "SYMBOL")
-colnames(egr)[2] <- "entrez_id"
-```
-
-```{r metacore prepare, echo=FALSE, message=FALSE, eval=!debug}
-resultLoaded <- ezRead.table(resultFile$resultFile)
-if(param$featureLevel == 'gene'){
-  resultLoaded <- tibble::rownames_to_column(resultLoaded, "gene_id")
-  resultLoaded <- resultLoaded[resultLoaded$isPresent, ]
-  resultLoaded <- resultLoaded[resultLoaded$pValue <= param$pValThreshGO,]
-  resultLoaded <- dplyr::left_join(resultLoaded, egr, by = c("gene_name"="SYMBOL"))
-  resultMetaCore <- dplyr::select(resultLoaded,c("gene_name", "gene_id", "entrez_id", "log2 Ratio", "pValue", "fdr"))
+if(!(ref %in% unique(ah$species) | is.na(ref))){
+  knitr::knit_exit()
 } else {
-  resultLoaded <- tibble::rownames_to_column(resultLoaded, "transcript_id")
-  resultLoaded <- resultLoaded[resultLoaded$isPresent, ]
-  resultLoaded <- resultLoaded[resultLoaded$pValue <= param$pValThreshGO,]
-  resultLoaded <- dplyr::left_join(resultLoaded, egr, by = c("gene_name"="SYMBOL"))
-  resultMetaCore <- dplyr::select(resultLoaded,c("transcript_id", "gene_name", "gene_id", "entrez_id", "log2 Ratio", "pValue", "fdr"))
+  ref.orgdb <- query(ah, c("OrgDb", ref))[[1]]
+  orgSymbols <- keys(ref.orgdb, keytype="SYMBOL")
+  egr <- select(ref.orgdb, keys=orgSymbols, "ENTREZID", "SYMBOL")
+  colnames(egr)[2] <- "entrez_id"
 }
 ```
 
-```{r metacore export, echo=FALSE, message=FALSE, eval=TRUE}
-metacoreFile <- list()
-metacoreFile$resultMetaCore <- paste0("MetaCore--",param$comparison,".txt")
-ezWrite.table(resultMetaCore,
-              file=metacoreFile$resultMetaCore, head="Name", digits=4, row.names = F)
-metacoreFile$resultMetaCoreZip <- zipFile(metacoreFile$resultMetaCore)
+```{r metacore prepare, echo=FALSE, message=FALSE, eval=!debug}
+resultLoaded <- read_excel(resultFile$resultFile)
+resultMetaCore <- resultLoaded %>% filter(isPresent, pValue <= param$pValThreshGO) %>%
+    dplyr::left_join(egr, by = c("gene_name"="SYMBOL")) %>%
+    dplyr::select(gene_name, gene_id, transcript_id,
+                  entrez_id, "log2 Ratio", pValue, fdr)
 ```
 
-#### Log Into MetaCore 
-The FGCZ has a subscription to MetaCore, which can be accessed at <https://portal.genego.com>. MetaCore is a powerful pathway and systems analysis tool. It has a curated database of a wide range of molecular pathways and interactions, and provides useful visualisations and statistics based on gene expression fold changes. 
+```{r metacore export, echo=FALSE, message=FALSE, eval=TRUE}
+metacoreFile <- str_c("MetaCore--",param$comparison,".txt")
+write_tsv(resultMetaCore, path=metacoreFile)
+```
 
-A MetaCore account is first required in order to use the service. This can be obtained by emailing <sequencing@fgcz.ethz.ch>.
+#### Quick Start 
+Using MetaCore requires an account. One can be obtained by emailing <sequencing@fgcz.ethz.ch>.
 
-#### MetaCore Compatability 
+ 1. [Click to Download Expression File for MetaCore](`r metacoreFile`)
+ 
+ 2. [Go to the MetaCore website](https://portal.genego.com)
+ 
+ 3. Upload the Expression File to MetaCore, selecting three columns: Gene ID, p-value, log ratio 
+ 
+ 4. Select `Pathway Maps` from the `One-click Analysis` tab. 
+
+***
+
+#### MetaCore 
+MetaCore is a powerful pathway and systems analysis tool. It has a curated database of a wide range of molecular pathways and interactions, and provides useful visualisations and statistics based on gene expression fold changes. 
+
+When uploading the data into MetaCore, select three columns:
+
+* A gene identifier, pick **one** of:
+  + HGNC gene symbols -- `Gene symbol (with aliases)` from the `Type` drop down menu
+  + Ensembl Gene IDs -- `ENSEMBL IDs` 
+  + Entrez Gene IDs -- `EntrezGene (LocusLink) IDs`
+  
+* Log fold changes of the genes -- `log ratio` 
+
+* *P* values, **either**:
+  + Raw *p* values if you have fewer DEGs -- `P-value`
+  + FDR-corrected *p* values if you have more DEGs -- `P-value`
+
+You must ensure that the data type drop-down menu above each column is correct. 
+
+Select `---ignore---` from the drop down for all other columns in the table that are not to be used.
+
+Please refer to the [FGCZ Wiki](https://fgcz-intranet.uzh.ch/tiki-index.php?page=users.sw.metacore) for a more comprehensive guide to using MetaCore.
+
+MetaCore has numerous comprehensive tutorials online, including a useful YouTube page:
+<https://www.youtube.com/watch?v=_J_ViIw9wIM&list=PL2tDZtDsVy5xqUibWp-mfl9xuZP4Bhi-v&index=2>
+
+#### MetaCore Compatibility 
 MetaCore currently has full pathway support for three core species: **Human**; **mouse**, and; **rat**. In addition to this, it can use Entrez IDs as orthologs to analyse a series of non-core species:
 
 - Cow
@@ -548,7 +570,7 @@ MetaCore currently has full pathway support for three core species: **Human**; *
 - Worm
 - Arabidopsis
 - Rice
-- Blast of rice
+- Blast of rice (fungal species)
 - Macaca mulatta
 - Mold
 - Bread mold
@@ -556,32 +578,6 @@ MetaCore currently has full pathway support for three core species: **Human**; *
 - Fission yeast
 - Baker's yeast
 
-#### How To Use MetaCore 
-[Click to Download Expression File for Import into MetaCore](`r metacoreFile$resultMetaCoreZip`)
-
-The file linked above is a version of the differential expression test results formatted for input directly into MetaCore. Download and extract this file, and then upload it into MetaCore. 
-
-The file contains: 
-
-- gene symbols
-- Gene IDs
-- Entrez IDs
-- Log fold changes of the genes
-- Raw *p* values
-- FDR-corrected *p* values 
-
-MetaCore requires only three fields: Gene identifiers; log fold changes, and; *p* values. When uploading the data into MetaCore, be sure to only select the appropriate columns. Generally, these columns would be:
-
-For human, mouse, and rat sequencing data, when uploading, select:
-
-- The Ensembl gene IDs 
-- The log fold change column.
-- Use either the raw *p* values or the FDR values, not both. If you have fewer differentially expressed genes, you may find FDR too aggressive, so may wish to use raw *p* values instead
-- Select `---ignore---` from the drop down for all other columns in the table that are not to be used 
-
-For the other non-core species listed above, use the Entrez IDs instead of the Ensembl gene IDs. 
-
-MetaCore has numerous comprehensive tutorials online, including a useful YouTube page - <https://www.youtube.com/channel/UC5BeExSx8x6L8KL-lGnPfMQ> 
 
 ### Enrichr
 ```{r enrichr, echo=FALSE, message=FALSE, eval=!debug}
@@ -907,10 +903,13 @@ if(param$runGSEA){
   ezSystem('mv Webgestalt/GSEA_Results/*/*.zip Webgestalt/GSEA_Results')
   ezSystem('find Webgestalt/GSEA_Results -maxdepth 1 -mindepth 1 -type d -exec rm -Rf {} \\;')
 }
-ezSystem('zip Webgestalt/InputFiles_GSEA.zip Webgestalt/*.rnk')
-ezSystem('rm Webgestalt/*.rnk')
-ezSystem('zip Webgestalt/InputFiles_ORA.zip Webgestalt/*.txt')
-ezSystem('rm Webgestalt/*.txt')
+
+files2Zip <- list.files('Webgestalt', pattern = '^GSEA', full.names = TRUE)
+zip("Webgestalt/InputFiles_GSEA.zip", files2Zip, zip="/usr/bin/zip")
+unlink(files2Zip)
+files2Zip <- list.files('Webgestalt', pattern = '^ORA', full.names = TRUE)
+zip("Webgestalt/InputFiles_ORA.zip", files2Zip, zip="/usr/bin/zip")
+unlink(files2Zip)
 ```
 
 ### Technical bias
