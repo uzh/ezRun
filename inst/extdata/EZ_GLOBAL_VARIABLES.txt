@@ -28,6 +28,14 @@ REFSEQ_mRNA_REF='/srv/GT/reference/RefSeq/mRNA/20150301/Sequence/BOWTIE2Index/tr
 REFSEQ_pathogenicHumanViruses_REF='/srv/GT/reference/Viruses/ncbi/humanPathogenic_20170419/Sequence/BOWTIE2Index/genome'
 TARGET_ENRICHMENT_DESIGN_DIR="/srv/GT/databases/targetEnrichment_designs/bedFiles"
 KRAKEN_DB="/srv/GT/databases/krakenBacteria/minikraken_20171019/minikraken_20171019_8GB"
+SILVA_ALL_DADA2="/srv/GT/databases/silva/release_132/silva_nr_v132_forDada2.fa.gz"
+SILVA_BACTERIA_DADA2="/srv/GT/databases/silva/release_132/silva_nr_v132_Bacteria_forDada2.fa.gz"
+SILVA_EUKARYOTA_DADA2="/srv/GT/databases/silva/release_132/silva_nr_v132_Eukaryota_forDada2.fa.gz"
+SILVA_ARCHAEA_DADA2="/srv/GT/databases/silva/release_132/silva_nr_v132_Archaea_forDada2.fa.gz"
+SILVA_DB_MOTHUR="/srv/GT/databases/silva/release_132/silva_v132_Bacteria_forMothur.fa.gz"
+SILVA_BACTERIA_SPECIES_DADA2="/srv/GT/databases/silva/release_132/silva_species_assignment_v132_forDada2.fa.gz"
+RDP_DB="/srv/GT/databases/RDP/rdp_train_set_16.fa.gz"
+GREENGENES_DB="/srv/GT/databases/greenGenes/gg_13_8_train_set_97.fa.gz"
 
 ## timout is in minutes
 INDEX_BUILD_TIMEOUT=180 
@@ -60,27 +68,12 @@ SMRT_CMD="SMRT=/misc/ngseq8/opt/smrtanalysis.2.3.0/install/smrtanalysis_2.3.0.14
 
 
 ## METAGENONMICS (MOTHUR-UPARSE)
-METAGENOMICS_ROOT="/usr/local/ngseq/opt/metagenomicsFiles"
-MOTHUR_EXE = "/usr/local/ngseq/src/mothur/mothur"
-MOTHUR_DATA_CLEAN_BATCH_TEMPLATE_STEP1 = "/usr/local/ngseq/opt/metagenomicsFiles/mothurFullWorkflow_step_1.batch"
-MOTHUR_DATA_CLEAN_BATCH_TEMPLATE_STEP2_3 = "/usr/local/ngseq/opt/metagenomicsFiles/mothurFullWorkflow_step_2_3.batch"
-MOTHUR_DATA_CLEAN_BATCH_STEP1 = "mothurInputBatch_s1.batch"
-MOTHUR_DATA_CLEAN_BATCH_STEP2_3 = "mothurInputBatch_s_2_3.batch"
-MOTHUR_DATA_CLEAN_BATCH_TEMPLATE = "/usr/local/ngseq/opt/metagenomicsFiles/mothurSingleEndCleanAppTemplate.batch"
-MOTHUR_DATA_CLEAN_BATCH_ILLUMINA_STEP1 = "mothurSingleEndCleanAppIllumina_s1.batch"
-MOTHUR_DATA_CLEAN_BATCH_ILLUMINA_STEP2 = "mothurSingleEndCleanAppIllumina_s2.batch"
-MOTHUR_DATA_CLEAN_BATCH_PACBIO = "mothurSingleEndCleanAppPacBio.batch"
-MOTHUR_DATA_CLEAN_BATCH_ILLUMINA = "mothurSingleEndCleanAppIll.batch"
-MOTHUR_ERROR_ESTIMATE_AND_CLUSTER_BATCH_TEMPLATE_ILL = "/usr/local/ngseq/opt/metagenomicsFiles/mothurSingleEndErrorEstimateAndClusterAppTemplateIllumina.batch"
-MOTHUR_ERROR_ESTIMATE_AND_CLUSTER_BATCH_TEMPLATE_PACBIO = "/usr/local/ngseq/opt/metagenomicsFiles/mothurSingleEndErrorEstimateAndClusterAppTemplatePacBio.batch"
-MOTHUR_ERROR_ESTIMATE_AND_CLUSTER_BATCH_ILLUMINA = "mothurSingleEndErrorEstimateAndClusterAppIllumina.batch"
-MOTHUR_ERROR_ESTIMATE_AND_CLUSTER_BATCH_PACBIO = "mothurSingleEndErrorEstimateAndClusterAppPacBio.batch"
-FINAL_MOTHUR_WORKFLOW_TEMPLATE_STEP1="finalMothurWorkflow_step1.batch"
-FINAL_MOTHUR_WORKFLOW_TEMPLATE_STEP2="finalMothurWorkflow_step2.batch"
-FINAL_MOTHUR_WORKFLOW_TEMPLATE_STEP3="finalMothurWorkflow_step3.batch"
+METAGENOMICS_ROOT="/usr/local/ngseq/templateFiles/"
+UNIFIED_MOTHUR_WORKFLOW="unifiedMothurWorkflow.batch"
+UNIFIED_MOTHUR_WORKFLOW = "unifiedMothurWorkflow.batch"
 V4_REGION_START_IN_SILVA_FASTA = "11894"
 V4_REGION_END_IN_SILVA_FASTA = "25319"
-RDP_DB= "srv/GT/analysis/grusso/courses/metagenomicsCourse/2018/databases/rdp_16s_v16.fa"
 USEARCH_TEMPLATE_SCRIPT="/usr/local/ngseq/opt/metagenomicsFiles/uparseTemplate.sh"
-MEGAHIT_TEMPLATE_SCRIPT="/usr/local/ngseq/opt/metagenomicsFiles/megahitTemplate.sh"
-METASPADES_TEMPLATE_SCRIPT="/usr/local/ngseq/opt/metagenomicsFiles/metaspadesTemplate.sh"
+MEGAHIT_TEMPLATE_SCRIPT="megahitTemplate.sh"
+METASPADES_TEMPLATE_SCRIPT="metaspadesTemplate.sh"
+SAMSA2_TEMPLATE_SCRIPT="samsa2Template.sh"
