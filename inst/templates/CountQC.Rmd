@@ -16,24 +16,25 @@ Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
 
 ```{r setup countQC, include=FALSE}
 ## This report requires the object rawData
-require(knitr)
-require(kableExtra)
-require(SummarizedExperiment)
-require(WGCNA)
-require(plotly)
-require(matrixStats)
-require(reshape2)
-library(dplyr)
-library(tibble)
+library(knitr)
+library(kableExtra)
+library(SummarizedExperiment)
+library(WGCNA)
+library(plotly)
+library(matrixStats)
+library(reshape2)
+library(tidyverse)
+library(ezRun)
 ```
 
 ```{r prepare data countQC, include=FALSE}
 debug <- FALSE
 if(!exists("rawData")){
   rawData <- readRDS("rawData.rds")
+  # rawData <- readRDS("/srv/gstore//projects/p3613/CountQC_49303_2020-09-03--20-54-11/Count_QC/rawData.rds")
+
   # ctrl+enter in RStudio set cwd in the Rmd folder.
 }
-
 output <- metadata(rawData)$output
 param <- metadata(rawData)$param
 seqAnno <- data.frame(rowData(rawData), row.names=rownames(rawData),
@@ -49,7 +50,15 @@ for (nm in setdiff(na.omit(unique(seqAnno$type)), "")){
 metadata(rawData)$design <- ezDesignFromDataset(dataset, param)
 colData(rawData)$conds <- ezConditionsFromDesign(metadata(rawData)$design,
                                                  maxFactors = 2)
-colData(rawData)$sampleColors <- getSampleColors(colData(rawData)$conds)
+# colData(rawData)$sampleColors <- getSampleColors(colData(rawData)$conds)
+metadata(rawData)$condColors <- lapply(metadata(rawData)$design, getCondsColors)
+metadata(rawData)$sampleColors <- list()
+for(cond in colnames(metadata(rawData)$design)){
+  metadata(rawData)$sampleColors[[cond]] <- setNames(metadata(rawData)$condColors[[cond]][metadata(rawData)$design[[cond]]],
+                                                     rownames(metadata(rawData)$design))
+}
+# metadata(rawData)$condleColors <- lapply(metadata(rawData)$sampleColors, function(x, y){setNames(x,y)},
+#                                         rownames(metadata(rawData)$design))
 ```
 
 ```{r check enough samples, echo=FALSE, results='asis'}
@@ -278,13 +287,13 @@ ezCorrelationPlot(cor(assays(rawData)$log2signal, use="complete.obs"),
                   cond=colData(rawData)$conds, condLabels=colData(rawData)$conds,
                   main=paste0("all present genes (",
                               nrow(rawData), ")"), 
-                  colors=colData(rawData)$sampleColors)
+                  colors=metadata(rawData)$sampleColors[[1]])
 
 ## Top genes
 ezCorrelationPlot(cor(assays(rawData)$log2signal[metadata(rawData)$topGenes, ], use="complete.obs"),
                   cond=colData(rawData)$conds, condLabels=colData(rawData)$conds,
                   main=paste0("top genes (", length(metadata(rawData)$topGenes), ")"),
-                  colors=colData(rawData)$sampleColors)
+                  colors=metadata(rawData)$sampleColors[[1]])
 ```
 
 ```{r sample clustering, echo=FALSE, fig.height=7, fig.width=min(7 + (ncol(rawData)-10)*0.3, 30), results='asis'}
@@ -292,13 +301,17 @@ if (ncol(rawData) > 3){
   ## All genes
   d <- as.dist(1-cor(assays(rawData)$log2signal, use="complete.obs"))
   hc <- hclust(d, method="ward.D2")
-  plotDendroAndColors(hc, colData(rawData)$sampleColors, autoColorHeight=TRUE, hang = -0.1,
+  plotDendroAndColors(hc, 
+                      colors=as.data.frame(bind_cols(metadata(rawData)$sampleColors)),
+                      autoColorHeight=TRUE, hang = -0.1,
                       main="all present genes")
 
   ## Top genes
   d <- as.dist(1-cor(assays(rawData)$log2signal[metadata(rawData)$topGenes, ], use="complete.obs"))
   hc <- hclust(d, method="ward.D2")
-  plotDendroAndColors(hc, colData(rawData)$sampleColors, autoColorHeight=TRUE, hang = -0.1,
+  plotDendroAndColors(hc, 
+                      colors=as.data.frame(bind_cols(metadata(rawData)$sampleColors)),
+                      autoColorHeight=TRUE, hang = -0.1,
                       main=paste("top", length(metadata(rawData)$topGenes), " genes"))
 }
 ```
@@ -326,11 +339,11 @@ if(ncol(rawData) > 3){
     clusterColors <- hcl.colors(param$nSampleClusters, palette = "Spectral")
     clusterResult <-
       clusterPheatmap(x=assays(rawData)$log2signalCentered[varFeatures, ], 
-                      design = data.frame(Condition = colData(rawData)$conds),
+                      design = metadata(rawData)$design,
                       param = param, clusterColors = clusterColors,
                       lim = c(-param$logColorRange, param$logColorRange),
                       doClusterColumns = TRUE,
-                      sampleColors = colData(rawData)$sampleColors)
+                      condColors = metadata(rawData)$condColors)
 
     xTmp <- enframe(clusterResult$clusterNumbers, "feature_id", value = "Cluster")
     xTmp <- left_join(xTmp, as_tibble(rowData(rawData)[, "gene_name", drop=FALSE],
@@ -423,25 +436,25 @@ if(ncol(rawData) > 3){
   ezMdsPlotly(assays(rawData)$log2signal,
               design=metadata(rawData)$design,
               ndim=3, main="mdsPlot_PresentGenes 3D",
-              sampleColors=colData(rawData)$sampleColors)
+              condColors=metadata(rawData)$condColors[[1]])
 }
 if(ncol(rawData) > 3){
   ezMdsPlotly(assays(rawData)$log2signal[metadata(rawData)$topGenes, ],
               design=metadata(rawData)$design, ndim=3,
               main="mdsPlot_TopGenes 3D",
-              sampleColors=colData(rawData)$sampleColors)
+              condColors=metadata(rawData)$condColors[[1]])
 }
 if(ncol(rawData) > 3){
   ezMdsPlotly(assays(rawData)$log2signal,
               design=metadata(rawData)$design, ndim=2,
               main="mdsPlot_PresentGenes 2D",
-              sampleColors=colData(rawData)$sampleColors)
+              condColors=metadata(rawData)$condColors[[1]])
 }
 if(ncol(rawData) > 3){
   ezMdsPlotly(assays(rawData)$log2signal[metadata(rawData)$topGenes, ],
               design=metadata(rawData)$design, ndim=2,
               main="mdsPlot_TopGenes 2D",
-              sampleColors=colData(rawData)$sampleColors)
+              condColors=metadata(rawData)$condColors[[1]])
 }
 ```
 

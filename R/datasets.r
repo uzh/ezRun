@@ -145,7 +145,8 @@ ezColorMapFromDesign = function(design){
 
 ##' @describeIn ezDesignFromDataset Gets the conditions from the design. Use \code{maxFactors} to limit the amount of factors.
 ezConditionsFromDesign = function(design, maxFactors=2){
-  apply(design[ , 1:min(ncol(design), maxFactors), drop=FALSE], 1, function(x){paste(x, collapse="_")})
+  apply(design[ , 1:min(ncol(design), maxFactors), drop=FALSE], 1, 
+        function(x){paste(x, collapse="_")})
 }
 
 ##' @describeIn ezDesignFromDataset A wrapper to get the conditions directly from the dataset.

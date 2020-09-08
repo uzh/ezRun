@@ -72,6 +72,12 @@ getSampleColors = function(conds, colorNames=names(conds)){
 	
 }
 
+getCondsColors <- function(conds){
+  conds <- unique(conds)
+  condColors <- setNames(brewPalette(length(conds)), conds)
+  return(condColors)
+}
+
 ##' @describeIn getSampleColors Gets the sample pch from the experimental conditions.
 getSamplePch = function(conds, pchNames=names(conds)){
   
