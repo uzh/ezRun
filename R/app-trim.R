@@ -160,7 +160,7 @@ ezMethodFastpTrim = function(input=NA, output=NA, param=NA){
     logFile = paste0(output$getNames(), "_preprocessing.log")
   }
   ezSystem(paste(cmd, '2>', logFile))
-  ezSystem(paste("cat", "fastp.json", ">", logFile))
+  ezSystem(paste("cat", "fastp.json", ">>", logFile))
   
   ## rename trimmed output
   if (param$gzipTrimmed){
