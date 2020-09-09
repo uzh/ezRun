@@ -5,7 +5,7 @@
 # The terms are available here: http://www.gnu.org/licenses/gpl.html
 # www.fgcz.ch
 ezMethodMergeRunData <- function(input=NA, output=NA, param=NA){
-    project = dirName(param[['resultDir']])
+    project = dirname(param[['resultDir']])
     matchCol = param[['matchingColumn']]
     inputDir1 = file.path(param[['dataRoot']], project, param[['FirstDataSet']])
     inputDir2 = file.path(param[['dataRoot']], project, param[['DataSetName2']])
@@ -52,7 +52,7 @@ ezMethodMergeRunData <- function(input=NA, output=NA, param=NA){
     dataset = dataset[order(dataset[[matchCol]]), ]
     dataset = dataset[dataset[[matchCol]] %in% intersectNames, ]
     uniqueDataset = unique(dataset[ ,-which(colnames(dataset) %in% c('Read1 [File]', 'Read Count'))])
-    if(paired){
+    if(param[['paired']]){
         uniqueDataset = unique(uniqueDataset[, -which(colnames(uniqueDataset) %in% c('Read2 [File]'))])
     }
     uniqueDataset[['Read Count']] = tapply(dataset[['Read Count']], dataset[[matchCol]], sum)
