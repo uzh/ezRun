@@ -5,6 +5,7 @@
 # The terms are available here: http://www.gnu.org/licenses/gpl.html
 # www.fgcz.ch
 ezMethodMergeRunData <- function(input=NA, output=NA, param=NA){
+    setwdNew(param[['Name']])
     project = dirname(param[['resultDir']])
     matchCol = param[['matchingColumn']]
     inputDir1 = file.path(param[['dataRoot']], project, param[['FirstDataSet']])
@@ -58,9 +59,9 @@ ezMethodMergeRunData <- function(input=NA, output=NA, param=NA){
     uniqueDataset[['Read Count']] = tapply(dataset[['Read Count']], dataset[[matchCol]], sum)
     
     ###Add Read1 Column
-    uniqueDataset[['Read1 [File]']] = file.path(param[['resultDir']], paste0(outputRunName, uniqueDataset[[matchCol]], '_R1.fastq.gz'))
+    uniqueDataset[['Read1 [File]']] = file.path(param[['resultDir']], param[['Name']], paste0(outputRunName, uniqueDataset[[matchCol]], '_R1.fastq.gz'))
     if(param[['paired']]){
-        uniqueDataset[['Read2 [File]']] = file.path(param[['resultDir']], paste0(outputRunName, uniqueDataset[[matchCol]], '_R2.fastq.gz'))
+        uniqueDataset[['Read2 [File]']] = file.path(param[['resultDir']], param[['Name']], paste0(outputRunName, uniqueDataset[[matchCol]], '_R2.fastq.gz'))
     }
     
     datasetKeep = rbind(dataset1[which(dataset1[[matchCol]] %in% uniqSet1),], dataset2[which(dataset2[[matchCol]] %in% uniqSet2),])
