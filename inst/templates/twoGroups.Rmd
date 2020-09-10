@@ -515,8 +515,8 @@ resultMetaCore <- resultLoaded %>% filter(isPresent, pValue <= param$pValThreshG
 ```
 
 ```{r metacore export, echo=FALSE, message=FALSE, eval=TRUE}
-metacoreFile <- str_c("MetaCore--",param$comparison,".txt")
-write_tsv(resultMetaCore, path=metacoreFile)
+metacoreFile <- str_c("MetaCore--",param$comparison,".xlsx")
+write_xlsx(resultMetaCore, path=metacoreFile)
 ```
 
 #### Quick Start 
