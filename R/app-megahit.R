@@ -24,8 +24,10 @@ ezMethodMegahit = function(input=NA, output=NA, param=NA,
     cpCmd2 <- paste0("gunzip -c ", file2PathInDatset, "  > ", fastqName2)
     ezSystem(cpCmd2)
     inputStringAss <- paste("\"-1", fastqName1, "-2", fastqName2,"\"")
+    inputStringBwt2 <- paste("\"-1", fastqName1, "-2", fastqName2,"\"")
   } else {
     inputStringAss <- paste("-s",fastqName1)
+    inputStringBwt2 <- paste("-U",fastqName1)
   }
   if (param$noMercy){
     noMercyString <- "--no-mercy"
@@ -41,6 +43,7 @@ ezMethodMegahit = function(input=NA, output=NA, param=NA,
 
   ##update template
   updateTemplateScriptCmd <- paste0("sed -e s/\"SAMPLE_NAME\"/", sampleName, "/g",
+                                    " -e s/\"INPUT_FILE_STRING_BWT\"/", inputStringBwt2, "/g ",
                                     " -e s/\"KMER_MIN\"/", param$kmerMin, "/g ",
                                     " -e s/\"KMER_MAX\"/", param$kmerMax, "/g ",
                                     " -e s/\"KMER_STEP\"/", param$kmerStep, "/g ",
@@ -61,9 +64,14 @@ ezMethodMegahit = function(input=NA, output=NA, param=NA,
   ## place output files
   #1) contigs
   oldContigFile <- "megahitResults/final.contigs.fa"
-  
   newContigFile <- basename(output$getColumn("contigFile"))
   ezSystem(paste("cp",oldContigFile,newContigFile))
+  
+  #2) reads mapped to contigs
+  oldMappedFile <- "temp.bam"
+  newMappedFile <- basename(output$getColumn("mappingFile"))
+  ezSystem(paste("cp",oldMappedFile,newMappedFile))
+  
 }
 ##' @template app-template
 ##' @templateVar method ezMethodMegahit()
