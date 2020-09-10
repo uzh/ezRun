@@ -90,11 +90,11 @@ EzAppMegahit <-
                                         minCount = ezFrame(Type="numeric",
                                                           DefaultValue="2",
                                                           Description="(kmin+1)-mer with multiplicity lower than this will be discarded."),
-                                        kmin1pass = ezFrame(Type="boolean",
-                                                          DefaultValue="false",
+                                        kmin1pass = ezFrame(Type="logical",
+                                                          DefaultValue=FALSE,
                                                           Description="Enabled, makes  memory more efficient for ultra low-depth datasets"),
-                                        noMercy = ezFrame(Type="boolean",
-                                                                  DefaultValue="false",
+                                        noMercy = ezFrame(Type="logical",
+                                                                  DefaultValue=FALSE,
                                                                   Description="Wheter or not to add mercy k-mers.")
                                         
                                         
