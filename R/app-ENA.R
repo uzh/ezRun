@@ -1,29 +1,33 @@
 ezMethodGetEnaData <- function(input=NA, output=NA, param=NA){
     #param[['projectID']] = 'PRJNA163241'
     require(XML)
-    cmd = paste0('wget ','"http://www.ebi.ac.uk/ena/data/warehouse/filereport?accession=', param[['projectID']], '&result=read_run&fields=run_accession,fastq_ftp,fastq_md5" --output-document=fastqLinks.txt')
+    cmd = paste0("curl -o fastqLinks.txt -X GET ","\'https://www.ebi.ac.uk/ena/portal/api/filereport?accession=",param[['projectID']],"&result=read_run&fields=study_accession,sample_accession,experiment_accession,run_accession,tax_id,scientific_name,fastq_ftp&format=tsv&download=true\'")
     ezSystem(cmd)
     fastqInfo = ezRead.table('fastqLinks.txt', row.names = NULL)
     fastqInfo[['Name']] = ''
     fastqInfo[['ReadCount']] = 0
-    fastqInfo[['Species']] = ''
+    colnames(fastqInfo)[grep('scientific_name', colnames(fastqInfo))] = 'Species'
     setwdNew(rownames(input$meta))
     
     for (i in 1:nrow(fastqInfo)){
         #download ERR xml File
-        cmd = paste0('wget ','"https://www.ebi.ac.uk/ena/data/view/',fastqInfo$run_accession[i],'&display=xml&download=xml&filename=',fastqInfo$run_accession[i],'.xml" --output-document=',fastqInfo$run_accession[i],'.xml')
+        cmd = paste0("curl -o ", fastqInfo$run_accession[i],".xml ", "-X GET \'https://www.ebi.ac.uk/ena/browser/api/xml/",fastqInfo$run_accession[i],"?download=true\'")
         ezSystem(cmd)
         #Extract read number from xml, extract sampleID from xml
         runInfo <- xmlParse(paste0(fastqInfo$run_accession[i], '.xml'))
-        fastqInfo[['ReadCount']][i] <- xmlToList(runInfo)$RUN$RUN_ATTRIBUTES$RUN_ATTRIBUTE$VALUE
+        
+        runAttr = xmlToList(runInfo)$RUN$RUN_ATTRIBUTES
+        for (k in 1:length(runAttr)){
+            if(runAttr[[k]]$TAG == 'ENA-SPOT-COUNT'){
+                fastqInfo[['ReadCount']][i] <- runAttr[[k]]$VALUE}
+            }
         sampleID <- xmlToList(runInfo)$RUN$RUN_LINKS[[2]]$XREF_LINK$ID
         
-        cmd = paste0('wget ','"https://www.ebi.ac.uk/ena/data/view/',sampleID,'&display=xml&download=xml&filename=',sampleID,'.xml" --output-document=',sampleID,'.xml')
+        cmd = paste0("curl -o ", sampleID,".xml ", "-X GET \'https://www.ebi.ac.uk/ena/browser/api/xml/",sampleID,"?download=true\'")
         ezSystem(cmd)
         xml <- xmlParse(paste0(sampleID, '.xml'))
         sampleInfo <- xmlToList(xml)
         fastqInfo[['Name']][i] <- sampleInfo$SAMPLE$TITLE
-        fastqInfo[['Species']][i] <- sampleInfo$SAMPLE$SAMPLE_NAME$SCIENTIFIC_NAME
         sampleAttributes <- xmlToDataFrame(xmlRoot(xml)[[1]][[5]])
         sampleAttributes <- sampleAttributes[grep('ENA',sampleAttributes$TAG, invert = TRUE),]
         
