@@ -104,9 +104,9 @@ dupBam <- function(inBam, outBam, operation=c("mark", "remove"),
                  paste0("I=", inBam),
                  paste0("O=", outBam),
                  paste0("M=", metricFn),
-                 paste("-REMOVE_DUPLICATES", 
+                 paste0("REMOVE_DUPLICATES=", 
                         ifelse(operation=="mark", "false", "true")),
-                 "> /dev/null")
+                 "> /dev/null 2>&1")
     ezSystem(cmd)
     indexBam(outBam)
   }
