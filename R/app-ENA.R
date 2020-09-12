@@ -1,7 +1,7 @@
 ezMethodGetEnaData <- function(input=NA, output=NA, param=NA){
     #param[['projectID']] = 'PRJNA163241'
     require(XML)
-    cmd = paste0("curl -o fastqLinks.txt -X GET ","\'https://www.ebi.ac.uk/ena/portal/api/filereport?accession=",param[['projectID']],"&result=read_run&fields=study_accession,sample_accession,experiment_accession,run_accession,tax_id,scientific_name,fastq_ftp&format=tsv&download=true\'")
+    cmd = paste0("curl -o fastqLinks.txt -X GET ","\'https://www.ebi.ac.uk/ena/portal/api/filereport?accession=",param[['projectID']],"&result=read_run&fields=study_accession,sample_accession,experiment_accession,run_accession,tax_id,scientific_name,fastq_ftp,fastq_md5&format=tsv&download=true\'")
     ezSystem(cmd)
     fastqInfo = ezRead.table('fastqLinks.txt', row.names = NULL)
     fastqInfo[['Name']] = ''
