@@ -655,8 +655,15 @@ EzAppBWATrimmomatic <-
   )
 
 ezMethodBismark = function(input=NA, output=NA, param=NA){
-  ##TODO: create reference if not existing
+  
   ref = dirname(param$ezRef@refFastaFile)
+  ### create reference if not existing
+  if (!dir.exists(file.path(ref,"Bisulfite_Genome"))) {
+    cmd = paste("bismark_genome_preparation", ref,
+                "2> bismarkGenomePrep.log")
+    ezSystem(cmd)
+  }
+  ###
   bamFile = output$getColumn("BAM")
   trimmedInput = ezMethodFastpTrim(input = input, param = param)
   defOpt = paste("-p", max(2, param$cores/2))  
