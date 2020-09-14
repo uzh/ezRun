@@ -30,6 +30,7 @@ ezMethodSCMergeLargeDatasets = function(input=NA, output=NA, param=NA, htmlFile=
   library(scater)
   library(readr)
   library(dplyr)
+  library(edgeR)
   
   ## subset the selected sample names
   samples <- param$samples
@@ -87,33 +88,29 @@ ezMethodSCMergeLargeDatasets = function(input=NA, output=NA, param=NA, htmlFile=
   sce$cluster <- factor(cluster)
                  
   #positive cluster markers
-  markers_any <- findMarkers(sce, sce$cluster, pval.type="any", direction="up", lfc=1, block=sce$Batch)
-  markersList <- list()
-  for(cluster in names(markers_any)){
-    markersPerCluster <- data.frame(gene_name = rownames(markers_any[[cluster]]), markers_any[[cluster]], row.names = NULL)
-    markersPerCluster <- markersPerCluster[markersPerCluster$FDR<0.05, ]
-    markersList[[cluster]] <- markersPerCluster
-  }
-   markers_any <- bind_rows(markersList, .id="Cluster")
+  posMarkers <- scranPosMarkers(sce)
   
+  #differentially expressed genes between clusters and conditions (in case of several conditions)
+  if(length(unique(sce$Condition))>1) 
+     diffGenes <- scranDiffGenes(sce)
   
   #we do cell type identification only with SingleR since it implemments  block-processing
   singler.results <- NULL
   if(param$species == "Human" | param$species == "Mouse") 
     singler.results <- cellsLabelsWithSingleR(counts(sce), sce$cluster, param)
   
-   #Convert scData to Single Cell experiment Object
-   # Use the SCT logcounts for visualization instead of the RNA logcounts.
-   # TODO: save all the assays (RNA, SCT and integrated) in the sce object using the package keshavmot2/scanalysis. The function from Seurat doesn't save everything.
-   DefaultAssay(scData) <- "SCT" 
-   sce <- as.SingleCellExperiment(scData)
    metadata(sce)$singler.results <- singler.results
    metadata(sce)$output <- output
    metadata(sce)$param <- param
    metadata(sce)$param$name <- paste(param$name, paste(input$getNames(), collapse=", "), sep=": ")
    
    #Save some results in external files 
-  saveExternalFiles(sce, list(pos_markers=markers_any))
+   tr_cnts <- expm1(logcounts(sce))
+   geneMeans <- rowsum(t(tr_cnts), group=sce$cluster)
+   geneMeans <- sweep(geneMeans, 1, STATS=table(sce$cluster)[rownames(geneMeans)], FUN="/")
+   geneMeans <- log1p(t(geneMeans))
+   colnames(geneMeans) <- paste("cluster", colnames(geneMeans), sep="_")
+  saveExternalFiles(sce, list(pos_markers=posMarkers, differential_genes=diffGenes, gene_means=as_tibble(as.data.frame(geneMeans), rownames="gene_name")))
   saveHDF5SummarizedExperiment(sce, dir="sce_h5")
   
   # Copy the style files and templates
@@ -127,13 +124,5 @@ ezMethodSCMergeLargeDatasets = function(input=NA, output=NA, param=NA, htmlFile=
   
 }
 
-# createMarkersList <- function(markers) {
-#   markersList <- list()
-#  for(cluster in names(markers)){
-#    markersPerCluster <- data.frame(gene_name = rownames(markers[[cluster]]), markers[[cluster]], row.names = NULL)
-#    markersPerCluster <- markersPerCluster[markersPerCluster$FDR<0.05, ]
-#    markersList[[cluster]] <- markersPerCluster
-#  }
-#  markersList <- bind_rows(markersList, .id="Cluster")
-#  return(markersList)
-# }
+
+
