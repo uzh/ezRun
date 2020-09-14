@@ -55,13 +55,7 @@ ezMethodLimma = function(input=NA, output=NA, param=NA,
     writeErrorReport(htmlFile, param=param, error=deResult$error)
     return("Error")
   }
-  
-  ## Copy the style files and templates
-  styleFiles <- file.path(system.file("templates", package="ezRun"),
-                          c("fgcz.css", "twoGroups.Rmd",
-                            "fgcz_header.html", "banner.png"))
-  file.copy(from=styleFiles, to=".", overwrite=TRUE)
-  rmarkdown::render(input="twoGroups.Rmd", envir=new.env(),
-                    output_dir=".", output_file=htmlFile, quiet=TRUE)
+
+  makeRmdReport(output=output, param=param, deResult=deResult, rmdFile="twoGroups.Rmd")
   return("Success")
 }

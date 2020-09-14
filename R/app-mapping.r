@@ -655,8 +655,8 @@ EzAppBWATrimmomatic <-
   )
 
 ezMethodBismark = function(input=NA, output=NA, param=NA){
-  ##TODO: create reference if not existing
-  ref = dirname(param$ezRef@refFastaFile)
+  
+  ref = getBismarkReference(param)
   bamFile = output$getColumn("BAM")
   trimmedInput = ezMethodFastpTrim(input = input, param = param)
   defOpt = paste("-p", max(2, param$cores/2))  
@@ -717,6 +717,57 @@ ezMethodBismark = function(input=NA, output=NA, param=NA){
               #}
   return("Success")
 }
+
+
+##' @template getref-template
+##' @templateVar methodName Bismark
+##' @param param a list of parameters:
+##' \itemize{
+##'   \item{ezRef@@refIndex}{ a character specifying the location of the index that is used in the alignment.}
+##'   \item{ezRef@@refBuildDir}{ a character specifying the directory of the reference build.}
+##'   \item{ezRef@@refFastaFile}{ a character specifying the file path to the fasta file.}
+##' }
+getBismarkReference = function(param){
+  
+  refBase = ifelse(param$ezRef["refIndex"] == "", 
+                   file.path(param$ezRef["refBuildDir"], "Sequence/WholeGenomeFasta/Bisulfite_Genome"),
+                   param$ezRef["refIndex"])
+  ## check the ref
+  lockFile = file.path(dirname(refBase), "lock")
+  if (!file.exists(dirname(refBase))){
+    ## no lock file and no refFiles, so we build the reference
+    dir.create(dirname(refBase))
+    ezWrite(Sys.info(), con=lockFile)
+    wd = getwd()
+    fastaFile = file.path(param$ezRef["refBuildDir"], "Sequence/WholeGenomeFasta/",param$ezRef["refFastaFile"])
+      cmd = paste("bismark_genome_preparation", fastaFile,
+                  "2> bismarkGenomePrep.log")
+      ezSystem(cmd)
+
+    #ezWriteElapsed(job, "done")
+    setwd(wd)
+    file.remove(lockFile)
+  }
+  stopifnot(file.exists(dirname(refBase)))
+  i = 0
+  while(file.exists(lockFile) && i < INDEX_BUILD_TIMEOUT){
+    ### somebody else builds and we wait
+    Sys.sleep( 60)
+    i = i + 1
+  }
+  if (file.exists(lockFile)){
+    stop(paste("reference building still in progress after", INDEX_BUILD_TIMEOUT, "min"))
+  }
+  ## there is no lock file
+  refFiles = list.files(dirname(refBase), basename(refBase))
+  if (length(refFiles) < 3 ){
+    ## we assume the index is built and complete
+    stop(paste("index not available: ", refBase))
+  }
+  return(refBase)
+}
+
+
 
 ##' @template app-template
 ##' @templateVar method ezMethodBismark(input=NA, output=NA, param=NA)
