@@ -113,29 +113,24 @@ ezMdsGG2 <- function(signal, design, ndim=2, main="MDS plot", addLabels=TRUE){
   p
 }
 
-ezMdsPlotly <- function(logSignal, design, ndim=c(3,2), main, sampleColors=NULL){
+ezMdsPlotly <- function(logSignal, design, ndim=c(3,2), main, condColors=NULL){
   require("edgeR")
   require(plotly)
   mds = plotMDS(logSignal, plot=FALSE, ndim=ndim)
   factorToPlot = colnames(design)[1]
   toPlot <- data.frame(samples=colnames(logSignal),
                        design,
-                       sampleColors,
                        stringsAsFactors = FALSE)
   mdsOut <- mds$cmdscale.out
-  
-  # names of color vector need to match the selected design factor
-  pal = toPlot[,c(factorToPlot,"sampleColors")]
-  pal = pal[!duplicated(pal),]
-  pal = setNames(pal[['sampleColors']],pal[[factorToPlot]])
-    
+
   if(ndim == 3){
     colnames(mdsOut) <- c("Leading logFC dim1", "Leading logFC dim2", 
                           "Leading logFC dim3")
     toPlot <- cbind(toPlot, mdsOut)
-    p <- plot_ly(toPlot, x=~`Leading logFC dim1`, y=~`Leading logFC dim2`, z=~`Leading logFC dim3`,
+    p <- plot_ly(toPlot, x=~`Leading logFC dim1`, y=~`Leading logFC dim2`, 
+                 z=~`Leading logFC dim3`,
                  color=formula(paste0("~", factorToPlot)),
-                 colors=pal,
+                 colors=condColors,
                  type='scatter3d',
                  mode='markers+text',
                  text=~samples, textposition = "top right")%>%
@@ -150,14 +145,14 @@ ezMdsPlotly <- function(logSignal, design, ndim=c(3,2), main, sampleColors=NULL)
       p <- plot_ly(toPlot, x=~`Leading logFC dim1`, y=~`Leading logFC dim2`,
               color = formula(paste0("~", factorToPlot)),
               symbol=formula(paste0("~", colnames(design)[2])),
-              colors = pal,
+              colors = condColors,
               type='scatter',
               mode='markers+text',
               text=~samples, textposition = "top right")
     }else{
       p <- plot_ly(toPlot, x=~`Leading logFC dim1`, y=~`Leading logFC dim2`,
                    color=formula(paste0("~", factorToPlot)),
-                   colors = pal,
+                   colors = condColors,
                    type='scatter',
                    mode='markers+text',
                    text=~samples, textposition = "top right")

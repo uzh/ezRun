@@ -104,7 +104,7 @@ readData = function(samplePathList, output.dir){
   taxonomyInfo.exogenous_rRNA = NULL
   taxonomyInfo.exogenous_genomes = NULL
   
-  mapping.stats = matrix(0,nrow=length(samplePathList),ncol=30, dimnames=list(1:length(samplePathList), c("input","successfully_clipped","failed_quality_filter","failed_homopolymer_filter","calibrator","UniVec_contaminants","rRNA","reads_used_for_alignment","genome","miRNA_sense","miRNA_antisense","miRNAprecursor_sense","miRNAprecursor_antisense","tRNA_sense","tRNA_antisense","piRNA_sense","piRNA_antisense","gencode_sense","gencode_antisense","circularRNA_sense","circularRNA_antisense","not_mapped_to_genome_or_libs","repetitiveElements","endogenous_gapped","input_to_exogenous_miRNA","exogenous_miRNA","input_to_exogenous_rRNA","exogenous_rRNA","input_to_exogenous_genomes","exogenous_genomes")))
+  mapping.stats = matrix(0,nrow=length(samplePathList),ncol=31, dimnames=list(1:length(samplePathList), c("input","successfully_clipped","passed_quality_filter","failed_homopolymer_filter","passed_phiX_filter","calibrator","UniVec_contaminants","rRNA","reads_used_for_alignment","genome","miRNA_sense","miRNA_antisense","miRNAprecursor_sense","miRNAprecursor_antisense","tRNA_sense","tRNA_antisense","piRNA_sense","piRNA_antisense","gencode_sense","gencode_antisense","circularRNA_sense","circularRNA_antisense","not_mapped_to_genome_or_libs","repetitiveElements","endogenous_gapped","input_to_exogenous_miRNA","exogenous_miRNA","input_to_exogenous_rRNA","exogenous_rRNA","input_to_exogenous_genomes","exogenous_genomes")))
   qc.results = matrix(0,nrow=length(samplePathList),ncol=5, dimnames=list(1:length(samplePathList), c("InputReads","GenomeReads","TranscriptomeReads","TranscriptomeGenomeRatio","TranscriptomeComplexity")))
   maxReadLength = 10000
   read.lengths = matrix(0,nrow=length(samplePathList),ncol=maxReadLength+1,dimnames=list(1:length(samplePathList), 0:maxReadLength))
@@ -125,8 +125,8 @@ readData = function(samplePathList, output.dir){
     tmp.stats = delete_e(tmp.stats)
     tmp.stats = do.call(rbind,strsplit(tmp.stats,'\t'))
     tmp.stats = data.frame(tmp.stats,stringsAsFactors = FALSE)
-    tmp.stats[c(1,nrow(tmp.stats)),2] = ""
-    x.start = grep("#STATS",tmp.stats[,1])
+    #tmp.stats[c(1,nrow(tmp.stats)),2] = ""
+    x.start = 1 #grep("#STATS",tmp.stats[,1])
     x.end = grep("#END OF STATS",tmp.stats[,1])
     if(length(x.start) > 0  &&  length(x.end) > 0){
       tmp.start = strptime(unlist(strsplit(tmp.stats[x.start[1],1],"Run started at "))[2],"%Y-%m-%d--%H:%M:%S")
@@ -143,8 +143,9 @@ readData = function(samplePathList, output.dir){
       ##
       ## Read sample mapping stats
       ##
-      tmp.stats = tmp.stats[-c(1,2,nrow(tmp.stats)),]
-      tmp.stats[tmp.stats[,1] %in% "clipped", 1] = "successfully_clipped"
+      #tmp.stats = tmp.stats[-c(1,2,nrow(tmp.stats)),]
+      #tmp.stats[tmp.stats[,1] %in% "clipped", 1] = "successfully_clipped"
+      tmp.stats = tmp.stats[-nrow(tmp.stats),]
       mapping.stats[i, match(tmp.stats[,1], colnames(mapping.stats))] = as.numeric(tmp.stats[,2])
       rownames(mapping.stats)[i] = thisSampleID
       
@@ -176,6 +177,8 @@ readData = function(samplePathList, output.dir){
         }else{
           adapterSeq = as.character(tmp.seq[1,1])
         }
+      } else {
+        adapterSeq = NA
       }
       
       
@@ -677,41 +680,6 @@ PlotData = function(sampleIDs, output.dir, sampleGroups=NA, minPercent_exogenous
     # save
     plotsList[["read-length distributions: normalised read fraction"]] = p
   }
-  
-  
-  
-  ##
-  ## Plot run duration of each sample
-  ##
-  printMessage("Plotting run-duration")
-  tmp=reshape2::melt(as.matrix(run.duration))
-  colnames(tmp) = c("sampleID","stuff","runDuration_seconds")
-  tmp = cbind(tmp, category=.bincode(tmp[,3], breaks=c(0,as.numeric(quantile(tmp[,3],probs=c(0.10,0.90,1))))))
-  tmp = cbind(tmp, colour=tmp$category)
-  tmp = cbind(tmp, inputReadCount=mapping.stats$input)
-  tmp$category[tmp$category == 1] = "fast"
-  tmp$category[tmp$category == 2] = "normal"
-  tmp$category[tmp$category == 3] = "slow"
-  tmp$colour = getSampleColors(tmp$colour)
-  tmp$runDuration_minutes = tmp$runDuration_seconds/60
-  tmp$runDuration_hours = tmp$runDuration_minutes/60
-  p = ggplot(tmp, aes(x=sampleID,y=runDuration_hours)) + geom_bar(stat="identity",fill=tmp$colour) +
-    facet_grid(~category,scales="free_x",space="free_x") +guides(fill=FALSE) +
-    theme(axis.text.x=element_text(angle=60, hjust=1.0, vjust=1)) +
-    ggtitle("Duration of exceRpt run for each sample") +ylab("Run duration (hours)")
-  print(p)
-  # save
-  plotsList[["Duration of exceRpt run for each sample"]] = p
-  
-  if(is.data.frame(sampleGroups)){ tmp$sampleGroup = sampleGroups[match(tmp$sampleID, sampleGroups$sampleID), 2] }
-  p = ggplot(tmp, aes(x=inputReadCount,y=runDuration_hours,colour=colour)) + geom_point(size=5) + guides(colour=FALSE) +
-    scale_x_log10(limits=c(min(c(100000,10^floor(log10(min(tmp$inputReadCount+1))))),10^ceiling(log10(max(tmp$inputReadCount)))), breaks=10^seq(min(c(100000,floor(log10(min(tmp$inputReadCount+1))))),ceiling(log10(max(tmp$inputReadCount))))) +
-    ggtitle("Duration of exceRpt run per sequencing yield") + ylab("Run duration (hours)") + xlab("Total number of reads input") + 
-    scale_colour_manual(values=tmp$colour)
-  print(p)
-  
-  # save
-  plotsList[["Duration of exceRpt run per sequencing yield"]] = p
   
   ##
   ## plot distribution of # mapped reads per sample
