@@ -656,7 +656,7 @@ EzAppBWATrimmomatic <-
 
 ezMethodBismark = function(input=NA, output=NA, param=NA){
   
-  ref = getBismarkReference(param)
+ # TO DO : FIX THE REF CHECK  ref = getBismarkReference(param)
   bamFile = output$getColumn("BAM")
   trimmedInput = ezMethodFastpTrim(input = input, param = param)
   defOpt = paste("-p", max(2, param$cores/2))  
