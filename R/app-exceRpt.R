@@ -51,7 +51,7 @@ ezMethodExceRpt = function(input=NA, output=NA, param=NA){
     keepOnlyCoreFiles(outputDir)
   }
   ## rename output files - remove long filename prefixes
-  cmd = paste('find -iname \\*.* | rename -v "s/2.*fastq_//g"')
+  cmd = paste('find -iname \\*.* | rename -v "s/^.*fastq_//g"')
   ezSystem(cmd)
   ezSystem(cmd)
 }
