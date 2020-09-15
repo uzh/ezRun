@@ -730,7 +730,7 @@ ezMethodBismark = function(input=NA, output=NA, param=NA){
 getBismarkReference = function(param){
   
   refBase = ifelse(param$ezRef["refIndex"] == "", 
-                   file.path(param$ezRef["refBuildDir"], "Sequence/WholeGenomeFasta/Bisulfite_Genome"),
+                   file.path(param$ezRef["refBuildDir"], "Sequence/WholeGenomeFasta/Bisulfite_Genome/CT_conversion"),
                    param$ezRef["refIndex"])
   ## check the ref
   lockFile = file.path(dirname(refBase), "lock")
@@ -760,7 +760,7 @@ getBismarkReference = function(param){
   }
   ## there is no lock file
   refFiles = list.files(dirname(refBase), basename(refBase))
-  if (length(refFiles) < 3 ){
+  if (length(refFiles) < 1 ){
     ## we assume the index is built and complete
     stop(paste("index not available: ", refBase))
   }
