@@ -8,29 +8,32 @@
 
 writeIgvHtml = function(param, 
                         output){
-  refUrlBase = file.path(REF_HOST, param$ezRef@refBuild)
-  fastaUrl = sub("Annotation.*", "Sequence/WholeGenomeFasta/genome.fa", refUrlBase)
-  faiUrl = paste(fastaUrl, ".fai")
-  bamUrl = file.path(PROJECT_BASE_URL, output$getColumn("BAM"))
-  baiUrl = file.path(PROJECT_BASE_URL, outpu$getColumn("BAI"))
-  gftUrl = file.path(refUrlBase, "Genes/transcripts.only.gtf")
-  bedUrl = file.path(refUrlBase, "Genes/genes.bed")
-  refBuildName = param$ezRef@refBuildName
 
-  htmlLines = readLines(system.file("templates/igvTemplate.html", package="ezRun", mustWork = TRUE))
-  htmlLines = gsub("FASTA_URL", fastaUrl, htmlLines)
-  htmlLines = gsub("FAI_URL", faiUrl, htmlLines)
-  htmlLines = gsub("BAM_URL", bamUrl, htmlLines)
-  htmlLines = gsub("BAI_URL", baiUrl, htmlLines)
-  htmlLines = gsub("TRANSCRIPT_GTF_URL", gtfUrl, htmlLines)
-  htmlLines = gsub("BED_URL", bedUrl, htmlLines)
-  htmlLines = gsub("REF_BUILD_NAME", refBuildName, htmlLines)
-  htmlLines = gsub("SAMPLE_NAME", output$getNames(), htmlLines)
-  writeLines(htmlLines, con=basename(output$getColumn("IGV")))  
+    refUrlBase = file.path(REF_HOST, param$ezRef@refBuild)
+    fastaUrl = sub("Annotation.*", "Sequence/WholeGenomeFasta/genome.fa", refUrlBase)
+
+    htmlLines = readLines(system.file("templates/igvTemplate.html", package="ezRun", mustWork = TRUE))
+    htmlLines = gsub("FASTA_URL", fastaUrl, htmlLines)
+    htmlLines = gsub("FAI_URL", paste(fastaUrl, ".fai"), htmlLines)
+    htmlLines = gsub("BAM_URL", file.path(PROJECT_BASE_URL, output$getColumn("BAM")), htmlLines)
+    htmlLines = gsub("BAI_URL", file.path(PROJECT_BASE_URL, outpu$getColumn("BAI")), htmlLines)
+    htmlLines = gsub("TRANSCRIPT_GTF_URL", file.path(refUrlBase, "Genes/transcripts.only.gtf"), htmlLines)
+    htmlLines = gsub("BED_URL", file.path(refUrlBase, "Genes/genes.bed"), htmlLines)
+    htmlLines = gsub("REF_BUILD_NAME", param$ezRef@refBuildName, htmlLines)
+    htmlLines = gsub("SAMPLE_NAME", output$getNames(), htmlLines)
+    writeLines(htmlLines, con=basename(output$getColumn("IGV")))  
 }
 
 
+##' @describeIn writeIgvSession Gets the IGV genome if specified or otherwise tries to get the build name from the parameters.
+getIgvGenome = function(param){
+  ifelse(ezIsSpecified(param$igvGenome),
+         param$igvGenome,
+         param$ezRef["refBuildName"])
+}
 
+
+## currently not used ----
 ## this works only if the final URL of the session xml is known
 ## it will fail if the directory is moved
 ##' @title Writes a .jnlp file
@@ -79,7 +82,7 @@ ezIgvTemplateFile = function(){
 ##' genome = getIgvGenome(param)
 ##' writeIgvSession(genome, param$ezRef["refBuild"])
 writeIgvSession = function(genome, refBuild, file="igvSession.xml", bamUrls=NULL, vcfUrls=NULL,  locus="All"){
-
+  
   require("XML", warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
   
   session=newXMLNode("Session", attrs =c(genome=genome, locus=locus, version="4"))
@@ -133,16 +136,6 @@ writeIgvSession = function(genome, refBuild, file="igvSession.xml", bamUrls=NULL
   saveXML(session, file=file, prefix='<?xml version="1.0"? >', encoding="UTF-8", standalone="no")
   return(file)  
 }
-
-##' @describeIn writeIgvSession Gets the IGV genome if specified or otherwise tries to get the build name from the parameters.
-getIgvGenome = function(param){
-  ifelse(ezIsSpecified(param$igvGenome),
-         param$igvGenome,
-         param$ezRef["refBuildName"])
-}
-
-
-## currently not used
 ##' @describeIn writeIgvSession Writes an IGV session link.
 writeIgvSessionLink = function(genome, refBuild, bamFiles, html, locus="All", label="Open Integrative Genomics Viewer", baseUrl=PROJECT_BASE_URL){
   urls = paste(baseUrl, bamFiles, sep="/")
@@ -151,8 +144,6 @@ writeIgvSessionLink = function(genome, refBuild, bamFiles, html, locus="All", la
   ezWrite('<p><script>startIgvFromJnlp("', label, '", "', locus, '"); </script></p>', con=html)
   return()
 }
-
-
 
 
 ## REFAC, but function is currently unused.
