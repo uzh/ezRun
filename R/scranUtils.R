@@ -78,3 +78,48 @@ scranIntegration <- function(sceList, method=c("None", "MNN")){
   }
   return(sce)
 }
+
+scranPosMarkers <- function(sce) {
+  markers_any <- findMarkers(sce, sce$cluster, pval.type="any", direction="up", lfc=1, block=sce$Batch)
+  markersList <- list()
+  for(cluster in names(markers_any)){
+     markersPerCluster <- data.frame(gene_name = rownames(markers_any[[cluster]]), markers_any[[cluster]], row.names = NULL)
+     markersPerCluster <- markersPerCluster[markersPerCluster$FDR<0.05, ]
+     markersList[[cluster]] <- markersPerCluster
+  }
+  markers_any <- bind_rows(markersList, .id="Cluster")
+  markers_any
+}
+  
+  
+scranDiffGenes <- function(sce) {
+  #Creating pseudo-bulk samples
+  summed <- aggregateAcrossCells(sce, 
+                                 id=colData(sce)[,c("cluster", "Plate")])
+  #filter out all sample-label combinations with insufficient cells.
+  summed.filt <- summed[,summed$ncells >= 20]
+  #create design matrix
+  targets <- colData(sce)[!duplicated(sce$Plate),]
+  design <-  model.matrix(~factor(Condition), data=targets)
+  rownames(design) <- targets$Plate
+  #DE analysis
+  de.results <- pseudoBulkDGE(summed.filt, 
+                              sample=summed.filt$Plate,
+                              label=summed.filt$cluster,
+                              design=design,
+                              coef=ncol(design),
+                              condition=targets$Condition
+  )
+  is.de <- decideTestsPerLabel(de.results, threshold=0.05)
+  summarizeTestsPerLabel(is.de)
+  
+  diffGenesList <- list()
+  for(cluster in names(de.results)){
+    diffGenesPerCluster <- data.frame(gene_name = rownames(de.results[[cluster]]), de.results[[cluster]], row.names = NULL)
+    diffGenesPerCluster <- diffGenesPerCluster[which(diffGenesPerCluster$FDR<0.05), ]
+    diffGenesList[[cluster]] <- diffGenesPerCluster
+  }
+  diffGenes <- bind_rows(diffGenesList, .id="Cluster")
+  diffGenes[,-which(colnames(diffGenes)=="LR")]
+}
+

@@ -154,22 +154,14 @@ ezMethodFastpTrim = function(input=NA, output=NA, param=NA){
   if(ezIsSpecified(param[['cmdOptionsFastp']])){
     cmd = paste(cmd, param[['cmdOptionsFastp']])
   }
-  ezSystem(paste0(cmd,' 2> fastp.err'))
-  
-  ## remove reports
-  ezSystem("rm fastp.json fastp.html")
-  
-  ## rename adapters.fa (standalone) or not (within another app)
-  if("Adapters" %in% output$colNames){
-    renamedAdaptFile = paste0(input$getNames(),"_",adaptFile)
-    ezSystem(paste("mv",adaptFile,renamedAdaptFile))
-  }else{
-    on.exit(file.remove(adaptFile), add=TRUE)
+  if ("PreprocessingLog" %in% output$colNames){
+    logFile = basename(output$getColumn("PreprocessingLog"))
+  } else {
+    logFile = paste0(output$getNames(), "_preprocessing.log")
   }
+  ezSystem(paste(cmd, '2>', logFile))
+  ezSystem(paste("cat", "fastp.json", ">>", logFile))
   
-  ## rename log
-  ezSystem(paste0('mv fastp.err ',input$getNames(),'_preprocessing.log'))
-
   ## rename trimmed output
   if (param$gzipTrimmed){
     ezSystem(paste("mv", r1TmpFile, basename(output$getColumn("Read1"))))

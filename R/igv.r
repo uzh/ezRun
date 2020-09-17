@@ -8,20 +8,25 @@
 
 writeIgvHtml = function(param, 
                         output){
+  refUrlBase = file.path(REF_HOST, param$ezRef@refBuild)
+  fastaUrl = sub("Annotation.*", "Sequence/WholeGenomeFasta/genome.fa", refUrlBase)
+  faiUrl = paste0(fastaUrl, ".fai")
+  bamUrl = file.path(PROJECT_BASE_URL, output$getColumn("BAM"))
+  baiUrl = file.path(PROJECT_BASE_URL, output$getColumn("BAI"))
+  gtfUrl = file.path(refUrlBase, "Genes/transcripts.only.gtf")
+  bedUrl = file.path(refUrlBase, "Genes/genes.bed")
+  refBuildName = param$ezRef@refBuildName
 
-    refUrlBase = file.path(REF_HOST, param$ezRef@refBuild)
-    fastaUrl = sub("Annotation.*", "Sequence/WholeGenomeFasta/genome.fa", refUrlBase)
-
-    htmlLines = readLines(system.file("templates/igvTemplate.html", package="ezRun", mustWork = TRUE))
-    htmlLines = gsub("FASTA_URL", fastaUrl, htmlLines)
-    htmlLines = gsub("FAI_URL", paste(fastaUrl, ".fai"), htmlLines)
-    htmlLines = gsub("BAM_URL", file.path(PROJECT_BASE_URL, output$getColumn("BAM")), htmlLines)
-    htmlLines = gsub("BAI_URL", file.path(PROJECT_BASE_URL, outpu$getColumn("BAI")), htmlLines)
-    htmlLines = gsub("TRANSCRIPT_GTF_URL", file.path(refUrlBase, "Genes/transcripts.only.gtf"), htmlLines)
-    htmlLines = gsub("BED_URL", file.path(refUrlBase, "Genes/genes.bed"), htmlLines)
-    htmlLines = gsub("REF_BUILD_NAME", param$ezRef@refBuildName, htmlLines)
-    htmlLines = gsub("SAMPLE_NAME", output$getNames(), htmlLines)
-    writeLines(htmlLines, con=basename(output$getColumn("IGV")))  
+  htmlLines = readLines(system.file("templates/igvTemplate.html", package="ezRun", mustWork = TRUE))
+  htmlLines = gsub("FASTA_URL", fastaUrl, htmlLines)
+  htmlLines = gsub("FAI_URL", faiUrl, htmlLines)
+  htmlLines = gsub("BAM_URL", bamUrl, htmlLines)
+  htmlLines = gsub("BAI_URL", baiUrl, htmlLines)
+  htmlLines = gsub("TRANSCRIPT_GTF_URL", gtfUrl, htmlLines)
+  htmlLines = gsub("BED_URL", bedUrl, htmlLines)
+  htmlLines = gsub("REF_BUILD_NAME", refBuildName, htmlLines)
+  htmlLines = gsub("SAMPLE_NAME", output$getNames(), htmlLines)
+  writeLines(htmlLines, con=basename(output$getColumn("IGV")))  
 }
 
 
