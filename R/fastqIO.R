@@ -243,10 +243,11 @@ ezMethodSubsampleFastq <- function(input=NA, output=NA, param=NA, n=1e6){
     }
     output$dataRoot = NULL
   }
+  output$setColumn("Read Count", 1e6)
   
   dataset = input$meta
   samples = rownames(dataset)
-  mclapply(samples, function(sm, input, output, param){
+  lapply(samples, function(sm, input, output, param, n){
     fl <- input$getFullPaths("Read1")[sm]
     f1 <- FastqSampler(fl, n=n, ordered=TRUE)
     set.seed(123L)
@@ -261,6 +262,6 @@ ezMethodSubsampleFastq <- function(input=NA, output=NA, param=NA, n=1e6){
       close(f1)
       writeFastq(p1, file=output$getColumn("Read2")[sm])
     }
-  }, input=input, output=output, param=param, mc.cores=min(4L, param$cores))
+  }, input=input, output=output, param=param, n)
   return(output)
 }

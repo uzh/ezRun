@@ -8,7 +8,7 @@
 
 ezMethodMegahit = function(input=NA, output=NA, param=NA, 
                           htmlFile="00index.html"){
-  ### de novo metagenome assemby with Megahit, gene prediction with prodigal and annotation with diamond
+  ### de novo metagenome assemby with Megahit
   
   library(plyr)
   library(dplyr)
@@ -29,16 +29,30 @@ ezMethodMegahit = function(input=NA, output=NA, param=NA,
     inputStringAss <- paste("-s",fastqName1)
     inputStringBwt2 <- paste("-U",fastqName1)
   }
+  if (param$noMercy){
+    noMercyString <- "--no-mercy"
+  } else  {
+    noMercyString <- ""
+  }
+  if (param$kmin1pass){
+    kmin1passString <- "--kmin-1pass"
+  } else  {
+    kmin1passString <- ""
+  }
+  
 
   ##update template
   updateTemplateScriptCmd <- paste0("sed -e s/\"SAMPLE_NAME\"/", sampleName, "/g",
                                     " -e s/\"INPUT_FILE_STRING_BWT\"/", inputStringBwt2, "/g ",
+                                    " -e s/\"KMER_MIN\"/", param$kmerMin, "/g ",
+                                    " -e s/\"KMER_MAX\"/", param$kmerMax, "/g ",
+                                    " -e s/\"KMER_STEP\"/", param$kmerStep, "/g ",
+                                    " -e s/\"MIN_COUNT\"/", param$minCount, "/g ",
+                                    " -e s/\"NO_MERCY\"/", noMercyString, "/g ",
+                                    " -e s/\"KMIN_1_PASS\"/", kmin1passString, "/g ",
                                     " -e s/\"INPUT_FILE_STRING_ASS\"/", inputStringAss, "/g ",
-                                    " -e s/\"KMER_LIST\"/", param$megahitKmerList, "/g ",
                                     " -e s/\"NUM_CPU\"/", param$cores, "/g ",
-                                    " -e s/\"ANNOTATION\"/", param$annotation, "/g ",
-                                    " -e s/\"MAXIMUM_SEQS\"/", param$diamondMaxSeqs, "/g ",
-                                    " -e s/\"E_VALUE_CUTOFF\"/", param$diamondEvalue, "/g ",
+                                    " -e s/\"PAIRED\"/", param$paired, "/g ",
                                     file.path(METAGENOMICS_ROOT,MEGAHIT_TEMPLATE_SCRIPT), " >",
                                     MEGAHIT_TEMPLATE_SCRIPT)
 
@@ -50,24 +64,14 @@ ezMethodMegahit = function(input=NA, output=NA, param=NA,
   ## place output files
   #1) contigs
   oldContigFile <- "megahitResults/final.contigs.fa"
-  
   newContigFile <- basename(output$getColumn("contigFile"))
   ezSystem(paste("cp",oldContigFile,newContigFile))
-  #2) 
-  oldProdigalFile <- "prodigalAnnotation.gff"
-  newProdigalFile <- basename(output$getColumn("prodigalPredictionFile"))
-  ezSystem(paste("cp",oldProdigalFile,newProdigalFile))
-  #3) 
-  oldIPSAnnFile <- "interProScanOut.gff3"
-  newIPSAnnFile <- basename(output$getColumn("interproscanFile"))
-  ezSystem(paste("cp",oldIPSAnnFile,newIPSAnnFile))
-  #4)   
-  krakenFile <- "kraken.labels"
-  binFiles <- list.files("maxbinOut", pattern = "fasta", full.names = T)
-  binSummaryFile <- summaryMetagenomeBins(krakenFile,binFiles)
-  binSummaryFileName <- basename(output$getColumn("binSummaryFile"))
-  write.table(binSummaryFile,binSummaryFileName,
-              row.names = F, col.names = T, quote = F,sep = "\t")
+  
+  #2) reads mapped to contigs
+  oldMappedFile <- "temp.bam"
+  newMappedFile <- basename(output$getColumn("mappingFile"))
+  ezSystem(paste("cp",oldMappedFile,newMappedFile))
+  
 }
 ##' @template app-template
 ##' @templateVar method ezMethodMegahit()
@@ -82,16 +86,24 @@ EzAppMegahit <-
                   "Initializes the application using its specific defaults."
                   runMethod <<- ezMethodMegahit
                   name <<- "EzAppMegahit"
-                  appDefaults <<- rbind(megahitKmerList = ezFrame(Type="character",
-                                                                DefaultValue="69,79,89",
-                                                                Description="Comma-separated list of k-mer for the assembly."),
-                                        ### TO DO: allow diamond option
-                                        diamondEvalue = ezFrame(Type="numeric",
-                                                                  DefaultValue="0.05",
-                                                                  Description="Blast e-value cut-off."),
-                                        diamondMaxSeqs = ezFrame(Type="integer",
-                                                                DefaultValue="30",
-                                                                Description="Blast maximum number of sequences to report.")
+                  appDefaults <<- rbind(kmerMin = ezFrame(Type="numeric",
+                                                                DefaultValue="31",
+                                                                Description="Minimum k-mer for the assembly."),
+                                        kmerMax = ezFrame(Type="numeric",
+                                                          DefaultValue="101",
+                                                          Description="Maximum k-mer for the assembly."),
+                                        kmerStep = ezFrame(Type="numeric",
+                                                          DefaultValue="10",
+                                                          Description="Step k-mer for the assembly."),
+                                        minCount = ezFrame(Type="numeric",
+                                                          DefaultValue="2",
+                                                          Description="(kmin+1)-mer with multiplicity lower than this will be discarded."),
+                                        kmin1pass = ezFrame(Type="logical",
+                                                          DefaultValue=FALSE,
+                                                          Description="Enabled, makes  memory more efficient for ultra low-depth datasets"),
+                                        noMercy = ezFrame(Type="logical",
+                                                                  DefaultValue=FALSE,
+                                                                  Description="Wheter or not to add mercy k-mers.")
                                         
                                         
                   )
