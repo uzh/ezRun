@@ -55,7 +55,7 @@ ezMethodTophat = function(input=NA, output=NA, param=NA){
   
   ## write an igv link
   if (param$writeIgvLink){ 
-    if ("IGV" %in% output@colNames){
+    if ("IGV" %in% output$colNames){
       writeIgvHtml(param, output)
     }
   }
@@ -113,7 +113,7 @@ ezMethodBowtie2 = function(input=NA, output=NA, param=NA){
   
   ## write an igv link
   if (param$writeIgvLink){ 
-    if ("IGV" %in% output@colNames){
+    if ("IGV" %in% output$colNames){
       writeIgvHtml(param, output)
     }
   }
@@ -205,7 +205,7 @@ ezMethodBowtie = function(input=NA, output=NA, param=NA){
   
   ## write an igv link
   if (param$writeIgvLink){ 
-    if ("IGV" %in% output@colNames){
+    if ("IGV" %in% output$colNames){
       writeIgvHtml(param, output)
     }
   }
@@ -510,7 +510,7 @@ ezMethodBWA = function(input=NA, output=NA, param=NA){
   
   ## write an igv link
   if (param$writeIgvLink){ 
-    if ("IGV" %in% output@colNames){
+    if ("IGV" %in% output$colNames){
       writeIgvHtml(param, output)
     }
   }
@@ -560,7 +560,7 @@ ezMethodBWATrimmomatic = function(input=NA, output=NA, param=NA){ # Perform BWA 
   
   ## write an igv link
   if (param$writeIgvLink){ 
-    if ("IGV" %in% output@colNames){
+    if ("IGV" %in% output$colNames){
       writeIgvHtml(param, output)
     }
   }
