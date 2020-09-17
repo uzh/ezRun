@@ -25,6 +25,7 @@ EzAppSpaceRanger <-
   )
 
 ezMethodSpaceRanger <- function(input=NA, output=NA, param=NA){
+  require(tidyverse)
   sampleName <- input$getNames()
   sampleDirs <- strsplit(input$getColumn("RawDataDir"), ",")[[sampleName]]
   sampleDirs <- file.path(input$dataRoot, sampleDirs)
@@ -34,7 +35,7 @@ ezMethodSpaceRanger <- function(input=NA, output=NA, param=NA){
     sampleDirs <- sub("\\.tar$", "", basename(sampleDirs))
   }
   sampleDir <- paste(sampleDirs, collapse=",")
-  spaceRangerFolder <- paste0(sampleName, "-spaceRanger")
+  spaceRangerFolder <- str_sub(sampleName, 1, 45) %>% str_c("-spaceRanger")
 
   refDir <- getCellRangerGEXReference(param)
   cmd <- paste("spaceranger count", paste0("--id=", spaceRangerFolder),
@@ -47,7 +48,7 @@ ezMethodSpaceRanger <- function(input=NA, output=NA, param=NA){
                paste0("--slide=", input$getColumn("slide")),
                paste0("--area=", input$getColumn("area")))
   if(ezIsSpecified(param$cmdOptions)){
-    cmd = paste(cmd, param$cmdOptions)
+    cmd <- paste(cmd, param$cmdOptions)
   }
   ezSystem(cmd)
   

@@ -23,8 +23,9 @@ EzAppCellRangerATAC <-
   )
 
 ezMethodCellRangerATAC <- function(input=NA, output=NA, param=NA){
-  sampleName = input$getNames()
-  sampleDirs = strsplit(input$getColumn("RawDataDir"), ",")[[sampleName]]
+  require(tidyverse)
+  sampleName <- input$getNames()
+  sampleDirs <- strsplit(input$getColumn("RawDataDir"), ",")[[sampleName]]
   sampleDirs <- file.path(input$dataRoot, sampleDirs)
   if(all(grepl("\\.tar$", sampleDirs))){
     # This is new .tar folder
@@ -32,7 +33,7 @@ ezMethodCellRangerATAC <- function(input=NA, output=NA, param=NA){
     sampleDirs <- sub("\\.tar$", "", basename(sampleDirs))
   }
   sampleDir <- paste(sampleDirs, collapse=",")
-  cellRangerFolder = paste0(sampleName, "-cellRanger")
+  cellRangerFolder <- str_sub(sampleName, 1, 45) %>% str_c("-cellRanger")
   
   refDir <- getCellRangerATACReference(param)
   message("Using the reference: ", refDir)
@@ -45,7 +46,7 @@ ezMethodCellRangerATAC <- function(input=NA, output=NA, param=NA){
                paste0("--localcores=", param$cores))
   
   if(ezIsSpecified(param$cmdOptions)){
-    cmd = paste(cmd, param$cmdOptions)
+    cmd <- paste(cmd, param$cmdOptions)
   }
   ezSystem(cmd)
   
