@@ -28,6 +28,7 @@ REFSEQ_mRNA_REF='/srv/GT/reference/RefSeq/mRNA/20150301/Sequence/BOWTIE2Index/tr
 REFSEQ_pathogenicHumanViruses_REF='/srv/GT/reference/Viruses/ncbi/humanPathogenic_20170419/Sequence/BOWTIE2Index/genome'
 TARGET_ENRICHMENT_DESIGN_DIR="/srv/GT/databases/targetEnrichment_designs/bedFiles"
 KRAKEN_DB="/srv/GT/databases/krakenBacteria/minikraken_20171019/minikraken_20171019_8GB"
+KRAKEN2_DB="/srv/GT/databases/kraken2/minikraken_20200917/minikraken_8GB_20200312"
 SILVA_ALL_DADA2="/srv/GT/databases/silva/release_132/silva_nr_v132_forDada2.fa.gz"
 SILVA_BACTERIA_DADA2="/srv/GT/databases/silva/release_132/silva_nr_v132_Bacteria_forDada2.fa.gz"
 SILVA_EUKARYOTA_DADA2="/srv/GT/databases/silva/release_132/silva_nr_v132_Eukaryota_forDada2.fa.gz"
