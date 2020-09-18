@@ -14,15 +14,12 @@ ezMethodFastqScreen_10x <- function(input=NA, output=NA, param=NA,
   stopifnot(all(grepl("\\.tar$", sampleDirs)))
   
   taredfiles <- lapply(sampleDirs, untar, list=TRUE)
-  taredfiles_R1 <- sapply(taredfiles, function(x){grep("_R1_", x, value=TRUE) %>% head(1)})
   taredfiles_R2 <- sapply(taredfiles, function(x){grep("_R2_", x, value=TRUE) %>% head(1)})
   for(i in 1:length(sampleDirs)){
-    untar(sampleDirs[i], files=c(taredfiles_R1[i], taredfiles_R2[i]))
+    untar(sampleDirs[i], files=taredfiles_R2[i])
   }
-  taredfiles_R1 <- normalizePath(taredfiles_R1)
   taredfiles_R2 <- normalizePath(taredfiles_R2)
-  dataset$`Read1` <- taredfiles_R1
-  dataset$`Read2` <- taredfiles_R2
+  dataset$`Read1` <- taredfiles_R2
   input <- EzDataset(meta=dataset, dataRoot=NULL)
   
   if(sum(input$meta$`Read Count`) > 1e9){
