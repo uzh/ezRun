@@ -67,9 +67,7 @@ We use several common QC metrics to identify low-quality cells based on their ex
 
 1. The library size is defined as the total sum of counts across all relevant features for each cell. Cells with small library sizes are of low quality as the RNA has been lost at some point during library preparation.
 2. The number of expressed features in each cell is defined as the number of genes with non-zero counts for that cell. Any cell with very few expressed genes is likely to be of poor quality as the diverse transcript population has not been successfully captured.
-3. The percentage of counts assigned to the 50% of most highly expressed genes.
-4. The distance to expected ratio of log10 counts and expressed features.
-5. The proportions of mitochondrial and ribosomal genes per cell. High proportions are indicative of poor-quality cells (Islam et al. 2014; Ilicic et al. 2016), presumably because of the loss of cytoplasmic RNA from perforated cells.
+3. The proportions of mitochondrial genes per cell. High proportions are indicative of poor-quality cells (Islam et al. 2014; Ilicic et al. 2016), presumably because of the loss of cytoplasmic RNA from perforated cells.
 
 <br/>
 
