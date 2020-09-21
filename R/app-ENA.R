@@ -89,16 +89,16 @@ createDataset <- function(fastqInfo, myPath, paired = FALSE){
     if (!paired){
         dataset = data.frame(Name = gsub(' ', '_', fastqInfo$Name), Read1 = file.path(myPath, basename(fastqInfo$fastq_ftp)), 
                              md5sum = fastqInfo$fastq_md5, Species = fastqInfo$Species, 
-                             ReadCount = fastqInfo$ReadCount, fastqInfo[,6:ncol(fastqInfo)], stringsAsFactors = FALSE)
-        colnames(dataset) = c('Name', 'Read1 [File]', 'md5sum', 'Species', 'Read Count', colnames(fastqInfo)[6:ncol(fastqInfo)])
-        dataset = dataset[,-c(6)]
+                             ReadCount = fastqInfo$ReadCount, fastqInfo[,11:ncol(fastqInfo)], stringsAsFactors = FALSE)
+        colnames(dataset) = c('Name', 'Read1 [File]', 'md5sum', 'Species', 'Read Count', colnames(fastqInfo)[11:ncol(fastqInfo)])
+        #dataset = dataset[,-c(6)]
     } else {
         dataset = data.frame(Name = gsub(' ', '_', fastqInfo$Name), Read1 = file.path(myPath, sapply(strsplit(fastqInfo$fastq_ftp, ';'), basename)[1,]),
                              Read2 = file.path(myPath, sapply(strsplit(fastqInfo$fastq_ftp, ';'), basename)[2,]),
                              md5sum = fastqInfo$fastq_md5, Species = fastqInfo$Species, 
-                             ReadCount = fastqInfo$ReadCount, fastqInfo[,6:ncol(fastqInfo)], stringsAsFactors = FALSE)
-        colnames(dataset) = c('Name', 'Read1 [File]', 'Read2 [File]', 'md5sum', 'Species', 'Read Count', colnames(fastqInfo)[6:ncol(fastqInfo)])
-        dataset = dataset[,-c(7)]
+                             ReadCount = fastqInfo$ReadCount, fastqInfo[,11:ncol(fastqInfo)], stringsAsFactors = FALSE)
+        colnames(dataset) = c('Name', 'Read1 [File]', 'Read2 [File]', 'md5sum', 'Species', 'Read Count', colnames(fastqInfo)[11:ncol(fastqInfo)])
+        #dataset = dataset[,-c(7)]
     }
     return(dataset)
 }
@@ -115,8 +115,6 @@ EzAppENA <-
                         "Initializes the application using its specific defaults."
                         runMethod <<- ezMethodGetEnaData
                         name <<- "EzAppENA"
-                        #appDefaults <<- rbind(perLibrary=ezFrame(Type="logical",  DefaultValue=TRUE,  Description="Run FastQC per library or per cell for single cell experiment")
-                        #)
                     }
                 )
     )

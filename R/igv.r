@@ -30,7 +30,15 @@ writeIgvHtml = function(param,
 }
 
 
+##' @describeIn writeIgvSession Gets the IGV genome if specified or otherwise tries to get the build name from the parameters.
+getIgvGenome = function(param){
+  ifelse(ezIsSpecified(param$igvGenome),
+         param$igvGenome,
+         param$ezRef["refBuildName"])
+}
 
+
+## currently not used ----
 ## this works only if the final URL of the session xml is known
 ## it will fail if the directory is moved
 ##' @title Writes a .jnlp file
@@ -79,7 +87,7 @@ ezIgvTemplateFile = function(){
 ##' genome = getIgvGenome(param)
 ##' writeIgvSession(genome, param$ezRef["refBuild"])
 writeIgvSession = function(genome, refBuild, file="igvSession.xml", bamUrls=NULL, vcfUrls=NULL,  locus="All"){
-
+  
   require("XML", warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
   
   session=newXMLNode("Session", attrs =c(genome=genome, locus=locus, version="4"))
@@ -133,16 +141,6 @@ writeIgvSession = function(genome, refBuild, file="igvSession.xml", bamUrls=NULL
   saveXML(session, file=file, prefix='<?xml version="1.0"? >', encoding="UTF-8", standalone="no")
   return(file)  
 }
-
-##' @describeIn writeIgvSession Gets the IGV genome if specified or otherwise tries to get the build name from the parameters.
-getIgvGenome = function(param){
-  ifelse(ezIsSpecified(param$igvGenome),
-         param$igvGenome,
-         param$ezRef["refBuildName"])
-}
-
-
-## currently not used
 ##' @describeIn writeIgvSession Writes an IGV session link.
 writeIgvSessionLink = function(genome, refBuild, bamFiles, html, locus="All", label="Open Integrative Genomics Viewer", baseUrl=PROJECT_BASE_URL){
   urls = paste(baseUrl, bamFiles, sep="/")
@@ -151,8 +149,6 @@ writeIgvSessionLink = function(genome, refBuild, bamFiles, html, locus="All", la
   ezWrite('<p><script>startIgvFromJnlp("', label, '", "', locus, '"); </script></p>', con=html)
   return()
 }
-
-
 
 
 ## REFAC, but function is currently unused.
