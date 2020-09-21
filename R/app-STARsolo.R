@@ -187,14 +187,12 @@ ezMethodSTARsolo = function(input=NA, output=NA, param=NA){
 # create STARsolo shell command
 makeSTARsoloCmd = function(param, refDir, sampleName, sampleDirs){
     require('tools')
-    # define binary full path
-    STARbin = "/usr/local/ngseq/packages/Aligner/STAR/2.7.3a/bin/STAR"
 
     ## decide which chemistry whitelist to take
     soloCBwhitelist = list(
-        SC3Pv1 = '/usr/local/ngseq/opt/cellranger-3.1.0/cellranger-cs/3.1.0/lib/python/cellranger/barcodes/737K-april-2014_rc.txt',
-        SC3Pv2 = '/usr/local/ngseq/opt/cellranger-3.1.0/cellranger-cs/3.1.0/lib/python/cellranger/barcodes/737K-august-2016.txt',
-        SC3Pv3 = '/usr/local/ngseq/opt/cellranger-3.1.0/cellranger-cs/3.1.0/lib/python/cellranger/barcodes/3M-february-2018.txt'
+        SC3Pv1 = paste0(Sys.getenv("CellRanger"), '/lib/python/cellranger/barcodes/737K-april-2014_rc.txt'),
+        SC3Pv2 = paste0(Sys.getenv("CellRanger"), '/lib/python/cellranger/barcodes/737K-august-2016.txt'),
+        SC3Pv3 = paste0(Sys.getenv("CellRanger"), '/lib/python/cellranger/barcodes/3M-february-2018.txt')
     )
     
     ## decide soloUMIlen
@@ -228,7 +226,7 @@ makeSTARsoloCmd = function(param, refDir, sampleName, sampleDirs){
     if(!dir.exists(sampleName)){dir.create(sampleName)}
     
     # create full STARsolo command
-    cmd = paste(STARbin,
+    cmd = paste("STAR",
                 ## STAR general parameters
                 paste0('--runThreadN ',param[['cores']]),
                 paste0('--outFileNamePrefix ',sampleName,'/'),
