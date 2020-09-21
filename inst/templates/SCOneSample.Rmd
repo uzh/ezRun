@@ -98,10 +98,17 @@ The filters we applied excluded cells that are outliers on two distributions by 
 The number of cells removed is marked as TRUE and the ones retained as FALSE.
 
 ```{r low quality cells}
-table(sce.unfiltered$discard)
+num.qc.lib <- sum(sce.unfiltered$qc.lib)
+num.qc.nexprs <- sum(sce.unfiltered$qc.nexprs)
+num.qc.mito <- sum(sce.unfiltered$qc.mito)
+removed <- sum(sce_list$sce.unfiltered$discard)
+kable(tibble("QC metric" =c("Library Size", "Expressed genes", "Mitochondrial genes", "Total removed", "Cells remaining"),
+             "Number of cells"= c(num.qc.lib, num.qc.nexprs, num.qc.mito, removed, ncol(sce_list$sce))),
+      row.names=FALSE,
+      caption="Number of cells removed") %>%
+  kable_styling(bootstrap_options = "striped", full_width = F,
+                position = "center")
 ```
-
-
 
 <br/>
 
