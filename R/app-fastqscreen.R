@@ -273,16 +273,13 @@ runKraken <- function(param, input){
   krakenResult = list()
   for (i in 1:length(r1Files)){
     resultFile = paste0('report_', names(r1Files)[i], '.kraken')
-    cmd = paste('kraken -db', KRAKEN_DB,
-                ' --fastq-input', r1Files[i], '--gzip-compressed --threads', param$cores, '>sequences.kraken')
-    ezSystem(cmd)
-    cmd = paste('kraken-report -db', KRAKEN_DB, 'sequences.kraken >', resultFile)
+    cmd = paste('kraken2 --db', KRAKEN2_DB, r1Files[i], '--gzip-compressed --threads', param$cores, '--report', resultFile, '>sequences.kraken')
     ezSystem(cmd)
     ##simple result filtering
-    data = ezRead.table(resultFile, stringsAsFactors = F, row.names = NULL)
+    data = ezRead.table(resultFile, row.names = NULL)
     colnames(data) = c('readPercentage', 'nreads_clade', 'nreads_taxon', 'rankCode', 'ncbi', 'name')
     data = data[data$rankCode %in% c('U','S'), ]
-    data = data[order(data$readPercentage, decreasing = T),]
+    data = data[order(data$readPercentage, decreasing = TRUE),]
     data = data[!(data$ncbi %in% c(1, 131567, 136843)),] #remove general terms
     
     ##save table for report

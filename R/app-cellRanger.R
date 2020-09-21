@@ -6,9 +6,7 @@
 # www.fgcz.ch
 
 ezMethodCellRanger <- function(input=NA, output=NA, param=NA){
-  require(readr)
-  require(tibble)
-  require(stringr)
+  require(tidyverse)
   sampleName <- input$getNames()
   sampleDirs <- strsplit(input$getColumn("RawDataDir"), ",")[[sampleName]]
   sampleDirs <- file.path(input$dataRoot, sampleDirs)
@@ -19,7 +17,7 @@ ezMethodCellRanger <- function(input=NA, output=NA, param=NA){
     sampleDirs <- normalizePath(sampleDirs)
   }
   sampleDir <- paste(sampleDirs, collapse=",")
-  cellRangerFolder <- paste0(sampleName, "-cellRanger")
+  cellRangerFolder <- str_sub(sampleName, 1, 45) %>% str_c("-cellRanger")
   
   if(param$TenXLibrary == "GEX"){
     refDir <- getCellRangerGEXReference(param)

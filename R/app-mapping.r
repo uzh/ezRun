@@ -54,11 +54,10 @@ ezMethodTophat = function(input=NA, output=NA, param=NA){
   ezSystem(paste("infer_experiment.py", "-r", bedFile, "-i", basename(bamFile), "-s 1000000"), stopOnFailure=FALSE)
   
   ## write an igv link
-  if (param$writeIgvSessionLink){
-    writeIgvSession(genome = getIgvGenome(param), refBuild=param$ezRef["refBuild"], file=basename(output$getColumn("IGV Session")),
-                    bamUrls = paste(PROJECT_BASE_URL, bamFile, sep="/") )
-    writeIgvJnlp(jnlpFile=basename(output$getColumn("IGV Starter")), projectId = sub("\\/.*", "", bamFile),
-                 sessionUrl = paste(PROJECT_BASE_URL, output$getColumn("IGV Session"), sep="/"))
+  if (param$writeIgvLink){ 
+    if ("IGV" %in% output$colNames){
+      writeIgvHtml(param, output)
+    }
   }
   return("Success")
 }
@@ -113,14 +112,10 @@ ezMethodBowtie2 = function(input=NA, output=NA, param=NA){
   }
   
   ## write an igv link
-  if (param$writeIgvSessionLink){
-    writeIgvSession(genome = getIgvGenome(param), 
-                    refBuild=param$ezRef["refBuild"], 
-                    file=basename(output$getColumn("IGV Session")),
-                    bamUrls = paste(PROJECT_BASE_URL, bamFile, sep="/") )
-    writeIgvJnlp(jnlpFile=basename(output$getColumn("IGV Starter")),
-                 projectId = sub("\\/.*", "", bamFile),
-                 sessionUrl = paste(PROJECT_BASE_URL, output$getColumn("IGV Session"), sep="/"))
+  if (param$writeIgvLink){ 
+    if ("IGV" %in% output$colNames){
+      writeIgvHtml(param, output)
+    }
   }
   return("Success")
 }
@@ -209,11 +204,10 @@ ezMethodBowtie = function(input=NA, output=NA, param=NA){
                  cores=param$cores)
   
   ## write an igv link
-  if (param$writeIgvSessionLink){ 
-    writeIgvSession(genome = getIgvGenome(param), refBuild=param$ezRef["refBuild"], file=basename(output$getColumn("IGV Session")),
-                    bamUrls = paste(PROJECT_BASE_URL, bamFile, sep="/") )
-    writeIgvJnlp(jnlpFile=basename(output$getColumn("IGV Starter")), projectId = sub("\\/.*", "", bamFile),
-                 sessionUrl = paste(PROJECT_BASE_URL, output$getColumn("IGV Session"), sep="/"))
+  if (param$writeIgvLink){ 
+    if ("IGV" %in% output$colNames){
+      writeIgvHtml(param, output)
+    }
   }
   return("Success")
 }
@@ -358,12 +352,12 @@ ezMethodSTAR = function(input=NA, output=NA, param=NA){
     if ("IGV" %in% output$colNames){
       writeIgvHtml(param, output)
     }
-    if( ("IGV Starter" %in% output$colNames)){ ## TODO remove this after
+  }
+  if( ("IGV Starter" %in% output$colNames)){ ## TODO remove this after
       writeIgvSession(genome = getIgvGenome(param), refBuild=param$ezRef["refBuild"], file=basename(output$getColumn("IGV Session")),
                       bamUrls = paste(PROJECT_BASE_URL, bamFile, sep="/") )
       writeIgvJnlp(jnlpFile=basename(output$getColumn("IGV Starter")), projectId = sub("\\/.*", "", bamFile),
                    sessionUrl = paste(PROJECT_BASE_URL, output$getColumn("IGV Session"), sep="/"))
-    }
   }
   return("Success")
 }
@@ -515,13 +509,10 @@ ezMethodBWA = function(input=NA, output=NA, param=NA){
                  cores=param$cores)
   
   ## write an igv link
-  if (param$writeIgvSessionLink){ 
-    writeIgvSession(genome = getIgvGenome(param), refBuild=param$ezRef["refBuild"], 
-                    file=basename(output$getColumn("IGV Session")),
-                    bamUrls = paste(PROJECT_BASE_URL, bamFile, sep="/") )
-    writeIgvJnlp(jnlpFile=basename(output$getColumn("IGV Starter")),
-                 projectId = sub("\\/.*", "", bamFile),
-                 sessionUrl = paste(PROJECT_BASE_URL, output$getColumn("IGV Session"), sep="/"))
+  if (param$writeIgvLink){ 
+    if ("IGV" %in% output$colNames){
+      writeIgvHtml(param, output)
+    }
   }
   return("Success")
 }
@@ -568,13 +559,10 @@ ezMethodBWATrimmomatic = function(input=NA, output=NA, param=NA){ # Perform BWA 
                  cores=param$cores)
   
   ## write an igv link
-  if (param$writeIgvSessionLink){ 
-    writeIgvSession(genome = getIgvGenome(param), refBuild=param$ezRef["refBuild"], 
-                    file=basename(output$getColumn("IGV Session")),
-                    bamUrls = paste(PROJECT_BASE_URL, bamFile, sep="/") )
-    writeIgvJnlp(jnlpFile=basename(output$getColumn("IGV Starter")),
-                 projectId = sub("\\/.*", "", bamFile),
-                 sessionUrl = paste(PROJECT_BASE_URL, output$getColumn("IGV Session"), sep="/"))
+  if (param$writeIgvLink){ 
+    if ("IGV" %in% output$colNames){
+      writeIgvHtml(param, output)
+    }
   }
   return("Success")
 }
@@ -656,7 +644,8 @@ EzAppBWATrimmomatic <-
 
 ezMethodBismark = function(input=NA, output=NA, param=NA){
   
-  ref = getBismarkReference(param)
+ # TO DO : FIX THE REF CHECK  ref = getBismarkReference(param)
+  ref = dirname(param$ezRef@refFastaFile)
   bamFile = output$getColumn("BAM")
   trimmedInput = ezMethodFastpTrim(input = input, param = param)
   defOpt = paste("-p", max(2, param$cores/2))  
@@ -730,7 +719,7 @@ ezMethodBismark = function(input=NA, output=NA, param=NA){
 getBismarkReference = function(param){
   
   refBase = ifelse(param$ezRef["refIndex"] == "", 
-                   file.path(param$ezRef["refBuildDir"], "Sequence/WholeGenomeFasta/Bisulfite_Genome"),
+                   file.path(param$ezRef["refBuildDir"], "Sequence/WholeGenomeFasta/Bisulfite_Genome/CT_conversion"),
                    param$ezRef["refIndex"])
   ## check the ref
   lockFile = file.path(dirname(refBase), "lock")
@@ -760,7 +749,7 @@ getBismarkReference = function(param){
   }
   ## there is no lock file
   refFiles = list.files(dirname(refBase), basename(refBase))
-  if (length(refFiles) < 3 ){
+  if (length(refFiles) < 1 ){
     ## we assume the index is built and complete
     stop(paste("index not available: ", refBase))
   }
