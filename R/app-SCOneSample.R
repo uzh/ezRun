@@ -39,9 +39,9 @@ EzAppSCOneSample <-
                                         cellsPercentage=ezFrame(Type="numeric", 
                                                                 DefaultValue=0.05, 
                                                                 Description="A gene will be kept if it is expressed in at least this percentage of cells"),
-                                        nDist=ezFrame(Type="numeric", 
-                                                                DefaultValue=2, 
-                                                                Description="Number of distributions considered in cells QC filtering."),
+                                        nmad=ezFrame(Type="numeric", 
+                                                     DefaultValue=3, 
+                                                     Description="Median absolute deviation (MAD) from the median value of each metric across all cells"),
                                         species=ezFrame(Type="character", DefaultValue="Human", Description="Organism")
                                         )
                 }
@@ -133,10 +133,20 @@ filterCellsAndGenes <- function(sce, param) {
   require(Matrix)
   
   #Cells filtering
-  mito.genes <- grep("^MT-",rowData(sce)$gene_name, ignore.case = TRUE)
+  mito.genes <- grep("^MT-",rowData(sce)$gene_name)
+  
   sce <- addPerCellQC(sce, subsets = list(Mito = mito.genes))
-  sce.unfiltered <- filt.default(sce, param)
-  sce <- sce[,!sce.unfiltered$discard]
+  
+  qc.lib <- isOutlier(sce$sum, log=TRUE, nmads=param$nmad, type="lower")
+  qc.nexprs <- isOutlier(sce$detected, nmads=param$nmad, log=TRUE, type="lower")
+  qc.mito <- isOutlier(sce$subsets_Mito_percent, nmads=param$nmad, type="higher")
+  discard <- qc.lib | qc.nexprs | qc.mito
+  sce$discard <- discard
+  sce$qc.lib <- qc.lib
+  sce$qc.nexprs <- qc.nexprs
+  sce$qc.mito <- qc.mito
+  sce.unfiltered <- sce
+  sce <- sce[,!discard]
  
   #Genes filtering
   num.umis <- 1
