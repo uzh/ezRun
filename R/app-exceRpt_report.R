@@ -71,6 +71,7 @@ processSamples = function(samplePaths, outputDir, getPlotsObjects=FALSE){
   
   ## Get directories containing counts
   samplePathList = list.dirs(samplePaths,recursive=F)
+  names(samplePathList) = names(samplePaths)
   
   ## create output dir
   dir.create(outputDir)
@@ -116,10 +117,7 @@ readData = function(samplePathList, output.dir){
   printMessage(c("Reading sample data..."))
   removeSamples = NULL
   for(i in 1:length(samplePathList)){
-    ## Parse the sampleID from the path:
-    tmp = unlist(strsplit(samplePathList[i], "/"))
-    thisSampleID = tmp[length(tmp)]
-    
+    thisSampleID = names(samplePathList)[i]
     ## Get timings and check this sample finished successfully
     tmp.stats = readLines(paste(samplePathList[i],".stats",sep=""))
     tmp.stats = delete_e(tmp.stats)
