@@ -129,7 +129,7 @@ ezMethodSCMultipleSamplesOneGroup = function(input=NA, output=NA, param=NA, html
   singler.results <- NULL
   if(param$species == "Human" | param$species == "Mouse") {
     cells_AUC = cellsLabelsWithAUC(scData, param)
-    singler.results <- cellsLabelsWithSingleR(scData, param)
+    singler.results <- cellsLabelsWithSingleR(GetAssayData(scData, "counts"), Idents(scData), param)
   }
   
   if(param$batchCorrection) {
