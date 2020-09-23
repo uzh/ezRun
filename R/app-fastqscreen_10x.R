@@ -93,8 +93,7 @@ ezMethodFastqScreen_10x <- function(input=NA, output=NA, param=NA,
   krakenResult = runKraken(param, input)
   
   file.remove(input$getFullPaths("Read1"))
-  file.remove(input$getFullPaths("Read2"))
-  
+
   # debug
  # save(fastqData_ppData, fastqData_rawData, speciesPercentageTop, krakenResult,
  #      dataset, param, rRNA_strandInfo, file="fastqscreen.rda")
