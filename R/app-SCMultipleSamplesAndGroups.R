@@ -141,7 +141,7 @@ ezMethodSCMultipleSamplesAndGroups = function(input=NA, output=NA, param=NA, htm
   singler.results <- NULL
   if(param$species == "Human" | param$species == "Mouse") {
     cells_AUC = cellsLabelsWithAUC(scData, param)
-    singler.results <- cellsLabelsWithSingleR(scData, param)
+    singler.results <- cellsLabelsWithSingleR(GetAssayData(scData, "counts"), Idents(scData), param)
   }
   
   #Convert scData to Single Cell experiment Object
