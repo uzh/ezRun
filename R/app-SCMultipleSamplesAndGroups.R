@@ -110,11 +110,12 @@ ezMethodSCMultipleSamplesAndGroups = function(input=NA, output=NA, param=NA, htm
   if (param$batchCorrection) {
     scData_corrected = cellClustWithCorrection(sceList, param)
     #in order to compute the markers we switch again to the original assay
-    DefaultAssay(scData_corrected) <- "RNA"
+    DefaultAssay(scData_corrected) <- "SCT"
     scData <- scData_corrected
-    scData@reductions$tsne_noCorrected <- Reductions(scData_noCorrected, "tsne")
-    scData@meta.data$ident_noCorrected <- Idents(scData_noCorrected)
   }
+  scData@reductions$tsne_noCorrected <- Reductions(scData_noCorrected, "tsne")
+  scData@meta.data$ident_noCorrected <- Idents(scData_noCorrected)
+  
   #positive cluster markers
   posMarkers <- posClusterMarkers(scData, pvalue_allMarkers, param)
   
