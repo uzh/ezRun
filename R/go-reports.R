@@ -30,9 +30,10 @@ goClusterTableRmd = function(param, clusterResult, seqAnno){
     ktableCluster <- list()
     for (onto in ontologies){
       x = clusterResult$GO[[onto]][[i]]
-      goFrame = .getGoTermsAsTd(x, param$pValThreshFisher, param$minCountFisher, 
-                                onto=onto)
-      ktableCluster[[onto]] <- goFrame
+      goFrame = .getGoTermsAsTd(x, pThreshGo = param$pValThreshFisher, 
+                                minCount = param$minCountFisher, onto=onto)
+      selCols = c('Term','ID','p','N')
+      ktableCluster[[onto]] <- goFrame[,selCols]
       if (nrow(goFrame)==0)
         next
       linkTable[i, onto] = paste0("Cluster-", onto, "-", i, ".html")
@@ -102,8 +103,8 @@ goUpDownTables = function(param, goResult){
         txtFiles <- append(txtFiles, txtFile)
         ezWrite.table(xSub, file=txtFile, row.names=FALSE)
       }
-      goFrame = .getGoTermsAsTd(xSub, param$pValThreshFisher,
-                                param$minCountFisher, onto=onto,
+      goFrame = .getGoTermsAsTd(x = xSub, pThreshGo = param$pValThreshFisher,
+                                minCount = param$minCountFisher, onto=onto,
                                 maxNumberOfTerms=param$maxNumberGroupsDisplayed)
       ktables[[sub]][[onto]] = goFrame
       if (nrow(goFrame)==0)
@@ -116,17 +117,23 @@ goUpDownTables = function(param, goResult){
                                             target = "_blank")
     }
   }
+  
+  ktablesComplete = ktables
+  selCols = c('Term','ID','p','N')
   for(sub in names(ktables)){
     ### Add the ""
     maxNrow <- max(sapply(ktables[[sub]], nrow))
     ktables[[sub]] <- lapply(ktables[[sub]],
-                             function(x){rbind(as.matrix(x),
-                                               ezMatrix("", rows=seq_len(maxNrow-nrow(x)),
-                                                        cols=seq_len(ncol(x))))}
+                             function(x){
+                               rbind(as.matrix(x),
+                                     ezMatrix("", rows=seq_len(maxNrow-nrow(x)),
+                                                  cols=seq_len(ncol(x))))
+                               }
                              )
+    ktables[[sub]] = lapply(ktables[[sub]], function(x) x[,selCols])
     ktables[[sub]] <- do.call(cbind, ktables[[sub]])
   }
-  return(list(ktables=ktables, txtFiles=txtFiles, linkTable=linkTable))
+  return(list(ktables=ktables, ktablesComplete=ktablesComplete, txtFiles=txtFiles, linkTable=linkTable))
 }
 
 ##' @describeIn goClusterTable Gets the GO terms and pastes them into a table.
@@ -138,7 +145,8 @@ goUpDownTables = function(param, goResult){
   if (!is.data.frame(x)){
     message("got no data frame")
     return(ezFrame("Term"=character(0), "ID"=character(0), 
-                   "p"=numeric(0), "N"=integer(0)))
+                   "p"=numeric(0), "fdr"=numeric(0), "N"=integer(0), 
+                   "geneID"=character(0), "geneNames"=character(0)))
   }
   x = x[x$Count >= minCount & x$Pvalue < pThreshGo, ]
   x = x[order(x$Pvalue), ]
@@ -147,7 +155,8 @@ goUpDownTables = function(param, goResult){
   }
   if (nrow(x) == 0){
     return(ezFrame("Term"=character(0), "ID"=character(0),
-                   "p"=numeric(0), "N"=integer(0)))
+                   "p"=numeric(0), "fdr"=numeric(0), "N"=integer(0), 
+                   "geneID"=character(0), "geneNames"=character(0)))
   }
   
   if (onto == "CC"){
@@ -182,7 +191,10 @@ goUpDownTables = function(param, goResult){
   terms = character()
   ids = character()
   pValues = numeric()
+  fdr = numeric()
   counts = character()
+  geneID = character()
+  geneNames = character()
   for (i in 1:length(goRoots)){
     childTerms = getChildTerms(goRoots[i], goIds, goRelatives, indent="", CHILDREN)
     for (term in childTerms){
@@ -191,8 +203,41 @@ goUpDownTables = function(param, goResult){
       termHypLink <- kableExtra::text_spec(term, format="html",link = termLink)
       ids = append(ids, termHypLink)
       pValues = append(pValues, x[term, "Pvalue"])
+      fdr = append(fdr, x[term, "fdr"])
       counts = append(counts, paste(x[term, "Count"], x[term, "Size"], sep="/"))
+      geneID = append(geneID, gsub("; ","/",x[term, "Genes"]))
+      geneNames = append(geneNames, if(!is.null(x$GenesNames)){gsub("; ","/",x[term, "GenesNames"])}else{""})
     }
   }
-  return(ezFrame("Term"=terms, "ID"=ids,"p"=pValues, "N"=counts))
+  return(ezFrame("Term"=terms, "ID"=ids,"p"=pValues, "fdr"=fdr, "N"=counts, 
+                 "geneID"=geneID, "geneNames"=geneNames))
 }
+
+generateEnrichResult = setClass("enrichResult",
+                                representation=representation(
+                                  result         = "data.frame",
+                                  pvalueCutoff   = "numeric",
+                                  pAdjustMethod  = "character",
+                                  qvalueCutoff   = "numeric",
+                                  organism       = "character",
+                                  ontology       = "character",
+                                  gene           = "character",
+                                  keytype        = "character",
+                                  universe       = "character",
+                                  gene2Symbol    = "character",
+                                  geneSets       = "list",
+                                  readable       = "logical"
+                                ),
+                                prototype=prototype(readable = FALSE)
+)
+
+prepareEnrichResult = function(result){
+  enrichment = as.data.frame(result)
+  colnames(enrichment)[match(c("Term", "ID", "fdr", "N","geneID"),colnames(enrichment))] = c("Description", "ID", "p.adjust", "GeneRatio","geneID")
+  enrichment$Count = as.numeric(gsub("/.*","",enrichment$GeneRatio))
+  rownames(enrichment) = enrichment$ID
+  enrichment = enrichment[,c("ID","Description","GeneRatio","Count","p.adjust","geneID")]
+  enrichment = generateEnrichResult(result = enrichment)
+  return(enrichment)
+}
+

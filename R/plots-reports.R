@@ -228,12 +228,7 @@ makeTestScatterData <- function(param, se, types=NULL){
                         check.names = FALSE, stringsAsFactors=FALSE)
   
   logSignal <- log2(shiftZeros(assays(se)$xNorm, param$minSignal))
-  groupMeans <- cbind(rowMeans(logSignal[ , param$grouping == param$sampleGroup, 
-                                          drop=FALSE]),
-                      rowMeans(logSignal[ , param$grouping == param$refGroup, 
-                                          drop=FALSE])
-                      )
-  colnames(groupMeans) = c(param$sampleGroup, param$refGroup)
+  groupMeans <- averageColumns(logSignal, param$grouping, func = mean)
   
   if (is.null(types)){
     types = data.frame(row.names=rownames(se))
@@ -241,17 +236,12 @@ makeTestScatterData <- function(param, se, types=NULL){
       types$Controls = seqAnno[rownames(se), "IsControl"]
     }
   }
-  if (!is.null(param$pValueHighlightThresh)){
-    significants = rowData(se)$pValue <= param$pValueHighlightThresh & rowData(se)$usedInTest
-    types$Significants = significants
-    if (!is.null(param$log2RatioHighlightThresh)){
-      if (!is.null(rowData(se)$log2Ratio)){
-        types$Significants = types$Significants & 
-          abs(rowData(se)$log2Ratio) >= param$log2RatioHighlightThresh
-      } else {
-        types$Significants = types$Significants & rowData(se)$log2Effect >= param$log2RatioHighlightThresh
-      }
-    }
-  }
+  pThresh = ifelse(is.null(param$pValueHighlightThresh), 1, param$pValueHighlightThresh)
+  lrThresh = ifelse(is.null(param$log2RatioHighlightThresh), 0, param$log2RatioHighlightThresh)
+  lrValue = switch(as.character(is.null(rowData(se)$log2Ratio)),
+                   "TRUE" = rowData(se)$log2Effect,
+                   "FALSE" = rowData(se)$log2Ratio)
+  types$Significants = rowData(se)$usedInTest & rowData(se)$pValue <= pThresh & abs(lrValue) >= lrThresh
+  
   return(list(logSignal=logSignal, groupMeans=groupMeans, types=types))
 }
