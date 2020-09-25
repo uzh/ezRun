@@ -109,11 +109,12 @@ ezMethodSCMultipleSamplesOneGroup = function(input=NA, output=NA, param=NA, html
   if (param$batchCorrection) {
      scData_corrected = cellClustWithCorrection(sceList, param)
      #in order to compute the markers we switch again to the original assay
-     DefaultAssay(scData_corrected) <- "RNA"
-     scData_corrected <- ScaleData(scData_corrected, verbose = FALSE)
+     DefaultAssay(scData_corrected) <- "SCT"
      scData = scData_corrected
   }
-     
+  scData@reductions$tsne_noCorrected <- Reductions(scData_noCorrected, "tsne")
+  scData@meta.data$ident_noCorrected <- Idents(scData_noCorrected) 
+    
   #positive cluster markers
   posMarkers <- posClusterMarkers(scData, pvalue_allMarkers, param)
   
@@ -131,11 +132,6 @@ ezMethodSCMultipleSamplesOneGroup = function(input=NA, output=NA, param=NA, html
     cells_AUC = cellsLabelsWithAUC(scData, param)
     singler.results <- cellsLabelsWithSingleR(GetAssayData(scData, "counts"), Idents(scData), param)
   }
-  
-  if(param$batchCorrection) {
-    scData@reductions$tsne_noCorrected <- Reductions(scData_noCorrected, "tsne")
-    scData@meta.data$ident_noCorrected <- Idents(scData_noCorrected)
-  } 
   
   #Convert scData to Single Cell experiment Object
   # Use the SCT logcounts for visualization instead of the RNA logcounts.
