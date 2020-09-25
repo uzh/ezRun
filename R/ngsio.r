@@ -233,7 +233,7 @@ loadSCCountDataset <- function(input, param){
   colnames(sce) <- paste(input$getNames(), colnames(sce), sep="___")
   
   colData(sce)$Batch <- input$getNames()
-  colData(sce)$Condition <- input$getColumn("Condition")
+  try(colData(sce)$Condition <- input$getColumn("Condition"), silent = TRUE)
   
   return(sce)
 }
