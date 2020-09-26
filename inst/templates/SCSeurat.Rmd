@@ -295,7 +295,7 @@ hpca.se <- switch(param$singleRReference,
                   MouseRNAseqData=MouseRNAseqData(),
                   ImmGenData=ImmGenData()
                   )
-if(hpca.se == "None"){
+if(param$singleRReference == "None"){
   doSingleR <- FALSE
 }else{
   doSingleR <- TRUE
