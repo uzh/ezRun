@@ -152,10 +152,9 @@ if("CellCycle" %in% param$vars.to.regress){
 }
 
 if(ezIsSpecified(param$vars.to.regress)){
-  scData <- ScaleData(scData, features=rownames(scData),
-                      vars.to.regress=param$vars.to.regress)
+  scData <- ScaleData(scData, vars.to.regress=param$vars.to.regress)
 }else{
-  scData <- ScaleData(scData, features=rownames(scData))
+  scData <- ScaleData(scData)
 }
 ```
 
@@ -280,23 +279,31 @@ kable(tibble(Cluster=names(summary(Idents(scData))),
 ```
 
 ### Cells annotation
-We use Bioconductor package [SingleR](https://bioconductor.org/packages/devel/bioc/html/SingleR.html)
+We use Bioconductor package [SingleR](https://bioconductor.org/packages/release/bioc/html/SingleR.html)
 to annotate cells from a set of reference data.
-The available references are described here https://bioconductor.org/packages/devel/bioc/vignettes/SingleR/inst/doc/SingleR.html#5_available_references.
+The available references are described here https://bioconductor.org/packages/release/bioc/vignettes/SingleR/inst/doc/SingleR.html#5_available_references.
 
 ```{r run SingleR, include=FALSE}
-doSingleR <- TRUE
-if(grepl("Homo_sapiens", param$refBuild)){
-  hpca.se <- HumanPrimaryCellAtlasData()
-}else if(grepl("Mus_musculus", param$refBuild)){
-  hpca.se <- MouseRNAseqData()
-}else{
-  message("SingleR is not available as the species is not supported yet.")
+hpca.se <- switch(param$singleRReference,
+                  None="None",
+                  HumanPrimaryCellAtlasData=HumanPrimaryCellAtlasData(),
+                  BlueprintEncodeData=BlueprintEncodeData(),
+                  MonacoImmuneData=MonacoImmuneData(),
+                  DatabaseImmuneCellExpressionData=DatabaseImmuneCellExpressionData(),
+                  NovershternHematopoieticData=NovershternHematopoieticData(),
+                  
+                  MouseRNAseqData=MouseRNAseqData(),
+                  ImmGenData=ImmGenData()
+                  )
+if(hpca.se == "None"){
   doSingleR <- FALSE
+}else{
+  doSingleR <- TRUE
 }
+
 if(doSingleR){
   singler.results <- SingleR(test = GetAssayData(scData), ref = hpca.se, 
-                           labels = hpca.se$label.main)
+                             labels = hpca.se$label.fine)
   scData[["SingleR.labels"]] <- singler.results$labels
   cellInfo <- tibble(Cells=colnames(scData), Cluster=Idents(scData),
                      SingleR.labels=scData$SingleR.labels) %>%
@@ -394,10 +401,10 @@ for(eachCluster in unique(markers$cluster)){
 ```
 
 ### Heatmap of cluster marker genes
-Max `r param$markersToShow` marker genes are shown for each cluster. 
+Max 10 marker genes are shown for each cluster. 
 
-```{r heatmap, fig.width=10, fig.height=param$markersToShow*1.5, echo=FALSE, eval=nrow(markers) > 0}
-top10 <- markers %>% group_by(cluster) %>% top_n(param$markersToShow, avg_logFC)
+```{r heatmap, fig.width=10, fig.height=10*1.5, echo=FALSE, eval=nrow(markers) > 0}
+top10 <- markers %>% group_by(cluster) %>% top_n(10, avg_logFC)
 DoHeatmap(scData, features = top10$gene) + NoLegend()
 ```
 
@@ -515,7 +522,7 @@ write_tsv(coordinates, path=coordinatesFn)
 ### Parameters
 ```{r, echo=FALSE}
 param[c("minCellsPerGene", "minGenesPerCell", "maxGenesPerCell", "maxMitoPercent", 
-        "pcs", "vars.to.regress", "resolution", "markersToShow")]
+        "pcs", "vars.to.regress", "resolution")]
 ```
 
 ### SessionInfo
