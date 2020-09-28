@@ -384,27 +384,28 @@ getSTARReference = function(param){
       refDir = paste(refDir, param$spikeInSet, sep="_")
     }
   }
+  ## random sleep to avoid parallel ref building
+  Sys.sleep( runif(1, max=20))
   
-  lockFile = file.path(refDir, "lock")
+  lockFile = paste(refDir, ".lock")
   i = 0
   while(file.exists(lockFile) && i < INDEX_BUILD_TIMEOUT){
     ### somebody else builds and we wait
-    Sys.sleep(90)
+    Sys.sleep(60)
     i = i + 1
   }
-  if(file.exists(lockFile)){
+  if(i >= INDEX_BUILD_TIMEOUT){
     stop(paste("reference building still in progress after", INDEX_BUILD_TIMEOUT, "min"))
   }
   ## there is no lock file
-  refFiles = list.files(refDir)
-  if(length(refFiles) > 0){
+  if(file.exists(file.path(refDir, "SAindex"))){
     ## we assume the index is built and complete
     return(refDir)
   }
   
   ## no lock file and no refFiles, so we build the reference
-  dir.create(refDir)
   ezWrite(Sys.info(), con=lockFile)
+  dir.create(refDir)
   
   fai = ezRead.table(paste0(param$ezRef["refFastaFile"], ".fai"), header=FALSE)
   colnames(fai) = c("LENGTH", "OFFSET", "LINEBASES", "LINEWDITH")

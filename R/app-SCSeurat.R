@@ -27,6 +27,7 @@ EzAppSCSeurat <-
                                         maxMitoPercent=ezFrame(Type="numeric", 
                                                                 DefaultValue=25, 
                                                                 Description="Maximal fraction of mitochondrial reads per cell for Seurat filtering"),
+                                        singleRReference=ezFrame(Type="character", DefaultValue="None", Description="Use which SingleR reference to annotate cells"), # HumanPrimaryCellAtlasData, BlueprintEncodeData, MouseRNAseqData, ImmGenData, DatabaseImmuneCellExpressionData, NovershternHematopoieticData, MonacoImmuneData
                                         pcs=ezFrame(Type="numeric",
                                                     DefaultValue=50,
                                                     Description="The maximal dimensions to use for reduction"),
@@ -36,13 +37,10 @@ EzAppSCSeurat <-
                                         resolution=ezFrame(Type="numeric",
                                                            DefaultValue=0.5,
                                                            Description="Value of the resolution parameter, use a value above (below) 1.0 if you want to obtain a larger (smaller) number of communities."),
-                                        markersToShow=ezFrame(Type="numeric", 
-                                                              DefaultValue=10, 
-                                                              Description="The markers to show in the heatmap of cluster marker genes"),
-                                        knownMarkers=ezFrame(Type="charList", 
+                                        knownMarkers=ezFrame(Type="charList",
                                                                DefaultValue="", 
                                                                Description="The markers to check"),
-                                        runPseudoTime=ezFrame(Type="logical", 
+                                        runPseudoTime=ezFrame(Type="logical",
                                                               DefaultValue=FALSE,
                                                               Description="Run PseudoTime for single cell data?"))
                 }
