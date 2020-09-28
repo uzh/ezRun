@@ -278,7 +278,7 @@ plotDots(sce, features = unique(markers.to.plot$gene), group = "Condition")
 ### Differential expressed genes
 
 
-##### After identifying common cell types across conditions, we can look for genes that change in different conditions for cells of the same type.
+##### After identifying common cell types across conditions, we can look for genes that change in different conditions for cells of the same type. The comparison made was `r paste(unique(sce$Condition), collapse = " vs ")`
 <br/><br/>
 
 ```{r diff genes table}
