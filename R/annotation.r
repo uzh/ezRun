@@ -199,7 +199,7 @@ makeFeatAnnoEnsembl <- function(featureFile,
     require(readr)
     
     # fread cannot handle compressed file
-    mapping <- as.data.table(read_tsv(biomartFile)) 
+    mapping <- as.data.table(read_tsv(biomartFile,guess_max=1e6)) 
     if(all(names(attributes) %in% colnames(mapping))){
       mapping <- mapping[ ,names(attributes), with=FALSE]
       # To make it consistent with biomaRt
