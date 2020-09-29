@@ -69,6 +69,55 @@ addGoParents = function(gene2goList, onto){
   return(lapply(gene2goList, function(x){setdiff(union(x, unlist(goParents[x])), "all")}))
 }
 
+
+
+compileEnrichmentInput = function(param, se){
+  require(SummarizedExperiment)
+  seqAnno = data.frame(rowData(se), row.names=rownames(se),
+                       check.names = FALSE, stringsAsFactors=FALSE)
+  logSignal = log2(shiftZeros(assays(se)$xNorm, param$minSignal))
+  groupMeans = cbind(rowMeans(logSignal[ , param$grouping == param$sampleGroup, 
+                                         drop=FALSE]),
+                     rowMeans(logSignal[ , param$grouping == param$refGroup, 
+                                         drop=FALSE])
+  )
+  colnames(groupMeans) = c(param$sampleGroup, param$refGroup)
+  normalizedAvgSignal=rowMeans(groupMeans)
+  
+  if (param$featureLevel != "gene"){
+    genes = getGeneMapping(param, seqAnno)
+    seqAnno = aggregateGoAnnotation(seqAnno, genes)
+    if (!is.null(normalizedAvgSignal)){ ## if its not an identity mapping
+      normalizedAvgSignal = tapply(normalizedAvgSignal[names(genes)], genes, mean)
+      normalizedAvgSignal = normalizedAvgSignal[rownames(seqAnno)]
+    }
+    if (is.null(genes)){
+      stop("no probe 2 gene mapping found found for ")
+    }
+  } else {
+    genes = rownames(seqAnno)
+    names(genes) = genes
+  }
+  
+  isSig = rowData(se)$pValue < param$pValThreshGO & rowData(se)$usedInTest
+  isUp = rowData(se)$log2Ratio > param$log2RatioThreshGO & isSig
+  isDown = rowData(se)$log2Ratio < -param$log2RatioThreshGO & isSig
+  probes = rownames(groupMeans)
+  presentGenes = na.omit(unique(genes[probes[rowData(se)$isPresentProbe]]))
+  upGenes = na.omit(unique(genes[probes[isUp]]))
+  downGenes = na.omit(unique(genes[probes[isDown]]))
+  bothGenes = union(upGenes, downGenes)
+  normalizedAvgSignal = normalizedAvgSignal[presentGenes]
+  if (length(presentGenes) == 0 | length(bothGenes) == 0){
+    ezWrite("presentGenes: ", length(presentGenes), " up: ", length(upGenes), 
+            " down: ", length(downGenes), " both: ", length(bothGenes))
+  }
+  ans = list(selections=list(upGenes=upGenes, downGenes=downGenes, bothGenes=bothGenes),
+             presentGenes=presentGenes, 
+             normalizedAvgSignal=normalizedAvgSignal, seqAnno=seqAnno)
+  return(ans)
+}
+
 ##' @title Performs the GO analysis for two groups
 ##' @description Performs the GO analysis for two groups.
 ##' @param param a list of parameters:
