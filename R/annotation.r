@@ -240,7 +240,8 @@ makeFeatAnnoEnsembl <- function(featureFile,
                           go_id="",
                           namespace_1003="")
   }
-  
+  mapping$ensembl_transcript_id <- sub("\\.\\d+$", "", mapping$ensembl_transcript_id)
+    
   if(!all(featAnno$transcript_id %in% mapping$ensembl_transcript_id)){
     warning("Some transcript ids don't exist in biomart file!") #Normal for GENCODE
   }
