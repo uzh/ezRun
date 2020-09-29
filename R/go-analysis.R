@@ -376,6 +376,7 @@ ezEnricher <- function(enrichInput){
       }
       result[[mySel]] = enrichRes
     }
+    return(result)
   }, mc.cores=1)
   names(goResults) = ontologies
   return(goResults)
