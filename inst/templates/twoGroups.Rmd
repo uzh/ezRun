@@ -621,6 +621,7 @@ for (onto in 1:length(enrichResult)) {
       if (is.na(enrichResult[[onto]][[sig]][1][[1]])){
         next
       } else {
+        cat(paste0("[", paste(names(enrichResult)[onto], names(enrichResult[[onto]])[sig], "hypergeometric.txt", sep="_"), "](", paste(names(enrichResult)[onto], names(enrichResult[[onto]])[sig], "hypergeometric.txt", sep="_"), ")"))
         print( kable(enrichResultPlots[[ paste0(names(enrichResult)[onto], "_", names(enrichResult[[onto]])[sig], "_", "df") ]], 
                      escape=FALSE, row.names=FALSE, format = "html") %>% kable_styling(bootstrap_options = "striped", full_width = F, fixed_thead = T,) %>%
                 scroll_box(width = "800px", height = "500px") )
