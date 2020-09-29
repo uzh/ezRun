@@ -139,28 +139,31 @@ setGeneric("buildRefDir", function(.Object, genomeFile, genesFile, genomesRoot =
 ##' @describeIn EzRef Builds the reference directory and copies the annotation and fasta file into the right folders.
 setMethod("buildRefDir", "EzRef", function(.Object, genomeFile, genesFile, 
                                            genomesRoot = "."){
+  buildRefDirFun(.Object, genomeFile, genesFile, genomesRoot)
+})
+
+buildRefDirFun <- function(x, genomeFile, genesFile, genomesRoot="."){
   require(rtracklayer)
   cd = getwd()
   on.exit(setwd(cd))
   setwdNew(genomesRoot)
   
-  gtfPath = dirname(.Object@refFeatureFile)
-  fastaPath = dirname(.Object@refFastaFile)
-  dir.create(gtfPath, recursive=T)
-  dir.create(fastaPath, recursive=T)
-  #dir.create(.Object@refChromDir) ## by default do not generate the chromosome dir -- TODO: check if this directory is indeed needed;
-  if (!is.null(.Object@refAnnotationVersion)){
-    ezSystem(paste("cd", file.path(.Object@refBuildDir, "Annotation"), 
+  gtfPath = dirname(x@refFeatureFile)
+  fastaPath = dirname(x@refFastaFile)
+  dir.create(gtfPath, recursive=TRUE)
+  dir.create(fastaPath, recursive=TRUE)
+  if (!is.null(x@refAnnotationVersion)){
+    ezSystem(paste("cd", file.path(x@refBuildDir, "Annotation"), 
                    "; rm -f Genes; ", "ln -s",
-                   file.path(.Object@refAnnotationVersion, "Genes"), "Genes"))
+                   file.path(x@refAnnotationVersion, "Genes"), "Genes"))
   }
-
+  
   ## fasta
   genome <- readBStringSet(genomeFile) #BString for lower cased softmasked repeats
   ### remove everything after chr id
   names(genome) = sub(" .*", "", names(genome))
-  writeXStringSet(genome, .Object@refFastaFile)
-
+  writeXStringSet(genome, x@refFastaFile)
+  
   ## 2 GTF files: 
   ### features.gtf
   gtf <- import(genesFile)
@@ -179,7 +182,7 @@ setMethod("buildRefDir", "EzRef", function(.Object, genomeFile, genesFile,
   #### GENCODE.gtf: remove the version number from gene_id, transcript_id but keep additional information if available, e.g. ENST00000429181.6_PAR_Y -> ENST00000429181_PAR_Y
   gtf$gene_id <- sub("\\.[0-9]*", "", gtf$gene_id)
   gtf$transcript_id <- sub("\\.[0-9]*", "", gtf$transcript_id)
-
+  
   if(is.null(gtf$gene_name)){
     message("gene_name is not available in gtf. Assigning gene_id.")
     gtf$gene_name <- gtf$gene_id
@@ -190,20 +193,20 @@ setMethod("buildRefDir", "EzRef", function(.Object, genomeFile, genesFile,
   export(gtf[gtf$gene_biotype %in% listBiotypes("genes")],
          con=file.path(gtfPath, "genes.gtf"))
   
-  cmd = paste("samtools", "faidx", .Object@refFastaFile) # create the .fai file
+  cmd = paste("samtools", "faidx", x@refFastaFile) # create the .fai file
   ezSystem(cmd)
   ## create the chromsizes file
-  fai = ezRead.table(paste0(.Object@refFastaFile, ".fai"), header =FALSE, row.names=NULL)
-  ezWrite.table(fai[ ,1:2], .Object@refChromSizesFile, row.names = FALSE, col.names = FALSE)
+  fai = ezRead.table(paste0(x@refFastaFile, ".fai"), header =FALSE, row.names=NULL)
+  ezWrite.table(fai[ ,1:2], x@refChromSizesFile, row.names = FALSE, col.names = FALSE)
   
-  dictFile = sub(".fa$", ".dict", .Object@refFastaFile)
+  dictFile = sub(".fa$", ".dict", x@refFastaFile)
   if (file.exists(dictFile)){
     file.remove(dictFile)
   }
   cmd = paste(preparePicard(), "CreateSequenceDictionary",
-              paste0("R=", .Object@refFastaFile), paste0("O=", dictFile))
+              paste0("R=", x@refFastaFile), paste0("O=", dictFile))
   ezSystem(cmd)
-})
+}
 
 ##' @describeIn listBiotypes returns the Ensembl gene_biotypes according to more general groups.
 listBiotypes <- function(select=c("genes", "protein_coding", "long_noncoding",
