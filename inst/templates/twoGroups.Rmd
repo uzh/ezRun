@@ -576,26 +576,33 @@ if(!doEnrichr(param)){
 ```
 
 
-### Overrepresentation Analysis (ORA)
+### Overrepresentation Analysis (ORA) {.tabset}
 ```{r enricher compute, echo=FALSE, message=FALSE, eval=!debug}
 if (doGo(param, seqAnno)){
   enrichResult <- ezEnricher(enrichInput)
   resFns <- c() ## Provide download links for these results
 }
-```
 
-#### dotplot
-```{r dotplot gsea, echo=FALSE, message=FALSE, eval=!debug}
+enrichResultPlots <- list()
 if(exists("enrichResult")){
   for(onto in names(enrichResult)){
     for(sig in names(enrichResult[[onto]])){
-      if(is.null(enrichResult[[onto]][[sig]])){
+      if(is.na(enrichResult[[onto]][[sig]][1][[1]])){
         next
       }else{
+        enrichResultReduced <- enrichResult
         enrichResultReduced[[onto]][[sig]]@result$Description <- substr(enrichResultReduced[[onto]][[sig]]@result$Description, 1, 30)
-        p <- dotplot(enrichResultReduced[[onto]][[sig]], showCategory=20,
+        enrichResultReduced[[onto]][[sig]]@result$geneID <- enrichResultReduced[[onto]][[sig]]@result$geneName
+         enrichResultPlots[[paste0(onto,"_",sig,"_","df")]] <- as.data.frame(enrichResult[[onto]][[sig]]@result[,c(1:3,5,6,10)])
+        enrichResultPlots[[paste0(onto,"_",sig,"_","table")]] <- datatable(enrichResult[[onto]][[sig]]@result[,c(1:3,5,6,10)], filter = "top", 
+                                                                        class = 'cell-border stripe', rownames = FALSE, caption = '') %>%
+                                                                formatStyle(columns = colnames(.$x$data), `font-size` = "12px") %>% 
+                                                                formatSignif(c("pvalue","p.adjust"), digits = 3)
+        enrichResultPlots[[paste0(onto,"_",sig,"_","dotplot")]] <- dotplot(enrichResultReduced[[onto]][[sig]], showCategory = 20,
                      title=paste(onto, sig))
-        print(p)
+        enrichResultPlots[[paste0(onto,"_",sig,"_","lfc")]] <- seqAnno$log2Ratio[match(enrichInput$selections[[sig]], seqAnno$gene_id)]
+        names(enrichResultPlots[[paste0(onto,"_",sig,"_","lfc")]]) <- seqAnno$gene_name[match(enrichInput$selections[[sig]], seqAnno$gene_id)]
+        enrichResultPlots[[paste0(onto,"_",sig,"_","cnet")]] <- cnetplot(enrichResultReduced[[onto]][[sig]], foldChange = enrichResultPlots[[paste0(onto,"_",sig,"_","lfc")]])
         resFn <- paste(onto, sig, "hypergeometric.txt", sep="_")
         write.table(enrichResult[[onto]][[sig]], file=resFn,
                     quote=FALSE, col.names = TRUE, row.names = FALSE, sep = "\t")
@@ -604,11 +611,27 @@ if(exists("enrichResult")){
     }
   }
 }
-
 ```
 
-
-
+```{r, results='asis', echo = FALSE, fig.height=8, fig.width=8}
+for (onto in 1:length(enrichResult)) {
+  cat("####",names(enrichResult)[onto],"{.tabset}","\n")
+  for (sig in 1:length(names(enrichResult[[onto]]))) {
+      cat("#####",gsub("Genes","",names(enrichResult[[onto]])[sig]),"{.tabset}","\n")
+      if (is.na(enrichResult[[onto]][[sig]][1][[1]])){
+        next
+      } else {
+        print( kable(enrichResultPlots[[ paste0(names(enrichResult)[onto], "_", names(enrichResult[[onto]])[sig], "_", "df") ]], 
+                     escape=FALSE, row.names=FALSE, format = "html") %>% kable_styling(bootstrap_options = "striped", full_width = F, fixed_thead = T,) %>%
+                scroll_box(width = "800px", height = "500px") )
+        #print( enrichResultPlots[[ paste0(names(enrichResult)[onto], "_", names(enrichResult[[onto]])[sig], "_", "table") ]] )
+        print( enrichResultPlots[[ paste0(names(enrichResult)[onto], "_", names(enrichResult[[onto]])[sig], "_", "dotplot") ]] )
+        print( enrichResultPlots[[ paste0(names(enrichResult)[onto], "_", names(enrichResult[[onto]])[sig], "_", "cnet") ]] )
+        cat('\n\n')
+    }
+  }
+}
+```
 
 ### Gene set enrichment analysis
 ```{r gsea compute, echo=FALSE, message=FALSE, eval=!debug, warning=FALSE}
