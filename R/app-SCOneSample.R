@@ -137,9 +137,15 @@ filterCellsAndGenes <- function(sce, param) {
   
   sce <- addPerCellQC(sce, subsets = list(Mito = mito.genes))
   
-  qc.lib <- isOutlier(sce$sum, log=TRUE, nmads=param$nmad, type="lower")
-  qc.nexprs <- isOutlier(sce$detected, nmads=param$nmad, log=TRUE, type="lower")
-  qc.mito <- isOutlier(sce$subsets_Mito_percent, nmads=param$nmad, type="higher")
+  if(!is.null(param$nreads) & !is.null(param$ngenes) & !is.null(param$perc_mito)) {
+    qc.lib <- sce$sum < param$nreads
+    qc.nexprs <- sce$detected < param$ngenes
+    qc.mito <- sce$subsets_Mito_percent > param$perc_mito
+  } else {
+    qc.lib <- isOutlier(sce$sum, log=TRUE, nmads=param$nmad, type="lower")
+    qc.nexprs <- isOutlier(sce$detected, nmads=param$nmad, log=TRUE, type="lower")
+    qc.mito <- isOutlier(sce$subsets_Mito_percent, nmads=param$nmad, type="higher")
+  }
   discard <- qc.lib | qc.nexprs | qc.mito
   sce$discard <- discard
   sce$qc.lib <- qc.lib
@@ -157,57 +163,6 @@ filterCellsAndGenes <- function(sce, param) {
   
   return(list(sce.unfiltered=sce.unfiltered, sce = sce))
 }
-
-add_meta <- function(ds){
-  ds$total_features <- ds$detected
-  ds$log10_total_features <- log10(ds$detected)
-  ds$total_counts <- ds$sum
-  ds$log10_total_counts <- log10(ds$sum+1)
-  ds$featcount_ratio <- ds$log10_total_counts/ds$log10_total_features
-  ds$featcount_dist <- getFeatCountDist(ds)
-  ds$pct_counts_top_50_features <- ds$percent_top_50
-  ds
-}
-
-getFeatCountDist <- function(df, do.plot=FALSE, linear=TRUE){
-  if(is(df,"SingleCellExperiment")) df <- as.data.frame(colData(df))
-  if(linear){
-    mod <- lm(df$log10_total_features~df$log10_total_counts)
-  }else{
-    mod <- loess(df$log10_total_features~df$log10_total_counts)
-  }
-  pred <- predict(mod, newdata=data.frame(log10_total_counts=df$log10_total_counts))
-  df$diff <- df$log10_total_features - pred
-  df$diff
-}
-
-filt.default <- function(x, param){  
-  if(!("featcount_dist" %in% colnames(colData(x)))) x <- add_meta(x)
-  filters <- c( "log10_total_counts:higher:2.5",
-                "log10_total_counts:lower:5",
-                "log10_total_features:higher:2.5",
-                "log10_total_features:lower:5",
-                "pct_counts_top_50_features:both:5",
-                "featcount_dist:both:5")
-  out <- lapply(strsplit(filters,":"), FUN=function(f){
-    which(isOutlier(x[[f[1]]], log=FALSE,
-                    nmads=as.numeric(f[3]), 
-                    type=f[2] ))
-  })
- 
-  mtout <- isOutlier(x$subsets_Mito_percent, nmads=3, type="lower" ) | 
-    (isOutlier(x$subsets_Mito_percent, nmads=2.5, type="higher" ) & x$subsets_Mito_percent > 0.08)
-  out <- c(out, list(mt=which(mtout)))
-  out <- table(unlist(out))
-  out <- as.numeric(names(out)[which(out>=param$nDist)])
-  x$discard <- FALSE
-  x$discard[out] <- TRUE
-  return(x)
-}
-
-
-
-
 
 cellsLabelsWithAUC <- function(scData, param) {
   library(AUCell)
