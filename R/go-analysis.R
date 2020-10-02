@@ -82,6 +82,7 @@ compileEnrichmentInput = function(param, se){
   )
   colnames(groupMeans) = c(param$sampleGroup, param$refGroup)
   normalizedAvgSignal=rowMeans(groupMeans)
+  log2Ratio = setNames(rowData(se)$log2Ratio, rowData(se)$gene_id)
   
   if (param$featureLevel != "gene"){
     genes = getGeneMapping(param, seqAnno)
@@ -142,7 +143,7 @@ compileEnrichmentInput = function(param, se){
   
   ans = list(selections=list(upGenes=upGenes, downGenes=downGenes, bothGenes=bothGenes),
              presentGenes=presentGenes, 
-             normalizedAvgSignal=normalizedAvgSignal, seqAnno=seqAnno,
+             normalizedAvgSignal=normalizedAvgSignal, log2Ratio=log2Ratio, seqAnno=seqAnno,
              go2gene = go2geneDfList)
   return(ans)
 }
@@ -356,8 +357,6 @@ ezGoseq = function(param, selectedGenes, allGenes, gene2goList=NULL,
 ezEnricher <- function(enrichInput){
   require(clusterProfiler)
   geneid2name = setNames(enrichInput$seqAnno$gene_name, enrichInput$seqAnno$gene_id)
-  
-
   ontologies = c("BP", "MF", "CC")
   goResults = ezMclapply(ontologies, function(onto){
     result = list()
@@ -385,60 +384,24 @@ ezEnricher <- function(enrichInput){
 ### -----------------------------------------------------------------
 ### ezGSEA
 ###
-ezGSEA <- function(param, se){
+ezGSEA <- function(enrichInput){
   require(clusterProfiler)
   require(GO.db)
-  godata <- prepareGOData(param, se)
-  presentGenes <- godata$presentGenes
-  seqAnno <- data.frame(rowData(se), row.names=rownames(se),
-                        check.names = FALSE, stringsAsFactors=FALSE)
-  geneid2name <- setNames(seqAnno$gene_name, seqAnno$gene_id)
-  geneList <- setNames(rowData(se)$log2Ratio, rowData(se)$gene_id)
-  geneList <- sort(geneList, decreasing = TRUE)
-  
-  if (param$featureLevel != "gene"){
-    genes = getGeneMapping(param, seqAnno)
-    seqAnno = aggregateGoAnnotation(seqAnno, genes)
-    if (is.null(genes)){
-      stop("no probe 2 gene mapping found found for ")
-    }
-  } else {
-    genes = rownames(seqAnno)
-    names(genes) = genes
-  }
-  
+  geneid2name = setNames(enrichInput$seqAnno$gene_name, enrichInput$seqAnno$gene_id)
   ontologies = c("BP", "MF", "CC")
-  
   goResults = ezMclapply(ontologies, function(onto){
-    message("GSEA: ", onto)
-    gene2goList = goStringsToList(seqAnno[[paste("GO", onto)]], 
-                                  listNames=rownames(seqAnno))[presentGenes]
-    if (param$includeGoParentAnnotation){
-      gene2goList = addGoParents(gene2goList, onto) 
+    enrichRes <- GSEA(gene=sort(enrichInput$log2Ratio, decreasing = TRUE),
+                      TERM2GENE=enrichInput$go2gene[[onto]])
+    if(!is.null(enrichRes)){
+      tempTable <- enrichRes@result
+      if(nrow(tempTable) != 0L){
+        tempTable$Description <- Term(GOTERM[tempTable$ID])
+        tempTable$geneName <- sapply(relist(geneid2name[unlist(strsplit(tempTable$geneID, "/"))], 
+                                            strsplit(tempTable$geneID, "/")), paste, collapse="/")
+        enrichRes@result <- tempTable
+      }
     }
-    ### consider only genes with annotation in the currently selected ontology!!!!
-    allGos = switch(onto,
-                    BP=keys(GOBPPARENTS),
-                    MF=keys(GOMFPARENTS),
-                    CC=keys(GOCCPARENTS),
-                    NA)
-    if (!all(unlist(gene2goList) %in% allGos)){
-      gene2goList = lapply(gene2goList, function(x){intersect(x, allGos)})
-    }
-    gene2goList = gene2goList[lengths(gene2goList) > 0]
-    goIDs <- unlist(gene2goList, use.names=FALSE)
-    go2geneDF <- data.frame(ont=goIDs,
-                            gene=rep(names(gene2goList), lengths(gene2goList)),
-                            stringsAsFactors = FALSE)
-    resGSEA <- GSEA(gene=geneList, TERM2GENE=go2geneDF,
-                    by="fgsea")
-    tempTable <- resGSEA@result
-    if(nrow(tempTable) != 0L){
-      tempTable$Description <- substr(Term(GOTERM[tempTable$ID]), 1, 30)
-      tempTable$geneName <- sapply(relist(geneid2name[unlist(strsplit(tempTable$core_enrichment, "/"))], strsplit(tempTable$core_enrichment, "/")), paste, collapse="/")
-      resGSEA@result <- tempTable
-    }
-    return(resGSEA)
+    return(enrichRes)
   }, mc.cores=1)
   names(goResults) = ontologies
   return(goResults)

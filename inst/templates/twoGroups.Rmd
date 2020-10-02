@@ -1,5 +1,5 @@
 ---
-title: "`r paste('Two groups analysis:', param$comparison)`"
+title: "`r paste('Two groups analysis:')`"
 author: "Functional Genomics Center Zurich"
 output: 
   html_document:
@@ -13,6 +13,7 @@ editor_options:
 ---
 
 ```{r setup, include=FALSE}
+require(ezRun)
 knitr::opts_chunk$set(echo = TRUE)
 output = readRDS("output.rds")
 deResult = readRDS("deResult.rds")
@@ -28,6 +29,7 @@ library(webshot)
 library(htmlwidgets)
 library(tidyverse)
 library(readxl)
+library(dplyr)
 ```
 
 ```{r prepare data, include=FALSE}
@@ -39,7 +41,7 @@ seqAnno <- data.frame(rowData(se), row.names=rownames(se),
 dataset <- data.frame(colData(se), check.names=FALSE, stringsAsFactors=FALSE)
 design = ezDesignFromDataset(dataset, param)
 
-enrichInput = compileEnrichmentInput(param, se)
+#enrichInput = compileEnrichmentInput(param, se)
 
 ## In some cases, such as p2710, there are millions of features, then we have to adjust some analyses below.
 hasMassiveFeats <- nrow(seqAnno) >= 200e3
@@ -80,11 +82,13 @@ knitr::kable(makeSignificantCounts(se), row.names=TRUE,  format="html") %>%
 
 Full result table in xlsx format for opening with a spreadsheet program (e.g. Excel).
 
+
 ```{r result live report, echo=FALSE, message=FALSE, eval=TRUE, warning=FALSE, cache=FALSE}
 resultFile <- makeResultFile(param, se)
 
-write_tsv(as_tibble(colData(se), rownames="Name") %>% select(Name, sf),
-          path="scalingfactors.txt")
+message(colnames(colData(se)))
+ezWrite.table(as.data.frame(colData(se))[ , "sf", drop=FALSE],
+          file="scalingfactors.txt", head="Name")
 
 liveReportLink = output$getColumn("Live Report")
 
@@ -435,7 +439,7 @@ if(!(ref %in% unique(ah$species)) | is.na(ref)){
 } else {
   ref.orgdb <- query(ah, c("OrgDb", ref))[[1]]
   orgSymbols <- keys(ref.orgdb, keytype="SYMBOL")
-  egr <- select(ref.orgdb, keys=orgSymbols, "ENTREZID", "SYMBOL")
+  egr <- AnnotationDbi::select(ref.orgdb, keys=orgSymbols, "ENTREZID", "SYMBOL")
   colnames(egr)[2] <- "entrez_id"
 }
 ```
@@ -525,7 +529,7 @@ if (doGo(param, seqAnno)){
         genesToUse = enrichInput$selections[[mySel]]
         enrichrLinks[mySel, "Number of Genes"] = length(genesToUse)
         jsCall = paste0('enrich({list: "', paste(genesToUse, collapse="\\n"), '", popup: true});')
-        enrichrLinks[row, "External"] = paste0("<a href='javascript:void(0)' onClick='", jsCall, "'>Analyse at Enrichr website</a>")
+        enrichrLinks[mySel, "External"] = paste0("<a href='javascript:void(0)' onClick='", jsCall, "'>Analyse at Enrichr website</a>")
         resMerged <- NA
         if (!is.null(genesToUse) && length(genesToUse) > 3 && param$doPrecomputeEnrichr) {
           resList = runEnrichr(genesToUse, maxResult = maxResultsPerLibrary)
@@ -583,51 +587,61 @@ if (doGo(param, seqAnno)){
   resFns <- c() ## Provide download links for these results
 }
 
+```
+
+```{r prepare plots, echo=FALSE, message=FALSE, eval=!debug}
 enrichResultPlots <- list()
 if(exists("enrichResult")){
   for(onto in names(enrichResult)){
+    enrichResultPlots[[onto]] = list()
     for(sig in names(enrichResult[[onto]])){
       if(is.na(enrichResult[[onto]][[sig]][1][[1]])){
         next
       }else{
-        enrichResultReduced <- enrichResult
-        enrichResultReduced[[onto]][[sig]]@result$Description <- substr(enrichResultReduced[[onto]][[sig]]@result$Description, 1, 30)
-        enrichResultReduced[[onto]][[sig]]@result$geneID <- enrichResultReduced[[onto]][[sig]]@result$geneName
-         enrichResultPlots[[paste0(onto,"_",sig,"_","df")]] <- as.data.frame(enrichResult[[onto]][[sig]]@result[,c(1:3,5,6,10)])
-        enrichResultPlots[[paste0(onto,"_",sig,"_","table")]] <- datatable(enrichResult[[onto]][[sig]]@result[,c(1:3,5,6,10)], filter = "top", 
+        erp = list()
+        er = enrichResult[[onto]][[sig]]
+        er@result$Description <- substr(er@result$Description, 1, 30)
+        er@result$geneID <- er@result$geneName
+
+        oraFile = paste(onto, sig, "ora.txt", sep="_")
+        erp[["oraFile"]] = oraFile
+        write.table(er, file=oraFile,
+                    quote=FALSE, col.names = TRUE, row.names = FALSE, sep = "\t")
+
+        erp[["df"]] <- as.data.frame(er@result[,c(1:3,5,6,10)])
+        erp[["table"]] <- datatable(er@result[,c(1:3,5,6,10)], filter = "top", 
                                                                         class = 'cell-border stripe', rownames = FALSE, caption = '') %>%
                                                                 formatStyle(columns = colnames(.$x$data), `font-size` = "12px") %>% 
                                                                 formatSignif(c("pvalue","p.adjust"), digits = 3)
-        enrichResultPlots[[paste0(onto,"_",sig,"_","dotplot")]] <- dotplot(enrichResultReduced[[onto]][[sig]], showCategory = 20,
+        erp[["dotplot"]] <- dotplot(er, showCategory = 20,
                      title=paste(onto, sig))
-        enrichResultPlots[[paste0(onto,"_",sig,"_","lfc")]] <- seqAnno$log2Ratio[match(enrichInput$selections[[sig]], seqAnno$gene_id)]
-        names(enrichResultPlots[[paste0(onto,"_",sig,"_","lfc")]]) <- seqAnno$gene_name[match(enrichInput$selections[[sig]], seqAnno$gene_id)]
-        enrichResultPlots[[paste0(onto,"_",sig,"_","cnet")]] <- cnetplot(enrichResultReduced[[onto]][[sig]], foldChange = enrichResultPlots[[paste0(onto,"_",sig,"_","lfc")]])
-        resFn <- paste(onto, sig, "hypergeometric.txt", sep="_")
-        write.table(enrichResult[[onto]][[sig]], file=resFn,
-                    quote=FALSE, col.names = TRUE, row.names = FALSE, sep = "\t")
-        resFns <- append(resFns, resFn)
+        sigGeneIds = enrichInput$selections[[sig]]
+        log2Ratio = enrichInput$log2Ratio[sigGeneIds]
+        names(log2Ratio) = enrichInput$seqAnno[sigGeneIds, "gene_name"]
+        erp[["cnet"]] <- cnetplot(er, foldChange =log2Ratio)
+        enrichResultPlots[[onto]][[sig]] = erp
       }
     }
   }
 }
 ```
 
-```{r, results='asis', echo = FALSE, fig.height=8, fig.width=8}
-for (onto in 1:length(enrichResult)) {
-  cat("####",names(enrichResult)[onto],"{.tabset}","\n")
-  for (sig in 1:length(names(enrichResult[[onto]]))) {
-      cat("#####",gsub("Genes","",names(enrichResult[[onto]])[sig]),"{.tabset}","\n")
+```{r tabs with enrichment plots, results='asis', echo = FALSE, fig.height=8, fig.width=8}
+for (onto in names(enrichResult)) {
+  cat("####", onto,"{.tabset}","\n")
+  for (sig in names(enrichResult[[onto]])) {
+      cat("#####", sig,"{.tabset}","\n")
       if (is.na(enrichResult[[onto]][[sig]][1][[1]])){
         next
       } else {
-        cat(paste0("[", paste(names(enrichResult)[onto], names(enrichResult[[onto]])[sig], "hypergeometric.txt", sep="_"), "](", paste(names(enrichResult)[onto], names(enrichResult[[onto]])[sig], "hypergeometric.txt", sep="_"), ")"))
-        print( kable(enrichResultPlots[[ paste0(names(enrichResult)[onto], "_", names(enrichResult[[onto]])[sig], "_", "df") ]], 
+        erp = enrichResultPlots[[onto]][[sig]]
+        #print( enrichResultPlots[[ paste0(names(enrichResult)[onto], "_", names(enrichResult[[onto]])[sig], "_", "table") ]] )
+        print( erp$dotplot )
+        print( erp$cnet)
+        print( kable(erp$df, 
                      escape=FALSE, row.names=FALSE, format = "html") %>% kable_styling(bootstrap_options = "striped", full_width = F, fixed_thead = T,) %>%
                 scroll_box(width = "800px", height = "500px") )
-        #print( enrichResultPlots[[ paste0(names(enrichResult)[onto], "_", names(enrichResult[[onto]])[sig], "_", "table") ]] )
-        print( enrichResultPlots[[ paste0(names(enrichResult)[onto], "_", names(enrichResult[[onto]])[sig], "_", "dotplot") ]] )
-        print( enrichResultPlots[[ paste0(names(enrichResult)[onto], "_", names(enrichResult[[onto]])[sig], "_", "cnet") ]] )
+        cat(paste0("[", erp$oraFile, "](", erp$oraFile, ")"))
         cat('\n\n')
     }
   }
@@ -636,10 +650,10 @@ for (onto in 1:length(enrichResult)) {
 
 ### Gene set enrichment analysis
 ```{r gsea compute, echo=FALSE, message=FALSE, eval=!debug, warning=FALSE}
-if (doGo(param, seqAnno)){
-  enrichResultGSEA <- ezGSEA(param, se)
-  resFns <- c()
-}
+#if (doGo(param, seqAnno)){
+#  enrichResultGSEA <- ezGSEA(enrichInput)
+#  resFns <- c()
+#}
 ```
 
 
