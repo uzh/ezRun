@@ -131,8 +131,6 @@ plotTSNE(sce, colour_by="CellCycle") + ggtitle("Cell cycle phase")
 
 ### Dimensionality reduction
 
-<br/>
-
 Dimensionality reduction aims to reduce the number of separate dimensions in the data. This is possible because different genes are correlated if they are affected by the same biological process. Thus, we do not need to store separate information for individual genes, but can instead compress multiple features into a single dimension. This reduces computational work in downstream analyses, as calculations only need to be performed for a few dimensions rather than thousands of genes; reduces noise by averaging across multiple genes to obtain a more precise representation of the patterns in the data, and enables effective plotting of the data.
 
 <br/>
@@ -181,8 +179,6 @@ The uniform manifold approximation and projection (UMAP) method (McInnes, Healy,
 
 ### Clustering
 
-<br/>
-
 In order to find clusters of cells we first built a graph called K-nearest neighbor (KNN), where each node is a cell that is connected to its nearest neighbors in the high-dimensional space. Edges are weighted based on the similarity between the cells involved, with higher weight given to cells that are more closely related. This step takes as input the previously defined dimensionality of the dataset (first `r param$npcs` PCs). We then applied algorithms to identify “communities” of cells that are more connected to cells in the same community than they are to cells of different communities. Each community represents a cluster that we can use for downstream interpretation. 
 
 We can visualize the distribution of clusters in the TSNE and UMAP plots. However, we should not perform downstream analyses directly on their coordinates. These plots are most useful for checking whether two clusters are actually neighboring subclusters or whether a cluster can be split into further subclusters. 
@@ -229,7 +225,7 @@ clustree::clustree(sce, prefix = "SCT_snn_res.")
 <!-- plotTSNE(sce, colour_by="scDblFinder.class") + ggtitle("scDblFinder class") -->
 <!-- ``` -->
 
-### Top cluster markers
+### Cluster markers
 
 ```{r}
 posMarkers = read_tsv("pos_markers.tsv")
@@ -271,7 +267,6 @@ plotDots(sce, features=top5$gene, group="seurat_clusters")
 
 ### Cells annotation
 
-<br/>
 The most challenging task in scRNA-seq data analysis is the interpretation of the results. Once we have obtained a set of clusters we want to determine what biological state is represented by each of them. To do this, we have implemmented 3 different approaches which are explained below. However, these methods should be complemented with the biological knowledge from the researcher.
 
 <br/>
@@ -341,10 +336,9 @@ singler.single.labels <- singler.results.single$labels
 singler.cluster.labels<- singler.results.cluster$labels[match(colData(sce)[,"ident"], rownames(singler.results.cluster))]
 ```
 
-```{r singler ScoreHeatmap,  eval= (param$species != "other"), results='asis'}
+```{r singler ScoreHeatmap,  eval= (param$species != "other"), fig.height=length(unique(singler.single.labels))*0.5, fig.width=8, results='asis'}
 cat("The two heatmaps below display the scores for all individual cells (left) and each original cluster (right) across all reference labels, which allows users to inspect the confidence of the predicted labels across the dataset. The bar Labels on the top shows the actual assigned label.\n")
 cat("\n")
-#while (dev.cur()>1) dev.off()
 plotScoreHeatmap(singler.results.single)
 plotScoreHeatmap(singler.results.cluster, clusters=rownames(singler.results.cluster))
 ```
@@ -399,18 +393,18 @@ cells_assignment <- AUCell_exploreThresholds(cells_AUC, plotHist=FALSE, assign=T
 cellsAssigned <- lapply(cells_assignment, function(x) x$assignment)
 assignmentTable <- reshape2::melt(cellsAssigned, value.name="cell")
 colnames(assignmentTable)[2] <- "geneSet"
-
+tras_cells_AUC <- t(assay(cells_AUC))
+full.labels <- colnames(tras_cells_AUC)[max.col(tras_cells_AUC)]
+tab <- table(full.labels, colData(sce)[,"seurat_clusters"])
 ```
 
 ```{r assigments, eval= (param$species != "other"), results='asis'}
 cat("We can explore the cell assignment results using different plots. Below, we show a heatmap that represents the number of cells (in log scale) from each cluster that were assigned to the different cell types. After calculating an AUC score for each cell and cell type, we assign cell type identity by taking the cell type with the top AUC as the label for that cell. Some cell types may be missing because no cells obtained their top AUC score for it.")
 cat("\n\n")
 ```
-```{r assigments heatmap, eval= (param$species != "other"), results='asis',fig.align='center', fig.width=10, fig.height=6}
-tras_cells_AUC <- t(assay(cells_AUC))
-full.labels <- colnames(tras_cells_AUC)[max.col(tras_cells_AUC)]
-tab <- table(full.labels, colData(sce)[,"seurat_clusters"])
-print(pheatmap(log10(tab+10), color=viridis::viridis(100), silent=TRUE))
+
+```{r assigments heatmap, eval= (param$species != "other"), results='asis',fig.align='center', fig.width=10, fig.height=nrow(tab)*0.5}
+pheatmap(log10(tab+10), color=viridis::viridis(100), silent=TRUE)
 ```
 
 
