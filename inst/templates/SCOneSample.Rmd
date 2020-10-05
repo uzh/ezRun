@@ -92,8 +92,7 @@ plotColData(sce.unfiltered, x="sum", y="subsets_Mito_percent", colour_by="discar
 #### Cells filtering
 
 A standard approach is to filter cells with a low amount of reads as well as genes that are present in at least a certain amount of cells. While simple, using fixed thresholds requires knowledge of the experiment and of the experimental protocol. An alternative approach is to use adaptive, data-driven thresholds to identify outlying cells, based on the set of QC metrics just calculated. To obtain an adaptive threshold, we assume that most of the dataset consists of high-quality cells. 
-The filters we applied excluded cells that are outliers on two distributions by at least 5 MADs at both tails, except for the percentage counts of mitochondrial genes where the threshold was > 3 MADs and > 0.08.
-The number of cells removed is marked as TRUE and the ones retained as FALSE.
+When the parameter values of nreads, ngenes and perc_mito are specified, fixed thresholds are used for filtering. Otherwise, filtering is performed excluding cells that are outliers by more than `param$nmad` MADs below the median for the library size and the number of genes detected. Cells with a percentage counts of mitochondrial genes above the median by `param$nmad` MADs are also excluded. 
 
 ```{r low quality cells}
 num.qc.lib <- sum(sce.unfiltered$qc.lib)
