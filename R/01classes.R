@@ -74,10 +74,8 @@ EzDataset <-
                   tags <<- ezTagListFromNames(base::names(meta))
                   colNames <<- sub(" \\[.*", "", base::names(meta))
                   for (i in which(.self$columnHasTag("Factor"))){
-                    if (is.logical(meta[[i]])){
-                      toReplace = is.na(meta[[i]])
-                      meta[toReplace, i] <<- ''
-                    }
+                    toReplace = is.na(meta[[i]])
+                    meta[toReplace, i] <<- ''
                     meta[ ,i] <<- as.character(meta[ ,i])
                     hasBadCharacter = !hasFilesafeCharacters(meta[ ,i])
                     if (any(hasBadCharacter)){
