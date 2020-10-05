@@ -387,7 +387,7 @@ getSTARReference = function(param){
   ## random sleep to avoid parallel ref building
   Sys.sleep( runif(1, max=20))
   
-  lockFile = paste(refDir, ".lock")
+  lockFile = paste0(refDir, ".lock")
   i = 0
   while(file.exists(lockFile) && i < INDEX_BUILD_TIMEOUT){
     ### somebody else builds and we wait
