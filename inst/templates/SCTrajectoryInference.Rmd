@@ -56,7 +56,7 @@ When choosing a method, it is important to take two further points into account.
 <br/><br/>
 
 #### Practical guidelines
-![guidelines](/srv/GT/TI_guidelines.png){width=500px}
+![guidelines](/srv/GT/TI_guidelines.png)
 
 
 
