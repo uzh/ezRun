@@ -137,7 +137,7 @@ filterCellsAndGenes <- function(sce, param) {
   
   sce <- addPerCellQC(sce, subsets = list(Mito = mito.genes))
   
-  if(!is.null(param$nreads) & !is.null(param$ngenes) & !is.null(param$perc_mito)) {
+  if(!(param$nreads== "") & !(param$ngenes== "") & !(param$perc_mito== "")) {
     qc.lib <- sce$sum < param$nreads
     qc.nexprs <- sce$detected < param$ngenes
     qc.mito <- sce$subsets_Mito_percent > param$perc_mito
