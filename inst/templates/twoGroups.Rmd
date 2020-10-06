@@ -41,7 +41,7 @@ seqAnno <- data.frame(rowData(se), row.names=rownames(se),
 dataset <- data.frame(colData(se), check.names=FALSE, stringsAsFactors=FALSE)
 design = ezDesignFromDataset(dataset, param)
 
-#enrichInput = compileEnrichmentInput(param, se)
+enrichInput = compileEnrichmentInput(param, se)
 
 ## In some cases, such as p2710, there are millions of features, then we have to adjust some analyses below.
 hasMassiveFeats <- nrow(seqAnno) >= 200e3
