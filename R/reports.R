@@ -563,12 +563,12 @@ makeWebgestaltFiles <- function(param, resultFile){
               str_c("ORA_BG_Webgestalt_",comparison, ".txt"),
               col_names = FALSE)
     write_tsv(result %>% dplyr::select(1, `log2 Ratio`),
-              str_c("GSEA_Input_log2FC_Webgestalt_",comparison, ".txt"),
+              str_c("GSEA_Input_log2FC_Webgestalt_",comparison, ".rnk"),
               col_names=FALSE)
     write_tsv(result %>% filter(isPresent) %>% 
                 mutate(GSEA_pVal=sign(`log2 Ratio`) * -log10(pValue)) %>%
                 dplyr::select(1, GSEA_pVal),
-              str_c("GSEA_Input_pVal_Webgestalt_", comparison, ".txt"),
+              str_c("GSEA_Input_pVal_Webgestalt_", comparison, ".rnk"),
               col_names = FALSE)
     write_tsv(result %>% filter(isPresent, pValue < param[['pValueHighlightThresh']],
                                 `log2 Ratio` >= param[['log2RatioHighlightThresh']]) %>%
