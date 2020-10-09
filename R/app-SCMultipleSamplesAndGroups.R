@@ -28,9 +28,9 @@ EzAppSCMultipleSamplesAndGroups <-
                                                             Description="Choose CellCycle to be regressed out when using the SCTransform method if it is a bias."),
                                         DE.method=ezFrame(Type="charVector", 
                                                           DefaultValue="wilcox", 
-                                                          Description="Method to be used when calculating gene cluster markers. Use LR if you want to include cell cycle in the regression model."),
+                                                          Description="Method to be used when calculating gene cluster markers and differentially expressed genes between conditions. Use LR to take into account the Batch in the differential expression test"),
                                         DE.regress=ezFrame(Type="charVector", 
-                                                           DefaultValue="Plate", 
+                                                           DefaultValue="Batch", 
                                                            Description="Variables to regress out if the test LR is chosen"),
                                         chosenClusters=ezFrame(Type="charList",
                                                                DefaultValue="",
@@ -141,7 +141,7 @@ ezMethodSCMultipleSamplesAndGroups = function(input=NA, output=NA, param=NA, htm
   cells_AUC <- NULL
   singler.results <- NULL
   if(param$species == "Human" | param$species == "Mouse") {
-    cells_AUC = cellsLabelsWithAUC(scData, param)
+    #cells_AUC = cellsLabelsWithAUC(scData, param)
     singler.results <- cellsLabelsWithSingleR(GetAssayData(scData, "counts"), Idents(scData), param)
   }
   
