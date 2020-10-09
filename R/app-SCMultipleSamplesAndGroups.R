@@ -28,19 +28,10 @@ EzAppSCMultipleSamplesAndGroups <-
                                                             Description="Choose CellCycle to be regressed out when using the SCTransform method if it is a bias."),
                                         DE.method=ezFrame(Type="charVector", 
                                                           DefaultValue="wilcox", 
-                                                          Description="Method to be used when calculating gene cluster markers and differentially expressed genes between conditions. Use LR to take into account the Batch in the differential expression test"),
+                                                          Description="Method to be used when calculating gene cluster markers and differentially expressed genes between conditions. Use LR to take into account the Batch and/or CellCycle"),
                                         DE.regress=ezFrame(Type="charVector", 
                                                            DefaultValue="Batch", 
                                                            Description="Variables to regress out if the test LR is chosen"),
-                                        chosenClusters=ezFrame(Type="charList",
-                                                               DefaultValue="",
-                                                               Description="The clusters to choose from each sample.In the format of sample1=cluster1,cluster2;sample2=cluster1,cluster2."),
-                                        all2allMarkers=ezFrame(Type="logical",
-                                                               DefaultValue=FALSE, 
-                                                               Description="Run all against all cluster comparisons?"),
-                                        markersToShow=ezFrame(Type="numeric", 
-                                                              DefaultValue=10, 
-                                                              Description="The markers to show in the heatmap of cluster marker genes"),
                                         maxSamplesSupported=ezFrame(Type="numeric", 
                                                               DefaultValue=5, 
                                                               Description="Maximum number of samples to compare"),
@@ -92,7 +83,6 @@ ezMethodSCMultipleSamplesAndGroups = function(input=NA, output=NA, param=NA, htm
   
   
   pvalue_allMarkers <- 0.05
-  pvalue_all2allMarkers <- 0.01
   nrSamples <- length(sceList)
   
   if(ezIsSpecified(param$chosenClusters)){
@@ -118,13 +108,6 @@ ezMethodSCMultipleSamplesAndGroups = function(input=NA, output=NA, param=NA, htm
   
   #positive cluster markers
   posMarkers <- posClusterMarkers(scData, pvalue_allMarkers, param)
-  
-  #if all2allmarkers are not calculated it will remain as NULL
-  all2allMarkers <- NULL
-  
-  #perform all pairwise comparisons to obtain markers
-  if(doEnrichr(param) && param$all2allMarkers) 
-    all2allMarkers <- all2all(scData, pvalue_all2allMarkers, param)
   
   #Before calculating the conserved markers and differentially expressed genes across conditions I will discard the clusters that were too small in at least one group
   clusters_freq <- data.frame(table(scData@meta.data[,c("Condition","seurat_clusters")]))
@@ -157,7 +140,7 @@ ezMethodSCMultipleSamplesAndGroups = function(input=NA, output=NA, param=NA, htm
   metadata(sce)$param$name <- paste(param$name, paste(input$getNames(), collapse=", "), sep=": ")
   
   #Save some results in external files 
-  saveExternalFiles(sce, list(pos_markers=posMarkers, all2all_markers=all2allMarkers, conserved_markers=consMarkers, differential_genes=diffGenes))
+  saveExternalFiles(sce, list(pos_markers=posMarkers, conserved_markers=consMarkers, differential_genes=diffGenes))
   # rowData(sce) = rowData(sce)[, c("gene_id", "biotypes", "description")]
   
   library(HDF5Array)
