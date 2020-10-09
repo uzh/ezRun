@@ -415,7 +415,7 @@ The iSEE shiny app can be accessed through this link [iSEE explorer](`r paste0("
 
 ### Parameters
 ```{r report parameters, echo=FALSE}
-param[c("npcs", "resolution", "batchCorrection","chosenClusters")]
+param[c("npcs", "resolution", "batchCorrection")]
 ```
 
 ### SessionInfo
