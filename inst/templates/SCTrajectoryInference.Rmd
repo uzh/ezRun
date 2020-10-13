@@ -79,9 +79,9 @@ for(i in 1:nrow(model)) {
   cat(paste0("#### ", model[i,]$method_name))
   current_model = model[i,]$model[[1]]
   plots <- patchwork::wrap_plots(
-  plot_dimred(current_model) + ggtitle("Cell ordering"),
-  plot_dimred(current_model, grouping = sce$seurat_clusters, color_density = "grouping") + ggtitle("Cell grouping"),
-  plot_dimred(current_model, "pseudotime", pseudotime = calculate_pseudotime(current_model)) + ggtitle("Pseudotime")
+  plot_dimred(current_model, label_milestones = TRUE) + ggtitle("Cell ordering"),
+  plot_dimred(current_model, grouping = sce$seurat_clusters, color_density = "grouping", label_milestones = TRUE) + ggtitle("Cell grouping"),
+  plot_dimred(current_model, "pseudotime", pseudotime = calculate_pseudotime(current_model), label_milestones = TRUE) + ggtitle("Pseudotime")
 )
   print(plots)
   cat("\n")
