@@ -123,8 +123,6 @@ ezMethodFastqScreen_10x <- function(input=NA, output=NA, param=NA,
   
   prepareRmdLib()
   
-  unlink(dirname(taredfiles_R1), recursive=TRUE)
-  
   return("Success")
 }
 
