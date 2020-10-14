@@ -171,7 +171,7 @@ cellsLabelsWithAUC <- function(scData, param) {
     return(NULL)
   tissue <- param$tissue
   tissue = unlist(strsplit(tissue, ","))
-  all_cell_markers <- read.table("/srv/GT/databases/all_cell_markers.txt", sep = "\t", header = TRUE)
+  all_cell_markers <- read.table(" /srv/GT/databases/scGeneSets/all_cell_markers.txt", sep = "\t", header = TRUE)
   filtered_cell_markers <- all_cell_markers[all_cell_markers$speciesType == species & all_cell_markers$tissueType %in% tissue, ]
   expressionMatrix <- GetAssayData(scData, slot = "counts")
   geneSets <- createGeneSets(filtered_cell_markers)
