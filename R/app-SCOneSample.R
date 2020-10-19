@@ -133,7 +133,7 @@ filterCellsAndGenes <- function(sce, param) {
   require(Matrix)
   
   #Cells filtering
-  mito.genes <- grep("^MT-",rowData(sce)$gene_name)
+  mito.genes <- grep("^MT-",rowData(sce)$gene_name, ignore.case = TRUE)
   
   sce <- addPerCellQC(sce, subsets = list(Mito = mito.genes))
   
@@ -177,6 +177,7 @@ cellsLabelsWithAUC <- function(scData, param) {
   geneSets <- createGeneSets(filtered_cell_markers)
   cells_rankings <- AUCell_buildRankings(expressionMatrix, plotStats=FALSE)
   cells_AUC <- AUCell_calcAUC(geneSets, cells_rankings)
+
   return(cells_AUC)
 }
 
