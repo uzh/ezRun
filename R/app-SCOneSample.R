@@ -36,9 +36,12 @@ EzAppSCOneSample <-
                                         all2allMarkers=ezFrame(Type="logical", 
                                                                DefaultValue=FALSE, 
                                                                Description="Run all against all cluster comparisons?"),
-                                        cellsPercentage=ezFrame(Type="numeric", 
+                                        cellsFraction=ezFrame(Type="numeric", 
                                                                 DefaultValue=0.05, 
                                                                 Description="A gene will be kept if it is expressed in at least this percentage of cells"),
+                                        nUMIs=ezFrame(Type="numeric", 
+                                                      DefaultValue=1, 
+                                                      Description='A gene will be kept if it has at least nUMIs in the fraction of cells specified before'),
                                         nmad=ezFrame(Type="numeric", 
                                                      DefaultValue=3, 
                                                      Description="Median absolute deviation (MAD) from the median value of each metric across all cells"),
@@ -155,9 +158,8 @@ filterCellsAndGenes <- function(sce, param) {
   sce <- sce[,!discard]
  
   #Genes filtering
-  num.umis <- 1
   num.cells <- param$cellsPercentage*ncol(sce)     #if we expect at least one rare subpopulation of cells, we should decrease the percentage of cells
-  is.expressed <- Matrix::rowSums(counts(sce) >= num.umis) >= num.cells
+  is.expressed <- Matrix::rowSums(counts(sce) >= param$nUMIs) >= num.cells
   sce <- sce[is.expressed,]
   rowData(sce.unfiltered)$is.expressed <- is.expressed
   
