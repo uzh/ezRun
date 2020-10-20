@@ -13,7 +13,15 @@ ezMethodFastqScreen_10x <- function(input=NA, output=NA, param=NA,
   stopifnot(all(grepl("\\.tar$", sampleDirs)))
   
   taredfiles <- lapply(sampleDirs, untar, list=TRUE)
-  taredfiles_R2 <- sapply(taredfiles, function(x){grep("_R2_", x, value=TRUE) %>% head(1)})
+  if(any(str_detect(unlist(taredfiles), "_R3_"))){
+    ## ATAC has R3 for real data
+    taredfiles_R2 <- sapply(taredfiles,
+                            function(x){grep("_R3_", x, value=TRUE) %>% head(1)})
+  }else if(any(str_detect(unlist(taredfiles), "_R2_"))){
+    ## RNA has R2 for real data
+    taredfiles_R2 <- sapply(taredfiles,
+                            function(x){grep("_R2_", x, value=TRUE) %>% head(1)})
+  }
   for(i in 1:length(sampleDirs)){
     untar(sampleDirs[i], files=taredfiles_R2[i])
   }
@@ -114,8 +122,6 @@ ezMethodFastqScreen_10x <- function(input=NA, output=NA, param=NA,
                     output_dir=".", output_file=htmlFile, quiet=TRUE)
   
   prepareRmdLib()
-  
-  unlink(dirname(taredfiles_R1), recursive=TRUE)
   
   return("Success")
 }

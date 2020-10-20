@@ -28,19 +28,10 @@ EzAppSCMultipleSamplesAndGroups <-
                                                             Description="Choose CellCycle to be regressed out when using the SCTransform method if it is a bias."),
                                         DE.method=ezFrame(Type="charVector", 
                                                           DefaultValue="wilcox", 
-                                                          Description="Method to be used when calculating gene cluster markers. Use LR if you want to include cell cycle in the regression model."),
+                                                          Description="Method to be used when calculating gene cluster markers and differentially expressed genes between conditions. Use LR to take into account the Batch and/or CellCycle"),
                                         DE.regress=ezFrame(Type="charVector", 
-                                                           DefaultValue="Plate", 
+                                                           DefaultValue="Batch", 
                                                            Description="Variables to regress out if the test LR is chosen"),
-                                        chosenClusters=ezFrame(Type="charList",
-                                                               DefaultValue="",
-                                                               Description="The clusters to choose from each sample.In the format of sample1=cluster1,cluster2;sample2=cluster1,cluster2."),
-                                        all2allMarkers=ezFrame(Type="logical",
-                                                               DefaultValue=FALSE, 
-                                                               Description="Run all against all cluster comparisons?"),
-                                        markersToShow=ezFrame(Type="numeric", 
-                                                              DefaultValue=10, 
-                                                              Description="The markers to show in the heatmap of cluster marker genes"),
                                         maxSamplesSupported=ezFrame(Type="numeric", 
                                                               DefaultValue=5, 
                                                               Description="Maximum number of samples to compare"),
@@ -73,6 +64,8 @@ ezMethodSCMultipleSamplesAndGroups = function(input=NA, output=NA, param=NA, htm
   #the individual sce objects can be in hdf5 format (for new reports) or in rds format (for old reports)
   sceURLs <- input$getColumn("Static Report")
   filePath <- file.path("/srv/gstore/projects", sub("https://fgcz-(gstore|sushi).uzh.ch/projects", "",dirname(sceURLs)), "sce_h5")
+  filePath_course <- file.path(paste0("/srv/GT/analysis/course_sushi/public/projects/", input$getColumn("Report"), "/sce_h5"))
+  
   #In case it is in hdf5 format the Seurat object is not stored in the metadata slot, so we have to build it and store it there, since the 
   #clustering functions below work with sce objects and take the seurat object from them.
   if(file.exists(filePath)) {
@@ -82,6 +75,11 @@ ezMethodSCMultipleSamplesAndGroups = function(input=NA, output=NA, param=NA, htm
     sceList <- lapply(sceList, function(sce) {metadata(sce)$scData <- CreateSeuratObject(counts=counts(sce),meta.data=data.frame(colData(sce))) 
     sce})
     #if it is an rds object it has been likely generated from old reports, so we need to update the seurat version before using the clustering functions below.                                             )
+  } else if (file.exists(filePath_course)) {
+    sceList <- lapply(filePath_course,loadHDF5SummarizedExperiment)
+    names(sceList) <- names(sceURLs)
+    sceList <- lapply(sceList, function(sce) {metadata(sce)$scData <- CreateSeuratObject(counts=counts(sce),meta.data=data.frame(colData(sce))) 
+    sce})
   } else {
     filePath <- file.path("/srv/gstore/projects", sub("https://fgcz-(gstore|sushi).uzh.ch/projects", "",dirname(sceURLs)), "sce.rds")
     sceList <- lapply(filePath,readRDS)
@@ -92,7 +90,6 @@ ezMethodSCMultipleSamplesAndGroups = function(input=NA, output=NA, param=NA, htm
   
   
   pvalue_allMarkers <- 0.05
-  pvalue_all2allMarkers <- 0.01
   nrSamples <- length(sceList)
   
   if(ezIsSpecified(param$chosenClusters)){
@@ -110,20 +107,14 @@ ezMethodSCMultipleSamplesAndGroups = function(input=NA, output=NA, param=NA, htm
   if (param$batchCorrection) {
     scData_corrected = cellClustWithCorrection(sceList, param)
     #in order to compute the markers we switch again to the original assay
-    DefaultAssay(scData_corrected) <- "RNA"
+    DefaultAssay(scData_corrected) <- "SCT"
     scData <- scData_corrected
-    scData@reductions$tsne_noCorrected <- Reductions(scData_noCorrected, "tsne")
-    scData@meta.data$ident_noCorrected <- Idents(scData_noCorrected)
   }
+  scData@reductions$tsne_noCorrected <- Reductions(scData_noCorrected, "tsne")
+  scData@meta.data$ident_noCorrected <- Idents(scData_noCorrected)
+  
   #positive cluster markers
   posMarkers <- posClusterMarkers(scData, pvalue_allMarkers, param)
-  
-  #if all2allmarkers are not calculated it will remain as NULL
-  all2allMarkers <- NULL
-  
-  #perform all pairwise comparisons to obtain markers
-  if(doEnrichr(param) && param$all2allMarkers) 
-    all2allMarkers <- all2all(scData, pvalue_all2allMarkers, param)
   
   #Before calculating the conserved markers and differentially expressed genes across conditions I will discard the clusters that were too small in at least one group
   clusters_freq <- data.frame(table(scData@meta.data[,c("Condition","seurat_clusters")]))
@@ -140,7 +131,7 @@ ezMethodSCMultipleSamplesAndGroups = function(input=NA, output=NA, param=NA, htm
   cells_AUC <- NULL
   singler.results <- NULL
   if(param$species == "Human" | param$species == "Mouse") {
-    cells_AUC = cellsLabelsWithAUC(scData, param)
+    #cells_AUC = cellsLabelsWithAUC(scData, param)
     singler.results <- cellsLabelsWithSingleR(GetAssayData(scData, "counts"), Idents(scData), param)
   }
   
@@ -156,7 +147,7 @@ ezMethodSCMultipleSamplesAndGroups = function(input=NA, output=NA, param=NA, htm
   metadata(sce)$param$name <- paste(param$name, paste(input$getNames(), collapse=", "), sep=": ")
   
   #Save some results in external files 
-  saveExternalFiles(sce, list(pos_markers=posMarkers, all2all_markers=all2allMarkers, conserved_markers=consMarkers, differential_genes=diffGenes))
+  saveExternalFiles(sce, list(pos_markers=posMarkers, conserved_markers=consMarkers, differential_genes=diffGenes))
   # rowData(sce) = rowData(sce)[, c("gene_id", "biotypes", "description")]
   
   library(HDF5Array)
