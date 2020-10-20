@@ -59,8 +59,15 @@ if (param$writeIgvSessionLink){
 ### Overview
 
 ```{r overview table, echo=FALSE}
+is.numeric0 <- function(x) {
+  identical(x, numeric(0))
+}
+
 basicStats = ezMatrix(0, rows=samples, cols=c('MappingRate', 'DuplicationRate', 'avgCoverage', 'errorRate', 'insertionRate', 'deletionRate'))
 for (sm in samples){
+    if(any(sapply(resultList[[sm]], is.numeric0))){
+      resultList[[sm]][sapply(resultList[[sm]], is.numeric0)] = 0
+    }
     basicStats[sm, 'MappingRate'] = resultList[[sm]]$mappingRate
     basicStats[sm, 'DuplicationRate'] = resultList[[sm]]$dupRate
     basicStats[sm, 'avgCoverage'] = resultList[[sm]]$avgCoverage

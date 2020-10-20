@@ -294,7 +294,7 @@ runKraken <- function(param, input){
 }
 
 collectBowtie2Output <- function(param, countFiles, readCount, virusResult = F){
-  tax2name = read.table('/srv/GT/reference/RefSeq/mRNA/20150301/Annotation/tax2name.txt',
+  tax2name = read.table(sub( "Sequence.*", "Annotation/tax2name.txt", REFSEQ_mRNA_REF),
                         header=F, stringsAsFactors=F, sep='\t', 
                         colClasses="character", quote='', comment.char="")
   tax2name <- setNames(tax2name[ ,3], tax2name[ ,1])

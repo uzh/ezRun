@@ -8,7 +8,7 @@ REPORT_BANNER_FILE=""
 IGV_TEMPLATE_FILE=""
 
 DEFAULT_DATA_ROOT="/srv/gstore/projects"
-GENOMES_ROOT="/srv/GT/reference:/srv/GT/reference-archive"
+GENOMES_ROOT="/srv/GT/reference:/srv/GT/reference-archive:/srv/GT/assembly"
 SPIKEINS_ROOT="/srv/GT/databases"
 REF_HOST="https://fgcz-gstore.uzh.ch/reference"
 PROJECT_BASE_URL="https://fgcz-gstore.uzh.ch/projects"

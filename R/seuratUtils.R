@@ -251,7 +251,7 @@ posClusterMarkers <- function(scData, pvalue_allMarkers, param) {
   markers <- FindAllMarkers(object=scData, test.use = param$DE.method, only.pos=TRUE, latent.vars = vars.to.regress, return.thresh = pvalue_allMarkers)
   ## Significant markers
   cm <- markers[ ,c("gene","cluster","pct.1", "pct.2", "avg_logFC","p_val_adj")]
-  cm <- cm[cm$p_val_adj < 0.05, ]
+  #cm <- cm[cm$p_val_adj < 0.05, ]
   diff_pct = abs(cm$pct.1-cm$pct.2)
   cm$diff_pct <- diff_pct
   cm <- cm[order(cm$diff_pct, decreasing = TRUE),]
@@ -275,8 +275,13 @@ all2all <- function(scData, pvalue_all2allMarkers, param) {
 
 conservedMarkers <- function(scData) {
   markers <- list()
+  if("SCT" %in% Seurat::Assays(scData)) {
+    assay <- "SCT"
+  } else {
+    assay <- "RNA"
+  }
   for(eachCluster in levels(Idents(scData))){
-    markersEach <- try(FindConservedMarkers(scData, ident.1=eachCluster, grouping.var="Condition", print.bar=FALSE, only.pos=TRUE,silent=TRUE))
+    markersEach <- try(FindConservedMarkers(scData, ident.1=eachCluster, grouping.var="Condition", print.bar=FALSE, only.pos=TRUE, assay = assay, silent=TRUE))
     ## to skip some groups with few cells
     if(class(markersEach) != "try-error" && nrow(markersEach) > 0){
       markers[[eachCluster]] <- as_tibble(markersEach, rownames="gene")
@@ -285,6 +290,10 @@ conservedMarkers <- function(scData) {
   ## some of the cluster have no significant conserved markers
   markers <- markers[sapply(markers, nrow) != 0L] 
   markers <- bind_rows(markers, .id="cluster")
+  fc_fields <- paste0(unique(scData$Condition), "_avg_logFC")
+  avg_fc <- (markers[,fc_fields[1]]+markers[,fc_fields[2]])/2
+  markers$avg_fc <- avg_fc[,1]
+  markers <- markers[order(markers$avg_fc, decreasing = TRUE),]
   
   return(markers)
 }
@@ -295,7 +304,10 @@ diffExpressedGenes <- function(scData) {
   Idents(scData) <- "cluster.condition"
   conditions <- unique(scData@meta.data$Condition)
   
-  diffGenesFns <- c()
+  vars.to.regress = NULL
+  if(param$DE.method == "LR") #regress the plate if the test is LR
+    vars.to.regress <- param$DE.regress
+  
   conditionsComb <- combn(conditions, m=2)
   for(i in 1:ncol(conditionsComb)){
     diffGenes <- list()
@@ -304,7 +316,7 @@ diffExpressedGenes <- function(scData) {
                                                             conditionsComb[1,i]),
                                      ident.2=paste0(eachCluster, "_", 
                                                     conditionsComb[2,i]),
-                                     print.bar=FALSE), silent=TRUE)
+                                     test.use = param$DE.method, latent.vars = vars.to.regress))
       ## to skip some groups with few cells
       if(class(markersEach) != "try-error"){
         diffGenes[[eachCluster]] <- as_tibble(markersEach, rownames="gene")
@@ -312,7 +324,12 @@ diffExpressedGenes <- function(scData) {
     }
     diffGenes <- bind_rows(diffGenes, .id="cluster")
   }
-  diffGenes <- diffGenes[diffGenes$p_val_adj < 0.05, ]
+  
+  diff_pct = abs(diffGenes$pct.1-diffGenes$pct.2)
+  diffGenes$diff_pct <- diff_pct
+  diffGenes <- diffGenes[order(diffGenes$diff_pct, decreasing = TRUE),]
+  rownames(diffGenes) <- NULL
+ # diffGenes <- diffGenes[diffGenes$p_val_adj < 0.05, ]
   
   return(diffGenes)
 }

@@ -63,6 +63,9 @@ doEnrichr = function(param){
 runEnrichr <- function(genes, minScore = 12, maxAdjP = 0.01, minOverlapGenes = 3, softFilter = F, 
                        maxResult = NA, connectionN = 10) {
   geneListResp <- enrichrAddList(genes)
+  if (is.null(geneListResp)){
+    return(list())
+  }
   res <- enrichrEnrich(geneListResp$userListId, connectionN = connectionN)
   failureN <- length(res$failure)
   if (failureN > 0) {
@@ -101,7 +104,8 @@ enrichrAddList <- function(genes) {
   geneStr <- paste(genes, collapse = "\n")
   resp <- POST(reqUrl, body = list(list = geneStr))
   if (http_error(resp)) {
-    stop_for_status(resp, "register the gene list with Enrichr")
+    message_for_status(resp, "register the gene list with Enrichr")
+    return(NULL)
   }
   respParsed <- jsonlite::fromJSON(httr::content(resp, as = "text"))
 

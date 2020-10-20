@@ -438,9 +438,17 @@ if(!(ref %in% unique(ah$species)) | is.na(ref)){
   knitr::knit_exit()
 } else {
   ref.orgdb <- query(ah, c("OrgDb", ref))[[1]]
-  orgSymbols <- keys(ref.orgdb, keytype="SYMBOL")
-  egr <- AnnotationDbi::select(ref.orgdb, keys=orgSymbols, "ENTREZID", "SYMBOL")
-  colnames(egr)[2] <- "entrez_id"
+  if('SYMBOL' %in% keytypes(ref.orgdb)){
+    orgSymbols <- keys(ref.orgdb, keytype="SYMBOL")
+    egr <- AnnotationDbi::select(ref.orgdb, keys=orgSymbols, "ENTREZID", "SYMBOL")
+    colnames(egr)[2] <- "entrez_id"
+  } else if('GENENAME' %in% keytypes(ref.orgdb)){
+    orgSymbols <- keys(ref.orgdb, keytype="GENENAME")
+    egr <- AnnotationDbi::select(ref.orgdb, keys=orgSymbols, "ENTREZID", "GENENAME")
+    colnames(egr) <- c("SYMBOL","entrez_id")
+  } else {
+    knitr::knit_exit()
+  }
 }
 ```
 
