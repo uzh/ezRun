@@ -503,13 +503,14 @@ makeResultFile = function(param, se, useInOutput=TRUE,
   require(DT, quietly=TRUE)
   require(tidyverse)
   require(writexl)
+  library(tidyselect)
   se <- se[useInOutput, ]
   y <- data.frame(rowData(se), row.names=rownames(se),
                  stringsAsFactors=FALSE, check.names=FALSE) %>% as_tibble()
   y <- bind_cols(y, as_tibble(granges(rowRanges(se))))
   y <- y %>% rename(isPresent=isPresentProbe,
                     "log2 Ratio"=log2Ratio) %>%
-    select(-usedInTest)
+    dplyr::select(-usedInTest)
   if(has_name(y, "gfold")){
     y <- y %>% rename("gfold (log2 Change)"=gfold)
   }
@@ -539,7 +540,7 @@ makeResultFile = function(param, se, useInOutput=TRUE,
   useInInteractiveTable <- intersect(useInInteractiveTable, colnames(y))
   tableLink <- str_replace(file, "\\.xlsx$", "-viewTopSignificantGenes.html")
   
-  tableDT <- ezInteractiveTableRmd(select(y, useInInteractiveTable) %>% 
+  tableDT <- ezInteractiveTableRmd(dplyr::select(y, all_of(useInInteractiveTable)) %>% 
                                      head(param$maxTableRows),
                                    digits=3,
                                    title=str_c("Showing the", param$maxTableRows,
