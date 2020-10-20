@@ -396,8 +396,8 @@ ezGSEA <- function(enrichInput){
       tempTable <- enrichRes@result
       if(nrow(tempTable) != 0L){
         tempTable$Description <- Term(GOTERM[tempTable$ID])
-        tempTable$geneName <- sapply(relist(geneid2name[unlist(strsplit(tempTable$geneID, "/"))], 
-                                            strsplit(tempTable$geneID, "/")), paste, collapse="/")
+        tempTable$geneName <- sapply(relist(geneid2name[unlist(strsplit(tempTable$core_enrichment, "/"))], 
+                                            strsplit(tempTable$core_enrichment, "/")), paste, collapse="/")
         enrichRes@result <- tempTable
       }
     }

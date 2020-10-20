@@ -669,7 +669,7 @@ for (onto in names(enrichResult)) {
 #}
 ```
 
-```{r prepare plots, echo=FALSE, message=FALSE, eval=!debug}
+```{r prepare gsea plots, echo=FALSE, message=FALSE, eval=!debug}
 enrichResultGSEAPlots <- list()
 if(exists("enrichResultGSEA")){
   for(onto in names(enrichResultGSEA)){
@@ -726,7 +726,7 @@ if(exists("enrichResultGSEA")){
 }
 ```
 
-```{r tabs with enrichment plots, results='asis', echo = FALSE, fig.height=8, fig.width=8}
+```{r tabs with gsea plots, results='asis', echo = FALSE, fig.height=8, fig.width=8}
 for (onto in names(enrichResultGSEA)) {
   cat("####", onto,"{.tabset}","\n")
       if (is.na(enrichResultGSEA[[onto]][1][[1]])){
