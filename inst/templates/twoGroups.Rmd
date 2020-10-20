@@ -1,5 +1,5 @@
 ---
-title: "`r paste('Two groups analysis:')`"
+title: "`r if (exists('reportTitle')) reportTitle else 'Two Groups Comparison'`"
 author: "Functional Genomics Center Zurich"
 output: 
   html_document:
