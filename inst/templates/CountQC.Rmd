@@ -25,6 +25,7 @@ library(matrixStats)
 library(reshape2)
 library(tidyverse)
 library(ezRun)
+library(writexl)
 ```
 
 ```{r prepare data countQC, include=FALSE}
@@ -146,7 +147,7 @@ if(!is.null(combined$featWidth)){
   combined$featWidth = as.integer(combined$featWidth)
 }
 # Raw counts
-countFile <- paste0(ezValidFilename(param$name), "-raw-count.txt")
+countFile <- paste0(ezValidFilename(param$name), "-raw-count.xlsx")
 counts <- as_tibble(assays(rawData)$counts, rownames="Feature ID")
 if(!is.null(rowData(rawData)$gene_name)){
   counts <- left_join(counts,
@@ -154,10 +155,10 @@ if(!is.null(rowData(rawData)$gene_name)){
                                 rownames="Feature ID"))
   counts <- dplyr::select(counts, "Feature ID", gene_name, everything())
 }
-write_tsv(counts, path=countFile)
+write_xlsx(counts, path=countFile)
 # normalized signal
-signalFile <- paste0(ezValidFilename(param$name), "-normalized-signal.txt")
-ezWrite.table(combined, file=signalFile, head="Feature ID", digits=4)
+signalFile <- paste0(ezValidFilename(param$name), "-normalized-signal.xlsx")
+write_xlsx(combined, file=signalFile, head="Feature ID", digits=4)
 
 selectSignals = grepl("Signal", colnames(combined))
 combined$"Mean signal" = rowMeans(combined[, selectSignals], na.rm=TRUE)
@@ -197,9 +198,9 @@ if(!is.null(rowData(rawData)$gene_name)){
                               rownames="Feature ID"))
   rpkm <- dplyr::select(rpkm, "Feature ID", gene_name, everything())
 }
-write_tsv(rpkm, path=rpkmFile)
+write_xlsx(rpkm, path=rpkmFile)
 
-tpmFile <- paste0(ezValidFilename(param$name), "-tpm.txt")
+tpmFile <- paste0(ezValidFilename(param$name), "-tpm.xlsx")
 tpm <- as_tibble(getTpm(rawData), rownames="Feature ID")
 if(!is.null(rowData(rawData)$gene_name)){
   tpm <- left_join(tpm,
@@ -207,14 +208,8 @@ if(!is.null(rowData(rawData)$gene_name)){
                              rownames="Feature ID"))
   tpm <- dplyr::select(tpm, "Feature ID", gene_name, everything())
 }
-write_tsv(tpm, path=tpmFile)
+write_xlsx(tpm, path=tpmFile)
 
-dataFiles <- c(countFile, signalFile, rpkmFile, tpmFile, tableLink)
-if(isTRUE(param$doZip)){
-  dataFiles2Remove <- dataFiles
-  dataFiles <- sapply(dataFiles, zipFile)
-  file.remove(dataFiles2Remove)
-}
 ```
 
 ```{r add data files link, echo=FALSE, results='asis', message=FALSE}
