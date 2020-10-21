@@ -17,6 +17,9 @@ loadCountDataset <- function(input, param){
   stopifnot(length(dataFeatureLevel) == 1)
   
   x1 <- read_tsv(files[1], guess_max=1e6,  col_types = cols())
+  ## col type messages are suppressed by col_types = cols()
+  ## Alternatively: The message is triggered by readr:::show_cols_spec. 
+  ##To suppress the message, put this at the top of your script: options(readr.num_columns = 0)
   
   if (ezIsSpecified(param$expressionName)){
     columnName <- param$expressionName
