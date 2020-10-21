@@ -213,7 +213,7 @@ write_xlsx(tpm, path=tpmFile)
 ```
 
 ```{r add data files link, echo=FALSE, results='asis', message=FALSE}
-for(each in dataFiles){
+for(each in c(countFile, signalFile, rpkmFile, tpmFile)){
   cat("\n")
   cat(paste0("[", each, "](", each, ")"))
   cat("\n")
