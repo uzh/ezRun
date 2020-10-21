@@ -158,7 +158,7 @@ if(!is.null(rowData(rawData)$gene_name)){
 write_xlsx(counts, path=countFile)
 # normalized signal
 signalFile <- paste0(ezValidFilename(param$name), "-normalized-signal.xlsx")
-write_xlsx(combined, file=signalFile, head="Feature ID", digits=4)
+write_xlsx(combined, path=signalFile)
 
 selectSignals = grepl("Signal", colnames(combined))
 combined$"Mean signal" = rowMeans(combined[, selectSignals], na.rm=TRUE)
