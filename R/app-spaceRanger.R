@@ -33,6 +33,11 @@ ezMethodSpaceRanger <- function(input=NA, output=NA, param=NA){
     # This is new .tar folder
     lapply(sampleDirs, untar)
     sampleDirs <- sub("\\.tar$", "", basename(sampleDirs))
+    sampleFns <- list.files(sampleDirs, pattern="\\.gz$", full.names=TRUE)
+    sampleFnsNew <- file.path(dirname(sampleFns),
+                              str_replace(basename(sampleFns), 
+                                          str_c("^.*", sampleName), sampleName))
+    file.rename(sampleFns, sampleFnsNew)
   }
   sampleDir <- paste(sampleDirs, collapse=",")
   spaceRangerFolder <- str_sub(sampleName, 1, 45) %>% str_c("-spaceRanger")
