@@ -16,7 +16,7 @@ loadCountDataset <- function(input, param){
   dataFeatureLevel <- unique(input$getColumn("featureLevel"))
   stopifnot(length(dataFeatureLevel) == 1)
   
-  x1 <- read_tsv(files[1], guess_max=1e6)
+  x1 <- read_tsv(files[1], guess_max=1e6,  col_types = cols())
   
   if (ezIsSpecified(param$expressionName)){
     columnName <- param$expressionName
@@ -33,7 +33,7 @@ loadCountDataset <- function(input, param){
   
   x <- mapply(function(x, y){
     message("loading file: ", x)
-    tempTibble <- read_tsv(x, progress=FALSE, guess_max=1e6)
+    tempTibble <- read_tsv(x, progress=FALSE, guess_max=1e6, col_types = cols())
     tempTibble %>%
       dplyr::select(identifier, columnName) %>%
       dplyr::rename("id":= 1, !! y := columnName)
