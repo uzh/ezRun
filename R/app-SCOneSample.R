@@ -158,7 +158,7 @@ filterCellsAndGenes <- function(sce, param) {
   sce <- sce[,!discard]
  
   #Genes filtering
-  num.cells <- param$cellsPercentage*ncol(sce)     #if we expect at least one rare subpopulation of cells, we should decrease the percentage of cells
+  num.cells <- param$cellsFraction*ncol(sce)     #if we expect at least one rare subpopulation of cells, we should decrease the percentage of cells
   is.expressed <- Matrix::rowSums(counts(sce) >= param$nUMIs) >= num.cells
   sce <- sce[is.expressed,]
   rowData(sce.unfiltered)$is.expressed <- is.expressed
