@@ -177,7 +177,7 @@ combined = combined[order(combined$"Maximum signal", decreasing = TRUE), ,
 useInInteractiveTable = c("seqid", "gene_name", "Maximum signal", 
                           "Mean signal", "description", "featWidth", "gc")
 useInInteractiveTable = intersect(useInInteractiveTable, colnames(combined))
-tableLink = sub(".txt", "-viewHighExpressionGenes.html", signalFile)
+tableLink = sub(".xlsx", "-viewHighExpressionGenes.html", signalFile)
 ## select top genes
 combinedTopGenes = combined[which(rownames(combined) %in% topGenes),]
 ## restrict number of table rows if necessary
@@ -190,7 +190,7 @@ ezInteractiveTable(interactiveTable, tableLink=tableLink, digits=3,
                    title=paste("Showing the top", nRows, 
                                "genes with the highest expression"))
 
-rpkmFile <- paste0(ezValidFilename(param$name), "-rpkm.txt")
+rpkmFile <- paste0(ezValidFilename(param$name), "-rpkm.xlsx")
 rpkm <- as_tibble(getRpkm(rawData), rownames="Feature ID")
 if(!is.null(rowData(rawData)$gene_name)){
   rpkm <- left_join(rpkm,
@@ -213,7 +213,7 @@ write_xlsx(tpm, path=tpmFile)
 ```
 
 ```{r add data files link, echo=FALSE, results='asis', message=FALSE}
-for(each in c(countFile, signalFile, rpkmFile, tpmFile)){
+for(each in c(countFile, signalFile, rpkmFile, tpmFile, tableLink)){
   cat("\n")
   cat(paste0("[", each, "](", each, ")"))
   cat("\n")
