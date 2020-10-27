@@ -456,8 +456,7 @@ if(!(ref %in% unique(ah$species)) | is.na(ref)){
 resultLoaded <- read_excel(resultFile$resultFile)
 resultMetaCore <- resultLoaded %>% filter(isPresent, pValue <= param$pValThreshGO) %>%
     dplyr::left_join(egr, by = c("gene_name"="SYMBOL")) %>%
-    dplyr::select(gene_name, gene_id, transcript_id,
-                  entrez_id, "log2 Ratio", pValue, fdr)
+    dplyr::select(gene_id, entrez_id, "log2 Ratio", pValue)
 ```
 
 ```{r metacore export, echo=FALSE, message=FALSE, eval=TRUE}
@@ -472,7 +471,7 @@ Using MetaCore requires an account. One can be obtained by emailing <sequencing@
  
  2. [Go to the MetaCore website](https://portal.genego.com)
  
- 3. Upload the Expression File to MetaCore, selecting three columns: Gene ID, p-value, log ratio 
+ 3. Upload the Expression File to MetaCore, selecting three columns: Gene ID, log ratio, and p-value 
  
  4. Select `Pathway Maps` from the `One-click Analysis` tab. 
 
@@ -484,15 +483,12 @@ MetaCore is a powerful pathway and systems analysis tool. It has a curated datab
 When uploading the data into MetaCore, select three columns:
 
 * A gene identifier, pick **one** of:
-  + HGNC gene symbols -- `Gene symbol (with aliases)` from the `Type` drop down menu
-  + Ensembl Gene IDs -- `ENSEMBL IDs` 
-  + Entrez Gene IDs -- `EntrezGene (LocusLink) IDs`
+  + For human, mouse, or rat, use Ensembl Gene IDs -- `ENSEMBL IDs` 
+  + For any other species, use Entrez Gene IDs -- `EntrezGene (LocusLink) IDs`
   
 * Log fold changes of the genes -- `log ratio` 
 
-* *P* values, **either**:
-  + Raw *p* values if you have fewer DEGs -- `P-value`
-  + FDR-corrected *p* values if you have more DEGs -- `P-value`
+* *P* value. This is the raw p-value, so you may want to apply a threshold. 
 
 You must ensure that the data type drop-down menu above each column is correct. 
 
@@ -647,6 +643,20 @@ if(exists("enrichResult")){
 }
 ```
 
+#### Overview 
+```{r ora overview, echo=F, message=F, eval=!debug}
+ora.overview = ezFrame("Number of Significant Pathways"=numeric())
+for (i in 1:length(names(enrichResult))){
+  for (j in 1:length(names(enrichResult[[i]]))){
+            testName = paste0(names(enrichResult)[i],": ",names(enrichResult[[i]])[j])
+            ora.overview[testName, "Number of Significant Pathways"] = nrow(enrichResult[[i]][[j]]@result)
+  }
+}
+
+kable(format(ora.overview, digits=3, scientific=-2), "html", caption=paste("Hypergeometric Over-representation Test:")) %>%
+            kable_styling(bootstrap_options = "striped", full_width = F, position = "left")
+```
+
 ```{r tabs with ora plots, results='asis', echo = FALSE, fig.height=8, fig.width=8, fig.align = "left"}
 for (onto in names(enrichResult)) {
   cat("####", onto,"{.tabset}","\n")
@@ -733,6 +743,19 @@ if(exists("enrichResultGSEA")){
       }
   }
 }
+```
+
+#### Overview 
+```{r gsea overview, echo=F, message=F, eval=!debug}
+gsea.overview = ezFrame("Number of Significant Pathways"=numeric())
+for (i in 1:length(names(enrichResultGSEA))){
+            testName = paste(names(enrichResultGSEA)[i])
+            gsea.overview[testName, "Number of Significant Pathways"] = nrow(enrichResultGSEA[[i]]@result)
+}
+
+kable(format(gsea.overview, digits=3, scientific=-2), "html", caption=paste("GSEA:")) %>%
+            kable_styling(bootstrap_options = "striped", full_width = F, position = "left")
+
 ```
 
 ```{r tabs with gsea plots, results='asis', echo = FALSE, fig.height=8, fig.width=8}
