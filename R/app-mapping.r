@@ -505,10 +505,19 @@ ezMethodBWA = function(input=NA, output=NA, param=NA){
   file.remove(trimmedInput$getColumn("Read1"))
   if(param$paired)
     file.remove(trimmedInput$getColumn("Read2"))
-  
-  ezSortIndexBam("aligned.bam", basename(bamFile), ram=param$ram, removeBam=TRUE,
-                 cores=param$cores)
-  
+
+  if (!is.null(param$markDuplicates) && param$markDuplicates){
+    ezSortIndexBam("aligned.bam", "sorted.bam", ram=param$ram, removeBam=TRUE,
+                   cores=param$cores)
+    dupBam(inBam="sorted.bam", outBam=basename(bamFile),
+           operation="mark", program="picard", cores=param$cores)
+    file.remove("sorted.bam")
+  }else{
+    ezSortIndexBam("aligned.bam", basename(bamFile), ram=param$ram, 
+                   removeBam=TRUE, cores=param$cores)
+  }
+    
+
   ## write an igv link
   if (param$writeIgvLink){ 
     if ("IGV" %in% output$colNames){
@@ -623,7 +632,8 @@ EzAppBWA <-
                   runMethod <<- ezMethodBWA
                   name <<- "EzAppBWA"
                   appDefaults <<- rbind(algorithm=ezFrame(Type="character",  DefaultValue="mem",  Description="bwa's alignment algorithm. One of aln, bwasw, mem."),
-                                        writeIgvSessionLink=ezFrame(Type="logical", DefaultValue="TRUE", Description="should an IGV link be generated"))
+                                        writeIgvSessionLink=ezFrame(Type="logical", DefaultValue="TRUE", Description="should an IGV link be generated"),
+                                        markDuplicates=ezFrame(Type="logical", DefaultValue="TRUE", Description="should duplicates be marked with sambamba"))
                 }
               )
   )
