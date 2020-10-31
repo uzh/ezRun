@@ -29,8 +29,7 @@
 ##' buildIgvGenome(param$ezRef)
 ##' seqAnno = writeAnnotationFromGtf(param=param)
 ## featureFile=param$ezRef["refFeatureFile"], featAnnoFile=param$ezRef["refAnnotationFile"])
-EzRef = setClass("EzRef",
-                 slots = c(refBuild="character",
+setClass("EzRef", slots = c(refBuild="character",
                            refBuildName="character",
                            refBuildDir="character",
                            refIndex="character",
@@ -43,75 +42,76 @@ EzRef = setClass("EzRef",
                  )
 
 ##' @describeIn EzRef Initializes the slots of EzRef. It will also try to specify some fields and if necessary get full file paths.
-setMethod("initialize", "EzRef", function(.Object, param=list()){
-  #   if (!ezIsSpecified(param$refBuild)){
-  #     return(.Object)
-  #   }
-  genomesRoot = strsplit(GENOMES_ROOT, ":")[[1]]
-  .Object@refBuild = param$refBuild
-  refFields = strsplit(.Object@refBuild, "/", fixed=TRUE)[[1]]
+EzRef <- function(param){
+  if(ezIsSpecified(param$genomesRoot)){
+    genomesRoot <- param$genomesRoot
+  }else{
+    genomesRoot <- strsplit(GENOMES_ROOT, ":")[[1]]
+  }
+  refBuild <- param$refBuild
+  refFields <- str_split(refBuild, fixed("/"))[[1]]
   if (ezIsSpecified(param$refBuildName)){
-    .Object@refBuildName = param$refBuildName
+    refBuildName <- param$refBuildName
   } else {
-    .Object@refBuildName = refFields[3]
+    refBuildName <- refFields[3]
   }
   if (ezIsSpecified(param$refBuildDir)){
-    .Object@refBuildDir = param$refBuildDir
+    refBuildDir <- param$refBuildDir
   } else {
     for (gr in genomesRoot){
       stopifnot(file.exists(gr))
-      rbd = file.path(gr, paste(refFields, collapse="/"))
+      rbd <- file.path(gr, paste(refFields, collapse="/"))
       if (file.exists(rbd)){
         break
       }
     }
-    .Object@refBuildDir = file.path(gr, paste(refFields[1:3], collapse="/"))
+    refBuildDir <- file.path(gr, str_c(refFields[1:3], collapse="/"))
   }
-  .Object@refVariantsDir = file.path(.Object@refBuildDir, "Variants")
-  if (length(refFields) == 5 && grepl("^Version|^Release", refFields[5])){
-    .Object@refAnnotationVersion = refFields[5]
+  refVariantsDir <- file.path(refBuildDir, "Variants")
+  if (length(refFields) == 5 && str_detect(refFields[5], "^Version|^Release")){
+    refAnnotationVersion <- refFields[5]
   } else {
-    .Object@refAnnotationVersion = ""
+    refAnnotationVersion <- ""
   }
-  if (ezIsSpecified(param$refIndex)){
-    .Object@refIndex = param$refIndex
-  } else {
-    .Object@refIndex = ""
+  if(ezIsSpecified(param$refIndex)){
+    refIndex <- param$refIndex
+  }else{
+    refIndex <- ""
   }
-  if (ezIsAbsolutePath(param$refFeatureFile)){
-    .Object@refFeatureFile = param$refFeatureFile
-  } else {
-    if (ezIsSpecified(.Object@refAnnotationVersion)){
-      .Object@refFeatureFile =  file.path(.Object@refBuildDir, "Annotation", .Object@refAnnotationVersion, "Genes", param$refFeatureFile)
-    } else {
-      .Object@refFeatureFile =  file.path(.Object@refBuildDir, "Annotation", "Genes", param$refFeatureFile)
+  if(ezIsAbsolutePath(param$refFeatureFile)){
+    refFeatureFile <- param$refFeatureFile
+  }else{
+    if(ezIsSpecified(refAnnotationVersion)){
+      refFeatureFile <- file.path(refBuildDir, "Annotation", 
+                                  refAnnotationVersion, "Genes",
+                                  param$refFeatureFile)
+    }else{
+      refFeatureFile <-  file.path(refBuildDir, "Annotation", "Genes",
+                                   param$refFeatureFile)
     }
   }
-  if (ezIsAbsolutePath(param$refAnnotationFile)){
-    .Object@refAnnotationFile = param$refAnnotationFile
-  } else {
-    annoBaseName = sub(".gtf$", "", basename(.Object@refFeatureFile))
-    annoBaseName = sub("_.*", "", annoBaseName) ## remove optional subsetting suffixes
-    annoBaseName = paste0( annoBaseName, "_annotation_byTranscript.txt")
-    .Object@refAnnotationFile = file.path(dirname(.Object@refFeatureFile), annoBaseName)
+  if(ezIsAbsolutePath(param$refAnnotationFile)){
+    refAnnotationFile <- param$refAnnotationFile
+  }else{
+    annoBaseName <- str_replace(basename(refFeatureFile), "\\.gtf$", "")
+    annoBaseName <- str_replace(annoBaseName, "_.*", "")
+    annoBaseName <- str_c(annoBaseName, "_annotation_byTranscript.txt")
+    refAnnotationFile <- file.path(dirname(refFeatureFile), annoBaseName)
   }
-  if (ezIsAbsolutePath(param$refFastaFile)){
-    .Object@refFastaFile = param$refFastaFile
-  } else {
-    .Object@refFastaFile =  file.path(.Object@refBuildDir, param$refFastaFile)
+  if(ezIsAbsolutePath(param$refFastaFile)){
+    refFastaFile <- param$refFastaFile
+  }else{
+    refFastaFile <- file.path(refBuildDir, param$refFastaFile)
   }
-  if (file.exists(.Object@refFastaFile) && !file.exists(paste0(.Object@refFastaFile, ".fai"))){  ## it should be there but some old builds may lack the fai file.
-    cmd = paste("samtools", "faidx", .Object@refFastaFile) # create the .fai file
-    ezSystem(cmd)
-  }
-#   if (ezIsAbsolutePath(param$refChromDir)){
-#     .Object@refChromDir = param$refChromDir
-#   } else {
-#     .Object@refChromDir =  file.path(.Object@refBuildDir, "Sequence/Chromosomes")
-#   }
-  .Object@refChromSizesFile =  sub(".fa$", "-chromsizes.txt", .Object@refFastaFile)
-  return(.Object)
-})
+  refChromSizesFile <- str_replace(refFastaFile, "\\.fa$", "-chromsizes.txt")
+  
+  new("EzRef", refBuild=refBuild, refBuildName=refBuildName,
+      refBuildDir=refBuildDir, refVariantsDir=refVariantsDir,
+      refAnnotationVersion=refAnnotationVersion, refIndex=refIndex,
+      refAnnotationFile=refAnnotationFile, refFeatureFile=refFeatureFile,
+      refFastaFile=refFastaFile, refChromSizesFile=refChromSizesFile
+      )
+}
 
 ##' @describeIn EzRef Access of slots by name with square brackets [ ]
 setMethod("[", "EzRef", function(x, i){
@@ -124,44 +124,30 @@ setMethod("[<-", "EzRef", function(x, i, value){
   x
 })
 
+## TODO: Ge thinks this function can definitely be improved.
+getOrganism <- function(x){
+  strsplit(x@refBuild, "/")[[1]][1]
+}
 
-setGeneric("getOrganism", function(.Object){
-  standardGeneric("getOrganism")
-})
-##' @describeIn EzRef Gets the organism name from the reference build.
-setMethod("getOrganism", "EzRef", function(.Object){
-  strsplit(.Object@refBuild,"/")[[1]][1]
-})
-
-setGeneric("buildRefDir", function(.Object, genomeFile, genesFile, genomesRoot = "."){
-  standardGeneric("buildRefDir")
-})
-##' @describeIn EzRef Builds the reference directory and copies the annotation and fasta file into the right folders.
-setMethod("buildRefDir", "EzRef", function(.Object, genomeFile, genesFile, 
-                                           genomesRoot = "."){
-  buildRefDirFun(.Object, genomeFile, genesFile, genomesRoot)
-})
-
-buildRefDirFun <- function(x, genomeFile, genesFile, genomesRoot="."){
+buildRefDir <- function(x, genomeFile, genesFile){
+  # x is EzRef object
   require(rtracklayer)
-  cd = getwd()
-  on.exit(setwd(cd))
-  setwdNew(genomesRoot)
+  require(Biostrings)
   
-  gtfPath = dirname(x@refFeatureFile)
-  fastaPath = dirname(x@refFastaFile)
+  gtfPath <- dirname(x@refFeatureFile)
+  fastaPath <- dirname(x@refFastaFile)
   dir.create(gtfPath, recursive=TRUE)
   dir.create(fastaPath, recursive=TRUE)
-  if (!is.null(x@refAnnotationVersion)){
-    ezSystem(paste("cd", file.path(x@refBuildDir, "Annotation"), 
-                   "; rm -f Genes; ", "ln -s",
-                   file.path(x@refAnnotationVersion, "Genes"), "Genes"))
+  if(!is.null(x@refAnnotationVersion)){
+    unlink(file.path(x@refBuildDir, "Annotation", "Genes"), recursive = TRUE)
+    file.symlink(file.path(x@refAnnotationVersion, "Genes"),
+                 file.path(x@refBuildDir, "Annotation", "Genes"))
   }
   
   ## fasta
-  genome <- readBStringSet(genomeFile) #BString for lower cased softmasked repeats
+  genome <- readBStringSet(genomeFile)
   ### remove everything after chr id
-  names(genome) = sub(" .*", "", names(genome))
+  names(genome) <- str_c(names(genome), " .*", "")
   writeXStringSet(genome, x@refFastaFile)
   
   ## 2 GTF files: 
