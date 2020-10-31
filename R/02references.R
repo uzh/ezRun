@@ -133,6 +133,7 @@ buildRefDir <- function(x, genomeFile, genesFile){
   # x is EzRef object
   require(rtracklayer)
   require(Biostrings)
+  require(Rsamtools)
   
   gtfPath <- dirname(x@refFeatureFile)
   fastaPath <- dirname(x@refFastaFile)
@@ -147,7 +148,7 @@ buildRefDir <- function(x, genomeFile, genesFile){
   ## fasta
   genome <- readBStringSet(genomeFile)
   ### remove everything after chr id
-  names(genome) <- str_c(names(genome), " .*", "")
+  names(genome) <- str_replace(names(genome), " .*$", "")
   writeXStringSet(genome, x@refFastaFile)
   
   ## 2 GTF files: 
@@ -166,8 +167,8 @@ buildRefDir <- function(x, genomeFile, genesFile){
     }
   }
   #### GENCODE.gtf: remove the version number from gene_id, transcript_id but keep additional information if available, e.g. ENST00000429181.6_PAR_Y -> ENST00000429181_PAR_Y
-  gtf$gene_id <- sub("\\.[0-9]*", "", gtf$gene_id)
-  gtf$transcript_id <- sub("\\.[0-9]*", "", gtf$transcript_id)
+  gtf$gene_id <- str_replace(gtf$gene_id, "\\.\\d+", "")
+  gtf$transcript_id <- str_replace(gtf$transcript_id, "\\.\\d+", "")
   
   if(is.null(gtf$gene_name)){
     message("gene_name is not available in gtf. Assigning gene_id.")
@@ -178,19 +179,18 @@ buildRefDir <- function(x, genomeFile, genesFile){
   ### genes.gtf
   export(gtf[gtf$gene_biotype %in% listBiotypes("genes")],
          con=file.path(gtfPath, "genes.gtf"))
+
+  indexFa(x@refFastaFile)
   
-  cmd = paste("samtools", "faidx", x@refFastaFile) # create the .fai file
-  ezSystem(cmd)
   ## create the chromsizes file
-  fai = ezRead.table(paste0(x@refFastaFile, ".fai"), header =FALSE, row.names=NULL)
-  ezWrite.table(fai[ ,1:2], x@refChromSizesFile, row.names = FALSE, col.names = FALSE)
+  fai <- read_tsv(str_c(x@refFastaFile, ".fai"), col_names = FALSE)
+  write_tsv(fai %>% select(1:2), file = x@refChromSizesFile, col_names = FALSE)
   
-  dictFile = sub(".fa$", ".dict", x@refFastaFile)
-  if (file.exists(dictFile)){
-    file.remove(dictFile)
-  }
-  cmd = paste(preparePicard(), "CreateSequenceDictionary",
-              paste0("R=", x@refFastaFile), paste0("O=", dictFile))
+  dictFile <- str_replace(x@refFastaFile, "\\.fa$", ".dict")
+  file.remove(dictFile)
+
+  cmd <- paste(preparePicard(), "CreateSequenceDictionary",
+               paste0("R=", x@refFastaFile), paste0("O=", dictFile))
   ezSystem(cmd)
 }
 
