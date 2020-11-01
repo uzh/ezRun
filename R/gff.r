@@ -491,7 +491,6 @@ getTranscriptGcAndWidth = function(param=NULL, genomeFn=NULL, featureFn=NULL){
   require(data.table)
   require(Biostrings)
   require(GenomicRanges)
-  require(stringr)
   require(Rsamtools)
   require(rtracklayer)
   

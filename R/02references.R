@@ -233,7 +233,7 @@ listBiotypes <- function(select=c("genes", "protein_coding", "long_noncoding",
             "RNase_MRP_RNA", "RNase_P_RNA", "rRNA",
             "snlRNA", "snoRNA", 
             "snRNA", "SRP_RNA", "tmRNA", "tRNA", 
-            "scaRNA", "scRNA", "sRNA", "ribozyme", "vaultRNA")
+            "scaRNA", "scRNA", "sRNA", "ribozyme", "vaultRNA", "vault_RNA")
   unionBiotypes <- unique(c(proteinCoding, pseudogene, lnc, shnc))
   ## genes.gtf
   genes <- unique(c(setdiff(unionBiotypes, pseudogene),
