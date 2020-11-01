@@ -10,8 +10,6 @@ ezFeatureAnnotation = function(param, ids=NULL,
                                                  "isoform")){
   require(data.table)
   require(rtracklayer)
-  require(tibble)
-  require(readr)
   dataFeatureType <- match.arg(dataFeatureType)
   if(is.list(param)){
     featAnnoFn <- param$ezRef["refAnnotationFile"]
@@ -156,10 +154,9 @@ makeFeatAnnoEnsembl <- function(featureFile,
                      seqid=as.character(seqnames(transcripts)),
                      start=start(transcripts),
                      end=end(transcripts),
-                     biotypes=transcripts$gene_biotype,
-                     gc=gw$gc[transcripts$transcript_id],
-                     featWidth=gw$featWidth[transcripts$transcript_id]
-                     )
+                     biotypes=transcripts$gene_biotype)
+  featAnno <- left_join(featAnno, gw)
+  
   ## The numeric columns should not have NAs
   stopifnot(!featAnno %>% dplyr::select(start, end, gc, featWidth) %>% 
               is.na() %>% any())
