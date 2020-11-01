@@ -9,7 +9,7 @@ Description: An environment that makes it easy to process data by using R
     packages and external tools.
 License: GPL-3 | file LICENSE
 Depends:
-    stats,methods,utils,data.table,Biostrings,GenomicRanges
+    stats,methods,utils,data.table,tidyverse
 Imports:
 Suggests:
     testthat, knitr, gage, goseq, ChIPpeakAnno, DESeq2, TEQC,
@@ -20,7 +20,7 @@ Suggests:
     GenomicRanges, ShortRead, Gviz, gplots, GO.db, GOstats, annotate,
     bitops, edgeR, limma, S4Vectors, VariantAnnotation, rmarkdown, plotly,
     kableExtra, htmlwidgets, RSelenium, webshot, clusterProfiler, dupRadar,
-    scran, writexl
+    scran, writexl, zip
 SystemRequirements:
 VignetteBuilder: knitr
 RoxygenNote: 7.0.0
