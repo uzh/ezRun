@@ -124,9 +124,8 @@ setMethod("[<-", "EzRef", function(x, i, value){
   x
 })
 
-## TODO: Ge thinks this function can definitely be improved.
 getOrganism <- function(x){
-  strsplit(x@refBuild, "/")[[1]][1]
+  str_split(x@refBuild, "/")[[1]][1]
 }
 
 buildRefDir <- function(x, genomeFile, genesFile){
@@ -257,27 +256,23 @@ listBiotypes <- function(select=c("genes", "protein_coding", "long_noncoding",
   return(types)
 }
 
-## should be called after buildRefDir created the folder structure with genes.gtf and genome.fa
-setGeneric("buildIgvGenome", function(.Object){
-  standardGeneric("buildIgvGenome")
-})
-##' @describeIn EzRef Builds the IGV genome.
-setMethod("buildIgvGenome", "EzRef", function(.Object){
+buildIgvGenome <- function(x){
+  require(Biostrings)
+  # x is a EzRef object
   
   ## create transcript.only.gtf
-  gtfFile = .Object@refFeatureFile
-  genomeFile = .Object@refFastaFile
-  genomeFileURL <- paste0(REF_HOST, 
-                         sub(strsplit(GENOMES_ROOT, ":")[[1]][1], "", 
-                             genomeFile, fixed=TRUE))
+  gtfFile <- x@refFeatureFile
+  genomeFile <- x@refFastaFile
+  genomeFileURL <- file.path(REF_HOST, str_replace(x@refBuild, "/Annotation.*$", ""),
+                             str_replace(genomeFile, "^.*/Sequence", "Sequence"))
   stopifnot(file.exists(gtfFile))
   stopifnot(file.exists(genomeFile))
-  trxFile = file.path(.Object@refBuildDir, "transcripts.only.gtf")
+  trxFile <- file.path(x@refBuildDir, "transcripts.only.gtf")
   tryCatch({
-    gtf = ezLoadFeatures(featureFile=gtfFile, types="exon")
-    transcriptGtf = groupGff(gtf, grouping=gtf$transcript_id, type="transcript")
-    transcriptGtf$attributes = ezBuildAttributeField(transcriptGtf[ , c("transcript_id", "gene_id", "gene_name")])
-    transcriptGtf = transcriptGtf[ order(transcriptGtf$seqid, transcriptGtf$start, transcriptGtf$end), ]
+    gtf <- ezLoadFeatures(featureFile=gtfFile, types="exon")
+    transcriptGtf <- groupGff(gtf, grouping=gtf$transcript_id, type="transcript")
+    transcriptGtf$attributes <- ezBuildAttributeField(transcriptGtf[ , c("transcript_id", "gene_id", "gene_name")])
+    transcriptGtf <- transcriptGtf[order(transcriptGtf$seqid, transcriptGtf$start, transcriptGtf$end), ]
     ezWriteGff(transcriptGtf, trxFile)
   }, error=function(e){
     message("Could not load features. Copy the annotation file instead.")
@@ -285,39 +280,36 @@ setMethod("buildIgvGenome", "EzRef", function(.Object){
   })
   
   ## sort and index genes.gtf
-  sortedGtfFile = file.path(dirname(gtfFile), "genes.sorted.gtf")
-  cmd = paste("igvtools", "sort", gtfFile, sortedGtfFile)
+  sortedGtfFile <- file.path(dirname(gtfFile), "genes.sorted.gtf")
+  cmd <- paste("igvtools", "sort", gtfFile, sortedGtfFile)
   ezSystem(cmd)
-  cmd = paste("igvtools", "index", sortedGtfFile)
+  cmd <- paste("igvtools", "index", sortedGtfFile)
   ezSystem(cmd)
   
   ## make chrom_alias.tab
-  chromFile = file.path(.Object@refBuildDir, "chrom_alias.tab")
-  cmd = paste('grep ">"', genomeFile, '| sed "s/>//" >', chromFile)
-  ezSystem(cmd)
+  chromFile <- file.path(x@refBuildDir, "chrom_alias.tab")
+  write_lines(fasta.index(genomeFile)$desc, chromFile)
   
   ## make property.txt
-  propertyFile = file.path(.Object@refBuildDir, "property.txt")
-  id = .Object@refBuildName
-  name = paste(getOrganism(.Object), id, sep="_")
-  properties = c("fasta=true", "fastaDirectory=false", "ordered=true")
-  properties = c(properties, 
-                 paste0("id=", id), 
-                 paste0("name=", name), 
-                 paste0("sequenceLocation=", genomeFileURL))
-  properties = c(properties, "geneFile=transcripts.only.gtf", 
+  propertyFile <- file.path(x@refBuildDir, "property.txt")
+  id <- x@refBuildName
+  name <- str_c(getOrganism(x), id, sep="_")
+  properties <- c("fasta=true", "fastaDirectory=false", "ordered=true")
+  properties <- c(properties, str_c("id=", id), str_c("name=", name), 
+                  str_c("sequenceLocation=", genomeFileURL))
+  properties <- c(properties, "geneFile=transcripts.only.gtf", 
                  "chrAliasFile=chrom_alias.tab")
-  writeLines(properties, con=propertyFile)
+  write_lines(properties, propertyFile)
   
   ## make zip file and clean up
-  zipFile = paste0("igv_", id, ".genome")
-  filesToZip = c(trxFile, chromFile, propertyFile)
-  cd = getwd()
-  setwd(.Object@refBuildDir)
-  zipFile(basename(filesToZip), zipFile)
+  zipFile <- paste0("igv_", id, ".genome")
+  filesToZip <- c(trxFile, chromFile, propertyFile)
+  cd <- getwd()
+  setwd(x@refBuildDir)
+  zip::zip(zipFile, basename(filesToZip))
   setwd(cd)
   unlink(filesToZip)
-})
+}
 
 ### -----------------------------------------------------------------
 ### Fetch the control sequences from https://fgcz-gstore.uzh.ch/reference/controlSeqs.fa
