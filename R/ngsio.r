@@ -108,7 +108,8 @@ loadCountDataset <- function(input, param){
                                  biotypes="protein_coding",
                                  description=x1[[identifier]],
                                  start=1, end=100, gc=NA, featWidth=NA,
-                                 "GO BP"="", "GO CC"="", "GO MF"="")
+                                 "GO BP"="", "GO CC"="", "GO MF"="",
+                                 check.names = FALSE)
   if(any(colnames(x1) %in% c('GeneID', 'Chr', 'Start', 'End', 'Strand'))){
     x1 <- rename(x1, gene_id=GeneID, seqid=Chr, start=Start, end=End,
                  strand=Strand)
