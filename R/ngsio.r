@@ -8,9 +8,6 @@
 loadCountDataset <- function(input, param){
   require(tools)
   require(SummarizedExperiment)
-  require(readr)
-  require(dplyr)
-  require(readr)
   files <- input$getFullPaths("Count")
   
   dataFeatureLevel <- unique(input$getColumn("featureLevel"))
@@ -41,7 +38,7 @@ loadCountDataset <- function(input, param){
       dplyr::select(identifier, columnName) %>%
       dplyr::rename("id":= 1, !! y := columnName)
   }, files, names(files), SIMPLIFY=FALSE)
-  x <- Reduce(function(x,y){left_join(x, y, by="id")}, x)
+  x <- Reduce(function(x,y){full_join(x, y, by="id")}, x)
   
   if(dataFeatureLevel == "isoform" && param$featureLevel == "gene"){
     ## aggregate from isoform to gene level
@@ -56,12 +53,13 @@ loadCountDataset <- function(input, param){
   }
   counts <- as.matrix(x[ ,-identifier])
   rownames(counts) <- x[[identifier]]
-
+  counts[is.na(counts)] <- 0
+  
   if(ezIsSpecified(param$ezRef@refBuild)){
     seqAnnoDFFeature <- ezFeatureAnnotation(param, rownames(counts),
                                             param$featureLevel)
   }else{
-    seqAnnoDFFeature <- .makeSeqAnnoFromCounts(x1, identifier)
+    seqAnnoDFFeature <- .makeSeqAnnoFromCounts(x, identifier)
   }
   stopifnot(identical(rownames(seqAnnoDFFeature), rownames(counts)))
   
@@ -96,9 +94,6 @@ loadCountDataset <- function(input, param){
     use = TRUE
   }
   rawData <- rawData[use, ]
-
-  # assays(rawData)$rpkm = getRpkm(rawData)
-  # assays(rawData)$tpm = getTpm(rawData)
   return(rawData)
 }
 
