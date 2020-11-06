@@ -457,16 +457,15 @@ if(!(ref %in% unique(ah$species)) | is.na(ref)){
 ```
 
 ```{r metacore prepare, echo=FALSE, message=FALSE, eval=!debug}
-resultLoaded <- read_excel(resultFile$resultFile)
+resultLoaded <- readxl::read_excel(resultFile$resultFile)
 resultMetaCore <- resultLoaded %>% filter(isPresent, pValue <= param$pValThreshGO) %>%
     dplyr::left_join(egr, by = c("gene_name"="SYMBOL")) %>%
-    dplyr::select(gene_name, gene_id, transcript_id,
-                  entrez_id, "log2 Ratio", pValue, fdr)
+    dplyr::select(gene_id, entrez_id, "log2 Ratio", pValue)
 ```
 
 ```{r metacore export, echo=FALSE, message=FALSE, eval=TRUE}
 metacoreFile <- str_c("MetaCore--",param$comparison,".xlsx")
-write_xlsx(resultMetaCore, path=metacoreFile)
+openxlsx::write.xlsx(resultMetaCore, file=metacoreFile)
 ```
 
 #### Quick Start 
@@ -488,15 +487,12 @@ MetaCore is a powerful pathway and systems analysis tool. It has a curated datab
 When uploading the data into MetaCore, select three columns:
 
 * A gene identifier, pick **one** of:
-  + HGNC gene symbols -- `Gene symbol (with aliases)` from the `Type` drop down menu
   + Ensembl Gene IDs -- `ENSEMBL IDs` 
   + Entrez Gene IDs -- `EntrezGene (LocusLink) IDs`
   
 * Log fold changes of the genes -- `log ratio` 
 
-* *P* values, **either**:
-  + Raw *p* values if you have fewer DEGs -- `P-value`
-  + FDR-corrected *p* values if you have more DEGs -- `P-value`
+* *P* values
 
 You must ensure that the data type drop-down menu above each column is correct. 
 
@@ -735,7 +731,7 @@ if(exists("enrichResultGSEA")){
         
         dotplot.labels <- labels[[onto]]
         erp[["dotplot"]] <- dotplot(er, showCategory = 20, title=paste(onto)) + scale_y_discrete(labels = dotplot.labels) + theme(axis.text.y = element_text(vjust=-0.01, size = 8))
-        erp[["ridgeplot"]] <- ridgeplot(er) + scale_y_discrete(labels = dotplot.labels) + theme(axis.text.y = element_text(vjust=-0.01))
+        erp[["ridgeplot"]] <- ridgeplot(er) + scale_y_discrete(labels = dotplot.labels) + theme(axis.text.y = element_text(vjust=-0.01, size = 8))
         erp[["gseaplot"]] <- enrichplot::gseaplot2(er, geneSetID = 1)
         
         ce_list <- NA
