@@ -731,7 +731,7 @@ if(exists("enrichResultGSEA")){
         
         dotplot.labels <- labels[[onto]]
         erp[["dotplot"]] <- dotplot(er, showCategory = 20, title=paste(onto)) + scale_y_discrete(labels = dotplot.labels) + theme(axis.text.y = element_text(vjust=-0.01, size = 8))
-        erp[["ridgeplot"]] <- ridgeplot(er) + scale_y_discrete(labels = dotplot.labels) + theme(axis.text.y = element_text(vjust=-0.01, size = 8))
+        erp[["ridgeplot"]] <- ridgeplot(er, showCategory = 20) + scale_y_discrete(labels = dotplot.labels) + theme(axis.text.y = element_text(vjust=-0.01, size = 8))
         erp[["gseaplot"]] <- enrichplot::gseaplot2(er, geneSetID = 1)
         
         ce_list <- NA
