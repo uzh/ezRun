@@ -188,19 +188,12 @@ VariableFeaturePlot_mod <- function(sce, cols = c('black', 'red'), pt.size = 1, 
   return(plot)
 }
 
-RidgePlot.sce <- function(sce, feature) {
-  data= data.frame(logcounts(sce)[feature,], cluster = colData(sce)[,"ident"], row.names = colnames(sce))
-  if(grepl("-", feature))
-    feature <- gsub("-", "", feature)
-  feature <- paste0("gene_", feature)
-  colnames(data)[1] = feature
-  
-  plot <- ggplot(data, aes_string(x = feature, y = "cluster", fill = "cluster")) +
-    labs(x = "Expression level", y = "Identity", title = feature, fill = NULL) +
-    theme_cowplot() +
-    theme(plot.title = element_text(hjust = 0.5))+
+RidgePlot.sce <- function(sce, feature, yaxis) {
+   data= data.frame(feature = logcounts(sce)[feature,], yaxis = as.character(colData(sce)[,yaxis]), row.names = colnames(sce))
+   ggplot(data, aes(x = feature, y = yaxis, fill = yaxis)) +
+    labs(x = "Expression level", y = yaxis, title = feature, fill = NULL) +
     geom_density_ridges() +
-    theme_ridges() +
+    theme_ridges() + 
     theme(legend.position = "none")
   return(plot)
 }
