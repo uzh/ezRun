@@ -165,7 +165,6 @@ addReplicate = function(x, sep="_", repLabels=1:length(x)){
 ###
 ezCombineReadDatasets = function(..., dataRoot="/srv/gstore/projects",
                                  newDsDir=NULL){
-  require(dplyr)
   stopifnot(!is.null(newDsDir))
   dir.create(newDsDir, recursive = TRUE)
   

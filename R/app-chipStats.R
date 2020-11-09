@@ -141,7 +141,6 @@ Create_ChIP_QCPlots_ind = function(file, param, maxX=20, gff=gff, name='', range
 readBam = function(file,isPaired=F){
   require("limma")
   require("rtracklayer")
-  require("GenomicRanges")
   system('echo Function readBam \n')
   if(isPaired){
     system('echo option isPaired=T \n')
@@ -294,7 +293,6 @@ CoverageVarFunction = function(myBam){
 createTSSPlot = function(myBam, gff, flank, name, range=c(1,100)){
   system('echo Function createTSSPlot \n')
   require("rtracklayer")
-  require("GenomicRanges")
   cov=coverage(myBam)
   system(paste0('echo ',names(myBam)[1]))
   binMyBam(cov = cov, binLength = 500, sampleName = names(myBam))

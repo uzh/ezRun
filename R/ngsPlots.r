@@ -37,7 +37,6 @@ countDensPlot = function(cts, colors, main="all transcripts", bw=7){
 
 countDensGGPlot <- function(cts, xmin=min(cts, na.rm=TRUE)-5, 
                             xmax=max(cts, na.rm=TRUE)+5, alpha=0.3, colors, main="all transcripts") {
-  require(ggplot2, quietly = T)
   cts[cts < 0] = 0
   cts = log2(cts)
   data = data.frame(signal = unlist(cts),sampleName=rep(colnames(cts),each=nrow(cts)), stringsAsFactors = F)
@@ -81,7 +80,6 @@ ezMdsGG2 <- function(signal, design, ndim=2, main="MDS plot", addLabels=TRUE){
   require(edgeR)
   require(plotly)
   require(ggrepel)
-  require(tibble)
   if(ndim != 2){
     stop("ggplot2 only produces 2D plot")
   }

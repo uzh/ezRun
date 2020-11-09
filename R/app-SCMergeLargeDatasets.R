@@ -28,8 +28,6 @@ ezMethodSCMergeLargeDatasets = function(input=NA, output=NA, param=NA, htmlFile=
   library(scran)
   library(harmony)
   library(scater)
-  library(readr)
-  library(dplyr)
   library(edgeR)
   
   ## subset the selected sample names

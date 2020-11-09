@@ -17,12 +17,9 @@ Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
 library(SummarizedExperiment)
 library(ezRun)
 library(cowplot)
-library(tibble)
-library(dplyr)
-library(readr)
+library(tidyverse)
 library(Seurat)
 library(kableExtra)
-library(tidyr)
 # input for this report: sceURLs, param
 # sceURLs <- c("sample13days"="https://fgcz-sushi.uzh.ch/projects/p2326/SCReport_3days_2019-03-06--16-24-38/sample1_3days_v-run_SCReport/00index.html",
 #              "sample22wks"="https://fgcz-sushi.uzh.ch/projects/p2326/SCReport_2wks_2019-03-06--23-38-34/sample2_2wks_v_run_SCReport/00index.html",

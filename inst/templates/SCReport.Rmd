@@ -17,17 +17,13 @@ Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
 # input for this report: sce
 library(ezRun)
 library(Seurat)
-library(dplyr)
-library(tibble)
 library(kableExtra)
 library(fastICA)
 library(Matrix)
-library(readr)
-# library(slingshot)
 library(RColorBrewer)
 library(SummarizedExperiment)
-library(tibble)
 library(Rmagic) ## This has to be loaded after setting correct python
+library(tidyverse)
 
 ## ----------------------------------------------
 ## debug

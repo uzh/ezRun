@@ -4,7 +4,6 @@
 ### fastqI2Fn: library barcode
 fastq2bam <- function(fastqFn, refFn, bamFn, fastqI1Fn=NULL, fastqI2Fn=NULL){
   require(ShortRead)
-  require(Biostrings)
   tempSamFn <- paste(Sys.getpid(), "temp.sam", sep="-")
   tempBamFn <- paste(Sys.getpid(), "temp", sep="-")
   
@@ -52,7 +51,6 @@ fastq2bam <- function(fastqFn, refFn, bamFn, fastqI1Fn=NULL, fastqI2Fn=NULL){
 ### convert fastq files into a bam file, with read group tags
 fastqs2bam <- function(fastqFns, fastq2Fns=NULL, readGroupNames=NULL,
                        bamFn, platform="illumina", mc.cores=ezThreads()){
-  require(Biostrings)
   paired <- FALSE
   if(!is.null(fastq2Fns)){
     stopifnot(length(fastqFns) == length(fastq2Fns))
@@ -169,8 +167,6 @@ bam2fastq <- function(bamFn, OUTPUT_PER_RG=TRUE, OUTPUT_DIR=".",
 
 ezMethodBam2Fastq <- function(input=NA, output=NA, param=NA,
                               OUTPUT_PER_RG=TRUE){
-  require(Biostrings)
-  
   if(isTRUE(OUTPUT_PER_RG)){
     output = EzDataset(file=input$getFullPaths("CellDataset"),
                        dataRoot=param$dataRoot)
@@ -221,7 +217,6 @@ ezMethodBam2Fastq <- function(input=NA, output=NA, param=NA,
 }
 
 countReadsInFastq = function(fastqFiles){
-  require(Biostrings)
   nReads <- sapply(fastqFiles, fastq.geometry)[1, ]
   return(nReads)
 }

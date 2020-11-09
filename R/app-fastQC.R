@@ -353,7 +353,6 @@ plotQualityMatrixAsHeatmapGG2 = function(qualMatrixList, isR2=FALSE,
 plotQualityHeatmapGG2 = function(result, name=NULL, colorRange=c(0,sqrt(40)), 
                                  colors=gray((1:256)/256), main=NULL, 
                                  xScale=1, yScale=1){
-  require(ggplot2)
   require(reshape2)
   ## some ugly controls of labels
   labCol = seq(0, ncol(result), by=10)
@@ -433,7 +432,6 @@ getQualityMatrix_old = function(fn){
 getQualityMatrix <- function(fn){
   ## This implementation is faster than the FastqStreamer.
   require(ShortRead)
-  require(Biostrings)
   nReads <- 3e5
   
   if(grepl("\\.bam$", fn)){
