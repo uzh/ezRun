@@ -225,9 +225,7 @@ The 50 dysregulated genes with the highest difference in expression between the 
 <br/>
 
 ```{r, fig.height=6, fig.width=12, fig.align='center'}
-most_diffGenes <- unique(diffGenes$gene)[1:50]
-#in case the unique genes are less than 50 avoids NAs
-most_diffGenes <- most_diffGenes[!is.na(most_diffGenes)]
+most_diffGenes <- head(unique(diffGenes$gene), 50)
 plotHeatmap(sce, order_columns_by = "Condition", features = most_diffGenes, fontsize=8)
 ```
 
