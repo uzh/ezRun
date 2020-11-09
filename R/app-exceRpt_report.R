@@ -649,6 +649,7 @@ PlotData = function(sampleIDs, output.dir, sampleGroups=NA, minPercent_exogenous
     ##
     tmp = melt(read.lengths); colnames(tmp) = c("sample","length","count")
     if(is.data.frame(sampleGroups)){ tmp$sampleGroup = sampleGroups[match(tmp$sample, sampleGroups$sampleID), 2] }
+    tmp$sample <- factor(tmp$sample)
     maxX = min(c(100,max(tmp$length)))
     p = ggplot(tmp, aes(x=length, y=count, color=sample)) + geom_line(alpha=1) +
       xlab("read length (nt)") + ylab("# reads") + 
@@ -668,6 +669,7 @@ PlotData = function(sampleIDs, output.dir, sampleGroups=NA, minPercent_exogenous
     ##
     tmp = melt(t(apply(read.lengths, 1, function(row){ row/sum(row) }))); colnames(tmp) = c("sample","length","fraction")
     if(is.data.frame(sampleGroups)){ tmp$sampleGroup = sampleGroups[match(tmp$sample, sampleGroups$sampleID), 2] }
+    tmp$sample <- factor(tmp$sample)
     maxX = min(c(100,max(tmp$length)))
     p = ggplot(tmp, aes(x=length, y=fraction, colour=sample)) +geom_line(alpha=1) +xlab("read length (nt)") +ylab("fraction of reads") +ggtitle("read-length distributions:\nnormalised read fraction") +scale_x_continuous(limits=c(15,maxX), minor_breaks=1:maxX, breaks=seq(15,maxX,by=5))+
       scale_colour_manual(values=getSampleColors(tmp$sample))

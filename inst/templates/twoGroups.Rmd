@@ -17,7 +17,7 @@ require(ezRun)
 knitr::opts_chunk$set(echo = TRUE)
 output = readRDS("output.rds")
 deResult = readRDS("deResult.rds")
-param =readRDS("param.rds")
+param = readRDS("param.rds")
 
 debug <- FALSE
 
@@ -30,6 +30,10 @@ library(htmlwidgets)
 library(tidyverse)
 library(readxl)
 library(dplyr)
+library(BiocParallel)
+
+BPPARAM = BiocParallel::MulticoreParam(workers=param$cores)
+register(BPPARAM)
 ```
 
 ```{r prepare data, include=FALSE}
@@ -453,16 +457,15 @@ if(!(ref %in% unique(ah$species)) | is.na(ref)){
 ```
 
 ```{r metacore prepare, echo=FALSE, message=FALSE, eval=!debug}
-resultLoaded <- read_excel(resultFile$resultFile)
+resultLoaded <- readxl::read_excel(resultFile$resultFile)
 resultMetaCore <- resultLoaded %>% filter(isPresent, pValue <= param$pValThreshGO) %>%
     dplyr::left_join(egr, by = c("gene_name"="SYMBOL")) %>%
-    dplyr::select(gene_name, gene_id, transcript_id,
-                  entrez_id, "log2 Ratio", pValue, fdr)
+    dplyr::select(gene_id, entrez_id, "log2 Ratio", pValue)
 ```
 
 ```{r metacore export, echo=FALSE, message=FALSE, eval=TRUE}
 metacoreFile <- str_c("MetaCore--",param$comparison,".xlsx")
-write_xlsx(resultMetaCore, path=metacoreFile)
+openxlsx::write.xlsx(resultMetaCore, file=metacoreFile)
 ```
 
 #### Quick Start 
@@ -484,15 +487,12 @@ MetaCore is a powerful pathway and systems analysis tool. It has a curated datab
 When uploading the data into MetaCore, select three columns:
 
 * A gene identifier, pick **one** of:
-  + HGNC gene symbols -- `Gene symbol (with aliases)` from the `Type` drop down menu
   + Ensembl Gene IDs -- `ENSEMBL IDs` 
   + Entrez Gene IDs -- `EntrezGene (LocusLink) IDs`
   
 * Log fold changes of the genes -- `log ratio` 
 
-* *P* values, **either**:
-  + Raw *p* values if you have fewer DEGs -- `P-value`
-  + FDR-corrected *p* values if you have more DEGs -- `P-value`
+* *P* values
 
 You must ensure that the data type drop-down menu above each column is correct. 
 
@@ -598,6 +598,7 @@ if (doGo(param, seqAnno)){
 
 ```{r prepare ora plots, echo=FALSE, message=FALSE, eval=!debug}
 enrichResultPlots <- list()
+labels <- list()
 if(exists("enrichResult")){
   for(onto in names(enrichResult)){
     enrichResultPlots[[onto]] = list()
@@ -607,6 +608,26 @@ if(exists("enrichResult")){
       }else{
         erp = list()
         er = enrichResult[[onto]][[sig]]
+        
+        er@result$Synonym <- NULL
+        l <- NULL
+        for (i in 1:length(er@result$Description)) {
+          desc <- er@result$Description[i]
+          syn <- Synonym(GOTERM[[er@result$ID[i]]])
+          syn <- syn[grep("GO:", syn, invert = T)]
+          syn <- syn[order(nchar(syn))][1]
+          if (nchar(desc) < 35) {
+            er@result$Synonym[i] <- paste(er@result$ID[i],desc)
+            l <- c(l,paste0(er@result$ID[i],"\n",desc))
+          } else if (nchar(desc) > 35 & nchar(syn) <= 35 & !is.na(syn)) {
+            er@result$Synonym[i] <- paste(er@result$ID[i],syn)
+            l <- c(l,paste0(er@result$ID[i],"\n",syn))
+          } else if (nchar(desc) >= 35 & nchar(syn) > 35 | is.na(syn)) {
+            er@result$Synonym[i] <- paste(er@result$ID[i],substr(er@result$Description[i], 1, 35))
+            l <- c(l,paste0(er@result$ID[i],"\n",substr(er@result$Description[i], 1, 35)))
+          }
+        }
+        labels[[onto]][[sig]] <- l
         
         er@result$geneID <- er@result$geneName
 
@@ -620,26 +641,14 @@ if(exists("enrichResult")){
                                       formatStyle(columns = colnames(.$x$data), `font-size` = "12px") %>% 
                                         formatSignif(c("pvalue","p.adjust"), digits = 3)
         
-        for (i in 1:length(er@result$Description)) {
-          desc <- er@result$Description[i]
-          syn <- Synonym(GOTERM[[er@result$ID[i]]])
-          syn <- syn[grep("GO:", syn, invert = T)]
-          syn <- syn[order(nchar(syn))][1]
-          if (nchar(desc) < 30) {
-            next
-          } else if (nchar(desc) > 30 & nchar(syn) <= 30 & !is.na(syn)) {
-            er@result$Description[i] <- syn
-          } else if (nchar(desc) > 30 & nchar(syn) > 30 | is.na(syn)) {
-            er@result$Description[i] <- substr(er@result$Description[i], 1, 30)
-          }
-        }
-        
-        erp[["dotplot"]] <- dotplot(er, showCategory = 20,title=paste(onto, sig))
+
+        dotplot.labels <- labels[[onto]][[sig]]
+        erp[["dotplot"]] <- dotplot(er, showCategory = 20, title=paste(onto, sig)) + scale_y_discrete(labels = dotplot.labels) + theme(axis.text.y = element_text(vjust=-0.01, size = 8))
         sigGeneIds = enrichInput$selections[[sig]]
         log2Ratio = enrichInput$seqAnno$log2Ratio[enrichInput$seqAnno$gene_id %in% sigGeneIds ]
         names(log2Ratio) = enrichInput$seqAnno[sigGeneIds, "gene_name"]
         log2Ratio <- sort(log2Ratio, decreasing = T)
-        erp[["cnet"]] <- cnetplot(er, foldChange = log2Ratio)
+        erp[["cnet"]] <- cnetplot(er, foldChange = log2Ratio, cex_label_gene = 0.6, cex_label_category = 0.7)
         enrichResultPlots[[onto]][[sig]] = erp
       }
     }
@@ -680,6 +689,7 @@ if (doGo(param, seqAnno)){
 
 ```{r prepare gsea plots, echo=FALSE, message=FALSE, eval=!debug}
 enrichResultGSEAPlots <- list()
+labels <- list()
 if(exists("enrichResultGSEA")){
   for(onto in names(enrichResultGSEA)){
     enrichResultGSEAPlots[[onto]] = list()
@@ -688,6 +698,27 @@ if(exists("enrichResultGSEA")){
       }else{
         erp = list()
         er = enrichResultGSEA[[onto]]
+        
+        er@result$Synonym <- NULL
+        l <- NULL
+        for (i in 1:length(er@result$Description)) {
+          desc <- er@result$Description[i]
+          syn <- Synonym(GOTERM[[er@result$ID[i]]])
+          syn <- syn[grep("GO:", syn, invert = T)]
+          syn <- syn[order(nchar(syn))][1]
+          if (nchar(desc) < 35) {
+            er@result$Synonym[i] <- paste(er@result$ID[i],desc)
+            l <- c(l,paste0(er@result$ID[i],"\n",desc))
+          } else if (nchar(desc) > 35 & nchar(syn) <= 35 & !is.na(syn)) {
+            er@result$Synonym[i] <- paste(er@result$ID[i],syn)
+            l <- c(l,paste0(er@result$ID[i],"\n",syn))
+          } else if (nchar(desc) >= 35 & nchar(syn) > 35 | is.na(syn)) {
+            er@result$Synonym[i] <- paste(er@result$ID[i],substr(er@result$Description[i], 1, 35))
+            l <- c(l,paste0(er@result$ID[i],"\n",substr(er@result$Description[i], 1, 35)))
+          }
+        }
+        labels[[onto]] <- l
+        
         gseaFile = paste(onto, "gsea.txt", sep="_")
         erp[["gseaFile"]] = gseaFile
         write.table(er, file=gseaFile,
@@ -698,20 +729,9 @@ if(exists("enrichResultGSEA")){
                                       formatStyle(columns = colnames(.$x$data), `font-size` = "12px") %>% 
                                         formatSignif(c("pvalue","p.adjust"), digits = 3)
         
-        for (i in 1:length(er@result$ID)) {
-          syn <- GO.db::GOTERM[[er@result$ID[i] ]]
-          syn <- syn@Term
-          if (is.na(syn)) {
-            next
-          } else if (nchar(syn) < 30) {
-            er@result$Description[i] <- syn
-          } else if (nchar(syn) > 30) {
-            er@result$Description[i] <- substr(syn, 1, 30)
-          }
-        }
-        
-        erp[["dotplot"]] <- dotplot(er, showCategory = 20, title=paste(onto))
-        erp[["ridgeplot"]] <- ridgeplot(er)
+        dotplot.labels <- labels[[onto]]
+        erp[["dotplot"]] <- dotplot(er, showCategory = 20, title=paste(onto)) + scale_y_discrete(labels = dotplot.labels) + theme(axis.text.y = element_text(vjust=-0.01, size = 8))
+        erp[["ridgeplot"]] <- ridgeplot(er, showCategory = 20) + scale_y_discrete(labels = dotplot.labels) + theme(axis.text.y = element_text(vjust=-0.01, size = 8))
         erp[["gseaplot"]] <- enrichplot::gseaplot2(er, geneSetID = 1)
         
         ce_list <- NA
@@ -727,7 +747,7 @@ if(exists("enrichResultGSEA")){
         log2Ratio = enrichInput$log2Ratio[sigGeneIds]
         names(log2Ratio) = enrichInput$seqAnno[sigGeneIds, "gene_name"]
         log2Ratio <- sort(log2Ratio, decreasing = T)
-        erp[["cnet"]] <- cnetplot(er, foldChange = log2Ratio)
+        erp[["cnet"]] <- cnetplot(er, foldChange = log2Ratio, cex_label_gene = 0.6, cex_label_category = 0.7)
         
         enrichResultGSEAPlots[[onto]] = erp
       }

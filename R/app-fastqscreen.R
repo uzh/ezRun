@@ -8,27 +8,29 @@
 
 ezMethodFastqScreen = function(input=NA, output=NA, param=NA,
                                htmlFile="00index.html"){
-  if(sum(input$meta$`Read Count`) > 1e9){
-    input <- ezMethodSubsampleFastq(input=input, param=param)
+  inputReadCount = input$meta$`Read Count`
+  if (!is.null(inputReadCount)){
+    ## TODO will fail if input is an unmapped bam but does not have read counts
+    inputReadCount = countReadsInFastq(input$getFullPaths("Read1"))
   }
-  inputRaw <- input$copy()
+  if(sum(inputReadCount) > 1e9){
+    input <- ezMethodSubsampleFastq(input=input, param=param, n=1e6)
+  }
+  inputUntrimmed <- input$copy()
   # Preprocessing
   param$trimAdapter = TRUE
   if(input$readType() == "bam"){
     stopifnot(input$getLength() == 1L) ## We only support one uBam now.
-    fastqInput <- ezMethodBam2Fastq(input = input, param = param,
+    inputUntrimmed <- ezMethodBam2Fastq(input = inputUntrimmed, param = param,
                                     OUTPUT_PER_RG=TRUE)
-    input <- ezMethodFastpTrim(input = fastqInput, param = param)
-    inputRaw <- fastqInput
-  }else{
-    input <- ezMethodFastpTrim(input = input, param = param)
   }
-  dataset = inputRaw$meta
+  input <- ezMethodFastpTrim(input = inputUntrimmed, param = param)
+  dataset = inputUntrimmed$meta
   # fastqscreen part
   
   ## get Adapter contamination from raw data
   confFile = FASTQSCREEN_ADAPTER_CONF
-  files_rawData = inputRaw$getFullPaths("Read1")
+  files_rawData = inputUntrimmed$getFullPaths("Read1")
   resultFiles_rawData = executeFastqscreenCMD(param, confFile = confFile,
                                               files_rawData)
   fastqData_rawData = collectFastqscreenOutput(files_rawData, 

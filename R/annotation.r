@@ -10,8 +10,6 @@ ezFeatureAnnotation = function(param, ids=NULL,
                                                  "isoform")){
   require(data.table)
   require(rtracklayer)
-  require(tibble)
-  require(readr)
   dataFeatureType <- match.arg(dataFeatureType)
   if(is.list(param)){
     featAnnoFn <- param$ezRef["refAnnotationFile"]
@@ -117,8 +115,10 @@ makeFeatAnnoEnsembl <- function(featureFile,
   require(rtracklayer)
   require(data.table)
   
-  featAnnoFile <- sub(".gtf", "_annotation_byTranscript.txt", featureFile)
-  featAnnoGeneFile <- sub(".gtf", "_annotation_byGene.txt", featureFile)
+  featAnnoFile <- str_replace(featureFile, "\\.gtf$", 
+                              "_annotation_byTranscript.txt")
+  featAnnoGeneFile <- str_replace(featureFile, "\\.gtf$",
+                                  "_annotation_byGene.txt")
   
   feature <- import(featureFile)
   transcripts <- feature[feature$type=="transcript"]
@@ -146,31 +146,31 @@ makeFeatAnnoEnsembl <- function(featureFile,
   ## Calculate gc and featWidth
   gw <- getTranscriptGcAndWidth(genomeFn=genomeFile,
                                 featureFn=featureFile)
-  featAnno <- data.table(transcript_id=transcripts$transcript_id,
-                         gene_id=transcripts$gene_id,
-                         gene_name=transcripts$gene_name,
-                         type=transcripts$gene_biotype,
-                         strand=as.character(strand(transcripts)),
-                         seqid=as.character(seqnames(transcripts)),
-                         start=start(transcripts),
-                         end=end(transcripts),
-                         biotypes=transcripts$gene_biotype,
-                         gc=gw$gc[transcripts$transcript_id],
-                         featWidth=gw$featWidth[transcripts$transcript_id]
-                        )
-  ## The numeric columns should not have NAs.
-  stopifnot(!any(is.na(featAnno[ ,.(start, end, gc, featWidth)])))
+  featAnno <- tibble(transcript_id=transcripts$transcript_id,
+                     gene_id=transcripts$gene_id,
+                     gene_name=transcripts$gene_name,
+                     type=transcripts$gene_biotype,
+                     strand=as.character(strand(transcripts)),
+                     seqid=as.character(seqnames(transcripts)),
+                     start=start(transcripts),
+                     end=end(transcripts),
+                     biotypes=transcripts$gene_biotype)
+  featAnno <- left_join(featAnno, gw)
   
+  ## The numeric columns should not have NAs
+  stopifnot(!featAnno %>% dplyr::select(start, end, gc, featWidth) %>% 
+              is.na() %>% any())
+
   ## Group the biotype into more general groups
-  stopifnot(all(featAnno$biotypes %in% listBiotypes("all")))
-  isProteinCoding <- featAnno$biotypes %in% listBiotypes("protein_coding")
-  isLNC <- featAnno$biotypes %in% listBiotypes("long_noncoding")
-  isSHNC <- featAnno$biotypes %in% listBiotypes("short_noncoding")
-  isrRNA <- featAnno$biotypes %in% listBiotypes("rRNA")
-  istRNA <- featAnno$biotypes %in% listBiotypes("tRNA")
-  isMtrRNA <- featAnno$biotypes %in% listBiotypes("Mt_rRNA")
-  isMttRNA <- featAnno$biotypes %in% listBiotypes("Mt_tRNA")
-  isPseudo <- featAnno$biotypes %in% listBiotypes("pseudogene")
+  stopifnot(all(featAnno %>% pull(biotypes) %in% listBiotypes("all")))
+  isProteinCoding <- featAnno %>% pull(biotypes) %in% listBiotypes("protein_coding")
+  isLNC <- featAnno %>% pull(biotypes) %in% listBiotypes("long_noncoding")
+  isSHNC <- featAnno %>% pull(biotypes) %in% listBiotypes("short_noncoding")
+  isrRNA <- featAnno %>% pull(biotypes) %in% listBiotypes("rRNA")
+  istRNA <- featAnno %>% pull(biotypes) %in% listBiotypes("tRNA")
+  isMtrRNA <- featAnno %>% pull(biotypes) %in% listBiotypes("Mt_rRNA")
+  isMttRNA <- featAnno %>% pull(biotypes) %in% listBiotypes("Mt_tRNA")
+  isPseudo <- featAnno %>% pull(biotypes) %in% listBiotypes("pseudogene")
   featAnno$type[isPseudo] <- "pseudogene"
   featAnno$type[isLNC] <- "long_noncoding"
   featAnno$type[isSHNC] <- "short_noncoding"
@@ -185,7 +185,6 @@ makeFeatAnnoEnsembl <- function(featureFile,
   ## additional information from Ensembl or downloaded biomart file
   attributes <- c("ensembl_transcript_id", "description", 
                   "go_id", "namespace_1003")
-                  
   names(attributes) <- c("Transcript stable ID", "Gene description",
                          "GO term accession", "GO domain")
   ## Older web-page biomart has different names
@@ -194,12 +193,8 @@ makeFeatAnnoEnsembl <- function(featureFile,
                               "GO Term Accession", "GO domain"))
   if(!is.null(biomartFile)){
     message("Using local biomart file!")
-    ### Use the downloaded biomartFile when availble
-    stopifnot(file.exists(biomartFile))
-    require(readr)
-    
     # fread cannot handle compressed file
-    mapping <- as.data.table(read_tsv(biomartFile,guess_max=1e6)) 
+    mapping <- as.data.table(read_tsv(biomartFile, guess_max=1e6)) 
     if(all(names(attributes) %in% colnames(mapping))){
       mapping <- mapping[ ,names(attributes), with=FALSE]
       # To make it consistent with biomaRt
@@ -213,7 +208,6 @@ makeFeatAnnoEnsembl <- function(featureFile,
            "are downloaded from web biomart!")
     }
   }else if(!is.null(organism)){
-    ### Query Biomart from R
     message("Query via biomaRt package!")
     require(biomaRt)
     if(is.null(host)){
@@ -226,67 +220,61 @@ makeFeatAnnoEnsembl <- function(featureFile,
       getBM(attributes=setdiff(attributes, c("go_id", "namespace_1003")),
             filters=c("ensembl_transcript_id"),
             values=featAnno$transcript_id, mart=ensembl)
-    mapping1 <- as.data.table(mapping1)
+    mapping1 <- as_tibble(mapping1)
     mapping2 <-
       getBM(attributes=c("ensembl_transcript_id", "go_id", "namespace_1003"),
             filters=c("ensembl_transcript_id"),
             values=featAnno$transcript_id, mart=ensembl)
-    mapping2 <- as.data.table(mapping2)
-    mapping <- merge(mapping1, mapping2, all=TRUE)
+    mapping2 <- as_tibble(mapping2)
+    mapping <- inner_join(mapping1, mapping2)
   }else{
     message("Not using any additional annotation!")
-    mapping <- data.table(ensembl_transcript_id=featAnno$transcript_id,
-                          description="",
-                          go_id="",
-                          namespace_1003="")
+    mapping <- tibble(ensembl_transcript_id=featAnno$transcript_id,
+                      description="", go_id="", namespace_1003="")
   }
-  mapping$ensembl_transcript_id <- sub("\\.\\d+$", "", mapping$ensembl_transcript_id)
+  mapping <- mapping %>%
+    mutate(ensembl_transcript_id=str_replace(ensembl_transcript_id, "\\.\\d+$", ""))
     
   if(!all(featAnno$transcript_id %in% mapping$ensembl_transcript_id)){
     warning("Some transcript ids don't exist in biomart file!") #Normal for GENCODE
   }
   
   ### description
-  txid2description <- mapping[!duplicated(ensembl_transcript_id), 
-                              .(transcript_id=ensembl_transcript_id,
-                                description=description)]
-  
-  featAnno <- merge(featAnno, txid2description, all.x=TRUE, all.y=FALSE)
+  txid2description <- mapping %>% dplyr::select(transcript_id=ensembl_transcript_id,
+                                                description) %>%
+    filter(!duplicated(transcript_id))
+  featAnno <- left_join(featAnno, txid2description)
   
   ### GO
   GOMapping <- c("biological_process"="GO BP",
                  "molecular_function"="GO MF",
-                 "cellular_component"="GO CC",
-                 "ensembl_transcript_id"="transcript_id")
-  go <- mapping[!(is.na(go_id) | go_id == "") & namespace_1003 %in% c("biological_process", "molecular_function", "cellular_component"),
-                ## They can be NA, "", or weird character (EFO)
-                .(go_id=ezCollapse(go_id, na.rm=TRUE, empty.rm=TRUE, 
-                                   uniqueOnly=TRUE)),
-                by=.(ensembl_transcript_id, namespace_1003)]
+                 "cellular_component"="GO CC")
+  go <- mapping %>% dplyr::select(transcript_id=ensembl_transcript_id, go_id, namespace_1003) %>%
+    filter(!(is.na(go_id) | go_id == ""),
+           namespace_1003 %in% c("biological_process", "molecular_function", "cellular_component")) %>%
+    group_by(transcript_id, namespace_1003) %>%
+    summarise(go_id=str_c(unique(go_id), collapse="; ")) %>% ungroup()
   if(nrow(go)==0L){
     ## If go is an empty data.table
-    go <- data.table(ensembl_transcript_id=featAnno$transcript_id,
-                     biological_process="",
-                     molecular_function="",
-                     cellular_component="")
+    go <- tibble(transcript_id=featAnno$transcript_id,
+                 biological_process="", molecular_function="", cellular_component="")
   }else{
-    go <- dcast(go, ensembl_transcript_id~namespace_1003, value.var ="go_id")
+    go <- pivot_wider(go, id_cols=transcript_id, names_from = namespace_1003,
+                      values_from=go_id, values_fill="")
   }
-  colnames(go) <- GOMapping[colnames(go)]
-  featAnno <- merge(featAnno, go, all.x=TRUE, all.y=FALSE)
-  
-  featAnno[is.na(featAnno)] <- ""  ## replace NA in GO with ""
+  go <- dplyr::rename(go, "GO BP"="biological_process", "GO MF"="molecular_function",
+                      "GO CC"="cellular_component")
+  featAnno <- left_join(featAnno, go)
+  featAnno <- featAnno %>% mutate("GO BP"=replace_na(`GO BP`, ""),
+                                  "GO MF"=replace_na(`GO MF`, ""),
+                                  "GO CC"=replace_na(`GO CC`, ""))
   
   ## output annotation file on transcript level
-  ezWrite.table(featAnno, file=featAnnoFile, row.names=FALSE)
-  cwd <- getwd()
-  ### For compatibility, create _annotation.txt symlink
-  setwd(dirname(featAnnoFile))
-  setwd(cwd)
+  write_tsv(featAnno, file=featAnnoFile)
   
   ## make annotation at gene level
   featAnnoGene <- aggregateFeatAnno(featAnno)
-  ezWrite.table(featAnnoGene, file=featAnnoGeneFile, row.names=FALSE)
+  write_tsv(featAnnoGene, file=featAnnoGeneFile)
   
   invisible(list("transcript"=featAnno, "gene"=featAnnoGene))
 }
@@ -332,47 +320,35 @@ aggregateFeatAnno <- function(featAnno){
   
   features <- intersect(features, colnames(featAnno))
   
-  require(data.table)
-  featAnno <- as.data.table(featAnno)
+  featAnno <- group_by(featAnno, gene_id)
+  
   ## Aggregate the character columns
-  featAnnoGene <- featAnno[ ,
-                            lapply(.SD, ezCollapse, empty.rm=TRUE, 
-                                   uniqueOnly=TRUE, na.rm=TRUE),
-                            by=.(gene_id), 
-                            .SDcols = setdiff(features, c("gene_id", "start", 
-                                                          "end", "gc", "featWidth",
-                                                          goColumns))]
+  featAnnoGene <- featAnno %>%
+    dplyr::select(setdiff(features, c("start", "end", "gc",
+                                      "featWidth", goColumns))) %>%
+    summarise_all(function(x){unique(x) %>% str_c(collapse="; ")})
+  
   ## Aggregate the numeric columns
-  if (all(c("start", "end", "gc", "featWidth") %in% colnames(featAnno))){
-    featAnnoGeneNumeric <- featAnno[ , .(start=min(start),
-                                         end=max(end),
-                                         gc=signif(mean(gc), digits = 4),
-                                         featWidth=signif(mean(featWidth), 
-                                                          digits = 4)),
-                                     by=.(gene_id)
-                                     ]
-    featAnnoGene <- merge(featAnnoGene, featAnnoGeneNumeric)
+  if(all(c("start", "end", "gc", "featWidth") %in% colnames(featAnno))){
+    featAnnoGeneNumeric <- featAnno %>%
+      dplyr::summarise(start=min(start), end=max(end),
+                       gc=signif(mean(gc), digits=4),
+                       featWidth=signif(mean(featWidth), digits = 4))
+    featAnnoGene <- left_join(featAnnoGene, featAnnoGeneNumeric)
   }
 
   ## Aggregate the GO columns which reuqire more processing
-  mergeGo = function(x){
-    ezCollapse(strsplit(x, "; "), na.rm=TRUE, empty.rm=TRUE, uniqueOnly=TRUE)
-  }
   if(all(goColumns %in% colnames(featAnno))){
-    featAnnoGeneGO <- featAnno[ , lapply(.SD, mergeGo),
-                                by=.(gene_id),
-                                .SDcols=goColumns]
-    featAnnoGene <- merge(featAnnoGene, featAnnoGeneGO)
+    featAnnoGeneGO <- featAnno %>% dplyr::select(gene_id, goColumns) %>%
+      summarise_all(function(x){setdiff(str_split(x, "; ") %>% unlist(), "") %>%
+          unique() %>% str_c(collapse="; ")})
+    featAnnoGene <- left_join(featAnnoGene, featAnnoGeneGO)
   }else{
     ## Some annotation has no GO terms.
     featAnnoGene$"GO BP" = ""
     featAnnoGene$"GO MF" = ""
     featAnnoGene$"GO CC" = ""
   }
-  ## TODO: in the future, maybe we want to return featAnnoGene as data.table
-  featAnnoGene <- as.data.frame(featAnnoGene)
-  rownames(featAnnoGene) <- featAnnoGene$gene_id
-  featAnnoGene$strand[!featAnnoGene$strand %in% c("+", "-")] <- "*"
   return(featAnnoGene)
 }
 
