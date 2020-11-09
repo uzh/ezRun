@@ -146,7 +146,6 @@ galp2gal = function(galp){
 readBam = function(file,isPaired=F){
   requireNamespace("limma")
   requireNamespace("rtracklayer")
-  requireNamespace("GenomicRanges")
   system('echo Function readBam \n')
   if(isPaired){
     system('echo option isPaired=T \n')
@@ -277,7 +276,6 @@ remove_outliers = function(x, na.rm = TRUE, ...) {
 createTSSPlot = function(myBam, gff, flank, name, range=c(1,100)){
   system('echo Function createTSSPlot \n')
   requireNamespace("rtracklayer")
-  requireNamespace("GenomicRanges")
   cov=coverage(myBam)
   system(paste0('echo ',names(myBam)[1]))
   binMyBam(cov = cov, binLength = 500, sampleName = names(myBam))

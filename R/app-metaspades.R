@@ -9,10 +9,7 @@
 ezMethodMetaspades = function(input=NA, output=NA, param=NA, 
                            htmlFile="00index.html"){
   ### de novo metagenome assemby with Metaspades, gene prediction with prodigal and annotation with diamond
-  
   library(plyr)
-  library(dplyr)
-  library(Biostrings)
   
   sampleName = input$getNames()
   file1PathInDatset <- input$getFullPaths("Read1")

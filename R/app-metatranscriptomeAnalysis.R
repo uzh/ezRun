@@ -5,21 +5,17 @@
 # The terms are available here: http://www.gnu.org/licenses/gpl.html
 # www.fgcz.ch
 
-
 ezMethodMetatranscriptomeAnalysis = function(input=NA, output=NA, param=NA, 
                                           htmlFile="00index.html"){
 
   library(purrr)
   library(rtracklayer)
-  library(ggplot2)
   library(RColorBrewer)
   library(GO.db)
   library(stringi)
   library(DESeq2)
   library(plyr)
   library(pheatmap)
-  library(dplyr)
-  library(tidyr)
   library(ggpubr)
   library(gridExtra)
   

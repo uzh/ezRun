@@ -488,8 +488,6 @@ ezUtrSequences = function(gtf, chromSeqs){
 ##' param$ezRef@@refFastaFile = fp
 ##' gw = getTranscriptGcAndWidth(param)
 getTranscriptGcAndWidth <- function(param=NULL, genomeFn=NULL, featureFn=NULL){
-  require(Biostrings)
-  require(GenomicRanges)
   require(Rsamtools)
   require(rtracklayer)
   
@@ -569,7 +567,6 @@ trimTxGtf <- function(param=NULL, inGTF, outGTF, fastaFile, refAnnotationFile,
     transcriptTypes <- param$transcriptTypes
   }
   require(rtracklayer)
-  require(GenomicRanges)
   
   gtf <- import(inGTF)
   seqlengthsRef <- fasta.seqlengths(fastaFile)
@@ -608,7 +605,6 @@ trimTxGtf <- function(param=NULL, inGTF, outGTF, fastaFile, refAnnotationFile,
 }
 
 trimGRanges <- function(x, width=100, start=TRUE){
-  require(GenomicRanges)
   stopifnot(length(unique(strand(x))) == 1L)
   decreasing <- xor(unique(strand(x)) == "+", start)
   # "+", TRUE -> FALSE

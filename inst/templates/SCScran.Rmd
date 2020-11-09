@@ -20,16 +20,11 @@ library(scater)
 library(ezRun)
 library(BiocSingular)
 library(scran)
-library(ggplot2)
 library(cowplot)
-library(tibble)
-library(dplyr)
-library(tidyr)
 library(kableExtra)
 library(pheatmap)
-library(readr)
 library(fastICA)
-
+library(tidyverse)
 ## debug
 # title:  "`r metadata(sce)$param$name`"
 # sce <- readRDS("/scratch/gtan/dev/SCScran-p2860/wt_4_F_SCScran/sce-osrmybnkimnx.rds")

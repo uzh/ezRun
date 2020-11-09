@@ -25,8 +25,7 @@ knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE, knitr.tabl
 # dyno_dataset = readRDS("/srv/GT/analysis/p3125-Mojca/PBMC_fresh_50_SCTrajectoryInference/dyno_dataset.rds")
 # param = list(start_id="0", end_id='none', start_n="1", end_id="1", TI_method='none', diff_Branch='Slingshot,3', diff_Branch_Point='Slingshot,3')
 
-library(ggplot2)
-library(readr)
+library(tidyverse)
 expression = dyno_dataset$expression
 clusters=colData(sce)$seurat_clusters
 ```

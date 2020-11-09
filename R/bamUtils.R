@@ -221,11 +221,8 @@ mergeBamAlignments <- function(alignedBamFn, unmappedBamFn,
 
 posSpecErrorBam <- function(bamGA, genomeFn){
   require(GenomicAlignments)
-  require(stringr)
-  require(GenomicRanges)
   require(Hmisc)
   require(BSgenome)
-  require(Biostrings)
   require(Rsamtools)
   
   nMaxReads <- 100000
@@ -371,7 +368,6 @@ calmdBam <- function(bamFns, mdBamFns=sub("\\.bam$", "_md.bam", bamFns),
 
 ### position specific error with md bam
 posSpecErrorMDBam <- function(bamGA){
-  require(Biostrings)
   hasIndel = grepl("I|D", cigar(bamGA))
   bamGA <- bamGA[!hasIndel]
   

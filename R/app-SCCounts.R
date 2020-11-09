@@ -37,9 +37,6 @@ EzAppSCCounts <-
 
 ezMethodSCCounts = function(input=NA, output=NA, param=NA,
                             htmlFile="00index.html"){
-  require(readr)
-  require(tibble)
-  
   cwd <- getwd()
   setwdNew(basename(output$getColumn("ResultDir")))
   on.exit(setwd(cwd), add=TRUE)

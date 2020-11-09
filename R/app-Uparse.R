@@ -11,7 +11,6 @@ ezMethodUparse = function(input=NA, output=NA, param=NA,
 ### run UPARSE and reformat output for phylotseq 
   
 library(plyr)
-library(dplyr)
 
   sampleName = input$getNames()
   sampleNameString = paste("\"", paste(sampleName, collapse = " "),"\"")

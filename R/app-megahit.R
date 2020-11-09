@@ -9,9 +9,7 @@
 ezMethodMegahit = function(input=NA, output=NA, param=NA, 
                           htmlFile="00index.html"){
   ### de novo metagenome assemby with Megahit
-  
   library(plyr)
-  library(dplyr)
   
   sampleName = input$getNames()
   file1PathInDatset <- input$getFullPaths("Read1")

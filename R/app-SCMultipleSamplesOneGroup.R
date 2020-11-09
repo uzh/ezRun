@@ -52,8 +52,6 @@ EzAppSCMultipleSamplesOneGroup <-
 ezMethodSCMultipleSamplesOneGroup = function(input=NA, output=NA, param=NA, htmlFile="00index.html") {
   library(Seurat)
   library(rlist)
-  library(tibble)
-  library(readr)
   library(HDF5Array)
   
   ## subset the selected sample names

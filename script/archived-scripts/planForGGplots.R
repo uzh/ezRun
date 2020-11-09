@@ -67,7 +67,6 @@ ezGGplot = function(...){
 }
 
 require(ReporteRs)
-require(ggplot2)
 cd2 = getwd()
 #setwdNew("~/tmp")
 #setwdNew("./scratch")

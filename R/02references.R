@@ -131,7 +131,6 @@ getOrganism <- function(x){
 buildRefDir <- function(x, genomeFile, genesFile){
   # x is EzRef object
   require(rtracklayer)
-  require(Biostrings)
   require(Rsamtools)
   
   gtfPath <- dirname(x@refFeatureFile)
@@ -257,7 +256,6 @@ listBiotypes <- function(select=c("genes", "protein_coding", "long_noncoding",
 }
 
 buildIgvGenome <- function(x){
-  require(Biostrings)
   # x is a EzRef object
   
   ## create transcript.only.gtf
@@ -315,7 +313,6 @@ buildIgvGenome <- function(x){
 ### Fetch the control sequences from https://fgcz-gstore.uzh.ch/reference/controlSeqs.fa
 ### 
 getControlSeqs <- function(ids=NULL){
-  require(Biostrings)
   genomesRoot <- strsplit(GENOMES_ROOT, ":")[[1]]
   controlSeqsFn <- file.path(genomesRoot, "controlSeqs.fa")
   controlSeqsFn <- head(controlSeqsFn[file.exists(controlSeqsFn)], 1)
@@ -331,8 +328,6 @@ makeBiomartFile <- function(gtf){
   require(httr)
   require(jsonlite)
   require(xml2)
-  require(tibble)
-  require(dplyr)
   require(GO.db)
   
   server <- "http://rest.ensembl.org"
