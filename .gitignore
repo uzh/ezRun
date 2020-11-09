@@ -4,3 +4,4 @@ ezRun.Rproj
 tests/testthat/run_examples/
 .Rhistory
 .Rproj.user
+.DS_Store
