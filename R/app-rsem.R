@@ -7,9 +7,6 @@
 
 
 ezMethodRSEM = function(input=NA, output=NA, param=NA){
-  require(readr)
-  require(dplyr)
-  
   sampleName = input$getNames()
   ref = getRSEMReference(param)
   

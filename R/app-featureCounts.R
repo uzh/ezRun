@@ -7,7 +7,6 @@
 
 
 ezMethodFeatureCounts = function(input=NA, output=NA, param=NA){
-  require(GenomicRanges)
   require(Rsubread)
   require(rtracklayer)
   
@@ -191,11 +190,8 @@ EzAppSingleCellFeatureCounts <-
   )
 
 ezMethodSingleCellFeatureCounts <- function(input=NA, output=NA, param=NA){
-  require(GenomicRanges)
   require(Rsubread)
   require(rtracklayer)
-  require(tibble)
-  require(readr)
   
   bamFile = input$getFullPaths("BAM")
   localBamFile = getBamLocally(bamFile)

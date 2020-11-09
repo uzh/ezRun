@@ -90,7 +90,6 @@ getReferenceFeaturesBed = function(param){
 ##' fasta = system.file("extdata/genome.fa", package="ezRun", mustWork=TRUE)
 ##' cg = cleanGenomeFiles(fasta, gtf)
 cleanGenomeFiles = function(genomeFile, genesFile){
-  require(Biostrings)
   require(rtracklayer)
   genome = readDNAStringSet(genomeFile)
   names(genome) = sub(" .*", "", names(genome))

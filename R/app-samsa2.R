@@ -11,8 +11,6 @@ ezMethodSamsa2 = function(input=NA, output=NA, param=NA,
   ### metatranscriptomics assemby with Samsa2, annotation with RefSeq
   
   library(plyr)
-  library(dplyr)
-  library(Biostrings)
   
   sampleName = input$getNames()
   file1PathInDatset <- input$getFullPaths("Read1")

@@ -43,9 +43,6 @@ EzAppSCMultipleSamplesAndGroups <-
 ezMethodSCMultipleSamplesAndGroups = function(input=NA, output=NA, param=NA, htmlFile="00index.html") {
   library(Seurat)
   library(rlist)
-  library(tibble)
-  library(dplyr)
-  library(readr)
   library(HDF5Array)
   
   ## subset the selected sample names

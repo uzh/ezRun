@@ -146,7 +146,6 @@ subSampleRle = function(x, idx){
 
 ### Get the consensus peaks from a list of peaks
 consensusPeaks <- function(x){
-  require(GenomicRanges)
   if(!is(x, "GRangesList"))
     stop("x must be a GRangesList object.")
   if(length(x) == 1L){

@@ -6,7 +6,6 @@
 # www.fgcz.ch
 ezMethodNestLink <- function(input=NA, output=NA, param=NA){
     require(NestLink)
-    require(Biostrings)
     
     if(grepl('>', readLines(param[['knownNBPath']], n = 1))){
         knownNB_data <- readDNAStringSet(param[['knownNBPath']])

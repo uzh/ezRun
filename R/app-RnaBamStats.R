@@ -159,7 +159,6 @@ computeBamStats = function(input, htmlFile, param, gff, resultList=NULL){
 
 ##' @describeIn computeBamStats Gets the error positions from the BAM file.
 getPosErrorFromBam = function(bamFile, param){
-  require("GenomicRanges", warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
   require("bitops", warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
   job = ezJobStart(paste("position error:", bamFile))
   ## heuristic to search for the chromosome with most reads
@@ -197,8 +196,6 @@ getPosErrorFromBam = function(bamFile, param){
 
 ##' @describeIn computeBamStats Calculates the specific error rates for \code{getPosErrorFromBam()}.
 ezPosSpecErrorRate = function(bam, ReferenceGenome, nMaxReads=100000){
-  require("GenomicRanges", warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
-  require("stringr", warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
   require("Hmisc", warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
   ## remove the reads containing the gaps, insertions, deletions
   hasGap = grepl("N|I|D", bam$cigar)

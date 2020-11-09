@@ -351,8 +351,6 @@ removeReadsFromFastq = function(fqFiles, readIds, fqOutFiles=NULL, doGzip=TRUE){
 
 writeSCMM <- function(x, file){
   require(Matrix)
-  require(readr)
-  
   stopifnot(grepl("\\.mtx$", file))
   
   write_lines(rownames(x), path=sub("\\.mtx$", ".rowNames", file))
@@ -365,7 +363,6 @@ writeSCMM <- function(x, file){
 
 readSCMM <- function(file){
   require(Matrix)
-  require(readr)
   ans <- readMM(file)
   ans <- as(ans, "dgCMatrix")
   colnames(ans) <- read_lines(sub("\\.mtx$", ".colNames", file))

@@ -14,18 +14,15 @@ Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
 
 ```{r setup, include=FALSE}
 library(SummarizedExperiment)
-library(ggplot2)
 library(ggridges)
 library(cowplot)
-library(tibble)
-library(dplyr)
-library(readr)
 library(kableExtra)
 library(pheatmap)
 library(scater)
 library(RColorBrewer)
 library(plotly)
 library(SingleR)
+library(tidyverse)
 knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE, knitr.table.format = "html")
 
 

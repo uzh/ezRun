@@ -129,7 +129,6 @@ ezMethodSTARsolo = function(input=NA, output=NA, param=NA){
     
     # filter raw counts with EmptyDrop
     require(Matrix)
-    require(readr)
     require(DropletUtils)
     
     outputDir = paste0(sampleName,'/Solo.out/Gene/raw')

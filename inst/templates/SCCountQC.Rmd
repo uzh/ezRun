@@ -20,15 +20,12 @@ library(scater)
 library(ezRun)
 library(DT)
 library(htmltools)
-library(dplyr)
 library(Matrix)
 library(Seurat)
 library(pheatmap)
-library(readr)
 library(DropletUtils)
-library(tibble)
 library(cowplot)
-
+library(tidyverse)
 ## ----------------------------------------------
 ## debug
 # title:  "`r metadata(sce)$param$name`"
