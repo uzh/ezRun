@@ -84,7 +84,6 @@ ezMethodCellRanger <- function(input=NA, output=NA, param=NA){
   if(param$TenXLibrary %in% c("GEX", "FeatureBarcoding")){
     require(DropletUtils)
     require(Matrix)
-    require(readr)
     countMatrixFn <- list.files(path=file.path(sampleName, 'filtered_feature_bc_matrix'),
                                 pattern="\\.mtx(\\.gz)*$", recursive=TRUE,
                                 full.names=TRUE)
@@ -98,7 +97,6 @@ ezMethodCellRanger <- function(input=NA, output=NA, param=NA){
 }
 
 getCellRangerGEXReference <- function(param){
-  require(Biostrings)
   require(rtracklayer)
   cwd <- getwd()
   on.exit(setwd(cwd), add=TRUE)
@@ -194,7 +192,6 @@ getCellRangerGEXReference <- function(param){
 }
 
 getCellRangerVDJReference <- function(param){
-  require(Biostrings)
   require(rtracklayer)
   cwd <- getwd()
   on.exit(setwd(cwd), add=TRUE)
@@ -244,7 +241,6 @@ getCellRangerReference <- function(param){
     if(param$scMode == "SN"){
       stop("Single-nuclei with extra control sequences is not implemented yet!")
     }
-    require(Biostrings)
     require(rtracklayer)
     ## make reference genome
     genomeLocalFn <- tempfile(pattern="genome", tmpdir=getwd(),

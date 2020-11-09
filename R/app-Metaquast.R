@@ -7,7 +7,6 @@
 
 
 ezMethodMetaquast = function(input=NA, output=NA, param=NA, htmlFile="00index.html"){
-  library(Biostrings)
   outFileName = param$Name
     ## copy everything locally 
     ## refs

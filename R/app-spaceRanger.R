@@ -67,7 +67,6 @@ ezMethodSpaceRanger <- function(input=NA, output=NA, param=NA){
   
   require(DropletUtils)
   require(Matrix)
-  require(readr)
   countMatrixFn <- list.files(path=file.path(sampleName, 'filtered_feature_bc_matrix'),
                               pattern="\\.mtx(\\.gz)*$", recursive=TRUE,
                               full.names=TRUE)

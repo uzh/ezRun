@@ -167,7 +167,6 @@ ezColorLegendGG2 = function(colorRange=c(-3,3), colors=getBlueRedScale(),
                                    by=by.label),
                             labels = as.character(at), 
                             by.label=0.5){
-  require(ggplot2)
   if (vertical){
     df <- data.frame(x=1, 
                      y=seq(from=colorRange[1], to=colorRange[2], 
@@ -268,7 +267,6 @@ ezVolcano <- function(log2Ratio, pValue, yType=c("p-value", "FDR"),
                       mode=c("plotly", "ggplot2")){
   require(plotly)
   require(htmlwidgets)
-  require(ggplot2)
   require(ggrepel)
   
   yType <- match.arg(yType)
@@ -565,7 +563,6 @@ ezXYScatter.2 = function(xVec, yVec, absentColor="gray", shrink=FALSE,
                          labelGenes=NULL, mode=c("plotly", "ggplot2")){
   require(plotly)
   require(htmlwidgets)
-  require(ggplot2)
   require(ggrepel)
   mode <- match.arg(mode)
   

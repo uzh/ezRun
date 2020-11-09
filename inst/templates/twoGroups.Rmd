@@ -29,7 +29,6 @@ library(webshot)
 library(htmlwidgets)
 library(tidyverse)
 library(readxl)
-library(dplyr)
 library(BiocParallel)
 
 BPPARAM = BiocParallel::MulticoreParam(workers=param$cores)
