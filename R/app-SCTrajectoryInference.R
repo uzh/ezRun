@@ -60,7 +60,6 @@ ezMethodSCTrajectoryInference <- function(input=NA, output=NA, param=NA,
   }
   
   require(dyno)
-  require(tidyverse)
   #library(dyncli)
  
   #Prepare the data
