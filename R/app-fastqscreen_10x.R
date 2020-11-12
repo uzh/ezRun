@@ -7,7 +7,6 @@
 
 ezMethodFastqScreen_10x <- function(input=NA, output=NA, param=NA,
                                     htmlFile="00index.html"){
-  require(tidyverse)
   dataset <- input$meta
   sampleDirs <- input$getFullPaths("RawDataDir")
   stopifnot(all(grepl("\\.tar$", sampleDirs)))
