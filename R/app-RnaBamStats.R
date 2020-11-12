@@ -614,7 +614,7 @@ getTargetTypeCounts = function(param, gff, rr, seqid=NULL, repeatsGff=NULL){
                                 data.table(ensemblTypes=missingTypes, N=0))
         }
         
-        widthByType <- sum(width(reduce(GenomicRanges::split(gffRanges, 
+        widthByType <- sum(width(IRanges::reduce(GenomicRanges::split(gffRanges, 
                                                              ensemblTypes))))
         
         hasAnyHit[hitsByType$queryHits] <- TRUE
