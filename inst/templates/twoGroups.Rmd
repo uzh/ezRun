@@ -597,7 +597,6 @@ if (doGo(param, seqAnno)){
 
 ```{r prepare ora plots, echo=FALSE, message=FALSE, eval=!debug}
 enrichResultPlots <- list()
-labels <- list()
 if(exists("enrichResult")){
   for(onto in names(enrichResult)){
     enrichResultPlots[[onto]] = list()
@@ -608,25 +607,21 @@ if(exists("enrichResult")){
         erp = list()
         er = enrichResult[[onto]][[sig]]
         
-        er@result$Synonym <- NULL
-        l <- NULL
+        er@result$Label <- ""
         for (i in 1:length(er@result$Description)) {
           desc <- er@result$Description[i]
-          syn <- Synonym(GOTERM[[er@result$ID[i]]])
-          syn <- syn[grep("GO:", syn, invert = T)]
-          syn <- syn[order(nchar(syn))][1]
-          if (nchar(desc) < 35) {
-            er@result$Synonym[i] <- paste(er@result$ID[i],desc)
-            l <- c(l,paste0(er@result$ID[i],"\n",desc))
-          } else if (nchar(desc) > 35 & nchar(syn) <= 35 & !is.na(syn)) {
-            er@result$Synonym[i] <- paste(er@result$ID[i],syn)
-            l <- c(l,paste0(er@result$ID[i],"\n",syn))
-          } else if (nchar(desc) >= 35 & nchar(syn) > 35 | is.na(syn)) {
-            er@result$Synonym[i] <- paste(er@result$ID[i],substr(er@result$Description[i], 1, 35))
-            l <- c(l,paste0(er@result$ID[i],"\n",substr(er@result$Description[i], 1, 35)))
+          if (nchar(desc) < 35){
+            syn = desc
+          } else {
+            syn <- Synonym(GOTERM[[er@result$ID[i]]])
+            syn = grep("GO:", syn, invert=T, value=T)
+            syn <- head(syn[order(nchar(syn))], 1)
+            if (is.na(syn)){
+              syn = substr(desc, 1, 35)
+            }
           }
+          er@result$Label[i] = paste0(er@result$ID[i],"\n",syn)
         }
-        labels[[onto]][[sig]] <- l
         
         er@result$geneID <- er@result$geneName
 
@@ -641,8 +636,7 @@ if(exists("enrichResult")){
                                         formatSignif(c("pvalue","p.adjust"), digits = 3)
         
 
-        dotplot.labels <- labels[[onto]][[sig]]
-        erp[["dotplot"]] <- dotplot(er, showCategory = 20, title=paste(onto, sig)) + scale_y_discrete(labels = dotplot.labels) + theme(axis.text.y = element_text(vjust=-0.01, size = 8))
+        erp[["dotplot"]] <- dotplot(er, showCategory = 20, title=paste(onto, sig)) + scale_y_discrete(labels = er@result$Label) + theme(axis.text.y = element_text(vjust=-0.01, size = 8))
         sigGeneIds = enrichInput$selections[[sig]]
         log2Ratio = enrichInput$seqAnno$log2Ratio[enrichInput$seqAnno$gene_id %in% sigGeneIds ]
         names(log2Ratio) = enrichInput$seqAnno[sigGeneIds, "gene_name"]
@@ -688,7 +682,6 @@ if (doGo(param, seqAnno)){
 
 ```{r prepare gsea plots, echo=FALSE, message=FALSE, eval=!debug}
 enrichResultGSEAPlots <- list()
-labels <- list()
 if(exists("enrichResultGSEA")){
   for(onto in names(enrichResultGSEA)){
     enrichResultGSEAPlots[[onto]] = list()
@@ -698,26 +691,22 @@ if(exists("enrichResultGSEA")){
         erp = list()
         er = enrichResultGSEA[[onto]]
         
-        er@result$Synonym <- NULL
-        l <- NULL
+        er@result$Label <- ""
         for (i in 1:length(er@result$Description)) {
           desc <- er@result$Description[i]
-          syn <- Synonym(GOTERM[[er@result$ID[i]]])
-          syn <- syn[grep("GO:", syn, invert = T)]
-          syn <- syn[order(nchar(syn))][1]
-          if (nchar(desc) < 35) {
-            er@result$Synonym[i] <- paste(er@result$ID[i],desc)
-            l <- c(l,paste0(er@result$ID[i],"\n",desc))
-          } else if (nchar(desc) > 35 & nchar(syn) <= 35 & !is.na(syn)) {
-            er@result$Synonym[i] <- paste(er@result$ID[i],syn)
-            l <- c(l,paste0(er@result$ID[i],"\n",syn))
-          } else if (nchar(desc) >= 35 & nchar(syn) > 35 | is.na(syn)) {
-            er@result$Synonym[i] <- paste(er@result$ID[i],substr(er@result$Description[i], 1, 35))
-            l <- c(l,paste0(er@result$ID[i],"\n",substr(er@result$Description[i], 1, 35)))
+          if (nchar(desc) < 35){
+            syn = desc
+          } else {
+            syn <- Synonym(GOTERM[[er@result$ID[i]]])
+            syn = grep("GO:", syn, invert=T, value=T)
+            syn <- head(syn[order(nchar(syn))], 1)
+            if (is.na(syn)){
+              syn = substr(desc, 1, 35)
+            }
           }
+          er@result$Label[i] = paste0(er@result$ID[i],"\n",syn)
         }
-        labels[[onto]] <- l
-        
+
         gseaFile = paste(onto, "gsea.txt", sep="_")
         erp[["gseaFile"]] = gseaFile
         write.table(er, file=gseaFile,
@@ -728,9 +717,8 @@ if(exists("enrichResultGSEA")){
                                       formatStyle(columns = colnames(.$x$data), `font-size` = "12px") %>% 
                                         formatSignif(c("pvalue","p.adjust"), digits = 3)
         
-        dotplot.labels <- labels[[onto]]
-        erp[["dotplot"]] <- dotplot(er, showCategory = 20, title=paste(onto)) + scale_y_discrete(labels = dotplot.labels) + theme(axis.text.y = element_text(vjust=-0.01, size = 8))
-        erp[["ridgeplot"]] <- ridgeplot(er, showCategory = 20) + scale_y_discrete(labels = dotplot.labels) + theme(axis.text.y = element_text(vjust=-0.01, size = 8))
+        erp[["dotplot"]] <- dotplot(er, showCategory = 20, title=paste(onto)) + scale_y_discrete(labels = er@result$Label) + theme(axis.text.y = element_text(vjust=-0.01, size = 8))
+        erp[["ridgeplot"]] <- ridgeplot(er, showCategory = 20) + scale_y_discrete(labels = er@result$Label) + theme(axis.text.y = element_text(vjust=-0.01, size = 8))
         erp[["gseaplot"]] <- enrichplot::gseaplot2(er, geneSetID = 1)
         
         ce_list <- NA
