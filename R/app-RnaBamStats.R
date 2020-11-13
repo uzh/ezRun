@@ -574,7 +574,7 @@ getTargetTypeCounts = function(param, gff, rr, seqid=NULL, repeatsGff=NULL){
         use = classFam == type
         targetRanges = gffToRanges(repeatsGff[use, ])
         hitsTarget = overlapsAny(rr, targetRanges, minoverlap=10)
-        result[type, ] = c(sum(hitsTarget), sum(width(reduce(targetRanges))))
+        result[type, ] = c(sum(hitsTarget), sum(width(IRanges::reduce(targetRanges))))
         hasAnyHit = hasAnyHit | hitsTarget
       }
     }
@@ -590,7 +590,7 @@ getTargetTypeCounts = function(param, gff, rr, seqid=NULL, repeatsGff=NULL){
         # for (type in unique(ensemblTypes)){
         #   targetRanges = gffRanges[ensemblTypes == type]
         #   hitsTarget = overlapsAny(rr, targetRanges, minoverlap=10)
-        #   result[type, ] = c(sum(hitsTarget), sum(width(reduce(targetRanges))))
+        #   result[type, ] = c(sum(hitsTarget), sum(width(IRanges::reduce(targetRanges))))
         #   hasAnyHit = hasAnyHit | hitsTarget
         # }
         ## The following code is much faster than the loop above.
@@ -614,7 +614,7 @@ getTargetTypeCounts = function(param, gff, rr, seqid=NULL, repeatsGff=NULL){
                                 data.table(ensemblTypes=missingTypes, N=0))
         }
         
-        widthByType <- sum(width(reduce(GenomicRanges::split(gffRanges, 
+        widthByType <- sum(width(IRanges::reduce(GenomicRanges::split(gffRanges, 
                                                              ensemblTypes))))
         
         hasAnyHit[hitsByType$queryHits] <- TRUE
@@ -631,7 +631,7 @@ getTargetTypeCounts = function(param, gff, rr, seqid=NULL, repeatsGff=NULL){
           use = gff$type == type
           targetRanges = gffRanges[gff$type == type]
           hitsTarget = overlapsAny(rr, targetRanges, minoverlap=10)
-          result[type, ] = c(sum(hitsTarget), sum(width(reduce(targetRanges))))
+          result[type, ] = c(sum(hitsTarget), sum(width(IRanges::reduce(targetRanges))))
           hasAnyHit = hasAnyHit | hitsTarget
         }
         isExon = gff$type == "exon"
@@ -647,23 +647,23 @@ getTargetTypeCounts = function(param, gff, rr, seqid=NULL, repeatsGff=NULL){
       ## check additionally for intron/exon/prom
       hitsTranscript = overlapsAny(rr, msgRanges, minoverlap=10)
       hasAnyHit = hasAnyHit | hitsTranscript  
-      mRnaWidth = sum(width(reduce(msgRanges)))
+      mRnaWidth = sum(width(IRanges::reduce(msgRanges)))
       hitsTargetExons = overlapsAny(rr[hitsTranscript], 
                                     targetExonRanges, minoverlap=10)
       result["mRNA Exons", ] = c(sum(hitsTargetExons), 
-                                 sum(width(reduce(targetExonRanges))))
+                                 sum(width(IRanges::reduce(targetExonRanges))))
       result["mRNA Introns", ] = c(sum(!hitsTargetExons), 
                                    mRnaWidth - result["mRNA Exons", "width"])
       ## suppressWarnings for out-of-bound ranges.
       promRanges = trim(suppressWarnings(flank(msgRanges, 2000)))
       hitsTargetProms = overlapsAny(rr, promRanges, minoverlap=10)
       result["mRNA Promoter 2kb", ] = c(sum(hitsTargetProms), 
-                                        sum(width(reduce(promRanges))))
+                                        sum(width(IRanges::reduce(promRanges))))
       hasAnyHit = hasAnyHit | hitsTargetProms
       downRanges = trim(suppressWarnings(flank(msgRanges, 2000, start=FALSE)))
       hitsTargetDown = overlapsAny(rr, downRanges, minoverlap=10)
       result["mRNA Downstream 2kb", ] = c(sum(hitsTargetDown), 
-                                          sum(width(reduce(promRanges))))
+                                          sum(width(IRanges::reduce(promRanges))))
       hasAnyHit = hasAnyHit | hitsTargetDown
       gffRanges = c(gffRanges, promRanges, downRanges)
     }
@@ -676,7 +676,7 @@ getTargetTypeCounts = function(param, gff, rr, seqid=NULL, repeatsGff=NULL){
     allRanges = c(allRanges, repeatsRanges)
   }
   if (length(allRanges) > 0){
-    annotatedWidth = sum(width(reduce(allRanges)))
+    annotatedWidth = sum(width(IRanges::reduce(allRanges)))
   } else {
     annotatedWidth = 0
   }

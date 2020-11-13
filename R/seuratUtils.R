@@ -98,7 +98,6 @@ getSeuratScalingFactor <- function(x){
 }
 
 cellTable <- function(scData){
-  require(tidyverse)
   toTable <- tibble(Cluster=names(summary(scData@ident)),
                     "# of cells"=summary(scData@ident))
   cellCountsByPlate <- tibble(Plate=scData@meta.data$Plate,
@@ -150,7 +149,6 @@ seuratStandardWorkflow <- function(scData, param){
 }  
   
 cellsProportion <- function(scData){
-  require(tidyverse)
   toTable <- tibble(Cluster=names(summary(Idents(scData))),
                     "# of cells"=summary(Idents(scData)))
   cellCountsByPlate <- tibble(Plate=scData@meta.data$Plate,

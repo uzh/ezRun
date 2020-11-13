@@ -23,7 +23,6 @@ EzAppCellRangerATAC <-
   )
 
 ezMethodCellRangerATAC <- function(input=NA, output=NA, param=NA){
-  require(tidyverse)
   sampleName <- input$getNames()
   sampleDirs <- strsplit(input$getColumn("RawDataDir"), ",")[[sampleName]]
   sampleDirs <- file.path(input$dataRoot, sampleDirs)
