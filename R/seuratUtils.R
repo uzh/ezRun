@@ -210,6 +210,7 @@ seuratClusteringHTO <- function(scData) {
   scData <- RunTSNE(scData, reduction = "pca_hto", reduction.key = "htoTSNE_", reduction.name = "tsne_hto", check_duplicates = FALSE)
   scData <- FindNeighbors(scData, reduction="pca_hto", features = rownames(scData), dims=NULL)
   scData <- FindClusters(scData, resolution = 0.2)  
+  return(scData)
 }
 
 cellClustNoCorrection <- function(sceList, param) {
