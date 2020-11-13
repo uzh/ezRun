@@ -8,7 +8,6 @@
 ezMethodFastQC_10x <- function(input=NA, output=NA, param=NA, 
                                htmlFile="00index.html"){
   require(rmarkdown)
-  require(tidyverse)
   setwdNew(basename(output$getColumn("Report")))
   
   param$paired <- TRUE

@@ -501,7 +501,6 @@ makeResultFile = function(param, se, useInOutput=TRUE,
                           file=paste0("result--", param$comparison, ".xlsx")){
   require(tools)
   require(DT, quietly=TRUE)
-  require(tidyverse)
   require(writexl)
   library(tidyselect)
   se <- se[useInOutput, ]
@@ -553,7 +552,6 @@ makeResultFile = function(param, se, useInOutput=TRUE,
 
 makeWebgestaltFiles <- function(param, resultFile){
     require(readxl)
-    require(tidyverse)
     fileNames <- list()
     result <- read_excel(resultFile)
     setwdNew('Webgestalt')

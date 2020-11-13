@@ -416,7 +416,11 @@ getSTARReference = function(param){
   }
 
   genomeLength = sum(fai$LENGTH)
+  readLength = 150 ## assumption
   indexNBasesOpt = paste("--genomeSAindexNbases", min(13, floor(log2(genomeLength)/2 - 1)))
+  genomeChrBinNbits = paste("--genomeChrBinNbits", floor(min(18, 
+                                                             log2(max(genomeLength/nrow(fai), readLength))
+  )))
   
   job = ezJobStart("STAR genome build")
   if (ezIsSpecified(param$spikeInSet)){
@@ -425,17 +429,15 @@ getSTARReference = function(param){
     gtfFile = file.path(refDir, "genesAndSpikes.gtf")
     ezSystem(paste("cp", param$ezRef["refFeatureFile"], gtfFile))
     ezSystem(paste("cat", spikeInGtf, ">>", gtfFile))
-    cmd = paste("STAR", "--runMode genomeGenerate --genomeDir", refDir, binOpt, indexNBasesOpt,
-                "--limitGenomeGenerateRAM", format(param$ram * 1e9, scientific=FALSE),
-                "--genomeFastaFiles", param$ezRef["refFastaFile"], spikeInFasta,
-                "--sjdbGTFfile", gtfFile, "--sjdbOverhang 150", "--runThreadN", param$cores, '--genomeSAsparseD 2')
+    genomeFastaFiles = paste(param$ezRef["refFastaFile"], spikeInFasta)
   } else {
-    cmd = paste("STAR", "--runMode genomeGenerate --genomeDir", refDir, binOpt, indexNBasesOpt,
-                "--limitGenomeGenerateRAM", format(param$ram * 1e9, scientific=FALSE),
-                "--genomeFastaFiles", param$ezRef["refFastaFile"], 
-                "--sjdbGTFfile", param$ezRef["refFeatureFile"], "--sjdbOverhang 150", "--runThreadN", param$cores, '--genomeSAsparseD 2')
-    
+    gtfFile = param$ezRef["refFeatureFile"]
+    genomeFastaFiles = param$ezRef["refFastaFile"]
   }
+    cmd = paste("STAR", "--runMode genomeGenerate --genomeDir", refDir, binOpt, indexNBasesOpt, genomeChrBinNbits,
+                "--limitGenomeGenerateRAM", format(param$ram * 1e9, scientific=FALSE), 
+                "--genomeFastaFiles", genomeFastaFiles,
+                "--sjdbGTFfile", gtfFile, "--sjdbOverhang 150", "--runThreadN", param$cores, '--genomeSAsparseD 2')
   ezSystem(cmd)
   file.remove(lockFile)
   ezWriteElapsed(job, "done")
