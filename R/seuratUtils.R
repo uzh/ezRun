@@ -201,6 +201,17 @@ seuratClusteringV3 <- function(scData, param) {
   return(scData)
 }
 
+seuratClusteringHTO <- function(scData) {
+  scData <- ScaleData(scData, assay = "HTO")
+  DefaultAssay(scData) <- "HTO"
+  scData <- RunPCA(scData, features = rownames(scData), reduction.name = "pca_hto", reduction.key = "pca_hto_", 
+                           verbose = FALSE)
+  # Now, we rerun tSNE using the PCA only on ADT (protein) levels.
+  scData <- RunTSNE(scData, reduction = "pca_hto", reduction.key = "htoTSNE_", reduction.name = "tsne_hto", check_duplicates = FALSE)
+  scData <- FindNeighbors(scData, reduction="pca_hto", features = rownames(scData), dims=NULL)
+  scData <- FindClusters(scData, resolution = 0.2)  
+}
+
 cellClustNoCorrection <- function(sceList, param) {
   #Merge all seurat objects
   scData = Reduce(merge, lapply(sceList, function(x){metadata(x)$scData}))
