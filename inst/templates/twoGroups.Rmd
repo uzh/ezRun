@@ -616,7 +616,7 @@ if(exists("enrichResult")){
             syn <- Synonym(GOTERM[[er@result$ID[i]]])
             syn = grep("GO:", syn, invert=T, value=T)
             syn <- head(syn[order(nchar(syn))], 1)
-            if (is.na(syn)){
+            if (length(syn) == 0 || is.na(syn)){
               syn = substr(desc, 1, 35)
             }
           }
@@ -700,7 +700,7 @@ if(exists("enrichResultGSEA")){
             syn <- Synonym(GOTERM[[er@result$ID[i]]])
             syn = grep("GO:", syn, invert=T, value=T)
             syn <- head(syn[order(nchar(syn))], 1)
-            if (is.na(syn)){
+            if (length(syn) == 0 || is.na(syn)){
               syn = substr(desc, 1, 35)
             }
           }
