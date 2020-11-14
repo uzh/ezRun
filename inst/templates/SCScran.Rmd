@@ -317,7 +317,7 @@ markersList <- list()
 for(cluster in names(markers)){
   markersPerCluster <- as_tibble(markers[[cluster]], rownames="gene_name")
   write_tsv(markersPerCluster,
-            path=file.path(posMarkersDir, paste0("Cluster", cluster, ".txt")))
+            file=file.path(posMarkersDir, paste0("Cluster", cluster, ".txt")))
   
   markersPerCluster <- filter(markersPerCluster, p.value <= p_pos_cutoff,
                               Top <= 10)
@@ -503,17 +503,17 @@ geneMeans <- log1p(t(geneMeans))
 colnames(geneMeans) <- paste("Cluster", colnames(geneMeans), sep="_")
 geneMeanPerClusterFn <- "gene_means_per_cluster.txt"
 write_tsv(as_tibble(geneMeans, rownames="gene_name"),
-          path=geneMeanPerClusterFn)
+          file=geneMeanPerClusterFn)
 
 geneMeans <- Matrix::rowMeans(tr_cnts)
 geneMeans <- log1p(geneMeans)
 geneMeansFn <- "gene_means.txt"
-write_tsv(enframe(geneMeans, name="gene_name"), path=geneMeansFn)
+write_tsv(enframe(geneMeans, name="gene_name"), file=geneMeansFn)
 ```
 
 ```{r coordinates, include=FALSE}
 coordinatesFn <- "coordinates_data.tsv"
-write_tsv(coordinates, path=coordinatesFn)
+write_tsv(coordinates, file=coordinatesFn)
 ```
 
   * Average gene expression per cluster: [`r geneMeanPerClusterFn`](`r geneMeanPerClusterFn`)

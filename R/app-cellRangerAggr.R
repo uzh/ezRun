@@ -61,7 +61,7 @@ ezMethodCellRangerAggr = function(input=NA, output=NA, param=NA){
     mutate(Name=str_c(str_replace(Name, "\\d+$", ""), SampleID)) %>%
     select(-SampleID)
   write_tsv(cellPhaseAggr,
-            path=file.path(param$name, "filtered_feature_bc_matrix",
+            file=file.path(param$name, "filtered_feature_bc_matrix",
                            "CellCyclePhase.txt"))
   
   return("Success")

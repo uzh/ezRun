@@ -293,7 +293,7 @@ kable_styling("striped", full_width = F, position = "left")
  
  for(comparison in names(all2allMarkers)){
     write_tsv(as_tibble(all2allMarkers[[comparison]], rownames="Gene"),
-              path=paste0(comparison, ".tsv"))
+              file=paste0(comparison, ".tsv"))
   }
   genesAllPerCluster <- lapply(all2allMarkers, rownames)
   genesUpPerCluster <- lapply(all2allMarkers, function(x){rownames(x)[x$avg_logFC > 0]})

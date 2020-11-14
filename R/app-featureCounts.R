@@ -284,7 +284,7 @@ ezMethodSingleCellFeatureCounts <- function(input=NA, output=NA, param=NA){
   ezWrite.table(countResult$stat, file=statFile, row.names=FALSE)
   
   cellPhase <- getCellCycle(countsFixed, param$refBuild)
-  write_tsv(cellPhase, path=basename(output$getColumn('CellCyclePhase')))
+  write_tsv(cellPhase, file=basename(output$getColumn('CellCyclePhase')))
   
   return("Success")
 }

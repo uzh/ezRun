@@ -347,7 +347,7 @@ The minimal pvalue is `r pvalue_allMarkers`.
 markers <- FindAllMarkers(scData, only.pos=TRUE, min.pct=0.25,
                           logfc.threshold=0.25, return.thresh=pvalue_allMarkers)
 posMarkersFn <- "pos_markers.tsv"
-write_tsv(as_tibble(markers), path=posMarkersFn)
+write_tsv(as_tibble(markers), file=posMarkersFn)
 ```
 
 ```{r pos markers enrichr, echo=FALSE, results='asis'}
@@ -497,18 +497,18 @@ geneMeans <- log1p(t(geneMeans))
 colnames(geneMeans) <- paste("cluster", colnames(geneMeans), sep="_")
 geneMeanPerClusterFn <- "gene_means_per_cluster.txt"
 write_tsv(as_tibble(geneMeans, rownames="gene_name"),
-          path=geneMeanPerClusterFn)
+          file=geneMeanPerClusterFn)
 
 geneMeans <- Matrix::rowMeans(tr_cnts)
 geneMeans <- log1p(geneMeans)
 geneMeansFn <- "gene_means.txt"
 write_tsv(enframe(geneMeans, name="gene_name", value="gene_expression"), 
-          path=geneMeansFn)
+          file=geneMeansFn)
 ```
 
 ```{r coordinates, include=FALSE}
 coordinatesFn <- "coordinates_data.tsv"
-write_tsv(coordinates, path=coordinatesFn)
+write_tsv(coordinates, file=coordinatesFn)
 ```
 
   * Average gene expression per cluster: [`r geneMeanPerClusterFn`](`r geneMeanPerClusterFn`)

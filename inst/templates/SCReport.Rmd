@@ -52,7 +52,7 @@ cat(paste0("<SCRIPT language=\"JavaScript\" SRC=\"", basename(jsFile), "\"></SCR
 markers <- FindAllMarkers(object=scData, only.pos=TRUE,
                           return.thresh = pvalue_allMarkers)
 posMarkersFn <- "pos_markers.tsv"
-write_tsv(as_tibble(markers), path=posMarkersFn)
+write_tsv(as_tibble(markers), file=posMarkersFn)
 
 ## Significant markers
 if (nrow(markers) >0){
@@ -100,7 +100,7 @@ if(param$runPseudoTime){
   tSNE_data$pseudotime <- a$A[1,]
 }
 tSNEFn <- "coordinates_data.tsv"
-write_tsv(tSNE_data, path=tSNEFn)
+write_tsv(tSNE_data, file=tSNEFn)
 ```
 
 ## Clustering Results {.tabset}
@@ -212,10 +212,10 @@ if(doEnrichr(param) && param$all2allMarkers){
   for(comparison in names(all2allMarkers)){
     if(nrow(all2allMarkers[[comparison]]) > 0){
       write_tsv(as_tibble(all2allMarkers[[comparison]], rownames="Gene"),
-              path=paste0(comparison, ".tsv"))
+                file=paste0(comparison, ".tsv"))
     }else{
       write_tsv(as_tibble(all2allMarkers[[comparison]]),
-              path=paste0(comparison, ".tsv"))
+                file=paste0(comparison, ".tsv"))
     }
   }
   genesAllPerCluster <- lapply(all2allMarkers, rownames)
@@ -384,7 +384,7 @@ magic_data <- magic(Matrix::t(scData@data), genes="all_genes",
                     t="auto", seed=10)
 magicDataFn <- "magic_data.tsv"
 write_tsv(as_tibble(t(as.data.frame(magic_data)), rownames="gene_name"),
-          path=magicDataFn)
+          file=magicDataFn)
 magicDataFn <- R.utils::gzip(magicDataFn)
 ```
 
