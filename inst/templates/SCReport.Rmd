@@ -318,16 +318,8 @@ for(i in nrPseudoT){
   lines(SlingshotDataSet(sceSlingshot), lwd=2)
 }
 ## Trajectory
-cell.colorsPalette <- setNames(gg_color_hue(length(levels(sceSlingshot$ident))),
-                               levels(sceSlingshot$ident))
-# cell.colors <- cell.colorsPalette[tSNE_data$cluster]
-# names(cell.colors) <- tSNE_data$cells
-
-# if(length(levels(sceSlingshot$ident)) >= 10){
-#   colors <- colorRampPalette(brewer.pal(9,'Set1'))(length(levels(sceSlingshot$ident)))
-# }else{
-#   colors <- brewer.pal(9,'Set1')
-# }
+cell.colorsPalette <- set_names(gg_color_hue(length(levels(sceSlingshot$ident))),
+                                levels(sceSlingshot$ident))
 plot(reducedDim(sceSlingshot, type="TSNE"), 
      col = cell.colorsPalette[sceSlingshot$ident], 
      pch=16, asp = 1, main="Trajectory reconstruction")

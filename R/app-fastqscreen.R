@@ -299,7 +299,7 @@ collectBowtie2Output <- function(param, countFiles, readCount, virusResult = F){
   tax2name = read.table(sub( "Sequence.*", "Annotation/tax2name.txt", REFSEQ_mRNA_REF),
                         header=F, stringsAsFactors=F, sep='\t', 
                         colClasses="character", quote='', comment.char="")
-  tax2name <- setNames(tax2name[ ,3], tax2name[ ,1])
+  tax2name <- set_names(tax2name[ ,3], tax2name[ ,1])
   speciesPercentageTop = list()
   for (nm in names(countFiles)){
     countData = ezRead.table(countFiles[nm], row.names = NULL)

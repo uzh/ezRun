@@ -51,15 +51,12 @@ for (nm in setdiff(na.omit(unique(seqAnno$type)), "")){
 metadata(rawData)$design <- ezDesignFromDataset(dataset, param)
 colData(rawData)$conds <- ezConditionsFromDesign(metadata(rawData)$design,
                                                  maxFactors = 2)
-# colData(rawData)$sampleColors <- getSampleColors(colData(rawData)$conds)
 metadata(rawData)$condColors <- lapply(metadata(rawData)$design, getCondsColors)
 metadata(rawData)$sampleColors <- list()
 for(cond in colnames(metadata(rawData)$design)){
-  metadata(rawData)$sampleColors[[cond]] <- setNames(metadata(rawData)$condColors[[cond]][metadata(rawData)$design[[cond]]],
+  metadata(rawData)$sampleColors[[cond]] <- set_names(metadata(rawData)$condColors[[cond]][metadata(rawData)$design[[cond]]],
                                                      rownames(metadata(rawData)$design))
 }
-# metadata(rawData)$condleColors <- lapply(metadata(rawData)$sampleColors, function(x, y){setNames(x,y)},
-#                                         rownames(metadata(rawData)$design))
 ```
 
 ```{r check enough samples, echo=FALSE, results='asis'}

@@ -39,7 +39,7 @@ isAbundPlotSampleUnfilt <- list()
 isAbundPlotGroupUnfilt <- list()
 
 taxRanksVec <- attr(physeqFullObject@tax_table@.Data,"dimnames")[[2]]
-taxRanks <- setNames(as.list(taxRanksVec),taxRanksVec)
+taxRanks <- set_names(as.list(taxRanksVec),taxRanksVec)
 for (rankNames  in taxRanks){
   tempAbundPlotFilt <- abundPlot(rankNames,physeqFullObject,xAesLogic="S",numTopRanks,group)
   if (tempAbundPlotFilt$stop==TRUE) {
