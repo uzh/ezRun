@@ -601,7 +601,7 @@ trimTxGtf <- function(param=NULL, inGTF, outGTF, fastaFile, refAnnotationFile,
     export(gtf, outGTF[i])
   }
   
-  invisible(setNames(outGTF, fix))
+  invisible(set_names(outGTF, fix))
 }
 
 trimGRanges <- function(x, width=100, start=TRUE){

@@ -74,7 +74,7 @@ getSampleColors = function(conds, colorNames=names(conds)){
 
 getCondsColors <- function(conds){
   conds <- unique(conds)
-  condColors <- setNames(brewPalette(length(conds)), conds)
+  condColors <- set_names(brewPalette(length(conds)), conds)
   return(condColors)
 }
 
@@ -308,7 +308,7 @@ ezVolcano <- function(log2Ratio, pValue, yType=c("p-value", "FDR"),
   ## This is only for plotly.
   toPlot$types <- factor(toPlot$types,
                          levels=c("Absent", "Present", colnames(types)))
-  typesColours <- setNames(c("grey", "black", colors), 
+  typesColours <- set_names(c("grey", "black", colors), 
                            c("Absent", "Present", colnames(types))
   )
   if(mode == "plotly"){
@@ -590,7 +590,7 @@ ezXYScatter.2 = function(xVec, yVec, absentColor="gray", shrink=FALSE,
   ## This is only for plotly.
   toPlot$types <- factor(toPlot$types,
                          levels=c("Absent", "Present", colnames(types)))
-  typesColours <- setNames(c("grey", "black", colors), 
+  typesColours <- set_names(c("grey", "black", colors), 
                            c("Absent", "Present", colnames(types))
                            )
   if(mode == "plotly"){

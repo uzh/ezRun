@@ -936,7 +936,7 @@ PlotData = function(sampleIDs, output.dir, sampleGroups=NA, minPercent_exogenous
       geom_violin() +
       geom_boxplot(alpha=0.2) +ylab("Read count") +ggtitle("miRNA abundance distributions (raw counts)") +
       scale_y_log10() +guides(colour=FALSE) +
-      scale_color_manual(values = setNames(getSampleColors(tmp$sample),tmp$sample))
+      scale_color_manual(values = set_names(getSampleColors(tmp$sample),tmp$sample))
     if(ncol(exprs.miRNA) < 30){ 
       p = p +theme(axis.text.x=element_text(angle=50, hjust=1.0, vjust=1))
     }else{
@@ -949,7 +949,7 @@ PlotData = function(sampleIDs, output.dir, sampleGroups=NA, minPercent_exogenous
     plotsList[["miRNA abundance distributions (raw counts)"]] = p
     
     p = ggplot(tmp, aes(x=abundance, colour=sample)) +geom_density() +xlab("Read count") +ggtitle("miRNA abundance distributions (raw counts)") +scale_x_log10()+
-      scale_color_manual(values = setNames(getSampleColors(tmp$sample),tmp$sample))
+      scale_color_manual(values = set_names(getSampleColors(tmp$sample),tmp$sample))
     if(ncol(exprs.miRNA.rpm) > 30){ p = p +guides(colour=FALSE) }
     if(is.data.frame(sampleGroups)){ p = p +facet_grid(~sampleGroup)}
     print(p)
@@ -965,7 +965,7 @@ PlotData = function(sampleIDs, output.dir, sampleGroups=NA, minPercent_exogenous
       ggtitle("miRNA abundance distributions (RPM)") +
       theme(axis.ticks = element_blank(), axis.text.x = element_blank()) +
       scale_y_log10() +guides(colour=FALSE)+
-      scale_color_manual(values = setNames(getSampleColors(tmp$sample),tmp$sample))
+      scale_color_manual(values = set_names(getSampleColors(tmp$sample),tmp$sample))
     if(ncol(exprs.miRNA.rpm) < 30){ 
       p = p +theme(axis.text.x=element_text(angle=50, hjust=1.0, vjust=1))
     }else{
@@ -979,7 +979,7 @@ PlotData = function(sampleIDs, output.dir, sampleGroups=NA, minPercent_exogenous
     
     p = ggplot(tmp, aes(x=abundance, colour=sample)) +geom_density() +
       xlab("Reads per million (RPM)") +ggtitle("miRNA abundance distributions (RPM)") +scale_x_log10()+
-      scale_color_manual(values = setNames(getSampleColors(tmp$sample),tmp$sample))
+      scale_color_manual(values = set_names(getSampleColors(tmp$sample),tmp$sample))
     if(ncol(exprs.miRNA.rpm) > 30){ p = p +guides(colour=FALSE) }
     if(is.data.frame(sampleGroups)){ p = p +facet_grid(~sampleGroup)}
     print(p)

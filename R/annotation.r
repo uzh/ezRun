@@ -188,9 +188,9 @@ makeFeatAnnoEnsembl <- function(featureFile,
   names(attributes) <- c("Transcript stable ID", "Gene description",
                          "GO term accession", "GO domain")
   ## Older web-page biomart has different names
-  attributesOld <- setNames(attributes,
-                            c("Ensembl Transcript ID", "Description",
-                              "GO Term Accession", "GO domain"))
+  attributesOld <- set_names(attributes,
+                             c("Ensembl Transcript ID", "Description",
+                               "GO Term Accession", "GO domain"))
   if(!is.null(biomartFile)){
     message("Using local biomart file!")
     # fread cannot handle compressed file
