@@ -91,7 +91,7 @@ ezFeatureAnnotation = function(param, ids=NULL,
                           "Gene description"=NA, "GO term accession"=NA,
                           "GO domain"=NA)
       biomartFile <- tempfile(fileext = ".mart")
-      write_tsv(extraMart, path=biomartFile)
+      write_tsv(extraMart, file=biomartFile)
       
       featAnnoExtra <- makeFeatAnnoEnsembl(featureFile=gtfExtraFn,
                                            genomeFile=controlSeqsTempFn,

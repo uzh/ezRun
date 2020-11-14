@@ -344,7 +344,7 @@ if(ncol(rawData) > 3){
     xTmp <- left_join(xTmp, as_tibble(rowData(rawData)[, "gene_name", drop=FALSE],
                                       rownames="feature_id"))
     xTmp <- arrange(xTmp, Cluster)
-    write_tsv(xTmp, path="cluster-heatmap-clusterMembers.txt")
+    write_tsv(xTmp, file="cluster-heatmap-clusterMembers.txt")
 
     cowplot::save_plot(clusterPdf, clusterResult$pheatmap$gtable,
                        base_height = 10, base_width = max(8,4+0.1*ncol(rawData)))

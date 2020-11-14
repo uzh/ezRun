@@ -7,7 +7,6 @@
 
 ezMethodFastQC <- function(input = NA, output = NA, param = NA,
                            htmlFile = "00index.html") {
-  require(rmarkdown)
   setwdNew(basename(output$getColumn("Report")))
 
   # Preprocessing
@@ -49,10 +48,8 @@ ezMethodFastQC <- function(input = NA, output = NA, param = NA,
   nFiles <- length(files)
 
   ## guess the names of the report directories that will be creatd by fastqc
-  reportDirs <- sub("\\.fastq(\\.gz)*$", "_fastqc", basename(files))
-  reportDirs <- sub("\\.fq(\\.gz)*$", "_fastqc", reportDirs)
-  reportDirs <- sub("\\.bam$", "_fastqc", reportDirs)
-  stopifnot(!duplicated(reportDirs))
+  reportDirs <- sub("\\.(fastq|fq|bam)(\\.gz)*$", "_fastqc", basename(files))
+  stopifnot(!any(duplicated(reportDirs)))
   filesUse <- files[!file.exists(reportDirs)]
   if (length(filesUse) > 0) {
     cmd <- paste(

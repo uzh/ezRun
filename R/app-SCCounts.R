@@ -71,7 +71,7 @@ ezMethodSCCounts = function(input=NA, output=NA, param=NA,
   cellMeta[['CellCyclePhase [File]']] = output$getColumn("CellCyclePhase")
   
   write_tsv(as_tibble(cellMeta, rownames="Name"),
-            path=basename(output$getColumn('CellDataset')))
+            file=basename(output$getColumn('CellDataset')))
   
   bamParam = param
   #bamParam$mail = "" Let's send several emails during SCCounts. It's a long computation.
