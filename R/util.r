@@ -723,9 +723,9 @@ setEnvironments <- function(tool, envir=parent.frame()){
 
 preparePicard <- function(){
   if(Sys.which("picard") != ""){
-    return("picard -Xms1g -Xmx5g -Djava.io.tmpdir=.")
+    return("picard -Xms1g -Xmx10g -Djava.io.tmpdir=.")
   }else if(Sys.getenv("Picard_jar") != ""){
-    return(paste("java -jar -Djava.io.tmpdir=. -Xmx5G", Sys.getenv("Picard_jar")))
+    return(paste("java -jar -Djava.io.tmpdir=. -Xmx10G", Sys.getenv("Picard_jar")))
   }else{
     stop("Cannot find proper picard installed!")
   }
