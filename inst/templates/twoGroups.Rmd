@@ -610,7 +610,7 @@ if(exists("enrichResult")){
         er@result$Label <- ""
         for (i in 1:length(er@result$Description)) {
           desc <- er@result$Description[i]
-          if (nchar(desc) < 35){
+          if (!is.na(desc) && nchar(desc) < 35){
             syn = desc
           } else {
             syn <- Synonym(GOTERM[[er@result$ID[i]]])
@@ -694,7 +694,7 @@ if(exists("enrichResultGSEA")){
         er@result$Label <- ""
         for (i in 1:length(er@result$Description)) {
           desc <- er@result$Description[i]
-          if (nchar(desc) < 35){
+          if (!is.na(desc) && nchar(desc) < 35){
             syn = desc
           } else {
             syn <- Synonym(GOTERM[[er@result$ID[i]]])
