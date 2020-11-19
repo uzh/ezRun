@@ -7,6 +7,7 @@
 
 
 ezMethodEdger <- function(input = NA, output = NA, param = NA) {
+  require(withr)
   if (ezIsSpecified(param$samples)) {
     input <- input$subset(param$samples)
   }
