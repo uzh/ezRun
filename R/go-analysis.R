@@ -139,8 +139,6 @@ compileEnrichmentInput = function(param, se){
     go2geneDfList[[onto]] = go2geneDF
   }
   
-  
-  
   ans = list(selections=list(upGenes=upGenes, downGenes=downGenes, bothGenes=bothGenes),
              presentGenes=presentGenes, 
              normalizedAvgSignal=normalizedAvgSignal, log2Ratio=log2Ratio, seqAnno=seqAnno,
