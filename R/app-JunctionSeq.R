@@ -79,7 +79,7 @@ runJunctionSeq <- function(input, output, param, htmlFile="00index.html"){
   writeSizeFactors(jscs, file = "sizeFactors.txt")
   setwdNew('JuncSeq_Result-Files')
   writeCompleteResults(jscs,
-                       #outfile.prefix="",
+                       outfile.prefix="",
                        save.jscs = FALSE,
                        save.allGenes = TRUE, save.sigGenes = TRUE,
                        FDR.threshold = as.numeric(param$fdr));
