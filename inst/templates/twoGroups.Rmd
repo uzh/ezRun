@@ -9,11 +9,11 @@ output:
       in_header: fgcz_header.html
     css: fgcz.css
 editor_options: 
-  chunk_output_type: inline
+  chunk_output_type: console
 ---
 
 ```{r setup, include=FALSE}
-require(ezRun)
+library(ezRun)
 knitr::opts_chunk$set(echo = TRUE)
 output <- readRDS("output.rds")
 deResult <- readRDS("deResult.rds")
@@ -587,15 +587,17 @@ MetaCore currently has full pathway support for three core species: **Human**; *
 
 
 ### Enrichr
-```{r enrichr, echo=FALSE, message=FALSE, eval=!debug}
+```{r enrichr, echo=FALSE, message=FALSE}
 if (doGo(param, seqAnno)) {
   if (doEnrichr(param)) {
     selectionNames <- names(enrichInput$selections)
 
-    enrichrLinks <- ezMatrix("", rows = selectionNames, cols = c("Number of Genes", "External", "Precomputed"))
+    enrichrLinks <- ezMatrix("", rows = selectionNames, 
+                             cols = c("Number of Genes", "External", "Precomputed"))
     maxResultsPerLibrary <- 5
     for (mySel in selectionNames) {
       genesToUse <- enrichInput$selections[[mySel]]
+      genesToUse <- rowData(se)[genesToUse, "gene_name"]
       enrichrLinks[mySel, "Number of Genes"] <- length(genesToUse)
       jsCall <- paste0('enrich({list: "', paste(genesToUse, collapse = "\\n"), '", popup: true});')
       enrichrLinks[mySel, "External"] <- paste0("<a href='javascript:void(0)' onClick='", jsCall, "'>Analyse at Enrichr website</a>")
