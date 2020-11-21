@@ -288,7 +288,7 @@ ezMethodSubsampleFastq <- function(input = NA, output = NA, param = NA, n = 1e6)
     }
     output$dataRoot <- NULL
   }
-  output$setColumn("Read Count", 1e6)
+  output$setColumn("Read Count", n)
 
   dataset <- input$meta
   samples <- rownames(dataset)
