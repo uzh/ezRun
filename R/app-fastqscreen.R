@@ -13,9 +13,8 @@ ezMethodFastqScreen <- function(input = NA, output = NA, param = NA,
   } else {
     inputReadCount <- input$getColumn("Read Count")
   }
-  if (sum(inputReadCount) > 1e9) {
-    input <- ezMethodSubsampleFastq(input = input, param = param, n = 1e6)
-  }
+  input <- ezMethodSubsampleFastq(input = input, param = param, n=param$nReads)
+  
   inputUntrimmed <- input$copy()
   # Preprocessing
   param$trimAdapter <- TRUE
@@ -170,29 +169,33 @@ EzAppFastqScreen <-
         runMethod <<- ezMethodFastqScreen
         name <<- "EzAppFastqScreen"
         appDefaults <<- rbind(
-          nTopSpecies = ezFrame(Type = "integer", DefaultValue = 10, Description = "number of species to show in the plots"),
-          confFile = ezFrame(Type = "character", DefaultValue = "", Description = "the configuration file for fastq screen"),
-          virusCheck = ezFrame(Type = "logical", DefaultValue = FALSE, Description = "check for viruses in unmapped data"),
-          minAlignmentScore = ezFrame(Type = "integer", DefaultValue = "-20", Description = "the min alignment score for bowtie2"),
-          trimAdapter = ezFrame(Type = "logical", DefaultValue = TRUE, Description = "whether to search for the adapters and trim them"),
-          copyReadsLocally = ezFrame(Type = "logical", DefaultValue = FALSE, Description = "copy reads to scratch first")
+          nTopSpecies = ezFrame(Type = "integer", DefaultValue = 10,
+                                Description = "number of species to show in the plots"),
+          confFile = ezFrame(Type = "character", DefaultValue = "",
+                             Description = "the configuration file for fastq screen"),
+          virusCheck = ezFrame(Type = "logical", DefaultValue = FALSE,
+                               Description = "check for viruses in unmapped data"),
+          minAlignmentScore = ezFrame(Type = "integer", DefaultValue = "-20",
+                                      Description = "the min alignment score for bowtie2"),
+          trimAdapter = ezFrame(Type = "logical", DefaultValue = TRUE,
+                                Description = "whether to search for the adapters and trim them"),
+          copyReadsLocally = ezFrame(Type = "logical", DefaultValue = FALSE,
+                                     Description = "copy reads to scratch first")
         )
       }
     )
   )
 
 executeFastqscreenCMD <- function(param, confFile = NULL, files) {
-  opt <- ""
-  if (param$nReads > 0) {
-    opt <- paste(opt, "--subset", ezIntString(param$nReads))
-  }
   cmd <- paste(
-    "fastq_screen", opt, " --threads", param$cores, " --conf ", confFile,
+    "fastq_screen", " --threads", param$cores, " --conf ", confFile,
     paste(files, collapse = " "), "--outdir . --nohits --aligner bowtie2",
     "> fastqscreen.out", "2> fastqscreen.err"
   )
   ezSystem(cmd)
-  resultFiles <- paste0(sub(".fastq$", "", sub(".gz$", "", basename(files))), "_screen.txt") ## remove the suffix .fastq[.gz] with _screen.txt
+  resultFiles <- str_replatce(basename(files), "\\.gz$", "") %>%
+    str_replace("\\.fastq$", "") %>%
+    str_c("_screen.txt") ## remove the suffix .fastq[.gz] with _screen.txt
   names(resultFiles) <- names(files)
   return(resultFiles)
 }
@@ -312,7 +315,9 @@ runKraken <- function(param, input) {
   krakenResult <- list()
   for (i in 1:length(r1Files)) {
     resultFile <- paste0("report_", names(r1Files)[i], ".kraken")
-    cmd <- paste("kraken2 --db", KRAKEN2_DB, r1Files[i], "--gzip-compressed --threads", param$cores, "--report", resultFile, ">sequences.kraken")
+    cmd <- paste("kraken2 --db", KRAKEN2_DB, r1Files[i],
+                 "--gzip-compressed --threads", param$cores, "--report", 
+                 resultFile, ">sequences.kraken")
     ezSystem(cmd)
     ## simple result filtering
     data <- ezRead.table(resultFile, row.names = NULL)

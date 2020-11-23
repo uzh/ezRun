@@ -35,10 +35,8 @@ ezMethodFastqScreen_10x <- function(input = NA, output = NA, param = NA,
   taredfiles_R2 <- normalizePath(taredfiles_R2)
   dataset$`Read1` <- taredfiles_R2
   input <- EzDataset(meta = dataset, dataRoot = NULL)
+  input <- ezMethodSubsampleFastq(input = input, param = param, n=param$nReads)
 
-  if (sum(input$meta$`Read Count`) > 1e9) {
-    input <- ezMethodSubsampleFastq(input = input, param = param)
-  }
   inputRaw <- input$copy()
 
   # Preprocessing
