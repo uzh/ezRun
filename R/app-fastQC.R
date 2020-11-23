@@ -30,6 +30,17 @@ ezMethodFastQC <- function(input = NA, output = NA, param = NA,
   dataset <- input$meta
   samples <- rownames(dataset)
 
+  ans4Report <- list() # a list of results for rmarkdown report
+  ans4Report[["dataset"]] <- dataset
+
+  if (!is.null(dataset$"Read Count")) {
+    readCount <- signif(dataset$"Read Count" / 1e6, digits = 3)
+    names(readCount) <- rownames(dataset)
+  } else {
+    stop("'Read Count' has to be specified in the dataset.")
+  }
+  ans4Report[["Read Counts"]] <- readCount
+
   if (sum(dataset$`Read Count`) > 1e9) {
     doSubsample <- TRUE # subsample to 1Mio reads
     input <- ezMethodSubsampleFastq(input = input, param = param)
@@ -96,25 +107,6 @@ ezMethodFastQC <- function(input = NA, output = NA, param = NA,
       output_dir = ".", output_file = plotPage, quiet = TRUE
     )
   }
-
-  ## establish the main report
-  ans4Report <- list() # a list of results for rmarkdown report
-  ans4Report[["dataset"]] <- dataset
-
-  if (!is.null(dataset$"Read Count")) {
-    readCount <- signif(dataset$"Read Count" / 1e6, digits = 3)
-    names(readCount) <- rownames(dataset)
-  } else {
-    readCount <- integer()
-    for (i in 1:nFiles) {
-      x <- ezRead.table(file.path(reportDirs[i], "fastqc_data.txt"),
-        header = FALSE, nrows = 7, fill = TRUE
-      )
-      readCount[names(files)[i]] <- signif(as.integer(x["Total Sequences", 1]) /
-        1e6, digits = 3)
-    }
-  }
-  ans4Report[["Read Counts"]] <- readCount
 
   ## Each sample can have different number of reports.
   ## Especially per tile sequence quality
@@ -227,7 +219,7 @@ plotReadCountToLibConc <- function(dataset, colname) {
       )
       regressionResult <- lm(dataset[[colname]] ~ dataset$"Read Count")
       label <- sub(" \\[.*", "", colname)
-      
+
       ## plotly
       require(plotly)
       # a function to calculate your abline

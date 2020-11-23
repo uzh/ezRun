@@ -7,7 +7,6 @@
 
 ezMethodFastQC_10x <- function(input = NA, output = NA, param = NA,
                                htmlFile = "00index.html") {
-  require(rmarkdown)
   setwdNew(basename(output$getColumn("Report")))
 
   param$paired <- TRUE
@@ -16,6 +15,17 @@ ezMethodFastQC_10x <- function(input = NA, output = NA, param = NA,
   sampleDirs <- input$getFullPaths("RawDataDir")
   stopifnot(all(grepl("\\.tar$", sampleDirs)))
 
+  ans4Report <- list() # a list of results for rmarkdown report
+  ans4Report[["dataset"]] <- dataset
+  
+  if (has_name(dataset, "Read Count")) {
+    readCount <- signif(dataset$"Read Count" / 1e6, digits = 3)
+    names(readCount) <- rownames(dataset)
+  } else {
+    stop("'Read Count' has to be specified in the dataset.")
+  }
+  ans4Report[["Read Counts"]] <- readCount
+  
   taredfiles <- lapply(sampleDirs, untar, list = TRUE)
   taredfiles_R1 <- sapply(taredfiles, function(x) {
     grep("_R1_", x, value = TRUE) %>% head(1)
@@ -98,25 +108,6 @@ ezMethodFastQC_10x <- function(input = NA, output = NA, param = NA,
       output_dir = ".", output_file = plotPage, quiet = TRUE
     )
   }
-
-  ## establish the main report
-  ans4Report <- list() # a list of results for rmarkdown report
-  ans4Report[["dataset"]] <- dataset
-
-  if (!is.null(dataset$"Read Count")) {
-    readCount <- signif(dataset$"Read Count" / 1e6, digits = 3)
-    names(readCount) <- rownames(dataset)
-  } else {
-    readCount <- integer()
-    for (i in 1:nFiles) {
-      x <- ezRead.table(file.path(reportDirs[i], "fastqc_data.txt"),
-        header = FALSE, nrows = 7, fill = TRUE
-      )
-      readCount[names(files)[i]] <- signif(as.integer(x["Total Sequences", 1]) /
-        1e6, digits = 3)
-    }
-  }
-  ans4Report[["Read Counts"]] <- readCount
 
   ## Each sample can have different number of reports.
   ## Especially per tile sequence quality
