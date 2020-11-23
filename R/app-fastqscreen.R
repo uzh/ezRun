@@ -10,7 +10,7 @@ ezMethodFastqScreen <- function(input = NA, output = NA, param = NA,
   if (!"Read Count" %in% input$colNames) {
     ## TODO will fail if input is an unmapped bam but does not have read counts
     inputReadCount <- countReadsInFastq(input$getFullPaths("Read1"))
-  }else{
+  } else {
     inputReadCount <- input$getColumn("Read Count")
   }
   if (sum(inputReadCount) > 1e9) {
