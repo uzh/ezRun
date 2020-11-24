@@ -283,7 +283,7 @@ all2all <- function(scData, pvalue_all2allMarkers, param) {
   return(all2allMarkers)
 }
 
-conservedMarkers <- function(scData) {
+conservedMarkers <- function(scData, grouping.var="Condition") {
   markers <- list()
   if("SCT" %in% Seurat::Assays(scData)) {
     assay <- "SCT"
@@ -291,20 +291,17 @@ conservedMarkers <- function(scData) {
     assay <- "RNA"
   }
   for(eachCluster in levels(Idents(scData))){
-    markersEach <- try(FindConservedMarkers(scData, ident.1=eachCluster, grouping.var="Condition", print.bar=FALSE, only.pos=TRUE, assay = assay, silent=TRUE))
-    ## to skip some groups with few cells
+    markersEach <- try(FindConservedMarkers(scData, ident.1=eachCluster, 
+                                            grouping.var=grouping.var, 
+                                            print.bar=FALSE, only.pos=TRUE, 
+                                            assay = assay), silent=TRUE)
     if(class(markersEach) != "try-error" && nrow(markersEach) > 0){
       markers[[eachCluster]] <- as_tibble(markersEach, rownames="gene")
     }
   }
-  ## some of the cluster have no significant conserved markers
-  markers <- markers[sapply(markers, nrow) != 0L] 
   markers <- bind_rows(markers, .id="cluster")
-  fc_fields <- paste0(unique(scData$Condition), "_avg_logFC")
-  avg_fc <- (markers[,fc_fields[1]]+markers[,fc_fields[2]])/2
-  markers$avg_fc <- avg_fc[,1]
-  markers <- markers[order(markers$avg_fc, decreasing = TRUE),]
-  
+  markers <- markers %>%
+    mutate(avg_avg_fc=rowMeans(select(., contains("_avg_logFC"))))
   return(markers)
 }
 
