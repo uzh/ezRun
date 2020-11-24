@@ -193,7 +193,7 @@ executeFastqscreenCMD <- function(param, confFile = NULL, files) {
     "> fastqscreen.out", "2> fastqscreen.err"
   )
   ezSystem(cmd)
-  resultFiles <- str_replatce(basename(files), "\\.gz$", "") %>%
+  resultFiles <- str_replace(basename(files), "\\.gz$", "") %>%
     str_replace("\\.fastq$", "") %>%
     str_c("_screen.txt") ## remove the suffix .fastq[.gz] with _screen.txt
   names(resultFiles) <- names(files)

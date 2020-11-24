@@ -418,9 +418,11 @@ getSTARReference = function(param){
   genomeLength = sum(fai$LENGTH)
   readLength = 150 ## assumption
   indexNBasesOpt = paste("--genomeSAindexNbases", min(13, floor(log2(genomeLength)/2 - 1)))
-  genomeChrBinNbits = paste("--genomeChrBinNbits", floor(min(18, 
-                                                             log2(max(genomeLength/nrow(fai), readLength))
-  )))
+  if(binOpt == ""){
+    genomeChrBinNbits = paste("--genomeChrBinNbits", floor(min(18, 
+                                                           log2(max(genomeLength/nrow(fai), readLength))
+    )))
+  }
   
   job = ezJobStart("STAR genome build")
   if (ezIsSpecified(param$spikeInSet)){
