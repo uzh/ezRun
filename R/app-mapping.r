@@ -422,6 +422,8 @@ getSTARReference = function(param){
     genomeChrBinNbits = paste("--genomeChrBinNbits", floor(min(18, 
                                                            log2(max(genomeLength/nrow(fai), readLength))
     )))
+  } else {
+    genomeChrBinNbits = ""
   }
   
   job = ezJobStart("STAR genome build")
