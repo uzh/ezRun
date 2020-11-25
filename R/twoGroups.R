@@ -99,12 +99,15 @@ twoGroupCountComparison <- function(rawData) {
       param$grouping, param$normMethod,
       priorCount = param$backgroundExpression
     ),
-    glm = runGlm(round(x), param$sampleGroup, param$refGroup,
-      param$grouping, param$normMethod,
-      grouping2 = param$grouping2,
-      priorCount = param$backgroundExpression,
-      deTest = param$deTest,
-      robust = ezIsSpecified(param$robust) && param$robust
+    glm = runGlm(round(x),
+                 sampleGroup = param$sampleGroup,
+                 refGroup = param$refGroup,
+                 grouping = param$grouping,
+                 normMethod = param$normMethod,
+                 grouping2 = param$grouping2,
+                 priorCount = param$backgroundExpression,
+                 deTest = param$deTest,
+                 robust = ezIsSpecified(param$robust) && param$robust
     ),
     limma = runLimma(x, param$sampleGroup, param$refGroup,
       param$grouping,
@@ -284,13 +287,11 @@ runEdger <- function(x, sampleGroup, refGroup, grouping, normMethod,
 }
 
 ##' @describeIn twoGroupCountComparison Runs the Glm test method.
-runGlm <- function(x, sampleGroup, refGroup, grouping, normMethod, grouping2 = NULL,
+runGlm <- function(x, sampleGroup, refGroup, grouping,
+                   # sampleGroupBaseline=NULL, refGroupBaseline=NULL,
+                   normMethod, grouping2 = NULL,
                    priorCount = 0.125, deTest = c("QL", "LR"), robust = FALSE) {
-  require("edgeR")
-
-  ## differential expression test by quasi-likelihood (QL) F-test or
-  ## likelihood ratio test.
-  ## QL as default.
+  require(edgeR)
   deTest <- match.arg(deTest)
 
   ## get the scaling factors for the entire data set
@@ -298,7 +299,6 @@ runGlm <- function(x, sampleGroup, refGroup, grouping, normMethod, grouping2 = N
   cds <- calcNormFactors(cds, method = normMethod)
   sf <- 1 / (cds$samples$norm.factors * cds$samples$lib.size)
   sf <- sf / ezGeomean(sf)
-  # sf = ezLogmeanScalingFactor(x, presentFlag=x>0)
 
   ## run analysis and especially dispersion estimates only on subset of the data
   isSample <- grouping == sampleGroup
@@ -309,17 +309,20 @@ runGlm <- function(x, sampleGroup, refGroup, grouping, normMethod, grouping2 = N
   cds <- calcNormFactors(cds, method = normMethod)
   groupFactor <- factor(grouping, levels = c(refGroup, sampleGroup))
   if (ezIsSpecified(grouping2)) {
-    design <- model.matrix(~ groupFactor + grouping2[isSample | isRef])
-    colnames(design) <- c(
-      "Intercept", "Grouping",
-      paste("Grouping2", 1:(ncol(design) - 2), sep = "_")
-    )
+    grouping2 <- grouping2[isSample | isRef]
+    # design <- model.matrix(~ groupFactor + grouping2[isSample | isRef])
+    # colnames(design) <- c(
+    #   "Intercept", "Grouping",
+    #   paste("Grouping2", 1:(ncol(design) - 2), sep = "_")
+    # )
+    design <- model.matrix(~ 0 + groupFactor + grouping2)
   } else {
-    design <- model.matrix(~groupFactor)
-    colnames(design) <- c("Intercept", "Grouping")
+    # design <- model.matrix(~groupFactor)
+    # colnames(design) <- c("Intercept", "Grouping")
+    design <- model.matrix(~ 0 + groupFactor)
   }
-
-  ## dispersion estimation
+  colnames(design) <- str_replace(colnames(design), "^groupFactor", "")
+  
   if (sum(grouping == refGroup) >= 2 & sum(grouping == sampleGroup) >= 2) {
     if (robust) {
       cds <- estimateGLMRobustDisp(cds, design)
@@ -330,29 +333,31 @@ runGlm <- function(x, sampleGroup, refGroup, grouping, normMethod, grouping2 = N
     cds$common.dispersion <- 0.1
   }
 
-  ## Testing for DE genes
+  # my.contrasts <- makeContrasts(
+  #   contrasts = str_c(sampleGroup, "-", refGroup),
+  #   levels = design)
+    
   if (deTest == "QL") {
-    ## quasi-likelihood (QL) F-test
     message("Using quasi-likelihood (QL) F-test!")
     fitGlm <- glmQLFit(cds, design, prior.count = priorCount, robust = robust)
-    lrt.2vs1 <- glmQLFTest(fitGlm, coef = 2)
+    lrt.2vs1 <- glmQLFTest(fitGlm,
+                           contrast=c(-1, 1, rep(0, ncol(fitGlm)-2))
+                           )
+                           # contrast=my.contrasts[, str_c(sampleGroup, "-", refGroup)])
   } else {
-    ## likelihood ratio test
     message("Using likelihood ratio test!")
     fitGlm <- glmFit(cds, design, prior.count = priorCount, robust = robust)
-    lrt.2vs1 <- glmLRT(fitGlm, coef = 2)
+    lrt.2vs1 <- glmLRT(fitGlm,
+                       contrast=c(-1, 1, rep(0, ncol(fitGlm)-2))
+                       )
+                       # contrast=my.contrasts[, str_c(sampleGroup, "-", refGroup)])
   }
   res <- list()
   res$id <- rownames(lrt.2vs1$table)
   res$log2FoldChange <- lrt.2vs1$table$logFC
   res$pval <- lrt.2vs1$table$PValue
   res$fitGlm <- fitGlm
-  # res$log2Expr = lrt.2vs1$table$logCPM
   res$sf <- sf
-  ## do not return groupMeans now.
-  # res$groupMeans = cbind(apply(cds$count[ , grouping == sampleGroup, drop=FALSE], 1, mean), apply(cds$count[ , grouping == refGroup, drop=FALSE], 1, mean))
-  # colnames(res$groupMeans) = c(sampleGroup, refGroup)
-  # rownames(res$groupMeans) = rownames(cds$count)
   return(res)
 }
 
