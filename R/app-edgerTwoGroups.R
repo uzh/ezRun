@@ -36,8 +36,10 @@ ezMethodEdger <- function(input = NA, output = NA, param = NA) {
     return("Error")
   }
 
-  makeRmdReport(output = output, param = param, deResult = deResult,
-                rmdFile = "twoGroups.Rmd", reportTitle = param$comparison)
+  makeRmdReport(
+    output = output, param = param, deResult = deResult,
+    rmdFile = "twoGroups.Rmd", reportTitle = param$comparison
+  )
 
   return("Success")
 }
@@ -54,22 +56,38 @@ EzAppEdger <-
         runMethod <<- ezMethodEdger
         name <<- "EzAppEdger"
         appDefaults <<- rbind(
-          testMethod = ezFrame(Type = "character", DefaultValue = "glm",
-                               Description = "which test method in edgeR to use: glm or exactTest"),
-          normMethod = ezFrame(Type = "character", DefaultValue = "TMM",
-                               Description = "edgeR's norm method: TMM, upperquartile, RLE, or none"),
-          useRefGroupAsBaseline = ezFrame(Type = "logical", DefaultValue = FALSE,
-                                          Description = "should the log-ratios be centered at the reference samples"),
-          onlyCompGroupsHeatmap = ezFrame(Type = "logical", DefaultValue = FALSE,
-                                          Description = "Only show the samples from comparison groups in heatmap"),
-          priorCount = ezFrame(Type = "numeric", DefaultValue = 10,
-                               Description = "prior count to be added to shrink the log-fold-changes"),
-          deTest = ezFrame(Type = "character", DefaultValue = "QL",
-                           Description = "edgeR's differential expression test method: QL or LR"),
-          runGfold = ezFrame(Type = "logical", DefaultValue = FALSE,
-                             Description = "should gfold run"),
-          doPrecomputeEnrichr = ezFrame(Type = "logical", DefaultValue = FALSE,
-                                        Description = "should enrichr be precomputed")
+          testMethod = ezFrame(
+            Type = "character", DefaultValue = "glm",
+            Description = "which test method in edgeR to use: glm or exactTest"
+          ),
+          normMethod = ezFrame(
+            Type = "character", DefaultValue = "TMM",
+            Description = "edgeR's norm method: TMM, upperquartile, RLE, or none"
+          ),
+          useRefGroupAsBaseline = ezFrame(
+            Type = "logical", DefaultValue = FALSE,
+            Description = "should the log-ratios be centered at the reference samples"
+          ),
+          onlyCompGroupsHeatmap = ezFrame(
+            Type = "logical", DefaultValue = FALSE,
+            Description = "Only show the samples from comparison groups in heatmap"
+          ),
+          priorCount = ezFrame(
+            Type = "numeric", DefaultValue = 10,
+            Description = "prior count to be added to shrink the log-fold-changes"
+          ),
+          deTest = ezFrame(
+            Type = "character", DefaultValue = "QL",
+            Description = "edgeR's differential expression test method: QL or LR"
+          ),
+          runGfold = ezFrame(
+            Type = "logical", DefaultValue = FALSE,
+            Description = "should gfold run"
+          ),
+          doPrecomputeEnrichr = ezFrame(
+            Type = "logical", DefaultValue = FALSE,
+            Description = "should enrichr be precomputed"
+          )
         )
       }
     )
