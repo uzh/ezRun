@@ -271,6 +271,10 @@ makeCountResultSummary = function(param, se){
   if (ezIsSpecified(param$grouping2)){
     settings["Statistical Model:"] = "used provided second factor"
   }
+  if (!is.null(param$sampleGroupBaseline) && !is.null(param$refGroupBaseline)) {
+    settings["Baseline correction:"] <- str_c(param$sampleGroupBaseline, "and",
+                                              param$refGroupBaseline, sep=" ")
+  }
   settings["Comparison:"] = param$comparison
   if (!is.null(param$normMethod)){
     settings["Normalization:"] = param$normMethod

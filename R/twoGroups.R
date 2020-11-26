@@ -103,6 +103,8 @@ twoGroupCountComparison <- function(rawData) {
                  sampleGroup = param$sampleGroup,
                  refGroup = param$refGroup,
                  grouping = param$grouping,
+                 sampleGroupBaseline=param$sampleGroupBaseline,
+                 refGroupBaseline=param$refGroupBaseline,
                  normMethod = param$normMethod,
                  grouping2 = param$grouping2,
                  priorCount = param$backgroundExpression,
@@ -288,7 +290,7 @@ runEdger <- function(x, sampleGroup, refGroup, grouping, normMethod,
 
 ##' @describeIn twoGroupCountComparison Runs the Glm test method.
 runGlm <- function(x, sampleGroup, refGroup, grouping,
-                   # sampleGroupBaseline=NULL, refGroupBaseline=NULL,
+                   sampleGroupBaseline=NULL, refGroupBaseline=NULL,
                    normMethod, grouping2 = NULL,
                    priorCount = 0.125, deTest = c("QL", "LR"), robust = FALSE) {
   require(edgeR)
@@ -301,15 +303,23 @@ runGlm <- function(x, sampleGroup, refGroup, grouping,
   sf <- sf / ezGeomean(sf)
 
   ## run analysis and especially dispersion estimates only on subset of the data
-  isSample <- grouping == sampleGroup
-  isRef <- grouping == refGroup
-  grouping <- grouping[isSample | isRef]
-  x2 <- x[, isSample | isRef]
+  indices2Keep <- grouping %in% c(refGroup, refGroupBaseline, sampleGroup, sampleGroupBaseline)
+  grouping <- grouping[indices2Keep]
+  x2 <- x[ ,indices2Keep]
+  
+  # isSample <- grouping == sampleGroup
+  # isRef <- grouping == refGroup
+  # grouping <- grouping[isSample | isRef]
+  # x2 <- x[, isSample | isRef]
+  
   cds <- DGEList(counts = x2, group = grouping)
   cds <- calcNormFactors(cds, method = normMethod)
-  groupFactor <- factor(grouping, levels = c(refGroup, sampleGroup))
+  groupFactor <- factor(grouping,
+                        levels = c(refGroup, sampleGroup,
+                                   refGroupBaseline, sampleGroupBaseline)
+                        )
   if (ezIsSpecified(grouping2)) {
-    grouping2 <- grouping2[isSample | isRef]
+    grouping2 <- grouping2[indices2Keep]
     # design <- model.matrix(~ groupFactor + grouping2[isSample | isRef])
     # colnames(design) <- c(
     #   "Intercept", "Grouping",
@@ -340,16 +350,22 @@ runGlm <- function(x, sampleGroup, refGroup, grouping,
   if (deTest == "QL") {
     message("Using quasi-likelihood (QL) F-test!")
     fitGlm <- glmQLFit(cds, design, prior.count = priorCount, robust = robust)
-    lrt.2vs1 <- glmQLFTest(fitGlm,
-                           contrast=c(-1, 1, rep(0, ncol(fitGlm)-2))
-                           )
+    if (is.null(refGroupBaseline) || is.null(sampleGroupBaseline)) {
+      contrastsIndices <- c(-1, 1, rep(0, ncol(fitGlm)-2))
+    } else {
+      contrastsIndices <- c(-1, 1, 1, -1, rep(0, ncol(fitGlm)-4))
+    }
+    lrt.2vs1 <- glmQLFTest(fitGlm, contrast=contrastsIndices)
                            # contrast=my.contrasts[, str_c(sampleGroup, "-", refGroup)])
   } else {
     message("Using likelihood ratio test!")
     fitGlm <- glmFit(cds, design, prior.count = priorCount, robust = robust)
-    lrt.2vs1 <- glmLRT(fitGlm,
-                       contrast=c(-1, 1, rep(0, ncol(fitGlm)-2))
-                       )
+    if (is.null(refGroupBaseline) || is.null(sampleGroupBaseline)) {
+      contrastsIndices <- c(-1, 1, rep(0, ncol(fitGlm)-2))
+    } else {
+      contrastsIndices <- c(-1, 1, 1, -1, rep(0, ncol(fitGlm)-4))
+    }
+    lrt.2vs1 <- glmLRT(fitGlm,contrast=contrastsIndices)
                        # contrast=my.contrasts[, str_c(sampleGroup, "-", refGroup)])
   }
   res <- list()
