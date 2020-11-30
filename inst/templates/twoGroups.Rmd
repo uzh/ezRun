@@ -536,7 +536,7 @@ Using MetaCore requires an account. One can be obtained by emailing <sequencing@
  
  2. [Go to the MetaCore website](https://portal.genego.com)
  
- 3. Upload the Expression File to MetaCore, selecting three columns: Gene ID, p-value, log ratio 
+ 3. Upload the Expression File to MetaCore, selecting three columns: Gene ID, log ratio, and p-value 
  
  4. Select `Pathway Maps` from the `One-click Analysis` tab. 
 
@@ -734,6 +734,20 @@ if (exists("enrichResult")) {
 }
 ```
 
+#### Overview 
+```{r ora overview, echo=F, message=F, eval=!debug}
+ora.overview = ezFrame("Number of Significant Pathways"=numeric())
+for (i in 1:length(names(enrichResult))){
+  for (j in 1:length(names(enrichResult[[i]]))){
+            testName = paste0(names(enrichResult)[i],": ",names(enrichResult[[i]])[j])
+            ora.overview[testName, "Number of Significant Pathways"] = nrow(enrichResult[[i]][[j]]@result)
+  }
+}
+
+kable(format(ora.overview, digits=3, scientific=-2), "html", caption=paste("Hypergeometric Over-representation Test:")) %>%
+            kable_styling(bootstrap_options = "striped", full_width = F, position = "left")
+```
+
 ```{r tabs with ora plots, results='asis', echo = FALSE, fig.height=8, fig.width=8, fig.align = "left"}
 for (onto in names(enrichResult)) {
   cat("####", onto, "{.tabset}", "\n")
@@ -829,6 +843,19 @@ if (exists("enrichResultGSEA")) {
     }
   }
 }
+```
+
+#### Overview 
+```{r gsea overview, echo=F, message=F, eval=!debug}
+gsea.overview = ezFrame("Number of Significant Pathways"=numeric())
+for (i in 1:length(names(enrichResultGSEA))){
+            testName = paste(names(enrichResultGSEA)[i])
+            gsea.overview[testName, "Number of Significant Pathways"] = nrow(enrichResultGSEA[[i]]@result)
+}
+
+kable(format(gsea.overview, digits=3, scientific=-2), "html", caption=paste("GSEA:")) %>%
+            kable_styling(bootstrap_options = "striped", full_width = F, position = "left")
+
 ```
 
 ```{r tabs with gsea plots, results='asis', echo = FALSE, fig.height=8, fig.width=8}
