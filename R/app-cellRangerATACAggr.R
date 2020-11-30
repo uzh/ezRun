@@ -23,10 +23,6 @@ EzAppCellRangerATACAggr <-
 
 ezMethodCellRangerATACAggr = function(input=NA, output=NA, param=NA){
   ## dataset mode
-  require(tibble)
-  require(dplyr)
-  require(readr)
-  
   ## subset the selected sample names
   samples <- param$samples
   input <- input$subset(samples)

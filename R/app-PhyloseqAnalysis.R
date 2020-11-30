@@ -13,7 +13,6 @@ ezMethodPhyloSeqAnalysis = function(input=NA, output=NA, param=NA,
   require(phyloseq)
   require(plyr)
   require(ape)
-  require(ggplot2)
   require(DESeq2)
   library(limma)
   library(RColorBrewer)

@@ -8,15 +8,12 @@
 
 ezMethodMothurStep1Sample = function(input=NA, output=NA, param=NA, 
                                         htmlFile="00index.html"){
-  
   require(rmarkdown)
   require(ShortRead)
   require(phyloseq)
   require(plyr)
   require(ape)
-  require(ggplot2)
   library(scales)
-  library(Biostrings)
   dataset = input$meta
   sampleNames = input$getNames() 
   isPaired <- param$paired

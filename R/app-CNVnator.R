@@ -24,7 +24,6 @@ ezMethodCNVnator = function(input=NA, output=NA, param=NA){
 
 
 annotateCNVs = function(file, param){
-  require(GenomicRanges)
   gtfFile = param$ezRef@refFeatureFile
   gtf = rtracklayer::import(gtfFile)
   idx = gtf$type == 'gene' & gtf$source == 'protein_coding'

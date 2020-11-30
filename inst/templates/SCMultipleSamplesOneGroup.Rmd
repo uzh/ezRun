@@ -14,18 +14,15 @@ Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
 
 ```{r setup, include=FALSE}
 library(SummarizedExperiment)
-library(ggplot2)
 library(ggridges)
 library(cowplot)
-library(tibble)
-library(dplyr)
-library(readr)
 library(kableExtra)
 library(pheatmap)
 library(scater)
 library(RColorBrewer)
 library(plotly)
 library(SingleR)
+library(tidyverse)
 knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE, knitr.table.format = "html")
 
 
@@ -205,7 +202,7 @@ kable_styling("striped", full_width = F, position = "left")
  
  for(comparison in names(all2allMarkers)){
     write_tsv(as_tibble(all2allMarkers[[comparison]], rownames="Gene"),
-              path=paste0(comparison, ".tsv"))
+              file=paste0(comparison, ".tsv"))
   }
   genesAllPerCluster <- lapply(all2allMarkers, rownames)
   genesUpPerCluster <- lapply(all2allMarkers, function(x){rownames(x)[x$avg_logFC > 0]})
@@ -344,7 +341,7 @@ AUCell_plotTSNE(tSNE=cellsTsne, exprMat=counts(sce), cellsAUC=cells_AUC)
 The iSEE (Interactive SummarizedExperiment Explorer) explorer provides a general visual interface for exploring single cell data. iSEE allows users to simultaneously visualize multiple aspects of a given data set, including experimental data, metadata, and analysis results. Dynamic linking and point selection facilitate the flexible exploration of interactions between different data aspects.
  [Rue-Albrecht K, Marini F, Soneson C, Lun ATL (2018). “iSEE: Interactive SummarizedExperiment Explorer.” F1000Research, 7, 741. doi: 10.12688/f1000research.14966.1.]
 
-The iSEE shiny app can be accessed through this link [iSEE explorer](`r {lastProjectDigit = stringr::str_sub( sub("\\/.*", "", output$getColumn("Report")), start = -1); paste0("http://fgcz-shiny.uzh.ch/fgcz_iSEE", lastProjectDigit, "/?data=",output$getColumn("Report"),"/sce_h5")`)
+The iSEE shiny app can be accessed through this link [iSEE explorer](`r {lastProjectDigit = stringr::str_sub( sub("\\/.*", "", output$getColumn("Report")), start = -1); paste0("http://fgcz-shiny.uzh.ch/fgcz_iSEE", lastProjectDigit, "/?data=",output$getColumn("Report"),"/sce_h5")}`)
 
 
 ### Data availability

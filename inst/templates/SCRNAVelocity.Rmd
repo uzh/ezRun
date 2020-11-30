@@ -33,8 +33,8 @@ tSNE_data <- ans$tSNE_data
 cell.dist <- ans$cell.dist
 param <- ans$param
 
-cell.colorsPalette <- setNames(gg_color_hue(length(levels(tSNE_data$cluster))),
-                               levels(tSNE_data$cluster))
+cell.colorsPalette <- set_names(gg_color_hue(length(levels(tSNE_data$cluster))),
+                                levels(tSNE_data$cluster))
 cell.colors <- cell.colorsPalette[tSNE_data$cluster]
 names(cell.colors) <- tSNE_data$cells
 if("X" %in% colnames(tSNE_data)){

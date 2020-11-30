@@ -99,10 +99,10 @@ ezMethodSCOneSample <- function(input=NA, output=NA, param=NA,
   sce <- as.SingleCellExperiment(scData)
   metadata(sce)$PCA_stdev <- Reductions(scData, "pca")@stdev   
   metadata(sce)$cells_AUC <- cells_AUC
-  singler.results.single <- singler.results$singler.results.single
   singler.results.cluster <- singler.results$singler.results.cluster
-  colData(sce)$singler.cluster.labels <- singler.results.cluster$labels[match(colData(sce)[,"ident"], rownames(singler.results.cluster))]
-  colData(sce)$singler.single.labels <- singler.results.single$labels
+  singler.single.labels <-  singler.results$singler.results.single
+  sce$singler.cluster.labels = singler.results.cluster[as.character(sce$ident), "labels"]
+  sce$singler.single.labels <- singler.single.labels$labels
   metadata(sce)$singler.results <- singler.results
   metadata(sce)$output <- output
   metadata(sce)$param <- param
@@ -158,7 +158,7 @@ filterCellsAndGenes <- function(sce, param) {
   sce <- sce[,!discard]
  
   #Genes filtering
-  num.cells <- param$cellsPercentage*ncol(sce)     #if we expect at least one rare subpopulation of cells, we should decrease the percentage of cells
+  num.cells <- param$cellsFraction*ncol(sce)     #if we expect at least one rare subpopulation of cells, we should decrease the percentage of cells
   is.expressed <- Matrix::rowSums(counts(sce) >= param$nUMIs) >= num.cells
   sce <- sce[is.expressed,]
   rowData(sce.unfiltered)$is.expressed <- is.expressed

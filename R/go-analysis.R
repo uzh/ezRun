@@ -82,7 +82,7 @@ compileEnrichmentInput = function(param, se){
   )
   colnames(groupMeans) = c(param$sampleGroup, param$refGroup)
   normalizedAvgSignal=rowMeans(groupMeans)
-  log2Ratio = setNames(rowData(se)$log2Ratio, rowData(se)$gene_id)
+  log2Ratio <- set_names(rowData(se)$log2Ratio, rowData(se)$gene_id)
   
   if (param$featureLevel != "gene"){
     genes = getGeneMapping(param, seqAnno)
@@ -138,8 +138,6 @@ compileEnrichmentInput = function(param, se){
                             stringsAsFactors = FALSE)
     go2geneDfList[[onto]] = go2geneDF
   }
-  
-  
   
   ans = list(selections=list(upGenes=upGenes, downGenes=downGenes, bothGenes=bothGenes),
              presentGenes=presentGenes, 
@@ -220,7 +218,7 @@ twoGroupsGO = function(param, testResult, seqAnno, normalizedAvgSignal=NULL, met
 
 addGeneNamesEnrich <- function(resEnrich, se){
   gene_ids <- strsplit(resEnrich$Genes, "; ")
-  ids2names <- setNames(rowData(se)$gene_name, rowData(se)$gene_id)
+  ids2names <- set_names(rowData(se)$gene_name, rowData(se)$gene_id)
   gene_names <- relist(ids2names[unlist(gene_ids)], gene_ids)
   gene_names <- sapply(gene_names, paste, collapse="; ")
   resEnrich$GenesNames <- gene_names
@@ -356,7 +354,7 @@ ezGoseq = function(param, selectedGenes, allGenes, gene2goList=NULL,
 ###
 ezEnricher <- function(enrichInput){
   require(clusterProfiler)
-  geneid2name = setNames(enrichInput$seqAnno$gene_name, enrichInput$seqAnno$gene_id)
+  geneid2name = set_names(enrichInput$seqAnno$gene_name, enrichInput$seqAnno$gene_id)
   ontologies = c("BP", "MF", "CC")
   goResults = ezMclapply(ontologies, function(onto){
     result = list()
@@ -387,7 +385,7 @@ ezEnricher <- function(enrichInput){
 ezGSEA <- function(enrichInput){
   require(clusterProfiler)
   require(GO.db)
-  geneid2name = setNames(enrichInput$seqAnno$gene_name, enrichInput$seqAnno$gene_id)
+  geneid2name = set_names(enrichInput$seqAnno$gene_name, enrichInput$seqAnno$gene_id)
   ontologies = c("BP", "MF", "CC")
   goResults = ezMclapply(ontologies, function(onto){
     enrichRes <- GSEA(gene=sort(enrichInput$log2Ratio, decreasing = TRUE),
@@ -661,7 +659,7 @@ clusterPheatmap <- function(x, design, param,
   }
 
   ann_colors <- c(condColors, 
-                  list(Clusters=setNames(clusterColors, levels(clusters))))
+                  list(Clusters=set_names(clusterColors, levels(clusters))))
   
   p <- pheatmap(x, color=colors, clustering_method=method,
            breaks=seq(from=lim[1], to=lim[2], length.out=257),

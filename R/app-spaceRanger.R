@@ -25,7 +25,6 @@ EzAppSpaceRanger <-
   )
 
 ezMethodSpaceRanger <- function(input=NA, output=NA, param=NA){
-  require(tidyverse)
   sampleName <- input$getNames()
   sampleDirs <- strsplit(input$getColumn("RawDataDir"), ",")[[sampleName]]
   sampleDirs <- file.path(input$dataRoot, sampleDirs)
@@ -33,6 +32,11 @@ ezMethodSpaceRanger <- function(input=NA, output=NA, param=NA){
     # This is new .tar folder
     lapply(sampleDirs, untar)
     sampleDirs <- sub("\\.tar$", "", basename(sampleDirs))
+    sampleFns <- list.files(sampleDirs, pattern="\\.gz$", full.names=TRUE)
+    sampleFnsNew <- file.path(dirname(sampleFns),
+                              str_replace(basename(sampleFns), 
+                                          str_c("^.*", sampleName), sampleName))
+    file.rename(sampleFns, sampleFnsNew)
   }
   sampleDir <- paste(sampleDirs, collapse=",")
   spaceRangerFolder <- str_sub(sampleName, 1, 45) %>% str_c("-spaceRanger")
@@ -62,7 +66,6 @@ ezMethodSpaceRanger <- function(input=NA, output=NA, param=NA){
   
   require(DropletUtils)
   require(Matrix)
-  require(readr)
   countMatrixFn <- list.files(path=file.path(sampleName, 'filtered_feature_bc_matrix'),
                               pattern="\\.mtx(\\.gz)*$", recursive=TRUE,
                               full.names=TRUE)
@@ -70,7 +73,7 @@ ezMethodSpaceRanger <- function(input=NA, output=NA, param=NA){
     
   cellPhase <- getCellCycle(sce, param$refBuild)
   write_tsv(cellPhase,
-            path=file.path(dirname(countMatrixFn), "CellCyclePhase.txt"))
+            file=file.path(dirname(countMatrixFn), "CellCyclePhase.txt"))
   
   return("Success")
 }

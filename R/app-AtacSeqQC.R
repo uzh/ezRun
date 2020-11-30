@@ -7,7 +7,6 @@
 
 ezMethodATACSeqQC <- function(input, output, param, htmlFile="00index.html"){
   require(genomation)
-  require(GenomicRanges)
   require(chromstaR)
   require(TEQC)
   require(ATACseqQC)

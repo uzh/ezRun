@@ -98,7 +98,6 @@ getSeuratScalingFactor <- function(x){
 }
 
 cellTable <- function(scData){
-  require(tidyverse)
   toTable <- tibble(Cluster=names(summary(scData@ident)),
                     "# of cells"=summary(scData@ident))
   cellCountsByPlate <- tibble(Plate=scData@meta.data$Plate,
@@ -150,7 +149,6 @@ seuratStandardWorkflow <- function(scData, param){
 }  
   
 cellsProportion <- function(scData){
-  require(tidyverse)
   toTable <- tibble(Cluster=names(summary(Idents(scData))),
                     "# of cells"=summary(Idents(scData)))
   cellCountsByPlate <- tibble(Plate=scData@meta.data$Plate,
@@ -198,6 +196,18 @@ seuratClusteringV3 <- function(scData, param) {
     vars.to.regress <- c("CellCycleS", "CellCycleG2M")
   scData <- SCTransform(scData, vars.to.regress = vars.to.regress, seed.use = 38, verbose = TRUE)
   scData <- seuratStandardWorkflow(scData, param)
+  return(scData)
+}
+
+seuratClusteringHTO <- function(scData) {
+  scData <- ScaleData(scData, assay = "HTO")
+  DefaultAssay(scData) <- "HTO"
+  scData <- RunPCA(scData, features = rownames(scData), reduction.name = "pca_hto", reduction.key = "pca_hto_", 
+                           verbose = FALSE)
+  # Now, we rerun tSNE using the PCA only on ADT (protein) levels.
+  scData <- RunTSNE(scData, reduction = "pca_hto", reduction.key = "htoTSNE_", reduction.name = "tsne_hto", check_duplicates = FALSE)
+  scData <- FindNeighbors(scData, reduction="pca_hto", features = rownames(scData), dims=NULL)
+  scData <- FindClusters(scData, resolution = 0.2)  
   return(scData)
 }
 
@@ -273,7 +283,7 @@ all2all <- function(scData, pvalue_all2allMarkers, param) {
   return(all2allMarkers)
 }
 
-conservedMarkers <- function(scData) {
+conservedMarkers <- function(scData, grouping.var="Condition") {
   markers <- list()
   if("SCT" %in% Seurat::Assays(scData)) {
     assay <- "SCT"
@@ -281,20 +291,17 @@ conservedMarkers <- function(scData) {
     assay <- "RNA"
   }
   for(eachCluster in levels(Idents(scData))){
-    markersEach <- try(FindConservedMarkers(scData, ident.1=eachCluster, grouping.var="Condition", print.bar=FALSE, only.pos=TRUE, assay = assay, silent=TRUE))
-    ## to skip some groups with few cells
+    markersEach <- try(FindConservedMarkers(scData, ident.1=eachCluster, 
+                                            grouping.var=grouping.var, 
+                                            print.bar=FALSE, only.pos=TRUE, 
+                                            assay = assay), silent=TRUE)
     if(class(markersEach) != "try-error" && nrow(markersEach) > 0){
       markers[[eachCluster]] <- as_tibble(markersEach, rownames="gene")
     }
   }
-  ## some of the cluster have no significant conserved markers
-  markers <- markers[sapply(markers, nrow) != 0L] 
   markers <- bind_rows(markers, .id="cluster")
-  fc_fields <- paste0(unique(scData$Condition), "_avg_logFC")
-  avg_fc <- (markers[,fc_fields[1]]+markers[,fc_fields[2]])/2
-  markers$avg_fc <- avg_fc[,1]
-  markers <- markers[order(markers$avg_fc, decreasing = TRUE),]
-  
+  markers <- markers %>%
+    mutate(avg_avg_fc=rowMeans(select(., contains("_avg_logFC"))))
   return(markers)
 }
 

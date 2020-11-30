@@ -157,9 +157,6 @@ txEndBias <- function(param, inBam, width=100L, minTxLength=NULL,
   bias5 <- (counts5 / width) / (countsAll / widthsTx)
   bias3 <- (counts3 / width) / (countsAll / widthsTx)
   
-  #bias5 <- setNames(colMedians(bias5, na.rm=TRUE), colnames(bias5))
-  #bias3 <- setNames(colMedians(bias3, na.rm=TRUE), colnames(bias3))
-  
   bias5 <- colMeans(bias5, na.rm=TRUE)
   bias3 <- colMeans(bias3, na.rm=TRUE)
   
@@ -179,10 +176,10 @@ fixFeatureCountsRGMatrix <- function(counts, inBam){
                        "[", 1))
   ## RG starts with numbers will have X after make.names
   ## But featureCounts doesn't have this X.
-  fixNameMapping <- setNames(tagsRG, make.names(tagsRG))
+  fixNameMapping <- set_names(tagsRG, make.names(tagsRG))
   indexStartNumber <- grep("^\\d", fixNameMapping)
   names(fixNameMapping)[indexStartNumber] <- sub("^X", "", 
-                                                 names(fixNameMapping)[indexStartNumber])
+                                                 set_names(fixNameMapping)[indexStartNumber])
   colnames(countsFixed) <- fixNameMapping[colnames(countsFixed)]
   return(countsFixed)
 }

@@ -25,7 +25,6 @@ ezMethodMacs2 = function(input=NA, output=NA, param=NA){
       message("Use predefined gsize: ", gsizes[isGsize])
       gsize <- gsizes[isGsize]
     }else{
-      require(Biostrings)
       gsize <- sum(as.numeric(fasta.seqlengths(param$ezRef["refFastaFile"])))
       gsize <- round(gsize * 0.8)
       message("Use calculated gsize: ", gsize)
@@ -147,9 +146,7 @@ EzAppMacs2 <-
 ##' @template roxygen-template
 annotatePeaks = function(peakFile, peakSeqFile, param) {
   require(rtracklayer)
-  require(GenomicRanges)
   require(ChIPpeakAnno)
-  require(Biostrings)
   require(ShortRead)
   
   data = ezRead.table(peakFile, comment.char = "#", row.names = NULL)
@@ -205,7 +202,6 @@ annotatePeaks = function(peakFile, peakSeqFile, param) {
 
 ### import Macs2's BED6+4 file: narrowPeak or broadPeak
 import.Macs2Peaks <- function(con){
-  require(GenomicRanges)
   bed <- ezRead.table(con, header=FALSE, row.names=NULL)
   colnames(bed) <- c("chr", "start", "end", "name", "score", "strand",
                      "fold-change", "p-value", "q-value", "summit")

@@ -14,9 +14,7 @@ ezMethodMothur = function(input=NA, output=NA, param=NA,
     require(phyloseq)
     require(plyr)
     require(ape)
-    require(ggplot2)
     library(scales)
-    library(Biostrings)
     dataset = input$meta
     sampleNames = input$getNames() 
     isPaired <- param$paired

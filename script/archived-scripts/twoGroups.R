@@ -27,8 +27,8 @@ writeNgsTwoGroupReport = function(deResult, output,
   param = deResult$param
   se <- deResult$se
   
-  dataset <- setNames(as.data.frame(colData(se)),
-                      colnames(colData(se)))
+  dataset <- set_names(as.data.frame(colData(se)),
+                       colnames(colData(se)))
   
   # TODO: this is temporary fix to make it compatible with GO and GAGE analysis
   ## In the future, we should always use SummarizedExperiement rawDtaa.
@@ -40,14 +40,14 @@ writeNgsTwoGroupReport = function(deResult, output,
   result$method = metadata(se)$method
   result$isPresentProbe = rowData(se)$isPresentProbe
   result$isPresent = assays(se)$isPresent
-  result$log2Ratio = setNames(rowData(se)$log2Ratio, 
-                              rownames(assays(se)$counts))
+  result$log2Ratio = set_names(rowData(se)$log2Ratio, 
+                               rownames(assays(se)$counts))
   result$fitGlm = metadata(se)$fitGlm
   result$sf = colData(se)$sf
   result$gfold = rowData(se)$gfold
   result$nativeResult = metadata(se)$nativeResult
-  result$pValue = setNames(rowData(se)$pValue,
-                           rownames(assays(se)$counts))
+  result$pValue = set_names(rowData(se)$pValue,
+                            rownames(assays(se)$counts))
   result$fdr = rowData(se)$fdr
   result$usedInTest = rowData(se)$usedInTest
   result$xNorm = assays(se)$xNorm

@@ -129,7 +129,6 @@ ezMethodSTARsolo = function(input=NA, output=NA, param=NA){
     
     # filter raw counts with EmptyDrop
     require(Matrix)
-    require(readr)
     require(DropletUtils)
     
     outputDir = paste0(sampleName,'/Solo.out/Gene/raw')
@@ -178,9 +177,7 @@ ezMethodSTARsolo = function(input=NA, output=NA, param=NA){
     rownames(sceFilt) = geneID
     ## analyse cell cycle phase
     cellPhase = getCellCycle(sceFilt, param$refBuild)
-    write_tsv(cellPhase,
-              path=file.path(filteredDir,
-                "CellCyclePhase.txt"))
+    write_tsv(cellPhase, file=file.path(filteredDir, "CellCyclePhase.txt"))
     
     return("Success")
 }

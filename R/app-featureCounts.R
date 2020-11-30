@@ -7,7 +7,6 @@
 
 
 ezMethodFeatureCounts = function(input=NA, output=NA, param=NA){
-  require(GenomicRanges)
   require(Rsubread)
   require(rtracklayer)
   
@@ -191,11 +190,8 @@ EzAppSingleCellFeatureCounts <-
   )
 
 ezMethodSingleCellFeatureCounts <- function(input=NA, output=NA, param=NA){
-  require(GenomicRanges)
   require(Rsubread)
   require(rtracklayer)
-  require(tibble)
-  require(readr)
   
   bamFile = input$getFullPaths("BAM")
   localBamFile = getBamLocally(bamFile)
@@ -269,7 +265,7 @@ ezMethodSingleCellFeatureCounts <- function(input=NA, output=NA, param=NA){
                 sapply(bamHeaders[[1]]$text[names(bamHeaders[[1]]$text) == "@RG"], "[", 1))
   ## RG starts with numbers will have X after make.names
   ## But featureCounts doesn't have this X.
-  fixNameMapping <- setNames(tagsRG, make.names(tagsRG))
+  fixNameMapping <- set_names(tagsRG, make.names(tagsRG))
   indexStartNumber <- grep("^\\d", fixNameMapping)
   names(fixNameMapping)[indexStartNumber] <- sub("^X", "", 
                                                  names(fixNameMapping)[indexStartNumber])
@@ -288,7 +284,7 @@ ezMethodSingleCellFeatureCounts <- function(input=NA, output=NA, param=NA){
   ezWrite.table(countResult$stat, file=statFile, row.names=FALSE)
   
   cellPhase <- getCellCycle(countsFixed, param$refBuild)
-  write_tsv(cellPhase, path=basename(output$getColumn('CellCyclePhase')))
+  write_tsv(cellPhase, file=basename(output$getColumn('CellCyclePhase')))
   
   return("Success")
 }
