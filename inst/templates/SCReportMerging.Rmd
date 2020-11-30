@@ -17,12 +17,9 @@ Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
 library(SummarizedExperiment)
 library(ezRun)
 library(cowplot)
-library(tibble)
-library(dplyr)
-library(readr)
+library(tidyverse)
 library(Seurat)
 library(kableExtra)
-library(tidyr)
 # input for this report: sceURLs, param
 # sceURLs <- c("sample13days"="https://fgcz-sushi.uzh.ch/projects/p2326/SCReport_3days_2019-03-06--16-24-38/sample1_3days_v-run_SCReport/00index.html",
 #              "sample22wks"="https://fgcz-sushi.uzh.ch/projects/p2326/SCReport_2wks_2019-03-06--23-38-34/sample2_2wks_v_run_SCReport/00index.html",
@@ -290,7 +287,7 @@ if(param$all2allMarkers){
 if(doEnrichr(param) && param$all2allMarkers){
   for(comparison in names(all2allMarkers)){
     write_tsv(as_tibble(all2allMarkers[[comparison]], rownames="Gene"),
-              path=paste0(comparison, ".tsv"))
+              file=paste0(comparison, ".tsv"))
   }
   genesAllPerCluster <- lapply(all2allMarkers, rownames)
   genesUpPerCluster <- lapply(all2allMarkers, function(x){rownames(x)[x$avg_logFC > 0]})
@@ -360,7 +357,7 @@ markers <- markers[sapply(markers, nrow) != 0L]
 markers <- bind_rows(markers, .id="cluster")
 
 posConservedMarkersFn <- "pos_conserved_markers.tsv"
-write_tsv(markers, path=posConservedMarkersFn)
+write_tsv(markers, file=posConservedMarkersFn)
 ```
 
 List of all positive conserved cell type markers can be accessed [here](`r posConservedMarkersFn`).
@@ -447,7 +444,7 @@ sdp <- SplitDotPlotGG(scData, genes.plot = unique(markers.to.plot),
     diffGenes <- bind_rows(diffGenes, .id="cluster")
     diffGenesFn <- paste0("diffExpGenesPerCluster_",
                           paste(uniquePlatesComb[,i], collapse="Vs"), ".tsv")
-    write_tsv(diffGenes, path=diffGenesFn)
+    write_tsv(diffGenes, file=diffGenesFn)
     diffGenesFns <- c(diffGenesFns, diffGenesFn)
   }
 
@@ -496,7 +493,7 @@ tSNE_data <- as_tibble(scData@dr$tsne@cell.embeddings,
 tSNE_data <- dplyr::rename(tSNE_data, X=`tSNE_1`, Y=`tSNE_2`)
 tSNE_data$cluster <- scData@ident
 tSNEFn <- "tSNE_data.tsv"
-write_tsv(tSNE_data, path=tSNEFn)
+write_tsv(tSNE_data, file=tSNEFn)
 ```
 
 [`r geneMeanPerClusterFn`](`r geneMeanPerClusterFn`)

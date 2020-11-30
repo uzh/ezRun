@@ -8,15 +8,15 @@
 loadCountDataset <- function(input, param){
   require(tools)
   require(SummarizedExperiment)
-  require(readr)
-  require(dplyr)
-  require(readr)
   files <- input$getFullPaths("Count")
   
   dataFeatureLevel <- unique(input$getColumn("featureLevel"))
   stopifnot(length(dataFeatureLevel) == 1)
   
-  x1 <- read_tsv(files[1], guess_max=1e6)
+  x1 <- read_tsv(files[1], guess_max=1e6,  col_types = cols())
+  ## col type messages are suppressed by col_types = cols()
+  ## Alternatively: The message is triggered by readr:::show_cols_spec. 
+  ##To suppress the message, put this at the top of your script: options(readr.num_columns = 0)
   
   if (ezIsSpecified(param$expressionName)){
     columnName <- param$expressionName
@@ -33,12 +33,12 @@ loadCountDataset <- function(input, param){
   
   x <- mapply(function(x, y){
     message("loading file: ", x)
-    tempTibble <- read_tsv(x, progress=FALSE, guess_max=1e6)
+    tempTibble <- read_tsv(x, progress=FALSE, guess_max=1e6, col_types = cols())
     tempTibble %>%
       dplyr::select(identifier, columnName) %>%
       dplyr::rename("id":= 1, !! y := columnName)
   }, files, names(files), SIMPLIFY=FALSE)
-  x <- Reduce(function(x,y){left_join(x, y, by="id")}, x)
+  x <- Reduce(function(x,y){full_join(x, y, by="id")}, x)
   
   if(dataFeatureLevel == "isoform" && param$featureLevel == "gene"){
     ## aggregate from isoform to gene level
@@ -53,12 +53,13 @@ loadCountDataset <- function(input, param){
   }
   counts <- as.matrix(x[ ,-identifier])
   rownames(counts) <- x[[identifier]]
-
+  counts[is.na(counts)] <- 0
+  
   if(ezIsSpecified(param$ezRef@refBuild)){
     seqAnnoDFFeature <- ezFeatureAnnotation(param, rownames(counts),
                                             param$featureLevel)
   }else{
-    seqAnnoDFFeature <- .makeSeqAnnoFromCounts(x1, identifier)
+    seqAnnoDFFeature <- .makeSeqAnnoFromCounts(x, identifier)
   }
   stopifnot(identical(rownames(seqAnnoDFFeature), rownames(counts)))
   
@@ -93,9 +94,6 @@ loadCountDataset <- function(input, param){
     use = TRUE
   }
   rawData <- rawData[use, ]
-
-  # assays(rawData)$rpkm = getRpkm(rawData)
-  # assays(rawData)$tpm = getTpm(rawData)
   return(rawData)
 }
 
@@ -110,7 +108,8 @@ loadCountDataset <- function(input, param){
                                  biotypes="protein_coding",
                                  description=x1[[identifier]],
                                  start=1, end=100, gc=NA, featWidth=NA,
-                                 "GO BP"="", "GO CC"="", "GO MF"="")
+                                 "GO BP"="", "GO CC"="", "GO MF"="",
+                                 check.names = FALSE)
   if(any(colnames(x1) %in% c('GeneID', 'Chr', 'Start', 'End', 'Strand'))){
     x1 <- rename(x1, gene_id=GeneID, seqid=Chr, start=Start, end=End,
                  strand=Strand)
@@ -352,8 +351,6 @@ removeReadsFromFastq = function(fqFiles, readIds, fqOutFiles=NULL, doGzip=TRUE){
 
 writeSCMM <- function(x, file){
   require(Matrix)
-  require(readr)
-  
   stopifnot(grepl("\\.mtx$", file))
   
   write_lines(rownames(x), path=sub("\\.mtx$", ".rowNames", file))
@@ -366,7 +363,6 @@ writeSCMM <- function(x, file){
 
 readSCMM <- function(file){
   require(Matrix)
-  require(readr)
   ans <- readMM(file)
   ans <- as(ans, "dgCMatrix")
   colnames(ans) <- read_lines(sub("\\.mtx$", ".colNames", file))
@@ -393,13 +389,13 @@ saveExternalFiles = function(sce, ...) {
   tSNE_data <- dplyr::rename(tSNE_data, X=`tSNE_1`, Y=`tSNE_2`)
   tSNE_data$cluster <- colData(sce)[,"ident"]
   tSNEFn = "tSNE_data.tsv"
-  write_tsv(tSNE_data, path=tSNEFn)
+  write_tsv(tSNE_data, file=tSNEFn)
 
   add_results = list(...)
   for(i in 1:length(add_results[[1]])) {
     if(!is.null(add_results[[1]][[i]])) {
       file_name = names(add_results[[1]][i])
-      write_tsv(add_results[[1]][[i]], path=paste0(file_name, ".tsv"))
+      write_tsv(add_results[[1]][[i]], file=paste0(file_name, ".tsv"))
     }
   }
 }

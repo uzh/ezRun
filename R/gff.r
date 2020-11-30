@@ -487,11 +487,7 @@ ezUtrSequences = function(gtf, chromSeqs){
 ##' fp = "/srv/GT/reference/Saccharomyces_cerevisiae/Ensembl/EF4/Sequence/WholeGenomeFasta/genome.fa"
 ##' param$ezRef@@refFastaFile = fp
 ##' gw = getTranscriptGcAndWidth(param)
-getTranscriptGcAndWidth = function(param=NULL, genomeFn=NULL, featureFn=NULL){
-  require(data.table)
-  require(Biostrings)
-  require(GenomicRanges)
-  require(stringr)
+getTranscriptGcAndWidth <- function(param=NULL, genomeFn=NULL, featureFn=NULL){
   require(Rsamtools)
   require(rtracklayer)
   
@@ -499,24 +495,18 @@ getTranscriptGcAndWidth = function(param=NULL, genomeFn=NULL, featureFn=NULL){
     genomeFn <- param$ezRef["refFastaFile"]
     featureFn <- param$ezRef["refFeatureFile"]
   }
-  genomeFasta = genomeFn
-  if (!file.exists(genomeFasta)){
-    return(NULL)
-  }
   gff <- import(featureFn)
   exons <- gff[gff$type == "exon"]
   transcripts <- exons$transcript_id
-  exons <- getSeq(FaFile(genomeFasta), exons)
+  exonsSeq <- getSeq(FaFile(genomeFn), exons)
   # FaFile can deal with spaces witin header name.
   # ">chr1 test1" can be subset by chr1 GRanges.
-  gcCount <- letterFrequency(exons, letters="GC", as.prob = FALSE)[ ,"G|C"]
+  gcCount <- letterFrequency(exonsSeq, letters="GC", as.prob = FALSE)[ ,"G|C"]
   txWidth <- width(exons)
-  data <- data.table(tx=transcripts, txWidth=txWidth, gcCount=gcCount)
-  data <- data[ , lapply(.SD, sum), by=.(tx)]
-  ans <- list(gc=signif(setNames(data[ , gcCount/txWidth], data[ ,tx]),
-                        digits=4),
-              featWidth=setNames(data[ , txWidth], data[ ,tx]))
-  return(ans)
+  data <- tibble(transcript_id=transcripts, featWidth=txWidth, gcCount=gcCount)
+  data <- data %>% group_by(transcript_id) %>% summarise_all(sum) %>%
+    mutate(gc=signif(gcCount/featWidth, digits=4)) %>% dplyr::select(-gcCount)
+  return(data)
 }
 
 ##' @title Gets the ensembl types
@@ -577,7 +567,6 @@ trimTxGtf <- function(param=NULL, inGTF, outGTF, fastaFile, refAnnotationFile,
     transcriptTypes <- param$transcriptTypes
   }
   require(rtracklayer)
-  require(GenomicRanges)
   
   gtf <- import(inGTF)
   seqlengthsRef <- fasta.seqlengths(fastaFile)
@@ -612,11 +601,10 @@ trimTxGtf <- function(param=NULL, inGTF, outGTF, fastaFile, refAnnotationFile,
     export(gtf, outGTF[i])
   }
   
-  invisible(setNames(outGTF, fix))
+  invisible(set_names(outGTF, fix))
 }
 
 trimGRanges <- function(x, width=100, start=TRUE){
-  require(GenomicRanges)
   stopifnot(length(unique(strand(x))) == 1L)
   decreasing <- xor(unique(strand(x)) == "+", start)
   # "+", TRUE -> FALSE

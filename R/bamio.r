@@ -500,8 +500,8 @@ getBamMultiMatching = function(param, bamFile, nReads=NULL){
   colnames(bamReadsDTCount)[2] <- "qnameN"
   bamReadsDTCount2 <- bamReadsDTCount[, .N, by=qnameN]
   bamReadsDTCount2 <- bamReadsDTCount2[order(qnameN)]
-  result <- setNames(bamReadsDTCount2$N,
-                     bamReadsDTCount2$qnameN)
+  result <- set_names(bamReadsDTCount2$N,
+                      bamReadsDTCount2$qnameN)
   #result = table(table(bamReads))
   #if (param$paired){
   #  flagOption = "-f 3 -F 132"

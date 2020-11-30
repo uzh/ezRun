@@ -15,18 +15,14 @@ editor_options:
 
 ```{r setup, include=FALSE}
 library(SummarizedExperiment)
-library(ggplot2)
 library(ggridges)
 library(cowplot)
-library(tibble)
-library(dplyr)
-library(readr)
 library(kableExtra)
-library(tidyr)
 library(pheatmap)
 library(scater)
 library(RColorBrewer)
 library(plotly)
+library(tidyverse)
 knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE, knitr.table.format = "html")
 
 #to test
@@ -91,7 +87,7 @@ if(identical(param$SCT.regress,"CellCycle")) {
 }
 cat("As a result, SCTransform ranked the genes by residual variance and returned the 3000 most variant genes. Next, we performed PCA on the scaled data using the previously determined variable features. Taking as a distance metric the previously identified PCs, the cells clusters were then identified using a graph-based clustering approach where the cells are embedded in a graph structure - for example a K-nearest neighbor (KNN) graph, with edges drawn between cells with similar feature expression patterns, and then attempt to partition this graph into highly interconnected ‘communities’. The resolution is an important argument that sets the \"granularity\" of the downstream clustering and will need to be optimized for every individual experiment. Increased resolution values lead to a greater number of clusters, which is often required for larger datasets.\n")
 cat("\n")
-cat("The TSNEs below place similar cells together in low-dimensional space. The first UMAP represents cells according to the condition and the second one shows the graph-based common clusters that were found among the datasets.\n")
+cat("The UMAPs below place similar cells together in low-dimensional space. The first UMAP represents cells according to the condition and the second one shows the graph-based common clusters that were found among the datasets.\n")
 ```
 
 
@@ -229,7 +225,7 @@ The 50 dysregulated genes with the highest difference in expression between the 
 <br/>
 
 ```{r, fig.height=6, fig.width=12, fig.align='center'}
-most_diffGenes <- unique(diffGenes$gene)[1:50]
+most_diffGenes <- head(unique(diffGenes$gene), 50)
 plotHeatmap(sce, order_columns_by = "Condition", features = most_diffGenes, fontsize=8)
 ```
 

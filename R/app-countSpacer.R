@@ -6,9 +6,7 @@
 # www.fgcz.ch
 
 ezMethodCountSpacer = function(input=NA, output=NA, param=NA){
-  require(Biostrings)
   require(ShortRead)
-  require(ggplot2)
   require(htmlwidgets)
   require(stringi)
   

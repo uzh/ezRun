@@ -33,7 +33,7 @@ ezMethodDeseq2 = function(input=NA, output=NA, param=NA){
     return("Error")
   }
   
-  makeRmdReport(output=output, param=param, deResult=deResult, rmdFile="twoGroups.Rmd")
+  makeRmdReport(output=output, param=param, deResult=deResult, rmdFile="twoGroups.Rmd", reportTitle = param$comparison)
   return("Success")
 }
 

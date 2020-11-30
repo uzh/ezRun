@@ -17,17 +17,13 @@ Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
 # input for this report: sce
 library(ezRun)
 library(Seurat)
-library(dplyr)
-library(tibble)
 library(kableExtra)
 library(fastICA)
 library(Matrix)
-library(readr)
-# library(slingshot)
 library(RColorBrewer)
 library(SummarizedExperiment)
-library(tibble)
 library(Rmagic) ## This has to be loaded after setting correct python
+library(tidyverse)
 
 ## ----------------------------------------------
 ## debug
@@ -56,7 +52,7 @@ cat(paste0("<SCRIPT language=\"JavaScript\" SRC=\"", basename(jsFile), "\"></SCR
 markers <- FindAllMarkers(object=scData, only.pos=TRUE,
                           return.thresh = pvalue_allMarkers)
 posMarkersFn <- "pos_markers.tsv"
-write_tsv(as_tibble(markers), path=posMarkersFn)
+write_tsv(as_tibble(markers), file=posMarkersFn)
 
 ## Significant markers
 if (nrow(markers) >0){
@@ -104,7 +100,7 @@ if(param$runPseudoTime){
   tSNE_data$pseudotime <- a$A[1,]
 }
 tSNEFn <- "coordinates_data.tsv"
-write_tsv(tSNE_data, path=tSNEFn)
+write_tsv(tSNE_data, file=tSNEFn)
 ```
 
 ## Clustering Results {.tabset}
@@ -216,10 +212,10 @@ if(doEnrichr(param) && param$all2allMarkers){
   for(comparison in names(all2allMarkers)){
     if(nrow(all2allMarkers[[comparison]]) > 0){
       write_tsv(as_tibble(all2allMarkers[[comparison]], rownames="Gene"),
-              path=paste0(comparison, ".tsv"))
+                file=paste0(comparison, ".tsv"))
     }else{
       write_tsv(as_tibble(all2allMarkers[[comparison]]),
-              path=paste0(comparison, ".tsv"))
+                file=paste0(comparison, ".tsv"))
     }
   }
   genesAllPerCluster <- lapply(all2allMarkers, rownames)
@@ -322,16 +318,8 @@ for(i in nrPseudoT){
   lines(SlingshotDataSet(sceSlingshot), lwd=2)
 }
 ## Trajectory
-cell.colorsPalette <- setNames(gg_color_hue(length(levels(sceSlingshot$ident))),
-                               levels(sceSlingshot$ident))
-# cell.colors <- cell.colorsPalette[tSNE_data$cluster]
-# names(cell.colors) <- tSNE_data$cells
-
-# if(length(levels(sceSlingshot$ident)) >= 10){
-#   colors <- colorRampPalette(brewer.pal(9,'Set1'))(length(levels(sceSlingshot$ident)))
-# }else{
-#   colors <- brewer.pal(9,'Set1')
-# }
+cell.colorsPalette <- set_names(gg_color_hue(length(levels(sceSlingshot$ident))),
+                                levels(sceSlingshot$ident))
 plot(reducedDim(sceSlingshot, type="TSNE"), 
      col = cell.colorsPalette[sceSlingshot$ident], 
      pch=16, asp = 1, main="Trajectory reconstruction")
@@ -388,7 +376,7 @@ magic_data <- magic(Matrix::t(scData@data), genes="all_genes",
                     t="auto", seed=10)
 magicDataFn <- "magic_data.tsv"
 write_tsv(as_tibble(t(as.data.frame(magic_data)), rownames="gene_name"),
-          path=magicDataFn)
+          file=magicDataFn)
 magicDataFn <- R.utils::gzip(magicDataFn)
 ```
 

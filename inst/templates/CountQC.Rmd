@@ -51,15 +51,12 @@ for (nm in setdiff(na.omit(unique(seqAnno$type)), "")){
 metadata(rawData)$design <- ezDesignFromDataset(dataset, param)
 colData(rawData)$conds <- ezConditionsFromDesign(metadata(rawData)$design,
                                                  maxFactors = 2)
-# colData(rawData)$sampleColors <- getSampleColors(colData(rawData)$conds)
 metadata(rawData)$condColors <- lapply(metadata(rawData)$design, getCondsColors)
 metadata(rawData)$sampleColors <- list()
 for(cond in colnames(metadata(rawData)$design)){
-  metadata(rawData)$sampleColors[[cond]] <- setNames(metadata(rawData)$condColors[[cond]][metadata(rawData)$design[[cond]]],
+  metadata(rawData)$sampleColors[[cond]] <- set_names(metadata(rawData)$condColors[[cond]][metadata(rawData)$design[[cond]]],
                                                      rownames(metadata(rawData)$design))
 }
-# metadata(rawData)$condleColors <- lapply(metadata(rawData)$sampleColors, function(x, y){setNames(x,y)},
-#                                         rownames(metadata(rawData)$design))
 ```
 
 ```{r check enough samples, echo=FALSE, results='asis'}
@@ -158,7 +155,7 @@ if(!is.null(rowData(rawData)$gene_name)){
 write_xlsx(counts, path=countFile)
 # normalized signal
 signalFile <- paste0(ezValidFilename(param$name), "-normalized-signal.xlsx")
-write_xlsx(combined, file=signalFile, head="Feature ID", digits=4)
+write_xlsx(combined, path=signalFile)
 
 selectSignals = grepl("Signal", colnames(combined))
 combined$"Mean signal" = rowMeans(combined[, selectSignals], na.rm=TRUE)
@@ -177,7 +174,7 @@ combined = combined[order(combined$"Maximum signal", decreasing = TRUE), ,
 useInInteractiveTable = c("seqid", "gene_name", "Maximum signal", 
                           "Mean signal", "description", "featWidth", "gc")
 useInInteractiveTable = intersect(useInInteractiveTable, colnames(combined))
-tableLink = sub(".txt", "-viewHighExpressionGenes.html", signalFile)
+tableLink = sub(".xlsx", "-viewHighExpressionGenes.html", signalFile)
 ## select top genes
 combinedTopGenes = combined[which(rownames(combined) %in% topGenes),]
 ## restrict number of table rows if necessary
@@ -190,7 +187,7 @@ ezInteractiveTable(interactiveTable, tableLink=tableLink, digits=3,
                    title=paste("Showing the top", nRows, 
                                "genes with the highest expression"))
 
-rpkmFile <- paste0(ezValidFilename(param$name), "-rpkm.txt")
+rpkmFile <- paste0(ezValidFilename(param$name), "-rpkm.xlsx")
 rpkm <- as_tibble(getRpkm(rawData), rownames="Feature ID")
 if(!is.null(rowData(rawData)$gene_name)){
   rpkm <- left_join(rpkm,
@@ -213,7 +210,7 @@ write_xlsx(tpm, path=tpmFile)
 ```
 
 ```{r add data files link, echo=FALSE, results='asis', message=FALSE}
-for(each in dataFiles){
+for(each in c(countFile, signalFile, rpkmFile, tpmFile, tableLink)){
   cat("\n")
   cat(paste0("[", each, "](", each, ")"))
   cat("\n")
@@ -344,7 +341,7 @@ if(ncol(rawData) > 3){
     xTmp <- left_join(xTmp, as_tibble(rowData(rawData)[, "gene_name", drop=FALSE],
                                       rownames="feature_id"))
     xTmp <- arrange(xTmp, Cluster)
-    write_tsv(xTmp, path="cluster-heatmap-clusterMembers.txt")
+    write_tsv(xTmp, file="cluster-heatmap-clusterMembers.txt")
 
     cowplot::save_plot(clusterPdf, clusterResult$pheatmap$gtable,
                        base_height = 10, base_width = max(8,4+0.1*ncol(rawData)))

@@ -78,7 +78,6 @@ EzAppCountOverlaps <-
   #param = fillWithDefaults(param) ## TODOMF: function doesn't exist
   options(cores=param$cores)
   message("countPairedBamHits")
-  require("GenomicRanges", warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
   require("bitops", warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
   
   
@@ -182,7 +181,6 @@ countPairedBamHitsSingleChrom = function(chr, bamFile=NULL, param=NULL, gff=NULL
 }
 
 getTargetRanges = function(gff, param, chrom=NULL){
-  require(GenomicRanges)
   require(S4Vectors)
   stopifnot(gff$type == "exon")
   if(!is.null(chrom)){

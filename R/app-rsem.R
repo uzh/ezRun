@@ -7,9 +7,6 @@
 
 
 ezMethodRSEM = function(input=NA, output=NA, param=NA){
-  require(readr)
-  require(dplyr)
-  
   sampleName = input$getNames()
   ref = getRSEMReference(param)
   
@@ -82,7 +79,7 @@ ezMethodRSEM = function(input=NA, output=NA, param=NA){
     result$TPM_PosteriorEstimate = transcriptResult$pme_TPM
     result$FPKM_PosteriorEstimate = transcriptResult$pme_FPKM
   }
-  write_tsv(result, path=basename(output$getColumn("Count")))
+  write_tsv(result, file=basename(output$getColumn("Count")))
   return("Success")
 }
 
