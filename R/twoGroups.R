@@ -295,7 +295,12 @@ runGlm <- function(x, sampleGroup, refGroup, grouping,
                    priorCount = 0.125, deTest = c("QL", "LR"), robust = FALSE) {
   require(edgeR)
   deTest <- match.arg(deTest)
-
+  if (!ezIsSpecified(sampleGroupBaseline)) {
+    sampleGroupBaseline <- NULL
+  }
+  if (!ezIsSpecified(refGroupBaseline)) {
+    refGroupBaseline <- NULL
+  }
   ## get the scaling factors for the entire data set
   cds <- DGEList(counts = x, group = grouping)
   cds <- calcNormFactors(cds, method = normMethod)
@@ -307,11 +312,6 @@ runGlm <- function(x, sampleGroup, refGroup, grouping,
   grouping <- grouping[indices2Keep]
   x2 <- x[ ,indices2Keep]
   
-  # isSample <- grouping == sampleGroup
-  # isRef <- grouping == refGroup
-  # grouping <- grouping[isSample | isRef]
-  # x2 <- x[, isSample | isRef]
-  
   cds <- DGEList(counts = x2, group = grouping)
   cds <- calcNormFactors(cds, method = normMethod)
   groupFactor <- factor(grouping,
@@ -320,15 +320,8 @@ runGlm <- function(x, sampleGroup, refGroup, grouping,
                         )
   if (ezIsSpecified(grouping2)) {
     grouping2 <- grouping2[indices2Keep]
-    # design <- model.matrix(~ groupFactor + grouping2[isSample | isRef])
-    # colnames(design) <- c(
-    #   "Intercept", "Grouping",
-    #   paste("Grouping2", 1:(ncol(design) - 2), sep = "_")
-    # )
     design <- model.matrix(~ 0 + groupFactor + grouping2)
   } else {
-    # design <- model.matrix(~groupFactor)
-    # colnames(design) <- c("Intercept", "Grouping")
     design <- model.matrix(~ 0 + groupFactor)
   }
   colnames(design) <- str_replace(colnames(design), "^groupFactor", "")
@@ -343,10 +336,6 @@ runGlm <- function(x, sampleGroup, refGroup, grouping,
     cds$common.dispersion <- 0.1
   }
 
-  # my.contrasts <- makeContrasts(
-  #   contrasts = str_c(sampleGroup, "-", refGroup),
-  #   levels = design)
-    
   if (deTest == "QL") {
     message("Using quasi-likelihood (QL) F-test!")
     fitGlm <- glmQLFit(cds, design, prior.count = priorCount, robust = robust)
@@ -356,7 +345,6 @@ runGlm <- function(x, sampleGroup, refGroup, grouping,
       contrastsIndices <- c(-1, 1, 1, -1, rep(0, ncol(fitGlm)-4))
     }
     lrt.2vs1 <- glmQLFTest(fitGlm, contrast=contrastsIndices)
-                           # contrast=my.contrasts[, str_c(sampleGroup, "-", refGroup)])
   } else {
     message("Using likelihood ratio test!")
     fitGlm <- glmFit(cds, design, prior.count = priorCount, robust = robust)
@@ -366,7 +354,6 @@ runGlm <- function(x, sampleGroup, refGroup, grouping,
       contrastsIndices <- c(-1, 1, 1, -1, rep(0, ncol(fitGlm)-4))
     }
     lrt.2vs1 <- glmLRT(fitGlm,contrast=contrastsIndices)
-                       # contrast=my.contrasts[, str_c(sampleGroup, "-", refGroup)])
   }
   res <- list()
   res$id <- rownames(lrt.2vs1$table)
