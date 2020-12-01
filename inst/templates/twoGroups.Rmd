@@ -21,6 +21,7 @@ param <- readRDS("param.rds")
 
 enrichInput = metadata(se)$enrichInput
 enrichResult = metadata(se)$enrichResult
+enrichResultGSEA = metadata(se)$enrichResultGSEA
 
 debug <- FALSE
 
