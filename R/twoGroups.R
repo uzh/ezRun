@@ -257,6 +257,7 @@ runDeseq2 <- function(x, sampleGroup, refGroup, grouping, grouping2 = NULL,
   )
   res <- as.list(res)
   res$sf <- sf
+  res$dds = dds
   return(res)
 }
 
