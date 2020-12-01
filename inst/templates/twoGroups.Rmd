@@ -107,7 +107,7 @@ ezWrite.table(as.data.frame(colData(se))[, "sf", drop = FALSE],
 
 liveReportLink <- output$getColumn("Live Report")
 
-save(se, basename(output$getColumn("Live Report")))
+save(se, file=basename(output$getColumn("Live Report")))
 ```
 
 [`r resultFile$resultFile`](`r resultFile$resultFile`)
