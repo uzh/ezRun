@@ -149,7 +149,7 @@ twoGroupCountComparison <- function(rawData) {
   )
 
   metadata(rawData)$enrichInput <- compileEnrichmentInput(param, rawData)
-  if (doGo(param, seqAnno)) {
+  if (doGo(param, rowData(rawData))) {
     metadata(rawData)$enrichResult <- ezEnricher(metadata(rawData)$enrichInput)
     metadata(rawData)$enrichResultGSEA <- ezGSEA(metadata(rawData)$enrichInput)
   }
