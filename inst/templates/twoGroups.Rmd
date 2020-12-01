@@ -16,8 +16,11 @@ editor_options:
 library(ezRun)
 knitr::opts_chunk$set(echo = TRUE)
 output <- readRDS("output.rds")
-deResult <- readRDS("deResult.rds")
+se <- readRDS("deResult.rds")
 param <- readRDS("param.rds")
+
+enrichInput = metadata(se)$enrichInput
+enrichResult = metadata(se)$enrichResult
 
 debug <- FALSE
 
@@ -36,7 +39,6 @@ register(BPPARAM)
 ```
 
 ```{r prepare data, include=FALSE}
-se <- deResult$se
 param <- metadata(se)$param
 seqAnno <- data.frame(rowData(se),
                       row.names = rownames(se), check.names = FALSE
@@ -44,8 +46,6 @@ seqAnno <- data.frame(rowData(se),
 
 dataset <- data.frame(colData(se), check.names = FALSE)
 design <- ezDesignFromDataset(dataset, param)
-
-enrichInput <- compileEnrichmentInput(param, se)
 
 ## In some cases, such as p2710, there are millions of features, then we have to adjust some analyses below.
 hasMassiveFeats <- nrow(seqAnno) >= 200e3
@@ -107,7 +107,7 @@ ezWrite.table(as.data.frame(colData(se))[, "sf", drop = FALSE],
 
 liveReportLink <- output$getColumn("Live Report")
 
-deResult$saveToFile(basename(output$getColumn("Live Report")))
+save(se, basename(output$getColumn("Live Report")))
 ```
 
 [`r resultFile$resultFile`](`r resultFile$resultFile`)
@@ -670,12 +670,6 @@ if (!doEnrichr(param)) {
 
 
 ### Overrepresentation Analysis (ORA) {.tabset}
-```{r enricher compute, echo=FALSE, message=FALSE, eval=!debug}
-if (doGo(param, seqAnno)) {
-  enrichResult <- ezEnricher(enrichInput)
-  resFns <- c() ## Provide download links for these results
-}
-```
 
 ```{r prepare ora plots, echo=FALSE, message=FALSE, eval=!debug}
 enrichResultPlots <- list()
@@ -773,12 +767,6 @@ for (onto in names(enrichResult)) {
 ```
 
 ### Gene set enrichment analysis {.tabset}
-```{r gsea compute, echo=FALSE, message=FALSE, eval=!debug, warning=FALSE}
-if (doGo(param, seqAnno)) {
-  enrichResultGSEA <- ezGSEA(enrichInput)
-  resFns <- c()
-}
-```
 
 ```{r prepare gsea plots, echo=FALSE, message=FALSE, eval=!debug}
 enrichResultGSEAPlots <- list()

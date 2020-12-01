@@ -148,8 +148,12 @@ twoGroupCountComparison <- function(rawData) {
     "Normalization" = param$normMethod
   )
 
-  deResult <- EzResult(se = rawData)
-  return(deResult)
+  metadata(rawData)$enrichInput <- compileEnrichmentInput(param, rawData)
+  if (doGo(param, seqAnno)) {
+    metadata(rawData)$enrichResult <- ezEnricher(metadata(rawData)$enrichInput)
+    metadata(rawData)$enrichResultGSEA <- ezGSEA(metadata(rawData)$enrichInput)
+  }
+  return(rawData)
 }
 
 ##' @describeIn twoGroupCountComparison Runs the Gfold test method.
