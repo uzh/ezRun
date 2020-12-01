@@ -68,7 +68,7 @@ ezMethodCellRangerAggr <- function(input = NA, output = NA, param = NA) {
     select(-SampleID)
   write_tsv(cellPhaseAggr,
     file = file.path(
-      param$name, "filtered_feature_bc_matrix", "count", "CellCyclePhase.txt"
+      param$name, "count", "filtered_feature_bc_matrix", "CellCyclePhase.txt"
     )
   )
   return("Success")
