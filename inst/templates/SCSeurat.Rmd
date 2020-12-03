@@ -39,21 +39,25 @@ debug <- FALSE
 param <- metadata(sce)$param
 input <- metadata(sce)$input
 output <- metadata(sce)$output
-rownames(sce) <- uniquifyFeatureNames(rowData(sce)$gene_id,
-                                      rowData(sce)$gene_name)
+rownames(sce) <- uniquifyFeatureNames(
+  rowData(sce)$gene_id,
+  rowData(sce)$gene_name
+)
 
-scData <- CreateSeuratObject(counts=assay(sce, "counts"),
-                             project=paste(input$getNames(), collapse=", "),
-                             min.cells=param$minCellsPerGene,
-                             min.features=0,
-                             meta.data=as.data.frame(colData(sce)))
+scData <- CreateSeuratObject(
+  counts = assay(sce, "counts"),
+  project = paste(input$getNames(), collapse = ", "),
+  min.cells = param$minCellsPerGene,
+  min.features = 0,
+  meta.data = as.data.frame(colData(sce))
+)
 pvalue_allMarkers <- 0.01
 pvalue_all2allMarkers <- 0.01
 ```
 
 ```{r javascript, echo=FALSE, results='asis'}
-jsFile = system.file("extdata/enrichr.js", package="ezRun", mustWork=TRUE)
-invisible(file.copy(from=jsFile, to=basename(jsFile), overwrite=TRUE))
+jsFile <- system.file("extdata/enrichr.js", package = "ezRun", mustWork = TRUE)
+invisible(file.copy(from = jsFile, to = basename(jsFile), overwrite = TRUE))
 cat(paste0("<SCRIPT language=\"JavaScript\" SRC=\"", basename(jsFile), "\"></SCRIPT>"))
 ```
 
@@ -79,22 +83,22 @@ Seurat allows you to easily explore QC metrics and filter cells based on any use
 ```{r QC, echo=FALSE}
 mitoPattern <- ifelse(length(grep("^MT-", rownames(scData))) > 0, "^MT-", "^mt-")
 scData[["percent.mt"]] <- PercentageFeatureSet(scData, pattern = mitoPattern)
-p <- VlnPlot(scData, features="nFeature_RNA") + theme(legend.position = "none") +
-    geom_hline(yintercept=param$minGenesPerCell, colour="red") +
-    geom_hline(yintercept=param$maxGenesPerCell, colour="red")
+p <- VlnPlot(scData, features = "nFeature_RNA") + theme(legend.position = "none") +
+  geom_hline(yintercept = param$minGenesPerCell, colour = "red") +
+  geom_hline(yintercept = param$maxGenesPerCell, colour = "red")
 p
 
-p <- VlnPlot(scData, features="nCount_RNA") + theme(legend.position = "none")
+p <- VlnPlot(scData, features = "nCount_RNA") + theme(legend.position = "none")
 p
 
-p <- VlnPlot(scData, features="percent.mt") + theme(legend.position = "none") +
-    geom_hline(yintercept=param$maxMitoPercent, colour="red")
+p <- VlnPlot(scData, features = "percent.mt") + theme(legend.position = "none") +
+  geom_hline(yintercept = param$maxMitoPercent, colour = "red")
 p
 
-cellsToKeep <- scData$nFeature_RNA > param$minGenesPerCell & 
-  scData$nFeature_RNA < param$maxGenesPerCell & 
+cellsToKeep <- scData$nFeature_RNA > param$minGenesPerCell &
+  scData$nFeature_RNA < param$maxGenesPerCell &
   scData$percent.mt < param$maxMitoPercent
-scData <- scData[ ,cellsToKeep]
+scData <- scData[, cellsToKeep]
 ```
 
 Here, we filtered cells that have unique feature counts over `r param$maxGenesPerCell` or less than `r param$minGenesPerCell`.
@@ -107,8 +111,10 @@ After removing unwanted cells from the dataset, the next step is to normalize th
 By default, we employ a global-scaling normalization method "LogNormalize" that normalizes the feature expression measurements for each cell by the total expression, multiplies this by a scale factor (`r getSeuratScalingFactor(param$scProtocol)` here), and log-transforms the result with natural log.
 
 ```{r normalize1, echo=FALSE}
-scData <- NormalizeData(scData, normalization.method="LogNormalize",
-                        scale.factor=getSeuratScalingFactor(param$scProtocol))
+scData <- NormalizeData(scData,
+  normalization.method = "LogNormalize",
+  scale.factor = getSeuratScalingFactor(param$scProtocol)
+)
 ```
 
 #### Identification of highly variable features (feature selection)
@@ -120,12 +126,14 @@ The procedure in Seurat3 is described in detail [here](https://www.biorxiv.org/c
 By default, we return 2,000 features per dataset. These will be used in downstream analysis, like PCA.
 
 ```{r HVG, echo=FALSE, warning=FALSE, message=FALSE, fig.width=15, fig.height=7}
-scData <- FindVariableFeatures(scData, selection.method="vst",
-                               nfeatures=2000)
+scData <- FindVariableFeatures(scData,
+  selection.method = "vst",
+  nfeatures = 2000
+)
 top10 <- head(VariableFeatures(scData), 10)
 p1 <- VariableFeaturePlot(scData)
-p2 <- LabelPoints(plot=p1, points=top10, repel=TRUE)
-p <- plot_grid(p1, p2, labels="AUTO")
+p2 <- LabelPoints(plot = p1, points = top10, repel = TRUE)
+p <- plot_grid(p1, p2, labels = "AUTO")
 p
 ```
 
@@ -139,18 +147,24 @@ The `ScaleData` function:
     * This step gives equal weight in downstream analyses, so that highly-expressed genes do not dominate
 
 ```{r scale, echo=FALSE, message=FALSE}
-if("CellCycle" %in% param$vars.to.regress){
+if ("CellCycle" %in% param$vars.to.regress) {
   ## TODO: change gene names for mouse
-  scData <- CellCycleScoring(scData, s.features = cc.genes$s.genes, 
-                             g2m.features = cc.genes$g2m.genes)
-  param$vars.to.regress <- setdiff(append(param$vars.to.regress,
-                                          c("S.Score", "G2M.Score")),
-                                   "CellCycle")
+  scData <- CellCycleScoring(scData,
+    s.features = cc.genes$s.genes,
+    g2m.features = cc.genes$g2m.genes
+  )
+  param$vars.to.regress <- setdiff(
+    append(
+      param$vars.to.regress,
+      c("S.Score", "G2M.Score")
+    ),
+    "CellCycle"
+  )
 }
 
-if(ezIsSpecified(param$vars.to.regress)){
-  scData <- ScaleData(scData, vars.to.regress=param$vars.to.regress)
-}else{
+if (ezIsSpecified(param$vars.to.regress)) {
+  scData <- ScaleData(scData, vars.to.regress = param$vars.to.regress)
+} else {
   scData <- ScaleData(scData)
 }
 ```
@@ -186,7 +200,7 @@ p
 An alternative heuristic method generates an 'Elbow plot': a ranking of principle components based on the percentage of variance explained by each one (`ElbowPlot` function).
 
 ```{r PCA ElbowPlot, echo=FALSE}
-p <- ElbowPlot(scData, ndims=50)
+p <- ElbowPlot(scData, ndims = 50)
 p
 ```
 
@@ -202,8 +216,8 @@ As in PhenoGraph, we first construct a KNN graph based on the euclidean distance
 This step is performed using the `FindNeighbors` function, and takes as input the previously defined dimensionality of the dataset (first `r param$pcs` PCs).
 
 ```{r Cluster, echo=FALSE}
-scData <- FindNeighbors(scData, dims=1:param$pcs)
-scData <- FindClusters(scData, resolution=param$resolution)
+scData <- FindNeighbors(scData, dims = 1:param$pcs)
+scData <- FindClusters(scData, resolution = param$resolution)
 ```
 
 #### Run non-linear dimensional reduction (UMAP/tSNE)
@@ -214,65 +228,94 @@ Cells within the graph-based clusters determined above should co-localize on the
 As input to the UMAP and tSNE, we suggest using the same PCs as input to the clustering analysis.
 
 ```{r run UMAP TSNE, echo=FALSE, message=FALSE, warning=FALSE}
-scData <- RunUMAP(scData, dims = 1:param$pcs,
-                  n.neighbors=getPerplexity(ncol(scData)))
-scData <- RunTSNE(scData, dims = 1:param$pcs,
-                  perplexity=getPerplexity(ncol(scData)))
+scData <- RunUMAP(scData,
+  dims = 1:param$pcs,
+  n.neighbors = getPerplexity(ncol(scData))
+)
+scData <- RunTSNE(scData,
+  dims = 1:param$pcs,
+  perplexity = getPerplexity(ncol(scData))
+)
 
-coordinates <- left_join(tibble(Cells=colnames(scData),
-                                Cluster=Idents(scData)),
-                         as_tibble(Embeddings(scData, "umap"), rownames="Cells")) %>%
-  left_join(as_tibble(Embeddings(scData, "tsne"), rownames="Cells"))
+coordinates <- left_join(
+  tibble(
+    Cells = colnames(scData),
+    Cluster = Idents(scData)
+  ),
+  as_tibble(Embeddings(scData, "umap"), rownames = "Cells")
+) %>%
+  left_join(as_tibble(Embeddings(scData, "tsne"), rownames = "Cells"))
 ```
 
 ### QC on low-dimensional space
 
 #### UMAP
 ```{r QC on UMAP, echo=FALSE}
-FeaturePlot(object=scData, features="nFeature_RNA",
-            reduction="umap")
-FeaturePlot(object=scData, features="nCount_RNA",
-            reduction="umap")
-FeaturePlot(object=scData, features="percent.mt",
-            reduction="umap")
-DimPlot(scData, reduction="umap", group.by="CellCycle") +
+FeaturePlot(
+  object = scData, features = "nFeature_RNA",
+  reduction = "umap"
+)
+FeaturePlot(
+  object = scData, features = "nCount_RNA",
+  reduction = "umap"
+)
+FeaturePlot(
+  object = scData, features = "percent.mt",
+  reduction = "umap"
+)
+DimPlot(scData, reduction = "umap", group.by = "CellCycle") +
   ggtitle("Cell cycle phase")
-FeaturePlot(scData, features="scDblFinder.score", 
-            reduction="umap")
-DimPlot(scData, reduction="umap", group.by="scDblFinder.class") +
+FeaturePlot(scData,
+  features = "scDblFinder.score",
+  reduction = "umap"
+)
+DimPlot(scData, reduction = "umap", group.by = "scDblFinder.class") +
   ggtitle("scDblFinder.class")
 ```
 
 #### TSNE
 ```{r QC on TSNE, echo=FALSE}
-FeaturePlot(object=scData, features="nFeature_RNA",
-            reduction="tsne")
-FeaturePlot(object=scData, features="nCount_RNA",
-            reduction="tsne")
-FeaturePlot(object=scData, features="percent.mt",
-            reduction="tsne")
-DimPlot(scData, reduction="tsne", group.by="CellCycle") +
+FeaturePlot(
+  object = scData, features = "nFeature_RNA",
+  reduction = "tsne"
+)
+FeaturePlot(
+  object = scData, features = "nCount_RNA",
+  reduction = "tsne"
+)
+FeaturePlot(
+  object = scData, features = "percent.mt",
+  reduction = "tsne"
+)
+DimPlot(scData, reduction = "tsne", group.by = "CellCycle") +
   ggtitle("Cell cycle phase")
-FeaturePlot(scData, features="scDblFinder.score", 
-            reduction="tsne")
-DimPlot(scData, reduction="tsne", group.by="scDblFinder.class") +
+FeaturePlot(scData,
+  features = "scDblFinder.score",
+  reduction = "tsne"
+)
+DimPlot(scData, reduction = "tsne", group.by = "scDblFinder.class") +
   ggtitle("scDblFinder.class")
 ```
 
 ### Clustering
 
 ```{r clustering plot, echo=FALSE, results="asis", fig.width=16, fig.height=7}
-p1 <- DimPlot(scData, reduction = "umap", label=TRUE)
-p2 <- DimPlot(scData, reduction = "tsne", label=TRUE)
-p <- plot_grid(p1, p2, labels="AUTO", ncol=2)
+p1 <- DimPlot(scData, reduction = "umap", label = TRUE)
+p2 <- DimPlot(scData, reduction = "tsne", label = TRUE)
+p <- plot_grid(p1, p2, labels = "AUTO", ncol = 2)
 p
 
-kable(tibble(Cluster=names(summary(Idents(scData))),
-             "# of cells"=summary(Idents(scData))),
-      row.names=FALSE, format="html",
-      caption="Number of cells in each cluster") %>%
-  kable_styling(bootstrap_options = "striped", full_width = F,
-                position = "float_right")
+kable(tibble(
+  Cluster = names(summary(Idents(scData))),
+  "# of cells" = summary(Idents(scData))
+),
+row.names = FALSE, format = "html",
+caption = "Number of cells in each cluster"
+) %>%
+  kable_styling(
+    bootstrap_options = "striped", full_width = F,
+    position = "float_right"
+  )
 ```
 
 ### Cells annotation
@@ -282,58 +325,70 @@ The available references are described here https://bioconductor.org/packages/re
 
 ```{r run SingleR, include=FALSE}
 hpca.se <- switch(param$singleRReference,
-                  None="None",
-                  HumanPrimaryCellAtlasData=HumanPrimaryCellAtlasData(),
-                  BlueprintEncodeData=BlueprintEncodeData(),
-                  MonacoImmuneData=MonacoImmuneData(),
-                  DatabaseImmuneCellExpressionData=DatabaseImmuneCellExpressionData(),
-                  NovershternHematopoieticData=NovershternHematopoieticData(),
-                  
-                  MouseRNAseqData=MouseRNAseqData(),
-                  ImmGenData=ImmGenData()
-                  )
-if(param$singleRReference == "None"){
+  None = "None",
+  HumanPrimaryCellAtlasData = HumanPrimaryCellAtlasData(),
+  BlueprintEncodeData = BlueprintEncodeData(),
+  MonacoImmuneData = MonacoImmuneData(),
+  DatabaseImmuneCellExpressionData = DatabaseImmuneCellExpressionData(),
+  NovershternHematopoieticData = NovershternHematopoieticData(),
+
+  MouseRNAseqData = MouseRNAseqData(),
+  ImmGenData = ImmGenData()
+)
+if (param$singleRReference == "None") {
   doSingleR <- FALSE
-}else{
+} else {
   doSingleR <- TRUE
 }
 
-if(doSingleR){
-  singler.results <- SingleR(test = GetAssayData(scData), ref = hpca.se, 
-                             labels = hpca.se$label.fine)
+if (doSingleR) {
+  singler.results <- SingleR(
+    test = GetAssayData(scData), ref = hpca.se,
+    labels = hpca.se$label.fine
+  )
   scData[["SingleR.labels"]] <- singler.results$labels
-  cellInfo <- tibble(Cells=colnames(scData), Cluster=Idents(scData),
-                     SingleR.labels=scData$SingleR.labels) %>%
-    left_join(as_tibble(Embeddings(scData, "umap"), rownames="Cells")) %>%
-    left_join(as_tibble(Embeddings(scData, "tsne"), rownames="Cells"))
+  cellInfo <- tibble(
+    Cells = colnames(scData), Cluster = Idents(scData),
+    SingleR.labels = scData$SingleR.labels
+  ) %>%
+    left_join(as_tibble(Embeddings(scData, "umap"), rownames = "Cells")) %>%
+    left_join(as_tibble(Embeddings(scData, "tsne"), rownames = "Cells"))
 }
 ```
 
 ```{r plot SingleR, echo=FALSE, fig.width=8, eval=doSingleR}
 nrOfLabels <- length(unique(cellInfo$SingleR.labels))
-if(nrOfLabels <= 9){
+if (nrOfLabels <= 9) {
   colsLabels <- brewer.pal(nrOfLabels, "Set1")
-}else{
+} else {
   colsLabels <- colorRampPalette(brewer.pal(9, "Set1"))(nrOfLabels)
 }
-x <- list(title="UMAP_1", zeroline=FALSE)
-y <- list(title="UMAP_2", zeroline=FALSE)
-p1 <- plot_ly(cellInfo, x = ~UMAP_1, y = ~UMAP_2, color=~SingleR.labels,
-        text = ~paste("Cluster: ", Cluster, 
-                      "\nCell: ", Cells,
-                      "\nSingleR.labels: ", SingleR.labels),
-        type = 'scatter', mode = "markers", marker=list(size=5, opacity=0.5),
-        colors=colsLabels) %>% layout(xaxis=x, yaxis=y)
+x <- list(title = "UMAP_1", zeroline = FALSE)
+y <- list(title = "UMAP_2", zeroline = FALSE)
+p1 <- plot_ly(cellInfo,
+  x = ~UMAP_1, y = ~UMAP_2, color = ~SingleR.labels,
+  text = ~ paste(
+    "Cluster: ", Cluster,
+    "\nCell: ", Cells,
+    "\nSingleR.labels: ", SingleR.labels
+  ),
+  type = "scatter", mode = "markers", marker = list(size = 5, opacity = 0.5),
+  colors = colsLabels
+) %>% layout(xaxis = x, yaxis = y)
 p1
 
-x <- list(title="tSNE_1", zeroline=FALSE)
-y <- list(title="tSNE_1", zeroline=FALSE)
-p2 <- plot_ly(cellInfo, x = ~tSNE_1, y = ~tSNE_2, color=~SingleR.labels,
-        text = ~paste("Cluster: ", Cluster, 
-                      "\nCell: ", Cells,
-                      "\nSingleR.labels: ", SingleR.labels),
-        type = 'scatter', mode = "markers", marker=list(size=5, opacity=0.5),
-        colors=colsLabels) %>%layout(xaxis=x, yaxis=y)
+x <- list(title = "tSNE_1", zeroline = FALSE)
+y <- list(title = "tSNE_1", zeroline = FALSE)
+p2 <- plot_ly(cellInfo,
+  x = ~tSNE_1, y = ~tSNE_2, color = ~SingleR.labels,
+  text = ~ paste(
+    "Cluster: ", Cluster,
+    "\nCell: ", Cells,
+    "\nSingleR.labels: ", SingleR.labels
+  ),
+  type = "scatter", mode = "markers", marker = list(size = 5, opacity = 0.5),
+  colors = colsLabels
+) %>% layout(xaxis = x, yaxis = y)
 p2
 ```
 
@@ -344,30 +399,38 @@ The minimal fraction in either two populations is 0.25. The minimal logFC is 0.2
 The minimal pvalue is `r pvalue_allMarkers`.
 
 ```{r pos markers, include=FALSE}
-markers <- FindAllMarkers(scData, only.pos=TRUE, min.pct=0.25,
-                          logfc.threshold=0.25, return.thresh=pvalue_allMarkers)
+markers <- FindAllMarkers(scData,
+  only.pos = TRUE, min.pct = 0.25,
+  logfc.threshold = 0.25, return.thresh = pvalue_allMarkers
+)
 posMarkersFn <- "pos_markers.tsv"
-write_tsv(as_tibble(markers), file=posMarkersFn)
+write_tsv(as_tibble(markers), file = posMarkersFn)
 ```
 
 ```{r pos markers enrichr, echo=FALSE, results='asis'}
-if(doEnrichr(param)){
+if (doEnrichr(param)) {
   genesPerCluster <- split(markers$gene, markers$cluster)
-  jsCall = paste0('enrich({list: "', sapply(genesPerCluster, paste, collapse="\\n"), '", popup: true});')
-  enrichrCalls <- paste0("<a href='javascript:void(0)' onClick='", jsCall, 
-                         "'>Analyse at Enrichr website</a>")
-  enrichrTable <- tibble(Cluster=names(genesPerCluster),
-                         "# of markers"=lengths(genesPerCluster),
-                         "Enrichr link"=enrichrCalls)
-  kable(enrichrTable, format="html", escape=FALSE,
-        caption=paste0("GeneSet enrichment: genes with pvalue ", pvalue_allMarkers)) %>%
+  jsCall <- paste0('enrich({list: "', sapply(genesPerCluster, paste, collapse = "\\n"), '", popup: true});')
+  enrichrCalls <- paste0(
+    "<a href='javascript:void(0)' onClick='", jsCall,
+    "'>Analyse at Enrichr website</a>"
+  )
+  enrichrTable <- tibble(
+    Cluster = names(genesPerCluster),
+    "# of markers" = lengths(genesPerCluster),
+    "Enrichr link" = enrichrCalls
+  )
+  kable(enrichrTable,
+    format = "html", escape = FALSE,
+    caption = paste0("GeneSet enrichment: genes with pvalue ", pvalue_allMarkers)
+  ) %>%
     kable_styling("striped", full_width = F, position = "left")
 }
 ```
 
 ```{r markers table, echo=FALSE}
-caption ="Expression differences of cluster marker genes"
-ezInteractiveTableRmd(markers, digits=4, title=caption)
+caption <- "Expression differences of cluster marker genes"
+ezInteractiveTableRmd(markers, digits = 4, title = caption)
 ```
 
 ### Top cluster markers on low-dimensional space
@@ -376,21 +439,22 @@ The top 10 (ranked by logFC) markers from each cluster.
 
 ```{r top cluster markers, echo=FALSE, results='asis', fig.width=4, fig.height=3, message=FALSE}
 eachCluster <- 0
-for(eachCluster in unique(markers$cluster)){
+for (eachCluster in unique(markers$cluster)) {
   cat("\n")
   cat("#### Cluster ", eachCluster, "\n")
   cat("\n")
-  markersPerCluster <- dplyr::filter(markers, cluster==eachCluster) %>%
+  markersPerCluster <- dplyr::filter(markers, cluster == eachCluster) %>%
     dplyr::arrange(desc(avg_logFC)) %>%
-    select(gene) %>% pull()
+    select(gene) %>%
+    pull()
   markersPerCluster <- head(markersPerCluster, 10)
   eachMarker <- markersPerCluster[1]
-  for(eachMarker in markersPerCluster){
-    p <- VlnPlot(object = scData, features=eachMarker)  + theme(legend.position = "none")
+  for (eachMarker in markersPerCluster) {
+    p <- VlnPlot(object = scData, features = eachMarker) + theme(legend.position = "none")
     print(p)
-    p <- FeaturePlot(object=scData, features=eachMarker, reduction="umap")
+    p <- FeaturePlot(object = scData, features = eachMarker, reduction = "umap")
     print(p)
-    p <- FeaturePlot(object=scData, features=eachMarker, reduction="tsne")
+    p <- FeaturePlot(object = scData, features = eachMarker, reduction = "tsne")
     print(p)
   }
   cat("\n")
@@ -401,7 +465,9 @@ for(eachCluster in unique(markers$cluster)){
 Max 10 marker genes are shown for each cluster. 
 
 ```{r heatmap, fig.width=10, fig.height=10*1.5, echo=FALSE, eval=nrow(markers) > 0}
-top10 <- markers %>% group_by(cluster) %>% top_n(10, avg_logFC)
+top10 <- markers %>%
+  group_by(cluster) %>%
+  top_n(10, avg_logFC)
 DoHeatmap(scData, features = top10$gene) + NoLegend()
 ```
 
@@ -410,24 +476,24 @@ DoHeatmap(scData, features = top10$gene) + NoLegend()
 Each dot is a cell. On the right-hand plot, the color corresponds to the gene expression levels. 
 
 ```{r selected markers, fig.width=4, fig.height=3, echo=FALSE, results='asis'}
-if(length(param$knownMarkers) >0){
-  for(i in 1:length(param$knownMarkers)){
+if (length(param$knownMarkers) > 0) {
+  for (i in 1:length(param$knownMarkers)) {
     cat("\n")
     cat(paste("####", names(param$knownMarkers)[i]))
     cat("\n")
     check_markers <- param$knownMarkers[[i]]
     check_markers <- rownames(scData)[toupper(rownames(scData)) %in%
-                                        toupper(check_markers)]
-    if(length(check_markers) > 0){
-      for(j in 1:length(check_markers)){
-        p <- VlnPlot(object = scData, features=check_markers[j])  + 
+      toupper(check_markers)]
+    if (length(check_markers) > 0) {
+      for (j in 1:length(check_markers)) {
+        p <- VlnPlot(object = scData, features = check_markers[j]) +
           theme(legend.position = "none")
         print(p)
-        
-        p <- FeaturePlot(object=scData, features=check_markers[j], reduction="umap")
+
+        p <- FeaturePlot(object = scData, features = check_markers[j], reduction = "umap")
         print(p)
-        
-        p <- FeaturePlot(object=scData, features=check_markers[j], reduction="tsne")
+
+        p <- FeaturePlot(object = scData, features = check_markers[j], reduction = "tsne")
         print(p)
       }
     }
@@ -447,33 +513,49 @@ These projections and are useful for visualizing the dataset and in density esti
 Interesting directions are those which show the least Gaussian distribution, which is what the FastICA algorithm does.
 
 ```{r fastICA, echo=FALSE, message=FALSE}
-if(param$runPseudoTime){
+if (param$runPseudoTime) {
   cd <- as.matrix(GetAssayData(scData))
   set.seed(10)
-  a <- fastICA(cd, 2, alg.typ = "parallel", fun = "logcosh",
-               alpha = 1, method = "C", row.norm = FALSE, maxit = 200,
-               tol = 0.0001, verbose = FALSE)
+  a <- fastICA(cd, 2,
+    alg.typ = "parallel", fun = "logcosh",
+    alpha = 1, method = "C", row.norm = FALSE, maxit = 200,
+    tol = 0.0001, verbose = FALSE
+  )
   scData$fastICA_pseudotime <- a$A[1, ]
 }
 ```
 
 ```{r fastICA plot, echo=FALSE, message=FALSE, fig.width=8, fig.height=5}
-if(param$runPseudoTime){
-  coordinates <- left_join(coordinates, 
-                           enframe(scData$fastICA_pseudotime, name="Cells",
-                                   value="fastICA_pseudotime"))
-  p <- ggplot(coordinates) +  aes(UMAP_1, UMAP_2) +
-    geom_point(shape=21, size=3, colour = "black",
-               aes(fill=fastICA_pseudotime), alpha=0.7) +
-    scale_fill_gradient(low="yellow", high="blue") +
-    xlab("UMAP_1") + ylab("UMAP_2") + theme_minimal_grid()
+if (param$runPseudoTime) {
+  coordinates <- left_join(
+    coordinates,
+    enframe(scData$fastICA_pseudotime,
+      name = "Cells",
+      value = "fastICA_pseudotime"
+    )
+  )
+  p <- ggplot(coordinates) +
+    aes(UMAP_1, UMAP_2) +
+    geom_point(
+      shape = 21, size = 3, colour = "black",
+      aes(fill = fastICA_pseudotime), alpha = 0.7
+    ) +
+    scale_fill_gradient(low = "yellow", high = "blue") +
+    xlab("UMAP_1") +
+    ylab("UMAP_2") +
+    theme_minimal_grid()
   print(p)
-  
-  p <- ggplot(coordinates) +  aes(tSNE_1, tSNE_2) +
-    geom_point(shape=21, size=3, colour = "black",
-               aes(fill=fastICA_pseudotime), alpha=0.7) +
-    scale_fill_gradient(low="yellow", high="blue") +
-    xlab("tSNE_1") + ylab("tSNE_2") + theme_minimal_grid()
+
+  p <- ggplot(coordinates) +
+    aes(tSNE_1, tSNE_2) +
+    geom_point(
+      shape = 21, size = 3, colour = "black",
+      aes(fill = fastICA_pseudotime), alpha = 0.7
+    ) +
+    scale_fill_gradient(low = "yellow", high = "blue") +
+    xlab("tSNE_1") +
+    ylab("tSNE_2") +
+    theme_minimal_grid()
   print(p)
 }
 ```
@@ -481,7 +563,7 @@ if(param$runPseudoTime){
 ### Interactive explorer
 
 ```{r make shiny data, echo=FALSE}
-saveRDS(scData, file=basename(output$getColumn("Live Report")))
+saveRDS(scData, file = basename(output$getColumn("Live Report")))
 ```
 
 [Shiny explorer](`r output$getColumn("Live Report")`)
@@ -490,25 +572,28 @@ saveRDS(scData, file=basename(output$getColumn("Live Report")))
 
 ```{r gene mean per cluster, echo=FALSE}
 tr_cnts <- expm1(GetAssayData(scData))
-geneMeans <- rowsum(t(as.matrix(tr_cnts)), group=Idents(scData))
+geneMeans <- rowsum(t(as.matrix(tr_cnts)), group = Idents(scData))
 geneMeans <- sweep(geneMeans, 1,
-                   STATS=table(Idents(scData))[rownames(geneMeans)], FUN="/")
+  STATS = table(Idents(scData))[rownames(geneMeans)], FUN = "/"
+)
 geneMeans <- log1p(t(geneMeans))
-colnames(geneMeans) <- paste("cluster", colnames(geneMeans), sep="_")
+colnames(geneMeans) <- paste("cluster", colnames(geneMeans), sep = "_")
 geneMeanPerClusterFn <- "gene_means_per_cluster.txt"
-write_tsv(as_tibble(geneMeans, rownames="gene_name"),
-          file=geneMeanPerClusterFn)
+write_tsv(as_tibble(geneMeans, rownames = "gene_name"),
+  file = geneMeanPerClusterFn
+)
 
 geneMeans <- Matrix::rowMeans(tr_cnts)
 geneMeans <- log1p(geneMeans)
 geneMeansFn <- "gene_means.txt"
-write_tsv(enframe(geneMeans, name="gene_name", value="gene_expression"), 
-          file=geneMeansFn)
+write_tsv(enframe(geneMeans, name = "gene_name", value = "gene_expression"),
+  file = geneMeansFn
+)
 ```
 
 ```{r coordinates, include=FALSE}
 coordinatesFn <- "coordinates_data.tsv"
-write_tsv(coordinates, file=coordinatesFn)
+write_tsv(coordinates, file = coordinatesFn)
 ```
 
   * Average gene expression per cluster: [`r geneMeanPerClusterFn`](`r geneMeanPerClusterFn`)
@@ -518,8 +603,10 @@ write_tsv(coordinates, file=coordinatesFn)
 
 ### Parameters
 ```{r, echo=FALSE}
-param[c("minCellsPerGene", "minGenesPerCell", "maxGenesPerCell", "maxMitoPercent", 
-        "pcs", "vars.to.regress", "resolution")]
+param[c(
+  "minCellsPerGene", "minGenesPerCell", "maxGenesPerCell", "maxMitoPercent",
+  "pcs", "vars.to.regress", "resolution"
+)]
 ```
 
 ### SessionInfo
