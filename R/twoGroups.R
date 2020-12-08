@@ -119,25 +119,18 @@ twoGroupCountComparison <- function(rawData) {
     ),
     stop("unsupported testMethod: ", param$testMethod)
   )
-  rowData(rawData)$log2Ratio <- res$log2FoldChange
-  metadata(rawData)$fitGlm <- res$fitGlm
-  colData(rawData)$sf <- res$sf
   pValue <- res$pval
   pValue[is.na(pValue)] <- 1
-
-  # if (!is.null(param$runGfold) && param$runGfold &&
-  #     !is.null(rowData(rawData)$featWidth) && !is.null(rowData(rawData)$gene_name)){
-  #   rowData(rawData)$gfold <- runGfold(rawData, colData(rawData)$sf,
-  #                                      isSample, isRef)
-  # }
-  metadata(rawData)$nativeResult <- res
   useProbe[is.na(useProbe)] <- FALSE
   fdr <- rep(NA, length(pValue))
   fdr[useProbe] <- p.adjust(pValue[useProbe], method = "fdr")
+  
+  rowData(rawData)$log2Ratio <- res$log2FoldChange
+  colData(rawData)$sf <- res$sf
   rowData(rawData)$pValue <- pValue
   rowData(rawData)$fdr <- fdr
-  ## usedInTest was used before to pre-filter. Not used for now.
   rowData(rawData)$usedInTest <- useProbe
+  metadata(rawData)$nativeResult <- res
   assays(rawData)$xNorm <- ezScaleColumns(x, colData(rawData)$sf)
 
   ezWriteElapsed(job, status = "done")
@@ -159,56 +152,6 @@ twoGroupCountComparison <- function(rawData) {
   return(rawData)
 }
 
-##' @describeIn twoGroupCountComparison Runs the Gfold test method.
-runGfold <- function(rawData, scalingFactors, isSample, isRef) {
-  message("running gfold ")
-  # prepare input data for gfold
-  .writeGfoldInput <- function(sampleName) {
-    gene_name <- rowData(rawData)$gene_name
-    if (is.null(gene_name)) gene_name <- "NA"
-    gfoldData <- data.frame(
-      gene_name = gene_name,
-      count = assays(rawData)$counts[, sampleName],
-      rowData(rawData)$featWidth,
-      assays(rawData)$rpkm[, sampleName],
-      row.names = rownames(assays(rawData)$counts),
-      check.names = FALSE, stringsAsFactors = FALSE
-    )
-    gfoldFile <- paste0(sampleName, ".read_cnt")
-    ezWrite.table(gfoldData, file = gfoldFile, col.names = FALSE)
-    return(gfoldFile)
-  }
-  sampleFiles <- sapply(
-    colnames(assays(rawData)$counts)[isSample],
-    .writeGfoldInput
-  )
-  refFiles <- sapply(
-    colnames(assays(rawData)$counts)[isRef],
-    .writeGfoldInput
-  )
-
-  # run gfold
-  cmd <- paste(
-    "gfold", "diff -v 0",
-    "-norm", paste(signif(1 / c(
-      scalingFactors[isRef],
-      scalingFactors[isSample]
-    ), digits = 4),
-    collapse = ","
-    ),
-    "-s1", paste(sub(".read_cnt", "", refFiles), collapse = ","),
-    "-s2", paste(sub(".read_cnt", "", sampleFiles), collapse = ","),
-    "-suf .read_cnt -o out.diff"
-  )
-  ezSystem(cmd)
-  gfoldRes <- ezRead.table("out.diff", header = FALSE, comment.char = "#")
-  names(gfoldRes) <- c("geneName", "gfold", "e_FDR", "log2fdc", "1stRPKM", "2ndRPKM")
-  gfold <- gfoldRes$gfold
-  names(gfold) <- rownames(gfoldRes)
-  # remove gfold input / output files
-  file.remove(c("out.diff", "out.diff.ext", sampleFiles, refFiles))
-  return(gfold)
-}
 
 ##' @describeIn twoGroupCountComparison Runs the Deseq2 test method.
 runDeseq2 <- function(x, sampleGroup, refGroup, grouping, grouping2 = NULL,

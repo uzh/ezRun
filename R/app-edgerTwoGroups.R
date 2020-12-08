@@ -21,6 +21,7 @@ ezMethodEdger <- function(input = NA, output = NA, param = NA) {
   param$groupingName <- param$grouping
   param$grouping <- input$getColumn(param$grouping)
   if (ezIsSpecified(param$grouping2) && length(param$grouping2) == 1) {
+    param$grouping2Name <- param$grouping2
     param$grouping2 <- input$getColumn(param$grouping2)
   }
 
