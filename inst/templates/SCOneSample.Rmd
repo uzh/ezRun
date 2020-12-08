@@ -193,10 +193,13 @@ The number of cells in each cluster and sample is represented in this barplot.
 
 <br/>
 
-```{r number of cells in each cluster, fig.align='center'}
+```{r number of cells in each cluster}
 cellIdents_perSample <- as.data.frame(colData(sce)[,c('seurat_clusters', 'orig.ident')])
 barplot = ggplot(data=cellIdents_perSample, aes(x=seurat_clusters, fill=orig.ident)) + geom_bar(stat="Count")
 barplot + labs(x="Cluster", y = "Number of cells", fill = "Sample")
+
+cells_prop = as.data.frame(cellsProportion(sce), row.names=NULL)
+ezInteractiveTableRmd(cells_prop, title="Cell proportions", digits = 3)
 ```
 
 ### Clusters resolution assesment
