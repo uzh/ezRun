@@ -148,11 +148,11 @@ seuratStandardWorkflow <- function(scData, param){
   return(scData)
 }  
   
-cellsProportion <- function(scData){
-  toTable <- tibble(Cluster=names(summary(Idents(scData))),
-                    "# of cells"=summary(Idents(scData)))
-  cellCountsByPlate <- tibble(Plate=scData@meta.data$Plate,
-                              Cluster=as.character(Idents(scData))) %>%
+cellsProportion <- function(sce){
+  require(tidyverse)
+  toTable <- tibble(Cluster=names(summary(sce$ident)))
+  cellCountsByPlate <- tibble(Plate=sce$Plate,
+                              Cluster=as.character(sce$ident)) %>%
     group_by(Plate, Cluster) %>% summarise(n()) %>%
     spread(Plate, `n()`, fill=0)
   cellPercByPlate <- select(cellCountsByPlate, -Cluster) %>%
