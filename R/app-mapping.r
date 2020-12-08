@@ -304,7 +304,7 @@ ezMethodSTAR = function(input=NA, output=NA, param=NA){
   }
   # param$cmdOptions = paste(param$cmdOptions, "--genomeLoad LoadAndRemove")
   
-  cmd = paste("STAR", " --genomeDir", refDir,  "--sjdbOverhang 150", 
+  cmd = paste("STAR", " --genomeDir", refDir, 
               "--readFilesIn", trimmedInput$getColumn("Read1"), 
               if(param$paired) trimmedInput$getColumn("Read2"),
               "--twopassMode", ifelse(param$twopassMode, "Basic", "None"),
