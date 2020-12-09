@@ -76,6 +76,9 @@ plotReducedDim(sce, dimred =  "TSNE_NOCORRECTED", colour_by = "Plate", label_for
 cellIdents_perSample = data.frame(colData(sce)[,c("ident_noCorrected", "Plate")])
 barplot = ggplot(data=cellIdents_perSample, aes(x=cellIdents_perSample[,1], fill=Plate)) + geom_bar(stat="Count")
 barplot + labs(x="Cluster", y = "Number of cells", fill = "Plate")
+
+cells_prop = cellsProportion(sce)
+kable(cells_prop,row.names=FALSE, format="html",caption="Cell proportions") %>% kable_styling(bootstrap_options = "striped", full_width = F, position = "float_right")
 ```
 
 
