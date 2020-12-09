@@ -123,10 +123,13 @@ plotReducedDim(sce, dimred="TSNE", colour_by="ident", text_by="ident", text_size
 ```
 
 ##### The number of cells in each cluster and condition is represented on this barplot.
-```{r number of cells in each cluster after integration, fig.align='center', fig.width=10, fig.height=6}
+```{r number of cells in each cluster after integration, fig.width=10, fig.height=6}
 cellIdents_perSample = data.frame(colData(sce)[,c("ident", "Condition")])
 barplot = ggplot(data=cellIdents_perSample, aes(x=cellIdents_perSample[,1], fill=Condition)) + geom_bar(stat="Count")
 barplot + labs(x="Cluster", y = "Number of cells", fill = "Condition")
+
+cells_prop = cellsProportion(sce)
+kable(cells_prop,row.names=FALSE, format="html",caption="Cell proportions") %>% kable_styling(bootstrap_options = "striped", full_width = F, position = "float_right")
 ```
 
 
