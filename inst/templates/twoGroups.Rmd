@@ -862,7 +862,7 @@ for (onto in names(enrichResultGSEA)) {
     ) %>%
       kable_styling(bootstrap_options = "striped", full_width = F, fixed_thead = T, ) %>%
       scroll_box(width = "800px", height = "500px"))
-    cat(paste0("[", erp$oraFile, "](", erp$oraFile, ")"))
+    cat(paste0("[", erp$gseaFile, "](", erp$gseaFile, ")"))
     cat("\n\n")
   }
 }
