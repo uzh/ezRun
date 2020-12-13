@@ -1,5 +1,5 @@
 ---
-title: "`r paste('FastQ Screen:', param$name)`"
+title: "`r if (exists('reportTitle')) reportTitle else 'Fastq Screen'`"
 author: "Functional Genomics Center Zurich"
 output: 
   html_document:
@@ -16,37 +16,34 @@ require(knitr)
 require(kableExtra)
 require(plotly)
 
-## debug
-#title: "`r paste('FastQ Screen:', param$name)`"
-#require(ezRun)
-#load("/scratch/gtan/p2000-SCFastqScreen/fastqscreen.rda")
+output <- readRDS("output.rds")
+param <- readRDS("param.rds")
+input <- readRDS("input.rds")
+rawScreenResult <- readRDS("rawScreenResult.rds")
+procScreenResult <- readRDS("procScreenResult.rds")
+virusResult <- readRDS("virusResult.rds")
+refseqResult = readRDS("refseqResult.rds")
+krakenResult <- readRDS("krakenResult.rds")
+rRNAstrandResult <- readRDS("rRNAstrandResult.rds")
+dataset = input$meta
+samples = input$getNames()
+
 debug <- FALSE
 ```
 Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
 
 ## FastqScreen_Result {.tabset}
 
-```{r rename, include=FALSE}
-fastqData=fastqData_ppData
-fastqDataAdapters=fastqData_rawData
-```
-
 
 ### FastqScreen Mapping Rates to Adapters and rRNA
-```{r overview plotly, fig.height=7, fig.width=min(max(7, 7+(nrow(dataset)-20)*0.2), 30), echo=FALSE, warning=FALSE, message=FALSE}
+```{r overview plotly, fig.height=7, fig.width=min(max(7, 7+(length(samples)-20)*0.2), 30), echo=FALSE, warning=FALSE, message=FALSE}
 m <- list(l = 80, r = 80, b = 200, t = 100, pad = 0) # more margin space
-# Mapping rate
-#p <- plot_ly(x=names(fastqData$MappingRate),
-#             y=fastqData$MappingRate,
-#             type="bar") %>%
-#  layout(title = "Overall MappingRate",
-#         yaxis = list(title = "MappedReads in %", range = c(0,100)),
-#         margin = m)
-#p
+
+percentMapped = sapply(rawScreenResult, function(x){100 - x$"%Unmapped"})
 
 # MappingRateAdapters
-p <- plot_ly(x=names(fastqDataAdapters$MappingRate),
-             y=fastqDataAdapters$MappingRate,
+p <- plot_ly(x=samples,
+             y=percentMapped,
              type="bar") %>%
   layout(title = "MappingRate to Adapters - Bowtie2, local Alignment",
          yaxis = list(title = "MappedReads in %", range = c(0,100)),
@@ -61,9 +58,9 @@ p
 #p
 
 # rRNA Mapping
-rRNA_mappingRate = as.data.frame(rRNA_strandInfo/(param[['nReads']]/100))
-rRNA_mappingRate$sample <- rownames(rRNA_mappingRate)
-p <- plot_ly(rRNA_mappingRate, x=~sample, y=~Sense, 
+rRnaPercentMapped = rRNAstrandResult[ , c("Sense", "Antisense")] / rRNAstrandResult$`Read Count` * 100
+rRnaPercentMapped$sample = rownames(rRnaPercentMapped)
+p <- plot_ly(rRnaPercentMapped, x=~sample, y=~Sense, 
              type="bar", name="sense") %>%
     add_trace(y = ~Antisense, name = "antisense") %>%
   layout(title = "rRNA Silva Mapping - Bowtie2, end-to-end Alignment",
@@ -73,57 +70,16 @@ p <- plot_ly(rRNA_mappingRate, x=~sample, y=~Sense,
 p
 ```
 
-```{r overview, echo=FALSE, results='hide', warning=FALSE, message=FALSE, fig.width=min(max(7,7+(nrow(dataset)-20)*0.3), 30), eval=FALSE}
-# MappingRate
-par(mar=c(10.1, 4.1, 4.1, 2.1))
-    bplt = barplot(fastqData$MappingRate, las=2, ylim=c(0,100), ylab="MappedReads in %", main="Overall MappingRate", col="royalblue3",
-                   names.arg=rep('',length(ezSplitLongLabels(names(fastqData$MappingRate)))))
-    if(min(fastqData$MappingRate) < 8){
-      #text(y=fastqData$MappingRate+2, font=2, x=bplt, labels=as.character(fastqData$MappingRate), cex= 1, xpd=TRUE)
-      text(y=fastqData$MappingRate+2, font=2, x=bplt, srt = 90, adj = 0, labels=as.character(fastqData$MappingRate), cex= 1, xpd=TRUE)
-    } else {
-      # text(y=fastqData$MappingRate-5, font=2, x=bplt, 
-      #      labels=as.character(fastqData$MappingRate), cex= 1.1, col='white', 
-      #      xpd=TRUE)
-      text(y=fastqData$MappingRate-5, font=2, x=bplt, srt = 90, adj = 1,
-           labels=as.character(fastqData$MappingRate), cex= 1.1, col='white', 
-           xpd=TRUE)
-    }
-    text(x = bplt, y = par("usr")[3] - 2, srt = 45, adj = 1, 
-         labels = ezSplitLongLabels(names(fastqData$MappingRate)), xpd = TRUE)
-
-# MappingRateAdapters
-par(mar=c(10.1, 4.1, 4.1, 2.1))
-    bplt = barplot(fastqDataAdapters$MappingRate, las=2, ylim=c(0,100), ylab="MappedReads in %", main="MappingRate to Adapters without trimming", col="royalblue3",
-                   names.arg=rep('',length(ezSplitLongLabels(names(fastqDataAdapters$MappingRate)))))
-    if(min(fastqDataAdapters$MappingRate) < 8){
-      text(y=fastqDataAdapters$MappingRate+2, font=2, x=bplt, srt = 90, adj = 0, labels=as.character(fastqDataAdapters$MappingRate), cex= 1, xpd=TRUE)
-    } else {
-      text(y=fastqDataAdapters$MappingRate-5, font=2, x=bplt, srt = 90, adj = 1, labels=as.character(fastqDataAdapters$MappingRate), cex= 1.1, col='white', xpd=TRUE)
-    }
-    text(x = bplt, y = par("usr")[3] - 2, srt = 45, adj = 1, labels = ezSplitLongLabels(names(fastqDataAdapters$MappingRate)), xpd = TRUE)
-
-# Reads
-par(mar=c(10.1, 4.1, 4.1, 2.1))
-    bplt = barplot(fastqData$Reads/1000, las=2, ylab="#Reads in K", main="ProcessedReads", col="lightblue",
-            names.arg=rep('',length(ezSplitLongLabels(names(fastqData$MappingRate)))))
-    text(x = bplt, y = par("usr")[3] - 2, srt = 45, adj = 1, labels = ezSplitLongLabels(names(fastqData$MappingRate)), xpd = TRUE)
-    
-# rRNA Mapping
-par(mar=c(10.1, 4.1, 4.1, 2.1))
-    rRNA_mappingRate = t(rRNA_strandInfo/(param[['nReads']]/100))
-    bplt = barplot(rRNA_mappingRate, las=2, ylim=c(0,min(max(colSums(rRNA_mappingRate))+20,100)), ylab="rRNA-Mapping-Rate in %", main="rRNA Silva Mapping", col=c("lightblue","darkblue"),
-           names.arg=rep('',length(ezSplitLongLabels(rownames(rRNA_strandInfo)))), legend.text = T)
-    text(x = bplt, y = par("usr")[3] - min(max(colSums(rRNA_mappingRate))+20,100) * 0.02, srt = 45, adj = 1, labels = ezSplitLongLabels(rownames(rRNA_strandInfo)), xpd = TRUE)
-```
-
 ### FastqScreen Mapping Per Sample
 
 ```{r FastqScreenPerSample, echo=FALSE, results='hide', warning=FALSE, message=FALSE, eval=!debug}
-for (nm in rownames(dataset)){
+for (nm in samples){
   par(mar=c(10.1, 4.1, 4.1, 2.1))
-  x = fastqData$CommonResults[[nm]]
+  x = procScreenResult[[nm]][ , c("%One_hit_one_genome", "%Multiple_hits_one_genome", 
+                                  "%One_hit_multiple_genomes", "%Multiple_hits_multiple_genomes")]
   if (nrow(x) > 0){
+    x = x[ , c("%One_hit_one_genome", "%Multiple_hits_one_genome", 
+                                  "%One_hit_multiple_genomes", "%Multiple_hits_multiple_genomes")]
     bplt = barplot(t(x), las=2, ylim=c(0,100), 
                    legend.text=T, ylab="Mapped Reads in %", main=nm, names.arg=rep('', nrow(x)))
       text(x = bplt, y = par("usr")[3] - 2, srt = 45, adj = 1, labels = rownames(x), xpd = TRUE)
@@ -137,9 +93,9 @@ for (nm in rownames(dataset)){
 ### Mapping to RefSeq mRNA Per Sample
 
 ```{r mRNAPerSample, echo=FALSE, results='hide', warning=FALSE, message=FALSE, eval=!debug}
-for (nm in rownames(dataset)){
+for (nm in samples){
       par(mar=c(10.1, 4.1, 4.1, 2.1))
-      x = speciesPercentageTop[[nm]]
+      x = refseqResult[[nm]]
       if (is.null(x)) x = matrix(0, 2, 1, dimnames=list(c('UniqueSpeciesHits','MultipleSpeciesHits'),'Misc'))
       bplot = barplot(t(x), col=c("royalblue3", "lightblue"), las=2, ylim=c(0,100),
                       legend.text=T, ylab="Mapped Reads in %", main=nm, names.arg=rep('',nrow(x)) )
@@ -154,10 +110,11 @@ for (nm in rownames(dataset)){
 Abundances above 5% are truncated.
 
 ```{r KrakenPerSample, echo=FALSE, results='hide', warning=FALSE, message=FALSE, eval=!debug}
-for (i in c(1:length(krakenResult))){
-      par(mar=c(15.1, 4.1, 4.1, 2.1))
-        bplot = barplot(krakenResult[[i]]$readPercentage, names.arg = krakenResult[[i]]$name, col = 'royalblue3', 
-                main = names(krakenResult)[i], ylab = 'Mapped Reads in %', las = 2, ylim=c(0, 5))
+for (nm in samples){
+  x = krakenResult[[nm]]
+  par(mar=c(15.1, 4.1, 4.1, 2.1))
+  bplot = barplot(x$readPercentage, names.arg = x$name, col = 'royalblue3', 
+                  main = nm, ylab = 'Mapped Reads in %', las = 2, ylim=c(0, 5))
 }
 ```
 
@@ -165,15 +122,15 @@ for (i in c(1:length(krakenResult))){
 
 ```{r virus, echo=FALSE, results='hide', warning=FALSE, message=FALSE, eval=!debug}
 if(param[['virusCheck']]){
-  for (nm in rownames(dataset)){ 
+  for (nm in samples){ 
     par(mar=c(18.1, 7.1, 2.1, 2.1))
-        x = speciesPercentageTopVirus[[nm]]
-        if (is.null(x)) x = matrix(0, 2, 1, dimnames=list(c('UniqueSpeciesHits','MultipleSpeciesHits'),'Misc'))
-        bplot = barplot(t(x), col=c("royalblue3", "lightblue"), las = 2, ylim = c(0,100),
-                        legend.text=T, ylab="Mapped Reads in %", main=nm, names.arg=rep('',nrow(x)) )
-        text(y=t(x)[ 1,] + 5, x=bplot, font = 2, labels=t(x)[ 1, ], cex = 1.1, col = 'black')
-        text(x = bplot, y = par("usr")[3] - 2, srt = 60, adj = 1, 
-             labels = rownames(x), xpd = TRUE)
+    x = virusResult[[nm]]
+    if (is.null(x)) x = matrix(0, 2, 1, dimnames=list(c('UniqueSpeciesHits','MultipleSpeciesHits'),'Misc'))
+    bplot = barplot(t(x), col=c("royalblue3", "lightblue"), las = 2, ylim = c(0,100),
+                    legend.text=T, ylab="Mapped Reads in %", main=nm, names.arg=rep('',nrow(x)) )
+    text(y=t(x)[ 1,] + 5, x=bplot, font = 2, labels=t(x)[ 1, ], cex = 1.1, col = 'black')
+    text(x = bplot, y = par("usr")[3] - 2, srt = 60, adj = 1, 
+         labels = rownames(x), xpd = TRUE)
   }
 }
 ```
@@ -184,18 +141,18 @@ if(param[['virusCheck']]){
 #### RIN vs Read Count
 ```{r rin1, echo=FALSE, message=FALSE, warning=FALSE}
 if (nrow(dataset) > 1){
-  rinCol <- colnames(dataset)[grep('RIN', colnames(dataset))]
+  rinCol <- colnames(dataset)[grep('^RIN', colnames(dataset))]
   if(length(rinCol) == 1){
     a <- makeScatterplot(dataset, colname1 = rinCol, colname2='Read Count')
     a
-    }
+  }
 }
 ```
 
 #### RIN vs LibConc
 ```{r rin2, echo=FALSE, message=FALSE, warning=FALSE}
 if (nrow(dataset) > 1){
-  rinCol <- colnames(dataset)[grep('RIN', colnames(dataset))]
+  rinCol <- colnames(dataset)[grep('^RIN', colnames(dataset))]
   if(length(rinCol) == 1){
     libQuant <- colnames(dataset)[grep('LibConc_100_800bp', colnames(dataset))]  
     if(length(libQuant) == 1){

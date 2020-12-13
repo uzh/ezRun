@@ -7,140 +7,55 @@
 
 ezMethodFastqScreen <- function(input = NA, output = NA, param = NA,
                                 htmlFile = "00index.html") {
-  if (!"Read Count" %in% input$colNames) {
-    ## TODO will fail if input is an unmapped bam but does not have read counts
-    inputReadCount <- countReadsInFastq(input$getFullPaths("Read1"))
-  } else {
-    inputReadCount <- input$getColumn("Read Count")
-  }
-  input <- ezMethodSubsampleFastq(input = input, param = param, n=param$nReads)
+
+  # Override the pairing info and treat as single end to be faster
+  param$paired = FALSE
   
-  inputUntrimmed <- input$copy()
-  # Preprocessing
-  param$trimAdapter <- TRUE
-  if (input$readType() == "bam") {
-    stopifnot(input$getLength() == 1L) ## We only support one uBam now.
-    inputUntrimmed <- ezMethodBam2Fastq(
-      input = inputUntrimmed, param = param,
-      OUTPUT_PER_RG = TRUE
-    )
-  }
-  input <- ezMethodFastpTrim(input = inputUntrimmed, param = param)
-  dataset <- inputUntrimmed$meta
-  # fastqscreen part
-
-  ## get Adapter contamination from raw data
-  confFile <- FASTQSCREEN_ADAPTER_CONF
-  files_rawData <- inputUntrimmed$getFullPaths("Read1")
-  resultFiles_rawData <- executeFastqscreenCMD(param,
-    confFile = confFile,
-    files_rawData
-  )
-  fastqData_rawData <- collectFastqscreenOutput(
-    files_rawData,
-    resultFiles_rawData
-  )
-  tempFns <- list.files(".",
-    pattern = ".*(tagged\\.fastq|tagged_filter\\.fastq)$"
-  )
-  file.remove(tempFns)
-  tempFns <- list.files(".",
-    pattern = ".*(screen\\.html|screen\\.png)$"
-  )
-  file.remove(tempFns)
-  if (exists("fastqInput")) {
-    ## Then files_rawData is bam converted fastq locally.
-    file.remove(files_rawData)
-  }
-  file.remove(resultFiles_rawData)
-
-  ## PreprocessedData
-  confFile <- FASTQSCREEN_GENOMICDNA_RIBORNA_CONF
-  files_ppData <- input$getFullPaths("Read1")
-  resultFiles_ppData <- executeFastqscreenCMD(param,
-    confFile = confFile,
-    files_ppData
-  )
-  fastqData_ppData <- collectFastqscreenOutput(files_ppData, resultFiles_ppData)
-  noHit_files <- gsub(".fastq.gz$", ".tagged_filter.fastq.gz", files_ppData)
-  readCount <- ezFrame(
-    totalReadCount = integer(length(files_ppData)),
-    unmappedReadCount = integer(length(files_ppData)),
-    row.names = names(files_ppData)
-  )
-  readCount[, "totalReadCount"] <- countReadsInFastq(files_ppData)
-  readCount[, "unmappedReadCount"] <- countReadsInFastq(noHit_files)
-  file.remove(resultFiles_ppData)
-  tempFns <- list.files(".", pattern = ".*tagged\\.fastq$")
-  file.remove(tempFns)
-  tempFns <- list.files(".",
-    pattern = ".*(screen\\.html|screen\\.png)$"
-  )
-  file.remove(tempFns)
-
-  # bowtie2 reference part
-  countFiles <- executeBowtie2CMD(param, input)
-  speciesPercentageTop <- collectBowtie2Output(param, countFiles,
-    readCount,
-    virusResult = F
-  )
-
-  # Always check human data for viruses
+  # Override the virus check parameter for human data
   if (grepl("^Human|^Homo", dataset$Species[1])) {
     param[["virusCheck"]] <- T
   }
-
-  if (param[["virusCheck"]]) {
-    countFiles <- executeBowtie2CMD_Virus(param, noHit_files)
-    speciesPercentageTopVirus <- collectBowtie2Output(param, countFiles,
-      readCount,
-      virusResult = T
+  
+  if (input$readType() == "bam") {
+    stopifnot(input$getLength() == 1L) ## We only support one uBam now.
+    input <- ezMethodBam2Fastq(
+      input = input, param = param,
+      OUTPUT_PER_RG = TRUE
     )
-    dir.create("virusCheck")
-    for (i in 1:length(countFiles)) {
-      ezSystem(paste("mv", file.path(countFiles[i]), "virusCheck"))
-    }
-  } else {
-    speciesPercentageTopVirus <- NULL
   }
+  
+  
+  inputRaw <- ezMethodSubsampleFastq(input = input, param = param, n=param$nReads)
+  param$trimAdapter <- TRUE
+  inputProc <- ezMethodFastpTrim(input = inputRaw, param = param)
 
-  file.remove(noHit_files)
-
-  rRNA_strandInfo <- get_rRNA_Strandness(param, input)
-  krakenResult <- runKraken(param, input)
-
-  file.remove(input$getFullPaths("Read1"))
-  if (param$paired) {
-    file.remove(input$getFullPaths("Read2"))
-  }
-
-  # debug
-  # save(fastqData_ppData, fastqData_rawData, speciesPercentageTop, krakenResult,
-  #      dataset, param, rRNA_strandInfo, file="fastqscreen.rda")
-
-  # create report
-  setwdNew(basename(output$getColumn("Report")))
+  ## map to adapters ----
+  rawScreenResult = getFastqScreenStats(param,
+                                        confFile = FASTQSCREEN_ADAPTER_CONF,
+                                        inputRaw$getFullPaths("Read1"), workDir="rawReads")
+  procScreenResult = getFastqScreenStats(param,
+                                         confFile = FASTQSCREEN_GENOMICDNA_RIBORNA_CONF,
+                                         inputProc$getFullPaths("Read1"), workDir="procReads")
   if (param[["virusCheck"]]) {
-    ezSystem(paste("mv", "../virusCheck", "."))
-  }
-  ## Copy the style files and templates
-  styleFiles <- file.path(
-    system.file("templates", package = "ezRun"),
-    c(
-      "fgcz.css", "FastqScreen.Rmd",
-      "fgcz_header.html", "banner.png"
-    )
+    unmappedFiles = gsub(".fastq.gz$", ".tagged_filter.fastq.gz", 
+                         file.path("procReads", basename(inputProc$getFullPaths("Read1"))))
+    names(unmappedFiles) =inputProc$getNames()
+    virusResult <- map_and_count_virus(param, unmappedFiles, workDir="virusResult")
+  }  
+  refseqResult = map_and_count_refseq(param, inputProc$getFullPaths("Read1"), workDir="refseqResult", 
+                       readCount = inputProc$getColumn("Read Count"))
+  
+  rRNAstrandResult <- get_rRNA_Strandness(param, inputProc)
+  krakenResult <- runKraken(param, inputProc)
+
+  file.remove(inputProc$getFullPaths("Read1"))
+
+  makeRmdReport(
+    output = output, param = param,
+    rawScreenResult=rawScreenResult, procScreenResult=procScreenResult, virusResult=virusResult,
+    rRNAstrandResult=rRNAstrandResult, krakenResult=krakenResult, refseqResult=refseqResult,
+    rmdFile = "FastqScreen.Rmd", reportTitle = paste("Fastq Screen", param$name)
   )
-  file.copy(from = styleFiles, to = ".", overwrite = TRUE)
-
-  ## generate the main reports
-  rmarkdown::render(
-    input = "FastqScreen.Rmd", envir = new.env(),
-    output_dir = ".", output_file = htmlFile, quiet = TRUE
-  )
-
-  prepareRmdLib()
-
   return("Success")
 }
 
@@ -185,6 +100,58 @@ EzAppFastqScreen <-
       }
     )
   )
+
+
+
+getFastqScreenStats <- function(param, confFile = NULL, files, workDir="fastqScreenTmp") {
+  dir.create(workDir)
+  cmd <- paste(
+    "fastq_screen", " --threads", param$cores, " --conf ", confFile,
+    paste(files, collapse = " "), "--outdir", workDir, "--nohits --aligner bowtie2",
+    "> fastqscreen.out", "2> fastqscreen.err"
+  )
+  ezSystem(cmd)
+
+  fastqData <- list()
+  # fastqData$PercentMapped <- setNames(double(length(files)), names(files))
+  # fastqData$PercentMapped <- setNames(double(length(files)), names(files))
+  # fastqData$Reads <- setNames(integer(length(files)), names(files))
+  # fastqData$CommonResults <- setNames(vector("list", length(files)), names(files))
+  for (nm in names(files)) {
+    resultFile = str_replace(basename(files[nm]), "\\.gz$", "") %>%
+      str_replace("\\.fastq$", "") %>%
+      str_c("_screen.txt") ## remove the suffix .fastq[.gz] with _screen.txt
+    #cat("Process ", files[nm], " - ", resultFiles[nm], " :")
+    emptyLinePos = match("", readLines(file.path(workDir, resultFile)))
+    x <- ezRead.table(file.path(workDir, resultFile),
+                      skip = 1, stringsAsFactors = F,
+                      nrows=emptyLinePos-3) ## first line and
+    fastqData[[nm]] = x
+    # fastqData$Reads[nm] <- x$"#Reads_processed"[1]
+    # if (nrow(x) > 0) {
+    #   UnmappedPercent <- as.numeric(unlist(strsplit(x$Genome[nrow(x)], split = " "))[2])
+    #   fastqData$PercentMapped[nm] <- round((100 - UnmappedPercent), digits = 2)
+    # } else {
+    #   fastqData$MappingRate[nm] <- 0
+    # }
+    # rownames(x) <- x$Genome
+    # x <- x[-nrow(x), grep("%.*hit", colnames(x))]
+    # fastqData$CommonResults[[nm]] <- x ## can be a data.frame with 0 rows
+    
+    # noHit_files <- gsub(".fastq.gz$", ".tagged_filter.fastq.gz", files_ppData)
+    # readCount <- ezFrame(
+    #   totalReadCount = integer(length(files_ppData)),
+    #   unmappedReadCount = integer(length(files_ppData)),
+    #   row.names = names(files_ppData)
+    # )
+    # readCount[, "totalReadCount"] <- countReadsInFastq(files_ppData)
+    # readCount[, "unmappedReadCount"] <- countReadsInFastq(noHit_files)
+    
+    
+  }
+  return(fastqData)
+}
+
 
 executeFastqscreenCMD <- function(param, confFile = NULL, files) {
   cmd <- paste(
@@ -293,20 +260,17 @@ get_rRNA_Strandness <- function(param, input) {
     ezSystem(cmd)
   }
 
-  rRNA_strandInfo <- matrix(0, nrow = length(countFiles), ncol = 2)
-  colnames(rRNA_strandInfo) <- c("Sense", "Antisense")
-  rownames(rRNA_strandInfo) <- names(r1Files)
-  k <- 1
+  rRNA_strandInfo = input$meta[ , "Read Count", drop=FALSE]
+  rRNA_strandInfo$Sense = 0
+  rRNA_strandInfo$Antisense = 0
   for (nm in names(countFiles)) {
     countData <- ezRead.table(countFiles[nm], row.names = NULL)
     bestScores <- tapply(countData$AlignmentScore, countData$ReadID, max)
     countData <- countData[countData$AlignmentScore == bestScores[countData$ReadID], , drop = FALSE]
     countData <- countData[countData$AlignmentScore >= param$minAlignmentScore, , drop = FALSE]
-    rRNA_strandInfo[k, 1] <- length(which(countData$Flag == 0))
-    rRNA_strandInfo[k, 2] <- length(which(countData$Flag == 16))
-    k <- k + 1
+    rRNA_strandInfo[nm, "Sense"] <- length(which(countData$Flag == 0))
+    rRNA_strandInfo[nm, "Antisense"] <- length(which(countData$Flag == 16))
   }
-  ezWrite.table(rRNA_strandInfo, "rRNA_strandInfo.txt")
   return(rRNA_strandInfo)
 }
 
@@ -336,6 +300,51 @@ runKraken <- function(param, input) {
   file.remove("sequences.kraken")
   return(krakenResult)
 }
+
+
+
+map_and_count_virus <- function(param, files, workDir="virusResult", readCount = countReadsInFastq(files)) {
+  dir.create(workDir)
+  countFiles <- character()
+  for (nm in names(files)) {
+    countFiles[nm] <- paste0(workDir, "/", nm, "-counts.txt")
+    bowtie2options <- param$cmdOptions
+    writeLines("ReadID\tRefSeqID\tAlignmentScore", countFiles[nm])
+    cmd <- paste(
+      "bowtie2", "-x", REFSEQ_pathogenicHumanViruses_REF,
+      " -U ", files[nm], bowtie2options, "-p", param$cores,
+      "--no-unal --no-hd", "2> ", paste0(workDir, "/", nm, "_bowtie2.err"),
+      "| cut -f1,3,12", " |sed s/AS:i://g", ">>", countFiles[nm]
+    )
+    ezSystem(cmd)
+  }
+  countList = collectBowtie2Output(param, countFiles, readCount, virusResult = T)
+  return(countList)
+}
+
+
+map_and_count_refseq <- function(param, files, workDir="refseqResult", readCount = countReadsInFastq(files)) {
+  dir.create(workDir)
+  countFiles <- character()
+  for (nm in names(files)) {
+    countFiles[nm] <- paste0(workDir, "/", nm, "-counts.txt")
+    bowtie2options <- param$cmdOptions
+    writeLines("ReadID\tRefSeqID\tAlignmentScore", countFiles[nm])
+    cmd <- paste(
+      "bowtie2", "-x", REFSEQ_mRNA_REF,
+      " -U ", files[nm], bowtie2options, "-p", param$cores,
+      "--no-unal --no-hd", "2> ", paste0(workDir, "/", nm, "_bowtie2.err"),
+      "| cut -f1,3,12", " |sed s/AS:i://g", ">>", countFiles[nm]
+    )
+    ezSystem(cmd)
+  }
+  countList = collectBowtie2Output(param, countFiles, readCount, virusResult = F)
+  return(countList)
+}
+
+
+
+
 
 collectBowtie2Output <- function(param, countFiles, readCount, virusResult = F) {
   tax2name <- read.table(sub("Sequence.*", "Annotation/tax2name.txt", REFSEQ_mRNA_REF),
@@ -393,19 +402,11 @@ collectBowtie2Output <- function(param, countFiles, readCount, virusResult = F) 
       taxNames <- tax2name[taxIds]
       hasNoName <- is.na(taxNames)
       taxNames[hasNoName] <- taxIds[hasNoName]
-      if (!virusResult) {
-        x <- ezFrame(
-          UniqueSpeciesHits = signif(100 * as.matrix(topSpeciesUniq) / readCount[nm, "totalReadCount"], digits = 4),
-          MultipleSpeciesHits = signif(100 * as.matrix(topSpeciesMultiple) / readCount[nm, "totalReadCount"], digits = 4),
-          row.names = taxNames
-        )
-      } else {
-        x <- ezFrame(
-          UniqueSpeciesHits = signif(100 * as.matrix(topSpeciesUniq) / readCount[nm, "unmappedReadCount"], digits = 4),
-          MultipleSpeciesHits = signif(100 * as.matrix(topSpeciesMultiple) / readCount[nm, "unmappedReadCount"], digits = 4),
-          row.names = taxNames
-        )
-      }
+      x <- ezFrame(
+        UniqueSpeciesPercent = signif(100 * as.matrix(topSpeciesUniq) / readCount[nm], digits = 4),
+        MultipleSpeciesPercent = signif(100 * as.matrix(topSpeciesMultiple) / readCount[nm], digits = 4),
+        row.names = taxNames
+      )
       speciesPercentageTop[[nm]] <- x
     } else {
       speciesPercentageTop[[nm]] <- NULL
@@ -420,12 +421,12 @@ makeScatterplot <- function(dataset, colname1, colname2) {
       ## LibCon column can all be 0 or NA. Then don't plot.
       dataset <- dataset[order(dataset[[colname1]], decreasing = T), ]
       corResult <- cor.test(dataset[[colname1]], dataset[[colname2]],
-        method = "spearman"
+                            method = "spearman"
       )
       regressionResult <- lm(dataset[[colname2]] ~ dataset[[colname1]])
       label1 <- sub(" \\[.*", "", colname1)
       label2 <- sub(" \\[.*", "", colname2)
-
+      
       ## plotly
       require(plotly)
       # a function to calculate your abline
