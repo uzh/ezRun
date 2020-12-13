@@ -139,9 +139,9 @@ EzDataset <-
                   "Gets the number of samples."
                   return(length(rownames(meta)))
                 },
-                getFullPaths = function(name)
+                getFullPaths = function(name, checkExists=TRUE)
                 {
-                  "Gets the files in the nameed column prepended with the \\code{dataRoot}."
+                  "Gets the files in the named column prepended with the \\code{dataRoot}."
                   ### ok = ezSystem(paste("cd", dataRoot, "; pwd")) ### workaround to make sure the drive where the data sits is mounted by the automounter
                   files = .self$getColumn(name)
                   if (is.null(dataRoot) || dataRoot == "" ){
@@ -150,9 +150,11 @@ EzDataset <-
                     fullPaths = file.path(dataRoot, files)
                     names(fullPaths) = names(files)
                   }
-                  isInvalid = file.access(fullPaths) != 0
-                  if (any(isInvalid)){
-                    stop("Files are not readable using root:\n", paste(dataRoot, collapse="\n"), "\nfiles:\n", paste(files[isInvalid], collapse="\n"))
+                  if (checkExists){
+                    isInvalid = file.access(fullPaths) != 0
+                    if (any(isInvalid)){
+                      stop("Files are not readable using root:\n", paste(dataRoot, collapse="\n"), "\nfiles:\n", paste(files[isInvalid], collapse="\n"))
+                    }
                   }
                   return(fullPaths)
                 },
