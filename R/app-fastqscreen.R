@@ -45,7 +45,9 @@ ezMethodFastqScreen <- function(input = NA, output = NA, param = NA,
                          file.path("procReads", basename(inputProc$getFullPaths("Read1"))))
     names(unmappedFiles) =inputProc$getNames()
     virusResult <- map_and_count_virus(param, unmappedFiles, workDir="virusResult")
-  }  
+  }  else {
+    virusResult = NULL
+  }
   refseqResult = map_and_count_refseq(param, inputProc$getFullPaths("Read1"), workDir="refseqResult", 
                        readCount = inputProc$getColumn("Read Count"))
   
