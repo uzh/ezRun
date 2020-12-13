@@ -58,6 +58,7 @@ ezMethodFastqScreen <- function(input = NA, output = NA, param = NA,
 
   makeRmdReport(
     output = output, param = param,
+    input=input,
     rawScreenResult=rawScreenResult, procScreenResult=procScreenResult, virusResult=virusResult,
     rRNAstrandResult=rRNAstrandResult, krakenResult=krakenResult, refseqResult=refseqResult,
     rmdFile = "FastqScreen.Rmd", reportTitle = paste("Fastq Screen", param$name)
