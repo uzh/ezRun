@@ -8,6 +8,10 @@
 ezMethodFastqScreen <- function(input = NA, output = NA, param = NA,
                                 htmlFile = "00index.html") {
 
+  if (ezIsSpecified(param$samples)){
+    input <- input$subset(param$samples)
+  }  
+  
   # Override the pairing info and treat as single end to be faster
   param$paired = FALSE
   
