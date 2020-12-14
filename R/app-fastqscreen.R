@@ -121,132 +121,17 @@ getFastqScreenStats <- function(param, confFile = NULL, files, workDir="fastqScr
   ezSystem(cmd)
 
   fastqData <- list()
-  # fastqData$PercentMapped <- setNames(double(length(files)), names(files))
-  # fastqData$PercentMapped <- setNames(double(length(files)), names(files))
-  # fastqData$Reads <- setNames(integer(length(files)), names(files))
-  # fastqData$CommonResults <- setNames(vector("list", length(files)), names(files))
   for (nm in names(files)) {
     resultFile = str_replace(basename(files[nm]), "\\.gz$", "") %>%
       str_replace("\\.fastq$", "") %>%
       str_c("_screen.txt") ## remove the suffix .fastq[.gz] with _screen.txt
-    #cat("Process ", files[nm], " - ", resultFiles[nm], " :")
     emptyLinePos = match("", readLines(file.path(workDir, resultFile)))
     x <- ezRead.table(file.path(workDir, resultFile),
                       skip = 1, stringsAsFactors = F,
                       nrows=emptyLinePos-3) ## first line and
     fastqData[[nm]] = x
-    # fastqData$Reads[nm] <- x$"#Reads_processed"[1]
-    # if (nrow(x) > 0) {
-    #   UnmappedPercent <- as.numeric(unlist(strsplit(x$Genome[nrow(x)], split = " "))[2])
-    #   fastqData$PercentMapped[nm] <- round((100 - UnmappedPercent), digits = 2)
-    # } else {
-    #   fastqData$MappingRate[nm] <- 0
-    # }
-    # rownames(x) <- x$Genome
-    # x <- x[-nrow(x), grep("%.*hit", colnames(x))]
-    # fastqData$CommonResults[[nm]] <- x ## can be a data.frame with 0 rows
-    
-    # noHit_files <- gsub(".fastq.gz$", ".tagged_filter.fastq.gz", files_ppData)
-    # readCount <- ezFrame(
-    #   totalReadCount = integer(length(files_ppData)),
-    #   unmappedReadCount = integer(length(files_ppData)),
-    #   row.names = names(files_ppData)
-    # )
-    # readCount[, "totalReadCount"] <- countReadsInFastq(files_ppData)
-    # readCount[, "unmappedReadCount"] <- countReadsInFastq(noHit_files)
-    
-    
   }
   return(fastqData)
-}
-
-
-executeFastqscreenCMD <- function(param, confFile = NULL, files) {
-  cmd <- paste(
-    "fastq_screen", " --threads", param$cores, " --conf ", confFile,
-    paste(files, collapse = " "), "--outdir . --nohits --aligner bowtie2",
-    "> fastqscreen.out", "2> fastqscreen.err"
-  )
-  ezSystem(cmd)
-  resultFiles <- str_replace(basename(files), "\\.gz$", "") %>%
-    str_replace("\\.fastq$", "") %>%
-    str_c("_screen.txt") ## remove the suffix .fastq[.gz] with _screen.txt
-  names(resultFiles) <- names(files)
-  return(resultFiles)
-}
-
-collectFastqscreenOutput <- function(files, resultFiles) {
-  fastqData <- list()
-  fastqData$MappingRate <- numeric()
-  fastqData$Reads <- integer()
-  fastqData$CommonResults <- list()
-  for (nm in names(files)) {
-    cat("Process ", files[nm], " - ", resultFiles[nm], " :")
-    x <- ezRead.table(resultFiles[nm],
-      skip = 1, stringsAsFactors = F,
-      blank.lines.skip = T, fill = T, row.names = NULL
-    )
-    fastqData$Reads[nm] <- x$"#Reads_processed"[1]
-    if (nrow(x) > 0) {
-      UnmappedReads <- as.numeric(unlist(strsplit(x$Genome[nrow(x)], split = " "))[2])
-      fastqData$MappingRate[nm] <- round((100 - UnmappedReads), digits = 2)
-    } else {
-      fastqData$MappingRate[nm] <- 0
-    }
-    rownames(x) <- x$Genome
-    x <- x[-nrow(x), grep("%.*hit", colnames(x))]
-    fastqData$CommonResults[[nm]] <- x ## can be a data.frame with 0 rows
-  }
-  return(fastqData)
-}
-
-executeBowtie2CMD <- function(param, input) {
-  r1Files <- input$getFullPaths("Read1")
-  if (param$paired) {
-    r2Files <- input$getFullPaths("Read2")
-  }
-  countFiles <- character()
-  for (nm in names(r1Files)) {
-    countFiles[nm] <- paste0(nm, "-counts.txt")
-    bowtie2options <- param$cmdOptions
-    writeLines("ReadID\tRefSeqID\tAlignmentScore", countFiles[nm])
-    if (!param$paired) {
-      cmd <- paste(
-        "bowtie2", "-x", REFSEQ_mRNA_REF,
-        " -U ", r1Files[nm], bowtie2options, "-p", param$cores,
-        "--no-unal --no-hd --mm", "2> ", paste0(nm, "_bowtie2.err"),
-        "| cut -f1,3,12", " |sed s/AS:i://g", ">>", countFiles[nm]
-      )
-    } else {
-      cmd <- paste(
-        "bowtie2", "-x", REFSEQ_mRNA_REF,
-        " -1 ", r1Files[nm], " -2 ", r2Files[nm], bowtie2options, "-p", param$cores,
-        "--no-discordant --no-mixed --no-unal --no-hd --mm",
-        "2> ", paste0(nm, "_bowtie2.err"),
-        "| cut -f1,3,12", " |sed s/AS:i://g", ">>", countFiles[nm]
-      )
-    }
-    ezSystem(cmd)
-  }
-  return(countFiles)
-}
-
-executeBowtie2CMD_Virus <- function(param, files) {
-  r1Files <- files
-  countFiles <- character()
-  for (nm in names(r1Files)) {
-    countFiles[nm] <- paste0(nm, "-counts.txt")
-    bowtie2options <- param$cmdOptions
-    writeLines("ReadID\tRefSeqID\tAlignmentScore", countFiles[nm])
-    cmd <- paste(
-      "bowtie2", "-x", REFSEQ_pathogenicHumanViruses_REF,
-      " -U ", r1Files[nm], bowtie2options, "-p", param$cores,
-      "--no-unal --no-hd", "2> ", paste0(nm, "_bowtie2.err"),
-      "| cut -f1,3,12", " |sed s/AS:i://g", ">>", countFiles[nm]
-    )
-    ezSystem(cmd)
-  }
-  return(countFiles)
 }
 
 get_rRNA_Strandness <- function(param, input) {
@@ -477,7 +362,3 @@ makeScatterplot <- function(dataset, colname1, colname2) {
     }
   }
 }
-
-# dataset = ezRun::ezRead.table('/srv/gstore/projects/p2821/NovaSeq_20180829_NOV17_o4694/dataset.tsv')
-# makeScatterplot(dataset, colname1 ='RIN [Factor]', colname2='Read Count')
-# makeScatterplot(dataset, colname1 ='RIN [Factor]', colname2='LibConc_100_800bp [Characteristic]')
