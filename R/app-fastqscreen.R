@@ -56,6 +56,7 @@ ezMethodFastqScreen <- function(input = NA, output = NA, param = NA,
 
   file.remove(inputProc$getFullPaths("Read1"))
 
+  setwdNew(basename(output$getColumn("Report")))
   makeRmdReport(
     output = output, param = param,
     input=input,
