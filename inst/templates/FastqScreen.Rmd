@@ -132,6 +132,8 @@ if(param[['virusCheck']]){
     text(x = bplot, y = par("usr")[3] - 2, srt = 60, adj = 1, 
          labels = rownames(x), xpd = TRUE)
   }
+} else {
+  cat("not run")
 }
 ```
 

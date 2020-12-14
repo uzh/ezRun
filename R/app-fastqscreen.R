@@ -16,7 +16,7 @@ ezMethodFastqScreen <- function(input = NA, output = NA, param = NA,
   param$paired = FALSE
   
   # Override the virus check parameter for human data
-  if (grepl("^Human|^Homo", input$getColumn("Species")[1])) {
+  if ("Species" %in% input$colNames && grepl("^Human|^Homo", input$getColumn("Species")[1])) {
     param[["virusCheck"]] <- T
   }
   
