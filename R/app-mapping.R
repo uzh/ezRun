@@ -226,7 +226,7 @@ ezMethodSTAR <- function(input = NA, output = NA, param = NA) {
   }
 
   cmd <- str_c(
-    "STAR", " --genomeDir", refDir,
+    "STAR", "--genomeDir", refDir,
     "--readFilesIn", trimmedInput$getColumn("Read1"),
     if_else(param$paired, trimmedInput$getColumn("Read2"), ""),
     "--twopassMode", if_else(param$twopassMode, "Basic", "None"),
