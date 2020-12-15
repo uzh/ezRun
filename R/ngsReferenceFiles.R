@@ -18,28 +18,24 @@
 ##' rfbed = getReferenceFeaturesBed(param)
 ##' }
 getReferenceFeaturesBed = function(param){
-  bedFile = sub(".gtf$", ".bed", param$ezRef["refFeatureFile"])
-  ## bedFile exists
+  bedFile <- str_replace(param$ezRef["refFeatureFile"], "\\.gtf$", ".bed")
   if (file.exists(bedFile)){
     return(bedFile)
   }
   lockFile = sub(".bed", ".bed.lock", bedFile)
   ## I build the bed file
   if (!file.exists(lockFile)){
-    ezWrite(Sys.info(), con=lockFile)
-    require(GenomicFeatures)
-    message("generating bed file from gtf")
-    txdb = makeTxDbFromGFF(param$ezRef["refFeatureFile"], dataSource="FGCZ", organism=NA, taxonomyId=NA, chrominfo = NULL)
+    write_lines(Sys.info(), file=lockFile)
+    defer(file.remove(lockFile))
     require(rtracklayer)
-    export(txdb, bedFile)
-    ezSystem(paste("chmod", "g+w", bedFile))
-    file.remove(lockFile)
+    message("generating bed file from gtf")
+    gtf <- import.gff(param$ezRef["refFeatureFile"])
+    export.bed(gtf, bedFile)
     return(bedFile)
   }
   ## I wait until it is build
   i = 0
   while(file.exists(lockFile) && i < INDEX_BUILD_TIMEOUT){
-    ### somebody else builds and we wait
     Sys.sleep( 60)
     i = i + 1
   }
@@ -50,7 +46,7 @@ getReferenceFeaturesBed = function(param){
   }
 }
 
-# 
+#
 # ##' @title Gets the file containing the chromosome sizes
 # ##' @description Gets the file containing the chromosome sizes either directly or by the fasta files in the chromosome directory.
 # ##' @param param a list of parameters:
@@ -74,7 +70,7 @@ getReferenceFeaturesBed = function(param){
 #       dss = readDNAStringSet(ff)
 #       chromSizes[names(dss)] = width(dss)
 #     }
-#     ezWrite.table(chromSizes, file=param$ezRef@refChromSizesFile, col.names = FALSE)    
+#     ezWrite.table(chromSizes, file=param$ezRef@refChromSizesFile, col.names = FALSE)
 #   }
 #   return(param$ezRef@refChromSizesFile)
 # }
