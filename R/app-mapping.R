@@ -118,7 +118,7 @@ EzAppBowtie2 <-
         name <<- "EzAppBowtie2"
         appDefaults <<- rbind(
           writeIgvSessionLink = ezFrame(Type = "logical", DefaultValue = "TRUE", Description = "should an IGV link be generated"),
-          markDuplicates = ezFrame(Type = "logical", DefaultValue = "TRUE", Description = "should duplicates be marked with sambamba")
+          markDuplicates = ezFrame(Type = "logical", DefaultValue = "TRUE", Description = "should duplicates be marked")
         )
       }
     )
@@ -604,7 +604,7 @@ EzAppBWA <-
         appDefaults <<- rbind(
           algorithm = ezFrame(Type = "character", DefaultValue = "mem", Description = "bwa's alignment algorithm. One of aln, bwasw, mem."),
           writeIgvSessionLink = ezFrame(Type = "logical", DefaultValue = "TRUE", Description = "should an IGV link be generated"),
-          markDuplicates = ezFrame(Type = "logical", DefaultValue = "TRUE", Description = "should duplicates be marked with sambamba")
+          markDuplicates = ezFrame(Type = "logical", DefaultValue = "TRUE", Description = "should duplicates be marked")
         )
       }
     )
