@@ -17,15 +17,15 @@
 ##' param$ezRef@@refFeatureFile = system.file("extdata/genes.gtf", package="ezRun", mustWork=TRUE)
 ##' rfbed = getReferenceFeaturesBed(param)
 ##' }
-getReferenceFeaturesBed = function(param){
+getReferenceFeaturesBed <- function(param) {
   bedFile <- str_replace(param$ezRef["refFeatureFile"], "\\.gtf$", ".bed")
-  if (file.exists(bedFile)){
+  if (file.exists(bedFile)) {
     return(bedFile)
   }
-  lockFile = sub(".bed", ".bed.lock", bedFile)
+  lockFile <- sub(".bed", ".bed.lock", bedFile)
   ## I build the bed file
-  if (!file.exists(lockFile)){
-    write_lines(Sys.info(), file=lockFile)
+  if (!file.exists(lockFile)) {
+    write_lines(Sys.info(), file = lockFile)
     defer(file.remove(lockFile))
     require(rtracklayer)
     message("generating bed file from gtf")
@@ -34,12 +34,12 @@ getReferenceFeaturesBed = function(param){
     return(bedFile)
   }
   ## I wait until it is build
-  i = 0
-  while(file.exists(lockFile) && i < INDEX_BUILD_TIMEOUT){
-    Sys.sleep( 60)
-    i = i + 1
+  i <- 0
+  while (file.exists(lockFile) && i < INDEX_BUILD_TIMEOUT) {
+    Sys.sleep(60)
+    i <- i + 1
   }
-  if (file.exists(bedFile)){
+  if (file.exists(bedFile)) {
     return(bedFile)
   } else {
     stop("bed file unavailable: ", bedFile)
@@ -85,13 +85,13 @@ getReferenceFeaturesBed = function(param){
 ##' gtf = system.file("extdata/genes.gtf", package="ezRun", mustWork=TRUE)
 ##' fasta = system.file("extdata/genome.fa", package="ezRun", mustWork=TRUE)
 ##' cg = cleanGenomeFiles(fasta, gtf)
-cleanGenomeFiles = function(genomeFile, genesFile){
+cleanGenomeFiles <- function(genomeFile, genesFile) {
   require(rtracklayer)
-  genome = readDNAStringSet(genomeFile)
-  names(genome) = sub(" .*", "", names(genome))
+  genome <- readDNAStringSet(genomeFile)
+  names(genome) <- sub(" .*", "", names(genome))
   gtf <- import(genesFile)
   use <- S4Vectors::`%in%`(seqnames(gtf), names(genome))
   stopifnot(any(use))
   gtf <- gtf[use]
-  return(list(genomeSeq=genome, gtf=gtf))
+  return(list(genomeSeq = genome, gtf = gtf))
 }
