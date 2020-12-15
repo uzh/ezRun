@@ -33,10 +33,7 @@ ezMethodBowtie2 <- function(input = NA, output = NA, param = NA) {
       ram = param$ram, removeBam = TRUE,
       cores = param$cores
     )
-    dupBam(
-      inBam = "sorted.bam", outBam = basename(bamFile),
-      operation = "mark", program = "picard", cores = param$cores
-    )
+    dupBam(inBam = "sorted.bam", outBam = basename(bamFile), operation = "mark")
     file.remove("sorted.bam")
   } else {
     ezSortIndexBam("bowtie.bam", basename(bamFile),
@@ -260,10 +257,7 @@ ezMethodSTAR <- function(input = NA, output = NA, param = NA) {
       ram = sortRam, removeBam = TRUE,
       cores = nSortThreads
     )
-    dupBam(
-      inBam = "sorted.bam", outBam = basename(bamFile),
-      operation = "mark", program = "picard", cores = param$cores
-    )
+    dupBam(inBam = "sorted.bam", outBam = basename(bamFile), operation = "mark")
     file.remove("sorted.bam")
   } else {
     ezSortIndexBam("Aligned.out.bam", basename(bamFile),
@@ -463,10 +457,7 @@ ezMethodBWA <- function(input = NA, output = NA, param = NA) {
       ram = param$ram, removeBam = TRUE,
       cores = param$cores
     )
-    dupBam(
-      inBam = "sorted.bam", outBam = basename(bamFile),
-      operation = "mark", program = "picard", cores = param$cores
-    )
+    dupBam(inBam = "sorted.bam", outBam = basename(bamFile), operation = "mark")
     file.remove("sorted.bam")
   } else {
     ezSortIndexBam("aligned.bam", basename(bamFile),
