@@ -1,4 +1,3 @@
-###################################################################
 # Functional Genomics Center Zurich
 # This code is distributed under the terms of the GNU General
 # Public License Version 3, June 2007.
@@ -31,40 +30,34 @@ ezBamSeqLengths <- function(bamFile) {
 }
 
 ezSortIndexBam <- function(inBam, bam, ram = 2, removeBam = TRUE, cores = 2,
-                           method = c("samtools", "sambamba", "picard")) {
+                           method = c("samtools", "picard")) {
   method <- match.arg(method)
-
-  maxMem <- paste0(as.integer(floor(ram * 0.7 / cores * 1000)), "M")
+  maxMem <- str_c(floor(ram * 0.7 / cores * 1000), "M")
   ## use only 70% --> 30% safety margin before crash
 
-  if (method == "sambamba") {
-    cmd <- paste(
-      method, "sort", "-l 9", "-m", maxMem, "-t", cores, inBam,
-      "-o", bam
-    )
-    ezSystem(cmd)
-    cmd <- paste(method, "index", "-t", cores, bam)
-    ezSystem(cmd)
-  } else if (method == "samtools") {
-    cmd <- paste(
+  if (method == "samtools") {
+    cmd <- str_c(
       method, "sort", "-l 9", "-m", maxMem, "-@", cores, inBam,
-      "-o", bam
+      "-o", bam,
+      sep = " "
     )
     ezSystem(cmd)
-    cmd <- paste(method, "index", bam)
+    cmd <- str_c(method, "index", bam, sep = " ")
     ezSystem(cmd)
   } else {
-    cmd <- paste(
+    cmd <- str_c(
       preparePicard(), "SortSam",
       paste0("I=", inBam),
       paste0("O=", bam),
-      "SORT_ORDER=coordinate"
+      "SORT_ORDER=coordinate",
+      sep = " "
     )
     ezSystem(cmd)
     cmd <- paste(
       preparePicard(), "BuildBamIndex",
       paste0("I=", bam),
-      paste0("OUTPUT=", bam, ".bai")
+      paste0("OUTPUT=", bam, ".bai"),
+      sep = " "
     )
     ezSystem(cmd)
   }
