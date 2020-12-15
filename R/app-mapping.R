@@ -220,49 +220,40 @@ EzAppBowtie <-
 ezMethodSTAR <- function(input = NA, output = NA, param = NA) {
   refDir <- getSTARReference(param)
   bamFile <- output$getColumn("BAM")
-  if (!is.null(param$randomSleep)) {
-    if (param$randomSleep) {
-      randomNumber <- runif(1, min = 0, max = 1)
-      if (randomNumber <= 1 / 3) {
-        cat("Wait 15m \n")
-        Sys.sleep(900)
-      } else if (randomNumber > 1 / 3 & randomNumber <= 2 / 3) {
-        cat("Wait 30m \n")
-        Sys.sleep(1800)
-      }
-    }
-  }
-
   trimmedInput <- ezMethodFastpTrim(input = input, param = param)
 
-  if (!grepl("outSAMattributes", param$cmdOptions)) {
-    param$cmdOptions <- paste(param$cmdOptions, "--outSAMattributes All")
+  if (!str_detect(param$cmdOptions, "outSAMattributes")) {
+    param$cmdOptions <- str_c(param$cmdOptions, "--outSAMattributes All",
+      sep = " "
+    )
   }
-  # param$cmdOptions = paste(param$cmdOptions, "--genomeLoad LoadAndRemove")
 
-  cmd <- paste(
+  cmd <- str_c(
     "STAR", " --genomeDir", refDir,
     "--readFilesIn", trimmedInput$getColumn("Read1"),
-    if (param$paired) trimmedInput$getColumn("Read2"),
-    "--twopassMode", ifelse(param$twopassMode, "Basic", "None"),
+    if_else(param$paired, trimmedInput$getColumn("Read2"), ""),
+    "--twopassMode", if_else(param$twopassMode, "Basic", "None"),
     "--runThreadN", param$cores, param$cmdOptions,
     "--outStd BAM_Unsorted --outSAMtype BAM Unsorted",
-    "--outSAMattrRGline", paste0("ID:", trimmedInput$getNames()), paste0("SM:", trimmedInput$getNames()),
-    if (grepl(".gz", trimmedInput$getColumn("Read1"))) "--readFilesCommand zcat",
-    ">  Aligned.out.bam"
-  ) ## writes the output file Aligned.out.bam
-  ## "|", "samtools", "view -S -b -", " >", "Aligned.out.bam")
+    "--outSAMattrRGline", str_c("ID:", trimmedInput$getNames()), str_c("SM:", trimmedInput$getNames()),
+    if_else(str_detect(trimmedInput$getColumn("Read1"), "\\.gz$"), "--readFilesCommand zcat", ""),
+    ">  Aligned.out.bam",
+    sep = " "
+  )
   ezSystem(cmd)
 
   nSortThreads <- min(param$cores, 8)
   ## if the index is loaded in shared memory we have to use only 10% of the scheduled RAM
-  if (grepl("--genomeLoad Load", param$cmdOptions)) {
+  if (str_detect(param$cmdOptions, "--genomeLoad Load")) {
     sortRam <- param$ram / 10
   } else {
     sortRam <- param$ram
   }
 
-  file.rename("Log.final.out", to = basename(output$getColumn("STARLog")))
+  file.rename(
+    from = "Log.final.out",
+    to = basename(output$getColumn("STARLog"))
+  )
 
   if (!is.null(param$markDuplicates) && param$markDuplicates) {
     ezSortIndexBam("Aligned.out.bam", "sorted.bam",
@@ -282,32 +273,25 @@ ezMethodSTAR <- function(input = NA, output = NA, param = NA) {
   }
 
   if (param$getJunctions) {
-    ezSystem(paste("mv SJ.out.tab", basename(output$getColumn("Junctions"))))
-    ezSystem(paste(
-      "mv Chimeric.out.junction",
-      basename(output$getColumn("Chimerics"))
-    ))
+    file.rename(
+      from = "SJ.out.tab",
+      to = basename(output$getColumn("Junctions"))
+    )
+    file.rename(
+      from = "Chimeric.out.junction",
+      to = basename(output$getColumn("Chimerics"))
+    )
   }
 
   ## check the strandedness
   bedFile <- getReferenceFeaturesBed(param)
-  ezSystem(paste("infer_experiment.py", "-r", bedFile, "-i", basename(bamFile), "-s 1000000"), stopOnFailure = FALSE)
+  ezSystem(str_c("infer_experiment.py", "-r", bedFile, "-i", basename(bamFile),
+                 "-s 1000000", sep = " "),
+           stopOnFailure = FALSE)
 
   ## write an igv link
-  if (param$writeIgvLink) {
-    if ("IGV" %in% output$colNames) {
-      writeIgvHtml(param, output)
-    }
-  }
-  if (("IGV Starter" %in% output$colNames)) { ## TODO remove this after
-    writeIgvSession(
-      genome = getIgvGenome(param), refBuild = param$ezRef["refBuild"], file = basename(output$getColumn("IGV Session")),
-      bamUrls = paste(PROJECT_BASE_URL, bamFile, sep = "/")
-    )
-    writeIgvJnlp(
-      jnlpFile = basename(output$getColumn("IGV Starter")), projectId = sub("\\/.*", "", bamFile),
-      sessionUrl = paste(PROJECT_BASE_URL, output$getColumn("IGV Session"), sep = "/")
-    )
+  if (param$writeIgvLink && "IGV" %in% output$colNames) {
+    writeIgvHtml(param, output)
   }
   return("Success")
 }
