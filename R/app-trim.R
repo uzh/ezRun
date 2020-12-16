@@ -30,11 +30,11 @@ ezMethodFastpTrim <- function(input = NA, output = NA, param = NA) {
   ## if output is not an EzDataset, set it! (when ezMethodFastpTrim is used inside another app)
   if (!is(output, "EzDataset")) {
     output <- input$copy()
-    output$setColumn("Read1", str_c(getwd(), "/", input$getNames(), "-trimmed_R1.fastq",
-                                    if_else(param$gzipTrimmed, ".gz", "")))
+    output$setColumn("Read1", file.path(getwd(), str_c(input$getNames(), "-trimmed_R1.fastq",
+                                                       if_else(param$gzipTrimmed, ".gz", ""))))
     if (param$paired) {
-      output$setColumn("Read2", str_c(getwd(), "/", input$getNames(), "-trimmed_R2.fastq",
-                                      if_else(param$gzipTrimmed, ".gz", "")))
+      output$setColumn("Read2", file.path(getwd(), str_c(input$getNames(), "-trimmed_R2.fastq",
+                                                         if_else(param$gzipTrimmed, ".gz", ""))))
     } else {
       if ("Read2" %in% input$colNames) {
         output$setColumn("Read2", NULL)
@@ -52,7 +52,6 @@ ezMethodFastpTrim <- function(input = NA, output = NA, param = NA) {
     return(output)
   }
   ## now we deal only with one sample!
-  stopifnot(str_detect(input$getFullPaths("Read1"), "\\.gz$") == param$gzipTrimmed)
 
   ## make a local copy of the dataset and check the md5sum
   if (!is.null(param$copyReadsLocally) && param$copyReadsLocally) {
