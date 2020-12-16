@@ -59,7 +59,7 @@ ezMethodSingleCellSTAR = function(input=NA, output=NA, param=NA){
                             dataRoot=DEFAULT_DATA_ROOT)
   }
 
-  trimmedInput <- ezMethodTrim(input = fastqInput, param = param)
+  trimmedInput <- ezMethodFastpTrim(input = fastqInput, param = param)
 
   ## Merge and clean prepross logs
   preprocessLogFns <- paste0(trimmedInput$getNames(), "_preprocessing.log")
