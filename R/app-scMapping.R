@@ -69,7 +69,6 @@ ezMethodSingleCellSTAR <- function(input = NA, output = NA, param = NA) {
   file.remove(preprocessLogFns)
   write_lines(preprocessLogs, file = str_c(input$getNames(), "_preprocessing.log"))
 
-
   # Clean converted fastqs
   if (isSingleBam) {
     file.remove(fastqInput$getFullPaths("Read1"))

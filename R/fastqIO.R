@@ -152,7 +152,7 @@ fastqs2bam <- function(fastqFns, fastq2Fns = NULL, readGroupNames = NULL,
 bam2fastq <- function(bamFn, OUTPUT_PER_RG = TRUE, OUTPUT_DIR = ".",
                       paired = FALSE,
                       fastqFns = str_replace(bamFn, "(\\.bam|\\.sam)$", "_R1.fastq"),
-                      fastq2Fns = str_replace(bamFn, "(\\.bam|\\.sam)$", "_R2.fastq")) {
+                      fastq2Fns = str_replace(fastqFns, "_R1", "_R2.")) {
   if (isTRUE(OUTPUT_PER_RG)) {
     ## When OUTPUT_PER_RG is TRUE, we only process one uBam each time.
     stopifnot(length(bamFn) == 1L)
@@ -196,65 +196,80 @@ bam2fastq <- function(bamFn, OUTPUT_PER_RG = TRUE, OUTPUT_DIR = ".",
   }
 }
 
+.ezMethodBam2Fastq_PerRG <- function(input = NA, output = NA, param = NA) {
+  output <- EzDataset(
+    file = input$getFullPaths("CellDataset"),
+    dataRoot = param$dataRoot
+  )
+  output$setColumn("Read1", file.path(
+    getwd(), str_c(output$getNames(), "_R1.fastq"))
+  )
+  if (param$paired) {
+    output$setColumn("Read2", file.path(
+      getwd(), str_c(output$getNames(), "_R2.fastq"))
+    )
+  } else {
+    if ("Read2" %in% input$colNames) {
+      output$setColumn("Read2", NULL)
+    }
+  }
+  output$dataRoot <- NULL
+
+  if (all(file.exists(output$getColumn("Read1")))) {
+    return(output)
+  }
+  allFastqFns <- bam2fastq(
+    bamFn = input$getFullPaths("Read1"),
+    OUTPUT_PER_RG = TRUE, OUTPUT_DIR = getwd(),
+    paired = param$paired
+  )
+  fastqsToRemove <- allFastqFns[!(basename(allFastqFns) %in%
+                                    basename(output$getColumn("Read1")))]
+  ## When we want only subset of the cells to keep
+  file.remove(fastqsToRemove)
+  file.remove(str_replace(fastqsToRemove, "_R1\\.fastq$", "_R2.fastq"))
+  return(output)
+}
+
+.ezMethodBam2Fastq_NotPerRG <- function(input = NA, output = NA, param = NA) {
+  if (!is(output, "EzDataset")) {
+    outputMeta <- input$meta
+    outputMeta[["Read1"]] <- file.path(
+      getwd(), str_c(rownames(outputMeta), "_R1.fastq"))
+    outputMeta[["Read1 [File]"]] <- NULL
+    if (param$paired) {
+      outputMeta[["Read2"]] <-  file.path(
+        getwd(), str_c(rownames(outputMeta), "_R2.fastq"))
+      outputMeta[["Read2 [File]"]] <- NULL
+    } else {
+      outputMeta[["Read2"]] <- NULL
+    }
+    output <- EzDataset(meta = outputMeta, dataRoot = NULL)
+  }
+  if (all(file.exists(output$getColumn("Read1")))) {
+    return(output)
+  }
+  bam2fastq(
+    bamFn = input$getFullPaths("Read1"),
+    OUTPUT_PER_RG = FALSE, paired = param$paired,
+    fastqFns = output$getColumn("Read1")
+  )
+
+  output$setColumn(
+    "Read Count",
+    countReadsInFastq(output$getColumn("Read1"))
+  )
+  return(output)
+}
+
 ezMethodBam2Fastq <- function(input = NA, output = NA, param = NA,
                               OUTPUT_PER_RG = TRUE) {
   if (isTRUE(OUTPUT_PER_RG)) {
-    output <- EzDataset(
-      file = input$getFullPaths("CellDataset"),
-      dataRoot = param$dataRoot
-    )
-    output$setColumn("Read1", file.path(
-      getwd(), str_c(output$getNames(), "_R1.fastq"))
-      )
-    if (param$paired) {
-      output$setColumn("Read2", file.path(
-        getwd(), str_c(output$getNames(), "_R2.fastq"))
-        )
-    } else {
-      if ("Read2" %in% input$colNames) {
-        output$setColumn("Read2", NULL)
-      }
-    }
-    output$dataRoot <- NULL
-
-    allFastqFns <- bam2fastq(
-      bamFn = input$getFullPaths("Read1"),
-      OUTPUT_PER_RG = TRUE, OUTPUT_DIR = getwd(),
-      paired = param$paired
-    )
-    fastqsToRemove <- allFastqFns[!(basename(allFastqFns) %in%
-      basename(output$getColumn("Read1")))]
-    ## When we want only subset of the cells to keep
-    file.remove(fastqsToRemove)
-    file.remove(str_replace(fastqsToRemove, "_R1\\.fastq$", "_R2.fastq"))
+    output <- .ezMethodBam2Fastq_PerRG(input = input, output = output,
+                                       param = param)
   } else {
-    if (!is(output, "EzDataset")) {
-      outputMeta <- input$meta
-      outputMeta[["Read1"]] <- file.path(
-        getwd(), str_c(rownames(outputMeta), "_R1.fastq"))
-      outputMeta[["Read1 [File]"]] <- NULL
-      if (param$paired) {
-        outputMeta[["Read2"]] <-  file.path(
-          getwd(), str_c(rownames(outputMeta), "_R2.fastq"))
-        outputMeta[["Read2 [File]"]] <- NULL
-      } else {
-        outputMeta[["Read2"]] <- NULL
-      }
-      output <- EzDataset(meta = outputMeta, dataRoot = NULL)
-    }
-    bam2fastq(
-      bamFn = input$getFullPaths("Read1"),
-      OUTPUT_PER_RG = FALSE,
-      fastqFns = output$getColumn("Read1"),
-      fastq2Fns = ifelse(isTRUE(param$paired), output$getColumn("Read1"),
-        list(NULL)
-      ),
-      paired = param$paired
-    )
-    output$setColumn(
-      "Read Count",
-      countReadsInFastq(output$getColumn("Read1"))
-    )
+    output <- .ezMethodBam2Fastq_NotPerRG(input = input, output = output,
+                                          param = param)
   }
   return(output)
 }
