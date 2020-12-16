@@ -36,10 +36,7 @@ atacBamProcess <- function(input = NA, output = NA, param = NA) {
   ## remove the duplicates in bam
   noDupBam <- tempfile(pattern = "nodup_", tmpdir = ".", fileext = ".bam")
   message("Remove duplicates...")
-  dupBam(
-    inBam = bamFile, outBam = noDupBam, operation = "remove",
-    cores = param$cores
-  )
+  dupBam(inBam = bamFile, outBam = noDupBam, operation = "remove")
 
   noDupNoMTNOLowBam <- basename(output$getColumn("BAM"))
   filteroutBam(
