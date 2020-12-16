@@ -11,11 +11,11 @@ CollectAlignmentSummaryMetrics <- function(inBams, fastaFn, paired=FALSE,
                                            mc.cores=ezThreads()){
   require(matrixStats)
   metricLevel <- match.arg(metricLevel)
-  
+
   outputFns <- tempfile(pattern=inBams,
                        fileext=".CollectAlignmentSummaryMetrics")
   ## TODO: do check the ADAPTER_SEQUENCES option
-  cmd <- paste(preparePicard(),
+  cmd <- paste(prepareJavaTools("picard"),
                "CollectAlignmentSummaryMetrics",
                paste0("R=", fastaFn),
                paste0("I=", inBams),
@@ -24,7 +24,7 @@ CollectAlignmentSummaryMetrics <- function(inBams, fastaFn, paired=FALSE,
                paste0("METRIC_ACCUMULATION_LEVEL=", metricLevel),
                "> /dev/null")
   ezMclapply(cmd, ezSystem, mc.preschedule=FALSE, mc.cores=mc.cores)
-  
+
   metrics <- lapply(outputFns, ezRead.table, comment.char="#", row.names=NULL)
   metrics <- do.call(rbind, metrics)
   metrics <- metrics[ ,!colAlls(is.na(metrics))] ## Remove the NA columns of nameColumns
@@ -48,7 +48,7 @@ CollectRnaSeqMetrics <- function(inBams, gtfFn, featAnnoFn,
   require(matrixStats)
   strandMode <- match.arg(strandMode)
   metricLevel <- match.arg(metricLevel)
-  
+
   strandMode <- switch(strandMode,
                        "both"="NONE",
                        "sense"="FIRST_READ_TRANSCRIPTION_STRAND",
@@ -63,23 +63,23 @@ CollectRnaSeqMetrics <- function(inBams, gtfFn, featAnnoFn,
   refFlat <- refFlat[ , c(12, 1:10)]
   write.table(refFlat, file=refFlatFn, quote=FALSE, sep="\t",
               row.names=FALSE, col.names=FALSE)
-  
+
   ## RIBOSOMAL_INTERVALS
   riboFn <- tempfile(pattern="ribosomal", fileext=".interval")
   cmd <- paste("samtools view -H", inBams[1], ">", riboFn)
   ezSystem(cmd)
-  
+
   gtf <- ezReadGff(gtfFn)
   featAnno <- ezFeatureAnnotation(featAnnoFn, dataFeatureType="transcript")
   featAnno <- featAnno[featAnno$type == "rRNA", ]
   featAnno <- featAnno[ , c("seqid", "start", "end", "strand", "transcript_id")]
   write.table(featAnno, file=riboFn, quote=FALSE, sep="\t",
               append=TRUE, row.names=FALSE, col.names = FALSE)
-  
+
   ## CollectRnaSeqMetrics
   outputFns <- tempfile(pattern=inBams,
                         fileext=".CollectRnaSeqMetrics")
-  cmd <- paste(preparePicard(), "CollectRnaSeqMetrics",
+  cmd <- paste(prepareJavaTools("picard"), "CollectRnaSeqMetrics",
                paste0("I=", inBams),
                paste0("O=", outputFns),
                paste0("REF_FLAT=", refFlatFn),
@@ -91,7 +91,7 @@ CollectRnaSeqMetrics <- function(inBams, gtfFn, featAnnoFn,
                )
   ezMclapply(cmd, ezSystem, mc.preschedule=FALSE, mc.cores=mc.cores/2)
   ## To save memory
-  
+
   for(outputFn in outputFns){
     ## Remove the stuff after HISTOGRAM
     metricsAll <- readLines(outputFn)
@@ -108,22 +108,22 @@ CollectRnaSeqMetrics <- function(inBams, gtfFn, featAnnoFn,
   # indexName <- intersect(colnames(metrics), nameColumns)
   # rownames(metrics) <- metrics[ ,indexName]
   # metrics[[indexName]] <- NULL
-  
-  # 
+
+  #
   # writeLines(head(metricsAll, breakLine-2), con=outputFn1)
-  # 
+  #
   # metrics <- ezRead.table(outputFn1, comment.char="#", row.names=NULL)
   # metrics <- metrics[ ,!colAlls(is.na(metrics))]
   # nameColumns <- c("SAMPLE", "LIBRARY", "READ_GROUP")
   # indexName <- intersect(colnames(metrics), nameColumns)
   # rownames(metrics) <- metrics[ ,indexName]
   # metrics[[indexName]] <- NULL
-  # 
+  #
   # outputFn2 <- tempfile(pattern="CollectRnaSeqMetrics_2_",
   #                       fileext=".txt")
   # writeLines(metricsAll[breakLine:(102+breakLine)], con=outputFn2)
   # histogram <- ezRead.table(outputFn2, comment.char="#", row.names=NULL)
-  # 
+  #
   # ans <- list(metrics, histogram)
   return(metrics)
 }
@@ -132,16 +132,16 @@ DuplicationMetrics <- function(inBams, mc.cores=ezThreads()){
   outputBams <- paste0(sub(".bam$", "", basename(inBams)),
                        "-", seq_along(inBams), "-markedDup.bam")
   outputFns <- sub('bam$', "metrics", outputBams)
-  
-  cmd <- paste(preparePicard(), "MarkDuplicates",
+
+  cmd <- paste(prepareJavaTools("picard"), "MarkDuplicates",
                paste0("I=", inBams),
                paste0("O=", outputBams),
                paste0("M=", outputFns),
                "> /dev/null"
                )
   ezMclapply(cmd, ezSystem, mc.preschedule=FALSE, mc.cores=mc.cores)
-  
-  metrics <- lapply(outputFns, ezRead.table, comment.char="#", row.names=NULL, 
+
+  metrics <- lapply(outputFns, ezRead.table, comment.char="#", row.names=NULL,
                     blank.lines.skip=TRUE, nrows=1)
   metrics <- do.call(rbind, metrics)
   rownames(metrics) = names(inBams)

@@ -40,7 +40,7 @@ setwdNew = function(dir){
 
 ##' @title Creates a Venn diagram based on the overlapping elements in vectors
 ##' @description This is a convenience function that converts the list of vectors first into a logical matrix and subsequently applies the venn diagramm function from the limma package
-##' @param setList a named list of length two or three. 
+##' @param setList a named list of length two or three.
 ##' @template roxygen-template
 ##' @examples
 ##' aList = list(a=1:5,b=3:6)
@@ -70,7 +70,7 @@ tableFromSets= function(setList){
     x[names(setList)[i]] = rownames(x) %in% setList[[i]]
   }
 	table(x)
-} 
+}
 
 ##' @title Shrink the dynamic range of a numeric vector, matrix, or data frame
 ##' @description Values outside the range will be set as the lower or upper boundary of the range.
@@ -126,7 +126,7 @@ interleaveMatricesByColumn = function(x, y, suffixes=c("[Signal]", "[Present]"))
 ##' @param presentFlag a binary matrix with the same size as \code{x} which indicates if a values is considered as measured correctly. Default: NULL
 ##' @return Returns the modified value.
 ##' @template roxygen-template
-##' @examples 
+##' @examples
 ##' x = ezNorm(runif(100))
 ezNorm = function(x, method="none", presentFlag=NULL){
   switch(method,
@@ -145,7 +145,7 @@ ezNorm = function(x, method="none", presentFlag=NULL){
 ##' @return Returns the normalized matrix.
 ##' @seealso \code{\link[preprocessCore]{normalize.quantiles}}
 ##' @template roxygen-template
-##' @examples 
+##' @examples
 ##' m1 = matrix(1:20,4)
 ##' m2 = ezQuantileNorm(m1)
 ezQuantileNorm = function(x){
@@ -162,7 +162,7 @@ ezQuantileNorm = function(x){
 ##' @return Returns the normalized matrix.
 ##' @seealso \code{\link[vsn]{justvsn}}
 ##' @template roxygen-template
-##' @examples 
+##' @examples
 ##' m1 = matrix(1:200,50)
 ##' m2 = ezVsnNorm(m1)
 ezVsnNorm = function(x, lts.quantile=0.6){
@@ -180,7 +180,7 @@ ezVsnNorm = function(x, lts.quantile=0.6){
 ##' @examples
 ##' x = ezCut(1:10,breaks=c(2,5,7),prefix=letters[1:4])
 ezCut = function(x, breaks, prefix=NULL, labels=NULL){
-	
+
   if (is.null(labels)){
     labels = paste("<=", breaks[1])
     for (i in 2:length(breaks)){
@@ -249,7 +249,7 @@ ezGrepl <- function(patterns, x, combine="or", ...){
 }
 
 ##' @title Separates a character vector into a matrix by splitting it.
-##' @description The \code{split} vector needs to divide the \code{x} vector into pieces of equal lengths. The split is removed from the original input. 
+##' @description The \code{split} vector needs to divide the \code{x} vector into pieces of equal lengths. The split is removed from the original input.
 ##' @param x the character vector to be split element-wise.
 ##' @param split a character vector defining with what to split.
 ##' @seealso \code{\link[base]{strsplit}}
@@ -266,7 +266,7 @@ ezSplit = function(x, split, ...){
   lengths = sapply(splitList, length)
   idx = which(lengths != lengths[1])
   if (length(idx) >0){
-    stop(paste("Row ", idx[1], " length ", lengths[idx[1]], " but expected was ", lengths[1]))    
+    stop(paste("Row ", idx[1], " length ", lengths[idx[1]], " but expected was ", lengths[1]))
   }
   result <- matrix(unlist(splitList), nrow=length(splitList), ncol=lengths[1], byrow=TRUE)
   rownames(result) <- x
@@ -287,7 +287,7 @@ trimWhiteSpace = function (x){
 ##' @title Checks if the argument can be safely used as a filename
 ##' @description only supports alphanumeric characters and "+-_"
 ##' @return TRUE or FALSE
-##' @examples 
+##' @examples
 ##' hasFilesafeCharacters("a")
 ##' hasFilesafeCharacters("a\n")
 ##' hasFilesafeCharacters(c("1", "2"))
@@ -315,7 +315,7 @@ ezMatrix <- function(x, rows=NULL, cols=NULL, dim=NULL){
 }
 
 ##' @title Scales columns of a matrix
-##' @description The columns will be scaled by multiplying them with the \code{scaling}. 
+##' @description The columns will be scaled by multiplying them with the \code{scaling}.
 ##' @param x the matrix to scale.
 ##' @param scaling a vector containing the scale for each column of \code{x}.
 ##' @return Returns a matrix with scaled columns.
@@ -341,14 +341,14 @@ ezScaleColumns = function(x, scaling){
 ##' m3 = ezMedianNorm(m1, target=10)
 ##' m4 = ezMedianNorm(m1, use=c(TRUE, FALSE))
 ezMedianNorm = function(x, use=NULL, target=NULL, presentFlag=NULL){
-  
+
   sf = ezMedianScalingFactor(x, use=use, target=target, presentFlag=presentFlag)
   return(ezScaleColumns(x, sf))
 }
 
 ##' @describeIn ezMedianNorm Calculates the scaling factor for the main function.
 ezMedianScalingFactor = function(x, use=NULL, target=NULL, presentFlag=NULL){
-  
+
   if (is.null(use)){
     use = rep(TRUE, nrow(x))
   }
@@ -472,7 +472,7 @@ averageRows = function(data, by=labels, func=mean, ...){
 ##' l1 = list(a=1:3, b=c(2,5), c=4:8)
 ##' inverseMapping(l1)
 inverseMapping = function(xList){
-  
+
 	mm = makeMultiMapping(xList)
   invMap = tapply(mm$source, mm$target, function(x){list(x)})
   return(invMap)
@@ -499,7 +499,7 @@ makeMultiMapping = function(xList){
   sge.options("sge.save.global"=saveGlobal)
   sge.options("sge.remove.files"=removeFiles)
   ## TODO jobs must inspect NSLOTS in order to know how many threads to use!!
-  
+
   sgeFunc = function(x, FUN=NULL, param=NULL){
     cwd = getwd()
     wd = paste("/scratch/rjob", ezTime(), Sys.getpid(), sep="_")
@@ -509,7 +509,7 @@ makeMultiMapping = function(xList){
     setwd(cwd)
     unlink(wd, recursive=TRUE)
     return(result)
-    
+
   }
   sge.parLapply(jobList, sgeFunc, FUN, param, njobs=length(jobList))
 }
@@ -544,7 +544,7 @@ ezMclapply = function(x, FUN, ..., mc.preschedule = TRUE, mc.set.seed = TRUE, mc
     sapply(result[isError], print)
     stop("mclapply failed")
   }
-  isNull = sapply(result, is.null) 
+  isNull = sapply(result, is.null)
   if (any(isNull)){
     stop("mclapply returned NULL results: ", sum(isNull), " / ", length(isNull))
   }
@@ -624,7 +624,7 @@ ezMultiplicated = function(x, n=2, mode="keepFirst"){
 ##' @description This can be used to get replicate identifiers. For each value unique value in the input it counts incrementally how often it occurs
 ##' @param x a vector with discrete values
 ##' @return Returns a vector of the same length as the input. If the value at an element is n, then this means, in the original value was the nth occurrence.
-##' @examples 
+##' @examples
 ##' x = c("a", "c", "a", "b", "c")
 ##' ezReplicateNumber(x)
 ezReplicateNumber = function(x){
@@ -653,7 +653,7 @@ ezCollapse = function(x, sep="; ", na.rm=FALSE, empty.rm=FALSE, uniqueOnly=FALSE
     x = x[!is.na(x)]
   }
   if (empty.rm){
-    x = x[x != ""];    
+    x = x[x != ""];
   }
   if (uniqueOnly){
     x = unique(x)
@@ -666,7 +666,7 @@ ezCollapse = function(x, sep="; ", na.rm=FALSE, empty.rm=FALSE, uniqueOnly=FALSE
 ##' @param labels a character vector to split long elements from.
 ##' @param nSplit an integer specifying at which position to split the labels.
 ##' @template roxygen-template
-##' @examples 
+##' @examples
 ##' a = paste(letters[1:22], collapse="")
 ##' b = paste(letters[1:23], collapse="")
 ##' c = paste(letters[1:24], collapse="")
@@ -721,50 +721,19 @@ setEnvironments <- function(tool, envir=parent.frame()){
   }
 }
 
-preparePicard <- function(){
-  if(Sys.which("picard") != ""){
-    return("picard -Xms1g -Xmx10g -Djava.io.tmpdir=.")
-  }else if(Sys.getenv("Picard_jar") != ""){
-    return(paste("java -jar -Djava.io.tmpdir=. -Xmx10G", Sys.getenv("Picard_jar")))
-  }else{
-    stop("Cannot find proper picard installed!")
-  }
-}
-
-prepareTrimmomatic <- function(){
-  if(Sys.which("trimmomatic") != ""){
-    return("trimmomatic -Xms1g -Xmx5g -Djava.io.tmpdir=.")
-  }else if(Sys.getenv("Trimmomatic_jar") != ""){
-    return(paste("java -jar -Djava.io.tmpdir=.", Sys.getenv("Trimmomatic_jar")))
-  }else{
-    stop("Cannot find proper trimmomatic installed!")
-  }
-}
-
-prepareGATK <- function(){
-  if(Sys.which("gatk") != ""){
-    return("gatk --java-options \"-Xms1g -Xmx5g -Djava.io.tmpdir=.\"")
-  }else if(Sys.getenv("GATK_jar") != ""){
-    return(paste("java -jar -Djava.io.tmpdir=.", Sys.getenv("GATK_jar")))
-  }else{
-    stop("Cannot find proper gatk installed!")
-  }
-}
-
-prepareJavaTools <- function(tool=c("picard", "trimmomatic", "gatk3", "snpeff")){
+prepareJavaTools <- function(tool=c("picard", "gatk", "snpeff")){
   tool <- match.arg(tool)
   tool_jar <- c("picard"="Picard_jar",
-                "trimmomatic"="Trimmomatic_jar",
-                "gatk3"="GATK_jar",
+                "gatk"="GATK_jar",
                 "snpeff"="SnpEff")
   if(Sys.which(tool) != ""){
-    if(tool == "gatk3"){
-      return("gatk3 --java-options \"-Xms1g -Xmx5g -Djava.io.tmpdir=.\"")
+    if(tool == "gatk"){
+      return("gatk --java-options \"-Xms1g -Xmx10g -Djava.io.tmpdir=.\"")
     }else{
-      return(paste(tool, "-Xms1g -Xmx5g -Djava.io.tmpdir=."))
+      return(str_c(tool, "-Xms1g -Xmx10g -Djava.io.tmpdir=.", sep = " "))
     }
   }else if(Sys.getenv(tool_jar[tool]) != ""){
-    return(paste("java -jar -Xms1g -Xmx5g -Djava.io.tmpdir=.",
+    return(paste("java -jar -Xms1g -Xmx10g -Djava.io.tmpdir=.",
                  Sys.getenv(Sys.getenv(tool_jar[tool]))))
   }else{
     stop("Cannot find proper ", tool, " installed!")

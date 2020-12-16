@@ -87,7 +87,7 @@ atacBamProcess <- function(input = NA, output = NA, param = NA) {
 dupBam <- function(inBam, outBam, operation = c("mark", "remove")) {
   operation <- match.arg(operation)
   cmd <- paste(
-    preparePicard(), "MarkDuplicates",
+    prepareJavaTools("picard"), "MarkDuplicates",
     paste0("I=", inBam),
     paste0("O=", outBam),
     paste0("M=", tempfile()),
@@ -190,7 +190,7 @@ mergeBamAlignments <- function(alignedBamFn, unmappedBamFn,
                                keepUnmapped = FALSE) {
   ## Use . as tmp dir. Big bam generates big tmp files.
   cmd <- paste(
-    preparePicard(), "MergeBamAlignment",
+    prepareJavaTools("picard"), "MergeBamAlignment",
     paste0("ALIGNED=", alignedBamFn),
     paste0("UNMAPPED=", unmappedBamFn),
     paste0("O=", outputBamFn),

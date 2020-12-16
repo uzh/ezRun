@@ -46,7 +46,7 @@ ezSortIndexBam <- function(inBam, bam, ram = 2, removeBam = TRUE, cores = 2,
     ezSystem(cmd)
   } else {
     cmd <- str_c(
-      preparePicard(), "SortSam",
+      prepareJavaTools("picard"), "SortSam",
       paste0("I=", inBam),
       paste0("O=", bam),
       "SORT_ORDER=coordinate",
@@ -54,7 +54,7 @@ ezSortIndexBam <- function(inBam, bam, ram = 2, removeBam = TRUE, cores = 2,
     )
     ezSystem(cmd)
     cmd <- paste(
-      preparePicard(), "BuildBamIndex",
+      prepareJavaTools("picard"), "BuildBamIndex",
       paste0("I=", bam),
       paste0("OUTPUT=", bam, ".bai"),
       sep = " "
