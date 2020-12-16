@@ -28,7 +28,7 @@ computeDnaBamStats <- function(input, htmlFile, param, resultList=NULL){
   samples <- input$getNames()
   files <- input$getFullPaths("BAM")
   dataset <- input$meta
-  
+
   resultList = list()
   for (sm in samples){
     message(sm)
@@ -38,16 +38,16 @@ computeDnaBamStats <- function(input, htmlFile, param, resultList=NULL){
       png(paste0('fragmentSize_',sm,'.png'),width = 600, height = 500, res = 90)
         fragSizeDist(files[sm], sm)
       dev.off()
-    
+
       png(paste0('libComplexity_',sm,'.png'),width = 600, height = 500, res = 90)
       ezLibComplexity(readsDupFreq(files[sm]), main = paste(sm, 'Library Complexity'))
       dev.off()
     }
-    
+
     #run Qualimap SingleSample
     cmd = paste('unset DISPLAY; qualimap bamqc -bam', files[sm], '-c -nt', param[['cores']], paste0('--java-mem-size=', param[['ram']],'G'), '-outdir', sm)
     ezSystem(cmd)
-    
+
     ##Extract Duplication Rate, InDel Rate:
     qmFile = file.path(sm, 'genome_results.txt')
     all_data = readLines(qmFile)
@@ -55,7 +55,7 @@ computeDnaBamStats <- function(input, htmlFile, param, resultList=NULL){
     if(!param$paired){
         numReads = as.numeric(gsub(',','',sub('\\%', '', sub('^.*number of reads = ', '', all_data[grep('number of reads', all_data)]))))
     } else {
-        numReads = as.numeric(gsub(',','',sub('\\%', '', sub('^.*number of reads = ', '', all_data[grep('number of reads', all_data)]))))/2 
+        numReads = as.numeric(gsub(',','',sub('\\%', '', sub('^.*number of reads = ', '', all_data[grep('number of reads', all_data)]))))/2
     }
     if(length(resultList[[sm]]$dupRate) == 0){
         dupReads = as.numeric(gsub(',','',sub('\\%', '', sub('^.*number of duplicated reads \\(flagged\\) = ', '', all_data[grep('number of duplicated reads', all_data)]))))
@@ -73,7 +73,7 @@ computeDnaBamStats <- function(input, htmlFile, param, resultList=NULL){
     ###TODO: add mappingQuality, GC content, insert size
     #####add duplicate rate plot to lib complexity (calc. optical duplicates with picard)
     metricFn = paste0(sm,'_picardDupReport.txt')
-    cmd <- paste(preparePicard(), "MarkDuplicates",
+    cmd <- paste(prepareJavaTools("picard"), "MarkDuplicates",
                  paste0("I=", files[sm]),
                  paste0("O=", "toDelete.bam"),
                  paste0("M=", metricFn),
@@ -91,17 +91,17 @@ computeDnaBamStats <- function(input, htmlFile, param, resultList=NULL){
   ezWrite.table(data.frame(SampleName = samples, Folder = samples), 'sampleKey.txt', row.names = FALSE, col.names = FALSE)
   cmd = paste('unset DISPLAY; qualimap multi-bamqc -d sampleKey.txt -outdir qualimap_MultiSample')
   ezSystem(cmd)
-  
+
   qmFile = 'qualimap_MultiSample/multisampleBamQcReport.html'
   res <- xmlParse(qmFile, isHTML = TRUE)
   sampleSummary <- readHTMLTable(res, which = 3, as.data.frame = FALSE)
   for (j in 2:length(sampleSummary)){
     png(paste0('QualiMapStats_', names(sampleSummary)[j], '.png'))
-    barplot(as.numeric(sampleSummary[[j]]), names.arg = sampleSummary[[1]], 
+    barplot(as.numeric(sampleSummary[[j]]), names.arg = sampleSummary[[1]],
             col = 'royalblue', main = names(sampleSummary)[j])
     dev.off()
   }
-  
+
   ## Copy the style files and templates
   styleFiles <- file.path(system.file("templates", package="ezRun"),
                           c("fgcz.css", "DnaQC.Rmd",
@@ -111,30 +111,30 @@ computeDnaBamStats <- function(input, htmlFile, param, resultList=NULL){
                     output_dir=".", output_file=htmlFile, quiet=TRUE)
 }
 
-ezLibComplexity <- function(histFile, times = 100, interpolate.sample.sizes = seq(0.1, 1, by = 0.1), 
+ezLibComplexity <- function(histFile, times = 100, interpolate.sample.sizes = seq(0.1, 1, by = 0.1),
                             extrapolate.sample.sizes = seq(5, 20, by = 5), main = c()) {
   total <- histFile[, 1] %*% histFile[, 2]
   suppressWarnings({
     result = ds.rSAC.bootstrap(histFile, r = 1, times = times)
   })
   sequences <- c(interpolate.sample.sizes, extrapolate.sample.sizes)
-  estimates <- data.frame(relative.size = sequences, values = rep(NA, 
+  estimates <- data.frame(relative.size = sequences, values = rep(NA,
                                                                   length(sequences)))
   for (i in seq_along(sequences)) {
     estimates$values[i] <- result$f(sequences[i])
   }
-  suppressWarnings(estimates$reads <- estimates$relative.size * 
+  suppressWarnings(estimates$reads <- estimates$relative.size *
                      total)
-  plot(x = estimates$reads/10^6, y = estimates$values/10^6, 
-       type = "o", xlab = expression(Putative ~ sequenced ~ 
-                                       fragments ~ x ~ 10^6), ylab = expression(Distinct ~ 
+  plot(x = estimates$reads/10^6, y = estimates$values/10^6,
+       type = "o", xlab = expression(Putative ~ sequenced ~
+                                       fragments ~ x ~ 10^6), ylab = expression(Distinct ~
                                                                                   fragments ~ x ~ 10^6), main = main)
   return(invisible(estimates))
 }
 
 ##' @template app-template
 ##' @templateVar method ezMethodDnaQC(input=NA, output=NA, param=NA, htmlFile="00index.html")
-##' @description Use this reference class to run 
+##' @description Use this reference class to run
 EzAppDnaQC <-
   setRefClass("EzAppDnaQC",
               contains = "EzApp",

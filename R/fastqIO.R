@@ -79,7 +79,7 @@ fastqs2bam <- function(fastqFns, fastq2Fns = NULL, readGroupNames = NULL,
   ## Convert and merge the non-empty fastqs first and alter the header of merged bam file
 
   cmd <- paste(
-    preparePicard(), "FastqToSam",
+    prepareJavaTools("picard"), "FastqToSam",
     paste0("F1=", fastqFns)
   )
   if (isTRUE(paired)) {
@@ -102,7 +102,7 @@ fastqs2bam <- function(fastqFns, fastq2Fns = NULL, readGroupNames = NULL,
 
   ## picard tools merge
   cmd <- paste(
-    preparePicard(), "MergeSamFiles",
+    prepareJavaTools("picard"), "MergeSamFiles",
     paste0("I=", paste0(sampleBasenames, ".bam")[!emptyFastqs],
       collapse = " "
     ),
@@ -161,7 +161,7 @@ bam2fastq <- function(bamFn, OUTPUT_PER_RG = TRUE, OUTPUT_DIR = ".",
     dir.create(tempDIR)
     on.exit(unlink(tempDIR, recursive = TRUE), add = TRUE)
     cmd <- paste(
-      preparePicard(), "SamToFastq",
+      prepareJavaTools("picard"), "SamToFastq",
       paste0("I=", bamFn),
       paste0("OUTPUT_DIR=", tempDIR),
       "OUTPUT_PER_RG=true RG_TAG=ID"
@@ -181,7 +181,7 @@ bam2fastq <- function(bamFn, OUTPUT_PER_RG = TRUE, OUTPUT_DIR = ".",
     ## This is not much slower than splitBambyRG and SamToFastq in parallel
   } else {
     cmd <- paste(
-      preparePicard(), "SamToFastq",
+      prepareJavaTools("picard"), "SamToFastq",
       paste0("I=", bamFn),
       paste0("FASTQ=", fastqFns)
     )
