@@ -278,10 +278,13 @@ ezMethodSTAR <- function(input = NA, output = NA, param = NA) {
   }
 
   ## check the strandedness
-  bedFile <- getReferenceFeaturesBed(param)
-  ezSystem(str_c("infer_experiment.py", "-r", bedFile, "-i", basename(bamFile),
-                 "-s 1000000", sep = " "),
-           stopOnFailure = FALSE)
+  ezSystem(str_c(
+    "infer_experiment.py", "-r", getReferenceFeaturesBed(param),
+    "-i", basename(bamFile), "-s 1000000",
+    sep = " "
+  ),
+  stopOnFailure = FALSE
+  )
 
   ## write an igv link
   if (param$writeIgvLink && "IGV" %in% output$colNames) {
@@ -396,8 +399,6 @@ EzAppSTAR <-
           getJunctions = ezFrame(Type = "logical", DefaultValue = "FALSE", Description = "should junctions be returned"),
           writeIgvLink = ezFrame(Type = "logical", DefaultValue = "TRUE", Description = "should an IGV link be generated"),
           markDuplicates = ezFrame(Type = "logical", DefaultValue = "TRUE", Description = "should duplicates be marked with picard"),
-          checkStrandness = ezFrame(Type = "logical", DefaultValue = "FALSE", Description = "should strandness be checked"),
-          randomSleep = ezFrame(Type = "logical", DefaultValue = "FALSE", Description = "should there be a random sleep to avoid to much network traffic when loading the STAR index"),
           twopassMode = ezFrame(Type = "logical", DefaultValue = "TRUE", Description = "1-pass mapping or basic 2-pass mapping")
         )
       }

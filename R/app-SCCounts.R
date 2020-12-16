@@ -44,9 +44,10 @@ EzAppSCCounts <-
 
 ezMethodSCCounts <- function(input = NA, output = NA, param = NA,
                              htmlFile = "00index.html") {
+  require(withr)
   cwd <- getwd()
   setwdNew(basename(output$getColumn("ResultDir")))
-  on.exit(setwd(cwd), add = TRUE)
+  defer(setwd(cwd))
 
   metaFixed <- output$meta
   metaFixed[["CellDataset [File]"]] <- sub(
