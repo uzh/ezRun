@@ -733,8 +733,8 @@ prepareJavaTools <- function(tool=c("picard", "gatk", "snpeff")){
       return(str_c(tool, "-Xms1g -Xmx10g -Djava.io.tmpdir=.", sep = " "))
     }
   }else if(Sys.getenv(tool_jar[tool]) != ""){
-    return(paste("java -jar -Xms1g -Xmx10g -Djava.io.tmpdir=.",
-                 Sys.getenv(Sys.getenv(tool_jar[tool]))))
+    return(str_c("java -jar -Xms1g -Xmx10g -Djava.io.tmpdir=.",
+                 Sys.getenv(tool_jar[tool]), sep = " "))
   }else{
     stop("Cannot find proper ", tool, " installed!")
   }
