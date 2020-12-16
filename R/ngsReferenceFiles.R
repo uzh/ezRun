@@ -23,9 +23,10 @@ getReferenceFeaturesBed <- function(param) {
   lockFile <- str_replace(bedFile, "\\.bed$", ".bed.lock")
   ## I build the bed file
   if (!file.exists(lockFile)) {
+    require(rtracklayer)
+    require(withr)
     write_lines(Sys.info(), file = lockFile)
     defer(file.remove(lockFile))
-    require(rtracklayer)
     message("generating bed file from gtf")
     gtf <- import.gff(param$ezRef["refFeatureFile"])
     export.bed(gtf, bedFile)
