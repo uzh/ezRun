@@ -126,6 +126,9 @@ getFastqScreenStats <- function(param, confFile = NULL, files, workDir="fastqScr
       str_replace("\\.fastq$", "") %>%
       str_c("_screen.txt") ## remove the suffix .fastq[.gz] with _screen.txt
     emptyLinePos = match("", readLines(file.path(workDir, resultFile)))
+    if (is.na(emptyLinePos)){ ## no hits found!
+      emptyLinePos = 3
+    }
     x <- ezRead.table(file.path(workDir, resultFile),
                       skip = 1, stringsAsFactors = F,
                       nrows=emptyLinePos-3) ## first line and
