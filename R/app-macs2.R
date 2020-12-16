@@ -12,7 +12,7 @@ ezMethodMacs2 = function(input=NA, output=NA, param=NA){
     opt = paste(opt,'-f BAMPE')
   ## With BAMPE file, --shift cannot be set.
   dataset = input$meta
-  
+
   ## -g option: mappable genome size
   if(!grepl("-g", opt)){
     gsizes <- c("Homo sapiens (human)"="hs",
@@ -35,7 +35,7 @@ ezMethodMacs2 = function(input=NA, output=NA, param=NA){
   if(!grepl("--keep-dup", opt)){
     opt <- paste(opt, "--keep-dup all")
   }
-  
+
   if(param$mode == "ChIP-seq"){
     ## --extsize: extend reads in 5'->3' direction to fix-sized fragments when model building is deactivated.
     ## This size is taken from sushi app.
@@ -45,16 +45,15 @@ ezMethodMacs2 = function(input=NA, output=NA, param=NA){
     bamFile <- input$getFullPaths("BAM")
     if(param$markDuplicates){
       outBam <- basename(output$getColumn("BAM"))
-      dupBam(inBam=bamFile, outBam=outBam, operation="remove",
-           cores=param$cores)
+      dupBam(inBam=bamFile, outBam=outBam, operation="remove")
     } else {
       outBam <- bamFile
     }
-    
+
     if (isTRUE(param$useControl)){
       if(!any(grepl("Control", input$colNames, ignore.case = TRUE)))
         stop("The parameter 'useControl' is 'true' but no column named 'Control [File]' is available.")
-      
+
       cmd = paste("macs2", "callpeak -t", outBam,
                   "-c", input$getFullPaths("Control"),
                   "-B", opt,"-n", output$getNames())
@@ -62,7 +61,7 @@ ezMethodMacs2 = function(input=NA, output=NA, param=NA){
       bedgraphFileTreat = paste0(output$getNames(), '_treat_pileup.bdg')
       bedgraphFileControl = paste0(output$getNames(), '_control_lambda.bdg')
       cmd = paste("macs2", " bdgcmp -t", bedgraphFileTreat,
-                  "-c", bedgraphFileControl, "-o", 
+                  "-c", bedgraphFileControl, "-o",
                   paste0(output$getNames(),"_FE.bdg"), "-m FE")
       ezSystem(cmd)
       bdgSorted = "sorted.bdg"
@@ -76,22 +75,22 @@ ezMethodMacs2 = function(input=NA, output=NA, param=NA){
                   "-n", output$getNames())
       ezSystem(cmd)
       bam2bw(file=outBam, destination=basename(output$getColumn("BigWigFile")),
-             paired=param$paired, 
+             paired=param$paired,
              method="deepTools", cores=param$cores)
     }
   }else if(param$mode == "ATAC-seq"){
     if(!param$paired)
       stop("For ATAC-seq, we only support paired-end data.")
-    
+
     ## --extsize: extend reads in 5'->3' direction to fix-sized fragments.
     if(!grepl("--extsize", opt)){
       ## https://github.com/taoliu/MACS/issues/145
       opt <- paste(opt, "--extsize 200")
     }
-    
+
     ## Preprocess ATAC-seq bam file
     atacBamProcess(input=input, output=output, param=param)
-    
+
     cmd = paste("macs2", "callpeak -t", basename(output$getColumn("BAM")),
                 opt, "-n", output$getNames())
     ezSystem(cmd)
@@ -102,7 +101,7 @@ ezMethodMacs2 = function(input=NA, output=NA, param=NA){
   }else{
     stop("MACS2 only supports ChIP-seq or ATAC-seq data.")
   }
-  
+
   peakBedFile = basename(output$getColumn("BED"))
   if (grepl('broad', opt)){
     file.rename(from=paste0(output$getNames(),"_peaks.broadPeak"),
@@ -122,7 +121,7 @@ ezMethodMacs2 = function(input=NA, output=NA, param=NA){
 
 ##' @template app-template
 ##' @templateVar method ezMethodMacs2(input=NA, output=NA, param=NA)
-##' @description Use this reference class to run 
+##' @description Use this reference class to run
 EzAppMacs2 <-
   setRefClass("EzAppMacs2",
               contains = "EzApp",
@@ -148,13 +147,13 @@ annotatePeaks = function(peakFile, peakSeqFile, param) {
   require(rtracklayer)
   require(ChIPpeakAnno)
   require(ShortRead)
-  
+
   data = ezRead.table(peakFile, comment.char = "#", row.names = NULL)
   if (nrow(data) == 0){
     return(NULL)
   }
   data = data[order(data$chr,data$start), ]
-  
+
   gtfFile = param$ezRef@refFeatureFile
   gtf = rtracklayer::import(gtfFile)
   idx = gtf$type == 'gene'
@@ -177,20 +176,20 @@ annotatePeaks = function(peakFile, peakSeqFile, param) {
                                         FeatureLocForDistance='TSS')
   annotatedPeaks = as.data.frame(annotatedPeaks)
   annotatedPeaks = annotatedPeaks[ , c("peak", "feature", "feature_strand",
-                                       "start_position", "end_position", 
+                                       "start_position", "end_position",
                                        "insideFeature", "distancetoFeature")]
   colnames(annotatedPeaks) = c("peak", "feature", "feature_strand",
-                               "feature_start", "feature_end", 
+                               "feature_start", "feature_end",
                                "insideFeature", "distancetoFeature")
-  
+
   annotatedPeaks = merge(data, annotatedPeaks,by.x='name', by.y='peak', all.x=T)
   localAnnotation <- ezFeatureAnnotation(param, dataFeatureType="gene")
   localAnnotation = unique(localAnnotation[, grep('^gene_id$|^description$|name$|symbol$|^type$',colnames(localAnnotation),ignore.case=TRUE)])
   if(!is.null(ncol(localAnnotation))){
-    annotatedPeaks = merge(annotatedPeaks, localAnnotation, by.x='feature', 
+    annotatedPeaks = merge(annotatedPeaks, localAnnotation, by.x='feature',
                            by.y='gene_id',all.x=T)
   }
-  annotatedPeaks = annotatedPeaks[order(annotatedPeaks$"-log10(pvalue)", 
+  annotatedPeaks = annotatedPeaks[order(annotatedPeaks$"-log10(pvalue)",
                                         decreasing=T), ]
   colnames(annotatedPeaks) = gsub('-log10','_-log10', colnames(annotatedPeaks))
   seqs = readDNAStringSet(peakSeqFile)
