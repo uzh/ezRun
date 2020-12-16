@@ -65,7 +65,7 @@ ezMethodSingleCellSTAR <- function(input = NA, output = NA, param = NA) {
 
   ## Merge and clean prepross logs
   preprocessLogFns <- str_c(trimmedInput$getNames(), "_preprocessing.log")
-  preprocessLogs <- map_chr(preprocessLogFns, read_lines)
+  preprocessLogs <- map(preprocessLogFns, read_lines) %>% unlist()
   file.remove(preprocessLogFns)
   write_lines(preprocessLogs, file = str_c(input$getNames(), "_preprocessing.log"))
 
