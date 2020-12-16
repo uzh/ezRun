@@ -15,8 +15,8 @@
 ##' obj1 <- 1:5
 ##' obj2 <- "a character"
 ##' lastVal(c(obj1,obj2))
-lastVal = function(x){
-  if (is.list(x)){
+lastVal <- function(x) {
+  if (is.list(x)) {
     x[[length(x)]]
   } else {
     x[length(x)]
@@ -31,9 +31,9 @@ lastVal = function(x){
 ##' cd = getwd()
 ##' setwdNew("newDirectory")
 ##' setwd(cd)
-setwdNew = function(dir){
-  if (!file.exists(dir)){
-    dir.create(dir, recursive=TRUE)
+setwdNew <- function(dir) {
+  if (!file.exists(dir)) {
+    dir.create(dir, recursive = TRUE)
   }
   setwd(dir)
 }
@@ -45,14 +45,14 @@ setwdNew = function(dir){
 ##' @examples
 ##' aList = list(a=1:5,b=3:6)
 ##' vennFromSets(aList)
-vennFromSets = function(setList){
+vennFromSets <- function(setList) {
   stopifnot(!is.null(names(setList)) && length(setList) %in% 2:3)
-  require("limma", warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
-  x = ezMatrix(FALSE, rows=unique(unlist(setList)), cols=names(setList))
-  for (i in 1:length(setList)){
-    x[match(setList[[i]], rownames(x)), i] = TRUE
+  require("limma", warn.conflicts = WARN_CONFLICTS, quietly = !WARN_CONFLICTS)
+  x <- ezMatrix(FALSE, rows = unique(unlist(setList)), cols = names(setList))
+  for (i in 1:length(setList)) {
+    x[match(setList[[i]], rownames(x)), i] <- TRUE
   }
-  vc = vennCounts(x)
+  vc <- vennCounts(x)
   vennDiagram(vc)
 }
 
@@ -63,13 +63,13 @@ vennFromSets = function(setList){
 ##' @examples
 ##' aList = list(a=1:5,b=3:6)
 ##' tableFromSets(aList)
-tableFromSets= function(setList){
+tableFromSets <- function(setList) {
   stopifnot(!is.null(names(setList)) && length(setList) %in% 2:3)
-  x = data.frame(row.names=unique(unlist(setList)))
-  for (i in 1:length(setList)){
-    x[names(setList)[i]] = rownames(x) %in% setList[[i]]
+  x <- data.frame(row.names = unique(unlist(setList)))
+  for (i in 1:length(setList)) {
+    x[names(setList)[i]] <- rownames(x) %in% setList[[i]]
   }
-	table(x)
+  table(x)
 }
 
 ##' @title Shrink the dynamic range of a numeric vector, matrix, or data frame
@@ -80,9 +80,9 @@ tableFromSets= function(setList){
 ##' @template roxygen-template
 ##' @examples
 ##' shrinkToRange(1:10,c(2,6))
-shrinkToRange = function(x, theRange){
-  x[ x > theRange[2]] = theRange[2]
-  x[ x < theRange[1]] = theRange[1]
+shrinkToRange <- function(x, theRange) {
+  x[x > theRange[2]] <- theRange[2]
+  x[x < theRange[1]] <- theRange[1]
   return(x)
 }
 
@@ -100,15 +100,14 @@ shrinkToRange = function(x, theRange){
 ##' rownames(m1) = c("a","b")
 ##' colnames(m2) = as.character(1:5)
 ##' interleaveMatricesByColumn(m1,m2)
-interleaveMatricesByColumn = function(x, y, suffixes=c("[Signal]", "[Present]")){
-
-  if (any(colnames(x) != colnames(y))){
+interleaveMatricesByColumn <- function(x, y, suffixes = c("[Signal]", "[Present]")) {
+  if (any(colnames(x) != colnames(y))) {
     stop("incompatible matrices\n", colnames(x), "\n", colnames(y))
   }
-  combined = ezMatrix(NA, rows=rownames(x), cols=1:(ncol(x)*2))
-  combined[ , (1:ncol(x))*2 -1] = x
-  combined[ , (1:ncol(x))*2 ] = y
-  colnames(combined) = paste(rep(colnames(x), each=2), suffixes)
+  combined <- ezMatrix(NA, rows = rownames(x), cols = 1:(ncol(x) * 2))
+  combined[, (1:ncol(x)) * 2 - 1] <- x
+  combined[, (1:ncol(x)) * 2] <- y
+  colnames(combined) <- paste(rep(colnames(x), each = 2), suffixes)
   return(combined)
 }
 
@@ -128,13 +127,13 @@ interleaveMatricesByColumn = function(x, y, suffixes=c("[Signal]", "[Present]"))
 ##' @template roxygen-template
 ##' @examples
 ##' x = ezNorm(runif(100))
-ezNorm = function(x, method="none", presentFlag=NULL){
+ezNorm <- function(x, method = "none", presentFlag = NULL) {
   switch(method,
-         "none"=x,
-         "quantile"=ezQuantileNorm(x),
-         "logMean"=ezLogmeanNorm(x, presentFlag=presentFlag),
-         "median"=ezMedianNorm(x, presentFlag=presentFlag),
-         "vsn"=ezVsnNorm(x),
+    "none" = x,
+    "quantile" = ezQuantileNorm(x),
+    "logMean" = ezLogmeanNorm(x, presentFlag = presentFlag),
+    "median" = ezMedianNorm(x, presentFlag = presentFlag),
+    "vsn" = ezVsnNorm(x),
     stop("Unsupported normalization method: ", method)
   )
 }
@@ -148,10 +147,10 @@ ezNorm = function(x, method="none", presentFlag=NULL){
 ##' @examples
 ##' m1 = matrix(1:20,4)
 ##' m2 = ezQuantileNorm(m1)
-ezQuantileNorm = function(x){
-  norm = preprocessCore::normalize.quantiles(x)
-  colnames(norm) = colnames(x)
-  rownames(norm) = rownames(x)
+ezQuantileNorm <- function(x) {
+  norm <- preprocessCore::normalize.quantiles(x)
+  colnames(norm) <- colnames(x)
+  rownames(norm) <- rownames(x)
   norm
 }
 
@@ -165,8 +164,8 @@ ezQuantileNorm = function(x){
 ##' @examples
 ##' m1 = matrix(1:200,50)
 ##' m2 = ezVsnNorm(m1)
-ezVsnNorm = function(x, lts.quantile=0.6){
-  return(2^vsn::justvsn(x, lts.quantile=lts.quantile))
+ezVsnNorm <- function(x, lts.quantile = 0.6) {
+  return(2^vsn::justvsn(x, lts.quantile = lts.quantile))
 }
 
 ##' @title Convert numeric to factor
@@ -179,20 +178,19 @@ ezVsnNorm = function(x, lts.quantile=0.6){
 ##' @template roxygen-template
 ##' @examples
 ##' x = ezCut(1:10,breaks=c(2,5,7),prefix=letters[1:4])
-ezCut = function(x, breaks, prefix=NULL, labels=NULL){
-
-  if (is.null(labels)){
-    labels = paste("<=", breaks[1])
-    for (i in 2:length(breaks)){
-      labels = c(labels, paste0("(", breaks[i-1], " - ", breaks[i], "]"))
+ezCut <- function(x, breaks, prefix = NULL, labels = NULL) {
+  if (is.null(labels)) {
+    labels <- paste("<=", breaks[1])
+    for (i in 2:length(breaks)) {
+      labels <- c(labels, paste0("(", breaks[i - 1], " - ", breaks[i], "]"))
     }
-    labels = c(labels, paste(">", breaks[length(breaks)]))
-    if (!is.null(prefix)){
-      labels = paste(prefix, labels)
+    labels <- c(labels, paste(">", breaks[length(breaks)]))
+    if (!is.null(prefix)) {
+      labels <- paste(prefix, labels)
     }
   }
-  classes = cut(x, breaks = c(-Inf, breaks, Inf), labels = labels)
-	return(classes)
+  classes <- cut(x, breaks = c(-Inf, breaks, Inf), labels = labels)
+  return(classes)
 }
 
 ##' @title Tests if x contains an error
@@ -204,13 +202,13 @@ ezCut = function(x, breaks, prefix=NULL, labels=NULL){
 ##' isError("error")
 ##' isError(list(a=3:5,error=3))
 ##' isError(list(errrrror=3))
-isError = function(x){
-	if (is.list(x)){
-		if (!is.null(x$error)){
-			return(TRUE)
-		}
-	}
-	return(FALSE)
+isError <- function(x) {
+  if (is.list(x)) {
+    if (!is.null(x$error)) {
+      return(TRUE)
+    }
+  }
+  return(FALSE)
 }
 
 ##' @title Matches patterns and returns a logical vector
@@ -231,18 +229,17 @@ isError = function(x){
 ##' ezGrepl(3,1:40)
 ##' ezGrepl(c(2,4),1:100)
 ##' ezGrepl(c(2,4),1:100,combine="and")
-ezGrepl <- function(patterns, x, combine="or", ...){
-
-  combine = match.arg(combine, c("or", "and"), several.ok = FALSE)
-  result = grepl(patterns[1], x, ...)
-  if (length(patterns) == 1){
+ezGrepl <- function(patterns, x, combine = "or", ...) {
+  combine <- match.arg(combine, c("or", "and"), several.ok = FALSE)
+  result <- grepl(patterns[1], x, ...)
+  if (length(patterns) == 1) {
     return(result)
   }
-  for (pt in patterns[-1]){
-    if (combine == "or"){
-      result = result | grepl(pt, x, ...)
+  for (pt in patterns[-1]) {
+    if (combine == "or") {
+      result <- result | grepl(pt, x, ...)
     } else {
-      result = result & grepl(pt, x, ...)
+      result <- result & grepl(pt, x, ...)
     }
   }
   return(result)
@@ -260,15 +257,14 @@ ezGrepl <- function(patterns, x, combine="or", ...){
 ##' @examples
 ##' ezSplit(letters[1:5], "b")
 ##' ezSplit(rep("abcde", 4), letters[1:4])
-ezSplit = function(x, split, ...){
-
+ezSplit <- function(x, split, ...) {
   splitList <- strsplit(x, split, ...)
-  lengths = sapply(splitList, length)
-  idx = which(lengths != lengths[1])
-  if (length(idx) >0){
+  lengths <- sapply(splitList, length)
+  idx <- which(lengths != lengths[1])
+  if (length(idx) > 0) {
     stop(paste("Row ", idx[1], " length ", lengths[idx[1]], " but expected was ", lengths[1]))
   }
-  result <- matrix(unlist(splitList), nrow=length(splitList), ncol=lengths[1], byrow=TRUE)
+  result <- matrix(unlist(splitList), nrow = length(splitList), ncol = lengths[1], byrow = TRUE)
   rownames(result) <- x
   result
 }
@@ -280,8 +276,8 @@ ezSplit = function(x, split, ...){
 ##' @template roxygen-template
 ##' @examples
 ##' trimWhiteSpace("    bla    ")
-trimWhiteSpace = function (x){
-    sub("[ \t\n\r]*$", "", sub("^[ \t\n\r]*", "", x))
+trimWhiteSpace <- function(x) {
+  sub("[ \t\n\r]*$", "", sub("^[ \t\n\r]*", "", x))
 }
 
 ##' @title Checks if the argument can be safely used as a filename
@@ -292,8 +288,10 @@ trimWhiteSpace = function (x){
 ##' hasFilesafeCharacters("a\n")
 ##' hasFilesafeCharacters(c("1", "2"))
 ##' hasFilesafeCharacters(list("1", "2 x"))
-hasFilesafeCharacters = function(x){
-  sapply(as.character(x), function(y){all(grepl("[a-zA-Z0-9\\+-_\\.]", unlist(strsplit(y, ""))))})
+hasFilesafeCharacters <- function(x) {
+  sapply(as.character(x), function(y) {
+    all(grepl("[a-zA-Z0-9\\+-_\\.]", unlist(strsplit(y, ""))))
+  })
 }
 
 ##' @title Creates a matrix
@@ -307,11 +305,11 @@ hasFilesafeCharacters = function(x){
 ##' @examples
 ##' ezMatrix(1,rows=1:4,cols=1:3)
 ##' ezMatrix(3:6,dim=c(4,6))
-ezMatrix <- function(x, rows=NULL, cols=NULL, dim=NULL){
-  if(is.null(rows) && is.null(cols)){
-    return(ezMatrix(x, rows=1:dim[1], cols=1:dim[2]))
+ezMatrix <- function(x, rows = NULL, cols = NULL, dim = NULL) {
+  if (is.null(rows) && is.null(cols)) {
+    return(ezMatrix(x, rows = 1:dim[1], cols = 1:dim[2]))
   }
-  matrix(x, nrow=length(rows), ncol=length(cols), dimnames=list(rows, cols))
+  matrix(x, nrow = length(rows), ncol = length(cols), dimnames = list(rows, cols))
 }
 
 ##' @title Scales columns of a matrix
@@ -322,8 +320,8 @@ ezMatrix <- function(x, rows=NULL, cols=NULL, dim=NULL){
 ##' @template roxygen-template
 ##' @examples
 ##' x = ezScaleColumns(matrix(1:20, 5), 1:4)
-ezScaleColumns = function(x, scaling){
-  ans <- sweep(x, MARGIN=2, STATS=scaling, FUN="*")
+ezScaleColumns <- function(x, scaling) {
+  ans <- sweep(x, MARGIN = 2, STATS = scaling, FUN = "*")
   return(ans)
 }
 
@@ -340,28 +338,26 @@ ezScaleColumns = function(x, scaling){
 ##' m2 = ezMedianNorm(m1)
 ##' m3 = ezMedianNorm(m1, target=10)
 ##' m4 = ezMedianNorm(m1, use=c(TRUE, FALSE))
-ezMedianNorm = function(x, use=NULL, target=NULL, presentFlag=NULL){
-
-  sf = ezMedianScalingFactor(x, use=use, target=target, presentFlag=presentFlag)
+ezMedianNorm <- function(x, use = NULL, target = NULL, presentFlag = NULL) {
+  sf <- ezMedianScalingFactor(x, use = use, target = target, presentFlag = presentFlag)
   return(ezScaleColumns(x, sf))
 }
 
 ##' @describeIn ezMedianNorm Calculates the scaling factor for the main function.
-ezMedianScalingFactor = function(x, use=NULL, target=NULL, presentFlag=NULL){
-
-  if (is.null(use)){
-    use = rep(TRUE, nrow(x))
+ezMedianScalingFactor <- function(x, use = NULL, target = NULL, presentFlag = NULL) {
+  if (is.null(use)) {
+    use <- rep(TRUE, nrow(x))
   }
-  if (!is.null(presentFlag)){
-    isAllPresent = apply(presentFlag, 1, all)
-    use = use & isAllPresent
+  if (!is.null(presentFlag)) {
+    isAllPresent <- apply(presentFlag, 1, all)
+    use <- use & isAllPresent
   }
-  medians <- apply(x[use, ], 2, median, na.rm=TRUE)
-  if (is.null(target)){
-    target = median(medians)
+  medians <- apply(x[use, ], 2, median, na.rm = TRUE)
+  if (is.null(target)) {
+    target <- median(medians)
   }
-  sf = target / medians
-  names(sf) = colnames(x)
+  sf <- target / medians
+  names(sf) <- colnames(x)
   return(sf)
 }
 
@@ -376,29 +372,31 @@ ezMedianScalingFactor = function(x, use=NULL, target=NULL, presentFlag=NULL){
 ##' m2 = ezLogmeanNorm(m1)
 ##' m3 = ezLogmeanNorm(m1,target=10)
 ##' m4 = ezLogmeanNorm(m1,use=c(TRUE,FALSE))
-ezLogmeanNorm = function(x, use=NULL, target=NULL, presentFlag=NULL){
-	sf <- ezLogmeanScalingFactor(x, use=use, target=target,
-	                             presentFlag=presentFlag)
+ezLogmeanNorm <- function(x, use = NULL, target = NULL, presentFlag = NULL) {
+  sf <- ezLogmeanScalingFactor(x,
+    use = use, target = target,
+    presentFlag = presentFlag
+  )
   return(ezScaleColumns(x, sf))
 }
 
 ##' @describeIn ezLogmeanNorm Calculates the scaling factor for the main function.
-ezLogmeanScalingFactor = function(x, use=NULL, target=NULL, presentFlag=NULL){
+ezLogmeanScalingFactor <- function(x, use = NULL, target = NULL, presentFlag = NULL) {
   x.log <- log(x)
-  if (is.null(use)){
-    use = rep(TRUE, nrow(x))
+  if (is.null(use)) {
+    use <- rep(TRUE, nrow(x))
   }
-  if (!is.null(presentFlag)){
-    isAllPresent = apply(presentFlag, 1, all)
-    use = use & isAllPresent
+  if (!is.null(presentFlag)) {
+    isAllPresent <- apply(presentFlag, 1, all)
+    use <- use & isAllPresent
   }
-  means <- apply(x.log[use, , drop=FALSE], 2, mean, na.rm=TRUE)
-	if (is.null(target)){
-		target = exp(mean(means))
-	}
-	sf = target / exp(means)
-	names(sf) = colnames(x)
-	return(sf)
+  means <- apply(x.log[use, , drop = FALSE], 2, mean, na.rm = TRUE)
+  if (is.null(target)) {
+    target <- exp(mean(means))
+  }
+  sf <- target / exp(means)
+  names(sf) <- colnames(x)
+  return(sf)
 }
 
 ##' @title Geometric mean
@@ -410,7 +408,7 @@ ezLogmeanScalingFactor = function(x, use=NULL, target=NULL, presentFlag=NULL){
 ##' @templateVar fun mean()
 ##' @examples
 ##' ezGeomean(1:10)
-ezGeomean <- function(x, ...){
+ezGeomean <- function(x, ...) {
   exp(mean(log(x), ...))
 }
 
@@ -427,11 +425,13 @@ ezGeomean <- function(x, ...){
 ##' m2 = averageColumns(m1,1)
 ##' m3 = averageColumns(m1,c(4,2,3,1))
 ##' m4 = averageColumns(m1,c(1,1,2,2))
-averageColumns = function(x, by=NULL, func=function(x){mean(x, na.rm=TRUE)}){
-  cols = sort(unique(by))
-  result = ezMatrix(NA, rows=rownames(x), cols=cols)
-  for (c in cols){
-    result[ ,c] = apply(x[ , c == by, drop=FALSE], 1, func)
+averageColumns <- function(x, by = NULL, func = function(x) {
+                             mean(x, na.rm = TRUE)
+                           }) {
+  cols <- sort(unique(by))
+  result <- ezMatrix(NA, rows = rownames(x), cols = cols)
+  for (c in cols) {
+    result[, c] <- apply(x[, c == by, drop = FALSE], 1, func)
   }
   result
 }
@@ -454,12 +454,11 @@ averageColumns = function(x, by=NULL, func=function(x){mean(x, na.rm=TRUE)}){
 ##' m1 = matrix(1:20,5)
 ##' averageRows(m1,c(1,1,2,2,3))
 # why by=labels here and before by=NULL? Neither seem to work if not defined by the user.
-averageRows = function(data, by=labels, func=mean, ...){
-
-  by <- list(AveragingID=by)
-  data <- aggregate(data, by=by, func, ...)
-  rownames(data) = data$AveragingID
-  data$AveragingID = NULL
+averageRows <- function(data, by = labels, func = mean, ...) {
+  by <- list(AveragingID = by)
+  data <- aggregate(data, by = by, func, ...)
+  rownames(data) <- data$AveragingID
+  data$AveragingID <- NULL
   return(data)
 }
 
@@ -471,47 +470,48 @@ averageRows = function(data, by=labels, func=mean, ...){
 ##' @examples
 ##' l1 = list(a=1:3, b=c(2,5), c=4:8)
 ##' inverseMapping(l1)
-inverseMapping = function(xList){
-
-	mm = makeMultiMapping(xList)
-  invMap = tapply(mm$source, mm$target, function(x){list(x)})
+inverseMapping <- function(xList) {
+  mm <- makeMultiMapping(xList)
+  invMap <- tapply(mm$source, mm$target, function(x) {
+    list(x)
+  })
   return(invMap)
 }
 
 ##' @describeIn inverseMapping Unlists the input and returns a data.frame with separated names and values.
-makeMultiMapping = function(xList){
-
-	target = unlist(xList, use.names=FALSE)
-	counts = sapply(xList, length)
-  source = rep(names(xList), times=counts)
-	data.frame(source=source, target=target, stringsAsFactors = FALSE)
+makeMultiMapping <- function(xList) {
+  target <- unlist(xList, use.names = FALSE)
+  counts <- sapply(xList, length)
+  source <- rep(names(xList), times = counts)
+  data.frame(source = source, target = target, stringsAsFactors = FALSE)
 }
 
 # TODO(Rsge not supported anymore, still waiting for a reply of the authors to use their source code.)
-.ezSgelapply = function(jobList, FUN, param, queue="GT", cores=4, ram=10, scratch=50, mailto=NULL,
-                        saveGlobal=TRUE, removeFiles=TRUE){
-  #library(Rsge, warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
-  sge.options("sge.qsub.options"=paste0("-cwd -q ", queue,
-                                       " -pe smp ", cores,
-                                       ##" -l C=1",
-                                       " -l R=", round(ram/cores, digits=2),
-                                       " -l S=", round(scratch/cores, digits=2)))
-  sge.options("sge.save.global"=saveGlobal)
-  sge.options("sge.remove.files"=removeFiles)
+.ezSgelapply <- function(jobList, FUN, param, queue = "GT", cores = 4, ram = 10, scratch = 50, mailto = NULL,
+                         saveGlobal = TRUE, removeFiles = TRUE) {
+  # library(Rsge, warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
+  sge.options("sge.qsub.options" = paste0(
+    "-cwd -q ", queue,
+    " -pe smp ", cores,
+    ## " -l C=1",
+    " -l R=", round(ram / cores, digits = 2),
+    " -l S=", round(scratch / cores, digits = 2)
+  ))
+  sge.options("sge.save.global" = saveGlobal)
+  sge.options("sge.remove.files" = removeFiles)
   ## TODO jobs must inspect NSLOTS in order to know how many threads to use!!
 
-  sgeFunc = function(x, FUN=NULL, param=NULL){
-    cwd = getwd()
-    wd = paste("/scratch/rjob", ezTime(), Sys.getpid(), sep="_")
+  sgeFunc <- function(x, FUN = NULL, param = NULL) {
+    cwd <- getwd()
+    wd <- paste("/scratch/rjob", ezTime(), Sys.getpid(), sep = "_")
     stopifnot(!file.exists(wd))
     setwdNew(wd)
-    result = FUN(x, param)
+    result <- FUN(x, param)
     setwd(cwd)
-    unlink(wd, recursive=TRUE)
+    unlink(wd, recursive = TRUE)
     return(result)
-
   }
-  sge.parLapply(jobList, sgeFunc, FUN, param, njobs=length(jobList))
+  sge.parLapply(jobList, sgeFunc, FUN, param, njobs = length(jobList))
 }
 
 ##' @title Parallel version of \code{lapply()}
@@ -530,22 +530,26 @@ makeMultiMapping = function(xList){
 ##' @examples
 ##' l1 = list(a=1:3, b=c(2,5), c=4:8)
 ##' ezMclapply(l1,sum)
-ezMclapply = function(x, FUN, ..., mc.preschedule = TRUE, mc.set.seed = TRUE, mc.silent = FALSE, mc.cores=min(length(x), ezThreads())){
+ezMclapply <- function(x, FUN, ..., mc.preschedule = TRUE, mc.set.seed = TRUE, mc.silent = FALSE, mc.cores = min(length(x), ezThreads())) {
   require(parallel)
-  mc.cores = min(mc.cores, length(x))
-  if (mc.cores == 1){
+  mc.cores <- min(mc.cores, length(x))
+  if (mc.cores == 1) {
     return(lapply(x, FUN, ...))
   }
-  result = mclapply(x, FUN, ..., mc.preschedule = mc.preschedule, mc.set.seed = mc.set.seed,
-                    mc.silent = mc.silent, mc.cores = mc.cores)
+  result <- mclapply(x, FUN, ...,
+    mc.preschedule = mc.preschedule, mc.set.seed = mc.set.seed,
+    mc.silent = mc.silent, mc.cores = mc.cores
+  )
   gc()
-  isError = sapply(result, function(x){any(grepl("error", class(x), ignore.case=TRUE))})
-  if (any(isError)){
+  isError <- sapply(result, function(x) {
+    any(grepl("error", class(x), ignore.case = TRUE))
+  })
+  if (any(isError)) {
     sapply(result[isError], print)
     stop("mclapply failed")
   }
-  isNull = sapply(result, is.null)
-  if (any(isNull)){
+  isNull <- sapply(result, is.null)
+  if (any(isNull)) {
     stop("mclapply returned NULL results: ", sum(isNull), " / ", length(isNull))
   }
   return(result)
@@ -567,21 +571,22 @@ ezMclapply = function(x, FUN, ..., mc.preschedule = TRUE, mc.set.seed = TRUE, mc
 ##' v1 = c(1,2,3,4,5,4,3,2,3,4,5,6,7,8,7)
 ##' ezDuplicated(v1)
 ##' ezDuplicated(v1,"all")
-ezDuplicated = function(x, mode="keepFirst"){
-	switch(mode,
-				 "keepFirst"=duplicated(x),
-				 "keepLast" = rev(duplicated(rev(x))),
-				 "random"={
-						n = length(x);
-						idx = sample(1:n, n, replace = FALSE);
-						isDup = rep(FALSE, n);
-						isDup[idx] = duplicated(x[idx]);
-						return(isDup)
-				 },
-				 "all"={
-						dups = unique(x[duplicated(x)])
-						return(x %in% dups)
-				 })
+ezDuplicated <- function(x, mode = "keepFirst") {
+  switch(mode,
+    "keepFirst" = duplicated(x),
+    "keepLast" = rev(duplicated(rev(x))),
+    "random" = {
+      n <- length(x)
+      idx <- sample(1:n, n, replace = FALSE)
+      isDup <- rep(FALSE, n)
+      isDup[idx] <- duplicated(x[idx])
+      return(isDup)
+    },
+    "all" = {
+      dups <- unique(x[duplicated(x)])
+      return(x %in% dups)
+    }
+  )
 }
 
 ##' @title Which values occur at least \code{n} times?
@@ -602,22 +607,23 @@ ezDuplicated = function(x, mode="keepFirst"){
 ##' ezMultiplicated(v1)
 ##' ezMultiplicated(v1,3)
 ##' ezMultiplicated(v1,2,"all")
-ezMultiplicated = function(x, n=2, mode="keepFirst"){
-	stopifnot(n >= 1)
-	if (n == 1){
-	  return(rep(TRUE, length(x)))
-	}
-	if (mode == "all"){
-    return (x %in% unique(x[ezMultiplicated(x, n=n, mode="keepFirst")]))
+ezMultiplicated <- function(x, n = 2, mode = "keepFirst") {
+  stopifnot(n >= 1)
+  if (n == 1) {
+    return(rep(TRUE, length(x)))
   }
-  idx = switch(mode,
-             keepFirst=1:length(x),
-             random=sample(1:length(x), length(x), replace=FALSE),
-             keepLast=length(x):1)
-  x = x[idx]
-  isMulti = ezReplicateNumber(x) >= n
-  isMulti[idx] = isMulti
-	return(isMulti)
+  if (mode == "all") {
+    return(x %in% unique(x[ezMultiplicated(x, n = n, mode = "keepFirst")]))
+  }
+  idx <- switch(mode,
+    keepFirst = 1:length(x),
+    random = sample(1:length(x), length(x), replace = FALSE),
+    keepLast = length(x):1
+  )
+  x <- x[idx]
+  isMulti <- ezReplicateNumber(x) >= n
+  isMulti[idx] <- isMulti
+  return(isMulti)
 }
 
 ##' @title Count how often a value has been seen before
@@ -627,8 +633,10 @@ ezMultiplicated = function(x, n=2, mode="keepFirst"){
 ##' @examples
 ##' x = c("a", "c", "a", "b", "c")
 ##' ezReplicateNumber(x)
-ezReplicateNumber = function(x){
-  idx = unsplit(tapply(x, x, function(y){1:length(y)}), x)
+ezReplicateNumber <- function(x) {
+  idx <- unsplit(tapply(x, x, function(y) {
+    1:length(y)
+  }), x)
 }
 
 ##' @title Collapses a vector in a single character
@@ -644,21 +652,21 @@ ezReplicateNumber = function(x){
 ##' l1 = list(a=c(1,"",6),c=c("rsrg","yjrt",NA,6))
 ##' ezCollapse(l1,sep="_")
 ##' ezCollapse(l1,na.rm=T,empty.rm=T,uniqueOnly=T)
-ezCollapse = function(x, sep="; ", na.rm=FALSE, empty.rm=FALSE, uniqueOnly=FALSE){
-  if (length(x) == 0){
+ezCollapse <- function(x, sep = "; ", na.rm = FALSE, empty.rm = FALSE, uniqueOnly = FALSE) {
+  if (length(x) == 0) {
     return("")
   }
-  x = unlist(x)
-  if (na.rm){
-    x = x[!is.na(x)]
+  x <- unlist(x)
+  if (na.rm) {
+    x <- x[!is.na(x)]
   }
-  if (empty.rm){
-    x = x[x != ""];
+  if (empty.rm) {
+    x <- x[x != ""]
   }
-  if (uniqueOnly){
-    x = unique(x)
+  if (uniqueOnly) {
+    x <- unique(x)
   }
-  paste(x, collapse=sep)
+  paste(x, collapse = sep)
 }
 
 ##' @title Splits long labels into two lines
@@ -675,12 +683,12 @@ ezCollapse = function(x, sep="; ", na.rm=FALSE, empty.rm=FALSE, uniqueOnly=FALSE
 ##' plot(1:3, xaxt="n", xlab="")
 ##' splittedLabels = ezSplitLongLabels(charVec, nSplit=22)
 ##' axis(1, at=1:3, labels=splittedLabels, las=2)
-ezSplitLongLabels = function(labels, nSplit=20){
-  for (i in 1:length(labels)){
-    if (nchar(labels[i]) > nSplit){
-      firstLine = substr(labels[i], 1, nSplit)
-      secondLine = substr(labels[i], nSplit + 1, nchar(labels[i]))
-      labels[i] = paste0(firstLine, "\n", secondLine)
+ezSplitLongLabels <- function(labels, nSplit = 20) {
+  for (i in 1:length(labels)) {
+    if (nchar(labels[i]) > nSplit) {
+      firstLine <- substr(labels[i], 1, nSplit)
+      secondLine <- substr(labels[i], nSplit + 1, nchar(labels[i]))
+      labels[i] <- paste0(firstLine, "\n", secondLine)
     }
   }
   return(labels)
@@ -688,64 +696,74 @@ ezSplitLongLabels = function(labels, nSplit=20){
 
 # perhaps not useful
 ##' @describeIn ezSplitLongLabels Splits long character lines into several.
-ezSplitLongText = function(text, nSplit=180){
-  if (nchar(text) <= nSplit) return(text)
-  splittedText = character()
-  while (nchar(text) > nSplit){
-    splittedText = paste0(splittedText, substr(text, 1, nSplit), "\n")
-    text = substr(text, nSplit + 1, nchar(text))
+ezSplitLongText <- function(text, nSplit = 180) {
+  if (nchar(text) <= nSplit) {
+    return(text)
   }
-  splittedText = paste0(splittedText, text)
+  splittedText <- character()
+  while (nchar(text) > nSplit) {
+    splittedText <- paste0(splittedText, substr(text, 1, nSplit), "\n")
+    text <- substr(text, nSplit + 1, nchar(text))
+  }
+  splittedText <- paste0(splittedText, text)
   return(splittedText)
 }
 
-isValidEnvironments <- function(tool){
+isValidEnvironments <- function(tool) {
   tool <- tolower(tool)
   ans <- switch(tool,
-                "conda"=Sys.which("conda") != "",
-                "ataqv"=Sys.which("ataqv") != "",
-                stop("unsupported tool: ", tool)
-                )
+    "conda" = Sys.which("conda") != "",
+    "ataqv" = Sys.which("ataqv") != "",
+    stop("unsupported tool: ", tool)
+  )
   return(ans)
 }
 
-setEnvironments <- function(tool, envir=parent.frame()){
+setEnvironments <- function(tool, envir = parent.frame()) {
   tool <- tolower(tool)
-  if(!isTRUE(isValidEnvironments(tool))){
+  if (!isTRUE(isValidEnvironments(tool))) {
     cmd <- switch(tool,
-                  "conda"=expression({Sys.setenv("PATH"=paste("/usr/local/ngseq/miniconda3/bin", Sys.getenv("PATH"), sep=":"))}),
-                  "ataqv"=expression({Sys.setenv("PATH"=paste("/usr/local/ngseq/packages/Tools/ataqv/1.0.0/bin", Sys.getenv("PATH"), sep=":"))}),
-                  stop("unsupported tool: ", tool)
+      "conda" = expression({
+        Sys.setenv("PATH" = paste("/usr/local/ngseq/miniconda3/bin", Sys.getenv("PATH"), sep = ":"))
+      }),
+      "ataqv" = expression({
+        Sys.setenv("PATH" = paste("/usr/local/ngseq/packages/Tools/ataqv/1.0.0/bin", Sys.getenv("PATH"), sep = ":"))
+      }),
+      stop("unsupported tool: ", tool)
     )
-    eval(cmd, envir=envir)
+    eval(cmd, envir = envir)
   }
 }
 
-prepareJavaTools <- function(tool=c("picard", "gatk", "snpeff")){
+prepareJavaTools <- function(tool = c("picard", "gatk", "snpeff")) {
   tool <- match.arg(tool)
-  tool_jar <- c("picard"="Picard_jar",
-                "gatk"="GATK_jar",
-                "snpeff"="SnpEff")
-  if(Sys.which(tool) != ""){
-    if(tool == "gatk"){
+  tool_jar <- c(
+    "picard" = "Picard_jar",
+    "gatk" = "GATK_jar",
+    "snpeff" = "SnpEff"
+  )
+  if (Sys.which(tool) != "") {
+    if (tool == "gatk") {
       return("gatk --java-options \"-Xms1g -Xmx10g -Djava.io.tmpdir=.\"")
-    }else{
+    } else {
       return(str_c(tool, "-Xms1g -Xmx10g -Djava.io.tmpdir=.", sep = " "))
     }
-  }else if(Sys.getenv(tool_jar[tool]) != ""){
-    return(str_c("java -jar -Xms1g -Xmx10g -Djava.io.tmpdir=.",
-                 Sys.getenv(tool_jar[tool]), sep = " "))
-  }else{
+  } else if (Sys.getenv(tool_jar[tool]) != "") {
+    return(str_c("java -Xms1g -Xmx10g -Djava.io.tmpdir=.  -jar",
+      Sys.getenv(tool_jar[tool]),
+      sep = " "
+    ))
+  } else {
     stop("Cannot find proper ", tool, " installed!")
   }
 }
 
 ## extend intersect to multiple arguments
 ## does only support operations on arguments that are elementary data types not on lists
-ezIntersect = function(...){
-  x = list(...)
-  if (length(x) == 1 && is.list(x[[1]])){
-    x = x[[1]]
+ezIntersect <- function(...) {
+  x <- list(...)
+  if (length(x) == 1 && is.list(x[[1]])) {
+    x <- x[[1]]
   }
   Reduce(intersect, x)
 }
@@ -753,56 +771,66 @@ ezIntersect = function(...){
 
 ## extend union to multiple arguments
 ## does only support operations on arguments that are elementary data types not on lists
-ezUnion = function(...){
-  x = list(...)
-  if (length(x) == 1 && is.list(x[[1]])){
-    x = x[[1]]
+ezUnion <- function(...) {
+  x <- list(...)
+  if (length(x) == 1 && is.list(x[[1]])) {
+    x <- x[[1]]
   }
   Reduce(union, x)
 }
 
 ## extend rbind to combine multiple elements
 ## arguments can alfready be combined as a list
-ezRbind = function(...){
-  x = list(...)
-  if (length(x) == 1 && is.list(x[[1]])){
-    x = x[[1]]
+ezRbind <- function(...) {
+  x <- list(...)
+  if (length(x) == 1 && is.list(x[[1]])) {
+    x <- x[[1]]
   }
   do.call(rbind, x)
 }
 
-ezCbind = function(...){
-  x = list(...)
-  if (length(x) == 1 && is.list(x[[1]])){
-    x = x[[1]]
+ezCbind <- function(...) {
+  x <- list(...)
+  if (length(x) == 1 && is.list(x[[1]])) {
+    x <- x[[1]]
   }
   do.call(cbind, x)
 }
 
-makeRmdReport = function(..., htmlFile="00index.html", rmdFile='',
-                         linkHtmlLibDir=NULL, reportTitle="SUSHI Report"){
-  varList = list(...)
-  for (nm in names(varList)){
-    saveRDS(varList[[nm]], file=paste0(nm, ".rds"))
+makeRmdReport <- function(..., htmlFile = "00index.html", rmdFile = "",
+                          linkHtmlLibDir = NULL, reportTitle = "SUSHI Report") {
+  varList <- list(...)
+  for (nm in names(varList)) {
+    saveRDS(varList[[nm]], file = paste0(nm, ".rds"))
   }
   ## Copy the style files and templates
-  styleFiles <- file.path(system.file("templates", package="ezRun"),
-                          c(rmdFile, "fgcz.css",
-                            "fgcz_header.html", "banner.png"))
-  file.copy(from=styleFiles, to=".", overwrite=TRUE)
-  rmarkdown::render(input=rmdFile, envir = new.env(),
-                    output_dir=".", output_file=htmlFile, quiet=TRUE)
-  prepareRmdLib(linkHtmlLibDir=linkHtmlLibDir)
+  styleFiles <- file.path(
+    system.file("templates", package = "ezRun"),
+    c(
+      rmdFile, "fgcz.css",
+      "fgcz_header.html", "banner.png"
+    )
+  )
+  file.copy(from = styleFiles, to = ".", overwrite = TRUE)
+  rmarkdown::render(
+    input = rmdFile, envir = new.env(),
+    output_dir = ".", output_file = htmlFile, quiet = TRUE
+  )
+  prepareRmdLib(linkHtmlLibDir = linkHtmlLibDir)
 }
 
-prepareRmdLib <- function(linkHtmlLibDir=NULL){
+prepareRmdLib <- function(linkHtmlLibDir = NULL) {
   ## Link the rmarkdownLib
-  if (ezIsSpecified(linkHtmlLibDir)){
-    file.copy(from=list.files("rmarkdownLib", full.names = TRUE),
-              to="/srv/GT/reference/rmarkdownLib",
-              recursive=TRUE, overwrite=FALSE)
+  if (ezIsSpecified(linkHtmlLibDir)) {
+    file.copy(
+      from = list.files("rmarkdownLib", full.names = TRUE),
+      to = "/srv/GT/reference/rmarkdownLib",
+      recursive = TRUE, overwrite = FALSE
+    )
     unlink("rmarkdownLib", recursive = TRUE)
-    file.symlink(from = linkHtmlLibDir,
-                 to = "rmarkdownLib")
+    file.symlink(
+      from = linkHtmlLibDir,
+      to = "rmarkdownLib"
+    )
   }
 }
