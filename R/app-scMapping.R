@@ -152,9 +152,9 @@ ezMethodSingleCellSTAR <- function(input = NA, output = NA, param = NA) {
   cmd <- str_c(
     "STAR", " --genomeDir", refDir, "--sjdbOverhang 150",
     "--readFilesIn", alignerInput$getColumn("Read1"),
-    if_else(param$paired, alignerInput$getColumn("Read2"), ""),
+    ifelse(param$paired, alignerInput$getColumn("Read2"), ""),
     "--twopassMode", if_else(param$twopassMode, "Basic", "None"),
-    if_else(ezIsSpecified(param$controlSeqs),
+    ifelse(ezIsSpecified(param$controlSeqs),
             str_c("--genomeFastaFiles", controlSeqsLocalFn, sep = " "), ""),
     "--runThreadN", param$cores, param$cmdOptions,
     "--outStd BAM_Unsorted --outSAMtype BAM Unsorted", ">  Aligned.out.bam",
