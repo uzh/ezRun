@@ -1,11 +1,8 @@
 # ezRun
-An R meta-package for the analysis of Next Generation Sequencing data
+An R meta-package for the analysis of Next Generation Sequencing data.
 
-## Installation of the development version of `ezRun` from github
+The version of `ezRun` package is bound to the release of Bioconductor development branch.
 
-```R
-remotes::install_github("uzh/ezRun")
-```
 ## Dependencies of Python packages
 ```Python
 pip3 install velocyto magic-impute
@@ -41,3 +38,9 @@ remotes::install_github("velocyto-team/velocyto.R")
 ## Dependencies of external software
 * bwa, bowtie, bowtie2, STAR, picard, sambamba, samtools, igvtools
 * lsof
+
+
+## Installation of the development version of `ezRun` from github
+```R
+remotes::install_github("uzh/ezRun")
+```
