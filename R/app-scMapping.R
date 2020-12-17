@@ -190,7 +190,7 @@ ezMethodSingleCellSTAR <- function(input = NA, output = NA, param = NA) {
       ram = param$ram, removeBam = TRUE, cores = nSortThreads
     )
     dupBam(inBam = "sorted.bam", outBam = basename(bamFile), operation = "mark")
-    file.remove("sorted.bam")
+    file.remove(c("sorted.bam", "sorted.bam.bai"))
   } else {
     ezSortIndexBam("Aligned.out.bam", basename(bamFile),
       ram = param$ram, removeBam = TRUE, cores = nSortThreads
