@@ -44,3 +44,6 @@ remotes::install_github("velocyto-team/velocyto.R")
 ```R
 remotes::install_github("uzh/ezRun")
 ```
+
+## Development of `ezRun` package at FGCZ environment
+Always at the conda environment `ezRun` during the development. The conda environment contains the necessary external tools/software.
