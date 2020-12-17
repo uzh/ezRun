@@ -66,6 +66,7 @@ ezMethodTrinity = function(input=NA, output=NA, param=NA, htmlFile="00index.html
               "--est_method", abundanceMethod,
               "--out_prefix", abundancePrefix,
               "--name_sample_by_basedir",
+              "--gene_trans_map none",
               paste(abundanceFiles, collapse = " "))
   ezSystem(cmd)
   cmd = paste("$Trinity/util/misc/contig_ExN50_statistic.pl", 
