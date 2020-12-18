@@ -179,7 +179,7 @@ runKraken <- function(param, input) {
                  "--gzip-compressed --threads", param$cores, "--report", 
                  resultFile, ">sequences.kraken")
     ezSystem(cmd)
-    if (length(readLines(resultFile) > 0)){
+    if (length(readLines(resultFile)) > 0){
       data <- ezRead.table(resultFile, row.names = NULL)
       colnames(data) <- c("readPercentage", "nreads_clade", "nreads_taxon", "rankCode", "ncbi", "name")
       ## sort and filter results -- could also be done later
