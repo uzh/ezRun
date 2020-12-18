@@ -173,26 +173,26 @@ get_rRNA_Strandness <- function(param, input) {
 runKraken <- function(param, input) {
   r1Files <- input$getFullPaths("Read1")
   krakenResult <- list()
-  for (i in 1:length(r1Files)) {
-    resultFile <- paste0("report_", names(r1Files)[i], ".kraken")
-    cmd <- paste("kraken2 --db", KRAKEN2_DB, r1Files[i],
+  for (nm in names(r1Files)) {
+    resultFile <- paste0("report_", nm, ".kraken")
+    cmd <- paste("kraken2 --db", KRAKEN2_DB, r1Files[nm],
                  "--gzip-compressed --threads", param$cores, "--report", 
                  resultFile, ">sequences.kraken")
     ezSystem(cmd)
-    ## simple result filtering
-    data <- ezRead.table(resultFile, row.names = NULL)
-    colnames(data) <- c("readPercentage", "nreads_clade", "nreads_taxon", "rankCode", "ncbi", "name")
-    data <- data[data$rankCode %in% c("U", "S"), ]
-    data <- data[order(data$readPercentage, decreasing = TRUE), ]
-    data <- data[!(data$ncbi %in% c(1, 131567, 136843)), ] # remove general terms
-
-    ## save table for report
-    ezWrite.table(data, resultFile, row.names = FALSE)
-    data <- data[!(data$ncbi %in% c(0)), ]
-    data <- data[1:min(nrow(data), 10), ]
-    krakenResult[[i]] <- data
+    if (length(readLines(resultFile) > 0)){
+      data <- ezRead.table(resultFile, row.names = NULL)
+      colnames(data) <- c("readPercentage", "nreads_clade", "nreads_taxon", "rankCode", "ncbi", "name")
+      ## sort and filter results -- could also be done later
+      data <- data[data$rankCode %in% c("U", "S"), ]
+      data <- data[order(data$readPercentage, decreasing = TRUE), ]
+      termsToRemove = c(0, 1, 131567, 136843)
+      data <- data[!(data$ncbi %in% termsToRemove), ] # remove general terms
+    } else {
+      data = ezFrame("readPercentage"=numeric(0), "nreads_clade"=numeric(0), "nreads_taxon"=numeric(0), 
+                     "rankCode"=character(0), "ncbi"=character(0), "name"=numeric(0))
+    }
+    krakenResult[[nm]] <- data
   }
-  names(krakenResult) <- names(r1Files)
   file.remove("sequences.kraken")
   return(krakenResult)
 }
