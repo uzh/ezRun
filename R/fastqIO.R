@@ -300,7 +300,8 @@ ezMethodSubsampleFastq <- function(input = NA, output = NA, param = NA, n = 1e6)
     }
     output$dataRoot <- NULL
   }
-  output$setColumn("Read Count", n)
+  nSubsampled = ifelse(input$getColumn("Read Count") < n, input$getColumn("Read Count"), n)
+  output$setColumn("Read Count", nSubsampled)
 
   dataset <- input$meta
   samples <- rownames(dataset)
