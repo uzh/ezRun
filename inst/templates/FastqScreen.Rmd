@@ -170,7 +170,7 @@ if (nrow(dataset) > 1){
 if (nrow(dataset) > 1){
   rinCol <- colnames(dataset)[grep('RIN', colnames(dataset))]
   if(length(rinCol) == 1){
-    dataset[['rRNA_Content']] <- rRNA_mappingRate$Sense + rRNA_mappingRate$Antisense
+    dataset[['rRNA_Content']] <- rRNAstrandResult$Sense + rRNAstrandResult$Antisense
     c <- makeScatterplot(dataset, colname1 = rinCol, colname2='rRNA_Content')
     c
   }
