@@ -113,8 +113,10 @@ Abundances above 5% are truncated.
 for (nm in samples){
   x = krakenResult[[nm]]
   par(mar=c(15.1, 4.1, 4.1, 2.1))
-  bplot = barplot(x$readPercentage, names.arg = x$name, col = 'royalblue3', 
-                  main = nm, ylab = 'Mapped Reads in %', las = 2, ylim=c(0, 5))
+  if (nrow(x) > 0){
+    barplot(x$readPercentage, names.arg = x$name, col = 'royalblue3', 
+                    main = nm, ylab = 'Mapped Reads in %', las = 2, ylim=c(0, 5))
+  }
 }
 ```
 
