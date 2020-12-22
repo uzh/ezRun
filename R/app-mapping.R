@@ -228,7 +228,7 @@ ezMethodSTAR <- function(input = NA, output = NA, param = NA) {
   cmd <- str_c(
     "STAR", "--genomeDir", refDir,
     "--readFilesIn", trimmedInput$getColumn("Read1"),
-    if_else(param$paired, trimmedInput$getColumn("Read2"), ""),
+    if (param$paired) trimmedInput$getColumn("Read1"),
     "--twopassMode", if_else(param$twopassMode, "Basic", "None"),
     "--runThreadN", param$cores, param$cmdOptions,
     "--outStd BAM_Unsorted --outSAMtype BAM Unsorted",
