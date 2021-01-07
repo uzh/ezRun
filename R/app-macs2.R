@@ -47,7 +47,8 @@ ezMethodMacs2 = function(input=NA, output=NA, param=NA){
       outBam <- basename(output$getColumn("BAM"))
       dupBam(inBam=bamFile, outBam=outBam, operation="remove")
     } else {
-      outBam <- bamFile
+      file.copy(from=bamFile, to=outBam, overwrite=TRUE)
+      Rsamtools::indexBam(outBam)
     }
 
     if (isTRUE(param$useControl)){
