@@ -25,55 +25,58 @@ With the file-based representation the reference genomes are available to extern
 
 This pipeline has been tested for Ensembl and GENCODE annotation.
 
-## Ensembl
-Here we give an exmaple of human reference annotation from Ensembl.
+To have necessary external tools available to R, activate the conda environment "ezRun"
+```{r conda env}
+library(ezRun)
+library(reticulate)
+use_condaenv("ezRun", conda = "/usr/local/ngseq/miniconda3/bin/conda",
+             required = TRUE)
+py_discover_config()
+```
 
+## GENCODE
+Here we give an exmaple of human reference annotation from GENCODE.
 ```{r humanSetup, echo=TRUE, eval=TRUE}
-GENOMES_ROOT <<- "."
 organism <- "Homo_sapiens"
-db <- "Ensembl"
-build <- "GRCh38.p10"
+db <- "GENCODE"
+build <- "GRCh38.p13"
+release <- "Release_35"
 ```
 
 ```{r humanDownload, echo=TRUE, eval=FALSE}
-## We download the reference genome and gtf from Ensembl release 89
-gtfURL <- "ftp://ftp.ensembl.org/pub/release-89/homo_sapiens/Homo_sapiens.GRCh38.89.gtf.gz"
+## We download the reference genome and gtf from GENCODE release 35
+gtfURL <- "ftp://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_35/gencode.v35.primary_assembly.annotation.gtf.gz"
 download.file(gtfURL, basename(gtfURL))
-genomeURL <- "ftp://ftp.ensembl.org/pub/release-89/fasta/homo_sapiens/dna/Homo_sapiens.GRCh38.dna.primary_assembly.fa.gz"
+genomeURL <- "ftp://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_35/GRCh38.primary_assembly.genome.fa.gz"
 download.file(genomeURL, basename(genomeURL))
 featureFn <- basename(gtfURL)
 genomeFn <- basename(genomeURL)
 ```
 
-Other annotation information can either be fetched via `biomaRt` in `makeFeatAnnoEnsembl` function or downloaded from [biomart](http://www.ensembl.org/biomart/martview).
-The latter is recommended becuase `biomaRt` is not stable sometimes.
+Other annotation information can either be fetched via `BioMart` in `makeFeatAnnoEnsembl` function or downloaded from [BioMart](http://www.ensembl.org/biomart/martview).
+The required attributes are "Transcript stable ID", "Gene description", 
+"GO term accession", "GO domain" in the manual download from BioMart.
 
-The attributes are "Transcript stable ID", "Gene description", 
-"GO term accession", "GO domain".
-
-```{r biomart, echo=TRUE, eval=TRUE}
-## We download the annotation in a gzip file from biomart web page
-biomartFile="martquery_Homo_sapiens.txt.gz"
-```
-
-```{r build, echo=TRUE, eval=FALSE}
-refBuild = file.path(organism, db, build, "Annotation",
-                     paste("Release_89", Sys.Date(),
-                           sep="-"))
-param = ezParam(list(refBuild=refBuild))
+```{r make reference folder, echo=TRUE, eval=FALSE}
+refBuild <- file.path(organism, db, build, "Annotation",
+                      str_c(release, "2020-10-30", sep="-"))
+## The reference folder will be generated under `genomesRoot`, which is current working directory here.
+param <- ezParam(list(refBuild=refBuild, genomesRoot="."))
 buildRefDir(param$ezRef, genomeFile=genomeFn, genesFile=featureFn)
 buildIgvGenome(param$ezRef)
+```
 
+```{r add annotation, echo=TRUE, eval=FALSE}
 makeFeatAnnoEnsembl(featureFile=file.path(dirname(param$ezRef@refFeatureFile),
                                           "features.gtf"),
                     genomeFile=param$ezRef@refFastaFile,
-                    biomartFile=biomartFile)
+                    organism="hsapiens_gene_ensembl")
+
 makeFeatAnnoEnsembl(featureFile=file.path(dirname(param$ezRef@refFeatureFile),
                                           "genes.gtf"),
                     genomeFile=param$ezRef@refFastaFile,
-                    biomartFile=biomartFile)
+                    organism="hsapiens_gene_ensembl")
 ```
-
 
 # Structure of a reference genome folder
 
