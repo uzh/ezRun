@@ -31,6 +31,7 @@ ezMethodCountSpacer = function(input=NA, output=NA, param=NA){
   reads = reads[width(reads) >= param$minReadLength]
   stats[['validSpacerReads']] = length(reads)
   writeXStringSet(reads, readFile, format = 'fasta')
+  remove(reads)
   
   ###Run Bowtie1: ###TODO: runBowtie1 only 1 time (combined BAM) -> filter reads for MM
   resultFile = paste0(sampleName, '_bowtie.txt')
@@ -125,7 +126,6 @@ ezMethodCountSpacer = function(input=NA, output=NA, param=NA){
                     output_dir=".", output_file=htmlFile, quiet=TRUE)
   
   ezWrite.table(unlist(stats), paste0(sampleName,'-stats.txt'), row.names = TRUE)
-  remove(reads)
   ezSystem('rm *.fastq.gz')
   ezSystem('pigz --best *.fa')
   return("Success")
