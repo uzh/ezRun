@@ -32,6 +32,7 @@ ezMethodCountSpacer = function(input=NA, output=NA, param=NA){
   stats[['validSpacerReads']] = length(reads)
   writeXStringSet(reads, readFile, format = 'fasta')
   remove(reads)
+  gc()
   
   ###Run Bowtie1: ###TODO: runBowtie1 only 1 time (combined BAM) -> filter reads for MM
   resultFile = paste0(sampleName, '_bowtie.txt')
@@ -154,6 +155,38 @@ twoPatternReadFilter <- function(reads, leftPattern, rightPattern, maxMismatch) 
   reads <- reads[patternInRead]
   reads <- DNAStringSet(substr(reads, patternPositions$leftEnd+1, patternPositions$rightStart-1))
   return(reads)
+}
+
+
+
+twoPatternReadFilter <- function(readFile, leftPattern, rightPattern, maxMismatch) {
+  allReads = c()
+  processedReads = 0
+  readerBlockSize = 5e8
+  strm <- FastqStreamer(readFile)
+  repeat {
+    reads <- yield(strm, readerBlockSize=readerBlockSize)   
+    p <- vmatchPattern(leftPattern, reads, max.mismatch = maxMismatch)
+    leftEnd <- vapply(endIndex(vp),
+                      .dummyFunction, c('endIndex' = 0))
+    vp <- vmatchPattern(rightPattern, reads, max.mismatch = maxMismatch)
+    rightStart <- vapply(startIndex(vp),
+                         .dummyFunction, c('startIndex' = 0))
+    toNA <- which(rightStart < leftEnd)
+    rightStart[toNA] <- NA
+    patternPositions <- cbind(leftEnd = leftEnd,
+                              rightStart = rightStart)
+    patternInRead <- !apply(is.na(patternPositions), 1, any)
+    patternPositions <- as.data.frame(patternPositions[patternInRead, ])
+    reads <- reads[patternInRead]
+    reads <- DNAStringSet(substr(reads, patternPositions$leftEnd+1, patternPositions$rightStart-1))
+    processedReads = processedReads + readerBlockSize
+    allReads <- c(allReads, reads)
+    if (length(reads) == 0)
+      print(paste0(processedReads/10^6, 'M reads processed \n'))
+      break
+    }
+  return(allReads)
 }
 
 .getReadsFromFastq <- function(file) {
