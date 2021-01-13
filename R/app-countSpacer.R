@@ -51,8 +51,28 @@ ezMethodCountSpacer = function(input=NA, output=NA, param=NA){
   dict = merge(dict, result, by.x = 'ID', by.y = 'ID', all.x = TRUE)
   dict[is.na(dict$Count), 'Count'] = 0
   
-  ###Export Table
-  ezWrite.table(dict, paste0(sampleName,'-result.txt') ,row.names = FALSE)
+  ###Export Tables
+  resultFile = paste0(sampleName,'-result.txt')
+  ezWrite.table(dict, resultFile, row.names = FALSE)
+  
+  countFile_sgRNA = paste0(sampleName,'-sgRNA_counts.txt')
+  sgRNA_counts = data.frame(Identifier = dict$ID, matchCounts = dict$Count, stringsAsFactors = FALSE)
+  ezWrite.table(sgRNA_counts, countFile_sgRNA, row.names = FALSE)
+  
+  if(exists('annotationFile', where = param)){
+    countFile_gene = paste0(sampleName,'-gene_counts.txt')
+    annot = ezRead.table(param$annotationFile, row.names = NULL)[ ,c('gene_id', 'gene_name')]
+    res = dict[!dict$isControl,]
+    res = res[order(res$GeneSymbol), ]
+    countsPerGene = tapply(res$Count, INDEX = res$GeneSymbol, FUN = sum)
+    countsPerGene = data.frame(ID = names(countsPerGene), matchCounts = countsPerGene, stringsAsFactors = FALSE)
+    countsPerGene = merge(annot, countsPerGene, by.x = 'gene_name', by.y = 'ID')
+    countsPerGene = countsPerGene[,c(2:3)]
+    colnames(countsPerGene)[1] = 'Identifier'
+    ezWrite.table(countsPerGene, countFile_gene, row.names = FALSE)
+  }
+
+  
   data = data.frame(group = rep('Count', nrow(dict)), counts = c(dict$Count))
   # Basic violin plot
   p <- ggplot(data, aes(x=group, y=counts))
