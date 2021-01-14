@@ -1,0 +1,40 @@
+---
+title: "Coding Style"
+author: "FGCZ Genome Informatics Team 2021"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{SelectorGadget}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+  
+```{r, echo = FALSE}
+knitr::opts_chunk$set(comment = "#>", collapse = TRUE)
+```
+
+
+## General Rules
+Basic paradigms:
+
+* follow the tidyverse-style: https://style.tidyverse.org/
+* Use the RStudio Addin to style code: https://github.com/r-lib/styler
+* Only use ascii characters in all files; neve use Umlaut and other characters
+* In any file: All names and comments must be based on English
+
+## Naming
+
+* Use camelCase for variable names
+* Use underscore_separated for function names
+* recommended variable naming scheme:
+** counting variables: `nSamples`, `nReads`
+** use plural in vectors and matrices: `reads`
+
+
+
+## Conventions
+
+* use curly braces also for very simple `if` statements
+* use `library` instead of `require` since `library` gives an error while `require` gives only a warning if the package is missing
+* the use of row names as IDs for matrices and data.frames is fine
+
+
