@@ -92,89 +92,20 @@ ezMethodMpileup = function(input=NA, output=NA, param=NA){
   indexTabix(basename(vcfOutputFile),format = "vcf")
   
   ## write an igv link
-  writeIgvSession(genome = getIgvGenome(param), refBuild=param$ezRef["refBuild"], file=basename(output$getColumn("IGV Session")),
-                  vcfUrls = paste(PROJECT_BASE_URL, vcfOutputFile, sep="/") )
-  writeIgvJnlp(jnlpFile=basename(output$getColumn("IGV Starter")), projectId = sub("\\/.*", "", vcfOutputFile),
-               sessionUrl = paste(PROJECT_BASE_URL, output$getColumn("IGV Session"), sep="/"))
-  
-  
-  ## create an html report
-  setwdNew(reportDir)
-  titles = list()
-  titles[["VCF-Report"]] = paste("VCF-Report:", param$name)
-  doc = openBsdocReport(titles[[length(titles)]])
-  
-  addDataset(doc, bamDataset, param)
-  
+  # writeIgvSession(genome = getIgvGenome(param), refBuild=param$ezRef["refBuild"], file=basename(output$getColumn("IGV Session")),
+  #                 vcfUrls = paste(PROJECT_BASE_URL, vcfOutputFile, sep="/") )
+  # writeIgvJnlp(jnlpFile=basename(output$getColumn("IGV Starter")), projectId = sub("\\/.*", "", vcfOutputFile),
+  #              sessionUrl = paste(PROJECT_BASE_URL, output$getColumn("IGV Session"), sep="/"))
   chromSizes = ezChromSizesFromVcf(file.path("..", basename(vcfOutputFile)))
   genotype = geno(readVcf(file.path("..", basename(vcfOutputFile)), genome="genomeDummy"))
   gt = genotype$GT
   gt[genotype$DP < param$minReadDepth] = "lowCov" ## those calls will become NA in subsequent analyses
-  nSamples = nrow(bamDataset)
-  conds = ezConditionsFromDataset(bamDataset, param=param)
-  sampleColors = getSampleColors(conds, colorNames = names(conds))
   
-  titles[["IGV"]] = "IGV"
-  addTitle(doc, titles[[length(titles)]], 2, id=titles[[length(titles)]])
-  writeIgvSession(genome = getIgvGenome(param), refBuild=param$ezRef["refBuild"], file="igvSession.xml", vcfUrls = paste(PROJECT_BASE_URL, vcfOutputFile, sep="/") )
-  writeIgvJnlp(jnlpFile="igv.jnlp", projectId = sub("\\/.*", "", output$getColumn("Report")),
-               sessionUrl = paste0(PROJECT_BASE_URL, output$getColumn("Report"), "igvSession.xml"))
-  addTxtLinksToReport(doc, "igv.jnlp", mime="application/x-java-jnlp-file")
-  
-  titles[["Sample Clustering based on Variants"]] = "Sample Clustering based on Variants"
-  addTitle(doc, titles[[length(titles)]], 2, id=titles[[length(titles)]])
-  if (nrow(bamDataset) > 3){
-    idxMat = ezMatrix(match(gt, c("0/0", "0/1", "1/1")) -2, rows=rownames(gt), cols=colnames(gt))
-    d = dist(t(idxMat))
-    if (all(!is.na(d))){
-      hc=hclust(d, method="ward.D2" );
-      hcd = as.dendrogram(hclust(d, method="ward.D2"), hang=-0.1)
-      hcd = colorClusterLabels(hcd, sampleColors)
-      pngFile = "genotype-cluster.png"
-      plotCmd = expression({
-        plot(hcd, main="Cluster by Genotype", xlab="")
-      })
-      pngLink = ezImageFileLink(plotCmd, file=pngFile, width=800 + max(0, 10 * (nSamples-20))) # NOTEP: should the width be more sample-dependent?
-      addParagraph(doc, pngLink)
-    }
-  }
-  titles[["Variants by Chromosomes"]] = "Variants by Chromosomes"
-  addTitle(doc, titles[[length(titles)]], 2, id=titles[[length(titles)]])
-  if (nrow(gt) > 0){
-    chrom = sub(":.*", "", rownames(gt))
-    pos = as.integer(sub("_.*", "", sub(".*:", "", rownames(gt))))
-    isRealChrom = !grepl("[\\._]", names(chromSizes)) & chromSizes > 20000 ## TODO select chromosomes by name
-    idxList = split(1:nrow(gt), chrom)
-    snpColors = c("0/0"="blue", "0/1"="darkgrey", "1/1"="red")
-    pngFiles = c()
-    pngLinks = list()
-    chromUse = sort(chromSizes[isRealChrom], decreasing = TRUE)
-    for (ch in names(chromUse)){
-      pngFiles[ch] = paste0("variantPos-chrom-", ch, ".png")
-      plotCmd = expression({
-        par(mar=c(4.1, 10, 4.1, 2.1))
-        plot(0, 0, type="n", main=paste("Chromsome", ch), xlab="pos", xlim=c(1, chromSizes[ch]), ylim=c(0, 3*ncol(gt)),
-             axes=FALSE, frame=FALSE, xaxs="i", yaxs="i", ylab="")
-        axis(1)
-        mtext(side = 2, at = seq(1, 3*ncol(gt), by=3), text = colnames(gt), las=2,
-              cex = 1.0, font=2, col=sampleColors)
-        idx = idxList[[ch]]
-        xStart = pos[idx]
-        nm  = colnames(gt)[1]
-        for (i in 1:ncol(gt)){
-          offSet = match(gt[idx ,i], names(snpColors))
-          yTop = (i-1) * 3 + offSet
-          rect(xStart, yTop - 1, xStart+1, yTop, col = snpColors[offSet], border=snpColors[offSet])
-        }
-        abline(h=seq(0, 3*ncol(gt), by=3))
-      })
-      pngLinks[ch] = ezImageFileLink(plotCmd, file=pngFiles[ch], height=150+25*ncol(gt), width=1000)
-    }
-    if (length(pngLinks) > 0){
-      addFlexTable(doc, ezGrid(pngLinks))
-    }
-  }
-  closeBsdocReport(doc, htmlFile, titles)
+  setwdNew(reportDir)
+  makeRmdReport(
+    output = output, param = param, chromSizes=chromSizes, gt=gt,
+    rmdFile = "twoGroups.Rmd", reportTitle = param$comparison
+  )
   setwd("..")
   return("Success")
 }
