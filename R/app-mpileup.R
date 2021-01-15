@@ -96,8 +96,8 @@ ezMethodMpileup = function(input=NA, output=NA, param=NA){
   #                 vcfUrls = paste(PROJECT_BASE_URL, vcfOutputFile, sep="/") )
   # writeIgvJnlp(jnlpFile=basename(output$getColumn("IGV Starter")), projectId = sub("\\/.*", "", vcfOutputFile),
   #              sessionUrl = paste(PROJECT_BASE_URL, output$getColumn("IGV Session"), sep="/"))
-  chromSizes = ezChromSizesFromVcf(file.path("..", basename(vcfOutputFile)))
-  genotype = geno(readVcf(file.path("..", basename(vcfOutputFile)), genome="genomeDummy"))
+  chromSizes = ezChromSizesFromVcf(basename(vcfOutputFile))
+  genotype = geno(readVcf( basename(vcfOutputFile), genome="genomeDummy"))
   gt = genotype$GT
   gt[genotype$DP < param$minReadDepth] = "lowCov" ## those calls will become NA in subsequent analyses
   
