@@ -69,9 +69,7 @@ ezMethodFastQC <- function(input = NA, output = NA, param = NA,
       param$cmdOptions, paste(filesUse, collapse = " "),
       "> fastqc.out", "2> fastqc.err"
     )
-    memory.size(max = F)
     gc()
-    memory.size(max = F)
     result <- ezSystem(cmd)
   }
   statusToPng <- c(PASS = "tick.png", WARN = "warning.png", FAIL = "error.png")
