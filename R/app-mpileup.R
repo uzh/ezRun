@@ -103,8 +103,9 @@ ezMethodMpileup = function(input=NA, output=NA, param=NA){
   
   setwdNew(reportDir)
   makeRmdReport(
+    input=input,
     output = output, param = param, chromSizes=chromSizes, gt=gt,
-    rmdFile = "twoGroups.Rmd", reportTitle = param$comparison
+    rmdFile = "Mpileup.Rmd", reportTitle = param$comparison
   )
   setwd("..")
   return("Success")
