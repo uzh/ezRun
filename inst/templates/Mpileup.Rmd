@@ -12,6 +12,7 @@ output:
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+require(ezRun)
 require(knitr)
 require(kableExtra)
 require(plotly)
@@ -29,7 +30,7 @@ chromSizes <- readRDS("chromSizes.rds")
 dataset = input$meta
 samples = input$getNames()
 
-conds = ezConditionsFromDataset(bamDataset, param=param)
+conds = ezConditionsFromDataset(dataset, param=param)
 sampleColors = getSampleColors(conds, colorNames = names(conds))
 ```
 Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
@@ -47,6 +48,7 @@ if (all(!is.na(d))){
   hcd = as.dendrogram(hclust(d, method="ward.D2"), hang=-0.1)
   hcd = colorClusterLabels(hcd, sampleColors)
   plot(hcd, main="Cluster by Genotype", xlab="")
+}
 ```
 
 ### Variants by Chromosomes
