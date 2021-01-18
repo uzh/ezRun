@@ -1,17 +1,4 @@
----
-title: "Coding Style"
-author: "FGCZ Genome Informatics Team 2021"
-output: rmarkdown::html_vignette
-vignette: >
-  %\VignetteIndexEntry{Coding Style}
-  %\VignetteEngine{knitr::rmarkdown}
-  %\VignetteEncoding{UTF-8}
----
-  
-```{r, echo = FALSE}
-knitr::opts_chunk$set(comment = "#>", collapse = TRUE)
-```
-
+# Coding Style
 
 ## General Rules
 Basic paradigms:
