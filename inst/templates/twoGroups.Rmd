@@ -119,7 +119,7 @@ save(se, file=basename(output$getColumn("Live Report")))
 
 #### Between-group comparison
 
-```{r make scatter data, echo=FALSE}
+```{r make scatter data, echo=FALSE, message=FALSE, warning=FALSE}
 scatterData <- makeTestScatterData(param, se)
 logSignal <- scatterData$logSignal
 groupMeans <- scatterData$groupMeans
@@ -128,7 +128,7 @@ isTwoGroup <- ncol(groupMeans) == 2 & !is.null(param$sampleGroup) &
   !is.null(param$refGroup)
 ```
 
-```{r, echo=FALSE}
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
 settings <- character()
 if (!is.null(param$pValueHighlightThresh)) {
   settings["P-value threshold:"] <- paste("p <=", param$pValueHighlightThresh)
@@ -154,7 +154,7 @@ Subsequent plots highlight significant genes in <span style="color:#A6CEE3FF">bl
 
 [Interactive table of significant genes](`r resultFile$resultHtml`)
 
-```{r scatter comparison, echo=FALSE, message=FALSE, fig.width=9, fig.width=7, eval=!debug}
+```{r scatter comparison, echo=FALSE, message=FALSE, warning=FALSE, fig.width=9, fig.width=7, eval=!debug}
 if (isTRUE(isTwoGroup)) {
   ## scatter plot
   sampleValues <- 2^groupMeans[, param$sampleGroup]
@@ -187,7 +187,7 @@ if (isTRUE(isTwoGroup)) {
 }
 ```
 
-```{r scatter comparison link, echo=FALSE, results='asis', eval=!debug}
+```{r scatter comparison link, echo=FALSE, results='asis', eval=!debug, message=FALSE, warning=FALSE}
 if (isTRUE(isTwoGroup) && isFALSE(hasMassiveFeats)) {
   cat(paste0("[Interactive comparison plot (64-bit Chrome or Safari is recommended for best performance!)](", scatterHtml, ")"), "\n")
 }
