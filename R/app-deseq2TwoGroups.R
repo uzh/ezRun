@@ -35,8 +35,11 @@ ezMethodDeseq2 = function(input=NA, output=NA, param=NA){
     return("Error")
   }
   dds = metadata(deResult)$nativeResult$dds
+  
   Glimma::glimmaMA(x = dds, groups = colData(dds)$grouping, main = param$comparison,
-           html = paste0(param$comparison, "-glimma-MA.html"))
+                   html = paste0(param$comparison, "-glimma-MA.html"))
+  Glimma::glimmaVolcano(x = dds, groups = colData(dds)$grouping, main = param$comparison,
+                   html = paste0(param$comparison, "-glimma-volcano.html"))
   
   makeRmdReport(output=output, param=param, deResult=deResult, rmdFile="twoGroups.Rmd", reportTitle = param$comparison)
   return("Success")
