@@ -384,13 +384,6 @@ saveExternalFiles = function(sce, ...) {
   geneMeansFn = "gene_means.txt"
   ezWrite.table(geneMeans, geneMeansFn)
 
-  tSNE_data <- as_tibble(reducedDims(sce)$TSNE,
-                         rownames="cells")
-  tSNE_data <- dplyr::rename(tSNE_data, X=`tSNE_1`, Y=`tSNE_2`)
-  tSNE_data$cluster <- colData(sce)[,"ident"]
-  tSNEFn = "tSNE_data.tsv"
-  write_tsv(tSNE_data, file=tSNEFn)
-
   add_results = list(...)
   for(i in 1:length(add_results[[1]])) {
     if(!is.null(add_results[[1]][[i]])) {
