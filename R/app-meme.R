@@ -33,9 +33,9 @@ ezMethodMEME = function(input=NA, output=NA, param=NA){
     
     refFile = param$ezRef["refFastaFile"]
     peakSeqFile = paste0(bedFileName, "_peaks.fa")
-    cmd = paste("/usr/local/ngseq/bin/bedtools", " getfasta -fi", refFile,
+    cmd = paste("bedtools", " getfasta -fi", refFile,
                   " -bed ", bedFileName, " -name -fo ", peakSeqFile)
-    system(cmd)
+    ezSystem(cmd)
     cmd = paste("meme-chip -oc",sampleName,"-time 300 -order 1", db, opt, peakSeqFile)
   } else{
     cmd = paste("meme-chip -oc",sampleName,"-time 300 -order 1", db, opt, 
