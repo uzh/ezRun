@@ -194,7 +194,7 @@ seuratClusteringV3 <- function(scData, param) {
   vars.to.regress <- NULL
   if(identical("CellCycle", param$SCT.regress))
     vars.to.regress <- c("CellCycleS", "CellCycleG2M")
-  scData <- SCTransform(scData, vars.to.regress = vars.to.regress, seed.use = 38, verbose = TRUE)
+  scData <- SCTransform(scData, vars.to.regress = vars.to.regress, seed.use = 38, verbose = TRUE) 
   scData <- seuratStandardWorkflow(scData, param)
   return(scData)
 }

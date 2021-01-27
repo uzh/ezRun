@@ -82,7 +82,7 @@ EzRef <- function(param){
     refFeatureFile <- param$refFeatureFile
   }else{
     if(ezIsSpecified(refAnnotationVersion)){
-      refFeatureFile <- file.path(refBuildDir, "Annotation", 
+      refFeatureFile <- file.path(refBuildDir, "Annotation",
                                   refAnnotationVersion, "Genes",
                                   param$refFeatureFile)
     }else{
@@ -104,7 +104,7 @@ EzRef <- function(param){
     refFastaFile <- file.path(refBuildDir, param$refFastaFile)
   }
   refChromSizesFile <- str_replace(refFastaFile, "\\.fa$", "-chromsizes.txt")
-  
+
   new("EzRef", refBuild=refBuild, refBuildName=refBuildName,
       refBuildDir=refBuildDir, refVariantsDir=refVariantsDir,
       refAnnotationVersion=refAnnotationVersion, refIndex=refIndex,
@@ -132,7 +132,7 @@ buildRefDir <- function(x, genomeFile, genesFile){
   # x is EzRef object
   require(rtracklayer)
   require(Rsamtools)
-  
+
   gtfPath <- dirname(x@refFeatureFile)
   fastaPath <- dirname(x@refFastaFile)
   dir.create(gtfPath, recursive=TRUE)
@@ -142,17 +142,17 @@ buildRefDir <- function(x, genomeFile, genesFile){
     file.symlink(file.path(x@refAnnotationVersion, "Genes"),
                  file.path(x@refBuildDir, "Annotation", "Genes"))
   }
-  
+
   ## fasta
   genome <- readBStringSet(genomeFile)
   ### remove everything after chr id
   names(genome) <- str_replace(names(genome), " .*$", "")
   writeXStringSet(genome, x@refFastaFile)
-  
-  ## 2 GTF files: 
+
+  ## 2 GTF files:
   ### features.gtf
   gtf <- import(genesFile)
-  
+
   #### some controls over gtf
   if(is.null(gtf$gene_biotype)){
     if(is.null(gtf$gene_type)){
@@ -167,27 +167,27 @@ buildRefDir <- function(x, genomeFile, genesFile){
   #### GENCODE.gtf: remove the version number from gene_id, transcript_id but keep additional information if available, e.g. ENST00000429181.6_PAR_Y -> ENST00000429181_PAR_Y
   gtf$gene_id <- str_replace(gtf$gene_id, "\\.\\d+", "")
   gtf$transcript_id <- str_replace(gtf$transcript_id, "\\.\\d+", "")
-  
+
   if(is.null(gtf$gene_name)){
     message("gene_name is not available in gtf. Assigning gene_id.")
     gtf$gene_name <- gtf$gene_id
   }
-  
+
   export(gtf, con=file.path(gtfPath, "features.gtf"))
   ### genes.gtf
   export(gtf[gtf$gene_biotype %in% listBiotypes("genes")],
          con=file.path(gtfPath, "genes.gtf"))
 
   indexFa(x@refFastaFile)
-  
+
   ## create the chromsizes file
   fai <- read_tsv(str_c(x@refFastaFile, ".fai"), col_names = FALSE)
   write_tsv(fai %>% select(1:2), file = x@refChromSizesFile, col_names = FALSE)
-  
+
   dictFile <- str_replace(x@refFastaFile, "\\.fa$", ".dict")
   file.remove(dictFile)
 
-  cmd <- paste(preparePicard(), "CreateSequenceDictionary",
+  cmd <- paste(prepareJavaTools("picard"), "CreateSequenceDictionary",
                paste0("R=", x@refFastaFile), paste0("O=", dictFile))
   ezSystem(cmd)
 }
@@ -201,37 +201,37 @@ listBiotypes <- function(select=c("genes", "protein_coding", "long_noncoding",
   ## http://www.ensembl.org/Help/Glossary
   select <- match.arg(select)
   ## The following are from Ensembl glossary
-  proteinCoding <- c("IG_C_gene", "IG_D_gene", "IG_J_gene", "IG_LV_gene", 
-                     "IG_M_gene", "IG_V_gene", "IG_Z_gene", 
-                     "nonsense_mediated_decay", "nontranslating_CDS", 
-                     "non_stop_decay", "polymorphic_pseudogene", 
-                     "protein_coding", "TR_C_gene", "TR_D_gene", "TR_gene", 
+  proteinCoding <- c("IG_C_gene", "IG_D_gene", "IG_J_gene", "IG_LV_gene",
+                     "IG_M_gene", "IG_V_gene", "IG_Z_gene",
+                     "nonsense_mediated_decay", "nontranslating_CDS",
+                     "non_stop_decay", "polymorphic_pseudogene",
+                     "protein_coding", "TR_C_gene", "TR_D_gene", "TR_gene",
                      "TR_J_gene", "TR_V_gene",
                      "TEC")
-  pseudogene <- c("disrupted_domain", "IG_C_pseudogene", "IG_J_pseudogene", 
-                  "IG_pseudogene", "IG_V_pseudogene", "processed_pseudogene", 
-                  "pseudogene", "transcribed_processed_pseudogene", 
-                  "transcribed_unprocessed_pseudogene", 
-                  "translated_processed_pseudogene", 
-                  "translated_unprocessed_pseudogene", "TR_J_pseudogene", 
-                  "TR_V_pseudogene", "unitary_pseudogene", 
+  pseudogene <- c("disrupted_domain", "IG_C_pseudogene", "IG_J_pseudogene",
+                  "IG_pseudogene", "IG_V_pseudogene", "processed_pseudogene",
+                  "pseudogene", "transcribed_processed_pseudogene",
+                  "transcribed_unprocessed_pseudogene",
+                  "translated_processed_pseudogene",
+                  "translated_unprocessed_pseudogene", "TR_J_pseudogene",
+                  "TR_V_pseudogene", "unitary_pseudogene",
                   "unprocessed_pseudogene",
                   "transcribed_unitary_pseudogene",
-                  "miRNA_pseudogene", "misc_RNA_pseudogene", 
-                  "Mt_tRNA_pseudogene", "rRNA_pseudogene", 
+                  "miRNA_pseudogene", "misc_RNA_pseudogene",
+                  "Mt_tRNA_pseudogene", "rRNA_pseudogene",
                   "scRNA_pseudogene", "snRNA_pseudogene",
                   "snoRNA_pseudogene", "tRNA_pseudogene",
                   "IG_D_pseudogene", "transposable_element")
-  lnc <- c("3prime_overlapping_ncrna", "ambiguous_orf", "antisense", "antisense_RNA" ,"lincRNA", 
-           "ncrna_host", "non_coding", "processed_transcript", 
+  lnc <- c("3prime_overlapping_ncrna", "ambiguous_orf", "antisense", "antisense_RNA" ,"lincRNA",
+           "ncrna_host", "non_coding", "processed_transcript",
            "retained_intron", "sense_intronic", "sense_overlapping",
            "3prime_overlapping_ncRNA", "bidirectional_promoter_lncRNA",
            "macro_lncRNA", "lncRNA")
   shnc <- c("miRNA", "misc_RNA", "piRNA",
-            "Mt_rRNA", "Mt_tRNA", "ncRNA", "pre_miRNA", 
+            "Mt_rRNA", "Mt_tRNA", "ncRNA", "pre_miRNA",
             "RNase_MRP_RNA", "RNase_P_RNA", "rRNA",
-            "snlRNA", "snoRNA", 
-            "snRNA", "SRP_RNA", "tmRNA", "tRNA", 
+            "snlRNA", "snoRNA",
+            "snRNA", "SRP_RNA", "tmRNA", "tRNA",
             "scaRNA", "scRNA", "sRNA", "ribozyme", "vaultRNA", "vault_RNA")
   unionBiotypes <- unique(c(proteinCoding, pseudogene, lnc, shnc))
   ## genes.gtf
@@ -239,7 +239,7 @@ listBiotypes <- function(select=c("genes", "protein_coding", "long_noncoding",
                     grep("transcribed", pseudogene, value=TRUE)
                     )
                   )
-  
+
   types <- switch(select,
                   "genes"=genes,
                   "protein_coding"=proteinCoding,
@@ -257,7 +257,7 @@ listBiotypes <- function(select=c("genes", "protein_coding", "long_noncoding",
 
 buildIgvGenome <- function(x){
   # x is a EzRef object
-  
+
   ## create transcript.only.gtf
   gtfFile <- x@refFeatureFile
   genomeFile <- x@refFastaFile
@@ -276,29 +276,29 @@ buildIgvGenome <- function(x){
     message("Could not load features. Copy the annotation file instead.")
     file.copy(gtfFile, trxFile)
   })
-  
+
   ## sort and index genes.gtf
   sortedGtfFile <- file.path(dirname(gtfFile), "genes.sorted.gtf")
   cmd <- paste("igvtools", "sort", gtfFile, sortedGtfFile)
   ezSystem(cmd)
   cmd <- paste("igvtools", "index", sortedGtfFile)
   ezSystem(cmd)
-  
+
   ## make chrom_alias.tab
   chromFile <- file.path(x@refBuildDir, "chrom_alias.tab")
   write_lines(fasta.index(genomeFile)$desc, chromFile)
-  
+
   ## make property.txt
   propertyFile <- file.path(x@refBuildDir, "property.txt")
   id <- x@refBuildName
   name <- str_c(getOrganism(x), id, sep="_")
   properties <- c("fasta=true", "fastaDirectory=false", "ordered=true")
-  properties <- c(properties, str_c("id=", id), str_c("name=", name), 
+  properties <- c(properties, str_c("id=", id), str_c("name=", name),
                   str_c("sequenceLocation=", genomeFileURL))
-  properties <- c(properties, "geneFile=transcripts.only.gtf", 
+  properties <- c(properties, "geneFile=transcripts.only.gtf",
                  "chrAliasFile=chrom_alias.tab")
   write_lines(properties, propertyFile)
-  
+
   ## make zip file and clean up
   zipFile <- paste0("igv_", id, ".genome")
   filesToZip <- c(trxFile, chromFile, propertyFile)
@@ -311,7 +311,7 @@ buildIgvGenome <- function(x){
 
 ### -----------------------------------------------------------------
 ### Fetch the control sequences from https://fgcz-gstore.uzh.ch/reference/controlSeqs.fa
-### 
+###
 getControlSeqs <- function(ids=NULL){
   genomesRoot <- strsplit(GENOMES_ROOT, ":")[[1]]
   controlSeqsFn <- file.path(genomesRoot, "controlSeqs.fa")
@@ -329,12 +329,12 @@ makeBiomartFile <- function(gtf){
   require(jsonlite)
   require(xml2)
   require(GO.db)
-  
+
   server <- "http://rest.ensembl.org"
-  
+
   txids <- unique(na.omit(gtf$transcript_id))
   tb0 <- tibble("Transcript stable ID"=txids)
-  
+
   ## txid, GO ID
   goList <- list()
   for(txid in txids){
@@ -344,16 +344,16 @@ makeBiomartFile <- function(gtf){
     goList[[txid]] <- unique(na.omit(unlist(ans_go$primary_id)))
   }
   tb1 <- stack(goList)
-  tb1 <- as_tibble(tb1) %>% mutate(ind=as.character(ind)) %>% 
+  tb1 <- as_tibble(tb1) %>% mutate(ind=as.character(ind)) %>%
     rename("Transcript stable ID"=ind,
-           "GO term accession"=values) 
-    
-  
+           "GO term accession"=values)
+
+
   ## txid, gene name
   tb2 <- mcols(gtf)[ ,c("gene_name", "transcript_id")]
   tb2 <- as_tibble(tb2) %>% filter(!is.na(transcript_id)) %>%
     rename("Transcript stable ID"=transcript_id, "Gene description"=gene_name)
-  
+
   ## GO ID, GO domain
   # uniqueGOIDs <- unique(tb1$`GO term accession`)
   # goDomain <- setNames(character(length(uniqueGOIDs)), uniqueGOIDs)
@@ -373,7 +373,7 @@ makeBiomartFile <- function(gtf){
                                               "MF"="molecular_function",
                                               "CC"="cellular_component")[ONTOLOGY])
   tb3 <- rename(tb3, "GO term accession"=GOID, "GO domain"=ONTOLOGY)
-  
+
   tb <- left_join(left_join(left_join(tb0, tb1), tb2), tb3)
   tb <- dplyr:: select(tb, `Transcript stable ID`, `Gene description`,
                        `GO term accession`, `GO domain`)

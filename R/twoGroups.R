@@ -177,7 +177,7 @@ runDeseq2 <- function(x, sampleGroup, refGroup, grouping, grouping2 = NULL,
   if (ezIsSpecified(grouping2)) {
     grouping2 <- grouping2[isSample | isRef]
   }
-
+  
   ## run the analysis
   if (ezIsSpecified(grouping2)) {
     colData <- data.frame(

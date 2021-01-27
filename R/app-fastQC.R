@@ -69,6 +69,7 @@ ezMethodFastQC <- function(input = NA, output = NA, param = NA,
       param$cmdOptions, paste(filesUse, collapse = " "),
       "> fastqc.out", "2> fastqc.err"
     )
+    gc()
     result <- ezSystem(cmd)
   }
   statusToPng <- c(PASS = "tick.png", WARN = "warning.png", FAIL = "error.png")
@@ -155,6 +156,7 @@ ezMethodFastQC <- function(input = NA, output = NA, param = NA,
 
   ans4Report[["Fastqc quality measures"]] <- tbl
 
+  gc()
   qualMatrixList <- ezMclapply(files, getQualityMatrix, mc.cores = param$cores)
   ans4Report[["Per Base Read Quality"]] <- qualMatrixList
 
@@ -406,18 +408,15 @@ getQualityMatrix <- function(fn) {
       bamFn = tempBamFn, OUTPUT_PER_RG = FALSE,
       fastqFns = tempFastqFn, paired = FALSE
     )
-    reads <- readFastq(tempFastqFn)
+    qualMatrix <- as(quality(readFastq(tempFastqFn)), "matrix")
   } else {
     f <- FastqSampler(fn, nReads) ## we sample no more than 300k reads.
-    reads <- yield(f)
+    qualMatrix <- as(quality(yield(f)), "matrix")
   }
-  qual <- quality(reads)
 
-  maxReadLength <- max(width(qual))
-  qualMatrix <- as(qual, "matrix")
+  gc()
   maxQuality <- max(qualMatrix, na.rm = TRUE)
-
-  qualCountMatrix <- ezMatrix(0, rows = 0:maxQuality, cols = 1:maxReadLength)
+  qualCountMatrix <- ezMatrix(0, rows = 0:maxQuality, cols = 1:ncol(qualMatrix))
   for (basePos in 1:ncol(qualMatrix)) {
     qualCountByPos <- table(qualMatrix[, basePos])
     qualCountMatrix[names(qualCountByPos), basePos] <- qualCountByPos

@@ -1,0 +1,92 @@
+---
+title: "`r if (exists('reportTitle')) reportTitle else 'Mpileup'`"
+author: "Functional Genomics Center Zurich"
+output: 
+  html_document:
+    self_contained: false
+    lib_dir: rmarkdownLib
+    includes:
+      in_header: fgcz_header.html
+    css: fgcz.css
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+require(ezRun)
+require(knitr)
+require(kableExtra)
+require(plotly)
+library(SummarizedExperiment)
+library(webshot)
+library(htmlwidgets)
+library(tidyverse)
+library(readxl)
+
+output <- readRDS("output.rds")
+param <- readRDS("param.rds")
+input <- readRDS("input.rds")
+gt <- readRDS("gt.rds")
+chromSizes <- readRDS("chromSizes.rds")
+dataset = input$meta
+samples = input$getNames()
+
+conds = ezConditionsFromDataset(dataset, param=param)
+sampleColors = getSampleColors(conds, colorNames = names(conds))
+```
+Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
+
+## Mpileup {.tabset}
+
+
+### Sample Clustering 
+```{r clustering, echo=FALSE, eval=length(samples) > 3, fig.width=min(5 + length(samples)*0.2, 20)}
+
+idxMat = ezMatrix(match(gt, c("0/0", "0/1", "1/1")) -2, rows=rownames(gt), cols=colnames(gt))
+d = dist(t(idxMat))
+if (all(!is.na(d))){
+  hc=hclust(d, method="ward.D2" );
+  hcd = as.dendrogram(hclust(d, method="ward.D2"), hang=-0.1)
+  hcd = colorClusterLabels(hcd, sampleColors)
+  plot(hcd, main="Cluster by Genotype", xlab="")
+}
+```
+
+### Variants by Chromosomes
+
+```{r chrom variants, echo=FALSE, eval=nrow(gt) >0, fig.width=min(5 + length(samples)*0.2, 20)}
+
+chrom = sub(":.*", "", rownames(gt))
+pos = as.integer(sub("_.*", "", sub(".*:", "", rownames(gt))))
+isRealChrom = !grepl("[\\._]", names(chromSizes)) & chromSizes > 20000 ## TODO select chromosomes by name
+idxList = split(1:nrow(gt), chrom)
+snpColors = c("0/0"="blue", "0/1"="darkgrey", "1/1"="red")
+chromUse = sort(chromSizes[isRealChrom], decreasing = TRUE)
+for (ch in names(chromUse)){
+  par(mar=c(4.1, 10, 4.1, 2.1))
+  plot(0, 0, type="n", main=paste("Chromsome", ch), xlab="pos", xlim=c(1, chromSizes[ch]), ylim=c(0, 3*ncol(gt)),
+       axes=FALSE, frame=FALSE, xaxs="i", yaxs="i", ylab="")
+  axis(1)
+  mtext(side = 2, at = seq(1, 3*ncol(gt), by=3), text = colnames(gt), las=2,
+        cex = 1.0, font=2, col=sampleColors)
+  idx = idxList[[ch]]
+  xStart = pos[idx]
+  nm  = colnames(gt)[1]
+  for (i in 1:ncol(gt)){
+    offSet = match(gt[idx ,i], names(snpColors))
+    yTop = (i-1) * 3 + offSet
+    rect(xStart, yTop - 1, xStart+1, yTop, col = snpColors[offSet], border=snpColors[offSet])
+  }
+  abline(h=seq(0, 3*ncol(gt), by=3))
+}
+
+```
+
+### Input Dataset
+```{r, echo=FALSE, message=FALSE}
+ezInteractiveTableRmd(values=dataset)
+```
+
+### SessionInfo
+```{r, echo=FALSE}
+sessionInfo()
+```

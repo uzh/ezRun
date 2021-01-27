@@ -22,17 +22,16 @@ ezMethodCountSpacer = function(input=NA, output=NA, param=NA){
   trimmedInput = ezMethodFastpTrim(input = input, param = param)
   readFile = trimmedInput$getColumn("Read1")
   stats[['filteredReads']] = as.numeric(ezSystem(paste('zcat', readFile, '|wc -l'), intern = TRUE))/4
-  
-  reads <- .getReadsFromFastq(readFile)
-  reads <- twoPatternReadFilter(reads, param$leftPattern, param$rightPattern, param$maxMismatch)
+  reads <- twoPatternReadFilter(readFile, param$leftPattern, param$rightPattern, param$maxMismatch)
   
   ###Export as fasta file
   readFile = paste0(sampleName,'.fa')
   reads = reads[width(reads) >= param$minReadLength]
   stats[['validSpacerReads']] = length(reads)
   writeXStringSet(reads, readFile, format = 'fasta')
+  remove(reads)
+  gc()
   
-  ###Run Bowtie1: ###TODO: runBowtie1 only 1 time (combined BAM) -> filter reads for MM
   resultFile = paste0(sampleName, '_bowtie.txt')
   cmd = paste('bowtie', sub('.csv', '', param[['dictPath']]), readFile, '-f -p', param$cores, '|cut -f3,8|sort >', resultFile)
   ezSystem(cmd)
@@ -52,8 +51,28 @@ ezMethodCountSpacer = function(input=NA, output=NA, param=NA){
   dict = merge(dict, result, by.x = 'ID', by.y = 'ID', all.x = TRUE)
   dict[is.na(dict$Count), 'Count'] = 0
   
-  ###Export Table
-  ezWrite.table(dict, paste0(sampleName,'-result.txt') ,row.names = FALSE)
+  ###Export Tables
+  resultFile = paste0(sampleName,'-result.txt')
+  ezWrite.table(dict, resultFile, row.names = FALSE)
+  
+  countFile_sgRNA = paste0(sampleName,'-sgRNA_counts.txt')
+  sgRNA_counts = data.frame(Identifier = dict$ID, matchCounts = dict$Count, stringsAsFactors = FALSE)
+  ezWrite.table(sgRNA_counts, countFile_sgRNA, row.names = FALSE)
+  
+  if(exists('annotationFile', where = param)){
+    countFile_gene = paste0(sampleName,'-gene_counts.txt')
+    annot = ezRead.table(param$annotationFile, row.names = NULL)[ ,c('gene_id', 'gene_name')]
+    res = dict[!dict$isControl,]
+    res = res[order(res$GeneSymbol), ]
+    countsPerGene = tapply(res$Count, INDEX = res$GeneSymbol, FUN = sum)
+    countsPerGene = data.frame(ID = names(countsPerGene), matchCounts = countsPerGene, stringsAsFactors = FALSE)
+    countsPerGene = merge(annot, countsPerGene, by.x = 'gene_name', by.y = 'ID')
+    countsPerGene = countsPerGene[,c(2:3)]
+    colnames(countsPerGene)[1] = 'Identifier'
+    ezWrite.table(countsPerGene, countFile_gene, row.names = FALSE)
+  }
+
+  
   data = data.frame(group = rep('Count', nrow(dict)), counts = c(dict$Count))
   # Basic violin plot
   p <- ggplot(data, aes(x=group, y=counts))
@@ -125,7 +144,6 @@ ezMethodCountSpacer = function(input=NA, output=NA, param=NA){
                     output_dir=".", output_file=htmlFile, quiet=TRUE)
   
   ezWrite.table(unlist(stats), paste0(sampleName,'-stats.txt'), row.names = TRUE)
-  remove(reads)
   ezSystem('rm *.fastq.gz')
   ezSystem('pigz --best *.fa')
   return("Success")
@@ -138,29 +156,36 @@ ezMethodCountSpacer = function(input=NA, output=NA, param=NA){
     x[1]
 }
 
-twoPatternReadFilter <- function(reads, leftPattern, rightPattern, maxMismatch) {
-  vp <- vmatchPattern(leftPattern, reads, max.mismatch = maxMismatch)
-  leftEnd <- vapply(endIndex(vp),
-                    .dummyFunction, c('endIndex' = 0))
-  vp <- vmatchPattern(rightPattern, reads, max.mismatch = maxMismatch)
-  rightStart <- vapply(startIndex(vp),
-                       .dummyFunction, c('startIndex' = 0))
-  toNA <- which(rightStart < leftEnd)
-  rightStart[toNA] <- NA
-  patternPositions <- cbind(leftEnd = leftEnd,
-                            rightStart = rightStart)
-  patternInRead <- !apply(is.na(patternPositions), 1, any)
-  patternPositions <- as.data.frame(patternPositions[patternInRead, ])
-  reads <- reads[patternInRead]
-  reads <- DNAStringSet(substr(reads, patternPositions$leftEnd+1, patternPositions$rightStart-1))
-  return(reads)
-}
 
-.getReadsFromFastq <- function(file) {
-  f <- FastqFile(file)
-  myReads <- sread(readFastq(f, ))
-  close(f)
-  return(myReads)
+twoPatternReadFilter <- function(readFile, leftPattern, rightPattern, maxMismatch) {
+  allReads = DNAStringSet()
+  processedReads = 0
+  dataChunks = 5*10^6
+  strm <- FastqStreamer(readFile, n = 5*10^6)
+  repeat {
+    currentReads <- yield(strm)
+    reads <- sread(currentReads)
+    vp <- vmatchPattern(leftPattern, reads, max.mismatch = maxMismatch)
+    leftEnd <- vapply(endIndex(vp),
+                      .dummyFunction, c('endIndex' = 0))
+    vp <- vmatchPattern(rightPattern, reads, max.mismatch = maxMismatch)
+    rightStart <- vapply(startIndex(vp),
+                         .dummyFunction, c('startIndex' = 0))
+    toNA <- which(rightStart < leftEnd)
+    rightStart[toNA] <- NA
+    patternPositions <- cbind(leftEnd = leftEnd,
+                              rightStart = rightStart)
+    patternInRead <- !apply(is.na(patternPositions), 1, any)
+    patternPositions <- as.data.frame(patternPositions[patternInRead, ])
+    reads <- reads[patternInRead]
+    reads <- DNAStringSet(substr(reads, patternPositions$leftEnd+1, patternPositions$rightStart-1))
+    processedReads = processedReads + dataChunks
+    allReads <- c(allReads, reads)
+    print(paste0(processedReads/10^6, 'M reads processed \n'))
+    if (length(currentReads) == 0)
+      break
+    }
+  return(allReads)
 }
 
 .greaterMin <- function(n, minVal){

@@ -32,13 +32,13 @@ ezMethodGatkRnaHaplotyper = function(input=NA, output=NA, param=NA,
   ## subset the selected sample names
   samples <- param$samples
   input <- input$subset(samples)
-  
+
   bamDataset = input$meta
-  
+
   reportDir = basename(output$getColumn("Report"))
   htmlFile = basename(output$getColumn("Html"))
   vcfOutputFile = output$getColumn("VCF")
-  
+
   bamFiles = input$getFullPaths("BAM")
   genomeSeq = param$ezRef["refFastaFile"]
   nBamsInParallel = min(8, param$cores)
@@ -52,7 +52,7 @@ ezMethodGatkRnaHaplotyper = function(input=NA, output=NA, param=NA,
         bamParam = ScanBamParam(what=scanBamWhat())
         seqLengths = ezBamSeqLengths(bf)
         bamWhich(bamParam) = GRanges(seqnames=param$seqNames,
-                                     ranges=IRanges(start=1, 
+                                     ranges=IRanges(start=1,
                                                     end=seqLengths[param$seqNames]))
         filterBam(bf, "local.bam", param=bamParam)
         indexBam("local.bam")
@@ -60,8 +60,8 @@ ezMethodGatkRnaHaplotyper = function(input=NA, output=NA, param=NA,
         file.copy(bf, "local.bam")
         file.copy(paste0(bf, ".bai"), "local.bam.bai")
       }
-      
-      cmd = paste(prepareGATK(), "SplitNCigarReads", "-R", genomeSeq,
+
+      cmd = paste(prepareJavaTools("gatk"), "SplitNCigarReads", "-R", genomeSeq,
                   "-I local.bam",
                   "-O", obf,
                   "> splitncigars.stdout 2> splitncigars.stderr")
@@ -72,12 +72,12 @@ ezMethodGatkRnaHaplotyper = function(input=NA, output=NA, param=NA,
     setwd("..")
     return(obf)
   }, mc.cores=nBamsInParallel, mc.preschedule=FALSE)
-  
+
   ########### haplotyping
   vcfFn <- paste0(param$name, "-all-haplo.vcf")
   if(!file.exists(vcfFn)){
     ## Easier for debug when having local.bam already
-    cmd = paste(prepareGATK(), "HaplotypeCaller", "-R", genomeSeq,
+    cmd = paste(prepareJavaTools("gatk"), "HaplotypeCaller", "-R", genomeSeq,
                 paste("-I", bamFilesClean, collapse=" "),
                 "-O", vcfFn,
                 "--dont-use-soft-clipped-bases true",
@@ -89,33 +89,33 @@ ezMethodGatkRnaHaplotyper = function(input=NA, output=NA, param=NA,
                 "2>", paste0(param$name, "-haplo.stderr"))
     ezSystem(cmd)
   }
-  
+
   #### Variant filtering
-  cmd <- paste(prepareGATK(), "VariantFiltration", "-R", genomeSeq,
+  cmd <- paste(prepareJavaTools("gatk"), "VariantFiltration", "-R", genomeSeq,
                "-V", vcfFn, "-O", basename(vcfOutputFile),
                "--cluster-window-size 35 --cluster-size 3",
                "--filter-name \"my_filter\" --filter-expression \"FS > 30.0 && QD < 2.0\""
                )
   ezSystem(cmd)
-  
+
   ## filter the vcf file
-  # ezFilterVcf(vcfFile=vcfFn, 
+  # ezFilterVcf(vcfFile=vcfFn,
   #             basename(vcfOutputFile), discardMultiAllelic=FALSE,
   #             bamDataset=bamDataset, param=param)
   gc()
-  
+
   ## create an html report
   setwdNew(reportDir)
-  
+
   chromSizes = ezChromSizesFromVcf(file.path("..", basename(vcfOutputFile)))
   genotype = geno(readVcf(file.path("..", basename(vcfOutputFile)),
                           genome="genomeDummy"))
   gt = genotype$GT
   gt[genotype$DP < param$vcfCall.minReadDepth] = "lowCov"
   nSamples = nrow(bamDataset)
-  
-  writeIgvSession(genome = getIgvGenome(param), 
-                  refBuild=param$ezRef["refBuild"], file="igvSession.xml", 
+
+  writeIgvSession(genome = getIgvGenome(param),
+                  refBuild=param$ezRef["refBuild"], file="igvSession.xml",
                   vcfUrls = paste(PROJECT_BASE_URL, vcfOutputFile, sep="/") )
   writeIgvJnlp(jnlpFile="igv.jnlp",
                projectId = sub("\\/.*", "", output$getColumn("Report")),
@@ -144,6 +144,6 @@ ezMethodGatkRnaHaplotyper = function(input=NA, output=NA, param=NA,
   rmarkdown::render(input="gatkRnaHaplotyper.Rmd", envir = new.env(),
                     output_dir=".", output_file=htmlFile, quiet=TRUE)
   setwd("..")
-  
+
   return("Success")
 }

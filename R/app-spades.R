@@ -35,7 +35,6 @@ ezMethodSpades = function(input=NA, output=NA, param=NA, htmlFile="00index.html"
   	ezSystem(paste("cp", "spades/contigs.fasta", basename(output$getColumn("Draft"))))
   }
   ezSystem(paste("mv", "spades", sampleName))
-  #cmd = paste0('mv ', sampleName, '_preprocessing.log ', sampleName, '_trimmomatic.log')
   ezSystem(cmd)
   return("Success")
 }
@@ -43,7 +42,7 @@ ezMethodSpades = function(input=NA, output=NA, param=NA, htmlFile="00index.html"
 ##' @template app-template
 ##' @templateVar method ezMethodSpades()
 ##' @templateVar htmlArg )
-##' @description Use this reference class to run 
+##' @description Use this reference class to run
 EzAppSpades <-
   setRefClass("EzAppSpades",
               contains = "EzApp",
@@ -58,5 +57,5 @@ EzAppSpades <-
                 }
               )
 )
-              
-              
+
+

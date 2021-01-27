@@ -4,12 +4,12 @@
 ### fastqI2Fn: library barcode
 fastq2bam <- function(fastqFn, refFn, bamFn, fastqI1Fn = NULL, fastqI2Fn = NULL) {
   require(ShortRead)
-  tempSamFn <- paste(Sys.getpid(), "temp.sam", sep = "-")
-  tempBamFn <- paste(Sys.getpid(), "temp", sep = "-")
+  tempSamFn <- str_c(Sys.getpid(), "temp.sam", sep = "-")
+  tempBamFn <- str_c(Sys.getpid(), "temp", sep = "-")
 
   ## SQ header; required by asBam
   seqlengths <- fasta.seqlengths(refFn)
-  seqlengthsHeader <- paste0("@SQ\tSN:", names(seqlengths), "\tLN:", seqlengths)
+  seqlengthsHeader <- str_c("@SQ\tSN:", names(seqlengths), "\tLN:", seqlengths)
 
   ## Add headers
   cat("@HD\tVN:1.5\tSO:unknown", file = tempSamFn, sep = "\n", append = FALSE)
@@ -26,14 +26,14 @@ fastq2bam <- function(fastqFn, refFn, bamFn, fastqI1Fn = NULL, fastqI2Fn = NULL)
     on.exit(close(f2), add = TRUE)
   }
   while (length(fq <- yield(f))) {
-    samText <- paste(id(fq), "4", "*", "0", "0", "*", "*", "0", "0",
+    samText <- str_c(id(fq), "4", "*", "0", "0", "*", "*", "0", "0",
       sread(fq), quality(quality(fq)),
       sep = "\t"
     )
     if (!is.null(fastqI1Fn)) {
       fq1 <- yield(f1)
       fq2 <- yield(f2)
-      samText <- paste0(
+      samText <- str_c(
         samText, "\t",
         "BC:Z:", sread(fq2), "\t",
         "QT:Z:", quality(quality(fq2)), "\t",
@@ -78,21 +78,23 @@ fastqs2bam <- function(fastqFns, fastq2Fns = NULL, readGroupNames = NULL,
   ## tempty fastq files fail in the picard tool of FastqToSam and MergeSamFiles
   ## Convert and merge the non-empty fastqs first and alter the header of merged bam file
 
-  cmd <- paste(
-    preparePicard(), "FastqToSam",
-    paste0("F1=", fastqFns)
+  cmd <- str_c(
+    prepareJavaTools("picard"), "FastqToSam",
+    str_c("F1=", fastqFns),
+    sep = " "
   )
   if (isTRUE(paired)) {
-    cmd <- paste(cmd, paste0("F2=", fastq2Fns))
+    cmd <- str_c(cmd, str_c("F2=", fastq2Fns), sep = " ")
   }
-  cmd <- paste(
-    cmd, paste0("O=", sampleBasenames, ".bam"),
-    paste0("SAMPLE_NAME=", readGroupNames),
-    paste0("LIBRARY_NAME=", readGroupNames),
-    paste0("READ_GROUP_NAME=", readGroupNames),
-    paste0("RUN_DATE=", format(Sys.time(), "%Y-%m-%dT%H:%M:%S+00:00")),
-    paste0("PLATFORM=", platform),
-    "SEQUENCING_CENTER=FGCZ"
+  cmd <- str_c(
+    cmd, str_c("O=", sampleBasenames, ".bam"),
+    str_c("SAMPLE_NAME=", readGroupNames),
+    str_c("LIBRARY_NAME=", readGroupNames),
+    str_c("READ_GROUP_NAME=", readGroupNames),
+    str_c("RUN_DATE=", format(Sys.time(), "%Y-%m-%dT%H:%M:%S+00:00")),
+    str_c("PLATFORM=", platform),
+    "SEQUENCING_CENTER=FGCZ",
+    sep = " "
   )
 
   ezMclapply(cmd[!emptyFastqs], ezSystem,
@@ -101,32 +103,30 @@ fastqs2bam <- function(fastqFns, fastq2Fns = NULL, readGroupNames = NULL,
   )
 
   ## picard tools merge
-  cmd <- paste(
-    preparePicard(), "MergeSamFiles",
-    paste0("I=", paste0(sampleBasenames, ".bam")[!emptyFastqs],
-      collapse = " "
-    ),
-    paste0("O=", bamFn),
-    "USE_THREADING=true", "SORT_ORDER=queryname"
-  )
+  cmd <- str_c(
+    prepareJavaTools("picard"), "MergeSamFiles",
+    str_c("I=", str_c(sampleBasenames, ".bam")[!emptyFastqs], collapse = " "),
+    str_c("O=", bamFn), "USE_THREADING=true", "SORT_ORDER=queryname",
+    sep = " "
+    )
   ezSystem(cmd)
-  file.remove(paste0(sampleBasenames, ".bam"))
+  file.remove(str_c(sampleBasenames, ".bam"))
 
   if (any(emptyFastqs)) {
     tempHeaderFn <- tempfile(
       pattern = "nonEmpty", tmpdir = getwd(),
       fileext = ".header"
     )
-    cmd <- paste("samtools view -H", bamFn, ">", tempHeaderFn)
+    cmd <- str_c("samtools view -H", bamFn, ">", tempHeaderFn, sep = " ")
     ezSystem(cmd)
 
-    extraHeaders <- paste("@RG",
-      paste0("ID:", readGroupNames[emptyFastqs]),
-      paste0("SM:", readGroupNames[emptyFastqs]),
-      paste0("LB:", readGroupNames[emptyFastqs]),
-      paste0("PL:", platform),
+    extraHeaders <- str_c("@RG",
+      str_c("ID:", readGroupNames[emptyFastqs]),
+      str_c("SM:", readGroupNames[emptyFastqs]),
+      str_c("LB:", readGroupNames[emptyFastqs]),
+      str_c("PL:", platform),
       "CN:FGCZ",
-      paste0("DT:", format(Sys.time(), "%Y-%m-%dT%H:%M:%S+00:00")),
+      str_c("DT:", format(Sys.time(), "%Y-%m-%dT%H:%M:%S+00:00")),
       sep = "\t"
     )
     con <- file(tempHeaderFn, open = "a")
@@ -137,7 +137,8 @@ fastqs2bam <- function(fastqFns, fastq2Fns = NULL, readGroupNames = NULL,
       pattern = "reheader", tmpdir = getwd(),
       fileext = ".bam"
     )
-    cmd <- paste("samtools reheader", tempHeaderFn, bamFn, ">", bamReheaderFn)
+    cmd <- str_c("samtools reheader", tempHeaderFn, bamFn, ">", bamReheaderFn,
+                 ssep = " ")
     ezSystem(cmd)
 
     file.remove(bamFn)
@@ -150,114 +151,125 @@ fastqs2bam <- function(fastqFns, fastq2Fns = NULL, readGroupNames = NULL,
 ### Convert  bam/sam files into fastqs
 bam2fastq <- function(bamFn, OUTPUT_PER_RG = TRUE, OUTPUT_DIR = ".",
                       paired = FALSE,
-                      fastqFns = sub("(\\.bam|\\.sam)$", "_R1.fastq", bamFn),
-                      fastq2Fns = sub("(\\.bam|\\.sam)$", "_R2.fastq", bamFn)) {
+                      fastqFns = str_replace(bamFn, "(\\.bam|\\.sam)$", "_R1.fastq"),
+                      fastq2Fns = str_replace(fastqFns, "_R1", "_R2.")) {
   if (isTRUE(OUTPUT_PER_RG)) {
     ## When OUTPUT_PER_RG is TRUE, we only process one uBam each time.
     stopifnot(length(bamFn) == 1L)
     ## I don't want to parse the bam header to get RG IDs
     ## Put them in a tempdir and move to OUTPUT_DIR later
-    tempDIR <- paste("SamtoFastqTempDir", Sys.getpid(), sep = "-")
+    tempDIR <- str_c("SamtoFastqTempDir", Sys.getpid(), sep = "-")
     dir.create(tempDIR)
     on.exit(unlink(tempDIR, recursive = TRUE), add = TRUE)
-    cmd <- paste(
-      preparePicard(), "SamToFastq",
-      paste0("I=", bamFn),
-      paste0("OUTPUT_DIR=", tempDIR),
-      "OUTPUT_PER_RG=true RG_TAG=ID"
+    cmd <- str_c(
+      prepareJavaTools("picard"), "SamToFastq",
+      str_c("I=", bamFn),
+      str_c("OUTPUT_DIR=", tempDIR),
+      "OUTPUT_PER_RG=true RG_TAG=ID",
+      sep = " "
     )
     ezSystem(cmd)
     fastqFns <- list.files(path = tempDIR, pattern = "_1\\.fastq$")
     fromFns <- file.path(tempDIR, fastqFns)
-    toFns <- file.path(OUTPUT_DIR, sub("_1\\.fastq$", "_R1.fastq", fastqFns))
+    toFns <- file.path(OUTPUT_DIR, str_replace(fastqFns, "_1\\.fastq$", "_R1.fastq"))
     file.rename(from = fromFns, to = toFns)
     if (isTRUE(paired)) {
       file.rename(
-        from = sub("_1\\.fastq$", "_2.fastq", fromFns),
-        to = sub("_R1\\.fastq$", "_R2.fastq", toFns)
+        from = str_replace(fromFns, "_1\\.fastq$", "_2.fastq"),
+        to = str_replace(toFns, "_R1\\.fastq$", "_R2.fastq")
       )
     }
     return(invisible(toFns))
     ## This is not much slower than splitBambyRG and SamToFastq in parallel
   } else {
-    cmd <- paste(
-      preparePicard(), "SamToFastq",
-      paste0("I=", bamFn),
-      paste0("FASTQ=", fastqFns)
+    cmd <- str_c(
+      prepareJavaTools("picard"), "SamToFastq",
+      str_c("I=", bamFn),
+      str_c("FASTQ=", fastqFns),
+      sep = " "
     )
     if (isTRUE(paired)) {
-      cmd <- paste(cmd, paste0("SECOND_END_FASTQ=", fastq2Fns))
+      cmd <- str_c(cmd, str_c("SECOND_END_FASTQ=", fastq2Fns), sep = " ")
     }
     lapply(cmd, ezSystem)
     return(invisible(fastqFns))
   }
 }
 
+.ezMethodBam2Fastq_PerRG <- function(input = NA, output = NA, param = NA) {
+  output <- EzDataset(
+    file = input$getFullPaths("CellDataset"),
+    dataRoot = param$dataRoot
+  )
+  output$setColumn("Read1", file.path(
+    getwd(), str_c(output$getNames(), "_R1.fastq"))
+  )
+  if (param$paired) {
+    output$setColumn("Read2", file.path(
+      getwd(), str_c(output$getNames(), "_R2.fastq"))
+    )
+  } else {
+    if ("Read2" %in% input$colNames) {
+      output$setColumn("Read2", NULL)
+    }
+  }
+  output$dataRoot <- NULL
+
+  if (all(file.exists(output$getColumn("Read1")))) {
+    return(output)
+  }
+  allFastqFns <- bam2fastq(
+    bamFn = input$getFullPaths("Read1"),
+    OUTPUT_PER_RG = TRUE, OUTPUT_DIR = getwd(),
+    paired = param$paired
+  )
+  fastqsToRemove <- allFastqFns[!(basename(allFastqFns) %in%
+                                    basename(output$getColumn("Read1")))]
+  ## When we want only subset of the cells to keep
+  file.remove(fastqsToRemove)
+  file.remove(str_replace(fastqsToRemove, "_R1\\.fastq$", "_R2.fastq"))
+  return(output)
+}
+
+.ezMethodBam2Fastq_NotPerRG <- function(input = NA, output = NA, param = NA) {
+  if (!is(output, "EzDataset")) {
+    outputMeta <- input$meta
+    outputMeta[["Read1"]] <- file.path(
+      getwd(), str_c(rownames(outputMeta), "_R1.fastq"))
+    outputMeta[["Read1 [File]"]] <- NULL
+    if (param$paired) {
+      outputMeta[["Read2"]] <-  file.path(
+        getwd(), str_c(rownames(outputMeta), "_R2.fastq"))
+      outputMeta[["Read2 [File]"]] <- NULL
+    } else {
+      outputMeta[["Read2"]] <- NULL
+    }
+    output <- EzDataset(meta = outputMeta, dataRoot = NULL)
+  }
+  if (all(file.exists(output$getColumn("Read1")))) {
+    return(output)
+  }
+  bam2fastq(
+    bamFn = input$getFullPaths("Read1"),
+    OUTPUT_PER_RG = FALSE, paired = param$paired,
+    fastqFns = output$getColumn("Read1")
+  )
+
+  output$setColumn(
+    "Read Count",
+    countReadsInFastq(output$getColumn("Read1"))
+  )
+  return(output)
+}
+
 ezMethodBam2Fastq <- function(input = NA, output = NA, param = NA,
                               OUTPUT_PER_RG = TRUE) {
   if (isTRUE(OUTPUT_PER_RG)) {
-    output <- EzDataset(
-      file = input$getFullPaths("CellDataset"),
-      dataRoot = param$dataRoot
-    )
-    output$setColumn("Read1", paste0(
-      getwd(), "/", output$getNames(),
-      "_R1.fastq"
-    ))
-    if (param$paired) {
-      output$setColumn("Read2", paste0(
-        getwd(), "/", output$getNames(),
-        "_R2.fastq"
-      ))
-    } else {
-      if ("Read2" %in% input$colNames) {
-        output$setColumn("Read2", NULL)
-      }
-    }
-    output$dataRoot <- NULL
-
-    allFastqFns <- bam2fastq(
-      bamFn = input$getFullPaths("Read1"),
-      OUTPUT_PER_RG = TRUE, OUTPUT_DIR = getwd(),
-      paired = param$paired
-    )
-    fastqsToRemove <- allFastqFns[!(basename(allFastqFns) %in%
-      basename(output$getColumn("Read1")))]
-    ## When we want only subset of the cells to keep
-    file.remove(fastqsToRemove)
-    file.remove(sub("_R1\\.fastq$", "_R2.fastq", fastqsToRemove))
+    output <- .ezMethodBam2Fastq_PerRG(input = input, output = output,
+                                       param = param)
   } else {
-    if (!is(output, "EzDataset")) {
-      outputMeta <- input$meta
-      outputMeta[["Read1"]] <- str_c(
-        getwd(), "/", rownames(outputMeta),
-        "_R1.fastq"
-      )
-      outputMeta[["Read1 [File]"]] <- NULL
-      if (param$paired) {
-        outputMeta[["Read2"]] <- str_c(
-          getwd(), "/", rownames(outputMeta),
-          "_R2.fastq"
-        )
-        outputMeta[["Read2 [File]"]] <- NULL
-      } else {
-        outputMeta[["Read2"]] <- NULL
-      }
-      output <- EzDataset(meta = outputMeta, dataRoot = NULL)
-    }
-    bam2fastq(
-      bamFn = input$getFullPaths("Read1"),
-      OUTPUT_PER_RG = FALSE,
-      fastqFns = output$getColumn("Read1"),
-      fastq2Fns = ifelse(isTRUE(param$paired), output$getColumn("Read1"),
-        list(NULL)
-      ),
-      paired = param$paired
-    )
-    output$setColumn(
-      "Read Count",
-      countReadsInFastq(output$getColumn("Read1"))
-    )
+    output <- .ezMethodBam2Fastq_NotPerRG(input = input, output = output,
+                                          param = param)
   }
   return(output)
 }
@@ -288,7 +300,8 @@ ezMethodSubsampleFastq <- function(input = NA, output = NA, param = NA, n = 1e6)
     }
     output$dataRoot <- NULL
   }
-  output$setColumn("Read Count", n)
+  nSubsampled = ifelse(input$getColumn("Read Count") < n, input$getColumn("Read Count"), n)
+  output$setColumn("Read Count", nSubsampled)
 
   dataset <- input$meta
   samples <- rownames(dataset)

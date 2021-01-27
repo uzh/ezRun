@@ -218,7 +218,7 @@ for(each in c(countFile, signalFile, rpkmFile, tpmFile, tableLink)){
 ```
 
 ### Count Statistics
-```{r count statistics, echo=FALSE, fig.width=min(7+(ncol(rawData)-10)*0.3, 30)}
+```{r count statistics, echo=FALSE, fig.width=min(7+(ncol(rawData)-10)*0.3, 30), message=FALSE, warning=FALSE}
 toPlot <- tibble(samples=colnames(rawData),
                  totalCounts=signif(colSums(assays(rawData)$counts) / 1e6,
                                     digits=3),
