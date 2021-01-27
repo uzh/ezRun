@@ -604,7 +604,12 @@ if (doGo(param, seqAnno)) {
       enrichrLinks[mySel, "External"] <- paste0("<a href='javascript:void(0)' onClick='", jsCall, "'>Analyse at Enrichr website</a>")
       resMerged <- NA
       if (!is.null(genesToUse) && length(genesToUse) > 3 && param$doPrecomputeEnrichr) {
-        resList <- runEnrichr(genesToUse, maxResult = maxResultsPerLibrary)
+        tryCatch({ 
+          resList <- runEnrichr(genesToUse, maxResult = maxResultsPerLibrary)
+        }, error = function(e){
+          message("enrichr failed")
+          return(NULL)
+        })
         resList <- lapply(
           names(resList),
           function(nm) {
