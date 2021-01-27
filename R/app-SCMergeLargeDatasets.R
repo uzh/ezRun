@@ -29,6 +29,7 @@ ezMethodSCMergeLargeDatasets = function(input=NA, output=NA, param=NA, htmlFile=
   library(harmony)
   library(scater)
   library(edgeR)
+  library(Seurat)
   
   ## subset the selected sample names
   samples <- param$samples
@@ -45,10 +46,38 @@ ezMethodSCMergeLargeDatasets = function(input=NA, output=NA, param=NA, htmlFile=
     sceList <- lapply(filePath,loadHDF5SummarizedExperiment)
     names(sceList) <- names(sceURLs)
   }
+  # if(file.exists(filePath)) {
+  #   sceList <- lapply(filePath,loadHDF5SummarizedExperiment)
+  #   names(sceList) <- names(sceURLs)
+  #   #if it is an rds object it has been likely generated from old reports, so we need to convert it to sce
+  # } else {
+  #   filePath <- file.path("/srv/gstore/projects", sub("https://fgcz-(gstore|sushi).uzh.ch/projects", "",dirname(sceURLs)), "sce.rds")
+  #   sceList <- lapply(filePath,readRDS)
+  #   names(sceList) <- names(sceURLs)
+  #   sceList = lapply(sceList, update_seuratObjectVersion)
+  #   sceList = lapply(sceList, function(sce) {as.SingleCellExperiment(metadata(sce)$scData)})
+  # }
   
-  #Only use common genes among all samples
-  common_genes = Reduce(intersect, lapply(sceList, rownames)) 
-  sceList = lapply(sceList, function(sce) {rowData(sce) = NULL; sce[common_genes,]})
+  common_data <- function(sce) {
+    common_genes = Reduce(intersect, lapply(sceList, rownames))
+    common_colData = Reduce(intersect,mapply(colnames, lapply(sceList, colData)))
+    rowData(sce) = NULL
+    reducedDims(sce) = NULL
+    sce = sce[common_genes,]
+    colData(sce) = colData(sce)[,common_colData]
+    # if(!("Batch" %in% colnames(colData(sce))))  #only objects from old reports don't have the Batch variable
+    #    sce$Batch = sce$Plate
+    return(sce)
+  }
+  
+  # #Only use common genes among all samples
+  # common_genes = Reduce(intersect, lapply(sceList, rownames)) 
+  # sceList = lapply(sceList, function(sce) {rowData(sce) = NULL; sce[common_genes,]})
+  # #ensure all objects have the same colData before binding them
+  # common_colData = Reduce(intersect,mapply(colnames, lapply(sceList, colData)))
+  # sceList = lapply(sceList, function(sce) {colData(sce) = colData(sce)[,common_colData]; sce})
+  sceList = lapply(sceList, common_data)
+  
   sce =  Reduce(SingleCellExperiment::cbind, sceList) 
   
   set.seed(1000)
@@ -89,9 +118,11 @@ ezMethodSCMergeLargeDatasets = function(input=NA, output=NA, param=NA, htmlFile=
   posMarkers <- scranPosMarkers(sce)
   
   #differentially expressed genes between clusters and conditions (in case of several conditions)
-  if(length(unique(sce$Condition))>1) 
+  diffGenes <- NULL
+  if(length(unique(sce$Condition))>1) {
      diffGenes <- scranDiffGenes(sce)
-  
+     write_tsv(diffGenes, file="differential_genes.tsv")
+  }
   #we do cell type identification only with SingleR since it implemments  block-processing
   singler.results <- NULL
   if(param$species == "Human" | param$species == "Mouse") 
@@ -108,12 +139,12 @@ ezMethodSCMergeLargeDatasets = function(input=NA, output=NA, param=NA, htmlFile=
    geneMeans <- sweep(geneMeans, 1, STATS=table(sce$cluster)[rownames(geneMeans)], FUN="/")
    geneMeans <- log1p(t(geneMeans))
    colnames(geneMeans) <- paste("cluster", colnames(geneMeans), sep="_")
-  saveExternalFiles(sce, list(pos_markers=posMarkers, differential_genes=diffGenes, gene_means=as_tibble(as.data.frame(geneMeans), rownames="gene_name")))
+   saveExternalFiles(sce, list(pos_markers=posMarkers, differential_genes=diffGenes, gene_means=as_tibble(as.data.frame(geneMeans), rownames="gene_name")))
+  #write_tsv(posMarkers, file="pos_markers.tsv")
   saveHDF5SummarizedExperiment(sce, dir="sce_h5")
   
   # Copy the style files and templates
    styleFiles <- file.path(system.file("templates", package="ezRun"), c("fgcz.css", "SCMergeLargeDatasets.Rmd", "fgcz_header.html", "banner.png"))
- # styleFiles <- paste0("/home/daymegr/workspaceR/dayme-scripts/sushi_scripts_mod/", c("fgcz.css", "SCMergeLargeDatasets.Rmd", "fgcz_header.html", "banner.png"))
   file.copy(from=styleFiles, to=".", overwrite=TRUE)
   rmarkdown::render(input="SCMergeLargeDatasets.Rmd", envir = new.env(),
                     output_dir=".", output_file=htmlFile, clean = TRUE, quiet=TRUE)
