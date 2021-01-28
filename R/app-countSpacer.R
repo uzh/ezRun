@@ -165,9 +165,13 @@ twoPatternReadFilter <- function(readFile, leftPattern, rightPattern, maxMismatc
   repeat {
     currentReads <- yield(strm)
     reads <- sread(currentReads)
-    vp <- vmatchPattern(leftPattern, reads, max.mismatch = maxMismatch)
-    leftEnd <- vapply(endIndex(vp),
+    if(leftPattern != ''){
+      vp <- vmatchPattern(leftPattern, reads, max.mismatch = maxMismatch)
+      leftEnd <- vapply(endIndex(vp),
                       .dummyFunction, c('endIndex' = 0))
+    } else {
+      leftEnd <- rep(0, length(reads))
+    }
     vp <- vmatchPattern(rightPattern, reads, max.mismatch = maxMismatch)
     rightStart <- vapply(startIndex(vp),
                          .dummyFunction, c('startIndex' = 0))
