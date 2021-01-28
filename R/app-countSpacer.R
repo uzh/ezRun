@@ -209,6 +209,9 @@ EzAppCountSpacer <-
                   "Initializes the application using its specific defaults."
                   runMethod <<- ezMethodCountSpacer
                   name <<- "EzAppCountSpacer"
-                }
+                  appDefaults <<- rbind(
+                    minReadLength = ezFrame(Type = "integer", DefaultValue = 18,
+                                          Description = "minimum length of sgRNA"))
+                    }
               )
   )
