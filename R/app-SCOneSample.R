@@ -204,14 +204,14 @@ return(geneSets)
 
 cellsLabelsWithSingleR <- function(counts, current_clusters, param) {
 library(SingleR)
-if(grepl("Homo_sapiens", param$refBuild)){
+if(param$species == "Human"){
     reference <- HumanPrimaryCellAtlasData()
     singler.results.single <- SingleR(test = counts, ref = reference, 
                                labels = reference$label.main, method="single", de.method = "wilcox")
     singler.results.cluster <- SingleR(test = counts, ref = reference, 
                                       labels = reference$label.main, method="cluster", clusters=current_clusters, de.method = "wilcox")
   }else {
-    reference <- MouseRNAseqData()
+    reference <- celldex::MouseRNAseqData()
     singler.results.single <- SingleR(test = counts, ref = reference, labels = reference$label.main)
     singler.results.cluster <- SingleR(test = counts, ref = reference, labels = reference$label.main, method="cluster", clusters=current_clusters)
   }
