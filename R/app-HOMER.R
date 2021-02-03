@@ -60,6 +60,7 @@ ezMethodHomerDiffPeaks = function(input=NA, output=NA, param=NA,
   
   if(length(firstSamples) >= 2L || length(secondSamples) >= 2L){
     ## The experiments with replicates
+    outputFile <- basename(output$getColumn("DiffPeak"))
     cmd <- paste("getDifferentialPeaksReplicates.pl -DESeq2", 
                  "-genome", param$refBuildHOMER, 
                  "-f", param$repFoldChange,
@@ -68,8 +69,16 @@ ezMethodHomerDiffPeaks = function(input=NA, output=NA, param=NA,
                  "-style", param$style)
     cmd <- paste(cmd, "-t", paste(firstSamples, collapse=" "),
                  "-b", paste(secondSamples, collapse=" "),
-                 ">", basename(output$getColumn("DiffPeak")))
+                 ">", outputFile)
     ezSystem(cmd)
+    
+    homerResult <- ezRead.table(outputFile, row.names = NULL)
+    homerResult[[1]] <- NULL
+    colnames(homerResult) <- gsub('Tag.*', '[Signal]', colnames(homerResult))
+    colnames(homerResult) <- gsub('bg vs. target ', '', colnames(homerResult))
+    colnames(homerResult) <- gsub('adj. p-value', 'fdr', colnames(homerResult))
+    resultFile <- paste0(param$sampleGroup, '_', param$refGroup,'_', sub('txt$', 'xlsx', outputFile))
+    writexl::write_xlsx(homerResult, resultFile)
   }else{
     ## The experiments without replicates;
     ## focus on tss regions
