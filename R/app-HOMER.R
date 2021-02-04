@@ -63,22 +63,41 @@ ezMethodHomerDiffPeaks = function(input=NA, output=NA, param=NA,
     outputFile <- basename(output$getColumn("DiffPeak"))
     cmd <- paste("getDifferentialPeaksReplicates.pl -DESeq2", 
                  "-genome", param$refBuildHOMER, 
-                 "-f", param$repFoldChange,
-                 "-q", param$repFDR,
+                 "-f 0",
+                 "-q 1",
                  ifelse(param$balanced, "-balanced", ""),
                  "-style", param$style)
     cmd <- paste(cmd, "-t", paste(firstSamples, collapse=" "),
                  "-b", paste(secondSamples, collapse=" "),
-                 ">", outputFile)
+                 "> fullResult.tsv")
     ezSystem(cmd)
     
-    homerResult <- ezRead.table(outputFile, row.names = NULL)
+    homerResult <- ezRead.table("fullResult.tsv", row.names = NULL)
     homerResult[[1]] <- NULL
+    if(nrow(homerResult) > 0){
     colnames(homerResult) <- gsub('Tag.*', '[Signal]', colnames(homerResult))
     colnames(homerResult) <- gsub('bg vs. target ', '', colnames(homerResult))
     colnames(homerResult) <- gsub('adj. p-value', 'fdr', colnames(homerResult))
-    resultFile <- paste0(param$sampleGroup, '_', param$refGroup,'_', sub('txt$', 'xlsx', outputFile))
+    
+    homerResult <- homerResult[homerResult[['Log2 FoldChange']] >= log2(param$repFoldChange),]
+    homerResult <- homerResult[homerResult[['fdr']] <= param$repFDR, ]
+    resultFile <- paste0(param$sampleGroup, '_over_', param$refGroup,'_', sub('txt$', 'xlsx', outputFile))
     writexl::write_xlsx(homerResult, resultFile)
+    ezWrite.table(homerResult, outputFile, row.names = FALSE)
+    
+    peakBedFile <- 'HomerPeaks.bed'
+    bed <- data.frame(chr = homerResult$Chr, start = homerResult$Start, end = homerResult$End, name = homerResult[['Gene Name']], score = homerResult[['Peak Score']], strand = homerResult$Strand)
+    ezWrite.table(bed, peakBedFile, row.names = FALSE, col.names = FALSE)
+    
+    peakSeqFile <- 'HomerPeaks.fa'
+    homerDir <- ezSystem('echo $HOMER', intern = TRUE)
+    
+    refFasta <- file.path(homerDir, 'data/genomes', param$refBuildHOMER, 'genome.fa')
+    cmd <- paste("bedtools", " getfasta -fi", refFasta, "-bed ", peakBedFile, "-name -fo ", peakSeqFile)
+    ezSystem(cmd)
+    } else {
+      ezWrite.table(homerResult, outputFile, row.names = FALSE)
+    }
   }else{
     ## The experiments without replicates;
     ## focus on tss regions
