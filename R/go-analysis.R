@@ -366,8 +366,14 @@ ezEnricher <- function(enrichInput){
         tempTable <- enrichRes@result
         if(nrow(tempTable) != 0L){
           tempTable$Description <- Term(GOTERM[tempTable$ID])
-          tempTable$geneName <- sapply(relist(geneid2name[unlist(strsplit(tempTable$geneID, "/"))], 
-                                              strsplit(tempTable$geneID, "/")), paste, collapse="/")
+          tempTable$geneName <- sapply(tempTable$geneID, function(idString){
+            idString %>% 
+              strsplit("/") %>% 
+              unlist %>% 
+              (function(x)geneid2name[x]) %>%  ## map to gene symbols
+              na.omit %>%
+              paste(collapse="/")
+          })
           enrichRes@result <- tempTable
         }
       }
