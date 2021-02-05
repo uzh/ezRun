@@ -18,7 +18,8 @@ EzAppHomerDiffPeaks <-
                                         repFoldChange=ezFrame(Type="numeric", DefaultValue=2, Description="Replicate fold change cutoff for peak identification (calculated by DESeq2)"),
                                         repFDR=ezFrame(Type="numeric", DefaultValue=0.05, Description="Replicate FDR cutoff for peak identification (calculated by DESeq2)"),
                                         balanced=ezFrame(Type="logical", DefaultValue=TRUE, Description="Do not force the use of normalization factors to match total mapped reads.  This can be useful when analyzing differential peaks between similar data (for example H3K27ac) where we expect similar levels in all experiments. Applying this allows the data to essentially be quantile normalized during the differential calculation."),
-                                        style=ezFrame(Type="character", DefaultValue="histone", Description="Style of peaks found by findPeaks during features selection (factor, histone, super, groseq, tss, dnase, mC)")
+                                        style=ezFrame(Type="character", DefaultValue="histone", Description="Style of peaks found by findPeaks during features selection (factor, histone, super, groseq, tss, dnase, mC)"),
+                                        cmdOptions=ezFrame(Type="character", DefaultValue="", Description="to define batches in the analysis to perform paired test, e.g. -batch 1 2 1 2")
                   )
                 }
               )
@@ -63,12 +64,12 @@ ezMethodHomerDiffPeaks = function(input=NA, output=NA, param=NA,
     outputFile <- basename(output$getColumn("DiffPeak"))
     cmd <- paste("getDifferentialPeaksReplicates.pl -DESeq2", 
                  "-genome", param$refBuildHOMER, 
-                 "-f 1",
-                 "-q 1",
+                 "-all",
                  ifelse(param$balanced, "-balanced", ""),
                  "-style", param$style)
     cmd <- paste(cmd, "-t", paste(firstSamples, collapse=" "),
                  "-b", paste(secondSamples, collapse=" "),
+                 param$cmdOptions,
                  "> fullResult.tsv")
     ezSystem(cmd)
     
