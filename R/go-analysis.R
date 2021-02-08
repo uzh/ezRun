@@ -354,6 +354,7 @@ ezGoseq = function(param, selectedGenes, allGenes, gene2goList=NULL,
 ###
 ezEnricher <- function(enrichInput){
   require(clusterProfiler)
+  minGenesOverlap <- 3
   geneid2name = set_names(enrichInput$seqAnno$gene_name, enrichInput$seqAnno$gene_id)
   ontologies = c("BP", "MF", "CC")
   goResults = ezMclapply(ontologies, function(onto){
@@ -374,6 +375,8 @@ ezEnricher <- function(enrichInput){
               na.omit %>%
               paste(collapse="/")
           })
+          tempTable <- tempTable[tempTable$Count >= minGenesOverlap, ]
+          
           enrichRes@result <- tempTable
         }
       }
