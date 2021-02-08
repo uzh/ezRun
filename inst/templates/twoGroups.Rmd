@@ -533,6 +533,7 @@ openxlsx::write.xlsx(resultMetaCore, file = metacoreFile)
 #### Metacore
 Metacore is a commercial software that performs gene-set based analysis using a manually curated, proprietary database. It takes as input a subset of genes passing certain p-value/fold-change thresholds  (i.e.,differentially expressed genes). **It is recommended to analyse human and mouse data and to gain drug/disease-related information.** 
 
+##### Registration
 Using MetaCore requires an account. One can be obtained by emailing <sequencing@fgcz.ethz.ch>.
 
 ***
@@ -589,7 +590,11 @@ MetaCore currently has full pathway support for three core species: **Human**; *
 
 
 ### Enrichr
+
+#### Description 
 Enrichr is a web server which collects in one website many different databases that can be interrogated using gene lists.It takes as input a subset of genes passing certain p-value/fold-change thresholds  (i.e.,differentially expressed genes). **It is recommended to search in one go various databases such as cell type, transcription factors, mutations, diseases.** Further details: [Visit the enrichr bioconductor page](https://bioconductor.org/packages/release/bioc/html/goseq.html)
+
+***
 
 ```{r enrichr, echo=FALSE, message=FALSE}
 if (doGo(param, seqAnno)) {
@@ -740,7 +745,11 @@ if (exists("enrichResult")) {
 ```
 
 #### Overview 
+
+##### Description
 The  Over Representation Analysis (ORA) gives an estimate of whether a set of selected genes  is enriched for genes in specific categories. It takes as input a subset of genes passing certain p-value/fold-change thresholds  (i.e.,differentially expressed genes). **It is recommended when the difference between groups is large (e.g., 500+ genes above p-value/fold-change thresholds).** There are many implementations of this test: in Sushi we use the R package Goseq. Further details: [Visit the goseq bioconductor page](https://bioconductor.org/packages/release/bioc/html/goseq.html)
+
+*** 
 
 ```{r ora overview, echo=F, message=F, eval=!debug}
 ora.overview = ezFrame("Number of Significant Pathways"=numeric())
@@ -847,7 +856,11 @@ if (exists("enrichResultGSEA")) {
 ```
 
 #### Overview 
+
+##### Description
 Gene Set Enrichment Analysis (GSEA) calculates an enrichment score for each annotation category (e.g., those in GO BP) by screening all the genes from a differential expression analysis and their associated fold-changes. It does not require a pre-selection based on p-value/fold-change. **It is  recommended when the difference between groups is small (i.e., applying thresholds would result in very few genes selected) or when combining results from different experiments.** Further details: [Visit the goseq GSEA page](https://www.gsea-msigdb.org/gsea/index.jsp)
+
+***
 
 ```{r gsea overview, echo=F, message=F, eval=!debug}
 gsea.overview = ezFrame("Number of Significant Pathways"=numeric())
