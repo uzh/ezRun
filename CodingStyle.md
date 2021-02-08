@@ -23,7 +23,9 @@ Basic paradigms:
 * use curly braces also for very simple `if` statements
 * use `library` instead of `require` since `library` gives an error while `require` gives only a warning if the package is missing
 * the use of row names as IDs for matrices and data.frames is encouraged
-* never access columns/rows by hard-coded indice, be aware that column or row ordering may change, use column or row names if possible
+* never access columns/rows by hard-coded indices, be aware that column or row ordering may change, use column or row names if possible
+* never user `for (i in 1:length(x))`, if the length of `x` is zero, this fails, always use `for (i in seq_along(x))`
+
 
 ## Functions
 
