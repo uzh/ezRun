@@ -697,10 +697,10 @@ if (exists("enrichResult")) {
       } else {
         erp <- list()
         er <- enrichResult[[onto]][[sig]]
+        er@result$Label <- ""
         er@result <- er@result[er@result$Count >= minGenesOverlap, ]
 
-        er@result$Label <- ""
-        for (i in 1:length(er@result$Description)) {
+        for (i in seq_along(er@result$Description)) {
           desc <- er@result$Description[i]
           if (!is.na(desc) && nchar(desc) < 35) {
             syn <- desc
@@ -714,7 +714,7 @@ if (exists("enrichResult")) {
           }
           er@result$Label[i] <- paste0(er@result$ID[i], "\n", syn)
         }
-        ## why overwrite
+        ## why overwrite??
         er@result$geneID <- er@result$geneName
 
         oraFile <- paste(onto, sig, "ora.txt", sep = "_")
