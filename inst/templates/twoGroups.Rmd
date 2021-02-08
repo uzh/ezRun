@@ -688,7 +688,6 @@ if (!doEnrichr(param)) {
 ```{r prepare ora plots, echo=FALSE, message=FALSE, eval=!debug}
 enrichResultPlots <- list()
 if (exists("enrichResult")) {
-  minGenesOverlap = 3
   for (onto in names(enrichResult)) {
     enrichResultPlots[[onto]] <- list()
     for (sig in names(enrichResult[[onto]])) {
@@ -698,7 +697,6 @@ if (exists("enrichResult")) {
         erp <- list()
         er <- enrichResult[[onto]][[sig]]
         er@result$Label <- ""
-        er@result <- er@result[er@result$Count >= minGenesOverlap, ]
 
         for (i in seq_along(er@result$Description)) {
           desc <- er@result$Description[i]
