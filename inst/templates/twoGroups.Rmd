@@ -739,10 +739,10 @@ if (exists("enrichResult")) {
 #### Overview 
 ```{r ora overview, echo=F, message=F, eval=!debug}
 ora.overview = ezFrame("Number of Significant Pathways"=numeric())
-for (i in 1:length(names(enrichResult))){
-  for (j in 1:length(names(enrichResult[[i]]))){
-            testName = paste0(names(enrichResult)[i],": ",names(enrichResult[[i]])[j])
-            ora.overview[testName, "Number of Significant Pathways"] = nrow(enrichResult[[i]][[j]]@result)
+for (goDomain in names(enrichResult)){
+  for (resName in names(enrichResult[[goDomain]])){
+            testName = paste0(goDomain,": ",resName)
+            ora.overview[testName, "Number of Significant Pathways"] = nrow(enrichResult[[goDomain]][[resName]]@result)
   }
 }
 
