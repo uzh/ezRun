@@ -530,8 +530,14 @@ metacoreFile <- str_c("MetaCore--", param$comparison, ".xlsx")
 openxlsx::write.xlsx(resultMetaCore, file = metacoreFile)
 ```
 
-#### Quick Start 
+#### Metacore
+Metacore is a commercial software that performs gene-set based analysis using a manually curated, proprietary database. It takes as input a subset of genes passing certain p-value/fold-change thresholds  (i.e.,differentially expressed genes). **It is recommended to analyse human and mouse data and to gain drug/disease-related information.** 
+
+##### Registration
 Using MetaCore requires an account. One can be obtained by emailing <sequencing@fgcz.ethz.ch>.
+
+***
+#### How to use Metacore: quick start
 
  1. [Click to Download Expression File for MetaCore](`r metacoreFile`)
  
@@ -541,11 +547,7 @@ Using MetaCore requires an account. One can be obtained by emailing <sequencing@
  
  4. Select `Pathway Maps` from the `One-click Analysis` tab. 
 
-***
-
-#### MetaCore 
-MetaCore is a powerful pathway and systems analysis tool. It has a curated database of a wide range of molecular pathways and interactions, and provides useful visualisations and statistics based on gene expression fold changes. 
-
+#### Important notes
 When uploading the data into MetaCore, select three columns:
 
 * A gene identifier, pick **one** of:
@@ -588,6 +590,12 @@ MetaCore currently has full pathway support for three core species: **Human**; *
 
 
 ### Enrichr
+
+#### Description 
+Enrichr is a web server which collects in one website many different databases that can be interrogated using gene lists.It takes as input a subset of genes passing certain p-value/fold-change thresholds  (i.e.,differentially expressed genes). **It is recommended to search in one go various databases such as cell type, transcription factors, mutations, diseases.** Further details: [Visit the enrichr bioconductor page](https://bioconductor.org/packages/release/bioc/html/goseq.html)
+
+***
+
 ```{r enrichr, echo=FALSE, message=FALSE}
 if (doGo(param, seqAnno)) {
   if (doEnrichr(param)) {
@@ -604,7 +612,12 @@ if (doGo(param, seqAnno)) {
       enrichrLinks[mySel, "External"] <- paste0("<a href='javascript:void(0)' onClick='", jsCall, "'>Analyse at Enrichr website</a>")
       resMerged <- NA
       if (!is.null(genesToUse) && length(genesToUse) > 3 && param$doPrecomputeEnrichr) {
-        resList <- runEnrichr(genesToUse, maxResult = maxResultsPerLibrary)
+        tryCatch({ 
+          resList <- runEnrichr(genesToUse, maxResult = maxResultsPerLibrary)
+        }, error = function(e){
+          message("enrichr failed")
+          return(NULL)
+        })
         resList <- lapply(
           names(resList),
           function(nm) {
@@ -683,9 +696,9 @@ if (exists("enrichResult")) {
       } else {
         erp <- list()
         er <- enrichResult[[onto]][[sig]]
-
         er@result$Label <- ""
-        for (i in 1:length(er@result$Description)) {
+
+        for (i in seq_along(er@result$Description)) {
           desc <- er@result$Description[i]
           if (!is.na(desc) && nchar(desc) < 35) {
             syn <- desc
@@ -699,7 +712,7 @@ if (exists("enrichResult")) {
           }
           er@result$Label[i] <- paste0(er@result$ID[i], "\n", syn)
         }
-
+        ## why overwrite??
         er@result$geneID <- er@result$geneName
 
         oraFile <- paste(onto, sig, "ora.txt", sep = "_")
@@ -730,12 +743,18 @@ if (exists("enrichResult")) {
 ```
 
 #### Overview 
+
+##### Description
+The  Over Representation Analysis (ORA) gives an estimate of whether a set of selected genes  is enriched for genes in specific categories. It takes as input a subset of genes passing certain p-value/fold-change thresholds  (i.e.,differentially expressed genes). **It is recommended when the difference between groups is large (e.g., 500+ genes above p-value/fold-change thresholds).** There are many implementations of this test: in Sushi we use the R package Goseq. Further details: [Visit the goseq bioconductor page](https://bioconductor.org/packages/release/bioc/html/goseq.html)
+
+*** 
+
 ```{r ora overview, echo=F, message=F, eval=!debug}
 ora.overview = ezFrame("Number of Significant Pathways"=numeric())
-for (i in 1:length(names(enrichResult))){
-  for (j in 1:length(names(enrichResult[[i]]))){
-            testName = paste0(names(enrichResult)[i],": ",names(enrichResult[[i]])[j])
-            ora.overview[testName, "Number of Significant Pathways"] = nrow(enrichResult[[i]][[j]]@result)
+for (goDomain in names(enrichResult)){
+  for (resName in names(enrichResult[[goDomain]])){
+            testName = paste0(goDomain,": ",resName)
+            ora.overview[testName, "Number of Significant Pathways"] = nrow(enrichResult[[goDomain]][[resName]]@result)
   }
 }
 
@@ -835,6 +854,12 @@ if (exists("enrichResultGSEA")) {
 ```
 
 #### Overview 
+
+##### Description
+Gene Set Enrichment Analysis (GSEA) calculates an enrichment score for each annotation category (e.g., those in GO BP) by screening all the genes from a differential expression analysis and their associated fold-changes. It does not require a pre-selection based on p-value/fold-change. **It is  recommended when the difference between groups is small (i.e., applying thresholds would result in very few genes selected) or when combining results from different experiments.** Further details: [Visit the goseq GSEA page](https://www.gsea-msigdb.org/gsea/index.jsp)
+
+***
+
 ```{r gsea overview, echo=F, message=F, eval=!debug}
 gsea.overview = ezFrame("Number of Significant Pathways"=numeric())
 for (i in 1:length(names(enrichResultGSEA))){

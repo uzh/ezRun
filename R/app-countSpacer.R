@@ -131,6 +131,9 @@ ezMethodCountSpacer = function(input=NA, output=NA, param=NA){
                            "}"),
                            dom = c('Bfrtip'),buttons = c('colvis','copy', 'csv', 'excel', 'pdf', 'print'), pageLength = 100, autoWidth=TRUE))
     saveWidget(myDT, 'underrepresentedTargets.html')
+  } else {
+      myMessage ='Too many underrepresented target for HTML output. Please check txt-files.'
+      write.table(myMessage, 'underrepresentedTargets.html', col.names = FALSE, row.names = FALSE)
   }
   ezWrite.table(targetView, paste0(sampleName,'-targetBasedResult.txt') ,row.names = FALSE)
   
@@ -165,9 +168,13 @@ twoPatternReadFilter <- function(readFile, leftPattern, rightPattern, maxMismatc
   repeat {
     currentReads <- yield(strm)
     reads <- sread(currentReads)
-    vp <- vmatchPattern(leftPattern, reads, max.mismatch = maxMismatch)
-    leftEnd <- vapply(endIndex(vp),
+    if(leftPattern != ''){
+      vp <- vmatchPattern(leftPattern, reads, max.mismatch = maxMismatch)
+      leftEnd <- vapply(endIndex(vp),
                       .dummyFunction, c('endIndex' = 0))
+    } else {
+      leftEnd <- rep(0, length(reads))
+    }
     vp <- vmatchPattern(rightPattern, reads, max.mismatch = maxMismatch)
     rightStart <- vapply(startIndex(vp),
                          .dummyFunction, c('startIndex' = 0))
@@ -205,6 +212,9 @@ EzAppCountSpacer <-
                   "Initializes the application using its specific defaults."
                   runMethod <<- ezMethodCountSpacer
                   name <<- "EzAppCountSpacer"
-                }
+                  appDefaults <<- rbind(
+                    minReadLength = ezFrame(Type = "integer", DefaultValue = 18,
+                                          Description = "minimum length of sgRNA"))
+                    }
               )
   )

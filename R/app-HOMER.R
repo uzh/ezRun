@@ -18,7 +18,8 @@ EzAppHomerDiffPeaks <-
                                         repFoldChange=ezFrame(Type="numeric", DefaultValue=2, Description="Replicate fold change cutoff for peak identification (calculated by DESeq2)"),
                                         repFDR=ezFrame(Type="numeric", DefaultValue=0.05, Description="Replicate FDR cutoff for peak identification (calculated by DESeq2)"),
                                         balanced=ezFrame(Type="logical", DefaultValue=TRUE, Description="Do not force the use of normalization factors to match total mapped reads.  This can be useful when analyzing differential peaks between similar data (for example H3K27ac) where we expect similar levels in all experiments. Applying this allows the data to essentially be quantile normalized during the differential calculation."),
-                                        style=ezFrame(Type="character", DefaultValue="histone", Description="Style of peaks found by findPeaks during features selection (factor, histone, super, groseq, tss, dnase, mC)")
+                                        style=ezFrame(Type="character", DefaultValue="histone", Description="Style of peaks found by findPeaks during features selection (factor, histone, super, groseq, tss, dnase, mC)"),
+                                        cmdOptions=ezFrame(Type="character", DefaultValue="", Description="to define batches in the analysis to perform paired test, e.g. -batch 1 2 1 2")
                   )
                 }
               )
@@ -60,17 +61,47 @@ ezMethodHomerDiffPeaks = function(input=NA, output=NA, param=NA,
   
   if(length(firstSamples) >= 2L || length(secondSamples) >= 2L){
     ## The experiments with replicates
+    outputFile <- basename(output$getColumn("DiffPeak"))
     cmd <- paste("getDifferentialPeaksReplicates.pl -DESeq2", 
                  "-genome", param$refBuildHOMER, 
-                 "-f", param$repFoldChange,
-                 "-q", param$repFDR,
+                 "-all",
                  ifelse(param$balanced, "-balanced", ""),
                  "-style", param$style)
     cmd <- paste(cmd, "-t", paste(firstSamples, collapse=" "),
                  "-b", paste(secondSamples, collapse=" "),
-                 ">", basename(output$getColumn("DiffPeak")))
+                 param$cmdOptions,
+                 "> fullResult.tsv")
     ezSystem(cmd)
-  }else{
+    
+    homerResult <- ezRead.table("fullResult.tsv", row.names = NULL)
+    homerResult[[1]] <- NULL
+    if(nrow(homerResult) > 0){
+    colnames(homerResult) <- gsub('Tag.*', '[Signal]', colnames(homerResult))
+    colnames(homerResult) <- gsub('bg vs. target ', '', colnames(homerResult))
+    colnames(homerResult) <- gsub('adj. p-value', 'fdr', colnames(homerResult))
+    
+    homerResult <- homerResult[homerResult[['Log2 Fold Change']] >= log2(param$repFoldChange),]
+    homerResult <- homerResult[homerResult[['fdr']] <= param$repFDR, ]
+    if(nrow(homerResult) > 0){
+      resultFile <- paste0(param$sampleGroup, '_over_', param$refGroup,'_', sub('txt$', 'xlsx', outputFile))
+      writexl::write_xlsx(homerResult, resultFile)
+      ezWrite.table(homerResult, outputFile, row.names = FALSE)
+    
+      peakBedFile <- 'HomerPeaks.bed'
+      bed <- data.frame(chr = homerResult$Chr, start = homerResult$Start, end = homerResult$End, name = homerResult[['Gene Name']], score = homerResult[['Peak Score']], strand = homerResult$Strand)
+      ezWrite.table(bed, peakBedFile, row.names = FALSE, col.names = FALSE)
+    
+      peakSeqFile <- 'HomerPeaks.fa'
+      homerDir <- ezSystem('echo $HOMER', intern = TRUE)
+    
+      refFasta <- file.path(homerDir, 'data/genomes', param$refBuildHOMER, 'genome.fa')
+      cmd <- paste("bedtools", " getfasta -fi", refFasta, "-bed ", peakBedFile, "-name -fo ", peakSeqFile)
+      ezSystem(cmd)
+      }
+    } else {
+      ezWrite.table(homerResult, outputFile, row.names = FALSE)
+    }
+  } else{
     ## The experiments without replicates;
     ## focus on tss regions
     #cmd <- paste("annotatePeaks.pl tss", param$ezRef["refFastaFile"], 

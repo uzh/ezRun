@@ -202,7 +202,7 @@ Here, we use a heatmap and a dotplot to visualize simultaneously the top 5 conse
 # conservedMarkers <- conservedMarkers[order(diff_pct_cond1, diff_pct_cond2, decreasing = TRUE),]
 # top5 <- conservedMarkers %>% group_by(cluster) %>% slice_head(n = 5)
 
-top5 <- conservedMarkers %>% group_by(cluster) %>% top_n(n = 5, wt = avg_fc)
+top5 <- conservedMarkers %>% group_by(cluster) %>% top_n(n = 5, wt = avg_avg_fc)
 
 pheatmap(geneMeans[unique(top5$gene), ],fontsize_row = 8)
 plotDots(sce, features=top5$gene, group="seurat_clusters")
