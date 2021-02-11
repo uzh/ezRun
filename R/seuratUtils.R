@@ -147,28 +147,6 @@ seuratStandardWorkflow <- function(scData, param){
   scData@meta.data$seurat_clusters <- Idents(scData)
   return(scData)
 }  
-  
-cellsProportion <- function(sce){
-  require(tidyverse)
-  toTable <- tibble(Cluster=names(summary(sce$ident)))
-  cellCountsByPlate <- tibble(Plate=sce$Plate,
-                              Cluster=as.character(sce$ident)) %>%
-    group_by(Plate, Cluster) %>% summarise(n()) %>%
-    spread(Plate, `n()`, fill=0)
-  cellPercByPlate <- select(cellCountsByPlate, -Cluster) %>%
-    as.matrix()
-  rownames(cellPercByPlate) <- cellCountsByPlate$Cluster
-  cellPercByPlate <- sweep(cellPercByPlate, 2, colSums(cellPercByPlate), "/")
-  colnames(cellPercByPlate) <- paste0(colnames(cellPercByPlate), "_fraction")
-  toTable <- left_join(toTable, cellCountsByPlate, by="Cluster") %>%
-    left_join(as_tibble(cellPercByPlate, rownames="Cluster"), by="Cluster")
-  ## TODO: add fisher test?
-  toTable <- bind_rows(toTable,
-                       bind_cols("Cluster"="Total", 
-                                 summarise_at(toTable, setdiff(colnames(toTable), "Cluster"),
-                                              sum)))
-  return(toTable)
-}
 
 buildSeuratObject <- function(sce){
   require(Seurat)
