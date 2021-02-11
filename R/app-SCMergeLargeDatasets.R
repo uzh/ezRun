@@ -17,7 +17,7 @@ EzAppSCMergeLargeDatasets <-
                   appDefaults <<- rbind(k=ezFrame(Type="numeric", 
                                                            DefaultValue=0.6,
                                                            Description="A numeric value specifying the number of nearest neighbors to consider during graph construction"),
-                                        block=ezFrame(Type="character", DefaultValue="Batch", Description="Blocking factor for each cell to consider during DE test"),
+                                        block=ezFrame(Type="character", DefaultValue="Batch", Description="Blocking factor for each cell"),
                                         species=ezFrame(Type="character", DefaultValue="Human", Description="Organism"))
                 }
               )
@@ -46,36 +46,17 @@ ezMethodSCMergeLargeDatasets = function(input=NA, output=NA, param=NA, htmlFile=
     sceList <- lapply(filePath,loadHDF5SummarizedExperiment)
     names(sceList) <- names(sceURLs)
   }
-  # if(file.exists(filePath)) {
-  #   sceList <- lapply(filePath,loadHDF5SummarizedExperiment)
-  #   names(sceList) <- names(sceURLs)
-  #   #if it is an rds object it has been likely generated from old reports, so we need to convert it to sce
-  # } else {
-  #   filePath <- file.path("/srv/gstore/projects", sub("https://fgcz-(gstore|sushi).uzh.ch/projects", "",dirname(sceURLs)), "sce.rds")
-  #   sceList <- lapply(filePath,readRDS)
-  #   names(sceList) <- names(sceURLs)
-  #   sceList = lapply(sceList, update_seuratObjectVersion)
-  #   sceList = lapply(sceList, function(sce) {as.SingleCellExperiment(metadata(sce)$scData)})
-  # }
   
   common_data <- function(sce) {
-    common_genes = Reduce(intersect, lapply(sceList, rownames))
-    common_colData = Reduce(intersect,mapply(colnames, lapply(sceList, colData)))
+    #common_genes = Reduce(intersect, lapply(sceList, rownames))
+    common_colData = Reduce(intersect,lapply(lapply(sceList, colData), colnames))
     rowData(sce) = NULL
     reducedDims(sce) = NULL
     sce = sce[common_genes,]
     colData(sce) = colData(sce)[,common_colData]
-    # if(!("Batch" %in% colnames(colData(sce))))  #only objects from old reports don't have the Batch variable
-    #    sce$Batch = sce$Plate
     return(sce)
   }
   
-  # #Only use common genes among all samples
-  # common_genes = Reduce(intersect, lapply(sceList, rownames)) 
-  # sceList = lapply(sceList, function(sce) {rowData(sce) = NULL; sce[common_genes,]})
-  # #ensure all objects have the same colData before binding them
-  # common_colData = Reduce(intersect,mapply(colnames, lapply(sceList, colData)))
-  # sceList = lapply(sceList, function(sce) {colData(sce) = colData(sce)[,common_colData]; sce})
   sceList = lapply(sceList, common_data)
   
   sce =  Reduce(SingleCellExperiment::cbind, sceList) 
@@ -93,8 +74,8 @@ ezMethodSCMergeLargeDatasets = function(input=NA, output=NA, param=NA, htmlFile=
   # Extract variable genes for downtream analysis
   top.hvgs <- getTopHVGs(dec, n=2000)
   
-  # PCA
-  sce <- denoisePCA(sce, dec, subset.row=top.hvgs)
+  # PCA. The minimum number of PCAs selected will be 30 and the maximum 50
+  sce <- denoisePCA(sce, dec, subset.row=top.hvgs, min.rank=30, max.rank=50)
   
   # Integration with Harmony using the PCA embeddings
   harmony_PCA <- HarmonyMatrix(
