@@ -1,5 +1,5 @@
 ---
-
+title:  "`r metadata(sce)$param$name`"
 author: "Functional Genomics Center Zurich"
 output: 
   html_document:
