@@ -217,3 +217,14 @@ cellsProportion <- function(sce, groupVar1, groupVar2){
   toTable <- bind_rows(toTable,total)
   return(toTable)
 }
+
+getSpecies <- function(refBuild) {
+  if(startsWith(refBuild, "Homo_sapiens")){
+    species <- "Human"
+  }else if(startsWith(refBuild, "Mus_musculus")){
+    species <- "Mouse"
+  } else {
+  species <- "other"
+  }
+  return(species)
+}
