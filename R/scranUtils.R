@@ -97,16 +97,15 @@ scranDiffGenes <- function(sce) {
   summed <- aggregateAcrossCells(sce, 
                                  id=colData(sce)[,c("cluster", "Plate")])
   #filter out all sample-label combinations with insufficient cells.
-  summed.filt <- summed[,summed$ncells >= 20]
-  #create design matrix
+  summed.filt <- summed[,summed$ncells >= 10]
+  # #create the design matrix
   targets <- colData(sce)[!duplicated(sce$Plate),]
-  design <-  model.matrix(~factor(Condition), data=targets)
+  design <-  model.matrix(~factor(Batch)+factor(Condition), data=targets)
   rownames(design) <- targets$Plate
   #DE analysis
   de.results <- pseudoBulkDGE(summed.filt, 
-                              sample=summed.filt$Plate,
                               label=summed.filt$cluster,
-                              design=design,
+                              design=~factor(Batch)+factor(Condition),
                               coef=ncol(design),
                               condition=targets$Condition
   )
