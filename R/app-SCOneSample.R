@@ -44,8 +44,7 @@ EzAppSCOneSample <-
                                                       Description='A gene will be kept if it has at least nUMIs in the fraction of cells specified before'),
                                         nmad=ezFrame(Type="numeric", 
                                                      DefaultValue=3, 
-                                                     Description="Median absolute deviation (MAD) from the median value of each metric across all cells"),
-                                        species=ezFrame(Type="character", DefaultValue="Human", Description="Organism")
+                                                     Description="Median absolute deviation (MAD) from the median value of each metric across all cells")
                                         )
                 }
               )
@@ -87,9 +86,10 @@ ezMethodSCOneSample <- function(input=NA, output=NA, param=NA,
   cells_AUC <- NULL
   singler.results <- NULL
   #cell types annotation is only supported for Human and Mouse at the moment
-  if(param$species == "Human" | param$species == "Mouse") {
-     cells_AUC <- cellsLabelsWithAUC(scData, param)
-     singler.results <- cellsLabelsWithSingleR(GetAssayData(scData, "counts"), Idents(scData), param)
+  species <- getSpecies(param$refBuild)
+  if(species == "Human" | species == "Mouse") {
+     cells_AUC <- cellsLabelsWithAUC(scData, species, param$tissue)
+     singler.results <- cellsLabelsWithSingleR(GetAssayData(scData, "counts"), Idents(scData), species)
   }
   
   #Convert scData to Single Cell experiment Object
@@ -166,12 +166,10 @@ filterCellsAndGenes <- function(sce, param) {
   return(list(sce.unfiltered=sce.unfiltered, sce = sce))
 }
 
-cellsLabelsWithAUC <- function(scData, param) {
+cellsLabelsWithAUC <- function(scData, species, tissue) {
   library(AUCell)
-  species <- param$species
   if (species == "other")
     return(NULL)
-  tissue <- param$tissue
   tissue = unlist(strsplit(tissue, ","))
   all_cell_markers <- read.table("/srv/GT/databases/scGeneSets/all_cell_markers.txt", sep = "\t", header = TRUE)
   filtered_cell_markers <- all_cell_markers[all_cell_markers$speciesType == species & all_cell_markers$tissueType %in% tissue, ]
@@ -202,9 +200,9 @@ geneSets = GeneSetCollection(geneSets)
 return(geneSets)
 }
 
-cellsLabelsWithSingleR <- function(counts, current_clusters, param) {
+cellsLabelsWithSingleR <- function(counts, current_clusters, species) {
 library(SingleR)
-if(param$species == "Human"){
+if(species == "Human"){
     reference <- HumanPrimaryCellAtlasData()
     singler.results.single <- SingleR(test = counts, ref = reference, 
                                labels = reference$label.main, method="single", de.method = "wilcox")
