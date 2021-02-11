@@ -198,7 +198,7 @@ cellIdents_perSample <- as.data.frame(colData(sce)[,c('seurat_clusters', 'orig.i
 barplot = ggplot(data=cellIdents_perSample, aes(x=seurat_clusters, fill=orig.ident)) + geom_bar(stat="Count")
 barplot + labs(x="Cluster", y = "Number of cells", fill = "Sample")
 
-cells_prop = cellsProportion(sce)
+cells_prop = cellsProportion(sce, groupVar1 = "ident", groupVar2 = "Plate")
 kable(cells_prop,row.names=FALSE, format="html",caption="Cell proportions") %>% kable_styling(bootstrap_options = "striped", full_width = F, position = "float_right")
 ```
 
