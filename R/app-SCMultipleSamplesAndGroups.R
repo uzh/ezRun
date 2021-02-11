@@ -34,8 +34,7 @@ EzAppSCMultipleSamplesAndGroups <-
                                                            Description="Variables to regress out if the test LR is chosen"),
                                         maxSamplesSupported=ezFrame(Type="numeric", 
                                                               DefaultValue=5, 
-                                                              Description="Maximum number of samples to compare"),
-                                        species=ezFrame(Type="character", DefaultValue="Human", Description="Organism"))
+                                                              Description="Maximum number of samples to compare"))
                 }
               )
   )
@@ -127,9 +126,11 @@ ezMethodSCMultipleSamplesAndGroups = function(input=NA, output=NA, param=NA, htm
   #we do cell type identification using AUCell and SingleR
   cells_AUC <- NULL
   singler.results <- NULL
-  if(param$species == "Human" | param$species == "Mouse") {
+  #cell types annotation is only supported for Human and Mouse at the moment
+  species <- getSpecies(param$refBuild)
+  if(species == "Human" | species == "Mouse") {
     #cells_AUC = cellsLabelsWithAUC(scData, param)
-    singler.results <- cellsLabelsWithSingleR(GetAssayData(scData, "counts"), Idents(scData), param)
+    singler.results <- cellsLabelsWithSingleR(GetAssayData(scData, "counts"), Idents(scData), species)
   }
   
   #Convert scData to Single Cell experiment Object

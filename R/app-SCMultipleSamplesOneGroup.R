@@ -43,8 +43,7 @@ EzAppSCMultipleSamplesOneGroup <-
                                                               Description="The markers to show in the heatmap of cluster marker genes"),
                                         maxSamplesSupported=ezFrame(Type="numeric", 
                                                                     DefaultValue=5, 
-                                                                    Description="Maximum number of samples to compare"), 
-                                        species=ezFrame(Type="character", DefaultValue="Human", Description="Organism"))
+                                                                    Description="Maximum number of samples to compare"))
                 }
               )
   )
@@ -126,9 +125,11 @@ ezMethodSCMultipleSamplesOneGroup = function(input=NA, output=NA, param=NA, html
   #we do cell type identification using AUCell and SingleR
   cells_AUC <- NULL
   singler.results <- NULL
-  if(param$species == "Human" | param$species == "Mouse") {
-    cells_AUC = cellsLabelsWithAUC(scData, param)
-    singler.results <- cellsLabelsWithSingleR(GetAssayData(scData, "counts"), Idents(scData), param)
+  #cell types annotation is only supported for Human and Mouse at the moment
+  species <- getSpecies(param$refBuild)
+  if(species == "Human" | species == "Mouse") {
+    cells_AUC = cellsLabelsWithAUC(scData, species, tissue)
+    singler.results <- cellsLabelsWithSingleR(GetAssayData(scData, "counts"), Idents(scData), species)
   }
   
   #Convert scData to Single Cell experiment Object

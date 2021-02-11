@@ -240,7 +240,7 @@ Another strategy for annotation is to compare the single-cell expression profile
 To do this, we use the SingleR method (Aran et al. 2019) for cell type annotation. This method assigns labels to cells based on the reference samples with the highest Spearman rank correlations and thus can be considered a rank-based variant of k-nearest-neighbor classification. To reduce noise, SingleR identifies marker genes between pairs of labels and computes the correlation using only those markers. It also performs a fine-tuning step for each cell where the calculation of the correlations is repeated with just the marker genes for the top-scoring labels. This aims to resolve any ambiguity between those labels by removing noise from irrelevant markers for other labels. 
 SingleR contains several built-in reference datasets, mostly assembled from bulk RNA-seq or microarray data of sorted cell types. These built-in references are often good enough for most applications, provided that they contain the cell types that are expected in the test population. 
 
-```{r singler, eval= (param$species != "other")}
+```{r singler, eval= (species != "other")}
 singler.results.single <- metadata(sce)$singler.results$singler.results.single
 singler.results.cluster <- metadata(sce)$singler.results$singler.results.cluster
 singler.single.labels <- singler.results.single$labels
@@ -248,7 +248,7 @@ singler.cluster.labels<- singler.results.cluster$labels[match(colData(sce)[,"ide
 all.markers <- metadata(singler.results.cluster)$de.genes
 ```
 
-```{r singler ScoreHeatmap,  eval= (param$species != "other"), fig.height=length(unique(singler.single.labels))*0.5, fig.width=8, results='asis'}
+```{r singler ScoreHeatmap,  eval= (species != "other"), fig.height=length(unique(singler.single.labels))*0.5, fig.width=8, results='asis'}
 cat("The two heatmaps below display the scores for all individual cells (left) and each original cluster (right) across all reference labels, which allows users to inspect the confidence of the predicted labels across the dataset. The bar Labels on the top shows the actual assigned label.\n")
 cat("\n")
 #while (dev.cur()>1) dev.off()
@@ -257,7 +257,7 @@ plotScoreHeatmap(singler.results.cluster, clusters=rownames(singler.results.clus
 ```
 
 
-```{r singler labelsTSNE,  eval= (param$species != "other"), fig.width=12, results='asis'}
+```{r singler labelsTSNE,  eval= (species != "other"), fig.width=12, results='asis'}
 cat("The single cell (top) and cluster (bottom) annotations are also shown on the TSNEs. Place the mouse over the cells to get information such as their TSNE coordinates, original cluster, the cells name and the label assigned by SingleR. You can also zoom in specific areas of the TSNE by dragging and drop with the mouse.\n")
 
 cellInfo <- tibble(Cells=colnames(sce), Cluster=colData(sce)[,"ident"],
@@ -300,7 +300,7 @@ p2
 We can also use sets of marker genes that are highly expressed in each cell. This does not require matching of individual cells to the expression values of the reference dataset, which is faster and more convenient when only the identities of the markers are available. In this case, we use sets of gene markers for individual cell types taken from the CellMarkers database which contains an accurate resource of cell markers for various cell types in tissues of human and mouse (Zhang X., Lan Y., Xu J., Quan F., Zhao E., Deng C., et al. (2019). CellMarker: a manually curated resource of cell markers in human and mouse. Nucleic Acids Res. 47, D721–d728. 10.1093/nar/gky900). 
 We use the AUCell package (Aibar et al. (2017) SCENIC: single-cell regulatory network inference and clustering. Nature Methods. doi: 10.1038/nmeth.4463) to identify marker sets that are highly expressed in each cell. AUCell uses the “Area Under the Curve” (AUC) to calculate whether a critical subset of the input gene set is enriched within the expressed genes for each cell. The AUC estimates the proportion of genes in the gene-set that are highly expressed in each cell. Cells expressing many genes from the gene-set will have higher AUC values than cells expressing fewer. Finally, it assigns cell type identity to each cell in the test dataset by taking the marker set with the top AUC as the label for that cell.
 
-```{r AUC assigments, eval= (param$species != "other")}
+```{r AUC assigments, eval= (species != "other")}
 cells_AUC <- metadata(sce)$cells_AUC
 cells_assignment <- AUCell_exploreThresholds(cells_AUC, plotHist=FALSE, assign=TRUE) 
 cellsAssigned <- lapply(cells_assignment, function(x) x$assignment)
@@ -309,11 +309,11 @@ colnames(assignmentTable)[2] <- "geneSet"
 
 ```
 
-```{r assigments, eval= (param$species != "other"), results='asis'}
+```{r assigments, eval= (species != "other"), results='asis'}
 cat("We can explore the cell assignment results using different plots. Below, we show a heatmap that represents the number of cells (in log scale) from each cluster that were assigned to the different cell types. After calculating an AUC score for each cell and cell type, we assign cell type identity by taking the cell type with the top AUC as the label for that cell. Some cell types may be missing because no cells obtained their top AUC score for it.")
 cat("\n\n")
 ```
-```{r assigments heatmap, eval= (param$species != "other"), results='asis',fig.align='center', fig.width=10, fig.height=6}
+```{r assigments heatmap, eval= (species != "other"), results='asis',fig.align='center', fig.width=10, fig.height=6}
 tras_cells_AUC <- t(assay(cells_AUC))
 full.labels <- colnames(tras_cells_AUC)[max.col(tras_cells_AUC)]
 tab <- table(full.labels, colData(sce)[,"seurat_clusters"])
@@ -321,7 +321,7 @@ print(pheatmap(log10(tab+10), color=viridis::viridis(100), silent=TRUE))
 ```
 
 
-```{r tsne and AUC res, eval= (param$species != "other"), results='asis'}
+```{r tsne and AUC res, eval= (species != "other"), results='asis'}
 cat("The plots below show for every cell type:\n")
 cat('\n')
 cat("1) The distribution of the AUC values in the cells. The ideal situation will be a bi-modal distribution, in which most cells in the dataset have a low “AUC” compared to a population of cells with a higher value.  The size of the gene-set will also affect the results. With smaller gene-genes (fewer genes), it is more likely to get cells with AUC = 0. While this is the case of the “perfect markers” it is also easier to get it by chance with small datasets. The vertical bars correspond to several thresholds that could be used to consider a gene-set ‘active’. The thickest vertical line indicates the threshold selected by default: the highest value to reduce the false positives.\n")
@@ -334,7 +334,7 @@ cellsTsne <- reducedDims(sce)$TSNE
 filtered_cells_AUC <- cells_AUC[,colSums(assay(cells_AUC))>0]
 ```
 
-```{r tsne and AUC hist, eval= (param$species != "other"), fig.height=5, fig.width=5}
+```{r tsne and AUC hist, eval= (species != "other"), fig.height=5, fig.width=5}
 AUCell_plotTSNE(tSNE=cellsTsne, exprMat=counts(sce), cellsAUC=cells_AUC)
 ```
 
