@@ -99,10 +99,6 @@ ezMethodSCOneSample <- function(input=NA, output=NA, param=NA,
   sce <- as.SingleCellExperiment(scData)
   metadata(sce)$PCA_stdev <- Reductions(scData, "pca")@stdev   
   metadata(sce)$cells_AUC <- cells_AUC
-  singler.results.cluster <- singler.results$singler.results.cluster
-  singler.single.labels <-  singler.results$singler.results.single
-  sce$singler.cluster.labels = singler.results.cluster[as.character(sce$ident), "labels"]
-  sce$singler.single.labels <- singler.single.labels$labels
   metadata(sce)$singler.results <- singler.results
   metadata(sce)$output <- output
   metadata(sce)$param <- param
