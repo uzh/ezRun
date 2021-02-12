@@ -55,6 +55,7 @@ cat(paste0("<SCRIPT language=\"JavaScript\" SRC=\"", basename(jsFile), "\"></SCR
 ```{r}
 output <- metadata(sce)$output
 species <- getSpecies(param$refBuild)
+var_heigth = 1 #This ensures that chunks that use the length of this variable to set the fig size, don't fail.
 ```
 
 ## Analysis results {.tabset}
@@ -337,9 +338,10 @@ singler.results.single <- metadata(sce)$singler.results$singler.results.single
 singler.results.cluster <- metadata(sce)$singler.results$singler.results.cluster
 singler.single.labels <- singler.results.single$labels
 singler.cluster.labels<- singler.results.cluster$labels[match(colData(sce)[,"ident"], rownames(singler.results.cluster))]
+var_heigth = length(unique(singler.single.labels))*0.3
 ```
 
-```{r singler ScoreHeatmap,  eval= (species != "other"), fig.height=length(unique(singler.single.labels))*0.3, fig.width=8, results='asis'}
+```{r singler ScoreHeatmap,  eval= (species != "other"), fig.height= var_heigth, fig.width=8, results='asis'}
 cat("The two heatmaps below display the scores for all individual cells (left) and each original cluster (right) across all reference labels, which allows users to inspect the confidence of the predicted labels across the dataset. The bar Labels on the top shows the actual assigned label.\n")
 cat("\n")
 plotScoreHeatmap(singler.results.single)
@@ -399,6 +401,7 @@ colnames(assignmentTable)[2] <- "geneSet"
 tras_cells_AUC <- t(assay(cells_AUC))
 full.labels <- colnames(tras_cells_AUC)[max.col(tras_cells_AUC)]
 tab <- table(full.labels, colData(sce)[,"seurat_clusters"])
+var_heigth <- nrow(tab)*0.5
 ```
 
 ```{r assigments, eval= (species != "other"), results='asis'}
@@ -406,7 +409,7 @@ cat("We can explore the cell assignment results using different plots. Below, we
 cat("\n\n")
 ```
 
-```{r assigments heatmap, eval= (species != "other"), results='asis',fig.align='center', fig.width=10, fig.height=nrow(tab)*0.5}
+```{r assigments heatmap, eval= (species != "other"), results='asis',fig.align='center', fig.width=10, fig.height=var_heigth}
 pheatmap(log10(tab+10), color=viridis::viridis(100), silent=TRUE)
 ```
 
@@ -427,7 +430,6 @@ filtered_cells_AUC <- cells_AUC[,colSums(assay(cells_AUC))>0]
 ```{r tsne and AUC hist, eval= (species != "other"), fig.height=5, fig.width=5}
 AUCell_plotTSNE(tSNE=cellsTsne, exprMat=counts(sce), cellsAUC=cells_AUC)
 ```
-
 
 ### Interactive explorer
 
