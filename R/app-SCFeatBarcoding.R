@@ -127,10 +127,6 @@ ezMethodSCFeatBarcoding <- function(input=NA, output=NA, param=NA,
   sce.singlets <- scDblFinder(sce.singlets)
   metadata(sce.singlets)$PCA_stdev <- Reductions(scData.singlet, "pca")@stdev   
   metadata(sce.singlets)$cells_AUC <- cells_AUC
-  singler.results.single <- singler.results$singler.results.single
-  singler.results.cluster <- singler.results$singler.results.cluster
-  colData(sce.singlets)$singler.cluster.labels <- singler.results.cluster$labels[match(colData(sce.singlets)[,"ident"], rownames(singler.results.cluster))]
-  colData(sce.singlets)$singler.single.labels <- singler.results.single$labels
   metadata(sce.singlets)$singler.results <- singler.results
   metadata(sce.singlets)$output <- output
   metadata(sce.singlets)$param <- param
