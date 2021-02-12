@@ -12,10 +12,11 @@ ezMethodCellRanger <- function(input = NA, output = NA, param = NA) {
   if (all(grepl("\\.tar$", sampleDirs))) {
     sampleDirs = lapply(sampleDirs, function(scTar){
       targetDir = basename(dirname(scTar))
-      untar(scTar, exDir = targetDir)
+      untar(scTar, exdir = targetDir)
       if (ezIsSpecified(param$nReads) && param$nReads > 0){
         subDir = paste0(targetDir, "-sub")
-        fqFiles = list.files(targetDir, pattern = ".fastq.gz", full.names = TRUE)
+        dir.create(subDir)
+        fqFiles = list.files(targetDir, pattern = ".fastq.gz", full.names = TRUE, recursive = TRUE)
         for (fq in fqFiles){
           fqSub = file.path(subDir, basename(fq))
           cmd = paste("seqtk sample -s 42", fq, param$nReads, "| pigz --fast -p1 >", fqSub)
