@@ -10,7 +10,7 @@ ezMethodCellRanger <- function(input = NA, output = NA, param = NA) {
   sampleDirs <- strsplit(input$getColumn("RawDataDir"), ",")[[sampleName]]
   sampleDirs <- file.path(input$dataRoot, sampleDirs)
   if (all(grepl("\\.tar$", sampleDirs))) {
-    sampleDirs = lapply(sampleDirs, function(scTar){
+    sampleDirs = sapply(sampleDirs, function(scTar){
       targetDir = basename(dirname(scTar))
       untar(scTar, exdir = targetDir)
       if (ezIsSpecified(param$nReads) && param$nReads > 0){
