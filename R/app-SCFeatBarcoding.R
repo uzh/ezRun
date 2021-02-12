@@ -41,8 +41,7 @@ EzAppSCFeatBarcoding <-
                                                       Description='A gene will be kept if it has at least nUMIs in the fraction of cells specified before'),
                                         nmad=ezFrame(Type="numeric", 
                                                      DefaultValue=3, 
-                                                     Description="Median absolute deviation (MAD) from the median value of each metric across all cells"),
-                                        species=ezFrame(Type="character", DefaultValue="Human", Description="Organism")
+                                                     Description="Median absolute deviation (MAD) from the median value of each metric across all cells")
                                         )
                 }
               )
@@ -116,7 +115,8 @@ ezMethodSCFeatBarcoding <- function(input=NA, output=NA, param=NA,
   cells_AUC <- NULL
   singler.results <- NULL
   #cell types annotation is only supported for Human and Mouse at the moment
-  if(param$species == "Human" | param$species == "Mouse") {
+  species <- getSpecies(param$refBuild)
+  if(species == "Human" | species == "Mouse") {
      cells_AUC <- cellsLabelsWithAUC(scData.singlet, param)
      singler.results <- cellsLabelsWithSingleR(GetAssayData(scData.singlet, "counts"), Idents(scData.singlet), param)
   }
