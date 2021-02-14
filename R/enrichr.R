@@ -7,7 +7,7 @@
 
 
 doEnrichr = function(param){
-  grepl("^Homo_|^Rattus_|^Sus_|^Canis_|^Mus_", getOrganism(param$ezRef)) & param$featureLevel == "gene"
+  grepl("^Homo_|^Rattus_|^Sus_|^Canis_|^Mus_|^Felis_", getOrganism(param$ezRef)) & param$featureLevel == "gene"
 }
 
 ##' @title Run Enrichr
