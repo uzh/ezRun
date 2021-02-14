@@ -137,7 +137,10 @@ ezMethodSCFeatBarcoding <- function(input=NA, output=NA, param=NA,
   saveRDS(scData, "scData.rds")
   saveHDF5SummarizedExperiment(sce.singlets, dir="sce_h5")
   saveExternalFiles(sce.singlets, list(pos_markers=posMarkers))
- # rowData(sce) = rowData(sce)[, c("gene_id", "biotypes", "description")]
+
+  #removed no longer used objects
+  rm(sce)
+  gc()
   
   ## Copy the style files and templates
   styleFiles <- file.path(system.file("templates", package="ezRun"),
