@@ -1,5 +1,5 @@
 ---
-title:  "`r metadata(sce)$param$name`"
+title:  "`r metadata(sce.singlets)$param$name`"
 author: "Functional Genomics Center Zurich"
 output: 
   html_document:
@@ -10,6 +10,8 @@ output:
 editor_options: 
   chunk_output_type: console
 ---
+
+
 
 Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
 
