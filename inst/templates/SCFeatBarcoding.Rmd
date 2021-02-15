@@ -121,7 +121,7 @@ num.qc.nexprs <- sum(sce.unfiltered$qc.nexprs)
 num.qc.mito <- sum(sce.unfiltered$qc.mito)
 removed <- sum(sce.unfiltered$discard)
 kable(tibble("QC metric" =c("Library Size", "Expressed genes", "Mitochondrial genes", "Total removed", "Cells remaining"),
-             "Number of cells"= c(num.qc.lib, num.qc.nexprs, num.qc.mito, removed, ncol(sce))),
+             "Number of cells"= c(num.qc.lib, num.qc.nexprs, num.qc.mito, removed, ncol(scData))),
       row.names=FALSE,
       caption="Number of cells removed") %>%
   kable_styling(bootstrap_options = "striped", full_width = F,
@@ -370,7 +370,7 @@ singler.results.single <- metadata(sce.singlets)$singler.results$singler.results
 singler.results.cluster <- metadata(sce.singlets)$singler.results$singler.results.cluster
 singler.single.labels <- singler.results.single$labels
 singler.cluster.labels<- singler.results.cluster$labels[match(colData(sce.singlets)[,"ident"], rownames(singler.results.cluster))]
-var_heigth = length(unique(singler.single.labels))*0.3
+var_heigth = length(unique(singler.single.labels))*0.7
 ```
 
 
