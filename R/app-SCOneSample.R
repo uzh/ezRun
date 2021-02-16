@@ -61,7 +61,7 @@ ezMethodSCOneSample <- function(input=NA, output=NA, param=NA,
   pvalue_all2allMarkers <- 0.01
   
   #Doublets prediction and removal
-  require(scDblFinder)
+  library(scDblFinder)
   sce <- scDblFinder(sce)
   sce <- sce[,which(sce$scDblFinder.class!="doublet")]
   # scData@meta.data$scDblFinder.score <- colData(sce)$scDblFinder.score
@@ -93,10 +93,8 @@ ezMethodSCOneSample <- function(input=NA, output=NA, param=NA,
   }
   
   #Convert scData to Single Cell experiment Object
-  # Use the SCT logcounts for visualization instead of the RNA logcounts.
-  # TODO: save all the assays (RNA, SCT) in the sce object using the package keshavmot2/scanalysis. The function from Seurat doesn't save everything.
-  DefaultAssay(scData) <- "SCT" 
-  sce <- as.SingleCellExperiment(scData)
+  library(scanalysis)
+  sce = scData.singlet %>% seurat_to_sce(default_assay = "SCT") #SCT as default assay for visualization
   metadata(sce)$PCA_stdev <- Reductions(scData, "pca")@stdev   
   metadata(sce)$cells_AUC <- cells_AUC
   metadata(sce)$singler.results <- singler.results
