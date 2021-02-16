@@ -172,8 +172,8 @@ cellsLabelsWithAUC <- function(scData, species, tissue) {
   expressionMatrix <- GetAssayData(scData, slot = "counts")
   geneSets <- createGeneSets(filtered_cell_markers)
   cells_rankings <- AUCell_buildRankings(expressionMatrix, plotStats=FALSE)
-  cells_AUC <- AUCell_calcAUC(geneSets, cells_rankings)
-
+  
+  cells_AUC <- tryCatch({AUCell_calcAUC(geneSets, cells_rankings)},error = function(e) NULL)
   return(cells_AUC)
 }
 
@@ -191,8 +191,6 @@ markers <- as.character(filtered_cell_markers$geneSymbol)
 geneSets <- mapply(function(cell.names, markers) {markers}, cell.names, markers, SIMPLIFY = FALSE,USE.NAMES = TRUE)
 keys = unique(names(geneSets))
 geneSets = sapply(keys, formatGeneSets, geneSets = geneSets)
-geneSets = sapply(names(geneSets), function(gs.name, geneSets) {GeneSet(geneSets[[gs.name]], setName = gs.name)}, geneSets=geneSets)
-geneSets = GeneSetCollection(geneSets)
 return(geneSets)
 }
 
