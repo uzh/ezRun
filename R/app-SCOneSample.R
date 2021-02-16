@@ -94,7 +94,7 @@ ezMethodSCOneSample <- function(input=NA, output=NA, param=NA,
   
   #Convert scData to Single Cell experiment Object
   library(scanalysis)
-  sce = scData.singlet %>% seurat_to_sce(default_assay = "SCT") #SCT as default assay for visualization
+  sce = scData %>% seurat_to_sce(default_assay = "SCT") #SCT as default assay for visualization
   metadata(sce)$PCA_stdev <- Reductions(scData, "pca")@stdev   
   metadata(sce)$cells_AUC <- cells_AUC
   metadata(sce)$singler.results <- singler.results
