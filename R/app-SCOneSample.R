@@ -173,7 +173,7 @@ cellsLabelsWithAUC <- function(scData, species, tissue) {
   geneSets <- createGeneSets(filtered_cell_markers)
   cells_rankings <- AUCell_buildRankings(expressionMatrix, plotStats=FALSE)
   
-  cells_AUC <- tryCatch({AUCell_calcAUC(geneSets, cells_rankings)},error = function(e) NULL)
+  cells_AUC <- tryCatch({AUCell_calcAUC(geneSets, cells_rankings, verbose = FALSE)},error = function(e) NULL)
   return(cells_AUC)
 }
 
