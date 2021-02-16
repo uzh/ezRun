@@ -696,8 +696,8 @@ if (exists("enrichResult")) {
       } else {
         erp <- list()
         er <- enrichResult[[onto]][[sig]]
+        
         er@result$Label <- ""
-
         for (i in seq_along(er@result$Description)) {
           desc <- er@result$Description[i]
           if (!is.na(desc) && nchar(desc) < 35) {
@@ -712,31 +712,53 @@ if (exists("enrichResult")) {
           }
           er@result$Label[i] <- paste0(er@result$ID[i], "\n", syn)
         }
-        ## why overwrite??
+        ## Overwrite so that symbols are displayed on cnetplot, not ensembl
         er@result$geneID <- er@result$geneName
 
-        oraFile <- paste(onto, sig, "ora.txt", sep = "_")
-        erp[["oraFile"]] <- oraFile
-        write.table(er,
-          file = oraFile,
-          quote = FALSE, col.names = TRUE, row.names = FALSE, sep = "\t"
-        )
-        erp[["df"]] <- as.data.frame(er@result[, c(1:3, 5, 6, 10)])
-        erp[["table"]] <- datatable(er@result[, c(1:3, 5, 6, 10)],
-          filter = "top", class = "cell-border stripe", rownames = FALSE, caption = ""
-        ) %>%
+        erp[["df"]] <- as.data.frame(
+          er@result[ , c("ID", "Description", "GeneRatio", "pvalue",
+                         "p.adjust", "geneName")])
+        erp[["table"]] <- datatable(
+          data = er@result[, c("ID", "Description", "GeneRatio", "pvalue",
+                               "p.adjust", "geneName")],
+          filter = "top", class = "cell-border stripe", 
+          rownames = FALSE, caption = "") %>%
           formatStyle(columns = colnames(.$x$data), `font-size` = "12px") %>%
           formatSignif(c("pvalue", "p.adjust"), digits = 3)
 
-
-        erp[["dotplot"]] <- dotplot(er, showCategory = 20, title = paste(onto, sig)) + scale_y_discrete(labels = er@result$Label) + theme(axis.text.y = element_text(vjust = -0.01, size = 8))
+        erp[["dotplot"]] <- dotplot(
+          object = er, showCategory = 20, title = paste(onto, sig)) + 
+          scale_y_discrete(labels = er@result$Label) + 
+          theme(axis.text.y = element_text(vjust = -0.01, size = 8))
+        
         sigGeneIds <- enrichInput$selections[[sig]]
-        log2Ratio <- enrichInput$seqAnno$log2Ratio[enrichInput$seqAnno$gene_id %in% sigGeneIds]
+        log2Ratio <- enrichInput$seqAnno$log2Ratio[
+          enrichInput$seqAnno$gene_id %in% sigGeneIds]
         names(log2Ratio) <- enrichInput$seqAnno[sigGeneIds, "gene_name"]
         log2Ratio <- sort(log2Ratio, decreasing = T)
-        erp[["cnet"]] <- cnetplot(er, foldChange = log2Ratio, cex_label_gene = 0.6, cex_label_category = 0.7)
+        erp[["cnet"]] <- cnetplot(
+          x = er, foldChange = log2Ratio, 
+          cex_label_gene = 0.6, cex_label_category = 0.7)
         enrichResultPlots[[onto]][[sig]] <- erp
       }
+    }
+  }
+}
+# Print out a final combined xlsx 
+oraFile <- "ORA_results.xlsx"
+for (onto in names(enrichResultPlots)) {
+  for (sig in names(enrichResultPlots[[onto]])) {
+    dfOut <- enrichResultPlots[[onto]][[sig]]$df
+    if (!file.exists(oraFile)) {
+      xlsx::write.xlsx(
+        x = dfOut[dfOut$pvalue < 0.05, ],
+        file = oraFile, sheetName = paste0(onto, "_", sig),
+        row.names = FALSE)
+    } else {
+      xlsx::write.xlsx(
+        x = dfOut[dfOut$pvalue < 0.05, ],
+        file = oraFile, sheetName = paste0(onto, "_", sig), 
+        append = TRUE, row.names = FALSE)
     }
   }
 }
@@ -754,13 +776,17 @@ ora.overview = ezFrame("Number of Significant Pathways"=numeric())
 for (goDomain in names(enrichResult)){
   for (resName in names(enrichResult[[goDomain]])){
             testName = paste0(goDomain,": ",resName)
-            ora.overview[testName, "Number of Significant Pathways"] = nrow(enrichResult[[goDomain]][[resName]]@result)
+            ora.overview[testName, "Number of Significant Pathways"] = 
+              nrow(enrichResult[[goDomain]][[resName]]@result[
+                enrichResult[[goDomain]][[resName]]@result$pvalue < 0.05, ])
   }
 }
 
 kable(format(ora.overview, digits=3, scientific=-2), "html", caption=paste("Hypergeometric Over-representation Test:")) %>%
             kable_styling(bootstrap_options = "striped", full_width = F, position = "left")
 ```
+
+[Download Excel file of complete ORA results](`r oraFile`)
 
 ```{r tabs with ora plots, results='asis', echo = FALSE, fig.height=8, fig.width=8, fig.align = "left"}
 for (onto in names(enrichResult)) {
@@ -815,12 +841,6 @@ if (exists("enrichResultGSEA")) {
         er@result$Label[i] <- paste0(er@result$ID[i], "\n", syn)
       }
 
-      gseaFile <- paste(onto, "gsea.txt", sep = "_")
-      erp[["gseaFile"]] <- gseaFile
-      write.table(er,
-        file = gseaFile,
-        quote = FALSE, col.names = TRUE, row.names = FALSE, sep = "\t"
-      )
       erp[["df"]] <- as.data.frame(er@result[, c(1:4, 6:7)])
       erp[["table"]] <- datatable(er@result[, c(1:4, 6:7)],
         filter = "top", class = "cell-border stripe", rownames = FALSE, caption = ""
@@ -851,6 +871,22 @@ if (exists("enrichResultGSEA")) {
     }
   }
 }
+# Print out a final combined xlsx 
+gseaFile <- "GSEA_results.xlsx"
+for (onto in names(enrichResultPlots)) {
+  dfOut <- enrichResultGSEAPlots[[onto]]$df
+  if (!file.exists(gseaFile)) {
+    xlsx::write.xlsx(
+      x = dfOut[dfOut$pvalue < 0.05, ],
+      file = gseaFile, sheetName = onto,
+      row.names = FALSE)
+  } else {
+    xlsx::write.xlsx(
+      x = dfOut[dfOut$pvalue < 0.05, ],
+      file = gseaFile, sheetName = onto,
+      append = TRUE, row.names = FALSE)
+  }
+}
 ```
 
 #### Overview 
@@ -871,6 +907,8 @@ kable(format(gsea.overview, digits=3, scientific=-2), "html", caption=paste("GSE
             kable_styling(bootstrap_options = "striped", full_width = F, position = "left")
 
 ```
+
+[Download Excel file of complete GSEA results](`r gseaFile`)
 
 ```{r tabs with gsea plots, results='asis', echo = FALSE, fig.height=8, fig.width=8}
 for (onto in names(enrichResultGSEA)) {
