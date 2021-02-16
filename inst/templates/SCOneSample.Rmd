@@ -352,7 +352,7 @@ plotScoreHeatmap(singler.results.cluster, clusters=rownames(singler.results.clus
 ```{r singler labelsUMAP,  eval= !is.null(metadata(sce)$singler.results), fig.width=12, results='asis'}
 cat("The single cell (top) and cluster (bottom) annotations are also shown on the UMAPs. Place the mouse over the cells to get information such as their UMAP coordinates, original cluster, the cells name and the label assigned by SingleR. You can also zoom in specific areas of the UMAP by dragging and drop with the mouse.\n")
 
-cellInfo <- tibble(Cells=colnames(sce), Cluster=colData(sce)[,"ident"], Hashtag=colData(sce)[,"HTO_classification"],
+cellInfo <- tibble(Cells=colnames(sce), Cluster=colData(sce)[,"ident"],
                      SingleR.labels.cluster=singler.cluster.labels, SingleR.labels.single=singler.single.labels)  %>%
     left_join(as_tibble(reducedDim(sce, "UMAP"), rownames="Cells"))
 
@@ -369,16 +369,14 @@ x <- list(title="UMAP_1", zeroline=FALSE)
 y <- list(title="UMAP_2", zeroline=FALSE)
 
 p1 <- plot_ly(cellInfo, x = ~UMAP_1, y = ~UMAP_2, color=~SingleR.labels.single,
-        text = ~paste("Hashtag: ", Hashtag,
-                      "\nCluster: ", Cluster, 
+        text = ~paste("Cluster: ", Cluster, 
                       "\nCell: ", Cells,
                       "\nSingleR.labels.cluster: ", SingleR.labels.single),
         type = 'scatter', mode = "markers", marker=list(size=5, opacity=0.5),
         colors=colsLabels) %>%layout(xaxis=x, yaxis=y)
 p1
 p2 <- plot_ly(cellInfo, x = ~UMAP_1, y = ~UMAP_2, color=~SingleR.labels.cluster,
-        text = ~paste("Hashtag: ", Hashtag,
-                      "\nCluster: ", Cluster, 
+        text = ~paste("Cluster: ", Cluster, 
                       "\nCell: ", Cells,
                       "\nSingleR.labels.cluster: ", SingleR.labels.cluster),
         type = 'scatter', mode = "markers", marker=list(size=5, opacity=0.5),
