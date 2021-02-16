@@ -43,6 +43,7 @@ ezMethodSCMultipleSamples = function(input=NA, output=NA, param=NA, htmlFile="00
   library(Seurat)
   library(rlist)
   library(HDF5Array)
+  library(scanalysis)
   
   ## subset the selected sample names
   samples <- param$samples
@@ -139,10 +140,7 @@ ezMethodSCMultipleSamples = function(input=NA, output=NA, param=NA, htmlFile="00
   }
   
   #Convert scData to Single Cell experiment Object
-  # Use the SCT logcounts for visualization instead of the RNA logcounts.
-  # TODO: save all the assays (RNA, SCT and integrated) in the sce object using the package keshavmot2/scanalysis. The function from Seurat doesn't save everything.
-  DefaultAssay(scData) <- "SCT" 
-  sce <- as.SingleCellExperiment(scData)
+  sce = scData.singlet %>% seurat_to_sce(default_assay = "SCT") #SCT as default assay for visualization
   metadata(sce)$cells_AUC <- cells_AUC
   metadata(sce)$singler.results <- singler.results
   metadata(sce)$output <- output
