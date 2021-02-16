@@ -134,7 +134,7 @@ ezMethodSCMultipleSamples = function(input=NA, output=NA, param=NA, htmlFile="00
   #cell types annotation is only supported for Human and Mouse at the moment
   species <- getSpecies(param$refBuild)
   if(species == "Human" | species == "Mouse") {
-    cells_AUC = cellsLabelsWithAUC(scData, param)
+    cells_AUC = cellsLabelsWithAUC(scData, species, param$tissue)
     singler.results <- cellsLabelsWithSingleR(GetAssayData(scData, "counts"), Idents(scData), species)
   }
   
