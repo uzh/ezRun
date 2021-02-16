@@ -107,20 +107,35 @@ ezMethodCellRanger <- function(input = NA, output = NA, param = NA) {
   if (ezIsSpecified(param$controlSeqs)) {
     unlink(refDir, recursive = TRUE)
   }
+  
+  ## compute stats per cell from the bam file
+  bamFile = file.path(sampleName, "possorted_genome_bam.bam")
+  tags = ezScanBam(bamFile, tag = c("CB", "UB", "RE", "pa", "ts"), 
+                   what = character(0), isUnmappedQuery = FALSE)$tag
+  tags$ts[is.na(tags$ts)] = 0
+  tags$pa[is.na(tags$pa)] = 0
+  nReads = table(tags$CB)
+  resultFrame = data.frame(nRead=as.vector(nReads), row.names=names(nReads))
+  nUmi = tapply(tags$UB, tags$CB, n_distinct)
+  stopifnot(names(nUmi) == rownames(resultFrame))
+  resultFrame$nUmi = nUmi
+  resultFrame$nTso = tapply(tags$ts > 0, tags$CB, sum)
+  resultFrame$nPa = tapply(tags$pa > 0, tags$CB, sum)
+  resultFrame$nIntergenic = tapply(tags$RE == "I", tags$CB, sum)
+  resultFrame$nExonic = tapply(tags$RE == "E", tags$CB, sum)
+  resultFrame$nIntronic = tapply(tags$RE == "N", tags$CB, sum)
+  ezWrite.table(resultFrame, file=file.path(sampleName, "CellAlignStats.txt"),
+                head="Barcode")
+
 
   if (param$TenXLibrary %in% c("GEX", "FeatureBarcoding")) {
     require(DropletUtils)
     require(Matrix)
-    countMatrixFn <- list.files(
-      path = file.path(sampleName, "filtered_feature_bc_matrix"),
-      pattern = "\\.mtx(\\.gz)*$", recursive = TRUE,
-      full.names = TRUE
-    )
-    sce <- read10xCounts(dirname(countMatrixFn), col.names = TRUE)
+    sce <- read10xCounts(sampleName, col.names = TRUE)
 
     cellPhase <- getCellCycle(sce, param$refBuild)
     write_tsv(cellPhase,
-              file = file.path(dirname(countMatrixFn), "CellCyclePhase.txt")
+              file = file.path(sampleName, "CellCyclePhase.txt")
     )
   }
   return("Success")
