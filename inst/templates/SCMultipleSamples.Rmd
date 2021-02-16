@@ -205,7 +205,7 @@ pheatmap(geneMeans[unique(top5$gene), ],fontsize_row = 8)
 plotDots(sce, features=top5$gene, group="seurat_clusters")
 ```
 
-```{r consMarkers table, eval=length(unique(sce$Condition))>1, results='asis'}
+```{r consMarkers table, results='asis'}
 cat("### Conserved markers")
 cat("\n")
 cat("Identify cell type marker genes that are conserved across conditions. Differential gene expression tests are performed for each group and then, the p-values are combined using meta-analysis methods.")
