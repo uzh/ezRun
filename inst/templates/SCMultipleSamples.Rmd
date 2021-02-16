@@ -1,0 +1,418 @@
+---
+title:  "`r metadata(sce)$param$name`"
+author: "Functional Genomics Center Zurich"
+output: 
+  html_document:
+  self_contained: true
+includes:
+  in_header: fgcz_header.html
+css: fgcz.css
+editor_options: 
+  chunk_output_type: console
+---
+  
+  Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
+
+```{r setup, include=FALSE}
+library(SummarizedExperiment)
+library(ggridges)
+library(cowplot)
+library(kableExtra)
+library(pheatmap)
+library(scater)
+library(RColorBrewer)
+library(plotly)
+library(tidyverse)
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE, knitr.table.format = "html")
+
+#to test
+# library(HDF5Array)
+# library(SingleR)
+# library(AUCell)
+# library(ezRun, lib.loc = "~/myRpackages")
+# sce <- loadHDF5SummarizedExperiment("sce_h5")
+# param = metadata(sce)$param
+# pvalue_allMarkers <- 0.05
+# data10X <- Read10X(paste0(metadata(sce)$output$getFullPaths('ResultDir'), "/filtered_feature_bc_matrix"))
+# data10X_GeneExp <- data10X$`Gene Expression`
+# cellCycleFn <- list.files(path=paste0(metadata(sce)$output$getFullPaths('ResultDir'), "/filtered_feature_bc_matrix"),
+#                             pattern="CellCyclePhase\\.txt$", recursive=TRUE,
+#                             full.names=TRUE)
+# cellCycle <- ezRead.table(cellCycleFn)
+# colData <- DataFrame(CellCycle=cellCycle$Phase,
+#                        CellCycleG1=cellCycle$G1,
+#                        CellCycleS=cellCycle$S,
+#                        CellCycleG2M=cellCycle$G2M,
+#                        Batch="",
+#                        Condition="")
+#  sce <- SingleCellExperiment(assays=list(counts=data10X_GeneExp),
+#                                       metadata=list(param=param),
+#                                       rowData = DataFrame(gene_name=rownames(data10X_GeneExp)),
+#                                       colData=colData)
+#   sce_list <- filterCellsAndGenes(sce, param)  #return sce objects filtered and unfiltered to show the QC
+#   sce.unfiltered <- sce_list$sce.unfiltered
+```
+
+```{r}
+output <- metadata(sce)$output
+```
+
+```{r javascript, results='asis'}
+jsFile = system.file("extdata/enrichr.js", package="ezRun", mustWork=TRUE)
+invisible(file.copy(from=jsFile, to=basename(jsFile), overwrite=TRUE))
+cat(paste0("<SCRIPT language=\"JavaScript\" SRC=\"", basename(jsFile), "\"></SCRIPT>"))
+```
+
+## Analysis results {.tabset}
+
+### Unwanted sources of variation
+
+The goal of the clustering analysis is to keep the major sources of variation in the dataset that should define the cell types, while restricting the variation due to uninteresting sources (sequencing depth, cell cycle differences, mitochondrial expression, batch effects, etc.). A common practice is to regress out these covariates prior to downstream analyses. Here, we will only asses cell cycle and batch effects as the main potential sources of variation since the method we will later use for normalization and variance stabilization removes the variation due to sequencing depth (total nUMIs per cell). While regressing out the other sources (i.e. mitochondrial abundances) has proved to have a negative impact, leading to increased correlation with covariates and decreased clustering accuracy (Pierre-Luc Germain, Anthony Sonrel, Mark D. Robinson: pipeComp, a general framework for the evaluation of computational pipelines, reveals performant single-cell RNA-seq preprocessing tools. bioRxiv doi: https://doi.org/10.1101/2020.02.02.930578).
+
+
+#### 1. Cell cycle
+
+In most applications, the cell cycle is a minor factor of variation, secondary to differences between cell types. Any attempt at removal would also need to assume that the cell cycle effect is orthogonal to other biological processes. For example, regression would potentially remove interesting signal if cell cycle activity varied across clusters or conditions, with a prime example being the increased proliferation of activated T cells (Richard, A. C., A. T. L. Lun, W. W. Y. Lau, B. Gottgens, J. C. Marioni, and G. M. Griffiths. 2018. “T cell cytolytic capacity is independent of initial stimulation strength.” Nat. Immunol. 19 (8): 849–58.). We suggest only performing cell cycle adjustment on an as-needed basis in populations with clear cell cycle effects.
+A TSNE can help us to determine whether cell cycle is a major source of variation in our dataset. 
+
+```{r TSNE on cell cycle, fig.align='center'}
+plotReducedDim(sce, dimred="UMAP_NOCORRECTED", colour_by="CellCycle", label_format = c("UMAP_1","UMAP_2"))
+```
+
+#### 2. Batch effects
+
+On the other hand, we always look at our cells before deciding whether we need to perform integration. Te main goal of dataset integration is to identify shared cell states that are present across different datasets, in case they were collected from different individuals, experimental conditions, technologies, or even species. Large single-cell RNA sequencing projects usually need to generate data across multiple batches due to logistical constraints. This results in systematic differences in the observed expression in cells from different batches, which we refer to as “batch effects”. Batch effects are problematic as they can be major drivers of heterogeneity in the data, masking the relevant biological differences and complicating interpretation of the results.
+The TSNEs and the barplot below can help us to visualize if the clusters are balanced and composed by cells from the different batches. If we see clusters that are comprised of cells from a single batch, this indicates that cells of the same type are artificially separated due to technical differences between batches. In this case, we may also consider that there are cell types that are unique to each batch. If a cluster only contains cells from a single batch, one can always debate whether that is caused by technical differences or if there is truly a batch-specific subpopulation. 
+
+<br/><br/>
+  
+```{r UMAP and barplot batch, fig.width=8, fig.height=5}
+plotReducedDim(sce, dimred =  "UMAP_NOCORRECTED", colour_by = "Batch", label_format = c("UMAP_1","UMAP_2"))
+cellIdents_perBatch = data.frame(colData(sce)[,c("ident_noCorrected", "Batch")])
+barplot = ggplot(data=cellIdents_perBatch, aes(x=cellIdents_perBatch[,1], fill=Batch)) + geom_bar(stat="Count")
+barplot + labs(x="Cluster", y = "Number of cells", fill = "Batch")
+cells_prop = cellsProportion(sce, groupVar1 = "ident_noCorrected", groupVar2 = "Batch")
+kable(cells_prop,row.names=FALSE, format="html",caption="Cell proportions per batch") %>% kable_styling(bootstrap_options = "striped", full_width = F, position = "float_right")
+```
+
+```{r UMAP and barplot Condition, eval=length(unique(sce$Batch)) > 2 ,fig.width=8, fig.height=5}
+#if there are only two samples these plots are the same as the previous ones
+plotReducedDim(sce, dimred =  "UMAP_NOCORRECTED", colour_by = "Condition", label_format = c("UMAP_1","UMAP_2"))
+cellIdents_perCondition = data.frame(colData(sce)[,c("ident_noCorrected", "Condition")])
+barplot = ggplot(data=cellIdents_perCondition, aes(x=cellIdents_perCondition[,1], fill=Condition)) + geom_bar(stat="Count")
+barplot + labs(x="Cluster", y = "Number of cells", fill = "Condition")
+cells_prop = cellsProportion(sce, groupVar1 = "ident_noCorrected", groupVar2 = "Condition")
+kable(cells_prop,row.names=FALSE, format="html",caption="Cell proportions per condition") %>% kable_styling(bootstrap_options = "striped", full_width = F, position = "float_right")
+```
+
+### Clustering
+
+```{r no_integration, eval = !param$batchCorrection,results='asis'}
+cat("We started by merging all the samples in one dataset and then used the SCtransform method from the Seurat package for normalizing, estimating the variance of the raw filtered data, and identifying the most variable genes. By default, SCtransform accounts for cellular sequencing depth, or nUMIs.")
+if(identical(param$SCT.regress,"CellCycle")) {
+  cat("We already checked cell cycle and decided that it does represent a major source of variation in our data, and this may influence clustering. Therefore, we regressed out variation due to cell cycle")
+}
+cat("As a result, SCTransform ranked the genes by residual variance and returned the 3000 most variant genes. Next, we performed PCA on the scaled data using the previously determined variable features. Taking as a distance metric the previously identified PCs, the cells clusters were then identified using a graph-based clustering approach where the cells are embedded in a graph structure - for example a K-nearest neighbor (KNN) graph, with edges drawn between cells with similar feature expression patterns, and then attempt to partition this graph into highly interconnected ‘communities’. The resolution is an important argument that sets the \"granularity\" of the downstream clustering and will need to be optimized for every individual experiment. Increased resolution values lead to a greater number of clusters, which is often required for larger datasets.\n")
+cat("\n")
+cat("The UMAPs below place similar cells together in low-dimensional space. The first UMAP represents cells according to the condition and the second one shows the graph-based common clusters that were found among the datasets.\n")
+```
+
+
+```{r integration, eval = param$batchCorrection,results='asis'}
+cat("After inspecting the datasets and observing that cells clustered by sample we decided to integrate samples using shared highly variable genes. Oftentimes, when clustering cells from multiple conditions there are condition-specific clusters and integration can help ensure the same cell types cluster together.\n We started by normalizing, estimating the variance of the raw filtered data, and identifying the most variable genes in each sample separately. For this, we used the SCtransform method from the Seurat package which accounts for cellular sequencing depth, or nUMIs by default.")
+cat("\n")
+if(identical(param$SCT.regress,"CellCycle")) {
+  cat("We already checked cell cycle and decided that it does represent a major source of variation in our data, and this may influence clustering. Therefore, we regressed out variation due to cell cycle")
+}
+cat("\n")
+cat("To integrate, we applied the following steps:")
+cat("\n\n")
+cat("**1. Perform canonical correlation analysis (CCA):** CCA identifies shared sources of variation between the conditions/groups. It is a form of PCA, in that it identifies the greatest sources of variation in the data, but only if it is shared or conserved across the conditions/groups (using the 3000 most variant genes from each sample).")
+cat("\n\n")
+cat("**2. Identify anchors or mutual nearest neighbors (MNNs) across datasets (sometimes incorrect anchors are identified):** MNNs are like good friends. For each cell in one sample, the cell's closest neighbor in the other sample is identified based on gene expression values as it's best neighbor.The reciprical analysis is performed, and if the two cells are 'best friends' in both directions, then those cells will be marked as anchors to 'anchor' the two datasets together.")
+cat("\n\n")
+cat("**3. Filter anchors to remove incorrect anchors:** Assess the similarity between anchor pairs by the overlap in their local neighborhoods (incorrect anchors will have low scores)")
+cat("\n\n")
+cat("**4. Integrate the conditions/datasets:** Use anchors and corresponding scores to transform the cell expression values, allowing for the integration of the different samples.")
+cat("\n\n")
+cat("If cell types are present in one dataset, but not the other, then the cells will still appear as a separate sample-specific cluster.")
+cat("\n\n")
+cat("Finally, the cells clusters were identified using a graph-based clustering approach where the cells are embedded in a graph structure - for example a K-nearest neighbor (KNN) graph, with edges drawn between cells with similar feature expression patterns, and then attempt to partition this graph into highly interconnected ‘communities’. The resolution is an important argument that sets the \"granularity\" of the downstream clustering and will need to be optimized for every individual experiment. Increased resolution values lead to a greater number of clusters, which is often required for larger datasets.")
+cat("\n")
+cat("\n")
+cat("The TSNEs below place similar cells together in low-dimensional space after the integration of the datasets. The first TSNE represents cells according to the condition and the second TSNE shows the graph-based common clusters that were found among the datasets. The presence of visual clusters containing cells from the different datasets provides a comforting illusion that the integration was successful.")
+```
+<br/>
+
+```{r UMAP per Batch after correction}
+plotReducedDim(sce, dimred="UMAP", colour_by="Batch")
+cellIdents_perBatch = data.frame(colData(sce)[,c("ident", "Batch")])
+barplot = ggplot(data=cellIdents_perBatch, aes(x=cellIdents_perBatch[,1], fill=Batch)) + geom_bar(stat="Count")
+barplot + labs(x="Cluster", y = "Number of cells", fill = "Batch")
+cells_prop = cellsProportion(sce, groupVar1 = "ident", groupVar2="Batch")
+kable(cells_prop,row.names=FALSE, format="html",caption="Cell proportions") %>% kable_styling(bootstrap_options = "striped", full_width = F, position = "float_right")
+```
+
+```{r UMAP per Condition after correction, eval=length(unique(sce$Batch)) > 2}
+plotReducedDim(sce, dimred="UMAP", colour_by="Condition")
+cellIdents_perCondition = data.frame(colData(sce)[,c("ident", "Condition")])
+barplot = ggplot(data=cellIdents_perCondition, aes(x=cellIdents_perCondition[,1], fill=Condition)) + geom_bar(stat="Count")
+barplot + labs(x="Cluster", y = "Number of cells", fill = "Condition")
+cells_prop = cellsProportion(sce, groupVar1 = "ident", groupVar2="Condition")
+kable(cells_prop,row.names=FALSE, format="html",caption="Cell proportions") %>% kable_styling(bootstrap_options = "striped", full_width = F, position = "float_right")
+```
+
+```{r UMAP per Cluster after correction}
+plotReducedDim(sce, dimred="UMAP", colour_by="ident", text_by="ident", text_size=5) 
+```
+
+### Cluster markers
+
+```{r}
+posMarkers = read_tsv("pos_markers.tsv")
+```
+
+
+```{r wilcoxon test, eval=(param$DE.method=="wilcox"), results='asis'}
+cat("We found positive markers that defined clusters compared to all other cells via differential expression. The test we used was the Wilcoxon Rank Sum test. Genes with an average, at least 0.25-fold difference (log-scale) between the cells in the tested cluster and the rest of the cells and an adjusted p-value < 0.05 were declared as significant.")
+```
+
+```{r LR test, eval=!is.null(param$DE.method=="LR"), results='asis'}
+cat(paste0("We found positive markers that defined clusters compared to all other cells via differential expression using a logistic regression test and including in the model the ", param$DE.regress, " as the batch effect. Genes with an average, at least 0.25-fold difference (log-scale) between the cells in the tested cluster and the rest of the cells and an adjusted p-value < 0.05 were declared as significant."))
+```
+
+```{r markers table all, echo=FALSE}
+caption ="Expression differences of cluster marker genes"
+ezInteractiveTableRmd(posMarkers, digits=4, title=caption)
+```
+
+### Marker plots
+
+Here, we use a heatmap and a dotplot to visualize simultaneously the top 5 markers in each cluster. Be aware that some genes may be in the top markers for different clusters.
+
+<br/>
+
+```{r heatmap, fig.width=8, fig.height=length(levels(sce$seurat_clusters))*0.8}
+top5 <- posMarkers %>% group_by(cluster) %>% top_n(n = 5, wt = diff_pct)
+
+tr_cnts <- expm1(logcounts(sce))
+geneMeans <- rowsum(DelayedArray::t(tr_cnts), group=sce$seurat_clusters)
+geneMeans <- sweep(geneMeans, 1, STATS=table(sce$seurat_clusters)[rownames(geneMeans)], FUN="/")
+geneMeans <- log1p(t(geneMeans))
+colnames(geneMeans) <- paste("cluster", colnames(geneMeans), sep="_")
+pheatmap(geneMeans[unique(top5$gene), ],fontsize_row = 8)
+
+plotDots(sce, features=top5$gene, group="seurat_clusters")
+```
+
+```{r consMarkers table, eval=length(unique(sce$Condition))>1, results='asis'}
+cat("### Conserved markers")
+cat("\n")
+cat("Identify cell type marker genes that are conserved across conditions. Differential gene expression tests are performed for each group and then, the p-values are combined using meta-analysis methods.")
+conservedMarkers <- read_tsv("conserved_markers.tsv")
+caption ="Conserved cell type markers"
+ezInteractiveTableRmd(conservedMarkers, title=caption)
+```
+
+```{r consMarkers plots, eval=length(unique(sce$Condition))>1, results='asis', fig.width=8, fig.height=length(levels(sce$seurat_clusters))*0.8}
+cat("### Conserved markers plots")
+cat("\n")
+cat("Here, we use a heatmap and a dotplot to visualize simultaneously the top 5 conserved markers in each cluster (with highest average fold change across the two groups). Be aware that some genes may be in the top markers for different clusters.")
+cat("\n")
+
+top5 <- conservedMarkers %>% group_by(cluster) %>% top_n(n = 5, wt = avg_avg_fc)
+pheatmap(geneMeans[unique(top5$gene), ],fontsize_row = 8)
+plotDots(sce, features=top5$gene, group="seurat_clusters")
+```
+
+```{r diffGenes table, eval=length(unique(sce$Condition))>1, results='asis'}
+cat("### Differential expressed genes")
+cat("\n")
+cat(paste0("After identifying common cell types across conditions, we can look for genes that change in different conditions for cells of the same type. The comparison made was ", unique(sce$Condition), collapse = " vs "))
+cat("\n")
+diffGenes <- read_tsv("differential_genes.tsv")
+diffGenes <- diffGenes[diffGenes$p_val_adj<0.05,]
+caption ="Differential expressed genes per cluster"
+ezInteractiveTableRmd(diffGenes, title=caption)
+```
+
+```{r diffGenes heatmap, eval=length(unique(sce$Condition))>1, results='asis', fig.height=6, fig.width=12, fig.align='center'}
+cat("### Differential genes plots")
+cat("\n")
+cat("The 50 dysregulated genes with the highest difference in expression between the two conditions are represented in the heatmap and the violin plots. The heatmap shows global differences of these genes across the conditions, while the violin plots show cluster specific changes across conditions.")
+cat("\n")
+most_diffGenes <- head(unique(diffGenes$gene), 50)
+plotHeatmap(sce, order_columns_by = "Condition", features = most_diffGenes, fontsize=8)
+```
+
+
+```{r diffGenes violin plots, eval=length(unique(sce$Condition))>1, fig.height=30, fig.width=16}
+plotExpression(sce, most_diffGenes, x="seurat_clusters", colour_by="Condition", ncol=3)
+```
+
+### Cells annotation
+
+<br/>
+The most challenging task in scRNA-seq data analysis is the interpretation of the results. Once we have obtained a set of clusters we want to determine what biological state is represented by each of them. To do this, we have implemmented 2 different approaches which are explained below. However, these methods should be complemented with the biological knowledge from the researcher.
+
+<br/>
+
+#### Using cluster markers
+
+This approach consists in performing a gene set enrichment analysis on the marker genes defining each cluster. This identifies the pathways and processes that are (relatively) active in each cluster based on the upregulation of the associated genes compared to other clusters. For this, we use the tool Enrichr. 
+
+```{r enrichr markers, echo=FALSE, results='asis'}
+genesPerCluster <- split(posMarkers$gene, posMarkers$cluster)
+jsCall = paste0('enrich({list: "', sapply(genesPerCluster, paste, collapse="\\n"), '", popup: true});')
+enrichrCalls <- paste0("<a href='javascript:void(0)' onClick='", jsCall, 
+                         "'>Analyse at Enrichr website</a>")
+enrichrTable <- tibble(Cluster=names(genesPerCluster),
+                         "# of posMarkers"=lengths(genesPerCluster),
+                         "Enrichr link"=enrichrCalls)
+kable(enrichrTable, format="html", escape=FALSE,
+        caption=paste0("GeneSet enrichment: genes with pvalue ", pvalue_allMarkers)) %>%
+kable_styling("striped", full_width = F, position = "left")
+```
+
+<br/>
+
+#### Using reference data
+
+Another strategy for annotation is to compare the single-cell expression profiles with previously annotated reference datasets. Labels can then be assigned to each cell in our uncharacterized test dataset based on the most similar reference sample(s). This annotation can be  performed on single  cells or instead, it may be aggregated into cluster-level profiles prior to annotation.
+To do this, we use the SingleR method (Aran et al. 2019) for cell type annotation. This method assigns labels to cells based on the reference samples with the highest Spearman rank correlations and thus can be considered a rank-based variant of k-nearest-neighbor classification. To reduce noise, SingleR identifies marker genes between pairs of labels and computes the correlation using only those markers. It also performs a fine-tuning step for each cell where the calculation of the correlations is repeated with just the marker genes for the top-scoring labels. This aims to resolve any ambiguity between those labels by removing noise from irrelevant markers for other labels. 
+SingleR contains several built-in reference datasets, mostly assembled from bulk RNA-seq or microarray data of sorted cell types. These built-in references are often good enough for most applications, provided that they contain the cell types that are expected in the test population. 
+
+```{r singler, eval= !is.null(metadata(sce)$singler.results)}
+singler.results.single <- metadata(sce)$singler.results$singler.results.single
+singler.results.cluster <- metadata(sce)$singler.results$singler.results.cluster
+singler.single.labels <- singler.results.single$labels
+singler.cluster.labels<- singler.results.cluster$labels[match(colData(sce)[,"ident"], rownames(singler.results.cluster))]
+var_heigth = length(unique(singler.single.labels))*0.7
+```
+
+```{r singler ScoreHeatmap,  eval= !is.null(metadata(sce)$singler.results), fig.height= var_heigth, fig.width=8, results='asis'}
+cat("The two heatmaps below display the scores for all individual cells (left) and each original cluster (right) across all reference labels, which allows users to inspect the confidence of the predicted labels across the dataset. The bar Labels on the top shows the actual assigned label.\n")
+cat("\n")
+#while (dev.cur()>1) dev.off()
+plotScoreHeatmap(singler.results.single)
+plotScoreHeatmap(singler.results.cluster, clusters=rownames(singler.results.cluster))
+```
+
+
+```{r singler labelsUMAP,  eval= !is.null(metadata(sce)$singler.results), fig.width=12, results='asis'}
+cat("The single cell (top) and cluster (bottom) annotations are also shown on the UMAPs. Place the mouse over the cells to get information such as their UMAP coordinates, original cluster, the cells name and the label assigned by SingleR. You can also zoom in specific areas of the UMAP by dragging and drop with the mouse.\n")
+
+cellInfo <- tibble(Cells=colnames(sce), Cluster=colData(sce)[,"seurat_clusters"],
+                     SingleR.labels.cluster=singler.cluster.labels, SingleR.labels.single=singler.single.labels)  %>%
+    left_join(as_tibble(reducedDim(sce, "UMAP"), rownames="Cells"))
+
+nrOfLabels_cluster <- length(unique(cellInfo$SingleR.labels.cluster))
+nrOfLabels_single <- length(unique(cellInfo$SingleR.labels.single))
+
+if(nrOfLabels_single <= 9){
+  colsLabels <- brewer.pal(nrOfLabels_single, "Set1")
+}else{
+  colsLabels <- colorRampPalette(brewer.pal(9, "Set1"))(nrOfLabels_single)
+}
+
+x <- list(title="UMAP_1", zeroline=FALSE)
+y <- list(title="UMAP_2", zeroline=FALSE)
+
+p1 <- plot_ly(cellInfo, x = ~UMAP_1, y = ~UMAP_2, color=~SingleR.labels.single,
+        text = ~paste("Cluster: ", Cluster, 
+                      "\nCell: ", Cells,
+                      "\nSingleR.labels.cluster: ", SingleR.labels.single),
+        type = 'scatter', mode = "markers", marker=list(size=5, opacity=0.5),
+        colors=colsLabels) %>% layout(xaxis=x, yaxis=y)
+p1
+p2 <- plot_ly(cellInfo, x = ~UMAP_1, y = ~UMAP_2, color=~SingleR.labels.cluster,
+        text = ~paste("Cluster: ", Cluster, 
+                      "\nCell: ", Cells,
+                      "\nSingleR.labels.cluster: ", SingleR.labels.cluster),
+        type = 'scatter', mode = "markers", marker=list(size=5, opacity=0.5),
+        colors=colsLabels) %>%layout(xaxis=x, yaxis=y)
+
+p2
+```
+
+<br/>
+
+#### Using gene sets
+
+We can also use sets of marker genes that are highly expressed in each cell. This does not require matching of individual cells to the expression values of the reference dataset, which is faster and more convenient when only the identities of the markers are available. In this case, we use sets of gene markers for individual cell types taken from the CellMarkers database which contains an accurate resource of cell markers for various cell types in tissues of human and mouse (Zhang X., Lan Y., Xu J., Quan F., Zhao E., Deng C., et al. (2019). CellMarker: a manually curated resource of cell markers in human and mouse. Nucleic Acids Res. 47, D721–d728. 10.1093/nar/gky900). 
+We use the AUCell package (Aibar et al. (2017) SCENIC: single-cell regulatory network inference and clustering. Nature Methods. doi: 10.1038/nmeth.4463) to identify marker sets that are highly expressed in each cell. AUCell uses the “Area Under the Curve” (AUC) to calculate whether a critical subset of the input gene set is enriched within the expressed genes for each cell. The AUC estimates the proportion of genes in the gene-set that are highly expressed in each cell. Cells expressing many genes from the gene-set will have higher AUC values than cells expressing fewer. Finally, it assigns cell type identity to each cell in the test dataset by taking the marker set with the top AUC as the label for that cell.
+
+```{r AUC assigments, eval= !is.null(metadata(sce)$cells_AUC)}
+cells_AUC <- metadata(sce)$cells_AUC
+cells_assignment <- AUCell_exploreThresholds(cells_AUC, plotHist=FALSE, assign=TRUE) 
+cellsAssigned <- lapply(cells_assignment, function(x) x$assignment)
+assignmentTable <- reshape2::melt(cellsAssigned, value.name="cell")
+colnames(assignmentTable)[2] <- "geneSet"
+tras_cells_AUC <- t(assay(cells_AUC))
+full.labels <- colnames(tras_cells_AUC)[max.col(tras_cells_AUC)]
+tab <- table(full.labels, colData(sce)[,"seurat_clusters"])
+var_heigth <- nrow(tab)*0.5
+```
+
+```{r assigments, eval= !is.null(metadata(sce)$cells_AUC), results='asis'}
+cat("We can explore the cell assignment results using different plots. Below, we show a heatmap that represents the number of cells (in log scale) from each cluster that were assigned to the different cell types. After calculating an AUC score for each cell and cell type, we assign cell type identity by taking the cell type with the top AUC as the label for that cell. Some cell types may be missing because no cells obtained their top AUC score for it.")
+cat("\n\n")
+```
+
+```{r assigments heatmap, eval= !is.null(metadata(sce)$cells_AUC), results='asis',fig.align='center', fig.width=10, fig.height=var_heigth}
+pheatmap(log10(tab+10), color=viridis::viridis(100), silent=TRUE)
+```
+
+
+```{r tsne and AUC res, eval= !is.null(metadata(sce)$cells_AUC), results='asis'}
+cat("The plots below show for every cell type:\n")
+cat('\n')
+cat("1) The distribution of the AUC values in the cells. The ideal situation will be a bi-modal distribution, in which most cells in the dataset have a low “AUC” compared to a population of cells with a higher value.  The size of the gene-set will also affect the results. With smaller gene-genes (fewer genes), it is more likely to get cells with AUC = 0. While this is the case of the “perfect markers” it is also easier to get it by chance with small datasets. The vertical bars correspond to several thresholds that could be used to consider a gene-set ‘active’. The thickest vertical line indicates the threshold selected by default: the highest value to reduce the false positives.\n")
+cat('\n')
+cat("2) The t-SNE can be colored based on the AUC scores. To highlight the cluster of cells that are more likely of the cell type according to the signatures, we split the cells into cells that passed the assignment threshold (colored in blue), and cells that didn’t (colored in gray).\n")
+cat('\n')
+cat("3) The last TSNE represents the AUC scores values. The darker a cell is the higher AUC score it obtained, i.e. the cell is more enriched in that cell type.")
+cat('\n')
+cellsTsne <- reducedDims(sce)$TSNE
+filtered_cells_AUC <- cells_AUC[,colSums(assay(cells_AUC))>0]
+```
+
+```{r tsne and AUC hist, eval= !is.null(metadata(sce)$cells_AUC), fig.height=5, fig.width=5}
+AUCell_plotTSNE(tSNE=cellsTsne, exprMat=counts(sce), cellsAUC=cells_AUC)
+```
+
+
+### Interactive explorer
+
+<br>
+  The iSEE (Interactive SummarizedExperiment Explorer) explorer provides a general visual interface for exploring single cell data. iSEE allows users to simultaneously visualize multiple aspects of a given data set, including experimental data, metadata, and analysis results. Dynamic linking and point selection facilitate the flexible exploration of interactions between different data aspects.
+[Rue-Albrecht K, Marini F, Soneson C, Lun ATL (2018). “iSEE: Interactive SummarizedExperiment Explorer.” F1000Research, 7, 741. doi: 10.12688/f1000research.14966.1.]
+
+The iSEE shiny app can be accessed through this link [iSEE explorer](`r {lastProjectDigit = stringr::str_sub( sub("\\/.*", "", output$getColumn("Report")), start = -1); paste0("http://fgcz-shiny.uzh.ch/fgcz_iSEE", lastProjectDigit, "/?data=",output$getColumn("Report"),"/sce_h5")}`)
+
+
+### Data availability
+
+##### Mean expression of every gene across the cells in each cluster
+
+[geneMeanPerCluster](gene_means_per_cluster.txt)
+
+##### Mean expression of every gene across all the cells
+
+[geneMeans](gene_means.txt)
+
+##### Positive markers of each cluster
+
+[posMarkers](pos_markers.tsv)
+
+##### The final Single Cell Experiment Object is [here](sce_h5)
+
+### Parameters
+```{r report parameters, echo=FALSE}
+param[c("npcs", "resolution", "batchCorrection", "SCT.regress", "DE.method", "DE.regress")]
+```
+
+### SessionInfo
+```{r, echo=FALSE}
+sessionInfo()
+```
