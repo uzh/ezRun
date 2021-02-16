@@ -338,7 +338,7 @@ singler.results.single <- metadata(sce)$singler.results$singler.results.single
 singler.results.cluster <- metadata(sce)$singler.results$singler.results.cluster
 singler.single.labels <- singler.results.single$labels
 singler.cluster.labels<- singler.results.cluster$labels[match(colData(sce)[,"ident"], rownames(singler.results.cluster))]
-var_heigth = length(unique(singler.single.labels))*0.3
+var_heigth = length(unique(singler.single.labels))*0.7
 ```
 
 ```{r singler ScoreHeatmap,  eval= !is.null(metadata(sce)$singler.results), fig.height= var_heigth, fig.width=8, results='asis'}
