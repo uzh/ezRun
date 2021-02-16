@@ -211,7 +211,7 @@ ezInteractiveTableRmd = function(values, digits=NULL,
                                 caption=caption, colnames=colNames,
                                 options=list(dom = 'Bfrtip', 
                                              buttons = c('colvis','copy', 'csv',
-                                                         'excel', 'pdf', 'print'), 
+                                                         'excel'), 
                                              pageLength=25, autoWidth=TRUE)
                                 )
   if (!is.null(format)){
