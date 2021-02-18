@@ -141,7 +141,7 @@ ezMethodSCMultipleSamples = function(input=NA, output=NA, param=NA, htmlFile="00
   }
   
   #Convert scData to Single Cell experiment Object
-  sce = scData.singlet %>% seurat_to_sce(default_assay = "SCT") #SCT as default assay for visualization
+  sce = scData %>% seurat_to_sce(default_assay = "SCT") #SCT as default assay for visualization
   metadata(sce)$cells_AUC <- cells_AUC
   metadata(sce)$singler.results <- singler.results
   metadata(sce)$output <- output
