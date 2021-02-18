@@ -23,6 +23,8 @@ library(scater)
 library(RColorBrewer)
 library(plotly)
 library(tidyverse)
+library(SingleR)
+library(AUCell)
 knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE, knitr.table.format = "html")
 
 #to test
