@@ -131,16 +131,12 @@ ezMethodCellRanger <- function(input = NA, output = NA, param = NA) {
   if (param$TenXLibrary %in% c("GEX", "FeatureBarcoding")) {
     require(DropletUtils)
     require(Matrix)
-    countMatrixFn <- list.files(
-      path = file.path(sampleName, "filtered_feature_bc_matrix"),
-      pattern = "\\.mtx(\\.gz)*$", recursive = TRUE,
-      full.names = TRUE
-    )
-    sce <- read10xCounts(dirname(countMatrixFn), col.names = TRUE)
+    dirName = file.path(sampleName, "filtered_feature_bc_matrix")
+    sce <- read10xCounts(dirName, col.names = TRUE)
 
     cellPhase <- getCellCycle(sce, param$refBuild)
     write_tsv(cellPhase,
-              file = file.path(dirname(countMatrixFn), "CellCyclePhase.txt")
+              file = file.path(dirName, "CellCyclePhase.txt")
     )
   }
   return("Success")
