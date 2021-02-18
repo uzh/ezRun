@@ -44,6 +44,7 @@ ezMethodSCMultipleSamples = function(input=NA, output=NA, param=NA, htmlFile="00
   library(rlist)
   library(HDF5Array)
   library(scanalysis)
+  library(SummarizedExperiment)
   
   ## subset the selected sample names
   samples <- param$samples
