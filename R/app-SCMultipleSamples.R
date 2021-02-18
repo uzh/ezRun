@@ -45,6 +45,7 @@ ezMethodSCMultipleSamples = function(input=NA, output=NA, param=NA, htmlFile="00
   library(HDF5Array)
   library(scanalysis)
   library(SummarizedExperiment)
+  library(HDF5Array)
   
   ## subset the selected sample names
   samples <- param$samples
@@ -152,7 +153,6 @@ ezMethodSCMultipleSamples = function(input=NA, output=NA, param=NA, htmlFile="00
   saveExternalFiles(sce, list(pos_markers=posMarkers, conserved_markers=consMarkers, differential_genes=diffGenes))
   # rowData(sce) = rowData(sce)[, c("gene_id", "biotypes", "description")]
   
-  library(HDF5Array)
   saveHDF5SummarizedExperiment(sce, dir="sce_h5")
   
   ## Copy the style files and templates
