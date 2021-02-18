@@ -371,6 +371,8 @@ readSCMM <- function(file){
 }
 
 saveExternalFiles = function(sce, ...) {
+  require(SingleCellExperiment)
+  
   tr_cnts <- expm1(logcounts(sce))
   geneMeans <- rowsum(t(as.matrix(tr_cnts)), group=colData(sce)[,"ident"])
   geneMeans <- sweep(geneMeans, 1, STATS=table(colData(sce)[,"ident"])[rownames(geneMeans)], FUN="/")
