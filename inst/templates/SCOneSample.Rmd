@@ -428,7 +428,7 @@ minAucThresh = 0.2
 filtered_cells_AUC <- cells_AUC[rowSums(assay(cells_AUC) >= minAucThresh)>0, ]
 maxAucScore = rowMax(assay(filtered_cells_AUC))
 scoreOrder = order(maxAucScore, decreasing = TRUE)
-nPlots = 20
+nPlots = 50
 ```
 
 ```{r tsne and AUC hist, eval= !is.null(metadata(sce)$cells_AUC), fig.height=5, fig.width=5}
