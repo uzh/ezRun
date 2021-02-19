@@ -184,12 +184,18 @@ runDeseq2 <- function(x, sampleGroup, refGroup, grouping, grouping2 = NULL,
       grouping = as.factor(grouping), grouping2 = grouping2,
       row.names = colnames(x)
     )
+    colData$grouping <- factor(x = colData$grouping, 
+                               levels = c(refGroup, sampleGroup))
     dds <- DESeqDataSetFromMatrix(
       countData = x, colData = colData,
       design = ~ grouping + grouping2
     )
   } else {
-    colData <- data.frame(grouping = as.factor(grouping), row.names = colnames(x))
+    colData <- data.frame(
+      grouping = as.factor(grouping), row.names = colnames(x)
+      )
+    colData$grouping <- factor(x = colData$grouping, 
+                               levels = c(refGroup, sampleGroup))
     dds <- DESeqDataSetFromMatrix(
       countData = x, colData = colData,
       design = ~grouping
