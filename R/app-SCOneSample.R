@@ -173,7 +173,7 @@ cellsLabelsWithAUC <- function(scData, species, tissue, minGsSize = 3) {
   geneSets <- createGeneSets(species, tissue)
   expressionMatrix <- GetAssayData(scData, slot = "counts")
   cells_rankings <- AUCell_buildRankings(expressionMatrix, plotStats=FALSE)
-  cells_AUC <- tryCatch({AUCell_calcAUC(geneSets[sapply(geneSets, size) >= minGsSize], cells_rankings, verbose = FALSE)},error = function(e) NULL)
+  cells_AUC <- tryCatch({AUCell_calcAUC(geneSets[sapply(geneSets, length) >= minGsSize], cells_rankings, verbose = FALSE)},error = function(e) NULL)
   return(cells_AUC)
 }
 
@@ -183,8 +183,8 @@ createGeneSets <- function(species, tissue) {
   cell_markers <- read.table("/srv/GT/databases/scGeneSets/all_cell_markers.txt", sep = "\t", header = TRUE)
   cell_markers <- cell_markers[cell_markers$speciesType == species & 
                                  cell_markers$tissueType %in% tissue, ]
-  geneSets <- strsplit(cell_markers$geneSymbol, ",")
-  geneSets <- lapply(geneSets, function(gs){
+  geneSetList <- strsplit(cell_markers$geneSymbol, ",")
+  geneSetList <- lapply(geneSetList, function(gs){
     gs <- gs[!is.na(gs)]
     gs <- gsub("^ ", "", gsub(" $", "", gs))
     gs <- gsub("[", "", gs, fixed = TRUE)
@@ -193,9 +193,11 @@ createGeneSets <- function(species, tissue) {
     gs <- setdiff(gs, c("NA", ""))
   })
   ## merge the genesets from the same cell type
-  geneSets = tapply(geneSets, cell_markers$cellName, 
+  geneSetArray = tapply(geneSetList, cell_markers$cellName, 
                      function(x){unique(unlist(x))}, simplify = FALSE)
-  return(geneSets)
+  ## conver the array  returned by tapply to a list
+  geneSetList = lapply(geneSetArray, function(gs){gs})
+  return(geneSetList)
 }
 
 cellsLabelsWithSingleR <- function(counts, current_clusters, species) {
