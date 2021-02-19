@@ -423,7 +423,7 @@ cat("2) The t-SNE can be colored based on the AUC scores. To highlight the clust
 cat('\n')
 cat("3) The last TSNE represents the AUC scores values. The darker a cell is the higher AUC score it obtained, i.e. the cell is more enriched in that cell type.")
 cat('\n')
-cellsTsne <- reducedDims(sce.singlets)$TSNE
+cellsTsne <- reducedDims(sce)$TSNE
 minAucThresh = 0.2
 filtered_cells_AUC <- cells_AUC[rowSums(assay(cells_AUC) >= minAucThresh)>0, ]
 maxAucScore = rowMax(assay(filtered_cells_AUC))
