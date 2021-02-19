@@ -134,7 +134,7 @@ ezMethodSCFeatBarcoding <- function(input=NA, output=NA, param=NA,
   
   
   #Save some results in external files 
-  saveRDS(scData, "scData.rds")
+  saveRDS(scData.singlet, "scData.rds")
   saveHDF5SummarizedExperiment(sce.singlets, dir="sce_h5")
   saveExternalFiles(sce.singlets, list(pos_markers=posMarkers))
 
