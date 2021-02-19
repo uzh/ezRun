@@ -138,11 +138,11 @@ seuratStandardWorkflow <- function(scData, param){
   if (identical(param$pcGenes, character(0))) 
     param$pcGenes <- NULL
   
-  scData <- RunPCA(object=scData, npcs = param$npcs, features=param$pcGenes)
+  scData <- RunPCA(object=scData, npcs = param$npcs, features=param$pcGenes, verbose=FALSE)
   scData <- RunTSNE(object = scData, reduction = "pca", dims = 1:param$npcs, num_threads=param$cores)
-  scData <- RunUMAP(object=scData, reduction = "pca", dims = 1:param$npcs, n_threads=param$cores)
-  scData <- FindNeighbors(object = scData, reduction = "pca", dims = 1:param$npcs)
-  scData <- FindClusters(object=scData, resolution = seq(from = 0.1, to = 1, by = 0.1))  #calculate clusters for a set of resolutions
+  scData <- RunUMAP(object=scData, reduction = "pca", dims = 1:param$npcs, num_threads=param$cores)
+  scData <- FindNeighbors(object = scData, reduction = "pca", dims = 1:param$npcs, verbose=FALSE)
+  scData <- FindClusters(object=scData, resolution = seq(from = 0.1, to = 1, by = 0.1), verbose=FALSE)  #calculate clusters for a set of resolutions
   Idents(scData) <- scData@meta.data[,paste0(DefaultAssay(scData), "_snn_res.", param$resolution)]  #but keep as the current clusters the ones obtained with the resolution set by the user
   scData@meta.data$seurat_clusters <- Idents(scData)
   return(scData)
@@ -172,7 +172,7 @@ seuratClusteringV3 <- function(scData, param) {
   vars.to.regress <- NULL
   if(identical("CellCycle", param$SCT.regress))
     vars.to.regress <- c("CellCycleS", "CellCycleG2M")
-  scData <- SCTransform(scData, vars.to.regress = vars.to.regress, seed.use = 38, verbose = TRUE) 
+  scData <- SCTransform(scData, vars.to.regress = vars.to.regress, seed.use = 38, verbose = FALSE) 
   scData <- seuratStandardWorkflow(scData, param)
   return(scData)
 }
