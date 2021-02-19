@@ -166,36 +166,36 @@ filterCellsAndGenes <- function(sce, param) {
   return(list(sce.unfiltered=sce.unfiltered, sce = sce))
 }
 
-cellsLabelsWithAUC <- function(scData, species, tissue) {
+cellsLabelsWithAUC <- function(scData, species, tissue, minGsSize = 3) {
   library(AUCell)
   if (species == "other")
     return(NULL)
-  tissue = unlist(strsplit(tissue, ","))
-  all_cell_markers <- read.table("/srv/GT/databases/scGeneSets/all_cell_markers.txt", sep = "\t", header = TRUE)
-  filtered_cell_markers <- all_cell_markers[all_cell_markers$speciesType == species & all_cell_markers$tissueType %in% tissue, ]
+  geneSets <- createGeneSets(species, tissue)
   expressionMatrix <- GetAssayData(scData, slot = "counts")
-  geneSets <- createGeneSets(filtered_cell_markers)
   cells_rankings <- AUCell_buildRankings(expressionMatrix, plotStats=FALSE)
-  
-  cells_AUC <- tryCatch({AUCell_calcAUC(geneSets, cells_rankings, verbose = FALSE)},error = function(e) NULL)
+  cells_AUC <- tryCatch({AUCell_calcAUC(geneSets[sapply(geneSets, size) >= minGsSize], cells_rankings, verbose = FALSE)},error = function(e) NULL)
   return(cells_AUC)
 }
 
-formatGeneSets <- function(name, geneSets) {
-  ## print(geneSets[grep(name, names(geneSets))])
-  gs <- unlist(strsplit(unname(unlist(geneSets[grep(name, names(geneSets), fixed=TRUE)])), split=","))
-  unique(gsub(" ", "", gs))
-} 
-  
-createGeneSets <- function(filtered_cell_markers) {
- library(GSEABase)
- geneSets <- list()
- cell.names <- as.character(filtered_cell_markers$cellName)
-markers <- as.character(filtered_cell_markers$geneSymbol)
-geneSets <- mapply(function(cell.names, markers) {markers}, cell.names, markers, SIMPLIFY = FALSE,USE.NAMES = TRUE)
-keys = unique(names(geneSets))
-geneSets = sapply(keys, formatGeneSets, geneSets = geneSets)
-return(geneSets)
+
+createGeneSets <- function(species, tissue) {
+  tissue <- unlist(strsplit(tissue, ","))
+  cell_markers <- read.table("/srv/GT/databases/scGeneSets/all_cell_markers.txt", sep = "\t", header = TRUE)
+  cell_markers <- cell_markers[all_cell_markers$speciesType == species & 
+                                 all_cell_markers$tissueType %in% tissue, ]
+  geneSets <- strsplit(filtered_cell_markers$geneSymbol, ",")
+  geneSets <- lapply(geneSets, function(gs){
+    gs <- gs[!is.na(gs)]
+    gs <- gsub("^ ", "", gsub(" $", "", gs))
+    gs <- gsub("[", "", gs, fixed = TRUE)
+    gs <- gsub("]", "", gs, fixed = TRUE)
+    gs <- gsub("11-Sep", "SEPTIN11", gs)
+    gs <- setdiff(gs, c("NA", ""))
+  })
+  ## merge the genesets from the same cell type
+  geneSets = tapply(geneSets, filtered_cell_markers$cellName, 
+                     function(x){unique(unlist(x))}, simplify = FALSE)
+  return(geneSets)
 }
 
 cellsLabelsWithSingleR <- function(counts, current_clusters, species) {
