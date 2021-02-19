@@ -134,14 +134,20 @@ filterCellsAndGenes <- function(sce, param) {
   
   sce <- addPerCellQC(sce, subsets = list(Mito = mito.genes))
   
-  if(!(param$nreads== "") & !(param$ngenes== "") & !(param$perc_mito== "")) {
-    qc.lib <- sce$sum < as.double(param$nreads)
-    qc.nexprs <- sce$detected < as.double(param$ngenes)
-    qc.mito <- sce$subsets_Mito_percent > as.double(param$perc_mito)
-  } else {
+  if(param$nreads== ""){
     qc.lib <- isOutlier(sce$sum, log=TRUE, nmads=param$nmad, type="lower")
+  } else {
+    qc.lib <- sce$sum < as.double(param$nreads)
+  }
+  if (param$ngenes== ""){
     qc.nexprs <- isOutlier(sce$detected, nmads=param$nmad, log=TRUE, type="lower")
+  } else {
+    qc.nexprs <- sce$detected < as.double(param$ngenes)
+  }
+  if (param$perc_mito== "") {
     qc.mito <- isOutlier(sce$subsets_Mito_percent, nmads=param$nmad, type="higher")
+  } else {
+    qc.mito <- sce$subsets_Mito_percent > as.double(param$perc_mito)
   }
   discard <- qc.lib | qc.nexprs | qc.mito
   sce$discard <- discard
