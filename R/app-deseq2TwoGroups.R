@@ -35,11 +35,82 @@ ezMethodDeseq2 = function(input=NA, output=NA, param=NA){
     return("Error")
   }
   dds = metadata(deResult)$nativeResult$dds
+  dataset <- data.frame(colData(deResult), check.names = FALSE)
+  dataset <- dataset[rownames(dataset) %in% rownames(dds@colData), ]
+  seqAnno <- data.frame(rowData(deResult),
+                        row.names = rownames(deResult),
+                        check.names = FALSE)
   
-  Glimma::glimmaMA(x = dds, groups = colData(dds)$grouping, main = param$comparison,
-                   html = paste0(param$comparison, "-glimma-MA.html"))
-  Glimma::glimmaVolcano(x = dds, groups = colData(dds)$grouping, main = param$comparison,
-                   html = paste0(param$comparison, "-glimma-volcano.html"))
+  glimmaResults <- list()
+  glimmaResults[["res"]] <- results(
+    object = dds, 
+    contrast = c("grouping", param$sampleGroup, param$refGroup))
+  glimmaResults[["status"]] <- as.numeric(
+    glimmaResults[["res"]]$pvalue < param$pValueHighlightThresh & 
+    abs(glimmaResults[["res"]]$log2FoldChange) > param$log2RatioHighlightThresh)
+  glimmaResults[["counts"]] <- as.data.frame(
+    assay(varianceStabilizingTransformation(dds)))
+  if (!is.null(param$grouping2Name)) {
+    glimmaResults[["counts"]] <- limma::removeBatchEffect(
+      glimmaResults[["counts"]], dataset[[param$grouping2Name]]
+    )
+  }
+  glimmaResults[["samples"]] <- colnames(dds)
+  glimmaResults[["anno"]] <- seqAnno[, c("gene_id", "gene_name", "description")]
+  glimmaResults[["anno"]]$GeneID <- glimmaResults[["anno"]]$gene_id
+  glimmaResults[["groups"]] <- colData(dds)$grouping
+  glimmaResults[["resDF"]] <- as.data.frame(glimmaResults[["res"]])
+  glimmaResults[["resDF"]] <- glimmaResults[["resDF"]][
+    rownames(glimmaResults[["resDF"]]) %in% 
+      seqAnno$gene_id[seqAnno$usedInTest == TRUE], ]
+  glimmaResults[["countsXY"]] <- glimmaResults[["counts"]][
+    rownames(glimmaResults[["counts"]]) %in% 
+      rownames(glimmaResults[["resDF"]]), ]
+  glimmaResults[["statusXY"]] <- as.numeric(
+    glimmaResults[["resDF"]]$pvalue < 
+      param$pValueHighlightThresh & 
+      abs(glimmaResults[["resDF"]]$log2FoldChange) > 
+      param$log2RatioHighlightThresh)
+  glimmaResults[["annoXY"]] <- glimmaResults[["anno"]][
+    glimmaResults[["anno"]]$gene_id %in% 
+      rownames(glimmaResults[["resDF"]]), ]
+  
+  Glimma::glMDPlot(
+    x = glimmaResults[["res"]],
+    counts = glimmaResults[["counts"]], 
+    anno = glimmaResults[["anno"]], 
+    groups = glimmaResults[["groups"]], 
+    samples = glimmaResults[["samples"]],
+    status = glimmaResults[["status"]], 
+    main = param$comparison, 
+    html = paste0(param$comparison, "_MA"), 
+    side.main = "gene_name",
+    launch = FALSE)
+  
+  Glimma::glXYPlot(
+    x = glimmaResults[["resDF"]]$log2FoldChange,
+    y = -log10(glimmaResults[["resDF"]]$pvalue), 
+    xlab = "Log2 Fold Change", 
+    ylab = "-log10 p-value",
+    counts = glimmaResults[["countsXY"]],
+    groups = glimmaResults[["groups"]],
+    samples = glimmaResults[["samples"]], 
+    status = glimmaResults[["statusXY"]],
+    anno = glimmaResults[["annoXY"]],
+    main = param$comparison, 
+    html = paste0(param$comparison, "_Volcano"), 
+    launch = FALSE)
+  
+  Glimma::glMDSPlot(
+    x = glimmaResults[["counts"]], 
+    top = 2000, 
+    labels = glimmaResults[["samples"]],
+    groups = glimmaResults[["groups"]],
+    main = param$comparison,
+    html = paste0(param$comparison, "_MDS"), 
+    launch = FALSE)
+  
+  system(paste0("zip -r ", param$comparison, "_glimma-plots glimma-plots"))
   
   makeRmdReport(output=output, param=param, deResult=deResult, rmdFile="twoGroups.Rmd", reportTitle = param$comparison)
   return("Success")
