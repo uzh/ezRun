@@ -183,7 +183,7 @@ createGeneSets <- function(species, tissue) {
   cell_markers <- read.table("/srv/GT/databases/scGeneSets/all_cell_markers.txt", sep = "\t", header = TRUE)
   cell_markers <- cell_markers[cell_markers$speciesType == species & 
                                  cell_markers$tissueType %in% tissue, ]
-  geneSets <- strsplit(filtered_cell_markers$geneSymbol, ",")
+  geneSets <- strsplit(cell_markers$geneSymbol, ",")
   geneSets <- lapply(geneSets, function(gs){
     gs <- gs[!is.na(gs)]
     gs <- gsub("^ ", "", gsub(" $", "", gs))
@@ -193,7 +193,7 @@ createGeneSets <- function(species, tissue) {
     gs <- setdiff(gs, c("NA", ""))
   })
   ## merge the genesets from the same cell type
-  geneSets = tapply(geneSets, filtered_cell_markers$cellName, 
+  geneSets = tapply(geneSets, cell_markers$cellName, 
                      function(x){unique(unlist(x))}, simplify = FALSE)
   return(geneSets)
 }
