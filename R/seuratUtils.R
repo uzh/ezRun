@@ -178,8 +178,8 @@ seuratClusteringV3 <- function(scData, param) {
 }
 
 seuratClusteringHTO <- function(scData) {
-  scData <- ScaleData(scData, assay = "HTO")
   DefaultAssay(scData) <- "HTO"
+  scData <- ScaleData(scData)
   scData <- RunPCA(scData, features = rownames(scData), reduction.name = "pca_hto", reduction.key = "pca_hto_", 
                            verbose = FALSE)
   # Now, we rerun tSNE using the PCA only on ADT (protein) levels.
