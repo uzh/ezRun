@@ -423,12 +423,18 @@ cat("2) The t-SNE can be colored based on the AUC scores. To highlight the clust
 cat('\n')
 cat("3) The last TSNE represents the AUC scores values. The darker a cell is the higher AUC score it obtained, i.e. the cell is more enriched in that cell type.")
 cat('\n')
-cellsTsne <- reducedDims(sce)$TSNE
-filtered_cells_AUC <- cells_AUC[,colSums(assay(cells_AUC))>0]
+cellsTsne <- reducedDims(sce.singlets)$TSNE
+minAucThresh = 0.2
+filtered_cells_AUC <- cells_AUC[rowSums(assay(cells_AUC) >= minAucThresh)>0, ]
+maxAucScore = rowMax(assay(filtered_cells_AUC))
+scoreOrder = order(maxAucScore, decreasing = TRUE)
+nPlots = 20
 ```
 
 ```{r tsne and AUC hist, eval= !is.null(metadata(sce)$cells_AUC), fig.height=5, fig.width=5}
-AUCell_plotTSNE(tSNE=cellsTsne, exprMat=counts(sce), cellsAUC=cells_AUC)
+AUCell_plotTSNE(tSNE=cellsTsne,
+                cellsAUC=filtered_cells_AUC[head(scoreOrder, nPlots), ],
+                 plots = c("histogram", "binaryAUC"))
 ```
 
 ### Interactive explorer
