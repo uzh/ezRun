@@ -181,8 +181,8 @@ cellsLabelsWithAUC <- function(scData, species, tissue, minGsSize = 3) {
 createGeneSets <- function(species, tissue) {
   tissue <- unlist(strsplit(tissue, ","))
   cell_markers <- read.table("/srv/GT/databases/scGeneSets/all_cell_markers.txt", sep = "\t", header = TRUE)
-  cell_markers <- cell_markers[all_cell_markers$speciesType == species & 
-                                 all_cell_markers$tissueType %in% tissue, ]
+  cell_markers <- cell_markers[cell_markers$speciesType == species & 
+                                 cell_markers$tissueType %in% tissue, ]
   geneSets <- strsplit(filtered_cell_markers$geneSymbol, ",")
   geneSets <- lapply(geneSets, function(gs){
     gs <- gs[!is.na(gs)]
