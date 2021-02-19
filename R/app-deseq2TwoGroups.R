@@ -101,7 +101,7 @@ ezMethodDeseq2 = function(input=NA, output=NA, param=NA){
     html = paste0(param$comparison, "_Volcano"), 
     launch = FALSE)
   
-  glMDSPlot(
+  Glimma::glMDSPlot(
     x = glimmaResults[["counts"]], 
     top = 2000, 
     labels = glimmaResults[["samples"]],
