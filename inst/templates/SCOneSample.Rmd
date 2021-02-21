@@ -410,7 +410,7 @@ cat("\n\n")
 ```
 
 ```{r assigments heatmap, eval= !is.null(metadata(sce)$cells_AUC), results='asis',fig.align='center', fig.width=10, fig.height=var_heigth}
-pheatmap(log10(tab+10), color=viridis::viridis(100), silent=TRUE)
+pheatmap(log10(tab+10), color=viridis::viridis(100))
 ```
 
 
