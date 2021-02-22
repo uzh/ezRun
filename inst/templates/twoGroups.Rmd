@@ -847,10 +847,12 @@ if (exists("enrichResultGSEA")) {
       }
 
       erp[["df"]] <- as.data.frame(er@result[, c(
-        "ID", "Description", "GeneRatio", "pvalue", "p.adjust", "geneName")])
+        "ID", "Description", "setSize","enrichmentScore", "NES", "pvalue", 
+        "p.adjust", "geneName")])
       erp[["table"]] <- DT::datatable(
         data = er@result[, c(
-          "ID", "Description", "GeneRatio", "pvalue", "p.adjust", "geneName")],
+          "ID", "Description", "setSize","enrichmentScore", "NES", "pvalue", 
+        "p.adjust", "geneName")],
         filter = "top", 
         class = "cell-border stripe", 
         rownames = FALSE, 
