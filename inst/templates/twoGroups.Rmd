@@ -718,15 +718,16 @@ if (exists("enrichResult")) {
         erp[["df"]] <- as.data.frame(
           er@result[ , c("ID", "Description", "GeneRatio", "pvalue",
                          "p.adjust", "geneName")])
-        erp[["table"]] <- datatable(
+        erp[["table"]] <- DT::datatable(
           data = er@result[, c("ID", "Description", "GeneRatio", "pvalue",
                                "p.adjust", "geneName")],
           filter = "top", class = "cell-border stripe", 
           rownames = FALSE, caption = "") %>%
-          formatStyle(columns = colnames(.$x$data), `font-size` = "12px") %>%
-          formatSignif(c("pvalue", "p.adjust"), digits = 3)
+          DT::formatStyle(
+            columns = colnames(.$x$data), `font-size` = "12px") %>%
+          DT::formatSignif(c("pvalue", "p.adjust"), digits = 3)
 
-        erp[["dotplot"]] <- dotplot(
+        erp[["dotplot"]] <- enrichplot::dotplot(
           object = er, showCategory = 20, title = paste(onto, sig)) + 
           scale_y_discrete(labels = er@result$Label) + 
           theme(axis.text.y = element_text(vjust = -0.01, size = 8))
@@ -736,7 +737,7 @@ if (exists("enrichResult")) {
           enrichInput$seqAnno$gene_id %in% sigGeneIds]
         names(log2Ratio) <- enrichInput$seqAnno[sigGeneIds, "gene_name"]
         log2Ratio <- sort(log2Ratio, decreasing = T)
-        erp[["cnet"]] <- cnetplot(
+        erp[["cnet"]] <- enrichplot::cnetplot(
           x = er, foldChange = log2Ratio, 
           cex_label_gene = 0.6, cex_label_category = 0.7)
         enrichResultPlots[[onto]][[sig]] <- erp
@@ -746,19 +747,23 @@ if (exists("enrichResult")) {
 }
 # Print out a final combined xlsx 
 oraFile <- "ORA_results.xlsx"
-for (onto in names(enrichResultPlots)) {
-  for (sig in names(enrichResultPlots[[onto]])) {
-    dfOut <- enrichResultPlots[[onto]][[sig]]$df
-    if (!file.exists(oraFile)) {
-      xlsx::write.xlsx(
-        x = dfOut[dfOut$pvalue < 0.05, ],
-        file = oraFile, sheetName = paste0(onto, "_", sig),
-        row.names = FALSE)
+for (onto in names(enrichResult)) {
+  for (sig in names(enrichResult[[onto]])) {
+    if (is.na(enrichResult[[onto]][[sig]][1][[1]])) {
+      next
     } else {
-      xlsx::write.xlsx(
-        x = dfOut[dfOut$pvalue < 0.05, ],
-        file = oraFile, sheetName = paste0(onto, "_", sig), 
-        append = TRUE, row.names = FALSE)
+      dfOut <- as.data.frame(enrichResult[[onto]][[sig]]@result)
+      if (!file.exists(oraFile)) {
+        xlsx::write.xlsx(
+          x = dfOut,
+          file = oraFile, sheetName = paste0(onto, "_", sig),
+          row.names = FALSE)
+      } else {
+        xlsx::write.xlsx(
+          x = dfOut,
+          file = oraFile, sheetName = paste0(onto, "_", sig), 
+          append = TRUE, row.names = FALSE)
+      }
     }
   }
 }
@@ -841,22 +846,34 @@ if (exists("enrichResultGSEA")) {
         er@result$Label[i] <- paste0(er@result$ID[i], "\n", syn)
       }
 
-      erp[["df"]] <- as.data.frame(er@result[, c(1:4, 6:7)])
-      erp[["table"]] <- datatable(er@result[, c(1:4, 6:7)],
-        filter = "top", class = "cell-border stripe", rownames = FALSE, caption = ""
-      ) %>%
-        formatStyle(columns = colnames(.$x$data), `font-size` = "12px") %>%
-        formatSignif(c("pvalue", "p.adjust"), digits = 3)
+      erp[["df"]] <- as.data.frame(er@result[, c(
+        "ID", "Description", "GeneRatio", "pvalue", "p.adjust", "geneName")])
+      erp[["table"]] <- DT::datatable(
+        data = er@result[, c(
+          "ID", "Description", "GeneRatio", "pvalue", "p.adjust", "geneName")],
+        filter = "top", 
+        class = "cell-border stripe", 
+        rownames = FALSE, 
+        caption = "") %>%
+        DT::formatStyle(columns = colnames(.$x$data), `font-size` = "12px") %>%
+        DT::formatSignif(c("pvalue", "p.adjust"), digits = 3)
 
-      erp[["dotplot"]] <- dotplot(er, showCategory = 20, title = paste(onto)) + scale_y_discrete(labels = er@result$Label) + theme(axis.text.y = element_text(vjust = -0.01, size = 8))
-      erp[["ridgeplot"]] <- ridgeplot(er, showCategory = 20) + scale_y_discrete(labels = er@result$Label) + theme(axis.text.y = element_text(vjust = -0.01, size = 8))
-      erp[["gseaplot"]] <- enrichplot::gseaplot2(er, geneSetID = 1)
+      erp[["dotplot"]] <- enrichplot::dotplot(
+        object = er, showCategory = 20, title = paste(onto)) + 
+        scale_y_discrete(labels = er@result$Label) + 
+        theme(axis.text.y = element_text(vjust = -0.01, size = 8))
+      erp[["ridgeplot"]] <- enrichplot::ridgeplot(x = er, showCategory = 20) + 
+        scale_y_discrete(labels = er@result$Label) + 
+        theme(axis.text.y = element_text(vjust = -0.01, size = 8))
+      erp[["gseaplot"]] <- enrichplot::gseaplot2(x = er, geneSetID = 1)
 
       ce_list <- NA
-      for (i in 1:length(er@result$core_enrichment)) {
-        core_enrich <- strsplit(er@result$core_enrichment[i], split = "/") %>% unlist()
+      for (i in seq_along(er@result$core_enrichment)) {
+        core_enrich <- strsplit(
+          x = er@result$core_enrichment[i], split = "/") %>% unlist()
         ce_list <- c(ce_list, core_enrich)
-        core_enrich_symbol <- enrichInput$seqAnno$gene_name[enrichInput$seqAnno$gene_id %in% core_enrich]
+        core_enrich_symbol <- enrichInput$seqAnno$gene_name[
+          enrichInput$seqAnno$gene_id %in% core_enrich]
         core_enrich_symbol <- paste(core_enrich_symbol, collapse = "/")
         er@result$core_enrichment[i] <- core_enrich_symbol
       }
@@ -865,7 +882,11 @@ if (exists("enrichResultGSEA")) {
       log2Ratio <- enrichInput$log2Ratio[sigGeneIds]
       names(log2Ratio) <- enrichInput$seqAnno[sigGeneIds, "gene_name"]
       log2Ratio <- sort(log2Ratio, decreasing = T)
-      erp[["cnet"]] <- cnetplot(er, foldChange = log2Ratio, cex_label_gene = 0.6, cex_label_category = 0.7)
+      erp[["cnet"]] <- enrichplot::cnetplot(
+        x = er, 
+        foldChange = log2Ratio, 
+        cex_label_gene = 0.6, 
+        cex_label_category = 0.7)
 
       enrichResultGSEAPlots[[onto]] <- erp
     }
@@ -873,18 +894,22 @@ if (exists("enrichResultGSEA")) {
 }
 # Print out a final combined xlsx 
 gseaFile <- "GSEA_results.xlsx"
-for (onto in names(enrichResultPlots)) {
-  dfOut <- enrichResultGSEAPlots[[onto]]$df
-  if (!file.exists(gseaFile)) {
-    xlsx::write.xlsx(
-      x = dfOut[dfOut$pvalue < 0.05, ],
-      file = gseaFile, sheetName = onto,
-      row.names = FALSE)
+for (onto in names(enrichResult)) {
+  if (is.na(enrichResultGSEA[[onto]][1][[1]])) {
+    next 
   } else {
-    xlsx::write.xlsx(
-      x = dfOut[dfOut$pvalue < 0.05, ],
-      file = gseaFile, sheetName = onto,
-      append = TRUE, row.names = FALSE)
+    dfOut <- as.data.frame(enrichResultGSEA[[onto]]@result)
+    if (!file.exists(gseaFile)) {
+      xlsx::write.xlsx(
+        x = dfOut,
+        file = gseaFile, sheetName = onto,
+        row.names = FALSE)
+    } else {
+      xlsx::write.xlsx(
+        x = dfOut,
+        file = gseaFile, sheetName = onto,
+        append = TRUE, row.names = FALSE)
+    }
   }
 }
 ```
