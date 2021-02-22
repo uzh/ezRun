@@ -31,28 +31,11 @@ knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE, knitr.tabl
 # library(HDF5Array)
 # library(SingleR)
 # library(AUCell)
+# library(Seurat)
 # library(ezRun, lib.loc = "~/myRpackages")
 # sce <- loadHDF5SummarizedExperiment("sce_h5")
 # param = metadata(sce)$param
 # pvalue_allMarkers <- 0.05
-# data10X <- Read10X(paste0(metadata(sce)$output$getFullPaths('ResultDir'), "/filtered_feature_bc_matrix"))
-# data10X_GeneExp <- data10X$`Gene Expression`
-# cellCycleFn <- list.files(path=paste0(metadata(sce)$output$getFullPaths('ResultDir'), "/filtered_feature_bc_matrix"),
-#                             pattern="CellCyclePhase\\.txt$", recursive=TRUE,
-#                             full.names=TRUE)
-# cellCycle <- ezRead.table(cellCycleFn)
-# colData <- DataFrame(CellCycle=cellCycle$Phase,
-#                        CellCycleG1=cellCycle$G1,
-#                        CellCycleS=cellCycle$S,
-#                        CellCycleG2M=cellCycle$G2M,
-#                        Batch="",
-#                        Condition="")
-#  sce <- SingleCellExperiment(assays=list(counts=data10X_GeneExp),
-#                                       metadata=list(param=param),
-#                                       rowData = DataFrame(gene_name=rownames(data10X_GeneExp)),
-#                                       colData=colData)
-#   sce_list <- filterCellsAndGenes(sce, param)  #return sce objects filtered and unfiltered to show the QC
-#   sce.unfiltered <- sce_list$sce.unfiltered
 ```
 
 ```{r}
@@ -97,7 +80,7 @@ cells_prop = cellsProportion(sce, groupVar1 = "ident_noCorrected", groupVar2 = "
 kable(cells_prop,row.names=FALSE, format="html",caption="Cell proportions per batch") %>% kable_styling(bootstrap_options = "striped", full_width = F, position = "float_right")
 ```
 
-```{r UMAP and barplot Condition, eval=length(unique(sce$Batch)) > 2 ,fig.width=8, fig.height=5}
+```{r UMAP and barplot Condition, eval=length(unique(sce$Batch)) != length(unique(sce$Condition)) ,fig.width=8, fig.height=5}
 #if there are only two samples these plots are the same as the previous ones
 plotReducedDim(sce, dimred =  "UMAP_NOCORRECTED", colour_by = "Condition", label_format = c("UMAP_1","UMAP_2"))
 cellIdents_perCondition = data.frame(colData(sce)[,c("ident_noCorrected", "Condition")])
@@ -155,7 +138,7 @@ cells_prop = cellsProportion(sce, groupVar1 = "ident", groupVar2="Batch")
 kable(cells_prop,row.names=FALSE, format="html",caption="Cell proportions") %>% kable_styling(bootstrap_options = "striped", full_width = F, position = "float_right")
 ```
 
-```{r UMAP per Condition after correction, eval=length(unique(sce$Batch)) > 2}
+```{r UMAP per Condition after correction, eval=length(unique(sce$Batch)) != length(unique(sce$Condition))}
 plotReducedDim(sce, dimred="UMAP", colour_by="Condition")
 cellIdents_perCondition = data.frame(colData(sce)[,c("ident", "Condition")])
 barplot = ggplot(data=cellIdents_perCondition, aes(x=cellIdents_perCondition[,1], fill=Condition)) + geom_bar(stat="Count")
@@ -194,9 +177,12 @@ Here, we use a heatmap and a dotplot to visualize simultaneously the top 5 marke
 
 <br/>
 
-```{r heatmap, fig.width=8, fig.height=length(levels(sce$seurat_clusters))*0.8}
+```{r}
 top5 <- posMarkers %>% group_by(cluster) %>% top_n(n = 5, wt = diff_pct)
+var_heigth <- nrow(top5)*0.6
+```
 
+```{r heatmap, fig.width=8, fig.height=var_heigth}
 tr_cnts <- expm1(logcounts(sce))
 geneMeans <- rowsum(DelayedArray::t(tr_cnts), group=sce$seurat_clusters)
 geneMeans <- sweep(geneMeans, 1, STATS=table(sce$seurat_clusters)[rownames(geneMeans)], FUN="/")
@@ -216,13 +202,20 @@ caption ="Conserved cell type markers"
 ezInteractiveTableRmd(conservedMarkers, title=caption)
 ```
 
-```{r consMarkers plots, eval=length(unique(sce$Condition))>1, results='asis', fig.width=8, fig.height=length(levels(sce$seurat_clusters))*0.8}
+```{r, eval=length(unique(sce$Condition))>1}
+top5 <- conservedMarkers %>% group_by(cluster) %>% top_n(n = 5, wt = avg_avg_fc)
+var_heigth <- nrow(top5)*0.6
+```
+
+
+```{r consMarkers plots, eval=length(unique(sce$Condition))>1, results='asis', fig.width=8, fig.height=var_heigth}
 cat("### Conserved markers plots")
 cat("\n")
+
 cat("Here, we use a heatmap and a dotplot to visualize simultaneously the top 5 conserved markers in each cluster (with highest average fold change across the two groups). Be aware that some genes may be in the top markers for different clusters.")
+
 cat("\n")
 
-top5 <- conservedMarkers %>% group_by(cluster) %>% top_n(n = 5, wt = avg_avg_fc)
 pheatmap(geneMeans[unique(top5$gene), ],fontsize_row = 8)
 plotDots(sce, features=top5$gene, group="seurat_clusters")
 ```
@@ -230,8 +223,11 @@ plotDots(sce, features=top5$gene, group="seurat_clusters")
 ```{r diffGenes table, eval=length(unique(sce$Condition))>1, results='asis'}
 cat("### Differential expressed genes")
 cat("\n")
-cat(paste0("After identifying common cell types across conditions, we can look for genes that change in different conditions for cells of the same type. The comparison made was ", unique(sce$Condition), collapse = " vs "))
+
+cat(paste0("After identifying common cell types across conditions, we can look for genes that change in different conditions for cells of the same type. The comparison made was ", paste(unique(sce$Condition), collapse = " vs ")))
+
 cat("\n")
+
 diffGenes <- read_tsv("differential_genes.tsv")
 diffGenes <- diffGenes[diffGenes$p_val_adj<0.05,]
 caption ="Differential expressed genes per cluster"
@@ -289,7 +285,7 @@ singler.results.single <- metadata(sce)$singler.results$singler.results.single
 singler.results.cluster <- metadata(sce)$singler.results$singler.results.cluster
 singler.single.labels <- singler.results.single$labels
 singler.cluster.labels<- singler.results.cluster$labels[match(colData(sce)[,"ident"], rownames(singler.results.cluster))]
-var_heigth = length(unique(singler.single.labels))*0.7
+var_heigth = length(unique(singler.single.labels))*0.5
 ```
 
 ```{r singler ScoreHeatmap,  eval= !is.null(metadata(sce)$singler.results), fig.height= var_heigth, fig.width=8, results='asis'}
@@ -412,7 +408,7 @@ The iSEE shiny app can be accessed through this link [iSEE explorer](`r {lastPro
 
 ### Parameters
 ```{r report parameters, echo=FALSE}
-param[c("npcs", "resolution", "batchCorrection", "SCT.regress", "DE.method", "DE.regress")]
+param[c("npcs", "resolution", "batchCorrection", "SCT.regress", "DE.method", "DE.regress", "tissue")]
 ```
 
 ### SessionInfo
