@@ -97,6 +97,7 @@ ezFeatureAnnotation = function(param, ids=NULL,
                                            genomeFile=controlSeqsTempFn,
                                            biomartFile=biomartFile)
       featAnnoExtra <- featAnnoExtra[[dataFeatureType]]
+      rownames(featAnnoExtra) <- featAnnoExtra$gene_id
       seqAnno <-  rbind(seqAnno, featAnnoExtra)[ids, , drop=FALSE]
     }
   }
