@@ -75,40 +75,40 @@ ezMethodDeseq2 = function(input=NA, output=NA, param=NA){
     glimmaResults[["anno"]]$gene_id %in% 
       rownames(glimmaResults[["resDF"]]), ]
   
-  Glimma::glMDPlot(
-    x = glimmaResults[["res"]],
-    counts = glimmaResults[["counts"]], 
-    anno = glimmaResults[["anno"]], 
-    groups = glimmaResults[["groups"]], 
-    samples = glimmaResults[["samples"]],
-    status = glimmaResults[["status"]], 
-    main = param$comparison, 
-    html = paste0(param$comparison, "_MA"), 
-    side.main = "gene_name",
-    launch = FALSE)
+  #Glimma::glMDPlot(
+  #  x = glimmaResults[["res"]],
+  #  counts = glimmaResults[["counts"]], 
+  #  anno = glimmaResults[["anno"]], 
+  #  groups = glimmaResults[["groups"]], 
+  #  samples = glimmaResults[["samples"]],
+  #  status = glimmaResults[["status"]], 
+  #  main = param$comparison, 
+  #  html = paste0(param$comparison, "_MA"), 
+  #  side.main = "gene_name",
+  #  launch = FALSE)
   
-  Glimma::glXYPlot(
-    x = glimmaResults[["resDF"]]$log2FoldChange,
-    y = -log10(glimmaResults[["resDF"]]$pvalue), 
-    xlab = "Log2 Fold Change", 
-    ylab = "-log10 p-value",
-    counts = glimmaResults[["countsXY"]],
-    groups = glimmaResults[["groups"]],
-    samples = glimmaResults[["samples"]], 
-    status = glimmaResults[["statusXY"]],
-    anno = glimmaResults[["annoXY"]],
-    main = param$comparison, 
-    html = paste0(param$comparison, "_Volcano"), 
-    launch = FALSE)
+  #Glimma::glXYPlot(
+  #  x = glimmaResults[["resDF"]]$log2FoldChange,
+  #  y = -log10(glimmaResults[["resDF"]]$pvalue), 
+  #  xlab = "Log2FC",
+  #  ylab = "-log10 p-value",
+  #  counts = glimmaResults[["countsXY"]],
+  #  groups = glimmaResults[["groups"]],
+  #  samples = glimmaResults[["samples"]], 
+  #  status = glimmaResults[["statusXY"]],
+  #  anno = glimmaResults[["annoXY"]],
+  #  main = param$comparison, 
+  #  html = paste0(param$comparison, "_Volcano"), 
+  #  launch = FALSE)
   
-  Glimma::glMDSPlot(
-    x = glimmaResults[["counts"]], 
-    top = 2000, 
-    labels = glimmaResults[["samples"]],
-    groups = glimmaResults[["groups"]],
-    main = param$comparison,
-    html = paste0(param$comparison, "_MDS"), 
-    launch = FALSE)
+  #Glimma::glMDSPlot(
+  #  x = glimmaResults[["counts"]], 
+  #  top = 2000, 
+  #  labels = glimmaResults[["samples"]],
+  #  groups = glimmaResults[["groups"]],
+  #  main = param$comparison,
+  #  html = paste0(param$comparison, "_MDS"), 
+  #  launch = FALSE)
   
   system(paste0("zip -r ", param$comparison, "_glimma-plots glimma-plots"))
   
