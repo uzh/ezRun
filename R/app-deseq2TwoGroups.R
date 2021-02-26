@@ -110,7 +110,7 @@ ezMethodDeseq2 = function(input=NA, output=NA, param=NA){
   #  html = paste0(param$comparison, "_MDS"), 
   #  launch = FALSE)
   
-  system(paste0("zip -r ", param$comparison, "_glimma-plots glimma-plots"))
+  #system(paste0("zip -r ", param$comparison, "_glimma-plots glimma-plots"))
   
   makeRmdReport(output=output, param=param, deResult=deResult, rmdFile="twoGroups.Rmd", reportTitle = param$comparison)
   return("Success")
