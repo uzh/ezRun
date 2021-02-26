@@ -526,8 +526,8 @@ resultMetaCore <- resultLoaded %>%
 ```
 
 ```{r metacore export, echo=FALSE, message=FALSE, eval=TRUE}
-metacoreFile <- str_c("MetaCore--", param$comparison, ".xlsx")
-openxlsx::write.xlsx(resultMetaCore, file = metacoreFile)
+metacoreFile <- str_c("MetaCore--", param$comparison, ".txt")
+write.csv(x = resultMetaCore, file = metaCoreFile, sep = "\t")
 ```
 
 #### Metacore
@@ -539,7 +539,7 @@ Using MetaCore requires an account. One can be obtained by emailing <sequencing@
 ***
 #### How to use Metacore: quick start
 
- 1. [Click to Download Expression File for MetaCore](`r metacoreFile`)
+ 1. [Right Click and Save File to Download Expression File for MetaCore](`r metacoreFile`)
  
  2. [Go to the MetaCore website](https://portal.genego.com)
  
