@@ -747,25 +747,19 @@ if (exists("enrichResult")) {
 }
 # Print out a final combined xlsx 
 oraFile <- "ORA_results.xlsx"
+oraList <- list()
 for (onto in names(enrichResult)) {
   for (sig in names(enrichResult[[onto]])) {
     if (is.na(enrichResult[[onto]][[sig]][1][[1]])) {
       next
     } else {
       dfOut <- as.data.frame(enrichResult[[onto]][[sig]]@result)
-      if (!file.exists(oraFile)) {
-        xlsx::write.xlsx(
-          x = dfOut,
-          file = oraFile, sheetName = paste0(onto, "_", sig),
-          row.names = FALSE)
-      } else {
-        xlsx::write.xlsx(
-          x = dfOut,
-          file = oraFile, sheetName = paste0(onto, "_", sig), 
-          append = TRUE, row.names = FALSE)
-      }
+      oraList[[paste0(onto, "_", sig)]] <- dfOut
     }
   }
+}
+if (length(oraList) >= 1) {
+  openxlsx::write.xlsx(oraList, file = oraFile)
 }
 ```
 
@@ -896,20 +890,17 @@ if (exists("enrichResultGSEA")) {
 }
 # Print out a final combined xlsx 
 gseaFile <- "GSEA_results.xlsx"
+gseaList <- list()
 for (onto in names(enrichResultGSEA)) {
   if (is.na(enrichResultGSEA[[onto]][1][[1]])) {
     next 
   } else {
     dfOut <- as.data.frame(enrichResultGSEA[[onto]]@result)
-    if (!file.exists(gseaFile)) {
-      xlsx::write.xlsx(
-        x = dfOut, file = gseaFile, sheetName = onto, row.names = FALSE)
-    } else {
-      xlsx::write.xlsx(
-        x = dfOut, file = gseaFile, sheetName = onto, row.names = FALSE, 
-        append = TRUE)
-    }
+    gseaList[[onto]] <- dfOut
   }
+}
+if (length(gseaList) >= 1) {
+  openxlsx::write.xlsx(gseaList, file = gseaFile)
 }
 ```
 
