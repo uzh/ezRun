@@ -531,7 +531,7 @@ write.csv(x = resultMetaCore, file = metaCoreFile, sep = "\t")
 ```
 
 #### Metacore
-Metacore is a commercial software that performs gene-set based analysis using a manually curated, proprietary database. It takes as input a subset of genes passing certain p-value/fold-change thresholds  (i.e.,differentially expressed genes). **It is recommended to analyse human and mouse data and to gain drug/disease-related information.** 
+Metacore is a commercial software that performs gene-set based analysis using a manually curated, proprietary database. It takes as input a subset of genes passing certain p-value/fold-change thresholds (i.e., differentially expressed genes). **It is recommended for the analysis of human, mouse, and rat data. It is best used to gain drug/disease-related information and comprehensive pathway map figures.** 
 
 ##### Registration
 Using MetaCore requires an account. One can be obtained by emailing <sequencing@fgcz.ethz.ch>.
@@ -592,7 +592,7 @@ MetaCore currently has full pathway support for three core species: **Human**; *
 ### Enrichr
 
 #### Description 
-Enrichr is a web server which collects in one website many different databases that can be interrogated using gene lists.It takes as input a subset of genes passing certain p-value/fold-change thresholds  (i.e.,differentially expressed genes). **It is recommended to search in one go various databases such as cell type, transcription factors, mutations, diseases.** Further details: [Visit the enrichr bioconductor page](https://bioconductor.org/packages/release/bioc/html/goseq.html)
+Enrichr is a web server which collects in one website many different databases that can be interrogated using gene lists. It takes as input a subset of genes passing certain p-value/fold-change thresholds (i.e., differentially expressed genes). **It is recommended to search in one go various databases such as cell type, transcription factors, mutations, diseases.** Further details: [Visit the enrichr bioconductor page](https://bioconductor.org/packages/release/bioc/html/goseq.html)
 
 ***
 
@@ -766,7 +766,7 @@ if (length(oraList) >= 1) {
 #### Overview 
 
 ##### Description
-The  Over Representation Analysis (ORA) gives an estimate of whether a set of selected genes  is enriched for genes in specific categories. It takes as input a subset of genes passing certain p-value/fold-change thresholds  (i.e.,differentially expressed genes). **It is recommended when the difference between groups is large (e.g., 500+ genes above p-value/fold-change thresholds).** There are many implementations of this test: in Sushi we use the R package Goseq. Further details: [Visit the goseq bioconductor page](https://bioconductor.org/packages/release/bioc/html/goseq.html)
+The Over Representation Analysis (ORA), also known as the hypergeometric test, gives an estimate of whether a set of selected genes is enriched for genes in specific Gene Ontology categories. It takes as input a subset of genes passing certain p-value/fold-change thresholds (i.e., differentially expressed genes). **It is recommended when the difference between groups is large (e.g., 500+ genes above p-value/fold-change thresholds).** There are many implementations of this test and in SUSHI we use the R package clusterProfiler. Further details: [Visit the clusterProfiler bioconductor page](https://bioconductor.org/packages/release/bioc/html/clusterProfiler.html)
 
 *** 
 
@@ -907,7 +907,7 @@ if (length(gseaList) >= 1) {
 #### Overview 
 
 ##### Description
-Gene Set Enrichment Analysis (GSEA) calculates an enrichment score for each annotation category (e.g., those in GO BP) by screening all the genes from a differential expression analysis and their associated fold-changes. It does not require a pre-selection based on p-value/fold-change. **It is  recommended when the difference between groups is small (i.e., applying thresholds would result in very few genes selected) or when combining results from different experiments.** Further details: [Visit the goseq GSEA page](https://www.gsea-msigdb.org/gsea/index.jsp)
+Gene Set Enrichment Analysis (GSEA) calculates an enrichment score for each annotation category (e.g., those in GO BP) by screening all the genes from a differential expression analysis and their associated fold-changes. It does not require a pre-selection based on p-value/fold-change. **It is recommended when the difference between groups is small (i.e., applying thresholds would result in very few genes selected) or when combining results from different experiments.** Similar to the ORA test, we use the package clusterProfiler to perform GSEA analysis in SUSHI. Further details: [Visit the clusterProfiler bioconductor page](https://bioconductor.org/packages/release/bioc/html/clusterProfiler.html)
 
 ***
 
