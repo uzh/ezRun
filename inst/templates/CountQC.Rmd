@@ -1,6 +1,6 @@
 ---
 title: "`r if (exists('reportTitle')) reportTitle else 'SUSHI Report'`"
-author: "Functional Genomics Center Zurich"
+author: "`r paste(format(Sys.time(), '%Y-%m-%d %H:%M:%S'), 'Functional Genomics Center Zurich')`"
 output: 
   html_document:
     self_contained: false
@@ -11,8 +11,6 @@ output:
 editor_options: 
   chunk_output_type: console
 ---
-
-Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
 
 ```{r setup countQC, include=FALSE}
 ## This report requires the object rawData
@@ -91,7 +89,7 @@ isPresentCond <- t(sweep(isPresentCond, 1,
 rowData(rawData)$isValid <- rowMeans(isPresentCond) >= 0.5
 ```
 
-## CountQC_Result {.tabset}
+## {.tabset}
 
 ### Settings
 ```{r setting, echo=FALSE}
