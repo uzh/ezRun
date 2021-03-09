@@ -1,6 +1,5 @@
 ---
 title: "`r if (exists('reportTitle')) reportTitle else 'SUSHI Report'`"
-author: "`r paste(format(Sys.time(), '%Y-%m-%d %H:%M:%S'), 'Functional Genomics Center Zurich')`"
 output: 
   html_document:
     self_contained: false
@@ -89,9 +88,9 @@ isPresentCond <- t(sweep(isPresentCond, 1,
 rowData(rawData)$isValid <- rowMeans(isPresentCond) >= 0.5
 ```
 
-## {.tabset}
+# {.tabset}
 
-### Settings
+## Settings
 ```{r setting, echo=FALSE}
 settings = character()
 settings["Normalization method:"] = param$normMethod
@@ -118,7 +117,7 @@ if (exists("output") && !is.null(output)){
 }
 ```
 
-### Data Files
+## Data Files
 
 The data files are in tabular text format and can also be opened with a spreadsheet program (e.g. Excel).
 
@@ -215,7 +214,7 @@ for(each in c(countFile, signalFile, rpkmFile, tpmFile, tableLink)){
 }
 ```
 
-### Count Statistics
+## Count Statistics
 ```{r count statistics, echo=FALSE, fig.width=min(7+(ncol(rawData)-10)*0.3, 30), message=FALSE, warning=FALSE}
 toPlot <- tibble(samples=colnames(rawData),
                  totalCounts=signif(colSums(assays(rawData)$counts) / 1e6,
@@ -245,7 +244,7 @@ plot_ly(toPlot, x=~samples, y=~presentCounts, type="bar",
   )
 ```
 
-### Correlation/Clustering Plot
+## Correlation/Clustering Plot
 
 ```{r prepare data correlation, include=FALSE}
 if (!is.null(seqAnno$IsControl)){
@@ -266,7 +265,7 @@ metadata(rawData)$topGenes <- rownames(rawData)[head(order(rowSds(assays(rawData
                                          decreasing = TRUE), param$topGeneSize)]
 ```
 
-#### Sample correlation
+### Sample correlation
 ```{r sample correlation data, include=FALSE}
 figure.height <- min(max(7, ncol(rawData) * 0.3), 30)
 ```
@@ -306,7 +305,7 @@ if (ncol(rawData) > 3){
 }
 ```
 
-### Clustering of High Variance Features
+## Clustering of High Variance Features
 
 ```{r Clustering of High Variance Features, echo=FALSE, message=FALSE, fig.width=max(8,4+0.15*ncol(rawData)), fig.height=10, results='asis', eval=!debug}
 clusterPdf = "cluster-heatmap.pdf"
@@ -412,7 +411,7 @@ if(file.exists("cluster-heatmap-clusterMembers.txt")){
 }
 ```
 
-### MDS Plot
+## MDS Plot
 ```{r MDS section, echo=FALSE, results='asis', message=FALSE, eval=TRUE}
 if(ncol(rawData) <= 3){
   cat("MDS plot is not possible with fewer than 3 samples. \n")
@@ -470,7 +469,7 @@ if(ncol(rawData) > 3){
 }
 ```
 
-### Input Dataset
+## Input Dataset
 ```{r input, echo=FALSE}
 ezInteractiveTableRmd(values=dataset, digits=4)
 ```
@@ -479,7 +478,8 @@ ezInteractiveTableRmd(values=dataset, digits=4)
 saveRDS(rawData, "rawData_final.rds")
 ```
 
-### SessionInfo
+## SessionInfo
 ```{r, echo=FALSE}
+format(Sys.time(), '%Y-%m-%d %H:%M:%S')
 sessionInfo()
 ```
