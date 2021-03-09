@@ -90,7 +90,7 @@ plotColData(sce.unfiltered, x="sum", y="subsets_Mito_percent", colour_by="discar
 
 <br/>
 
-#### Cells filtering
+#### Cell filtering
 
 A standard approach is to filter cells with a low amount of reads as well as genes that are present in at least a certain amount of cells. While simple, using fixed thresholds requires knowledge of the experiment and of the experimental protocol. An alternative approach is to use adaptive, data-driven thresholds to identify outlying cells, based on the set of QC metrics just calculated. To obtain an adaptive threshold, we assume that most of the dataset consists of high-quality cells. 
 When the parameter values of nreads, ngenes and perc_mito are specified, fixed thresholds are used for filtering. Otherwise, filtering is performed excluding cells that are outliers by more than `r param$nmad` MADs below the median for the library size and the number of genes detected. Cells with a percentage counts of mitochondrial genes above the median by `r param$nmad` MADs are also excluded. 
@@ -154,7 +154,7 @@ LabelPoints(plot = plot_hvg, points = top10, repel = TRUE, xnudge=0, ynudge=0)
 
 <br/>
 
-#### Principal components analysis
+#### Principal component analysis
 
 Next, we perform PCA on the scaled data. By default, only the previously determined variable features are used as input but can be defined using the pcGenes argument if you wish to choose a different subset. Seurat clusters cells based on their PCA scores. The top principal components, therefore, represent a robust compression of the dataset. The numbers of PCs that should be retained for downstream analyses typically range from 10 to 50. However, identifying the true dimensionality of a dataset can be challenging, that's why we recommend considering the ‘Elbow plot’ approach. a ranking of principal components based on the percentage of variance explained by each one. The assumption is that each of the top PCs capturing biological signal should explain much more variance than the remaining PCs. Thus, there should be a sharp drop in the percentage of variance explained when we move past the last “biological” PC. This manifests as an elbow in the scree plot, the location of which serves as a natural choice for a number of PCs.
 
@@ -204,7 +204,7 @@ cells_prop = cellsProportion(sce, groupVar1 = "ident", groupVar2 = "Plate")
 kable(cells_prop,row.names=FALSE, format="html",caption="Cell proportions") %>% kable_styling(bootstrap_options = "striped", full_width = F, position = "float_right")
 ```
 
-### Clusters resolution assesment
+### Cluster resolution assessment
 
 One of the most important parameters when clustering is k, the number of nearest neighbors used to construct the graph. This controls the resolution of the clustering where higher k yields a more inter-connected graph and broader clusters. Users can experiment with different values of k to obtain a satisfactory resolution. We recommend increasing the resolution when a rare population is expected. 
 Below, it is shown a clustering tree that helps us to visualize the relationships between clusters at a range of resolutions. Each cluster forms a node in the tree and edges are constructed by considering the cells in a cluster at a lower resolution that end up in a cluster at the next highest resolution. By connecting clusters in this way, we can see how clusters are related to each other, which are clearly distinct and which are unstable. 
@@ -250,7 +250,7 @@ caption ="Expression differences of cluster marker genes"
 ezInteractiveTableRmd(posMarkers, digits=4, title=caption)
 ```
 
-### Markers plots
+### Marker plots
 
 Here, we use a heatmap and a dotplot to visualize simultaneously the top 5 markers in each cluster. Be aware that some genes may be in the top markers for different clusters.
 
@@ -269,7 +269,7 @@ pheatmap(geneMeans[unique(top5$gene), ],fontsize_row = 6)
 plotDots(sce, features=top5$gene, group="seurat_clusters")
 ```
 
-### Cells annotation
+### Cell annotation
 
 The most challenging task in scRNA-seq data analysis is the interpretation of the results. Once we have obtained a set of clusters we want to determine what biological state is represented by each of them. To do this, we have implemmented 3 different approaches which are explained below. However, these methods should be complemented with the biological knowledge from the researcher.
 
