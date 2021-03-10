@@ -527,7 +527,7 @@ resultMetaCore <- resultLoaded %>%
 
 ```{r metacore export, echo=FALSE, message=FALSE, eval=TRUE}
 metacoreFile <- str_c("MetaCore--", param$comparison, ".txt")
-write.csv(x = resultMetaCore, file = metacoreFile, sep = "\t")
+write.table(x = resultMetaCore, file = metacoreFile, sep = "\t")
 ```
 
 #### Metacore
