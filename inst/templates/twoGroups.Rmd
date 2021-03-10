@@ -527,7 +527,7 @@ resultMetaCore <- resultLoaded %>%
 
 ```{r metacore export, echo=FALSE, message=FALSE, eval=TRUE}
 metacoreFile <- str_c("MetaCore--", param$comparison, ".txt")
-write.table(x = resultMetaCore, file = metacoreFile, sep = "\t")
+ezWrite.table(resultMetaCore, file = metacoreFile, row.names = FALSE)
 ```
 
 #### Metacore
