@@ -52,7 +52,8 @@ ezMethodMergeRunData <- function(input=NA, output=NA, param=NA){
     dataset = rbind(dataset1, dataset2)
     dataset = dataset[order(dataset[[matchCol]]), ]
     dataset = dataset[dataset[[matchCol]] %in% intersectNames, ]
-    uniqueDataset = unique(dataset[ ,-which(colnames(dataset) %in% c('Read1 [File]', 'Read Count'))])
+    uniqueDataset = unique(dataset[ ,-which(colnames(dataset) %in% c('Read1 [File]', 'Read Count', 'SampleConc [Characteristic]', 'InputAmount [Characteristic]', 'Sample Id [B-Fabric]', 'RIN [Characteristic]', 'PlatePosition [Characteristic]',
+                                                                     'LibConc_100_800bp [Characteristic]', 'LibraryPrepKit', 'PlateName [Characteristic]'))])
     if(param[['paired']]){
         uniqueDataset = unique(uniqueDataset[, -which(colnames(uniqueDataset) %in% c('Read2 [File]'))])
     }
