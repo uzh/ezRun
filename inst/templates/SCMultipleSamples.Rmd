@@ -60,14 +60,14 @@ The goal of the clustering analysis is to keep the major sources of variation in
 In most applications, the cell cycle is a minor factor of variation, secondary to differences between cell types. Any attempt at removal would also need to assume that the cell cycle effect is orthogonal to other biological processes. For example, regression would potentially remove interesting signal if cell cycle activity varied across clusters or conditions, with a prime example being the increased proliferation of activated T cells (Richard, A. C., A. T. L. Lun, W. W. Y. Lau, B. Gottgens, J. C. Marioni, and G. M. Griffiths. 2018. “T cell cytolytic capacity is independent of initial stimulation strength.” Nat. Immunol. 19 (8): 849–58.). We suggest only performing cell cycle adjustment on an as-needed basis in populations with clear cell cycle effects.
 The UMAP can help us to determine whether cell cycle is a major source of variation in our dataset. 
 
-```{r TSNE on cell cycle, fig.align='center'}
+```{r UMAP on cell cycle, fig.align='center'}
 plotReducedDim(sce, dimred="UMAP_NOCORRECTED", colour_by="CellCycle") + xlab("UMAP 1") + ylab("UMAP 2")
 ```
 
 #### 2. Batch effects
 
 On the other hand, we always look at our cells before deciding whether we need to perform integration. Te main goal of dataset integration is to identify shared cell states that are present across different datasets, in case they were collected from different individuals, experimental conditions, technologies, or even species. Large single-cell RNA sequencing projects usually need to generate data across multiple batches due to logistical constraints. This results in systematic differences in the observed expression in cells from different batches, which we refer to as “batch effects”. Batch effects are problematic as they can be major drivers of heterogeneity in the data, masking the relevant biological differences and complicating interpretation of the results.
-The TSNEs and the barplot below can help us to visualize if the clusters are balanced and composed by cells from the different batches. If we see clusters that are comprised of cells from a single batch, this indicates that cells of the same type are artificially separated due to technical differences between batches. In this case, we may also consider that there are cell types that are unique to each batch. If a cluster only contains cells from a single batch, one can always debate whether that is caused by technical differences or if there is truly a batch-specific subpopulation. 
+The UMAPs and the barplot below can help us to visualize if the clusters are balanced and composed by cells from the different batches. If we see clusters that are comprised of cells from a single batch, this indicates that cells of the same type are artificially separated due to technical differences between batches. In this case, we may also consider that there are cell types that are unique to each batch. If a cluster only contains cells from a single batch, one can always debate whether that is caused by technical differences or if there is truly a batch-specific subpopulation. 
 
 <br/><br/>
   
@@ -125,7 +125,7 @@ cat("\n\n")
 cat("Finally, the cells clusters were identified using a graph-based clustering approach where the cells are embedded in a graph structure - for example a K-nearest neighbor (KNN) graph, with edges drawn between cells with similar feature expression patterns, and then attempt to partition this graph into highly interconnected ‘communities’. The resolution is an important argument that sets the \"granularity\" of the downstream clustering and will need to be optimized for every individual experiment. Increased resolution values lead to a greater number of clusters, which is often required for larger datasets.")
 cat("\n")
 cat("\n")
-cat("The TSNEs below place similar cells together in low-dimensional space after the integration of the datasets. The first TSNE represents cells according to the condition and the second TSNE shows the graph-based common clusters that were found among the datasets. The presence of visual clusters containing cells from the different datasets provides a comforting illusion that the integration was successful.")
+cat("The UMAPs below place similar cells together in low-dimensional space after the integration of the datasets. The first UMAP represents cells according to the condition and the second UMAP shows the graph-based common clusters that were found among the datasets. The presence of visual clusters containing cells from the different datasets provides a comforting illusion that the integration was successful.")
 ```
 <br/>
 
