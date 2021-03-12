@@ -58,10 +58,10 @@ The goal of the clustering analysis is to keep the major sources of variation in
 #### 1. Cell cycle
 
 In most applications, the cell cycle is a minor factor of variation, secondary to differences between cell types. Any attempt at removal would also need to assume that the cell cycle effect is orthogonal to other biological processes. For example, regression would potentially remove interesting signal if cell cycle activity varied across clusters or conditions, with a prime example being the increased proliferation of activated T cells (Richard, A. C., A. T. L. Lun, W. W. Y. Lau, B. Gottgens, J. C. Marioni, and G. M. Griffiths. 2018. “T cell cytolytic capacity is independent of initial stimulation strength.” Nat. Immunol. 19 (8): 849–58.). We suggest only performing cell cycle adjustment on an as-needed basis in populations with clear cell cycle effects.
-A TSNE can help us to determine whether cell cycle is a major source of variation in our dataset. 
+The UMAP can help us to determine whether cell cycle is a major source of variation in our dataset. 
 
 ```{r TSNE on cell cycle, fig.align='center'}
-plotReducedDim(sce, dimred="UMAP_NOCORRECTED", colour_by="CellCycle", label_format = c("UMAP_1","UMAP_2"))
+plotReducedDim(sce, dimred="UMAP_NOCORRECTED", colour_by="CellCycle") + xlab("UMAP 1") + ylab("UMAP 2")
 ```
 
 #### 2. Batch effects
@@ -72,7 +72,7 @@ The TSNEs and the barplot below can help us to visualize if the clusters are bal
 <br/><br/>
   
 ```{r UMAP and barplot batch, fig.width=8, fig.height=5}
-plotReducedDim(sce, dimred =  "UMAP_NOCORRECTED", colour_by = "Batch", label_format = c("UMAP_1","UMAP_2"))
+plotReducedDim(sce, dimred =  "UMAP_NOCORRECTED", colour_by = "Batch") + xlab("UMAP 1") + ylab("UMAP 2")
 cellIdents_perBatch = data.frame(colData(sce)[,c("ident_noCorrected", "Batch")])
 barplot = ggplot(data=cellIdents_perBatch, aes(x=cellIdents_perBatch[,1], fill=Batch)) + geom_bar(stat="Count")
 barplot + labs(x="Cluster", y = "Number of cells", fill = "Batch")
@@ -82,7 +82,7 @@ kable(cells_prop,row.names=FALSE, format="html",caption="Cell proportions per ba
 
 ```{r UMAP and barplot Condition, eval=length(unique(sce$Batch)) != length(unique(sce$Condition)) ,fig.width=8, fig.height=5}
 #if there are only two samples these plots are the same as the previous ones
-plotReducedDim(sce, dimred =  "UMAP_NOCORRECTED", colour_by = "Condition", label_format = c("UMAP_1","UMAP_2"))
+plotReducedDim(sce, dimred =  "UMAP_NOCORRECTED", colour_by = "Condition") + xlab("UMAP 1") + ylab("UMAP 2")
 cellIdents_perCondition = data.frame(colData(sce)[,c("ident_noCorrected", "Condition")])
 barplot = ggplot(data=cellIdents_perCondition, aes(x=cellIdents_perCondition[,1], fill=Condition)) + geom_bar(stat="Count")
 barplot + labs(x="Cluster", y = "Number of cells", fill = "Condition")
