@@ -150,17 +150,18 @@ branch = strsplit(param$diff_Branch, ",")[[1]][2]
 current_model = model[which(model$method_name == method_name),]$model[[1]]
 
 branch_feature_importance <- calculate_branch_feature_importance(current_model, expression_source = expression)
-features <- branch_feature_importance %>%
-  filter(to == branch) %>%
-  top_n(20, importance) %>%
-  pull(feature_id)
+features <- branch_feature_importance %>% filter(to == branch) %>% top_n(20, importance) %>% pull(feature_id)
+
+tryCatch({
 plot= plot_heatmap(
     current_model,
     expression_source = expression,
     features_oi = features) + ggtitle(paste0("Important features to branch ", branch))
 plot
 
-write_tsv(branch_feature_importance, "branch_feature_importance.tsv")
+write_tsv(branch_feature_importance, "branch_feature_importance.tsv")}
+, error=function(e){
+  message("No genes were obtained for this branch")})
 ```
 <br/><br/>
 
