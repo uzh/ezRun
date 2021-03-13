@@ -20,10 +20,11 @@ knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE, knitr.tabl
 # library(dyno)
 # library(ezRun, lib.loc = "~/myRpackages")
 # require(tidyverse)
-# sce <- loadHDF5SummarizedExperiment("/srv/gstore/projects/p3125/SCOneSample_46603_2020-06-05--14-16-48/PBMC_fresh_50_SCReport/sce_h5")
-# model = readRDS("/srv/GT/analysis/p3125-Mojca/PBMC_fresh_50_SCTrajectoryInference/model.rds")
-# dyno_dataset = readRDS("/srv/GT/analysis/p3125-Mojca/PBMC_fresh_50_SCTrajectoryInference/dyno_dataset.rds")
-# param = list(start_id="0", end_id='none', start_n="1", end_id="1", TI_method='none', diff_Branch='Slingshot,3', diff_Branch_Point='Slingshot,3')
+# model = readRDS("/srv/gstore/projects/p2220/SCTrajectoryInference_55343_2021-03-11--10-58-03/Differentiated_lung_cells_SCTrajectoryInference/model.rds")
+# dyno_dataset = readRDS("/srv/gstore/projects/p2220/SCTrajectoryInference_55343_2021-03-11--10-58-03/Differentiated_lung_cells_SCTrajectoryInference/dyno_dataset.rds")
+# sce = loadHDF5SummarizedExperiment("/srv/gstore/projects/p2220/SCOneSample_50562_2021-03-10--17-22-04/Differentiated_lung_cells_SCReport/sce_h5")
+# 
+# param = list(start_id="0", end_id='none', start_n="1", end_id="1", TI_method='none', diff_Branch='none', diff_Branch_Point='none', root_expression='TP63,ITGA6,KRT5,KRT6A,COL17A1', show_genes='MUC1,SPDEF')
 
 library(tidyverse)
 expression = dyno_dataset$expression
@@ -57,6 +58,16 @@ When choosing a method, it is important to take two further points into account.
 #### Practical guidelines
 ![guidelines](/srv/GT/TI_guidelines.png)
 
+```{r add root, eval=param$root_expression != 'none'}
+root_genes = strsplit(param$root_expression, ",")[[1]]
+root_genes = root_genes[root_genes %in% colnames(expression)]
+for(i in 1:nrow(model)) {
+  tryCatch({
+  model[i,]$model[[1]] = model[i,]$model[[1]] %>% add_root_using_expression(root_genes, expression)
+ },  error = function(e){message("error adding root genes")})
+}
+ 
+```
 
 
 ### Dimensionality reduction
@@ -65,7 +76,7 @@ When choosing a method, it is important to take two further points into account.
 cat("The performance of a method depends on many factors, mainly the dimensions of the data and the kind of trajectory present in the data. Based on this, we selected the 2 most optimal set of methods for the analysis.")
 ```
 
-The most common way to visualise a trajectory is to plot it on a dimensionality reduction of the cells.
+The most common way to visualize a trajectory is to plot it on a dimensionality reduction of the cells.
 The following plots color the cells according to
 
 - Cell ordering. In which every milestone gets a color and the color changes gradually between the milestones.
@@ -87,24 +98,29 @@ for(i in 1:nrow(model)) {
 }
 ```
 
-### Heatmap
 
-We can also plot those features that best explain the main differences over the whole trajectory in a heatmap (by default the best 50 genes are plotted)
-<br/>
 
-```{r heatmap, results='asis', fig.align='center', fig.height=8, fig.width=8}
+```{r, eval=param$show_genes != 'none', results='asis'}
+cat("### Expression of selected genes")
+cat("\n")
+genes = strsplit(param$show_genes, ",")[[1]]
+genes = genes[genes %in% colnames(expression)]
 for(i in 1:nrow(model)) {
+  cat("\n")
   cat(paste0("#### ", model[i,]$method_name))
   current_model = model[i,]$model[[1]]
-  plot = plot_heatmap(
-    current_model,
-    expression_source = expression,
-    grouping = clusters,
-    features_oi = 50)
-    print(plot)
-    cat("\n")
+  tryCatch({
+ plots= map(genes, function(feature_oi) {
+  plot_dimred(current_model, expression_source = expression, feature_oi = feature_oi, label_milestones = FALSE) +
+  theme(legend.position = "none") +
+  ggtitle(feature_oi)
+  }) %>% patchwork::wrap_plots()
+  print(plots)}, 
+  error=function(e){
+     message("The genes were not found in the expression matrix.")})
 }
 ```
+
 
 ### Differential expression
 
