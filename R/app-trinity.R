@@ -70,16 +70,16 @@ ezMethodTrinity = function(input=NA, output=NA, param=NA, htmlFile="00index.html
               paste(abundanceFiles, collapse = " "))
   ezSystem(cmd)
   cmd = paste("$Trinity/util/misc/contig_ExN50_statistic.pl", 
-              paste0(abundancePrefix, ".TMM.EXPR.matrix"),
+              paste0(abundancePrefix, ".isoform.TMM.EXPR.matrix"),
               pathTranscripts,
               ">", basename(output$getColumn("ExN50")))
   ezSystem(cmd)
   
   # Rename output files
   ezSystem(paste("mv", pathTranscripts, basename(output$getColumn("Fasta")) ))
-  ezSystem(paste("mv", paste0(abundancePrefix, ".counts.matrix"), basename(output$getColumn("Abundance Counts"))))
-  ezSystem(paste("mv", paste0(abundancePrefix, ".TPM.not_cross_norm"), basename(output$getColumn("Abundance TPM"))))
-  ezSystem(paste("mv", paste0(abundancePrefix, ".TMM.EXPR.matrix"), basename(output$getColumn("Abundance TMM"))))
+  ezSystem(paste("mv", paste0(abundancePrefix, ".isoform.counts.matrix"), basename(output$getColumn("Abundance Counts"))))
+  ezSystem(paste("mv", paste0(abundancePrefix, ".isoform.TPM.not_cross_norm"), basename(output$getColumn("Abundance TPM"))))
+  ezSystem(paste("mv", paste0(abundancePrefix, ".isoform.TMM.EXPR.matrix"), basename(output$getColumn("Abundance TMM"))))
   
   return("Success")
 }
