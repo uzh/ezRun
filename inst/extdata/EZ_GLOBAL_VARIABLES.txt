@@ -1,4 +1,4 @@
-WARN_CONFLICTS=false
+WARN_CONFLICTS=FALSE
 
 # This URL is not valid
 DOC_URL="https://fgcz-sushi.uzh.ch/doc/methods-20140422.html"
