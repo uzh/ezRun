@@ -119,13 +119,15 @@ ezMethodSCMultipleSamples = function(input=NA, output=NA, param=NA, htmlFile="00
   clusters_freq <- data.frame(table(scData@meta.data[,c("Condition","seurat_clusters")]))
   small_clusters <- unique(as.character(clusters_freq[clusters_freq[,"Freq"] < 10, "seurat_clusters"]))
   
+  diffGenes <- NULL
+  consMarkers <- NULL
+  
   #only subset object and calculate diff genes and conserved markers if there is at least one cluster shared among conditions
   if (!all(small_clusters %in% scData$seurat_clusters)) {
      scData <- subset(scData, idents = small_clusters, invert = TRUE)
      #conserved cluster markers
      consMarkers <- conservedMarkers(scData)
      #differentially expressed genes between clusters and conditions (in case of several conditions)
-     diffGenes <- NULL
      if(length(unique(scData$Condition))>1) 
        diffGenes <- diffExpressedGenes(scData)
   }
