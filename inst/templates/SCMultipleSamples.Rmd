@@ -224,12 +224,17 @@ plotDots(sce, features=top5$gene, group="seurat_clusters")
 cat("### Differential expressed genes")
 cat("\n")
 
-cat(paste0("After identifying common cell types across conditions, we can look for genes that change in different conditions for cells of the same type. The comparison made was ", paste(unique(sce$Condition), collapse = " vs ")))
+cat(paste0("After identifying common cell types across conditions, we can look for genes that change in different conditions for cells of the same type. The interactive table can help you to explore the more relevant genes (maximum 1000 genes with the biggest diff_pct). The full list of tested genes is in the Data availability section of this report. The comparison made was ", paste(unique(sce$Condition), collapse = " vs ")))
 
 cat("\n")
 
 diffGenes <- read_tsv("differential_genes.tsv")
-diffGenes <- diffGenes[diffGenes$p_val_adj<0.05,]
+diffGenes <- diffGenes[diffGenes$p_val_adj<0.05,]  #too many genes make the interactive table slow
+cutoff <- 1000
+
+if(nrow(diffGenes) > cutoff)
+   diffGenes <- diffGenes[1:cutoff,]
+
 caption ="Differential expressed genes per cluster"
 ezInteractiveTableRmd(diffGenes, title=caption)
 ```
