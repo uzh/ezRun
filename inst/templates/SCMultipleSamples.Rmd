@@ -193,22 +193,28 @@ pheatmap(geneMeans[unique(top5$gene), ],fontsize_row = 8)
 plotDots(sce, features=top5$gene, group="seurat_clusters")
 ```
 
-```{r consMarkers table, results='asis'}
+```{r}
+conservedMarkers <- tryCatch({read_tsv("conserved_markers.tsv")},error = function(e) NULL)
+diffGenes <- tryCatch({read_tsv("differential_genes.tsv")},error = function(e) NULL)
+```
+
+
+
+```{r consMarkers table, eval=!is.null(conservedMarkers), results='asis'}
 cat("### Conserved markers")
 cat("\n")
 cat("Identify cell type marker genes that are conserved across conditions. Differential gene expression tests are performed for each group and then, the p-values are combined using meta-analysis methods.")
-conservedMarkers <- read_tsv("conserved_markers.tsv")
 caption ="Conserved cell type markers"
 ezInteractiveTableRmd(conservedMarkers, title=caption)
 ```
 
-```{r, eval=length(unique(sce$Condition))>1}
+```{r, eval=!is.null(conservedMarkers)}
 top5 <- conservedMarkers %>% group_by(cluster) %>% top_n(n = 5, wt = avg_avg_fc)
 var_heigth <- nrow(top5)*0.6
 ```
 
 
-```{r consMarkers plots, eval=length(unique(sce$Condition))>1, results='asis', fig.width=8, fig.height=var_heigth}
+```{r consMarkers plots, eval=!is.null(conservedMarkers), results='asis', fig.width=8, fig.height=var_heigth}
 cat("### Conserved markers plots")
 cat("\n")
 
@@ -220,7 +226,7 @@ pheatmap(geneMeans[unique(top5$gene), ],fontsize_row = 8)
 plotDots(sce, features=top5$gene, group="seurat_clusters")
 ```
 
-```{r diffGenes table, eval=length(unique(sce$Condition))>1, results='asis'}
+```{r diffGenes table, eval=!is.null(diffGenes), results='asis'}
 cat("### Differential expressed genes")
 cat("\n")
 
@@ -228,7 +234,6 @@ cat(paste0("After identifying common cell types across conditions, we can look f
 
 cat("\n")
 
-diffGenes <- read_tsv("differential_genes.tsv")
 diffGenes <- diffGenes[diffGenes$p_val_adj<0.05,]  #too many genes make the interactive table slow
 cutoff <- 1000
 
@@ -239,7 +244,7 @@ caption ="Differential expressed genes per cluster"
 ezInteractiveTableRmd(diffGenes, title=caption)
 ```
 
-```{r diffGenes heatmap, eval=length(unique(sce$Condition))>1, results='asis', fig.height=6, fig.width=12, fig.align='center'}
+```{r diffGenes heatmap, eval=!is.null(diffGenes), results='asis', fig.height=6, fig.width=12, fig.align='center'}
 cat("### Differential genes plots")
 cat("\n")
 cat("The 50 dysregulated genes with the highest difference in expression between the two conditions are represented in the heatmap and the violin plots. The heatmap shows global differences of these genes across the conditions, while the violin plots show cluster specific changes across conditions.")
@@ -249,7 +254,7 @@ plotHeatmap(sce, order_columns_by = "Condition", features = most_diffGenes, font
 ```
 
 
-```{r diffGenes violin plots, eval=length(unique(sce$Condition))>1, fig.height=30, fig.width=16}
+```{r diffGenes violin plots, eval=!is.null(diffGenes), fig.height=30, fig.width=16}
 plotExpression(sce, most_diffGenes, x="seurat_clusters", colour_by="Condition", ncol=3)
 ```
 
