@@ -29,6 +29,7 @@ getReferenceFeaturesBed <- function(param) {
     defer(file.remove(lockFile))
     message("generating bed file from gtf")
     gtf <- import.gff(param$ezRef["refFeatureFile"])
+    gtf$score[is.na(gtf$score)] <- 1
     export.bed(gtf, bedFile)
     return(bedFile)
   }
