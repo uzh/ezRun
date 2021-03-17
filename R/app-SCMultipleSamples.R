@@ -117,6 +117,7 @@ ezMethodSCMultipleSamples = function(input=NA, output=NA, param=NA, htmlFile="00
   
   #Before calculating the conserved markers and differentially expressed genes across conditions I will discard the clusters that were too small in at least one group
   clusters_freq <- data.frame(table(scData@meta.data[,c("Condition","seurat_clusters")]))
+  small_clusters <- ""
   small_clusters <- unique(as.character(clusters_freq[clusters_freq[,"Freq"] < 10, "seurat_clusters"]))
   
   diffGenes <- NULL
