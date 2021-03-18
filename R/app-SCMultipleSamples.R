@@ -124,7 +124,7 @@ ezMethodSCMultipleSamples = function(input=NA, output=NA, param=NA, htmlFile="00
   consMarkers <- NULL
   
   #only subset object and calculate diff genes and conserved markers if there is at least one cluster shared among conditions
-  if (!all(small_clusters %in% scData$seurat_clusters)) {
+  if (!all(scData$seurat_clusters %in% small_clusters)) {
      scData <- subset(scData, idents = small_clusters, invert = TRUE)
      #conserved cluster markers
      consMarkers <- conservedMarkers(scData)
