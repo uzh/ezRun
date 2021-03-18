@@ -180,7 +180,7 @@ Here, we use a heatmap and a dotplot to visualize simultaneously the top 5 marke
 
 ```{r}
 top5 <- posMarkers %>% group_by(cluster) %>% top_n(n = 5, wt = diff_pct)
-var_heigth <- nrow(top5)*0.6
+var_heigth <- nrow(top5)*0.3
 ```
 
 ```{r heatmap, fig.width=8, fig.height=var_heigth}
@@ -211,7 +211,7 @@ ezInteractiveTableRmd(conservedMarkers, title=caption)
 
 ```{r, eval=!is.null(conservedMarkers)}
 top5 <- conservedMarkers %>% group_by(cluster) %>% top_n(n = 5, wt = avg_avg_fc)
-var_heigth <- nrow(top5)*0.6
+var_heigth <- nrow(top5)*0.3
 ```
 
 
