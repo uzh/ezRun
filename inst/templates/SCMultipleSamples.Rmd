@@ -40,6 +40,7 @@ knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE, knitr.tabl
 
 ```{r}
 output <- metadata(sce)$output
+var_heigth <- 1
 ```
 
 ```{r javascript, results='asis'}
