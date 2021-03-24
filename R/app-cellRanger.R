@@ -119,8 +119,12 @@ ezMethodCellRanger <- function(input = NA, output = NA, param = NA) {
   nUmi = tapply(tags$UB, tags$CB, n_distinct)
   stopifnot(names(nUmi) == rownames(resultFrame))
   resultFrame$nUmi = nUmi
-  resultFrame$nTso = tapply(tags$ts > 0, tags$CB, sum)
-  resultFrame$nPa = tapply(tags$pa > 0, tags$CB, sum)
+  if (length(tags$ts) == length(tags$CB)){ ## the 5' protocol does not have the ts tag
+    resultFrame$nTso = tapply(tags$ts > 0, tags$CB, sum)
+  }
+  if (length(tags$pa) == length(tags$CB)){ ## the 5' protocol does not have the pa tag
+    resultFrame$nPa = tapply(tags$pa > 0, tags$CB, sum)
+  }
   resultFrame$nIntergenic = tapply(tags$RE == "I", tags$CB, sum)
   resultFrame$nExonic = tapply(tags$RE == "E", tags$CB, sum)
   resultFrame$nIntronic = tapply(tags$RE == "N", tags$CB, sum)
