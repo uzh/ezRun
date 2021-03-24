@@ -364,7 +364,7 @@ writeSCMM <- function(x, file){
 readSCMM <- function(file){
   require(Matrix)
   ans <- readMM(file)
-  ans <- as(ans, "dgCMatrix")
+  ans <- as(ans, "dgCMatrix") ## convert from the less efficient dgTMatrix that readMM returns
   colnames(ans) <- read_lines(sub("\\.mtx$", ".colNames", file))
   rownames(ans) <- read_lines(sub("\\.mtx$", ".rowNames", file))
   return(ans)
