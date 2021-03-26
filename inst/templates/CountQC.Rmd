@@ -447,6 +447,8 @@ if(ncol(rawData) > 3){
 }
 ```
 
+## Scatter Plots by Conditions
+
 ```{r scatter plot, echo=FALSE, message=FALSE, results='asis', eval=!debug}
 if(ncol(rawData) > 3){
   if (param$writeScatterPlots){
