@@ -56,7 +56,7 @@ ezMethodSCFeatBarcoding <- function(input=NA, output=NA, param=NA,
   library(SingleR)
   library(Seurat)
   library(SingleCellExperiment)
-  library(tibble)
+  library(tidyverse)
   library(scanalysis)
   require(scDblFinder)
   
