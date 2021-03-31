@@ -85,8 +85,8 @@ compileEnrichmentInput = function(param, se){
   log2Ratio <- set_names(rowData(se)$log2Ratio, rowData(se)$gene_id)
   
   if (param$featureLevel != "gene"){
-    geneIds = getGeneMapping(param, seqAnno)
-    goAnno = aggregateGoAnnotation(seqAnno, geneIds)
+    genes = getGeneMapping(param, seqAnno)
+    goAnno = aggregateGoAnnotation(seqAnno, genes)
     seqAnno = ezFrame(gene_id=rownames(goAnno),
                       gene_name=seqAnno$gene_name[match(rownames(goAnno), seqAnno$gene_id)],
                       goAnno)
