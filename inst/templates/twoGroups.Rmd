@@ -733,8 +733,7 @@ if (exists("enrichResult")) {
           theme(axis.text.y = element_text(vjust = -0.01, size = 8))
         
         sigGeneIds <- enrichInput$selections[[sig]]
-        log2Ratio <- enrichInput$seqAnno$log2Ratio[
-          enrichInput$seqAnno$gene_id %in% sigGeneIds]
+        log2Ratio <- enrichInput$log2Ratio[sigGeneIds]
         names(log2Ratio) <- enrichInput$seqAnno[sigGeneIds, "gene_name"]
         log2Ratio <- sort(log2Ratio, decreasing = T)
         erp[["cnet"]] <- enrichplot::cnetplot(
