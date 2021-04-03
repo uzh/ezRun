@@ -149,8 +149,8 @@ seuratStandardWorkflow <- function(scData, param){
 }  
 
 buildSeuratObject <- function(sce){
-  require(Seurat)
-  require(scater)
+  library(Seurat)
+  library(scater)
   param <- metadata(sce)$param
   rownames(sce) <- uniquifyFeatureNames(ID=rowData(sce)$gene_id,
                                         names=rowData(sce)$gene_name)
