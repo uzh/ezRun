@@ -228,3 +228,63 @@ getSpecies <- function(refBuild) {
   }
   return(species)
 }
+
+geneMeansCluster <- function(sce) {
+tr_cnts <- expm1(logcounts(sce))
+means <- rowsum(t(as.matrix(tr_cnts)), group=colData(sce)[,"ident"])
+means <- sweep(means, 1, STATS=table(colData(sce)[,"ident"])[rownames(means)], FUN="/")
+means <- log1p(t(means))
+colnames(means) <- paste("cluster", colnames(means), sep="_")
+return(means)
+}
+
+cellsLabelsWithAUC <- function(scData, species, tissue, minGsSize = 3) {
+  library(AUCell)
+  if (species == "other")
+    return(NULL)
+  geneSets <- createGeneSets(species, tissue)
+  expressionMatrix <- GetAssayData(scData, slot = "counts")
+  cells_rankings <- AUCell_buildRankings(expressionMatrix, plotStats=FALSE)
+  cells_AUC <- tryCatch({AUCell_calcAUC(geneSets[sapply(geneSets, length) >= minGsSize], cells_rankings, verbose = FALSE)},error = function(e) NULL)
+  return(cells_AUC)
+}
+
+
+createGeneSets <- function(species, tissue) {
+  tissue <- unlist(strsplit(tissue, ","))
+  cell_markers <- read.table("/srv/GT/databases/scGeneSets/all_cell_markers.txt", sep = "\t", header = TRUE)
+  cell_markers <- cell_markers[cell_markers$speciesType == species & 
+                                 cell_markers$tissueType %in% tissue, ]
+  geneSetList <- strsplit(cell_markers$geneSymbol, ",")
+  geneSetList <- lapply(geneSetList, function(gs){
+    gs <- gs[!is.na(gs)]
+    gs <- gsub("^ ", "", gsub(" $", "", gs))
+    gs <- gsub("[", "", gs, fixed = TRUE)
+    gs <- gsub("]", "", gs, fixed = TRUE)
+    gs <- gsub("11-Sep", "SEPTIN11", gs)
+    gs <- setdiff(gs, c("NA", ""))
+  })
+  ## merge the genesets from the same cell type
+  geneSetArray = tapply(geneSetList, cell_markers$cellName, 
+                        function(x){unique(unlist(x))}, simplify = FALSE)
+  ## conver the array  returned by tapply to a list
+  geneSetList = lapply(geneSetArray, function(gs){gs})
+  return(geneSetList)
+}
+
+cellsLabelsWithSingleR <- function(counts, current_clusters, species) {
+  library(SingleR)
+  if(species == "Human"){
+    reference <- HumanPrimaryCellAtlasData()
+    singler.results.single <- SingleR(test = counts, ref = reference, 
+                                      labels = reference$label.main, method="single", de.method = "wilcox")
+    singler.results.cluster <- SingleR(test = counts, ref = reference, 
+                                       labels = reference$label.main, method="cluster", clusters=current_clusters, de.method = "wilcox")
+  }else {
+    reference <- celldex::MouseRNAseqData()
+    singler.results.single <- SingleR(test = counts, ref = reference, labels = reference$label.main)
+    singler.results.cluster <- SingleR(test = counts, ref = reference, labels = reference$label.main, method="cluster", clusters=current_clusters)
+  }
+  
+  return(list(singler.results.single=singler.results.single, singler.results.cluster=singler.results.cluster))
+}
