@@ -238,7 +238,7 @@ posClusterMarkers <- function(scData, pvalue_allMarkers, param) {
   
   markers <- FindAllMarkers(object=scData, test.use = param$DE.method, only.pos=TRUE, latent.vars = vars.to.regress, return.thresh = pvalue_allMarkers)
   ## Significant markers
-  cm <- markers[ ,c("gene","cluster","pct.1", "pct.2", "avg_logFC","p_val_adj")]
+  cm <- markers[ ,c("gene","cluster","pct.1", "pct.2", "avg_log2FC","p_val_adj")]
   #cm <- cm[cm$p_val_adj < 0.05, ]
   diff_pct = abs(cm$pct.1-cm$pct.2)
   cm$diff_pct <- diff_pct
@@ -279,7 +279,7 @@ conservedMarkers <- function(scData, grouping.var="Condition") {
   }
   markers <- bind_rows(markers, .id="cluster")
   markers <- markers %>%
-    mutate(avg_avg_fc=rowMeans(select(., contains("_avg_logFC"))))
+    mutate(avg_avg_fc=rowMeans(select(., contains("_avg_log2FC"))))
   return(markers)
 }
 
