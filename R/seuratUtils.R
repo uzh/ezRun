@@ -279,7 +279,7 @@ conservedMarkers <- function(scData, grouping.var="Condition") {
   }
   markers <- bind_rows(markers, .id="cluster")
   markers <- markers %>%
-    mutate(avg_avg_fc=rowMeans(select(., contains("_avg_logFC"))))
+    mutate(avg_avg_fc=rowMeans(select(., contains("_avg_log2FC"))))
   return(markers)
 }
 
