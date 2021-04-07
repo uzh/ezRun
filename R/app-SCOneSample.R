@@ -55,7 +55,7 @@ ezMethodSCOneSample <- function(input=NA, output=NA, param=NA,
   cwd <- getwd()
   setwdNew(basename(output$getColumn("Report")))
   on.exit(setwd(cwd), add=TRUE)
-
+  
   sce <- loadSCCountDataset(input, param)
   pvalue_allMarkers <- 0.05
   pvalue_all2allMarkers <- 0.01
@@ -71,6 +71,7 @@ ezMethodSCOneSample <- function(input=NA, output=NA, param=NA,
   sce_list <- filterCellsAndGenes(sce, param)  #return sce objects filtered and unfiltered to show the QC metrics later in the rmd 
   sce <- sce_list$sce
   sce.unfiltered <- sce_list$sce.unfiltered
+  rm(sce_list)
   
   scData <- buildSeuratObject(sce)   # the Seurat object is built from the filtered sce object
   scData <- seuratClusteringV3(scData, param)
@@ -105,29 +106,22 @@ ezMethodSCOneSample <- function(input=NA, output=NA, param=NA,
                                     sep=": ")
   
   
+  geneMeans <- geneMeansCluster(sce)
   #Save some results in external files 
-  saveExternalFiles(sce, list(pos_markers=posMarkers, all2allMarkers=all2allMarkers))
+  dataFiles = saveExternalFiles(sce, list(pos_markers=posMarkers, all2allMarkers=all2allMarkers, gene_means=as_tibble(as.data.frame(geneMeans), rownames="gene_name")))
  # rowData(sce) = rowData(sce)[, c("gene_id", "biotypes", "description")]
   
   library(HDF5Array)
   saveHDF5SummarizedExperiment(sce, dir="sce_h5")
+  saveHDF5SummarizedExperiment(sce.unfiltered, dir="sce.unfiltered_h5")
   
-  
-  ## Copy the style files and templates
-  styleFiles <- file.path(system.file("templates", package="ezRun"),
-                          c("fgcz.css", "SCOneSample.Rmd",
-                            "fgcz_header.html", "banner.png"))
-  file.copy(from=styleFiles, to=".", overwrite=TRUE)
-  while (dev.cur()>1) dev.off()
-  rmarkdown::render(input="SCOneSample.Rmd", envir = new.env(),
-                    output_dir=".", output_file=htmlFile, quiet=TRUE)
-
+  makeRmdReport(dataFiles=dataFiles, rmdFile = "SCOneSample.Rmd", reportTitle = metadata(sce)$param$name) 
   return("Success")
 }
 
 filterCellsAndGenes <- function(sce, param) {
-  require(scater)
-  require(Matrix)
+  library(scater)
+  library(Matrix)
   
   #Cells filtering
   mito.genes <- grep("^MT-",rowData(sce)$gene_name, ignore.case = TRUE)
@@ -166,54 +160,5 @@ filterCellsAndGenes <- function(sce, param) {
   return(list(sce.unfiltered=sce.unfiltered, sce = sce))
 }
 
-cellsLabelsWithAUC <- function(scData, species, tissue, minGsSize = 3) {
-  library(AUCell)
-  if (species == "other")
-    return(NULL)
-  geneSets <- createGeneSets(species, tissue)
-  expressionMatrix <- GetAssayData(scData, slot = "counts")
-  cells_rankings <- AUCell_buildRankings(expressionMatrix, plotStats=FALSE)
-  cells_AUC <- tryCatch({AUCell_calcAUC(geneSets[sapply(geneSets, length) >= minGsSize], cells_rankings, verbose = FALSE)},error = function(e) NULL)
-  return(cells_AUC)
-}
 
-
-createGeneSets <- function(species, tissue) {
-  tissue <- unlist(strsplit(tissue, ","))
-  cell_markers <- read.table("/srv/GT/databases/scGeneSets/all_cell_markers.txt", sep = "\t", header = TRUE)
-  cell_markers <- cell_markers[cell_markers$speciesType == species & 
-                                 cell_markers$tissueType %in% tissue, ]
-  geneSetList <- strsplit(cell_markers$geneSymbol, ",")
-  geneSetList <- lapply(geneSetList, function(gs){
-    gs <- gs[!is.na(gs)]
-    gs <- gsub("^ ", "", gsub(" $", "", gs))
-    gs <- gsub("[", "", gs, fixed = TRUE)
-    gs <- gsub("]", "", gs, fixed = TRUE)
-    gs <- gsub("11-Sep", "SEPTIN11", gs)
-    gs <- setdiff(gs, c("NA", ""))
-  })
-  ## merge the genesets from the same cell type
-  geneSetArray = tapply(geneSetList, cell_markers$cellName, 
-                     function(x){unique(unlist(x))}, simplify = FALSE)
-  ## conver the array  returned by tapply to a list
-  geneSetList = lapply(geneSetArray, function(gs){gs})
-  return(geneSetList)
-}
-
-cellsLabelsWithSingleR <- function(counts, current_clusters, species) {
-library(SingleR)
-if(species == "Human"){
-    reference <- HumanPrimaryCellAtlasData()
-    singler.results.single <- SingleR(test = counts, ref = reference, 
-                               labels = reference$label.main, method="single", de.method = "wilcox")
-    singler.results.cluster <- SingleR(test = counts, ref = reference, 
-                                      labels = reference$label.main, method="cluster", clusters=current_clusters, de.method = "wilcox")
-  }else {
-    reference <- celldex::MouseRNAseqData()
-    singler.results.single <- SingleR(test = counts, ref = reference, labels = reference$label.main)
-    singler.results.cluster <- SingleR(test = counts, ref = reference, labels = reference$label.main, method="cluster", clusters=current_clusters)
-  }
-  
-return(list(singler.results.single=singler.results.single, singler.results.cluster=singler.results.cluster))
-}
 
