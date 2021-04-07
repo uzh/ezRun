@@ -1,12 +1,11 @@
 ---
-title:  "`r metadata(sce)$param$name`"
 author: "Functional Genomics Center Zurich"
 output: 
   html_document:
     self_contained: true
     includes:
-      in_header: fgcz_header.html
-    css: fgcz.css
+     in_header: !expr system.file("templates/fgcz_header.html", package="ezRun", lib.loc=.libPaths())
+    css: !expr system.file("templates/fgcz.css", package="ezRun", lib.loc=.libPaths())
 editor_options: 
   chunk_output_type: console
 ---
@@ -45,6 +44,14 @@ knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE, knitr.tabl
 # pvalue_all2allMarkers <- 0.01
 # end of debug
 ```
+
+```{r}
+pvalue_allMarkers <- 0.05
+sce <- loadHDF5SummarizedExperiment("sce_h5")
+sce.unfiltered <- loadHDF5SummarizedExperiment("sce.unfiltered_h5")
+param = metadata(sce)$param
+```
+
 
 ```{r javascript, echo=FALSE, results='asis'}
 jsFile = system.file("extdata/enrichr.js", package="ezRun", mustWork=TRUE)
@@ -99,9 +106,9 @@ When the parameter values of nreads, ngenes and perc_mito are specified, fixed t
 num.qc.lib <- sum(sce.unfiltered$qc.lib)
 num.qc.nexprs <- sum(sce.unfiltered$qc.nexprs)
 num.qc.mito <- sum(sce.unfiltered$qc.mito)
-removed <- sum(sce_list$sce.unfiltered$discard)
+removed <- sum(sce.unfiltered$discard)
 kable(tibble("QC metric" =c("Library Size", "Expressed genes", "Mitochondrial genes", "Total removed", "Cells remaining"),
-             "Number of cells"= c(num.qc.lib, num.qc.nexprs, num.qc.mito, removed, ncol(sce_list$sce))),
+             "Number of cells"= c(num.qc.lib, num.qc.nexprs, num.qc.mito, removed, ncol(sce))),
       row.names=FALSE,
       caption="Number of cells removed") %>%
   kable_styling(bootstrap_options = "striped", full_width = F,
@@ -144,13 +151,6 @@ We used the SCtransform method from the Seurat package for normalizing, estimati
     "We already checked cell cycle and decided that it does represent a major source of variation in our data, and this may influence clustering. Therefore, we regressed out variation due to cell cycle."
 }`
 As a result, SCTransform ranked the genes by residual variance and returned the 3000 most variant genes.
-
-```{r hvg plot, fig.align='center'}
-variable <- rowData(sce)[rowData(sce)$sct.variable == TRUE,]
-top10 <- rownames(variable[order(variable$sct.residual_variance, decreasing=TRUE),][1:10,])
-plot_hvg <- VariableFeaturePlot_mod(sce)
-LabelPoints(plot = plot_hvg, points = top10, repel = TRUE, xnudge=0, ynudge=0)
-```
 
 <br/>
 
@@ -280,7 +280,6 @@ The most challenging task in scRNA-seq data analysis is the interpretation of th
 This approach consists in performing a gene set enrichment analysis on the marker genes defining each cluster. This identifies the pathways and processes that are (relatively) active in each cluster based on the upregulation of the associated genes compared to other clusters. For this, we use the tool Enrichr. 
 
 ```{r enrichr markers, echo=FALSE, results='asis'}
-
 genesPerCluster <- split(posMarkers$gene, posMarkers$cluster)
 jsCall = paste0('enrich({list: "', sapply(genesPerCluster, paste, collapse="\\n"), '", popup: true});')
 enrichrCalls <- paste0("<a href='javascript:void(0)' onClick='", jsCall, 
@@ -293,37 +292,6 @@ kable(enrichrTable, format="html", escape=FALSE,
 kable_styling("striped", full_width = F, position = "left")
 ```
 
-```{r enrichr all2all markers, eval = param$all2allMarkers, echo=FALSE, results='asis'}
-  all2allMarkers = read_tsv("all2allMarkers.tsv")
- 
- for(comparison in names(all2allMarkers)){
-    write_tsv(as_tibble(all2allMarkers[[comparison]], rownames="Gene"),
-              file=paste0(comparison, ".tsv"))
-  }
-  genesAllPerCluster <- lapply(all2allMarkers, rownames)
-  genesUpPerCluster <- lapply(all2allMarkers, function(x){rownames(x)[x$avg_logFC > 0]})
-  genesDownPerCluster <- lapply(all2allMarkers, function(x){rownames(x)[x$avg_logFC < 0]})
-  
-  jsCall_all = paste0('enrich({list: "', sapply(genesAllPerCluster, paste, collapse="\\n"), '", popup: true});')
-  jsCall_up = paste0('enrich({list: "', sapply(genesUpPerCluster, paste, collapse="\\n"), '", popup: true});')
-  jsCall_down = paste0('enrich({list: "', sapply(genesDownPerCluster, paste, collapse="\\n"), '", popup: true});')
-  
-  enrichrCalls_all <- paste0("<a href='javascript:void(0)' onClick='", jsCall_all,
-                         "'>Analyse at Enrichr website</a>")
-  enrichrCalls_up <- paste0("<a href='javascript:void(0)' onClick='", jsCall_up,
-                         "'>Analyse at Enrichr website</a>")
-  enrichrCalls_down <- paste0("<a href='javascript:void(0)' onClick='", jsCall_down,
-                         "'>Analyse at Enrichr website</a>")
-  enrichrTable <- tibble(Comparison=names(all2allMarkers),
-                         "# of differentially expressed genes"=lengths(genesAllPerCluster),
-                         "Enrichr link: all significant genes"=enrichrCalls_all,
-                         "Enrichr link: up-regulated genes"=enrichrCalls_up,
-                         "Enrichr link: down-regulated genes"=enrichrCalls_down,
-                         "List of differentially expressed genes"=text_spec(paste0(names(all2allMarkers), ".tsv"), link=paste0(names(all2allMarkers), ".tsv")))
-  kable(enrichrTable, format="html", escape=FALSE,
-        caption=paste0("GeneSet enrichment: genes with pvalue ", pvalue_all2allMarkers)) %>%
-    kable_styling("striped", full_width = F, position = "left")
-```
 
 <br/>
 

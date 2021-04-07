@@ -50,7 +50,7 @@ ezMethodSCTrajectoryInference <- function(input=NA, output=NA, param=NA,
   setwdNew(basename(output$getColumn("Report")))
   on.exit(setwd(cwd), add=TRUE)
   
-  require(HDF5Array)
+  library(HDF5Array)
   sceURLs <- input$getColumn("Static Report")
   filePath <- file.path("/srv/gstore/projects", sub("https://fgcz-(gstore|sushi).uzh.ch/projects", "",dirname(sceURLs)), "sce_h5")
   filePath_course <- file.path(paste0("/srv/GT/analysis/course_sushi/public/projects/", input$getColumn("Report"), "/sce_h5"))
@@ -65,7 +65,7 @@ ezMethodSCTrajectoryInference <- function(input=NA, output=NA, param=NA,
     sce <- readRDS(filePath)
   }
   
-  require(dyno)
+  library(dyno)
   #library(dyncli)
  
   #Prepare the data
