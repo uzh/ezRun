@@ -59,7 +59,7 @@ ezMethodSCOneSample <- function(input=NA, output=NA, param=NA,
   sce <- loadSCCountDataset(input, param)
   pvalue_allMarkers <- 0.05
   pvalue_all2allMarkers <- 0.01
-  print("DAYME")
+  
   #Doublets prediction and removal
   library(scDblFinder)
   sce <- scDblFinder(sce)
@@ -71,6 +71,7 @@ ezMethodSCOneSample <- function(input=NA, output=NA, param=NA,
   sce_list <- filterCellsAndGenes(sce, param)  #return sce objects filtered and unfiltered to show the QC metrics later in the rmd 
   sce <- sce_list$sce
   sce.unfiltered <- sce_list$sce.unfiltered
+  rm(sce_list)
   
   scData <- buildSeuratObject(sce)   # the Seurat object is built from the filtered sce object
   scData <- seuratClusteringV3(scData, param)
