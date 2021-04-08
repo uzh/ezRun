@@ -152,24 +152,16 @@ ezMethodSCMultipleSamples = function(input=NA, output=NA, param=NA, htmlFile="00
   metadata(sce)$param <- param
   metadata(sce)$param$name <- paste(param$name, paste(input$getNames(), collapse=", "), sep=": ")
   
+  geneMeans <- geneMeansCluster(sce)
   #Save some results in external files 
-  saveExternalFiles(sce, list(pos_markers=posMarkers, conserved_markers=consMarkers, differential_genes=diffGenes))
-  # rowData(sce) = rowData(sce)[, c("gene_id", "biotypes", "description")]
+  dataFiles = saveExternalFiles(sce, list(pos_markers=posMarkers, gene_means=as_tibble(as.data.frame(geneMeans), rownames="gene_name")))
   
+  library(HDF5Array)
   saveHDF5SummarizedExperiment(sce, dir="sce_h5")
   
-  ## Copy the style files and templates
-  styleFiles <- file.path(system.file("templates", package="ezRun"),
-                          c("fgcz.css", "SCMultipleSamples.Rmd",
-                            "fgcz_header.html", "banner.png"))
-  file.copy(from=styleFiles, to=".", overwrite=TRUE)
-  rmarkdown::render(input="SCMultipleSamples.Rmd", envir = new.env(),
-                    output_dir=".", output_file=htmlFile, quiet=TRUE)
-  # rmarkdown::render(input="/home/daymegr/workspaceR/dayme-scripts/sushi_scripts_mod/SCMultipleSamples.Rmd", envir = new.env(),
-  #                   output_dir=".", output_file=htmlFile, clean = TRUE, quiet=TRUE)
   rm(sceList)
   rm(scData)
-  
+  makeRmdReport(dataFiles=dataFiles, rmdFile = "SCMultipleSamples.Rmd", reportTitle = metadata(sce)$param$name) 
   return("Success")
   
 }
