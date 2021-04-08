@@ -1,12 +1,12 @@
 ---
-title:  "`r metadata(sce.singlets)$param$name`"
+title: "`r if (exists('reportTitle')) reportTitle else 'SUSHI Report'`"
 author: "Functional Genomics Center Zurich"
 output: 
   html_document:
     self_contained: true
     includes:
-      in_header: fgcz_header.html
-    css: fgcz.css
+     in_header: !expr system.file("templates/fgcz_header.html", package="ezRun", lib.loc=.libPaths())
+    css: !expr system.file("templates/fgcz.css", package="ezRun", lib.loc=.libPaths())
 editor_options: 
   chunk_output_type: console
 ---
@@ -31,40 +31,22 @@ library(RColorBrewer)
 library(plotly)
 library(SingleR)
 library(ggridges)
+library(SingleCellExperiment)
+library(scater)
+library(Seurat)
+library(AUCell)
+library(HDF5Array)
 knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE, knitr.table.format = "html")
-
-# ----------------------------------------------
-# library(SingleCellExperiment)
-# library(scater)
-# library(Seurat)
-# library(AUCell)
-# library(ezRun, lib.loc = "~/myRpackages")
-# library(HDF5Array)
-# library(SingleR)
-# sce.singlets <- loadHDF5SummarizedExperiment("sce_h5")
-# param <- metadata(sce.singlets)$param
-# scData <- readRDS("scData.rds")
-# data10X <- Read10X(paste0(metadata(sce.singlets)$output$getFullPaths('ResultDir'), "/filtered_feature_bc_matrix"))
-# data10X_GeneExp <- data10X$`Gene Expression`
-# cellCycleFn <- list.files(path=paste0(metadata(sce.singlets)$output$getFullPaths('ResultDir'), "/filtered_feature_bc_matrix"),
-#                             pattern="CellCyclePhase\\.txt$", recursive=TRUE,
-#                             full.names=TRUE)
-# cellCycle <- ezRead.table(cellCycleFn)
-# colData <- DataFrame(CellCycle=cellCycle$Phase,
-#                        CellCycleG1=cellCycle$G1,
-#                        CellCycleS=cellCycle$S,
-#                        CellCycleG2M=cellCycle$G2M,
-#                        Batch="",
-#                        Condition="")
-#  sce <- SingleCellExperiment(assays=list(counts=data10X_GeneExp),
-#                                       metadata=list(param=param),
-#                                       rowData = DataFrame(gene_name=rownames(data10X_GeneExp)),
-#                                       colData=colData)
-#   sce_list <- filterCellsAndGenes(sce, param)  #return sce objects filtered and unfiltered to show the QC
-#   sce.unfiltered <- sce_list$sce.unfiltered
-#   pvalue_allMarkers <- 0.05
-# end of debug
 ```
+
+```{r}
+pvalue_allMarkers <- 0.05
+sce.singlets <- loadHDF5SummarizedExperiment("sce_h5")
+sce.unfiltered <- loadHDF5SummarizedExperiment("sce.unfiltered_h5")
+param = metadata(sce.singlets)$param
+scData <- readRDS("scData.rds")
+```
+
 
 ```{r javascript, echo=FALSE, results='asis'}
 jsFile = system.file("extdata/enrichr.js", package="ezRun", mustWork=TRUE)
@@ -213,13 +195,6 @@ We used the SCtransform method from the Seurat package for normalizing, estimati
     "We already checked cell cycle and decided that it does represent a major source of variation in our data, and this may influence clustering. Therefore, we regressed out variation due to cell cycle."
 }`
 As a result, SCTransform ranked the genes by residual variance and returned the 3000 most variant genes.
-
-```{r hvg plot, fig.align='center'}
-variable <- rowData(sce.singlets)[rowData(sce.singlets)$sct.variable == TRUE,]
-top10 <- rownames(variable[order(variable$sct.residual_variance, decreasing=TRUE),][1:10,])
-plot_hvg <- VariableFeaturePlot_mod(sce.singlets)
-LabelPoints(plot = plot_hvg, points = top10, repel = TRUE, xnudge=0, ynudge=0)
-```
 
 <br/>
 
