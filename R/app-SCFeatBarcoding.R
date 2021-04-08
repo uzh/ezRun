@@ -136,21 +136,15 @@ ezMethodSCFeatBarcoding <- function(input=NA, output=NA, param=NA,
   #Save some results in external files 
   saveRDS(scData.singlet, "scData.rds")
   saveHDF5SummarizedExperiment(sce.singlets, dir="sce_h5")
-  saveExternalFiles(sce.singlets, list(pos_markers=posMarkers))
-
+  saveHDF5SummarizedExperiment(sce.unfiltered, dir="sce.unfiltered_h5")
+  geneMeans <- geneMeansCluster(sce.singlets)
+  dataFiles = saveExternalFiles(sce.singlets, list(pos_markers=posMarkers, gene_means=as_tibble(as.data.frame(geneMeans), rownames="gene_name")))
+  
   #removed no longer used objects
   rm(sce)
   gc()
   
-  ## Copy the style files and templates
-  styleFiles <- file.path(system.file("templates", package="ezRun"),
-                          c("fgcz.css", "SCFeatBarcoding.Rmd",
-                            "fgcz_header.html", "banner.png"))
-  file.copy(from=styleFiles, to=".", overwrite=TRUE)
-  while (dev.cur()>1) dev.off()
-  rmarkdown::render(input="SCFeatBarcoding.Rmd", envir = new.env(),
-                    output_dir=".", output_file=htmlFile, quiet=TRUE)
-
+  makeRmdReport(dataFiles=dataFiles, rmdFile = "SCFeatBarcoding.Rmd", reportTitle = metadata(sce.singlets)$param$name) 
   return("Success")
 }
 
