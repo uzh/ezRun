@@ -230,6 +230,7 @@ getSpecies <- function(refBuild) {
 }
 
 geneMeansCluster <- function(sce) {
+require(SingleCellExperiment)
 tr_cnts <- expm1(logcounts(sce))
 means <- rowsum(t(as.matrix(tr_cnts)), group=colData(sce)[,"ident"])
 means <- sweep(means, 1, STATS=table(colData(sce)[,"ident"])[rownames(means)], FUN="/")

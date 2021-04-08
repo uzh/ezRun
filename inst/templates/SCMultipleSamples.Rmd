@@ -1,5 +1,5 @@
 ---
-title:  "`r metadata(sce)$param$name`"
+title: "`r if (exists('reportTitle')) reportTitle else 'SUSHI Report'`"
 author: "Functional Genomics Center Zurich"
 output: 
   html_document:
@@ -26,19 +26,12 @@ library(tidyverse)
 library(SingleR)
 library(AUCell)
 knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE, knitr.table.format = "html")
-
-#to test
-# library(HDF5Array)
-# library(SingleR)
-# library(AUCell)
-# library(Seurat)
-# library(ezRun, lib.loc = "~/myRpackages")
-# sce <- loadHDF5SummarizedExperiment("sce_h5")
-# param = metadata(sce)$param
-# pvalue_allMarkers <- 0.05
 ```
 
 ```{r}
+sce <- loadHDF5SummarizedExperiment("sce_h5")
+param = metadata(sce)$param
+pvalue_allMarkers <- 0.05
 output <- metadata(sce)$output
 var_heigth <- 1
 ```
