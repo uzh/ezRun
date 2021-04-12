@@ -51,6 +51,15 @@ ezMethodSpaceRanger <- function(input=NA, output=NA, param=NA){
                paste0("--image=", input$getFullPaths("image")),
                paste0("--slide=", input$getColumn("slide")),
                paste0("--area=", input$getColumn("area")))
+  tryCatch(
+    {
+    json_paths <- input$getFullPaths("loupe-alignment")
+    cmd <- paste0(cmd, " --loupe-alignment=", json_paths)
+    },
+    error=function(e) {
+      return()
+    })
+    
   if(ezIsSpecified(param$cmdOptions)){
     cmd <- paste(cmd, param$cmdOptions)
   }
