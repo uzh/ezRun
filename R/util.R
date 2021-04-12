@@ -148,7 +148,7 @@ ezNorm <- function(x, method = "none", presentFlag = NULL) {
 ##' m1 = matrix(1:20,4)
 ##' m2 = ezQuantileNorm(m1)
 ezQuantileNorm <- function(x) {
-  norm <- preprocessCore::normalize.quantiles(x)
+  norm <- limma::normalizeQuantiles(x, ties=TRUE) #preprocessCore::normalize.quantiles(x)
   colnames(norm) <- colnames(x)
   rownames(norm) <- rownames(x)
   norm
