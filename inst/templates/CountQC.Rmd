@@ -116,6 +116,9 @@ if (exists("output") && !is.null(output)){
 }
 ```
 
+`r format(Sys.time(), '%Y-%m-%d %H:%M:%S')`
+
+
 ## Data Files
 
 The data files are in tabular text format and can also be opened with a spreadsheet program (e.g. Excel).
