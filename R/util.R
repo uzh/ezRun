@@ -811,6 +811,7 @@ makeRmdReport <- function(..., htmlFile = "00index.html", rmdFile = "",
       "fgcz_header.html", "banner.png"
     )
   )
+  force(reportTitle) ## avoid lazy-evaluation and make sure the reportTitle gets evaluated so that it is available in the render function
   file.copy(from = styleFiles, to = ".", overwrite = TRUE)
   rmarkdown::render(
     input = rmdFile, envir = new.env(),
