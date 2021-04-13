@@ -797,41 +797,26 @@ ezCbind <- function(...) {
   do.call(cbind, x)
 }
 
-makeRmdReport <- function(..., htmlFile = "00index.html", rmdFile = "",
+makeRmdReport <- function(..., htmlFile = "00index.html", rmdFile = "", selfContained = FALSE,
                           linkHtmlLibDir = NULL, reportTitle = "SUSHI Report") {
   varList <- list(...)
   for (nm in names(varList)) {
     saveRDS(varList[[nm]], file = paste0(nm, ".rds"))
   }
-  ## Copy the style files and templates
-  styleFiles <- file.path(
-    system.file("templates", package = "ezRun"),
-    c(
-      rmdFile, "fgcz.css",
-      "fgcz_header.html", "banner.png"
+  if (!selfContained){
+    ## Copy the style files and templates
+    styleFiles <- file.path(
+      system.file("templates", package = "ezRun"),
+      c(
+        rmdFile, "fgcz.css",
+        "fgcz_header.html", "banner.png"
+      )
     )
-  )
+    file.copy(from = styleFiles, to = ".", overwrite = TRUE)
+  }
   force(reportTitle) ## avoid lazy-evaluation and make sure the reportTitle gets evaluated so that it is available in the render function
-  file.copy(from = styleFiles, to = ".", overwrite = TRUE)
   rmarkdown::render(
     input = rmdFile, envir = new.env(),
     output_dir = ".", output_file = htmlFile, quiet = TRUE
   )
-  prepareRmdLib(linkHtmlLibDir = linkHtmlLibDir)
-}
-
-prepareRmdLib <- function(linkHtmlLibDir = NULL) {
-  ## Link the rmarkdownLib
-  if (ezIsSpecified(linkHtmlLibDir)) {
-    file.copy(
-      from = list.files("rmarkdownLib", full.names = TRUE),
-      to = "/srv/GT/reference/rmarkdownLib",
-      recursive = TRUE, overwrite = FALSE
-    )
-    unlink("rmarkdownLib", recursive = TRUE)
-    file.symlink(
-      from = linkHtmlLibDir,
-      to = "rmarkdownLib"
-    )
-  }
 }
