@@ -803,12 +803,13 @@ makeRmdReport <- function(..., htmlFile = "00index.html", rmdFile = "", selfCont
   for (nm in names(varList)) {
     saveRDS(varList[[nm]], file = paste0(nm, ".rds"))
   }
+  file.copy(file.path(system.file("templates", package = "ezRun", mustWork = TRUE), rmdFile),
+            ".", overwrite = TRUE)
   if (!selfContained){
     ## Copy the style files and templates
     styleFiles <- file.path(
       system.file("templates", package = "ezRun"),
-      c(
-        rmdFile, "fgcz.css",
+      c("fgcz.css",
         "fgcz_header.html", "banner.png"
       )
     )
