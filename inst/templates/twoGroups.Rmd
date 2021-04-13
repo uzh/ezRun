@@ -728,7 +728,8 @@ if (exists("enrichResult")) {
           DT::formatSignif(c("pvalue", "p.adjust"), digits = 3)
 
         erp[["barplot"]] <- barplot(
-          er, showCategory = 20, title = paste(onto, sig)) +
+          er, showCategory = 20, title = paste(onto, sig))
+        erp[["barplot"]] <- erp[["barplot"]] +
           scale_y_discrete(labels = rev(er@result$Label[match(erp$barplot$plot_env$df$ID, er@result$ID)])) + 
           theme(axis.text.y = element_text(vjust = -0.01, size = 8))
         
@@ -853,7 +854,8 @@ if (exists("enrichResultGSEA")) {
         DT::formatStyle(columns = colnames(.$x$data), `font-size` = "12px") %>%
         DT::formatSignif(c("pvalue", "p.adjust"), digits = 3)
 
-      erp[["ridgeplot"]] <- enrichplot::ridgeplot(x = er, showCategory = 20) + 
+      erp[["ridgeplot"]] <- enrichplot::ridgeplot(x = er, showCategory = 20)
+      erp[["ridgeplot"]] <- erp[["ridgeplot"]] +
         scale_y_discrete(labels = (er@result$Label[match(levels(as.factor(erp$ridgeplot$plot_env$gs2val.df$category)), er@result$Description)])) + 
         theme(axis.text.y = element_text(vjust = -0.01, size = 8))
       erp[["gseaplot"]] <- enrichplot::gseaplot2(x = er, geneSetID = 1)
