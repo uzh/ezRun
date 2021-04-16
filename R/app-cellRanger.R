@@ -109,7 +109,7 @@ ezMethodCellRanger <- function(input = NA, output = NA, param = NA) {
   }
   
   ## compute stats per cell from the bam file
-  if (input$"Read Count" < 600e6){
+  if (input$getColumn("Read Count")[1] < 600e6){
     bamFile = file.path(sampleName, "possorted_genome_bam.bam")
     tags = ezScanBam(bamFile, tag = c("CB", "UB", "RE", "pa", "ts"), 
                      what = character(0), isUnmappedQuery = FALSE)$tag
