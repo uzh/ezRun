@@ -71,6 +71,7 @@ kable(makeCountResultSummary(param, se),
 ### Result summary
 ```{r summary, echo=FALSE}
 settings <- character()
+settings["reference:"] = param$refBuild
 settings["Number of features:"] <- nrow(se)
 if (!is.null(rowData(se)$isPresentProbe)) {
   settings["Number of features with counts above threshold:"] <-
