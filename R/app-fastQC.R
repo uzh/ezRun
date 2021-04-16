@@ -169,7 +169,6 @@ ezMethodFastQC <- function(input = NA, output = NA, param = NA,
     output_dir = ".", output_file = htmlFile, quiet = TRUE
   )
 
-  prepareRmdLib()
 
   ## generate multiQC report
   ezSystem("multiqc .")

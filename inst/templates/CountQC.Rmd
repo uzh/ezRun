@@ -2,11 +2,10 @@
 title: "`r if (exists('reportTitle')) reportTitle else 'SUSHI Report'`"
 output: 
   html_document:
-    self_contained: false
-    lib_dir: rmarkdownLib
+    self_contained: true
     includes:
-      in_header: fgcz_header.html
-    css: fgcz.css
+      in_header: !expr system.file("templates/fgcz_header.html", package="ezRun")
+    css: !expr system.file("templates/fgcz.css", package="ezRun")
 editor_options: 
   chunk_output_type: console
 ---
@@ -116,6 +115,9 @@ if (exists("output") && !is.null(output)){
   cat(paste0("[Live Report and Visualizations](", liveReportLink, ")"), "\n")
 }
 ```
+
+`r format(Sys.time(), '%Y-%m-%d %H:%M:%S')`
+
 
 ## Data Files
 

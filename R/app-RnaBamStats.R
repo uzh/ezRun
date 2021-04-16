@@ -150,7 +150,6 @@ computeBamStats = function(input, htmlFile, param, gff, resultList=NULL){
   rmarkdown::render(input="RNABamStats.Rmd", envir = new.env(),
                     output_dir=".", output_file=htmlFile, quiet=TRUE)
 
-  prepareRmdLib()
 
   rm(resultList)
   gc()

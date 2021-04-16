@@ -148,7 +148,7 @@ ezNorm <- function(x, method = "none", presentFlag = NULL) {
 ##' m1 = matrix(1:20,4)
 ##' m2 = ezQuantileNorm(m1)
 ezQuantileNorm <- function(x) {
-  norm <- preprocessCore::normalize.quantiles(x)
+  norm <- limma::normalizeQuantiles(x, ties=TRUE) #preprocessCore::normalize.quantiles(x)
   colnames(norm) <- colnames(x)
   rownames(norm) <- rownames(x)
   norm
@@ -797,40 +797,27 @@ ezCbind <- function(...) {
   do.call(cbind, x)
 }
 
-makeRmdReport <- function(..., htmlFile = "00index.html", rmdFile = "",
+makeRmdReport <- function(..., htmlFile = "00index.html", rmdFile = "", selfContained = FALSE,
                           linkHtmlLibDir = NULL, reportTitle = "SUSHI Report") {
   varList <- list(...)
   for (nm in names(varList)) {
     saveRDS(varList[[nm]], file = paste0(nm, ".rds"))
   }
-  ## Copy the style files and templates
-  styleFiles <- file.path(
-    system.file("templates", package = "ezRun"),
-    c(
-      rmdFile, "fgcz.css",
-      "fgcz_header.html", "banner.png"
+  file.copy(file.path(system.file("templates", package = "ezRun", mustWork = TRUE), rmdFile),
+            ".", overwrite = TRUE)
+  if (!selfContained){
+    ## Copy the style files and templates
+    styleFiles <- file.path(
+      system.file("templates", package = "ezRun"),
+      c("fgcz.css",
+        "fgcz_header.html", "banner.png"
+      )
     )
-  )
-  file.copy(from = styleFiles, to = ".", overwrite = TRUE)
+    file.copy(from = styleFiles, to = ".", overwrite = TRUE)
+  }
+  force(reportTitle) ## avoid lazy-evaluation and make sure the reportTitle gets evaluated so that it is available in the render function
   rmarkdown::render(
     input = rmdFile, envir = new.env(),
     output_dir = ".", output_file = htmlFile, quiet = TRUE
   )
-  prepareRmdLib(linkHtmlLibDir = linkHtmlLibDir)
-}
-
-prepareRmdLib <- function(linkHtmlLibDir = NULL) {
-  ## Link the rmarkdownLib
-  if (ezIsSpecified(linkHtmlLibDir)) {
-    file.copy(
-      from = list.files("rmarkdownLib", full.names = TRUE),
-      to = "/srv/GT/reference/rmarkdownLib",
-      recursive = TRUE, overwrite = FALSE
-    )
-    unlink("rmarkdownLib", recursive = TRUE)
-    file.symlink(
-      from = linkHtmlLibDir,
-      to = "rmarkdownLib"
-    )
-  }
 }
