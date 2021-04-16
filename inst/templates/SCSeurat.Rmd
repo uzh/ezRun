@@ -444,7 +444,7 @@ for (eachCluster in unique(markers$cluster)) {
   cat("#### Cluster ", eachCluster, "\n")
   cat("\n")
   markersPerCluster <- dplyr::filter(markers, cluster == eachCluster) %>%
-    dplyr::arrange(desc(avg_logFC)) %>%
+    dplyr::arrange(desc(avg_log2FC)) %>%
     select(gene) %>%
     pull()
   markersPerCluster <- head(markersPerCluster, 10)
@@ -467,7 +467,7 @@ Max 10 marker genes are shown for each cluster.
 ```{r heatmap, fig.width=10, fig.height=10*1.5, echo=FALSE, eval=nrow(markers) > 0}
 top10 <- markers %>%
   group_by(cluster) %>%
-  top_n(10, avg_logFC)
+  top_n(10, avg_log2FC)
 DoHeatmap(scData, features = top10$gene) + NoLegend()
 ```
 
