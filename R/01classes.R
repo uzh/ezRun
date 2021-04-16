@@ -436,7 +436,7 @@ cleanForFreeDiskSpace <- function(param){
       message("Clean for all users!")
       cleanOldestDir(dirPath="/scratch", user=NULL)
     }
-    Sys.sleep(5)
+    Sys.sleep(1)
     i = i + 1
   }
   if (getGigabyteFree(".") < param$scratch){
