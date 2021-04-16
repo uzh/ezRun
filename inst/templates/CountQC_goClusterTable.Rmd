@@ -3,11 +3,11 @@ title: "GO Cluster tables"
 author: "Functional Genomics Center Zurich"
 output: 
   html_document:
-    self_contained: false
+    self_contained: true
     lib_dir: rmarkdownLib
     includes:
-      in_header: fgcz_header.html
-    css: fgcz.css
+      in_header: !expr system.file("templates/fgcz_header.html", package="ezRun")
+    css: !expr system.file("templates/fgcz.css", package="ezRun")
 ---
 
 ```{r cluster plot, echo=FALSE, fig.width=max(8,4+0.15*ncol(ncol(rawData))), fig.height=10, fig.retina=2, warning=FALSE}
