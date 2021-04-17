@@ -92,7 +92,7 @@ rowData(rawData)$isValid <- rowMeans(isPresentCond) >= 0.5
 ## Settings
 ```{r setting, echo=FALSE}
 settings = character()
-settings["reference:"] = param$refBuild
+settings["Reference:"] = param$refBuild
 settings["Normalization method:"] = param$normMethod
 if (param$useSigThresh){
   settings["Log2 signal threshold:"] = signif(log2(param$sigThresh), digits=4)
