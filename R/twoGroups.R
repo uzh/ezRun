@@ -68,7 +68,7 @@ twoGroupCountComparison <- function(rawData) {
     if (param$testMethod %in% c("glm", "limma", "deseq2")) {
       metadata(rawData)$method <- paste(
         metadata(rawData)$method,
-        "using secondary factor"
+        "using two factors"
       )
     } else {
       return(list(error = paste("Second factor only supported for the test methods glm, sam and deseq2")))

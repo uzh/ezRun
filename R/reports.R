@@ -275,13 +275,12 @@ addCountResultSummarySE <- function(doc, param, se) {
 makeCountResultSummary <- function(param, se) {
   settings <- character()
   settings["Analysis:"] <- metadata(se)$analysis
+  settings["Reference:"] = param$refBuild
   settings["Feature level:"] <- metadata(se)$featureLevel
   settings["Data Column Used:"] <- metadata(se)$countName
   settings["Method:"] <- metadata(se)$method
-  if (ezIsSpecified(param$grouping2)) {
-    settings["Statistical Model:"] <- "used provided second factor"
-  }
-  if (!is.null(param$sampleGroupBaseline) && !is.null(param$refGroupBaseline)) {
+  if (ezIsSpecified(param$sampleGroupBaseline) && 
+      ezIsSpecified(param$refGroupBaseline)) {
     settings["Baseline correction:"] <- str_c(param$sampleGroupBaseline, "and",
       param$refGroupBaseline,
       sep = " "
