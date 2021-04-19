@@ -108,7 +108,7 @@ ezMethodSCOneSample <- function(input=NA, output=NA, param=NA,
   
   geneMeans <- geneMeansCluster(sce)
   #Save some results in external files 
-  dataFiles = saveExternalFiles(sce, list(pos_markers=posMarkers, all2allMarkers=all2allMarkers, gene_means=as_tibble(as.data.frame(geneMeans), rownames="gene_name")))
+  dataFiles = saveExternalFiles(list(pos_markers=posMarkers, all2allMarkers=all2allMarkers, gene_means=as_tibble(as.data.frame(geneMeans), rownames="gene_name")))
  # rowData(sce) = rowData(sce)[, c("gene_id", "biotypes", "description")]
   
   library(HDF5Array)
