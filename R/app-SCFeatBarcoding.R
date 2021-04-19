@@ -138,7 +138,7 @@ ezMethodSCFeatBarcoding <- function(input=NA, output=NA, param=NA,
   saveHDF5SummarizedExperiment(sce.singlets, dir="sce_h5")
   saveHDF5SummarizedExperiment(sce.unfiltered, dir="sce.unfiltered_h5")
   geneMeans <- geneMeansCluster(sce.singlets)
-  dataFiles = saveExternalFiles(sce.singlets, list(pos_markers=posMarkers, gene_means=as_tibble(as.data.frame(geneMeans), rownames="gene_name")))
+  dataFiles = saveExternalFiles(list(pos_markers=posMarkers, gene_means=as_tibble(as.data.frame(geneMeans), rownames="gene_name")))
   
   #removed no longer used objects
   rm(sce)

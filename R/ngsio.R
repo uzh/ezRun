@@ -370,7 +370,7 @@ readSCMM <- function(file){
   return(ans)
 }
 
-saveExternalFiles = function(sce, ...) {
+saveExternalFiles = function(...) {
   add_results = list(...)
   for(i in 1:length(add_results[[1]])) {
     if(!is.null(add_results[[1]][[i]])) {

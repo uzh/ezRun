@@ -120,7 +120,7 @@ ezMethodSCMergeLargeDatasets = function(input=NA, output=NA, param=NA, htmlFile=
    geneMeans <- sweep(geneMeans, 1, STATS=table(sce$cluster)[rownames(geneMeans)], FUN="/")
    geneMeans <- log1p(t(geneMeans))
    colnames(geneMeans) <- paste("cluster", colnames(geneMeans), sep="_")
-   saveExternalFiles(sce, list(pos_markers=posMarkers, differential_genes=diffGenes, gene_means=as_tibble(as.data.frame(geneMeans), rownames="gene_name")))
+   saveExternalFiles(list(pos_markers=posMarkers, differential_genes=diffGenes, gene_means=as_tibble(as.data.frame(geneMeans), rownames="gene_name")))
   #write_tsv(posMarkers, file="pos_markers.tsv")
   saveHDF5SummarizedExperiment(sce, dir="sce_h5")
   
