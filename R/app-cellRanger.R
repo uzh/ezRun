@@ -119,33 +119,51 @@ ezMethodCellRanger <- function(input = NA, output = NA, param = NA) {
               file = file.path(dirName, "CellCyclePhase.txt")
     )
     
-  if(param$bamStats) 
-    computeBamStatsSC(sampleName)
+    bamStats <- computeBamStatsSC(bamFile = file.path(sampleName, "possorted_genome_bam.bam"), ram=param$ram)
+    if (!is.null(bamStats)){
+      ezWrite.table(bamStats, file=file.path(sampleName, "CellAlignStats.txt"),
+                    head="Barcode")
+    }
+  }
   
   return("Success")
 }
-}
 
 
-computeBamStatsSC = function(sampleName) {
-## compute stats per cell from the bam file
-bamFile = file.path(sampleName, "possorted_genome_bam.bam")
-tags = ezScanBam(bamFile, tag = c("CB", "UB", "RE", "pa", "ts"), 
-                 what = character(0), isUnmappedQuery = FALSE)$tag
-tags$ts[is.na(tags$ts)] = 0
-tags$pa[is.na(tags$pa)] = 0
-nReads = table(tags$CB)
-resultFrame = data.frame(nRead=as.vector(nReads), row.names=names(nReads))
-nUmi = tapply(tags$UB, tags$CB, n_distinct)
-stopifnot(names(nUmi) == rownames(resultFrame))
-resultFrame$nUmi = nUmi
-resultFrame$nTso = tapply(tags$ts > 0, tags$CB, sum)
-resultFrame$nPa = tapply(tags$pa > 0, tags$CB, sum)
-resultFrame$nIntergenic = tapply(tags$RE == "I", tags$CB, sum)
-resultFrame$nExonic = tapply(tags$RE == "E", tags$CB, sum)
-resultFrame$nIntronic = tapply(tags$RE == "N", tags$CB, sum)
-ezWrite.table(resultFrame, file=file.path(sampleName, "CellAlignStats.txt"),
-              head="Barcode")
+computeBamStatsSC = function(bamFile, ram=NULL) {
+  ## compute stats per cell from the bam file
+
+  if (!is.null(ram)){  
+    nAlign = sum(ezScanBam(bamFile, tag = "CB", 
+                       what = character(0), isUnmappedQuery = FALSE, countOnly = TRUE)$records)
+    if (nAlign / ram > 20e6){
+      ## computation would take too much RAM
+      return(NULL)
+    }
+  }
+  cb = ezScanBam(bamFile, tag = "CB", 
+                   what = character(0), isUnmappedQuery = FALSE)$tag$CB
+  nReads = table(cb)
+  resultFrame = data.frame(nRead=as.vector(nReads), row.names=names(nReads))
+  x = ezScanBam(bamFile, tag = "UB", 
+                 what = character(0), isUnmappedQuery = FALSE)$tag$UB
+  resultFrame$nUmi = tapply(x, cb, n_distinct)
+  x = ezScanBam(bamFile, tag = "ts", 
+                what = character(0), isUnmappedQuery = FALSE)$tag$ts
+  if (length(x) == length(cb)){ ## the 5' protocol does not have the ts tag
+    resultFrame$nTso = tapply(x > 3, cb, sum, na.rm=TRUE) ## at least 3 bases
+  }
+  x = ezScanBam(bamFile, tag = "pa", 
+                what = character(0), isUnmappedQuery = FALSE)$tag$pa
+  if (length(x) == length(cb)){ ## the 5' protocol does not have the ts tag
+    resultFrame$nPa = tapply(x > 3, cb, sum, na.rm=TRUE)
+  }
+  x = ezScanBam(bamFile, tag = "RE", 
+                what = character(0), isUnmappedQuery = FALSE)$tag$RE
+  resultFrame$nIntergenic = tapply(x == "I", cb, sum)
+  resultFrame$nExonic = tapply(x == "E", cb, sum)
+  resultFrame$nIntronic = tapply(x == "N", cb, sum)
+  return(resultFrame)
 }
 
 
