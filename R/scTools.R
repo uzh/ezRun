@@ -5,8 +5,9 @@
 # The terms are available here: http://www.gnu.org/licenses/gpl.html
 # www.fgcz.ch
 
-getCellCycle <- function(counts, refBuild){
+getCellCycle <- function(sce, refBuild){
   require(scran)
+  counts <- counts(sce)
   # The training data is only available for Hsap and Mmus Ensembl
   if(startsWith(refBuild, "Homo_sapiens")){
     species <- "human"
@@ -25,11 +26,12 @@ getCellCycle <- function(counts, refBuild){
     cellPhase <- tibble(Name = colnames(counts),
                         Phase = cellCycleData$phases)
     cellPhase <- bind_cols(cellPhase, cellCycleData$scores)
-  }else{
-    cellPhase <- tibble(Name = colnames(counts),
-                        Phase = NA)
+    colData(sce)$CellCycle <- cellCycle[colnames(sce), "Phase"]
+    colData(sce)$CellCycleG1 <- cellCycle[colnames(sce), "G1"]
+    colData(sce)$CellCycleS <- cellCycle[colnames(sce), "S"]
+    colData(sce)$CellCycleG2M <- cellCycle[colnames(sce), "G2M"]
   }
-  return(cellPhase)
+  return(sce)
 }
 
 getPerplexity <- function(n){

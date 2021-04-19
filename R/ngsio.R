@@ -156,14 +156,6 @@ loadSCCountDataset <- function(input, param){
     cellDataSet <- ezRead.table(sub("-counts\\.mtx$", "-dataset.tsv",
                                     countMatrixFn))
     
-    cellCycleFn <- sub("-counts\\.mtx$", "-CellCyclePhase.txt",
-                       countMatrixFn)
-    if(file.exists(cellCycleFn)){
-      ## TODO: remove this test as CellCyclePhase file should always exist
-      cellCycle <- ezRead.table(cellCycleFn)
-      cellDataSet$CellCycle <- cellCycle[rownames(cellDataSet), "Phase"]
-    }
-    
     ## TODO: this is a temporary solution to fix the discrepency of sample names
     if(!setequal(colnames(countMatrix), rownames(cellDataSet))){
       ## fix the colnames in countMatrix
@@ -200,17 +192,6 @@ loadSCCountDataset <- function(input, param){
                                 pattern="\\.mtx(\\.gz)*$", recursive=TRUE, 
                                 full.names=TRUE)
     sce <- read10xCounts(dirname(countMatrixFn), col.names=TRUE)
-    cellCycleFn <- list.files(path=input$getFullPaths("CountMatrix"),
-                              pattern="CellCyclePhase\\.txt$", recursive=TRUE,
-                              full.names=TRUE)
-    if(length(cellCycleFn) == 1){ 
-      ## TODO: remove this test as CellCyclePhase file should always exist
-      cellCycle <- ezRead.table(cellCycleFn)
-      colData(sce)$CellCycle <- cellCycle[colnames(sce), "Phase"]
-      colData(sce)$CellCycleG1 <- cellCycle[colnames(sce), "G1"]
-      colData(sce)$CellCycleS <- cellCycle[colnames(sce), "S"]
-      colData(sce)$CellCycleG2M <- cellCycle[colnames(sce), "G2M"]
-    }
     seqAnnoDF <- ezFeatureAnnotation(param, rownames(sce),
                                      dataFeatureLevel)
     seqAnno <- makeGRangesFromDataFrame(seqAnnoDF, keep.extra.columns=TRUE)
