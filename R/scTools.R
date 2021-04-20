@@ -23,13 +23,14 @@ getCellCycle <- function(sce, refBuild){
                                      paste0(species, "_cycle_markers.rds"), 
                                      package = "scran", mustWork=TRUE))
     cellCycleData <- cyclone(counts, trainData)
+    
     cellPhase <- tibble(Name = colnames(counts),
                         Phase = cellCycleData$phases)
     cellPhase <- bind_cols(cellPhase, cellCycleData$scores)
-    colData(sce)$CellCycle <- cellCycle[colnames(sce), "Phase"]
-    colData(sce)$CellCycleG1 <- cellCycle[colnames(sce), "G1"]
-    colData(sce)$CellCycleS <- cellCycle[colnames(sce), "S"]
-    colData(sce)$CellCycleG2M <- cellCycle[colnames(sce), "G2M"]
+    colData(sce)$CellCycle <- cellPhase$Phase
+    colData(sce)$CellCycleG1 <- cellPhase$G1
+    colData(sce)$CellCycleS <- cellPhase$S
+    colData(sce)$CellCycleG2M <- cellPhase$G2M
   }
   return(sce)
 }
