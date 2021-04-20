@@ -442,6 +442,11 @@ EzAppCellRanger <-
             Type = "charVector",
             DefaultValue = "",
             Description = "control sequences to add"
+          ),
+          bamStats = ezFrame(
+            Type = "logical",
+            DefaultValue = TRUE,
+            Description = "compute per cell alignment stats"
           )
         )
       }
