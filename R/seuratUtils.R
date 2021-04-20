@@ -168,11 +168,11 @@ buildSeuratObject <- function(sce){
   return(scData)
 }
 
-seuratClusteringV3 <- function(scData, param) {
+seuratClusteringV3 <- function(scData, param, assay="RNA") {
   vars.to.regress <- NULL
   if(identical("CellCycle", param$SCT.regress))
     vars.to.regress <- c("CellCycleS", "CellCycleG2M")
-  scData <- SCTransform(scData, vars.to.regress = vars.to.regress, seed.use = 38, verbose = FALSE) 
+  scData <- SCTransform(scData, vars.to.regress = vars.to.regress, assay=assay, seed.use = 38, verbose = FALSE) 
   scData <- seuratStandardWorkflow(scData, param)
   return(scData)
 }
@@ -246,6 +246,12 @@ posClusterMarkers <- function(scData, pvalue_allMarkers, param) {
   rownames(cm) <- NULL
   return(cm)
 }
+
+spatialMarkers <- function(scData) { 
+  spatialMarkers <- FindSpatiallyVariableFeatures(scData, assay = "SCT", features = VariableFeatures(scData)[1:1000], 
+                                                  selection.method = "markvariogram")
+  return(markers)
+  }
 
 all2all <- function(scData, pvalue_all2allMarkers, param) {
   clusterCombs <- combn(levels(Idents(scData)), m=2)
