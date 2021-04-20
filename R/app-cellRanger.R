@@ -28,13 +28,13 @@ ezMethodCellRanger <- function(input = NA, output = NA, param = NA) {
     })
     sampleDirs <- normalizePath(sampleDirs)
   }
-  
   sampleDir <- paste(sampleDirs, collapse = ",")
   cellRangerFolder <- str_sub(sampleName, 1, 45) %>% str_c("-cellRanger")
 
-  if (param$TenXLibrary == "GEX") {
-    refDir <- getCellRangerGEXReference(param)
-    cmd <- paste(
+ switch(param$TenXLibrary,
+    GEX = {
+       refDir <- getCellRangerGEXReference(param)
+       cmd <- paste(
       "cellranger count", paste0("--id=", cellRangerFolder),
       paste0("--transcriptome=", refDir),
       paste0("--fastqs=", sampleDir),
@@ -43,7 +43,8 @@ ezMethodCellRanger <- function(input = NA, output = NA, param = NA) {
       paste0("--localcores=", param$cores),
       paste0("--chemistry=", param$chemistry)
     )
-  } else if (param$TenXLibrary == "VDJ") {
+  },
+  VDJ = {
     refDir <- getCellRangerVDJReference(param)
     cmd <- paste(
       "cellranger vdj", paste0("--id=", cellRangerFolder),
@@ -53,7 +54,8 @@ ezMethodCellRanger <- function(input = NA, output = NA, param = NA) {
       paste0("--localmem=", param$ram),
       paste0("--localcores=", param$cores)
     )
-  } else if (param$TenXLibrary == "FeatureBarcoding") {
+  },
+  FeatureBarcoding = {
     refDir <- getCellRangerGEXReference(param)
     featureDirs <- strsplit(input$getColumn("FeatureDataDir"), ",")[[sampleName]]
     featureDirs <- file.path(input$dataRoot, featureDirs)
@@ -93,7 +95,7 @@ ezMethodCellRanger <- function(input = NA, output = NA, param = NA) {
       paste0("--chemistry=", param$chemistry)
     )
     on.exit(unlink(basename(featureDirs), recursive = TRUE), add = TRUE)
-  }
+  })
 
   if (ezIsSpecified(param$cmdOptions)) {
     cmd <- paste(cmd, param$cmdOptions)
@@ -107,24 +109,31 @@ ezMethodCellRanger <- function(input = NA, output = NA, param = NA) {
   if (ezIsSpecified(param$controlSeqs)) {
     unlink(refDir, recursive = TRUE)
   }
-  
-  if (param$TenXLibrary %in% c("GEX", "FeatureBarcoding")) {
-    require(DropletUtils)
-    require(Matrix)
-    dirName = file.path(sampleName, "filtered_feature_bc_matrix")
-    sce <- read10xCounts(dirName, col.names = TRUE)
-    
-    cellPhase <- getCellCycle(sce, param$refBuild)
-    write_tsv(cellPhase,
-              file = file.path(dirName, "CellCyclePhase.txt")
-    )
-    
-  if(param$bamStats) 
-    computeBamStatsSC(sampleName)
+   #it calculates the bam stats by default
+    if (param$bamStats)   
+      computeBamStatsSC(sampleName)
   
   return("Success")
 }
-}
+
+
+
+# deCompress = function(scTar){
+#   targetDir = basename(dirname(scTar))
+#   untar(scTar, exdir = targetDir)
+#   if (ezIsSpecified(param$nReads) && param$nReads > 0){
+#     subDir = paste0(targetDir, "-sub")
+#     dir.create(subDir)
+#     fqFiles = list.files(targetDir, pattern = ".fastq.gz", full.names = TRUE, recursive = TRUE)
+#     for (fq in fqFiles){
+#       fqSub = file.path(subDir, basename(fq))
+#       cmd = paste("seqtk sample -s 42", fq, param$nReads, "| pigz --fast -p1 >", fqSub)
+#       ezSystem(cmd)
+#     }
+#     targetDir = subDir
+#   }
+#   return(targetDir)
+# }
 
 
 computeBamStatsSC = function(sampleName) {
