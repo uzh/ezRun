@@ -7,34 +7,22 @@
 
 ezMethodCellRanger <- function(input = NA, output = NA, param = NA) {
   sampleName <- input$getNames()
-  sampleDirs <- strsplit(input$getColumn("RawDataDir"), ",")[[sampleName]]
-  sampleDirs <- file.path(input$dataRoot, sampleDirs)
-  if (all(grepl("\\.tar$", sampleDirs))) {
-    sampleDirs = sapply(sampleDirs, function(scTar){
-      targetDir = basename(dirname(scTar))
-      untar(scTar, exdir = targetDir)
-      if (ezIsSpecified(param$nReads) && param$nReads > 0){
-        subDir = paste0(targetDir, "-sub")
-        dir.create(subDir)
-        fqFiles = list.files(targetDir, pattern = ".fastq.gz", full.names = TRUE, recursive = TRUE)
-        for (fq in fqFiles){
-          fqSub = file.path(subDir, basename(fq))
-          cmd = paste("seqtk sample -s 42", fq, param$nReads, "| pigz --fast -p1 >", fqSub)
-          ezSystem(cmd)
-        }
-        targetDir = subDir
-      }
-      return(targetDir)
-    })
-    sampleDirs <- normalizePath(sampleDirs)
-  }
   
+  #1. decompress tar files
+  sampleDirs <- deCompress(input, "RawDataDir",sampleName)
+  
+  #2. Subsample if chosen
+  if (ezIsSpecified(param$nReads) && param$nReads > 0)
+     sampleDirs <- sapply(sampleDirs, subsample, param)
+  
+  sampleDirs <- normalizePath(sampleDirs)
   sampleDir <- paste(sampleDirs, collapse = ",")
   cellRangerFolder <- str_sub(sampleName, 1, 45) %>% str_c("-cellRanger")
 
-  if (param$TenXLibrary == "GEX") {
-    refDir <- getCellRangerGEXReference(param)
-    cmd <- paste(
+ switch(param$TenXLibrary,
+    GEX = {
+       refDir <- getCellRangerGEXReference(param)
+       cmd <- paste(
       "cellranger count", paste0("--id=", cellRangerFolder),
       paste0("--transcriptome=", refDir),
       paste0("--fastqs=", sampleDir),
@@ -43,7 +31,8 @@ ezMethodCellRanger <- function(input = NA, output = NA, param = NA) {
       paste0("--localcores=", param$cores),
       paste0("--chemistry=", param$chemistry)
     )
-  } else if (param$TenXLibrary == "VDJ") {
+  },
+  VDJ = {
     refDir <- getCellRangerVDJReference(param)
     cmd <- paste(
       "cellranger vdj", paste0("--id=", cellRangerFolder),
@@ -53,7 +42,8 @@ ezMethodCellRanger <- function(input = NA, output = NA, param = NA) {
       paste0("--localmem=", param$ram),
       paste0("--localcores=", param$cores)
     )
-  } else if (param$TenXLibrary == "FeatureBarcoding") {
+  },
+  FeatureBarcoding = {
     refDir <- getCellRangerGEXReference(param)
     featureDirs <- strsplit(input$getColumn("FeatureDataDir"), ",")[[sampleName]]
     featureDirs <- file.path(input$dataRoot, featureDirs)
@@ -93,7 +83,7 @@ ezMethodCellRanger <- function(input = NA, output = NA, param = NA) {
       paste0("--chemistry=", param$chemistry)
     )
     on.exit(unlink(basename(featureDirs), recursive = TRUE), add = TRUE)
-  }
+  })
 
   if (ezIsSpecified(param$cmdOptions)) {
     cmd <- paste(cmd, param$cmdOptions)
@@ -108,31 +98,38 @@ ezMethodCellRanger <- function(input = NA, output = NA, param = NA) {
     unlink(refDir, recursive = TRUE)
   }
   
-  if (param$TenXLibrary %in% c("GEX", "FeatureBarcoding")) {
-    require(DropletUtils)
-    require(Matrix)
-    dirName = file.path(sampleName, "filtered_feature_bc_matrix")
-    sce <- read10xCounts(dirName, col.names = TRUE)
-    
-    cellPhase <- getCellCycle(sce, param$refBuild)
-    write_tsv(cellPhase,
-              file = file.path(dirName, "CellCyclePhase.txt")
-    )
-    
-    bamStats <- computeBamStatsSC(bamFile = file.path(sampleName, "possorted_genome_bam.bam"), ram=param$ram)
-    if (!is.null(bamStats)){
-      ezWrite.table(bamStats, file=file.path(sampleName, "CellAlignStats.txt"),
-                    head="Barcode")
-    }
-  }
-  
+  if(param$bamStats)
+    computeBamStatsSC(sampleName, ram=param$ram)
   return("Success")
 }
 
+deCompress = function(input, column, sampleName){
+  fastqDirs <- strsplit(input$getColumn(column), ",")[[sampleName]]
+  fastqDirs <- file.path(input$dataRoot, fastqDirs)
+  
+  fastqDirs = sapply(fastqDirs, function(scTar){
+    targetDir = basename(dirname(scTar))
+    untar(scTar, exdir = targetDir)
+    return(targetDir)
+  })
+  return(fastqDirs)
+}
 
-computeBamStatsSC = function(bamFile, ram=NULL) {
+subsample <- function(targetDir, param){
+  subDir = paste0(targetDir, "-sub")
+  dir.create(subDir)
+  fqFiles = list.files(targetDir, pattern = ".fastq.gz", full.names = TRUE, recursive = TRUE)
+  for (fq in fqFiles){
+    fqSub = file.path(subDir, basename(fq))
+    cmd = paste("seqtk sample -s 42", fq, param$nReads, "| pigz --fast -p1 >", fqSub)
+    ezSystem(cmd)
+  }
+  return(subDir)
+}
+
+computeBamStatsSC = function(sampleName, ram=NULL) {
   ## compute stats per cell from the bam file
-
+  bamFile = file.path(sampleName, "possorted_genome_bam.bam")
   if (!is.null(ram)){  
     nAlign = sum(ezScanBam(bamFile, tag = "CB", 
                        what = character(0), isUnmappedQuery = FALSE, countOnly = TRUE)$records)
@@ -163,7 +160,10 @@ computeBamStatsSC = function(bamFile, ram=NULL) {
   resultFrame$nIntergenic = tapply(x == "I", cb, sum)
   resultFrame$nExonic = tapply(x == "E", cb, sum)
   resultFrame$nIntronic = tapply(x == "N", cb, sum)
-  return(resultFrame)
+  if (!is.null(resultFrame)){
+    ezWrite.table(resultFrame, file=file.path(sampleName, "CellAlignStats.txt"),
+                  head="Barcode")
+  }
 }
 
 
