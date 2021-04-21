@@ -73,6 +73,9 @@ ezMethodSCOneSample <- function(input=NA, output=NA, param=NA,
   sce.unfiltered <- sce_list$sce.unfiltered
   rm(sce_list)
   
+  #calculate cellcycle for the filtered sce object
+  sce <- getCellCycle(sce, param$refBuild)
+  
   scData <- buildSeuratObject(sce)   # the Seurat object is built from the filtered sce object
   scData <- seuratClusteringV3(scData, param)
   
