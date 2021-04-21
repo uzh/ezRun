@@ -26,7 +26,7 @@ plots = readRDS("plots.rds")
 # data.dir = "/export/local/scratch/test_exceRpt/testData_human"
 # output.dir = paste(data.dir,'processed_output',sep='/')
 # dataFiles = list.files(output.dir,pattern = '*.txt')
-# plots = processSamplesInDir(data.dir = data.dir,output.dir = processed_output, getPlotsObjects=TRUE)
+# plots = processSamplesInDir(data.dir = data.dir,output.dir = processed_output)
 # ## end of debug
 nSamples <- length(unique(plots$`read-length distributions: raw read count`$data$sample))
 ```
