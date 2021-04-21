@@ -40,7 +40,7 @@ ezMethodExceRptReport = function(input=NA, output=NA, param=NA){
   samplePathsFilt =  input$getFullPaths("excerpt")
   
   plots = processSamples(samplePaths = samplePathsFilt, 
-                         outputDir = processedOutputDir, getPlotsObjects=TRUE)
+                         outputDir = processedOutputDir)
 
   ## list files generated
   dataFiles = list.files(processedOutputDir, pattern = '*.txt')
