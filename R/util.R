@@ -436,6 +436,19 @@ averageColumns <- function(x, by = NULL, func = function(x) {
   result
 }
 
+
+ezColGroupMeans <- function(x, group){
+  groupSizes <- table(group)
+  xSum <- x %>% t %>% rowsum(group=group)
+  return(t(sweep(xSum, 1, groupSizes, FUN="/")))
+}
+
+ezColGroupSums <- function(x, group){
+  xSum <- x %>% t %>% rowsum(group=group)
+  return(t(xSum))
+}
+
+
 ## --> is horribly slow
 # averageColumns = function(x, by=NULL, func=mean, ...){
 #   return(t(averageRows(t(as.matrix(x)), by=by, func, ...)))
