@@ -56,7 +56,7 @@ ezMethodExceRptReport = function(input=NA, output=NA, param=NA){
 ##' @param outputDir <string> directory name where to output generated objects and report after processing.
 ##' @param getPlotsObjects <bool> TRUE to output plots as an object.
 ##' @author (Rob Kitchen) Miquel Anglada Girotto
-processSamples = function(samplePaths, outputDir, getPlotsObjects=FALSE){
+processSamples = function(samplePaths, outputDir){
   require(plyr)
   require(gplots)
   require(marray)
@@ -70,8 +70,9 @@ processSamples = function(samplePaths, outputDir, getPlotsObjects=FALSE){
   #delete_e(samplePaths)
   
   ## Get directories containing counts
-  samplePathList = list.dirs(samplePaths,recursive=F)
-  names(samplePathList) = names(samplePaths)
+  samplePathList = sapply(samplePaths, list.dirs, recursive=F)
+  stopifnot(is.character(samplePathList))
+  stopifnot(file.exists(samplePathList))
   
   ## create output dir
   dir.create(outputDir)
@@ -81,7 +82,7 @@ processSamples = function(samplePaths, outputDir, getPlotsObjects=FALSE){
   
   ## plot the data
   plotsList = PlotData(sampleIDs, outputDir)
-  if(getPlotsObjects==TRUE){return(plotsList)}
+  return(invisible(plotsList))
 }
 
 ##' @title Get smallRNA counts and stats
