@@ -28,9 +28,12 @@ getReferenceFeaturesBed <- function(param) {
     write_lines(Sys.info(), file = lockFile)
     defer(file.remove(lockFile))
     message("generating bed file from gtf")
-    gtf <- import.gff(param$ezRef["refFeatureFile"])
-    gtf$score[is.na(gtf$score)] <- 1
-    export.bed(gtf, bedFile)
+    txdb <- GenomicFeatures::makeTxDbFromGFF(param$ezRef["refFeatureFile"], dataSource="FGCZ", organism=NA, taxonomyId=NA, chrominfo = NULL)
+    export(txdb, bedFile)
+    
+    #gtf <- import.gff(param$ezRef["refFeatureFile"])
+    #gtf$score[is.na(gtf$score)] <- 1
+    #export.bed(gtf, bedFile)
     return(bedFile)
   }
   ## I wait until it is build
