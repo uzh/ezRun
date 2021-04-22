@@ -144,7 +144,8 @@ readData = function(samplePathList, output.dir){
       ##
       #tmp.stats = tmp.stats[-c(1,2,nrow(tmp.stats)),]
       #tmp.stats[tmp.stats[,1] %in% "clipped", 1] = "successfully_clipped"
-      tmp.stats = tmp.stats[-nrow(tmp.stats),]
+      ##tmp.stats = tmp.stats[-nrow(tmp.stats),]
+      tmp.stats <- tmp.stats[tmp.stats[,1] %in% colnames(mapping.stats),]
       mapping.stats[i, match(tmp.stats[,1], colnames(mapping.stats))] = as.numeric(tmp.stats[,2])
       rownames(mapping.stats)[i] = thisSampleID
       
