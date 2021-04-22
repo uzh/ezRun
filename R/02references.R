@@ -177,7 +177,9 @@ buildRefDir <- function(x, genomeFile, genesFile){
   ### genes.gtf
   export(gtf[gtf$gene_biotype %in% listBiotypes("genes")],
          con=file.path(gtfPath, "genes.gtf"))
-
+  ### transcripts.only.gtf
+  export(gtf[gtf$type %in% "transcript"],
+         con=file.path(gtfPath, "transcripts.only.gtf"))
   indexFa(x@refFastaFile)
 
   ## create the chromsizes file
