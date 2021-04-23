@@ -85,8 +85,9 @@ ezFeatureAnnotation = function(param, ids=NULL,
       seqAnno[extraIds, "gene_name"] = fastaIds
       seqAnno[extraIds, "type"] = "protein_coding"
       seqAnno[extraIds, "strand"] = "+"
+      seqAnno[extraIds, "seqid"] = fastaIds
       seqAnno[extraIds, "description"] = ""
-      seqAnno[extraIds, "start"] = 1
+      seqAnno[extraIds, "start"] = as.integer(1)
       seqAnno[extraIds, "end"] = width(extraSeqs)
       seqAnno[extraIds, "gc"] = letterFrequency(extraSeqs, letters="GC", as.prob = FALSE)[ ,"G|C"] /width(extraSeqs)
       seqAnno[extraIds, "featWidth"] = width(extraSeqs)
