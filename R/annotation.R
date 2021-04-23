@@ -78,27 +78,21 @@ ezFeatureAnnotation = function(param, ids=NULL,
       seqAnno <- seqAnno[ids, , drop=FALSE]
     }else{
       extraIds <- setdiff(ids, rownames(seqAnno))
-      extraIds <- sub("^(Gene|Transcript)_", "", extraIds)
-      # there is control sequences added.
-      extraGR <- makeExtraControlSeqGR(extraIds)
-      gtfExtraFn <- tempfile(fileext = ".gtf")
-      export.gff2(extraGR, con=gtfExtraFn)
-      controlSeqsTempFn <- tempfile(fileext = ".fa")
-      writeXStringSet(getControlSeqs(extraIds),
-                      filepath=controlSeqsTempFn)
-      extraMart <- tibble("Transcript stable ID"=unique(extraGR$transcript_id),
-                          "Gene description"=NA, "GO term accession"=NA,
-                          "GO domain"=NA)
-      biomartFile <- tempfile(fileext = ".mart")
-      write_tsv(extraMart, file=biomartFile)
-      
-      featAnnoExtra <- makeFeatAnnoEnsembl(featureFile=gtfExtraFn,
-                                           genomeFile=controlSeqsTempFn,
-                                           biomartFile=biomartFile)
-      featAnnoExtra <- as.data.frame(featAnnoExtra[[dataFeatureType]])
-      rownames(featAnnoExtra) <- featAnnoExtra$gene_id
-      commonCols = intersect(colnames(seqAnno), colnames(featAnnoExtra))
-      seqAnno <-  rbind(seqAnno[ ,commonCols, drop=FALSE], featAnnoExtra[ ,commonCols, drop=FALSE])[ids, , drop=FALSE]
+      seqAnno[extraIds, "gene_id"] = extraIds
+      fastaIds <- sub("^(Gene|Transcript)_", "", extraIds)
+      extraSeqs <- getControlSeqs(fastaIds)
+      seqAnno[extraIds, "transcript_id"] <- sub("^(Gene|Transcript)_", "Transcript", extraIds)
+      seqAnno[extraIds, "gene_name"] = fastaIds
+      seqAnno[extraIds, "type"] = "protein_coding"
+      seqAnno[extraIds, "strand"] = "+"
+      seqAnno[extraIds, "description"] = ""
+      seqAnno[extraIds, "start"] = 1
+      seqAnno[extraIds, "end"] = width(extraSeqs)
+      seqAnno[extraIds, "gc"] = letterFrequency(extraSeqs, letters="GC", as.prob = FALSE)[ ,"G|C"] /width(extraSeqs)
+      seqAnno[extraIds, "featWidth"] = width(extraSeqs)
+      seqAnno[extraIds, "GO BP"] = ""
+      seqAnno[extraIds, "GO MF"] = ""
+      seqAnno[extraIds, "GO CC"] = ""
     }
   }
   return(seqAnno)
