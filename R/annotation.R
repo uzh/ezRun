@@ -99,7 +99,7 @@ ezFeatureAnnotation = function(param, ids=NULL,
       featAnnoExtra <- featAnnoExtra[[dataFeatureType]]
       rownames(featAnnoExtra) <- featAnnoExtra$gene_id
       commonCols = intersect(colnames(seqAnno), colnames(featAnnoExtra))
-      seqAnno <-  rbind(seqAnno, featAnnoExtra)[ids, commonCols, drop=FALSE]
+      seqAnno <-  rbind(seqAnno[ ,commonCols, drop=FALSE], featAnnoExtra[ ,commonCols, drop=FALSE])[ids, , drop=FALSE]
     }
   }
   return(seqAnno)
