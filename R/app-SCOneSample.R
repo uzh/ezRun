@@ -56,7 +56,8 @@ ezMethodSCOneSample <- function(input=NA, output=NA, param=NA,
   setwdNew(basename(output$getColumn("Report")))
   on.exit(setwd(cwd), add=TRUE)
   
-  sce <- loadSCCountDataset(input, param)
+  #sce <- loadSCCountDataset(input, param)
+  sce <- load10xData(input, param)
   pvalue_allMarkers <- 0.05
   pvalue_all2allMarkers <- 0.01
   
@@ -98,7 +99,7 @@ ezMethodSCOneSample <- function(input=NA, output=NA, param=NA,
   
   #Convert scData to Single Cell experiment Object
   library(scanalysis)
-  sce = scData %>% seurat_to_sce(default_assay = "SCT") #SCT as default assay for visualization
+  sce = scData %>% seurat_to_sce(default_assay = "SCT") 
   metadata(sce)$PCA_stdev <- Reductions(scData, "pca")@stdev   
   metadata(sce)$cells_AUC <- cells_AUC
   metadata(sce)$singler.results <- singler.results
@@ -127,7 +128,7 @@ filterCellsAndGenes <- function(sce, param) {
   library(Matrix)
   
   #Cells filtering
-  mito.genes <- grep("^MT-",rowData(sce)$gene_name, ignore.case = TRUE)
+  mito.genes <- grep("^MT-",rowData(sce)$Symbol, ignore.case = TRUE)
   
   sce <- addPerCellQC(sce, subsets = list(Mito = mito.genes))
   
