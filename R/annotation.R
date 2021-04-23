@@ -96,7 +96,7 @@ ezFeatureAnnotation = function(param, ids=NULL,
       featAnnoExtra <- makeFeatAnnoEnsembl(featureFile=gtfExtraFn,
                                            genomeFile=controlSeqsTempFn,
                                            biomartFile=biomartFile)
-      featAnnoExtra <- featAnnoExtra[[dataFeatureType]]
+      featAnnoExtra <- as.data.frame(featAnnoExtra[[dataFeatureType]])
       rownames(featAnnoExtra) <- featAnnoExtra$gene_id
       commonCols = intersect(colnames(seqAnno), colnames(featAnnoExtra))
       seqAnno <-  rbind(seqAnno[ ,commonCols, drop=FALSE], featAnnoExtra[ ,commonCols, drop=FALSE])[ids, , drop=FALSE]
