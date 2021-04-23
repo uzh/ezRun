@@ -218,6 +218,26 @@ loadSCCountDataset <- function(input, param){
   return(sce)
 }
 
+load10xData <- function(input, param){
+
+library(DropletUtils)
+  
+countMatrixFn <- list.files(path=input$getFullPaths("CountMatrix"),
+                            pattern="\\.mtx(\\.gz)*$", recursive=TRUE, 
+                            full.names=TRUE)
+sce <- read10xCounts(dirname(countMatrixFn), col.names=TRUE)
+
+metadata(sce)$param <- param
+
+## unique cell names when merging two samples
+colnames(sce) <- paste(input$getNames(), colnames(sce), sep="___")
+rownames(sce) = rowData(sce)$Symbol
+
+colData(sce)$Batch <- input$getNames()
+try(colData(sce)$Condition <- input$getColumn("Condition"), silent = TRUE)
+return(sce)
+}
+
 ##' @title Writes the head of a file
 ##' @description Writes the head of a file into a newly created target file.
 ##' @param target a character specifying the path of the output.
