@@ -152,8 +152,8 @@ buildSeuratObject <- function(sce){
   library(Seurat)
   library(scater)
   param <- metadata(sce)$param
-  rownames(sce) <- uniquifyFeatureNames(ID=rowData(sce)$gene_id,
-                                        names=rowData(sce)$gene_name)
+  rownames(sce) <- uniquifyFeatureNames(ID=rowData(sce)$ID,
+                                        names=rowData(sce)$Symbol)
   if(toupper(param$scProtocol) == "SMART-SEQ2"){
     sce <- sce[ ,Matrix::colSums(assays(sce)$counts) > param$minReadsPerCell]
   }
