@@ -9,7 +9,8 @@ ezMethodCellRanger <- function(input = NA, output = NA, param = NA) {
   sampleName <- input$getNames()
   
   #1. decompress tar files
-  sampleDirs <- deCompress(input, "RawDataDir",sampleName)
+  sampleDirs <- getFastqDirs(input, "RawDataDir",sampleName)
+  sampleDirs <- deCompress(sampleDirs)
   
   #2. Subsample if chosen
   if (ezIsSpecified(param$nReads) && param$nReads > 0)
@@ -19,9 +20,12 @@ ezMethodCellRanger <- function(input = NA, output = NA, param = NA) {
   sampleDir <- paste(sampleDirs, collapse = ",")
   cellRangerFolder <- str_sub(sampleName, 1, 45) %>% str_c("-cellRanger")
 
+#3.Generate the cellranger command with the required arguments
  switch(param$TenXLibrary,
     GEX = {
+       #3.1. Obtain GEX the reference
        refDir <- getCellRangerGEXReference(param)
+       #3.2. Command
        cmd <- paste(
       "cellranger count", paste0("--id=", cellRangerFolder),
       paste0("--transcriptome=", refDir),
@@ -33,7 +37,9 @@ ezMethodCellRanger <- function(input = NA, output = NA, param = NA) {
     )
   },
   VDJ = {
+    #3.1. Obtain the VDJ reference
     refDir <- getCellRangerVDJReference(param)
+    #3.2. Command
     cmd <- paste(
       "cellranger vdj", paste0("--id=", cellRangerFolder),
       paste0("--reference=", refDir),
@@ -44,35 +50,29 @@ ezMethodCellRanger <- function(input = NA, output = NA, param = NA) {
     )
   },
   FeatureBarcoding = {
+    #3.1. Obtain GEX the reference
     refDir <- getCellRangerGEXReference(param)
-    featureDirs <- strsplit(input$getColumn("FeatureDataDir"), ",")[[sampleName]]
-    featureDirs <- file.path(input$dataRoot, featureDirs)
+    
+    #3.2. Locate the Feature sample
+    featureDirs <- getFastqDirs(input, "FeatureDataDir", sampleName)
+    featureName <- gsub(".tar", "", basename(featureDirs))
+    
+    #3.3. Locate the Feature info csv file
     featureRefFn <- file.path(
       dirname(featureDirs),
       str_c(sampleName, "feature_ref.csv", sep = "_")
     )
     stopifnot(any(file.exists(featureRefFn)))
     featureRefFn <- head(featureRefFn[file.exists(featureRefFn)], 1)
+    
+    #3.4. Decompress the sample that contains the antibodies reads
+    featureDirs <- deCompress(featureDirs)
+    featureDirs <- normalizePath(featureDirs)
+    
+    #3.5. Create library file that contains the sample and feature dirs location
+    libraryFn <- createLibraryFile(sampleDirs, featureDirs, sampleName, featureName)
 
-    if (all(grepl("\\.tar$", featureDirs))) {
-      lapply(featureDirs, untar)
-      featureDirs <- sub("\\.tar$", "", basename(featureDirs))
-      featureDirs <- normalizePath(featureDirs)
-    }
-    libraryFn <- tempfile(pattern = "library", tmpdir = ".", fileext = ".csv")
-    libraryTb <- tibble(
-      fastqs = c(sampleDirs, featureDirs),
-      sample = c(
-        rep(sampleName, length(sampleDirs)),
-        basename(featureDirs)
-      ),
-      library_type = c(
-        rep("Gene Expression", length(sampleDirs)),
-        rep("Antibody Capture", length(featureDirs))
-      )
-    )
-    write_csv(libraryTb, libraryFn)
-
+    #3.6. Command
     cmd <- paste(
       "cellranger count", paste0("--id=", cellRangerFolder),
       paste0("--transcriptome=", refDir),
@@ -85,28 +85,35 @@ ezMethodCellRanger <- function(input = NA, output = NA, param = NA) {
     on.exit(unlink(basename(featureDirs), recursive = TRUE), add = TRUE)
   })
 
+  #4. Add additional cellranger options if specified
   if (ezIsSpecified(param$cmdOptions)) {
     cmd <- paste(cmd, param$cmdOptions)
   }
+  
+  #5. Execute the command
   ezSystem(cmd)
 
+  #6. Delete temp files and rename the final cellranger output folder
   unlink(basename(sampleDirs), recursive = TRUE)
   file.rename(file.path(cellRangerFolder, "outs"), sampleName)
   unlink(cellRangerFolder, recursive = TRUE)
-
-  if (ezIsSpecified(param$controlSeqs)) {
+  if (ezIsSpecified(param$controlSeqs)) 
     unlink(refDir, recursive = TRUE)
-  }
   
+  #7. Calculate alignment stats from the BAM file
   if(param$bamStats)
     computeBamStatsSC(sampleName, ram=param$ram)
+  
   return("Success")
 }
 
-deCompress = function(input, column, sampleName){
+getFastqDirs <- function(input, column, sampleName) {
   fastqDirs <- strsplit(input$getColumn(column), ",")[[sampleName]]
   fastqDirs <- file.path(input$dataRoot, fastqDirs)
-  
+  return(fastqDirs)
+}
+
+deCompress = function(fastqDirs){
   fastqDirs = sapply(fastqDirs, function(scTar){
     targetDir = basename(dirname(scTar))
     untar(scTar, exdir = targetDir)
@@ -125,6 +132,23 @@ subsample <- function(targetDir, param){
     ezSystem(cmd)
   }
   return(subDir)
+}
+
+createLibraryFile <- function(sampleDirs, featureDirs, sampleName, featureName) {
+  libraryFn <- tempfile(pattern = "library", tmpdir = ".", fileext = ".csv")
+  libraryTb <- tibble(
+  fastqs = c(sampleDirs, featureDirs),
+  sample = c(
+    rep(sampleName, length(sampleDirs)),
+    featureName
+  ),
+  library_type = c(
+    rep("Gene Expression", length(sampleDirs)),
+    rep("Antibody Capture", length(featureDirs))
+  )
+ )
+ write_csv(libraryTb, libraryFn)
+ return(libraryFn)
 }
 
 computeBamStatsSC = function(sampleName, ram=NULL) {
