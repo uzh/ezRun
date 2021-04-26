@@ -74,9 +74,7 @@ ezFeatureAnnotation = function(param, ids=NULL,
          " must exist in annotation file!")
   }
   if(!is.null(ids)){
-    if(all(ids %in% rownames(seqAnno))){
-      seqAnno <- seqAnno[ids, , drop=FALSE]
-    }else{
+    if(!all(ids %in% rownames(seqAnno))){
       extraIds <- setdiff(ids, rownames(seqAnno))
       seqAnno[extraIds, "gene_id"] = extraIds
       fastaIds <- sub("^(Gene|Transcript)_", "", extraIds)
@@ -95,6 +93,7 @@ ezFeatureAnnotation = function(param, ids=NULL,
       seqAnno[extraIds, "GO MF"] = ""
       seqAnno[extraIds, "GO CC"] = ""
     }
+    seqAnno <- seqAnno[ids, , drop=FALSE]
   }
   return(seqAnno)
 }
