@@ -67,8 +67,19 @@ ezMethodMergeRunData <- function(input=NA, output=NA, param=NA){
     
     datasetKeep = rbind(dataset1[which(dataset1[[matchCol]] %in% uniqSet1),], dataset2[which(dataset2[[matchCol]] %in% uniqSet2),])
     if(nrow(datasetKeep) > 0){
-        ##add unique rows to dataset
+        ##add unique rows to datasetand transfer run specifc samples to gstore
+        datasetKeep = datasetKeep[,intersect(colnames(uniqueDataset),colnames(datasetKeep))]
         uniqueDataset = rbind(uniqueDataset, datasetKeep)
+        cmd <- paste('rsync', file.path(param[['dataRoot']], datasetKeep[['Read1 [File]']]), '.')
+        for (k in 1:length(cmd)){
+                ezSystem(cmd[k])
+        }
+        if(param[['paired']]){
+            cmd <- paste('rsync', file.path(param[['dataRoot']], datasetKeep[['Read2 [File]']]), '.')
+            for (k in 1:length(cmd)){
+                ezSystem(cmd[k])
+            }
+        }
     }
     ezWrite.table(uniqueDataset, 'dataset.tsv', row.names = FALSE)
     ##compute md5 sums

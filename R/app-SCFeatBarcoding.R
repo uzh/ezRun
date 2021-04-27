@@ -68,15 +68,7 @@ ezMethodSCFeatBarcoding <- function(input=NA, output=NA, param=NA,
   
   #Create a SingleCellExperiment using the Gene expression counts
   data10X_GeneExp <- data10X$`Gene Expression`
-  cellCycleFn <- list.files(path=input$getFullPaths("CountMatrix"),
-                            pattern="CellCyclePhase\\.txt$", recursive=TRUE,
-                            full.names=TRUE)
-  cellCycle <- ezRead.table(cellCycleFn)
-  colData <- DataFrame(CellCycle=cellCycle$Phase,
-                       CellCycleG1=cellCycle$G1,
-                       CellCycleS=cellCycle$S,
-                       CellCycleG2M=cellCycle$G2M,
-                       Batch=input$getNames(),
+  colData <- DataFrame(Batch=input$getNames(),
                        Condition=try(input$getColumn("Condition"), silent = TRUE))
   
  
@@ -89,6 +81,9 @@ ezMethodSCFeatBarcoding <- function(input=NA, output=NA, param=NA,
   sce_list <- filterCellsAndGenes(sce, param)  #return sce objects filtered and unfiltered to show the QC metrics later in the rmd 
   sce <- sce_list$sce
   sce.unfiltered <- sce_list$sce.unfiltered
+  
+  #calculate cellcycle for the filtered sce object
+  sce <- getCellCycle(sce, param$refBuild)
   
   # the Seurat object is built from the Gene expression filtered sce object
   scData <- CreateSeuratObject(counts=counts(sce), project=param$name, meta.data=data.frame(colData(sce)))

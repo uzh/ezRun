@@ -8,6 +8,7 @@
 getCellCycle <- function(sce, refBuild){
   require(scran)
   counts <- counts(sce)
+  rownames(counts) <- rowData(sce)$ID
   # The training data is only available for Hsap and Mmus Ensembl
   if(startsWith(refBuild, "Homo_sapiens")){
     species <- "human"
