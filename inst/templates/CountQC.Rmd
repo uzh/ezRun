@@ -452,19 +452,16 @@ envir <- scatterPlotData$envir
 
 ```{r scatter plot wide, echo=FALSE, message=FALSE, results='asis', fig.width=min(max(ncol(signalCond) * 2, 4), 20), fig.height=min(max(ncol(signalCond) * 2, 4), 20), eval=ncol(rawData) > 3 & param$writeScatterPlots}
 
-qcScatterFiles <- scatterPlotData$widePlots
+plotList <- scatterPlotData$widePlots
 
-if(length(qcScatterFiles) > 0){
-  cat("### Scatter Plots by Conditions", "\n")
-  for(i in 1:length(qcScatterFiles)){
-    cat("\n")
-    cat("####", names(qcScatterFiles)[i], "\n")
-    for(j in 1:length(qcScatterFiles[[i]])){
-      eval(qcScatterFiles[[i]][j], envir=envir)
-      cat("\n")
-    }
+for(nm in names(plotList)){
+  cat("\n")
+  cat("####", nm, "\n")
+  for(nm2 in names(plotList[[nm]])){
+    eval(qcScatterFiles[[nm]][nm2], envir=envir)
     cat("\n")
   }
+  cat("\n")
 }
 ```
 

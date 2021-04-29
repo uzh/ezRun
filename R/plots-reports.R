@@ -40,68 +40,58 @@ countQcScatterPlots = function(param, design, conds, rawData, signalCond,
                             "width > 5000nt"=as.numeric(rowData(rawData)$featWidth) > 5000,
                             check.names=FALSE)
     widthColors = brewPalette(12, alpha=1)[c(7,6)]
-    
   } else {
     widthTypes = NULL
   }
   
-  widePlots = c()
+  widePlots <- list()
   if (nConds > 1 & nConds <=  param$allPairsMaxCondNumber){
-    widePlots[["allPairs"]] <- c(
+    widePlots[["allPairs"]] <- list()
+    widePlots[["allPairs"]][["std"]] <- 
       expression({
         ezAllPairScatter(signalCond, isPresent=isPresentCond, types=types)
       })
-    )
     if (!is.null(gcTypes)){
-      widePlots[["allPairs"]] <- c(
-        widePlots[["allPairs"]], 
-        expression({
-          ezAllPairScatter(signalCond, main="color by GC", isPresent=isPresentCond, types=gcTypes)
-        })
-      )
+      widePlots[["allPairs"]][["gc"]] <- expression({
+        ezAllPairScatter(signalCond, main="color by GC", isPresent=isPresentCond, types=gcTypes)
+      })
     }
     if (!is.null(widthTypes)){
-      widePlots[["allPairs"]] <- c(
-        widePlots[["allPairs"]], 
-        expression({
-          ezAllPairScatter(signalCond, main="color by width", isPresent=isPresentCond, types=widthTypes, colors = widthColors)
-        })
-      )
+      widePlots[["allPairs"]][["width"]] <- expression({
+        ezAllPairScatter(signalCond, main="color by width", isPresent=isPresentCond, types=widthTypes, colors = widthColors)
+      })
     }
   }
-  narrowPlots = c()
-  for (i in 1:min(4, ncol(design))){
-    for (cond in unique(design[,i])){
-      idx = which(cond == design[,i])
-      if (length(idx) > 1){
-        idx = idx[order(samples[idx])] ## order alphabetically
-        condName = paste(colnames(design)[i], cond)
-        narrowPlots[[condName]] <- c()
+  narrowPlots <- list()
+  for (factorName in head(colnames(design), 4)){ ## take the first 4 factors
+    for (factorLevel in unique(design[, factorName])){
+      idx = which(cond == design[, factorName])
+      if (length(idx) == 1){
+        next
+      }
+      if (length(idx) == 2){
+        nPlots = 1
+      } else {
         nPlots = length(idx)
-        if (nPlots == 2) nPlots = 1
-        narrowPlots[[condName]] <- c(
-          narrowPlots[[condName]], 
+      }
+      plotName = paste(factorName, factorLevel)
+      narrowPlots[[plotName]] <- list()
+      idx = idx[order(samples[idx])] ## order alphabetically
+      narrowPlots[[plotName]][["std"]] <-
+        expression({
+          ezScatter(y=signal[ ,idx], isPresent=isPresent[ ,idx], types=types, lim=signalRange, xlab=paste("Avg of", cond), ylab=NULL)
+        })
+      if (!is.null(gcTypes)){
+        narrowPlots[[plotName]][["gc"]] <-
           expression({
-            ezScatter(y=signal[ ,idx], isPresent=isPresent[ ,idx], types=types, lim=signalRange, xlab=paste("Avg of", cond), ylab=NULL)
+            ezScatter(y=signal[ ,idx], isPresent=isPresent[ ,idx], types=gcTypes, lim=signalRange, xlab=paste("Avg of", cond), ylab=NULL)
           })
-        )
-
-        if (!is.null(gcTypes)){
-          narrowPlots[[condName]] <- c(
-            narrowPlots[[condName]], 
-            expression({
-              ezScatter(y=signal[ ,idx], isPresent=isPresent[ ,idx], types=gcTypes, lim=signalRange, xlab=paste("Avg of", cond), ylab=NULL)
-            })
-          )
-        }
-        if (!is.null(widthTypes)){
-          narrowPlots[[condName]] <- c(
-            narrowPlots[[condName]], 
-            expression({
-              ezScatter(y=signal[ ,idx], isPresent=isPresent[ ,idx], types=widthTypes, lim=signalRange, xlab=paste("Avg of", cond), ylab=NULL, colors=widthColors)
-            })
-          )
-        }
+      }
+      if (!is.null(widthTypes)){
+        narrowPlots[[plotName]][["width"]] <-
+          expression({
+            ezScatter(y=signal[ ,idx], isPresent=isPresent[ ,idx], types=widthTypes, lim=signalRange, xlab=paste("Avg of", cond), ylab=NULL)
+          })
       }
     }
   }
@@ -121,7 +111,7 @@ makeTestScatterData <- function(param, se, types=NULL){
                                           drop=FALSE]),
                       rowMeans(logSignal[ , param$grouping == param$refGroup, 
                                           drop=FALSE])
-                      )
+  )
   colnames(groupMeans) = c(param$sampleGroup, param$refGroup)
   
   if (is.null(types)){
