@@ -154,7 +154,7 @@ ezMethodSCMultipleSamples = function(input=NA, output=NA, param=NA, htmlFile="00
   
   geneMeans <- geneMeansCluster(sce)
   #Save some results in external files 
-  dataFiles = saveExternalFiles(list(pos_markers=posMarkers, diffGenes=diffGenes, conservedMarkers=consMarkers, gene_means=as_tibble(as.data.frame(geneMeans), rownames="gene_name")))
+  dataFiles = saveExternalFiles(list(pos_markers=posMarkers, differential_genes=diffGenes, conserved_markers=consMarkers, gene_means=as_tibble(as.data.frame(geneMeans), rownames="gene_name")))
   
   library(HDF5Array)
   saveHDF5SummarizedExperiment(sce, dir="sce_h5")
