@@ -7,10 +7,11 @@
 
 ezMethodCellRanger <- function(input = NA, output = NA, param = NA) {
   sampleName <- input$getNames()
-  
-  #1. decompress tar files
   sampleDirs <- getFastqDirs(input, "RawDataDir",sampleName)
-  sampleDirs <- deCompress(sampleDirs)
+  
+  #1. decompress tar files if they are in tar format
+  if (all(grepl("\\.tar$", sampleDirs)))
+    sampleDirs <- deCompress(sampleDirs)
   
   #2. Subsample if chosen
   if (ezIsSpecified(param$nReads) && param$nReads > 0)
