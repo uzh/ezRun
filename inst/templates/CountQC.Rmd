@@ -7,7 +7,7 @@ output:
       in_header: !expr system.file("templates/fgcz_header.html", package="ezRun")
     css: !expr system.file("templates/fgcz.css", package="ezRun")
 editor_options: 
-  chunk_output_type: console
+  chunk_output_type: inline
 ---
 
 ```{r setup countQC, include=FALSE}
@@ -311,7 +311,6 @@ if (ncol(rawData) > 3){
 ## Clustering of High Variance Features
 
 ```{r Clustering of High Variance Features, echo=FALSE, message=FALSE, fig.width=max(8,4+0.15*ncol(rawData)), fig.height=10, results='asis', eval=!debug}
-clusterPdf = "cluster-heatmap.pdf"
 if(ncol(rawData) > 3){
   varFeatures <- rownames(rawData)[head(order(rowSds(assays(rawData)$log2signal),
                                               decreasing=TRUE),
@@ -343,8 +342,7 @@ if(ncol(rawData) > 3){
     xTmp <- arrange(xTmp, Cluster)
     write_tsv(xTmp, file="cluster-heatmap-clusterMembers.txt")
 
-    cowplot::save_plot(clusterPdf, clusterResult$pheatmap$gtable,
-                       base_height = 10, base_width = max(8,4+0.1*ncol(rawData)))
+    clusterResult$pheatmap$gtable
   
     if (doGo(param, seqAnno)){
       clusterResult = goClusterResults(assays(rawData)$log2signalCentered[varFeatures, ],
@@ -389,13 +387,6 @@ if (ncol(rawData) > 3){
                       quiet=TRUE)
     }
   }
-}
-```
-
-```{r cluster plot link , echo=FALSE, results='asis', eval=!debug}
-if(file.exists(clusterPdf)){
-    cat(paste0("[Plot in pdf](", clusterPdf, ")"), "\n")
-    cat("\n")
 }
 ```
 
@@ -452,24 +443,41 @@ if(ncol(rawData) > 3){
 
 ## Scatter Plots by Conditions
 
-```{r scatter plot, echo=FALSE, message=FALSE, results='asis', eval=!debug}
-if(ncol(rawData) > 3){
-  if (param$writeScatterPlots){
-    qcScatterFiles = countQcScatterPlots(param, metadata(rawData)$design,
-                                         colData(rawData)$conds, rawData,
-                                         signalCond, isPresentCond, types=types)
-    if(length(qcScatterFiles) > 0){
-      cat("### Scatter Plots by Conditions", "\n")
-      for(i in 1:length(qcScatterFiles)){
-        cat("\n")
-        cat("####", names(qcScatterFiles)[i], "\n")
-        for(j in 1:length(qcScatterFiles[[i]])){
-          cat("![](",qcScatterFiles[[i]][j],")")
-          cat("\n")
-        }
-        cat("\n")
-      }
+```{r scatter plot setup, echo=FALSE, message=FALSE, results='asis', eval=ncol(rawData) > 3 & param$writeScatterPlots}
+scatterPlotData <- countQcScatterPlots(param, metadata(rawData)$design,
+                                      colData(rawData)$conds, rawData,
+                                      signalCond, isPresentCond, types=types)
+envir <- scatterPlotData$envir
+```
+
+```{r scatter plot wide, echo=FALSE, message=FALSE, results='asis', fig.width=min(max(ncol(signalCond) * 2, 4), 20), fig.height=min(max(ncol(signalCond) * 2, 4), 20), eval=ncol(rawData) > 3 & param$writeScatterPlots}
+
+plotList <- scatterPlotData$widePlots
+
+for(nm in names(plotList)){
+  cat("\n")
+  cat("####", nm, "\n")
+  for(nm2 in names(plotList[[nm]])){
+    eval(qcScatterFiles[[nm]][nm2], envir=envir)
+    cat("\n")
+  }
+  cat("\n")
+}
+```
+
+```{r scatter plot narrow, echo=FALSE, message=FALSE, results='asis', fig.width=min(envir$nPlots, 6) * 3 * 1.65, fig.height=ceiling(envir$nPlots/6) * 3.3 * 1.65, out.width="1500px", eval=ncol(rawData) > 3 & param$writeScatterPlots}
+
+qcScatterFiles <- scatterPlotData$narrowPlots
+
+if(length(qcScatterFiles) > 0){
+  for(i in 1:length(qcScatterFiles)){
+    cat("\n")
+    cat("####", names(qcScatterFiles)[i], "\n")
+    for(j in 1:length(qcScatterFiles[[i]])){
+      eval(qcScatterFiles[[i]][j], envir=envir)
+      cat("\n")
     }
+    cat("\n")
   }
 }
 ```
