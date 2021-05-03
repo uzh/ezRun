@@ -65,7 +65,7 @@ countQcScatterPlots = function(param, design, conds, rawData, signalCond,
   narrowPlots <- list()
   for (factorName in head(colnames(design), 4)){ ## take the first 4 factors
     for (factorLevel in unique(design[, factorName])){
-      idx = which(cond == design[, factorName])
+      idx = which(conds == design[, factorName])
       if (length(idx) == 1){
         next
       }
@@ -79,18 +79,18 @@ countQcScatterPlots = function(param, design, conds, rawData, signalCond,
       idx = idx[order(samples[idx])] ## order alphabetically
       narrowPlots[[plotName]][["std"]] <-
         expression({
-          ezScatter(y=signal[ ,idx], isPresent=isPresent[ ,idx], types=types, lim=signalRange, xlab=paste("Avg of", cond), ylab=NULL)
+          ezScatter(y=signal[ ,idx], isPresent=isPresent[ ,idx], types=types, lim=signalRange, xlab=paste("Avg of", conds), ylab=NULL)
         })
       if (!is.null(gcTypes)){
         narrowPlots[[plotName]][["gc"]] <-
           expression({
-            ezScatter(y=signal[ ,idx], isPresent=isPresent[ ,idx], types=gcTypes, lim=signalRange, xlab=paste("Avg of", cond), ylab=NULL)
+            ezScatter(y=signal[ ,idx], isPresent=isPresent[ ,idx], types=gcTypes, lim=signalRange, xlab=paste("Avg of", conds), ylab=NULL)
           })
       }
       if (!is.null(widthTypes)){
         narrowPlots[[plotName]][["width"]] <-
           expression({
-            ezScatter(y=signal[ ,idx], isPresent=isPresent[ ,idx], types=widthTypes, lim=signalRange, xlab=paste("Avg of", cond), ylab=NULL)
+            ezScatter(y=signal[ ,idx], isPresent=isPresent[ ,idx], types=widthTypes, lim=signalRange, xlab=paste("Avg of", conds), ylab=NULL)
           })
       }
     }
