@@ -80,7 +80,7 @@ ezMethodHomerDiffPeaks = function(input=NA, output=NA, param=NA,
     colnames(homerResult) <- gsub('bg vs. target ', '', colnames(homerResult))
     colnames(homerResult) <- gsub('adj. p-value', 'fdr', colnames(homerResult))
     
-    homerResult <- homerResult[homerResult[['Log2 Fold Change']] >= log2(param$repFoldChange),]
+    homerResult <- homerResult[homerResult[['Log2 Fold Change']] >= log2(param$repFoldChange) | homerResult[['Log2 Fold Change']] <= -log2(param$repFoldChange), ]
     homerResult <- homerResult[homerResult[['fdr']] <= param$repFDR, ]
     if(nrow(homerResult) > 0){
       resultFile <- paste0(param$sampleGroup, '_over_', param$refGroup,'_', sub('txt$', 'xlsx', outputFile))
