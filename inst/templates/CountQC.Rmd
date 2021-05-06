@@ -452,12 +452,12 @@ envir <- scatterPlotData$envir
 
 ```{r scatter plot wide, echo=FALSE, message=FALSE, results='asis', fig.width=min(max(ncol(signalCond) * 2, 4), 20), fig.height=min(max(ncol(signalCond) * 2, 4), 20), eval=ncol(rawData) > 3 & param$writeScatterPlots}
 
-plotList <- scatterPlotData$widePlots
+qcScatterFiles <- scatterPlotData$widePlots
 
-for(nm in names(plotList)){
+for(nm in names(qcScatterFiles)){
   cat("\n")
   cat("####", nm, "\n")
-  for(nm2 in names(plotList[[nm]])){
+  for(nm2 in names(qcScatterFiles[[nm]])){
     eval(qcScatterFiles[[nm]][nm2], envir=envir)
     cat("\n")
   }
