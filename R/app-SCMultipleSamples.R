@@ -45,6 +45,7 @@ ezMethodSCMultipleSamples = function(input=NA, output=NA, param=NA, htmlFile="00
   library(HDF5Array)
   library(scanalysis)
   library(SummarizedExperiment)
+  library(SingleCellExperiment)
   
   ## subset the selected sample names
   samples <- param$samples
@@ -70,13 +71,16 @@ ezMethodSCMultipleSamples = function(input=NA, output=NA, param=NA, htmlFile="00
     sceList <- lapply(filePath,loadHDF5SummarizedExperiment)
     names(sceList) <- names(sceURLs)
     #sceList <- lapply(sceList, function(sce) {metadata(sce)$scData <- CreateSeuratObject(counts=counts(sce),meta.data=data.frame(colData(sce)[,c(2:25, which(colnames(colData(sceList[[1]]))%in% "Condition"))])) 
-    sceList <- lapply(sceList, function(sce) {metadata(sce)$scData <- CreateSeuratObject(counts=counts(sce),meta.data=data.frame(colData(sce))) 
+    sceList <- lapply(sceList, function(sce) {
+      sce <- swapAltExp(sce, "RNA")
+      metadata(sce)$scData <- CreateSeuratObject(counts=counts(sce),meta.data=data.frame(colData(sce))) 
     sce})
-
   } else if (file.exists(filePath_course)) {
     sceList <- lapply(filePath_course,loadHDF5SummarizedExperiment)
     names(sceList) <- names(sceURLs)
-    sceList <- lapply(sceList, function(sce) {metadata(sce)$scData <- CreateSeuratObject(counts=counts(sce),meta.data=data.frame(colData(sce))) 
+    sceList <- lapply(sceList, function(sce) {
+      sce <- swapAltExp(sce, "RNA")
+      metadata(sce)$scData <- CreateSeuratObject(counts=counts(sce),meta.data=data.frame(colData(sce))) 
     sce})
   } else { #if it is an rds object it has been likely generated from old reports, so we need to update the seurat version before using the clustering functions below.                                         
     filePath <- file.path("/srv/gstore/projects", sub("https://fgcz-(gstore|sushi).uzh.ch/projects", "",dirname(sceURLs)), "sce.rds")
