@@ -64,18 +64,22 @@ ezMethodSCFeatBarcoding <- function(input=NA, output=NA, param=NA,
   setwdNew(basename(output$getColumn("Report")))
   on.exit(setwd(cwd), add=TRUE)
 
-  data10X <- Read10X(input$getFullPaths("CountMatrix"))
+  data10X <- Read10X(input$getFullPaths("CountMatrix"), gene.column = 1)
   
   #Create a SingleCellExperiment using the Gene expression counts
   data10X_GeneExp <- data10X$`Gene Expression`
-  colData <- DataFrame(Batch=input$getNames(),
-                       Condition=try(input$getColumn("Condition"), silent = TRUE))
+  condition <- try(input$getColumn("Condition"), silent = TRUE)
+  colData <- DataFrame(Batch=rep(input$getNames(), ncol(data10X_GeneExp)),
+                       Condition=rep(condition, ncol(data10X_GeneExp), silent = TRUE))
   
- 
+  geneSymbols <- read_tsv(gzfile(paste0(input$getFullPaths("CountMatrix"), "/features.tsv.gz")), col_names = FALSE)
+  geneSymbols <- geneSymbols$X2[geneSymbols$X1 %in% rownames(data10X_GeneExp)]
+    
   sce <- SingleCellExperiment(assays=list(counts=data10X_GeneExp), 
                                       metadata=list(param=param),
-                                      rowData = DataFrame(gene_name=rownames(data10X_GeneExp)),
+                                      rowData = DataFrame(Symbol=geneSymbols, ID=rownames(data10X_GeneExp)),
                                       colData=colData)
+  rownames(sce) <- geneSymbols
   
   #Cells and genes filtering
   sce_list <- filterCellsAndGenes(sce, param)  #return sce objects filtered and unfiltered to show the QC metrics later in the rmd 
