@@ -172,8 +172,8 @@ if (nrow(dataset) > 1){
 if (nrow(dataset) > 1){
   rinCol <- colnames(dataset)[grep('RIN', colnames(dataset))]
   if(length(rinCol) == 1){
-    dataset[['rRNA_Content']] <- rRNAstrandResult$Sense + rRNAstrandResult$Antisense
-    c <- makeScatterplot(dataset, colname1 = rinCol, colname2='rRNA_Content')
+    dataset[['rRNA_Percent']] <- (rRNAstrandResult$Sense + rRNAstrandResult$Antisense) / rRNAstrandResult$`Read Count` * 100
+    c <- makeScatterplot(dataset, colname1 = rinCol, colname2='rRNA_Percent')
     c
   }
 }
