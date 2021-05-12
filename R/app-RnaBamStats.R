@@ -369,8 +369,6 @@ getStatsFromBam = function(param, bamFile, sm, gff=NULL, repeatsGff=NULL,
 getStatsFromBamParallel = function(seqLengths, param, bamFile, sm,
                                    gff=NULL, repeatsGff=NULL,
                                    mc.cores=ezThreads(), nReads=NA){
-  seqNames = names(sort(seqLengths, decreasing=TRUE))
-  names(seqNames) = seqNames
   if (!is.na(nReads)){
     ## heuristic: reduce the number of cores so that we have at least 0.25GB RAM per chromosome per Million Reads in the total bam file
     #reduce the number of threads in case of
@@ -380,6 +378,9 @@ getStatsFromBamParallel = function(seqLengths, param, bamFile, sm,
       mc.cores = maxCores
     }
   }
+  seqNames <- names(sort(seqLengths, decreasing=TRUE)) ## sorting so that longest job starts first
+  seqNames <- seqNames[nchar(seqNames) <= 6] ## remove non-chromosome sequences that usually have long names
+  names(seqNames) <- seqNames ## set names for lapply
   chromResults = ezMclapply(seqNames, getStatsFromBamSingleChrom, param,
                             bamFile, sm, gff, repeatsGff,
                             mc.preschedule=FALSE, mc.cores=mc.cores)
