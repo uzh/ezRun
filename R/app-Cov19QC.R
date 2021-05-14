@@ -20,8 +20,8 @@ ezMethodCov19QC <- function(input = NA, output = NA, param = NA, htmlFile = "00i
     mappingResult <- mapToCovidGenome(param, input = inputProc, workDir="mappingResult")
     
     ###4. Report results (% Primer Dimer, % Mapped Reads, AvgCoverage, StdCoverage)
-    ezWrite.table(adapterResult, 'adapterRes.txt')
-    ezWrite.table(mappingResult, 'mappingRes.txt')
+    ezWrite.table(adapterResult, 'adapterRes.txt', row.names = FALSE)
+    ezWrite.table(mappingResult, 'mappingRes.txt', row.names = FALSE)
     
     #generateReport(adapterResult, mappingResult, param, htmlFile)
     return('success')
@@ -59,8 +59,8 @@ mapToCovidGenome <- function(param, input, workDir){
     setwdNew(workDir)
     i <- 0
     for (nm in names(R1_files)) {
-        nReads <- min(c(1000000, input$meta[['Read Count']][i]))
         i <- i + 1
+        nReads <- min(c(1000000, input$meta[['Read Count']][i]))
         bamFile <- paste0(nm, ".bam")
         cmd <- paste(
             "bowtie2", param$cmdOptions, defOpt, "-u 1000000",
@@ -74,12 +74,12 @@ mapToCovidGenome <- function(param, input, workDir){
                        cores = param$cores)
         
         mappingStats <- getBamMultiMatching(param, bamFile, nReads)
-        result[['mappingRate']] <- 100*(mappingStats['1']/sum(mappingStats))
+        result[['mappingRate']][i] <- 100*(mappingStats['1']/sum(mappingStats))
         reads <- ezReadBamFileAsGRanges(bamFile, chromosomes = NULL, pairedEndReads = param$paired,
                                         max.fragment.width = 5000, min.mapq = 10, remove.duplicate.reads = FALSE)
-        result[['avgCov']][i] <- mean(coverage(reads))
-        result[['sdCov']][i] <- sd(coverage(reads))
-        file.remove(bamFile)
+        result[['avgCov']][i] <- mean(coverage(reads), na.rm = TRUE)
+        result[['sdCov']][i] <- sd(coverage(reads), na.rm = TRUE)
+        #file.remove(bamFile)
     }
     setwd('..')
     return(result)
