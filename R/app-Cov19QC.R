@@ -87,6 +87,7 @@ mapToCovidGenome <- function(param, input, workDir){
             result[['avgCov']][i] <- avgCov
             result[['sdCov']][i] <- sdCov
         }
+
         #file.remove(bamFile)
     }
     setwd('..')
