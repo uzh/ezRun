@@ -263,8 +263,10 @@ FeaturePlot(
   object = scData, features = "percent.mt",
   reduction = "umap"
 )
-DimPlot(scData, reduction = "umap", group.by = "CellCycle") +
-  ggtitle("Cell cycle phase")
+if('S.Score' %in% colnames(scData[[]])){
+  DimPlot(scData, reduction = "umap", group.by = "S.Score") +
+  ggtitle("Cell cycle S phase")
+}
 FeaturePlot(scData,
   features = "scDblFinder.score",
   reduction = "umap"
@@ -287,8 +289,10 @@ FeaturePlot(
   object = scData, features = "percent.mt",
   reduction = "tsne"
 )
-DimPlot(scData, reduction = "tsne", group.by = "CellCycle") +
-  ggtitle("Cell cycle phase")
+if('S.Score' %in% colnames(scData[[]])){
+  DimPlot(scData, reduction = "tsne", group.by = "S.Score") +
+  ggtitle("Cell cycle S phase")
+}
 FeaturePlot(scData,
   features = "scDblFinder.score",
   reduction = "tsne"
