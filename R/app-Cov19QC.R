@@ -11,7 +11,7 @@ ezMethodCov19QC <- function(input = NA, output = NA, param = NA, htmlFile = "00i
     }  
     
     ###1. Get Adapter Dimer Fraction (per Sample Mapping against AdapterSeq)
-    adapterResult <- getAdapterStats(param, input, workDir="rawReads")
+    adapterResult <- getAdapterStats(param, input)
     
     ###2. Preprocess with fastp
     inputProc <- ezMethodFastpTrim(input = input, param = param)
@@ -27,7 +27,7 @@ ezMethodCov19QC <- function(input = NA, output = NA, param = NA, htmlFile = "00i
     return('success')
 }
 
-getAdapterStats <- function(param, input, workDir){
+getAdapterStats <- function(param, input){
     inputFiles <- input$getFullPaths("Read1")
     if(param$Adapter1!='') {
             pattern <- param$Adapter1
@@ -67,8 +67,11 @@ mapToCovidGenome <- function(param, input, workDir){
             "-x", ref, if (param$paired) "-1", R1_files[nm],
             if (param$paired) paste("-2", R2_files[nm]),
             "2>", paste0(nm, "_bowtie2.log"), "|",
-            "samtools", "view -S -b -", " >", bamFile)
+            "samtools", "view -S -b - > bowtie.bam")
         ezSystem(cmd)
+        ezSortIndexBam("bowtie.bam", bamFile,
+                       ram = param$ram, removeBam = TRUE,
+                       cores = param$cores)
         
         mappingStats <- getBamMultiMatching(param, bamFile, nReads)
         result[['mappingRate']] <- 100*(mappingStats['1']/sum(mappingStats))
