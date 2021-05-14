@@ -78,17 +78,12 @@ mapToCovidGenome <- function(param, input, workDir){
         reads <- ezReadBamFileAsGRanges(bamFile, chromosomes = NULL, pairedEndReads = param$paired,
                                         max.fragment.width = 5000, min.mapq = 10, remove.duplicate.reads = FALSE)
         cov <- coverage(reads)
-        avgCov <- mean(cov, na.rm = TRUE)
-        sdCov <- sd(cov, na.rm = TRUE)
+        avgCov <- mean(unlist(cov), na.rm = TRUE)
+        sdCov <- sd(unlist(cov), na.rm = TRUE)
+        result[['avgCov']][i] <- avgCov
+        result[['sdCov']][i] <- sdCov
         
-        if(is.na(avgCov)) {
-            stop('coverage is NA')
-        } else {
-            result[['avgCov']][i] <- avgCov
-            result[['sdCov']][i] <- sdCov
-        }
-
-        #file.remove(bamFile)
+        file.remove(bamFile)
     }
     setwd('..')
     return(result)
