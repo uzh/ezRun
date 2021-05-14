@@ -63,6 +63,7 @@ countQcScatterPlots = function(param, design, conds, rawData, signalCond,
     }
   }
   narrowPlots <- list()
+  nPlots <- 0
   for (factorName in head(colnames(design), 4)){ ## take the first 4 factors
     for (factorLevel in unique(design[, factorName])){
       idx = which(factorLevel == design[, factorName])
