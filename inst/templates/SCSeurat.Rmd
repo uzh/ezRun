@@ -160,6 +160,7 @@ if ("CellCycle" %in% param$vars.to.regress) {
     ),
     "CellCycle"
   )
+  scData <- getCellCycle(scData, param$refBuild)
 }
 
 if (ezIsSpecified(param$vars.to.regress)) {
@@ -264,8 +265,8 @@ FeaturePlot(
   reduction = "umap"
 )
 if('S.Score' %in% colnames(scData[[]])){
-  DimPlot(scData, reduction = "umap", group.by = "S.Score") +
-  ggtitle("Cell cycle S phase")
+  DimPlot(scData, reduction = "umap", group.by = "Phase") +
+  ggtitle("Cell cycle")
 }
 FeaturePlot(scData,
   features = "scDblFinder.score",
@@ -290,8 +291,8 @@ FeaturePlot(
   reduction = "tsne"
 )
 if('S.Score' %in% colnames(scData[[]])){
-  DimPlot(scData, reduction = "tsne", group.by = "S.Score") +
-  ggtitle("Cell cycle S phase")
+  DimPlot(scData, reduction = "tsne", group.by = "Phase") +
+  ggtitle("Cell cycle")
 }
 FeaturePlot(scData,
   features = "scDblFinder.score",
