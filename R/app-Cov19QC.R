@@ -11,7 +11,7 @@ ezMethodCov19QC <- function(input = NA, output = NA, param = NA, htmlFile = "00i
     }  
     
     ###1. Get Adapter Dimer Fraction (per Sample Mapping against AdapterSeq)
-    adapterResult = getAdapterStats(param, input, workDir="rawReads")
+    adapterResult <- getAdapterStats(param, input, workDir="rawReads")
     
     ###2. Preprocess with fastp
     inputProc <- ezMethodFastpTrim(input = input, param = param)
@@ -40,11 +40,11 @@ getAdapterStats <- function(param, input, workDir){
     i <- 0
     for (nm in names(inputFiles)) {
         i <- i + 1
-        readCount <- min(c(20000, metadata(input)[['Read Count']][i]))
+        readCount <- min(c(20000, input$meta[['Read Count']][i]))
         file <- inputFiles[nm]
         myCmd <- paste('zcat', file, '|head -n 80000|grep', paste0('"^.*',pattern,'"'),'-o |while read LINE; do echo $LINE | wc -m; done')
         adapterPositions <- as.numeric(system(myCmd, intern = TRUE))-nchar(pattern)
-        result[i,adapterDimerFraction] <- sum(adapterPositions <= 10, na.rm = TRUE)/readCount
+        result[['adapterDimerFraction']][i] <- sum(adapterPositions <= 10, na.rm = TRUE)/readCount
     }
     return(result)
 }
@@ -59,7 +59,7 @@ mapToCovidGenome <- function(param, input, workDir){
     setwdNew(workDir)
     i <- 0
     for (nm in names(R1_files)) {
-        nReads <- min(c(1000000, metadata(input)[['Read Count']][i]))
+        nReads <- min(c(1000000, input$meta[['Read Count']][i]))
         i <- i + 1
         bamFile <- paste0(nm, ".bam")
         cmd <- paste(
