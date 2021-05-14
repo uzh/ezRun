@@ -96,6 +96,7 @@ countQcScatterPlots = function(param, design, conds, rawData, signalCond,
       }
     }
   }
+  nPlots <- max(c(1, nPlots))
   return(list(widePlots=widePlots, narrowPlots=narrowPlots, envir=sys.frame(which=sys.nframe())))
 }
 
