@@ -160,7 +160,6 @@ if ("CellCycle" %in% param$vars.to.regress) {
     ),
     "CellCycle"
   )
-  scData <- getCellCycle(scData, param$refBuild)
 }
 
 if (ezIsSpecified(param$vars.to.regress)) {
