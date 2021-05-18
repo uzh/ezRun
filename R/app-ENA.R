@@ -31,17 +31,13 @@ ezMethodGetEnaData <- function(input=NA, output=NA, param=NA){
         sampleAttributes <- xmlToDataFrame(xmlRoot(xml)[[1]][[5]])
         sampleAttributes <- sampleAttributes[grep('ENA',sampleAttributes$TAG, invert = TRUE),]
         
-        if(!is.null(nrow(sampleAttributes))){
-            if(nrow(sampleAttributes) > 0){
-            if (i == 1){
-                for (j in 1:nrow(sampleAttributes)){
-                    fastqInfo[[as.character(sampleAttributes[j, 1])]] = '-'
-                    fastqInfo[[as.character(sampleAttributes[j,1])]][i] = as.character(sampleAttributes[j,2])
-                }} else {
-                    for (j in 1:nrow(sampleAttributes)){
-                        fastqInfo[[as.character(sampleAttributes[j, 1])]][i] = as.character(sampleAttributes[j,2])
-                    }
+        if(!is.null(nrow(sampleAttributes)) && nrow(sampleAttributes) > 0){
+            for (j in 1:nrow(sampleAttributes)){
+                attrName <- as.character(sampleAttributes[j, 1])
+                if (is.null(fastqInfo[[attrName]])){
+                    fastqInfo[[attrName]] = '-'
                 }
+                fastqInfo[i, attrName] = as.character(sampleAttributes[j,2])
             }
         }
         
