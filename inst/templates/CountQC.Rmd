@@ -443,7 +443,7 @@ if(ncol(rawData) > 3){
 
 ## Scatter Plots by Conditions
 
-```{r scatter plot setup, echo=FALSE, message=FALSE}
+```{r echo=FALSE, message=FALSE}
 envir = list(nPlots = 1) ## make sure envir is defined even if there are only two samples
 ```
 
