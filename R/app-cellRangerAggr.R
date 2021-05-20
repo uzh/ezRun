@@ -57,19 +57,5 @@ ezMethodCellRangerAggr <- function(input = NA, output = NA, param = NA) {
   file.rename(file.path(cellRangerFolder, "outs"), param$name)
   unlink(cellRangerFolder, recursive = TRUE)
 
-  ## Add cell cycle to the filtered matrix folder by concatenating previous cell cycle results
-  cellcycle_paths <- file.path(
-    input$getFullPaths("CountMatrix"),
-    "CellCyclePhase.txt"
-  )
-  cellPhaseAggr <- map_dfr(cellcycle_paths, read_tsv, .id = "SampleID")
-  cellPhaseAggr <- cellPhaseAggr %>%
-    mutate(Name = str_replace(Name, "\\d+$", "") %>% str_c(SampleID)) %>%
-    select(-SampleID)
-  write_tsv(cellPhaseAggr,
-    file = file.path(
-      param$name, "count", "filtered_feature_bc_matrix", "CellCyclePhase.txt"
-    )
-  )
   return("Success")
 }

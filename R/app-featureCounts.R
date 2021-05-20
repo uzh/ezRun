@@ -283,8 +283,5 @@ ezMethodSingleCellFeatureCounts <- function(input=NA, output=NA, param=NA){
   writeSCMM(countsFixed, file=outputFile)
   ezWrite.table(countResult$stat, file=statFile, row.names=FALSE)
   
-  cellPhase <- getCellCycle(countsFixed, param$refBuild)
-  write_tsv(cellPhase, file=basename(output$getColumn('CellCyclePhase')))
-  
   return("Success")
 }
