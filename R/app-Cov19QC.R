@@ -68,29 +68,31 @@ mapToCovidGenome <- function(param, input, workDir){
     for (nm in names(R1_files)) {
         i <- i + 1
         nReads <- min(c(as.numeric(param$readsUsed), input$meta[['Read Count']][i]))
-        bamFile <- paste0(nm, ".bam")
-        cmd <- paste(
+        if(nReads >= param$minReads){
+            bamFile <- paste0(nm, ".bam")
+            cmd <- paste(
             "bowtie2", param$cmdOptions, defOpt,
             "-x", ref, if (param$paired) "-1", R1_files[nm],
             if (param$paired) paste("-2", R2_files[nm]),
             "2>", paste0(nm, "_bowtie2.log"), "|",
             "samtools", "view -S -b - > bowtie.bam")
-        ezSystem(cmd)
-        ezSortIndexBam("bowtie.bam", bamFile,
+            ezSystem(cmd)
+            ezSortIndexBam("bowtie.bam", bamFile,
                        ram = param$ram, removeBam = TRUE,
                        cores = param$cores)
-        
-        mappingStats <- getBamMultiMatching(param, bamFile, nReads)
-        result[['mappingRate']][i] <- 100* (sum(mappingStats[2:length(mappingStats)])/nReads)
-        reads <- ezReadBamFileAsGRanges(bamFile, chromosomes = NULL, pairedEndReads = param$paired,
+            mappingStats <- getBamMultiMatching(param, bamFile, nReads)
+            result[['mappingRate']][i] <- 100* (sum(mappingStats[2:length(mappingStats)])/nReads)
+            if(length(mappingStats) > 1){
+                reads <- ezReadBamFileAsGRanges(bamFile, chromosomes = NULL, pairedEndReads = param$paired,
                                         max.fragment.width = 5000, min.mapq = 10, remove.duplicate.reads = FALSE)
-        cov <- coverage(reads)
-        avgCov <- mean(unlist(cov), na.rm = TRUE)
-        sdCov <- sd(unlist(cov), na.rm = TRUE)
-        result[['avgCov']][i] <- avgCov
-        result[['sdCov']][i] <- sdCov
-        
-        file.remove(bamFile)
+                cov <- coverage(reads)
+                avgCov <- mean(unlist(cov), na.rm = TRUE)
+                sdCov <- sd(unlist(cov), na.rm = TRUE)
+                result[['avgCov']][i] <- avgCov
+                result[['sdCov']][i] <- sdCov
+                file.remove(bamFile)
+                }
+        }
     }
     setwd('..')
     return(result)
@@ -110,7 +112,9 @@ EzAppCov19QC <-
                         runMethod <<- ezMethodCov19QC
                         name <<- "EzAppCov19QC"
                         appDefaults <<- rbind(Adapter1 = ezFrame(Type = "character", DefaultValue = "CTGTCTCTTATACACATCT",
-                                                                      Description = "Adapter Sequence for dimer calc"))
+                                                                      Description = "Adapter Sequence for dimer calc"),
+                                              minReads = ezFrame(Type = "numeric", DefaultValue = 10,
+                                                                 Description = "minimal number of rawReads for mapping step"))
                     }
                 )
     )
