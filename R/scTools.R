@@ -5,35 +5,39 @@
 # The terms are available here: http://www.gnu.org/licenses/gpl.html
 # www.fgcz.ch
 
-getCellCycle <- function(sce, refBuild){
-  require(scran)
+addCellCycleToSce <- function(sce, refBuild){
   counts <- counts(sce)
   rownames(counts) <- rowData(sce)$ID
-  # The training data is only available for Hsap and Mmus Ensembl
-  if(startsWith(refBuild, "Homo_sapiens")){
-    species <- "human"
-    hasTrainData <- TRUE
-  }else if(startsWith(refBuild, "Mus_musculus")){
-    species <- "mouse"
-    hasTrainData <- TRUE
-  }else{
-    hasTrainData <- FALSE
-  }
-  if(isTRUE(hasTrainData)){
-    trainData <- readRDS(system.file("exdata",
-                                     paste0(species, "_cycle_markers.rds"), 
-                                     package = "scran", mustWork=TRUE))
-    cellCycleData <- cyclone(counts, trainData)
-    
-    cellPhase <- tibble(Name = colnames(counts),
-                        Phase = cellCycleData$phases)
-    cellPhase <- bind_cols(cellPhase, cellCycleData$scores)
+  cellPhase <- getCellCycle(counts, refBuild)
+  if (!is.null(cellPhase)){
     colData(sce)$CellCycle <- cellPhase$Phase
     colData(sce)$CellCycleG1 <- cellPhase$G1
     colData(sce)$CellCycleS <- cellPhase$S
     colData(sce)$CellCycleG2M <- cellPhase$G2M
   }
   return(sce)
+}
+
+
+getCellCycle <- function(counts, refBuild){
+  require(scran)
+
+  species <- sub("\\/.*", "", refBuild)
+  trainDataFile <- switch(species,
+                      Homo_sapiens=system.file("exdata","human_cycle_markers.rds", 
+                                               package = "scran"),
+                      Mus_musculus=system.file("exdata","mouse_cycle_markers.rds", 
+                                               package = "scran"))
+  if (!file.exists(trainDataFile)){
+    return(NULL)
+  } else {
+    trainData <- readRDS(trainDataFile)
+    cellCycleData <- cyclone(counts, trainData)
+    cellPhase <- tibble(Name = colnames(counts),
+                        Phase = cellCycleData$phases)
+    cellPhase <- bind_cols(cellPhase, cellCycleData$scores)
+    return(cellPhase)
+  }
 }
 
 getPerplexity <- function(n){

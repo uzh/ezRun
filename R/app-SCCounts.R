@@ -74,10 +74,6 @@ ezMethodSCCounts <- function(input = NA, output = NA, param = NA,
     "-counts\\.mtx$", "_stats.txt",
     output$getColumn("CountMatrix")
   )
-  metaFixed[["CellCyclePhase [File]"]] <- sub(
-    "-counts\\.mtx$", "-CellCyclePhase.txt",
-    output$getColumn("CountMatrix")
-  )
   output <- EzDataset(meta = metaFixed, dataRoot = param$dataRoot)
 
   metainput <- EzDataset(
@@ -92,7 +88,6 @@ ezMethodSCCounts <- function(input = NA, output = NA, param = NA,
   cellMeta[["STARLog [File]"]] <- output$getColumn("STARLog")
   cellMeta[["PreprocessingLog [File]"]] <- output$getColumn("PreprocessingLog")
   cellMeta[["Stats [File]"]] <- output$getColumn("Stats")
-  cellMeta[["CellCyclePhase [File]"]] <- output$getColumn("CellCyclePhase")
 
   write_tsv(as_tibble(cellMeta, rownames = "Name"),
     file = basename(output$getColumn("CellDataset"))

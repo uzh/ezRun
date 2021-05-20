@@ -170,15 +170,6 @@ ezMethodSTARsolo = function(input=NA, output=NA, param=NA){
     ### save in new directory
     filteredDir = paste0(sampleName,'/filtered_feature_bc_matrix')
     write10xCounts(path = filteredDir, x = countsFiltered, gene.id = geneID, gene.symbol = geneSymbol, version = '3')
-    
-    # Get cell cycle from filtered output
-    ## generate filtered single cell experiment object
-    sceFilt = SingleCellExperiment(assays = list(counts = countsFiltered))
-    rownames(sceFilt) = geneID
-    ## analyse cell cycle phase
-    cellPhase = getCellCycle(sceFilt, param$refBuild)
-    write_tsv(cellPhase, file=file.path(filteredDir, "CellCyclePhase.txt"))
-    
     return("Success")
 }
 # create STARsolo shell command

@@ -87,7 +87,7 @@ ezMethodSCFeatBarcoding <- function(input=NA, output=NA, param=NA,
   sce.unfiltered <- sce_list$sce.unfiltered
   
   #calculate cellcycle for the filtered sce object
-  sce <- getCellCycle(sce, param$refBuild)
+  sce <- addCellCycleToSce(sce, param$refBuild)
   
   # the Seurat object is built from the Gene expression filtered sce object
   scData <- CreateSeuratObject(counts=counts(sce), project=param$name, meta.data=data.frame(colData(sce)))
