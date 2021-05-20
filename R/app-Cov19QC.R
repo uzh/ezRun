@@ -9,21 +9,30 @@ ezMethodCov19QC <- function(input = NA, output = NA, param = NA, htmlFile = "00i
     if (ezIsSpecified(param$samples)){
         input <- input$subset(param$samples)
     }  
-    
+    setwdNew(param[['name']])
     ###1. Get Adapter Dimer Fraction (per Sample Mapping against AdapterSeq)
     adapterResult <- getAdapterStats(param, input)
     
     ###2. Preprocess with fastp
+    param[['cmdOptionsFastp']] <- paste0('--reads_to_process=', param$readsUsed)
     inputProc <- ezMethodFastpTrim(input = input, param = param)
     
     ###3. Run Bowtie2 Mapping to get basic bamStats
     mappingResult <- mapToCovidGenome(param, input = inputProc, workDir="mappingResult")
     
     ###4. Report results (% Primer Dimer, % Mapped Reads, AvgCoverage, StdCoverage)
-    ezWrite.table(adapterResult, 'adapterRes.txt', row.names = FALSE)
-    ezWrite.table(mappingResult, 'mappingRes.txt', row.names = FALSE)
+    dataset <- data.frame(Name = rownames(input$meta), input$meta, stringsAsFactors = FALSE, check.names = FALSE)
+    result <- merge(adapterResult, mappingResult, by.x = 'Name', by.y = 'Name', all.x = TRUE, all.y = TRUE)
+    result <- merge(result, dataset, by.x = 'Name', by.y = 'Name', all.x = TRUE, all.y = TRUE)
+    ezWrite.table(result, 'result.txt', row.names = FALSE)
     
-    #generateReport(adapterResult, mappingResult, param, htmlFile)
+    file <- file.path(system.file("templates", package="ezRun"), 
+                      "Cov19QC.Rmd")
+    file.copy(from=file, to=basename(file), overwrite=TRUE)
+    rmarkdown::render(input=basename(file), envir = new.env(),
+                      output_dir=".", output_file=htmlFile,
+                      quiet=TRUE)
+    ezSystem('rm *.fastq.gz adapters.fa mappingResult/*.bai')
     return('success')
 }
 
@@ -34,8 +43,6 @@ getAdapterStats <- function(param, input){
         } else {
             pattern <- 'CTGTCTCTTATACACATCT'
         }
-    
-    bowtie2options <- param$cmdOptions
     result <- data.frame(Name = names(inputFiles), adapterDimerFraction = 0)
     i <- 0
     for (nm in names(inputFiles)) {
@@ -60,10 +67,10 @@ mapToCovidGenome <- function(param, input, workDir){
     i <- 0
     for (nm in names(R1_files)) {
         i <- i + 1
-        nReads <- min(c(1000000, input$meta[['Read Count']][i]))
+        nReads <- min(c(as.numeric(param$readsUsed), input$meta[['Read Count']][i]))
         bamFile <- paste0(nm, ".bam")
         cmd <- paste(
-            "bowtie2", param$cmdOptions, defOpt, "-u 1000000",
+            "bowtie2", param$cmdOptions, defOpt,
             "-x", ref, if (param$paired) "-1", R1_files[nm],
             if (param$paired) paste("-2", R2_files[nm]),
             "2>", paste0(nm, "_bowtie2.log"), "|",
@@ -74,7 +81,7 @@ mapToCovidGenome <- function(param, input, workDir){
                        cores = param$cores)
         
         mappingStats <- getBamMultiMatching(param, bamFile, nReads)
-        result[['mappingRate']][i] <- 100*(mappingStats['1']/sum(mappingStats))
+        result[['mappingRate']][i] <- 100* (sum(mappingStats[2:length(mappingStats)])/nReads)
         reads <- ezReadBamFileAsGRanges(bamFile, chromosomes = NULL, pairedEndReads = param$paired,
                                         max.fragment.width = 5000, min.mapq = 10, remove.duplicate.reads = FALSE)
         cov <- coverage(reads)
