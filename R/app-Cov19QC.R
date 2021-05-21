@@ -60,7 +60,7 @@ mapToCovidGenome <- function(param, input, workDir){
     R1_files = input$getFullPaths("Read1")
     R2_files = input$getFullPaths("Read2")
     
-    result <- data.frame(Name = names(R1_files), mappingRate = 0, avgCov = 0, sdCov = 0)
+    result <- data.frame(Name = names(R1_files), mappingRate = 0, avgCov = 0, sdCov = 0, minCov = 0)
     ref <- getBowtie2Reference(param)
     defOpt <- paste("-p", param$cores)
     setwdNew(workDir)
@@ -90,7 +90,8 @@ mapToCovidGenome <- function(param, input, workDir){
                 sdCov <- sd(unlist(cov), na.rm = TRUE)
                 result[['avgCov']][i] <- avgCov
                 result[['sdCov']][i] <- sdCov
-                file.remove(bamFile)
+                result[['minCov']][i] <- 100*(sum(as.vector(cov[[1]]) >= param$minCov)/length(as.vector(cov[[1]])))
+                #file.remove(bamFile)
                 }
         }
     }
@@ -114,7 +115,9 @@ EzAppCov19QC <-
                         appDefaults <<- rbind(Adapter1 = ezFrame(Type = "character", DefaultValue = "CTGTCTCTTATACACATCT",
                                                                       Description = "Adapter Sequence for dimer calc"),
                                               minReads = ezFrame(Type = "numeric", DefaultValue = 10,
-                                                                 Description = "minimal number of rawReads for mapping step"))
+                                                                 Description = "minimal number of reads to be considered for mapping"),
+                                              minCov = ezFrame(Type = "numeric", DefaultValue = 5,
+                                                                 Description = "minimal coverage per base position for variant calling"))
                     }
                 )
     )
