@@ -1,12 +1,12 @@
 ---
-title:  "`r metadata(sce)$param$name`"
+title: "`r if (exists('reportTitle')) reportTitle else 'SUSHI Report'`"
 author: "Functional Genomics Center Zurich"
 output: 
   html_document:
-    self_contained: false
+    self_contained: true
     includes:
-      in_header: fgcz_header.html
-    css: fgcz.css
+     in_header: !expr system.file("templates/fgcz_header.html", package="ezRun", lib.loc=.libPaths())
+    css: !expr system.file("templates/fgcz.css", package="ezRun", lib.loc=.libPaths())
 editor_options: 
   chunk_output_type: console
 ---
@@ -29,8 +29,7 @@ library(plotly)
 library(tidyverse)
 ## ----------------------------------------------
 ## debug
-# title:  "`r metadata(sce)$param$name`"
-# sce <- readRDS("/scratch/gtan/dev/p2886-Reza-SCSeurat/Sample_1_17_08_2018_SCSeurat/sce.rds")
+# sce <- readRDS("/scratch/SCSeurat_57583--n_Feature_50-5000--mt_percent_10_2021-05-19--14-44-54_o24771_1_1-14_Glia_Skin_temp32153/sce.rds")
 # sce <- sce[ ,sample.int(ncol(sce), round(ncol(sce)/10))]
 ## end of debug
 debug <- FALSE
@@ -40,8 +39,8 @@ param <- metadata(sce)$param
 input <- metadata(sce)$input
 output <- metadata(sce)$output
 rownames(sce) <- uniquifyFeatureNames(
-  rowData(sce)$gene_id,
-  rowData(sce)$gene_name
+  rowData(sce)$ID,
+  rowData(sce)$Symbol
 )
 
 scData <- CreateSeuratObject(
