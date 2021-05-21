@@ -37,7 +37,8 @@ ezMethodSCScran <- function(input=NA, output=NA, param=NA,
   setwdNew(basename(output$getColumn("Report")))
   on.exit(setwd(cwd), add=TRUE)
   
-  sce <- loadSCCountDataset(input, param)
+  sce <- load10xData(input, param)
+  sce <- addCellCycleToSce(sce, param$refBuild)
   metadata(sce)$output <- output
   metadata(sce)$param$name <- paste(metadata(sce)$param$name,
                                     paste(input$getNames(), collapse=", "),
