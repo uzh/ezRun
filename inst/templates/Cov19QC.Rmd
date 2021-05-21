@@ -19,6 +19,34 @@ Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
 
 ## Cov19QC {.tabset}
 
+### Summary
+```{r, echo=FALSE, message=FALSE}
+mySummary <- data.frame(Passed = rep(0,4), PassedFraction = rep(0,4), Failed = rep(0,4), FailedFraction = rep(0,4))
+rownames(mySummary) = c('rawReads > 100K', 'mappingRate > 0.5', 'avgCoverage > 100', 'minCoverageFraction > 80%')
+
+mySummary['rawReads > 100K', 'Passed'] = c(sum(dataset[['Read Count']] >= 10^5))
+mySummary['rawReads > 100K', 'Failed'] = c(sum(dataset[['Read Count']] < 10^5))
+mySummary['rawReads > 100K', 'PassedFraction'] = mySummary['rawReads > 100K', 'Passed']/nrow(dataset)
+mySummary['rawReads > 100K', 'FailedFraction'] = mySummary['rawReads > 100K', 'Failed']/nrow(dataset)
+
+mySummary['mappingRate > 0.5', 'Passed'] = c(sum(result[['mappingRate']] >= 50))
+mySummary['mappingRate > 0.5', 'Failed'] = c(sum(result[['mappingRate']] < 50))
+mySummary['mappingRate > 0.5', 'PassedFraction'] = mySummary['mappingRate > 0.5', 'Passed']/nrow(result)
+mySummary['mappingRate > 0.5', 'FailedFraction'] = mySummary['mappingRate > 0.5', 'Failed']/nrow(result)
+
+mySummary['avgCoverage > 100', 'Passed'] = c(sum(result[['avgCov']] >= 100))
+mySummary['avgCoverage > 100', 'Failed'] = c(sum(result[['avgCov']] < 100))
+mySummary['avgCoverage > 100', 'PassedFraction'] = mySummary['avgCoverage > 100', 'Passed']/nrow(result)
+mySummary['avgCoverage > 100', 'FailedFraction'] = mySummary['avgCoverage > 100', 'Failed']/nrow(result)
+
+mySummary['minCoverageFraction > 80%', 'Passed'] = c(sum(result[['minCov']] >= 0.8))
+mySummary['minCoverageFraction > 80%', 'Failed'] = c(sum(result[['minCov']] < 0.8))
+mySummary['minCoverageFraction > 80%', 'PassedFraction'] = mySummary['minCoverageFraction > 80%', 'Passed']/nrow(result)
+mySummary['minCoverageFraction > 80%', 'FailedFraction'] = mySummary['minCoverageFraction > 80%', 'Failed']/nrow(result)
+
+ezInteractiveTableRmd(values=mySummary)
+```
+
 ### Sample Stats
 ```{r, echo=FALSE, message=FALSE}
 ezInteractiveTableRmd(values=result)
@@ -32,18 +60,17 @@ The read counts in each sample.
 ```{r readCounts, echo=FALSE}
 if("FGCZ_PLATE_NO." %in% colnames(dataset)){
   dataset <- dataset[order(dataset[['FGCZ_PLATE_NO.']], dataset[['Read Count']]),]
-  readCount <- dataset[['Read Count']]/10^3
-  names(readCount) <- paste(dataset[['FGCZ_PLATE_NO.']], dataset[['Name']], sep = '_')
+  dataset[['Name']] <- paste(dataset[['FGCZ_PLATE_NO.']], dataset[['Name']], sep = '_')
 } else {
   dataset <- dataset[order(dataset[['Read Count']]),]
-  readCount <- dataset[['Read Count']]/10^3
-  names(readCount) <- dataset[['Name']]
 }
+dataset[['Read Count']] <- dataset[['Read Count']]/10^3
+dataset[['Name']] <- factor(dataset[['Name']], levels=unique(dataset[['Name']]))
 ```
 
 The read counts per Plate
 
-```{r readCountsPerPlatePlotly, fig.height=7, fig.width=min(max(7, 7+(length(readCount)-20)*0.3), 30), echo=FALSE, message=FALSE, warning=FALSE}
+```{r readCountsPerPlatePlotly, fig.height=7, fig.width=7, echo=FALSE, message=FALSE, warning=FALSE}
 if("FGCZ_PLATE_NO." %in% colnames(dataset)){
   m <- list(
     l = 80,
@@ -52,7 +79,7 @@ if("FGCZ_PLATE_NO." %in% colnames(dataset)){
     t = 100,
     pad = 0
   )
-  readCountPerPlate <- tapply(readCount, INDEX = dataset[['FGCZ_PLATE_NO.']], sum)/10^3
+  readCountPerPlate <- tapply(dataset[['Read Count']], INDEX = dataset[['FGCZ_PLATE_NO.']], sum)/10^3
   names(readCountPerPlate) <- unique(dataset[['FGCZ_PLATE_NO.']])
   
   plot_ly(x=names(readCountPerPlate), y=readCountPerPlate, type="bar") %>%
@@ -64,7 +91,7 @@ if("FGCZ_PLATE_NO." %in% colnames(dataset)){
 ```
 
 
-```{r readCountsPlotly, fig.height=7, fig.width=min(max(7, 7+(length(readCount)-20)*0.3), 30), echo=FALSE, message=FALSE, warning=FALSE}
+```{r readCountsPlotly, fig.height=7, fig.width=min(max(7, 7+(nrow(dataset)-20)*0.3), 30), echo=FALSE, message=FALSE, warning=FALSE}
 m <- list(
   l = 80,
   r = 80,
@@ -72,7 +99,8 @@ m <- list(
   t = 100,
   pad = 0
 )
-plot_ly(x=names(readCount), y=readCount, type="bar") %>%
+
+plot_ly(x=dataset[['Name']], y=dataset[['Read Count']], type="bar") %>%
   layout(title="Total reads",
          yaxis = list(title = "Counts [K]"),
          margin = m
@@ -87,11 +115,10 @@ if("FGCZ_PLATE_NO." %in% colnames(result)){
   } else {
   result2 <- result[order(result[['Read Count']]),] 
   }
-  mappingRate <- result2$mappingRate
-  names(mappingRate) <- result2[['Name']]
+  result2[['Name']] <- factor(result2[['Name']], levels=unique(result2[['Name']]))
 ```
 
-```{r mappingsPlotly, fig.height=7, fig.width=min(max(7, 7+(length(readCount)-20)*0.3), 30), echo=FALSE, message=FALSE, warning=FALSE}
+```{r mappingsPlotly, fig.height=7, fig.width=min(max(7, 7+(nrow(result)-20)*0.3), 30), echo=FALSE, message=FALSE, warning=FALSE}
 m <- list(
   l = 80,
   r = 80,
@@ -99,7 +126,7 @@ m <- list(
   t = 100,
   pad = 0
 )
-plot_ly(x=names(mappingRate), y=mappingRate, type="bar") %>%
+plot_ly(x=result2[['Name']], y=result2[['mappingRate']], type="bar") %>%
   layout(title="Mapping Rate",
          yaxis = list(title = "in %"),
          margin = m
@@ -113,7 +140,7 @@ plot_ly(x=names(mappingRate), y=mappingRate, type="bar") %>%
   names(avgCoverage) <- result2[['Name']]
 ```
 
-```{r covPlotly, fig.height=7, fig.width=min(max(7, 7+(length(readCount)-20)*0.3), 30), echo=FALSE, message=FALSE, warning=FALSE}
+```{r covPlotly, fig.height=7, fig.width=min(max(7, 7+(nrow(result)-20)*0.3), 30), echo=FALSE, message=FALSE, warning=FALSE}
 m <- list(
   l = 80,
   r = 80,
@@ -121,7 +148,7 @@ m <- list(
   t = 100,
   pad = 0
 )
-plot_ly(x=names(avgCoverage), y=avgCoverage, type="bar") %>%
+plot_ly(x=result2[['Name']], y=result2[['avgCov']], type="bar") %>%
   layout(title="average Coverage",
          yaxis = list(title = "Genomic Coverage"),
          margin = m
@@ -138,8 +165,10 @@ ezInteractiveTableRmd(values=input$meta)
 settings = character()
 settings["Reference:"] <- param[['refBuild']]
 settings["nReads"] <- param[['readsUsed']]
-settings["specialOptions"] <- param[['specialOptions']]
 settings[["AdapterSeq"]] <- param[['Adapter1']]
+settings[["minCoverage"]] <- param[['minCov']]
+settings[["minReads"]] <- param[['minReads']]
+settings["specialOptions"] <- param[['specialOptions']]
 kable(settings, row.names=TRUE, 
       col.names="Setting", format="html") %>%
   kable_styling(bootstrap_options = "striped", full_width = F,
