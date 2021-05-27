@@ -772,13 +772,13 @@ The Over Representation Analysis (ORA), also known as the hypergeometric test, g
 *** 
 
 ```{r ora overview, echo=F, message=F, eval=!debug}
-ora.overview = ezFrame("Number of Significant Pathways"=numeric())
+ora.overview = ezFrame("Number of Significant Terms"=numeric())
 for (goDomain in names(enrichResult)){
   for (resName in names(enrichResult[[goDomain]])){
             testName = paste0(goDomain,": ",resName)
-            ora.overview[testName, "Number of Significant Pathways"] = 
+            ora.overview[testName, "Number of Significant Terms"] = 
               nrow(enrichResult[[goDomain]][[resName]]@result[
-                enrichResult[[goDomain]][[resName]]@result$pvalue < 0.05, ])
+                enrichResult[[goDomain]][[resName]]@result$p.adjust < 0.05, ])
   }
 }
 
