@@ -102,8 +102,12 @@ ezMethodCellRanger <- function(input = NA, output = NA, param = NA) {
     unlink(refDir, recursive = TRUE)
   
   #7. Calculate alignment stats from the BAM file
-  if(param$bamStats)
-    computeBamStatsSC(sampleName, ram=param$ram)
+  if(param$bamStats){
+    alignStats <- computeBamStatsSC(sampleName, ram=param$ram)
+    if (!is.null(bamStats)){
+      ezWrite.table(alignStats, file=file.path(sampleName, "CellAlignStats.txt"), head="Barcode")
+    }
+  }
   
   return("Success")
 }
@@ -157,38 +161,35 @@ computeBamStatsSC = function(sampleName, ram=NULL) {
   bamFile = file.path(sampleName, "possorted_genome_bam.bam")
   if (!is.null(ram)){  
     nAlign = sum(ezScanBam(bamFile, tag = "CB", 
-                       what = character(0), isUnmappedQuery = FALSE, countOnly = TRUE)$records)
+                           what = character(0), isUnmappedQuery = FALSE, countOnly = TRUE)$records)
     if (nAlign / ram > 20e6){
       ## computation would take too much RAM
       return(NULL)
     }
   }
   cb = ezScanBam(bamFile, tag = "CB", 
-                   what = character(0), isUnmappedQuery = FALSE)$tag$CB
+                 what = character(0), isUnmappedQuery = FALSE)$tag$CB
   nReads = table(cb)
   resultFrame = data.frame(nRead=as.vector(nReads), row.names=names(nReads))
   x = ezScanBam(bamFile, tag = "UB", 
-                 what = character(0), isUnmappedQuery = FALSE)$tag$UB
-  resultFrame$nUmi = tapply(x, cb, n_distinct)
+                what = character(0), isUnmappedQuery = FALSE)$tag$UB
+  resultFrame$nUmi = as.vector(tapply(x, cb, n_distinct))
   x = ezScanBam(bamFile, tag = "ts", 
                 what = character(0), isUnmappedQuery = FALSE)$tag$ts
   if (length(x) == length(cb)){ ## the 5' protocol does not have the ts tag
-    resultFrame$nTso = tapply(x > 3, cb, sum, na.rm=TRUE) ## at least 3 bases
+    resultFrame$nTso = as.vector(tapply(x > 3, cb, sum, na.rm=TRUE)) ## at least 3 bases
   }
   x = ezScanBam(bamFile, tag = "pa", 
                 what = character(0), isUnmappedQuery = FALSE)$tag$pa
   if (length(x) == length(cb)){ ## the 5' protocol does not have the ts tag
-    resultFrame$nPa = tapply(x > 3, cb, sum, na.rm=TRUE)
+    resultFrame$nPa = as.vector(tapply(x > 3, cb, sum, na.rm=TRUE))
   }
   x = ezScanBam(bamFile, tag = "RE", 
                 what = character(0), isUnmappedQuery = FALSE)$tag$RE
-  resultFrame$nIntergenic = tapply(x == "I", cb, sum)
-  resultFrame$nExonic = tapply(x == "E", cb, sum)
-  resultFrame$nIntronic = tapply(x == "N", cb, sum)
-  if (!is.null(resultFrame)){
-    ezWrite.table(resultFrame, file=file.path(sampleName, "CellAlignStats.txt"),
-                  head="Barcode")
-  }
+  resultFrame$nIntergenic = as.vector(tapply(x == "I", cb, sum))
+  resultFrame$nExonic = as.vector(tapply(x == "E", cb, sum))
+  resultFrame$nIntronic = as.vector(tapply(x == "N", cb, sum))
+  return(resultFrame)
 }
 
 
