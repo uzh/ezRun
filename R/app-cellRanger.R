@@ -104,7 +104,7 @@ ezMethodCellRanger <- function(input = NA, output = NA, param = NA) {
   #7. Calculate alignment stats from the BAM file
   if(param$bamStats){
     alignStats <- computeBamStatsSC(sampleName, ram=param$ram)
-    if (!is.null(bamStats)){
+    if (!is.null(alignStats)){
       ezWrite.table(alignStats, file=file.path(sampleName, "CellAlignStats.txt"), head="Barcode")
     }
   }
