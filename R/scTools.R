@@ -7,9 +7,7 @@
 
 addCellCycleToSce <- function(sce, refBuild){
   counts <- counts(sce)
-  if (is.null(rownames(counts))){
-    rownames(counts) <- rowData(sce)$"gene_id"
-  }
+  rownames(counts) <- rowData(sce)$ID
   cellPhase <- getCellCycle(counts, refBuild)
   if (!is.null(cellPhase)){
     colData(sce)$CellCycle <- cellPhase$Phase
