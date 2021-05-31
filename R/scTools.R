@@ -28,7 +28,7 @@ getCellCycle <- function(counts, refBuild){
                                                package = "scran"),
                       Mus_musculus=system.file("exdata","mouse_cycle_markers.rds", 
                                                package = "scran"))
-  if (!file.exists(trainDataFile)){
+  if (is.null(trainDataFile) || !file.exists(trainDataFile)){
     return(NULL)
   } else {
     trainData <- readRDS(trainDataFile)
