@@ -221,7 +221,7 @@ loadSCCountDataset <- function(input, param){
 load10xData <- function(input, param){
 
 library(DropletUtils)
-  
+ 
 countMatrixFn <- list.files(path=input$getFullPaths("CountMatrix"),
                             pattern="\\.mtx(\\.gz)*$", recursive=TRUE, 
                             full.names=TRUE)
@@ -231,7 +231,10 @@ metadata(sce)$param <- param
 
 ## unique cell names when merging two samples
 colnames(sce) <- paste(input$getNames(), colnames(sce), sep="___")
-rownames(sce) = rowData(sce)$Symbol
+library(scuttle)
+rownames(sce) <- uniquifyFeatureNames(ID=rowData(sce)$ID,
+                                      names=rowData(sce)$Symbol)
+
 
 colData(sce)$Batch <- input$getNames()
 try(colData(sce)$Condition <- input$getColumn("Condition"), silent = TRUE)
