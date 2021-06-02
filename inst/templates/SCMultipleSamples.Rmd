@@ -25,6 +25,10 @@ library(plotly)
 library(tidyverse)
 library(SingleR)
 library(AUCell)
+library(HDF5Array)
+library(ezRun)
+library(clustree)
+
 knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE, knitr.table.format = "html")
 ```
 
@@ -145,6 +149,30 @@ kable(cells_prop,row.names=FALSE, format="html",caption="Cell proportions") %>% 
 plotReducedDim(sce, dimred="UMAP", colour_by="ident", text_by="ident", text_size=5) 
 ```
 
+### Clusters assessment
+
+
+#### Segregation of clusters by various sources of uninteresting variation.
+
+Once we have created the clusters we need to asses if the clustering was driven by technical artifacts or uninteresting biological variability, such as cell cycle, mitochondrial gene expression.
+We can explore whether the cells cluster by the different cell cycle phases. In such a case, we would have clusters where most of the cells would be in one specific phase. This bias could be taken into account when normalizing and transforming the data prior to clustering. We can also look at the total number of reads, genes detected and mitochondrial gene expression. The clusters should be more or less even but if we observe big differences among some of them for these metrics, we will keep an eye on them and see if the cell types we identify later can explain the differences. 
+
+```{r uninteresting variation}
+plotColData(sce, x="ident", y="CellCycle", colour_by="ident") + ggtitle("Cell cycle vs ident")
+plotColData(sce, x="ident", y="sum", colour_by="ident") + ggtitle("Number of UMIs vs ident")
+plotColData(sce, x="ident", y="detected", colour_by="ident") + ggtitle("Detected genes vs ident")
+plotColData(sce, x="ident", y="subsets_Mito_percent", colour_by="ident") + ggtitle("Mito percentage vs ident")
+```
+
+#### Clusters resolution 
+
+One of the most important parameters when clustering is k, the number of nearest neighbors used to construct the graph. This controls the resolution of the clustering where higher k yields a more inter-connected graph and broader clusters. Users can experiment with different values of k to obtain a satisfactory resolution. We recommend increasing the resolution when a rare population is expected. 
+Below, it is shown a clustering tree that helps us to visualize the relationships between clusters at a range of resolutions. Each cluster forms a node in the tree and edges are constructed by considering the cells in a cluster at a lower resolution that end up in a cluster at the next highest resolution. By connecting clusters in this way, we can see how clusters are related to each other, which are clearly distinct and which are unstable. The size of each node is related to the number of cells in each cluster and the color indicates the clustering resolution. Edges are colored according to the number of cells they represent and the transparency shows the incoming node proportion, the number of cells in the edge divided by the number of samples in the node it points to. 
+
+```{r, fig.align='center', fig.width=6, fig.height=8}
+clustree::clustree(sce, prefix = "integrated_snn_res.")
+```
+
 ### Cluster markers
 
 ```{r}
@@ -173,7 +201,7 @@ Here, we use a heatmap and a dotplot to visualize simultaneously the top 5 marke
 
 ```{r}
 top5 <- posMarkers %>% group_by(cluster) %>% top_n(n = 5, wt = diff_pct)
-var_heigth <- nrow(top5)*0.3
+var_heigth <- nrow(top5)*0.2
 ```
 
 ```{r heatmap, fig.width=8, fig.height=var_heigth}
@@ -204,16 +232,14 @@ ezInteractiveTableRmd(conservedMarkers, title=caption)
 
 ```{r, eval=!is.null(conservedMarkers)}
 top5 <- conservedMarkers %>% group_by(cluster) %>% top_n(n = 5, wt = avg_avg_fc)
-var_heigth <- nrow(top5)*0.3
+var_heigth <- nrow(top5)*0.2
 ```
 
 
 ```{r consMarkers plots, eval=!is.null(conservedMarkers), results='asis', fig.width=8, fig.height=var_heigth}
-cat("### Conserved markers plots")
+cat("### Conserved markers plots\n")
 cat("\n")
-
-cat("Here, we use a heatmap and a dotplot to visualize simultaneously the top 5 conserved markers in each cluster (with highest average fold change across the two groups). Be aware that some genes may be in the top markers for different clusters.")
-
+cat("Here, we use a heatmap and a dotplot to visualize simultaneously the top 5 conserved markers in each cluster (with highest average fold change across the two groups). Be aware that some genes may be in the top markers for different clusters.\n")
 cat("\n")
 
 pheatmap(geneMeans[unique(top5$gene), ],fontsize_row = 8)
@@ -239,7 +265,7 @@ ezInteractiveTableRmd(diffGenes, title=caption)
 ```
 
 ```{r diffGenes heatmap, eval=!is.null(diffGenes), results='asis', fig.height=6, fig.width=12, fig.align='center'}
-cat("### Differential genes plots")
+cat("### Differential genes plots\n")
 cat("\n")
 cat("The 50 dysregulated genes with the highest difference in expression between the two conditions are represented in the heatmap and the violin plots. The heatmap shows global differences of these genes across the conditions, while the violin plots show cluster specific changes across conditions.")
 cat("\n")
@@ -301,7 +327,7 @@ plotScoreHeatmap(singler.results.cluster, clusters=rownames(singler.results.clus
 ```
 
 
-```{r singler labelsUMAP,  eval= !is.null(metadata(sce)$singler.results), fig.width=12, results='asis'}
+```{r singler labelsUMAP,  eval= !is.null(metadata(sce)$singler.results), results='asis'}
 cat("The single cell (top) and cluster (bottom) annotations are also shown on the UMAPs. Place the mouse over the cells to get information such as their UMAP coordinates, original cluster, the cells name and the label assigned by SingleR. You can also zoom in specific areas of the UMAP by dragging and drop with the mouse.\n")
 
 cellInfo <- tibble(Cells=colnames(sce), Cluster=colData(sce)[,"seurat_clusters"],
@@ -326,14 +352,14 @@ p1 <- plot_ly(cellInfo, x = ~UMAP_1, y = ~UMAP_2, color=~SingleR.labels.single,
                       "\nSingleR.labels.cluster: ", SingleR.labels.single),
         type = 'scatter', mode = "markers", marker=list(size=5, opacity=0.5),
         colors=colsLabels) %>% layout(xaxis=x, yaxis=y)
-p1
+
 p2 <- plot_ly(cellInfo, x = ~UMAP_1, y = ~UMAP_2, color=~SingleR.labels.cluster,
         text = ~paste("Cluster: ", Cluster, 
                       "\nCell: ", Cells,
                       "\nSingleR.labels.cluster: ", SingleR.labels.cluster),
         type = 'scatter', mode = "markers", marker=list(size=5, opacity=0.5),
         colors=colsLabels) %>%layout(xaxis=x, yaxis=y)
-
+p1
 p2
 ```
 
