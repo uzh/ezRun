@@ -42,7 +42,7 @@ sampleColors = getSampleColors(conds, samples)
 bamFiles = dataset$BAM
 ```
 
-```{r igv link, include=FALSE}
+```{r igv link, include=FALSE, eval=FALSE}
 if (param$writeIgvSessionLink){
   if (length(bamFiles) > 4){
     idx = which(!duplicated(conds))
@@ -184,6 +184,7 @@ if (!is.null(resultList[[1]][["TranscriptsCovered"]])){
 
 ```{r genebody coverage legend, echo=FALSE, fig.width=3, fig.height=0.25*(length(samples)+1L), results='asis'}
 if (length(resultList[[1]][["genebody_coverage"]]) != 0){ ## TODO this could be done better by searching alls results for a valid genebody_coverage element
+  cat("###", "Coverage plot\n")
   cat("####", "Genebody coverage plot\n")
   plotCmd = expression({
     ezLegend(legend=samples, fill=sampleColors[samples], title="Sample Colors")
@@ -195,7 +196,7 @@ if (length(resultList[[1]][["genebody_coverage"]]) != 0){ ## TODO this could be 
 ```{r genebody coverage, echo=FALSE, results='asis'}
 if (length(resultList[[1]][["genebody_coverage"]]) != 0){ ## TODO this could be done better by searching alls results for a valid genebody_coverage element
     minYlim = 0 #min(sapply(resultList, function(item){min(item[["genebody_coverage"]])}))
-    maxYlim = 0.08 ## this means we allow at most 10-fold enrichment at a percentile #max(sapply(resultList, function(item){max(item[["genebody_coverage"]])}))
+    maxYlim = 0.03 ## this means we allow at most 10-fold enrichment at a percentile #max(sapply(resultList, function(item){max(item[["genebody_coverage"]])}))
     gbcTemplate = resultList[[1]][["genebody_coverage"]]
     #regions = intersect(c("less than 500nt", "1000 to 1200nt"), rownames(pngMatrix))
     for (rn in names(gbcTemplate)){
