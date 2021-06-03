@@ -159,7 +159,8 @@ for (nm in c("multiMatchTargetTypeCounts", "uniqueMatchTargetTypeCounts")){
 
 ```
 
-```{r transcript coverage, echo=FALSE, results='asis'}
+```{r transcript coverage, echo=FALSE, results='asis', eval=FALSE}
+## don't add it to the report
 if (!is.null(resultList[[1]][["TranscriptsCovered"]])){
   cat("###", "Coverage plot\n")
   cat("####", "Transcripts covered plot\n")
@@ -196,12 +197,9 @@ if (length(resultList[[1]][["genebody_coverage"]]) != 0){ ## TODO this could be 
     minYlim = 0 #min(sapply(resultList, function(item){min(item[["genebody_coverage"]])}))
     maxYlim = 0.08 ## this means we allow at most 10-fold enrichment at a percentile #max(sapply(resultList, function(item){max(item[["genebody_coverage"]])}))
     gbcTemplate = resultList[[1]][["genebody_coverage"]]
-    pngMatrix = ezMatrix("", rows=names(gbcTemplate),
-                         cols=names(gbcTemplate[[1]]))
-    regions = intersect(c("less than 400nt", "1000 to 1200nt"), rownames(pngMatrix))
-    for (rn in regions){ # rownames(pngMatrix)){
-      for (cn in "medium expressed"){ #} colnames(pngMatrix)){
-        pngMatrix[rn, cn] = ezValidFilename(paste0("genebody_coverage_", rn, "_", cn, ".png"))
+    #regions = intersect(c("less than 500nt", "1000 to 1200nt"), rownames(pngMatrix))
+    for (rn in names(gbcTemplate)){
+      for (cn in names(gbcTemplate[[1]])){ #"medium expressed"){ #}
         covValues = ezMatrix(0, cols=0:100, rows=samples)
         for (sm in samples){
           y = resultList[[sm]][["genebody_coverage"]][[rn]][[cn]]
@@ -228,9 +226,6 @@ if (length(resultList[[1]][["genebody_coverage"]]) != 0){ ## TODO this could be 
           }
         })
         eval(plotCmd)
-       
-        ezWrite.table(covValues, file=sub(".png$", ".txt", pngMatrix[rn, cn]),
-                      head="Name")
       }
     }
   }
