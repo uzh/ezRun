@@ -1,29 +1,40 @@
 ---
-title: "`r paste('BAM Statistics:', param$name)`"
-author: "Functional Genomics Center Zurich"
+title: "`r if (exists('reportTitle')) reportTitle else 'SUSHI Report'`"
 output: 
   html_document:
-    self_contained: false
-    lib_dir: rmarkdownLib
+    self_contained: true
     includes:
-      in_header: fgcz_header.html
-    css: fgcz.css
+      in_header: !expr system.file("templates/fgcz_header.html", package="ezRun")
+    css: !expr system.file("templates/fgcz.css", package="ezRun")
+editor_options: 
+  chunk_output_type: inline
 ---
-Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
 
 ```{r setup RNABamStats, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-## This report requires the object resultList, dataset, param
-require(knitr)
-require(kableExtra)
+library(knitr)
+library(kableExtra)
+library(SummarizedExperiment)
+library(WGCNA)
+library(plotly)
+library(matrixStats)
+library(reshape2)
+library(tidyverse)
+library(ezRun)
+library(writexl)
 ```
 
 ```{r prepare data RNABamStats, include=FALSE}
-## debug:
-#require(ezRun)
-#load("/home/gtan/analysis/gtan/p2438-RNABamStats/resultList.RData")
-#load("/home/gtan/analysis/gtan/p2438-RNABamStats/dataParam.rda")
-## end of debug
+if(!exists("dataset")){
+  dataset <- readRDS("dataset.rds")
+}
+if(!exists("param")){
+  param <- readRDS("param.rds")
+}
+if(!exists("resultList")){
+  resultList <- readRDS("resultList.rds")
+}
+
 
 conds = ezConditionsFromDataset(dataset, param=param)
 samples = rownames(dataset)
@@ -225,53 +236,6 @@ if (length(resultList[[1]][["genebody_coverage"]]) != 0){ ## TODO this could be 
   }
 ```
 
-```{r countQC, echo=FALSE, message=FALSE, warning=FALSE, results='asis'}
-geneCounts = resultList[[1]][["geneCounts"]]
-if (!is.null(geneCounts) && !is.null(param$skipCountQc) && !param$skipCountQc){
-    counts = ezMatrix(0, rows=names(geneCounts), cols=names(resultList))
-    for (i in 1:length(resultList)){
-      counts[ ,i] = resultList[[i]][["geneCounts"]][rownames(counts)]
-    }
-    seqAnno = ezFeatureAnnotation(param, rownames(counts), "gene")
-    require(SummarizedExperiment)
-    rawData <- SummarizedExperiment(
-      assays=SimpleList(counts=counts, presentFlag=counts > param$sigThresh),
-      rowData=seqAnno, colData=dataset,
-      metadata=list(isLog=FALSE, featureLevel="gene",
-                    type="Counts", countName="multiMatchCounts",
-                    param=param)
-    )
-    if (ezIsSpecified(param$transcriptTypes)){
-      use = seqAnno$type %in% param$transcriptTypes
-    } else {
-      use = TRUE
-    }
-    rawData <- rawData[use, ]
-    assays(rawData)$rpkm = getRpkm(rawData)
-    assays(rawData)$tpm = getTpm(rawData)
-    
-    if (is.null(param$normMethod)){
-      param$normMethod = "logMean"
-    }
-    if (!ezIsSpecified(param$runGO)){
-      param$runGO = TRUE
-    }
-    metadata(rawData)$param <- param
-    setwdNew("Count_QC")
-    assays(rawData)$signal = ezNorm(assays(rawData)$counts,
-                                    presentFlag=assays(rawData)$presentFlag,
-                                    method=param$normMethod)
-    styleFiles <- file.path(system.file("templates", package="ezRun"),
-                          c("fgcz.css", "CountQC.Rmd",
-                            "fgcz_header.html", "banner.png"))
-    file.copy(from=styleFiles, to=".", overwrite=TRUE)
-    output <- NULL ## No live report 
-    rmarkdown::render(input="CountQC.Rmd", envir = new.env(),
-                      output_dir=".", output_file=htmlFile, quiet=TRUE)
-    setwd("..")
-    cat("[Count QC Report](Count_QC/00index.html)\n")
-}
-```
 
 ```{r junction saturation plot for all samples, echo=FALSE, results='asis'}
 if(!is.null(resultList[[1]][["Junction"]])){
@@ -350,22 +314,6 @@ if(!is.null(resultList[[1]]$fragSizeHist)){
 }
 ```
 
-### Histogram of aligned segments per read
-```{r Histogram of aligned segments per read, echo=FALSE, results='asis'}
-for (sm in samples){
-  fsh = resultList[[sm]]$segmentCountHist
-  ezWrite.table(cbind(Length=fsh$mids, Count=fsh$counts),
-                file=paste0(sm, "-segmentCountHist.txt"), row.names=FALSE)
-    
-  plotCmd = expression({
-    plot(fsh, xlab="# segments in alignment", 
-         main=paste(sm, "-- Histogram of Segments per Alignment"))
-  })
-  try({
-    eval(plotCmd)
-  })
-}
-```
 
 ```{r Read position specific error rate, echo=FALSE, results='asis', fig.width=16}
 if (!is.null(resultList[[1]][["ErrorRates"]])){
