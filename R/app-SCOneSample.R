@@ -45,8 +45,8 @@ EzAppSCOneSample <-
                                         nmad=ezFrame(Type="numeric", 
                                                      DefaultValue=3, 
                                                      Description="Median absolute deviation (MAD) from the median value of each metric across all cells"),
-                                        filterByExpression=ezFrame(Type="logical", DefaultValue=FALSE,
-                                                           Description="Keep cells according to specific gene expression.")
+                                        filterByExpression=ezFrame(Type="character", DefaultValue=FALSE,
+                                                           Description="Keep cells according to specific gene expression. i.e. Set > 1 | Pkn3 > 1")
                                         )
                 }
               )
@@ -58,11 +58,7 @@ ezMethodSCOneSample <- function(input=NA, output=NA, param=NA,
   setwdNew(basename(output$getColumn("Report")))
   on.exit(setwd(cwd), add=TRUE)
   
-  library(HDF5Array)
-   if(param$filterByExpression)   #this means the cells were already filtered by specific gene expression, and we don't load the matrix from cellranger
-    sce <- loadHDF5SummarizedExperiment(paste0(input$getFullPaths("ResultDir"), "/sce_h5"))
-   else 
-     sce <- load10xData(input, param)
+  sce <- load10xData(input, param)
   
   pvalue_allMarkers <- 0.05
   pvalue_all2allMarkers <- 0.01
@@ -84,6 +80,11 @@ ezMethodSCOneSample <- function(input=NA, output=NA, param=NA,
   sce <- addCellCycleToSce(sce, param$refBuild)
   
   scData <- buildSeuratObject(sce)   # the Seurat object is built from the filtered sce object
+  if(param$filterByExpression != "") {
+    expression <- param$filterByExpression
+    myCommand <- paste("subset(scData,", expression, ")")
+    scData <- eval(parse(text=myCommand))
+  }
   scData <- seuratClusteringV3(scData, param)
   
   #positive cluster markers
