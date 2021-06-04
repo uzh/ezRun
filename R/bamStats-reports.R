@@ -73,13 +73,8 @@ alignmentCountBarPlot <- function(mmCounts, relative=FALSE,
 }
 
 ##' @describeIn plotBamStat Plots the position specific error rates.
-plotPosSpecificErrorRate = function(errorRate, png, main="Per base mismatch rate", writeTxt=TRUE){
+plotPosSpecificErrorRate = function(errorRate, main="Per base mismatch rate"){
   par(mfrow=c(1,2))
-  if (writeTxt){
-    for (i in 1:length(errorRate)){
-      ezWrite.table(errorRate[[i]], sub(".png$", paste0("-",names(errorRate)[i], ".txt"), png))
-    }
-  }
   trimmedClippedRateMatrix = rbind(errorRate[["trimmedRate"]], errorRate[["clippedRate"]])
   errorRateMatrix = errorRate[["errorRate"]] 
   colnames(trimmedClippedRateMatrix) = 1:ncol(trimmedClippedRateMatrix)
