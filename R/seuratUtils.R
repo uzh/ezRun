@@ -154,9 +154,6 @@ buildSeuratObject <- function(sce){
   param <- metadata(sce)$param
   rownames(sce) <- uniquifyFeatureNames(ID=rowData(sce)$ID,
                                         names=rowData(sce)$Symbol)
-  if(toupper(param$scProtocol) == "SMART-SEQ2"){
-    sce <- sce[ ,Matrix::colSums(assays(sce)$counts) > param$minReadsPerCell]
-  }
   cell_info <- data.frame(colData(sce),
                           Plate=sub("___.*$", "", colnames(sce)),
                           check.names = FALSE)
