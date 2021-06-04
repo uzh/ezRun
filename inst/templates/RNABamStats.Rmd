@@ -84,16 +84,10 @@ for (sm in samples){
 ```
 
 ```{r multi-matching plot, echo=FALSE, message=FALSE, fig.height=7, fig.width=min(max(7, 7+(nrow(mmCounts)-20)*0.3), 30), warning=FALSE}
-alignmentCountBarPlot(mmCounts, relative=FALSE,
-                      file="multiMatchInFile-barplot.txt")
+alignmentCountBarPlot(mmCounts, relative=FALSE)
 alignmentCountBarPlot(mmCounts, relative=TRUE)
 ```
 
-```{r multi-matching export, echo=FALSE}
-txtFile <- "read-alignment-statistics.txt"
-ezWrite.table(mmCounts, file=txtFile, head="Sample")
-```
-[`r txtFile`](`r txtFile`)
 
 ```{r MatchTargetTypeCounts, echo=FALSE, results='asis', message=FALSE, fig.width=8, fig.height=7, warning=FALSE}
 for (nm in c("multiMatchTargetTypeCounts", "uniqueMatchTargetTypeCounts")){
@@ -134,7 +128,6 @@ for (nm in c("multiMatchTargetTypeCounts", "uniqueMatchTargetTypeCounts")){
       
       cat("###", paste(readSet, "Read Starts per Base"), "\n")
       tct = as.matrix(getTypeCoverageTable(resultList, nm))
-      ezWrite.table(tct, file=paste0(nm, "-coverage.txt"), digits=4)
       if (nrow(tct) >= 2 && ncol(tct) >= 2){
         tctRel = log2(sweep(tct, 2, tct["total", ], FUN="/"))
         tctRel = tctRel[rowsUse, , drop=FALSE]
@@ -289,11 +282,7 @@ if (!is.null(resultList[[1]][["ErrorRates"]])){
     for (nm in names(resultList[[sm]][["ErrorRates"]])){
       errorRate = resultList[[sm]][["ErrorRates"]][[nm]]
       if (!is.null(errorRate)){
-        pngFile = ezValidFilename(paste0(sm, "_", nm, ".png"))
-        plotCmd = expression({
-          plotPosSpecificErrorRate(errorRate, png=pngFile, main=paste(sm, nm))
-        })
-        eval(plotCmd)
+        plotPosSpecificErrorRate(errorRate, main=paste(sm, nm))
       }
     }
   }
