@@ -11,7 +11,6 @@ editor_options:
 ---
 
 ```{r setup countQC, include=FALSE}
-## This report requires the object rawData
 library(knitr)
 library(kableExtra)
 library(SummarizedExperiment)
