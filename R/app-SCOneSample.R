@@ -44,7 +44,9 @@ EzAppSCOneSample <-
                                                       Description='A gene will be kept if it has at least nUMIs in the fraction of cells specified before'),
                                         nmad=ezFrame(Type="numeric", 
                                                      DefaultValue=3, 
-                                                     Description="Median absolute deviation (MAD) from the median value of each metric across all cells")
+                                                     Description="Median absolute deviation (MAD) from the median value of each metric across all cells"),
+                                        filterByExpression=ezFrame(Type="logical", DefaultValue=FALSE,
+                                                           Description="Keep cells according to specific gene expression.")
                                         )
                 }
               )
@@ -56,8 +58,12 @@ ezMethodSCOneSample <- function(input=NA, output=NA, param=NA,
   setwdNew(basename(output$getColumn("Report")))
   on.exit(setwd(cwd), add=TRUE)
   
-  #sce <- loadSCCountDataset(input, param)
-  sce <- load10xData(input, param)
+  library(HDF5Array)
+   if(param$filterByExpression)   #this means the cells were already filtered by specific gene expression, and we don't load the matrix from cellranger
+    sce <- loadHDF5SummarizedExperiment(paste0(input$getFullPaths("ResultDir"), "/sce_h5"))
+   else 
+     sce <- load10xData(input, param)
+  
   pvalue_allMarkers <- 0.05
   pvalue_all2allMarkers <- 0.01
   
@@ -115,7 +121,6 @@ ezMethodSCOneSample <- function(input=NA, output=NA, param=NA,
   dataFiles = saveExternalFiles(list(pos_markers=posMarkers, all2allMarkers=all2allMarkers, gene_means=as_tibble(as.data.frame(geneMeans), rownames="gene_name")))
  # rowData(sce) = rowData(sce)[, c("gene_id", "biotypes", "description")]
   
-  library(HDF5Array)
   saveHDF5SummarizedExperiment(sce, dir="sce_h5")
   saveHDF5SummarizedExperiment(sce.unfiltered, dir="sce.unfiltered_h5")
   
