@@ -152,8 +152,6 @@ buildSeuratObject <- function(sce){
   library(Seurat)
   library(scater)
   param <- metadata(sce)$param
-  rownames(sce) <- uniquifyFeatureNames(ID=rowData(sce)$ID,
-                                        names=rowData(sce)$Symbol)
   cell_info <- data.frame(colData(sce),
                           Plate=sub("___.*$", "", colnames(sce)),
                           check.names = FALSE)
