@@ -1,29 +1,40 @@
 ---
-title: "`r paste('BAM Statistics:', param$name)`"
-author: "Functional Genomics Center Zurich"
+title: "`r if (exists('reportTitle')) reportTitle else 'SUSHI Report'`"
 output: 
   html_document:
-    self_contained: false
-    lib_dir: rmarkdownLib
+    self_contained: true
     includes:
-      in_header: fgcz_header.html
-    css: fgcz.css
+      in_header: !expr system.file("templates/fgcz_header.html", package="ezRun")
+    css: !expr system.file("templates/fgcz.css", package="ezRun")
+editor_options: 
+  chunk_output_type: inline
 ---
-Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
 
 ```{r setup RNABamStats, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-## This report requires the object resultList, dataset, param
-require(knitr)
-require(kableExtra)
+library(knitr)
+library(kableExtra)
+library(SummarizedExperiment)
+library(WGCNA)
+library(plotly)
+library(matrixStats)
+library(reshape2)
+library(tidyverse)
+library(ezRun)
+library(writexl)
 ```
 
 ```{r prepare data RNABamStats, include=FALSE}
-## debug:
-#require(ezRun)
-#load("/home/gtan/analysis/gtan/p2438-RNABamStats/resultList.RData")
-#load("/home/gtan/analysis/gtan/p2438-RNABamStats/dataParam.rda")
-## end of debug
+if(!exists("dataset")){
+  dataset <- readRDS("dataset.rds")
+}
+if(!exists("param")){
+  param <- readRDS("param.rds")
+}
+if(!exists("resultList")){
+  resultList <- readRDS("resultList.rds")
+}
+
 
 conds = ezConditionsFromDataset(dataset, param=param)
 samples = rownames(dataset)
@@ -31,7 +42,7 @@ sampleColors = getSampleColors(conds, samples)
 bamFiles = dataset$BAM
 ```
 
-```{r igv link, include=FALSE}
+```{r igv link, include=FALSE, eval=FALSE}
 if (param$writeIgvSessionLink){
   if (length(bamFiles) > 4){
     idx = which(!duplicated(conds))
@@ -148,7 +159,8 @@ for (nm in c("multiMatchTargetTypeCounts", "uniqueMatchTargetTypeCounts")){
 
 ```
 
-```{r transcript coverage, echo=FALSE, results='asis'}
+```{r transcript coverage, echo=FALSE, results='asis', eval=FALSE}
+## don't add it to the report
 if (!is.null(resultList[[1]][["TranscriptsCovered"]])){
   cat("###", "Coverage plot\n")
   cat("####", "Transcripts covered plot\n")
@@ -170,108 +182,27 @@ if (!is.null(resultList[[1]][["TranscriptsCovered"]])){
 }
 ```
 
-```{r genebody coverage legend, echo=FALSE, fig.width=3, fig.height=0.25*(length(samples)+1L), results='asis'}
+```{r genebody coverage legend, echo=FALSE, fig.width=10, fig.height=7, results='asis'}
 if (length(resultList[[1]][["genebody_coverage"]]) != 0){ ## TODO this could be done better by searching alls results for a valid genebody_coverage element
+  cat("###", "Coverage plot\n")
   cat("####", "Genebody coverage plot\n")
-  plotCmd = expression({
-    ezLegend(legend=samples, fill=sampleColors[samples], title="Sample Colors")
-    })
-  eval(plotCmd)
-}
-```
-
-```{r genebody coverage, echo=FALSE, results='asis'}
-if (length(resultList[[1]][["genebody_coverage"]]) != 0){ ## TODO this could be done better by searching alls results for a valid genebody_coverage element
-    minYlim = 0 #min(sapply(resultList, function(item){min(item[["genebody_coverage"]])}))
-    maxYlim = 0.08 ## this means we allow at most 10-fold enrichment at a percentile #max(sapply(resultList, function(item){max(item[["genebody_coverage"]])}))
-    gbcTemplate = resultList[[1]][["genebody_coverage"]]
-    pngMatrix = ezMatrix("", rows=names(gbcTemplate),
-                         cols=names(gbcTemplate[[1]]))
-    regions = intersect(c("less than 400nt", "1000 to 1200nt"), rownames(pngMatrix))
-    for (rn in regions){ # rownames(pngMatrix)){
-      for (cn in "medium expressed"){ #} colnames(pngMatrix)){
-        pngMatrix[rn, cn] = ezValidFilename(paste0("genebody_coverage_", rn, "_", cn, ".png"))
-        covValues = ezMatrix(0, cols=0:100, rows=samples)
-        for (sm in samples){
-          y = resultList[[sm]][["genebody_coverage"]][[rn]][[cn]]
-          if (!is.null(y)){
-            covValues[sm, ] = y
-          } else {
-            covValues[sm, ] = NA
-          }
-        }
-        plotCmd = expression({
-          plot(1, 1, xlim=c(0,100), ylim=c(minYlim, maxYlim), xlab="percentile of geneBody (5'->3')", ylab="relative coverage", 
-               main=paste("Genebody coverage", rn, cn), type="n",
-               axes=FALSE, frame=TRUE)
-          axis(side=2)
-          axis(side=1, at=seq(0, 100, by=10))
-          for (sm in samples){
-            y = resultList[[sm]][["genebody_coverage"]][[rn]][[cn]]
-            if (!is.null(y)){
-              covValues[sm, ] = y
-              lines(0:100, y, col=sampleColors[sm])
-            } else {
-              covValues[sm, ] = NA
-            }
-          }
-        })
-        eval(plotCmd)
-       
-        ezWrite.table(covValues, file=sub(".png$", ".txt", pngMatrix[rn, cn]),
-                      head="Name")
-      }
+  covValues = ezMatrix(NA, cols=0:100, rows=samples)
+  for (sm in samples){
+    y = resultList[[sm]][["genebody_coverage"]][["1200 to 2400nt"]][["medium expressed"]]
+    if (!is.null(y)){
+      covValues[sm, ] = y/sum(y)
     }
   }
-```
-
-```{r countQC, echo=FALSE, message=FALSE, warning=FALSE, results='asis'}
-geneCounts = resultList[[1]][["geneCounts"]]
-if (!is.null(geneCounts) && !is.null(param$skipCountQc) && !param$skipCountQc){
-    counts = ezMatrix(0, rows=names(geneCounts), cols=names(resultList))
-    for (i in 1:length(resultList)){
-      counts[ ,i] = resultList[[i]][["geneCounts"]][rownames(counts)]
-    }
-    seqAnno = ezFeatureAnnotation(param, rownames(counts), "gene")
-    require(SummarizedExperiment)
-    rawData <- SummarizedExperiment(
-      assays=SimpleList(counts=counts, presentFlag=counts > param$sigThresh),
-      rowData=seqAnno, colData=dataset,
-      metadata=list(isLog=FALSE, featureLevel="gene",
-                    type="Counts", countName="multiMatchCounts",
-                    param=param)
-    )
-    if (ezIsSpecified(param$transcriptTypes)){
-      use = seqAnno$type %in% param$transcriptTypes
-    } else {
-      use = TRUE
-    }
-    rawData <- rawData[use, ]
-    assays(rawData)$rpkm = getRpkm(rawData)
-    assays(rawData)$tpm = getTpm(rawData)
-    
-    if (is.null(param$normMethod)){
-      param$normMethod = "logMean"
-    }
-    if (!ezIsSpecified(param$runGO)){
-      param$runGO = TRUE
-    }
-    metadata(rawData)$param <- param
-    setwdNew("Count_QC")
-    assays(rawData)$signal = ezNorm(assays(rawData)$counts,
-                                    presentFlag=assays(rawData)$presentFlag,
-                                    method=param$normMethod)
-    styleFiles <- file.path(system.file("templates", package="ezRun"),
-                          c("fgcz.css", "CountQC.Rmd",
-                            "fgcz_header.html", "banner.png"))
-    file.copy(from=styleFiles, to=".", overwrite=TRUE)
-    output <- NULL ## No live report 
-    rmarkdown::render(input="CountQC.Rmd", envir = new.env(),
-                      output_dir=".", output_file=htmlFile, quiet=TRUE)
-    setwd("..")
-    cat("[Count QC Report](Count_QC/00index.html)\n")
+  xx <- reshape2::melt(covValues, varnames=c("Sample", "Percentile"))
+  print(ggplot(data=xx, aes(x=Percentile, y=value)) + geom_line(aes(color=Sample)) + 
+    scale_colour_manual(values=rev(sampleColors)) + 
+    labs(x="percentile of gene (5'->3')", ylab="relative coverage") + ggtitle("genebody coverage"))
+  print(ggplot(data=xx, 
+       aes(x=Percentile, y=Sample, fill=value)) + geom_tile() + scale_fill_gradientn(colours=getBlueRedScale()) +
+       labs(x="percentile of gene (5'->3')", ylab="relative coverage") + ggtitle("genebody coverage"))
 }
 ```
+
 
 ```{r junction saturation plot for all samples, echo=FALSE, results='asis'}
 if(!is.null(resultList[[1]][["Junction"]])){
@@ -350,22 +281,6 @@ if(!is.null(resultList[[1]]$fragSizeHist)){
 }
 ```
 
-### Histogram of aligned segments per read
-```{r Histogram of aligned segments per read, echo=FALSE, results='asis'}
-for (sm in samples){
-  fsh = resultList[[sm]]$segmentCountHist
-  ezWrite.table(cbind(Length=fsh$mids, Count=fsh$counts),
-                file=paste0(sm, "-segmentCountHist.txt"), row.names=FALSE)
-    
-  plotCmd = expression({
-    plot(fsh, xlab="# segments in alignment", 
-         main=paste(sm, "-- Histogram of Segments per Alignment"))
-  })
-  try({
-    eval(plotCmd)
-  })
-}
-```
 
 ```{r Read position specific error rate, echo=FALSE, results='asis', fig.width=16}
 if (!is.null(resultList[[1]][["ErrorRates"]])){

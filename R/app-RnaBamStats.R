@@ -10,19 +10,91 @@ ezMethodRnaBamStats = function(input=NA, output=NA, param=NA,
                                htmlFile="00index.html"){
   ## subset the selected sample names
   input <- input$subset(param$samples)
-
+  
+  require("GenomicAlignments")
+  require("S4Vectors")
+  
+  samples = input$getNames()
+  files = input$getFullPaths("BAM")
+  dataset = input$meta
+  
   setwdNew(basename(output$getColumn("Report")))
   param$featureLevel = "gene"
   param$projectId = sub("\\/.*", "", input$getColumn("BAM")[1]) ## project id is needed for the IGV link
-
+  
   gff = ezLoadFeatures(param)
   if (!is.null(gff) && nrow(gff) == 0){
     writeErrorReport(htmlFile, param=param, error=paste("No features found in given feature file:<br>",
-                                                                   param$ezRef["refFeatureFile"]))
+                                                        param$ezRef["refFeatureFile"]))
     return("Error")
   }
-  result = computeBamStats(input, htmlFile, param, gff)
-  return(result)
+  
+  ## get the RNA_repeats if available
+  refRepeatsFeat = file.path(GENOMES_ROOT, param$ezRef["refBuild"],
+                             "Repeats/RNA_repeats.gff")
+  if (file.exists(refRepeatsFeat)){
+    repeatsGff = ezReadGff(refRepeatsFeat)
+  } else {
+    repeatsGff = NULL
+  }
+  
+  if (ezIsSpecified(param$seqNames)){
+    gff = gff[gff$seqid %in% param$seqNames, ]
+    if(!is.null(repeatsGff)){
+      repeatsGff = repeatsGff[repeatsGff$seqid %in% param$seqNames, ]
+    }
+  }
+  resultList = list()
+  for (sm in samples){
+    message(sm)
+    resultList[[sm]] = getStatsFromBam(param, files[sm], sm, gff=gff,
+                                       repeatsGff=repeatsGff,
+                                       nReads=dataset[sm, "Read Count"])
+    if (isError(resultList[[sm]])){
+      writeErrorReport(htmlFile, param=param, error=resultList[[sm]]$error)
+      return()
+    }
+    print(gc())
+  }
+  
+  if (is.null(param$posErrorRates) || param$posErrorRates == TRUE){
+    errorRates = ezMclapply(files, getPosErrorFromBam, param,
+                            mc.preschedule=FALSE,
+                            mc.cores = min(length(files), ezThreads()))
+    for (sm in samples){
+      resultList[[sm]][["ErrorRates"]] = errorRates[[sm]]
+    }
+    rm(errorRates)
+    gc()
+  }
+  ## do the analysis from package rseqc
+  junctionsResults = ezMclapply(files, getJunctionPlotsFromBam, param,
+                                mc.preschedule=FALSE,
+                                mc.cores = min(length(files), ezThreads()))
+  for(sm in samples){
+    resultList[[sm]][["Junction"]] = junctionsResults[[sm]]
+  }
+  rm(junctionsResults)
+  gc()
+  
+  ## do Assessment of duplication rates from package dupRadar
+  if (is.null(param$dupRadar) || param$dupRadar == TRUE){
+    dupRateResults <- ezMclapply(files, getDupRateFromBam, param,
+                                 mc.preschedule = FALSE,
+                                 mc.cores = min(length(files), ezThreads()))
+    for(sm in samples){
+      resultList[[sm]][["dupRate"]] = dupRateResults[[sm]]
+    }
+    rm(dupRateResults)
+    gc()
+  }
+  
+  makeRmdReport(dataset=dataset, param=param, resultList=resultList, rmdFile="RNABamStats.Rmd", 
+                reportTitle="RNA BAM Stats", selfContained = TRUE)
+  
+  rm(resultList)
+  gc()
+  return("Success")
 }
 
 ##' @template app-template
@@ -39,122 +111,14 @@ EzAppRnaBamStats <-
                   name <<- "EzAppRnaBamStats"
                   appDefaults <<- rbind(posErrorRates=ezFrame(Type="logical",	DefaultValue="TRUE",	Description="compute position specific error rates?"),
                                         dupRadar=ezFrame(Type="logical",	DefaultValue="TRUE",	Description="run dupradar"),
-                                    fragSizeMax=ezFrame(Type="integer",  DefaultValue=500,	Description="maximum fragment size to plot in fragment size distribution"),
-                                    writeIgvSessionLink=ezFrame(Type="logical", DefaultValue="TRUE", Description="should an IGV link be generated"),
-                                    ignoreDup=ezFrame(Type="logical", DefaultValue="NA", Description="should marked duplicates be ignored?"),
-                                    skipCountQc=ezFrame(Type="logical", DefaultValue=FALSE, Description="should we skip the count QC as part of the report"))
+                                        fragSizeMax=ezFrame(Type="integer",  DefaultValue=500,	Description="maximum fragment size to plot in fragment size distribution"),
+                                        writeIgvSessionLink=ezFrame(Type="logical", DefaultValue="TRUE", Description="should an IGV link be generated"),
+                                        ignoreDup=ezFrame(Type="logical", DefaultValue="NA", Description="should marked duplicates be ignored?"),
+                                        skipCountQc=ezFrame(Type="logical", DefaultValue=FALSE, Description="should we skip the count QC as part of the report"))
                 }
               )
   )
 
-##' @title Computes the BAM statistics
-##' @description Computes the BAM statistics.
-##' @template input-template
-##' @template htmlFile-template
-##' @param param a list of parameters:
-##' \itemize{
-##'   \item{ezRef@@refBuild}{ a character containing the path of the reference build.}
-##'   \item{seqNames}{ the sequence names to select.}
-##'   \item{posErrorRates}{ a logical indicating whether to call \code{getPosErrorFromBam()}.}
-##'   \item{saveImage}{ a logical indicating whether to save the image.}
-##' }
-##' @param gff an annotation data.frame in gtf or gff format.
-##' @param resultList a list of results.
-##' @template roxygen-template
-##' @seealso \code{\link{plotBamStat}}
-computeBamStats = function(input, htmlFile, param, gff, resultList=NULL){
-
-  require("GenomicAlignments")
-  require("S4Vectors")
-  samples = input$getNames()
-  files = input$getFullPaths("BAM")
-  dataset = input$meta
-
-  ## get the RNA_repeats if available
-  refRepeatsFeat = file.path(GENOMES_ROOT, param$ezRef["refBuild"],
-                             "Repeats/RNA_repeats.gff")
-  if (file.exists(refRepeatsFeat)){
-    repeatsGff = ezReadGff(refRepeatsFeat)
-  } else {
-    repeatsGff = NULL
-  }
-
-  if (ezIsSpecified(param$seqNames)){
-    gff = gff[gff$seqid %in% param$seqNames, ]
-    if(!is.null(repeatsGff)){
-      repeatsGff = repeatsGff[repeatsGff$seqid %in% param$seqNames, ]
-    }
-  }
-  if (is.null(resultList)){
-    resultList = list()
-    for (sm in samples){
-      message(sm)
-      resultList[[sm]] = getStatsFromBam(param, files[sm], sm, gff=gff,
-                                         repeatsGff=repeatsGff,
-                                         nReads=dataset[sm, "Read Count"])
-      if (isError(resultList[[sm]])){
-        writeErrorReport(htmlFile, param=param, error=resultList[[sm]]$error)
-        return()
-      }
-      print(gc())
-    }
-    seqLengths = resultList[[1]]$seqLengths
-
-    if (is.null(param$posErrorRates) || param$posErrorRates == TRUE){
-      errorRates = ezMclapply(files, getPosErrorFromBam, param,
-                              mc.preschedule=FALSE,
-                              mc.cores = min(length(files), ezThreads()))
-      for (sm in samples){
-        resultList[[sm]][["ErrorRates"]] = errorRates[[sm]]
-      }
-      rm(errorRates)
-      gc()
-    }
-    ## do the analysis from package rseqc
-    junctionsResults = ezMclapply(files, getJunctionPlotsFromBam, param,
-                                  mc.preschedule=FALSE,
-                                  mc.cores = min(length(files), ezThreads()))
-    for(sm in samples){
-      resultList[[sm]][["Junction"]] = junctionsResults[[sm]]
-    }
-    rm(junctionsResults)
-    gc()
-
-    ## do Assessment of duplication rates from package dupRadar
-    if (is.null(param$dupRadar) || param$dupRadar == TRUE){
-      dupRateResults <- ezMclapply(files, getDupRateFromBam, param,
-                                   mc.preschedule = FALSE,
-                                   mc.cores = min(length(files), ezThreads()))
-      for(sm in samples){
-        resultList[[sm]][["dupRate"]] = dupRateResults[[sm]]
-      }
-      rm(dupRateResults)
-      gc()
-    }
-  }
-
-  if (param$saveImage){
-    save(resultList, file="resultList.RData")
-  }
-
-  ## debug
-  #save(dataset, param, file="dataParam.rda")
-
-  #plotBamStat(resultList, dataset, param, htmlFile)
-
-  ## Copy the style files and templates
-  styleFiles <- file.path(system.file("templates", package="ezRun"),
-                          c("fgcz.css", "RNABamStats.Rmd",
-                            "fgcz_header.html", "banner.png"))
-  file.copy(from=styleFiles, to=".", overwrite=TRUE)
-  rmarkdown::render(input="RNABamStats.Rmd", envir = new.env(),
-                    output_dir=".", output_file=htmlFile, quiet=TRUE)
-
-
-  rm(resultList)
-  gc()
-  return("Success")
-}
 
 ##' @describeIn computeBamStats Gets the error positions from the BAM file.
 getPosErrorFromBam = function(bamFile, param){
@@ -172,7 +136,7 @@ getPosErrorFromBam = function(bamFile, param){
   chromSel = names(seqLengths)[which.max(seqCounts)]
   fai = fasta.index(param$ezRef["refFastaFile"])
   targetGenome = readDNAStringSet(fai[match(chromSel, sub(" .*", "", fai$desc)), ])[[1]]  ## the sub clips potentially present description terms from the read id
-
+  
   result = list()
   ezWriteElapsed(job, "read reference genome done")
   #targetGenome = referenceGenome[[match(chromSel, sub(" .*", "", names(referenceGenome)))]]
@@ -227,7 +191,7 @@ ezPosSpecErrorRate = function(bam, ReferenceGenome, nMaxReads=100000){
   for (tagName in names(bam$tag)){
     bam$tag[[tagName]] = bam$tag[[tagName]][indexKeep]
   }
-
+  
   ## adjust the start POS according to H and/or S
   tempCigar = str_extract(bam$cigar, "^(\\d+H)?(\\d+S)?\\d+M")
   ## get the number of H at the beginning
@@ -240,7 +204,7 @@ ezPosSpecErrorRate = function(bam, ReferenceGenome, nMaxReads=100000){
   noOfS[is.na(noOfS)] = 0
   nBeginClipped = noOfH + noOfS
   bam$pos = bam$pos - nBeginClipped
-
+  
   ## add X to the begin and end of SEQ
   Xbegin = makeNstr("X", noOfH)
   tempCigar = str_extract(bam$cigar, "(\\d+S|\\d+H)$")
@@ -253,7 +217,7 @@ ezPosSpecErrorRate = function(bam, ReferenceGenome, nMaxReads=100000){
   noOfS[is.na(noOfS)] = 0
   nEndClipped = noOfH + noOfS
   bam$seq = paste0(Xbegin, bam$seq, Xend)
-
+  
   seqChar = strsplit(bam$seq,"")
   readLength <- lengths(seqChar)
   ## build the reference views object
@@ -264,15 +228,15 @@ ezPosSpecErrorRate = function(bam, ReferenceGenome, nMaxReads=100000){
   }
   ReferenceViews = Views(ReferenceGenome, start=bam$pos, width=readLength)
   referenceChar = strsplit(as.character(ReferenceViews), "")
-
+  
   # assuming we have unique read length and set it to the maximal read length here.
   nEndTrimmed = maxLength - readLength
   trimmedMatrix = mapply(function(readLength, nEndTrimmed){rep(c(FALSE, TRUE), c(readLength, nEndTrimmed))}, readLength, nEndTrimmed, SIMPLIFY=FALSE)
   ## build a clippedMatrix to record the clipped character
   nNormal = readLength - nBeginClipped - nEndClipped
   clippedMatrix = mapply(function(nBeginClipped, nNormal, nEndClipped, nEndTrimmed){rep(c(TRUE, FALSE, TRUE, FALSE), c(nBeginClipped, nNormal, nEndClipped, nEndTrimmed))}, nBeginClipped, nNormal, nEndClipped, nEndTrimmed, SIMPLIFY=FALSE)
-
-
+  
+  
   matchMatrix = mapply("==", referenceChar, seqChar, SIMPLIFY=FALSE)
   indexNeg = which(bam$strand == "-")
   clippedMatrix[indexNeg] = lapply(clippedMatrix[indexNeg], rev)
@@ -298,23 +262,41 @@ ezPosSpecErrorRate = function(bam, ReferenceGenome, nMaxReads=100000){
 getStatsFromBam = function(param, bamFile, sm, gff=NULL, repeatsGff=NULL,
                            nReads=NA){
   require("bitops", warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
-  job = ezJobStart(paste("count", bamFile))
   seqLengths = ezBamSeqLengths(bamFile)
+  
+  ## determine the transcripts for which we compute the coverage
+  use = rep(TRUE, nrow(gff))
+  gff$transcript_type = ezGffAttributeField(gff$attributes, 
+                                            field = "transcript_type", attrsep = "; *", valuesep = " ")
+  if (any(!is.na(gff$transcript_type))){
+    use = use & gff$transcript_type %in% "protein_coding"
+  }
+  gff$tsl = ezGffAttributeField(gff$attributes, 
+                                field = "transcript_support_level", attrsep = "; *", valuesep = " ")
+  if (any(!is.na(gff$tsl))){
+    use = use & gff$tsl %in% "5"
+  }
+  
+  tCount = tapply(gff$transcript_id[use], gff$gene_id[use], function(x){length(unique(x))})
+  genesWithFewTranscripts <- names(tCount)[tCount <=2]
+  transcriptsForCov = unique(gff$transcript_id[gff$gene_id %in% genesWithFewTranscripts ])
+
+  
   if (ezIsSpecified(param$seqNames)){
     seqLengths = seqLengths[param$seqNames]
   }
   if (is.null(param$splitByChrom) || param$splitByChrom){
     result = getStatsFromBamParallel(seqLengths, param, bamFile, sm,
                                      gff, repeatsGff, mc.cores=param$cores,
-                                     nReads=nReads)
+                                     nReads=nReads, transcriptsForCov=transcriptsForCov)
   } else {
     result = getStatsFromBamSingleChrom(NULL, param, bamFile, sm, gff,
-                                        repeatsGff)
+                                        repeatsGff, transcriptsForCov=transcriptsForCov)
   }
   gc()
   ## TODO: this getBamMultiMatching should be moved to computeBamStats
   result$multiMatchInFileTable = getBamMultiMatching(param, bamFile, nReads)
-
+  
   transcriptCov = result$transcriptCov
   transcriptCovRleList <- RleList(transcriptCov)
   # transcriptLengthCov = sapply(transcriptCov, function(x){sum(x>0)}) slow!
@@ -325,28 +307,28 @@ getStatsFromBam = function(param, bamFile, sm, gff=NULL, repeatsGff=NULL,
   percentCoveredHist = hist(percentCovered,
                             breaks=c(0, seq(from=0, to=100, by=2)), plot=FALSE)
   result$TranscriptsCovered = percentCoveredHist
-
+  
   ## Do the genebody_coverage
   #sampledTranscriptCov = sapply(transcriptCov, ## RleList will be slow. use list
   #                              function(x){as.integer(x[round(seq(1, length(x), length.out=101))])})
   sampledTranscriptCov <- ezMclapply(transcriptCov, ## RleList will be slow. use list
-                                function(x){as.integer(x[round(seq(1, length(x), length.out=101))])},
-                                mc.preschedule=TRUE, mc.cores=param$cores)
+                                     function(x){as.integer(x[round(seq(1, length(x), length.out=101))])},
+                                     mc.preschedule=TRUE, mc.cores=param$cores)
   sampledTranscriptCov <- do.call(cbind, sampledTranscriptCov)
-
+  
   trUse = colSums(sampledTranscriptCov) > 0
   sampledTranscriptCov = sampledTranscriptCov[ , trUse, drop=FALSE]
   trLength = transcriptLengthTotal[trUse]
-  lengthClasses = ezCut(trLength, breaks=c(399, 1000, 1200, 4000),
-                        labels=c("less than 400nt", "400 to 999nt",
-                                 "1000 to 1200nt", "1201 to 4000", "above 4000nt"))
+  lengthClasses = ezCut(trLength, breaks=c(599, 1200, 2400),
+                        labels=c("less than 600nt", "600 to 1199nt",
+                                 "1200 to 2400nt", "above 2400nt"))
   genebody_coverage = list()
   for (lc in levels(lengthClasses)){
     isInLc = lengthClasses == lc
-    if (sum(isInLc) > 50){
+    if (sum(isInLc) > 40){
       ltc = sampledTranscriptCov[ , isInLc, drop=FALSE]
       avgCov = colMeans(ltc)
-      relativeCov = ezScaleColumns(ltc, 1/colSums(ltc)) ## normalize so that every transcripts adds the same weight
+      #relativeCov = ezScaleColumns(ltc, 1/colSums(ltc)) ## normalize so that every transcripts adds the same weight
       avgCovQuant = unique(quantile(avgCov, c(0.25, 0.75)))
       if (length(avgCovQuant) == 2){
         covClasses = ezCut(avgCov, breaks=avgCovQuant,
@@ -354,13 +336,13 @@ getStatsFromBam = function(param, bamFile, sm, gff=NULL, repeatsGff=NULL,
                                     "high expressed"))
         genebody_coverage[[lc]] = list()
         for (cc in levels(covClasses)){
-          genebody_coverage[[lc]][[cc]] = rowMeans(relativeCov[ , covClasses == cc, drop=FALSE ])
+          genebody_coverage[[lc]][[cc]] = rowMeans(ltc[ , covClasses == cc, drop=FALSE ])
         }
       }
     }
   }
   result$genebody_coverage = genebody_coverage
-  result$transcriptCov = NULL
+  #result$transcriptCov = NULL
   gc()
   return(result)
 }
@@ -368,7 +350,7 @@ getStatsFromBam = function(param, bamFile, sm, gff=NULL, repeatsGff=NULL,
 ##' @describeIn computeBamStats Gets parallel by chromosome statistics for \code{getStatsFromBam()} if the logical \code{param$splitByChrom} is true.
 getStatsFromBamParallel = function(seqLengths, param, bamFile, sm,
                                    gff=NULL, repeatsGff=NULL,
-                                   mc.cores=ezThreads(), nReads=NA){
+                                   mc.cores=ezThreads(), nReads=NA, transcriptsForCov=NULL){
   if (!is.na(nReads)){
     ## heuristic: reduce the number of cores so that we have at least 0.25GB RAM per chromosome per Million Reads in the total bam file
     #reduce the number of threads in case of
@@ -382,43 +364,28 @@ getStatsFromBamParallel = function(seqLengths, param, bamFile, sm,
   seqNames <- seqNames[nchar(seqNames) <= 6] ## remove non-chromosome sequences that usually have long names
   names(seqNames) <- seqNames ## set names for lapply
   chromResults = ezMclapply(seqNames, getStatsFromBamSingleChrom, param,
-                            bamFile, sm, gff, repeatsGff,
+                            bamFile, sm, gff, repeatsGff, transcriptsForCov,
                             mc.preschedule=FALSE, mc.cores=mc.cores)
   if (param$saveImage){
     save(chromResults, file=paste0(sm, "-chromResults.RData"))
   }
   gc()
   result = list()
-  # merge the segmentCountHist
-  idx = which(sapply(chromResults, function(x){!is.null(x$segmentCountHist)}))
-  if (length(idx) > 0){
-    for (i in idx){
-      if (i == idx[1]){
-        sch = chromResults[[i]]$segmentCountHist
-        counts = sch$counts
-      } else {
-        counts = counts + chromResults[[i]]$segmentCountHist$counts
-      }
-    }
-    sch$counts = counts
-    sch$density = counts / sum(counts)
-    result$segmentCountHist = sch
-  }
-
+  
   # merge the fragSizeHist
   idx = which(sapply(chromResults, function(x){!is.null(x$fragSizeHist)}))
   if (length(idx) > 0){
     for (i in idx){
       if (i == idx[1]){
-        sch = chromResults[[i]]$fragSizeHist
+        fsh = chromResults[[i]]$fragSizeHist
         counts = sch$counts
       } else {
         counts = counts + chromResults[[i]]$fragSizeHist$counts
       }
     }
-    sch$counts = counts
-    sch$density = counts / sum(counts)
-    result$fragSizeHist = sch
+    fsh$counts = counts
+    fsh$density = counts / sum(counts)
+    result$fragSizeHist = fsh
   }
   # merge the multiMatchTargetTypeCounts
   temp = data.frame(count=integer(0), width=integer(0))
@@ -435,47 +402,25 @@ getStatsFromBamParallel = function(seqLengths, param, bamFile, sm,
     message("na counts: ", sum(is.na(temp)))
     temp[is.na(temp)] = 0
   }
-
-  #mytotal = colSums(temp[names(seqLengths), ])
-  #result$multiMatchTargetTypeCounts = rbind(total=mytotal, temp)
+  
   tempNamesOrdered = intersect(c(setdiff(rownames(temp), seqNames), seqNames),
                                rownames(temp))
   result$multiMatchTargetTypeCounts = temp[tempNamesOrdered, ,drop=FALSE]
   rm(temp)
   gc()
-  geneCountList = lapply(chromResults, function(x){x$geneCounts})
-  geneCounts = do.call("c", geneCountList)
-  targetNames = unlist(lapply(geneCountList, names))
-  if (any(duplicated(targetNames))){
-    geneCounts = tapply(geneCounts, targetNames, FUN=sum)
-  } else {
-    names(geneCounts) = targetNames ## undo the prepending of the list names
-  }
-  result$geneCounts = geneCounts
   result$seqLengths = seqLengths
-
-  ## Merge the TranscriptsCovered results
-  #transcriptCov <- list()
-  transcriptCov <- vector("list", length(chromResults))
-  i <- 1
-  for(chrom in names(chromResults)){
-    #transcriptCov = c(transcriptCov, chromResults[[chrom]]$transcriptCov)
-    transcriptCov[[i]] <- chromResults[[chrom]]$transcriptCov
-    i <- i + 1
-  }
-  #transcriptCov <- unlist(lapply(chromResults, "[[", "transcriptCov"))
-  # list object
-  result$transcriptCov = unlist(transcriptCov)
-
+  
+  result$transcriptCov = unlist(lapply(chromResults, function(cr){cr$transcriptCov}))
+  
   return(result)
 }
 
 ##' @describeIn computeBamStats Gets the statistics of a single chromosome for \code{getStatsFromBam()}.
 getStatsFromBamSingleChrom = function(chrom, param, bamFile, sm,
-                                      gff=NULL, repeatsGff=NULL){
+                                      gff=NULL, repeatsGff=NULL, transcriptsForCov=NULL){
   require("bitops", warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
   message("Processing chr ", ifelse(is.null(chrom), "all", chrom))
-
+  
   result = list()
   seqLengths = ezBamSeqLengths(bamFile)
   if (param$paired){
@@ -491,14 +436,8 @@ getStatsFromBamSingleChrom = function(chrom, param, bamFile, sm,
   if (isError(reads)){
     return(reads)
   }
-  #isMultiHit = my.duplicated(names(reads), mode = "all")
-  if (length(reads) > 0){
-    result$segmentCountHist = intHist(njunc(reads)+1, range=c(0.5, 10.5),
-                                      plot=FALSE)
-  }
-  #ezWriteElapsed(job, "segment hist done")
   gc()
-
+  
   if(param$paired && length(reads) > 0){
     pairedNames = ezScanBam(bamFile, seqname=chrom,
                             isFirstMateRead=TRUE, isSecondMateRead=FALSE,
@@ -510,19 +449,12 @@ getStatsFromBamSingleChrom = function(chrom, param, bamFile, sm,
     rm(pairedNames)
     gc()
   }
-
+  
   result$multiMatchTargetTypeCounts = getTargetTypeCounts(param, gff, reads,
                                                           seqid=chrom, repeatsGff)
-  result$geneCounts = getFeatureCounts(chrom=chrom, gff=gff[gff$type == "exon", ],
-                                       reads=reads, param=param)
-  #ezWriteElapsed(job, "multi match type counts")
-  #if (any(isMultiHit)){
-  #	result$uniqueMatchTargetTypeCounts = getTargetTypeCounts(param, gff, reads[!isMultiHit])
-  #	ezWriteElapsed(job, "unique match type counts")
-  #}
   gc()
   ## Do transcripts covered
-  result$transcriptCov = getTranscriptCoverage(chrom, gff, reads, strandMode=param$strandMode)
+  result$transcriptCov = getTranscriptCoverage(chrom, gff[gff$transcript_id %in% transcriptsForCov, ], reads, strandMode=param$strandMode)
   gc()
   rm(reads)
   #rm(isMultiHit)
@@ -551,15 +483,15 @@ getTargetTypeCounts = function(param, gff, rr, seqid=NULL, repeatsGff=NULL){
   result = data.frame(count=0, width=effWidth, row.names=seqNames)
   #readCounts = table(as.character(seqnames(rr)))
   readCounts <- table(seqnames(rr)) # It also works with different order
-
+  
   result[seqNames, "count"] = readCounts[seqNames]
   result$count[is.na(result$count)] = 0 ## if a chromosome has no reads the value would be na
-
+  
   #hasAnyHit = rep(FALSE, length(rr))
   hasAnyHit <- logical(length(rr))
   repeatsRanges = NULL
   gffRanges = NULL
-
+  
   ## the reads in the repeatsGff
   if(!is.null(repeatsGff)){
     repeatsGff = repeatsGff[repeatsGff$seqid %in% seqNames, ]
@@ -579,7 +511,7 @@ getTargetTypeCounts = function(param, gff, rr, seqid=NULL, repeatsGff=NULL){
       }
     }
   }
-
+  
   if (!is.null(gff)){
     gff = gff[gff$seqid %in% seqNames, ]
     if (nrow(gff) > 0){
@@ -613,14 +545,14 @@ getTargetTypeCounts = function(param, gff, rr, seqid=NULL, repeatsGff=NULL){
           countsByType <- rbind(countsByType,
                                 data.table(ensemblTypes=missingTypes, N=0))
         }
-
+        
         widthByType <- sum(width(IRanges::reduce(GenomicRanges::split(gffRanges,
-                                                             ensemblTypes))))
-
+                                                                      ensemblTypes))))
+        
         hasAnyHit[hitsByType$queryHits] <- TRUE
         result[countsByType$ensemblTypes, ] <- cbind(countsByType$N,
                                                      widthByType[countsByType$ensemblTypes])
-
+        
         isMsg = ensemblTypes == "protein_coding" & gff$type == "exon"
         msgRanges = gffGroupToRanges(gff[isMsg, ], gff$transcript_id[isMsg],
                                      skipTransSpliced = TRUE)
@@ -643,7 +575,7 @@ getTargetTypeCounts = function(param, gff, rr, seqid=NULL, repeatsGff=NULL){
       ## TODO: now we use seqlengths from rr, which is not ideal.
       ## gff as data.frame has no seqlengths information.
       seqlengths(msgRanges) <- seqlengths(rr)[names(seqlengths(msgRanges))]
-
+      
       ## check additionally for intron/exon/prom
       hitsTranscript = overlapsAny(rr, msgRanges, minoverlap=10)
       hasAnyHit = hasAnyHit | hitsTranscript
@@ -707,7 +639,7 @@ getJunctionPlotsFromBam = function(bamFile, param){
     events = table(foo) / length(foo) * 100
     pngFiles[["splice_events"]] = events
     pngFiles[["splice_junction"]] = junctions
-
+    
     ## do the junction_saturation
     id = paste(juncsTable[["chrom"]], juncsTable[["intron_st.0.based."]],
                juncsTable[["intron_end.1.based."]])
@@ -739,7 +671,7 @@ getJunctionPlotsFromBam = function(bamFile, param){
     junctionSaturations[["novel junctions"]] = colSums(juncCountMeans[c("complete_novel", "partial_novel"), , drop=FALSE])
     pngFiles[["junctionSaturation"]] = junctionSaturations
   }
-
+  
   ## do the cleaning
   file.remove(list.files(path=".", pattern=paste0(outputJunction, ".+")))
   return(pngFiles)
@@ -782,18 +714,18 @@ getDupRateFromBam <- function(bamFile, param=NULL, gtfFn,
     threads <- ceiling(param$cores / 2)
   }
   require(dupRadar)
-
+  
   ## Make the duplicates in bamFile
   inputBam <- paste(Sys.getpid(), basename(bamFile), sep="-")
   ### The bamFile may not be writable.
   file.symlink(from=bamFile, to=inputBam)
-
+  
   ## intermediate files
   # picardMetricsFn <- gsub("\\.bam$", "_picard_metrics.txt", inputBam) # picard
   bamDuprmFn <- gsub("\\.bam$", "_duprm.bam", inputBam)
   # bamutilLogFn <- paste0(bamDuprmFn, ".log") # bamutil
   on.exit(file.remove(c(inputBam, bamDuprmFn)))#, picardMetricsFn, bamutilLogFn)))
-
+  
   dupBam(inBam=inputBam, outBam=bamDuprmFn, operation="mark")
   ## Duplication rate analysis
   dm <- analyzeDuprates(bam=bamDuprmFn, gtf=gtfFn,
