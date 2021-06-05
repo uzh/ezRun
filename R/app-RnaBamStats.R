@@ -124,22 +124,16 @@ EzAppRnaBamStats <-
 getPosErrorFromBam = function(bamFile, param){
   require("bitops", warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
   job = ezJobStart(paste("position error:", bamFile))
-  ## heuristic to search for the chromosome with most reads
   seqLengths = ezBamSeqLengths(bamFile)
-  seqLengths = seqLengths[seqLengths >= mean(seqLengths)]
   if (ezIsSpecified(param$seqNames)){
-    seqLengths = seqLengths[intersect(param$seqNames, names(seqLengths))]
+    seqLengths <- seqLengths[param$seqNames]
   }
-  seqCounts = sapply(names(seqLengths), function(sn){
-    ezScanBam(bamFile, seqname = sn, isDuplicate=!param$ignoreDup, countOnly=TRUE)$records[1]
-  })
-  chromSel = names(seqLengths)[which.max(seqCounts)]
+  chromSel <- names(seqLengths)[which.max(seqLengths)]
   fai = fasta.index(param$ezRef["refFastaFile"])
   targetGenome = readDNAStringSet(fai[match(chromSel, sub(" .*", "", fai$desc)), ])[[1]]  ## the sub clips potentially present description terms from the read id
   
   result = list()
   ezWriteElapsed(job, "read reference genome done")
-  #targetGenome = referenceGenome[[match(chromSel, sub(" .*", "", names(referenceGenome)))]]
   what = c("strand", "cigar", "seq", "rname", "pos")
   if (param$paired){
     reads = ezScanBam(bamFile, seqname=chromSel, isFirstMateRead=TRUE, isSecondMateRead=FALSE, isUnmappedQuery=FALSE, isDuplicate=!param$ignoreDup, what=what)
@@ -715,7 +709,7 @@ getDupRateFromBam <- function(bamFile, param=NULL, gtfFn,
   }
   require(dupRadar)
   
-  ## Make the duplicates in bamFile
+  ## Mark the duplicates in bamFile
   inputBam <- paste(Sys.getpid(), basename(bamFile), sep="-")
   ### The bamFile may not be writable.
   file.symlink(from=bamFile, to=inputBam)
@@ -724,7 +718,7 @@ getDupRateFromBam <- function(bamFile, param=NULL, gtfFn,
   # picardMetricsFn <- gsub("\\.bam$", "_picard_metrics.txt", inputBam) # picard
   bamDuprmFn <- gsub("\\.bam$", "_duprm.bam", inputBam)
   # bamutilLogFn <- paste0(bamDuprmFn, ".log") # bamutil
-  on.exit(file.remove(c(inputBam, bamDuprmFn)))#, picardMetricsFn, bamutilLogFn)))
+  on.exit(file.remove(c(inputBam, bamDuprmFn, paste0(bamDuprmFn, ".bai"))))#, picardMetricsFn, bamutilLogFn)))
   
   dupBam(inBam=inputBam, outBam=bamDuprmFn, operation="mark")
   ## Duplication rate analysis
