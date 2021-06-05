@@ -122,6 +122,7 @@ ezMethodSCOneSample <- function(input=NA, output=NA, param=NA,
   dataFiles = saveExternalFiles(list(pos_markers=posMarkers, all2allMarkers=all2allMarkers, gene_means=as_tibble(as.data.frame(geneMeans), rownames="gene_name")))
  # rowData(sce) = rowData(sce)[, c("gene_id", "biotypes", "description")]
   
+  library(HDF5Array)
   saveHDF5SummarizedExperiment(sce, dir="sce_h5")
   saveHDF5SummarizedExperiment(sce.unfiltered, dir="sce.unfiltered_h5")
   
