@@ -188,7 +188,7 @@ if (length(resultList[[1]][["genebody_coverage"]]) != 0){ ## TODO this could be 
   }
   xx <- reshape2::melt(covValues, varnames=c("Sample", "Percentile"))
   print(ggplot(data=xx, aes(x=Percentile, y=value)) + geom_line(aes(color=Sample)) + 
-    scale_colour_manual(values=rev(sampleColors)) + 
+    scale_colour_manual(values=sampleColors) + 
     labs(x="percentile of gene (5'->3')", ylab="relative coverage") + ggtitle("genebody coverage"))
   print(ggplot(data=xx, 
        aes(x=Percentile, y=Sample, fill=value)) + geom_tile() + scale_fill_gradientn(colours=getBlueRedScale()) +
