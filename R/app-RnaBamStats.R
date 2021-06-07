@@ -298,9 +298,7 @@ getStatsFromBam = function(param, bamFile, sm, gff=NULL, repeatsGff=NULL,
   # transcriptLengthTotal = sapply(transcriptCov, length) slow!
   transcriptLengthTotal <- elementNROWS(transcriptCovRleList)
   percentCovered = transcriptLengthCov / transcriptLengthTotal * 100
-  percentCoveredHist = hist(percentCovered,
-                            breaks=c(0, seq(from=0, to=100, by=2)), plot=FALSE)
-  result$TranscriptsCovered = percentCoveredHist
+  result$TranscriptsCovered = table(ezCut(percentCovered, breaks = c(0.5, 10, 90, 99.5), labels=c("not covered", "<10%", "10 - 90%", ">90%", "fully covered")))
   
   ## Do the genebody_coverage
   #sampledTranscriptCov = sapply(transcriptCov, ## RleList will be slow. use list
@@ -336,7 +334,7 @@ getStatsFromBam = function(param, bamFile, sm, gff=NULL, repeatsGff=NULL,
     }
   }
   result$genebody_coverage = genebody_coverage
-  #result$transcriptCov = NULL
+  result$transcriptCov = NULL
   gc()
   return(result)
 }
