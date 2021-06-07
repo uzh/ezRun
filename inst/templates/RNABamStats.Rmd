@@ -189,12 +189,28 @@ if (length(resultList[[1]][["genebody_coverage"]]) != 0){ ## TODO this could be 
   xx <- reshape2::melt(covValues, varnames=c("Sample", "Percentile"))
   print(ggplot(data=xx, aes(x=Percentile, y=value)) + geom_line(aes(color=Sample)) + 
     scale_colour_manual(values=sampleColors) + 
-    labs(x="percentile of gene (5'->3')", ylab="relative coverage") + ggtitle("genebody coverage"))
+    labs(x="percentile of gene (5'->3')", y="relative coverage") + ggtitle("genebody coverage"))
   print(ggplot(data=xx, 
        aes(x=Percentile, y=Sample, fill=value)) + geom_tile() + scale_fill_gradientn(colours=getBlueRedScale()) +
-       labs(x="percentile of gene (5'->3')", ylab="relative coverage") + ggtitle("genebody coverage"))
+       labs(x="percentile of gene (5'->3')", y="relative coverage") + ggtitle("genebody coverage"))
+}
+
+tlc = resultList[[1]][["TranscriptsCovered"]]
+if (!is.null(tlc)){
+  cat("\n\n####", "The fraction of isoform length covered\n")
+  geneFraction = ezMatrix(NA, cols=names(tlc), rows=samples)
+  for (sm in samples){
+    tlc = resultList[[sm]][["TranscriptsCovered"]]
+    tlc = table(ezCut(sample(0:100, 5000, replace = TRUE), breaks = c(0.5, 10, 90, 99.5), labels=c("not covered", "<10%", "10 - 90%", ">90%", "fully covered")))
+    geneFraction[sm, ] = tlc /sum(tlc)
+  }
+  xx <- reshape2::melt(geneFraction, varnames=c("Sample", "Percentile"))
+  ggplot(xx, aes(x = Sample, y = value, fill = Percentile)) + 
+    geom_col(position = "stack") + theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1)) +
+    labs(x="", y="fraction of isoforms")
 }
 ```
+
 
 
 ```{r junction saturation plot for all samples, echo=FALSE, results='asis'}
@@ -225,7 +241,7 @@ if(!is.null(resultList[[1]][["Junction"]])){
 }
 ```
 
-```{r junction plot, echo=FALSE, results='asis'}
+```{r junction plot, echo=FALSE, results='asis', eval=FALSE}
 if (!is.null(resultList[[1]][["Junction"]])){
   cat("###", "Junction plots\n")
   for (sm in samples){
@@ -285,23 +301,6 @@ if (!is.null(resultList[[1]][["ErrorRates"]])){
         plotPosSpecificErrorRate(errorRate, main=paste(sm, nm))
       }
     }
-  }
-}
-```
-
-```{r The fraction of isoform length covered, echo=FALSE, results='asis'}
-if (!is.null(resultList[[1]][["TranscriptsCovered"]])){
-  cat("###", "The fraction of isoform length covered\n")
-  for (sm in samples){
-    tlc = resultList[[sm]][["TranscriptsCovered"]]
-    ezWrite.table(cbind(Percents=tlc$mids, Count=tlc$counts),
-                  file=paste0(sm, "-transcriptsCovered.txt"), row.names=FALSE)
-    plotCmd = expression({
-      cts = tlc$counts
-      names(cts) = tlc$mids
-      barplot(cts, xlab="% length covered", main=paste(sm, "-- Isoforms Covered Histogram"), ylab="number of isoforms")
-    })
-    eval(plotCmd)
   }
 }
 ```
