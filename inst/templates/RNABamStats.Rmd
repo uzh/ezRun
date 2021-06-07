@@ -152,28 +152,6 @@ for (nm in c("multiMatchTargetTypeCounts", "uniqueMatchTargetTypeCounts")){
 
 ```
 
-```{r transcript coverage, echo=FALSE, results='asis', eval=FALSE}
-## don't add it to the report
-if (!is.null(resultList[[1]][["TranscriptsCovered"]])){
-  cat("###", "Coverage plot\n")
-  cat("####", "Transcripts covered plot\n")
-  minYlim = 0 #min(sapply(resultList, function(item){min(item[["TranscriptsCovered"]][["counts"]])}))
-  minXlim = 0
-  maxYlim = max(sapply(resultList,
-                  function(item){max(item[["TranscriptsCovered"]][["counts"]])}))
-  maxXlim = 130 #max(sapply(resultList, function(item){max(item[["TranscriptsCovered"]][["mids"]])}))
-    
-  plotCmd = expression({
-    plot(1, 1, xlim=c(minXlim, maxXlim), ylim=c(minYlim, maxYlim), xlab = "% length covered", ylab="number of isoforms", main="Isoforms Covered Histogram", type="n")
-      for (sm in samples){
-        transcript_covered = resultList[[sm]][["TranscriptsCovered"]]
-        lines(transcript_covered[["mids"]], transcript_covered[["counts"]], col=sampleColors[sm])
-      }
-      legend("topright", samples, col=sampleColors[samples], cex=1.2, pt.cex=1.5, bty="o", pt.bg="white", lty=1)
-    })
-  eval(plotCmd)
-}
-```
 
 ```{r genebody coverage legend, echo=FALSE, fig.width=10, fig.height=7, results='asis'}
 if (length(resultList[[1]][["genebody_coverage"]]) != 0){ ## TODO this could be done better by searching alls results for a valid genebody_coverage element
@@ -186,7 +164,8 @@ if (length(resultList[[1]][["genebody_coverage"]]) != 0){ ## TODO this could be 
       covValues[sm, ] = y/sum(y)
     }
   }
-  xx <- reshape2::melt(covValues, varnames=c("Sample", "Percentile"), as.is=TRUE)
+  xx <- reshape2::melt(covValues, varnames=c("Sample", "Percentile"))
+  xx$Sample = as.factor(xx$Sample)
   print(ggplot(data=xx, aes(x=Percentile, y=value)) + geom_line(aes(color=Sample)) + 
     scale_colour_manual(values=sampleColors) + 
     labs(x="percentile of gene (5'->3')", y="relative coverage") + ggtitle("genebody coverage"))
@@ -201,10 +180,10 @@ if (!is.null(tlc)){
   geneFraction = ezMatrix(NA, cols=names(tlc), rows=samples)
   for (sm in samples){
     tlc = resultList[[sm]][["TranscriptsCovered"]]
-    tlc = table(ezCut(sample(0:100, 5000, replace = TRUE), breaks = c(0.5, 10, 90, 99.5), labels=c("not covered", "<10%", "10 - 90%", ">90%", "fully covered")))
     geneFraction[sm, ] = tlc /sum(tlc)
   }
-  xx <- reshape2::melt(geneFraction, varnames=c("Sample", "Percentile"), as.is=TRUE)
+  xx <- reshape2::melt(geneFraction, varnames=c("Sample", "Percentile"))
+  xx$Sample = as.factor(xx$Sample)
   ggplot(xx, aes(x = Sample, y = value, fill = Percentile)) + 
     geom_col(position = "stack") + theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1)) +
     labs(x="", y="fraction of isoforms")
