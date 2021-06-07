@@ -186,7 +186,7 @@ if (length(resultList[[1]][["genebody_coverage"]]) != 0){ ## TODO this could be 
       covValues[sm, ] = y/sum(y)
     }
   }
-  xx <- reshape2::melt(covValues, varnames=c("Sample", "Percentile"))
+  xx <- reshape2::melt(covValues, varnames=c("Sample", "Percentile"), as.is=TRUE)
   print(ggplot(data=xx, aes(x=Percentile, y=value)) + geom_line(aes(color=Sample)) + 
     scale_colour_manual(values=sampleColors) + 
     labs(x="percentile of gene (5'->3')", y="relative coverage") + ggtitle("genebody coverage"))
@@ -204,7 +204,7 @@ if (!is.null(tlc)){
     tlc = table(ezCut(sample(0:100, 5000, replace = TRUE), breaks = c(0.5, 10, 90, 99.5), labels=c("not covered", "<10%", "10 - 90%", ">90%", "fully covered")))
     geneFraction[sm, ] = tlc /sum(tlc)
   }
-  xx <- reshape2::melt(geneFraction, varnames=c("Sample", "Percentile"))
+  xx <- reshape2::melt(geneFraction, varnames=c("Sample", "Percentile"), as.is=TRUE)
   ggplot(xx, aes(x = Sample, y = value, fill = Percentile)) + 
     geom_col(position = "stack") + theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1)) +
     labs(x="", y="fraction of isoforms")
