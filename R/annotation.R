@@ -76,23 +76,25 @@ ezFeatureAnnotation = function(param, ids=NULL,
   if(!is.null(ids)){
     if(!all(ids %in% rownames(seqAnno))){
       extraIds <- setdiff(ids, rownames(seqAnno))
+      seqAnno[extraIds, ] = ""
       seqAnno[extraIds, "gene_id"] = extraIds
-      fastaIds <- sub("^(Gene|Transcript)_", "", extraIds)
-      extraSeqs <- getControlSeqs(fastaIds)
-      seqAnno[extraIds, "transcript_id"] <- sub("^(Gene|Transcript)_", "Transcript", extraIds)
-      seqAnno[extraIds, "gene_name"] = fastaIds
       seqAnno[extraIds, "type"] = "protein_coding"
-      seqAnno[extraIds, "biotypes"] = "protein_coding"
-      seqAnno[extraIds, "strand"] = "+"
-      seqAnno[extraIds, "seqid"] = fastaIds
-      seqAnno[extraIds, "description"] = ""
-      seqAnno[extraIds, "start"] = as.integer(1)
-      seqAnno[extraIds, "end"] = width(extraSeqs)
-      seqAnno[extraIds, "gc"] = letterFrequency(extraSeqs, letters="GC", as.prob = FALSE)[ ,"G|C"] /width(extraSeqs)
-      seqAnno[extraIds, "featWidth"] = width(extraSeqs)
-      seqAnno[extraIds, "GO BP"] = ""
-      seqAnno[extraIds, "GO MF"] = ""
-      seqAnno[extraIds, "GO CC"] = ""
+      # fastaIds <- sub("^(Gene|Transcript)_", "", extraIds)
+      # extraSeqs <- getControlSeqs(fastaIds)
+      # seqAnno[extraIds, "transcript_id"] <- sub("^(Gene|Transcript)_", "Transcript", extraIds)
+      # seqAnno[extraIds, "gene_name"] = fastaIds
+      # seqAnno[extraIds, "type"] = "protein_coding"
+      # seqAnno[extraIds, "biotypes"] = "protein_coding"
+      # seqAnno[extraIds, "strand"] = "+"
+      # seqAnno[extraIds, "seqid"] = fastaIds
+      # seqAnno[extraIds, "description"] = ""
+      # seqAnno[extraIds, "start"] = as.integer(1)
+      # seqAnno[extraIds, "end"] = width(extraSeqs)
+      # seqAnno[extraIds, "gc"] = letterFrequency(extraSeqs, letters="GC", as.prob = FALSE)[ ,"G|C"] /width(extraSeqs)
+      # seqAnno[extraIds, "featWidth"] = width(extraSeqs)
+      # seqAnno[extraIds, "GO BP"] = ""
+      # seqAnno[extraIds, "GO MF"] = ""
+      # seqAnno[extraIds, "GO CC"] = ""
     }
     seqAnno[is.na(seqAnno)] <- ""
     seqAnno <- seqAnno[ids, , drop=FALSE]
