@@ -459,7 +459,7 @@ ezSmoothScatter <- function(x=NULL, y, xlab=NULL, ylab=NULL, nPlotsPerRow=6,
 ##' ezScatter(y=data.frame(a=1:10, b=21:30, c=41:50))
 ##' ezXYScatter(x, y, isPresent=isPresent)
 ezScatter <- function(x=NULL, y, xlab=NULL, ylab=NULL, nPlotsPerRow=6, shrink=FALSE,
-                      lim=range(x, y, na.rm=TRUE), isPresent=NULL,
+                      lim=range(x, y, na.rm=TRUE), isPresent=NULL, mode=NULL,
                       types=NULL, pch=16, colors=brewPalette(ncol(types), alpha = 1), legendPos="bottomright", 
                       cex.main=1.0, cex=1, ...){
   
@@ -475,19 +475,32 @@ ezScatter <- function(x=NULL, y, xlab=NULL, ylab=NULL, nPlotsPerRow=6, shrink=FA
     } else {
       isPres = isPresent[ ,1] | isPresent[ , 2]
     }
-    par(cex.main=cex.main, cex=cex)
-    ezXYScatter(y[ ,1], y[ ,2], xlim=lim, ylim=lim, isPresent=isPres,
-                       types=types, pch=pch, colors=colors, legendPos=legendPos, shrink=shrink,
-                       xlab=ylab[1], ylab=ylab[2], ...)
-    return()
+    if (is.null(mode)) {
+      par(cex.main=cex.main, cex=cex)
+      ezXYScatter(y[ ,1], y[ ,2], xlim=lim, ylim=lim, isPresent=isPres,
+                  types=types, pch=pch, colors=colors, legendPos=legendPos, shrink=shrink,
+                  xlab=ylab[1], ylab=ylab[2], ...)
+      return()
+    } else {
+      p <- ezXYScatter.2(y[ ,1], y[ ,2], xlim=lim, ylim=lim, isPresent=isPres,
+                         types=types, colors=colors, shrink=shrink,
+                         xlab=ylab[1], ylab=ylab[2], mode=mode, ...)
+      return(p)
+    }
   }
   
   ## all other cases
   nPlots = ncol(y)
   nImgRow <- ceiling(nPlots / nPlotsPerRow)
   nImgCol <- min(nPlots, nPlotsPerRow)
-  par(mfrow=c(nImgRow, nImgCol))
-  par(cex.main=cex.main, cex=cex)
+  
+  if (is.null(mode)) {
+    par(mfrow=c(nImgRow, nImgCol))
+    par(cex.main=cex.main, cex=cex)
+  } else {
+    ps <- list()
+  }
+  
   if (nPlots == 1){
     main = ""
   } else {
@@ -513,12 +526,24 @@ ezScatter <- function(x=NULL, y, xlab=NULL, ylab=NULL, nPlotsPerRow=6, shrink=FA
         xlab = colnames(x)[i]
       }
     }
-    par(mar=c(4.1, 2.1, 2.2, 0.1))
-    ezXYScatter(xVal, y[ ,i], xlim=lim, ylim=lim, isPresent=isPres,
-                       types=types, pch=pch, colors=colors, legendPos=legendPos, shrink=shrink,
-                       main=main[i], xlab=xlab, ylab=ylab[i], ...)
+    if (is.null(mode)) {
+      par(mar=c(4.1, 2.1, 2.2, 0.1))
+      ezXYScatter(xVal, y[ ,i], xlim=lim, ylim=lim, isPresent=isPres,
+                  types=types, pch=pch, colors=colors, legendPos=legendPos, shrink=shrink,
+                  main=main[i], xlab=xlab, ylab=ylab[i], ...)
+    } else {
+      p <- ezXYScatter.2(xVal, y[ ,i], xlim=lim, ylim=lim, isPresent=isPres, 
+                         types=types, colors=colors, shrink=shrink,
+                         main=main[i], xlab=xlab, ylab=ylab[i], mode="ggplot2", ...)
+      ps <- c(ps, list(p))
+    }
+  }
+  
+  if (!is.null(mode)) {
+    return(list(scatters=ps, nrow=nImgRow, ncol=nImgCol))
   }
 }
+
 
 ##' @describeIn ezScatter Does the XY scatter plot.
 ezXYScatter = function(xVec, yVec, absentColor="gray", shrink=FALSE, frame=TRUE, axes=TRUE,
@@ -1172,4 +1197,12 @@ getBinColors = function(binNames, colorSet=c("darkorange", "gray70", "gray50", "
 gg_color_hue <- function(n) {
   hues = seq(15, 375, length = n + 1)
   hcl(h = hues, l = 65, c = 100)[1:n]
+}
+
+# Get ggplot2 legend
+get_legend<-function(myggplot){
+  tmp <- ggplot_gtable(ggplot_build(myggplot))
+  leg <- which(sapply(tmp$grobs, function(x) x$name) == "guide-box")
+  legend <- tmp$grobs[[leg]]
+  return(legend)
 }

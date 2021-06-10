@@ -45,23 +45,19 @@ countQcScatterPlots = function(param, design, conds, rawData, signalCond,
   }
   
   widePlots <- list()
-  if (nConds > 1 & nConds <=  param$allPairsMaxCondNumber){
-    widePlots[["allPairs"]] <- list()
-    widePlots[["allPairs"]][["std"]] <- 
-      expression({
-        ezAllPairScatter(signalCond, isPresent=isPresentCond, types=types)
-      })
-    if (!is.null(gcTypes)){
-      widePlots[["allPairs"]][["gc"]] <- expression({
-        ezAllPairScatter(signalCond, main="color by GC", isPresent=isPresentCond, types=gcTypes)
-      })
-    }
-    if (!is.null(widthTypes)){
-      widePlots[["allPairs"]][["width"]] <- expression({
-        ezAllPairScatter(signalCond, main="color by width", isPresent=isPresentCond, types=widthTypes, colors = widthColors)
-      })
-    }
-  }
+  # if (nConds > 1 & nConds <=  param$allPairsMaxCondNumber){
+  #   widePlots[["allPairs"]] <- list()
+  #   widePlots[["allPairs"]][["std"]] <- 
+  #     ezAllPairScatter(signalCond, isPresent=isPresentCond, types=types)
+  #   if (!is.null(gcTypes)){
+  #     widePlots[["allPairs"]][["gc"]] <- 
+  #       ezAllPairScatter(signalCond, main="color by GC", isPresent=isPresentCond, types=gcTypes)
+  #   }
+  #   if (!is.null(widthTypes)){
+  #     widePlots[["allPairs"]][["width"]] <-
+  #       ezAllPairScatter(signalCond, main="color by width", isPresent=isPresentCond, types=widthTypes, colors = widthColors)
+  #   }
+  # }
   narrowPlots <- list()
   nPlots <- 0
   for (factorName in head(colnames(design), 4)){ ## take the first 4 factors
@@ -79,25 +75,19 @@ countQcScatterPlots = function(param, design, conds, rawData, signalCond,
       narrowPlots[[plotName]] <- list()
       idx = idx[order(samples[idx])] ## order alphabetically
       narrowPlots[[plotName]][["std"]] <-
-        expression({
-          ezScatter(y=signal[ ,idx], isPresent=isPresent[ ,idx], types=types, lim=signalRange, xlab=paste("Avg of", factorLevel), ylab=NULL)
-        })
+        ezScatter(y=signal[ ,idx], isPresent=isPresent[ ,idx], types=types, lim=signalRange, xlab=paste("Avg of", factorLevel), ylab=NULL, mode="ggplot2")
       if (!is.null(gcTypes)){
         narrowPlots[[plotName]][["gc"]] <-
-          expression({
-            ezScatter(y=signal[ ,idx], isPresent=isPresent[ ,idx], types=gcTypes, lim=signalRange, xlab=paste("Avg of", factorLevel), ylab=NULL)
-          })
+          ezScatter(y=signal[ ,idx], isPresent=isPresent[ ,idx], types=gcTypes, lim=signalRange, xlab=paste("Avg of", factorLevel), ylab=NULL, mode="ggplot2")
       }
       if (!is.null(widthTypes)){
         narrowPlots[[plotName]][["width"]] <-
-          expression({
-            ezScatter(y=signal[ ,idx], isPresent=isPresent[ ,idx], types=widthTypes, lim=signalRange, xlab=paste("Avg of", factorLevel), ylab=NULL)
-          })
+          ezScatter(y=signal[ ,idx], isPresent=isPresent[ ,idx], types=widthTypes, lim=signalRange, xlab=paste("Avg of", factorLevel), ylab=NULL, mode="ggplot2")
       }
     }
   }
   nPlots <- max(c(1, nPlots))
-  return(list(widePlots=widePlots, narrowPlots=narrowPlots, envir=sys.frame(which=sys.nframe())))
+  return(list(widePlots=widePlots, narrowPlots=narrowPlots, nPlots=nPlots))
 }
 
 
