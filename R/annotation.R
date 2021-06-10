@@ -77,6 +77,7 @@ ezFeatureAnnotation = function(param, ids=NULL,
     if(!all(ids %in% rownames(seqAnno))){
       extraIds <- setdiff(ids, rownames(seqAnno))
       seqAnno[extraIds, "gene_id"] = extraIds
+      seqAnno[extraIds, "type"] = "protein_coding"
       fastaIds <- sub("^(Gene|Transcript)_", "", extraIds)
       extraSeqs <- getControlSeqs(fastaIds)
       seqAnno[extraIds, "transcript_id"] <- sub("^(Gene|Transcript)_", "Transcript", extraIds)

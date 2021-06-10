@@ -79,6 +79,7 @@ ezMethodFeatureCounts = function(input=NA, output=NA, param=NA){
         transcripts <- ezGffAttributeField(gtf$attributes,
                                            field="transcript_id", 
                                            attrsep="; *", valuesep=" ")
+        transcriptsUse = union(transcriptsUse, setdiff(transcripts, rownames(seqAnno))) ## add those where we have no info, e.g. spikes
         gtf = gtf[transcripts %in% transcriptsUse, ]
         ## write.table is much faster than write_tsv and export.
         ### write_tsv: 38.270s
