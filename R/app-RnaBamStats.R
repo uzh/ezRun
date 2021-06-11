@@ -370,7 +370,7 @@ getStatsFromBamParallel = function(seqLengths, param, bamFile, sm,
     for (i in idx){
       if (i == idx[1]){
         fsh = chromResults[[i]]$fragSizeHist
-        counts = sch$counts
+        counts = fsh$counts
       } else {
         counts = counts + chromResults[[i]]$fragSizeHist$counts
       }
