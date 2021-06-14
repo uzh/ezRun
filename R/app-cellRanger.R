@@ -103,9 +103,12 @@ ezMethodCellRanger <- function(input = NA, output = NA, param = NA) {
   
   #7. Calculate alignment stats from the BAM file
   if(param$bamStats){
-    alignStats <- computeBamStatsSC(sampleName, ram=param$ram)
-    if (!is.null(alignStats)){
-      ezWrite.table(alignStats, file=file.path(sampleName, "CellAlignStats.txt"), head="Barcode")
+    genomeBam <- file.path(sampleName, "possorted_genome_bam.bam")
+    if (file.exists(genomeBam)){
+      alignStats <- computeBamStatsSC(genomeBam, ram=param$ram)
+      if (!is.null(alignStats)){
+        ezWrite.table(alignStats, file=file.path(sampleName, "CellAlignStats.txt"), head="Barcode")
+      }
     }
   }
   
@@ -156,9 +159,8 @@ createLibraryFile <- function(sampleDirs, featureDirs, sampleName, featureName) 
  return(libraryFn)
 }
 
-computeBamStatsSC = function(sampleName, ram=NULL) {
+computeBamStatsSC = function(bamFile, ram=NULL) {
   ## compute stats per cell from the bam file
-  bamFile = file.path(sampleName, "possorted_genome_bam.bam")
   if (!is.null(ram)){  
     nAlign = sum(ezScanBam(bamFile, tag = "CB", 
                            what = character(0), isUnmappedQuery = FALSE, countOnly = TRUE)$records)

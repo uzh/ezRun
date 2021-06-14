@@ -1,0 +1,91 @@
+---
+title: "RNA-seq analysis with an additional species"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Reference Genome Folders}
+  %\VignetteEngine{knitr::rmarkdown}
+  \usepackage[utf8]{inputenc}
+---
+
+
+```{r library, warning=FALSE,message=FALSE,split=TRUE, message=FALSE, warning=FALSE, results='hide'}
+library(ezRun)
+```
+
+<!-- see: http://stackoverflow.com/questions/19372260/how-to-get-rstudio-to-automatically-compile-r-markdown-vignettes -->
+<!-- use knit button or devtools::build_vignettes() -->
+<!-- do not use: devtools::install(build_vignettes = TRUE) -->
+
+# Introduction
+
+This is helpful in the case of a host and pathogen. E.g. a virus.
+It is demonstrated using the example of a human sample infected with the human adenovirus
+
+https://www.ncbi.nlm.nih.gov/genome/10271?genome_assembly_id=891476
+
+# Steps
+
+## Download reference files
+
+If not available download the fasta and GTF
+
+```{r, eval=FALSE}
+library(ezRun)
+
+setwd("/srv/GT/analysis/p23963-Maarit/reference")
+dir()
+
+ezSystem("wget https://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/000/857/865/GCF_000857865.1_ViralProj15107/GCF_000857865.1_ViralProj15107_genomic.gff.gz")
+ezSystem("wget https://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/000/857/865/GCF_000857865.1_ViralProj15107/GCF_000857865.1_ViralProj15107_genomic.fna.gz")
+```
+
+Copy the files to `/srv/GT/databases/Human_adenovirus_5/`
+
+Convert the gff to gtf
+```{r, eval=FALSE}
+gff = ezRead.table("GCF_000857865.1_ViralProj15107_genomic.gff", comment.char = "#", row.names=NULL, header = FALSE)
+colnames(gff) = c("seqid", "source", "type", "start", "end", "score", 
+                "strand", "phase", "attributes")
+gff = gff[ gff$type == "CDS", ]
+gff$type = sub("CDS", "exon", gff$type)
+gff$gene_name = ezGffAttributeField(gff$attributes, "Name", attrsep = ";", valuesep="=")
+gff$gene_id = gff$gene_name
+gff$transcript_id = gff$gene_name
+gff$transcript_type = "protein_coding"
+gff$gene_biotype = "protein_coding"
+gff$attributes = ezBuildAttributeField(gff[ , c("gene_name", "gene_id", "transcript_id", "transcript_type", "gene_biotype")])
+ezWriteGff(gff, file="/srv/GT/databases/Human_adenovirus_5/Human_adenovirus_5.gtf")
+
+```
+
+
+
+Run STAR alignment with the option `specialOptions` set to `spikeInSet=Human_adenovirus_5`.
+
+Build a combined annotation file
+
+```{r , eval=FALSE}
+seqAnno = data.frame(row.names=unique(gff$gene_id))
+seqAnno$gene_name = rownames(seqAnno)
+seqAnno$seqid = tapply(gff$seqid, gff$gene_id, ezCollapse, empty.rm=TRUE, uniqueOnly=TRUE)[rownames(seqAnno)]
+seqAnno$strand = tapply(gff$strand, gff$gene_id, ezCollapse, empty.rm=TRUE, uniqueOnly=TRUE)[rownames(seqAnno)]
+seqAnno$start = tapply(gff$start, gff$gene_id, min)[rownames(seqAnno)]        
+seqAnno$end = tapply(gff$end, gff$gene_id, max)[rownames(seqAnno)]        
+seqAnno$featWidth = tapply(gff$end - gff$start + 1, gff$gene_id, sum)[rownames(seqAnno)]
+seqAnno$gc = 0.5
+seqAnno$type = "protein_coding"
+humAnno = ezRead.table("/srv/GT/reference/Homo_sapiens/GENCODE/GRCh38.p13/Annotation/Release_37-2021-05-04/Genes/genes_annotation_byGene.txt")
+colnames(humAnno)
+
+colnames(seqAnno) %in% colnames(humAnno)
+useCols = intersect(colnames(seqAnno), colnames(humAnno))
+humAnno[ rownames(seqAnno), useCols]  = seqAnno[ , useCols]
+humAnno[is.na(humAnno)] = ""
+ezWrite.table(humAnno, file="/srv/GT/reference/Homo_sapiens/GENCODE/GRCh38.p13/Annotation/Release_37-2021-05-04/Genes/genes_STARIndex_Human_adenovirus_5/genesAndSpikes_annotation_byGene.txt", head="gene_id")
+
+```
+
+Run FeatureCounts
+
+Run CountQC
