@@ -28,7 +28,7 @@ library(ggpubr)
 ```
 
 ```{r prepare data countQC, include=FALSE}
-debug <- TRUE
+debug <- FALSE
 if(!exists("rawData")){
   rawData <- readRDS("rawData.rds")
   # rawData <- readRDS("/srv/gstore//projects/p3613/CountQC_49303_2020-09-03--20-54-11/Count_QC/rawData.rds")
