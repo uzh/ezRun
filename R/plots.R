@@ -459,9 +459,12 @@ ezSmoothScatter <- function(x=NULL, y, xlab=NULL, ylab=NULL, nPlotsPerRow=6,
 ##' ezScatter(y=data.frame(a=1:10, b=21:30, c=41:50))
 ##' ezXYScatter(x, y, isPresent=isPresent)
 ezScatter <- function(x=NULL, y, xlab=NULL, ylab=NULL, nPlotsPerRow=6, shrink=FALSE,
-                      lim=range(x, y, na.rm=TRUE), isPresent=NULL,
+                      lim=range(x, y, na.rm=TRUE), isPresent=NULL, mode=NULL,
                       types=NULL, pch=16, colors=brewPalette(ncol(types), alpha = 1), legendPos="bottomright", 
                       cex.main=1.0, cex=1, ...){
+  
+  # Check if valid mode specified
+  stopifnot(is.null(mode) || mode %in% c("ggplot2"))
   
   y = as.matrix(y)
   if (is.null(ylab)){
@@ -475,25 +478,39 @@ ezScatter <- function(x=NULL, y, xlab=NULL, ylab=NULL, nPlotsPerRow=6, shrink=FA
     } else {
       isPres = isPresent[ ,1] | isPresent[ , 2]
     }
-    par(cex.main=cex.main, cex=cex)
-    ezXYScatter(y[ ,1], y[ ,2], xlim=lim, ylim=lim, isPresent=isPres,
-                       types=types, pch=pch, colors=colors, legendPos=legendPos, shrink=shrink,
-                       xlab=ylab[1], ylab=ylab[2], ...)
-    return()
+    if (is.null(mode)) {
+      par(cex.main=cex.main, cex=cex)
+      ezXYScatter(y[ ,1], y[ ,2], xlim=lim, ylim=lim, isPresent=isPres,
+                  types=types, pch=pch, colors=colors, legendPos=legendPos, shrink=shrink,
+                  xlab=ylab[1], ylab=ylab[2], ...)
+      return()
+    } else if (mode == "ggplot2") {
+      p <- ezXYScatter.2(y[ ,1], y[ ,2], xlim=lim, ylim=lim, isPresent=isPres,
+                         types=types, colors=colors, shrink=shrink,
+                         xlab=ylab[1], ylab=ylab[2], mode=mode, ...)
+      return(p)
+    }
   }
   
   ## all other cases
   nPlots = ncol(y)
   nImgRow <- ceiling(nPlots / nPlotsPerRow)
   nImgCol <- min(nPlots, nPlotsPerRow)
-  par(mfrow=c(nImgRow, nImgCol))
-  par(cex.main=cex.main, cex=cex)
+  
+  if (is.null(mode)) {
+    par(mfrow=c(nImgRow, nImgCol))
+    par(cex.main=cex.main, cex=cex)
+  } else {
+    ps <- list()
+  }
+  
   if (nPlots == 1){
     main = ""
   } else {
     main = ylab
     ylab[] = ""
   }
+  
   for (i in 1:nPlots){
     if (is.null(dim(isPresent))){
       isPres = isPresent
@@ -513,12 +530,27 @@ ezScatter <- function(x=NULL, y, xlab=NULL, ylab=NULL, nPlotsPerRow=6, shrink=FA
         xlab = colnames(x)[i]
       }
     }
-    par(mar=c(4.1, 2.1, 2.2, 0.1))
-    ezXYScatter(xVal, y[ ,i], xlim=lim, ylim=lim, isPresent=isPres,
-                       types=types, pch=pch, colors=colors, legendPos=legendPos, shrink=shrink,
-                       main=main[i], xlab=xlab, ylab=ylab[i], ...)
+    
+    # Do the plotting
+    if (is.null(mode)) {
+      par(mar=c(4.1, 2.1, 2.2, 0.1))
+      ezXYScatter(xVal, y[ ,i], xlim=lim, ylim=lim, isPresent=isPres,
+                  types=types, pch=pch, colors=colors, legendPos=legendPos, shrink=shrink,
+                  main=main[i], xlab=xlab, ylab=ylab[i], ...)
+    } else if (mode == "ggplot2") {
+      p <- ezXYScatter.2(xVal, y[ ,i], xlim=lim, ylim=lim, isPresent=isPres, 
+                         types=types, colors=colors, shrink=shrink,
+                         main=main[i], xlab=xlab, ylab=ylab[i], mode="ggplot2", ...)
+      ps <- c(ps, list(p))
+    }
+  }
+  
+  # We return a list in the case of "ggplot2"
+  if (!is.null(mode) && mode == "ggplot2") {
+    return(list(scatters=ps, nrow=nImgRow, ncol=nImgCol))
   }
 }
+
 
 ##' @describeIn ezScatter Does the XY scatter plot.
 ezXYScatter = function(xVec, yVec, absentColor="gray", shrink=FALSE, frame=TRUE, axes=TRUE,
@@ -712,14 +744,16 @@ ezXYScatter.2 = function(xVec, yVec, absentColor="gray", shrink=FALSE,
 ezAllPairScatter = function(x, main="", shrink=FALSE, xylab=NULL,
                             lim=range(x, na.rm=TRUE), isPresent=NULL,
                             types=NULL, pch=16, colors=brewPalette(ncol(types), alpha = 1), legendPos="bottomright",
-                            cex.main=1.0, cex=1, ...){
+                            cex.main=1.0, cex=1, mode=NULL, ...){
   nItems = ncol(x)
   if (is.null(xylab)){
     xylab = colnames(x)
   }
-  par(pch=pch, cex=cex, pty="s", cex.main=cex.main)
+  
+  # Setup the plots
+  ps <- list()
+  
   if (nItems > 2){
-   par(oma=c(2,2,2,2), mar=c(0,0,0,0), mfcol=c(nItems, nItems))
    for( i in 1:nItems){
      for(j in 1:nItems){
        if (is.null(dim(isPresent))){
@@ -727,14 +761,21 @@ ezAllPairScatter = function(x, main="", shrink=FALSE, xylab=NULL,
        } else {
          isPres = isPresent[ ,i] | isPresent[ ,j]
        }
-       ezXYScatter(x[ ,i], x[, j], xlim=lim, ylim=lim, shrink=shrink, axes=FALSE, frame=TRUE,
-                          isPresent=isPres, types=types, pch=pch, colors=colors, legendPos=NULL, ...)
+       
+       p <- ezXYScatter.2(x[ ,i], x[, j], xlim=lim, ylim=lim, shrink=shrink,
+                          isPresent=isPres, types=types, colors=colors, mode="ggplot2", ...) + 
+         coord_fixed() +
+         theme_axis_only() +
+         theme(panel.border = element_rect(colour = "black", fill=NA, size=1))
+       
        if (i == 1){
-         mtext(xylab[j], 2)
+         p <- p + ylab(xylab[j])
        }
        if (j == nItems){
-         mtext(xylab[i], 1)
+         p <- p + xlab(xylab[i])
        }
+
+       ps <- c(ps, list(p))
      }
    }
   } else {
@@ -743,10 +784,16 @@ ezAllPairScatter = function(x, main="", shrink=FALSE, xylab=NULL,
     } else {
       isPres = isPresent[ ,1] | isPresent[ ,2]
     }
-    ezXYScatter(x[ ,1], x[, 2], xlim=lim, ylim=lim, shrink=shrink, xlab=xylab[1], ylab=xylab[2],
-                       isPresent=isPresent, types=types, pch=pch, colors=colors, legendPos=legendPos, ...)
+    
+    p <- ezXYScatter.2(x[ ,1], x[, 2], xlim=lim, ylim=lim, shrink=shrink, xlab=xylab[1], ylab=xylab[2],
+                       mode="ggplot2", isPresent=isPresent, types=types, colors=colors, ...) +
+        coord_fixed() +
+        #theme_nothing() +
+        theme(panel.border = element_rect(colour = "black", fill=NA, size=1))
+    ps <- c(ps, list(p))
   }
-  mtext(main, outer=TRUE, cex=1.2, line=0)
+  
+  return(list(scatter=ps, nItems=nItems, xyLab=xylab, main=main))
 }
 
 ##' @title Does a correlation plot
@@ -1173,3 +1220,46 @@ gg_color_hue <- function(n) {
   hues = seq(15, 375, length = n + 1)
   hcl(h = hues, l = 65, c = 100)[1:n]
 }
+
+## Minimal theme where only axis labels are shown, nothing else.
+theme_axis_only <- function (font_size = 6, font_family = "", rel_small = 12/14) 
+{
+    theme(line = element_blank(), rect = element_blank(), 
+          text = element_text(family = font_family, face = "plain", 
+                              color = "black", size = font_size, lineheight = 0.9, 
+                              hjust = 0.5, vjust = 0.5, angle = 0, margin = margin(), 
+                              debug = FALSE), 
+          axis.line = element_blank(),
+          axis.line.x = NULL, axis.line.y = NULL, 
+          axis.text = element_blank(),
+          axis.text.x = NULL, axis.text.x.top = NULL, axis.text.y = NULL,
+          axis.text.y.right = NULL,
+          axis.ticks = element_blank(), 
+          axis.ticks.length = unit(0, "pt"), 
+          legend.background = element_blank(), 
+          legend.spacing = unit(font_size, "pt"), legend.spacing.x = NULL, 
+          legend.spacing.y = NULL, legend.margin = margin(0, 
+                                                          0, 0, 0), legend.key = element_blank(), legend.key.size = unit(1.1 * 
+                                                                                                                           font_size, "pt"), legend.key.height = NULL, legend.key.width = NULL, 
+          legend.text = element_text(size = rel(rel_small)), 
+          legend.text.align = NULL, legend.title = element_text(hjust = 0), 
+          legend.title.align = NULL, legend.position = "none", 
+          legend.direction = NULL, legend.justification = "center", 
+          legend.box = NULL, legend.box.margin = margin(0, 
+                                                        0, 0, 0), legend.box.background = element_blank(), 
+          legend.box.spacing = unit(font_size, "pt"), panel.background = element_blank(), 
+          panel.border = element_blank(), panel.grid = element_blank(), 
+          panel.grid.major = NULL, panel.grid.minor = NULL, 
+          panel.spacing = unit(font_size/2, "pt"), panel.spacing.x = NULL, 
+          panel.spacing.y = NULL, panel.ontop = FALSE, strip.background = element_blank(), 
+          strip.text = element_blank(), strip.text.x = NULL, 
+          strip.text.y = NULL, strip.placement = "inside", 
+          strip.placement.x = NULL, strip.placement.y = NULL, 
+          strip.switch.pad.grid = unit(0, "cm"), strip.switch.pad.wrap = unit(0, 
+                                                                              "cm"), plot.background = element_blank(), plot.title = element_blank(), 
+          plot.subtitle = element_blank(), plot.caption = element_blank(), 
+          plot.tag = element_text(face = "bold", hjust = 0, 
+                                  vjust = 0.7), plot.tag.position = c(0, 1), plot.margin = margin(0, 
+                                                                                                  0, 0, 0), complete = TRUE)
+}
+
