@@ -42,14 +42,16 @@ test_that("Tests ezScatter() and ezXYScatter()", {
   y = runif(n=1000)
   isPresent = x > 0.2 & y > 0.2
   ret = ezScatter(y=data.frame(a=1:10, b=21:30, c=41:50))
-  ret2 = ezXYScatter(x, y, isPresent=isPresent)
+  ret2 = ezScatter(y=data.frame(a=1:10, b=21:30, c=41:50), mode="ggplot2")
+  ret3 = ezXYScatter(x, y, isPresent=isPresent)
   expect_null(ret)
-  expect_null(ret2)
+  expect_is(ret2, "list")
+  expect_null(ret3)
 })
 
 test_that("Tests ezAllPairScatter()", {
   ret = ezAllPairScatter(x=matrix(1:10,5))
-  expect_null(ret)
+  expect_is(ret, "list")
 })
 
 test_that("Tests ezCorrelationPlot()", {
