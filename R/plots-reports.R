@@ -44,20 +44,19 @@ countQcScatterPlots = function(param, design, conds, rawData, signalCond,
     widthTypes = NULL
   }
   
-  widePlots <- list()
-  # if (nConds > 1 & nConds <=  param$allPairsMaxCondNumber){
-  #   widePlots[["allPairs"]] <- list()
-  #   widePlots[["allPairs"]][["std"]] <- 
-  #     ezAllPairScatter(signalCond, isPresent=isPresentCond, types=types)
-  #   if (!is.null(gcTypes)){
-  #     widePlots[["allPairs"]][["gc"]] <- 
-  #       ezAllPairScatter(signalCond, main="color by GC", isPresent=isPresentCond, types=gcTypes)
-  #   }
-  #   if (!is.null(widthTypes)){
-  #     widePlots[["allPairs"]][["width"]] <-
-  #       ezAllPairScatter(signalCond, main="color by width", isPresent=isPresentCond, types=widthTypes, colors = widthColors)
-  #   }
-  # }
+  allPairs <- list()
+  if (nConds > 1 & nConds <=  param$allPairsMaxCondNumber){
+    allPairs[["std"]] <-
+      ezAllPairScatter(signalCond, isPresent=isPresentCond, types=types, mode="ggplot2")
+    if (!is.null(gcTypes)){
+      allPairs[["gc"]] <-
+        ezAllPairScatter(signalCond, main="color by GC", isPresent=isPresentCond, types=gcTypes, mode="ggplot2")
+    }
+    if (!is.null(widthTypes)){
+      allPairs[["width"]] <-
+        ezAllPairScatter(signalCond, main="color by width", isPresent=isPresentCond, types=widthTypes, colors = widthColors, mode="ggplot2")
+    }
+  }
   narrowPlots <- list()
   nPlots <- 0
   for (factorName in head(colnames(design), 4)){ ## take the first 4 factors
@@ -87,7 +86,7 @@ countQcScatterPlots = function(param, design, conds, rawData, signalCond,
     }
   }
   nPlots <- max(c(1, nPlots))
-  return(list(widePlots=widePlots, narrowPlots=narrowPlots, nPlots=nPlots))
+  return(list(allPairs=allPairs, narrowPlots=narrowPlots, nPlots=nPlots))
 }
 
 
