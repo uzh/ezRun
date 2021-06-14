@@ -1221,7 +1221,7 @@ gg_color_hue <- function(n) {
   hcl(h = hues, l = 65, c = 100)[1:n]
 }
 
-## only-axis theme
+## Minimal theme where only axis labels are shown, nothing else.
 theme_axis_only <- function (font_size = 6, font_family = "", rel_small = 12/14) 
 {
     theme(line = element_blank(), rect = element_blank(), 
