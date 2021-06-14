@@ -163,8 +163,6 @@ ezMethodSCMultipleSamples = function(input=NA, output=NA, param=NA, htmlFile="00
   library(HDF5Array)
   saveHDF5SummarizedExperiment(sce, dir="sce_h5")
   
-  rm(sceList)
-  rm(scData)
   makeRmdReport(dataFiles=dataFiles, rmdFile = "SCMultipleSamples.Rmd", reportTitle = metadata(sce)$param$name) 
   return("Success")
   
