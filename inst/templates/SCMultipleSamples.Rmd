@@ -170,7 +170,11 @@ One of the most important parameters when clustering is k, the number of nearest
 Below, it is shown a clustering tree that helps us to visualize the relationships between clusters at a range of resolutions. Each cluster forms a node in the tree and edges are constructed by considering the cells in a cluster at a lower resolution that end up in a cluster at the next highest resolution. By connecting clusters in this way, we can see how clusters are related to each other, which are clearly distinct and which are unstable. The size of each node is related to the number of cells in each cluster and the color indicates the clustering resolution. Edges are colored according to the number of cells they represent and the transparency shows the incoming node proportion, the number of cells in the edge divided by the number of samples in the node it points to. 
 
 ```{r, fig.align='center', fig.width=6, fig.height=8}
-clustree::clustree(sce, prefix = "integrated_snn_res.")
+if(param$batchCorrection == TRUE) {
+   clustree::clustree(sce, prefix = "integrated_snn_res.")
+} else {
+  clustree::clustree(sce, prefix = "SCT_snn_res.")
+}
 ```
 
 ### Cluster markers
