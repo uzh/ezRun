@@ -138,7 +138,7 @@ seuratStandardWorkflow <- function(scData, param){
   if (identical(param$pcGenes, character(0))) 
     param$pcGenes <- NULL
   
-  scData <- RunPCA(object=scData, npcs = param$npcs, features=param$pcGenes, verbose=FALSE)
+  scData <- RunPCA(object=scData, npcs = param$npcs, features=stringr::str_to_title(param$pcGenes), verbose=FALSE)
   scData <- RunTSNE(object = scData, reduction = "pca", dims = 1:param$npcs, num_threads=param$cores)
   scData <- RunUMAP(object=scData, reduction = "pca", dims = 1:param$npcs, num_threads=param$cores)
   scData <- FindNeighbors(object = scData, reduction = "pca", dims = 1:param$npcs, verbose=FALSE)
