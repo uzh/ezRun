@@ -136,9 +136,11 @@ add_Condition_oldReports <- function(sce) {
 seuratStandardWorkflow <- function(scData, param){
   set.seed(38)
   if (identical(param$pcGenes, character(0))) 
-    param$pcGenes <- NULL
+     features <- NULL
+  else 
+    features <- stringr::str_to_title(param$pcGenes)
   
-  scData <- RunPCA(object=scData, npcs = param$npcs, features=stringr::str_to_title(param$pcGenes), verbose=FALSE)
+  scData <- RunPCA(object=scData, npcs = param$npcs, features=features, verbose=FALSE)
   scData <- RunTSNE(object = scData, reduction = "pca", dims = 1:param$npcs, num_threads=param$cores)
   scData <- RunUMAP(object=scData, reduction = "pca", dims = 1:param$npcs, num_threads=param$cores)
   scData <- FindNeighbors(object = scData, reduction = "pca", dims = 1:param$npcs, verbose=FALSE)
