@@ -471,6 +471,11 @@ ezScatter <- function(x=NULL, y, xlab=NULL, ylab=NULL, nPlotsPerRow=6, shrink=FA
     ylab=colnames(y)
   }
   
+  # Determine final plot dimensions
+  nPlots = ncol(y)
+  nImgRow <- ceiling(nPlots / nPlotsPerRow)
+  nImgCol <- min(nPlots, nPlotsPerRow)
+  
   # treat the special case when the reference is not given but there are only two plots
   if (ncol(y) == 2 & is.null(x)){
     if (is.null(dim(isPresent))){
@@ -485,18 +490,16 @@ ezScatter <- function(x=NULL, y, xlab=NULL, ylab=NULL, nPlotsPerRow=6, shrink=FA
                   xlab=ylab[1], ylab=ylab[2], ...)
       return()
     } else if (mode == "ggplot2") {
+      ps <- list()
       p <- ezXYScatter.2(y[ ,1], y[ ,2], xlim=lim, ylim=lim, isPresent=isPres,
                          types=types, colors=colors, shrink=shrink,
                          xlab=ylab[1], ylab=ylab[2], mode=mode, ...)
-      return(p)
+      ps <- c(ps, list(p))
+      return(list(scatters=ps, nrow=nImgRow, ncol=1))
     }
   }
   
   ## all other cases
-  nPlots = ncol(y)
-  nImgRow <- ceiling(nPlots / nPlotsPerRow)
-  nImgCol <- min(nPlots, nPlotsPerRow)
-  
   if (is.null(mode)) {
     par(mfrow=c(nImgRow, nImgCol))
     par(cex.main=cex.main, cex=cex)
