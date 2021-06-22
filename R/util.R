@@ -834,3 +834,29 @@ makeRmdReport <- function(..., htmlFile = "00index.html", rmdFile = "", selfCont
     output_dir = ".", output_file = htmlFile, quiet = TRUE
   )
 }
+
+
+subsampleCountMatrix <- function(counts, targetCount, seed){
+  
+  if (!missing(seed)) {
+    s = readBin(digest::digest(c(seed, targetCount), 
+                       raw = TRUE), "integer")
+    set.seed(s)
+  }
+  
+  n = nrow(counts)
+  proportion <- targetCount / colSums(counts)
+  idx <- which(proportion < 1)
+  for (i in idx){
+    counts[ , i] <- rbinom(n, counts[ ,i], proportion[i])
+    ### TODO the rbinom approach does not yield exactly the targetCount
+    ### exact targetCount can be sampled with the code below (slower)
+    # xSub <- rownames(counts) %>% rep(times = counts[ ,i]) %>% 
+    #   sample( size = targetCount, replace = TRUE) %>%
+    #   table
+    # counts[ ,i] <- 0
+    # counts[names(xSub), i] <- xSub
+  }
+  return(counts)
+}
+
