@@ -451,7 +451,7 @@ if(ncol(rawData) > 3){
 scatterPlotData <- countQcScatterPlots(param, metadata(rawData)$design,
                                         colData(rawData)$conds, rawDataAll,
                                         signalCond, isPresentCond, types=types)
-nPlots <- scatterPlotData$nplots
+nPlots <- scatterPlotData$nPlots
 ```
 
 ```{r scatter plot all pairs, echo=FALSE, message=FALSE, results='asis', fig.width=min(max(ncol(signalCond) * 2, 4), 20), fig.height=min(max(ncol(signalCond) * 2, 4), 20), eval=ncol(rawData) > 3 & param$writeScatterPlots}
@@ -497,7 +497,7 @@ for(gridOfPlots in qcScatterFiles){
 cat("\n")
 ```
 
-```{r scatter plot narrow, echo=FALSE, message=FALSE, results='asis', eval=ncol(rawData) > 3 & param$writeScatterPlots, fig.width=min(nPlots, 6) * 3 * 1.65, fig.height=max(ceiling(nPlots/6), 1) * 3.3 * 2.00, out.width="1000px"}
+```{r scatter plot narrow, echo=FALSE, message=FALSE, results='asis', eval=ncol(rawData) > 3 & param$writeScatterPlots, fig.width=30, fig.height=25, out.width="1000px"}
 
 
 qcScatterFiles <- scatterPlotData$narrowPlots
@@ -508,22 +508,41 @@ if(length(qcScatterFiles) > 0){
     cat("####", names(qcScatterFiles)[i], "\n")
     rowsOfPlots <- qcScatterFiles[[i]]
     for(rowOfPlots in rowsOfPlots){
+      
+      # Extract legend
       scatterPlots <- rowOfPlots$scatters
       legend_temp <- get_legend(
         scatterPlots[[1]] + 
-          theme(legend.text = element_text(size = 20)) +
-          guides(color = guide_legend(override.aes = list(size = 5)))
+          theme(legend.text = element_text(size = 7)) +
+          guides(color = guide_legend(override.aes = list(size = 3)))
       )
+      
+      # Set plot themes
       scatterPlots <- lapply(scatterPlots, function(x){
         x  + coord_fixed() + 
           theme(legend.position="none", 
-                text = element_text(size=20))
+                text = element_text(size=7))
       })
+      
+      # Set legend at end
       scatterPlots[["legend"]] <- legend_temp
+      
+      # Get number of final columns and rows
+      numRowsFinal <- rowOfPlots$nrow
+      if (rowOfPlots$ncol * rowOfPlots$nrow > length(rowOfPlots$scatters)) {
+        numColsFinal <- rowOfPlots$ncol
+      } else {
+        numColsFinal <- rowOfPlots$ncol + 1
+        if (length(rowOfPlots$scatters) < numColsFinal * (numRowsFinal - 1)) {
+          numRowsFinal <- numRowsFinal - 1
+        }
+      }
+      
       grid.arrange(grobs=scatterPlots, 
-                   nrow=rowOfPlots$nrow, 
-                   widths=c(rep(4, rowOfPlots$ncol), 2), 
-                   ncol=rowOfPlots$ncol + 1)
+                   nrow=numRowsFinal,
+                   ncol=numColsFinal,
+                   widths=rep(6, numColsFinal),
+                   heights=rep(6, numRowsFinal))
       cat("\n")
     }
     cat("\n")
