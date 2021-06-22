@@ -837,7 +837,7 @@ makeRmdReport <- function(..., htmlFile = "00index.html", rmdFile = "", selfCont
 
 
 subsampleCountMatrix <- function(counts, targetCount, seed){
-  
+  ## inspired by subSeq package where you can provide the proportion as input
   if (!missing(seed)) {
     s = readBin(digest::digest(c(seed, targetCount), 
                        raw = TRUE), "integer")
