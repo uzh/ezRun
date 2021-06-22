@@ -788,11 +788,13 @@ ezAllPairScatter = function(x, main="", shrink=FALSE, xylab=NULL,
       isPres = isPresent[ ,1] | isPresent[ ,2]
     }
     
+    
+    nItems <- 1
     p <- ezXYScatter.2(x[ ,1], x[, 2], xlim=lim, ylim=lim, shrink=shrink, xlab=xylab[1], ylab=xylab[2],
-                       mode="ggplot2", isPresent=isPresent, types=types, colors=colors, ...) +
-        coord_fixed() +
-        #theme_nothing() +
-        theme(panel.border = element_rect(colour = "black", fill=NA, size=1))
+                       mode="ggplot2", isPresent=isPres, types=types, colors=colors, ...) +
+      coord_fixed() +
+      theme_axis_only() +
+      theme(panel.border = element_rect(colour = "black", fill=NA, size=1))
     ps <- c(ps, list(p))
   }
   
