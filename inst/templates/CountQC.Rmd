@@ -497,7 +497,7 @@ for(gridOfPlots in qcScatterFiles){
 cat("\n")
 ```
 
-```{r scatter plot narrow, echo=FALSE, message=FALSE, results='asis', eval=ncol(rawData) > 3 & param$writeScatterPlots, fig.width=30, fig.height=25, out.width="1000px"}
+```{r scatter plot narrow, echo=FALSE, message=FALSE, results='asis', eval=ncol(rawData) > 3 & param$writeScatterPlots, fig.width=min(nPlots, 6) * 5, fig.height=max(ceiling(nPlots/6), 1) * 5, out.width=paste0(min(nPlots + 1, 6) * 167, "px")}
 
 
 qcScatterFiles <- scatterPlotData$narrowPlots
@@ -513,15 +513,15 @@ if(length(qcScatterFiles) > 0){
       scatterPlots <- rowOfPlots$scatters
       legend_temp <- get_legend(
         scatterPlots[[1]] + 
-          theme(legend.text = element_text(size = 7)) +
-          guides(color = guide_legend(override.aes = list(size = 3)))
+          theme(legend.text = element_text(size = 10)) +
+          guides(color = guide_legend(override.aes = list(size = 5)))
       )
       
       # Set plot themes
       scatterPlots <- lapply(scatterPlots, function(x){
         x  + coord_fixed() + 
           theme(legend.position="none", 
-                text = element_text(size=7))
+                text = element_text(size=10))
       })
       
       # Set legend at end
