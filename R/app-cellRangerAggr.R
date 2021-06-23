@@ -28,14 +28,14 @@ ezMethodCellRangerAggr <- function(input = NA, output = NA, param = NA) {
   input <- input$subset(param$samples)
 
   aggr_input <- tibble(
-    library_id = input$getNames(),
+    sample_id = input$getNames(),
     molecule_h5 = file.path(
       dirname(input$getFullPaths("Report")), "molecule_info.h5"
     )
   )
   if (any(input$columnHasTag("Factor"))) {
     aggr_input2 <- as_tibble(input$meta[, input$columnHasTag("Factor"), drop = FALSE],
-      rownames = "library_id"
+      rownames = "sample_id"
     )
     colnames(aggr_input2) <- str_replace(colnames(aggr_input2), " \\[.*", "")
     aggr_input <- left_join(aggr_input, aggr_input2)
