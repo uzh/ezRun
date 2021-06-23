@@ -209,17 +209,10 @@ getCellRangerGEXReference <- function(param) {
     } else {
       cellRangerBase <- ""
     }
-    if (param$scMode == "SN") {
-      refDir <- sub(
-        "\\.gtf$", paste0("_10XGEX_SN_", cellRangerBase, "_Index"),
-        param$ezRef["refFeatureFile"]
-      )
-    } else if (param$scMode == "SC") {
-      refDir <- sub(
+    refDir <- sub(
         "\\.gtf$", paste0("_10XGEX_SC_", cellRangerBase, "_Index"),
         param$ezRef["refFeatureFile"]
       )
-    }
   }
 
   lockFile <- paste0(refDir, ".lock")
@@ -285,12 +278,6 @@ getCellRangerGEXReference <- function(param) {
     on.exit(file.remove(gtfExtraFn), add = TRUE)
     export.gff2(extraGR, con = gtfExtraFn)
     ezSystem(paste("cat", gtfExtraFn, ">>", gtfFile))
-  }
-  if (param$scMode == "SN") {
-    gtf <- import(gtfFile)
-    gtf <- gtf[gtf$type == "transcript"]
-    gtf$type <- "exon"
-    export.gff2(gtf, gtfFile)
   }
 
   cmd <- paste(
@@ -360,9 +347,6 @@ getCellRangerReference <- function(param) {
     if (param$TenXLibrary == "VDJ") {
       stop("VDJ library with extra control sequences is not implemented yet!")
     }
-    if (param$scMode == "SN") {
-      stop("Single-nuclei with extra control sequences is not implemented yet!")
-    }
     require(rtracklayer)
     ## make reference genome
     genomeLocalFn <- tempfile(
@@ -412,17 +396,10 @@ getCellRangerReference <- function(param) {
         full.names = TRUE
       )
     } else if (param$TenXLibrary == "GEX") {
-      if (param$scMode == "SC") {
         refDirs <- list.files(
-          path = refDir, pattern = "^10X_Ref.*_GEX_",
-          full.names = TRUE
+        path = refDir, pattern = "^10X_Ref.*_GEX_",
+        full.names = TRUE
         )
-      } else if (param$scMode == "SN") {
-        refDirs <- list.files(
-          path = refDir, pattern = "^10X_Ref.*_premRNA_",
-          full.names = TRUE
-        )
-      }
     } else {
       stop("Unsupported 10X library: ", param$TenXLibrary)
     }
@@ -455,11 +432,6 @@ EzAppCellRanger <-
             Type = "charVector",
             DefaultValue = "GEX",
             Description = "Which 10X library? GEX or VDJ."
-          ),
-          scMode = ezFrame(
-            Type = "character",
-            DefaultValue = "SC",
-            Description = "Single cell or single nuclei?"
           ),
           chemistry = ezFrame(
             Type = "character",
