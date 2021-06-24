@@ -48,23 +48,9 @@ cat(paste0("<SCRIPT language=\"JavaScript\" SRC=\"", basename(jsFile), "\"></SCR
 
 ## Analysis results {.tabset}
 
-### Unwanted sources of variation
+### Batch effects
 
-The goal of the clustering analysis is to keep the major sources of variation in the dataset that should define the cell types, while restricting the variation due to uninteresting sources (sequencing depth, cell cycle differences, mitochondrial expression, batch effects, etc.). A common practice is to regress out these covariates prior to downstream analyses. Here, we will only asses cell cycle and batch effects as the main potential sources of variation since the method we will later use for normalization and variance stabilization removes the variation due to sequencing depth (total nUMIs per cell). While regressing out the other sources (i.e. mitochondrial abundances) has proved to have a negative impact, leading to increased correlation with covariates and decreased clustering accuracy (Pierre-Luc Germain, Anthony Sonrel, Mark D. Robinson: pipeComp, a general framework for the evaluation of computational pipelines, reveals performant single-cell RNA-seq preprocessing tools. bioRxiv doi: https://doi.org/10.1101/2020.02.02.930578).
-
-
-#### 1. Cell cycle
-
-In most applications, the cell cycle is a minor factor of variation, secondary to differences between cell types. Any attempt at removal would also need to assume that the cell cycle effect is orthogonal to other biological processes. For example, regression would potentially remove interesting signal if cell cycle activity varied across clusters or conditions, with a prime example being the increased proliferation of activated T cells (Richard, A. C., A. T. L. Lun, W. W. Y. Lau, B. Gottgens, J. C. Marioni, and G. M. Griffiths. 2018. “T cell cytolytic capacity is independent of initial stimulation strength.” Nat. Immunol. 19 (8): 849–58.). We suggest only performing cell cycle adjustment on an as-needed basis in populations with clear cell cycle effects.
-The UMAP can help us to determine whether cell cycle is a major source of variation in our dataset. 
-
-```{r UMAP on cell cycle, fig.align='center'}
-plotReducedDim(sce, dimred="UMAP_NOCORRECTED", colour_by="CellCycle") + xlab("UMAP 1") + ylab("UMAP 2")
-```
-
-#### 2. Batch effects
-
-On the other hand, we always look at our cells before deciding whether we need to perform integration. Te main goal of dataset integration is to identify shared cell states that are present across different datasets, in case they were collected from different individuals, experimental conditions, technologies, or even species. Large single-cell RNA sequencing projects usually need to generate data across multiple batches due to logistical constraints. This results in systematic differences in the observed expression in cells from different batches, which we refer to as “batch effects”. Batch effects are problematic as they can be major drivers of heterogeneity in the data, masking the relevant biological differences and complicating interpretation of the results.
+We always look at our cells before deciding whether we need to perform integration. Te main goal of dataset integration is to identify shared cell states that are present across different datasets, in case they were collected from different individuals, experimental conditions, technologies, or even species. Large single-cell RNA sequencing projects usually need to generate data across multiple batches due to logistical constraints. This results in systematic differences in the observed expression in cells from different batches, which we refer to as “batch effects”. Batch effects are problematic as they can be major drivers of heterogeneity in the data, masking the relevant biological differences and complicating interpretation of the results.
 The UMAPs and the barplot below can help us to visualize if the clusters are balanced and composed by cells from the different batches. If we see clusters that are comprised of cells from a single batch, this indicates that cells of the same type are artificially separated due to technical differences between batches. In this case, we may also consider that there are cell types that are unique to each batch. If a cluster only contains cells from a single batch, one can always debate whether that is caused by technical differences or if there is truly a batch-specific subpopulation. 
 
 <br/><br/>
@@ -158,7 +144,8 @@ Once we have created the clusters we need to asses if the clustering was driven 
 We can explore whether the cells cluster by the different cell cycle phases. In such a case, we would have clusters where most of the cells would be in one specific phase. This bias could be taken into account when normalizing and transforming the data prior to clustering. We can also look at the total number of reads, genes detected and mitochondrial gene expression. The clusters should be more or less even but if we observe big differences among some of them for these metrics, we will keep an eye on them and see if the cell types we identify later can explain the differences. 
 
 ```{r uninteresting variation}
-plotColData(sce, x="ident", y="CellCycle", colour_by="ident") + ggtitle("Cell cycle vs ident")
+if (!is.null(colData(sce)$CellCycle))
+   plotColData(sce, x="ident", y="CellCycle", colour_by="ident") + ggtitle("Cell cycle vs ident")
 plotColData(sce, x="ident", y="sum", colour_by="ident") + ggtitle("Number of UMIs vs ident")
 plotColData(sce, x="ident", y="detected", colour_by="ident") + ggtitle("Detected genes vs ident")
 plotColData(sce, x="ident", y="subsets_Mito_percent", colour_by="ident") + ggtitle("Mito percentage vs ident")
