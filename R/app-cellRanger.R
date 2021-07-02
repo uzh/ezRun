@@ -165,7 +165,7 @@ computeBamStatsSC = function(bamFile, ram=NULL) {
     nAlign = sum(ezScanBam(bamFile, tag = "CB", 
                            what = character(0), isUnmappedQuery = FALSE, countOnly = TRUE)$records)
     if (nAlign / ram > 20e6){
-      ## computation would take too much RAM
+      message("computeBamStatsSC: not executed - would take too much RAM")
       return(NULL)
     }
   }
