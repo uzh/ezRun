@@ -53,7 +53,7 @@ cat(paste0("<SCRIPT language=\"JavaScript\" SRC=\"", basename(jsFile), "\"></SCR
 ```{r}
 output <- metadata(sce)$output
 species <- getSpecies(param$refBuild)
-var_heigth = 1 #This ensures that chunks that use the length of this variable to set the fig size, don't fail.
+var_height = 1 #This ensures that chunks that use the length of this variable to set the fig size, don't fail.
 ```
 
 ## Analysis results {.tabset}
@@ -110,10 +110,11 @@ kable(tibble("QC metric" =c("Library Size", "Expressed genes", "Mitochondrial ge
 
 #### Gene filtering
 
-We also excluded genes that are lowly or not expressed in our system, as they do not contribute any information to our experiment and may add noise. In this case, we removed genes that were not expressed in at least `r param$cellsPercentage` percent of the cells. In case one or more rare cell populations are expected we might need to decrease the percentage of cells. The number of genes kept is marked as TRUE and the ones removed as FALSE.
+We also excluded genes that are lowly or not expressed in our system, as they do not contribute any information to our experiment and may add noise. In this case, we removed genes that were not expressed in at least `r param$cellsPercentage` percent of the cells. In case one or more rare cell populations are expected we might need to decrease the percentage of cells.
 
 ```{r gene filtering}
-table(rowData(sce.unfiltered)$is.expressed)
+cat("genes removed:", sum(!rowData(sce.unfiltered)$is.expressed))
+cat("genes kept:", sum(rowData(sce.unfiltered)$is.expressed))
 ```
 
 ### Dimensionality reduction
@@ -164,8 +165,10 @@ In order to find clusters of cells we first built a graph called K-nearest neigh
 We can visualize the distribution of clusters in the TSNE and UMAP plots. However, we should not perform downstream analyses directly on their coordinates. These plots are most useful for checking whether two clusters are actually neighboring subclusters or whether a cluster can be split into further subclusters. 
 
 ```{r}
-plotReducedDim(sce, dimred="TSNE", colour_by="seurat_clusters", text_by="seurat_clusters", text_size=5)
-plotReducedDim(sce, dimred="UMAP", colour_by="seurat_clusters", text_by="seurat_clusters", text_size=5)
+plotReducedDim(sce, dimred="TSNE", colour_by="seurat_clusters", text_by="seurat_clusters", 
+               text_size=5, add_legend=FALSE)
+plotReducedDim(sce, dimred="UMAP", colour_by="seurat_clusters", text_by="seurat_clusters", 
+               text_size=5, add_legend=FALSE)
 ```
 
 <br/><br/>
@@ -183,7 +186,7 @@ cells_prop = cellsProportion(sce, groupVar1 = "ident", groupVar2 = "Plate")
 kable(cells_prop,row.names=FALSE, format="html",caption="Cell proportions") %>% kable_styling(bootstrap_options = "striped", full_width = F, position = "float_right")
 ```
 
-### Clusters assessment
+### Cluster assessment
 
 
 #### Segregation of clusters by various sources of uninteresting variation.
@@ -191,15 +194,34 @@ kable(cells_prop,row.names=FALSE, format="html",caption="Cell proportions") %>% 
 Once we have created the clusters we need to asses if the clustering was driven by technical artifacts or uninteresting biological variability, such as cell cycle, mitochondrial gene expression.
 We can explore whether the cells cluster by the different cell cycle phases. In such a case, we would have clusters where most of the cells would be in one specific phase. This bias could be taken into account when normalizing and transforming the data prior to clustering. We can also look at the total number of reads, genes detected and mitochondrial gene expression. The clusters should be more or less even but if we observe big differences among some of them for these metrics, we will keep an eye on them and see if the cell types we identify later can explain the differences. 
 
-```{r uninteresting variation}
-if (!is.null(colData(sce)$CellCycle))
-   plotColData(sce, x="ident", y="CellCycle", colour_by="ident") + ggtitle("Cell cycle vs ident")
-plotColData(sce, x="ident", y="sum", colour_by="ident") + ggtitle("Number of UMIs vs ident")
-plotColData(sce, x="ident", y="detected", colour_by="ident") + ggtitle("Detected genes vs ident")
-plotColData(sce, x="ident", y="subsets_Mito_percent", colour_by="ident") + ggtitle("Mito percentage vs ident")
+```{r uninteresting variation, fig.width=12, fig.height=12}
+if (!is.null(colData(sce)$CellCycle)){
+  plotColData(sce, x="ident", y="CellCycle", colour_by="ident") + ggtitle("Cell cycle vs ident")
+}
+sce$logSum = log10(sce$sum)
+sce$logDetected = log10(sce$detected)
+gridExtra::grid.arrange(
+  plotColData(sce, x="ident", y="sum", colour_by="ident", add_legend=FALSE) + ggtitle("Number of UMIs vs ident"),
+  plotReducedDim(sce, dimred="UMAP", colour_by="logSum", text_by="seurat_clusters", text_size=5, add_legend=FALSE),
+  plotColData(sce, x="ident", y="detected", colour_by="ident", add_legend=FALSE) + 
+    ggtitle("Detected genes vs ident"),
+  plotReducedDim(sce, dimred="UMAP", colour_by="logDetected", text_by="seurat_clusters", 
+                 text_size=5, add_legend=FALSE),
+  plotColData(sce, x="ident", y="subsets_Mito_percent", colour_by="ident", add_legend=FALSE) + 
+    ggtitle("Mito percentage vs ident"),
+  plotReducedDim(sce, dimred="UMAP", colour_by="subsets_Mito_percent", text_by="seurat_clusters", 
+                 text_size=5, add_legend=FALSE),
+  ncol=2)
+if (!is.null(param$controlSeqs)){
+  genesToPlot <- gsub("_", "-", param$controlSeqs)
+  genesToPlot <- intersect(genesToPlot, rownames(sce))
+  plotExpression(sce, genesToPlot, x="seurat_clusters", colour_by = "seurat_clusters", add_legend=FALSE)
+  #plotReducedDim(sce, dimred="UMAP", colour_by=genesToPlot[1], text_by="seurat_clusters", text_size=5)
+}
+
 ```
 
-#### Clusters resolution 
+#### Cluster resolution 
 
 One of the most important parameters when clustering is k, the number of nearest neighbors used to construct the graph. This controls the resolution of the clustering where higher k yields a more inter-connected graph and broader clusters. Users can experiment with different values of k to obtain a satisfactory resolution. We recommend increasing the resolution when a rare population is expected. 
 Below, it is shown a clustering tree that helps us to visualize the relationships between clusters at a range of resolutions. Each cluster forms a node in the tree and edges are constructed by considering the cells in a cluster at a lower resolution that end up in a cluster at the next highest resolution. By connecting clusters in this way, we can see how clusters are related to each other, which are clearly distinct and which are unstable. The size of each node is related to the number of cells in each cluster and the color indicates the clustering resolution. Edges are colored according to the number of cells they represent and the transparency shows the incoming node proportion, the number of cells in the edge divided by the number of samples in the node it points to. 
@@ -247,15 +269,17 @@ Here, we use a heatmap and a dotplot to visualize simultaneously the top 5 marke
 
 ```{r heatmap, fig.width=8, fig.height=length(levels(sce$seurat_clusters))*0.8}
 top5 <- posMarkers %>% group_by(cluster) %>% top_n(n = 5, wt = diff_pct)
+genesToPlot <- c(gsub("_", "-", param$controlSeqs), unique(top5$gene))
+genesToPlot <- intersect(genesToPlot, rownames(sce))
 
 tr_cnts <- expm1(logcounts(sce))
 geneMeans <- rowsum(DelayedArray::t(tr_cnts), group=sce$seurat_clusters)
 geneMeans <- sweep(geneMeans, 1, STATS=table(sce$seurat_clusters)[rownames(geneMeans)], FUN="/")
 geneMeans <- log1p(t(geneMeans))
 colnames(geneMeans) <- paste("cluster", colnames(geneMeans), sep="_")
-pheatmap(geneMeans[unique(top5$gene), ],fontsize_row = 6)
+pheatmap(geneMeans[genesToPlot, ],fontsize_row = 6)
 
-plotDots(sce, features=top5$gene, group="seurat_clusters")
+plotDots(sce, features=genesToPlot, group="seurat_clusters")
 ```
 
 ### Cell annotation
@@ -295,10 +319,10 @@ singler.results.single <- metadata(sce)$singler.results$singler.results.single
 singler.results.cluster <- metadata(sce)$singler.results$singler.results.cluster
 singler.single.labels <- singler.results.single$labels
 singler.cluster.labels<- singler.results.cluster$labels[match(colData(sce)[,"ident"], rownames(singler.results.cluster))]
-var_heigth = length(unique(singler.single.labels))*0.7
+var_height = length(unique(singler.single.labels))*0.7
 ```
 
-```{r singler ScoreHeatmap,  eval= !is.null(metadata(sce)$singler.results), fig.height= var_heigth, fig.width=8, results='asis'}
+```{r singler ScoreHeatmap,  eval= !is.null(metadata(sce)$singler.results), fig.height= var_height, fig.width=8, results='asis'}
 cat("The two heatmaps below display the scores for all individual cells (left) and each original cluster (right) across all reference labels, which allows users to inspect the confidence of the predicted labels across the dataset. The bar Labels on the top shows the actual assigned label.\n")
 cat("\n")
 plotScoreHeatmap(singler.results.single)
@@ -358,7 +382,7 @@ colnames(assignmentTable)[2] <- "geneSet"
 tras_cells_AUC <- t(assay(cells_AUC))
 full.labels <- colnames(tras_cells_AUC)[max.col(tras_cells_AUC)]
 tab <- table(full.labels, colData(sce)[,"seurat_clusters"])
-var_heigth <- nrow(tab)*0.5
+var_height <- nrow(tab)*0.5
 ```
 
 ```{r assigments, eval= !is.null(metadata(sce)$cells_AUC), results='asis'}
@@ -366,7 +390,7 @@ cat("We can explore the cell assignment results using different plots. Below, we
 cat("\n\n")
 ```
 
-```{r assigments heatmap, eval= !is.null(metadata(sce)$cells_AUC), results='asis',fig.align='center', fig.width=10, fig.height=var_heigth}
+```{r assigments heatmap, eval= !is.null(metadata(sce)$cells_AUC), results='asis',fig.align='center', fig.width=10, fig.height=var_height}
 if (nrow(tab) > 2)
    pheatmap(log10(tab+10), color=viridis::viridis(100))
 ```
