@@ -116,7 +116,7 @@ ezMethodSTARsolo = function(input=NA, output=NA, param=NA){
     if(all(grepl("\\.tar$", sampleDirs))){
         runDirs <- c()
         for (i in 1:length(sampleDirs)){
-            localDirs[i] <- paste0("run_", i)
+            runDirs[i] <- paste0("run_", i)
             untar(sampleDirs[i], exdir=runDirs[i])
         }
     }
