@@ -114,15 +114,16 @@ ezMethodSTARsolo = function(input=NA, output=NA, param=NA){
     sampleDirs = strsplit(input$getColumn("RawDataDir"), ",")[[sampleName]]
     sampleDirs <- file.path(input$dataRoot, sampleDirs)
     if(all(grepl("\\.tar$", sampleDirs))){
-        # This is new .tar folder
-        lapply(sampleDirs, untar)
-        sampleDirs <- sub("\\.tar$", "", basename(sampleDirs))
+        runDirs <- c()
+        for (i in 1:length(sampleDirs)){
+            localDirs[i] <- paste0("run_", i)
+            untar(sampleDirs[i], exdir=runDirs[i])
+        }
     }
-    sampleDir <- paste(sampleDirs, collapse=",")
-    
+
     
     # create STARsolo command
-    cmd = makeSTARsoloCmd(param, refDir, sampleName, sampleDirs)
+    cmd = makeSTARsoloCmd(param, refDir, sampleName, runDirs)
     
     # run STARsolo shell command
     ezSystem(cmd)
@@ -199,9 +200,7 @@ makeSTARsoloCmd = function(param, refDir, sampleName, sampleDirs){
     fastqfiles = sort(list.files(sampleDirs,full.names = TRUE,pattern = '.fastq'))
     cDNAfastqs = paste(grep('R2',fastqfiles, value = TRUE), collapse = ',')
     barcodesfastqs = paste(grep('R1',fastqfiles, value = TRUE), collapse = ',')
-    indexfastqs = paste(grep('_I',fastqfiles,value = TRUE), collapse = ',')
-    
-    readFilesIn = trimws(paste(cDNAfastqs, indexfastqs, barcodesfastqs, collapse = ' ')) # remove last space, incase indexfastqs is empty.
+    readFilesIn = trimws(paste(cDNAfastqs, barcodesfastqs, collapse = ' ')) # remove last space, incase indexfastqs is empty.
     
     ## create readFilesCommand
     if(unique(file_ext(fastqfiles))=='gz'){
