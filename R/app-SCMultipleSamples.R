@@ -17,6 +17,10 @@ EzAppSCMultipleSamples <-
                   appDefaults <<- rbind(npcs=ezFrame(Type="numeric", 
                                                     DefaultValue=30, 
                                                     Description="The maximal dimensions to use for reduction"),
+                                        pcGenes = ezFrame(
+                                          Type = "charVector",
+                                          DefaultValue = "",
+                                          Description = "The genes used in supvervised clustering"),
                                         resolution=ezFrame(Type="numeric", 
                                                            DefaultValue=0.6,
                                                            Description="Value of the resolution parameter, use a value above (below) 1.0 if you want to obtain a larger (smaller) number of communities."),
