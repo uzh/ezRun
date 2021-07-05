@@ -50,6 +50,9 @@ EzAppSTARsolo =
                                                                                                         Allowed CBs have to have at least one read with exact match. Similar to CellRanger 2.2.0
                                                                                 1MM_multi_pseudocounts  same as 1MM_Multi, but pseudocounts of 1 are added to all whitelist barcodes.
                                                                                                         Similar to CellRanger 3.x.x"),
+                                          keepAlignment=ezFrame(Type="logcial",
+                                                                 DefaultValue="TRUE",
+                                                                 Description=""),
                                           soloCellFilter=ezFrame(Type="character",
                                                                  DefaultValue="None",
                                                                  Description="cell filtering type and parameters
@@ -135,27 +138,13 @@ ezMethodSTARsolo = function(input=NA, output=NA, param=NA){
     outputDir = paste0(sampleName,'/Solo.out/Gene/raw')
     ## Remove alignments file if not setted differently
     samFn = paste0(sampleName,'/Aligned.out.sam')
-    if(param[['keepAlignment']]=='True'){
-        # convert to BAM
-        bamFn = paste0(sampleName,'/Aligned.out.bam')
-        #samtoolsBin = '/usr/local/ngseq/bin/samtools'
-        ezSystem(paste('samtools','view','-Sb',samFn,'>',bamFn))
-        # remove .sam
-        ezSystem(paste('rm',samFn))
-        # sort .bam
-        bamFnSorted = paste0(sampleName,'/Aligned.out.sorted.bam') 
-        ezSortIndexBam(bamFn,bamFnSorted)
+    if(param[['keepAlignment']]){
+        ezSystem(paste0("mv ", sampleName, "/Aligned.sortedByCoord.out.bam", " ",
+                        sampleName, "/possorted_genome_bam.bam"))
+        ezSystem(paste0("samtools index ", sampleName, "/possorted_genome_bam.bam"))
     }else{
-        # remove .sam
-        ezSystem(paste('rm',samFn))
+        ezSystem(paste0("rm ", sampleName, "/Aligned.sortedByCoord.out.bam"))
     }
-    ## Prepare STARsolo output to be processed as CellRanger output
-    ### add "Gene Expression" column to features.tsv
-    featuresFn = paste0(outputDir,'/features.tsv')
-    tmp =  paste0(outputDir,'/tmp.tsv')
-    cmd = paste("awk \'{print $0, \"\tGene Expression\"}\'",featuresFn,">",tmp)
-    ezSystem(cmd)
-    ezSystem(paste("mv",tmp,featuresFn)) # rename tmp into features
     ### gzip all files
     ezSystem(paste("pigz -p 4",paste0(outputDir,"/*")))
 
@@ -232,7 +221,10 @@ makeSTARsoloCmd = function(param, refDir, sampleName, sampleDirs){
 
                 paste0('--soloUMIfiltering ',param[['soloUMIfiltering']]),
                 paste0('--soloCBmatchWLtype ',param[['soloCBmatchWLtype']]),
-                paste0('--soloCellFilter ',param[['soloCellFilter']])
+                paste0('--soloCellFilter ',param[['soloCellFilter']]),
+                "--outSAMattributes NH HI nM AS CR UR CB UB GX GN sS sQ sM",
+                "--outSAMtype BAM SortedByCoordinate",
+                "--outBAMcompression 6"
     )
     
     if(ezIsSpecified(param$cmdOptions)){
