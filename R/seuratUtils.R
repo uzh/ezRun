@@ -135,7 +135,7 @@ add_Condition_oldReports <- function(sce) {
 
 seuratStandardWorkflow <- function(scData, param){
   set.seed(38)
-  if (identical(param$pcGenes, "")) 
+  if (identical(param$pcGenes, character(0))) 
      features <- NULL
   else 
     features <- stringr::str_to_title(param$pcGenes)
