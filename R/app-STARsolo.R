@@ -50,7 +50,7 @@ EzAppSTARsolo =
                                                                                                         Allowed CBs have to have at least one read with exact match. Similar to CellRanger 2.2.0
                                                                                 1MM_multi_pseudocounts  same as 1MM_Multi, but pseudocounts of 1 are added to all whitelist barcodes.
                                                                                                         Similar to CellRanger 3.x.x"),
-                                          keepAlignment=ezFrame(Type="logcial",
+                                          keepAlignment=ezFrame(Type="logical",
                                                                  DefaultValue="TRUE",
                                                                  Description=""),
                                           soloCellFilter=ezFrame(Type="character",
