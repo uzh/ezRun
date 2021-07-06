@@ -11,7 +11,7 @@ ezMethodFastqScreen_10x <- function(input = NA, output = NA, param = NA,
   sampleDirs <- input$getFullPaths("RawDataDir")
   stopifnot(all(grepl("\\.tar$", sampleDirs)))
 
-  taredfiles <- lapply(sampleDirs, untar, list = TRUE)
+  taredfiles <- lapply(sampleDirs, untar, list = TRUE, tar=system("which tar", intern=TRUE))
   if (any(str_detect(unlist(taredfiles), "_R3_"))) {
     ## ATAC has R3 for real data
     taredfiles_R2 <- sapply(
@@ -30,7 +30,7 @@ ezMethodFastqScreen_10x <- function(input = NA, output = NA, param = NA,
     )
   }
   for (i in 1:length(sampleDirs)) {
-    untar(sampleDirs[i], files = taredfiles_R2[i])
+    untar(sampleDirs[i], files = taredfiles_R2[i], tar=system("which tar", intern=TRUE))
   }
   taredfiles_R2 <- normalizePath(taredfiles_R2)
   dataset$`Read1` <- taredfiles_R2
