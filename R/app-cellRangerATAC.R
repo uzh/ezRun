@@ -28,7 +28,7 @@ ezMethodCellRangerATAC <- function(input=NA, output=NA, param=NA){
   sampleDirs <- file.path(input$dataRoot, sampleDirs)
   if(all(grepl("\\.tar$", sampleDirs))){
     # This is new .tar folder
-    lapply(sampleDirs, untar)
+    lapply(sampleDirs, untar, tar=system("which tar", intern=TRUE))
     sampleDirs <- sub("\\.tar$", "", basename(sampleDirs))
   }
   sampleDir <- paste(sampleDirs, collapse=",")

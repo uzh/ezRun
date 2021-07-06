@@ -124,7 +124,7 @@ getFastqDirs <- function(input, column, sampleName) {
 deCompress = function(fastqDirs){
   fastqDirs = sapply(fastqDirs, function(scTar){
     targetDir = basename(dirname(scTar))
-    untar(scTar, exdir = targetDir)
+    untar(scTar, exdir = targetDir, tar=system("which tar", intern=TRUE))
     return(targetDir)
   })
   return(fastqDirs)

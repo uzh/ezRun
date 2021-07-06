@@ -120,7 +120,7 @@ ezMethodSTARsolo = function(input=NA, output=NA, param=NA){
         runDirs <- c()
         for (i in 1:length(sampleDirs)){
             runDirs[i] <- paste0("run_", i)
-            untar(sampleDirs[i], exdir=runDirs[i])
+            untar(sampleDirs[i], exdir=runDirs[i], tar=system("which tar", intern=TRUE))
         }
     }
 
