@@ -296,14 +296,12 @@ diffExpressedGenes <- function(scData) {
   if(param$DE.method == "LR") #regress the plate if the test is LR
     vars.to.regress <- param$DE.regress
   
-  conditionsComb <- combn(conditions, m=2)
-  for(i in 1:ncol(conditionsComb)){
     diffGenes <- list()
     for(eachCluster in gtools::mixedsort(levels(seurat_clusters))){
       markersEach <- try(FindMarkers(scData, ident.1=paste0(eachCluster, "_",
-                                                            conditionsComb[1,i]),
+                                                            param$sampleGroup),
                                      ident.2=paste0(eachCluster, "_", 
-                                                    conditionsComb[2,i]),
+                                                    param$refGroup),
                                      test.use = param$DE.method, latent.vars = vars.to.regress))
       ## to skip some groups with few cells
       if(class(markersEach) != "try-error"){
@@ -311,7 +309,6 @@ diffExpressedGenes <- function(scData) {
       }
     }
     diffGenes <- bind_rows(diffGenes, .id="cluster")
-  }
   
   diff_pct = abs(diffGenes$pct.1-diffGenes$pct.2)
   diffGenes$diff_pct <- diff_pct
