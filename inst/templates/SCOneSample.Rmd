@@ -212,7 +212,7 @@ gridExtra::grid.arrange(
   plotReducedDim(sce, dimred="UMAP", colour_by="subsets_Mito_percent", text_by="seurat_clusters", 
                  text_size=5, add_legend=FALSE),
   ncol=2)
-if (!identical(param$controlSeqs, character(0))) {
+if (ezIsSpecified(param$controlSeqs)) {
   genesToPlot <- gsub("_", "-", param$controlSeqs)
   genesToPlot <- intersect(genesToPlot, rownames(sce))
   plotExpression(sce, genesToPlot, x="seurat_clusters", colour_by = "seurat_clusters", add_legend=FALSE)
