@@ -238,13 +238,13 @@ getSpecies <- function(refBuild) {
 }
 
 geneMeansCluster <- function(sce) {
-require(SingleCellExperiment)
-tr_cnts <- expm1(logcounts(sce))
-means <- rowsum(t(as.matrix(tr_cnts)), group=colData(sce)[,"ident"])
-means <- sweep(means, 1, STATS=table(colData(sce)[,"ident"])[rownames(means)], FUN="/")
-means <- log1p(t(means))
-colnames(means) <- paste("cluster", colnames(means), sep="_")
-return(means)
+  require(SingleCellExperiment)
+  tr_cnts <- expm1(logcounts(sce))
+  geneMeans <- rowsum(DelayedArray::t(tr_cnts), group=sce$ident)
+  geneMeans <- sweep(geneMeans, 1, STATS=table(sce$ident)[rownames(geneMeans)], FUN="/")
+  geneMeans <- log1p(t(geneMeans))
+  colnames(geneMeans) <- paste("cluster", colnames(geneMeans), sep="_")
+return(geneMeans)
 }
 
 cellsLabelsWithAUC <- function(scData, species, tissue, minGsSize = 3) {
