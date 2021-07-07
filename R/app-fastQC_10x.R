@@ -26,7 +26,7 @@ ezMethodFastQC_10x <- function(input = NA, output = NA, param = NA,
   }
   ans4Report[["Read Counts"]] <- readCount
   
-  taredfiles <- lapply(sampleDirs, untar, list = TRUE)
+  taredfiles <- lapply(sampleDirs, untar, list = TRUE, tar=system("which tar", intern=TRUE))
   taredfiles_R1 <- sapply(taredfiles, function(x) {
     grep("_R1_", x, value = TRUE) %>% head(1)
   })
@@ -34,7 +34,7 @@ ezMethodFastQC_10x <- function(input = NA, output = NA, param = NA,
     grep("_R2_", x, value = TRUE) %>% head(1)
   })
   for (i in 1:length(sampleDirs)) {
-    untar(sampleDirs[i], files = c(taredfiles_R1[i], taredfiles_R2[i]))
+    untar(sampleDirs[i], files = c(taredfiles_R1[i], taredfiles_R2[i]), tar=system("which tar", intern=TRUE))
   }
   taredfiles_R1 <- normalizePath(taredfiles_R1)
   taredfiles_R2 <- normalizePath(taredfiles_R2)

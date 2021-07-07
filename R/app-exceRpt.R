@@ -128,7 +128,7 @@ keepOnlyCoreFiles = function(data.dir){
     unlink(dirFiles[toRemove],recursive=TRUE)
     
     # uncompress .tgz
-    untar(tarfile = coreResultsFile, exdir = data.dir)
+    untar(tarfile = coreResultsFile, exdir = data.dir, tar=system("which tar", intern=TRUE))
     
     # remove .tgz
     file.remove(coreResultsFile)
