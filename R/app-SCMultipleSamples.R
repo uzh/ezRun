@@ -123,25 +123,6 @@ ezMethodSCMultipleSamples = function(input=NA, output=NA, param=NA, htmlFile="00
   #positive cluster markers
   posMarkers <- posClusterMarkers(scData, pvalue_allMarkers, param)
   
-  #Before calculating the conserved markers and differentially expressed genes across conditions I will discard the clusters that were too small in at least one group
-  clusters_freq <- data.frame(table(scData@meta.data[,c("Condition","seurat_clusters")]))
-  small_clusters <- ""
-  small_clusters <- unique(as.character(clusters_freq[clusters_freq[,"Freq"] < 10, "seurat_clusters"]))
-  
-  diffGenes <- NULL
-  consMarkers <- NULL
-  
-  #only subset object and calculate diff genes and conserved markers if there is at least one cluster shared among conditions
-  if (!all(scData$seurat_clusters %in% small_clusters)) {
-     scData <- subset(scData, idents = small_clusters, invert = TRUE)
-     #conserved cluster markers
-     consMarkers <- conservedMarkers(scData)
-     #differentially expressed genes between clusters and conditions (in case of several conditions)
-     if(length(unique(scData$Condition))>1) 
-       diffGenes <- diffExpressedGenes(scData)
-  }
-  
-  
   #we do cell type identification using AUCell and SingleR
   cells_AUC <- NULL
   singler.results <- NULL
@@ -162,7 +143,7 @@ ezMethodSCMultipleSamples = function(input=NA, output=NA, param=NA, htmlFile="00
   
   geneMeans <- geneMeansCluster(sce)
   #Save some results in external files 
-  dataFiles = saveExternalFiles(list(pos_markers=posMarkers, differential_genes=diffGenes, conserved_markers=consMarkers, gene_means=as_tibble(as.data.frame(geneMeans), rownames="gene_name")))
+  dataFiles = saveExternalFiles(list(pos_markers=posMarkers, gene_means=as_tibble(as.data.frame(geneMeans), rownames="gene_name")))
   
   library(HDF5Array)
   saveHDF5SummarizedExperiment(sce, dir="sce_h5")
