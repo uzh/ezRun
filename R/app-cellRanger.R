@@ -252,7 +252,7 @@ getCellRangerGEXReference <- function(param) {
       filepath = genomeLocalFn,
       append = TRUE
     )
-    on.exit(file.remove(genomeLocalFn, add = TRUE))
+    on.exit(file.remove(genomeLocalFn), add = TRUE)
   } else {
     genomeLocalFn <- param$ezRef@refFastaFile
   }
@@ -358,14 +358,14 @@ getCellRangerReference <- function(param) {
       filepath = genomeLocalFn,
       append = TRUE
     )
-    on.exit(file.remove(genomeLocalFn, add = TRUE))
+    on.exit(file.remove(genomeLocalFn), add = TRUE)
 
     ## make gtf
     gtfFile <- tempfile(
       pattern = "genes", tmpdir = getwd(),
       fileext = ".gtf"
     )
-    on.exit(file.remove(gtfFile, add = TRUE))
+    on.exit(file.remove(gtfFile), add = TRUE)
 
     file.copy(from = param$ezRef@refFeatureFile, to = gtfFile)
     extraGR <- makeExtraControlSeqGR(param$controlSeqs)
