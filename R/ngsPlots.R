@@ -119,7 +119,7 @@ ezMdsPlotly <- function(logSignal, design, ndim=c(3,2), main, condColors=NULL){
   toPlot <- data.frame(samples=colnames(logSignal),
                        design,
                        stringsAsFactors = FALSE)
-  mdsOut <- mds$cmdscale.out
+  mdsOut <- mds$eigen.vectors[,1:ndim]
 
   if(ndim == 3){
     colnames(mdsOut) <- c("Leading logFC dim1", "Leading logFC dim2", 
