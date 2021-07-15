@@ -58,17 +58,24 @@ countQcScatterPlots = function(param, design, conds, rawData, signalCond,
     }
   }
   narrowPlots <- list()
+  nPlots <- c()
   for (factorName in head(colnames(design), 4)){ ## take the first 4 factors
     for (factorLevel in unique(design[, factorName])){
       idx = which(factorLevel == design[, factorName])
+      
+      if (length(idx) == 1) {
+        nPlotIdx = -1L
+      } else if (length(idx) == 2){
+        nPlotIdx = 1L
+      } else {
+        nPlotIdx = length(idx)
+      }
+      nPlots <- c(nPlots, nPlotIdx)
+      
       if (length(idx) == 1){
         next
       }
-      if (length(idx) == 2){
-        nPlots = 1
-      } else {
-        nPlots = length(idx)
-      }
+      
       plotName = paste(factorName, factorLevel)
       narrowPlots[[plotName]] <- list()
       idx = idx[order(samples[idx])] ## order alphabetically

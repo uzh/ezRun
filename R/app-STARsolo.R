@@ -225,7 +225,7 @@ makeSTARsoloCmd = function(param, refDir, sampleName, sampleDirs){
                 "--outSAMattributes NH HI nM AS CR UR CB UB GX GN sS sQ sM",
                 "--outSAMtype BAM SortedByCoordinate",
                 "--outBAMcompression 6",
-                "--limitBAMsortRAM", format(param$ram *0.8 * 1e9, scientific=FALSE) ## use only 80% of the available RAM
+                "--limitBAMsortRAM", format(param$ram *0.4 * 1e9, scientific=FALSE) ## use only 80% of the available RAM
     )
     
     if(ezIsSpecified(param$cmdOptions)){

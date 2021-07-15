@@ -114,12 +114,12 @@ ezMdsGG2 <- function(signal, design, ndim=2, main="MDS plot", addLabels=TRUE){
 ezMdsPlotly <- function(logSignal, design, ndim=c(3,2), main, condColors=NULL){
   require("edgeR")
   require(plotly)
-  mds = plotMDS(logSignal, plot=FALSE, ndim=ndim)
+  mds = plotMDS(logSignal, plot=FALSE)
   factorToPlot = colnames(design)[1]
   toPlot <- data.frame(samples=colnames(logSignal),
                        design,
                        stringsAsFactors = FALSE)
-  mdsOut <- mds$cmdscale.out
+  mdsOut <- mds$eigen.vectors[,1:ndim]
 
   if(ndim == 3){
     colnames(mdsOut) <- c("Leading logFC dim1", "Leading logFC dim2", 
