@@ -32,7 +32,6 @@ debug <- FALSE
 if(!exists("rawData")){
   rawData <- readRDS("rawData.rds")
   # rawData <- readRDS("/srv/gstore//projects/p3613/CountQC_49303_2020-09-03--20-54-11/Count_QC/rawData.rds")
-
   # ctrl+enter in RStudio set cwd in the Rmd folder.
 }
 output <- metadata(rawData)$output
@@ -451,7 +450,7 @@ if(ncol(rawData) > 3){
 scatterPlotData <- countQcScatterPlots(param, metadata(rawData)$design,
                                         colData(rawData)$conds, rawDataAll,
                                         signalCond, isPresentCond, types=types)
-nPlots <- scatterPlotData$nPlots
+nPlots <- max(scatterPlotData$nPlots, 1)
 ```
 
 ```{r scatter plot all pairs, echo=FALSE, message=FALSE, results='asis', fig.width=min(max(ncol(signalCond) * 2, 4), 20), fig.height=min(max(ncol(signalCond) * 2, 4), 20), eval=ncol(rawData) > 3 & param$writeScatterPlots}
@@ -509,8 +508,10 @@ if(length(qcScatterFiles) > 0){
     rowsOfPlots <- qcScatterFiles[[i]]
     for(rowOfPlots in rowsOfPlots){
       
-      # Extract legend
+      # Get scatters
       scatterPlots <- rowOfPlots$scatters
+      
+      # Extract legend
       legend_temp <- get_legend(
         scatterPlots[[1]] + 
           theme(legend.text = element_text(size = 10)) +
@@ -519,9 +520,11 @@ if(length(qcScatterFiles) > 0){
       
       # Set plot themes
       scatterPlots <- lapply(scatterPlots, function(x){
-        x  + coord_fixed() + 
+        x  + 
+          coord_fixed() + 
+          expand_limits(y=1, x=1) + 
           theme(legend.position="none", 
-                text = element_text(size=10))
+                text = element_text(size=10), aspect.ratio = 1)
       })
       
       # Set legend at end
