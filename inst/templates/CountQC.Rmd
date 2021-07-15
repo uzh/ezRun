@@ -508,8 +508,10 @@ if(length(qcScatterFiles) > 0){
     rowsOfPlots <- qcScatterFiles[[i]]
     for(rowOfPlots in rowsOfPlots){
       
-      # Extract legend
+      # Get scatters
       scatterPlots <- rowOfPlots$scatters
+      
+      # Extract legend
       legend_temp <- get_legend(
         scatterPlots[[1]] + 
           theme(legend.text = element_text(size = 10)) +
@@ -518,9 +520,11 @@ if(length(qcScatterFiles) > 0){
       
       # Set plot themes
       scatterPlots <- lapply(scatterPlots, function(x){
-        x  + coord_fixed() + 
+        x  + 
+          coord_fixed() + 
+          expand_limits(y=1, x=1) + 
           theme(legend.position="none", 
-                text = element_text(size=10))
+                text = element_text(size=10), aspect.ratio = 1)
       })
       
       # Set legend at end
