@@ -714,9 +714,9 @@ ezXYScatter.2 = function(xVec, yVec, absentColor="gray", shrink=FALSE,
       scale_color_manual(values=typesColours) +
       scale_x_log10() + scale_y_log10() +
       theme_bw() + xlab(xlab) + ylab(ylab) + 
-      geom_abline(intercept=log10(2), colour = "blue", linetype="dashed") + 
-      geom_abline(intercept=-log10(2), colour = "blue", linetype="dashed") + 
-      geom_abline(intercept=0, colour = "blue") + 
+      geom_abline(intercept=2, colour = "blue", linetype="dashed") + 
+      geom_abline(intercept=0.5, colour = "blue", linetype="dashed") + 
+      geom_abline(intercept=1, colour = "blue") + 
       ggtitle(main) + 
       theme(plot.title=element_text(hjust=0.5), legend.title=element_blank())
     if(!is.null(labelGenes)){
