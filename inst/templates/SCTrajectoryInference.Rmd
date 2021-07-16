@@ -101,22 +101,24 @@ for(i in 1:nrow(model)) {
 
 
 
-```{r, eval=param$show_genes != 'none', results='asis'}
-cat("### Expression of selected genes")
-cat("\n")
+```{r, eval=param$show_genes != 'none', results='asis', fig.width=4, fig.height=4}
 genes = strsplit(param$show_genes, ",")[[1]]
 genes = genes[genes %in% colnames(expression)]
+cat("### Expression of selected genes")
+cat("\n")
 for(i in 1:nrow(model)) {
   cat("\n")
   cat(paste0("#### ", model[i,]$method_name))
+  cat("\n")
   current_model = model[i,]$model[[1]]
   tryCatch({
- plots= map(genes, function(feature_oi) {
-  plot_dimred(current_model, expression_source = expression, feature_oi = feature_oi, label_milestones = FALSE) +
-  theme(legend.position = "none") +
-  ggtitle(feature_oi)
-  }) %>% patchwork::wrap_plots()
-  print(plots)}, 
+ for(gene in genes) {
+    plot = plot_dimred(current_model, expression_source = expression, feature_oi = gene, label_milestones = FALSE) +
+       theme(legend.position = "none") +
+       ggtitle(gene)
+    print(plot)
+  }
+  cat("\n")}, 
   error=function(e){
      message("The genes were not found in the expression matrix.")})
 }
