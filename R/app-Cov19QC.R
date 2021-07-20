@@ -26,13 +26,43 @@ ezMethodCov19QC <- function(input = NA, output = NA, param = NA, htmlFile = "00i
     result <- merge(result, dataset, by.x = 'Name', by.y = 'Name', all.x = TRUE, all.y = TRUE)
     ezWrite.table(result, 'result.txt', row.names = FALSE)
     
+    bamFiles <- list.files('mappingResult', pattern = '.bam$', full.names = TRUE)
+    samples <- sub('.bam','', basename(bamFiles))
+    ###5. GenoType samples
+    param$mpileupOptions = '--skip-indels --annotate AD,INFO/AD,ADF,ADR,SP' 
+    param$callOptions = '--multiallelic-caller --keep-alts --variants-only' 
+    param$filterOptions = '--include \"MIN(DP)>5\"'
+    param$minReadDepth = 20
+    
+    mpileupCmd = paste("bcftools", "mpileup","-Ou",
+                       "-f", param$ezRef["refFastaFile"],
+                       param$mpileupOptions,
+                       paste(bamFiles, collapse=" "))
+    callCmd = paste("bcftools", "call",
+                    "-Ou",
+                    param$callOptions,
+                    "-") ## read from stdin
+    filterCmd = paste("bcftools", "filter",
+                      "--output-type z",
+                      "--output result.vcf",
+                      param$filterOptions,
+                      "-") ## read from stdin
+    ezSystem(paste(mpileupCmd, "|", callCmd, "|", filterCmd))
+    indexTabix('result.vcf',format = "vcf")
+    
+    chromSizes = ezChromSizesFromVcf('result.vcf')
+    genotype = geno(readVcf( 'result.vcf', genome="genomeDummy"))
+    gt = genotype$GT
+    gt[genotype$DP < param$minReadDepth] = "lowCov" ## those calls will become NA in subsequent analyses
+    saveRDS(gt, 'gt.RDS')
+    
     file <- file.path(system.file("templates", package="ezRun"), 
                       "Cov19QC.Rmd")
     file.copy(from=file, to=basename(file), overwrite=TRUE)
     rmarkdown::render(input=basename(file), envir = new.env(),
                       output_dir=".", output_file=htmlFile,
                       quiet=TRUE)
-    ezSystem('rm *.fastq.gz adapters.fa mappingResult/*.bai')
+    ezSystem('rm *.fastq.gz adapters.fa mappingResult/*')
     return('success')
 }
 
