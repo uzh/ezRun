@@ -54,6 +54,18 @@ ezMethodCov19QC <- function(input = NA, output = NA, param = NA, htmlFile = "00i
     genotype = geno(readVcf( 'result.vcf', genome="genomeDummy"))
     gt = genotype$GT
     gt[genotype$DP < param$minReadDepth] = "lowCov" ## those calls will become NA in subsequent analyses
+    
+    ##Remove samples with > 50% NA calls
+    pos <- c()
+    for (j in 1:ncol(gt)){
+        if(0.5 * nrow(gt) < sum(gt[,j] == './.') ){
+            pos <- c(pos, j)
+        }
+    }
+    
+    if(length(pos) > 0){
+        gt <- gt[,-pos] }
+    
     saveRDS(gt, 'gt.RDS')
     
     file <- file.path(system.file("templates", package="ezRun"), 
