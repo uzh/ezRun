@@ -155,6 +155,19 @@ plot_ly(x=result2[['Name']], y=result2[['avgCov']], type="bar") %>%
   )
 ```
 
+#### Sample Clustering 
+```{r clustering, echo=FALSE, eval=length(samples) > 3, fig.width=min(5 + length(samples)*0.2, 20)}
+idxMat = ezMatrix(match(gt, c("0/0", "0/1", "1/1")) -2, rows=rownames(gt), cols=sub('.bam','', basename(colnames(gt))))
+
+d = dist(t(idxMat))
+if (all(!is.na(d))){
+    hc=hclust(d, method="ward.D2" );
+    hcd = as.dendrogram(hclust(d, method="ward.D2"), hang=-0.1)
+    par(mar=c(12.1,4.1,4.1,2.1))
+    plot(hcd, main="Cluster by Genotype", xlab="")
+}
+```
+
 
 ### Input Dataset
 ```{r, echo=FALSE, message=FALSE}
