@@ -35,13 +35,11 @@ EzAppVPipe <-
 
 ezMethodVPipe <- function(input=NA, output=NA, param=NA, 
                                htmlFile="00index.html"){
-    dataset <- input$meta[1:2,]
+    dataset <- input$meta
     samples <- rownames(dataset)
     dataDir <- dirname(input$getFullPaths("Read1")[1])
     orderId <- paste0('o', unique(dataset[['Order Id [B-Fabric]']]))
     
-    param[['readLength']] <- 150
-    param[['samplePrefix']] <- '210531_SARS_BAG_order25068_'
     samples <- sub(param$samplePrefix, '', samples)
     samples <- limma::strsplit2(samples, '_')
     samples <- data.frame(ID = samples[,1], InternalNumber = samples[,2], RL = param$readLength, stringsAsFactors = FALSE)
@@ -100,12 +98,10 @@ ezMethodVPipe <- function(input=NA, output=NA, param=NA,
     dir.create('bedtools_coverage')
     dir.create('samtools_depth')
     for (j in 1:nrow(samples)){
-        bedTools <- '/usr/local/ngseq/packages/Tools/BEDTools/2.29.2/bin/bedtools'
-        cmd <- paste(bedTools, ' coverage -a /srv/gstore/projects/p24680/gffs/artic.expected_amplicons.bed -b', 
+        cmd <- paste('bedtool coverage -a /srv/gstore/projects/p24680/gffs/artic.expected_amplicons.bed -b', 
                      file.path('..', samples[j, 'ID'],samples[j,'InternalNumber'], 'variants/SNVs/REF_aln_indelqual.bam'), '-mean -bed >', file.path('bedtools_coverage', paste0(samples[j, 'ID'],'_',samples[j,'InternalNumber'], '.bed')))
         ezSystem(cmd)             
-        samtools <- '/usr/local/ngseq/packages/Tools/samtools/1.11/bin/samtools'
-        cmd <- paste(samtools, ' depth -a', file.path('..', samples[j, 'ID'],samples[j,'InternalNumber'], 'variants/SNVs/REF_aln_indelqual.bam >'), file.path('samtools_depth', paste0(samples[j, 'ID'],'_',samples[j,'InternalNumber'], '.tsv')))
+        cmd <- paste('samtools depth -a', file.path('..', samples[j, 'ID'],samples[j,'InternalNumber'], 'variants/SNVs/REF_aln_indelqual.bam >'), file.path('samtools_depth', paste0(samples[j, 'ID'],'_',samples[j,'InternalNumber'], '.tsv')))
         ezSystem(cmd)
     }
     setwd('../..')
