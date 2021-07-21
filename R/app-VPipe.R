@@ -35,6 +35,10 @@ EzAppVPipe <-
 
 ezMethodVPipe <- function(input=NA, output=NA, param=NA, 
                                htmlFile="00index.html"){
+    if (ezIsSpecified(param$samples)) {
+        input <- input$subset(param$samples)
+    }
+    
     dataset <- input$meta
     samples <- rownames(dataset)
     dataDir <- dirname(input$getFullPaths("Read1")[1])
@@ -94,11 +98,10 @@ ezMethodVPipe <- function(input=NA, output=NA, param=NA,
     createPangolinScript(consensusFile)
     system('bash runPangolin.sh')
    
-    ##Missing: samtools_depth, bedtools_coverage:
     dir.create('bedtools_coverage')
     dir.create('samtools_depth')
     for (j in 1:nrow(samples)){
-        cmd <- paste('bedtool coverage -a /srv/gstore/projects/p24680/gffs/artic.expected_amplicons.bed -b', 
+        cmd <- paste('bedtools coverage -a /srv/gstore/projects/p24680/gffs/artic.expected_amplicons.bed -b', 
                      file.path('..', samples[j, 'ID'],samples[j,'InternalNumber'], 'variants/SNVs/REF_aln_indelqual.bam'), '-mean -bed >', file.path('bedtools_coverage', paste0(samples[j, 'ID'],'_',samples[j,'InternalNumber'], '.bed')))
         ezSystem(cmd)             
         cmd <- paste('samtools depth -a', file.path('..', samples[j, 'ID'],samples[j,'InternalNumber'], 'variants/SNVs/REF_aln_indelqual.bam >'), file.path('samtools_depth', paste0(samples[j, 'ID'],'_',samples[j,'InternalNumber'], '.tsv')))
