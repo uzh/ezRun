@@ -74,6 +74,7 @@ ezMethodVPipe <- function(input=NA, output=NA, param=NA,
     system('ln -s /srv/GT/analysis/p24680/references references')
     system('cp  /srv/GT/analysis/p24680/vpipe.config .')
     system('cp /srv/GT/analysis/p24680/vpipe .')
+    dir.create('/scratch/tmp',showWarnings = FALSE)
     cmd <- paste('export TMPDIR=/scratch/tmp; ./vpipe --use-conda -p --keep-going --rerun-incomplete --cores', param$cores, ' 2>&1 | tee', paste0(orderId, '.log'))
     system(cmd)
     
