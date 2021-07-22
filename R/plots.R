@@ -767,9 +767,10 @@ ezAllPairScatter = function(x, main="", shrink=FALSE, xylab=NULL,
        
        p <- ezXYScatter.2(x[ ,i], x[, j], xlim=lim, ylim=lim, shrink=shrink,
                           isPresent=isPres, types=types, colors=colors, mode="ggplot2", ...) + 
-         coord_fixed() +
          theme_axis_only() +
-         theme(panel.border = element_rect(colour = "black", fill=NA, size=1))
+         coord_fixed(xlim = c(1e0, NA), ylim = c(1e0, NA), expand = TRUE) +
+         theme(panel.border = element_rect(colour = "black", fill=NA, size=1),
+               aspect.ratio = 1)
        
        if (i == 1){
          p <- p + ylab(xylab[j])
@@ -792,9 +793,10 @@ ezAllPairScatter = function(x, main="", shrink=FALSE, xylab=NULL,
     nItems <- 1
     p <- ezXYScatter.2(x[ ,1], x[, 2], xlim=lim, ylim=lim, shrink=shrink, xlab=xylab[1], ylab=xylab[2],
                        mode="ggplot2", isPresent=isPres, types=types, colors=colors, ...) +
-      coord_fixed() +
       theme_axis_only() +
-      theme(panel.border = element_rect(colour = "black", fill=NA, size=1))
+      coord_fixed(xlim = c(1e0, NA), ylim = c(1e0, NA), expand = TRUE) +
+      theme(panel.border = element_rect(colour = "black", fill=NA, size=1),
+            aspect.ratio = 1)
     ps <- c(ps, list(p))
   }
   

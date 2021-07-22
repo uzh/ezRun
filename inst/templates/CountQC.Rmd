@@ -453,7 +453,7 @@ scatterPlotData <- countQcScatterPlots(param, metadata(rawData)$design,
 nPlots <- max(scatterPlotData$nPlots, 1)
 ```
 
-```{r scatter plot all pairs, echo=FALSE, message=FALSE, results='asis', fig.width=min(max(ncol(signalCond) * 2, 4), 20), fig.height=min(max(ncol(signalCond) * 2, 4), 20), eval=ncol(rawData) > 3 & param$writeScatterPlots}
+```{r scatter plot all pairs, echo=FALSE, message=FALSE, results='asis', fig.width=min(max(ncol(signalCond) * 2, 4), 20), fig.height=min(max(ncol(signalCond) * 2, 4), 20) * (16 / 15), eval=ncol(rawData) > 3 & param$writeScatterPlots}
 
 qcScatterFiles <- scatterPlotData$allPairs
 
@@ -521,10 +521,10 @@ if(length(qcScatterFiles) > 0){
       # Set plot themes
       scatterPlots <- lapply(scatterPlots, function(x){
         x  + 
-          coord_fixed() + 
-          expand_limits(y=1, x=1) + 
+          coord_fixed(xlim = c(1e1, NA), ylim = c(1e1, NA), expand = TRUE) +
           theme(legend.position="none", 
-                text = element_text(size=10), aspect.ratio = 1)
+                text = element_text(size=10), 
+                aspect.ratio = 1)
       })
       
       # Set legend at end
