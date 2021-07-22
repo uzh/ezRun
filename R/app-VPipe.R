@@ -61,7 +61,6 @@ ezMethodVPipe <- function(input=NA, output=NA, param=NA,
     dir.create(file.path(oDir, cDir))
     dir.create(file.path(oDir, aDir))
     dir.create(file.path(oDir, vDir))
-    #system(paste('ln -s', paste0(dataDir, '/*.gz'), '.'))
     
     for (i in rownames(dataset)){
         dir.create(samples[i, 'ID'])
@@ -75,7 +74,8 @@ ezMethodVPipe <- function(input=NA, output=NA, param=NA,
     system('ln -s /srv/GT/analysis/p24680/references references')
     system('cp  /srv/GT/analysis/p24680/vpipe.config .')
     system('cp /srv/GT/analysis/p24680/vpipe .')
-    cmd <- paste('./vpipe --use-conda -p --keep-going --rerun-incomplete --cores', param$cores, ' 2>&1 | tee', paste0(orderId, '.log'))
+    dir.create('/scratch/tmp',showWarnings = FALSE)
+    cmd <- paste('export TMPDIR=/scratch/tmp; ./vpipe --use-conda -p --keep-going --rerun-incomplete --cores', param$cores, ' 2>&1 | tee', paste0(orderId, '.log'))
     system(cmd)
     
     setwd('samples')
@@ -97,7 +97,8 @@ ezMethodVPipe <- function(input=NA, output=NA, param=NA,
     setwd('..')
     createPangolinScript(consensusFile)
     system('bash runPangolin.sh')
-   
+    file.remove('runPangolin.sh')
+    
     dir.create('bedtools_coverage')
     dir.create('samtools_depth')
     for (j in 1:nrow(samples)){
