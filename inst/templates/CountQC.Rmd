@@ -31,7 +31,7 @@ library(ggpubr)
 debug <- FALSE
 if(!exists("rawData")){
   rawData <- readRDS("rawData.rds")
-  # rawData <- readRDS("/srv/gstore//projects/p3613/CountQC_49303_2020-09-03--20-54-11/Count_QC/rawData.rds")
+  # rawData <- readRDS("/srv/gstore/projects/p3682/CountQC_57360_2021-07-18--01-48-29/Count_QC/rawData.rds")
   # ctrl+enter in RStudio set cwd in the Rmd folder.
 }
 output <- metadata(rawData)$output
@@ -453,25 +453,61 @@ scatterPlotData <- countQcScatterPlots(param, metadata(rawData)$design,
 nPlots <- max(scatterPlotData$nPlots, 1)
 ```
 
-```{r scatter plot all pairs, echo=FALSE, message=FALSE, results='asis', fig.width=min(max(ncol(signalCond) * 2, 4), 20), fig.height=min(max(ncol(signalCond) * 2, 4), 20), eval=ncol(rawData) > 3 & param$writeScatterPlots}
+```{r scatter plot all pairs, echo=FALSE, message=FALSE, results='asis', fig.width=min(max(ncol(signalCond) * 2, 4), 20), fig.height=min(max(ncol(signalCond) * 2, 4), 20) * (16 / 15), eval=ncol(rawData) > 3 & param$writeScatterPlots}
 
 qcScatterFiles <- scatterPlotData$allPairs
 
 cat("\n")
 cat("#### allPairs \n")
 for(gridOfPlots in qcScatterFiles){
+  # Get the relevant objects
   scatterPlots <- gridOfPlots$scatter
-  
+  axisLabels <- gridOfPlots$axisLabels
   nItems <- gridOfPlots$nItems
+  
+  # Prepare variables for adding axis labels and plots to the grob list
+  grobList <- list()
+  idxLabel <- 1
+  idxScatterPlot <- 1
+  fontSize <- max(4, 10 - nItems)
+
+  # Add first col of labels
+  for (idxRow in 1:(nItems + 1)) {
+    if (idxRow == nItems + 1) {
+      axisLabel <- ""  # Empty square at bottom-left
+    } else {
+      axisLabel <- axisLabels[idxLabel]
+      idxLabel <- idxLabel + 1
+    }
+    colLabel <- text_grob(axisLabel, rot=90, size=fontSize)
+    grobList <- c(grobList, list(colLabel))
+  }
+  
+  # Add the last row of labels
+  for (rowIndex in 1:nItems) {
+    for (colIndex in 1:nItems) {
+      if (colIndex == nItems) {  # We are in the last row, so add label after
+        colLabel <- text_grob(axisLabels[idxLabel], size=fontSize)
+        grobList <- c(grobList, list(scatterPlots[[idxScatterPlot]]), list(colLabel))
+        idxLabel <- idxLabel + 1
+      } else {
+        grobList <- c(grobList, list(scatterPlots[[idxScatterPlot]]))
+      }
+      idxScatterPlot <- idxScatterPlot + 1
+    }
+  }
+  
+  # Create the grob associated with the plots
   plotGrob <- plot_grid(
-    plotlist=scatterPlots,
-    nrow=nItems,
-    ncol=nItems,
-    byrow=FALSE,
-    rel_heights=c(rep(1, nItems - 1), 1.1),
-    rel_widths=c(1.1, rep(1, nItems - 1))
+    plotlist=grobList,
+    nrow=nItems + 1,
+    ncol=nItems + 1,
+    rel_heights=c(rep(1, nItems), 0.1),
+    rel_widths=c(0.1, rep(1, nItems)),
+    byrow=FALSE
   )
   
+  # Create the title grob
   title <- ggdraw() +
   draw_label(
     gridOfPlots$main,
@@ -484,6 +520,7 @@ for(gridOfPlots in qcScatterFiles){
     plot.margin = margin(0, 0, 0, 7)
   )
   
+  # Combine title and plot grobs and plot
   print(plot_grid(
     title,
     plotGrob,
@@ -521,10 +558,10 @@ if(length(qcScatterFiles) > 0){
       # Set plot themes
       scatterPlots <- lapply(scatterPlots, function(x){
         x  + 
-          coord_fixed() + 
-          expand_limits(y=1, x=1) + 
+          coord_fixed(xlim = c(1e1, NA), ylim = c(1e1, NA), expand = TRUE) +
           theme(legend.position="none", 
-                text = element_text(size=10), aspect.ratio = 1)
+                text = element_text(size=10), 
+                aspect.ratio = 1)
       })
       
       # Set legend at end

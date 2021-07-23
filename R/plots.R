@@ -753,8 +753,9 @@ ezAllPairScatter = function(x, main="", shrink=FALSE, xylab=NULL,
     xylab = colnames(x)
   }
   
-  # Setup the plots
+  # Setup the plots and other labels for the axes
   ps <- list()
+  axisLabels <- c()
   
   if (nItems > 2){
    for( i in 1:nItems){
@@ -767,15 +768,16 @@ ezAllPairScatter = function(x, main="", shrink=FALSE, xylab=NULL,
        
        p <- ezXYScatter.2(x[ ,i], x[, j], xlim=lim, ylim=lim, shrink=shrink,
                           isPresent=isPres, types=types, colors=colors, mode="ggplot2", ...) + 
-         coord_fixed() +
          theme_axis_only() +
-         theme(panel.border = element_rect(colour = "black", fill=NA, size=1))
+         coord_fixed(xlim = c(1e0, NA), ylim = c(1e0, NA), expand = TRUE) +
+         theme(panel.border = element_rect(colour = "black", fill=NA, size=1),
+               aspect.ratio = 1)
        
        if (i == 1){
-         p <- p + ylab(xylab[j])
+         axisLabels <- c(axisLabels, xylab[j])
        }
        if (j == nItems){
-         p <- p + xlab(xylab[i])
+         axisLabels <- c(axisLabels, xylab[i])
        }
 
        ps <- c(ps, list(p))
@@ -790,15 +792,18 @@ ezAllPairScatter = function(x, main="", shrink=FALSE, xylab=NULL,
     
     
     nItems <- 1
-    p <- ezXYScatter.2(x[ ,1], x[, 2], xlim=lim, ylim=lim, shrink=shrink, xlab=xylab[1], ylab=xylab[2],
+    axisLabels <- c(xylab[2], xylab[1])
+    
+    p <- ezXYScatter.2(x[ ,1], x[, 2], xlim=lim, ylim=lim, shrink=shrink,
                        mode="ggplot2", isPresent=isPres, types=types, colors=colors, ...) +
-      coord_fixed() +
       theme_axis_only() +
-      theme(panel.border = element_rect(colour = "black", fill=NA, size=1))
+      coord_fixed(xlim = c(1e0, NA), ylim = c(1e0, NA), expand = TRUE) +
+      theme(panel.border = element_rect(colour = "black", fill=NA, size=1),
+            aspect.ratio = 1)
     ps <- c(ps, list(p))
   }
   
-  return(list(scatter=ps, nItems=nItems, xyLab=xylab, main=main))
+  return(list(scatter=ps, nItems=nItems, xyLab=xylab, main=main, axisLabels=axisLabels))
 }
 
 ##' @title Does a correlation plot
