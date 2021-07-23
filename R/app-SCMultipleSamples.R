@@ -134,7 +134,10 @@ ezMethodSCMultipleSamples = function(input=NA, output=NA, param=NA, htmlFile="00
   }
   
   #Convert scData to Single Cell experiment Object
-  sce = scData %>% seurat_to_sce(default_assay = "SCT") #SCT as default assay for visualization
+  #TODO: remove unnecesary dietseurat call when the bug in Seurat is fixed
+  scData_diet = DietSeurat(scData, dimreducs = c("pca", "tsne", "umap"))
+  sce <- scData_diet %>% seurat_to_sce(default_assay = "SCT")
+  metadata(sce)$PCA_stdev <- Reductions(scData_diet, "pca")@stdev
   metadata(sce)$cells_AUC <- cells_AUC
   metadata(sce)$singler.results <- singler.results
   metadata(sce)$output <- output
