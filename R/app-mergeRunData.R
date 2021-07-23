@@ -14,6 +14,10 @@ ezMethodMergeRunData <- function(input=NA, output=NA, param=NA){
     datasetFile2 = list.files(inputDir2,pattern='^dataset.tsv$', full.names = TRUE)
     dataset1 = ezRead.table(datasetFile1, row.names = NULL)
     dataset2 = ezRead.table(datasetFile2, row.names = NULL)
+    #Remove almost empty dataFiles:
+    dataset1 = dataset1[dataset1[['Read Count']] >= param$minReadCount,]
+    dataset2 = dataset2[dataset2[['Read Count']] >= param$minReadCount,]
+    
     commonCols = intersect(colnames(dataset1), colnames(dataset2))
     dataset1 = dataset1[,commonCols]
     dataset2 = dataset2[,commonCols]
@@ -99,6 +103,13 @@ EzAppMergeRunData <-
                         "Initializes the application using its specific defaults."
                         runMethod <<- ezMethodMergeRunData
                         name <<- "EzAppMergeRunData"
+                        appDefaults <<- rbind(
+                            minReadCount = ezFrame(
+                                Type = "integer",
+                                DefaultValue = 10000,
+                                Description = "minimal Read Count to consider a sample for merging in a run"
+                            )
+                        )
                     }
                 )
     )
