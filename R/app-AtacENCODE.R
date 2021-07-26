@@ -46,10 +46,13 @@ ezMethodAtacENCODE <- function(input=NA, output=NA, param=NA,
   
   ## We only work on paired-end data for now; although the pipeline supporst SE
   fastqR1Fns <- input$getFullPaths("Read1")
+  if(param$paired){
   fastqR2Fns <- input$getFullPaths("Read2")
-  
   cmd <- paste(paste0("-fastq", 1:length(fastqR1Fns), "_1"), fastqR1Fns,
                paste0("-fastq", 1:length(fastqR1Fns), "_2"), fastqR2Fns)
+  } else {
+    cmd <- paste(paste0("-fastq", 1:length(fastqR1Fns), "_1"), fastqR1Fns)
+}
   cmd <- paste0(cmd, collapse=" ")
   cmd <- paste("bds", ATACENCODE, "-species", refBuild, 
                "-auto_detect_adapter -nth", param$cores, cmd)
