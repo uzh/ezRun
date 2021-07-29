@@ -19,10 +19,12 @@ output <- readRDS("output.rds")
 se <- readRDS("deResult.rds")
 param <- readRDS("param.rds")
 
-enrichInput = metadata(se)$enrichInput
-enrichResult = metadata(se)$enrichResult
-enrichResultGSEA = metadata(se)$enrichResultGSEA
-
+if (doGo(param, seqAnno)) {
+  enrichInput = metadata(se)$enrichInput
+  enrichResult = metadata(se)$enrichResult
+  enrichResultGSEA = metadata(se)$enrichResultGSEA
+}
+  
 debug <- FALSE
 
 library(knitr)
