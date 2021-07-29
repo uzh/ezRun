@@ -772,41 +772,45 @@ The Over Representation Analysis (ORA), also known as the hypergeometric test, g
 *** 
 
 ```{r ora overview, echo=F, message=F, eval=!debug}
-ora.overview = ezFrame("Number of Significant Terms"=numeric())
-for (goDomain in names(enrichResult)){
-  for (resName in names(enrichResult[[goDomain]])){
-            testName = paste0(goDomain,": ",resName)
-            ora.overview[testName, "Number of Significant Terms"] = 
-              nrow(enrichResult[[goDomain]][[resName]]@result[
-                enrichResult[[goDomain]][[resName]]@result$p.adjust < 0.05, ])
+if (exists("enrichResult")) {
+  ora.overview = ezFrame("Number of Significant Terms"=numeric())
+  for (goDomain in names(enrichResult)){
+    for (resName in names(enrichResult[[goDomain]])){
+              testName = paste0(goDomain,": ",resName)
+              ora.overview[testName, "Number of Significant Terms"] = 
+                nrow(enrichResult[[goDomain]][[resName]]@result[
+                  enrichResult[[goDomain]][[resName]]@result$p.adjust < 0.05, ])
+    }
   }
+  
+  kable(format(ora.overview, digits=3, scientific=-2), "html", caption=paste("Hypergeometric Over-representation Test:")) %>%
+              kable_styling(bootstrap_options = "striped", full_width = F, position = "left")
 }
-
-kable(format(ora.overview, digits=3, scientific=-2), "html", caption=paste("Hypergeometric Over-representation Test:")) %>%
-            kable_styling(bootstrap_options = "striped", full_width = F, position = "left")
 ```
 
 [Download Excel file of complete ORA results](`r oraFile`)
 
 ```{r tabs with ora plots, results='asis', echo = FALSE, fig.height=8, fig.width=8, fig.align = "left"}
-for (onto in names(enrichResult)) {
-  cat("####", onto, "{.tabset}", "\n")
-  for (sig in names(enrichResult[[onto]])) {
-    cat("#####", sig, "{.tabset}", "\n")
-    if (is.na(enrichResult[[onto]][[sig]][1][[1]])) {
-      next
-    } else {
-      erp <- enrichResultPlots[[onto]][[sig]]
-      # print( enrichResultPlots[[ paste0(names(enrichResult)[onto], "_", names(enrichResult[[onto]])[sig], "_", "table") ]] )
-      print(erp$barplot)
-      print(erp$cnet)
-      print(kable(erp$df,
-        escape = FALSE, row.names = FALSE, format = "html", digits = 50
-      ) %>%
-        kable_styling(bootstrap_options = "striped", full_width = F, fixed_thead = T, ) %>%
-        scroll_box(width = "800px", height = "500px"))
-      cat(paste0("[", erp$oraFile, "](", erp$oraFile, ")"))
-      cat("\n\n")
+if (exists("enrichResult")) {
+  for (onto in names(enrichResult)) {
+    cat("####", onto, "{.tabset}", "\n")
+    for (sig in names(enrichResult[[onto]])) {
+      cat("#####", sig, "{.tabset}", "\n")
+      if (is.na(enrichResult[[onto]][[sig]][1][[1]])) {
+        next
+      } else {
+        erp <- enrichResultPlots[[onto]][[sig]]
+        # print( enrichResultPlots[[ paste0(names(enrichResult)[onto], "_", names(enrichResult[[onto]])[sig], "_", "table") ]] )
+        print(erp$barplot)
+        print(erp$cnet)
+        print(kable(erp$df,
+          escape = FALSE, row.names = FALSE, format = "html", digits = 50
+        ) %>%
+          kable_styling(bootstrap_options = "striped", full_width = F, fixed_thead = T, ) %>%
+          scroll_box(width = "800px", height = "500px"))
+        cat(paste0("[", erp$oraFile, "](", erp$oraFile, ")"))
+        cat("\n\n")
+      }
     }
   }
 }
@@ -910,36 +914,39 @@ Gene Set Enrichment Analysis (GSEA) calculates an enrichment score for each anno
 ***
 
 ```{r gsea overview, echo=F, message=F, eval=!debug}
-gsea.overview = ezFrame("Number of Significant Pathways"=numeric())
-for (i in 1:length(names(enrichResultGSEA))){
-            testName = paste(names(enrichResultGSEA)[i])
-            gsea.overview[testName, "Number of Significant Pathways"] = nrow(enrichResultGSEA[[i]]@result)
+if (exists("enrichResultGSEA")) {
+  gsea.overview = ezFrame("Number of Significant Pathways"=numeric())
+  for (i in 1:length(names(enrichResultGSEA))){
+              testName = paste(names(enrichResultGSEA)[i])
+              gsea.overview[testName, "Number of Significant Pathways"] = nrow(enrichResultGSEA[[i]]@result)
+  }
+  
+  kable(format(gsea.overview, digits=3, scientific=-2), "html", caption=paste("GSEA:")) %>%
+              kable_styling(bootstrap_options = "striped", full_width = F, position = "left")
 }
-
-kable(format(gsea.overview, digits=3, scientific=-2), "html", caption=paste("GSEA:")) %>%
-            kable_styling(bootstrap_options = "striped", full_width = F, position = "left")
-
 ```
 
 [Download Excel file of complete GSEA results](`r gseaFile`)
 
 ```{r tabs with gsea plots, results='asis', echo = FALSE, fig.height=8, fig.width=8}
-for (onto in names(enrichResultGSEA)) {
-  cat("####", onto, "{.tabset}", "\n")
-  if (is.na(enrichResultGSEA[[onto]][1][[1]])) {
-    next
-  } else {
-    erp <- enrichResultGSEAPlots[[onto]]
-    # print( enrichResultGSEAPlots[[ paste0(names(enrichResultGSEA)[onto], "_", names(enrichResultGSEA[[onto]])[sig], "_", "table") ]] )
-    print(erp$ridgeplot)
-    print(erp$cnet)
-    print(kable(erp$df,
-      escape = FALSE, row.names = FALSE, format = "html", digits = 50
-    ) %>%
-      kable_styling(bootstrap_options = "striped", full_width = F, fixed_thead = T, ) %>%
-      scroll_box(width = "800px", height = "500px"))
-    cat(paste0("[", erp$gseaFile, "](", erp$gseaFile, ")"))
-    cat("\n\n")
+if (exists("enrichResultGSEA")) {
+  for (onto in names(enrichResultGSEA)) {
+    cat("####", onto, "{.tabset}", "\n")
+    if (is.na(enrichResultGSEA[[onto]][1][[1]])) {
+      next
+    } else {
+      erp <- enrichResultGSEAPlots[[onto]]
+      # print( enrichResultGSEAPlots[[ paste0(names(enrichResultGSEA)[onto], "_", names(enrichResultGSEA[[onto]])[sig], "_", "table") ]] )
+      print(erp$ridgeplot)
+      print(erp$cnet)
+      print(kable(erp$df,
+        escape = FALSE, row.names = FALSE, format = "html", digits = 50
+      ) %>%
+        kable_styling(bootstrap_options = "striped", full_width = F, fixed_thead = T, ) %>%
+        scroll_box(width = "800px", height = "500px"))
+      cat(paste0("[", erp$gseaFile, "](", erp$gseaFile, ")"))
+      cat("\n\n")
+    }
   }
 }
 ```
