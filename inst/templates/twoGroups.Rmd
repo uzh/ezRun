@@ -690,7 +690,7 @@ if (!doEnrichr(param)) {
 
 ```{r prepare ora plots, echo=FALSE, message=FALSE, eval=!debug}
 enrichResultPlots <- list()
-if (exists("enrichResult")) {
+if (doGo(param, seqAnno)) {
   for (onto in names(enrichResult)) {
     enrichResultPlots[[onto]] <- list()
     for (sig in names(enrichResult[[onto]])) {
@@ -774,7 +774,7 @@ The Over Representation Analysis (ORA), also known as the hypergeometric test, g
 *** 
 
 ```{r ora overview, echo=F, message=F, eval=!debug}
-if (exists("enrichResult")) {
+if (doGo(param, seqAnno)) {
   ora.overview = ezFrame("Number of Significant Terms"=numeric())
   for (goDomain in names(enrichResult)){
     for (resName in names(enrichResult[[goDomain]])){
@@ -793,7 +793,7 @@ if (exists("enrichResult")) {
 [Download Excel file of complete ORA results](`r oraFile`)
 
 ```{r tabs with ora plots, results='asis', echo = FALSE, fig.height=8, fig.width=8, fig.align = "left"}
-if (exists("enrichResult")) {
+if (doGo(param, seqAnno)) {
   for (onto in names(enrichResult)) {
     cat("####", onto, "{.tabset}", "\n")
     for (sig in names(enrichResult[[onto]])) {
@@ -822,7 +822,7 @@ if (exists("enrichResult")) {
 
 ```{r prepare gsea plots, echo=FALSE, message=FALSE, eval=!debug}
 enrichResultGSEAPlots <- list()
-if (exists("enrichResultGSEA")) {
+if (doGo(param, seqAnno)) {
   for (onto in names(enrichResultGSEA)) {
     enrichResultGSEAPlots[[onto]] <- list()
     if (is.na(enrichResultGSEA[[onto]][1][[1]])) {
@@ -916,7 +916,7 @@ Gene Set Enrichment Analysis (GSEA) calculates an enrichment score for each anno
 ***
 
 ```{r gsea overview, echo=F, message=F, eval=!debug}
-if (exists("enrichResultGSEA")) {
+if (doGo(param, seqAnno)) {
   gsea.overview = ezFrame("Number of Significant Pathways"=numeric())
   for (i in 1:length(names(enrichResultGSEA))){
               testName = paste(names(enrichResultGSEA)[i])
@@ -931,7 +931,7 @@ if (exists("enrichResultGSEA")) {
 [Download Excel file of complete GSEA results](`r gseaFile`)
 
 ```{r tabs with gsea plots, results='asis', echo = FALSE, fig.height=8, fig.width=8}
-if (exists("enrichResultGSEA")) {
+if (doGo(param, seqAnno)) {
   for (onto in names(enrichResultGSEA)) {
     cat("####", onto, "{.tabset}", "\n")
     if (is.na(enrichResultGSEA[[onto]][1][[1]])) {
