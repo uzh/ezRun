@@ -19,7 +19,7 @@ output <- readRDS("output.rds")
 se <- readRDS("deResult.rds")
 param <- readRDS("param.rds")
 
-if (doGo(param, seqAnno)) {
+if (isTRUE(param$runGO)) {
   enrichInput = metadata(se)$enrichInput
   enrichResult = metadata(se)$enrichResult
   enrichResultGSEA = metadata(se)$enrichResultGSEA
@@ -425,7 +425,7 @@ if (sum(use) > param$minGenesForClustering) {
   })
   eval(plotCmd)
 
-  if (doGo(param, seqAnno)) {
+  if (isTRUE(param$runGO)) {
     clusterResult <- goClusterResults(xCentered, param, clusterResult,
       seqAnno = seqAnno,
       universeProbeIds = rownames(seqAnno)[rowData(se)$isPresentProbe]
@@ -600,7 +600,7 @@ Enrichr is a web server which collects in one website many different databases t
 ***
 
 ```{r enrichr, echo=FALSE, message=FALSE}
-if (doGo(param, seqAnno)) {
+if (isTRUE(param$runGO)) {
   if (doEnrichr(param)) {
     selectionNames <- names(enrichInput$selections)
 
@@ -690,7 +690,7 @@ if (!doEnrichr(param)) {
 
 ```{r prepare ora plots, echo=FALSE, message=FALSE, eval=!debug}
 enrichResultPlots <- list()
-if (doGo(param, seqAnno)) {
+if (isTRUE(param$runGO)) {
   for (onto in names(enrichResult)) {
     enrichResultPlots[[onto]] <- list()
     for (sig in names(enrichResult[[onto]])) {
@@ -747,22 +747,22 @@ if (doGo(param, seqAnno)) {
       }
     }
   }
-}
-# Print out a final combined xlsx 
-oraFile <- paste0(param$comparison, "--ORA_results.xlsx")
-oraList <- list()
-for (onto in names(enrichResult)) {
-  for (sig in names(enrichResult[[onto]])) {
-    if (is.na(enrichResult[[onto]][[sig]][1][[1]])) {
-      next
-    } else {
-      dfOut <- as.data.frame(enrichResult[[onto]][[sig]]@result)
-      oraList[[paste0(onto, "_", sig)]] <- dfOut
+  # Print out a final combined xlsx 
+  oraFile <- paste0(param$comparison, "--ORA_results.xlsx")
+  oraList <- list()
+  for (onto in names(enrichResult)) {
+    for (sig in names(enrichResult[[onto]])) {
+      if (is.na(enrichResult[[onto]][[sig]][1][[1]])) {
+        next
+      } else {
+        dfOut <- as.data.frame(enrichResult[[onto]][[sig]]@result)
+        oraList[[paste0(onto, "_", sig)]] <- dfOut
+      }
     }
   }
-}
-if (length(oraList) >= 1) {
-  openxlsx::write.xlsx(oraList, file = oraFile)
+  if (length(oraList) >= 1) {
+    openxlsx::write.xlsx(oraList, file = oraFile)
+  }
 }
 ```
 
@@ -774,7 +774,7 @@ The Over Representation Analysis (ORA), also known as the hypergeometric test, g
 *** 
 
 ```{r ora overview, echo=F, message=F, eval=!debug}
-if (doGo(param, seqAnno)) {
+if (isTRUE(param$runGO)) {
   ora.overview = ezFrame("Number of Significant Terms"=numeric())
   for (goDomain in names(enrichResult)){
     for (resName in names(enrichResult[[goDomain]])){
@@ -793,7 +793,7 @@ if (doGo(param, seqAnno)) {
 [Download Excel file of complete ORA results](`r oraFile`)
 
 ```{r tabs with ora plots, results='asis', echo = FALSE, fig.height=8, fig.width=8, fig.align = "left"}
-if (doGo(param, seqAnno)) {
+if (isTRUE(param$runGO)) {
   for (onto in names(enrichResult)) {
     cat("####", onto, "{.tabset}", "\n")
     for (sig in names(enrichResult[[onto]])) {
@@ -822,7 +822,7 @@ if (doGo(param, seqAnno)) {
 
 ```{r prepare gsea plots, echo=FALSE, message=FALSE, eval=!debug}
 enrichResultGSEAPlots <- list()
-if (doGo(param, seqAnno)) {
+if (isTRUE(param$runGO)) {
   for (onto in names(enrichResultGSEA)) {
     enrichResultGSEAPlots[[onto]] <- list()
     if (is.na(enrichResultGSEA[[onto]][1][[1]])) {
@@ -891,20 +891,20 @@ if (doGo(param, seqAnno)) {
       enrichResultGSEAPlots[[onto]] <- erp
     }
   }
-}
-# Print out a final combined xlsx 
-gseaFile <- paste0(param$comparison, "--GSEA_results.xlsx")
-gseaList <- list()
-for (onto in names(enrichResultGSEA)) {
-  if (is.na(enrichResultGSEA[[onto]][1][[1]])) {
-    next 
-  } else {
-    dfOut <- as.data.frame(enrichResultGSEA[[onto]]@result)
-    gseaList[[onto]] <- dfOut
+  # Print out a final combined xlsx 
+  gseaFile <- paste0(param$comparison, "--GSEA_results.xlsx")
+  gseaList <- list()
+  for (onto in names(enrichResultGSEA)) {
+    if (is.na(enrichResultGSEA[[onto]][1][[1]])) {
+      next 
+    } else {
+      dfOut <- as.data.frame(enrichResultGSEA[[onto]]@result)
+      gseaList[[onto]] <- dfOut
+    }
   }
-}
-if (length(gseaList) >= 1) {
-  openxlsx::write.xlsx(gseaList, file = gseaFile)
+  if (length(gseaList) >= 1) {
+    openxlsx::write.xlsx(gseaList, file = gseaFile)
+  }
 }
 ```
 
@@ -916,7 +916,7 @@ Gene Set Enrichment Analysis (GSEA) calculates an enrichment score for each anno
 ***
 
 ```{r gsea overview, echo=F, message=F, eval=!debug}
-if (doGo(param, seqAnno)) {
+if (isTRUE(param$runGO)) {
   gsea.overview = ezFrame("Number of Significant Pathways"=numeric())
   for (i in 1:length(names(enrichResultGSEA))){
               testName = paste(names(enrichResultGSEA)[i])
@@ -931,7 +931,7 @@ if (doGo(param, seqAnno)) {
 [Download Excel file of complete GSEA results](`r gseaFile`)
 
 ```{r tabs with gsea plots, results='asis', echo = FALSE, fig.height=8, fig.width=8}
-if (doGo(param, seqAnno)) {
+if (isTRUE(param$runGO)) {
   for (onto in names(enrichResultGSEA)) {
     cat("####", onto, "{.tabset}", "\n")
     if (is.na(enrichResultGSEA[[onto]][1][[1]])) {
