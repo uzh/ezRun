@@ -773,7 +773,7 @@ The Over Representation Analysis (ORA), also known as the hypergeometric test, g
 
 *** 
 
-```{r ora overview, echo=F, message=F, eval=!debug}
+```{r ora overview, echo=F, message=F, eval=!debug, results='asis'}
 if (isTRUE(param$runGO)) {
   ora.overview = ezFrame("Number of Significant Terms"=numeric())
   for (goDomain in names(enrichResult)){
@@ -787,10 +787,10 @@ if (isTRUE(param$runGO)) {
   
   kable(format(ora.overview, digits=3, scientific=-2), "html", caption=paste("Hypergeometric Over-representation Test:")) %>%
               kable_styling(bootstrap_options = "striped", full_width = F, position = "left")
+  cat("[Download Excel file of complete ORA results](`r oraFile`)")
 }
 ```
 
-[Download Excel file of complete ORA results](`r oraFile`)
 
 ```{r tabs with ora plots, results='asis', echo = FALSE, fig.height=8, fig.width=8, fig.align = "left"}
 if (isTRUE(param$runGO)) {
@@ -915,7 +915,7 @@ Gene Set Enrichment Analysis (GSEA) calculates an enrichment score for each anno
 
 ***
 
-```{r gsea overview, echo=F, message=F, eval=!debug}
+```{r gsea overview, echo=F, message=F, eval=!debug, results = 'asis'}
 if (isTRUE(param$runGO)) {
   gsea.overview = ezFrame("Number of Significant Pathways"=numeric())
   for (i in 1:length(names(enrichResultGSEA))){
@@ -925,10 +925,10 @@ if (isTRUE(param$runGO)) {
   
   kable(format(gsea.overview, digits=3, scientific=-2), "html", caption=paste("GSEA:")) %>%
               kable_styling(bootstrap_options = "striped", full_width = F, position = "left")
+  
+  cat("[Download Excel file of complete GSEA results](`r gseaFile`)")
 }
 ```
-
-[Download Excel file of complete GSEA results](`r gseaFile`)
 
 ```{r tabs with gsea plots, results='asis', echo = FALSE, fig.height=8, fig.width=8}
 if (isTRUE(param$runGO)) {
