@@ -81,13 +81,13 @@ ezMethodVPipe <- function(input=NA, output=NA, param=NA,
     setwd('samples')
     for (j in 1:nrow(samples)){
         cmd <- paste('mv', file.path(samples[j, 'ID'],samples[j,'InternalNumber'], 'references/ref_ambig_dels.fasta'), 
-                       paste0(file.path(oDir, aDir),'/',samples[j, 'ID'],'.',samples[j,'InternalNumber'],'.ambig.fasta'))
+                       paste0(file.path(oDir, aDir),'/',samples[j, 'ID'],'_',samples[j,'InternalNumber'],'.ambig.fasta'))
         ezSystem(cmd)
         cmd <- paste('mv', file.path(samples[j, 'ID'],samples[j,'InternalNumber'], 'references/ref_majority_dels.fasta'), 
-                     paste0(file.path(oDir, cDir),'/',samples[j, 'ID'],'.',samples[j,'InternalNumber'],'.fasta'))
+                     paste0(file.path(oDir, cDir),'/',samples[j, 'ID'],'_',samples[j,'InternalNumber'],'.fasta'))
         ezSystem(cmd)
         cmd <- paste('mv', file.path(samples[j, 'ID'],samples[j,'InternalNumber'], 'variants/SNVs/snvs.vcf'), 
-                     paste0(file.path(oDir, vDir),'/',samples[j, 'ID'],'.',samples[j,'InternalNumber'],'.vcf'))
+                     paste0(file.path(oDir, vDir),'/',samples[j, 'ID'],'_',samples[j,'InternalNumber'],'.vcf'))
         ezSystem(cmd)
     }
     setwd(file.path(oDir, cDir))
