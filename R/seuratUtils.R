@@ -237,6 +237,7 @@ posClusterMarkers <- function(scData, pvalue_allMarkers, param) {
   ## Significant markers
   cm <- markers[ ,c("gene","cluster","pct.1", "pct.2", "avg_log2FC","p_val_adj")]
   #cm <- cm[cm$p_val_adj < 0.05, ]
+  cm$cluster <- as.factor(cm$cluster)
   diff_pct = abs(cm$pct.1-cm$pct.2)
   cm$diff_pct <- diff_pct
   cm <- cm[order(cm$diff_pct, decreasing = TRUE),]
