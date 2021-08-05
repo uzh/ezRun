@@ -63,7 +63,9 @@ diffGenes <- tryCatch({read_tsv("differential_genes.tsv")},error = function(e) N
 cat("### Conserved markers")
 cat("\n")
 cat("Identify cell type marker genes that are conserved across conditions. Differential gene expression tests are performed for each group and then, the p-values are combined using meta-analysis methods.")
-caption ="Conserved cell type markers"
+cat("\n")
+cat("#### Conserved cell type markers")
+cat("\n")
 ezInteractiveTableRmd(conservedMarkers, title=caption)
 ```
 
@@ -102,8 +104,9 @@ cutoff <- 1000
 if(nrow(diffGenes) > cutoff)
    diffGenes <- diffGenes[1:cutoff,]
 
-caption ="Differential expressed genes per cluster"
-ezInteractiveTableRmd(diffGenes, title=caption)
+cat("#### Differential expressed genes per cluster")
+cat("\n")
+ezInteractiveTableRmd(diffGenes)
 ```
 
 ```{r diffGenes heatmap, eval=!is.null(diffGenes), results='asis', fig.height=6, fig.width=12, fig.align='center'}
