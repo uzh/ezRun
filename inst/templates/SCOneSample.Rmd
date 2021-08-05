@@ -242,11 +242,6 @@ clustree::clustree(sce, prefix = "SCT_snn_res.")
 
 ### Cluster markers
 
-```{r}
-posMarkers = read_tsv("pos_markers.tsv")
-```
-
-
 ```{r wilcoxon test, eval=(param$DE.method=="wilcox"), results='asis'}
 cat("We found positive markers that defined clusters compared to all other cells via differential expression. The test we used was the Wilcoxon Rank Sum test. Genes with an average, at least 0.25-fold difference (log-scale) between the cells in the tested cluster and the rest of the cells and an adjusted p-value < 0.05 were declared as significant.")
 ```
@@ -255,7 +250,7 @@ cat("We found positive markers that defined clusters compared to all other cells
 cat("We found positive markers that defined clusters compared to all other cells via differential expression using a logistic regression test and including in the model the cell cycle as the batch effect. Genes with an average, at least 0.25-fold difference (log-scale) between the cells in the tested cluster and the rest of the cells and an adjusted p-value < 0.05 were declared as significant.")
 ```
 
-```{r pos markers, echo=FALSE, results='asis'}
+```{r pos markers}
 posMarkers = read_tsv("pos_markers.tsv")
 caption ="Expression differences of cluster marker genes"
 ezInteractiveTableRmd(posMarkers, digits=4, title=caption)
