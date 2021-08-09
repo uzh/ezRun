@@ -106,6 +106,10 @@ ezMethodSCOneSample <- function(input = NA, output = NA, param = NA,
   # calculate cellcycle for the filtered sce object
   sce <- addCellCycleToSce(sce, param$refBuild)
 
+  #before converting to a seurat object, replace all - by . to avoid future problems when subsetting the object
+  rownames(sce) <- gsub("-", ".", rownames(sce))
+  rowData(sce)$Symbol <- gsub("-", ".", rowData(sce)$Symbol)
+  
   scData <- buildSeuratObject(sce) # the Seurat object is built from the filtered sce object
   if (param$filterByExpression != "") {
     expression <- param$filterByExpression
@@ -166,7 +170,7 @@ filterCellsAndGenes <- function(sce, param) {
   library(Matrix)
 
   # Cells filtering
-  mito.genes <- grep("^MT-", rowData(sce)$Symbol, ignore.case = TRUE)
+  mito.genes <- grep("^MT.", rowData(sce)$Symbol, ignore.case = TRUE)
   ribo.genes <- grep("^RPS|^RPL", rownames(sce), ignore.case = TRUE)
   
   sce <- addPerCellQC(sce, subsets = list(Mito = mito.genes, Ribo = ribo.genes))
