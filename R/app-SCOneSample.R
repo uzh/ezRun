@@ -167,8 +167,9 @@ filterCellsAndGenes <- function(sce, param) {
 
   # Cells filtering
   mito.genes <- grep("^MT-", rowData(sce)$Symbol, ignore.case = TRUE)
-
-  sce <- addPerCellQC(sce, subsets = list(Mito = mito.genes))
+  ribo.genes <- grep("^RPS|^RPL", rownames(sce), ignore.case = TRUE)
+  
+  sce <- addPerCellQC(sce, subsets = list(Mito = mito.genes, Ribo = ribo.genes))
 
   if (param$nreads == "") {
     qc.lib <- isOutlier(sce$sum, log = TRUE, nmads = param$nmad, type = "lower")
@@ -185,11 +186,19 @@ filterCellsAndGenes <- function(sce, param) {
   } else {
     qc.mito <- sce$subsets_Mito_percent > as.double(param$perc_mito)
   }
-  discard <- qc.lib | qc.nexprs | qc.mito
+  
+  if (param$perc_ribo == "") {
+    qc.ribo <- isOutlier(sce$subsets_Ribo_percent, nmads = param$nmad, type = "higher")
+  } else {
+    qc.ribo <- sce$subsets_Ribo_percent > as.double(param$perc_ribo)
+  }
+  
+  discard <- qc.lib | qc.nexprs | qc.mito | qc.ribo
   sce$discard <- discard
   sce$qc.lib <- qc.lib
   sce$qc.nexprs <- qc.nexprs
   sce$qc.mito <- qc.mito
+  sce$qc.ribo <- qc.ribo
   sce.unfiltered <- sce
   sce <- sce[, !discard]
 
