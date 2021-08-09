@@ -77,6 +77,7 @@ ezMethodVPipe <- function(input=NA, output=NA, param=NA,
     dir.create('/scratch/tmp',showWarnings = FALSE)
     cmd <- paste('export TMPDIR=/scratch/tmp; ./vpipe --use-conda -p --keep-going --rerun-incomplete --cores', param$cores, ' 2>&1 | tee', paste0(orderId, '.log'))
     system(cmd)
+    gc()
     
     setwd('samples')
     for (j in 1:nrow(samples)){
@@ -98,6 +99,7 @@ ezMethodVPipe <- function(input=NA, output=NA, param=NA,
     createPangolinScript(consensusFile)
     system('bash runPangolin.sh')
     file.remove('runPangolin.sh')
+    gc()
     
     dir.create('bedtools_coverage')
     dir.create('samtools_depth')
