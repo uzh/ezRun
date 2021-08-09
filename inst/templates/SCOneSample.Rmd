@@ -66,18 +66,19 @@ We use several common QC metrics to identify low-quality cells based on their ex
 
 1. The library size is defined as the total sum of counts across all relevant features for each cell. Cells with small library sizes are of low quality as the RNA has been lost at some point during library preparation.
 2. The number of expressed features in each cell is defined as the number of genes with non-zero counts for that cell. Any cell with very few expressed genes is likely to be of poor quality as the diverse transcript population has not been successfully captured.
-3. The proportions of mitochondrial genes per cell. High proportions are indicative of poor-quality cells (Islam et al. 2014; Ilicic et al. 2016), presumably because of the loss of cytoplasmic RNA from perforated cells.
+3. The proportions of mitochondrial and ribosomal genes per cell. High proportions are indicative of poor-quality cells (Islam et al. 2014; Ilicic et al. 2016), presumably because of the loss of cytoplasmic RNA from perforated cells.
 
 <br/>
 
 #### Diagnostic plots
 
-A key assumption here is that the QC metrics are independent of the biological state of each cell. Poor values (e.g., low library sizes, high mitochondrial proportions) are presumed to be driven by technical factors rather than biological processes, meaning that the subsequent removal of cells will not misrepresent the biology in downstream analyses. Major violations of this assumption would potentially result in the loss of cell types that have, say, systematically low RNA content or high numbers of mitochondria. We can check for such violations using some diagnostics plots. In the most ideal case, we would see normal distributions that would justify the thresholds used in outlier detection. A large proportion of cells in another mode suggests that the QC metrics might be correlated with some biological state, potentially leading to the loss of distinct cell types during filtering. 
+A key assumption here is that the QC metrics are independent of the biological state of each cell. Poor values (e.g., low library sizes, high mitochondrial or ribosomal proportions) are presumed to be driven by technical factors rather than biological processes, meaning that the subsequent removal of cells will not misrepresent the biology in downstream analyses. Major violations of this assumption would potentially result in the loss of cell types that have, say, systematically low RNA content or high numbers of mitochondria. We can check for such violations using some diagnostics plots. In the most ideal case, we would see normal distributions that would justify the thresholds used in outlier detection. A large proportion of cells in another mode suggests that the QC metrics might be correlated with some biological state, potentially leading to the loss of distinct cell types during filtering. 
 
 ```{r QC plots, fig.height=4}
 plotColData(sce.unfiltered, x="Batch", y="sum", colour_by="discard") + scale_y_log10() + ggtitle("Total count")
 plotColData(sce.unfiltered, x="Batch", y="detected", colour_by="discard") + scale_y_log10() + ggtitle("Detected features")
 plotColData(sce.unfiltered, x="Batch", y="subsets_Mito_percent", colour_by="discard") + ggtitle("Mito percent")
+plotColData(sce.unfiltered, x="Batch", y="subsets_Ribo_percent", colour_by="discard") + ggtitle("Ribo percent")
 ```
 
 It is also worth to plot the proportion of mitochondrial counts against the library size for each cell. The aim is to confirm that there are no cells with both large total counts and large mitochondrial counts, to ensure that we are not inadvertently removing high-quality cells that happen to be highly metabolically active.
@@ -97,9 +98,10 @@ When the parameter values of nreads, ngenes and perc_mito are specified, fixed t
 num.qc.lib <- sum(sce.unfiltered$qc.lib)
 num.qc.nexprs <- sum(sce.unfiltered$qc.nexprs)
 num.qc.mito <- sum(sce.unfiltered$qc.mito)
+num.qc.ribo <- sum(sce.unfiltered$qc.ribo)
 removed <- sum(sce.unfiltered$discard)
-kable(tibble("QC metric" =c("Library Size", "Expressed genes", "Mitochondrial genes", "Total removed", "Cells remaining"),
-             "Number of cells"= c(num.qc.lib, num.qc.nexprs, num.qc.mito, removed, ncol(sce))),
+kable(tibble("QC metric" =c("Library Size", "Expressed genes", "Mitochondrial genes", "Ribosomal genes", "Total removed", "Cells remaining"),
+             "Number of cells"= c(num.qc.lib, num.qc.nexprs, num.qc.mito, num.qc.ribo, removed, ncol(sce))),
       row.names=FALSE,
       caption="Number of cells removed") %>%
   kable_styling(bootstrap_options = "striped", full_width = F,
@@ -194,24 +196,30 @@ kable(cells_prop,row.names=FALSE, format="html",caption="Cell proportions") %>% 
 Once we have created the clusters we need to asses if the clustering was driven by technical artifacts or uninteresting biological variability, such as cell cycle, mitochondrial gene expression.
 We can explore whether the cells cluster by the different cell cycle phases. In such a case, we would have clusters where most of the cells would be in one specific phase. This bias could be taken into account when normalizing and transforming the data prior to clustering. We can also look at the total number of reads, genes detected and mitochondrial gene expression. The clusters should be more or less even but if we observe big differences among some of them for these metrics, we will keep an eye on them and see if the cell types we identify later can explain the differences. 
 
-```{r uninteresting variation, fig.width=12, fig.height=12}
-tryCatch({
-  plotColData(sce, x="ident", y="CellCycle", colour_by="ident") + ggtitle("Cell cycle vs ident")
-}, error=function(e) print("Cell cycle was not calculated. Possible reasons: a bug in the app or using a different organism than human or mouse. Please, ask the developer."))
+```{r uninteresting variation, fig.width=6, fig.height=6}
 sce$logSum = log10(sce$sum)
 sce$logDetected = log10(sce$detected)
-gridExtra::grid.arrange(
-  plotColData(sce, x="ident", y="sum", colour_by="ident", add_legend=FALSE) + ggtitle("Number of UMIs vs ident"),
-  plotReducedDim(sce, dimred="UMAP", colour_by="logSum", text_by="seurat_clusters", text_size=5, add_legend=FALSE),
+
+  tryCatch({
+  p1 = plotColData(sce, x="ident", y="CellCycle", colour_by="ident") + ggtitle("Cell cycle vs ident")
+  p2 = plotReducedDim(sce, dimred="UMAP", colour_by="CellCycle", text_by="seurat_clusters", text_size=5, add_legend=TRUE)
+  print(p1)
+  print(p2)
+}, error=function(e) print("Cell cycle was not calculated. Possible reasons: a bug in the app or using a different organism than human or mouse. Please, ask the developer."))
+  plotColData(sce, x="ident", y="sum", colour_by="ident", add_legend=FALSE) + ggtitle("Number of UMIs vs ident")
+  plotReducedDim(sce, dimred="UMAP", colour_by="logSum", text_by="seurat_clusters", text_size=5)
   plotColData(sce, x="ident", y="detected", colour_by="ident", add_legend=FALSE) + 
-    ggtitle("Detected genes vs ident"),
+    ggtitle("Detected genes vs ident")
   plotReducedDim(sce, dimred="UMAP", colour_by="logDetected", text_by="seurat_clusters", 
-                 text_size=5, add_legend=FALSE),
+                 text_size=5)
   plotColData(sce, x="ident", y="subsets_Mito_percent", colour_by="ident", add_legend=FALSE) + 
-    ggtitle("Mito percentage vs ident"),
+    ggtitle("Mito percentage vs ident")
   plotReducedDim(sce, dimred="UMAP", colour_by="subsets_Mito_percent", text_by="seurat_clusters", 
-                 text_size=5, add_legend=FALSE),
-  ncol=2)
+                 text_size=5)
+  plotColData(sce, x="ident", y="subsets_Ribo_percent", colour_by="ident", add_legend=FALSE) + 
+    ggtitle("Ribo percentage vs ident")
+  plotReducedDim(sce, dimred="UMAP", colour_by="subsets_Ribo_percent", text_by="seurat_clusters", 
+                 text_size=5)
 if (ezIsSpecified(param$controlSeqs)) {
   genesToPlot <- gsub("_", "-", param$controlSeqs)
   genesToPlot <- intersect(genesToPlot, rownames(sce))
@@ -250,10 +258,13 @@ cat("We found positive markers that defined clusters compared to all other cells
 cat("We found positive markers that defined clusters compared to all other cells via differential expression using a logistic regression test and including in the model the cell cycle as the batch effect. Genes with an average, at least 0.25-fold difference (log-scale) between the cells in the tested cluster and the rest of the cells and an adjusted p-value < 0.05 were declared as significant.")
 ```
 
+#### Expression differences of cluster marker genes
+
 ```{r pos markers}
 posMarkers = read_tsv("pos_markers.tsv")
-caption ="Expression differences of cluster marker genes"
-ezInteractiveTableRmd(posMarkers, digits=4, title=caption)
+posMarkers$cluster = as.factor(posMarkers$cluster)
+posMarkers$gene = as.factor(posMarkers$gene)
+ezInteractiveTableRmd(posMarkers, digits=4)
 ```
 
 ### Marker plots
@@ -262,17 +273,16 @@ Here, we use a heatmap and a dotplot to visualize simultaneously the top 5 marke
 
 <br/>
 
-```{r heatmap, fig.width=8, fig.height=length(levels(sce$seurat_clusters))*0.8}
+```{r heatmap, fig.width=12, fig.height=length(levels(sce$seurat_clusters))*0.6}
 top5 <- posMarkers %>% group_by(cluster) %>% top_n(n = 5, wt = diff_pct)
-genesToPlot <- c(gsub("_", "-", param$controlSeqs), unique(top5$gene))
+genesToPlot <- c(gsub("_", "-", param$controlSeqs), unique(as.character(top5$gene)))
 genesToPlot <- intersect(genesToPlot, rownames(sce))
 
-tr_cnts <- expm1(logcounts(sce))
-geneMeans <- rowsum(DelayedArray::t(tr_cnts), group=sce$seurat_clusters)
-geneMeans <- sweep(geneMeans, 1, STATS=table(sce$seurat_clusters)[rownames(geneMeans)], FUN="/")
-geneMeans <- log1p(t(geneMeans))
-colnames(geneMeans) <- paste("cluster", colnames(geneMeans), sep="_")
-pheatmap(geneMeans[genesToPlot, ],fontsize_row = 6)
+plotHeatmap(sce, features=genesToPlot, center=TRUE, zlim=c(-2, 2),
+            colour_columns_by = c("seurat_clusters"), 
+            order_columns_by = c("seurat_clusters"),
+            cluster_rows=TRUE,
+            fontsize_row=8)
 
 plotDots(sce, features=genesToPlot, group="seurat_clusters")
 ```
