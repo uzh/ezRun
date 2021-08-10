@@ -14,11 +14,7 @@ EzAppspatialSeurat <-
                   "Initializes the application using its specific defaults."
                   runMethod <<- ezMethodspatialSeurat
                   name <<- "EzAppspatialSeurat"
-                  appDefaults <<- rbind(scProtocol=ezFrame(Type="character", DefaultValue="10X", Description="Which single cell protocol?"),
-                                        minReadsPerCell=ezFrame(Type="numeric", 
-                                                                DefaultValue=5e4, 
-                                                                Description="Minimal reads per cell of smart-Seq2 for Seurat filtering"),
-                                        npcs=ezFrame(Type="numeric", 
+                  appDefaults <<- rbind(npcs=ezFrame(Type="numeric", 
                                                     DefaultValue=20,
                                                     Description="The maximal dimensions to use for reduction"),
                                         pcGenes=ezFrame(Type="charVector", 
@@ -33,9 +29,6 @@ EzAppspatialSeurat <-
                                         resolution=ezFrame(Type="numeric", 
                                                            DefaultValue=0.5,
                                                            Description="Value of the resolution parameter, use a value above (below) 1.0 if you want to obtain a larger (smaller) number of communities."),
-                                        all2allMarkers=ezFrame(Type="logical", 
-                                                               DefaultValue=FALSE, 
-                                                               Description="Run all against all cluster comparisons?"),
                                         cellsFraction=ezFrame(Type="numeric", 
                                                                 DefaultValue=0.05, 
                                                                 Description="A gene will be kept if it is expressed in at least this percentage of cells"),
