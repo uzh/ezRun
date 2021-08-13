@@ -249,7 +249,7 @@ posClusterMarkers <- function(scData, pvalue_allMarkers, param) {
 spatialMarkers <- function(scData) { 
   spatialMarkers <- FindSpatiallyVariableFeatures(scData, assay = "SCT", features = VariableFeatures(scData)[1:1000], 
                                                   selection.method = "markvariogram")
-  return(markers)
+  return(spatialMarkers)
   }
 
 all2all <- function(scData, pvalue_all2allMarkers, param) {
