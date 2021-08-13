@@ -219,27 +219,31 @@ loadSCCountDataset <- function(input, param){
 }
 
 load10xData <- function(input, param){
-
 library(DropletUtils)
- 
-countMatrixFn <- list.files(path=input$getFullPaths("CountMatrix"),
+ countMatrixFn <- list.files(path=input$getFullPaths("CountMatrix"),
                             pattern="\\.mtx(\\.gz)*$", recursive=TRUE, 
                             full.names=TRUE)
 sce <- read10xCounts(dirname(countMatrixFn), col.names=TRUE)
-
 metadata(sce)$param <- param
-
 ## unique cell names when merging two samples
 colnames(sce) <- paste(input$getNames(), colnames(sce), sep="___")
 library(scuttle)
 rownames(sce) <- uniquifyFeatureNames(ID=rowData(sce)$ID,
                                       names=rowData(sce)$Symbol)
-
-
 colData(sce)$Batch <- input$getNames()
 try(colData(sce)$Condition <- input$getColumn("Condition"), silent = TRUE)
 return(sce)
 }
+
+load10xSpatialData <- function(input, param){
+  scData <- Load10X_Spatial(input$getFullPaths("ResultDir"))
+  ## unique cell names when merging two samples
+  scData <- RenameCells(scData, paste(input$getNames(), colnames(scData), sep="___"))
+  scData$Batch <- input$getNames()
+  try(scData$Condition <- input$getColumn("Condition"), silent = TRUE)
+  return(scData)
+}
+
 
 ##' @title Writes the head of a file
 ##' @description Writes the head of a file into a newly created target file.
