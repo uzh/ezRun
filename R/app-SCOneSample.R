@@ -170,7 +170,7 @@ filterCellsAndGenes <- function(sce, param) {
   library(Matrix)
 
   # Cells filtering
-  mito.genes <- grep("^MT.", rowData(sce)$Symbol, ignore.case = TRUE)
+  mito.genes <- grep("^MT.", rownames(sce), ignore.case = TRUE)
   ribo.genes <- grep("^RPS|^RPL", rownames(sce), ignore.case = TRUE)
   
   sce <- addPerCellQC(sce, subsets = list(Mito = mito.genes, Ribo = ribo.genes))
