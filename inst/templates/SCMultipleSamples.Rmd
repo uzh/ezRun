@@ -149,6 +149,7 @@ if (!is.null(colData(sce)$CellCycle))
 plotColData(sce, x="ident", y="sum", colour_by="ident") + ggtitle("Number of UMIs vs ident")
 plotColData(sce, x="ident", y="detected", colour_by="ident") + ggtitle("Detected genes vs ident")
 plotColData(sce, x="ident", y="subsets_Mito_percent", colour_by="ident") + ggtitle("Mito percentage vs ident")
+plotColData(sce, x="Batch", y="subsets_Ribo_percent", colour_by="discard") + ggtitle("Ribo percent")
 ```
 
 #### Clusters resolution 
