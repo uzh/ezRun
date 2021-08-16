@@ -186,6 +186,8 @@ if(param$batchCorrection == TRUE) {
 
 ```{r}
 posMarkers = read_tsv("pos_markers.tsv")
+posMarkers$cluster = as.factor(posMarkers$cluster)
+posMarkers$gene = as.factor(posMarkers$gene)
 ```
 
 
@@ -209,7 +211,8 @@ Here, we use a heatmap and a dotplot to visualize simultaneously the top 5 marke
 <br/>
 
 ```{r}
-top5 <- posMarkers %>% group_by(cluster) %>% top_n(n = 5, wt = diff_pct)
+top5 <- posMarkers %>% group_by(cluster) 
+top5 <- slice_max(top5, n = 5, order_by = avg_log2FC)
 var_heigth <- nrow(top5)*0.2
 ```
 
