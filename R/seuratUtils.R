@@ -154,6 +154,7 @@ buildSeuratObject <- function(sce){
   library(Seurat)
   library(scater)
   param <- metadata(sce)$param
+  colData(sce)[, grep("SCT", colnames(colData(sce)))] = NULL  #remove all normalization info done on each object separately
   cell_info <- data.frame(colData(sce),
                           Plate=sub("___.*$", "", colnames(sce)),
                           check.names = FALSE)
