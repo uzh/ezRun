@@ -226,6 +226,28 @@ cellsProportion <- function(sce, groupVar1, groupVar2){
   return(toTable)
 }
 
+cellsProportion <- function(scData, groupVar1, groupVar2){
+  library(tidyverse)
+  toTable <- tibble(names(summary(scData@meta.data[,groupVar1])))  %>%
+    `colnames<-`(groupVar1) 
+  cellCountsByVar <- tibble(scData@meta.data[,groupVar2],
+                            as.character(scData@meta.data[,groupVar1])) %>%
+    `colnames<-`(c(groupVar2, groupVar1)) %>%
+    group_by_at(c(groupVar2, groupVar1)) %>% summarise(n()) %>%
+    spread(groupVar2, `n()`, fill=0)
+  cellPercByVar2 <- select(cellCountsByVar, -groupVar1) %>%
+    as.matrix()
+  rownames(cellPercByVar2) <- cellCountsByVar[[groupVar1]]
+  cellPercByVar2 <- sweep(cellPercByVar2, 2, colSums(cellPercByVar2), "/")
+  colnames(cellPercByVar2) <- paste0(colnames(cellPercByVar2), "_fraction")
+  toTable <- left_join(toTable, cellCountsByVar, by=groupVar1) %>%
+    left_join(as_tibble(cellPercByVar2, rownames=groupVar1), by=groupVar1)
+  total <- bind_cols("Total", summarise_at(toTable, setdiff(colnames(toTable), groupVar1),sum))
+  colnames(total)[1] <- groupVar1
+  toTable <- bind_rows(toTable,total)
+  return(toTable)
+}
+
 getSpecies <- function(refBuild) {
   if(startsWith(refBuild, "Homo_sapiens")){
     species <- "Human"
