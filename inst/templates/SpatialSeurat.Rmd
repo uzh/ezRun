@@ -21,11 +21,13 @@ library(patchwork)
 library(dplyr)
 library(RColorBrewer)
 library(kableExtra)
+library(clustree)
+library(ezRun)
 knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE, knitr.table.format = "html")
 ```
 
 ```{r}
-pvalue_allMarkers <- 0.05
+param = readRDS("param.rds")
 scData <- readRDS("scData.rds")
 scData.unfiltered <- readRDS("scData.unfiltered.rds")
 ```
@@ -49,33 +51,15 @@ We use several common QC metrics to identify low-quality spots based on their ex
 A key assumption here is that the QC metrics are independent of the biological state of each cell. Poor values (e.g., low library sizes, high mitochondrial proportions) are presumed to be driven by technical factors rather than biological processes, meaning that the subsequent removal of cells will not misrepresent the biology in downstream analyses. Major violations of this assumption would potentially result in the loss of cell types that have, say, systematically low RNA content or high numbers of mitochondria. We can check for such violations using some diagnostics plots. In the most ideal case, we would see normal distributions that would justify the thresholds used in outlier detection. A large proportion of cells in another mode suggests that the QC metrics might be correlated with some biological state, potentially leading to the loss of distinct cell types during filtering. 
 The violin plots represent the spots that were kept (FALSE) and the ones that were discarded (TRUE) after QC filtering. The QC metrics were also plot onto the tissue section.
 
-```{r QC plots, fig.height=8}
+```{r QC plots, fig.height=8, fig.width=24}
 plot1 <- VlnPlot(scData.unfiltered, features = "nCount_Spatial", group.by = "discard",pt.size = 0.1) + 
-  ggtitle("UMI") +
-  theme(axis.text.x = element_blank(), 
-        axis.title.x = element_blank(), 
-        legend.position = "right") +
-  NoLegend()
-
+  ggtitle("UMI") + NoLegend()
 plot2 <- VlnPlot(scData.unfiltered, features = "nFeature_Spatial", group.by = "discard", pt.size = 0.1) + 
-  ggtitle("Genes") +
-  theme(axis.text.x = element_blank(), 
-        axis.title.x = element_blank(), 
-        legend.position = "right") +
-  NoLegend()
-
+  ggtitle("Genes")+NoLegend()
 plot3 <- VlnPlot(scData.unfiltered, features = "percent_mito",  group.by = "discard", pt.size = 0.1) + 
-  ggtitle("Percentage Mito genes") +
-  theme(axis.text.x = element_blank(), 
-        axis.title.x = element_blank(), 
-        legend.position = "right") +
-  NoLegend()
+  ggtitle("Percentage Mito genes") + NoLegend()
 plot4 <- VlnPlot(scData.unfiltered, features = "percent_ribo",  group.by = "discard", pt.size = 0.1) + 
-  ggtitle("Percentage Mito genes") +
-  theme(axis.text.x = element_blank(), 
-        axis.title.x = element_blank(), 
-        legend.position = "right") +
-  NoLegend()
+  ggtitle("Percentage Ribo genes") + theme(legend.position = "right") 
 
 plot5 <- SpatialFeaturePlot(scData.unfiltered, features = "nCount_Spatial") + 
   theme(legend.position = "right")
@@ -114,7 +98,7 @@ kable(tibble("QC metric" =c("Library Size", "Expressed genes", "Mitochondrial ge
 
 #### Gene filtering
 
-We also excluded genes that are lowly or not expressed in our system, as they do not contribute any information to our experiment and may add noise. In this case, we removed genes that were not expressed in at least `r param$cellsPercentage` percent of the cells. In case one or more rare cell populations are expected we might need to decrease the percentage of cells.
+We also excluded genes that are lowly or not expressed in our system, as they do not contribute any information to our experiment and may add noise. In this case, we removed genes that were not expressed in at least `r param$cellsPercentage` percent of the spots. In case one or more rare cell populations are expected we might need to decrease the percentage of spots.
 
 ```{r gene filtering}
 cat("genes removed:", sum(!scData[["Spatial"]]@meta.features$is.expressed))
@@ -149,40 +133,32 @@ ElbowPlot(scData, ndims = 50)
 
 <br/>
 
-#### Visualization 
-
-Another application of dimensionality reduction is to compress the data into 2 (sometimes 3) dimensions for plotting. The simplest visualization approach is to plot the top 2 PCs in a PCA. 
-
-```{r, fig.align='center'}
-DimPlot(scData, reduction ="pca")
-```
-
-The problem is that PCA is a linear technique, i.e., only variation along a line in high-dimensional space is captured by each PC. As such, it cannot efficiently pack differences in many dimensions into the first 2 PCs. The de facto standard for visualization of scRNA-seq data is the t-stochastic neighbor embedding (t-SNE) method (Van der Maaten and Hinton 2008).  Unlike PCA, it is not restricted to linear transformations, nor is it obliged to accurately represent distances between distance populations. This means that it has much more freedom in how it arranges cells in low-dimensional space, enabling it to separate many distinct clusters in a complex population. 
-The uniform manifold approximation and projection (UMAP) method (McInnes, Healy, and Melville 2018) is an alternative to t-SNE for non-linear dimensionality reduction. Compared to t-SNE, UMAP visualization tends to have more compact visual clusters with more empty space between them. It also attempts to preserve more of the global structure than t-SNE. It is arguable whether the UMAP or t-SNE visualizations are more useful or aesthetically pleasing. UMAP aims to preserve more global structure but this necessarily reduces resolution within each visual cluster. However, UMAP is unarguably much faster, and for that reason alone, it is increasingly displacing t-SNE as the method of choice for visualizing large scRNA-seq data sets. We will use both UMAP and TSNE to visualize the clustering output. Another application of dimensionality reduction is to compress the data into 2 (sometimes 3) dimensions for plotting. The simplest visualization approach is to plot the top 2 PCs in a PCA. 
-
-<br/><br/>
-
 ### Clustering
 
 In order to find clusters of cells we first built a graph called K-nearest neighbor (KNN), where each node is a cell that is connected to its nearest neighbors in the high-dimensional space. Edges are weighted based on the similarity between the cells involved, with higher weight given to cells that are more closely related. This step takes as input the previously defined dimensionality of the dataset (first `r param$npcs` PCs). We then applied algorithms to identify “communities” of cells that are more connected to cells in the same community than they are to cells of different communities. Each community represents a cluster that we can use for downstream interpretation. 
 
 We can visualize the distribution of clusters in UMAP and image space. However, we should not perform downstream analyses directly on their coordinates. These plots are most useful for checking whether two clusters are actually neighboring subclusters or whether a cluster can be split into further subclusters. 
 
-```{r}
+```{r, fig.height=6, fig.width=16}
 p1 <- DimPlot(scData, label = TRUE) +
   labs(color = "seurat_clusters")
 p2 <- SpatialDimPlot(scData, label = TRUE, label.size = 3) +
   labs(fill = "seurat_clusters")
 
 p1 + p2 + plot_annotation(
-  title = 'Clustering in UMAP and Tissue Space',
-  caption = 'Processed by Spaceranger 1.1\nNormalization and Clustering by Seurat'
 ) + plot_layout(nrow = 1)
 ```
 
+We can also plot each cluster separately
+
+```{r, fig.height=6, fig.width=20}
+SpatialDimPlot(scData, cells.highlight = CellsByIdentities(scData), facet.highlight = TRUE, ncol = 5)
+```
+
+
 <br/><br/>
 
-The number of cells in each cluster and sample is represented in this barplot.
+The number of spots in each cluster and sample is represented in this barplot.
 
 <br/>
 
@@ -203,30 +179,18 @@ kable(cells_prop,row.names=FALSE, format="html",caption="Cell proportions") %>% 
 Once we have created the clusters we need to asses if the clustering was driven by technical artifacts or uninteresting biological variability, such as cell cycle, mitochondrial or ribosomal gene expression.
 We can explore whether the cells cluster by the different cell cycle phases. In such a case, we would have clusters where most of the cells would be in one specific phase. This bias could be taken into account when normalizing and transforming the data prior to clustering. We can also look at the total number of reads, genes detected and mitochondrial gene expression. The clusters should be more or less even but if we observe big differences among some of them for these metrics, we will keep an eye on them and see if the cell types we identify later can explain the differences. 
 
-```{r uninteresting variation, fig.width=6, fig.height=6}
+```{r uninteresting variation, fig.height=8, fig.width=24}
 plot1 <- VlnPlot(scData, features="nCount_Spatial", group.by="seurat_clusters") + ggtitle("Number of UMIs vs cluster") + 
-  theme(axis.text.x = element_blank(), 
-        axis.title.x = element_blank(), 
-        legend.position = "right") +
   NoLegend()
 plot2 <- VlnPlot(scData, features = "nFeature_Spatial", group.by="seurat_clusters", pt.size = 0.1) + 
   ggtitle("Number of genes vs cluster") +
-  theme(axis.text.x = element_blank(), 
-        axis.title.x = element_blank(), 
-        legend.position = "right") +
   NoLegend()
 plot3 <- VlnPlot(scData, features = "percent_mito",  group.by ="seurat_clusters", pt.size = 0.1) + 
   ggtitle("Mitochondrial percentage vs cluster") +
-  theme(axis.text.x = element_blank(), 
-        axis.title.x = element_blank(), 
-        legend.position = "right") +
   NoLegend()
 plot4 <- VlnPlot(scData, features = "percent_ribo",  group.by ="seurat_clusters", pt.size = 0.1) + 
   ggtitle("Ribosomal percentage vs cluster") +
-  theme(axis.text.x = element_blank(), 
-        axis.title.x = element_blank(), 
-        legend.position = "right") +
-  NoLegend()
+  theme(legend.position = "right")
 
 plot5 <- SpatialFeaturePlot(scData, features = "nCount_Spatial") + 
   theme(legend.position = "right")
@@ -270,28 +234,51 @@ ezInteractiveTableRmd(posMarkers, digits=4)
 
 ### Markers plots
 
-We use a heatmap and a dotplot to visualize simultaneously the top 5 markers in each cluster. Be aware that some genes may be in the top markers for different clusters.
+We plot on the tissue the top 5 markers in each cluster. Be aware that some genes may be in the top markers for different clusters.
 
 <br/>
-```{r markers plots}
-top5 <- posMarkers %>% group_by(cluster) %>% top_n(n = 5, wt = diff_pct)
-SpatialFeaturePlot(object = scData, features = top5$gene, alpha = c(0.1, 1), ncol = 4)
+```{r markers plots, results='asis', fig.width=4, fig.height=4}
+eachCluster <- 0
+for (eachCluster in levels(posMarkers$cluster)) {
+  cat("\n")
+  cat("#### Cluster ", eachCluster, "\n")
+  cat("\n")
+  markersPerCluster <- dplyr::filter(posMarkers, cluster == eachCluster) %>%
+    dplyr::arrange(desc(avg_log2FC)) %>%
+    select(gene) %>%
+    pull()
+  markersPerCluster <- head(markersPerCluster, 5)
+  eachMarker <- markersPerCluster[1]
+  for (eachMarker in markersPerCluster) {
+    sp = SpatialFeaturePlot(object = scData, features = eachMarker, alpha = c(0.1, 1))
+    print(sp)
+  }
+  cat("\n")
+}
+# top5 <- posMarkers %>% group_by(cluster)
+# top5 <- slice_max(top5, n= 5, order_by = avg_log2FC)
+# for(cluster in unique(top5$cluster)) {
+#   cat("\n")
+#   cat(paste0("#### Cluster ", cluster))
+#   cat("\n")
+#   for(gene in top5$gene) {
+#     sp = SpatialFeaturePlot(object = scData, features = gene, alpha = c(0.1, 1))
+#     print(sp)
+#   }
+#   cat("\n")
+# }
 ```
 
-### Spatially Variable Genes
+### Spatially Variable Genes plots 
 
-```{r spatial markers}
-spatialMarkers = read_tsv("spatial_markers.tsv")
-spatial_markers$cluster = as.factor(spatial_markers$cluster)
-spatial_markers$gene = as.factor(spatial_markers$gene)
-ezInteractiveTableRmd(spatial_markers, digits=4)
-```
+We also identify molecular features that correlate with spatial location within a tissue. Here we show the expression of the top 20 features identified by this measure. The full list can be found in the Data availability section.
 
-### Spatially Genes plots 
-
-```{r markers plots}
-top5 <- spatialMarkers %>% group_by(cluster) %>% top_n(n = 5, wt = diff_pct)
-SpatialFeaturePlot(object = scData, features = top5$gene, alpha = c(0.1, 1), ncol = 4)
+```{r spatial markers plots, results='asis', fig.width=4, fig.height=4}
+top.features <- head(SpatiallyVariableFeatures(scData, selection.method = "markvariogram"), 20)
+for(gene in top.features) {
+   sp = SpatialFeaturePlot(object = scData, features = gene, alpha = c(0.1, 1))
+   print(sp)
+}
 ```
 
 
