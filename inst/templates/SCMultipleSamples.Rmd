@@ -217,20 +217,18 @@ var_heigth <- nrow(top5)*0.2
 ```
 
 ```{r heatmap, fig.width=8, fig.height=var_heigth}
-geneMeans <- read_tsv("gene_means.tsv")
-geneMeans <- geneMeans[geneMeans$gene_name %in% unique(top5$gene), ]
-rownames <- geneMeans$gene_name
-geneMeans <- geneMeans[,-1]
-geneMeans <- as.matrix(geneMeans)
-rownames(geneMeans) <- rownames
-pheatmap(geneMeans, fontsize_row = 8)
+plotHeatmap(sce, features=top5$gene, center=TRUE, zlim=c(-2, 2),
+            colour_columns_by = "ident", 
+            order_columns_by = "ident",
+            cluster_rows=TRUE,
+            fontsize_row=8)
 plotDots(sce, features=top5$gene, group="ident")
 ```
 
 ### Cells annotation
 
 <br/>
-The most challenging task in scRNA-seq data analysis is the interpretation of the results. Once we have obtained a set of clusters we want to determine what biological state is represented by each of them. To do this, we have implemmented 2 different approaches which are explained below. However, these methods should be complemented with the biological knowledge from the researcher.
+The most challenging task in scRNA-seq data analysis is the interpretation of the results. Once we have obtained a set of clusters we want to determine what biological state is represented by each of them. To do this, we have implemented 2 different approaches which are explained below. However, these methods should be complemented with the biological knowledge from the researcher.
 
 <br/>
 
