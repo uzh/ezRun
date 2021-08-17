@@ -77,6 +77,7 @@ ezMethodSCMultipleSamples = function(input=NA, output=NA, param=NA, htmlFile="00
     #sceList <- lapply(sceList, function(sce) {metadata(sce)$scData <- CreateSeuratObject(counts=counts(sce),meta.data=data.frame(colData(sce)[,c(2:25, which(colnames(colData(sceList[[1]]))%in% "Condition"))])) 
     sceList <- lapply(sceList, function(sce) {
       sce <- swapAltExp(sce, "RNA")
+      colData(sce)[, grep("SCT", colnames(colData(sce)))] = NULL #remove previous clustering done on SCT assay
       metadata(sce)$scData <- CreateSeuratObject(counts=counts(sce),meta.data=data.frame(colData(sce))) 
     sce})
   } else if (file.exists(filePath_course)) {
