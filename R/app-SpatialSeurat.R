@@ -71,7 +71,7 @@ ezMethodSpatialSeurat <- function(input=NA, output=NA, param=NA,
   saveRDS(scData.unfiltered, "scData.unfiltered.rds")
   saveRDS(param, "param.rds")
   
-  makeRmdReport(dataFiles=dataFiles, rmdFile = "spatialSeurat.Rmd", reportTitle = param$name) 
+  makeRmdReport(dataFiles=dataFiles, rmdFile = "SpatialSeurat.Rmd", reportTitle = param$name) 
   return("Success")
 }
 
