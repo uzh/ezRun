@@ -184,7 +184,7 @@ buildRefDir <- function(x, genomeFile, genesFile){
 
   ## create the chromsizes file
   fai <- read_tsv(str_c(x@refFastaFile, ".fai"), col_names = FALSE)
-  write_tsv(fai %>% select(1:2), file = x@refChromSizesFile, col_names = FALSE)
+  write_tsv(fai %>% dplyr::select(1:2), file = x@refChromSizesFile, col_names = FALSE)
 
   dictFile <- str_replace(x@refFastaFile, "\\.fa$", ".dict")
   file.remove(dictFile)
