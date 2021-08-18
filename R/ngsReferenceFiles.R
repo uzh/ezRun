@@ -28,6 +28,8 @@ getReferenceFeaturesBed <- function(param) {
     write_lines(Sys.info(), file = lockFile)
     defer(file.remove(lockFile))
     message("generating bed file from gtf")
+    ## the gtf file must contain at least CDS and exons, otherwise there is an error using itemrgb ... blah
+    stopifnot(c("CDS", "exon") %in% import(param$ezRef["refFeatureFile"])$type)
     txdb <- GenomicFeatures::makeTxDbFromGFF(param$ezRef["refFeatureFile"], dataSource="FGCZ", organism=NA, taxonomyId=NA, chrominfo = NULL)
     export.bed(txdb, bedFile)
     return(bedFile)
