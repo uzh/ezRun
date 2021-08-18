@@ -3,3 +3,6 @@ exportPattern("^[[:alpha:]]+")
 #import(parallel,Biostrings,stats,methods,utils,ReporteRs,Rsamtools,
 #       Hmisc,XML,stringr,GenomicAlignments,GenomicFeatures,GenomicRanges,ShortRead,Gviz,gplots,
 #       GO.db,GOstats,annotate,bitops,edgeR,limma,rtracklayer,S4Vectors,VariantAnnotation)
+
+S3method(cellsProportion, SingleCellExperiment)
+S3method(cellsProportion, Seurat)
