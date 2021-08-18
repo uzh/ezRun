@@ -4,5 +4,5 @@ exportPattern("^[[:alpha:]]+")
 #       Hmisc,XML,stringr,GenomicAlignments,GenomicFeatures,GenomicRanges,ShortRead,Gviz,gplots,
 #       GO.db,GOstats,annotate,bitops,edgeR,limma,rtracklayer,S4Vectors,VariantAnnotation)
 
-S3method(cellsProportion, SingleCellExperiment)
-S3method(cellsProportion, Seurat)
+S3method(filterCellsAndGenes, SingleCellExperiment)
+S3method(filterCellsAndGenes, Seurat)

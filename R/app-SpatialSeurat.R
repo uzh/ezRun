@@ -75,47 +75,4 @@ ezMethodSpatialSeurat <- function(input=NA, output=NA, param=NA,
   return("Success")
 }
 
-filterCellsAndGenes <- function(scData, param) {
-  library(scater)
-  library(Seurat)
-  # Cells filtering
-  scData <- PercentageFeatureSet(scData, "(?i)^MT-", col.name = "percent_mito")
-  scData <- PercentageFeatureSet(scData, "(?i)^RPS|^RPL", col.name = "percent_ribo")
-  
-  if (param$nreads == "") {
-    qc.lib <- isOutlier(scData$nCount_Spatial, log = TRUE, nmads = param$nmad, type = "lower")
-  } else {
-    qc.lib <- scData$nCount_Spatial < as.double(param$nreads)
-  }
-  if (param$ngenes == "") {
-    qc.nexprs <- isOutlier(scData$nFeature_Spatial, nmads = param$nmad, log = TRUE, type = "lower")
-  } else {
-    qc.nexprs <- scData$nFeature_Spatial < as.double(param$ngenes)
-  }
-  if (param$perc_mito == "") {
-    qc.mito <- isOutlier(scData$percent_mito, nmads = param$nmad, type = "higher")
-  } else {
-    qc.mito <- scData$percent_mito > as.double(param$perc_mito)
-  }
-  if (param$perc_ribo == "") {
-    qc.ribo <- isOutlier(scData$percent_ribo, nmads = param$nmad, type = "higher")
-  } else {
-    qc.ribo <- scData$percent_ribo > as.double(param$perc_ribo)
-  }
-  
-  discard <- qc.lib | qc.nexprs | qc.mito | qc.ribo
-  scData$discard <- discard
-  scData$qc.lib <- qc.lib
-  scData$qc.nexprs <- qc.nexprs
-  scData$qc.mito <- qc.mito
-  scData$qc.ribo <- qc.ribo
-  scData.unfiltered <- scData
-  scData <- scData[, !discard]
-  
-  # Genes filtering
-  num.cells <- param$cellsFraction * ncol(scData) # if we expect at least one rare subpopulation of cells, we should decrease the percentage of cells
-  is.expressed <- Matrix::rowSums(GetAssayData(scData, "counts") >= param$nUMIs) >= num.cells
-  scData[["Spatial"]] <- AddMetaData(object = scData[["Spatial"]], metadata = is.expressed,col.name ='is.expressed')
-  return(list(scData.unfiltered = scData.unfiltered, scData = scData))
-}
 
