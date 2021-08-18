@@ -77,6 +77,7 @@ ezMethodSpatialSeurat <- function(input=NA, output=NA, param=NA,
 
 filterCellsAndGenes <- function(scData, param) {
   library(scater)
+  library(Seurat)
   # Cells filtering
   scData <- PercentageFeatureSet(scData, "(?i)^MT-", col.name = "percent_mito")
   scData <- PercentageFeatureSet(scData, "(?i)^RPS|^RPL", col.name = "percent_ribo")
