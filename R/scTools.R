@@ -5,6 +5,7 @@
 # The terms are available here: http://www.gnu.org/licenses/gpl.html
 # www.fgcz.ch
 
+
 addCellCycleToSce <- function(sce, refBuild){
   counts <- counts(sce)
   rownames(counts) <- rowData(sce)$ID
@@ -204,48 +205,21 @@ RidgePlot.sce <- function(sce, feature, yaxis) {
   return(plot)
 }
 
-cellsProportion <- function(sce, groupVar1, groupVar2){
-  library(tidyverse)
-  toTable <- tibble(names(summary(colData(sce)[,groupVar1])))  %>%
-    `colnames<-`(groupVar1) 
-  cellCountsByVar <- tibble(colData(sce)[,groupVar2],
-                            as.character(colData(sce)[,groupVar1])) %>%
-    `colnames<-`(c(groupVar2, groupVar1)) %>%
-    group_by_at(c(groupVar2, groupVar1)) %>% summarise(n()) %>%
-    spread(groupVar2, `n()`, fill=0)
-  cellPercByVar2 <- select(cellCountsByVar, -groupVar1) %>%
-    as.matrix()
-  rownames(cellPercByVar2) <- cellCountsByVar[[groupVar1]]
-  cellPercByVar2 <- sweep(cellPercByVar2, 2, colSums(cellPercByVar2), "/")
-  colnames(cellPercByVar2) <- paste0(colnames(cellPercByVar2), "_fraction")
-  toTable <- left_join(toTable, cellCountsByVar, by=groupVar1) %>%
-    left_join(as_tibble(cellPercByVar2, rownames=groupVar1), by=groupVar1)
-  total <- bind_cols("Total", summarise_at(toTable, setdiff(colnames(toTable), groupVar1),sum))
-  colnames(total)[1] <- groupVar1
-  toTable <- bind_rows(toTable,total)
-  return(toTable)
-}
-
-cellsProportion <- function(scData, groupVar1, groupVar2){
-  library(tidyverse)
-  toTable <- tibble(names(summary(scData@meta.data[,groupVar1])))  %>%
-    `colnames<-`(groupVar1) 
-  cellCountsByVar <- tibble(scData@meta.data[,groupVar2],
-                            as.character(scData@meta.data[,groupVar1])) %>%
-    `colnames<-`(c(groupVar2, groupVar1)) %>%
-    group_by_at(c(groupVar2, groupVar1)) %>% summarise(n()) %>%
-    spread(groupVar2, `n()`, fill=0)
-  cellPercByVar2 <- select(cellCountsByVar, -groupVar1) %>%
-    as.matrix()
-  rownames(cellPercByVar2) <- cellCountsByVar[[groupVar1]]
-  cellPercByVar2 <- sweep(cellPercByVar2, 2, colSums(cellPercByVar2), "/")
-  colnames(cellPercByVar2) <- paste0(colnames(cellPercByVar2), "_fraction")
-  toTable <- left_join(toTable, cellCountsByVar, by=groupVar1) %>%
-    left_join(as_tibble(cellPercByVar2, rownames=groupVar1), by=groupVar1)
-  total <- bind_cols("Total", summarise_at(toTable, setdiff(colnames(toTable), groupVar1),sum))
-  colnames(total)[1] <- groupVar1
-  toTable <- bind_rows(toTable,total)
-  return(toTable)
+cellsProportion <- function(object, groupVar1, groupVar2) {
+  if(is(object, "SingleCellExperiment"))
+     cellCounts <- table(colData(object)[,groupVar1], colData(object)[,groupVar2])
+  else  #it is a Seurat object then
+    cellCounts <- table(object@meta.data[,groupVar1], object@meta.data[,groupVar2])
+  
+  cellPerc <- sweep(cellCounts, 2, colSums(cellCounts), "/")
+  colnames(cellPerc) <- paste0(colnames(cellPerc), "_fraction")
+  table <- cbind(cellCounts, cellPerc)
+  total <- apply(table, 2, sum)
+  table <- cbind(rownames(cellCounts), table)
+  rownames(table) <- NULL
+  colnames(table)[1] <- groupVar1
+  table <- rbind(table, c("Total", total))
+  return(table)
 }
 
 getSpecies <- function(refBuild) {
