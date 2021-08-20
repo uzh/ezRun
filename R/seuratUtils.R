@@ -188,15 +188,21 @@ seuratClusteringHTO <- function(scData) {
   return(scData)
 }
 
-cellClustNoCorrection <- function(sceList, param) {
+cellClustNoCorrection <- function(objectList, param) {
   #Merge all seurat objects
-  scData = Reduce(merge, lapply(sceList, function(x){metadata(x)$scData}))
+  if(param[['name']] == 'SpatialSeuratSlides') {
+    scData = Reduce(merge, objectList)
+    assay = "Spatial"
+ } else {
+    scData = Reduce(merge, lapply(objectList, function(x){metadata(x)$scData}))
+    assay= "RNA"
+ }
   scData@project.name <- param$name
   # when doing the scaling, normalization and feature slection with SCTransform we will only regress out by cell cycle if specified
   vars.to.regress <- NULL
   if(identical("CellCycle", param$SCT.regress))
     vars.to.regress <- c("CellCycleS", "CellCycleG2M")
-  scData <- SCTransform(scData, vars.to.regress = vars.to.regress, seed.use = 38, verbose = TRUE)
+  scData <- SCTransform(scData, vars.to.regress = vars.to.regress, assay = assay, seed.use = 38, verbose = TRUE)
   scData <- seuratStandardWorkflow(scData, param)
   return(scData)
 }

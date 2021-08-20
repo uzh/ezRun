@@ -22,6 +22,7 @@ library(tidyverse)
 library(ezRun)
 library(HDF5Array)
 library(scater)
+library(scanalysis)
 
 knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE, knitr.table.format = "html")
 ```
@@ -29,9 +30,13 @@ knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE, knitr.tabl
 ```{r}
 input = readRDS("input.rds")
 param = readRDS("param.rds")
-sceURLs <- input$getColumn("Static Report")
-  filePath <- file.path("/srv/gstore/projects", sub("https://fgcz-(gstore|sushi).uzh.ch/projects", "",dirname(sceURLs)), "sce_h5")
-  filePath_course <- file.path(paste0("/srv/GT/analysis/course_sushi/public/projects/", input$getColumn("Report"), "/sce_h5"))
+URLs <- input$getColumn("Static Report")
+```
+
+
+```{r read sce, eval=param$samples == "SCReportMultipleSamples"}
+filePath <- file.path("/srv/gstore/projects", sub("https://fgcz-(gstore|sushi).uzh.ch/projects", "",dirname(URLs)), "sce_h5")
+filePath_course <- file.path(paste0("/srv/GT/analysis/course_sushi/public/projects/", input$getColumn("Report"), "/sce_h5"))
 
   if(file.exists(filePath)) {
     filePath <- filePath
@@ -39,9 +44,20 @@ sceURLs <- input$getColumn("Static Report")
     filePath <- filePath_course
  }  
 sce <- loadHDF5SummarizedExperiment(filePath)
+```
+
+```{r read seurat, eval=param$samples == "SpatialSeuratSlides"}
+filePath <- file.path("/srv/gstore/projects", sub("https://fgcz-(gstore|sushi).uzh.ch/projects", "",dirname(URLs)), "scData.rds")
+scData <- readRDS(filePath)
+sce <- seurat_to_sce(scData)
+```
+
+
+```{r}
 sce = sce[,sce$Condition %in% c(param$refGroup,param$sampleGroup)]
 var_heigth <- 1
 ```
+
 
 ```{r javascript, results='asis'}
 jsFile = system.file("extdata/enrichr.js", package="ezRun", mustWork=TRUE)
@@ -66,11 +82,12 @@ cat("Identify cell type marker genes that are conserved across conditions. Diffe
 cat("\n")
 cat("#### Conserved cell type markers")
 cat("\n")
-ezInteractiveTableRmd(conservedMarkers, title=caption)
+ezInteractiveTableRmd(conservedMarkers)
 ```
 
 ```{r, eval=!is.null(conservedMarkers)}
-top5 <- conservedMarkers %>% group_by(cluster) %>% top_n(n = 5, wt = avg_avg_fc)
+top5 <- conservedMarkers %>% group_by(cluster)
+top5 <- slice_max(top5, n = 5, order_by = avg_log2FC)
 var_heigth <- nrow(top5)*0.2
 ```
 
@@ -80,14 +97,12 @@ cat("### Conserved markers plots\n")
 cat("\n")
 cat("Here, we use a heatmap and a dotplot to visualize simultaneously the top 5 conserved markers in each cluster (with highest average fold change across the two groups). Be aware that some genes may be in the top markers for different clusters.\n")
 cat("\n")
-geneMeans <- read_tsv(paste0(gsub("sce_h5", "", filePath), "/gene_means.tsv"))
-geneMeans <- geneMeans[geneMeans$gene_name %in% unique(top5$gene), ]
-rownames <- geneMeans$gene_name
-geneMeans <- geneMeans[,-1]
-geneMeans <- as.matrix(geneMeans)
-rownames(geneMeans) <- rownames
-pheatmap(geneMeans, fontsize_row = 8)
-plotDots(sce, features=top5$gene, group="ident")
+plotHeatmap(sce, features=top5$gene, center=TRUE, zlim=c(-2, 2),
+            colour_columns_by = "seurat_clusters", 
+            order_columns_by = "seurat_clusters",
+            cluster_rows=TRUE,
+            fontsize_row=8)
+plotDots(sce, features=top5$gene, group="seurat_clusters")
 ```
 
 ```{r diffGenes table, eval=!is.null(diffGenes), results='asis'}
