@@ -87,7 +87,7 @@ ezInteractiveTableRmd(conservedMarkers)
 
 ```{r, eval=!is.null(conservedMarkers)}
 top5 <- conservedMarkers %>% group_by(cluster)
-top5 <- slice_max(top5, n = 5, order_by = avg_log2FC)
+top5 <- slice_max(top5, n = 5, order_by = avg_avg_fc)
 var_heigth <- nrow(top5)*0.2
 ```
 
