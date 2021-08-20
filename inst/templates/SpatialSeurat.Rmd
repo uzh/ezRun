@@ -255,18 +255,6 @@ for (eachCluster in levels(posMarkers$cluster)) {
   }
   cat("\n")
 }
-# top5 <- posMarkers %>% group_by(cluster)
-# top5 <- slice_max(top5, n= 5, order_by = avg_log2FC)
-# for(cluster in unique(top5$cluster)) {
-#   cat("\n")
-#   cat(paste0("#### Cluster ", cluster))
-#   cat("\n")
-#   for(gene in top5$gene) {
-#     sp = SpatialFeaturePlot(object = scData, features = gene, alpha = c(0.1, 1))
-#     print(sp)
-#   }
-#   cat("\n")
-# }
 ```
 
 ### Spatially Variable Genes plots 

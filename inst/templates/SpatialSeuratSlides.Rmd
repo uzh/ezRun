@@ -1,0 +1,195 @@
+---
+title: "`r if (exists('reportTitle')) reportTitle else 'SUSHI Report'`"
+author: "Functional Genomics Center Zurich"
+output: 
+  html_document:
+    self_contained: true
+    includes:
+     in_header: !expr system.file("templates/fgcz_header.html", package="ezRun", lib.loc=.libPaths())
+    css: !expr system.file("templates/fgcz.css", package="ezRun", lib.loc=.libPaths())
+editor_options: 
+  chunk_output_type: console
+---
+
+Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
+
+
+```{r setup, include=FALSE}
+library(Seurat)
+library(ggplot2)
+library(patchwork)
+library(dplyr)
+library(RColorBrewer)
+library(kableExtra)
+library(clustree)
+library(ezRun)
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE, knitr.table.format = "html")
+```
+
+```{r}
+param = readRDS("param.rds")
+scData <- readRDS("scData.rds")
+```
+
+## Analysis results {.tabset}
+
+### Clustering
+
+In order to find clusters of cells we first built a graph called K-nearest neighbor (KNN), where each node is a cell that is connected to its nearest neighbors in the high-dimensional space. Edges are weighted based on the similarity between the cells involved, with higher weight given to cells that are more closely related. This step takes as input the previously defined dimensionality of the dataset (first `r param$npcs` PCs). We then applied algorithms to identify “communities” of cells that are more connected to cells in the same community than they are to cells of different communities. Each community represents a cluster that we can use for downstream interpretation. 
+
+We can visualize the distribution of clusters in UMAP and image space. However, we should not perform downstream analyses directly on their coordinates. These plots are most useful for checking whether two clusters are actually neighboring subclusters or whether a cluster can be split into further subclusters. 
+
+```{r}
+DimPlot(scData, label = TRUE)
+DimPlot(scData, group.by ="Batch") 
+```
+
+```{r, fig.width = length(unique(scData$Batch))*4, fig.heigth = 4}
+SpatialDimPlot(scData, label = TRUE, label.size = 3) & NoLegend()
+```
+
+
+We can also plot each cluster separately
+
+```{r, fig.width=12, fig.height=(length(levels(Idents(scData)))/5)*2}
+SpatialDimPlot(scData, cells.highlight = CellsByIdentities(scData), facet.highlight = TRUE)
+```
+
+
+<br/><br/>
+
+The number of spots in each cluster and sample is represented in this barplot.
+
+<br/>
+
+```{r number of cells in each cluster}
+cellIdents_perSample <- as.data.frame(scData@meta.data[,c('seurat_clusters', 'orig.ident')])
+barplot = ggplot(data=cellIdents_perSample, aes(x=seurat_clusters, fill=orig.ident)) + geom_bar(stat="Count")
+barplot + labs(x="Cluster", y = "Number of cells", fill = "Sample")
+
+cells_prop = cellsProportion(scData, groupVar1 = "seurat_clusters", groupVar2 = "Batch")
+kable(cells_prop,row.names=FALSE, format="html",caption="Cell proportions") %>% kable_styling(bootstrap_options = "striped", full_width = F, position = "float_right")
+```
+
+### Cluster assessment
+
+
+#### Segregation of clusters by various sources of uninteresting variation.
+
+Once we have created the clusters we need to asses if the clustering was driven by technical artifacts or uninteresting biological variability, such as cell cycle, mitochondrial or ribosomal gene expression.
+We can explore whether the cells cluster by the different cell cycle phases. In such a case, we would have clusters where most of the cells would be in one specific phase. This bias could be taken into account when normalizing and transforming the data prior to clustering. We can also look at the total number of reads, genes detected and mitochondrial gene expression. The clusters should be more or less even but if we observe big differences among some of them for these metrics, we will keep an eye on them and see if the cell types we identify later can explain the differences.
+
+```{r uninteresting variation, fig.width=24}
+p1 <- VlnPlot(scData, features="nCount_Spatial", group.by="seurat_clusters") + ggtitle("Number of UMIs vs cluster") +
+  NoLegend()
+p2 <- SpatialFeaturePlot(scData, features = "nCount_Spatial") & theme(legend.position = "right")
+
+
+p3 <- VlnPlot(scData, features = "nFeature_Spatial", group.by="seurat_clusters", pt.size = 0.1) + ggtitle("Number of genes vs cluster") +NoLegend()
+p4 <- SpatialFeaturePlot(scData, features = "nFeature_Spatial") & theme(legend.position = "right")
+
+
+# plot3 <- VlnPlot(scData, features = "percent_mito",  group.by ="seurat_clusters", pt.size = 0.1) +
+#   ggtitle("Mitochondrial percentage vs cluster") +
+#   NoLegend()
+# plot4 <- VlnPlot(scData, features = "percent_ribo",  group.by ="seurat_clusters", pt.size = 0.1) +
+#   ggtitle("Ribosomal percentage vs cluster") +
+#   theme(legend.position = "right")
+#
+#
+# 
+# plot7 <- SpatialFeaturePlot(scData, features = "percent_mito") +
+#   theme(legend.position = "right")
+# plot8 <- SpatialFeaturePlot(scData, features = "percent_ribo") +
+#   theme(legend.position = "right")
+#
+p1 + p2 + p3  + p4 + plot_layout(nrow = 2, ncol = 2)
+```
+
+<!-- #### Cluster resolution  -->
+
+<!-- One of the most important parameters when clustering is k, the number of nearest neighbors used to construct the graph. This controls the resolution of the clustering where higher k yields a more inter-connected graph and broader clusters. Users can experiment with different values of k to obtain a satisfactory resolution. We recommend increasing the resolution when a rare population is expected.  -->
+<!-- Below, it is shown a clustering tree that helps us to visualize the relationships between clusters at a range of resolutions. Each cluster forms a node in the tree and edges are constructed by considering the cells in a cluster at a lower resolution that end up in a cluster at the next highest resolution. By connecting clusters in this way, we can see how clusters are related to each other, which are clearly distinct and which are unstable. The size of each node is related to the number of cells in each cluster and the color indicates the clustering resolution. Edges are colored according to the number of cells they represent and the transparency shows the incoming node proportion, the number of cells in the edge divided by the number of samples in the node it points to.  -->
+
+<!-- ```{r, fig.align='center', fig.width=6, fig.height=8} -->
+<!-- clustree::clustree(scData, prefix = "SCT_snn_res.") -->
+<!-- ``` -->
+
+<!-- ### Cluster markers -->
+
+<!-- ```{r wilcoxon test, eval=(param$DE.method=="wilcox"), results='asis'} -->
+<!-- cat("We found positive markers that defined clusters compared to all other cells via differential expression. The test we used was the Wilcoxon Rank Sum test. Genes with an average, at least 0.25-fold difference (log-scale) between the cells in the tested cluster and the rest of the cells and an adjusted p-value < 0.05 were declared as significant.") -->
+<!-- ``` -->
+
+<!-- ```{r LR test, eval=(param$DE.method=="LR"), results='asis'} -->
+<!-- cat("We found positive markers that defined clusters compared to all other cells via differential expression using a logistic regression test and including in the model the cell cycle as the batch effect. Genes with an average, at least 0.25-fold difference (log-scale) between the cells in the tested cluster and the rest of the cells and an adjusted p-value < 0.05 were declared as significant.") -->
+<!-- ``` -->
+
+<!-- #### Expression differences of cluster marker genes -->
+
+<!-- ```{r pos markers} -->
+<!-- posMarkers = read_tsv("pos_markers.tsv") -->
+<!-- posMarkers$cluster = as.factor(posMarkers$cluster) -->
+<!-- posMarkers$gene = as.factor(posMarkers$gene) -->
+<!-- ezInteractiveTableRmd(posMarkers, digits=4) -->
+<!-- ``` -->
+
+<!-- ### Markers plots -->
+
+<!-- We plot on the tissue the top 5 markers in each cluster. Be aware that some genes may be in the top markers for different clusters. -->
+
+<!-- <br/> -->
+<!-- ```{r markers plots, results='asis', fig.width=4, fig.height=4} -->
+<!-- eachCluster <- 0 -->
+<!-- for (eachCluster in levels(posMarkers$cluster)) { -->
+<!--   cat("\n") -->
+<!--   cat("#### Cluster ", eachCluster, "\n") -->
+<!--   cat("\n") -->
+<!--   markersPerCluster <- dplyr::filter(posMarkers, cluster == eachCluster) %>% -->
+<!--     dplyr::arrange(desc(avg_log2FC)) %>% -->
+<!--     select(gene) %>% -->
+<!--     pull() -->
+<!--   markersPerCluster <- head(markersPerCluster, 5) -->
+<!--   eachMarker <- markersPerCluster[1] -->
+<!--   for (eachMarker in markersPerCluster) { -->
+<!--     sp = SpatialFeaturePlot(object = scData, features = eachMarker, alpha = c(0.1, 1), combine = FALSE) -->
+<!--     print(sp) -->
+<!--   } -->
+<!--   cat("\n") -->
+<!-- } -->
+<!-- ``` -->
+
+<!-- <!-- ### Spatially Variable Genes plots  --> -->
+
+<!-- <!-- We also identify molecular features that correlate with spatial location within a tissue. Here we show the expression of the top 20 features identified by this measure. The full list can be found in the Data availability section. --> -->
+
+<!-- <!-- ```{r spatial markers plots, results='asis', fig.width=4, fig.height=4} --> -->
+<!-- <!-- top.features <- head(SpatiallyVariableFeatures(scData, selection.method = "markvariogram"), 20) --> -->
+<!-- <!-- for(gene in top.features) { --> -->
+<!-- <!--    sp = SpatialFeaturePlot(object = scData, features = gene, alpha = c(0.1, 1)) --> -->
+<!-- <!--    print(sp) --> -->
+<!-- <!-- } --> -->
+<!-- <!-- ``` --> -->
+
+
+<!-- ### Data availability -->
+
+<!-- ##### Mean expression of every gene across the cells in each cluster -->
+
+<!-- ##### Positive markers of each cluster -->
+
+<!-- [posMarkers](pos_markers.tsv) -->
+
+<!-- ##### The final Seurat Object is [here](scData.rds) -->
+
+<!-- ### Parameters -->
+<!-- ```{r report parameters, echo=FALSE} -->
+<!-- param[c("npcs","pcGenes","resolution", "SCT.regress", "DE.method", "cellsFraction", "nUMIs", "nmad")] -->
+<!-- ``` -->
+
+
+<!-- ### SessionInfo -->
+<!-- ```{r, echo=FALSE} -->
+<!-- sessionInfo() -->
+<!-- ``` -->
+
