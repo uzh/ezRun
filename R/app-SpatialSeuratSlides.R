@@ -71,18 +71,17 @@ ezMethodSpatialSeuratSlides = function(input=NA, output=NA, param=NA, htmlFile="
     scData})
   
   pvalue_allMarkers <- 0.05
-  nrSamples <- length(scDataList)
-  
+ 
   scData <- cellClustNoCorrection(scDataList, param)
   
   #positive cluster markers
   posMarkers <- posClusterMarkers(scData, pvalue_allMarkers, param)
-  #spatially variable genes
-  scData <- spatialMarkers(scData)
-  spatialMarkers <- SpatiallyVariableFeatures(scData, selection.method = "markvariogram")
+  # #spatially variable genes
+  # scData <- spatialMarkers(scData)
+  # spatialMarkers <- SpatiallyVariableFeatures(scData, selection.method = "markvariogram") doesn't work: Please provide the same number of observations as spatial locations
   
   #Save some results in external files 
-  dataFiles = saveExternalFiles(list(pos_markers=posMarkers,spatial_markers=data.frame(spatialMarkers)))
+  dataFiles = saveExternalFiles(list(pos_markers=posMarkers))
   saveRDS(scData, "scData.rds")
   saveRDS(param, "param.rds")
   
