@@ -90,7 +90,8 @@ ezMethodSpatialSeuratSlides = function(input=NA, output=NA, param=NA, htmlFile="
   #positive cluster markers
   posMarkers <- posClusterMarkers(scData, pvalue_allMarkers, param)
   #spatially variable genes
-  DefaultAssay(scData) <- "integrated"
+  if(param$batchCorrection) #switch to the integrated assay in case of batch correction to compute spatially variable genes
+    DefaultAssay(scData) <- "integrated"
   spatial_markers <- spatialMarkers(scData)
  
   #Save some results in external files 
