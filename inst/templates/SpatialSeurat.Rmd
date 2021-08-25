@@ -262,7 +262,8 @@ for (eachCluster in levels(posMarkers$cluster)) {
 We also identify molecular features that correlate with spatial location within a tissue. Here we show the expression of the top 20 features identified by this measure. The full list can be found in the Data availability section.
 
 ```{r spatial markers plots, results='asis', fig.width=4, fig.height=4}
-top.features <- head(SpatiallyVariableFeatures(scData, selection.method = "markvariogram"), 20)
+spatialMarkers = read_tsv("spatial_markers.tsv")
+top.features <- head(spatialMarkers$spatialMarkers, 20)
 for(gene in top.features) {
    sp = SpatialFeaturePlot(object = scData, features = gene, alpha = c(0.1, 1))
    print(sp)
