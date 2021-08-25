@@ -207,16 +207,21 @@ cellClustNoCorrection <- function(objectList, param) {
   return(scData)
 }
 
-cellClustWithCorrection <- function (sceList, param) {
-  seurat_objects = lapply(sceList, function(se) {metadata(se)$scData})
-  
+cellClustWithCorrection <- function (objectList, param) {
+  if(param[['name']] == 'SpatialSeuratSlides') {
+    seurat_objects = objectList
+    assay = "Spatial"
+ } else {
+    seurat_objects = lapply(objectList, function(se) {metadata(se)$scData})
+    assay = "RNA"
+ }
   # when doing the scaling, normalization and feature slection with SCTransform we will only regress out by cell cycle if specified
   vars.to.regress <- NULL
   if(identical("CellCycle", param$SCT.regress))
     vars.to.regress <- c("CellCycleS", "CellCycleG2M")
   #1. Data preprocesing
   for (i in 1:length(seurat_objects)) {
-    seurat_objects[[i]] <- SCTransform(seurat_objects[[i]], vars.to.regress = vars.to.regress, verbose = TRUE)
+    seurat_objects[[i]] <- SCTransform(seurat_objects[[i]], vars.to.regress = vars.to.regress,  assay = assay, verbose = TRUE)
   }
   #2. Data integration
   #2.1. # Select the most variable features to use for integration
@@ -254,8 +259,9 @@ posClusterMarkers <- function(scData, pvalue_allMarkers, param) {
 }
 
 spatialMarkers <- function(scData) { 
-  spatialMarkers <- FindSpatiallyVariableFeatures(scData, assay = "SCT", features = VariableFeatures(scData)[1:1000], 
+  scData <- FindSpatiallyVariableFeatures(scData, features = VariableFeatures(scData)[1:1000], 
                                                   selection.method = "markvariogram")
+  spatialMarkers <- SpatiallyVariableFeatures(scData, selection.method = "markvariogram")
   return(spatialMarkers)
   }
 
