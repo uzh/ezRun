@@ -27,6 +27,9 @@ EzAppSpatialSeuratSlides <-
                                         SCT.regress=ezFrame(Type="character", 
                                                             DefaultValue="none", 
                                                             Description="Choose CellCycle to be regressed out when using the SCTransform method if it is a bias."),
+                                        batchCorrection=ezFrame(Type="logical", 
+                                                                DefaultValue="TRUE",
+                                                                Description="Perform batch correction."),
                                         DE.method=ezFrame(Type="charVector", 
                                                           DefaultValue="wilcox", 
                                                           Description="Method to be used when calculating gene cluster markers and differentially expressed genes between conditions. Use LR to take into account the Batch and/or CellCycle"),
@@ -64,24 +67,34 @@ ezMethodSpatialSeuratSlides = function(input=NA, output=NA, param=NA, htmlFile="
   scDataURLs <- input$getColumn("Static Report")
   filePath <- file.path("/srv/gstore/projects", sub("https://fgcz-(gstore|sushi).uzh.ch/projects", "",dirname(scDataURLs)), "scData.rds")
   
-    scDataList <- lapply(filePath,readRDS)
-    names(scDataList) <- names(scDataURLs)
-    scDataList <- lapply(scDataList, function(scData) {
-      scData@meta.data[, grep("SCT", colnames(scData@meta.data))] = NULL #remove previous clustering done on SCT assay
-    scData})
+  scDataList <- lapply(filePath,readRDS)
+  names(scDataList) <- names(scDataURLs)
+  scDataList <- lapply(scDataList, function(scData) {
+  scData@meta.data[, grep("SCT", colnames(scData@meta.data))] = NULL #remove previous clustering done on SCT assay
+  scData})
   
   pvalue_allMarkers <- 0.05
  
-  scData <- cellClustNoCorrection(scDataList, param)
-  
+  scData_noCorrected <- cellClustNoCorrection(scDataList, param)
+  scData = scData_noCorrected
+  if (param$batchCorrection) {
+    scData_corrected = cellClustWithCorrection(scDataList, param)
+    #in order to compute the markers we switch again to the original assay
+    DefaultAssay(scData_corrected) <- "SCT"
+    scData <- scData_corrected
+  }
+  scData@reductions$tsne_noCorrected <- Reductions(scData_noCorrected, "tsne")
+  scData@reductions$umap_noCorrected <- Reductions(scData_noCorrected, "umap")
+  scData@meta.data$ident_noCorrected <- Idents(scData_noCorrected)
+
   #positive cluster markers
   posMarkers <- posClusterMarkers(scData, pvalue_allMarkers, param)
-  # #spatially variable genes
-  # scData <- spatialMarkers(scData)
-  # spatialMarkers <- SpatiallyVariableFeatures(scData, selection.method = "markvariogram") doesn't work: Please provide the same number of observations as spatial locations
-  
+  #spatially variable genes
+  DefaultAssay(scData) <- "integrated"
+  spatial_markers <- spatialMarkers(scData)
+ 
   #Save some results in external files 
-  dataFiles = saveExternalFiles(list(pos_markers=posMarkers))
+  dataFiles = saveExternalFiles(list(pos_markers=posMarkers, spatial_markers=data.frame(spatial_markers)))
   saveRDS(scData, "scData.rds")
   saveRDS(param, "param.rds")
   
