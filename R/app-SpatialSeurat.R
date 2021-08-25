@@ -62,8 +62,7 @@ ezMethodSpatialSeurat <- function(input=NA, output=NA, param=NA,
   clusterMarkers <- posClusterMarkers(scData, pvalue_allMarkers, param)
   
   #spatially variable genes
-  scData <- spatialMarkers(scData)
-  spatialMarkers <- SpatiallyVariableFeatures(scData, selection.method = "markvariogram")
+  spatialMarkers <- spatialMarkers(scData)
   
   #Save some results in external files 
   dataFiles = saveExternalFiles(list(cluster_markers=clusterMarkers, spatial_markers=data.frame(spatialMarkers)))
