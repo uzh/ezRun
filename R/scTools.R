@@ -214,6 +214,7 @@ cellsProportion <- function(object, groupVar1, groupVar2) {
   cellPerc <- sweep(cellCounts, 2, colSums(cellCounts), "/")
   colnames(cellPerc) <- paste0(colnames(cellPerc), "_fraction")
   table <- cbind(cellCounts, cellPerc)
+  table <- round(table, digits = 4)
   total <- apply(table, 2, sum)
   table <- cbind(rownames(cellCounts), table)
   rownames(table) <- NULL
