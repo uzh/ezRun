@@ -75,7 +75,7 @@ ezMethodSCDifferentialState = function(input=NA, output=NA, param=NA, htmlFile="
      #differentially expressed genes between clusters and conditions (in case of several conditions)
      diffGenes <- diffExpressedGenes(scData)
   }
-  dataFiles = saveExternalFiles(list(differential_genes=diffGenes, conserved_markers=consMarkers, current_clusters=data.frame(Idents(scData))))
+  dataFiles = saveExternalFiles(list(differential_genes=diffGenes, conserved_markers=consMarkers, current_cells=data.frame(cell=colnames(scData))))
   saveRDS(input, "input.rds")
   saveRDS(param, "param.rds")
   
