@@ -54,7 +54,9 @@ sce <- seurat_to_sce(scData)
 
 
 ```{r}
+current_clusters=read_tsv("current_clusters.tsv")$Idents.scData.
 sce = sce[,sce$Condition %in% c(param$refGroup,param$sampleGroup)]
+sce$seurat_clusters = as.factor(current_clusters)
 var_heigth <- 1
 ```
 
