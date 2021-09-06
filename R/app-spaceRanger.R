@@ -25,20 +25,16 @@ EzAppSpaceRanger <-
   )
 
 ezMethodSpaceRanger <- function(input=NA, output=NA, param=NA){
+
   sampleName <- input$getNames()
-  sampleDirs <- strsplit(input$getColumn("RawDataDir"), ",")[[sampleName]]
-  sampleDirs <- file.path(input$dataRoot, sampleDirs)
-  if(all(grepl("\\.tar$", sampleDirs))){
-    # This is new .tar folder
-    lapply(sampleDirs, untar, tar=system("which tar", intern=TRUE))
-    sampleDirs <- sub("\\.tar$", "", basename(sampleDirs))
-    sampleFns <- list.files(sampleDirs, pattern="\\.gz$", full.names=TRUE)
-    sampleFnsNew <- file.path(dirname(sampleFns),
-                              str_replace(basename(sampleFns), 
-                                          str_c("^.*", sampleName), sampleName))
-    file.rename(sampleFns, sampleFnsNew)
-  }
-  sampleDir <- paste(sampleDirs, collapse=",")
+  sampleDirs <- getFastqDirs(input, "RawDataDir",sampleName)
+  
+  # decompress tar files if they are in tar format
+  if (all(grepl("\\.tar$", sampleDirs)))
+    sampleDirs <- deCompress(sampleDirs)
+  
+  sampleDirs <- normalizePath(sampleDirs)
+  sampleDir <- paste(sampleDirs, collapse = ",")
   spaceRangerFolder <- str_sub(sampleName, 1, 45) %>% str_c("-spaceRanger")
 
   refDir <- getCellRangerGEXReference(param)
@@ -74,4 +70,18 @@ ezMethodSpaceRanger <- function(input=NA, output=NA, param=NA){
   }
   
   return("Success")
+}
+getFastqDirs <- function(input, column, sampleName) {
+  fastqDirs <- strsplit(input$getColumn(column), ",")[[sampleName]]
+  fastqDirs <- file.path(input$dataRoot, fastqDirs)
+  return(fastqDirs)
+}
+
+deCompress = function(fastqDirs){
+  fastqDirs = sapply(fastqDirs, function(scTar){
+    targetDir = basename(dirname(scTar))
+    untar(scTar, exdir = targetDir, tar=system("which tar", intern=TRUE))
+    return(targetDir)
+  })
+  return(fastqDirs)
 }
