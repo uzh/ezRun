@@ -10,8 +10,14 @@ ezMethodMergeRunData <- function(input=NA, output=NA, param=NA){
     matchCol = param[['matchingColumn']]
     inputDir1 = file.path(param[['dataRoot']], project, param[['FirstDataSet']])
     inputDir2 = file.path(param[['dataRoot']], project, param[['DataSetName2']])
-    datasetFile1 = list.files(inputDir1,pattern='^dataset.tsv$', full.names = TRUE)
-    datasetFile2 = list.files(inputDir2,pattern='^dataset.tsv$', full.names = TRUE)
+    datasetFile1 = list.files(inputDir1, pattern='^dataset.tsv$', full.names = TRUE)
+    if(length(datasetFile1) == 0){
+        dirName <- unique(dirname(input$meta[['Read1 [File]']]))
+        dirName <- dirName[grep('Merge', dirName)]
+        inputDir1 <- file.path(param[['dataRoot']], dirName)
+        datasetFile1 <- list.files(inputDir1, pattern='^dataset.tsv$', full.names = TRUE)
+    }
+    datasetFile2 = list.files(inputDir2, pattern='^dataset.tsv$', full.names = TRUE)
     dataset1 = ezRead.table(datasetFile1, row.names = NULL)
     dataset2 = ezRead.table(datasetFile2, row.names = NULL)
     #Remove almost empty dataFiles:
