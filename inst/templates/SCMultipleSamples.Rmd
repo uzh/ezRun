@@ -163,10 +163,12 @@ sce$logDetected = log10(sce$detected)
     ggtitle("Mito percentage vs ident")
   plotReducedDim(sce, dimred="UMAP", colour_by="subsets_Mito_percent", text_by="seurat_clusters", 
                  text_size=5)
-  plotColData(sce, x="ident", y="subsets_Ribo_percent", colour_by="ident", add_legend=FALSE) + 
-    ggtitle("Ribo percentage vs ident")
-  plotReducedDim(sce, dimred="UMAP", colour_by="subsets_Ribo_percent", text_by="seurat_clusters", 
+  if(any(colnames(colData(sce)) %in% 'subsets_Ribo_percent')){
+    plotColData(sce, x="ident", y="subsets_Ribo_percent", colour_by="ident", add_legend=FALSE) + 
+      ggtitle("Ribo percentage vs ident")
+    plotReducedDim(sce, dimred="UMAP", colour_by="subsets_Ribo_percent", text_by="seurat_clusters", 
                  text_size=5)
+  }
 ```
 
 #### Clusters resolution 
