@@ -706,6 +706,8 @@ if (isTRUE(param$runGO)) {
           if (!is.na(desc) && nchar(desc) < 35) {
             syn <- desc
           } else {
+            require(AnnotationDbi)
+            require(GO.db)
             syn <- Synonym(GOTERM[[er@result$ID[i]]])
             syn <- grep("GO:", syn, invert = T, value = T)
             syn <- head(syn[order(nchar(syn))], 1)
@@ -785,12 +787,21 @@ if (isTRUE(param$runGO)) {
     }
   }
   
-  kable(format(ora.overview, digits=3, scientific=-2), "html", caption=paste("Hypergeometric Over-representation Test:")) %>%
-              kable_styling(bootstrap_options = "striped", full_width = F, position = "left")
+  print(
+    kable(
+      x = format(ora.overview, digits = 3, scientific = -2),
+      format =  "html",
+      caption = paste("Hypergeometric Over-representation Test:")) %>%
+      kable_styling(
+        bootstrap_options = "striped",
+        full_width = F,
+        position = "left")
+    )
+  cat("\n\n")
   cat("[Download Excel file of complete ORA results](`r oraFile`)")
+  cat("\n\n")
 }
 ```
-
 
 ```{r tabs with ora plots, results='asis', echo = FALSE, fig.height=8, fig.width=8, fig.align = "left"}
 if (isTRUE(param$runGO)) {
@@ -808,9 +819,9 @@ if (isTRUE(param$runGO)) {
         print(kable(erp$df,
           escape = FALSE, row.names = FALSE, format = "html", digits = 50
         ) %>%
-          kable_styling(bootstrap_options = "striped", full_width = F, fixed_thead = T, ) %>%
+          kable_styling(bootstrap_options = "striped", full_width = F, fixed_thead = T) %>%
           scroll_box(width = "800px", height = "500px"))
-        cat(paste0("[", erp$oraFile, "](", erp$oraFile, ")"))
+        # cat(paste0("[", erp$oraFile, "](", erp$oraFile, ")"))
         cat("\n\n")
       }
     }
@@ -837,6 +848,8 @@ if (isTRUE(param$runGO)) {
         if (!is.na(desc) && nchar(desc) < 35) {
           syn <- desc
         } else {
+          require(AnnotationDbi)
+          require(GO.db)
           syn <- Synonym(GOTERM[[er@result$ID[i]]])
           syn <- grep("GO:", syn, invert = T, value = T)
           syn <- head(syn[order(nchar(syn))], 1)
@@ -923,10 +936,18 @@ if (isTRUE(param$runGO)) {
               gsea.overview[testName, "Number of Significant Pathways"] = nrow(enrichResultGSEA[[i]]@result)
   }
   
-  kable(format(gsea.overview, digits=3, scientific=-2), "html", caption=paste("GSEA:")) %>%
-              kable_styling(bootstrap_options = "striped", full_width = F, position = "left")
-  
+  paste(
+    kable(
+      x = format(gsea.overview, digits=3, scientific=-2),
+      format =  "html",
+      caption = paste("GSEA:")) %>%
+      kable_styling(
+        bootstrap_options = "striped",
+        full_width = F,
+        position = "left"))
+  cat("\n\n")
   cat("[Download Excel file of complete GSEA results](`r gseaFile`)")
+  cat("\n\n")
 }
 ```
 
@@ -946,7 +967,7 @@ if (isTRUE(param$runGO)) {
       ) %>%
         kable_styling(bootstrap_options = "striped", full_width = F, fixed_thead = T, ) %>%
         scroll_box(width = "800px", height = "500px"))
-      cat(paste0("[", erp$gseaFile, "](", erp$gseaFile, ")"))
+      # cat(paste0("[", erp$gseaFile, "](", erp$gseaFile, ")"))
       cat("\n\n")
     }
   }
