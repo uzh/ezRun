@@ -23,6 +23,9 @@ ezMethodGetEnaData <- function(input=NA, output=NA, param=NA){
             }
         sampleID <- xmlToList(runInfo)$RUN$RUN_LINKS[[2]]$XREF_LINK$ID
         
+        if(is.list(sampleID)){
+            sampleID <- fastqInfo$sample_accession[i]
+        }
         cmd = paste0("curl -o ", sampleID,".xml ", "-X GET \'https://www.ebi.ac.uk/ena/browser/api/xml/",sampleID,"?download=true\'")
         ezSystem(cmd)
         xml <- xmlParse(paste0(sampleID, '.xml'))
