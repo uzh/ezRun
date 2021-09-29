@@ -275,11 +275,11 @@ for(gene in top.features) {
 
 ##### Mean expression of every gene across the cells in each cluster
 
-[geneMeanPerCluster](gene_means_per_cluster.txt)
+[geneMeanPerCluster](gene_means_per_cluster.tsv)
 
 ##### Mean expression of every gene across all the cells
 
-[geneMeans](gene_means.txt)
+[geneMeans](gene_means.tsv)
 
 ##### Positive markers of each cluster
 
