@@ -283,7 +283,7 @@ for(gene in top.features) {
 
 ##### Positive markers of each cluster
 
-[posMarkers](pos_markers.tsv)
+[posMarkers](cluster_markers.tsv)
 
 ##### Spatially variable genes
 

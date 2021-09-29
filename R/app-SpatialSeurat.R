@@ -64,8 +64,15 @@ ezMethodSpatialSeurat <- function(input=NA, output=NA, param=NA,
   #spatially variable genes
   spatialMarkers <- spatialMarkers(scData)
   
-  #Save some results in external files 
-  dataFiles = saveExternalFiles(list(cluster_markers=clusterMarkers, spatial_markers=data.frame(spatialMarkers)))
+  #Save some results in external files
+  library(scanalysis)
+  scData_diet = DietSeurat(scData, dimreducs = c("pca", "tsne", "umap"))
+  sce <- scData_diet %>% seurat_to_sce(default_assay = "SCT")
+  geneMeansPerCluster <- geneMeansCluster(sce)
+  geneMeans <- apply(logcounts(sce), 1, mean)
+  geneMeans <- data.frame(logCount = geneMeans, row.names = names(geneMeans))
+  dataFiles <- saveExternalFiles(list(cluster_markers=clusterMarkers, spatial_markers=data.frame(spatialMarkers), gene_means = geneMeans, gene_means_per_cluster = as_tibble(as.data.frame(geneMeansPerCluster), rownames = "gene_name")))
+  
   saveRDS(scData, "scData.rds")
   saveRDS(scData.unfiltered, "scData.unfiltered.rds")
   saveRDS(param, "param.rds")
