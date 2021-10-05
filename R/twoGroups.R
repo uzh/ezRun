@@ -147,7 +147,7 @@ twoGroupCountComparison <- function(rawData) {
                         
   if (doGo(param, seqAnno)) {
     metadata(rawData)$enrichResult <- ezEnricher(metadata(rawData)$enrichInput)
-    metadata(rawData)$enrichResultGSEA <- ezGSEA(metadata(rawData)$enrichInput)
+    metadata(rawData)$enrichResultGSEA <- ezGSEA(metadata(rawData)$enrichInput, param)
   }
   return(rawData)
 }

@@ -542,7 +542,7 @@ Using MetaCore requires an account. One can be obtained by emailing <sequencing@
 ***
 #### How to use Metacore: quick start
 
- 1. [Right Click and Save File to Download Expression File for MetaCore](`r metacoreFile`)
+ 1. [Right Click and Save File to Download Expression File for MetaCore](`r metacoreFile`) (`r paste("p <=", param$pValThreshGO)`)
  
  2. [Go to the MetaCore website](https://portal.genego.com)
  
@@ -605,12 +605,17 @@ if (isTRUE(param$runGO)) {
     selectionNames <- names(enrichInput$selections)
 
     enrichrLinks <- ezMatrix("", rows = selectionNames, 
-                             cols = c("Number of Genes", "External", "Precomputed"))
+                             cols = c("Number of Genes", "External", "Precomputed", "CutOffs"))
     maxResultsPerLibrary <- 5
     for (mySel in selectionNames) {
       genesToUse <- enrichInput$selections[[mySel]]
       genesToUse <- rowData(se)[genesToUse, "gene_name"]
       enrichrLinks[mySel, "Number of Genes"] <- length(genesToUse)
+      enrichrLinks[mySel, "CutOffs"] <- paste("p <=", param$pValThreshGO)
+      if(mySel == 'upGenes')
+        enrichrLinks[mySel, "CutOffs"] <- paste(enrichrLinks[mySel, "CutOffs"], ", log ratio > ", param$log2RatioThreshGO)
+      if(mySel == 'downGenes')
+        enrichrLinks[mySel, "CutOffs"] <- paste(enrichrLinks[mySel, "CutOffs"], ", log ratio < ", -param$log2RatioThreshGO)
       jsCall <- paste0('enrich({list: "', paste(genesToUse, collapse = "\\n"), '", popup: true});')
       enrichrLinks[mySel, "External"] <- paste0("<a href='javascript:void(0)' onClick='", jsCall, "'>Analyse at Enrichr website</a>")
       resMerged <- NA
@@ -657,11 +662,11 @@ if (isTRUE(param$runGO)) {
       }
     }
     settings <- character()
-    if (!is.null(param$pValueHighlightThresh)) {
+    if (!is.null(param$pValThreshGO)) {
       settings["P-value threshold:"] <- paste("p <=", param$pValThreshGO)
     }
-    if (!is.null(param$log2RatioHighlightThresh)) {
-      settings["Log ratio threshold:"] <- paste("log ratio >=", param$log2RatioThreshGO)
+    if (!is.null(param$log2RatioThreshGO)) {
+      settings["Log ratio threshold:"] <- paste("log ratio >", param$log2RatioThreshGO)
     }
     kable(as.data.frame(settings),
       format = "html",
@@ -773,6 +778,12 @@ if (isTRUE(param$runGO)) {
 ##### Description
 The Over Representation Analysis (ORA), also known as the hypergeometric test, gives an estimate of whether a set of selected genes is enriched for genes in specific Gene Ontology categories. It takes as input a subset of genes passing certain p-value/fold-change thresholds (i.e., differentially expressed genes). **It is recommended when the difference between groups is large (e.g., 500+ genes above p-value/fold-change thresholds).** There are many implementations of this test and in SUSHI we use the R package clusterProfiler. Further details: [Visit the clusterProfiler bioconductor page](https://bioconductor.org/packages/release/bioc/html/clusterProfiler.html)
 
+Cut Offs: 
+
+* Gene Selection: `r paste0("p <= ", param$pValThreshGO, ", Up: log ratio >", param$log2RatioThreshGO, "/Down: log ratio < ", -param$log2RatioThreshGO)`
+
+* Candidate Terms: `r paste("fdr <=", param$fdrThresORA)`
+
 *** 
 
 ```{r ora overview, echo=F, message=F, eval=!debug, results='asis'}
@@ -783,7 +794,7 @@ if (isTRUE(param$runGO)) {
               testName = paste0(goDomain,": ",resName)
               ora.overview[testName, "Number of Significant Terms"] = 
                 nrow(enrichResult[[goDomain]][[resName]]@result[
-                  enrichResult[[goDomain]][[resName]]@result$p.adjust < 0.05, ])
+                  enrichResult[[goDomain]][[resName]]@result$p.adjust <= param$fdrThresORA, ])
     }
   }
   
@@ -791,7 +802,7 @@ if (isTRUE(param$runGO)) {
     kable(
       x = format(ora.overview, digits = 3, scientific = -2),
       format =  "html",
-      caption = paste("Hypergeometric Over-representation Test:")) %>%
+      caption = paste("Hypergeometric Over-representation Test")) %>%
       kable_styling(
         bootstrap_options = "striped",
         full_width = F,
@@ -925,6 +936,10 @@ if (isTRUE(param$runGO)) {
 
 ##### Description
 Gene Set Enrichment Analysis (GSEA) calculates an enrichment score for each annotation category (e.g., those in GO BP) by screening all the genes from a differential expression analysis and their associated fold-changes. It does not require a pre-selection based on p-value/fold-change. **It is recommended when the difference between groups is small (i.e., applying thresholds would result in very few genes selected) or when combining results from different experiments.** Similar to the ORA test, we use the package clusterProfiler to perform GSEA analysis in SUSHI. Further details: [Visit the clusterProfiler bioconductor page](https://bioconductor.org/packages/release/bioc/html/clusterProfiler.html)
+
+Cut Off:
+
+* Candidate Terms: `r paste("fdr <=", param$fdrThresGSEA)`
 
 ***
 
