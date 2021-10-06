@@ -613,9 +613,9 @@ if (isTRUE(param$runGO)) {
       enrichrLinks[mySel, "Number of Genes"] <- length(genesToUse)
       enrichrLinks[mySel, "CutOffs"] <- paste("p <=", param$pValThreshGO)
       if(mySel == 'upGenes')
-        enrichrLinks[mySel, "CutOffs"] <- paste(enrichrLinks[mySel, "CutOffs"], ", log ratio > ", param$log2RatioThreshGO)
+        enrichrLinks[mySel, "CutOffs"] <- paste(enrichrLinks[mySel, "CutOffs"], ", log2 ratio > ", param$log2RatioThreshGO)
       if(mySel == 'downGenes')
-        enrichrLinks[mySel, "CutOffs"] <- paste(enrichrLinks[mySel, "CutOffs"], ", log ratio < ", -param$log2RatioThreshGO)
+        enrichrLinks[mySel, "CutOffs"] <- paste(enrichrLinks[mySel, "CutOffs"], ", log2 ratio < ", -param$log2RatioThreshGO)
       jsCall <- paste0('enrich({list: "', paste(genesToUse, collapse = "\\n"), '", popup: true});')
       enrichrLinks[mySel, "External"] <- paste0("<a href='javascript:void(0)' onClick='", jsCall, "'>Analyse at Enrichr website</a>")
       resMerged <- NA
@@ -666,7 +666,7 @@ if (isTRUE(param$runGO)) {
       settings["P-value threshold:"] <- paste("p <=", param$pValThreshGO)
     }
     if (!is.null(param$log2RatioThreshGO)) {
-      settings["Log ratio threshold:"] <- paste("log ratio >", param$log2RatioThreshGO)
+      settings["Log2 ratio threshold:"] <- paste("log ratio >", param$log2RatioThreshGO)
     }
     kable(as.data.frame(settings),
       format = "html",
@@ -780,7 +780,7 @@ The Over Representation Analysis (ORA), also known as the hypergeometric test, g
 
 Cut Offs: 
 
-* Gene Selection: `r paste0("p <= ", param$pValThreshGO, ", Up: log ratio >", param$log2RatioThreshGO, "/Down: log ratio < ", -param$log2RatioThreshGO)`
+* Gene Selection: `r paste0("p <= ", param$pValThreshGO, ", Up: log2 ratio >", param$log2RatioThreshGO, "/Down: log2 ratio < ", -param$log2RatioThreshGO)`
 
 * Candidate Terms: `r paste("fdr <=", param$fdrThresORA)`
 
