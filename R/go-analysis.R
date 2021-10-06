@@ -355,7 +355,7 @@ ezGoseq = function(param, selectedGenes, allGenes, gene2goList=NULL,
 ### -----------------------------------------------------------------
 ### ezEnricher with hypergeometric implementation from clusterProfiler
 ###
-ezEnricher <- function(enrichInput){
+ezEnricher <- function(enrichInput, param){
   require(clusterProfiler)
   minGenesOverlap <- 3
   geneid2name = set_names(enrichInput$seqAnno$gene_name, enrichInput$seqAnno$gene_id)
@@ -365,7 +365,7 @@ ezEnricher <- function(enrichInput){
     for (mySel in names(enrichInput$selections)){
       enrichRes <- enricher(gene=enrichInput$selections[[mySel]],
                             universe=enrichInput$presentGenes,
-                            TERM2GENE=enrichInput$go2gene[[onto]])
+                            TERM2GENE=enrichInput$go2gene[[onto]], pvalueCutoff = param$fdrThresORA)
       if(!is.null(enrichRes)){
         tempTable <- enrichRes@result
         if(nrow(tempTable) != 0L){
