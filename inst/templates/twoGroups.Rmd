@@ -728,6 +728,7 @@ if (isTRUE(param$runGO)) {
         erp[["df"]] <- as.data.frame(
           er@result[ , c("ID", "Description", "GeneRatio", "BgRatio","pvalue",
                          "p.adjust", "geneName")])
+        erp[["df"]] <- erp[["df"]][erp[["df"]]$p.adjust <=  param$fdrThresORA,]
         erp[["table"]] <- DT::datatable(
           data = er@result[, c("ID", "Description", "GeneRatio", "BgRatio",
                                "pvalue", "p.adjust", "geneName")],
@@ -809,7 +810,7 @@ if (isTRUE(param$runGO)) {
         position = "left")
     )
   cat("\n\n")
-  cat("[Download Excel file of complete ORA results](`r oraFile`)")
+  cat(paste0("[Download Excel file of complete ORA results](", oraFile, ")"))
   cat("\n\n")
 }
 ```
@@ -961,7 +962,7 @@ if (isTRUE(param$runGO)) {
         full_width = F,
         position = "left"))
   cat("\n\n")
-  cat("[Download Excel file of complete GSEA results](`r gseaFile`)")
+  cat(paste0("[Download Excel file of complete GSEA results](", gseaFile, ")"))
   cat("\n\n")
 }
 ```
