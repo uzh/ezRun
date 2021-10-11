@@ -187,6 +187,8 @@ runKraken <- function(param, input) {
       data <- data[order(data$readPercentage, decreasing = TRUE), ]
       termsToRemove = c(0, 1, 131567, 136843)
       data <- data[!(data$ncbi %in% termsToRemove), ] # remove general terms
+      data$name <- sub('^ *', '',data$name)
+      data <- data[1:min(10, nrow(data)),] # Keep max top10 hits
     } else {
       data = ezFrame("readPercentage"=numeric(0), "nreads_clade"=numeric(0), "nreads_taxon"=numeric(0), 
                      "rankCode"=character(0), "ncbi"=character(0), "name"=numeric(0))
@@ -218,28 +220,33 @@ map_and_count_virus <- function(param, files, workDir="virusResult", readCount =
   return(countList)
 }
 
-
 map_and_count_refseq <- function(param, files, workDir="refseqResult", readCount = countReadsInFastq(files)) {
   dir.create(workDir)
+  bamFile <- file.path(workDir, "allSamples_unmapped.bam")
+  fastqs2bam(fastqFns = files, readGroupNames = names(files), bamFn = bamFile)
+  readToReadGroupFile <- file.path(workDir, "readID2RG.txt") 
+  ezSystem(paste('samtools view', bamFile, '|cut -f 1,12| sed s/RG:Z:// >', readToReadGroupFile))
+  bowtie2options <- param$cmdOptions
+  inputFastq <- file.path(workDir, "allSamples.fastq")
+  ezSystem(paste('samtools bam2fq', bamFile, '>', inputFastq))
+  outputCountFile <-  file.path(workDir, "refSeq_Counts.txt")
+  cmd = paste('bowtie2 -x', REFSEQ_mRNA_REF, '-U', inputFastq, bowtie2options, "-p", param$cores, '-t --no-unal', '2> ', paste0(workDir, '/bowtie2.err'), '| grep ^@ -v|cut -f1,3,12', '|sed s/AS:i://g >', outputCountFile)
+  ezSystem(cmd)
+  gc()
+  completeOutputCountFile <-  file.path(workDir, "refSeq_Counts_allSamples.txt")
+  ezSystem(paste('sort -k1', outputCountFile, '>', completeOutputCountFile))
+  system(paste('join -j 1 -o 1.1,1.2,1.3,2.2', completeOutputCountFile, readToReadGroupFile,'>', outputCountFile)) #ezSystem thinks that it fails
+  file.remove(completeOutputCountFile, bamFile, inputFastq, readToReadGroupFile)
+  
   countFiles <- character()
   for (nm in names(files)) {
     countFiles[nm] <- paste0(workDir, "/", nm, "-counts.txt")
-    bowtie2options <- param$cmdOptions
-    writeLines("ReadID\tRefSeqID\tAlignmentScore", countFiles[nm])
-    cmd <- paste(
-      "bowtie2", "-x", REFSEQ_mRNA_REF,
-      " -U ", files[nm], bowtie2options, "-p", param$cores,
-      "--no-unal --no-hd", "2> ", paste0(workDir, "/", nm, "_bowtie2.err"),
-      "| cut -f1,3,12", " |sed s/AS:i://g", ">>", countFiles[nm]
-    )
-    ezSystem(cmd)
+    writeLines("ReadID\tRefSeqID\tAlignmentScore\tName", countFiles[nm])
+    ezSystem(paste('grep', paste0('\" ', nm, '$\"'), outputCountFile, '|sed s/[[:blank:]]/\\\t/g >>', countFiles[nm]))
   }
-  countList = collectBowtie2Output(param, countFiles, readCount, virusResult = F)
+  countList = collectBowtie2Output(param, countFiles, readCount, virusResult = FALSE)
   return(countList)
 }
-
-
-
 
 
 collectBowtie2Output <- function(param, countFiles, readCount, virusResult = F) {
