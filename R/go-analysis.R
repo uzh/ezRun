@@ -102,7 +102,7 @@ compileEnrichmentInput = function(param, se){
     names(genes) = genes
   }
   
-  isSig = rowData(se)$pValue < param$pValThreshGO & rowData(se)$usedInTest
+  isSig = rowData(se)$pValue <= param$pValThreshGO & rowData(se)$usedInTest
   isUp = rowData(se)$log2Ratio > param$log2RatioThreshGO & isSig
   isDown = rowData(se)$log2Ratio < -param$log2RatioThreshGO & isSig
   probes = rownames(groupMeans)
@@ -355,7 +355,7 @@ ezGoseq = function(param, selectedGenes, allGenes, gene2goList=NULL,
 ### -----------------------------------------------------------------
 ### ezEnricher with hypergeometric implementation from clusterProfiler
 ###
-ezEnricher <- function(enrichInput){
+ezEnricher <- function(enrichInput, param){
   require(clusterProfiler)
   minGenesOverlap <- 3
   geneid2name = set_names(enrichInput$seqAnno$gene_name, enrichInput$seqAnno$gene_id)
@@ -365,7 +365,7 @@ ezEnricher <- function(enrichInput){
     for (mySel in names(enrichInput$selections)){
       enrichRes <- enricher(gene=enrichInput$selections[[mySel]],
                             universe=enrichInput$presentGenes,
-                            TERM2GENE=enrichInput$go2gene[[onto]])
+                            TERM2GENE=enrichInput$go2gene[[onto]], pvalueCutoff = param$fdrThresORA)
       if(!is.null(enrichRes)){
         tempTable <- enrichRes@result
         if(nrow(tempTable) != 0L){
@@ -394,13 +394,13 @@ ezEnricher <- function(enrichInput){
 ### -----------------------------------------------------------------
 ### ezGSEA
 ###
-ezGSEA <- function(enrichInput){
+ezGSEA <- function(enrichInput, param){
   require(clusterProfiler)
   require(GO.db)
   geneid2name = set_names(enrichInput$seqAnno$gene_name, enrichInput$seqAnno$gene_id)
   ontologies = c("BP", "MF", "CC")
   goResults = ezMclapply(ontologies, function(onto){
-    enrichRes <- GSEA(gene=sort(enrichInput$log2Ratio, decreasing = TRUE),
+    enrichRes <- GSEA(gene=sort(enrichInput$log2Ratio, decreasing = TRUE), pvalueCutoff = param$fdrThresGSEA,
                       TERM2GENE=enrichInput$go2gene[[onto]])
     if(!is.null(enrichRes)){
       tempTable <- enrichRes@result

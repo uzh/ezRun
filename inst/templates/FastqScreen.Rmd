@@ -36,6 +36,9 @@ Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
 
 
 ### FastqScreen Mapping Rates to Adapters and rRNA
+
+The raw reads are checked for adapter content. A local alignment using [Bowtie2](http://bowtie-bio.sourceforge.net/bowtie2/index.shtml) is performed. Reads occuring from adapter dimers and adapter contamination at the 3' end can be discovered. 
+
 ```{r overview plotly, fig.height=7, fig.width=min(max(7, 7+(length(samples)-20)*0.2), 30), echo=FALSE, warning=FALSE, message=FALSE}
 m <- list(l = 80, r = 80, b = 200, t = 100, pad = 0) # more margin space
 
@@ -49,14 +52,11 @@ p <- plot_ly(x=samples,
          yaxis = list(title = "MappedReads in %", range = c(0,100)),
          margin = m)
 p
+```
 
-# Reads
-#p <- plot_ly(x=names(fastqData$Reads), y=fastqData$Reads/1e3, type="bar") %>%
-#  layout(title = "ProcessedReads",
-#         yaxis = list(title = "#Reads in K"),
-#         margin = m)
-#p
+A Bowtie2 end-to-end alignment is performed to estimate the overall rRNA content of the libraries. [SILVA](https://www.arb-silva.de/) is used as the reference database. The read orientation can be used to check if the sequenced libraries preserve the strand information.
 
+```{r overview rRNA plotly, fig.height=7, fig.width=min(max(7, 7+(length(samples)-20)*0.2), 30), echo=FALSE, warning=FALSE, message=FALSE}
 # rRNA Mapping
 rRnaPercentMapped = rRNAstrandResult[ , c("Sense", "Antisense")] / rRNAstrandResult$`Read Count` * 100
 rRnaPercentMapped$sample = rownames(rRnaPercentMapped)
@@ -71,6 +71,8 @@ p
 ```
 
 ### FastqScreen Mapping Per Sample
+
+Each sample is mapped against multiple references using [FastqScreen](https://www.bioinformatics.babraham.ac.uk/projects/fastq_screen/). This includes the most common model organisms, ribosomal RNA references (large and small subunit) based on SILVA on several taxonomic levels and typical biological and technical contaminants in NGS libraries (tRNAs, PhIX, Mycoplasma, UniVec).
 
 ```{r FastqScreenPerSample, echo=FALSE, results='hide', warning=FALSE, message=FALSE, eval=!debug}
 for (nm in samples){
@@ -92,6 +94,8 @@ for (nm in samples){
 
 ### Mapping to RefSeq mRNA Per Sample
 
+A mapping against all mRNAs in RefSeq can be useful to estimate the fraction reads which is specific for exonic regions. Furthermore contaminations with other species e.g. due to xenograft experiments can be discovered.
+
 ```{r mRNAPerSample, echo=FALSE, results='hide', warning=FALSE, message=FALSE, eval=!debug}
 for (nm in samples){
       par(mar=c(10.1, 4.1, 4.1, 2.1))
@@ -105,22 +109,28 @@ for (nm in samples){
 }
 ```
 
-### Mapping to Genomes with Kraken
+### Mapping to Genomes with Kraken2
+
+[Kraken2](https://ccb.jhu.edu/software/kraken2/) is a tool to perform a taxonomic classification based on k-mer matches. The reference includes Refseq bacteria, archaea, viral libraries and the GRCh38 human genome. It's especially useful to discover bacterial contamination (e.g. Mycoplasma in cultivated cells.)
 
 Abundances above 5% are truncated.
 
 ```{r KrakenPerSample, echo=FALSE, results='hide', warning=FALSE, message=FALSE, eval=!debug}
 for (nm in samples){
   x = krakenResult[[nm]]
-  par(mar=c(15.1, 4.1, 4.1, 2.1))
+  par(mar=c(15.1, 6.1, 4.1, 2.1))
   if (nrow(x) > 0){
-    barplot(x$readPercentage, names.arg = x$name, col = 'royalblue3', 
+    bplot <- barplot(x$readPercentage, names.arg = rep('',nrow(x)), col = 'royalblue3', 
                     main = nm, ylab = 'Mapped Reads in %', las = 2, ylim=c(0, 5))
+    text(x = bplot, y = par("usr")[3] - 0.3, srt = 45, adj = 1, 
+           labels = x$name, xpd = TRUE)
   }
 }
 ```
 
-### Virus Check
+### Human pathogens check
+
+This check includes a Bowtie2 mapping and is currently only performed for human samples. It uses all unmapped reads of the FastqScreen mapping as input and maps these reads against several common human pathogens (Bacteria and Viruses).
 
 ```{r virus, echo=FALSE, results='hide', warning=FALSE, message=FALSE, eval=!debug}
 if(param[['virusCheck']]){

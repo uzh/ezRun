@@ -107,6 +107,8 @@ runGO	logical	TRUE	whether GO analysis should be run or not; will only be run if
 pValThreshGO	numeric	1e-2	only probes with a differential expression p-value below will be used as input for overrepresentation analysis
 log2RatioThreshGO	numeric	0	only probes with a higher expression change will be used as input for overrepresentation analysis
 pValThreshFisher	numeric	1e-4	only GO categories with a p-value below will be shown
+fdrThresORA	numeric	5e-2	only GO terms with adjusted p-value below will be shown in ORA results
+fdrThresGSEA	numeric	5e-2	only GO terms with adjusted p-value below will be shown in GSEA results
 minCountFisher	integer	3	only GO categories that have at least this many genes are searched for overrepresented genes
 maxNumberGroupsDisplayed	integer	40	the maximum number of GO groups to show in the HTML tables
 doPrecomputeEnrichr	logical	TRUE	should enrichr results be precomputed

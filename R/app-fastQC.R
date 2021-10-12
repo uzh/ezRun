@@ -69,8 +69,14 @@ ezMethodFastQC <- function(input = NA, output = NA, param = NA,
       param$cmdOptions, paste(filesUse, collapse = " "),
       "> fastqc.out", "2> fastqc.err"
     )
+    
+    if(length(filesUse) > 384){
+      cat(cmd, file = 'fastqcCall.sh')
+      result <- ezSystem('bash fastqcCall.sh')
+    } else {
+      result <- ezSystem(cmd)
+    }
     gc()
-    result <- ezSystem(cmd)
   }
   statusToPng <- c(PASS = "tick.png", WARN = "warning.png", FAIL = "error.png")
 
