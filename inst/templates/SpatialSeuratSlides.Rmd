@@ -30,6 +30,7 @@ knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE, knitr.tabl
 ```{r}
 param = readRDS("param.rds")
 scData <- readRDS("scData.rds")
+DefaultAssay(scData) = "SCT" 
 ```
 
 ## Analysis results {.tabset}
