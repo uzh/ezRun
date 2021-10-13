@@ -188,48 +188,51 @@ seuratClusteringHTO <- function(scData) {
   return(scData)
 }
 
-cellClustNoCorrection <- function(objectList, param) {
-  #Merge all seurat objects
-  if(param[['name']] == 'SpatialSeuratSlides') {
-    scData = Reduce(merge, objectList,merge.data = TRUE)
+cellClustNoCorrection <- function(scDataList, param) {
+   if(param[['name']] == 'SpatialSeuratSlides')
     assay = "Spatial"
- } else {
-    scData = Reduce(merge, lapply(objectList, function(x){metadata(x)$scData}),  merge.data = TRUE)
+  else 
     assay= "RNA"
- }
-  scData <- seuratStandardWorkflow(scData, param)
-  return(scData)
-}
-
-cellClustWithCorrection <- function (objectList, param) {
-  if(param[['name']] == 'SpatialSeuratSlides') {
-    seurat_objects = objectList
-    assay = "Spatial"
- } else {
-    seurat_objects = lapply(objectList, function(se) {metadata(se)$scData})
-    assay = "RNA"
- }
-  # when doing the scaling, normalization and feature slection with SCTransform we will only regress out by cell cycle if specified
   vars.to.regress <- NULL
   if(identical("CellCycle", param$SCT.regress))
     vars.to.regress <- c("CellCycleS", "CellCycleG2M")
-  #1. Data preprocesing
-  for (i in 1:length(seurat_objects)) {
-    seurat_objects[[i]] <- SCTransform(seurat_objects[[i]], vars.to.regress = vars.to.regress,  assay = assay, verbose = TRUE)
-  }
+  #1. Data preprocesing is done on each object separately
+  for (i in 1:length(scDataList)) 
+    scDataList[[i]] <- SCTransform(scDataList[[i]], vars.to.regress = vars.to.regress,  assay = assay, verbose = TRUE)
+  #2. Merge all seurat objects
+  scData = Reduce(function(x, y) {merge(x,y, merge.data = TRUE)}, scDataList)
+  VariableFeatures(scData) <- unlist(lapply(scDataList, VariableFeatures))
+  #3. Dimensionality reduction and clustering
+  scData <- seuratStandardWorkflow(scData, param)
+  
+  return(scData)
+}
+
+cellClustWithCorrection <- function (scDatatList, param) {
+  if(param[['name']] == 'SpatialSeuratSlides')
+    assay = "Spatial"
+  else 
+    assay= "RNA"
+  vars.to.regress <- NULL
+  if(identical("CellCycle", param$SCT.regress))
+    vars.to.regress <- c("CellCycleS", "CellCycleG2M")
+  #1. Data preprocesing is done on each object separately
+  for (i in 1:length(scDataList)) 
+    scDataList[[i]] <- SCTransform(scDataList[[i]], vars.to.regress = vars.to.regress,  assay = assay, verbose = TRUE)
   #2. Data integration
   #2.1. # Select the most variable features to use for integration
-  integ_features <- SelectIntegrationFeatures(object.list = seurat_objects, nfeatures = 3000) 
+  integ_features <- SelectIntegrationFeatures(object.list = scDataList, nfeatures = 3000) 
   #2.2. Prepare the SCT list object for integration
-  seurat_objects <- PrepSCTIntegration(object.list = seurat_objects, anchor.features = integ_features)
+  scDataList <- PrepSCTIntegration(object.list = scDataList, anchor.features = integ_features)
   #2.3. Find anchors
-  integ_anchors <- FindIntegrationAnchors(object.list = seurat_objects, normalization.method = "SCT", 
+  integ_anchors <- FindIntegrationAnchors(object.list = scDataList, normalization.method = "SCT", 
                                           anchor.features = integ_features, dims = 1:param$npcs)
   #2.4. Integrate datasets
   seurat_integrated <- IntegrateData(anchorset = integ_anchors, normalization.method = "SCT", dims = 1:param$npcs)
 
-  # Run the standard workflow for visualization and clustering
+  #3. Run the standard workflow for visualization and clustering
   seurat_integrated <- seuratStandardWorkflow(seurat_integrated, param)
+  
   return(seurat_integrated)
 }
 
