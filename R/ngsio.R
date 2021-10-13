@@ -236,7 +236,7 @@ return(sce)
 }
 
 load10xSpatialData <- function(input, param){
-  scData <- Load10X_Spatial(input$getFullPaths("ResultDir"))
+  scData <- Load10X_Spatial(input$getFullPaths("ResultDir"), slice = input$getNames())
   ## unique cell names when merging two samples
   scData <- RenameCells(scData, paste(input$getNames(), colnames(scData), sep="___"))
   scData$Batch <- input$getNames()
