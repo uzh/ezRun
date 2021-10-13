@@ -242,7 +242,7 @@ map_and_count_refseq <- function(param, files, workDir="refseqResult", readCount
   for (nm in names(files)) {
     countFiles[nm] <- paste0(workDir, "/", nm, "-counts.txt")
     writeLines("ReadID\tRefSeqID\tAlignmentScore\tName", countFiles[nm])
-    ezSystem(paste('grep', paste0('\" ', nm, '$\"'), outputCountFile, '|sed s/[[:blank:]]/\\\t/g >>', countFiles[nm]))
+    system(paste('grep', paste0('\" ', nm, '$\"'), outputCountFile, '|sed s/[[:blank:]]/\\\t/g >>', countFiles[nm]))
   }
   countList = collectBowtie2Output(param, countFiles, readCount, virusResult = FALSE)
   return(countList)
