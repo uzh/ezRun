@@ -39,6 +39,7 @@ ezMethodSpatialSeuratCompare = function(input=NA, output=NA, param=NA, htmlFile=
   scDataURLs <- input$getColumn("Static Report")
   filePath <- file.path("/srv/gstore/projects", sub("https://fgcz-(gstore|sushi).uzh.ch/projects", "",dirname(scDataURLs)), "scData.rds")
   scData <- readRDS(filePath)
+  DefaultAssay(scData) = "SCT" 
   #subset the object to only contain the conditions we are interested in
   Idents(scData) <- scData$Condition
   scData <- subset(scData, idents=c(param$sampleGroup, param$refGroup))
