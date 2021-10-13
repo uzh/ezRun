@@ -71,29 +71,15 @@ ezMethodSCMultipleSamples = function(input=NA, output=NA, param=NA, htmlFile="00
   
   #In case it is in hdf5 format the Seurat object is not stored in the metadata slot, so we have to build it and store it there, since the 
   #clustering functions below work with sce objects and take the seurat object from them.
-  if(file.exists(filePath)) {
-    sceList <- lapply(filePath,loadHDF5SummarizedExperiment)
-    names(sceList) <- names(sceURLs)
-    #sceList <- lapply(sceList, function(sce) {metadata(sce)$scData <- CreateSeuratObject(counts=counts(sce),meta.data=data.frame(colData(sce)[,c(2:25, which(colnames(colData(sceList[[1]]))%in% "Condition"))])) 
-    sceList <- lapply(sceList, function(sce) {
-      sce <- swapAltExp(sce, "RNA")
+  if(!file.exists(filePath)) 
+    filePath <- filePath_course
+  
+  sceList <- lapply(filePath,loadHDF5SummarizedExperiment)
+  names(sceList) <- names(sceURLs)
+  scDataList <- lapply(sceList, function(sce) {
+      sce = swapAltExp(sce, "RNA")
       colData(sce)[, grep("SCT", colnames(colData(sce)))] = NULL #remove previous clustering done on SCT assay
-      metadata(sce)$scData <- CreateSeuratObject(counts=counts(sce),meta.data=data.frame(colData(sce))) 
-    sce})
-  } else if (file.exists(filePath_course)) {
-    sceList <- lapply(filePath_course,loadHDF5SummarizedExperiment)
-    names(sceList) <- names(sceURLs)
-    sceList <- lapply(sceList, function(sce) {
-      sce <- swapAltExp(sce, "RNA")
-      metadata(sce)$scData <- CreateSeuratObject(counts=counts(sce),meta.data=data.frame(colData(sce))) 
-    sce})
-  } else { #if it is an rds object it has been likely generated from old reports, so we need to update the seurat version before using the clustering functions below.                                         
-    filePath <- file.path("/srv/gstore/projects", sub("https://fgcz-(gstore|sushi).uzh.ch/projects", "",dirname(sceURLs)), "sce.rds")
-    sceList <- lapply(filePath,readRDS)
-    names(sceList) <- names(sceURLs)
-    sceList = lapply(sceList, update_seuratObjectVersion)
-    sceList = lapply(sceList,  add_Condition_oldReports)
-  }
+      CreateSeuratObject(counts=counts(sce),meta.data=data.frame(colData(sce)))})
   
   
   pvalue_allMarkers <- 0.05
@@ -109,7 +95,7 @@ ezMethodSCMultipleSamples = function(input=NA, output=NA, param=NA, htmlFile="00
     }
   }
   
-  scData_noCorrected <- cellClustNoCorrection(sceList, param)
+  scData_noCorrected <- cellClustNoCorrection(scDataList, param)
   scData = scData_noCorrected
   if (param$batchCorrection) {
     scData_corrected = cellClustWithCorrection(sceList, param)
