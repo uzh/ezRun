@@ -133,7 +133,7 @@ ezMethodSCFeatBarcoding <- function(input=NA, output=NA, param=NA,
   
   
   #Save some results in external files 
-  saveRDS(scData.singlet, "scData.rds")
+  saveRDS(scData, "scData.rds")
   saveHDF5SummarizedExperiment(sce.singlets, dir="sce_h5")
   saveHDF5SummarizedExperiment(sce.unfiltered, dir="sce.unfiltered_h5")
   geneMeans <- geneMeansCluster(sce.singlets)
