@@ -128,14 +128,13 @@ if(length(samples) > 100){
 ```{r KrakenTopHits, echo=FALSE, results='hide', warning=FALSE, message=FALSE, eval=!debug}
 speciesPerSample <- sapply(krakenResult, function(listElem) return(listElem$name))
 readFractionPerSample <- sapply(krakenResult, function(listElem) return(listElem$readPercentage))
-#uniqueSpecies <- unique(as.vector(speciesPerSample))
-uniqueSpecies <- unique(unlist(speciesPerSample))
+uniqueSpecies <- unique(as.vector(unlist(speciesPerSample)))
 uniqueSpecies <- uniqueSpecies[!is.na(uniqueSpecies)]
 krakenResult_DF <- data.frame(Species = uniqueSpecies, row.names = uniqueSpecies)
 for (nm in samples){
     krakenResult_DF[[nm]] <- 0
-    if(all(!is.na(readFractionPerSample[[nm]]))){
-      krakenResult_DF[speciesPerSample[[nm]], nm] = readFractionPerSample[[nm]]
+    if(all(!is.na(readFractionPerSample[,nm]))){
+      krakenResult_DF[speciesPerSample[,nm], nm] = readFractionPerSample[,nm]
     }
 }
 krakenResult_DF <- krakenResult_DF[rowSums(krakenResult_DF[,samples]) > 0,]
