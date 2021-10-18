@@ -125,7 +125,7 @@ if(length(samples) > 100){
 
 #### 1. MultiSample Barplots for top hits
 
-```{r KrakenTopHits, echo=FALSE, results='hide', warning=FALSE, message=FALSE, eval=!debug}
+```{r KrakenTopHitPrepare, echo=FALSE, results='hide', warning=FALSE, message=FALSE, eval=!debug}
 speciesPerSample <- sapply(krakenResult, function(listElem) return(listElem$name))
 readFractionPerSample <- sapply(krakenResult, function(listElem) return(listElem$readPercentage))
 uniqueSpecies <- unique(as.vector(unlist(speciesPerSample)))
@@ -133,25 +133,64 @@ uniqueSpecies <- uniqueSpecies[!is.na(uniqueSpecies)]
 krakenResult_DF <- data.frame(Species = uniqueSpecies, row.names = uniqueSpecies)
 for (nm in samples){
     krakenResult_DF[[nm]] <- 0
-    if(all(!is.na(readFractionPerSample[,nm]))){
-      krakenResult_DF[speciesPerSample[,nm], nm] = readFractionPerSample[,nm]
-    }
+      if(is.list(speciesPerSample)){
+        if(all(!is.na(readFractionPerSample[[nm]]))){
+        krakenResult_DF[speciesPerSample[[nm]], nm] = readFractionPerSample[[nm]]
+        } 
+      } else {
+         if(all(!is.na(readFractionPerSample[,nm]))){
+          krakenResult_DF[speciesPerSample[,nm], nm] = readFractionPerSample[,nm]
+         }
+      }
 }
 krakenResult_DF <- krakenResult_DF[rowSums(krakenResult_DF[,samples]) > 0,]
 krakenResult_DF <- krakenResult_DF[order(apply(krakenResult_DF[,samples], 1, mean), decreasing = TRUE),]
+```
 
+```{r KrakenTopHit1 plotly, fig.height=7, fig.width=min(max(7, 7+(length(samples)-20)*0.2), 30), echo=FALSE, warning=FALSE, message=FALSE}
+m <- list(l = 80, r = 80, b = 200, t = 100, pad = 0)
 if (nrow(krakenResult_DF) > 0){
-for (i in 1:min(3, nrow(krakenResult_DF))){
-  par(mar=c(15.1, 10.1, 4.1, 2.1))
-    x <- unlist(krakenResult_DF[i, samples])
-    bplot <- barplot(height = x, names.arg = rep('',length(samples)), col = 'royalblue3', 
-                     main = paste0('TopHit', i,':', krakenResult_DF$Species[i]), ylab = 'Mapped Reads in %', las = 2)
-    text(x = bplot, y = par("usr")[3] - (max(x) * 0.04), srt = 45, adj = 1, cex = 0.7,
-         labels = samples, xpd = TRUE)
-  }
+  i = 1
+  data <- unlist(krakenResult_DF[i, samples])
+  p <- plot_ly(x=samples,
+             y=data,
+             type="bar") %>%
+  layout(title = paste0('TopHit', i,':', krakenResult_DF$Species[i]),
+         yaxis = list(title = "MappedReads in %", range = c(0,max(data))),
+         margin = m)
+  p
 }
 ```
 
+```{r KrakenTopHit2 plotly, fig.height=7, fig.width=min(max(7, 7+(length(samples)-20)*0.2), 30), echo=FALSE, warning=FALSE, message=FALSE}
+m <- list(l = 80, r = 80, b = 200, t = 100, pad = 0)
+if (nrow(krakenResult_DF) > 1){
+  i <- 2
+  data <- unlist(krakenResult_DF[i, samples])
+  p <- plot_ly(x=samples,
+             y=data,
+             type="bar") %>%
+  layout(title = paste0('TopHit', i,':', krakenResult_DF$Species[i]),
+         yaxis = list(title = "MappedReads in %", range = c(0,max(data))),
+         margin = m)
+  p
+}
+```
+
+```{r KrakenTopHit3 plotly, fig.height=7, fig.width=min(max(7, 7+(length(samples)-20)*0.2), 30), echo=FALSE, warning=FALSE, message=FALSE}
+m <- list(l = 80, r = 80, b = 200, t = 100, pad = 0)
+if (nrow(krakenResult_DF) > 2){
+  i <- 3
+  data <- unlist(krakenResult_DF[i, samples])
+  p <- plot_ly(x=samples,
+             y=data,
+             type="bar") %>%
+  layout(title = paste0('TopHit', i,':', krakenResult_DF$Species[i]),
+         yaxis = list(title = "MappedReads in %", range = c(0,max(data))),
+         margin = m)
+  p
+}
+```
 #### 2. Per sample barplots
 - Abundances above 5% are truncated
 
