@@ -365,7 +365,7 @@ ezEnricher <- function(enrichInput, param){
     for (mySel in names(enrichInput$selections)){
       enrichRes <- enricher(gene=enrichInput$selections[[mySel]],
                             universe=enrichInput$presentGenes,
-                            TERM2GENE=enrichInput$go2gene[[onto]], pvalueCutoff = param$fdrThresORA)
+                            TERM2GENE=enrichInput$go2gene[[onto]], pvalueCutoff = param$fdrThreshORA)
       if(!is.null(enrichRes)){
         tempTable <- enrichRes@result
         if(nrow(tempTable) != 0L){
@@ -400,7 +400,7 @@ ezGSEA <- function(enrichInput, param){
   geneid2name = set_names(enrichInput$seqAnno$gene_name, enrichInput$seqAnno$gene_id)
   ontologies = c("BP", "MF", "CC")
   goResults = ezMclapply(ontologies, function(onto){
-    enrichRes <- GSEA(gene=sort(enrichInput$log2Ratio, decreasing = TRUE), pvalueCutoff = param$fdrThresGSEA,
+    enrichRes <- GSEA(gene=sort(enrichInput$log2Ratio, decreasing = TRUE), pvalueCutoff = param$fdrThreshGSEA,
                       TERM2GENE=enrichInput$go2gene[[onto]])
     if(!is.null(enrichRes)){
       tempTable <- enrichRes@result

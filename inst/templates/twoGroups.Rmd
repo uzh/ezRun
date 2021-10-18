@@ -728,7 +728,7 @@ if (isTRUE(param$runGO)) {
         erp[["df"]] <- as.data.frame(
           er@result[ , c("ID", "Description", "GeneRatio", "BgRatio","pvalue",
                          "p.adjust", "geneName")])
-        erp[["df"]] <- erp[["df"]][erp[["df"]]$p.adjust <=  param$fdrThresORA,]
+        erp[["df"]] <- erp[["df"]][erp[["df"]]$p.adjust <=  param$fdrThreshORA,]
         erp[["table"]] <- DT::datatable(
           data = er@result[, c("ID", "Description", "GeneRatio", "BgRatio",
                                "pvalue", "p.adjust", "geneName")],
@@ -783,7 +783,7 @@ Cut Offs:
 
 * Gene Selection: `r paste0("p <= ", param$pValThreshGO, ", Up: log2 ratio >", param$log2RatioThreshGO, "/Down: log2 ratio < ", -param$log2RatioThreshGO)`
 
-* Candidate Terms: `r paste("fdr <=", param$fdrThresORA)`
+* Candidate Terms: `r paste("fdr <=", param$fdrThreshORA)`
 
 *** 
 
@@ -795,7 +795,7 @@ if (isTRUE(param$runGO)) {
               testName = paste0(goDomain,": ",resName)
               ora.overview[testName, "Number of Significant Terms"] = 
                 nrow(enrichResult[[goDomain]][[resName]]@result[
-                  enrichResult[[goDomain]][[resName]]@result$p.adjust <= param$fdrThresORA, ])
+                  enrichResult[[goDomain]][[resName]]@result$p.adjust <= param$fdrThreshORA, ])
     }
   }
   
@@ -940,7 +940,7 @@ Gene Set Enrichment Analysis (GSEA) calculates an enrichment score for each anno
 
 Cut Off:
 
-* Candidate Terms: `r paste("fdr <=", param$fdrThresGSEA)`
+* Candidate Terms: `r paste("fdr <=", param$fdrThreshGSEA)`
 
 ***
 
