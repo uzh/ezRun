@@ -97,8 +97,80 @@ for (nm in samples){
 A mapping against all mRNAs in RefSeq can be useful to estimate the fraction reads which is specific for exonic regions. Furthermore contaminations with other species e.g. due to xenograft experiments can be discovered.
 
 
-```{r mRNAMultiSample, echo=FALSE, results='hide', warning=FALSE, message=FALSE, eval=!debug}
-###TODO: multisample plot for top 3 Hits (multi+unique hits)
+```{r mRNAMultiSample prepare, echo=FALSE, results='hide', warning=FALSE, message=FALSE, eval=!debug}
+speciesPerSample <- sapply(refseqResult, function(listElem) return(rownames(listElem)))
+readFractionPerSample_uniq <- sapply(refseqResult, function(listElem) return(listElem$UniqueSpeciesPercent))
+readFractionPerSample_multi <- sapply(refseqResult, function(listElem) return(listElem$MultipleSpeciesPercent))
+uniqueSpecies <- unique(as.vector(speciesPerSample))
+
+refSeqResult_DF_uniq <- data.frame(Species = uniqueSpecies)
+for (nm in samples){
+    refSeqResult_DF_uniq[[nm]] <- 0
+    if(is.list(speciesPerSample)){
+      refSeqResult_DF_uniq[speciesPerSample[[nm]], nm] = readFractionPerSample_uniq[[nm]]
+    } else {
+      refSeqResult_DF_uniq[speciesPerSample[,nm], nm] = readFractionPerSample_uniq[,nm]
+    }
+}
+refSeqResult_DF_uniq <- refSeqResult_DF_uniq[rowSums(refSeqResult_DF_uniq[,samples]) > 0,]
+refSeqResult_DF_uniq <- refSeqResult_DF_uniq[order(apply(refSeqResult_DF_uniq[,samples], 1, mean), decreasing = TRUE),]
+
+refSeqResult_DF_multi <- data.frame(Species = uniqueSpecies)
+for (nm in samples){
+    refSeqResult_DF_multi[[nm]] <- 0
+    if(is.list(speciesPerSample)){
+      refSeqResult_DF_multi[speciesPerSample[[nm]], nm] = readFractionPerSample_multi[[nm]]
+    } else {
+      refSeqResult_DF_multi[speciesPerSample[,nm], nm] = readFractionPerSample_multi[,nm]
+    }
+}
+refSeqResult_DF_multi <- refSeqResult_DF_multi[rownames(refSeqResult_DF_multi) %in% rownames(refSeqResult_DF_uniq),]
+refSeqResult_DF_multi <- refSeqResult_DF_multi[rownames(refSeqResult_DF_uniq),]
+```
+
+```{r RefTopHit1 plotly, fig.height=7, fig.width=min(max(7, 7+(length(samples)-20)*0.2), 30), echo=FALSE, warning=FALSE, message=FALSE}
+m <- list(l = 80, r = 80, b = 200, t = 100, pad = 0)
+if (nrow(refSeqResult_DF_uniq) > 0){
+  i = 1
+  data <- unlist(refSeqResult_DF_uniq[i, samples]) + unlist(refSeqResult_DF_multi[i, samples])
+  p <- plot_ly(x=samples,
+             y=data,
+             type="bar") %>%
+  layout(title = paste0('TopHit', i,':', rownames(refSeqResult_DF_uniq)[i], ' (Unique + MultiHits)'),
+         yaxis = list(title = "MappedReads in %", range = c(0,100)),
+         margin = m)
+  p
+}
+```
+
+```{r RefTopHit2 plotly, fig.height=7, fig.width=min(max(7, 7+(length(samples)-20)*0.2), 30), echo=FALSE, warning=FALSE, message=FALSE}
+m <- list(l = 80, r = 80, b = 200, t = 100, pad = 0)
+if (nrow(refSeqResult_DF_uniq) > 1){
+  i = 2
+  data <- unlist(refSeqResult_DF_uniq[i, samples]) + unlist(refSeqResult_DF_multi[i, samples])
+  p <- plot_ly(x=samples,
+             y=data,
+             type="bar") %>%
+  layout(title = paste0('TopHit', i,':', rownames(refSeqResult_DF_uniq)[i], ' (Unique + MultiHits)'),
+         yaxis = list(title = "MappedReads in %", range = c(0,100)),
+         margin = m)
+  p
+}
+```
+
+```{r RefTopHit3 plotly, fig.height=7, fig.width=min(max(7, 7+(length(samples)-20)*0.2), 30), echo=FALSE, warning=FALSE, message=FALSE}
+m <- list(l = 80, r = 80, b = 200, t = 100, pad = 0)
+if (nrow(refSeqResult_DF_uniq) > 2){
+  i = 3
+  data <- unlist(refSeqResult_DF_uniq[i, samples]) + unlist(refSeqResult_DF_multi[i, samples])
+  p <- plot_ly(x=samples,
+             y=data,
+             type="bar") %>%
+  layout(title = paste0('TopHit', i,':', rownames(refSeqResult_DF_uniq)[i], ' (Unique + MultiHits)'),
+         yaxis = list(title = "MappedReads in %", range = c(0,100)),
+         margin = m)
+  p
+}
 ```
 
 ```{r mRNAPerSample, echo=FALSE, results='hide', warning=FALSE, message=FALSE, eval=!debug}
@@ -136,7 +208,7 @@ for (nm in samples){
       if(is.list(speciesPerSample)){
         if(all(!is.na(readFractionPerSample[[nm]]))){
         krakenResult_DF[speciesPerSample[[nm]], nm] = readFractionPerSample[[nm]]
-        } 
+        }
       } else {
          if(all(!is.na(readFractionPerSample[,nm]))){
           krakenResult_DF[speciesPerSample[,nm], nm] = readFractionPerSample[,nm]
