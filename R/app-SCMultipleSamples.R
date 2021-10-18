@@ -98,7 +98,7 @@ ezMethodSCMultipleSamples = function(input=NA, output=NA, param=NA, htmlFile="00
   scData_noCorrected <- cellClustNoCorrection(scDataList, param)
   scData = scData_noCorrected
   if (param$batchCorrection) {
-    scData_corrected = cellClustWithCorrection(sceList, param)
+    scData_corrected = cellClustWithCorrection(scDataList, param)
     #in order to compute the markers we switch again to the original assay
     DefaultAssay(scData_corrected) <- "SCT"
     scData <- scData_corrected
