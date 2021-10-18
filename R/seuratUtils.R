@@ -208,7 +208,7 @@ cellClustNoCorrection <- function(scDataList, param) {
   return(scData)
 }
 
-cellClustWithCorrection <- function (scDatatList, param) {
+cellClustWithCorrection <- function (scDataList, param) {
   if(param[['name']] == 'SpatialSeuratSlides')
     assay = "Spatial"
   else 
