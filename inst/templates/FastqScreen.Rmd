@@ -101,9 +101,10 @@ A mapping against all mRNAs in RefSeq can be useful to estimate the fraction rea
 speciesPerSample <- sapply(refseqResult, function(listElem) return(rownames(listElem)))
 readFractionPerSample_uniq <- sapply(refseqResult, function(listElem) return(listElem$UniqueSpeciesPercent))
 readFractionPerSample_multi <- sapply(refseqResult, function(listElem) return(listElem$MultipleSpeciesPercent))
-uniqueSpecies <- unique(as.vector(speciesPerSample))
+uniqueSpecies <- unique(as.vector(unlist(speciesPerSample)))
+uniqueSpecies <- uniqueSpecies[!is.na(uniqueSpecies)]
 
-refSeqResult_DF_uniq <- data.frame(Species = uniqueSpecies)
+refSeqResult_DF_uniq <- data.frame(Species = uniqueSpecies, row.names = uniqueSpecies)
 for (nm in samples){
     refSeqResult_DF_uniq[[nm]] <- 0
     if(is.list(speciesPerSample)){
@@ -115,7 +116,7 @@ for (nm in samples){
 refSeqResult_DF_uniq <- refSeqResult_DF_uniq[rowSums(refSeqResult_DF_uniq[,samples]) > 0,]
 refSeqResult_DF_uniq <- refSeqResult_DF_uniq[order(apply(refSeqResult_DF_uniq[,samples], 1, mean), decreasing = TRUE),]
 
-refSeqResult_DF_multi <- data.frame(Species = uniqueSpecies)
+refSeqResult_DF_multi <- data.frame(Species = uniqueSpecies, row.names = uniqueSpecies)
 for (nm in samples){
     refSeqResult_DF_multi[[nm]] <- 0
     if(is.list(speciesPerSample)){
