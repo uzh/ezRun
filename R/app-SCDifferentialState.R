@@ -48,7 +48,6 @@ ezMethodSCDifferentialState = function(input=NA, output=NA, param=NA, htmlFile="
     filePath <- filePath_course
   
   sce <- loadHDF5SummarizedExperiment(filePath)
-  sce <- swapAltExp(sce, "RNA")
   #create a seurat object from the sce object using the raw counts (I can't use the function sce_to_seurat() because it can't deal with delayed matrices)
   scData <- CreateSeuratObject(counts=counts(sce),meta.data=data.frame(colData(sce))) 
   #subset the object to only contain the conditions we are interested in
