@@ -438,25 +438,12 @@ The iSEE shiny app can be accessed through this link [iSEE explorer](`r {lastPro
 
 ##### Mean expression of every gene across the cells in each cluster
 
-[geneMeanPerCluster](gene_means_per_cluster.txt)
-
-##### Mean expression of every gene across all the cells
-
-[geneMeans](gene_means.txt)
+[geneMeans](gene_means.tsv)
 
 ##### Positive markers of each cluster
 
 [posMarkers](pos_markers.tsv)
 
-```{r, results='asis', eval = param$all2allMarkers}
-cat("##### Differential expressed genes from clusters paired comparisons")
-cat("\n")
-cat("[all2allMarkers](all2allMarkers.tsv)")
-```
-
-##### Coordinates of every cell on the TSNE
-
-[tSNE](tSNE_data.tsv)
 
 ##### The final Single Cell Experiment Object is [here](sce_h5)
 
