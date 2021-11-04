@@ -30,7 +30,6 @@
 ## current implementation: every param needs a default value
 ezParam = function(userParam=list(), globalDefaults=getGlobalDefaults(),
                    appDefaults=ezFrame()){
-
   specialParam = parseOptions(userParam$specialOptions)
   userParam[names(specialParam)] = specialParam
   defaults = rbind(globalDefaults[setdiff(rownames(globalDefaults), 

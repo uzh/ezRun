@@ -235,6 +235,22 @@ try(colData(sce)$Condition <- input$getColumn("Condition"), silent = TRUE)
 return(sce)
 }
 
+load10xSC_seurat <- function(input, param){
+  library(DropletUtils)
+  countMatrixFn <- list.files(path=input$getFullPaths("CountMatrix"),
+                              pattern="\\.mtx(\\.gz)*$", recursive=TRUE, 
+                              full.names=TRUE)
+  counts <- Read10X(dirname(countMatrixFn))
+  ## unique cell names when merging two samples
+  colnames(counts) <- paste(input$getNames(), colnames(counts), sep="___")
+  try(condition <- rep(input$getColumn("Condition"), ncol(counts)), silent = TRUE)
+  batch <- rep(input$getNames(), ncol(counts))
+  scData <- CreateSeuratObject(counts = counts, meta.data = data.frame(Batch = batch, Condition=condition, row.names = colnames(counts)))
+  geneID <- read_tsv(gzfile(paste0(input$getFullPaths("CountMatrix"), "/features.tsv.gz")), col_names = FALSE)$X1
+  scData[["RNA"]] <- AddMetaData(object = scData[["RNA"]], metadata = geneID,col.name ='ensemblID')
+  return(scData)
+}
+
 load10xSpatialData <- function(input, param){
   scData <- Load10X_Spatial(input$getFullPaths("ResultDir"), slice = input$getNames())
   ## unique cell names when merging two samples

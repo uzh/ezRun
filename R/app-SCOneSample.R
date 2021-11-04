@@ -85,32 +85,26 @@ ezMethodSCOneSample <- function(input = NA, output = NA, param = NA,
   setwdNew(basename(output$getColumn("Report")))
   on.exit(setwd(cwd), add = TRUE)
 
-  sce <- load10xData(input, param)
+  scData <- load10xSC_seurat(input, param)
 
   pvalue_allMarkers <- 0.05
   pvalue_all2allMarkers <- 0.01
 
   # Doublets prediction and removal
   library(scDblFinder)
-  sce <- scDblFinder(sce)
-  sce <- sce[, which(sce$scDblFinder.class != "doublet")]
-  # scData@meta.data$scDblFinder.score <- colData(sce)$scDblFinder.score
-  # scData@meta.data$scDblFinder.class <- colData(sce)$scDblFinder.class
+  doubletsInfo <- scDblFinder(GetAssayData(scData, slot="counts"), returnType = "table")
+  doublets <- doubletsInfo$type == "real" & doubletsInfo$class == "doublet"
+  scData <- scData[,!doublets]
 
   # Cells and genes filtering
-  sce_list <- filterCellsAndGenes(sce, param) # return sce objects filtered and unfiltered to show the QC metrics later in the rmd
-  sce <- sce_list$sce
-  sce.unfiltered <- sce_list$sce.unfiltered
-  rm(sce_list)
+  scData_list <- filterCellsAndGenes(scData, param) # return sce objects filtered and unfiltered to show the QC metrics later in the rmd
+  scData <- scData_list$scData
+  scData.unfiltered <- scData_list$scData.unfiltered
+  rm(scData_list)
 
   # calculate cellcycle for the filtered sce object
-  sce <- addCellCycleToSce(sce, param$refBuild)
+  scData <- addCellCycleToSeurat(scData, param$refBuild)
 
-  #before converting to a seurat object, replace all - by . to avoid future problems when subsetting the object
-  rownames(sce) <- gsub("-", ".", rownames(sce))
-  rowData(sce)$Symbol <- gsub("-", ".", rowData(sce)$Symbol)
-  
-  scData <- buildSeuratObject(sce) # the Seurat object is built from the filtered sce object
   if (param$filterByExpression != "") {
     expression <- param$filterByExpression
     myCommand <- paste("subset(scData,", expression, ")")
@@ -138,6 +132,7 @@ ezMethodSCOneSample <- function(input = NA, output = NA, param = NA,
 
   # Convert scData to Single Cell experiment Object
   library(scanalysis)
+  sce.unfiltered <- scData.unfiltered %>% seurat_to_sce()
   #TODO: remove unnecesary dietseurat call when the bug in Seurat is fixed
   scData_diet = DietSeurat(scData, dimreducs = c("pca", "tsne", "umap"))
   sce <- scData_diet %>% seurat_to_sce(default_assay = "SCT")
@@ -150,8 +145,6 @@ ezMethodSCOneSample <- function(input = NA, output = NA, param = NA,
     paste(input$getNames(), collapse = ", "),
     sep = ": "
   )
-
-
   geneMeans <- geneMeansCluster(sce)
   # Save some results in external files
   dataFiles <- saveExternalFiles(list(pos_markers = posMarkers, all2allMarkers = all2allMarkers, gene_means = as_tibble(as.data.frame(geneMeans), rownames = "gene_name")))
