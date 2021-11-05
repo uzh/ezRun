@@ -14,12 +14,6 @@ EzAppSCOneSample <-
         runMethod <<- ezMethodSCOneSample
         name <<- "EzAppSCOneSample"
         appDefaults <<- rbind(
-          scProtocol = ezFrame(Type = "character", DefaultValue = "10X", Description = "Which single cell protocol?"),
-          minReadsPerCell = ezFrame(
-            Type = "numeric",
-            DefaultValue = 5e4,
-            Description = "Minimal reads per cell of smart-Seq2 for Seurat filtering"
-          ),
           npcs = ezFrame(
             Type = "numeric",
             DefaultValue = 20,
@@ -45,14 +39,29 @@ EzAppSCOneSample <-
             DefaultValue = 0.5,
             Description = "Value of the resolution parameter, use a value above (below) 1.0 if you want to obtain a larger (smaller) number of communities."
           ),
-          all2allMarkers = ezFrame(
-            Type = "logical",
-            DefaultValue = FALSE,
-            Description = "Run all against all cluster comparisons?"
+          nreads = ezFrame(
+            Type = "numeric",
+            DefaultValue = Inf,
+            Description = "Low quality cells have less than \"nreads\" reads. Only when applying fixed thresholds."
+          ),
+          ngenes = ezFrame(
+            Type = "numeric",
+            DefaultValue = Inf,
+            Description = "Low quality cells have less than \"ngenes\" genes. Only when applying fixed thresholds."
+          ),
+          perc_mito = ezFrame(
+            Type = "numeric",
+            DefaultValue = Inf,
+            Description = "Low quality cells have more than \"perc_mito\" percent of mitochondrial genes. Only when applying fixed thresholds."
+          ),
+          perc_ribo = ezFrame(
+            Type = "numeric",
+            DefaultValue = Inf,
+            Description = "Low quality cells have more than \"perc_ribo\" percent of ribosomal genes. Only when applying fixed thresholds."
           ),
           cellsFraction = ezFrame(
             Type = "numeric",
-            DefaultValue = 0.05,
+            DefaultValue = 0.01,
             Description = "A gene will be kept if it is expressed in at least this percentage of cells"
           ),
           nUMIs = ezFrame(
@@ -93,8 +102,8 @@ ezMethodSCOneSample <- function(input = NA, output = NA, param = NA,
   # Doublets prediction and removal
   library(scDblFinder)
   doubletsInfo <- scDblFinder(GetAssayData(scData, slot="counts"), returnType = "table")
-  doublets <- doubletsInfo$type == "real" & doubletsInfo$class == "doublet"
-  scData <- scData[,!doublets]
+  doublets <- rownames(doubletsInfo)[doubletsInfo$type == "real" & doubletsInfo$class == "doublet"]
+  scData <- subset(scData, cells = doublets)
 
   # Cells and genes filtering
   scData_list <- filterCellsAndGenes(scData, param) # return sce objects filtered and unfiltered to show the QC metrics later in the rmd
