@@ -160,6 +160,21 @@ ezMethodSCOneSample <- function(input = NA, output = NA, param = NA,
     sep = ": "
   )
   geneMeans <- geneMeansCluster(sce)
+  
+  ## generate template for manual cluster annotation -----
+  ## we only deal with one sample
+  stopifnot(length(input$getNames()) == 1)
+  clusterInfos <- ezFrame(Sample=input$getNames(), Cluster=levels(sce$seurat_clusters), ClusterLabel="")
+  if (!is.null(singler.results)){
+    clusterInfos$SinglerCellType <- singler.results$singler.results.cluster[clusterInfos$Cluster, "pruned.labels"]
+  }
+  nTopMarkers <- 10
+  topMarkers <- posMarkers %>% group_by(cluster) %>%
+    slice_max(n = nTopMarkers, order_by = avg_log2FC)
+  topMarkerString <- sapply(split(topMarkers$gene, topMarkers$cluster), paste, collapse=", ")
+  clusterInfos[["TopMarkers"]] <- topMarkerString[clusterInfos$Cluster]
+  writexl::write_xlsx(clusterInfos, path="clusterInfos.xlsx")
+  
   # Save some results in external files
   dataFiles <- saveExternalFiles(list(pos_markers = posMarkers, gene_means = as_tibble(as.data.frame(geneMeans), rownames = "gene_name")))
   # rowData(sce) = rowData(sce)[, c("gene_id", "biotypes", "description")]
