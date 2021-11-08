@@ -17,7 +17,6 @@ Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
 
 
 ```{r setup, include=FALSE}
-# input for this report: sce
 library(dplyr)
 library(clustree)
 library(kableExtra)
@@ -36,6 +35,7 @@ library(scater)
 library(Seurat)
 library(AUCell)
 library(HDF5Array)
+library(ezRun)
 knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE, knitr.table.format = "html")
 ```
 
@@ -79,15 +79,15 @@ We use several common QC metrics to identify low-quality cells based on their ex
 A key assumption here is that the QC metrics are independent of the biological state of each cell. Poor values (e.g., low library sizes, high mitochondrial proportions) are presumed to be driven by technical factors rather than biological processes, meaning that the subsequent removal of cells will not misrepresent the biology in downstream analyses. Major violations of this assumption would potentially result in the loss of cell types that have, say, systematically low RNA content or high numbers of mitochondria. We can check for such violations using some diagnostics plots. In the most ideal case, we would see normal distributions that would justify the thresholds used in outlier detection. A large proportion of cells in another mode suggests that the QC metrics might be correlated with some biological state, potentially leading to the loss of distinct cell types during filtering. 
 
 ```{r QC plots, fig.height=4}
-plotColData(sce.unfiltered, x="Batch", y="sum", colour_by="discard") + scale_y_log10() + ggtitle("Total count")
-plotColData(sce.unfiltered, x="Batch", y="detected", colour_by="discard") + scale_y_log10() + ggtitle("Detected features")
-plotColData(sce.unfiltered, x="Batch", y="subsets_Mito_percent", colour_by="discard") + ggtitle("Mito percent")
+plotColData(sce.unfiltered, x="Batch", y="nCount_RNA", colour_by="discard") + scale_y_log10() + ggtitle("Number of UMIs")
+plotColData(sce.unfiltered, x="Batch", y="nFeature_RNA", colour_by="discard") + scale_y_log10() + ggtitle("Detected genes")
+plotColData(sce.unfiltered, x="Batch", y="percent_mito", colour_by="discard") + ggtitle("Mito percent")
 ```
 
 It is also worth to plot the proportion of mitochondrial counts against the library size for each cell. The aim is to confirm that there are no cells with both large total counts and large mitochondrial counts, to ensure that we are not inadvertently removing high-quality cells that happen to be highly metabolically active.
 
 ```{r QC plot mito, fig.align='center'}
-plotColData(sce.unfiltered, x="sum", y="subsets_Mito_percent", colour_by="discard")
+plotColData(sce.unfiltered, x="nCount_RNA", y="percent_mito", colour_by="discard")
 ```
 
 <br/>
@@ -114,10 +114,11 @@ kable(tibble("QC metric" =c("Library Size", "Expressed genes", "Mitochondrial ge
 
 #### Gene filtering
 
-We also excluded genes that are lowly or not expressed in our system, as they do not contribute any information to our experiment and may add noise. In this case, we removed genes that were not expressed in at least `r param$cellsPercentage` percent of the cells. In case one or more rare cell populations are expected we might need to decrease the percentage of cells. The number of genes retained is marked as TRUE and the ones removed as FALSE.
+We also excluded genes that are lowly or not expressed in our system, as they do not contribute any information to our experiment and may add noise. In this case, we removed genes that were not expressed in at least `r param$cellsPercentage` percent of the cells. In case one or more rare cell populations are expected we might need to decrease the percentage of cells.
 
 ```{r gene filtering}
-table(rowData(sce.unfiltered)$is.expressed)
+cat("genes removed:", nrow(sce.unfiltered)-nrow(sce.singlets))
+cat("genes kept:", nrow(sce.singlets))
 ```
 
 ### Cells demultiplexing
@@ -160,26 +161,12 @@ VlnPlot(scData, features = "nCount_RNA", pt.size = 0.1, log = TRUE)
 HTOHeatmap(scData, assay = "HTO")
 ```
 
-#### Clustering on protein levels
+#### Hashtags clustering
 
 ```{r}
 plotReducedDim(sce.singlets, dimred = "TSNE_HTO", colour_by = "HTO_classification")+ ggtitle("Color based on antibody classification") + theme(plot.title = element_text(hjust = 0.5))
 plotReducedDim(sce.singlets, dimred = "TSNE_HTO", colour_by = "HTO_snn_res.0.2")+ ggtitle("Color based on HTO clusters") + theme(plot.title = element_text(hjust = 0.5))
 ```
-
-
-
-### Unwanted sources of variation
-
-The goal of the clustering analysis is to keep the major sources of variation in the dataset that should define the cell types, while restricting the variation due to uninteresting sources (sequencing depth, cell cycle differences, mitochondrial expression, batch effects, etc.). A common practice is to regress out these covariates prior to downstream analyses. Here, we will only asses cell cycle as the main potential source of variation since the method we will later use for normalization and variance stabilization removes the variation due to sequencing depth (total nUMIs per cell). While regressing out the other sources (i.e. mitochondrial abundances) has proved to have a negative impact, leading to increased correlation with covariates and decreased clustering accuracy (Pierre-Luc Germain, Anthony Sonrel, Mark D. Robinson: pipeComp, a general framework for the evaluation of computational pipelines, reveals performant single-cell RNA-seq preprocessing tools. bioRxiv doi: https://doi.org/10.1101/2020.02.02.930578).
-
-In most applications, the cell cycle is a minor factor of variation, secondary to differences between cell types. Any attempt at removal would also need to assume that the cell cycle effect is orthogonal to other biological processes. For example, regression would potentially remove interesting signal if cell cycle activity varied across clusters or conditions, with a prime example being the increased proliferation of activated T cells (Richard, A. C., A. T. L. Lun, W. W. Y. Lau, B. Gottgens, J. C. Marioni, and G. M. Griffiths. 2018. “T cell cytolytic capacity is independent of initial stimulation strength.” Nat. Immunol. 19 (8): 849–58.). We suggest only performing cell cycle adjustment on an as-needed basis in populations with clear cell cycle effects.
-A UMAP can help us to determine whether cell cycle is a major source of variation in our dataset. 
-
-```{r UMAP on cell cycle, fig.align='center'}
-plotUMAP(sce.singlets, colour_by="CellCycle") + ggtitle("Cell cycle phase")
-```
-
 
 ### Dimensionality reduction
 
@@ -222,7 +209,7 @@ The uniform manifold approximation and projection (UMAP) method (McInnes, Healy,
 
 <br/><br/>
 
-### Clustering
+### RNA clustering
 
 In order to find clusters of cells we first built a graph called K-nearest neighbor (KNN), where each node is a cell that is connected to its nearest neighbors in the high-dimensional space. Edges are weighted based on the similarity between the cells involved, with higher weight given to cells that are more closely related. This step takes as input the previously defined dimensionality of the dataset (first `r param$npcs` PCs). We then applied algorithms to identify “communities” of cells that are more connected to cells in the same community than they are to cells of different communities. Each community represents a cluster that we can use for downstream interpretation. 
 
@@ -248,11 +235,43 @@ cells_prop = cellsProportion(sce.singlets, groupVar1 = "ident", groupVar2 = "HTO
 kable(cells_prop,row.names=FALSE, format="html",caption="Cell proportions") %>% kable_styling(bootstrap_options = "striped", full_width = F, position = "float_right")
 ```
 
-### Clusters resolution assesment
+### RNA clusters assessment
+
+#### Segregation of clusters by various sources of uninteresting variation.
+
+Once we have created the clusters we need to asses if the clustering was driven by technical artifacts or uninteresting biological variability, such as cell cycle, mitochondrial gene expression.
+We can explore whether the cells cluster by the different cell cycle phases. In such a case, we would have clusters where most of the cells would be in one specific phase. This bias could be taken into account when normalizing and transforming the data prior to clustering. We can also look at the total number of reads, genes detected and mitochondrial gene expression. The clusters should be more or less even but if we observe big differences among some of them for these metrics, we will keep an eye on them and see if the cell types we identify later can explain the differences. 
+
+```{r uninteresting variation, fig.width=6, fig.height=6}
+sce.singlets$logRNA = log10(sce.singlets$nCount_RNA)
+sce.singlets$logGenes = log10(sce.singlets$nFeature_RNA)
+
+tryCatch({
+  p1 = plotColData(sce.singlets, x="ident", y="CellCycle", colour_by="ident") + ggtitle("Cell cycle vs ident")
+  p2 = plotReducedDim(sce.singlets, dimred="UMAP", colour_by="CellCycle", text_by="seurat_clusters", text_size=5, add_legend=TRUE)
+  print(p1)
+  print(p2)
+}, error=function(e) print("Cell cycle was not calculated. Possible reasons: a bug in the app or using a different organism than human or mouse. Please, ask the developer."))
+plotColData(sce.singlets, x="ident", y="nCount_RNA", colour_by="ident", add_legend=FALSE) + ggtitle("Number of UMIs vs ident")
+plotReducedDim(sce.singlets, dimred="UMAP", colour_by="logRNA", text_by="seurat_clusters", text_size=5)
+plotColData(sce.singlets, x="ident", y="nFeature_RNA", colour_by="ident", add_legend=FALSE) + ggtitle("Detected genes vs ident")
+plotReducedDim(sce.singlets, dimred="UMAP", colour_by="logGenes", text_by="seurat_clusters", text_size=5)
+plotColData(sce.singlets, x="ident", y="percent_mito", colour_by="ident", add_legend=FALSE) + ggtitle("Mito percentage vs ident")
+plotReducedDim(sce.singlets, dimred="UMAP", colour_by="percent_mito", text_by="seurat_clusters", text_size=5)
+plotColData(sce.singlets, x="ident", y="percent_ribo", colour_by="ident", add_legend=FALSE) + ggtitle("Ribo percentage vs ident")
+plotReducedDim(sce.singlets, dimred="UMAP", colour_by="percent_ribo", text_by="seurat_clusters", text_size=5)
+if (ezIsSpecified(param$controlSeqs)) {
+  genesToPlot <- gsub("_", "-", param$controlSeqs)
+  genesToPlot <- intersect(genesToPlot, rownames(sce.singlets))
+  plotExpression(sce.singlets, genesToPlot, x="seurat_clusters", colour_by = "seurat_clusters", add_legend=FALSE)
+  #plotReducedDim(sce.singlets, dimred="UMAP", colour_by=genesToPlot[1], text_by="seurat_clusters", text_size=5)
+}
+```
+
+#### Cluster resolution 
 
 One of the most important parameters when clustering is k, the number of nearest neighbors used to construct the graph. This controls the resolution of the clustering where higher k yields a more inter-connected graph and broader clusters. Users can experiment with different values of k to obtain a satisfactory resolution. We recommend increasing the resolution when a rare population is expected. 
-Below, it is shown a clustering tree that helps us to visualize the relationships between clusters at a range of resolutions. Each cluster forms a node in the tree and edges are constructed by considering the cells in a cluster at a lower resolution that end up in a cluster at the next highest resolution. By connecting clusters in this way, we can see how clusters are related to each other, which are clearly distinct and which are unstable. 
-The size of each node is related to the number of cells in each cluster and the color indicates the clustering resolution. Edges are colored according to the number of cells they represent and the transparency shows the incoming node proportion, the number of cells in the edge divided by the number of samples in the node it points to. 
+Below, it is shown a clustering tree that helps us to visualize the relationships between clusters at a range of resolutions. Each cluster forms a node in the tree and edges are constructed by considering the cells in a cluster at a lower resolution that end up in a cluster at the next highest resolution. By connecting clusters in this way, we can see how clusters are related to each other, which are clearly distinct and which are unstable. The size of each node is related to the number of cells in each cluster and the color indicates the clustering resolution. Edges are colored according to the number of cells they represent and the transparency shows the incoming node proportion, the number of cells in the edge divided by the number of samples in the node it points to. 
 
 ```{r, fig.align='center', fig.width=6, fig.height=8}
 clustree::clustree(sce.singlets, prefix = "SCT_snn_res.")
@@ -270,8 +289,13 @@ plotUMAP(sce.singlets, colour_by="scDblFinder.class") + ggtitle("scDblFinder cla
 
 ### Cluster markers
 
+#### Expression differences of cluster marker genes
+
 ```{r}
 posMarkers = read_tsv("pos_markers.tsv")
+posMarkers$cluster = as.factor(posMarkers$cluster)
+posMarkers$gene = as.factor(posMarkers$gene)
+ezInteractiveTableRmd(posMarkers, digits=4)
 ```
 
 
@@ -295,17 +319,19 @@ Here, we use a heatmap and a dotplot to visualize simultaneously the top 5 marke
 
 <br/>
 
-```{r heatmap, fig.width=8, fig.height=length(levels(sce.singlets$seurat_clusters))*0.8}
-top5 <- posMarkers %>% group_by(cluster) %>% top_n(n = 5, wt = diff_pct)
+```{r heatmap, fig.width=12, fig.height=length(levels(sce.singlets$seurat_clusters))}
+top5 <- posMarkers %>% group_by(cluster) 
+top5 <- slice_max(top5, n = 5, order_by = avg_log2FC)
+genesToPlot <- c(gsub("_", "-", param$controlSeqs), unique(as.character(top5$gene)))
+genesToPlot <- intersect(genesToPlot, rownames(sce.singlets))
 
-tr_cnts <- expm1(logcounts(sce.singlets))
-geneMeans <- rowsum(DelayedArray::t(tr_cnts), group=sce.singlets$seurat_clusters)
-geneMeans <- sweep(geneMeans, 1, STATS=table(sce.singlets$seurat_clusters)[rownames(geneMeans)], FUN="/")
-geneMeans <- log1p(t(geneMeans))
-colnames(geneMeans) <- paste("cluster", colnames(geneMeans), sep="_")
-pheatmap(geneMeans[unique(top5$gene), ],fontsize_row = 6)
+plotHeatmap(sce.singlets, features=genesToPlot, center=TRUE, zlim=c(-2, 2),
+            colour_columns_by = c("seurat_clusters"), 
+            order_columns_by = c("seurat_clusters"),
+            cluster_rows=TRUE,
+            fontsize_row=8)
 
-plotDots(sce.singlets, features=top5$gene, group="seurat_clusters")
+plotDots(sce.singlets, features=genesToPlot, group="seurat_clusters")
 ```
 
 ### Cells annotation

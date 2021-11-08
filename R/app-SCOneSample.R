@@ -90,6 +90,17 @@ EzAppSCOneSample <-
 
 ezMethodSCOneSample <- function(input = NA, output = NA, param = NA,
                                 htmlFile = "00index.html") {
+  library(scanalysis)
+  library(HDF5Array)
+  library(AUCell)
+  library(GSEABase)
+  library(SingleR)
+  library(Seurat)
+  library(SingleCellExperiment)
+  library(tidyverse)
+  library(scanalysis)
+  require(scDblFinder)
+  
   cwd <- getwd()
   setwdNew(basename(output$getColumn("Report")))
   on.exit(setwd(cwd), add = TRUE)
@@ -103,10 +114,10 @@ ezMethodSCOneSample <- function(input = NA, output = NA, param = NA,
   library(scDblFinder)
   doubletsInfo <- scDblFinder(GetAssayData(scData, slot="counts"), returnType = "table")
   doublets <- rownames(doubletsInfo)[doubletsInfo$type == "real" & doubletsInfo$class == "doublet"]
-  scData <- subset(scData, cells = doublets)
+  scData <- subset(scData, cells = doublets, invert=TRUE)
 
   # Cells and genes filtering
-  scData_list <- filterCellsAndGenes(scData, param) # return sce objects filtered and unfiltered to show the QC metrics later in the rmd
+  scData_list <- filterCellsAndGenes(scData, param) # return scData objects filtered and unfiltered to show the QC metrics later in the rmd
   scData <- scData_list$scData
   scData.unfiltered <- scData_list$scData.unfiltered
   rm(scData_list)
@@ -123,12 +134,6 @@ ezMethodSCOneSample <- function(input = NA, output = NA, param = NA,
 
   # positive cluster markers
   posMarkers <- posClusterMarkers(scData, pvalue_allMarkers, param)
-  # if all2allmarkers are not calculated it will remain as NULL
-  all2allMarkers <- NULL
-  # perform all pairwise comparisons to obtain markers
-  if (doEnrichr(param) && param$all2allMarkers) {
-    all2allMarkers <- all2all(scData, pvalue_all2allMarkers, param)
-  }
 
   cells_AUC <- NULL
   singler.results <- NULL
@@ -140,8 +145,8 @@ ezMethodSCOneSample <- function(input = NA, output = NA, param = NA,
   }
 
   # Convert scData to Single Cell experiment Object
-  library(scanalysis)
   sce.unfiltered <- scData.unfiltered %>% seurat_to_sce()
+  rowData(sce.unfiltered)$is.expressed <- scData.unfiltered[["RNA"]][["is.expressed"]]
   #TODO: remove unnecesary dietseurat call when the bug in Seurat is fixed
   scData_diet = DietSeurat(scData, dimreducs = c("pca", "tsne", "umap"))
   sce <- scData_diet %>% seurat_to_sce(default_assay = "SCT")
@@ -156,14 +161,16 @@ ezMethodSCOneSample <- function(input = NA, output = NA, param = NA,
   )
   geneMeans <- geneMeansCluster(sce)
   # Save some results in external files
-  dataFiles <- saveExternalFiles(list(pos_markers = posMarkers, all2allMarkers = all2allMarkers, gene_means = as_tibble(as.data.frame(geneMeans), rownames = "gene_name")))
+  dataFiles <- saveExternalFiles(list(pos_markers = posMarkers, gene_means = as_tibble(as.data.frame(geneMeans), rownames = "gene_name")))
   # rowData(sce) = rowData(sce)[, c("gene_id", "biotypes", "description")]
 
-  library(HDF5Array)
   saveHDF5SummarizedExperiment(sce, dir = "sce_h5")
   saveHDF5SummarizedExperiment(sce.unfiltered, dir = "sce.unfiltered_h5")
 
   makeRmdReport(dataFiles = dataFiles, rmdFile = "SCOneSample.Rmd", reportTitle = metadata(sce)$param$name)
+  #remove no longer used objects
+  rm(scData, sce.singlets, sce.unfiltered)
+  gc()
   return("Success")
 }
 

@@ -75,16 +75,16 @@ We use several common QC metrics to identify low-quality cells based on their ex
 A key assumption here is that the QC metrics are independent of the biological state of each cell. Poor values (e.g., low library sizes, high mitochondrial or ribosomal proportions) are presumed to be driven by technical factors rather than biological processes, meaning that the subsequent removal of cells will not misrepresent the biology in downstream analyses. Major violations of this assumption would potentially result in the loss of cell types that have, say, systematically low RNA content or high numbers of mitochondria. We can check for such violations using some diagnostics plots. In the most ideal case, we would see normal distributions that would justify the thresholds used in outlier detection. A large proportion of cells in another mode suggests that the QC metrics might be correlated with some biological state, potentially leading to the loss of distinct cell types during filtering. 
 
 ```{r QC plots, fig.height=4}
-plotColData(sce.unfiltered, x="Batch", y="sum", colour_by="discard") + scale_y_log10() + ggtitle("Total count")
-plotColData(sce.unfiltered, x="Batch", y="detected", colour_by="discard") + scale_y_log10() + ggtitle("Detected features")
-plotColData(sce.unfiltered, x="Batch", y="subsets_Mito_percent", colour_by="discard") + ggtitle("Mito percent")
-plotColData(sce.unfiltered, x="Batch", y="subsets_Ribo_percent", colour_by="discard") + ggtitle("Ribo percent")
+plotColData(sce.unfiltered, x="Batch", y="nCount_RNA", colour_by="discard") + scale_y_log10() + ggtitle("Number of UMIs")
+plotColData(sce.unfiltered, x="Batch", y="nFeature_RNA", colour_by="discard") + scale_y_log10() + ggtitle("Detected genes")
+plotColData(sce.unfiltered, x="Batch", y="percent_mito", colour_by="discard") + ggtitle("Mito percent")
+plotColData(sce.unfiltered, x="Batch", y="percent_ribo", colour_by="discard") + ggtitle("Ribo percent")
 ```
 
 It is also worth to plot the proportion of mitochondrial counts against the library size for each cell. The aim is to confirm that there are no cells with both large total counts and large mitochondrial counts, to ensure that we are not inadvertently removing high-quality cells that happen to be highly metabolically active.
 
 ```{r QC plot mito, fig.align='center'}
-plotColData(sce.unfiltered, x="sum", y="subsets_Mito_percent", colour_by="discard")
+plotColData(sce.unfiltered, x="nCount_RNA", y="percent_mito", colour_by="discard")
 ```
 
 <br/>
@@ -115,8 +115,8 @@ kable(tibble("QC metric" =c("Library Size", "Expressed genes", "Mitochondrial ge
 We also excluded genes that are lowly or not expressed in our system, as they do not contribute any information to our experiment and may add noise. In this case, we removed genes that were not expressed in at least `r param$cellsPercentage` percent of the cells. In case one or more rare cell populations are expected we might need to decrease the percentage of cells.
 
 ```{r gene filtering}
-cat("genes removed:", sum(!rowData(sce.unfiltered)$is.expressed))
-cat("genes kept:", sum(rowData(sce.unfiltered)$is.expressed))
+cat("genes removed:", nrow(sce.unfiltered)-nrow(sce))
+cat("genes kept:", nrow(sce))
 ```
 
 ### Dimensionality reduction
@@ -184,7 +184,7 @@ cellIdents_perSample <- as.data.frame(colData(sce)[,c('seurat_clusters', 'orig.i
 barplot = ggplot(data=cellIdents_perSample, aes(x=seurat_clusters, fill=orig.ident)) + geom_bar(stat="Count")
 barplot + labs(x="Cluster", y = "Number of cells", fill = "Sample")
 
-cells_prop = cellsProportion(sce, groupVar1 = "ident", groupVar2 = "Plate")
+cells_prop = cellsProportion(sce, groupVar1 = "ident", groupVar2 = "Batch")
 kable(cells_prop,row.names=FALSE, format="html",caption="Cell proportions") %>% kable_styling(bootstrap_options = "striped", full_width = F, position = "float_right")
 ```
 
@@ -197,36 +197,29 @@ Once we have created the clusters we need to asses if the clustering was driven 
 We can explore whether the cells cluster by the different cell cycle phases. In such a case, we would have clusters where most of the cells would be in one specific phase. This bias could be taken into account when normalizing and transforming the data prior to clustering. We can also look at the total number of reads, genes detected and mitochondrial gene expression. The clusters should be more or less even but if we observe big differences among some of them for these metrics, we will keep an eye on them and see if the cell types we identify later can explain the differences. 
 
 ```{r uninteresting variation, fig.width=6, fig.height=6}
-sce$logSum = log10(sce$sum)
-sce$logDetected = log10(sce$detected)
+sce$logRNA = log10(sce$nCount_RNA)
+sce$logGenes = log10(sce$nFeature_RNA)
 
-  tryCatch({
+tryCatch({
   p1 = plotColData(sce, x="ident", y="CellCycle", colour_by="ident") + ggtitle("Cell cycle vs ident")
   p2 = plotReducedDim(sce, dimred="UMAP", colour_by="CellCycle", text_by="seurat_clusters", text_size=5, add_legend=TRUE)
   print(p1)
   print(p2)
 }, error=function(e) print("Cell cycle was not calculated. Possible reasons: a bug in the app or using a different organism than human or mouse. Please, ask the developer."))
-  plotColData(sce, x="ident", y="sum", colour_by="ident", add_legend=FALSE) + ggtitle("Number of UMIs vs ident")
-  plotReducedDim(sce, dimred="UMAP", colour_by="logSum", text_by="seurat_clusters", text_size=5)
-  plotColData(sce, x="ident", y="detected", colour_by="ident", add_legend=FALSE) + 
-    ggtitle("Detected genes vs ident")
-  plotReducedDim(sce, dimred="UMAP", colour_by="logDetected", text_by="seurat_clusters", 
-                 text_size=5)
-  plotColData(sce, x="ident", y="subsets_Mito_percent", colour_by="ident", add_legend=FALSE) + 
-    ggtitle("Mito percentage vs ident")
-  plotReducedDim(sce, dimred="UMAP", colour_by="subsets_Mito_percent", text_by="seurat_clusters", 
-                 text_size=5)
-  plotColData(sce, x="ident", y="subsets_Ribo_percent", colour_by="ident", add_legend=FALSE) + 
-    ggtitle("Ribo percentage vs ident")
-  plotReducedDim(sce, dimred="UMAP", colour_by="subsets_Ribo_percent", text_by="seurat_clusters", 
-                 text_size=5)
+plotColData(sce, x="ident", y="nCount_RNA", colour_by="ident", add_legend=FALSE) + ggtitle("Number of UMIs vs ident")
+plotReducedDim(sce, dimred="UMAP", colour_by="logRNA", text_by="seurat_clusters", text_size=5)
+plotColData(sce, x="ident", y="nFeature_RNA", colour_by="ident", add_legend=FALSE) + ggtitle("Detected genes vs ident")
+plotReducedDim(sce, dimred="UMAP", colour_by="logGenes", text_by="seurat_clusters", text_size=5)
+plotColData(sce, x="ident", y="percent_mito", colour_by="ident", add_legend=FALSE) + ggtitle("Mito percentage vs ident")
+plotReducedDim(sce, dimred="UMAP", colour_by="percent_mito", text_by="seurat_clusters", text_size=5)
+plotColData(sce, x="ident", y="percent_ribo", colour_by="ident", add_legend=FALSE) + ggtitle("Ribo percentage vs ident")
+plotReducedDim(sce, dimred="UMAP", colour_by="percent_ribo", text_by="seurat_clusters", text_size=5)
 if (ezIsSpecified(param$controlSeqs)) {
   genesToPlot <- gsub("_", "-", param$controlSeqs)
   genesToPlot <- intersect(genesToPlot, rownames(sce))
   plotExpression(sce, genesToPlot, x="seurat_clusters", colour_by = "seurat_clusters", add_legend=FALSE)
   #plotReducedDim(sce, dimred="UMAP", colour_by=genesToPlot[1], text_by="seurat_clusters", text_size=5)
 }
-
 ```
 
 #### Cluster resolution 

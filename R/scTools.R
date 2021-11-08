@@ -20,11 +20,11 @@ addCellCycleToSce <- function(sce, refBuild){
 }
 
 addCellCycleToSeurat <- function(scData, refBuild){
-  counts <- GetAssayData(scData, slot="counts")
+  counts <- GetAssayData(scData, slot="counts", assay = "RNA")
   rownames(counts) <- scData[["RNA"]][["ensemblID"]]$ensemblID
   cellPhase <- getCellCycle(counts, refBuild)
   if (!is.null(cellPhase)){
-    cellcycleInfo = data.frame(CellCycle = cellPhase$Phase, CellCycleG1 = cellPhase$G1, CellCycleS = cellPhase$S, CellCycleG2M = cellPhase$G2M)
+    cellcycleInfo = data.frame(CellCycle = cellPhase$Phase, CellCycleG1 = cellPhase$G1, CellCycleS = cellPhase$S, CellCycleG2M = cellPhase$G2M, row.names = colnames(scData))
     scData <- AddMetaData(scData, metadata = cellcycleInfo)
   }
   return(scData)
@@ -323,25 +323,25 @@ filterCellsAndGenes <- function(scData, param) {
     assay <- "RNA"
   }
   
-  if (param$nreads == "") {
+  if (is.na(param$nreads)) {
     qc.lib <- isOutlier(scData@meta.data[,att_nCounts], log = TRUE, nmads = param$nmad, type = "lower")
   } else {
-    qc.lib <- scData@meta.data[,att_nCounts] < as.double(param$nreads)
+    qc.lib <- scData@meta.data[,att_nCounts] < param$nreads
   }
-  if (param$ngenes == "") {
+  if (is.na(param$ngenes)) {
     qc.nexprs <- isOutlier(scData@meta.data[,att_nGenes], nmads = param$nmad, log = TRUE, type = "lower")
   } else {
-    qc.nexprs <- scData@meta.data[,att_nGenes] < as.double(param$ngenes)
+    qc.nexprs <- scData@meta.data[,att_nGenes] < param$ngenes
   }
-  if (param$perc_mito == "") {
+  if (is.na(param$perc_mito)) {
     qc.mito <- isOutlier(scData@meta.data[,"percent_mito"], nmads = param$nmad, type = "higher")
   } else {
-    qc.mito <- scData@meta.data[,"percent_mito"] > as.double(param$perc_mito)
+    qc.mito <- scData@meta.data[,"percent_mito"] > param$perc_mito
   }
-  if (param$perc_ribo == "") {
+  if (is.na(param$perc_ribo )) {
     qc.ribo <- isOutlier(scData@meta.data[,"percent_ribo"], nmads = param$nmad, type = "higher")
   } else {
-    qc.ribo <- scData@meta.data[,"percent_ribo"] > as.double(param$perc_ribo)
+    qc.ribo <- scData@meta.data[,"percent_ribo"] > param$perc_ribo
   }
   
   discard <- qc.lib | qc.nexprs | qc.mito | qc.ribo
@@ -351,11 +351,12 @@ filterCellsAndGenes <- function(scData, param) {
   scData$qc.mito <- qc.mito
   scData$qc.ribo <- qc.ribo
   scData.unfiltered <- scData
-  scData <- scData[, !discard]
+  scData <- scData[, -which(discard)]
   
   # Genes filtering
   num.cells <- param$cellsFraction * ncol(scData) # if we expect at least one rare subpopulation of cells, we should decrease the percentage of cells
   is.expressed <- Matrix::rowSums(GetAssayData(scData, "counts") >= param$nUMIs) >= num.cells
+  scData.unfiltered[[assay]] <- AddMetaData(object = scData.unfiltered[[assay]], metadata = is.expressed,col.name ='is.expressed')
   scData <- scData[is.expressed,]
   return(list(scData.unfiltered = scData.unfiltered, scData = scData))
 }

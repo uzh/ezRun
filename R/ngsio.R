@@ -241,13 +241,24 @@ load10xSC_seurat <- function(input, param){
                               pattern="\\.mtx(\\.gz)*$", recursive=TRUE, 
                               full.names=TRUE)
   counts <- Read10X(dirname(countMatrixFn))
+  geneID <- read_tsv(gzfile(paste0(input$getFullPaths("CountMatrix"), "/features.tsv.gz")), col_names = FALSE)
+  if(grepl("FeatBarcoding", param$appName)) {
+    counts_antibodies <- counts[["Antibody Capture"]]  
+    colnames(counts_antibodies) <- paste(input$getNames(), colnames(counts_antibodies), sep="___")
+    counts <- counts[["Gene Expression"]]
+    #Feature barcoding experiments include the antibodies. They don't appear in the expression matrix
+    geneID <- geneID[geneID$X3 == "Gene Expression",]
+  }
   ## unique cell names when merging two samples
   colnames(counts) <- paste(input$getNames(), colnames(counts), sep="___")
   try(condition <- rep(input$getColumn("Condition"), ncol(counts)), silent = TRUE)
   batch <- rep(input$getNames(), ncol(counts))
+  
   scData <- CreateSeuratObject(counts = counts, meta.data = data.frame(Batch = batch, Condition=condition, row.names = colnames(counts)))
-  geneID <- read_tsv(gzfile(paste0(input$getFullPaths("CountMatrix"), "/features.tsv.gz")), col_names = FALSE)$X1
-  scData[["RNA"]] <- AddMetaData(object = scData[["RNA"]], metadata = geneID,col.name ='ensemblID')
+  scData[["RNA"]] <- AddMetaData(object = scData[["RNA"]], metadata = geneID$X1,col.name ='ensemblID')
+  if(grepl("FeatBarcoding", param$appName)) #Create an assay for the hashtags and add it to the seurat object
+    scData[["HTO"]] <- CreateAssayObject(counts_antibodies)
+  
   return(scData)
 }
 
