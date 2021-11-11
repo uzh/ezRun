@@ -77,7 +77,7 @@ ezMethodSCMultipleSamples = function(input=NA, output=NA, param=NA, htmlFile="00
   sceList <- lapply(filePath,loadHDF5SummarizedExperiment)
   names(sceList) <- names(sceURLs)
   scDataList <- lapply(sceList, function(sce) {
-      sce = swapAltExp(sce, "RNA", withColData = TRUE)
+      sce = swapAltExp(sce, "RNA", withColData = FALSE)
       colData(sce)[, grep("SCT", colnames(colData(sce)))] = NULL #remove previous clustering done on SCT assay
       CreateSeuratObject(counts=counts(sce),meta.data=data.frame(colData(sce)))})
   
