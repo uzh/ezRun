@@ -44,16 +44,16 @@ ezMethodMergeRunData <- function(input=NA, output=NA, param=NA){
         file1 = file.path(param[['dataRoot']], dataset1[dataset1[[matchCol]] == intersectNames[i],'Read1 [File]'])
         file2 = file.path(param[['dataRoot']], dataset2[dataset2[[matchCol]] == intersectNames[i],'Read1 [File]'])
         
-        mergedFile = paste0(outputRunName, intersectNames[i], '_R1.fastq')
-        cmd = paste('pigz -dc', file1, file2, '>', mergedFile,'&& pigz --best -p', param[['cores']], mergedFile)
+        mergedFile = paste0(outputRunName, intersectNames[i], '_R1.fastq.gz')
+        cmd = paste('cat', file1, file2, '>', mergedFile)
         ezSystem(cmd)
         
         if(param[['paired']]){
             file1 = file.path(param[['dataRoot']], dataset1[dataset1[[matchCol]] == intersectNames[i], 'Read2 [File]'])
             file2 = file.path(param[['dataRoot']], dataset2[dataset2[[matchCol]] == intersectNames[i], 'Read2 [File]'])
             
-            mergedFile = paste0(outputRunName, intersectNames[i], '_R2.fastq')
-            cmd = paste('pigz -dc', file1, file2, '>', mergedFile,'&& pigz --best -p', param[['cores']], mergedFile)
+            mergedFile = paste0(outputRunName, intersectNames[i], '_R2.fastq.gz')
+            cmd = paste('cat', file1, file2, '>', mergedFile)
             ezSystem(cmd)
         }
     }
