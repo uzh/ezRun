@@ -46,6 +46,10 @@ ezMethodVPipe <- function(input=NA, output=NA, param=NA,
     
     samples <- sub(param$samplePrefix, '', samples)
     samples <- limma::strsplit2(samples, '_')
+    if(ncol(samples) == 1){
+        samples <- data.frame(samples)
+        samples[['InternalNumber']] = paste(samples[,1], '_S', 1:nrow(samples), sep = '')
+    }
     samples <- data.frame(ID = samples[,1], InternalNumber = samples[,2], RL = param$readLength, stringsAsFactors = FALSE)
     rownames(samples) <- rownames(dataset)
     ezWrite.table(samples, 'samples.tsv', row.names = FALSE, col.names = FALSE)
