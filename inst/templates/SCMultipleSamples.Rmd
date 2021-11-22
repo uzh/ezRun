@@ -144,31 +144,29 @@ Once we have created the clusters we need to asses if the clustering was driven 
 We can explore whether the cells cluster by the different cell cycle phases. In such a case, we would have clusters where most of the cells would be in one specific phase. This bias could be taken into account when normalizing and transforming the data prior to clustering. We can also look at the total number of reads, genes detected and mitochondrial gene expression. The clusters should be more or less even but if we observe big differences among some of them for these metrics, we will keep an eye on them and see if the cell types we identify later can explain the differences. 
 
 ```{r uninteresting variation}
-sce$logSum = log10(sce$sum)
-sce$logDetected = log10(sce$detected)
+sce$logRNA = log10(sce$nCount_RNA)
+sce$logGenes = log10(sce$nFeature_RNA)
 
-  tryCatch({
+tryCatch({
   p1 = plotColData(sce, x="ident", y="CellCycle", colour_by="ident") + ggtitle("Cell cycle vs ident")
   p2 = plotReducedDim(sce, dimred="UMAP", colour_by="CellCycle", text_by="seurat_clusters", text_size=5, add_legend=TRUE)
   print(p1)
   print(p2)
 }, error=function(e) print("Cell cycle was not calculated. Possible reasons: a bug in the app or using a different organism than human or mouse. Please, ask the developer."))
-  plotColData(sce, x="ident", y="sum", colour_by="ident", add_legend=FALSE) + ggtitle("Number of UMIs vs ident")
-  plotReducedDim(sce, dimred="UMAP", colour_by="logSum", text_by="seurat_clusters", text_size=5)
-  plotColData(sce, x="ident", y="detected", colour_by="ident", add_legend=FALSE) + 
-    ggtitle("Detected genes vs ident")
-  plotReducedDim(sce, dimred="UMAP", colour_by="logDetected", text_by="seurat_clusters", 
-                 text_size=5)
-  plotColData(sce, x="ident", y="subsets_Mito_percent", colour_by="ident", add_legend=FALSE) + 
-    ggtitle("Mito percentage vs ident")
-  plotReducedDim(sce, dimred="UMAP", colour_by="subsets_Mito_percent", text_by="seurat_clusters", 
-                 text_size=5)
-  if(any(colnames(colData(sce)) %in% 'subsets_Ribo_percent')){
-    plotColData(sce, x="ident", y="subsets_Ribo_percent", colour_by="ident", add_legend=FALSE) + 
-      ggtitle("Ribo percentage vs ident")
-    plotReducedDim(sce, dimred="UMAP", colour_by="subsets_Ribo_percent", text_by="seurat_clusters", 
-                 text_size=5)
-  }
+plotColData(sce, x="ident", y="nCount_RNA", colour_by="ident", add_legend=FALSE) + ggtitle("Number of UMIs vs ident")
+plotReducedDim(sce, dimred="UMAP", colour_by="logRNA", text_by="seurat_clusters", text_size=5)
+plotColData(sce, x="ident", y="nFeature_RNA", colour_by="ident", add_legend=FALSE) + ggtitle("Detected genes vs ident")
+plotReducedDim(sce, dimred="UMAP", colour_by="logGenes", text_by="seurat_clusters", text_size=5)
+plotColData(sce, x="ident", y="percent_mito", colour_by="ident", add_legend=FALSE) + ggtitle("Mito percentage vs ident")
+plotReducedDim(sce, dimred="UMAP", colour_by="percent_mito", text_by="seurat_clusters", text_size=5)
+plotColData(sce, x="ident", y="percent_ribo", colour_by="ident", add_legend=FALSE) + ggtitle("Ribo percentage vs ident")
+plotReducedDim(sce, dimred="UMAP", colour_by="percent_ribo", text_by="seurat_clusters", text_size=5)
+if (ezIsSpecified(param$controlSeqs)) {
+  genesToPlot <- gsub("_", "-", param$controlSeqs)
+  genesToPlot <- intersect(genesToPlot, rownames(sce))
+  plotExpression(sce, genesToPlot, x="seurat_clusters", colour_by = "seurat_clusters", add_legend=FALSE)
+  #plotReducedDim(sce, dimred="UMAP", colour_by=genesToPlot[1], text_by="seurat_clusters", text_size=5)
+}
 ```
 
 #### Clusters resolution 
