@@ -272,7 +272,7 @@ top5 <- slice_max(top5, n = 5, order_by = avg_log2FC)
 genesToPlot <- c(gsub("_", "-", param$controlSeqs), unique(as.character(top5$gene)))
 genesToPlot <- intersect(genesToPlot, rownames(sce))
 
-plotHeatmap(sce, features=genesToPlot, center=TRUE, zlim=c(-2, 2),
+plotHeatmap(sce, features=unique(genesToPlot), center=TRUE, zlim=c(-2, 2),
             colour_columns_by = c("seurat_clusters"), 
             order_columns_by = c("seurat_clusters"),
             cluster_rows=TRUE,

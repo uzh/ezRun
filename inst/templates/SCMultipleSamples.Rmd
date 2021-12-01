@@ -217,7 +217,7 @@ var_heigth <- nrow(top5)*0.2
 ```
 
 ```{r heatmap, fig.width=8, fig.height=var_heigth}
-plotHeatmap(sce, features=top5$gene, center=TRUE, zlim=c(-2, 2),
+plotHeatmap(sce, features=unique(top5$gene), center=TRUE, zlim=c(-2, 2),
             colour_columns_by = "ident", 
             order_columns_by = "ident",
             cluster_rows=TRUE,
