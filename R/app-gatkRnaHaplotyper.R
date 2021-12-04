@@ -15,7 +15,7 @@ ezMethodGatkRnaHaplotyper = function(input=NA, output=NA, param=NA){
   stopifnot(file.exists(dbsnpFile))
   stopifnot(param$markDuplicates == FALSE)
   #javaCall = paste0("java", " -Djava.io.tmpdir=. -Xmx", param$ram, "g")
-  gatkCall = paste0('gatk --java-options "-Djava.io.tmpdir=. -Xmx', param$ram, 'g -Xms 4g" ')
+  gatkCall = paste0('gatk --java-options "-Djava.io.tmpdir=. -Xmx', param$ram, 'g -Xms4g" ')
   
   ## define the exome intervals
   exomeInterVals <- "exome.bed"
