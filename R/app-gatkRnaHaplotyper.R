@@ -47,7 +47,7 @@ ezMethodGatkRnaHaplotyper = function(input=NA, output=NA, param=NA){
               "-I", "withRg.bam",
               "-L", exomeInterVals,
               ## this is the default! "-rf ReassignOneMappingQuality -RMQF 255 -RMQT 60 -U ALLOW_N_CIGAR_READS",
-              "-o splitNtrim.bam")
+              "-O splitNtrim.bam")
   ezSystem(cmd)
 
   #BaseRecalibration is done only if known sites are available
