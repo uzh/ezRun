@@ -98,7 +98,7 @@ EzAppGatkRnaHaplotyper <-
                 initialize = function()
                 {
                   "Initializes the application using its specific defaults."
-                  runMethod <<- ezMethodGatkDnaHaplotyper
+                  runMethod <<- ezMethodGatkRnaHaplotyper
                   name <<- "EzAppGatkDnaHaplotyper"
                   appDefaults <<- rbind(addReadGroup = ezFrame(Type="logical",  DefaultValue=FALSE, Description="add ReadGroup to BAM"),
                                         #getRealignedBam = ezFrame(Type="logical",  DefaultValue=FALSE, Description="for IGV check"),
