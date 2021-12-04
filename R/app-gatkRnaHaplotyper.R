@@ -99,7 +99,7 @@ EzAppGatkRnaHaplotyper <-
                 {
                   "Initializes the application using its specific defaults."
                   runMethod <<- ezMethodGatkRnaHaplotyper
-                  name <<- "EzAppGatkDnaHaplotyper"
+                  name <<- "EzAppGatkRnaHaplotyper"
                   appDefaults <<- rbind(addReadGroup = ezFrame(Type="logical",  DefaultValue=FALSE, Description="add ReadGroup to BAM"),
                                         #getRealignedBam = ezFrame(Type="logical",  DefaultValue=FALSE, Description="for IGV check"),
                                         #splitNtrim = ezFrame(Type="logical",  DefaultValue=FALSE, Description="for RNA-Seq data"),
