@@ -21,7 +21,7 @@ ezMethodGatkRnaHaplotyper = function(input=NA, output=NA, param=NA){
   exomeInterVals <- "exome.bed"
   gtf <- import(param$ezRef["refFeatureFile"])
   ## TODO: we only work on the main chromosomes and use only lncRNA and protein coding
-  gtf <- gtf[grepl("chr", seqnames(gtf)), gtf$type =="exon" & gtf$gene_biotype %in% c("lncRNA", "protein_coding"), ]
+  gtf <- gtf[grepl("chr", seqnames(gtf)) & gtf$type =="exon" & gtf$gene_biotype %in% c("lncRNA", "protein_coding")]
   write.table(data.frame(seqnames(gtf), start(gtf)-1, end(gtf)), 
                file=exomeInterVals, quote = F, sep="\t", col.names = F, row.names = F)
   
