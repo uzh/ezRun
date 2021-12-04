@@ -570,6 +570,7 @@ getBamLocally <- function(src, toSam = FALSE) {
     return(src)
   }
   target <- basename(src)
+  names(target) <- names(src)
   stopifnot(target != src)
   if (toSam) {
     target <- sub(".bam$", ".sam", target)
