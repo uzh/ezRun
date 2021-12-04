@@ -42,7 +42,6 @@ ezMethodGatkRnaHaplotyper = function(input=NA, output=NA, param=NA){
     ezSystem('mv local.bam withRg.bam')
   }
 
-  gatk = paste(javaCall, "-jar", Sys.getenv("GATK_jar"))
   cmd = paste(gatkCall, "SplitNCigarReads", 
               "-R", genomeSeq,
               "-I", "withRg.bam",
