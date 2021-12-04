@@ -6,6 +6,7 @@
 # www.fgcz.ch
 
 ezMethodGatkRnaHaplotyper = function(input=NA, output=NA, param=NA){
+  library(rtracklayer)
   standardCallConfidence <- 20
   bamFile <- getBamLocally(input$getFullPaths("BAM"))
   #knownSites = list.files(param$ezRef["refVariantsDir"],pattern='vcf.gz$',full.names = T)
