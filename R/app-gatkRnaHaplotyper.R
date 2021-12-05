@@ -42,6 +42,7 @@ ezMethodGatkRnaHaplotyper = function(input=NA, output=NA, param=NA){
     ezSystem('mv local.bam withRg.bam')
   }
 
+  ezSystem("samtools index withRg.bam")
   cmd = paste(gatkCall, "SplitNCigarReads", 
               "-R", genomeSeq,
               "-I", "withRg.bam",
@@ -49,9 +50,10 @@ ezMethodGatkRnaHaplotyper = function(input=NA, output=NA, param=NA){
               ## this is the default! "-rf ReassignOneMappingQuality -RMQF 255 -RMQT 60 -U ALLOW_N_CIGAR_READS",
               "-O splitNtrim.bam")
   ezSystem(cmd)
-
+  ezSystem("samtools index splitNtrim.bam")
+  
   #BaseRecalibration is done only if known sites are available
-  if(param$knownSitesAvailable){
+  if(file.exists(dbsnpFile)){
     cmd = paste(gatkCall, "BaseRecalibrator", 
                 "-R", genomeSeq,
                 "-I splitNtrim.bam",
@@ -68,13 +70,15 @@ ezMethodGatkRnaHaplotyper = function(input=NA, output=NA, param=NA){
                 "--add-output-sam-program-record",
                 "--bqsr-recal-file recal.table",
                 "--output recal.bam")
+    ezSystem(cmd)
   } else {
     ezSystem('mv splitNtrim.bam recal.bam')
   }
+  ezSystem("samtools index recal.bam")
   
   ########### haplotyping
   outputFile = basename(output$getColumn("GVCF"))#  paste0(sampleName, ".g.vcf.gz")
-  cmd = paste(gatkCal,'HaplotypeCaller',
+  cmd = paste(gatkCall,'HaplotypeCaller',
               "-R", genomeSeq,
               "-I recal.bam",
               "-L", exomeInterVals,
