@@ -105,6 +105,17 @@ ezMethodVPipe <- function(input=NA, output=NA, param=NA,
     file.remove('runPangolin.sh')
     gc()
     
+    lineageReport <- ezRead.table('lineage_report.csv', sep = ',', row.names = NULL)
+    x = DT::datatable(lineageReport, escape = FALSE, rownames = FALSE, filter = 'bottom',
+                  caption = paste('',sep=''),extensions = c('Buttons'),
+                  options = list(
+                                 initComplete = DT::JS(
+                                     "function(settings, json) {",
+                                     "$(this.api().table().header()).css({'background-color': '#0000A0', 'color': '#fff'});",
+                                     "}"),
+                                 dom = c('Bfrtip'),buttons = c('colvis','copy', 'csv', 'excel', 'pdf', 'print'), pageLength=200, autoWidth=TRUE))
+    DT::saveWidget(x, 'lineage_report.html')
+    
     dir.create('bedtools_coverage')
     dir.create('samtools_depth')
     for (j in 1:nrow(samples)){
