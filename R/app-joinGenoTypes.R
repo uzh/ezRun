@@ -57,7 +57,7 @@ runGatkPipeline = function(datasetCase, param=NA){
         fileCmd = paste("--variant", datasetCase[['GVCF [File]']])
     }
     
-
+    
     GenotypeGVCF = paste(gatk,'GenotypeGVCFs')
     outputFile = paste0(caseName,'.vcf')
     cmd = paste(GenotypeGVCF, "-R", param$genomeSeq,
@@ -102,60 +102,60 @@ runGatkPipeline = function(datasetCase, param=NA){
                         "--truth-sensitivity-filter-level 99.0")
             if(param$targetFile != ''){
                 cmd = paste(cmd, "-L", param$targetFile) }
-            }
+        }
+        ezSystem(paste(cmd,'2>>',myLog))
+        
+        #2.Run VariantRecalibration for InDels:
+        if(param$recalibrateInDels){
+            millsFile = param$knownSites[grep('Mills.*vcf.gz$', param$knownSites)]
+            cmd = paste(VariantRecalibrator1, "-R", param$genomeSeq,
+                        "--variant", paste0(caseName,"_recal.SNPs.vcf"),
+                        "-resource:mills,known=false,training=true,truth=true,prior=12.0", millsFile,
+                        "--max-gaussians 4 --minimum-bad-variants 500 --max-attempts 3", #might be suboptimal
+                        "-an QD -an FS -an MQRankSum -an ReadPosRankSum -an MQ -an DP",
+                        "-mode INDEL",
+                        "--output", paste0(caseName,"_raw.InDels.recal"),
+                        "--tranches-file", paste0(caseName,"_raw.InDels.tranches"),
+                        "--rscript-file", paste0(caseName,"_recal.InDels.plots.R"))
+            if(param$targetFile != ''){
+                cmd = paste(cmd, "-L", param$targetFile) }
             ezSystem(paste(cmd,'2>>',myLog))
             
-            #2.Run VariantRecalibration for InDels:
-            if(param$recalibrateInDels){
-                millsFile = param$knownSites[grep('Mills.*vcf.gz$', param$knownSites)]
-                cmd = paste(VariantRecalibrator1, "-R", param$genomeSeq,
-                            "--variant", paste0(caseName,"_recal.SNPs.vcf"),
-                            "-resource:mills,known=false,training=true,truth=true,prior=12.0", millsFile,
-                            "--max-gaussians 4 --minimum-bad-variants 500 --max-attempts 3", #might be suboptimal
-                            "-an QD -an FS -an MQRankSum -an ReadPosRankSum -an MQ -an DP",
-                            "-mode INDEL",
-                            "--output", paste0(caseName,"_raw.InDels.recal"),
-                            "--tranches-file", paste0(caseName,"_raw.InDels.tranches"),
-                            "--rscript-file", paste0(caseName,"_recal.InDels.plots.R"))
-                if(param$targetFile != ''){
-                    cmd = paste(cmd, "-L", param$targetFile) }
-                ezSystem(paste(cmd,'2>>',myLog))
-                
-                #Apply RecalibrationOutput for InDels:
-                cmd = paste(VariantRecalibrator2, "-R", param$genomeSeq,
-                            "--variant", paste0(caseName,"_recal.SNPs.vcf"),
-                            "-mode INDEL",
-                            "--recal-file", paste0(caseName,'_raw.InDels.recal'),
-                            "--tranches-file",paste0(caseName,'_raw.InDels.tranches'),
-                            "--output", paste0(caseName,'_recal.InDels.vcf'),
-                            "--truth-sensitivity-filter-level 99.0")
-                if(param$targetFile != ''){
-                    cmd = paste(cmd, "-L", param$targetFile) }
-                ezSystem(paste(cmd,'2>>',myLog))
-                ezSystem(paste('mv', paste0(caseName,"_recal.InDels.vcf"), outputFile))
-            } else {
-                ezSystem(paste('mv', paste0(caseName,"_recal.SNPs.vcf"), outputFile))
-            }
-        #Add ExAc-Annotation:
-            runExAC = FALSE
-            if(runExAC){
-                ExAcFile = param$knownSites[grep('ExAC.*vcf.gz$', param$knownSites)]
-                VariantAnnotation = paste(gatk,'VariantAnnotator')
-                cmd = paste(VariantAnnotation, "-R", param$genomeSeq,
-                    "--variant", outputFile,
-                    "--output ",paste0(outputFile, "_annotated.vcf"),
-                    "--resource:ExAC",  ExAcFile,
-                    "--expression ExAC.AF",
-                    "--expression ExAC.AC",
-                    "--expression ExAC.AN",
-                    "--expression ExAC.AC_Het",
-                    "--expression ExAC.AC_Hom")
-        if(param$targetFile != ''){
-            cmd = paste(cmd, "-L", param$targetFile) }
+            #Apply RecalibrationOutput for InDels:
+            cmd = paste(VariantRecalibrator2, "-R", param$genomeSeq,
+                        "--variant", paste0(caseName,"_recal.SNPs.vcf"),
+                        "-mode INDEL",
+                        "--recal-file", paste0(caseName,'_raw.InDels.recal'),
+                        "--tranches-file",paste0(caseName,'_raw.InDels.tranches'),
+                        "--output", paste0(caseName,'_recal.InDels.vcf'),
+                        "--truth-sensitivity-filter-level 99.0")
+            if(param$targetFile != ''){
+                cmd = paste(cmd, "-L", param$targetFile) }
             ezSystem(paste(cmd,'2>>',myLog))
-            } else {
-                ezSystem(paste('mv', outputFile, paste0(outputFile, "_annotated.vcf")))
-            }
+            ezSystem(paste('mv', paste0(caseName,"_recal.InDels.vcf"), outputFile))
+        } else {
+            ezSystem(paste('mv', paste0(caseName,"_recal.SNPs.vcf"), outputFile))
+        }
+        #Add ExAc-Annotation:
+        runExAC = FALSE
+        if(runExAC){
+            ExAcFile = param$knownSites[grep('ExAC.*vcf.gz$', param$knownSites)]
+            VariantAnnotation = paste(gatk,'VariantAnnotator')
+            cmd = paste(VariantAnnotation, "-R", param$genomeSeq,
+                        "--variant", outputFile,
+                        "--output ",paste0(outputFile, "_annotated.vcf"),
+                        "--resource:ExAC",  ExAcFile,
+                        "--expression ExAC.AF",
+                        "--expression ExAC.AC",
+                        "--expression ExAC.AN",
+                        "--expression ExAC.AC_Het",
+                        "--expression ExAC.AC_Hom")
+            if(param$targetFile != ''){
+                cmd = paste(cmd, "-L", param$targetFile) }
+            ezSystem(paste(cmd,'2>>',myLog))
+        } else {
+            ezSystem(paste('mv', outputFile, paste0(outputFile, "_annotated.vcf")))
+        }
         cmd = paste(param$javaCall, "-jar", "$SnpEff/SnpSift.jar", "dbnsfp -f ExAC_AF,ExAC_AC,1000Gp1_EUR_AF,Uniprot_acc,Interpro_domain,phastCons100way_vertebrate,CADD_phred,Polyphen2_HDIV_pred,Polyphen2_HVAR_pred,SIFT_score,SIFT_pred -v -db /srv/GT/databases/dbNSFP/dbNSFP2.9.txt.gz",paste0(outputFile, "_annotated.vcf"), ">", outputFile)
         #for hg38 upgrade - dbsfp starting from v4: gnomAD_exomes_AF,M-CAP_score,M-CAP_rankscore,M-CAP_pred,VindijiaNeandertal
         ezSystem(paste(cmd,'2>>',myLog))
