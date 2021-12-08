@@ -59,11 +59,12 @@ runGatkPipeline = function(datasetCase, param=NA){
     
     
     GenotypeGVCF = paste(gatk,'GenotypeGVCFs')
-    outputFile = paste0(caseName,'.vcf')
+    gvcfFile = paste0(caseName,'.vcf')
+    tmpGvcf = paste0(caseName,'_temp.vcf')
     cmd = paste(GenotypeGVCF, "-R", param$genomeSeq,
                 fileCmd,
                 "--dbsnp", param$dbsnpFile,
-                "--output", outputFile)
+                "--output", gvcfFile)
     if(param$targetFile != ''){
         cmd = paste(cmd, "-L", param$targetFile) }
     ezSystem(paste(cmd,'2>',myLog))
@@ -76,7 +77,7 @@ runGatkPipeline = function(datasetCase, param=NA){
         
         if(param$recalibrateVariants){
             cmd = paste(VariantRecalibrator1, "-R", param$genomeSeq,
-                        "--variant", outputFile,
+                        "--variant", gvcfFile,
                         "--resource:hapmap,known=false,training=true,truth=true,prior=15.0", hapmapFile,
                         "--resource:omni,known=false,training=true,truth=false,prior=12.0",  h1000G_omniFile,
                         "--resource:1000G,known=false,training=true,truth=false,prior=10.0", h1000G_phase1File,
@@ -94,22 +95,23 @@ runGatkPipeline = function(datasetCase, param=NA){
             #Apply RecalibrationOutput for SNPs:
             VariantRecalibrator2 = paste(gatk,'ApplyVQSR')
             cmd = paste(VariantRecalibrator2, "-R", param$genomeSeq,
-                        "--variant", outputFile,
+                        "--variant", gvcfFile,
                         "-mode SNP",
                         "--recal-file", paste0(caseName,'_raw.SNPs.recal'),
                         "--tranches-file",paste0(caseName,'_raw.SNPs.tranches'),
-                        "--output", paste0(caseName,'_recal.SNPs.vcf'),
+                        "--output", tmpGvcf,
                         "--truth-sensitivity-filter-level 99.0")
             if(param$targetFile != ''){
                 cmd = paste(cmd, "-L", param$targetFile) }
         }
         ezSystem(paste(cmd,'2>>',myLog))
+        ezSystem(paste('mv', tmpGvcf, gvcfFile))
         
         #2.Run VariantRecalibration for InDels:
         if(param$recalibrateInDels){
             millsFile = param$knownSites[grep('Mills.*vcf.gz$', param$knownSites)]
             cmd = paste(VariantRecalibrator1, "-R", param$genomeSeq,
-                        "--variant", paste0(caseName,"_recal.SNPs.vcf"),
+                        "--variant", gvcfFile,
                         "-resource:mills,known=false,training=true,truth=true,prior=12.0", millsFile,
                         "--max-gaussians 4 --minimum-bad-variants 500 --max-attempts 3", #might be suboptimal
                         "-an QD -an FS -an MQRankSum -an ReadPosRankSum -an MQ -an DP",
@@ -123,45 +125,45 @@ runGatkPipeline = function(datasetCase, param=NA){
             
             #Apply RecalibrationOutput for InDels:
             cmd = paste(VariantRecalibrator2, "-R", param$genomeSeq,
-                        "--variant", paste0(caseName,"_recal.SNPs.vcf"),
+                        "--variant", gvcfFile,
                         "-mode INDEL",
                         "--recal-file", paste0(caseName,'_raw.InDels.recal'),
                         "--tranches-file",paste0(caseName,'_raw.InDels.tranches'),
-                        "--output", paste0(caseName,'_recal.InDels.vcf'),
+                        "--output", tmpGvcf,
                         "--truth-sensitivity-filter-level 99.0")
             if(param$targetFile != ''){
                 cmd = paste(cmd, "-L", param$targetFile) }
             ezSystem(paste(cmd,'2>>',myLog))
-            ezSystem(paste('mv', paste0(caseName,"_recal.InDels.vcf"), outputFile))
-        } else {
-            ezSystem(paste('mv', paste0(caseName,"_recal.SNPs.vcf"), outputFile))
+            ezSystem(paste('mv', tmpGvcf, gvcfFile))
         }
         #Add ExAc-Annotation:
-        runExAC = FALSE
-        if(runExAC){
-            ExAcFile = param$knownSites[grep('ExAC.*vcf.gz$', param$knownSites)]
-            VariantAnnotation = paste(gatk,'VariantAnnotator')
-            cmd = paste(VariantAnnotation, "-R", param$genomeSeq,
-                        "--variant", outputFile,
-                        "--output ",paste0(outputFile, "_annotated.vcf"),
-                        "--resource:ExAC",  ExAcFile,
-                        "--expression ExAC.AF",
-                        "--expression ExAC.AC",
-                        "--expression ExAC.AN",
-                        "--expression ExAC.AC_Het",
-                        "--expression ExAC.AC_Hom")
-            if(param$targetFile != ''){
-                cmd = paste(cmd, "-L", param$targetFile) }
-            ezSystem(paste(cmd,'2>>',myLog))
-        } else {
-            ezSystem(paste('mv', outputFile, paste0(outputFile, "_annotated.vcf")))
-        }
-        cmd = paste(param$javaCall, "-jar", "$SnpEff/SnpSift.jar", "dbnsfp -f ExAC_AF,ExAC_AC,1000Gp1_EUR_AF,Uniprot_acc,Interpro_domain,phastCons100way_vertebrate,CADD_phred,Polyphen2_HDIV_pred,Polyphen2_HVAR_pred,SIFT_score,SIFT_pred -v -db /srv/GT/databases/dbNSFP/dbNSFP2.9.txt.gz",paste0(outputFile, "_annotated.vcf"), ">", outputFile)
+        # runExAC = FALSE
+        # if(runExAC){
+        #     ExAcFile = param$knownSites[grep('ExAC.*vcf.gz$', param$knownSites)]
+        #     VariantAnnotation = paste(gatk,'VariantAnnotator')
+        #     cmd = paste(VariantAnnotation, "-R", param$genomeSeq,
+        #                 "--variant", gvcfFile,
+        #                 "--output ",paste0(gvcfFile, "_annotated.vcf"),
+        #                 "--resource:ExAC",  ExAcFile,
+        #                 "--expression ExAC.AF",
+        #                 "--expression ExAC.AC",
+        #                 "--expression ExAC.AN",
+        #                 "--expression ExAC.AC_Het",
+        #                 "--expression ExAC.AC_Hom")
+        #     if(param$targetFile != ''){
+        #         cmd = paste(cmd, "-L", param$targetFile) }
+        #     ezSystem(paste(cmd,'2>>',myLog))
+        # } else {
+        #     ezSystem(paste('mv', gvcfFile, paste0(gvcfFile, "_annotated.vcf")))
+        # }
+
+        cmd = paste(param$javaCall, "-jar", "$SnpEff/SnpSift.jar", "dbnsfp -f ExAC_AF,ExAC_AC,1000Gp1_EUR_AF,Uniprot_acc,Interpro_domain,phastCons100way_vertebrate,CADD_phred,Polyphen2_HDIV_pred,Polyphen2_HVAR_pred,SIFT_score,SIFT_pred -v -db /srv/GT/databases/dbNSFP/dbNSFP2.9.txt.gz",
+                    gvcfFile, ">", tmpGvcf)
         #for hg38 upgrade - dbsfp starting from v4: gnomAD_exomes_AF,M-CAP_score,M-CAP_rankscore,M-CAP_pred,VindijiaNeandertal
         ezSystem(paste(cmd,'2>>',myLog))
+        ezSystem(paste("mv", tmpGvcf, gvcfFile))
     }
     
-    ezSystem(paste("mv",outputFile,paste0(outputFile, "_annotated.vcf")))
     #SnpEff:
     if(param$annotateVariants){
         htmlOutputFile = paste0(caseName,'.html')
@@ -172,15 +174,16 @@ runGatkPipeline = function(datasetCase, param=NA){
             gtf = data.frame(gtf[idx])
             protCodingTranscripts = gtf$transcript_id[gtf$source=='protein_coding']
             write.table(protCodingTranscripts, 'protCodingTranscripts.txt',col.names = F, row.names = F, quote =F)
-            cmd = paste(param$javaCall, "-jar", "$SnpEff/snpEff.jar","-onlyTr protCodingTranscripts.txt", "-s", htmlOutputFile, "-c", param$snpEffConfig, param$snpEffDB, "-v", paste0(outputFile, "_annotated.vcf"),">", 
-                        outputFile)
+            cmd = paste(param$javaCall, "-jar", "$SnpEff/snpEff.jar","-onlyTr protCodingTranscripts.txt", "-s", htmlOutputFile, "-c", param$snpEffConfig, param$snpEffDB, 
+                        "-v", gvcfFile,">", 
+                        tmpGvcf)
         } else {
-            cmd = paste(param$javaCall, "-jar", "$SnpEff/snpEff.jar", "-s", htmlOutputFile, "-c", param$snpEffConfig, param$snpEffDB, "-v", paste0(outputFile, "_annotated.vcf"),">", 
-                        outputFile)
+            cmd = paste(param$javaCall, "-jar", "$SnpEff/snpEff.jar", "-s", htmlOutputFile, "-c", param$snpEffConfig, param$snpEffDB, 
+                        "-v", gvcfFile,">", 
+                        tmpGvcf)
         }
         ezSystem(paste(cmd,'2>>',myLog))
-    } else {
-        ezSystem(paste("mv",paste0(outputFile, "_annotated.vcf"), outputFile))
+        ezSystem(paste("mv", tmpGvcf, gvcfFile))
     }
 }
 
