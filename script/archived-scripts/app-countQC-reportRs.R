@@ -114,13 +114,12 @@ runNgsCountQC = function(htmlFile="00index.html",
     signalFile = paste0(ezValidFilename(param$name), "-normalized-signal.txt")
     ezWrite.table(combined, file=signalFile, head="Feature ID", digits=4)
     
-    selectSignals = grepl("Signal", colnames(combined))
-    combined$"Mean signal" = rowMeans(combined[, selectSignals])
-    combined$"Maximum signal" = apply(combined[, selectSignals], 1, max)
-    topGenesPerSample = apply(combined[, selectSignals], 2, function(col){
-      col = sort(col, decreasing = TRUE)
-      if (length(col) > 100) col = col[1:100]
-      return(names(col))
+    signalColumns = grep("Signal", colnames(combined), value=TRUE)
+    combined$"Mean signal" = rowMeans(combined[, signalColumns])
+    combined$"Maximum signal" = apply(combined[, signalColumns], 1, max)
+    topGenesPerSample = apply(combined[, signalColumns], 2, function(col){
+      #names(head(sort(col, decreasing = TRUE), 100))
+      col %>% sort(decreasing=TRUE) %>% head(100) %>% names
     })
     
     topGenes = unique(as.character(topGenesPerSample))

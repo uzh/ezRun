@@ -29,9 +29,6 @@ EzAppLimma <-
 
 ezMethodLimma = function(input=NA, output=NA, param=NA,
                          htmlFile="00index.html"){
-  if (ezIsSpecified(param$samples)){
-    input = input$subset(param$samples)
-  }
   cwd <- getwd()
   setwdNew(basename(output$getColumn("Report")))
   on.exit(setwd(cwd))

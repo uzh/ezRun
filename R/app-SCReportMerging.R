@@ -63,10 +63,7 @@ EzAppSCReportMerging <-
 
 ezMethodSCReportMerging = function(input=NA, output=NA, param=NA, 
                             htmlFile="00index.html"){
-  ## subset the selected sample names
-  samples <- param$samples
-  input <- input$subset(samples)
-  
+
   if(input$getLength() > param$maxSamplesSupported){
     stop(paste("It only works for", param$maxSamplesSupported, "at most"))
   }

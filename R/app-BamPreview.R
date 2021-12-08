@@ -8,10 +8,7 @@
 
 ezMethodBamPreview = function(input=NA, output=NA, param=NA, htmlFile="00index.html"){
 
-  if (ezIsSpecified(param$samples)){
-    input = input$subset(param$samples)
-  }
-  
+
   bamMeta = input$meta[ , !input$columnHasTag("File")]
   bamMeta[["BAM [File]"]] = paste0(getwd(), "/", input$getNames(), "/", input$getNames(), ".bam")
   bamMeta[["BAI [File]"]] = paste0(getwd(), "/", input$getNames(), "/", input$getNames(), ".bam.bai")

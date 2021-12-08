@@ -23,10 +23,7 @@ EzAppCellRangerATACAggr <-
 
 ezMethodCellRangerATACAggr = function(input=NA, output=NA, param=NA){
   ## dataset mode
-  ## subset the selected sample names
-  samples <- param$samples
-  input <- input$subset(samples)
-  
+
   aggr_input <- tibble(library_id=input$getNames(),
                        fragments=file.path(dirname(input$getFullPaths("Report")),
                                            "fragments.tsv.gz"),

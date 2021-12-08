@@ -29,9 +29,6 @@ ezMethodGatkRnaHaplotyper = function(input=NA, output=NA, param=NA,
                                      htmlFile="00index.html"){
   require(Rsamtools)
   require(VariantAnnotation)
-  ## subset the selected sample names
-  samples <- param$samples
-  input <- input$subset(samples)
 
   bamDataset = input$meta
 

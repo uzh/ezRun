@@ -35,10 +35,7 @@ EzAppVPipe <-
 
 ezMethodVPipe <- function(input=NA, output=NA, param=NA, 
                                htmlFile="00index.html"){
-    if (ezIsSpecified(param$samples)) {
-        input <- input$subset(param$samples)
-    }
-    
+
     dataset <- input$meta
     samples <- rownames(dataset)
     dataDir <- dirname(input$getFullPaths("Read1")[1])

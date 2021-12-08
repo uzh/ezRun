@@ -6,9 +6,6 @@
 # www.fgcz.ch
 
 ezMethodCov19QC <- function(input = NA, output = NA, param = NA, htmlFile = "00index.html"){
-    if (ezIsSpecified(param$samples)){
-        input <- input$subset(param$samples)
-    }  
     setwdNew(param[['name']])
     ###1. Get Adapter Dimer Fraction (per Sample Mapping against AdapterSeq)
     adapterResult <- getAdapterStats(param, input)

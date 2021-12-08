@@ -24,8 +24,6 @@ EzAppCellRangerAggr <-
 
 ezMethodCellRangerAggr <- function(input = NA, output = NA, param = NA) {
   ## dataset mode
-  ## subset the selected sample names
-  input <- input$subset(param$samples)
 
   aggr_input <- tibble(
     sample_id = input$getNames(),

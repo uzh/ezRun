@@ -73,10 +73,7 @@ ezMethodSCReport = function(input=NA, output=NA, param=NA,
   setwdNew(basename(output$getColumn("Report")))
   on.exit(setwd(cwd), add=TRUE)
   
-  ## subset the selected sample names
-  # samples <- param$samples
-  # input <- input$subset(samples)
-  
+
   sce <- loadSCCountDataset(input, param)
   metadata(sce)$output <- output
   metadata(sce)$param$name <- paste(metadata(sce)$param$name,

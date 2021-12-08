@@ -27,10 +27,7 @@ ezMethodSCScranIntegration <- function(input=NA, output=NA, param=NA,
                                        htmlFile="00index.html"){
   # Dataset mode
   
-  ## subset the selected sample names
-  samples <- param$samples
-  input <- input$subset(samples)
-  
+
   cwd <- getwd()
   setwdNew(basename(output$getColumn("Report")))
   on.exit(setwd(cwd), add=TRUE)

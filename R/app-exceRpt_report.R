@@ -35,8 +35,7 @@ ezMethodExceRptReport = function(input=NA, output=NA, param=NA){
   
   ## Process output
   processedOutputDir = "processed_output"
-  input <- input$subset(param$samples)
-  
+
   samplePathsFilt =  input$getFullPaths("excerpt")
   
   plots = processSamples(samplePaths = samplePathsFilt, 

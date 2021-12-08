@@ -8,9 +8,6 @@
 
 ezMethodEdger <- function(input = NA, output = NA, param = NA) {
   require(withr)
-  if (ezIsSpecified(param$samples)) {
-    input <- input$subset(param$samples)
-  }
   cwd <- getwd()
   setwdNew(basename(output$getColumn("Report")))
   defer(setwd(cwd))

@@ -8,10 +8,7 @@
 
 ezMethodTrinity = function(input=NA, output=NA, param=NA, htmlFile="00index.html"){
   
-  if (ezIsSpecified(param$samples)){
-    input = input$subset(param$samples)
-  }
-  
+
   trimmedInput = ezMethodFastpTrim(input = input, param = param)
   param$dataRoot = ""
         

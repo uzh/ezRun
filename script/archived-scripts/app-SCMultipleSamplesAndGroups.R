@@ -44,10 +44,7 @@ ezMethodSCMultipleSamplesAndGroups = function(input=NA, output=NA, param=NA, htm
   library(rlist)
   library(HDF5Array)
   
-  ## subset the selected sample names
-  samples <- param$samples
-  input <- input$subset(samples)
-  
+
   if(input$getLength() > param$maxSamplesSupported){
     stop(paste("It only works for", param$maxSamplesSupported, "at most"))
   }
