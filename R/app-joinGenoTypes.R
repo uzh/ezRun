@@ -40,6 +40,9 @@ runGatkPipeline = function(datasetCase, param=NA){
     myLog = paste0('log_',caseName,'.txt')
     if(param$targetFile != ''){
         param$targetFile = file.path(TARGET_ENRICHMENT_DESIGN_DIR, param$targetFile)
+        targetOption <- paste("-L", param$targetFile)
+    } else {
+        targetOption <- ""
     }
     
     
@@ -64,9 +67,8 @@ runGatkPipeline = function(datasetCase, param=NA){
     cmd = paste(GenotypeGVCF, "-R", param$genomeSeq,
                 fileCmd,
                 "--dbsnp", param$dbsnpFile,
-                "--output", gvcfFile)
-    if(param$targetFile != ''){
-        cmd = paste(cmd, "-L", param$targetFile) }
+                "--output", gvcfFile,
+                targetOption)
     ezSystem(paste(cmd,'2>',myLog))
     
     if(param$species == 'Homo_sapiens'){
@@ -87,9 +89,8 @@ runGatkPipeline = function(datasetCase, param=NA){
                         "--output", paste0(caseName,'_raw.SNPs.recal'),
                         "--tranches-file", paste0(caseName,'_raw.SNPs.tranches'),
                         "--rscript-file", paste0(caseName,'_recal.SNPs.plots.R'),
-                        "--max-attempts 3")
-            if(param$targetFile != ''){
-                cmd = paste(cmd, "-L", param$targetFile) }
+                        "--max-attempts 3",
+                        targetOption)
             ezSystem(paste(cmd,'2>>',myLog))
             
             #Apply RecalibrationOutput for SNPs:
@@ -100,12 +101,11 @@ runGatkPipeline = function(datasetCase, param=NA){
                         "--recal-file", paste0(caseName,'_raw.SNPs.recal'),
                         "--tranches-file",paste0(caseName,'_raw.SNPs.tranches'),
                         "--output", tmpGvcf,
-                        "--truth-sensitivity-filter-level 99.0")
-            if(param$targetFile != ''){
-                cmd = paste(cmd, "-L", param$targetFile) }
+                        "--truth-sensitivity-filter-level 99.0",
+                        targetOption)
+            ezSystem(paste(cmd,'2>>',myLog))
+            ezSystem(paste('mv', tmpGvcf, gvcfFile))
         }
-        ezSystem(paste(cmd,'2>>',myLog))
-        ezSystem(paste('mv', tmpGvcf, gvcfFile))
         
         #2.Run VariantRecalibration for InDels:
         if(param$recalibrateInDels){
@@ -118,9 +118,8 @@ runGatkPipeline = function(datasetCase, param=NA){
                         "-mode INDEL",
                         "--output", paste0(caseName,"_raw.InDels.recal"),
                         "--tranches-file", paste0(caseName,"_raw.InDels.tranches"),
-                        "--rscript-file", paste0(caseName,"_recal.InDels.plots.R"))
-            if(param$targetFile != ''){
-                cmd = paste(cmd, "-L", param$targetFile) }
+                        "--rscript-file", paste0(caseName,"_recal.InDels.plots.R"),
+                        targetOption)
             ezSystem(paste(cmd,'2>>',myLog))
             
             #Apply RecalibrationOutput for InDels:
@@ -130,9 +129,8 @@ runGatkPipeline = function(datasetCase, param=NA){
                         "--recal-file", paste0(caseName,'_raw.InDels.recal'),
                         "--tranches-file",paste0(caseName,'_raw.InDels.tranches'),
                         "--output", tmpGvcf,
-                        "--truth-sensitivity-filter-level 99.0")
-            if(param$targetFile != ''){
-                cmd = paste(cmd, "-L", param$targetFile) }
+                        "--truth-sensitivity-filter-level 99.0",
+                        targetOption)
             ezSystem(paste(cmd,'2>>',myLog))
             ezSystem(paste('mv', tmpGvcf, gvcfFile))
         }
