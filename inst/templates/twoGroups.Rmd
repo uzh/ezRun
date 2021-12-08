@@ -493,104 +493,6 @@ if (file.exists("goClusterTable.html")) {
 }
 ```
 
-### MetaCore 
-```{r metacore annotate, echo=FALSE, message=FALSE}
-require(AnnotationHub)
-ah <- AnnotationHub()
-ref <- param$refBuild %>%
-  strsplit(., "/") %>%
-  .[[1]] %>%
-  .[1] %>%
-  gsub("_", " ", .)
-if (!(ref %in% unique(ah$species)) | is.na(ref)) {
-  knitr::knit_exit()
-} else {
-  ref.orgdb <- query(ah, c("OrgDb", ref))[[1]]
-  if ("SYMBOL" %in% keytypes(ref.orgdb)) {
-    orgSymbols <- keys(ref.orgdb, keytype = "SYMBOL")
-    egr <- AnnotationDbi::select(ref.orgdb, keys = orgSymbols, "ENTREZID", "SYMBOL")
-    colnames(egr)[2] <- "entrez_id"
-  } else if ("GENENAME" %in% keytypes(ref.orgdb)) {
-    orgSymbols <- keys(ref.orgdb, keytype = "GENENAME")
-    egr <- AnnotationDbi::select(ref.orgdb, keys = orgSymbols, "ENTREZID", "GENENAME")
-    colnames(egr) <- c("SYMBOL", "entrez_id")
-  } else {
-    knitr::knit_exit()
-  }
-}
-```
-
-```{r metacore prepare, echo=FALSE, message=FALSE, eval=!debug}
-resultLoaded <- readxl::read_excel(resultFile$resultFile)
-resultMetaCore <- resultLoaded %>%
-  filter(isPresent, pValue <= param$pValThreshGO) %>%
-  dplyr::left_join(egr, by = c("gene_name" = "SYMBOL")) %>%
-  dplyr::select(gene_id, entrez_id, "log2 Ratio", pValue)
-```
-
-```{r metacore export, echo=FALSE, message=FALSE, eval=TRUE}
-metacoreFile <- str_c("MetaCore--", param$comparison, ".txt")
-ezWrite.table(resultMetaCore, file = metacoreFile, row.names = FALSE)
-```
-
-#### Metacore
-Metacore is a commercial software that performs gene-set based analysis using a manually curated, proprietary database. It takes as input a subset of genes passing certain p-value/fold-change thresholds (i.e., differentially expressed genes). **It is recommended for the analysis of human, mouse, and rat data. It is best used to gain drug/disease-related information and comprehensive pathway map figures.** 
-
-##### Registration
-Using MetaCore requires an account. One can be obtained by emailing <sequencing@fgcz.ethz.ch>.
-
-***
-#### How to use Metacore: quick start
-
- 1. [Right Click and Save File to Download Expression File for MetaCore](`r metacoreFile`) (`r paste("p <=", param$pValThreshGO)`)
- 
- 2. [Go to the MetaCore website](https://portal.genego.com)
- 
- 3. Upload the Expression File to MetaCore, selecting three columns: Gene ID, log ratio, and p-value 
- 
- 4. Select `Pathway Maps` from the `One-click Analysis` tab. 
-
-#### Important notes
-When uploading the data into MetaCore, select three columns:
-
-* A gene identifier, pick **one** of:
-  + Ensembl Gene IDs -- `ENSEMBL IDs` 
-  + Entrez Gene IDs -- `EntrezGene (LocusLink) IDs`
-  
-* Log fold changes of the genes -- `log ratio` 
-
-* *P* values
-
-You must ensure that the data type drop-down menu above each column is correct. 
-
-Select `---ignore---` from the drop down for all other columns in the table that are not to be used.
-
-Please refer to the [FGCZ Wiki](https://fgcz-intranet.uzh.ch/tiki-index.php?page=users.sw.metacore) for a more comprehensive guide to using MetaCore.
-
-MetaCore has numerous comprehensive tutorials online, including a useful YouTube page:
-<https://www.youtube.com/watch?v=_J_ViIw9wIM&list=PL2tDZtDsVy5xqUibWp-mfl9xuZP4Bhi-v&index=2>
-
-#### MetaCore Compatibility 
-MetaCore currently has full pathway support for three core species: **Human**; **mouse**, and; **rat**. In addition to this, it can use Entrez IDs as orthologs to analyse a series of non-core species:
-
-- Cow
-- Chimpanzee
-- Dog
-- Zebra fish
-- Chicken
-- Fly
-- Mosquito 
-- Worm
-- Arabidopsis
-- Rice
-- Blast of rice (fungal species)
-- Macaca mulatta
-- Mold
-- Bread mold
-- Candida sphaerica
-- Fission yeast
-- Baker's yeast
-
 
 ### Enrichr
 
@@ -942,6 +844,10 @@ Cut Off:
 
 * Candidate Terms: `r paste("fdr <=", param$fdrThreshGSEA)`
 
+Gene Ranking:
+
+* all present genes are sorted by log2 ratio
+
 ***
 
 ```{r gsea overview, echo=F, message=F, eval=!debug, results = 'asis'}
@@ -989,6 +895,106 @@ if (isTRUE(param$runGO)) {
   }
 }
 ```
+
+### MetaCore 
+```{r metacore annotate, echo=FALSE, message=FALSE}
+require(AnnotationHub)
+ah <- AnnotationHub()
+ref <- param$refBuild %>%
+  strsplit(., "/") %>%
+  .[[1]] %>%
+  .[1] %>%
+  gsub("_", " ", .)
+if (!(ref %in% unique(ah$species)) | is.na(ref)) {
+  knitr::knit_exit()
+} else {
+  ref.orgdb <- query(ah, c("OrgDb", ref))[[1]]
+  if ("SYMBOL" %in% keytypes(ref.orgdb)) {
+    orgSymbols <- keys(ref.orgdb, keytype = "SYMBOL")
+    egr <- AnnotationDbi::select(ref.orgdb, keys = orgSymbols, "ENTREZID", "SYMBOL")
+    colnames(egr)[2] <- "entrez_id"
+  } else if ("GENENAME" %in% keytypes(ref.orgdb)) {
+    orgSymbols <- keys(ref.orgdb, keytype = "GENENAME")
+    egr <- AnnotationDbi::select(ref.orgdb, keys = orgSymbols, "ENTREZID", "GENENAME")
+    colnames(egr) <- c("SYMBOL", "entrez_id")
+  } else {
+    knitr::knit_exit()
+  }
+}
+```
+
+```{r metacore prepare, echo=FALSE, message=FALSE, eval=!debug}
+resultLoaded <- readxl::read_excel(resultFile$resultFile)
+resultMetaCore <- resultLoaded %>%
+  filter(isPresent, pValue <= param$pValThreshGO) %>%
+  dplyr::left_join(egr, by = c("gene_name" = "SYMBOL")) %>%
+  dplyr::select(gene_id, entrez_id, "log2 Ratio", pValue)
+```
+
+```{r metacore export, echo=FALSE, message=FALSE, eval=TRUE}
+metacoreFile <- str_c("MetaCore--", param$comparison, ".txt")
+ezWrite.table(resultMetaCore, file = metacoreFile, row.names = FALSE)
+```
+
+#### Metacore
+Metacore is a commercial software that performs gene-set based analysis using a manually curated, proprietary database. It takes as input a subset of genes passing certain p-value/fold-change thresholds (i.e., differentially expressed genes). **It is recommended for the analysis of human, mouse, and rat data. It is best used to gain drug/disease-related information and comprehensive pathway map figures.** 
+
+##### Registration
+Using MetaCore requires an account. One can be obtained by emailing <sequencing@fgcz.ethz.ch>.
+
+***
+#### How to use Metacore: quick start
+
+ 1. [Right Click and Save File to Download Expression File for MetaCore](`r metacoreFile`) (`r paste("p <=", param$pValThreshGO)`)
+ 
+ 2. [Go to the MetaCore website](https://portal.genego.com)
+ 
+ 3. Upload the Expression File to MetaCore, selecting three columns: Gene ID, log ratio, and p-value 
+ 
+ 4. Select `Pathway Maps` from the `One-click Analysis` tab. 
+
+#### Important notes
+When uploading the data into MetaCore, select three columns:
+
+* A gene identifier, pick **one** of:
+  + Ensembl Gene IDs -- `ENSEMBL IDs` 
+  + Entrez Gene IDs -- `EntrezGene (LocusLink) IDs`
+  
+* Log fold changes of the genes -- `log ratio` 
+
+* *P* values
+
+You must ensure that the data type drop-down menu above each column is correct. 
+
+Select `---ignore---` from the drop down for all other columns in the table that are not to be used.
+
+Please refer to the [FGCZ Wiki](https://fgcz-intranet.uzh.ch/tiki-index.php?page=users.sw.metacore) for a more comprehensive guide to using MetaCore.
+
+MetaCore has numerous comprehensive tutorials online, including a useful YouTube page:
+<https://www.youtube.com/watch?v=_J_ViIw9wIM&list=PL2tDZtDsVy5xqUibWp-mfl9xuZP4Bhi-v&index=2>
+
+#### MetaCore Compatibility 
+MetaCore currently has full pathway support for three core species: **Human**; **mouse**, and; **rat**. In addition to this, it can use Entrez IDs as orthologs to analyse a series of non-core species:
+
+- Cow
+- Chimpanzee
+- Dog
+- Zebra fish
+- Chicken
+- Fly
+- Mosquito 
+- Worm
+- Arabidopsis
+- Rice
+- Blast of rice (fungal species)
+- Macaca mulatta
+- Mold
+- Bread mold
+- Candida sphaerica
+- Fission yeast
+- Baker's yeast
+
+
 
 
 
@@ -1070,6 +1076,10 @@ if (all(c("gc", "featWidth") %in% colnames(x))) {
   }
 }
 ```
+
+
+
+
 
 ### Input dataset
 ```{r input, echo=FALSE}
