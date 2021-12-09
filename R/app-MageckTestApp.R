@@ -28,6 +28,7 @@ ezMethodMageckTest = function(input=NA, output=NA, param=NA){
   # We give the design of the experiment as indices corresponding to the
   # columns (skipping the first 2 positions) which are sample vs ref groups
   fullColumnName <- paste(param$grouping, "[Factor]")
+  #which(input$getColumn(param$grouping) == param$refGroup)-1
   rId <- paste(which(dataset[[fullColumnName]] == param$refGroup) - 1, collapse=",")
   sId <- paste(which(dataset[[fullColumnName]] == param$sampleGroup) - 1, collapse=",")
   
