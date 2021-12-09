@@ -101,38 +101,30 @@ ezMethodSCLabelClusters <- function(input = NA, output = NA, param = NA,
   library(scanalysis)
   require(scDblFinder)
   
+  #clusterInfo <- readRDS("clusterInfoFile.rds")
+  
   cwd <- getwd()
   setwdNew(basename(output$getColumn("Report")))
   on.exit(setwd(cwd), add = TRUE)
   
-  scData <- load10xSC_seurat(input, param)
+  pvalue_allMarkers <- 0.05
+  sce <- loadHDF5SummarizedExperiment(input$getFullFilename("SC H5"))
+  counts(sce) <- as(counts(sce), "sparseMatrix")
+  logcounts(sce) <- as(logcounts(sce), "sparseMatrix")
+  clusterInfo <- readxl::read_xlsx(param$clusterInfo)
+  clusterInfo <- clusterInfo[clusterInfo$Sample %in% input$getNames(), ] 
+  clusterInfo <- clusterInfo[!is.na(clusterInfo$ClusterLabel) & clusterInfo$ClusterLabel != "", ] 
+  clusterMap <- setNames(clusterInfo$ClusterLabel, clusterInfo$Cluster)
+  sce$cellType <- sce$ident %>% recode(!!!clusterMap)
   
+
   pvalue_allMarkers <- 0.05
   pvalue_all2allMarkers <- 0.01
   
-  # Doublets prediction and removal
-  library(scDblFinder)
-  doubletsInfo <- scDblFinder(GetAssayData(scData, slot="counts"), returnType = "table")
-  doublets <- rownames(doubletsInfo)[doubletsInfo$type == "real" & doubletsInfo$class == "doublet"]
-  scData <- subset(scData, cells = doublets, invert=TRUE)
-  
-  # Cells and genes filtering
-  scData_list <- filterCellsAndGenes(scData, param) # return scData objects filtered and unfiltered to show the QC metrics later in the rmd
-  scData <- scData_list$scData
-  scData.unfiltered <- scData_list$scData.unfiltered
-  rm(scData_list)
-  
-  # calculate cellcycle for the filtered sce object
-  scData <- addCellCycleToSeurat(scData, param$refBuild)
-  
-  if (param$filterByExpression != "") {
-    expression <- param$filterByExpression
-    myCommand <- paste("subset(scData,", expression, ")")
-    scData <- eval(parse(text = myCommand))
-  }
-  scData <- seuratClusteringV3(scData, param)
-  
-  # positive cluster markers
+
+  # positive cell type markers
+  scData <- as.Seurat(sce)
+  Idents(scData) <- scData$cellType
   posMarkers <- posClusterMarkers(scData, pvalue_allMarkers, param)
   
   cells_AUC <- NULL
@@ -144,12 +136,7 @@ ezMethodSCLabelClusters <- function(input = NA, output = NA, param = NA,
     singler.results <- cellsLabelsWithSingleR(GetAssayData(scData, "counts"), Idents(scData), species)
   }
   
-  # Convert scData to Single Cell experiment Object
-  sce.unfiltered <- scData.unfiltered %>% seurat_to_sce()
-  rowData(sce.unfiltered)$is.expressed <- scData.unfiltered[["RNA"]][["is.expressed"]]
-  #TODO: remove unnecesary dietseurat call when the bug in Seurat is fixed
-  scData_diet = DietSeurat(scData, dimreducs = c("pca", "tsne", "umap"))
-  sce <- scData_diet %>% seurat_to_sce(default_assay = "SCT")
+  sce <- scData %>% seurat_to_sce(default_assay = "SCT")
   metadata(sce)$PCA_stdev <- Reductions(scData_diet, "pca")@stdev
   metadata(sce)$cells_AUC <- cells_AUC
   metadata(sce)$singler.results <- singler.results
@@ -161,31 +148,13 @@ ezMethodSCLabelClusters <- function(input = NA, output = NA, param = NA,
   )
   geneMeans <- geneMeansCluster(sce)
   
-  ## generate template for manual cluster annotation -----
-  ## we only deal with one sample
-  stopifnot(length(input$getNames()) == 1)
-  clusterInfos <- ezFrame(Sample=input$getNames(), Cluster=levels(sce$seurat_clusters), ClusterLabel="")
-  if (!is.null(singler.results)){
-    clusterInfos$SinglerCellType <- singler.results$singler.results.cluster[clusterInfos$Cluster, "pruned.labels"]
-  }
-  nTopMarkers <- 10
-  topMarkers <- posMarkers %>% group_by(cluster) %>%
-    slice_max(n = nTopMarkers, order_by = avg_log2FC)
-  topMarkerString <- sapply(split(topMarkers$gene, topMarkers$cluster), paste, collapse=", ")
-  clusterInfos[["TopMarkers"]] <- topMarkerString[clusterInfos$Cluster]
-  clusterInfoFile <- "clusterInfos.xlsx"
-  writexl::write_xlsx(clusterInfos, path=clusterInfoFile)
-  
+
   # Save some results in external files
   dataFiles <- saveExternalFiles(list(pos_markers = posMarkers, gene_means = as_tibble(as.data.frame(geneMeans), rownames = "gene_name")))
   # rowData(sce) = rowData(sce)[, c("gene_id", "biotypes", "description")]
   
   saveHDF5SummarizedExperiment(sce, dir = "sce_h5")
-  saveHDF5SummarizedExperiment(sce.unfiltered, dir = "sce.unfiltered_h5")
-  
+
   makeRmdReport(dataFiles = dataFiles, clusterInfoFile=clusterInfoFile, rmdFile = "SCLabelClusters.Rmd", reportTitle = metadata(sce)$param$name)
-  #remove no longer used objects
-  rm(scData, sce.singlets, sce.unfiltered)
-  gc()
   return("Success")
 }
