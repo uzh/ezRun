@@ -88,36 +88,6 @@ plotColData(sce, x="nCount_RNA", y="percent_mito", colour_by="discard")
 
 <br/>
 
-#### Cell filtering
-
-A standard approach is to filter cells with a low amount of reads as well as genes that are present in at least a certain amount of cells. While simple, using fixed thresholds requires knowledge of the experiment and of the experimental protocol. An alternative approach is to use adaptive, data-driven thresholds to identify outlying cells, based on the set of QC metrics just calculated. To obtain an adaptive threshold, we assume that most of the dataset consists of high-quality cells. 
-When the parameter values of nreads, ngenes and perc_mito are specified, fixed thresholds are used for filtering. Otherwise, filtering is performed excluding cells that are outliers by more than `r param$nmad` MADs below the median for the library size and the number of genes detected. Cells with a percentage counts of mitochondrial genes above the median by `r param$nmad` MADs are also excluded. 
-
-```{r low quality cells}
-num.qc.lib <- sum(sce.unfiltered$qc.lib)
-num.qc.nexprs <- sum(sce.unfiltered$qc.nexprs)
-num.qc.mito <- sum(sce.unfiltered$qc.mito)
-num.qc.ribo <- sum(sce.unfiltered$qc.ribo)
-removed <- sum(sce.unfiltered$discard)
-kable(tibble("QC metric" =c("Library Size", "Expressed genes", "Mitochondrial genes", "Ribosomal genes", "Total removed", "Cells remaining"),
-             "Number of cells"= c(num.qc.lib, num.qc.nexprs, num.qc.mito, num.qc.ribo, removed, ncol(sce))),
-      row.names=FALSE,
-      caption="Number of cells removed") %>%
-  kable_styling(bootstrap_options = "striped", full_width = F,
-                position = "center")
-```
-
-<br/>
-
-#### Gene filtering
-
-We also excluded genes that are lowly or not expressed in our system, as they do not contribute any information to our experiment and may add noise. In this case, we removed genes that were not expressed in at least `r param$cellsPercentage` percent of the cells. In case one or more rare cell populations are expected we might need to decrease the percentage of cells.
-
-```{r gene filtering}
-cat("genes removed:", nrow(sce.unfiltered)-nrow(sce))
-cat("genes kept:", nrow(sce))
-```
-
 ### Dimensionality reduction
 
 Dimensionality reduction aims to reduce the number of separate dimensions in the data. This is possible because different genes are correlated if they are affected by the same biological process. Thus, we do not need to store separate information for individual genes, but can instead compress multiple features into a single dimension. This reduces computational work in downstream analyses, as calculations only need to be performed for a few dimensions rather than thousands of genes; reduces noise by averaging across multiple genes to obtain a more precise representation of the patterns in the data, and enables effective plotting of the data.
@@ -151,7 +121,7 @@ plot(metadata(sce)$PCA_stdev, xlab="PC", ylab="Standard Deviation", pch=16)
 Another application of dimensionality reduction is to compress the data into 2 (sometimes 3) dimensions for plotting. The simplest visualization approach is to plot the top 2 PCs in a PCA. 
 
 ```{r, fig.align='center'}
-plotReducedDim(sce, dimred="PCA", colour_by="seurat_clusters")
+plotReducedDim(sce, dimred="PCA", colour_by="cellType")
 ```
 
 The problem is that PCA is a linear technique, i.e., only variation along a line in high-dimensional space is captured by each PC. As such, it cannot efficiently pack differences in many dimensions into the first 2 PCs. The de facto standard for visualization of scRNA-seq data is the t-stochastic neighbor embedding (t-SNE) method (Van der Maaten and Hinton 2008).  Unlike PCA, it is not restricted to linear transformations, nor is it obliged to accurately represent distances between distance populations. This means that it has much more freedom in how it arranges cells in low-dimensional space, enabling it to separate many distinct clusters in a complex population. 
@@ -166,9 +136,9 @@ In order to find clusters of cells we first built a graph called K-nearest neigh
 We can visualize the distribution of clusters in the TSNE and UMAP plots. However, we should not perform downstream analyses directly on their coordinates. These plots are most useful for checking whether two clusters are actually neighboring subclusters or whether a cluster can be split into further subclusters. 
 
 ```{r}
-plotReducedDim(sce, dimred="TSNE", colour_by="seurat_clusters", text_by="seurat_clusters", 
+plotReducedDim(sce, dimred="TSNE", colour_by="cellType", text_by="cellType", 
                text_size=5, add_legend=FALSE)
-plotReducedDim(sce, dimred="UMAP", colour_by="seurat_clusters", text_by="seurat_clusters", 
+plotReducedDim(sce, dimred="UMAP", colour_by="cellType", text_by="cellType", 
                text_size=5, add_legend=FALSE)
 ```
 
@@ -179,7 +149,7 @@ The number of cells in each cluster and sample is represented in this barplot.
 <br/>
 
 ```{r number of cells in each cluster}
-cellIdents_perSample <- as.data.frame(colData(sce)[,c('seurat_clusters', 'orig.ident')])
+cellIdents_perSample <- as.data.frame(colData(sce)[,c('cellType', 'orig.ident')])
 barplot = ggplot(data=cellIdents_perSample, aes(x=seurat_clusters, fill=orig.ident)) + geom_bar(stat="Count")
 barplot + labs(x="Cluster", y = "Number of cells", fill = "Sample")
 
@@ -201,23 +171,23 @@ sce$logGenes = log10(sce$nFeature_RNA)
 
 tryCatch({
   p1 = plotColData(sce, x="ident", y="CellCycle", colour_by="ident") + ggtitle("Cell cycle vs ident")
-  p2 = plotReducedDim(sce, dimred="UMAP", colour_by="CellCycle", text_by="seurat_clusters", text_size=5, add_legend=TRUE)
+  p2 = plotReducedDim(sce, dimred="UMAP", colour_by="CellCycle", text_by="cellType", text_size=5, add_legend=TRUE)
   print(p1)
   print(p2)
 }, error=function(e) print("Cell cycle was not calculated. Possible reasons: a bug in the app or using a different organism than human or mouse. Please, ask the developer."))
 plotColData(sce, x="ident", y="nCount_RNA", colour_by="ident", add_legend=FALSE) + ggtitle("Number of UMIs vs ident")
-plotReducedDim(sce, dimred="UMAP", colour_by="logRNA", text_by="seurat_clusters", text_size=5)
+plotReducedDim(sce, dimred="UMAP", colour_by="logRNA", text_by="cellType", text_size=5)
 plotColData(sce, x="ident", y="nFeature_RNA", colour_by="ident", add_legend=FALSE) + ggtitle("Detected genes vs ident")
-plotReducedDim(sce, dimred="UMAP", colour_by="logGenes", text_by="seurat_clusters", text_size=5)
+plotReducedDim(sce, dimred="UMAP", colour_by="logGenes", text_by="cellType", text_size=5)
 plotColData(sce, x="ident", y="percent_mito", colour_by="ident", add_legend=FALSE) + ggtitle("Mito percentage vs ident")
-plotReducedDim(sce, dimred="UMAP", colour_by="percent_mito", text_by="seurat_clusters", text_size=5)
+plotReducedDim(sce, dimred="UMAP", colour_by="percent_mito", text_by="cellType", text_size=5)
 plotColData(sce, x="ident", y="percent_ribo", colour_by="ident", add_legend=FALSE) + ggtitle("Ribo percentage vs ident")
-plotReducedDim(sce, dimred="UMAP", colour_by="percent_ribo", text_by="seurat_clusters", text_size=5)
+plotReducedDim(sce, dimred="UMAP", colour_by="percent_ribo", text_by="cellType", text_size=5)
 if (ezIsSpecified(param$controlSeqs)) {
   genesToPlot <- gsub("_", "-", param$controlSeqs)
   genesToPlot <- intersect(genesToPlot, rownames(sce))
-  plotExpression(sce, genesToPlot, x="seurat_clusters", colour_by = "seurat_clusters", add_legend=FALSE)
-  #plotReducedDim(sce, dimred="UMAP", colour_by=genesToPlot[1], text_by="seurat_clusters", text_size=5)
+  plotExpression(sce, genesToPlot, x="cellType", colour_by = "cellType", add_legend=FALSE)
+  #plotReducedDim(sce, dimred="UMAP", colour_by=genesToPlot[1], text_by="cellType", text_size=5)
 }
 ```
 
@@ -230,15 +200,6 @@ Below, it is shown a clustering tree that helps us to visualize the relationship
 clustree::clustree(sce, prefix = "SCT_snn_res.")
 ```
 
-
-<!-- #### Doublet detection -->
-
-<!-- In single-cell RNA sequencing (scRNA-seq) experiments, doublets are artifactual libraries generated from two cells. They typically arise due to errors in cell sorting or capture. Although we don't remove cells that could be doublets, users can visualize on a TSNE a doublet score integrating the ratio in a probability of the cell being a doublet. We recommend interpreting the scores in the context of cluster annotation. All cells from a cluster with a large average doublet score should be considered suspect, and close neighbors of problematic clusters should also be treated with caution. In contrast, a cluster containing a small proportion of high-scoring cells is probably safe provided that any interesting results are not being driven by those cells.  -->
-
-<!-- ```{r doublet tsne} -->
-<!-- plotTSNE(sce, colour_by="scDblFinder.score") +  scale_fill_gradient(low="gray", high="blue")+ ggtitle("scDblFinder score")  -->
-<!-- plotTSNE(sce, colour_by="scDblFinder.class") + ggtitle("scDblFinder class") -->
-<!-- ``` -->
 
 ### Cluster markers
 
@@ -265,19 +226,19 @@ Here, we use a heatmap and a dotplot to visualize simultaneously the top 5 marke
 
 <br/>
 
-```{r heatmap, fig.width=12, fig.height=length(levels(sce$seurat_clusters))}
+```{r heatmap, fig.width=12, fig.height=length(levels(sce$cellType))}
 top5 <- posMarkers %>% group_by(cluster) 
 top5 <- slice_max(top5, n = 5, order_by = avg_log2FC)
 genesToPlot <- c(gsub("_", "-", param$controlSeqs), unique(as.character(top5$gene)))
 genesToPlot <- intersect(genesToPlot, rownames(sce))
 
 plotHeatmap(sce, features=unique(genesToPlot), center=TRUE, zlim=c(-2, 2),
-            colour_columns_by = c("seurat_clusters"), 
-            order_columns_by = c("seurat_clusters"),
+            colour_columns_by = c("cellType"), 
+            order_columns_by = c("cellType"),
             cluster_rows=TRUE,
             fontsize_row=8)
 
-plotDots(sce, features=genesToPlot, group="seurat_clusters")
+plotDots(sce, features=genesToPlot, group="cellType")
 ```
 
 ### Cell annotation
@@ -306,65 +267,65 @@ kable_styling("striped", full_width = F, position = "left")
 
 <br/>
 
-#### Using reference data
+<!-- #### Using reference data -->
 
-Another strategy for annotation is to compare the single-cell expression profiles with previously annotated reference datasets. Labels can then be assigned to each cell in our uncharacterized test dataset based on the most similar reference sample(s). This annotation can be  performed on single  cells or instead, it may be aggregated into cluster-level profiles prior to annotation.
-To do this, we use the SingleR method (Aran et al. 2019) for cell type annotation. This method assigns labels to cells based on the reference samples with the highest Spearman rank correlations and thus can be considered a rank-based variant of k-nearest-neighbor classification. To reduce noise, SingleR identifies marker genes between pairs of labels and computes the correlation using only those markers. It also performs a fine-tuning step for each cell where the calculation of the correlations is repeated with just the marker genes for the top-scoring labels. This aims to resolve any ambiguity between those labels by removing noise from irrelevant markers for other labels. 
-SingleR contains several built-in reference datasets, mostly assembled from bulk RNA-seq or microarray data of sorted cell types. These built-in references are often good enough for most applications, provided that they contain the cell types that are expected in the test population. 
+<!-- Another strategy for annotation is to compare the single-cell expression profiles with previously annotated reference datasets. Labels can then be assigned to each cell in our uncharacterized test dataset based on the most similar reference sample(s). This annotation can be  performed on single  cells or instead, it may be aggregated into cluster-level profiles prior to annotation. -->
+<!-- To do this, we use the SingleR method (Aran et al. 2019) for cell type annotation. This method assigns labels to cells based on the reference samples with the highest Spearman rank correlations and thus can be considered a rank-based variant of k-nearest-neighbor classification. To reduce noise, SingleR identifies marker genes between pairs of labels and computes the correlation using only those markers. It also performs a fine-tuning step for each cell where the calculation of the correlations is repeated with just the marker genes for the top-scoring labels. This aims to resolve any ambiguity between those labels by removing noise from irrelevant markers for other labels.  -->
+<!-- SingleR contains several built-in reference datasets, mostly assembled from bulk RNA-seq or microarray data of sorted cell types. These built-in references are often good enough for most applications, provided that they contain the cell types that are expected in the test population.  -->
 
-```{r singler, eval= !is.null(metadata(sce)$singler.results)}
-singler.results.single <- metadata(sce)$singler.results$singler.results.single
-singler.results.cluster <- metadata(sce)$singler.results$singler.results.cluster
-singler.single.labels <- singler.results.single$labels
-singler.cluster.labels<- singler.results.cluster$labels[match(colData(sce)[,"ident"], rownames(singler.results.cluster))]
-var_height = length(unique(singler.single.labels))*0.7
-```
+<!-- ```{r singler, eval= !is.null(metadata(sce)$singler.results)} -->
+<!-- singler.results.single <- metadata(sce)$singler.results$singler.results.single -->
+<!-- singler.results.cluster <- metadata(sce)$singler.results$singler.results.cluster -->
+<!-- singler.single.labels <- singler.results.single$labels -->
+<!-- singler.cluster.labels<- singler.results.cluster$labels[match(colData(sce)[,"ident"], rownames(singler.results.cluster))] -->
+<!-- var_height = length(unique(singler.single.labels))*0.7 -->
+<!-- ``` -->
 
-```{r singler ScoreHeatmap,  eval= !is.null(metadata(sce)$singler.results), fig.height= var_height, fig.width=8, results='asis'}
-cat("The two heatmaps below display the scores for all individual cells (left) and each original cluster (right) across all reference labels, which allows users to inspect the confidence of the predicted labels across the dataset. The bar Labels on the top shows the actual assigned label.\n")
-cat("\n")
-plotScoreHeatmap(singler.results.single)
-plotScoreHeatmap(singler.results.cluster, clusters=rownames(singler.results.cluster))
-```
+<!-- ```{r singler ScoreHeatmap,  eval= !is.null(metadata(sce)$singler.results), fig.height= var_height, fig.width=8, results='asis'} -->
+<!-- cat("The two heatmaps below display the scores for all individual cells (left) and each original cluster (right) across all reference labels, which allows users to inspect the confidence of the predicted labels across the dataset. The bar Labels on the top shows the actual assigned label.\n") -->
+<!-- cat("\n") -->
+<!-- plotScoreHeatmap(singler.results.single) -->
+<!-- plotScoreHeatmap(singler.results.cluster, clusters=rownames(singler.results.cluster)) -->
+<!-- ``` -->
 
 
-```{r singler labelsUMAP,  eval= !is.null(metadata(sce)$singler.results), fig.width=12, results='asis'}
-cat("The single cell (top) and cluster (bottom) annotations are also shown on the UMAPs. Place the mouse over the cells to get information such as their UMAP coordinates, original cluster, the cells name and the label assigned by SingleR. You can also zoom in specific areas of the UMAP by dragging and drop with the mouse.\n")
+<!-- ```{r singler labelsUMAP,  eval= !is.null(metadata(sce)$singler.results), fig.width=12, results='asis'} -->
+<!-- cat("The single cell (top) and cluster (bottom) annotations are also shown on the UMAPs. Place the mouse over the cells to get information such as their UMAP coordinates, original cluster, the cells name and the label assigned by SingleR. You can also zoom in specific areas of the UMAP by dragging and drop with the mouse.\n") -->
 
-cellInfo <- tibble(Cells=colnames(sce), Cluster=colData(sce)[,"ident"],
-                     SingleR.labels.cluster=singler.cluster.labels, SingleR.labels.single=singler.single.labels)  %>%
-    left_join(as_tibble(reducedDim(sce, "UMAP"), rownames="Cells"))
+<!-- cellInfo <- tibble(Cells=colnames(sce), Cluster=colData(sce)[,"ident"], -->
+<!--                      SingleR.labels.cluster=singler.cluster.labels, SingleR.labels.single=singler.single.labels)  %>% -->
+<!--     left_join(as_tibble(reducedDim(sce, "UMAP"), rownames="Cells")) -->
 
-nrOfLabels_cluster <- length(unique(cellInfo$SingleR.labels.cluster))
-nrOfLabels_single <- length(unique(cellInfo$SingleR.labels.single))
+<!-- nrOfLabels_cluster <- length(unique(cellInfo$SingleR.labels.cluster)) -->
+<!-- nrOfLabels_single <- length(unique(cellInfo$SingleR.labels.single)) -->
 
-if(nrOfLabels_single <= 9){
-  colsLabels <- brewer.pal(nrOfLabels_single, "Set1")
-}else{
-  colsLabels <- colorRampPalette(brewer.pal(9, "Set1"))(nrOfLabels_single)
-}
+<!-- if(nrOfLabels_single <= 9){ -->
+<!--   colsLabels <- brewer.pal(nrOfLabels_single, "Set1") -->
+<!-- }else{ -->
+<!--   colsLabels <- colorRampPalette(brewer.pal(9, "Set1"))(nrOfLabels_single) -->
+<!-- } -->
 
-x <- list(title="UMAP_1", zeroline=FALSE)
-y <- list(title="UMAP_2", zeroline=FALSE)
+<!-- x <- list(title="UMAP_1", zeroline=FALSE) -->
+<!-- y <- list(title="UMAP_2", zeroline=FALSE) -->
 
-p1 <- plot_ly(cellInfo, x = ~UMAP_1, y = ~UMAP_2, color=~SingleR.labels.single,
-        text = ~paste("Cluster: ", Cluster, 
-                      "\nCell: ", Cells,
-                      "\nSingleR.labels.cluster: ", SingleR.labels.single),
-        type = 'scatter', mode = "markers", marker=list(size=5, opacity=0.5),
-        colors=colsLabels) %>%layout(xaxis=x, yaxis=y)
-p1
-p2 <- plot_ly(cellInfo, x = ~UMAP_1, y = ~UMAP_2, color=~SingleR.labels.cluster,
-        text = ~paste("Cluster: ", Cluster, 
-                      "\nCell: ", Cells,
-                      "\nSingleR.labels.cluster: ", SingleR.labels.cluster),
-        type = 'scatter', mode = "markers", marker=list(size=5, opacity=0.5),
-        colors=colsLabels) %>%layout(xaxis=x, yaxis=y)
+<!-- p1 <- plot_ly(cellInfo, x = ~UMAP_1, y = ~UMAP_2, color=~SingleR.labels.single, -->
+<!--         text = ~paste("Cluster: ", Cluster,  -->
+<!--                       "\nCell: ", Cells, -->
+<!--                       "\nSingleR.labels.cluster: ", SingleR.labels.single), -->
+<!--         type = 'scatter', mode = "markers", marker=list(size=5, opacity=0.5), -->
+<!--         colors=colsLabels) %>%layout(xaxis=x, yaxis=y) -->
+<!-- p1 -->
+<!-- p2 <- plot_ly(cellInfo, x = ~UMAP_1, y = ~UMAP_2, color=~SingleR.labels.cluster, -->
+<!--         text = ~paste("Cluster: ", Cluster,  -->
+<!--                       "\nCell: ", Cells, -->
+<!--                       "\nSingleR.labels.cluster: ", SingleR.labels.cluster), -->
+<!--         type = 'scatter', mode = "markers", marker=list(size=5, opacity=0.5), -->
+<!--         colors=colsLabels) %>%layout(xaxis=x, yaxis=y) -->
 
-p2
-```
+<!-- p2 -->
+<!-- ``` -->
 
-<br/>
+<!-- <br/> -->
 
 #### Using gene sets
 
@@ -379,7 +340,7 @@ assignmentTable <- reshape2::melt(cellsAssigned, value.name="cell")
 colnames(assignmentTable)[2] <- "geneSet"
 tras_cells_AUC <- t(assay(cells_AUC))
 full.labels <- colnames(tras_cells_AUC)[max.col(tras_cells_AUC)]
-tab <- table(full.labels, colData(sce)[,"seurat_clusters"])
+tab <- table(full.labels, colData(sce)[,"cellType"])
 var_height <- nrow(tab)*0.5
 ```
 
@@ -427,12 +388,6 @@ The iSEE shiny app can be accessed through this link [iSEE explorer](`r {lastPro
 
 
 ### Data availability
-
-##### Cluster Infos
-
-Use the xls file to manually label or relabel the clusters based on the result of Singler cell type annotation and the marker genes
-[clusterInfoFile.xlsx](clusterInfoFile.xlsx)
-
 
 ##### Mean expression of every gene across the cells in each cluster
 
