@@ -11,10 +11,14 @@ ezMethodMageckCount <- function(input, output, param){
     local_CondaEnv("mageckenv", pathToMiniConda = "/usr/local/ngseq/miniconda3")
     sampleName <- input$getNames()
     inputFile  <- input$getFullPaths("Read1")
-    param[['dictPath']] <- list.files(file.path('/srv/GT/databases/GEML/sgRNA_Libs/',param[['libName']]), pattern = 'MAGeCK.csv$', full.names = TRUE)
+    param[['dictPath']] <- list.files(param[['libName']], pattern = 'MAGeCK.csv$', full.names = TRUE)
+    ##TODO: handle empty dictPath
     system2("mageck", args = c("count", "-l", param[['dictPath']], "--fastq", inputFile, "-n", sampleName))
 }
 
+##' @template app-template
+##' @templateVar method ezMethodMageckCount(input=NA, output=NA, param=NA)
+##' @description Use this reference class to run 
 EzAppMageckCount <-
     setRefClass("EzAppMageckCount",
                 contains = "EzApp",
