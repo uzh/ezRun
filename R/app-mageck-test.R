@@ -1,5 +1,6 @@
 ezMethodMageckTest = function(input=NA, output=NA, param=NA){
   require(Herper)
+  require(stringr)
 
   # Loading the variables
   dataset <- input$meta
@@ -13,11 +14,14 @@ ezMethodMageckTest = function(input=NA, output=NA, param=NA){
   # Combining the count files into a single count file
   countFilePaths <- file.path(param$dataRoot, dataset$`Count [File]`)
   counts <- lapply(countFilePaths, data.table::fread)
-  mergeCounts <- counts %>% reduce(inner_join, by="sgRNA", keep=FALSE)
+  mergeCounts <- counts %>% reduce(inner_join, by="sgRNA")
   mergeCounts <- mergeCounts %>%
     rename("Gene"="Gene.x") %>%
     select(!starts_with("Gene."))
-  colnames(mergeCounts)[3:(3+length(sampleNames)-1)] <- sampleNames
+  
+  # Rename the sample columns to the actual sample names
+  sampleColumns <- !(colnames(mergeCounts) %in% c("sgRNA", "Gene"))
+  colnames(mergeCounts)[sampleColumns] <- sampleNames
   
   ezWrite.table(mergeCounts, file=mergedCountFileLoc, row.names=FALSE)
   
@@ -26,6 +30,7 @@ ezMethodMageckTest = function(input=NA, output=NA, param=NA){
   rId <- paste(which(dataset$`Condition [Factor]` == param$refGroup) - 1, collapse=",")
   sId <- paste(which(dataset$`Condition [Factor]` == param$sampleGroup) - 1, collapse=",")
   
+  # Load the conda environment
   local_CondaEnv("mageckenv", pathToMiniConda = "/usr/local/ngseq/miniconda3")
 
   opt <- c(
@@ -37,10 +42,18 @@ ezMethodMageckTest = function(input=NA, output=NA, param=NA){
     "-c",
     rId,
     "-n",
-    outputPrefix
+    outputPrefix,
+    as.vector(str_split(param$specialOptions, "\ +", simplify = TRUE))
   )
   
+  # Execute the command
   system2("mageck", args=opt)
+  
+  # We convert the raw outputs to xlsx files
+  lapply(c(".sgrna_summary", ".gene_summary"), function(fileComp) {
+    dat <- ezRead.table(paste0(outputPrefix, fileComp, ".txt"), row.names=NULL)
+    writexl::write_xlsx(dat, paste0(outputPrefix, fileComp, ".xlsx"))
+  })
   
   return("Success")
 }
