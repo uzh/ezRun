@@ -14,21 +14,6 @@ EzAppSCLabelClusters <-
                   runMethod <<- ezMethodSCLabelClusters
                   name <<- "EzAppSCLabelClusters"
                   appDefaults <<- rbind(
-                    npcs = ezFrame(
-                      Type = "numeric",
-                      DefaultValue = 20,
-                      Description = "The maximal dimensions to use for reduction"
-                    ),
-                    pcGenes = ezFrame(
-                      Type = "charVector",
-                      DefaultValue = "",
-                      Description = "The genes used in supvervised clustering"
-                    ),
-                    SCT.regress = ezFrame(
-                      Type = "character",
-                      DefaultValue = "none",
-                      Description = "Choose CellCycle to be regressed out when using the SCTransform method if it is a bias."
-                    ),
                     DE.method = ezFrame(
                       Type = "charVector",
                       DefaultValue = "wilcoxon",
@@ -38,45 +23,6 @@ EzAppSCLabelClusters <-
                       Type = "numeric",
                       DefaultValue = 0.5,
                       Description = "Value of the resolution parameter, use a value above (below) 1.0 if you want to obtain a larger (smaller) number of communities."
-                    ),
-                    nreads = ezFrame(
-                      Type = "numeric",
-                      DefaultValue = Inf,
-                      Description = "Low quality cells have less than \"nreads\" reads. Only when applying fixed thresholds."
-                    ),
-                    ngenes = ezFrame(
-                      Type = "numeric",
-                      DefaultValue = Inf,
-                      Description = "Low quality cells have less than \"ngenes\" genes. Only when applying fixed thresholds."
-                    ),
-                    perc_mito = ezFrame(
-                      Type = "numeric",
-                      DefaultValue = Inf,
-                      Description = "Low quality cells have more than \"perc_mito\" percent of mitochondrial genes. Only when applying fixed thresholds."
-                    ),
-                    perc_ribo = ezFrame(
-                      Type = "numeric",
-                      DefaultValue = Inf,
-                      Description = "Low quality cells have more than \"perc_ribo\" percent of ribosomal genes. Only when applying fixed thresholds."
-                    ),
-                    cellsFraction = ezFrame(
-                      Type = "numeric",
-                      DefaultValue = 0.01,
-                      Description = "A gene will be kept if it is expressed in at least this percentage of cells"
-                    ),
-                    nUMIs = ezFrame(
-                      Type = "numeric",
-                      DefaultValue = 1,
-                      Description = "A gene will be kept if it has at least nUMIs in the fraction of cells specified before"
-                    ),
-                    nmad = ezFrame(
-                      Type = "numeric",
-                      DefaultValue = 3,
-                      Description = "Median absolute deviation (MAD) from the median value of each metric across all cells"
-                    ),
-                    filterByExpression = ezFrame(
-                      Type = "character", DefaultValue = FALSE,
-                      Description = "Keep cells according to specific gene expression. i.e. Set > 1 | Pkn3 > 1"
                     ),
                     controlSeqs = ezFrame(
                       Type = "charVector",

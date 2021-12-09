@@ -267,65 +267,65 @@ kable_styling("striped", full_width = F, position = "left")
 
 <br/>
 
-#### Using reference data
+<!-- #### Using reference data -->
 
-Another strategy for annotation is to compare the single-cell expression profiles with previously annotated reference datasets. Labels can then be assigned to each cell in our uncharacterized test dataset based on the most similar reference sample(s). This annotation can be  performed on single  cells or instead, it may be aggregated into cluster-level profiles prior to annotation.
-To do this, we use the SingleR method (Aran et al. 2019) for cell type annotation. This method assigns labels to cells based on the reference samples with the highest Spearman rank correlations and thus can be considered a rank-based variant of k-nearest-neighbor classification. To reduce noise, SingleR identifies marker genes between pairs of labels and computes the correlation using only those markers. It also performs a fine-tuning step for each cell where the calculation of the correlations is repeated with just the marker genes for the top-scoring labels. This aims to resolve any ambiguity between those labels by removing noise from irrelevant markers for other labels. 
-SingleR contains several built-in reference datasets, mostly assembled from bulk RNA-seq or microarray data of sorted cell types. These built-in references are often good enough for most applications, provided that they contain the cell types that are expected in the test population. 
+<!-- Another strategy for annotation is to compare the single-cell expression profiles with previously annotated reference datasets. Labels can then be assigned to each cell in our uncharacterized test dataset based on the most similar reference sample(s). This annotation can be  performed on single  cells or instead, it may be aggregated into cluster-level profiles prior to annotation. -->
+<!-- To do this, we use the SingleR method (Aran et al. 2019) for cell type annotation. This method assigns labels to cells based on the reference samples with the highest Spearman rank correlations and thus can be considered a rank-based variant of k-nearest-neighbor classification. To reduce noise, SingleR identifies marker genes between pairs of labels and computes the correlation using only those markers. It also performs a fine-tuning step for each cell where the calculation of the correlations is repeated with just the marker genes for the top-scoring labels. This aims to resolve any ambiguity between those labels by removing noise from irrelevant markers for other labels.  -->
+<!-- SingleR contains several built-in reference datasets, mostly assembled from bulk RNA-seq or microarray data of sorted cell types. These built-in references are often good enough for most applications, provided that they contain the cell types that are expected in the test population.  -->
 
-```{r singler, eval= !is.null(metadata(sce)$singler.results)}
-singler.results.single <- metadata(sce)$singler.results$singler.results.single
-singler.results.cluster <- metadata(sce)$singler.results$singler.results.cluster
-singler.single.labels <- singler.results.single$labels
-singler.cluster.labels<- singler.results.cluster$labels[match(colData(sce)[,"ident"], rownames(singler.results.cluster))]
-var_height = length(unique(singler.single.labels))*0.7
-```
+<!-- ```{r singler, eval= !is.null(metadata(sce)$singler.results)} -->
+<!-- singler.results.single <- metadata(sce)$singler.results$singler.results.single -->
+<!-- singler.results.cluster <- metadata(sce)$singler.results$singler.results.cluster -->
+<!-- singler.single.labels <- singler.results.single$labels -->
+<!-- singler.cluster.labels<- singler.results.cluster$labels[match(colData(sce)[,"ident"], rownames(singler.results.cluster))] -->
+<!-- var_height = length(unique(singler.single.labels))*0.7 -->
+<!-- ``` -->
 
-```{r singler ScoreHeatmap,  eval= !is.null(metadata(sce)$singler.results), fig.height= var_height, fig.width=8, results='asis'}
-cat("The two heatmaps below display the scores for all individual cells (left) and each original cluster (right) across all reference labels, which allows users to inspect the confidence of the predicted labels across the dataset. The bar Labels on the top shows the actual assigned label.\n")
-cat("\n")
-plotScoreHeatmap(singler.results.single)
-plotScoreHeatmap(singler.results.cluster, clusters=rownames(singler.results.cluster))
-```
+<!-- ```{r singler ScoreHeatmap,  eval= !is.null(metadata(sce)$singler.results), fig.height= var_height, fig.width=8, results='asis'} -->
+<!-- cat("The two heatmaps below display the scores for all individual cells (left) and each original cluster (right) across all reference labels, which allows users to inspect the confidence of the predicted labels across the dataset. The bar Labels on the top shows the actual assigned label.\n") -->
+<!-- cat("\n") -->
+<!-- plotScoreHeatmap(singler.results.single) -->
+<!-- plotScoreHeatmap(singler.results.cluster, clusters=rownames(singler.results.cluster)) -->
+<!-- ``` -->
 
 
-```{r singler labelsUMAP,  eval= !is.null(metadata(sce)$singler.results), fig.width=12, results='asis'}
-cat("The single cell (top) and cluster (bottom) annotations are also shown on the UMAPs. Place the mouse over the cells to get information such as their UMAP coordinates, original cluster, the cells name and the label assigned by SingleR. You can also zoom in specific areas of the UMAP by dragging and drop with the mouse.\n")
+<!-- ```{r singler labelsUMAP,  eval= !is.null(metadata(sce)$singler.results), fig.width=12, results='asis'} -->
+<!-- cat("The single cell (top) and cluster (bottom) annotations are also shown on the UMAPs. Place the mouse over the cells to get information such as their UMAP coordinates, original cluster, the cells name and the label assigned by SingleR. You can also zoom in specific areas of the UMAP by dragging and drop with the mouse.\n") -->
 
-cellInfo <- tibble(Cells=colnames(sce), Cluster=colData(sce)[,"ident"],
-                     SingleR.labels.cluster=singler.cluster.labels, SingleR.labels.single=singler.single.labels)  %>%
-    left_join(as_tibble(reducedDim(sce, "UMAP"), rownames="Cells"))
+<!-- cellInfo <- tibble(Cells=colnames(sce), Cluster=colData(sce)[,"ident"], -->
+<!--                      SingleR.labels.cluster=singler.cluster.labels, SingleR.labels.single=singler.single.labels)  %>% -->
+<!--     left_join(as_tibble(reducedDim(sce, "UMAP"), rownames="Cells")) -->
 
-nrOfLabels_cluster <- length(unique(cellInfo$SingleR.labels.cluster))
-nrOfLabels_single <- length(unique(cellInfo$SingleR.labels.single))
+<!-- nrOfLabels_cluster <- length(unique(cellInfo$SingleR.labels.cluster)) -->
+<!-- nrOfLabels_single <- length(unique(cellInfo$SingleR.labels.single)) -->
 
-if(nrOfLabels_single <= 9){
-  colsLabels <- brewer.pal(nrOfLabels_single, "Set1")
-}else{
-  colsLabels <- colorRampPalette(brewer.pal(9, "Set1"))(nrOfLabels_single)
-}
+<!-- if(nrOfLabels_single <= 9){ -->
+<!--   colsLabels <- brewer.pal(nrOfLabels_single, "Set1") -->
+<!-- }else{ -->
+<!--   colsLabels <- colorRampPalette(brewer.pal(9, "Set1"))(nrOfLabels_single) -->
+<!-- } -->
 
-x <- list(title="UMAP_1", zeroline=FALSE)
-y <- list(title="UMAP_2", zeroline=FALSE)
+<!-- x <- list(title="UMAP_1", zeroline=FALSE) -->
+<!-- y <- list(title="UMAP_2", zeroline=FALSE) -->
 
-p1 <- plot_ly(cellInfo, x = ~UMAP_1, y = ~UMAP_2, color=~SingleR.labels.single,
-        text = ~paste("Cluster: ", Cluster, 
-                      "\nCell: ", Cells,
-                      "\nSingleR.labels.cluster: ", SingleR.labels.single),
-        type = 'scatter', mode = "markers", marker=list(size=5, opacity=0.5),
-        colors=colsLabels) %>%layout(xaxis=x, yaxis=y)
-p1
-p2 <- plot_ly(cellInfo, x = ~UMAP_1, y = ~UMAP_2, color=~SingleR.labels.cluster,
-        text = ~paste("Cluster: ", Cluster, 
-                      "\nCell: ", Cells,
-                      "\nSingleR.labels.cluster: ", SingleR.labels.cluster),
-        type = 'scatter', mode = "markers", marker=list(size=5, opacity=0.5),
-        colors=colsLabels) %>%layout(xaxis=x, yaxis=y)
+<!-- p1 <- plot_ly(cellInfo, x = ~UMAP_1, y = ~UMAP_2, color=~SingleR.labels.single, -->
+<!--         text = ~paste("Cluster: ", Cluster,  -->
+<!--                       "\nCell: ", Cells, -->
+<!--                       "\nSingleR.labels.cluster: ", SingleR.labels.single), -->
+<!--         type = 'scatter', mode = "markers", marker=list(size=5, opacity=0.5), -->
+<!--         colors=colsLabels) %>%layout(xaxis=x, yaxis=y) -->
+<!-- p1 -->
+<!-- p2 <- plot_ly(cellInfo, x = ~UMAP_1, y = ~UMAP_2, color=~SingleR.labels.cluster, -->
+<!--         text = ~paste("Cluster: ", Cluster,  -->
+<!--                       "\nCell: ", Cells, -->
+<!--                       "\nSingleR.labels.cluster: ", SingleR.labels.cluster), -->
+<!--         type = 'scatter', mode = "markers", marker=list(size=5, opacity=0.5), -->
+<!--         colors=colsLabels) %>%layout(xaxis=x, yaxis=y) -->
 
-p2
-```
+<!-- p2 -->
+<!-- ``` -->
 
-<br/>
+<!-- <br/> -->
 
 #### Using gene sets
 
@@ -388,12 +388,6 @@ The iSEE shiny app can be accessed through this link [iSEE explorer](`r {lastPro
 
 
 ### Data availability
-
-##### Cluster Infos
-
-Use the xls file to manually label or relabel the clusters based on the result of Singler cell type annotation and the marker genes
-[clusterInfoFile.xlsx](clusterInfoFile.xlsx)
-
 
 ##### Mean expression of every gene across the cells in each cluster
 
