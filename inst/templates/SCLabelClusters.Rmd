@@ -37,12 +37,8 @@ knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE, knitr.tabl
 ```
 
 ```{r}
-
-clusterInfoFile <- readRDS("clusterInfoFile.rds")
-
 pvalue_allMarkers <- 0.05
 sce <- loadHDF5SummarizedExperiment("sce_h5")
-sce.unfiltered <- loadHDF5SummarizedExperiment("sce.unfiltered_h5")
 param = metadata(sce)$param
 ```
 
@@ -78,16 +74,16 @@ We use several common QC metrics to identify low-quality cells based on their ex
 A key assumption here is that the QC metrics are independent of the biological state of each cell. Poor values (e.g., low library sizes, high mitochondrial or ribosomal proportions) are presumed to be driven by technical factors rather than biological processes, meaning that the subsequent removal of cells will not misrepresent the biology in downstream analyses. Major violations of this assumption would potentially result in the loss of cell types that have, say, systematically low RNA content or high numbers of mitochondria. We can check for such violations using some diagnostics plots. In the most ideal case, we would see normal distributions that would justify the thresholds used in outlier detection. A large proportion of cells in another mode suggests that the QC metrics might be correlated with some biological state, potentially leading to the loss of distinct cell types during filtering. 
 
 ```{r QC plots, fig.height=4}
-plotColData(sce.unfiltered, x="Batch", y="nCount_RNA", colour_by="discard") + scale_y_log10() + ggtitle("Number of UMIs")
-plotColData(sce.unfiltered, x="Batch", y="nFeature_RNA", colour_by="discard") + scale_y_log10() + ggtitle("Detected genes")
-plotColData(sce.unfiltered, x="Batch", y="percent_mito", colour_by="discard") + ggtitle("Mito percent")
-plotColData(sce.unfiltered, x="Batch", y="percent_ribo", colour_by="discard") + ggtitle("Ribo percent")
+plotColData(sce, x="Batch", y="nCount_RNA", colour_by="discard") + scale_y_log10() + ggtitle("Number of UMIs")
+plotColData(sce, x="Batch", y="nFeature_RNA", colour_by="discard") + scale_y_log10() + ggtitle("Detected genes")
+plotColData(sce, x="Batch", y="percent_mito", colour_by="discard") + ggtitle("Mito percent")
+plotColData(sce, x="Batch", y="percent_ribo", colour_by="discard") + ggtitle("Ribo percent")
 ```
 
 It is also worth to plot the proportion of mitochondrial counts against the library size for each cell. The aim is to confirm that there are no cells with both large total counts and large mitochondrial counts, to ensure that we are not inadvertently removing high-quality cells that happen to be highly metabolically active.
 
 ```{r QC plot mito, fig.align='center'}
-plotColData(sce.unfiltered, x="nCount_RNA", y="percent_mito", colour_by="discard")
+plotColData(sce, x="nCount_RNA", y="percent_mito", colour_by="discard")
 ```
 
 <br/>
