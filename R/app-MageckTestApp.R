@@ -8,7 +8,7 @@ ezMethodMageckTest = function(input=NA, output=NA, param=NA){
   outputPrefix <- file.path(param$comparison, output$getNames())
   
   mergedCountFileName <- paste0(output$getNames(), ".merged.count.tsv")
-  mergedCountFileLoc <- file.path(param$outputDir, mergedCountFileName)
+  mergedCountFileLoc <- file.path(param$comparison, mergedCountFileName)
   sampleNames <- rownames(dataset)
   
   # Combining the count files into a single count file
