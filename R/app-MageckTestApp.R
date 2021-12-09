@@ -27,8 +27,9 @@ ezMethodMageckTest = function(input=NA, output=NA, param=NA){
   
   # We give the design of the experiment as indices corresponding to the
   # columns (skipping the first 2 positions) which are sample vs ref groups
-  rId <- paste(which(dataset[[param$grouping]] == param$refGroup) - 1, collapse=",")
-  sId <- paste(which(dataset[[param$grouping]] == param$sampleGroup) - 1, collapse=",")
+  fullColumnName <- paste(param$grouping, "[Factor]")
+  rId <- paste(which(dataset[[fullColumnName]] == param$refGroup) - 1, collapse=",")
+  sId <- paste(which(dataset[[fullColumnName]] == param$sampleGroup) - 1, collapse=",")
   
   # Load the conda environment
   local_CondaEnv("mageckenv", pathToMiniConda = "/usr/local/ngseq/miniconda3")
