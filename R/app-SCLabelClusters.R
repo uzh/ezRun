@@ -104,13 +104,13 @@ ezMethodSCLabelClusters <- function(input = NA, output = NA, param = NA,
   #clusterInfo <- readRDS("clusterInfoFile.rds")
   
   cwd <- getwd()
-  setwdNew(basename(output$getColumn("Report")))
+  setwdNew(basename(output$getColumn("SC Celltype Report")))
   on.exit(setwd(cwd), add = TRUE)
   
-  sce <- loadHDF5SummarizedExperiment(input$getFullFilename("SC H5"))
+  sce <- loadHDF5SummarizedExperiment(input$getFullPaths("SC H5"))
   counts(sce) <- as(counts(sce), "sparseMatrix")
   logcounts(sce) <- as(logcounts(sce), "sparseMatrix")
-  clusterInfo <- readxl::read_xlsx(param$clusterInfo)
+  clusterInfo <- readxl::read_xlsx(file.path(param$dataRoot, param$clusterInfo))
   clusterInfo <- clusterInfo[clusterInfo$Sample %in% input$getNames(), ] 
   clusterInfo <- clusterInfo[!is.na(clusterInfo$ClusterLabel) & clusterInfo$ClusterLabel != "", ] 
   clusterMap <- setNames(clusterInfo$ClusterLabel, clusterInfo$Cluster)
@@ -127,8 +127,8 @@ ezMethodSCLabelClusters <- function(input = NA, output = NA, param = NA,
   posMarkers <- posClusterMarkers(scData, pvalue_allMarkers, param)
   
 
-  sce <- scData %>% seurat_to_sce(default_assay = "SCT")
-  metadata(sce)$PCA_stdev <- Reductions(scData_diet, "pca")@stdev
+  sce <- scData %>% seurat_to_sce(default_assay = "originalexp")
+  metadata(sce)$PCA_stdev <- Reductions(scData, "pca")@stdev
   metadata(sce)$output <- output
   metadata(sce)$param <- param
   metadata(sce)$param$name <- paste(metadata(sce)$param$name,
