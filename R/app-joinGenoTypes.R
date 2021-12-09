@@ -24,11 +24,11 @@ ezMethodJoinGenoTypes = function(input=NA, output=NA, param=NA){
     param[['gatk']] = file.path(Sys.getenv("GATK"),'gatk')
     
     require(parallel)
-    ezMclapply(datasetCaseList,runGatkPipeline, param, mc.cores = param$cores)
+    results <- ezMclapply(datasetCaseList,runGatkPipeline, param, mc.cores = param$cores)
     if(param$recalibrateVariants){
-        ezSystem('rm *.tranches *recal* *_annotated.vcf*')
+        ezSystem('rm -f *.tranches *recal* *_annotated.vcf*')
     } else {
-        ezSystem('rm *_annotated.vcf*')
+        ezSystem('rm -f *_annotated.vcf*')
     }
     #Further processing for Kispi-Samples ->make Report per Family (per flag)
     return("Success")
@@ -172,7 +172,8 @@ runGatkPipeline = function(datasetCase, param=NA){
             gtf = data.frame(gtf[idx])
             protCodingTranscripts = gtf$transcript_id[gtf$source=='protein_coding']
             write.table(protCodingTranscripts, 'protCodingTranscripts.txt',col.names = F, row.names = F, quote =F)
-            cmd = paste(param$javaCall, "-jar", "$SnpEff/snpEff.jar","-onlyTr protCodingTranscripts.txt", "-s", htmlOutputFile, "-c", param$snpEffConfig, param$snpEffDB, 
+            cmd = paste(param$javaCall, "-jar", "$SnpEff/snpEff.jar","-onlyTr protCodingTranscripts.txt", "-s", htmlOutputFile, 
+                        "-c", param$snpEffConfig, param$snpEffDB, 
                         "-v", gvcfFile,">", 
                         tmpGvcf)
         } else {
@@ -183,6 +184,7 @@ runGatkPipeline = function(datasetCase, param=NA){
         ezSystem(paste(cmd,'2>>',myLog))
         ezSystem(paste("mv", tmpGvcf, gvcfFile))
     }
+    return(gvcfFile)
 }
 
 
