@@ -173,7 +173,8 @@ ezMethodSCOneSample <- function(input = NA, output = NA, param = NA,
     slice_max(n = nTopMarkers, order_by = avg_log2FC)
   topMarkerString <- sapply(split(topMarkers$gene, topMarkers$cluster), paste, collapse=", ")
   clusterInfos[["TopMarkers"]] <- topMarkerString[clusterInfos$Cluster]
-  writexl::write_xlsx(clusterInfos, path="clusterInfos.xlsx")
+  clusterInfoFile <- "clusterInfos.xlsx"
+  writexl::write_xlsx(clusterInfos, path=clusterInfoFile)
   
   # Save some results in external files
   dataFiles <- saveExternalFiles(list(pos_markers = posMarkers, gene_means = as_tibble(as.data.frame(geneMeans), rownames = "gene_name")))
@@ -182,7 +183,7 @@ ezMethodSCOneSample <- function(input = NA, output = NA, param = NA,
   saveHDF5SummarizedExperiment(sce, dir = "sce_h5")
   saveHDF5SummarizedExperiment(sce.unfiltered, dir = "sce.unfiltered_h5")
 
-  makeRmdReport(dataFiles = dataFiles, rmdFile = "SCOneSample.Rmd", reportTitle = metadata(sce)$param$name)
+  makeRmdReport(dataFiles = dataFiles, clusterInfoFile=clusterInfoFile, rmdFile = "SCOneSample.Rmd", reportTitle = metadata(sce)$param$name)
   #remove no longer used objects
   rm(scData, sce.singlets, sce.unfiltered)
   gc()
