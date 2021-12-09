@@ -107,7 +107,6 @@ ezMethodSCLabelClusters <- function(input = NA, output = NA, param = NA,
   setwdNew(basename(output$getColumn("Report")))
   on.exit(setwd(cwd), add = TRUE)
   
-  pvalue_allMarkers <- 0.05
   sce <- loadHDF5SummarizedExperiment(input$getFullFilename("SC H5"))
   counts(sce) <- as(counts(sce), "sparseMatrix")
   logcounts(sce) <- as(logcounts(sce), "sparseMatrix")
@@ -127,19 +126,9 @@ ezMethodSCLabelClusters <- function(input = NA, output = NA, param = NA,
   Idents(scData) <- scData$cellType
   posMarkers <- posClusterMarkers(scData, pvalue_allMarkers, param)
   
-  cells_AUC <- NULL
-  singler.results <- NULL
-  # cell types annotation is only supported for Human and Mouse at the moment
-  species <- getSpecies(param$refBuild)
-  if (species == "Human" | species == "Mouse") {
-    cells_AUC <- cellsLabelsWithAUC(scData, species, param$tissue)
-    singler.results <- cellsLabelsWithSingleR(GetAssayData(scData, "counts"), Idents(scData), species)
-  }
-  
+
   sce <- scData %>% seurat_to_sce(default_assay = "SCT")
   metadata(sce)$PCA_stdev <- Reductions(scData_diet, "pca")@stdev
-  metadata(sce)$cells_AUC <- cells_AUC
-  metadata(sce)$singler.results <- singler.results
   metadata(sce)$output <- output
   metadata(sce)$param <- param
   metadata(sce)$param$name <- paste(metadata(sce)$param$name,
@@ -147,6 +136,14 @@ ezMethodSCLabelClusters <- function(input = NA, output = NA, param = NA,
                                     sep = ": "
   )
   geneMeans <- geneMeansCluster(sce)
+
+  # species <- getSpecies(param$refBuild)
+  # if (species == "Human" | species == "Mouse") {
+  #   cells_AUC <- cellsLabelsWithAUC(scData, species, param$tissue)
+  #   singler.results <- cellsLabelsWithSingleR(GetAssayData(scData, "counts"), Idents(scData), species)
+  # }
+  # metadata(sce)$singler.results <- singler.results
+  # metadata(sce)$cells_AUC <- cells_AUC
   
 
   # Save some results in external files

@@ -102,7 +102,7 @@ ezMethodSCOneSample <- function(input = NA, output = NA, param = NA,
   require(scDblFinder)
   
   cwd <- getwd()
-  setwdNew(basename(output$getColumn("Report")))
+  setwdNew(basename(output$getColumn("SC Cluster Report")))
   on.exit(setwd(cwd), add = TRUE)
 
   scData <- load10xSC_seurat(input, param)
