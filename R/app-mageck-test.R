@@ -1,14 +1,17 @@
 ezMethodMageckTest = function(input=NA, output=NA, param=NA){
   require(Herper)
+
+  # Loading the variables
+  dataset <- input$meta
+  dir.create(param$outputDir, showWarnings=FALSE)
+  outputPrefix <- file.path(param$outputDir, output$getNames())
   
-  inputTsv <- data.table::fread(input)
-  mergedCountFileName <- paste0(output$Name, ".merged.count.tsv")
+  mergedCountFileName <- paste0(output$getNames(), ".merged.count.tsv")
   mergedCountFileLoc <- file.path(param$outputDir, mergedCountFileName)
-  print(mergedCountFileLoc)
-  sampleNames <- inputTsv$Name
+  sampleNames <- rownames(dataset)
   
-  countFilePaths <- file.path(param$dataRoot, inputTsv$`Count [File]`)
-  print(countFilePaths)
+  # Combining the count files into a single count file
+  countFilePaths <- file.path(param$dataRoot, dataset$`Count [File]`)
   counts <- lapply(countFilePaths, data.table::fread)
   mergeCounts <- counts %>% reduce(inner_join, by="sgRNA", keep=FALSE)
   mergeCounts <- mergeCounts %>%
@@ -16,15 +19,16 @@ ezMethodMageckTest = function(input=NA, output=NA, param=NA){
     select(!starts_with("Gene."))
   colnames(mergeCounts)[3:(3+length(sampleNames)-1)] <- sampleNames
   
-  data.table::fwrite(mergeCounts, mergedCountFileLoc, sep="\t", na="NA")
+  ezWrite.table(mergeCounts, file=mergedCountFileLoc, row.names=FALSE)
   
-  rId <- paste(which(inputTsv$`Condition [Factor]` == param$refGroup) - 1, collapse=",")
-  sId <- paste(which(inputTsv$`Condition [Factor]` == param$sampleGroup) - 1, collapse=",")
+  # We give the design of the experiment as indices corresponding to the
+  # columns (skipping the first 2 positions) which are sample vs ref groups
+  rId <- paste(which(dataset$`Condition [Factor]` == param$refGroup) - 1, collapse=",")
+  sId <- paste(which(dataset$`Condition [Factor]` == param$sampleGroup) - 1, collapse=",")
   
   local_CondaEnv("mageckenv", pathToMiniConda = "/usr/local/ngseq/miniconda3")
 
-  opt <- paste(
-    "mageck",
+  opt <- c(
     "test",
     "-k",
     mergedCountFileLoc,
@@ -33,10 +37,10 @@ ezMethodMageckTest = function(input=NA, output=NA, param=NA){
     "-c",
     rId,
     "-n",
-    "foo"
+    outputPrefix
   )
   
-  ezSystem(opt)
+  system2("mageck", args=opt)
   
   return("Success")
 }
@@ -64,7 +68,3 @@ EzAppMageckTest <-
                 }
               )
   )
-
-source("./R/app-mageck-vars.R")
-EzAppMageckTest$new()$run(input=input, output=output, param=param)
-#ezMethodMageckTest(input=input, output=output, param=param)
