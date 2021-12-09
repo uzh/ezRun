@@ -324,7 +324,7 @@ EzApp <-
                     #waitForFreeDiskSpace(param)
                     jobDir = getwd()
                     if (ezIsSpecified(param$samples)){
-                      input <- input$subset(intersect(param$samples, input$getNames))
+                      input <- input$subset(intersect(param$samples, input$getNames()))
                     }
                     result = runMethod(input=input$copy(), output=output$copy(), param=param)
                     setwd(jobDir)
