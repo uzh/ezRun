@@ -4,8 +4,8 @@ ezMethodMageckTest = function(input=NA, output=NA, param=NA){
 
   # Loading the variables
   dataset <- input$meta
-  dir.create(param$outputDir, showWarnings=FALSE)
-  outputPrefix <- file.path(param$outputDir, output$getNames())
+  dir.create(param$comparison, showWarnings=FALSE)
+  outputPrefix <- file.path(param$comparison, output$getNames())
   
   mergedCountFileName <- paste0(output$getNames(), ".merged.count.tsv")
   mergedCountFileLoc <- file.path(param$outputDir, mergedCountFileName)
@@ -27,8 +27,8 @@ ezMethodMageckTest = function(input=NA, output=NA, param=NA){
   
   # We give the design of the experiment as indices corresponding to the
   # columns (skipping the first 2 positions) which are sample vs ref groups
-  rId <- paste(which(dataset$`Condition [Factor]` == param$refGroup) - 1, collapse=",")
-  sId <- paste(which(dataset$`Condition [Factor]` == param$sampleGroup) - 1, collapse=",")
+  rId <- paste(which(dataset[[param$grouping]] == param$refGroup) - 1, collapse=",")
+  sId <- paste(which(dataset[[param$grouping]] == param$sampleGroup) - 1, collapse=",")
   
   # Load the conda environment
   local_CondaEnv("mageckenv", pathToMiniConda = "/usr/local/ngseq/miniconda3")
