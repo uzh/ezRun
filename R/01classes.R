@@ -324,7 +324,7 @@ EzApp <-
                     #waitForFreeDiskSpace(param)
                     jobDir = getwd()
                     if (ezIsSpecified(param$samples)){
-                      stopifnot(param$samples %in% input$getNames())
+                      ##stopifnot(param$samples %in% input$getNames())
                       input <- input$subset(param$samples)
                     }
                     result = runMethod(input=input$copy(), output=output$copy(), param=param)
