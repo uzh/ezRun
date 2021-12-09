@@ -128,7 +128,7 @@ ezMethodSCLabelClusters <- function(input = NA, output = NA, param = NA,
   
 
   sce <- scData %>% seurat_to_sce(default_assay = "originalexp")
-  metadata(sce)$PCA_stdev <- Reductions(scData, "pca")@stdev
+  metadata(sce)$PCA_stdev <- Reductions(scData, "PCA")@stdev
   metadata(sce)$output <- output
   metadata(sce)$param <- param
   metadata(sce)$param$name <- paste(metadata(sce)$param$name,
@@ -152,6 +152,6 @@ ezMethodSCLabelClusters <- function(input = NA, output = NA, param = NA,
   
   saveHDF5SummarizedExperiment(sce, dir = "sce_h5")
 
-  makeRmdReport(dataFiles = dataFiles, clusterInfoFile=clusterInfoFile, rmdFile = "SCLabelClusters.Rmd", reportTitle = metadata(sce)$param$name)
+  makeRmdReport(dataFiles = dataFiles, rmdFile = "SCLabelClusters.Rmd", reportTitle = metadata(sce)$param$name)
   return("Success")
 }
