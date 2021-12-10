@@ -931,9 +931,11 @@ resultMetaCore <- resultLoaded %>%
   dplyr::select(gene_id, entrez_id, "log2 Ratio", pValue)
 ```
 
-```{r metacore export, echo=FALSE, message=FALSE, eval=FALSE}
+```{r metacore export, echo=FALSE, message=FALSE, eval=TRUE}
 metacoreFile <- str_c("MetaCore--", param$comparison, ".txt")
-ezWrite.table(resultMetaCore, file = metacoreFile, row.names = FALSE)
+if (exists("resultMetaCore")){
+  ezWrite.table(resultMetaCore, file = metacoreFile, row.names = FALSE)
+}
 ```
 
 #### Metacore
