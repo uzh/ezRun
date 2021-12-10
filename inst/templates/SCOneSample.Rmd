@@ -203,12 +203,12 @@ We can explore whether the cells cluster by the different cell cycle phases. In 
 sce$logRNA = log10(sce$nCount_RNA)
 sce$logGenes = log10(sce$nFeature_RNA)
 
-tryCatch({
+if (!is.null(sce$CellCycle)){
   p1 = plotColData(sce, x="ident", y="CellCycle", colour_by="ident") + ggtitle("Cell cycle vs ident")
-  p2 = plotReducedDim(sce, dimred="UMAP", colour_by="CellCycle", text_by="seurat_clusters", text_size=5, add_legend=TRUE)
+  p2 = plotReducedDim(sce, dimred="UMAP", colour_by="CellCycle", text_by="cellType", text_size=5, add_legend=TRUE)
   print(p1)
   print(p2)
-}, error=function(e) print("Cell cycle was not calculated. Possible reasons: a bug in the app or using a different organism than human or mouse. Please, ask the developer."))
+}
 plotColData(sce, x="ident", y="nCount_RNA", colour_by="ident", add_legend=FALSE) + ggtitle("Number of UMIs vs ident")
 plotReducedDim(sce, dimred="UMAP", colour_by="logRNA", text_by="seurat_clusters", text_size=5)
 plotColData(sce, x="ident", y="nFeature_RNA", colour_by="ident", add_legend=FALSE) + ggtitle("Detected genes vs ident")
