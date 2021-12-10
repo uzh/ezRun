@@ -118,9 +118,8 @@ ezMethodGatkDnaHaplotyper = function(input=NA, output=NA, param=NA){
                 "--native-pair-hmm-threads", param$cores)
   }
   ezSystem(cmd)
-  ezSystem(paste("bgzip","-c",outputFile, ">",paste0(outputFile,".gz")))
-  ezSystem(paste("tabix","-p vcf",paste0(outputFile,".gz")))
-  
+  Rsamtools::indexTabix(outputFile,format = "vcf")
+
   return("Success")
 }
 

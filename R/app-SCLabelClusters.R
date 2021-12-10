@@ -62,6 +62,8 @@ ezMethodSCLabelClusters <- function(input = NA, output = NA, param = NA,
   clusterMap <- setNames(clusterInfo$ClusterLabel, clusterInfo$Cluster)
   if (length(clusterMap) > 0){
     sce$cellType <- sce$ident %>% recode(!!!clusterMap)
+  } else {
+    sce$cellType <- sce$ident
   }
   
 

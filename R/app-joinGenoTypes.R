@@ -7,12 +7,6 @@
 
 ezMethodJoinGenoTypes = function(input=NA, output=NA, param=NA){
     setwdNew(param[['name']])
-    dataset = input$meta
-    dataset[['GVCF [File]']] = input$getFullPaths("GVCF")
-    datasetCaseList = split(dataset,input$getColumn(param$grouping))
-    if(is.null(param$mc.cores)){
-        param[['mc.cores']] = max(1L, round(param$cores/length(datasetCaseList)))
-    }
     param[['genomeSeq']] = param$ezRef["refFastaFile"]
     param[['species']] = limma::strsplit2(param$ezRef['refBuild'],'/')[1]
     param[['knownSites']] = list.files(param$ezRef["refVariantsDir"],pattern='vcf.gz$',full.names = T) 
@@ -23,20 +17,16 @@ ezMethodJoinGenoTypes = function(input=NA, output=NA, param=NA){
     param[['javaCall']] = paste("java", "-Djava.io.tmpdir=.")
     param[['gatk']] = file.path(Sys.getenv("GATK"),'gatk')
     
-    require(parallel)
-    results <- ezMclapply(datasetCaseList,runGatkPipeline, param, mc.cores = param$cores)
-    if(param$recalibrateVariants){
-        ezSystem('rm -f *.tranches *recal* *_annotated.vcf*')
-    } else {
-        ezSystem('rm -f *_annotated.vcf*')
-    }
-    #Further processing for Kispi-Samples ->make Report per Family (per flag)
+    dataset = input$meta
+    dataset[['GVCF [File]']] = input$getFullPaths("GVCF")
+    datasetCaseList = split(dataset,input$getColumn(param$grouping))
+    results <- ezMclapply(names(datasetCaseList),runGatkPipeline, param, mc.cores = param$cores)
     return("Success")
 }
 
-runGatkPipeline = function(datasetCase, param=NA){
+runGatkPipeline = function(caseName, param=NA){
     gatk = param[['gatk']]
-    caseName = unique(datasetCase[[paste(param$grouping,'[Factor]')]])
+    datasetCase <- datasetCaseList[[caseName]]
     myLog = paste0('log_',caseName,'.txt')
     if(param$targetFile != ''){
         param$targetFile = file.path(TARGET_ENRICHMENT_DESIGN_DIR, param$targetFile)
@@ -62,23 +52,24 @@ runGatkPipeline = function(datasetCase, param=NA){
     
     
     GenotypeGVCF = paste(gatk,'GenotypeGVCFs')
-    gvcfFile = paste0(caseName,'.vcf')
+    gvcfFile = paste0(caseName,'.g.vcf')
     tmpGvcf = paste0(caseName,'_temp.vcf')
     cmd = paste(GenotypeGVCF, "-R", param$genomeSeq,
                 fileCmd,
                 "--dbsnp", param$dbsnpFile,
-                "--output", gvcfFile,
+                "--output", tmpGvcf,
                 targetOption)
     ezSystem(paste(cmd,'2>',myLog))
+    ezSystem(paste('mv', tmpGvcf, gvcfFile))
+    ezSystem(paste('mv', paste0(tmpGvcf, ".idx"), paste0(gvcfFile, ".idx")))
     
     if(param$species == 'Homo_sapiens'){
-        VariantRecalibrator1 = paste(gatk,'VariantRecalibrator')
         hapmapFile = param$knownSites[grep('hapmap_.*vcf.gz$', param$knownSites)]
         h1000G_omniFile = param$knownSites[grep('1000G_omni.*vcf.gz$', param$knownSites)]
         h1000G_phase1File = param$knownSites[grep('1000G_phase1.snps.*vcf.gz$', param$knownSites)]
         
         if(param$recalibrateVariants){
-            cmd = paste(VariantRecalibrator1, "-R", param$genomeSeq,
+            cmd = paste(gatk, 'VariantRecalibrator', "-R", param$genomeSeq,
                         "--variant", gvcfFile,
                         "--resource:hapmap,known=false,training=true,truth=true,prior=15.0", hapmapFile,
                         "--resource:omni,known=false,training=true,truth=false,prior=12.0",  h1000G_omniFile,
@@ -94,8 +85,7 @@ runGatkPipeline = function(datasetCase, param=NA){
             ezSystem(paste(cmd,'2>>',myLog))
             
             #Apply RecalibrationOutput for SNPs:
-            VariantRecalibrator2 = paste(gatk,'ApplyVQSR')
-            cmd = paste(VariantRecalibrator2, "-R", param$genomeSeq,
+            cmd = paste(gatk,'ApplyVQSR', "-R", param$genomeSeq,
                         "--variant", gvcfFile,
                         "-mode SNP",
                         "--recal-file", paste0(caseName,'_raw.SNPs.recal'),
@@ -105,12 +95,14 @@ runGatkPipeline = function(datasetCase, param=NA){
                         targetOption)
             ezSystem(paste(cmd,'2>>',myLog))
             ezSystem(paste('mv', tmpGvcf, gvcfFile))
+            ezSystem(paste('mv', paste0(tmpGvcf, ".idx"), paste0(gvcfFile, ".idx")))
+            ezSystem(paste0('rm -f ', caseName, "*.tranches ", caseName, "*recal*", ))
         }
         
         #2.Run VariantRecalibration for InDels:
         if(param$recalibrateInDels){
             millsFile = param$knownSites[grep('Mills.*vcf.gz$', param$knownSites)]
-            cmd = paste(VariantRecalibrator1, "-R", param$genomeSeq,
+            cmd = paste(gatk, 'VariantRecalibrator', "-R", param$genomeSeq,
                         "--variant", gvcfFile,
                         "-resource:mills,known=false,training=true,truth=true,prior=12.0", millsFile,
                         "--max-gaussians 4 --minimum-bad-variants 500 --max-attempts 3", #might be suboptimal
@@ -123,7 +115,7 @@ runGatkPipeline = function(datasetCase, param=NA){
             ezSystem(paste(cmd,'2>>',myLog))
             
             #Apply RecalibrationOutput for InDels:
-            cmd = paste(VariantRecalibrator2, "-R", param$genomeSeq,
+            cmd = paste(gatk,'ApplyVQSR', "-R", param$genomeSeq,
                         "--variant", gvcfFile,
                         "-mode INDEL",
                         "--recal-file", paste0(caseName,'_raw.InDels.recal'),
@@ -133,6 +125,8 @@ runGatkPipeline = function(datasetCase, param=NA){
                         targetOption)
             ezSystem(paste(cmd,'2>>',myLog))
             ezSystem(paste('mv', tmpGvcf, gvcfFile))
+            ezSystem(paste('mv', paste0(tmpGvcf, ".idx"), paste0(gvcfFile, ".idx")))
+            ezSystem(paste0('rm -f ', caseName, "*.tranches ", caseName, "*recal*", ))
         }
         #Add ExAc-Annotation:
         # runExAC = FALSE
@@ -160,6 +154,7 @@ runGatkPipeline = function(datasetCase, param=NA){
         #for hg38 upgrade - dbsfp starting from v4: gnomAD_exomes_AF,M-CAP_score,M-CAP_rankscore,M-CAP_pred,VindijiaNeandertal
         ezSystem(paste(cmd,'2>>',myLog))
         ezSystem(paste("mv", tmpGvcf, gvcfFile))
+        ezSystem(paste('mv', paste0(tmpGvcf, ".idx"), paste0(gvcfFile, ".idx")))
     }
     
     #SnpEff:
@@ -183,7 +178,10 @@ runGatkPipeline = function(datasetCase, param=NA){
         }
         ezSystem(paste(cmd,'2>>',myLog))
         ezSystem(paste("mv", tmpGvcf, gvcfFile))
+        ezSystem(paste('mv', paste0(tmpGvcf, ".idx"), paste0(gvcfFile, ".idx")))
     }
+    
+    Rsamtools::indexTabix(gvcfFile,format = "vcf")
     return(gvcfFile)
 }
 
