@@ -169,20 +169,20 @@ We can explore whether the cells cluster by the different cell cycle phases. In 
 sce$logRNA = log10(sce$nCount_RNA)
 sce$logGenes = log10(sce$nFeature_RNA)
 
-tryCatch({
+if (!is.null(sce$CellCycle)){
   p1 = plotColData(sce, x="ident", y="CellCycle", colour_by="ident") + ggtitle("Cell cycle vs ident")
   p2 = plotReducedDim(sce, dimred="UMAP", colour_by="CellCycle", text_by="cellType", text_size=5, add_legend=TRUE)
   print(p1)
   print(p2)
-}, error=function(e) print("Cell cycle was not calculated. Possible reasons: a bug in the app or using a different organism than human or mouse. Please, ask the developer."))
+}
 plotColData(sce, x="ident", y="nCount_RNA", colour_by="ident", add_legend=FALSE) + ggtitle("Number of UMIs vs ident")
 plotReducedDim(sce, dimred="UMAP", colour_by="logRNA", text_by="cellType", text_size=5)
 plotColData(sce, x="ident", y="nFeature_RNA", colour_by="ident", add_legend=FALSE) + ggtitle("Detected genes vs ident")
 plotReducedDim(sce, dimred="UMAP", colour_by="logGenes", text_by="cellType", text_size=5)
-plotColData(sce, x="ident", y="percent_mito", colour_by="ident", add_legend=FALSE) + ggtitle("Mito percentage vs ident")
-plotReducedDim(sce, dimred="UMAP", colour_by="percent_mito", text_by="cellType", text_size=5)
-plotColData(sce, x="ident", y="percent_ribo", colour_by="ident", add_legend=FALSE) + ggtitle("Ribo percentage vs ident")
-plotReducedDim(sce, dimred="UMAP", colour_by="percent_ribo", text_by="cellType", text_size=5)
+# plotColData(sce, x="ident", y="percent_mito", colour_by="ident", add_legend=FALSE) + ggtitle("Mito percentage vs ident")
+# plotReducedDim(sce, dimred="UMAP", colour_by="percent_mito", text_by="cellType", text_size=5)
+# plotColData(sce, x="ident", y="percent_ribo", colour_by="ident", add_legend=FALSE) + ggtitle("Ribo percentage vs ident")
+# plotReducedDim(sce, dimred="UMAP", colour_by="percent_ribo", text_by="cellType", text_size=5)
 if (ezIsSpecified(param$controlSeqs)) {
   genesToPlot <- gsub("_", "-", param$controlSeqs)
   genesToPlot <- intersect(genesToPlot, rownames(sce))
@@ -325,7 +325,7 @@ kable_styling("striped", full_width = F, position = "left")
 The iSEE (Interactive SummarizedExperiment Explorer) explorer provides a general visual interface for exploring single cell data. iSEE allows users to simultaneously visualize multiple aspects of a given data set, including experimental data, metadata, and analysis results. Dynamic linking and point selection facilitate the flexible exploration of interactions between different data aspects.
  [Rue-Albrecht K, Marini F, Soneson C, Lun ATL (2018). “iSEE: Interactive SummarizedExperiment Explorer.” F1000Research, 7, 741. doi: 10.12688/f1000research.14966.1.]
 
-The iSEE shiny app can be accessed through this link [iSEE explorer](`r {lastProjectDigit = stringr::str_sub( sub("\\/.*", "", output$getColumn("SC Celltype Report")), start = -1); paste0("http://fgcz-shiny.uzh.ch/fgcz_iSEE", lastProjectDigit, "/?data=",output$getColumn("Report"),"/sce_h5")}`)
+The iSEE shiny app can be accessed through this link [iSEE explorer](`r {lastProjectDigit = stringr::str_sub( sub("\\/.*", "", output$getColumn("SC Celltype Report")), start = -1); paste0("http://fgcz-shiny.uzh.ch/fgcz_iSEE", lastProjectDigit, "/?data=",output$getColumn("SC Celltype Report"),"/sce_h5")}`)
 
 
 ### Data availability
