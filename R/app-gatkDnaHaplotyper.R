@@ -91,7 +91,7 @@ ezMethodGatkDnaHaplotyper = function(input=NA, output=NA, param=NA){
   ezSystem(paste("samtools", "index", "recal.bam"))
   ########### haplotyping
   haplotyperCall = paste(gatk,'HaplotypeCaller')
-  outputFile = paste0(sampleName, "-HC_calls.g.vcf")
+  outputFile = paste0(sampleName, "-HC_calls.g.vcf.gz")
   cmd = paste(haplotyperCall, "-R", genomeSeq,
               "-I recal.bam",
               "-ERC GVCF",
@@ -118,7 +118,6 @@ ezMethodGatkDnaHaplotyper = function(input=NA, output=NA, param=NA){
                 "--native-pair-hmm-threads", param$cores)
   }
   ezSystem(cmd)
-  Rsamtools::indexTabix(outputFile,format = "vcf")
 
   return("Success")
 }

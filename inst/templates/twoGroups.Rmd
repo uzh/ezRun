@@ -897,7 +897,7 @@ if (isTRUE(param$runGO)) {
 ```
 
 ### MetaCore 
-```{r metacore annotate, echo=FALSE, message=FALSE}
+```{r metacore annotate, echo=FALSE, message=FALSE, eval=FALSE}
 require(AnnotationHub)
 ah <- AnnotationHub()
 ref <- param$refBuild %>%
@@ -923,7 +923,7 @@ if (!(ref %in% unique(ah$species)) | is.na(ref)) {
 }
 ```
 
-```{r metacore prepare, echo=FALSE, message=FALSE, eval=!debug}
+```{r metacore prepare, echo=FALSE, message=FALSE, eval=FALSE}
 resultLoaded <- readxl::read_excel(resultFile$resultFile)
 resultMetaCore <- resultLoaded %>%
   filter(isPresent, pValue <= param$pValThreshGO) %>%
@@ -931,7 +931,7 @@ resultMetaCore <- resultLoaded %>%
   dplyr::select(gene_id, entrez_id, "log2 Ratio", pValue)
 ```
 
-```{r metacore export, echo=FALSE, message=FALSE, eval=TRUE}
+```{r metacore export, echo=FALSE, message=FALSE, eval=FALSE}
 metacoreFile <- str_c("MetaCore--", param$comparison, ".txt")
 ezWrite.table(resultMetaCore, file = metacoreFile, row.names = FALSE)
 ```
