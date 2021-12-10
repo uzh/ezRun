@@ -20,11 +20,11 @@ ezMethodJoinGenoTypes = function(input=NA, output=NA, param=NA){
     dataset = input$meta
     dataset[['GVCF [File]']] = input$getFullPaths("GVCF")
     datasetCaseList = split(dataset,input$getColumn(param$grouping))
-    results <- ezMclapply(names(datasetCaseList),runGatkPipeline, param, mc.cores = param$cores)
+    results <- ezMclapply(names(datasetCaseList),runGatkPipeline, param=param, datasetCaseList=datasetCaseList, mc.cores = param$cores)
     return("Success")
 }
 
-runGatkPipeline = function(caseName, param=NA){
+runGatkPipeline = function(caseName, param=NA, datasetCaseList=NULL){
     gatk = param[['gatk']]
     datasetCase <- datasetCaseList[[caseName]]
     myLog = paste0('log_',caseName,'.txt')
@@ -154,7 +154,7 @@ runGatkPipeline = function(caseName, param=NA){
         #for hg38 upgrade - dbsfp starting from v4: gnomAD_exomes_AF,M-CAP_score,M-CAP_rankscore,M-CAP_pred,VindijiaNeandertal
         ezSystem(paste(cmd,'2>>',myLog))
         ezSystem(paste("mv", tmpGvcf, gvcfFile))
-        ezSystem(paste('mv', paste0(tmpGvcf, ".idx"), paste0(gvcfFile, ".idx")))
+        ezSystem(paste("gatk", "IndexFeatureFile -I", gvcfFile))
     }
     
     #SnpEff:
@@ -181,7 +181,8 @@ runGatkPipeline = function(caseName, param=NA){
         ezSystem(paste('mv', paste0(tmpGvcf, ".idx"), paste0(gvcfFile, ".idx")))
     }
     
-    Rsamtools::indexTabix(gvcfFile,format = "vcf")
+    ezSystem(paste("bgzip", gvcfFile))
+    ezSystem(paste0("tabix -p vcf ", gvcfFile, ".gz"))
     return(gvcfFile)
 }
 
