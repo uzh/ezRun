@@ -16,7 +16,7 @@ EzAppSCLabelClusters <-
                   appDefaults <<- rbind(
                     DE.method = ezFrame(
                       Type = "charVector",
-                      DefaultValue = "wilcoxon",
+                      DefaultValue = "wilcox",
                       Description = "Method to be used when calculating gene cluster markers. Use LR if you want to include cell cycle in the regression model."
                     ),
                     resolution = ezFrame(
@@ -60,7 +60,9 @@ ezMethodSCLabelClusters <- function(input = NA, output = NA, param = NA,
   clusterInfo <- clusterInfo[clusterInfo$Sample %in% input$getNames(), ] 
   clusterInfo <- clusterInfo[!is.na(clusterInfo$ClusterLabel) & clusterInfo$ClusterLabel != "", ] 
   clusterMap <- setNames(clusterInfo$ClusterLabel, clusterInfo$Cluster)
-  sce$cellType <- sce$ident %>% recode(!!!clusterMap)
+  if (length(clusterMap) > 0){
+    sce$cellType <- sce$ident %>% recode(!!!clusterMap)
+  }
   
 
   pvalue_allMarkers <- 0.05
