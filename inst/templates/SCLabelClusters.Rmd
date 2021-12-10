@@ -74,16 +74,16 @@ We use several common QC metrics to identify low-quality cells based on their ex
 A key assumption here is that the QC metrics are independent of the biological state of each cell. Poor values (e.g., low library sizes, high mitochondrial or ribosomal proportions) are presumed to be driven by technical factors rather than biological processes, meaning that the subsequent removal of cells will not misrepresent the biology in downstream analyses. Major violations of this assumption would potentially result in the loss of cell types that have, say, systematically low RNA content or high numbers of mitochondria. We can check for such violations using some diagnostics plots. In the most ideal case, we would see normal distributions that would justify the thresholds used in outlier detection. A large proportion of cells in another mode suggests that the QC metrics might be correlated with some biological state, potentially leading to the loss of distinct cell types during filtering. 
 
 ```{r QC plots, fig.height=4}
-plotColData(sce, x="Batch", y="nCount_RNA", colour_by="discard") + scale_y_log10() + ggtitle("Number of UMIs")
-plotColData(sce, x="Batch", y="nFeature_RNA", colour_by="discard") + scale_y_log10() + ggtitle("Detected genes")
-plotColData(sce, x="Batch", y="percent_mito", colour_by="discard") + ggtitle("Mito percent")
-plotColData(sce, x="Batch", y="percent_ribo", colour_by="discard") + ggtitle("Ribo percent")
+plotColData(sce, x="Batch", y="nCount_RNA") + scale_y_log10() + ggtitle("Number of UMIs")
+plotColData(sce, x="Batch", y="nFeature_RNA") + scale_y_log10() + ggtitle("Detected genes")
+#plotColData(sce, x="Batch", y="percent_mito") + ggtitle("Mito percent")
+#plotColData(sce, x="Batch", y="percent_ribo") + ggtitle("Ribo percent")
 ```
 
 It is also worth to plot the proportion of mitochondrial counts against the library size for each cell. The aim is to confirm that there are no cells with both large total counts and large mitochondrial counts, to ensure that we are not inadvertently removing high-quality cells that happen to be highly metabolically active.
 
 ```{r QC plot mito, fig.align='center'}
-plotColData(sce, x="nCount_RNA", y="percent_mito", colour_by="discard")
+#plotColData(sce, x="nCount_RNA", y="percent_mito", colour_by="discard")
 ```
 
 <br/>
@@ -110,7 +110,7 @@ As a result, SCTransform ranked the genes by residual variance and returned the 
 Next, we perform PCA on the scaled data. By default, only the previously determined variable features are used as input but can be defined using the pcGenes argument if you wish to choose a different subset. Seurat clusters cells based on their PCA scores. The top principal components, therefore, represent a robust compression of the dataset. The numbers of PCs that should be retained for downstream analyses typically range from 10 to 50. However, identifying the true dimensionality of a dataset can be challenging, that's why we recommend considering the ‘Elbow plot’ approach. a ranking of principal components based on the percentage of variance explained by each one. The assumption is that each of the top PCs capturing biological signal should explain much more variance than the remaining PCs. Thus, there should be a sharp drop in the percentage of variance explained when we move past the last “biological” PC. This manifests as an elbow in the scree plot, the location of which serves as a natural choice for a number of PCs.
 
 ```{r, fig.align='center'}
-plot(metadata(sce)$PCA_stdev, xlab="PC", ylab="Standard Deviation", pch=16)
+#plot(metadata(sce)$PCA_stdev, xlab="PC", ylab="Standard Deviation", pch=16)
 ```
 
 
@@ -150,8 +150,8 @@ The number of cells in each cluster and sample is represented in this barplot.
 
 ```{r number of cells in each cluster}
 cellIdents_perSample <- as.data.frame(colData(sce)[,c('cellType', 'orig.ident')])
-barplot = ggplot(data=cellIdents_perSample, aes(x=seurat_clusters, fill=orig.ident)) + geom_bar(stat="Count")
-barplot + labs(x="Cluster", y = "Number of cells", fill = "Sample")
+barplot = ggplot(data=cellIdents_perSample, aes(x=cellType, fill=orig.ident)) + geom_bar(stat="Count")
+barplot + labs(x="", y = "Number of cells", fill = "Sample") + theme(axis.text.x = element_text(angle = 45, vjust = 0.5, hjust=1))
 
 cells_prop = cellsProportion(sce, groupVar1 = "ident", groupVar2 = "Batch")
 kable(cells_prop,row.names=FALSE, format="html",caption="Cell proportions") %>% kable_styling(bootstrap_options = "striped", full_width = F, position = "float_right")
@@ -169,20 +169,20 @@ We can explore whether the cells cluster by the different cell cycle phases. In 
 sce$logRNA = log10(sce$nCount_RNA)
 sce$logGenes = log10(sce$nFeature_RNA)
 
-tryCatch({
+if (!is.null(sce$CellCycle)){
   p1 = plotColData(sce, x="ident", y="CellCycle", colour_by="ident") + ggtitle("Cell cycle vs ident")
   p2 = plotReducedDim(sce, dimred="UMAP", colour_by="CellCycle", text_by="cellType", text_size=5, add_legend=TRUE)
   print(p1)
   print(p2)
-}, error=function(e) print("Cell cycle was not calculated. Possible reasons: a bug in the app or using a different organism than human or mouse. Please, ask the developer."))
+}
 plotColData(sce, x="ident", y="nCount_RNA", colour_by="ident", add_legend=FALSE) + ggtitle("Number of UMIs vs ident")
 plotReducedDim(sce, dimred="UMAP", colour_by="logRNA", text_by="cellType", text_size=5)
 plotColData(sce, x="ident", y="nFeature_RNA", colour_by="ident", add_legend=FALSE) + ggtitle("Detected genes vs ident")
 plotReducedDim(sce, dimred="UMAP", colour_by="logGenes", text_by="cellType", text_size=5)
-plotColData(sce, x="ident", y="percent_mito", colour_by="ident", add_legend=FALSE) + ggtitle("Mito percentage vs ident")
-plotReducedDim(sce, dimred="UMAP", colour_by="percent_mito", text_by="cellType", text_size=5)
-plotColData(sce, x="ident", y="percent_ribo", colour_by="ident", add_legend=FALSE) + ggtitle("Ribo percentage vs ident")
-plotReducedDim(sce, dimred="UMAP", colour_by="percent_ribo", text_by="cellType", text_size=5)
+# plotColData(sce, x="ident", y="percent_mito", colour_by="ident", add_legend=FALSE) + ggtitle("Mito percentage vs ident")
+# plotReducedDim(sce, dimred="UMAP", colour_by="percent_mito", text_by="cellType", text_size=5)
+# plotColData(sce, x="ident", y="percent_ribo", colour_by="ident", add_legend=FALSE) + ggtitle("Ribo percentage vs ident")
+# plotReducedDim(sce, dimred="UMAP", colour_by="percent_ribo", text_by="cellType", text_size=5)
 if (ezIsSpecified(param$controlSeqs)) {
   genesToPlot <- gsub("_", "-", param$controlSeqs)
   genesToPlot <- intersect(genesToPlot, rownames(sce))
@@ -190,16 +190,6 @@ if (ezIsSpecified(param$controlSeqs)) {
   #plotReducedDim(sce, dimred="UMAP", colour_by=genesToPlot[1], text_by="cellType", text_size=5)
 }
 ```
-
-#### Cluster resolution 
-
-One of the most important parameters when clustering is k, the number of nearest neighbors used to construct the graph. This controls the resolution of the clustering where higher k yields a more inter-connected graph and broader clusters. Users can experiment with different values of k to obtain a satisfactory resolution. We recommend increasing the resolution when a rare population is expected. 
-Below, it is shown a clustering tree that helps us to visualize the relationships between clusters at a range of resolutions. Each cluster forms a node in the tree and edges are constructed by considering the cells in a cluster at a lower resolution that end up in a cluster at the next highest resolution. By connecting clusters in this way, we can see how clusters are related to each other, which are clearly distinct and which are unstable. The size of each node is related to the number of cells in each cluster and the color indicates the clustering resolution. Edges are colored according to the number of cells they represent and the transparency shows the incoming node proportion, the number of cells in the edge divided by the number of samples in the node it points to. 
-
-```{r, fig.align='center', fig.width=6, fig.height=8}
-clustree::clustree(sce, prefix = "SCT_snn_res.")
-```
-
 
 ### Cluster markers
 
@@ -238,7 +228,8 @@ plotHeatmap(sce, features=unique(genesToPlot), center=TRUE, zlim=c(-2, 2),
             cluster_rows=TRUE,
             fontsize_row=8)
 
-plotDots(sce, features=genesToPlot, group="cellType")
+plotDots(sce, features=genesToPlot, group="cellType") + theme(axis.text.x = element_text(angle = 45, vjust = 0.5, hjust=1)) +
+  labs(x="", y="")
 ```
 
 ### Cell annotation
@@ -327,56 +318,6 @@ kable_styling("striped", full_width = F, position = "left")
 
 <!-- <br/> -->
 
-#### Using gene sets
-
-We can also use sets of marker genes that are highly expressed in each cell. This does not require matching of individual cells to the expression values of the reference dataset, which is faster and more convenient when only the identities of the markers are available. In this case, we use sets of gene markers for individual cell types taken from the CellMarkers database which contains an accurate resource of cell markers for various cell types in tissues of human and mouse (Zhang X., Lan Y., Xu J., Quan F., Zhao E., Deng C., et al. (2019). CellMarker: a manually curated resource of cell markers in human and mouse. Nucleic Acids Res. 47, D721–d728. 10.1093/nar/gky900). 
-We use the AUCell package (Aibar et al. (2017) SCENIC: single-cell regulatory network inference and clustering. Nature Methods. doi: 10.1038/nmeth.4463) to identify marker sets that are highly expressed in each cell. AUCell uses the “Area Under the Curve” (AUC) to calculate whether a critical subset of the input gene set is enriched within the expressed genes for each cell. The AUC estimates the proportion of genes in the gene-set that are highly expressed in each cell. Cells expressing many genes from the gene-set will have higher AUC values than cells expressing fewer. Finally, it assigns cell type identity to each cell in the test dataset by taking the marker set with the top AUC as the label for that cell.
-
-```{r AUC assigments, eval= !is.null(metadata(sce)$cells_AUC)}
-cells_AUC <- metadata(sce)$cells_AUC
-cells_assignment <- AUCell_exploreThresholds(cells_AUC, plotHist=FALSE, assign=TRUE) 
-cellsAssigned <- lapply(cells_assignment, function(x) x$assignment)
-assignmentTable <- reshape2::melt(cellsAssigned, value.name="cell")
-colnames(assignmentTable)[2] <- "geneSet"
-tras_cells_AUC <- t(assay(cells_AUC))
-full.labels <- colnames(tras_cells_AUC)[max.col(tras_cells_AUC)]
-tab <- table(full.labels, colData(sce)[,"cellType"])
-var_height <- nrow(tab)*0.5
-```
-
-```{r assigments, eval= !is.null(metadata(sce)$cells_AUC), results='asis'}
-cat("We can explore the cell assignment results using different plots. Below, we show a heatmap that represents the number of cells (in log scale) from each cluster that were assigned to the different cell types. After calculating an AUC score for each cell and cell type, we assign cell type identity by taking the cell type with the top AUC as the label for that cell. Some cell types may be missing because no cells obtained their top AUC score for it.")
-cat("\n\n")
-```
-
-```{r assigments heatmap, eval= !is.null(metadata(sce)$cells_AUC), results='asis',fig.align='center', fig.width=10, fig.height=var_height}
-if (nrow(tab) > 2)
-   pheatmap(log10(tab+10), color=viridis::viridis(100))
-```
-
-
-```{r tsne and AUC res, eval= !is.null(metadata(sce)$cells_AUC), results='asis'}
-cat("The plots below show for every cell type:\n")
-cat('\n')
-cat("1) The distribution of the AUC values in the cells. The ideal situation will be a bi-modal distribution, in which most cells in the dataset have a low “AUC” compared to a population of cells with a higher value.  The size of the gene-set will also affect the results. With smaller gene-genes (fewer genes), it is more likely to get cells with AUC = 0. While this is the case of the “perfect markers” it is also easier to get it by chance with small datasets. The vertical bars correspond to several thresholds that could be used to consider a gene-set ‘active’. The thickest vertical line indicates the threshold selected by default: the highest value to reduce the false positives.\n")
-cat('\n')
-cat("2) The t-SNE can be colored based on the AUC scores. To highlight the cluster of cells that are more likely of the cell type according to the signatures, we split the cells into cells that passed the assignment threshold (colored in blue), and cells that didn’t (colored in gray).\n")
-cat('\n')
-cat("3) The last TSNE represents the AUC scores values. The darker a cell is the higher AUC score it obtained, i.e. the cell is more enriched in that cell type.")
-cat('\n')
-cellsTsne <- reducedDims(sce)$TSNE
-minAucThresh = 0.2
-filtered_cells_AUC <- cells_AUC[rowSums(assay(cells_AUC) >= minAucThresh)>0, ]
-maxAucScore = rowMax(assay(filtered_cells_AUC))
-scoreOrder = order(maxAucScore, decreasing = TRUE)
-nPlots = 50
-```
-
-```{r tsne and AUC hist, eval= !is.null(metadata(sce)$cells_AUC), fig.height=5, fig.width=5}
-AUCell_plotTSNE(tSNE=cellsTsne,
-                cellsAUC=filtered_cells_AUC[head(scoreOrder, nPlots), ],
-                 plots = c("histogram", "binaryAUC"))
-```
 
 ### Interactive explorer
 
@@ -384,7 +325,7 @@ AUCell_plotTSNE(tSNE=cellsTsne,
 The iSEE (Interactive SummarizedExperiment Explorer) explorer provides a general visual interface for exploring single cell data. iSEE allows users to simultaneously visualize multiple aspects of a given data set, including experimental data, metadata, and analysis results. Dynamic linking and point selection facilitate the flexible exploration of interactions between different data aspects.
  [Rue-Albrecht K, Marini F, Soneson C, Lun ATL (2018). “iSEE: Interactive SummarizedExperiment Explorer.” F1000Research, 7, 741. doi: 10.12688/f1000research.14966.1.]
 
-The iSEE shiny app can be accessed through this link [iSEE explorer](`r {lastProjectDigit = stringr::str_sub( sub("\\/.*", "", output$getColumn("Report")), start = -1); paste0("http://fgcz-shiny.uzh.ch/fgcz_iSEE", lastProjectDigit, "/?data=",output$getColumn("Report"),"/sce_h5")}`)
+The iSEE shiny app can be accessed through this link [iSEE explorer](`r {lastProjectDigit = stringr::str_sub( sub("\\/.*", "", output$getColumn("SC Celltype Report")), start = -1); paste0("http://fgcz-shiny.uzh.ch/fgcz_iSEE", lastProjectDigit, "/?data=",output$getColumn("SC Celltype Report"),"/sce_h5")}`)
 
 
 ### Data availability
@@ -402,7 +343,7 @@ The iSEE shiny app can be accessed through this link [iSEE explorer](`r {lastPro
 
 ### Parameters
 ```{r report parameters, echo=FALSE}
-param[c("npcs","pcGenes","resolution", "SCT.regress", "DE.method", "cellsFraction", "nUMIs", "nmad")]
+param[c( "DE.method")]
 ```
 
 

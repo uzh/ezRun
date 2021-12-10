@@ -73,8 +73,8 @@ ezMethodSCLabelClusters <- function(input = NA, output = NA, param = NA,
   posMarkers <- posClusterMarkers(scData, pvalue_allMarkers, param)
   
 
-  sce <- scData %>% seurat_to_sce(default_assay = "originalexp")
-  metadata(sce)$PCA_stdev <- Reductions(scData, "PCA")@stdev
+  sce2 <- scData %>% seurat_to_sce(default_assay = "originalexp")
+  #metadata(sce)$PCA_stdev <- Reductions(scData, "PCA")@stdev
   metadata(sce)$output <- output
   metadata(sce)$param <- param
   metadata(sce)$param$name <- paste(metadata(sce)$param$name,
