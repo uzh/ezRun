@@ -897,41 +897,39 @@ if (isTRUE(param$runGO)) {
 ```
 
 ### MetaCore 
-```{r metacore annotate, echo=FALSE, message=FALSE, eval=FALSE}
+```{r metacore annotate, echo=FALSE, message=FALSE, error=FALSE}
+# If the reference gene annotation file on /srv/GT/reference does not contain ENTREZ IDs
+# then download them from AnnotationHub and write to disk 
 require(AnnotationHub)
 ah <- AnnotationHub()
-ref <- param$refBuild %>%
-  strsplit(., "/") %>%
-  .[[1]] %>%
-  .[1] %>%
-  gsub("_", " ", .)
-if (!(ref %in% unique(ah$species)) | is.na(ref)) {
-  knitr::knit_exit()
-} else {
-  ref.orgdb <- query(ah, c("OrgDb", ref))[[1]]
-  if ("SYMBOL" %in% keytypes(ref.orgdb)) {
-    orgSymbols <- keys(ref.orgdb, keytype = "SYMBOL")
-    egr <- AnnotationDbi::select(ref.orgdb, keys = orgSymbols, "ENTREZID", "SYMBOL")
-    colnames(egr)[2] <- "entrez_id"
-  } else if ("GENENAME" %in% keytypes(ref.orgdb)) {
-    orgSymbols <- keys(ref.orgdb, keytype = "GENENAME")
-    egr <- AnnotationDbi::select(ref.orgdb, keys = orgSymbols, "ENTREZID", "GENENAME")
-    colnames(egr) <- c("SYMBOL", "entrez_id")
-  } else {
-    knitr::knit_exit()
+ref <- param$refBuild %>% sub("\\/.*", "",.) %>% gsub("_", " ", .)
+geneAnno <- read_tsv(file.path("/srv/GT/reference", param$refBuild, "Genes/genes_annotation_byGene.txt"))
+if (!"entrez_id" %in% colnames(geneAnno)) {
+  if ((ref %in% unique(ah$species)) | is.na(ref)) {
+    ref.orgdb <- query(ah, c("OrgDb", ref))[[1]]
+    if ("SYMBOL" %in% keytypes(ref.orgdb)) {
+      orgSymbols <- keys(ref.orgdb, keytype = "SYMBOL")
+      egr <- AnnotationDbi::select(ref.orgdb, keys = orgSymbols, "ENTREZID", "SYMBOL")
+      colnames(egr) <- c("gene_name", "entrez_id")
+    } else if ("GENENAME" %in% keytypes(ref.orgdb)) {
+      orgSymbols <- keys(ref.orgdb, keytype = "GENENAME")
+      egr <- AnnotationDbi::select(ref.orgdb, keys = orgSymbols, "ENTREZID", "GENENAME")
+      colnames(egr) <- c("gene_name", "entrez_id")
+    }
   }
+  geneAnno <- left_join(geneAnno, egr)
+  write_tsv(geneAnno, file.path("/srv/GT/reference", param$refBuild, "Genes/genes_annotation_byGene.txt"))
 }
 ```
 
-```{r metacore prepare, echo=FALSE, message=FALSE, eval=FALSE}
-resultLoaded <- readxl::read_excel(resultFile$resultFile)
+```{r metacore prepare, echo=FALSE, message=FALSE, error=FALSE}
 resultMetaCore <- resultLoaded %>%
   filter(isPresent, pValue <= param$pValThreshGO) %>%
-  dplyr::left_join(egr, by = c("gene_name" = "SYMBOL")) %>%
+  dplyr::left_join(geneAnno) %>%
   dplyr::select(gene_id, entrez_id, "log2 Ratio", pValue)
 ```
 
-```{r metacore export, echo=FALSE, message=FALSE, eval=TRUE}
+```{r metacore export, echo=FALSE, message=FALSE, error=FALSE}
 metacoreFile <- str_c("MetaCore--", param$comparison, ".txt")
 if (exists("resultMetaCore")){
   ezWrite.table(resultMetaCore, file = metacoreFile, row.names = FALSE)
@@ -972,11 +970,11 @@ Select `---ignore---` from the drop down for all other columns in the table that
 
 Please refer to the [FGCZ Wiki](https://fgcz-intranet.uzh.ch/tiki-index.php?page=users.sw.metacore) for a more comprehensive guide to using MetaCore.
 
-MetaCore has numerous comprehensive tutorials online, including a useful YouTube page:
+MetaCore has numerous tutorials online, including a useful YouTube page:
 <https://www.youtube.com/watch?v=_J_ViIw9wIM&list=PL2tDZtDsVy5xqUibWp-mfl9xuZP4Bhi-v&index=2>
 
 #### MetaCore Compatibility 
-MetaCore currently has full pathway support for three core species: **Human**; **mouse**, and; **rat**. In addition to this, it can use Entrez IDs as orthologs to analyse a series of non-core species:
+MetaCore currently has full pathway support for three core species: **Human**; **mouse**, and; **rat**. Additionally, it can use Entrez IDs as orthologs to analyse a series of non-core species:
 
 - Cow
 - Chimpanzee
