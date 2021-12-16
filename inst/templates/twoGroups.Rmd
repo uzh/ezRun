@@ -897,14 +897,14 @@ if (isTRUE(param$runGO)) {
 ```
 
 ### MetaCore 
-```{r metacore annotate, echo=FALSE, message=FALSE, error=FALSE}
+```{r metacore annotate, echo=FALSE, message=FALSE, error=TRUE}
 # If the reference gene annotation file on /srv/GT/reference does not contain ENTREZ IDs
 # then download them from AnnotationHub and write to disk 
-require(AnnotationHub)
-ah <- AnnotationHub()
-ref <- param$refBuild %>% sub("\\/.*", "",.) %>% gsub("_", " ", .)
 geneAnno <- read_tsv(file.path("/srv/GT/reference", param$refBuild, "Genes/genes_annotation_byGene.txt"))
 if (!"entrez_id" %in% colnames(geneAnno)) {
+  require(AnnotationHub)
+  ah <- AnnotationHub()
+  ref <- param$refBuild %>% sub("\\/.*", "",.) %>% gsub("_", " ", .)
   if ((ref %in% unique(ah$species)) | is.na(ref)) {
     ref.orgdb <- query(ah, c("OrgDb", ref))[[1]]
     if ("SYMBOL" %in% keytypes(ref.orgdb)) {
@@ -918,18 +918,21 @@ if (!"entrez_id" %in% colnames(geneAnno)) {
     }
   }
   geneAnno <- left_join(geneAnno, egr)
+  geneAnno$entrez_id <- as.character(geneAnno$entrez_id)
   write_tsv(geneAnno, file.path("/srv/GT/reference", param$refBuild, "Genes/genes_annotation_byGene.txt"))
+} else {
+  geneAnno$entrez_id <- as.character(geneAnno$entrez_id)
 }
 ```
 
-```{r metacore prepare, echo=FALSE, message=FALSE, error=FALSE}
+```{r metacore prepare, echo=FALSE, message=FALSE, error=TRUE}
 resultMetaCore <- resultLoaded %>%
   filter(isPresent, pValue <= param$pValThreshGO) %>%
-  dplyr::left_join(geneAnno) %>%
+  dplyr::left_join(geneAnno[,c("gene_id","entrez_id")]) %>%
   dplyr::select(gene_id, entrez_id, "log2 Ratio", pValue)
 ```
 
-```{r metacore export, echo=FALSE, message=FALSE, error=FALSE}
+```{r metacore export, echo=FALSE, message=FALSE, error=TRUE}
 metacoreFile <- str_c("MetaCore--", param$comparison, ".txt")
 if (exists("resultMetaCore")){
   ezWrite.table(resultMetaCore, file = metacoreFile, row.names = FALSE)
