@@ -205,7 +205,7 @@ sce$logGenes = log10(sce$nFeature_RNA)
 
 if (!is.null(sce$CellCycle)){
   p1 = plotColData(sce, x="ident", y="CellCycle", colour_by="ident") + ggtitle("Cell cycle vs ident")
-  p2 = plotReducedDim(sce, dimred="UMAP", colour_by="CellCycle", text_by="cellType", text_size=5, add_legend=TRUE)
+  p2 = plotReducedDim(sce, dimred="UMAP", colour_by="CellCycle", text_by="seurat_clusters", text_size=5, add_legend=TRUE)
   print(p1)
   print(p2)
 }
