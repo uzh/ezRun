@@ -774,7 +774,7 @@ getBismarkReference <- function(param) {
     ## we assume the index is built and complete
     stop(paste("index not available: ", refBase))
   }
-  return(refBase)
+  return(dirname(param$ezRef@refFastaFile))
 }
 
 
