@@ -650,10 +650,16 @@ EzAppBWATrimmomatic <-
     )
   )
 
+
+
+
+
+
 ezMethodBismark <- function(input = NA, output = NA, param = NA) {
 
   # TO DO : FIX THE REF CHECK  ref = getBismarkReference(param)
-  ref <- dirname(param$ezRef@refFastaFile)
+  #ref <- dirname(param$ezRef@refFastaFile)
+  ref <- getBismarkReference(param)
   bamFile <- output$getColumn("BAM")
   trimmedInput <- ezMethodFastpTrim(input = input, param = param)
   defOpt <- paste("-p", max(2, param$cores / 2))
@@ -742,9 +748,8 @@ getBismarkReference <- function(param) {
     dir.create(dirname(refBase))
     ezWrite(Sys.info(), con = lockFile)
     wd <- getwd()
-    fastaFile <- file.path(param$ezRef["refBuildDir"], "Sequence/WholeGenomeFasta/", param$ezRef["refFastaFile"])
     cmd <- paste(
-      "bismark_genome_preparation", fastaFile,
+      "bismark_genome_preparation", dirname(param$ezRef["refFastaFile"]),
       "2> bismarkGenomePrep.log"
     )
     ezSystem(cmd)
