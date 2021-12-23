@@ -22,20 +22,20 @@ Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
 ### Summary
 ```{r, echo=FALSE, message=FALSE}
 mySummary <- data.frame(Passed = rep(0,4), PassedFraction = rep(0,4), Failed = rep(0,4), FailedFraction = rep(0,4))
-rownames(mySummary) = c('rawReads > 100K', 'mappingRate > 0.5', 'avgCoverage > 100', 'minCoverageFraction > 80%')
+rownames(mySummary) = c('rawReads > 100K', 'mappingRate > 0.2', 'avgCoverage > 100', 'minCoverageFraction > 80%')
 
 mySummary['rawReads > 100K', 'Passed'] = c(sum(dataset[['Read Count']] >= 10^5))
 mySummary['rawReads > 100K', 'Failed'] = c(sum(dataset[['Read Count']] < 10^5))
 mySummary['rawReads > 100K', 'PassedFraction'] = mySummary['rawReads > 100K', 'Passed']/nrow(dataset)
 mySummary['rawReads > 100K', 'FailedFraction'] = mySummary['rawReads > 100K', 'Failed']/nrow(dataset)
 
-mySummary['mappingRate > 0.5', 'Passed'] = c(sum(result[['mappingRate']] >= 50))
-mySummary['mappingRate > 0.5', 'Failed'] = c(sum(result[['mappingRate']] < 50))
-mySummary['mappingRate > 0.5', 'PassedFraction'] = mySummary['mappingRate > 0.5', 'Passed']/nrow(result)
-mySummary['mappingRate > 0.5', 'FailedFraction'] = mySummary['mappingRate > 0.5', 'Failed']/nrow(result)
+mySummary['mappingRate > 0.2', 'Passed'] = c(sum(result[['mappingRate']] >= 20, na.rm = TRUE))
+mySummary['mappingRate > 0.2', 'Failed'] = c(sum(result[['mappingRate']] < 20, na.rm = TRUE))
+mySummary['mappingRate > 0.2', 'PassedFraction'] = mySummary['mappingRate > 0.2', 'Passed']/nrow(result)
+mySummary['mappingRate > 0.2', 'FailedFraction'] = mySummary['mappingRate > 0.2', 'Failed']/nrow(result)
 
-mySummary['avgCoverage > 100', 'Passed'] = c(sum(result[['avgCov']] >= 100))
-mySummary['avgCoverage > 100', 'Failed'] = c(sum(result[['avgCov']] < 100))
+mySummary['avgCoverage > 100', 'Passed'] = c(sum(result[['avgCov']] >= 100, na.rm = TRUE))
+mySummary['avgCoverage > 100', 'Failed'] = c(sum(result[['avgCov']] < 100, na.rm = TRUE))
 mySummary['avgCoverage > 100', 'PassedFraction'] = mySummary['avgCoverage > 100', 'Passed']/nrow(result)
 mySummary['avgCoverage > 100', 'FailedFraction'] = mySummary['avgCoverage > 100', 'Failed']/nrow(result)
 
@@ -58,9 +58,9 @@ ezInteractiveTableRmd(values=result)
 The read counts in each sample.
 
 ```{r readCounts, echo=FALSE}
-if("FGCZ_PLATE_NO." %in% colnames(dataset)){
-  dataset <- dataset[order(dataset[['FGCZ_PLATE_NO.']], dataset[['Read Count']]),]
-  dataset[['Name']] <- paste(dataset[['FGCZ_PLATE_NO.']], dataset[['Name']], sep = '_')
+if(dataset[['PlateName [Characteristic]']][1] != 'ready-made by the user'){
+  dataset <- dataset[order(dataset[['PlateName [Characteristic]']], dataset[['Read Count']]),]
+  dataset[['Name']] <- paste(dataset[['PlateName [Characteristic]']], dataset[['Name']], sep = '_')
 } else {
   dataset <- dataset[order(dataset[['Read Count']]),]
 }
@@ -71,7 +71,7 @@ dataset[['Name']] <- factor(dataset[['Name']], levels=unique(dataset[['Name']]))
 The read counts per Plate
 
 ```{r readCountsPerPlatePlotly, fig.height=7, fig.width=7, echo=FALSE, message=FALSE, warning=FALSE}
-if("FGCZ_PLATE_NO." %in% colnames(dataset)){
+if(dataset[['PlateName [Characteristic]']][1] != 'ready-made by the user'){
   m <- list(
     l = 80,
     r = 80,
@@ -79,8 +79,8 @@ if("FGCZ_PLATE_NO." %in% colnames(dataset)){
     t = 100,
     pad = 0
   )
-  readCountPerPlate <- tapply(dataset[['Read Count']], INDEX = dataset[['FGCZ_PLATE_NO.']], sum)/10^3
-  names(readCountPerPlate) <- unique(dataset[['FGCZ_PLATE_NO.']])
+  readCountPerPlate <- tapply(dataset[['Read Count']], INDEX = dataset[['PlateName [Characteristic]']], sum)/10^3
+  names(readCountPerPlate) <- unique(dataset[['PlateName [Characteristic]']])
   
   plot_ly(x=names(readCountPerPlate), y=readCountPerPlate, type="bar") %>%
     layout(title="Total reads",
@@ -109,9 +109,9 @@ plot_ly(x=dataset[['Name']], y=dataset[['Read Count']], type="bar") %>%
 #### Mapping Rate
 
 ```{r mappingRate, echo=FALSE}
-if("FGCZ_PLATE_NO." %in% colnames(result)){
-  result2 <- result[order(result[['FGCZ_PLATE_NO.']], result[['Read Count']]),]
-  result2[['Name']] <- paste(result2[['FGCZ_PLATE_NO.']], result2[['Name']], sep = '_')
+if(result[['PlateName [Characteristic]']][1] != 'ready-made by the user'){
+  result2 <- result[order(result[['PlateName [Characteristic]']], result[['Read Count']]),]
+  result2[['Name']] <- paste(result2[['PlateName [Characteristic]']], result2[['Name']], sep = '_')
   } else {
   result2 <- result[order(result[['Read Count']]),] 
   }
