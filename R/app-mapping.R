@@ -48,6 +48,10 @@ ezMethodBowtie2 <- function(input = NA, output = NA, param = NA) {
       writeIgvHtml(param, output)
     }
   }
+  
+  if (param$generateBigWig) {
+    bam2bw(file = basename(bamFile), paired = param$paired, method = "Bioconductor", cores = param$cores)
+  }
   return("Success")
 }
 
@@ -115,7 +119,8 @@ EzAppBowtie2 <-
         name <<- "EzAppBowtie2"
         appDefaults <<- rbind(
           writeIgvSessionLink = ezFrame(Type = "logical", DefaultValue = "TRUE", Description = "should an IGV link be generated"),
-          markDuplicates = ezFrame(Type = "logical", DefaultValue = "TRUE", Description = "should duplicates be marked")
+          markDuplicates = ezFrame(Type = "logical", DefaultValue = "TRUE", Description = "should duplicates be marked"),
+          generateBigWig = ezFrame(Type = "logical", DefaultValue = "FALSE", Description = "should a bigwig file be generated")
         )
       }
     )
