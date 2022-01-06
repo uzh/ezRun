@@ -66,8 +66,10 @@ ezMethodCellRanger <- function(input = NA, output = NA, param = NA) {
     stopifnot(any(file.exists(featureRefFn)))
     featureRefFn <- head(featureRefFn[file.exists(featureRefFn)], 1)
     
-    #3.4. Decompress the sample that contains the antibodies reads
-    featureDirs <- deCompress(featureDirs)
+    #3.4. Decompress the sample that contains the antibodies reads if they are in tar format
+    if (all(grepl("\\.tar$", featureDirs)))
+        featureDirs <- deCompress(featureDirs)
+    
     featureDirs <- normalizePath(featureDirs)
     
     #3.5. Create library file that contains the sample and feature dirs location
