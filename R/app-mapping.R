@@ -48,6 +48,10 @@ ezMethodBowtie2 <- function(input = NA, output = NA, param = NA) {
       writeIgvHtml(param, output)
     }
   }
+  
+  if (param$generateBigWig) {
+    bam2bw(file = basename(bamFile), paired = param$paired, method = "Bioconductor", cores = param$cores)
+  }
   return("Success")
 }
 
@@ -115,7 +119,8 @@ EzAppBowtie2 <-
         name <<- "EzAppBowtie2"
         appDefaults <<- rbind(
           writeIgvSessionLink = ezFrame(Type = "logical", DefaultValue = "TRUE", Description = "should an IGV link be generated"),
-          markDuplicates = ezFrame(Type = "logical", DefaultValue = "TRUE", Description = "should duplicates be marked")
+          markDuplicates = ezFrame(Type = "logical", DefaultValue = "TRUE", Description = "should duplicates be marked"),
+          generateBigWig = ezFrame(Type = "logical", DefaultValue = "FALSE", Description = "should a bigwig file be generated")
         )
       }
     )
@@ -650,10 +655,16 @@ EzAppBWATrimmomatic <-
     )
   )
 
+
+
+
+
+
 ezMethodBismark <- function(input = NA, output = NA, param = NA) {
 
   # TO DO : FIX THE REF CHECK  ref = getBismarkReference(param)
-  ref <- dirname(param$ezRef@refFastaFile)
+  #ref <- dirname(param$ezRef@refFastaFile)
+  ref <- getBismarkReference(param)
   bamFile <- output$getColumn("BAM")
   trimmedInput <- ezMethodFastpTrim(input = input, param = param)
   defOpt <- paste("-p", max(2, param$cores / 2))
@@ -742,9 +753,8 @@ getBismarkReference <- function(param) {
     dir.create(dirname(refBase))
     ezWrite(Sys.info(), con = lockFile)
     wd <- getwd()
-    fastaFile <- file.path(param$ezRef["refBuildDir"], "Sequence/WholeGenomeFasta/", param$ezRef["refFastaFile"])
     cmd <- paste(
-      "bismark_genome_preparation", fastaFile,
+      "bismark_genome_preparation", dirname(param$ezRef["refFastaFile"]),
       "2> bismarkGenomePrep.log"
     )
     ezSystem(cmd)
@@ -769,7 +779,7 @@ getBismarkReference <- function(param) {
     ## we assume the index is built and complete
     stop(paste("index not available: ", refBase))
   }
-  return(refBase)
+  return(dirname(param$ezRef@refFastaFile))
 }
 
 

@@ -217,31 +217,32 @@ if(length(refseqSamples) > 100){
 ```{r KrakenTopHitPrepare, echo=FALSE, results='hide', warning=FALSE, message=FALSE, eval=!debug}
 krakenSamples <- names(krakenResult)
 names(krakenSamples) <- krakenSamples
+skipMultiSampleKraken <- FALSE
 if(length(krakenSamples) > 1){
   speciesPerSample <- sapply(krakenResult, function(listElem) return(listElem$name))
   readFractionPerSample <- sapply(krakenResult, function(listElem) return(listElem$readPercentage))
   uniqueSpecies <- unique(as.vector(unlist(speciesPerSample)))
   uniqueSpecies <- uniqueSpecies[!is.na(uniqueSpecies)]
   krakenResult_DF <- data.frame(Species = uniqueSpecies, row.names = uniqueSpecies)
-  for (nm in samples){
-    krakenResult_DF[[nm]] <- 0
-    if(is.list(speciesPerSample)){
-      if(all(!is.na(readFractionPerSample[[nm]]))){
-        krakenResult_DF[speciesPerSample[[nm]], nm] = readFractionPerSample[[nm]]
-      }
-    } else {
-      if(all(!is.na(readFractionPerSample[,nm]))){
-        krakenResult_DF[speciesPerSample[,nm], nm] = readFractionPerSample[,nm]
-      }
+  if(is.matrix(speciesPerSample) & is.matrix(readFractionPerSample)){  
+    if(length(uniqueSpecies) > 0){
+      for (nm in samples){
+        krakenResult_DF[[nm]] <- 0
+        if(all(!is.na(readFractionPerSample[,nm]))){
+          krakenResult_DF[speciesPerSample[,nm], nm] = readFractionPerSample[,nm]
+        }
     }
+      krakenResult_DF <- krakenResult_DF[rowSums(krakenResult_DF[,krakenSamples]) > 0,]
+      krakenResult_DF <- krakenResult_DF[order(apply(krakenResult_DF[,krakenSamples], 1, mean), decreasing = TRUE),]
+    }
+  } else {
+    skipMultiSampleKraken <- TRUE
   }
-  krakenResult_DF <- krakenResult_DF[rowSums(krakenResult_DF[,krakenSamples]) > 0,]
-  krakenResult_DF <- krakenResult_DF[order(apply(krakenResult_DF[,krakenSamples], 1, mean), decreasing = TRUE),]
 }
 ```
 
 ```{r KrakenTopHit1 plotly, fig.height=7, fig.width=min(max(7, 7+(length(samples)-20)*0.2), 30), echo=FALSE, warning=FALSE, message=FALSE}
-if(length(krakenSamples) > 1){
+if(!skipMultiSampleKraken){
   m <- list(l = 80, r = 80, b = 200, t = 100, pad = 0)
   if (nrow(krakenResult_DF) > 0){
     i = 1
@@ -258,7 +259,7 @@ if(length(krakenSamples) > 1){
 ```
 
 ```{r KrakenTopHit2 plotly, fig.height=7, fig.width=min(max(7, 7+(length(samples)-20)*0.2), 30), echo=FALSE, warning=FALSE, message=FALSE}
-if(length(krakenSamples) > 1){
+if(!skipMultiSampleKraken){
   m <- list(l = 80, r = 80, b = 200, t = 100, pad = 0)
   if (nrow(krakenResult_DF) > 1){
     i <- 2
@@ -275,7 +276,7 @@ if(length(krakenSamples) > 1){
 ```
 
 ```{r KrakenTopHit3 plotly, fig.height=7, fig.width=min(max(7, 7+(length(samples)-20)*0.2), 30), echo=FALSE, warning=FALSE, message=FALSE}
-if(length(krakenSamples) > 1){
+if(!skipMultiSampleKraken){
   m <- list(l = 80, r = 80, b = 200, t = 100, pad = 0)
   if (nrow(krakenResult_DF) > 2){
     i <- 3
