@@ -238,6 +238,8 @@ if(length(krakenSamples) > 1){
   } else {
     skipMultiSampleKraken <- TRUE
   }
+} else {
+  skipMultiSampleKraken <- TRUE
 }
 ```
 
