@@ -57,14 +57,13 @@ ezMethodSCMultipleSamples = function(input=NA, output=NA, param=NA, htmlFile="00
   }
   
   cwd <- getwd()
-  setwdNew(basename(output$getColumn("SC Cluster Report")))
+  setwdNew(basename(output$getColumn("Report")))
   on.exit(setwd(cwd), add=TRUE)
   reportCwd <- getwd()
   
   #the individual sce objects can be in hdf5 format (for new reports) or in rds format (for old reports)
-  sceURLs <- input$getColumn("Static Report")
-  filePath <- file.path("/srv/gstore/projects", sub("https://fgcz-(gstore|sushi).uzh.ch/projects", "",dirname(sceURLs)), "sce_h5")
-  filePath_course <- file.path(paste0("/srv/GT/analysis/course_sushi/public/projects/", input$getColumn("Report"), "/sce_h5"))
+  filePath <- paste0("/srv/gstore/projects/", input$getColumn("SC H5"))
+  filePath_course <- paste0("/srv/GT/analysis/course_sushi/public/projects/", input$getColumn("SC H5"))
   
   #In case it is in hdf5 format the Seurat object is not stored in the metadata slot, so we have to build it and store it there, since the 
   #clustering functions below work with sce objects and take the seurat object from them.
@@ -72,7 +71,7 @@ ezMethodSCMultipleSamples = function(input=NA, output=NA, param=NA, htmlFile="00
     filePath <- filePath_course
   
   sceList <- lapply(filePath,loadHDF5SummarizedExperiment)
-  names(sceList) <- names(sceURLs)
+  names(sceList) <- names(input$getColumn("Static Report"))
   scDataList <- lapply(sceList, function(sce) {
       sce = swapAltExp(sce, "RNA", withColData = FALSE)
       colData(sce)[, grep("SCT", colnames(colData(sce)))] = NULL #remove previous clustering done on SCT assay
