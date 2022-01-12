@@ -57,7 +57,7 @@ ezMethodSCMultipleSamples = function(input=NA, output=NA, param=NA, htmlFile="00
   }
   
   cwd <- getwd()
-  setwdNew(basename(output$getColumn("Report")))
+  setwdNew(basename(output$getColumn("SC Cluster Report")))
   on.exit(setwd(cwd), add=TRUE)
   reportCwd <- getwd()
   
