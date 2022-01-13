@@ -42,7 +42,13 @@ ezMethodVPipe <- function(input=NA, output=NA, param=NA,
     orderId <- paste0('o', unique(dataset[['Order Id [B-Fabric]']]))
     
     samples <- sub(param$samplePrefix, '', samples)
+    
+    if(any(grepl('_',samples)) & !all(grepl('_',samples))){
+        samples <- gsub('_', '', samples)
+    }
+    
     samples <- limma::strsplit2(samples, '_')
+    
     if(ncol(samples) == 1){
         samples <- data.frame(samples)
         samples[['InternalNumber']] = paste(samples[,1], '_S', 1:nrow(samples), sep = '')
