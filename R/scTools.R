@@ -245,11 +245,16 @@ getSpecies <- function(refBuild) {
   return(species)
 }
 
-geneMeansCluster <- function(sce) {
-  require(SingleCellExperiment)
-  tr_cnts <- expm1(logcounts(sce))
-  geneMeans <- rowsum(DelayedArray::t(tr_cnts), group=sce$ident)
-  geneMeans <- sweep(geneMeans, 1, STATS=table(sce$ident)[rownames(geneMeans)], FUN="/")
+geneMeansCluster <- function(object) {
+  if(is(object, "SingleCellExperiment")) {
+    tr_cnts <- expm1(logcounts(object))
+    group=object$ident
+ } else {
+    tr_cnts <- expm1(GetAssayData(object, slot="data", assay = "SCT"))
+    group=Idents(object)
+ }
+  geneMeans <- rowsum(DelayedArray::t(tr_cnts), group=group)
+  geneMeans <- sweep(geneMeans, 1, STATS=table(group)[rownames(geneMeans)], FUN="/")
   geneMeans <- log1p(t(geneMeans))
   colnames(geneMeans) <- paste("cluster", colnames(geneMeans), sep="_")
 return(geneMeans)
