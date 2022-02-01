@@ -12,7 +12,6 @@ ezMethodGatkRnaHaplotyper = function(input=NA, output=NA, param=NA){
   #knownSites = list.files(param$ezRef["refVariantsDir"],pattern='vcf.gz$',full.names = T)
   #dbsnpFile = knownSites[grep('dbsnp.*vcf.gz$', knownSites)]
   dbsnpFile = param$dbsnpFile
-  stopifnot(file.exists(dbsnpFile))
   stopifnot(param$markDuplicates == FALSE)
   #javaCall = paste0("java", " -Djava.io.tmpdir=. -Xmx", param$ram, "g")
   gatkCall = paste0('gatk --java-options "-Djava.io.tmpdir=. -Xmx', param$ram, 'g -Xms4g" ')
@@ -53,7 +52,7 @@ ezMethodGatkRnaHaplotyper = function(input=NA, output=NA, param=NA){
   ezSystem("samtools index splitNtrim.bam")
   
   #BaseRecalibration is done only if known sites are available
-  if(file.exists(dbsnpFile)){
+  if(ezIsSpecified(dbsnpFile) && file.exists(dbsnpFile)){
     cmd = paste(gatkCall, "BaseRecalibrator", 
                 "-R", genomeSeq,
                 "-I splitNtrim.bam",
