@@ -25,7 +25,6 @@ ezMethodGatkRnaHaplotyper = function(input=NA, output=NA, param=NA){
                file=exomeInterVals, quote = F, sep="\t", col.names = F, row.names = F)
   
   
-  
   genomeSeq = param$ezRef["refFastaFile"]
   sampleName = names(bamFile)
   if(param$addReadGroup){
