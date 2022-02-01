@@ -84,7 +84,7 @@ ezMethodGatkRnaHaplotyper = function(input=NA, output=NA, param=NA){
               "-ERC GVCF",
               "-dont-use-soft-clipped-bases",
               # TODO: conflicts with -ERC GVCF "--standard-min-confidence-threshold-for-calling", standardCallConfidence,
-              "--dbsnp", dbsnpFile,
+              ifelse(ezIsSpecified(dbsnpFile) && file.exists(dbsnpFile), paste("--dbsnp", dbsnpFile), ""),
               "-O", outputFile)
   ezSystem(cmd)
   
