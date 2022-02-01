@@ -5,6 +5,7 @@
 # The terms are available here: http://www.gnu.org/licenses/gpl.html
 # www.fgcz.ch
 
+
 ezMethodGatkRnaHaplotyper = function(input=NA, output=NA, param=NA){
   library(rtracklayer)
   standardCallConfidence <- 20
