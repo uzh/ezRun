@@ -134,8 +134,14 @@ ezMethodSTARsolo = function(input=NA, output=NA, param=NA){
     # filter raw counts with EmptyDrop
     require(Matrix)
     require(DropletUtils)
-    
-    outputDir = paste0(sampleName,'/Solo.out/Gene/raw')
+    if(grepl('--soloFeatures', param$cmdOptions)){
+        soloParams <- limma::strsplit2(param$cmdOptions, '--')
+        soloFeatureParam <- sub('soloFeatures', '', soloParams[grep('soloFeatures',soloParams)])
+        soloFeatureParam <- gsub(' ','', soloFeatureParam)
+        outputDir = file.path(sampleName,'Solo.out',soloFeatureParam,'raw')
+    } else {
+        outputDir = paste0(sampleName,'/Solo.out/Gene/raw')
+    }
     ## Remove alignments file if not setted differently
     samFn = paste0(sampleName,'/Aligned.out.sam')
     if(param[['keepAlignment']]){
