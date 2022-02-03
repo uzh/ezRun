@@ -85,7 +85,6 @@ ezMethodCellRanger <- function(input = NA, output = NA, param = NA) {
       paste0("--localcores=", param$cores),
       paste0("--chemistry=", param$chemistry)
     )
-    on.exit(unlink(basename(featureDirs), recursive = TRUE), add = TRUE)
   })
 
   #4. Add additional cellranger options if specified
@@ -98,6 +97,9 @@ ezMethodCellRanger <- function(input = NA, output = NA, param = NA) {
 
   #6. Delete temp files and rename the final cellranger output folder
   unlink(basename(sampleDirs), recursive = TRUE)
+  if (exists(featureDirs)){
+    unlink(basename(featureDirs))
+  }
   file.rename(file.path(cellRangerFolder, "outs"), sampleName)
   unlink(cellRangerFolder, recursive = TRUE)
   if (ezIsSpecified(param$controlSeqs)) 
