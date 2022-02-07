@@ -88,6 +88,8 @@ ezMethodVPipe <- function(input=NA, output=NA, param=NA,
     
     setwd('samples')
     for (j in 1:nrow(samples)){
+        cmd <- paste('mv', file.path('../results', samples[j, 'ID'],samples[j,'InternalNumber'], '*'), file.path(samples[j, 'ID'],samples[j,'InternalNumber']))
+        ezSystem(cmd)
         cmd <- paste('mv', file.path(samples[j, 'ID'],samples[j,'InternalNumber'], 'references/ref_ambig_dels.fasta'), 
                        paste0(file.path(oDir, aDir),'/',samples[j, 'ID'],'_',samples[j,'InternalNumber'],'.ambig.fasta'))
         ezSystem(cmd)
