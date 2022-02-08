@@ -97,7 +97,7 @@ ezMethodCellRanger <- function(input = NA, output = NA, param = NA) {
 
   #6. Delete temp files and rename the final cellranger output folder
   unlink(basename(sampleDirs), recursive = TRUE)
-  if (exists(featureDirs)){
+  if (exists("featureDirs")){
     unlink(basename(featureDirs))
   }
   file.rename(file.path(cellRangerFolder, "outs"), sampleName)
