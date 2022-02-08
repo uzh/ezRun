@@ -705,7 +705,7 @@ ezMethodBismark <- function(input = NA, output = NA, param = NA) {
   )
   
   if (param$generateBigWig) {
-      destination = sub("\\.bam$", "_Cov.bw", file, ignore.case = TRUE)
+      destination = sub("\\.bam$", "_Cov.bw", basename(bamFile), ignore.case = TRUE)
       bam2bw(file = basename(bamFile), destination = destination, paired = param$paired, method = "Bioconductor", cores = param$cores)
   }
   
