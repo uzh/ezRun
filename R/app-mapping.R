@@ -662,8 +662,6 @@ EzAppBWATrimmomatic <-
 
 ezMethodBismark <- function(input = NA, output = NA, param = NA) {
 
-  # TO DO : FIX THE REF CHECK  ref = getBismarkReference(param)
-  #ref <- dirname(param$ezRef@refFastaFile)
   ref <- getBismarkReference(param)
   bamFile <- output$getColumn("BAM")
   trimmedInput <- ezMethodFastpTrim(input = input, param = param)
@@ -705,6 +703,12 @@ ezMethodBismark <- function(input = NA, output = NA, param = NA) {
     ram = param$ram, removeBam = TRUE,
     cores = param$cores
   )
+  
+  if (param$generateBigWig) {
+      destination = sub("\\.bam$", "_Cov.bw", file, ignore.case = TRUE)
+      bam2bw(file = basename(bamFile), destination = destination, paired = param$paired, method = "Bioconductor", cores = param$cores)
+  }
+  
   mBiasImages <- list.files(".", pattern = "png$")
   if ((length(mBiasImages)) > 0) {
     for (i in 1:length(mBiasImages)) {
@@ -795,7 +799,9 @@ EzAppBismark <-
         "Initializes the application using its specific defaults."
         runMethod <<- ezMethodBismark
         name <<- "EzAppBismark"
-        # appDefaults <<- ''
+        appDefaults <<- rbind(
+            generateBigWig = ezFrame(Type = "logical", DefaultValue = "FALSE", Description = "should a bigwig coverage file be generated")
+        )
       }
     )
   )
