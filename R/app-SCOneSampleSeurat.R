@@ -171,6 +171,12 @@ ezMethodSCOneSampleSeurat <- function(input = NA, output = NA, param = NA,
   saveRDS(scData, file = "scData.rds")
   saveRDS(scData.unfiltered, file = "scData.unfiltered.rds")
 
+  #object to be used in isee
+  #TODO: remove unnecesary dietseurat call when the bug in Seurat is fixed
+  scData_diet = DietSeurat(scData, dimreducs = c("pca", "tsne", "umap"))
+  sce <- scData_diet %>% seurat_to_sce(default_assay = "SCT")
+  saveHDF5SummarizedExperiment(sce, dir = "sce_h5")
+  
   makeRmdReport(dataFiles = dataFiles, clusterInfoFile=clusterInfoFile, rmdFile = "SCOneSampleSeurat.Rmd", reportTitle = param$name)
   #remove no longer used objects
   rm(scData, scData.unfiltered)
