@@ -225,6 +225,24 @@ ezPosSpecErrorRate = function(bam, ReferenceGenome, nMaxReads=100000){
   nEndTrimmed = maxLength - readLength
   trimmedMatrix = mapply(function(readLength, nEndTrimmed){rep(c(FALSE, TRUE), c(readLength, nEndTrimmed))}, readLength, nEndTrimmed, SIMPLIFY=FALSE)
   ## build a clippedMatrix to record the clipped character
+  
+  if(any(nEndClipped >= readLength)){
+    nEndClipped[which(nEndClipped > readLength)] <- readLength[which(nEndClipped > readLength)] - 2
+  }
+  
+  if(any((readLength - nBeginClipped - nEndClipped) <= 0) ){
+    pos <- which((readLength - nBeginClipped - nEndClipped) <= 0)
+    
+    for (i in 1:length(pos)){
+    res <- readLength[pos[i]] - nBeginClipped[pos[i]] - nEndClipped[pos[i]]
+      while(res < 1){
+        nBeginClipped[pos[i]] <- max(0, nBeginClipped[pos[i]]-1)
+        nEndClipped[pos[i]] <- max(0, nEndClipped[pos[i]]-1)
+        res <- readLength[pos[i]] - nBeginClipped[pos[i]] - nEndClipped[pos[i]]
+      }
+    }
+  }
+  
   nNormal = readLength - nBeginClipped - nEndClipped
   clippedMatrix = mapply(function(nBeginClipped, nNormal, nEndClipped, nEndTrimmed){rep(c(TRUE, FALSE, TRUE, FALSE), c(nBeginClipped, nNormal, nEndClipped, nEndTrimmed))}, nBeginClipped, nNormal, nEndClipped, nEndTrimmed, SIMPLIFY=FALSE)
   

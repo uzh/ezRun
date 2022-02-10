@@ -5,6 +5,7 @@
 # The terms are available here: http://www.gnu.org/licenses/gpl.html
 # www.fgcz.ch
 
+
 ezMethodGatkRnaHaplotyper = function(input=NA, output=NA, param=NA){
   library(rtracklayer)
   standardCallConfidence <- 20
@@ -12,7 +13,6 @@ ezMethodGatkRnaHaplotyper = function(input=NA, output=NA, param=NA){
   #knownSites = list.files(param$ezRef["refVariantsDir"],pattern='vcf.gz$',full.names = T)
   #dbsnpFile = knownSites[grep('dbsnp.*vcf.gz$', knownSites)]
   dbsnpFile = param$dbsnpFile
-  stopifnot(file.exists(dbsnpFile))
   stopifnot(param$markDuplicates == FALSE)
   #javaCall = paste0("java", " -Djava.io.tmpdir=. -Xmx", param$ram, "g")
   gatkCall = paste0('gatk --java-options "-Djava.io.tmpdir=. -Xmx', param$ram, 'g -Xms4g" ')
@@ -21,10 +21,12 @@ ezMethodGatkRnaHaplotyper = function(input=NA, output=NA, param=NA){
   exomeInterVals <- "exome.bed"
   gtf <- import(param$ezRef["refFeatureFile"])
   ## TODO: we only work on the main chromosomes and use only lncRNA and protein coding
-  gtf <- gtf[grepl("chr", seqnames(gtf)) & gtf$type =="exon" & gtf$gene_biotype %in% c("lncRNA", "protein_coding")]
+  if (any(grepl("chr", seqnames(gtf)))){
+    gtf <- gtf[grepl("chr", seqnames(gtf)), ]
+  }
+  gtf <- gtf[ gtf$type =="exon" & gtf$gene_biotype %in% c("lncRNA", "protein_coding")]
   write.table(data.frame(seqnames(gtf), start(gtf)-1, end(gtf)), 
                file=exomeInterVals, quote = F, sep="\t", col.names = F, row.names = F)
-  
   
   
   genomeSeq = param$ezRef["refFastaFile"]
@@ -53,7 +55,7 @@ ezMethodGatkRnaHaplotyper = function(input=NA, output=NA, param=NA){
   ezSystem("samtools index splitNtrim.bam")
   
   #BaseRecalibration is done only if known sites are available
-  if(file.exists(dbsnpFile)){
+  if(ezIsSpecified(dbsnpFile) && file.exists(dbsnpFile)){
     cmd = paste(gatkCall, "BaseRecalibrator", 
                 "-R", genomeSeq,
                 "-I splitNtrim.bam",
@@ -85,7 +87,7 @@ ezMethodGatkRnaHaplotyper = function(input=NA, output=NA, param=NA){
               "-ERC GVCF",
               "-dont-use-soft-clipped-bases",
               # TODO: conflicts with -ERC GVCF "--standard-min-confidence-threshold-for-calling", standardCallConfidence,
-              "--dbsnp", dbsnpFile,
+              ifelse(ezIsSpecified(dbsnpFile) && file.exists(dbsnpFile), paste("--dbsnp", dbsnpFile), ""),
               "-O", outputFile)
   ezSystem(cmd)
   

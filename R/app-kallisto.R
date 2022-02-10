@@ -28,7 +28,17 @@ ezMethodKallisto = function(input=NA, output=NA, param=NA){
   condNumAdd <- function(name, val) {
     if (!is.null(val) && val != 0) { paste(name, val) } else { "" }
   }
+  
+  # Determine pseudo bam options, should they be required
+  pseudoBamOpts <- iftrue(
+    param$pseudobam,
+    paste("--pseudobam",
+          "--genomebam",
+          "--gtf", param$ezRef["refFeatureFile"],
+          "--chromosomes", param$ezRef["refChromSizesFile"])
+  )
 
+  # Specifying all options
   opt = paste(
       "-i", refIdx,
       "-o", param$outputDir,
@@ -43,7 +53,7 @@ ezMethodKallisto = function(input=NA, output=NA, param=NA){
                          "both"=""),
       condNumAdd("--fragment-length", param$"fragment-length"),
       condNumAdd("--sd", param$sd),
-      iftrue(param$pseudobam, "--pseudobam")
+      pseudoBamOpts
   )
 
   trimmedInput = ezMethodFastpTrim(input = input, param = param)

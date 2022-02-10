@@ -919,6 +919,7 @@ if (!"entrez_id" %in% colnames(geneAnno)) {
   }
   geneAnno <- left_join(geneAnno, egr)
   geneAnno$entrez_id <- as.character(geneAnno$entrez_id)
+  geneAnno <- geneAnno[!duplicated(geneAnno$gene_id), ]
   write_tsv(geneAnno, file.path("/srv/GT/reference", param$refBuild, "Genes/genes_annotation_byGene.txt"))
 } else {
   geneAnno$entrez_id <- as.character(geneAnno$entrez_id)
