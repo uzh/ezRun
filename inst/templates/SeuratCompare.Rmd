@@ -112,13 +112,14 @@ cat("### Differential genes plots\n")
 cat("\n")
 cat("The 50 dysregulated genes with the highest difference in expression between the two conditions are represented in the heatmap and the violin plots. The heatmap shows global differences of these genes across the conditions, while the violin plots show cluster specific changes across conditions.")
 cat("\n")
-most_diffGenes <- head(unique(diffGenes$gene), 50)
-DoHeatmap(scData, features = most_diffGenes, group.by = "Condition")
+top5 <- diffGenes %>% group_by(cluster)
+top5 <- slice_max(top5, n = 5, order_by = avg_log2FC)
+DoHeatmap(scData, features = top5$gene, group.by = "Condition")
 ```
 
 
 ```{r diffGenes violin plots, eval=!is.null(diffGenes), fig.height=30, fig.width=24}
-VlnPlot(scData, most_diffGenes, split.by = "Condition")
+VlnPlot(scData, top5$gene, split.by = "Condition", split.plot = TRUE)
 ```
 
 
