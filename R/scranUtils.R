@@ -79,12 +79,12 @@ scranIntegration <- function(sceList, method=c("None", "MNN")){
   return(sce)
 }
 
-scranClusteringWorkflow <- function(sce, param) {
+scranPreprocessing <- function(sce, param) {
   vars.to.regress <- NULL
   if(identical("CellCycle", param$vars.regress))
     vars.to.regress <- colData(sce)$CellCycle
   
-   # Normalization
+  # Normalization
   clusters <- quickCluster(sce)
   sce = computeSumFactors(sce, cluster = clusters)
   sce = logNormCounts(sce)
@@ -94,15 +94,16 @@ scranClusteringWorkflow <- function(sce, param) {
   top.hvgs <- getTopHVGs(dec, n=2000)
   # PCA. The minimum number of PCAs selected will be 30 and the maximum 50
   sce <- denoisePCA(sce, dec, subset.row=top.hvgs, min.rank=20, max.rank=50)
-  # Run UMAP and TSNE
-  sce <- runUMAP(sce, dimred = "PCA")
-  sce <- runTSNE(sce, dimred = "PCA")
-  # Clustering with different k values
+  sce
+}
+
+scranClustering<- function(sce, param) {
+   # Clustering with different k values
   resolution_values = seq(from =10, to = 50, by=5)
-  clustering_res = factor(clusterCells(sce, use.dimred="PCA", 
+  clustering_res = factor(clusterCells(sce, use.dimred=dimred, 
                                              BLUSPARAM=SNNGraphParam(k=5, type="jaccard", cluster.fun="louvain")))
   for (k in resolution_values) {
-     clustering <- factor(clusterCells(sce, use.dimred="PCA", 
+     clustering <- factor(clusterCells(sce, use.dimred=dimred, 
                              BLUSPARAM=SNNGraphParam(k=k, type="jaccard", cluster.fun="louvain")))
      clustering_res = cbind.data.frame(clustering_res, clustering)
   }

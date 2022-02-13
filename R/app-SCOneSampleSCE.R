@@ -103,9 +103,16 @@ ezMethodSCOneSampleSCE <- function(input = NA, output = NA, param = NA,
 
   # calculate cellcycle for the filtered sce object
   sce <- addCellCycleToSCE(sce, param$refBuild)
-
-  sce <- scranClusteringWorkflow(sce, param)
-
+  
+  #Pre-processing and clustering
+  sce <- scranPreprocessing(sce, param)
+  sce <- scranClustering(sce, param)
+  
+  # Run UMAP and TSNE
+  sce <- runUMAP(sce, dimred = "PCA")
+  sce <- runTSNE(sce, dimred = "PCA") 
+  
+  
   #positive cluster markers
   posMarkers <- scranPosMarkers(sce)
   
