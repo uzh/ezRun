@@ -79,15 +79,52 @@ scranIntegration <- function(sceList, method=c("None", "MNN")){
   return(sce)
 }
 
+scranClusteringWorkflow <- function(sce, param) {
+  vars.to.regress <- NULL
+  if(identical("CellCycle", param$vars.regress))
+    vars.to.regress <- colData(sce)$CellCycle
+  
+   # Normalization
+  clusters <- quickCluster(sce)
+  sce = computeSumFactors(sce, cluster = clusters)
+  sce = logNormCounts(sce)
+  # Variance modelling
+  dec <- modelGeneVar(sce, design=vars.to.regress)
+  # Extract variable genes for downtream analysis
+  top.hvgs <- getTopHVGs(dec, n=2000)
+  # PCA. The minimum number of PCAs selected will be 30 and the maximum 50
+  sce <- denoisePCA(sce, dec, subset.row=top.hvgs, min.rank=20, max.rank=50)
+  # Run UMAP and TSNE
+  sce <- runUMAP(sce, dimred = "PCA")
+  sce <- runTSNE(sce, dimred = "PCA")
+  # Clustering with different k values
+  resolution_values = seq(from =10, to = 50, by=5)
+  clustering_res = factor(clusterCells(sce, use.dimred="PCA", 
+                                             BLUSPARAM=SNNGraphParam(k=5, type="jaccard", cluster.fun="louvain")))
+  for (k in resolution_values) {
+     clustering <- factor(clusterCells(sce, use.dimred="PCA", 
+                             BLUSPARAM=SNNGraphParam(k=k, type="jaccard", cluster.fun="louvain")))
+     clustering_res = cbind.data.frame(clustering_res, clustering)
+  }
+  colnames(clustering_res) = paste0("k.", seq(from =5, to = 50, by=5))
+  colData(sce) = cbind(colData(sce), clustering_res)
+  ident <- factor(clustering_res[,paste0("k.", param$resolution)])
+  sce$ident <- ident
+  sce
+}
+
+
+
+
 scranPosMarkers <- function(sce) {
-  markers_any <- findMarkers(sce, sce$cluster, pval.type="any", direction="up", lfc=1, block=sce$Batch)
+  markers_any <- findMarkers(sce, sce$ident, pval.type="any", direction="up", lfc=1)
   markersList <- list()
   for(cluster in names(markers_any)){
      markersPerCluster <- data.frame(gene_name = rownames(markers_any[[cluster]]), markers_any[[cluster]], row.names = NULL)
      markersPerCluster <- markersPerCluster[markersPerCluster$FDR<0.05, ]
      markersList[[cluster]] <- markersPerCluster
   }
-  markers_any <- bind_rows(markersList, .id="Cluster")
+  markers_any <- bind_rows(markersList, .id="cluster")
   markers_any
 }
   

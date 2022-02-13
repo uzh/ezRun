@@ -1,0 +1,450 @@
+---
+title: "`r if (exists('reportTitle')) reportTitle else 'SUSHI Report'`"
+author: "Functional Genomics Center Zurich"
+output: 
+  html_document:
+    self_contained: true
+    includes:
+     in_header: !expr system.file("templates/fgcz_header.html", package="ezRun", lib.loc=.libPaths())
+    css: !expr system.file("templates/fgcz.css", package="ezRun", lib.loc=.libPaths())
+editor_options: 
+  chunk_output_type: console
+---
+
+Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
+
+
+```{r setup, include=FALSE}
+# input for this report: sce
+library(clustree)
+library(kableExtra)
+library(NMF)
+library(pheatmap)
+library(viridis)
+library(tidyverse)
+library(cowplot)
+library(scran)
+library(RColorBrewer)
+library(plotly)
+library(SingleR)
+library(SingleCellExperiment)
+library(scater)
+library(HDF5Array)
+library(ezRun)
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE, knitr.table.format = "html")
+```
+
+```{r}
+clusterInfoFile <- readRDS("clusterInfoFile.rds")
+pvalue_allMarkers <- 0.05
+sce <- loadHDF5SummarizedExperiment("sce_h5")
+sce.unfiltered <- loadHDF5SummarizedExperiment("sce.unfiltered_h5")
+param = metadata(sce)$param
+```
+
+
+```{r javascript, echo=FALSE, results='asis'}
+jsFile = system.file("extdata/enrichr.js", package="ezRun", mustWork=TRUE)
+invisible(file.copy(from=jsFile, to=basename(jsFile), overwrite=TRUE))
+cat(paste0("<SCRIPT language=\"JavaScript\" SRC=\"", basename(jsFile), "\"></SCRIPT>"))
+```
+
+```{r}
+output <- metadata(sce)$output
+species <- getSpecies(param$refBuild)
+var_height = 1 #This ensures that chunks that use the length of this variable to set the fig size, don't fail.
+```
+
+## Analysis results {.tabset}
+
+### Quality control
+
+#### Selected QC metrics
+
+We use several common QC metrics to identify low-quality cells based on their expression profiles. The metrics that were chosen are described below.
+
+1. The library size is defined as the total sum of counts across all relevant features for each cell. Cells with small library sizes are of low quality as the RNA has been lost at some point during library preparation.
+2. The number of expressed features in each cell is defined as the number of genes with non-zero counts for that cell. Any cell with very few expressed genes is likely to be of poor quality as the diverse transcript population has not been successfully captured.
+3. The proportions of mitochondrial and ribosomal genes per cell. High proportions are indicative of poor-quality cells (Islam et al. 2014; Ilicic et al. 2016), presumably because of the loss of cytoplasmic RNA from perforated cells.
+
+<br/>
+
+#### Diagnostic plots
+
+A key assumption here is that the QC metrics are independent of the biological state of each cell. Poor values (e.g., low library sizes, high mitochondrial or ribosomal proportions) are presumed to be driven by technical factors rather than biological processes, meaning that the subsequent removal of cells will not misrepresent the biology in downstream analyses. Major violations of this assumption would potentially result in the loss of cell types that have, say, systematically low RNA content or high numbers of mitochondria. We can check for such violations using some diagnostics plots. In the most ideal case, we would see normal distributions that would justify the thresholds used in outlier detection. A large proportion of cells in another mode suggests that the QC metrics might be correlated with some biological state, potentially leading to the loss of distinct cell types during filtering. 
+
+```{r QC plots, fig.height=4}
+plotColData(sce.unfiltered, x="Batch", y="sum", colour_by="discard") + scale_y_log10() + ggtitle("Number of UMIs")
+plotColData(sce.unfiltered, x="Batch", y="detected", colour_by="discard") + scale_y_log10() + ggtitle("Detected genes")
+plotColData(sce.unfiltered, x="Batch", y="subsets_Mito_percent", colour_by="discard") + ggtitle("Mito percent")
+plotColData(sce.unfiltered, x="Batch", y="subsets_Ribo_percent", colour_by="discard") + ggtitle("Ribo percent")
+```
+
+It is also worth to plot the proportion of mitochondrial counts against the library size for each cell. The aim is to confirm that there are no cells with both large total counts and large mitochondrial counts, to ensure that we are not inadvertently removing high-quality cells that happen to be highly metabolically active.
+
+```{r QC plot mito, fig.align='center'}
+plotColData(sce.unfiltered, x="sum", y="subsets_Mito_percent", colour_by="discard")
+```
+
+<br/>
+
+#### Cell filtering
+
+A standard approach is to filter cells with a low amount of reads as well as genes that are present in at least a certain amount of cells. While simple, using fixed thresholds requires knowledge of the experiment and of the experimental protocol. An alternative approach is to use adaptive, data-driven thresholds to identify outlying cells, based on the set of QC metrics just calculated. To obtain an adaptive threshold, we assume that most of the dataset consists of high-quality cells. 
+When the parameter values of nreads, ngenes and perc_mito are specified, fixed thresholds are used for filtering. Otherwise, filtering is performed excluding cells that are outliers by more than `r param$nmad` MADs below the median for the library size and the number of genes detected. Cells with a percentage counts of mitochondrial genes above the median by `r param$nmad` MADs are also excluded. 
+
+```{r low quality cells}
+num.qc.lib <- sum(sce.unfiltered$qc.lib)
+num.qc.nexprs <- sum(sce.unfiltered$qc.nexprs)
+num.qc.mito <- sum(sce.unfiltered$qc.mito)
+num.qc.ribo <- sum(sce.unfiltered$qc.ribo)
+removed <- sum(sce.unfiltered$discard)
+kable(tibble("QC metric" =c("Library Size", "Expressed genes", "Mitochondrial genes", "Ribosomal genes", "Total removed", "Cells remaining"),
+             "Number of cells"= c(num.qc.lib, num.qc.nexprs, num.qc.mito, num.qc.ribo, removed, ncol(sce))),
+      row.names=FALSE,
+      caption="Number of cells removed") %>%
+  kable_styling(bootstrap_options = "striped", full_width = F,
+                position = "center")
+```
+
+<br/>
+
+#### Gene filtering
+
+We also excluded genes that are lowly or not expressed in our system, as they do not contribute any information to our experiment and may add noise. In this case, we removed genes that were not expressed in at least `r param$cellsPercentage` percent of the cells. In case one or more rare cell populations are expected we might need to decrease the percentage of cells.
+
+```{r gene filtering}
+cat("genes removed:", nrow(sce.unfiltered)-nrow(sce))
+cat("genes kept:", nrow(sce))
+```
+
+### Dimensionality reduction
+
+Dimensionality reduction aims to reduce the number of separate dimensions in the data. This is possible because different genes are correlated if they are affected by the same biological process. Thus, we do not need to store separate information for individual genes, but can instead compress multiple features into a single dimension. This reduces computational work in downstream analyses, as calculations only need to be performed for a few dimensions rather than thousands of genes; reduces noise by averaging across multiple genes to obtain a more precise representation of the patterns in the data, and enables effective plotting of the data.
+
+<br/>
+
+#### Transforming the data and feature selection
+
+Cell-specific biases were normalized using the computeSumFactors method from the scran (Lun ATL, McCarthy DJ, Marioni JC (2016). “A step-by-step workflow for low-level analysis of single-cell RNA-seq data with Bioconductor.” F1000Res., 5, 2122. doi: 10.12688/f1000research.9501.2.) package, which implements the deconvolution strategy for scaling normalization (A. T. Lun, Bach, and Marioni 2016). A preliminar clustering was performed using the quickCluster function from the scran package before normalization. The size factors were computed for each cell; and the factors rescaled by normalization between clusters. Normalized expression values were calculated using the logNormCounts method from scater (McCarthy et al. 2017). 
+The total variance of each gene was decomposed into its biological and technical components by fitting a trend to the endogenous variances (A. T. Lun, McCarthy, and Marioni 2016) within each batch before combining the statistics across blocks. The downstream analyses were performed on the top 2000 genes with the largest variance. 
+<br/>
+`r if(identical(param$vars.regress,"CellCycle")) {
+    "We already checked cell cycle and decided that it does represent a major source of variation in our data, and this may influence clustering. Therefore, we regressed out variation due to cell cycle."
+}`
+
+<br/>
+
+#### Principal component analysis
+
+We performed Principal components analysis to denoise and compact the data prior to downstream analysis. The number of PCs is to use was `r ncol(reducedDim(sce, "PCA"))`. It was chosen based on the technical component estimates to determine the proportion of variance that should be retained
+The top principal components, represent a robust compression of the dataset. The numbers of PCs that should be retained for downstream analyses typically range from 10 to 50. However, identifying the true dimensionality of a dataset can be challenging, that's why we recommend considering the ‘Elbow plot’ approach. a ranking of principal components based on the percentage of variance explained by each one. The assumption is that each of the top PCs capturing biological signal should explain much more variance than the remaining PCs. Thus, there should be a sharp drop in the percentage of variance explained when we move past the last “biological” PC. This manifests as an elbow in the scree plot, the location of which serves as a natural choice for a number of PCs.
+
+```{r, fig.align='center'}
+percent.var <- attr(reducedDim(sce), "percentVar")
+plot(percent.var, log="y", xlab="PC", ylab="Variance explained (%)")
+```
+
+
+<br/>
+
+#### Visualization 
+
+Another application of dimensionality reduction is to compress the data into 2 (sometimes 3) dimensions for plotting. The simplest visualization approach is to plot the top 2 PCs in a PCA. 
+
+```{r, fig.align='center'}
+plotReducedDim(sce, dimred="PCA", colour_by="ident")
+```
+
+The problem is that PCA is a linear technique, i.e., only variation along a line in high-dimensional space is captured by each PC. As such, it cannot efficiently pack differences in many dimensions into the first 2 PCs. The de facto standard for visualization of scRNA-seq data is the t-stochastic neighbor embedding (t-SNE) method (Van der Maaten and Hinton 2008).  Unlike PCA, it is not restricted to linear transformations, nor is it obliged to accurately represent distances between distance populations. This means that it has much more freedom in how it arranges cells in low-dimensional space, enabling it to separate many distinct clusters in a complex population. 
+The uniform manifold approximation and projection (UMAP) method (McInnes, Healy, and Melville 2018) is an alternative to t-SNE for non-linear dimensionality reduction. Compared to t-SNE, UMAP visualization tends to have more compact visual clusters with more empty space between them. It also attempts to preserve more of the global structure than t-SNE. It is arguable whether the UMAP or t-SNE visualizations are more useful or aesthetically pleasing. UMAP aims to preserve more global structure but this necessarily reduces resolution within each visual cluster. However, UMAP is unarguably much faster, and for that reason alone, it is increasingly displacing t-SNE as the method of choice for visualizing large scRNA-seq data sets. We will use both UMAP and TSNE to visualize the clustering output. Another application of dimensionality reduction is to compress the data into 2 (sometimes 3) dimensions for plotting. The simplest visualization approach is to plot the top 2 PCs in a PCA. 
+
+<br/><br/>
+
+### Clustering
+
+We clustered the cells using a Shared Nearest Neighbours graph approach. The number of neighbors considered when constructing the graph was `r param$resolution`. Two cells are connected by an edge if any of their nearest neighbors are shared, with the edge weight defined from the highest average rank of the shared neighbors. The Louvain algorithm was then used to identify communities that represent clusters.  
+
+We can visualize the distribution of clusters in the TSNE and UMAP plots. However, we should not perform downstream analyses directly on their coordinates. These plots are most useful for checking whether two clusters are actually neighboring subclusters or whether a cluster can be split into further subclusters. 
+
+```{r}
+plotReducedDim(sce, dimred="TSNE", colour_by="ident", text_by="ident", 
+               text_size=5, add_legend=FALSE)
+plotReducedDim(sce, dimred="UMAP", colour_by="ident", text_by="ident", 
+               text_size=5, add_legend=FALSE)
+```
+
+<br/><br/>
+
+The number of cells in each cluster and sample is represented in this barplot.
+
+<br/>
+
+```{r number of cells in each cluster}
+cellIdents_perSample <- as.data.frame(colData(sce)[,c('ident', 'Batch')])
+barplot = ggplot(data=cellIdents_perSample, aes(x=ident, fill=Batch)) + geom_bar(stat="Count")
+barplot + labs(x="Cluster", y = "Number of cells", fill = "Sample")
+
+cells_prop = cellsProportion(sce, groupVar1 = "ident", groupVar2 = "Batch")
+kable(cells_prop,row.names=FALSE, format="html",caption="Cell proportions") %>% kable_styling(bootstrap_options = "striped", full_width = F, position = "float_right")
+```
+
+### Cluster assessment
+
+
+#### Segregation of clusters by various sources of uninteresting variation.
+
+Once we have created the clusters we need to asses if the clustering was driven by technical artifacts or uninteresting biological variability, such as cell cycle, mitochondrial gene expression.
+We can explore whether the cells cluster by the different cell cycle phases. In such a case, we would have clusters where most of the cells would be in one specific phase. This bias could be taken into account when normalizing and transforming the data prior to clustering. We can also look at the total number of reads, genes detected and mitochondrial gene expression. The clusters should be more or less even but if we observe big differences among some of them for these metrics, we will keep an eye on them and see if the cell types we identify later can explain the differences. 
+
+```{r uninteresting variation, fig.width=6, fig.height=6}
+sce$logRNA = log10(sce$sum)
+sce$logGenes = log10(sce$detected)
+
+if (!is.null(sce$CellCycle)){
+  p1 = plotColData(sce, x="ident", y="CellCycle", colour_by="ident") + ggtitle("Cell cycle vs ident")
+  p2 = plotReducedDim(sce, dimred="UMAP", colour_by="CellCycle", text_by="ident", text_size=5, add_legend=TRUE)
+  print(p1)
+  print(p2)
+}
+plotColData(sce, x="ident", y="sum", colour_by="ident", add_legend=FALSE) + ggtitle("Number of UMIs vs ident")
+plotReducedDim(sce, dimred="UMAP", colour_by="logRNA", text_by="ident", text_size=5)
+plotColData(sce, x="ident", y="detected", colour_by="ident", add_legend=FALSE) + ggtitle("Detected genes vs ident")
+plotReducedDim(sce, dimred="UMAP", colour_by="logGenes", text_by="ident", text_size=5)
+plotColData(sce, x="ident", y="subsets_Mito_percent", colour_by="ident", add_legend=FALSE) + ggtitle("Mito percentage vs ident")
+plotReducedDim(sce, dimred="UMAP", colour_by="subsets_Mito_percent", text_by="ident", text_size=5)
+plotColData(sce, x="ident", y="subsets_Ribo_percent", colour_by="ident", add_legend=FALSE) + ggtitle("Ribo percentage vs ident")
+plotReducedDim(sce, dimred="UMAP", colour_by="subsets_Mito_percent", text_by="ident", text_size=5)
+if (ezIsSpecified(param$controlSeqs)) {
+  genesToPlot <- gsub("_", "-", param$controlSeqs)
+  genesToPlot <- intersect(genesToPlot, rownames(sce))
+  plotExpression(sce, genesToPlot, x="ident", colour_by = "ident", add_legend=FALSE)
+  #plotReducedDim(sce, dimred="UMAP", colour_by=genesToPlot[1], text_by="seurat_clusters", text_size=5)
+}
+```
+
+#### Cluster resolution 
+
+One of the most important parameters when clustering is k, the number of nearest neighbors used to construct the graph. This controls the resolution of the clustering where higher k yields a more inter-connected graph and broader clusters. Users can experiment with different values of k to obtain a satisfactory resolution. We recommend increasing the resolution when a rare population is expected. 
+Below, it is shown a clustering tree that helps us to visualize the relationships between clusters at a range of resolutions. Each cluster forms a node in the tree and edges are constructed by considering the cells in a cluster at a lower resolution that end up in a cluster at the next highest resolution. By connecting clusters in this way, we can see how clusters are related to each other, which are clearly distinct and which are unstable. The size of each node is related to the number of cells in each cluster and the color indicates the clustering resolution. Edges are colored according to the number of cells they represent and the transparency shows the incoming node proportion, the number of cells in the edge divided by the number of samples in the node it points to. 
+
+```{r, fig.align='center', fig.width=12, fig.height=10}
+clustree::clustree(sce, prefix = "k.")
+```
+
+### Cluster markers
+
+<br> 
+To interpret the clustering results we identify the genes that drive separation between clusters using differential expression between clusters. These marker genes allow us to assign biological meaning to each cluster based on their functional annotation. In the most obvious case, the marker genes for each cluster are a priori associated with particular cell types, allowing us to treat the clusters as cell types. 
+
+We performed pairwise comparisons between clusters for each gene. The table contains the logFC with respect to each other cluster, and a nominal and an adjusted p-value. There is also a column named Top, which gives the minimum rank for the gene across all pairwise comparisons. For example, if Top = 1, the gene is the top-ranked one in at least one comparison of the cluster of interest to the other clusters.
+
+<br>
+
+#### Expression differences of cluster marker genes
+
+```{r pos markers}
+posMarkers = read_tsv("pos_markers.tsv")
+posMarkers$cluster = as.factor(posMarkers$cluster)
+posMarkers$gene_name = as.factor(posMarkers$gene_name)
+ezInteractiveTableRmd(posMarkers, digits=4)
+```
+
+### Marker plots
+
+Here, we use a heatmap and a dotplot to visualize simultaneously the top 5 markers in each cluster. Be aware that some genes may be in the top markers for different clusters.
+
+<br/>
+
+```{r heatmap, fig.width=12, fig.height=length(levels(sce$ident))}
+top5 <- posMarkers %>% group_by(cluster) 
+top5 <- slice_max(top5, n = 5, order_by = summary.logFC)
+genesToPlot <- c(gsub("_", "-", param$controlSeqs), unique(as.character(top5$gene_name)))
+genesToPlot <- intersect(genesToPlot, rownames(sce))
+
+plotHeatmap(sce, features=unique(genesToPlot), center=TRUE, zlim=c(-2, 2),
+            colour_columns_by = c("ident"), 
+            order_columns_by = c("ident"),
+            cluster_rows=TRUE,
+            fontsize_row=8)
+
+plotDots(sce, features=genesToPlot, group="ident")
+```
+
+### Cell annotation
+
+The most challenging task in scRNA-seq data analysis is the interpretation of the results. Once we have obtained a set of clusters we want to determine what biological state is represented by each of them. To do this, we have implemmented 3 different approaches which are explained below. However, these methods should be complemented with the biological knowledge from the researcher.
+
+<br/>
+
+#### Using cluster markers
+
+This approach consists in performing a gene set enrichment analysis on the marker genes defining each cluster. This identifies the pathways and processes that are (relatively) active in each cluster based on the upregulation of the associated genes compared to other clusters. For this, we use the tool Enrichr. 
+
+```{r enrichr markers, echo=FALSE, results='asis'}
+genesPerCluster <- split(posMarkers$gene_name, posMarkers$cluster)
+jsCall = paste0('enrich({list: "', sapply(genesPerCluster, paste, collapse="\\n"), '", popup: true});')
+enrichrCalls <- paste0("<a href='javascript:void(0)' onClick='", jsCall, 
+                         "'>Analyse at Enrichr website</a>")
+enrichrTable <- tibble(Cluster=names(genesPerCluster),
+                         "# of posMarkers"=lengths(genesPerCluster),
+                         "Enrichr link"=enrichrCalls)
+kable(enrichrTable, format="html", escape=FALSE,
+        caption=paste0("GeneSet enrichment: genes with pvalue ", pvalue_allMarkers)) %>%
+kable_styling("striped", full_width = F, position = "left")
+```
+
+
+<br/>
+
+#### Using reference data
+
+Another strategy for annotation is to compare the single-cell expression profiles with previously annotated reference datasets. Labels can then be assigned to each cell in our uncharacterized test dataset based on the most similar reference sample(s). This annotation can be  performed on single  cells or instead, it may be aggregated into cluster-level profiles prior to annotation.
+To do this, we use the SingleR method (Aran et al. 2019) for cell type annotation. This method assigns labels to cells based on the reference samples with the highest Spearman rank correlations and thus can be considered a rank-based variant of k-nearest-neighbor classification. To reduce noise, SingleR identifies marker genes between pairs of labels and computes the correlation using only those markers. It also performs a fine-tuning step for each cell where the calculation of the correlations is repeated with just the marker genes for the top-scoring labels. This aims to resolve any ambiguity between those labels by removing noise from irrelevant markers for other labels. 
+SingleR contains several built-in reference datasets, mostly assembled from bulk RNA-seq or microarray data of sorted cell types. These built-in references are often good enough for most applications, provided that they contain the cell types that are expected in the test population. 
+
+```{r singler, eval= !is.null(metadata(sce)$singler.results)}
+singler.results.single <- metadata(sce)$singler.results$singler.results.single
+singler.results.cluster <- metadata(sce)$singler.results$singler.results.cluster
+singler.single.labels <- singler.results.single$labels
+singler.cluster.labels<- singler.results.cluster$labels[match(colData(sce)[,"ident"], rownames(singler.results.cluster))]
+var_height = length(unique(singler.single.labels))*0.7
+```
+
+```{r singler ScoreHeatmap,  eval= !is.null(metadata(sce)$singler.results), fig.height= var_height, fig.width=8, results='asis'}
+cat("The two heatmaps below display the scores for all individual cells (left) and each original cluster (right) across all reference labels, which allows users to inspect the confidence of the predicted labels across the dataset. The bar Labels on the top shows the actual assigned label.\n")
+cat("\n")
+plotScoreHeatmap(singler.results.single)
+plotScoreHeatmap(singler.results.cluster, clusters=rownames(singler.results.cluster))
+```
+
+
+```{r singler labelsUMAP,  eval= !is.null(metadata(sce)$singler.results), fig.width=12, results='asis'}
+cat("The single cell (top) and cluster (bottom) annotations are also shown on the UMAPs. Place the mouse over the cells to get information such as their UMAP coordinates, original cluster, the cells name and the label assigned by SingleR. You can also zoom in specific areas of the UMAP by dragging and drop with the mouse.\n")
+
+cellInfo <- tibble(Cells=colnames(sce), Cluster=colData(sce)[,"ident"],
+                     SingleR.labels.cluster=singler.cluster.labels, SingleR.labels.single=singler.single.labels)  %>%
+    left_join(as_tibble(reducedDim(sce, "UMAP"), rownames="Cells")) %>% rename(UMAP_1 = V1, UMAP_2 = V2)
+
+nrOfLabels_cluster <- length(unique(cellInfo$SingleR.labels.cluster))
+nrOfLabels_single <- length(unique(cellInfo$SingleR.labels.single))
+
+if(nrOfLabels_single <= 9){
+  colsLabels <- brewer.pal(nrOfLabels_single, "Set1")
+}else{
+  colsLabels <- colorRampPalette(brewer.pal(9, "Set1"))(nrOfLabels_single)
+}
+
+x <- list(title="UMAP_1", zeroline=FALSE)
+y <- list(title="UMAP_2", zeroline=FALSE)
+
+p1 <- plot_ly(cellInfo, x = ~UMAP_1, y = ~UMAP_2, color=~SingleR.labels.single,
+        text = ~paste("Cluster: ", Cluster, 
+                      "\nCell: ", Cells,
+                      "\nSingleR.labels.cluster: ", SingleR.labels.single),
+        type = 'scatter', mode = "markers", marker=list(size=5, opacity=0.5),
+        colors=colsLabels) %>%layout(xaxis=x, yaxis=y)
+p1
+p2 <- plot_ly(cellInfo, x = ~UMAP_1, y = ~UMAP_2, color=~SingleR.labels.cluster,
+        text = ~paste("Cluster: ", Cluster, 
+                      "\nCell: ", Cells,
+                      "\nSingleR.labels.cluster: ", SingleR.labels.cluster),
+        type = 'scatter', mode = "markers", marker=list(size=5, opacity=0.5),
+        colors=colsLabels) %>%layout(xaxis=x, yaxis=y)
+
+p2
+```
+
+#### Using gene sets
+
+We can also use sets of marker genes that are highly expressed in each cell. This does not require matching of individual cells to the expression values of the reference dataset, which is faster and more convenient when only the identities of the markers are available. In this case, we use sets of gene markers for individual cell types taken from the CellMarkers database which contains an accurate resource of cell markers for various cell types in tissues of human and mouse (Zhang X., Lan Y., Xu J., Quan F., Zhao E., Deng C., et al. (2019). CellMarker: a manually curated resource of cell markers in human and mouse. Nucleic Acids Res. 47, D721–d728. 10.1093/nar/gky900). 
+We use the AUCell package (Aibar et al. (2017) SCENIC: single-cell regulatory network inference and clustering. Nature Methods. doi: 10.1038/nmeth.4463) to identify marker sets that are highly expressed in each cell. AUCell uses the “Area Under the Curve” (AUC) to calculate whether a critical subset of the input gene set is enriched within the expressed genes for each cell. The AUC estimates the proportion of genes in the gene-set that are highly expressed in each cell. Cells expressing many genes from the gene-set will have higher AUC values than cells expressing fewer. Finally, it assigns cell type identity to each cell in the test dataset by taking the marker set with the top AUC as the label for that cell.
+
+```{r AUC assigments, eval= !is.null(metadata(sce)$cells_AUC)}
+cells_AUC <- metadata(sce)$cells_AUC
+cells_assignment <- AUCell_exploreThresholds(cells_AUC, plotHist=FALSE, assign=TRUE) 
+cellsAssigned <- lapply(cells_assignment, function(x) x$assignment)
+assignmentTable <- reshape2::melt(cellsAssigned, value.name="cell")
+colnames(assignmentTable)[2] <- "geneSet"
+tras_cells_AUC <- t(assay(cells_AUC))
+full.labels <- colnames(tras_cells_AUC)[max.col(tras_cells_AUC)]
+tab <- table(full.labels, colData(sce)[,"ident"])
+var_height <- nrow(tab)*0.5
+```
+
+```{r assigments, eval= !is.null(metadata(sce)$cells_AUC), results='asis'}
+cat("We can explore the cell assignment results using different plots. Below, we show a heatmap that represents the number of cells (in log scale) from each cluster that were assigned to the different cell types. After calculating an AUC score for each cell and cell type, we assign cell type identity by taking the cell type with the top AUC as the label for that cell. Some cell types may be missing because no cells obtained their top AUC score for it.")
+cat("\n\n")
+```
+
+```{r assigments heatmap, eval= !is.null(metadata(sce)$cells_AUC), results='asis',fig.align='center', fig.width=10, fig.height=var_height}
+if (nrow(tab) > 2)
+   pheatmap(log10(tab+10), color=viridis::viridis(100))
+```
+
+
+```{r tsne and AUC res, eval= !is.null(metadata(sce)$cells_AUC), results='asis'}
+cat("The plots below show for every cell type:\n")
+cat('\n')
+cat("1) The distribution of the AUC values in the cells. The ideal situation will be a bi-modal distribution, in which most cells in the dataset have a low “AUC” compared to a population of cells with a higher value.  The size of the gene-set will also affect the results. With smaller gene-genes (fewer genes), it is more likely to get cells with AUC = 0. While this is the case of the “perfect markers” it is also easier to get it by chance with small datasets. The vertical bars correspond to several thresholds that could be used to consider a gene-set ‘active’. The thickest vertical line indicates the threshold selected by default: the highest value to reduce the false positives.\n")
+cat('\n')
+cat("2) The t-SNE can be colored based on the AUC scores. To highlight the cluster of cells that are more likely of the cell type according to the signatures, we split the cells into cells that passed the assignment threshold (colored in blue), and cells that didn’t (colored in gray).\n")
+cat('\n')
+cat("3) The last TSNE represents the AUC scores values. The darker a cell is the higher AUC score it obtained, i.e. the cell is more enriched in that cell type.")
+cat('\n')
+cellsTsne <- reducedDims(sce)$TSNE
+minAucThresh = 0.2
+filtered_cells_AUC <- cells_AUC[rowSums(assay(cells_AUC) >= minAucThresh)>0, ]
+maxAucScore = rowMax(assay(filtered_cells_AUC))
+scoreOrder = order(maxAucScore, decreasing = TRUE)
+nPlots = 50
+```
+
+```{r tsne and AUC hist, eval= !is.null(metadata(sce)$cells_AUC), fig.height=5, fig.width=5}
+AUCell_plotTSNE(tSNE=cellsTsne,
+                cellsAUC=filtered_cells_AUC[head(scoreOrder, nPlots), ],
+                 plots = c("histogram", "binaryAUC"))
+```
+
+
+<br/>
+
+### Interactive explorer
+
+<br>
+The iSEE (Interactive SummarizedExperiment Explorer) explorer provides a general visual interface for exploring single cell data. iSEE allows users to simultaneously visualize multiple aspects of a given data set, including experimental data, metadata, and analysis results. Dynamic linking and point selection facilitate the flexible exploration of interactions between different data aspects.
+ [Rue-Albrecht K, Marini F, Soneson C, Lun ATL (2018). “iSEE: Interactive SummarizedExperiment Explorer.” F1000Research, 7, 741. doi: 10.12688/f1000research.14966.1.]
+
+The iSEE shiny app can be accessed through this link [iSEE explorer](`r {lastProjectDigit = stringr::str_sub( sub("\\/.*", "", output$getColumn("SC Cluster Report")), start = -1); paste0("http://fgcz-shiny.uzh.ch/fgcz_iSEE", lastProjectDigit, "/?data=",output$getColumn("SC Cluster Report"),"/sce_h5")}`)
+
+
+### Data availability
+
+##### Cluster Infos
+
+Use the xls file to manually label or relabel the clusters based on the result of Singler cell type annotation and the marker genes
+[clusterInfoFile.xlsx](clusterInfoFile.xlsx)
+
+
+##### Mean expression of every gene across the cells in each cluster
+
+[geneMeans](gene_means.tsv)
+
+##### Positive markers of each cluster
+
+[posMarkers](pos_markers.tsv)
+
+
+##### The final Single Cell Experiment Object is [here](sce_h5)
+
+### Parameters
+```{r report parameters, echo=FALSE}
+param[c("resolution", "vars.regress", "cellsFraction", "nUMIs", "nmad")]
+```
+
+
+### SessionInfo
+```{r, echo=FALSE}
+sessionInfo()
+```
+
