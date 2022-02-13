@@ -100,10 +100,10 @@ scranPreprocessing <- function(sce, param) {
 scranClustering<- function(sce, param) {
    # Clustering with different k values
   resolution_values = seq(from =10, to = 50, by=5)
-  clustering_res = factor(clusterCells(sce, use.dimred=dimred, 
+  clustering_res = factor(clusterCells(sce, use.dimred="PCA", 
                                              BLUSPARAM=SNNGraphParam(k=5, type="jaccard", cluster.fun="louvain")))
   for (k in resolution_values) {
-     clustering <- factor(clusterCells(sce, use.dimred=dimred, 
+     clustering <- factor(clusterCells(sce, use.dimred="PCA", 
                              BLUSPARAM=SNNGraphParam(k=k, type="jaccard", cluster.fun="louvain")))
      clustering_res = cbind.data.frame(clustering_res, clustering)
   }
