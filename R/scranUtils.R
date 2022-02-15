@@ -125,7 +125,7 @@ scranPosMarkers <- function(sce) {
      markersPerCluster <- markersPerCluster[markersPerCluster$FDR<0.05, ]
      markersList[[cluster]] <- markersPerCluster
   }
-  markers_any <- bind_rows(markersList, .id="cluster")
+  markers_any <- bind_rows(markersList, .id="cluster") %>% mutate_if(is.numeric, round, digits=3)
   markers_any
 }
   

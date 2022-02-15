@@ -250,7 +250,7 @@ posClusterMarkers <- function(scData, pvalue_allMarkers, param) {
   cm$cluster <- as.factor(cm$cluster)
   diff_pct = abs(cm$pct.1-cm$pct.2)
   cm$diff_pct <- diff_pct
-  cm <- cm[order(cm$diff_pct, decreasing = TRUE),]
+  cm <- cm[order(cm$diff_pct, decreasing = TRUE),] %>% mutate_if(is.numeric, round, digits=3)
   rownames(cm) <- NULL
   return(cm)
 }
