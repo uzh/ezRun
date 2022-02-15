@@ -231,6 +231,7 @@ library(scuttle)
 rownames(sce) <- uniquifyFeatureNames(ID=rowData(sce)$ID,
                                       names=rowData(sce)$Symbol)
 colData(sce)$Batch <- input$getNames()
+colData(sce)$Sample_name <- input$getNames()
 try(colData(sce)$Condition <- input$getColumn("Condition"), silent = TRUE)
 return(sce)
 }
