@@ -132,20 +132,19 @@ scranPosMarkers <- function(sce) {
   
 scranDiffGenes <- function(sce) {
   #Creating pseudo-bulk samples
-  summed <- aggregateAcrossCells(sce, 
-                                 id=colData(sce)[,c("cluster", "Plate")])
+  summed <- aggregateAcrossCells(sce, id=colData(sce)[,c("ident", "Sample_name")])
   #filter out all sample-label combinations with insufficient cells.
   summed.filt <- summed[,summed$ncells >= 10]
   # #create the design matrix
-  targets <- colData(sce)[!duplicated(sce$Plate),]
+  targets <- colData(sce)[!duplicated(sce$Sample_name),]
   design <-  model.matrix(~factor(Batch)+factor(Condition), data=targets)
-  rownames(design) <- targets$Plate
+  rownames(design) <- targets$Sample_name
   #DE analysis
   de.results <- pseudoBulkDGE(summed.filt, 
-                              label=summed.filt$cluster,
+                              label=summed.filt$ident,
                               design=~factor(Batch)+factor(Condition),
                               coef=ncol(design),
-                              condition=targets$Condition
+                              condition=summed.filt$Condition
   )
   is.de <- decideTestsPerLabel(de.results, threshold=0.05)
   summarizeTestsPerLabel(is.de)
