@@ -92,7 +92,7 @@ DotPlot(scData, features=unique(top5$gene)) + coord_flip()
 cat("### Differential expressed genes")
 cat("\n")
 
-cat(paste0("After identifying common cell types across conditions, we can look for genes that change in different conditions for cells of the same type. The interactive table can help you to explore the more relevant genes (maximum 1000 genes with the biggest diff_pct). The full list of tested genes is in the Data availability section of this report. The comparison made was ", paste(c(param$refGroup,param$sampleGroup), collapse = " vs ")))
+cat(paste0("After identifying common cell types across conditions, we can look for genes that change in different conditions for cells of the same type. The interactive table can help you to explore the more relevant genes (maximum 1000 genes with the biggest diff_pct). The full list of tested genes is in the Data availability section of this report. The comparison made was ", paste(c(param$sampleGroup, param$refGroup), collapse = " vs ")))
 
 cat("\n")
 
