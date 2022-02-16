@@ -260,8 +260,9 @@ load10xSC_seurat <- function(input, param){
       return (NULL)
     })
   batch <- rep(input$getNames(), ncol(counts))
+  sample_name <- rep(input$getNames(), ncol(counts))
   
-  scData <- CreateSeuratObject(counts = counts, meta.data = data.frame(Batch = batch, row.names = colnames(counts)))
+  scData <- CreateSeuratObject(counts = counts, meta.data = data.frame(Batch = batch, Sample_name = sample_name, row.names = colnames(counts)))
   scData@meta.data$Condition <- condition   #in case condition was not defined, this wouldn't give an error
   scData[["RNA"]] <- AddMetaData(object = scData[["RNA"]], metadata = geneID$X1,col.name ='ensemblID')
   if(grepl("FeatBarcoding", param$appName)) #Create an assay for the hashtags and add it to the seurat object
