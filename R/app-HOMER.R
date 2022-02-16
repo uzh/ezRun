@@ -27,98 +27,99 @@ EzAppHomerDiffPeaks <-
 
 ezMethodHomerDiffPeaks = function(input=NA, output=NA, param=NA, 
                                   htmlFile="00index.html"){
-  cwd <- getwd()
-  setwdNew(basename(output$getColumn("Report")))
-  on.exit(setwd(cwd))
-  
-  stopifnot(param$sampleGroup != param$refGroup)
-  
-  ## I don't have better names in mind for now. Just use first and second
-  firstSamples <- input$getNames()[input$getColumn(param$grouping) %in% 
-                                     param$sampleGroup]
-  secondSamples <- input$getNames()[input$getColumn(param$grouping) %in% 
-                                      param$refGroup]
-  
-  useSamples = c(firstSamples, secondSamples)
-  input <- input$subset(useSamples)
-  
-  bamFiles <- input$getFullPaths("BAM")
-  localBamFiles <- sapply(bamFiles, getBamLocally)
-  localSamFiles <- sub('.bam$', '.sam', localBamFiles)
-
+    require(parallel)
+    cwd <- getwd()
+    setwdNew(basename(output$getColumn("Report")))
+    on.exit(setwd(cwd))
+    
+    stopifnot(param$sampleGroup != param$refGroup)
+    
+    ## I don't have better names in mind for now. Just use first and second
+    firstSamples <- input$getNames()[input$getColumn(param$grouping) %in% 
+                                         param$sampleGroup]
+    secondSamples <- input$getNames()[input$getColumn(param$grouping) %in% 
+                                          param$refGroup]
+    
+    useSamples = c(firstSamples, secondSamples)
+    input <- input$subset(useSamples)
+    
+    bamFiles <- input$getFullPaths("BAM")
+    localBamFiles <- sapply(bamFiles, getBamLocally)
+    localSamFiles <- sub('.bam$', '.sam', localBamFiles)
+    
     for (i in 1:length(localBamFiles)){
-      cmd <- paste('samtools view -h', localBamFiles[i], '>', localSamFiles[i])
-     ezSystem(cmd)
-  }
-  
-  mcmapply(makeTagDirectory, inBam=localSamFiles, 
-           outputDir=names(localBamFiles),
-           MoreArgs=list(genome=param$refBuildHOMER),
-           mc.cores=param$cores)
-  
-  if(all(localBamFiles != bamFiles))
-    file.remove(c(localBamFiles, paste0(localBamFiles, ".bai")))
-  
-  if(length(firstSamples) >= 2L || length(secondSamples) >= 2L){
-    ## The experiments with replicates
-    outputFile <- basename(output$getColumn("DiffPeak"))
-    cmd <- paste("getDifferentialPeaksReplicates.pl -DESeq2", 
-                 "-genome", param$refBuildHOMER, 
-                 "-all",
-                 ifelse(param$balanced, "-balanced", ""),
-                 "-style", param$style)
-    cmd <- paste(cmd, "-t", paste(firstSamples, collapse=" "),
-                 "-b", paste(secondSamples, collapse=" "),
-                 param$cmdOptions,
-                 "> fullResult.tsv")
-    ezSystem(cmd)
-    
-    homerResult <- ezRead.table("fullResult.tsv", row.names = NULL)
-    homerResult[[1]] <- NULL
-    if(nrow(homerResult) > 0){
-    colnames(homerResult) <- gsub('Tag.*', '[Signal]', colnames(homerResult))
-    colnames(homerResult) <- gsub('bg vs. target ', '', colnames(homerResult))
-    colnames(homerResult) <- gsub('adj. p-value', 'fdr', colnames(homerResult))
-    
-    homerResult <- homerResult[homerResult[['Log2 Fold Change']] >= log2(param$repFoldChange) | homerResult[['Log2 Fold Change']] <= -log2(param$repFoldChange), ]
-    homerResult <- homerResult[homerResult[['fdr']] <= param$repFDR, ]
-    if(nrow(homerResult) > 0){
-      resultFile <- paste0(param$sampleGroup, '_over_', param$refGroup,'_', sub('txt$', 'xlsx', outputFile))
-      writexl::write_xlsx(homerResult, resultFile)
-      ezWrite.table(homerResult, outputFile, row.names = FALSE)
-    
-      peakBedFile <- 'HomerPeaks.bed'
-      bed <- data.frame(chr = homerResult$Chr, start = homerResult$Start, end = homerResult$End, name = homerResult[['Gene Name']], score = homerResult[['Peak Score']], strand = homerResult$Strand)
-      ezWrite.table(bed, peakBedFile, row.names = FALSE, col.names = FALSE)
-    
-      peakSeqFile <- 'HomerPeaks.fa'
-      homerDir <- ezSystem('echo $HOMER', intern = TRUE)
-    
-      refFasta <- file.path(homerDir, 'data/genomes', param$refBuildHOMER, 'genome.fa')
-      cmd <- paste("bedtools", " getfasta -fi", refFasta, "-bed ", peakBedFile, "-name -fo ", peakSeqFile)
-      ezSystem(cmd)
-      }
-    } else {
-      ezWrite.table(homerResult, outputFile, row.names = FALSE)
+        cmd <- paste('samtools view -h', localBamFiles[i], '>', localSamFiles[i])
+        ezSystem(cmd)
     }
-  } else{
-    ## The experiments without replicates;
-    ## focus on tss regions
-    #cmd <- paste("annotatePeaks.pl tss", param$ezRef["refFastaFile"], 
-    #             "-gtf", param$ezRef["refFeatureFile"], "> tss.txt")
-    cmd <- paste("annotatePeaks.pl tss", param$refBuildHOMER,
-                 "> tss.txt")
-    ezSystem(cmd)
-    cmd <- paste("getDifferentialPeaks", "tss.txt",
-                 firstSamples, secondSamples,
-                 ">", basename(output$getColumn("DiffPeak")))
-    ezSystem(cmd)
-    file.remove("tss.txt")
-  }
-  
-  file.remove(localSamFiles)
-  unlink(names(localBamFiles), recursive=TRUE) ## clean the tag directory
-  
+    
+    mcmapply(makeTagDirectory, inBam=localSamFiles, 
+             outputDir=names(localBamFiles),
+             MoreArgs=list(genome=param$refBuildHOMER),
+             mc.cores=param$cores)
+    
+    if(all(localBamFiles != bamFiles))
+        file.remove(c(localBamFiles, paste0(localBamFiles, ".bai")))
+    
+    if(length(firstSamples) >= 2L || length(secondSamples) >= 2L){
+        ## The experiments with replicates
+        outputFile <- basename(output$getColumn("DiffPeak"))
+        cmd <- paste("getDifferentialPeaksReplicates.pl -DESeq2", 
+                     "-genome", param$refBuildHOMER, 
+                     "-all",
+                     ifelse(param$balanced, "-balanced", ""),
+                     "-style", param$style)
+        cmd <- paste(cmd, "-t", paste(firstSamples, collapse=" "),
+                     "-b", paste(secondSamples, collapse=" "),
+                     param$cmdOptions,
+                     "> fullResult.tsv")
+        ezSystem(cmd)
+        
+        homerResult <- ezRead.table("fullResult.tsv", row.names = NULL)
+        homerResult[[1]] <- NULL
+        if(nrow(homerResult) > 0){
+            colnames(homerResult) <- gsub('Tag.*', '[Signal]', colnames(homerResult))
+            colnames(homerResult) <- gsub('bg vs. target ', '', colnames(homerResult))
+            colnames(homerResult) <- gsub('adj. p-value', 'fdr', colnames(homerResult))
+            
+            homerResult <- homerResult[homerResult[['Log2 Fold Change']] >= log2(param$repFoldChange) | homerResult[['Log2 Fold Change']] <= -log2(param$repFoldChange), ]
+            homerResult <- homerResult[homerResult[['fdr']] <= param$repFDR, ]
+            if(nrow(homerResult) > 0){
+                resultFile <- paste0(param$sampleGroup, '_over_', param$refGroup,'_', sub('txt$', 'xlsx', outputFile))
+                writexl::write_xlsx(homerResult, resultFile)
+                ezWrite.table(homerResult, outputFile, row.names = FALSE)
+                
+                peakBedFile <- 'HomerPeaks.bed'
+                bed <- data.frame(chr = homerResult$Chr, start = homerResult$Start, end = homerResult$End, name = homerResult[['Gene Name']], score = homerResult[['Peak Score']], strand = homerResult$Strand)
+                ezWrite.table(bed, peakBedFile, row.names = FALSE, col.names = FALSE)
+                
+                peakSeqFile <- 'HomerPeaks.fa'
+                homerDir <- ezSystem('echo $HOMER', intern = TRUE)
+                
+                refFasta <- file.path(homerDir, 'data/genomes', param$refBuildHOMER, 'genome.fa')
+                cmd <- paste("bedtools", " getfasta -fi", refFasta, "-bed ", peakBedFile, "-name -fo ", peakSeqFile)
+                ezSystem(cmd)
+            }
+        } else {
+            ezWrite.table(homerResult, outputFile, row.names = FALSE)
+        }
+    } else{
+        ## The experiments without replicates;
+        ## focus on tss regions
+        #cmd <- paste("annotatePeaks.pl tss", param$ezRef["refFastaFile"], 
+        #             "-gtf", param$ezRef["refFeatureFile"], "> tss.txt")
+        cmd <- paste("annotatePeaks.pl tss", param$refBuildHOMER,
+                     "> tss.txt")
+        ezSystem(cmd)
+        cmd <- paste("getDifferentialPeaks", "tss.txt",
+                     firstSamples, secondSamples,
+                     ">", basename(output$getColumn("DiffPeak")))
+        ezSystem(cmd)
+        file.remove("tss.txt")
+    }
+    
+    file.remove(localSamFiles)
+    unlink(names(localBamFiles), recursive=TRUE) ## clean the tag directory
+    
   return("Success")
 }
 
