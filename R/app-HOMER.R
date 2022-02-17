@@ -93,6 +93,7 @@ ezMethodHomerDiffPeaks = function(input=NA, output=NA, param=NA,
                 
                 peakBedFile <- 'HomerPeaks.bed'
                 bed <- data.frame(chr = homerResult$Chr, start = homerResult$Start, end = homerResult$End, name = homerResult[['Gene Name']], score = homerResult[['Peak Score']], strand = homerResult$Strand)
+                bed <- bed[bed$start > 0,]
                 ezWrite.table(bed, peakBedFile, row.names = FALSE, col.names = FALSE)
                 
                 peakSeqFile <- 'HomerPeaks.fa'
@@ -159,7 +160,7 @@ ezMethodHomerDiffPeaks = function(input=NA, output=NA, param=NA,
         homerResultRev <- ezRead.table('fullResult_reverse.tsv', skip = skip-1)
         homerResultRev <- unique(homerResultRev)
         homerResultRev <- homerResultRev[homerResultRev[['Fold Change vs. Background']] >= param$repFoldChange, ]
-        homerResultRev <- homerResultRev[homerResult[['p-value']] <= param$repFDR, ]
+        homerResultRev <- homerResultRev[homerResultRev[['p-value']] <= param$repFDR, ]
         homerResultRev[['Fold Change vs. Background']] <- 1/homerResultRev[['Fold Change vs. Background']]
         homerResult <- rbind(homerResult, homerResultRev)
         
@@ -178,9 +179,11 @@ ezMethodHomerDiffPeaks = function(input=NA, output=NA, param=NA,
             resultFile <- paste0(comparison, '_diffPeaks.xlsx')
             homerResult <- homerResult[order(homerResult[['p.value']]),]
             writexl::write_xlsx(homerResult, resultFile)
+            ezWrite.table(homerResult, basename(output$getColumn("DiffPeak")), row.names = FALSE)
             
             peakBedFile <- paste0(comparison, '_diffPeaks.bed')
             bed <- data.frame(chr = homerResult$seqnames, start = homerResult$start, end = homerResult$end, name = rownames(homerResult), score = homerResult$score, strand = homerResult$strand)
+            bed <- bed[bed$start > 0,]
             ezWrite.table(bed, peakBedFile, row.names = FALSE, col.names = FALSE)
             
             peakSeqFile <- paste0(comparison, '_diffPeaks.fa')
@@ -190,12 +193,8 @@ ezMethodHomerDiffPeaks = function(input=NA, output=NA, param=NA,
             cmd <- paste('touch', basename(output$getColumn("DiffPeak")))
             ezSystem(cmd)
         }
-        
-        ###Filter and annotate output
-        basename(output$getColumn("DiffPeak"))
         file.remove("tss.txt")
     }
-    
     file.remove(localSamFiles)
     unlink(names(localBamFiles), recursive=TRUE) ## clean the tag directory
     
