@@ -62,11 +62,13 @@ ezMethodVPipe <- function(input=NA, output=NA, param=NA,
     oDir <- "outputDir"
     cDir <- "consensus_majority_dels"
     aDir <- "consensus_ambig_dels"
+    bcfDir <- "consensus_bcf_indels"
     vDir <- "variants_lofreq"
     
     dir.create(oDir)
     dir.create(file.path(oDir, cDir))
     dir.create(file.path(oDir, aDir))
+    dir.create(file.path(oDir, bcfDir))
     dir.create(file.path(oDir, vDir))
     
     for (i in rownames(dataset)){
@@ -96,15 +98,23 @@ ezMethodVPipe <- function(input=NA, output=NA, param=NA,
         cmd <- paste('mv', file.path(samples[j, 'ID'],samples[j,'InternalNumber'], 'references/ref_majority_dels.fasta'), 
                      paste0(file.path(oDir, cDir),'/',samples[j, 'ID'],'_',samples[j,'InternalNumber'],'.fasta'))
         ezSystem(cmd)
+        cmd <- paste('mv', file.path(samples[j, 'ID'],samples[j,'InternalNumber'], 'references/consensus.bcftools.fasta'), 
+                     paste0(file.path(oDir, bcfDir),'/',samples[j, 'ID'],'_',samples[j,'InternalNumber'],'.fasta'))
+        ezSystem(cmd)
         cmd <- paste('mv', file.path(samples[j, 'ID'],samples[j,'InternalNumber'], 'variants/SNVs/snvs.vcf'), 
                      paste0(file.path(oDir, vDir),'/',samples[j, 'ID'],'_',samples[j,'InternalNumber'],'.vcf'))
         ezSystem(cmd)
     }
     setwd(file.path(oDir, cDir))
-    
     consensusFile <- paste0(orderId, '.consensus.fasta')
     system(paste0('cat *.fasta >', '../', consensusFile))
     setwd('..')
+    
+    #setwd(file.path(bcfDir))
+    #consensusFileBcf <- paste0(orderId, '.consensus.bcf.InDels.fasta')
+    #system(paste0('cat *.fasta >', '../', consensusFileBcf))
+    #setwd('..')
+    
     createPangolinScript(consensusFile)
     system('bash runPangolin.sh')
     file.remove('runPangolin.sh')
