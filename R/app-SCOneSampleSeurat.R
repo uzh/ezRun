@@ -140,7 +140,7 @@ ezMethodSCOneSampleSeurat <- function(input = NA, output = NA, param = NA,
   # cell types annotation is only supported for Human and Mouse at the moment
   species <- getSpecies(param$refBuild)
   if (species == "Human" | species == "Mouse") {
-    cells.AUC <- cellsLabelsWithAUC(scData, species, param$tissue)
+    cells.AUC <- cellsLabelsWithAUC(GetAssayData(scData, "counts"), species, param$tissue)
     singler.results <- cellsLabelsWithSingleR(GetAssayData(scData, "counts"), Idents(scData), species)
   }
  
