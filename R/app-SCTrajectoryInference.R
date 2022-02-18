@@ -51,25 +51,37 @@ ezMethodSCTrajectoryInference <- function(input=NA, output=NA, param=NA,
   on.exit(setwd(cwd), add=TRUE)
   
   library(HDF5Array)
-  sceURLs <- input$getColumn("Static Report")
-  filePath <- file.path("/srv/gstore/projects", sub("https://fgcz-(gstore|sushi).uzh.ch/projects", "",dirname(sceURLs)), "sce_h5")
-  filePath_course <- file.path(paste0("/srv/GT/analysis/course_sushi/public/projects/", dirname(sceURLs)), "/sce_h5")
+  library(Seurat)
+  objectURLs <- input$getColumn("Static Report")
+  filePath <- file.path("/srv/gstore/projects", sub("https://fgcz-(gstore|sushi).uzh.ch/projects", "",dirname(objectURLs)), "sce_h5")
+  filePath_course <- file.path(paste0("/srv/GT/analysis/course_sushi/public/projects/", dirname(objectURLs)), "/sce_h5")
   
   if(file.exists(filePath)) {
-    sce <- loadHDF5SummarizedExperiment(filePath)
+    object <- loadHDF5SummarizedExperiment(filePath)
     #if it is an rds object it has been likely generated from old reports, so we need to update the seurat version before using the clustering functions below.                                             )
   } else if (file.exists(filePath_course)) {
-    sce <- loadHDF5SummarizedExperiment(filePath_course)
+    object <- loadHDF5SummarizedExperiment(filePath_course)
     } else {
-    filePath <- file.path("/srv/gstore/projects", sub("https://fgcz-(gstore|sushi).uzh.ch/projects", "",dirname(sceURLs)), "sce.rds")
-    sce <- readRDS(filePath)
+    filePath <- file.path("/srv/gstore/projects", sub("https://fgcz-(gstore|sushi).uzh.ch/projects", "",dirname(objectURLs)), "scData.rds")
+    scData <- readRDS(filePath)
   }
+  
+  if (is(object, "SingleCellExperiment")) {
+    counts = counts(object)
+    logcounts = logcounts(object)
+    cells_meta = colData(object)
+  } else {
+    counts = GetAssayData(object, "counts")
+    logcounts = GetAssayData(object, "data")
+    cells_meta = object@meta.data
+  }
+  
   
   library(dyno)
   #library(dyncli)
  
   #Prepare the data
-  dyno_dataset <- wrap_expression(expression = t(as.matrix(logcounts(sce))), counts = t(as.matrix(counts(sce))))
+  dyno_dataset <- wrap_expression(expression = t(as.matrix(logcounts)), counts = t(as.matrix(counts)))
   
   #Selecting the best 2 methods predicted by dyno in case no method is specified by the user
   if(param$TI_method=="none") {
@@ -79,8 +91,8 @@ ezMethodSCTrajectoryInference <- function(input=NA, output=NA, param=NA,
     TI_method <- param$TI_method
   }
   #Add priors
-  start_cells <- rownames(colData(sce)[sce$seurat_clusters %in% param$start_id,])
-  end_cells <- rownames(colData(sce)[sce$seurat_clusters %in% param$end_id,])
+  start_cells <- rownames(cells_meta[object$ident %in% param$start_id,])
+  end_cells <- rownames(cells_meta[object$ident %in% param$end_id,])
   dyno_dataset <- dyno_dataset %>% add_prior_information(start_id = start_cells, 
                                                          end_id = end_cells,
                                                          start_n = param$start_n,

@@ -21,15 +21,16 @@ knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE, knitr.tabl
 # library(dyno)
 # library(ezRun, lib.loc = "~/myRpackages")
 # require(tidyverse)
-# model = readRDS("/srv/gstore/projects/p2220/SCTrajectoryInference_55343_2021-03-11--10-58-03/Differentiated_lung_cells_SCTrajectoryInference/model.rds")
-# dyno_dataset = readRDS("/srv/gstore/projects/p2220/SCTrajectoryInference_55343_2021-03-11--10-58-03/Differentiated_lung_cells_SCTrajectoryInference/dyno_dataset.rds")
-# sce = loadHDF5SummarizedExperiment("/srv/gstore/projects/p2220/SCOneSample_50562_2021-03-10--17-22-04/Differentiated_lung_cells_SCReport/sce_h5")
-# 
-# param = list(start_id="0", end_id='none', start_n="1", end_id="1", TI_method='none', diff_Branch='none', diff_Branch_Point='none', root_expression='TP63,ITGA6,KRT5,KRT6A,COL17A1', show_genes='MUC1,SPDEF')
+# setwd("/scratch/SCTrajectoryInference_2022-02-18--10-07-08_Pax7Cre_temp7637/Pax7Cre_SCTrajectoryInference")
+# model = readRDS("model.rds")
+# dyno_dataset = readRDS("dyno_dataset.rds")
+# #Seurat objects only
+# object = readRDS("/srv/gstore/projects/p23755/o26637_SCOneSampleSeurat_2022-02-10--12-42-40/Pax7Cre_SCReport/scData.rds")
+# param = readRDS("/srv/gstore/projects/p23755/o26637_SCOneSampleSeurat_2022-02-10--12-42-40/Pax7Cre_SCReport/param.rds")
 
 library(tidyverse)
 expression = dyno_dataset$expression
-clusters=colData(sce)$seurat_clusters
+clusters=object$ident
 ```
 
 ## Trajectory analysis {.tabset}
@@ -91,7 +92,7 @@ for(i in 1:nrow(model)) {
   current_model = model[i,]$model[[1]]
   plots <- patchwork::wrap_plots(
   plot_dimred(current_model, label_milestones = TRUE) + ggtitle("Cell ordering"),
-  plot_dimred(current_model, grouping = sce$seurat_clusters, color_density = "grouping", label_milestones = TRUE) + ggtitle("Cell grouping"),
+  plot_dimred(current_model, grouping = clusters, color_density = "grouping", label_milestones = TRUE) + ggtitle("Cell grouping"),
   plot_dimred(current_model, "pseudotime", pseudotime = calculate_pseudotime(current_model), label_milestones = TRUE) + ggtitle("Pseudotime")
 )
   print(plots)
