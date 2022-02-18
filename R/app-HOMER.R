@@ -28,6 +28,9 @@ EzAppHomerDiffPeaks <-
 ezMethodHomerDiffPeaks = function(input=NA, output=NA, param=NA, 
                                   htmlFile="00index.html"){
     require(parallel)
+    require(rtracklayer)
+    require(ChIPpeakAnno)
+    
     cwd <- getwd()
     setwdNew(basename(output$getColumn("Report")))
     on.exit(setwd(cwd))
@@ -90,6 +93,7 @@ ezMethodHomerDiffPeaks = function(input=NA, output=NA, param=NA,
                 
                 peakBedFile <- 'HomerPeaks.bed'
                 bed <- data.frame(chr = homerResult$Chr, start = homerResult$Start, end = homerResult$End, name = homerResult[['Gene Name']], score = homerResult[['Peak Score']], strand = homerResult$Strand)
+                bed <- bed[bed$start > 0,]
                 ezWrite.table(bed, peakBedFile, row.names = FALSE, col.names = FALSE)
                 
                 peakSeqFile <- 'HomerPeaks.fa'
@@ -107,16 +111,90 @@ ezMethodHomerDiffPeaks = function(input=NA, output=NA, param=NA,
         ## focus on tss regions
         #cmd <- paste("annotatePeaks.pl tss", param$ezRef["refFastaFile"], 
         #             "-gtf", param$ezRef["refFeatureFile"], "> tss.txt")
+        
+        if(param$refBuildHOMER == 'hg38'){
+            param$refBuild = 'Homo_sapiens/GENCODE/GRCh38.p13/Annotation/Release_37-2021-05-04'
+        } else if(param$refBuildHomer == 'mm10'){
+            param$refBuild = 'Mus_musculus/GENCODE/GRCm38.p6/Annotation/Release_M23-2019-11-05'
+        }
+        param$ezRef <- NULL
+        param <- ezParam(param)
+        localAnnotation <- ezFeatureAnnotation(param, dataFeatureType="gene")
+        localAnnotation <- unique(localAnnotation[, grep('^gene_id$|^description$|name$|symbol$|^type$',colnames(localAnnotation),ignore.case=TRUE)])
+        
+        gtfFile = param$ezRef["refFeatureFile"]
+        gtf = rtracklayer::import(gtfFile)
+        idx = gtf$type == 'gene'
+        if(!any(idx)){
+            idx = gtf$type =='start_codon'
+        }
+        gtf = gtf[idx]
+        if(grepl('gtf$',gtfFile)){
+            names_gtf = make.unique(gtf$'gene_id')
+        } else {
+            names_gtf = make.unique(gtf$'ID')
+        }
+        names(gtf) = names_gtf
+        
+        
         cmd <- paste("annotatePeaks.pl tss", param$refBuildHOMER,
                      "> tss.txt")
         ezSystem(cmd)
         cmd <- paste("getDifferentialPeaks", "tss.txt",
-                     firstSamples, secondSamples,
-                     ">", basename(output$getColumn("DiffPeak")))
+                     firstSamples, secondSamples, param$cmdOptions, '-F 0', '-P 1', 
+                     "> fullResult.tsv")
         ezSystem(cmd)
+        
+        cmd <- paste("getDifferentialPeaks", "tss.txt",
+                     secondSamples, firstSamples, param$cmdOptions, '-F 0', '-P 1', 
+                     "> fullResult_reverse.tsv")
+        ezSystem(cmd)
+        
+        skip = grep("^#PeakID", readLines('fullResult.tsv', n=200))
+        homerResult <- ezRead.table('fullResult.tsv', skip = skip-1)
+        homerResult <- unique(homerResult)
+        
+        homerResult <- homerResult[homerResult[['Fold Change vs. Background']] >= param$repFoldChange, ]
+        homerResult <- homerResult[homerResult[['p-value']] <= param$repFDR, ]
+        
+        homerResultRev <- ezRead.table('fullResult_reverse.tsv', skip = skip-1)
+        homerResultRev <- unique(homerResultRev)
+        homerResultRev <- homerResultRev[homerResultRev[['Fold Change vs. Background']] >= param$repFoldChange, ]
+        homerResultRev <- homerResultRev[homerResultRev[['p-value']] <= param$repFDR, ]
+        homerResultRev[['Fold Change vs. Background']] <- 1/homerResultRev[['Fold Change vs. Background']]
+        homerResult <- rbind(homerResult, homerResultRev)
+        
+        if(nrow(homerResult) > 1){
+            peaksRD = makeGRangesFromDataFrame(homerResult, keep.extra.columns = TRUE)
+            names(peaksRD) = mcols(peaksRD)$name
+            annotatedPeaks <- annotatePeakInBatch(peaksRD,
+                                                  AnnotationData = gtf,
+                                                  output='nearestStart',
+                                                  multiple=FALSE,
+                                                  FeatureLocForDistance='TSS')
+            annotatedPeaks = as.data.frame(annotatedPeaks)
+            homerResult = merge(annotatedPeaks, localAnnotation, by.x='feature',
+                                by.y='gene_id', all.x = T)
+            comparison <- paste0(param$sampleGroup, '_over_', param$refGroup)
+            resultFile <- paste0(comparison, '_diffPeaks.xlsx')
+            homerResult <- homerResult[order(homerResult[['p.value']]),]
+            writexl::write_xlsx(homerResult, resultFile)
+            ezWrite.table(homerResult, basename(output$getColumn("DiffPeak")), row.names = FALSE)
+            
+            peakBedFile <- paste0(comparison, '_diffPeaks.bed')
+            bed <- data.frame(chr = homerResult$seqnames, start = homerResult$start, end = homerResult$end, name = rownames(homerResult), score = homerResult$score, strand = homerResult$strand)
+            bed <- bed[bed$start > 0,]
+            ezWrite.table(bed, peakBedFile, row.names = FALSE, col.names = FALSE)
+            
+            peakSeqFile <- paste0(comparison, '_diffPeaks.fa')
+            cmd <- paste("bedtools", " getfasta -fi", param$ezRef['refFastaFile'], "-bed ", peakBedFile, "-name -fo ", peakSeqFile)
+            ezSystem(cmd)
+            } else {
+            cmd <- paste('touch', basename(output$getColumn("DiffPeak")))
+            ezSystem(cmd)
+        }
         file.remove("tss.txt")
     }
-    
     file.remove(localSamFiles)
     unlink(names(localBamFiles), recursive=TRUE) ## clean the tag directory
     
