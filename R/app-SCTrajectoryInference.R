@@ -53,7 +53,7 @@ ezMethodSCTrajectoryInference <- function(input=NA, output=NA, param=NA,
   library(HDF5Array)
   sceURLs <- input$getColumn("Static Report")
   filePath <- file.path("/srv/gstore/projects", sub("https://fgcz-(gstore|sushi).uzh.ch/projects", "",dirname(sceURLs)), "sce_h5")
-  filePath_course <- file.path(paste0("/srv/GT/analysis/course_sushi/public/projects/", input$getColumn("Report"), "/sce_h5"))
+  filePath_course <- file.path(paste0("/srv/GT/analysis/course_sushi/public/projects/", dirname(sceURLs)), "/sce_h5")
   
   if(file.exists(filePath)) {
     sce <- loadHDF5SummarizedExperiment(filePath)
