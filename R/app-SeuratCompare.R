@@ -61,7 +61,7 @@ ezMethodSeuratCompare = function(input=NA, output=NA, param=NA, htmlFile="00inde
      #conserved cluster markers
      consMarkers <- conservedMarkers(scData)
      #differentially expressed genes between clusters and conditions (in case of several conditions)
-     diffGenes <- diffExpressedGenes(scData)
+     diffGenes <- diffExpressedGenes(scData, param)
   }
   dataFiles = saveExternalFiles(list(differential_genes=diffGenes, conserved_markers=consMarkers))
   saveRDS(input, "input.rds")
