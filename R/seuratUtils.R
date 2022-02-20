@@ -299,7 +299,7 @@ conservedMarkers <- function(scData, grouping.var="Condition") {
   return(markers)
 }
 
-diffExpressedGenes <- function(scData) {
+diffExpressedGenes <- function(scData, param) {
   seurat_clusters <- Idents(scData)
   scData@meta.data$cluster.condition <- paste0(seurat_clusters, "_", scData@meta.data$Condition)
   Idents(scData) <- "cluster.condition"

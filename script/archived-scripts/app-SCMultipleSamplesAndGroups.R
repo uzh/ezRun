@@ -118,7 +118,7 @@ ezMethodSCMultipleSamplesAndGroups = function(input=NA, output=NA, param=NA, htm
   consMarkers <- conservedMarkers(scData)
   
   #differentially expressed genes
-  diffGenes <- diffExpressedGenes(scData)
+  diffGenes <- diffExpressedGenes(scData, param)
   
   #we do cell type identification using AUCell and SingleR
   cells_AUC <- NULL
