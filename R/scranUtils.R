@@ -130,22 +130,31 @@ scranPosMarkers <- function(sce) {
 }
   
   
-scranDiffGenes <- function(sce) {
+scranDiffGenes <- function(sce, param) {
   #Creating pseudo-bulk samples
   summed <- aggregateAcrossCells(sce, id=colData(sce)[,c("ident", "Sample_name")])
   #filter out all sample-label combinations with insufficient cells.
   summed.filt <- summed[,summed$ncells >= 10]
-  # #create the design matrix
-  targets <- colData(sce)[!duplicated(sce$Sample_name),]
-  design <-  model.matrix(~factor(Batch)+factor(Condition), data=targets)
-  rownames(design) <- targets$Sample_name
+  #create the design matrix
+  summed.filt$Batch = factor(summed.filt$Batch)
+  summed.filt$Condition = factor(summed.filt$Condition)
+  summed.filt$Condition = relevel(summed.filt$Condition, ref=param$refGroup)
+  if(param$DE.regress == "Batch") {
+    design <-  model.matrix(~factor(Batch)+factor(Condition), data=colData(summed.filt))
+    formula <- ~factor(Batch)+factor(Condition)
+ } else {
+    design <-  model.matrix(~factor(Condition), data=colData(summed.filt))
+    formula <- ~factor(Condition)
+ }
+  rownames(design) <- summed.filt$Sample_name
   #DE analysis
   de.results <- pseudoBulkDGE(summed.filt, 
                               label=summed.filt$ident,
-                              design=~factor(Batch)+factor(Condition),
+                              design=formula,
                               coef=ncol(design),
                               condition=summed.filt$Condition
   )
+
   is.de <- decideTestsPerLabel(de.results, threshold=0.05)
   summarizeTestsPerLabel(is.de)
   
@@ -156,6 +165,6 @@ scranDiffGenes <- function(sce) {
     diffGenesList[[cluster]] <- diffGenesPerCluster
   }
   diffGenes <- bind_rows(diffGenesList, .id="Cluster")
-  diffGenes[,-which(colnames(diffGenes)=="LR")]
+  #diffGenes[,-which(colnames(diffGenes)=="LR")]
 }
 

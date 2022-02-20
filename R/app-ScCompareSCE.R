@@ -14,12 +14,16 @@ EzAppScCompareSCE <-
                   "Initializes the application using its specific defaults."
                   runMethod <<- ezMethodScCompareSCE
                   name <<- "EzAppScCompareSCE"
+                  appDefaults <<- rbind(
+                    DE.regress=ezFrame(Type="charVector", 
+                                       DefaultValue="Batch", 
+                                       Description="Regress batch if it is a bias"))
                 }
               )
   )
 
 ezMethodScCompareSCE = function(input=NA, output=NA, param=NA, htmlFile="00index.html") {
-  library(Seurat)
+  library(scran)
   library(HDF5Array)
   library(SingleCellExperiment)
 
@@ -30,13 +34,13 @@ ezMethodScCompareSCE = function(input=NA, output=NA, param=NA, htmlFile="00index
   reportCwd <- getwd()
   
   sceURLs <- input$getColumn("Static Report")
-  filePath <- file.path("/srv/gstore/projects", sub("https://fgcz-(gstore|sushi).uzh.ch/projects", "",dirname(scDataURLs)), "sce_h5")
+  filePath <- file.path("/srv/gstore/projects", sub("https://fgcz-(gstore|sushi).uzh.ch/projects", "",dirname(sceURLs)), "sce_h5")
   sce <- loadHDF5SummarizedExperiment(filePath)
   #subset the object to only contain the conditions we are interested in
   sce <- sce[,sce$Condition %in% c(param$sampleGroup, param$refGroup)]
   
   #Diff expression 
- diffGenes <- scranDiffGenes(sce)
+ diffGenes <- scranDiffGenes(sce, param)
 
  dataFiles = saveExternalFiles(list(differential_genes=diffGenes))
  saveRDS(input, "input.rds")
