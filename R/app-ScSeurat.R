@@ -5,14 +5,14 @@
 # The terms are available here: http://www.gnu.org/licenses/gpl.html
 # www.fgcz.ch
 
-EzAppSCOneSampleSeurat <-
-  setRefClass("EzAppSCOneSampleSeurat",
+EzAppScSeurat <-
+  setRefClass("EzAppScSeurat",
     contains = "EzApp",
     methods = list(
       initialize = function() {
         "Initializes the application using its specific defaults."
-        runMethod <<- ezMethodSCOneSampleSeurat
-        name <<- "EzAppSCOneSampleSeurat"
+        runMethod <<- ezMethodScSeurat
+        name <<- "EzAppScSeurat"
         appDefaults <<- rbind(
           npcs = ezFrame(
             Type = "numeric",
@@ -88,7 +88,7 @@ EzAppSCOneSampleSeurat <-
     )
   )
 
-ezMethodSCOneSampleSeurat <- function(input = NA, output = NA, param = NA,
+ezMethodScSeurat <- function(input = NA, output = NA, param = NA,
                                 htmlFile = "00index.html") {
   library(scanalysis)
   library(HDF5Array)
@@ -177,7 +177,7 @@ ezMethodSCOneSampleSeurat <- function(input = NA, output = NA, param = NA,
   sce <- scData_diet %>% seurat_to_sce(default_assay = "SCT")
   saveHDF5SummarizedExperiment(sce, dir = "sce_h5")
   
-  makeRmdReport(dataFiles = dataFiles, clusterInfoFile=clusterInfoFile, rmdFile = "SCOneSampleSeurat.Rmd", reportTitle = param$name)
+  makeRmdReport(dataFiles = dataFiles, clusterInfoFile=clusterInfoFile, rmdFile = "ScSeurat.Rmd", reportTitle = param$name)
   #remove no longer used objects
   rm(scData, scData.unfiltered)
   gc()
