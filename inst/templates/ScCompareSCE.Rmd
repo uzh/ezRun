@@ -87,12 +87,10 @@ plotHeatmap(sce, features=unique(top5$gene_name), center=TRUE, zlim=c(-2, 2),
 ```
 
 
-```{r diffGenes violin plots, eval=!is.null(diffGenes), results='asis'}
+```{r diffGenes violin plots, eval=!is.null(diffGenes), results='asis', fig.width=10, fig.height=8}
 for (gene in top5$gene_name) {
-  cat(gene)
-  cat("\n")
-  plotExpression(sce, top5$gene_name, x="ident", colour_by="Condition", ncol=3, other_fields="ident") + facet_wrap(~ident)
-  cat("\n")
+  p = plotExpression(sce, gene, x="Condition", colour_by="Condition", other_fields="ident") + facet_wrap(~ident) + ggtitle(gene)
+  print(p)
 }
 ```
 
