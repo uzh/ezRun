@@ -5,15 +5,15 @@
 # The terms are available here: http://www.gnu.org/licenses/gpl.html
 # www.fgcz.ch
 
-EzAppSCMultipleSamplesSCE <-
-  setRefClass("EzAppSCMultipleSamplesSCE",
+EzAppScSCECombine <-
+  setRefClass("EzAppScSCECombine",
               contains = "EzApp",
               methods = list(
                 initialize = function()
                 {
                   "Initializes the application using its specific defaults."
-                  runMethod <<- ezMethodSCMultipleSamplesSCE
-                  name <<- "EzAppSCMultipleSamplesSCE"
+                  runMethod <<- ezMethodScSCECombine
+                  name <<- "EzAppScSCECombine"
                   appDefaults <<- rbind(batchCorrection=ezFrame(Type="logical", 
                                                                 DefaultValue="TRUE",
                                                                 Description="Perform batch correction."),
@@ -26,7 +26,7 @@ EzAppSCMultipleSamplesSCE <-
               )
   )
 
-ezMethodSCMultipleSamplesSCE = function(input=NA, output=NA, param=NA, htmlFile="00index.html") {
+ezMethodScSCECombine = function(input=NA, output=NA, param=NA, htmlFile="00index.html") {
   library(HDF5Array)
   library(scran)
   library(bluster)
@@ -110,7 +110,7 @@ ezMethodSCMultipleSamplesSCE = function(input=NA, output=NA, param=NA, htmlFile=
    dataFiles <- saveExternalFiles(list(pos_markers = posMarkers, gene_means = as_tibble(as.data.frame(geneMeans), rownames = "gene_name")))
    saveHDF5SummarizedExperiment(sce, dir="sce_h5")
   
-   makeRmdReport(dataFiles = dataFiles, rmdFile = "SCMultipleSamplesSCE.Rmd", reportTitle = param$name)
+   makeRmdReport(dataFiles = dataFiles, rmdFile = "ScSCECombine.Rmd", reportTitle = param$name)
   
     #remove no longer used objects
    rm(sce, sceList)

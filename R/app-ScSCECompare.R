@@ -5,15 +5,15 @@
 # The terms are available here: http://www.gnu.org/licenses/gpl.html
 # www.fgcz.ch
 
-EzAppScCompareSCE <-
-  setRefClass("EzAppScCompareSCE",
+EzAppScSCECompare <-
+  setRefClass("EzAppScSCECompare",
               contains = "EzApp",
               methods = list(
                 initialize = function()
                 {
                   "Initializes the application using its specific defaults."
-                  runMethod <<- ezMethodScCompareSCE
-                  name <<- "EzAppScCompareSCE"
+                  runMethod <<- ezMethodScSCECompare
+                  name <<- "EzAppScSCECompare"
                   appDefaults <<- rbind(
                     DE.regress=ezFrame(Type="charVector", 
                                        DefaultValue="Batch", 
@@ -22,7 +22,7 @@ EzAppScCompareSCE <-
               )
   )
 
-ezMethodScCompareSCE = function(input=NA, output=NA, param=NA, htmlFile="00index.html") {
+ezMethodScSCECompare = function(input=NA, output=NA, param=NA, htmlFile="00index.html") {
   library(scran)
   library(HDF5Array)
   library(SingleCellExperiment)
@@ -46,7 +46,7 @@ ezMethodScCompareSCE = function(input=NA, output=NA, param=NA, htmlFile="00index
  saveRDS(input, "input.rds")
  saveRDS(param, "param.rds")
   
-  makeRmdReport(dataFiles=dataFiles, rmdFile = "ScCompareSCE.Rmd", reportTitle = param$name) 
+  makeRmdReport(dataFiles=dataFiles, rmdFile = "ScSCECompare.Rmd", reportTitle = param$name) 
   return("Success")
   
 }

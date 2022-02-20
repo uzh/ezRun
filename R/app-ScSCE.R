@@ -5,14 +5,14 @@
 # The terms are available here: http://www.gnu.org/licenses/gpl.html
 # www.fgcz.ch
 
-EzAppSCOneSampleSCE <-
-  setRefClass("EzAppSCOneSampleSCE",
+EzAppScSCE <-
+  setRefClass("EzAppScSCE",
     contains = "EzApp",
     methods = list(
       initialize = function() {
         "Initializes the application using its specific defaults."
-        runMethod <<- ezMethodSCOneSampleSCE
-        name <<- "EzAppSCOneSampleSCE"
+        runMethod <<- ezMethodScSCE
+        name <<- "EzAppScSCE"
         appDefaults <<- rbind(
           vars.regress = ezFrame(
             Type = "character",
@@ -69,7 +69,7 @@ EzAppSCOneSampleSCE <-
     )
   )
 
-ezMethodSCOneSampleSCE <- function(input = NA, output = NA, param = NA,
+ezMethodScSCE <- function(input = NA, output = NA, param = NA,
                                 htmlFile = "00index.html") {
   library(HDF5Array)
   library(SingleR)
@@ -155,7 +155,7 @@ ezMethodSCOneSampleSCE <- function(input = NA, output = NA, param = NA,
   saveHDF5SummarizedExperiment(sce, dir = "sce_h5")
   saveHDF5SummarizedExperiment(sce.unfiltered, dir = "sce.unfiltered_h5")
   
-  makeRmdReport(dataFiles = dataFiles, clusterInfoFile=clusterInfoFile, rmdFile = "SCOneSampleSCE.Rmd", reportTitle = param$name)
+  makeRmdReport(dataFiles = dataFiles, clusterInfoFile=clusterInfoFile, rmdFile = "ScSCE.Rmd", reportTitle = param$name)
   #remove no longer used objects
   rm(sce, sce.unfiltered)
   gc()

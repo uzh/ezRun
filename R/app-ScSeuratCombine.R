@@ -5,15 +5,15 @@
 # The terms are available here: http://www.gnu.org/licenses/gpl.html
 # www.fgcz.ch
 
-EzAppSCMultipleSamplesSeurat <-
-  setRefClass("EzAppSCMultipleSamplesSeurat",
+EzAppScSeuratCombine <-
+  setRefClass("EzAppScSeuratCombine",
               contains = "EzApp",
               methods = list(
                 initialize = function()
                 {
                   "Initializes the application using its specific defaults."
-                  runMethod <<- ezMethodSCMultipleSamplesSeurat
-                  name <<- "EzAppSCMultipleSamplesSeurat"
+                  runMethod <<- ezMethodScSeuratCombine
+                  name <<- "EzAppScSeuratCombine"
                   appDefaults <<- rbind(npcs=ezFrame(Type="numeric", 
                                                     DefaultValue=30, 
                                                     Description="The maximal dimensions to use for reduction"),
@@ -43,7 +43,7 @@ EzAppSCMultipleSamplesSeurat <-
               )
   )
 
-ezMethodSCMultipleSamplesSeurat = function(input=NA, output=NA, param=NA, htmlFile="00index.html") {
+ezMethodScSeuratCombine = function(input=NA, output=NA, param=NA, htmlFile="00index.html") {
   library(Seurat)
   library(rlist)
   library(HDF5Array)
@@ -126,7 +126,7 @@ ezMethodSCMultipleSamplesSeurat = function(input=NA, output=NA, param=NA, htmlFi
   # Save some results in external files
   dataFiles <- saveExternalFiles(list(pos_markers = posMarkers, gene_means = as_tibble(as.data.frame(geneMeans), rownames = "gene_name")))
   
-  makeRmdReport(dataFiles=dataFiles, rmdFile = "SCMultipleSamplesSeurat.Rmd", reportTitle = param$name) 
+  makeRmdReport(dataFiles=dataFiles, rmdFile = "ScSeuratCombine.Rmd", reportTitle = param$name) 
   return("Success")
   
 }
