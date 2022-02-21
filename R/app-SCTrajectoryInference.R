@@ -15,7 +15,7 @@ EzAppSCTrajectoryInference <-
                   runMethod <<- ezMethodSCTrajectoryInference
                   name <<- "EzAppSCTrajectoryInference"
                   appDefaults <<- rbind(start_id=ezFrame(Type="charVector", 
-                                                         DefaultValue="0", 
+                                                         DefaultValue="", 
                                                          Description="Start cluster(s)"),
                                         end_id=ezFrame(Type="character", 
                                                          DefaultValue='', 
@@ -91,7 +91,9 @@ ezMethodSCTrajectoryInference <- function(input=NA, output=NA, param=NA,
     TI_method <- param$TI_method
   }
   #Add priors
-  start_cells <- rownames(cells_meta[object$ident %in% param$start_id,])
+  if (param$start_id == "")  
+    start_id <- levels(object$ident)[1]
+  start_cells <- rownames(cells_meta[object$ident %in% start_id,])
   end_cells <- rownames(cells_meta[object$ident %in% param$end_id,])
   dyno_dataset <- dyno_dataset %>% add_prior_information(start_id = start_cells, 
                                                          end_id = end_cells,
