@@ -71,6 +71,8 @@ ezMethodScSCECombine = function(input=NA, output=NA, param=NA, htmlFile="00index
   # Clustering 
   sce_noCorrected <- scranClustering(sce, param)
   sce_noCorrected <- runUMAP(sce_noCorrected, dimred = "PCA", name="UMAP")
+  reducedDim(sce_noCorrected, "UMAP_NOCORRECTED") = reducedDim(sce_noCorrected, "UMAP") 
+  sce_noCorrected$ident_noCorrected <- sce_noCorrected$ident
   # If batch correction is needed, perform integration with Harmony using the PCA embeddings
   if(param$batchCorrection) {
     harmony_PCA <- HarmonyMatrix(data_mat  = reducedDim(sce, "PCA"), meta_data = colData(sce), vars_use  = "Batch", do_pca = FALSE)
