@@ -91,9 +91,9 @@ ezMethodSCTrajectoryInference <- function(input=NA, output=NA, param=NA,
     TI_method <- param$TI_method
   }
   #Add priors
-  if(identical(param$start_id, character(0))) 
-    start_id <- levels(object$ident)[1]
-  start_cells <- rownames(cells_meta[object$ident %in% start_id,])
+  if(param$start_id == "none") 
+    param$start_id <- levels(object$ident)[1]
+  start_cells <- rownames(cells_meta[object$ident %in% param$start_id,])
   end_cells <- rownames(cells_meta[object$ident %in% param$end_id,])
   dyno_dataset <- dyno_dataset %>% add_prior_information(start_id = start_cells, 
                                                          end_id = end_cells,
