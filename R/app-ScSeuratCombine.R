@@ -50,6 +50,7 @@ ezMethodScSeuratCombine = function(input=NA, output=NA, param=NA, htmlFile="00in
   library(scanalysis)
   library(SummarizedExperiment)
   library(SingleCellExperiment)
+  library(AUCell)
   
 
   if(input$getLength() > param$maxSamplesSupported){
@@ -105,7 +106,7 @@ ezMethodScSeuratCombine = function(input=NA, output=NA, param=NA, htmlFile="00in
   #cell types annotation is only supported for Human and Mouse at the moment
   species <- getSpecies(param$refBuild)
   if(species == "Human" | species == "Mouse") {
-    cells.AUC = cellsLabelsWithAUC(scData, species, param$tissue)
+    cells.AUC = cellsLabelsWithAUC(GetAssayData(scData, "counts"), species, param$tissue)
     singler.results <- cellsLabelsWithSingleR(GetAssayData(scData, "counts"), Idents(scData), species)
   }
   
