@@ -224,7 +224,7 @@ if(nrow(branch_point_feature_importance) > 0) {
 
 ### Parameters
 ```{r report parameters, echo=FALSE}
-param[c("start_id", "end_id", "start_n","end_n", "TI_method", "diff_Branch", "diff_Branch_Point")]
+param[c("start_id", "end_id", "start_n","end_n", "TI_method", "root_expression", "show_genes", "diff_Branch", "diff_Branch_Point")]
 ```
 
 
