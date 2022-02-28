@@ -178,7 +178,7 @@ runGatkPipeline = function(caseName, param=NA, datasetCaseList=NULL){
         }
         ezSystem(paste(cmd,'2>>',myLog))
         ezSystem(paste("mv", tmpGvcf, gvcfFile))
-        ezSystem(paste('mv', paste0(tmpGvcf, ".idx"), paste0(gvcfFile, ".idx")))
+        ezSystem(paste("gatk", "IndexFeatureFile -I", gvcfFile))
     }
     
     ezSystem(paste("bgzip", gvcfFile))
