@@ -96,7 +96,7 @@ runGatkPipeline = function(caseName, param=NA, datasetCaseList=NULL){
             ezSystem(paste(cmd,'2>>',myLog))
             ezSystem(paste('mv', tmpGvcf, gvcfFile))
             ezSystem(paste('mv', paste0(tmpGvcf, ".idx"), paste0(gvcfFile, ".idx")))
-            ezSystem(paste0('rm -f ', caseName, "*.tranches ", caseName, "*recal*", ))
+            ezSystem(paste0('rm -f ', caseName, "*.tranches ", caseName, "*recal*"))
         }
         
         #2.Run VariantRecalibration for InDels:
@@ -126,7 +126,7 @@ runGatkPipeline = function(caseName, param=NA, datasetCaseList=NULL){
             ezSystem(paste(cmd,'2>>',myLog))
             ezSystem(paste('mv', tmpGvcf, gvcfFile))
             ezSystem(paste('mv', paste0(tmpGvcf, ".idx"), paste0(gvcfFile, ".idx")))
-            ezSystem(paste0('rm -f ', caseName, "*.tranches ", caseName, "*recal*", ))
+            ezSystem(paste0('rm -f ', caseName, "*.tranches ", caseName, "*recal*"))
         }
         #Add ExAc-Annotation:
         # runExAC = FALSE
