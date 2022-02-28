@@ -80,7 +80,7 @@ runGatkPipeline = function(caseName, param=NA, datasetCaseList=NULL){
                         "--output", paste0(caseName,'_raw.SNPs.recal'),
                         "--tranches-file", paste0(caseName,'_raw.SNPs.tranches'),
                         "--rscript-file", paste0(caseName,'_recal.SNPs.plots.R'),
-                        "--max-attempts 3",
+                        "--max-attempts 3 --max-gaussians 4",
                         targetOption)
             ezSystem(paste(cmd,'2>>',myLog))
             
