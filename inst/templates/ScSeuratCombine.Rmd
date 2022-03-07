@@ -121,24 +121,32 @@ cat("The UMAPs below place similar cells together in low-dimensional space after
 
 ```{r UMAP per Batch after correction}
 DimPlot(scData, reduction="umap", group.by="Batch")
-cellIdents_perBatch = data.frame(scData@meta.data[,c("seurat_clusters", "Batch")])
+#cellIdents_perBatch = data.frame(scData@meta.data[,c("seurat_clusters", "Batch")])
+cellIdents_perBatch = data.frame(scData@meta.data[,c("ident", "Batch")])
+
 barplot = ggplot(data=cellIdents_perBatch, aes(x=cellIdents_perBatch[,1], fill=Batch)) + geom_bar(stat="Count")
 barplot + labs(x="Cluster", y = "Number of cells", fill = "Batch")
-cells_prop = cellsProportion(scData, groupVar1 = "seurat_clusters", groupVar2="Batch")
+#cells_prop = cellsProportion(scData, groupVar1 = "seurat_clusters", groupVar2="Batch")
+cells_prop = cellsProportion(scData, groupVar1 = "ident", groupVar2="Batch")
+
 kable(cells_prop,row.names=FALSE, format="html",caption="Cell proportions") %>% kable_styling(bootstrap_options = "striped", full_width = F, position = "float_right")
 ```
 
 ```{r UMAP per Condition after correction, eval=length(unique(scData$Batch)) != length(unique(scData$Condition))}
 DimPlot(scData, dimred="UMAP", colour_by="Condition")
-cellIdents_perCondition = data.frame(scData@meta.data[,c("seurat_clusters", "Condition")])
+#cellIdents_perCondition = data.frame(scData@meta.data[,c("seurat_clusters", "Condition")])
+cellIdents_perCondition = data.frame(scData@meta.data[,c("ident", "Condition")])
 barplot = ggplot(data=cellIdents_perCondition, aes(x=cellIdents_perCondition[,1], fill=Condition)) + geom_bar(stat="Count")
 barplot + labs(x="Cluster", y = "Number of cells", fill = "Condition")
-cells_prop = cellsProportion(scData, groupVar1 = "seurat_clusters", groupVar2="Condition")
+#cells_prop = cellsProportion(scData, groupVar1 = "seurat_clusters", groupVar2="Condition")
+cells_prop = cellsProportion(scData, groupVar1 = "ident", groupVar2="Condition")
+
 kable(cells_prop,row.names=FALSE, format="html",caption="Cell proportions") %>% kable_styling(bootstrap_options = "striped", full_width = F, position = "float_right")
 ```
 
 ```{r UMAP per Cluster after correction}
-DimPlot(scData, reduction="umap", group.by="seurat_clusters", label = TRUE)
+#DimPlot(scData, reduction="umap", group.by="seurat_clusters", label = TRUE)
+DimPlot(scData, reduction="umap", group.by="ident", label = TRUE)
 ```
 
 ### Cluster assessment
