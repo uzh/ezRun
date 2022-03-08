@@ -19,20 +19,41 @@ Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
 
 ## VcfStats_Result {.tabset}
 
-### Hello, ezRun World!!
-
-```{r test, echo=FALSE}
-print("Hello, ezRun World!!")
-```
-
 ### Number of SNPs
-brabra
 
-```{r plotly test, fig.width=8, fig.height=5, echo=FALSE, message=FALSE, warning=FALSE}
-data <- read.table(snp_result, sep="\t", skip=2)
+```{r SNP counts, fig.width=8, fig.height=5, echo=FALSE, message=FALSE, warning=FALSE}
+data <- read.table(snp_counts, sep="\t", skip=2)
 names(data) <- c("Counts", "Sample")
 samples <- gsub("samples/", "", data$Sample)
 plot_ly(data, x = samples, y = data$Counts)
+```
+
+### Private/Shared SNPs
+
+```{r Private SNPs, fig.width=8, fig.height=5, echo=FALSE, message=FALSE, warning=FALSE}
+data <- read.table(private_snp_counts, sep="\t", skip=1)
+names(data) <- c("Private_SNPs", "Sample")
+fig <- plot_ly(data, x = ~Sample, y = ~Private_SNPs, type = 'bar', name = 'Private SNPs')
+fig <- fig %>% layout(title = 'Private SNPs', yaxis = list(title = 'Count'), xaxis=list(title=''))
+fig
+```
+
+```{r Shared SNPs, fig.width=8, fig.height=5, echo=FALSE, message=FALSE, warning=FALSE}
+data <- read.table(shared_snp_counts, sep="\t", skip=1)
+names(data) <- c("Shared_SNPs", "Count")
+fig <- plot_ly(data, x = ~Shared_SNPs, y = ~Count, type = 'bar', name = 'Shared SNPs')
+fig <- fig %>% layout(title = 'Shared SNPs', yaxis = list(title = 'Count'), xaxis=list(title='Number of shared SNPs'))
+fig
+```
+
+### Transisions/Transversions
+
+```{r tstv, fig.width=8, fig.height=5, echo=FALSE, message=FALSE, warning=FALSE}
+data <- read.table(tstv, sep="\t", skip=1)
+names(data) <- c("Transisions", "Transversions", "tstv", "Sample")
+fig <- plot_ly(data, x = ~Sample, y = ~tstv, type = 'bar', name = 'Transisions/Transversions')
+fig <- fig %>% layout(yaxis = list(title = 'ts/tv'), xaxis=list(title=''))
+fig
 ```
 
 ### Input Dataset
