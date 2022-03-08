@@ -86,10 +86,22 @@ The following plots color the cells according to
 - Pseudotime. The distance to a particular root milestone.
 <br/><br/>
 
-```{r dim red plots, results='asis', fig.align='center', fig.height=12, fig.width=16}
+```{r dim red plots, results='asis', fig.align='center', fig.height=14, fig.width=16}
 for(i in 1:nrow(model)) {
+  cat("\n")
   cat(paste0("#### ", model[i,]$method_name))
+  cat("\n")
+  cat("\n Dimension reduction method: MDS \n")
   current_model = model[i,]$model[[1]]
+  plots <- patchwork::wrap_plots(
+  plot_dimred(current_model, label_milestones = TRUE) + ggtitle("Cell ordering"),
+  plot_dimred(current_model, grouping = clusters, color_density = "grouping", label_milestones = TRUE) + ggtitle("Cell grouping"),
+  plot_dimred(current_model, "pseudotime", pseudotime = calculate_pseudotime(current_model), label_milestones = TRUE) + ggtitle("Pseudotime")
+)
+  print(plots)
+  cat("\n")
+  cat("Dimension reduction method: UMAP \n")
+  current_model <- current_model  %>% add_dimred(dyndimred::dimred_umap, expression_source = expression)
   plots <- patchwork::wrap_plots(
   plot_dimred(current_model, label_milestones = TRUE) + ggtitle("Cell ordering"),
   plot_dimred(current_model, grouping = clusters, color_density = "grouping", label_milestones = TRUE) + ggtitle("Cell grouping"),
@@ -102,16 +114,30 @@ for(i in 1:nrow(model)) {
 
 
 
-```{r, eval=param$show_genes != 'none', results='asis', fig.width=4, fig.height=4}
+```{r, eval=param$show_genes != 'none', results='asis', fig.width=8, fig.height=8}
 genes = strsplit(param$show_genes, ",")[[1]]
 genes = genes[genes %in% colnames(expression)]
 cat("### Expression of selected genes")
 cat("\n")
-for(i in 1:nrow(model)) {
+for(i in 1:nrow(model)){
   cat("\n")
   cat(paste0("#### ", model[i,]$method_name))
   cat("\n")
+  cat("\n Dimension reduction method: MDS \n")
   current_model = model[i,]$model[[1]]
+  tryCatch({
+ for(gene in genes) {
+    plot = plot_dimred(current_model, expression_source = expression, feature_oi = gene, label_milestones = FALSE) +
+       theme(legend.position = "none") +
+       ggtitle(gene)
+    print(plot)
+  }
+  cat("\n")}, 
+  error=function(e){
+     message("The genes were not found in the expression matrix.")})
+  cat("\n Dimension reduction method: UMAP \n")
+  current_model <- current_model  %>% add_dimred(dyndimred::dimred_umap, expression_source = expression)
+  
   tryCatch({
  for(gene in genes) {
     plot = plot_dimred(current_model, expression_source = expression, feature_oi = gene, label_milestones = FALSE) +
