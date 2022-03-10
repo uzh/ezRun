@@ -14,13 +14,9 @@ EzAppSeuratCompare <-
                   "Initializes the application using its specific defaults."
                   runMethod <<- ezMethodSeuratCompare
                   name <<- "EzAppSeuratCompare"
-                  appDefaults <<- rbind(
-  DE.method=ezFrame(Type="charVector", 
-                                                          DefaultValue="wilcox", 
+                  appDefaults <<- rbind(DE.method=ezFrame(Type="charVector", DefaultValue="wilcox", 
                                                           Description="Method to be used when calculating gene cluster markers and differentially expressed genes between conditions. Use LR to take into account the Batch and/or CellCycle"),
-                                        DE.regress=ezFrame(Type="charVector", 
-                                                           DefaultValue="Batch", 
-                                                           Description="Variables to regress out if the test LR is chosen"))
+                                        DE.regress=ezFrame(Type="charVector", DefaultValue="Batch", Description="Variables to regress out if the test LR is chosen"))
                 }
               )
   )
@@ -38,7 +34,13 @@ ezMethodSeuratCompare = function(input=NA, output=NA, param=NA, htmlFile="00inde
   
   scDataURLs <- input$getColumn("Static Report")
   filePath <- file.path("/srv/gstore/projects", sub("https://fgcz-(gstore|sushi).uzh.ch/projects", "",dirname(scDataURLs)), "scData.rds")
+  filePath_course <- file.path("/srv/GT/analysis/course_sushi/public/projects", dirname(scDataURLs), "scData.rds")
+  
+  if(!file.exists(filePath)) 
+      filePath <- filePath_course
+  
   scData <- readRDS(filePath)
+  
   DefaultAssay(scData) = "SCT" 
   #subset the object to only contain the conditions we are interested in
   Idents(scData) <- scData$Condition

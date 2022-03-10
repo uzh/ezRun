@@ -137,9 +137,14 @@ seuratStandardWorkflow <- function(scData, param){
   set.seed(38)
   if (identical(param$pcGenes, character(0))) 
      features <- NULL
-  else 
-    features <- stringr::str_to_title(param$pcGenes)
-  
+  else {
+     species <- getSpecies(param$refBuild)
+     if(species == 'Human'){
+         features <- stringr::str_to_upper(param$pcGenes)
+     } else {
+        features <- stringr::str_to_title(param$pcGenes)
+     }
+  }
   scData <- RunPCA(object=scData, npcs = param$npcs, features=features, verbose=FALSE)
   scData <- RunTSNE(object = scData, reduction = "pca", dims = 1:param$npcs, num_threads=param$cores)
   scData <- RunUMAP(object=scData, reduction = "pca", dims = 1:param$npcs, num_threads=param$cores)
