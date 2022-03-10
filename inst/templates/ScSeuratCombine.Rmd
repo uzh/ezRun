@@ -40,8 +40,16 @@ sce <- loadHDF5SummarizedExperiment("sce_h5")
 param = readRDS("param.rds")
 output = readRDS("output.rds")
 species <- getSpecies(param$refBuild)
-singler.results<- readRDS("singler.results.rds")
-cells.AUC <- readRDS("cells.AUC.rds")
+if (file.exists("singler.results.rds")){
+  singler.results <- readRDS("singler.results.rds")
+} else {
+  singler.results <- NULL
+}
+if (file.exists("cells.AUC.rds")){
+  cells.AUC <- readRDS("cells.AUC.rds")
+} else {
+  cells.AUC <- NULL
+}
 var_height = 1 #This ensures that chunks that use the length of this variable to set the fig size, don't fail.
 pvalue_allMarkers <- 0.05
 ```
