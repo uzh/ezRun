@@ -141,7 +141,7 @@ kable(cells_prop,row.names=FALSE, format="html",caption="Cell proportions") %>% 
 ```
 
 ```{r UMAP per Condition after correction, eval=length(unique(scData$Batch)) != length(unique(scData$Condition))}
-DimPlot(scData, dimred="UMAP", colour_by="Condition")
+DimPlot(scData, reduction="umap", group.by="Condition")
 #cellIdents_perCondition = data.frame(scData@meta.data[,c("seurat_clusters", "Condition")])
 cellIdents_perCondition = data.frame(scData@meta.data[,c("ident", "Condition")])
 barplot = ggplot(data=cellIdents_perCondition, aes(x=cellIdents_perCondition[,1], fill=Condition)) + geom_bar(stat="Count")
