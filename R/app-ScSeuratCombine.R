@@ -109,12 +109,12 @@ ezMethodScSeuratCombine = function(input=NA, output=NA, param=NA, htmlFile="00in
   if(species == "Human" | species == "Mouse") {
     cells.AUC = cellsLabelsWithAUC(GetAssayData(scData, "counts"), species, param$tissue)
     singler.results <- cellsLabelsWithSingleR(GetAssayData(scData, "counts"), Idents(scData), species)
+    saveRDS(cells.AUC, file="cells.AUC.rds")
+    saveRDS(singler.results, file="singler.results.rds")
   }
   
   geneMeans <- geneMeansCluster(scData)
   
-  saveRDS(cells.AUC, file="cells.AUC.rds")
-  saveRDS(singler.results, file="singler.results.rds")
   saveRDS(param, file="param.rds")
   saveRDS(output, file="output.rds")
   saveRDS(scData, file = "scData.rds")
