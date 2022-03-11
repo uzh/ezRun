@@ -89,7 +89,8 @@ scranPreprocessing <- function(sce, param) {
   sce = computeSumFactors(sce, cluster = clusters)
   sce = logNormCounts(sce)
   # Variance modelling
-  dec <- modelGeneVar(sce, design=vars.to.regress)
+  regressionMatrix <- as.matrix(as.numeric(as.factor(vars.to.regress)))
+  dec <- modelGeneVar(sce, design=regressionMatrix)
   # Extract variable genes for downtream analysis
   top.hvgs <- getTopHVGs(dec, n=2000)
   # PCA. The minimum number of PCAs selected will be 30 and the maximum 50
