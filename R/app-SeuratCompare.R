@@ -61,6 +61,7 @@ ezMethodSeuratCompare = function(input=NA, output=NA, param=NA, htmlFile="00inde
   if (!all(scData$seurat_clusters %in% small_clusters)) {
      scData <- subset(scData, idents = small_clusters, invert = TRUE)
      #conserved cluster markers
+     scData <- PrepSCTFindMarkers(scData)
      consMarkers <- conservedMarkers(scData)
      #differentially expressed genes between clusters and conditions (in case of several conditions)
      diffGenes <- diffExpressedGenes(scData, param)
@@ -68,14 +69,8 @@ ezMethodSeuratCompare = function(input=NA, output=NA, param=NA, htmlFile="00inde
   dataFiles = saveExternalFiles(list(differential_genes=diffGenes, conserved_markers=consMarkers))
   saveRDS(input, "input.rds")
   saveRDS(param, "param.rds")
+  saveRDS(scData, file = "scData.rds")
   
   makeRmdReport(dataFiles=dataFiles, rmdFile = "SeuratCompare.Rmd", reportTitle = param$name) 
   return("Success")
-  
 }
-
-
-
-
-
-

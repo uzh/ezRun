@@ -66,7 +66,7 @@ ezMethodScSeuratCombine = function(input=NA, output=NA, param=NA, htmlFile="00in
   filePath <- paste0("/srv/gstore/projects/", input$getColumn("SC Seurat"))
   filePath_course <- paste0("/srv/GT/analysis/course_sushi/public/projects/", input$getColumn("SC Seurat"))
   
-  if(!file.exists(filePath)) 
+  if(!file.exists(filePath[1])) 
     filePath <- filePath_course
   
   scDataList <- lapply(filePath, readRDS)

@@ -32,6 +32,9 @@ URLs <- input$getColumn("Static Report")
 
 ```{r}
 filePath <- file.path("/srv/gstore/projects", sub("https://fgcz-(gstore|sushi).uzh.ch/projects", "",dirname(URLs)), "scData.rds")
+if(!exists(filePath)){
+    filePath <- file.path("/srv/GT/analysis/course_sushi/public/projects", dirname(URLs), "scData.rds")
+}
 scData <- readRDS(filePath)
 ```
 

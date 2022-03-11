@@ -43,7 +43,12 @@ ezMethodScSCECombine = function(input=NA, output=NA, param=NA, htmlFile="00index
   
   sceURLs <- input$getColumn("Static Report")
   filePath <- file.path("/srv/gstore/projects", sub("https://fgcz-(gstore|sushi).uzh.ch/projects", "",dirname(sceURLs)), "sce_h5")
-  if(file.exists(filePath)) {
+  filePath_course <- file.path("/srv/GT/analysis/course_sushi/public/projects", dirname(sceURLs), "sce_h5")
+  
+  if(!file.exists(filePath[1])) 
+      filePath <- filePath_course
+  
+  if(file.exists(filePath[1])) {
     sceList <- lapply(filePath,loadHDF5SummarizedExperiment)
     names(sceList) <- names(sceURLs)
   }
