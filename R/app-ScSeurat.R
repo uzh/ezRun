@@ -112,7 +112,7 @@ ezMethodScSeurat <- function(input = NA, output = NA, param = NA,
 
   # Doublets prediction and removal
   library(scDblFinder)
-  doubletsInfo <- scDblFinder(GetAssayData(scData, slot="counts"), returnType = "table")
+  doubletsInfo <- scDblFinder(GetAssayData(scData, slot="counts"), returnType = "table", clusters=TRUE)
   doublets <- rownames(doubletsInfo)[doubletsInfo$type == "real" & doubletsInfo$class == "doublet"]
   scData <- subset(scData, cells = doublets, invert=TRUE)
 

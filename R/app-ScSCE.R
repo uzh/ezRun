@@ -91,7 +91,7 @@ ezMethodScSCE <- function(input = NA, output = NA, param = NA,
 
   # Doublets prediction and removal
   library(scDblFinder)
-  doubletsInfo <- scDblFinder(counts(sce), returnType = "table")
+  doubletsInfo <- scDblFinder(counts(sce), returnType = "table", clusters=TRUE)
   doublets <- rownames(doubletsInfo)[doubletsInfo$type == "real" & doubletsInfo$class == "doublet"]
   sce <- sce[,setdiff(colnames(sce),doublets)]
 

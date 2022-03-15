@@ -127,7 +127,7 @@ ezMethodSCFeatBarcoding <- function(input=NA, output=NA, param=NA,
   sce.singlets = scData.singlet %>% seurat_to_sce(default_assay = "SCT") #SCT as default assay for visualization
   # Doublets prediction (no removal)
   library(scDblFinder)
-  sce.singlets <- scDblFinder(sce.singlets)
+  sce.singlets <- scDblFinder(sce.singlets, clusters=TRUE)
   metadata(sce.singlets)$PCA_stdev <- Reductions(scData.singlet, "pca")@stdev   
   metadata(sce.singlets)$cells_AUC <- cells_AUC
   metadata(sce.singlets)$singler.results <- singler.results
