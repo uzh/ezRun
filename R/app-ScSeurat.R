@@ -99,20 +99,23 @@ ezMethodScSeurat <- function(input = NA, output = NA, param = NA,
   library(SingleCellExperiment)
   library(tidyverse)
   library(scanalysis)
-  require(scDblFinder)
-  
+  library(scDblFinder)
+  library(BiocParallel)
+    
+  BPPARAM <- MulticoreParam(workers = param$cores)
+  register(BPPARAM)
+    
   cwd <- getwd()
   setwdNew(basename(output$getColumn("SC Cluster Report")))
   on.exit(setwd(cwd), add = TRUE)
-
+  
   scData <- load10xSC_seurat(input, param)
 
   pvalue_allMarkers <- 0.05
   pvalue_all2allMarkers <- 0.01
 
   # Doublets prediction and removal
-  library(scDblFinder)
-  doubletsInfo <- scDblFinder(GetAssayData(scData, slot="counts"), returnType = "table", clusters=TRUE)
+  doubletsInfo <- scDblFinder(GetAssayData(scData, slot="counts"), returnType = "table", clusters=TRUE, BPPARAM = BPPARAM)
   doublets <- rownames(doubletsInfo)[doubletsInfo$type == "real" & doubletsInfo$class == "doublet"]
   scData <- subset(scData, cells = doublets, invert=TRUE)
 
@@ -123,7 +126,7 @@ ezMethodScSeurat <- function(input = NA, output = NA, param = NA,
   rm(scData_list)
 
   # calculate cellcycle for the filtered sce object
-  scData <- addCellCycleToSeurat(scData, param$refBuild)
+  scData <- addCellCycleToSeurat(scData, param$refBuild, BPPARAM)
 
   if (param$filterByExpression != "") {
     expression <- param$filterByExpression

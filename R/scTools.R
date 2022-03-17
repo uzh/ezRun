@@ -6,10 +6,10 @@
 # www.fgcz.ch
 
 
-addCellCycleToSCE <- function(sce, refBuild){
+addCellCycleToSCE <- function(sce, refBuild, BPPARAM){
   counts <- counts(sce)
   rownames(counts) <- rowData(sce)$ID
-  cellPhase <- getCellCycle(counts, refBuild)
+  cellPhase <- getCellCycle(counts, refBuild, BPPARAM)
   if (!is.null(cellPhase)){
     colData(sce)$CellCycle <- cellPhase$Phase
     colData(sce)$CellCycleG1 <- cellPhase$G1
@@ -19,10 +19,10 @@ addCellCycleToSCE <- function(sce, refBuild){
   return(sce)
 }
 
-addCellCycleToSeurat <- function(scData, refBuild){
+addCellCycleToSeurat <- function(scData, refBuild, BPPARAM){
   counts <- GetAssayData(scData, slot="counts", assay = "RNA")
   rownames(counts) <- scData[["RNA"]][["ensemblID"]]$ensemblID
-  cellPhase <- getCellCycle(counts, refBuild)
+  cellPhase <- getCellCycle(counts, refBuild, BPPARAM)
   if (!is.null(cellPhase)){
     cellcycleInfo = data.frame(CellCycle = cellPhase$Phase, CellCycleG1 = cellPhase$G1, CellCycleS = cellPhase$S, CellCycleG2M = cellPhase$G2M, row.names = colnames(scData))
     scData <- AddMetaData(scData, metadata = cellcycleInfo)
@@ -31,7 +31,7 @@ addCellCycleToSeurat <- function(scData, refBuild){
 }
 
 
-getCellCycle <- function(counts, refBuild){
+getCellCycle <- function(counts, refBuild, BPPARAM){
   require(scran)
 
   species <- sub("\\/.*", "", refBuild)
@@ -44,7 +44,7 @@ getCellCycle <- function(counts, refBuild){
     return(NULL)
   } else {
     trainData <- readRDS(trainDataFile)
-    cellCycleData <- cyclone(counts, trainData)
+    cellCycleData <- cyclone(counts, trainData, BPPARAM = BPPARAM)
     cellPhase <- tibble(Name = colnames(counts),
                         Phase = cellCycleData$phases)
     cellPhase <- bind_cols(cellPhase, cellCycleData$scores)

@@ -79,7 +79,11 @@ ezMethodScSCE <- function(input = NA, output = NA, param = NA,
   library(SingleCellExperiment)
   library(tidyverse)
   require(scDblFinder)
-  
+  library(BiocParallel)
+    
+  BPPARAM <- MulticoreParam(workers = param$cores)
+  register(BPPARAM)
+    
   cwd <- getwd()
   setwdNew(basename(output$getColumn("SC Cluster Report")))
   on.exit(setwd(cwd), add = TRUE)
@@ -90,8 +94,7 @@ ezMethodScSCE <- function(input = NA, output = NA, param = NA,
   pvalue_all2allMarkers <- 0.01
 
   # Doublets prediction and removal
-  library(scDblFinder)
-  doubletsInfo <- scDblFinder(counts(sce), returnType = "table", clusters=TRUE)
+  doubletsInfo <- scDblFinder(counts(sce), returnType = "table", clusters=TRUE, BPPARAM = BPPARAM)
   doublets <- rownames(doubletsInfo)[doubletsInfo$type == "real" & doubletsInfo$class == "doublet"]
   sce <- sce[,setdiff(colnames(sce),doublets)]
 
@@ -102,7 +105,7 @@ ezMethodScSCE <- function(input = NA, output = NA, param = NA,
   rm(sce_list)
 
   # calculate cellcycle for the filtered sce object
-  sce <- addCellCycleToSCE(sce, param$refBuild)
+  sce <- addCellCycleToSCE(sce, param$refBuild, BPPARAM)
   
   #Pre-processing and clustering
   sce <- scranPreprocessing(sce, param)

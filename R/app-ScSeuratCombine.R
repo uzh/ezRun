@@ -63,8 +63,8 @@ ezMethodScSeuratCombine = function(input=NA, output=NA, param=NA, htmlFile="00in
   reportCwd <- getwd()
   
   #the individual sce objects can be in hdf5 format (for new reports) or in rds format (for old reports)
-  filePath <- paste0("/srv/gstore/projects/", input$getColumn("SC Seurat"))
-  filePath_course <- paste0("/srv/GT/analysis/course_sushi/public/projects/", input$getColumn("SC Seurat"))
+  filePath <- paste0("/srv/gstore/projects/", input$getColumn("SC Cluster Report"), 'scData.rds')
+  filePath_course <- paste0("/srv/GT/analysis/course_sushi/public/projects/", input$getColumn("SC Cluster Report"), 'scData.rds')
   
   if(!file.exists(filePath[1])) 
     filePath <- filePath_course
