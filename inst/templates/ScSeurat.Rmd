@@ -124,6 +124,17 @@ cat("genes removed:", nrow(scData.unfiltered)-nrow(scData))
 cat("genes kept:", nrow(scData))
 ```
 
+#### Diagnostic plots after filtering
+
+```{r QC plots after filtering, fig.height=4, fig.width=16}
+VlnPlot(scData, features=c("nCount_RNA", "nFeature_RNA", "percent_mito", "percent_ribo"), group.by="Batch", ncol = 4)
+```
+
+```{r QC plot mito after filtering, fig.align='center'}
+FeatureScatter(scData, feature1="nCount_RNA", feature2="percent_mito", group.by="discard")
+```
+
+
 ### Dimensionality reduction
 
 Dimensionality reduction aims to reduce the number of separate dimensions in the data. This is possible because different genes are correlated if they are affected by the same biological process. Thus, we do not need to store separate information for individual genes, but can instead compress multiple features into a single dimension. This reduces computational work in downstream analyses, as calculations only need to be performed for a few dimensions rather than thousands of genes; reduces noise by averaging across multiple genes to obtain a more precise representation of the patterns in the data, and enables effective plotting of the data.
@@ -354,7 +365,7 @@ We can also use sets of marker genes that are highly expressed in each cell. Thi
 We use the AUCell package (Aibar et al. (2017) SCENIC: single-cell regulatory network inference and clustering. Nature Methods. doi: 10.1038/nmeth.4463) to identify marker sets that are highly expressed in each cell. AUCell uses the “Area Under the Curve” (AUC) to calculate whether a critical subset of the input gene set is enriched within the expressed genes for each cell. The AUC estimates the proportion of genes in the gene-set that are highly expressed in each cell. Cells expressing many genes from the gene-set will have higher AUC values than cells expressing fewer. Finally, it assigns cell type identity to each cell in the test dataset by taking the marker set with the top AUC as the label for that cell.
 
 ```{r AUC assigments, eval= !is.null(cells.AUC)}
-cells_assignment <- AUCell_exploreThresholds(cells.AUC, plotHist=FALSE, assign=TRUE) 
+cells_assignment <- AUCell_exploreThresholds(cells.AUC, plotHist=FALSE, assign=TRUE, nCores = param$cores) 
 cellsAssigned <- lapply(cells_assignment, function(x) x$assignment)
 assignmentTable <- reshape2::melt(cellsAssigned, value.name="cell")
 colnames(assignmentTable)[2] <- "geneSet"

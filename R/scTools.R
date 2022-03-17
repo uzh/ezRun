@@ -260,12 +260,12 @@ geneMeansCluster <- function(object) {
 return(geneMeans)
 }
 
-cellsLabelsWithAUC <- function(counts, species, tissue, minGsSize = 3) {
+cellsLabelsWithAUC <- function(counts, species, tissue, minGsSize = 3, nCores) {
   if (species == "other")
     return(NULL)
   geneSets <- createGeneSets(species, tissue)
-  cells_rankings <- AUCell_buildRankings(counts, plotStats=FALSE)
-  cells_AUC <- tryCatch({AUCell_calcAUC(geneSets[sapply(geneSets, length) >= minGsSize], cells_rankings, verbose = FALSE)},error = function(e) NULL)
+  cells_rankings <- AUCell_buildRankings(counts, plotStats=FALSE, nCores = nCores)
+  cells_AUC <- tryCatch({AUCell_calcAUC(geneSets[sapply(geneSets, length) >= minGsSize], cells_rankings, verbose = FALSE, nCores = nCores)},error = function(e) NULL)
   return(cells_AUC)
 }
 
