@@ -136,6 +136,7 @@ add_Condition_oldReports <- function(sce) {
 seuratStandardWorkflow <- function(scData, param){
   require(future)
   plan("multicore", workers = param$cores)
+  
   set.seed(38)
   if (identical(param$pcGenes, character(0))) 
      features <- NULL
@@ -149,6 +150,8 @@ seuratStandardWorkflow <- function(scData, param){
   }
   future.seed = TRUE
   options(future.rng.onMisuse="ignore")
+  options(future.globals.maxSize = param$ram*1024^3)
+  
   scData <- RunPCA(object=scData, npcs = param$npcs, features=features, verbose=FALSE)
   scData <- RunTSNE(object = scData, reduction = "pca", dims = 1:param$npcs)
   scData <- RunUMAP(object=scData, reduction = "pca", dims = 1:param$npcs)
