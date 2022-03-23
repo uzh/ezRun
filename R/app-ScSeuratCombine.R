@@ -107,7 +107,7 @@ ezMethodScSeuratCombine = function(input=NA, output=NA, param=NA, htmlFile="00in
   #cell types annotation is only supported for Human and Mouse at the moment
   species <- getSpecies(param$refBuild)
   if(species == "Human" | species == "Mouse") {
-    cells.AUC = cellsLabelsWithAUC(GetAssayData(scData, "counts"), species, param$tissue)
+    cells.AUC = cellsLabelsWithAUC(GetAssayData(scData, "counts"), species, param$tissue, nCores = 1)
     singler.results <- cellsLabelsWithSingleR(GetAssayData(scData, "counts"), Idents(scData), species)
     saveRDS(cells.AUC, file="cells.AUC.rds")
     saveRDS(singler.results, file="singler.results.rds")
