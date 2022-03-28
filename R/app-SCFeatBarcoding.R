@@ -75,7 +75,11 @@ ezMethodSCFeatBarcoding <- function(input=NA, output=NA, param=NA,
   library(tidyverse)
   library(scanalysis)
   require(scDblFinder)
-  
+  library(BiocParallel)
+    
+  BPPARAM <- MulticoreParam(workers = param$cores)
+  register(BPPARAM)
+    
   cwd <- getwd()
   setwdNew(basename(output$getColumn("Report")))
   on.exit(setwd(cwd), add=TRUE)
@@ -102,7 +106,7 @@ ezMethodSCFeatBarcoding <- function(input=NA, output=NA, param=NA,
   scData.singlet <- subset(scData, idents = "Singlet")
   
   # calculate cellcycle for the singlets scData object
-  scData.singlet <- addCellCycleToSeurat(scData.singlet, param$refBuild)
+  scData.singlet <- addCellCycleToSeurat(scData.singlet, param$refBuild, BPPARAM)
   
   #Clustering on protein levels and on RNA levels
   scData.singlet <- seuratClusteringHTO(scData.singlet)
@@ -126,8 +130,7 @@ ezMethodSCFeatBarcoding <- function(input=NA, output=NA, param=NA,
   sce.unfiltered <- scData.unfiltered %>% seurat_to_sce()
   sce.singlets = scData.singlet %>% seurat_to_sce(default_assay = "SCT") #SCT as default assay for visualization
   # Doublets prediction (no removal)
-  library(scDblFinder)
-  sce.singlets <- scDblFinder(sce.singlets, clusters=TRUE)
+  sce.singlets <- scDblFinder(sce.singlets, clusters=TRUE, BPPARAM = BPPARAM)
   metadata(sce.singlets)$PCA_stdev <- Reductions(scData.singlet, "pca")@stdev   
   metadata(sce.singlets)$cells_AUC <- cells_AUC
   metadata(sce.singlets)$singler.results <- singler.results
