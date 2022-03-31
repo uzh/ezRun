@@ -128,7 +128,7 @@ getOrganism <- function(x){
   str_split(x@refBuild, "/")[[1]][1]
 }
 
-buildRefDir <- function(x, genomeFile, genesFile){
+buildRefDir <- function(x, genomeFile, genesFile, keepOriginalIDs = FALSE){
   # x is EzRef object
   require(rtracklayer)
   require(Rsamtools)
@@ -165,9 +165,11 @@ buildRefDir <- function(x, genomeFile, genesFile){
     }
   }
   #### GENCODE.gtf: remove the version number from gene_id, transcript_id but keep additional information if available, e.g. ENST00000429181.6_PAR_Y -> ENST00000429181_PAR_Y
-  gtf$gene_id <- str_replace(gtf$gene_id, "\\.\\d+", "")
-  gtf$transcript_id <- str_replace(gtf$transcript_id, "\\.\\d+", "")
-
+  if(!keepOriginalIDs){
+        gtf$gene_id <- str_replace(gtf$gene_id, "\\.\\d+", "")
+        gtf$transcript_id <- str_replace(gtf$transcript_id, "\\.\\d+", "")
+  }
+  
   if(is.null(gtf$gene_name)){
     message("gene_name is not available in gtf. Assigning gene_id.")
     gtf$gene_name <- gtf$gene_id
