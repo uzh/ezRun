@@ -19,6 +19,7 @@ EzAppHomerDiffPeaks <-
                                         repFDR=ezFrame(Type="numeric", DefaultValue=0.05, Description="Replicate FDR cutoff for peak identification (calculated by DESeq2)"),
                                         balanced=ezFrame(Type="logical", DefaultValue=TRUE, Description="Do not force the use of normalization factors to match total mapped reads.  This can be useful when analyzing differential peaks between similar data (for example H3K27ac) where we expect similar levels in all experiments. Applying this allows the data to essentially be quantile normalized during the differential calculation."),
                                         style=ezFrame(Type="character", DefaultValue="histone", Description="Style of peaks found by findPeaks during features selection (factor, histone, super, groseq, tss, dnase, mC)"),
+                                        peakMode=ezFrame(Type="logical", DefaultValue=TRUE, Description="Call Peaks for differential analysis without replicated. Otherwise check tss regions only."),
                                         cmdOptions=ezFrame(Type="character", DefaultValue="", Description="to define batches in the analysis to perform paired test, e.g. -batch 1 2 1 2")
                   )
                 }
@@ -135,20 +136,45 @@ ezMethodHomerDiffPeaks = function(input=NA, output=NA, param=NA,
             names_gtf = make.unique(gtf$'ID')
         }
         names(gtf) = names_gtf
-        
-        
+        if(param$peakMode){
+            cmd <- paste("findPeaks", firstSamples, "-style", param$style, "-o auto")
+            system(cmd)
+            cmd <- paste("findPeaks", secondSamples, "-style", param$style, "-o auto")
+            system(cmd)
+            cmd <- paste("mergePeaks -d 100", file.path(firstSamples, "peaks.txt"), file.path(secondSamples, "peaks.txt"), "> mergedPeakFile.txt")
+            system(cmd)
+            cmd <- paste("getDifferentialPeaks mergedPeakFile.txt",
+                     firstSamples, secondSamples, param$cmdOptions, '-F 0', '-P 1', 
+                     "> fullResult.tsv")
+            system(cmd)
+            cmd <- paste("annotatePeaks.pl fullResult.tsv", param$refBuildHOMER, "-annStats annoStats.txt", "> annotatedPeaks.txt")
+            system(cmd)
+            peakAnnot <- ezRead.table('annotatedPeaks.txt', row.names = NULL)
+            colnames(peakAnnot)[1] <- '#PeakID'
+            toRemove <- c('Chr', 'Start', 'End', 'Strand', 'Peak Score', 'Focus Ratio/Region Size')
+            toKeep <- colnames(peakAnnot)[!(colnames(peakAnnot) %in% toRemove)]
+            peakAnnot <- peakAnnot[,toKeep]
+            skip <- grep("^#PeakID", readLines('fullResult.tsv', n=200))
+            peakStats <- ezRead.table('fullResult.tsv', row.names = NULL, skip = skip -1)
+            homerResult <- merge(peakAnnot, peakStats, by.x = '#PeakID', by.y = '#PeakID')
+            homerResult <- homerResult[order(homerResult[['p-value']]),]
+            homerResult <- unique(homerResult)
+            homerResult <- homerResult[homerResult[['Fold Change vs. Background']] >= param$repFoldChange, ]
+            homerResult <- homerResult[homerResult[['p-value']] <= param$repFDR, ]
+            file.remove("mergedPeakFile.txt")
+        } else {
         cmd <- paste("annotatePeaks.pl tss", param$refBuildHOMER,
                      "> tss.txt")
-        ezSystem(cmd)
+            ezSystem(cmd)
         cmd <- paste("getDifferentialPeaks", "tss.txt",
                      firstSamples, secondSamples, param$cmdOptions, '-F 0', '-P 1', 
                      "> fullResult.tsv")
-        ezSystem(cmd)
+            ezSystem(cmd)
         
         cmd <- paste("getDifferentialPeaks", "tss.txt",
                      secondSamples, firstSamples, param$cmdOptions, '-F 0', '-P 1', 
                      "> fullResult_reverse.tsv")
-        ezSystem(cmd)
+            ezSystem(cmd)
         
         skip = grep("^#PeakID", readLines('fullResult.tsv', n=200))
         homerResult <- ezRead.table('fullResult.tsv', skip = skip-1)
@@ -163,7 +189,8 @@ ezMethodHomerDiffPeaks = function(input=NA, output=NA, param=NA,
         homerResultRev <- homerResultRev[homerResultRev[['p-value']] <= param$repFDR, ]
         homerResultRev[['Fold Change vs. Background']] <- 1/homerResultRev[['Fold Change vs. Background']]
         homerResult <- rbind(homerResult, homerResultRev)
-        
+        file.remove("tss.txt")
+        }
         if(nrow(homerResult) > 1){
             peaksRD = makeGRangesFromDataFrame(homerResult, keep.extra.columns = TRUE)
             names(peaksRD) = mcols(peaksRD)$name
@@ -193,7 +220,6 @@ ezMethodHomerDiffPeaks = function(input=NA, output=NA, param=NA,
             cmd <- paste('touch', basename(output$getColumn("DiffPeak")))
             ezSystem(cmd)
         }
-        file.remove("tss.txt")
     }
     file.remove(localSamFiles)
     unlink(names(localBamFiles), recursive=TRUE) ## clean the tag directory
