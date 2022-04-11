@@ -175,17 +175,28 @@ twoPatternReadFilter <- function(readFile, leftPattern, rightPattern, maxMismatc
     } else {
       leftEnd <- rep(0, length(reads))
     }
-    vp <- vmatchPattern(rightPattern, reads, max.mismatch = maxMismatch)
-    rightStart <- vapply(startIndex(vp),
-                         .dummyFunction, c('startIndex' = 0))
+    
+    
+    if(rightPattern != ''){
+        vp <- vmatchPattern(rightPattern, reads, max.mismatch = maxMismatch)
+        rightStart <- vapply(startIndex(vp),
+                             .dummyFunction, c('startIndex' = 0))
+    } else {
+        rightStart <- width(reads)
+    }
+    
     toNA <- which(rightStart < leftEnd)
     rightStart[toNA] <- NA
     patternPositions <- cbind(leftEnd = leftEnd,
                               rightStart = rightStart)
     patternInRead <- !apply(is.na(patternPositions), 1, any)
     patternPositions <- as.data.frame(patternPositions[patternInRead, ])
-    reads <- reads[patternInRead]
-    reads <- DNAStringSet(substr(reads, patternPositions$leftEnd+1, patternPositions$rightStart-1))
+    if(rightPattern == '' & leftPattern == ''){
+        reads <- reads
+    } else {
+        reads <- reads[patternInRead]
+        reads <- DNAStringSet(substr(reads, patternPositions$leftEnd+1, patternPositions$rightStart-1))
+    }
     processedReads = processedReads + dataChunks
     allReads <- c(allReads, reads)
     print(paste0(processedReads/10^6, 'M reads processed \n'))
