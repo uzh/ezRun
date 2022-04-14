@@ -5,14 +5,14 @@
 # The terms are available here: http://www.gnu.org/licenses/gpl.html
 # www.fgcz.ch
 
-EzAppScSeuratHR <-
-  setRefClass("EzAppScSeuratHR",
+EzAppScSeurat22 <-
+  setRefClass("EzAppScSeurat22",
               contains = "EzApp",
               methods = list(
                 initialize = function() {
                   "Initializes the application using its specific defaults."
-                  runMethod <<- ezMethodScSeuratHR
-                  name <<- "EzAppScSeuratHR"
+                  runMethod <<- ezMethodScSeurat22
+                  name <<- "EzAppScSeurat22"
                   appDefaults <<- rbind(
                     npcs = ezFrame(
                       Type = "numeric",
@@ -88,7 +88,7 @@ EzAppScSeuratHR <-
               )
   )
 
-ezMethodScSeuratHR <- function(input = NA, output = NA, param = NA,
+ezMethodScSeurat22 <- function(input = NA, output = NA, param = NA,
                                htmlFile = "00index.html") {
   #library(scanalysis)
   library(HDF5Array)
