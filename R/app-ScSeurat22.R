@@ -203,7 +203,7 @@ ezMethodScSeurat22 <- function(input = NA, output = NA, param = NA,
   sce <- scData_diet %>% scanalysis::seurat_to_sce(default_assay = "SCT")
   saveHDF5SummarizedExperiment(sce, dir = "sce_h5")
   
-  makeRmdReport(param=param, scData=scData, allCellsMeta=allCellsMeta, rmdFile = "ScSeurat22.Rmd", reportTitle = param$name)
+  makeRmdReport(param=param, output=output, scData=scData, allCellsMeta=allCellsMeta, rmdFile = "ScSeurat22.Rmd", reportTitle = param$name)
   #remove no longer used objects
   rm(scData)
   gc()
