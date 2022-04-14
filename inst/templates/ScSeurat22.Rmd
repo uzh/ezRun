@@ -208,7 +208,7 @@ VlnPlot(scData, features ="nFeature_RNA") + ggtitle("Number of genes vs ident") 
 FeaturePlot(scData, features="nFeature_RNA", label = TRUE)
 VlnPlot(scData, features ="percent_mito") + ggtitle("Mitochondrial percentage vs ident") + NoLegend()
 FeaturePlot(scData, features="percent_mito", label = TRUE)
-VlnPlot(scData, features ="percent_ribo") + ggtitle("Ribosomal percentage vs ident") + NoLegend()
+VlnPlot(scData, features ="percent_riboprot") + ggtitle("Ribosomal protein percentage vs ident") + NoLegend()
 FeaturePlot(scData, features="percent_mito", label = TRUE)
 if (ezIsSpecified(param$controlSeqs)) {
   genesToPlot <- gsub("_", "-", param$controlSeqs)
