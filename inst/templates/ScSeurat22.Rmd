@@ -8,7 +8,7 @@ output:
      in_header: !expr system.file("templates/fgcz_header.html", package="ezRun", lib.loc=.libPaths())
     css: !expr system.file("templates/fgcz.css", package="ezRun", lib.loc=.libPaths())
 editor_options: 
-  chunk_output_type: console
+  chunk_output_type: inline
 ---
 
 Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
@@ -42,10 +42,6 @@ scData <- readRDS("scData.rds")
 output <- readRDS("output.rds")
 scData$qc.doublet <- scData$doubletClass %in% "doublet"
 allCellsMeta <- readRDS("allCellsMeta.rds")
-allCellsMeta$qc.doublet <- allCellsMeta$doubletClass %in% "doublet"
-## this is an empty hull having only the meta data
-scData.unfiltered <- CreateSeuratObject(ezMatrix(0, rows=1:10, cols=rownames(allCellsMeta)), meta.data = allCellsMeta)
-scData.unfiltered$discard <- !colnames(scData.unfiltered) %in% colnames(scData)
 param = readRDS("param.rds")
 species <- getSpecies(param$refBuild)
 if (file.exists("singler.results.rds")){
@@ -81,19 +77,38 @@ We use several common QC metrics to identify low-quality cells based on their ex
 3. The proportions of mitochondrial and ribosomal genes per cell. High proportions are indicative of poor-quality cells (Islam et al. 2014; Ilicic et al. 2016), presumably because of the loss of cytoplasmic RNA from perforated cells.
 
 <br/>
+```{r}
+xxAll <- SingleCellExperiment(colData = allCellsMeta)
+xxAll$discard <- !xxAll$useCell
+scData.unfiltered <- CreateSeuratObject(ezMatrix(0, rows=1:10, cols=rownames(allCellsMeta)), meta.data = allCellsMeta)
+scData.unfiltered$discard <- !colnames(scData.unfiltered) %in% colnames(scData)
+
+
+```
+
 
 #### Diagnostic plots
 
 A key assumption here is that the QC metrics are independent of the biological state of each cell. Poor values (e.g., low library sizes, high mitochondrial or ribosomal proportions) are presumed to be driven by technical factors rather than biological processes, meaning that the subsequent removal of cells will not misrepresent the biology in downstream analyses. Major violations of this assumption would potentially result in the loss of cell types that have, say, systematically low RNA content or high numbers of mitochondria. We can check for such violations using some diagnostics plots. In the most ideal case, we would see normal distributions that would justify the thresholds used in outlier detection. A large proportion of cells in another mode suggests that the QC metrics might be correlated with some biological state, potentially leading to the loss of distinct cell types during filtering. 
 
-```{r QC plots, fig.height=4, fig.width=16}
-VlnPlot(scData.unfiltered, features=c("nCount_RNA", "nFeature_RNA", "percent_mito", "percent_riboprot"), group.by="Sample", ncol = 4)
+```{r QC plots, fig.height=4}
+### TODO the plotColData would be much more informative!!!
+plotColData(xxAll, x="Sample", y="nCount_RNA", colour_by="discard") + scale_y_log10() + ggtitle("Number of UMIs")
+plotColData(xxAll, x="Sample", y="nFeature_RNA", colour_by="discard") + scale_y_log10() + ggtitle("Detected genes")
+plotColData(xxAll, x="Sample", y="percent_mito", colour_by="discard") + ggtitle("Mito percent")
+plotColData(xxAll, x="Sample", y="percent_riboprot", colour_by="discard") + ggtitle("Riboprot percent")
+plotColData(xxAll, x="Sample", y="doubletScore", colour_by="discard") + ggtitle("Doublet score")
+
+#VlnPlot(scData.unfiltered, features=c("nCount_RNA"), ncol = 4, pt.size=0.5, log = TRUE, fill.by = "useCell") + NoLegend()
+#VlnPlot(scData.unfiltered, features=c("nFeature_RNA", "percent_mito", "percent_riboprot"), ncol = 4, pt.size=0.5) + NoLegend()
 ```
 
 It is also worth to plot the proportion of mitochondrial counts against the library size for each cell. The aim is to confirm that there are no cells with both large total counts and large mitochondrial counts, to ensure that we are not inadvertently removing high-quality cells that happen to be highly metabolically active.
 
 ```{r QC plot mito, fig.align='center'}
-FeatureScatter(scData.unfiltered, feature1="nCount_RNA", feature2="percent_mito", group.by="discard")
+plotColData(xxAll, x="nCount_RNA", y="percent_mito", colour_by="discard")
+
+#FeatureScatter(scData.unfiltered, feature1="nCount_RNA", feature2="percent_mito", group.by="discard", ) + scale_x_log10() + ggtitle("", subtitle = "higlighting discarded droplets")
 ```
 
 <br/>
@@ -106,10 +121,12 @@ When the parameter values of nreads, ngenes and perc_mito are specified, fixed t
 ```{r low quality cells}
 library(UpSetR)
 qcList <- lapply(allCellsMeta[ ,grep("^qc", colnames(allCellsMeta))], function(x){rownames(allCellsMeta)[x]})
-UpSetR::upset(fromList(qcList))
+names(qcList)
+UpSetR::upset(fromList(qcList), nsets = 5)
 
-kable(tibble("QC metric" =c("Library Size", "Expressed genes", "Mitochondrial genes", "Ribosomal protein genes", "Total removed", "Cells remaining"),
-             "Number of cells"= c(sum(allCellsMeta$qc.lib), sum(allCellsMeta$qc.nexprs), sum(allCellsMeta$qc.mito), sum(allCellsMeta$qc.riboprot), sum(!allCellsMeta$useCell), ncol(scData))),
+kable(tibble("QC metric" =c("Library Size", "Expressed genes", "Mitochondrial genes", "Ribosomal protein genes", 
+                            "Doublets", "Total removed", "Cells remaining"),
+             "Number of cells"= c(sum(allCellsMeta$qc.lib), sum(allCellsMeta$qc.nexprs), sum(allCellsMeta$qc.mito), sum(allCellsMeta$qc.riboprot), sum(allCellsMeta$qc.doublet), sum(!allCellsMeta$useCell), ncol(scData))),
       row.names=FALSE,
       caption="Number of cells removed") %>%
   kable_styling(bootstrap_options = "striped", full_width = F,
@@ -129,7 +146,7 @@ cat("genes kept:", nrow(scData))
 #### Diagnostic plots after filtering
 
 ```{r QC plots after filtering, fig.height=4, fig.width=16}
-VlnPlot(scData, features=c("nCount_RNA", "nFeature_RNA", "percent_mito", "percent_ribo"), group.by="Sample", ncol = 4)
+VlnPlot(scData, features=c("nCount_RNA", "nFeature_RNA", "percent_mito", "percent_riboprot"), group.by="Sample", ncol = 4)
 ```
 
 ```{r QC plot mito after filtering, fig.align='center'}
@@ -199,23 +216,28 @@ kable(cells_prop,row.names=FALSE, format="html",caption="Cell proportions") %>% 
 Once we have created the clusters we need to asses if the clustering was driven by technical artifacts or uninteresting biological variability, such as cell cycle, mitochondrial gene expression.
 We can explore whether the cells cluster by the different cell cycle phases. In such a case, we would have clusters where most of the cells would be in one specific phase. This bias could be taken into account when normalizing and transforming the data prior to clustering. We can also look at the total number of reads, genes detected and mitochondrial gene expression. The clusters should be more or less even but if we observe big differences among some of them for these metrics, we will keep an eye on them and see if the cell types we identify later can explain the differences. 
 
+```{r, fig.width=6, fig.height=6, eval=!is.null(scData@meta.data$CellCycle)}
+  DimPlot(scData, label=TRUE, group.by= "CellCycle")
+```
+
 ```{r uninteresting variation, fig.width=6, fig.height=6}
-if (!is.null(scData@meta.data$CellCycle)){
-  DimPlot(scData, label=TRUE, split.by = "CellCycle")
-}
 VlnPlot(scData, features ="nCount_RNA") + ggtitle("Number of UMIs vs ident") + NoLegend()
 FeaturePlot(scData, features="nCount_RNA", label = TRUE)
+
 VlnPlot(scData, features ="nFeature_RNA") + ggtitle("Number of genes vs ident") + NoLegend()
 FeaturePlot(scData, features="nFeature_RNA", label = TRUE)
+
 VlnPlot(scData, features ="percent_mito") + ggtitle("Mitochondrial percentage vs ident") + NoLegend()
 FeaturePlot(scData, features="percent_mito", label = TRUE)
+
 VlnPlot(scData, features ="percent_riboprot") + ggtitle("Ribosomal protein percentage vs ident") + NoLegend()
 FeaturePlot(scData, features="percent_mito", label = TRUE)
-if (ezIsSpecified(param$controlSeqs)) {
+```
+
+```{r, fig.width=6, fig.height=6, eval=ezIsSpecified(param$controlSeqs)}
   genesToPlot <- gsub("_", "-", param$controlSeqs)
   genesToPlot <- intersect(genesToPlot, rownames(scData))
   FeaturePlot(scData, genesToPlot) + NoLegend()
-}
 ```
 
 #### Cluster resolution 
@@ -242,7 +264,7 @@ cat("We found positive markers that defined clusters compared to all other cells
 ```{r pos markers}
 posMarkers$cluster = as.factor(posMarkers$cluster)
 posMarkers$gene = as.factor(posMarkers$gene)
-ezInteractiveTableRmd(posMarkers, digits=4)
+ezInteractiveTableRmd(data.frame(posMarkers), digits=4)
 ```
 
 ### Marker plots
@@ -298,7 +320,7 @@ singler.results.single <- singler.results$singler.results.single
 singler.results.cluster <- singler.results$singler.results.cluster
 singler.single.labels <- singler.results.single$labels
 singler.cluster.labels<- singler.results.cluster$labels[match(Idents(scData), rownames(singler.results.cluster))]
-var_height = length(unique(singler.results.single))*0.7
+var_height = shrinkToRange(length(unique(singler.single.labels))*0.7, c(6, 20))
 ```
 
 ```{r singler ScoreHeatmap,  eval= !is.null(singler.results), fig.height= var_height, fig.width=8, results='asis'}
@@ -360,7 +382,7 @@ colnames(assignmentTable)[2] <- "geneSet"
 tras_cells.AUC <- t(assay(cells.AUC))
 full.labels <- colnames(tras_cells.AUC)[max.col(tras_cells.AUC)]
 tab <- table(full.labels, Idents(scData))
-var_height <- nrow(tab)*0.5
+var_height <- shrinkToRange(nrow(tab)*0.5, c(6,16))
 ```
 
 ```{r assigments, eval= !is.null(cells.AUC), results='asis'}
