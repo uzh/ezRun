@@ -128,8 +128,12 @@ ezMethodScSeurat22 <- function(input = NA, output = NA, param = NA,
   allCellsMeta <- scData@meta.data
   #allCellsMeta$useCell <- scData$doubletClass %in% "singlet" & !scData$qc.lib & !scData$qc.mito & !scData$qc.nexprs & !scData$qc.riboprot
   scData <- subset(scData, cells=rownames(allCellsMeta)[allCellsMeta$useCell]) # %>% head(n=1000))
-  ## TODO remove genes not present?????
   
+  ## remove low expressed genes
+  num.cells <- param$cellsFraction * ncol(scData) # if we expect at least one rare subpopulation of cells, we should decrease the percentage of cells
+  is.expressed <- Matrix::rowSums(GetAssayData(scData, "counts") >= param$nUMIs) >= num.cells
+  scData <- scData[is.expressed,]
+
   scData <- addCellCycleToSeurat(scData, param$refBuild, BPPARAM)
   
   vars.to.regress <- NULL
@@ -203,7 +207,7 @@ ezMethodScSeurat22 <- function(input = NA, output = NA, param = NA,
   sce <- scData_diet %>% scanalysis::seurat_to_sce(default_assay = "SCT")
   saveHDF5SummarizedExperiment(sce, dir = "sce_h5")
   
-  makeRmdReport(param=param, output=output, scData=scData, allCellsMeta=allCellsMeta, rmdFile = "ScSeurat22.Rmd", reportTitle = param$name)
+  makeRmdReport(param=param, output=output, scData=scData, allCellsMeta=allCellsMeta, rmdFile = "ScSeurat22.Rmd", reportTitle = paste0(param$name, ": ",  input$getNames()))
   #remove no longer used objects
   rm(scData)
   gc()
@@ -253,6 +257,7 @@ addCellQcToSeurat <- function(scData, param=NULL, BPPARAM=NULL){
   doubletsInfo <- scDblFinder(GetAssayData(scData, slot="counts")[ , scData$useCell], returnType = "table", clusters=TRUE, BPPARAM = BPPARAM)
   scData$doubletScore <- doubletsInfo[colnames(scData), "score"]
   scData$doubletClass <- doubletsInfo[colnames(scData), "class"]
+  scData$qc.doublet <- scData$doubletClass %in% "doublet"
   scData$useCell <- scData$useCell & scData$doubletClass %in% "singlet"
   return(scData)
 }
