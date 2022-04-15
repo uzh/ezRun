@@ -91,25 +91,30 @@ scData.unfiltered$discard <- !colnames(scData.unfiltered) %in% colnames(scData)
 
 A key assumption here is that the QC metrics are independent of the biological state of each cell. Poor values (e.g., low library sizes, high mitochondrial or ribosomal proportions) are presumed to be driven by technical factors rather than biological processes, meaning that the subsequent removal of cells will not misrepresent the biology in downstream analyses. Major violations of this assumption would potentially result in the loss of cell types that have, say, systematically low RNA content or high numbers of mitochondria. We can check for such violations using some diagnostics plots. In the most ideal case, we would see normal distributions that would justify the thresholds used in outlier detection. A large proportion of cells in another mode suggests that the QC metrics might be correlated with some biological state, potentially leading to the loss of distinct cell types during filtering. 
 
-```{r QC plots, fig.height=4}
+```{r QC plots1, fig.height=4}
 ### TODO the plotColData would be much more informative!!!
 plotColData(xxAll, x="Sample", y="nCount_RNA", colour_by="discard") + scale_y_log10() + ggtitle("Number of UMIs")
-plotColData(xxAll, x="Sample", y="nFeature_RNA", colour_by="discard") + scale_y_log10() + ggtitle("Detected genes")
+
+```
+
+```{r QC plots2, fig.height=4}
+
+plotColData(xxAll, x="Sample", y="nFeature_RNA", colour_by="discard") + ggtitle("Detected genes")
+plotColData(xxAll, x="nCount_RNA", y="nFeature_RNA", colour_by="discard")+ scale_x_log10() + scale_y_log10()
+
 plotColData(xxAll, x="Sample", y="percent_mito", colour_by="discard") + ggtitle("Mito percent")
+plotColData(xxAll, x="nCount_RNA", y="percent_mito", colour_by="discard")+ scale_x_log10()
+
 plotColData(xxAll, x="Sample", y="percent_riboprot", colour_by="discard") + ggtitle("Riboprot percent")
+plotColData(xxAll, x="nCount_RNA", y="percent_riboprot", colour_by="discard")+ scale_x_log10()
+
 plotColData(xxAll, x="Sample", y="doubletScore", colour_by="discard") + ggtitle("Doublet score")
+plotColData(xxAll, x="nCount_RNA", y="doubletScore", colour_by="discard") + scale_x_log10()
 
 #VlnPlot(scData.unfiltered, features=c("nCount_RNA"), ncol = 4, pt.size=0.5, log = TRUE, fill.by = "useCell") + NoLegend()
 #VlnPlot(scData.unfiltered, features=c("nFeature_RNA", "percent_mito", "percent_riboprot"), ncol = 4, pt.size=0.5) + NoLegend()
 ```
 
-It is also worth to plot the proportion of mitochondrial counts against the library size for each cell. The aim is to confirm that there are no cells with both large total counts and large mitochondrial counts, to ensure that we are not inadvertently removing high-quality cells that happen to be highly metabolically active.
-
-```{r QC plot mito, fig.align='center'}
-plotColData(xxAll, x="nCount_RNA", y="percent_mito", colour_by="discard")
-
-#FeatureScatter(scData.unfiltered, feature1="nCount_RNA", feature2="percent_mito", group.by="discard", ) + scale_x_log10() + ggtitle("", subtitle = "higlighting discarded droplets")
-```
 
 <br/>
 
