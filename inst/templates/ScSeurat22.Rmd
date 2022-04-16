@@ -222,7 +222,8 @@ Once we have created the clusters we need to asses if the clustering was driven 
 We can explore whether the cells cluster by the different cell cycle phases. In such a case, we would have clusters where most of the cells would be in one specific phase. This bias could be taken into account when normalizing and transforming the data prior to clustering. We can also look at the total number of reads, genes detected and mitochondrial gene expression. The clusters should be more or less even but if we observe big differences among some of them for these metrics, we will keep an eye on them and see if the cell types we identify later can explain the differences. 
 
 ```{r, fig.width=6, fig.height=6, eval=!is.null(scData@meta.data$CellCycle)}
-  DimPlot(scData, label=TRUE, group.by= "CellCycle")
+DimPlot(scData, label=TRUE, group.by= "CellCycle")
+DimPlot(scData, reduction="umap", label = TRUE)
 ```
 
 ```{r uninteresting variation, fig.width=6, fig.height=6}
@@ -236,18 +237,18 @@ VlnPlot(scData, features ="percent_mito") + ggtitle("Mitochondrial percentage vs
 FeaturePlot(scData, features="percent_mito", label = TRUE)
 
 VlnPlot(scData, features ="percent_riboprot") + ggtitle("Ribosomal protein percentage vs ident") + NoLegend()
-FeaturePlot(scData, features="percent_mito", label = TRUE)
+FeaturePlot(scData, features="percent_riboprot", label = TRUE)
 
-if (!is.null(scData@meta.data$DecontX_contFrac)){
-  VlnPlot(scData, features ="DecontX_contFrac") + ggtitle("DecontX ambient fraction vs ident") + NoLegend()
-  FeaturePlot(scData, features="DecontX_contFrac", label = TRUE)
-}
+```
 
-if (!is.null(scData@meta.data$SoupX_contFrac)){
-  VlnPlot(scData, features ="SoupX_contFrac") + ggtitle("SoupX ambient fraction vs ident") + NoLegend()
-  FeaturePlot(scData, features="SoupX_contFrac", label = TRUE)
-}
+```{r, fig.width=6, fig.height=6, eval=!is.null(scData@meta.data$DecontX_contFrac))}
+VlnPlot(scData, features ="DecontX_contFrac") + ggtitle("DecontX ambient fraction vs ident") + NoLegend()
+FeaturePlot(scData, features="DecontX_contFrac", label = TRUE)
+```
 
+```{r, fig.width=6, fig.height=6, eval=!is.null(scData@meta.data$SoupX_contFrac))}
+VlnPlot(scData, features ="SoupX_contFrac") + ggtitle("SoupX ambient fraction vs ident") + NoLegend()
+FeaturePlot(scData, features="SoupX_contFrac", label = TRUE)
 
 ```
 
