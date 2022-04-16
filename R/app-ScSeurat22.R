@@ -169,6 +169,7 @@ ezMethodScSeurat22 <- function(input = NA, output = NA, param = NA,
   markers <- markers[order(markers$diff_pct, decreasing = TRUE),] ## why would we round here?? %>% mutate_if(is.numeric, round, digits=3)
   writexl::write_xlsx(markers, path="posMarkers.xlsx")
   
+  scData <- addAmbientEstimateToSeurat(scData, rawDir=sub("filtered", "raw", input$getFullPaths("CountMatrix")))
   
   # cell types annotation is only supported for Human and Mouse at the moment
   species <- getSpecies(param$refBuild)
