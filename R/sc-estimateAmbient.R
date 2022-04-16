@@ -14,7 +14,6 @@ library(parallel)
 library(doParallel)
 library(Seurat)
 library(scDblFinder)
-library(ezRun)
 library(SingleR)
 
 library(BiocParallel)
@@ -326,8 +325,14 @@ computeDecontaminated <- function(method, sampleName, sce, rawFeatureDir=NULL, t
                           decontXcounts(sce)
                         },
                         "SoupX"={
-                          tod <- checkAndCleanAntibody(Seurat::Read10X(rawFeatureDir))
-                          sc <- SoupChannel(tod, counts(sce))
+                          tod <- checkAndCleanAntibody(Seurat::Read10X(rawFeatureDir, gene.column = 1))
+                          featInfo <- ezRead.table(paste0(rawFeatureDir, "/features.tsv.gz"), header = FALSE, row.names = NULL)#, col_names = FALSE)
+                          colnames(featInfo) <- c("ensemblID", "name", "type")
+                          featInfo <- featInfo[match(rownames(tod), featInfo$ensemblID), ]
+                          rownames(tod) <- gsub("_", "-", uniquifyFeatureNames(ID=featInfo$ensemblID, names=featInfo$name))
+                          commGenes <- intersect(rownames(tod), rownames(counts(sce)))
+                          
+                          sc <- SoupChannel(tod[commGenes, ], counts(sce)[commGenes, ])
                           sc <- setClusters(sc, sce$clusters)
                           sc <- autoEstContTfidfMin(sc, tfidfMin=1)
                           out <- adjustCounts(sc)
@@ -436,7 +441,21 @@ getMetrics <- function(index, dbscan.eps=1, dbscan.MinPts=5, threads=1){
 }
 
 
-addAmbientEstimateToSeurat <- function(scData, rawDir=NULL){
+addAmbientEstimateToSeurat <- function(scData, rawDir=NULL, threads=1){
+  library(celda)
+  library(SoupX)
   
+  sce <- SingleCellExperiment(assays=list(counts=GetAssayData(scData, slot="counts", assay="RNA")), colData = scData@meta.data)
+  sce$clusters <- sce$ident
+  for (method in c("SoupX", "DecontX")){
+    ctsClean <- computeDecontaminated(method=method, 
+                                      sampleName=NULL, 
+                                      sce, 
+                                      rawFeatureDir=rawDir,
+                                      threads=threads)
+    contaminationFraction <- (colSums2(counts(sce)) - colSums2(ctsClean)) / colSums2(counts(sce))
+    scData <- AddMetaData(scData, metadata = contaminationFraction, col.name = paste0(method, "_contFrac"))
+  }
+  return(scData)
 }
 

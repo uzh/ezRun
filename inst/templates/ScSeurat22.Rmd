@@ -237,6 +237,18 @@ FeaturePlot(scData, features="percent_mito", label = TRUE)
 
 VlnPlot(scData, features ="percent_riboprot") + ggtitle("Ribosomal protein percentage vs ident") + NoLegend()
 FeaturePlot(scData, features="percent_mito", label = TRUE)
+
+if (!is.null(scData@meta.data$DecontX_contFrac)){
+  VlnPlot(scData, features ="DecontX_contFrac") + ggtitle("DecontX ambient fraction vs ident") + NoLegend()
+  FeaturePlot(scData, features="DecontX_contFrac", label = TRUE)
+}
+
+if (!is.null(scData@meta.data$SoupX_contFrac)){
+  VlnPlot(scData, features ="SoupX_contFrac") + ggtitle("SoupX ambient fraction vs ident") + NoLegend()
+  FeaturePlot(scData, features="SoupX_contFrac", label = TRUE)
+}
+
+
 ```
 
 ```{r, fig.width=6, fig.height=6, eval=ezIsSpecified(param$controlSeqs)}
