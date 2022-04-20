@@ -5,7 +5,7 @@ Basic paradigms:
 
 * follow the tidyverse-style: https://style.tidyverse.org/
 * use the RStudio Addin to style code: https://github.com/r-lib/styler
-* only use ascii characters in all files; neve use Umlaut and other characters
+* only use ascii characters in all files; never use Umlaut and other characters
 * in any file: All names and comments must be based on English
 
 
