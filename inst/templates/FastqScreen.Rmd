@@ -104,8 +104,21 @@ if(length(refseqSamples) > 1){
   refseqSamples <- names(refseqResult)
   names(refseqSamples) <- refseqSamples
   speciesPerSample <- sapply(refseqResult, function(listElem) return(rownames(listElem)))
+  if(is.vector(speciesPerSample)){
+      speciesPerSample <- t(data.frame(speciesPerSample))
+  }
   readFractionPerSample_uniq <- sapply(refseqResult, function(listElem) return(listElem$UniqueSpeciesPercent))
+  if(is.vector(readFractionPerSample_uniq)){
+     readFractionPerSample_uniq <- data.frame(t(readFractionPerSample_uniq))
+     rownames(readFractionPerSample_uniq) <- unique(sapply(refseqResult, rownames))
+     colnames(readFractionPerSample_uniq) <- refseqSamples
+  }
   readFractionPerSample_multi <- sapply(refseqResult, function(listElem) return(listElem$MultipleSpeciesPercent))
+  if(is.vector(readFractionPerSample_multi)){
+     readFractionPerSample_multi <- data.frame(t(readFractionPerSample_multi))
+     rownames(readFractionPerSample_multi) <- unique(sapply(refseqResult, rownames))
+     colnames(readFractionPerSample_multi) <- refseqSamples
+  }
   uniqueSpecies <- unique(as.vector(unlist(speciesPerSample)))
   uniqueSpecies <- uniqueSpecies[!is.na(uniqueSpecies)]
   
