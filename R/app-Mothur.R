@@ -24,10 +24,11 @@ ezMethodMothur = function(input=NA, output=NA, param=NA,
     file1PathInDataset <- input$getFullPaths("Read1")
     if(isPaired){
         file2PathInDataset <- input$getFullPaths("Read2")
+        fastqJoin="/usr/local/ngseq/src/fastq-join/fastq-join"
         
         fastqJoinFun <- function(x,y,z){
             joinedFileName <- paste0(z, ".")
-            fastqJoinCmd <- paste("fastqJoin", x,y, "-o", joinedFileName)
+            fastqJoinCmd <- paste("fastq-join", x,y, "-o", joinedFileName)
             ezSystem(fastqJoinCmd)
             joinedFileName <- paste0(joinedFileName,"join")
             joinedFile <- file.path(getwd(),joinedFileName)
@@ -71,7 +72,7 @@ ezMethodMothur = function(input=NA, output=NA, param=NA,
     ###
     
     ### cp silva reference locally
-    cpSilvaRefCmd <- paste("gunzip -c ",SILVA_DB_MOTHUR, " > silva.bacteria.fasta")
+    cpSilvaRefCmd <- paste("gunzip -c ",SILVA_DB_MOTHUR_R138, "| tar xvf -")
     ezSystem(cpSilvaRefCmd)
     
     ### update batch file  with parameters and run mothur: step 1, identify region
@@ -79,11 +80,11 @@ ezMethodMothur = function(input=NA, output=NA, param=NA,
                               " -e s/\"CUTOFF_TAXON\"/", param$cutOffTaxonomy, "/g",
                               " -e s/\"CUTOFF_CLUST\"/", param$cutOffCluster, "/g",
                               " -e s/\"DIFFS\"/", param$diffs, "/g ",
-                              file.path(METAGENOMICS_ROOT,UNIFIED_MOTHUR_WORKFLOW), 
+                              file.path(METAGENOMICS_ROOT,UNIFIED_MOTHUR_WORKFLOW_UPDATED), 
                               " > ",
-                              UNIFIED_MOTHUR_WORKFLOW)
+                              UNIFIED_MOTHUR_WORKFLOW_UPDATED)
     ezSystem(updateBatchCmd1)
-    cmdMothur1 = paste("mothur",UNIFIED_MOTHUR_WORKFLOW)
+    cmdMothur1 = paste("mothur",UNIFIED_MOTHUR_WORKFLOW_UPDATED)
     ezSystem(cmdMothur1)
     ## create ans save QC and chimera summary file 
     groupFile="Mothur.groups"

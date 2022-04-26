@@ -34,6 +34,7 @@ SILVA_BACTERIA_DADA2="/srv/GT/databases/silva/release_132/silva_nr_v132_Bacteria
 SILVA_EUKARYOTA_DADA2="/srv/GT/databases/silva/release_132/silva_nr_v132_Eukaryota_forDada2.fa.gz"
 SILVA_ARCHAEA_DADA2="/srv/GT/databases/silva/release_132/silva_nr_v132_Archaea_forDada2.fa.gz"
 SILVA_DB_MOTHUR="/srv/GT/databases/silva/release_132/silva_v132_Bacteria_forMothur.fa.gz"
+SILVA_DB_MOTHUR_R138="/srv/GT/databases/silva/release_138_1/silva.nr_v138_1.tgz"
 SILVA_BACTERIA_SPECIES_DADA2="/srv/GT/databases/silva/release_132/silva_species_assignment_v132_forDada2.fa.gz"
 RDP_DB="/srv/GT/databases/RDP/rdp_train_set_16.fa.gz"
 GREENGENES_DB="/srv/GT/databases/greenGenes/gg_13_8_train_set_97.fa.gz"
@@ -71,6 +72,7 @@ SMRT_CMD="SMRT=/misc/ngseq8/opt/smrtanalysis.2.3.0/install/smrtanalysis_2.3.0.14
 ## METAGENONMICS (MOTHUR-UPARSE)
 METAGENOMICS_ROOT="/usr/local/ngseq/templateFiles/"
 UNIFIED_MOTHUR_WORKFLOW="unifiedMothurWorkflow.batch"
+UNIFIED_MOTHUR_WORKFLOW_UPDATED="unifiedMothurWorkflow.updated.batch"
 V4_REGION_START_IN_SILVA_FASTA = "11894"
 V4_REGION_END_IN_SILVA_FASTA = "25319"
 USEARCH_TEMPLATE_SCRIPT="uparseTemplate.sh"
