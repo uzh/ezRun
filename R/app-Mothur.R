@@ -28,7 +28,7 @@ ezMethodMothur = function(input=NA, output=NA, param=NA,
         
         fastqJoinFun <- function(x,y,z){
             joinedFileName <- paste0(z, ".")
-            fastqJoinCmd <- paste("fastq-join", x,y, "-o", joinedFileName)
+            fastqJoinCmd <- paste(fastqJoin,x,y, "-o", joinedFileName)
             ezSystem(fastqJoinCmd)
             joinedFileName <- paste0(joinedFileName,"join")
             joinedFile <- file.path(getwd(),joinedFileName)
