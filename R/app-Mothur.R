@@ -24,11 +24,11 @@ ezMethodMothur = function(input=NA, output=NA, param=NA,
     file1PathInDataset <- input$getFullPaths("Read1")
     if(isPaired){
         file2PathInDataset <- input$getFullPaths("Read2")
-        fastqJoin="/usr/local/ngseq/src/fastq-join/fastq-join"
+        fastqJoin="/usr/local/ngseq/packages/Tools/ea-utils/1.1.2/fastq-join"
         
         fastqJoinFun <- function(x,y,z){
             joinedFileName <- paste0(z, ".")
-            fastqJoinCmd <- paste(fastqJoin,x,y, "-o", joinedFileName)
+            fastqJoinCmd <- paste(fastqJoin, x, y, "-o", joinedFileName)
             ezSystem(fastqJoinCmd)
             joinedFileName <- paste0(joinedFileName,"join")
             joinedFile <- file.path(getwd(),joinedFileName)
