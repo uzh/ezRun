@@ -79,7 +79,7 @@ EzAppScSeurat22 <-
                       Description = "Keep cells according to specific gene expression. i.e. Set > 1 | Pkn3 > 1"
                     ),
                     estimateAmbient = ezFrame(
-                      Type = "logical", DefaultValue = FALSE,
+                      Type = "logical", DefaultValue = TRUE,
                       Description = "estimate contamination with ambient RNA"
                     ),
                     controlSeqs = ezFrame(
