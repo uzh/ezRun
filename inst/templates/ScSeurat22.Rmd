@@ -346,7 +346,7 @@ var_height = shrinkToRange(length(unique(singler.single.labels))*0.5, c(6, 20))
 cat("The two heatmaps below display the scores for all individual cells (left) and each original cluster (right) across all reference labels, which allows users to inspect the confidence of the predicted labels across the dataset. The bar Labels on the top shows the actual assigned label.\n")
 cat("\n")
 plotScoreHeatmap(singler.results.single)
-plotScoreHeatmap(singler.results.cluster, clusters=factor(rownames(singler.results.cluster)), order.by = c("clusters", "labels"))
+plotScoreHeatmap(singler.results.cluster, clusters=factor(rownames(singler.results.cluster)), order.by = "clusters")
 ```
 
 
