@@ -345,8 +345,8 @@ var_height = shrinkToRange(length(unique(singler.single.labels))*0.5, c(6, 20))
 ```{r singler ScoreHeatmap,  eval= !is.null(singler.results), fig.height=var_height, fig.width=10, results='asis'}
 cat("The two heatmaps below display the scores for all individual cells (left) and each original cluster (right) across all reference labels, which allows users to inspect the confidence of the predicted labels across the dataset. The bar Labels on the top shows the actual assigned label.\n")
 cat("\n")
-plotScoreHeatmap(singler.results.single, treeheight_row=0)
-plotScoreHeatmap(singler.results.cluster, show_colnames = TRUE,  treeheight_row=0)
+plotScoreHeatmap(singler.results.single) #, treeheight_row=0) ... maybe treeheight_row=0 caused heatmaps not showing up
+plotScoreHeatmap(singler.results.cluster, show_colnames = TRUE) #,  treeheight_row=0)
 ```
 
 
