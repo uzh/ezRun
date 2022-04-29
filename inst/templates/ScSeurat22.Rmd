@@ -349,6 +349,20 @@ plotScoreHeatmap(singler.results.single) #, treeheight_row=0) ... maybe treeheig
 plotScoreHeatmap(singler.results.cluster, show_colnames = TRUE) #,  treeheight_row=0)
 ```
 
+again my code
+
+```{r}
+plotScoreHeatmap(singler.results.single) #, treeheight_row=0) ... maybe treeheight_row=0 caused heatmaps not showing up
+plotScoreHeatmap(singler.results.cluster, show_colnames = TRUE) #,  treeheight_row=0)
+```
+
+as is
+
+```{r , results='as.is'}
+plotScoreHeatmap(singler.results.single)
+plotScoreHeatmap(singler.results.cluster, clusters=rownames(singler.results.cluster))
+```
+
 
 ```{r singler labelsUMAP,  eval= !is.null(singler.results), fig.width=12, results='asis'}
 cat("The single cell (top) and cluster (bottom) annotations are also shown on the UMAPs. Place the mouse over the cells to get information such as their UMAP coordinates, original cluster, the cells name and the label assigned by SingleR. You can also zoom in specific areas of the UMAP by dragging and drop with the mouse.\n")
