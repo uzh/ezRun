@@ -52,7 +52,8 @@ ezMethodFastqScreen <- function(input = NA, output = NA, param = NA,
   krakenResult <- runKraken(param, inputProc)
 
   file.remove(inputProc$getFullPaths("Read1"))
-
+  #save.image(file = "fqScreen.RData")
+  
   setwdNew(basename(output$getColumn("Report")))
   makeRmdReport(
     output = output, param = param,
