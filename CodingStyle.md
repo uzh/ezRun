@@ -20,7 +20,7 @@ Basic paradigms:
 
 ## Conventions
 
-* use curly braces also for very simple `if` statements
+* always use curly braces also for very simple `if` statements
 * use `library` instead of `require` since `library` gives an error while `require` gives only a warning if the package is missing
 * the use of row names as IDs for matrices and data.frames is encouraged
 * never access columns/rows by hard-coded indices, be aware that column or row ordering may change, use column or row names if possible

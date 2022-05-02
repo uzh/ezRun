@@ -76,7 +76,7 @@ for (sm in samples){
     basicStats[sm, 'deletionRate'] = resultList[[sm]]$delRate
 }
 
-ezInteractiveTableRmd(basicStats)
+ezInteractiveTableRmd(basicStats, digits=3)
 ```
 
 ### Multi-Matching Reported in Bam File

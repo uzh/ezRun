@@ -54,7 +54,7 @@ EzAppScSeurat22 <-
                       DefaultValue = Inf,
                       Description = "Low quality cells have more than \"perc_mito\" percent of mitochondrial genes. Only when applying fixed thresholds."
                     ),
-                    perc_ribo = ezFrame(
+                    perc_riboprot = ezFrame(
                       Type = "numeric",
                       DefaultValue = Inf,
                       Description = "Low quality cells have more than \"perc_ribo\" percent of ribosomal genes. Only when applying fixed thresholds."
@@ -256,7 +256,7 @@ addCellQcToSeurat <- function(scData, param=NULL, BPPARAM=NULL){
   if (!ezIsSpecified(param$perc_riboprot )) {
     scData$qc.riboprot <- isOutlier(scData@meta.data[,"percent_riboprot"], nmads = param$nmad, type = "higher")
   } else {
-    scData$qc.riboprot <- scData@meta.data[,"percent_riboprot"] > param$perc_riboprot
+    scData$qc.riboprot <- scData@meta.data[,"percent_riboprot"] > as.numeric(param$perc_riboprot)
   }
   
   scData$useCell <- !(scData$qc.lib | scData$qc.nexprs | scData$qc.mito | scData$qc.riboprot)
