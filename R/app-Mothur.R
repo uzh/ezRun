@@ -75,25 +75,31 @@ ezMethodMothur = function(input=NA, output=NA, param=NA,
   ezSystem(cpSilvaRefCmd)
     
     ### update batch file  with parameters and run mothur: step 1, identify region
-  updateBatchPart1Cmd1 <- paste0("sed -e s/\"DIFFS\"/", param$diffs, "/g ",
+  updateBatchPart1Cmd1 <- paste0("sed -e s/\"###seq.error\"/", mockString, "/g",
+                            " -e s/\"CUTOFF_TAXON\"/", param$cutOffTaxonomy, "/g",
+                            " -e s/\"CUTOFF_CLUST\"/", param$cutOffCluster, "/g",
+                            " -e s/\"DIFFS\"/", param$diffs, "/g ",
                             file.path(METAGENOMICS_ROOT,UNIFIED_MOTHUR_WORKFLOW_PART1), 
                             " > ",
                             UNIFIED_MOTHUR_WORKFLOW_PART1)
-  updateBatchPart2ACmd1 <- paste0("sed -e s/\"###seq.error\"/", mockString, "/g",
-                            " -e s/\"CUTOFF_TAXON\"/", param$cutOffTaxonomy, "/g",
-                            " -e s/\"CUTOFF_CLUST\"/", param$cutOffCluster, "/g",
-                            file.path(METAGENOMICS_ROOT,UNIFIED_MOTHUR_WORKFLOW_PART2A), 
-                            " > ",
-                            UNIFIED_MOTHUR_WORKFLOW_PART2A)
-  updateBatchPart2BCmd1 <- paste0("sed -e s/\"###seq.error\"/", mockString, "/g",
-                            " -e s/\"CUTOFF_TAXON\"/", param$cutOffTaxonomy, "/g",
-                            " -e s/\"CUTOFF_CLUST\"/", param$cutOffCluster, "/g",
-                            file.path(METAGENOMICS_ROOT,UNIFIED_MOTHUR_WORKFLOW_PART2B), 
-                            " > ",
-                            UNIFIED_MOTHUR_WORKFLOW_PART2B)
   ezSystem(updateBatchPart1Cmd1)
+  updateBatchPart2ACmd1 <- paste0("sed -e s/\"###seq.error\"/", mockString, "/g",
+                                 " -e s/\"CUTOFF_TAXON\"/", param$cutOffTaxonomy, "/g",
+                                 " -e s/\"CUTOFF_CLUST\"/", param$cutOffCluster, "/g",
+                                 " -e s/\"DIFFS\"/", param$diffs, "/g ",
+                                 file.path(METAGENOMICS_ROOT,UNIFIED_MOTHUR_WORKFLOW_PART2A), 
+                                 " > ",
+                                 UNIFIED_MOTHUR_WORKFLOW_PART2A)
   ezSystem(updateBatchPart2ACmd1)
+  updateBatchPart2BCmd1 <- paste0("sed -e s/\"###seq.error\"/", mockString, "/g",
+                                  " -e s/\"CUTOFF_TAXON\"/", param$cutOffTaxonomy, "/g",
+                                  " -e s/\"CUTOFF_CLUST\"/", param$cutOffCluster, "/g",
+                                  " -e s/\"DIFFS\"/", param$diffs, "/g ",
+                                  file.path(METAGENOMICS_ROOT,UNIFIED_MOTHUR_WORKFLOW_PART2B), 
+                                  " > ",
+                                  UNIFIED_MOTHUR_WORKFLOW_PART2B)
   ezSystem(updateBatchPart2BCmd1)
+  
   cmdMothur1 = paste("mothur",UNIFIED_MOTHUR_WORKFLOW_PART1)
   ezSystem(cmdMothur1)
   
