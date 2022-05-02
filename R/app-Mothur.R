@@ -75,17 +75,35 @@ ezMethodMothur = function(input=NA, output=NA, param=NA,
   ezSystem(cpSilvaRefCmd)
     
     ### update batch file  with parameters and run mothur: step 1, identify region
-  updateBatchCmd1 <- paste0("sed -e s/\"###seq.error\"/", mockString, "/g",
+  updateBatchPart1Cmd1 <- paste0("sed -e s/\"DIFFS\"/", param$diffs, "/g ",
+                            file.path(METAGENOMICS_ROOT,UNIFIED_MOTHUR_WORKFLOW_PART1), 
+                            " > ",
+                            UNIFIED_MOTHUR_WORKFLOW_PART1)
+  updateBatchPart2ACmd1 <- paste0("sed -e s/\"###seq.error\"/", mockString, "/g",
                             " -e s/\"CUTOFF_TAXON\"/", param$cutOffTaxonomy, "/g",
                             " -e s/\"CUTOFF_CLUST\"/", param$cutOffCluster, "/g",
-                            " -e s/\"DIFFS\"/", param$diffs, "/g ",
-                            file.path(METAGENOMICS_ROOT,UNIFIED_MOTHUR_WORKFLOW_UPDATED), 
+                            file.path(METAGENOMICS_ROOT,UNIFIED_MOTHUR_WORKFLOW_PART2A), 
                             " > ",
-                            UNIFIED_MOTHUR_WORKFLOW_UPDATED)
-  ezSystem(updateBatchCmd1)
-  cmdMothur1 = paste("mothur",UNIFIED_MOTHUR_WORKFLOW_UPDATED)
+                            UNIFIED_MOTHUR_WORKFLOW_PART2A)
+  updateBatchPart2BCmd1 <- paste0("sed -e s/\"###seq.error\"/", mockString, "/g",
+                            " -e s/\"CUTOFF_TAXON\"/", param$cutOffTaxonomy, "/g",
+                            " -e s/\"CUTOFF_CLUST\"/", param$cutOffCluster, "/g",
+                            file.path(METAGENOMICS_ROOT,UNIFIED_MOTHUR_WORKFLOW_PART2B), 
+                            " > ",
+                            UNIFIED_MOTHUR_WORKFLOW_PART2B)
+  ezSystem(updateBatchPart1Cmd1)
+  ezSystem(updateBatchPart2ACmd1)
+  ezSystem(updateBatchPart2BCmd1)
+  cmdMothur1 = paste("mothur",UNIFIED_MOTHUR_WORKFLOW_PART1)
   ezSystem(cmdMothur1)
-  ## create ans save QC and chimera summary file 
+  
+  #check if any chimeras were found and continue the mothur workflow
+  
+  removeblankfilesCmd1 <- paste("find . -type f -empty -print -delete")
+  ezSystem(removeblankfilesCmd1)
+  cmdMothur2 = paste("[ -f 'merged.good.filter.unique.precluster.denovo.vsearch.accnos' ] && mothur",UNIFIED_MOTHUR_WORKFLOW_PART2A, "|| mothur", UNIFIED_MOTHUR_WORKFLOW_PART2B)
+  ezSystem(cmdMothur2)
+  ## create and save QC and chimera summary file 
   groupFile="Mothur.groups"
   ### filter steps
   fastaFiles <- c("Mothur.fasta","Mothur.good.fasta","Mothur.good.unique.fasta",
