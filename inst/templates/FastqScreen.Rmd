@@ -100,51 +100,19 @@ A mapping against all mRNAs in RefSeq can be useful to estimate the fraction rea
 ```{r mRNAMultiSample prepare, echo=FALSE, results='hide', warning=FALSE, message=FALSE, eval=!debug}
 refseqSamples <- names(refseqResult)
 names(refseqSamples) <- refseqSamples
+
 if(length(refseqSamples) > 1){
-  refseqSamples <- names(refseqResult)
-  names(refseqSamples) <- refseqSamples
-  speciesPerSample <- sapply(refseqResult, function(listElem) return(rownames(listElem)))
-  if(is.vector(speciesPerSample)){
-      speciesPerSample <- t(data.frame(speciesPerSample))
+  readFractionPerSample <- data.frame(sampleName = rep(refseqSamples[1], nrow(refseqResult[[refseqSamples[1]]])), 
+                                           species = rownames(refseqResult[[refseqSamples[1]]]), 
+                                           UniqueSpeciesPercent = refseqResult[[refseqSamples[1]]]$UniqueSpeciesPercent,
+                                           MultipleSpeciesPercent = refseqResult[[refseqSamples[1]]]$MultipleSpeciesPercent
+                                           )
+  for (j in 2:length(refseqSamples)){
+      tmp <- data.frame(sampleName = rep(refseqSamples[j], nrow(refseqResult[[refseqSamples[j]]])), species = rownames(refseqResult[[refseqSamples[j]]]), 
+                        UniqueSpeciesPercent = refseqResult[[refseqSamples[j]]]$UniqueSpeciesPercent,
+                        MultipleSpeciesPercent = refseqResult[[refseqSamples[j]]]$MultipleSpeciesPercent)
+      readFractionPerSample <- rbind(readFractionPerSample, tmp)
   }
-  readFractionPerSample_uniq <- sapply(refseqResult, function(listElem) return(listElem$UniqueSpeciesPercent))
-  if(is.vector(readFractionPerSample_uniq)){
-     readFractionPerSample_uniq <- data.frame(t(readFractionPerSample_uniq))
-     rownames(readFractionPerSample_uniq) <- unique(sapply(refseqResult, rownames))
-     colnames(readFractionPerSample_uniq) <- refseqSamples
-  }
-  readFractionPerSample_multi <- sapply(refseqResult, function(listElem) return(listElem$MultipleSpeciesPercent))
-  if(is.vector(readFractionPerSample_multi)){
-     readFractionPerSample_multi <- data.frame(t(readFractionPerSample_multi))
-     rownames(readFractionPerSample_multi) <- unique(sapply(refseqResult, rownames))
-     colnames(readFractionPerSample_multi) <- refseqSamples
-  }
-  uniqueSpecies <- unique(as.vector(unlist(speciesPerSample)))
-  uniqueSpecies <- uniqueSpecies[!is.na(uniqueSpecies)]
-  
-  refSeqResult_DF_uniq <- data.frame(Species = uniqueSpecies, row.names = uniqueSpecies)
-  for (nm in refseqSamples){
-    refSeqResult_DF_uniq[[nm]] <- 0
-    if(is.list(speciesPerSample)){
-      refSeqResult_DF_uniq[speciesPerSample[[nm]], nm] = readFractionPerSample_uniq[[nm]]
-    } else {
-      refSeqResult_DF_uniq[speciesPerSample[,nm], nm] = readFractionPerSample_uniq[,nm]
-    }
-  }
-  refSeqResult_DF_uniq <- refSeqResult_DF_uniq[rowSums(refSeqResult_DF_uniq[,refseqSamples]) > 0,]
-  refSeqResult_DF_uniq <- refSeqResult_DF_uniq[order(apply(refSeqResult_DF_uniq[,refseqSamples], 1, mean), decreasing = TRUE),]
-  
-  refSeqResult_DF_multi <- data.frame(Species = uniqueSpecies, row.names = uniqueSpecies)
-  for (nm in refseqSamples){
-    refSeqResult_DF_multi[[nm]] <- 0
-    if(is.list(speciesPerSample)){
-      refSeqResult_DF_multi[speciesPerSample[[nm]], nm] = readFractionPerSample_multi[[nm]]
-    } else {
-      refSeqResult_DF_multi[speciesPerSample[,nm], nm] = readFractionPerSample_multi[,nm]
-    }
-  }
-  refSeqResult_DF_multi <- refSeqResult_DF_multi[rownames(refSeqResult_DF_multi) %in% rownames(refSeqResult_DF_uniq),]
-  refSeqResult_DF_multi <- refSeqResult_DF_multi[rownames(refSeqResult_DF_uniq),]
 }
 ```
 
@@ -153,15 +121,17 @@ if(length(refseqSamples) > 1){
 ```{r RefTopHit1 plotly, fig.height=7, fig.width=min(max(7, 7+(length(samples)-20)*0.2), 30), echo=FALSE, warning=FALSE, message=FALSE}
 if(length(refseqSamples) > 1){
   m <- list(l = 80, r = 80, b = 200, t = 100, pad = 0)
-  if (nrow(refSeqResult_DF_uniq) > 0){
+  topSpecies <- sort(tapply(readFractionPerSample$UniqueSpeciesPercent, readFractionPerSample$species, sum), decreasing = TRUE)
+
+    if (length(topSpecies) > 0){
     i = 1
-    data <- unlist(refSeqResult_DF_uniq[i, refseqSamples]) + unlist(refSeqResult_DF_multi[i, refseqSamples])
-    p <- plot_ly(x=refseqSamples,
-                 y=data,
-                 type="bar") %>%
-      layout(title = paste0('TopHit', i,':', rownames(refSeqResult_DF_uniq)[i], ' (Unique + MultiHits)'),
-             yaxis = list(title = "MappedReads in %", range = c(0,100)),
-             margin = m)
+    data <- readFractionPerSample[readFractionPerSample$species == names(topSpecies)[i],]
+    
+    p <- plot_ly(x=data$sampleName,
+             y=data$UniqueSpeciesPercent + data$MultipleSpeciesPercent,
+             type="bar") %>%
+    layout(title = paste0('TopHit', i,':', names(topSpecies)[i], ' (Unique + MultiHits)'),
+           yaxis = list(title = "MappedReads in %", range = c(0,100)), margin = m)
     p
   }
 }
@@ -170,15 +140,15 @@ if(length(refseqSamples) > 1){
 ```{r RefTopHit2 plotly, fig.height=7, fig.width=min(max(7, 7+(length(samples)-20)*0.2), 30), echo=FALSE, warning=FALSE, message=FALSE}
 if(length(refseqSamples) > 1){
   m <- list(l = 80, r = 80, b = 200, t = 100, pad = 0)
-  if (nrow(refSeqResult_DF_uniq) > 1){
+  if (length(topSpecies) > 1){
     i = 2
-    data <- unlist(refSeqResult_DF_uniq[i, refseqSamples]) + unlist(refSeqResult_DF_multi[i, refseqSamples])
-    p <- plot_ly(x=refseqSamples,
-                 y=data,
-                 type="bar") %>%
-      layout(title = paste0('TopHit', i,':', rownames(refSeqResult_DF_uniq)[i], ' (Unique + MultiHits)'),
-             yaxis = list(title = "MappedReads in %", range = c(0,100)),
-             margin = m)
+    data <- readFractionPerSample[readFractionPerSample$species == names(topSpecies)[i],]
+    
+    p <- plot_ly(x=data$sampleName,
+             y=data$UniqueSpeciesPercent + data$MultipleSpeciesPercent,
+             type="bar") %>%
+    layout(title = paste0('TopHit', i,':', names(topSpecies)[i], ' (Unique + MultiHits)'),
+           yaxis = list(title = "MappedReads in %", range = c(0,100)), margin = m)
     p
   }
 }
@@ -187,15 +157,15 @@ if(length(refseqSamples) > 1){
 ```{r RefTopHit3 plotly, fig.height=7, fig.width=min(max(7, 7+(length(samples)-20)*0.2), 30), echo=FALSE, warning=FALSE, message=FALSE}
 if(length(refseqSamples) > 2){
   m <- list(l = 80, r = 80, b = 200, t = 100, pad = 0)
-  if (nrow(refSeqResult_DF_uniq) > 2){
+  if (length(topSpecies) > 2){
     i = 3
-    data <- unlist(refSeqResult_DF_uniq[i, refseqSamples]) + unlist(refSeqResult_DF_multi[i, refseqSamples])
-    p <- plot_ly(x=refseqSamples,
-                 y=data,
-                 type="bar") %>%
-      layout(title = paste0('TopHit', i,':', rownames(refSeqResult_DF_uniq)[i], ' (Unique + MultiHits)'),
-             yaxis = list(title = "MappedReads in %", range = c(0,100)),
-             margin = m)
+   data <- readFractionPerSample[readFractionPerSample$species == names(topSpecies)[i],]
+    
+    p <- plot_ly(x=data$sampleName,
+             y=data$UniqueSpeciesPercent + data$MultipleSpeciesPercent,
+             type="bar") %>%
+    layout(title = paste0('TopHit', i,':', names(topSpecies)[i], ' (Unique + MultiHits)'),
+           yaxis = list(title = "MappedReads in %", range = c(0,100)), margin = m)
     p
   }
 }
@@ -230,44 +200,41 @@ if(length(refseqSamples) > 100){
 ```{r KrakenTopHitPrepare, echo=FALSE, results='hide', warning=FALSE, message=FALSE, eval=!debug}
 krakenSamples <- names(krakenResult)
 names(krakenSamples) <- krakenSamples
-skipMultiSampleKraken <- FALSE
 if(length(krakenSamples) > 1){
-  speciesPerSample <- sapply(krakenResult, function(listElem) return(listElem$name))
-  readFractionPerSample <- sapply(krakenResult, function(listElem) return(listElem$readPercentage))
-  uniqueSpecies <- unique(as.vector(unlist(speciesPerSample)))
-  uniqueSpecies <- uniqueSpecies[!is.na(uniqueSpecies)]
-  krakenResult_DF <- data.frame(Species = uniqueSpecies, row.names = uniqueSpecies)
-  if(is.matrix(speciesPerSample) & is.matrix(readFractionPerSample)){  
-    if(length(uniqueSpecies) > 0){
-      for (nm in samples){
-        krakenResult_DF[[nm]] <- 0
-        if(all(!is.na(readFractionPerSample[,nm]))){
-          krakenResult_DF[speciesPerSample[,nm], nm] = readFractionPerSample[,nm]
-        }
-    }
-      krakenResult_DF <- krakenResult_DF[rowSums(krakenResult_DF[,krakenSamples]) > 0,]
-      krakenResult_DF <- krakenResult_DF[order(apply(krakenResult_DF[,krakenSamples], 1, mean), decreasing = TRUE),]
-    }
-  } else {
-    skipMultiSampleKraken <- TRUE
+  skipMultiSampleKraken <- FALSE
+  
+  readFractionPerSample <- data.frame(sampleName = rep(krakenSamples[1], nrow(krakenResult[[krakenSamples[1]]])), 
+                                           species = krakenResult[[krakenSamples[1]]]$name, 
+                                           readPercentage = krakenResult[[krakenSamples[1]]]$readPercentage
+                                           )
+  for (j in 2:length(krakenSamples)){
+      tmp <- data.frame(sampleName = rep(names(krakenSamples)[j], nrow(krakenResult[[krakenSamples[j]]])), 
+                                           species = krakenResult[[krakenSamples[j]]]$name, 
+                                           readPercentage = krakenResult[[krakenSamples[j]]]$readPercentage
+                                           )
+      readFractionPerSample <- rbind(readFractionPerSample, tmp)
   }
 } else {
-  skipMultiSampleKraken <- TRUE
+    skipMultiSampleKraken <- TRUE    
 }
+  
 ```
 
 ```{r KrakenTopHit1 plotly, fig.height=7, fig.width=min(max(7, 7+(length(samples)-20)*0.2), 30), echo=FALSE, warning=FALSE, message=FALSE}
+
 if(!skipMultiSampleKraken){
   m <- list(l = 80, r = 80, b = 200, t = 100, pad = 0)
-  if (nrow(krakenResult_DF) > 0){
+  topSpecies <- sort(tapply(readFractionPerSample$readPercentage, readFractionPerSample$species, sum), decreasing = TRUE)
+
+    if (length(topSpecies) > 0){
     i = 1
-    data <- unlist(krakenResult_DF[i, samples])
-    p <- plot_ly(x=samples,
-                 y=data,
-                 type="bar") %>%
-      layout(title = paste0('TopHit', i,':', krakenResult_DF$Species[i]),
-             yaxis = list(title = "MappedReads in %", range = c(0,max(data))),
-             margin = m)
+    data <- readFractionPerSample[readFractionPerSample$species == names(topSpecies)[i],]
+    
+    p <- plot_ly(x=data$sampleName,
+             y=data$readPercentage,
+             type="bar") %>%
+    layout(title = paste0('TopHit', i,':', names(topSpecies)[i]),
+           yaxis = list(title = "MappedReads in %", range = c(0,100)), margin = m)
     p
   }
 }
@@ -276,15 +243,15 @@ if(!skipMultiSampleKraken){
 ```{r KrakenTopHit2 plotly, fig.height=7, fig.width=min(max(7, 7+(length(samples)-20)*0.2), 30), echo=FALSE, warning=FALSE, message=FALSE}
 if(!skipMultiSampleKraken){
   m <- list(l = 80, r = 80, b = 200, t = 100, pad = 0)
-  if (nrow(krakenResult_DF) > 1){
-    i <- 2
-    data <- unlist(krakenResult_DF[i, krakenSamples])
-    p <- plot_ly(x=samples,
-                 y=data,
-                 type="bar") %>%
-      layout(title = paste0('TopHit', i,':', krakenResult_DF$Species[i]),
-             yaxis = list(title = "MappedReads in %", range = c(0,max(data))),
-             margin = m)
+    if (length(topSpecies) > 1){
+    i = 2
+    data <- readFractionPerSample[readFractionPerSample$species == names(topSpecies)[i],]
+    
+    p <- plot_ly(x=data$sampleName,
+             y=data$readPercentage,
+             type="bar") %>%
+    layout(title = paste0('TopHit', i,':', names(topSpecies)[i]),
+           yaxis = list(title = "MappedReads in %", range = c(0,100)), margin = m)
     p
   }
 }
@@ -293,15 +260,15 @@ if(!skipMultiSampleKraken){
 ```{r KrakenTopHit3 plotly, fig.height=7, fig.width=min(max(7, 7+(length(samples)-20)*0.2), 30), echo=FALSE, warning=FALSE, message=FALSE}
 if(!skipMultiSampleKraken){
   m <- list(l = 80, r = 80, b = 200, t = 100, pad = 0)
-  if (nrow(krakenResult_DF) > 2){
-    i <- 3
-    data <- unlist(krakenResult_DF[i, krakenSamples])
-    p <- plot_ly(x=samples,
-                 y=data,
-                 type="bar") %>%
-      layout(title = paste0('TopHit', i,':', krakenResult_DF$Species[i]),
-             yaxis = list(title = "MappedReads in %", range = c(0,max(data))),
-             margin = m)
+    if (length(topSpecies) > 2){
+    i = 3
+    data <- readFractionPerSample[readFractionPerSample$species == names(topSpecies)[i],]
+    
+    p <- plot_ly(x=data$sampleName,
+             y=data$readPercentage,
+             type="bar") %>%
+    layout(title = paste0('TopHit', i,':', names(topSpecies)[i]),
+           yaxis = list(title = "MappedReads in %", range = c(0,100)), margin = m)
     p
   }
 }
@@ -314,13 +281,14 @@ if(length(krakenSamples) > 100){
   message('Skipped: > 100 Samples')
 } else if(length(krakenSamples) > 1){
   for (nm in krakenSamples){
-      x = krakenResult_DF[[nm]]
+      x = readFractionPerSample[readFractionPerSample$sampleName == nm, 'readPercentage']
+      names(x) = readFractionPerSample[readFractionPerSample$sampleName == nm, 'species']
       par(mar=c(15.1, 6.1, 4.1, 2.1))
       if (length(x[x > 0]) > 0){
           bplot <- barplot(x[x > 0], names.arg = rep('',length(x[x>0])), col = 'royalblue3', 
                            main = nm, ylab = 'Mapped Reads in %', las = 2, ylim=c(0, 5))
           text(x = bplot, y = par("usr")[3] - 0.3, srt = 45, adj = 1, 
-               labels = krakenResult_DF$Species[x > 0], xpd = TRUE)
+               labels = names(x)[x > 0], xpd = TRUE)
       }
   }
 }
