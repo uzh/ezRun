@@ -107,7 +107,7 @@ ezMethodMothur = function(input=NA, output=NA, param=NA,
   
   removeblankfilesCmd1 <- paste("find . -type f -empty -print -delete")
   ezSystem(removeblankfilesCmd1)
-  cmdMothur2 = paste("[ -f 'merged.good.filter.unique.precluster.denovo.vsearch.accnos' ] && mothur",UNIFIED_MOTHUR_WORKFLOW_PART2A, "|| mothur", UNIFIED_MOTHUR_WORKFLOW_PART2B)
+  cmdMothur2 = paste("[ -f merged.good.filter.unique.precluster.denovo.vsearch.accnos ] && mothur",UNIFIED_MOTHUR_WORKFLOW_PART2A, "|| mothur", UNIFIED_MOTHUR_WORKFLOW_PART2B)
   ezSystem(cmdMothur2)
   ## create and save QC and chimera summary file 
   groupFile="Mothur.groups"
