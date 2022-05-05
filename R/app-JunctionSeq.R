@@ -75,9 +75,10 @@ runJunctionSeq <- function(input, output, param, htmlFile="00index.html"){
                                  flat.gff.file = gffOutputIncludingNovelJunctions,
                                  nCores = param$cores,
                                  analysis.type = "junctionsAndExons")
-  
+ 
   writeSizeFactors(jscs, file = "sizeFactors.txt")
   setwdNew('JuncSeq_Result-Files')
+  saveRDS(jscs, 'jscs.rds')
   writeCompleteResults(jscs,
                        outfile.prefix="",
                        save.jscs = FALSE,
@@ -87,6 +88,7 @@ runJunctionSeq <- function(input, output, param, htmlFile="00index.html"){
   setwdNew('../finalOutput')
   buildAllPlots(jscs=jscs,
                 #outfile.prefix = "",
+                max.gene.ct = param$maxGenes,
                 use.plotting.device = "CairoPNG",
                 FDR.threshold = as.numeric(param$fdr))
   setwd('..')
@@ -107,6 +109,7 @@ EzAppJunctionSeq <-
                   runMethod <<- ezMethodRunJunctionSeqPipeline
                   name <<- "EzAppJunctionSeq"
                   appDefaults <<- rbind(maxReadLength = ezFrame(Type="numeric", DefaultValue=151, Description="define max read length"),
-                                        minCount = ezFrame(Type="numeric", DefaultValue=6, Description="min Junction Count"))
+                                        minCount = ezFrame(Type="numeric", DefaultValue=6, Description="min Junction Count"),
+                                        maxGenes = ezFrame(Type="numeric", DefaultValue=1000, Description="max number of genes to plot"))
                 }
               ))
