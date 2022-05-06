@@ -12,18 +12,16 @@ ezMethodPbmm2 <- function(input = NA, output = NA, param = NA) {
   defOpt <- paste("--sort -m 2000M -J", param$cores)
   inputFileType = param$ReadOpt
   readGroupOpt <- paste0(
-    "--rg-id ", sampleName, " --rg SM:", sampleName,
-    " --rg LB:RGLB_", sampleName,
-    " --rg PL:pacbio", " --rg PU:RGPU_", sampleName
+    "'@RG\tID:", sampleName, "\tSM:", sampleName,
+    "\tLB:RGLB_", sampleName,
+    "\tPL:pacbio", "\tPU:RGPU_", sampleName, "'"
   )
   cmd <- paste(
-    "/srv/GT/software/SMRTtools/SMRT_Link_v10/smrtcmds/bin/pbmm2 align", param$cmdOptions, defOpt, "--preset", inputFileType, "--rg", readGroupOpt, paste0(ref, ".", inputFileType, ".mmi"), Input, bamFile, "2>", paste0(sampleName, "_pbmm2.log"))
+    "/srv/GT/software/SMRTtools/SMRT_Link_v10/smrtcmds/bin/pbmm2 align", param$cmdOptions, defOpt, "--preset", inputFileType, "--rg", readGroupOpt, paste0(ref, ".", inputFileType, ".mmi"), Input,basename(bamFile), "2>", paste0(sampleName, "_pbmm2.log"))
   ezSystem(cmd)
 
 
   cmd <- paste("/srv/GT/software/SMRTtools/SMRT_Link_v10/smrtcmds/bin/pbindex", bamFile)
-  ezSystem(cmd)
-  cmd <- paste("samtools index", bamFile)
   ezSystem(cmd)
 
   ## write an igv link
