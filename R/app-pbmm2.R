@@ -17,7 +17,7 @@ ezMethodPbmm2 <- function(input = NA, output = NA, param = NA) {
     " --rg PL:pacbio", " --rg PU:RGPU_", sampleName
   )
   cmd <- paste(
-    "/srv/GT/software/SMRTtools/SMRT_Link_v10/smrtcmds/bin/pbmm2 align", param$cmdOptions, defOpt, "--preset", inputFileType, "--rg", readGroupOpt, paste0(ref, ".", inputFileType, ".mmi)", input, bamFile, "2>", paste0(sampleName, "_pbmm2.log"))
+    "/srv/GT/software/SMRTtools/SMRT_Link_v10/smrtcmds/bin/pbmm2 align", param$cmdOptions, defOpt, "--preset", inputFileType, "--rg", readGroupOpt, paste0(ref, ".", inputFileType, ".mmi"), input, bamFile, "2>", paste0(sampleName, "_pbmm2.log"))
   ezSystem(cmd)
 
 
