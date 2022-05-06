@@ -21,8 +21,8 @@ ezMethodPbmm2 <- function(input = NA, output = NA, param = NA) {
   ezSystem(cmd)
 
 
-  cmd <- paste("/srv/GT/software/SMRTtools/SMRT_Link_v10/smrtcmds/bin/pbindex", basename(bamFile))
-  ezSystem(cmd)
+  #cmd <- paste("/srv/GT/software/SMRTtools/SMRT_Link_v10/smrtcmds/bin/pbindex", basename(bamFile))
+  #ezSystem(cmd)
 
   ## write an igv link
   if (param$writeIgvLink) {
