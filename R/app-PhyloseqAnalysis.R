@@ -79,7 +79,7 @@ ezMethodPhyloSeqAnalysis = function(input=NA, output=NA, param=NA,
     if (isGroupThere){
         markdownFile <- "PhyloseqReport.Rmd"
     }else{
-        markdownFile <- "PhyloseqReportNoGroup.Rmd"
+        markdownFile <- "PhyloseqReport.Rmd"
     }
     ## Copy the style files and templates
     styleFiles <- file.path(system.file("templates", package="ezRun"),
