@@ -351,7 +351,7 @@ plotScoreHeatmap(singler.results.cluster, show_colnames = TRUE) #,  treeheight_r
 
 again my code
 
-```{r}
+```{r , fig.height=16, fig.width=8}
 p <- plotScoreHeatmap(singler.results.single) #, treeheight_row=0) ... maybe treeheight_row=0 caused heatmaps not showing up
 ggsave("singler-per-cell-score-heatmap.pdf", plot=p)
 print(p)
@@ -362,7 +362,7 @@ print(p)
 
 as is
 
-```{r , results='as.is'}
+```{r , fig.height=16, fig.width=8, results='as.is'}
 plotScoreHeatmap(singler.results.single)
 plotScoreHeatmap(singler.results.cluster, clusters=rownames(singler.results.cluster))
 ```
