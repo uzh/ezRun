@@ -261,6 +261,7 @@ addCellQcToSeurat <- function(scData, param=NULL, BPPARAM=NULL){
   
   scData$useCell <- !(scData$qc.lib | scData$qc.nexprs | scData$qc.mito | scData$qc.riboprot)
   
+  set.seed(38)
   doubletsInfo <- scDblFinder(GetAssayData(scData, slot="counts")[ , scData$useCell], returnType = "table", clusters=TRUE, BPPARAM = BPPARAM)
   scData$doubletScore <- doubletsInfo[colnames(scData), "score"]
   scData$doubletClass <- doubletsInfo[colnames(scData), "class"]
