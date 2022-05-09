@@ -59,15 +59,15 @@ ezMethodPbsv = function(input=NA, output=NA, param=NA){
 ##' @template app-template
 ##' @templateVar method ezMethodMpileup(input=NA, output=NA, param=NA)
 ##' @description Use this reference class to run 
-EzAppMpileup <-
-  setRefClass("EzAppMpileup",
+EzAppPbsv <-
+  setRefClass("EzAppPbsv",
               contains = "EzApp",
               methods = list(
                 initialize = function()
                 {
                   "Initializes the application using its specific defaults."
-                  runMethod <<- ezMethodMpileup
-                  name <<- "EzAppMpileup"
+                  runMethod <<- ezMethodPbsv
+                  name <<- "EzAppPbsv"
                   appDefaults <<- rbind(region=ezFrame(Type="character",  DefaultValue="",  Description="The region of the genome. You can give either a chromosome name or a region on a chromosome like chr1 or chr1:1000-2000"),
                                     ReadOpt=ezFrame(Type="character",  DefaultValue="",	Description="input read types: SUBREAD, CCS/HIFI. Default is CCS/HIFI"),
                                     types=ezFrame(Type="character", DefaultValue="", Description="SV types to call: DEL,INS,INV,DUP,BND"),
