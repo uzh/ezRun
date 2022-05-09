@@ -34,7 +34,8 @@ ezMethodCellRanger <- function(input = NA, output = NA, param = NA) {
       paste0("--sample=", sampleName),
       paste0("--localmem=", param$ram),
       paste0("--localcores=", param$cores),
-      paste0("--chemistry=", param$chemistry)
+      paste0("--chemistry=", param$chemistry),
+      paste0("--expect-cells=", param$expectedCells)
     )
   },
   VDJ = {
@@ -83,7 +84,8 @@ ezMethodCellRanger <- function(input = NA, output = NA, param = NA) {
       paste0("--feature-ref=", featureRefFn),
       paste0("--localmem=", param$ram),
       paste0("--localcores=", param$cores),
-      paste0("--chemistry=", param$chemistry)
+      paste0("--chemistry=", param$chemistry),
+      paste0("--expect-cells=", param$expectedCells)
     )
   })
 
@@ -441,6 +443,11 @@ EzAppCellRanger <-
             Type = "character",
             DefaultValue = "auto",
             Description = "Assay configuration."
+          ),
+          expectedCells = ezFrame(
+              Type = "numeric",
+              DefaultValue = 10000,
+              Description = "Expected number of cells."
           ),
           controlSeqs = ezFrame(
             Type = "charVector",
