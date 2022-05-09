@@ -46,12 +46,17 @@ EzAppSCTrajectoryInference <-
               )
 ezMethodSCTrajectoryInference <- function(input=NA, output=NA, param=NA, 
                              htmlFile="00index.html"){
+  library(HDF5Array)
+  library(Seurat)
+  library(SingleCellExperiment)
+  library(dyno)
+    
+    
   cwd <- getwd()
   setwdNew(basename(output$getColumn("Report")))
   on.exit(setwd(cwd), add=TRUE)
   
-  library(HDF5Array)
-  library(Seurat)
+  
   objectURLs <- input$getColumn("Static Report")
   filePath <- file.path("/srv/gstore/projects", sub("https://fgcz-(gstore|sushi).uzh.ch/projects", "",dirname(objectURLs)), "sce_h5")
   filePath_course <- file.path(paste0("/srv/GT/analysis/course_sushi/public/projects/", dirname(objectURLs)), "/sce_h5")
@@ -76,8 +81,6 @@ ezMethodSCTrajectoryInference <- function(input=NA, output=NA, param=NA,
     cells_meta = object@meta.data
   }
   
-  
-  library(dyno)
   #library(dyncli)
  
   #Prepare the data
