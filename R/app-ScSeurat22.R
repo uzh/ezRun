@@ -138,11 +138,11 @@ ezMethodScSeurat22 <- function(input = NA, output = NA, param = NA,
   
   ## use empty drops to test for ambient
   if (grepl("filtered_", input$getFullPaths("CountMatrix"))){
-    rawCts <- Read10X(sub("filtered_", "raw_", input$getFullPaths("CountMatrix")))
-    emptyStats <- emptyDrops(rawCts[!featInfo$isMito & !featInfo$isRiboprot, ], gene.column = 1,
+    rawCts <- Read10X(sub("filtered_", "raw_", input$getFullPaths("CountMatrix")), gene.column = 1)
+    emptyStats <- emptyDrops(rawCts[!featInfo$isMito & !featInfo$isRiboprot, ],
                              BPPARAM=BPPARAM, niters=1e5)
     scData$cellPValue <- emptyStats[scData$cellBarcode, "PValue"]
-    emptyStats <- emptyDrops(rawCts, gene.column = 1,
+    emptyStats <- emptyDrops(rawCts,
                              BPPARAM=BPPARAM, niters=1e5)
     scData$cellPValue <- pmax(scData$cellPValue, emptyStats[scData$cellBarcode, "PValue"])
     scData@meta.data$cellPValue[is.na(scData$cellPValue)] <- 1
