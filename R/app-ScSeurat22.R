@@ -104,6 +104,7 @@ ezMethodScSeurat22 <- function(input = NA, output = NA, param = NA,
   library(scDblFinder)
   library(BiocParallel)
   library(scuttle)
+  library(DropletUtils)
   
   BPPARAM <- MulticoreParam(workers = param$cores)
   register(BPPARAM)
@@ -115,6 +116,9 @@ ezMethodScSeurat22 <- function(input = NA, output = NA, param = NA,
   cts <- Read10X(input$getFullPaths("CountMatrix"), gene.column = 1)
   featInfo <- ezRead.table(paste0(input$getFullPaths("CountMatrix"), "/features.tsv.gz"), header = FALSE, row.names = NULL)#, col_names = FALSE)
   colnames(featInfo) <- c("ensemblID", "name", "type")
+  featInfo$isMito = grepl( "(?i)^MT-", featInfo$name)
+  featInfo$isRiboprot = grepl(  "(?i)^RPS|^RPL", featInfo$name)
+  
   
   ## if we have feature barcodes we keep only the expression matrix
   if (is.list(cts)){
@@ -127,9 +131,25 @@ ezMethodScSeurat22 <- function(input = NA, output = NA, param = NA,
   scData$Condition <- input$getColumn("Condition")
   scData@meta.data$Sample <- input$getNames()
   scData[["RNA"]] <- AddMetaData(object = scData[["RNA"]], metadata = featInfo[rownames(scData), ])
+  scData$cellBarcode <- sub(".*_", "", colnames(scData))
+  
   
   scData <- addCellQcToSeurat(scData, param=param, BPPARAM = BPPARAM)
+  
+  ## use empty drops to test for ambient
+  if (grepl("filtered_", input$getFullPaths("CountMatrix"))){
+    rawCts <- Read10X(sub("filtered_", "raw_", input$getFullPaths("CountMatrix")))
+    emptyStats <- emptyDrops(rawCts[!featInfo$isMito & !featInfo$isRiboprot, ], gene.column = 1,
+                             BPPARAM=BPPARAM, niters=1e5)
+    scData$cellPValue <- emptyStats[scData$cellBarcode, "PValue"]
+    emptyStats <- emptyDrops(rawCts, gene.column = 1,
+                             BPPARAM=BPPARAM, niters=1e5)
+    scData$cellPValue <- pmax(scData$cellPValue, emptyStats[scData$cellBarcode, "PValue"])
+    scData@meta.data$cellPValue[is.na(scData$cellPValue)] <- 1
+  }
+
   allCellsMeta <- scData@meta.data
+  
   #allCellsMeta$useCell <- scData$doubletClass %in% "singlet" & !scData$qc.lib & !scData$qc.mito & !scData$qc.nexprs & !scData$qc.riboprot
   scData <- subset(scData, cells=rownames(allCellsMeta)[allCellsMeta$useCell]) # %>% head(n=1000))
   
