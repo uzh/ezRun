@@ -349,28 +349,6 @@ plotScoreHeatmap(singler.results.single) #, treeheight_row=0) ... maybe treeheig
 plotScoreHeatmap(singler.results.cluster, show_colnames = TRUE) #,  treeheight_row=0)
 ```
 
-again my code
-
-```{r , fig.height=16, fig.width=8}
-str(singler.results.single)
-plot(1:10)
-p <- plotScoreHeatmap(singler.results.single) #, treeheight_row=0) ... maybe treeheight_row=0 caused heatmaps not showing up
-ggsave("singler-per-cell-score-heatmap.pdf", plot=p)
-print(p)
-p
-p<- plotScoreHeatmap(singler.results.cluster, show_colnames = TRUE) #,  treeheight_row=0)
-ggsave("singler-per-cluster-score-heatmap.pdf", plot=p)
-print(p)
-p
-plot(10:1)
-```
-
-as is
-
-```{r , fig.height=16, fig.width=8, results='as.is'}
-plotScoreHeatmap(singler.results.single)
-plotScoreHeatmap(singler.results.cluster, clusters=rownames(singler.results.cluster))
-```
 
 
 ```{r singler labelsUMAP,  eval= !is.null(singler.results), fig.width=12, results='asis'}
