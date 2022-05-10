@@ -40,7 +40,7 @@ autoEstContTfidfMin <- function(sc, tfidfMin){
     stop("Parameter tfidfMin cannot be less than 0!") 
   }
   tryCatch({
-    sc <- autoEstCont(sc, tfidfMin=tfidfMin, forceAccept=T)
+    sc <- autoEstCont(sc, tfidfMin=tfidfMin, forceAccept=T, doPlot=FALSE)
   }, 
   error=function(cond) {
     tfidfMin = tfidfMin -  0.3
