@@ -253,7 +253,7 @@ FeaturePlot(scData, features="SoupX_contFrac", label = TRUE)
 
 ```
 
-```{r, fig.width=6, fig.height=6, eval=!is.null(scData@meta.data$logCellPValue)}
+```{r, fig.width=6, fig.height=6, eval=!is.null(scData@meta.data$negLog10CellPValue)}
 VlnPlot(scData, features ="negLog10CellPValue", y.max=1) + ggtitle("negative log10 Cell PValue") + NoLegend()
 FeaturePlot(scData, features="negLog10CellPValue", label = TRUE)
 
