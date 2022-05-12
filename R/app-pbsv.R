@@ -27,7 +27,7 @@ ezMethodPbsv <- function(input = NA, output = NA, param = NA) {
   ezSystem(cmd)
 
   
-  PbsvCallCmd = paste("/srv/GT/software/SMRTtools/SMRT_Link_v10/smrtcmds/bin/pbsv call --log-file", PbsvLogFile, param$types, param$minL, param$afOptions, param$callOptions, param$filterOptions, param$cmdOptions)
+  PbsvCallCmd = paste("/srv/GT/software/SMRTtools/SMRT_Link_v10/smrtcmds/bin/pbsv call --log-file", PbsvLogFile, "--types" param$types, "--min-sv-length" param$minL, param$callOptions, param$filterOptions, param$cmdOptions)
   
   if(param$ReadOpt=="HIFI"){
 	    PbsvCallCmd=paste(PbsvCallCmd, "--hifi")
@@ -35,10 +35,11 @@ ezMethodPbsv <- function(input = NA, output = NA, param = NA) {
 	    PbsvCallCmd=paste(PbsvCallCmd, "--ccs")
   }
   if (!is.null(param$region) && param$region != ""){
-	    PbsvCallCmd=paste(PbsvCallCmd, "-r", param$region)
+	    cmd=paste(cmd, "-r", param$region)
   }
+ 
 
-  PbsvCallCmd=paste(PbsvCallCmd, genomeSeq, bamFile, ovf)
+  PbsvCallCmd=paste(PbsvCallCmd, genomeSeq, osf, ovf)
   ezSystem(PbsvCallCmd)
   ezSystem(paste("bgzip", ovf)) 
   indexTabix(basename(ovf),format = "vcf")
