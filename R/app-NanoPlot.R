@@ -9,7 +9,7 @@
 ezMethodNanoPlot = function(input=NA, output=NA, param=NA, htmlFile="00index.html"){
   opt = param$cmdOptions
   sampleName = input$getNames()
-  cmd = paste("NanoPlot", "-t", param$cores, "-p", paste0(sampleName, "."), "--title", sampleName, "-o", param$name, opt, "--fastq", input$getFullPaths("Read1"))
+  cmd = paste("NanoPlot", "-t", param$cores, "-p", paste0(sampleName, "."), "--title", sampleName, "-o .", opt, "--fastq", input$getFullPaths("Read1"))
   ezSystem(cmd)
   return("Success")
 }
