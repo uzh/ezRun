@@ -7,8 +7,8 @@
 
 ezMethodPbsv <- function(input = NA, output = NA, param = NA) {
   genomeSeq = param$ezRef["refFastaFile"]
-  bamFile <- input$getColumn("BAM")
-  sampleName <- sub(".bam", "", basename(bamFile))
+  sampleName = input$getNames()
+  bamFile <- input$getFullPaths("BAM")
   osf = paste0(sampleName, ".svsig.gz")
   ovf = paste0(sampleName, ".vcf")
   ovzf = paste0(sampleName, ".vcf.gz")
@@ -32,9 +32,8 @@ ezMethodPbsv <- function(input = NA, output = NA, param = NA) {
   if(param$ReadOpt=="HIFI"){
 	    PbsvCallCmd=paste(PbsvCallCmd, "--hifi")
   }else if (param$ReadOpt=="CCS"){
-	    cmd=paste(cmd, "--ccs")
+	    PbsvCallCmd=paste(PbsvCallCmd, "--ccs")
   }
-
   if (!is.null(param$region) && param$region != ""){
 	    PbsvCallCmd=paste(PbsvCallCmd, "-r", param$region)
   }
