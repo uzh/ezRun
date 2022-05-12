@@ -6,6 +6,7 @@
 # www.fgcz.ch
 
 ezMethodPbsv <- function(input = NA, output = NA, param = NA) {
+  require("VariantAnnotation")
   genomeSeq = param$ezRef["refFastaFile"]
   sampleName = input$getNames()
   bamFile <- input$getFullPaths("BAM")
