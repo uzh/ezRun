@@ -27,7 +27,7 @@ ezMethodPbsv <- function(input = NA, output = NA, param = NA) {
   ezSystem(cmd)
 
   
-  PbsvCallCmd = paste("/srv/GT/software/SMRTtools/SMRT_Link_v10/smrtcmds/bin/pbsv call --log-file", PbsvLogFile, "--types" param$types, "--min-sv-length" param$minL, param$callOptions, param$filterOptions, param$cmdOptions)
+  PbsvCallCmd = paste("/srv/GT/software/SMRTtools/SMRT_Link_v10/smrtcmds/bin/pbsv call --log-file", PbsvLogFile, "--types", param$types, "--min-sv-length", param$minL, param$callOptions, param$filterOptions, param$cmdOptions)
   
   if(param$ReadOpt=="HIFI"){
 	    PbsvCallCmd=paste(PbsvCallCmd, "--hifi")
