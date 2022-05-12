@@ -43,7 +43,7 @@ ezMethodPbsv <- function(input = NA, output = NA, param = NA) {
   PbsvCallCmd=paste(PbsvCallCmd, genomeSeq, osf, ovf)
   ezSystem(PbsvCallCmd)
   ezSystem(paste("bgzip", ovf)) 
-  indexTabix(basename(ovf),format = "vcf")
+  indexTabix(basename(ovzf),format = "vcf")
   ezSystem(paste("SURVIVOR stats", ovzf, "-1 -1 -1",  PbsvStatsFile)) 
   return("Success")
 }
