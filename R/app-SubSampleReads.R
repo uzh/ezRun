@@ -4,8 +4,8 @@
 # Public License Version 3, June 2007.
 # The terms are available here: http://www.gnu.org/licenses/gpl.html
 # www.fgcz.ch
-ezMethodSubSampleReads <- function(input, output, param, n = param$nReads){
-    input <- ezMethodSubsampleFastq(input = input, param = param)
+ezMethodSubSampleReads <- function(input, output, param){
+    input <- ezMethodSubsampleFastq(input = input, param = param, n = param$nReads)
     system('rename s/-subsample// *.gz')
     return('success')
 } 
