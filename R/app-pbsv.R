@@ -44,7 +44,7 @@ ezMethodPbsv <- function(input = NA, output = NA, param = NA) {
   ezSystem(PbsvCallCmd)
   ezSystem(paste("bgzip", ovf)) 
   indexTabix(basename(ovzf),format = "vcf")
-  ezSystem(paste("SURVIVOR stats", ovzf, "-1 -1 -1",  PbsvStatsFile)) 
+  ezSystem(paste("SURVIVOR stats", ovf, "20 -1 3",  PbsvStatsFile)) 
   return("Success")
 }
 
