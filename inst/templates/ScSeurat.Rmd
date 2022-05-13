@@ -8,7 +8,7 @@ output:
      in_header: !expr system.file("templates/fgcz_header.html", package="ezRun", lib.loc=.libPaths())
     css: !expr system.file("templates/fgcz.css", package="ezRun", lib.loc=.libPaths())
 editor_options: 
-  chunk_output_type: console
+  chunk_output_type: inline
 ---
 
 Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
@@ -36,12 +36,13 @@ knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE, knitr.tabl
 ```
 
 ```{r}
-clusterInfoFile <- readRDS("clusterInfoFile.rds")
+clusterInfoFile <- "clusterInfos.xlsx"
+posMarkers <- readxl::read_xlsx("posMarkers.xlsx")
 scData <- readRDS("scData.rds")
-scData.unfiltered <- readRDS("scData.unfiltered.rds")
-sce <- loadHDF5SummarizedExperiment("sce_h5")
+output <- readRDS("output.rds")
+scData$qc.doublet <- scData$doubletClass %in% "doublet"
+allCellsMeta <- readRDS("allCellsMeta.rds")
 param = readRDS("param.rds")
-output = readRDS("output.rds")
 species <- getSpecies(param$refBuild)
 if (file.exists("singler.results.rds")){
   singler.results <- readRDS("singler.results.rds")
@@ -54,7 +55,6 @@ if (file.exists("cells.AUC.rds")){
   cells.AUC <- NULL
 }
 var_height = 1 #This ensures that chunks that use the length of this variable to set the fig size, don't fail.
-pvalue_allMarkers <- 0.05
 ```
 
 
@@ -77,20 +77,44 @@ We use several common QC metrics to identify low-quality cells based on their ex
 3. The proportions of mitochondrial and ribosomal genes per cell. High proportions are indicative of poor-quality cells (Islam et al. 2014; Ilicic et al. 2016), presumably because of the loss of cytoplasmic RNA from perforated cells.
 
 <br/>
+```{r}
+xxAll <- SingleCellExperiment(colData = allCellsMeta)
+xxAll$discard <- !xxAll$useCell
+scData.unfiltered <- CreateSeuratObject(ezMatrix(0, rows=1:10, cols=rownames(allCellsMeta)), meta.data = allCellsMeta)
+scData.unfiltered$discard <- !colnames(scData.unfiltered) %in% colnames(scData)
+
+
+```
+
 
 #### Diagnostic plots
 
 A key assumption here is that the QC metrics are independent of the biological state of each cell. Poor values (e.g., low library sizes, high mitochondrial or ribosomal proportions) are presumed to be driven by technical factors rather than biological processes, meaning that the subsequent removal of cells will not misrepresent the biology in downstream analyses. Major violations of this assumption would potentially result in the loss of cell types that have, say, systematically low RNA content or high numbers of mitochondria. We can check for such violations using some diagnostics plots. In the most ideal case, we would see normal distributions that would justify the thresholds used in outlier detection. A large proportion of cells in another mode suggests that the QC metrics might be correlated with some biological state, potentially leading to the loss of distinct cell types during filtering. 
 
-```{r QC plots, fig.height=4, fig.width=16}
-VlnPlot(scData.unfiltered, features=c("nCount_RNA", "nFeature_RNA", "percent_mito", "percent_ribo"), group.by="Batch", ncol = 4)
+```{r QC plots1, fig.height=4}
+### TODO the plotColData would be much more informative!!!
+plotColData(xxAll, x="Sample", y="nCount_RNA", colour_by="discard") + scale_y_log10() + ggtitle("Number of UMIs")
+
 ```
 
-It is also worth to plot the proportion of mitochondrial counts against the library size for each cell. The aim is to confirm that there are no cells with both large total counts and large mitochondrial counts, to ensure that we are not inadvertently removing high-quality cells that happen to be highly metabolically active.
+```{r QC plots2, fig.height=4}
 
-```{r QC plot mito, fig.align='center'}
-FeatureScatter(scData.unfiltered, feature1="nCount_RNA", feature2="percent_mito", group.by="discard")
+plotColData(xxAll, x="Sample", y="nFeature_RNA", colour_by="discard") + ggtitle("Detected genes")
+plotColData(xxAll, x="nCount_RNA", y="nFeature_RNA", colour_by="discard")+ scale_x_log10() + scale_y_log10()
+
+plotColData(xxAll, x="Sample", y="percent_mito", colour_by="discard") + ggtitle("Mito percent")
+plotColData(xxAll, x="nCount_RNA", y="percent_mito", colour_by="discard")+ scale_x_log10()
+
+plotColData(xxAll, x="Sample", y="percent_riboprot", colour_by="discard") + ggtitle("Riboprot percent")
+plotColData(xxAll, x="nCount_RNA", y="percent_riboprot", colour_by="discard")+ scale_x_log10()
+
+plotColData(xxAll, x="Sample", y="doubletScore", colour_by="discard") + ggtitle("Doublet score")
+plotColData(xxAll, x="nCount_RNA", y="doubletScore", colour_by="discard") + scale_x_log10()
+
+#VlnPlot(scData.unfiltered, features=c("nCount_RNA"), ncol = 4, pt.size=0.5, log = TRUE, fill.by = "useCell") + NoLegend()
+#VlnPlot(scData.unfiltered, features=c("nFeature_RNA", "percent_mito", "percent_riboprot"), ncol = 4, pt.size=0.5) + NoLegend()
 ```
+
 
 <br/>
 
@@ -100,13 +124,14 @@ A standard approach is to filter cells with a low amount of reads as well as gen
 When the parameter values of nreads, ngenes and perc_mito are specified, fixed thresholds are used for filtering. Otherwise, filtering is performed excluding cells that are outliers by more than `r param$nmad` MADs below the median for the library size and the number of genes detected. Cells with a percentage counts of mitochondrial genes above the median by `r param$nmad` MADs are also excluded. 
 
 ```{r low quality cells}
-num.qc.lib <- sum(scData.unfiltered$qc.lib)
-num.qc.nexprs <- sum(scData.unfiltered$qc.nexprs)
-num.qc.mito <- sum(scData.unfiltered$qc.mito)
-num.qc.ribo <- sum(scData.unfiltered$qc.ribo)
-removed <- sum(scData.unfiltered$discard)
-kable(tibble("QC metric" =c("Library Size", "Expressed genes", "Mitochondrial genes", "Ribosomal genes", "Total removed", "Cells remaining"),
-             "Number of cells"= c(num.qc.lib, num.qc.nexprs, num.qc.mito, num.qc.ribo, removed, ncol(scData))),
+library(UpSetR)
+qcList <- lapply(allCellsMeta[ ,grep("^qc", colnames(allCellsMeta))], function(x){rownames(allCellsMeta)[x]})
+names(qcList)
+UpSetR::upset(fromList(qcList), nsets = 5)
+
+kable(tibble("QC metric" =c("Library Size", "Expressed genes", "Mitochondrial genes", "Ribosomal protein genes", 
+                            "Doublets", "Total removed", "Cells remaining"),
+             "Number of cells"= c(sum(allCellsMeta$qc.lib), sum(allCellsMeta$qc.nexprs), sum(allCellsMeta$qc.mito), sum(allCellsMeta$qc.riboprot), sum(allCellsMeta$qc.doublet), sum(!allCellsMeta$useCell), ncol(scData))),
       row.names=FALSE,
       caption="Number of cells removed") %>%
   kable_styling(bootstrap_options = "striped", full_width = F,
@@ -120,18 +145,18 @@ kable(tibble("QC metric" =c("Library Size", "Expressed genes", "Mitochondrial ge
 We also excluded genes that are lowly or not expressed in our system, as they do not contribute any information to our experiment and may add noise. In this case, we removed genes that were not expressed in at least `r param$cellsPercentage` percent of the cells. In case one or more rare cell populations are expected we might need to decrease the percentage of cells.
 
 ```{r gene filtering}
-cat("genes removed:", nrow(scData.unfiltered)-nrow(scData))
 cat("genes kept:", nrow(scData))
 ```
 
 #### Diagnostic plots after filtering
 
 ```{r QC plots after filtering, fig.height=4, fig.width=16}
-VlnPlot(scData, features=c("nCount_RNA", "nFeature_RNA", "percent_mito", "percent_ribo"), group.by="Batch", ncol = 4)
+VlnPlot(scData, features=c("nCount_RNA"), group.by="Sample", ncol = 4)
+VlnPlot(scData, features=c("nFeature_RNA", "percent_mito", "percent_riboprot"), group.by="Sample", ncol = 4)
 ```
 
 ```{r QC plot mito after filtering, fig.align='center'}
-FeatureScatter(scData, feature1="nCount_RNA", feature2="percent_mito", group.by="discard")
+FeatureScatter(scData, feature1="nCount_RNA", feature2="percent_mito") + scale_x_log10() + ggtitle("")
 ```
 
 
@@ -148,7 +173,6 @@ We used the SCtransform method from the Seurat package for normalizing, estimati
 `r if(identical(param$SCT.regress,"CellCycle")) {
     "We already checked cell cycle and decided that it does represent a major source of variation in our data, and this may influence clustering. Therefore, we regressed out variation due to cell cycle."
 }`
-As a result, SCTransform ranked the genes by residual variance and returned the 3000 most variant genes.
 
 <br/>
 
@@ -163,18 +187,6 @@ ElbowPlot(scData)
 
 <br/>
 
-#### Visualization 
-
-Another application of dimensionality reduction is to compress the data into 2 (sometimes 3) dimensions for plotting. The simplest visualization approach is to plot the top 2 PCs in a PCA. 
-
-```{r, fig.align='center'}
-DimPlot(scData, reduction="pca")
-```
-
-The problem is that PCA is a linear technique, i.e., only variation along a line in high-dimensional space is captured by each PC. As such, it cannot efficiently pack differences in many dimensions into the first 2 PCs. The de facto standard for visualization of scRNA-seq data is the t-stochastic neighbor embedding (t-SNE) method (Van der Maaten and Hinton 2008).  Unlike PCA, it is not restricted to linear transformations, nor is it obliged to accurately represent distances between distance populations. This means that it has much more freedom in how it arranges cells in low-dimensional space, enabling it to separate many distinct clusters in a complex population. 
-The uniform manifold approximation and projection (UMAP) method (McInnes, Healy, and Melville 2018) is an alternative to t-SNE for non-linear dimensionality reduction. Compared to t-SNE, UMAP visualization tends to have more compact visual clusters with more empty space between them. It also attempts to preserve more of the global structure than t-SNE. It is arguable whether the UMAP or t-SNE visualizations are more useful or aesthetically pleasing. UMAP aims to preserve more global structure but this necessarily reduces resolution within each visual cluster. However, UMAP is unarguably much faster, and for that reason alone, it is increasingly displacing t-SNE as the method of choice for visualizing large scRNA-seq data sets. We will use both UMAP and TSNE to visualize the clustering output. Another application of dimensionality reduction is to compress the data into 2 (sometimes 3) dimensions for plotting. The simplest visualization approach is to plot the top 2 PCs in a PCA. 
-
-<br/><br/>
 
 ### Clustering
 
@@ -184,7 +196,7 @@ We can visualize the distribution of clusters in the TSNE and UMAP plots. Howeve
 
 ```{r}
 DimPlot(scData, reduction="tsne", label = TRUE)
-DimPlot(scData,label = TRUE)
+DimPlot(scData, reduction="umap", label = TRUE)
 ```
 
 <br/><br/>
@@ -194,11 +206,11 @@ The number of cells in each cluster and sample is represented in this barplot.
 <br/>
 
 ```{r number of cells in each cluster}
-cellIdents_perSample <- data.frame(ident = Idents(scData), orig.ident=scData$orig.ident)
-barplot = ggplot(data=cellIdents_perSample, aes(x=ident, fill=orig.ident)) + geom_bar(stat="Count")
+cellIdents_perSample <- data.frame(ident = Idents(scData), Sample=scData$Sample)
+barplot = ggplot(data=cellIdents_perSample, aes(x=ident, fill=Sample)) + geom_bar(stat="Count")
 barplot + labs(x="Cluster", y = "Number of cells", fill = "Sample")
 
-cells_prop = cellsProportion(scData, groupVar1 = "ident", groupVar2 = "Batch")
+cells_prop = cellsProportion(scData, groupVar1 = "ident", groupVar2 = "Sample")
 kable(cells_prop,row.names=FALSE, format="html",caption="Cell proportions") %>% kable_styling(bootstrap_options = "striped", full_width = F, position = "float_right")
 ```
 
@@ -210,23 +222,48 @@ kable(cells_prop,row.names=FALSE, format="html",caption="Cell proportions") %>% 
 Once we have created the clusters we need to asses if the clustering was driven by technical artifacts or uninteresting biological variability, such as cell cycle, mitochondrial gene expression.
 We can explore whether the cells cluster by the different cell cycle phases. In such a case, we would have clusters where most of the cells would be in one specific phase. This bias could be taken into account when normalizing and transforming the data prior to clustering. We can also look at the total number of reads, genes detected and mitochondrial gene expression. The clusters should be more or less even but if we observe big differences among some of them for these metrics, we will keep an eye on them and see if the cell types we identify later can explain the differences. 
 
+```{r, fig.width=6, fig.height=6, eval=!is.null(scData@meta.data$CellCycle)}
+DimPlot(scData, label=FALSE, group.by= "CellCycle")
+DimPlot(scData, reduction="umap", label = TRUE)
+```
+
 ```{r uninteresting variation, fig.width=6, fig.height=6}
-if (!is.null(scData@meta.data$CellCycle)){
-  DimPlot(scData, label=TRUE, split.by = "CellCycle")
-}
-VlnPlot(scData, features ="nCount_RNA") + ggtitle("Number of UMIs vs ident") + NoLegend()
+VlnPlot(scData, features ="nCount_RNA", log=TRUE) + ggtitle("Number of UMIs vs ident") + NoLegend()
 FeaturePlot(scData, features="nCount_RNA", label = TRUE)
+
 VlnPlot(scData, features ="nFeature_RNA") + ggtitle("Number of genes vs ident") + NoLegend()
 FeaturePlot(scData, features="nFeature_RNA", label = TRUE)
+
 VlnPlot(scData, features ="percent_mito") + ggtitle("Mitochondrial percentage vs ident") + NoLegend()
 FeaturePlot(scData, features="percent_mito", label = TRUE)
-VlnPlot(scData, features ="percent_ribo") + ggtitle("Ribosomal percentage vs ident") + NoLegend()
-FeaturePlot(scData, features="percent_mito", label = TRUE)
-if (ezIsSpecified(param$controlSeqs)) {
+
+VlnPlot(scData, features ="percent_riboprot") + ggtitle("Ribosomal protein percentage vs ident") + NoLegend()
+FeaturePlot(scData, features="percent_riboprot", label = TRUE)
+
+```
+
+```{r, fig.width=6, fig.height=6, eval=!is.null(scData@meta.data$DecontX_contFrac)}
+VlnPlot(scData, features ="DecontX_contFrac", y.max=1) + ggtitle("DecontX ambient fraction vs ident") + NoLegend()
+FeaturePlot(scData, features="DecontX_contFrac", label = TRUE)
+```
+
+```{r, fig.width=6, fig.height=6, eval=!is.null(scData@meta.data$SoupX_contFrac)}
+VlnPlot(scData, features ="SoupX_contFrac", y.max=1) + ggtitle("SoupX ambient fraction vs ident") + NoLegend()
+FeaturePlot(scData, features="SoupX_contFrac", label = TRUE)
+
+```
+
+```{r, fig.width=6, fig.height=6, eval=!is.null(scData@meta.data$negLog10CellPValue)}
+VlnPlot(scData, features ="negLog10CellPValue") + ggtitle("negative log10 Cell PValue") + NoLegend()
+FeaturePlot(scData, features="negLog10CellPValue", label = TRUE)
+
+```
+
+
+```{r, fig.width=6, fig.height=6, eval=ezIsSpecified(param$controlSeqs)}
   genesToPlot <- gsub("_", "-", param$controlSeqs)
   genesToPlot <- intersect(genesToPlot, rownames(scData))
   FeaturePlot(scData, genesToPlot) + NoLegend()
-}
 ```
 
 #### Cluster resolution 
@@ -251,10 +288,9 @@ cat("We found positive markers that defined clusters compared to all other cells
 #### Expression differences of cluster marker genes
 
 ```{r pos markers}
-posMarkers = read_tsv("pos_markers.tsv")
-posMarkers$cluster = as.factor(posMarkers$cluster)
+posMarkers$cluster = as.factor(as.integer(posMarkers$cluster))
 posMarkers$gene = as.factor(posMarkers$gene)
-ezInteractiveTableRmd(posMarkers, digits=4)
+ezInteractiveTableRmd(data.frame(posMarkers), digits=4)
 ```
 
 ### Marker plots
@@ -292,7 +328,7 @@ enrichrTable <- tibble(Cluster=names(genesPerCluster),
                          "# of posMarkers"=lengths(genesPerCluster),
                          "Enrichr link"=enrichrCalls)
 kable(enrichrTable, format="html", escape=FALSE,
-        caption=paste0("GeneSet enrichment: genes with pvalue ", pvalue_allMarkers)) %>%
+        caption=paste0("GeneSet enrichment")) %>%
 kable_styling("striped", full_width = F, position = "left")
 ```
 
@@ -310,15 +346,16 @@ singler.results.single <- singler.results$singler.results.single
 singler.results.cluster <- singler.results$singler.results.cluster
 singler.single.labels <- singler.results.single$labels
 singler.cluster.labels<- singler.results.cluster$labels[match(Idents(scData), rownames(singler.results.cluster))]
-var_height = length(unique(singler.results.single))*0.7
+var_height = shrinkToRange(length(unique(singler.single.labels))*0.5, c(6, 20))
 ```
 
-```{r singler ScoreHeatmap,  eval= !is.null(singler.results), fig.height= var_height, fig.width=8, results='asis'}
+```{r singler ScoreHeatmap,  eval= !is.null(singler.results), fig.height=var_height, fig.width=10, results='asis'}
 cat("The two heatmaps below display the scores for all individual cells (left) and each original cluster (right) across all reference labels, which allows users to inspect the confidence of the predicted labels across the dataset. The bar Labels on the top shows the actual assigned label.\n")
 cat("\n")
-plotScoreHeatmap(singler.results.single)
-plotScoreHeatmap(singler.results.cluster, clusters=rownames(singler.results.cluster))
+plotScoreHeatmap(singler.results.single) #, treeheight_row=0) ... maybe treeheight_row=0 caused heatmaps not showing up
+plotScoreHeatmap(singler.results.cluster, show_colnames = TRUE) #,  treeheight_row=0)
 ```
+
 
 
 ```{r singler labelsUMAP,  eval= !is.null(singler.results), fig.width=12, results='asis'}
@@ -372,7 +409,7 @@ colnames(assignmentTable)[2] <- "geneSet"
 tras_cells.AUC <- t(assay(cells.AUC))
 full.labels <- colnames(tras_cells.AUC)[max.col(tras_cells.AUC)]
 tab <- table(full.labels, Idents(scData))
-var_height <- nrow(tab)*0.5
+var_height <- shrinkToRange(nrow(tab)*0.5, c(6,16))
 ```
 
 ```{r assigments, eval= !is.null(cells.AUC), results='asis'}
@@ -395,7 +432,7 @@ cat("2) The t-SNE can be colored based on the AUC scores. To highlight the clust
 cat('\n')
 cat("3) The last TSNE represents the AUC scores values. The darker a cell is the higher AUC score it obtained, i.e. the cell is more enriched in that cell type.")
 cat('\n')
-cellsTsne <- scData@reductions$tsne@cell.embeddings
+cellsUmap <- scData@reductions$umap@cell.embeddings
 minAucThresh = 0.2
 filtered_cells.AUC <- cells.AUC[rowSums(assay(cells.AUC) >= minAucThresh)>0, ]
 maxAucScore = rowMax(assay(filtered_cells.AUC))
@@ -404,7 +441,7 @@ nPlots = 50
 ```
 
 ```{r tsne and AUC hist, eval= !is.null(cells.AUC), fig.height=5, fig.width=5}
-AUCell_plotTSNE(tSNE=cellsTsne,
+AUCell_plotTSNE(tSNE=cellsUmap,
                 cellsAUC=filtered_cells.AUC[head(scoreOrder, nPlots), ],
                  plots = c("histogram", "binaryAUC"))
 ```
@@ -415,7 +452,7 @@ AUCell_plotTSNE(tSNE=cellsTsne,
 The iSEE (Interactive SummarizedExperiment Explorer) explorer provides a general visual interface for exploring single cell data. iSEE allows users to simultaneously visualize multiple aspects of a given data set, including experimental data, metadata, and analysis results. Dynamic linking and point selection facilitate the flexible exploration of interactions between different data aspects.
  [Rue-Albrecht K, Marini F, Soneson C, Lun ATL (2018). “iSEE: Interactive SummarizedExperiment Explorer.” F1000Research, 7, 741. doi: 10.12688/f1000research.14966.1.]
 
-The iSEE shiny app can be accessed through this link [iSEE explorer](`r {lastProjectDigit = stringr::str_sub( sub("\\/.*", "", output$getColumn("SC Cluster Report")), start = -1); paste0("http://fgcz-shiny.uzh.ch/fgcz_iSEE", lastProjectDigit, "/?data=",output$getColumn("SC Cluster Report"),"/sce_h5")}`)
+The iSEE shiny app can be accessed through this link [iSEE explorer](`r {paste0("http://fgcz-shiny.uzh.ch/fgcz_iSEE", sample(0:9, size=1), "/?data=",output$getColumn("SC Cluster Report"),"/sce_h5")}`)
 
 ### Data availability
 
@@ -425,16 +462,12 @@ Use the xls file to manually label or relabel the clusters based on the result o
 [clusterInfoFile.xlsx](clusterInfoFile.xlsx)
 
 
-##### Mean expression of every gene across the cells in each cluster
-
-[geneMeans](gene_means.tsv)
-
 ##### Positive markers of each cluster
 
-[posMarkers](pos_markers.tsv)
+[posMarkers](posMarkers.xlsx)
 
 
-##### The final Seurat object is [here](scData.rds)
+##### The final Seurat object is [scData.rds](scData.rds)
 
 ### Parameters
 ```{r report parameters, echo=FALSE}
