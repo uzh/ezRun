@@ -142,7 +142,7 @@ subsample <- function(targetDir, param){
   fqFiles = list.files(targetDir, pattern = ".fastq.gz", full.names = TRUE, recursive = TRUE)
   for (fq in fqFiles){
     fqSub = file.path(subDir, basename(fq))
-    cmd = paste("seqtk sample -s 42", fq, param$nReads, "| pigz --fast -p1 >", fqSub)
+    cmd = paste("seqtk sample -s 42 -2", fq, param$nReads, "| pigz --fast -p1 >", fqSub)
     ezSystem(cmd)
   }
   return(subDir)
