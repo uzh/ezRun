@@ -140,7 +140,7 @@ subsample <- function(targetDir, param){
   subDir = paste0(targetDir, "-sub")
   dir.create(subDir)
   fqFiles = list.files(targetDir, pattern = ".fastq.gz", full.names = TRUE, recursive = TRUE)
-  stopifnot(length(fqFiles) <= 4) ## subsample commands below do only work if reads are not split in per-lane files
+  ##stopifnot(length(fqFiles) <= 4) ## subsample commands below do only work if reads are not split in per-lane files
   for (fq in fqFiles){
     fqSub = file.path(subDir, basename(fq))
     cmd = paste("seqtk sample -s 42 -2", fq, param$nReads, "| pigz --fast -p1 >", fqSub)
