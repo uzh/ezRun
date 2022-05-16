@@ -70,6 +70,8 @@ The UMAPs and the barplot below can help us to visualize if the clusters are bal
 <br/><br/>
 
 ```{r UMAP and barplot batch, fig.width=8, fig.height=5}
+if(!('Batch' %in% colnames(scData@meta.data)))
+    scData@meta.data[['Batch']] <- scData@meta.data[['Sample']]
 DimPlot(scData, reduction =  "umap_noCorrected", group.by = "Batch")
 cellIdents_perBatch = data.frame(scData@meta.data[,c("ident_noCorrected", "Batch")])
 barplot = ggplot(data=cellIdents_perBatch, aes(x=cellIdents_perBatch[,1], fill=Batch)) + geom_bar(stat="Count")
