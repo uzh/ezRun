@@ -33,14 +33,14 @@ ezMethodQIIME2 = function(input=NA, output=NA, param=NA,
                                  " -e s/\"SAMPLING_DEPTH\"/", param$sampling_depth, "/g ",
                                  file.path(METAGENOMICS_ROOT,UNIFIED_QIIME2_WORKFLOW_SINGLEEND), 
                                  " > ",
-                                 UNIFIED_QIIME2_WORKFLOW_SINGLEEND)
+                                UNIFIED_QIIME2_WORKFLOW_SINGLEEND)
   if(isPaired){
     updateBatchCmd1 <- paste0("sed -e s/\"TRIM_LEFT\"/", param$trim_left, "/g",
                                 " -e s/\"TRUNC_LEN\"/", param$truncate_len, "/g",
                                 " -e s/\"SAMPLING_DEPTH\"/", param$sampling_depth, "/g ",
                                 file.path(METAGENOMICS_ROOT,UNIFIED_QIIME2_WORKFLOW_PAIREDEND), 
                                 " > ",
-                                UNIFIED_QIIME2_WORKFLOW_PAIREDEND)
+                               UNIFIED_QIIME2_WORKFLOW_PAIREDEND)
   }
   ezSystem(updateBatchCmd1)
   
