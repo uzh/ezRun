@@ -56,7 +56,7 @@ ezMethodQIIME2 = function(input=NA, output=NA, param=NA,
   ezSystem(unzipQZVCmd)
   createDirCmd <- paste("echo -e './dada2_denoising_stats.qzv.zip.folder\n./dada2_rep_set.qzv.zip.folder\n./demux_seqs.qzv.zip.folder\n./table.qzv.zip.folder' > list_of_folders_of_interest")
   ezSystem(createDirCmd)
-  moveOUTCmd <- paste("cat list_of_folders_of_interest | while read -r line; do find $line -name 'data' -exec cp -r {} $line/ \;; done")
+  moveOUTCmd <- paste("cat list_of_folders_of_interest | while read -r line; do find $line -name 'data' -exec cp -r {} $line/", "\\", ";", "; done")
   ezSystem(moveOUTCmd)
   
   return("Success")
