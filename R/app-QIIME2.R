@@ -66,7 +66,7 @@ ezMethodQIIME2 = function(input=NA, output=NA, param=NA,
 ##' @templateVar method ezMethodQIIME2()
 ##' @templateVar htmlArg )
 ##' @description Use this reference class to run 
-EzAppMothur <-
+EzAppQIIME2 <-
   setRefClass("ezMethodQIIME2",
               contains = "EzApp",
               methods = list(
