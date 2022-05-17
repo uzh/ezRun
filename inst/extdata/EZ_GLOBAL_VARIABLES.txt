@@ -69,12 +69,14 @@ SMRT_CMD="SMRT=/misc/ngseq8/opt/smrtanalysis.2.3.0/install/smrtanalysis_2.3.0.14
 # SGE_ROOT="/usr/local/ge62"
 
 
-## METAGENONMICS (MOTHUR-UPARSE)
+## METAGENONMICS (MOTHUR-UPARSE-QIIME)
 METAGENOMICS_ROOT="/usr/local/ngseq/templateFiles/"
 UNIFIED_MOTHUR_WORKFLOW="unifiedMothurWorkflow.batch"
 UNIFIED_MOTHUR_WORKFLOW_PART1="unifiedMothurWorkflow.Part1.batch"
 UNIFIED_MOTHUR_WORKFLOW_PART2A="unifiedMothurWorkflow.Part2A.batch"
 UNIFIED_MOTHUR_WORKFLOW_PART2B="unifiedMothurWorkflow.Part2B.batch"
+UNIFIED_QIIME2_WORKFLOW_SINGLEEND=unifiedQIIME2Workflow.singleend.batch
+UNIFIED_QIIME2_WORKFLOW_PAIREDEND=unifiedQIIME2Workflow.pairedend.batch
 V4_REGION_START_IN_SILVA_FASTA = "11894"
 V4_REGION_END_IN_SILVA_FASTA = "25319"
 USEARCH_TEMPLATE_SCRIPT="uparseTemplate.sh"
