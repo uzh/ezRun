@@ -310,7 +310,7 @@ DoHeatmap(scData, features=unique(genesToPlot))
 DotPlot(scData, features=genesToPlot) + coord_flip()
 ```
 
-```{r heatmap, fig.width=12, fig.height=shrinkToRange(length(param$controlSeqs)/5, 6, 12)}
+```{r plot of user genes, fig.width=12, fig.height=shrinkToRange(length(param$controlSeqs)/5, 6, 12)}
 genesToPlot <- intersect(param$controlSeqs, rownames(scData))
 
 DoHeatmap(scData, features=unique(genesToPlot))
