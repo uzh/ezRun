@@ -22,6 +22,7 @@ ezMethodQIIME2 = function(input=NA, output=NA, param=NA,
   updateBatchCmd1 <- paste0("sed -e s/\"TRIM_LEFT\"/", param$trim_left, "/g",
                                  " -e s/\"TRUNC_LEN\"/", param$truncate_len, "/g",
                                  " -e s/\"SAMPLING_DEPTH\"/", param$sampling_depth, "/g ",
+                                 " -e s/\"DATASET\"/", dataset, "/g",
                                  file.path(METAGENOMICS_ROOT,UNIFIED_QIIME2_WORKFLOW_SINGLEEND), 
                                  " > ",
                                UNIFIED_QIIME2_WORKFLOW_SINGLEEND)
@@ -29,6 +30,7 @@ ezMethodQIIME2 = function(input=NA, output=NA, param=NA,
     updateBatchCmd1 <- paste0("sed -e s/\"TRIM_LEFT\"/", param$trim_left, "/g",
                                 " -e s/\"TRUNC_LEN\"/", param$truncate_len, "/g",
                                 " -e s/\"SAMPLING_DEPTH\"/", param$sampling_depth, "/g ",
+                                " -e s/\"DATASET\"/", dataset, "/g",
                                 file.path(METAGENOMICS_ROOT,UNIFIED_QIIME2_WORKFLOW_PAIREDEND), 
                                 " > ",
                                UNIFIED_QIIME2_WORKFLOW_PAIREDEND)
@@ -40,6 +42,7 @@ ezMethodQIIME2 = function(input=NA, output=NA, param=NA,
     cmdQIIME2 = paste("sh",UNIFIED_QIIME2_WORKFLOW_PAIREDEND)
   }
   ezSystem(cmdQIIME2)
+
   return("Success")
 }
 
