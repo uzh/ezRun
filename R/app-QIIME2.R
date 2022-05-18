@@ -19,15 +19,6 @@ ezMethodQIIME2 = function(input=NA, output=NA, param=NA,
     file2PathInDataset <- input$getFullPaths("Read2")
   }
   
-  manifestCmd <- paste("awk '{print $1'\t'$2}'", dataset, "| tail -n +2 | sed '1i sample-id\tabsolute-filepath' > manifest.tsv")
-  if(isPaired){
-    manifestCmd <- paste("awk '{print $1'\t'$2'\t'$4}'", dataset, "| tail -n +2 | sed '1i sample-id\tforward-absolute-filepath\treverse-absolute-filepath' > manifest.tsv")
-  }
-  ezSystem(manifestCmd)
-  
-  sampleMetadataCmd <- paste("awk '{print $1'\t'$3}'", dataset, "| tail -n +2 | sed '1i sample-id\tGroup' > sample_metadata.tsv")
-  ezSystem(sampleMetadataCmd)
-  
   updateBatchCmd1 <- paste0("sed -e s/\"TRIM_LEFT\"/", param$trim_left, "/g",
                                  " -e s/\"TRUNC_LEN\"/", param$truncate_len, "/g",
                                  " -e s/\"SAMPLING_DEPTH\"/", param$sampling_depth, "/g ",
@@ -49,16 +40,6 @@ ezMethodQIIME2 = function(input=NA, output=NA, param=NA,
     cmdQIIME2 = paste("sh",UNIFIED_QIIME2_WORKFLOW_PAIREDEND)
   }
   ezSystem(cmdQIIME2)
-  
-  ZipQZVCmd <- paste("for i in $(ls *.qzv); do mv $i ${i}.zip; done")
-  ezSystem(ZipQZVCmd)
-  unzipQZVCmd <- paste("for i in $(ls *.zip); do unzip $i -d $i.folder; done")
-  ezSystem(unzipQZVCmd)
-  createDirCmd <- paste("echo -e './dada2_denoising_stats.qzv.zip.folder\n./dada2_rep_set.qzv.zip.folder\n./demux_seqs.qzv.zip.folder\n./table.qzv.zip.folder' > list_of_folders_of_interest")
-  ezSystem(createDirCmd)
-  moveOUTCmd <- paste("cat list_of_folders_of_interest | while read -r line; do find $line -name 'data' -exec cp -r {} $line/", "\\", ";", "; done")
-  ezSystem(moveOUTCmd)
-  
   return("Success")
 }
 
