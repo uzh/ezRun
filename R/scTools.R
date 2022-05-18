@@ -292,18 +292,18 @@ createGeneSets <- function(species, tissue) {
   return(geneSetList)
 }
 
-cellsLabelsWithSingleR <- function(counts, current_clusters, species) {
+cellsLabelsWithSingleR <- function(logCounts, current_clusters, species) {
   library(SingleR)
   if(species == "Human"){
     reference <- celldex::HumanPrimaryCellAtlasData()
-    singler.results.single <- SingleR(test = counts, ref = reference, 
+    singler.results.single <- SingleR(test = logCounts, ref = reference, 
                                       labels = reference$label.main, method="single", de.method = "wilcox")
-    singler.results.cluster <- SingleR(test = counts, ref = reference, 
+    singler.results.cluster <- SingleR(test = logCounts, ref = reference, 
                                        labels = reference$label.main, clusters=current_clusters, de.method = "wilcox")
   }else {
     reference <- celldex::MouseRNAseqData()
-    singler.results.single <- SingleR(test = counts, ref = reference, labels = reference$label.main)
-    singler.results.cluster <- SingleR(test = counts, ref = reference, labels = reference$label.main, method="cluster", clusters=current_clusters)
+    singler.results.single <- SingleR(test = logCounts, ref = reference, labels = reference$label.main)
+    singler.results.cluster <- SingleR(test = logCounts, ref = reference, labels = reference$label.main, method="cluster", clusters=current_clusters)
   }
   
   return(list(singler.results.single=singler.results.single, singler.results.cluster=singler.results.cluster))
