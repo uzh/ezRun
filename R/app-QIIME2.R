@@ -20,7 +20,7 @@ ezMethodQIIME2 = function(input=NA, output=NA, param=NA,
     file2PathInDataset <- input$getFullPaths("Read2")
   }
   
-  table_metadata <- ezRead.table(data.frame(input$meta), header = TRUE, sep = "\t", as.is = TRUE, row.names=1, quote = "", skip = 0, comment.char = "", check.names = FALSE)
+  table_metadata <- ezRead.table(as.data.frame(do.call(cbind, dataset)), header = TRUE, sep = "\t", as.is = TRUE, row.names=1, quote = "", skip = 0, comment.char = "", check.names = FALSE)
   
   if (!file.exists("sample_metadata.tsv")) {
     file.create("sample_metadata.tsv")
