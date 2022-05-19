@@ -18,7 +18,8 @@ ezMethodQIIME2 = function(input=NA, output=NA, param=NA,
   if(isPaired){
     file2PathInDataset <- input$getFullPaths("Read2")
   }
-  
+  printdatasetcmd <- paste("echo", dataset)
+  ezSystem(printdatasetcmd)
   updateBatchCmd1 <- paste0("sed -e s/\"TRIM_LEFT\"/", param$trim_left, "/g",
                                  " -e s/\"TRUNC_LEN\"/", param$truncate_len, "/g",
                                  " -e s/\"SAMPLING_DEPTH\"/", param$sampling_depth, "/g ",
