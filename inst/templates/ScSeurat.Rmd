@@ -472,7 +472,7 @@ The iSEE shiny app can be accessed through this link [iSEE explorer](`r {paste0(
 ##### Cluster Infos
 
 Use the xls file to manually label or relabel the clusters based on the result of Singler cell type annotation and the marker genes
-[clusterInfoFile.xlsx](clusterInfoFile.xlsx)
+[clusterInfos.xlsx](clusterInfos.xlsx)
 
 
 ##### Positive markers of each cluster
