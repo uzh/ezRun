@@ -39,6 +39,9 @@ ezMethodQIIME2 = function(input=NA, output=NA, param=NA,
     manifest <- dataset[, 2, drop = FALSE]
     manifest$sample_id <- rownames(manifest)
     manifest <- manifest[,c(2,1)]
+    extra_col <- paste("/srv/gstore/projects", manifest[,2], sep="/")
+    manifest <- cbind(manifest, extra_col)
+    manifest <- manifest[,c(1,3)]
     setnames(manifest, "sample_id", "sample-id")
     setnames(manifest, colnames(manifest)[2], "absolute-filepath")
     write_tsv(manifest, file = "manifest.tsv")
@@ -46,6 +49,10 @@ ezMethodQIIME2 = function(input=NA, output=NA, param=NA,
       manifest <- dataset[, c(2,3)]
       manifest$sample_id <- rownames(manifest)
       manifest <- manifest[,c(3,1,2)]
+      extra_col1 <- paste("/srv/gstore/projects", manifest[,2], sep="/")
+      extra_col2 <- paste("/srv/gstore/projects", manifest[,3], sep="/")
+      manifest <- cbind(manifest, extra_col1, extra_col2)
+      manifest <- manifest[,c(1,4,5)]
       setnames(manifest, "sample_id", "sample-id")
       setnames(manifest, colnames(manifest)[2], "forward-absolute-filepath")
       setnames(manifest, colnames(manifest)[3], "reverse-absolute-filepath")
