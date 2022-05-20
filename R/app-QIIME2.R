@@ -11,6 +11,7 @@ ezMethodQIIME2 = function(input=NA, output=NA, param=NA,
   
   require(rmarkdown)
   require(data.table)
+  require(here)
   dataset = input$meta
   sampleNames = input$getNames() 
   isPaired <- param$paired
@@ -20,11 +21,9 @@ ezMethodQIIME2 = function(input=NA, output=NA, param=NA,
     file2PathInDataset <- input$getFullPaths("Read2")
   }
   
-  table_metadata <- ezRead.table(as.data.frame(do.call(cbind, dataset)), header = TRUE, sep = "\t", as.is = TRUE, row.names=1, quote = "", skip = 0, comment.char = "", check.names = FALSE)
-  
   if (!file.exists("sample_metadata.tsv")) {
     file.create("sample_metadata.tsv")
-    sample_metadata <- table_metadata[, 2, drop = FALSE]
+    sample_metadata <- dataset[, 2, drop = FALSE]
     sample_metadata$sample_id <- rownames(sample_metadata)
     sample_metadata <- sample_metadata[,c(2,1)]
     setnames(sample_metadata, "sample_id", "sample-id")
@@ -37,7 +36,7 @@ ezMethodQIIME2 = function(input=NA, output=NA, param=NA,
   if (!file.exists("manifest.tsv")) {
   
     file.create("manifest.tsv")
-    manifest <- table_metadata[, 1, drop = FALSE]
+    manifest <- dataset[, 1, drop = FALSE]
     manifest$sample_id <- rownames(manifest)
     manifest <- manifest[,c(2,1)]
     setnames(manifest, "sample_id", "sample-id")
