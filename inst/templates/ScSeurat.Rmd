@@ -310,11 +310,15 @@ DoHeatmap(scData, features=unique(genesToPlot))
 DotPlot(scData, features=genesToPlot) + coord_flip()
 ```
 
-```{r plot of user genes, fig.width=12, fig.height=shrinkToRange(length(param$controlSeqs)/5, c(6, 12))}
+```{r plot of user genes, fig.width=12, fig.height=shrinkToRange(length(param$controlSeqs)/5, c(6, 12)), eval=ezIsSpecified(param$controlSeqs)}
 genesToPlot <- intersect(param$controlSeqs, rownames(scData))
 
-DoHeatmap(scData, features=unique(genesToPlot))
-DotPlot(scData, features=genesToPlot) + coord_flip()
+if (length(genesToPlot) > 0){
+  DoHeatmap(scData, features=unique(genesToPlot))
+  DotPlot(scData, features=genesToPlot) + coord_flip()
+} else { 
+  cat("controlseqs not found")
+}
 ```
 
 
@@ -468,7 +472,7 @@ The iSEE shiny app can be accessed through this link [iSEE explorer](`r {paste0(
 ##### Cluster Infos
 
 Use the xls file to manually label or relabel the clusters based on the result of Singler cell type annotation and the marker genes
-[clusterInfoFile.xlsx](clusterInfoFile.xlsx)
+[clusterInfos.xlsx](clusterInfos.xlsx)
 
 
 ##### Positive markers of each cluster
