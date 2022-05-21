@@ -484,7 +484,7 @@ Use the xls file to manually label or relabel the clusters based on the result o
 
 ### Parameters
 ```{r report parameters, echo=FALSE}
-param[c("npcs","pcGenes","resolution", "SCT.regress", "DE.method", "cellsFraction", "nUMIs", "nmad")]
+param[c("npcs","pcGenes","resolution", "SCT.regress", "DE.method", "cellsFraction", "nUMIs", "nmad", "normalize")]
 ```
 
 
