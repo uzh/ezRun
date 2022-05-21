@@ -178,10 +178,12 @@ ezMethodScSeurat <- function(input = NA, output = NA, param = NA,
   }
   scData <- switch(param$normalize,
                    "SCTransform"={
+                     defaultAssay = "SCT"
                      scData <- SCTransform(scData, vars.to.regress = vars.to.regress, seed.use = 38, verbose = FALSE)
                      scData #FindVariableFeatures(scData, selection.method = "vst", verbose = FALSE)
                      },
                    "LogNormalize"={
+                     defaultAssay = "RNA"
                      scData <- NormalizeData(scData, normalization.method = "LogNormalize", scale.factor=10000, verbose=FALSE)
                      scData <- FindVariableFeatures(scData, selection.method = "vst", verbose = FALSE)
                      ScaleData(scData, vars.to.regress = vars.to.regress, verbose=FALSE, do.scale=FALSE)
@@ -243,9 +245,7 @@ ezMethodScSeurat <- function(input = NA, output = NA, param = NA,
   
 
   #object to be used in isee
-  #TODO: remove unnecesary dietseurat call when the bug in Seurat is fixed
-  scData_diet = DietSeurat(scData, dimreducs = c("pca", "tsne", "umap"))
-  sce <- scData_diet %>% scanalysis::seurat_to_sce(default_assay = "SCT")
+  sce <- scData %>% DietSeurat(dimreducs = c("pca", "tsne", "umap")) %>% scanalysis::seurat_to_sce(default_assay = defaultAssay)
   saveHDF5SummarizedExperiment(sce, dir = "sce_h5")
   
   makeRmdReport(param=param, output=output, scData=scData, allCellsMeta=allCellsMeta, rmdFile = "ScSeurat.Rmd", reportTitle = paste0(param$name, ": ",  input$getNames()))
