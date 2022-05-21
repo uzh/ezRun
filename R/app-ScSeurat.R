@@ -86,6 +86,10 @@ EzAppScSeurat <-
                       Type = "charVector",
                       DefaultValue = "",
                       Description = "control sequences to add"
+                    ),
+                    normalize = ezFrame(
+                      Type = "character", DefaultValue = "SCTransform",
+                      Description = "Normalization method; SCTransform or LogNormalize"
                     )
                   )
                 }
@@ -108,7 +112,13 @@ ezMethodScSeurat <- function(input = NA, output = NA, param = NA,
   
   BPPARAM <- MulticoreParam(workers = param$cores)
   register(BPPARAM)
-
+  require(future)
+  plan("multicore", workers = param$cores)
+  set.seed(38)
+  future.seed = TRUE
+  options(future.rng.onMisuse="ignore")
+  options(future.globals.maxSize = param$ram*1024^3)
+  
   cwd <- getwd()
   setwdNew(basename(output$getColumn("SC Cluster Report")))
   on.exit(setwd(cwd), add = TRUE)
@@ -127,7 +137,7 @@ ezMethodScSeurat <- function(input = NA, output = NA, param = NA,
   }
   rownames(cts) <- rownames(featInfo) <- gsub("_", "-", uniquifyFeatureNames(ID=featInfo$ensemblID, names=featInfo$name))
   ## underscores in genenames will become dashes
-  scData <- CreateSeuratObject(counts = cts[rowSums2(cts >0) >0, ],)
+  scData <- CreateSeuratObject(counts = cts[rowSums2(cts >0) >0, ])
   scData$Condition <- input$getColumn("Condition")
   scData@meta.data$Sample <- input$getNames()
   scData[["RNA"]] <- AddMetaData(object = scData[["RNA"]], metadata = featInfo[rownames(scData), ])
@@ -166,14 +176,18 @@ ezMethodScSeurat <- function(input = NA, output = NA, param = NA,
   } else {
     vars.to.regress <- NULL
   }
-  scData <- SCTransform(scData, vars.to.regress = vars.to.regress, seed.use = 38, verbose = FALSE)
-  require(future)
-  plan("multicore", workers = param$cores)
-  set.seed(38)
-  future.seed = TRUE
-  options(future.rng.onMisuse="ignore")
-  options(future.globals.maxSize = param$ram*1024^3)
-  scData <- FindVariableFeatures(scData, selection.method = "vst", verbose = FALSE)
+  scData <- switch(param$normalize,
+                   "SCTransform"={
+                     scData <- SCTransform(scData, vars.to.regress = vars.to.regress, seed.use = 38, verbose = FALSE)
+                     scData #FindVariableFeatures(scData, selection.method = "vst", verbose = FALSE)
+                     },
+                   "LogNormalize"={
+                     scData <- NormalizeData(scData, normalization.method = "LogNormalize", scale.factor=10000, verbose=FALSE)
+                     scData <- FindVariableFeatures(scData, selection.method = "vst", verbose = FALSE)
+                     ScaleData(scData, vars.to.regress = vars.to.regress, verbose=FALSE, do.scale=FALSE)
+                   }
+  )
+  #scData <- FindVariableFeatures(scData, selection.method = "vst", verbose = FALSE)
   scData <- RunPCA(object=scData, npcs = param$npcs, verbose=FALSE)
   scData <- RunTSNE(object = scData, reduction = "pca", dims = 1:param$npcs)
   scData <- RunUMAP(object=scData, reduction = "pca", dims = 1:param$npcs)
