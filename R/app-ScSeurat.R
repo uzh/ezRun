@@ -179,13 +179,13 @@ ezMethodScSeurat <- function(input = NA, output = NA, param = NA,
   scData <- switch(param$normalize,
                    "SCTransform"={
                      defaultAssay = "SCT"
-                     scData <- SCTransform(scData, vars.to.regress = vars.to.regress, seed.use = 38, verbose = FALSE)
+                     scData <- SCTransform(scData, vst.flavor=2, vars.to.regress = vars.to.regress, seed.use = 38, verbose = FALSE)
                      scData #FindVariableFeatures(scData, selection.method = "vst", verbose = FALSE)
                      },
                    "LogNormalize"={
                      defaultAssay = "RNA"
                      scData <- NormalizeData(scData, normalization.method = "LogNormalize", scale.factor=10000, verbose=FALSE)
-                     scData <- FindVariableFeatures(scData, selection.method = "vst", verbose = FALSE)
+                     scData <- FindVariableFeatures(scData, selection.method = "vst", verbose = FALSE, nfeatures=3000)
                      ScaleData(scData, vars.to.regress = vars.to.regress, verbose=FALSE, do.scale=FALSE)
                    }
   )
