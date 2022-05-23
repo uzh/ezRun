@@ -300,26 +300,36 @@ ezMethodSubsampleFastq <- function(input = NA, output = NA, param = NA, n = 1e6)
     }
     output$dataRoot <- NULL
   }
-  nSubsampled = ifelse(input$getColumn("Read Count") < n, input$getColumn("Read Count"), n)
-  output$setColumn("Read Count", nSubsampled)
+  output$setColumn("Read Count", ifelse(input$getColumn("Read Count") < n, 
+                                        input$getColumn("Read Count"), 
+                                        n))
 
   dataset <- input$meta
   samples <- rownames(dataset)
   lapply(samples, function(sm, input, output, param, n) {
-    fl <- input$getFullPaths("Read1")[sm]
-    f1 <- FastqSampler(fl, n = n, ordered = TRUE)
-    set.seed(123L)
-    p1 <- yield(f1)
-    close(f1)
-    writeFastq(p1, file = output$getColumn("Read1")[sm])
+    subsampleFastqFile(input$getFullPaths("Read1")[sm],
+                      output$getColumn("Read1")[sm],
+                      nReads=n)
     if (param$paired) {
-      fl <- input$getFullPaths("Read2")[sm]
-      f1 <- FastqSampler(fl, n = n, ordered = TRUE)
-      set.seed(123L)
-      p1 <- yield(f1)
-      close(f1)
-      writeFastq(p1, file = output$getColumn("Read2")[sm])
+      subsampleFastqFile(input$getFullPaths("Read2")[sm],
+                        output$getColumn("Read2")[sm],
+                        nReads=n)
     }
   }, input = input, output = output, param = param, n)
   return(output)
+}
+
+
+subsampleFastqFile <- function(inFile, outFile, nReads, seed=123L){
+  
+  library(ShortRead)
+  fqs <- FastqSampler(inFile, n = nReads, ordered = TRUE)
+  set.seed(seed)
+  ssReads <- yield(fqs)
+  close(fqs)
+  writeFastq(ssReads, file = outFile)
+  ## seqtk implementation
+  # cmd = paste("seqtk sample -s 42", inFile, nReads, "| pigz --fast -p1 >", outFile)
+  # ezSystem(cmd)
+  return(invisible(outFile))
 }

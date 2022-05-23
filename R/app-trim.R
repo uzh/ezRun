@@ -59,13 +59,17 @@ ezMethodFastpTrim <- function(input = NA, output = NA, param = NA) {
   }
 
   if (param$subsampleReads > 1 || param$nReads > 0) {
-    input <- ezMethodSubsampleReads(input = input, param = param)
-    inputRead1 <- input$getFullPaths("Read1")
-    defer(file.remove(inputRead1))
-    if (param$paired) {
-      inputRead2 <- input$getFullPaths("Read2")
-      defer(file.remove(inputRead2))
+    if (param$subsampleReads > 1 && param$nReads > 0){
+      stop("can not have subsampleReads and nReads")
     }
+    totalReads <- as.numeric(input$getColumn("Read Count"))
+    if (param$nReads > 0) {
+      nReads <- min(param$nReads, totalReads)
+    }
+    if (param$subsampleReads > 1){
+      nReads <- as.integer(1 / param$subsampleReads * totalReads)
+    }
+    input <- ezMethodSubsampleFastq(input, param=param, n=nReads) 
   }
 
   ## fastp
@@ -152,7 +156,7 @@ ezMethodFastpTrim <- function(input = NA, output = NA, param = NA) {
     "--max_len1", param$max_len1,
     "--max_len2", param$max_len2,
     # polyX
-    "--disable_trim_poly_g", "--trim_poly_x", "--poly_x_min_len", param$poly_x_min_len,
+    "--trim_poly_x", "--poly_x_min_len", param$poly_x_min_len,
     # read length filtering
     "--length_required", param$length_required,
     # compression output
@@ -206,62 +210,3 @@ EzAppFastp <-
     )
   )
 
-### -----------------------------------------------------------------
-### ezMethodSubsampleReads: subsample fastq
-###
-ezMethodSubsampleReads <- function(input = NA, output = NA, param = NA) {
-  nYield <- 1e5
-  require(ShortRead)
-  if (!is(output, "EzDataset")) {
-    output <- input$copy()
-    subsampleFiles <- sub(".fastq.*", "-subsample.fastq", basename(input$getColumn("Read1")))
-    output$setColumn(name = "Read1", values = file.path(getwd(), subsampleFiles))
-    if (param$paired) {
-      subsampleFiles <- sub(".fastq.*", "-subsample.fastq", basename(input$getColumn("Read2")))
-      output$setColumn(name = "Read2", values = file.path(getwd(), subsampleFiles))
-    }
-    output$dataRoot <- NULL
-  }
-  totalReads <- as.numeric(input$getColumn("Read Count"))
-  if (param$nReads > 0) {
-    # subsampleFactor = shrinkToRange(totalReads / param$nReads, c(1, Inf))
-    if (param$subsampleReads > 1) {
-      message("subsampleReads setting will be overwritten by nReads parameter")
-    }
-    nReads <- pmin(param$nReads, totalReads)
-  } else {
-    nReads <- as.integer(1 / param$subsampleReads * totalReads)
-  }
-  for (i in 1:length(input$getFullPaths("Read1"))) {
-    idxMaster <- sample.int(size = nReads[i], n = totalReads[i])
-    fullFile <- input$getFullPaths("Read1")[i]
-    subFile <- output$getColumn("Read1")[i]
-    idx <- idxMaster
-    fqs <- FastqStreamer(fullFile, n = nYield)
-    while (length(x <- yield(fqs))) {
-      use <- idx <= length(x)
-      writeFastq(x[idx[use]], file = sub(".gz$", "", subFile), mode = "a", full = F, compress = F)
-      idx <- idx[!use] - length(x)
-    }
-    close(fqs)
-    if (grepl(".gz$", subFile)) {
-      ezSystem(paste("pigz -p 2 ", sub(".gz$", "", subFile)))
-    }
-    if (param$paired) {
-      fullFile <- input$getFullPaths("Read2")[i]
-      subFile <- output$getColumn("Read2")[i]
-      idx <- idxMaster
-      fqs <- FastqStreamer(fullFile, n = nYield)
-      while (length(x <- yield(fqs))) {
-        use <- idx <= length(x)
-        writeFastq(x[idx[use]], file = sub(".gz$", "", subFile), mode = "a", full = F, compress = F)
-        idx <- idx[!use] - length(x)
-      }
-      close(fqs)
-      if (grepl(".gz$", subFile)) {
-        ezSystem(paste("pigz -p 2 ", sub(".gz$", "", subFile)))
-      }
-    }
-  }
-  return(output)
-}
