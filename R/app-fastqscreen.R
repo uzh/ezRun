@@ -28,6 +28,7 @@ ezMethodFastqScreen <- function(input = NA, output = NA, param = NA,
   
   inputRaw <- ezMethodSubsampleFastq(input = input, param = param, n=param$nReads)
   param$trimAdapter <- TRUE
+  param$nReads <- 0 #prevent second round of subsampling
   inputProc <- ezMethodFastpTrim(input = inputRaw, param = param)
 
   ## map to adapters ----

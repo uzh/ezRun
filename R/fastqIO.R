@@ -327,11 +327,7 @@ subsampleFastqFile <- function(inFile, outFile, nReads, seed=123L){
   set.seed(seed)
   ssReads <- yield(fqs)
   close(fqs)
-  if(file.exists(outFile)){
-    writeFastq(ssReads, file = outFile, mode = 'a')
-  } else {
-    writeFastq(ssReads, file = outFile, mode = 'w')  
-  }
+  writeFastq(ssReads, file = outFile, mode = 'w')  
   ## seqtk implementation
   # cmd = paste("seqtk sample -s 42", inFile, nReads, "| pigz --fast -p1 >", outFile)
   # ezSystem(cmd)
