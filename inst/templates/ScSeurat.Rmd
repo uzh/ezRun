@@ -14,6 +14,19 @@ editor_options:
 Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
 
 
+```{r javascript, echo=FALSE, results='asis'}
+jsFile = system.file("extdata/enrichr.js", package="ezRun", mustWork=TRUE)
+jsCode <- readLines(jsFile)
+cat('<script type="text/javascript">',
+    jsCode,
+    "</script>",
+    sep="\n")
+#invisible(file.copy(from=jsFile, to=basename(jsFile), overwrite=TRUE))
+#cat(paste0("<SCRIPT language=\"JavaScript\" SRC=\"", basename(jsFile), "\"></SCRIPT>"))
+```
+
+
+
 ```{r setup, include=FALSE}
 # input for this report: sce
 library(clustree)
@@ -57,17 +70,6 @@ if (file.exists("cells.AUC.rds")){
 var_height = 1 #This ensures that chunks that use the length of this variable to set the fig size, don't fail.
 ```
 
-
-```{r javascript, echo=FALSE, results='asis'}
-jsFile = system.file("extdata/enrichr.js", package="ezRun", mustWork=TRUE)
-jsCode <- readLines(jsFile)
-cat('<script type="text/javascript">',
-    jsCode,
-    "</script>",
-    sep="\n")
-invisible(file.copy(from=jsFile, to=basename(jsFile), overwrite=TRUE))
-cat(paste0("<SCRIPT language=\"JavaScript\" SRC=\"", basename(jsFile), "\"></SCRIPT>"))
-```
 
 ## Analysis results {.tabset}
 
