@@ -60,6 +60,11 @@ var_height = 1 #This ensures that chunks that use the length of this variable to
 
 ```{r javascript, echo=FALSE, results='asis'}
 jsFile = system.file("extdata/enrichr.js", package="ezRun", mustWork=TRUE)
+jsCode <- readLines(jsFile)
+cat('<script type="text/javascript">',
+    jsCode,
+    "</script>",
+    sep="\n")
 invisible(file.copy(from=jsFile, to=basename(jsFile), overwrite=TRUE))
 cat(paste0("<SCRIPT language=\"JavaScript\" SRC=\"", basename(jsFile), "\"></SCRIPT>"))
 ```
