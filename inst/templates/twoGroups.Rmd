@@ -116,7 +116,7 @@ save(se, file=basename(output$getColumn("Live Report")))
 
 [`r resultFile$resultFile`](`r resultFile$resultFile`)
 
-[Live Report and Visualizations](`r liveReportLink`)
+[Live Report and Visualizations](`r liveReportLink`){target="_blank"}
 
 ### Inspection of significant genes
 

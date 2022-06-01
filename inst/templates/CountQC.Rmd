@@ -115,7 +115,7 @@ if (exists("output") && !is.null(output)){
   liveReportLink = output$getColumn("Live Report")
   result = EzResult(se=rawData)
   result$saveToFile(basename(output$getColumn("Live Report")))
-  cat(paste0("[Live Report and Visualizations](", liveReportLink, ")"), "\n")
+  cat(paste0("[Live Report and Visualizations](", liveReportLink, ")", "{target=\"_blank\"}"), "\n")
 }
 ```
 
