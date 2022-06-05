@@ -96,6 +96,7 @@ ezMethodScSCE <- function(input = NA, output = NA, param = NA,
   # Doublets prediction and removal
   doubletsInfo <- scDblFinder(counts(sce), returnType = "table", clusters=TRUE, BPPARAM = BPPARAM)
   doublets <- rownames(doubletsInfo)[doubletsInfo$type == "real" & doubletsInfo$class == "doublet"]
+  set.seed(38)
   sce <- sce[,setdiff(colnames(sce),doublets)]
 
   # Cells and genes filtering
@@ -123,7 +124,7 @@ ezMethodScSCE <- function(input = NA, output = NA, param = NA,
   # cell types annotation is only supported for Human and Mouse at the moment
   species <- getSpecies(param$refBuild)
   if (species == "Human" | species == "Mouse") {
-    cells_AUC <- cellsLabelsWithAUC(counts(sce), species, param$tissue, nCores = 1)
+    cells_AUC <- cellsLabelsWithAUC(counts(sce), species, param$tissue, BPPARAM=BPPARAM)
     singler.results <- cellsLabelsWithSingleR(counts(sce), sce$ident, species)
   }
  

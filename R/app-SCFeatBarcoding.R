@@ -122,7 +122,7 @@ ezMethodSCFeatBarcoding <- function(input=NA, output=NA, param=NA,
   #cell types annotation is only supported for Human and Mouse at the moment
   species <- getSpecies(param$refBuild)
   if(species == "Human" | species == "Mouse") {
-     cells_AUC <- cellsLabelsWithAUC(GetAssayData(scData.singlet, "counts"), species, param$tissue, nCores = 1)
+     cells_AUC <- cellsLabelsWithAUC(GetAssayData(scData.singlet, "counts"), species, param$tissue, BPPARAM=BPPARAM)
      singler.results <- cellsLabelsWithSingleR(GetAssayData(scData.singlet, "counts"), Idents(scData.singlet), species)
   }
   
