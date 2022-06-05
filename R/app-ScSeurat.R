@@ -86,10 +86,6 @@ EzAppScSeurat <-
                       Type = "charVector",
                       DefaultValue = "",
                       Description = "control sequences to add"
-                    ),
-                    normalize = ezFrame(
-                      Type = "character", DefaultValue = "SCTransform",
-                      Description = "Normalization method; SCTransform or LogNormalize"
                     )
                   )
                 }
@@ -176,19 +172,14 @@ ezMethodScSeurat <- function(input = NA, output = NA, param = NA,
   } else {
     vars.to.regress <- NULL
   }
-  scData <- switch(param$normalize,
-                   "SCTransform"={
-                     defaultAssay = "SCT"
-                     scData <- SCTransform(scData, vst.flavor=2, vars.to.regress = vars.to.regress, seed.use = 38, verbose = FALSE)
-                     scData #FindVariableFeatures(scData, selection.method = "vst", verbose = FALSE)
-                     },
-                   "LogNormalize"={
-                     defaultAssay = "RNA"
-                     scData <- NormalizeData(scData, normalization.method = "LogNormalize", scale.factor=10000, verbose=FALSE)
-                     scData <- FindVariableFeatures(scData, selection.method = "vst", verbose = FALSE, nfeatures=3000)
-                     ScaleData(scData, vars.to.regress = vars.to.regress, verbose=FALSE, do.scale=FALSE)
-                   }
-  )
+  ## generate normalized slots for the RNA assay
+  scData <- NormalizeData(scData, normalization.method = "LogNormalize", scale.factor=10000, verbose=FALSE)
+  scData <- FindVariableFeatures(scData, selection.method = "vst", verbose = FALSE, nfeatures=3000)
+  scData <- ScaleData(scData, vars.to.regress = vars.to.regress, verbose=FALSE, do.scale=FALSE)
+  ## generate the SCT assay
+  scData <- SCTransform(scData, vst.flavor=2, vars.to.regress = vars.to.regress, seed.use = 38, verbose = FALSE)
+  defaultAssay <- "SCT"
+  ## defaultAssay is now SCT
   #scData <- FindVariableFeatures(scData, selection.method = "vst", verbose = FALSE)
   scData <- RunPCA(object=scData, npcs = param$npcs, verbose=FALSE)
   scData <- RunTSNE(object = scData, reduction = "pca", dims = 1:param$npcs)
@@ -200,6 +191,8 @@ ezMethodScSeurat <- function(input = NA, output = NA, param = NA,
   scData$ident <- Idents(scData)
 
   # positive cluster markers
+  ## https://github.com/satijalab/seurat/issues/5321
+  ## https://github.com/satijalab/seurat/issues/1501
   markers <- FindAllMarkers(object=scData, test.use = param$DE.method, only.pos=TRUE)
   ## Significant markers
   markers <- markers[ ,c("gene","cluster","pct.1", "pct.2", "avg_log2FC","p_val_adj")]
