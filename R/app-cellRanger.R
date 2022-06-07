@@ -15,81 +15,82 @@ ezMethodCellRanger <- function(input = NA, output = NA, param = NA) {
   
   #2. Subsample if chosen
   if (ezIsSpecified(param$nReads) && param$nReads > 0)
-     sampleDirs <- sapply(sampleDirs, subsample, param)
+    sampleDirs <- sapply(sampleDirs, subsample, param)
   
   sampleDirs <- normalizePath(sampleDirs)
   sampleDir <- paste(sampleDirs, collapse = ",")
   cellRangerFolder <- str_sub(sampleName, 1, 45) %>% str_c("-cellRanger")
-
-#3.Generate the cellranger command with the required arguments
- switch(param$TenXLibrary,
-    GEX = {
-       #3.1. Obtain GEX the reference
-       refDir <- getCellRangerGEXReference(param)
-       #3.2. Command
-       cmd <- paste(
-      "cellranger count", paste0("--id=", cellRangerFolder),
-      paste0("--transcriptome=", refDir),
-      paste0("--fastqs=", sampleDir),
-      paste0("--sample=", sampleName),
-      paste0("--localmem=", param$ram),
-      paste0("--localcores=", param$cores),
-      paste0("--chemistry=", param$chemistry),
-      paste0("--expect-cells=", param$expectedCells)
-    )
-  },
-  VDJ = {
-    #3.1. Obtain the VDJ reference
-    refDir <- getCellRangerVDJReference(param)
-    #3.2. Command
-    cmd <- paste(
-      "cellranger vdj", paste0("--id=", cellRangerFolder),
-      paste0("--reference=", refDir),
-      paste0("--fastqs=", sampleDir),
-      paste0("--sample=", sampleName),
-      paste0("--localmem=", param$ram),
-      paste0("--localcores=", param$cores)
-    )
-  },
-  FeatureBarcoding = {
-    #3.1. Obtain GEX the reference
-    refDir <- getCellRangerGEXReference(param)
-    
-    #3.2. Locate the Feature sample
-    featureDirs <- getFastqDirs(input, "FeatureDataDir", sampleName)
-    featureName <- gsub(".tar", "", basename(featureDirs))
-    
-    #3.3. Locate the Feature info csv file
-    featureRefFn <- file.path(
-      dirname(featureDirs),
-      str_c(sampleName, "feature_ref.csv", sep = "_")
-    )
-    stopifnot(any(file.exists(featureRefFn)))
-    featureRefFn <- head(featureRefFn[file.exists(featureRefFn)], 1)
-    
-    #3.4. Decompress the sample that contains the antibodies reads if they are in tar format
-    if (all(grepl("\\.tar$", featureDirs)))
-        featureDirs <- deCompress(featureDirs)
-    
-    featureDirs <- normalizePath(featureDirs)
-    
-    #3.5. Create library file that contains the sample and feature dirs location
-    libraryFn <- createLibraryFile(sampleDirs, featureDirs, sampleName, featureName)
-
-    #3.6. Command
-    cmd <- paste(
-      "cellranger count", paste0("--id=", cellRangerFolder),
-      paste0("--transcriptome=", refDir),
-      paste0("--libraries=", libraryFn),
-      paste0("--feature-ref=", featureRefFn),
-      paste0("--localmem=", param$ram),
-      paste0("--localcores=", param$cores),
-      paste0("--chemistry=", param$chemistry),
-      if (ezIsSpecified(param$expectedCells)) {paste0("--expect-cells=", param$expectedCells)},
-      ifelse(ezIsSpecified(param$includeIntrons) && param$includeIntrons, "--include-introns=true", "--include-introns=false")
-    )
-  })
-
+  
+  #3.Generate the cellranger command with the required arguments
+  switch(param$TenXLibrary,
+         GEX = {
+           #3.1. Obtain GEX the reference
+           refDir <- getCellRangerGEXReference(param)
+           #3.2. Command
+           cmd <- paste(
+             "cellranger count", paste0("--id=", cellRangerFolder),
+             paste0("--transcriptome=", refDir),
+             paste0("--fastqs=", sampleDir),
+             paste0("--sample=", sampleName),
+             paste0("--localmem=", param$ram),
+             paste0("--localcores=", param$cores),
+             paste0("--chemistry=", param$chemistry),
+             if (ezIsSpecified(param$expectedCells)) {paste0("--expect-cells=", param$expectedCells)},
+             ifelse(ezIsSpecified(param$includeIntrons) && param$includeIntrons, "--include-introns=true", "--include-introns=false")
+           )
+         },
+         VDJ = {
+           #3.1. Obtain the VDJ reference
+           refDir <- getCellRangerVDJReference(param)
+           #3.2. Command
+           cmd <- paste(
+             "cellranger vdj", paste0("--id=", cellRangerFolder),
+             paste0("--reference=", refDir),
+             paste0("--fastqs=", sampleDir),
+             paste0("--sample=", sampleName),
+             paste0("--localmem=", param$ram),
+             paste0("--localcores=", param$cores)
+           )
+         },
+         FeatureBarcoding = {
+           #3.1. Obtain GEX the reference
+           refDir <- getCellRangerGEXReference(param)
+           
+           #3.2. Locate the Feature sample
+           featureDirs <- getFastqDirs(input, "FeatureDataDir", sampleName)
+           featureName <- gsub(".tar", "", basename(featureDirs))
+           
+           #3.3. Locate the Feature info csv file
+           featureRefFn <- file.path(
+             dirname(featureDirs),
+             str_c(sampleName, "feature_ref.csv", sep = "_")
+           )
+           stopifnot(any(file.exists(featureRefFn)))
+           featureRefFn <- head(featureRefFn[file.exists(featureRefFn)], 1)
+           
+           #3.4. Decompress the sample that contains the antibodies reads if they are in tar format
+           if (all(grepl("\\.tar$", featureDirs)))
+             featureDirs <- deCompress(featureDirs)
+           
+           featureDirs <- normalizePath(featureDirs)
+           
+           #3.5. Create library file that contains the sample and feature dirs location
+           libraryFn <- createLibraryFile(sampleDirs, featureDirs, sampleName, featureName)
+           
+           #3.6. Command
+           cmd <- paste(
+             "cellranger count", paste0("--id=", cellRangerFolder),
+             paste0("--transcriptome=", refDir),
+             paste0("--libraries=", libraryFn),
+             paste0("--feature-ref=", featureRefFn),
+             paste0("--localmem=", param$ram),
+             paste0("--localcores=", param$cores),
+             paste0("--chemistry=", param$chemistry),
+             if (ezIsSpecified(param$expectedCells)) {paste0("--expect-cells=", param$expectedCells)},
+             ifelse(ezIsSpecified(param$includeIntrons) && param$includeIntrons, "--include-introns=true", "--include-introns=false")
+           )
+         })
+  
   #4. Add additional cellranger options if specified
   if (ezIsSpecified(param$cmdOptions)) {
     cmd <- paste(cmd, param$cmdOptions)
@@ -97,7 +98,7 @@ ezMethodCellRanger <- function(input = NA, output = NA, param = NA) {
   
   #5. Execute the command
   ezSystem(cmd)
-
+  
   #6. Delete temp files and rename the final cellranger output folder
   unlink(basename(sampleDirs), recursive = TRUE)
   if (exists("featureDirs")){
@@ -153,18 +154,18 @@ subsample <- function(targetDir, param){
 createLibraryFile <- function(sampleDirs, featureDirs, sampleName, featureName) {
   libraryFn <- tempfile(pattern = "library", tmpdir = ".", fileext = ".csv")
   libraryTb <- tibble(
-  fastqs = c(sampleDirs, featureDirs),
-  sample = c(
-    rep(sampleName, length(sampleDirs)),
-    featureName
-  ),
-  library_type = c(
-    rep("Gene Expression", length(sampleDirs)),
-    rep("Antibody Capture", length(featureDirs))
+    fastqs = c(sampleDirs, featureDirs),
+    sample = c(
+      rep(sampleName, length(sampleDirs)),
+      featureName
+    ),
+    library_type = c(
+      rep("Gene Expression", length(sampleDirs)),
+      rep("Antibody Capture", length(featureDirs))
+    )
   )
- )
- write_csv(libraryTb, libraryFn)
- return(libraryFn)
+  write_csv(libraryTb, libraryFn)
+  return(libraryFn)
 }
 
 computeBamStatsSC = function(bamFile, ram=NULL) {
@@ -207,7 +208,7 @@ getCellRangerGEXReference <- function(param) {
   require(rtracklayer)
   cwd <- getwd()
   on.exit(setwd(cwd), add = TRUE)
-
+  
   if (ezIsSpecified(param$controlSeqs)) {
     refDir <- file.path(getwd(), "10X_customised_Ref")
   } else {
@@ -218,11 +219,11 @@ getCellRangerGEXReference <- function(param) {
       cellRangerBase <- ""
     }
     refDir <- sub(
-        "\\.gtf$", paste0("_10XGEX_SC_", cellRangerBase, "_Index"),
-        param$ezRef["refFeatureFile"]
-      )
+      "\\.gtf$", paste0("_10XGEX_SC_", cellRangerBase, "_Index"),
+      param$ezRef["refFeatureFile"]
+    )
   }
-
+  
   lockFile <- paste0(refDir, ".lock")
   i <- 0
   while (file.exists(lockFile) && i < INDEX_BUILD_TIMEOUT) {
@@ -241,14 +242,14 @@ getCellRangerGEXReference <- function(param) {
     ## we assume the index is built and complete
     return(refDir)
   }
-
+  
   ## we have to build the reference
   setwd(dirname(refDir))
   ezWrite(Sys.info(), con = lockFile)
   on.exit(file.remove(lockFile), add = TRUE)
-
+  
   job <- ezJobStart("10X CellRanger build")
-
+  
   if (ezIsSpecified(param$controlSeqs)) {
     ## make reference genome
     genomeLocalFn <- tempfile(
@@ -257,14 +258,14 @@ getCellRangerGEXReference <- function(param) {
     )
     file.copy(from = param$ezRef@refFastaFile, to = genomeLocalFn)
     writeXStringSet(getControlSeqs(param$controlSeqs),
-      filepath = genomeLocalFn,
-      append = TRUE
+                    filepath = genomeLocalFn,
+                    append = TRUE
     )
     on.exit(file.remove(genomeLocalFn), add = TRUE)
   } else {
     genomeLocalFn <- param$ezRef@refFastaFile
   }
-
+  
   ## make gtf
   gtfFile <- tempfile(
     pattern = "genes", tmpdir = getwd(),
@@ -272,7 +273,7 @@ getCellRangerGEXReference <- function(param) {
   )
   if (ezIsSpecified(param$transcriptTypes)) {
     export.gff2(gtfByTxTypes(param, param$transcriptTypes),
-      con = gtfFile
+                con = gtfFile
     )
   } else {
     file.copy(from = param$ezRef@refFeatureFile, to = gtfFile)
@@ -287,7 +288,7 @@ getCellRangerGEXReference <- function(param) {
     export.gff2(extraGR, con = gtfExtraFn)
     ezSystem(paste("cat", gtfExtraFn, ">>", gtfFile))
   }
-
+  
   cmd <- paste(
     "cellranger mkref",
     paste0("--genome=", basename(refDir)),
@@ -296,9 +297,9 @@ getCellRangerGEXReference <- function(param) {
     paste0("--nthreads=", param$cores)
   )
   ezSystem(cmd)
-
+  
   file.remove(gtfFile)
-
+  
   return(refDir)
 }
 
@@ -306,12 +307,12 @@ getCellRangerVDJReference <- function(param) {
   require(rtracklayer)
   cwd <- getwd()
   on.exit(setwd(cwd), add = TRUE)
-
+  
   refDir <- sub(
     "\\.gtf$", "_10XVDJ_Index",
     param$ezRef["refFeatureFile"]
   )
-
+  
   lockFile <- paste0(refDir, ".lock")
   i <- 0
   while (file.exists(lockFile) && i < INDEX_BUILD_TIMEOUT) {
@@ -330,14 +331,14 @@ getCellRangerVDJReference <- function(param) {
     ## we assume the index is built and complete
     return(refDir)
   }
-
+  
   ## we have to build the reference
   setwd(dirname(refDir))
   ezWrite(Sys.info(), con = lockFile)
   on.exit(file.remove(lockFile), add = TRUE)
-
+  
   job <- ezJobStart("10X CellRanger build")
-
+  
   cmd <- paste(
     "cellranger mkvdjref",
     paste0("--genome=", basename(refDir)),
@@ -345,7 +346,7 @@ getCellRangerVDJReference <- function(param) {
     paste0("--genes=", param$ezRef@refFeatureFile)
   )
   ezSystem(cmd)
-
+  
   return(refDir)
 }
 
@@ -363,18 +364,18 @@ getCellRangerReference <- function(param) {
     )
     file.copy(from = param$ezRef@refFastaFile, to = genomeLocalFn)
     writeXStringSet(getControlSeqs(param$controlSeqs),
-      filepath = genomeLocalFn,
-      append = TRUE
+                    filepath = genomeLocalFn,
+                    append = TRUE
     )
     on.exit(file.remove(genomeLocalFn), add = TRUE)
-
+    
     ## make gtf
     gtfFile <- tempfile(
       pattern = "genes", tmpdir = getwd(),
       fileext = ".gtf"
     )
     on.exit(file.remove(gtfFile), add = TRUE)
-
+    
     file.copy(from = param$ezRef@refFeatureFile, to = gtfFile)
     extraGR <- makeExtraControlSeqGR(param$controlSeqs)
     gtfExtraFn <- tempfile(
@@ -384,7 +385,7 @@ getCellRangerReference <- function(param) {
     on.exit(file.remove(gtfExtraFn), add = TRUE)
     export.gff2(extraGR, con = gtfExtraFn)
     ezSystem(paste("cat", gtfExtraFn, ">>", gtfFile))
-
+    
     ## build the index
     refDir <- file.path(getwd(), "10X_customised_Ref")
     cmd <- paste(
@@ -404,14 +405,14 @@ getCellRangerReference <- function(param) {
         full.names = TRUE
       )
     } else if (param$TenXLibrary == "GEX") {
-        refDirs <- list.files(
+      refDirs <- list.files(
         path = refDir, pattern = "^10X_Ref.*_GEX_",
         full.names = TRUE
-        )
+      )
     } else {
       stop("Unsupported 10X library: ", param$TenXLibrary)
     }
-
+    
     if (length(refDirs) == 0) {
       stop("No 10X_Ref folder found in", refDir)
     }
@@ -429,44 +430,44 @@ getCellRangerReference <- function(param) {
 ##' @description Use this reference class to run
 EzAppCellRanger <-
   setRefClass("EzAppCellRanger",
-    contains = "EzApp",
-    methods = list(
-      initialize = function() {
-        "Initializes the application using its specific defaults."
-        runMethod <<- ezMethodCellRanger
-        name <<- "EzAppCellRanger"
-        appDefaults <<- rbind(
-          TenXLibrary = ezFrame(
-            Type = "charVector",
-            DefaultValue = "GEX",
-            Description = "Which 10X library? GEX or VDJ."
-          ),
-          chemistry = ezFrame(
-            Type = "character",
-            DefaultValue = "auto",
-            Description = "Assay configuration."
-          ),
-          expectedCells = ezFrame(
-              Type = "numeric",
-              DefaultValue = 10000,
-              Description = "Expected number of cells."
-          ),
-          includeIntrons = ezFrame(
-            Type = "logical",
-            DefaultValue = TRUE,
-            Description = "Count reads on introns."
-          ),
-          controlSeqs = ezFrame(
-            Type = "charVector",
-            DefaultValue = "",
-            Description = "control sequences to add"
-          ),
-          bamStats = ezFrame(
-            Type = "logical",
-            DefaultValue = TRUE,
-            Description = "compute per cell alignment stats"
-          )
-        )
-      }
-    )
+              contains = "EzApp",
+              methods = list(
+                initialize = function() {
+                  "Initializes the application using its specific defaults."
+                  runMethod <<- ezMethodCellRanger
+                  name <<- "EzAppCellRanger"
+                  appDefaults <<- rbind(
+                    TenXLibrary = ezFrame(
+                      Type = "charVector",
+                      DefaultValue = "GEX",
+                      Description = "Which 10X library? GEX or VDJ."
+                    ),
+                    chemistry = ezFrame(
+                      Type = "character",
+                      DefaultValue = "auto",
+                      Description = "Assay configuration."
+                    ),
+                    expectedCells = ezFrame(
+                      Type = "numeric",
+                      DefaultValue = 10000,
+                      Description = "Expected number of cells."
+                    ),
+                    includeIntrons = ezFrame(
+                      Type = "logical",
+                      DefaultValue = TRUE,
+                      Description = "Count reads on introns."
+                    ),
+                    controlSeqs = ezFrame(
+                      Type = "charVector",
+                      DefaultValue = "",
+                      Description = "control sequences to add"
+                    ),
+                    bamStats = ezFrame(
+                      Type = "logical",
+                      DefaultValue = TRUE,
+                      Description = "compute per cell alignment stats"
+                    )
+                  )
+                }
+              )
   )
