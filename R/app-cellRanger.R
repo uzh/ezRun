@@ -85,7 +85,8 @@ ezMethodCellRanger <- function(input = NA, output = NA, param = NA) {
       paste0("--localmem=", param$ram),
       paste0("--localcores=", param$cores),
       paste0("--chemistry=", param$chemistry),
-      paste0("--expect-cells=", param$expectedCells)
+      if (ezIsSpecified(param$expectedCells)) {paste0("--expect-cells=", param$expectedCells)},
+      ifelse(ezIsSpecified(param$includeIntrons) && param$includeIntrons, "--include-introns=true", "--include-introns=false")
     )
   })
 
@@ -449,6 +450,11 @@ EzAppCellRanger <-
               Type = "numeric",
               DefaultValue = 10000,
               Description = "Expected number of cells."
+          ),
+          includeIntrons = ezFrame(
+            Type = "logical",
+            DefaultValue = TRUE,
+            Description = "Count reads on introns."
           ),
           controlSeqs = ezFrame(
             Type = "charVector",
