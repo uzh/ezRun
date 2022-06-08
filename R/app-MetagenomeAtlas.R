@@ -35,7 +35,7 @@ ezMethodMetagenomeAtlas = function(input=NA, output=NA, param=NA,
   tx2  <- gsub(pattern = "#  - checkm_tree", replace = "- checkm_tree", x = tx2)
   writeLines(tx2, con="config.yaml")
   #Run
-  ezSystem(paste("atlas run qc --profile cluster --latency-wait 400000 --working-dir ."))
+  ezSystem(paste("atlas run qc --working-dir ."))
   
   #Run
   QCHTML <- "reports/QC_report.html"
