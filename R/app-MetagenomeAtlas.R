@@ -16,10 +16,12 @@ ezMethodMetagenomeAtlas = function(input=NA, output=NA, param=NA,
   sampleName = input$getNames()
   cmdPrepare1 = paste("mkdir sub_folder")
   ezSystem(cmdPrepare1)
-  cmdPrepare2 = paste("mv", input$getFullPaths("Read1"), "sub_folder")
-  ezSystem(cmdPrepare2)
-  cmdPrepare3 = paste("mv", input$getFullPaths("Read2"), "sub_folder")
-  ezSystem(cmdPrepare2)
+  for (i in input$getFullPaths("Read1")){
+    ezSystem(paste("cp", i, "sub_folder/"))
+  } 
+  for (i in input$getFullPaths("Read2")){
+    ezSystem(paste("cp", i, "sub_folder/"))
+  } 
   cmdInitiate = paste("atlas init", "-db-dir /srv/GT/databases/metagenome_atlas_db/", "sub_folder")
   ezSystem(cmdInitiate)
   tx  <- readLines("config.yaml")
