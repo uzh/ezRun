@@ -22,7 +22,7 @@ ezMethodMetagenomeAtlas = function(input=NA, output=NA, param=NA,
   for (i in input$getFullPaths("Read2")){
     ezSystem(paste("cp", i, "sub_folder/"))
   } 
-  cmdInitiate = paste("atlas init", "-db-dir /srv/GT/databases/metagenome_atlas_db/", "sub_folder")
+  cmdInitiate = paste("atlas init", "--db-dir /srv/GT/databases/metagenome_atlas_db/", "sub_folder/")
   ezSystem(cmdInitiate)
   tx  <- readLines("config.yaml")
   tx2  <- gsub(pattern = "final_binner: DAS Tool", replace = "final_binner: maxbin", x = tx)
