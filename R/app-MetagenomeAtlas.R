@@ -11,7 +11,7 @@ ezMethodMetagenomeAtlas = function(input=NA, output=NA, param=NA,
   library(xml2)
   library(ape)
   library(tidyverse)
-  
+  #Initiate
   opt = param$cmdOptions
   sampleName = input$getNames()
   cmdPrepare1 = paste("mkdir sub_folder")
@@ -24,8 +24,9 @@ ezMethodMetagenomeAtlas = function(input=NA, output=NA, param=NA,
   } 
   cmdInitiate = paste("atlas init", "--db-dir /srv/GT/databases/metagenome_atlas_db/", "sub_folder/")
   ezSystem(cmdInitiate)
+  #Modify config file
   tx  <- readLines("config.yaml")
-  tx2  <- gsub(pattern = "final_binner: DAS Tool", replace = "final_binner: maxbin", x = tx)
+  tx2  <- gsub(pattern = "final_binner: DASTool", replace = "final_binner: maxbin", x = tx)
   tx2  <- gsub(pattern = "- gtdb_tree", replace = "#- gtdb_tree", x = tx2)
   tx2  <- gsub(pattern = "- gtdb_taxonomy", replace = "#- gtdb_taxonomy", x = tx2)
   tx2  <- gsub(pattern = "- gtdb_tree", replace = "#- gtdb_tree", x = tx2)
@@ -33,9 +34,10 @@ ezMethodMetagenomeAtlas = function(input=NA, output=NA, param=NA,
   tx2  <- gsub(pattern = "#  - checkm_taxonomy", replace = "- checkm_taxonomy", x = tx2)
   tx2  <- gsub(pattern = "#  - checkm_tree", replace = "- checkm_tree", x = tx2)
   writeLines(tx2, con="config.yaml")
-  cmd = paste("atlas run qc --profile cluster --latency-wait 400000")
-  ezSystem(cmd)
+  #Run
+  ezSystem(paste("atlas run qc --profile cluster --latency-wait 400000 --working-dir ."))
   
+  #Run
   QCHTML <- "reports/QC_report.html"
   #ASSEMBLYHTML <- "reports/assembly_report.html"
   #BINNINGHTML <- "reports/bin_report_maxbin.html"
@@ -43,6 +45,7 @@ ezMethodMetagenomeAtlas = function(input=NA, output=NA, param=NA,
   #taxonomy_table <- read_tsv("genomes/checkm/taxonomy.tsv")
   #newick <- read_file("genomes/tree/checkm.nwk")
   
+  #Create report
   setwdNew(basename(output$getColumn("Report")))
   markdownFile <- "MetagenomeAtlasSummary.Rmd"
   styleFiles <- file.path(system.file("templates", package="ezRun"),
