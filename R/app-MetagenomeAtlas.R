@@ -14,7 +14,7 @@ ezMethodMetagenomeAtlas = function(input=NA, output=NA, param=NA,
   
   opt = param$cmdOptions
   sampleName = input$getNames()
-  cmdPrepare1 = paste("mdkir sub_folder")
+  cmdPrepare1 = paste("mkdir sub_folder")
   ezSystem(cmdPrepare1)
   cmdPrepare2 = paste("mv", input$getFullPaths("Read1"), "sub_folder")
   ezSystem(cmdPrepare2)
