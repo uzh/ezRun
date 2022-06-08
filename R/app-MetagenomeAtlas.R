@@ -10,6 +10,7 @@ ezMethodMetagenomeAtlas = function(input=NA, output=NA, param=NA,
                                    htmlFile="00index.html"){
   library(xml2)
   library(ape)
+  library(tidyverse)
   
   opt = param$cmdOptions
   sampleName = input$getNames()
@@ -30,26 +31,23 @@ ezMethodMetagenomeAtlas = function(input=NA, output=NA, param=NA,
   tx2  <- gsub(pattern = "#  - checkm_taxonomy", replace = "- checkm_taxonomy", x = tx2)
   tx2  <- gsub(pattern = "#  - checkm_tree", replace = "- checkm_tree", x = tx2)
   writeLines(tx2, con="config.yaml")
-  cmd = paste("atlas run genomes --profile cluster --latency-wait 400000")
+  cmd = paste("atlas run qc --profile cluster --latency-wait 400000")
   ezSystem(cmd)
   
-  QCHTML <- read_html(x = "reports/QC_report.html")
-  ASSEMBLYHTML <- read_html(x = "reports/assembly_report.html")
-  BINNINGHTML <- read_html(x = "reports/bin_report_maxbin.html")
-  genomic_bins_table <- read_tsv("reports/genomic_bins_maxbin.tsv")
-  taxonomy_table <- read_tsv("genomes/checkm/taxonomy.tsv")
-  newick <- read_file("genomes/tree/checkm.nwk")
+  QCHTML <- "reports/QC_report.html"
+  #ASSEMBLYHTML <- "reports/assembly_report.html"
+  #BINNINGHTML <- "reports/bin_report_maxbin.html"
+  #genomic_bins_table <- read_tsv("reports/genomic_bins_maxbin.tsv")
+  #taxonomy_table <- read_tsv("genomes/checkm/taxonomy.tsv")
+  #newick <- read_file("genomes/tree/checkm.nwk")
   
   setwdNew(basename(output$getColumn("Report")))
-  markdownFile <- "Metagenome_Atlas_Summary.Rmd"
+  markdownFile <- "MetagenomeAtlasSummary.Rmd"
   styleFiles <- file.path(system.file("templates", package="ezRun"),
                           c("fgcz.css", markdownFile, 
                             "fgcz_header.html", "banner.png"))
   rmarkdown::render(input=markdownFile, envir = new.env(),
                     output_dir=".", output_file=htmlFile, quiet=TRUE)
-
-#myTree <- ape::read.tree(text=newick)
-#plot(myTree,no.margin=TRUE,edge.width=2,cex=0.9)
   
   return("Success")
 }
