@@ -52,7 +52,7 @@ ezMethodMetagenomeAtlas = function(input=NA, output=NA, param=NA,
   return("Success")
 }
 ##' @template app-template
-##' @templateVar method ezMethodNanoPlot()
+##' @templateVar method ezMethodMetagenomeAtlas()
 ##' @templateVar htmlArg )
 ##' @description Use this reference class to run 
 EzAppMetagenomeAtlas <-
