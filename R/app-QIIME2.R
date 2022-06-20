@@ -78,7 +78,7 @@ ezMethodQIIME2 = function(input=NA, output=NA, param=NA,
                               " -e s/\"MAX_RAREFACTION_DEPTH\"/", param$max_rarefaction_depth, "/g ",
                               " -e s/\"MIN_FREQ\"/", param$min_freq, "/g ",
                               " -e s/\"MIN_SAMPLES\"/", param$min_samples, "/g ",
-                                file.path(METAGENOMICS_ROOT,UNIFIED_QIIME2_WORKFLOW_PAIREDEND), 
+                              file.path(METAGENOMICS_ROOT,UNIFIED_QIIME2_WORKFLOW_PAIREDEND), 
                                 " > ",
                                UNIFIED_QIIME2_WORKFLOW_PAIREDEND)
   }
