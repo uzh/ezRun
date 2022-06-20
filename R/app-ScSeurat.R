@@ -178,7 +178,7 @@ ezMethodScSeurat <- function(input = NA, output = NA, param = NA,
   scData <- ScaleData(scData, vars.to.regress = vars.to.regress, verbose=FALSE, do.scale=FALSE)
   ## generate the SCT assay
   scData <- SCTransform(scData, vst.flavor=2, vars.to.regress = vars.to.regress, seed.use = 38, verbose = FALSE)
-  defaultAssay <- "SCT"
+  #defaultAssay <- "SCT"
   ## defaultAssay is now SCT
   #scData <- FindVariableFeatures(scData, selection.method = "vst", verbose = FALSE)
   scData <- RunPCA(object=scData, npcs = param$npcs, verbose=FALSE)
@@ -238,8 +238,8 @@ ezMethodScSeurat <- function(input = NA, output = NA, param = NA,
   
 
   #object to be used in isee
-  sce <- scData %>% DietSeurat(dimreducs = c("pca", "tsne", "umap")) %>% scanalysis::seurat_to_sce(default_assay = defaultAssay)
-  saveHDF5SummarizedExperiment(sce, dir = "sce_h5")
+  # sce <- scData %>% DietSeurat(dimreducs = c("pca", "tsne", "umap")) %>% scanalysis::seurat_to_sce(default_assay = defaultAssay)
+  # saveHDF5SummarizedExperiment(sce, dir = "sce_h5")
   
   makeRmdReport(param=param, output=output, scData=scData, allCellsMeta=allCellsMeta, rmdFile = "ScSeurat.Rmd", reportTitle = paste0(param$name, ": ",  input$getNames()))
   #remove no longer used objects
