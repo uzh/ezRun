@@ -35,15 +35,6 @@ ezMethodPhyloSeqAnalysis = function(input=NA, output=NA, param=NA,
     sampleFraction = as.numeric(param$sampleFraction)
     numTopRanks=param$numTopRanks
     isGroupThere = param$grouping != ""
-    if (isGroupThere) {
-        group <- param$grouping
-        if (param$sampleGroup == "" | param$refGroup == ""){
-            stop("Both sample and reference groups must be specified")
-        } else{
-            sampleGroup <- param$sampleGroup
-            refGroup <- param$refGroup
-        }
-    }
     ### Analyzes results with phyloseq: preparing objects to be processed in the Rmd file
     
     ### load  objects
@@ -53,8 +44,6 @@ ezMethodPhyloSeqAnalysis = function(input=NA, output=NA, param=NA,
     ## phyloseq object
     physeqObjectRData <- input$getFullPaths("RObjectPhyloseq")
     physeqObjectNoTreeUnfilt <- readRDS(physeqObjectRData)
-    
-    
     
     ### check how many cols sample data has; if only one, add a second otherwise the plot funciton is buggy
     if (isGroupThere){

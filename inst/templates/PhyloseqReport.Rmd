@@ -26,9 +26,21 @@ param = readRDS("param.rds")
 numTopRanks <- param$numTopRanks 
 rawCount <- param$rawCount
 sampleFraction <-param$sampleFraction
-sampleGroup <-param$sampleGroup
-refGroup <- param$refGroup
 isGroupThere = param$grouping != ""
+if (isGroupThere) {
+        group <- param$grouping
+        if (param$sampleGroup == "" | param$refGroup == ""){
+            stop("Both sample and reference groups must be specified")
+        } else{
+            sampleGroup <- param$sampleGroup
+            refGroup <- param$refGroup
+        }
+}
+if (isGroupThere){
+    areThereMultVar <- TRUE
+    } else {
+    areThereMultVar <- FALSE
+}
 ```
 
 ```{r prepQC, include=FALSE}
