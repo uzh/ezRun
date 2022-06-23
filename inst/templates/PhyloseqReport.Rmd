@@ -23,6 +23,11 @@ QCChimeraObject <- readRDS("QCChimeraObject.rds")
 physeqFullObject <- readRDS("physeqFullObject.rds")
 physeqObjectNoTreeUnfilt <- readRDS("physeqObjectNoTreeUnfilt.rds")
 param = readRDS("param.rds")
+numTopRanks <- param$numTopRanks 
+rawCount <- param$rawCount
+sampleFraction <-param$sampleFraction
+sampleGroup <-param$sampleGroup
+refGroup <- param$refGroup
 ```
 
 ```{r prepQC, include=FALSE}
