@@ -82,12 +82,13 @@ ezMethodPhyloSeqAnalysis = function(input=NA, output=NA, param=NA,
         markdownFile <- "PhyloseqReportNoGroup.Rmd"
     }
     ## Copy the style files and templates
-    styleFiles <- file.path(system.file("templates", package="ezRun"),
-                            c("fgcz.css", markdownFile, 
-                              "fgcz_header.html", "banner.png"))
-    file.copy(from=styleFiles, to=".", overwrite=TRUE)
-    rmarkdown::render(input=markdownFile, envir = new.env(),
-                      output_dir=".", output_file=htmlFile, quiet=TRUE)
+    makeRmdReport(param=param, output=output, physeqFullObject = physeqFullObject, QCChimeraObject = QCChimeraObject, physeqObjectNoTreeUnfilt = physeqObjectNoTreeUnfilt, rmdFile = markdownFile, reportTitle = "16S Phyloseq Report")
+    # styleFiles <- file.path(system.file("templates", package="ezRun"),
+    #                         c("fgcz.css", markdownFile, 
+    #                           "fgcz_header.html", "banner.png"))
+    # file.copy(from=styleFiles, to=".", overwrite=TRUE)
+    # rmarkdown::render(input=markdownFile, envir = new.env(),
+    #                   output_dir=".", output_file=htmlFile, quiet=TRUE)
     
     return("Success")
 }
