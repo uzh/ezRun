@@ -28,6 +28,7 @@ rawCount <- param$rawCount
 sampleFraction <-param$sampleFraction
 sampleGroup <-param$sampleGroup
 refGroup <- param$refGroup
+isGroupThere = param$grouping != ""
 ```
 
 ```{r prepQC, include=FALSE}
