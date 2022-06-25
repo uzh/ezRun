@@ -138,7 +138,7 @@ parseOptions = function(optString){
 ##' ezIsSpecified(c("this","is"))
 ##' ezIsSpecified(c("","this isn't"))
 ezIsSpecified = function(x){
-  !is.null(x) && length(x) > 0 && x[1] != "" && !is.na(x) && x[1] != "NA"
+  !is.null(x) && length(x) > 0 && x[1] != "" && !is.na(x[1]) && x[1] != "NA"
 }
 
 ##' @title Wrapper for data.frame suitable for data processing rather than stastistical modelling
