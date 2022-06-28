@@ -101,8 +101,8 @@ kable(tibble("QC metric" =c("Library Size", "Expressed genes", "Mitochondrial ge
 We also excluded genes that are lowly or not expressed in our system, as they do not contribute any information to our experiment and may add noise. In this case, we removed genes that were not expressed in at least `r param$cellsPercentage` percent of the spots. In case one or more rare cell populations are expected we might need to decrease the percentage of spots.
 
 ```{r gene filtering}
-cat("genes removed:", sum(!scData[["Spatial"]]@meta.features$is.expressed))
-cat("genes kept:", sum(scData[["Spatial"]]@meta.features$is.expressed))
+cat("genes removed:", sum(!scData.unfiltered[["Spatial"]]@meta.features$is.expressed))
+cat("genes kept:", sum(scData.unfiltered[["Spatial"]]@meta.features$is.expressed))
 ```
 
 ### Dimensionality reduction

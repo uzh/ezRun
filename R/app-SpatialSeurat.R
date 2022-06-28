@@ -13,7 +13,7 @@ EzAppSpatialSeurat <-
                 {
                   "Initializes the application using its specific defaults."
                   runMethod <<- ezMethodSpatialSeurat
-                  name <<- "EzAppspatialSeurat"
+                  name <<- "EzAppSpatialSeurat"
                   appDefaults <<- rbind(npcs=ezFrame(Type="numeric", 
                                                     DefaultValue=20,
                                                     Description="The maximal dimensions to use for reduction"),
