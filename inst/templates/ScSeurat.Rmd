@@ -109,6 +109,10 @@ plotColData(xxAll, x="Sample", y="nCount_RNA", colour_by="discard") + scale_y_lo
 plotColData(xxAll, x="Sample", y="nFeature_RNA", colour_by="discard") + ggtitle("Detected genes")
 plotColData(xxAll, x="nCount_RNA", y="nFeature_RNA", colour_by="discard")+ scale_x_log10() + scale_y_log10()
 
+xxAll$genePerCount <- xxAll$nFeature_RNA / xxAll$nCount_RNA
+plotColData(xxAll, x="Sample", y="genePerCount", colour_by="discard") + ggtitle("Detected genes")
+plotColData(xxAll, x="nCount_RNA", y="genePerCount", colour_by="discard")+ scale_x_log10() + xlim(1, 10000) + ylim(0.2, 0.8)
+
 plotColData(xxAll, x="Sample", y="percent_mito", colour_by="discard") + ggtitle("Mito percent")
 plotColData(xxAll, x="nCount_RNA", y="percent_mito", colour_by="discard")+ scale_x_log10()
 
