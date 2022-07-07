@@ -273,17 +273,17 @@ ezComputeBias = function(dsFile, dsName=NULL, param=NULL, qcSummaryDir="/srv/GT/
 
 getRefBuildMap = function(){
   refBuildMap = c(
-    "Mus musculus (house mouse)" = "Mus_musculus/Ensembl/GRCm38.p5/Annotation/Release_91-2018-02-26",
-    "Homo sapiens (human)"="Homo_sapiens/Ensembl/GRCh38.p10/Annotation/Release_91-2018-02-26",
-    "human"="Homo_sapiens/Ensembl/GRCh38.p10/Annotation/Release_91-2018-02-26",
-    "homo"="Homo_sapiens/Ensembl/GRCh38.p10/Annotation/Release_91-2018-02-26",
+    "Mus musculus (house mouse)" = "Mus_musculus/GENCODE/GRCm39/Annotation/Release_M26-2021-04-20",
+    "Homo sapiens (human)"="Homo_sapiens/GENCODE/GRCh38.p13/Annotation/Release_37-2021-05-04",
+    "human"="Homo_sapiens/GENCODE/GRCh38.p13/Annotation/Release_37-2021-05-04",
+    "homo"="Homo_sapiens/GENCODE/GRCh38.p13/Annotation/Release_37-2021-05-04",
     "Equus caballus (horse)"="Equus_caballus/Ensembl/EquCab2/Annotation/Release_89-2017-06-07",
-    "Canis familiaris"="Canis_familiaris/Ensembl/CanFam3.1/Annotation/Release_89-2017-06-07",
+    "Canis familiaris"="Canis_familiaris/Ensembl/CanFam3.1/Annotation/Release_104-2021-06-01",
     "Oryctolagus cuniculus (rabbit)"="Oryctolagus_cuniculus/Ensembl/OryCun2.0/Annotation/Release_89-2017-06-08",
     "Escherichia coli K12"="Escherichia_coli/Ensembl/K12_MG1655_ASM584v2/Annotation/Release_2019-01-31",
     "E Coli"="Escherichia_coli/Ensembl/K12_MG1655_ASM584v2/Annotation/Release_2019-01-31",
     "Fusarium oxysporum"="Fusarium_oxysporum/Misc/Fo5176/Annotation/Release_5176-2019-03-18",
-    "Canis lupus familiaris"="Canis_familiaris/Ensembl/CanFam3.1/Annotation/Release_89-2017-06-07",
+    "Canis lupus familiaris"="Canis_familiaris/Ensembl/CanFam3.1/Annotation/Release_104-2021-06-01",
     "Cricetulus griseus (Chinese hamster)"="Cricetulus_griseus/CHO/CHO-K1/Annotation/Version-2015-12-11/Genes",
     "Felis silvestris catus"="Felis_catus/Ensembl/Felis_catus_6.2/Annotation/Release_89-2017-06-07",
     "Candida glabrata"="Candida_albicans/CGD/SC5314_Assembly22/Annotation/Release_2018-11-13",
