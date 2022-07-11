@@ -359,7 +359,7 @@ saveRDS(sce_iSEE, "sce_iSEE.rds")
 
 <br>
 
-[iSEE explorer](`r paste0("http://fgcz-shiny.uzh.ch/fgcz_iSEE/?data=",output$getColumn("Report"),"/sce_iSEE.rds")`)
+[iSEE explorer](`r paste0("http://fgcz-shiny.uzh.ch/fgcz_iSEE/?data=",output$getColumn("Report"),"/sce_iSEE.rds")`){target="_blank"}
 
 
 ### MAGIC
