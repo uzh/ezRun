@@ -8,6 +8,7 @@ Maintainer: sequencing <sequencing@fgcz.ethz.ch>
 Description: An environment that makes it easy to process data by using R
     packages and external tools.
 License: GPL-3 | file LICENSE
+URL: https://github.com/uzh/ezRun
 Depends:
     stats,methods,utils,data.table,Biostrings,GenomicRanges,tidyverse
 Imports:
