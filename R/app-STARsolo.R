@@ -135,25 +135,34 @@ ezMethodSTARsolo = function(input=NA, output=NA, param=NA){
     require(Matrix)
     require(DropletUtils)
     if(grepl('--soloFeatures', param$cmdOptions)){
-        soloParams <- limma::strsplit2(param$cmdOptions, '--')
-        soloFeatureParam <- sub('soloFeatures', '', soloParams[grep('soloFeatures',soloParams)])
-        soloFeatureParam <- gsub(' ','', soloFeatureParam)
-        outputDir = file.path(sampleName,'Solo.out',soloFeatureParam,'raw')
+      soloParams <- limma::strsplit2(param$cmdOptions, '--')
+      soloFeatureParam <- sub('soloFeatures ', '', soloParams[grep('soloFeatures',soloParams)])
+      soloFeatureParams <- stringr::str_split(soloFeatureParam, " ")[[1]]
+      # Make sure "Genes" is at the beginning so we detect drops based on it
+      if ("Gene" %in% soloFeatureParams) {
+        soloFeatureParams <- c("Gene", soloFeatureParams[soloFeatureParams!="Gene"])
+      }
+      
     } else {
-        outputDir = paste0(sampleName,'/Solo.out/Gene/raw')
+      soloFeatureParams <- "Gene"
     }
+    outputDirs = file.path(sampleName,'Solo.out',soloFeatureParams,'raw')
+    names(outputDirs) <- soloFeatureParams
     ## Remove alignments file if not setted differently
     samFn = paste0(sampleName,'/Aligned.out.sam')
     if(param[['keepAlignment']]){
-        ezSystem(paste0("mv ", sampleName, "/Aligned.sortedByCoord.out.bam", " ",
-                        sampleName, "/possorted_genome_bam.bam"))
-        ezSystem(paste0("samtools index ", sampleName, "/possorted_genome_bam.bam"))
+      ezSystem(paste0("mv ", sampleName, "/Aligned.sortedByCoord.out.bam", " ",
+                      sampleName, "/possorted_genome_bam.bam"))
+      ezSystem(paste0("samtools index ", sampleName, "/possorted_genome_bam.bam"))
     }else{
-        ezSystem(paste0("rm ", sampleName, "/Aligned.sortedByCoord.out.bam"))
+      ezSystem(paste0("rm ", sampleName, "/Aligned.sortedByCoord.out.bam"))
     }
     ### gzip all files
-    ezSystem(paste("pigz -p 4",paste0(outputDir,"/*")))
+    for (outputDir in outputDirs) {
+      ezSystem(paste("pigz -p 4",paste0(outputDir,"/*")))
+    }
 
+    outputDir <- outputDirs[1]
     ## Filter raw STARsolo counts with EmptyDrops
     sce = read10xCounts(samples = outputDir, col.names = TRUE, version = '3')
     rawCounts = sce@assays@data@listData$counts
@@ -165,7 +174,27 @@ ezMethodSTARsolo = function(input=NA, output=NA, param=NA){
     geneSymbol = sce@rowRanges@elementMetadata@listData[["Symbol"]]
     ### save in new directory
     filteredDir = paste0(sampleName,'/filtered_feature_bc_matrix')
-    write10xCounts(path = filteredDir, x = countsFiltered, gene.id = geneID, gene.symbol = geneSymbol, version = '3')
+    if (length(outputDirs) > 1) {
+      # We have to make subdirectories for every solo feature
+      dir.create(filteredDir)
+      
+      # First write the main results
+      subFilteredDir <- file.path(filteredDir, soloFeatureParams[1])
+      write10xCounts(path = subFilteredDir, x = countsFiltered, 
+                     gene.id = geneID, gene.symbol = geneSymbol, version = '3')
+      for (soloFeatureParam in soloFeatureParams[-1]) {
+        outputDir <- outputDirs[soloFeatureParam]
+        subFilteredDir <- file.path(filteredDir, soloFeatureParam)
+        if (soloFeatureParam == "Velocyto") {
+          writeVelocyto(outputDir, subFilteredDir, called)
+        } else {
+          writeGenericMode(outputDir, subFilteredDir, called)
+        }
+      }
+    } else {
+      write10xCounts(path = filteredDir, x = countsFiltered, 
+                     gene.id = geneID, gene.symbol = geneSymbol, version = '3')
+    }
     return("Success")
 }
 # create STARsolo shell command
@@ -241,17 +270,34 @@ makeSTARsoloCmd = function(param, refDir, sampleName, sampleDirs){
     return(cmd)
 }
 
+# Write Velocyto outputs
+writeVelocyto <- function(outputDir, subFilteredDir, calledCells) {
+  subFeatures <- c("spliced", "unspliced", "ambiguous")
+  # Create parent directory
+  dir.create(subFilteredDir)
+  for (subFeature in subFeatures) {
+    outputDirSplit <- file.path(outputDir, "..", subFeature)
+    # We create the directory manually
+    dir.create(outputDirSplit)
+    # Copy the files over
+    file.copy(from=Sys.glob(file.path(outputDir, "*.tsv.gz")), to=outputDirSplit)
+    file.copy(from=file.path(outputDir, paste0(subFeature, ".mtx.gz")), 
+              to=file.path(outputDirSplit, "matrix.mtx.gz"))
+    # Call the generic mode
+    subFilteredFeatureDir <- file.path(subFilteredDir, subFeature)
+    writeGenericMode(outputDirSplit, subFilteredFeatureDir, calledCells)
+  }
+}
 
-
-
-
-
-
-
-
-
-
-
-
-
-
+# Write outputs from other solo features
+writeGenericMode <- function(outputDir, subFilteredDir, calledCells) {
+  sce = read10xCounts(samples = outputDir, col.names = TRUE, version = '3')
+  ## Filter raw STARsolo counts with previous called
+  rawCounts = sce@assays@data@listData$counts
+  countsFiltered = rawCounts[,calledCells]
+  geneID = sce@rowRanges@elementMetadata@listData[["ID"]]
+  geneSymbol = sce@rowRanges@elementMetadata@listData[["Symbol"]]
+  
+  write10xCounts(path = subFilteredDir, x = countsFiltered, 
+                 gene.id = geneID, gene.symbol = geneSymbol, version = '3')
+}
