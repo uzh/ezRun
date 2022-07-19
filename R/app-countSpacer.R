@@ -12,7 +12,10 @@ ezMethodCountSpacer = function(input=NA, output=NA, param=NA){
   
   sampleName = input$getNames()
   setwdNew(sampleName)
-  param[['dictPath']] = list.files(file.path('/srv/GT/databases/GEML/sgRNA_Libs/',param[['dictPath']]), pattern = 'final.csv', full.names = TRUE)
+  param[['dictPath']] = list.files(file.path('/srv/GT/databases/GEML/sgRNA_Libs/',param[['dictPath']]), pattern = 'final.csv$', full.names = TRUE)
+  if(length(param[['dictPath']]) < 1){
+      param[['dictPath']] = list.files(file.path('/srv/GT/databases/GEML/sgRNA_Libs/',param[['dictPath']]), pattern = '.csv$', full.names = TRUE)
+  }
   dict = ezRead.table(param[['dictPath']], header = FALSE, sep = ',', row.names = NULL)
   colnames(dict) = c('TargetID', 'Sequence', 'GeneSymbol', 'isControl')
   dict[['ID']] = paste(dict$TargetID, dict$Sequence, sep = '-')
@@ -33,7 +36,8 @@ ezMethodCountSpacer = function(input=NA, output=NA, param=NA){
   gc()
   
   resultFile = paste0(sampleName, '_bowtie.txt')
-  cmd = paste('bowtie', sub('.csv', '', param[['dictPath']]), readFile, '-f -p', param$cores, '|cut -f3,8|sort >', resultFile)
+  bowtieIndex <- sub('\\.[0-9]\\.ebwt', '', list.files(dirname(param[['dictPath']]), pattern = 'ebwt$', full.names = TRUE)[1])
+  cmd = paste('bowtie', bowtieIndex, readFile, '-f -p', param$cores, '|cut -f3,8|sort >', resultFile)
   ezSystem(cmd)
   result_bowtie = ezRead.table(resultFile, row.names = NULL, header = FALSE)
   colnames(result_bowtie) = c('target', 'mismatches')
