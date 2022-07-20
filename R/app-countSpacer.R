@@ -12,11 +12,14 @@ ezMethodCountSpacer = function(input=NA, output=NA, param=NA){
   
   sampleName = input$getNames()
   setwdNew(sampleName)
-  param[['dictPath']] = list.files(file.path('/srv/GT/databases/GEML/sgRNA_Libs/',param[['dictPath']]), pattern = 'final.csv$', full.names = TRUE)
-  if(length(param[['dictPath']]) < 1){
+  csvFiles = list.files(file.path('/srv/GT/databases/GEML/sgRNA_Libs/',param[['dictPath']]), pattern = 'final.csv$', full.names = TRUE)
+  if(length(csvFiles) < 1){
       csvFiles <- list.files(file.path('/srv/GT/databases/GEML/sgRNA_Libs/',param[['dictPath']]), pattern = '.csv$', full.names = TRUE)
-      param[['dictPath']] = csvFiles[grep('MAGECK', csvFiles, invert = TRUE)]
+      param[['dictPath']] = csvFiles[grep('MAGeCK', csvFiles, invert = TRUE)]
+  } else {
+      param[['dictPath']] = csvFiles[1]
   }
+  
   dict = ezRead.table(param[['dictPath']], header = FALSE, sep = ',', row.names = NULL)
   colnames(dict) = c('TargetID', 'Sequence', 'GeneSymbol', 'isControl')
   dict[['ID']] = paste(dict$TargetID, dict$Sequence, sep = '-')
