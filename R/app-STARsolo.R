@@ -168,32 +168,34 @@ ezMethodSTARsolo = function(input=NA, output=NA, param=NA){
     rawCounts = sce@assays@data@listData$counts
     ### cell calling
     called = defaultDrops(rawCounts)
-    ### Data of called cells.
-    countsFiltered = rawCounts[,called]
-    geneID = sce@rowRanges@elementMetadata@listData[["ID"]]
-    geneSymbol = sce@rowRanges@elementMetadata@listData[["Symbol"]]
     ### save in new directory
+    rawDir <- paste0(sampleName,'/raw_feature_bc_matrix')
     filteredDir = paste0(sampleName,'/filtered_feature_bc_matrix')
     if (length(outputDirs) > 1) {
       # We have to make subdirectories for every solo feature
+      dir.create(rawDir)
       dir.create(filteredDir)
       
       # First write the main results
+      subRawDir <- file.path(rawDir, soloFeatureParams[1])
       subFilteredDir <- file.path(filteredDir, soloFeatureParams[1])
-      write10xCounts(path = subFilteredDir, x = countsFiltered, 
-                     gene.id = geneID, gene.symbol = geneSymbol, version = '3')
+      
+      # Write the raw and filtered counts of first feature
+      writeRawAndFiltered10XCounts(sce, subRawDir, subFilteredDir, called)
+      
+      # Process rest of features
       for (soloFeatureParam in soloFeatureParams[-1]) {
         outputDir <- outputDirs[soloFeatureParam]
+        subRawDir <- file.path(rawDir, soloFeatureParam)
         subFilteredDir <- file.path(filteredDir, soloFeatureParam)
         if (soloFeatureParam == "Velocyto") {
-          writeVelocyto(outputDir, subFilteredDir, called)
+          writeVelocyto(outputDir, subRawDir, subFilteredDir, called)
         } else {
-          writeGenericMode(outputDir, subFilteredDir, called)
+          writeGenericMode(outputDir, subRawDir, subFilteredDir, called)
         }
       }
     } else {
-      write10xCounts(path = filteredDir, x = countsFiltered, 
-                     gene.id = geneID, gene.symbol = geneSymbol, version = '3')
+      writeRawAndFiltered10XCounts(sce, rawDir, filteredDir, called)
     }
     return("Success")
 }
@@ -271,9 +273,10 @@ makeSTARsoloCmd = function(param, refDir, sampleName, sampleDirs){
 }
 
 # Write Velocyto outputs
-writeVelocyto <- function(outputDir, subFilteredDir, calledCells) {
+writeVelocyto <- function(outputDir, subRawDir, subFilteredDir, calledCells) {
   subFeatures <- c("spliced", "unspliced", "ambiguous")
   # Create parent directory
+  dir.create(subRawDir)
   dir.create(subFilteredDir)
   for (subFeature in subFeatures) {
     outputDirSplit <- file.path(outputDir, "..", subFeature)
@@ -284,20 +287,28 @@ writeVelocyto <- function(outputDir, subFilteredDir, calledCells) {
     file.copy(from=file.path(outputDir, paste0(subFeature, ".mtx.gz")), 
               to=file.path(outputDirSplit, "matrix.mtx.gz"))
     # Call the generic mode
+    subRawFeatureDir <- file.path(subRawDir, subFeature)
     subFilteredFeatureDir <- file.path(subFilteredDir, subFeature)
-    writeGenericMode(outputDirSplit, subFilteredFeatureDir, calledCells)
+    writeGenericMode(outputDirSplit, subRawFeatureDir, subFilteredFeatureDir, calledCells)
   }
 }
 
 # Write outputs from other solo features
-writeGenericMode <- function(outputDir, subFilteredDir, calledCells) {
+writeGenericMode <- function(outputDir, rawDir, filteredDir, calledCells) {
   sce = read10xCounts(samples = outputDir, col.names = TRUE, version = '3')
+  writeRawAndFiltered10XCounts(sce, rawDir, filteredDir, calledCells)
+}
+
+# Takes in a raw-count SCE and outputs the 
+writeRawAndFiltered10XCounts <- function(rawSce, rawDir, filteredDir, calledCells) {
   ## Filter raw STARsolo counts with previous called
-  rawCounts = sce@assays@data@listData$counts
-  countsFiltered = rawCounts[,calledCells]
-  geneID = sce@rowRanges@elementMetadata@listData[["ID"]]
-  geneSymbol = sce@rowRanges@elementMetadata@listData[["Symbol"]]
+  rawCounts = rawSce@assays@data@listData$counts
+  filteredCounts = rawCounts[,calledCells]
+  geneID = rawSce@rowRanges@elementMetadata@listData[["ID"]]
+  geneSymbol = rawSce@rowRanges@elementMetadata@listData[["Symbol"]]
   
-  write10xCounts(path = subFilteredDir, x = countsFiltered, 
+  write10xCounts(path = rawDir, x = rawCounts, 
+                 gene.id = geneID, gene.symbol = geneSymbol, version = '3')
+  write10xCounts(path = filteredDir, x = filteredCounts, 
                  gene.id = geneID, gene.symbol = geneSymbol, version = '3')
 }
