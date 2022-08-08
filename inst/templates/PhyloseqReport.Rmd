@@ -157,7 +157,6 @@ if (isGroupThere) {
 
 ```{r prepRaref, include=FALSE}
 ### rarefaction: 3. rarefaction plots.
-rarefactionPlot1 <- rarecurve(otu_table(physeqFullObject)@.Data, step=50, cex=0.5, ylab = "OTUs")
 abundTableRar <- data.frame(t(otu_table(physeqFullObject)))
 iNEXT_data <- iNEXT(abundTableRar, q = 0, datatype = "abundance")
 rarefactionPlot2 <- ggiNEXT(iNEXT_data, type=1)
@@ -251,7 +250,7 @@ if (isGroupThere) {
 ### Rarefaction plots
 ```{r raref, echo=FALSE}
 #par(mfrow=c(1,2), las=1)
-plot(rarefactionPlot1)
+rarecurve(otu_table(physeqFullObject)@.Data, step=50, cex=0.5, ylab = "OTUs")
 plot(rarefactionPlot2)
 ```
 
