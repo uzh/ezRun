@@ -25,6 +25,7 @@ physeqObjectNoTreeUnfilt <- readRDS("physeqObjectNoTreeUnfilt.rds")
 param = readRDS("param.rds")
 numTopRanks <- param$numTopRanks 
 rawCount <- param$rawCount
+rank <- param$taxonomicRank
 sampleFraction <-param$sampleFraction
 isGroupThere = param$grouping != ""
 if (isGroupThere) {
