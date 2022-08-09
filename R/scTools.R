@@ -280,6 +280,9 @@ createGeneSets <- function(species, tissue) {
   cell_markers <- read.table("/srv/GT/databases/scGeneSets/all_cell_markers.txt", sep = "\t", header = TRUE)
   cell_markers <- cell_markers[cell_markers$speciesType == species & 
                                  cell_markers$tissueType %in% tissue, ]
+  if (nrow(cell_markers) == 0) {
+    stop(sprintf("No cell markers found for %s: %s", species, tissue))
+  }
   geneSetList <- strsplit(cell_markers$geneSymbol, ",")
   geneSetList <- lapply(geneSetList, function(gs){
     gs <- gs[!is.na(gs)]
