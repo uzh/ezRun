@@ -106,7 +106,12 @@ ezMethodScSeurat <- function(input = NA, output = NA, param = NA,
   library(scuttle)
   library(DropletUtils)
   
-  BPPARAM <- MulticoreParam(workers = param$cores)
+  if (param$cores > 1){
+    BPPARAM <- MulticoreParam(workers = param$cores)
+  } else {
+    ## scDblFinder fails with many cells and MulticoreParam
+    BPPARAM <- SerialParam() 
+  }
   register(BPPARAM)
   require(future)
   plan("multicore", workers = param$cores)
