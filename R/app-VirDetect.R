@@ -22,7 +22,7 @@ ezMethodVirDetect = function(input=NA, output=NA, param=NA,
                         " --rg LB:RGLB_", sampleName," --rg PL:illumina",
                         " --rg PU:RGPU_", sampleName)
   cmd = paste("bowtie2", param$cmdOptionsHost, defOpt, readGroupOpt,
-              "-x", "/srv/GT/reference/Homo_sapiens/Ensembl/GRCh38.p13/Sequence/BOWTIE2Index/genome")
+              "-x", "/srv/GT/reference/Homo_sapiens/GENCODE/GRCh38.p13/Sequence/BOWTIE2Index/genome")
   if(param$paired){
     cmd = paste(cmd, "-1", trimmedInput$getColumn("Read1"),
                 "-2", trimmedInput$getColumn("Read2"))
