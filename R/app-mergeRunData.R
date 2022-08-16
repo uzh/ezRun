@@ -52,7 +52,7 @@ ezMethodMergeRunData <- function(input=NA, output=NA, param=NA){
     cat("#Files only in ", param[['FirstDataSet']], ':', length(uniqSet1), "\n")
     cat("#Files only in ", basename(inputDir2), ':', length(uniqSet2), "\n")
     
-    for (i in 1:length(intersectNames)){
+    for (i in seq_along(intersectNames)){
         file1 = file.path(param[['dataRoot']], dataset1[dataset1[[matchCol]] == intersectNames[i],'Read1 [File]'])
         file2 = file.path(param[['dataRoot']], dataset2[dataset2[[matchCol]] == intersectNames[i],'Read1 [File]'])
         
