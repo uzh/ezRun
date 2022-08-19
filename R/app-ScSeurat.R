@@ -214,14 +214,17 @@ ezMethodScSeurat <- function(input = NA, output = NA, param = NA,
   # cell types annotation is only supported for Human and Mouse at the moment
   species <- getSpecies(param$refBuild)
   if (species == "Human" | species == "Mouse") {
-    cells.AUC <- cellsLabelsWithAUC(GetAssayData(scData, "counts"), species, param$tissue, BPPARAM=BPPARAM)
-    singler.results <- cellsLabelsWithSingleR(GetAssayData(scData, "data"), Idents(scData), species)
+    cells.AUC <- cellsLabelsWithAUC(GetAssayData(scData, "counts"), species, param$tissue, BPPARAM = BPPARAM)
+    singler.results <- cellsLabelsWithSingleR(GetAssayData(scData, "data"), Idents(scData), species, BPPARAM = BPPARAM)
+    for (r in names(singler.results)) {
+      scData[[paste0(r,"_single")]] <- singler.results[[r]]$single.fine$labels
+      scData[[paste0(r,"_cluster")]] <- singler.results[[r]]$cluster.fine$labels[match(Idents(scData), rownames(singler.results[[r]]$cluster.fine))]
+    }
     saveRDS(cells.AUC, file="cells.AUC.rds")
     saveRDS(singler.results, file="singler.results.rds")
   } else {
     cells.AUC <- NULL
     singler.results <- NULL
-    
   }
   
   #geneMeans <- geneMeansCluster(scData)

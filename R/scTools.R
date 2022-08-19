@@ -300,21 +300,26 @@ createGeneSets <- function(species, tissue) {
   return(geneSetList)
 }
 
-cellsLabelsWithSingleR <- function(logCounts, current_clusters, species) {
+cellsLabelsWithSingleR <- function(logCounts, current_clusters, species, BPPARAM = NULL) {
   library(SingleR)
   if(species == "Human"){
-    reference <- celldex::HumanPrimaryCellAtlasData()
-    singler.results.single <- SingleR(test = logCounts, ref = reference, 
-                                      labels = reference$label.main, method="single", de.method = "wilcox")
-    singler.results.cluster <- SingleR(test = logCounts, ref = reference, 
-                                       labels = reference$label.main, clusters=current_clusters, de.method = "wilcox")
-  }else {
-    reference <- celldex::MouseRNAseqData()
-    singler.results.single <- SingleR(test = logCounts, ref = reference, labels = reference$label.main)
-    singler.results.cluster <- SingleR(test = logCounts, ref = reference, labels = reference$label.main, method="cluster", clusters=current_clusters)
+    references <- list(
+      "HumanPrimaryCellAtlasData" = celldex::HumanPrimaryCellAtlasData(),
+      "MonacoImmuneData" = celldex::MonacoImmuneData(),
+      "DatabaseImmuneCellExpressionData" = celldex::DatabaseImmuneCellExpressionData())
+  } else {
+    references <- list(
+      "MouseRNAseqData" = celldex::MouseRNAseqData(),
+      "ImmGenData" = celldex::ImmGenData())
   }
-  
-  return(list(singler.results.single=singler.results.single, singler.results.cluster=singler.results.cluster))
+  singlerResultsList <- list()
+  for (ref in names(references)) {
+    reference <- references[[ref]]
+    singlerResultsList[[ref]] <- list()
+    singlerResultsList[[ref]][["single.fine"]] <- SingleR(test = logCounts, ref = reference, labels = reference$label.fine, BPPARAM = BPPARAM)
+    singlerResultsList[[ref]][["cluster.fine"]] <- SingleR(test = logCounts, ref = reference, labels = reference$label.fine, method = "cluster", clusters=current_clusters, BPPARAM = BPPARAM)
+  }
+  return(singlerResultsList)
 }
 
 filterCellsAndGenes <- function(object, param) {
