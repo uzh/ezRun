@@ -189,8 +189,9 @@ buildRefDir <- function(x, genomeFile, genesFile, keepOriginalIDs = FALSE){
   write_tsv(fai %>% dplyr::select(1:2), file = x@refChromSizesFile, col_names = FALSE)
 
   dictFile <- str_replace(x@refFastaFile, "\\.fa$", ".dict")
-  file.remove(dictFile)
-
+  if (file.exists(dictFile)) {
+    file.remove(dictFile)
+  }
   cmd <- paste(prepareJavaTools("picard"), "CreateSequenceDictionary",
                paste0("R=", x@refFastaFile), paste0("O=", dictFile))
   ezSystem(cmd)
