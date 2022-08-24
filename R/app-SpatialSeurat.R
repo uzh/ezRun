@@ -37,7 +37,27 @@ EzAppSpatialSeurat <-
                                                       Description='A gene will be kept if it has at least nUMIs in the fraction of cells specified before'),
                                         nmad=ezFrame(Type="numeric", 
                                                      DefaultValue=3, 
-                                                     Description="Median absolute deviation (MAD) from the median value of each metric across all cells")
+                                                     Description="Median absolute deviation (MAD) from the median value of each metric across all cells"),
+                                        nreads = ezFrame(
+                                            Type = "numeric",
+                                            DefaultValue = Inf,
+                                            Description = "Low quality cells have less than \"nreads\" reads. Only when applying fixed thresholds."
+                                        ),
+                                        ngenes = ezFrame(
+                                            Type = "numeric",
+                                            DefaultValue = Inf,
+                                            Description = "Low quality cells have less than \"ngenes\" genes. Only when applying fixed thresholds."
+                                        ),
+                                        perc_mito = ezFrame(
+                                            Type = "numeric",
+                                            DefaultValue = Inf,
+                                            Description = "Low quality cells have more than \"perc_mito\" percent of mitochondrial genes. Only when applying fixed thresholds."
+                                        ),
+                                        perc_ribo = ezFrame(
+                                            Type = "numeric",
+                                            DefaultValue = Inf,
+                                            Description = "Low quality cells have more than \"perc_ribo\" percent of ribosomal genes. Only when applying fixed thresholds."
+                                        )
                                         )
                 }
               )
@@ -50,6 +70,7 @@ ezMethodSpatialSeurat <- function(input=NA, output=NA, param=NA,
   on.exit(setwd(cwd), add=TRUE)
   library(Seurat)
   scData <- load10xSpatialData(input, param)
+  
   scData_list <- filterCellsAndGenes(scData, param) # return sce objects filtered and unfiltered to show the QC metrics later in the rmd
   scData <- scData_list$scData
   scData.unfiltered <- scData_list$scData.unfiltered
