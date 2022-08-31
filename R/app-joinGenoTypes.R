@@ -148,8 +148,8 @@ runGatkPipeline = function(caseName, param=NA, datasetCaseList=NULL){
         # } else {
         #     ezSystem(paste('mv', gvcfFile, paste0(gvcfFile, "_annotated.vcf")))
         # }
-
-        cmd = paste(param$javaCall, "-jar", "$SnpEff/SnpSift.jar", "dbnsfp -f ExAC_AF,ExAC_AC,1000Gp1_EUR_AF,Uniprot_acc,Interpro_domain,phastCons100way_vertebrate,CADD_phred,Polyphen2_HDIV_pred,Polyphen2_HVAR_pred,SIFT_score,SIFT_pred -v -db /srv/GT/databases/dbNSFP/dbNSFP2.9.txt.gz",
+        param$dbNSFP_file = file.path('/srv/GT/databases/dbNSFP', param$dbNSFP_file)
+        cmd = paste(param$javaCall, "-jar", "$SnpEff/SnpSift.jar", "dbnsfp -f", param$dbNSFP_fields, "-v -db", param$dbNSFP_file,
                     gvcfFile, ">", tmpGvcf)
         #for hg38 upgrade - dbsfp starting from v4: gnomAD_exomes_AF,M-CAP_score,M-CAP_rankscore,M-CAP_pred,VindijiaNeandertal
         ezSystem(paste(cmd,'2>>',myLog))
@@ -205,7 +205,9 @@ EzAppJoinGenoTypes <-
                                               recalibrateVariants = ezFrame(Type="logical",  DefaultValue=TRUE,  Description="recalibrateVariants"),
                                               recalibrateInDels = ezFrame(Type="logical",  DefaultValue=TRUE,  Description="recalibrate InDels"),
                                               annotateVariants = ezFrame(Type="logical",  DefaultValue=TRUE,  Description="annotate Variants with SnpEff"),
-                                              proteinCodingTranscriptsOnly = ezFrame(Type="logical",  DefaultValue=TRUE,  Description="annotate variants only with protCod variants"))
+                                              proteinCodingTranscriptsOnly = ezFrame(Type="logical",  DefaultValue=TRUE,  Description="annotate variants only with protCod variants"),
+                                              dbNSFP_file = ezFrame(Type="character",  DefaultValue="", Description="name of dbNSFP file under /srv/GT/databases/dbNSFP"),
+                                              dbNSFP_fields = ezFrame(Type="character",  DefaultValue="", Description="info fields for vcf annotation"))
                     }
                 )
     )
