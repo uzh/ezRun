@@ -418,7 +418,7 @@ for (r in names(singler.results)) {
     clusterInfos$SinglerCellType <- singler.results[[r]]$cluster.fine[clusterInfos$Cluster, "pruned.labels"]
   }
   nTopMarkers <- 10
-  topMarkers <- markers %>% group_by(cluster) %>%
+  topMarkers <- posMarkers %>% group_by(cluster) %>%
     slice_max(n = nTopMarkers, order_by = avg_log2FC)
   topMarkerString <- sapply(split(topMarkers$gene, topMarkers$cluster), paste, collapse=", ")
   clusterInfos[["TopMarkers"]] <- topMarkerString[clusterInfos$Cluster]
