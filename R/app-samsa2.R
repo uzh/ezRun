@@ -23,9 +23,11 @@ ezMethodSamsa2 = function(input=NA, output=NA, param=NA,
     #cpCmd2 <- paste0("gunzip -c ", file2PathInDatset, "  > ", fastqName2)
     #ezSystem(cpCmd2)
   } 
-  ##update template
-  make_dir <- paste("mkdir input_files")
-  ezSystem(make_dir)
+  ##make dirs
+  make_inputdir <- paste("mkdir input_files")
+  ezSystem(make_inputdir)
+  make_outputdir <- paste("mkdir output_files")
+  ezSystem(make_outputdir)
   move_input1 <- paste("mv", file1PathInDatset, "input_files")
   ezSystem(move_input1)
   if(param$paired){
@@ -37,12 +39,12 @@ ezMethodSamsa2 = function(input=NA, output=NA, param=NA,
   #                                  SAMSA2_TEMPLATE_SCRIPT)
   #ezSystem(updateTemplateScriptCmd)
   ## run script
-  samsa2ToBeExecCmd <- paste("bash /usr/local/ngseq/src/samsa2/bash_scripts/master_script.sh input_files/ .")
+  samsa2ToBeExecCmd <- paste("bash /usr/local/ngseq/src/samsa2/bash_scripts/master_script.sh input_files/ output_files/")
   ezSystem(samsa2ToBeExecCmd)
   
   ## place output files
 
-  oldAnnFile <- list.files("step_4_output",pattern = "RefSeq_annotated",full.names = T)
+  oldAnnFile <- list.files("output_files/step_4_output",pattern = "RefSeq_annotated",full.names = T)
   newAnnFile <- basename(output$getColumn("annotationFileRefSeq"))
   ezSystem(paste("mv",oldAnnFile,newAnnFile))
 }
