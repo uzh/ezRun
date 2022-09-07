@@ -39,7 +39,7 @@ ezMethodSamsa2 = function(input=NA, output=NA, param=NA,
   #ezSystem(updateTemplateScriptCmd)
   ## run script
   inputDir <- paste0(directory, "/input_files/")
-  samsa2ToBeExecCmd <- paste("bash /usr/local/ngseq/src/samsa2/bash_scripts/master_script.sh,", inputDir, directory)
+  samsa2ToBeExecCmd <- paste("bash /usr/local/ngseq/src/samsa2/bash_scripts/master_script.sh", inputDir, directory)
   ezSystem(samsa2ToBeExecCmd)
   
   ## place output files
