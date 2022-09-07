@@ -13,6 +13,7 @@ ezMethodSamsa2 = function(input=NA, output=NA, param=NA,
   library(plyr)
   
   sampleName = input$getNames()
+  directory = param$resultDir
   file1PathInDatset <- input$getFullPaths("Read1")
   #fastqName1 <- paste0(sampleName,".R1.fastq")
   #cpCmd1 <- paste0("gunzip -c ", file1PathInDatset, "  > ", fastqName1)
@@ -24,8 +25,8 @@ ezMethodSamsa2 = function(input=NA, output=NA, param=NA,
     #ezSystem(cpCmd2)
   } 
   ##make dirs
-  make_inputdir <- paste("if [ -d input_files ]; then echo dir_exists; else mkdir input_files; fi")
-  ezSystem(make_inputdir)
+  make_inputDir <- paste("if [ -d input_files ]; then echo dir_exists; else mkdir input_files; fi")
+  ezSystem(make_inputDir)
   move_input1 <- paste("cp", file1PathInDatset, "input_files")
   ezSystem(move_input1)
   if(param$paired){
@@ -37,7 +38,8 @@ ezMethodSamsa2 = function(input=NA, output=NA, param=NA,
   #                                  SAMSA2_TEMPLATE_SCRIPT)
   #ezSystem(updateTemplateScriptCmd)
   ## run script
-  samsa2ToBeExecCmd <- paste("bash /usr/local/ngseq/src/samsa2/bash_scripts/master_script.sh ./input_files/ .", )
+  inputDir <- paste0(directory, "/input_files/")
+  samsa2ToBeExecCmd <- paste("bash /usr/local/ngseq/src/samsa2/bash_scripts/master_script.sh,", inputDir, directory)
   ezSystem(samsa2ToBeExecCmd)
   
   ## place output files
