@@ -24,14 +24,14 @@ ezMethodSamsa2 = function(input=NA, output=NA, param=NA,
     #ezSystem(cpCmd2)
   } 
   ##make dirs
-  make_inputdir <- paste("mkdir input_files")
+  make_inputdir <- paste("if [ -d input_files ]; then echo 'the directory exists.' else mkdir input_files; fi")
   ezSystem(make_inputdir)
-  make_outputdir <- paste("mkdir output_files")
+  make_outputdir <- paste("if [ -d output_files ]; then echo 'the directory exists.' else mkdir output_files; fi")
   ezSystem(make_outputdir)
-  move_input1 <- paste("mv", file1PathInDatset, "input_files")
+  move_input1 <- paste("cp", file1PathInDatset, "input_files")
   ezSystem(move_input1)
   if(param$paired){
-    move_input2 <- paste("mv", file2PathInDatset, "input_files")
+    move_input2 <- paste("cp", file2PathInDatset, "input_files")
     ezSystem(move_input2)
   }
   #updateTemplateScriptCmd <- paste("cp",
