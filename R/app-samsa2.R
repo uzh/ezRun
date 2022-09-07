@@ -13,7 +13,6 @@ ezMethodSamsa2 = function(input=NA, output=NA, param=NA,
   library(plyr)
   
   sampleName = input$getNames()
-  directory = param$resultDir
   file1PathInDatset <- input$getFullPaths("Read1")
   #fastqName1 <- paste0(sampleName,".R1.fastq")
   #cpCmd1 <- paste0("gunzip -c ", file1PathInDatset, "  > ", fastqName1)
@@ -24,7 +23,7 @@ ezMethodSamsa2 = function(input=NA, output=NA, param=NA,
     #cpCmd2 <- paste0("gunzip -c ", file2PathInDatset, "  > ", fastqName2)
     #ezSystem(cpCmd2)
   } 
-  ##make dirs
+  ##make input directory
   make_inputDir <- paste("if [ -d input_files ]; then echo dir_exists; else mkdir input_files; fi")
   ezSystem(make_inputDir)
   move_input1 <- paste("cp", file1PathInDatset, "input_files")
@@ -33,13 +32,15 @@ ezMethodSamsa2 = function(input=NA, output=NA, param=NA,
     move_input2 <- paste("cp", file2PathInDatset, "input_files")
     ezSystem(move_input2)
   }
+  ##copy samsa2
+  cpSamsa2 <- paste("cp -r /usr/local/ngseq/src/samsa2/ .")
+  ezSystem(cpSamsa2)
   #updateTemplateScriptCmd <- paste("cp",
   #                                 file.path(METAGENOMICS_ROOT,SAMSA2_TEMPLATE_SCRIPT),
   #                                  SAMSA2_TEMPLATE_SCRIPT)
   #ezSystem(updateTemplateScriptCmd)
-  ## run script
-  inputDir <- paste0(directory, "/input_files/")
-  samsa2ToBeExecCmd <- paste("bash /usr/local/ngseq/src/samsa2/bash_scripts/master_script.sh", inputDir, directory)
+  ## run bash script
+  samsa2ToBeExecCmd <- paste("bash ./samsa2/bash_scripts/master_script.sh ./input_files/ .")
   ezSystem(samsa2ToBeExecCmd)
   
   ## place output files
