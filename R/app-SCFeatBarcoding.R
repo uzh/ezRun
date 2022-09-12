@@ -76,9 +76,16 @@ ezMethodSCFeatBarcoding <- function(input=NA, output=NA, param=NA,
   library(scanalysis)
   require(scDblFinder)
   library(BiocParallel)
-    
-  BPPARAM <- MulticoreParam(workers = param$cores)
+
+  if (param$cores > 1){
+        BPPARAM <- MulticoreParam(workers = param$cores)
+    } else {
+        ## scDblFinder fails with many cells and MulticoreParam
+        BPPARAM <- SerialParam() 
+    }
   register(BPPARAM)
+    
+
     
   cwd <- getwd()
   setwdNew(basename(output$getColumn("Report")))
@@ -117,13 +124,21 @@ ezMethodSCFeatBarcoding <- function(input=NA, output=NA, param=NA,
   DefaultAssay(scData.singlet) <- "SCT"
   posMarkers <- posClusterMarkers(scData.singlet, pvalue_allMarkers, param)
  
-  cells_AUC <- NULL
-  singler.results <- NULL
+  
   #cell types annotation is only supported for Human and Mouse at the moment
   species <- getSpecies(param$refBuild)
   if(species == "Human" | species == "Mouse") {
      cells_AUC <- cellsLabelsWithAUC(GetAssayData(scData.singlet, "counts"), species, param$tissue, BPPARAM=BPPARAM)
      singler.results <- cellsLabelsWithSingleR(GetAssayData(scData.singlet, "counts"), Idents(scData.singlet), species)
+     for (r in names(singler.results)) {
+         scData.singlet[[paste0(r,"_single")]] <- singler.results[[r]]$single.fine$labels
+         scData.singlet[[paste0(r,"_cluster")]] <- singler.results[[r]]$cluster.fine$labels[match(Idents(scData.singlet), rownames(singler.results[[r]]$cluster.fine))]
+     }
+     saveRDS(cells_AUC, file="cells.AUC.rds")
+     saveRDS(singler.results, file="singler.results.rds")
+  } else {
+      cells_AUC <- NULL
+      singler.results <- NULL
   }
   
   #Convert scData to Single Cell experiment Object
