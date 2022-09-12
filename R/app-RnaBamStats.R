@@ -278,9 +278,15 @@ getStatsFromBam = function(param, bamFile, sm, gff=NULL, repeatsGff=NULL,
   use = rep(TRUE, nrow(gff))
   gff$transcript_type = ezGffAttributeField(gff$attributes, 
                                             field = "transcript_type", attrsep = "; *", valuesep = " ")
+  if (all(is.na(gff$transcript_type))){
+      gff$transcript_type = ezGffAttributeField(gff$attributes, 
+                                                field = "transcript_biotype", attrsep = "; *", valuesep = " ")
+  }
+  
   if (any(!is.na(gff$transcript_type))){
     use = use & gff$transcript_type %in% "protein_coding"
   }
+  
   gff$tsl = ezGffAttributeField(gff$attributes, 
                                 field = "transcript_support_level", attrsep = "; *", valuesep = " ")
   if (any(!is.na(gff$tsl))){
