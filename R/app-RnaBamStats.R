@@ -290,7 +290,9 @@ getStatsFromBam = function(param, bamFile, sm, gff=NULL, repeatsGff=NULL,
   gff$tsl = ezGffAttributeField(gff$attributes, 
                                 field = "transcript_support_level", attrsep = "; *", valuesep = " ")
   if (any(!is.na(gff$tsl))){
-    use = use & gff$tsl %in% "5"
+      any(gff$tsl %in% "5"){
+        use = use & gff$tsl %in% "5"
+      }
   }
   
   tCount = tapply(gff$transcript_id[use], gff$gene_id[use], function(x){length(unique(x))})
