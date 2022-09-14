@@ -44,10 +44,16 @@ ezMethodSamsa2 = function(input=NA, output=NA, param=NA,
   ezSystem(samsa2ToBeExecCmd)
   
   ## place output files
-
+  
   oldAnnFile <- list.files("step_4_output",pattern = "RefSeq_annotated",full.names = T)
   newAnnFile <- basename(output$getColumn("annotationFileRefSeq"))
   ezSystem(paste("mv",oldAnnFile,newAnnFile))
+  oldAnnFile_org <- list.files("step_5_output/RefSeq_results/org_results",pattern = "RefSeq_annot",full.names = T)
+  newAnnFile_org <- basename(output$getColumn("annotationORGFileRefSeq"))
+  ezSystem(paste("mv",oldAnnFile_org,newAnnFile_org))
+  oldAnnFile_func <- list.files("step_5_output/RefSeq_results/func_results",pattern = "RefSeq_annot",full.names = T)
+  newAnnFile_func <- basename(output$getColumn("annotationFUNCFileRefSeq"))
+  ezSystem(paste("mv",oldAnnFile_func,newAnnFile_func))
 }
 
 ##' @template app-template
