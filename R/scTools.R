@@ -316,8 +316,8 @@ cellsLabelsWithSingleR <- function(logCounts, current_clusters, species, BPPARAM
   for (ref in names(references)) {
     reference <- references[[ref]]
     singlerResultsList[[ref]] <- list()
-    singlerResultsList[[ref]][["single.fine"]] <- SingleR(test = logCounts, ref = reference, labels = reference$label.fine, BPPARAM = BPPARAM)
-    singlerResultsList[[ref]][["cluster.fine"]] <- SingleR(test = logCounts, ref = reference, labels = reference$label.fine, method = "cluster", clusters=current_clusters, BPPARAM = BPPARAM)
+    singlerResultsList[[ref]][["single.fine"]] <- SingleR(test = logCounts, ref = reference, labels = reference$label.fine)
+    singlerResultsList[[ref]][["cluster.fine"]] <- SingleR(test = logCounts, ref = reference, labels = reference$label.fine, method = "cluster", clusters=current_clusters)
   }
   return(singlerResultsList)
 }

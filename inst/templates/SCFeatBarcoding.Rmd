@@ -45,6 +45,11 @@ sce.singlets <- loadHDF5SummarizedExperiment("sce_h5")
 sce.unfiltered <- loadHDF5SummarizedExperiment("sce.unfiltered_h5")
 param = metadata(sce.singlets)$param
 scData <- readRDS("scData.rds")
+if (file.exists("singler.results.rds")){
+  singler.results <- readRDS("singler.results.rds")
+} else {
+  singler.results <- NULL
+}
 ```
 
 
@@ -367,58 +372,68 @@ To do this, we use the SingleR method (Aran et al. 2019) for cell type annotatio
 SingleR contains several built-in reference datasets, mostly assembled from bulk RNA-seq or microarray data of sorted cell types. These built-in references are often good enough for most applications, provided that they contain the cell types that are expected in the test population. 
 
 ```{r singler,eval= !is.null(metadata(sce.singlets)$singler.results)}
-singler.results.single <- metadata(sce.singlets)$singler.results$singler.results.single
-singler.results.cluster <- metadata(sce.singlets)$singler.results$singler.results.cluster
-singler.single.labels <- singler.results.single$labels
-singler.cluster.labels<- singler.results.cluster$labels[match(colData(sce.singlets)[,"ident"], rownames(singler.results.cluster))]
-var_heigth = length(unique(singler.single.labels))*0.7
+#singler.results.single <- metadata(sce.singlets)$singler.results #$singler.results.single
+#singler.results.cluster <- metadata(sce.singlets)$singler.results #$singler.results.cluster
+#singler.single.labels <- singler.results.single$labels
+#singler.cluster.labels<- singler.results.cluster$labels[match(colData(sce.singlets)[,"ident"], rownames(singler.results.cluster))]
+#var_heigth = length(unique(singler.single.labels))*0.7
 ```
 
 
-```{r singler ScoreHeatmap, eval=!is.null(metadata(sce.singlets)$singler.results), fig.height=var_heigth, fig.width=8, results='asis'}
+```{r singler ScoreHeatmap, eval=!is.null(metadata(sce.singlets)$singler.results), fig.height=12, fig.width=12, results='asis'}
 cat("The two heatmaps below display the scores for all individual cells (left) and each original cluster (right) across all reference labels, which allows users to inspect the confidence of the predicted labels across the dataset. The bar Labels on the top shows the actual assigned label.\n")
 cat("\n")
-plotScoreHeatmap(singler.results.single)
-plotScoreHeatmap(singler.results.cluster, clusters=rownames(singler.results.cluster))
+
+for (r in names(singler.results)) {
+  cat("#####", r, "\n\n")
+  print(plotScoreHeatmap(singler.results[[r]]$single.fine))
+  print(plotScoreHeatmap(singler.results[[r]]$cluster.fine, show_colnames = TRUE))
+  cat("\n\n")
+  singler.single.labels <- singler.results[[r]]$single.fine$labels
+  singler.cluster.labels <- singler.results[[r]]$cluster.fine$labels[match(Idents(scData), rownames(singler.results[[r]]$cluster.fine))]
+}
+  
+#plotScoreHeatmap(singler.results.single)
+#plotScoreHeatmap(singler.results.cluster, clusters=rownames(singler.results.cluster))
 ```
 
 
 ```{r singler labelsUMAP,  eval= !is.null(metadata(sce.singlets)$singler.results), fig.width=12, results='asis'}
 cat("The single cell (top) and cluster (bottom) annotations are also shown on the UMAPs. Place the mouse over the cells to get information such as their UMAP coordinates, original cluster, the cells name and the label assigned by SingleR. You can also zoom in specific areas of the UMAP by dragging and drop with the mouse.\n")
 
-cellInfo <- tibble(Cells=colnames(sce.singlets), Cluster=colData(sce.singlets)[,"ident"], Hashtag=colData(sce.singlets)[,"HTO_classification"],
-                     SingleR.labels.cluster=singler.cluster.labels, SingleR.labels.single=singler.single.labels)  %>%
-    left_join(as_tibble(reducedDim(sce.singlets, "UMAP"), rownames="Cells"))
+#cellInfo <- tibble(Cells=colnames(sce.singlets), Cluster=colData(sce.singlets)[,"ident"], Hashtag=colData(sce.singlets)[,"HTO_classification"],
+#                     SingleR.labels.cluster=singler.cluster.labels, SingleR.labels.single=singler.single.labels)  %>%
+#    left_join(as_tibble(reducedDim(sce.singlets, "UMAP"), rownames="Cells"))
 
-nrOfLabels_cluster <- length(unique(cellInfo$SingleR.labels.cluster))
-nrOfLabels_single <- length(unique(cellInfo$SingleR.labels.single))
+#nrOfLabels_cluster <- length(unique(cellInfo$SingleR.labels.cluster))
+#nrOfLabels_single <- length(unique(cellInfo$SingleR.labels.single))
 
-if(nrOfLabels_single <= 9){
-  colsLabels <- brewer.pal(nrOfLabels_single, "Set1")
-}else{
-  colsLabels <- colorRampPalette(brewer.pal(9, "Set1"))(nrOfLabels_single)
-}
+#if(nrOfLabels_single <= 9){
+#  colsLabels <- brewer.pal(nrOfLabels_single, "Set1")
+#}else{
+#  colsLabels <- colorRampPalette(brewer.pal(9, "Set1"))(nrOfLabels_single)
+#}
 
-x <- list(title="UMAP_1", zeroline=FALSE)
-y <- list(title="UMAP_2", zeroline=FALSE)
+#x <- list(title="UMAP_1", zeroline=FALSE)
+#y <- list(title="UMAP_2", zeroline=FALSE)
 
-p1 <- plot_ly(cellInfo, x = ~UMAP_1, y = ~UMAP_2, color=~SingleR.labels.single,
-        text = ~paste("Hashtag: ", Hashtag,
-                      "\nCluster: ", Cluster, 
-                      "\nCell: ", Cells,
-                      "\nSingleR.labels.cluster: ", SingleR.labels.single),
-        type = 'scatter', mode = "markers", marker=list(size=5, opacity=0.5),
-        colors=colsLabels) %>%layout(xaxis=x, yaxis=y)
-p1
-p2 <- plot_ly(cellInfo, x = ~UMAP_1, y = ~UMAP_2, color=~SingleR.labels.cluster,
-        text = ~paste("Hashtag: ", Hashtag,
-                      "\nCluster: ", Cluster, 
-                      "\nCell: ", Cells,
-                      "\nSingleR.labels.cluster: ", SingleR.labels.cluster),
-        type = 'scatter', mode = "markers", marker=list(size=5, opacity=0.5),
-        colors=colsLabels) %>%layout(xaxis=x, yaxis=y)
+#p1 <- plot_ly(cellInfo, x = ~UMAP_1, y = ~UMAP_2, color=~SingleR.labels.single,
+#        text = ~paste("Hashtag: ", Hashtag,
+#                      "\nCluster: ", Cluster, 
+#                      "\nCell: ", Cells,
+#                      "\nSingleR.labels.cluster: ", SingleR.labels.single),
+#        type = 'scatter', mode = "markers", marker=list(size=5, opacity=0.5),
+#        colors=colsLabels) %>%layout(xaxis=x, yaxis=y)
+#p1
+#p2 <- plot_ly(cellInfo, x = ~UMAP_1, y = ~UMAP_2, color=~SingleR.labels.cluster,
+#        text = ~paste("Hashtag: ", Hashtag,
+#                      "\nCluster: ", Cluster, 
+#                      "\nCell: ", Cells,
+#                      "\nSingleR.labels.cluster: ", SingleR.labels.cluster),
+#        type = 'scatter', mode = "markers", marker=list(size=5, opacity=0.5),
+#        colors=colsLabels) %>%layout(xaxis=x, yaxis=y)
 
-p2
+#p2
 ```
 
 <br/>
