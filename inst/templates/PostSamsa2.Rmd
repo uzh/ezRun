@@ -26,6 +26,20 @@ library(vegan)
 
 ```{r}
 param = readRDS("param.rds")
+org_Shannon_Simpson <- readRDS("org_Shannon_Simpson.rds")
+func_Shannon_Simpson <- readRDS("func_Shannon_Simpson.rds")
+org_div_graph <- readRDS("org_div_graph.rds")
+func_div_graph <- readRDS("func_div_graph.rds")
+org_PCA <- readRDS("org_PCA.rds")
+func_PCA <- readRDS("func_PCA.rds")
+org_heatmap <- readRDS("org_heatmap.rds")
+func_heatmap <- readRDS("func_heatmap.rds")
+org_combined <- readRDS("org_combined.rds")
+func_combined <- readRDS("func_combined.rds")
+org_volcano <- readRDS("org_volcano.rds")
+func_volcano <- readRDS("func_volcano.rds")
+org_deseq_results <- readRDS("org_deseq_results.rds", sep = "\t")
+func_deseq_results <- readRDS("func_deseq_results.rds", sep = "\t")
 ```
 
 # {.tabset}
@@ -34,53 +48,51 @@ param = readRDS("param.rds")
 
 ### Lineage diversity
 ```{r engine='bash', comment='', echo=FALSE}
-cat org_results/Shannon_Simpson_diversity.txt
+org_Shannon_Simpson
 ```
 
 
 ```{r out.height = "660px", out.width='800px', echo=F}
-knitr::include_graphics("org_results/diversity_graph.pdf")
+plot(org_div_graph)
 ```
 
 ### Functional diversity
 ```{r engine='bash', comment='', echo=FALSE}
-cat func_results/Shannon_Simpson_diversity.txt
+func_Shannon_Simpson
 ```
 
 
 ```{r out.height = "660px", out.width='800px', echo=F}
-knitr::include_graphics("func_results/diversity_graph.pdf")
+plot(func_div_graph)
 ```
 
 ## Differences in lineage-level transcript abundance
 
 ```{r out.height = "660px", out.width='800px', echo=F}
-knitr::include_graphics("org_results/PCA_plot.tab.pdf")
+plot(org_PCA)
 ```
 
 ```{r out.height = "660px", out.width='800px', echo=F}
-knitr::include_graphics("org_results/DESeq_heatmap.pdf")
+plot(org_heatmap)
 ```
 
 ```{r out.height = "660px", out.width='800px', echo=F}
-knitr::include_graphics("org_results/combined_graph.pdf")
+plot(org_combined)
 ```
 
 ```{r out.height = "660px", out.width='800px', echo=F}
-knitr::include_graphics("org_results/volcano_plot.pdf")
+plot(org_volcano)
 ```
 
 
 ```{r echo=FALSE}
-table <- read.csv("org_results/DESeq_results.tab", sep = "\t")
-table <- table[order(table$log2FoldChange,decreasing=TRUE),]
+table <- org_deseq_results[order(org_deseq_results$log2FoldChange,decreasing=TRUE),]
 knitr::kable(table[1:10,])
 ```
 
 
 ```{r echo=FALSE}
-table <- read.csv("org_results/DESeq_results.tab", sep = "\t")
-table <- table[table$pvalue < 0.05,]
+table <- org_deseq_results[org_deseq_results$pvalue < 0.05,]
 table <- table[order(table$log2FoldChange),]
 knitr::kable(table[1:10,])
 ```
@@ -89,32 +101,30 @@ knitr::kable(table[1:10,])
 ## Differences in functional-level transcript abundance
 
 ```{r out.height = "660px", out.width='800px', echo=F}
-knitr::include_graphics("func_results/PCA_plot.tab.pdf")
+plot(func_PCA)
 ```
 
 ```{r out.height = "660px", out.width='800px', echo=F}
-knitr::include_graphics("func_results/DESeq_heatmap.pdf")
+plot(func_heatmap)
 ```
 
 ```{r out.height = "660px", out.width='800px', echo=F}
-knitr::include_graphics("func_results/combined_graph.pdf")
+plot(func_combined)
 ```
 
 ```{r out.height = "660px", out.width='800px', echo=F}
-knitr::include_graphics("func_results/volcano_plot.pdf")
+plot(func_volcano)
 ```
 
 
 ```{r echo=FALSE}
-table <- read.csv("func_results/DESeq_results.tab", sep = "\t")
-table <- table[order(table$log2FoldChange,decreasing=TRUE),]
+table <- func_deseq_results[order(func_deseq_results$log2FoldChange,decreasing=TRUE),]
 knitr::kable(table[1:10,])
 ```
 
 
 ```{r echo=FALSE}
-table <- read.csv("func_results/DESeq_results.tab", sep = "\t")
-table <- table[table$pvalue < 0.05,]
+table <- func_deseq_results[func_deseq_results$pvalue < 0.05,]
 table <- table[order(table$log2FoldChange),]
 knitr::kable(table[1:10,])
 ```
