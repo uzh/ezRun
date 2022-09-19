@@ -22,6 +22,7 @@ library(scales)
 library(reshape2)
 library(knitr)
 library(vegan)
+library(pheatmap)
 ```
 
 ```{r}
@@ -73,7 +74,8 @@ plot(org_PCA)
 ```
 
 ```{r out.height = "660px", out.width='800px', echo=F}
-plot(org_heatmap)
+colors <- colorRampPalette( rev(brewer.pal(9, "Blues")) )(255)
+pheatmap(org_heatmap)
 ```
 
 ```{r out.height = "660px", out.width='800px', echo=F}
@@ -105,7 +107,8 @@ plot(func_PCA)
 ```
 
 ```{r out.height = "660px", out.width='800px', echo=F}
-plot(func_heatmap)
+colors <- colorRampPalette( rev(brewer.pal(9, "Blues")) )(255)
+pheatmap(func_heatmap)
 ```
 
 ```{r out.height = "660px", out.width='800px', echo=F}
