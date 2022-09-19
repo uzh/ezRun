@@ -34,8 +34,14 @@ ezMethodPostSamsa2Analysis = function(input=NA, output=NA, param=NA,
   
   ezSystem(paste("mkdir org_results"))
   ezSystem(paste("mkdir func_results"))
-  ezSystem(paste("cp", ORGannotationFiles, "org_results/"))
-  ezSystem(paste("cp", FUNCannotationFiles, "func_results/"))
+  
+  for (i in ORGannotationFiles) {
+    ezSystem(paste("cp", i, "org_results/"))
+  }
+  
+  for (x in FUNCannotationFiles) {
+    ezSystem(paste("cp", x, "func_results/"))
+  }
   
   rename_input1 <- paste0("rename s/",refGroup,"/control_",refGroup,"/g */TP1-*")
   ezSystem(rename_input1)
