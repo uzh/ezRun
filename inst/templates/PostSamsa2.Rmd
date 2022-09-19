@@ -38,8 +38,8 @@ org_combined <- readRDS("org_combined.rds")
 func_combined <- readRDS("func_combined.rds")
 org_volcano <- readRDS("org_volcano.rds")
 func_volcano <- readRDS("func_volcano.rds")
-org_deseq_results <- readRDS("org_deseq_results.rds", sep = "\t")
-func_deseq_results <- readRDS("func_deseq_results.rds", sep = "\t")
+org_deseq_results <- readRDS("org_deseq_results.rds")
+func_deseq_results <- readRDS("func_deseq_results.rds")
 ```
 
 # {.tabset}
