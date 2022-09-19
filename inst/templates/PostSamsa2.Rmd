@@ -47,7 +47,7 @@ func_deseq_results <- readRDS("func_deseq_results.rds")
 ## Diversity
 
 ### Lineage diversity
-```{r engine='bash', comment='', echo=FALSE}
+```{r echo=FALSE}
 show(org_Shannon_Simpson)
 ```
 
@@ -57,7 +57,7 @@ plot(org_div_graph)
 ```
 
 ### Functional diversity
-```{r engine='bash', comment='', echo=FALSE}
+```{r echo=FALSE}
 show(func_Shannon_Simpson)
 ```
 
