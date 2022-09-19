@@ -48,7 +48,7 @@ func_deseq_results <- readRDS("func_deseq_results.rds")
 
 ### Lineage diversity
 ```{r engine='bash', comment='', echo=FALSE}
-org_Shannon_Simpson
+show(org_Shannon_Simpson)
 ```
 
 
@@ -58,7 +58,7 @@ plot(org_div_graph)
 
 ### Functional diversity
 ```{r engine='bash', comment='', echo=FALSE}
-func_Shannon_Simpson
+show(func_Shannon_Simpson)
 ```
 
 
@@ -87,14 +87,14 @@ plot(org_volcano)
 
 ```{r echo=FALSE}
 table <- org_deseq_results[order(org_deseq_results$log2FoldChange,decreasing=TRUE),]
-knitr::kable(table[1:10,])
+ezInteractiveTableRmd(table[1:10,])
 ```
 
 
 ```{r echo=FALSE}
 table <- org_deseq_results[org_deseq_results$pvalue < 0.05,]
 table <- table[order(table$log2FoldChange),]
-knitr::kable(table[1:10,])
+ezInteractiveTableRmd(table[1:10,])
 ```
 
 
@@ -119,12 +119,12 @@ plot(func_volcano)
 
 ```{r echo=FALSE}
 table <- func_deseq_results[order(func_deseq_results$log2FoldChange,decreasing=TRUE),]
-knitr::kable(table[1:10,])
+ezInteractiveTableRmd(table[1:10,])
 ```
 
 
 ```{r echo=FALSE}
 table <- func_deseq_results[func_deseq_results$pvalue < 0.05,]
 table <- table[order(table$log2FoldChange),]
-knitr::kable(table[1:10,])
+ezInteractiveTableRmd(table[1:10,])
 ```
