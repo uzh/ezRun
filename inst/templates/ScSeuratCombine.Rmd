@@ -408,7 +408,7 @@ The iSEE shiny app can be accessed through this link [iSEE explorer](`r {lastPro
 
 ##### Positive markers of each cluster
 
-[posMarkers](pos_markers.tsv)
+[posMarkers](posMarkers.xlsx)
 
 
 ##### The final Seurat object is [here](scData.rds)
