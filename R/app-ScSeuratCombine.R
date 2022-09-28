@@ -105,6 +105,7 @@ ezMethodScSeuratCombine = function(input=NA, output=NA, param=NA, htmlFile="00in
   
   #positive cluster markers
   posMarkers <- posClusterMarkers(scData, pvalue_allMarkers, param)
+  writexl::write_xlsx(posMarkers, path="posMarkers.xlsx")
   
   #we do cell type identification using AUCell and SingleR
   cells_AUC <- NULL
@@ -125,7 +126,7 @@ ezMethodScSeuratCombine = function(input=NA, output=NA, param=NA, htmlFile="00in
   saveRDS(scData, file = "scData.rds")
   
   # Save some results in external files
-  dataFiles <- saveExternalFiles(list(pos_markers = posMarkers, gene_means = as_tibble(as.data.frame(geneMeans), rownames = "gene_name")))
+  dataFiles <- saveExternalFiles(list(gene_means = as_tibble(as.data.frame(geneMeans), rownames = "gene_name")))
   
   makeRmdReport(dataFiles=dataFiles, rmdFile = "ScSeuratCombine.Rmd", reportTitle = param$name) 
   return("Success")

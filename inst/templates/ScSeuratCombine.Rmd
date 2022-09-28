@@ -36,7 +36,6 @@ knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE, knitr.tabl
 
 ```{r}
 scData <- readRDS("scData.rds")
-sce <- loadHDF5SummarizedExperiment("sce_h5")
 param = readRDS("param.rds")
 output = readRDS("output.rds")
 species <- getSpecies(param$refBuild)
@@ -213,7 +212,7 @@ cat("We found positive markers that defined clusters compared to all other cells
 #### Expression differences of cluster marker genes
 
 ```{r pos markers}
-posMarkers = read_tsv("pos_markers.tsv")
+posMarkers <- readxl::read_xlsx("posMarkers.xlsx")
 posMarkers$cluster = as.factor(posMarkers$cluster)
 posMarkers$gene = as.factor(posMarkers$gene)
 ezInteractiveTableRmd(posMarkers, digits=4)
