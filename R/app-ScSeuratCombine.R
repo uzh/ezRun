@@ -123,12 +123,6 @@ ezMethodScSeuratCombine = function(input=NA, output=NA, param=NA, htmlFile="00in
   saveRDS(param, file="param.rds")
   saveRDS(output, file="output.rds")
   saveRDS(scData, file = "scData.rds")
-
-  #object to be used in isee
-  #TODO: remove unnecesary dietseurat call when the bug in Seurat is fixed
-  scData_diet = DietSeurat(scData, dimreducs = c("pca", "tsne", "umap"))
-  sce <- scData_diet %>% seurat_to_sce(default_assay = "SCT")
-  saveHDF5SummarizedExperiment(sce, dir = "sce_h5")
   
   # Save some results in external files
   dataFiles <- saveExternalFiles(list(pos_markers = posMarkers, gene_means = as_tibble(as.data.frame(geneMeans), rownames = "gene_name")))
