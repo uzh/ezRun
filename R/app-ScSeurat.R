@@ -126,9 +126,16 @@ ezMethodScSeurat <- function(input = NA, output = NA, param = NA,
   
   cts <- Read10X(input$getFullPaths("CountMatrix"), gene.column = 1)
   featInfo <- ezRead.table(paste0(input$getFullPaths("CountMatrix"), "/features.tsv.gz"), header = FALSE, row.names = NULL)#, col_names = FALSE)
-  colnames(featInfo) <- c("ensemblID", "name", "type")
+  colnames(featInfo) <- c("gene_id", "gene_name", "type")
   featInfo$isMito = grepl( "(?i)^MT-", featInfo$name)
   featInfo$isRiboprot = grepl(  "(?i)^RPS|^RPL", featInfo$name)
+  geneAnnoFile <- sub("byTranscript", "byGene", param$ezRef@refAnnotationFile)
+  if (file.exists(geneAnnoFile)){
+    geneAnno <- ezRead.table(geneAnnoFile)
+    if (any(geneAnno$type == "rRNA")){
+      featInfo$isRibosomal <- geneAnno[featInfo$gene_id, "type"] == "rRNA"
+    }
+  }
   
   
   ## if we have feature barcodes we keep only the expression matrix
@@ -136,8 +143,8 @@ ezMethodScSeurat <- function(input = NA, output = NA, param = NA,
     cts <- cts$`Gene Expression`
     featInfo <- featInfo[  featInfo$type == "Gene Expression", ]
   }
-  rownames(cts) <- rownames(featInfo) <- gsub("_", "-", uniquifyFeatureNames(ID=featInfo$ensemblID, names=featInfo$name))
   ## underscores in genenames will become dashes
+  rownames(cts) <- rownames(featInfo) <- gsub("_", "-", uniquifyFeatureNames(ID=featInfo$ensemblID, names=featInfo$name)) 
   scData <- CreateSeuratObject(counts = cts[rowSums2(cts >0) >0, ])
   scData$Condition <- input$getColumn("Condition")
   scData@meta.data$Sample <- input$getNames()
@@ -145,11 +152,12 @@ ezMethodScSeurat <- function(input = NA, output = NA, param = NA,
   scData$cellBarcode <- sub(".*_", "", colnames(scData))
   
   
-  scData <- addCellQcToSeurat(scData, param=param, BPPARAM = BPPARAM)
+  scData <- addCellQcToSeurat(scData, param=param, BPPARAM = BPPARAM, ribosomalGenes = featInfo[rownames(scData), "isRibosomal"])
   
   ## use empty drops to test for ambient
   if (grepl("filtered_", input$getFullPaths("CountMatrix"))){
     rawCts <- Read10X(sub("filtered_", "raw_", input$getFullPaths("CountMatrix")), gene.column = 1)
+    stopifnot(rownames(rawCts) == featInfo$gene_id)
     emptyStats <- emptyDrops(rawCts[!featInfo$isMito & !featInfo$isRiboprot, ],
                              BPPARAM=BPPARAM, niters=1e5)
     scData$negLog10CellPValue <- - log10(emptyStats[colnames(scData), "PValue"])
@@ -256,13 +264,16 @@ ezMethodScSeurat <- function(input = NA, output = NA, param = NA,
   return("Success")
 }
 
-addCellQcToSeurat <- function(scData, param=NULL, BPPARAM=NULL){
+addCellQcToSeurat <- function(scData, param=NULL, BPPARAM=NULL, ribosomalGenes=NULL){
   
   library(scater)
   
   # Cells filtering
   scData <- PercentageFeatureSet(scData, "(?i)^MT-", col.name = "percent_mito")
   scData <- PercentageFeatureSet(scData, "(?i)^RPS|^RPL", col.name = "percent_riboprot")
+  if (!is.null(ribosomalGenes)){
+    scData <- PercentageFeatureSet(scData, features=ribosomalGenes, col.name = "percent_ribosomal")
+  }
   if(grepl("Spatial", param$appName)) {
     assay <- "Spatial"
     att_nCounts <- "nCount_Spatial"
