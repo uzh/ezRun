@@ -1,7 +1,10 @@
 ezMethodMageckTest = function(input=NA, output=NA, param=NA){
   require(Herper)
   require(stringr)
-
+  require(MAGeCKFlute)
+  require(clusterProfiler) 
+  require(ggplot2)
+    
   # Loading the variables
   dataset <- input$meta
   dir.create(param$comparison, showWarnings=FALSE)
@@ -45,7 +48,7 @@ ezMethodMageckTest = function(input=NA, output=NA, param=NA){
     rId,
     "-n",
     outputPrefix,
-    as.vector(str_split(param$specialOptions, "\ +", simplify = TRUE))
+    as.vector(str_split(param$cmdOptions, "\ +", simplify = TRUE))
   )
   
   # Execute the command
@@ -56,6 +59,21 @@ ezMethodMageckTest = function(input=NA, output=NA, param=NA){
     dat <- ezRead.table(paste0(outputPrefix, fileComp, ".txt"), row.names=NULL)
     writexl::write_xlsx(dat, paste0(outputPrefix, fileComp, ".xlsx"))
   })
+  
+  #run MAGECK FLUTE
+  setwd(param$comparison)
+  file1 =  paste0(param$comparison, '.gene_summary.txt')
+  file2 =  paste0(param$comparison, '.sgrna_summary.txt')
+  FluteRRA(file1, file2, proj="", organism=param$species, outdir = "./", omitEssential = FALSE)
+  
+  
+#  rmdFile <- paste0(param$comparison, '.report.Rmd')
+#  htmlFile <- sub('.Rmd', '.html', rmdFile)
+  
+ # rmarkdown::render(
+  #    input = rmdFile, envir = new.env(),
+  #    output_dir = ".", output_file = htmlFile, quiet = TRUE
+  #)
   
   return("Success")
 }
