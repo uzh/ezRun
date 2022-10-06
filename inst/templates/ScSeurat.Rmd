@@ -120,8 +120,8 @@ plotColData(xxAll, x="Sample", y="percent_riboprot", colour_by="discard") + ggti
 plotColData(xxAll, x="nCount_RNA", y="percent_riboprot", colour_by="discard")+ scale_x_log10()
 
 if (!is.null(xxAll$percent_ribosomal)){
-  plotColData(xxAll, x="Sample", y="percent_ribosomal", colour_by="discard") + ggtitle("Ribosomal percent")
-  plotColData(xxAll, x="nCount_RNA", y="percent_ribosomal", colour_by="discard")+ scale_x_log10()
+  print(plotColData(xxAll, x="Sample", y="percent_ribosomal", colour_by="discard") + ggtitle("Ribosomal percent"))
+  print(plotColData(xxAll, x="nCount_RNA", y="percent_ribosomal", colour_by="discard")+ scale_x_log10())
 }
 
 plotColData(xxAll, x="Sample", y="doubletScore", colour_by="discard") + ggtitle("Doublet score")
@@ -257,8 +257,8 @@ VlnPlot(scData, features ="percent_riboprot") + ggtitle("Ribosomal protein perce
 FeaturePlot(scData, features="percent_riboprot", label = TRUE)
 
 if (!is.null(scData@meta.data$percent_ribosomal)){
-VlnPlot(scData, features ="percent_ribosomal") + ggtitle("Ribosomal RNA percentage vs ident") + NoLegend()
-FeaturePlot(scData, features="percent_ribosomal", label = TRUE)
+print(VlnPlot(scData, features ="percent_ribosomal") + ggtitle("Ribosomal RNA percentage vs ident") + NoLegend())
+print(FeaturePlot(scData, features="percent_ribosomal", label = TRUE))
   
 }
 
