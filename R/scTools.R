@@ -21,7 +21,7 @@ addCellCycleToSCE <- function(sce, refBuild, BPPARAM){
 
 addCellCycleToSeurat <- function(scData, refBuild, BPPARAM){
   counts <- GetAssayData(scData, slot="counts", assay = "RNA")
-  rownames(counts) <- scData[["RNA"]][["ensemblID"]]$ensemblID
+  rownames(counts) <- scData[["RNA"]]@meta.features$gene_id
   cellPhase <- getCellCycle(counts, refBuild, BPPARAM)
   if (!is.null(cellPhase)){
     cellcycleInfo = data.frame(CellCycle = cellPhase$Phase, CellCycleG1 = cellPhase$G1, CellCycleS = cellPhase$S, CellCycleG2M = cellPhase$G2M, row.names = colnames(scData))
