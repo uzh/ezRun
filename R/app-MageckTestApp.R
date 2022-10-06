@@ -35,22 +35,26 @@ ezMethodMageckTest = function(input=NA, output=NA, param=NA){
   rId <- paste(which(dataset[[fullColumnName]] == param$refGroup) - 1, collapse=",")
   sId <- paste(which(dataset[[fullColumnName]] == param$sampleGroup) - 1, collapse=",")
   
+  opt <- c(
+          "test",
+          "-k",
+          mergedCountFileLoc,
+          "-t",
+          sId,
+          "-c",
+          rId,
+          "-n",
+          outputPrefix,
+          "--pdf-report",
+          as.vector(str_split(param$cmdOptions, "\ +", simplify = TRUE)))
+  
   # Load the conda environment
   local_CondaEnv("mageckenv", pathToMiniConda = "/usr/local/ngseq/miniconda3")
-
-  opt <- c(
-    "test",
-    "-k",
-    mergedCountFileLoc,
-    "-t",
-    sId,
-    "-c",
-    rId,
-    "-n",
-    outputPrefix,
-    as.vector(str_split(param$cmdOptions, "\ +", simplify = TRUE))
-  )
   
+  ctrlFile <- list.files(param$libName, pattern = 'MAGeCK_Ctrl.csv$', full.names = TRUE)
+  if(length(ctrlFile) == 1L){
+    opt <- c(opt, "--control-sgrna", ctrlFile)
+  }
   # Execute the command
   system2("mageck", args=opt)
   
@@ -64,7 +68,7 @@ ezMethodMageckTest = function(input=NA, output=NA, param=NA){
   setwd(param$comparison)
   file1 =  paste0(param$comparison, '.gene_summary.txt')
   file2 =  paste0(param$comparison, '.sgrna_summary.txt')
-  FluteRRA(file1, file2, proj="", organism=param$species, outdir = "./", omitEssential = FALSE)
+  FluteRRA(file1, file2, proj="output", organism=param$species, outdir = "./", omitEssential = FALSE)
   
   
 #  rmdFile <- paste0(param$comparison, '.report.Rmd')
