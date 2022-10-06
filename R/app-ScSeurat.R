@@ -127,8 +127,8 @@ ezMethodScSeurat <- function(input = NA, output = NA, param = NA,
   cts <- Read10X(input$getFullPaths("CountMatrix"), gene.column = 1)
   featInfo <- ezRead.table(paste0(input$getFullPaths("CountMatrix"), "/features.tsv.gz"), header = FALSE, row.names = NULL)#, col_names = FALSE)
   colnames(featInfo) <- c("gene_id", "gene_name", "type")
-  featInfo$isMito = grepl( "(?i)^MT-", featInfo$name)
-  featInfo$isRiboprot = grepl(  "(?i)^RPS|^RPL", featInfo$name)
+  featInfo$isMito = grepl( "(?i)^MT-", featInfo$gene_name)
+  featInfo$isRiboprot = grepl(  "(?i)^RPS|^RPL", featInfo$gene_name)
   geneAnnoFile <- sub("byTranscript", "byGene", param$ezRef@refAnnotationFile)
   if (file.exists(geneAnnoFile)){
     geneAnno <- ezRead.table(geneAnnoFile)
@@ -144,7 +144,7 @@ ezMethodScSeurat <- function(input = NA, output = NA, param = NA,
     featInfo <- featInfo[  featInfo$type == "Gene Expression", ]
   }
   ## underscores in genenames will become dashes
-  rownames(cts) <- rownames(featInfo) <- gsub("_", "-", uniquifyFeatureNames(ID=featInfo$ensemblID, names=featInfo$name)) 
+  rownames(cts) <- rownames(featInfo) <- gsub("_", "-", uniquifyFeatureNames(ID=featInfo$gene_id, names=featInfo$gene_name)) 
   scData <- CreateSeuratObject(counts = cts[rowSums2(cts >0) >0, ])
   scData$Condition <- input$getColumn("Condition")
   scData@meta.data$Sample <- input$getNames()
