@@ -84,9 +84,9 @@ ezMethodQIIME2 = function(input=NA, output=NA, param=NA,
   }
   ezSystem(updateBatchCmd1)
   
-  cmdQIIME2 = paste("sh",UNIFIED_QIIME2_WORKFLOW_SINGLEEND)
+  cmdQIIME2 = paste("sh",UNIFIED_QIIME2_WORKFLOW_SINGLEEND, param$database, param$primer)
   if(isPaired){
-    cmdQIIME2 = paste("sh",UNIFIED_QIIME2_WORKFLOW_PAIREDEND)
+    cmdQIIME2 = paste("sh",UNIFIED_QIIME2_WORKFLOW_PAIREDEND, param$database, param$primer)
   }
   ezSystem(cmdQIIME2)
 
