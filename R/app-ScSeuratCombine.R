@@ -84,9 +84,6 @@ ezMethodScSeuratCombine = function(input=NA, output=NA, param=NA, htmlFile="00in
     for(eachSample in names(param$chosenClusters)){
       chosenCells <- names(Idents(scDataList[[eachSample]]))[Idents(scDataList[[eachSample]]) %in% param$chosenClusters[[eachSample]]]
       scDataList[[eachSample]] <- scDataList[[eachSample]][, chosenCells]
-       scDataList[[eachSample]] <-
-        SubsetData(scDataList[[eachSample]],
-                   ident.use=param$chosenClusters[[eachSample]])
     }
   }
   
