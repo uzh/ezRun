@@ -313,7 +313,7 @@ for (r in names(singler.results)) {
     layout(xaxis=x, yaxis=y, title=paste0(r, ": Cluster"))
   plotlyPlots <- append(plotlyPlots, list(p1, p2))
   cat("\n\n")
-  clusterInfos <- ezFrame(Sample=as.character(unique(scData$Sample)), Cluster=levels(Idents(scData)))
+  clusterInfos <- ezFrame(Cluster=levels(Idents(scData)))
   if (!is.null(singler.results)){
     clusterInfos$SinglerCellType <- singler.results[[r]]$cluster.fine[clusterInfos$Cluster, "pruned.labels"]
   }
