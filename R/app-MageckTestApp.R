@@ -25,6 +25,7 @@ ezMethodMageckTest = function(input=NA, output=NA, param=NA){
   # Rename the sample columns to the actual sample names
   sampleColumns <- !(colnames(mergeCounts) %in% c("sgRNA", "Gene"))
   colnames(mergeCounts)[sampleColumns] <- sampleNames
+  mergeCounts$Gene <- gsub(' ', '_', mergeCounts$Gene) #bug in Mageck regarding Spaces in GeneNames
   
   ezWrite.table(mergeCounts, file=mergedCountFileLoc, row.names=FALSE)
   
