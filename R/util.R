@@ -810,7 +810,7 @@ ezCbind <- function(...) {
   do.call(cbind, x)
 }
 
-makeRmdReport <- function(..., htmlFile = "00index.html", rmdFile = "", selfContained = FALSE,
+makeRmdReport <- function(..., htmlFile = "00index.html", rmdFile = "", selfContained = TRUE,
                           linkHtmlLibDir = NULL, reportTitle = "SUSHI Report") {
   varList <- list(...)
   for (nm in names(varList)) {
