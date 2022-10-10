@@ -68,6 +68,10 @@ ezMethodQIIME2 = function(input=NA, output=NA, param=NA,
                             " -e s/\"MAX_RAREFACTION_DEPTH\"/", param$max_rarefaction_depth, "/g ",
                             " -e s/\"MIN_FREQ\"/", param$min_freq, "/g ",
                             " -e s/\"MIN_SAMPLES\"/", param$min_samples, "/g ",
+                            " -e s/\"REF_READS\"/", param$database_ref, "/g ",
+                            " -e s/\"TAX\"/", param$database_tax, "/g ",
+                            " -e s/\"PRIMER1\"/", param$forward_primer, "/g ",
+                            " -e s/\"PRIMER2\"/", param$reverse_primer, "/g ",
                             file.path(METAGENOMICS_ROOT,UNIFIED_QIIME2_WORKFLOW_SINGLEEND), 
                             " > ",
                             UNIFIED_QIIME2_WORKFLOW_SINGLEEND)
@@ -78,15 +82,19 @@ ezMethodQIIME2 = function(input=NA, output=NA, param=NA,
                               " -e s/\"MAX_RAREFACTION_DEPTH\"/", param$max_rarefaction_depth, "/g ",
                               " -e s/\"MIN_FREQ\"/", param$min_freq, "/g ",
                               " -e s/\"MIN_SAMPLES\"/", param$min_samples, "/g ",
+                              " -e s/\"REF_READS\"/", param$database_ref, "/g ",
+                              " -e s/\"TAX\"/", param$database_tax, "/g ",
+                              " -e s/\"PRIMER1\"/", param$forward_primer, "/g ",
+                              " -e s/\"PRIMER2\"/", param$reverse_primer, "/g ",
                               file.path(METAGENOMICS_ROOT,UNIFIED_QIIME2_WORKFLOW_PAIREDEND), 
                               " > ",
                               UNIFIED_QIIME2_WORKFLOW_PAIREDEND)
   }
   ezSystem(updateBatchCmd1)
   
-  cmdQIIME2 = paste("bash",UNIFIED_QIIME2_WORKFLOW_SINGLEEND, param$database, param$primer)
+  cmdQIIME2 = paste("sh",UNIFIED_QIIME2_WORKFLOW_SINGLEEND)
   if(isPaired){
-    cmdQIIME2 = paste("bash",UNIFIED_QIIME2_WORKFLOW_PAIREDEND, param$database, param$primer)
+    cmdQIIME2 = paste("sh",UNIFIED_QIIME2_WORKFLOW_PAIREDEND)
   }
   ezSystem(cmdQIIME2)
 
