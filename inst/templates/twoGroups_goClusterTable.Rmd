@@ -6,8 +6,8 @@ output:
     self_contained: false
     lib_dir: rmarkdownLib
     includes:
-      in_header: fgcz_header.html
-    css: fgcz.css
+      in_header: !expr system.file("templates/fgcz_header.html", package="ezRun", lib.loc=.libPaths())
+    css: !expr system.file("templates/fgcz.css", package="ezRun", lib.loc=.libPaths())
 ---
 
 ```{r cluster plot, echo=FALSE, fig.width=max(8,4+0.1*ncol(se)), fig.height=10, fig.retina=2, warning=FALSE}

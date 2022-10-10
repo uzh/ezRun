@@ -6,8 +6,8 @@ output:
     self_contained: false
     lib_dir: rmarkdownLib
     includes:
-      in_header: fgcz_header.html
-    css: fgcz.css
+      in_header: !expr system.file("templates/fgcz_header.html", package="ezRun", lib.loc=.libPaths())
+    css: !expr system.file("templates/fgcz.css", package="ezRun", lib.loc=.libPaths())
 ---
 
 ```{r setup, include=FALSE}
