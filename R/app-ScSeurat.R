@@ -86,6 +86,10 @@ EzAppScSeurat <-
                       Type = "charVector",
                       DefaultValue = "",
                       Description = "control sequences to add"
+                    ),
+                    CellRangerMulti = ezFrame(
+                        Type = "logical", DefaultValue = FALSE,
+                        Description = "unfiltered data of CellRanger multi output isn't sample specific and needs subsetting"
                     )
                   )
                 }
@@ -157,6 +161,9 @@ ezMethodScSeurat <- function(input = NA, output = NA, param = NA,
   ## use empty drops to test for ambient
   if (grepl("filtered_", input$getFullPaths("CountMatrix"))){
     rawCts <- Read10X(sub("filtered_", "raw_", input$getFullPaths("CountMatrix")), gene.column = 1)
+    if(param$CellRangerMulti){
+        rawCts <- rawCts[featInfo$gene_id,]
+    }
     stopifnot(rownames(rawCts) == featInfo$gene_id)
     emptyStats <- emptyDrops(rawCts[!featInfo$isMito & !featInfo$isRiboprot, ],
                              BPPARAM=BPPARAM, niters=1e5)
