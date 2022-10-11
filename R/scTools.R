@@ -303,21 +303,21 @@ createGeneSets <- function(species, tissue) {
 cellsLabelsWithSingleR <- function(logCounts, current_clusters, species, BPPARAM = NULL) {
   library(SingleR)
   if(species == "Human"){
-    references <- list(
+    referencesList <- list(
       "HumanPrimaryCellAtlasData" = celldex::HumanPrimaryCellAtlasData(),
       "MonacoImmuneData" = celldex::MonacoImmuneData(),
-      "DatabaseImmuneCellExpressionData" = celldex::DatabaseImmuneCellExpressionData())
+      "DatabaseImmuneCellExpressionData" = celldex::DatabaseImmuneCellExpressionData()
+      )
   } else {
-    references <- list(
+    referencesList <- list(
       "MouseRNAseqData" = celldex::MouseRNAseqData(),
       "ImmGenData" = celldex::ImmGenData())
   }
   singlerResultsList <- list()
-  for (ref in names(references)) {
-    reference <- references[[ref]]
+  for (ref in names(referencesList)) {
     singlerResultsList[[ref]] <- list()
-    singlerResultsList[[ref]][["single.fine"]] <- SingleR(test = logCounts, ref = reference, labels = reference$label.fine)
-    singlerResultsList[[ref]][["cluster.fine"]] <- SingleR(test = logCounts, ref = reference, labels = reference$label.fine, method = "cluster", clusters=current_clusters)
+    singlerResultsList[[ref]][["single.fine"]] <- SingleR(test = logCounts, ref = referencesList[[ref]], labels = referencesList[[ref]]$label.fine, BPPARAM = BPPARAM)
+    singlerResultsList[[ref]][["cluster.fine"]] <- SingleR(test = logCounts, ref = referencesList[[ref]], labels = referencesList[[ref]]$label.fine, clusters = current_clusters, BPPARAM = BPPARAM)
   }
   return(singlerResultsList)
 }
