@@ -122,7 +122,7 @@ DoHeatmap(scData, features = top5$gene, group.by = "Condition")
 
 
 ```{r diffGenes violin plots, eval=!is.null(diffGenes), fig.height=30, fig.width=24}
-VlnPlot(scData, top5$gene, split.by = "Condition", split.plot = TRUE)
+VlnPlot(scData, unique(top5$gene), split.by = "Condition", split.plot = TRUE)
 ```
 
 
