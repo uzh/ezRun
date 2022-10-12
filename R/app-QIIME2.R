@@ -21,12 +21,11 @@ ezMethodQIIME2 = function(input=NA, output=NA, param=NA,
   if(isPaired){
     file2PathInDataset <- input$getFullPaths("Read2")
   }
-  write_tsv(dataset, file = "test.tsv")
   ###create sample metadata and manifest files
   if (!file.exists("sample_metadata.tsv")) {
     file.create("sample_metadata.tsv")
     sample_metadata <- data.frame(dataset[ , grepl( param$grouping , names( dataset ) ) ])
-    sample_metadata$sample_id <- dataset$Name
+    sample_metadata$sample_id <- rownames(dataset)
     sample_metadata <- sample_metadata %>% select(sample_id, everything())
     setnames(sample_metadata, "sample_id", "sample-id")
     setnames(sample_metadata, colnames(sample_metadata)[2], "Group")
@@ -39,7 +38,7 @@ ezMethodQIIME2 = function(input=NA, output=NA, param=NA,
   
     file.create("manifest.tsv")
     manifest <- data.frame(dataset[ , grepl( "Read1" , names( dataset ) ) ])
-    manifest$sample_id <- dataset$Name
+    manifest$sample_id <- rownames(dataset)
     manifest <- manifest[,c(2,1)]
     extra_col <- paste("/srv/gstore/projects", manifest[,2], sep="/")
     manifest <- cbind(manifest, extra_col)
@@ -49,9 +48,9 @@ ezMethodQIIME2 = function(input=NA, output=NA, param=NA,
     write_tsv(manifest, file = "manifest.tsv")
     if(isPaired){
       manifest1 <- data.frame(dataset[ , grepl( "Read1" , names( dataset ) ) ])
-      manifest1$sample_id <- dataset$Name
+      manifest1$sample_id <- rownames(dataset)
       manifest2 <- data.frame(dataset[ , grepl( "Read2" , names( dataset ) ) ])
-      manifest2$sample_id <- dataset$Name
+      manifest2$sample_id <- rownames(dataset)
       manifest <- merge(manifest1, manifest2,by="sample_id")
       manifest <- manifest[,c(1,2,3)]
       extra_col1 <- paste("/srv/gstore/projects", manifest[,2], sep="/")
