@@ -455,7 +455,7 @@ cat("\n\n")
 
 ```{r singler labelsTable, results = 'asis', eval=!is.null(singler.results)}
 cat("##### Table of SingleR Labels\n\n")
-cat(sprintf("The following table summarises the cluster-level labels for each reference (%s) and displays the top %s genes for that cluster in terms of their average log2-fold change.", paste(names(singler.results), collapse=", "), nTopMarkers))
+cat(sprintf("The following table summarises the cluster-level labels for each reference (%s) and displays the top %s genes for that cluster in terms of their average log2-fold change. Note the top markers for every cluster will be identical regardless of reference used since this information is specific to the cluster and not the annotation reference.", paste(names(singler.results), collapse=", "), nTopMarkers))
 ezInteractiveTableRmd(bind_rows(clusterInfosList))
 cat("\n\n")
 ```
