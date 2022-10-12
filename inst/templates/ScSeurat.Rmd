@@ -284,9 +284,9 @@ FeaturePlot(scData, features="negLog10CellPValue", label = TRUE)
 
 
 ```{r, fig.width=12, fig.height=shrinkToRange(length(param$controlSeqs)*3/4, c(6, 18)), eval=ezIsSpecified(param$controlSeqs)}
-  genesToPlot <- gsub("_", "-", param$controlSeqs)
-  genesToPlot <- intersect(genesToPlot, rownames(scData))
-  FeaturePlot(scData, genesToPlot) + NoLegend()
+genesToPlot <- gsub("_", "-", param$controlSeqs)
+genesToPlot <- intersect(genesToPlot, rownames(scData))
+FeaturePlot(scData, genesToPlot) + NoLegend()
 ```
 
 #### Cluster resolution 
@@ -378,12 +378,11 @@ SingleR contains several built-in reference datasets, mostly assembled from bulk
 
 The two heatmaps below display the scores for all individual cells (left) and each original cluster (right) across all reference labels, which allows users to inspect the confidence of the predicted labels across the dataset. The bar Labels on the top shows the actual assigned label.
 
-The single cell (top) and cluster (bottom) annotations are also shown on the UMAPs. Place the mouse over the cells to get information such as their UMAP coordinates, original cluster, the cells name and the label assigned by SingleR. You can also zoom in specific areas of the UMAP by dragging and drop with the mouse.
-
-```{r fig.height=12, fig.width=12, results = 'asis', eval= !is.null(singler.results)}
+```{r singler, fig.height=12, fig.width=12, results = 'asis', eval= !is.null(singler.results)}
 clusterInfosList <- list()
+plotlyPlots <- list()
 for (r in names(singler.results)) {
-  cat("#####", r, "\n\n")
+  cat("##### Heatmap: ", r, "\n\n")
   print(plotScoreHeatmap(singler.results[[r]]$single.fine))
   print(plotScoreHeatmap(singler.results[[r]]$cluster.fine, show_colnames = TRUE))
   cat("\n\n")
@@ -410,21 +409,24 @@ for (r in names(singler.results)) {
   y <- list(title="UMAP_2", zeroline=FALSE)
   
   p1 <- plot_ly(cellInfo, x = ~UMAP_1, y = ~UMAP_2, color=~SingleR.labels.single,
-          text = ~paste("Cluster: ", Cluster, 
-                        "\nCell: ", Cells,
-                        "\nSingleR.labels.cluster: ", SingleR.labels.single),
-          type = 'scatter', mode = "markers", marker=list(size=5, opacity=0.5),
-          colors=colsLabels) %>%layout(xaxis=x, yaxis=y)
-  print(htmltools::tagList(ggplotly(p1)))
+                text = ~paste("Cluster: ", Cluster,
+                              "\nCell: ", Cells,
+                              "\nSingleR.labels.cluster: ", 
+                              SingleR.labels.single),
+                type = 'scatter', mode = "markers", marker=list(size=5, opacity=0.5),
+                colors=colsLabels, width=800, height=500) %>%
+    layout(xaxis=x, yaxis=y, title=paste0(r, ": Single"))
   p2 <- plot_ly(cellInfo, x = ~UMAP_1, y = ~UMAP_2, color=~SingleR.labels.cluster,
-          text = ~paste("Cluster: ", Cluster, 
-                        "\nCell: ", Cells,
-                        "\nSingleR.labels.cluster: ", SingleR.labels.cluster),
-          type = 'scatter', mode = "markers", marker=list(size=5, opacity=0.5),
-          colors=colsLabels) %>%layout(xaxis=x, yaxis=y)
-  print(htmltools::tagList(ggplotly(p2)))
+                text = ~paste("Cluster: ", Cluster,
+                              "\nCell: ", Cells,
+                              "\nSingleR.labels.cluster: ", SingleR.labels.cluster),
+                type = 'scatter', mode = "markers", marker=list(size=5, opacity=0.5),
+                colors=colsLabels, width=800, height=500) %>%
+    layout(xaxis=x, yaxis=y, title=paste0(r, ": Cluster"))
+  plotlyPlots <- append(plotlyPlots, list(p1, p2))
   cat("\n\n")
-  clusterInfos <- ezFrame(Sample=as.character(unique(scData$Sample)), Cluster=levels(Idents(scData)))
+  clusterInfos <- ezFrame(Sample=as.character(unique(scData$Sample)), 
+                          Cluster=levels(Idents(scData)))
   if (!is.null(singler.results)){
     clusterInfos$SinglerCellType <- singler.results[[r]]$cluster.fine[clusterInfos$Cluster, "pruned.labels"]
   }
@@ -433,9 +435,20 @@ for (r in names(singler.results)) {
     slice_max(n = nTopMarkers, order_by = avg_log2FC)
   topMarkerString <- sapply(split(topMarkers$gene, topMarkers$cluster), paste, collapse=", ")
   clusterInfos[["TopMarkers"]] <- topMarkerString[clusterInfos$Cluster]
-  print(ezInteractiveTableRmd(clusterInfos, title = r))
+  clusterInfosList <- append(clusterInfosList, 
+                             list(ezInteractiveTableRmd(clusterInfos, title = r)))
   cat("\n\n")
 }
+```
+
+<br>
+
+```{r singler labelsUMAP, results = 'asis', eval=!is.null(singler.results)}
+cat("##### UMAPs with SingleR Labels\n\n")
+cat("The single cell (top) and cluster (bottom) annotations are also shown on the UMAPs. Place the mouse over the cells to get information such as their UMAP coordinates, original cluster, the cells name and the label assigned by SingleR. You can also zoom in specific areas of the UMAP by dragging and drop with the mouse.\n")
+tl <- htmltools::tagList(plotlyPlots)
+tl
+cat("\n\n")
 ```
 
 <br/>
