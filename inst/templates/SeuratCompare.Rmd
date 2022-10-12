@@ -32,7 +32,7 @@ URLs <- input$getColumn("Static Report")
 
 ```{r}
 filePath <- file.path("/srv/gstore/projects", sub("https://fgcz-(gstore|sushi).uzh.ch/projects", "",dirname(URLs)), "scData.rds")
-if(!exists(filePath)){
+if(!file.exists(filePath)){
     filePath <- file.path("/srv/GT/analysis/course_sushi/public/projects", dirname(URLs), "scData.rds")
 }
 scData <- readRDS(filePath)
@@ -122,7 +122,7 @@ DoHeatmap(scData, features = top5$gene, group.by = "Condition")
 
 
 ```{r diffGenes violin plots, eval=!is.null(diffGenes), fig.height=30, fig.width=24}
-VlnPlot(scData, top5$gene, split.by = "Condition", split.plot = TRUE)
+VlnPlot(scData, unique(top5$gene), split.by = "Condition", split.plot = TRUE)
 ```
 
 

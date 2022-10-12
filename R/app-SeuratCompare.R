@@ -60,6 +60,12 @@ ezMethodSeuratCompare = function(input=NA, output=NA, param=NA, htmlFile="00inde
   #only subset object and calculate diff genes and conserved markers if there is at least one cluster shared among conditions
   if (!all(scData$seurat_clusters %in% small_clusters)) {
      scData <- subset(scData, idents = small_clusters, invert = TRUE)
+     
+     ###PrepSCTFindMarkers crashes for empty models which occur if the data consists of more than 2 samples/conditions 
+     if(length(slot(object = scData[['SCT']], name = "SCTModel.list")) > 2){
+         toKeep <- which(sapply(SCTResults(object = scData[['SCT']], slot = "cell.attributes"), nrow) != 0)
+         slot(object = scData[['SCT']], name = "SCTModel.list") = slot(object = scData[['SCT']], name = "SCTModel.list")[toKeep]
+     }
      #conserved cluster markers
      scData <- PrepSCTFindMarkers(scData)
      consMarkers <- conservedMarkers(scData)
