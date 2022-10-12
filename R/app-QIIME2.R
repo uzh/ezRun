@@ -21,6 +21,7 @@ ezMethodQIIME2 = function(input=NA, output=NA, param=NA,
   if(isPaired){
     file2PathInDataset <- input$getFullPaths("Read2")
   }
+  write_tsv(dataset, file = "test.tsv")
   ###create sample metadata and manifest files
   if (!file.exists("sample_metadata.tsv")) {
     file.create("sample_metadata.tsv")
