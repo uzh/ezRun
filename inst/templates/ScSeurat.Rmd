@@ -381,6 +381,7 @@ The two heatmaps below display the scores for all individual cells (left) and ea
 ```{r singler, fig.height=12, fig.width=12, results = 'asis', eval= !is.null(singler.results)}
 clusterInfosList <- list()
 plotlyPlots <- list()
+nTopMarkers <- 10
 for (r in names(singler.results)) {
   cat("##### Heatmap: ", r, "\n\n")
   print(plotScoreHeatmap(singler.results[[r]]$single.fine))
@@ -426,17 +427,16 @@ for (r in names(singler.results)) {
   plotlyPlots <- append(plotlyPlots, list(p1, p2))
   cat("\n\n")
   clusterInfos <- ezFrame(Sample=as.character(unique(scData$Sample)), 
+                          Reference=r,
                           Cluster=levels(Idents(scData)))
   if (!is.null(singler.results)){
     clusterInfos$SinglerCellType <- singler.results[[r]]$cluster.fine[clusterInfos$Cluster, "pruned.labels"]
   }
-  nTopMarkers <- 10
   topMarkers <- posMarkers %>% group_by(cluster) %>%
     slice_max(n = nTopMarkers, order_by = avg_log2FC)
   topMarkerString <- sapply(split(topMarkers$gene, topMarkers$cluster), paste, collapse=", ")
   clusterInfos[["TopMarkers"]] <- topMarkerString[clusterInfos$Cluster]
-  clusterInfosList <- append(clusterInfosList, 
-                             list(ezInteractiveTableRmd(clusterInfos, title = r)))
+  clusterInfosList <- append(clusterInfosList, list(clusterInfos))
   cat("\n\n")
 }
 ```
@@ -452,6 +452,13 @@ cat("\n\n")
 ```
 
 <br/>
+
+```{r singler labelsTable, results = 'asis', eval=!is.null(singler.results)}
+cat("##### Table of SingleR Labels\n\n")
+cat(sprintf("The following table summarises the cluster-level labels for each reference (%s) and displays the top %s genes for that cluster in terms of their average log2-fold change.", paste(names(singler.results), collapse=", "), nTopMarkers))
+ezInteractiveTableRmd(bind_rows(clusterInfosList))
+cat("\n\n")
+```
 
 #### Using gene sets
 
