@@ -68,14 +68,14 @@ ezMethodSCTrajectoryInference <- function(input=NA, output=NA, param=NA,
     object <- loadHDF5SummarizedExperiment(filePath_course)
     } else {
     filePath <- file.path("/srv/gstore/projects", sub("https://fgcz-(gstore|sushi).uzh.ch/projects", "",dirname(objectURLs)), "scData.rds")
-    scData <- readRDS(filePath)
+    object <- readRDS(filePath)
   }
   
   if (is(object, "SingleCellExperiment")) {
     counts = counts(object)
     logcounts = logcounts(object)
     cells_meta = colData(object)
-  } else {
+  } else if(is(object, "Seurat")){
     counts = GetAssayData(object, "counts")
     logcounts = GetAssayData(object, "data")
     cells_meta = object@meta.data
