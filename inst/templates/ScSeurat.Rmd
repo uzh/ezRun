@@ -311,7 +311,7 @@ cat("We found positive markers that defined clusters compared to all other cells
 #### Expression differences of cluster marker genes
 
 ```{r pos markers}
-posMarkers$cluster = as.factor(as.integer(posMarkers$cluster))
+posMarkers$cluster = as.factor(posMarkers$cluster)
 posMarkers$gene = as.factor(posMarkers$gene)
 ezInteractiveTableRmd(data.frame(posMarkers), digits=4)
 ```

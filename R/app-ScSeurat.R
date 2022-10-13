@@ -197,7 +197,8 @@ ezMethodScSeurat <- function(input = NA, output = NA, param = NA,
   scData <- FindVariableFeatures(scData, selection.method = "vst", verbose = FALSE, nfeatures=3000)
   scData <- ScaleData(scData, vars.to.regress = vars.to.regress, verbose=FALSE, do.scale=FALSE)
   ## generate the SCT assay
-  scData <- SCTransform(scData, vst.flavor=2, vars.to.regress = vars.to.regress, seed.use = 38, verbose = FALSE)
+  scData <- SCTransform(scData, vst.flavor=2, vars.to.regress = vars.to.regress, seed.use = 38, verbose = FALSE,
+                        return.only.var.genes=FALSE)
   #defaultAssay <- "SCT"
   ## defaultAssay is now SCT
   #scData <- FindVariableFeatures(scData, selection.method = "vst", verbose = FALSE)
