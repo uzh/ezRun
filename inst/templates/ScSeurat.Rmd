@@ -436,6 +436,7 @@ for (r in names(singler.results)) {
     slice_max(n = nTopMarkers, order_by = avg_log2FC)
   topMarkerString <- sapply(split(topMarkers$gene, topMarkers$cluster), paste, collapse=", ")
   clusterInfos[["TopMarkers"]] <- topMarkerString[clusterInfos$Cluster]
+  clusterInfos[["Percentage of Cells"]] <- table(Idents(scData)) / nrow(scData)
   clusterInfosList <- append(clusterInfosList, list(clusterInfos))
   cat("\n\n")
 }
