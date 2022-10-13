@@ -178,7 +178,7 @@ FeaturePlot(scData, features="nFeature_RNA", label = TRUE)
 VlnPlot(scData, features ="percent_mito") + ggtitle("Mitochondrial percentage vs cluster") + NoLegend()
 FeaturePlot(scData, features="percent_mito", label = TRUE)
 VlnPlot(scData, features ="percent_riboprot") + ggtitle("Ribosomal percentage vs cluster") + NoLegend()
-FeaturePlot(scData, features="percent_mito", label = TRUE)
+FeaturePlot(scData, features="percent_riboprot", label = TRUE)
 if (ezIsSpecified(param$controlSeqs)) {
   genesToPlot <- gsub("_", "-", param$controlSeqs)
   genesToPlot <- intersect(genesToPlot, rownames(scData))
