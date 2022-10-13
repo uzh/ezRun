@@ -281,7 +281,7 @@ createGeneSets <- function(species, tissue) {
   cell_markers <- cell_markers[cell_markers$speciesType == species & 
                                  cell_markers$tissueType %in% tissue, ]
   if (nrow(cell_markers) == 0) {
-    stop(sprintf("No cell markers found for %s: %s", species, tissue))
+    stop(sprintf("No cell markers found for %s: %s", species, paste(tissue, collapse=", ")))
   }
   geneSetList <- strsplit(cell_markers$geneSymbol, ",")
   geneSetList <- lapply(geneSetList, function(gs){
