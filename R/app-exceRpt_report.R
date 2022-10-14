@@ -45,7 +45,8 @@ ezMethodExceRptReport = function(input=NA, output=NA, param=NA){
   dataFiles = list.files(processedOutputDir, pattern = '*.txt')
   
   ## Create report
-  makeRmdReport(plots=plots, dataFiles=dataFiles, rmdFile = "excerpt.Rmd")
+  makeRmdReport(plots=plots, dataFiles=dataFiles, rmdFile = "excerpt.Rmd",
+                reportTitle = paste0(param$name))
 }
 
 
