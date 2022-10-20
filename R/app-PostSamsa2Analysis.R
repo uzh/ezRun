@@ -43,6 +43,7 @@ ezMethodPostSamsa2Analysis = function(input=NA, output=NA, param=NA,
     ezSystem(paste("cp", x, "func_results/"))
   }
   
+  setwdNew(getwd())
   for (directory in c("org_results/", "func_results/")) {
     factor_list <- ""
     for (i in as.list(dataset[dataset[ , grepl( group , names( dataset ) ) ] == refGroup,]$annotationFileRefSeq..File.)) { 
