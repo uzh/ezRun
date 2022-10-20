@@ -43,10 +43,50 @@ ezMethodPostSamsa2Analysis = function(input=NA, output=NA, param=NA,
     ezSystem(paste("cp", x, "func_results/"))
   }
   
-  rename_input1 <- paste0("rename s/",refGroup,"/control_",refGroup,"/g */TP1-*")
-  ezSystem(rename_input1)
-  rename_input2 <- paste0("rename s/",sampleGroup,"/experimental_",sampleGroup,"/g */TP5-*")
-  ezSystem(rename_input2)
+  for (directory in c("org_results/", "func_results/")) {
+    dataset[ , grepl( group , names( dataset ) ) ]
+    factor_list <- ""
+    for (i in as.list(dataset[dataset[ , grepl( group , names( dataset ) ) ] == refGroup,]$Read1..File.)) { 
+      factor_list <- c(factor_list, unlist(strsplit(i, split='/', fixed=TRUE))[3]) 
+      }
+    factor_list <- factor_list[-1]
+    factor_list2 <- ""
+    for (i in factor_list) { 
+      factor_list2 <- c(factor_list2, unlist(strsplit(i, split='.', fixed=TRUE))[1]) 
+      }
+    factor_list2 <- factor_list2[-1]
+    list_of_files_torename <- ""
+    for (i in factor_list2) { 
+      list_of_files_torename <- c(list_of_files_torename, list.files(path = directory, pattern = i)) 
+      }
+    list_of_files_torename <- list_of_files_torename[-1]
+    add_prefix <- function(x, path = directory, sep = "_"){ paste(paste0(directory,"control"), x, sep = sep) }
+    file.rename(paste0(directory,list_of_files_torename), add_prefix(list_of_files_torename))
+    
+  }
+  
+  for (directory in c("org_results/", "func_results/")) {
+    factor_list <- ""
+    for (i in as.list(dataset[dataset[ , grepl( group , names( dataset ) ) ] == sampleGroup,]$Read1..File.)){ 
+      factor_list <- c(factor_list, unlist(strsplit(i, split='/', fixed=TRUE))[3]) 
+      }
+    factor_list <- factor_list[-1]
+    factor_list2 <- ""
+    for (i in factor_list) { 
+      factor_list2 <- c(factor_list2, unlist(strsplit(i, split='.', fixed=TRUE))[1]) 
+      }
+    factor_list2 <- factor_list2[-1]
+    list_of_files_torename <- ""
+    for (i in factor_list2) { 
+      list_of_files_torename <- c(list_of_files_torename, list.files(path = directory, pattern = i)) 
+      }
+    list_of_files_torename <- list_of_files_torename[-1]
+    add_prefix <- function(x, path = directory, sep = "_"){ 
+      paste(paste0(directory,"experimental"), x, sep = sep) 
+      }
+    file.rename(paste0(directory,list_of_files_torename), add_prefix(list_of_files_torename))
+    
+  }
   
   samsa2RscriptsToBeExecCmd1 <- paste("bash /usr/local/ngseq/src/samsa2/R_scripts/run_all_Rscripts.sh org_results/")
   ezSystem(samsa2RscriptsToBeExecCmd1)
