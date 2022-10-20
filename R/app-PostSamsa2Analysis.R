@@ -44,9 +44,8 @@ ezMethodPostSamsa2Analysis = function(input=NA, output=NA, param=NA,
   }
   
   for (directory in c("org_results/", "func_results/")) {
-    dataset[ , grepl( group , names( dataset ) ) ]
     factor_list <- ""
-    for (i in as.list(dataset[dataset[ , grepl( group , names( dataset ) ) ] == refGroup,]$Read1..File.)) { 
+    for (i in as.list(dataset[dataset[ , grepl( group , names( dataset ) ) ] == refGroup,]$annotationFileRefSeq..File.)) { 
       factor_list <- c(factor_list, unlist(strsplit(i, split='/', fixed=TRUE))[3]) 
       }
     factor_list <- factor_list[-1]
@@ -67,7 +66,7 @@ ezMethodPostSamsa2Analysis = function(input=NA, output=NA, param=NA,
   
   for (directory in c("org_results/", "func_results/")) {
     factor_list <- ""
-    for (i in as.list(dataset[dataset[ , grepl( group , names( dataset ) ) ] == sampleGroup,]$Read1..File.)){ 
+    for (i in as.list(dataset[dataset[ , grepl( group , names( dataset ) ) ] == sampleGroup,]$annotationFileRefSeq..File.)){ 
       factor_list <- c(factor_list, unlist(strsplit(i, split='/', fixed=TRUE))[3]) 
       }
     factor_list <- factor_list[-1]
