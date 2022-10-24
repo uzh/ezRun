@@ -96,7 +96,7 @@ ezMethodPostSamsa2Analysis = function(input=NA, output=NA, param=NA,
     file.rename(paste0(directory,list_of_files_torename), add_prefix(list_of_files_torename))
     
   }
-  
+  ezSystem(paste("rename s/_/-/g */*.txt"))
   samsa2RscriptsToBeExecCmd1 <- paste("bash /usr/local/ngseq/src/samsa2/R_scripts/run_all_Rscripts.sh org_results/")
   ezSystem(samsa2RscriptsToBeExecCmd1)
   samsa2RscriptsToBeExecCmd2 <- paste("bash /usr/local/ngseq/src/samsa2/R_scripts/run_all_Rscripts.sh func_results/")
