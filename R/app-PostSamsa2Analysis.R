@@ -32,21 +32,21 @@ ezMethodPostSamsa2Analysis = function(input=NA, output=NA, param=NA,
   ORGannotationFiles <- input$getFullPaths("annotationORGFileRefSeq")
   FUNCannotationFiles <- input$getFullPaths("annotationFUNCFileRefSeq")
   
-  ezSystem(paste("mkdir org_results"))
-  ezSystem(paste("mkdir func_results"))
+  ezSystem(paste("mkdir orgresults"))
+  ezSystem(paste("mkdir funcresults"))
   
   for (i in ORGannotationFiles) {
-    ezSystem(paste("cp", i, "org_results/"))
+    ezSystem(paste("cp", i, "orgresults/"))
   }
   
   for (x in FUNCannotationFiles) {
-    ezSystem(paste("cp", x, "func_results/"))
+    ezSystem(paste("cp", x, "funcresults/"))
   }
   
   setwdNew(getwd())
   write.csv(dataset, "check.metadata.tsv")
   dataset <- read.csv("check.metadata.tsv")
-  for (directory in c("org_results/", "func_results/")) {
+  for (directory in c("orgresults/", "funcresults/")) {
     print(list.files(directory))
     factor_list <- ""
     for (i in as.list(dataset[dataset[ , grepl( group , names( dataset ) ) ] == refGroup,]$annotationFileRefSeq..File.)) { 
@@ -74,7 +74,7 @@ ezMethodPostSamsa2Analysis = function(input=NA, output=NA, param=NA,
     
   }
   
-  for (directory in c("org_results/", "func_results/")) {
+  for (directory in c("orgresults/", "funcresults/")) {
     factor_list <- ""
     for (i in as.list(dataset[dataset[ , grepl( group , names( dataset ) ) ] == sampleGroup,]$annotationFileRefSeq..File.)){ 
       factor_list <- c(factor_list, unlist(strsplit(i, split='/', fixed=TRUE))[3]) 
