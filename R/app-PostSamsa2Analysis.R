@@ -46,7 +46,7 @@ ezMethodPostSamsa2Analysis = function(input=NA, output=NA, param=NA,
   setwdNew(getwd())
   write.csv(dataset, "check.metadata.tsv", sep = "\t")
   for (directory in c("org_results/", "func_results/")) {
-    list.files(directory)
+    print(list.files(directory))
     factor_list <- ""
     for (i in as.list(dataset[dataset[ , grepl( group , names( dataset ) ) ] == refGroup,]$annotationFileRefSeq..File.)) { 
       factor_list <- c(factor_list, unlist(strsplit(i, split='/', fixed=TRUE))[3]) 
