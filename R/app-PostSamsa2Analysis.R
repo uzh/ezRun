@@ -52,16 +52,22 @@ ezMethodPostSamsa2Analysis = function(input=NA, output=NA, param=NA,
       factor_list <- c(factor_list, unlist(strsplit(i, split='/', fixed=TRUE))[3]) 
       }
     factor_list <- factor_list[-1]
+    print(as.list(dataset[dataset[ , grepl( group , names( dataset ) ) ] == refGroup,]$annotationFileRefSeq..File.))
+    print(factor_list)
+    print(refGroup)
+    print(group)
     factor_list2 <- ""
     for (i in factor_list) { 
       factor_list2 <- c(factor_list2, unlist(strsplit(i, split='.', fixed=TRUE))[1]) 
-      }
+    }
     factor_list2 <- factor_list2[-1]
+    print(factor_list2)
     list_of_files_torename <- ""
     for (i in factor_list2) { 
       list_of_files_torename <- c(list_of_files_torename, list.files(path = directory, pattern = i)) 
       }
     list_of_files_torename <- list_of_files_torename[-1]
+    print(list_of_files_torename)
     add_prefix <- function(x, path = directory, sep = "_"){ paste(paste0(directory,"control"), x, sep = sep) }
     file.rename(paste0(directory,list_of_files_torename), add_prefix(list_of_files_torename))
     
