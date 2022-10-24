@@ -44,7 +44,8 @@ ezMethodPostSamsa2Analysis = function(input=NA, output=NA, param=NA,
   }
   
   setwdNew(getwd())
-  write.csv(dataset, "check.metadata.tsv", sep = "\t")
+  write.csv(dataset, "check.metadata.tsv")
+  dataset <- read.csv("check.metadata.tsv")
   for (directory in c("org_results/", "func_results/")) {
     print(list.files(directory))
     factor_list <- ""
