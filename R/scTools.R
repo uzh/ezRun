@@ -300,7 +300,7 @@ createGeneSets <- function(species, tissue) {
   return(geneSetList)
 }
 
-cellsLabelsWithSingleR <- function(logCounts, current_clusters, species, BPPARAM = NULL) {
+cellsLabelsWithSingleR <- function(logCounts, current_clusters, species, BPPARAM = SerialParam()) {
   library(SingleR)
   if(species == "Human"){
     referencesList <- list(
