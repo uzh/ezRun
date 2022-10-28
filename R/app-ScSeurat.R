@@ -128,8 +128,12 @@ ezMethodScSeurat <- function(input = NA, output = NA, param = NA,
   setwdNew(basename(output$getColumn("SC Cluster Report")))
   on.exit(setwd(cwd), add = TRUE)
   
-  cts <- Read10X(input$getFullPaths("CountMatrix"), gene.column = 1)
-  featInfo <- ezRead.table(paste0(input$getFullPaths("CountMatrix"), "/features.tsv.gz"), header = FALSE, row.names = NULL)#, col_names = FALSE)
+  cmDir <- input$getFullPaths("CountMatrix")
+  if (file.exists(file.path(cmDir, "Gene"))){
+    cmDir <- file.path(cmDir, "Gene")
+  }
+  cts <- Read10X(cmDir, gene.column = 1)
+  featInfo <- ezRead.table(paste0(cmDir, "/features.tsv.gz"), header = FALSE, row.names = NULL)#, col_names = FALSE)
   colnames(featInfo) <- c("gene_id", "gene_name", "type")
   featInfo$isMito = grepl( "(?i)^MT-", featInfo$gene_name)
   featInfo$isRiboprot = grepl(  "(?i)^RPS|^RPL", featInfo$gene_name)
@@ -159,10 +163,11 @@ ezMethodScSeurat <- function(input = NA, output = NA, param = NA,
   scData <- addCellQcToSeurat(scData, param=param, BPPARAM = BPPARAM, ribosomalGenes = featInfo[rownames(scData), "isRibosomal"])
   
   ## use empty drops to test for ambient
-  if (grepl("filtered_", input$getFullPaths("CountMatrix"))){
-    rawCts <- Read10X(sub("filtered_", "raw_", input$getFullPaths("CountMatrix")), gene.column = 1)
+  rawDir <- sub("filtered_", "raw_", cmDir)
+  if (file.exists(rawDir) && rawDir != cmDir){
+    rawCts <- Read10X(rawDir, gene.column = 1)
     if(param$CellRangerMulti){
-        rawCts <- rawCts[featInfo$gene_id,]
+      rawCts <- rawCts[featInfo$gene_id,]
     }
     stopifnot(rownames(rawCts) == featInfo$gene_id)
     emptyStats <- emptyDrops(rawCts[!featInfo$isMito & !featInfo$isRiboprot, ],
@@ -173,7 +178,6 @@ ezMethodScSeurat <- function(input = NA, output = NA, param = NA,
     scData@meta.data$negLog10CellPValue[is.na(scData$negLog10CellPValue)] <- 0
     remove(rawCts)
   }
-
   allCellsMeta <- scData@meta.data
   
   #allCellsMeta$useCell <- scData$doubletClass %in% "singlet" & !scData$qc.lib & !scData$qc.mito & !scData$qc.nexprs & !scData$qc.riboprot
@@ -224,7 +228,7 @@ ezMethodScSeurat <- function(input = NA, output = NA, param = NA,
   writexl::write_xlsx(markers, path="posMarkers.xlsx")
   
   if (ezIsSpecified(param$estimateAmbient) && param$estimateAmbient){
-    scData <- addAmbientEstimateToSeurat(scData, rawDir=sub("filtered_", "raw_", input$getFullPaths("CountMatrix")), threads = param$cores)
+    scData <- addAmbientEstimateToSeurat(scData, rawDir=rawDir, threads = param$cores)
   }
   
   # cell types annotation is only supported for Human and Mouse at the moment
