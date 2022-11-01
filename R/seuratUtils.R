@@ -231,14 +231,24 @@ cellClustWithCorrection <- function (scDataList, param) {
   #1. Data preprocesing is done on each object separately
   for (i in 1:length(scDataList)) 
     scDataList[[i]] <- SCTransform(scDataList[[i]], vars.to.regress = vars.to.regress,  assay = assay, verbose = TRUE)
+  
   #2. Data integration
   #2.1. # Select the most variable features to use for integration
   integ_features <- SelectIntegrationFeatures(object.list = scDataList, nfeatures = 3000) 
   #2.2. Prepare the SCT list object for integration
   scDataList <- PrepSCTIntegration(object.list = scDataList, anchor.features = integ_features)
+  if(param$integrationMethod == 'RPCA'){
+    scDataList <- lapply(X = scDataList, FUN = RunPCA, features = integ_features)
+  }
   #2.3. Find anchors
+  if(param$integrationMethod == 'Classic'){
   integ_anchors <- FindIntegrationAnchors(object.list = scDataList, normalization.method = "SCT", 
                                           anchor.features = integ_features, dims = 1:param$npcs)
+  } else if(param$integrationMethod == 'RPCA'){
+  integ_anchors <- FindIntegrationAnchors(object.list = scDataList, normalization.method = "SCT", 
+                                          anchor.features = integ_features, dims = 1:param$npcs, reduction = "rpca", k.anchor = 20)
+  }
+  
   #2.4. Integrate datasets
   seurat_integrated <- IntegrateData(anchorset = integ_anchors, normalization.method = "SCT", dims = 1:param$npcs)
 
