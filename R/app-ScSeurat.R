@@ -267,13 +267,8 @@ ezMethodScSeurat <- function(input = NA, output = NA, param = NA,
   
   genesPerCluster <- split(markers$gene, markers$cluster)
   enrichRout <- querySignificantClusterAnnotationEnrichR(genesPerCluster, param$enrichrDatabase)
-  saveRDS(enrichRout, file="enrichRout.rds")
 
-  #object to be used in isee
-  # sce <- scData %>% DietSeurat(dimreducs = c("pca", "tsne", "umap")) %>% scanalysis::seurat_to_sce(default_assay = defaultAssay)
-  # saveHDF5SummarizedExperiment(sce, dir = "sce_h5")
-  
-  makeRmdReport(param=param, output=output, scData=scData, allCellsMeta=allCellsMeta, rmdFile = "ScSeurat.Rmd", reportTitle = paste0(param$name, ": ",  input$getNames()))
+  makeRmdReport(param=param, output=output, scData=scData, allCellsMeta=allCellsMeta, enrichRout=enrichRout, rmdFile = "ScSeurat.Rmd", reportTitle = paste0(param$name, ": ",  input$getNames()))
   #remove no longer used objects
   rm(scData)
   gc()
