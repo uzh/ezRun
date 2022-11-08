@@ -361,12 +361,15 @@ The most challenging task in scRNA-seq data analysis is the interpretation of th
 
 This approach consists in performing a gene set enrichment analysis on the marker genes defining each cluster. This identifies the pathways and processes that are (relatively) active in each cluster based on the upregulation of the associated genes compared to other clusters. For this, we use the tool Enrichr. 
 
-```{r enrichr markers, echo=FALSE, results='asis', eval= !is.null(enrichRout)}
+```{r query online enrichR version, echo=FALSE, results='asis'}
 genesPerCluster <- split(posMarkers$gene, posMarkers$cluster)
 jsCall = paste0('enrich({list: "', sapply(genesPerCluster, paste, collapse="\\n"), '", popup: true});')
 enrichrCalls <- paste0("<a href='javascript:void(0)' onClick='", jsCall, 
                          "'>Analyse at Enrichr website</a>")
+```
 
+
+```{r load enrichR terms, echo=FALSE, results='asis', eval= !is.null(enrichRout)}
 enrichRTerm <- as.data.frame(do.call(rbind, lapply(enrichRout, as.vector)))
 enrichRTerm <- map_df(enrichRTerm, ~ map_df(.x, ~ replace(.x, is.null(.x), NA)), .id = "database")
 enrichRTerm <- enrichRTerm %>%
@@ -375,7 +378,9 @@ enrichRTerm <- enrichRTerm %>%
   as.data.frame()
 enrichRTerm <- dcast(enrichRTerm, ... ~ database)
 enrichrTable <- merge(enrichrTable, enrichRTerm, by = "Cluster")
+```
 
+```{r enrichr markers, echo=FALSE, results='asis'}
 enrichrTable <- tibble(Cluster=names(genesPerCluster),
                          "# of posMarkers"=lengths(genesPerCluster),
                          "Enrichr link"=enrichrCalls)
@@ -385,7 +390,7 @@ kable_styling("striped", full_width = F, position = "left")
 ```
 
 
-```{r, fig.height=5, fig.width=10}
+```{r plot enrichR per cluster, fig.height=5, fig.width=10, eval= !is.null(enrichRout)}
 for (cluster in names(enrichRout)) {
   enrichRDataFrame <- as.data.frame(do.call(rbind, enrichRout[[cluster]]))
   enrichRDataFrame$database <- sapply(rownames(enrichRDataFrame), function(x) str_split(x, "[.]")[[1]][1])
