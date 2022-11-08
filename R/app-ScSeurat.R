@@ -266,7 +266,7 @@ ezMethodScSeurat <- function(input = NA, output = NA, param = NA,
   writexl::write_xlsx(clusterInfos, path=clusterInfoFile)
   
   
-  genesPerCluster <- split(posMarkers$gene, posMarkers$cluster)
+  genesPerCluster <- split(markers$gene, markers$cluster)
   enrichRout <- querySignificantClusterAnnotationEnrichR(genesPerCluster, param$enrichrDatabase)
   saveRDS(enrichRout, file="enrichRout.rds")
 
