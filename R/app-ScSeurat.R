@@ -90,6 +90,9 @@ EzAppScSeurat <-
                     CellRangerMulti = ezFrame(
                         Type = "logical", DefaultValue = FALSE,
                         Description = "unfiltered data of CellRanger multi output isn't sample specific and needs subsetting"
+                    ),
+                    enrichrDatabase = ezFrame(
+                      Type = "charVector", DefaultValue = "", Description="enrichR databases to search"
                     )
                   )
                 }
@@ -234,6 +237,8 @@ ezMethodScSeurat <- function(input = NA, output = NA, param = NA,
   # cell types annotation is only supported for Human and Mouse at the moment
   species <- getSpecies(param$refBuild)
   if (species == "Human" | species == "Mouse") {
+    genesPerCluster <- split(markers$gene, markers$cluster)
+    enrichRout <- querySignificantClusterAnnotationEnrichR(genesPerCluster, param$enrichrDatabase)
     cells.AUC <- cellsLabelsWithAUC(GetAssayData(scData, "counts"), species, param$tissue, BPPARAM = BPPARAM)
     singler.results <- cellsLabelsWithSingleR(GetAssayData(scData, "data"), Idents(scData), species, BPPARAM = BPPARAM)
     for (r in names(singler.results)) {
@@ -245,6 +250,7 @@ ezMethodScSeurat <- function(input = NA, output = NA, param = NA,
   } else {
     cells.AUC <- NULL
     singler.results <- NULL
+    enrichRout <- NULL
   }
   
   #geneMeans <- geneMeansCluster(scData)
@@ -264,11 +270,8 @@ ezMethodScSeurat <- function(input = NA, output = NA, param = NA,
   clusterInfoFile <- "clusterInfos.xlsx"
   writexl::write_xlsx(clusterInfos, path=clusterInfoFile)
   
-  
-  genesPerCluster <- split(markers$gene, markers$cluster)
-  enrichRout <- querySignificantClusterAnnotationEnrichR(genesPerCluster, param$enrichrDatabase)
-
-  makeRmdReport(param=param, output=output, scData=scData, allCellsMeta=allCellsMeta, enrichRout=enrichRout, rmdFile = "ScSeurat.Rmd", reportTitle = paste0(param$name, ": ",  input$getNames()))
+  makeRmdReport(param=param, output=output, scData=scData, allCellsMeta=allCellsMeta, enrichRout=enrichRout,
+                cells.AUC=cells.AUC, singler.results=singler.results, rmdFile = "ScSeurat.Rmd", reportTitle = paste0(param$name, ": ",  input$getNames()))
   #remove no longer used objects
   rm(scData)
   gc()
