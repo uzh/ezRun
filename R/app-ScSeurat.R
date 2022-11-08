@@ -109,6 +109,7 @@ ezMethodScSeurat <- function(input = NA, output = NA, param = NA,
   library(BiocParallel)
   library(scuttle)
   library(DropletUtils)
+  library(enrichR)
   
   if (param$cores > 1){
     BPPARAM <- MulticoreParam(workers = param$cores)
@@ -264,6 +265,10 @@ ezMethodScSeurat <- function(input = NA, output = NA, param = NA,
   clusterInfoFile <- "clusterInfos.xlsx"
   writexl::write_xlsx(clusterInfos, path=clusterInfoFile)
   
+  
+  genesPerCluster <- split(posMarkers$gene, posMarkers$cluster)
+  enrichRout <- querySignificantClusterAnnotationEnrichR(genesPerCluster, param$enrichrDatabase)
+  saveRDS(enrichRout, file="enrichRout.rds")
 
   #object to be used in isee
   # sce <- scData %>% DietSeurat(dimreducs = c("pca", "tsne", "umap")) %>% scanalysis::seurat_to_sce(default_assay = defaultAssay)
@@ -326,6 +331,30 @@ addCellQcToSeurat <- function(scData, param=NULL, BPPARAM=NULL, ribosomalGenes=N
   scData$qc.doublet <- scData$doubletClass %in% "doublet"
   scData$useCell <- scData$useCell & scData$doubletClass %in% "singlet"
   return(scData)
+}
+
+querySignificantClusterAnnotationEnrichR <- function(genesPerCluster, dbs, overlapGeneCutOff = 3, adjPvaluCutOff = 0.001, reportTopN = 5) {
+  enrichRout <- list()
+  for (cluster in unique(names(genesPerCluster))) {
+    enriched <- enrichr(as.character(genesPerCluster[[cluster]]), dbs)
+    
+    for (db in names(enriched)) {
+      enriched_db <- enriched[[db]]
+      
+      
+      enriched_db$OverlapGenesN <- as.numeric(sapply(enriched_db$Overlap, function(x) str_split(x, "/")[[1]][1]))
+      enriched_db$Cluster <- cluster
+      
+      # only significant
+      enriched_db <- enriched_db %>%
+        filter(., Adjusted.P.value < adjPvaluCutOff) %>%
+        filter(., OverlapGenesN > overlapGeneCutOff) %>%
+        head(reportTopN)
+      
+      enrichRout[[cluster]][[db]] <- enriched_db[, c("Term", "Cluster", "OverlapGenesN", "Adjusted.P.value", "Combined.Score")]
+    }
+  }
+  return(enrichRout)
 }
 
 

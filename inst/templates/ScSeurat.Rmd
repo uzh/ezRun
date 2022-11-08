@@ -67,6 +67,11 @@ if (file.exists("cells.AUC.rds")){
 } else {
   cells.AUC <- NULL
 }
+if (file.exists("enrichRout.rds")){
+  enrichRout <- readRDS("enrichRout.rds")
+} else {
+  enrichRout <- NULL
+}
 var_height = 1 #This ensures that chunks that use the length of this variable to set the fig size, don't fail.
 ```
 
@@ -356,17 +361,51 @@ The most challenging task in scRNA-seq data analysis is the interpretation of th
 
 This approach consists in performing a gene set enrichment analysis on the marker genes defining each cluster. This identifies the pathways and processes that are (relatively) active in each cluster based on the upregulation of the associated genes compared to other clusters. For this, we use the tool Enrichr. 
 
-```{r enrichr markers, echo=FALSE, results='asis'}
+```{r enrichr markers, echo=FALSE, results='asis', eval= !is.null(enrichRout)}
 genesPerCluster <- split(posMarkers$gene, posMarkers$cluster)
 jsCall = paste0('enrich({list: "', sapply(genesPerCluster, paste, collapse="\\n"), '", popup: true});')
 enrichrCalls <- paste0("<a href='javascript:void(0)' onClick='", jsCall, 
                          "'>Analyse at Enrichr website</a>")
+
+enrichRTerm <- as.data.frame(do.call(rbind, lapply(enrichRout, as.vector)))
+enrichRTerm <- map_df(enrichRTerm, ~ map_df(.x, ~ replace(.x, is.null(.x), NA)), .id = "database")
+enrichRTerm <- enrichRTerm %>%
+  group_by(., Cluster, database) %>%
+  summarise(topTerms = paste(Term, collapse = "; ")) %>%
+  as.data.frame()
+enrichRTerm <- dcast(enrichRTerm, ... ~ database)
+enrichrTable <- merge(enrichrTable, enrichRTerm, by = "Cluster")
+
 enrichrTable <- tibble(Cluster=names(genesPerCluster),
                          "# of posMarkers"=lengths(genesPerCluster),
                          "Enrichr link"=enrichrCalls)
 kable(enrichrTable, format="html", escape=FALSE,
         caption=paste0("GeneSet enrichment")) %>%
 kable_styling("striped", full_width = F, position = "left")
+```
+
+
+```{r, fig.height=5, fig.width=10}
+for (cluster in names(enrichRout)) {
+  enrichRDataFrame <- as.data.frame(do.call(rbind, enrichRout[[cluster]]))
+  enrichRDataFrame$database <- sapply(rownames(enrichRDataFrame), function(x) str_split(x, "[.]")[[1]][1])
+  print(ggplot(as.data.table(enrichRDataFrame), aes(database, Term))
+  +
+    geom_point(aes(color = OverlapGenesN, size = Combined.Score))
+    +
+    scale_color_viridis()
+    +
+    scale_fill_viridis()
+    +
+    labs(y = "Term", x = "Cluster", title = paste0("Cluster: ", cluster))
+    +
+    theme_bw()
+    +
+    theme(
+      axis.title.x = element_blank(),
+      axis.text.x = element_text(angle = 45, hjust = 1)
+    ))
+}
 ```
 
 
