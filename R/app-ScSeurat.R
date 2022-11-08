@@ -214,7 +214,6 @@ ezMethodScSeurat <- function(input = NA, output = NA, param = NA,
   scData <- FindClusters(object=scData, resolution = seq(from = 0.2, to = 1, by = 0.2), verbose=FALSE)  #calculate clusters for a set of resolutions
   scData$seurat_clusters <- scData@meta.data[,paste0(DefaultAssay(scData), "_snn_res.", param$resolution)]  #but keep as the current clusters the ones obtained with the resolution set by the user
   Idents(scData) <- scData$seurat_clusters
-  scData$ident <- Idents(scData)
 
   # positive cluster markers
   ## https://github.com/satijalab/seurat/issues/5321
@@ -333,7 +332,7 @@ addCellQcToSeurat <- function(scData, param=NULL, BPPARAM=NULL, ribosomalGenes=N
   return(scData)
 }
 
-querySignificantClusterAnnotationEnrichR <- function(genesPerCluster, dbs, overlapGeneCutOff = 3, adjPvaluCutOff = 0.001, reportTopN = 5) {
+querySignificantClusterAnnotationEnrichR <- function(genesPerCluster, dbs, overlapGeneCutOff = 3, adjPvalueCutOff = 0.001, reportTopN = 5) {
   enrichRout <- list()
   for (cluster in unique(names(genesPerCluster))) {
     enriched <- enrichr(as.character(genesPerCluster[[cluster]]), dbs)
@@ -347,7 +346,7 @@ querySignificantClusterAnnotationEnrichR <- function(genesPerCluster, dbs, overl
       
       # only significant
       enriched_db <- enriched_db %>%
-        filter(., Adjusted.P.value < adjPvaluCutOff) %>%
+        filter(., Adjusted.P.value < adjPvalueCutOff) %>%
         filter(., OverlapGenesN > overlapGeneCutOff) %>%
         head(reportTopN)
       
