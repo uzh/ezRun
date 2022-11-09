@@ -449,7 +449,7 @@ addAmbientEstimateToSeurat <- function(scData, rawDir=NULL, threads=1){
   library(SoupX)
   
   sce <- SingleCellExperiment(assays=list(counts=GetAssayData(scData, slot="counts", assay="RNA")), colData = scData@meta.data)
-  sce$clusters <- sce$ident
+  sce$clusters <- Idents(scData)
   for (method in c("SoupX", "DecontX")){
     ctsClean <- computeDecontaminated(method=method, 
                                       sampleName=NULL, 
