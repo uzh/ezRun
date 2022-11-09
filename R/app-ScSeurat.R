@@ -337,18 +337,15 @@ querySignificantClusterAnnotationEnrichR <- function(genesPerCluster, dbs, overl
     
     for (db in names(enriched)) {
       enriched_db <- enriched[[db]]
-      
-      
-      enriched_db$OverlapGenesN <- as.numeric(sapply(enriched_db$Overlap, function(x) str_split(x, "/")[[1]][1]))
-      enriched_db$Cluster <- cluster
-      
-      # only significant
-      enriched_db <- enriched_db %>%
-        filter(., Adjusted.P.value < adjPvalueCutOff) %>%
-        filter(., OverlapGenesN > overlapGeneCutOff) %>%
-        head(reportTopN)
-      
-      enrichRout[[cluster]][[db]] <- enriched_db[, c("Term", "Cluster", "OverlapGenesN", "Adjusted.P.value", "Combined.Score")]
+      if (nrow(enriched_db) > 0){
+        enriched_db$OverlapGenesN <- as.numeric(sapply(enriched_db$Overlap, function(x) str_split(x, "/")[[1]][1]))
+        enriched_db$Cluster <- cluster
+        enriched_db <- enriched_db %>%
+          filter(., Adjusted.P.value < adjPvalueCutOff) %>%
+          filter(., OverlapGenesN > overlapGeneCutOff) %>%
+          head(reportTopN)
+        enrichRout[[cluster]][[db]] <- enriched_db[, c("Term", "Cluster", "OverlapGenesN", "Adjusted.P.value", "Combined.Score")]
+      }
     }
   }
   return(enrichRout)
