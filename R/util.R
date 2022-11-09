@@ -814,7 +814,9 @@ makeRmdReport <- function(..., htmlFile = "00index.html", rmdFile = "", selfCont
                           linkHtmlLibDir = NULL, reportTitle = "SUSHI Report") {
   varList <- list(...)
   for (nm in names(varList)) {
-    saveRDS(varList[[nm]], file = paste0(nm, ".rds"))
+    if (!is.null(varList[[nm]])){
+      saveRDS(varList[[nm]], file = paste0(nm, ".rds"))
+    }
   }
   file.copy(file.path(system.file("templates", package = "ezRun", mustWork = TRUE), rmdFile),
             ".", overwrite = TRUE)
