@@ -6,6 +6,64 @@
 # www.fgcz.ch
 
 
+ezLink <- function(link, label = link, target = "", type = "") {
+  linkTag <- paste0("<a href='", link, "'")
+  if (target != "") {
+    linkTag <- paste0(linkTag, " target='", target, "'")
+  }
+  if (type != "") {
+    linkTag <- paste0(linkTag, " type='", type, "'")
+  }
+  linkTag <- paste0(linkTag, ">")
+  paste0(linkTag, label, "</a>")
+}
+
+
+
+# how to add help text? for each plot separately or not?
+##' @title Gets an image link as html
+##' @description Gets an image link as html. Also plots and creates the image.
+##' @param plotCmd an expression of plot commands.
+##' @param file a character specifying the name of the image with a .png suffix.
+##' @param name a character specifying the name of the image together with \code{plotType}, if \code{file} is null.
+##' @param plotType a character specifying the name of the image together with \code{name}, if \code{file} is null.
+##' @param mouseOverText a character specifying the text being displayed when mousing over the image.
+##' @param addPdfLink a logical indicating whether to add a link on the image to a pdf version of itself.
+##' @param width an integer specifying the width of each plot to create an image from.
+##' @param height an integer specifying the height of each plot to create an image from.
+##' @param ppi an integer specifying points per inch.
+##' @param envir the environment to evaluate \code{plotCmd} in.
+##' @template roxygen-template
+##' @return Returns a character specifying a link to an image in html.
+##' @examples
+##' x = 1:10
+##' plotCmd = expression({
+##'   plot(x)
+##'   text(2,1, "my Text")
+##' })
+##' ezImageFileLink(plotCmd)
+ezImageFileLink <- function(plotCmd, file = NULL, name = "imagePlot", plotType = "plot", mouseOverText = "my mouse over",
+                            addPdfLink = TRUE, width = 480, height = 480, ppi = 72, envir = parent.frame()) {
+  if (is.null(file)) {
+    file <- paste0(name, "-", plotType, ".png")
+  }
+  png(file, width = width, height = height)
+  eval(plotCmd, envir = envir)
+  dev.off()
+  imgFilePot <- paste0("<span><img src='", file, "' title='", mouseOverText, "'/></span>")
+  if (addPdfLink) {
+    pdfName <- sub(".png$", ".pdf", file)
+    pdf(file = pdfName, width = width / ppi, height = height / ppi)
+    eval(plotCmd, envir = envir)
+    dev.off()
+    imgFilePot <- paste0("<a href='", pdfName, "'>", imgFilePot, "</a>")
+  }
+  return(imgFilePot)
+}
+
+
+
+
 ##' @title Wrapper for \code{FlexTable()}
 ##' @description Wraps \code{FlexTable()} with defaults to remove the cell header and cell borders.
 ##' @param x a matrix or data.frame to turn into an object of the class FlexTable.
