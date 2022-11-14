@@ -264,6 +264,8 @@ cellsLabelsWithAUC <- function(counts, species, tissue, minGsSize = 3, BPPARAM=N
   if (species == "other")
     return(NULL)
   geneSets <- createGeneSets(species, tissue)
+  if(is.null(geneSets)) 
+    return(NULL)
   cells_rankings <- AUCell_buildRankings(counts, plotStats=FALSE, BPPARAM=BPPARAM, splitByBlocks=TRUE)
   cells_AUC <- AUCell_calcAUC(geneSets[sapply(geneSets, length) >= minGsSize], cells_rankings, verbose = FALSE, 
                    nCores = ifelse(is.null(BPPARAM), 1, BPPARAM$workers))
@@ -281,7 +283,9 @@ createGeneSets <- function(species, tissue) {
   cell_markers <- cell_markers[cell_markers$speciesType == species & 
                                  cell_markers$tissueType %in% tissue, ]
   if (nrow(cell_markers) == 0) {
-    stop(sprintf("No cell markers found for %s: %s", species, paste(tissue, collapse=", ")))
+    #stop(sprintf("No cell markers found for %s: %s", species, paste(tissue, collapse=", ")))
+    warning(sprintf("No cell markers found for %s: %s", species, paste(tissue, collapse=", ")))
+    return(NULL)
   }
   geneSetList <- strsplit(cell_markers$geneSymbol, ",")
   geneSetList <- lapply(geneSetList, function(gs){
