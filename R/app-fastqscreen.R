@@ -35,6 +35,7 @@ ezMethodFastqScreen <- function(input = NA, output = NA, param = NA,
   rawScreenResult = getFastqScreenStats(param,
                                         confFile = FASTQSCREEN_ADAPTER_CONF,
                                         inputRaw$getFullPaths("Read1"), workDir="rawReads")
+  
   procScreenResult = getFastqScreenStats(param,
                                          confFile = FASTQSCREEN_GENOMICDNA_RIBORNA_CONF,
                                          inputProc$getFullPaths("Read1"), workDir="procReads")
@@ -44,7 +45,7 @@ ezMethodFastqScreen <- function(input = NA, output = NA, param = NA,
     names(unmappedFiles) =inputProc$getNames()
     virusResult <- map_and_count_virus(param, unmappedFiles, workDir="virusResult")
   }  else {
-    virusResult = NULL
+    virusResult = ''
   }
   refseqResult = map_and_count_refseq(param, inputProc$getFullPaths("Read1"), workDir="refseqResult", 
                        readCount = inputProc$getColumn("Read Count"))
