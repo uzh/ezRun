@@ -159,7 +159,7 @@ if (isGroupThere) {
 ### rarefaction: 3. rarefaction plots.
 abundTableRar <- data.frame(t(otu_table(physeqFullObject)))
 iNEXT_data <- iNEXT(abundTableRar, q = 0, datatype = "abundance")
-rarefactionPlot2 <- ggiNEXT(iNEXT_data, type=1)
+#rarefactionPlot2 <- ggiNEXT(iNEXT_data, type=1)
 #https://cran.r-project.org/web/packages/iNEXT/vignettes/Introduction.html
 # plotTitle_1 <- paste("Rarefaction plots based on the\nselection of the most abundant", numTopRanks, "ranks")
 # plotTitle_2 <- paste("Saturation plots based on the\nselection of the most abundant", numTopRanks, "ranks")
@@ -251,7 +251,7 @@ if (isGroupThere) {
 ```{r raref, echo=FALSE}
 #par(mfrow=c(1,2), las=1)
 rarecurve(otu_table(physeqFullObject)@.Data, step=50, cex=0.5, ylab = "OTUs")
-plot(rarefactionPlot2)
+#plot(rarefactionPlot2)
 ```
 
 ### Heatmaps
