@@ -158,7 +158,7 @@ kable(tibble("QC metric" =c("Library Size", "Expressed genes", "Mitochondrial ge
       row.names=FALSE,
       caption="Number of cells removed") %>%
   kable_styling(bootstrap_options = "striped", full_width = F,
-                position = "float_left")
+                position = "float_right")
 ```
 
 <br/>
