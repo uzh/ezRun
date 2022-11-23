@@ -48,7 +48,7 @@ library(HDF5Array)
 library(enrichR)
 knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE, knitr.table.format = "html")
 
-clusterInfoFile <- "clusterInfos.xlsx"
+# clusterInfoFile <- "clusterInfos.xlsx" # -- not used
 posMarkers <- readxl::read_xlsx("posMarkers.xlsx")
 scData <- readRDS("scData.rds")
 output <- readRDS("output.rds")
@@ -71,6 +71,19 @@ if (file.exists("enrichRout.rds")){
 } else {
   enrichRout <- NULL
 }
+
+
+# Process the posMarkers
+posMarkers$gene = as.factor(posMarkers$gene)
+# make sure the loaded cluster uses proiper integer ordering if all levels are integer!
+if (all(!is.na(as.integer(posMarkers$cluster)))){
+  posMarkers$cluster = as.factor(posMarkers$cluster)
+} else {
+   posMarkers$cluster = as.factor(as.integer(posMarkers$cluster))
+}
+
+
+
 var_height = 1 #This ensures that chunks that use the length of this variable to set the fig size, don't fail.
 ```
 
@@ -157,7 +170,7 @@ kable(tibble("QC metric" =c("Library Size", "Expressed genes", "Mitochondrial ge
       row.names=FALSE,
       caption="Number of cells removed") %>%
   kable_styling(bootstrap_options = "striped", full_width = F,
-                position = "center")
+                position = "float_left")
 ```
 
 <br/>
@@ -182,25 +195,11 @@ FeatureScatter(scData, feature1="nCount_RNA", feature2="percent_mito") + scale_x
 ```
 
 
-### Dimensionality reduction
+#### Dimensionality reduction
 
 Dimensionality reduction aims to reduce the number of separate dimensions in the data. This is possible because different genes are correlated if they are affected by the same biological process. Thus, we do not need to store separate information for individual genes, but can instead compress multiple features into a single dimension. This reduces computational work in downstream analyses, as calculations only need to be performed for a few dimensions rather than thousands of genes; reduces noise by averaging across multiple genes to obtain a more precise representation of the patterns in the data, and enables effective plotting of the data.
 
-<br/>
-
-#### Transforming the data and feature selection
-
-We used the SCtransform method from the Seurat package for normalizing, estimating the variance of the raw filtered data, and identifying the most variable genes. By default, SCtransform accounts for cellular sequencing depth, or nUMIs.
-<br/>
-`r if(identical(param$SCT.regress,"CellCycle")) {
-    "We already checked cell cycle and decided that it does represent a major source of variation in our data, and this may influence clustering. Therefore, we regressed out variation due to cell cycle."
-}`
-
-<br/>
-
-#### Principal component analysis
-
-Next, we perform PCA on the scaled data. By default, only the previously determined variable features are used as input but can be defined using the pcGenes argument if you wish to choose a different subset. Seurat clusters cells based on their PCA scores. The top principal components, therefore, represent a robust compression of the dataset. The numbers of PCs that should be retained for downstream analyses typically range from 10 to 50. However, identifying the true dimensionality of a dataset can be challenging, that's why we recommend considering the ‘Elbow plot’ approach. a ranking of principal components based on the percentage of variance explained by each one. The assumption is that each of the top PCs capturing biological signal should explain much more variance than the remaining PCs. Thus, there should be a sharp drop in the percentage of variance explained when we move past the last “biological” PC. This manifests as an elbow in the scree plot, the location of which serves as a natural choice for a number of PCs.
+The numbers of PCs that should be retained for downstream analyses typically range from 10 to 50. However, identifying the true dimensionality of a dataset can be challenging, that's why we recommend considering the ‘Elbow plot’ approach. a ranking of principal components based on the percentage of variance explained by each one. The assumption is that each of the top PCs capturing biological signal should explain much more variance than the remaining PCs. Thus, there should be a sharp drop in the percentage of variance explained when we move past the last “biological” PC. This manifests as an elbow in the scree plot, the location of which serves as a natural choice for a number of PCs.
 
 ```{r, fig.align='center'}
 ElbowPlot(scData)
@@ -230,7 +229,7 @@ The number of cells in each cluster and sample is represented in this barplot.
 ```{r number of cells in each cluster}
 cellIdents_perSample <- data.frame(ident = Idents(scData), Sample=scData$Sample)
 barplot = ggplot(data=cellIdents_perSample, aes(x=ident, fill=Sample)) + geom_bar(stat="Count")
-barplot + labs(x="Cluster", y = "Number of cells", fill = "Sample")
+barplot + labs(x="Cluster", y = "Number of cells", fill = "Sample") + theme(axis.text.x = element_text(angle = 45, vjust = 0.5, hjust=1))
 
 
 cells_prop = cellsProportion(scData, groupVar1 = "seurat_clusters", groupVar2 = "Sample")
@@ -317,11 +316,8 @@ cat("We found positive markers that defined clusters compared to all other cells
 cat("We found positive markers that defined clusters compared to all other cells via differential expression using a logistic regression test and including in the model the cell cycle as the batch effect. Genes with an average, at least 0.25-fold difference (log-scale) between the cells in the tested cluster and the rest of the cells and an adjusted p-value < 0.05 were declared as significant.")
 ```
 
-#### Expression differences of cluster marker genes
 
 ```{r pos markers}
-posMarkers$cluster = as.factor(posMarkers$cluster)
-posMarkers$gene = as.factor(posMarkers$gene)
 ezInteractiveTableRmd(data.frame(posMarkers), digits=4)
 ```
 
@@ -353,15 +349,9 @@ if (length(genesToPlot) > 0){
 ```
 
 
-### Cell annotation
+### EnrichR
 
-The most challenging task in scRNA-seq data analysis is the interpretation of the results. Once we have obtained a set of clusters we want to determine what biological state is represented by each of them. To do this, we have implemmented 3 different approaches which are explained below. However, these methods should be complemented with the biological knowledge from the researcher.
-
-<br/>
-
-#### Using cluster markers
-
-This approach consists in performing a gene set enrichment analysis on the marker genes defining each cluster. This identifies the pathways and processes that are (relatively) active in each cluster based on the upregulation of the associated genes compared to other clusters. For this, we use the tool Enrichr. 
+Cell type scoring using the EnrichR tool. This approach consists in performing a gene set enrichment analysis on the marker genes defining each cluster. This identifies the pathways and processes that are (relatively) active in each cluster based on the upregulation of the associated genes compared to other clusters.
 
 ```{r query online enrichR version, echo=FALSE, results='asis'}
 genesPerCluster <- split(posMarkers$gene, posMarkers$cluster)
@@ -419,13 +409,9 @@ for (cluster in names(enrichRout)) {
 
 <br/>
 
-#### Using reference data
+### SingleR
 
-Another strategy for annotation is to compare the single-cell expression profiles with previously annotated reference datasets. Labels can then be assigned to each cell in our uncharacterized test dataset based on the most similar reference sample(s). This annotation can be  performed on single  cells or instead, it may be aggregated into cluster-level profiles prior to annotation.
-To do this, we use the SingleR method (Aran et al. 2019) for cell type annotation. This method assigns labels to cells based on the reference samples with the highest Spearman rank correlations and thus can be considered a rank-based variant of k-nearest-neighbor classification. To reduce noise, SingleR identifies marker genes between pairs of labels and computes the correlation using only those markers. It also performs a fine-tuning step for each cell where the calculation of the correlations is repeated with just the marker genes for the top-scoring labels. This aims to resolve any ambiguity between those labels by removing noise from irrelevant markers for other labels. 
-SingleR contains several built-in reference datasets, mostly assembled from bulk RNA-seq or microarray data of sorted cell types. These built-in references are often good enough for most applications, provided that they contain the cell types that are expected in the test population. 
-
-The two heatmaps below display the scores for all individual cells (left) and each original cluster (right) across all reference labels, which allows users to inspect the confidence of the predicted labels across the dataset. The bar Labels on the top shows the actual assigned label.
+Matching of clusters to annotated reference datasets using SingleR.
 
 ```{r singler, fig.height=12, fig.width=12, results = 'asis', eval= !is.null(singler.results)}
 clusterInfosList <- list()
@@ -510,10 +496,9 @@ ezInteractiveTableRmd(bind_rows(clusterInfosList))
 cat("\n\n")
 ```
 
-#### Using gene sets
+### AUCell
 
-We can also use sets of marker genes that are highly expressed in each cell. This does not require matching of individual cells to the expression values of the reference dataset, which is faster and more convenient when only the identities of the markers are available. In this case, we use sets of gene markers for individual cell types taken from the CellMarkers database which contains an accurate resource of cell markers for various cell types in tissues of human and mouse (Zhang X., Lan Y., Xu J., Quan F., Zhao E., Deng C., et al. (2019). CellMarker: a manually curated resource of cell markers in human and mouse. Nucleic Acids Res. 47, D721–d728. 10.1093/nar/gky900). 
-We use the AUCell package (Aibar et al. (2017) SCENIC: single-cell regulatory network inference and clustering. Nature Methods. doi: 10.1038/nmeth.4463) to identify marker sets that are highly expressed in each cell. AUCell uses the “Area Under the Curve” (AUC) to calculate whether a critical subset of the input gene set is enriched within the expressed genes for each cell. The AUC estimates the proportion of genes in the gene-set that are highly expressed in each cell. Cells expressing many genes from the gene-set will have higher AUC values than cells expressing fewer. Finally, it assigns cell type identity to each cell in the test dataset by taking the marker set with the top AUC as the label for that cell.
+Matching the cells to marker gene sets that are known to be characteristic for cell types. We use marker gene sets from the CellMarker database (Zhang X., Lan Y., Xu J., Quan F., Zhao E., Deng C., et al. (2019). CellMarker: a manually curated resource of cell markers in human and mouse. Nucleic Acids Res. 47, D721–d728. 10.1093/nar/gky900). 
 
 ```{r AUC assigments, eval= !is.null(cells.AUC)}
 cells_assignment <- AUCell_exploreThresholds(cells.AUC, plotHist=FALSE, assign=TRUE, nCores = param$cores) 
@@ -560,36 +545,29 @@ AUCell_plotTSNE(tSNE=cellsUmap,
                  plots = c("histogram", "binaryAUC"))
 ```
 
-### Interactive explorer
+### Interactive
 
-<br>
-The iSEE (Interactive SummarizedExperiment Explorer) explorer provides a general visual interface for exploring single cell data. iSEE allows users to simultaneously visualize multiple aspects of a given data set, including experimental data, metadata, and analysis results. Dynamic linking and point selection facilitate the flexible exploration of interactions between different data aspects.
- [Rue-Albrecht K, Marini F, Soneson C, Lun ATL (2018). “iSEE: Interactive SummarizedExperiment Explorer.” F1000Research, 7, 741. doi: 10.12688/f1000research.14966.1.]
 
-The iSEE shiny app can be accessed through this link [iSEE explorer](`r {paste0("https://fgcz-shiny.uzh.ch/fgcz_iSEE", "/?data=",output$getColumn("SC Cluster Report"))}`){target="_blank"}
+[simple explorer](`r {paste0("https://fgcz-shiny.uzh.ch/fgcz_exploreSeurat_app", "/?data=",output$getColumn("SC Cluster Report"), "/scData.rds")}`){target="_blank"}
+
+[iSEE explorer](`r {paste0("https://fgcz-shiny.uzh.ch/fgcz_iSEE", "/?data=",output$getColumn("SC Cluster Report"))}`){target="_blank"}
 
 ### Data availability
 
-##### Cluster Infos
 
-Use the xls file to manually label or relabel the clusters based on the result of Singler cell type annotation and the marker genes
-[clusterInfos.xlsx](clusterInfos.xlsx)
+[clusterInfos.xlsx](clusterInfos.xlsx) -- use this xls file to manually relabel the clusters
 
+[posMarkers](posMarkers.xlsx) -- Excel table with all marker genes 
 
-##### Positive markers of each cluster
-
-[posMarkers](posMarkers.xlsx)
+[scData.rds](scData.rds) -- final seurat object
 
 
-##### The final Seurat object is [scData.rds](scData.rds)
-
-### Parameters
+### SessionInfo
 ```{r report parameters, echo=FALSE}
 param[c("npcs","pcGenes","resolution", "SCT.regress", "DE.method", "cellsFraction", "nUMIs", "nmad", "normalize")]
 ```
 
 
-### SessionInfo
 ```{r, echo=FALSE}
 sessionInfo()
 ```
