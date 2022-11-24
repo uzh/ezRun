@@ -338,7 +338,7 @@ heatmapForPhylotseqPlotPheatmap <- function(phyloseqOtuObj,areThereMultVar,isGro
            show_colnames     = TRUE,
            annotation_col    = mat_col,
            annotation_colors = mat_colors,
-           cluster_rows = TRUE,  scale="row", method = "average")
+           cluster_rows = TRUE,  scale="row", method = "average", fontsize = 5)
     } else {
 
       pheatmap(input,show_rownames = TRUE,

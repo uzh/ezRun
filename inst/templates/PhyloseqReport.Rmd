@@ -140,7 +140,7 @@ ordPlotTaxa <- ordPlot(rank,physeqFullObject,"taxa",areThereMultVar,numTopRanks,
 plotTitle <- "Clustering of the samples."
 ordPlotSample<- ordPlot(rank,physeqFullObject,"samples",areThereMultVar,numTopRanks,isGroupThere)+
     labs(title=plotTitle) + 
-    theme(plot.title=element_text(size=11,hjust=0.5))
+    theme(plot.title=element_text(size=11,hjust=0.5), legend.key.size = unit(0.4, "cm"))
 ```
 
 ```{r prepRich, include=FALSE}
