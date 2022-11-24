@@ -337,7 +337,7 @@ querySignificantClusterAnnotationEnrichR <- function(genesPerCluster, dbs, overl
     
     for (db in names(enriched)) {
       enriched_db <- enriched[[db]]
-      if (nrow(enriched_db) > 0){
+      if (nrow(enriched_db) > 0 && colnames(enriched_db)[1] == "Term"){
         enriched_db$OverlapGenesN <- as.numeric(sapply(enriched_db$Overlap, function(x) str_split(x, "/")[[1]][1]))
         enriched_db$Cluster <- cluster
         enriched_db <- enriched_db %>%
