@@ -16,6 +16,7 @@ ezMethodMergeRunData <- function(input=NA, output=NA, param=NA){
     
     inputDir2 = file.path(param[['dataRoot']], project, param[['DataSetName2']])
     datasetFile2 = list.files(inputDir2, pattern='^dataset.tsv$', full.names = TRUE)
+    stopifnot(file.exists(datasetFile2))
     input2 <- EzDataset(datasetFile2)
     dataset2 <-input2$meta
     dataset2$Name = rownames(dataset2)
