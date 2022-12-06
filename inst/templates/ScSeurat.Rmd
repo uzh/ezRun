@@ -60,6 +60,16 @@ if (file.exists("enrichRout.rds")){
 } else {
   enrichRout <- NULL
 }
+if (file.exists("pathwayActivity.rds")){
+  pathwayActivity <- readRDS("pathwayActivity.rds")
+} else {
+  pathwayActivity <- NULL
+}
+if (file.exists("TFActivity.rds")){
+  TFActivity <- readRDS("TFActivity.rds")
+} else {
+  TFActivity <- NULL
+}
 
 
 # Process the posMarkers
@@ -536,6 +546,64 @@ AUCell_plotTSNE(tSNE=cellsUmap,
                 cellsAUC=filtered_cells.AUC[head(scoreOrder, nPlots), ],
                  plots = c("histogram", "binaryAUC"))
 ```
+
+
+### Pathway activity inference analysis
+
+
+Visualization of the computation of activity scores on a cell basis depicting how much (or little) each cell is enriched in each of the Pathways stored in the database.
+
+
+```{r PathwayActivity, eval= !is.null(pathwayActivity),fig.height=12, fig.width=10}
+# General heatmap.
+out <- SCpubr::do_PathwayActivityPlot(sample = scData,
+                                      activities = pathwayActivity,
+                                      plot_FeaturePlots = TRUE,
+                                      plot_GeyserPlots = TRUE)
+out$heatmaps$average_scores
+
+p1 <- SCpubr::do_DimPlot(scData, label = T)
+
+for (idx in 1:length(out$feature_plots)){
+  p2 <- out$feature_plots[[idx]]
+  p3 <- out$geyser_plots[[idx]]
+  print((p1 | p2) / (p3))
+}
+```
+
+
+### TF activity inference analysis
+
+
+Visualization of the computation of activity scores on a cell basis depicting how much (or little) each cell is enriched in a TF and its dowstream targets (regulon).
+
+
+```{r tfActivity, eval= !is.null(TFActivity),fig.height=12, fig.width=10}
+# General heatmap.
+out <- SCpubr::do_TFActivityPlot(sample = scData,
+                                      activities = TFActivity,
+                                      plot_FeaturePlots = TRUE,
+                                      plot_GeyserPlots = TRUE)
+out$heatmaps$average_scores
+
+p1 <- SCpubr::do_DimPlot(scData, label = T)
+
+for (idx in 1:length(out$feature_plots)){
+  p2 <- out$feature_plots[[idx]]
+  p3 <- out$geyser_plots[[idx]]
+  print((p1 | p2) / (p3))
+}
+```
+
+
+
+### Pseudotime analysis
+
+Pseudotime analysis aims to depict a trajectory, a sort of order in which cells transition from A to B. What defines this process, and the starting and end point is heavily driven by the research question, the nature of the data and prior knowledge.
+
+#### TBD
+@https://enblacar.github.io/SCpubr-book/25-PseudotimeAnalysisPlots.html
+Due to a discontinuation of Matrix.utils package, monocle3 can not be installed and tested in a CI manner. Until this is resolved, this function will not be available in any official and developmental-stable release.
 
 ### Interactive
 
