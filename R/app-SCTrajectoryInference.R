@@ -59,13 +59,13 @@ ezMethodSCTrajectoryInference <- function(input=NA, output=NA, param=NA,
   
   objectURLs <- input$getColumn("Static Report")
   filePath <- file.path("/srv/gstore/projects", sub("https://fgcz-(gstore|sushi).uzh.ch/projects", "",dirname(objectURLs)), "sce_h5")
-  filePath_course <- file.path(paste0("/srv/GT/analysis/course_sushi/public/projects/", dirname(objectURLs)), "/sce_h5")
+  filePath_course <- file.path(paste0("/srv/GT/analysis/course_sushi/public/projects/", dirname(objectURLs)), "/scData.rds")
   
   if(file.exists(filePath)) {
     object <- loadHDF5SummarizedExperiment(filePath)
     #if it is an rds object it has been likely generated from old reports, so we need to update the seurat version before using the clustering functions below.                                             )
   } else if (file.exists(filePath_course)) {
-    object <- loadHDF5SummarizedExperiment(filePath_course)
+    object <- readRDS(filePath_course)
     } else {
     filePath <- file.path("/srv/gstore/projects", sub("https://fgcz-(gstore|sushi).uzh.ch/projects", "",dirname(objectURLs)), "scData.rds")
     object <- readRDS(filePath)
