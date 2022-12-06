@@ -554,7 +554,7 @@ AUCell_plotTSNE(tSNE=cellsUmap,
 Visualization of the computation of activity scores on a cell basis depicting how much (or little) each cell is enriched in each of the Pathways stored in the database.
 
 
-```{r PathwayActivity, eval= !is.null(pathwayActivity),fig.height=12, fig.width=10}
+```{r PathwayActivity, eval= !is.null(pathwayActivity),fig.height=8, fig.width=10}
 # General heatmap.
 out <- SCpubr::do_PathwayActivityPlot(sample = scData,
                                       activities = pathwayActivity,
@@ -578,7 +578,7 @@ for (idx in 1:length(out$feature_plots)){
 Visualization of the computation of activity scores on a cell basis depicting how much (or little) each cell is enriched in a TF and its dowstream targets (regulon).
 
 
-```{r tfActivity, eval= !is.null(TFActivity),fig.height=12, fig.width=10}
+```{r tfActivity, eval= !is.null(TFActivity),fig.height=8, fig.width=10}
 # General heatmap.
 out <- SCpubr::do_TFActivityPlot(sample = scData,
                                       activities = TFActivity,
