@@ -33,12 +33,13 @@ ezMethodFastQC <- function(input = NA, output = NA, param = NA,
   ans4Report <- list() # a list of results for rmarkdown report
   ans4Report[["dataset"]] <- dataset
 
-  if (!is.null(dataset$"Read Count")) {
-    readCount <- signif(dataset$"Read Count" / 1e6, digits = 3)
-    names(readCount) <- rownames(dataset)
-  } else {
-    stop("'Read Count' has to be specified in the dataset.")
+  
+  if (is.null(dataset[['Read Count']])) {
+      dataset[['Read Count']] <- countReadsInFastq(input$getFullPaths("Read1"))
   }
+  readCount <- signif(dataset$"Read Count" / 1e6, digits = 3)
+  names(readCount) <- rownames(dataset)
+  
   ans4Report[["Read Counts"]] <- readCount
 
   if (sum(dataset$`Read Count`) > 1e9) {
