@@ -59,52 +59,8 @@ EzAppSTARsolo =
                                                                         CellRanger2.2   ... simple filtering of CellRanger 2.2, followed by thre numbers: number of expected cells, robust maximum percentile for UMI count, maximum to minimum ratio for UMI count
                                                                         TopCells        ... only report top cells by UMI count, followed by the excat number of cells
                                                                         None            ... do not output filtered cells")
-                                          # soloBarcodeReadLength=ezFrame(Type="character",
-                                          #                               DefaultValue="1",
-                                          #                               Description="1 if equal to sum of soloCBlen+soloUMIlen; 0 if not defined, do not check."),
-                                          # soloCBposition=ezFrame(Type="character",
-                                          #                        DefaultValue="-",
-                                          #                        Description="Position of Cell Barcode(s) on the barcode read.
-                                          #                                   Presently only works with --soloType CB_UMI_Complex, and barcodes are assumed to be on Read2.
-                                          #                                   Format for each barcode: startAnchor_startDistance_endAnchor_endDistance
-                                          #                                   start(end)Anchor defines the anchor base for the CB: 
-                                          #                                   0: read start; 1: read end; 2: adapter start; 3: adapter end
-                                          #                                   start(end)Distance is the distance from the CB start(end) to the Anchor base
-                                          #                                   String for different barcodes are separated by space.
-                                          #                                   Example: inDrop (Zilionis et al, Nat. Protocols, 2017):
-                                          #                                   --soloCBposition  0_0_2_-1  3_1_3_8"),
-                                          # soloUMIposition=ezFrame(Type="character",
-                                          #                         DefaultValue="-",
-                                          #                         Description="position of the UMI on the barcode read, same as soloCBposition.
-                                          #                                   Example: inDrop (Zilionis et al, Nat. Protocols, 2017):
-                                          #                                   --soloCBposition  3_9_3_14"),
-                                          # soloAdapterSequence=ezFrame(Type="character",
-                                          #                               DefaultValue="-",
-                                          #                               Description="Adapter sequence to anchor barcodes."),
-                                          # soloAdapterMismatchesNmax=ezFrame(Type="character",
-                                          #                             DefaultValue="1",
-                                          #                             Description="maximum number of mismatches allowed in adapter sequence."),
-                                          # soloStrand=ezFrame(Type="character",
-                                          #                    DefaultValue="Forward",
-                                          #                    Description="strandedness of the solo libraries.
-                                          #                               Unstranded  ... no strand information
-                                          #                               Forward     ... read strand same as the original RNA molecule
-                                          #                               Reverse     ... read strand opposite to the original RNA molecule"),
-                                          # soloFeatures=ezFrame(Type="character",
-                                          #                    DefaultValue="Gene",
-                                          #                    Description="genomic features for which the UMI counts per Cell Barcode are collected.
-                                          #                               Gene            ... genes: reads match the gene transcript
-                                          #                               SJ              ... splice junctions: reported in SJ.out.tab
-                                          #                               GeneFull        ... full genes: count all reads overlapping genes' exons and introns
-                                          #                               Transcript3p   ... quantification of transcript for 3' protocols"),
-                                          # soloUMIdedup=ezFrame(Type="character",
-                                          #                    DefaultValue="1MM_All",
-                                          #                    Description="type of UMI deduplication (collapsing) algorithm.
-                                          #                               1MM_All             ... all UMIs with 1 mismatch distance to each other are collapsed (i.e. counted once)
-                                          #                               1MM_Directional     ... follows the 'directional' method from the UMI-tools by Smith, Heger and Sudbery (Genome Research 2017).
-                                          #                               Exact               ... only exactly matching UMIs are collapsed"),
-                                                            )
-                                                          }
+                                         )
+                }
             )
 )
 
