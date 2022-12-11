@@ -83,7 +83,7 @@ ezMethodSTARsolo = function(input=NA, output=NA, param=NA){
   # parse solo features
   soloFeatures <- unlist(strsplit(param$soloFeatures, ","))
   if (length(soloFeatures) == 0) {
-    exit("No Solo Features specified!")
+    stop("No Solo Features specified!")
   }
   
   # create STARsolo command
