@@ -93,6 +93,11 @@ EzAppScSeurat <-
                     ),
                     enrichrDatabase = ezFrame(
                       Type = "charVector", DefaultValue = "", Description="enrichR databases to search"
+                    ),
+                    geneCountModel = ezFrame(
+                      Type = "character",
+                      DefaultValue = "GeneFull_ExonOverIntron",
+                      Description = "(STARsolo Input Only) The gene count model, i.e. Solo features, to use from the previous step"
                     )
                   )
                 }
@@ -133,8 +138,8 @@ ezMethodScSeurat <- function(input = NA, output = NA, param = NA,
   on.exit(setwd(cwd), add = TRUE)
   
   cmDir <- input$getFullPaths("CountMatrix")
-  if (file.exists(file.path(cmDir, "Gene"))){
-    cmDir <- file.path(cmDir, "Gene")
+  if (file.exists(file.path(cmDir, param$geneCountModel))){
+    cmDir <- file.path(cmDir, param$geneCountModel)
   }
   cts <- Read10X(cmDir, gene.column = 1)
   featInfo <- ezRead.table(paste0(cmDir, "/features.tsv.gz"), header = FALSE, row.names = NULL)#, col_names = FALSE)
