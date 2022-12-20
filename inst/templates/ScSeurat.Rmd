@@ -564,9 +564,8 @@ out <- SCpubr::do_PathwayActivityPlot(sample = scData,
                                       activities = pathwayActivity,
                                       plot_FeaturePlots = TRUE,
                                       plot_GeyserPlots = TRUE)
-pHeat <- out$heatmaps$average_scores
-pDim <- SCpubr::do_DimPlot(scData, label = T, legend.position = "none")
-print(pDim | pHeat)
+out$heatmaps$average_scores
+SCpubr::do_DimPlot(scData, label = T, legend.position = "none")
 
 ```
 
