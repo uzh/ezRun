@@ -247,7 +247,7 @@ We can explore whether the cells cluster by the different cell cycle phases. In 
 
 ```{r, fig.width=6, fig.height=6, eval=!is.null(scData@meta.data$CellCycle)}
 do_DimPlot(scData, label=FALSE, group.by= "CellCycle")
-do_DimPlot(scData, reduction="umap", label = TRUE)
+do_DimPlot(scData, reduction="umap", label = TRUE, legend.position = "right")
 ```
 
 ```{r uninteresting variation, fig.width=6, fig.height=6}
@@ -272,8 +272,9 @@ print(FeaturePlot(scData, features="percent_ribosomal", label = TRUE))
 ```
 
 ```{r, fig.width=6, fig.height=6, eval=!is.null(scData@meta.data$DecontX_contFrac)}
-do_ViolinPlot(scData, features ="DecontX_contFrac") + ggtitle("DecontX ambient fraction vs ident") + NoLegend()
-FeaturePlot(scData, features="DecontX_contFrac", label = TRUE)
+do_ViolinPlot(scData, features ="DecontX_contFrac", plot_boxplot = FALSE) + ggtitle("DecontX ambient fraction vs ident")# + NoLegend()
+VlnPlot(scData, features ="DecontX_contFrac") + ggtitle("DecontX ambient fraction vs ident") + NoLegend()
+FeaturePlot(scData, features="DecontX_contFrac", label = TRUE) + NoAxes()
 ```
 
 ```{r, fig.width=6, fig.height=6, eval=!is.null(scData@meta.data$SoupX_contFrac)}
@@ -560,16 +561,18 @@ out <- SCpubr::do_PathwayActivityPlot(sample = scData,
                                       activities = pathwayActivity,
                                       plot_FeaturePlots = TRUE,
                                       plot_GeyserPlots = TRUE)
-out$heatmaps$average_scores
+pHeat <- out$heatmaps$average_scores
+pDim <- SCpubr::do_DimPlot(scData, label = T, legend.position = "none")
+print(pDim | pHeat)
 
-p1 <- SCpubr::do_DimPlot(scData, label = T)
+```
 
+```{r, eval= !is.null(PathwayActivity)}
 for (idx in 1:length(out$feature_plots)){
-  p2 <- out$feature_plots[[idx]]
-  p3 <- out$geyser_plots[[idx]]
-  print((p1 | p2) / (p3))
+  out$feature_plots[[idx]]
 }
 ```
+
 
 
 ### TF activity inference analysis
@@ -578,20 +581,21 @@ for (idx in 1:length(out$feature_plots)){
 Visualization of the computation of activity scores on a cell basis depicting how much (or little) each cell is enriched in a TF and its dowstream targets (regulon).
 
 
-```{r tfActivity, eval= !is.null(TFActivity),fig.height=8, fig.width=10}
+```{r tfActivity, eval= !is.null(TFActivity),fig.height=8, fig.width=12}
 # General heatmap.
 out <- SCpubr::do_TFActivityPlot(sample = scData,
                                       activities = TFActivity,
                                       plot_FeaturePlots = TRUE,
                                       plot_GeyserPlots = TRUE)
-out$heatmaps$average_scores
+pHeat <- out$heatmaps$average_scores
+pDim <- SCpubr::do_DimPlot(scData, label = T, legend.position = "none")
+print(pDim | pHeat)
 
-p1 <- SCpubr::do_DimPlot(scData, label = T)
+```
 
+```{r, eval= !is.null(TFActivity)}
 for (idx in 1:length(out$feature_plots)){
-  p2 <- out$feature_plots[[idx]]
-  p3 <- out$geyser_plots[[idx]]
-  print((p1 | p2) / (p3))
+  out$feature_plots[[idx]]
 }
 ```
 
