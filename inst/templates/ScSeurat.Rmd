@@ -407,10 +407,10 @@ plotlyPlots <- list()
 nTopMarkers <- 10
 for (r in names(singler.results)) {
   cat("##### Heatmap: ", r, "\n\n")
-  print(plotScoreHeatmap(singler.results[[r]]$single.fine))
-  print(plotScoreHeatmap(singler.results[[r]]$cluster.fine, show_colnames = TRUE))
-  cat("\n\n")
-  singler.single.labels <- singler.results[[r]]$single.fine$labels
+  # print(plotScoreHeatmap(singler.results[[r]]$single.fine))
+  
+  print(plotScoreHeatmap(singler.results[[r]]$cluster.fine, show_colnames = TRUE, show.pruned = TRUE, max.labels = 30, annotation_legend=FALSE, legend=FALSE))
+  singler.single.labels <- singler.results[[r]]$single.fine$pruned.labels
   singler.cluster.labels <- singler.results[[r]]$cluster.fine$labels[match(Idents(scData), rownames(singler.results[[r]]$cluster.fine))]
   
   cellInfo <- tibble(
@@ -440,6 +440,7 @@ for (r in names(singler.results)) {
                 type = 'scatter', mode = "markers", marker=list(size=5, opacity=0.5),
                 colors=colsLabels, width=800, height=500) %>%
     layout(xaxis=x, yaxis=y, title=paste0(r, ": Single"))
+  
   p2 <- plot_ly(cellInfo, x = ~UMAP_1, y = ~UMAP_2, color=~SingleR.labels.cluster,
                 text = ~paste("Cluster: ", Cluster,
                               "\nCell: ", Cells,
@@ -447,6 +448,7 @@ for (r in names(singler.results)) {
                 type = 'scatter', mode = "markers", marker=list(size=5, opacity=0.5),
                 colors=colsLabels, width=800, height=500) %>%
     layout(xaxis=x, yaxis=y, title=paste0(r, ": Cluster"))
+  
   plotlyPlots <- append(plotlyPlots, list(p1, p2))
   cat("\n\n")
   clusterInfos <- ezFrame(Sample=as.character(unique(scData$Sample)), 
@@ -559,4 +561,3 @@ param[c("npcs","pcGenes","resolution", "SCT.regress", "DE.method", "cellsFractio
 ```{r, echo=FALSE}
 sessionInfo()
 ```
-
