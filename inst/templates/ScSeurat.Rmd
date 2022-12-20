@@ -322,7 +322,7 @@ genesToPlot <- c(gsub("_", "-", param$controlSeqs), unique(as.character(top5$gen
 genesToPlot <- intersect(genesToPlot, rownames(scData))
 
 DoHeatmap(scData, features=unique(genesToPlot))
-DotPlot(scData, features=genesToPlot) + coord_flip()
+DotPlot(scData, features=genesToPlot) + coord_flip()  +  theme(axis.text.x = element_text(angle = 45, vjust = 0.5, hjust=1))
 ```
 
 ```{r plot of user genes, fig.width=12, fig.height=shrinkToRange(length(param$controlSeqs)/5, c(6, 12)), eval=ezIsSpecified(param$controlSeqs)}
@@ -330,7 +330,7 @@ genesToPlot <- intersect(param$controlSeqs, rownames(scData))
 
 if (length(genesToPlot) > 0){
   DoHeatmap(scData, features=unique(genesToPlot))
-  DotPlot(scData, features=genesToPlot) + coord_flip()
+  DotPlot(scData, features=genesToPlot) + coord_flip()  +  theme(axis.text.x = element_text(angle = 45, vjust = 0.5, hjust=1))
 } else { 
   cat("controlseqs not found")
 }
