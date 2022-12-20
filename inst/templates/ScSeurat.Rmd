@@ -537,7 +537,10 @@ cat('\n')
 cellsUmap <- scData@reductions$umap@cell.embeddings
 minAucThresh = 0.2
 filtered_cells.AUC <- cells.AUC[rowSums(assay(cells.AUC) >= minAucThresh)>0, ]
-maxAucScore = rowMax(assay(filtered_cells.AUC))
+## a cell type need to have in at least 20% of the cells of a cluster a high score to be considered
+maxAucScore = assay(filtered_cells.AUC) %>% 
+  averageColumns(by=Idents(scData), func = function(x){quantile(x, 0.8)}) %>%
+  rowMax()
 scoreOrder = order(maxAucScore, decreasing = TRUE)
 nPlots = 50
 ```
