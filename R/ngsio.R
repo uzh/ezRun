@@ -69,7 +69,7 @@ loadCountDataset <- function(input, param){
                             width=seqAnnoDFFeature$featWidth)$correctedCounts
   }
 
-  if (ezIsSpecified(param$runRUV) && param$runRUV){
+  if (ezIsSpecified(param$runRUV) && as.logical(param$runRUV)){
     library(RUVSeq)
     differences <- makeGroups(ezDesignFromDataset(input$meta))
     ruvCorr = RUVs(counts, cIdx=counts, k=as.integer(param$kRUVFactors), scIdx=differences, epsilon=10)
