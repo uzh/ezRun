@@ -71,7 +71,7 @@ loadCountDataset <- function(input, param){
 
   if (ezIsSpecified(param$runRUV) && as.logical(param$runRUV)){
     library(RUVSeq)
-    differences <- makeGroups(ezDesignFromDataset(input$meta))
+    differences <- makeGroups(param$grouping)
     ruvCorr = RUVs(counts, cIdx=counts, k=as.integer(param$kRUVFactors), scIdx=differences, epsilon=10)
     counts <- ruvCorr$normalizedCounts
   }
