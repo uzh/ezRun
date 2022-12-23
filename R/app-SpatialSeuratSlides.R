@@ -83,7 +83,8 @@ ezMethodSpatialSeuratSlides = function(input=NA, output=NA, param=NA, htmlFile="
   scData@reductions$tsne_noCorrected <- Reductions(scData_noCorrected, "tsne")
   scData@reductions$umap_noCorrected <- Reductions(scData_noCorrected, "umap")
   scData@meta.data$ident_noCorrected <- Idents(scData_noCorrected)
-
+  scData <- PrepSCTFindMarkers(scData)
+  
   #positive cluster markers
   posMarkers <- posClusterMarkers(scData, pvalue_allMarkers, param)
   #spatially variable genes
