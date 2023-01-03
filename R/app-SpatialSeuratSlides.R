@@ -80,8 +80,10 @@ ezMethodSpatialSeuratSlides = function(input=NA, output=NA, param=NA, htmlFile="
   if (param$batchCorrection) {
     scData_corrected = cellClustWithCorrection(scDataList, param)
     #in order to compute the markers we switch again to the original assay
+    varFeatures <- VariableFeatures(scData_corrected)
     DefaultAssay(scData_corrected) <- "SCT"
     scData <- scData_corrected
+    VariableFeatures(scData) <- unique(varFeatures)
   }
   scData@reductions$tsne_noCorrected <- Reductions(scData_noCorrected, "tsne")
   scData@reductions$umap_noCorrected <- Reductions(scData_noCorrected, "umap")
