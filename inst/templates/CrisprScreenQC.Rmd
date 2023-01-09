@@ -1,0 +1,107 @@
+---
+title: "`r if (exists('reportTitle')) reportTitle else 'SUSHI Report'`"
+output: 
+  html_document:
+    self_contained: true
+    includes:
+      in_header: !expr system.file("templates/fgcz_header.html", package="ezRun")
+    css: !expr system.file("templates/fgcz.css", package="ezRun")
+editor_options: 
+  chunk_output_type: inline
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+require(knitr)
+require(kableExtra)
+require(plotly)
+require(seqLogo)
+
+output <- readRDS("output.rds")
+param <- readRDS("param.rds")
+input <- readRDS("input.rds")
+data <- readRDS("data.rds")
+
+dataset = input$meta
+samples = input$getNames()
+
+debug <- FALSE
+```
+Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
+
+## CRISPR ScreenQC Results {.tabset}
+
+### 1. Per sample sgRNA library barplots
+
+The counts are estimated by [MAGeCK](https://sourceforge.net/p/mageck/)
+
+##### Screened Libraries table
+
+```{r basicTable, echo = FALSE}
+    sgRNAPerLib <- data.frame(data$sgRNAPerLib)
+    colnames(sgRNAPerLib) <- c('Library', '#sgRNAs')
+    ezInteractiveTableRmd(sgRNAPerLib)
+```
+
+##### Barplots per Sample
+
+```{r MageckCountsPerSample, echo=FALSE, results='hide', warning=FALSE, message=TRUE, eval=!debug}
+countsPerLib <- data$countsPerLib
+
+  for (nm in names(countsPerLib)){
+      #x = countsPerLib[[nm]]/1000
+      
+      #par(mar=c(15.1, 6.1, 4.1, 2.1))
+      #if (length(x[x > 0]) > 0){
+      #    bplot <- barplot(x[x > 0], names.arg = rep('',length(x[x>0])), col = 'royalblue3', 
+      #                     main = nm, ylab = 'sgRNA Count per Library per K', las = 2)
+      #    text(x = bplot, y = par("usr")[3] - 1, srt = 45, adj = 1, 
+      #         labels = names(x)[x > 0], xpd = TRUE)
+      #}
+      x = 100*(countsPerLib[[nm]]/param$nReads)
+      
+      par(mar=c(15.1, 6.1, 4.1, 2.1))
+      if (length(x[x > 0]) > 0){
+          bplot <- barplot(x[x > 0], names.arg = rep('',length(x[x>0])), col = 'royalblue3', 
+                           main = nm, ylab = 'MappingRate per Library in %', las = 2, ylim = c(0,100))
+          text(x = bplot, y = par("usr")[3] - 3, srt = 45, adj = 1, 
+               labels = names(x)[x > 0], xpd = TRUE)
+      }
+  }
+```
+
+### 2. Top sgRNAs
+```{r top_sgRNA, echo = FALSE}
+    topFeatureResults <- data$topFeatureResults
+    myTable <- c()
+for (nm in names(topFeatureResults)){
+    topFeatureResult <- data.frame(topFeatureResults[[nm]])
+    topFeatureResult[['Sample']] = nm
+    colnames(topFeatureResult) <- c('sgRNA', 'Gene', 'Count', 'Library', 'Sample')
+    myTable <- rbind(myTable, topFeatureResult)
+}
+ezInteractiveTableRmd(myTable)
+```
+
+
+### 3. Read Patterns
+```{r, echo=FALSE, include=TRUE, warning=FALSE, message=TRUE, eval=!debug, fig.height=5, fig.width=20, results="asis"}
+PWMs <- data$PWMs
+
+for (nm in names(PWMs)){
+        cat(nm, "\n \n")
+        seqLogo(PWMs[[nm]])
+        cat("\n \n")
+  }
+```
+
+### Input Dataset
+```{r, echo=FALSE, message=FALSE}
+ezInteractiveTableRmd(values=dataset)
+```
+
+### SessionInfo
+```{r, echo=FALSE}
+sessionInfo()
+```
