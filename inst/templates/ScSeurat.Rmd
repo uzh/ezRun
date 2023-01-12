@@ -252,20 +252,20 @@ do_DimPlot(scData, reduction="umap", label = TRUE, legend.position = "right")
 
 ```{r uninteresting variation, fig.width=6, fig.height=6}
 do_ViolinPlot(scData, features ="nCount_RNA") + ggtitle("Number of UMIs vs ident") + scale_y_log10() + NoLegend()
-FeaturePlot(scData, features="nCount_RNA", label = TRUE)
+do_FeaturePlot(scData, features="nCount_RNA", label = TRUE)
 
 do_ViolinPlot(scData, features ="nFeature_RNA") + ggtitle("Number of genes vs ident") + NoLegend()
-FeaturePlot(scData, features="nFeature_RNA", label = TRUE)
+do_FeaturePlot(scData, features="nFeature_RNA", label = TRUE)
 
 do_ViolinPlot(scData, features ="percent_mito") + ggtitle("Mitochondrial percentage vs ident") + NoLegend()
-FeaturePlot(scData, features="percent_mito", label = TRUE)
+do_FeaturePlot(scData, features="percent_mito", label = TRUE)
 
 do_ViolinPlot(scData, features ="percent_riboprot") + ggtitle("Ribosomal protein percentage vs ident") + NoLegend()
-FeaturePlot(scData, features="percent_riboprot", label = TRUE)
+do_FeaturePlot(scData, features="percent_riboprot", label = TRUE)
 
 if (!is.null(scData@meta.data$percent_ribosomal)){
 print(do_ViolinPlot(scData, features ="percent_ribosomal") + ggtitle("Ribosomal RNA percentage vs ident") + NoLegend())
-print(FeaturePlot(scData, features="percent_ribosomal", label = TRUE))
+print(do_FeaturePlot(scData, features="percent_ribosomal", label = TRUE))
   
 }
 
@@ -274,18 +274,18 @@ print(FeaturePlot(scData, features="percent_ribosomal", label = TRUE))
 ```{r, fig.width=6, fig.height=6, eval=!is.null(scData@meta.data$DecontX_contFrac)}
 do_ViolinPlot(scData, features ="DecontX_contFrac", plot_boxplot = FALSE) + ggtitle("DecontX ambient fraction vs ident")# + NoLegend()
 VlnPlot(scData, features ="DecontX_contFrac") + ggtitle("DecontX ambient fraction vs ident") + NoLegend()
-FeaturePlot(scData, features="DecontX_contFrac", label = TRUE) + NoAxes()
+do_FeaturePlot(scData, features="DecontX_contFrac", label = TRUE) + NoAxes()
 ```
 
 ```{r, fig.width=6, fig.height=6, eval=!is.null(scData@meta.data$SoupX_contFrac)}
 do_ViolinPlot(scData, features ="SoupX_contFrac") + ggtitle("SoupX ambient fraction vs ident") + NoLegend()
-FeaturePlot(scData, features="SoupX_contFrac", label = TRUE)
+do_FeaturePlot(scData, features="SoupX_contFrac", label = TRUE)
 
 ```
 
 ```{r, fig.width=6, fig.height=6, eval=!is.null(scData@meta.data$negLog10CellPValue)}
 do_ViolinPlot(scData, features ="negLog10CellPValue") + ggtitle("negative log10 Cell PValue") + NoLegend()
-FeaturePlot(scData, features="negLog10CellPValue", label = TRUE)
+do_FeaturePlot(scData, features="negLog10CellPValue", label = TRUE)
 
 ```
 
@@ -295,7 +295,7 @@ FeaturePlot(scData, features="negLog10CellPValue", label = TRUE)
 genesToPlot <- gsub("_", "-", param$controlSeqs)
 genesToPlot <- intersect(genesToPlot, rownames(scData))
 if (length(genesToPlot) > 0){
-  FeaturePlot(scData, genesToPlot) + NoLegend()
+  do_FeaturePlot(scData, genesToPlot) + NoLegend()
 }
 ```
 
@@ -334,8 +334,8 @@ top5 <- posMarkers %>% group_by(cluster)
 top5 <- slice_max(top5, n = 5, order_by = avg_log2FC)
 genesToPlot <- c(gsub("_", "-", param$controlSeqs), unique(as.character(top5$gene)))
 genesToPlot <- intersect(genesToPlot, rownames(scData))
-# TODO: SCpubr::do_ExpressionHeatmap() will be available in the next CRAN release! (v1.1.0)
-DoHeatmap(scData, features=unique(genesToPlot))
+# TODO: SCpubr::do_ExpressionHeatmap) will be available in the next CRAN release! (v1.1.0)
+do_ExpressionHeatmap(scData, features=unique(genesToPlot))
 DotPlot(scData, features=genesToPlot) + coord_flip()  +  theme(axis.text.x = element_text(angle = 45, vjust = 0.5, hjust=1))
 ```
 
@@ -343,8 +343,8 @@ DotPlot(scData, features=genesToPlot) + coord_flip()  +  theme(axis.text.x = ele
 genesToPlot <- intersect(param$controlSeqs, rownames(scData))
 
 if (length(genesToPlot) > 0){
-  # TODO: SCpubr::do_ExpressionHeatmap() will be available in the next CRAN release! (v1.1.0)
-  DoHeatmap(scData, features=unique(genesToPlot))
+  # TODO: SCpubr::do_ExpressionHeatmap) will be available in the next CRAN release! (v1.1.0)
+  do_ExpressionHeatmap(scData, features=unique(genesToPlot))
   DotPlot(scData, features=genesToPlot) + coord_flip()  +  theme(axis.text.x = element_text(angle = 45, vjust = 0.5, hjust=1))
 } else { 
   cat("controlseqs not found")
