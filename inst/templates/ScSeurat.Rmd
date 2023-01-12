@@ -571,7 +571,7 @@ SCpubr::do_DimPlot(scData, label = T, legend.position = "none")
 
 ```
 
-```{r, eval= !is.null(PathwayActivity)}
+```{r, eval= !is.null(pathwayActivity)}
 for (idx in 1:length(out$feature_plots)){
   out$feature_plots[[idx]]
 }
