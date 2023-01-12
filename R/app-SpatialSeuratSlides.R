@@ -30,6 +30,9 @@ EzAppSpatialSeuratSlides <-
                                         batchCorrection=ezFrame(Type="logical", 
                                                                 DefaultValue="TRUE",
                                                                 Description="Perform batch correction."),
+                                        integrationMethod=ezFrame(Type="character", 
+                                                                  DefaultValue="Classic", 
+                                                                  Description="Choose integration method in Seurat (Classic or RPCA)"),
                                         DE.method=ezFrame(Type="charVector", 
                                                           DefaultValue="wilcox", 
                                                           Description="Method to be used when calculating gene cluster markers and differentially expressed genes between conditions. Use LR to take into account the Batch and/or CellCycle"),
@@ -77,13 +80,16 @@ ezMethodSpatialSeuratSlides = function(input=NA, output=NA, param=NA, htmlFile="
   if (param$batchCorrection) {
     scData_corrected = cellClustWithCorrection(scDataList, param)
     #in order to compute the markers we switch again to the original assay
+    varFeatures <- VariableFeatures(scData_corrected)
     DefaultAssay(scData_corrected) <- "SCT"
     scData <- scData_corrected
+    VariableFeatures(scData) <- unique(varFeatures)
   }
   scData@reductions$tsne_noCorrected <- Reductions(scData_noCorrected, "tsne")
   scData@reductions$umap_noCorrected <- Reductions(scData_noCorrected, "umap")
   scData@meta.data$ident_noCorrected <- Idents(scData_noCorrected)
-
+  scData <- PrepSCTFindMarkers(scData)
+  
   #positive cluster markers
   posMarkers <- posClusterMarkers(scData, pvalue_allMarkers, param)
   #spatially variable genes

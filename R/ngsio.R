@@ -68,7 +68,15 @@ loadCountDataset <- function(input, param){
     counts <- ezCorrectBias(counts, gc=seqAnnoDFFeature$gc,
                             width=seqAnnoDFFeature$featWidth)$correctedCounts
   }
-  
+
+  if (ezIsSpecified(param$runRUV) && as.logical(param$runRUV)){
+    library(RUVSeq)
+    differences <- makeGroups(param$grouping)
+    ruvCorr = RUVs(counts, cIdx=rownames(counts), k=as.integer(param$kRUVFactors), scIdx=differences, epsilon=10)
+    counts <- ruvCorr$normalizedCounts
+  }
+
+    
   seqAnno <- makeGRangesFromDataFrame(seqAnnoDFFeature, keep.extra.columns=TRUE)
   
   if (param$useSigThresh){

@@ -234,7 +234,7 @@ cellClustWithCorrection <- function (scDataList, param) {
   
   #2. Data integration
   #2.1. # Select the most variable features to use for integration
-  integ_features <- SelectIntegrationFeatures(object.list = scDataList, nfeatures = 3000) 
+  integ_features <- SelectIntegrationFeatures(object.list = scDataList, nfeatures = 3000)
   #2.2. Prepare the SCT list object for integration
   scDataList <- PrepSCTIntegration(object.list = scDataList, anchor.features = integ_features)
   if(param$integrationMethod == 'RPCA'){
@@ -251,7 +251,7 @@ cellClustWithCorrection <- function (scDataList, param) {
   
   #2.4. Integrate datasets
   seurat_integrated <- IntegrateData(anchorset = integ_anchors, normalization.method = "SCT", dims = 1:param$npcs)
-
+  
   #3. Run the standard workflow for visualization and clustering
   seurat_integrated <- seuratStandardWorkflow(seurat_integrated, param)
   
@@ -278,7 +278,7 @@ posClusterMarkers <- function(scData, pvalue_allMarkers, param) {
 }
 
 spatialMarkers <- function(scData) { 
-  scData <- FindSpatiallyVariableFeatures(scData, features = VariableFeatures(scData)[1:1000], 
+  scData <- FindSpatiallyVariableFeatures(scData, features = VariableFeatures(scData), r.metric = 5, 
                                                   selection.method = "markvariogram")
   spatialMarkers <- SpatiallyVariableFeatures(scData, selection.method = "markvariogram")
   return(spatialMarkers)

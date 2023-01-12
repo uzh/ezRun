@@ -54,57 +54,14 @@ EzAppSTARsolo =
                                                                  DefaultValue="TRUE",
                                                                  Description=""),
                                           soloCellFilter=ezFrame(Type="character",
-                                                                 DefaultValue="None",
+                                                                 DefaultValue="EmptyDrops_CR",
                                                                  Description="cell filtering type and parameters
+                                                                        EmptyDrops_CR   ... EmptyDrops filtering in CellRanger flavor. Please cite the original EmptyDrops paper: A.T.L Lun et al, Genome Biology, 20, 63 (2019): https://genomebiology.biomedcentral.com/articles/10.1186/s13059-019-1662-y
                                                                         CellRanger2.2   ... simple filtering of CellRanger 2.2, followed by thre numbers: number of expected cells, robust maximum percentile for UMI count, maximum to minimum ratio for UMI count
                                                                         TopCells        ... only report top cells by UMI count, followed by the excat number of cells
                                                                         None            ... do not output filtered cells")
-                                          # soloBarcodeReadLength=ezFrame(Type="character",
-                                          #                               DefaultValue="1",
-                                          #                               Description="1 if equal to sum of soloCBlen+soloUMIlen; 0 if not defined, do not check."),
-                                          # soloCBposition=ezFrame(Type="character",
-                                          #                        DefaultValue="-",
-                                          #                        Description="Position of Cell Barcode(s) on the barcode read.
-                                          #                                   Presently only works with --soloType CB_UMI_Complex, and barcodes are assumed to be on Read2.
-                                          #                                   Format for each barcode: startAnchor_startDistance_endAnchor_endDistance
-                                          #                                   start(end)Anchor defines the anchor base for the CB: 
-                                          #                                   0: read start; 1: read end; 2: adapter start; 3: adapter end
-                                          #                                   start(end)Distance is the distance from the CB start(end) to the Anchor base
-                                          #                                   String for different barcodes are separated by space.
-                                          #                                   Example: inDrop (Zilionis et al, Nat. Protocols, 2017):
-                                          #                                   --soloCBposition  0_0_2_-1  3_1_3_8"),
-                                          # soloUMIposition=ezFrame(Type="character",
-                                          #                         DefaultValue="-",
-                                          #                         Description="position of the UMI on the barcode read, same as soloCBposition.
-                                          #                                   Example: inDrop (Zilionis et al, Nat. Protocols, 2017):
-                                          #                                   --soloCBposition  3_9_3_14"),
-                                          # soloAdapterSequence=ezFrame(Type="character",
-                                          #                               DefaultValue="-",
-                                          #                               Description="Adapter sequence to anchor barcodes."),
-                                          # soloAdapterMismatchesNmax=ezFrame(Type="character",
-                                          #                             DefaultValue="1",
-                                          #                             Description="maximum number of mismatches allowed in adapter sequence."),
-                                          # soloStrand=ezFrame(Type="character",
-                                          #                    DefaultValue="Forward",
-                                          #                    Description="strandedness of the solo libraries.
-                                          #                               Unstranded  ... no strand information
-                                          #                               Forward     ... read strand same as the original RNA molecule
-                                          #                               Reverse     ... read strand opposite to the original RNA molecule"),
-                                          # soloFeatures=ezFrame(Type="character",
-                                          #                    DefaultValue="Gene",
-                                          #                    Description="genomic features for which the UMI counts per Cell Barcode are collected.
-                                          #                               Gene            ... genes: reads match the gene transcript
-                                          #                               SJ              ... splice junctions: reported in SJ.out.tab
-                                          #                               GeneFull        ... full genes: count all reads overlapping genes' exons and introns
-                                          #                               Transcript3p   ... quantification of transcript for 3' protocols"),
-                                          # soloUMIdedup=ezFrame(Type="character",
-                                          #                    DefaultValue="1MM_All",
-                                          #                    Description="type of UMI deduplication (collapsing) algorithm.
-                                          #                               1MM_All             ... all UMIs with 1 mismatch distance to each other are collapsed (i.e. counted once)
-                                          #                               1MM_Directional     ... follows the 'directional' method from the UMI-tools by Smith, Heger and Sudbery (Genome Research 2017).
-                                          #                               Exact               ... only exactly matching UMIs are collapsed"),
-                                                            )
-                                                          }
+                                         )
+                }
             )
 )
 
@@ -123,30 +80,22 @@ ezMethodSTARsolo = function(input=NA, output=NA, param=NA){
       untar(sampleDirs[i], exdir=runDirs[i], tar=system("which tar", intern=TRUE))
     }
   }
-
+  # parse solo features
+  soloFeatures <- unlist(strsplit(param$soloFeatures, ","))
+  if (length(soloFeatures) == 0) {
+    stop("No Solo Features specified!")
+  }
   
   # create STARsolo command
-  cmd = makeSTARsoloCmd(param, refDir, sampleName, runDirs)
+  cmd = makeSTARsoloCmd(param, refDir, sampleName, runDirs, soloFeatures)
   
   # run STARsolo shell command
   ezSystem(cmd)
   
   # filter raw counts with EmptyDrop
   require(Matrix)
-  require(DropletUtils)
-  if (grepl('--soloFeatures', param$cmdOptions)) {
-    soloParams <- limma::strsplit2(param$cmdOptions, '--')
-    soloFeatureParam <- sub('soloFeatures ', '', soloParams[grep('soloFeatures',soloParams)])
-    soloFeatureParams <- stringr::str_split(soloFeatureParam, " ")[[1]]
-    # Make sure "Genes" is at the beginning so we detect drops based on it
-    if ("Gene" %in% soloFeatureParams) {
-      soloFeatureParams <- c("Gene", soloFeatureParams[soloFeatureParams!="Gene"])
-    }
-  } else {
-    soloFeatureParams <- "Gene"
-  }
-  outputDirs = file.path(sampleName,'Solo.out',soloFeatureParams,'raw')
-  names(outputDirs) <- soloFeatureParams
+  outputDirs = file.path(sampleName,'Solo.out',soloFeatures)
+  names(outputDirs) <- soloFeatures
   ## Remove alignments file if not setted differently
   samFn = paste0(sampleName,'/Aligned.out.sam')
   if(param[['keepAlignment']]){
@@ -158,48 +107,34 @@ ezMethodSTARsolo = function(input=NA, output=NA, param=NA){
   }
   ### gzip all files
   for (outputDir in outputDirs) {
-    ezSystem(paste("pigz -p 4",paste0(outputDir,"/*")))
+    for (subDir in c("raw", "filtered")) {
+      ezSystem(paste("pigz -p 4",file.path(outputDir, subDir, "*")))
+    }
   }
 
-  outputDir <- outputDirs[1]
-  ## Filter raw STARsolo counts with EmptyDrops
-  sce = read10xCounts(samples = outputDir, col.names = TRUE, version = '3')
-  rawCounts = sce@assays@data@listData$counts
-  ### cell calling
-  called = defaultDrops(rawCounts)
   ### save in new directory
   rawDir <- paste0(sampleName,'/raw_feature_bc_matrix')
   filteredDir = paste0(sampleName,'/filtered_feature_bc_matrix')
-  if (length(outputDirs) > 1) {
-    # We have to make subdirectories for every solo feature
-    dir.create(rawDir)
-    dir.create(filteredDir)
-    
-    # First write the main results
-    subRawDir <- file.path(rawDir, soloFeatureParams[1])
-    subFilteredDir <- file.path(filteredDir, soloFeatureParams[1])
-    
-    # Write the raw and filtered counts of first feature
-    writeRawAndFiltered10XCounts(sce, subRawDir, subFilteredDir, called)
-    
-    # Process rest of features
-    for (soloFeatureParam in soloFeatureParams[-1]) {
-      outputDir <- outputDirs[soloFeatureParam]
-      subRawDir <- file.path(rawDir, soloFeatureParam)
-      subFilteredDir <- file.path(filteredDir, soloFeatureParam)
-      if (soloFeatureParam == "Velocyto") {
-        writeVelocyto(outputDir, subRawDir, subFilteredDir, called)
-      } else {
-        writeGenericMode(outputDir, subRawDir, subFilteredDir, called)
-      }
+  # We have to make subdirectories for every solo feature
+  dir.create(rawDir)
+  dir.create(filteredDir)
+  
+  # Process rest of features
+  for (soloFeatureParam in soloFeatures) {
+    outputDir <- outputDirs[soloFeatureParam]
+    subRawDir <- file.path(rawDir, soloFeatureParam)
+    subFilteredDir <- file.path(filteredDir, soloFeatureParam)
+    if (soloFeatureParam == "Velocyto") {
+      writeVelocyto(outputDir, subRawDir, subFilteredDir)
+    } else {
+      writeGenericFeature(outputDir, subRawDir, subFilteredDir)
     }
-  } else {
-    writeRawAndFiltered10XCounts(sce, rawDir, filteredDir, called)
   }
   return("Success")
 }
+
 # create STARsolo shell command
-makeSTARsoloCmd = function(param, refDir, sampleName, sampleDirs){
+makeSTARsoloCmd = function(param, refDir, sampleName, sampleDirs, soloFeatures){
   require('tools')
 
   ## decide which chemistry whitelist to take
@@ -219,6 +154,9 @@ makeSTARsoloCmd = function(param, refDir, sampleName, sampleDirs){
   } else{
     soloUMIlen = param[['soloUMIlen']]
   }
+  
+  ## format soloFeatures list
+  soloFeatures <- paste(soloFeatures, collapse=" ")
   
   ## create readFilesIn
   ### list files: the names are always the same for standard runs. Only the presence of indexes is optional.
@@ -261,6 +199,7 @@ makeSTARsoloCmd = function(param, refDir, sampleName, sampleDirs){
     paste0('--soloUMIfiltering ', param[['soloUMIfiltering']]),
     paste0('--soloCBmatchWLtype ', param[['soloCBmatchWLtype']]),
     paste0('--soloCellFilter ', param[['soloCellFilter']]),
+    paste0('--soloFeatures ', soloFeatures),
     "--outSAMattributes NH HI nM AS CR UR CB UB GX GN sS sQ sM",
     "--outSAMtype BAM SortedByCoordinate",
     "--outBAMcompression 6",
@@ -276,42 +215,43 @@ makeSTARsoloCmd = function(param, refDir, sampleName, sampleDirs){
 }
 
 # Write Velocyto outputs
-writeVelocyto <- function(outputDir, subRawDir, subFilteredDir, calledCells) {
+writeVelocyto <- function(outputDir, subRawDir, subFilteredDir) {
   subFeatures <- c("spliced", "unspliced", "ambiguous")
   # Create parent directory
   dir.create(subRawDir)
   dir.create(subFilteredDir)
   for (subFeature in subFeatures) {
-    outputDirSplit <- file.path(outputDir, "..", subFeature)
-    # We create the directory manually
-    dir.create(outputDirSplit)
-    # Copy the files over
-    file.copy(from=Sys.glob(file.path(outputDir, "*.tsv.gz")), to=outputDirSplit)
-    file.copy(from=file.path(outputDir, paste0(subFeature, ".mtx.gz")), 
-              to=file.path(outputDirSplit, "matrix.mtx.gz"))
-    # Call the generic mode
-    subRawFeatureDir <- file.path(subRawDir, subFeature)
-    subFilteredFeatureDir <- file.path(subFilteredDir, subFeature)
-    writeGenericMode(outputDirSplit, subRawFeatureDir, subFilteredFeatureDir, calledCells)
+    # Get root directory to raw and filtered counts
+    rawOutputDir <- file.path(outputDir, "raw")
+    filtOutputDir <- file.path(outputDir, "filtered")
+    # Copy the appropriate files over
+    writeVelocytoFeature(subFeature, rawOutputDir, subRawDir)
+    writeVelocytoFeature(subFeature, filtOutputDir, subFilteredDir)
   }
 }
 
-# Write outputs from other solo features
-writeGenericMode <- function(outputDir, rawDir, filteredDir, calledCells) {
-  sce = read10xCounts(samples = outputDir, col.names = TRUE, version = '3')
-  writeRawAndFiltered10XCounts(sce, rawDir, filteredDir, calledCells)
+# Write velocyto feature outputs
+writeVelocytoFeature <- function(subFeature, fromDir, destDir) {
+  # Make the destination sub-directory
+  destSubDir <- file.path(destDir, subFeature)
+  dir.create(destSubDir)
+  
+  # Copy the raw files over
+  file.copy(from=Sys.glob(file.path(fromDir, "*.tsv.gz")), 
+            to=destSubDir)
+  file.copy(from=file.path(fromDir, paste0(subFeature, ".mtx.gz")), 
+            to=file.path(destSubDir, "matrix.mtx.gz"))
 }
 
-# Takes in a raw-count SCE and outputs the 
-writeRawAndFiltered10XCounts <- function(rawSce, rawDir, filteredDir, calledCells) {
-  ## Filter raw STARsolo counts with previous called
-  rawCounts = rawSce@assays@data@listData$counts
-  filteredCounts = rawCounts[,calledCells]
-  geneID = rawSce@rowRanges@elementMetadata@listData[["ID"]]
-  geneSymbol = rawSce@rowRanges@elementMetadata@listData[["Symbol"]]
-  
-  write10xCounts(path = rawDir, x = rawCounts, 
-                 gene.id = geneID, gene.symbol = geneSymbol, version = '3')
-  write10xCounts(path = filteredDir, x = filteredCounts, 
-                 gene.id = geneID, gene.symbol = geneSymbol, version = '3')
+# Write generic feature outputs
+writeGenericFeature <- function(outputDir, subRawDir, subFilteredDir) {
+  # Create parent directory
+  dir.create(subRawDir)
+  dir.create(subFilteredDir)
+  # Get root directory to raw and filtered counts
+  rawOutputDir <- file.path(outputDir, "raw")
+  filtOutputDir <- file.path(outputDir, "filtered")
+  # Copy files over
+  file.copy(from=Sys.glob(file.path(rawOutputDir, "*.gz")), to=subRawDir)
+  file.copy(from=Sys.glob(file.path(filtOutputDir, "*.gz")), to=subFilteredDir)
 }
