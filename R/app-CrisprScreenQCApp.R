@@ -50,7 +50,6 @@ ezMethodCrisprScreenQC <- function(input, output, param){
         countsPerLib[[i]] <- tapply(counts$sample1, INDEX = counts$Lib, FUN = sum)
         topFeatureResults[[i]] <- counts[order(counts$sample1, decreasing = TRUE),][1:param$topFeatures,]
         fq <- readFastq(inputFiles[i])
-        fq <- readFastq('New_SetA-subsample_R1.fastq.gz')
         reads <- sread(fq)
         consMatrix <- consensusMatrix(reads, as.prob = TRUE)
         consMatrix <- consMatrix[rownames(consMatrix) %in% c('A', 'C','G','T'),]
@@ -70,6 +69,14 @@ ezMethodCrisprScreenQC <- function(input, output, param){
         rmdFile = "CrisprScreenQC.Rmd", reportTitle = paste("CRISPR Screen QC", param$name)
     )
     return("Success")
+    
+    # Zac mail 7.10.22: The app could do something like
+    # 1. detect and report the spacer sequences (seqLogo)
+    # 2. map against the 5'-sequence and report mapping stats (seqLogo)
+    # 3. remove 5'- and 3'-sequences (automatically done by MAGECK)
+    # 4. map guide RNA against our list of guide library files (minimum the standard libraries and all previously processed libraries, we will make a depository) (MAGECK count all installed refs for MAGECK)
+    # 5. map against REFseq mRNA??? (and other typical sources of contamination) (to be done, needs PWM based identification of Spacers)
+    # 6. If we switch to UMIs, should the app take care of the relevant analysis? (to be done)
 }
 
 ##' @template app-template
