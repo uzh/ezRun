@@ -7,7 +7,7 @@ ram	integer	4	gigabytes of RAM to use
 scratch	integer	10	gigaybtes of scratch disk to use
 process_mode	character		if an app should run in sample or dataset process mode
 mail	character		The address to which e-mails are sent
-adminMail	character	gxtx_data_mngt@fgcz.ethz.ch	The address to which error e-mails are sent if mail is not set
+adminMail	character	gxtx_data_mngt@fgcz.system	The address to which error e-mails are sent if mail is not set
 splitByChrom	logical	TRUE	parallel processing of chromosomes if possible!
 # result, files, names and formatting
 doZip	logical	TRUE	whether text files should be zipped
