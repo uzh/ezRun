@@ -1,0 +1,641 @@
+---
+title: "`r if (exists('reportTitle')) reportTitle else 'SUSHI Report'`"
+author: "Functional Genomics Center Zurich"
+output: 
+  html_document:
+    self_contained: true
+    includes:
+     in_header: !expr system.file("templates/fgcz_header.html", package="ezRun", lib.loc=.libPaths())
+    css: !expr system.file("templates/fgcz.css", package="ezRun", lib.loc=.libPaths())
+editor_options: 
+  chunk_output_type: inline
+---
+
+Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
+
+
+
+```{r setup, include=FALSE}
+# input for this report: sce
+library(clustree)
+library(kableExtra)
+library(NMF)
+library(pheatmap)
+library(viridis)
+library(tidyverse)
+library(cowplot)
+library(scran)
+library(RColorBrewer)
+library(plotly)
+library(SingleR)
+library(scater)
+library(Seurat)
+library(AUCell)
+library(ezRun)
+library(HDF5Array)
+library(enrichR)
+library(SCpubr)
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE, knitr.table.format = "html")
+
+# clusterInfoFile <- "clusterInfos.xlsx" # -- not used
+posMarkers <- readxl::read_xlsx("posMarkers.xlsx")
+scData <- readRDS("scData.rds")
+output <- readRDS("output.rds")
+scData$qc.doublet <- scData$doubletClass %in% "doublet"
+allCellsMeta <- readRDS("allCellsMeta.rds")
+param <- readRDS("param.rds")
+species <- getSpecies(param$refBuild)
+if (file.exists("singler.results.rds")){
+  singler.results <- readRDS("singler.results.rds")
+} else {
+  singler.results <- NULL
+}
+if (file.exists("cells.AUC.rds")){
+  cells.AUC <- readRDS("cells.AUC.rds")
+} else {
+  cells.AUC <- NULL
+}
+if (file.exists("enrichRout.rds")){
+  enrichRout <- readRDS("enrichRout.rds")
+} else {
+  enrichRout <- NULL
+}
+if (file.exists("pathwayActivity.rds")){
+  pathwayActivity <- readRDS("pathwayActivity.rds")
+} else {
+  pathwayActivity <- NULL
+}
+if (file.exists("TFActivity.rds")){
+  TFActivity <- readRDS("TFActivity.rds")
+} else {
+  TFActivity <- NULL
+}
+
+
+# Process the posMarkers
+posMarkers$gene = as.factor(posMarkers$gene)
+# make sure the loaded cluster uses proiper integer ordering if all levels are integer!
+if (all(!is.na(as.integer(posMarkers$cluster)))){
+  posMarkers$cluster = as.factor(posMarkers$cluster)
+} else {
+   posMarkers$cluster = as.factor(as.integer(posMarkers$cluster))
+}
+
+
+
+var_height = 1 #This ensures that chunks that use the length of this variable to set the fig size, don't fail.
+```
+
+
+## Analysis results {.tabset}
+
+### Quality control
+
+#### Selected QC metrics
+
+We use several common QC metrics to identify low-quality cells based on their expression profiles. The metrics that were chosen are described below.
+
+1. The library size is defined as the total sum of counts across all relevant features for each cell. Cells with small library sizes are of low quality as the RNA has been lost at some point during library preparation.
+2. The number of expressed features in each cell is defined as the number of genes with non-zero counts for that cell. Any cell with very few expressed genes is likely to be of poor quality as the diverse transcript population has not been successfully captured.
+3. The proportions of mitochondrial and ribosomal genes per cell. High proportions are indicative of poor-quality cells (Islam et al. 2014; Ilicic et al. 2016), presumably because of the loss of cytoplasmic RNA from perforated cells.
+
+<br/>
+```{r}
+xxAll <- SingleCellExperiment(colData = allCellsMeta)
+xxAll$discard <- !xxAll$useCell
+scData.unfiltered <- CreateSeuratObject(ezMatrix(0, rows=1:10, cols=rownames(allCellsMeta)), meta.data = allCellsMeta)
+scData.unfiltered$discard <- !colnames(scData.unfiltered) %in% colnames(scData)
+
+
+```
+
+
+#### Diagnostic plots
+
+A key assumption here is that the QC metrics are independent of the biological state of each cell. Poor values (e.g., low library sizes, high mitochondrial or ribosomal proportions) are presumed to be driven by technical factors rather than biological processes, meaning that the subsequent removal of cells will not misrepresent the biology in downstream analyses. Major violations of this assumption would potentially result in the loss of cell types that have, say, systematically low RNA content or high numbers of mitochondria. We can check for such violations using some diagnostics plots. In the most ideal case, we would see normal distributions that would justify the thresholds used in outlier detection. A large proportion of cells in another mode suggests that the QC metrics might be correlated with some biological state, potentially leading to the loss of distinct cell types during filtering. 
+
+```{r QC plots1, fig.height=4}
+### TODO the plotColData would be much more informative!!!
+plotColData(xxAll, x="Sample", y="nCount_RNA", colour_by="discard") + scale_y_log10() + ggtitle("Number of UMIs")
+
+```
+
+```{r QC plots2, fig.height=4}
+
+plotColData(xxAll, x="Sample", y="nFeature_RNA", colour_by="discard") + ggtitle("Detected genes")
+plotColData(xxAll, x="nCount_RNA", y="nFeature_RNA", colour_by="discard")+ scale_x_log10() + scale_y_log10()
+
+xxAll$genePerCount <- xxAll$nFeature_RNA / xxAll$nCount_RNA
+plotColData(xxAll, x="Sample", y="genePerCount", colour_by="discard") + ggtitle("Detected genes")
+plotColData(xxAll, x="nCount_RNA", y="genePerCount", colour_by="discard")+ scale_x_log10() + xlim(1, 10000) + ylim(0.2, 0.8)
+
+plotColData(xxAll, x="Sample", y="percent_mito", colour_by="discard") + ggtitle("Mito percent")
+plotColData(xxAll, x="nCount_RNA", y="percent_mito", colour_by="discard")+ scale_x_log10()
+
+plotColData(xxAll, x="Sample", y="percent_riboprot", colour_by="discard") + ggtitle("Riboprot percent")
+plotColData(xxAll, x="nCount_RNA", y="percent_riboprot", colour_by="discard")+ scale_x_log10()
+
+if (!is.null(xxAll$percent_ribosomal)){
+  print(plotColData(xxAll, x="Sample", y="percent_ribosomal", colour_by="discard") + ggtitle("Ribosomal percent"))
+  print(plotColData(xxAll, x="nCount_RNA", y="percent_ribosomal", colour_by="discard")+ scale_x_log10())
+}
+
+plotColData(xxAll, x="Sample", y="doubletScore", colour_by="discard") + ggtitle("Doublet score")
+plotColData(xxAll, x="nCount_RNA", y="doubletScore", colour_by="discard") + scale_x_log10()
+
+#do_ViolinPlot(scData.unfiltered, features=c("nCount_RNA"), ncol = 4, pt.size=0.5, fill.by = "useCell") + NoLegend() + scale_y_log10()
+#do_ViolinPlot(scData.unfiltered, features=c("nFeature_RNA", "percent_mito", "percent_riboprot"), ncol = 4, pt.size=0.5) + NoLegend()
+```
+
+
+<br/>
+
+#### Cell filtering
+
+A standard approach is to filter cells with a low amount of reads as well as genes that are present in at least a certain amount of cells. While simple, using fixed thresholds requires knowledge of the experiment and of the experimental protocol. An alternative approach is to use adaptive, data-driven thresholds to identify outlying cells, based on the set of QC metrics just calculated. To obtain an adaptive threshold, we assume that most of the dataset consists of high-quality cells. 
+When the parameter values of nreads, ngenes and perc_mito are specified, fixed thresholds are used for filtering. Otherwise, filtering is performed excluding cells that are outliers by more than `r param$nmad` MADs below the median for the library size and the number of genes detected. Cells with a percentage counts of mitochondrial genes above the median by `r param$nmad` MADs are also excluded. 
+
+```{r low quality cells}
+library(UpSetR)
+qcList <- lapply(allCellsMeta[ ,grep("^qc", colnames(allCellsMeta))], function(x){rownames(allCellsMeta)[x]})
+qcList <- qcList[sapply(qcList, length) > 0]
+if (length(qcList) > 1){
+  UpSetR::upset(fromList(qcList), nsets = 5)
+}
+
+kable(tibble("QC metric" =c("Library Size", "Expressed genes", "Mitochondrial genes", "Ribosomal protein genes", 
+                            "Doublets", "Total removed", "Cells remaining"),
+             "Number of cells"= c(sum(allCellsMeta$qc.lib), sum(allCellsMeta$qc.nexprs), sum(allCellsMeta$qc.mito), sum(allCellsMeta$qc.riboprot), sum(allCellsMeta$qc.doublet), sum(!allCellsMeta$useCell), ncol(scData))),
+      row.names=FALSE,
+      caption="Number of cells removed") %>%
+  kable_styling(bootstrap_options = "striped", full_width = F,
+                position = "float_right")
+```
+
+<br/>
+
+#### Gene filtering
+
+We also excluded genes that are lowly or not expressed in our system, as they do not contribute any information to our experiment and may add noise. In this case, we removed genes that were not expressed in at least `r param$cellsPercentage` percent of the cells. In case one or more rare cell populations are expected we might need to decrease the percentage of cells.
+
+```{r gene filtering}
+cat("genes kept:", nrow(scData))
+```
+
+#### Diagnostic plots after filtering
+
+```{r QC plots after filtering, fig.height=4, fig.width=16}
+do_ViolinPlot(scData, features=c("nCount_RNA"), group.by="Sample", ncol = 4)
+do_ViolinPlot(scData, features=c("nFeature_RNA", "percent_mito", "percent_riboprot"), group.by="Sample", ncol = 4)
+```
+
+```{r QC plot mito after filtering, fig.align='center'}
+# TODO find SCpubr
+FeatureScatter(scData, feature1="nCount_RNA", feature2="percent_mito") + scale_x_log10() + ggtitle("")
+```
+
+
+#### Dimensionality reduction
+
+Dimensionality reduction aims to reduce the number of separate dimensions in the data. This is possible because different genes are correlated if they are affected by the same biological process. Thus, we do not need to store separate information for individual genes, but can instead compress multiple features into a single dimension. This reduces computational work in downstream analyses, as calculations only need to be performed for a few dimensions rather than thousands of genes; reduces noise by averaging across multiple genes to obtain a more precise representation of the patterns in the data, and enables effective plotting of the data.
+
+The numbers of PCs that should be retained for downstream analyses typically range from 10 to 50. However, identifying the true dimensionality of a dataset can be challenging, that's why we recommend considering the ‘Elbow plot’ approach. a ranking of principal components based on the percentage of variance explained by each one. The assumption is that each of the top PCs capturing biological signal should explain much more variance than the remaining PCs. Thus, there should be a sharp drop in the percentage of variance explained when we move past the last “biological” PC. This manifests as an elbow in the scree plot, the location of which serves as a natural choice for a number of PCs.
+
+```{r, fig.align='center'}
+# TODO find SCpubr
+ElbowPlot(scData)
+```
+
+
+<br/>
+
+
+### Clustering
+
+In order to find clusters of cells we first built a graph called K-nearest neighbor (KNN), where each node is a cell that is connected to its nearest neighbors in the high-dimensional space. Edges are weighted based on the similarity between the cells involved, with higher weight given to cells that are more closely related. This step takes as input the previously defined dimensionality of the dataset (first `r param$npcs` PCs). We then applied algorithms to identify “communities” of cells that are more connected to cells in the same community than they are to cells of different communities. Each community represents a cluster that we can use for downstream interpretation. 
+
+We can visualize the distribution of clusters in the TSNE and UMAP plots. However, we should not perform downstream analyses directly on their coordinates. These plots are most useful for checking whether two clusters are actually neighboring subclusters or whether a cluster can be split into further subclusters. 
+
+```{r}
+do_DimPlot(scData, reduction="tsne", label = TRUE)
+do_DimPlot(scData, reduction="umap", label = TRUE)
+```
+
+<br/><br/>
+
+The number of cells in each cluster and sample is represented in this barplot.
+
+<br/>
+
+```{r number of cells in each cluster}
+cellIdents_perSample <- data.frame(ident = Idents(scData), Sample=scData$Sample)
+barplot = ggplot(data=cellIdents_perSample, aes(x=ident, fill=Sample)) + geom_bar(stat="Count")
+barplot + labs(x="Cluster", y = "Number of cells", fill = "Sample") + theme(axis.text.x = element_text(angle = 45, vjust = 0.5, hjust=1))
+
+
+cells_prop = cellsProportion(scData, groupVar1 = "seurat_clusters", groupVar2 = "Sample")
+kable(cells_prop,row.names=FALSE, format="html",caption="Cell proportions") %>% kable_styling(bootstrap_options = "striped", full_width = F, position = "float_right")
+```
+
+### Cluster assessment
+
+
+#### Segregation of clusters by various sources of uninteresting variation.
+
+Once we have created the clusters we need to asses if the clustering was driven by technical artifacts or uninteresting biological variability, such as cell cycle, mitochondrial gene expression.
+We can explore whether the cells cluster by the different cell cycle phases. In such a case, we would have clusters where most of the cells would be in one specific phase. This bias could be taken into account when normalizing and transforming the data prior to clustering. We can also look at the total number of reads, genes detected and mitochondrial gene expression. The clusters should be more or less even but if we observe big differences among some of them for these metrics, we will keep an eye on them and see if the cell types we identify later can explain the differences. 
+
+```{r, fig.width=6, fig.height=6, eval=!is.null(scData@meta.data$CellCycle)}
+do_DimPlot(scData, label=FALSE, group.by= "CellCycle")
+do_DimPlot(scData, reduction="umap", label = TRUE, legend.position = "right")
+```
+
+```{r uninteresting variation, fig.width=6, fig.height=6}
+do_ViolinPlot(scData, features ="nCount_RNA") + ggtitle("Number of UMIs vs ident") + scale_y_log10() + NoLegend()
+do_FeaturePlot(scData, features="nCount_RNA", label = TRUE)
+
+do_ViolinPlot(scData, features ="nFeature_RNA") + ggtitle("Number of genes vs ident") + NoLegend()
+do_FeaturePlot(scData, features="nFeature_RNA", label = TRUE)
+
+do_ViolinPlot(scData, features ="percent_mito") + ggtitle("Mitochondrial percentage vs ident") + NoLegend()
+do_FeaturePlot(scData, features="percent_mito", label = TRUE)
+
+do_ViolinPlot(scData, features ="percent_riboprot") + ggtitle("Ribosomal protein percentage vs ident") + NoLegend()
+do_FeaturePlot(scData, features="percent_riboprot", label = TRUE)
+
+if (!is.null(scData@meta.data$percent_ribosomal)){
+print(do_ViolinPlot(scData, features ="percent_ribosomal") + ggtitle("Ribosomal RNA percentage vs ident") + NoLegend())
+print(do_FeaturePlot(scData, features="percent_ribosomal", label = TRUE))
+  
+}
+
+```
+
+```{r, fig.width=6, fig.height=6, eval=!is.null(scData@meta.data$DecontX_contFrac)}
+do_ViolinPlot(scData, features ="DecontX_contFrac", plot_boxplot = FALSE) + ggtitle("DecontX ambient fraction vs ident")# + NoLegend()
+VlnPlot(scData, features ="DecontX_contFrac") + ggtitle("DecontX ambient fraction vs ident") + NoLegend()
+do_FeaturePlot(scData, features="DecontX_contFrac", label = TRUE) + NoAxes()
+```
+
+```{r, fig.width=6, fig.height=6, eval=!is.null(scData@meta.data$SoupX_contFrac)}
+do_ViolinPlot(scData, features ="SoupX_contFrac") + ggtitle("SoupX ambient fraction vs ident") + NoLegend()
+do_FeaturePlot(scData, features="SoupX_contFrac", label = TRUE)
+
+```
+
+```{r, fig.width=6, fig.height=6, eval=!is.null(scData@meta.data$negLog10CellPValue)}
+do_ViolinPlot(scData, features ="negLog10CellPValue") + ggtitle("negative log10 Cell PValue") + NoLegend()
+do_FeaturePlot(scData, features="negLog10CellPValue", label = TRUE)
+
+```
+
+
+
+```{r, fig.width=12, fig.height=shrinkToRange(length(param$controlSeqs)*3/4, c(6, 18)), eval=ezIsSpecified(param$controlSeqs)}
+genesToPlot <- gsub("_", "-", param$controlSeqs)
+genesToPlot <- intersect(genesToPlot, rownames(scData))
+if (length(genesToPlot) > 0){
+  do_FeaturePlot(scData, genesToPlot) + NoLegend()
+}
+```
+
+#### Cluster resolution 
+
+One of the most important parameters when clustering is k, the number of nearest neighbors used to construct the graph. This controls the resolution of the clustering where higher k yields a more inter-connected graph and broader clusters. Users can experiment with different values of k to obtain a satisfactory resolution. We recommend increasing the resolution when a rare population is expected. 
+Below, it is shown a clustering tree that helps us to visualize the relationships between clusters at a range of resolutions. Each cluster forms a node in the tree and edges are constructed by considering the cells in a cluster at a lower resolution that end up in a cluster at the next highest resolution. By connecting clusters in this way, we can see how clusters are related to each other, which are clearly distinct and which are unstable. The size of each node is related to the number of cells in each cluster and the color indicates the clustering resolution. Edges are colored according to the number of cells they represent and the transparency shows the incoming node proportion, the number of cells in the edge divided by the number of samples in the node it points to. 
+
+```{r, fig.align='center', fig.width=6, fig.height=8}
+clustree::clustree(scData, prefix = paste0(DefaultAssay(scData), "_snn_res."))
+```
+
+### Cluster markers
+
+```{r wilcoxon test, eval=(param$DE.method=="wilcox"), results='asis'}
+cat("We found positive markers that defined clusters compared to all other cells via differential expression. The test we used was the Wilcoxon Rank Sum test. Genes with an average, at least 0.25-fold difference (log-scale) between the cells in the tested cluster and the rest of the cells and an adjusted p-value < 0.05 were declared as significant.")
+```
+
+```{r LR test, eval=(param$DE.method=="LR"), results='asis'}
+cat("We found positive markers that defined clusters compared to all other cells via differential expression using a logistic regression test and including in the model the cell cycle as the batch effect. Genes with an average, at least 0.25-fold difference (log-scale) between the cells in the tested cluster and the rest of the cells and an adjusted p-value < 0.05 were declared as significant.")
+```
+
+
+```{r pos markers}
+ezInteractiveTableRmd(data.frame(posMarkers), digits=4)
+```
+
+### Marker plots
+
+Here, we use a heatmap and a dotplot to visualize simultaneously the top 5 markers in each cluster. Be aware that some genes may be in the top markers for different clusters.
+
+<br/>
+
+```{r heatmap, fig.width=12, fig.height=length(levels(Idents(scData)))}
+top5 <- posMarkers %>% group_by(cluster) 
+top5 <- slice_max(top5, n = 5, order_by = avg_log2FC)
+genesToPlot <- c(gsub("_", "-", param$controlSeqs), unique(as.character(top5$gene)))
+genesToPlot <- intersect(genesToPlot, rownames(scData))
+# TODO: SCpubr::do_ExpressionHeatmap) will be available in the next CRAN release! (v1.1.0)
+do_ExpressionHeatmap(scData, features=unique(genesToPlot))
+DotPlot(scData, features=genesToPlot) + coord_flip()  +  theme(axis.text.x = element_text(angle = 45, vjust = 0.5, hjust=1))
+```
+
+```{r plot of user genes, fig.width=12, fig.height=shrinkToRange(length(param$controlSeqs)/5, c(6, 12)), eval=ezIsSpecified(param$controlSeqs)}
+genesToPlot <- intersect(param$controlSeqs, rownames(scData))
+
+if (length(genesToPlot) > 0){
+  # TODO: SCpubr::do_ExpressionHeatmap) will be available in the next CRAN release! (v1.1.0)
+  do_ExpressionHeatmap(scData, features=unique(genesToPlot))
+  DotPlot(scData, features=genesToPlot) + coord_flip()  +  theme(axis.text.x = element_text(angle = 45, vjust = 0.5, hjust=1))
+} else { 
+  cat("controlseqs not found")
+}
+```
+
+
+### EnrichR
+
+Cell type scoring using the EnrichR tool. This approach consists in performing a gene set enrichment analysis on the marker genes defining each cluster. This identifies the pathways and processes that are (relatively) active in each cluster based on the upregulation of the associated genes compared to other clusters.
+
+```{r query online enrichR version, echo=FALSE, results='asis'}
+genesPerCluster <- split(posMarkers$gene, posMarkers$cluster)
+jsCall = paste0('enrich({list: "', sapply(genesPerCluster, paste, collapse="\\n"), '", popup: true});')
+enrichrCalls <- paste0("<a href='javascript:void(0)' onClick='", jsCall, 
+                         "'>Analyse at Enrichr website</a>")
+```
+
+
+
+```{r enrichr markers, echo=FALSE, results='asis'}
+enrichrTable <- tibble(Cluster=names(genesPerCluster),
+                         "# of posMarkers"=lengths(genesPerCluster),
+                         "Enrichr link"=enrichrCalls)
+if (!is.null(enrichRout)){
+  enrichRTerm <- as.data.frame(do.call(rbind, lapply(enrichRout, as.vector)))
+  enrichRTerm <- map_df(enrichRTerm, ~ map_df(.x, ~ replace(.x, is.null(.x), NA)), .id = "database")
+  enrichRTerm <- enrichRTerm %>%
+    group_by(., Cluster, database) %>%
+    summarise(topTerms = paste(Term, collapse = "; ")) %>%
+    as.data.frame()
+  enrichRTerm <- dcast(enrichRTerm, ... ~ database)
+  enrichrTable <- merge(enrichrTable, enrichRTerm, by = "Cluster")
+}
+kable(enrichrTable, format="html", escape=FALSE,
+        caption=paste0("GeneSet enrichment")) %>%
+kable_styling("striped", full_width = F, position = "left")
+```
+
+
+
+```{r plot enrichR per cluster, fig.height=5, fig.width=10, eval= !is.null(enrichRout)}
+for (cluster in names(enrichRout)) {
+  enrichRDataFrame <- as.data.frame(do.call(rbind, enrichRout[[cluster]]))
+  enrichRDataFrame$database <- sapply(rownames(enrichRDataFrame), function(x) str_split(x, "[.]")[[1]][1])
+  print(ggplot(as.data.table(enrichRDataFrame), aes(database, Term))
+  +
+    geom_point(aes(color = OverlapGenesN, size = Combined.Score))
+    +
+    scale_color_viridis()
+    +
+    scale_fill_viridis()
+    +
+    labs(y = "Term", x = "Cluster", title = paste0("Cluster: ", cluster))
+    +
+    theme_bw()
+    +
+    theme(
+      axis.title.x = element_blank(),
+      axis.text.x = element_text(angle = 45, hjust = 1)
+    ))
+}
+```
+
+
+<br/>
+
+### SingleR
+
+Matching of clusters to annotated reference datasets using SingleR.
+
+```{r singler, fig.height=12, fig.width=12, results = 'asis', eval= !is.null(singler.results)}
+clusterInfosList <- list()
+plotlyPlots <- list()
+nTopMarkers <- 10
+for (r in names(singler.results)) {
+  cat("##### Heatmap: ", r, "\n\n")
+  # print(plotScoreHeatmap(singler.results[[r]]$single.fine))
+  
+  print(plotScoreHeatmap(singler.results[[r]]$cluster.fine, show_colnames = TRUE, show.pruned = TRUE, max.labels = 30, annotation_legend=FALSE, legend=FALSE))
+  singler.single.labels <- singler.results[[r]]$single.fine$pruned.labels
+  singler.cluster.labels <- singler.results[[r]]$cluster.fine$labels[match(Idents(scData), rownames(singler.results[[r]]$cluster.fine))]
+  
+  cellInfo <- tibble(
+    Cells = colnames(scData), 
+    Cluster = Idents(scData), 
+    SingleR.labels.cluster = singler.cluster.labels, 
+    SingleR.labels.single = singler.single.labels)  %>%
+      left_join(as_tibble(scData@reductions$umap@cell.embeddings, rownames="Cells"))
+  
+  nrOfLabels_cluster <- length(unique(cellInfo$SingleR.labels.cluster))
+  nrOfLabels_single <- length(unique(cellInfo$SingleR.labels.single))
+  
+  if(nrOfLabels_single <= 9){
+    colsLabels <- brewer.pal(nrOfLabels_single, "Set1")
+  }else{
+    colsLabels <- colorRampPalette(brewer.pal(9, "Set1"))(nrOfLabels_single)
+  }
+  
+  x <- list(title="UMAP_1", zeroline=FALSE)
+  y <- list(title="UMAP_2", zeroline=FALSE)
+  
+  p1 <- plot_ly(cellInfo, x = ~UMAP_1, y = ~UMAP_2, color=~SingleR.labels.single,
+                text = ~paste("Cluster: ", Cluster,
+                              "\nCell: ", Cells,
+                              "\nSingleR.labels.cluster: ", 
+                              SingleR.labels.single),
+                type = 'scatter', mode = "markers", marker=list(size=5, opacity=0.5),
+                colors=colsLabels, width=800, height=500) %>%
+    layout(xaxis=x, yaxis=y, title=paste0(r, ": Single"))
+  
+  p2 <- plot_ly(cellInfo, x = ~UMAP_1, y = ~UMAP_2, color=~SingleR.labels.cluster,
+                text = ~paste("Cluster: ", Cluster,
+                              "\nCell: ", Cells,
+                              "\nSingleR.labels.cluster: ", SingleR.labels.cluster),
+                type = 'scatter', mode = "markers", marker=list(size=5, opacity=0.5),
+                colors=colsLabels, width=800, height=500) %>%
+    layout(xaxis=x, yaxis=y, title=paste0(r, ": Cluster"))
+  
+  plotlyPlots <- append(plotlyPlots, list(p1, p2))
+  cat("\n\n")
+  clusterInfos <- ezFrame(Sample=as.character(unique(scData$Sample)), 
+                          Reference=r,
+                          Cluster=levels(Idents(scData)))
+  if (!is.null(singler.results)){
+    clusterInfos$SinglerCellType <- singler.results[[r]]$cluster.fine[clusterInfos$Cluster, "pruned.labels"]
+  }
+  topMarkers <- posMarkers %>% group_by(cluster) %>%
+    slice_max(n = nTopMarkers, order_by = avg_log2FC)
+  topMarkerString <- sapply(split(topMarkers$gene, topMarkers$cluster), paste, collapse=", ")
+  clusterInfos[["TopMarkers"]] <- topMarkerString[clusterInfos$Cluster]
+  clusterInfos[["Percentage of Cells"]] <- table(Idents(scData)) / nrow(scData)
+  clusterInfosList <- append(clusterInfosList, list(clusterInfos))
+  cat("\n\n")
+}
+```
+
+<br>
+
+```{r singler labelsUMAP, results = 'asis', eval=!is.null(singler.results)}
+cat("##### UMAPs with SingleR Labels\n\n")
+cat("The single cell (top) and cluster (bottom) annotations are also shown on the UMAPs. Place the mouse over the cells to get information such as their UMAP coordinates, original cluster, the cells name and the label assigned by SingleR. You can also zoom in specific areas of the UMAP by dragging and drop with the mouse.\n")
+tl <- htmltools::tagList(plotlyPlots)
+tl
+cat("\n\n")
+```
+
+<br/>
+
+```{r singler labelsTable, results = 'asis', eval=!is.null(singler.results)}
+cat("##### Table of SingleR Labels\n\n")
+cat(sprintf("The following table summarises the cluster-level labels for each reference (%s) and displays the top %s genes for that cluster in terms of their average log2-fold change. Note the top markers for every cluster will be identical regardless of reference used since this information is specific to the cluster and not the annotation reference.", paste(names(singler.results), collapse=", "), nTopMarkers))
+ezInteractiveTableRmd(bind_rows(clusterInfosList))
+cat("\n\n")
+```
+
+### AUCell
+
+Matching the cells to marker gene sets that are known to be characteristic for cell types. We use marker gene sets from the CellMarker database (Zhang X., Lan Y., Xu J., Quan F., Zhao E., Deng C., et al. (2019). CellMarker: a manually curated resource of cell markers in human and mouse. Nucleic Acids Res. 47, D721–d728. 10.1093/nar/gky900). 
+
+```{r AUC assigments, eval= !is.null(cells.AUC)}
+cells_assignment <- AUCell_exploreThresholds(cells.AUC, plotHist=FALSE, assign=TRUE, nCores = param$cores) 
+cellsAssigned <- lapply(cells_assignment, function(x) x$assignment)
+assignmentTable <- reshape2::melt(cellsAssigned, value.name="cell")
+colnames(assignmentTable)[2] <- "geneSet"
+tras_cells.AUC <- t(assay(cells.AUC))
+full.labels <- colnames(tras_cells.AUC)[max.col(tras_cells.AUC)]
+tab <- table(full.labels, Idents(scData))
+var_height <- shrinkToRange(nrow(tab)*0.5, c(6,16))
+```
+
+```{r assigments, eval= !is.null(cells.AUC), results='asis'}
+cat("We can explore the cell assignment results using different plots. Below, we show a heatmap that represents the number of cells (in log scale) from each cluster that were assigned to the different cell types. After calculating an AUC score for each cell and cell type, we assign cell type identity by taking the cell type with the top AUC as the label for that cell. Some cell types may be missing because no cells obtained their top AUC score for it.")
+cat("\n\n")
+```
+
+```{r assigments heatmap, eval= !is.null(cells.AUC), results='asis',fig.align='center', fig.width=10, fig.height=var_height}
+if (nrow(tab) > 2)
+   pheatmap(log10(tab+10), color=viridis::viridis(100))
+```
+
+
+```{r tsne and AUC res, eval= !is.null(cells.AUC), results='asis'}
+cat("The plots below show for every cell type:\n")
+cat('\n')
+cat("1) The distribution of the AUC values in the cells. The ideal situation will be a bi-modal distribution, in which most cells in the dataset have a low “AUC” compared to a population of cells with a higher value.  The size of the gene-set will also affect the results. With smaller gene-genes (fewer genes), it is more likely to get cells with AUC = 0. While this is the case of the “perfect markers” it is also easier to get it by chance with small datasets. The vertical bars correspond to several thresholds that could be used to consider a gene-set ‘active’. The thickest vertical line indicates the threshold selected by default: the highest value to reduce the false positives.\n")
+cat('\n')
+cat("2) The t-SNE can be colored based on the AUC scores. To highlight the cluster of cells that are more likely of the cell type according to the signatures, we split the cells into cells that passed the assignment threshold (colored in blue), and cells that didn’t (colored in gray).\n")
+cat('\n')
+cat("3) The last TSNE represents the AUC scores values. The darker a cell is the higher AUC score it obtained, i.e. the cell is more enriched in that cell type.")
+cat('\n')
+cellsUmap <- scData@reductions$umap@cell.embeddings
+minAucThresh = 0.2
+filtered_cells.AUC <- cells.AUC[rowSums(assay(cells.AUC) >= minAucThresh)>0, ]
+## a cell type need to have in at least 20% of the cells of a cluster a high score to be considered
+maxAucScore = assay(filtered_cells.AUC) %>% 
+  averageColumns(by=Idents(scData), func = function(x){quantile(x, 0.8)}) %>%
+  rowMax()
+scoreOrder = order(maxAucScore, decreasing = TRUE)
+nPlots = 50
+```
+
+```{r tsne and AUC hist, eval= !is.null(cells.AUC), fig.height=5, fig.width=5}
+AUCell_plotTSNE(tSNE=cellsUmap,
+                cellsAUC=filtered_cells.AUC[head(scoreOrder, nPlots), ],
+                 plots = c("histogram", "binaryAUC"))
+```
+
+
+### Pathway activity inference analysis
+
+
+Visualization of the computation of activity scores on a cell basis depicting how much (or little) each cell is enriched in each of the Pathways stored in the database.
+
+
+```{r PathwayActivity, eval= !is.null(pathwayActivity),fig.height=8, fig.width=10}
+# General heatmap.
+out <- SCpubr::do_PathwayActivityPlot(sample = scData,
+                                      activities = pathwayActivity,
+                                      plot_FeaturePlots = TRUE,
+                                      plot_GeyserPlots = TRUE)
+out$heatmaps$average_scores
+SCpubr::do_DimPlot(scData, label = T, legend.position = "none")
+
+```
+
+```{r, eval= !is.null(pathwayActivity)}
+for (idx in 1:length(out$feature_plots)){
+  out$feature_plots[[idx]]
+}
+```
+
+
+
+### TF activity inference analysis
+
+
+Visualization of the computation of activity scores on a cell basis depicting how much (or little) each cell is enriched in a TF and its dowstream targets (regulon).
+
+
+```{r tfActivity, eval= !is.null(TFActivity),fig.height=8, fig.width=12}
+# General heatmap.
+out <- SCpubr::do_TFActivityPlot(sample = scData,
+                                      activities = TFActivity,
+                                      plot_FeaturePlots = TRUE,
+                                      plot_GeyserPlots = TRUE)
+pHeat <- out$heatmaps$average_scores
+pDim <- SCpubr::do_DimPlot(scData, label = T, legend.position = "none")
+print(pDim | pHeat)
+
+```
+
+```{r, eval= !is.null(TFActivity)}
+for (idx in 1:length(out$feature_plots)){
+  out$feature_plots[[idx]]
+}
+```
+
+
+
+### Pseudotime analysis
+
+Pseudotime analysis aims to depict a trajectory, a sort of order in which cells transition from A to B. What defines this process, and the starting and end point is heavily driven by the research question, the nature of the data and prior knowledge.
+
+#### TBD
+@https://enblacar.github.io/SCpubr-book/25-PseudotimeAnalysisPlots.html
+Due to a discontinuation of Matrix.utils package, monocle3 can not be installed and tested in a CI manner. Until this is resolved, this function will not be available in any official and developmental-stable release.
+
+### Interactive
+
+
+[simple explorer](`r {paste0("https://fgcz-shiny.uzh.ch/fgcz_exploreSeurat_app", "/?data=",output$getColumn("SC Cluster Report"), "/scData.rds")}`){target="_blank"}
+
+[iSEE explorer](`r {paste0("https://fgcz-shiny.uzh.ch/fgcz_iSEE", "/?data=",output$getColumn("SC Cluster Report"))}`){target="_blank"}
+
+### Data availability
+
+
+[clusterInfos.xlsx](clusterInfos.xlsx) -- use this xls file to manually relabel the clusters
+
+[posMarkers](posMarkers.xlsx) -- Excel table with all marker genes 
+
+[scData.rds](scData.rds) -- final seurat object
+
+
+### SessionInfo
+```{r report parameters, echo=FALSE}
+param[c("npcs","pcGenes","resolution", "SCT.regress", "DE.method", "cellsFraction", "nUMIs", "nmad", "normalize")]
+```
+
+
+```{r, echo=FALSE}
+sessionInfo()
+```
