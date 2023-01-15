@@ -34,7 +34,6 @@ library(AUCell)
 library(ezRun)
 library(HDF5Array)
 library(enrichR)
-library(SCpubr)
 knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE, knitr.table.format = "html")
 
 # clusterInfoFile <- "clusterInfos.xlsx" # -- not used
@@ -59,16 +58,6 @@ if (file.exists("enrichRout.rds")){
   enrichRout <- readRDS("enrichRout.rds")
 } else {
   enrichRout <- NULL
-}
-if (file.exists("pathwayActivity.rds")){
-  pathwayActivity <- readRDS("pathwayActivity.rds")
-} else {
-  pathwayActivity <- NULL
-}
-if (file.exists("TFActivity.rds")){
-  TFActivity <- readRDS("TFActivity.rds")
-} else {
-  TFActivity <- NULL
 }
 
 
@@ -143,8 +132,8 @@ if (!is.null(xxAll$percent_ribosomal)){
 plotColData(xxAll, x="Sample", y="doubletScore", colour_by="discard") + ggtitle("Doublet score")
 plotColData(xxAll, x="nCount_RNA", y="doubletScore", colour_by="discard") + scale_x_log10()
 
-#do_ViolinPlot(scData.unfiltered, features=c("nCount_RNA"), ncol = 4, pt.size=0.5, fill.by = "useCell") + NoLegend() + scale_y_log10()
-#do_ViolinPlot(scData.unfiltered, features=c("nFeature_RNA", "percent_mito", "percent_riboprot"), ncol = 4, pt.size=0.5) + NoLegend()
+#VlnPlot(scData.unfiltered, features=c("nCount_RNA"), ncol = 4, pt.size=0.5, log = TRUE, fill.by = "useCell") + NoLegend()
+#VlnPlot(scData.unfiltered, features=c("nFeature_RNA", "percent_mito", "percent_riboprot"), ncol = 4, pt.size=0.5) + NoLegend()
 ```
 
 
@@ -185,12 +174,11 @@ cat("genes kept:", nrow(scData))
 #### Diagnostic plots after filtering
 
 ```{r QC plots after filtering, fig.height=4, fig.width=16}
-do_ViolinPlot(scData, features=c("nCount_RNA"), group.by="Sample", ncol = 4)
-do_ViolinPlot(scData, features=c("nFeature_RNA", "percent_mito", "percent_riboprot"), group.by="Sample", ncol = 4)
+VlnPlot(scData, features=c("nCount_RNA"), group.by="Sample", ncol = 4)
+VlnPlot(scData, features=c("nFeature_RNA", "percent_mito", "percent_riboprot"), group.by="Sample", ncol = 4)
 ```
 
 ```{r QC plot mito after filtering, fig.align='center'}
-# TODO find SCpubr
 FeatureScatter(scData, feature1="nCount_RNA", feature2="percent_mito") + scale_x_log10() + ggtitle("")
 ```
 
@@ -202,7 +190,6 @@ Dimensionality reduction aims to reduce the number of separate dimensions in the
 The numbers of PCs that should be retained for downstream analyses typically range from 10 to 50. However, identifying the true dimensionality of a dataset can be challenging, that's why we recommend considering the ‘Elbow plot’ approach. a ranking of principal components based on the percentage of variance explained by each one. The assumption is that each of the top PCs capturing biological signal should explain much more variance than the remaining PCs. Thus, there should be a sharp drop in the percentage of variance explained when we move past the last “biological” PC. This manifests as an elbow in the scree plot, the location of which serves as a natural choice for a number of PCs.
 
 ```{r, fig.align='center'}
-# TODO find SCpubr
 ElbowPlot(scData)
 ```
 
@@ -217,8 +204,8 @@ In order to find clusters of cells we first built a graph called K-nearest neigh
 We can visualize the distribution of clusters in the TSNE and UMAP plots. However, we should not perform downstream analyses directly on their coordinates. These plots are most useful for checking whether two clusters are actually neighboring subclusters or whether a cluster can be split into further subclusters. 
 
 ```{r}
-do_DimPlot(scData, reduction="tsne", label = TRUE)
-do_DimPlot(scData, reduction="umap", label = TRUE)
+DimPlot(scData, reduction="tsne", label = TRUE)
+DimPlot(scData, reduction="umap", label = TRUE)
 ```
 
 <br/><br/>
@@ -246,46 +233,45 @@ Once we have created the clusters we need to asses if the clustering was driven 
 We can explore whether the cells cluster by the different cell cycle phases. In such a case, we would have clusters where most of the cells would be in one specific phase. This bias could be taken into account when normalizing and transforming the data prior to clustering. We can also look at the total number of reads, genes detected and mitochondrial gene expression. The clusters should be more or less even but if we observe big differences among some of them for these metrics, we will keep an eye on them and see if the cell types we identify later can explain the differences. 
 
 ```{r, fig.width=6, fig.height=6, eval=!is.null(scData@meta.data$CellCycle)}
-do_DimPlot(scData, label=FALSE, group.by= "CellCycle")
-do_DimPlot(scData, reduction="umap", label = TRUE, legend.position = "right")
+DimPlot(scData, label=FALSE, group.by= "CellCycle")
+DimPlot(scData, reduction="umap", label = TRUE)
 ```
 
 ```{r uninteresting variation, fig.width=6, fig.height=6}
-do_ViolinPlot(scData, features ="nCount_RNA") + ggtitle("Number of UMIs vs ident") + scale_y_log10() + NoLegend()
-do_FeaturePlot(scData, features="nCount_RNA", label = TRUE)
+VlnPlot(scData, features ="nCount_RNA", log=TRUE) + ggtitle("Number of UMIs vs ident") + NoLegend()
+FeaturePlot(scData, features="nCount_RNA", label = TRUE)
 
-do_ViolinPlot(scData, features ="nFeature_RNA") + ggtitle("Number of genes vs ident") + NoLegend()
-do_FeaturePlot(scData, features="nFeature_RNA", label = TRUE)
+VlnPlot(scData, features ="nFeature_RNA") + ggtitle("Number of genes vs ident") + NoLegend()
+FeaturePlot(scData, features="nFeature_RNA", label = TRUE)
 
-do_ViolinPlot(scData, features ="percent_mito") + ggtitle("Mitochondrial percentage vs ident") + NoLegend()
-do_FeaturePlot(scData, features="percent_mito", label = TRUE)
+VlnPlot(scData, features ="percent_mito") + ggtitle("Mitochondrial percentage vs ident") + NoLegend()
+FeaturePlot(scData, features="percent_mito", label = TRUE)
 
-do_ViolinPlot(scData, features ="percent_riboprot") + ggtitle("Ribosomal protein percentage vs ident") + NoLegend()
-do_FeaturePlot(scData, features="percent_riboprot", label = TRUE)
+VlnPlot(scData, features ="percent_riboprot") + ggtitle("Ribosomal protein percentage vs ident") + NoLegend()
+FeaturePlot(scData, features="percent_riboprot", label = TRUE)
 
 if (!is.null(scData@meta.data$percent_ribosomal)){
-print(do_ViolinPlot(scData, features ="percent_ribosomal") + ggtitle("Ribosomal RNA percentage vs ident") + NoLegend())
-print(do_FeaturePlot(scData, features="percent_ribosomal", label = TRUE))
+print(VlnPlot(scData, features ="percent_ribosomal") + ggtitle("Ribosomal RNA percentage vs ident") + NoLegend())
+print(FeaturePlot(scData, features="percent_ribosomal", label = TRUE))
   
 }
 
 ```
 
 ```{r, fig.width=6, fig.height=6, eval=!is.null(scData@meta.data$DecontX_contFrac)}
-do_ViolinPlot(scData, features ="DecontX_contFrac", plot_boxplot = FALSE) + ggtitle("DecontX ambient fraction vs ident")# + NoLegend()
-VlnPlot(scData, features ="DecontX_contFrac") + ggtitle("DecontX ambient fraction vs ident") + NoLegend()
-do_FeaturePlot(scData, features="DecontX_contFrac", label = TRUE) + NoAxes()
+VlnPlot(scData, features ="DecontX_contFrac", y.max=1) + ggtitle("DecontX ambient fraction vs ident") + NoLegend()
+FeaturePlot(scData, features="DecontX_contFrac", label = TRUE)
 ```
 
 ```{r, fig.width=6, fig.height=6, eval=!is.null(scData@meta.data$SoupX_contFrac)}
-do_ViolinPlot(scData, features ="SoupX_contFrac") + ggtitle("SoupX ambient fraction vs ident") + NoLegend()
-do_FeaturePlot(scData, features="SoupX_contFrac", label = TRUE)
+VlnPlot(scData, features ="SoupX_contFrac", y.max=1) + ggtitle("SoupX ambient fraction vs ident") + NoLegend()
+FeaturePlot(scData, features="SoupX_contFrac", label = TRUE)
 
 ```
 
 ```{r, fig.width=6, fig.height=6, eval=!is.null(scData@meta.data$negLog10CellPValue)}
-do_ViolinPlot(scData, features ="negLog10CellPValue") + ggtitle("negative log10 Cell PValue") + NoLegend()
-do_FeaturePlot(scData, features="negLog10CellPValue", label = TRUE)
+VlnPlot(scData, features ="negLog10CellPValue") + ggtitle("negative log10 Cell PValue") + NoLegend()
+FeaturePlot(scData, features="negLog10CellPValue", label = TRUE)
 
 ```
 
@@ -295,7 +281,7 @@ do_FeaturePlot(scData, features="negLog10CellPValue", label = TRUE)
 genesToPlot <- gsub("_", "-", param$controlSeqs)
 genesToPlot <- intersect(genesToPlot, rownames(scData))
 if (length(genesToPlot) > 0){
-  do_FeaturePlot(scData, genesToPlot) + NoLegend()
+  FeaturePlot(scData, genesToPlot) + NoLegend()
 }
 ```
 
@@ -334,18 +320,17 @@ top5 <- posMarkers %>% group_by(cluster)
 top5 <- slice_max(top5, n = 5, order_by = avg_log2FC)
 genesToPlot <- c(gsub("_", "-", param$controlSeqs), unique(as.character(top5$gene)))
 genesToPlot <- intersect(genesToPlot, rownames(scData))
-# TODO: SCpubr::do_ExpressionHeatmap) will be available in the next CRAN release! (v1.1.0)
-do_ExpressionHeatmap(scData, features=unique(genesToPlot))
-DotPlot(scData, features=genesToPlot) + coord_flip()  +  theme(axis.text.x = element_text(angle = 45, vjust = 0.5, hjust=1))
+
+DoHeatmap(scData, features=unique(genesToPlot))
+DotPlot(scData, features=genesToPlot) + coord_flip()
 ```
 
 ```{r plot of user genes, fig.width=12, fig.height=shrinkToRange(length(param$controlSeqs)/5, c(6, 12)), eval=ezIsSpecified(param$controlSeqs)}
 genesToPlot <- intersect(param$controlSeqs, rownames(scData))
 
 if (length(genesToPlot) > 0){
-  # TODO: SCpubr::do_ExpressionHeatmap) will be available in the next CRAN release! (v1.1.0)
-  do_ExpressionHeatmap(scData, features=unique(genesToPlot))
-  DotPlot(scData, features=genesToPlot) + coord_flip()  +  theme(axis.text.x = element_text(angle = 45, vjust = 0.5, hjust=1))
+  DoHeatmap(scData, features=unique(genesToPlot))
+  DotPlot(scData, features=genesToPlot) + coord_flip()
 } else { 
   cat("controlseqs not found")
 }
@@ -422,10 +407,10 @@ plotlyPlots <- list()
 nTopMarkers <- 10
 for (r in names(singler.results)) {
   cat("##### Heatmap: ", r, "\n\n")
-  # print(plotScoreHeatmap(singler.results[[r]]$single.fine))
-  
-  print(plotScoreHeatmap(singler.results[[r]]$cluster.fine, show_colnames = TRUE, show.pruned = TRUE, max.labels = 30, annotation_legend=FALSE, legend=FALSE))
-  singler.single.labels <- singler.results[[r]]$single.fine$pruned.labels
+  print(plotScoreHeatmap(singler.results[[r]]$single.fine))
+  print(plotScoreHeatmap(singler.results[[r]]$cluster.fine, show_colnames = TRUE))
+  cat("\n\n")
+  singler.single.labels <- singler.results[[r]]$single.fine$labels
   singler.cluster.labels <- singler.results[[r]]$cluster.fine$labels[match(Idents(scData), rownames(singler.results[[r]]$cluster.fine))]
   
   cellInfo <- tibble(
@@ -455,7 +440,6 @@ for (r in names(singler.results)) {
                 type = 'scatter', mode = "markers", marker=list(size=5, opacity=0.5),
                 colors=colsLabels, width=800, height=500) %>%
     layout(xaxis=x, yaxis=y, title=paste0(r, ": Single"))
-  
   p2 <- plot_ly(cellInfo, x = ~UMAP_1, y = ~UMAP_2, color=~SingleR.labels.cluster,
                 text = ~paste("Cluster: ", Cluster,
                               "\nCell: ", Cells,
@@ -463,7 +447,6 @@ for (r in names(singler.results)) {
                 type = 'scatter', mode = "markers", marker=list(size=5, opacity=0.5),
                 colors=colsLabels, width=800, height=500) %>%
     layout(xaxis=x, yaxis=y, title=paste0(r, ": Cluster"))
-  
   plotlyPlots <- append(plotlyPlots, list(p1, p2))
   cat("\n\n")
   clusterInfos <- ezFrame(Sample=as.character(unique(scData$Sample)), 
@@ -539,10 +522,7 @@ cat('\n')
 cellsUmap <- scData@reductions$umap@cell.embeddings
 minAucThresh = 0.2
 filtered_cells.AUC <- cells.AUC[rowSums(assay(cells.AUC) >= minAucThresh)>0, ]
-## a cell type need to have in at least 20% of the cells of a cluster a high score to be considered
-maxAucScore = assay(filtered_cells.AUC) %>% 
-  averageColumns(by=Idents(scData), func = function(x){quantile(x, 0.8)}) %>%
-  rowMax()
+maxAucScore = rowMax(assay(filtered_cells.AUC))
 scoreOrder = order(maxAucScore, decreasing = TRUE)
 nPlots = 50
 ```
@@ -552,66 +532,6 @@ AUCell_plotTSNE(tSNE=cellsUmap,
                 cellsAUC=filtered_cells.AUC[head(scoreOrder, nPlots), ],
                  plots = c("histogram", "binaryAUC"))
 ```
-
-
-### Pathway activity inference analysis
-
-
-Visualization of the computation of activity scores on a cell basis depicting how much (or little) each cell is enriched in each of the Pathways stored in the database.
-
-
-```{r PathwayActivity, eval= !is.null(pathwayActivity),fig.height=8, fig.width=10}
-# General heatmap.
-out <- SCpubr::do_PathwayActivityPlot(sample = scData,
-                                      activities = pathwayActivity,
-                                      plot_FeaturePlots = TRUE,
-                                      plot_GeyserPlots = TRUE)
-out$heatmaps$average_scores
-SCpubr::do_DimPlot(scData, label = T, legend.position = "none")
-
-```
-
-```{r, eval= !is.null(pathwayActivity)}
-for (idx in 1:length(out$feature_plots)){
-  out$feature_plots[[idx]]
-}
-```
-
-
-
-### TF activity inference analysis
-
-
-Visualization of the computation of activity scores on a cell basis depicting how much (or little) each cell is enriched in a TF and its dowstream targets (regulon).
-
-
-```{r tfActivity, eval= !is.null(TFActivity),fig.height=8, fig.width=12}
-# General heatmap.
-out <- SCpubr::do_TFActivityPlot(sample = scData,
-                                      activities = TFActivity,
-                                      plot_FeaturePlots = TRUE,
-                                      plot_GeyserPlots = TRUE)
-pHeat <- out$heatmaps$average_scores
-pDim <- SCpubr::do_DimPlot(scData, label = T, legend.position = "none")
-print(pDim | pHeat)
-
-```
-
-```{r, eval= !is.null(TFActivity)}
-for (idx in 1:length(out$feature_plots)){
-  out$feature_plots[[idx]]
-}
-```
-
-
-
-### Pseudotime analysis
-
-Pseudotime analysis aims to depict a trajectory, a sort of order in which cells transition from A to B. What defines this process, and the starting and end point is heavily driven by the research question, the nature of the data and prior knowledge.
-
-#### TBD
-@https://enblacar.github.io/SCpubr-book/25-PseudotimeAnalysisPlots.html
-Due to a discontinuation of Matrix.utils package, monocle3 can not be installed and tested in a CI manner. Until this is resolved, this function will not be available in any official and developmental-stable release.
 
 ### Interactive
 
@@ -639,3 +559,4 @@ param[c("npcs","pcGenes","resolution", "SCT.regress", "DE.method", "cellsFractio
 ```{r, echo=FALSE}
 sessionInfo()
 ```
+
