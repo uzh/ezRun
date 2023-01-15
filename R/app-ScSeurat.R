@@ -261,11 +261,9 @@ ezMethodScSeurat <- function(input = NA, output = NA, param = NA,
   
   
   ## SCpubr advanced plots
-  pathwayActivity <- addPathwayActivityAnalysis(cells = scData, species = species)
-  saveRDS(pathwayActivity, file="pathwayActivity.rds")
-  TFActivity <- addTFActivityAnalysis(cells = scData, species = species)
-  saveRDS(TFActivity, file="TFActivity.rds")
-  
+  pathwayActivity <- computePathwayActivityAnalysis(cells = scData, species = species)
+  TFActivity <- computeTFActivityAnalysis(cells = scData, species = species)
+
   #geneMeans <- geneMeansCluster(scData)
   
   ## generate template for manual cluster annotation -----
@@ -284,7 +282,9 @@ ezMethodScSeurat <- function(input = NA, output = NA, param = NA,
   writexl::write_xlsx(clusterInfos, path=clusterInfoFile)
   
   makeRmdReport(param=param, output=output, scData=scData, allCellsMeta=allCellsMeta, enrichRout=enrichRout,
-                cells.AUC=cells.AUC, singler.results=singler.results, rmdFile = "ScSeurat.Rmd", reportTitle = paste0(param$name, ": ",  input$getNames()))
+                cells.AUC=cells.AUC, singler.results=singler.results, 
+                pathwayActivity=pathwayActivity, TFActivity=TFActivity,
+                rmdFile = "ScSeurat.Rmd", reportTitle = paste0(param$name, ": ",  input$getNames()))
   #remove no longer used objects
   rm(scData)
   gc()
@@ -365,7 +365,7 @@ querySignificantClusterAnnotationEnrichR <- function(genesPerCluster, dbs, overl
 }
 
 
-addTFActivityAnalysis <- function(cells, species){
+computeTFActivityAnalysis <- function(cells, species){
   species <- tolower(species)
   # Retrieve prior knowledge network.
   network <- decoupleR::get_dorothea(organism = species,
@@ -384,7 +384,7 @@ addTFActivityAnalysis <- function(cells, species){
 }
 
 
-addPathwayActivityAnalysis <- function(cells, species){
+computePathwayActivityAnalysis <- function(cells, species){
   species <- tolower(species)
   # Retrieve prior knowledge network.
   network <- decoupleR::get_progeny(organism = species)
