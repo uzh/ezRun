@@ -102,7 +102,7 @@ ezMethodCellRanger <- function(input = NA, output = NA, param = NA) {
   #6. Optional run of VeloCyto
   if(param$runVeloCyto){
       gtfFile <- param$ezRef["refFeatureFile"]
-      cmd <- paste('velocyto run10x', sampleName, gtfFile, '-@', param$cores)
+      cmd <- paste('velocyto run10x', cellRangerFolder, gtfFile, '-@', param$cores)
       ezSystem(cmd)
   }
   
