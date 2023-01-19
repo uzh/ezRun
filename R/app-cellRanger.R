@@ -99,7 +99,14 @@ ezMethodCellRanger <- function(input = NA, output = NA, param = NA) {
   #5. Execute the command
   ezSystem(cmd)
   
-  #6. Delete temp files and rename the final cellranger output folder
+  #6. Optional run of VeloCyto
+  if(param$runVeloCyto){
+      gtfFile <- param$ezRef["refFeatureFile"]
+      cmd <- paste('velocyto run10x', sampleName, gtfFile, '-@', param$cores)
+      ezSystem(cmd)
+  }
+  
+  #7. Delete temp files and rename the final cellranger output folder
   unlink(basename(sampleDirs), recursive = TRUE)
   if (exists("featureDirs")){
     unlink(basename(featureDirs))
@@ -109,7 +116,7 @@ ezMethodCellRanger <- function(input = NA, output = NA, param = NA) {
   if (ezIsSpecified(param$controlSeqs)) 
     unlink(refDir, recursive = TRUE)
   
-  #7. Calculate alignment stats from the BAM file
+  #8. Calculate alignment stats from the BAM file
   if(param$bamStats){
     genomeBam <- file.path(sampleName, "possorted_genome_bam.bam")
     if (file.exists(genomeBam)){
@@ -119,7 +126,6 @@ ezMethodCellRanger <- function(input = NA, output = NA, param = NA) {
       }
     }
   }
-  
   return("Success")
 }
 
@@ -466,6 +472,11 @@ EzAppCellRanger <-
                       Type = "logical",
                       DefaultValue = TRUE,
                       Description = "compute per cell alignment stats"
+                    ),
+                    runVeloCyto = ezFrame(
+                        Type = "logical",
+                        DefaultValue = FALSE,
+                        Description = "run velocyto and generate loom file"
                     )
                   )
                 }
