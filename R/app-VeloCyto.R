@@ -35,7 +35,7 @@ ezMethodVeloCyto <- function(input=NA, output=NA, param=NA){
     sampleName <- input$getNames()
     
     ##Copy data to scratch
-    cellRangerPath <- input$getColumn("ResultDir")
+    cellRangerPath <- file.path(input$dataRoot,input$getColumn("ResultDir"))
     cmd <- paste('cp -R',  cellRangerPath, '.')
     ezSystem(cmd)
     
