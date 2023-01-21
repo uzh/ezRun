@@ -104,6 +104,7 @@ ezMethodCellRanger <- function(input = NA, output = NA, param = NA) {
       gtfFile <- param$ezRef["refFeatureFile"]
       cmd <- paste('velocyto run10x', cellRangerFolder, gtfFile, '-@', param$cores)
       ezSystem(cmd)
+      ezSystem(paste('mv', file.path(cellRangerFolder,'velocyto'),  file.path(cellRangerFolder,'outs')))
   }
   
   #7. Delete temp files and rename the final cellranger output folder
