@@ -521,6 +521,7 @@ if (isTRUE(param$runGO)) {
       enrichrLinks[mySel, "External"] <- paste0("<a href='javascript:void(0)' onClick='", jsCall, "'>Analyse at Enrichr website</a>")
       resMerged <- NA
       if (!is.null(genesToUse) && length(genesToUse) > 3 && param$doPrecomputeEnrichr) {
+        resList <- NULL
         tryCatch({ 
           resList <- runEnrichr(genesToUse, maxResult = maxResultsPerLibrary)
         }, error = function(e){
@@ -556,7 +557,7 @@ if (isTRUE(param$runGO)) {
             target = "_blank"
           )
         } else {
-          enrichrLinks[mySel, "Precomputed"] <- "No significant results"
+          enrichrLinks[mySel, "Precomputed"] <- "No significant results" ## this will be wrong in case runEnrichr failed
         }
       } else {
         enrichrLinks[mySel, "Precomputed"] <- "Not run"
