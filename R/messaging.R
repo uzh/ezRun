@@ -80,7 +80,7 @@ ezMail = function(text="done", subject="r-mail", to=""){
                  paste("Host:", Sys.info()["nodename"]),
                  paste("Dir:", getwd())
   ), collapse="\n")
-  res = system(paste("ssh fgcz-c-044 mail -s '", subject, "'", to), input=text)
+  res = system(paste("ssh fgcz-c-044 \" mail -s '", subject, "'", to, "\""), input=text)
   stopifnot(res == 0)
 }
 
