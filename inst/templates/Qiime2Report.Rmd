@@ -1,0 +1,231 @@
+---
+title: "`r if (exists('reportTitle')) reportTitle else 'SUSHI Report'`"
+output: 
+  html_document:
+    self_contained: true
+    includes:
+      in_header: !expr system.file("templates/fgcz_header.html", package="ezRun")
+    css: !expr system.file("templates/fgcz.css", package="ezRun")
+editor_options: 
+  chunk_output_type: inline
+---
+
+```{r setup countQC, include=FALSE}
+knitr::opts_chunk$set(warning = FALSE, message = FALSE) 
+library(phyloseq)
+library(DESeq2)
+library(edgeR)
+library(ggplot2)
+library(ggrepel)
+library(grid)
+library(gridExtra)
+library(qiime2R)
+library(ezRun)
+library(reticulate)
+library(patchwork)
+library(cowplot)
+library(microbiomeMarker)
+library(scales)
+```
+
+
+```{r, echo=FALSE}
+#Load the data as a phyloseq object 
+physeq<-qza_to_phyloseq(features="/srv/GT/analysis/zajacn/p28253_MIachizzi/o28575/o28575_QIIME2_NZ_2022_11-08_group/table.qza",
+                        tree="/srv/GT/analysis/zajacn/p28253_MIachizzi/o28575/o28575_QIIME2_NZ_2022_11-08_group/rooted-tree.qza",
+                        "/srv/GT/analysis/zajacn/p28253_MIachizzi/o28575/o28575_QIIME2_NZ_2022_11-08_group/taxonomy.qza",
+                        metadata = "/srv/GT/analysis/zajacn/p28253_MIachizzi/o28575/o28575_QIIME2_NZ_2022_11-08_group/sample_metadata.tsv"
+)
+
+#Filter samples: feature present at a count of minimum 5 and feature present in at least 10% of the samples
+physeq_filter = genefilter_sample(physeq, filterfun_sample(function(x) x > 5), A=0.1*nsamples(physeq))
+physeq1 = prune_taxa(physeq_filter, physeq)
+#Transform to even sampling depth
+physeq1 = transform_sample_counts(physeq1, function(x) 1E6 * x/sum(x))
+
+#Load the biom file that is already filtered for feature count of minimum 900 and present in at least 11 samples with an added pseudocount. This was used for the ancom analysis.
+
+physeq2 <-qza_to_phyloseq(features="/srv/GT/analysis/zajacn/p28253_MIachizzi/o28575/o28575_QIIME2_NZ_2022_11-08_group/table_abund_comp.qza",
+                        tree="/srv/GT/analysis/zajacn/p28253_MIachizzi/o28575/o28575_QIIME2_NZ_2022_11-08_group/rooted-tree.qza",
+                        "/srv/GT/analysis/zajacn/p28253_MIachizzi/o28575/o28575_QIIME2_NZ_2022_11-08_group/taxonomy.qza",
+                        metadata = "/srv/GT/analysis/zajacn/p28253_MIachizzi/o28575/o28575_QIIME2_NZ_2022_11-08_group/sample_metadata.tsv"
+)
+
+physeq2 = transform_sample_counts(physeq2, function(x) 1E6 * x/sum(x))
+
+#Load the data as a qza objects
+dada2 <- readRDS("/srv/GT/analysis/zajacn/p28253_MIachizzi/o28575/o28575_QIIME2_NZ_2022_11-08_group/dada2_denoising_stats.rds")
+SVs<-readRDS("/srv/GT/analysis/zajacn/p28253_MIachizzi/o28575/o28575_QIIME2_NZ_2022_11-08_group/table_raw.rds")
+metadata<-read_q2metadata("/srv/GT/analysis/zajacn/p28253_MIachizzi/o28575/o28575_QIIME2_NZ_2022_11-08_group/sample_metadata.tsv")
+taxonomy<-readRDS("/srv/GT/analysis/zajacn/p28253_MIachizzi/o28575/o28575_QIIME2_NZ_2022_11-08_group/taxonomy.rds")
+shannon<-readRDS("/srv/GT/analysis/zajacn/p28253_MIachizzi/o28575/o28575_QIIME2_NZ_2022_11-08_group/shannon_vector.rds")
+jaccard<-readRDS("/srv/GT/analysis/zajacn/p28253_MIachizzi/o28575/o28575_QIIME2_NZ_2022_11-08_group/jaccard_pcoa_results.rds")
+bray<-readRDS("/srv/GT/analysis/zajacn/p28253_MIachizzi/o28575/o28575_QIIME2_NZ_2022_11-08_group/bray_curtis_pcoa_results.rds")
+#param <- readRDS("param.rds")
+```
+
+
+# {.tabset}
+
+## Demultiplexing summary
+
+```{r, echo=FALSE}
+#Show the number of reads filtered at each step
+ezInteractiveTableRmd(dada2$data)
+```
+
+## Alpha diversity
+
+```{r, fig.width=10, fig.height=8, echo=FALSE}
+#Shannon diversity boxplots
+shannon<-shannon$data %>% rownames_to_column("SampleID")
+metadata <- metadata %>% left_join(shannon)
+
+ggplot(metadata, aes(x=Group, y=shannon_entropy)) + 
+  geom_boxplot() + 
+  geom_jitter(shape=21, width=0.2, height=0) + 
+  xlab("Group") +  
+  ylab("Shannon Diversity") 
+
+```
+
+## Beta diversity
+
+### Jaccard Diversity Index.  
+
+```{r, echo=FALSE, fig.width=10, fig.height=6}
+metadata$SampleID <- as.integer(metadata$SampleID)
+shannon$SampleID <- as.integer(shannon$SampleID)
+
+jaccard$data$Vectors %>% select(SampleID, PC1, PC2) %>% left_join(metadata) %>% #Plot PC1 and PC2
+  left_join(shannon) %>%
+  ggplot(aes(x=PC1, y=PC2, color=Group)) +
+  geom_point(alpha=0.5, size = 5) +
+  theme_q2r() +
+  scale_color_discrete(name="Group") + stat_ellipse()
+
+```
+
+### Bray Curtis Dissimilarity.  
+
+```{r, echo=FALSE, fig.width=10, fig.height=6}
+metadata$SampleID <- as.integer(metadata$SampleID)
+shannon$SampleID <- as.integer(shannon$SampleID)
+
+bray$data$Vectors %>% select(SampleID, PC1, PC2) %>% left_join(metadata) %>% #Plot PC1 and PC2
+  left_join(shannon) %>%
+  ggplot(aes(x=PC1, y=PC2, color=Group)) +
+  geom_point(alpha=0.5, size = 5) +
+  theme_q2r() +
+  scale_color_discrete(name="Group") + stat_ellipse()
+```
+
+## Abundance summary
+
+### Heatmap of the top 30 features.   
+
+```{r, echo=FALSE, fig.width=20, fig.height=9}
+SVs<-SVs$data
+taxonomy<-taxonomy$data
+metadata$SampleID <- as.character(metadata$SampleID)
+
+SVs<-apply(SVs, 2, function(x) x/sum(x)*100) #convert to percent
+
+SVsToPlot<-  
+  data.frame(MeanAbundance=rowMeans(SVs)) %>% #find the average abundance of a SV
+  rownames_to_column("Feature.ID") %>%
+  arrange(desc(MeanAbundance)) %>%
+  top_n(30, MeanAbundance) %>% #Use only top 30 taxa
+  pull(Feature.ID) #extract only the names from the table
+  
+SV1 <- SVs %>%
+  as.data.frame() %>%
+  rownames_to_column("Feature.ID") %>%
+  gather(-Feature.ID, key="SampleID", value="Abundance") %>%
+  mutate(Feature.ID=if_else(Feature.ID %in% SVsToPlot,  Feature.ID, "Remainder")) %>% #flag features to be collapsed
+  group_by(SampleID, Feature.ID) %>%
+  summarize(Abundance=sum(Abundance)) %>%
+  left_join(metadata) %>%
+  mutate(NormAbundance=log10(Abundance+0.01)) %>% # do a log10 transformation after adding a 0.01% pseudocount. Could also add 1 read before transformation to percent
+  left_join(taxonomy) %>%
+  mutate(Feature=paste(Feature.ID, Taxon)) %>%
+  mutate(Feature=gsub("[kpcofgs]__", "", Feature)) # trim out leading text from taxonomy string
+
+ggplot(SV1, aes(x=SampleID, y=Feature, fill=NormAbundance)) +
+  geom_tile() +
+  facet_grid(~Housing, scales="free_x") +
+  theme_q2r() +
+  theme(axis.text.x=element_text(angle=45, hjust=1)) +
+  scale_y_discrete(labels = function(x) stringr::str_wrap(x, width = 65)) +
+  scale_fill_viridis_c(name="log10(% Abundance)")
+```
+
+### Bar plot.   
+
+#### The second plot has any unassigned Genus removed.
+
+```{r, echo=FALSE, fig.width=10, fig.height=11}
+p1 <- ggplot(physeq, aes(x = Sample, y = Abundance, fill = Genus)) +
+  geom_bar(position = "fill", stat = "identity") +
+  scale_y_continuous(labels = percent_format()) +
+  theme(legend.position = "right", text=element_text(size=7),
+        axis.text.x = element_text(angle=90, vjust=1)) +
+  guides(fill = guide_legend(ncol=4)) +
+  ggtitle("Abundance") +
+  xlab("Sample ID") + ylab("Proportion")
+
+
+physeq_noNA <- subset_taxa(physeq, Genus != "unassigned")
+p2 <- ggplot(physeq_noNA, aes(x = Sample, y = Abundance, fill = Genus)) +
+  geom_bar(position = "fill", stat = "identity") +
+  scale_y_continuous(labels = percent_format()) +
+  theme(legend.position = "right", text=element_text(size=7),
+        axis.text.x = element_text(angle=90, vjust=1)) +
+  guides(fill = guide_legend(ncol=4)) +
+  ggtitle("Abundance") +
+  xlab("Sample ID") + ylab("Proportion")
+
+plotGrob <- plot_grid(p1, p2, nrow=2, ncol=1, byrow=FALSE)
+print(plot_grid(plotGrob, nrow=1, ncol=1, rel_heights=c(1, 15)))
+
+```
+
+## Differential abundance tests
+
+### LEFse results.   
+
+LDA Effect Size (LEfSe) method for microbiome biomarker discovery uses the Kruskal-Wallis test, Wilcoxon-Rank Sum test, and Linear Discriminant Analysis to find biomarkers of the predefined groups. A p-value of < 0.05 and a score ≥ 2.0 were considered significant in Kruskal–Wallis and pairwise Wilcoxon tests, respectively. Analysis was done doing a comparison for each group vs all. Significant LDA scores are displayed. 
+
+```{r, echo=FALSE, fig.width=10, fig.height=11}
+mm_lefse <- run_lefse(
+  ps = physeq,
+  kw_cutoff = 0.05,
+  wilcoxon_cutoff = 0.05,
+  group = "Group",
+  multigrp_strat = FALSE, #I am using here each group against all instead of pairwise between groups
+  lda_cutoff = 2,
+  taxa_rank = "all"
+)
+lefseDF <- as.data.frame(marker_table(mm_lefse))
+lefseDF$log10p <- -log10(lefseDF$padj)
+lefseDF <- lefseDF[order(lefseDF$enrich_group),]
+lefseDF$feature <- factor(lefseDF$feature, levels=unique(lefseDF$feature))
+df <- as.data.frame(marker_table(mm_lefse))
+i = length(unique(df$enrich_group))
+list_of_colours = c(viridis_pal(option = "D")(i))
+
+p1 <- plot_ef_dot(mm_lefse)+ scale_color_manual(values=list_of_colours)
+p2 <- plot_cladogram(mm_lefse, color = list_of_colours) +
+  theme(plot.margin = margin(0, 0, 0, 0))
+
+plotGrob <- plot_grid(p1, p2, nrow=2, ncol=1, byrow=FALSE)
+print(plot_grid(plotGrob, nrow=1, ncol=1, rel_heights=c(1, 15)))
+```
+
+### DESeq2/EdgeR results
+
+Differential abundance on microbiome data can also be done using DESeq2 or EdgeR. The significance test for Deseq2 is Wald, pvalues are corrected using Bonferroni correction, significance threshold used is 0.05. For edgeR "Relative Log Expression” normalization is applied to the data and a GLM model is fit, pvalues are corrected using Bonferroni correction, significance threshold used is 0.01. 
+
+### DESeq2 by Group
+- Scatterplot.   
+- Volcano plot showing under- (negative log fold change) and over-represented (positive log fold change) in Isolated compared to Grouped. 
