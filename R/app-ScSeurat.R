@@ -351,13 +351,13 @@ querySignificantClusterAnnotationEnrichR <- function(genesPerCluster, dbs, overl
     for (db in names(enriched)) {
       enriched_db <- enriched[[db]]
       if (nrow(enriched_db) > 0 && colnames(enriched_db)[1] == "Term"){
-        enriched_db$OverlapGenesN <- as.numeric(sapply(enriched_db$Overlap, function(x) str_split(x, "/")[[1]][1]))
+        enriched_db$OverlapGenesN <- sub("/.*", "", enriched_db$Overlap) %>% as.numeric()
         enriched_db$Cluster <- cluster
         enriched_db <- enriched_db %>%
           filter(., Adjusted.P.value < adjPvalueCutOff) %>%
           filter(., OverlapGenesN > overlapGeneCutOff) %>%
           head(reportTopN)
-        enrichRout[[cluster]][[db]] <- enriched_db[, c("Term", "Cluster", "OverlapGenesN", "Adjusted.P.value", "Combined.Score")]
+        enrichRout[[cluster]][[db]] <- enriched_db[, c("Term", "Cluster", "Overlap", "OverlapGenesN", "Adjusted.P.value", "Odds.Ratio", "Combined.Score")]
       }
     }
   }
