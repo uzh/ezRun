@@ -349,9 +349,11 @@ EzApp <-
                 outputLinks = function(output, param)
                 {
                   "Returns URLs, that are tagged as Links, specified in the output list together with relevant metadata."
-                  use = grepl("Link", output$tags)
-                  relUrls = c(param$resultDir, unlist(output$meta[use])) ## always show the link to the resultdir and to all Links if available.
-                  return(paste(PROJECT_BASE_URL, relUrls, sep="/"))
+                  use <- grepl("Link", output$tags)
+                  relUrls <- c(param$resultDir, unlist(output$meta[use])) ## always show the link to the resultdir and to all Links if available.
+                  links <- paste(PROJECT_BASE_URL, relUrls, sep="/")
+                  links <- sub('.*\\/http:', 'http:', links) #Trim links for shinyApps
+                  return(links)
                 },
                 exitMail = function(text, subject, param)
                 {
