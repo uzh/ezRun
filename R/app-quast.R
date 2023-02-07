@@ -14,12 +14,12 @@ ezMethodQuast = function(input=NA, output=NA, param=NA, htmlFile="00index.html")
   	ref = param$refGenome
 	if (ezIsSpecified(param$refGene)){ 
     		gene = param$refGene
-		cmd = paste("quast", "-R", ref, "-G", gene, "-o", sampleName, '-t', ezThreads(), opt, draft, "1> ", paste0(sampleName,"_quast.log"))
+		cmd = paste("quast.py", "-R", ref, "-G", gene, "-o", sampleName, '-t', ezThreads(), opt, draft, "1> ", paste0(sampleName,"_quast.log"))
 	}else{
-		cmd = paste("quast", "-R", ref, "-o", sampleName, '-t', ezThreads(), opt, draft, "1> ", paste0(sampleName,"_quast.log"))
+		cmd = paste("quast.py", "-R", ref, "-o", sampleName, '-t', ezThreads(), opt, draft, "1> ", paste0(sampleName,"_quast.log"))
 	}
   }else{
-    	cmd = paste("quast", "-o", sampleName, '-t', ezThreads(), opt, draft, "1> ", paste0(sampleName,"_quast.log"))
+    	cmd = paste("quast.py", "-o", sampleName, '-t', ezThreads(), opt, draft, "1> ", paste0(sampleName,"_quast.log"))
   }
   ezSystem(cmd)
   return("Success")
