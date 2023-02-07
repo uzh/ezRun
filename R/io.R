@@ -190,7 +190,7 @@ ezInteractiveTable = function(values, tableLink, digits=NULL, colNames=colnames(
 ##' table = data.frame(a=c(1.11, 2:100), b=201:300)
 ##' ezInteractiveTableRmd(table)
 ezInteractiveTableRmd = function(values, digits=NULL, 
-                                 colNames=colnames(values), title="", 
+                                 colNames=colnames(values), rowNames=rownames(values), title="", 
                                  format=NULL, envir=parent.frame()){
   suppressMessages(require(DT, quietly=TRUE))
   suppressMessages(require(htmltools, quietly=TRUE))
@@ -208,7 +208,7 @@ ezInteractiveTableRmd = function(values, digits=NULL,
   }
   interactiveTable <- datatable(values, 
                                 extensions=c("Buttons"), filter="top", 
-                                caption=caption, colnames=colNames,
+                                caption=caption, colnames=colNames, rownames=rowNames,
                                 options=list(dom = 'Bfrtip', 
                                              buttons = c('colvis','copy', 'csv',
                                                          'excel'), 
