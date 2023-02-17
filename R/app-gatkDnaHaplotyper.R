@@ -20,7 +20,7 @@ ezMethodGatkDnaHaplotyper = function(input=NA, output=NA, param=NA){
     cmd = paste0(javaCall, " -jar ", Sys.getenv("Picard_jar"), " AddOrReplaceReadGroups",
                " TMP_DIR=. MAX_RECORDS_IN_RAM=2000000", " I=local.bam",
                " O=withRg.bam SORT_ORDER=coordinate",
-               " RGID=RGID_", sampleName, " RGPL=illumina RGSM=", sampleName, " RGLB=RGLB_", sampleName, " RGPU=RGPU_", sampleName,
+               " RGID=", sampleName, " RGPL=illumina RGSM=", sampleName, " RGLB=RGLB_", sampleName, " RGPU=RGPU_", sampleName,
                " VERBOSITY=WARNING")
     ezSystem(cmd) } else {
     ezSystem('mv local.bam withRg.bam')
