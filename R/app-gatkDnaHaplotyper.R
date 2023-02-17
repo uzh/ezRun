@@ -15,7 +15,7 @@ ezMethodGatkDnaHaplotyper = function(input=NA, output=NA, param=NA){
   gatk = file.path(Sys.getenv("GATK"),'gatk')
   
   genomeSeq = param$ezRef["refFastaFile"]
-  sampleName = names(bamFile)
+  sampleName = input$getNames()
   if(param$addReadGroup){
     cmd = paste0(javaCall, " -jar ", Sys.getenv("Picard_jar"), " AddOrReplaceReadGroups",
                " TMP_DIR=. MAX_RECORDS_IN_RAM=2000000", " I=local.bam",
