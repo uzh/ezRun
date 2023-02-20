@@ -44,9 +44,9 @@ ezMethodSpaceRanger <- function(input=NA, output=NA, param=NA){
                paste0("--sample=", sampleName),
                paste0("--localmem=", param$ram),
                paste0("--localcores=", param$cores),
-               paste0("--image=", input$getFullPaths("image")),
-               paste0("--slide=", input$getColumn("slide")),
-               paste0("--area=", input$getColumn("area")))
+               paste0("--image=", input$getFullPaths("Image")),
+               paste0("--slide=", input$getColumn("Slide")),
+               paste0("--area=", input$getColumn("Area")))
   tryCatch(
     {
     json_paths <- input$getFullPaths("loupe-alignment")
