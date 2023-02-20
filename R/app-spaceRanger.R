@@ -28,6 +28,7 @@ ezMethodSpaceRanger <- function(input=NA, output=NA, param=NA){
 
   sampleName <- input$getNames()
   sampleDirs <- getFastqDirs(input, "RawDataDir",sampleName)
+  sampleNameFQ <- sub('.tar', '', basename(sampleDirs))
   
   # decompress tar files if they are in tar format
   if (all(grepl("\\.tar$", sampleDirs)))
@@ -36,7 +37,12 @@ ezMethodSpaceRanger <- function(input=NA, output=NA, param=NA){
   sampleDirs <- normalizePath(sampleDirs)
   sampleDir <- paste(sampleDirs, collapse = ",")
   spaceRangerFolder <- str_sub(sampleName, 1, 45) %>% str_c("-spaceRanger")
-
+  spaceRangerFolder <- gsub('\\.', '_', spaceRangerFolder)
+  if(sampleName != sampleNameFQ){
+      sampleName <- sampleNameFQ
+  }
+  
+  #sampleNameFQ <- 
   refDir <- getCellRangerGEXReference(param)
   cmd <- paste("spaceranger count", paste0("--id=", spaceRangerFolder),
                paste0("--transcriptome=", refDir),
