@@ -27,8 +27,10 @@ EzAppSpaceRanger <-
 ezMethodSpaceRanger <- function(input=NA, output=NA, param=NA){
 
   sampleName <- input$getNames()
+  
   sampleDirs <- getFastqDirs(input, "RawDataDir",sampleName)
   sampleNameFQ <- sub('.tar', '', basename(sampleDirs))
+  finalSampleName <-sampleName
   
   # decompress tar files if they are in tar format
   if (all(grepl("\\.tar$", sampleDirs)))
@@ -67,8 +69,9 @@ ezMethodSpaceRanger <- function(input=NA, output=NA, param=NA){
   }
   ezSystem(cmd)
   
+  
   unlink(basename(sampleDirs), recursive=TRUE)
-  file.rename(file.path(spaceRangerFolder, "outs"),  sampleName)
+  file.rename(file.path(spaceRangerFolder, "outs"),  finalSampleName)
   unlink(spaceRangerFolder, recursive=TRUE)
   
   if(ezIsSpecified(param$controlSeqs)){
