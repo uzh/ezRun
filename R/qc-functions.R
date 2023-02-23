@@ -29,7 +29,7 @@
 
 ezComputeBias = function(dsFile, dsName=NULL, param=NULL, qcSummaryDir="/srv/GT/analysis/p2220/RNA-seq-bias-results", refBuildMap=getRefBuildMap(), minReadsPerSample=30000,
                        maxReadsPerSample=5e6,
-                       minReadsPerGene=3, minPresentFraction=0.2){
+                       minReadsPerGene=3, minPresentFraction=0.2, toMail=''){
   
   inputMeta = ezRead.table(file=dsFile)
   inputMeta = inputMeta[ inputMeta$"Read Count" > minReadsPerSample, ]
@@ -78,7 +78,7 @@ ezComputeBias = function(dsFile, dsName=NULL, param=NULL, qcSummaryDir="/srv/GT/
     param[['max_len2']] =	'0'
     param[['poly_x_min_len']] =	'10'
     param[['length_required']] =	'20'
-    #param[['mail']] = 'hubert.rehrauer@fgcz.ethz.ch'
+    param[['mail']] = toMail
     param[['dataRoot']] = '/srv/gstore/projects'
     param[['backgroundExpression']] = minReadsPerGene ## low numbers needed for the iSeq runs with
     param$sigThresh = minReadsPerGene
