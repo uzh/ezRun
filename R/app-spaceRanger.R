@@ -14,10 +14,7 @@ EzAppSpaceRanger <-
                   "Initializes the application using its specific defaults."
                   runMethod <<- ezMethodSpaceRanger
                   name <<- "EzAppSpaceRanger"
-                  appDefaults <<- rbind(scMode=ezFrame(Type="character",
-                                                       DefaultValue="SC",
-                                                       Description="Single cell or single nuclei?"),
-                                        controlSeqs=ezFrame(Type="charVector",
+                  appDefaults <<- rbind(controlSeqs=ezFrame(Type="charVector",
                                                             DefaultValue="",
                                                             Description="control sequences to add"))
                 }
@@ -28,7 +25,7 @@ ezMethodSpaceRanger <- function(input=NA, output=NA, param=NA){
 
   sampleName <- input$getNames()
   
-  sampleDirs <- getFastqDirs(input, "RawDataDir",sampleName)
+  sampleDirs <- getFastqDirs(input, "RawDataDir", sampleName)
   sampleNameFQ <- sub('.tar', '', basename(sampleDirs))
   finalSampleName <-sampleName
   
@@ -44,7 +41,8 @@ ezMethodSpaceRanger <- function(input=NA, output=NA, param=NA){
       sampleName <- sampleNameFQ
   }
   
-  #sampleNameFQ <- 
+  inputCols <- colnames(input$meta)
+  
   refDir <- getCellRangerGEXReference(param)
   cmd <- paste("spaceranger count", paste0("--id=", spaceRangerFolder),
                paste0("--transcriptome=", refDir),
@@ -55,6 +53,11 @@ ezMethodSpaceRanger <- function(input=NA, output=NA, param=NA){
                paste0("--image=", input$getFullPaths("Image")),
                paste0("--slide=", input$getColumn("Slide")),
                paste0("--area=", input$getColumn("Area")))
+  
+  if('CytaImage' %in% inputCols){
+      cmd <- paste(cmd, paste0("--cytaimage=", input$getFullPaths("CytaImage")))
+  }
+  
   tryCatch(
     {
     json_paths <- input$getFullPaths("loupe-alignment")
