@@ -61,7 +61,9 @@ ezMethodSpaceRanger <- function(input=NA, output=NA, param=NA){
   tryCatch(
     {
     json_paths <- input$getFullPaths("loupe-alignment")
-    cmd <- paste0(cmd, " --loupe-alignment=", json_paths)
+        if(grepl('json$', basename(json_paths))){
+            cmd <- paste0(cmd, " --loupe-alignment=", json_paths)
+        }
     },
     error=function(e) {
       return()
