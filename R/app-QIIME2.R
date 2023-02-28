@@ -99,7 +99,32 @@ ezMethodQIIME2 = function(input=NA, output=NA, param=NA,
     cmdQIIME2 = paste("sh",UNIFIED_QIIME2_WORKFLOW_PAIREDEND)
   }
   ezSystem(cmdQIIME2)
-
+  
+  physeq <- qza_to_phyloseq(features="table.qza",
+                  tree="rooted-tree.qza",
+                  "taxonomy.qza",
+                  metadata = "sample_metadata.tsv")
+  dada2 <- read_qza("dada2_denoising_stats.qza")
+  shannon<-read_qza("core-metrics-results/shannon_vector.qza")
+  evenness<-read_qza("core-metrics-results/evenness_vector.qza")
+  richness<-read_qza("core-metrics-results/observed_features_vector.qza")
+  jaccard<-read_qza("core-metrics-results/jaccard_pcoa_results.qza")
+  jaccardmatrix <- read_qza("core-metrics-results/jaccard_distance_matrix.qza")
+  bray<-read_qza("core-metrics-results/bray_curtis_pcoa_results.qza")
+  braymatrix <- read_qza("core-metrics-results/bray_curtis_distance_matrix.qza")
+  unifrac <- read_qza("core-metrics-results/weighted_unifrac_pcoa_results.qza")
+  unifracmatrix <- read_qza("core-metrics-results/weighted_unifrac_distance_matrix.qza")
+  metadata <- read_q2metadata("sample_metadata.tsv")
+  
+  setwdNew(basename(output$getColumn("Static Report")))
+  markdownFile <- "Qiime2Report.Rmd"
+  ## Copy the style files and templates
+  makeRmdReport(param=param, physeq = physeq, metadata = metadata, dada2 = dada2, shannon = shannon,
+                evenness = evenness, richness = richness, jaccard = jaccard, jaccardmatrix = jaccardmatrix,
+                bray = bray, braymatrix = braymatrix, unifrac = unifrac, unifracmatrix = unifracmatrix
+                output=output, rmdFile = markdownFile, reportTitle = "QIIME2 Static Report")
+  
+  
   return("Success")
 }
 

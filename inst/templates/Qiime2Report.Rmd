@@ -10,13 +10,22 @@ editor_options:
   chunk_output_type: inline
 ---
 
+```{r include=FALSE}
+knitr::opts_chunk$set(
+  comment = '', fig.width = 8, fig.height = 8, warning = FALSE, error = FALSE,
+  message = FALSE, cache = TRUE, echo = FALSE
+)
+```
+
 ```{r setup countQC, include=FALSE}
 knitr::opts_chunk$set(warning = FALSE, message = FALSE) 
 library(phyloseq)
 library(DESeq2)
 library(edgeR)
 library(ggplot2)
+library(plotly)
 library(ggrepel)
+library(ggpubr)
 library(grid)
 library(gridExtra)
 library(qiime2R)
@@ -26,107 +35,147 @@ library(patchwork)
 library(cowplot)
 library(microbiomeMarker)
 library(scales)
+library(kableExtra)
+library(rstatix)
+library(vegan)
+library(pairwiseAdonis)
+library(ggtreeExtra)
+library(ggtree)
+library(dplyr)
+library(ggvenn)
+library(microbiome)
+library(RColorBrewer)
+library(ComplexHeatmap)
 ```
 
 
 ```{r, echo=FALSE}
-#Load the data as a phyloseq object 
-physeq<-qza_to_phyloseq(features="/srv/GT/analysis/zajacn/p28253_MIachizzi/o28575/o28575_QIIME2_NZ_2022_11-08_group/table.qza",
-                        tree="/srv/GT/analysis/zajacn/p28253_MIachizzi/o28575/o28575_QIIME2_NZ_2022_11-08_group/rooted-tree.qza",
-                        "/srv/GT/analysis/zajacn/p28253_MIachizzi/o28575/o28575_QIIME2_NZ_2022_11-08_group/taxonomy.qza",
-                        metadata = "/srv/GT/analysis/zajacn/p28253_MIachizzi/o28575/o28575_QIIME2_NZ_2022_11-08_group/sample_metadata.tsv"
-)
-
-#Filter samples: feature present at a count of minimum 5 and feature present in at least 10% of the samples
-physeq_filter = genefilter_sample(physeq, filterfun_sample(function(x) x > 5), A=0.1*nsamples(physeq))
+##Load the data 
+physeq<-readRDS("physeq.rds")
+#Filter samples: feature present in at least 10% of the samples
+physeq_filter = genefilter_sample(physeq, filterfun_sample(function(x) x > 1), A=0.1*nsamples(physeq))
 physeq1 = prune_taxa(physeq_filter, physeq)
-#Transform to even sampling depth
-physeq1 = transform_sample_counts(physeq1, function(x) 1E6 * x/sum(x))
+#Transform sample counts
+physeq2 = transform_sample_counts(physeq1, function(x){x / sum(x)})
+#Aggregate by species and genus
+physeq_Genus = tax_glom(physeq1, "Genus", NArm = TRUE)
+physeq_Genus2 = transform_sample_counts(physeq_Genus, function(x){x / sum(x)})
+physeq_Species = tax_glom(physeq1, "Species", NArm = TRUE)
+physeq_Species2 = transform_sample_counts(physeq_Species, function(x){x / sum(x)})
 
-#Load the biom file that is already filtered for feature count of minimum 900 and present in at least 11 samples with an added pseudocount. This was used for the ancom analysis.
+dada2 <- readRDS("dada2.rds")
+metadata<-readRDS("sample_metadata.rds")
+shannon<-readRDS("shannon.rds")
+evenness<-readRDS("evenness.rds")
+richness<-readRDS("richness.rds")
+jaccard<-readRDS("jaccard.rds")
+jaccardmatrix <- readRDS("jaccardmatrix.rds")
+bray<-readRDS("bray.rds")
+braymatrix <- readRDS("braymatrix.rds")
+unifrac <- readRDS("unifrac.rds")
+unifracmatrix <- readRDS("unifracmatrix.rds")
 
-physeq2 <-qza_to_phyloseq(features="/srv/GT/analysis/zajacn/p28253_MIachizzi/o28575/o28575_QIIME2_NZ_2022_11-08_group/table_abund_comp.qza",
-                        tree="/srv/GT/analysis/zajacn/p28253_MIachizzi/o28575/o28575_QIIME2_NZ_2022_11-08_group/rooted-tree.qza",
-                        "/srv/GT/analysis/zajacn/p28253_MIachizzi/o28575/o28575_QIIME2_NZ_2022_11-08_group/taxonomy.qza",
-                        metadata = "/srv/GT/analysis/zajacn/p28253_MIachizzi/o28575/o28575_QIIME2_NZ_2022_11-08_group/sample_metadata.tsv"
-)
+#Define grouping parameter
+params = readRDS("param.rds")
+grouping <- params$grouping
 
-physeq2 = transform_sample_counts(physeq2, function(x) 1E6 * x/sum(x))
 
-#Load the data as a qza objects
-dada2 <- readRDS("/srv/GT/analysis/zajacn/p28253_MIachizzi/o28575/o28575_QIIME2_NZ_2022_11-08_group/dada2_denoising_stats.rds")
-SVs<-readRDS("/srv/GT/analysis/zajacn/p28253_MIachizzi/o28575/o28575_QIIME2_NZ_2022_11-08_group/table_raw.rds")
-metadata<-read_q2metadata("/srv/GT/analysis/zajacn/p28253_MIachizzi/o28575/o28575_QIIME2_NZ_2022_11-08_group/sample_metadata.tsv")
-taxonomy<-readRDS("/srv/GT/analysis/zajacn/p28253_MIachizzi/o28575/o28575_QIIME2_NZ_2022_11-08_group/taxonomy.rds")
-shannon<-readRDS("/srv/GT/analysis/zajacn/p28253_MIachizzi/o28575/o28575_QIIME2_NZ_2022_11-08_group/shannon_vector.rds")
-jaccard<-readRDS("/srv/GT/analysis/zajacn/p28253_MIachizzi/o28575/o28575_QIIME2_NZ_2022_11-08_group/jaccard_pcoa_results.rds")
-bray<-readRDS("/srv/GT/analysis/zajacn/p28253_MIachizzi/o28575/o28575_QIIME2_NZ_2022_11-08_group/bray_curtis_pcoa_results.rds")
-#param <- readRDS("param.rds")
+#Reports
+demux <-output$getColumn("Demux Report")
+denoise <-output$getColumn("Denoising stats")
+asv_table <-output$getColumn("Feature Table")
+rep_seqs <-output$getColumn("Rep Seqs Report")
+taxbarplot <-output$getColumn("Taxonomy Barplot")
+shannon_report <-output$getColumn("Shannon Diversity")
+jaccard_report <-output$getColumn("Jaccard Diversity")
+bc_report <-output$getColumn("Bray Curtis Diversity")
+jaccard_pca <-output$getColumn("Jaccard Emperor Plot")
+bc_pca <-output$getColumn("Bray Curtis Emperor Plot")
+alpha_raref <-output$getColumn("Alpha Rarefaction")
+difabundance <-output$getColumn("Differential Abundance")
 ```
 
 
 # {.tabset}
 
-## Demultiplexing summary
+## Demultiplexing summary 
+
+#### ASVs Frequency Histogram
+
+Here is a histogram reflecting the distribution of the final number of ASVs per sample.
+
+```{r, fig.width = 5, fig.height = 5, echo=FALSE}
+ps0_tax_plot <- ggplot(dada2$data, aes(non.chimeric)) +
+  geom_histogram() + theme_bw() + ylab("Number of samples") + xlab("Abundance of ASVs")
+
+print(ps0_tax_plot)
+```
+</br>
+
+[Interactive QIIME2 Report and Visualizations](`r asv_table`){target="_blank"}
+
+#### Read filtering.  
+And here you can find the number of reads filtered at each stage and the final number of reads that remained after denoising (number of ASVs).
+For more info look at the two QIIME2 interactive reports.     
+[Interactive QIIME2 Report Data QC](`r demux`){target="_blank"}
+[Interactive QIIME2 Report Denoising Stats](`r denoise`){target="_blank"}
+
+</br>
 
 ```{r, echo=FALSE}
 #Show the number of reads filtered at each step
-ezInteractiveTableRmd(dada2$data)
-```
-
-## Alpha diversity
-
-```{r, fig.width=10, fig.height=8, echo=FALSE}
-#Shannon diversity boxplots
-shannon<-shannon$data %>% rownames_to_column("SampleID")
-metadata <- metadata %>% left_join(shannon)
-
-ggplot(metadata, aes(x=Group, y=shannon_entropy)) + 
-  geom_boxplot() + 
-  geom_jitter(shape=21, width=0.2, height=0) + 
-  xlab("Group") +  
-  ylab("Shannon Diversity") 
-
-```
-
-## Beta diversity
-
-### Jaccard Diversity Index.  
-
-```{r, echo=FALSE, fig.width=10, fig.height=6}
-metadata$SampleID <- as.integer(metadata$SampleID)
-shannon$SampleID <- as.integer(shannon$SampleID)
-
-jaccard$data$Vectors %>% select(SampleID, PC1, PC2) %>% left_join(metadata) %>% #Plot PC1 and PC2
-  left_join(shannon) %>%
-  ggplot(aes(x=PC1, y=PC2, color=Group)) +
-  geom_point(alpha=0.5, size = 5) +
-  theme_q2r() +
-  scale_color_discrete(name="Group") + stat_ellipse()
-
-```
-
-### Bray Curtis Dissimilarity.  
-
-```{r, echo=FALSE, fig.width=10, fig.height=6}
-metadata$SampleID <- as.integer(metadata$SampleID)
-shannon$SampleID <- as.integer(shannon$SampleID)
-
-bray$data$Vectors %>% select(SampleID, PC1, PC2) %>% left_join(metadata) %>% #Plot PC1 and PC2
-  left_join(shannon) %>%
-  ggplot(aes(x=PC1, y=PC2, color=Group)) +
-  geom_point(alpha=0.5, size = 5) +
-  theme_q2r() +
-  scale_color_discrete(name="Group") + stat_ellipse()
+kable(dada2$data) %>% kable_styling()
 ```
 
 ## Abundance summary
 
-### Heatmap of the top 30 features.   
 
-```{r, echo=FALSE, fig.width=20, fig.height=9}
-SVs<-SVs$data
-taxonomy<-taxonomy$data
+### Filtering
+The original analysis has been filtered and contains only Amplicon Sequence Variants that occur in at least 10% of samples and of at least a count of 1. Lets compare how many ASVs have remained after that filtering. 
+</br>
+</br>
+
+```{r, echo=FALSE}
+knitr::knit_print(paste("Originally there were", length(rownames(otu_table(physeq))), "ASVs across", length(colnames(otu_table(physeq1))), "samples. "))
+knitr::knit_print(paste("After filtering there are", length(rownames(otu_table(physeq1))), "ASVs across", length(colnames(otu_table(physeq1))), "samples."))
+```
+
+
+### Transformation
+</br>
+The counts are then transformed into relative abundance. Lets have a look whether the transformation changed the abundance patters for all the genra.
+
+```{r, fig.height= 10, fig.width = 17, echo=FALSE}
+p1 <- plot_bar(physeq1, "Group") + facet_wrap(~Genus, ncol=3) + ggtitle("Before transformation")
+p2 <- plot_bar(physeq2, "Group") + facet_wrap(~Genus, ncol=3) + ggtitle("After transformation")
+
+plotGrob <- plot_grid(p1, p2, nrow=1, ncol=2, byrow=FALSE)
+print(plot_grid(plotGrob, nrow=1, ncol=1, rel_heights=c(1, 15)))
+```
+
+### Taxa prevalence
+</br>
+Also lets look at the prevalence of different taxa before and after filtering. This function allows you to have an overview of ASV prevalences along with their taxonomic affiliations. It also gives an idea about the taxonomic affiliation of rare and abundant taxa in the data. This will aid in checking if you filter ASVs based on prevalence, then what taxonomic affiliations will be lost.
+
+```{r, fig.width = 15, fig.height = 5, echo=FALSE}
+p1 <- plot_taxa_prevalence(physeq, "Phylum") + ggtitle("No prevalence filtering")
+p2 <- plot_taxa_prevalence(physeq1, "Phylum") + ggtitle("Present in at least 10% of samples")
+
+plotGrob <- plot_grid(p1, p2, nrow=1, ncol=2, byrow=FALSE)
+print(plot_grid(plotGrob, nrow=1, ncol=1, rel_heights=c(1, 15)))
+```
+
+### Heatmap of the top 30 features (ASVs).   
+
+</br>
+This heatmap displays the log10(% abundance) of the top 30 ASVs. Abundance is converted into percentage, a pseudocount is added and the data is log transformed. The top 30 most abundant ASVs are chosen to be displayed.
+</br>
+
+```{r, fig.width = 17, fig.height = 8, echo=FALSE}
+SVs<-as.data.frame(otu_table(physeq1))
+taxonomy<-as.data.frame(tax_table(physeq1))
+taxonomy$Feature.ID <- rownames(taxonomy)
+taxonomy$Taxon <- paste0(taxonomy$Kingdom, "_", taxonomy$Phylum, "_", taxonomy$Class, "_", taxonomy$Order, "_", taxonomy$Family, "_", taxonomy$Genus, "_", taxonomy$Species)
 metadata$SampleID <- as.character(metadata$SampleID)
 
 SVs<-apply(SVs, 2, function(x) x/sum(x)*100) #convert to percent
@@ -151,21 +200,66 @@ SV1 <- SVs %>%
   mutate(Feature=paste(Feature.ID, Taxon)) %>%
   mutate(Feature=gsub("[kpcofgs]__", "", Feature)) # trim out leading text from taxonomy string
 
-ggplot(SV1, aes(x=SampleID, y=Feature, fill=NormAbundance)) +
+p1 <- ggplot(SV1, aes(x=SampleID, y=Feature, fill=NormAbundance)) +
   geom_tile() +
-  facet_grid(~Housing, scales="free_x") +
+  facet_grid(paste0('~', SV1[,grouping]), scales="free_x") +
   theme_q2r() +
-  theme(axis.text.x=element_text(angle=45, hjust=1)) +
-  scale_y_discrete(labels = function(x) stringr::str_wrap(x, width = 65)) +
+  theme(axis.text.x=element_text(angle=45, hjust=1, size=10), text = element_text(size = 9)) +
+  scale_y_discrete(labels = function(x) stringr::str_wrap(x, width = 55)) +
   scale_fill_viridis_c(name="log10(% Abundance)")
+
+p1
 ```
 
-### Bar plot.   
+### Heatmap at a Genus level.
 
-#### The second plot has any unassigned Genus removed.
+</br>
+Now let's create a separate Phyloseq object where the ASVs have all been agglomerated at genus level. This will reduce the number of ASVs further and then we can investigate the abundance of the different genra across all groups. The heatmap displays the log10(% abundance) of all the genra.
 
-```{r, echo=FALSE, fig.width=10, fig.height=11}
-p1 <- ggplot(physeq, aes(x = Sample, y = Abundance, fill = Genus)) +
+</br>
+
+```{r, fig.width = 12, fig.height = 5, echo=FALSE}
+SVs<-as.data.frame(otu_table(physeq_Genus))
+taxonomy<-as.data.frame(tax_table(physeq_Genus))
+taxonomy$Feature.ID <- rownames(taxonomy)
+taxonomy$Taxon <- paste0(taxonomy$Kingdom, "_", taxonomy$Phylum, "_", taxonomy$Class, "_", taxonomy$Order, "_", taxonomy$Family, "_", taxonomy$Genus)
+metadata$SampleID <- as.character(metadata$SampleID)
+
+SVs<-apply(SVs, 2, function(x) x/sum(x)*100) #convert to percent
+
+SV1 <- SVs %>%
+  as.data.frame() %>%
+  rownames_to_column("Feature.ID") %>%
+  gather(-Feature.ID, key="SampleID", value="Abundance") %>%
+  group_by(SampleID, Feature.ID) %>%
+  summarize(Abundance=sum(Abundance)) %>%
+  left_join(metadata) %>%
+  mutate(NormAbundance=log10(Abundance+0.01)) %>% # do a log10 transformation after adding a 0.01% pseudocount. Could also add 1 read before transformation to percent
+  left_join(taxonomy) 
+
+p1 <- ggplot(SV1, aes(x=SampleID, y=Genus, fill=NormAbundance)) +
+  geom_tile() +
+  facet_grid(paste0('~', SV1[,grouping]), scales="free_x") +
+  theme_q2r() +
+  theme(axis.text.x=element_text(angle=45, hjust=1, size=10), text = element_text(size = 10)) +
+  scale_y_discrete(labels = function(x) stringr::str_wrap(x, width = 65)) +
+  scale_fill_viridis_c(name="log10(% Abundance)")
+
+p1
+```
+
+### Bar plot.
+
+</br>
+Lets look at the proportion of the different genra per sample. For the first plot I use the phyloseq object in which ASVs are not agglomerated at a genus level and therefore the ASVs with unassigned genus are not removed. For the second plot I use the phyloseq object in which ASVs have been agglomerated at genus level and thus the features with unassigned genus are removed. 
+
+For interactive barplots look here:
+[Interactive QIIME2 Barplots](`r taxbarplot`){target="_blank"}
+
+</br>
+
+```{r, fig.width = 10, echo=FALSE}
+p1 <- ggplot(physeq1, aes(x = Sample, y = Abundance, fill = Genus)) +
   geom_bar(position = "fill", stat = "identity") +
   scale_y_continuous(labels = percent_format()) +
   theme(legend.position = "right", text=element_text(size=7),
@@ -174,9 +268,7 @@ p1 <- ggplot(physeq, aes(x = Sample, y = Abundance, fill = Genus)) +
   ggtitle("Abundance") +
   xlab("Sample ID") + ylab("Proportion")
 
-
-physeq_noNA <- subset_taxa(physeq, Genus != "unassigned")
-p2 <- ggplot(physeq_noNA, aes(x = Sample, y = Abundance, fill = Genus)) +
+p2 <- ggplot(physeq_Genus2, aes(x = Sample, y = Abundance, fill = Genus)) +
   geom_bar(position = "fill", stat = "identity") +
   scale_y_continuous(labels = percent_format()) +
   theme(legend.position = "right", text=element_text(size=7),
@@ -187,21 +279,696 @@ p2 <- ggplot(physeq_noNA, aes(x = Sample, y = Abundance, fill = Genus)) +
 
 plotGrob <- plot_grid(p1, p2, nrow=2, ncol=1, byrow=FALSE)
 print(plot_grid(plotGrob, nrow=1, ncol=1, rel_heights=c(1, 15)))
+```
+
+### Phylogenetic tree.     
+
+</br>
+It would also be useful to look at how the different lineages in the sample are related. This is a phylogenetic tree of the features present in the sample. The nodes are coloured by the genus and a ring around has plotted abundance in boxplots across all samples (minimum abundance  - 50). The boxplots are coloured by phylum.
+
+```{r, fig.width = 15, echo=FALSE}
+melt_simple <- psmelt(physeq1) %>%
+               filter(Abundance < 50) %>%
+               select(OTU, val=Abundance)
+
+p <- ggtree(physeq1, layout="fan", open.angle=10) + 
+     geom_tippoint(mapping=aes(color=Genus), 
+                   size=1.5,
+                   show.legend=TRUE)
+p <- rotate_tree(p, -90)
+p <- p + geom_fruit(data=melt_simple, geom=geom_boxplot,
+         mapping = aes(
+                     y=OTU,
+                     x=val,
+                     group=label,
+                     fill=Phylum),
+         size=.2,
+         outlier.size=0.5,
+         outlier.stroke=0.08,
+         outlier.shape=21,
+         axis.params=list(
+                         axis       = "x",
+                         text.size  = 1.8,
+                         hjust      = 1,
+                         vjust      = 0.5,
+                         nbreak     = 3),
+         grid.params=list()) 
+p <- p + scale_fill_discrete( name="Phylum", guide=guide_legend(keywidth=0.8, keyheight=0.8, ncol=1)) +
+     theme(legend.title=element_text(size=9), legend.text=element_text(size=7))
+p
+```
+
+### Venn Diagram.   
+</br>
+How are the ASVs/Genra/Phyla distributed across the groups?
+</br>
+
+```{r, echo=FALSE, fig.width=20, fig.height=9}
+SVs<-as.data.frame(otu_table(physeq1))
+taxonomy<-as.data.frame(tax_table(physeq1))
+taxonomy$Feature.ID <- rownames(taxonomy)
+metadata$SampleID <- as.character(metadata$SampleID)
+
+SV1 <- SVs %>%
+  as.data.frame() %>%
+  rownames_to_column("Feature.ID") %>%
+  gather(-Feature.ID, key="SampleID", value="Abundance") %>%
+  group_by(SampleID, Feature.ID) %>%
+  left_join(metadata) %>%
+  left_join(taxonomy) 
+
+x1 <- list()
+for (group in levels(as.factor(metadata[,grouping]))) {
+  x1[[group]] <- unique(SV1$Feature.ID[SV1$Abundance >= 1 & SV1[,grouping] == group])
+}
+
+x2 <- list()
+for (group in levels(as.factor(metadata[,grouping]))) {
+  x2[[group]] <- unique(SV1$Genus[SV1$Abundance >= 1 & SV1[,grouping] == group])
+}
+
+x3 <- list()
+for (group in levels(as.factor(metadata[,grouping]))) {
+  x3[[group]] <- unique(SV1$Phylum[SV1$Abundance >= 1 & SV1[,grouping] == group])
+}
+
+if (length(levels(as.factor(metadata$Group))) <= 5) {
+  venn1 <- ggvenn(
+    x1, 
+    set_name_size = 4, text_size = 4) + ggtitle("Shared ASVs")
+  venn2 <- ggvenn(
+    x2, 
+    set_name_size = 4, text_size = 4
+  ) + ggtitle("Shared Genra")
+  venn3 <- ggvenn(
+    x3, 
+    set_name_size = 4, text_size = 4
+  ) + ggtitle("Shared Phyla")
+}
+
+x1 <- rapply(x1, na.omit, how = "replace")
+x2 <- rapply(x2, na.omit, how = "replace")
+x3 <- rapply(x3, na.omit, how = "replace")
+
+m1 = make_comb_mat(x1, mode = "distinct")
+m2 = make_comb_mat(x2, mode = "distinct")
+m3 = make_comb_mat(x3, mode = "distinct")
+
+if (length(levels(as.factor(metadata$Group))) > 5) {
+  venn1 <- UpSet(
+    m = m1,
+    comb_order = order(comb_size(m1), decreasing = T),
+    top_annotation = upset_top_annotation(m1, add_numbers = TRUE),
+    right_annotation = upset_right_annotation(m1, add_numbers = TRUE)
+  )
+  venn2 <- UpSet(
+    m = m2,
+    comb_order = order(comb_size(m1), decreasing = T),
+    top_annotation = upset_top_annotation(m1, add_numbers = TRUE),
+    right_annotation = upset_right_annotation(m1, add_numbers = TRUE)
+  )
+  venn3 <- UpSet(
+    m = m3,
+    comb_order = order(comb_size(m1), decreasing = T),
+    top_annotation = upset_top_annotation(m1, add_numbers = TRUE),
+    right_annotation = upset_right_annotation(m1, add_numbers = TRUE)
+  )
+}
+
+plotGrob <- plot_grid(venn1, venn2, venn3, nrow=1, ncol=3, byrow=FALSE)
+print(plot_grid(plotGrob, nrow=1, ncol=1, rel_heights=c(1, 15)))
 
 ```
 
-## Differential abundance tests
+## Alpha diversity
 
-### LEFse results.   
+### Rareify or not to rareify
 
-LDA Effect Size (LEfSe) method for microbiome biomarker discovery uses the Kruskal-Wallis test, Wilcoxon-Rank Sum test, and Linear Discriminant Analysis to find biomarkers of the predefined groups. A p-value of < 0.05 and a score ≥ 2.0 were considered significant in Kruskal–Wallis and pairwise Wilcoxon tests, respectively. Analysis was done doing a comparison for each group vs all. Significant LDA scores are displayed. 
+We do not rareify the data as there have been arguments in the literature against doing so. 
+Rarefiying:     
++ requires an arbitrary selection of a library size minimum threshold,    
++ implies getting rid of informative data and       
++ has been shown to cause adds artificial uncertainty      
++ as well as an increase in Type-I and Type-II error.     
 
-```{r, echo=FALSE, fig.width=10, fig.height=11}
+If you would like to know more, read the following publication:
++[Waste Not, Want Not: Why Rarefying Microbiome Data Is Inadmissible](https://journals.plos.org/ploscompbiol/article?id=10.1371/journal.pcbi.1003531)
+
+
+### Rarefaction curve
+
+If we did want to rarefy, lets look at what we could expect from the data: 
+
+```{r, fig.width = 5, fig.height = 5, echo=FALSE}
+otu_tab <- t(abundances(physeq1))
+p <- rarecurve(otu_tab, step=50, cex=0.5)
+```
+</br>
+See here for QIIME2 Interactive Report:
+[Interactive QIIME2 Rarefaction](`r alpha_raref`){target="_blank"}
+
+### All measures
+
+</br>
+
+```{r, fig.width = 9, fig.height = 5, echo=FALSE}
+#Shannon diversity boxplots
+shannon<-shannon$data %>% rownames_to_column("SampleID")
+richness<- richness$data %>% rownames_to_column("SampleID")
+evenness<- evenness$data %>% rownames_to_column("SampleID") 
+metadata <- metadata %>% left_join(shannon) %>% left_join(richness) %>% left_join(evenness)
+
+
+fig <- ggplot(metadata, aes(x=metadata[,grouping], y=shannon_entropy)) + 
+  geom_boxplot() + 
+  geom_jitter(shape=21, width=0.2, height=0) + 
+  xlab(grouping) 
+fig <- ggplotly(fig)
+
+fig2 <- ggplot(metadata, aes(x=metadata[,grouping], y=observed_features)) + 
+  geom_boxplot() + 
+  geom_jitter(shape=21, width=0.2, height=0) + 
+  xlab(grouping) 
+fig2 <- ggplotly(fig2)
+
+fig3 <- ggplot(metadata, aes(x=metadata[,grouping], y=pielou_evenness)) + 
+  geom_boxplot() + 
+  geom_jitter(shape=21, width=0.2, height=0) + 
+  xlab(grouping) 
+fig3 <- ggplotly(fig3)
+
+annotations = list( 
+  list( 
+    x = 0.1,  
+    y = 1.0,  
+    text = "Shannon Diversity",  
+    xref = "paper",  
+    yref = "paper",  
+    xanchor = "center",  
+    yanchor = "bottom",  
+    showarrow = FALSE 
+  ),  
+  list( 
+    x = 0.5,  
+    y = 1,  
+    text = "Observed Features",  
+    xref = "paper",  
+    yref = "paper",  
+    xanchor = "center",  
+    yanchor = "bottom",  
+    showarrow = FALSE 
+  ),  
+  list( 
+    x = 0.8,  
+    y = 1,  
+    text = "Pielou Evenness",  
+    xref = "paper",  
+    yref = "paper",  
+    xanchor = "center",  
+    yanchor = "bottom",  
+    showarrow = FALSE 
+  ))
+
+fig4 <- subplot(fig, fig2, fig3) %>% layout(annotations = annotations)
+fig4
+```
+
+</br>
+
+### Plots with marked significance
+
+```{r, fig.width = 9, fig.height = 5, echo=FALSE}
+metadata_melt <- reshape2::melt(metadata)
+lev <- levels(metadata_melt$Group) # get the variables
+
+# make a pairwise list that we want to compare.
+L.pairs <- combn(seq_along(lev), 2, simplify = FALSE, FUN = function(i) lev[i])
+
+pval <- list(
+  cutpoints = c(0, 0.0001, 0.001, 0.01, 0.05, 0.1, 1),
+  symbols = c("****", "***", "**", "*", "n.s")
+)
+
+p <- ggboxplot(metadata_melt, x = grouping, y = "value",
+              fill = grouping, 
+              palette = "jco", 
+              legend= "right",
+              facet.by = "variable", 
+              scales = "free") + rremove("x.text")
+p2 <- p + stat_compare_means(
+  comparisons = L.pairs,
+  label = "p.signif",
+  symnum.args = list(
+    cutpoints = c(0, 0.0001, 0.001, 0.01, 0.05, 0.1, 1),
+    symbols = c("****", "***", "**", "*", "n.s")
+  )
+)
+
+print(p2)
+```
+
+### Shannon diversity significance - Kruskal-Wallis
+
+</br>
+
+#### Kruskal-Wallis all groups
+
+```{r, echo=FALSE}
+m <- kruskal.test(metadata$shannon_entropy ~ metadata$Group)
+knitr::knit_print(paste("Global Kruskal-Wallis Chi-squared value = ", m$statistic[[1]]))
+knitr::knit_print(paste("Global Kruskal-Wallis p-value = ", round(m$p.value,4)))
+```
+
+#### Kruskal-Wallis (pairwise)
+
+```{r, echo=FALSE}
+kable(wilcox_test(data = metadata, formula = as.formula(paste("shannon_entropy", "~", "Group")), p.adjust.method = "BH")[,c("group1", "group2", "n1", "n2", "statistic", "p", "p.adj", "p.adj.signif")]) %>% kable_styling()
+```
+
+</br>
+
+See here for QIIME2 Interactive Report:
+[Interactive QIIME2 Shannon](`r shannon_report`){target="_blank"}
+
+## Beta diversity 
+
+### Jaccard Diversity Index. {.tabset}
+
+See here for QIIME2 Interactive Report:
+[Interactive QIIME2 Jaccard](`r jaccard_report`){target="_blank"}
+[Interactive QIIME2 3D PCA](`r jaccard_pca`){target="_blank"}
+
+#### Bar plot 
+
+```{r, fig.height = 5, fid.width = 8, echo=FALSE}
+xy <- t(combn(colnames(as.matrix(jaccardmatrix$data)),2))
+jaccard_distance <- data.frame(xy, dist=as.matrix(jaccardmatrix$data)[xy])
+colnames(jaccard_distance) <- c("Sample1", "Sample2", "dist")
+jaccard_distance <- jaccard_distance %>% mutate(SampleID = Sample1) %>% left_join(metadata) %>% mutate(GroupA = Group) %>% select(c(Sample1,Sample2,dist, GroupA)) %>% mutate(SampleID=Sample2)  %>% left_join(metadata) %>% mutate(GroupB = Group) %>% select(c(Sample1,Sample2,dist, GroupA, GroupB))
+
+p1 <- ggplot(jaccard_distance, aes(x=GroupA, y=dist, fill = GroupB)) + geom_boxplot() + xlab("GroupA") + ylab("Jaccard Distance")
+
+p1
+```
+
+#### PCoA 
+
+```{r, fig.height = 5, fid.width = 5, echo=FALSE}
+metadata$SampleID <- as.integer(metadata$SampleID)
+shannon$SampleID <- as.integer(shannon$SampleID)
+
+jaccard <- jaccard$data$Vectors %>% select(SampleID, PC1, PC2) %>% left_join(metadata) %>% left_join(shannon) 
+
+#jaccard$data$Vectors %>%
+#  select(SampleID, PC1, PC2) %>%
+#  left_join(metadata) %>%
+#  left_join(shannon) %>%
+#  ggplot(aes(x=PC1, y=PC2, color=`Group`, shape=`Housing`, size=shannon)) +
+#  geom_point(alpha=0.5) + #alpha controls transparency and helps when points are overlapping
+#  theme_q2r() +
+#   scale_shape_manual(values=c(16,1), name="Housing") + #see http://www.sthda.com/sthda/RDoc/figure/graphs/r-plot-pch-symbols-points-in-r.png for numeric shape codes
+#  scale_size_continuous(name="Shannon Diversity") +
+#  scale_color_discrete(name="Group")
+  
+ggplot(jaccard, aes(x=PC1, y=PC2, color=jaccard[,grouping])) +
+  geom_point(alpha=0.5, size = 5) +
+  theme_q2r() +
+  scale_color_discrete(name=grouping) + stat_ellipse()
+
+```
+
+#### Permanova results 
+
+```{r, echo=FALSE}
+permanova <- adonis2(jaccardmatrix$data ~ metadata$Group, permutations = 999, method = "jaccard")
+knitr::knit_print(paste0("Global PERMANOVA p-value = ", permanova$`Pr(>F)`[1]))
+kable(pairwise.adonis(jaccardmatrix$data, metadata$Group, perm = 999, sim.method = "bray")[,c("pairs", "p.value", "p.adjusted", "sig")] %>% mutate(significance = sig) %>% select(c("pairs", "p.value", "p.adjusted", "significance"))) %>% kable_styling()
+```
+
+### Bray Curtis Dissimilarity. {.tabset}
+
+See here for QIIME2 Interactive Report:
+[Interactive QIIME2 BrayCurtis](`r bc_report`){target="_blank"}
+[Interactive QIIME2 3D PCA](`r bc_pca`){target="_blank"}
+
+#### Barplot
+
+```{r, fig.height = 5, fid.width = 8, echo=FALSE}
+metadata$SampleID <- as.character(metadata$SampleID)
+bc <- t(combn(colnames(as.matrix(braymatrix$data)),2))
+bray_distance <- data.frame(bc, dist=as.matrix(braymatrix$data)[bc])
+colnames(bray_distance) <- c("Sample1", "Sample2", "dist")
+bray_distance <- bray_distance %>% mutate(SampleID = Sample1) %>% left_join(metadata) %>% mutate(GroupA = Group) %>% select(c(Sample1,Sample2,dist, GroupA)) %>% mutate(SampleID=Sample2)  %>% left_join(metadata) %>% mutate(GroupB = Group) %>% select(c(Sample1,Sample2,dist, GroupA, GroupB))
+
+p1 <- ggplot(bray_distance, aes(x=GroupA, y=dist, fill = GroupB)) + geom_boxplot() + xlab("GroupA") + ylab("Bray Distance")
+
+p1
+```
+
+
+#### PCoA 
+
+```{r, fig.height = 5, fid.width = 5, echo=FALSE}
+metadata$SampleID <- as.integer(metadata$SampleID)
+shannon$SampleID <- as.integer(shannon$SampleID)
+
+bray <- bray$data$Vectors %>% select(SampleID, PC1, PC2) %>% left_join(metadata) %>% left_join(shannon)
+
+ggplot(bray, aes(x=PC1, y=PC2, color=bray[,grouping])) +
+  geom_point(alpha=0.5, size = 5) +
+  theme_q2r() +
+  scale_color_discrete(name=grouping) + stat_ellipse()
+```
+
+#### NMDS
+```{r, fig.height = 5, fid.width = 5, echo=FALSE}
+ps1.rel <- microbiome::transform(physeq1, "compositional")
+p <- plot_landscape(ps1.rel, 
+                    "NMDS", 
+                    "bray", 
+                    col = grouping) +
+       labs(title = paste("NMDS / Bray"))
+p
+```
+
+
+#### Permanova results 
+
+```{r, echo=FALSE}
+permanova <- adonis2(braymatrix$data ~ metadata$Group, permutations = 999, method = "bray")
+knitr::knit_print(paste("Global PERMANOVA p-value = ", permanova$`Pr(>F)`[1]))
+kable(pairwise.adonis(braymatrix$data, metadata$Group, perm = 999, sim.method = "bray")[,c("pairs", "p.value", "p.adjusted", "sig")] %>% mutate(significance = sig) %>% select(c("pairs", "p.value", "p.adjusted", "significance"))) %>% kable_styling()
+```
+
+### Weighted UniFrac distance. {.tabset}
+
+#### Bar plot 
+
+```{r, fig.height = 5, fid.width = 8, echo=FALSE}
+metadata$SampleID <- as.character(metadata$SampleID)
+bc <- t(combn(colnames(as.matrix(unifracmatrix$data)),2))
+unifrac_distance <- data.frame(bc, dist=as.matrix(unifracmatrix$data)[bc])
+colnames(unifrac_distance) <- c("Sample1", "Sample2", "dist")
+unifrac_distance <- unifrac_distance %>% mutate(SampleID = Sample1) %>% left_join(metadata) %>% mutate(GroupA = Group) %>% select(c(Sample1,Sample2,dist, GroupA)) %>% mutate(SampleID=Sample2)  %>% left_join(metadata) %>% mutate(GroupB = Group) %>% select(c(Sample1,Sample2,dist, GroupA, GroupB))
+
+p1 <- ggplot(unifrac_distance, aes(x=GroupA, y=dist, fill = GroupB)) + geom_boxplot() + xlab("GroupA") + ylab("Weighted UniFrac Distance")
+
+p1
+```
+
+
+#### PCoA 
+
+```{r, fig.height = 5, fid.width = 5, echo=FALSE}
+metadata$SampleID <- as.integer(metadata$SampleID)
+shannon$SampleID <- as.integer(shannon$SampleID)
+
+unifrac <- unifrac$data$Vectors %>% select(SampleID, PC1, PC2) %>% left_join(metadata) %>% left_join(shannon)
+
+ggplot(unifrac, aes(x=PC1, y=PC2, color=unifrac[,grouping])) +
+  geom_point(alpha=0.5, size = 5) +
+  theme_q2r() +
+  scale_color_discrete(name=grouping) + stat_ellipse()
+```
+
+#### Permanova results 
+
+```{r, echo=FALSE}
+permanova <- adonis2(unifracmatrix$data ~ metadata$Group, permutations = 999, method = "uni")
+knitr::knit_print(paste("Global PERMANOVA p-value = ", permanova$`Pr(>F)`[1]))
+kable(pairwise.adonis(braymatrix$data, metadata$Group, perm = 999, sim.method = "bray")[,c("pairs", "p.value", "p.adjusted", "sig")] %>% mutate(significance = sig) %>% select(c("pairs", "p.value", "p.adjusted", "significance"))) %>% kable_styling()
+```
+
+#### Homogeneity of variance 
+
+```{r, echo=FALSE}
+dispersion <- betadisper(unifracmatrix$data, metadata$Group)
+permutest(dispersion, pairwise = TRUE)
+```
+
+## Differential abundance tests {.tabset}
+
+### Properties of taxonomic profiling data
+
+#### Overdispersion
+</br>
+Let's check if the variance exceeds the mean over all samples for each taxon.
+
+```{r, fig.width = 5, fig.height = 5, echo=FALSE}
+means <- apply(otu_table(physeq1),1,mean)
+variances <- apply(otu_table(physeq1),1,var)
+df <- melt(otu_table(physeq1))
+names(df) <- c("Taxon", "Sample", "Reads")
+df <- df %>% group_by(Taxon) %>%
+             summarise(mean = mean(Reads),
+                   variance = var(Reads))
+
+# Illustrate overdispersion
+library(scales)
+p <- ggplot(df, aes(x = mean, y = variance)) +
+       geom_point() +
+       geom_abline(aes(intercept = 0, slope = 1)) +
+       scale_x_log10(labels = scales::scientific) +
+       scale_y_log10(labels = scales::scientific) +
+       labs(title = "Overdispersion (variance > mean)")
+p
+```
+
+#### Sparsity.  
+</br>
+Is the data sparsely distributed?
+
+```{r, fig.width = 5, fig.height = 5, echo=FALSE}
+log10abundance <- reshape2::melt(log10(1 + otu_table(physeq1)))$value
+hist(log10abundance, 100)
+```
+
+
+#### Rarity.      
+</br>
+Do we see tails of rare taxa?
+
+```{r, fig.width = 5, fig.height = 5, echo=FALSE}
+medians <- apply(otu_table(physeq1),1,median)/1e3
+A <- reshape2::melt(otu_table(physeq1))
+A$Var1 <- factor(A$Var1, levels = rev(names(sort(medians))))
+p <- ggplot(A, aes(x = Var1, y = value)) +
+        geom_boxplot() + theme(axis.text.x = element_blank()) +
+    labs(y = "Abundance (reads)", x = "Taxonomic Group") +
+    scale_y_log10()
+    
+print(p)
+```
+
+
+#### Differential abundance testing.      
+</br>
+Advanced methods of differential abundance testing based on linear regression are applied because sequencing data sets deviate from symmetric, continuous, Gaussian assumptions in many ways. Types of tests that were applied:
+
+- ANCOMBC (Analysis of Microbial Composition with Bias Correction).   
+- LEFse (LDA Effect Size).   
+- DESeq2.   
+- EdgeR. 
+- Combination of EdgeR and DESeq2.  
+
+</br>
+
+### ANCOM-BC {.tabset}
+
+ANCOM is claimed to produce the most consistent results and is probably a conservative approach. See +[here](https://www.nature.com/articles/s41467-022-28034-z) for more information. The method incorporates sampling fraction into the model which is estimated as the ratio of the library size to the microbial load. It also controls for the false discovery rate. For the analysis we will agglomerate features by Genus, we will eliminate any taxa that appear in below 10% of samples and we will correct the p-value with Bonferroni Hochberg correction method.  We will consider as significant only the taxa for which the q-value is below 0.05.
+
+See here for QIIME2 ANCOM Interactive Report run on ASV level, not on Genus level:
+[Interactive QIIME2 ANCOM](`r difabundance`){target="_blank"}
+
+
+```{r, echo=FALSE}
+res<- ANCOMBC::ancombc(phyloseq = physeq,
+                 formula = grouping, 
+                 tax_level = "Genus",
+                 p_adj_method = "BH", 
+                 lib_cut = 0, 
+                 prv_cut = 0.1,
+                 group = grouping, 
+                 struc_zero = TRUE, 
+                 neg_lb = TRUE, 
+                 tol = 1e-5, 
+                 max_iter = 100, 
+                 conserve = TRUE, 
+                 alpha = 0.05, 
+                 global = TRUE)
+```
+
+</br> 
+
+#### ANCOM-BC Primary Test Results
+
+Result from the ANCOM-BC log-linear model to determine taxa that are differentially abundant according to the covariate of interest. It contains: 1) log fold changes; 2) standard errors; 3) test statistics; 4) p-values; 5) adjusted p-values; 6) indicators whether the taxon is differentially abundant (TRUE) or not (FALSE).
+
+</br> 
+Lets look at table 6).Each group is compared to reference group and if the difference is significant the output is TRUE.
+
+```{r, echo=FALSE}
+res$res$diff_abn %>% datatable()
+```
+</br> 
+Lets look at table 1): the Log Fold Changes from the Primary Result.
+</br> 
+
+```{r, echo=FALSE}
+tab_lfc = res$res$lfc
+tab_lfc %>% datatable(caption = "Log Fold Changes from the Primary Result") %>% formatRound(colnames(tab_lfc)[-1], digits = 2)
+```
+</br> 
+Lets look at table 5): the adjusted p-values.
+</br> 
+
+```{r, echo=FALSE}
+tab_q = res$res$q_val
+tab_q %>% 
+  datatable(caption = "Adjusted p-values from the Primary Result") %>%
+  formatRound(colnames(tab_q)[-1], digits = 2)
+```
+</br> 
+Lets obtain bias-corrected abundances.    
+Step 1: obtain estimated sample-specific sampling fractions (in log scale).     
+Step 2: correct the log observed abundances by subtracting the estimated sampling fraction from log observed abundances of each sample.    
+</br> 
+Note that we are only able to estimate sampling fractions up to an additive constant. Thus, only the difference between bias-corrected abundances are meaningful.    
+</br> 
+```{r, echo=FALSE}
+samp_frac = res$samp_frac
+# Replace NA with 0
+samp_frac[is.na(samp_frac)] = 0 
+# Add pesudo-count (1) to avoid taking the log of 0
+log_obs_abn = log(res$feature_table + 1)
+# Adjust the log observed abundances
+log_corr_abn = t(t(log_obs_abn) - samp_frac)
+# Show the first 6 samples
+round(log_corr_abn[, 1:6], 2) %>% 
+  datatable(caption = "Bias-corrected log observed abundances")
+```
+</br> 
+Lets visualise log fold changes per grouping factor.
+</br> 
+```{r, fig.width = 6, fig.height=6, echo=FALSE}
+tab_lfc = data.frame(res$res$lfc[, -1] * res$res$diff_abn[, -1], check.names = FALSE) %>%
+  mutate(taxon_id = res$res$diff_abn$taxon) %>%
+  dplyr::select(taxon_id, everything())
+tab_se = data.frame(res$res$se[, -1] * res$res$diff_abn[, -1], check.names = FALSE) %>% 
+  mutate(taxon_id = res$res$diff_abn$taxon) %>%
+  dplyr::select(taxon_id, everything())
+colnames(tab_se)[-1] = paste0(colnames(tab_se)[-1], "SE")
+
+for (i in colnames(tab_lfc[,grep(grouping,colnames(tab_lfc))])) {
+  
+  tab_for_plot = tab_lfc %>% 
+  dplyr::left_join(tab_se, by = "taxon_id") %>%
+  dplyr::transmute(tab_lfc$taxon_id, tab_lfc[,i], tab_se[,paste0(i,"SE")]) %>% 
+    dplyr::rename("taxon_id" = 1, "fold_change" = 2, "SE" = 3) %>%
+    dplyr::filter(fold_change != 0) %>%
+    dplyr::arrange(desc(fold_change)) %>%
+    dplyr::mutate(direct = ifelse(fold_change > 0, "Positive LFC", "Negative LFC"))
+  tab_for_plot$taxon_id = factor(tab_for_plot$taxon_id, levels = tab_for_plot$taxon_id)
+  tab_for_plot$direct = factor(tab_for_plot$direct, 
+                        levels = c("Positive LFC", "Negative LFC"))
+  
+  print(ggplot(data = tab_for_plot, 
+         aes(x = taxon_id, y = fold_change, fill = direct, color = direct)) + 
+    geom_bar(stat = "identity", width = 0.7, 
+           position = position_dodge(width = 0.4)) +
+    geom_errorbar(aes(ymin = fold_change - SE, ymax = fold_change - SE), width = 0.2,
+                position = position_dodge(0.05), color = "black") + 
+    labs(x = NULL, y = "Log fold change", 
+       title = paste("Log fold changes as one unit increase of", "Group", strsplit(i,"Group")[[1]][[3]])) + 
+    scale_fill_discrete(name = NULL) +
+    scale_color_discrete(name = NULL) +
+    theme_bw() + 
+    theme(plot.title = element_text(hjust = 0.5),
+        panel.grid.minor.y = element_blank(),
+        axis.text.x = element_text(angle = 60, hjust = 1)))
+
+}
+```
+
+#### ANCOM-BC Global Test Results
+
+Result from the ANCOM-BC global test to determine taxa that are differentially abundant between at least two groups across three or more different groups. The result contains: 1) test statistics; 2) p-values; 3) adjusted p-values; 4) indicators whether the taxon is differentially abundant (TRUE) or not (FALSE).
+
+</br> 
+Lets look at table 1): the Test Statistic
+
+```{r, echo=FALSE}
+tab_w = res$res_global[, c("taxon", "W")]
+tab_w %>% datatable(caption = "Test Statistics 
+                    from the Global Test Result") %>%
+      formatRound(c("W"), digits = 2)
+```
+</br> 
+Lets look at table 3): the Adjusted P-values.
+</br> 
+
+```{r, echo=FALSE}
+tab_q = res$res_global[, c("taxon", "q_val")]
+tab_q %>% datatable(caption = "Adjusted p-values 
+                    from the Global Test Result") %>%
+      formatRound(c("q_val"), digits = 2)
+```
+</br> 
+Lets look at table 4): the differentially abundant taxa.
+</br> 
+
+```{r, echo=FALSE}
+tab_diff = res$res_global[, c("taxon", "diff_abn")]
+tab_diff %>% datatable(caption = "Differentially Abundant Taxa 
+                       from the Global Test Result")
+```
+
+</br> 
+Let's visualise the log fold changes of sample groups to reference group of globally significant taxa. 
+```{r, fig.width = 8, fig.height=5, echo=FALSE}
+sig_taxa = res$res_global %>%
+  dplyr::filter(diff_abn == TRUE) %>%
+  .$taxon
+
+df_sig = tab_lfc %>%
+    dplyr::select(-2) %>% rename_with(~str_remove(., 'Group')) %>%
+    filter(taxon_id %in% sig_taxa)
+
+df_sig2 = df_sig %>%
+    pivot_longer(cols = -one_of("taxon_id"),
+                 names_to = "region", values_to = "value") %>%
+    mutate(value = round(value, 2))
+df_sig2$taxon_id = factor(df_sig2$taxon_id, levels = sort(sig_taxa))
+
+lo = floor(min(df_sig2$value))
+up = ceiling(max(df_sig2$value))
+mid = (lo + up)/2
+p_sig = df_sig2 %>%
+  ggplot(aes(x = region, y = taxon_id, fill = value)) + 
+  geom_tile(color = "black") +
+  scale_fill_gradient2(low = "blue", high = "red", mid = "white", 
+                       na.value = "white", midpoint = mid, limit = c(lo, up),
+                       name = NULL) +
+  geom_text(aes(region, taxon_id, label = value), color = "black", size = 4) +
+  labs(x = NULL, y = NULL, 
+       title = "Log fold changes for globally significant taxa") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5))
+p_sig
+```
+
+</br> 
+
+### LEFse results. {.tabset}   
+
+LDA Effect Size (LEfSe) method for microbiome biomarker discovery uses the Kruskal-Wallis test, Wilcoxon-Rank Sum test, and Linear Discriminant Analysis to find biomarkers of the predefined groups. A p-value of < 0.05 and a score ≥ 2.0 are considered significant in Kruskal–Wallis and pairwise Wilcoxon tests, respectively. Analysis is done doing a comparison for each group vs all. Significant LDA scores are displayed. 
+
+```{r, echo=FALSE}
 mm_lefse <- run_lefse(
-  ps = physeq,
+  ps = physeq1,
   kw_cutoff = 0.05,
   wilcoxon_cutoff = 0.05,
-  group = "Group",
+  group = grouping,
   multigrp_strat = FALSE, #I am using here each group against all instead of pairwise between groups
   lda_cutoff = 2,
   taxa_rank = "all"
@@ -222,10 +989,166 @@ plotGrob <- plot_grid(p1, p2, nrow=2, ncol=1, byrow=FALSE)
 print(plot_grid(plotGrob, nrow=1, ncol=1, rel_heights=c(1, 15)))
 ```
 
-### DESeq2/EdgeR results
+### DESeq2/EdgeR results {.tabset}
 
-Differential abundance on microbiome data can also be done using DESeq2 or EdgeR. The significance test for Deseq2 is Wald, pvalues are corrected using Bonferroni correction, significance threshold used is 0.05. For edgeR "Relative Log Expression” normalization is applied to the data and a GLM model is fit, pvalues are corrected using Bonferroni correction, significance threshold used is 0.01. 
+Differential abundance on microbiome data can also be done using DESeq2 or EdgeR. The significance test for Deseq2 is Wald, p-values are corrected using Bonferroni correction, significance threshold used is 0.05. For edgeR "Relative Log Expression” normalization is applied to the data and a GLM model is fit, p-values are corrected using Bonferroni correction, significance threshold used is 0.01. 
 
-### DESeq2 by Group
-- Scatterplot.   
-- Volcano plot showing under- (negative log fold change) and over-represented (positive log fold change) in Isolated compared to Grouped. 
+#### DESeq2 by Group.  
+
+P-value and LogFC distribution. 
+
+```{r, echo=FALSE}
+Group = get_variable(physeq1, grouping)
+ds2 = phyloseq_to_deseq2(physeq1, ~0 + Group)
+ds2 = DESeq(ds2, test="Wald", fitType="mean")
+
+contrasts = length(unique(metadata[,grouping]))*(length(unique(metadata[,grouping])) - 1)/2
+levels = c(unique(metadata[,grouping]))    
+comparisons = combn(levels,2, simplify = FALSE)
+
+reses = list()
+for (i in comparisons){
+  a = as.character(i[1])
+  b = as.character(i[2])
+  con = c(grouping, a, b)
+  res <- as.data.frame(results(ds2, contrast = c(grouping, a, b), cooksCutoff = FALSE))
+  res$log10p <- -(log10(res$pvalue))
+  res = cbind(as(res, "data.frame"), as(tax_table(physeq1)[rownames(res), ], "matrix")) 
+  res$contrast = paste0(a,"-", b)
+  reses = rbind(reses,res)
+}
+reses <- reses[!duplicated(reses),]
+sigtab = reses[which(reses$padj < 0.01), ]
+
+#Plot a scatterplot summary of significant taxa 
+theme_set(theme_bw())
+scale_fill_discrete <- function(palname = "Set1", ...) {
+  scale_fill_brewer(palette = palname, ...)
+}
+# Phylum order
+x = tapply(sigtab$log2FoldChange, sigtab$Phylum, function(x) max(x))
+x = sort(x, TRUE)
+sigtab$Phylum = factor(as.character(sigtab$Phylum), levels=names(x))
+
+# Genus order
+x = tapply(sigtab$log2FoldChange, sigtab$Genus, function(x) max(x))
+x = sort(x, TRUE)
+sigtab$Genus = factor(as.character(sigtab$Genus), levels=names(x))
+
+p2 <- ggplot(reses, aes(x=log2FoldChange)) + geom_histogram() + facet_wrap(~ reses$contrast, ncol = 3)
+p3 <- ggplot(reses, aes(x=pvalue)) + geom_histogram() + facet_wrap(~ reses$contrast, ncol = 3)
+
+plotGrob <- plot_grid(p2, p3, nrow=2, ncol=1, byrow=FALSE)
+print(plot_grid(plotGrob, nrow=1, ncol=1, rel_heights=c(1, 25)))
+
+```
+
+#### EdgeR by Group. 
+
+P-value and LogFC distribution. 
+
+```{r, echo=FALSE}
+# Let's see how edgeR compares/overlaps
+Group = get_variable(physeq1, grouping)
+design = model.matrix(~ 0 + Group)
+dge = as(otu_table(physeq1), "matrix") + 1L
+taxonomy = data.frame(as.data.frame(tax_table(physeq1)), "matrix")
+dge = DGEList(counts = dge, group = Group, genes = taxonomy, remove.zeros = TRUE)
+dge = calcNormFactors(dge, method="RLE")
+dge = estimateGLMCommonDisp(dge, design)
+dge = estimateGLMTrendedDisp(dge, design)
+dge = estimateGLMTagwiseDisp(dge, design)
+fit <- glmFit(dge, design)
+
+levels = c(unique(metadata[,grouping]))    
+comparisons = combn(levels,2, simplify = FALSE)
+
+resEdgeRall <- data.frame()
+
+for (i in comparisons){
+  myargs = list(
+  paste0(paste0("Group", i[1]), "-" ,paste0("Group", i[2])),
+  levels = design)
+  my.contrasts <- do.call(makeContrasts, myargs)
+  lrt <- glmLRT(fit, contrast = my.contrasts) #fit the model
+  resEdgeR = topTags(lrt, n = nrow(dge), adjust.method="BH", sort.by="PValue") #correct pvalue with BH
+  resEdgeR = resEdgeR@.Data[[1]]
+  resEdgeR <- rownames_to_column(resEdgeR, "ASV")
+  resEdgeR$log10p <- -(log10(resEdgeR$PValue))
+  resEdgeR$contrast <- paste0(as.character(i[1]),"-", as.character(i[2]))
+  resEdgeRall <- rbind(resEdgeRall, resEdgeR)
+}
+
+resEdgeRall <- resEdgeRall[!duplicated(resEdgeRall),]
+resEdgeRallsig <- resEdgeRall[which(resEdgeRall$FDR <= 0.01), ]
+
+p2 <- ggplot(resEdgeRall, aes(x=logFC)) + geom_histogram() + facet_wrap(~ resEdgeRall$contrast, ncol = 3)
+p3 <- ggplot(resEdgeRall, aes(x=PValue)) + geom_histogram() + facet_wrap(~ resEdgeRall$contrast, ncol = 3)
+
+plotGrob <- plot_grid(p2, p3, nrow=2, ncol=1, byrow=FALSE)
+print(plot_grid(plotGrob, nrow=1, ncol=1, rel_heights=c(1, 25)))
+
+```
+
+
+#### Combined DESeq2 and EdgeR results.
+
+</br>
+How much do the two analyses overlap?
+</br>
+
+```{r, echo=FALSE}
+ggs <- lapply(sort(unique(sigtab$contrast)), function(crb) {
+  ggvenn::ggvenn(data = list("DESeq2" = rownames(filter(sigtab, contrast == crb)), "edgeR" = filter(resEdgeRallsig, contrast == crb)$ASV), text_size = 2) + theme(text = element_text(size=10,  family="Comic Sans MS")) + ggtitle(crb)
+})
+
+if (length(comparisons) > 1) {
+  print(ggarrange(plotlist = ggs, nrow=(length(comparisons)/2), ncol=2))
+} else {
+   print(ggarrange(plotlist = ggs, nrow=1, ncol=1))
+}
+
+```
+</br>
+- Scatter plots showing the significant (p<0.01) log2 fold change in abundance of different taxa between the reference group and sample group. If sample groups are missing, that means there are no significant differentially abundant taxa between them.   
+- Volcano plot showing under- (negative log fold change) and over- (positive log fold change) represented taxa between reference group and sample group
+</br>
+
+```{r, echo=FALSE}
+theme_set(theme_bw())
+scale_fill_discrete <- function(palname = "Set1", ...) {
+  scale_fill_brewer(palette = palname, ...)
+}
+
+res_deseq_edger_sig = data.frame()
+for (i in unique(sigtab$contrast)) {
+  df = filter(sigtab[sigtab$contrast == i,], rownames(sigtab[sigtab$contrast == i,]) %in% resEdgeRallsig[resEdgeRallsig$contrast == i,]$ASV)
+  res_deseq_edger_sig=rbind(res_deseq_edger_sig, df)
+}
+
+
+#plot
+g1 = ggplot(res_deseq_edger_sig, aes(x=Genus, y=log2FoldChange, color=Phylum)) + geom_point(size=3) + facet_wrap(~ res_deseq_edger_sig$contrast, ncol = 3) +
+  theme(axis.text.x = element_text(angle = -90, hjust = 0, vjust=0.5)) + ggtitle("Plots per group")
+
+reses <- reses %>% mutate(Significant=if_else(reses$padj < 0.01, TRUE, FALSE)) %>%
+  mutate(TaxonToPrint=if_else(reses$padj < 0.01, as.character(Genus), ""))
+
+res_deseq_edger = data.frame()
+for (i in unique(reses$contrast)) {
+  df = filter(reses[reses$contrast == i,], rownames(reses[reses$contrast == i,]) %in% resEdgeRall[resEdgeRall$contrast == i,]$ASV)
+  res_deseq_edger=rbind(res_deseq_edger, df)
+}
+
+g2 <- ggplot(res_deseq_edger, aes(x=log2FoldChange, y=log10p, color=Significant, label=TaxonToPrint)) +
+  geom_text_repel(size=4, nudge_y=0.05) +
+  geom_point(alpha=0.6, shape=16) +
+  theme_q2r() +
+  facet_wrap(~ res_deseq_edger$contrast, ncol = 3) +
+  xlab("log2(fold change)") +
+  ylab("-log10(P-value)") +
+  theme(legend.position="none") +
+  scale_color_manual(values=c("black","red")) + ggtitle("Vulcano plots per group")
+
+plotGrob <- plot_grid(g1, g2, nrow=2, ncol=1, byrow=FALSE)
+print(plot_grid(plotGrob, nrow=1, ncol=1, rel_heights=c(1, 25)))
