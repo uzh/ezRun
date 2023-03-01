@@ -402,19 +402,6 @@ print(plot_grid(plotGrob, nrow=1, ncol=1, rel_heights=c(1, 15)))
 
 ## Alpha diversity
 
-### Rareify or not to rareify
-
-We do not rareify the data as there have been arguments in the literature against doing so. 
-Rarefiying:     
-+ requires an arbitrary selection of a library size minimum threshold,    
-+ implies getting rid of informative data and       
-+ has been shown to cause adds artificial uncertainty      
-+ as well as an increase in Type-I and Type-II error.     
-
-If you would like to know more, read the following publication:
-+[Waste Not, Want Not: Why Rarefying Microbiome Data Is Inadmissible](https://journals.plos.org/ploscompbiol/article?id=10.1371/journal.pcbi.1003531)
-
-
 ### Rarefaction curve
 
 If we did want to rarefy, lets look at what we could expect from the data: 
@@ -760,6 +747,17 @@ p <- ggplot(A, aes(x = Var1, y = value)) +
 print(p)
 ```
 
+#### Rareify or not to rareify
+
+We do not rareify the data as there have been arguments in the literature against doing so. 
+Rarefiying:     
++ requires an arbitrary selection of a library size minimum threshold,    
++ implies getting rid of informative data and       
++ has been shown to cause adds artificial uncertainty      
++ as well as an increase in Type-I and Type-II error.     
+
+If you would like to know more, read the following publication:
++[Waste Not, Want Not: Why Rarefying Microbiome Data Is Inadmissible](https://journals.plos.org/ploscompbiol/article?id=10.1371/journal.pcbi.1003531)
 
 #### Differential abundance testing.      
 </br>
@@ -770,6 +768,8 @@ Advanced methods of differential abundance testing based on linear regression ar
 - DESeq2.   
 - EdgeR. 
 - Combination of EdgeR and DESeq2.  
+
+
 
 </br>
 

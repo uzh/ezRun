@@ -13,6 +13,7 @@ ezMethodQIIME2 = function(input=NA, output=NA, param=NA,
   require(data.table)
   require(here)
   require(tidyverse)
+  require(qiime2R)
   dataset = input$meta
   sampleNames = input$getNames() 
   isPaired <- param$paired
@@ -116,13 +117,12 @@ ezMethodQIIME2 = function(input=NA, output=NA, param=NA,
   unifracmatrix <- read_qza("core-metrics-results/weighted_unifrac_distance_matrix.qza")
   metadata <- read_q2metadata("sample_metadata.tsv")
   
-  setwdNew(basename(output$getColumn("Static Report")))
-  markdownFile <- "Qiime2Report.Rmd"
+  setwdNew(basename(output$getColumn("ResultDir")))
   ## Copy the style files and templates
   makeRmdReport(param=param, physeq = physeq, metadata = metadata, dada2 = dada2, shannon = shannon,
                 evenness = evenness, richness = richness, jaccard = jaccard, jaccardmatrix = jaccardmatrix,
                 bray = bray, braymatrix = braymatrix, unifrac = unifrac, unifracmatrix = unifracmatrix
-                output=output, rmdFile = markdownFile, reportTitle = "QIIME2 Static Report")
+                output=output, rmdFile = "Qiime2Report.Rmd", reportTitle = "QIIME2 Static Report")
   
   
   return("Success")
