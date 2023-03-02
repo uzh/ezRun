@@ -46,6 +46,7 @@ library(ggvenn)
 library(microbiome)
 library(RColorBrewer)
 library(ComplexHeatmap)
+library(DT)
 ```
 
 
@@ -64,20 +65,27 @@ physeq_Species = tax_glom(physeq1, "Species", NArm = TRUE)
 physeq_Species2 = transform_sample_counts(physeq_Species, function(x){x / sum(x)})
 
 dada2 <- readRDS("dada2.rds")
-metadata<-readRDS("sample_metadata.rds")
+metadata<-readRDS("metadata.rds")
+colnames(metadata) <- c("SampleID", "Group")
 shannon<-readRDS("shannon.rds")
 evenness<-readRDS("evenness.rds")
 richness<-readRDS("richness.rds")
+shannon<-shannon$data %>% rownames_to_column("SampleID")
+richness<- richness$data %>% rownames_to_column("SampleID")
+evenness<- evenness$data %>% rownames_to_column("SampleID") 
 jaccard<-readRDS("jaccard.rds")
 jaccardmatrix <- readRDS("jaccardmatrix.rds")
+jaccardmatrix <- as.matrix(jaccardmatrix$data)
 bray<-readRDS("bray.rds")
 braymatrix <- readRDS("braymatrix.rds")
+braymatrix <- as.matrix(braymatrix$data)
 unifrac <- readRDS("unifrac.rds")
 unifracmatrix <- readRDS("unifracmatrix.rds")
+unifracmatrix <- as.matrix(unifracmatrix$data)
 
 #Define grouping parameter
 params = readRDS("param.rds")
-grouping <- params$grouping
+grouping <- "Group"
 
 
 #Reports
@@ -218,7 +226,7 @@ Now let's create a separate Phyloseq object where the ASVs have all been agglome
 
 </br>
 
-```{r, fig.width = 12, fig.height = 5, echo=FALSE}
+```{r, fig.width = 12, fig.height = 8, echo=FALSE}
 SVs<-as.data.frame(otu_table(physeq_Genus))
 taxonomy<-as.data.frame(tax_table(physeq_Genus))
 taxonomy$Feature.ID <- rownames(taxonomy)
@@ -420,9 +428,6 @@ See here for QIIME2 Interactive Report:
 
 ```{r, fig.width = 9, fig.height = 5, echo=FALSE}
 #Shannon diversity boxplots
-shannon<-shannon$data %>% rownames_to_column("SampleID")
-richness<- richness$data %>% rownames_to_column("SampleID")
-evenness<- evenness$data %>% rownames_to_column("SampleID") 
 metadata <- metadata %>% left_join(shannon) %>% left_join(richness) %>% left_join(evenness)
 
 
@@ -486,7 +491,7 @@ fig4
 
 ```{r, fig.width = 9, fig.height = 5, echo=FALSE}
 metadata_melt <- reshape2::melt(metadata)
-lev <- levels(metadata_melt$Group) # get the variables
+lev <- levels(as.factor(metadata_melt$Group)) # get the variables
 
 # make a pairwise list that we want to compare.
 L.pairs <- combn(seq_along(lev), 2, simplify = FALSE, FUN = function(i) lev[i])
@@ -529,7 +534,11 @@ knitr::knit_print(paste("Global Kruskal-Wallis p-value = ", round(m$p.value,4)))
 #### Kruskal-Wallis (pairwise)
 
 ```{r, echo=FALSE}
-kable(wilcox_test(data = metadata, formula = as.formula(paste("shannon_entropy", "~", "Group")), p.adjust.method = "BH")[,c("group1", "group2", "n1", "n2", "statistic", "p", "p.adj", "p.adj.signif")]) %>% kable_styling()
+if (length(levels(as.factor(metadata$Group))) > 2){
+  kable(wilcox_test(data = metadata, formula = as.formula(paste("shannon_entropy", "~", "Group")), p.adjust.method = "BH")[,c("group1", "group2", "n1", "n2", "statistic", "p", "p.adj", "p.adj.signif")]) %>% kable_styling()
+} else {
+  kable(pairwise_wilcox_test(data = metadata, formula = as.formula(paste("shannon_entropy", "~", "Group")), p.adjust.method = "BH")[,c("group1", "group2", "n1", "n2", "statistic", "p", "p.adj", "p.adj.signif")]) %>% kable_styling()
+}
 ```
 
 </br>
@@ -548,8 +557,8 @@ See here for QIIME2 Interactive Report:
 #### Bar plot 
 
 ```{r, fig.height = 5, fid.width = 8, echo=FALSE}
-xy <- t(combn(colnames(as.matrix(jaccardmatrix$data)),2))
-jaccard_distance <- data.frame(xy, dist=as.matrix(jaccardmatrix$data)[xy])
+xy <- t(combn(colnames(jaccardmatrix),2))
+jaccard_distance <- data.frame(xy, dist=jaccardmatrix[xy])
 colnames(jaccard_distance) <- c("Sample1", "Sample2", "dist")
 jaccard_distance <- jaccard_distance %>% mutate(SampleID = Sample1) %>% left_join(metadata) %>% mutate(GroupA = Group) %>% select(c(Sample1,Sample2,dist, GroupA)) %>% mutate(SampleID=Sample2)  %>% left_join(metadata) %>% mutate(GroupB = Group) %>% select(c(Sample1,Sample2,dist, GroupA, GroupB))
 
@@ -561,9 +570,6 @@ p1
 #### PCoA 
 
 ```{r, fig.height = 5, fid.width = 5, echo=FALSE}
-metadata$SampleID <- as.integer(metadata$SampleID)
-shannon$SampleID <- as.integer(shannon$SampleID)
-
 jaccard <- jaccard$data$Vectors %>% select(SampleID, PC1, PC2) %>% left_join(metadata) %>% left_join(shannon) 
 
 #jaccard$data$Vectors %>%
@@ -587,9 +593,11 @@ ggplot(jaccard, aes(x=PC1, y=PC2, color=jaccard[,grouping])) +
 #### Permanova results 
 
 ```{r, echo=FALSE}
-permanova <- adonis2(jaccardmatrix$data ~ metadata$Group, permutations = 999, method = "jaccard")
+metadata2 <- metadata[metadata$SampleID %in% rownames(jaccardmatrix),]
+permanova <- adonis2(jaccardmatrix ~ metadata2$Group, permutations = 999, method = "jaccard")
 knitr::knit_print(paste0("Global PERMANOVA p-value = ", permanova$`Pr(>F)`[1]))
-kable(pairwise.adonis(jaccardmatrix$data, metadata$Group, perm = 999, sim.method = "bray")[,c("pairs", "p.value", "p.adjusted", "sig")] %>% mutate(significance = sig) %>% select(c("pairs", "p.value", "p.adjusted", "significance"))) %>% kable_styling()
+knitr::knit_print(paste0("Global PERMANOVA F-statistic = ", round(permanova$F[1],2)))
+kable(pairwise.adonis(jaccardmatrix, metadata2$Group, perm = 999, sim.method = "bray")[,c("pairs", "SumsOfSqs", "F.Model", "R2", "p.value", "p.adjusted", "sig")] %>% mutate(significance = sig) %>% select(c("pairs", "SumsOfSqs", "F.Model", "R2", "p.value", "p.adjusted","significance"))) %>% kable_styling()
 ```
 
 ### Bray Curtis Dissimilarity. {.tabset}
@@ -601,9 +609,8 @@ See here for QIIME2 Interactive Report:
 #### Barplot
 
 ```{r, fig.height = 5, fid.width = 8, echo=FALSE}
-metadata$SampleID <- as.character(metadata$SampleID)
-bc <- t(combn(colnames(as.matrix(braymatrix$data)),2))
-bray_distance <- data.frame(bc, dist=as.matrix(braymatrix$data)[bc])
+bc <- t(combn(colnames(braymatrix),2))
+bray_distance <- data.frame(bc, dist=braymatrix[bc])
 colnames(bray_distance) <- c("Sample1", "Sample2", "dist")
 bray_distance <- bray_distance %>% mutate(SampleID = Sample1) %>% left_join(metadata) %>% mutate(GroupA = Group) %>% select(c(Sample1,Sample2,dist, GroupA)) %>% mutate(SampleID=Sample2)  %>% left_join(metadata) %>% mutate(GroupB = Group) %>% select(c(Sample1,Sample2,dist, GroupA, GroupB))
 
@@ -616,9 +623,6 @@ p1
 #### PCoA 
 
 ```{r, fig.height = 5, fid.width = 5, echo=FALSE}
-metadata$SampleID <- as.integer(metadata$SampleID)
-shannon$SampleID <- as.integer(shannon$SampleID)
-
 bray <- bray$data$Vectors %>% select(SampleID, PC1, PC2) %>% left_join(metadata) %>% left_join(shannon)
 
 ggplot(bray, aes(x=PC1, y=PC2, color=bray[,grouping])) +
@@ -642,9 +646,10 @@ p
 #### Permanova results 
 
 ```{r, echo=FALSE}
-permanova <- adonis2(braymatrix$data ~ metadata$Group, permutations = 999, method = "bray")
-knitr::knit_print(paste("Global PERMANOVA p-value = ", permanova$`Pr(>F)`[1]))
-kable(pairwise.adonis(braymatrix$data, metadata$Group, perm = 999, sim.method = "bray")[,c("pairs", "p.value", "p.adjusted", "sig")] %>% mutate(significance = sig) %>% select(c("pairs", "p.value", "p.adjusted", "significance"))) %>% kable_styling()
+permanova <- adonis2(braymatrix ~ metadata2$Group, permutations = 999, method = "bray")
+knitr::knit_print(paste0("Global PERMANOVA p-value = ", permanova$`Pr(>F)`[1]))
+knitr::knit_print(paste0("Global PERMANOVA F-statistic = ", round(permanova$F[1],2)))
+kable(pairwise.adonis(braymatrix, metadata2$Group, perm = 999, sim.method = "bray")[,c("pairs", "SumsOfSqs", "F.Model", "R2", "p.value", "p.adjusted", "sig")] %>% mutate(significance = sig) %>% select(c("pairs", "SumsOfSqs", "F.Model", "R2", "p.value", "p.adjusted","significance"))) %>% kable_styling()
 ```
 
 ### Weighted UniFrac distance. {.tabset}
@@ -652,9 +657,8 @@ kable(pairwise.adonis(braymatrix$data, metadata$Group, perm = 999, sim.method = 
 #### Bar plot 
 
 ```{r, fig.height = 5, fid.width = 8, echo=FALSE}
-metadata$SampleID <- as.character(metadata$SampleID)
-bc <- t(combn(colnames(as.matrix(unifracmatrix$data)),2))
-unifrac_distance <- data.frame(bc, dist=as.matrix(unifracmatrix$data)[bc])
+bc <- t(combn(colnames(unifracmatrix),2))
+unifrac_distance <- data.frame(bc, dist=unifracmatrix[bc])
 colnames(unifrac_distance) <- c("Sample1", "Sample2", "dist")
 unifrac_distance <- unifrac_distance %>% mutate(SampleID = Sample1) %>% left_join(metadata) %>% mutate(GroupA = Group) %>% select(c(Sample1,Sample2,dist, GroupA)) %>% mutate(SampleID=Sample2)  %>% left_join(metadata) %>% mutate(GroupB = Group) %>% select(c(Sample1,Sample2,dist, GroupA, GroupB))
 
@@ -667,9 +671,6 @@ p1
 #### PCoA 
 
 ```{r, fig.height = 5, fid.width = 5, echo=FALSE}
-metadata$SampleID <- as.integer(metadata$SampleID)
-shannon$SampleID <- as.integer(shannon$SampleID)
-
 unifrac <- unifrac$data$Vectors %>% select(SampleID, PC1, PC2) %>% left_join(metadata) %>% left_join(shannon)
 
 ggplot(unifrac, aes(x=PC1, y=PC2, color=unifrac[,grouping])) +
@@ -681,15 +682,16 @@ ggplot(unifrac, aes(x=PC1, y=PC2, color=unifrac[,grouping])) +
 #### Permanova results 
 
 ```{r, echo=FALSE}
-permanova <- adonis2(unifracmatrix$data ~ metadata$Group, permutations = 999, method = "uni")
-knitr::knit_print(paste("Global PERMANOVA p-value = ", permanova$`Pr(>F)`[1]))
-kable(pairwise.adonis(braymatrix$data, metadata$Group, perm = 999, sim.method = "bray")[,c("pairs", "p.value", "p.adjusted", "sig")] %>% mutate(significance = sig) %>% select(c("pairs", "p.value", "p.adjusted", "significance"))) %>% kable_styling()
+permanova <- adonis2(unifracmatrix ~ metadata2$Group, permutations = 999, method = "uni")
+knitr::knit_print(paste0("Global PERMANOVA p-value = ", permanova$`Pr(>F)`[1]))
+knitr::knit_print(paste0("Global PERMANOVA F-statistic = ", round(permanova$F[1],2)))
+kable(pairwise.adonis(unifracmatrix, metadata2$Group, perm = 999, sim.method = "bray")[,c("pairs", "SumsOfSqs", "F.Model", "R2", "p.value", "p.adjusted", "sig")] %>% mutate(significance = sig) %>% select(c("pairs", "SumsOfSqs", "F.Model", "R2", "p.value", "p.adjusted","significance"))) %>% kable_styling()
 ```
 
 #### Homogeneity of variance 
 
 ```{r, echo=FALSE}
-dispersion <- betadisper(unifracmatrix$data, metadata$Group)
+dispersion <- betadisper(as.dist(unifracmatrix), metadata2$Group)
 permutest(dispersion, pairwise = TRUE)
 ```
 
@@ -733,7 +735,7 @@ hist(log10abundance, 100)
 
 #### Rarity.      
 </br>
-Do we see tails of rare taxa?
+Do we see a lot of rare taxa?
 
 ```{r, fig.width = 5, fig.height = 5, echo=FALSE}
 medians <- apply(otu_table(physeq1),1,median)/1e3
@@ -892,40 +894,47 @@ for (i in colnames(tab_lfc[,grep(grouping,colnames(tab_lfc))])) {
 
 #### ANCOM-BC Global Test Results
 
-Result from the ANCOM-BC global test to determine taxa that are differentially abundant between at least two groups across three or more different groups. The result contains: 1) test statistics; 2) p-values; 3) adjusted p-values; 4) indicators whether the taxon is differentially abundant (TRUE) or not (FALSE).
+If you have more than 2 groups this will also be relevant to you. Result from the ANCOM-BC global test to determine taxa that are differentially abundant between at least two groups across three or more different groups. The result contains: 1) test statistics; 2) p-values; 3) adjusted p-values; 4) indicators whether the taxon is differentially abundant (TRUE) or not (FALSE).
 
 </br> 
 Lets look at table 1): the Test Statistic
 
 ```{r, echo=FALSE}
-tab_w = res$res_global[, c("taxon", "W")]
+if (length(levels(as.factor(metadata$Group))) > 2){
+  tab_w = res$res_global[, c("taxon", "W")]
 tab_w %>% datatable(caption = "Test Statistics 
                     from the Global Test Result") %>%
       formatRound(c("W"), digits = 2)
+} else { print("You only have 2 Groups")}
 ```
 </br> 
 Lets look at table 3): the Adjusted P-values.
 </br> 
 
 ```{r, echo=FALSE}
-tab_q = res$res_global[, c("taxon", "q_val")]
+if (length(levels(as.factor(metadata$Group))) > 2){
+  tab_q = res$res_global[, c("taxon", "q_val")]
 tab_q %>% datatable(caption = "Adjusted p-values 
                     from the Global Test Result") %>%
       formatRound(c("q_val"), digits = 2)
+} else { print("You only have 2 Groups")}
 ```
 </br> 
 Lets look at table 4): the differentially abundant taxa.
 </br> 
 
 ```{r, echo=FALSE}
+if (length(levels(as.factor(metadata$Group))) > 2){
 tab_diff = res$res_global[, c("taxon", "diff_abn")]
 tab_diff %>% datatable(caption = "Differentially Abundant Taxa 
                        from the Global Test Result")
+} else { print("You only have 2 Groups")}
 ```
 
 </br> 
 Let's visualise the log fold changes of sample groups to reference group of globally significant taxa. 
 ```{r, fig.width = 8, fig.height=5, echo=FALSE}
+if (length(levels(as.factor(metadata$Group))) > 2){
 sig_taxa = res$res_global %>%
   dplyr::filter(diff_abn == TRUE) %>%
   .$taxon
@@ -955,6 +964,7 @@ p_sig = df_sig2 %>%
   theme_minimal() +
   theme(plot.title = element_text(hjust = 0.5))
 p_sig
+} else { print("You only have 2 Groups")}
 ```
 
 </br> 
@@ -963,16 +973,27 @@ p_sig
 
 LDA Effect Size (LEfSe) method for microbiome biomarker discovery uses the Kruskal-Wallis test, Wilcoxon-Rank Sum test, and Linear Discriminant Analysis to find biomarkers of the predefined groups. A p-value of < 0.05 and a score ≥ 2.0 are considered significant in Kruskal–Wallis and pairwise Wilcoxon tests, respectively. Analysis is done doing a comparison for each group vs all. Significant LDA scores are displayed. 
 
-```{r, echo=FALSE}
-mm_lefse <- run_lefse(
-  ps = physeq1,
-  kw_cutoff = 0.05,
-  wilcoxon_cutoff = 0.05,
-  group = grouping,
-  multigrp_strat = FALSE, #I am using here each group against all instead of pairwise between groups
-  lda_cutoff = 2,
-  taxa_rank = "all"
-)
+```{r, fig.width=8, fig.height=8}
+if (length(levels(as.factor(metadata$Group))) > 2){
+  mm_lefse <- run_lefse(
+    ps = physeq1,
+    kw_cutoff = 0.05,
+    wilcoxon_cutoff = 0.05,
+    group = grouping,
+    multigrp_strat = FALSE, #I am using here each group against all instead of pairwise between groups
+    lda_cutoff = 2,
+    taxa_rank = "all"
+  )} else {
+    mm_lefse<- run_lefse(
+    ps = physeq1,
+    kw_cutoff = 0.05,
+    wilcoxon_cutoff = 0.05,
+    group = grouping,
+    multigrp_strat = TRUE, #I am using here each group against all instead of pairwise between groups
+    lda_cutoff = 2,
+    taxa_rank = "all"
+  )
+  }
 lefseDF <- as.data.frame(marker_table(mm_lefse))
 lefseDF$log10p <- -log10(lefseDF$padj)
 lefseDF <- lefseDF[order(lefseDF$enrich_group),]
@@ -982,16 +1003,15 @@ i = length(unique(df$enrich_group))
 list_of_colours = c(viridis_pal(option = "D")(i))
 
 p1 <- plot_ef_dot(mm_lefse)+ scale_color_manual(values=list_of_colours)
-p2 <- plot_cladogram(mm_lefse, color = list_of_colours) +
-  theme(plot.margin = margin(0, 0, 0, 0))
+#p2 <- plot_cladogram(mm_lefse, color = list_of_colours, annotation_shape = 15) +
+#  theme(plot.margin = margin(0, 0, 0, 0))
 
-plotGrob <- plot_grid(p1, p2, nrow=2, ncol=1, byrow=FALSE)
-print(plot_grid(plotGrob, nrow=1, ncol=1, rel_heights=c(1, 15)))
+print(p1)
 ```
 
 ### DESeq2/EdgeR results {.tabset}
 
-Differential abundance on microbiome data can also be done using DESeq2 or EdgeR. The significance test for Deseq2 is Wald, p-values are corrected using Bonferroni correction, significance threshold used is 0.05. For edgeR "Relative Log Expression” normalization is applied to the data and a GLM model is fit, p-values are corrected using Bonferroni correction, significance threshold used is 0.01. 
+Differential abundance on microbiome data can also be done using DESeq2 or EdgeR. First we convert the filtered phyloseq object into a deseq2 object. phyloseq_to_deseq2() no longer adds pseudocount to the data and a lot of sparsely sampled OTUs can lead to errors. Therefore we first calculate geometric means, then we estimate size factors and then run DESeq2. The significance test for DESeq2 is Wald, p-values are corrected using Bonferroni correction, significance threshold used is 0.05. For edgeR, "Relative Log Expression” normalization is applied to the data and a GLM model is fit, p-values are corrected using Bonferroni correction, significance threshold used is 0.01. For final results I combine both analyses.
 
 #### DESeq2 by Group.  
 
@@ -1000,7 +1020,16 @@ P-value and LogFC distribution.
 ```{r, echo=FALSE}
 Group = get_variable(physeq1, grouping)
 ds2 = phyloseq_to_deseq2(physeq1, ~0 + Group)
-ds2 = DESeq(ds2, test="Wald", fitType="mean")
+#phyloseq_to_deseq2() no longer adds pseudocount to the data a lot of sparsely sampled OTUs can lead to errors. I therefore implement this solution: https://github.com/joey711/phyloseq/issues/387
+# calculate geometric means prior to estimate size factors
+gm_mean = function(x, na.rm=TRUE){
+  exp(sum(log(x[x > 0]), na.rm=na.rm) / length(x))
+}
+geoMeans = apply(counts(ds2), 1, gm_mean)
+# estimate size factors
+ds2 = estimateSizeFactors(ds2, geoMeans = geoMeans)
+#run deseq
+ds2 = DESeq(ds2, test="Wald", fitType="local")
 
 contrasts = length(unique(metadata[,grouping]))*(length(unique(metadata[,grouping])) - 1)/2
 levels = c(unique(metadata[,grouping]))    
@@ -1152,3 +1181,4 @@ g2 <- ggplot(res_deseq_edger, aes(x=log2FoldChange, y=log10p, color=Significant,
 
 plotGrob <- plot_grid(g1, g2, nrow=2, ncol=1, byrow=FALSE)
 print(plot_grid(plotGrob, nrow=1, ncol=1, rel_heights=c(1, 25)))
+```

@@ -115,7 +115,7 @@ ezMethodQIIME2 = function(input=NA, output=NA, param=NA,
   braymatrix <- read_qza("core-metrics-results/bray_curtis_distance_matrix.qza")
   unifrac <- read_qza("core-metrics-results/weighted_unifrac_pcoa_results.qza")
   unifracmatrix <- read_qza("core-metrics-results/weighted_unifrac_distance_matrix.qza")
-  metadata <- sample_metadata
+  metadata <- read.table("sample_metadata.tsv", header = TRUE)
   
   setwdNew(basename(output$getColumn("ResultDir")))
   ## Copy the style files and templates
