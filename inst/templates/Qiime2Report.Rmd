@@ -89,18 +89,18 @@ grouping <- "Group"
 
 
 #Reports
-demux <-output$getColumn("Demux Report")
-denoise <-output$getColumn("Denoising stats")
-asv_table <-output$getColumn("Feature Table")
-rep_seqs <-output$getColumn("Rep Seqs Report")
-taxbarplot <-output$getColumn("Taxonomy Barplot")
-shannon_report <-output$getColumn("Shannon Diversity")
-jaccard_report <-output$getColumn("Jaccard Diversity")
-bc_report <-output$getColumn("Bray Curtis Diversity")
-jaccard_pca <-output$getColumn("Jaccard Emperor Plot")
-bc_pca <-output$getColumn("Bray Curtis Emperor Plot")
-alpha_raref <-output$getColumn("Alpha Rarefaction")
-difabundance <-output$getColumn("Differential Abundance")
+demux <-"./demux_seqs.qzv.zip.folder/data/index.html"
+denoise <- "./dada2_denoising_stats.qzv.zip.folder/data/index.html"
+asv_table <- "./table.qzv.zip.folder/data/index.html"
+rep_seqs <- "./dada2_rep_set.qzv.zip.folder/data/index.html"
+taxbarplot <- "./taxa-bar-plots.qzv.zip.folder/data/index.html"
+shannon_report <- "./shannon_group_significance.qzv.zip.folder/data/index.html"
+jaccard_report <- "./jaccard_group_significance.qzv.zip.folder/data/index.html"
+bc_report <- "./bray_curtis_group_significance.qzv.zip.folder/data/index.html"
+jaccard_pca <- "./jaccard_emperor_plot.qzv.zip.folder/data/index.html"
+bc_pca <- "./bray_curtis_emperor_plot.qzv.zip.folder/data/index.html"
+alpha_raref <- "./alpha-rarefaction.qzv.zip.folder/data/index.html"
+difabundance <- "./ancom_group.qzv.zip.folder/data/index.html"
 ```
 
 
@@ -124,8 +124,10 @@ print(ps0_tax_plot)
 
 #### Read filtering.  
 And here you can find the number of reads filtered at each stage and the final number of reads that remained after denoising (number of ASVs).
-For more info look at the two QIIME2 interactive reports.     
+For more info look at the two QIIME2 interactive reports. 
+</br>
 [Interactive QIIME2 Report Data QC](`r demux`){target="_blank"}
+</br>
 [Interactive QIIME2 Report Denoising Stats](`r denoise`){target="_blank"}
 
 </br>
@@ -412,7 +414,7 @@ print(plot_grid(plotGrob, nrow=1, ncol=1, rel_heights=c(1, 15)))
 
 ### Rarefaction curve
 
-If we did want to rarefy, lets look at what we could expect from the data: 
+We rarified the data before calculating alpha and beta diversity. Lets see if the threshold we applied was reasonable and what we could expect from the data if we rarefied at different depth: 
 
 ```{r, fig.width = 5, fig.height = 5, echo=FALSE}
 otu_tab <- t(abundances(physeq1))
@@ -552,7 +554,9 @@ See here for QIIME2 Interactive Report:
 
 See here for QIIME2 Interactive Report:
 [Interactive QIIME2 Jaccard](`r jaccard_report`){target="_blank"}
+</br>
 [Interactive QIIME2 3D PCA](`r jaccard_pca`){target="_blank"}
+</br>
 
 #### Bar plot 
 
@@ -604,7 +608,9 @@ kable(pairwise.adonis(jaccardmatrix, metadata2$Group, perm = 999, sim.method = "
 
 See here for QIIME2 Interactive Report:
 [Interactive QIIME2 BrayCurtis](`r bc_report`){target="_blank"}
+</br>
 [Interactive QIIME2 3D PCA](`r bc_pca`){target="_blank"}
+</br>
 
 #### Barplot
 
@@ -852,7 +858,7 @@ round(log_corr_abn[, 1:6], 2) %>%
 </br> 
 Lets visualise log fold changes per grouping factor.
 </br> 
-```{r, fig.width = 6, fig.height=6, echo=FALSE}
+```{r, fig.width = 8, fig.height=6, echo=FALSE}
 tab_lfc = data.frame(res$res$lfc[, -1] * res$res$diff_abn[, -1], check.names = FALSE) %>%
   mutate(taxon_id = res$res$diff_abn$taxon) %>%
   dplyr::select(taxon_id, everything())
@@ -861,11 +867,11 @@ tab_se = data.frame(res$res$se[, -1] * res$res$diff_abn[, -1], check.names = FAL
   dplyr::select(taxon_id, everything())
 colnames(tab_se)[-1] = paste0(colnames(tab_se)[-1], "SE")
 
-for (i in colnames(tab_lfc[,grep(grouping,colnames(tab_lfc))])) {
-  
+for (i in colnames(tab_lfc)[grepl("Group",colnames(tab_lfc))]) {
+  x = colnames(tab_se)[grepl("Group",colnames(tab_se)) & grepl("SE",colnames(tab_se))]
   tab_for_plot = tab_lfc %>% 
   dplyr::left_join(tab_se, by = "taxon_id") %>%
-  dplyr::transmute(tab_lfc$taxon_id, tab_lfc[,i], tab_se[,paste0(i,"SE")]) %>% 
+  dplyr::transmute(tab_lfc$taxon_id, tab_lfc[,i], tab_se[,x]) %>% 
     dplyr::rename("taxon_id" = 1, "fold_change" = 2, "SE" = 3) %>%
     dplyr::filter(fold_change != 0) %>%
     dplyr::arrange(desc(fold_change)) %>%
@@ -881,13 +887,13 @@ for (i in colnames(tab_lfc[,grep(grouping,colnames(tab_lfc))])) {
     geom_errorbar(aes(ymin = fold_change - SE, ymax = fold_change - SE), width = 0.2,
                 position = position_dodge(0.05), color = "black") + 
     labs(x = NULL, y = "Log fold change", 
-       title = paste("Log fold changes as one unit increase of", "Group", strsplit(i,"Group")[[1]][[3]])) + 
+       title = paste("Log fold changes as one unit increase of", i)) + 
     scale_fill_discrete(name = NULL) +
     scale_color_discrete(name = NULL) +
     theme_bw() + 
     theme(plot.title = element_text(hjust = 0.5),
         panel.grid.minor.y = element_blank(),
-        axis.text.x = element_text(angle = 60, hjust = 1)))
+        axis.text.x = element_text(size = 6, angle = 60, hjust = 1)))
 
 }
 ```
