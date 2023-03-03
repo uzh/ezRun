@@ -29,7 +29,7 @@
 
 ezComputeBias = function(dsFile, dsName=NULL, param=NULL, qcSummaryDir="/srv/GT/analysis/p2220/RNA-seq-bias-results", refBuildMap=getRefBuildMap(), minReadsPerSample=30000,
                        maxReadsPerSample=5e6,
-                       minReadsPerGene=3, minPresentFraction=0.2, toMail=''){
+                       minReadsPerGene=3, minPresentFraction=0.2, toMail='', tag = ''){
   
   inputMeta = ezRead.table(file=dsFile)
   inputMeta = inputMeta[ inputMeta$"Read Count" > minReadsPerSample, ]
@@ -217,7 +217,7 @@ ezComputeBias = function(dsFile, dsName=NULL, param=NULL, qcSummaryDir="/srv/GT/
   par(mfrow=c(2,4))
   par(pty="s")
   
-  smoothScatter(widthEffect, gcEffect, xlim=c(-1, 1), ylim=c(-1, 1), main=dsName, nrpoints = 0, nbin=40, bandwidth = 0.05,
+  smoothScatter(widthEffect, gcEffect, xlim=c(-1, 1), ylim=c(-1, 1), main=paste(dsName, tag), nrpoints = 0, nbin=40, bandwidth = 0.05,
                 cex.main=0.8, colramp=colorRampPalette(c("white", blues9[1:6])))
   text(widthEffect, gcEffect, labels = ptLabels, cex=0.8)
 
