@@ -42,6 +42,11 @@ ezMethodSpaceRangerAggr <- function(input = NA, output = NA, param = NA) {
       rownames = "library_id"
     )
     colnames(aggr_input2) <- str_replace(colnames(aggr_input2), " \\[.*", "")
+    for (i in 1:ncol(aggr_input2)){
+        if(any(aggr_input2[,i] == ''))
+            aggr_input2[[colnames(aggr_input2)[i]]] = NULL
+    }
+    
     aggr_input <- left_join(aggr_input, aggr_input2)
   }
 
