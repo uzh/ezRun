@@ -38,10 +38,7 @@ EzAppScSeuratCombine <-
                                                           Description="Method to be used when calculating gene cluster markers and differentially expressed genes between conditions. Use LR to take into account the Batch and/or CellCycle"),
                                         DE.regress=ezFrame(Type="charVector", 
                                                            DefaultValue="Batch", 
-                                                           Description="Variables to regress out if the test LR is chosen"),
-                                        maxSamplesSupported=ezFrame(Type="numeric", 
-                                                              DefaultValue=5, 
-                                                              Description="Maximum number of samples to compare"))
+                                                           Description="Variables to regress out if the test LR is chosen"))
                 }
               )
   )
@@ -59,11 +56,6 @@ ezMethodScSeuratCombine = function(input=NA, output=NA, param=NA, htmlFile="00in
   
   BPPARAM <- MulticoreParam(workers = param$cores)
   register(BPPARAM)
-  
-
-  if(input$getLength() > param$maxSamplesSupported){
-    stop(paste("It only works for", param$maxSamplesSupported, "at most"))
-  }
   
   cwd <- getwd()
   setwdNew(basename(output$getColumn("Report")))
