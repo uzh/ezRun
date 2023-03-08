@@ -637,5 +637,5 @@ param[c("npcs","pcGenes","resolution", "SCT.regress", "DE.method", "cellsFractio
 
 
 ```{r, echo=FALSE}
-sessionInfo()
+ezSessionInfo()
 ```

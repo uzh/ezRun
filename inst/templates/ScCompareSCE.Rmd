@@ -101,5 +101,5 @@ param[c("DE.regress", "sampleGroup", "refGroup")]
 
 ### SessionInfo
 ```{r, echo=FALSE}
-sessionInfo()
+ezSessionInfo()
 ```

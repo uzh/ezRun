@@ -256,5 +256,5 @@ param[c("start_id", "end_id", "start_n","end_n", "TI_method", "root_expression",
 
 ### SessionInfo
 ```{r, echo=FALSE}
-sessionInfo()
+ezSessionInfo()
 ```

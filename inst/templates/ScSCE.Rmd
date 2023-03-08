@@ -445,6 +445,6 @@ param[c("resolution", "vars.regress", "cellsFraction", "nUMIs", "nmad")]
 
 ### SessionInfo
 ```{r, echo=FALSE}
-sessionInfo()
+ezSessionInfo()
 ```
 

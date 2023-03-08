@@ -224,6 +224,6 @@ param[c("npcs", "resolution", "batchCorrection", "SCT.regress", "DE.method", "DE
 
 ### SessionInfo
 ```{r, echo=FALSE}
-sessionInfo()
+ezSessionInfo()
 ```
 

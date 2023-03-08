@@ -862,3 +862,12 @@ subsampleCountMatrix <- function(counts, targetCount, seed){
   return(counts)
 }
 
+ezSessionInfo <- function(){
+    ezRunDetails = library(help = ezRun)
+    RemoteSha <- sub('.*\\s+','',ezRunDetails$info[[1]][grep('RemoteSha', ezRunDetails$info[[1]])])
+    githubUrl <- file.path('https://github.com/uzh/ezRun/tree', RemoteSha)
+    cat('ezRun tag:', RemoteSha, '\n')
+    cat('ezRun github link:', githubUrl, '\n \n')
+    
+    print(sessionInfo())
+}

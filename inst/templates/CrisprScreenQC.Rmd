@@ -103,5 +103,5 @@ ezInteractiveTableRmd(values=dataset)
 
 ### SessionInfo
 ```{r, echo=FALSE}
-sessionInfo()
+ezSessionInfo()
 ```

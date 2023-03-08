@@ -421,6 +421,6 @@ param[c("npcs","pcGenes","resolution", "SCT.regress", "DE.method", "batchCorrect
 
 ### SessionInfo
 ```{r, echo=FALSE}
-sessionInfo()
+ezSessionInfo()
 ```
 

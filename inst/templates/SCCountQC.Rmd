@@ -443,5 +443,5 @@ invisible(file.remove(c("cpm.txt")))
 
 ### SessionInfo
 ```{r, echo=FALSE}
-sessionInfo()
+ezSessionInfo()
 ```

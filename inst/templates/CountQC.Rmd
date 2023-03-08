@@ -603,5 +603,5 @@ saveRDS(rawData, "rawData_final.rds")
 ## SessionInfo
 ```{r, echo=FALSE}
 format(Sys.time(), '%Y-%m-%d %H:%M:%S')
-sessionInfo()
+ezSessionInfo()
 ```

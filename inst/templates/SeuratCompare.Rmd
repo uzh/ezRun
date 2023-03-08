@@ -143,5 +143,5 @@ param[c("DE.method", "DE.regress")]
 
 ### SessionInfo
 ```{r, echo=FALSE}
-sessionInfo()
+ezSessionInfo()
 ```

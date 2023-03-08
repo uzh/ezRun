@@ -58,5 +58,5 @@ ezInteractiveTableRmd(bamDataset)
 
 ### SessionInfo
 ```{r, echo=FALSE}
-sessionInfo()
+ezSessionInfo()
 ```

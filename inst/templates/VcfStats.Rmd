@@ -63,5 +63,5 @@ ezInteractiveTableRmd(values=ans4Report[["dataset"]])
 
 ### SessionInfo
 ```{r, echo=FALSE}
-sessionInfo()
+ezSessionInfo()
 ```

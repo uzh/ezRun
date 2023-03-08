@@ -190,5 +190,5 @@ kable(settings, row.names=TRUE,
 
 ### SessionInfo
 ```{r, echo=FALSE}
-sessionInfo()
+ezSessionInfo()
 ```

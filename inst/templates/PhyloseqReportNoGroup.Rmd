@@ -225,5 +225,5 @@ show_pHeatmap()
 
 ### SessionInfo
 ```{r, echo=FALSE}
-sessionInfo()
+ezSessionInfo()
 ```
