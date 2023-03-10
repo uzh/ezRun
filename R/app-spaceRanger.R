@@ -61,6 +61,21 @@ ezMethodSpaceRanger <- function(input=NA, output=NA, param=NA){
       cmd <- paste(cmd, paste0("--cytaimage=", input$getFullPaths("CytaImage")))
   }
   
+  if(param$probesetFile!=''){
+    myFile <- file.path('/srv/GT/databases/10x_Probesets/Visium',param$probesetFile)
+    outputFile <- sub('.csv','_filtered.csv', basename(myFile))
+    maxHeaderLine <- max(grep('#', readLines(myFile)))
+    headerSection <- readLines(myFile, n = maxHeaderLine)
+    headerSection[grep('reference_genome', headerSection)] = paste0('#reference_genome=',basename(refDir))
+    probeInfo <- ezRead.table(myFile, sep = ',', row.names = NULL, skip = maxHeaderLine)
+    annotation <- ezRead.table(file.path(refDir, 'star', 'geneInfo.tab'), row.names = NULL, skip = 1, header = FALSE)
+    intersectionGenes <- intersect(annotation$V1, probeInfo$gene_id)
+    probeInfo <- probeInfo[probeInfo$gene_id %in% intersectionGenes, ]
+    writeLines(headerSection, outputFile)
+    ezWrite.table(probeInfo, outputFile, sep = ',', row.names = FALSE, append = TRUE)
+    cmd <- paste(cmd, paste0("--probe-set=", file.path(getwd(), outputFile)))
+  }
+  
   tryCatch(
     {
     json_paths <- input$getFullPaths("loupe-alignment")
