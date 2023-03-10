@@ -50,9 +50,12 @@ ezMethodSpaceRanger <- function(input=NA, output=NA, param=NA){
                paste0("--sample=", sampleName),
                paste0("--localmem=", param$ram),
                paste0("--localcores=", param$cores),
-               paste0("--image=", input$getFullPaths("Image")),
                paste0("--slide=", input$getColumn("Slide")),
                paste0("--area=", input$getColumn("Area")))
+  
+  if('Image' %in% inputCols & grepl('tif$|tiff$|jpeg$|jpeg$',input$getFullPaths("Image"))){
+      cmd <- paste(cmd, paste0("--image=", input$getFullPaths("Image")))
+  }
   
   if('CytaImage' %in% inputCols){
       cmd <- paste(cmd, paste0("--cytaimage=", input$getFullPaths("CytaImage")))
