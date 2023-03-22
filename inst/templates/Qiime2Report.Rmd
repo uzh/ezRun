@@ -114,7 +114,7 @@ Here is a histogram reflecting the distribution of the final number of filtered 
 
 ```{r, fig.width = 5, fig.height = 5, echo=FALSE}
 ps0_tax_plot <- ggplot(dada2$data, aes(non.chimeric)) +
-  geom_histogram() + theme_bw() + ylab("Number of samples") + xlab("Abundance of ASVs")
+  geom_histogram() + theme_bw() + ylab("Number of samples") + xlab("Abundance of Reads")
 
 print(ps0_tax_plot)
 ```
@@ -123,7 +123,7 @@ print(ps0_tax_plot)
 [Interactive QIIME2 Report and Visualizations](`r asv_table`){target="_blank"}
 
 #### Read filtering.  
-And here you can find the number of reads filtered at each stage and the final number of reads that remained after denoising (number of ASVs).
+And here you can find the number of reads filtered at each stage and the final number of reads that remained after denoising.
 For more info look at the two QIIME2 interactive reports. 
 </br>
 [Interactive QIIME2 Report Data QC](`r demux`){target="_blank"}
