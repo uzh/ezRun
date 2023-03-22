@@ -108,9 +108,9 @@ difabundance <- "./ancom_group.qzv.zip.folder/data/index.html"
 
 ## Demultiplexing summary 
 
-#### ASVs Frequency Histogram
+#### Read Frequency Histogram
 
-Here is a histogram reflecting the distribution of the final number of ASVs per sample.
+Here is a histogram reflecting the distribution of the final number of filtered reads per sample.
 
 ```{r, fig.width = 5, fig.height = 5, echo=FALSE}
 ps0_tax_plot <- ggplot(dada2$data, aes(non.chimeric)) +
@@ -153,11 +153,14 @@ knitr::knit_print(paste("After filtering there are", length(rownames(otu_table(p
 
 ### Transformation
 </br>
-The counts are then transformed into relative abundance. Lets have a look whether the transformation changed the abundance patters for all the genra.
+The counts are then transformed into relative abundance (number of reads per taxon divided by total number of reads). Lets have a look whether the transformation changed the abundance patters for selected genera (taking top 50 ASVs).
 
 ```{r, fig.height= 10, fig.width = 17, echo=FALSE}
-p1 <- plot_bar(physeq1, "Group") + facet_wrap(~Genus, ncol=3) + ggtitle("Before transformation")
-p2 <- plot_bar(physeq2, "Group") + facet_wrap(~Genus, ncol=3) + ggtitle("After transformation")
+myTaxa = names(sort(taxa_sums(physeq1), decreasing = TRUE)[1:50])
+ex1 = prune_taxa(myTaxa, physeq1)
+ex2 = prune_taxa(myTaxa, physeq2)
+p1 <- plot_bar(ex1, "Group") + facet_wrap(~Genus, ncol=3) + ggtitle("Before transformation")
+p2 <- plot_bar(ex2, "Group") + facet_wrap(~Genus, ncol=3) + ggtitle("After transformation")
 
 plotGrob <- plot_grid(p1, p2, nrow=1, ncol=2, byrow=FALSE)
 print(plot_grid(plotGrob, nrow=1, ncol=1, rel_heights=c(1, 15)))
@@ -489,7 +492,7 @@ fig4
 
 </br>
 
-### Plots with marked significance
+### Plots with marked significance - mean comparisons
 
 ```{r, fig.width = 9, fig.height = 5, echo=FALSE}
 metadata_melt <- reshape2::melt(metadata)
@@ -601,7 +604,7 @@ metadata2 <- metadata[metadata$SampleID %in% rownames(jaccardmatrix),]
 permanova <- adonis2(jaccardmatrix ~ metadata2$Group, permutations = 999, method = "jaccard")
 knitr::knit_print(paste0("Global PERMANOVA p-value = ", permanova$`Pr(>F)`[1]))
 knitr::knit_print(paste0("Global PERMANOVA F-statistic = ", round(permanova$F[1],2)))
-kable(pairwise.adonis(jaccardmatrix, metadata2$Group, perm = 999, sim.method = "bray")[,c("pairs", "SumsOfSqs", "F.Model", "R2", "p.value", "p.adjusted", "sig")] %>% mutate(significance = sig) %>% select(c("pairs", "SumsOfSqs", "F.Model", "R2", "p.value", "p.adjusted","significance"))) %>% kable_styling()
+kable(pairwise.adonis(jaccardmatrix, metadata2$Group, perm = 999, sim.method = "jaccard")[,c("pairs", "SumsOfSqs", "F.Model", "R2", "p.value", "p.adjusted", "sig")] %>% mutate(significance = sig) %>% select(c("pairs", "SumsOfSqs", "F.Model", "R2", "p.value", "p.adjusted","significance"))) %>% kable_styling()
 ```
 
 ### Bray Curtis Dissimilarity. {.tabset}
@@ -939,7 +942,7 @@ tab_diff %>% datatable(caption = "Differentially Abundant Taxa
 
 </br> 
 Let's visualise the log fold changes of sample groups to reference group of globally significant taxa. 
-```{r, fig.width = 8, fig.height=5, echo=FALSE}
+```{r, fig.width = 8, fig.height=10, echo=FALSE}
 if (length(levels(as.factor(metadata$Group))) > 2){
 sig_taxa = res$res_global %>%
   dplyr::filter(diff_abn == TRUE) %>%
@@ -1008,11 +1011,19 @@ df <- as.data.frame(marker_table(mm_lefse))
 i = length(unique(df$enrich_group))
 list_of_colours = c(viridis_pal(option = "D")(i))
 
-p1 <- plot_ef_dot(mm_lefse)+ scale_color_manual(values=list_of_colours)
+p1 <- plot_ef_dot(mm_lefse)+ scale_color_manual(values=list_of_colours) + theme(axis.text.x = element_text(size=5, angle=0), axis.text.y = element_text(size=5, angle=0))
 #p2 <- plot_cladogram(mm_lefse, color = list_of_colours, annotation_shape = 15) +
 #  theme(plot.margin = margin(0, 0, 0, 0))
 
 print(p1)
+```
+
+</br>
+
+```{r, echo=FALSE}
+as.data.frame(marker_table(mm_lefse)) %>% datatable(caption = "Marker Table") %>%
+      formatRound(c("ef_lda", "pvalue", "padj"), digits = 2)
+
 ```
 
 ### DESeq2/EdgeR results {.tabset}
@@ -1146,10 +1157,10 @@ if (length(comparisons) > 1) {
 ```
 </br>
 - Scatter plots showing the significant (p<0.01) log2 fold change in abundance of different taxa between the reference group and sample group. If sample groups are missing, that means there are no significant differentially abundant taxa between them.   
-- Volcano plot showing under- (negative log fold change) and over- (positive log fold change) represented taxa between reference group and sample group
+- Volcano plots showing under- (negative log fold change) and over- (positive log fold change) represented taxa between reference group and sample group. Only the taxa shared between EdgeR and DESeq2 analysis are marked in red and labelled (if Genus information available)
 </br>
 
-```{r, echo=FALSE}
+```{r, fig.height=17, fig.width=10, echo=FALSE}
 theme_set(theme_bw())
 scale_fill_discrete <- function(palname = "Set1", ...) {
   scale_fill_brewer(palette = palname, ...)
@@ -1163,11 +1174,11 @@ for (i in unique(sigtab$contrast)) {
 
 
 #plot
-g1 = ggplot(res_deseq_edger_sig, aes(x=Genus, y=log2FoldChange, color=Phylum)) + geom_point(size=3) + facet_wrap(~ res_deseq_edger_sig$contrast, ncol = 3) +
+ggplot(res_deseq_edger_sig, aes(x=Genus, y=log2FoldChange, color=Phylum)) + geom_point(size=3) + facet_wrap(~ res_deseq_edger_sig$contrast, ncol = 3) +
   theme(axis.text.x = element_text(angle = -90, hjust = 0, vjust=0.5)) + ggtitle("Plots per group")
 
-reses <- reses %>% mutate(Significant=if_else(reses$padj < 0.01, TRUE, FALSE)) %>%
-  mutate(TaxonToPrint=if_else(reses$padj < 0.01, as.character(Genus), ""))
+#reses <- reses %>% mutate(Significant=if_else(reses$padj < 0.01, TRUE, FALSE)) %>%
+#  mutate(TaxonToPrint=if_else(reses$padj < 0.01, as.character(Genus), ""))
 
 res_deseq_edger = data.frame()
 for (i in unique(reses$contrast)) {
@@ -1175,7 +1186,11 @@ for (i in unique(reses$contrast)) {
   res_deseq_edger=rbind(res_deseq_edger, df)
 }
 
-g2 <- ggplot(res_deseq_edger, aes(x=log2FoldChange, y=log10p, color=Significant, label=TaxonToPrint)) +
+res_deseq_edger <- res_deseq_edger %>% mutate(Significant=if_else(rownames(res_deseq_edger) %in% rownames(res_deseq_edger_sig), TRUE, FALSE)) %>%
+  mutate(TaxonToPrint=if_else(rownames(res_deseq_edger) %in% rownames(res_deseq_edger_sig), as.character(Genus), ""))
+
+
+p1 <- ggplot(res_deseq_edger, aes(x=log2FoldChange, y=log10p, color=Significant, label=TaxonToPrint)) +
   geom_text_repel(size=4, nudge_y=0.05) +
   geom_point(alpha=0.6, shape=16) +
   theme_q2r() +
@@ -1183,8 +1198,27 @@ g2 <- ggplot(res_deseq_edger, aes(x=log2FoldChange, y=log10p, color=Significant,
   xlab("log2(fold change)") +
   ylab("-log10(P-value)") +
   theme(legend.position="none") +
-  scale_color_manual(values=c("black","red")) + ggtitle("Vulcano plots per group")
+  scale_color_manual(values=c("black","red")) + ggtitle("Vulcano plots per group - DESeq2")
 
-plotGrob <- plot_grid(g1, g2, nrow=2, ncol=1, byrow=FALSE)
-print(plot_grid(plotGrob, nrow=1, ncol=1, rel_heights=c(1, 25)))
+res_deseq_edger = data.frame()
+for (i in unique(reses$contrast)) {
+    df = filter(resEdgeRall[resEdgeRall$contrast == i,], resEdgeRall[resEdgeRall$contrast == i,]$ASV %in% rownames(reses[reses$contrast == i,]))
+    res_deseq_edger=rbind(res_deseq_edger, df)
+}
+
+res_deseq_edger <- res_deseq_edger %>% mutate(Significant=if_else(res_deseq_edger$ASV %in% rownames(res_deseq_edger_sig), TRUE, FALSE)) %>%
+    mutate(TaxonToPrint=if_else(res_deseq_edger$ASV %in% rownames(res_deseq_edger_sig), as.character(Genus), ""))
+
+
+p2 <- ggplot(res_deseq_edger, aes(x=logFC, y=log10p, color=Significant, label=TaxonToPrint)) +
+    geom_text_repel(size=4, nudge_y=0.05) +
+    geom_point(alpha=0.6, shape=16) +
+    theme_q2r() +
+    facet_wrap(~ res_deseq_edger$contrast, ncol = 3) +
+    xlab("log2(fold change)") +
+    ylab("-log10(P-value)") +
+    theme(legend.position="none") +
+    scale_color_manual(values=c("black","red")) + ggtitle("Vulcano plots per group - EdgeR")
+
+p1 + p2
 ```
