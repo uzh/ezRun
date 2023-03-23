@@ -561,7 +561,7 @@ See here for QIIME2 Interactive Report:
 [Interactive QIIME2 3D PCA](`r jaccard_pca`){target="_blank"}
 </br>
 
-#### Bar plot 
+nextflow run epi2me-labs/wf-artic --fastq data/  --sample_sheet data/sample_sheet.csv --out_dir analysis --scheme_version V4.1 -profile#### Bar plot 
 
 ```{r, fig.height = 5, fid.width = 8, echo=FALSE}
 xy <- t(combn(colnames(jaccardmatrix),2))
@@ -681,7 +681,7 @@ p1
 
 ```{r, fig.height = 5, fid.width = 5, echo=FALSE}
 unifrac <- unifrac$data$Vectors %>% select(SampleID, PC1, PC2) %>% left_join(metadata) %>% left_join(shannon)
-
+nextflow run epi2me-labs/wf-artic --fastq data/  --sample_sheet data/sample_sheet.csv --out_dir analysis --scheme_version V4.1 -profile
 ggplot(unifrac, aes(x=PC1, y=PC2, color=unifrac[,grouping])) +
   geom_point(alpha=0.5, size = 5) +
   theme_q2r() +
@@ -1158,9 +1158,12 @@ if (length(comparisons) > 1) {
 </br>
 - Scatter plots showing the significant (p<0.01) log2 fold change in abundance of different taxa between the reference group and sample group. If sample groups are missing, that means there are no significant differentially abundant taxa between them.   
 - Volcano plots showing under- (negative log fold change) and over- (positive log fold change) represented taxa between reference group and sample group. Only the taxa shared between EdgeR and DESeq2 analysis are marked in red and labelled (if Genus information available)
+The results are interpreted as (refgroup-samplegroup): negative log fold change means its higher in sample group than reference group (under-represented in reference group), positive log fold change - lower in sample group than in reference group (over-represented in refence group).
+
+
 </br>
 
-```{r, fig.height=17, fig.width=10, echo=FALSE}
+```{r, fig.height=12, fig.width=10, echo=FALSE}
 theme_set(theme_bw())
 scale_fill_discrete <- function(palname = "Set1", ...) {
   scale_fill_brewer(palette = palname, ...)
