@@ -390,6 +390,8 @@ AUCell_plotTSNE(tSNE=cellsTsne,
 ```
 
 ### Interactive explorer
+[simple explorer](`r {paste0("https://fgcz-shiny.uzh.ch/fgcz_exploreSeurat_app", "/?data=",output$getColumn("Report"), "/scData.rds")}`){target="_blank"}
+
 
 <br>
 The iSEE (Interactive SummarizedExperiment Explorer) explorer provides a general visual interface for exploring single cell data. iSEE allows users to simultaneously visualize multiple aspects of a given data set, including experimental data, metadata, and analysis results. Dynamic linking and point selection facilitate the flexible exploration of interactions between different data aspects.
