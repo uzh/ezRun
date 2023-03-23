@@ -88,11 +88,13 @@ ezComputeBias = function(dsFile, dsName=NULL, param=NULL, qcSummaryDir="/srv/GT/
     param$nReads = maxReadsPerSample
   }
   paramList = param
-  paramList$refBuild = refBuildMap[inputMeta$Species[1]]
-  
-  if (is.na(paramList$refBuild)){
-    stop(paste("refBuild not defined for species:", refBuildMap[inputMeta$Species[1]]))
+  if(is.na(paramList$refBuild)){
+      paramList$refBuild = refBuildMap[inputMeta$Species[1]]
+      if (is.na(paramList$refBuild)){
+          stop(paste("refBuild not defined for species:", refBuildMap[inputMeta$Species[1]]))
+      }
   }
+  
     
   if (is.null(dsName)){
     ## assumes the dsFile has the format: /srv/gstore/projects/<project>/<read folder>
