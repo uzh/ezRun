@@ -681,7 +681,7 @@ p1
 
 ```{r, fig.height = 5, fid.width = 5, echo=FALSE}
 unifrac <- unifrac$data$Vectors %>% select(SampleID, PC1, PC2) %>% left_join(metadata) %>% left_join(shannon)
-nextflow run epi2me-labs/wf-artic --fastq data/  --sample_sheet data/sample_sheet.csv --out_dir analysis --scheme_version V4.1 -profile
+
 ggplot(unifrac, aes(x=PC1, y=PC2, color=unifrac[,grouping])) +
   geom_point(alpha=0.5, size = 5) +
   theme_q2r() +
