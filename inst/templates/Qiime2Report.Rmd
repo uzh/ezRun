@@ -1163,7 +1163,7 @@ The results are interpreted as (refgroup-samplegroup): negative log fold change 
 
 </br>
 
-```{r, fig.height=12, fig.width=10, echo=FALSE}
+```{r, fig.height=8, fig.width=10, echo=FALSE}
 theme_set(theme_bw())
 scale_fill_discrete <- function(palname = "Set1", ...) {
   scale_fill_brewer(palette = palname, ...)
