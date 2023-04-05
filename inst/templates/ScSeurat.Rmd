@@ -152,10 +152,23 @@ if (length(qcList) > 1){
   UpSetR::upset(fromList(qcList), nsets = 5)
 }
 
-kable(tibble("QC metric" =c("Library Size", "Expressed genes", "Mitochondrial genes", "Ribosomal protein genes", 
-                            "Doublets", "Total removed", "Cells remaining"),
-             "Number of cells"= c(sum(allCellsMeta$qc.lib), sum(allCellsMeta$qc.nexprs), sum(allCellsMeta$qc.mito), sum(allCellsMeta$qc.riboprot), sum(allCellsMeta$qc.doublet), sum(!allCellsMeta$useCell), ncol(scData))),
-      row.names=FALSE,
+qcStats <- ezFrame("#Cells failed"=numeric(0), 
+                      "Min Pass Value"=numeric(0), "Max Pass Value"=numeric(0))
+qcStats[ "Library Size", ] <- c(sum(allCellsMeta$qc.lib), 
+                               range(allCellsMeta$nCount_RNA[allCellsMeta$useCell]))
+qcStats[ "Expressed genes", ]<- c(sum(allCellsMeta$qc.nexprs), 
+                               range(allCellsMeta$nFeature_RNA[allCellsMeta$useCell]))
+qcStats[ "Mitochondrial genes", ]<- c(sum(allCellsMeta$qc.mito), 
+                               range(allCellsMeta$percent_mito[allCellsMeta$useCell]))
+qcStats[ "Ribosomal protein genes", ]<- c(sum(allCellsMeta$qc.riboprot), 
+                               range(allCellsMeta$percent_riboprot[allCellsMeta$useCell]))
+qcStats[ "Doublets", ]<- c(sum(allCellsMeta$qc.doublet), NA, NA)
+qcStats[ "Total removed", ]<- c(sum(!allCellsMeta$useCell), NA, NA)
+qcStats[ "Cells remaining", ]<- c(sum(allCellsMeta$useCell), NA, NA)
+
+
+kable(qcStats,
+      row.names=TRUE,
       caption="Number of cells removed") %>%
   kable_styling(bootstrap_options = "striped", full_width = F,
                 position = "float_right")
