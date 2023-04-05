@@ -64,13 +64,12 @@ if (file.exists("enrichRout.rds")){
 # Process the posMarkers
 posMarkers$gene = as.factor(posMarkers$gene)
 # make sure the loaded cluster uses proiper integer ordering if all levels are integer!
-if (all(!is.na(as.integer(posMarkers$cluster)))){
+clusterSet <- posMarkers$cluster %>% as.integer() %>% unique() %>% sort()
+if (any(is.na(clusterSet))){
   posMarkers$cluster = as.factor(posMarkers$cluster)
 } else {
-   posMarkers$cluster = as.factor(as.integer(posMarkers$cluster))
+   posMarkers$cluster = factor(posMarkers$cluster, levels=clusterSet)
 }
-
-
 
 var_height = 1 #This ensures that chunks that use the length of this variable to set the fig size, don't fail.
 ```
