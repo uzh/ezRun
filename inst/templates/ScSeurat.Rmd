@@ -152,7 +152,7 @@ if (length(qcList) > 1){
   UpSetR::upset(fromList(qcList), nsets = 5)
 }
 
-qcStats <- ezFrame("#Cells failed"=numeric(0), 
+qcStats <- ezFrame("Number of Cells"=numeric(0), 
                       "Min Pass Value"=numeric(0), "Max Pass Value"=numeric(0))
 qcStats[ "Library Size", ] <- c(sum(allCellsMeta$qc.lib), 
                                range(allCellsMeta$nCount_RNA[allCellsMeta$useCell]))
