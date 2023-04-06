@@ -18,9 +18,8 @@ ezMethodMageckTest = function(input=NA, output=NA, param=NA){
   countFilePaths <- file.path(param$dataRoot, dataset$`Count [File]`)
   counts <- lapply(countFilePaths, data.table::fread)
   mergeCounts <- counts %>% reduce(inner_join, by="sgRNA")
-  mergeCounts <- mergeCounts %>%
-    rename("Gene"="Gene.x") %>%
-    select(!starts_with("Gene."))
+  mergeCounts[['Gene']] = NULL
+  mergeCounts <- mergeCounts %>% rename("Gene"="Gene.x") %>% select(!starts_with("Gene."))
   
   # Rename the sample columns to the actual sample names
   sampleColumns <- !(colnames(mergeCounts) %in% c("sgRNA", "Gene"))
