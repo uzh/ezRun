@@ -151,16 +151,16 @@ if (length(qcList) > 1){
   UpSetR::upset(fromList(qcList), nsets = 5)
 }
 
-qcStats <- ezFrame("Number of Cells"=numeric(0), 
-                      "Min Pass Value"=numeric(0), "Max Pass Value"=numeric(0))
+qcStats <- ezFrame("Number of Cells"=integer(0), 
+                      "Min Pass Value"=integer(0), "Max Pass Value"=integer(0))
 qcStats[ "Library Size", ] <- c(sum(allCellsMeta$qc.lib), 
-                               range(allCellsMeta$nCount_RNA[allCellsMeta$useCell]))
+                               range(allCellsMeta$nCount_RNA[allCellsMeta$useCell])) %>% as.integer()
 qcStats[ "Expressed genes", ]<- c(sum(allCellsMeta$qc.nexprs), 
-                               range(allCellsMeta$nFeature_RNA[allCellsMeta$useCell]))
-qcStats[ "Mitochondrial genes", ]<- c(sum(allCellsMeta$qc.mito), 
+                               range(allCellsMeta$nFeature_RNA[allCellsMeta$useCell])) %>% as.integer()
+qcStats[ "Mitochondrial Percent", ]<- c(sum(allCellsMeta$qc.mito), 
                                range(allCellsMeta$percent_mito[allCellsMeta$useCell]))
-qcStats[ "Ribosomal protein genes", ]<- c(sum(allCellsMeta$qc.riboprot), 
-                               range(allCellsMeta$percent_riboprot[allCellsMeta$useCell]))
+qcStats[ "Ribosomal protein Percent", ]<- c(sum(allCellsMeta$qc.riboprot), 
+                               range(allCellsMeta$percent_riboprot[allCellsMeta$useCell])) %>% as.integer()
 qcStats[ "Doublets", ]<- c(sum(allCellsMeta$qc.doublet), NA, NA)
 qcStats[ "Total removed", ]<- c(sum(!allCellsMeta$useCell), NA, NA)
 qcStats[ "Cells remaining", ]<- c(sum(allCellsMeta$useCell), NA, NA)
@@ -334,7 +334,8 @@ genesToPlot <- c(gsub("_", "-", param$controlSeqs), unique(as.character(top5$gen
 genesToPlot <- intersect(genesToPlot, rownames(scData))
 
 DoHeatmap(scData, features=unique(genesToPlot))
-DotPlot(scData, features=genesToPlot) + coord_flip()
+DotPlot(scData, features=genesToPlot) + coord_flip() +
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))
 ```
 
 ```{r plot of user genes, fig.width=12, fig.height=shrinkToRange(length(param$controlSeqs)/5, c(6, 12)), eval=ezIsSpecified(param$controlSeqs)}
@@ -342,7 +343,8 @@ genesToPlot <- intersect(param$controlSeqs, rownames(scData))
 
 if (length(genesToPlot) > 0){
   DoHeatmap(scData, features=unique(genesToPlot))
-  DotPlot(scData, features=genesToPlot) + coord_flip()
+  DotPlot(scData, features=genesToPlot) + coord_flip() +
+    theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))
 } else { 
   cat("controlseqs not found")
 }
