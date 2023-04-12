@@ -68,9 +68,15 @@ ezMethodScSeuratCombine = function(input=NA, output=NA, param=NA, htmlFile="00in
   
   if(!file.exists(filePath[1])) 
     filePath <- filePath_course
+  names(filePath) <- input$getNames()
   
-  scDataList <- lapply(filePath, readRDS)
-  names(scDataList) <- names(input$getColumn("Static Report"))
+  scDataList <- lapply(names(filePath), function(sm) {
+    scData <- readRDS(filePath[sm])
+    scData$Sample <- sm
+    scData <- RenameCells(scData, new.names = paste0(scData$Sample, "-", colnames(scData)))
+    return(scData)
+  })
+  
   
   pvalue_allMarkers <- 0.05
   nrSamples <- length(scDataList)

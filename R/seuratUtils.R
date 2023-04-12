@@ -134,31 +134,13 @@ add_Condition_oldReports <- function(sce) {
 }
 
 seuratStandardWorkflow <- function(scData, param){
-  require(future)
-  plan("multicore", workers = param$cores)
-  
-  set.seed(38)
-  if (identical(param$pcGenes, character(0))) 
-     features <- NULL
-  else {
-     species <- getSpecies(param$refBuild)
-     if(species == 'Human'){
-         features <- stringr::str_to_upper(param$pcGenes)
-     } else {
-        features <- stringr::str_to_title(param$pcGenes)
-     }
-  }
-  future.seed = TRUE
-  options(future.rng.onMisuse="ignore")
-  options(future.globals.maxSize = param$ram*1024^3)
-  
+
   scData <- RunPCA(object=scData, npcs = param$npcs, features=features, verbose=FALSE)
   scData <- RunTSNE(object = scData, reduction = "pca", dims = 1:param$npcs)
   scData <- RunUMAP(object=scData, reduction = "pca", dims = 1:param$npcs)
   scData <- FindNeighbors(object = scData, reduction = "pca", dims = 1:param$npcs, verbose=FALSE)
-  scData <- FindClusters(object=scData, resolution = seq(from = 0.1, to = 1, by = 0.1), verbose=FALSE)  #calculate clusters for a set of resolutions
+  scData <- FindClusters(object=scData, resolution = seq(from = 0.2, to = 1, by = 0.2), verbose=FALSE)  #calculate clusters for a set of resolutions
   Idents(scData) <- scData@meta.data[,paste0(DefaultAssay(scData), "_snn_res.", param$resolution)]  #but keep as the current clusters the ones obtained with the resolution set by the user
-  scData@meta.data$ident <- Idents(scData)
   return(scData)
 }  
 
