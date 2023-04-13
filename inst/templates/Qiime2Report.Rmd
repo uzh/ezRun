@@ -555,13 +555,14 @@ See here for QIIME2 Interactive Report:
 
 ### Jaccard Diversity Index. {.tabset}
 
-See here for QIIME2 Interactive Report:
+See here for QIIME2 Interactive Report:       
+</br>
 [Interactive QIIME2 Jaccard](`r jaccard_report`){target="_blank"}
 </br>
 [Interactive QIIME2 3D PCA](`r jaccard_pca`){target="_blank"}
 </br>
 
-nextflow run epi2me-labs/wf-artic --fastq data/  --sample_sheet data/sample_sheet.csv --out_dir analysis --scheme_version V4.1 -profile#### Bar plot 
+#### Bar plot 
 
 ```{r, fig.height = 5, fid.width = 8, echo=FALSE}
 xy <- t(combn(colnames(jaccardmatrix),2))
@@ -610,6 +611,7 @@ kable(pairwise.adonis(jaccardmatrix, metadata2$Group, perm = 999, sim.method = "
 ### Bray Curtis Dissimilarity. {.tabset}
 
 See here for QIIME2 Interactive Report:
+</br>
 [Interactive QIIME2 BrayCurtis](`r bc_report`){target="_blank"}
 </br>
 [Interactive QIIME2 3D PCA](`r bc_pca`){target="_blank"}
@@ -768,6 +770,7 @@ Rarefiying:
 + as well as an increase in Type-I and Type-II error.     
 
 If you would like to know more, read the following publication:
+</br>
 +[Waste Not, Want Not: Why Rarefying Microbiome Data Is Inadmissible](https://journals.plos.org/ploscompbiol/article?id=10.1371/journal.pcbi.1003531)
 
 #### Differential abundance testing.      
@@ -1163,7 +1166,7 @@ The results are interpreted as (refgroup-samplegroup): negative log fold change 
 
 </br>
 
-```{r, fig.height=8, fig.width=10, echo=FALSE}
+```{r, fig.height=5, fig.width=10, echo=FALSE}
 theme_set(theme_bw())
 scale_fill_discrete <- function(palname = "Set1", ...) {
   scale_fill_brewer(palette = palname, ...)
