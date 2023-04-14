@@ -134,8 +134,7 @@ add_Condition_oldReports <- function(sce) {
 }
 
 seuratStandardWorkflow <- function(scData, param){
-
-  scData <- RunPCA(object=scData, npcs = param$npcs, features=features, verbose=FALSE)
+  scData <- RunPCA(object=scData, npcs = param$npcs, verbose=FALSE)
   scData <- RunTSNE(object = scData, reduction = "pca", dims = 1:param$npcs)
   scData <- RunUMAP(object=scData, reduction = "pca", dims = 1:param$npcs)
   scData <- FindNeighbors(object = scData, reduction = "pca", dims = 1:param$npcs, verbose=FALSE)
