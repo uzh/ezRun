@@ -34,24 +34,20 @@ getClusterDBSCAN <- function(umapData, dbscan.eps, dbscan.MinPts){
   return(clusterLabels$cluster)
 }
 
+
 autoEstContTfidfMin <- function(sc, tfidfMin){
-  if (tfidfMin < 0){
-    stop("Parameter tfidfMin cannot be less than 0!") 
-  }
-  tryCatch({
-    sc <- autoEstCont(sc, tfidfMin=tfidfMin, forceAccept=T, doPlot=FALSE)
-  }, 
-  error=function(cond) {
-    tfidfMin = tfidfMin -  0.3
-    sc <- autoEstContTfidfMin(sc, tfidfMin)
-    saveRDS(sc, 'scEstCont.Rds')
-  })
-    if(file.exists('scEstCont.Rds')){
-        sc <- readRDS('scEstCont.Rds')
-        file.remove('scEstCont.Rds')
+  
+  while (tfidfMin > 0){
+    scOut  <- try({ autoEstCont(sc, tfidfMin=tfidfMin, forceAccept=T, doPlot=FALSE)})
+    if (class(scOut) == "try-error"){
+      tfidfMin = tfidfMin -  0.3
+    } else {
+      break
     }
-  return(sc)
+  }
+  return(scOut)
 }
+
 
 checkAndCleanAntibody <- function(object){
   if (is.list(object)){
