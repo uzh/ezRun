@@ -140,7 +140,7 @@ seuratStandardWorkflow <- function(scData, param){
   scData <- FindNeighbors(object = scData, reduction = "pca", dims = 1:param$npcs, verbose=FALSE)
   scData <- FindClusters(object=scData, resolution = seq(from = 0.2, to = 1, by = 0.2), verbose=FALSE)  #calculate clusters for a set of resolutions
   Idents(scData) <- scData@meta.data[,paste0(DefaultAssay(scData), "_snn_res.", param$resolution)]  #but keep as the current clusters the ones obtained with the resolution set by the user
-  scData$idents <- Idents(scData)
+  scData$ident <- Idents(scData)
   return(scData)
 }  
 
