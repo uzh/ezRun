@@ -36,10 +36,9 @@ getClusterDBSCAN <- function(umapData, dbscan.eps, dbscan.MinPts){
 
 
 autoEstContTfidfMin <- function(sc, tfidfMin){
-  
   while (tfidfMin > 0){
     scOut  <- try({ autoEstCont(sc, tfidfMin=tfidfMin, forceAccept=T, doPlot=FALSE)})
-    if (class(scOut) == "try-error"){
+    if (length(class(scOut)) == 1 && class(scOut) == "try-error"){
       tfidfMin = tfidfMin -  0.3
     } else {
       break
