@@ -43,9 +43,14 @@ autoEstContTfidfMin <- function(sc, tfidfMin){
   }, 
   error=function(cond) {
     tfidfMin = tfidfMin -  0.3
-    autoEstContTfidfMin(sc, tfidfMin)
+    sc <- autoEstContTfidfMin(sc, tfidfMin)
+    saveRDS(sc, 'scEstCont.Rds')
   })
-  return (sc)
+    if(file.exists('scEstCont.Rds')){
+        sc <- readRDS('scEstCont.Rds')
+        file.remove('scEstCont.Rds')
+    }
+  return(sc)
 }
 
 checkAndCleanAntibody <- function(object){
