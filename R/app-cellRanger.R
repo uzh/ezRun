@@ -18,6 +18,17 @@ ezMethodCellRanger <- function(input = NA, output = NA, param = NA) {
     sampleDirs <- sapply(sampleDirs, subsample, param)
   
   sampleDirs <- normalizePath(sampleDirs)
+  
+  #2.1 Fix FileNames if sampleName in dataset was changed
+  fileLevelDirs <- list.files(sampleDirs)
+  if(length(fileLevelDirs) == 1L & fileLevelDirs != sampleName){
+      setwd(sampleDirs)
+      ezSystem(paste('mv', fileLevelDirs, sampleName))
+      cmd <- paste('rename', paste0('s/',fileLevelDirs,'/',sampleName, '/'), paste0(sampleName,'/*.gz'))
+      ezSystem(cmd)
+      setwd('..')
+  }
+  
   sampleDir <- paste(sampleDirs, collapse = ",")
   cellRangerFolder <- str_sub(sampleName, 1, 45) %>% str_c("-cellRanger")
   
