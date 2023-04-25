@@ -70,14 +70,18 @@ ezMethodScSeuratCombine = function(input=NA, output=NA, param=NA, htmlFile="00in
     filePath <- filePath_course
   names(filePath) <- input$getNames()
   
+  # Load the data and prepare it for integration
   scDataList <- lapply(names(filePath), function(sm) {
     scData <- readRDS(filePath[sm])
     scData$Sample <- sm
+    # If we have new information in the Condition column, add it to the dataset
+    if (all(scData$Condition == "NA" | scData$Condition == "")) {
+      scData$Condition <- unname(input$getColumn("Condition")[sm])
+    }
     scData <- RenameCells(scData, new.names = paste0(scData$Sample, "-", colnames(scData)))
     scData$sample_seurat_clusters <- paste0(scData$Sample, "-", sprintf("%02d", scData$seurat_clusters))
     return(scData)
   })
-  
   
   pvalue_allMarkers <- 0.05
   nrSamples <- length(scDataList)
