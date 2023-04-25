@@ -152,6 +152,9 @@ ezMethodScSeurat <- function(input = NA, output = NA, param = NA,
     geneAnno <- ezRead.table(geneAnnoFile)
     if (any(geneAnno$type == "rRNA")){
       featInfo$isRibosomal <- geneAnno[featInfo$gene_id, "type"] == "rRNA"
+      if(any(is.na(featInfo[, "isRibosomal"]))){
+          featInfo[, "isRibosomal"][which(is.na(featInfo[, "isRibosomal"]))] <- FALSE
+      }
     }
   }
   
@@ -168,8 +171,6 @@ ezMethodScSeurat <- function(input = NA, output = NA, param = NA,
   scData@meta.data$Sample <- input$getNames()
   scData[["RNA"]] <- AddMetaData(object = scData[["RNA"]], metadata = featInfo[rownames(scData), ])
   scData$cellBarcode <- sub(".*_", "", colnames(scData))
-  
-  
   scData <- addCellQcToSeurat(scData, param=param, BPPARAM = BPPARAM, ribosomalGenes = featInfo[rownames(scData), "isRibosomal"])
   
   ## use empty drops to test for ambient
