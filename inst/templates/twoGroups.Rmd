@@ -210,7 +210,7 @@ if (isTRUE(isTwoGroup)) {
 
   print(p_volcano)
 
-  if (!isTRUE(hasMassiveFeats)) {
+  if (isFALSE(hasMassiveFeats)) {
     p_volcano <- ezVolcano(
       log2Ratio = rowData(se)$log2Ratio,
       pValue = rowData(se)$pValue, yType = "p-value",
@@ -226,7 +226,7 @@ if (isTRUE(isTwoGroup)) {
 ```
 
 ```{r volcano p-value link , echo=FALSE, results='asis', eval=!debug}
-if (isTRUE(isTwoGroup) && !isFALSE(hasMassiveFeats)) {
+if (isTRUE(isTwoGroup) && isFALSE(hasMassiveFeats)) {
   cat(paste0("[Interactive comparison plot (64-bit Chrome or Safari is recommended for best performance!)](", volcanoHtml, ")"), "\n")
 }
 ```
