@@ -163,7 +163,7 @@ DimPlot(scData, reduction="umap", group.by="ident", label = TRUE)
 ```
 
 ```{r, fig.align='center'}
-ElbowPlot(scDat, ndims = param$npcs)
+ElbowPlot(scData, ndims = param$npcs)
 ```
 
 ### Cluster assessment
