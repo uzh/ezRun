@@ -130,8 +130,8 @@ ezMethodScSeuratCombine = function(input=NA, output=NA, param=NA, htmlFile="00in
   
   # Save some results in external files
   dataFiles <- saveExternalFiles(list(gene_means = as_tibble(as.data.frame(geneMeans), rownames = "gene_name")))
-  
-  makeRmdReport(dataFiles=dataFiles, rmdFile = "ScSeuratCombine.Rmd", reportTitle = param$name) 
+  reportTitle <- 'SCReport - MultipleSamples based on Seurat'
+  makeRmdReport(dataFiles=dataFiles, rmdFile = "ScSeuratCombine.Rmd", reportTitle = reportTitle) 
   return("Success")
   
 }

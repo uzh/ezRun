@@ -79,6 +79,10 @@ cells_prop = cellsProportion(scData, groupVar1 = "ident_noCorrected", groupVar2 
 kable(cells_prop,row.names=FALSE, format="html",caption="Cell proportions per batch") %>% kable_styling(bootstrap_options = "striped", full_width = F, position = "float_right")
 ```
 
+```{r UMAP per Cluster before correction}
+DimPlot(scData, reduction="umap_noCorrected", group.by="ident_noCorrected", label = TRUE)
+```
+
 ```{r UMAP and barplot Condition, eval=length(unique(scData$Batch)) != length(unique(scData$Condition)) ,fig.width=8, fig.height=5}
 #if there are only two samples these plots are the same as the previous ones
 DimPlot(scData, reduction =  "umap_noCorrected", group.by = "Condition")
@@ -156,6 +160,10 @@ kable(cells_prop,row.names=FALSE, format="html",caption="Cell proportions") %>% 
 ```{r UMAP per Cluster after correction}
 #DimPlot(scData, reduction="umap", group.by="seurat_clusters", label = TRUE)
 DimPlot(scData, reduction="umap", group.by="ident", label = TRUE)
+```
+
+```{r, fig.align='center'}
+ElbowPlot(scDat, ndims = param$npcs)
 ```
 
 ### Cluster assessment
