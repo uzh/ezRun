@@ -14,12 +14,12 @@ ezMethodPreqc = function(input=NA, output=NA, param=NA, htmlFile="00index.html")
     read1 = trimmedInput$getColumn("Read1")
     read2 = trimmedInput$getColumn("Read2")
     readOpt = paste(read1, read2)
-    cmd = paste("sga preprocess --pe-mode", param$pe-mode, "--dust", paste0("--dust-threshold=",param$dust-threshold), readOpt, ">", paste0(sampleName,".fastq"))
+    cmd = paste("sga preprocess --pe-mode", param$peMode, "--dust", paste0("--dust-threshold=",param$dustThreshold), readOpt, ">", paste0(sampleName,".fastq"))
     ezSystem(cmd)
   } else {
     read1 = trimmedInput$getColumn("Read1")
     readOpt = paste(read1)
-    cmd = paste("sga preprocess --pe-mode 0", "--dust", paste0("--dust-threshold=",param$dust-threshold), readOpt, ">", paste0(sampleName,".fastq"))
+    cmd = paste("sga preprocess --pe-mode 0", "--dust", paste0("--dust-threshold=",param$dustThreshold), readOpt, ">", paste0(sampleName,".fastq"))
     ezSystem(cmd)
   }
   cmd=paste("sga index -a ropebwt --no-reverse -t", param$cires, paste0(sampleName, ".fastq")) 
@@ -44,8 +44,8 @@ EzAppSpades <-
                   "Initializes the application using its specific defaults."
                   runMethod <<- ezMethodPreqc
                   name <<- "EzAppPreqc"
-                  appDefaults <<- rbind(pe-mode = ezFrame(Type="integer",  DefaultValue="1",  Description="mode of paired-end reads"),
-                                        dust-threshold = ezFrame(Type="numeric",  DefaultValue="4.0",  Description="filter out reads that have a dust score higher than 4.0"),
+                  appDefaults <<- rbind(peMode = ezFrame(Type="integer",  DefaultValue="1",  Description="mode of paired-end reads"),
+                                        dustThreshold = ezFrame(Type="numeric",  DefaultValue="4.0",  Description="filter out reads that have a dust score higher than 4.0"),
 		  			example = ezFrame(Type="character", DefaultValue="human", Description="pre-computed readset"))
                 }
               )
