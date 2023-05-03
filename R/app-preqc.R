@@ -35,7 +35,7 @@ ezMethodPreqc = function(input=NA, output=NA, param=NA, htmlFile="00index.html")
 ##' @templateVar method ezMethodSpades()
 ##' @templateVar htmlArg )
 ##' @description Use this reference class to run
-EzAppSpades <-
+EzAppPreqc <-
   setRefClass("EzAppPreqc",
               contains = "EzApp",
               methods = list(
