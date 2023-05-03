@@ -66,9 +66,8 @@ EzAppSTARsolo =
 )
 
 ezMethodSTARsolo = function(input=NA, output=NA, param=NA){
-  # analysis vars
-  ## check if a new index is needed, then create it with CellRanger and the last version of STAR.
-  refDir <- getSTARReference(param)
+  ## check if a new index is needed, then create it with STAR.
+  refDir <- getSTARSoloReference(param)
   
   sampleName = input$getNames()
   sampleDirs = strsplit(input$getColumn("RawDataDir"), ",")[[sampleName]]
@@ -254,4 +253,124 @@ writeGenericFeature <- function(outputDir, subRawDir, subFilteredDir) {
   # Copy files over
   file.copy(from=Sys.glob(file.path(rawOutputDir, "*.gz")), to=subRawDir)
   file.copy(from=Sys.glob(file.path(filtOutputDir, "*.gz")), to=subFilteredDir)
+}
+
+getSTARSoloReference <- function(param) {
+  require(rtracklayer)
+  cwd <- getwd()
+  on.exit(setwd(cwd), add = TRUE)
+  
+  if (ezIsSpecified(param$controlSeqs)) {
+    refDir <- file.path(getwd(), "STARSolo_customised_Ref")
+  } else {
+    if (ezIsSpecified(param$transcriptTypes)) {
+      starSoloBase <- paste(sort(param$transcriptTypes), collapse = "-")
+      ## This is a combination of transcript types to use.
+    } else {
+      starSoloBase <- ""
+    }
+    refDir <- sub(
+      "\\.gtf$", paste0("_STARSolo_", starSoloBase, "_Index"),
+      param$ezRef["refFeatureFile"]
+    )
+  }
+  
+  lockFile <- paste0(refDir, ".lock")
+  i <- 0
+  while (file.exists(lockFile) && i < INDEX_BUILD_TIMEOUT) {
+    ### somebody else builds and we wait
+    Sys.sleep(60)
+    i <- i + 1
+  }
+  if (file.exists(lockFile)) {
+    stop(paste(
+      "reference building still in progress after",
+      INDEX_BUILD_TIMEOUT, "min"
+    ))
+  }
+  ## there is no lock file
+  if (file.exists(file.path(refDir, "SAindex"))) {
+    ## we assume the index is built and complete
+    return(refDir)
+  }
+  
+  ## we have to build the reference
+  setwd(dirname(refDir))
+  ezWrite(Sys.info(), con = lockFile)
+  on.exit(file.remove(lockFile), add = TRUE)
+  
+  job <- ezJobStart("STAR genome build")
+  
+  if (ezIsSpecified(param$controlSeqs)) {
+    ## make reference genome
+    genomeLocalFn <- tempfile(
+      pattern = "genome", tmpdir = getwd(),
+      fileext = ".fa"
+    )
+    file.copy(from = param$ezRef@refFastaFile, to = genomeLocalFn)
+    writeXStringSet(getControlSeqs(param$controlSeqs),
+                    filepath = genomeLocalFn,
+                    append = TRUE
+    )
+    on.exit(file.remove(genomeLocalFn), add = TRUE)
+  } else {
+    genomeLocalFn <- param$ezRef@refFastaFile
+  }
+  
+  ## make gtf
+  gtfFile <- tempfile(
+    pattern = "genes", tmpdir = getwd(),
+    fileext = ".gtf"
+  )
+  if (ezIsSpecified(param$transcriptTypes)) {
+    export.gff2(gtfByTxTypes(param, param$transcriptTypes),
+                con = gtfFile
+    )
+  } else {
+    file.copy(from = param$ezRef@refFeatureFile, to = gtfFile)
+  }
+  if (ezIsSpecified(param$controlSeqs)) {
+    extraGR <- makeExtraControlSeqGR(param$controlSeqs)
+    gtfExtraFn <- tempfile(
+      pattern = "extraSeqs", tmpdir = getwd(),
+      fileext = ".gtf"
+    )
+    on.exit(file.remove(gtfExtraFn), add = TRUE)
+    export.gff2(extraGR, con = gtfExtraFn)
+    ezSystem(paste("cat", gtfExtraFn, ">>", gtfFile))
+  }
+  
+  # STARSolo-specific things
+  fai <- ezRead.table(paste0(param$ezRef["refFastaFile"], ".fai"), header = FALSE)
+  colnames(fai) <- c("LENGTH", "OFFSET", "LINEBASES", "LINEWDITH")
+  if (nrow(fai) > 50) {
+    binOpt <- "--genomeChrBinNbits 16"
+  } else {
+    binOpt <- ""
+  }
+  
+  genomeLength <- sum(fai$LENGTH)
+  readLength <- 150 ## assumption
+  indexNBasesOpt <- paste("--genomeSAindexNbases", min(13, floor(log2(genomeLength) / 2 - 1)))
+  if (binOpt == "") {
+    genomeChrBinNbits <- paste("--genomeChrBinNbits", floor(min(
+      18,
+      log2(max(genomeLength / nrow(fai), readLength))
+    )))
+  } else {
+    genomeChrBinNbits <- ""
+  }
+  
+  cmd <- paste(
+    "STAR", "--runMode genomeGenerate --genomeDir", refDir, binOpt, indexNBasesOpt, genomeChrBinNbits,
+    "--limitGenomeGenerateRAM", format(param$ram * 1e9, scientific = FALSE),
+    "--genomeFastaFiles", genomeLocalFn,
+    "--outTmpDir", tempfile(pattern="", fileext="_STARtmp", tmpdir=getwd()),
+    "--sjdbGTFfile", gtfFile, "--sjdbOverhang 150", "--runThreadN", param$cores, "--genomeSAsparseD 2"
+  )
+  ezSystem(cmd)
+  ezWriteElapsed(job, "done")
+  file.remove(gtfFile)
+  
+  return(refDir)
 }
