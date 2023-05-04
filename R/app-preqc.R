@@ -27,7 +27,7 @@ ezMethodPreqc = function(input=NA, output=NA, param=NA, htmlFile="00index.html")
   ezSystem(cmd)
   cmd=paste("sga preqc -t", cores, paste0(sampleName, ".fastq"), ">" , paste0(sampleName, ".preqc"))
   ezSystem(cmd)
-  cmd=paste("sga-preqc-report.py -o", sampleName, paste0(sampleName,  ".preqc"), paste0("/usr/local/ngseq/src/sga/src/examples/", param$example, ".preqc"))
+  cmd=paste("sga-preqc-report.py -o", sampleName, paste0(sampleName,  ".preqc"), paste0("/usr/local/ngseq/src/sga/src/examples/preqc/", param$example, ".preqc"))
   ezSystem(cmd)
   return("Success")
 }
