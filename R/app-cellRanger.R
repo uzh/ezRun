@@ -150,7 +150,10 @@ getFastqDirs <- function(input, column, sampleName) {
 deCompress = function(fastqDirs){
   fastqDirs = sapply(fastqDirs, function(scTar){
     targetDir = basename(dirname(scTar))
-    untar(scTar, exdir = targetDir, tar=system("which tar", intern=TRUE))
+    res <- untar(scTar, exdir = targetDir, tar=system("which tar", intern=TRUE))
+    if (res > 0) {
+      stop(sprintf("There was an error unpacking '%s' into '%s'. See warnings.", scTar, targetDir))
+    }
     return(targetDir)
   })
   return(fastqDirs)
