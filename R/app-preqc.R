@@ -8,6 +8,7 @@
 
 ezMethodPreqc = function(input=NA, output=NA, param=NA, htmlFile="00index.html"){
   sampleName = input$getNames()
+  cores=param$cores
   ##stopifnot((param$paired))
   trimmedInput = ezMethodFastpTrim(input = input, param = param)
   if (param$paired){
@@ -22,9 +23,9 @@ ezMethodPreqc = function(input=NA, output=NA, param=NA, htmlFile="00index.html")
     cmd = paste("sga preprocess --pe-mode 0", "--dust", paste0("--dust-threshold=",param$dustThreshold), readOpt, ">", paste0(sampleName,".fastq"))
     ezSystem(cmd)
   }
-  cmd=paste("sga index -a ropebwt --no-reverse -t", param$cires, paste0(sampleName, ".fastq")) 
+  cmd=paste("sga index -a ropebwt --no-reverse -t", cores, paste0(sampleName, ".fastq")) 
   ezSystem(cmd)
-  cmd=paste("sga preqc -t", param$cores, paste0(sampleName, ".fastq"), ">" , paste0(sampleName, ".preqc"))
+  cmd=paste("sga preqc -t", cores, paste0(sampleName, ".fastq"), ">" , paste0(sampleName, ".preqc"))
   ezSystem(cmd)
   cmd=paste("sga-preqc-report.py -o", sampleName, paste0(sampleName,  ".preqc"), paste0("/usr/local/ngseq/src/sga/src/examples/", param$example, ".preqc"))
   ezSystem(cmd)
