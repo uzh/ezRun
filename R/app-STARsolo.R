@@ -76,7 +76,11 @@ ezMethodSTARsolo = function(input=NA, output=NA, param=NA){
     runDirs <- c()
     for (i in 1:length(sampleDirs)) {
       runDirs[i] <- paste0("run_", i)
-      untar(sampleDirs[i], exdir=runDirs[i], tar=system("which tar", intern=TRUE))
+      res <- untar(sampleDirs[i], exdir=runDirs[i], tar=system("which tar", intern=TRUE))
+      if (res > 0) {
+        stop(sprintf("There was an error unpacking '%s' into '%s'. See warnings.", 
+                     sampleDirs[i], runDirs[i]))
+      }
     }
   }
   # parse solo features
