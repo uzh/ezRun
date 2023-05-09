@@ -56,7 +56,7 @@ ezMethodPbsv <- function(input = NA, output = NA, param = NA) {
   p1<-p1 + geom_bar(stat="identity") 
   p1<-p1 + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) 
   p1<-p1 + facet_grid(. ~ svType) + scale_y_continuous(trans='log10') + ggtitle(sampleName)
-  pdf(paste0(sampleName, '.stats.pdf'), 600, 1000, res = 100)
+  pdf(paste0(sampleName, '.stats.pdf'))
     print(p1)
   dev.off()
 
