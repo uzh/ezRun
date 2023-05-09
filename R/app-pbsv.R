@@ -52,10 +52,8 @@ ezMethodPbsv <- function(input = NA, output = NA, param = NA) {
   tbl<-read.table(PbsvStatsFile, header=TRUE)
   data_long<- gather(tbl, svType, count, Del:TRA, factor_key=TRUE)
   data_long$Len<-factor(data_long$Len, levels = c("0-50bp", "50-100bp", "100-1000bp", "1000-10000bp", "10000+bp"))
-  p<-ggplot(data=data_long, aes(x=Len, y=count, color=svType, fill=svType)) + geom_bar(stat="identity") + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + facet_grid(. ~ svType) + scale_y_continuous(trans='log10') + ggtitle(sampleName)
-  pdf(file=PbsvStatsPlot)
-  print(p)
-  dev.off()
+  p1<-ggplot(data=data_long, aes(x=Len, y=count, color=svType, fill=svType)) + geom_bar(stat="identity") + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + facet_grid(. ~ svType) + scale_y_continuous(trans='log10') + ggtitle(sampleName)
+  ggsave(paste0(sampleName, ".stats.pdf"), plot = p1)
   return("Success")
 }
 
