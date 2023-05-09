@@ -15,6 +15,7 @@ ezMethodPbsv <- function(input = NA, output = NA, param = NA) {
   ovzf = paste0(sampleName, ".vcf.gz")
   PbsvLogFile = paste0(sampleName, "_pbsv.log")
   PbsvStatsFile = paste0(sampleName, ".stats.txt")
+  PbsvStatsPlot = paste0(sampleName, ".stats.pdf")
   cmd = paste("/srv/GT/software/SMRTtools/SMRT_Link_v10/smrtcmds/bin/pbsv discover", param$afOptions)
   if(param$ReadOpt=="HIFI"){
 	    cmd=paste(cmd, "--hifi")
@@ -45,6 +46,16 @@ ezMethodPbsv <- function(input = NA, output = NA, param = NA) {
   ezSystem(paste("bgzip -c", ovf, ">", ovzf)) 
   indexTabix(basename(ovzf),format = "vcf")
   ezSystem(paste("SURVIVOR stats", ovf, "20 -1 3",  PbsvStatsFile)) 
+
+  library(tidyr)
+  library(ggplot2)
+  tbl<-read.table(PbsvStatsFile, header=TRUE)
+  data_long<- gather(tbl, svType, count, Del:TRA, factor_key=TRUE)
+  data_long$Len<-factor(data_long$Len, levels = c("0-50bp", "50-100bp", "100-1000bp", "1000-10000bp", "10000+bp"))
+  p<-ggplot(data=data_long, aes(x=Len, y=count, color=svType, fill=svType)) + geom_bar(stat="identity") + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + facet_grid(. ~ svType) + scale_y_continuous(trans='log10') + ggtitle(sampleName)
+  pdf(PbsvStatsPlot)
+  print(p)
+  dev.off()
   return("Success")
 }
 
