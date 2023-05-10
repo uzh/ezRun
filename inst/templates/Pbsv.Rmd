@@ -1,0 +1,62 @@
+---
+title: "PBSV"
+author: "Functional Genomics Center Zurich"
+output: 
+  html_document:
+    self_contained: false
+    includes:
+      in_header: fgcz_header.html
+    css: fgcz.css
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+library(ezRun)
+library(ggplot2)
+library(tidyr)
+## debug
+#title: "`r paste(:'PBSV', params$sample`)"
+#wddir <- "/misc/GT/analysis/qiwei/debug/p26994/pbsv_2023-05-10--09-34-19"
+wddir <- "."
+#params = list(sample="NA24385")
+## end of debug
+```
+
+## Result {.tabset}
+
+### Overview
+
+```{r sample, echo=FALSE, message=FALSE}
+params$sample
+```
+
+
+```{r sv, echo=FALSE, message=FALSE}
+dat.file <- file.path(wddir, paste0(params$sample,".SURVIVOR.log"))
+dat <- readLines(dat.file)
+counts <- data.frame( Count=c(scan(text=dat[4], what="")[1], scan(text=dat[4], what="")[2], scan(text=dat[4], what="")[3], scan(text=dat[4], what="")[4], scan(text=dat[4], what="")[5], scan(text=dat[4], what="")[6]))
+row.names(counts)<-c("Tot", "DEL", "DUP", "INS", "INV",	"TRA")
+library(knitr)
+kable(counts, caption = "Summary stats")
+barplot(t(as.matrix(counts)), main="Summary stats", cex.main=0.7, cex.names=0.7, las=2)
+```
+
+### SV types by length 
+
+```{r s1, echo=FALSE, message=FALSE}
+  tbl<-read.table(paste0(wddir, "/", params$sample, ".stats.txt"), header=TRUE)
+  data_long<- gather(tbl, svType, Count, Del:TRA, factor_key=TRUE)
+  data_long$Len<-factor(data_long$Len, levels = c("0-50bp", "50-100bp", "100-1000bp", "1000-10000bp", "10000+bp"))
+  p1<-ggplot(data=data_long, aes(x=Len, y=count, color=svType, fill=svType))
+  p1<-p1 + geom_bar(stat="identity")
+  p1<-p1 + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+  p1<-p1 + facet_grid(. ~ svType) + scale_y_continuous(trans='log10') + ggtitle(params$sample)
+  #pdf(paste0(outPath, "/", sampleName, '.stats.pdf'))
+    	print(p1)
+  #dev.off()
+```
+
+### SessionInfo
+```{r, echo=FALSE}
+ezSessionInfo()
+```

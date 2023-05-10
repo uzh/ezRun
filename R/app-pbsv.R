@@ -46,19 +46,17 @@ ezMethodPbsv <- function(input = NA, output = NA, param = NA) {
   ezSystem(PbsvCallCmd)
   ezSystem(paste("bgzip -c", ovf, ">", ovzf)) 
   indexTabix(basename(ovzf),format = "vcf")
-  ezSystem(paste("SURVIVOR stats", ovf, "20 -1 3",  PbsvStatsFile)) 
+  ezSystem(paste("SURVIVOR stats", ovf, "20 -1 3",  PbsvStatsFile, "&>", paste0(sampleName, ".SURVIVOR.log"))) 
 
-  outPath<-param$outputDir
-  tbl<-read.table(paste0(outPath, "/", PbsvStatsFile), header=TRUE)
-  data_long<- gather(tbl, svType, count, Del:TRA, factor_key=TRUE)
-  data_long$Len<-factor(data_long$Len, levels = c("0-50bp", "50-100bp", "100-1000bp", "1000-10000bp", "10000+bp"))
-  p1<-ggplot(data=data_long, aes(x=Len, y=count, color=svType, fill=svType)) 
-  p1<-p1 + geom_bar(stat="identity") 
-  p1<-p1 + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) 
-  p1<-p1 + facet_grid(. ~ svType) + scale_y_continuous(trans='log10') + ggtitle(sampleName)
-  pdf(paste0(outPath, "/", sampleName, '.stats.pdf'))
-    	print(p1)
-  dev.off()
+  ##html file  
+  #setwd(start_path)
+  htmlFile = output$getColumn("OutReport")
+  styleFiles <- file.path(system.file("templates", package="ezRun"),
+                          c("fgcz.css", "Pbsv.Rmd",
+                            "fgcz_header.html", "banner.png"))
+  file.copy(from=styleFiles, to=".", overwrite=TRUE)
+  params = list(sample=sampleName)
+  rmarkdown::render(input="Pbsv.Rmd", envir = new.env(), output_dir=".", output_file=htmlFile, quiet=TRUE)
 
   return("Success")
 }
