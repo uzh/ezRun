@@ -47,7 +47,7 @@ barplot(t(as.matrix(counts)), main="Summary stats", cex.main=0.7, cex.names=0.7,
   tbl<-read.table(paste0(wddir, "/", params$sample, ".stats.txt"), header=TRUE)
   data_long<- gather(tbl, svType, Count, Del:TRA, factor_key=TRUE)
   data_long$Len<-factor(data_long$Len, levels = c("0-50bp", "50-100bp", "100-1000bp", "1000-10000bp", "10000+bp"))
-  p1<-ggplot(data=data_long, aes(x=Len, y=count, color=svType, fill=svType))
+  p1<-ggplot(data=data_long, aes(x=Len, y=Count, color=svType, fill=svType))
   p1<-p1 + geom_bar(stat="identity")
   p1<-p1 + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
   p1<-p1 + facet_grid(. ~ svType) + scale_y_continuous(trans='log10') + ggtitle(params$sample)
