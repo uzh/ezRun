@@ -5,18 +5,19 @@
 # The terms are available here: http://www.gnu.org/licenses/gpl.html
 # www.fgcz.ch
 
-ezMethodPbsv <- function(input = NA, output = NA, param = NA) {
+ezMethodPbsv <- function(input = NA, output = NA, param = NA, htmlFile="00index.html") {
   require("VariantAnnotation")
-  require(tidyr)
-  require(ggplot2)
   genomeSeq = param$ezRef["refFastaFile"]
   sampleName = input$getNames()
+  setwdNew(sampleName)
+
   bamFile <- input$getFullPaths("BAM")
   osf = paste0(sampleName, ".svsig.gz")
   ovf = paste0(sampleName, ".vcf")
   ovzf = paste0(sampleName, ".vcf.gz")
   PbsvLogFile = paste0(sampleName, "_pbsv.log")
   PbsvStatsFile = paste0(sampleName, ".stats.txt")
+  SurvivorLogFile = paste0(sampleName, ".SURVIVOR.log")
   cmd = paste("/srv/GT/software/SMRTtools/SMRT_Link_v10/smrtcmds/bin/pbsv discover", param$afOptions)
   if(param$ReadOpt=="HIFI"){
 	    cmd=paste(cmd, "--hifi")
@@ -46,7 +47,9 @@ ezMethodPbsv <- function(input = NA, output = NA, param = NA) {
   ezSystem(PbsvCallCmd)
   ezSystem(paste("bgzip -c", ovf, ">", ovzf)) 
   indexTabix(basename(ovzf),format = "vcf")
-  ezSystem(paste("SURVIVOR stats", ovf, "20 -1 3",  PbsvStatsFile, "1>", paste0(sampleName, ".SURVIVOR.log"))) 
+
+  SurvivorCmd=paste("SURVIVOR stats", ovf, "20 -1 3",  PbsvStatsFile, "1>", SurvivorLogFile) 
+  ezSystem(SurvivorCmd) 
 
   ##html file  
   #setwd(start_path)
