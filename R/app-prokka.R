@@ -16,7 +16,7 @@ ezMethodProkka = function(input=NA, output=NA, param=NA, htmlFile="00index.html"
 }
 
 ##' @template app-template
-##' @templateVar method ezMethodSpades()
+##' @templateVar method ezMethodProkka()
 ##' @templateVar htmlArg )
 ##' @description Use this reference class to run 
 EzAppProkka <-
@@ -30,7 +30,6 @@ EzAppProkka <-
 		  appDefaults <<- rbind(
 					refGenome = ezFrame(kingdom = ezFrame(Type="character", DefaultValue="Bacteria",  Description="annotation mode and genetic code")
 					)
-
                 }
 	)
   )
