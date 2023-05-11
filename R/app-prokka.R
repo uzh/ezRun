@@ -15,22 +15,23 @@ ezMethodProkka = function(input=NA, output=NA, param=NA, htmlFile="00index.html"
   return("Success")
 }
 
+
 ##' @template app-template
-##' @templateVar method ezMethodProkka()
-##' @templateVar htmlArg )
-##' @description Use this reference class to run 
+##' @templateVar method ezMethodProkka
+##' @description Use this reference class to run
+##' @seealso \code{\link{getPbmm2Reference}}
 EzAppProkka <-
   setRefClass("EzAppProkka",
-              contains = "EzApp",
-              methods = list(
-                initialize = function() {
-                  "Initializes the application using its specific defaults."
-                  runMethod <<- ezMethodProkka
-                  name <<- "EzAppProkka"
-		  appDefaults <<- rbind(
-					refGenome = ezFrame(kingdom = ezFrame(Type="character", DefaultValue="Bacteria",  Description="annotation mode and genetic code")
-					)
-                }
+    contains = "EzApp",
+    methods = list(
+      initialize = function() {
+        "Initializes the application using its specific defaults."
+        runMethod <<- ezMethodProkka
+        name <<- "EzAppProkka"
+        appDefaults <<- rbind(
+        kingdom = ezFrame(Type="character",  DefaultValue="Bacteria",  Description="annotation mode and genetic code. Default is Bacteria")
 	)
+      }
+    )
   )
 
