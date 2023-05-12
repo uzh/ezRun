@@ -1,0 +1,44 @@
+---
+title: "GCE"
+author: "Functional Genomics Center Zurich"
+output: 
+  html_document:
+    self_contained: false
+    includes:
+      in_header: fgcz_header.html
+    css: fgcz.css
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+library(ezRun)
+## debug
+#title: "`r paste(:'PBSV', params$sample`)"
+#wddir <- "/srv/GT/analysis/qiwei/DNA-seq-202305/project3/sample_1"
+wddir <- "."
+#params = list(sample="sample_1")
+## end of debug
+```
+
+## Result {.tabset}
+
+### Genome Size
+
+```{r sample, echo=FALSE, message=FALSE}
+params$sample
+```
+
+```{r gs, echo=FALSE, message=FALSE}
+dat.file <- file.path(wddir, paste0(params$sample,".kmer.freq.stat.final.genomic.characters"))
+dat <- readLines(dat.file)
+library(knitr)
+cat(dat[c(19:22)], sep = '\n')
+```
+
+### kmer frequency plot 
+![kmer frequency plot](`r file.path(wddir, paste0(params$sample,".kmer.freq.stat_real_theory_distribution.png"))`)
+
+### SessionInfo
+```{r, echo=FALSE}
+ezSessionInfo()
+```
