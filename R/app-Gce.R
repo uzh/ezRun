@@ -18,6 +18,16 @@ ezMethodGce = function(input=NA, output=NA, param=NA, htmlFile="00index.html"){
   ezSystem(cmd)
   cmd = paste("convert", paste0(sampleName, "kmer.freq.stat_real_theory_distribution.svg"), paste0(sampleName, "kmer.freq.stat_real_theory_distribution.png"))
   ezSystem(cmd)
+
+  #html report)
+  htmlFile = output$getColumn("Report")
+  styleFiles <- file.path(system.file("templates", package="ezRun"),
+                          c("fgcz.css", "Gce.Rmd",
+                            "fgcz_header.html", "banner.png"))
+  file.copy(from=styleFiles, to=".", overwrite=TRUE)
+  params = list(sample=sampleName)
+  rmarkdown::render(input="Gce.Rmd", envir = new.env(), output_dir=".", output_file=htmlFile, quiet=TRUE)
+
   return("Success")
 }
 
