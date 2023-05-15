@@ -15,7 +15,7 @@ library(ezRun)
 ## debug
 #title: "`r paste(:'PBSV', params$sample`)"
 #wddir <- "/srv/GT/analysis/qiwei/DNA-seq-202305/project3/sample_1"
-wddir <- "."
+.wddir <- "."
 #params = list(sample="sample_1")
 ## end of debug
 ```
@@ -36,7 +36,15 @@ cat(dat[c(19:22)], sep = '\n')
 ```
 
 ### kmer frequency plot 
-![kmer frequency plot](`r file.path(wddir, paste0(params$sample,".kmer.freq.stat_real_theory_distribution.png"))`)
+
+```{r svg, echo=FALSE, message=FALSE}
+svg.file <- file.path(wddir, paste0(params$sample,".kmer.freq.stat_real_theory_distribution.svg"))
+png.file <- file.path(wddir, paste0(params$sample,".kmer.freq.stat_real_theory_distribution.png"))
+library(rsvg)
+rsvg_png(svg.file, png.file)
+```
+
+![kmer frequency plot](`r png.file`)
 
 ### SessionInfo
 ```{r, echo=FALSE}

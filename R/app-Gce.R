@@ -16,8 +16,6 @@ ezMethodGce = function(input=NA, output=NA, param=NA, htmlFile="00index.html"){
   ezSystem(cmd)
   cmd = paste("perl /usr/local/ngseq/src/GCE/gce-alternative/estimate_genome_character_real.pl", paste0(sampleName, ".kmer.freq.stat"))
   ezSystem(cmd)
-  cmd = paste("convert", paste0(sampleName, ".kmer.freq.stat_real_theory_distribution.svg"), paste0(sampleName, ".kmer.freq.stat_real_theory_distribution.png"))
-  ezSystem(cmd)
 
   #html report)
   htmlFile = output$getColumn("Report")
