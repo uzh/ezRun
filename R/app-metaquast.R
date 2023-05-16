@@ -10,7 +10,7 @@ ezMethodMetaQuast = function(input=NA, output=NA, param=NA, htmlFile="00index.ht
   opt = param$cmdOptions
   sampleName = input$getNames()
   draft = input$getFullPaths("Draft")
-  cmd = paste("metaquast.py", "--blast-db /srv/GT/databases/silva/release_138_1/SILVA_138.1_LSURef_NR99_tax_silva.fasta -o", sampleName, '-t', ezThreads(), opt, draft, "1> ", paste0(sampleName,"_metaquast.log"))
+  cmd = paste("metaquast.py", "-o", sampleName, '-t', ezThreads(), opt, draft, "1> ", paste0(sampleName,"_metaquast.log"))
   ezSystem(cmd)
   return("Success")
 }
