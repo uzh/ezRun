@@ -63,7 +63,7 @@ if (file.exists("enrichRout.rds")){
 
 # Process the posMarkers
 posMarkers$gene = as.factor(posMarkers$gene)
-# make sure the loaded cluster uses proiper integer ordering if all levels are integer!
+# make sure the loaded cluster uses proper integer ordering if all levels are integer!
 clusterSet <- posMarkers$cluster %>% as.integer() %>% unique() %>% sort()
 if (any(is.na(clusterSet))){
   posMarkers$cluster = as.factor(posMarkers$cluster)
