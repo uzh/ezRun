@@ -10,7 +10,7 @@ ezMethodMetaQuast = function(input=NA, output=NA, param=NA, htmlFile="00index.ht
   opt = param$cmdOptions
   sampleName = input$getNames()
   draft = input$getFullPaths("Draft")
-  cmd = paste("metaquast.py", "-o", sampleName, '-t', ezThreads(), opt, draft, "1> ", paste0(sampleName,"_metaquast.log"))
+  cmd = paste("metaquast.py", "-o", sampleName, '-t 1 --memory-efficient', opt, draft, "1> ", paste0(sampleName,"_metaquast.log"))
   ezSystem(cmd)
   return("Success")
 }
