@@ -15,7 +15,7 @@ library(ezRun)
 ## debug
 #title: "`r paste(:'PBSV', params$sample`)"
 #wddir <- "/srv/GT/analysis/qiwei/DNA-seq-202305/project3/sample_1"
-.wddir <- "."
+wddir <- "."
 #params = list(sample="sample_1")
 ## end of debug
 ```
