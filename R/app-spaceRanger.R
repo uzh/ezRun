@@ -53,7 +53,7 @@ ezMethodSpaceRanger <- function(input=NA, output=NA, param=NA){
                paste0("--slide=", input$getColumn("Slide")),
                paste0("--area=", input$getColumn("Area")))
   
-  if('Image' %in% inputCols & grepl('tif$|tiff$|jpeg$|jpeg$',input$getFullPaths("Image"))){
+  if('Image' %in% inputCols & grepl('tif$|tiff$|jpeg$|jpg$',input$getFullPaths("Image"))){
       cmd <- paste(cmd, paste0("--image=", input$getFullPaths("Image")))
   }
   
