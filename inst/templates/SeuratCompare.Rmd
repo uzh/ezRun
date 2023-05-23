@@ -44,7 +44,7 @@ Idents(scData) <- scData$Condition
 scData <- subset(scData, idents=c(param$sampleGroup, param$refGroup))
 #values need to be re-scaled after subsetting for plotting purposes
 scData <- ScaleData(scData)
-Idents(scData) <- scData$seurat_clusters
+Idents(scData) <- scData$ident
 var_heigth <- 1
 ```
 
