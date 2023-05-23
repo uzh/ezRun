@@ -20,6 +20,10 @@ ezMethodEdger <- function(input = NA, output = NA, param = NA) {
   if (ezIsSpecified(param$grouping2) && length(param$grouping2) == 1) {
     param$grouping2Name <- param$grouping2
     param$grouping2 <- input$getColumn(param$grouping2)
+    groupNum <- as.numeric(param$grouping2)
+    if (all(!is.na(groupNum))){
+      param$grouping2 <- setNames(groupNum, names(param$grouping2))
+    }
   }
 
   rawData <- loadCountDataset(input, param)
