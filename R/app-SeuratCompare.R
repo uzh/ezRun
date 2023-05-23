@@ -37,7 +37,7 @@ ezMethodSeuratCompare = function(input=NA, output=NA, param=NA, htmlFile="00inde
   filePath_course <- file.path("/srv/GT/analysis/course_sushi/public/projects", dirname(scDataURLs), "scData.rds")
   
   if(!file.exists(filePath)) 
-      filePath <- filePath_course
+    filePath <- filePath_course
   
   scData <- readRDS(filePath)
   
@@ -49,8 +49,8 @@ ezMethodSeuratCompare = function(input=NA, output=NA, param=NA, htmlFile="00inde
   pvalue_allMarkers <- 0.05
   
   #Before calculating the conserved markers and differentially expressed genes across conditions I will discard the clusters that were too small in at least one group
-  Idents(scData) <- scData$seurat_clusters
-  clusters_freq <- data.frame(table(scData$Condition,Idents(scData)))
+  Idents(scData) <- scData$ident
+  clusters_freq <- data.frame(table(scData$Condition, Idents(scData)))
   small_clusters <- ""
   small_clusters <- unique(as.character(clusters_freq[clusters_freq[,"Freq"] < 10, 2]))
   
@@ -58,19 +58,19 @@ ezMethodSeuratCompare = function(input=NA, output=NA, param=NA, htmlFile="00inde
   consMarkers <- NULL
   
   #only subset object and calculate diff genes and conserved markers if there is at least one cluster shared among conditions
-  if (!all(scData$seurat_clusters %in% small_clusters)) {
-     scData <- subset(scData, idents = small_clusters, invert = TRUE)
-     
-     ###PrepSCTFindMarkers crashes for empty models which occur if the data consists of more than 2 samples/conditions 
-     if(length(slot(object = scData[['SCT']], name = "SCTModel.list")) > 2){
-         toKeep <- which(sapply(SCTResults(object = scData[['SCT']], slot = "cell.attributes"), nrow) != 0)
-         slot(object = scData[['SCT']], name = "SCTModel.list") = slot(object = scData[['SCT']], name = "SCTModel.list")[toKeep]
-     }
-     #conserved cluster markers
-     scData <- PrepSCTFindMarkers(scData)
-     consMarkers <- conservedMarkers(scData)
-     #differentially expressed genes between clusters and conditions (in case of several conditions)
-     diffGenes <- diffExpressedGenes(scData, param)
+  if (!all(Idents(scData) %in% small_clusters)) {
+    scData <- subset(scData, idents = small_clusters, invert = TRUE)
+    
+    ###PrepSCTFindMarkers crashes for empty models which occur if the data consists of more than 2 samples/conditions 
+    if(length(slot(object = scData[['SCT']], name = "SCTModel.list")) > 2){
+      toKeep <- which(sapply(SCTResults(object = scData[['SCT']], slot = "cell.attributes"), nrow) != 0)
+      slot(object = scData[['SCT']], name = "SCTModel.list") = slot(object = scData[['SCT']], name = "SCTModel.list")[toKeep]
+    }
+    #conserved cluster markers
+    scData <- PrepSCTFindMarkers(scData)
+    consMarkers <- conservedMarkers(scData)
+    #differentially expressed genes between clusters and conditions (in case of several conditions)
+    diffGenes <- diffExpressedGenes(scData, param)
   }
   dataFiles = saveExternalFiles(list(differential_genes=diffGenes, conserved_markers=consMarkers))
   saveRDS(input, "input.rds")
