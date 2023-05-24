@@ -505,14 +505,19 @@ cat("\n\n")
 Matching the cells to marker gene sets that are known to be characteristic for cell types. We use marker gene sets from the CellMarker database (Zhang X., Lan Y., Xu J., Quan F., Zhao E., Deng C., et al. (2019). CellMarker: a manually curated resource of cell markers in human and mouse. Nucleic Acids Res. 47, D721–d728. 10.1093/nar/gky900). 
 
 ```{r AUC assigments, eval= !is.null(cells.AUC)}
-cells_assignment <- AUCell_exploreThresholds(cells.AUC, plotHist=FALSE, assign=TRUE, nCores = param$cores) 
-cellsAssigned <- lapply(cells_assignment, function(x) x$assignment)
-assignmentTable <- reshape2::melt(cellsAssigned, value.name="cell")
-colnames(assignmentTable)[2] <- "geneSet"
-tras_cells.AUC <- t(assay(cells.AUC))
-full.labels <- colnames(tras_cells.AUC)[max.col(tras_cells.AUC)]
-tab <- table(full.labels, Idents(scData))
-var_height <- shrinkToRange(nrow(tab)*0.5, c(6,16))
+tab <- NULL
+try({
+  ## in some extreme situations the default value of smallesPopPercent crashes 
+  cells_assignment <- AUCell_exploreThresholds(cells.AUC, plotHist=FALSE, assign=TRUE, nCores = param$cores) 
+  cellsAssigned <- lapply(cells_assignment, function(x) x$assignment)
+  assignmentTable <- reshape2::melt(cellsAssigned, value.name="cell")
+  colnames(assignmentTable)[2] <- "geneSet"
+  tras_cells.AUC <- t(assay(cells.AUC))
+  full.labels <- colnames(tras_cells.AUC)[max.col(tras_cells.AUC)]
+  tab <- table(full.labels, Idents(scData))
+  var_height <- shrinkToRange(nrow(tab)*0.5, c(6,16))
+})
+
 ```
 
 ```{r assigments, eval= !is.null(cells.AUC), results='asis'}
