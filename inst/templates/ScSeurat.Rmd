@@ -158,7 +158,7 @@ qcStats[ "Library Size", ] <- c(sum(allCellsMeta$qc.lib),
 qcStats[ "Expressed genes", ]<- c(sum(allCellsMeta$qc.nexprs), 
                                range(allCellsMeta$nFeature_RNA[allCellsMeta$useCell])) %>% as.integer()
 qcStats[ "Mitochondrial Percent", ]<- c(sum(allCellsMeta$qc.mito), 
-                               range(allCellsMeta$percent_mito[allCellsMeta$useCell]))
+                               range(allCellsMeta$percent_mito[allCellsMeta$useCell])) %>% as.integer()
 qcStats[ "Ribosomal protein Percent", ]<- c(sum(allCellsMeta$qc.riboprot), 
                                range(allCellsMeta$percent_riboprot[allCellsMeta$useCell])) %>% as.integer()
 qcStats[ "Doublets", ]<- c(sum(allCellsMeta$qc.doublet), NA, NA)
