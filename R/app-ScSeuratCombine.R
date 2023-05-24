@@ -82,7 +82,7 @@ ezMethodScSeuratCombine = function(input=NA, output=NA, param=NA, htmlFile="00in
         scData$Condition <- scData$Sample
       }
     }
-    scData <- RenameCells(scData, new.names = paste0(scDat a$Sample, "-", colnames(scData)))
+    scData <- RenameCells(scData, new.names = paste0(scData$Sample, "-", colnames(scData)))
     scData$sample_seurat_clusters <- paste0(scData$Sample, "-", sprintf("%02d", scData$seurat_clusters))
     return(scData)
   })
