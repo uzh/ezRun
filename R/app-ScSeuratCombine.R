@@ -76,9 +76,13 @@ ezMethodScSeuratCombine = function(input=NA, output=NA, param=NA, htmlFile="00in
     scData$Sample <- sm
     # If we have new information in the Condition column, add it to the dataset
     if (all(scData$Condition == "NA" | scData$Condition == "")) {
-      scData$Condition <- unname(input$getColumn("Condition")[sm])
+      if (any(startsWith(colnames(input$meta), "Condition"))) {
+        scData$Condition <- unname(input$getColumn("Condition")[sm])
+      } else {
+        scData$Condition <- scData$Sample
+      }
     }
-    scData <- RenameCells(scData, new.names = paste0(scData$Sample, "-", colnames(scData)))
+    scData <- RenameCells(scData, new.names = paste0(scDat a$Sample, "-", colnames(scData)))
     scData$sample_seurat_clusters <- paste0(scData$Sample, "-", sprintf("%02d", scData$seurat_clusters))
     return(scData)
   })
