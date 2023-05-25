@@ -213,8 +213,9 @@ cellClustWithCorrection <- function (scDataList, param) {
   if(identical("CellCycle", param$SCT.regress))
     vars.to.regress <- c("CellCycleS", "CellCycleG2M")
   #1. Data preprocesing is done on each object separately
-  for (i in 1:length(scDataList)) 
+  for (i in 1:length(scDataList)) {
     scDataList[[i]] <- SCTransform(scDataList[[i]], vars.to.regress = vars.to.regress,  assay = assay, verbose = TRUE)
+  }
   
   #2. Data integration
   #2.1. # Select the most variable features to use for integration
@@ -226,11 +227,11 @@ cellClustWithCorrection <- function (scDataList, param) {
   }
   #2.3. Find anchors
   if(param$integrationMethod == 'Classic'){
-  integ_anchors <- FindIntegrationAnchors(object.list = scDataList, normalization.method = "SCT", 
-                                          anchor.features = integ_features, dims = 1:param$npcs)
+    integ_anchors <- FindIntegrationAnchors(object.list = scDataList, normalization.method = "SCT", 
+                                            anchor.features = integ_features, dims = 1:param$npcs)
   } else if(param$integrationMethod == 'RPCA'){
-  integ_anchors <- FindIntegrationAnchors(object.list = scDataList, normalization.method = "SCT", 
-                                          anchor.features = integ_features, dims = 1:param$npcs, reduction = "rpca", k.anchor = 20)
+    integ_anchors <- FindIntegrationAnchors(object.list = scDataList, normalization.method = "SCT", 
+                                            anchor.features = integ_features, dims = 1:param$npcs, reduction = "rpca", k.anchor = 20)
   }
   
   #2.4. Integrate datasets
