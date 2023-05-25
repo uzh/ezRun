@@ -70,7 +70,7 @@ ezMethodScSeuratCombine = function(input=NA, output=NA, param=NA, htmlFile="00in
     filePath <- filePath_course
   names(filePath) <- input$getNames()
   
-  # Load the data and prepare it for integration
+  # Load the data and prepare metadata for integration
   scDataList <- lapply(names(filePath), function(sm) {
     scData <- readRDS(filePath[sm])
     scData$Sample <- sm
@@ -82,6 +82,16 @@ ezMethodScSeuratCombine = function(input=NA, output=NA, param=NA, htmlFile="00in
         scData$Condition <- scData$Sample
       }
     }
+    # Also add the other factors in the input dataset to the objects
+    if (!is.null(param$harmonyFactors)) {
+      harmonyFactors <- str_split(param$harmonyFactors, ",", simplify=TRUE)[1,]
+      metaFactorNames <- paste0("har_", harmonyFactors) %>% str_replace(., " ", ".")
+      names(metaFactorNames) <- harmonyFactors
+      for (hf in harmonyFactors) {
+        scData[[metaFactorNames[hf]]] <- unname(input$getColumn(hf)[sm])
+      }
+    }
+    # Rename the cells and add original sample-level clusters back in
     scData <- RenameCells(scData, new.names = paste0(scData$Sample, "-", colnames(scData)))
     scData$sample_seurat_clusters <- paste0(scData$Sample, "-", sprintf("%02d", scData$seurat_clusters))
     return(scData)
@@ -139,9 +149,3 @@ ezMethodScSeuratCombine = function(input=NA, output=NA, param=NA, htmlFile="00in
   return("Success")
   
 }
-
-
-
-
-
-

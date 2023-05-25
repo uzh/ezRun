@@ -133,11 +133,11 @@ add_Condition_oldReports <- function(sce) {
   sce
 }
 
-seuratStandardWorkflow <- function(scData, param){
+seuratStandardWorkflow <- function(scData, param, reduction="pca") {
   scData <- RunPCA(object=scData, npcs = param$npcs, verbose=FALSE)
-  scData <- RunTSNE(object = scData, reduction = "pca", dims = 1:param$npcs)
-  scData <- RunUMAP(object=scData, reduction = "pca", dims = 1:param$npcs)
-  scData <- FindNeighbors(object = scData, reduction = "pca", dims = 1:param$npcs, verbose=FALSE)
+  scData <- RunTSNE(object = scData, reduction = reduction, dims = 1:param$npcs)
+  scData <- RunUMAP(object=scData, reduction = reduction, dims = 1:param$npcs)
+  scData <- FindNeighbors(object = scData, reduction = reduction, dims = 1:param$npcs, verbose=FALSE)
   scData <- FindClusters(object=scData, resolution = seq(from = 0.2, to = 1, by = 0.2), verbose=FALSE)  #calculate clusters for a set of resolutions
   Idents(scData) <- scData@meta.data[,paste0(DefaultAssay(scData), "_snn_res.", param$resolution)]  #but keep as the current clusters the ones obtained with the resolution set by the user
   scData$ident <- Idents(scData)
@@ -205,6 +205,8 @@ cellClustNoCorrection <- function(scDataList, param) {
 }
 
 cellClustWithCorrection <- function (scDataList, param) {
+  require(harmony)
+  
   if(param[['name']] == 'SpatialSeuratSlides')
     assay = "Spatial"
   else 
@@ -220,25 +222,54 @@ cellClustWithCorrection <- function (scDataList, param) {
   #2. Data integration
   #2.1. # Select the most variable features to use for integration
   integ_features <- SelectIntegrationFeatures(object.list = scDataList, nfeatures = 3000)
-  #2.2. Prepare the SCT list object for integration
-  scDataList <- PrepSCTIntegration(object.list = scDataList, anchor.features = integ_features)
-  if(param$integrationMethod == 'RPCA'){
-    scDataList <- lapply(X = scDataList, FUN = RunPCA, features = integ_features)
-  }
-  #2.3. Find anchors
-  if(param$integrationMethod == 'Classic'){
-    integ_anchors <- FindIntegrationAnchors(object.list = scDataList, normalization.method = "SCT", 
-                                            anchor.features = integ_features, dims = 1:param$npcs)
-  } else if(param$integrationMethod == 'RPCA'){
-    integ_anchors <- FindIntegrationAnchors(object.list = scDataList, normalization.method = "SCT", 
-                                            anchor.features = integ_features, dims = 1:param$npcs, reduction = "rpca", k.anchor = 20)
-  }
   
-  #2.4. Integrate datasets
-  seurat_integrated <- IntegrateData(anchorset = integ_anchors, normalization.method = "SCT", dims = 1:param$npcs)
-  
-  #3. Run the standard workflow for visualization and clustering
-  seurat_integrated <- seuratStandardWorkflow(seurat_integrated, param)
+  if (param$integrationMethod %in% c("RPCA", "Classic")) {
+    #2.2. Prepare the SCT list object for integration
+    scDataList <- PrepSCTIntegration(object.list = scDataList, anchor.features = integ_features)
+    if(param$integrationMethod == 'RPCA'){
+      scDataList <- lapply(X = scDataList, FUN = RunPCA, features = integ_features)
+    }
+    #2.3. Find anchors
+    if(param$integrationMethod == 'Classic'){
+      integ_anchors <- FindIntegrationAnchors(object.list = scDataList, normalization.method = "SCT", 
+                                              anchor.features = integ_features, dims = 1:param$npcs)
+    } else if(param$integrationMethod == 'RPCA'){
+      integ_anchors <- FindIntegrationAnchors(object.list = scDataList, normalization.method = "SCT", 
+                                              anchor.features = integ_features, dims = 1:param$npcs, reduction = "rpca", k.anchor = 20)
+    }
+    
+    #2.4. Integrate datasets
+    seurat_integrated <- IntegrateData(anchorset = integ_anchors, normalization.method = "SCT", dims = 1:param$npcs)
+    
+    #3. Run the standard workflow for visualization and clustering
+    seurat_integrated <- seuratStandardWorkflow(seurat_integrated, param)
+  } else if (param$integrationMethod == "Harmony") {
+    #2.2 Merge normalized samples
+    scData <- merge(x = scDataList[[1]],
+                    y = scDataList[2:length(scDataList)],
+                    merge.data = TRUE)
+    #2.3.1 Manually set variable features of merged Seurat object
+    VariableFeatures(scData) <- integ_features
+    #2.3.2 Calculate PCs using manually set variable features
+    scData <- RunPCA(scData, assay = "SCT", npcs = param$npcs)
+    
+    #2.4 Prep and run Harmony algorithm
+    # Find the additional harmony factors if we have any
+    if (!is.null(param$harmonyFactors)) {
+      harmonyFactors <- 
+        c("Condition", colnames(scData@meta.data)[startsWith(colnames(scData@meta.data), "har_")])
+    } else {
+      harmonyFactors <- "Condition"
+    }
+    # Calculate Harmony reduction
+    scData <- RunHarmony(scData, 
+                         group.by.vars = harmonyFactors, 
+                         reduction = "pca", assay.use = "SCT",
+                         reduction.save = "harmony")
+    
+    #3. Run the standard workflow for visualization and clustering
+    seurat_integrated <- seuratStandardWorkflow(scData, param, reduction="harmony")
+  }
   
   return(seurat_integrated)
 }
