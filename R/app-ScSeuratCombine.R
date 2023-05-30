@@ -120,11 +120,11 @@ ezMethodScSeuratCombine = function(input=NA, output=NA, param=NA, htmlFile="00in
   scData@meta.data$ident_noCorrected <- Idents(scData_noCorrected)
   scData <- PrepSCTFindMarkers(scData)
   
-  #positive cluster markers
+  # positive cluster markers
   posMarkers <- posClusterMarkers(scData, pvalue_allMarkers, param)
   writexl::write_xlsx(posMarkers, path="posMarkers.xlsx")
   
-  #we do cell type identification using AUCell and SingleR
+  # we do cell type identification using AUCell and SingleR
   cells_AUC <- NULL
   singler.results <- NULL
   #cell types annotation is only supported for Human and Mouse at the moment
