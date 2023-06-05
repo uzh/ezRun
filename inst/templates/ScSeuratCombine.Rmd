@@ -30,7 +30,7 @@ library(Seurat)
 library(AUCell)
 library(ezRun)
 library(HDF5Array)
-
+library(enrichR)
 knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE, knitr.table.format = "html")
 ```
 
@@ -49,6 +49,13 @@ if (file.exists("cells.AUC.rds")){
 } else {
   cells.AUC <- NULL
 }
+
+if (file.exists("enrichRout.rds")){
+  enrichRout <- readRDS("enrichRout.rds")
+} else {
+  enrichRout <- NULL
+}
+
 var_height = 1 #This ensures that chunks that use the length of this variable to set the fig size, don't fail.
 pvalue_allMarkers <- 0.05
 ```
@@ -242,43 +249,79 @@ DoHeatmap(scData, features=unique(genesToPlot))
 DotPlot(scData, features=genesToPlot) + coord_flip()
 ```
 
-### Cell annotation
+### EnrichR
 
-The most challenging task in scRNA-seq data analysis is the interpretation of the results. Once we have obtained a set of clusters we want to determine what biological state is represented by each of them. To do this, we have implemmented 3 different approaches which are explained below. However, these methods should be complemented with the biological knowledge from the researcher.
+Cell type scoring using the EnrichR tool. This approach consists in performing a gene set enrichment analysis on the marker genes defining each cluster. This identifies the pathways and processes that are (relatively) active in each cluster based on the upregulation of the associated genes compared to other clusters.
 
-<br/>
-
-#### Using cluster markers
-
-This approach consists in performing a gene set enrichment analysis on the marker genes defining each cluster. This identifies the pathways and processes that are (relatively) active in each cluster based on the upregulation of the associated genes compared to other clusters. For this, we use the tool Enrichr. 
-
-```{r enrichr markers, echo=FALSE, results='asis'}
+```{r query online enrichR version, echo=FALSE, results='asis'}
 genesPerCluster <- split(posMarkers$gene, posMarkers$cluster)
 jsCall = paste0('enrich({list: "', sapply(genesPerCluster, paste, collapse="\\n"), '", popup: true});')
 enrichrCalls <- paste0("<a href='javascript:void(0)' onClick='", jsCall, 
                          "'>Analyse at Enrichr website</a>")
+```
+
+
+
+```{r enrichr markers, echo=FALSE, results='asis'}
 enrichrTable <- tibble(Cluster=names(genesPerCluster),
                          "# of posMarkers"=lengths(genesPerCluster),
                          "Enrichr link"=enrichrCalls)
+if (!is.null(enrichRout)){
+  enrichRTerm <- as.data.frame(do.call(rbind, lapply(enrichRout, as.vector)))
+  enrichRTerm <- map_df(enrichRTerm, ~ map_df(.x, ~ replace(.x, is.null(.x), NA)), .id = "database")
+  enrichRTerm <- enrichRTerm %>%
+    group_by(., Cluster, database) %>%
+    summarise(topTerms = paste(Term, collapse = "; ")) %>%
+    as.data.frame()
+  enrichRTerm <- dcast(enrichRTerm, ... ~ database)
+  enrichrTable <- merge(enrichrTable, enrichRTerm, by = "Cluster")
+}
 kable(enrichrTable, format="html", escape=FALSE,
-        caption=paste0("GeneSet enrichment: genes with pvalue ", pvalue_allMarkers)) %>%
+        caption=paste0("GeneSet enrichment")) %>%
 kable_styling("striped", full_width = F, position = "left")
+```
+
+
+
+```{r plot enrichR per cluster, fig.height=5, fig.width=10, eval= !is.null(enrichRout)}
+for (cluster in names(enrichRout)) {
+  enrichRDataFrame <- as.data.frame(do.call(rbind, enrichRout[[cluster]]))
+  enrichRDataFrame$database <- sapply(rownames(enrichRDataFrame), function(x) str_split(x, "[.]")[[1]][1])
+  print(ggplot(as.data.table(enrichRDataFrame), aes(database, Term))
+  +
+    geom_point(aes(color = OverlapGenesN, size = Combined.Score))
+    +
+    scale_color_viridis()
+    +
+    scale_fill_viridis()
+    +
+    labs(y = "Term", x = "Cluster", title = paste0("Cluster: ", cluster))
+    +
+    theme_bw()
+    +
+    theme(
+      axis.title.x = element_blank(),
+      axis.text.x = element_text(angle = 45, hjust = 1)
+    ))
+}
 ```
 
 
 <br/>
 
-#### Using reference data
 
-Another strategy for annotation is to compare the single-cell expression profiles with previously annotated reference datasets. Labels can then be assigned to each cell in our uncharacterized test dataset based on the most similar reference sample(s). This annotation can be  performed on single  cells or instead, it may be aggregated into cluster-level profiles prior to annotation.
-To do this, we use the SingleR method (Aran et al. 2019) for cell type annotation. This method assigns labels to cells based on the reference samples with the highest Spearman rank correlations and thus can be considered a rank-based variant of k-nearest-neighbor classification. To reduce noise, SingleR identifies marker genes between pairs of labels and computes the correlation using only those markers. It also performs a fine-tuning step for each cell where the calculation of the correlations is repeated with just the marker genes for the top-scoring labels. This aims to resolve any ambiguity between those labels by removing noise from irrelevant markers for other labels. 
-SingleR contains several built-in reference datasets, mostly assembled from bulk RNA-seq or microarray data of sorted cell types. These built-in references are often good enough for most applications, provided that they contain the cell types that are expected in the test population. 
+
+
+### SingleR
+
+Matching of clusters to annotated reference datasets using SingleR.
 
 ```{r singler, fig.height=12, fig.width=12, results = 'asis', eval= !is.null(singler.results)}
 clusterInfosList <- list()
 plotlyPlots <- list()
+nTopMarkers <- 10
 for (r in names(singler.results)) {
-  cat("#####", r, "\n\n")
+  cat("##### Heatmap: ", r, "\n\n")
   print(plotScoreHeatmap(singler.results[[r]]$single.fine))
   print(plotScoreHeatmap(singler.results[[r]]$cluster.fine, show_colnames = TRUE))
   cat("\n\n")
@@ -321,16 +364,18 @@ for (r in names(singler.results)) {
     layout(xaxis=x, yaxis=y, title=paste0(r, ": Cluster"))
   plotlyPlots <- append(plotlyPlots, list(p1, p2))
   cat("\n\n")
-  clusterInfos <- ezFrame(Cluster=levels(Idents(scData)))
+  clusterInfos <- ezFrame(Sample=as.character(unique(scData$Sample)), 
+                          Reference=r,
+                          Cluster=levels(Idents(scData)))
   if (!is.null(singler.results)){
     clusterInfos$SinglerCellType <- singler.results[[r]]$cluster.fine[clusterInfos$Cluster, "pruned.labels"]
   }
-  nTopMarkers <- 10
   topMarkers <- posMarkers %>% group_by(cluster) %>%
     slice_max(n = nTopMarkers, order_by = avg_log2FC)
   topMarkerString <- sapply(split(topMarkers$gene, topMarkers$cluster), paste, collapse=", ")
   clusterInfos[["TopMarkers"]] <- topMarkerString[clusterInfos$Cluster]
-  print(ezInteractiveTableRmd(clusterInfos, title = r))
+  clusterInfos[["Percentage of Cells"]] <- table(Idents(scData)) / nrow(scData)
+  clusterInfosList <- append(clusterInfosList, list(clusterInfos))
   cat("\n\n")
 }
 ```
@@ -347,20 +392,33 @@ cat("\n\n")
 
 <br/>
 
-#### Using gene sets
+```{r singler labelsTable, results = 'asis', eval=!is.null(singler.results)}
+cat("##### Table of SingleR Labels\n\n")
+cat(sprintf("The following table summarises the cluster-level labels for each reference (%s) and displays the top %s genes for that cluster in terms of their average log2-fold change. Note the top markers for every cluster will be identical regardless of reference used since this information is specific to the cluster and not the annotation reference.", paste(names(singler.results), collapse=", "), nTopMarkers))
+ezInteractiveTableRmd(bind_rows(clusterInfosList))
+cat("\n\n")
+```
 
-We can also use sets of marker genes that are highly expressed in each cell. This does not require matching of individual cells to the expression values of the reference dataset, which is faster and more convenient when only the identities of the markers are available. In this case, we use sets of gene markers for individual cell types taken from the CellMarkers database which contains an accurate resource of cell markers for various cell types in tissues of human and mouse (Zhang X., Lan Y., Xu J., Quan F., Zhao E., Deng C., et al. (2019). CellMarker: a manually curated resource of cell markers in human and mouse. Nucleic Acids Res. 47, D721–d728. 10.1093/nar/gky900). 
-We use the AUCell package (Aibar et al. (2017) SCENIC: single-cell regulatory network inference and clustering. Nature Methods. doi: 10.1038/nmeth.4463) to identify marker sets that are highly expressed in each cell. AUCell uses the “Area Under the Curve” (AUC) to calculate whether a critical subset of the input gene set is enriched within the expressed genes for each cell. The AUC estimates the proportion of genes in the gene-set that are highly expressed in each cell. Cells expressing many genes from the gene-set will have higher AUC values than cells expressing fewer. Finally, it assigns cell type identity to each cell in the test dataset by taking the marker set with the top AUC as the label for that cell.
+
+
+### AUCell
+
+Matching the cells to marker gene sets that are known to be characteristic for cell types. We use marker gene sets from the CellMarker database (Zhang X., Lan Y., Xu J., Quan F., Zhao E., Deng C., et al. (2019). CellMarker: a manually curated resource of cell markers in human and mouse. Nucleic Acids Res. 47, D721–d728. 10.1093/nar/gky900). 
 
 ```{r AUC assigments, eval= !is.null(cells.AUC)}
-cells_assignment <- AUCell_exploreThresholds(cells.AUC, plotHist=FALSE, assign=TRUE) 
-cellsAssigned <- lapply(cells_assignment, function(x) x$assignment)
-assignmentTable <- reshape2::melt(cellsAssigned, value.name="cell")
-colnames(assignmentTable)[2] <- "geneSet"
-tras_cells.AUC <- t(assay(cells.AUC))
-full.labels <- colnames(tras_cells.AUC)[max.col(tras_cells.AUC)]
-tab <- table(full.labels, Idents(scData))
-var_height <- nrow(tab)*0.5
+tab <- NULL
+try({
+  ## in some extreme situations the default value of smallesPopPercent crashes 
+  cells_assignment <- AUCell_exploreThresholds(cells.AUC, plotHist=FALSE, assign=TRUE, nCores = param$cores) 
+  cellsAssigned <- lapply(cells_assignment, function(x) x$assignment)
+  assignmentTable <- reshape2::melt(cellsAssigned, value.name="cell")
+  colnames(assignmentTable)[2] <- "geneSet"
+  tras_cells.AUC <- t(assay(cells.AUC))
+  full.labels <- colnames(tras_cells.AUC)[max.col(tras_cells.AUC)]
+  tab <- table(full.labels, Idents(scData))
+  var_height <- shrinkToRange(nrow(tab)*0.5, c(6,16))
+})
+
 ```
 
 ```{r assigments, eval= !is.null(cells.AUC), results='asis'}
@@ -369,7 +427,7 @@ cat("\n\n")
 ```
 
 ```{r assigments heatmap, eval= !is.null(cells.AUC), results='asis',fig.align='center', fig.width=10, fig.height=var_height}
-if (nrow(tab) > 2)
+if (!is.null(tab) && nrow(tab) > 2)
    pheatmap(log10(tab+10), color=viridis::viridis(100))
 ```
 
@@ -383,7 +441,7 @@ cat("2) The t-SNE can be colored based on the AUC scores. To highlight the clust
 cat('\n')
 cat("3) The last TSNE represents the AUC scores values. The darker a cell is the higher AUC score it obtained, i.e. the cell is more enriched in that cell type.")
 cat('\n')
-cellsTsne <- scData@reductions$tsne@cell.embeddings
+cellsUmap <- scData@reductions$umap@cell.embeddings
 minAucThresh = 0.2
 filtered_cells.AUC <- cells.AUC[rowSums(assay(cells.AUC) >= minAucThresh)>0, ]
 maxAucScore = rowMax(assay(filtered_cells.AUC))
@@ -392,10 +450,12 @@ nPlots = 50
 ```
 
 ```{r tsne and AUC hist, eval= !is.null(cells.AUC), fig.height=5, fig.width=5}
-AUCell_plotTSNE(tSNE=cellsTsne,
+AUCell_plotTSNE(tSNE=cellsUmap,
                 cellsAUC=filtered_cells.AUC[head(scoreOrder, nPlots), ],
                  plots = c("histogram", "binaryAUC"))
 ```
+
+
 
 ### Interactive explorer
 [simple explorer](`r {paste0("https://fgcz-shiny.uzh.ch/fgcz_exploreSeurat_app", "/?data=",output$getColumn("Report"), "/scData.rds")}`){target="_blank"}

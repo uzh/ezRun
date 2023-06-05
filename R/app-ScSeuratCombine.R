@@ -51,7 +51,8 @@ ezMethodScSeuratCombine = function(input=NA, output=NA, param=NA, htmlFile="00in
   library(SummarizedExperiment)
   library(SingleCellExperiment)
   library(AUCell)
-
+  library(enrichR)
+  library(decoupleR)
   library(BiocParallel)
   
   BPPARAM <- MulticoreParam(workers = param$cores)
@@ -121,8 +122,13 @@ ezMethodScSeuratCombine = function(input=NA, output=NA, param=NA, htmlFile="00in
   scData <- PrepSCTFindMarkers(scData)
   
   # positive cluster markers
-  posMarkers <- posClusterMarkers(scData, pvalue_allMarkers, param)
-  writexl::write_xlsx(posMarkers, path="posMarkers.xlsx")
+  markers <- FindAllMarkers(object=scData, test.use = param$DE.method, only.pos=TRUE)
+  ## Significant markers
+  markers <- markers[ ,c("gene","cluster","pct.1", "pct.2", "avg_log2FC","p_val_adj")]
+  markers$cluster <- as.factor(markers$cluster)
+  markers$diff_pct = abs(markers$pct.1-markers$pct.2)
+  markers <- markers[order(markers$diff_pct, decreasing = TRUE),]
+  writexl::write_xlsx(markers, path="posMarkers.xlsx")
   
   # we do cell type identification using AUCell and SingleR
   cells_AUC <- NULL
@@ -130,17 +136,34 @@ ezMethodScSeuratCombine = function(input=NA, output=NA, param=NA, htmlFile="00in
   #cell types annotation is only supported for Human and Mouse at the moment
   species <- getSpecies(param$refBuild)
   if(species == "Human" | species == "Mouse") {
-    cells.AUC = cellsLabelsWithAUC(GetAssayData(scData, "counts"), species, param$tissue, BPPARAM=BPPARAM)
-    singler.results <- cellsLabelsWithSingleR(GetAssayData(scData, "counts"), Idents(scData), species, BPPARAM=BPPARAM)
+      genesPerCluster <- split(markers$gene, markers$cluster)
+      enrichRout <- querySignificantClusterAnnotationEnrichR(genesPerCluster, unlist(strsplit(param$enrichrDatabase, ',')))
+      cells.AUC <- cellsLabelsWithAUC(GetAssayData(scData, "counts"), species, param$tissue, BPPARAM = BPPARAM)
+      singler.results <- cellsLabelsWithSingleR(GetAssayData(scData, "data"), Idents(scData), species, BPPARAM = BPPARAM)
+      for (r in names(singler.results)) {
+          scData[[paste0(r,"_single")]] <- singler.results[[r]]$single.fine$labels
+          scData[[paste0(r,"_cluster")]] <- singler.results[[r]]$cluster.fine$labels[match(Idents(scData), rownames(singler.results[[r]]$cluster.fine))]
+      }
     saveRDS(cells.AUC, file="cells.AUC.rds")
     saveRDS(singler.results, file="singler.results.rds")
+  } else {
+      cells.AUC <- NULL
+      singler.results <- NULL
+      enrichRout <- NULL
   }
+  
+  ## SCpubr advanced plots
+  pathwayActivity <- computePathwayActivityAnalysis(cells = scData, species = species)
+  TFActivity <- computeTFActivityAnalysis(cells = scData, species = species)
   
   geneMeans <- geneMeansCluster(scData)
   
   saveRDS(param, file="param.rds")
   saveRDS(output, file="output.rds")
   saveRDS(scData, file = "scData.rds")
+  saveRDS(enrichRout, file = "enrichRout.rds")
+  saveRDS(pathwayActivity, file = "pathwayActivity.rds")
+  saveRDS(TFActivity, file = "TFActivity.rds")
   
   # Save some results in external files
   dataFiles <- saveExternalFiles(list(gene_means = as_tibble(as.data.frame(geneMeans), rownames = "gene_name")))
