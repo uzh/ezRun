@@ -75,7 +75,7 @@ runGatkPipeline = function(caseName, param=NA, datasetCaseList=NULL){
                         "--resource:omni,known=false,training=true,truth=false,prior=12.0",  h1000G_omniFile,
                         "--resource:1000G,known=false,training=true,truth=false,prior=10.0", h1000G_phase1File,
                         "--resource:dbsnp,known=true,training=false,truth=false,prior=2.0",  param$dbsnpFile,
-                        "-an QD -an FS -an MQRankSum -an ReadPosRankSum -an MQ -an DP",
+                        "-an QD -an FS -an ReadPosRankSum -an DP",
                         "-mode SNP",
                         "--output", paste0(caseName,'_raw.SNPs.recal'),
                         "--tranches-file", paste0(caseName,'_raw.SNPs.tranches'),
@@ -106,7 +106,7 @@ runGatkPipeline = function(caseName, param=NA, datasetCaseList=NULL){
                         "--variant", gvcfFile,
                         "-resource:mills,known=false,training=true,truth=true,prior=12.0", millsFile,
                         "--max-gaussians 4 --minimum-bad-variants 500 --max-attempts 3", #might be suboptimal
-                        "-an QD -an FS -an MQRankSum -an ReadPosRankSum -an MQ -an DP",
+                        "-an QD -an FS -an ReadPosRankSum -an DP",
                         "-mode INDEL",
                         "--output", paste0(caseName,"_raw.InDels.recal"),
                         "--tranches-file", paste0(caseName,"_raw.InDels.tranches"),
