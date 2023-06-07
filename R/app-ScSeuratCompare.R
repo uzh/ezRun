@@ -5,15 +5,15 @@
 # The terms are available here: http://www.gnu.org/licenses/gpl.html
 # www.fgcz.ch
 
-EzAppSeuratCompare <-
-  setRefClass("EzAppSeuratCompare",
+EzAppScSeuratCompare <-
+  setRefClass("EzAppScSeuratCompare",
               contains = "EzApp",
               methods = list(
                 initialize = function()
                 {
                   "Initializes the application using its specific defaults."
-                  runMethod <<- ezMethodSeuratCompare
-                  name <<- "EzAppSeuratCompare"
+                  runMethod <<- ezMethodScSeuratCompare
+                  name <<- "EzAppScSeuratCompare"
                   appDefaults <<- rbind(DE.method=ezFrame(Type="charVector", DefaultValue="wilcox", 
                                                           Description="Method to be used when calculating gene cluster markers and differentially expressed genes between conditions. Use LR to take into account the Batch and/or CellCycle"),
                                         DE.regress=ezFrame(Type="charVector", DefaultValue="Batch", Description="Variables to regress out if the test LR is chosen"))
@@ -21,7 +21,7 @@ EzAppSeuratCompare <-
               )
   )
 
-ezMethodSeuratCompare = function(input=NA, output=NA, param=NA, htmlFile="00index.html") {
+ezMethodScSeuratCompare = function(input=NA, output=NA, param=NA, htmlFile="00index.html") {
   library(Seurat)
   library(HDF5Array)
   library(SingleCellExperiment)
@@ -77,6 +77,6 @@ ezMethodSeuratCompare = function(input=NA, output=NA, param=NA, htmlFile="00inde
   saveRDS(param, "param.rds")
   saveRDS(scData, file = "scData.rds")
   
-  makeRmdReport(dataFiles=dataFiles, rmdFile = "SeuratCompare.Rmd", reportTitle = param$name) 
+  makeRmdReport(dataFiles=dataFiles, rmdFile = "ScSeuratCompare.Rmd", reportTitle = param$name) 
   return("Success")
 }
