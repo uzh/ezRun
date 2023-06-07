@@ -141,11 +141,11 @@ twoGroupCountComparison <- function(rawData) {
     "Normalization" = param$normMethod
   )
 
-  metadata(rawData)$enrichInput <- compileEnrichmentInput(param, rawData)
   seqAnno <- data.frame(rowData(rawData),
                         row.names = rownames(rawData), check.names = FALSE)
                         
   if (doGo(param, seqAnno)) {
+    metadata(rawData)$enrichInput <- compileEnrichmentInput(param, rawData)
     metadata(rawData)$enrichResult <- ezEnricher(metadata(rawData)$enrichInput, param)
     metadata(rawData)$enrichResultGSEA <- ezGSEA(metadata(rawData)$enrichInput, param)
   }
