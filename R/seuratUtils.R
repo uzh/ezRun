@@ -337,11 +337,12 @@ conservedMarkers <- function(scData, grouping.var="Condition") {
   return(markers)
 }
 
-diffExpressedGenes <- function(scData, param) {
+diffExpressedGenes <- function(scData, param, grouping.var="Condition") {
   seurat_clusters <- Idents(scData)
-  scData@meta.data$cluster.condition <- paste0(seurat_clusters, "_", scData@meta.data$Condition)
+  scData@meta.data$cluster.condition <- 
+    paste0(seurat_clusters, "_", scData@meta.data[[grouping.var]])
   Idents(scData) <- "cluster.condition"
-  conditions <- unique(scData@meta.data$Condition)
+  conditions <- unique(scData@meta.data[[grouping.var]])
   
   vars.to.regress = NULL
   if(param$DE.method == "LR") #regress the plate if the test is LR

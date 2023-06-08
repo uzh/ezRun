@@ -40,11 +40,11 @@ scData <- readRDS(filePath)
 
 
 ```{r}
-Idents(scData) <- scData$Condition
+Idents(scData) <- scData@meta.data[[param$grouping]]
 scData <- subset(scData, idents=c(param$sampleGroup, param$refGroup))
 #values need to be re-scaled after subsetting for plotting purposes
 scData <- ScaleData(scData)
-Idents(scData) <- scData$ident
+Idents(scData) <- scData[[param$CellIdentity]]
 var_heigth <- 1
 ```
 
@@ -117,12 +117,12 @@ cat("The 50 dysregulated genes with the highest difference in expression between
 cat("\n")
 top5 <- diffGenes %>% group_by(cluster)
 top5 <- slice_max(top5, n = 5, order_by = avg_log2FC)
-DoHeatmap(scData, features = top5$gene, group.by = "Condition")
+DoHeatmap(scData, features = top5$gene, group.by = param$grouping)
 ```
 
 
 ```{r diffGenes violin plots, eval=!is.null(diffGenes), fig.height=30, fig.width=24}
-VlnPlot(scData, unique(top5$gene), split.by = "Condition", split.plot = TRUE)
+VlnPlot(scData, unique(top5$gene), split.by = param$grouping, split.plot = TRUE)
 ```
 
 

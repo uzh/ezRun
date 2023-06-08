@@ -43,14 +43,14 @@ ezMethodScSeuratCompare = function(input=NA, output=NA, param=NA, htmlFile="00in
   
   DefaultAssay(scData) = "SCT" 
   #subset the object to only contain the conditions we are interested in
-  Idents(scData) <- scData$Condition
+  Idents(scData) <- scData[[param$grouping]]
   scData <- subset(scData, idents=c(param$sampleGroup, param$refGroup))
   
   pvalue_allMarkers <- 0.05
   
   #Before calculating the conserved markers and differentially expressed genes across conditions I will discard the clusters that were too small in at least one group
-  Idents(scData) <- scData$ident
-  clusters_freq <- data.frame(table(scData$Condition, Idents(scData)))
+  Idents(scData) <- scData[[param$CellIdentity]]
+  clusters_freq <- data.frame(table(scData@meta.data[[param$grouping]], Idents(scData)))
   small_clusters <- ""
   small_clusters <- unique(as.character(clusters_freq[clusters_freq[,"Freq"] < 10, 2]))
   
@@ -68,9 +68,9 @@ ezMethodScSeuratCompare = function(input=NA, output=NA, param=NA, htmlFile="00in
     }
     #conserved cluster markers
     scData <- PrepSCTFindMarkers(scData)
-    consMarkers <- conservedMarkers(scData)
+    consMarkers <- conservedMarkers(scData, grouping.var = param$grouping)
     #differentially expressed genes between clusters and conditions (in case of several conditions)
-    diffGenes <- diffExpressedGenes(scData, param)
+    diffGenes <- diffExpressedGenes(scData, param, grouping.var = param$grouping)
   }
   dataFiles = saveExternalFiles(list(differential_genes=diffGenes, conserved_markers=consMarkers))
   saveRDS(input, "input.rds")
