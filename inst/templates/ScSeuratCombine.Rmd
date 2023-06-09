@@ -364,19 +364,19 @@ for (r in names(singler.results)) {
     layout(xaxis=x, yaxis=y, title=paste0(r, ": Cluster"))
   plotlyPlots <- append(plotlyPlots, list(p1, p2))
   cat("\n\n")
-  clusterInfos <- ezFrame(Sample=as.character(unique(scData$Sample)), 
-                          Reference=r,
-                          Cluster=levels(Idents(scData)))
-  if (!is.null(singler.results)){
-    clusterInfos$SinglerCellType <- singler.results[[r]]$cluster.fine[clusterInfos$Cluster, "pruned.labels"]
-  }
-  topMarkers <- posMarkers %>% group_by(cluster) %>%
-    slice_max(n = nTopMarkers, order_by = avg_log2FC)
-  topMarkerString <- sapply(split(topMarkers$gene, topMarkers$cluster), paste, collapse=", ")
-  clusterInfos[["TopMarkers"]] <- topMarkerString[clusterInfos$Cluster]
-  clusterInfos[["Percentage of Cells"]] <- table(Idents(scData)) / nrow(scData)
-  clusterInfosList <- append(clusterInfosList, list(clusterInfos))
-  cat("\n\n")
+  # clusterInfos <- ezFrame(Sample=as.character(unique(scData$Sample)), 
+  #                         Reference=r,
+  #                         Cluster=levels(Idents(scData)))
+  # if (!is.null(singler.results)){
+  #   clusterInfos$SinglerCellType <- singler.results[[r]]$cluster.fine[clusterInfos$Cluster, "pruned.labels"]
+  # }
+  # topMarkers <- posMarkers %>% group_by(cluster) %>%
+  #   slice_max(n = nTopMarkers, order_by = avg_log2FC)
+  # topMarkerString <- sapply(split(topMarkers$gene, topMarkers$cluster), paste, collapse=", ")
+  # clusterInfos[["TopMarkers"]] <- topMarkerString[clusterInfos$Cluster]
+  # clusterInfos[["Percentage of Cells"]] <- table(Idents(scData)) / nrow(scData)
+  # clusterInfosList <- append(clusterInfosList, list(clusterInfos))
+  # cat("\n\n")
 }
 ```
 
