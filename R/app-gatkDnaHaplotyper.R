@@ -109,10 +109,7 @@ ezMethodGatkDnaHaplotyper = function(input=NA, output=NA, param=NA){
   }
   if(param$getRealignedBam){
     cmd = paste(cmd,
-              "-bamout", paste0(sampleName, "-realigned.bam"),
-              "-forceActive",
-              "-disableOptimizations", 
-              "-ip 100")
+              "-bamout", paste0(sampleName, "-realigned.bam"))
   } else {
     cmd = paste(cmd,
                 "--native-pair-hmm-threads", param$cores)
