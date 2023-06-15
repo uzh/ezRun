@@ -57,6 +57,11 @@ EzAppSpatialSeurat <-
                                             Type = "numeric",
                                             DefaultValue = Inf,
                                             Description = "Low quality cells have more than \"perc_ribo\" percent of ribosomal genes. Only when applying fixed thresholds."
+                                        ),
+                                        spotClean = ezFrame(
+                                            Type = "logical",
+                                            DefaultValue = FALSE,
+                                            Description = "Run spotClean method"
                                         )
                                         )
                 }
@@ -69,8 +74,11 @@ ezMethodSpatialSeurat <- function(input=NA, output=NA, param=NA,
   setwdNew(basename(output$getColumn("Report")))
   on.exit(setwd(cwd), add=TRUE)
   library(Seurat)
-  scData <- load10xSpatialData(input, param)
-  
+  if(param$spotClean){
+      scData <- load10xSpatialDataAndRunSpotClean(input, param) 
+  } else {
+    scData <- load10xSpatialData(input, param)
+  }
   scData_list <- filterCellsAndGenes(scData, param) # return sce objects filtered and unfiltered to show the QC metrics later in the rmd
   scData <- scData_list$scData
   scData.unfiltered <- scData_list$scData.unfiltered
@@ -83,7 +91,13 @@ ezMethodSpatialSeurat <- function(input=NA, output=NA, param=NA,
   clusterMarkers <- posClusterMarkers(scData, pvalue_allMarkers, param)
   
   #spatially variable genes
-  spatialMarkers <- spatialMarkers(scData)
+  spatialMarkersList <- list()
+  res <- spatialMarkers(scData, selection.method = 'markvariogram')
+  spatialMarkersList[['markvariogram']] <- data.frame(GeneSymbol = rownames(res), res, Method = 'Markvariogram')
+  res <- spatialMarkers(scData, selection.method = 'moransi')
+  spatialMarkersList[['moransi']] <- data.frame(GeneSymbol = rownames(res), res, Method = 'MoransI')
+  spatialMarkers <- rbind(spatialMarkersList[['markvariogram']][,c('Rank','Method')], spatialMarkersList[['moransi']][,c('Rank','Method')])
+  #spatialMarkers <- spatialMarkers[order(spatialMarkers$Rank),]
   
   #Save some results in external files
   library(scanalysis)

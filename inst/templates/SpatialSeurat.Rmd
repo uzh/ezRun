@@ -263,7 +263,7 @@ We also identify molecular features that correlate with spatial location within 
 
 ```{r spatial markers plots, results='asis', fig.width=4, fig.height=4}
 spatialMarkers = read_tsv("spatial_markers.tsv")
-top.features <- head(spatialMarkers$spatialMarkers, 20)
+top.features <- head(spatialMarkers[,'GeneSymbol'], 20)
 for(gene in top.features) {
    sp = SpatialFeaturePlot(object = scData, features = gene, alpha = c(0.1, 1))
    print(sp)

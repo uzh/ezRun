@@ -288,6 +288,28 @@ load10xSpatialData <- function(input, param){
   return(scData)
 }
 
+load10xSpatialDataAndRunSpotClean <- function(input, param){
+    require(SpotClean)
+    require(S4Vectors)
+    
+    data_raw <- read10xRaw(file.path(input$getFullPaths("ResultDir"), "raw_feature_bc_matrix"))
+    data_slide_info <- read10xSlide(file.path(input$getFullPaths("ResultDir"),"spatial", "tissue_positions.csv"),
+                                    file.path(input$getFullPaths("ResultDir"),"spatial", "tissue_hires_image.png"),
+                                    file.path(input$getFullPaths("ResultDir"),"spatial", "scalefactors_json.json"))
+    
+    data_obj <- createSlide(count_mat = data_raw, slide_info = data_slide_info)
+    
+    # Decontaminate raw data
+    decont_obj <- spotclean(data_obj)
+    scData <- convertToSeurat(decont_obj,image_dir = file.path(input$getFullPaths("ResultDir"),"spatial"))
+    
+    #scData <- Load10X_Spatial(input$getFullPaths("ResultDir"), slice = input$getNames())
+    ## unique cell names when merging two samples
+    scData <- RenameCells(scData, paste(input$getNames(), colnames(scData), sep="___"))
+    scData$Batch <- input$getNames()
+    try(scData$Condition <- input$getColumn("Condition"), silent = TRUE)
+    return(scData)
+}
 
 ##' @title Writes the head of a file
 ##' @description Writes the head of a file into a newly created target file.

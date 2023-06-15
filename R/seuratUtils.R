@@ -293,10 +293,47 @@ posClusterMarkers <- function(scData, pvalue_allMarkers, param) {
   return(cm)
 }
 
-spatialMarkers <- function(scData) { 
+
+
+SpatiallyVariableFeatures_workaround <- function(object, assay="SCT", selection.method = "moransi") {
+    #' This is work around function to replace SeuratObject::SpatiallyVariableFeatures function.
+    #' return ranked list of Spatially Variable Features
+    
+    # Check if object is a Seurat object
+    if (!inherits(object, "Seurat")) {
+        stop("object must be a Seurat object")
+    }
+    
+    # Check if assay is a valid assay
+    if (!assay %in% names(object@assays)) {
+        stop("assay must be a valid assay")
+    }
+    
+    # Extract meta.features from the specified object and assay
+    data <- object@assays[[assay]]@meta.features
+    
+    # Select columns starting with the provided col_prefix
+    moransi_cols <- grep(paste0("^", selection.method), colnames(data), value = TRUE)
+    
+    # Filter rows where "moransi.spatially.variable" is TRUE
+    filtered_data <- data[data[[paste0(selection.method, ".spatially.variable")]], moransi_cols]
+    
+    # Sort filtered data by "moransi.spatially.variable.rank" column in ascending order
+    sorted_data <- filtered_data[order(filtered_data[[paste0(selection.method, ".spatially.variable.rank")]]), ]
+    sorted_data <- sorted_data[grep('^NA', rownames(sorted_data), invert = TRUE),]
+    sorted_data[['Rank']] = 1:nrow(sorted_data)
+    # Return row names of the sorted data frame
+    return(sorted_data)
+}
+
+
+
+
+spatialMarkers <- function(scData, selection.method = "markvariogram") { 
   scData <- FindSpatiallyVariableFeatures(scData, features = VariableFeatures(scData), r.metric = 5, 
-                                                  selection.method = "markvariogram")
-  spatialMarkers <- SpatiallyVariableFeatures(scData, selection.method = "markvariogram")
+                                                  selection.method = selection.method)
+  #spatialMarkers <- SpatiallyVariableFeatures(scData, selection.method = "markvariogram") #deactivated due to an unfixed bug in the current Seurat version 4.3
+  spatialMarkers <- SpatiallyVariableFeatures_workaround(scData, assay="SCT", selection.method = selection.method)
   return(spatialMarkers)
   }
 
