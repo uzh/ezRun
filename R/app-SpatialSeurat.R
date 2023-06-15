@@ -97,8 +97,10 @@ ezMethodSpatialSeurat <- function(input=NA, output=NA, param=NA,
   res <- spatialMarkers(scData, selection.method = 'moransi')
   spatialMarkersList[['moransi']] <- data.frame(GeneSymbol = rownames(res), res, Method = 'MoransI')
   spatialMarkers <- rbind(spatialMarkersList[['markvariogram']][,c('GeneSymbol', 'Rank','Method')], spatialMarkersList[['moransi']][,c('GeneSymbol', 'Rank','Method')])
-  #spatialMarkers <- spatialMarkers[order(spatialMarkers$Rank),]
-  
+  spatialMarkers <- spatialMarkers %>% spread(Method, Rank)
+  spatialMarkers[['MeanRank']] <- apply(spatialMarkers[,c('Markvariogram','MoransI')],1,mean)
+  spatialMarkers <- spatialMarkers[order(spatialMarkers$MeanRank),]
+ 
   #Save some results in external files
   library(scanalysis)
   scData_diet = DietSeurat(scData, dimreducs = c("pca", "tsne", "umap"))
