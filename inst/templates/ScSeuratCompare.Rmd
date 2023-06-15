@@ -52,15 +52,25 @@ cat(paste0("<SCRIPT language=\"JavaScript\" SRC=\"", basename(jsFile), "\"></SCR
 ```{r load conserved and diff genes}
 conservedMarkers <- tryCatch({read_tsv("conserved_markers.tsv")},error = function(e) NULL)
 diffGenes <- tryCatch({read_tsv("differential_genes.tsv")},error = function(e) NULL)
+```
 
+```{r dim plot explanation, results='asis'}
+cat("### Dim Plot")
+cat("\n")
+cat(sprintf("We first plot a dimensionality plot of the data after subsetting the original integrated data to cells originating from only samples '%s' and '%s'. The plot colors the cells by the Seurat '%s' metadata column, and splits the plot by sample. Gray cells indicate cells absent from this sample, but present in the other.", param$sampleGroup, param$refGroup, param$CellIdentity))
+cat("\n\n")
+```
+
+```{r dim plot, fig.width=9, fig.height=6+round(length(clusterNames)/10)}
+do_DimPlot(scData, split.by = param$grouping, group.by = param$CellIdentity)
 ```
 
 ```{r consMarkers table, eval=!is.null(conservedMarkers), results='asis'}
 cat("### Conserved Markers")
 cat("\n")
 cat("Identify cell type marker genes that are conserved across conditions. Differential gene expression tests are performed for each group and then, the p-values are combined using meta-analysis methods.")
-cat("\n")
-cat("#### Conserved cell type markers")
+cat("\n\n")
+cat("#### Conserved cell type markers \n")
 cat("\n")
 ezInteractiveTableRmd(conservedMarkers)
 ```
@@ -77,7 +87,9 @@ cat("\n")
 cat("Here, we use a heatmap and a dotplot to visualize simultaneously the top 5 conserved markers in each cluster (with highest average fold change across the two groups). Be aware that some genes may be in the top markers for different clusters.\n")
 cat("\n")
 DoHeatmap(scData, features=top5$gene)
-DotPlot(scData, features=unique(top5$gene)) + coord_flip()
+DotPlot(scData, features=unique(top5$gene)) + 
+  coord_flip() + 
+  theme(axis.text.x = element_text(angle = 45, hjust=1))
 ```
 
 ```{r diffGenes table, eval=!is.null(diffGenes), results='asis'}
@@ -132,7 +144,7 @@ for (clusterName in clusterNames) {
 
 ### Parameters
 ```{r report parameters, echo=FALSE}
-param[c("DE.method", "DE.regress")]
+param[c("DE.method", "DE.regress", "grouping", "sampleGroup", "refGroup", "CellIdentity")]
 ```
 
 ### SessionInfo
