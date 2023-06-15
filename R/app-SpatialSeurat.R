@@ -96,7 +96,7 @@ ezMethodSpatialSeurat <- function(input=NA, output=NA, param=NA,
   spatialMarkersList[['markvariogram']] <- data.frame(GeneSymbol = rownames(res), res, Method = 'Markvariogram')
   res <- spatialMarkers(scData, selection.method = 'moransi')
   spatialMarkersList[['moransi']] <- data.frame(GeneSymbol = rownames(res), res, Method = 'MoransI')
-  spatialMarkers <- rbind(spatialMarkersList[['markvariogram']][,c('Rank','Method')], spatialMarkersList[['moransi']][,c('Rank','Method')])
+  spatialMarkers <- rbind(spatialMarkersList[['markvariogram']][,c('GeneSymbol', 'Rank','Method')], spatialMarkersList[['moransi']][,c('GeneSymbol', 'Rank','Method')])
   #spatialMarkers <- spatialMarkers[order(spatialMarkers$Rank),]
   
   #Save some results in external files
