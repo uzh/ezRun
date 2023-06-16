@@ -92,8 +92,18 @@ ezMethodSpatialSeuratSlides = function(input=NA, output=NA, param=NA, htmlFile="
   
   #positive cluster markers
   posMarkers <- posClusterMarkers(scData, pvalue_allMarkers, param)
+  
   #spatially variable genes
-  spatial_markers <- spatialMarkers(scData)
+  spatialMarkersList <- list()
+  res <- spatialMarkers(scData, selection.method = 'markvariogram')
+  spatialMarkersList[['markvariogram']] <- data.frame(GeneSymbol = rownames(res), res, Method = 'Markvariogram')
+  res <- spatialMarkers(scData, selection.method = 'moransi')
+  spatialMarkersList[['moransi']] <- data.frame(GeneSymbol = rownames(res), res, Method = 'MoransI')
+  spatialMarkers <- rbind(spatialMarkersList[['markvariogram']][,c('GeneSymbol', 'Rank','Method')], spatialMarkersList[['moransi']][,c('GeneSymbol', 'Rank','Method')])
+  spatialMarkers <- spatialMarkers %>% spread(Method, Rank)
+  spatialMarkers[['MeanRank']] <- apply(spatialMarkers[,c('Markvariogram','MoransI')],1,mean)
+  spatialMarkers <- spatialMarkers[order(spatialMarkers$MeanRank),]
+ 
  
   #Save some results in external files 
   dataFiles = saveExternalFiles(list(pos_markers=posMarkers, spatial_markers=data.frame(spatial_markers)))
