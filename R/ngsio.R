@@ -297,6 +297,11 @@ load10xSpatialDataAndRunSpotClean <- function(input, param){
                                     file.path(input$getFullPaths("ResultDir"),"spatial", "tissue_hires_image.png"),
                                     file.path(input$getFullPaths("ResultDir"),"spatial", "scalefactors_json.json"))
     
+    missingBarcodes <- setdiff(data_slide_info$slide$barcode, colnames(data_raw))
+    if(length(missingBarcodes) > 0){
+        data_slide_info$slide <- data_slide_info$slide[!(data_slide_info$slide$barcode %in% missingBarcodes),]
+    }
+    
     data_obj <- createSlide(count_mat = data_raw, slide_info = data_slide_info)
     
     # Decontaminate raw data
