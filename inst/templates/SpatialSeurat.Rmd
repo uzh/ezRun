@@ -140,6 +140,8 @@ In order to find clusters of cells we first built a graph called K-nearest neigh
 We can visualize the distribution of clusters in UMAP and image space. However, we should not perform downstream analyses directly on their coordinates. These plots are most useful for checking whether two clusters are actually neighboring subclusters or whether a cluster can be split into further subclusters. 
 
 ```{r, fig.height=6, fig.width=16}
+scData$seurat_clusters <- Idents(scData)
+
 p1 <- DimPlot(scData, label = TRUE) +
   labs(color = "seurat_clusters")
 p2 <- SpatialDimPlot(scData, label = TRUE, label.size = 3) +
