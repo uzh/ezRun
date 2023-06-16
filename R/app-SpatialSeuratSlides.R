@@ -54,11 +54,6 @@ ezMethodSpatialSeuratSlides = function(input=NA, output=NA, param=NA, htmlFile="
   library(SummarizedExperiment)
   library(SingleCellExperiment)
   
-
-  if(input$getLength() > param$maxSamplesSupported){
-    stop(paste("It only works for", param$maxSamplesSupported, "at most"))
-  }
-  
   cwd <- getwd()
   setwdNew(basename(output$getColumn("Report")))
   on.exit(setwd(cwd), add=TRUE)
@@ -92,21 +87,23 @@ ezMethodSpatialSeuratSlides = function(input=NA, output=NA, param=NA, htmlFile="
   
   #positive cluster markers
   posMarkers <- posClusterMarkers(scData, pvalue_allMarkers, param)
-  
+  posMarkers[['isSpatialMarker']] = FALSE
   #spatially variable genes
   spatialMarkersList <- list()
   res <- spatialMarkers(scData, selection.method = 'markvariogram')
   spatialMarkersList[['markvariogram']] <- data.frame(GeneSymbol = rownames(res), res, Method = 'Markvariogram')
   res <- spatialMarkers(scData, selection.method = 'moransi')
   spatialMarkersList[['moransi']] <- data.frame(GeneSymbol = rownames(res), res, Method = 'MoransI')
-  spatialMarkers <- rbind(spatialMarkersList[['markvariogram']][,c('GeneSymbol', 'Rank','Method')], spatialMarkersList[['moransi']][,c('GeneSymbol', 'Rank','Method')])
+  spatialMarkers <- rbind(spatialMarkersList[['markvariogram']][,c('GeneSymbol', 'Rank','Method')], 
+                          spatialMarkersList[['moransi']][,c('GeneSymbol', 'Rank','Method')])
   spatialMarkers <- spatialMarkers %>% spread(Method, Rank)
   spatialMarkers[['MeanRank']] <- apply(spatialMarkers[,c('Markvariogram','MoransI')],1,mean)
   spatialMarkers <- spatialMarkers[order(spatialMarkers$MeanRank),]
- 
+  spatialPosMarkers <- intersect(posMarkers$gene, spatialMarkers$GeneSymbol)
+  posMarkers[which(posMarkers$gene %in% spatialPosMarkers), 'isSpatialMarker'] = TRUE
  
   #Save some results in external files 
-  dataFiles = saveExternalFiles(list(pos_markers=posMarkers, spatial_markers=data.frame(spatial_markers)))
+  dataFiles = saveExternalFiles(list(pos_markers=posMarkers, spatial_markers=data.frame(spatialMarkers)))
   saveRDS(scData, "scData.rds")
   saveRDS(param, "param.rds")
   

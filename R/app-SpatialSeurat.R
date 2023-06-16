@@ -89,7 +89,7 @@ ezMethodSpatialSeurat <- function(input=NA, output=NA, param=NA,
   
   #positive cluster markers
   clusterMarkers <- posClusterMarkers(scData, pvalue_allMarkers, param)
-  
+  clusterMarkers[['isSpatialMarker']] = FALSE 
   #spatially variable genes
   spatialMarkersList <- list()
   res <- spatialMarkers(scData, selection.method = 'markvariogram')
@@ -100,7 +100,9 @@ ezMethodSpatialSeurat <- function(input=NA, output=NA, param=NA,
   spatialMarkers <- spatialMarkers %>% spread(Method, Rank)
   spatialMarkers[['MeanRank']] <- apply(spatialMarkers[,c('Markvariogram','MoransI')],1,mean)
   spatialMarkers <- spatialMarkers[order(spatialMarkers$MeanRank),]
- 
+  
+  spatialPosMarkers <- intersect(clusterMarkers$gene, spatialMarkers$GeneSymbol)
+  clusterMarkers[which(clusterMarkers$gene %in% spatialPosMarkers), 'isSpatialMarker'] = TRUE
   
   #Save some results in external files
   library(scanalysis)
