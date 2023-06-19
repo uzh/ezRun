@@ -205,6 +205,32 @@ ezColorLegendGG2 = function(colorRange=c(-3,3), colors=getBlueRedScale(),
 }
 
 
+ezShowCol <- function(colours, colorLabels=paste0(names(colours), "\n", colours), 
+                       borders = NULL, cex_label = 1, 
+                       ncol = NULL) 
+{
+  n <- length(colours)
+  ncol <- ncol %||% ceiling(sqrt(length(colours)))
+  nrow <- ceiling(n/ncol)
+  colours <- c(colours, rep(NA, nrow * ncol - length(colours)))
+  colours <- matrix(colours, ncol = ncol, byrow = FALSE)
+  old <- par(pty = "s", mar = c(0, 0, 0, 0))
+  on.exit(par(old))
+  size <- max(dim(colours))
+  plot(c(0, size), c(0, -size), type = "n", xlab = "", ylab = "", 
+       axes = FALSE)
+  rect(col(colours) - 1, -row(colours) + 1, col(colours), 
+       -row(colours), col = colours, border = borders)
+  if (!is.null(colorLabels)) {
+    hcl <- farver::decode_colour(colours, "rgb", "hcl")
+    label_col <- ifelse(hcl[, "l"] > 50, "black", "white")
+    text(col(colours)[1:length(colorLabels)] - 0.5, -row(colours)[1:length(colorLabels)] + 0.5, colorLabels, 
+         cex = cex_label, col = label_col)
+  }
+}
+
+
+
 ##' @title Plots a legend
 ##' @description Plots only a legend, removing all the other plot elements.
 ##' @param legend passed to \code{legend()}.
