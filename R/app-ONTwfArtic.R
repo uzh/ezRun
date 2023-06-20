@@ -18,7 +18,7 @@ ezMethodONTwfArtic <- function(input = NA, output = NA, param = NA) {
               "--sample_sheet", samplesheet,
               "--normalise", normalise_param,
               "--scheme_version", scheme_version_param, 
-              "--profile singularity")
+              "-profile singularity")
   ezSystem(cmd)
   return("Success")
 }
