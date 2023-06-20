@@ -16,7 +16,7 @@ ezMethodONTwfArtic <- function(input = NA, output = NA, param = NA) {
   cmd = paste("nextflow run /srv/GT/software/epi2me-labs/wf-artic/", 
               "--fastq", dataset, 
               "--sample_sheet", samplesheet, 
-              "--out_dir", basename(output$getColumn("Report")),
+              "--out_dir .",
               "--normalise", normalise_param,
               "--scheme_version", scheme_version_param, 
               "--profile singularity")
