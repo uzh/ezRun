@@ -72,7 +72,7 @@ seuratClustering <- function(scData, param){
                    genes.print=5)
   scData <- ProjectPCA(object = scData, do.print = FALSE)
   scData <- JackStraw(object=scData, num.replicate=100) #, display.progress=FALSE,
-                      #do.par=TRUE, num.cores=min(4L, param$cores))
+  #do.par=TRUE, num.cores=min(4L, param$cores))
   
   scData <- FindClusters(object=scData, reduction.type="pca",
                          dims.use = 1:min(param$pcs, length(pc.genes)-1),
@@ -164,7 +164,7 @@ seuratClusteringV3 <- function(scData, param, assay="RNA") {
   vars.to.regress <- NULL
   if(identical("CellCycle", param$SCT.regress))
     vars.to.regress <- c("CellCycleS", "CellCycleG2M")
-
+  
   scData <- SCTransform(scData, vars.to.regress = vars.to.regress, assay=assay, seed.use = 38, verbose = FALSE)
   scData <- seuratStandardWorkflow(scData, param)
   return(scData)
@@ -174,7 +174,7 @@ seuratClusteringHTO <- function(scData) {
   DefaultAssay(scData) <- "HTO"
   scData <- ScaleData(scData)
   scData <- RunPCA(scData, features = rownames(scData), reduction.name = "pca_hto", reduction.key = "pca_hto_", 
-                           verbose = FALSE)
+                   verbose = FALSE)
   # Now, we rerun tSNE using the PCA only on ADT (protein) levels.
   scData <- RunTSNE(scData, reduction = "pca_hto", reduction.key = "htoTSNE_", reduction.name = "tsne_hto", check_duplicates = FALSE)
   scData <- FindNeighbors(scData, reduction="pca_hto", features = rownames(scData), dims=NULL)
@@ -183,7 +183,7 @@ seuratClusteringHTO <- function(scData) {
 }
 
 cellClustNoCorrection <- function(scDataList, param) {
-   if(param[['name']] == 'SpatialSeuratSlides')
+  if(param[['name']] == 'SpatialSeuratSlides')
     assay = "Spatial"
   else 
     assay= "RNA"
@@ -296,34 +296,34 @@ posClusterMarkers <- function(scData, pvalue_allMarkers, param) {
 
 
 SpatiallyVariableFeatures_workaround <- function(object, assay="SCT", selection.method = "moransi") {
-    #' This is work around function to replace SeuratObject::SpatiallyVariableFeatures function.
-    #' return ranked list of Spatially Variable Features
-    
-    # Check if object is a Seurat object
-    if (!inherits(object, "Seurat")) {
-        stop("object must be a Seurat object")
-    }
-    
-    # Check if assay is a valid assay
-    if (!assay %in% names(object@assays)) {
-        stop("assay must be a valid assay")
-    }
-    
-    # Extract meta.features from the specified object and assay
-    data <- object@assays[[assay]]@meta.features
-    
-    # Select columns starting with the provided col_prefix
-    moransi_cols <- grep(paste0("^", selection.method), colnames(data), value = TRUE)
-    
-    # Filter rows where "moransi.spatially.variable" is TRUE
-    filtered_data <- data[data[[paste0(selection.method, ".spatially.variable")]], moransi_cols]
-    
-    # Sort filtered data by "moransi.spatially.variable.rank" column in ascending order
-    sorted_data <- filtered_data[order(filtered_data[[paste0(selection.method, ".spatially.variable.rank")]]), ]
-    sorted_data <- sorted_data[grep('^NA', rownames(sorted_data), invert = TRUE),]
-    sorted_data[['Rank']] = 1:nrow(sorted_data)
-    # Return row names of the sorted data frame
-    return(sorted_data)
+  #' This is work around function to replace SeuratObject::SpatiallyVariableFeatures function.
+  #' return ranked list of Spatially Variable Features
+  
+  # Check if object is a Seurat object
+  if (!inherits(object, "Seurat")) {
+    stop("object must be a Seurat object")
+  }
+  
+  # Check if assay is a valid assay
+  if (!assay %in% names(object@assays)) {
+    stop("assay must be a valid assay")
+  }
+  
+  # Extract meta.features from the specified object and assay
+  data <- object@assays[[assay]]@meta.features
+  
+  # Select columns starting with the provided col_prefix
+  moransi_cols <- grep(paste0("^", selection.method), colnames(data), value = TRUE)
+  
+  # Filter rows where "moransi.spatially.variable" is TRUE
+  filtered_data <- data[data[[paste0(selection.method, ".spatially.variable")]], moransi_cols]
+  
+  # Sort filtered data by "moransi.spatially.variable.rank" column in ascending order
+  sorted_data <- filtered_data[order(filtered_data[[paste0(selection.method, ".spatially.variable.rank")]]), ]
+  sorted_data <- sorted_data[grep('^NA', rownames(sorted_data), invert = TRUE),]
+  sorted_data[['Rank']] = 1:nrow(sorted_data)
+  # Return row names of the sorted data frame
+  return(sorted_data)
 }
 
 
@@ -331,11 +331,11 @@ SpatiallyVariableFeatures_workaround <- function(object, assay="SCT", selection.
 
 spatialMarkers <- function(scData, selection.method = "markvariogram") { 
   scData <- FindSpatiallyVariableFeatures(scData, features = VariableFeatures(scData), r.metric = 5, 
-                                                  selection.method = selection.method)
+                                          selection.method = selection.method)
   #spatialMarkers <- SpatiallyVariableFeatures(scData, selection.method = "markvariogram") #deactivated due to an unfixed bug in the current Seurat version 4.3
   spatialMarkers <- SpatiallyVariableFeatures_workaround(scData, assay="SCT", selection.method = selection.method)
   return(spatialMarkers)
-  }
+}
 
 all2all <- function(scData, pvalue_all2allMarkers, param) {
   clusterCombs <- combn(levels(Idents(scData)), m=2)
@@ -369,8 +369,7 @@ conservedMarkers <- function(scData, grouping.var="Condition") {
     }
   }
   markers <- bind_rows(markers, .id="cluster")
-  markers <- markers %>%
-    mutate(avg_avg_fc=rowMeans(select(., contains("_avg_log2FC"))))
+  markers$avg_avg_fc <- markers %>% dplyr::select(contains("_avg_log2FC")) %>% rowMeans()
   return(markers)
 }
 
@@ -385,25 +384,23 @@ diffExpressedGenes <- function(scData, param, grouping.var="Condition") {
   if(param$DE.method == "LR") #regress the plate if the test is LR
     vars.to.regress <- param$DE.regress
   
-    diffGenes <- list()
-    for(eachCluster in gtools::mixedsort(levels(seurat_clusters))){
-      markersEach <- try(FindMarkers(scData, ident.1=paste0(eachCluster, "_",
-                                                            param$sampleGroup),
-                                     ident.2=paste0(eachCluster, "_", 
-                                                    param$refGroup),
-                                     test.use = param$DE.method, latent.vars = vars.to.regress))
-      ## to skip some groups with few cells
-      if(class(markersEach) != "try-error"){
-        diffGenes[[eachCluster]] <- as_tibble(markersEach, rownames="gene")
-      }
+  diffGenes <- list()
+  for(eachCluster in gtools::mixedsort(levels(seurat_clusters))){
+    markersEach <- try(FindMarkers(scData, ident.1=paste0(eachCluster, "_",
+                                                          param$sampleGroup),
+                                   ident.2=paste0(eachCluster, "_", 
+                                                  param$refGroup),
+                                   test.use = param$DE.method, latent.vars = vars.to.regress))
+    ## to skip some groups with few cells
+    if(class(markersEach) != "try-error"){
+      diffGenes[[eachCluster]] <- as_tibble(markersEach, rownames="gene")
     }
-    diffGenes <- bind_rows(diffGenes, .id="cluster")
+  }
+  diffGenes <- bind_rows(diffGenes, .id="cluster")
   
-  diff_pct = abs(diffGenes$pct.1-diffGenes$pct.2)
-  diffGenes$diff_pct <- diff_pct
-  diffGenes <- diffGenes[order(diffGenes$diff_pct, decreasing = TRUE),]
+  diffGenes$diff_pct = abs(diffGenes$pct.1-diffGenes$pct.2)
   rownames(diffGenes) <- NULL
- # diffGenes <- diffGenes[diffGenes$p_val_adj < 0.05, ]
+  # diffGenes <- diffGenes[diffGenes$p_val_adj < 0.05, ]
   
   return(diffGenes)
 }

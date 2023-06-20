@@ -25,10 +25,8 @@ library(SCpubr)
 ```
 
 ```{r load rds}
-input = readRDS("input.rds")
 param = readRDS("param.rds")
 scData <- readRDS("scData.rds")
-URLs <- input$getColumn("Static Report")
 ```
 
 ```{r set idents}
@@ -41,17 +39,11 @@ clusterNames <- sort(unique(Idents(scData)))
 var_heigth <- 1
 ```
 
-```{r javascript, results='asis'}
-jsFile = system.file("extdata/enrichr.js", package="ezRun", mustWork=TRUE)
-invisible(file.copy(from=jsFile, to=basename(jsFile), overwrite=TRUE))
-cat(paste0("<SCRIPT language=\"JavaScript\" SRC=\"", basename(jsFile), "\"></SCRIPT>"))
-```
-
 ## Analysis results {.tabset}
 
 ```{r load conserved and diff genes}
-conservedMarkers <- tryCatch({read_tsv("conserved_markers.tsv")},error = function(e) NULL)
-diffGenes <- tryCatch({read_tsv("differential_genes.tsv")},error = function(e) NULL)
+conservedMarkers <- readxl::read_xlsx("consMarkers.xlsx")
+diffGenes <- readxl::read_xlsx("diffGenes.xlsx")
 ```
 
 ```{r dim plot explanation, results='asis'}
@@ -72,7 +64,7 @@ cat("Identify cell type marker genes that are conserved across conditions. Diffe
 cat("\n\n")
 cat("#### Conserved cell type markers \n")
 cat("\n")
-ezInteractiveTableRmd(conservedMarkers)
+ezInteractiveTableRmd(conservedMarkers, digits = 3)
 ```
 
 ```{r subset conserved top5, eval=!is.null(conservedMarkers)}
@@ -101,6 +93,7 @@ cat(paste0("After identifying common cell types across conditions, we can look f
 cat("\n")
 
 diffGenesTable <- diffGenes[diffGenes$p_val_adj<0.05, ]  #too many genes make the interactive table slow
+diffGenesTable <- diffGenesTable[order(abs(diffGenes$avg_log2FC), decreasing = TRUE), ]
 cutoff <- 1000
 
 if(nrow(diffGenesTable) > cutoff) {
@@ -110,7 +103,7 @@ if(nrow(diffGenesTable) > cutoff) {
 cat("\n")
 cat("#### Differential expressed genes per cluster")
 cat("\n")
-ezInteractiveTableRmd(diffGenesTable)
+ezInteractiveTableRmd(as.data.frame(diffGenesTable), digits=3) %>% formatSignif("p_val")
 ```
 
 ```{r diffGenes heatmap, eval=!is.null(diffGenes), results='asis', fig.height=6, fig.width=12, fig.align='center'}
@@ -120,14 +113,25 @@ cat("The 50 dysregulated genes with the highest difference in expression between
 cat("\n")
 top5 <- diffGenes %>% group_by(cluster)
 top5 <- slice_max(top5, n = 5, order_by = avg_log2FC)
+scData$cluster.group <- paste0(scData@meta.data[[param$CellIdentity]], ".", scData@meta.data[[param$grouping]])
 DoHeatmap(scData, features = top5$gene, group.by = param$grouping)
+DoHeatmap(scData, features = top5$gene, group.by = "cluster.group") + NoLegend()
 ```
 
 ```{r diffGenes volcano plots, eval=!is.null(diffGenes)}
+Idents(scData) <- scData@meta.data[[param$grouping]]
 for (clusterName in clusterNames) {
-  p <- do_VolcanoPlot(scData,
-                      diffGenes %>% filter(cluster == clusterName),
-                      plot.title = clusterName)
+  dt <- diffGenes %>% filter(cluster == clusterName)
+  scd <- scData[, scData@meta.data[[param$CellIdentity]] == clusterName]
+  if (nrow(dt) > 0) {
+    dt <- dt[order(dt$p_val_adj), ]
+    upGenes <- dt[dt$avg_log2FC > 0, ] %>% slice_max( n=20, order_by = avg_log2FC) %>% pull("gene")
+    downGenes <- dt[dt$avg_log2FC < 0, ] %>% slice_min( n=20, order_by = avg_log2FC) %>% pull("gene")
+    
+    genesToPlot <- c(upGenes, downGenes)
+    print(DoHeatmap(subset(scd, downsample = 2000), genesToPlot, slot="scale.data") + ggtitle(paste0("Cell type: ", clusterName)))
+  }
+  p <- do_VolcanoPlot(scData, dt, plot.title = clusterName, add_gene_tags = TRUE, order_tags_by = "pvalue")
   print(p)
 }
 ```
@@ -136,11 +140,11 @@ for (clusterName in clusterNames) {
 
 ##### Conserved markers 
 
-[conservedMarkers](conserved_markers.tsv)
+[conservedMarkers](consMarkers.xlsx)
 
 ##### Differentially expressed genes
 
-[diffGenes](differential_genes.tsv)
+[diffGenes](diffGenes.xlsx)
 
 ### Parameters
 ```{r report parameters, echo=FALSE}
