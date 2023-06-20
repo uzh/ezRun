@@ -12,10 +12,12 @@ ezMethodONTwfArtic <- function(input = NA, output = NA, param = NA) {
   normalise_param <- param$normalise
   
   #Run the new 
-  setwdNew(basename(output$getColumn("ResultDir")))
+  setwdNew(dirname(output$getColumn("ResultDir")))
+  cmdcopy = paste("cp", input$getFullPaths("SampleSheet"), ".")
+  ezSystem(cmdcopy)
   cmd = paste("nextflow run /srv/GT/software/epi2me-labs/wf-artic/", 
-              "--fastq", dataset, 
-              "--sample_sheet", samplesheet,
+              "--fastq", dataset,
+              "--sample_sheet", basename(input$getFullPaths("SampleSheet")),
               "--normalise", normalise_param,
               "--scheme_version", scheme_version_param, 
               "-profile singularity")
