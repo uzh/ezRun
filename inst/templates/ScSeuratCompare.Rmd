@@ -25,10 +25,8 @@ library(SCpubr)
 ```
 
 ```{r load rds}
-input = readRDS("input.rds")
 param = readRDS("param.rds")
 scData <- readRDS("scData.rds")
-URLs <- input$getColumn("Static Report")
 ```
 
 ```{r set idents}

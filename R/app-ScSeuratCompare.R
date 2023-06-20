@@ -25,58 +25,58 @@ ezMethodScSeuratCompare = function(input=NA, output=NA, param=NA, htmlFile="00in
   library(Seurat)
   library(HDF5Array)
   library(SingleCellExperiment)
-
+  library(BiocParallel)
+  
+  
+  if (param$cores > 1){
+    BPPARAM <- MulticoreParam(workers = param$cores)
+  } else {
+    ## scDblFinder fails with many cells and MulticoreParam
+    BPPARAM <- SerialParam() 
+  }
+  register(BPPARAM)
+  require(future)
+  plan("multicore", workers = param$cores)
+  set.seed(38)
+  future.seed = TRUE
+  options(future.rng.onMisuse="ignore")
+  options(future.globals.maxSize = param$ram*1024^3)
+  
   
   cwd <- getwd()
   setwdNew(basename(output$getColumn("Report")))
   on.exit(setwd(cwd), add=TRUE)
-  reportCwd <- getwd()
   
-  scDataURLs <- input$getColumn("Static Report")
-  filePath <- file.path("/srv/gstore/projects", sub("https://fgcz-(gstore|sushi).uzh.ch/projects", "",dirname(scDataURLs)), "scData.rds")
-  filePath_course <- file.path("/srv/GT/analysis/course_sushi/public/projects", dirname(scDataURLs), "scData.rds")
-  
-  if(!file.exists(filePath)) 
-    filePath <- filePath_course
-  
-  scData <- readRDS(filePath)
+  reportDir <- input$getFullPaths("Report")
+  scData <- readRDS(file.path(reportDir, "scData.rds"))
   
   DefaultAssay(scData) = "SCT" 
   #subset the object to only contain the conditions we are interested in
   Idents(scData) <- scData[[param$grouping]]
+  stopifnot(c(param$sampleGroup, param$refGroup) %in% Idents(scData))
   scData <- subset(scData, idents=c(param$sampleGroup, param$refGroup))
   
   pvalue_allMarkers <- 0.05
   
   #Before calculating the conserved markers and differentially expressed genes across conditions I will discard the clusters that were too small in at least one group
   Idents(scData) <- scData[[param$CellIdentity]]
-  clusters_freq <- data.frame(table(scData@meta.data[[param$grouping]], Idents(scData)))
-  small_clusters <- ""
-  small_clusters <- unique(as.character(clusters_freq[clusters_freq[,"Freq"] < 10, 2]))
+  clusters_freq <- table(grouping=scData@meta.data[[param$grouping]], cellIdent=Idents(scData)) %>% data.frame()
+  small_clusters <- clusters_freq[clusters_freq$Freq < 10, "cellIdent"] %>% as.character() %>% unique()
+  big_clusters <- setdiff(Idents(scData), small_clusters)
   
-  diffGenes <- NULL
-  consMarkers <- NULL
-  
-  #only subset object and calculate diff genes and conserved markers if there is at least one cluster shared among conditions
-  if (!all(Idents(scData) %in% small_clusters)) {
-    scData <- subset(scData, idents = small_clusters, invert = TRUE)
-    
-    ###PrepSCTFindMarkers crashes for empty models which occur if the data consists of more than 2 samples/conditions 
-    if(length(slot(object = scData[['SCT']], name = "SCTModel.list")) > 2){
-      toKeep <- which(sapply(SCTResults(object = scData[['SCT']], slot = "cell.attributes"), nrow) != 0)
-      slot(object = scData[['SCT']], name = "SCTModel.list") = slot(object = scData[['SCT']], name = "SCTModel.list")[toKeep]
-    }
-    #conserved cluster markers
-    scData <- PrepSCTFindMarkers(scData)
-    consMarkers <- conservedMarkers(scData, grouping.var = param$grouping)
-    #differentially expressed genes between clusters and conditions (in case of several conditions)
-    diffGenes <- diffExpressedGenes(scData, param, grouping.var = param$grouping)
+  if(length(slot(scData[['SCT']], "SCTModel.list")) > 2){
+    toKeep <- which(sapply(SCTResults(scData[['SCT']], slot = "cell.attributes"), nrow) != 0)
+    slot(scData[['SCT']], "SCTModel.list") = slot(scData[['SCT']], "SCTModel.list")[toKeep]
   }
-  dataFiles = saveExternalFiles(list(differential_genes=diffGenes, conserved_markers=consMarkers))
-  saveRDS(input, "input.rds")
-  saveRDS(param, "param.rds")
-  saveRDS(scData, file = "scData.rds")
+  scData <- PrepSCTFindMarkers(scData)
+  consMarkers <- conservedMarkers(scData, grouping.var = param$grouping)
+  #differentially expressed genes between clusters and conditions (in case of several conditions)
+  diffGenes <- diffExpressedGenes(scData, param, grouping.var = param$grouping)
   
-  makeRmdReport(dataFiles=dataFiles, rmdFile = "ScSeuratCompare.Rmd", reportTitle = param$name) 
+  writexl::write_xlsx(consMarkers, path="consMarkers.xlsx")
+  writexl::write_xlsx(diffGenes, path="diffGenes.xlsx")
+  
+  makeRmdReport(param=param, output=output, scData=scData,
+                rmdFile = "ScSeuratCompare.Rmd", reportTitle = paste0(param$name))
   return("Success")
 }
