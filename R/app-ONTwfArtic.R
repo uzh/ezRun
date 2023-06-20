@@ -12,7 +12,6 @@ ezMethodONTwfArtic <- function(input = NA, output = NA, param = NA) {
   normalise_param <- param$normalise
   
   #Run the new 
-  setwdNew(dirname(output$getColumn("ResultDir")))
   cmdcopy = paste("cp", input$getFullPaths("SampleSheet"), ".")
   ezSystem(cmdcopy)
   cmd = paste("nextflow run /srv/GT/software/epi2me-labs/wf-artic/", 
