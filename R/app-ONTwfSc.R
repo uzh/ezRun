@@ -8,9 +8,9 @@ ezMethodONTwfSc <- function(input = NA, output = NA, param = NA) {
   
   sampledataset = input$getFullPaths("Read1")
   samplename = input$getNames()
-  refbuild = param$refbuild
+  refbuild = param$refBuild
   kitname = param$kitname
-  kitversion = param$kitversion
+  kitversion = param$kitVersion
   expCells = param$expCells
   
   cmd = paste("nextflow run /srv/GT/software/epi2me-labs/wf-single-cell/", 
