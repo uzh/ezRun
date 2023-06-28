@@ -135,7 +135,13 @@ buildMultiConfigFile <- function(input, param, dirList) {
   
   # sample mapping
   if ("Multiplexing" %in% libraryTypes) {
-    sampleMultiplexMapping <- read_csv(param$SampleMultiplexBarcodeFile)
+    sampleName <- rownames(input$meta)
+    projectId <- strsplit(dirname(input$meta[['RawDataDir']]),'/')[[1]][1]
+    sampleMultiplexFolder <- file.path(input$dataRoot, projectId, paste0('o',input$meta[['Order Id']], '_metaData'))
+    sampleMultiplexFiles <- list.files(sampleMultiplexFolder, full.names = TRUE)
+    names(sampleMultiplexFiles) <- sub('_Sample2Barcode.csv', '', basename(sampleMultiplexFiles))
+    sampleMultiplexFile <- sampleMultiplexFiles[which(sapply(names(sampleMultiplexFiles), grepl, sampleName))]
+    sampleMultiplexMapping <- read_csv(sampleMultiplexFile)
     
     # Load multiplex barcode set and subset
     multiplexBarcodeSet <- read_csv(file.path("/srv/GT/databases/10x/CMO_files", 
