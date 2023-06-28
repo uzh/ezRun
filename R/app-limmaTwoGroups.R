@@ -54,5 +54,6 @@ ezMethodLimma = function(input=NA, output=NA, param=NA,
   }
 
   makeRmdReport(output=output, param=param, deResult=deResult, rmdFile="twoGroups.Rmd")
+  rmStatus <- file.remove(list.files(pattern="enrich-.*rds"))
   return("Success")
 }
