@@ -114,8 +114,13 @@ ezMethodSpatialSeurat <- function(input=NA, output=NA, param=NA,
   dataFiles <- saveExternalFiles(list(cluster_markers=clusterMarkers, spatial_markers=data.frame(spatialMarkers), gene_means = geneMeans, gene_means_per_cluster = as_tibble(as.data.frame(geneMeansPerCluster), rownames = "gene_name")))
   
   saveRDS(scData, "scData.rds")
+  allCellsMeta <- scData.unfiltered@meta.data
+  allCellsMeta$Sample <- allCellsMeta$Batch
+  allCellsMeta$useCell <- allCellsMeta$discard
+  saveRDS(allCellsMeta, 'allCellsMeta.rds')
   saveRDS(scData.unfiltered, "scData.unfiltered.rds")
   saveRDS(param, "param.rds")
+  
   
   makeRmdReport(dataFiles=dataFiles, rmdFile = "SpatialSeurat.Rmd", reportTitle = param$name) 
   return("Success")

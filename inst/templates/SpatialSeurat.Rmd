@@ -23,13 +23,15 @@ library(RColorBrewer)
 library(kableExtra)
 library(clustree)
 library(ezRun)
+library(SingleCellExperiment)
 knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE, knitr.table.format = "html")
 ```
 
 ```{r}
 param = readRDS("param.rds")
 scData <- readRDS("scData.rds")
-scData.unfiltered <- readRDS("scData.unfiltered.rds")
+scData.unfiltered_spatial <- readRDS("scData.unfiltered.rds")
+allCellsMeta <- readRDS("allCellsMeta.rds")
 ```
 
 ## Analysis results {.tabset}
@@ -46,63 +48,104 @@ We use several common QC metrics to identify low-quality spots based on their ex
 
 <br/>
 
+```{r}
+xxAll <- SingleCellExperiment(colData = allCellsMeta)
+xxAll$discard <- !xxAll$useCell
+scData.unfiltered <- CreateSeuratObject(ezMatrix(0, rows=1:10, cols=rownames(allCellsMeta)), meta.data = allCellsMeta)
+scData.unfiltered$discard <- !colnames(scData.unfiltered) %in% colnames(scData)
+```
+
+
+
 #### Diagnostic plots
 
 A key assumption here is that the QC metrics are independent of the biological state of each cell. Poor values (e.g., low library sizes, high mitochondrial proportions) are presumed to be driven by technical factors rather than biological processes, meaning that the subsequent removal of cells will not misrepresent the biology in downstream analyses. Major violations of this assumption would potentially result in the loss of cell types that have, say, systematically low RNA content or high numbers of mitochondria. We can check for such violations using some diagnostics plots. In the most ideal case, we would see normal distributions that would justify the thresholds used in outlier detection. A large proportion of cells in another mode suggests that the QC metrics might be correlated with some biological state, potentially leading to the loss of distinct cell types during filtering. 
 The violin plots represent the spots that were kept (FALSE) and the ones that were discarded (TRUE) after QC filtering. The QC metrics were also plot onto the tissue section.
 
-```{r QC plots, fig.height=8, fig.width=24}
-plot1 <- VlnPlot(scData.unfiltered, features = "nCount_Spatial", group.by = "discard",pt.size = 0.1) + 
-  ggtitle("UMI") + NoLegend()
-plot2 <- VlnPlot(scData.unfiltered, features = "nFeature_Spatial", group.by = "discard", pt.size = 0.1) + 
-  ggtitle("Genes")+NoLegend()
-plot3 <- VlnPlot(scData.unfiltered, features = "percent_mito",  group.by = "discard", pt.size = 0.1) + 
-  ggtitle("Percentage Mito genes") + NoLegend()
-plot4 <- VlnPlot(scData.unfiltered, features = "percent_ribo",  group.by = "discard", pt.size = 0.1) + 
-  ggtitle("Percentage Ribo genes") + theme(legend.position = "right") 
+```{r QC plots1, fig.height=4}
+### TODO the plotColData would be much more informative!!!
+plotColData(xxAll, x="Sample", y="nCount_Spatial", colour_by="discard") + scale_y_log10() + ggtitle("Number of UMIs")
 
-plot5 <- SpatialFeaturePlot(scData.unfiltered, features = "nCount_Spatial") + 
-  theme(legend.position = "right")
-plot6 <- SpatialFeaturePlot(scData.unfiltered, features = "nFeature_Spatial") +
-  theme(legend.position = "right")
-plot7 <- SpatialFeaturePlot(scData.unfiltered, features = "percent_mito") +
-  theme(legend.position = "right")
-plot8 <- SpatialFeaturePlot(scData.unfiltered, features = "percent_ribo") +
-  theme(legend.position = "right")
-
-plot1 + plot2 + plot3  + plot4 + plot5 + plot6 + plot7 + plot8 + plot_layout(nrow = 2, ncol = 4)
 ```
 
+```{r QC plots2, fig.height=6}
+
+plotColData(xxAll, x="Sample", y="nFeature_Spatial", colour_by="discard") + ggtitle("Detected genes")
+plotColData(xxAll, x="nCount_Spatial", y="nFeature_Spatial", colour_by="discard")+ scale_x_log10() + scale_y_log10()
+
+xxAll$genePerCount <- xxAll$nFeature_Spatial / xxAll$nCount_Spatial
+plotColData(xxAll, x="Sample", y="genePerCount", colour_by="discard") + ggtitle("Detected genes")
+plotColData(xxAll, x="nCount_Spatial", y="genePerCount", colour_by="discard")+ scale_x_log10() + xlim(1, 10000) + ylim(0.2, 0.8)
+
+plotColData(xxAll, x="Sample", y="percent_mito", colour_by="discard") + ggtitle("Mito percent")
+plotColData(xxAll, x="nCount_Spatial", y="percent_mito", colour_by="discard")+ scale_x_log10()
+
+if (!is.null(xxAll$percent_ribo)){
+  print(plotColData(xxAll, x="Sample", y="percent_ribo", colour_by="discard") + ggtitle("Ribosomal percent"))
+  print(plotColData(xxAll, x="nCount_Spatial", y="percent_ribo", colour_by="discard")+ scale_x_log10())
+}
+```
+
+Spatial QC Plots
+
+```{r QC plots3, fig.width=28}
+plot5 <- SpatialFeaturePlot(scData.unfiltered_spatial, features = "nCount_Spatial", pt.size.factor = 3) + 
+  theme(legend.position = "right")
+plot6 <- SpatialFeaturePlot(scData.unfiltered_spatial, features = "nFeature_Spatial",  pt.size.factor = 3) +
+  theme(legend.position = "right")
+plot7 <- SpatialFeaturePlot(scData.unfiltered_spatial, features = "percent_mito",  pt.size.factor = 3) +
+  theme(legend.position = "right")
+plot8 <- SpatialFeaturePlot(scData.unfiltered_spatial, features = "percent_ribo",  pt.size.factor = 3) +
+  theme(legend.position = "right")
+
+plot5 + plot6 + plot7 + plot8 + plot_layout(nrow = 1, ncol = 4)
+```
 <br/>
+
 
 #### Spots filtering
 
 A standard approach is to filter spots with a low amount of reads as well as genes that are present in at least a certain amount of spots. While simple, using fixed thresholds requires knowledge of the experiment and of the experimental protocol. An alternative approach is to use adaptive, data-driven thresholds to identify outlying cells, based on the set of QC metrics just calculated. To obtain an adaptive threshold, we assume that most of the dataset consists of high-quality spots. 
 When the parameter values of nreads, ngenes, perc_mito and perc_ribo are specified, fixed thresholds are used for filtering. Otherwise, filtering is performed excluding cells that are outliers by more than `r param$nmad` MADs below the median for the library size and the number of genes detected. Spots with a percentage counts of mitochondrial genes above the median by `r param$nmad` MADs are also excluded. 
 
-```{r low quality spots}
-num.qc.lib <- sum(scData.unfiltered$qc.lib)
-num.qc.nexprs <- sum(scData.unfiltered$qc.nexprs)
-num.qc.mito <- sum(scData.unfiltered$qc.mito)
-num.qc.ribo <- sum(scData.unfiltered$qc.mito)
-removed <- sum(scData.unfiltered$discard)
-kable(tibble("QC metric" =c("Library Size", "Expressed genes", "Mitochondrial genes", "Ribosomal genes", "Total removed", "Cells remaining"),
-             "Number of cells"= c(num.qc.lib, num.qc.nexprs, num.qc.mito, num.qc.ribo, removed, ncol(scData))),
-      row.names=FALSE,
+```{r low quality cells}
+library(UpSetR)
+qcList <- lapply(allCellsMeta[ ,grep("^qc", colnames(allCellsMeta))], function(x){rownames(allCellsMeta)[x]})
+qcList <- qcList[sapply(qcList, length) > 0]
+if (length(qcList) > 1){
+  UpSetR::upset(fromList(qcList), nsets = 5)
+}
+
+qcStats <- ezFrame("Number of Spots"=integer(0), 
+                      "Min Pass Value"=integer(0), "Max Pass Value"=integer(0))
+qcStats[ "Library Size", ] <- c(sum(allCellsMeta$qc.lib), 
+                               range(allCellsMeta$nCount_RNA[allCellsMeta$useCell])) %>% as.integer()
+qcStats[ "Expressed genes", ]<- c(sum(allCellsMeta$qc.nexprs), 
+                               range(allCellsMeta$nFeature_RNA[allCellsMeta$useCell])) %>% as.integer()
+qcStats[ "Mitochondrial Percent", ]<- c(sum(allCellsMeta$qc.mito), 
+                               range(allCellsMeta$percent_mito[allCellsMeta$useCell])) %>% as.integer()
+qcStats[ "Ribosomal protein Percent", ]<- c(sum(allCellsMeta$qc.riboprot), 
+                               range(allCellsMeta$percent_riboprot[allCellsMeta$useCell])) %>% as.integer()
+qcStats[ "Doublets", ]<- c(sum(allCellsMeta$qc.doublet), NA, NA)
+qcStats[ "Total removed", ]<- c(sum(!allCellsMeta$useCell), NA, NA)
+qcStats[ "Cells remaining", ]<- c(sum(allCellsMeta$useCell), NA, NA)
+
+
+kable(qcStats,
+      row.names=TRUE,
       caption="Number of cells removed") %>%
   kable_styling(bootstrap_options = "striped", full_width = F,
-                position = "center")
+                position = "float_right")
 ```
 
 <br/>
 
 #### Gene filtering
 
-We also excluded genes that are lowly or not expressed in our system, as they do not contribute any information to our experiment and may add noise. In this case, we removed genes that were not expressed in at least `r param$cellsPercentage` percent of the spots. In case one or more rare cell populations are expected we might need to decrease the percentage of spots.
+We also excluded genes that are lowly or not expressed in our system, as they do not contribute any information to our experiment and may add noise. In this case, we removed genes that were not expressed in at least `r param$cellsPercentage` percent of the cells. In case one or more rare cell populations are expected we might need to decrease the percentage of cells.
 
 ```{r gene filtering}
-cat("genes removed:", sum(!scData.unfiltered[["Spatial"]]@meta.features$is.expressed))
-cat("genes kept:", sum(scData.unfiltered[["Spatial"]]@meta.features$is.expressed))
+cat("genes kept:", nrow(scData))
 ```
 
 ### Dimensionality reduction
@@ -130,7 +173,6 @@ Next, we perform PCA on the scaled data. By default, only the previously determi
 ElbowPlot(scData, ndims = 50)
 ```
 
-
 <br/>
 
 ### Clustering
@@ -144,7 +186,7 @@ scData$seurat_clusters <- Idents(scData)
 
 p1 <- DimPlot(scData, label = TRUE) +
   labs(color = "seurat_clusters")
-p2 <- SpatialDimPlot(scData, label = TRUE, label.size = 3) +
+p2 <- SpatialDimPlot(scData, label = TRUE, label.size = 4, pt.size.factor = 3) +
   labs(fill = "seurat_clusters")
 
 p1 + p2 + plot_annotation(
@@ -153,8 +195,8 @@ p1 + p2 + plot_annotation(
 
 We can also plot each cluster separately
 
-```{r, fig.height=6, fig.width=20}
-SpatialDimPlot(scData, cells.highlight = CellsByIdentities(scData), facet.highlight = TRUE, ncol = 5)
+```{r, fig.height=10, fig.width=28}
+SpatialDimPlot(scData, cells.highlight = CellsByIdentities(scData), facet.highlight = TRUE, pt.size.factor = 3, ncol = 4, cols.highlight = c('red', 'white'))
 ```
 
 
@@ -181,7 +223,7 @@ kable(cells_prop,row.names=FALSE, format="html",caption="Cell proportions") %>% 
 Once we have created the clusters we need to asses if the clustering was driven by technical artifacts or uninteresting biological variability, such as cell cycle, mitochondrial or ribosomal gene expression.
 We can explore whether the cells cluster by the different cell cycle phases. In such a case, we would have clusters where most of the cells would be in one specific phase. This bias could be taken into account when normalizing and transforming the data prior to clustering. We can also look at the total number of reads, genes detected and mitochondrial gene expression. The clusters should be more or less even but if we observe big differences among some of them for these metrics, we will keep an eye on them and see if the cell types we identify later can explain the differences. 
 
-```{r uninteresting variation, fig.height=8, fig.width=24}
+```{r uninteresting variation, fig.height=12, fig.width=28}
 plot1 <- VlnPlot(scData, features="nCount_Spatial", group.by="seurat_clusters") + ggtitle("Number of UMIs vs cluster") + 
   NoLegend()
 plot2 <- VlnPlot(scData, features = "nFeature_Spatial", group.by="seurat_clusters", pt.size = 0.1) + 
@@ -194,16 +236,7 @@ plot4 <- VlnPlot(scData, features = "percent_ribo",  group.by ="seurat_clusters"
   ggtitle("Ribosomal percentage vs cluster") +
   theme(legend.position = "right")
 
-plot5 <- SpatialFeaturePlot(scData, features = "nCount_Spatial") + 
-  theme(legend.position = "right")
-plot6 <- SpatialFeaturePlot(scData, features = "nFeature_Spatial") + 
-  theme(legend.position = "right")
-plot7 <- SpatialFeaturePlot(scData, features = "percent_mito") + 
-  theme(legend.position = "right")
-plot8 <- SpatialFeaturePlot(scData, features = "percent_ribo") + 
-  theme(legend.position = "right")
-
-plot1 + plot2 + plot3  + plot4 + plot5 + plot6 + plot7 + plot8 + plot_layout(nrow = 2, ncol = 4)
+plot1 + plot2 + plot3  + plot4 + plot_layout(nrow = 1, ncol = 4)
 ```
 
 #### Cluster resolution 
@@ -239,7 +272,7 @@ ezInteractiveTableRmd(posMarkers, digits=4)
 We plot on the tissue the top 5 markers in each cluster. Be aware that some genes may be in the top markers for different clusters.
 
 <br/>
-```{r markers plots, results='asis', fig.width=4, fig.height=4}
+```{r markers plots, results='asis', fig.width=5, fig.height=5}
 eachCluster <- 0
 for (eachCluster in levels(posMarkers$cluster)) {
   cat("\n")
@@ -252,7 +285,7 @@ for (eachCluster in levels(posMarkers$cluster)) {
   markersPerCluster <- head(markersPerCluster, 5)
   eachMarker <- markersPerCluster[1]
   for (eachMarker in markersPerCluster) {
-    sp = SpatialFeaturePlot(object = scData, features = eachMarker, alpha = c(0.1, 1))
+    sp = SpatialFeaturePlot(object = scData, features = eachMarker, alpha = c(0.1, 1), pt.size.factor = 3)
     print(sp)
   }
   cat("\n")
@@ -263,11 +296,11 @@ for (eachCluster in levels(posMarkers$cluster)) {
 
 We also identify molecular features that correlate with spatial location within a tissue. Here we show the expression of the top 20 features identified by this measure. The full list can be found in the Data availability section.
 
-```{r spatial markers plots, results='asis', fig.width=4, fig.height=4}
+```{r spatial markers plots, results='asis', fig.width=5, fig.height=5}
 spatialMarkers = read_tsv("spatial_markers.tsv")
 top.features <- head(spatialMarkers$GeneSymbol, 20)
 for(gene in top.features) {
-   sp = SpatialFeaturePlot(object = scData, features = gene, alpha = c(0.1, 1))
+   sp = SpatialFeaturePlot(object = scData, features = gene, alpha = c(0.1, 1),pt.size.factor = 3)
    print(sp)
 }
 ```
