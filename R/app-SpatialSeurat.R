@@ -116,7 +116,7 @@ ezMethodSpatialSeurat <- function(input=NA, output=NA, param=NA,
   saveRDS(scData, "scData.rds")
   allCellsMeta <- scData.unfiltered@meta.data
   allCellsMeta$Sample <- allCellsMeta$Batch
-  allCellsMeta$useCell <- allCellsMeta$discard
+  allCellsMeta$useCell <- !allCellsMeta$discard
   saveRDS(allCellsMeta, 'allCellsMeta.rds')
   saveRDS(scData.unfiltered, "scData.unfiltered.rds")
   saveRDS(param, "param.rds")
