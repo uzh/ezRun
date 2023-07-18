@@ -19,9 +19,9 @@ addCellCycleToSCE <- function(sce, refBuild, BPPARAM){
   return(sce)
 }
 
-addCellCycleToSeurat <- function(scData, refBuild, BPPARAM){
-  counts <- GetAssayData(scData, slot="counts", assay = "RNA")
-  metaFeatures <- scData[["RNA"]]@meta.features
+addCellCycleToSeurat <- function(scData, refBuild, BPPARAM, assay = "RNA"){
+  counts <- GetAssayData(scData, slot="counts", assay = assay)
+  metaFeatures <- scData[[assay]]@meta.features
   if ("gene_id" %in% names(metaFeatures)) {
     rownames(counts) <- metaFeatures$gene_id
   } else {
@@ -342,7 +342,7 @@ filterCellsAndGenes.Seurat <- function(scData, param) {
   
   # Cells filtering
   scData <- PercentageFeatureSet(scData, "(?i)^MT-", col.name = "percent_mito")
-  scData <- PercentageFeatureSet(scData, "(?i)^RPS|^RPL", col.name = "percent_ribo")
+  scData <- PercentageFeatureSet(scData, "(?i)^RPS|^RPL", col.name = "percent_riboprot")
   if(grepl("Spatial", param$appName)) {
     assay <- "Spatial"
     att_nCounts <- "nCount_Spatial"
@@ -369,9 +369,9 @@ filterCellsAndGenes.Seurat <- function(scData, param) {
     qc.mito <- scData@meta.data[,"percent_mito"] > param$perc_mito
   }
   if (is.na(param$perc_ribo )) {
-    qc.ribo <- isOutlier(scData@meta.data[,"percent_ribo"], nmads = param$nmad, type = "higher")
+    qc.ribo <- isOutlier(scData@meta.data[,"percent_riboprot"], nmads = param$nmad, type = "higher")
   } else {
-    qc.ribo <- scData@meta.data[,"percent_ribo"] > param$perc_ribo
+    qc.ribo <- scData@meta.data[,"percent_riboprot"] > param$perc_ribo
   }
   
   discard <- qc.lib | qc.nexprs | qc.mito | qc.ribo

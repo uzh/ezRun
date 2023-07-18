@@ -74,15 +74,41 @@ ezMethodSpatialSeurat <- function(input=NA, output=NA, param=NA,
   setwdNew(basename(output$getColumn("Report")))
   on.exit(setwd(cwd), add=TRUE)
   library(Seurat)
+  library(scater)
+  
+  cmDir <- input$getFullPaths("CountMatrix")
+  featInfo <- ezRead.table(paste0(cmDir, "/features.tsv.gz"), header = FALSE, row.names = NULL)
+  colnames(featInfo) <- c("gene_id", "gene_name", "type")
+  featInfo$isMito = grepl( "(?i)^MT-", featInfo$gene_name)
+  featInfo$isRiboprot = grepl(  "(?i)^RPS|^RPL", featInfo$gene_name)
+  geneAnnoFile <- sub("byTranscript", "byGene", param$ezRef@refAnnotationFile)
+  if (file.exists(geneAnnoFile)){
+      geneAnno <- ezRead.table(geneAnnoFile)
+      if (any(geneAnno$type == "rRNA")){
+          featInfo$isRibosomal <- geneAnno[featInfo$gene_id, "type"] == "rRNA"
+          if(any(is.na(featInfo[, "isRibosomal"]))){
+              featInfo[, "isRibosomal"][which(is.na(featInfo[, "isRibosomal"]))] <- FALSE
+          }
+      }
+  }
+  rownames(featInfo) <- gsub("_", "-", uniquifyFeatureNames(ID=featInfo$gene_id, names=featInfo$gene_name)) 
+  
   if(param$spotClean){
       scData <- load10xSpatialDataAndRunSpotClean(input, param) 
   } else {
     scData <- load10xSpatialData(input, param)
   }
+  scData$Condition <- input$getColumn("Condition")
+  scData@meta.data$Sample <- input$getNames()
+  scData[["Spatial"]] <- AddMetaData(object = scData[["Spatial"]], metadata = featInfo[rownames(scData), ])
+  
   scData_list <- filterCellsAndGenes(scData, param) # return sce objects filtered and unfiltered to show the QC metrics later in the rmd
   scData <- scData_list$scData
   scData.unfiltered <- scData_list$scData.unfiltered
   rm(scData_list)
+  
+  scData <- addCellCycleToSeurat(scData, param$refBuild, BPPARAM, assay = 'Spatial')
+  scData.unfiltered <- addCellCycleToSeurat(scData.unfiltered, param$refBuild, BPPARAM, assay = 'Spatial')
   scData <- seuratClusteringV3(scData, param, assay="Spatial")
   
   pvalue_allMarkers <- 0.05
