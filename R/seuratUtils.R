@@ -135,8 +135,9 @@ add_Condition_oldReports <- function(sce) {
 
 seuratStandardWorkflow <- function(scData, param, reduction="pca") {
   scData <- RunPCA(object=scData, npcs = param$npcs, verbose=FALSE)
-  if(!('Spatial' %in% Assays(scData)))
+  if(!('Spatial' %in% as.vector(Seurat::Assays(scData)))){
     scData <- RunTSNE(object = scData, reduction = reduction, dims = 1:param$npcs)
+  }
   scData <- RunUMAP(object=scData, reduction = reduction, dims = 1:param$npcs)
   scData <- FindNeighbors(object = scData, reduction = reduction, dims = 1:param$npcs, verbose=FALSE)
   scData <- FindClusters(object=scData, resolution = seq(from = 0.2, to = 1, by = 0.2), verbose=FALSE)  #calculate clusters for a set of resolutions
