@@ -21,7 +21,7 @@ ezMethodCellRanger <- function(input = NA, output = NA, param = NA) {
   
   #2.1 Fix FileNames if sampleName in dataset was changed
   fileLevelDirs <- list.files(sampleDirs)
-  if(length(fileLevelDirs) == 1L & fileLevelDirs != sampleName){
+  if(length(fileLevelDirs) == 1L && fileLevelDirs != sampleName){
       setwd(sampleDirs)
       ezSystem(paste('mv', fileLevelDirs, sampleName))
       cmd <- paste('rename', paste0('s/',fileLevelDirs,'/',sampleName, '/'), paste0(sampleName,'/*.gz'))
