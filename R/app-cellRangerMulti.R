@@ -10,8 +10,7 @@ ezMethodCellRangerMulti <- function(input = NA, output = NA, param = NA) {
   
   dirList <- prepareFastqData(input, param)
   sampleDirs <- dirList$sampleDirs
-  multiplexDirs <- dirList$multiplexDirs
-  
+
   #3. Create the multi configuration file and command
   configFileName <- buildMultiConfigFile(input, param, dirList)
   
@@ -47,7 +46,7 @@ ezMethodCellRangerMulti <- function(input = NA, output = NA, param = NA) {
 
 prepareFastqData <- function(input, param) {
   sampleName <- input$getNames()
-  
+
   #1. Prepare GEX data
   sampleDirs <- getFastqDirs(input, "RawDataDir",sampleName)
   
@@ -70,22 +69,44 @@ prepareFastqData <- function(input, param) {
     ezSystem(cmd)
     setwd('..')
   }
+  dirList <- list(sampleName=sampleName, sampleDirs=sampleDirs)
   
-  #2.
+  #2. Check the dataset for the other modalities and get the fastq files
+  libraryTypes <- as.vector(str_split(param$TenXLibrary, ",", simplify=TRUE))
+  otherModColNames <- c("MultiDataDir", "VdjTDataDir", "VdjBDataDir")
+  #2.1 VDJ-T
+  if ("VDJ-T" %in% libraryTypes) {
+    dataInfo <- getCellRangerMultiData(input, "VdjTDataDir", sampleName)
+    dirList <- c(dirList, list(vdjtName=dataInfo[["multiName"]],
+                               vdjtDirs=dataInfo[["multiDirs"]]))    
+  }
+  #2.2 VDJ-B
+  if ("VDJ-B" %in% libraryTypes) {
+    dataInfo <- getCellRangerMultiData(input, "VdjBDataDir", sampleName)
+    dirList <- c(dirList, list(vdjbName=dataInfo[["multiName"]],
+                               vdjbDirs=dataInfo[["multiDirs"]]))    
+  }
+  #2.3 Multiplexing
+  if ("Multiplexing" %in% libraryTypes) {
+    dataInfo <- getCellRangerMultiData(input, "MultiDataDir", sampleName)
+    dirList <- c(dirList, list(multiplexName=dataInfo[["multiName"]],
+                               multiplexDirs=dataInfo[["multiDirs"]]))
+  }
+
+  return(dirList)
+}
+
+getCellRangerMultiData <- function(input, multiColName, sampleName) {
   #2.1. Locate the multiplex sample
-  multiplexDirs <- getFastqDirs(input, "MultiDataDir", sampleName)
-  multiplexName <- gsub(".tar", "", basename(multiplexDirs))
+  multiDirs <- getFastqDirs(input, multiColName, sampleName)
+  multiName <- gsub(".tar", "", basename(multiDirs))
   
   #2.2. Decompress the sample that contains the antibodies reads if they are in tar format
-  if (all(grepl("\\.tar$", multiplexDirs)))
-    multiplexDirs <- deCompress(multiplexDirs)
+  if (all(grepl("\\.tar$", multiDirs)))
+    multiDirs <- deCompress(multiDirs)
   
-  multiplexDirs <- normalizePath(multiplexDirs)
-  
-  return(list(multiplexName=multiplexName,
-              multiplexDirs=multiplexDirs, 
-              sampleName=sampleName,
-              sampleDirs=sampleDirs))
+  multiDirs <- normalizePath(multiDirs)
+  return(list(multiName=multiName, multiDirs=multiDirs))
 }
 
 buildMultiConfigFile <- function(input, param, dirList) {
@@ -108,16 +129,21 @@ buildMultiConfigFile <- function(input, param, dirList) {
       ifelse(ezIsSpecified(param$includeIntrons) && param$includeIntrons,
              "include-introns,true", "include-introns,false")
     fileContents <- append(fileContents, includeIntronsLine)
+    fileContents <- append(fileContents, c(""))
+  }
+  if (any(c("VDJ-T", "VDJ-B") %in% libraryTypes)) {
+    vdjRefDir <- getCellRangerVDJReference(param)
+    fileContents <- append(fileContents, "[vdj]")
+    fileContents <- append(fileContents, sprintf("reference,%s", vdjRefDir))
+    fileContents <- append(fileContents, c(""))
   }
   if ("Multiplexing" %in% libraryTypes) {
     multiplexBarcodeFile <- tempfile(pattern = "multi_barcode_set", tmpdir = ".", fileext = ".csv")
     multiplexBarcodeFile <- file.path(getwd(), multiplexBarcodeFile)
     fileContents <- append(fileContents, 
                            sprintf("cmo-set,%s", multiplexBarcodeFile))
+    fileContents <- append(fileContents, c(""))
   }
-  fileContents <- append(fileContents, c(""))
-  
-  # TCR/BCR
   
   # Feature barcoding
   
@@ -126,6 +152,14 @@ buildMultiConfigFile <- function(input, param, dirList) {
   if ("GEX" %in% libraryTypes) {
     fileContents <- append(fileContents,
                            sprintf("%s,%s,%s", dirList$sampleName, dirList$sampleDirs, "Gene Expression"))
+  }
+  if ("VDJ-T" %in% libraryTypes) {
+    fileContents <- append(fileContents,
+                           sprintf("%s,%s,%s", dirList$vdjtName, dirList$vdjtDirs, "VDJ-T"))
+  }
+  if ("VDJ-B" %in% libraryTypes) {
+    fileContents <- append(fileContents,
+                           sprintf("%s,%s,%s", dirList$vdjbName, dirList$vdjbDirs, "VDJ-B"))
   }
   if ("Multiplexing" %in% libraryTypes) {
     fileContents <- append(fileContents,
