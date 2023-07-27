@@ -83,6 +83,11 @@ ezMethodScSeuratCombine = function(input=NA, output=NA, param=NA, htmlFile="00in
         scData$Condition <- scData$Sample
       }
     }
+    # Harmony will complain if the Condition is the same across all samples
+    if (param$integrationMethod == "Harmony" && 
+        length(unique(input$meta$`Condition`)) == 1) {
+      scData$Condition <- scData$Sample
+    }
     # Also add the other factors in the input dataset to the objects
     if (!is.null(param$harmonyFactors)) {
       harmonyFactors <- str_split(param$harmonyFactors, ",", simplify=TRUE)[1,]
