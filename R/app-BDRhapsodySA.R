@@ -26,35 +26,15 @@ ezMethodBdRhapsodySA <- function(input = NA, output = NA, param = NA) {
   cmd <- paste(
     "cwltool",
     "--tmpdir-prefix ./bd_sa_tmp/",
+    "--outdir", sampleName,
     "--singularity",
-    "--parallel",
     pipelineCwl,
     bdYmlFile
   )
   
   #3. Execute the command
   ezSystem(cmd)
-  
-  #7. Delete temp files and rename the final cellranger output folder
-  unlink(basename(sampleDirs), recursive = TRUE)
-  if (exists("featureDirs")){
-    unlink(basename(featureDirs))
-  }
-  file.rename(file.path(cellRangerFolder, "outs"), sampleName)
-  unlink(cellRangerFolder, recursive = TRUE)
-  if (ezIsSpecified(param$controlSeqs)) 
-    unlink(refDir, recursive = TRUE)
-  
-  #8. Calculate alignment stats from the BAM file
-  if(param$bamStats){
-    genomeBam <- file.path(sampleName, "possorted_genome_bam.bam")
-    if (file.exists(genomeBam)){
-      alignStats <- computeBamStatsSC(genomeBam, ram=param$ram)
-      if (!is.null(alignStats)){
-        ezWrite.table(alignStats, file=file.path(sampleName, "CellAlignStats.txt"), head="Barcode")
-      }
-    }
-  }
+
   return("Success")
 }
 
@@ -248,11 +228,10 @@ getBdWtaReference <- function(param) {
   ezSystem(cmd)
   
   # Move the result over and remove files
-  ezSystem(sprintf("mv %s.tar.gz %s", basename(refArchive), dirname(refDir)))
-  file.remove(basename(refArchive))
+  ezSystem(sprintf("mv %s %s", basename(refArchive), dirname(refDir)))
   file.remove(gtfFile)
   
-  return(refDir)
+  return(refArchive)
 }
 
 ##' @author Noé, Falko
