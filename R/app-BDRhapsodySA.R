@@ -40,13 +40,13 @@ ezMethodBdRhapsodySA <- function(input = NA, output = NA, param = NA) {
 
 getJobConfig <- function(param) {
   require(yaml)
-  jobParams <- as.yaml(list(
+  jobParams <- list(
     ResourceRequirement=list(
       ramMin=param$ram, 
       tmpdirMin=param$scratch, 
       outdirMin=param$scratch
     )
-  ))
+  )
   jobYamlFile <- "job.yml"
   write_yaml(jobParams, jobYamlFile)
   return(jobYamlFile)
