@@ -34,6 +34,13 @@ ezMethodBdRhapsodySA <- function(input = NA, output = NA, param = NA) {
   
   #3. Execute the command
   ezSystem(cmd)
+  
+  #4. Process result
+  cwd <- getwd()
+  on.exit(setwd(cwd), add = TRUE)
+  setwd(sampleName)
+  cellsMexOutput <- basename(output$getColumn("CountMatrix"))
+  ezSystem(sprintf("unzip %s.zip -d %s", cellsMexOutput, cellsMexOutput))
 
   return("Success")
 }
