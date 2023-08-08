@@ -35,13 +35,17 @@ ezMethodBdRhapsodySA <- function(input = NA, output = NA, param = NA) {
   #3. Execute the command
   ezSystem(cmd)
   
-  #4. Process result
+  #4. Post-process results
+  #4.1 Unzip general results
   cwd <- getwd()
   on.exit(setwd(cwd), add = TRUE)
   setwd(sampleName)
   cellsMexOutput <- basename(output$getColumn("CountMatrix"))
   ezSystem(sprintf("unzip %s.zip -d %s", cellsMexOutput, cellsMexOutput))
-
+  #4.2 Unzip tag-specific count matrices
+  if (ezIsSpecified(param$sampleTagsVersion)) {
+    postProcessTagResults(param, output, sampleName)
+  }
   return("Success")
 }
 
@@ -239,6 +243,42 @@ getBdWtaReference <- function(param) {
   file.remove(gtfFile)
   
   return(refArchive)
+}
+
+postProcessTagResults <- function(param, output, sampleName) {
+  datasetByTagFn <- "datasetByTag.tsv"
+  # Get the tag numbers and tag names
+  if (ezIsSpecified(param$tagNames)) {
+    tagsSplit <- str_split(param$tagNames, pattern="-", simplify=TRUE)
+    tagNums <- tagsSplit[,1] %>% as.integer()
+    tagNames <- tagsSplit[,2]
+  } else {
+    tagNums <- 1:12  # The maximum number of possible tags
+    tagNames <- sprintf("Sample%02d", tagNums)
+  }
+  # Recursively unzip the by-tag count matrix results
+  sampleNameMut <- str_replace(sampleName, "_", "-")
+  sampleTagZips <- Sys.glob(sprintf("%s_SampleTag%02d*.zip", sampleNameMut, tagNums))
+  mtxFolders <- sapply(sampleTagZips, function(tagZip) {
+    sampleTagFolder <- tools::file_path_sans_ext(tagZip)
+    ezSystem(sprintf("unzip %s -d %s", tagZip, sampleTagFolder))
+    mtxZip <- Sys.glob(file.path(sampleTagFolder, "*.zip"))
+    mtxFolder <- basename(tools::file_path_sans_ext(mtxZip))
+    ezSystem(sprintf("unzip %s -d %s", mtxZip, mtxFolder))
+    unlink(sampleTagFolder, recursive=TRUE)
+    return(mtxFolder)
+  })
+  # Create a dataset file split by sample
+  bySampleOutput <- tibble(
+    `Name`=tagNames, 
+    `Condition [Factor]`=output$getColumn("Condition"),
+    `Species`=output$getColumn("Species"),
+    `refBuild`=output$getColumn("refBuild"),
+    `CountMatrix [Link]`=file.path(output$getColumn("ResultDir"), mtxFolders),
+    `ResultDir [File]`=output$getColumn("ResultDir")
+  )
+  ezWrite.table(bySampleOutput, file=datasetByTagFn, row.names=FALSE)
+  return(datasetByTagFn)
 }
 
 ##' @author Noé, Falko
