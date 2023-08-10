@@ -257,8 +257,11 @@ postProcessTagResults <- function(param, output, sampleName) {
     tagNames <- sprintf("Sample%02d", tagNums)
   }
   # Recursively unzip the by-tag count matrix results
-  sampleNameMut <- str_replace(sampleName, "_", "-")
+  sampleNameMut <- str_replace_all(sampleName, "_", "-")
   sampleTagZips <- Sys.glob(sprintf("%s_SampleTag%02d*.zip", sampleNameMut, tagNums))
+  if (!all(file.exists(sampleTagZips))) {
+    stop(sprintf("Could not find all tag zips %s", paste(sampleTagZips, collapse=", ")))
+  }
   mtxFolders <- sapply(sampleTagZips, function(tagZip) {
     sampleTagFolder <- tools::file_path_sans_ext(tagZip)
     ezSystem(sprintf("unzip %s -d %s", tagZip, sampleTagFolder))
