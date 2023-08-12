@@ -42,6 +42,8 @@ ezMethodBdRhapsodySA <- function(input = NA, output = NA, param = NA) {
   setwd(sampleName)
   cellsMexOutput <- basename(output$getColumn("CountMatrix"))
   ezSystem(sprintf("unzip %s.zip -d %s", cellsMexOutput, cellsMexOutput))
+  cellsMexUnfilteredOutput <- basename(output$getColumn("UnfilteredCountMatrix"))
+  ezSystem(sprintf("unzip %s.zip -d %s", cellsMexUnfilteredOutput, cellsMexUnfilteredOutput))
   #4.2 Unzip tag-specific count matrices
   if (ezIsSpecified(param$sampleTagsVersion)) {
     postProcessTagResults(param, output, sampleName)
@@ -278,6 +280,7 @@ postProcessTagResults <- function(param, output, sampleName) {
     `Species`=output$getColumn("Species"),
     `refBuild`=output$getColumn("refBuild"),
     `CountMatrix [Link]`=file.path(output$getColumn("ResultDir"), mtxFolders),
+    `UnfilteredCountMatrix [Link]`=output$getColumn("UnfilteredCountMatrix"),
     `ResultDir [File]`=output$getColumn("ResultDir")
   )
   ezWrite.table(bySampleOutput, file=datasetByTagFn, row.names=FALSE)
