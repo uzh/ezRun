@@ -87,10 +87,6 @@ EzAppScSeurat <-
                       DefaultValue = "",
                       Description = "control sequences to add"
                     ),
-                    CellRangerMulti = ezFrame(
-                        Type = "logical", DefaultValue = FALSE,
-                        Description = "unfiltered data of CellRanger multi output isn't sample specific and needs subsetting"
-                    ),
                     enrichrDatabase = ezFrame(
                       Type = "charVector", DefaultValue = "", Description="enrichR databases to search"
                     ),
@@ -181,7 +177,8 @@ ezMethodScSeurat <- function(input = NA, output = NA, param = NA,
   }
   if (file.exists(rawDir) && rawDir != cmDir){
     rawCts <- Read10X(rawDir, gene.column = 1)
-    if(param$CellRangerMulti){
+    if (("ScMultiInput" %in% input$colNames) && 
+        input$getColumn("ScMultiInput") == 'true') {
       rawCts <- rawCts[featInfo$gene_id,]
     }
     stopifnot(rownames(rawCts) == featInfo$gene_id)

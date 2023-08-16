@@ -279,8 +279,9 @@ postProcessTagResults <- function(param, output, sampleName) {
     `Condition [Factor]`=output$getColumn("Condition"),
     `Species`=output$getColumn("Species"),
     `refBuild`=output$getColumn("refBuild"),
+    `ScMultiInput`='true',
     `CountMatrix [Link]`=file.path(output$getColumn("ResultDir"), mtxFolders),
-    `UnfilteredCountMatrix [Link]`=output$getColumn("UnfilteredCountMatrix"),
+    `UnfilteredCountMatrix [File]`=output$getColumn("UnfilteredCountMatrix"),
     `ResultDir [File]`=output$getColumn("ResultDir")
   )
   ezWrite.table(bySampleOutput, file=datasetByTagFn, row.names=FALSE)
