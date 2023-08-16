@@ -174,7 +174,11 @@ ezMethodScSeurat <- function(input = NA, output = NA, param = NA,
   scData <- addCellQcToSeurat(scData, param=param, BPPARAM = BPPARAM, ribosomalGenes = featInfo[rownames(scData), "isRibosomal"])
   
   ## use empty drops to test for ambient
-  rawDir <- sub("filtered_", "raw_", cmDir)
+  if ("UnfilteredCountMatrix" %in% input$colNames) {
+    rawDir <- input$getFullPaths("UnfilteredCountMatrix")
+  } else {
+    rawDir <- sub("filtered_", "raw_", cmDir)
+  }
   if (file.exists(rawDir) && rawDir != cmDir){
     rawCts <- Read10X(rawDir, gene.column = 1)
     if(param$CellRangerMulti){
