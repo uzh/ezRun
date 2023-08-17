@@ -76,7 +76,8 @@ ezMethodScSeuratCombine = function(input=NA, output=NA, param=NA, htmlFile="00in
     scData <- readRDS(filePath[sm])
     scData$Sample <- sm
     # If we have new information in the Condition column, add it to the dataset
-    if (all(scData$Condition == "NA" | scData$Condition == "")) {
+    if (all(scData$Condition == "NA" | scData$Condition == "") | 
+           (ezIsSpecified(param$overwriteCondition) && param$overwriteCondition)) {
       if (any(startsWith(colnames(input$meta), "Condition"))) {
         scData$Condition <- unname(input$getColumn("Condition")[sm])
       } else {
