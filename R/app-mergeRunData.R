@@ -76,7 +76,7 @@ ezMethodMergeRunData <- function(input=NA, output=NA, param=NA){
     dataset = rbind(dataset1, dataset2)
     dataset = dataset[order(dataset[[matchCol]]), ]
     dataset = dataset[dataset[[matchCol]] %in% intersectNames, ]
-    colsToRemove <- c('Read1 [File]', 'Read Count', 'SampleConc [Characteristic]', 'InputAmount [Characteristic]', 'Sample Id [B-Fabric]', 'RIN [Characteristic]', 'PlatePosition [Characteristic]',
+    colsToRemove <- c('Read1 [File]', 'Read Count', 'SampleConc [Characteristic]', 'InputAmount [Characteristic]', 'RIN [Characteristic]', 'PlatePosition [Characteristic]',
       'LibConc_100_800bp [Characteristic]', 'LibraryPrepKit', 'PlateName [Characteristic]', 'barcode1', 'barcode2')
     
     if('Order Id [B-Fabric]' %in% colnames(dataset)){
