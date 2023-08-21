@@ -37,6 +37,7 @@ ezMethodMergeRunData <- function(input=NA, output=NA, param=NA){
     dataset2 = dataset2[dataset2[['Read Count']] >= param$minReadCount,]
     
     commonCols = intersect(colnames(dataset1), colnames(dataset2))
+    matchCol <- commonCols[grep(matchCol, commonCols)]
     
     dataset1 = dataset1[,commonCols]
     dataset2 = dataset2[,commonCols]
