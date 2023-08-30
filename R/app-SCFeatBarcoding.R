@@ -20,9 +20,11 @@ EzAppSCFeatBarcoding <-
                                         pcGenes=ezFrame(Type="charVector", 
                                                         DefaultValue="", 
                                                         Description="The genes used in supvervised clustering"),
-                                        SCT.regress=ezFrame(Type="character", 
-                                                           DefaultValue="none", 
-                                                           Description="Choose CellCycle to be regressed out when using the SCTransform method if it is a bias."),
+                                        SCT.regress.CellCycle=ezFrame(
+                                          Type = "logical", 
+                                          DefaultValue = FALSE,
+                                          Description="Choose CellCycle to be regressed out when using the SCTransform method if it is a bias."
+                                        ),
                                         DE.method=ezFrame(Type="charVector", 
                                                           DefaultValue="wilcoxon", 
                                                           Description="Method to be used when calculating gene cluster markers. Use LR if you want to include cell cycle in the regression model."),

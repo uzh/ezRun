@@ -24,9 +24,11 @@ EzAppSpatialSeuratSlides <-
                                         resolution=ezFrame(Type="numeric", 
                                                            DefaultValue=0.6,
                                                            Description="Value of the resolution parameter, use a value above (below) 1.0 if you want to obtain a larger (smaller) number of communities."),
-                                        SCT.regress=ezFrame(Type="character", 
-                                                            DefaultValue="none", 
-                                                            Description="Choose CellCycle to be regressed out when using the SCTransform method if it is a bias."),
+                                        SCT.regress.CellCycle=ezFrame(
+                                          Type = "logical", 
+                                          DefaultValue = FALSE,
+                                          Description="Choose CellCycle to be regressed out when using the SCTransform method if it is a bias."
+                                        ),
                                         batchCorrection=ezFrame(Type="logical", 
                                                                 DefaultValue="TRUE",
                                                                 Description="Perform batch correction."),

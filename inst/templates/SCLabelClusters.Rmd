@@ -98,7 +98,7 @@ Dimensionality reduction aims to reduce the number of separate dimensions in the
 
 We used the SCtransform method from the Seurat package for normalizing, estimating the variance of the raw filtered data, and identifying the most variable genes. By default, SCtransform accounts for cellular sequencing depth, or nUMIs.
 <br/>
-`r if(identical(param$SCT.regress,"CellCycle")) {
+`r if(ezIsSpecified(param$SCT.regress.CellCycle) && param$SCT.regress.CellCycle) {
     "We already checked cell cycle and decided that it does represent a major source of variation in our data, and this may influence clustering. Therefore, we regressed out variation due to cell cycle."
 }`
 As a result, SCTransform ranked the genes by residual variance and returned the 3000 most variant genes.

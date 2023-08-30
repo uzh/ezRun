@@ -632,7 +632,7 @@ Due to a discontinuation of Matrix.utils package, monocle3 can not be installed 
 
 ### SessionInfo
 ```{r report parameters, echo=FALSE}
-param[c("npcs","pcGenes","resolution", "SCT.regress", "DE.method", "cellsFraction", "nUMIs", "nmad", "normalize")]
+param[c("npcs","pcGenes","resolution", "SCT.regress.CellCycle", "DE.method", "cellsFraction", "nUMIs", "nmad", "normalize")]
 ```
 
 

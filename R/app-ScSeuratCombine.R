@@ -30,9 +30,11 @@ EzAppScSeuratCombine <-
                                         integrationMethod=ezFrame(Type="character", 
                                                                   DefaultValue="Classic", 
                                                                   Description="Choose integration method in Seurat (Classic or RPCA)"),
-                                        SCT.regress=ezFrame(Type="character", 
-                                                            DefaultValue="none", 
-                                                            Description="Choose CellCycle to be regressed out when using the SCTransform method if it is a bias."),
+                                        SCT.regress.CellCycle=ezFrame(
+                                          Type = "logical", 
+                                          DefaultValue = FALSE,
+                                          Description="Choose CellCycle to be regressed out when using the SCTransform method if it is a bias."
+                                        ),
                                         DE.method=ezFrame(Type="charVector", 
                                                           DefaultValue="wilcox", 
                                                           Description="Method to be used when calculating gene cluster markers and differentially expressed genes between conditions. Use LR to take into account the Batch and/or CellCycle"),

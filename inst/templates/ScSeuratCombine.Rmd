@@ -104,7 +104,8 @@ kable(cells_prop,row.names=FALSE, format="html",caption="Cell proportions per co
 
 ```{r no_integration, eval = !param$batchCorrection,results='asis'}
 cat("We started by merging all the samples in one dataset and then used the SCtransform method from the Seurat package for normalizing, estimating the variance of the raw filtered data, and identifying the most variable genes. By default, SCtransform accounts for cellular sequencing depth, or nUMIs.")
-if(identical(param$SCT.regress,"CellCycle")) {
+if(ezIsSpecified(param$SCT.regress.CellCycle) && 
+      param$SCT.regress.CellCycle) {
   cat("We already checked cell cycle and decided that it does represent a major source of variation in our data, and this may influence clustering. Therefore, we regressed out variation due to cell cycle")
 }
 cat("As a result, SCTransform ranked the genes by residual variance and returned the 3000 most variant genes. Next, we performed PCA on the scaled data using the previously determined variable features. Taking as a distance metric the previously identified PCs, the cells clusters were then identified using a graph-based clustering approach where the cells are embedded in a graph structure - for example a K-nearest neighbor (KNN) graph, with edges drawn between cells with similar feature expression patterns, and then attempt to partition this graph into highly interconnected ‘communities’. The resolution is an important argument that sets the \"granularity\" of the downstream clustering and will need to be optimized for every individual experiment. Increased resolution values lead to a greater number of clusters, which is often required for larger datasets.\n")
@@ -116,7 +117,8 @@ cat("The UMAPs below place similar cells together in low-dimensional space. The 
 ```{r integration, eval = param$batchCorrection,results='asis'}
 cat("After inspecting the datasets and observing that cells clustered by sample we decided to integrate samples using shared highly variable genes. Oftentimes, when clustering cells from multiple conditions there are condition-specific clusters and integration can help ensure the same cell types cluster together.\n We started by normalizing, estimating the variance of the raw filtered data, and identifying the most variable genes in each sample separately. For this, we used the SCtransform method from the Seurat package which accounts for cellular sequencing depth, or nUMIs by default.")
 cat("\n")
-if(identical(param$SCT.regress,"CellCycle")) {
+if(ezIsSpecified(param$SCT.regress.CellCycle) && 
+      param$SCT.regress.CellCycle) {
   cat("We already checked cell cycle and decided that it does represent a major source of variation in our data, and this may influence clustering. Therefore, we regressed out variation due to cell cycle")
 }
 cat("\n")
@@ -485,7 +487,7 @@ The iSEE shiny app can be accessed through this link [iSEE explorer](`r {lastPro
 
 ### Parameters
 ```{r report parameters, echo=FALSE}
-param[c("npcs","pcGenes","resolution", "SCT.regress", "DE.method", "batchCorrection")]
+param[c("npcs","pcGenes","resolution", "SCT.regress.CellCycle", "DE.method", "batchCorrection")]
 ```
 
 

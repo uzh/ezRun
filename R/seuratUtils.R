@@ -163,9 +163,7 @@ buildSeuratObject <- function(sce){
 }
 
 seuratClusteringV3 <- function(scData, param, assay="RNA") {
-  vars.to.regress <- NULL
-  if(identical("CellCycle", param$SCT.regress))
-    vars.to.regress <- c("CellCycleS", "CellCycleG2M")
+  vars.to.regress <- getSeuratVarsToRegress(param)
   
   scData <- SCTransform(scData, vars.to.regress = vars.to.regress, assay=assay, seed.use = 38, verbose = FALSE)
   scData <- seuratStandardWorkflow(scData, param)
@@ -189,9 +187,7 @@ cellClustNoCorrection <- function(scDataList, param) {
     assay = "Spatial"
   else 
     assay= "RNA"
-  vars.to.regress <- NULL
-  if(identical("CellCycle", param$SCT.regress))
-    vars.to.regress <- c("CellCycleS", "CellCycleG2M")
+  vars.to.regress <- getSeuratVarsToRegress(param)
   #1. Data preprocesing is done on each object separately
   for (i in 1:length(scDataList)) 
     scDataList[[i]] <- SCTransform(scDataList[[i]], vars.to.regress = vars.to.regress,  assay = assay, verbose = TRUE)
@@ -213,9 +209,7 @@ cellClustWithCorrection <- function (scDataList, param) {
     assay = "Spatial"
   else 
     assay= "RNA"
-  vars.to.regress <- NULL
-  if(identical("CellCycle", param$SCT.regress))
-    vars.to.regress <- c("CellCycleS", "CellCycleG2M")
+  vars.to.regress <- getSeuratVarsToRegress(param)
   #1. Data preprocesing is done on each object separately
   for (i in 1:length(scDataList)) {
     scDataList[[i]] <- SCTransform(scDataList[[i]], vars.to.regress = vars.to.regress,  assay = assay, verbose = TRUE)
@@ -407,3 +401,14 @@ diffExpressedGenes <- function(scData, param, grouping.var="Condition") {
   return(diffGenes)
 }
 
+getSeuratVarsToRegress <- function(param) {
+  vars.to.regress <- NULL
+  if (ezIsSpecified(param$SCT.regress.CellCycle) && 
+      param$SCT.regress.CellCycle) {
+    vars.to.regress <- c("CellCycleS", "CellCycleG2M")
+  }
+  if (!is.null(param$SCT.regress.var)) {
+    vars.to.regress <- c(vars.to.regress, param$SCT.regress.var)
+  }
+  return(vars.to.regress)
+}

@@ -24,10 +24,10 @@ EzAppScSeurat <-
                       DefaultValue = "",
                       Description = "The genes used in unsupervised clustering"
                     ),
-                    SCT.regress = ezFrame(
-                      Type = "character",
-                      DefaultValue = "none",
-                      Description = "Choose CellCycle to be regressed out when using the SCTransform method if it is a bias."
+                    SCT.regress.CellCycle = ezFrame(
+                      Type = "logical", 
+                      DefaultValue = FALSE,
+                      Description="Choose CellCycle to be regressed out when using the SCTransform method if it is a bias."
                     ),
                     DE.method = ezFrame(
                       Type = "charVector",
@@ -200,14 +200,10 @@ ezMethodScSeurat <- function(input = NA, output = NA, param = NA,
   is.expressed <- Matrix::rowSums(GetAssayData(scData, "counts") >= param$nUMIs) >= num.cells
   scData <- scData[is.expressed,]
 
+  ## Add Cell Cycle information to Seurat object as metadata columns
   scData <- addCellCycleToSeurat(scData, param$refBuild, BPPARAM)
-  
-  vars.to.regress <- NULL
-  if(identical("CellCycle", param$SCT.regress)){
-    vars.to.regress <- c("CellCycleS", "CellCycleG2M")
-  } else {
-    vars.to.regress <- NULL
-  }
+  ## Get information on which variables to regress out in scaling/SCT
+  vars.to.regress <- getSeuratVarsToRegress(param)
   ## generate normalized slots for the RNA assay
   scData <- NormalizeData(scData, normalization.method = "LogNormalize", scale.factor=10000, verbose=FALSE)
   scData <- FindVariableFeatures(scData, selection.method = "vst", verbose = FALSE, nfeatures=3000)
@@ -266,8 +262,6 @@ ezMethodScSeurat <- function(input = NA, output = NA, param = NA,
   pathwayActivity <- computePathwayActivityAnalysis(cells = scData, species = species)
   TFActivity <- computeTFActivityAnalysis(cells = scData, species = species)
 
-  #geneMeans <- geneMeansCluster(scData)
-  
   ## generate template for manual cluster annotation -----
   ## we only deal with one sample
   stopifnot(length(input$getNames()) == 1)
