@@ -177,8 +177,8 @@ ezMethodScSeurat <- function(input = NA, output = NA, param = NA,
   }
   if (file.exists(rawDir) && rawDir != cmDir){
     rawCts <- Read10X(rawDir, gene.column = 1)
-    if (("ScMultiInput" %in% input$colNames) && 
-        input$getColumn("ScMultiInput") == 'true') {
+    if (("SCDataOrigin" %in% input$colNames) && 
+        input$getColumn("SCDataOrigin") == 'BDRhapsody') {
       rawCts <- rawCts[featInfo$gene_id,]
     }
     stopifnot(rownames(rawCts) == featInfo$gene_id)

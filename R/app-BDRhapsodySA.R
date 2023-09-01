@@ -279,7 +279,7 @@ postProcessTagResults <- function(param, output, sampleName) {
     `Condition [Factor]`=output$getColumn("Condition"),
     `Species`=output$getColumn("Species"),
     `refBuild`=output$getColumn("refBuild"),
-    `ScMultiInput`='true',
+    `SCDataOrigin`=output$getColumn("SCDataOrigin"),
     `CountMatrix [Link]`=file.path(output$getColumn("ResultDir"), mtxFolders),
     `UnfilteredCountMatrix [File]`=output$getColumn("UnfilteredCountMatrix"),
     `ResultDir [File]`=output$getColumn("ResultDir")
