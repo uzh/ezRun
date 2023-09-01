@@ -192,7 +192,6 @@ ezMethodScSeurat <- function(input = NA, output = NA, param = NA,
   }
   allCellsMeta <- scData@meta.data
   
-  #allCellsMeta$useCell <- scData$doubletClass %in% "singlet" & !scData$qc.lib & !scData$qc.mito & !scData$qc.nexprs & !scData$qc.riboprot
   scData <- subset(scData, cells=rownames(allCellsMeta)[allCellsMeta$useCell]) # %>% head(n=1000))
   
   ## remove low expressed genes
@@ -211,7 +210,6 @@ ezMethodScSeurat <- function(input = NA, output = NA, param = NA,
   ## generate the SCT assay
   scData <- SCTransform(scData, vst.flavor=2, vars.to.regress = vars.to.regress, seed.use = 38, verbose = FALSE,
                         return.only.var.genes=FALSE)
-  #defaultAssay <- "SCT"
   ## defaultAssay is now SCT
   #scData <- FindVariableFeatures(scData, selection.method = "vst", verbose = FALSE)
   scData <- RunPCA(object=scData, npcs = param$npcs, verbose=FALSE)
@@ -228,7 +226,6 @@ ezMethodScSeurat <- function(input = NA, output = NA, param = NA,
   markers <- FindAllMarkers(object=scData, test.use = param$DE.method, only.pos=TRUE)
   ## Significant markers
   markers <- markers[ ,c("gene","cluster","pct.1", "pct.2", "avg_log2FC","p_val_adj")]
-  #cm <- cm[cm$p_val_adj < 0.05, ]
   markers$cluster <- as.factor(markers$cluster)
   markers$diff_pct = abs(markers$pct.1-markers$pct.2)
   markers <- markers[order(markers$diff_pct, decreasing = TRUE),] ## why would we round here?? %>% mutate_if(is.numeric, round, digits=3)
@@ -256,7 +253,6 @@ ezMethodScSeurat <- function(input = NA, output = NA, param = NA,
     singler.results <- NULL
     enrichRout <- NULL
   }
-  
   
   ## SCpubr advanced plots
   pathwayActivity <- computePathwayActivityAnalysis(cells = scData, species = species)
