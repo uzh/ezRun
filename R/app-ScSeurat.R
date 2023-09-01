@@ -102,7 +102,6 @@ EzAppScSeurat <-
 
 ezMethodScSeurat <- function(input = NA, output = NA, param = NA,
                                htmlFile = "00index.html") {
-  #library(scanalysis)
   library(HDF5Array)
   library(AUCell)
   library(GSEABase)
