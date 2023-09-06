@@ -137,7 +137,12 @@ ezMethodScSeurat <- function(input = NA, output = NA, param = NA,
   if (file.exists(file.path(cmDir, param$geneCountModel))){
     cmDir <- file.path(cmDir, param$geneCountModel)
   }
-  cts <- Read10X(cmDir, gene.column = 1)
+  if(!ezIsSpecified(param$cellbender)){
+    param$cellbender = FALSE  
+    cts <- Read10X(cmDir, gene.column = 1)
+    } else if(param$cellbender){
+    cts <- Read10X_h5(file.path(dirname(cmDir), 'cellbender_filtered_seurat.h5'), use.names = FALSE)
+  }
   featInfo <- ezRead.table(paste0(cmDir, "/features.tsv.gz"), header = FALSE, row.names = NULL)#, col_names = FALSE)
   colnames(featInfo) <- c("gene_id", "gene_name", "type")
   featInfo$isMito = grepl( "(?i)^MT-", featInfo$gene_name)
@@ -159,6 +164,13 @@ ezMethodScSeurat <- function(input = NA, output = NA, param = NA,
     cts <- cts$`Gene Expression`
     featInfo <- featInfo[  featInfo$type == "Gene Expression", ]
   }
+  if(param$cellbender){
+      rownames(featInfo) <- featInfo$gene_id
+      matchingIds <- intersect(rownames(cts), rownames(featInfo))
+      cts <- cts[matchingIds,]
+      featInfo <- featInfo[matchingIds,]
+  }
+  
   ## underscores in genenames will become dashes
   rownames(cts) <- rownames(featInfo) <- gsub("_", "-", uniquifyFeatureNames(ID=featInfo$gene_id, names=featInfo$gene_name)) 
   scData <- CreateSeuratObject(counts = cts[rowSums2(cts >0) >0, ])
@@ -180,6 +192,11 @@ ezMethodScSeurat <- function(input = NA, output = NA, param = NA,
         input$getColumn("SCDataOrigin") == 'BDRhapsody') {
       rawCts <- rawCts[featInfo$gene_id,]
     }
+    
+    if(param$cellbender){
+        rawCts <- rawCts[featInfo$gene_id,]
+    }
+    
     stopifnot(rownames(rawCts) == featInfo$gene_id)
     emptyStats <- emptyDrops(rawCts[!featInfo$isMito & !featInfo$isRiboprot, ],
                              BPPARAM=BPPARAM, niters=1e5)
