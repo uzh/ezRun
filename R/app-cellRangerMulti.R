@@ -73,7 +73,7 @@ prepareFastqData <- function(input, param) {
   
   #2. Check the dataset for the other modalities and get the fastq files
   libraryTypes <- as.vector(str_split(param$TenXLibrary, ",", simplify=TRUE))
-  otherModColNames <- c("MultiDataDir", "VdjTDataDir", "VdjBDataDir")
+  otherModColNames <- c("MultiDataDir", "FeatureDataDir", "VdjTDataDir", "VdjBDataDir")
   #2.1 VDJ-T
   if ("VDJ-T" %in% libraryTypes) {
     dataInfo <- getCellRangerMultiData(input, "VdjTDataDir", sampleName)
@@ -86,7 +86,13 @@ prepareFastqData <- function(input, param) {
     dirList <- c(dirList, list(vdjbName=dataInfo[["multiName"]],
                                vdjbDirs=dataInfo[["multiDirs"]]))    
   }
-  #2.3 Multiplexing
+  #2.3 Feature Barcoding
+  if ("FeatureBarcoding" %in% libraryTypes) {
+    dataInfo <- getCellRangerMultiData(input, "FeatureDataDir", sampleName)
+    dirList <- c(dirList, list(featureName=dataInfo[["multiName"]],
+                               featureDirs=dataInfo[["multiDirs"]]))
+  }
+  #2.4 Multiplexing
   if ("Multiplexing" %in% libraryTypes) {
     dataInfo <- getCellRangerMultiData(input, "MultiDataDir", sampleName)
     dirList <- c(dirList, list(multiplexName=dataInfo[["multiName"]],
@@ -137,6 +143,12 @@ buildMultiConfigFile <- function(input, param, dirList) {
     fileContents <- append(fileContents, sprintf("reference,%s", vdjRefDir))
     fileContents <- append(fileContents, c(""))
   }
+  if ("FeatureBarcoding" %in% libraryTypes) {
+    featureRefFile <- param$FeatureBarcodeFile
+    fileContents <- append(fileContents, "[feature]")
+    fileContents <- append(fileContents, sprintf("reference,%s", featureRefFile))
+    fileContents <- append(fileContents, c(""))
+  }
   if ("Multiplexing" %in% libraryTypes) {
     multiplexBarcodeFile <- tempfile(pattern = "multi_barcode_set", tmpdir = ".", fileext = ".csv")
     multiplexBarcodeFile <- file.path(getwd(), multiplexBarcodeFile)
@@ -161,6 +173,10 @@ buildMultiConfigFile <- function(input, param, dirList) {
     fileContents <- append(fileContents,
                            sprintf("%s,%s,%s", dirList$vdjbName, dirList$vdjbDirs, "VDJ-B"))
   }
+  if ("FeatureBarcoding" %in% libraryTypes) {
+    fileContents <- append(fileContents,
+                           sprintf("%s,%s,%s", dirList$featureName, dirList$featureDirs, "Antibody Capture"))
+  }  
   if ("Multiplexing" %in% libraryTypes) {
     fileContents <- append(fileContents,
                            sprintf("%s,%s,%s", dirList$multiplexName, dirList$multiplexDirs, "Multiplexing Capture"))
