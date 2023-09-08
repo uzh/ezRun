@@ -144,7 +144,7 @@ buildMultiConfigFile <- function(input, param, dirList) {
     fileContents <- append(fileContents, c(""))
   }
   if ("FeatureBarcoding" %in% libraryTypes) {
-    featureRefFile <- param$FeatureBarcodeFile
+    featureRefFile <- file.path(param$dataRoot, param$FeatureBarcodeFile)
     fileContents <- append(fileContents, "[feature]")
     fileContents <- append(fileContents, sprintf("reference,%s", featureRefFile))
     fileContents <- append(fileContents, c(""))
