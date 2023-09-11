@@ -74,6 +74,10 @@ prepareFastqData <- function(input, param) {
   #2. Check the dataset for the other modalities and get the fastq files
   libraryTypes <- as.vector(str_split(param$TenXLibrary, ",", simplify=TRUE))
   otherModColNames <- c("MultiDataDir", "FeatureDataDir", "VdjTDataDir", "VdjBDataDir")
+  #2.0 fixedRNA
+  if ("fixedRNA" %in% libraryTypes) {
+      return(dirList)
+  }
   #2.1 VDJ-T
   if ("VDJ-T" %in% libraryTypes) {
     dataInfo <- getCellRangerMultiData(input, "VdjTDataDir", sampleName)
@@ -137,6 +141,29 @@ buildMultiConfigFile <- function(input, param, dirList) {
     fileContents <- append(fileContents, includeIntronsLine)
     fileContents <- append(fileContents, c(""))
   }
+  if ("fixedRNA" %in% libraryTypes) {
+      refDir <- getCellRangerGEXReference(param)
+      fileContents <- append(fileContents, "[gene-expression]")
+      fileContents <- append(fileContents, sprintf("reference,%s", refDir))
+      myProbesetFile <- file.path('/srv/GT/databases/10x_Probesets/Chromium',param$probesetFile)
+      outputFile <- sub('.csv','_filtered.csv', basename(myProbesetFile))
+      maxHeaderLine <- max(grep('#', readLines(myProbesetFile)))
+      headerSection <- readLines(myProbesetFile, n = maxHeaderLine)
+      headerSection[grep('reference_genome', headerSection)] = paste0('#reference_genome=',basename(refDir))
+      probeInfo <- ezRead.table(myProbesetFile, sep = ',', row.names = NULL, skip = maxHeaderLine)
+      annotation <- ezRead.table(file.path(refDir, 'star', 'geneInfo.tab'), row.names = NULL, skip = 1, header = FALSE)
+      intersectionGenes <- intersect(annotation$V1, probeInfo$gene_id)
+      probeInfo <- probeInfo[probeInfo$gene_id %in% intersectionGenes, ]
+      writeLines(headerSection, outputFile)
+      ezWrite.table(probeInfo, outputFile, sep = ',', row.names = FALSE, append = TRUE)
+      fileContents <- append(fileContents, sprintf("probe-set,%s", file.path(getwd(), outputFile)))
+      
+      if (ezIsSpecified(param$expectedCells)) {
+          fileContents <- append(fileContents, 
+                                 sprintf("expect-cells,%s", param$expectedCells))
+      }
+      fileContents <- append(fileContents, c(""))
+  }
   if (any(c("VDJ-T", "VDJ-B") %in% libraryTypes)) {
     vdjRefDir <- getCellRangerVDJReference(param)
     fileContents <- append(fileContents, "[vdj]")
@@ -161,7 +188,7 @@ buildMultiConfigFile <- function(input, param, dirList) {
   
   # Fastq Files
   fileContents <- append(fileContents, c("[libraries]", "fastq_id,fastqs,feature_types"))
-  if ("GEX" %in% libraryTypes) {
+  if (any(c("GEX","fixedRNA") %in% libraryTypes)) {
     fileContents <- append(fileContents,
                            sprintf("%s,%s,%s", dirList$sampleName, dirList$sampleDirs, "Gene Expression"))
   }
@@ -184,7 +211,7 @@ buildMultiConfigFile <- function(input, param, dirList) {
   fileContents <- append(fileContents, "")
   
   # sample mapping
-  if ("Multiplexing" %in% libraryTypes) {
+  if (any(c("Multiplexing","fixedRNA") %in% libraryTypes)) {
     sampleName <- rownames(input$meta)
     projectId <- strsplit(dirname(input$meta[['RawDataDir']]),'/')[[1]][1]
     sampleMultiplexFolder <- file.path(input$dataRoot, projectId, paste0('o',input$meta[['Order Id']], '_metaData'))
@@ -192,18 +219,24 @@ buildMultiConfigFile <- function(input, param, dirList) {
     names(sampleMultiplexFiles) <- sub('_Sample2Barcode.csv', '', basename(sampleMultiplexFiles))
     sampleMultiplexFile <- sampleMultiplexFiles[which(sapply(names(sampleMultiplexFiles), grepl, sampleName))]
     sampleMultiplexMapping <- read_csv(sampleMultiplexFile)
-    
-    # Load multiplex barcode set and subset
-    multiplexBarcodeSet <- read_csv(file.path("/srv/GT/databases/10x/CMO_files", 
-                                              param$MultiplexBarcodeSet))
-    multiplexBarcodeSet <- multiplexBarcodeSet %>%
-      filter(id %in% sampleMultiplexMapping$cmo_ids)
-    data.table::fwrite(multiplexBarcodeSet, file=multiplexBarcodeFile, sep=",")
-    
-    fileContents <- append(fileContents, c("[samples]", "sample_id,cmo_ids"))
     concatCols <- function(y) {return(paste(as.character(y), collapse=","))}
-    fileContents <- append(fileContents, 
+    if("Multiplexing" %in% libraryTypes){
+        # Load multiplex barcode set and subset
+        multiplexBarcodeSet <- read_csv(file.path("/srv/GT/databases/10x/CMO_files", 
+                                              param$MultiplexBarcodeSet))
+        multiplexBarcodeSet <- multiplexBarcodeSet %>%
+        filter(id %in% sampleMultiplexMapping$cmo_ids)
+        data.table::fwrite(multiplexBarcodeSet, file=multiplexBarcodeFile, sep=",")
+    
+        fileContents <- append(fileContents, c("[samples]", "sample_id,cmo_ids"))
+        
+        fileContents <- append(fileContents, 
                            apply(sampleMultiplexMapping, 1, concatCols))
+    } else if("fixedRNA" %in% libraryTypes){
+        sampleMultiplexMapping$description = sampleMultiplexMapping$sample_id
+        fileContents <- append(fileContents, c("[samples]", "sample_id,probe_barcode_ids,description"))
+        fileContents <- append(fileContents, apply(sampleMultiplexMapping, 1, concatCols))
+    }
   }
   
   # write outputs  
