@@ -216,7 +216,7 @@ buildMultiConfigFile <- function(input, param, dirList) {
     projectId <- strsplit(dirname(input$meta[['RawDataDir']]),'/')[[1]][1]
     sampleMultiplexFolder <- file.path(input$dataRoot, projectId, paste0('o',input$meta[['Order Id']], '_metaData'))
     sampleMultiplexFiles <- list.files(sampleMultiplexFolder, full.names = TRUE)
-    names(sampleMultiplexFiles) <- sub('_Sample2Barcode.csv', '', basename(sampleMultiplexFiles))
+    names(sampleMultiplexFiles) <- paste0('^', sub('_Sample2Barcode.csv', '', basename(sampleMultiplexFiles)), '$')
     sampleMultiplexFile <- sampleMultiplexFiles[which(sapply(names(sampleMultiplexFiles), grepl, sampleName))]
     sampleMultiplexMapping <- read_csv(sampleMultiplexFile)
     concatCols <- function(y) {return(paste(as.character(y), collapse=","))}
