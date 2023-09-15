@@ -96,14 +96,6 @@ ezMethodGetEnaData <- function(input=NA, output=NA, param=NA){
         ezWrite.table(dataset, 'dataset.tsv', row.names = FALSE)
     }
     
-    datasetFile <- '/srv/gstore/projects/p31771/EnaApp_PRJNA603104_2023-09-14--14-54-14/PRJNA603104/dataset.tsv'
-    dataset <- ezRead.table(datasetFile, row.names = NULL)
-    
-    
-    
-    datasetFile <- 'dataset.tsv'
-    dataset <- ezRead.table(datasetFile, row.names = NULL)
-    
     if(param$tarOutput){
     for (i in 1:nrow(dataset)){
         mySample <- dataset[i,'Name']
@@ -126,7 +118,7 @@ ezMethodGetEnaData <- function(input=NA, output=NA, param=NA){
     dataset[['RawDataDir [File]']] <- file.path(dirname(dataset[['Read1 [File]']])[1], paste0(dataset$Name, '.tar'))
     dataset[['Read1 [File]']] <- NULL
     dataset[['Read2 [File]']] <- NULL
-    ezWrite.table(dataset, 'dataset.tsv', head = 'Name')
+    ezWrite.table(dataset, 'dataset.tsv', row.names = FALSE)
     }
 }
 
