@@ -66,14 +66,27 @@ ezMethodGetEnaData <- function(input=NA, output=NA, param=NA){
             files_R1 <- basename(dataset[['Read1 [File]']][dataset[['Name']] == sampleNames[j]])
             sampleNames[j] = gsub('\\/', '_', gsub(' ', '_', sampleNames[j]))
             sampleNames[j] = gsub(';', '_', sampleNames[j])
-            pooledR1_File <- paste0(sampleNames[j],'_R1.fastq')
+            pooledR1_File <- paste0(sampleNames[j],'_R1.fastq.gz')
             ezSystem(paste('touch', pooledR1_File))
             for (k in 1:length(files_R1)){
-                ezSystem(paste0('pigz -dc ', files_R1[k],'>>', pooledR1_File))
+                ezSystem(paste0('cat ', files_R1[k],'>>', pooledR1_File))
                 ezSystem(paste('rm', files_R1[k]))
-                dataset[['Read1 [File]']] = sub(files_R1[k], paste0(pooledR1_File,'.gz'), dataset[['Read1 [File]']])
+                dataset[['Read1 [File]']] = sub(files_R1[k], pooledR1_File, dataset[['Read1 [File]']])
             }
-            ezSystem(paste('pigz --best', pooledR1_File))
+            #ezSystem(paste('pigz --best', pooledR1_File))
+            if(paired){
+                files_R2 <- basename(dataset[['Read2 [File]']][dataset[['Name']] == sampleNames[j]])
+                sampleNames[j] = gsub('\\/', '_', gsub(' ', '_', sampleNames[j]))
+                sampleNames[j] = gsub(';', '_', sampleNames[j])
+                pooledR2_File <- paste0(sampleNames[j],'_R2.fastq.gz')
+                ezSystem(paste('touch', pooledR2_File))
+                for (k in 1:length(files_R2)){
+                    ezSystem(paste0('cat ', files_R2[k],'>>', pooledR2_File))
+                    ezSystem(paste('rm', files_R2[k]))
+                    dataset[['Read2 [File]']] = sub(files_R2[k], pooledR2_File, dataset[['Read2 [File]']])
+                }
+                #ezSystem(paste('pigz --best', pooledR2_File))
+            }
             #files_R2 <- dataset[['Read2 [File]']][dataset[['Name']] == sampleNames[j]]
             dataset[['Read Count']][dataset[['Name']] == sampleNames[j]] = rep(sum(as.numeric(dataset[['Read Count']][dataset[['Name']] == sampleNames[j]])), length(files_R1))
         }
