@@ -99,12 +99,19 @@ ezMethodGetEnaData <- function(input=NA, output=NA, param=NA){
     datasetFile <- '/srv/gstore/projects/p31771/EnaApp_PRJNA603104_2023-09-14--14-54-14/PRJNA603104/dataset.tsv'
     dataset <- ezRead.table(datasetFile, row.names = NULL)
     
+    
+    
+    datasetFile <- 'dataset.tsv'
+    dataset <- ezRead.table(datasetFile, row.names = NULL)
+    
     if(param$tarOutput){
     for (i in 1:nrow(dataset)){
-        mySample <- rownames(dataset)[i]
+        mySample <- dataset[i,'Name']
         dir.create(mySample)
-        R1File <-  dataset[['Read1 [File]']][i]
-        R2File <- dataset[['Read2 [File]']][i]
+        R1File <-  basename(dataset[['Read1 [File]']][i])
+        R2File <- basename(dataset[['Read2 [File]']][i])
+        cmd <- paste('mv', file.path(R1File), file.path(R2File), mySample)
+        system(cmd)
         ##Rename files
         system(paste('mv',  file.path(mySample, basename(R1File)), file.path(mySample, paste0(mySample, '_S1_L001_R1_001.fastq.gz'))))
         system(paste('mv',  file.path(mySample, basename(R2File)), file.path(mySample, paste0(mySample, '_S1_L001_R2_001.fastq.gz'))))
