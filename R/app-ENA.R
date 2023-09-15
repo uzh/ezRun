@@ -123,7 +123,7 @@ ezMethodGetEnaData <- function(input=NA, output=NA, param=NA){
     }
     
     ##Update dataset
-    dataset[['RawDataDir [File]']] <- file.path(dirname(dataset[['Read1 [File]']])[1], paste0(rownames(dataset), '.tar'))
+    dataset[['RawDataDir [File]']] <- file.path(dirname(dataset[['Read1 [File]']])[1], paste0(dataset$Name, '.tar'))
     dataset[['Read1 [File]']] <- NULL
     dataset[['Read2 [File]']] <- NULL
     ezWrite.table(dataset, 'dataset.tsv', head = 'Name')
