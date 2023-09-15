@@ -95,6 +95,32 @@ ezMethodGetEnaData <- function(input=NA, output=NA, param=NA){
         ##TODO: Recompute md5sums after pooling & handle PairedEnd data
         ezWrite.table(dataset, 'dataset.tsv', row.names = FALSE)
     }
+    
+    datasetFile <- '/srv/gstore/projects/p31771/EnaApp_PRJNA603104_2023-09-14--14-54-14/PRJNA603104/dataset.tsv'
+    dataset <- ezRead.table(datasetFile, row.names = NULL)
+    
+    if(param$tarOutput){
+    for (i in 1:nrow(dataset)){
+        mySample <- rownames(dataset)[i]
+        dir.create(mySample)
+        R1File <-  dataset[['Read1 [File]']][i]
+        R2File <- dataset[['Read2 [File]']][i]
+        ##Rename files
+        system(paste('mv',  file.path(mySample, basename(R1File)), file.path(mySample, paste0(mySample, '_S1_L001_R1_001.fastq.gz'))))
+        system(paste('mv',  file.path(mySample, basename(R2File)), file.path(mySample, paste0(mySample, '_S1_L001_R2_001.fastq.gz'))))
+        ##tar folder
+        cmd <- paste('tar vcf', paste0(mySample, '.tar'), mySample)
+        system(cmd)
+        ##rm folder
+        system(paste('rm -Rf', mySample))
+    }
+    
+    ##Update dataset
+    dataset[['RawDataDir [File]']] <- file.path(dirname(dataset[['Read1 [File]']])[1], paste0(rownames(dataset), '.tar'))
+    dataset[['Read1 [File]']] <- NULL
+    dataset[['Read2 [File]']] <- NULL
+    ezWrite.table(dataset, 'dataset.tsv', head = 'Name')
+    }
 }
 
 createDataset <- function(fastqInfo, myPath, paired = FALSE){
