@@ -66,14 +66,27 @@ ezMethodGetEnaData <- function(input=NA, output=NA, param=NA){
             files_R1 <- basename(dataset[['Read1 [File]']][dataset[['Name']] == sampleNames[j]])
             sampleNames[j] = gsub('\\/', '_', gsub(' ', '_', sampleNames[j]))
             sampleNames[j] = gsub(';', '_', sampleNames[j])
-            pooledR1_File <- paste0(sampleNames[j],'_R1.fastq')
+            pooledR1_File <- paste0(sampleNames[j],'_R1.fastq.gz')
             ezSystem(paste('touch', pooledR1_File))
             for (k in 1:length(files_R1)){
-                ezSystem(paste0('pigz -dc ', files_R1[k],'>>', pooledR1_File))
+                ezSystem(paste0('cat ', files_R1[k],'>>', pooledR1_File))
                 ezSystem(paste('rm', files_R1[k]))
-                dataset[['Read1 [File]']] = sub(files_R1[k], paste0(pooledR1_File,'.gz'), dataset[['Read1 [File]']])
+                dataset[['Read1 [File]']] = sub(files_R1[k], pooledR1_File, dataset[['Read1 [File]']])
             }
-            ezSystem(paste('pigz --best', pooledR1_File))
+            #ezSystem(paste('pigz --best', pooledR1_File))
+            if(paired){
+                files_R2 <- basename(dataset[['Read2 [File]']][dataset[['Name']] == sampleNames[j]])
+                sampleNames[j] = gsub('\\/', '_', gsub(' ', '_', sampleNames[j]))
+                sampleNames[j] = gsub(';', '_', sampleNames[j])
+                pooledR2_File <- paste0(sampleNames[j],'_R2.fastq.gz')
+                ezSystem(paste('touch', pooledR2_File))
+                for (k in 1:length(files_R2)){
+                    ezSystem(paste0('cat ', files_R2[k],'>>', pooledR2_File))
+                    ezSystem(paste('rm', files_R2[k]))
+                    dataset[['Read2 [File]']] = sub(files_R2[k], pooledR2_File, dataset[['Read2 [File]']])
+                }
+                #ezSystem(paste('pigz --best', pooledR2_File))
+            }
             #files_R2 <- dataset[['Read2 [File]']][dataset[['Name']] == sampleNames[j]]
             dataset[['Read Count']][dataset[['Name']] == sampleNames[j]] = rep(sum(as.numeric(dataset[['Read Count']][dataset[['Name']] == sampleNames[j]])), length(files_R1))
         }
@@ -81,6 +94,31 @@ ezMethodGetEnaData <- function(input=NA, output=NA, param=NA){
         dataset = unique(dataset)
         ##TODO: Recompute md5sums after pooling & handle PairedEnd data
         ezWrite.table(dataset, 'dataset.tsv', row.names = FALSE)
+    }
+    
+    if(param$tarOutput){
+    for (i in 1:nrow(dataset)){
+        mySample <- dataset[i,'Name']
+        dir.create(mySample)
+        R1File <-  basename(dataset[['Read1 [File]']][i])
+        R2File <- basename(dataset[['Read2 [File]']][i])
+        cmd <- paste('mv', file.path(R1File), file.path(R2File), mySample)
+        system(cmd)
+        ##Rename files
+        system(paste('mv',  file.path(mySample, basename(R1File)), file.path(mySample, paste0(mySample, '_S1_L001_R1_001.fastq.gz'))))
+        system(paste('mv',  file.path(mySample, basename(R2File)), file.path(mySample, paste0(mySample, '_S1_L001_R2_001.fastq.gz'))))
+        ##tar folder
+        cmd <- paste('tar vcf', paste0(mySample, '.tar'), mySample)
+        system(cmd)
+        ##rm folder
+        system(paste('rm -Rf', mySample))
+    }
+    
+    ##Update dataset
+    dataset[['RawDataDir [File]']] <- file.path(dirname(dataset[['Read1 [File]']])[1], paste0(dataset$Name, '.tar'))
+    dataset[['Read1 [File]']] <- NULL
+    dataset[['Read2 [File]']] <- NULL
+    ezWrite.table(dataset, 'dataset.tsv', row.names = FALSE)
     }
 }
 

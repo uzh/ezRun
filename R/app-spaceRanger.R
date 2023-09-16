@@ -49,9 +49,7 @@ ezMethodSpaceRanger <- function(input=NA, output=NA, param=NA){
                paste0("--fastqs=", sampleDir),
                paste0("--sample=", sampleName),
                paste0("--localmem=", param$ram),
-               paste0("--localcores=", param$cores),
-               paste0("--slide=", input$getColumn("Slide")),
-               paste0("--area=", input$getColumn("Area")))
+               paste0("--localcores=", param$cores))
   
   if('Image' %in% inputCols & grepl('tif$|tiff$|jpeg$|jpg$',input$getFullPaths("Image"))){
       cmd <- paste(cmd, paste0("--image=", input$getFullPaths("Image")))
@@ -90,6 +88,13 @@ ezMethodSpaceRanger <- function(input=NA, output=NA, param=NA){
   if(ezIsSpecified(param$cmdOptions)){
     cmd <- paste(cmd, param$cmdOptions)
   }
+  
+  if(!grepl('--unknown-slide', cmd)){
+    cmd <- paste(cmd,
+           paste0("--slide=", input$getColumn("Slide")),
+           paste0("--area=", input$getColumn("Area")))
+  }
+  
   ezSystem(cmd)
   
   
