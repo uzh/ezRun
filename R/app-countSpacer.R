@@ -43,6 +43,8 @@ ezMethodCountSpacer = function(input=NA, output=NA, param=NA){
   bowtieIndex <- sub('\\.[0-9]\\.ebwt', '', list.files(dirname(param[['dictPath']]), pattern = 'ebwt$', full.names = TRUE)[1])
   cmd = paste('bowtie', bowtieIndex, readFile, '-f -p', param$cores, '|cut -f3,8|sort >', resultFile)
   ezSystem(cmd)
+  if(file.size(resultFile)==0){
+    stop('No read were aligned to your reference. Please check the correctness of your flanking patterns and the choice of the Crispr reference.')}
   result_bowtie = ezRead.table(resultFile, row.names = NULL, header = FALSE)
   colnames(result_bowtie) = c('target', 'mismatches')
   result_bowtie$mismatches[result_bowtie$mismatches == ''] = 0
