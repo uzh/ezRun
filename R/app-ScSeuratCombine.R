@@ -106,6 +106,23 @@ ezMethodScSeuratCombine = function(input=NA, output=NA, param=NA, htmlFile="00in
     return(scData)
   })
   
+  # perform all of the analysis
+  results <- seuratIntegrateDataAndAnnotate(scDataList, input, output, param)
+  
+  # save gene means separately
+  saveExternalFiles(list(gene_means = results$geneMeans))
+  
+  # Save some results in external files
+  reportTitle <- 'SCReport - MultipleSamples based on Seurat'
+  makeRmdReport(param=param, output=output, scData=results$scData, 
+                enrichRout=results$enrichRout, TFActivity=results$TFActivity, 
+                pathwayActivity=results$pathwayActivity, 
+                rmdFile = "ScSeuratCombine.Rmd", reportTitle = reportTitle) 
+  return("Success")
+  
+}
+
+seuratIntegrateDataAndAnnotate <- function(scDataList, input, output, param) {
   pvalue_allMarkers <- 0.05
   nrSamples <- length(scDataList)
   
@@ -144,39 +161,32 @@ ezMethodScSeuratCombine = function(input=NA, output=NA, param=NA, htmlFile="00in
   #cell types annotation is only supported for Human and Mouse at the moment
   species <- getSpecies(param$refBuild)
   if(species == "Human" | species == "Mouse") {
-      genesPerCluster <- split(markers$gene, markers$cluster)
-      enrichRout <- querySignificantClusterAnnotationEnrichR(genesPerCluster, unlist(strsplit(param$enrichrDatabase, ',')))
-      cells.AUC <- cellsLabelsWithAUC(GetAssayData(scData, "counts"), species, param$tissue, BPPARAM = BPPARAM)
-      singler.results <- cellsLabelsWithSingleR(GetAssayData(scData, "data"), Idents(scData), species, BPPARAM = BPPARAM)
-      for (r in names(singler.results)) {
-          scData[[paste0(r,"_single")]] <- singler.results[[r]]$single.fine$labels
-          scData[[paste0(r,"_cluster")]] <- singler.results[[r]]$cluster.fine$labels[match(Idents(scData), rownames(singler.results[[r]]$cluster.fine))]
-      }
+    genesPerCluster <- split(markers$gene, markers$cluster)
+    enrichRout <- querySignificantClusterAnnotationEnrichR(genesPerCluster, unlist(strsplit(param$enrichrDatabase, ',')))
+    cells.AUC <- cellsLabelsWithAUC(GetAssayData(scData, "counts"), species, param$tissue, BPPARAM = BPPARAM)
+    singler.results <- cellsLabelsWithSingleR(GetAssayData(scData, "data"), Idents(scData), species, BPPARAM = BPPARAM)
+    for (r in names(singler.results)) {
+      scData[[paste0(r,"_single")]] <- singler.results[[r]]$single.fine$labels
+      scData[[paste0(r,"_cluster")]] <- singler.results[[r]]$cluster.fine$labels[match(Idents(scData), rownames(singler.results[[r]]$cluster.fine))]
+    }
     saveRDS(cells.AUC, file="cells.AUC.rds")
     saveRDS(singler.results, file="singler.results.rds")
   } else {
-      cells.AUC <- NULL
-      singler.results <- NULL
-      enrichRout <- NULL
+    cells.AUC <- NULL
+    singler.results <- NULL
+    enrichRout <- NULL
   }
   
   ## SCpubr advanced plots
   pathwayActivity <- computePathwayActivityAnalysis(cells = scData, species = species)
   TFActivity <- computeTFActivityAnalysis(cells = scData, species = species)
   
-  geneMeans <- geneMeansCluster(scData)
+  geneMeans <- geneMeansCluster(scData) %>%
+    as_tibble(as.data.frame(.), rownames = "gene_name")
   
-  saveRDS(param, file="param.rds")
-  saveRDS(output, file="output.rds")
-  saveRDS(scData, file = "scData.rds")
-  saveRDS(enrichRout, file = "enrichRout.rds")
-  saveRDS(pathwayActivity, file = "pathwayActivity.rds")
-  saveRDS(TFActivity, file = "TFActivity.rds")
-  
-  # Save some results in external files
-  dataFiles <- saveExternalFiles(list(gene_means = as_tibble(as.data.frame(geneMeans), rownames = "gene_name")))
-  reportTitle <- 'SCReport - MultipleSamples based on Seurat'
-  makeRmdReport(dataFiles=dataFiles, rmdFile = "ScSeuratCombine.Rmd", reportTitle = reportTitle) 
-  return("Success")
-  
+  return(list(scData=scData, 
+              enrichRout=enrichRout, 
+              pathwayActivity=pathwayActivity, 
+              TFActivity=TFActivity,
+              geneMeans=geneMeans))
 }
