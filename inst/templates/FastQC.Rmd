@@ -27,18 +27,22 @@ readCount <- ans4Report[["Read Counts"]]
 ```
 
 ```{r readCountsPlotly, fig.height=7, fig.width=min(max(7, 7+(length(readCount)-20)*0.3), 30), echo=FALSE, message=FALSE, warning=FALSE}
-m <- list(
-  l = 80,
-  r = 80,
-  b = 200,
-  t = 100,
-  pad = 0
-)
-plot_ly(x=names(readCount), y=readCount, type="bar") %>%
-  layout(title="Total reads",
-         yaxis = list(title = "Counts [Mio]"),
-         margin = m
+if (all(!is.na(readCount))){
+  m <- list(
+    l = 80,
+    r = 80,
+    b = 200,
+    t = 100,
+    pad = 0
   )
+  plot_ly(x=names(readCount), y=readCount, type="bar") %>%
+    layout(title="Total reads",
+           yaxis = list(title = "Counts [Mio]"),
+           margin = m
+    )
+} else {
+  print("read counts not available in sushi dataset; do check individual reports")
+}
 ```
 
 ### Fastqc Quality Measures
