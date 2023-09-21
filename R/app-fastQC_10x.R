@@ -42,13 +42,14 @@ ezMethodFastQC_10x <- function(input = NA, output = NA, param = NA,
   dataset$`Read1` <- taredfiles_R1
   dataset$`Read2` <- taredfiles_R2
   input <- EzDataset(meta = dataset, dataRoot = NULL)
-  if (sum(input$getColumn("Read Count")) > 1e9) {
-    doSubsample <- TRUE # subsample to 1Mio reads
-    input <- ezMethodSubsampleFastq(input = input, param = param)
-    dataset <- input$meta
-  } else {
-    doSubsample <- FALSE
-  }
+  ## commented the subsampling out because it was wrong anyway; the dataset has only the first read file in the tar!
+  # if (sum(input$getColumn("Read Count")) > 1e9) {
+  #   doSubsample <- TRUE # subsample to 1Mio reads
+  #   input <- ezMethodSubsampleFastq(input = input, param = param)
+  #   dataset <- input$meta
+  # } else {
+  #   doSubsample <- FALSE
+  # }
 
   files <- c()
   for (sm in samples) {
