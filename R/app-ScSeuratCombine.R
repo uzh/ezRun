@@ -30,6 +30,9 @@ EzAppScSeuratCombine <-
                                         integrationMethod=ezFrame(Type="character", 
                                                                   DefaultValue="Classic", 
                                                                   Description="Choose integration method in Seurat (Classic or RPCA)"),
+                                        computePathwayTFActivity=ezFrame(Type="logical", 
+                                                                 DefaultValue="TRUE",
+                                                                 Description="Whether we should compute pathway and TF activities."),
                                         SCT.regress.CellCycle=ezFrame(
                                           Type = "logical", 
                                           DefaultValue = FALSE,
@@ -177,9 +180,16 @@ seuratIntegrateDataAndAnnotate <- function(scDataList, input, output, param) {
     enrichRout <- NULL
   }
   
-  ## SCpubr advanced plots
-  pathwayActivity <- computePathwayActivityAnalysis(cells = scData, species = species)
-  TFActivity <- computeTFActivityAnalysis(cells = scData, species = species)
+  ## SCpubr advanced plots, can currently only be computer for human and mouse
+  if (ezIsSpecified(param$computePathwayTFActivity) && param$computePathwayTFActivity &&
+     (species == "Human" | species == "Mouse")) {
+    pathwayActivity <- computePathwayActivityAnalysis(cells = scData, species = species)
+    TFActivity <- computeTFActivityAnalysis(cells = scData, species = species)
+  } else {
+    pathwayActivity <- NULL
+    TFActivity <- NULL
+    print("Skipping pathway and TF activity")
+  }
   
   geneMeans <- geneMeansCluster(scData) %>%
     as_tibble(as.data.frame(.), rownames = "gene_name")
