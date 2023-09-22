@@ -127,7 +127,6 @@ ezMethodScSeuratCombine = function(input=NA, output=NA, param=NA, htmlFile="00in
 
 seuratIntegrateDataAndAnnotate <- function(scDataList, input, output, param) {
   pvalue_allMarkers <- 0.05
-  nrSamples <- length(scDataList)
   
   if(ezIsSpecified(param$chosenClusters)){
     for(eachSample in names(param$chosenClusters)){
