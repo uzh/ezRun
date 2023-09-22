@@ -94,7 +94,10 @@ EzAppScSeurat <-
                       Type = "character",
                       DefaultValue = "GeneFull_ExonOverIntron",
                       Description = "(STARsolo Input Only) The gene count model, i.e. Solo features, to use from the previous step"
-                    )
+                    ),
+                    computePathwayTFActivity=ezFrame(Type="logical", 
+                                                     DefaultValue="TRUE",
+                                                     Description="Whether we should compute pathway and TF activities.")
                   )
                 }
               )
@@ -140,7 +143,7 @@ ezMethodScSeurat <- function(input = NA, output = NA, param = NA,
   if(!ezIsSpecified(param$cellbender)){
     param$cellbender = FALSE  
     cts <- Read10X(cmDir, gene.column = 1)
-    } else if(param$cellbender){
+  } else if(param$cellbender){
     cts <- Read10X_h5(file.path(dirname(cmDir), 'cellbender_filtered_seurat.h5'), use.names = FALSE)
   }
   featInfo <- ezRead.table(paste0(cmDir, "/features.tsv.gz"), header = FALSE, row.names = NULL)#, col_names = FALSE)
@@ -158,23 +161,22 @@ ezMethodScSeurat <- function(input = NA, output = NA, param = NA,
     }
   }
   
-  
   ## if we have feature barcodes we keep only the expression matrix
   if (is.list(cts)){
     cts <- cts$`Gene Expression`
     featInfo <- featInfo[  featInfo$type == "Gene Expression", ]
   }
   if(param$cellbender){
-      rownames(featInfo) <- featInfo$gene_id
-      matchingIds <- intersect(rownames(cts), rownames(featInfo))
-      cts <- cts[matchingIds,]
-      featInfo <- featInfo[matchingIds,]
+    rownames(featInfo) <- featInfo$gene_id
+    matchingIds <- intersect(rownames(cts), rownames(featInfo))
+    cts <- cts[matchingIds,]
+    featInfo <- featInfo[matchingIds,]
   }
   
   ## underscores in genenames will become dashes
   rownames(cts) <- rownames(featInfo) <- gsub("_", "-", uniquifyFeatureNames(ID=featInfo$gene_id, names=featInfo$gene_name)) 
   scData <- CreateSeuratObject(counts = cts[rowSums2(cts >0) >0, ])
-  scData$Condition <- input$getColumn("Condition")
+  scData$Condition <- unname(input$getColumn("Condition"))
   scData@meta.data$Sample <- input$getNames()
   scData[["RNA"]] <- AddMetaData(object = scData[["RNA"]], metadata = featInfo[rownames(scData), ])
   scData$cellBarcode <- sub(".*_", "", colnames(scData))
@@ -194,7 +196,7 @@ ezMethodScSeurat <- function(input = NA, output = NA, param = NA,
     }
     
     if(param$cellbender){
-        rawCts <- rawCts[featInfo$gene_id,]
+      rawCts <- rawCts[featInfo$gene_id,]
     }
     
     stopifnot(rownames(rawCts) == featInfo$gene_id)
@@ -236,50 +238,24 @@ ezMethodScSeurat <- function(input = NA, output = NA, param = NA,
   scData$seurat_clusters <- scData@meta.data[,paste0(DefaultAssay(scData), "_snn_res.", param$resolution)]  #but keep as the current clusters the ones obtained with the resolution set by the user
   Idents(scData) <- scData$seurat_clusters
 
-  # positive cluster markers
-  ## https://github.com/satijalab/seurat/issues/5321
-  ## https://github.com/satijalab/seurat/issues/1501
-  markers <- FindAllMarkers(object=scData, test.use = param$DE.method, only.pos=TRUE)
-  ## Significant markers
-  markers <- markers[ ,c("gene","cluster","pct.1", "pct.2", "avg_log2FC","p_val_adj")]
-  markers$cluster <- as.factor(markers$cluster)
-  markers$diff_pct = abs(markers$pct.1-markers$pct.2)
-  markers <- markers[order(markers$diff_pct, decreasing = TRUE),] ## why would we round here?? %>% mutate_if(is.numeric, round, digits=3)
-  writexl::write_xlsx(markers, path="posMarkers.xlsx")
-  
+  # estimate ambient first
   if (ezIsSpecified(param$estimateAmbient) && param$estimateAmbient){
     scData <- addAmbientEstimateToSeurat(scData, rawDir=rawDir, threads = param$cores)
   }
   
-  # cell types annotation is only supported for Human and Mouse at the moment
-  species <- getSpecies(param$refBuild)
-  if (species == "Human" | species == "Mouse") {
-    genesPerCluster <- split(markers$gene, markers$cluster)
-    enrichRout <- querySignificantClusterAnnotationEnrichR(genesPerCluster, param$enrichrDatabase)
-    cells.AUC <- cellsLabelsWithAUC(GetAssayData(scData, "counts"), species, param$tissue, BPPARAM = BPPARAM)
-    singler.results <- cellsLabelsWithSingleR(GetAssayData(scData, "data"), Idents(scData), species, BPPARAM = BPPARAM)
-    for (r in names(singler.results)) {
-      scData[[paste0(r,"_single")]] <- singler.results[[r]]$single.fine$labels
-      scData[[paste0(r,"_cluster")]] <- singler.results[[r]]$cluster.fine$labels[match(Idents(scData), rownames(singler.results[[r]]$cluster.fine))]
-    }
-
-    ## SCpubr advanced plots
-    pathwayActivity <- computePathwayActivityAnalysis(cells = scData, species = species)
-    TFActivity <- computeTFActivityAnalysis(cells = scData, species = species)
-  } else {
-    cells.AUC <- NULL
-    singler.results <- NULL
-    enrichRout <- NULL
-    pathwayActivity <- NULL
-    TFActivity <- NULL
-  }
+  # get markers and annotations
+  anno <- getSeuratMarkersAndAnnotate(scData, param)
+  
+  # save markers
+  markers <- anno$markers
+  writexl::write_xlsx(markers, path="posMarkers.xlsx")
 
   ## generate template for manual cluster annotation -----
   ## we only deal with one sample
   stopifnot(length(input$getNames()) == 1)
   clusterInfos <- ezFrame(Sample=input$getNames(), Cluster=levels(Idents(scData)), ClusterLabel="")
-  if (!is.null(singler.results)){
-    clusterInfos$SinglerCellType <- singler.results$singler.results.cluster[clusterInfos$Cluster, "pruned.labels"]
+  if (!is.null(anno$singler.results)){
+    clusterInfos$SinglerCellType <- anno$singler.results$singler.results.cluster[clusterInfos$Cluster, "pruned.labels"]
   }
   nTopMarkers <- 10
   topMarkers <- markers %>% group_by(cluster) %>%
@@ -289,9 +265,10 @@ ezMethodScSeurat <- function(input = NA, output = NA, param = NA,
   clusterInfoFile <- "clusterInfos.xlsx"
   writexl::write_xlsx(clusterInfos, path=clusterInfoFile)
   
-  makeRmdReport(param=param, output=output, scData=scData, allCellsMeta=allCellsMeta, enrichRout=enrichRout,
-                cells.AUC=cells.AUC, singler.results=singler.results, 
-                pathwayActivity=pathwayActivity, TFActivity=TFActivity,
+  makeRmdReport(param=param, output=output, scData=scData, allCellsMeta=allCellsMeta, 
+                enrichRout=anno$enrichRout, cells.AUC=anno$cells.AUC, 
+                singler.results=anno$singler.results, 
+                pathwayActivity=anno$pathwayActivity, TFActivity=anno$TFActivity,
                 rmdFile = "ScSeurat.Rmd", reportTitle = paste0(param$name, ": ",  input$getNames()))
   #remove no longer used objects
   rm(scData)

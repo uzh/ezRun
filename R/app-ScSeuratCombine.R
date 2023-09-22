@@ -112,14 +112,15 @@ ezMethodScSeuratCombine = function(input=NA, output=NA, param=NA, htmlFile="00in
   # perform all of the analysis
   results <- seuratIntegrateDataAndAnnotate(scDataList, input, output, param)
   
-  # save gene means separately
-  saveExternalFiles(list(gene_means = results$geneMeans))
+  # save the markers
+  writexl::write_xlsx(markers, path="posMarkers.xlsx")
   
   # Save some results in external files
   reportTitle <- 'SCReport - MultipleSamples based on Seurat'
   makeRmdReport(param=param, output=output, scData=results$scData, 
                 enrichRout=results$enrichRout, TFActivity=results$TFActivity, 
                 pathwayActivity=results$pathwayActivity, 
+                cells.AUC=results$cells.AUC, singler.results=results$singler.results,
                 rmdFile = "ScSeuratCombine.Rmd", reportTitle = reportTitle) 
   return("Success")
   
@@ -149,52 +150,14 @@ seuratIntegrateDataAndAnnotate <- function(scDataList, input, output, param) {
   scData@meta.data$ident_noCorrected <- Idents(scData_noCorrected)
   scData <- PrepSCTFindMarkers(scData)
   
-  # positive cluster markers
-  markers <- FindAllMarkers(object=scData, test.use = param$DE.method, only.pos=TRUE)
-  ## Significant markers
-  markers <- markers[ ,c("gene","cluster","pct.1", "pct.2", "avg_log2FC","p_val_adj")]
-  markers$cluster <- as.factor(markers$cluster)
-  markers$diff_pct = abs(markers$pct.1-markers$pct.2)
-  markers <- markers[order(markers$diff_pct, decreasing = TRUE),]
-  writexl::write_xlsx(markers, path="posMarkers.xlsx")
-  
-  # we do cell type identification using AUCell and SingleR
-  cells_AUC <- NULL
-  singler.results <- NULL
-  #cell types annotation is only supported for Human and Mouse at the moment
-  species <- getSpecies(param$refBuild)
-  if(species == "Human" | species == "Mouse") {
-    genesPerCluster <- split(markers$gene, markers$cluster)
-    enrichRout <- querySignificantClusterAnnotationEnrichR(genesPerCluster, unlist(strsplit(param$enrichrDatabase, ',')))
-    cells.AUC <- cellsLabelsWithAUC(GetAssayData(scData, "counts"), species, param$tissue, BPPARAM = BPPARAM)
-    singler.results <- cellsLabelsWithSingleR(GetAssayData(scData, "data"), Idents(scData), species, BPPARAM = BPPARAM)
-    for (r in names(singler.results)) {
-      scData[[paste0(r,"_single")]] <- singler.results[[r]]$single.fine$labels
-      scData[[paste0(r,"_cluster")]] <- singler.results[[r]]$cluster.fine$labels[match(Idents(scData), rownames(singler.results[[r]]$cluster.fine))]
-    }
-    saveRDS(cells.AUC, file="cells.AUC.rds")
-    saveRDS(singler.results, file="singler.results.rds")
-  } else {
-    cells.AUC <- NULL
-    singler.results <- NULL
-    enrichRout <- NULL
-  }
-  
-  ## SCpubr advanced plots, can currently only be computed for human and mouse
-  if (ezIsSpecified(param$computePathwayTFActivity) && 
-      as.logical(param$computePathwayTFActivity) &&
-      (species == "Human" | species == "Mouse")) {
-    pathwayActivity <- computePathwayActivityAnalysis(cells = scData, species = species)
-    TFActivity <- computeTFActivityAnalysis(cells = scData, species = species)
-  } else {
-    pathwayActivity <- NULL
-    TFActivity <- NULL
-    print("Skipping pathway and TF activity")
-  }
+  # get annotation information
+  anno <- getSeuratMarkersAndAnnotate(scData, param)
   
   return(list(scData=scData, 
-              enrichRout=enrichRout, 
-              pathwayActivity=pathwayActivity, 
-              TFActivity=TFActivity,
-              geneMeans=geneMeans))
+              markers=anno$markers,
+              enrichRout=anno$enrichRout, 
+              pathwayActivity=anno$pathwayActivity, 
+              TFActivity=anno$TFActivity,
+              cells.AUC=anno$cells.AUC,
+              singler.results=anno$singler.results))
 }

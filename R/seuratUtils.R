@@ -412,3 +412,53 @@ getSeuratVarsToRegress <- function(param) {
   }
   return(vars.to.regress)
 }
+
+getSeuratMarkers <- function(scData, param) {
+  # positive cluster markers
+  ## https://github.com/satijalab/seurat/issues/5321
+  ## https://github.com/satijalab/seurat/issues/1501
+  markers <- FindAllMarkers(object=scData, test.use = param$DE.method, only.pos=TRUE)
+  ## Significant markers
+  markers <- markers[ ,c("gene","cluster","pct.1", "pct.2", "avg_log2FC","p_val_adj")]
+  markers$cluster <- as.factor(markers$cluster)
+  markers$diff_pct = abs(markers$pct.1-markers$pct.2)
+  markers <- markers[order(markers$diff_pct, decreasing = TRUE),]
+  return(markers)
+}
+
+getSeuratMarkersAndAnnotate <- function(scData, param) {
+  # function for general annotation of Seurat objects
+  markers <- getSeuratMarkers(scData, param)
+  
+  # cell types annotation is only supported for Human and Mouse at the moment
+  species <- getSpecies(param$refBuild)
+  if (species == "Human" | species == "Mouse") {
+    genesPerCluster <- split(markers$gene, markers$cluster)
+    enrichRout <- querySignificantClusterAnnotationEnrichR(genesPerCluster, param$enrichrDatabase)
+    cells.AUC <- cellsLabelsWithAUC(GetAssayData(scData, "counts"), species, param$tissue, BPPARAM = BPPARAM)
+    singler.results <- cellsLabelsWithSingleR(GetAssayData(scData, "data"), Idents(scData), species, BPPARAM = BPPARAM)
+    for (r in names(singler.results)) {
+      scData[[paste0(r,"_single")]] <- singler.results[[r]]$single.fine$labels
+      scData[[paste0(r,"_cluster")]] <- singler.results[[r]]$cluster.fine$labels[match(Idents(scData), rownames(singler.results[[r]]$cluster.fine))]
+    }
+  } else {
+    cells.AUC <- NULL
+    singler.results <- NULL
+    enrichRout <- NULL
+  }
+  
+  ## SCpubr advanced plots, can currently only be computed for human and mouse
+  if (ezIsSpecified(param$computePathwayTFActivity) && 
+      as.logical(param$computePathwayTFActivity) &&
+      (species == "Human" | species == "Mouse")) {
+    pathwayActivity <- computePathwayActivityAnalysis(cells = scData, species = species)
+    TFActivity <- computeTFActivityAnalysis(cells = scData, species = species)
+  } else {
+    pathwayActivity <- NULL
+    TFActivity <- NULL
+    print("Skipping pathway and TF activity")
+  }
+  
+  return(list(markers=markers, cells.AUC=cells.AUC, singler.results=singler.results,
+              enrichRout=enrichRout, pathwayActivity=pathwayActivity, TFActivity=TFActivity))
+}
