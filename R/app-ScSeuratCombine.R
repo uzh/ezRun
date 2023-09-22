@@ -180,9 +180,10 @@ seuratIntegrateDataAndAnnotate <- function(scDataList, input, output, param) {
     enrichRout <- NULL
   }
   
-  ## SCpubr advanced plots, can currently only be computer for human and mouse
-  if (ezIsSpecified(param$computePathwayTFActivity) && param$computePathwayTFActivity &&
-     (species == "Human" | species == "Mouse")) {
+  ## SCpubr advanced plots, can currently only be computed for human and mouse
+  if (ezIsSpecified(param$computePathwayTFActivity) && 
+      as.logical(param$computePathwayTFActivity) &&
+      (species == "Human" | species == "Mouse")) {
     pathwayActivity <- computePathwayActivityAnalysis(cells = scData, species = species)
     TFActivity <- computeTFActivityAnalysis(cells = scData, species = species)
   } else {
