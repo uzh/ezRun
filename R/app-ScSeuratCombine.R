@@ -136,12 +136,13 @@ seuratIntegrateDataAndAnnotate <- function(scDataList, input, output, param) {
   }
   
   scData_noCorrected <- cellClustNoCorrection(scDataList, param)
-  scData = scData_noCorrected
   if (param$batchCorrection) {
     scData_corrected = cellClustWithCorrection(scDataList, param)
     #in order to compute the markers we switch again to the original assay
     DefaultAssay(scData_corrected) <- "SCT"
     scData <- scData_corrected
+  } else {
+    scData = scData_noCorrected
   }
   scData@reductions$tsne_noCorrected <- Reductions(scData_noCorrected, "tsne")
   scData@reductions$umap_noCorrected <- Reductions(scData_noCorrected, "umap")
@@ -190,9 +191,6 @@ seuratIntegrateDataAndAnnotate <- function(scDataList, input, output, param) {
     TFActivity <- NULL
     print("Skipping pathway and TF activity")
   }
-  
-  geneMeans <- geneMeansCluster(scData) %>%
-    as_tibble(as.data.frame(.), rownames = "gene_name")
   
   return(list(scData=scData, 
               enrichRout=enrichRout, 

@@ -474,10 +474,6 @@ The iSEE shiny app can be accessed through this link [iSEE explorer](`r {lastPro
 ### Data availability
 
 
-##### Mean expression of every gene across the cells in each cluster
-
-[geneMeans](gene_means.tsv)
-
 ##### Positive markers of each cluster
 
 [posMarkers](posMarkers.xlsx)
