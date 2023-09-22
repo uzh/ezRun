@@ -262,9 +262,6 @@ ezMethodScSeurat <- function(input = NA, output = NA, param = NA,
       scData[[paste0(r,"_single")]] <- singler.results[[r]]$single.fine$labels
       scData[[paste0(r,"_cluster")]] <- singler.results[[r]]$cluster.fine$labels[match(Idents(scData), rownames(singler.results[[r]]$cluster.fine))]
     }
-    # save results
-    saveRDS(cells.AUC, file="cells.AUC.rds")
-    saveRDS(singler.results, file="singler.results.rds")
 
     ## SCpubr advanced plots
     pathwayActivity <- computePathwayActivityAnalysis(cells = scData, species = species)
