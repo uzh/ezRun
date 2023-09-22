@@ -113,7 +113,7 @@ ezMethodScSeuratCombine = function(input=NA, output=NA, param=NA, htmlFile="00in
   results <- seuratIntegrateDataAndAnnotate(scDataList, input, output, param)
   
   # save the markers
-  writexl::write_xlsx(markers, path="posMarkers.xlsx")
+  writexl::write_xlsx(results$markers, path="posMarkers.xlsx")
   
   # Save some results in external files
   reportTitle <- 'SCReport - MultipleSamples based on Seurat'
