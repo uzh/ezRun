@@ -6,6 +6,8 @@
 # www.fgcz.ch
 
 
+
+
 addCellCycleToSCE <- function(sce, refBuild, BPPARAM){
   counts <- counts(sce)
   rownames(counts) <- rowData(sce)$ID
@@ -266,27 +268,25 @@ return(geneMeans)
 }
 
 cellsLabelsWithAUC <- function(counts, species, tissue, minGsSize = 3, BPPARAM=NULL) {
-  if (species == "other")
+  if (species == "other"){
     return(NULL)
-  geneSets <- createGeneSets(species, tissue)
-  if(is.null(geneSets) | length(geneSets[sapply(geneSets, length) >= minGsSize]) == 0) 
+  }
+  geneSets <- createCellMarker2_GeneSets(species, tissue, minGsSize)
+  if(is.null(geneSets) || length(geneSets) == 0){ 
     return(NULL)
-  filteredGeneSets <- geneSets[sapply(geneSets, length) >= minGsSize]
+  }
   cells_rankings <- AUCell_buildRankings(counts, plotStats=FALSE, BPPARAM=BPPARAM, splitByBlocks=TRUE)
-  cells_AUC <- AUCell_calcAUC(filteredGeneSets, cells_rankings, verbose = FALSE, 
+  cells_AUC <- AUCell_calcAUC(geneSets, cells_rankings, verbose = FALSE, 
                    nCores = ifelse(is.null(BPPARAM), 1, BPPARAM$workers))
   return(cells_AUC)
 }
-# cells_AUC <- tryCatch({
-#   AUCell_calcAUC(geneSets[sapply(geneSets, length) >= minGsSize], cells_rankings, verbose = FALSE, 
-#                  nCores = ifelse(is.null(BPPARAM), 1, BPPARAM$workers))
-# },error = function(e) NULL)
 
 
+## old function uses CellMarker v1, gene sets
 createGeneSets <- function(species, tissue) {
   tissue <- unlist(strsplit(tissue, ","))
   cell_markers <- read.table("/srv/GT/databases/scGeneSets/all_cell_markers.txt", sep = "\t", header = TRUE)
-  cell_markers <- cell_markers[cell_markers$speciesType == species & 
+  cell_markers <- cell_markers[cell_markers$speciesType == species &
                                  cell_markers$tissueType %in% tissue, ]
   if (nrow(cell_markers) == 0) {
     #stop(sprintf("No cell markers found for %s: %s", species, paste(tissue, collapse=", ")))
@@ -309,6 +309,23 @@ createGeneSets <- function(species, tissue) {
   geneSetList = lapply(geneSetArray, function(gs){gs})
   return(geneSetList)
 }
+
+
+createCellMarker2_GeneSets <- function(species, tissue) {
+  tissue <- unlist(strsplit(tissue, ","))
+  cell_markers <- read.table("/srv/GT/databases/scGeneSets/CellMarker_2.0-2023-09-27/Cell_marker_All.txt", sep = "\t", header = TRUE)
+  cell_markers <- cell_markers[cell_markers$species == species & 
+                                 cell_markers$tissue_class %in% tissue, ]
+  if (nrow(cell_markers) == 0) {
+    #stop(sprintf("No cell markers found for %s: %s", species, paste(tissue, collapse=", ")))
+    warning(sprintf("No cell markers found for %s: %s", species, paste(tissue, collapse=", ")))
+    return(NULL)
+  }
+  geneSetList <- split(geneSetList$Symbol, geneSetList$cell_name)
+  ## geneSetList <- geneSetList[sapply(geneSetList, length) >= 3] ## size filtering is done later
+  return(geneSetList)
+}
+
 
 cellsLabelsWithSingleR <- function(logCounts, current_clusters, species, BPPARAM = SerialParam()) {
   library(SingleR)
