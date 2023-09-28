@@ -112,13 +112,14 @@ ezMethodSCTrajectoryInference <- function(input=NA, output=NA, param=NA,
      priors <- c("start_id", "end_id", "start_n", "end_n")
   else
     priors <- c("start_id", "start_n", "end_n")
-  model <- infer_trajectories(dyno_dataset, TI_method, 
-                            give_priors = priors,
-                            seed=38, verbose = TRUE)
   
-  #Model the trajectory using dimensionality reduction
-  for (i in 1:length(TI_method)) 
-     model[i,]$model[[1]] <- model[i,]$model[[1]]  %>% add_dimred(dyndimred::dimred_mds, expression_source = dyno_dataset$expression)
+  model <- c()
+  for (i in 1:length(TI_method)){
+     myModel <- infer_trajectories(dyno_dataset, TI_method, give_priors = priors, seed=38, verbose = TRUE)
+     myModel[i,]$model[[1]] <- model[i,]$model[[1]]  %>% add_dimred(dyndimred::dimred_mds, expression_source = dyno_dataset$expression)
+     model <- rbind(model, myModel)
+  }
+  
   
   #save the dyno dataset and the trajectories
   saveRDS(dyno_dataset, "dyno_dataset.rds")
