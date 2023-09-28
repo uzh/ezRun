@@ -436,7 +436,7 @@ getSeuratMarkersAndAnnotate <- function(scData, param) {
     genesPerCluster <- split(markers$gene, markers$cluster)
     enrichRout <- querySignificantClusterAnnotationEnrichR(genesPerCluster, param$enrichrDatabase)
     cells.AUC <- cellsLabelsWithAUC(GetAssayData(scData, "counts"), species, param$tissue, BPPARAM = BPPARAM)
-    singler.results <- cellsLabelsWithSingleR(GetAssayData(scData, "data"), Idents(scData), species, BPPARAM = BPPARAM)
+    singler.results <- cellsLabelsWithSingleR(GetAssayData(scData, "data"), Idents(scData), param$SingleR, BPPARAM = BPPARAM)
     for (r in names(singler.results)) {
       scData[[paste0(r,"_single")]] <- singler.results[[r]]$single.fine$labels
       scData[[paste0(r,"_cluster")]] <- singler.results[[r]]$cluster.fine$labels[match(Idents(scData), rownames(singler.results[[r]]$cluster.fine))]

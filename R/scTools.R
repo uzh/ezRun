@@ -313,7 +313,7 @@ createGeneSets <- function(species, tissue) {
 
 createCellMarker2_GeneSets <- function(species, tissue, minGsSize=3) {
   tissue <- unlist(strsplit(tissue, ","))
-  cell_markers <- read.table("/srv/GT/databases/scGeneSets/CellMarker_2.0-2023-09-27/Cell_marker_All.txt", sep = "\t", header = TRUE)
+  cell_markers <- ezRead.table("/srv/GT/databases/scGeneSets/CellMarker_2.0-2023-09-27/Cell_marker_All.txt", row.names = NULL)
   cell_markers <- cell_markers[cell_markers$species == species & 
                                  cell_markers$tissue_class %in% tissue, ]
   if (nrow(cell_markers) == 0) {
@@ -321,30 +321,23 @@ createCellMarker2_GeneSets <- function(species, tissue, minGsSize=3) {
     warning(sprintf("No cell markers found for %s: %s", species, paste(tissue, collapse=", ")))
     return(NULL)
   }
-  geneSetList <- split(geneSetList$Symbol, geneSetList$cell_name)
+  geneSetList <- split(cell_markers$Symbol, cell_markers$cell_name)
   geneSetList <- geneSetList[sapply(geneSetList, length) >= minGsSize]
   return(geneSetList)
 }
 
 
-cellsLabelsWithSingleR <- function(logCounts, current_clusters, species, BPPARAM = SerialParam()) {
-  library(SingleR)
-  if(species == "Human"){
-    referencesList <- list(
-      "HumanPrimaryCellAtlasData" = celldex::HumanPrimaryCellAtlasData(),
-      "MonacoImmuneData" = celldex::MonacoImmuneData(),
-      "DatabaseImmuneCellExpressionData" = celldex::DatabaseImmuneCellExpressionData()
-      )
-  } else {
-    referencesList <- list(
-      "MouseRNAseqData" = celldex::MouseRNAseqData(),
-      "ImmGenData" = celldex::ImmGenData())
+cellsLabelsWithSingleR <- function(logCounts, current_clusters, refDataName, BPPARAM = SerialParam()) {
+  if (!ezIsSpecified(refDataName) || refDataName == "none"){
+    return(NULL)
   }
+  library(SingleR)
   singlerResultsList <- list()
-  for (ref in names(referencesList)) {
-    singlerResultsList[[ref]] <- list()
-    singlerResultsList[[ref]][["single.fine"]] <- SingleR(test = logCounts, ref = referencesList[[ref]], labels = referencesList[[ref]]$label.fine, BPPARAM = BPPARAM)
-    singlerResultsList[[ref]][["cluster.fine"]] <- SingleR(test = logCounts, ref = referencesList[[ref]], labels = referencesList[[ref]]$label.fine, clusters = current_clusters, BPPARAM = BPPARAM)
+  for (nm in refDataName){
+    ref <- eval(parse(text=paste0('celldex::', nm, "()")))
+    singlerResultsList[[nm]] <- list()
+    singlerResultsList[[nm]][["single.fine"]] <- SingleR(test = logCounts, ref = ref, labels = ref$label.fine, BPPARAM = BPPARAM)
+    singlerResultsList[[nm]][["cluster.fine"]] <- SingleR(test = logCounts, ref = ref, labels = ref$label.fine, clusters = current_clusters, BPPARAM = BPPARAM)
   }
   return(singlerResultsList)
 }

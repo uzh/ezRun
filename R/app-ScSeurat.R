@@ -117,6 +117,7 @@ ezMethodScSeurat <- function(input = NA, output = NA, param = NA,
   library(DropletUtils)
   library(enrichR)
   library(decoupleR)
+  library(Azimuth)
   
   if (param$cores > 1){
     BPPARAM <- MulticoreParam(workers = param$cores)
@@ -245,6 +246,16 @@ ezMethodScSeurat <- function(input = NA, output = NA, param = NA,
   
   # get markers and annotations
   anno <- getSeuratMarkersAndAnnotate(scData, param)
+  
+  # run Azimuth; TODO is inconsistent with the way SingleR and AUC are handled; needs to be refactored
+  if (ezIsSpecified(param$Azimuth) && param$Azimuth != "none"){
+    scDataAzi <- RunAzimuth(scData, param$Azimuth) ## TODO support ADT
+    aziNames <- setdiff(colnames(scDataAzi@meta.data), colnames(scData@meta.data))
+    scData$Azimuth.celltype.l1 <- scDataAzi@meta.data[ , grep("l1$", aziNames, value=TRUE)]
+    scData$Azimuth.celltype.l2 <- scDataAzi@meta.data[ , grep("l2$", aziNames, value=TRUE)]
+    remove(scDataAzi)
+  }
+  
   
   # save markers
   markers <- anno$markers

@@ -556,6 +556,17 @@ AUCell_plotTSNE(tSNE=cellsUmap,
                  plots = c("histogram", "binaryAUC"))
 ```
 
+### Azimuth 
+
+```{r ,eval=!is.null(scData@meta.data$Azimuth.celltype.l2), fig.width=10, fig.height=6}
+
+DimPlot(scData, label=TRUE, group.by = "Azimuth.celltype.l1", repel = TRUE, reduction = "umap")
+
+DimPlot(scData, label=TRUE, group.by = "Azimuth.celltype.l2", repel = TRUE, reduction = "umap")
+
+
+```
+
 ### Interactive
 
 
