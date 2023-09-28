@@ -311,7 +311,7 @@ createGeneSets <- function(species, tissue) {
 }
 
 
-createCellMarker2_GeneSets <- function(species, tissue) {
+createCellMarker2_GeneSets <- function(species, tissue, minGsSize=3) {
   tissue <- unlist(strsplit(tissue, ","))
   cell_markers <- read.table("/srv/GT/databases/scGeneSets/CellMarker_2.0-2023-09-27/Cell_marker_All.txt", sep = "\t", header = TRUE)
   cell_markers <- cell_markers[cell_markers$species == species & 
@@ -322,7 +322,7 @@ createCellMarker2_GeneSets <- function(species, tissue) {
     return(NULL)
   }
   geneSetList <- split(geneSetList$Symbol, geneSetList$cell_name)
-  ## geneSetList <- geneSetList[sapply(geneSetList, length) >= 3] ## size filtering is done later
+  geneSetList <- geneSetList[sapply(geneSetList, length) >= minGsSize]
   return(geneSetList)
 }
 
