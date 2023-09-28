@@ -89,6 +89,7 @@ ezMethodSCTrajectoryInference <- function(input=NA, output=NA, param=NA,
   #Selecting the best 2 methods predicted by dyno in case no method is specified by the user
   if(param$TI_method=="none") {
      guidelines <- dynguidelines::guidelines(dyno_dataset)
+     guidelines$methods_selected <- c('slingshot', guidelines$methods_selected)
      TI_method <- guidelines$methods_selected[1:2]
   } else {
     TI_method <- param$TI_method
