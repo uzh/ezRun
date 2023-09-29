@@ -116,7 +116,7 @@ ezMethodSCTrajectoryInference <- function(input=NA, output=NA, param=NA,
   model <- c()
   for (i in 1:length(TI_method)){
      myModel <- infer_trajectories(dyno_dataset, TI_method[i], give_priors = priors, seed=38, verbose = TRUE)
-     myModel[i,]$model[[1]] <- myModel[i,]$model[[1]]  %>% add_dimred(dyndimred::dimred_mds, expression_source = dyno_dataset$expression)
+     myModel$model[[1]] <- myModel$model[[1]]  %>% add_dimred(dyndimred::dimred_mds, expression_source = dyno_dataset$expression)
      model <- rbind(model, myModel)
   }
   
