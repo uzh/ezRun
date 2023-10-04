@@ -32,6 +32,9 @@ param = readRDS("param.rds")
 scData <- readRDS("scData.rds")
 scData.unfiltered_spatial <- readRDS("scData.unfiltered.rds")
 allCellsMeta <- readRDS("allCellsMeta.rds")
+if(is.null(param$imageEnlargementFactor)){
+    param$imageEnlargementFactor <- 1
+}
 ```
 
 ## Analysis results {.tabset}
@@ -89,13 +92,13 @@ if (!is.null(xxAll$percent_riboprot)){
 Spatial QC Plots
 
 ```{r QC plots3, fig.width=28}
-plot5 <- SpatialFeaturePlot(scData.unfiltered_spatial, features = "nCount_Spatial", pt.size.factor = 3) + 
+plot5 <- SpatialFeaturePlot(scData.unfiltered_spatial, features = "nCount_Spatial", pt.size.factor = 3 * param$imageEnlargementFactor) + 
   theme(legend.position = "right")
-plot6 <- SpatialFeaturePlot(scData.unfiltered_spatial, features = "nFeature_Spatial",  pt.size.factor = 3) +
+plot6 <- SpatialFeaturePlot(scData.unfiltered_spatial, features = "nFeature_Spatial",  pt.size.factor = 3 * param$imageEnlargementFactor) +
   theme(legend.position = "right")
-plot7 <- SpatialFeaturePlot(scData.unfiltered_spatial, features = "percent_mito",  pt.size.factor = 3) +
+plot7 <- SpatialFeaturePlot(scData.unfiltered_spatial, features = "percent_mito",  pt.size.factor = 3 * param$imageEnlargementFactor) +
   theme(legend.position = "right")
-plot8 <- SpatialFeaturePlot(scData.unfiltered_spatial, features = "percent_riboprot",  pt.size.factor = 3) +
+plot8 <- SpatialFeaturePlot(scData.unfiltered_spatial, features = "percent_riboprot",  pt.size.factor = 3 * param$imageEnlargementFactor) +
   theme(legend.position = "right")
 
 plot5 + plot6 + plot7 + plot8 + plot_layout(nrow = 1, ncol = 4)
@@ -185,7 +188,7 @@ scData$seurat_clusters <- Idents(scData)
 
 p1 <- DimPlot(scData, label = FALSE) + labs(color = "seurat_clusters")
 p1 <- LabelClusters(p1, id = "ident",  fontface = "bold", color = "black", size = 5)
-p2 <- SpatialDimPlot(scData, label = TRUE, label.size = 4, pt.size.factor = 3) +
+p2 <- SpatialDimPlot(scData, label = TRUE, label.size = 4, pt.size.factor = 3 * param$imageEnlargementFactor) +
   labs(fill = "seurat_clusters")
 
 p1 + p2 + plot_annotation(
@@ -195,7 +198,7 @@ p1 + p2 + plot_annotation(
 We can also plot each cluster separately
 
 ```{r, fig.height=10, fig.width=28}
-SpatialDimPlot(scData, cells.highlight = CellsByIdentities(scData), facet.highlight = TRUE, pt.size.factor = 3, ncol = 4, cols.highlight = c('red', 'white'))
+SpatialDimPlot(scData, cells.highlight = CellsByIdentities(scData), facet.highlight = TRUE, pt.size.factor = 3 * param$imageEnlargementFactor, ncol = 4, cols.highlight = c('red', 'white'))
 ```
 
 
@@ -284,7 +287,7 @@ for (eachCluster in levels(posMarkers$cluster)) {
   markersPerCluster <- head(markersPerCluster, 5)
   eachMarker <- markersPerCluster[1]
   for (eachMarker in markersPerCluster) {
-    sp = SpatialFeaturePlot(object = scData, features = eachMarker, alpha = c(0.1, 1), pt.size.factor = 3)
+    sp = SpatialFeaturePlot(object = scData, features = eachMarker, alpha = c(0.1, 1), pt.size.factor = 3 * param$imageEnlargementFactor)
     print(sp)
   }
   cat("\n")
@@ -299,7 +302,7 @@ We also identify molecular features that correlate with spatial location within 
 spatialMarkers = read_tsv("spatial_markers.tsv")
 top.features <- head(spatialMarkers$GeneSymbol, 20)
 for(gene in top.features) {
-   sp = SpatialFeaturePlot(object = scData, features = gene, alpha = c(0.1, 1),pt.size.factor = 3)
+   sp = SpatialFeaturePlot(object = scData, features = gene, alpha = c(0.1, 1), pt.size.factor = 3 * param$imageEnlargementFactor)
    print(sp)
 }
 ```

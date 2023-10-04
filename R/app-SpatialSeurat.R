@@ -96,9 +96,13 @@ ezMethodSpatialSeurat <- function(input=NA, output=NA, param=NA,
   rownames(featInfo) <- gsub("_", "-", uniquifyFeatureNames(ID=featInfo$gene_id, names=featInfo$gene_name)) 
   
   if(param$spotClean){
-      scData <- load10xSpatialDataAndRunSpotClean(input, param) 
+      scData <- load10xSpatialDataAndRunSpotClean(input, param)
+      param$imageEnlargementFactor <- 1 
   } else {
-    scData <- load10xSpatialData(input, param)
+      res <- load10xSpatialData(input, param)
+      scData <- res[[1]]
+      param <- res[[2]]
+      remove(res)
   }
   scData$Condition <- input$getColumn("Condition")
   scData@meta.data$Sample <- input$getNames()

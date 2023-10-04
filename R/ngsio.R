@@ -281,14 +281,15 @@ load10xSC_seurat <- function(input, param){
 
 load10xSpatialData <- function(input, param){
   img = Read10X_Image(file.path(input$getFullPaths("ResultDir"),"spatial"), image.name = "tissue_hires_image.png")
-  img@scale.factors$lowres = img@scale.factors$hires # it is better to set the scale factors this way.
+  param$imageEnlargementFactor <- img@scale.factors$hires/img@scale.factors$lowres
+  img@scale.factors$lowres <- img@scale.factors$hires # it is better to set the scale factors this way.
   scData <- Load10X_Spatial(input$getFullPaths("ResultDir"), image = img)
   
   ## unique cell names when merging two samples
   scData <- RenameCells(scData, paste(input$getNames(), colnames(scData), sep="___"))
   scData$Batch <- input$getNames()
   try(scData$Condition <- input$getColumn("Condition"), silent = TRUE)
-  return(scData)
+  return(list(scData, param))
 }
 
 load10xSpatialDataAndRunSpotClean <- function(input, param){
