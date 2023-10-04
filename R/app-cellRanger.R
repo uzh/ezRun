@@ -7,8 +7,8 @@
 
 ezMethodCellRanger <- function(input = NA, output = NA, param = NA) {
   sampleName <- input$getNames()
-  sampleDirs <- getFastqDirs(input, "RawDataDir",sampleName)
-  
+  sampleDirs <- sort(getFastqDirs(input, "RawDataDir",sampleName))
+ 
   #1. decompress tar files if they are in tar format
   if (all(grepl("\\.tar$", sampleDirs)))
     sampleDirs <- deCompress(sampleDirs)
@@ -21,13 +21,17 @@ ezMethodCellRanger <- function(input = NA, output = NA, param = NA) {
   
   #2.1 Fix FileNames if sampleName in dataset was changed
   fileLevelDirs <- list.files(sampleDirs)
-  if(length(fileLevelDirs) == 1L && fileLevelDirs != sampleName){
-      setwd(sampleDirs)
-      ezSystem(paste('mv', fileLevelDirs, sampleName))
-      cmd <- paste('rename', paste0('s/',fileLevelDirs,'/',sampleName, '/'), paste0(sampleName,'/*.gz'))
-      ezSystem(cmd)
-      setwd('..')
+  if(any(fileLevelDirs != sampleName)){
+      for (k in 1:length(fileLevelDirs)){
+        setwd(sampleDirs[k])
+        ezSystem(paste('mv', fileLevelDirs[k], sampleName))
+        cmd <- paste('rename', paste0('s/',fileLevelDirs[k],'/',sampleName, '/'), paste0(sampleName,'/*.gz'))
+        ezSystem(cmd)
+        setwd('..')
+      }
   }
+  
+  
   
   sampleDir <- paste(sampleDirs, collapse = ",")
   cellRangerFolder <- str_sub(sampleName, 1, 45) %>% str_c("-cellRanger")
