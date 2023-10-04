@@ -35,6 +35,8 @@ allCellsMeta <- readRDS("allCellsMeta.rds")
 if(is.null(param$imageEnlargementFactor)){
     param$imageEnlargementFactor <- 1
 }
+coord <- GetTissueCoordinates(object = scData@images$slice1)
+myRatio <- (max(coord$imagerow) - min(coord$imagerow)) / (max(coord$imagecol) - min(coord$imagecol))
 ```
 
 ## Analysis results {.tabset}
@@ -92,29 +94,10 @@ if (!is.null(xxAll$percent_riboprot)){
 Spatial QC Plots - cropped version
 
 ```{r QC plots3, fig.width=28}
-plot5 <- SpatialFeaturePlot(scData.unfiltered_spatial, features = "nCount_Spatial", pt.size.factor = 3 * param$imageEnlargementFactor) + 
-  theme(legend.position = "right")
-plot6 <- SpatialFeaturePlot(scData.unfiltered_spatial, features = "nFeature_Spatial",  pt.size.factor = 3 * param$imageEnlargementFactor) +
-  theme(legend.position = "right")
-plot7 <- SpatialFeaturePlot(scData.unfiltered_spatial, features = "percent_mito",  pt.size.factor = 3 * param$imageEnlargementFactor) +
-  theme(legend.position = "right")
-plot8 <- SpatialFeaturePlot(scData.unfiltered_spatial, features = "percent_riboprot",  pt.size.factor = 3 * param$imageEnlargementFactor) +
-  theme(legend.position = "right")
-
-plot5 + plot6 + plot7 + plot8 + plot_layout(nrow = 1, ncol = 4)
-```
-
-Spatial QC Plots - uncropped version
-
-```{r QC plots3_b, fig.width=28}
-plot5 <- SpatialFeaturePlot(scData.unfiltered_spatial, features = "nCount_Spatial", pt.size.factor = 3, crop = FALSE) + 
-  theme(legend.position = "right")
-plot6 <- SpatialFeaturePlot(scData.unfiltered_spatial, features = "nFeature_Spatial",  pt.size.factor = 3,  crop = FALSE) +
-  theme(legend.position = "right")
-plot7 <- SpatialFeaturePlot(scData.unfiltered_spatial, features = "percent_mito",  pt.size.factor = 3,  crop = FALSE) +
-  theme(legend.position = "right")
-plot8 <- SpatialFeaturePlot(scData.unfiltered_spatial, features = "percent_riboprot",  pt.size.factor = 3,  crop = FALSE) +
-  theme(legend.position = "right")
+plot5 <- SpatialFeaturePlot(scData.unfiltered_spatial, features = "nCount_Spatial", pt.size.factor = 3 * param$imageEnlargementFactor) + theme(legend.position = "right") + theme(aspect.ratio = myRatio)
+plot6 <- SpatialFeaturePlot(scData.unfiltered_spatial, features = "nFeature_Spatial",  pt.size.factor = 3 * param$imageEnlargementFactor) + theme(legend.position = "right") + theme(aspect.ratio = myRatio)
+plot7 <- SpatialFeaturePlot(scData.unfiltered_spatial, features = "percent_mito",  pt.size.factor = 3 * param$imageEnlargementFactor) + theme(legend.position = "right") + theme(aspect.ratio = myRatio)
+plot8 <- SpatialFeaturePlot(scData.unfiltered_spatial, features = "percent_riboprot",  pt.size.factor = 3 * param$imageEnlargementFactor) + theme(legend.position = "right") + theme(aspect.ratio = myRatio)
 
 plot5 + plot6 + plot7 + plot8 + plot_layout(nrow = 1, ncol = 4)
 ```
@@ -204,23 +187,16 @@ scData$seurat_clusters <- Idents(scData)
 p1 <- DimPlot(scData, label = FALSE) + labs(color = "seurat_clusters")
 p1 <- LabelClusters(p1, id = "ident",  fontface = "bold", color = "black", size = 5)
 p2 <- SpatialDimPlot(scData, label = TRUE, label.size = 4, pt.size.factor = 3 * param$imageEnlargementFactor) +
-  labs(fill = "seurat_clusters")
+  labs(fill = "seurat_clusters") + theme(aspect.ratio = myRatio)
 
 p1 + p2 + plot_annotation(
 ) + plot_layout(nrow = 1)
 ```
 
-```{r, fig.height=8, fig.width=20}
-p2 <- SpatialDimPlot(scData, label = TRUE, label.size = 4, pt.size.factor = 3, crop = FALSE) +
-  labs(fill = "seurat_clusters")
-
-p2 + plot_annotation(
-) + plot_layout(nrow = 1)
-```
 We can also plot each cluster separately
 
 ```{r, fig.height=10, fig.width=28}
-SpatialDimPlot(scData, cells.highlight = CellsByIdentities(scData), facet.highlight = TRUE, pt.size.factor = 3 * param$imageEnlargementFactor, ncol = 4, cols.highlight = c('red', 'white'))
+SpatialDimPlot(scData, cells.highlight = CellsByIdentities(scData), facet.highlight = TRUE, pt.size.factor = 3 * param$imageEnlargementFactor, ncol = 4, cols.highlight = c('red', 'white')) & theme(aspect.ratio = myRatio)
 ```
 
 
@@ -309,11 +285,7 @@ for (eachCluster in levels(posMarkers$cluster)) {
   markersPerCluster <- head(markersPerCluster, 5)
   eachMarker <- markersPerCluster[1]
   for (eachMarker in markersPerCluster) {
-    sp = SpatialFeaturePlot(object = scData, features = eachMarker, alpha = c(0.1, 1), pt.size.factor = 3 * param$imageEnlargementFactor)
-    print(sp)
-  }
-  for (eachMarker in markersPerCluster) {
-    sp = SpatialFeaturePlot(object = scData, features = eachMarker, alpha = c(0.1, 1), pt.size.factor = 3, crop = FALSE)
+    sp = SpatialFeaturePlot(object = scData, features = eachMarker, alpha = c(0.1, 1), pt.size.factor = 3 * param$imageEnlargementFactor) + theme(aspect.ratio = myRatio)
     print(sp)
   }
   cat("\n")
@@ -364,4 +336,3 @@ param[c("npcs","pcGenes","resolution", "SCT.regress.CellCycle", "DE.method", "ce
 ```{r, echo=FALSE}
 ezSessionInfo()
 ```
-
