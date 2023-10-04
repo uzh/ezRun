@@ -280,7 +280,7 @@ load10xSC_seurat <- function(input, param){
 }
 
 load10xSpatialData <- function(input, param){
-  img = Read10X_Image(input$getFullPaths("ResultDir"), image.name = "tissue_hires_image.png")
+  img = Read10X_Image(file.path(input$getFullPaths("ResultDir"),"spatial"), image.name = "tissue_hires_image.png")
   img@scale.factors$lowres = img@scale.factors$hires # it is better to set the scale factors this way.
   scData <- Load10X_Spatial(input$getFullPaths("ResultDir"), image = img)
   
