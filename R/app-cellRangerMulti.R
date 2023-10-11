@@ -74,10 +74,6 @@ prepareFastqData <- function(input, param) {
   #2. Check the dataset for the other modalities and get the fastq files
   libraryTypes <- as.vector(str_split(param$TenXLibrary, ",", simplify=TRUE))
   otherModColNames <- c("MultiDataDir", "FeatureDataDir", "VdjTDataDir", "VdjBDataDir")
-  #2.0 fixedRNA
-  if ("fixedRNA" %in% libraryTypes) {
-      return(dirList)
-  }
   #2.1 VDJ-T
   if ("VDJ-T" %in% libraryTypes) {
     dataInfo <- getCellRangerMultiData(input, "VdjTDataDir", sampleName)
