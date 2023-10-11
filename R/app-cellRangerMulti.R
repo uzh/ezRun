@@ -139,6 +139,14 @@ buildMultiConfigFile <- function(input, param, dirList) {
       fileContents <- append(fileContents, 
                              sprintf("expect-cells,%s", param$expectedCells))
     }
+    if (!("fixedRNA" %in% libraryTypes)) {
+      # include introns option only available with plain GEX, not fixedRNA
+      includeIntronsLine <- 
+        ifelse(ezIsSpecified(param$includeIntrons) && param$includeIntrons,
+               "include-introns,true", "include-introns,false")
+      fileContents <- append(fileContents, includeIntronsLine)
+    }
+    fileContents <- append(fileContents, c(""))
   }
   if ("fixedRNA" %in% libraryTypes) {
     refDir <- getCellRangerGEXReference(param)
@@ -160,13 +168,6 @@ buildMultiConfigFile <- function(input, param, dirList) {
     # it to let CellRanger automatically choose the chemistry
     chemistry <- ifelse(length(getSampleMultiplexFiles(input) > 1), "MFRP", "SFRP")
     fileContents <- append(fileContents, sprintf("chemistry,%s", chemistry))
-    fileContents <- append(fileContents, c(""))
-  } else {
-    # include introns option only available with plain GEX, not fixedRNA
-    includeIntronsLine <- 
-      ifelse(ezIsSpecified(param$includeIntrons) && param$includeIntrons,
-             "include-introns,true", "include-introns,false")
-    fileContents <- append(fileContents, includeIntronsLine)
     fileContents <- append(fileContents, c(""))
   }
   if (any(c("VDJ-T", "VDJ-B") %in% libraryTypes)) {
