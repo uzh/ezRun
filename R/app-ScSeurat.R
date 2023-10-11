@@ -191,6 +191,11 @@ ezMethodScSeurat <- function(input = NA, output = NA, param = NA,
   }
   if (file.exists(rawDir) && rawDir != cmDir){
     rawCts <- Read10X(rawDir, gene.column = 1)
+    if (is.list(rawCts)) {
+      rawCts <- rawCts$`Gene Expression`
+      rawCts <- rawCts[featInfo$gene_id,]
+    }
+    
     if (("SCDataOrigin" %in% input$colNames) && 
         input$getColumn("SCDataOrigin") == 'BDRhapsody') {
       rawCts <- rawCts[featInfo$gene_id,]
