@@ -106,6 +106,14 @@ prepareFastqData <- function(input, param) {
   return(dirList)
 }
 
+getSampleMultiplexFiles <- function(input) {
+  sampleName <- rownames(input$meta)
+  projectId <- strsplit(dirname(input$meta[['RawDataDir']]),'/')[[1]][1]
+  sampleMultiplexFolder <- file.path(input$dataRoot, projectId, paste0('o',input$meta[['Order Id']], '_metaData'))
+  sampleMultiplexFiles <- list.files(sampleMultiplexFolder, full.names = TRUE)
+  return(sampleMultiplexFiles)
+}
+
 getCellRangerMultiData <- function(input, multiColName, sampleName) {
   #2.1. Locate the multiplex sample
   multiDirs <- getFastqDirs(input, multiColName, sampleName)
@@ -142,27 +150,26 @@ buildMultiConfigFile <- function(input, param, dirList) {
     fileContents <- append(fileContents, c(""))
   }
   if ("fixedRNA" %in% libraryTypes) {
-      refDir <- getCellRangerGEXReference(param)
-      fileContents <- append(fileContents, "[gene-expression]")
-      fileContents <- append(fileContents, sprintf("reference,%s", refDir))
-      myProbesetFile <- file.path('/srv/GT/databases/10x_Probesets/Chromium',param$probesetFile)
-      outputFile <- sub('.csv','_filtered.csv', basename(myProbesetFile))
-      maxHeaderLine <- max(grep('#', readLines(myProbesetFile)))
-      headerSection <- readLines(myProbesetFile, n = maxHeaderLine)
-      headerSection[grep('reference_genome', headerSection)] = paste0('#reference_genome=',basename(refDir))
-      probeInfo <- ezRead.table(myProbesetFile, sep = ',', row.names = NULL, skip = maxHeaderLine)
-      annotation <- ezRead.table(file.path(refDir, 'star', 'geneInfo.tab'), row.names = NULL, skip = 1, header = FALSE)
-      intersectionGenes <- intersect(annotation$V1, probeInfo$gene_id)
-      probeInfo <- probeInfo[probeInfo$gene_id %in% intersectionGenes, ]
-      writeLines(headerSection, outputFile)
-      ezWrite.table(probeInfo, outputFile, sep = ',', row.names = FALSE, append = TRUE)
-      fileContents <- append(fileContents, sprintf("probe-set,%s", file.path(getwd(), outputFile)))
-      
-      if (ezIsSpecified(param$expectedCells)) {
-          fileContents <- append(fileContents, 
-                                 sprintf("expect-cells,%s", param$expectedCells))
-      }
-      fileContents <- append(fileContents, c(""))
+    refDir <- getCellRangerGEXReference(param)
+    myProbesetFile <- file.path('/srv/GT/databases/10x_Probesets/Chromium',param$probesetFile)
+    outputFile <- sub('.csv','_filtered.csv', basename(myProbesetFile))
+    maxHeaderLine <- max(grep('#', readLines(myProbesetFile)))
+    headerSection <- readLines(myProbesetFile, n = maxHeaderLine)
+    headerSection[grep('reference_genome', headerSection)] = paste0('#reference_genome=',basename(refDir))
+    probeInfo <- ezRead.table(myProbesetFile, sep = ',', row.names = NULL, skip = maxHeaderLine)
+    annotation <- ezRead.table(file.path(refDir, 'star', 'geneInfo.tab'), row.names = NULL, skip = 1, header = FALSE)
+    intersectionGenes <- intersect(annotation$V1, probeInfo$gene_id)
+    probeInfo <- probeInfo[probeInfo$gene_id %in% intersectionGenes, ]
+    writeLines(headerSection, outputFile)
+    ezWrite.table(probeInfo, outputFile, sep = ',', row.names = FALSE, append = TRUE)
+    fileContents <- append(fileContents, sprintf("probe-set,%s", file.path(getwd(), outputFile)))
+    
+    # add chemistry since it can result in an error otherwise (CellRanger 7.2)
+    # TODO: Review down the line if this is necessary. Best case, we can remove
+    # it to let CellRanger automatically choose the chemistry
+    chemistry <- ifelse(length(getSampleMultiplexFiles(input) > 1), "MFRP", "SFRP")
+    fileContents <- append(fileContents, sprintf("chemistry,%s", chemistry))
+    fileContents <- append(fileContents, c(""))
   }
   if (any(c("VDJ-T", "VDJ-B") %in% libraryTypes)) {
     vdjRefDir <- getCellRangerVDJReference(param)
@@ -213,9 +220,7 @@ buildMultiConfigFile <- function(input, param, dirList) {
   # sample mapping
   if (any(c("Multiplexing","fixedRNA") %in% libraryTypes)) {
     sampleName <- rownames(input$meta)
-    projectId <- strsplit(dirname(input$meta[['RawDataDir']]),'/')[[1]][1]
-    sampleMultiplexFolder <- file.path(input$dataRoot, projectId, paste0('o',input$meta[['Order Id']], '_metaData'))
-    sampleMultiplexFiles <- list.files(sampleMultiplexFolder, full.names = TRUE)
+    sampleMultiplexFiles <- getSampleMultiplexFiles(input)
     names(sampleMultiplexFiles) <- paste0('^', sub('_Sample2Barcode.csv', '', basename(sampleMultiplexFiles)), '$')
     sampleMultiplexFile <- sampleMultiplexFiles[which(sapply(names(sampleMultiplexFiles), grepl, sampleName))]
     sampleMultiplexMapping <- read_csv(sampleMultiplexFile)
