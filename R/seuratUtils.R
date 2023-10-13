@@ -5,48 +5,6 @@
 # The terms are available here: http://www.gnu.org/licenses/gpl.html
 # www.fgcz.ch
 
-seuratPreProcess <- function(sce){
-  ## parameters to tune: param$minCellsPerGene;
-  ##                     param$maxGenesPerCell; param$minGenesPerCell; param$maxMitoFraction
-  ##                     param$minReadsPerCell; 
-  ##                     param$pcs, param$pcGenes
-  require(Seurat)
-  require(scater)
-  param <- metadata(sce)$param
-  rownames(sce) <- uniquifyFeatureNames(ID=rowData(sce)$gene_id,
-                                        names=rowData(sce)$gene_name)
-  if(toupper(param$scProtocol) == "SMART-SEQ2"){
-    sce <- sce[ ,Matrix::colSums(assays(sce)$counts) > param$minReadsPerCell]
-  }
-  cell_info <- data.frame(colData(sce),
-                          Plate=sub("___.*$", "", colnames(sce)),
-                          check.names = FALSE)
-  scData <- CreateSeuratObject(raw.data=assays(sce)$counts,
-                               min.cells=param$minCellsPerGene,
-                               min.genes=1,
-                               project=param$name,
-                               meta.data=cell_info)
-  mito.genes <- rownames(sce)[toupper(as.character(seqnames(rowRanges(sce)))) %in% 
-                                toupper(c("chrM", "MT"))]
-  mito.genes <- intersect(mito.genes, rownames(scData@data))
-  
-  perc_mito <- Matrix::colSums(scData@raw.data[mito.genes, ])/Matrix::colSums(scData@raw.data)
-  scData <- AddMetaData(object = scData, metadata = perc_mito,
-                        col.name = "perc_mito")
-  
-  scData <- FilterCells(object = scData,
-                        subset.names = c("nGene", "perc_mito"),
-                        low.thresholds = c(param$minGenesPerCell, -Inf), 
-                        high.thresholds = c(param$maxGenesPerCell, param$maxMitoFraction))
-  scData <- NormalizeData(object=scData, normalization.method="LogNormalize",
-                          scale.factor=getSeuratScalingFactor(param$scProtocol))
-  scData <- seuratClustering(scData, param)
-  
-  metadata(sce)$scData <- scData
-  
-  return(sce)
-}
-
 seuratClustering <- function(scData, param){
   set.seed(38)
   scData <- FindVariableGenes(object = scData, do.plot = FALSE,
@@ -89,50 +47,6 @@ seuratClustering <- function(scData, param){
   return(scData)
 }
 
-getSeuratScalingFactor <- function(x){
-  x <- toupper(x)
-  ans <- switch(x,
-                "SMART-SEQ2"=1e5,
-                "10X"=1e4)
-  return(ans)
-}
-
-cellTable <- function(scData){
-  toTable <- tibble(Cluster=names(summary(scData@ident)),
-                    "# of cells"=summary(scData@ident))
-  cellCountsByPlate <- tibble(Plate=scData@meta.data$Plate,
-                              Cluster=as.character(scData@ident)) %>%
-    group_by(Plate, Cluster) %>% summarise(n()) %>%
-    spread(Plate, `n()`, fill=0)
-  cellPercByPlate <- select(cellCountsByPlate, -Cluster) %>%
-    as.matrix()
-  rownames(cellPercByPlate) <- cellCountsByPlate$Cluster
-  cellPercByPlate <- sweep(cellPercByPlate, 2, colSums(cellPercByPlate), "/")
-  colnames(cellPercByPlate) <- paste0(colnames(cellPercByPlate), "_fraction")
-  toTable <- left_join(toTable, cellCountsByPlate, by="Cluster") %>%
-    left_join(as_tibble(cellPercByPlate, rownames="Cluster"), by="Cluster")
-  ## TODO: add fisher test?
-  toTable <- bind_rows(toTable,
-                       bind_cols("Cluster"="Total", 
-                                 summarise_at(toTable, setdiff(colnames(toTable), "Cluster"),
-                                              sum)))
-  return(toTable)
-}
-
-
-update_seuratObjectVersion = function(se) {
-  if(se@metadata$scData@version < 3)
-    metadata(se)$scData = UpdateSeuratObject(metadata(se)$scData)
-  return(se)
-}
-
-add_Condition_oldReports <- function(sce) {
-  scData = metadata(sce)$scData
-  scData@meta.data$Condition = sce[,colnames(scData)]$Condition
-  metadata(sce)$scData = scData
-  sce
-}
-
 seuratStandardWorkflow <- function(scData, param, reduction="pca") {
   scData <- RunPCA(object=scData, npcs = param$npcs, verbose=FALSE)
   if(!('Spatial' %in% as.vector(Seurat::Assays(scData)))){
@@ -145,22 +59,6 @@ seuratStandardWorkflow <- function(scData, param, reduction="pca") {
   scData$ident <- Idents(scData)
   return(scData)
 }  
-
-buildSeuratObject <- function(sce){
-  library(Seurat)
-  library(scater)
-  param <- metadata(sce)$param
-  colData(sce)[, grep("SCT", colnames(colData(sce)))] = NULL  #remove all normalization info done on each object separately
-  cell_info <- data.frame(colData(sce),
-                          Plate=sub("___.*$", "", colnames(sce)),
-                          check.names = FALSE)
-  scData <- CreateSeuratObject(counts=assays(sce)$counts,
-                               project=param$name,
-                               meta.data=cell_info)
-  
-  #scData[["RNA"]]@meta.features <- cbind.data.frame(scData[["RNA"]]@meta.features, data.frame(rowData(sce)[, c("gene_id", "biotypes", "description")]))
-  return(scData)
-}
 
 seuratClusteringV3 <- function(scData, param, assay="RNA") {
   vars.to.regress <- getSeuratVarsToRegress(param)
@@ -321,9 +219,6 @@ SpatiallyVariableFeatures_workaround <- function(object, assay="SCT", selection.
   # Return row names of the sorted data frame
   return(sorted_data)
 }
-
-
-
 
 spatialMarkers <- function(scData, selection.method = "markvariogram") { 
   scData <- FindSpatiallyVariableFeatures(scData, features = VariableFeatures(scData), r.metric = 5, 
