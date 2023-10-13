@@ -235,7 +235,6 @@ ezMethodScSeurat <- function(input = NA, output = NA, param = NA,
   scData <- SCTransform(scData, vst.flavor=2, vars.to.regress = vars.to.regress, seed.use = 38, verbose = FALSE,
                         return.only.var.genes=FALSE)
   ## defaultAssay is now SCT
-  #scData <- FindVariableFeatures(scData, selection.method = "vst", verbose = FALSE)
   scData <- RunPCA(object=scData, npcs = param$npcs, verbose=FALSE)
   scData <- RunTSNE(object = scData, reduction = "pca", dims = 1:param$npcs)
   scData <- RunUMAP(object=scData, reduction = "pca", dims = 1:param$npcs)
