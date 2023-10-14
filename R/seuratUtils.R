@@ -354,6 +354,20 @@ getSeuratMarkersAndAnnotate <- function(scData, param) {
     print("Skipping pathway and TF activity")
   }
   
+  # run Azimuth
+  if (ezIsSpecified(param$Azimuth) && param$Azimuth != "none"){
+    scDataAzi <- RunAzimuth(scData, param$Azimuth) ## TODO support ADT
+    aziNames <- setdiff(colnames(scDataAzi@meta.data), colnames(scData@meta.data))
+    aziResults <- data.frame(
+      Azimuth.celltype.l1=scDataAzi@meta.data[ , grep("l1$", aziNames, value=TRUE)],
+      Azimuth.celltype.l2=scDataAzi@meta.data[ , grep("l2$", aziNames, value=TRUE)],
+      row.names=colnames(scDataAzi))
+    remove(scDataAzi)
+  } else {
+    aziResults <- NULL
+  }
+  
   return(list(markers=markers, cells.AUC=cells.AUC, singler.results=singler.results,
-              enrichRout=enrichRout, pathwayActivity=pathwayActivity, TFActivity=TFActivity))
+              enrichRout=enrichRout, pathwayActivity=pathwayActivity, TFActivity=TFActivity,
+              aziResults=aziResults))
 }

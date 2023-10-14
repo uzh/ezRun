@@ -251,16 +251,6 @@ ezMethodScSeurat <- function(input = NA, output = NA, param = NA,
   # get markers and annotations
   anno <- getSeuratMarkersAndAnnotate(scData, param)
   
-  # run Azimuth; TODO is inconsistent with the way SingleR and AUC are handled; needs to be refactored
-  if (ezIsSpecified(param$Azimuth) && param$Azimuth != "none"){
-    scDataAzi <- RunAzimuth(scData, param$Azimuth) ## TODO support ADT
-    aziNames <- setdiff(colnames(scDataAzi@meta.data), colnames(scData@meta.data))
-    scData$Azimuth.celltype.l1 <- scDataAzi@meta.data[ , grep("l1$", aziNames, value=TRUE)]
-    scData$Azimuth.celltype.l2 <- scDataAzi@meta.data[ , grep("l2$", aziNames, value=TRUE)]
-    remove(scDataAzi)
-  }
-  
-  
   # save markers
   markers <- anno$markers
   writexl::write_xlsx(markers, path="posMarkers.xlsx")
@@ -282,7 +272,7 @@ ezMethodScSeurat <- function(input = NA, output = NA, param = NA,
   
   makeRmdReport(param=param, output=output, scData=scData, allCellsMeta=allCellsMeta, 
                 enrichRout=anno$enrichRout, cells.AUC=anno$cells.AUC, 
-                singler.results=anno$singler.results, 
+                singler.results=anno$singler.results, aziResults=anno$aziResults,
                 pathwayActivity=anno$pathwayActivity, TFActivity=anno$TFActivity,
                 rmdFile = "ScSeurat.Rmd", reportTitle = paste0(param$name, ": ",  input$getNames()))
   #remove no longer used objects

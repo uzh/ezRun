@@ -42,6 +42,7 @@ scData <- readRDS("scData.rds")
 output <- readRDS("output.rds")
 scData$qc.doublet <- scData$doubletClass %in% "doublet"
 allCellsMeta <- readRDS("allCellsMeta.rds")
+aziResults <- readRDS("aziResults.rds")
 param <- readRDS("param.rds")
 species <- getSpecies(param$refBuild)
 if (file.exists("singler.results.rds")){
@@ -71,6 +72,11 @@ if ((length(clusterSet) == length(clusterSetInteger)) &&
   posMarkers$cluster = as.factor(posMarkers$cluster)
 } else {
   posMarkers$cluster = factor(posMarkers$cluster, levels=clusterSet)
+}
+
+# add Azimuth annotations
+if (!is.null(aziResults)) {
+  scData <- AddMetaData(scData, aziResults)
 }
 
 var_height = 1 #This ensures that chunks that use the length of this variable to set the fig size, don't fail.
@@ -528,8 +534,9 @@ cat("\n\n")
 ```
 
 ```{r assigments heatmap, eval= !is.null(cells.AUC), results='asis',fig.align='center', fig.width=10, fig.height=var_height}
-if (!is.null(tab) && nrow(tab) > 2)
-   pheatmap(log10(tab+10), color=viridis::viridis(100))
+if (!is.null(tab) && nrow(tab) > 2) {
+  pheatmap(log10(tab+10), color=viridis::viridis(100))
+}
 ```
 
 
@@ -558,13 +565,9 @@ AUCell_plotTSNE(tSNE=cellsUmap,
 
 ### Azimuth 
 
-```{r ,eval=!is.null(scData@meta.data$Azimuth.celltype.l2), fig.width=10, fig.height=6}
-
+```{r azimuth, eval=!is.null(scData@meta.data$Azimuth.celltype.l2), fig.width=10, fig.height=6}
 DimPlot(scData, label=TRUE, group.by = "Azimuth.celltype.l1", repel = TRUE, reduction = "umap")
-
 DimPlot(scData, label=TRUE, group.by = "Azimuth.celltype.l2", repel = TRUE, reduction = "umap")
-
-
 ```
 
 ### Interactive
