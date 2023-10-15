@@ -72,9 +72,10 @@ ezMethodKallisto = function(input=NA, output=NA, param=NA){
       "kallisto",
       "quant",
       opt,
-      pathFastqFiles,
-      "2> kallisto.stderr",
-      " > kallisto.stdout"
+      pathFastqFiles
+      #  capture kallisto.stderr that contains fragment length estimate; that differs from the fastp estimate
+      # "2> kallisto.stderr",
+      # " > kallisto.stdout"
   )
   ezSystem(cmd)
 
