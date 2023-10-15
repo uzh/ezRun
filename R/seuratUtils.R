@@ -5,6 +5,20 @@
 # The terms are available here: http://www.gnu.org/licenses/gpl.html
 # www.fgcz.ch
 
+seuratStandardSCTPreprocessing <- function(scData, param, assay="RNA", seed=38) {
+  DefaultAssay(scData) <- assay
+  ## Get information on which variables to regress out in scaling/SCT
+  vars.to.regress <- getSeuratVarsToRegress(param)
+  ## generate normalized slots for the RNA assay
+  scData <- NormalizeData(scData, normalization.method = "LogNormalize", scale.factor=10000, verbose=FALSE)
+  scData <- FindVariableFeatures(scData, selection.method = "vst", verbose = FALSE, nfeatures=3000)
+  scData <- ScaleData(scData, vars.to.regress = vars.to.regress, verbose=FALSE, do.scale=FALSE)
+  ## generate the SCT assay
+  scData <- SCTransform(scData, vst.flavor=2, vars.to.regress = vars.to.regress, seed.use = seed, verbose = FALSE,
+                        return.only.var.genes=FALSE)
+  return(scData)
+}
+
 seuratClustering <- function(scData, param){
   set.seed(38)
   scData <- FindVariableGenes(object = scData, do.plot = FALSE,
@@ -47,7 +61,7 @@ seuratClustering <- function(scData, param){
   return(scData)
 }
 
-seuratStandardWorkflow <- function(scData, param, reduction="pca") {
+seuratStandardWorkflow <- function(scData, param, reduction="pca", ident.name="ident") {
   scData <- RunPCA(object=scData, npcs = param$npcs, verbose=FALSE)
   if(!('Spatial' %in% as.vector(Seurat::Assays(scData)))){
     scData <- RunTSNE(object = scData, reduction = reduction, dims = 1:param$npcs)
@@ -56,7 +70,7 @@ seuratStandardWorkflow <- function(scData, param, reduction="pca") {
   scData <- FindNeighbors(object = scData, reduction = reduction, dims = 1:param$npcs, verbose=FALSE)
   scData <- FindClusters(object=scData, resolution = seq(from = 0.2, to = 1, by = 0.2), verbose=FALSE)  #calculate clusters for a set of resolutions
   Idents(scData) <- scData@meta.data[,paste0(DefaultAssay(scData), "_snn_res.", param$resolution)]  #but keep as the current clusters the ones obtained with the resolution set by the user
-  scData$ident <- Idents(scData)
+  scData[[ident.name]] <- Idents(scData)
   return(scData)
 }  
 

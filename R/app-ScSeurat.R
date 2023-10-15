@@ -226,25 +226,12 @@ ezMethodScSeurat <- function(input = NA, output = NA, param = NA,
   ## Add Cell Cycle information to Seurat object as metadata columns
   scData <- addCellCycleToSeurat(scData, param$refBuild, BPPARAM)
   ## Get information on which variables to regress out in scaling/SCT
-  vars.to.regress <- getSeuratVarsToRegress(param)
-  ## generate normalized slots for the RNA assay
-  scData <- NormalizeData(scData, normalization.method = "LogNormalize", scale.factor=10000, verbose=FALSE)
-  scData <- FindVariableFeatures(scData, selection.method = "vst", verbose = FALSE, nfeatures=3000)
-  scData <- ScaleData(scData, vars.to.regress = vars.to.regress, verbose=FALSE, do.scale=FALSE)
-  ## generate the SCT assay
-  scData <- SCTransform(scData, vst.flavor=2, vars.to.regress = vars.to.regress, seed.use = 38, verbose = FALSE,
-                        return.only.var.genes=FALSE)
+  scData <- seuratStandardSCTPreprocessing(scData, param)
   ## defaultAssay is now SCT
-  scData <- RunPCA(object=scData, npcs = param$npcs, verbose=FALSE)
-  scData <- RunTSNE(object = scData, reduction = "pca", dims = 1:param$npcs)
-  scData <- RunUMAP(object=scData, reduction = "pca", dims = 1:param$npcs)
-  scData <- FindNeighbors(object = scData, reduction = "pca", dims = 1:param$npcs, verbose=FALSE)
-  scData <- FindClusters(object=scData, resolution = seq(from = 0.2, to = 1, by = 0.2), verbose=FALSE)  #calculate clusters for a set of resolutions
-  scData$seurat_clusters <- scData@meta.data[,paste0(DefaultAssay(scData), "_snn_res.", param$resolution)]  #but keep as the current clusters the ones obtained with the resolution set by the user
-  Idents(scData) <- scData$seurat_clusters
+  scData <- seuratStandardWorkflow(scData, param, ident.name="seurat_clusters")
 
   # estimate ambient first
-  if (ezIsSpecified(param$estimateAmbient) && param$estimateAmbient){
+  if (ezIsSpecified(param$estimateAmbient) && param$estimateAmbient) {
     scData <- addAmbientEstimateToSeurat(scData, rawDir=rawDir, threads = param$cores)
   }
   
