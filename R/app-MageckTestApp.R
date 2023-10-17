@@ -70,15 +70,9 @@ ezMethodMageckTest = function(input=NA, output=NA, param=NA){
   file2 =  paste0(param$comparison, '.sgrna_summary.txt')
   FluteRRA(file1, file2, proj="output", organism=param$species, outdir = "./", omitEssential = FALSE)
   
-  
-#  rmdFile <- paste0(param$comparison, '.report.Rmd')
-#  htmlFile <- sub('.Rmd', '.html', rmdFile)
-  
- # rmarkdown::render(
-  #    input = rmdFile, envir = new.env(),
-  #    output_dir = ".", output_file = htmlFile, quiet = TRUE
-  #)
-  
+  saveRDS(param, 'param.rds')
+  makeRmdReport(param=param, output=output,
+                rmdFile = "MageckTest.Rmd", reportTitle = paste0(param$name))
   return("Success")
 }
 

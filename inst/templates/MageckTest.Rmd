@@ -1,0 +1,121 @@
+---
+title: "`r if (exists('reportTitle')) reportTitle else 'SUSHI Report'`"
+author: "Functional Genomics Center Zurich"
+output: 
+  html_document:
+    self_contained: true
+    includes:
+     in_header: !expr system.file("templates/fgcz_header.html", package="ezRun", lib.loc=.libPaths())
+    css: !expr system.file("templates/fgcz.css", package="ezRun", lib.loc=.libPaths())
+editor_options: 
+  chunk_output_type: inline
+---
+
+Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
+
+```{r setup, include=FALSE}
+library(kableExtra)
+library(clustree)
+library(ezRun)
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE, knitr.table.format = "html")
+```
+
+```{r}
+param <- readRDS("param.rds")
+```
+
+## Analysis results {.tabset}
+
+### Results
+
+The MAGeCK (mageck test) uses Robust Rank Aggregation (RRA -[Li et al. 2014](https://genomebiology.biomedcentral.com/articles/10.1186/s13059-014-0554-4)) for robust identification of CRISPR-screen hits, and outputs the summary results at both sgRNA and gene level.
+
+```{r}
+#Result sgRNA level:
+sgRNALink <- paste0(param$comparison, '.sgrna_summary.xlsx')
+
+#Result gene level:
+geneLink <- paste0(param$comparison, '.gene_summary.xlsx')
+```
+
+#### Gene summary file
+
+[Result on gene-Level](`r geneLink`){target="_blank"}
+
+The Gene Summary file contains the columns described below and a row for each gene targeted by sgRNAs. We have >20,000 genes in the file for this dataset. We get values for both negative and positive selection. The dataset here is from a negative selection screen so we are most interested in the negative values. Genes are ranked by the p.neg field (by default). If you need a ranking by the p.pos, you can use the Sort data in ascending or descending order tool in Galaxy.
+
+| Column name | Content |
+|---------|----------|
+| id 	| Gene ID |
+| num 	| The number of targeting sgRNAs for each gene |
+| neg\|score |	The RRA lo value of this gene in negative selection |
+| neg\|p-value |	The raw p-value (using permutation) of this gene in negative selection |
+| neg\|fdr |	The false discovery rate of this gene in negative selection |
+| neg\|rank |	The ranking of this gene in negative selection |
+| neg\|goodsgrna | 	The number of “good” sgRNAs, i.e., sgRNAs whose ranking is below the alpha cutoff (determined by the –gene-test-fdr-threshold option), in negative selection. |
+|neg\|lfc |	The log2 fold change of this gene in negative selection. The way to calculate gene lfc is controlled by the –gene-lfc-method option |
+| pos\|score | 	The RRA lo value of this gene in positive selection |
+| pos\|p-value | 	The raw p-value (using permutation) of this gene in positive selection |
+| pos\|fdr  |	The false discovery rate of this gene in positive selection |
+| pos\|rank |	The ranking of this gene in positive selection |
+| pos\|goodsgrna | 	The number of “good” sgRNAs, i.e., sgRNAs whose ranking is below the alpha cutoff (determined by the –gene-test-fdr-threshold option), in positive selection. |
+| pos\|lfc |	The log fold change of this gene in positive selection |
+
+
+#### sgRNA summary file
+
+[Result on sgRNA-Level](`r sgRNALink`){target="_blank"}
+
+The sgRNA Summary file contains the columns described below. We can use the sgRNA file to check how the individual guides for genes of interest performed.
+
+| Column Name |	Content |
+|---------|---------|
+| sgrna |	sgRNA ID |
+| Gene 	| The targeting gene |
+| control_count |	Normalized read counts in control samples |
+| treatment_count |	Normalized read counts in treatment samples |
+| control_mean | 	Median read counts in control samples |
+| treat_mean |	Median read counts in treatment samples |
+| LFC |	The log2 fold change of sgRNA |
+| control_var |	The raw variance in control samples |
+| adj_var |	The adjusted variance in control samples |
+| score |	The score of this sgRNA |
+| p.low |	p-value (lower tail) |
+| p.high |	p-value (higher tail) |
+| p.twosided |	p-value (two sided) |
+| FDR |	false discovery rate |
+| high_in_treatment |	Whether the abundance is higher in treatment samples |
+
+### Reports
+```{r}
+#PDF Report MAGECK:
+summaryLink <- paste0(param$comparison, '_summary.pdf')
+
+#PDF Report MAGECK Flute:
+fluteLink <- file.path('MAGeCKFlute_output', 'FluteRRA_output.pdf')
+```
+
+#### Basic Report 
+
+The PDF shows plots of the top 10 negatively and positively selected genes. We can see the top genes ranked by RRA scores or p value. These values come from the gene summary file.
+
+The PDF also shows plots with the sgRNA counts for the top 10 genes. These values are the normalized counts for each sgRNA from the sgRNA summary file. With these plots we can see if the counts of all the sgRNAs for these top genes are changing similarly.
+
+[Summary Report of MAGeCK Test](`r summaryLink`){target="_blank"}
+
+#### MAGeCKFlute
+The R package [MAGeCKFlute](https://www.bioconductor.org/packages/release/bioc/html/MAGeCKFlute.html)  processes MAGeCK RRA results (“gene_summary” and “sgrna_summary”) with the function FluteRRA, which identifies positively and negatively selected genes and performs functional analysis.
+
+[Summary Report of MAGeCKFlute](`r summaryLink`){target="_blank"}
+
+
+### Parameters
+```{r report parameters, echo=FALSE}
+param[c("species","libName","grouping", "sampleGroup", "refGroup", "cmdOptions")]
+```
+
+
+### SessionInfo
+```{r, echo=FALSE}
+ezSessionInfo()
+```
