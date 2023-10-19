@@ -186,7 +186,11 @@ ezMethodScSeurat <- function(input = NA, output = NA, param = NA,
   ## use empty drops to test for ambient
   if ("UnfilteredCountMatrix" %in% input$colNames) {
     rawDir <- input$getFullPaths("UnfilteredCountMatrix")
+    if (file.exists(file.path(rawDir, param$geneCountModel))) {
+      rawDir <- file.path(rawDir, param$geneCountModel)
+    }
   } else {
+    # DEPRECATED; all input datasets should specify the path to the unfiltered count matrix
     rawDir <- sub("filtered_", "raw_", cmDir)
   }
   if (file.exists(rawDir) && rawDir != cmDir){
