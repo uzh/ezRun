@@ -142,6 +142,12 @@ ezMethodCellRanger <- function(input = NA, output = NA, param = NA) {
       }
     }
   }
+  
+  if(!param$keepBam){
+      ezSystem(paste('rm', file.path(sampleName, "possorted_genome_bam.bam")))
+      ezSystem(paste('rm', file.path(sampleName, "possorted_genome_bam.bam.bai")))
+  }
+  
   return("Success")
 }
 
@@ -496,6 +502,11 @@ EzAppCellRanger <-
                         Type = "logical",
                         DefaultValue = FALSE,
                         Description = "run velocyto and generate loom file"
+                    ),
+                    keepBam = ezFrame(
+                        Type = "logical",
+                        DefaultValue = FALSE,
+                        Description = "keep bam file produced by CellRanger"
                     )
                   )
                 }
