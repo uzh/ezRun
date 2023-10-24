@@ -371,10 +371,16 @@ getSeuratMarkersAndAnnotate <- function(scData, param) {
   # run Azimuth
   if (ezIsSpecified(param$Azimuth) && param$Azimuth != "none"){
     scDataAzi <- RunAzimuth(scData, param$Azimuth) ## TODO support ADT
+    
+    ##Rename annotion levels if neccessary:
+    colnames(scDataAzi@meta.data) <- sub('level_', 'l', colnames(scDataAzi@meta.data))
+    
     aziNames <- setdiff(colnames(scDataAzi@meta.data), colnames(scData@meta.data))
     aziResults <- data.frame(
       Azimuth.celltype.l1=scDataAzi@meta.data[ , grep("l1$", aziNames, value=TRUE)],
       Azimuth.celltype.l2=scDataAzi@meta.data[ , grep("l2$", aziNames, value=TRUE)],
+      Azimuth.celltype.l3=scDataAzi@meta.data[ , grep("l3$", aziNames, value=TRUE)],
+      Azimuth.celltype.l4=scDataAzi@meta.data[ , grep("l4$", aziNames, value=TRUE)],
       row.names=colnames(scDataAzi))
     remove(scDataAzi)
   } else {

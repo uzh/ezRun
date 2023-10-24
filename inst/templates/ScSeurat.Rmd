@@ -567,6 +567,8 @@ AUCell_plotTSNE(tSNE=cellsUmap,
 ```{r azimuth, eval=!is.null(aziResults), fig.width=10, fig.height=6}
 DimPlot(scData, label=TRUE, group.by = "Azimuth.celltype.l1", repel = TRUE, reduction = "umap")
 DimPlot(scData, label=TRUE, group.by = "Azimuth.celltype.l2", repel = TRUE, reduction = "umap")
+DimPlot(scData, label=TRUE, group.by = "Azimuth.celltype.l3", repel = TRUE, reduction = "umap")
+DimPlot(scData, label=TRUE, group.by = "Azimuth.celltype.l4", repel = TRUE, reduction = "umap")
 ```
 
 ### Interactive
