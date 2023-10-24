@@ -16,7 +16,12 @@ EzAppSpaceRanger <-
                   name <<- "EzAppSpaceRanger"
                   appDefaults <<- rbind(controlSeqs=ezFrame(Type="charVector",
                                                             DefaultValue="",
-                                                            Description="control sequences to add"))
+                                                            Description="control sequences to add"),
+                                        keepBam = ezFrame(
+                                            Type = "logical",
+                                            DefaultValue = FALSE,
+                                            Description = "keep bam file produced by CellRanger"
+                                        ))
                 }
               )
   )
@@ -104,6 +109,10 @@ ezMethodSpaceRanger <- function(input=NA, output=NA, param=NA){
   
   if(ezIsSpecified(param$controlSeqs)){
     unlink(refDir, recursive = TRUE)
+  }
+  if(!param$keepBam){
+      ezSystem(paste('rm', file.path(sampleName, "possorted_genome_bam.bam")))
+      ezSystem(paste('rm', file.path(sampleName, "possorted_genome_bam.bam.bai")))
   }
   
   return("Success")
