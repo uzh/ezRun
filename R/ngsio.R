@@ -289,15 +289,17 @@ load10xSpatialData <- function(input, param){
                                   file.path(input$getFullPaths("ResultDir"),"spatial", "scalefactors_json.json"))
   
   missingBarcodes <- setdiff(data_slide_info$slide$barcode, colnames(data_raw))
+  
   if(length(missingBarcodes) > 0)
       data_slide_info$slide <- data_slide_info$slide[!(data_slide_info$slide$barcode %in% missingBarcodes),]
+  
   data_obj <- createSlide(count_mat = data_raw, slide_info = data_slide_info)
-  scDataRaw <- convertToSeurat(data_obj,image_dir = file.path(input$getFullPaths("ResultDir"),"spatial"), filter_matrix = FALSE)
+  scDataRaw <- convertToSpatialSeurat(data_obj, image_dir = file.path(input$getFullPaths("ResultDir"),"spatial"), filter_matrix = FALSE)
   
   if(param$spotClean){
       # Decontaminate raw data
       decont_obj <- spotclean(data_obj)
-      scData <- convertToSeurat(decont_obj,image_dir = file.path(input$getFullPaths("ResultDir"),"spatial"))
+      scData <- convertToSpatialSeurat(decont_obj, image_dir = file.path(input$getFullPaths("ResultDir"),"spatial"), filter_matrix = TRUE)
       param$imageEnlargementFactor <- 1
   } else {
       img = Read10X_Image(file.path(input$getFullPaths("ResultDir"),"spatial"), image.name = "tissue_hires_image.png")
@@ -313,6 +315,20 @@ load10xSpatialData <- function(input, param){
   try(scData$Condition <- input$getColumn("Condition"), silent = TRUE)
   return(list(scData = scData, scDataRaw = scDataRaw, param = param))
 }
+
+convertToSpatialSeurat <- function (slide_obj, image_dir, slice = "slice1", filter_matrix = TRUE) {
+    object <- CreateSeuratObject(assay(slide_obj), assay = "Spatial")
+    image <- Read10X_Image(image.dir = image_dir, filter.matrix = filter_matrix)
+    ts_coord <- GetTissueCoordinates(image)
+    if (nrow(ts_coord) < ncol(object)) {
+        object <- object[, rownames(ts_coord)]
+    }
+    image <- image[Cells(x = object)]
+    DefaultAssay(object = image) <- "Spatial"
+    object[[slice]] <- image
+    return(object)
+}
+
 
 ##' @title Writes the head of a file
 ##' @description Writes the head of a file into a newly created target file.
