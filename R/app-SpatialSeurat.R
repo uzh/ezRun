@@ -64,6 +64,11 @@ EzAppSpatialSeurat <-
                                             Type = "logical",
                                             DefaultValue = FALSE,
                                             Description = "Run spotClean method"
+                                        ),
+                                        pvalue_allMarkers = ezFrame(
+                                            Type = "numeric",
+                                            DefaultValue = 0.05,
+                                            Description = "pValue for marker detection"
                                         )
                                         )
                 }
@@ -95,37 +100,27 @@ ezMethodSpatialSeurat <- function(input=NA, output=NA, param=NA,
   }
   rownames(featInfo) <- gsub("_", "-", uniquifyFeatureNames(ID=featInfo$gene_id, names=featInfo$gene_name)) 
   
-  if(param$spotClean){
-      scData <- load10xSpatialDataAndRunSpotClean(input, param)
-      param$imageEnlargementFactor <- 1 
-  } else {
-      res <- load10xSpatialData(input, param)
-      scData <- res[[1]]
-      param <- res[[2]]
-      remove(res)
-  }
-  scData$Condition <- input$getColumn("Condition")
-  scData@meta.data$Sample <- input$getNames()
-  scData[["Spatial"]] <- AddMetaData(object = scData[["Spatial"]], metadata = featInfo[rownames(scData), ])
+  res <- load10xSpatialData(input, param)
+  scData <- res[['scData']]
+  scDataRaw <- res[['scDataRaw']]
+  param <- res[['param']]
+  remove(res)
   
-  scData_list <- filterCellsAndGenes(scData, param) # return sce objects filtered and unfiltered to show the QC metrics later in the rmd
-  scData <- scData_list$scData
-  scData.unfiltered <- scData_list$scData.unfiltered
-  rm(scData_list)
+  scDataRes <- runBasicProcessing(scData,input, featInfo, param)
+  scData <- scDataRes[['scData']]
+  scData.unfiltered <- scDataRes[['scData.unfiltered']]
+  remove(scDataRes)
   
-  scData <- addCellCycleToSeurat(scData, param$refBuild, BPPARAM, assay = 'Spatial')
-  scData.unfiltered <- addCellCycleToSeurat(scData.unfiltered, param$refBuild, BPPARAM, assay = 'Spatial')
-  scData <- seuratClusteringV3(scData, param, assay="Spatial")
-  
-  pvalue_allMarkers <- 0.05
   
   #positive cluster markers
-  clusterMarkers <- posClusterMarkers(scData, pvalue_allMarkers, param)
+  clusterMarkers <- posClusterMarkers(scData, param$pvalue_allMarkers, param)
   clusterMarkers[['isSpatialMarker']] = FALSE 
   #spatially variable genes
   spatialMarkersList <- list()
+  message('Find spatial Markers using markvariogram')
   res <- spatialMarkers(scData, selection.method = 'markvariogram')
   spatialMarkersList[['markvariogram']] <- data.frame(GeneSymbol = rownames(res), res, Method = 'Markvariogram')
+  message('Find spatial Markers using moransi method')
   res <- spatialMarkers(scData, selection.method = 'moransi')
   spatialMarkersList[['moransi']] <- data.frame(GeneSymbol = rownames(res), res, Method = 'MoransI')
   spatialMarkers <- rbind(spatialMarkersList[['markvariogram']][,c('GeneSymbol', 'Rank','Method')], spatialMarkersList[['moransi']][,c('GeneSymbol', 'Rank','Method')])
@@ -152,10 +147,26 @@ ezMethodSpatialSeurat <- function(input=NA, output=NA, param=NA,
   saveRDS(allCellsMeta, 'allCellsMeta.rds')
   saveRDS(scData.unfiltered, "scData.unfiltered.rds")
   saveRDS(param, "param.rds")
-  
-  
+  saveRDS(input, "input.rds")
+  saveRDS(scDataRaw, "scData.raw.rds")
+  remove(scDataRaw, scData.unfiltered, scData)
+  gc()
   makeRmdReport(dataFiles=dataFiles, rmdFile = "SpatialSeurat.Rmd", reportTitle = param$name) 
   return("Success")
 }
 
-
+runBasicProcessing <- function(scData, input, featInfo, param){
+    scData$Condition <- input$getColumn("Condition")
+    scData@meta.data$Sample <- input$getNames()
+    scData[["Spatial"]] <- AddMetaData(object = scData[["Spatial"]], metadata = featInfo[rownames(scData), ])
+    
+    scData_list <- filterCellsAndGenes(scData, param) # return sce objects filtered and unfiltered to show the QC metrics later in the rmd
+    scData <- scData_list$scData
+    scData.unfiltered <- scData_list$scData.unfiltered
+    rm(scData_list)
+    
+    scData <- addCellCycleToSeurat(scData, param$refBuild, BPPARAM, assay = 'Spatial')
+    scData.unfiltered <- addCellCycleToSeurat(scData.unfiltered, param$refBuild, BPPARAM, assay = 'Spatial')
+    scData <- seuratClusteringV3(scData, param, assay="Spatial")
+    return(list(scData = scData, scData.unfiltered = scData.unfiltered))
+}

@@ -23,6 +23,7 @@ library(RColorBrewer)
 library(kableExtra)
 library(clustree)
 library(ezRun)
+library(scater)
 library(SingleCellExperiment)
 knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE, knitr.table.format = "html")
 ```
@@ -31,6 +32,7 @@ knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE, knitr.tabl
 param = readRDS("param.rds")
 scData <- readRDS("scData.rds")
 scData.unfiltered_spatial <- readRDS("scData.unfiltered.rds")
+scDataRaw <- readRDS("scData.raw.rds")
 allCellsMeta <- readRDS("allCellsMeta.rds")
 if(is.null(param$imageEnlargementFactor)){
     param$imageEnlargementFactor <- 1
@@ -91,18 +93,28 @@ if (!is.null(xxAll$percent_riboprot)){
 }
 ```
 
-Spatial QC Plots - cropped version
+**Spatial QC Plots** 
 
-```{r QC plots3, fig.width=28}
-plot5 <- SpatialFeaturePlot(scData.unfiltered_spatial, features = "nCount_Spatial", pt.size.factor = 3 * param$imageEnlargementFactor) + theme(legend.position = "right") + theme(aspect.ratio = myRatio)
-plot6 <- SpatialFeaturePlot(scData.unfiltered_spatial, features = "nFeature_Spatial",  pt.size.factor = 3 * param$imageEnlargementFactor) + theme(legend.position = "right") + theme(aspect.ratio = myRatio)
-plot7 <- SpatialFeaturePlot(scData.unfiltered_spatial, features = "percent_mito",  pt.size.factor = 3 * param$imageEnlargementFactor) + theme(legend.position = "right") + theme(aspect.ratio = myRatio)
-plot8 <- SpatialFeaturePlot(scData.unfiltered_spatial, features = "percent_riboprot",  pt.size.factor = 3 * param$imageEnlargementFactor) + theme(legend.position = "right") + theme(aspect.ratio = myRatio)
+a.) cropped version
 
-plot5 + plot6 + plot7 + plot8 + plot_layout(nrow = 1, ncol = 4)
+```{r QC plots3, fig.width=20, fig.height=10}
+plot5 <- SpatialFeaturePlot(scData.unfiltered_spatial, features = "nCount_Spatial", pt.size.factor = 2 * param$imageEnlargementFactor) + theme(legend.position = "right") + theme(aspect.ratio = myRatio)
+plot6 <- SpatialFeaturePlot(scData.unfiltered_spatial, features = "nFeature_Spatial",  pt.size.factor = 2 * param$imageEnlargementFactor) + theme(legend.position = "right") + theme(aspect.ratio = myRatio)
+plot7 <- SpatialFeaturePlot(scData.unfiltered_spatial, features = "percent_mito",  pt.size.factor = 2 * param$imageEnlargementFactor) + theme(legend.position = "right") + theme(aspect.ratio = myRatio)
+plot8 <- SpatialFeaturePlot(scData.unfiltered_spatial, features = "percent_riboprot",  pt.size.factor = 2 * param$imageEnlargementFactor) + theme(legend.position = "right") + theme(aspect.ratio = myRatio)
+
+plot5 + plot6 + plot7 + plot8 + plot_layout(nrow = 2, ncol = 2)
 ```
 <br/>
 
+b.) based on all spots without image based filtering by SpaceRanger
+
+```{r QC plots4, fig.width=24, fig.height=10}
+plot1 <- SpatialFeaturePlot(scDataRaw, features = "nCount_Spatial", pt.size.factor = 2.5, min.cutoff = 'q1', max.cutoff = 'q50') + theme(legend.position = "right") 
+plot2 <- SpatialFeaturePlot(scDataRaw, features = "nFeature_Spatial", pt.size.factor = 2.5, min.cutoff = 'q1', max.cutoff = 'q50') + theme(legend.position = "right")
+plot1 + plot2 + plot_layout(nrow = 1, ncol = 2)
+```
+<br/>
 
 #### Spots filtering
 
@@ -148,33 +160,6 @@ We also excluded genes that are lowly or not expressed in our system, as they do
 cat("genes kept:", nrow(scData))
 ```
 
-### Dimensionality reduction
-
-Dimensionality reduction aims to reduce the number of separate dimensions in the data. This is possible because different genes are correlated if they are affected by the same biological process. Thus, we do not need to store separate information for individual genes, but can instead compress multiple features into a single dimension. This reduces computational work in downstream analyses, as calculations only need to be performed for a few dimensions rather than thousands of genes; reduces noise by averaging across multiple genes to obtain a more precise representation of the patterns in the data, and enables effective plotting of the data.
-
-<br/>
-
-#### Transforming the data and feature selection
-
-We used the SCtransform method from the Seurat package for normalizing, estimating the variance of the raw filtered data, and identifying the most variable genes. By default, SCtransform accounts for cellular sequencing depth, or nUMIs.
-<br/>
-`r if(ezIsSpecified(param$SCT.regress.CellCycle) && param$SCT.regress.CellCycle) {
-    "We already checked cell cycle and decided that it does represent a major source of variation in our data, and this may influence clustering. Therefore, we regressed out variation due to cell cycle."
-}`
-As a result, SCTransform ranked the genes by residual variance and returned the 3000 most variant genes.
-
-<br/>
-
-#### Principal component analysis
-
-Next, we perform PCA on the scaled data. By default, only the previously determined variable features are used as input but can be defined using the pcGenes argument if you wish to choose a different subset. Seurat clusters spots based on their PCA scores. The top principal components, therefore, represent a robust compression of the dataset. The numbers of PCs that should be retained for downstream analyses typically range from 10 to 50. However, identifying the true dimensionality of a dataset can be challenging, that's why we recommend considering the ‘Elbow plot’ approach. a ranking of principal components based on the percentage of variance explained by each one. The assumption is that each of the top PCs capturing biological signal should explain much more variance than the remaining PCs. Thus, there should be a sharp drop in the percentage of variance explained when we move past the last “biological” PC. This manifests as an elbow in the scree plot, the location of which serves as a natural choice for a number of PCs.
-
-```{r, fig.align='center'}
-ElbowPlot(scData, ndims = 50)
-```
-
-<br/>
-
 ### Clustering
 
 In order to find clusters of spots we first built a graph called K-nearest neighbor (KNN), where each node is a cell that is connected to its nearest neighbors in the high-dimensional space. Edges are weighted based on the similarity between the spots involved, with higher weight given to spots that are more closely related. This step takes as input the previously defined dimensionality of the dataset (first `r param$npcs` PCs). We then applied algorithms to identify “communities” of spots that are more connected to spots in the same community than they are to spots of different communities. Each community represents a cluster that we can use for downstream interpretation. 
@@ -184,9 +169,9 @@ We can visualize the distribution of clusters in UMAP and image space. However, 
 ```{r, fig.height=8, fig.width=20}
 scData$seurat_clusters <- Idents(scData)
 
-p1 <- DimPlot(scData, label = FALSE) + labs(color = "seurat_clusters")
+p1 <- DimPlot(scData, label = FALSE, pt.size = 1.5) + labs(color = "seurat_clusters")
 p1 <- LabelClusters(p1, id = "ident",  fontface = "bold", color = "black", size = 5)
-p2 <- SpatialDimPlot(scData, label = TRUE, label.size = 4, pt.size.factor = 3 * param$imageEnlargementFactor) +
+p2 <- SpatialDimPlot(scData, label = TRUE, label.size = 4, pt.size.factor = 2 * param$imageEnlargementFactor) +
   labs(fill = "seurat_clusters") + theme(aspect.ratio = myRatio)
 
 p1 + p2 + plot_annotation(
@@ -247,6 +232,37 @@ Below, it is shown a clustering tree that helps us to visualize the relationship
 ```{r, fig.align='center', fig.width=6, fig.height=8}
 clustree::clustree(scData, prefix = "SCT_snn_res.")
 ```
+
+
+#### Dimensionality reduction
+
+Dimensionality reduction aims to reduce the number of separate dimensions in the data. This is possible because different genes are correlated if they are affected by the same biological process. Thus, we do not need to store separate information for individual genes, but can instead compress multiple features into a single dimension. This reduces computational work in downstream analyses, as calculations only need to be performed for a few dimensions rather than thousands of genes; reduces noise by averaging across multiple genes to obtain a more precise representation of the patterns in the data, and enables effective plotting of the data.
+
+<br/>
+
+##### Transforming the data and feature selection
+
+We used the SCtransform method from the Seurat package for normalizing, estimating the variance of the raw filtered data, and identifying the most variable genes. By default, SCtransform accounts for cellular sequencing depth, or nUMIs.
+<br/>
+`r if(ezIsSpecified(param$SCT.regress.CellCycle) && param$SCT.regress.CellCycle) {
+    "We already checked cell cycle and decided that it does represent a major source of variation in our data, and this may influence clustering. Therefore, we regressed out variation due to cell cycle."
+}`
+As a result, SCTransform ranked the genes by residual variance and returned the 3000 most variant genes.
+
+<br/>
+
+##### Principal component analysis
+
+Next, we perform PCA on the scaled data. By default, only the previously determined variable features are used as input but can be defined using the pcGenes argument if you wish to choose a different subset. Seurat clusters spots based on their PCA scores. The top principal components, therefore, represent a robust compression of the dataset. The numbers of PCs that should be retained for downstream analyses typically range from 10 to 50. However, identifying the true dimensionality of a dataset can be challenging, that's why we recommend considering the ‘Elbow plot’ approach. a ranking of principal components based on the percentage of variance explained by each one. The assumption is that each of the top PCs capturing biological signal should explain much more variance than the remaining PCs. Thus, there should be a sharp drop in the percentage of variance explained when we move past the last “biological” PC. This manifests as an elbow in the scree plot, the location of which serves as a natural choice for a number of PCs.
+
+```{r, fig.align='center'}
+ElbowPlot(scData, ndims = 50)
+```
+
+<br/>
+
+
+
 
 ### Cluster markers
 

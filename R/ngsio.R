@@ -280,44 +280,38 @@ load10xSC_seurat <- function(input, param){
 }
 
 load10xSpatialData <- function(input, param){
-  img = Read10X_Image(file.path(input$getFullPaths("ResultDir"),"spatial"), image.name = "tissue_hires_image.png")
-  param$imageEnlargementFactor <- img@scale.factors$hires/img@scale.factors$lowres
-  img@scale.factors$lowres <- img@scale.factors$hires # it is better to set the scale factors this way.
-  scData <- Load10X_Spatial(input$getFullPaths("ResultDir"), image = img)
+  require(SpotClean)
+  require(S4Vectors)
+  
+  data_raw <- read10xRaw(file.path(input$getFullPaths("ResultDir"), "raw_feature_bc_matrix"))
+  data_slide_info <- read10xSlide(file.path(input$getFullPaths("ResultDir"),"spatial", "tissue_positions.csv"),
+                                  file.path(input$getFullPaths("ResultDir"),"spatial", "tissue_hires_image.png"),
+                                  file.path(input$getFullPaths("ResultDir"),"spatial", "scalefactors_json.json"))
+  
+  missingBarcodes <- setdiff(data_slide_info$slide$barcode, colnames(data_raw))
+  if(length(missingBarcodes) > 0)
+      data_slide_info$slide <- data_slide_info$slide[!(data_slide_info$slide$barcode %in% missingBarcodes),]
+  data_obj <- createSlide(count_mat = data_raw, slide_info = data_slide_info)
+  scDataRaw <- convertToSeurat(data_obj,image_dir = file.path(input$getFullPaths("ResultDir"),"spatial"), filter_matrix = FALSE)
+  
+  if(param$spotClean){
+      # Decontaminate raw data
+      decont_obj <- spotclean(data_obj)
+      scData <- convertToSeurat(decont_obj,image_dir = file.path(input$getFullPaths("ResultDir"),"spatial"))
+      param$imageEnlargementFactor <- 1
+  } else {
+      img = Read10X_Image(file.path(input$getFullPaths("ResultDir"),"spatial"), image.name = "tissue_hires_image.png")
+      param$imageEnlargementFactor <- img@scale.factors$hires/img@scale.factors$lowres
+      img@scale.factors$lowres <- img@scale.factors$hires # it is better to set the scale factors this way.
+      scData <- Load10X_Spatial(input$getFullPaths("ResultDir"), image = img)
+  }
   
   ## unique cell names when merging two samples
   scData <- RenameCells(scData, paste(input$getNames(), colnames(scData), sep="___"))
   scData$Batch <- input$getNames()
+  
   try(scData$Condition <- input$getColumn("Condition"), silent = TRUE)
-  return(list(scData, param))
-}
-
-load10xSpatialDataAndRunSpotClean <- function(input, param){
-    require(SpotClean)
-    require(S4Vectors)
-    
-    data_raw <- read10xRaw(file.path(input$getFullPaths("ResultDir"), "raw_feature_bc_matrix"))
-    data_slide_info <- read10xSlide(file.path(input$getFullPaths("ResultDir"),"spatial", "tissue_positions.csv"),
-                                    file.path(input$getFullPaths("ResultDir"),"spatial", "tissue_hires_image.png"),
-                                    file.path(input$getFullPaths("ResultDir"),"spatial", "scalefactors_json.json"))
-    
-    missingBarcodes <- setdiff(data_slide_info$slide$barcode, colnames(data_raw))
-    if(length(missingBarcodes) > 0){
-        data_slide_info$slide <- data_slide_info$slide[!(data_slide_info$slide$barcode %in% missingBarcodes),]
-    }
-    
-    data_obj <- createSlide(count_mat = data_raw, slide_info = data_slide_info)
-    
-    # Decontaminate raw data
-    decont_obj <- spotclean(data_obj)
-    scData <- convertToSeurat(decont_obj,image_dir = file.path(input$getFullPaths("ResultDir"),"spatial"))
-    
-    #scData <- Load10X_Spatial(input$getFullPaths("ResultDir"), slice = input$getNames())
-    ## unique cell names when merging two samples
-    scData <- RenameCells(scData, paste(input$getNames(), colnames(scData), sep="___"))
-    scData$Batch <- input$getNames()
-    try(scData$Condition <- input$getColumn("Condition"), silent = TRUE)
-    return(scData)
+  return(list(scData = scData, scDataRaw = scDataRaw, param = param))
 }
 
 ##' @title Writes the head of a file
