@@ -110,8 +110,13 @@ plot5 + plot6 + plot7 + plot8 + plot_layout(nrow = 2, ncol = 2)
 b.) based on all spots without image based filtering by SpaceRanger
 
 ```{r QC plots4, fig.width=24, fig.height=10}
-plot1 <- SpatialFeaturePlot(scDataRaw, features = "nCount_Spatial", pt.size.factor = 2 * param$imageEnlargementFactor, min.cutoff = 'q1', max.cutoff = 'q50') + theme(legend.position = "right") 
-plot2 <- SpatialFeaturePlot(scDataRaw, features = "nFeature_Spatial", pt.size.factor = 2 * param$imageEnlargementFactor, min.cutoff = 'q1', max.cutoff = 'q50') + theme(legend.position = "right")
+if(param$imageEnlargementFactor >= 1.5){
+plot1 <- SpatialFeaturePlot(scDataRaw, features = "nCount_Spatial", pt.size.factor = 2.5, min.cutoff = 'q1', max.cutoff = 'q50') + theme(legend.position = "right") 
+plot2 <- SpatialFeaturePlot(scDataRaw, features = "nFeature_Spatial", pt.size.factor = 2.5, min.cutoff = 'q1', max.cutoff = 'q50') + theme(legend.position = "right")
+} else {
+    plot1 <- SpatialFeaturePlot(scDataRaw, features = "nCount_Spatial", pt.size.factor = 2.5 * param$imageEnlargementFactor, min.cutoff = 'q1', max.cutoff = 'q50') + theme(legend.position = "right") 
+    plot2 <- SpatialFeaturePlot(scDataRaw, features = "nFeature_Spatial", pt.size.factor = 2.5 * param$imageEnlargementFactor, min.cutoff = 'q1', max.cutoff = 'q50') + theme(legend.position = "right")  
+}
 plot1 + plot2 + plot_layout(nrow = 1, ncol = 2)
 ```
 <br/>
