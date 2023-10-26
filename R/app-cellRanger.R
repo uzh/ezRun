@@ -240,7 +240,7 @@ getCellRangerGEXReference <- function(param) {
   cwd <- getwd()
   on.exit(setwd(cwd), add = TRUE)
   
-  if (ezIsSpecified(param$controlSeqs)) {
+  if (ezIsSpecified(param$controlSeqs) | ezIsSpecified(param$secondRef)) {
     refDir <- file.path(getwd(), "10X_customised_Ref")
   } else {
     if (ezIsSpecified(param$transcriptTypes)) {
@@ -293,6 +293,19 @@ getCellRangerGEXReference <- function(param) {
                     append = TRUE
     )
     on.exit(file.remove(genomeLocalFn), add = TRUE)
+  } else if(ezIsSpecified(param$secondRef)){
+      ## make reference genome
+      genomeLocalFn <- tempfile(
+          pattern = "genome", tmpdir = getwd(),
+          fileext = ".fa"
+      )
+      file.copy(from = param$ezRef@refFastaFile, to = genomeLocalFn)
+      secondaryRef  <- readDNAStringSet(param$secondRef)
+      writeXStringSet(secondaryRef,
+                      filepath = genomeLocalFn,
+                      append = TRUE
+      )
+      on.exit(file.remove(genomeLocalFn), add = TRUE) 
   } else {
     genomeLocalFn <- param$ezRef@refFastaFile
   }
@@ -309,8 +322,8 @@ getCellRangerGEXReference <- function(param) {
   } else {
     file.copy(from = param$ezRef@refFeatureFile, to = gtfFile)
   }
-  if (ezIsSpecified(param$controlSeqs)) {
-    extraGR <- makeExtraControlSeqGR(param$controlSeqs)
+  if (ezIsSpecified(param$controlSeqs)|ezIsSpecified(param$secondRef)) {
+    extraGR <- makeExtraControlSeqGR(param)
     gtfExtraFn <- tempfile(
       pattern = "extraSeqs", tmpdir = getwd(),
       fileext = ".gtf"

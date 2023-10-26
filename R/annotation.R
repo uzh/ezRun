@@ -424,8 +424,13 @@ getBlacklistedRegions <- function(refBuild=c("hg38", "hg19", "mm10", "mm9",
 ### -----------------------------------------------------------------
 ### Functions for control sequences
 ###
-makeExtraControlSeqGR <- function(ids=NULL){
-  controlSeqs <- getControlSeqs(ids)
+makeExtraControlSeqGR <- function(param){
+  if(ezIsSpecified(param$controlSeqs)){
+    ids <- param$controlSeqs  
+    controlSeqs <- getControlSeqs(ids)
+  } else if(ezIsSpecified(param$secondRef)){
+      controlSeqs <- readDNAStringSet(param$secondRef)  
+  }
   txids <- rep(paste0("Transcript_",names(controlSeqs)), each=4)
   txids[seq(1, length(txids), by=4)] <- NA
   transcript_biotype <- rep("protein_coding", length(txids))
