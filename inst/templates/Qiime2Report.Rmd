@@ -170,7 +170,7 @@ print(plot_grid(plotGrob, nrow=1, ncol=1, rel_heights=c(1, 15)))
 </br>
 Also lets look at the prevalence of different taxa before and after filtering. This function allows you to have an overview of ASV prevalences along with their taxonomic affiliations. It also gives an idea about the taxonomic affiliation of rare and abundant taxa in the data. This will aid in checking if you filter ASVs based on prevalence, then what taxonomic affiliations will be lost.
 
-```{r, fig.width = 15, fig.height = 5, echo=FALSE}
+```{r, fig.width = 15, fig.height = 7, echo=FALSE}
 p1 <- plot_taxa_prevalence(physeq, "Phylum") + ggtitle("No prevalence filtering")
 p2 <- plot_taxa_prevalence(physeq1, "Phylum") + ggtitle("Present in at least 10% of samples")
 
@@ -212,6 +212,8 @@ SV1 <- SVs %>%
   left_join(taxonomy) %>%
   mutate(Feature=paste(Feature.ID, Taxon)) %>%
   mutate(Feature=gsub("[kpcofgs]__", "", Feature)) # trim out leading text from taxonomy string
+
+SV1$Genus = str_remove_all(SV1$Genus,"[\\[\\]]")
 
 p1 <- ggplot(SV1, aes(x=SampleID, y=Feature, fill=NormAbundance)) +
   geom_tile() +
@@ -271,24 +273,19 @@ For interactive barplots look here:
 
 </br>
 
-```{r, fig.width = 10, echo=FALSE}
-p1 <- ggplot(physeq1, aes(x = Sample, y = Abundance, fill = Genus)) +
-  geom_bar(position = "fill", stat = "identity") +
-  scale_y_continuous(labels = percent_format()) +
-  theme(legend.position = "right", text=element_text(size=7),
-        axis.text.x = element_text(angle=90, vjust=1)) +
-  guides(fill = guide_legend(ncol=4)) +
-  ggtitle("Abundance") +
-  xlab("Sample ID") + ylab("Proportion")
+```{r, fig.width = 15, fig.height=11, echo=FALSE}
 
-p2 <- ggplot(physeq_Genus2, aes(x = Sample, y = Abundance, fill = Genus)) +
-  geom_bar(position = "fill", stat = "identity") +
-  scale_y_continuous(labels = percent_format()) +
-  theme(legend.position = "right", text=element_text(size=7),
-        axis.text.x = element_text(angle=90, vjust=1)) +
-  guides(fill = guide_legend(ncol=4)) +
-  ggtitle("Abundance") +
-  xlab("Sample ID") + ylab("Proportion")
+p1 = psmelt(physeq1) %>%
+    ggplot(aes(x = Sample, y = Abundance, fill = Genus)) +
+    geom_bar(stat = "identity") +
+    theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5)) +
+    labs(y = "Relative Abundance", title = "Genus Relative Abundance")
+
+p2 = psmelt(physeq_Genus2) %>%
+    ggplot(aes(x = Sample, y = Abundance, fill = Genus)) +
+    geom_bar(stat = "identity") +
+    theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5)) +
+    labs(y = "Relative Abundance", title = "Genus Relative Abundance")
 
 plotGrob <- plot_grid(p1, p2, nrow=2, ncol=1, byrow=FALSE)
 print(plot_grid(plotGrob, nrow=1, ncol=1, rel_heights=c(1, 15)))
@@ -302,7 +299,7 @@ It would also be useful to look at how the different lineages in the sample are 
 ```{r, fig.width = 15, echo=FALSE}
 melt_simple <- psmelt(physeq1) %>%
                filter(Abundance < 50) %>%
-               select(OTU, val=Abundance)
+               dplyr::select(OTU, val=Abundance)
 
 p <- ggtree(physeq1, layout="fan", open.angle=10) + 
      geom_tippoint(mapping=aes(color=Genus), 
@@ -439,19 +436,19 @@ metadata <- metadata %>% left_join(shannon) %>% left_join(richness) %>% left_joi
 fig <- ggplot(metadata, aes(x=metadata[,grouping], y=shannon_entropy)) + 
   geom_boxplot() + 
   geom_jitter(shape=21, width=0.2, height=0) + 
-  xlab(grouping) 
+  xlab(grouping)  + theme(axis.text.x = element_text(size= 8))
 fig <- ggplotly(fig)
 
 fig2 <- ggplot(metadata, aes(x=metadata[,grouping], y=observed_features)) + 
   geom_boxplot() + 
   geom_jitter(shape=21, width=0.2, height=0) + 
-  xlab(grouping) 
+  xlab(grouping)  + theme(axis.text.x = element_text(size= 8))
 fig2 <- ggplotly(fig2)
 
 fig3 <- ggplot(metadata, aes(x=metadata[,grouping], y=pielou_evenness)) + 
   geom_boxplot() + 
   geom_jitter(shape=21, width=0.2, height=0) + 
-  xlab(grouping) 
+  xlab(grouping)  + theme(axis.text.x = element_text(size= 8))
 fig3 <- ggplotly(fig3)
 
 annotations = list( 
@@ -751,7 +748,8 @@ Do we see a lot of rare taxa?
 ```{r, fig.width = 5, fig.height = 5, echo=FALSE}
 medians <- apply(otu_table(physeq1),1,median)/1e3
 A <- reshape2::melt(otu_table(physeq1))
-A$Var1 <- factor(A$Var1, levels = rev(names(sort(medians))))
+A = A %>% arrange(desc(value))
+A$Var1 = factor(A$Var1, levels = unique(A$Var1))
 p <- ggplot(A, aes(x = Var1, y = value)) +
         geom_boxplot() + theme(axis.text.x = element_blank()) +
     labs(y = "Abundance (reads)", x = "Taxonomic Group") +
