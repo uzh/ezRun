@@ -88,7 +88,8 @@ params = readRDS("param.rds")
 grouping <- "Group"
 
 
-#Reports
+#Reports, all the loaded reports from QIIME2
+#comment added to check if ezRun detected this push
 demux <-"./demux_seqs.qzv.zip.folder/data/index.html"
 denoise <- "./dada2_denoising_stats.qzv.zip.folder/data/index.html"
 asv_table <- "./table.qzv.zip.folder/data/index.html"
