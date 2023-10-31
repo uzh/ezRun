@@ -198,7 +198,7 @@ ezComputeBias = function(dsFile, dsName=NULL, param=NULL, qcSummaryDir="/srv/GT/
     ptLabels = 1:nrow(meta)
   }
   
-  countDs$"Read Count"[countDs$"Read Count" > param$nReads] = param$nReads
+  countDs$"Read Count"[countDs$"Read Count" > param$maxReadsPerSample] = param$maxReadsPerSample
     
   widthEffect = shrinkToRange(widthEffect, c(-1, 1))
   gcEffect = shrinkToRange(gcEffect, c(-1, 1))
