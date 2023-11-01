@@ -96,6 +96,17 @@ ezMethodScSeuratCombine = function(input=NA, output=NA, param=NA, htmlFile="00in
     if (param$integrationMethod == "Harmony" && 
         length(unique(input$meta$`Condition`)) == 1) {
       scData$Condition <- scData$Sample
+    } else if (param$integrationMethod == "STACAS" && 
+               ezIsSpecified(param$STACASAnnotationFile)) {
+      clusterAnnoFn <- file.path(param$dataRoot, param$STACASAnnotationFile)
+      clusterAnno <- readxl::read_xlsx(clusterAnnoFn) %>% 
+        as_tibble() %>%
+        dplyr::select(1:3) %>% # remove all other columns
+        dplyr::rename(c("Sample"=1, "Cluster"=2, "ClusterLabel"=3)) %>%
+        dplyr::filter(Sample == sm)
+      labelMap <- as.character(clusterAnno$ClusterLabel)
+      names(labelMap) <- as.character(clusterAnno$Cluster)
+      scData$stacasLabelColumn <- unname(labelMap[as.character(scData$seurat_clusters)])
     }
     # Also add the other factors in the input dataset to the objects
     if (!is.null(param$harmonyFactors)) {

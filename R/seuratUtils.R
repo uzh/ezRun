@@ -115,7 +115,6 @@ cellClustNoCorrection <- function(scDataList, param) {
 }
 
 cellClustWithCorrection <- function (scDataList, param) {
-  require(harmony)
   
   if(param[['name']] == 'SpatialSeuratSlides')
     assay = "Spatial"
@@ -151,7 +150,36 @@ cellClustWithCorrection <- function (scDataList, param) {
     
     #3. Run the standard workflow for visualization and clustering
     seurat_integrated <- seuratStandardWorkflow(seurat_integrated, param)
+  } else if (param$integrationMethod == "STACAS") {
+    require(STACAS)
+    #2.2 Merge normalized samples
+    scDataList <- PrepSCTIntegration(object.list = scDataList, 
+                                     anchor.features = integ_features)
+    #2.3 Find anchor tree, either using prior label information or without
+    if (ezIsSpecified(param$STACASAnnotationFile)) {
+      stacas_anchors <- FindAnchors.STACAS(scDataList, 
+                                           anchor.features = integ_features,
+                                           cell.labels = "stacasLabelColumn",
+                                           dims = 1:param$npcs)
+      isSemisupervised <- TRUE
+    } else {
+      stacas_anchors <- FindAnchors.STACAS(scDataList, 
+                                           anchor.features = integ_features,
+                                           dims = 1:param$npcs)
+      isSemisupervised <- FALSE
+    }
+    st1 <- SampleTree.STACAS(anchorset = stacas_anchors,
+                             obj.names = sapply(scDataList, function(scData) {return(unique(scData$Sample))}))
+    #2.4 Integration
+    seurat_integrated <- IntegrateData.STACAS(stacas_anchors,
+                                              sample.tree = st1,
+                                              semisupervised=isSemisupervised,
+                                              dims=1:param$npcs)
+    seurat_integrated <- ScaleData(seurat_integrated)
+    #3. Run the standard workflow for visualization and clustering
+    seurat_integrated <- seuratStandardWorkflow(seurat_integrated, param)
   } else if (param$integrationMethod == "Harmony") {
+    require(harmony)
     #2.2 Merge normalized samples
     scData <- merge(x = scDataList[[1]],
                     y = scDataList[2:length(scDataList)],
