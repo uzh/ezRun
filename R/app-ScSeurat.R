@@ -194,7 +194,11 @@ ezMethodScSeurat <- function(input = NA, output = NA, param = NA,
     rawDir <- sub("filtered_", "raw_", cmDir)
   }
   if (file.exists(rawDir) && rawDir != cmDir){
-    rawCts <- Read10X(rawDir, gene.column = 1)
+    if(param$cellbender){
+        rawCts <- Read10X_h5(file.path(dirname(cmDir), 'cellbender_raw_seurat.h5'))
+    } else {
+        rawCts <- Read10X(rawDir, gene.column = 1)
+    }
     if (is.list(rawCts)) {
       rawCts <- rawCts$`Gene Expression`
       rawCts <- rawCts[featInfo$gene_id,]
