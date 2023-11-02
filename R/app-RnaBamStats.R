@@ -460,7 +460,7 @@ getStatsFromBamSingleChrom = function(chrom, param, bamFile, sm,
   if(param$paired && length(reads) > 0){
     pairedNames = ezScanBam(bamFile, seqname=chrom,
                             isFirstMateRead=TRUE, isSecondMateRead=FALSE,
-                            isProperPair=TRUE, isUnmappedQuery=FALSE,
+                            isProperPair=param$keepProperPairsOnly, isUnmappedQuery=FALSE,
                             isDuplicate=!param$ignoreDup, what="qname")$qname
     use = names(reads) %in% pairedNames
     result$fragSizeHist = intHist(width(reads)[use],

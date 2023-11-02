@@ -195,7 +195,7 @@ ezMethodScSeurat <- function(input = NA, output = NA, param = NA,
   }
   if (file.exists(rawDir) && rawDir != cmDir){
     if(param$cellbender){
-        rawCts <- Read10X_h5(file.path(dirname(cmDir), 'cellbender_raw_seurat.h5'))
+        rawCts <- Read10X_h5(file.path(dirname(cmDir), 'cellbender_raw_seurat.h5'), use.names = FALSE)
     } else {
         rawCts <- Read10X(rawDir, gene.column = 1)
     }

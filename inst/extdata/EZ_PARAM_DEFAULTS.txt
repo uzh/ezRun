@@ -60,6 +60,7 @@ backgroundExpression	numeric	10	expression baseline value that is added before c
 allPairsMaxCondNumber	integer	10	
 paired	logical	FALSE	if data should be analysed as paired-end data
 keepUnpaired	character	both	if unpaired alignments of paired-end reads should be kept
+keepProperPairsOnly	logical	TRUE	count only proper read pairs in RNABamStats
 minSignal	integer	5	numbers below that value will be given random small numbers
 # read handling
 cut_front	logical	FALSE	fastp option move a sliding window from front (5p) to tail, drop the bases in the window if its mean quality < threshold, stop otherwise.
