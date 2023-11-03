@@ -17,18 +17,21 @@ ezMethodCellRanger <- function(input = NA, output = NA, param = NA) {
   if (ezIsSpecified(param$nReads) && param$nReads > 0)
     sampleDirs <- sapply(sampleDirs, subsample, param)
   
-  sampleDirs <- normalizePath(sampleDirs)
+  sampleDirs <- normalizePath(sampleDirs) %>% 
+    unique(.)  # necessary if multiple .tar files exist per Gstore directory
   
   #2.1 Fix FileNames if sampleName in dataset was changed
-  fileLevelDirs <- list.files(sampleDirs)
-  if(any(fileLevelDirs != sampleName)){
-      for (k in 1:length(fileLevelDirs)){
-        setwd(sampleDirs[k])
-        ezSystem(paste('mv', fileLevelDirs[k], sampleName))
-        cmd <- paste('rename', paste0('s/',fileLevelDirs[k],'/',sampleName, '/'), paste0(sampleName,'/*.gz'))
-        ezSystem(cmd)
-        setwd('..')
-      }
+  fileLevelDirs <- normalizePath(list.files(path=sampleDirs, full.names=TRUE))
+  cwd <- getwd()
+  if(any(basename(fileLevelDirs) != sampleName)) {
+    for (fileLevelDir in fileLevelDirs) {
+      setwd(fileLevelDir)
+      cmd <- paste('rename', 
+                   paste0('s/', basename(fileLevelDir),'/',sampleName, '/g'), 
+                   paste0(basename(fileLevelDir),'*.gz'))
+      ezSystem(cmd)
+    }
+    setwd(cwd)
   }
   
   
