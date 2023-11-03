@@ -515,7 +515,7 @@ getBamMultiMatching <- function(param, bamFile, nReads = NULL) {
     #                       first=scanBamFlag(isFirstMateRead=TRUE, isUnmappedQuery=FALSE),
     #                       second=scanBamFlag(isSecondMateRead=TRUE, isUnmappedQuery=FALSE))
     bamFlag(paramBam) <- scanBamFlag(
-      isFirstMateRead = TRUE, isProperPair = TRUE,
+      isFirstMateRead = TRUE, isProperPair = param$keepProperPairsOnly,
       isUnmappedQuery = FALSE
     )
   }

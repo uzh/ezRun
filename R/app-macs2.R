@@ -133,7 +133,8 @@ EzAppMacs2 <-
                   runMethod <<- ezMethodMacs2
                   name <<- "EzAppMacs2"
                   appDefaults <<- rbind(useControl=ezFrame(Type="logical", DefaultValue="TRUE",	Description="should control samples be used"),
-                                        shiftATAC=ezFrame(Type="logical", DefaultValue="FALSE",	Description="should all reads aligning to + strand were offset by +4bp, all reads aligning to the - strand are offset -5 bp"))
+                                        shiftATAC=ezFrame(Type="logical", DefaultValue="FALSE",	Description="should all reads aligning to + strand were offset by +4bp, all reads aligning to the - strand are offset -5 bp"),
+                                        annotatePeaks=ezFrame(Type="logical", DefaultValue="TRUE",	Description="use gtf to annotate peaks"))
                 }
               )
   )
@@ -155,6 +156,11 @@ annotatePeaks = function(peakFile, peakSeqFile, param) {
   }
   data = data[order(data$chr,data$start), ]
 
+  if(!param$annotatePeaks){
+      ezWrite.table(data, peakFile, row.names = F)
+      return('done')
+  }
+  
   gtfFile = param$ezRef@refFeatureFile
   gtf = rtracklayer::import(gtfFile)
   idx = gtf$type == 'gene'
@@ -198,6 +204,7 @@ annotatePeaks = function(peakFile, peakSeqFile, param) {
   annotatedPeaks = merge(annotatedPeaks, dustyScores, by.x = 'name', by.y = 'ID', all.x = TRUE)
   annotatedPeaks = annotatedPeaks[!duplicated(annotatedPeaks$name),]
   ezWrite.table(annotatedPeaks, peakFile, row.names = F)
+  return('done')
 }
 
 ### import Macs2's BED6+4 file: narrowPeak or broadPeak

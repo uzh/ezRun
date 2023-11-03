@@ -96,8 +96,7 @@ ezMethodScSeuratCombine = function(input=NA, output=NA, param=NA, htmlFile="00in
     if (param$integrationMethod == "Harmony" && 
         length(unique(input$meta$`Condition`)) == 1) {
       scData$Condition <- scData$Sample
-    } else if (param$integrationMethod == "STACAS" && 
-               ezIsSpecified(param$STACASAnnotationFile)) {
+    } else if (ezIsSpecified(param$STACASAnnotationFile)) {
       clusterAnnoFn <- file.path(param$dataRoot, param$STACASAnnotationFile)
       clusterAnno <- readxl::read_xlsx(clusterAnnoFn) %>% 
         as_tibble() %>%
