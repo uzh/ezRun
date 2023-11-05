@@ -10,18 +10,26 @@ ezMethodCellRanger <- function(input = NA, output = NA, param = NA) {
   sampleDirs <- sort(getFastqDirs(input, "RawDataDir",sampleName))
  
   #1. decompress tar files if they are in tar format
-  if (all(grepl("\\.tar$", sampleDirs)))
-    sampleDirs <- deCompress(sampleDirs)
+  if (all(grepl("\\.tar$", sampleDirs))) {
+    runDirs <- tarExtract(sampleDirs, prependUnique=TRUE)
+  } else {
+    stop("Require inputs to be provided in .tar files.")
+  }
+  
+  #1.1 check validity of inputs
+  runDirs <- normalizePath(runDirs)
+  
+  fileLevelDirs <- normalizePath(list.files(path=runDirs, full.names=TRUE))
+  if (any(fs::is_file(fileLevelDirs))) {
+    stop(sprintf("Fastq files need to nested inside a folder sharing the samplename. Offending samples: %s", 
+                 paste(fileLevelDirs[fs::is_file(fileLevelDirs)], collapse=", ")))
+  }
   
   #2. Subsample if chosen
   if (ezIsSpecified(param$nReads) && param$nReads > 0)
-    sampleDirs <- sapply(sampleDirs, subsample, param)
-  
-  sampleDirs <- normalizePath(sampleDirs) %>% 
-    unique(.)  # necessary if multiple .tar files exist per Gstore directory
+    fileLevelDirs <- sapply(fileLevelDirs, subsample, param)
   
   #2.1 Fix FileNames if sampleName in dataset was changed
-  fileLevelDirs <- normalizePath(list.files(path=sampleDirs, full.names=TRUE))
   cwd <- getwd()
   if(any(basename(fileLevelDirs) != sampleName)) {
     for (fileLevelDir in fileLevelDirs) {
@@ -34,9 +42,7 @@ ezMethodCellRanger <- function(input = NA, output = NA, param = NA) {
     setwd(cwd)
   }
   
-  
-  
-  sampleDir <- paste(sampleDirs, collapse = ",")
+  fileLevelDir <- paste(fileLevelDirs, collapse = ",")
   cellRangerFolder <- str_sub(sampleName, 1, 45) %>% str_c("-cellRanger")
   
   #3.Generate the cellranger command with the required arguments
@@ -48,7 +54,7 @@ ezMethodCellRanger <- function(input = NA, output = NA, param = NA) {
            cmd <- paste(
              "cellranger count", paste0("--id=", cellRangerFolder),
              paste0("--transcriptome=", refDir),
-             paste0("--fastqs=", sampleDir),
+             paste0("--fastqs=", fileLevelDir),
              paste0("--sample=", sampleName),
              paste0("--localmem=", param$ram),
              paste0("--localcores=", param$cores),
@@ -64,7 +70,7 @@ ezMethodCellRanger <- function(input = NA, output = NA, param = NA) {
            cmd <- paste(
              "cellranger vdj", paste0("--id=", cellRangerFolder),
              paste0("--reference=", refDir),
-             paste0("--fastqs=", sampleDir),
+             paste0("--fastqs=", fileLevelDir),
              paste0("--sample=", sampleName),
              paste0("--localmem=", param$ram),
              paste0("--localcores=", param$cores)
@@ -93,7 +99,7 @@ ezMethodCellRanger <- function(input = NA, output = NA, param = NA) {
            featureDirs <- normalizePath(featureDirs)
            
            #3.5. Create library file that contains the sample and feature dirs location
-           libraryFn <- createLibraryFile(sampleDirs, featureDirs, sampleName, featureName)
+           libraryFn <- createLibraryFile(fileLevelDirs, featureDirs, sampleName, featureName)
            
            #3.6. Command
            cmd <- paste(
@@ -126,7 +132,7 @@ ezMethodCellRanger <- function(input = NA, output = NA, param = NA) {
   }
   
   #7. Delete temp files and rename the final cellranger output folder
-  unlink(basename(sampleDirs), recursive = TRUE)
+  unlink(dirname(runDirs), recursive = TRUE)
   if (exists("featureDirs")){
     unlink(basename(featureDirs))
   }
@@ -157,18 +163,6 @@ ezMethodCellRanger <- function(input = NA, output = NA, param = NA) {
 getFastqDirs <- function(input, column, sampleName) {
   fastqDirs <- strsplit(input$getColumn(column), ",")[[sampleName]]
   fastqDirs <- file.path(input$dataRoot, fastqDirs)
-  return(fastqDirs)
-}
-
-deCompress = function(fastqDirs){
-  fastqDirs = sapply(fastqDirs, function(scTar){
-    targetDir = basename(dirname(scTar))
-    res <- untar(scTar, exdir = targetDir, tar=system("which tar", intern=TRUE))
-    if (res > 0) {
-      stop(sprintf("There was an error unpacking '%s' into '%s'. See warnings.", scTar, targetDir))
-    }
-    return(targetDir)
-  })
   return(fastqDirs)
 }
 

@@ -862,6 +862,24 @@ subsampleCountMatrix <- function(counts, targetCount, seed){
   return(counts)
 }
 
+
+tarExtract = function(tarArchives, prependUnique=FALSE){
+  fastqDirs = sapply(1:length(tarArchives), function(tar_i){
+    tarArchive <- tarArchives[tar_i]
+    targetDir = basename(dirname(tarArchive))
+    if (prependUnique) {
+      targetDir <- file.path(sprintf("run%s", tar_i), targetDir)
+    }
+    res <- untar(tarArchive, exdir = targetDir, tar=system("which tar", intern=TRUE))
+    if (res > 0) {
+      stop(sprintf("There was an error unpacking '%s' into '%s'. See warnings.", scTar, targetDir))
+    }
+    return(targetDir)
+  })
+  return(fastqDirs)
+}
+
+
 ezSessionInfo <- function(){
     ezRunDetails = library(help = ezRun)
     RemoteSha <- sub('.*\\s+','',ezRunDetails$info[[1]][grep('RemoteSha', ezRunDetails$info[[1]])])
