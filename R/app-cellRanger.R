@@ -9,7 +9,7 @@ ezMethodCellRanger <- function(input = NA, output = NA, param = NA) {
   sampleName <- input$getNames()
   sampleDirs <- sort(getFastqDirs(input, "RawDataDir",sampleName))
  
-  #1. decompress tar files if they are in tar format
+  #1. extract tar files if they are in tar format
   if (all(grepl("\\.tar$", sampleDirs))) {
     runDirs <- tarExtract(sampleDirs, prependUnique=TRUE)
   } else {

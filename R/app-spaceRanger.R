@@ -34,9 +34,12 @@ ezMethodSpaceRanger <- function(input=NA, output=NA, param=NA){
   sampleNameFQ <- sub('.tar', '', basename(sampleDirs))
   finalSampleName <-sampleName
   
-  # decompress tar files if they are in tar format
-  if (all(grepl("\\.tar$", sampleDirs)))
-    sampleDirs <- deCompress(sampleDirs)
+  # extract tar files if they are in tar format
+  if (all(grepl("\\.tar$", sampleDirs))) {
+      sampleDirs <- tarExtract(sampleDirs, prependUnique=TRUE)
+  } else {
+      stop("Require inputs to be provided in .tar files.")
+  }
   
   sampleDirs <- normalizePath(sampleDirs)
   sampleDir <- paste(sampleDirs, collapse = ",")
@@ -120,14 +123,5 @@ ezMethodSpaceRanger <- function(input=NA, output=NA, param=NA){
 getFastqDirs <- function(input, column, sampleName) {
   fastqDirs <- strsplit(input$getColumn(column), ",")[[sampleName]]
   fastqDirs <- file.path(input$dataRoot, fastqDirs)
-  return(fastqDirs)
-}
-
-deCompress = function(fastqDirs){
-  fastqDirs = sapply(fastqDirs, function(scTar){
-    targetDir = basename(dirname(scTar))
-    untar(scTar, exdir = targetDir, tar=system("which tar", intern=TRUE))
-    return(targetDir)
-  })
   return(fastqDirs)
 }
