@@ -44,6 +44,12 @@ if (file.exists("singler.results.rds")){
 } else {
   singler.results <- NULL
 }
+if (file.exists("aziResults.rds")){
+  aziResults <- readRDS("aziResults.rds")
+  scData <- AddMetaData(scData, aziResults)
+} else {
+  aziResults <- NULL
+}
 if (file.exists("cells.AUC.rds")){
   cells.AUC <- readRDS("cells.AUC.rds")
 } else {
@@ -241,13 +247,18 @@ Here, we use a heatmap and a dotplot to visualize simultaneously the top 5 marke
 
 <br/>
 
-```{r heatmap, fig.width=12, fig.height=length(levels(Idents(scData)))}
+```{r marker plot setup}
 top5 <- posMarkers %>% group_by(cluster) 
 top5 <- slice_max(top5, n = 5, order_by = avg_log2FC)
 genesToPlot <- c(gsub("_", "-", param$controlSeqs), unique(as.character(top5$gene)))
 genesToPlot <- intersect(genesToPlot, rownames(scData))
+```
 
+```{r marker heatmap, fig.width=12, fig.height=length(levels(Idents(scData)))}
 DoHeatmap(scData, features=unique(genesToPlot))
+```
+
+```{r marker dotplot, fig.width=12, fig.height=length(levels(Idents(scData)))}
 DotPlot(scData, features=genesToPlot) + coord_flip()
 ```
 
@@ -261,8 +272,6 @@ jsCall = paste0('enrich({list: "', sapply(genesPerCluster, paste, collapse="\\n"
 enrichrCalls <- paste0("<a href='javascript:void(0)' onClick='", jsCall, 
                          "'>Analyse at Enrichr website</a>")
 ```
-
-
 
 ```{r enrichr markers, echo=FALSE, results='asis'}
 enrichrTable <- tibble(Cluster=names(genesPerCluster),
@@ -282,8 +291,6 @@ kable(enrichrTable, format="html", escape=FALSE,
         caption=paste0("GeneSet enrichment")) %>%
 kable_styling("striped", full_width = F, position = "left")
 ```
-
-
 
 ```{r plot enrichR per cluster, fig.height=5, fig.width=10, eval= !is.null(enrichRout)}
 for (cluster in names(enrichRout)) {
@@ -308,11 +315,7 @@ for (cluster in names(enrichRout)) {
 }
 ```
 
-
 <br/>
-
-
-
 
 ### SingleR
 
@@ -366,19 +369,6 @@ for (r in names(singler.results)) {
     layout(xaxis=x, yaxis=y, title=paste0(r, ": Cluster"))
   plotlyPlots <- append(plotlyPlots, list(p1, p2))
   cat("\n\n")
-  # clusterInfos <- ezFrame(Sample=as.character(unique(scData$Sample)), 
-  #                         Reference=r,
-  #                         Cluster=levels(Idents(scData)))
-  # if (!is.null(singler.results)){
-  #   clusterInfos$SinglerCellType <- singler.results[[r]]$cluster.fine[clusterInfos$Cluster, "pruned.labels"]
-  # }
-  # topMarkers <- posMarkers %>% group_by(cluster) %>%
-  #   slice_max(n = nTopMarkers, order_by = avg_log2FC)
-  # topMarkerString <- sapply(split(topMarkers$gene, topMarkers$cluster), paste, collapse=", ")
-  # clusterInfos[["TopMarkers"]] <- topMarkerString[clusterInfos$Cluster]
-  # clusterInfos[["Percentage of Cells"]] <- table(Idents(scData)) / nrow(scData)
-  # clusterInfosList <- append(clusterInfosList, list(clusterInfos))
-  # cat("\n\n")
 }
 ```
 
@@ -401,7 +391,18 @@ ezInteractiveTableRmd(bind_rows(clusterInfosList))
 cat("\n\n")
 ```
 
+### Azimuth 
 
+```{r azimuth, eval=!is.null(aziResults), fig.width=10, fig.height=6}
+DimPlot(scData, label=TRUE, group.by = "Azimuth.celltype.l1", repel = TRUE, reduction = "umap")
+DimPlot(scData, label=TRUE, group.by = "Azimuth.celltype.l2", repel = TRUE, reduction = "umap")
+if ("Azimuth.celltype.l3" %in% colnames(scData@meta.data)) {
+  DimPlot(scData, label=TRUE, group.by = "Azimuth.celltype.l3", repel = TRUE, reduction = "umap")
+}
+if ("Azimuth.celltype.l4" %in% colnames(scData@meta.data)) {
+  DimPlot(scData, label=TRUE, group.by = "Azimuth.celltype.l4", repel = TRUE, reduction = "umap")
+}
+```
 
 ### AUCell
 
@@ -433,7 +434,6 @@ if (!is.null(tab) && nrow(tab) > 2)
    pheatmap(log10(tab+10), color=viridis::viridis(100))
 ```
 
-
 ```{r tsne and AUC res, eval= !is.null(cells.AUC), results='asis'}
 cat("The plots below show for every cell type:\n")
 cat('\n')
@@ -458,26 +458,17 @@ AUCell_plotTSNE(tSNE=cellsUmap,
 ```
 
 
-
 ### Interactive explorer
+
 [simple explorer](`r {paste0("https://fgcz-shiny.uzh.ch/fgcz_exploreSeurat_app", "/?data=",output$getColumn("Report"), "/scData.rds")}`){target="_blank"}
 
-
-<br>
-The iSEE (Interactive SummarizedExperiment Explorer) explorer provides a general visual interface for exploring single cell data. iSEE allows users to simultaneously visualize multiple aspects of a given data set, including experimental data, metadata, and analysis results. Dynamic linking and point selection facilitate the flexible exploration of interactions between different data aspects.
- [Rue-Albrecht K, Marini F, Soneson C, Lun ATL (2018). “iSEE: Interactive SummarizedExperiment Explorer.” F1000Research, 7, 741. doi: 10.12688/f1000research.14966.1.]
-
-The iSEE shiny app can be accessed through this link [iSEE explorer](`r {lastProjectDigit = stringr::str_sub( sub("\\/.*", "", output$getColumn("Report")), start = -1); paste0("http://fgcz-shiny.uzh.ch/fgcz_iSEE", lastProjectDigit, "/?data=",output$getColumn("Report"),"/sce_h5")}`){target="_blank"}
-
-
+[iSEE explorer](`r {lastProjectDigit = stringr::str_sub( sub("\\/.*", "", output$getColumn("Report")), start = -1); paste0("http://fgcz-shiny.uzh.ch/fgcz_iSEE", lastProjectDigit, "/?data=",output$getColumn("Report"),"/sce_h5")}`){target="_blank"}
 
 ### Data availability
-
 
 ##### Positive markers of each cluster
 
 [posMarkers](posMarkers.xlsx)
-
 
 ##### The final Seurat object is [here](scData.rds)
 
@@ -485,7 +476,6 @@ The iSEE shiny app can be accessed through this link [iSEE explorer](`r {lastPro
 ```{r report parameters, echo=FALSE}
 param[c("npcs","pcGenes","resolution", "SCT.regress.CellCycle", "DE.method", "batchCorrection")]
 ```
-
 
 ### SessionInfo
 ```{r, echo=FALSE}

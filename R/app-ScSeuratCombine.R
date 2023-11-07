@@ -61,6 +61,7 @@ ezMethodScSeuratCombine = function(input=NA, output=NA, param=NA, htmlFile="00in
   library(AUCell)
   library(enrichR)
   library(decoupleR)
+  library(Azimuth)
   library(BiocParallel)
   
   BPPARAM <- MulticoreParam(workers = param$cores)
@@ -132,7 +133,7 @@ ezMethodScSeuratCombine = function(input=NA, output=NA, param=NA, htmlFile="00in
   reportTitle <- 'SCReport - MultipleSamples based on Seurat'
   makeRmdReport(param=param, output=output, scData=results$scData, 
                 enrichRout=results$enrichRout, TFActivity=results$TFActivity, 
-                pathwayActivity=results$pathwayActivity, 
+                pathwayActivity=results$pathwayActivity, aziResults=results$aziResults,
                 cells.AUC=results$cells.AUC, singler.results=results$singler.results,
                 rmdFile = "ScSeuratCombine.Rmd", reportTitle = reportTitle) 
   return("Success")
@@ -172,5 +173,6 @@ seuratIntegrateDataAndAnnotate <- function(scDataList, input, output, param) {
               pathwayActivity=anno$pathwayActivity, 
               TFActivity=anno$TFActivity,
               cells.AUC=anno$cells.AUC,
-              singler.results=anno$singler.results))
+              singler.results=anno$singler.results,
+              aziResults=anno$aziResults))
 }
