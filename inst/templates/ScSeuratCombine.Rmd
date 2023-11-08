@@ -252,6 +252,12 @@ top5 <- posMarkers %>% group_by(cluster)
 top5 <- slice_max(top5, n = 5, order_by = avg_log2FC)
 genesToPlot <- c(gsub("_", "-", param$controlSeqs), unique(as.character(top5$gene)))
 genesToPlot <- intersect(genesToPlot, rownames(scData))
+if (ncol(scData) > 3e4) {
+  # Heatmap and Dotplot may not work above 30'000 cells, so we downsample
+  scDataToPlot <- scData[, sample(colnames(scData), size=3e4, replace=F)]
+} else {
+  scDataToPlot <- scData
+}
 ```
 
 ```{r marker heatmap, fig.width=12, fig.height=length(levels(Idents(scData)))}
