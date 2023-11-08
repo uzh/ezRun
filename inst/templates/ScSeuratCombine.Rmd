@@ -254,6 +254,7 @@ genesToPlot <- c(gsub("_", "-", param$controlSeqs), unique(as.character(top5$gen
 genesToPlot <- intersect(genesToPlot, rownames(scData))
 if (ncol(scData) > 3e4) {
   # Heatmap and Dotplot may not work above 30'000 cells, so we downsample
+  cat("We first downsample to a representative 30'000 cells.")
   scDataToPlot <- scData[, sample(colnames(scData), size=3e4, replace=F)]
 } else {
   scDataToPlot <- scData
