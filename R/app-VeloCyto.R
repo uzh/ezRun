@@ -42,7 +42,13 @@ ezMethodVeloCyto <- function(input=NA, output=NA, param=NA){
     sampleDir <- basename(cellRangerPath)
     cmd <- paste('rsync -av --remove-source-files', paste0(sampleDir,'/*'), paste0(sampleDir,'/outs'))
     ezSystem(cmd)
-    
+    if(length(list.files('.', pattern = 'sample_alignments.bam$', recursive=TRUE)) == 1L){ #CellRanger Multi Output
+        setwd(file.path(sampleDir, 'outs/count'))
+            system('mv sample_alignments.bam possorted_genome_bam.bam')
+            system('samtools index possorted_genome_bam.bam')
+            system('mv sample_filtered_feature_bc_matrix filtered_feature_bc_matrix')
+        setwd('../../..')
+    }
     cmd <- paste('velocyto run10x', sampleDir, gtfFile, '-@', param$cores)
     ezSystem(cmd)
     file.copy(file.path(sampleName, 'velocyto', paste0(sampleName,'.loom')), '.')
