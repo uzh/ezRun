@@ -47,6 +47,7 @@ ezMethodVeloCyto <- function(input=NA, output=NA, param=NA){
             system('mv sample_alignments.bam possorted_genome_bam.bam')
             system('samtools index possorted_genome_bam.bam')
             system('mv sample_filtered_feature_bc_matrix filtered_feature_bc_matrix')
+            system('mv * ..')
         setwd('../../..')
     }
     cmd <- paste('velocyto run10x', sampleDir, gtfFile, '-@', param$cores)
