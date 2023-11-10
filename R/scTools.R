@@ -22,8 +22,8 @@ addCellCycleToSCE <- function(sce, refBuild, BPPARAM){
 }
 
 addCellCycleToSeurat <- function(scData, refBuild, BPPARAM, assay = "RNA"){
-  counts <- GetAssayData(scData, slot="counts", assay = assay)
-  metaFeatures <- scData[[assay]]@meta.features
+  counts <- GetAssayData(scData, layer="counts", assay = assay)
+  metaFeatures <- scData[[assay]]@meta.data
   if ("gene_id" %in% names(metaFeatures)) {
     rownames(counts) <- metaFeatures$gene_id
   } else {
@@ -257,7 +257,7 @@ geneMeansCluster <- function(object) {
     tr_cnts <- expm1(logcounts(object))
     group=object$ident
  } else {
-    tr_cnts <- expm1(GetAssayData(object, slot="data", assay = "SCT"))
+    tr_cnts <- expm1(GetAssayData(object, layer="data", assay = "SCT"))
     group=Idents(object)
  }
   geneMeans <- rowsum(DelayedArray::t(tr_cnts), group=group)
@@ -395,7 +395,7 @@ filterCellsAndGenes.Seurat <- function(scData, param) {
   
   # Genes filtering
   num.cells <- param$cellsFraction * ncol(scData) # if we expect at least one rare subpopulation of cells, we should decrease the percentage of cells
-  is.expressed <- Matrix::rowSums(GetAssayData(scData, "counts") >= param$nUMIs) >= num.cells
+  is.expressed <- Matrix::rowSums(GetAssayData(scData, layer="counts") >= param$nUMIs) >= num.cells
   scData.unfiltered[[assay]] <- AddMetaData(object = scData.unfiltered[[assay]], metadata = is.expressed,col.name ='is.expressed')
   scData <- scData[is.expressed,]
   return(list(scData.unfiltered = scData.unfiltered, scData = scData))

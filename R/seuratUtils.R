@@ -14,7 +14,7 @@ seuratStandardSCTPreprocessing <- function(scData, param, assay="RNA", seed=38) 
   scData <- FindVariableFeatures(scData, selection.method = "vst", verbose = FALSE, nfeatures=3000)
   scData <- ScaleData(scData, vars.to.regress = vars.to.regress, verbose=FALSE, do.scale=FALSE)
   ## generate the SCT assay
-  scData <- SCTransform(scData, vst.flavor=2, vars.to.regress = vars.to.regress, seed.use = seed, verbose = FALSE,
+  scData <- SCTransform(scData, vst.flavor="v2", vars.to.regress = vars.to.regress, seed.use = seed, verbose = FALSE,
                         return.only.var.genes=FALSE)
   return(scData)
 }
@@ -372,8 +372,8 @@ getSeuratMarkersAndAnnotate <- function(scData, param) {
   if (species == "Human" | species == "Mouse") {
     genesPerCluster <- split(markers$gene, markers$cluster)
     enrichRout <- querySignificantClusterAnnotationEnrichR(genesPerCluster, param$enrichrDatabase)
-    cells.AUC <- cellsLabelsWithAUC(GetAssayData(scData, "counts"), species, param$tissue, BPPARAM = BPPARAM)
-    singler.results <- cellsLabelsWithSingleR(GetAssayData(scData, "data"), Idents(scData), param$SingleR, BPPARAM = BPPARAM)
+    cells.AUC <- cellsLabelsWithAUC(GetAssayData(scData, layer="counts"), species, param$tissue, BPPARAM = BPPARAM)
+    singler.results <- cellsLabelsWithSingleR(GetAssayData(scData, layer="data"), Idents(scData), param$SingleR, BPPARAM = BPPARAM)
     for (r in names(singler.results)) {
       scData[[paste0(r,"_single")]] <- singler.results[[r]]$single.fine$labels
       scData[[paste0(r,"_cluster")]] <- singler.results[[r]]$cluster.fine$labels[match(Idents(scData), rownames(singler.results[[r]]$cluster.fine))]

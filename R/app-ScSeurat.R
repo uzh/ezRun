@@ -228,7 +228,7 @@ ezMethodScSeurat <- function(input = NA, output = NA, param = NA,
   
   ## remove low expressed genes
   num.cells <- param$cellsFraction * ncol(scData) # if we expect at least one rare subpopulation of cells, we should decrease the percentage of cells
-  is.expressed <- Matrix::rowSums(GetAssayData(scData, "counts") >= param$nUMIs) >= num.cells
+  is.expressed <- Matrix::rowSums(GetAssayData(scData, layer="counts") >= param$nUMIs) >= num.cells
   scData <- scData[is.expressed,]
 
   ## Add Cell Cycle information to Seurat object as metadata columns
@@ -320,7 +320,7 @@ addCellQcToSeurat <- function(scData, param=NULL, BPPARAM=NULL, ribosomalGenes=N
   scData$useCell <- !(scData$qc.lib | scData$qc.nexprs | scData$qc.mito | scData$qc.riboprot)
   
   set.seed(38)
-  doubletsInfo <- scDblFinder(GetAssayData(scData, slot="counts")[ , scData$useCell], returnType = "table", clusters=TRUE, BPPARAM = BPPARAM)
+  doubletsInfo <- scDblFinder(GetAssayData(scData, layer="counts")[ , scData$useCell], returnType = "table", clusters=TRUE, BPPARAM = BPPARAM)
   scData$doubletScore <- doubletsInfo[colnames(scData), "score"]
   scData$doubletClass <- doubletsInfo[colnames(scData), "class"]
   scData$qc.doublet <- scData$doubletClass %in% "doublet"

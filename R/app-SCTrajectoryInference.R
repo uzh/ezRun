@@ -76,8 +76,8 @@ ezMethodSCTrajectoryInference <- function(input=NA, output=NA, param=NA,
     logcounts = logcounts(object)
     cells_meta = colData(object)
   } else if(is(object, "Seurat")){
-    counts = GetAssayData(object, "counts")
-    logcounts = GetAssayData(object, "data")
+    counts = GetAssayData(object, layer="counts")
+    logcounts = GetAssayData(object, layer="data")
     cells_meta = object@meta.data
   }
   

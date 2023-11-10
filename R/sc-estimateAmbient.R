@@ -83,7 +83,7 @@ filterLowQualityCells <- function(object, sampleName, minGenes=400, minCounts=40
   
   
   scData <- FindClusters(scData)
-  scDbl <- scDblFinder(GetAssayData(scData, "counts", assay="RNA"), clusters=scData$seurat_clusters, returnType = "table")
+  scDbl <- scDblFinder(GetAssayData(scData, layer="counts", assay="RNA"), clusters=scData$seurat_clusters, returnType = "table")
   singletCells <- rownames(scDbl)[ scDbl$class == "singlet"]
   return(object[, colnames(object) %in% singletCells])
 }
@@ -448,7 +448,7 @@ addAmbientEstimateToSeurat <- function(scData, rawDir=NULL, threads=1){
   library(celda)
   library(SoupX)
   
-  sce <- SingleCellExperiment(assays=list(counts=GetAssayData(scData, slot="counts", assay="RNA")), colData = scData@meta.data)
+  sce <- SingleCellExperiment(assays=list(counts=GetAssayData(scData, layer="counts")), colData = scData@meta.data)
   sce$clusters <- Idents(scData)
   for (method in c("SoupX", "DecontX")){
     ctsClean <- computeDecontaminated(method=method, 
