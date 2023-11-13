@@ -22,6 +22,7 @@ library(reshape2)
 library(tidyverse)
 library(ezRun)
 library(writexl)
+library(plotly)
 ```
 
 ```{r prepare data RNABamStats, include=FALSE}
@@ -153,10 +154,11 @@ for (nm in c("multiMatchTargetTypeCounts", "uniqueMatchTargetTypeCounts")){
 ```
 
 
+
 ```{r genebody coverage legend, echo=FALSE, fig.width=10, fig.height=7, results='asis'}
 if (length(resultList[[1]][["genebody_coverage"]]) != 0){ ## TODO this could be done better by searching alls results for a valid genebody_coverage element
   cat("###", "Coverage plot\n")
-  cat("####", "Genebody coverage plot\n")
+  cat("####", "Genebody coverage plots\n")
   covValues = ezMatrix(NA, cols=0:100, rows=samples)
   for (sm in samples){
     y = resultList[[sm]][["genebody_coverage"]][["1200 to 2400nt"]][["medium expressed"]]
@@ -166,9 +168,11 @@ if (length(resultList[[1]][["genebody_coverage"]]) != 0){ ## TODO this could be 
   }
   xx <- reshape2::melt(covValues, varnames=c("Sample", "Percentile"))
   xx$Sample = as.factor(xx$Sample)
-  print(ggplot(data=xx, aes(x=Percentile, y=value)) + geom_line(aes(color=Sample)) + 
+  gbcp <- ggplot(data=xx, aes(x=Percentile, y=value)) + geom_line(aes(color=Sample)) + 
     scale_colour_manual(values=sampleColors) + 
-    labs(x="percentile of gene (5'->3')", y="relative coverage") + ggtitle("genebody coverage"))
+    labs(x="percentile of gene (5'->3')", y="relative coverage") + ggtitle("genebody coverage")
+  
+  
   print(ggplot(data=xx, 
        aes(x=Percentile, y=Sample, fill=value)) + geom_tile() + scale_fill_gradientn(colours=getBlueRedScale()) +
        labs(x="percentile of gene (5'->3')", y="relative coverage") + ggtitle("genebody coverage"))
@@ -190,6 +194,11 @@ if (!is.null(tlc)){
 }
 ```
 
+```{r interactive gene coverage body plot, message = FALSE, echo = FALSE, warning=FALSE, fig.width=12, fig.height=7}
+if(exists('gbcp'))
+ ggplotly(gbcp)
+```
+
 
 
 ```{r junction saturation plot for all samples, echo=FALSE, results='asis'}
@@ -202,23 +211,25 @@ if(!is.null(resultList[[1]][["Junction"]])){
       junctionMaxVal[nm] = max(junctionMaxVal[nm], unlist(resultList[[sm]][["Junction"]][[nm]]))
     }
   }
+  junctionPlots <- list()
   for (nm in names(resultList[[1]][["Junction"]][["junctionSaturation"]])){
-    plotCmd = expression({
-        plot(1,1, xlab="percent of total reads", 
-             ylab='Number of splicing junctions (x1000)',
-             type='o', xlim=c(0, 130),
-             ylim=c(0, junctionMaxVal["junctionSaturation"]/1000), main=nm)
+        junctionDF <- c()
         for (sm in samples){
-          x <- resultList[[sm]][["Junction"]][["junctionSaturation"]][[nm]]
-          lines(as.numeric(names(x))*100, x/1000, col=sampleColors[sm], type="o")
+          junctionDF <- rbind(junctionDF, cbind(resultList[[sm]][["Junction"]][["junctionSaturation"]][[nm]], sm))
         }
-        legend("bottomright", legend=samples, col=sampleColors[samples], 
-               lwd=1, pch=1)
-      })
-    eval(plotCmd)
+        junctionDF <- data.frame(readFraction = rownames(junctionDF), Junctions <- as.numeric(junctionDF[,1]), Sample = as.factor(junctionDF[,2]))
+        junctionPlots[[nm]] <- ggplot(data=junctionDF, aes(x=readFraction, y=Junctions, group = Sample)) + geom_line(aes(col=Sample)) + geom_point(aes(col=Sample), size = 1)
+        junctionPlots[[nm]] <- ggplotly(junctionPlots[[nm]] + labs(x="percent of total reads", y="Number of splicing junctions (K)") + ggtitle(nm))
   }
 }
 ```
+
+```{r interactive junction plots, message = FALSE, echo = FALSE, warning=FALSE, fig.width=10, fig.height=5}
+    if(exists('junctionPlots')){
+        htmltools::tagList(setNames(junctionPlots, NULL))
+        }
+```
+
 
 ```{r junction plot, echo=FALSE, results='asis', eval=FALSE}
 if (!is.null(resultList[[1]][["Junction"]])){
@@ -291,12 +302,25 @@ if(!is.null(resultList[[1]][["dupRate"]])){
   cat("The number of reads per base assigned to a gene in an ideal RNA-Seq data set is expected to be proportional to the abundance of its transcripts in the sample. For lowly expressed genes we expect read duplication to happen rarely by chance, while for highly expressed genes - depending on the total sequencing depth - we expect read duplication to happen often.", "\n")
   cat("\n")
   require(dupRadar, quietly = TRUE)
+  dupResult <- data.frame(Intercept = 0, Slope = 0, Sample = samples)
+  rownames(dupResult) <- samples
   for(sm in samples){
+    dupData <- duprateExpFit(DupMat=resultList[[sm]][["dupRate"]])
+    dupResult[sm,] <- c(dupData$intercept, dupData$slope, sm)
     duprateExpDensPlot(DupMat=resultList[[sm]][["dupRate"]])
     title(paste(sm, "-- 2D density scatter plot"))
   }
+  dupResult$Intercept = as.numeric(dupResult$Intercept)
+  dupResult$Slope = as.numeric(dupResult$Slope)
+  dupPlot <- ggplotly(ggplot(data = dupResult, aes(x=Slope, y=Intercept)) + geom_point(aes(col=Sample), size = 2) + ggtitle('MultiSample Plot'))
 }
 ```
+
+```{r interactive dup plots, message = FALSE, echo = FALSE, warning=FALSE, fig.width=9, fig.height=5}
+    if(exists('dupPlot'))
+        dupPlot
+```
+
 
 ### Input Dataset
 ```{r, echo=FALSE, message=FALSE}
