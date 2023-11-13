@@ -28,7 +28,7 @@
 #' ezComputeBias(dsFile)
 
 ezComputeBias = function(dsFile, dsName=NULL, param=NULL, qcSummaryDir="/srv/GT/analysis/p2220/RNA-seq-bias-results", refBuildMap=getRefBuildMap(), minReadsPerSample=30000,
-                       maxReadsPerSample=5e6,
+                       maxReadsPerSample=1e6,
                        minReadsPerGene=3, minPresentFraction=0.2, toMail='', tag = ''){
   
   inputMeta = ezRead.table(file=dsFile)
@@ -87,7 +87,17 @@ ezComputeBias = function(dsFile, dsName=NULL, param=NULL, qcSummaryDir="/srv/GT/
     param$expressionName = "est_counts"
     param$nReads = maxReadsPerSample
   }
+  if(!ezIsSpecified(param$nReads)){
+      param$nReads = maxReadsPerSample
+  }
+  
+  if(param[['paired']]){
+    param[['fragment-length']] = 0
+    param[['sd']] = 0
+  }
+  
   paramList = param
+  
   if(is.na(paramList$refBuild)){
       paramList$refBuild = refBuildMap[inputMeta$Species[1]]
       if (is.na(paramList$refBuild)){

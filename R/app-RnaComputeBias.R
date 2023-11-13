@@ -19,7 +19,7 @@ EzAppRnaComputeBias <-
                                                                   DefaultValue=30000,
                                                                   Description=""),
                                               maxReadsPerSample=ezFrame(Type="numeric",
-                                                                        DefaultValue=5e6,
+                                                                        DefaultValue=1e6,
                                                                         Description=""),
                                               minReadsPerGene=ezFrame(Type="numeric",
                                                                         DefaultValue=3,
