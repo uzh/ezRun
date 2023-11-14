@@ -14,25 +14,10 @@ EzAppScSeuratLabelClusters <-
                   runMethod <<- ezMethodScSeuratLabelClusters
                   name <<- "EzAppScSeuratLabelClusters"
                   appDefaults <<- rbind(
-                    npcs = ezFrame(
-                      Type = "numeric",
-                      DefaultValue = 20,
-                      Description = "The maximal dimensions to use for reduction"
-                    ),
-                    SCT.regress.CellCycle = ezFrame(
-                      Type = "logical", 
-                      DefaultValue = FALSE,
-                      Description="Choose CellCycle to be regressed out when using the SCTransform method if it is a bias."
-                    ),
                     DE.method = ezFrame(
                       Type = "charVector",
                       DefaultValue = "wilcoxon",
                       Description = "Method to be used when calculating gene cluster markers. Use LR if you want to include cell cycle in the regression model."
-                    ),
-                    resolution = ezFrame(
-                      Type = "numeric",
-                      DefaultValue = 0.6,
-                      Description = "Value of the resolution parameter, use a value above (below) 1.0 if you want to obtain a larger (smaller) number of communities."
                     ),
                     controlSeqs = ezFrame(
                       Type = "charVector",
@@ -98,8 +83,7 @@ ezMethodScSeuratLabelClusters <- function(input = NA, output = NA, param = NA,
     as_tibble() %>%
     dplyr::select(1:3) %>% # remove all other columns
     dplyr::rename(c("Sample"=1, "Cluster"=2, "ClusterLabel"=3)) %>%
-    dplyr::filter(Sample == input$getNames()) %>%
-    dplyr::mutate(ClusterLabel=str_replace(ClusterLabel, "(?i)remove", "REMOVE"))
+    dplyr::filter(Sample == input$getNames())
   labelMap <- as.character(clusterAnno$ClusterLabel)
   names(labelMap) <- as.character(clusterAnno$Cluster)
   
@@ -109,16 +93,6 @@ ezMethodScSeuratLabelClusters <- function(input = NA, output = NA, param = NA,
   
   # change labels and store in a variable
   scData$cellType <- unname(labelMap[as.character(scData$seurat_clusters)])
-  Idents(scData) <- scData$cellType
-  scData <- subset(scData, cellType != "REMOVE")
-  DefaultAssay(scData) <- "RNA"
-  scData <- DietSeurat(scData, assays="RNA")
-  
-  ## Get information on which variables to regress out in scaling/SCT
-  scData <- seuratStandardSCTPreprocessing(scData, param)
-  
-  ## defaultAssay is now SCT
-  scData <- seuratStandardWorkflow(scData, param, ident.name="seurat_clusters")
   Idents(scData) <- scData$cellType
   
   # get markers and annotations

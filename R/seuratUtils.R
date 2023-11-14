@@ -393,7 +393,7 @@ getSeuratMarkersAndAnnotate <- function(scData, param) {
   } else {
     pathwayActivity <- NULL
     TFActivity <- NULL
-    print("Skipping pathway and TF activity")
+    futile.logger::flog.info("Skipping pathway and TF activity")
   }
   
   # run Azimuth
