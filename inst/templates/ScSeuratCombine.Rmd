@@ -190,7 +190,7 @@ Once we have created the clusters we need to asses if the clustering was driven 
 We can explore whether the cells cluster by the different cell cycle phases. In such a case, we would have clusters where most of the cells would be in one specific phase. This bias could be taken into account when normalizing and transforming the data prior to clustering. We can also look at the total number of reads, genes detected and mitochondrial gene expression. The clusters should be more or less even but if we observe big differences among some of them for these metrics, we will keep an eye on them and see if the cell types we identify later can explain the differences.
 
 ```{r, eval =!is.null(scData@meta.data$CellCycle), fig.width=10, fig.height=6}
-DimPlot(scData, label=TRUE, split.by = "CellCycle")
+DimPlot(scData, label=TRUE, split.by = "CellCycle", reduction="umap")
 ```
 
 ```{r uninteresting variation, fig.width=6, fig.height=6}

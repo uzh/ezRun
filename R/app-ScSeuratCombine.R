@@ -160,7 +160,10 @@ seuratIntegrateDataAndAnnotate <- function(scDataList, input, output, param) {
     scData = scData_noCorrected
   }
   scData@reductions$tsne_noCorrected <- Reductions(scData_noCorrected, "tsne")
+  Key(scData@reductions$tsne_noCorrected) <- 'TSNEnoCorrection_'
   scData@reductions$umap_noCorrected <- Reductions(scData_noCorrected, "umap")
+  Key(scData@reductions$umap_noCorrected) <- 'UMAPnoCorrection_'
+ 
   scData@meta.data$ident_noCorrected <- Idents(scData_noCorrected)
   scData <- PrepSCTFindMarkers(scData)
   
