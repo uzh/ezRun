@@ -356,8 +356,8 @@ for (r in names(singler.results)) {
     colsLabels <- colorRampPalette(brewer.pal(9, "Set1"))(nrOfLabels_single)
   }
   
-  x <- list(title="UMAP_1", zeroline=FALSE)
-  y <- list(title="UMAP_2", zeroline=FALSE)
+  x <- list(title="umap_1", zeroline=FALSE)
+  y <- list(title="umap_2", zeroline=FALSE)
   
   p1 <- plot_ly(cellInfo, x = ~umap_1, y = ~umap_2, color=~SingleR.labels.single,
                 text = ~paste("Cluster: ", Cluster,
