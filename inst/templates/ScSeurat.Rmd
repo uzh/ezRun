@@ -289,8 +289,6 @@ FeaturePlot(scData, features="negLog10CellPValue", label = TRUE)
 
 ```
 
-
-
 ```{r, fig.width=12, fig.height=shrinkToRange(length(param$controlSeqs)*3/4, c(6, 18)), eval=ezIsSpecified(param$controlSeqs)}
 genesToPlot <- gsub("_", "-", param$controlSeqs)
 genesToPlot <- intersect(genesToPlot, rownames(scData))
