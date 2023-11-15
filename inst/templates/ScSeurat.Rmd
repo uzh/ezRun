@@ -108,9 +108,7 @@ scData.unfiltered$discard <- !colnames(scData.unfiltered) %in% colnames(scData)
 A key assumption here is that the QC metrics are independent of the biological state of each cell. Poor values (e.g., low library sizes, high mitochondrial or ribosomal proportions) are presumed to be driven by technical factors rather than biological processes, meaning that the subsequent removal of cells will not misrepresent the biology in downstream analyses. Major violations of this assumption would potentially result in the loss of cell types that have, say, systematically low RNA content or high numbers of mitochondria. We can check for such violations using some diagnostics plots. In the most ideal case, we would see normal distributions that would justify the thresholds used in outlier detection. A large proportion of cells in another mode suggests that the QC metrics might be correlated with some biological state, potentially leading to the loss of distinct cell types during filtering. 
 
 ```{r QC plots1, fig.height=4}
-### TODO the plotColData would be much more informative!!!
 plotColData(xxAll, x="Sample", y="nCount_RNA", colour_by="discard") + scale_y_log10() + ggtitle("Number of UMIs")
-
 ```
 
 ```{r QC plots2, fig.height=4}
@@ -135,9 +133,6 @@ if (!is.null(xxAll$percent_ribosomal)){
 
 plotColData(xxAll, x="Sample", y="doubletScore", colour_by="discard") + ggtitle("Doublet score")
 plotColData(xxAll, x="nCount_RNA", y="doubletScore", colour_by="discard") + scale_x_log10()
-
-#VlnPlot(scData.unfiltered, features=c("nCount_RNA"), ncol = 4, pt.size=0.5, log = TRUE, fill.by = "useCell") + NoLegend()
-#VlnPlot(scData.unfiltered, features=c("nFeature_RNA", "percent_mito", "percent_riboprot"), ncol = 4, pt.size=0.5) + NoLegend()
 ```
 
 
