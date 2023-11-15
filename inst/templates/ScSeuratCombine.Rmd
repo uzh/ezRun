@@ -11,7 +11,7 @@ editor_options:
   chunk_output_type: console
 ---
   
-  Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
+Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
 
 ```{r setup, include=FALSE}
 library(clustree)
