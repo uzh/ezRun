@@ -22,11 +22,11 @@ library(kableExtra)
 library(NMF)
 library(pheatmap)
 library(viridis)
-library(tidyverse)
 library(cowplot)
 library(scran)
 library(RColorBrewer)
 library(plotly)
+library(tidyverse)
 library(SingleR)
 library(scater)
 library(Seurat)
@@ -337,8 +337,9 @@ Here, we use a heatmap and a dotplot to visualize simultaneously the top 5 marke
 <br/>
 
 ```{r heatmap, fig.width=12, fig.height=length(levels(Idents(scData)))}
-top5 <- posMarkers %>% group_by(cluster) 
-top5 <- slice_max(top5, n = 5, order_by = avg_log2FC)
+top5 <- posMarkers %>% 
+  group_by(cluster) %>%
+  slice_max(n = 5, order_by = avg_log2FC)
 genesToPlot <- c(gsub("_", "-", param$controlSeqs), unique(as.character(top5$gene)))
 genesToPlot <- intersect(genesToPlot, rownames(scData))
 
