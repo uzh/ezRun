@@ -92,7 +92,7 @@ ezMethodScSeuratLabelClusters <- function(input = NA, output = NA, param = NA,
   scData <- readRDS(input$getFullPaths("SC Seurat"))
   
   # change labels and store in a variable
-  scData$cellType <- unname(labelMap[as.character(scData$seurat_clusters)])
+  scData$cellType <- unname(labelMap[as.character(Idents(scData))])
   Idents(scData) <- scData$cellType
   
   # get markers and annotations
