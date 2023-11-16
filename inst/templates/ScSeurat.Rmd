@@ -444,10 +444,10 @@ for (r in names(singler.results)) {
     colsLabels <- colorRampPalette(brewer.pal(9, "Set1"))(nrOfLabels_single)
   }
   
-  x <- list(title="UMAP_1", zeroline=FALSE)
-  y <- list(title="UMAP_2", zeroline=FALSE)
+  x <- list(title="umap_1", zeroline=FALSE)
+  y <- list(title="umap_2", zeroline=FALSE)
   
-  p1 <- plot_ly(cellInfo, x = ~UMAP_1, y = ~UMAP_2, color=~SingleR.labels.single,
+  p1 <- plot_ly(cellInfo, x = ~umap_1, y = ~umap_2, color=~SingleR.labels.single,
                 text = ~paste("Cluster: ", Cluster,
                               "\nCell: ", Cells,
                               "\nSingleR.labels.cluster: ", 
@@ -455,7 +455,7 @@ for (r in names(singler.results)) {
                 type = 'scatter', mode = "markers", marker=list(size=5, opacity=0.5),
                 colors=colsLabels, width=800, height=500) %>%
     layout(xaxis=x, yaxis=y, title=paste0(r, ": Single"))
-  p2 <- plot_ly(cellInfo, x = ~UMAP_1, y = ~UMAP_2, color=~SingleR.labels.cluster,
+  p2 <- plot_ly(cellInfo, x = ~umap_1, y = ~umap_2, color=~SingleR.labels.cluster,
                 text = ~paste("Cluster: ", Cluster,
                               "\nCell: ", Cells,
                               "\nSingleR.labels.cluster: ", SingleR.labels.cluster),
