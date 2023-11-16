@@ -94,7 +94,7 @@ ezMethodCellRanger <- function(input = NA, output = NA, param = NA) {
            
            #3.4. Decompress the sample that contains the antibodies reads if they are in tar format
            if (all(grepl("\\.tar$", featureDirs)))
-             featureDirs <- deCompress(featureDirs)
+             featureDirs <- tarExtract(featureDirs)
            
            featureDirs <- normalizePath(featureDirs)
            
