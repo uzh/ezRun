@@ -28,6 +28,16 @@ EzAppSpatialSeurat <-
                                         DE.method=ezFrame(Type="charVector", 
                                                           DefaultValue="wilcoxon", 
                                                           Description="Method to be used when calculating gene cluster markers. Use LR if you want to include cell cycle in the regression model."),
+                                        min.pct = ezFrame(
+                                          Type = "numeric",
+                                          DefaultValue = 0.1,
+                                          Description = "Used in calculating cluster markers: The minimum fraction of cells in either of the two tested populations."
+                                        ),
+                                        logfc.threshold = ezFrame(
+                                          Type = "numeric",
+                                          DefaultValue = 0.25,
+                                          Description = "Used in calculating cluster markers: Limit testing to genes which show, on average, at least X-fold difference (log-scale) between the two groups of cells."
+                                        ),
                                         resolution=ezFrame(Type="numeric", 
                                                            DefaultValue=0.5,
                                                            Description="Value of the resolution parameter, use a value above (below) 1.0 if you want to obtain a larger (smaller) number of communities."),

@@ -354,7 +354,11 @@ getSeuratMarkers <- function(scData, param) {
   # positive cluster markers
   ## https://github.com/satijalab/seurat/issues/5321
   ## https://github.com/satijalab/seurat/issues/1501
-  markers <- FindAllMarkers(object=scData, test.use = param$DE.method, only.pos=TRUE)
+  markers <- FindAllMarkers(
+    object=scData, test.use = param$DE.method, only.pos=TRUE,
+    min.pct=ifelse(ezIsSpecified(param$min.pct), param$min.pct, 0.1),
+    logfc.threshold=ifelse(ezIsSpecified(param$logfc.threshold), param$logfc.threshold, 0.25)
+  )
   ## Significant markers
   markers <- markers[ ,c("gene","cluster","pct.1", "pct.2", "avg_log2FC","p_val_adj")]
   markers$cluster <- as.factor(markers$cluster)
