@@ -41,6 +41,16 @@ EzAppSpatialSeuratSlides <-
                                         DE.regress=ezFrame(Type="charVector", 
                                                            DefaultValue="Batch", 
                                                            Description="Variables to regress out if the test LR is chosen"),
+                                        min.pct = ezFrame(
+                                          Type = "numeric",
+                                          DefaultValue = 0.1,
+                                          Description = "Used in calculating cluster markers: The minimum fraction of cells in either of the two tested populations."
+                                        ),
+                                        logfc.threshold = ezFrame(
+                                          Type = "numeric",
+                                          DefaultValue = 0.25,
+                                          Description = "Used in calculating cluster markers: Limit testing to genes which show, on average, at least X-fold difference (log-scale) between the two groups of cells."
+                                        ),
                                         maxSamplesSupported=ezFrame(Type="numeric", 
                                                               DefaultValue=5, 
                                                               Description="Maximum number of samples to compare"))
