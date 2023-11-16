@@ -52,7 +52,7 @@ prepareFastqData <- function(input, param) {
   
   #1.1. decompress tar files if they are in tar format
   if (all(grepl("\\.tar$", sampleDirs)))
-    sampleDirs <- deCompress(sampleDirs)
+    sampleDirs <- tarExtract(sampleDirs, )
   
   #1.2. Subsample if chosen
   if (ezIsSpecified(param$nReads) && param$nReads > 0)
@@ -117,7 +117,7 @@ getCellRangerMultiData <- function(input, multiColName, sampleName) {
   
   #2.2. Decompress the sample that contains the antibodies reads if they are in tar format
   if (all(grepl("\\.tar$", multiDirs)))
-    multiDirs <- deCompress(multiDirs)
+    multiDirs <- tarExtract(multiDirs)
   
   multiDirs <- normalizePath(multiDirs)
   return(list(multiName=multiName, multiDirs=multiDirs))
