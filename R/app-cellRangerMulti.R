@@ -130,6 +130,9 @@ buildMultiConfigFile <- function(input, param, dirList) {
   
   libraryTypes <- as.vector(str_split(param$TenXLibrary, ",", simplify=TRUE))
   
+  # Add 'GEX' to libraryTypes if 'fixedRNA' is in libraryTypes and 'GEX' is not
+  libraryTypes <- if("fixedRNA" %in% libraryTypes && !"GEX" %in% libraryTypes) union(libraryTypes, "GEX") else libraryTypes
+  
   # Write [Gene Expression] section
   if ("GEX" %in% libraryTypes) {
     refDir <- getCellRangerGEXReference(param)
