@@ -549,9 +549,11 @@ nPlots = 50
 ```
 
 ```{r tsne and AUC hist, eval= !is.null(cells.AUC), fig.height=5, fig.width=5}
-AUCell_plotTSNE(tSNE=cellsUmap,
-                cellsAUC=filtered_cells.AUC[head(scoreOrder, nPlots), ],
-                 plots = c("histogram", "binaryAUC"))
+try({
+  AUCell_plotTSNE(tSNE=cellsUmap,
+                  cellsAUC=filtered_cells.AUC[head(scoreOrder, nPlots), ],
+                   plots = c("histogram", "binaryAUC"))
+})
 ```
 
 ### Azimuth 
