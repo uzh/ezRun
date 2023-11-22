@@ -191,7 +191,7 @@ cellClustWithCorrection <- function (scDataList, param) {
     
     #2.4 Prep and run Harmony algorithm
     # Find the additional harmony factors if we have any
-    if (!is.null(param$harmonyFactors)) {
+    if (!is.null(param$additionalFactors)) {
       harmonyFactors <- 
         c("Condition", colnames(scData@meta.data)[startsWith(colnames(scData@meta.data), "har_")])
     } else {
