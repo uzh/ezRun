@@ -220,14 +220,14 @@ buildMultiConfigFile <- function(input, param, dirList) {
   fileContents <- append(fileContents, "")
   
   # sample mapping
-  if (any(c("Multiplexing","fixedRNA") %in% libraryTypes)) {
+  if ("Multiplexing" %in% libraryTypes) {
     sampleName <- rownames(input$meta)
     sampleMultiplexFiles <- getSampleMultiplexFiles(input)
     names(sampleMultiplexFiles) <- paste0('^', sub('_Sample2Barcode.csv', '', basename(sampleMultiplexFiles)), '$')
     sampleMultiplexFile <- sampleMultiplexFiles[which(sapply(names(sampleMultiplexFiles), grepl, sampleName))]
     sampleMultiplexMapping <- read_csv(sampleMultiplexFile)
     concatCols <- function(y) {return(paste(as.character(y), collapse=","))}
-    if("Multiplexing" %in% libraryTypes){
+    if(!("fixedRNA" %in% libraryTypes)){
         # Load multiplex barcode set and subset
         multiplexBarcodeSet <- read_csv(file.path("/srv/GT/databases/10x/CMO_files", 
                                               param$MultiplexBarcodeSet))
