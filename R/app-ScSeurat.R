@@ -69,6 +69,11 @@ EzAppScSeurat <-
                       DefaultValue = Inf,
                       Description = "Low quality cells have more than \"perc_ribo\" percent of ribosomal genes. Only when applying fixed thresholds."
                     ),
+                    keepDoublets = ezFrame(
+                      Type = "logical",
+                      DefaultValue = FALSE,
+                      Description = "Whether we should keep cells suspected of being doublets. Set to TRUE only for QC purposes."
+                    ),
                     cellsFraction = ezFrame(
                       Type = "numeric",
                       DefaultValue = 0.01,
@@ -334,7 +339,11 @@ addCellQcToSeurat <- function(scData, param=NULL, BPPARAM=NULL, ribosomalGenes=N
   scData$doubletScore <- doubletsInfo[colnames(scData), "score"]
   scData$doubletClass <- doubletsInfo[colnames(scData), "class"]
   scData$qc.doublet <- scData$doubletClass %in% "doublet"
-  scData$useCell <- scData$useCell & scData$doubletClass %in% "singlet"
+  if (ezIsSpecified(param$keepDoublets) && param$keepDoublets) {
+    futile.logger::flog.info("Keeping doublets...")
+  } else {
+    scData$useCell <- scData$useCell & scData$doubletClass %in% "singlet"
+  }
   return(scData)
 }
 
