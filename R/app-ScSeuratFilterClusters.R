@@ -111,13 +111,19 @@ ezMethodScSeuratFilterClusters <- function(input = NA, output = NA, param = NA,
     dplyr::filter(Sample == input$getNames()) %>%
     dplyr::mutate(ClusterLabel=str_replace(ClusterLabel, "(?i)remove", "REMOVE"),
                   ClusterLabel=str_replace(ClusterLabel, "(?i)keep", "KEEP"))
+  stopifnot("No matching sample in `Sample` column of cluster annotation! Check the sample names match." = 
+              nrow(clusterAnno) > 0)
+  
+  labelMap <- as.character(clusterAnno$ClusterLabel)
+  names(labelMap) <- as.character(clusterAnno$Cluster)
   
   # load cell data
   allCellsMeta <- readRDS(file.path(input$getFullPaths("SC Cluster Report"), "allCellsMeta.rds"))
   scData <- readRDS(input$getFullPaths("SC Seurat"))
   
   # change labels and store in a variable
-  scData <- subset(scData, unname(labelMap[as.character(Idents(scData))]) != "REMOVE")
+  toKeep <- unname(labelMap[as.character(Idents(scData))]) != "REMOVE"
+  scData <- scData[, toKeep]
   DefaultAssay(scData) <- "RNA"
   scData <- DietSeurat(scData, assays="RNA")
   
