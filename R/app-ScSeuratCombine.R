@@ -121,11 +121,11 @@ ezMethodScSeuratCombine = function(input=NA, output=NA, param=NA, htmlFile="00in
       scData$stacasLabelColumn <- unname(labelMap[as.character(scData$seurat_clusters)])
     }
     # Also add the other factors in the input dataset to the objects
-    if (!is.null(param$harmonyFactors)) {
-      harmonyFactors <- str_split(param$harmonyFactors, ",", simplify=TRUE)[1,]
-      metaFactorNames <- paste0("har_", harmonyFactors) %>% str_replace(., " ", ".")
-      names(metaFactorNames) <- harmonyFactors
-      for (hf in harmonyFactors) {
+    if (ezIsSpecified(param$additionalFactors)) {
+      additionalFactors <- str_split(param$additionalFactors, ",", simplify=TRUE)[1,]
+      metaFactorNames <- paste0("meta_", additionalFactors) %>% str_replace(., " ", ".")
+      names(metaFactorNames) <- additionalFactors
+      for (hf in additionalFactors) {
         scData[[metaFactorNames[hf]]] <- unname(input$getColumn(hf)[sm])
       }
     }
