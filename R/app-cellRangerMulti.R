@@ -174,7 +174,7 @@ buildMultiConfigFile <- function(input, param, dirList) {
     # add chemistry since it can result in an error otherwise (CellRanger 7.2)
     # TODO: Review down the line if this is necessary. Best case, we can remove
     # it to let CellRanger automatically choose the chemistry
-    chemistry <- ifelse(length(getSampleMultiplexFiles(input) > 1), "MFRP", "SFRP")
+    chemistry <- ifelse("Multiplexing" %in% libraryTypes, "MFRP", "SFRP")
     fileContents <- append(fileContents, sprintf("chemistry,%s", chemistry))
     fileContents <- append(fileContents, c(""))
   }
