@@ -41,6 +41,11 @@ ezMethodCellRangerMulti <- function(input = NA, output = NA, param = NA) {
   if (ezIsSpecified(param$controlSeqs)) 
     unlink(refDir, recursive = TRUE)
   
+  #8. Optional removal of the bam files
+  if(!param$keepBam){
+      print(ezSystem('find . -name "*.bam" -type f'))
+      ezSystem('find . -name "*.bam" -type f -delete')
+  }
   return("Success")
 }
 
@@ -290,6 +295,11 @@ EzAppCellRangerMulti <-
                       Type = "charVector",
                       DefaultValue = "",
                       Description = "control sequences to add"
+                    ),
+                    keepBam = ezFrame(
+                        Type = "logical",
+                        DefaultValue = FALSE,
+                        Description = "keep bam file produced by CellRanger"
                     )
                   )
                 }
