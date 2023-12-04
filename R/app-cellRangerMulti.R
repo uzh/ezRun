@@ -98,7 +98,7 @@ prepareFastqData <- function(input, param) {
                                featureDirs=dataInfo[["multiDirs"]]))
   }
   #2.4 Multiplexing
-  if ("Multiplexing" %in% libraryTypes) {
+  if ("Multiplexing" %in% libraryTypes && !("fixedRNA" %in% libraryTypes)) {
     dataInfo <- getCellRangerMultiData(input, "MultiDataDir", sampleName)
     dirList <- c(dirList, list(multiplexName=dataInfo[["multiName"]],
                                multiplexDirs=dataInfo[["multiDirs"]]))
@@ -190,7 +190,7 @@ buildMultiConfigFile <- function(input, param, dirList) {
     fileContents <- append(fileContents, sprintf("reference,%s", featureRefFile))
     fileContents <- append(fileContents, c(""))
   }
-  if ("Multiplexing" %in% libraryTypes) {
+  if ("Multiplexing" %in% libraryTypes && !("fixedRNA" %in% libraryTypes)) {
     multiplexBarcodeFile <- tempfile(pattern = "multi_barcode_set", tmpdir = ".", fileext = ".csv")
     multiplexBarcodeFile <- file.path(getwd(), multiplexBarcodeFile)
     fileContents <- append(fileContents, 
@@ -218,7 +218,7 @@ buildMultiConfigFile <- function(input, param, dirList) {
     fileContents <- append(fileContents,
                            sprintf("%s,%s,%s", dirList$featureName, dirList$featureDirs, "Antibody Capture"))
   }  
-  if ("Multiplexing" %in% libraryTypes) {
+  if ("Multiplexing" %in% libraryTypes && !("fixedRNA" %in% libraryTypes)) {
     fileContents <- append(fileContents,
                            sprintf("%s,%s,%s", dirList$multiplexName, dirList$multiplexDirs, "Multiplexing Capture"))
   }
