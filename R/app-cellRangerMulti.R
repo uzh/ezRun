@@ -46,6 +46,22 @@ ezMethodCellRangerMulti <- function(input = NA, output = NA, param = NA) {
       print(ezSystem('find . -name "*.bam" -type f'))
       ezSystem('find . -name "*.bam" -type f -delete')
   }
+  
+  #9. Generate expanded dataset.tsv:
+  ds <- output$meta
+  samplePath <- file.path(sampleName, 'per_sample_outs')
+  subSampleDirs <- list.dirs(samplePath, recursive = FALSE)
+  subSamples <- basename(subSampleDirs)
+  expandedDS <- data.frame(Name = subSamples, Species = ds$Species, 
+                                                refBuild = ds$refBuild, refFeatureFile = ds$refFeatureFile, 
+                                                featureLevel = ds$featureLevel, transcriptTypes = ds$transcriptTypes)
+  expandedDS[['ResultDir [File]']] <- file.path(sub('/srv/gstore/projects/', '', samplePath), subSamples)
+  expandedDS[['Report [Link]']] <- file.path(expandedDS[['ResultDir [File]']], 'web_summary.html')
+  expandedDS[['CountMatrix [Link]']] <- file.path(expandedDS[['ResultDir [File]']], 'count', 'sample_filtered_feature_bc_matrix')
+  expandedDS[['Condition [Factor]']] = c('')
+  expandedDS[['Order Id [B-Fabric]']] = ds[['Order Id [B-Fabric]']]
+  ezWrite.table(expandedDS, file.path(sampleName, 'expanded_dataset.tsv'), row.names = FALSE)
+  
   return("Success")
 }
 
