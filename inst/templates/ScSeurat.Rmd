@@ -62,6 +62,9 @@ if (file.exists("cells.AUC.rds")){
 }
 if (file.exists("enrichRout.rds")){
   enrichRout <- readRDS("enrichRout.rds")
+  if(length(enrichRout) == 1){ ##enrichR call creates empty file
+     enrichRout <- NULL 
+  }
 } else {
   enrichRout <- NULL
 }
