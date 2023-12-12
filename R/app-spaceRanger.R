@@ -113,9 +113,11 @@ ezMethodSpaceRanger <- function(input=NA, output=NA, param=NA){
   if(ezIsSpecified(param$controlSeqs)){
     unlink(refDir, recursive = TRUE)
   }
+  
+  # Optional removal of the bam files
   if(!param$keepBam){
-      ezSystem(paste('rm', file.path(sampleName, "possorted_genome_bam.bam")))
-      ezSystem(paste('rm', file.path(sampleName, "possorted_genome_bam.bam.bai")))
+      print(ezSystem('find . -name "*.bam" -type f'))
+      ezSystem('find . -name "*.bam" -type f -delete')
   }
   
   return("Success")
