@@ -142,13 +142,10 @@ ezMethodSpatialSeurat <- function(input=NA, output=NA, param=NA,
   clusterMarkers[which(clusterMarkers$gene %in% spatialPosMarkers), 'isSpatialMarker'] = TRUE
   
   #Save some results in external files
-  library(scanalysis)
-  scData_diet = DietSeurat(scData, dimreducs = c("pca", "tsne", "umap"))
-  sce <- scData_diet %>% seurat_to_sce(default_assay = "SCT")
-  geneMeansPerCluster <- geneMeansCluster(sce)
-  geneMeans <- apply(logcounts(sce), 1, mean)
-  geneMeans <- data.frame(logCount = geneMeans, row.names = names(geneMeans))
-  dataFiles <- saveExternalFiles(list(cluster_markers=clusterMarkers, spatial_markers=data.frame(spatialMarkers), gene_means = geneMeans, gene_means_per_cluster = as_tibble(as.data.frame(geneMeansPerCluster), rownames = "gene_name")))
+  geneMeansPerCluster <- data.frame(AverageExpression(scData, group.by = 'ident')$SCT)
+  geneMeans <-  data.frame(AverageExpression(scData, group.by = 'Sample')$SCT)
+  
+  dataFiles <- saveExternalFiles(list(cluster_markers=clusterMarkers, spatial_markers=data.frame(spatialMarkers), gene_means = geneMeans, gene_means_per_cluster = geneMeansPerCluster))
   
   saveRDS(scData, "scData.rds")
   allCellsMeta <- scData.unfiltered@meta.data
