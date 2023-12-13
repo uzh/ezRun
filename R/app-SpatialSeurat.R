@@ -166,7 +166,7 @@ ezMethodSpatialSeurat <- function(input=NA, output=NA, param=NA,
 }
 
 runBasicProcessing <- function(scData, input, featInfo, param){
-    scData$Condition <- input$getColumn("Condition")
+    scData@meta.data$Condition <- input$getColumn("Condition")
     scData@meta.data$Sample <- input$getNames()
     scData[["Spatial"]] <- AddMetaData(object = scData[["Spatial"]], metadata = featInfo[rownames(scData), ])
     
