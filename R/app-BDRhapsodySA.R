@@ -9,7 +9,11 @@ ezMethodBdRhapsodySA <- function(input = NA, output = NA, param = NA) {
   sampleName <- input$getNames()
   
   #1. Get the reference
-  bdRef <- getBdWtaReference(param)
+  if (ezIsSpecified(param$refBuild)){
+    bdRef <- getBdWtaReference(param)
+  } else {
+    bdRef <- NULL
+  }
   bdRhapsodyFolder <- str_sub(sampleName, 1, 45) %>% str_c("-BD-Rhapsody")
   
   #2. Generate the yml file
