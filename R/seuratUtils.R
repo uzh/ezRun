@@ -130,14 +130,14 @@ cellClustWithCorrection <- function (scDataList, param) {
   #2.1. # Select the most variable features to use for integration
   integ_features <- SelectIntegrationFeatures(object.list = scDataList, nfeatures = 3000)
   
-  if (param$integrationMethod %in% c("RPCA", "Classic")) {
+  if (param$integrationMethod %in% c("RPCA", "CCA")) {
     #2.2. Prepare the SCT list object for integration
     scDataList <- PrepSCTIntegration(object.list = scDataList, anchor.features = integ_features)
     if(param$integrationMethod == 'RPCA'){
       scDataList <- lapply(X = scDataList, FUN = RunPCA, features = integ_features)
     }
     #2.3. Find anchors
-    if(param$integrationMethod == 'Classic'){
+    if(param$integrationMethod == 'CCA'){
       integ_anchors <- FindIntegrationAnchors(object.list = scDataList, normalization.method = "SCT", 
                                               anchor.features = integ_features, dims = 1:param$npcs)
     } else if(param$integrationMethod == 'RPCA'){
