@@ -121,8 +121,10 @@ makeBdYmlFile <- function(input, param, bdRef) {
   }
   if (ezIsSpecified(param$targetedReference)) {
     bdParams$Targeted_Reference <- list(
+      list(
       "class"="File", 
       "location"=file.path(param$dataRoot, param$targetedReference)
+      )
     )
   }
   
