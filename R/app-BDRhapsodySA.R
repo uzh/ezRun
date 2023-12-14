@@ -266,11 +266,13 @@ postProcessTagResults <- function(param, output, sampleName) {
   }
   # Recursively unzip the by-tag count matrix results
   sampleNameMut <- str_replace_all(sampleName, "_", "-")
-  sampleTagZips <- Sys.glob(sprintf("%s_SampleTag%02d*.zip", sampleNameMut, tagNums))
-  if (!all(file.exists(sampleTagZips))) {
-    stop(sprintf("Could not find all tag zips %s", paste(sampleTagZips, collapse=", ")))
+  sampleTagZips <- c()
+  for (i in seq_along(tagNums)){
+    myZipFile <- Sys.glob(sprintf("%s_SampleTag%02d*.zip", sampleNameMut, tagNums[i]))
+    sampleTagZips[i] <- switch(as.character(length(myZipFile)),"0"='', "1"=myZipFile)
   }
-  mtxFolders <- sapply(sampleTagZips, function(tagZip) {
+  tagIsFound <- sampleTagZips != ""
+  mtxFolders <- sapply(sampleTagZips[tagIsFound], function(tagZip) {
     sampleTagFolder <- tools::file_path_sans_ext(tagZip)
     ezSystem(sprintf("unzip %s -d %s", tagZip, sampleTagFolder))
     mtxZip <- Sys.glob(file.path(sampleTagFolder, "*.zip"))
@@ -281,7 +283,7 @@ postProcessTagResults <- function(param, output, sampleName) {
   })
   # Create a dataset file split by sample
   bySampleOutput <- tibble(
-    `Name`=tagNames, 
+    `Name`=tagNames[tagIsFound], 
     `Condition [Factor]`=output$getColumn("Condition"),
     `Species`=output$getColumn("Species"),
     `refBuild`=output$getColumn("refBuild"),
